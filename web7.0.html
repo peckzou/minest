@@ -137,21 +137,51 @@ body.theme-white {
   position: sticky !important;
   left: 0 !important;
   z-index: 30 !important;
-  box-shadow: 14px 0 36px -4px rgba(0, 0, 0, 0.45), inset -1px 0 0 0 rgba(255, 255, 255, 0.2) !important;
-  background-color: rgba(18, 26, 36, 0.96) !important;
+  backdrop-filter: blur(36px) saturate(220%) brightness(1.05) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(220%) brightness(1.05) !important;
+  background-color: rgba(18, 26, 36, 0.72) !important;
+  box-shadow: 16px 0 40px -4px rgba(0, 0, 0, 0.5), inset -1.5px 0 2px 0 rgba(255, 255, 255, 0.25) !important;
 }
 .theme-white .pinned-column {
-  box-shadow: 10px 0 28px -2px rgba(0, 0, 0, 0.12), inset -1px 0 0 0 rgba(0, 0, 0, 0.08) !important;
-  background-color: rgba(248, 246, 240, 0.98) !important;
+  backdrop-filter: blur(36px) saturate(220%) brightness(1.03) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(220%) brightness(1.03) !important;
+  background-color: rgba(255, 255, 255, 0.68) !important;
+  box-shadow: 12px 0 32px -4px rgba(15, 23, 42, 0.12), inset -1.5px 0 2px 0 #ffffff !important;
 }
-/* Pinned List Occlusion Transition (smooth liquid glass fade, completely occluded behind pin) */
+/* Pinned List Overlapping Transition (optical liquid glass refraction, never disappears) */
 .occluded-by-pin {
-  filter: blur(12px) !important;
-  transform: scale(0.95) !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  transition: opacity 0.4s ease, filter 0.4s ease, transform 0.4s ease, visibility 0.4s !important;
+  opacity: 0.95 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: scale(0.99) translateZ(0) !important;
+  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease !important;
+}
+/* Card Hover Action Capsule (Slender Capsule Wheel / Dock) */
+.card-action-capsule {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.18s ease;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+.liquid-glass-card:hover .card-action-capsule {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
+.card-action-capsule-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.card-action-capsule-btn:hover {
+  background: rgba(16, 185, 129, 0.25);
+  color: #10b981;
 }
 /* Card Stack Base & Leaves */
 /* Card Stack Base & Stepped Liquid Glass Plates */
@@ -5058,30 +5088,36 @@ var ke = function(props) {
                                         children: (0, P.jsx)('span', { className: "leading-none", children: "↗" })
                                       })
                                     ) : null,
-                                    (0, P.jsxs)('button', {
-                                      type: "button",
-                                      onClick: function(e) {
-                                        e.stopPropagation();
-                                        setHoverCoverCardId(hoverCoverCardId === card.id ? null : card.id);
-                                        SoundEngine.play('click');
-                                      },
-                                      className: "card-cover-btn px-1.5 py-0.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 shadow-sm backdrop-blur-md transition-all " +
-                                        (isDark ? "bg-black/60 hover:bg-black/85 text-white border border-white/15" : "bg-white/85 hover:bg-white text-slate-800 border border-black/10"),
-                                      title: "Change cover",
+                                    (0, P.jsxs)('div', {
+                                      className: "card-action-capsule flex items-center p-0.5 rounded-full border shadow-sm " +
+                                        (isDark ? "bg-black/65 border-white/20 text-white shadow-black/40" : "bg-white/90 border-slate-300/80 text-slate-800 shadow-slate-300/50"),
                                       children: [
-                                        (0, P.jsx)(IconImage, { className: "w-3 h-3 text-emerald-400" }),
-                                        (0, P.jsx)('span', { children: "Cover" })
+                                        (0, P.jsxs)('button', {
+                                          type: "button",
+                                          onClick: function(e) {
+                                            e.stopPropagation();
+                                            setHoverCoverCardId(hoverCoverCardId === card.id ? null : card.id);
+                                            SoundEngine.play('click');
+                                          },
+                                          className: "card-action-capsule-btn gap-1",
+                                          title: "Change cover (V)",
+                                          children: [
+                                            (0, P.jsx)(IconImage, { className: "w-3 h-3 text-emerald-400" }),
+                                            (0, P.jsx)('span', { className: "text-[9px] font-semibold leading-none", children: "Cover" })
+                                          ]
+                                        }),
+                                        (0, P.jsx)('span', { className: "w-[1px] h-3 bg-white/20 mx-0.5" }),
+                                        (0, P.jsx)('button', {
+                                          type: "button",
+                                          onClick: function(e) {
+                                            e.stopPropagation();
+                                            openQuickEdit(card, col);
+                                          },
+                                          className: "card-action-capsule-btn p-1",
+                                          title: "Quick edit card (E)",
+                                          children: (0, P.jsx)(IconPencil, { className: "w-3 h-3" })
+                                        })
                                       ]
-                                    }),
-                                    (0, P.jsx)('button', {
-                                      type: "button",
-                                      onClick: function(e) {
-                                        e.stopPropagation();
-                                        openQuickEdit(card, col);
-                                      },
-                                      className: "card-edit-btn shrink-0",
-                                      title: "Quick edit card (E)",
-                                      children: (0, P.jsx)(IconPencil, { className: "w-3.5 h-3.5" })
                                     })
                                   ]
                                 }),
@@ -5250,9 +5286,10 @@ var ke = function(props) {
                                 (0, P.jsx)('div', { className: "liquid-specular-edge opacity-40 group-hover:opacity-100 transition-opacity" }),
                                 (0, P.jsx)('div', { className: "liquid-glass-caustic opacity-50 group-hover:opacity-90 transition-opacity" }),
 
-                                // Top-Right Hover Buttons: Cover and Pencil
+                                // Top-Right Hover Buttons: Slender Capsule Wheel
                                 (0, P.jsxs)('div', {
-                                  className: "absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5",
+                                  className: "card-action-capsule absolute top-2.5 right-2.5 z-20 flex items-center p-0.5 rounded-full border shadow-sm " +
+                                    (isDark ? "bg-black/65 border-white/20 text-white shadow-black/40" : "bg-white/90 border-slate-300/80 text-slate-800 shadow-slate-300/50"),
                                   children: [
                                     (0, P.jsxs)('button', {
                                       type: "button",
@@ -5261,23 +5298,23 @@ var ke = function(props) {
                                         setHoverCoverCardId(hoverCoverCardId === card.id ? null : card.id);
                                         SoundEngine.play('click');
                                       },
-                                      className: "card-cover-btn px-2 py-0.5 rounded-lg text-[10px] font-semibold flex items-center gap-1 shadow-sm backdrop-blur-md transition-all " +
-                                        (isDark ? "bg-black/60 hover:bg-black/85 text-white border border-white/15" : "bg-white/85 hover:bg-white text-slate-800 border border-black/10"),
-                                      title: "Change cover",
+                                      className: "card-action-capsule-btn gap-1",
+                                      title: "Change cover (V)",
                                       children: [
                                         (0, P.jsx)(IconImage, { className: "w-3 h-3 text-emerald-400" }),
-                                        (0, P.jsx)('span', { children: "Cover" })
+                                        (0, P.jsx)('span', { className: "text-[9px] font-semibold leading-none", children: "Cover" })
                                       ]
                                     }),
+                                    (0, P.jsx)('span', { className: "w-[1px] h-3 bg-white/20 mx-0.5" }),
                                     (0, P.jsx)('button', {
                                       type: "button",
                                       onClick: function(e) {
                                         e.stopPropagation();
                                         openQuickEdit(card, col);
                                       },
-                                      className: "card-edit-btn",
+                                      className: "card-action-capsule-btn p-1",
                                       title: "Quick edit card (E)",
-                                      children: (0, P.jsx)(IconPencil, { className: "w-3.5 h-3.5" })
+                                      children: (0, P.jsx)(IconPencil, { className: "w-3 h-3" })
                                     })
                                   ]
                                 }),
@@ -5792,56 +5829,62 @@ var ke = function(props) {
                 ]
               }),
 
-              // Right: Floating Vertical Action Pills (media_1789802486809.png)
+              // Right: Slender Vertical Action Strip / Wheel Dock
               (0, P.jsxs)('div', {
-                className: "w-full sm:w-48 md:w-56 flex flex-col gap-1.5 animate-slideInRight",
+                className: "w-36 shrink-0 flex flex-col p-1.5 rounded-2xl border backdrop-blur-2xl shadow-2xl animate-slideInRight gap-0.5 " +
+                  (isDark ? "bg-[#101720]/85 border-white/15 text-white" : "bg-white/90 border-slate-200/90 text-slate-800"),
                 children: [
+                  // Open card
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() { onOpenCardModal(quickEditCardInfo.col.id, quickEditCardInfo.card.id); closeQuickEdit(); },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
-                      (isDark ? "bg-[#182330]/90 hover:bg-[#203040] text-white border-white/15" : "bg-white/95 hover:bg-white text-slate-800 border-slate-200"),
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
+                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    title: "Open full card details",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconFileText, { className: "w-4 h-4 text-emerald-400" }), "Open card"] }),
-                      (0, P.jsx)('kbd', { className: "px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono opacity-60", children: "E" })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconFileText, { className: "w-3.5 h-3.5 text-emerald-400 shrink-0" }), "Open"] }),
+                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "E" })
                     ]
                   }),
-
+                  // Edit labels
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() { onOpenCardModal(quickEditCardInfo.col.id, quickEditCardInfo.card.id); closeQuickEdit(); },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
-                      (isDark ? "bg-[#182330]/90 hover:bg-[#203040] text-white border-white/15" : "bg-white/95 hover:bg-white text-slate-800 border-slate-200"),
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
+                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    title: "Edit card labels",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconTag, { className: "w-4 h-4 text-amber-400" }), "Edit labels"] }),
-                      (0, P.jsx)('kbd', { className: "px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono opacity-60", children: "L" })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconTag, { className: "w-3.5 h-3.5 text-amber-400 shrink-0" }), "Labels"] }),
+                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "L" })
                     ]
                   }),
-
+                  // Change cover
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() { setIsQuickCoverOpen(!isQuickCoverOpen); SoundEngine.play('click'); },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
                       (isQuickCoverOpen
-                        ? (isDark ? "bg-emerald-600/30 text-emerald-300 border-emerald-500/50" : "bg-emerald-50 text-emerald-700 border-emerald-300")
-                        : (isDark ? "bg-[#182330]/90 hover:bg-[#203040] text-white border-white/15" : "bg-white/95 hover:bg-white text-slate-800 border-slate-200")),
+                        ? (isDark ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40" : "bg-emerald-50 text-emerald-700 border border-emerald-300")
+                        : (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800")),
+                    title: "Change card cover",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconImage, { className: "w-4 h-4 text-sky-400" }), "Change cover"] }),
-                      (0, P.jsx)('kbd', { className: "px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono opacity-60", children: "V" })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconImage, { className: "w-3.5 h-3.5 text-sky-400 shrink-0" }), "Cover"] }),
+                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "V" })
                     ]
                   }),
-
+                  // Checklist
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() { onOpenCardModal(quickEditCardInfo.col.id, quickEditCardInfo.card.id); closeQuickEdit(); },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
-                      (isDark ? "bg-[#182330]/90 hover:bg-[#203040] text-white border-white/15" : "bg-white/95 hover:bg-white text-slate-800 border-slate-200"),
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
+                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    title: "Edit checklist",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconChecklist, { className: "w-4 h-4 text-emerald-400" }), "Checklist"] }),
-                      (0, P.jsx)('kbd', { className: "px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono opacity-60", children: "C" })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconChecklist, { className: "w-3.5 h-3.5 text-emerald-400 shrink-0" }), "Checklist"] }),
+                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "C" })
                     ]
                   }),
-
+                  // Move
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() {
@@ -5852,14 +5895,15 @@ var ke = function(props) {
                       closeQuickEdit();
                       SoundEngine.play('slide');
                     },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
-                      (isDark ? "bg-[#182330]/90 hover:bg-[#203040] text-white border-white/15" : "bg-white/95 hover:bg-white text-slate-800 border-slate-200"),
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
+                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    title: "Move card to next list",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconMove, { className: "w-4 h-4 text-purple-400" }), "Move"] }),
-                      (0, P.jsx)('kbd', { className: "px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono opacity-60", children: "M" })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconMove, { className: "w-3.5 h-3.5 text-purple-400 shrink-0" }), "Move"] }),
+                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "M" })
                     ]
                   }),
-
+                  // Copy card
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() {
@@ -5867,31 +5911,32 @@ var ke = function(props) {
                       closeQuickEdit();
                       SoundEngine.play('add');
                     },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
-                      (isDark ? "bg-[#182330]/90 hover:bg-[#203040] text-white border-white/15" : "bg-white/95 hover:bg-white text-slate-800 border-slate-200"),
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
+                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    title: "Duplicate card",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconCopy, { className: "w-4 h-4 text-emerald-400" }), "Copy card"] }),
-                      (0, P.jsx)('kbd', { className: "px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono opacity-60", children: "D" })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconCopy, { className: "w-3.5 h-3.5 text-emerald-400 shrink-0" }), "Copy"] }),
+                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "D" })
                     ]
                   }),
-
+                  // Copy link
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() {
                       try {
                         navigator.clipboard.writeText(quickEditCardInfo.card.title);
-                        alert("Copied card title to clipboard!");
                       } catch(e) {}
                       closeQuickEdit();
                       SoundEngine.play('click');
                     },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
-                      (isDark ? "bg-[#182330]/90 hover:bg-[#203040] text-white border-white/15" : "bg-white/95 hover:bg-white text-slate-800 border-slate-200"),
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
+                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    title: "Copy card title to clipboard",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconLink, { className: "w-4 h-4 text-sky-400" }), "Copy link"] })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconLink, { className: "w-3.5 h-3.5 text-sky-400 shrink-0" }), "Link"] })
                     ]
                   }),
-
+                  // Target Board
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() {
@@ -5900,14 +5945,16 @@ var ke = function(props) {
                       closeQuickEdit();
                       SoundEngine.play('click');
                     },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
-                      (isDark ? "bg-[#182330]/90 hover:bg-[#203040] text-white border-white/15" : "bg-white/95 hover:bg-white text-slate-800 border-slate-200"),
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
+                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    title: "Jump to target board",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconLink, { className: "w-4 h-4 text-emerald-400" }), "Link Board"] }),
-                      (0, P.jsx)('kbd', { className: "px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono opacity-60", children: "B" })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconLink, { className: "w-3.5 h-3.5 text-purple-400 shrink-0" }), "Board"] }),
+                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "B" })
                     ]
                   }),
-
+                  (0, P.jsx)('div', { className: "h-[1px] my-0.5 " + (isDark ? "bg-white/10" : "bg-slate-200") }),
+                  // Archive
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() {
@@ -5915,14 +5962,15 @@ var ke = function(props) {
                       closeQuickEdit();
                       SoundEngine.play('slide');
                     },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
-                      (isDark ? "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30" : "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200"),
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
+                      (isDark ? "hover:bg-amber-500/20 text-amber-300" : "hover:bg-amber-50 text-amber-800"),
+                    title: "Archive this card",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconArchive, { className: "w-4 h-4 text-amber-400" }), "Archive"] }),
-                      (0, P.jsx)('kbd', { className: "px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono opacity-60", children: "A" })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconArchive, { className: "w-3.5 h-3.5 text-amber-400 shrink-0" }), "Archive"] }),
+                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "A" })
                     ]
                   }),
-
+                  // Delete
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() {
@@ -5932,11 +5980,12 @@ var ke = function(props) {
                       closeQuickEdit();
                       SoundEngine.play('slide');
                     },
-                    className: "w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-sm transition-all hover:scale-[1.02] " +
-                      (isDark ? "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30" : "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200"),
+                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
+                      (isDark ? "hover:bg-rose-500/20 text-rose-300" : "hover:bg-rose-50 text-rose-800"),
+                    title: "Delete card permanently",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-2", children: [(0, P.jsx)(IconTrash, { className: "w-4 h-4 text-rose-400" }), "Delete"] }),
-                      (0, P.jsx)('kbd', { className: "px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-mono opacity-60", children: "Del" })
+                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconTrash, { className: "w-3.5 h-3.5 text-rose-400 shrink-0" }), "Delete"] }),
+                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "Del" })
                     ]
                   })
                 ]
