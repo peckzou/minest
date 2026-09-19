@@ -651,6 +651,13 @@ body.theme-white {
   border-color: rgba(16, 185, 129, 0.4) !important;
 }
 
+/* Card Hover Archive Button (amber tint on hover) */
+.liquid-glass-card .card-archive-btn:hover {
+  color: #f59e0b !important;
+  background-color: rgba(245, 158, 11, 0.25) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+}
+
 /* Card Hover Cover Button */
 .card-cover-btn {
   opacity: 0;
@@ -4054,6 +4061,10 @@ var ke = function(props) {
   var isQuickCoverOpen = isQuickCoverOpenState[0];
   var setIsQuickCoverOpen = isQuickCoverOpenState[1];
 
+  var isQuickColorOpenState = (0, _.useState)(false);
+  var isQuickColorOpen = isQuickColorOpenState[0];
+  var setIsQuickColorOpen = isQuickColorOpenState[1];
+
   var hoverCoverCardIdState = (0, _.useState)(null);
   var hoverCoverCardId = hoverCoverCardIdState[0];
   var setHoverCoverCardId = hoverCoverCardIdState[1];
@@ -4064,12 +4075,14 @@ var ke = function(props) {
     setQuickMenuCardId(card.id);
     setQuickEditTitle(card.title || "");
     setIsQuickCoverOpen(false);
+    setIsQuickColorOpen(false);
     SoundEngine.play('click');
   };
 
   var closeQuickEdit = function() {
     setQuickMenuCardId(null);
     setIsQuickCoverOpen(false);
+    setIsQuickColorOpen(false);
     setHoverCoverCardId(null);
   };
 
@@ -4079,6 +4092,18 @@ var ke = function(props) {
     var col = quickEditCardInfo.col;
     if (onSaveCard) {
       onSaveCard(col.id, Object.assign({}, card, { cover: newCover }), col.id);
+      SoundEngine.play('add');
+    }
+  };
+
+  var handleQuickColorChange = function(newColor) {
+    if (!quickEditCardInfo) return;
+    var card = quickEditCardInfo.card;
+    var col = quickEditCardInfo.col;
+    var updatedCard = Object.assign({}, card, { color: newColor });
+    quickEditCardInfo.card = updatedCard;
+    if (onSaveCard) {
+      onSaveCard(col.id, updatedCard, col.id);
       SoundEngine.play('add');
     }
   };
@@ -4194,8 +4219,9 @@ var ke = function(props) {
         closeQuickEdit();
       } else if (key === 'c') {
         e.preventDefault();
-        onOpenCardModal(col.id, card.id);
-        closeQuickEdit();
+        setIsQuickColorOpen(!isQuickColorOpen);
+        if (!isQuickColorOpen) setIsQuickCoverOpen(false);
+        SoundEngine.play('click');
       } else if (key === 'm') {
         e.preventDefault();
         var cols = board.columns || [];
@@ -4242,8 +4268,18 @@ var ke = function(props) {
       var params = new URLSearchParams(window.location.search);
       var qe = params.get('quickEdit');
       var qec = params.get('quickEditComplete');
+      var qecol = params.get('quickEditColor');
       var cc = params.get('clickCover');
       var co = params.get('clickOutside');
+      if (qecol) {
+        setTimeout(function() {
+          var col = board.columns[0];
+          var cd = col.cards[0];
+          openQuickEdit(cd, col);
+          setIsQuickColorOpen(true);
+        }, 150);
+        return;
+      }
       if (co) {
         setTimeout(function() {
           var col = board.columns[0];
@@ -5292,6 +5328,19 @@ var ke = function(props) {
                                         children: (0, P.jsx)('span', { className: "leading-none", children: "↗" })
                                       })
                                     ) : null,
+                                    card.complete ? (
+                                      (0, P.jsx)('button', {
+                                        type: "button",
+                                        onClick: function(e) {
+                                          e.stopPropagation();
+                                          if (onArchiveCard) onArchiveCard(col.id, card.id);
+                                          SoundEngine.play('slide');
+                                        },
+                                        className: "card-archive-btn card-edit-btn shrink-0 hover:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/40",
+                                        title: "Archive completed card",
+                                        children: (0, P.jsx)(IconArchive, { className: "w-3.5 h-3.5" })
+                                      })
+                                    ) : null,
                                     (0, P.jsx)('button', {
                                       type: "button",
                                       onClick: function(e) {
@@ -5478,16 +5527,34 @@ var ke = function(props) {
                                 (0, P.jsx)('div', { className: "liquid-specular-edge opacity-40 group-hover:opacity-100 transition-opacity" }),
                                 (0, P.jsx)('div', { className: "liquid-glass-caustic opacity-50 group-hover:opacity-90 transition-opacity" }),
 
-                                // Top-Right Hover Button: Edit
-                                (0, P.jsx)('button', {
-                                  type: "button",
-                                  onClick: function(e) {
-                                    e.stopPropagation();
-                                    openQuickEdit(card, col);
-                                  },
-                                  className: "card-edit-btn absolute top-2.5 right-2.5 z-20 shrink-0",
-                                  title: "Quick edit card (E)",
-                                  children: (0, P.jsx)(IconPencil, { className: "w-3.5 h-3.5" })
+                                // Top-Right Hover Buttons: Archive (ONLY if checked/completed) & Edit
+                                (0, P.jsxs)('div', {
+                                  className: "absolute top-2.5 right-2.5 z-20 flex items-center gap-1",
+                                  children: [
+                                    card.complete ? (
+                                      (0, P.jsx)('button', {
+                                        type: "button",
+                                        onClick: function(e) {
+                                          e.stopPropagation();
+                                          if (onArchiveCard) onArchiveCard(col.id, card.id);
+                                          SoundEngine.play('slide');
+                                        },
+                                        className: "card-archive-btn card-edit-btn shrink-0 hover:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/40",
+                                        title: "Archive completed card",
+                                        children: (0, P.jsx)(IconArchive, { className: "w-3.5 h-3.5" })
+                                      })
+                                    ) : null,
+                                    (0, P.jsx)('button', {
+                                      type: "button",
+                                      onClick: function(e) {
+                                        e.stopPropagation();
+                                        openQuickEdit(card, col);
+                                      },
+                                      className: "card-edit-btn shrink-0",
+                                      title: "Quick edit card (E)",
+                                      children: (0, P.jsx)(IconPencil, { className: "w-3.5 h-3.5" })
+                                    })
+                                  ]
                                 }),
 
                                 hoverCoverCardId === card.id ? (
@@ -5511,7 +5578,7 @@ var ke = function(props) {
                                 // Micro labels row if any
                                 hasLabels ? (
                                   (0, P.jsx)('div', {
-                                    className: "flex items-center gap-1.5 flex-wrap mb-2 relative z-10 pr-7",
+                                    className: "flex items-center gap-1.5 flex-wrap mb-2 relative z-10 " + (card.complete ? "pr-14" : "pr-7"),
                                     children: (card.labels || []).map(function(lblId, lIdx) {
                                       var def = (board.labelDefinitions || []).find(function(d) { return d.id === lblId; }) || DEFAULT_PRESET_LABELS.find(function(d) { return d.id === lblId; });
                                       var colColor = def ? def.color : (lblId.startsWith('#') ? lblId : (col.color || "#30d158"));
@@ -5535,7 +5602,7 @@ var ke = function(props) {
 
                                 // Title Row with Check Circle on Left
                                 (0, P.jsxs)('div', {
-                                  className: "flex items-start gap-2.5 mb-1.5 relative z-10 pr-7",
+                                  className: "flex items-start gap-2.5 mb-1.5 relative z-10 " + (card.complete ? "pr-14" : "pr-7"),
                                   children: [
                                     (0, P.jsx)('div', {
                                       onClick: function(e) {
@@ -5696,6 +5763,19 @@ var ke = function(props) {
                                               })
                                             ]
                                           }),
+                                          sub.complete ? (
+                                            (0, P.jsx)('button', {
+                                              type: "button",
+                                              onClick: function(e) {
+                                                e.stopPropagation();
+                                                if (onArchiveCard) onArchiveCard(col.id, sub.id);
+                                                SoundEngine.play('slide');
+                                              },
+                                              className: "card-archive-btn card-edit-btn shrink-0 hover:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/40",
+                                              title: "Archive completed card",
+                                              children: (0, P.jsx)(IconArchive, { className: "w-3 h-3" })
+                                            })
+                                          ) : null,
                                           (0, P.jsx)('button', {
                                             type: "button",
                                             onClick: function(e) {
@@ -5926,6 +6006,10 @@ var ke = function(props) {
                 children: [
                   (0, P.jsx)('div', {
                     className: "quick-edit-card-box",
+                    style: quickEditCardInfo.card.color ? {
+                      borderLeft: "6px solid " + quickEditCardInfo.card.color,
+                      backgroundColor: isDark ? "rgba(255,255,255,0.06)" : quickEditCardInfo.card.color + "18"
+                    } : undefined,
                     children: (0, P.jsx)('textarea', {
                       value: quickEditTitle,
                       autoFocus: true,
@@ -5996,13 +6080,34 @@ var ke = function(props) {
                   // Change cover
                   (0, P.jsxs)('button', {
                     type: "button",
-                    onClick: function() { setIsQuickCoverOpen(!isQuickCoverOpen); SoundEngine.play('click'); },
+                    onClick: function() {
+                      setIsQuickCoverOpen(!isQuickCoverOpen);
+                      if (!isQuickCoverOpen) setIsQuickColorOpen(false);
+                      SoundEngine.play('click');
+                    },
                     className: "quick-edit-action-btn",
                     style: isQuickCoverOpen ? { backgroundColor: '#e9f2ff', borderColor: '#0c66e4', color: '#0c66e4' } : undefined,
                     title: "Change card cover",
                     children: [
                       (0, P.jsx)(IconImage, {}),
                       (0, P.jsx)('span', { children: "Change cover" })
+                    ]
+                  }),
+
+                  // Change card color
+                  (0, P.jsxs)('button', {
+                    type: "button",
+                    onClick: function() {
+                      setIsQuickColorOpen(!isQuickColorOpen);
+                      if (!isQuickColorOpen) setIsQuickCoverOpen(false);
+                      SoundEngine.play('click');
+                    },
+                    className: "quick-edit-action-btn",
+                    style: isQuickColorOpen ? { backgroundColor: '#e9f2ff', borderColor: '#0c66e4', color: '#0c66e4' } : undefined,
+                    title: "Change card color (C)",
+                    children: [
+                      (0, P.jsx)(IconPalette, {}),
+                      (0, P.jsx)('span', { children: "Change card color" })
                     ]
                   }),
 
@@ -6113,7 +6218,36 @@ var ke = function(props) {
                   onChange: handleQuickCoverChange,
                   onClose: function() { setIsQuickCoverOpen(false); },
                   isDark: isDark,
-                  className: "w-full sm:w-80 shrink-0"
+                  className: "w-full sm:w-80 shrink-0 cover-picker-popover"
+                })
+              ) : null,
+
+              // Right: Floating Color Picker Popover anchored beside menu
+              isQuickColorOpen ? (
+                (0, P.jsxs)('div', {
+                  className: "p-4 rounded-2xl border space-y-4 shadow-2xl backdrop-blur-2xl animate-fadeIn w-full sm:w-72 shrink-0 color-picker-popover " +
+                    (isDark ? "bg-[#182330]/95 border-white/20 text-white" : "bg-white/95 border-slate-200 text-slate-900"),
+                  children: [
+                    (0, P.jsxs)('div', {
+                      className: "flex items-center justify-between border-b pb-2.5 " + (isDark ? "border-white/10" : "border-slate-200"),
+                      children: [
+                        (0, P.jsx)('div', { className: "w-5" }),
+                        (0, P.jsx)('h3', { className: "text-xs font-bold uppercase tracking-wider opacity-85", children: "Card Color" }),
+                        (0, P.jsx)('button', {
+                          type: "button",
+                          onClick: function() { setIsQuickColorOpen(false); },
+                          className: "w-6 h-6 rounded-lg flex items-center justify-center opacity-60 hover:opacity-100 hover:bg-white/10 transition-colors text-xs font-bold",
+                          children: "✕"
+                        })
+                      ]
+                    }),
+                    (0, P.jsx)(ColorPalettePicker, {
+                      value: quickEditCardInfo.card.color || "",
+                      onChange: handleQuickColorChange,
+                      isDark: isDark,
+                      label: "Card Tint Color"
+                    })
+                  ]
                 })
               ) : null
             ]
