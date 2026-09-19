@@ -956,6 +956,47 @@ var RECOMMENDED_12_COLORS = [
   { id: 'dark', hex: '#1e293b', name: 'Graphite' }
 ];
 
+// Curated Board Mesh Gradients
+var CURATED_BOARD_GRADIENTS = [
+  { id: 'sunset', name: 'Aura Sunset', value: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+  { id: 'indigo', name: 'Cosmic Indigo', value: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)' },
+  { id: 'emerald', name: 'Emerald Glass', value: 'linear-gradient(135deg, #0ba360 0%, #3cba92 100%)' },
+  { id: 'ocean', name: 'Ocean Depths', value: 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)' },
+  { id: 'obsidian', name: 'Obsidian Glow', value: 'linear-gradient(135deg, #232526 0%, #414345 100%)' },
+  { id: 'rose', name: 'Rose Quartz', value: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)' },
+  { id: 'aurora', name: 'Northern Lights', value: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)' },
+  { id: 'velvet', name: 'Midnight Velvet', value: 'linear-gradient(135deg, #09203f 0%, #537895 100%)' }
+];
+
+// Helper to resolve board background styles accurately
+var getBoardBackgroundStyle = function(board, themeMode) {
+  if (!board) return {};
+  var wp = (board.wallpaper || "").trim();
+  var col = (board.color || "").trim();
+  var isDark = themeMode === 'dark';
+  var style = {};
+
+  if (wp) {
+    if (wp.startsWith("linear-gradient") || wp.startsWith("radial-gradient") || wp.startsWith("conic-gradient")) {
+      style.background = wp;
+      style.backgroundAttachment = "fixed";
+    } else {
+      style.backgroundImage = 'url("' + wp + '")';
+      style.backgroundSize = "cover";
+      style.backgroundPosition = "center";
+      style.backgroundAttachment = "fixed";
+      style.backgroundRepeat = "no-repeat";
+    }
+  } else if (col) {
+    if (isDark) {
+      style.background = 'radial-gradient(ellipse at 50% 0%, ' + col + '40 0%, ' + col + '1a 60%, transparent 100%), #0f172a';
+    } else {
+      style.background = 'radial-gradient(ellipse at 50% 0%, ' + col + '33 0%, ' + col + '14 60%, transparent 100%), #f8fafc';
+    }
+  }
+  return style;
+};
+
 // Curated Sample Covers (Requirement 15)
 var CURATED_COVERS = [
   { id: 'city', name: 'City Skyline', url: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=800&auto=format&fit=crop&q=80' },
@@ -5980,7 +6021,11 @@ var ke = function(props) {
       // Quick Card Editor Modal (Trello authentic Quick Edit from media_1789802486809.png)
       quickMenuCardId && quickEditCardInfo ? (
         (0, P.jsx)('div', {
-          onClick: closeQuickEdit,
+          onClick: function(e) {
+            if (e.target === e.currentTarget) {
+              closeQuickEdit();
+            }
+          },
           onPointerDown: function(e) {
             if (e.target === e.currentTarget) {
               closeQuickEdit();
@@ -5989,14 +6034,10 @@ var ke = function(props) {
           className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fadeIn",
           children: (0, P.jsxs)('div', {
             onClick: function(e) {
-              if (e.target === e.currentTarget) {
-                closeQuickEdit();
-              }
+              e.stopPropagation();
             },
             onPointerDown: function(e) {
-              if (e.target === e.currentTarget) {
-                closeQuickEdit();
-              }
+              e.stopPropagation();
             },
             className: "quick-edit-container",
             children: [
@@ -6080,9 +6121,13 @@ var ke = function(props) {
                   // Change cover
                   (0, P.jsxs)('button', {
                     type: "button",
-                    onClick: function() {
-                      setIsQuickCoverOpen(!isQuickCoverOpen);
-                      if (!isQuickCoverOpen) setIsQuickColorOpen(false);
+                    onClick: function(e) {
+                      e.stopPropagation();
+                      setIsQuickCoverOpen(function(prev) {
+                        var next = !prev;
+                        if (next) setIsQuickColorOpen(false);
+                        return next;
+                      });
                       SoundEngine.play('click');
                     },
                     className: "quick-edit-action-btn",
@@ -6097,9 +6142,13 @@ var ke = function(props) {
                   // Change card color
                   (0, P.jsxs)('button', {
                     type: "button",
-                    onClick: function() {
-                      setIsQuickColorOpen(!isQuickColorOpen);
-                      if (!isQuickColorOpen) setIsQuickCoverOpen(false);
+                    onClick: function(e) {
+                      e.stopPropagation();
+                      setIsQuickColorOpen(function(prev) {
+                        var next = !prev;
+                        if (next) setIsQuickCoverOpen(false);
+                        return next;
+                      });
                       SoundEngine.play('click');
                     },
                     className: "quick-edit-action-btn",
@@ -6225,6 +6274,8 @@ var ke = function(props) {
               // Right: Floating Color Picker Popover anchored beside menu
               isQuickColorOpen ? (
                 (0, P.jsxs)('div', {
+                  onClick: function(e) { e.stopPropagation(); },
+                  onPointerDown: function(e) { e.stopPropagation(); },
                   className: "p-4 rounded-2xl border space-y-4 shadow-2xl backdrop-blur-2xl animate-fadeIn w-full sm:w-72 shrink-0 color-picker-popover " +
                     (isDark ? "bg-[#182330]/95 border-white/20 text-white" : "bg-white/95 border-slate-200 text-slate-900"),
                   children: [
@@ -6235,7 +6286,7 @@ var ke = function(props) {
                         (0, P.jsx)('h3', { className: "text-xs font-bold uppercase tracking-wider opacity-85", children: "Card Color" }),
                         (0, P.jsx)('button', {
                           type: "button",
-                          onClick: function() { setIsQuickColorOpen(false); },
+                          onClick: function(e) { e.stopPropagation(); setIsQuickColorOpen(false); },
                           className: "w-6 h-6 rounded-lg flex items-center justify-center opacity-60 hover:opacity-100 hover:bg-white/10 transition-colors text-xs font-bold",
                           children: "✕"
                         })
@@ -6246,6 +6297,16 @@ var ke = function(props) {
                       onChange: handleQuickColorChange,
                       isDark: isDark,
                       label: "Card Tint Color"
+                    }),
+                    (0, P.jsx)('button', {
+                      type: "button",
+                      onClick: function(e) {
+                        e.stopPropagation();
+                        onOpenCardModal(quickEditCardInfo.col.id, quickEditCardInfo.card.id);
+                        closeQuickEdit();
+                      },
+                      className: "w-full text-center text-xs text-emerald-400 hover:underline pt-2 border-t " + (isDark ? "border-white/10" : "border-slate-200"),
+                      children: "More color & cover options in Card Details →"
                     })
                   ]
                 })
@@ -7259,7 +7320,7 @@ var Me = function(props) {
 };
 
 // =========================================================================
-// Board Settings Modal (Ne) - English
+// Board Settings Studio (Ne) - Apple Liquid Glass 4-Tab Studio
 // =========================================================================
 var Ne = function(props) {
   var board = props.board;
@@ -7273,6 +7334,10 @@ var Ne = function(props) {
   var onUpdateBoard = props.onUpdateBoard;
 
   var isDark = themeMode === 'dark';
+  var activeTabState = (0, _.useState)('appearance');
+  var activeTab = activeTabState[0];
+  var setActiveTab = activeTabState[1];
+
   var titleState = (0, _.useState)(board.title || "");
   var title = titleState[0];
   var setTitle = titleState[1];
@@ -7318,281 +7383,537 @@ var Ne = function(props) {
 
   var otherBoards = allBoards.filter(function(b) { return b.id !== board.id; });
 
+  // Calculate countdown preview
+  var countdownPreview = (0, _.useMemo)(function() {
+    if (!deadline) return null;
+    var target = new Date(deadline.replace(/-/g, '/'));
+    if (isNaN(target.getTime())) return null;
+    var now = new Date();
+    var diffMs = target.getTime() - now.getTime();
+    if (diffMs <= 0) return { expired: true, text: "Milestone reached" };
+    var days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    var hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return { expired: false, text: days + "d " + hours + "h remaining (" + days + " days)" };
+  }, [deadline]);
+
+  // Live mini preview background style
+  var previewBgStyle = (0, _.useMemo)(function() {
+    return getBoardBackgroundStyle({ wallpaper: wallpaper, color: color }, themeMode);
+  }, [wallpaper, color, themeMode]);
+
+  var handleSave = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!title.trim()) return;
+    if (onUpdateBoard) {
+      onUpdateBoard(Object.assign({}, board, {
+        title: title.trim(),
+        deadline: deadline.trim(),
+        color: color,
+        wallpaper: wallpaper,
+        linkedBoardIds: linkedBoards
+      }));
+    } else if (onSaveTitle) {
+      onSaveTitle(title.trim());
+    }
+    SoundEngine.play('add');
+    onClose();
+  };
+
   return (0, P.jsx)('div', {
-    onClick: onClose,
-    className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn overflow-y-auto",
+    onClick: function(e) { if (e.target === e.currentTarget) onClose(); },
+    className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn overflow-y-auto",
     children: (0, P.jsxs)('div', {
       onClick: function(e) { e.stopPropagation(); },
-      className: "w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl p-6 border shadow-2xl space-y-5 backdrop-blur-3xl transition-all " + (isDark ? "bg-[#182330]/95 border-white/20 text-white shadow-black/70" : "bg-white/95 border-slate-200 text-slate-900 shadow-slate-300/60"),
+      className: "w-full max-w-3xl max-h-[92vh] flex flex-col rounded-3xl border shadow-2xl backdrop-blur-3xl transition-all overflow-hidden " +
+        (isDark ? "bg-[#161f2e]/95 border-white/20 text-white shadow-black/80" : "bg-white/95 border-slate-200 text-slate-900 shadow-slate-300/70"),
       children: [
         // Header
         (0, P.jsxs)('div', {
-          className: "flex items-center justify-between border-b border-white/10 pb-3",
+          className: "flex items-center justify-between px-6 py-4 border-b " + (isDark ? "border-white/10" : "border-slate-200/80"),
           children: [
             (0, P.jsxs)('div', {
-              className: "flex items-center gap-2",
+              className: "flex items-center gap-2.5",
               children: [
-                (0, P.jsx)(j, { className: "w-5 h-5 text-emerald-400" }),
-                (0, P.jsx)('h3', { className: "font-bold text-base md:text-lg", children: "Board Settings" })
+                (0, P.jsx)('div', {
+                  className: "w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400",
+                  children: (0, P.jsx)(j, { className: "w-4 h-4" })
+                }),
+                (0, P.jsxs)('div', {
+                  children: [
+                    (0, P.jsx)('h3', { className: "font-bold text-base md:text-lg leading-tight", children: "Board Settings Studio" }),
+                    (0, P.jsx)('p', { className: "text-[11px] opacity-60", children: "Customize theme, wallpapers, countdown milestones & metadata" })
+                  ]
+                })
               ]
             }),
             (0, P.jsx)('button', {
               type: "button",
               onClick: onClose,
-              className: "p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10",
-              children: (0, P.jsx)(Te, { className: "w-5 h-5" })
+              className: "w-8 h-8 rounded-full flex items-center justify-center opacity-60 hover:opacity-100 hover:bg-white/10 transition-colors",
+              children: (0, P.jsx)(Te, { className: "w-4 h-4" })
             })
           ]
         }),
 
-        (0, P.jsxs)('form', {
-          onSubmit: function(e) {
-            e.preventDefault();
-            if (title.trim()) {
-              if (onSaveTitle) onSaveTitle(title.trim());
-              if (onUpdateBoard) {
-                onUpdateBoard(Object.assign({}, board, {
-                  title: title.trim(),
-                  deadline: deadline.trim(),
-                  color: color,
-                  wallpaper: wallpaper,
-                  linkedBoardIds: linkedBoards
-                }));
-              }
-              onClose();
-            }
-          },
-          className: "space-y-4",
+        // Segmented Tabs Bar
+        (0, P.jsx)('div', {
+          className: "px-6 pt-3 pb-1 border-b " + (isDark ? "border-white/10 bg-white/[0.02]" : "border-slate-200/80 bg-slate-50/50"),
+          children: (0, P.jsx)('div', {
+            className: "flex items-center gap-1 p-1 rounded-2xl border backdrop-blur-md " + (isDark ? "bg-black/30 border-white/10" : "bg-slate-200/60 border-slate-300/60"),
+            children: [
+              { id: 'appearance', label: 'Appearance & Wallpaper' },
+              { id: 'general', label: 'General & Labels' },
+              { id: 'countdown', label: 'Milestone Countdown' },
+              { id: 'data', label: 'Data & Actions' }
+            ].map(function(tab) {
+              var isActive = activeTab === tab.id;
+              return (0, P.jsx)('button', {
+                key: tab.id,
+                type: "button",
+                onClick: function() { setActiveTab(tab.id); SoundEngine.play('click'); },
+                className: "flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold transition-all text-center " +
+                  (isActive
+                    ? (isDark ? "bg-white/20 text-white shadow-md border border-white/20 font-bold" : "bg-white text-slate-900 shadow-sm border border-slate-200/80 font-bold")
+                    : "opacity-65 hover:opacity-100 hover:bg-white/5"),
+                children: tab.label
+              });
+            })
+          })
+        }),
+
+        // Body Content
+        (0, P.jsxs)('div', {
+          className: "flex-1 overflow-y-auto px-6 py-5 space-y-5",
           children: [
-            // Board Name
-            (0, P.jsxs)('div', {
-              className: "space-y-1.5",
-              children: [
-                (0, P.jsx)('label', { className: "text-xs font-semibold uppercase tracking-wider opacity-70", children: "Board Name" }),
-                (0, P.jsx)('input', {
-                  type: "text",
-                  value: title,
-                  onChange: function(e) { setTitle(e.target.value); },
-                  required: true,
-                  className: "w-full px-3 py-2 text-sm rounded-xl border outline-none " + (isDark ? "bg-white/5 border-white/15 text-white focus:border-emerald-400" : "bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-600")
-                })
-              ]
-            }),
-
-            // Board Background Color Tint
-            (0, P.jsx)(ColorPalettePicker, {
-              label: "Board Background Tint",
-              value: color,
-              isDark: isDark,
-              onChange: function(newColor) { setColor(newColor); }
-            }),
-
-            // Board Custom Wallpaper Section
-            (0, P.jsxs)('div', {
-              className: "space-y-2 pt-1 border-t border-white/10",
-              children: [
-                (0, P.jsxs)('div', {
-                  className: "flex items-center justify-between",
-                  children: [
-                    (0, P.jsx)('label', { className: "text-xs font-semibold uppercase tracking-wider opacity-70", children: "Custom Board Wallpaper" }),
-                    wallpaper ? (
-                      (0, P.jsx)('button', {
-                        type: "button",
-                        onClick: function() { setWallpaper(""); SoundEngine.play('click'); },
-                        className: "text-[11px] font-semibold text-rose-400 hover:text-rose-300 hover:underline",
-                        children: "Remove Wallpaper"
-                      })
-                    ) : null
-                  ]
-                }),
-
-                // Active Wallpaper Preview
-                wallpaper ? (
-                  (0, P.jsxs)('div', {
-                    className: "h-24 w-full rounded-2xl overflow-hidden relative border border-white/20 shadow-md",
-                    children: [
-                      (0, P.jsx)('img', { src: wallpaper, alt: "Active Wallpaper", className: "w-full h-full object-cover" }),
-                      (0, P.jsx)('div', { className: "absolute inset-0 bg-black/30 flex items-center justify-center", children: (0, P.jsx)('span', { className: "text-xs font-bold text-white uppercase tracking-wider px-2 py-0.5 rounded bg-black/40", children: "Active Wallpaper" }) })
-                    ]
-                  })
-                ) : null,
-
-                // Hidden File Input for Wallpaper
-                (0, P.jsx)('input', {
-                  type: "file",
-                  ref: wallpaperFileRef,
-                  accept: "image/*",
-                  className: "hidden",
-                  onChange: handleWallpaperUpload
-                }),
-
-                // Upload Button
-                (0, P.jsxs)('button', {
-                  type: "button",
-                  onClick: function() { if (wallpaperFileRef.current) wallpaperFileRef.current.click(); },
-                  className: "w-full py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all " +
-                    (isDark ? "bg-white/10 hover:bg-white/15 border-white/20 text-white" : "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800 shadow-sm"),
-                  children: [
-                    (0, P.jsx)(IconImage, { className: "w-4 h-4 text-emerald-400" }),
-                    (0, P.jsx)('span', { children: "Upload Wallpaper Image File" })
-                  ]
-                }),
-
-                // Curated Wallpapers Grid
-                (0, P.jsxs)('div', {
-                  className: "space-y-1 pt-1",
-                  children: [
-                    (0, P.jsx)('span', { className: "text-[11px] opacity-70 font-medium", children: "Photos from Unsplash:" }),
-                    (0, P.jsx)('div', {
-                      className: "grid grid-cols-3 sm:grid-cols-6 gap-2",
-                      children: CURATED_WALLPAPERS.map(function(wp) {
-                        return (0, P.jsxs)('button', {
-                          key: wp.id,
-                          type: "button",
-                          onClick: function() { setWallpaper(wp.url); SoundEngine.play('add'); },
-                          title: wp.name,
-                          className: "h-12 rounded-xl overflow-hidden border border-white/20 hover:scale-105 transition-transform relative group/wp " + (wallpaper === wp.url ? "ring-2 ring-emerald-400" : ""),
-                          children: [
-                            (0, P.jsx)('img', { src: wp.url, alt: wp.name, className: "w-full h-full object-cover" }),
-                            (0, P.jsx)('div', { className: "absolute inset-0 bg-black/25 group-hover/wp:opacity-0 transition-opacity" })
-                          ]
-                        });
-                      })
-                    })
-                  ]
-                }),
-
-                // URL Input
-                (0, P.jsxs)('div', {
-                  className: "flex items-center gap-1.5 pt-1",
-                  children: [
-                    (0, P.jsx)('input', {
-                      type: "url",
-                      value: customWallpaperUrl,
-                      onChange: function(e) { setCustomWallpaperUrl(e.target.value); },
-                      placeholder: "Or paste image wallpaper URL...",
-                      className: "flex-1 px-3 py-1.5 text-xs rounded-xl border outline-none " + (isDark ? "bg-white/5 border-white/15 text-white" : "bg-slate-50 border-slate-300 text-slate-900")
-                    }),
-                    (0, P.jsx)('button', {
-                      type: "button",
-                      onClick: function() {
-                        if (customWallpaperUrl.trim()) {
-                          setWallpaper(customWallpaperUrl.trim());
-                          setCustomWallpaperUrl("");
-                          SoundEngine.play('add');
-                        }
-                      },
-                      className: "px-3 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-500",
-                      children: "Apply"
-                    })
-                  ]
-                })
-              ]
-            }),
-
-            // Linked Boards Section
-            otherBoards.length > 0 ? (
+            // Live Mini Board Preview in Appearance tab
+            activeTab === 'appearance' ? (
               (0, P.jsxs)('div', {
-                className: "space-y-1.5 pt-1 border-t border-white/10",
+                className: "space-y-2",
                 children: [
-                  (0, P.jsx)('label', { className: "text-xs font-semibold uppercase tracking-wider opacity-70", children: "Linked Boards (Cross-Board Links)" }),
-                  (0, P.jsx)('div', {
-                    className: "flex items-center gap-1.5 flex-wrap",
-                    children: otherBoards.map(function(ob) {
-                      var isLinked = linkedBoards.includes(ob.id);
-                      return (0, P.jsxs)('button', {
-                        key: ob.id,
-                        type: "button",
-                        onClick: function() { toggleLinkedBoard(ob.id); SoundEngine.play('click'); },
-                        className: "px-2.5 py-1 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all " +
-                          (isLinked ? "bg-emerald-600/20 border-emerald-500/50 text-emerald-400 font-semibold" : (isDark ? "bg-white/5 border-white/10 text-white/70 hover:bg-white/10" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200")),
+                  (0, P.jsxs)('div', {
+                    className: "flex items-center justify-between",
+                    children: [
+                      (0, P.jsx)('span', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Live Board Preview" }),
+                      (wallpaper || color) ? (
+                        (0, P.jsx)('button', {
+                          type: "button",
+                          onClick: function() { setWallpaper(""); setColor(""); SoundEngine.play('click'); },
+                          className: "text-[11px] font-semibold text-rose-400 hover:text-rose-300 hover:underline",
+                          children: "Reset to Default Theme"
+                        })
+                      ) : (
+                        (0, P.jsx)('span', { className: "text-[11px] opacity-50", children: "Using default theme background" })
+                      )
+                    ]
+                  }),
+                  (0, P.jsxs)('div', {
+                    className: "h-36 w-full rounded-2xl overflow-hidden relative border shadow-inner transition-all flex flex-col p-3.5 " +
+                      (isDark ? "border-white/20 shadow-black/50" : "border-slate-300 shadow-slate-200"),
+                    style: previewBgStyle,
+                    children: [
+                      (wallpaper && !wallpaper.startsWith("linear-gradient")) ? (
+                        (0, P.jsx)('div', { className: "absolute inset-0 pointer-events-none " + (isDark ? "bg-black/45" : "bg-white/40") })
+                      ) : null,
+                      (0, P.jsxs)('div', {
+                        className: "relative z-10 flex items-center justify-between border-b pb-2 mb-2 " + (isDark ? "border-white/15" : "border-slate-900/10"),
                         children: [
-                          (0, P.jsx)(IconLink, { className: "w-3 h-3" }),
-                          (0, P.jsx)('span', { children: ob.title }),
-                          isLinked ? (0, P.jsx)(re, { className: "w-3 h-3 text-emerald-400" }) : null
+                          (0, P.jsxs)('div', {
+                            className: "flex items-center gap-1.5",
+                            children: [
+                              (0, P.jsx)('div', { className: "w-2.5 h-2.5 rounded-full bg-emerald-500" }),
+                              (0, P.jsx)('span', { className: "text-xs font-bold truncate max-w-[200px]", children: title || "Untitled Board" })
+                            ]
+                          }),
+                          (0, P.jsx)('span', { className: "text-[10px] px-2 py-0.5 rounded-full font-medium " + (isDark ? "bg-white/10 text-white/80" : "bg-black/10 text-slate-800"), children: "Live Sync" })
                         ]
-                      });
-                    })
+                      }),
+                      (0, P.jsxs)('div', {
+                        className: "relative z-10 flex items-start gap-2.5 flex-1 overflow-hidden",
+                        children: ['To Do', 'In Progress', 'Completed'].map(function(colTitle, idx) {
+                          return (0, P.jsxs)('div', {
+                            key: colTitle,
+                            className: "flex-1 rounded-xl p-2 border backdrop-blur-md flex flex-col gap-1.5 " +
+                              (isDark ? "bg-white/10 border-white/15 text-white/90" : "bg-white/80 border-slate-200 text-slate-800 shadow-sm"),
+                            children: [
+                              (0, P.jsx)('span', { className: "text-[10px] font-bold opacity-80 uppercase tracking-tight", children: colTitle }),
+                              (0, P.jsx)('div', { className: "h-4 rounded-md border " + (isDark ? "bg-white/15 border-white/10" : "bg-slate-100 border-slate-200") }),
+                              idx === 0 ? (0, P.jsx)('div', { className: "h-4 rounded-md border " + (isDark ? "bg-white/15 border-white/10" : "bg-slate-100 border-slate-200") }) : null
+                            ]
+                          });
+                        })
+                      })
+                    ]
                   })
                 ]
               })
             ) : null,
 
-            // Target Exam Countdown Date
-            (0, P.jsxs)('div', {
-              className: "space-y-1.5 pt-1 border-t border-white/10",
-              children: [
-                (0, P.jsx)('label', { className: "text-xs font-semibold uppercase tracking-wider opacity-70", children: "Target Countdown Date (YYYY-MM-DD HH:MM:SS)" }),
-                (0, P.jsx)('input', {
-                  type: "text",
-                  value: deadline,
-                  onChange: function(e) { setDeadline(e.target.value); },
-                  placeholder: "2026-12-17 23:59:59",
-                  className: "w-full px-3 py-2 text-xs font-mono rounded-xl border outline-none " + (isDark ? "bg-white/5 border-white/15 text-white focus:border-emerald-400" : "bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-600")
-                })
-              ]
-            }),
+            // Tab 1: Appearance Controls
+            activeTab === 'appearance' ? (
+              (0, P.jsxs)('div', {
+                className: "space-y-4 pt-1",
+                children: [
+                  (0, P.jsxs)('div', {
+                    className: "space-y-2",
+                    children: [
+                      (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Curated Mesh Gradients" }),
+                      (0, P.jsx)('div', {
+                        style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '10px' },
+                        children: CURATED_BOARD_GRADIENTS.map(function(gr) {
+                          var isSelected = wallpaper === gr.value;
+                          return (0, P.jsxs)('button', {
+                            key: gr.id,
+                            type: "button",
+                            onClick: function() { setWallpaper(gr.value); SoundEngine.play('add'); },
+                            title: gr.name,
+                            className: "h-16 rounded-2xl border transition-all duration-200 flex flex-col justify-end p-2.5 relative overflow-hidden group hover:scale-[1.03] " +
+                              (isSelected ? "ring-2 ring-emerald-400 border-white shadow-lg" : "border-white/20 opacity-90 hover:opacity-100"),
+                            style: { background: gr.value },
+                            children: [
+                              (0, P.jsx)('span', { className: "relative z-10 text-[11px] font-bold text-white drop-shadow-md truncate text-left", children: gr.name }),
+                              isSelected ? (
+                                (0, P.jsx)('div', {
+                                  className: "absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md",
+                                  children: (0, P.jsx)(re, { className: "w-3 h-3 stroke-[3]" })
+                                })
+                              ) : null
+                            ]
+                          });
+                        })
+                      })
+                    ]
+                  }),
 
-            // Copy Board & Export
-            (0, P.jsxs)('div', {
-              className: "pt-2 flex items-center gap-3",
-              children: [
-                (0, P.jsxs)('button', {
-                  type: "button",
-                  onClick: function() { if (onCopyBoard) onCopyBoard(); },
-                  className: "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border border-white/15 hover:bg-white/10 transition-colors",
-                  title: "Copy this entire board to clipboard",
-                  children: [
-                    (0, P.jsx)(IconCopy, { className: "w-3.5 h-3.5 text-emerald-400" }),
-                    (0, P.jsx)('span', { children: "Copy Board" })
-                  ]
-                }),
-                (0, P.jsxs)('button', {
-                  type: "button",
-                  onClick: function() { exportBoardToMarkdown(board); },
-                  className: "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10",
-                  children: [
-                    (0, P.jsx)(IconFileText, { className: "w-3.5 h-3.5" }),
-                    (0, P.jsx)('span', { children: "Export as Markdown" })
-                  ]
-                })
-              ]
-            }),
+                  (0, P.jsxs)('div', {
+                    className: "space-y-2 pt-2 border-t " + (isDark ? "border-white/10" : "border-slate-200/80"),
+                    children: [
+                      (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Scenic Wallpapers (Unsplash)" }),
+                      (0, P.jsx)('div', {
+                        style: { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '8px' },
+                        children: CURATED_WALLPAPERS.map(function(wp) {
+                          var isSelected = wallpaper === wp.url;
+                          return (0, P.jsxs)('button', {
+                            key: wp.id,
+                            type: "button",
+                            onClick: function() { setWallpaper(wp.url); SoundEngine.play('add'); },
+                            title: wp.name,
+                            className: "h-14 rounded-2xl overflow-hidden border transition-all duration-200 relative group hover:scale-105 " +
+                              (isSelected ? "ring-2 ring-emerald-400 border-white shadow-lg" : "border-white/20"),
+                            children: [
+                              (0, P.jsx)('img', { src: wp.url, alt: wp.name, className: "w-full h-full object-cover" }),
+                              (0, P.jsx)('div', { className: "absolute inset-0 bg-black/25 group-hover:opacity-0 transition-opacity" }),
+                              isSelected ? (
+                                (0, P.jsx)('div', {
+                                  className: "absolute top-1 right-1 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md",
+                                  children: (0, P.jsx)(re, { className: "w-2.5 h-2.5 stroke-[3]" })
+                                })
+                              ) : null
+                            ]
+                          });
+                        })
+                      })
+                    ]
+                  }),
 
-            // Footer Actions
-            (0, P.jsxs)('div', {
-              className: "flex items-center justify-between pt-3 border-t border-white/10",
-              children: [
-                canDelete ? (0, P.jsxs)('button', {
-                  type: "button",
-                  onClick: function() {
-                    if (confirm("Are you sure you want to delete board \"" + board.title + "\"?")) {
-                      onDeleteBoard();
-                      onClose();
-                    }
-                  },
-                  className: "flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors",
-                  children: [
-                    (0, P.jsx)(we, { className: "w-4 h-4" }),
-                    (0, P.jsx)('span', { children: "Delete Board" })
-                  ]
-                }) : (0, P.jsx)('span', {}),
+                  (0, P.jsxs)('div', {
+                    className: "space-y-2 pt-2 border-t " + (isDark ? "border-white/10" : "border-slate-200/80"),
+                    children: [
+                      (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Custom Wallpaper Image" }),
+                      (0, P.jsxs)('div', {
+                        className: "flex items-center gap-2",
+                        children: [
+                          (0, P.jsx)('input', {
+                            type: "file",
+                            ref: wallpaperFileRef,
+                            accept: "image/*",
+                            className: "hidden",
+                            onChange: handleWallpaperUpload
+                          }),
+                          (0, P.jsxs)('button', {
+                            type: "button",
+                            onClick: function() { if (wallpaperFileRef.current) wallpaperFileRef.current.click(); },
+                            className: "py-2 px-3.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all " +
+                              (isDark ? "bg-white/10 hover:bg-white/15 border-white/20 text-white" : "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800 shadow-sm"),
+                            children: [
+                              (0, P.jsx)(IconImage, { className: "w-4 h-4 text-emerald-400" }),
+                              (0, P.jsx)('span', { children: "Upload Image" })
+                            ]
+                          }),
+                          (0, P.jsx)('input', {
+                            type: "url",
+                            value: customWallpaperUrl,
+                            onChange: function(e) { setCustomWallpaperUrl(e.target.value); },
+                            placeholder: "Or paste image URL...",
+                            className: "flex-1 px-3 py-2 text-xs rounded-xl border outline-none " +
+                              (isDark ? "bg-white/5 border-white/15 text-white focus:border-emerald-400" : "bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-600")
+                          }),
+                          (0, P.jsx)('button', {
+                            type: "button",
+                            onClick: function() {
+                              if (customWallpaperUrl.trim()) {
+                                setWallpaper(customWallpaperUrl.trim());
+                                setCustomWallpaperUrl("");
+                                SoundEngine.play('add');
+                              }
+                            },
+                            className: "px-3 py-2 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 transition-colors shadow-sm",
+                            children: "Apply"
+                          })
+                        ]
+                      })
+                    ]
+                  }),
 
-                (0, P.jsxs)('div', {
-                  className: "flex items-center gap-2",
-                  children: [
-                    (0, P.jsx)('button', {
-                      type: "button",
-                      onClick: onClose,
-                      className: "px-3 py-1.5 text-xs rounded-xl border border-white/15 hover:bg-white/10",
-                      children: "Cancel"
-                    }),
-                    (0, P.jsx)('button', {
-                      type: "submit",
-                      className: "px-4 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm",
-                      children: "Save Settings"
+                  (0, P.jsxs)('div', {
+                    className: "space-y-2 pt-2 border-t " + (isDark ? "border-white/10" : "border-slate-200/80"),
+                    children: [
+                      (0, P.jsx)(ColorPalettePicker, {
+                        label: "Board Ambient Color Tint",
+                        value: color,
+                        isDark: isDark,
+                        onChange: function(newColor) { setColor(newColor); }
+                      })
+                    ]
+                  })
+                ]
+              })
+            ) : null,
+
+            // Tab 2: General & Labels
+            activeTab === 'general' ? (
+              (0, P.jsxs)('div', {
+                className: "space-y-5 pt-1",
+                children: [
+                  (0, P.jsxs)('div', {
+                    className: "space-y-1.5",
+                    children: [
+                      (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Board Title" }),
+                      (0, P.jsx)('input', {
+                        type: "text",
+                        value: title,
+                        onChange: function(e) { setTitle(e.target.value); },
+                        placeholder: "e.g. CFA Level 1 Sprint",
+                        required: true,
+                        autoFocus: true,
+                        className: "w-full px-3.5 py-2.5 text-sm rounded-xl border outline-none font-medium " +
+                          (isDark ? "bg-white/5 border-white/15 text-white focus:border-emerald-400" : "bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-600")
+                      })
+                    ]
+                  }),
+
+                  otherBoards.length > 0 ? (
+                    (0, P.jsxs)('div', {
+                      className: "space-y-2 pt-3 border-t " + (isDark ? "border-white/10" : "border-slate-200/80"),
+                      children: [
+                        (0, P.jsxs)('div', {
+                          children: [
+                            (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Linked Boards (Cross-Board Navigation)" }),
+                            (0, P.jsx)('p', { className: "text-[11px] opacity-60 mt-0.5", children: "Select boards you can quickly jump to or link cards across." })
+                          ]
+                        }),
+                        (0, P.jsx)('div', {
+                          className: "flex items-center gap-2 flex-wrap",
+                          children: otherBoards.map(function(ob) {
+                            var isLinked = linkedBoards.includes(ob.id);
+                            return (0, P.jsxs)('button', {
+                              key: ob.id,
+                              type: "button",
+                              onClick: function() { toggleLinkedBoard(ob.id); SoundEngine.play('click'); },
+                              className: "px-3 py-1.5 rounded-xl text-xs font-medium border flex items-center gap-2 transition-all " +
+                                (isLinked
+                                  ? "bg-emerald-600/20 border-emerald-500/50 text-emerald-400 font-semibold shadow-sm"
+                                  : (isDark ? "bg-white/5 border-white/10 text-white/70 hover:bg-white/10" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200")),
+                              children: [
+                                (0, P.jsx)(IconLink, { className: "w-3.5 h-3.5" }),
+                                (0, P.jsx)('span', { children: ob.title }),
+                                isLinked ? (0, P.jsx)(re, { className: "w-3 h-3 text-emerald-400 stroke-[3]" }) : null
+                              ]
+                            });
+                          })
+                        })
+                      ]
                     })
-                  ]
+                  ) : null
+                ]
+              })
+            ) : null,
+
+            // Tab 3: Milestone Countdown
+            activeTab === 'countdown' ? (
+              (0, P.jsxs)('div', {
+                className: "space-y-4 pt-1",
+                children: [
+                  (0, P.jsxs)('div', {
+                    children: [
+                      (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Target Milestone Date" }),
+                      (0, P.jsx)('p', { className: "text-[11px] opacity-60 mt-0.5", children: "The countdown widget in the TopBar and Coverflow will count down towards this deadline." })
+                    ]
+                  }),
+
+                  (0, P.jsx)('input', {
+                    type: "text",
+                    value: deadline,
+                    onChange: function(e) { setDeadline(e.target.value); },
+                    placeholder: "2026-12-17 23:59:59",
+                    className: "w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border outline-none " +
+                      (isDark ? "bg-white/5 border-white/15 text-white focus:border-emerald-400" : "bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-600")
+                  }),
+
+                  (0, P.jsxs)('div', {
+                    className: "space-y-1.5",
+                    children: [
+                      (0, P.jsx)('span', { className: "text-[11px] font-semibold opacity-70", children: "Quick Presets:" }),
+                      (0, P.jsx)('div', {
+                        className: "flex items-center gap-2 flex-wrap",
+                        children: [
+                          { label: "+7 Days", days: 7 },
+                          { label: "+30 Days", days: 30 },
+                          { label: "+90 Days", days: 90 },
+                          { label: "Year-End 2026", custom: "2026-12-31 23:59:59" }
+                        ].map(function(preset) {
+                          return (0, P.jsx)('button', {
+                            key: preset.label,
+                            type: "button",
+                            onClick: function() {
+                              if (preset.custom) {
+                                setDeadline(preset.custom);
+                              } else {
+                                var d = new Date(Date.now() + preset.days * 24 * 60 * 60 * 1000);
+                                var pad = function(n) { return n < 10 ? '0' + n : n; };
+                                var formatted = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " 23:59:59";
+                                setDeadline(formatted);
+                              }
+                              SoundEngine.play('click');
+                            },
+                            className: "px-2.5 py-1 rounded-lg text-xs font-medium border transition-all " +
+                              (isDark ? "bg-white/5 border-white/10 hover:bg-white/10 text-white/80" : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-700"),
+                            children: preset.label
+                          });
+                        })
+                      })
+                    ]
+                  }),
+
+                  countdownPreview ? (
+                    (0, P.jsxs)('div', {
+                      className: "p-3.5 rounded-2xl border flex items-center gap-3 " +
+                        (isDark ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-300" : "bg-emerald-50 border-emerald-500/30 text-emerald-800"),
+                      children: [
+                        (0, P.jsx)(IconClock, { className: "w-5 h-5 text-emerald-400 shrink-0" }),
+                        (0, P.jsxs)('div', {
+                          children: [
+                            (0, P.jsx)('div', { className: "text-xs font-bold", children: "Active Milestone Timer" }),
+                            (0, P.jsx)('div', { className: "text-sm font-extrabold font-mono", children: countdownPreview.text })
+                          ]
+                        })
+                      ]
+                    })
+                  ) : null
+                ]
+              })
+            ) : null,
+
+            // Tab 4: Data & Actions
+            activeTab === 'data' ? (
+              (0, P.jsxs)('div', {
+                className: "space-y-4 pt-1",
+                children: [
+                  (0, P.jsxs)('div', {
+                    children: [
+                      (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Board Portability & Backup" }),
+                      (0, P.jsx)('p', { className: "text-[11px] opacity-60 mt-0.5", children: "Export your board structure, cards, checklists, and metadata." })
+                    ]
+                  }),
+
+                  (0, P.jsxs)('div', {
+                    className: "grid grid-cols-1 sm:grid-cols-2 gap-2.5",
+                    children: [
+                      (0, P.jsxs)('button', {
+                        type: "button",
+                        onClick: function() { if (onCopyBoard) onCopyBoard(); },
+                        className: "p-3 rounded-2xl border flex items-center gap-2.5 text-xs font-semibold transition-all " +
+                          (isDark ? "bg-white/5 border-white/10 hover:bg-white/10 text-white" : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-800"),
+                        children: [
+                          (0, P.jsx)(IconCopy, { className: "w-4 h-4 text-emerald-400" }),
+                          (0, P.jsx)('span', { children: "Copy Board to Clipboard" })
+                        ]
+                      }),
+                      (0, P.jsxs)('button', {
+                        type: "button",
+                        onClick: function() { exportBoardToMarkdown(board); },
+                        className: "p-3 rounded-2xl border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-2.5 text-xs font-semibold transition-all",
+                        children: [
+                          (0, P.jsx)(IconFileText, { className: "w-4 h-4" }),
+                          (0, P.jsx)('span', { children: "Export as Markdown (.md)" })
+                        ]
+                      })
+                    ]
+                  }),
+
+                  canDelete ? (
+                    (0, P.jsxs)('div', {
+                      className: "pt-4 border-t " + (isDark ? "border-white/10" : "border-slate-200/80") + " space-y-2",
+                      children: [
+                        (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider text-rose-400", children: "Danger Zone" }),
+                        (0, P.jsxs)('div', {
+                          className: "p-3.5 rounded-2xl border border-rose-500/20 bg-rose-500/5 flex items-center justify-between flex-wrap gap-2",
+                          children: [
+                            (0, P.jsxs)('div', {
+                              children: [
+                                (0, P.jsx)('div', { className: "text-xs font-bold text-rose-400", children: "Delete this Board" }),
+                                (0, P.jsx)('div', { className: "text-[11px] opacity-60", children: "Once deleted, all columns and cards in this board will be permanently removed." })
+                              ]
+                            }),
+                            (0, P.jsxs)('button', {
+                              type: "button",
+                              onClick: function() {
+                                if (confirm('Are you sure you want to delete board "' + board.title + '"?')) {
+                                  onDeleteBoard();
+                                  onClose();
+                                }
+                              },
+                              className: "px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm",
+                              children: [
+                                (0, P.jsx)(IconTrash, { className: "w-3.5 h-3.5" }),
+                                (0, P.jsx)('span', { children: "Delete Board" })
+                              ]
+                            })
+                          ]
+                        })
+                      ]
+                    })
+                  ) : null
+                ]
+              })
+            ) : null
+          ]
+        }),
+
+        // Footer
+        (0, P.jsxs)('div', {
+          className: "flex items-center justify-between px-6 py-4 border-t " + (isDark ? "border-white/10 bg-black/20" : "border-slate-200/80 bg-slate-50/70"),
+          children: [
+            (0, P.jsxs)('div', {
+              className: "flex items-center gap-2 text-xs opacity-60",
+              children: [
+                (0, P.jsx)('div', { className: "w-2 h-2 rounded-full bg-emerald-400 animate-pulse" }),
+                (0, P.jsx)('span', { children: "Live preview synced" })
+              ]
+            }),
+            (0, P.jsxs)('div', {
+              className: "flex items-center gap-2.5",
+              children: [
+                (0, P.jsx)('button', {
+                  type: "button",
+                  onClick: onClose,
+                  className: "px-4 py-2 text-xs font-semibold rounded-xl border border-white/15 hover:bg-white/10 transition-colors",
+                  children: "Cancel"
+                }),
+                (0, P.jsx)('button', {
+                  type: "button",
+                  onClick: handleSave,
+                  className: "px-5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]",
+                  children: "Save Settings"
                 })
               ]
             })
@@ -8002,6 +8323,8 @@ function sanitizeLoadedBoards(list) {
         background: b.background || "#e2ece3",
         color: b.color || "",
         deadline: b.deadline || "",
+        wallpaper: b.wallpaper || "",
+        linkedBoardIds: Array.isArray(b.linkedBoardIds) ? b.linkedBoardIds : [],
         showLabelNames: b.showLabelNames !== false,
         labelDefinitions: Array.isArray(b.labelDefinitions) ? b.labelDefinitions : [],
         archivedCards: Array.isArray(b.archivedCards) ? b.archivedCards : [],
@@ -8115,7 +8438,11 @@ var Be = function() {
   var isBoardPickerOpen = boardPickerState[0];
   var setIsBoardPickerOpen = boardPickerState[1];
 
-  var boardSettingsState = (0, _.useState)(false);
+  var boardSettingsState = (0, _.useState)(function() {
+    try {
+      return new URLSearchParams(window.location.search).get('boardSettings') === '1';
+    } catch (e) { return false; }
+  });
   var isBoardSettingsOpen = boardSettingsState[0];
   var setIsBoardSettingsOpen = boardSettingsState[1];
 
@@ -8943,17 +9270,15 @@ var Be = function() {
 
   return (0, P.jsxs)('div', {
     className: "min-h-screen w-full flex flex-col transition-colors duration-300 relative " + (themeMode === 'dark' ? "text-white" : "text-slate-900"),
-    style: {
-      backgroundColor: activeBoard.color ? (themeMode === 'dark' ? activeBoard.color + '12' : activeBoard.color + '0a') : undefined,
-      backgroundImage: activeBoard.wallpaper ? "url(" + activeBoard.wallpaper + ")" : undefined,
-      backgroundSize: activeBoard.wallpaper ? "cover" : undefined,
-      backgroundPosition: activeBoard.wallpaper ? "center" : undefined,
-      backgroundAttachment: activeBoard.wallpaper ? "fixed" : undefined
-    },
+    style: getBoardBackgroundStyle(activeBoard, themeMode),
     children: [
-      // Translucent liquid glass scrim overlay for wallpaper readability
-      activeBoard.wallpaper ? (0, P.jsx)('div', {
-        className: "fixed inset-0 pointer-events-none z-0 transition-opacity duration-300 " + (themeMode === 'dark' ? "bg-black/55 backdrop-blur-[1px]" : "bg-white/45 backdrop-blur-[1px]")
+      // Translucent liquid glass scrim overlay for wallpaper/gradient readability
+      (activeBoard.wallpaper || activeBoard.color) ? (0, P.jsx)('div', {
+        className: "fixed inset-0 pointer-events-none z-0 transition-opacity duration-300 " + (
+          activeBoard.wallpaper && !activeBoard.wallpaper.startsWith("linear-gradient")
+            ? (themeMode === 'dark' ? "bg-black/50 backdrop-blur-[1px]" : "bg-white/40 backdrop-blur-[1px]")
+            : (themeMode === 'dark' ? "bg-slate-950/20" : "bg-white/20")
+        )
       }) : null,
 
       // TopBar
