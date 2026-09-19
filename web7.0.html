@@ -4242,6 +4242,29 @@ var ke = function(props) {
       var params = new URLSearchParams(window.location.search);
       var qe = params.get('quickEdit');
       var qec = params.get('quickEditComplete');
+      var cc = params.get('clickCover');
+      var co = params.get('clickOutside');
+      if (co) {
+        setTimeout(function() {
+          var col = board.columns[0];
+          var cd = col.cards[0];
+          openQuickEdit(cd, col);
+          setTimeout(function() {
+            document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+          }, 300);
+        }, 150);
+        return;
+      }
+      if (cc) {
+        setTimeout(function() {
+          var coverImg = document.querySelector('.card-front-cover-container') || document.querySelector('.card-front-cover-color') || document.querySelector('.card-link-preview-box') || document.querySelector('.liquid-glass-card');
+          if (coverImg) {
+            var art = coverImg.closest('article');
+            if (art) art.click();
+          }
+        }, 150);
+        return;
+      }
       if (qe || qec) {
         var cols = board.columns || [];
         for (var i = 0; i < cols.length; i++) {
@@ -4295,6 +4318,25 @@ var ke = function(props) {
     window.addEventListener('pointerdown', handleOutsidePointer);
     return function() { window.removeEventListener('pointerdown', handleOutsidePointer); };
   }, [menuColId]);
+
+  // Outside pointer listener to close quick edit mode on clicking outside the card and actions
+  (0, _.useEffect)(function() {
+    if (!quickMenuCardId) return;
+    var handleOutsidePointer = function(e) {
+      if (e.target && e.target.closest) {
+        if (e.target.closest('.quick-edit-card-box') ||
+            e.target.closest('.quick-edit-save-btn') ||
+            e.target.closest('.quick-edit-action-btn') ||
+            e.target.closest('.cover-picker-popover') ||
+            e.target.closest('.color-picker-popover')) {
+          return;
+        }
+      }
+      closeQuickEdit();
+    };
+    window.addEventListener('pointerdown', handleOutsidePointer);
+    return function() { window.removeEventListener('pointerdown', handleOutsidePointer); };
+  }, [quickMenuCardId]);
 
   // Card action menu popover
   var cardActionMenuIdState = (0, _.useState)(null);
@@ -4662,11 +4704,26 @@ var ke = function(props) {
     setDropTarget(null);
   };
 
-  // Column Header Dragging Handlers
+  // Column Dragging Handlers
   var handleColDragStart = function(e, colId, cIdx) {
+    if (e.target && e.target.closest) {
+      if (e.target.closest('.liquid-glass-card') ||
+          e.target.closest('button') ||
+          e.target.closest('input') ||
+          e.target.closest('textarea')) {
+        return;
+      }
+    }
     e.stopPropagation();
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', colId);
+    var colEl = (e.currentTarget && e.currentTarget.closest) ? (e.currentTarget.closest('.kanban-column-wrapper') || e.currentTarget) : null;
+    if (colEl && e.dataTransfer.setDragImage) {
+      var rect = colEl.getBoundingClientRect();
+      var offsetX = Math.max(10, Math.min(e.clientX - rect.left, rect.width - 10));
+      var offsetY = Math.max(10, Math.min(e.clientY - rect.top, 50));
+      e.dataTransfer.setDragImage(colEl, offsetX, offsetY);
+    }
     setDragCol({ colId: colId, sourceIndex: cIdx });
   };
 
@@ -4901,6 +4958,13 @@ var ke = function(props) {
             return (0, P.jsxs)('div', {
               key: col.id,
               'data-col-id': col.id,
+              draggable: !editingColId && !dragItem,
+              onDragStart: function(e) {
+                if (editingColId || dragItem) { e.preventDefault(); return; }
+                if (e.target && e.target.closest && (e.target.closest('.liquid-glass-card') || e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea'))) return;
+                handleColDragStart(e, col.id, cIdx);
+              },
+              onDragEnd: handleColDragEnd,
               onDragOver: function(e) { handleColDragOverColumn(e, col.id, cIdx); },
               onDrop: function(e) { handleColDrop(e, cIdx); },
               className: "kanban-column-wrapper snap-start w-72 md:w-80 shrink-0 rounded-3xl p-4 flex flex-col transition-all duration-200 border backdrop-blur-2xl liquid-glass-list " +
@@ -4916,9 +4980,9 @@ var ke = function(props) {
               children: [
                 // Column Header (Draggable for list reordering, inline title rename, sleek pin SVG, and pure count)
                 (0, P.jsxs)('div', {
-                  draggable: !editingColId,
+                  draggable: !editingColId && !dragItem,
                   onDragStart: function(e) {
-                    if (editingColId) { e.preventDefault(); return; }
+                    if (editingColId || dragItem) { e.preventDefault(); return; }
                     handleColDragStart(e, col.id, cIdx);
                   },
                   onDragEnd: handleColDragEnd,
@@ -5303,6 +5367,15 @@ var ke = function(props) {
                                 }
                               },
                               onClick: function() {
+                                collapseAllStacks();
+                                if (quickMenuCardId) closeQuickEdit();
+                                if (card.cover) {
+                                  openQuickEdit(card, col);
+                                } else {
+                                  onOpenCardModal(col.id, card.id);
+                                }
+                              },
+                              onDoubleClick: function() {
                                 collapseAllStacks();
                                 if (quickMenuCardId) closeQuickEdit();
                                 onOpenCardModal(col.id, card.id);
@@ -5828,9 +5901,23 @@ var ke = function(props) {
       quickMenuCardId && quickEditCardInfo ? (
         (0, P.jsx)('div', {
           onClick: closeQuickEdit,
+          onPointerDown: function(e) {
+            if (e.target === e.currentTarget) {
+              closeQuickEdit();
+            }
+          },
           className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fadeIn",
           children: (0, P.jsxs)('div', {
-            onClick: function(e) { e.stopPropagation(); },
+            onClick: function(e) {
+              if (e.target === e.currentTarget) {
+                closeQuickEdit();
+              }
+            },
+            onPointerDown: function(e) {
+              if (e.target === e.currentTarget) {
+                closeQuickEdit();
+              }
+            },
             className: "quick-edit-container",
             children: [
               // Left: Compact Card Text Editing Box + Blue Save Button (matching media_1789849629018.png)
