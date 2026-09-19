@@ -694,6 +694,82 @@ body.theme-white {
   box-shadow: 0 0 20px rgba(48, 209, 88, 0.45) !important;
 }
 
+/* Quick Edit Modal (matching media_1789849629018.png) */
+.quick-edit-container {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+}
+.quick-edit-card-box {
+  width: 270px !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+.quick-edit-textarea {
+  width: 100% !important;
+  height: 72px !important;
+  resize: none !important;
+  outline: none !important;
+  border: none !important;
+  background: transparent !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #172b4d !important;
+  line-height: 1.4 !important;
+  padding: 0 !important;
+}
+.quick-edit-save-btn {
+  margin-top: 8px !important;
+  padding: 6px 18px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  background-color: #0c66e4 !important;
+  cursor: pointer !important;
+  border: none !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  transition: background-color 0.15s ease, transform 0.1s ease !important;
+  display: inline-block !important;
+}
+.quick-edit-save-btn:hover {
+  background-color: #0055cc !important;
+}
+.quick-edit-save-btn:active {
+  transform: scale(0.96) !important;
+}
+.quick-edit-action-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, background-color 0.15s ease !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background-color: #ffffff !important;
+  color: #172b4d !important;
+  width: fit-content !important;
+  white-space: nowrap !important;
+}
+.quick-edit-action-btn:hover {
+  background-color: #f4f5f7 !important;
+  transform: translateX(2px) !important;
+}
+.quick-edit-action-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  color: #172b4d !important;
+  flex-shrink: 0 !important;
+}
+
 </style>
       <!-- Firebase SDK (loaded with defer to guarantee zero blocking on page open & 100% offline resilience) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -829,6 +905,22 @@ var IconMove = E('move', [
 var IconPin = E('pin', [
   ['line', { x1: '12', y1: '17', x2: '12', y2: '22', key: 'pin1' }],
   ['path', { d: 'M5 17h14v-2l-2-2V5a1 1 0 0 0-1-1h-8a1 1 0 0 0-1 1v8l-2 2v2z', key: 'pin2' }]
+]);
+var IconCard = E('credit-card', [
+  ['rect', { x: '2', y: '5', width: '20', height: '14', rx: '2', key: 'cd1' }],
+  ['line', { x1: '2', y1: '10', x2: '22', y2: '10', key: 'cd2' }]
+]);
+var IconUser = E('user', [
+  ['path', { d: 'M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2', key: 'u1' }],
+  ['circle', { cx: '12', cy: '7', r: '4', key: 'u2' }]
+]);
+var IconClock = E('clock', [
+  ['circle', { cx: '12', cy: '12', r: '10', key: 'ck1' }],
+  ['polyline', { points: '12 6 12 12 16 14', key: 'ck2' }]
+]);
+var IconArrowRight = E('arrow-right', [
+  ['line', { x1: '5', y1: '12', x2: '19', y2: '12', key: 'ar1' }],
+  ['polyline', { points: '12 5 19 12 12 19', key: 'ar2' }]
 ]);
 
 // Curated Board Wallpapers (Requirement 1)
@@ -4125,9 +4217,11 @@ var ke = function(props) {
         SoundEngine.play('click');
       } else if (key === 'a') {
         e.preventDefault();
-        if (onArchiveCard) onArchiveCard(col.id, card.id);
-        closeQuickEdit();
-        SoundEngine.play('slide');
+        if (card.complete && onArchiveCard) {
+          onArchiveCard(col.id, card.id);
+          closeQuickEdit();
+          SoundEngine.play('slide');
+        }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         if (confirm("Delete card \"" + card.title + "\"?")) {
@@ -4142,6 +4236,31 @@ var ke = function(props) {
     window.addEventListener('keydown', onKeyDown);
     return function() { window.removeEventListener('keydown', onKeyDown); };
   }, [quickMenuCardId, quickEditCardInfo, quickEditTitle, board, onOpenCardModal, onMoveCard, onDuplicateCard, onSelectBoard, onArchiveCard, onDeleteCard, onSaveCard]);
+
+  (0, _.useEffect)(function() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var qe = params.get('quickEdit');
+      var qec = params.get('quickEditComplete');
+      if (qe || qec) {
+        var cols = board.columns || [];
+        for (var i = 0; i < cols.length; i++) {
+          var c = cols[i];
+          var cds = c.cards || [];
+          for (var j = 0; j < cds.length; j++) {
+            var cd = cds[j];
+            if (qec && cd.complete) {
+              openQuickEdit(cd, c);
+              return;
+            } else if (qe && !cd.complete) {
+              openQuickEdit(cd, c);
+              return;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  }, []);
 
   // 2D Layout switcher ('swimlane' | 'grid')
   var layoutModeState = (0, _.useState)('swimlane');
@@ -5712,157 +5831,106 @@ var ke = function(props) {
           className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fadeIn",
           children: (0, P.jsxs)('div', {
             onClick: function(e) { e.stopPropagation(); },
-            className: "flex flex-col sm:flex-row items-start gap-4 max-w-4xl w-full mx-auto justify-center",
+            className: "quick-edit-container",
             children: [
-              // Left: Elevated Card with Cover, Textarea, and Save Button
+              // Left: Compact Card Text Editing Box + Blue Save Button (matching media_1789849629018.png)
               (0, P.jsxs)('div', {
-                className: "w-full sm:w-80 md:w-96 flex flex-col gap-2.5 shrink-0",
+                style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start' },
                 children: [
-                  (0, P.jsxs)('div', {
-                    className: "w-full rounded-2xl border shadow-2xl overflow-hidden backdrop-blur-2xl transition-all " +
-                      (isDark ? "bg-[#16202c]/95 border-white/20 text-white shadow-black/80" : "bg-white/95 border-slate-200 text-slate-900 shadow-slate-400/40"),
-                    children: [
-                      // Card Cover Preview if present
-                      quickEditCardInfo.card.cover ? (
-                        quickEditCardInfo.card.cover.type === 'color' ? (
-                          (0, P.jsxs)('div', {
-                            className: (quickEditCardInfo.card.cover.size === 'full' ? "h-32 " : "h-20 ") + "w-full relative transition-all overflow-hidden",
-                            style: { backgroundColor: quickEditCardInfo.card.cover.value },
-                            children: [
-                              quickEditCardInfo.card.cover.pattern ? (
-                                (0, P.jsx)('div', {
-                                  className: "absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none",
-                                  children: renderColorblindPattern(quickEditCardInfo.card.cover.pattern)
-                                })
-                              ) : null,
-                              quickEditCardInfo.card.cover.size === 'full' ? (
-                                (0, P.jsx)('div', { className: "absolute bottom-2 left-3 text-[10px] font-bold text-white/85 uppercase tracking-wider", children: "Full Cover" })
-                              ) : null
-                            ]
-                          })
-                        ) : (
-                          (0, P.jsxs)('div', {
-                            className: (quickEditCardInfo.card.cover.size === 'full' ? "h-44 " : "h-32 ") + "w-full relative transition-all overflow-hidden",
-                            children: [
-                              (0, P.jsx)('img', { src: quickEditCardInfo.card.cover.value, alt: "Cover", className: "w-full h-full object-cover" }),
-                              quickEditCardInfo.card.cover.originalUrl ? (
-                                (0, P.jsxs)('span', {
-                                  className: "absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/70 text-white backdrop-blur-md flex items-center gap-1 shadow",
-                                  children: ["🔗 ", quickEditCardInfo.card.cover.domain || "Web"]
-                                })
-                              ) : null
-                            ]
-                          })
-                        )
-                      ) : null,
-
-                      // Title Textarea Body
-                      (0, P.jsxs)('div', {
-                        className: "p-3.5 space-y-2",
-                        children: [
-                          // Active Labels display if any
-                          (quickEditCardInfo.card.labels && quickEditCardInfo.card.labels.length > 0) ? (
-                            (0, P.jsx)('div', {
-                              className: "flex items-center gap-1.5 flex-wrap mb-1",
-                              children: quickEditCardInfo.card.labels.map(function(lblId, lIdx) {
-                                var def = (board.labelDefinitions || []).find(function(d) { return d.id === lblId; }) || DEFAULT_PRESET_LABELS.find(function(d) { return d.id === lblId; });
-                                var colColor = def ? def.color : (lblId.startsWith('#') ? lblId : "#f97316");
-                                return (0, P.jsx)('span', {
-                                  key: lIdx,
-                                  className: "inline-block h-2 rounded-full shadow-sm",
-                                  style: { width: "36px", backgroundColor: colColor }
-                                });
-                              })
-                            })
-                          ) : null,
-
-                          (0, P.jsx)('textarea', {
-                            value: quickEditTitle,
-                            autoFocus: true,
-                            rows: 3,
-                            onChange: function(e) { setQuickEditTitle(e.target.value); },
-                            onKeyDown: function(e) {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                saveQuickEdit();
-                              } else if (e.key === 'Escape') {
-                                e.preventDefault();
-                                closeQuickEdit();
-                              }
-                            },
-                            className: "w-full p-2.5 text-sm font-semibold rounded-xl border outline-none resize-none transition-all " +
-                              (isDark ? "bg-white/5 border-emerald-500/50 text-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20" : "bg-slate-50 border-emerald-500/60 text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20")
-                          })
-                        ]
-                      })
-                    ]
+                  (0, P.jsx)('div', {
+                    className: "quick-edit-card-box",
+                    children: (0, P.jsx)('textarea', {
+                      value: quickEditTitle,
+                      autoFocus: true,
+                      rows: 3,
+                      onFocus: function(e) { e.target.select(); },
+                      onChange: function(e) { setQuickEditTitle(e.target.value); },
+                      onKeyDown: function(e) {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          saveQuickEdit();
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          closeQuickEdit();
+                        }
+                      },
+                      className: "quick-edit-textarea"
+                    })
                   }),
-
-                  // Save Button
                   (0, P.jsx)('button', {
                     type: "button",
                     onClick: saveQuickEdit,
-                    className: "self-start px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition-all shadow-md flex items-center gap-1.5",
-                    children: [(0, P.jsx)(re, { className: "w-4 h-4" }), (0, P.jsx)('span', { children: "Save" })]
+                    className: "quick-edit-save-btn",
+                    children: "Save"
                   })
                 ]
               }),
 
-              // Right: Slender Vertical Action Strip / Wheel Dock
+              // Right: Action Buttons Stack (matching media_1789849629018.png)
               (0, P.jsxs)('div', {
-                className: "w-36 shrink-0 flex flex-col p-1.5 rounded-2xl border backdrop-blur-2xl shadow-2xl animate-slideInRight gap-0.5 " +
-                  (isDark ? "bg-[#101720]/85 border-white/15 text-white" : "bg-white/90 border-slate-200/90 text-slate-800"),
+                style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' },
                 children: [
                   // Open card
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() { onOpenCardModal(quickEditCardInfo.col.id, quickEditCardInfo.card.id); closeQuickEdit(); },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    className: "quick-edit-action-btn",
                     title: "Open full card details",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconFileText, { className: "w-3.5 h-3.5 text-emerald-400 shrink-0" }), "Open"] }),
-                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "E" })
+                      (0, P.jsx)(IconCard, {}),
+                      (0, P.jsx)('span', { children: "Open card" })
                     ]
                   }),
+
                   // Edit labels
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() { onOpenCardModal(quickEditCardInfo.col.id, quickEditCardInfo.card.id); closeQuickEdit(); },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    className: "quick-edit-action-btn",
                     title: "Edit card labels",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconTag, { className: "w-3.5 h-3.5 text-amber-400 shrink-0" }), "Labels"] }),
-                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "L" })
+                      (0, P.jsx)(IconTag, {}),
+                      (0, P.jsx)('span', { children: "Edit labels" })
                     ]
                   }),
+
+                  // Change members
+                  (0, P.jsxs)('button', {
+                    type: "button",
+                    onClick: function() { onOpenCardModal(quickEditCardInfo.col.id, quickEditCardInfo.card.id); closeQuickEdit(); },
+                    className: "quick-edit-action-btn",
+                    title: "Change members",
+                    children: [
+                      (0, P.jsx)(IconUser, {}),
+                      (0, P.jsx)('span', { children: "Change members" })
+                    ]
+                  }),
+
                   // Change cover
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() { setIsQuickCoverOpen(!isQuickCoverOpen); SoundEngine.play('click'); },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isQuickCoverOpen
-                        ? (isDark ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40" : "bg-emerald-50 text-emerald-700 border border-emerald-300")
-                        : (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800")),
+                    className: "quick-edit-action-btn",
+                    style: isQuickCoverOpen ? { backgroundColor: '#e9f2ff', borderColor: '#0c66e4', color: '#0c66e4' } : undefined,
                     title: "Change card cover",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconImage, { className: "w-3.5 h-3.5 text-sky-400 shrink-0" }), "Cover"] }),
-                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "V" })
+                      (0, P.jsx)(IconImage, {}),
+                      (0, P.jsx)('span', { children: "Change cover" })
                     ]
                   }),
-                  // Checklist
+
+                  // Edit dates
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() { onOpenCardModal(quickEditCardInfo.col.id, quickEditCardInfo.card.id); closeQuickEdit(); },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
-                    title: "Edit checklist",
+                    className: "quick-edit-action-btn",
+                    title: "Edit dates",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconChecklist, { className: "w-3.5 h-3.5 text-emerald-400 shrink-0" }), "Checklist"] }),
-                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "C" })
+                      (0, P.jsx)(IconClock, {}),
+                      (0, P.jsx)('span', { children: "Edit dates" })
                     ]
                   }),
+
                   // Move
                   (0, P.jsxs)('button', {
                     type: "button",
@@ -5874,14 +5942,14 @@ var ke = function(props) {
                       closeQuickEdit();
                       SoundEngine.play('slide');
                     },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    className: "quick-edit-action-btn",
                     title: "Move card to next list",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconMove, { className: "w-3.5 h-3.5 text-purple-400 shrink-0" }), "Move"] }),
-                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "M" })
+                      (0, P.jsx)(IconArrowRight, {}),
+                      (0, P.jsx)('span', { children: "Move" })
                     ]
                   }),
+
                   // Copy card
                   (0, P.jsxs)('button', {
                     type: "button",
@@ -5890,32 +5958,31 @@ var ke = function(props) {
                       closeQuickEdit();
                       SoundEngine.play('add');
                     },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    className: "quick-edit-action-btn",
                     title: "Duplicate card",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconCopy, { className: "w-3.5 h-3.5 text-emerald-400 shrink-0" }), "Copy"] }),
-                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "D" })
+                      (0, P.jsx)(IconCopy, {}),
+                      (0, P.jsx)('span', { children: "Copy card" })
                     ]
                   }),
+
                   // Copy link
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() {
-                      try {
-                        navigator.clipboard.writeText(quickEditCardInfo.card.title);
-                      } catch(e) {}
+                      try { navigator.clipboard.writeText(quickEditCardInfo.card.title); } catch(e) {}
                       closeQuickEdit();
                       SoundEngine.play('click');
                     },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    className: "quick-edit-action-btn",
                     title: "Copy card title to clipboard",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconLink, { className: "w-3.5 h-3.5 text-sky-400 shrink-0" }), "Link"] })
+                      (0, P.jsx)(IconLink, {}),
+                      (0, P.jsx)('span', { children: "Copy link" })
                     ]
                   }),
-                  // Target Board
+
+                  // Mirror
                   (0, P.jsxs)('button', {
                     type: "button",
                     onClick: function() {
@@ -5924,49 +5991,31 @@ var ke = function(props) {
                       closeQuickEdit();
                       SoundEngine.play('click');
                     },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isDark ? "hover:bg-white/12 text-white/90 hover:text-white" : "hover:bg-slate-100 text-slate-800"),
+                    className: "quick-edit-action-btn",
                     title: "Jump to target board",
                     children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconLink, { className: "w-3.5 h-3.5 text-purple-400 shrink-0" }), "Board"] }),
-                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "B" })
+                      (0, P.jsx)(IconCard, {}),
+                      (0, P.jsx)('span', { children: "Mirror" })
                     ]
                   }),
-                  (0, P.jsx)('div', { className: "h-[1px] my-0.5 " + (isDark ? "bg-white/10" : "bg-slate-200") }),
-                  // Archive
-                  (0, P.jsxs)('button', {
-                    type: "button",
-                    onClick: function() {
-                      if (onArchiveCard) onArchiveCard(quickEditCardInfo.col.id, quickEditCardInfo.card.id);
-                      closeQuickEdit();
-                      SoundEngine.play('slide');
-                    },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isDark ? "hover:bg-amber-500/20 text-amber-300" : "hover:bg-amber-50 text-amber-800"),
-                    title: "Archive this card",
-                    children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconArchive, { className: "w-3.5 h-3.5 text-amber-400 shrink-0" }), "Archive"] }),
-                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "A" })
-                    ]
-                  }),
-                  // Delete
-                  (0, P.jsxs)('button', {
-                    type: "button",
-                    onClick: function() {
-                      if (confirm("Delete card \"" + quickEditCardInfo.card.title + "\"?")) {
-                        if (onDeleteCard) onDeleteCard(quickEditCardInfo.col.id, quickEditCardInfo.card.id);
-                      }
-                      closeQuickEdit();
-                      SoundEngine.play('slide');
-                    },
-                    className: "w-full py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-between transition-all " +
-                      (isDark ? "hover:bg-rose-500/20 text-rose-300" : "hover:bg-rose-50 text-rose-800"),
-                    title: "Delete card permanently",
-                    children: [
-                      (0, P.jsxs)('span', { className: "flex items-center gap-1.5 truncate", children: [(0, P.jsx)(IconTrash, { className: "w-3.5 h-3.5 text-rose-400 shrink-0" }), "Delete"] }),
-                      (0, P.jsx)('kbd', { className: "px-1 py-0.2 rounded bg-white/10 text-[9px] font-mono opacity-50 shrink-0", children: "Del" })
-                    ]
-                  })
+
+                  // Archive (ONLY visible when card is completed/checked)
+                  quickEditCardInfo.card.complete ? (
+                    (0, P.jsxs)('button', {
+                      type: "button",
+                      onClick: function() {
+                        if (onArchiveCard) onArchiveCard(quickEditCardInfo.col.id, quickEditCardInfo.card.id);
+                        closeQuickEdit();
+                        SoundEngine.play('slide');
+                      },
+                      className: "quick-edit-action-btn",
+                      title: "Archive this card",
+                      children: [
+                        (0, P.jsx)(IconArchive, {}),
+                        (0, P.jsx)('span', { children: "Archive" })
+                      ]
+                    })
+                  ) : null
                 ]
               }),
 
