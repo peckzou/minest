@@ -2,12 +2,8 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Focusboard" />
-    <meta name="theme-color" content="#0b1117" />
-    <title>Focusboard Cloud 5.5 · iPhone 15 Pro 横竖屏专属版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Focusboard Cloud 5.5 · 3D Cover Flow & 主动提取闪卡系统</title>
     <meta name="description" content="Focusboard Cloud 5.5 - 3D Cover Flow 阅览模式、Peck 学习系统主动提取闪卡、敏捷看板、Web Speech 发音助手与实时云端同步系统。" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -80,100 +76,6 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
-
-/* iPhone 15 Pro & Mobile Adaptive Styles */
-:root {
-  --sat: env(safe-area-inset-top, 0px);
-  --sab: env(safe-area-inset-bottom, 0px);
-  --sal: env(safe-area-inset-left, 0px);
-  --sar: env(safe-area-inset-right, 0px);
-}
-html, body {
-  overscroll-behavior: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-}
-.iphone-simulator-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px 10px;
-  overflow: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  transition: background 0.3s ease;
-}
-.iphone-simulator-shell::-webkit-scrollbar {
-  display: none;
-}
-.iphone-frame {
-  width: 393px;
-  height: 852px;
-  border-radius: 54px;
-  overflow: hidden;
-  position: relative;
-  transition: all 0.45s cubic-bezier(0.2, 0.9, 0.3, 1);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-.iphone-frame.landscape {
-  width: 852px;
-  height: 393px;
-  border-radius: 48px;
-}
-.dynamic-island {
-  position: absolute;
-  top: 11px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 124px;
-  height: 34px;
-  background: #000000;
-  border-radius: 20px;
-  z-index: 100;
-  pointer-events: none;
-  box-shadow: inset 0 0 1px 1px rgba(255,255,255,0.1);
-  transition: all 0.4s ease;
-}
-.dynamic-island.landscape {
-  top: 50%;
-  left: 11px;
-  transform: translateY(-50%);
-  width: 34px;
-  height: 124px;
-}
-.home-indicator {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 134px;
-  height: 5px;
-  border-radius: 3px;
-  z-index: 100;
-  pointer-events: none;
-  transition: all 0.4s ease;
-}
-.home-indicator.landscape {
-  bottom: 6px;
-  width: 170px;
-}
-.perspective-stage {
-  perspective: 1100px;
-  perspective-origin: 50% 50%;
-  transform-style: preserve-3d;
-  touch-action: pan-y;
-}
-/* Explicit Rounded Corners for Cover Flow Cards */
-.coverflow-card-item, .coverflow-flipper, .face-front, .face-back, .coverflow-card-reflection > div {
-  border-radius: 32px !important;
-}
-
 </style>
       <!-- Firebase SDK (loaded with defer to guarantee zero blocking on page open & 100% offline resilience) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -1031,17 +933,12 @@ var De = function(props) {
   var onToggleZenMode = props.onToggleZenMode;
   var isStatsOpen = props.isStatsOpen;
   var onToggleStats = props.onToggleStats;
-  var isLandscape = props.isLandscape;
 
   var isDark = themeMode === 'dark';
   var dropdownState = (0, _.useState)(false);
   var isDropdownOpen = dropdownState[0];
   var setIsDropdownOpen = dropdownState[1];
   var dropdownRef = (0, _.useRef)(null);
-
-  var searchOpenState = (0, _.useState)(false);
-  var isSearchOpen = searchOpenState[0];
-  var setIsSearchOpen = searchOpenState[1];
 
   (0, _.useEffect)(function() {
     var handler = function(e) {
@@ -1067,441 +964,225 @@ var De = function(props) {
   var currentCount = activeCol ? (activeCol.cards ? activeCol.cards.length : 0) : totalCards;
   var isFilterActive = selectedColFilter !== 'all';
 
-  // --- LANDSCAPE MODE: Single clean horizontal row ---
-  if (isLandscape) {
-    return (0, P.jsxs)('header', {
-      style: {
-        paddingTop: "6px",
-        paddingBottom: "6px",
-        paddingLeft: "54px",
-        paddingRight: "16px",
-        minHeight: "48px"
-      },
-      className: "sticky top-0 z-40 w-full border-b transition-all duration-200 flex items-center justify-between gap-2 backdrop-blur-2xl " + (isDark ? "bg-[#0e141b]/90 border-white/10 text-white shadow-[0_4px_24px_rgba(0,0,0,0.4)]" : "bg-white/95 border-slate-200 text-slate-900 shadow-[0_2px_12px_rgba(0,0,0,0.06)]"),
-      children: [
-        // Left: Board Switcher & Column Filter
-        (0, P.jsxs)('div', {
-          className: "flex items-center gap-2 shrink-0",
+  return (0, P.jsxs)('header', {
+    className: "sticky top-0 z-40 h-16 w-full border-b transition-all duration-200 px-3 md:px-8 flex items-center justify-between gap-3 backdrop-blur-2xl " + (isDark ? "bg-[#0e141b]/70 border-white/10 text-white shadow-[0_4px_24px_rgba(0,0,0,0.4)]" : "bg-white/80 border-slate-200/80 text-slate-900 shadow-[0_2px_12px_rgba(0,0,0,0.04)]"),
+    children: [
+      // Left: Board Switcher
+      (0, P.jsx)('div', {
+        className: "flex items-center gap-2",
+        children: (0, P.jsxs)('button', {
+          type: "button",
+          onClick: onOpenBoardPicker,
+          className: "group flex items-center gap-2 px-2.5 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
+          title: "切换或管理看板",
           children: [
-            (0, P.jsxs)('button', {
-              type: "button",
-              onClick: onOpenBoardPicker,
-              className: "flex items-center gap-1.5 h-7 px-2.5 rounded-xl border transition-all active:scale-95 shadow-sm " + (isDark ? "border-white/15 bg-white/10 hover:bg-white/15 text-white" : "border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-800"),
-              title: "切换或管理看板",
-              children: [
-                (0, P.jsx)('div', { className: "w-4 h-4 rounded-md bg-emerald-600 text-white flex items-center justify-center shrink-0", children: (0, P.jsx)(fe, { className: "w-2.5 h-2.5" }) }),
-                (0, P.jsx)('span', { className: "font-semibold text-xs truncate max-w-[100px]", children: activeBoard.title }),
-                (0, P.jsx)(ie, { className: "w-3 h-3 opacity-60" })
-              ]
-            }),
-            // Column Filter Dropdown
-            (0, P.jsxs)('div', {
-              className: "relative",
-              ref: dropdownRef,
-              children: [
-                (0, P.jsxs)('button', {
-                  type: "button",
-                  onClick: function() { setIsDropdownOpen(!isDropdownOpen); },
-                  className: "flex items-center gap-1.5 h-7 px-2.5 rounded-xl border text-xs font-medium transition-all active:scale-95 " + (isDark ? (isFilterActive ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-300" : "border-white/15 bg-white/5 text-white/90") : (isFilterActive ? "border-emerald-600/30 bg-emerald-50 text-emerald-800" : "border-slate-300 bg-slate-100 text-slate-700")),
-                  title: "筛选列表",
-                  children: [
-                    activeCol ? (0, P.jsx)('span', { className: "w-2 h-2 rounded-full shrink-0", style: { backgroundColor: activeCol.color || "#30d158" } }) : (0, P.jsx)(de, { className: "w-3 h-3 opacity-70" }),
-                    (0, P.jsx)('span', { className: "max-w-[70px] truncate text-[11px]", children: activeCol ? activeCol.title : "全部" }),
-                    (0, P.jsxs)('span', { className: "text-[10px] opacity-60 font-mono", children: ["(", currentCount, ")"] }),
-                    (0, P.jsx)(ie, { className: "w-2.5 h-2.5 opacity-60 transition-transform " + (isDropdownOpen ? "rotate-180" : "") })
-                  ]
-                }),
-                isDropdownOpen ? (0, P.jsxs)('div', {
-                  className: "absolute left-0 top-full mt-1.5 w-52 py-1.5 rounded-2xl border shadow-2xl z-50 backdrop-blur-2xl " + (isDark ? "bg-[#141d26]/95 border-white/15 text-white" : "bg-white/95 border-slate-200 text-slate-900"),
-                  children: [
-                    (0, P.jsx)('div', { className: "px-3 py-1 text-[10px] font-semibold tracking-wider uppercase opacity-45", children: "列表快速筛选" }),
-                    (0, P.jsxs)('button', {
-                      type: "button",
-                      onClick: function() { onSelectColFilter('all'); setIsDropdownOpen(false); },
-                      className: "w-full flex items-center justify-between px-3 py-1.5 text-xs " + (selectedColFilter === 'all' ? (isDark ? "bg-white/15 text-emerald-400 font-semibold" : "bg-slate-100 text-emerald-700 font-semibold") : (isDark ? "hover:bg-white/8 text-white/80" : "hover:bg-slate-50 text-slate-700")),
-                      children: [
-                        (0, P.jsxs)('div', { className: "flex items-center gap-2", children: [(0, P.jsx)(de, { className: "w-3.5 h-3.5 opacity-70" }), (0, P.jsx)('span', { children: "全部列表" })] }),
-                        (0, P.jsx)('span', { className: "text-[11px] opacity-50 font-mono", children: totalCards })
-                      ]
-                    }),
-                    (0, P.jsx)('div', { className: "my-1 border-t border-white/10" }),
-                    (0, P.jsx)('div', {
-                      className: "max-h-52 overflow-y-auto",
-                      children: (activeBoard.columns || []).map(function(col) {
-                        var isSel = selectedColFilter === col.id;
-                        return (0, P.jsxs)('button', {
-                          key: col.id,
-                          type: "button",
-                          onClick: function() { onSelectColFilter(col.id); setIsDropdownOpen(false); },
-                          className: "w-full flex items-center justify-between px-3 py-1.5 text-xs " + (isSel ? (isDark ? "bg-white/15 text-emerald-400 font-semibold" : "bg-slate-100 text-emerald-700 font-semibold") : (isDark ? "hover:bg-white/8 text-white/80" : "hover:bg-slate-50 text-slate-700")),
-                          children: [
-                            (0, P.jsxs)('div', { className: "flex items-center gap-2 truncate", children: [(0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full shrink-0", style: { backgroundColor: col.color || "#30d158" } }), (0, P.jsx)('span', { className: "truncate", children: col.title })] }),
-                            (0, P.jsx)('span', { className: "text-[11px] opacity-50 font-mono ml-2", children: (col.cards || []).length })
-                          ]
-                        });
-                      })
-                    }),
-                    (0, P.jsx)('div', { className: "my-1 border-t border-white/10" }),
-                    (0, P.jsxs)('button', {
-                      type: "button",
-                      onClick: function() { onOpenNewList(); setIsDropdownOpen(false); },
-                      className: "w-full flex items-center gap-2 px-3 py-1.5 text-xs text-emerald-500 hover:bg-emerald-500/10 font-medium",
-                      children: [(0, P.jsx)(ge, { className: "w-3 h-3" }), (0, P.jsx)('span', { children: "+ 新建列表..." })]
-                    })
-                  ]
-                }) : null
-              ]
-            })
-          ]
-        }),
-
-        // Center: Search & 3-Mode Switcher
-        (0, P.jsxs)('div', {
-          className: "flex items-center gap-2",
-          children: [
-            // Search Input
-            (0, P.jsxs)('div', {
-              className: "relative w-36",
-              children: [
-                (0, P.jsx)(ve, { className: "absolute left-2.5 top-2 w-3 h-3 pointer-events-none " + (isDark ? "text-white/45" : "text-slate-400") }),
-                (0, P.jsx)('input', {
-                  type: "text",
-                  value: searchTerm,
-                  onChange: function(e) { onSearchChange(e.target.value); },
-                  placeholder: "搜索卡片...",
-                  className: "w-full h-7 pl-7 pr-2 text-xs rounded-xl border outline-none " + (isDark ? "bg-white/8 border-white/15 text-white placeholder-white/40 focus:border-emerald-400" : "bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-emerald-600")
-                })
-              ]
-            }),
-            // 3-Mode Segmented Control
-            (0, P.jsxs)('div', {
-              className: "flex items-center p-0.5 rounded-xl border " + (isDark ? "bg-black/30 border-white/10" : "bg-slate-100 border-slate-200"),
-              children: [
-                (0, P.jsxs)('button', {
-                  type: "button",
-                  onClick: function() { onViewModeChange('coverflow'); SoundEngine.play('click'); },
-                  className: "flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-medium transition-all " + (viewMode === 'coverflow' ? (isDark ? "bg-white/20 text-white shadow-sm font-semibold" : "bg-white text-slate-900 shadow-sm font-semibold") : (isDark ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-900")),
-                  title: "3D Cover Flow 阅览模式",
-                  children: [(0, P.jsx)(de, { className: "w-3 h-3" }), (0, P.jsx)('span', { children: "3D" })]
-                }),
-                (0, P.jsxs)('button', {
-                  type: "button",
-                  onClick: function() { onViewModeChange('board'); SoundEngine.play('click'); },
-                  className: "flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-medium transition-all " + (viewMode === 'board' ? (isDark ? "bg-white/20 text-white shadow-sm font-semibold" : "bg-white text-slate-900 shadow-sm font-semibold") : (isDark ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-900")),
-                  title: "看板泳道模式",
-                  children: [(0, P.jsx)(ue, { className: "w-3 h-3" }), (0, P.jsx)('span', { children: "看板" })]
-                }),
-                (0, P.jsxs)('button', {
-                  type: "button",
-                  onClick: function() { onViewModeChange('drill'); SoundEngine.play('click'); },
-                  className: "flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-medium transition-all " + (viewMode === 'drill' ? "bg-purple-600 text-white shadow-sm font-semibold" : (isDark ? "text-purple-300 hover:text-white" : "text-purple-600 hover:text-purple-900")),
-                  title: "主动提取闪卡模式",
-                  children: [(0, P.jsx)(IconBrain, { className: "w-3 h-3" }), (0, P.jsx)('span', { className: "font-bold", children: "闪卡" })]
-                })
-              ]
-            })
-          ]
-        }),
-
-        // Right: Stats, Sound, Theme, Cloud, Settings
-        (0, P.jsxs)('div', {
-          className: "flex items-center gap-1 shrink-0",
-          children: [
-            (0, P.jsx)('button', {
-              type: "button",
-              onClick: onToggleStats,
-              className: "w-7 h-7 rounded-xl flex items-center justify-center border transition-all " + (isStatsOpen ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300" : (isDark ? "border-white/10 bg-white/5 text-white/70 hover:text-white" : "border-slate-200 bg-white text-slate-600")),
-              title: isStatsOpen ? "隐藏统计条" : "展开统计条",
-              children: (0, P.jsx)(re, { className: "w-3 h-3" })
-            }),
-            (0, P.jsx)('button', {
-              type: "button",
-              onClick: onToggleSound,
-              className: "w-7 h-7 rounded-xl flex items-center justify-center border transition-all " + (!isSoundMuted ? (isDark ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400" : "border-emerald-600/30 bg-emerald-50 text-emerald-700") : (isDark ? "border-white/10 bg-white/5 text-white/40" : "border-slate-200 bg-white text-slate-400")),
-              title: isSoundMuted ? "开启音效" : "静音",
-              children: isSoundMuted ? (0, P.jsx)(IconVolumeX, { className: "w-3 h-3" }) : (0, P.jsx)(IconVolume, { className: "w-3 h-3" })
-            }),
-            (0, P.jsx)('button', {
-              type: "button",
-              onClick: function() { onThemeModeChange(isDark ? 'white' : 'dark'); SoundEngine.play('click'); },
-              className: "w-7 h-7 rounded-xl flex items-center justify-center border transition-all " + (isDark ? "border-white/10 bg-white/5 text-amber-300" : "border-slate-300 bg-white text-amber-600"),
-              title: isDark ? "切换为明亮雅白模式" : "切换为极夜深色模式",
-              children: isDark ? (0, P.jsx)(xe, { className: "w-3 h-3 text-amber-300" }) : (0, P.jsx)(he, { className: "w-3 h-3 text-slate-700" })
-            }),
-            (0, P.jsx)('button', {
-              type: "button",
-              onClick: onOpenCloudSync,
-              className: "w-7 h-7 rounded-xl flex items-center justify-center border transition-all " + (firebaseUser ? (isDark ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300" : "border-emerald-600/30 bg-emerald-50 text-emerald-800") : (isDark ? "border-white/10 bg-white/5 text-white/70" : "border-slate-200 bg-white text-slate-600")),
-              title: firebaseUser ? ("已登录: " + (firebaseUser.displayName || firebaseUser.email)) : "配置 Firebase 同步",
-              children: firebaseUser && firebaseUser.photoURL ? (
-                (0, P.jsx)('img', { src: firebaseUser.photoURL, alt: "Avatar", className: "w-3.5 h-3.5 rounded-full object-cover" })
-              ) : (
-                (0, P.jsx)(ce, { className: "w-3 h-3 " + (syncStatus === 'syncing' ? "animate-spin text-emerald-400" : "") })
-              )
-            }),
-            (0, P.jsx)('button', {
-              type: "button",
-              onClick: onOpenBoardSettings,
-              className: "w-7 h-7 rounded-xl flex items-center justify-center border transition-all " + (isDark ? "border-white/10 bg-white/5 text-white/70 hover:text-white" : "border-slate-200 bg-white text-slate-600"),
-              title: "看板设置",
-              children: (0, P.jsx)(j, { className: "w-3 h-3" })
-            })
+            (0, P.jsx)('div', { className: "w-7 h-7 rounded-lg bg-emerald-600/90 text-white flex items-center justify-center shadow-sm", children: (0, P.jsx)(fe, { className: "w-4 h-4" }) }),
+            (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[130px] sm:max-w-[180px] md:max-w-[220px] truncate", children: activeBoard.title }),
+            (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" })
           ]
         })
-      ]
-    });
-  }
+      }),
 
-  // --- PORTRAIT MODE: Two-Row Layout Flanking Dynamic Island ---
-  return (0, P.jsxs)('header', {
-    className: "sticky top-0 z-40 w-full border-b transition-all duration-200 backdrop-blur-2xl " + (isDark ? "bg-[#0e141b]/90 border-white/10 text-white shadow-[0_4px_24px_rgba(0,0,0,0.4)]" : "bg-white/95 border-slate-200 text-slate-900 shadow-[0_2px_12px_rgba(0,0,0,0.06)]"),
-    children: [
-      // ROW 1: Island Wing Level (buttons on both sides of the Dynamic Island)
+      // Center: Column Filter & Search
       (0, P.jsxs)('div', {
-        style: {
-          height: "50px",
-          paddingTop: "10px",
-          paddingBottom: "4px",
-          paddingLeft: "12px",
-          paddingRight: "12px"
-        },
-        className: "flex items-center justify-between w-full relative",
+        className: "flex items-center gap-2 flex-1 max-w-md",
         children: [
-          // Left Wing: Board Switcher Pill Button
-          (0, P.jsx)('div', {
-            className: "w-[122px] flex items-center justify-start shrink-0 z-10",
-            children: (0, P.jsxs)('button', {
-              type: "button",
-              onClick: onOpenBoardPicker,
-              className: "flex items-center gap-1.5 h-7 px-2 rounded-full border transition-all active:scale-95 shadow-sm " + (isDark ? "border-white/15 bg-white/10 hover:bg-white/20 text-white" : "border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-800"),
-              title: "切换或管理看板: " + activeBoard.title,
-              children: [
-                (0, P.jsx)('div', { className: "w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs", children: (0, P.jsx)(fe, { className: "w-2.5 h-2.5" }) }),
-                (0, P.jsx)('span', { className: "font-semibold text-[11px] max-w-[62px] truncate", children: activeBoard.title }),
-                (0, P.jsx)(ie, { className: "w-2.5 h-2.5 opacity-60 shrink-0" })
-              ]
-            })
-          }),
-
-          // Center Spacer: Exact 124px Hardware Space for Dynamic Island
-          (0, P.jsx)('div', {
-            className: "w-[124px] h-[34px] shrink-0 pointer-events-none"
-          }),
-
-          // Right Wing: 4 Control Buttons Flanking the Island (Theme, Sound, Cloud, Settings)
           (0, P.jsxs)('div', {
-            className: "w-[122px] flex items-center justify-end gap-1 shrink-0 z-10",
+            className: "relative",
+            ref: dropdownRef,
             children: [
-              // Theme Toggle (☀️/🌙)
-              (0, P.jsx)('button', {
+              (0, P.jsxs)('button', {
                 type: "button",
-                onClick: function() { onThemeModeChange(isDark ? 'white' : 'dark'); SoundEngine.play('click'); },
-                className: "w-[26px] h-[26px] rounded-full flex items-center justify-center border transition-all active:scale-90 shadow-sm " + (isDark ? "border-white/15 bg-white/10 text-amber-300 hover:bg-white/20" : "border-slate-300 bg-slate-100 text-amber-600 hover:bg-slate-200"),
-                title: isDark ? "切换为明亮雅白模式" : "切换为极夜深色模式",
-                children: isDark ? (0, P.jsx)(xe, { className: "w-3 h-3 text-amber-300" }) : (0, P.jsx)(he, { className: "w-3 h-3 text-slate-700" })
+                onClick: function() { setIsDropdownOpen(!isDropdownOpen); },
+                className: "group flex items-center gap-1.5 h-9 px-2.5 md:px-3 rounded-xl border text-xs font-medium transition-all duration-200 whitespace-nowrap select-none " + (isDark ? (isFilterActive ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 shadow-sm" : "border-white/15 bg-white/5 hover:bg-white/10 text-white/85") : (isFilterActive ? "border-emerald-600/30 bg-emerald-50 text-emerald-800 shadow-sm" : "border-slate-300/80 bg-slate-100/80 hover:bg-slate-200/80 text-slate-700")),
+                title: "筛选列表",
+                children: [
+                  activeCol ? (0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full shrink-0 shadow-sm", style: { backgroundColor: activeCol.color || "#30d158" } }) : (0, P.jsx)(de, { className: "w-3.5 h-3.5 opacity-70" }),
+                  (0, P.jsx)('span', { className: "max-w-[70px] sm:max-w-[110px] truncate", children: activeCol ? activeCol.title : "全部列表" }),
+                  (0, P.jsxs)('span', { className: "text-[10px] opacity-60 font-mono", children: ["(", currentCount, ")"] }),
+                  (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 transition-transform duration-200 " + (isDropdownOpen ? "rotate-180" : "") })
+                ]
               }),
-              // Sound Toggle (🔊/🔇)
-              (0, P.jsx)('button', {
-                type: "button",
-                onClick: onToggleSound,
-                className: "w-[26px] h-[26px] rounded-full flex items-center justify-center border transition-all active:scale-90 shadow-sm " + (!isSoundMuted ? (isDark ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-400" : "border-emerald-600/30 bg-emerald-50 text-emerald-700") : (isDark ? "border-white/15 bg-white/10 text-white/40 hover:text-white" : "border-slate-300 bg-slate-100 text-slate-400 hover:text-slate-700")),
-                title: isSoundMuted ? "开启音效" : "静音",
-                children: isSoundMuted ? (0, P.jsx)(IconVolumeX, { className: "w-3 h-3" }) : (0, P.jsx)(IconVolume, { className: "w-3 h-3" })
+              isDropdownOpen ? (0, P.jsxs)('div', {
+                className: "absolute left-0 top-full mt-2 w-56 py-1.5 rounded-2xl border shadow-2xl z-50 backdrop-blur-2xl transition-all duration-150 animate-fadeIn " + (isDark ? "bg-[#141d26]/95 border-white/15 text-white shadow-[0_16px_36px_rgba(0,0,0,0.6)]" : "bg-white/95 border-slate-200 text-slate-900 shadow-[0_12px_28px_rgba(0,0,0,0.12)]"),
+                children: [
+                  (0, P.jsx)('div', { className: "px-3 py-1 text-[10px] font-semibold tracking-wider uppercase opacity-45", children: "列表快速筛选" }),
+                  (0, P.jsxs)('button', {
+                    type: "button",
+                    onClick: function() { onSelectColFilter('all'); setIsDropdownOpen(false); },
+                    className: "w-full flex items-center justify-between px-3 py-2 text-xs transition-colors " + (selectedColFilter === 'all' ? (isDark ? "bg-white/15 text-emerald-400 font-semibold" : "bg-slate-100 text-emerald-700 font-semibold") : (isDark ? "hover:bg-white/8 text-white/80" : "hover:bg-slate-50 text-slate-700")),
+                    children: [
+                      (0, P.jsxs)('div', { className: "flex items-center gap-2", children: [(0, P.jsx)(de, { className: "w-3.5 h-3.5 opacity-70" }), (0, P.jsx)('span', { children: "全部列表" })] }),
+                      (0, P.jsx)('span', { className: "text-[11px] opacity-50 font-mono", children: totalCards })
+                    ]
+                  }),
+                  (0, P.jsx)('div', { className: "my-1 border-t border-white/10" }),
+                  (0, P.jsx)('div', {
+                    className: "max-h-60 overflow-y-auto",
+                    children: (activeBoard.columns || []).map(function(col) {
+                      var isSel = selectedColFilter === col.id;
+                      return (0, P.jsxs)('button', {
+                        key: col.id,
+                        type: "button",
+                        onClick: function() { onSelectColFilter(col.id); setIsDropdownOpen(false); },
+                        className: "w-full flex items-center justify-between px-3 py-2 text-xs transition-colors " + (isSel ? (isDark ? "bg-white/15 text-emerald-400 font-semibold" : "bg-slate-100 text-emerald-700 font-semibold") : (isDark ? "hover:bg-white/8 text-white/80" : "hover:bg-slate-50 text-slate-700")),
+                        children: [
+                          (0, P.jsxs)('div', { className: "flex items-center gap-2 truncate", children: [(0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full shrink-0 shadow-sm", style: { backgroundColor: col.color || "#30d158" } }), (0, P.jsx)('span', { className: "truncate", children: col.title })] }),
+                          (0, P.jsx)('span', { className: "text-[11px] opacity-50 font-mono ml-2", children: (col.cards || []).length })
+                        ]
+                      });
+                    })
+                  })
+                ]
+              }) : null
+            ]
+          }),
+
+          // Search Input
+          (0, P.jsxs)('div', {
+            className: "relative flex-1 min-w-[110px] hidden sm:block",
+            children: [
+              (0, P.jsx)(ve, { className: "absolute left-3 top-2.5 w-4 h-4 pointer-events-none " + (isDark ? "text-white/45" : "text-slate-400") }),
+              (0, P.jsx)('input', {
+                type: "text",
+                value: searchTerm,
+                onChange: function(e) { onSearchChange(e.target.value); },
+                placeholder: "搜索卡片、标签与要点...",
+                className: "w-full h-9 pl-9 pr-12 text-xs md:text-sm rounded-xl border transition-all duration-200 outline-none " + (isDark ? "bg-white/8 border-white/15 text-white placeholder-white/40 focus:bg-white/14 focus:border-emerald-400/60" : "bg-slate-100/80 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-emerald-600")
               }),
-              // Cloud Sync (☁️)
-              (0, P.jsx)('button', {
-                type: "button",
-                onClick: onOpenCloudSync,
-                className: "w-[26px] h-[26px] rounded-full flex items-center justify-center border transition-all active:scale-90 shadow-sm " + (firebaseUser ? (isDark ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-300" : "border-emerald-600/30 bg-emerald-50 text-emerald-800") : (isDark ? "border-white/15 bg-white/10 text-white/70 hover:text-white" : "border-slate-300 bg-slate-100 text-slate-600 hover:text-slate-900")),
-                title: firebaseUser ? ("已登录: " + (firebaseUser.displayName || firebaseUser.email)) : "配置 Firebase 云同步",
-                children: firebaseUser && firebaseUser.photoURL ? (
-                  (0, P.jsx)('img', { src: firebaseUser.photoURL, alt: "Avatar", className: "w-3.5 h-3.5 rounded-full object-cover" })
-                ) : (
-                  (0, P.jsx)(ce, { className: "w-3 h-3 " + (syncStatus === 'syncing' ? "animate-spin text-emerald-400" : (syncStatus === 'synced' ? "text-emerald-400" : "")) })
-                )
-              }),
-              // Board Settings (⚙️)
-              (0, P.jsx)('button', {
-                type: "button",
-                onClick: onOpenBoardSettings,
-                className: "w-[26px] h-[26px] rounded-full flex items-center justify-center border transition-all active:scale-90 shadow-sm " + (isDark ? "border-white/15 bg-white/10 text-white/70 hover:text-white" : "border-slate-300 bg-slate-100 text-slate-600 hover:text-slate-900"),
-                title: "看板设置与备份",
-                children: (0, P.jsx)(j, { className: "w-3 h-3" })
-              })
+              (0, P.jsx)('span', { className: "absolute right-2 top-2 px-1.5 py-0.5 text-[10px] font-mono rounded border " + (isDark ? "border-white/20 bg-white/10 text-white/60" : "border-slate-300 bg-slate-200/60 text-slate-500"), children: "⌘K" })
             ]
           })
         ]
       }),
 
-      // ROW 2: Action & Navigation Row (Directly below Dynamic Island)
+      // Right: Mode Switches, Sound, Zen, Stats, Settings
       (0, P.jsxs)('div', {
-        style: {
-          height: "42px",
-          paddingLeft: "12px",
-          paddingRight: "12px"
-        },
-        className: "flex items-center justify-between w-full border-t " + (isDark ? "border-white/5" : "border-slate-200/60"),
+        className: "flex items-center gap-1.5 md:gap-2.5",
         children: [
-          // Left: Column Filter & Tools
+          // 3 Mode Switcher (Coverflow / Board / Drill)
           (0, P.jsxs)('div', {
-            className: "flex items-center gap-1.5 shrink-0",
-            children: [
-              // Column Filter Dropdown
-              (0, P.jsxs)('div', {
-                className: "relative",
-                ref: dropdownRef,
-                children: [
-                  (0, P.jsxs)('button', {
-                    type: "button",
-                    onClick: function() { setIsDropdownOpen(!isDropdownOpen); },
-                    className: "flex items-center gap-1 h-7 px-2 rounded-xl border text-xs font-medium transition-all active:scale-95 select-none " + (isDark ? (isFilterActive ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-300 shadow-sm" : "border-white/15 bg-white/5 hover:bg-white/10 text-white/90") : (isFilterActive ? "border-emerald-600/30 bg-emerald-50 text-emerald-800 shadow-sm" : "border-slate-300 bg-slate-100 text-slate-700")),
-                    title: "筛选列表",
-                    children: [
-                      activeCol ? (0, P.jsx)('span', { className: "w-2 h-2 rounded-full shrink-0 shadow-sm", style: { backgroundColor: activeCol.color || "#30d158" } }) : (0, P.jsx)(de, { className: "w-3 h-3 opacity-70" }),
-                      (0, P.jsx)('span', { className: "max-w-[58px] truncate text-[11px]", children: activeCol ? activeCol.title : "全部" }),
-                      (0, P.jsxs)('span', { className: "text-[10px] opacity-60 font-mono", children: ["(", currentCount, ")"] }),
-                      (0, P.jsx)(ie, { className: "w-2.5 h-2.5 opacity-60 transition-transform duration-200 " + (isDropdownOpen ? "rotate-180" : "") })
-                    ]
-                  }),
-                  isDropdownOpen ? (0, P.jsxs)('div', {
-                    className: "absolute left-0 top-full mt-1.5 w-52 py-1.5 rounded-2xl border shadow-2xl z-50 backdrop-blur-2xl " + (isDark ? "bg-[#141d26]/95 border-white/15 text-white shadow-[0_16px_36px_rgba(0,0,0,0.6)]" : "bg-white/95 border-slate-200 text-slate-900 shadow-[0_12px_28px_rgba(0,0,0,0.12)]"),
-                    children: [
-                      (0, P.jsx)('div', { className: "px-3 py-1 text-[10px] font-semibold tracking-wider uppercase opacity-45", children: "列表快速筛选" }),
-                      (0, P.jsxs)('button', {
-                        type: "button",
-                        onClick: function() { onSelectColFilter('all'); setIsDropdownOpen(false); },
-                        className: "w-full flex items-center justify-between px-3 py-1.5 text-xs " + (selectedColFilter === 'all' ? (isDark ? "bg-white/15 text-emerald-400 font-semibold" : "bg-slate-100 text-emerald-700 font-semibold") : (isDark ? "hover:bg-white/8 text-white/80" : "hover:bg-slate-50 text-slate-700")),
-                        children: [
-                          (0, P.jsxs)('div', { className: "flex items-center gap-2", children: [(0, P.jsx)(de, { className: "w-3.5 h-3.5 opacity-70" }), (0, P.jsx)('span', { children: "全部列表" })] }),
-                          (0, P.jsx)('span', { className: "text-[11px] opacity-50 font-mono", children: totalCards })
-                        ]
-                      }),
-                      (0, P.jsx)('div', { className: "my-1 border-t border-white/10" }),
-                      (0, P.jsx)('div', {
-                        className: "max-h-56 overflow-y-auto",
-                        children: (activeBoard.columns || []).map(function(col) {
-                          var isSel = selectedColFilter === col.id;
-                          return (0, P.jsxs)('button', {
-                            key: col.id,
-                            type: "button",
-                            onClick: function() { onSelectColFilter(col.id); setIsDropdownOpen(false); },
-                            className: "w-full flex items-center justify-between px-3 py-1.5 text-xs " + (isSel ? (isDark ? "bg-white/15 text-emerald-400 font-semibold" : "bg-slate-100 text-emerald-700 font-semibold") : (isDark ? "hover:bg-white/8 text-white/80" : "hover:bg-slate-50 text-slate-700")),
-                            children: [
-                              (0, P.jsxs)('div', { className: "flex items-center gap-2 truncate", children: [(0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full shrink-0 shadow-sm", style: { backgroundColor: col.color || "#30d158" } }), (0, P.jsx)('span', { className: "truncate", children: col.title })] }),
-                              (0, P.jsx)('span', { className: "text-[11px] opacity-50 font-mono ml-2", children: (col.cards || []).length })
-                            ]
-                          });
-                        })
-                      }),
-                      (0, P.jsx)('div', { className: "my-1 border-t border-white/10" }),
-                      (0, P.jsxs)('button', {
-                        type: "button",
-                        onClick: function() { onOpenNewList(); setIsDropdownOpen(false); },
-                        className: "w-full flex items-center gap-2 px-3 py-1.5 text-xs text-emerald-500 hover:bg-emerald-500/10 font-medium",
-                        children: [(0, P.jsx)(ge, { className: "w-3 h-3" }), (0, P.jsx)('span', { children: "+ 新建列表..." })]
-                      })
-                    ]
-                  }) : null
-                ]
-              }),
-
-              // Stats Toggle Button
-              (0, P.jsx)('button', {
-                type: "button",
-                onClick: onToggleStats,
-                className: "w-7 h-7 rounded-xl flex items-center justify-center border transition-all active:scale-90 " + (isStatsOpen ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300 shadow-sm" : (isDark ? "border-white/15 bg-white/5 text-white/70 hover:text-white" : "border-slate-300 bg-slate-100 text-slate-600")),
-                title: isStatsOpen ? "隐藏洞察统计" : "展开洞察统计",
-                children: (0, P.jsx)(re, { className: "w-3 h-3" })
-              }),
-
-              // Quick Search Toggle Button
-              (0, P.jsx)('button', {
-                type: "button",
-                onClick: function() { setIsSearchOpen(!isSearchOpen); },
-                className: "w-7 h-7 rounded-xl flex items-center justify-center border transition-all active:scale-90 relative " + (isSearchOpen || searchTerm ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300 shadow-sm" : (isDark ? "border-white/15 bg-white/5 text-white/70 hover:text-white" : "border-slate-300 bg-slate-100 text-slate-600")),
-                title: isSearchOpen ? "收起搜索" : "搜索卡片",
-                children: [
-                  (0, P.jsx)(ve, { className: "w-3 h-3" }),
-                  searchTerm ? (0, P.jsx)('span', { className: "w-1.5 h-1.5 rounded-full bg-emerald-400 absolute top-1 right-1" }) : null
-                ]
-              })
-            ]
-          }),
-
-          // Right: 3-Mode Segmented Control (3D | 看板 | 闪卡)
-          (0, P.jsxs)('div', {
-            className: "flex items-center p-0.5 rounded-xl border " + (isDark ? "bg-black/30 border-white/10" : "bg-slate-200/80 border-slate-300/80"),
+            className: "flex items-center p-1 rounded-xl border " + (isDark ? "bg-black/30 border-white/10" : "bg-slate-100 border-slate-200"),
             children: [
               (0, P.jsxs)('button', {
                 type: "button",
                 onClick: function() { onViewModeChange('coverflow'); SoundEngine.play('click'); },
-                className: "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium transition-all active:scale-95 " + (viewMode === 'coverflow' ? (isDark ? "bg-white/20 text-white shadow-sm font-semibold" : "bg-white text-slate-900 shadow-sm font-semibold") : (isDark ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-900")),
-                title: "3D Cover Flow 阅览",
+                className: "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-180 " + (viewMode === 'coverflow' ? (isDark ? "bg-white/20 text-white shadow-sm font-semibold" : "bg-white text-slate-900 shadow-sm font-semibold") : (isDark ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-900")),
+                title: "3D Cover Flow 阅览模式",
                 children: [
-                  (0, P.jsx)(de, { className: "w-3 h-3" }),
-                  (0, P.jsx)('span', { className: "text-[11px]", children: "3D" })
+                  (0, P.jsx)(de, { className: "w-3.5 h-3.5" }),
+                  (0, P.jsx)('span', { className: "hidden lg:inline", children: "3D 阅览" })
                 ]
               }),
               (0, P.jsxs)('button', {
                 type: "button",
                 onClick: function() { onViewModeChange('board'); SoundEngine.play('click'); },
-                className: "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium transition-all active:scale-95 " + (viewMode === 'board' ? (isDark ? "bg-white/20 text-white shadow-sm font-semibold" : "bg-white text-slate-900 shadow-sm font-semibold") : (isDark ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-900")),
+                className: "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-180 " + (viewMode === 'board' ? (isDark ? "bg-white/20 text-white shadow-sm font-semibold" : "bg-white text-slate-900 shadow-sm font-semibold") : (isDark ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-900")),
                 title: "看板泳道模式",
                 children: [
-                  (0, P.jsx)(ue, { className: "w-3 h-3" }),
-                  (0, P.jsx)('span', { className: "text-[11px]", children: "看板" })
+                  (0, P.jsx)(ue, { className: "w-3.5 h-3.5" }),
+                  (0, P.jsx)('span', { className: "hidden lg:inline", children: "看板" })
                 ]
               }),
               (0, P.jsxs)('button', {
                 type: "button",
                 onClick: function() { onViewModeChange('drill'); SoundEngine.play('click'); },
-                className: "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium transition-all active:scale-95 " + (viewMode === 'drill' ? "bg-purple-600 text-white shadow-sm font-semibold" : (isDark ? "text-purple-300 hover:text-white" : "text-purple-600 hover:text-purple-900")),
-                title: "主动提取闪卡模式",
+                className: "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-180 " + (viewMode === 'drill' ? "bg-purple-600 text-white shadow-sm font-semibold" : (isDark ? "text-purple-300 hover:text-white hover:bg-purple-500/20" : "text-purple-600 hover:text-purple-900 hover:bg-purple-100")),
+                title: "主动提取闪卡测试模式 (Active Recall Drill)",
                 children: [
-                  (0, P.jsx)(IconBrain, { className: "w-3 h-3" }),
-                  (0, P.jsx)('span', { className: "text-[11px] font-bold", children: "闪卡" })
+                  (0, P.jsx)(IconBrain, { className: "w-3.5 h-3.5" }),
+                  (0, P.jsx)('span', { className: "hidden lg:inline font-bold", children: "主动提取" })
                 ]
               })
             ]
-          })
-        ]
-      }),
-
-      // ROW 3: Expandable Spotlight Search Bar (appears when search button is toggled or query exists)
-      (isSearchOpen || searchTerm) ? (0, P.jsxs)('div', {
-        className: "w-full px-3 py-1.5 flex items-center gap-2 border-t animate-fadeIn " + (isDark ? "border-white/10 bg-black/25" : "border-slate-200 bg-slate-100/80"),
-        children: [
-          (0, P.jsxs)('div', {
-            className: "relative flex-1",
-            children: [
-              (0, P.jsx)(ve, { className: "absolute left-2.5 top-2 w-3 h-3 pointer-events-none " + (isDark ? "text-white/40" : "text-slate-400") }),
-              (0, P.jsx)('input', {
-                type: "text",
-                autoFocus: true,
-                value: searchTerm,
-                onChange: function(e) { onSearchChange(e.target.value); },
-                placeholder: "搜索卡片标题、描述或标签...",
-                className: "w-full h-7 pl-7 pr-7 text-xs rounded-xl border outline-none transition-all " + (isDark ? "bg-white/10 border-white/20 text-white placeholder-white/40 focus:border-emerald-400" : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-emerald-600")
-              }),
-              searchTerm ? (0, P.jsx)('button', {
-                type: "button",
-                onClick: function() { onSearchChange(''); },
-                className: "absolute right-2 top-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px] opacity-60 hover:opacity-100 " + (isDark ? "text-white bg-white/20" : "text-slate-600 bg-slate-200"),
-                children: "✕"
-              }) : null
-            ]
           }),
+
+          // Stats Banner Toggle
           (0, P.jsx)('button', {
             type: "button",
-            onClick: function() { setIsSearchOpen(false); },
-            className: "text-xs font-medium px-1 text-emerald-500 hover:text-emerald-400 shrink-0",
-            children: "收起"
+            onClick: onToggleStats,
+            className: "p-2 rounded-xl border transition-all duration-200 " + (isStatsOpen ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-400" : (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200")),
+            title: isStatsOpen ? "收起统计看板" : "展开统计看板",
+            children: (0, P.jsx)(IconBarChart, { className: "w-4 h-4" })
+          }),
+
+          // Sound FX Toggle
+          (0, P.jsx)('button', {
+            type: "button",
+            onClick: onToggleSound,
+            className: "p-2 rounded-xl border transition-all duration-200 " + (!isSoundMuted ? (isDark ? "bg-white/12 border-emerald-400/40 text-emerald-400" : "bg-emerald-50 border-emerald-500/40 text-emerald-700") : (isDark ? "bg-white/8 border-white/15 text-white/40 hover:text-white/80" : "bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-700")),
+            title: isSoundMuted ? "开启音效反馈" : "静音音效反馈",
+            children: isSoundMuted ? (0, P.jsx)(IconVolumeX, { className: "w-4 h-4" }) : (0, P.jsx)(IconVolume, { className: "w-4 h-4" })
+          }),
+
+          // Zen Focus Mode Toggle
+          (0, P.jsx)('button', {
+            type: "button",
+            onClick: onToggleZenMode,
+            className: "p-2 rounded-xl border transition-all duration-200 hidden sm:flex " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"),
+            title: isZenMode ? "退出沉浸专注模式 (F)" : "进入沉浸专注模式 (F)",
+            children: isZenMode ? (0, P.jsx)(IconMinimize, { className: "w-4 h-4" }) : (0, P.jsx)(IconMaximize, { className: "w-4 h-4" })
+          }),
+
+          // Dark/Light Theme Toggle
+          (0, P.jsx)('button', {
+            type: "button",
+            onClick: function() { onThemeModeChange(isDark ? 'white' : 'dark'); SoundEngine.play('click'); },
+            className: "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
+            title: isDark ? "切换为明亮模式" : "切换为暗夜模式",
+            children: isDark ? (0, P.jsx)(xe, { className: "w-4 h-4 text-amber-300" }) : (0, P.jsx)(he, { className: "w-4 h-4 text-slate-700" })
+          }),
+
+          // Cloud Sync status
+          (0, P.jsxs)('button', {
+            type: "button",
+            onClick: onOpenCloudSync,
+            className: "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all duration-200 select-none " + (isDark ? (firebaseUser ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 shadow-sm" : "border-white/15 bg-white/8 text-white/80 hover:bg-white/15") : (firebaseUser ? "border-emerald-600/30 bg-emerald-50 text-emerald-800 shadow-sm" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200")),
+            title: firebaseUser ? ("已连接云端同步: " + firebaseUser.email) : "云端同步与 Google 登录",
+            children: [
+              firebaseUser && firebaseUser.photoURL ? (0, P.jsx)('img', { src: firebaseUser.photoURL, alt: "", className: "w-4 h-4 rounded-full ring-1 ring-emerald-400 shrink-0" }) : (0, P.jsx)('span', { className: "text-xs", children: "☁️" }),
+              (0, P.jsx)('span', { className: "hidden sm:inline font-semibold", children: firebaseUser ? ((firebaseUser.displayName || '').split(' ')[0] || '已同步') : "云端同步" }),
+              (0, P.jsx)('span', { className: "w-2 h-2 rounded-full shrink-0 " + (syncStatus === 'synced' ? "bg-emerald-400 animate-pulse" : syncStatus === 'saving' ? "bg-amber-400 animate-spin" : syncStatus === 'error' ? "bg-rose-400" : "bg-slate-400/50") })
+            ]
+          }),
+
+          // Board Settings
+          (0, P.jsx)('button', {
+            type: "button",
+            onClick: onOpenBoardSettings,
+            className: "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
+            title: "看板设置与导出",
+            children: (0, P.jsx)(j, { className: "w-4 h-4" })
+          }),
+
+          // iPhone Mobile Version Link
+          (0, P.jsxs)('a', {
+            href: "iphone.html",
+            className: "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-emerald-400 hover:text-white hover:bg-emerald-600/30" : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"),
+            title: "切换至 iPhone 15 Pro 专属移动版",
+            children: [
+              (0, P.jsx)('span', { children: "📱" }),
+              (0, P.jsx)('span', { className: "hidden md:inline font-medium text-xs", children: "iPhone版" })
+            ]
+          }),
+
+          // New List
+          (0, P.jsxs)('button', {
+            type: "button",
+            onClick: onOpenNewList,
+            className: "flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-all duration-180 hover:scale-[1.02]",
+            children: [
+              (0, P.jsx)(ge, { className: "w-3.5 h-3.5" }),
+              (0, P.jsx)('span', { className: "hidden md:inline", children: "新建列表" })
+            ]
           })
         ]
-      }) : null
+      })
     ]
   });
 };
+
+// =========================================================================
 // 3D Cover Flow View Component (Oe) - Upgraded with Tilt, Scrubber, Audio
 // =========================================================================
 var Oe = function(props) {
@@ -1517,7 +1198,6 @@ var Oe = function(props) {
   var onOpenAIAssistant = props.onOpenAIAssistant;
   var isZenMode = props.isZenMode;
   var onToggleZenMode = props.onToggleZenMode;
-  var isLandscape = props.isLandscape;
 
   var isDark = themeMode === 'dark';
   var activeIdxState = (0, _.useState)(0);
@@ -1597,7 +1277,7 @@ var Oe = function(props) {
     if (scrubberTimer.current) clearTimeout(scrubberTimer.current);
     scrubberTimer.current = setTimeout(function() {
       setIsScrubberVisible(false);
-    }, 1500);
+    }, 2400);
   }, []);
 
   var prevCard = (0, _.useCallback)(function() {
@@ -1671,7 +1351,7 @@ var Oe = function(props) {
     return function() { window.removeEventListener('keydown', keyHandler); };
   }, [activeIdx, cards, board, prevCard, nextCard, onOpenCardModal, onToggleZenMode, onUpdateCardMastery, selectedColFilter]);
 
-  // Trackpad / Wheel Scroll
+  // Trackpad / Wheel Horizontal Scroll
   (0, _.useEffect)(function() {
     var elem = containerRef.current || stageRef.current;
     if (!elem) return;
@@ -1685,24 +1365,23 @@ var Oe = function(props) {
       var scrollable = e.target && e.target.closest && e.target.closest('.overflow-y-auto');
       if (scrollable && ay > ax) return;
 
-      var isHoriz = (ax > ay && ax > 2) || (e.shiftKey && ay > 2);
-      var delta = isHoriz ? (e.shiftKey ? e.deltaY : e.deltaX) : (ay > 8 ? e.deltaY : 0);
+      var isHoriz = (ax > ay && ax > 3) || (e.shiftKey && ay > 3);
+      var delta = isHoriz ? (e.shiftKey ? e.deltaY : e.deltaX) : 0;
 
-      if (isHoriz || Math.abs(delta) > 8) {
+      if (isHoriz) {
         e.preventDefault();
-        showScrubber();
         if (isCooling) return;
         accDelta += delta;
-        if (accDelta > 20) {
+        if (accDelta > 30) {
           nextCard();
           accDelta = 0;
           isCooling = true;
-          coolTimer = setTimeout(function() { isCooling = false; }, 200);
-        } else if (accDelta < -20) {
+          coolTimer = setTimeout(function() { isCooling = false; }, 220);
+        } else if (accDelta < -30) {
           prevCard();
           accDelta = 0;
           isCooling = true;
-          coolTimer = setTimeout(function() { isCooling = false; }, 200);
+          coolTimer = setTimeout(function() { isCooling = false; }, 220);
         }
       }
     };
@@ -1711,7 +1390,7 @@ var Oe = function(props) {
       elem.removeEventListener('wheel', wheelHandler);
       if (coolTimer) clearTimeout(coolTimer);
     };
-  }, [nextCard, prevCard, showScrubber]);
+  }, [nextCard, prevCard]);
 
   // Pointer Drag & 3D Tilt calculation
   var onPointerDown = function(e) {
@@ -1727,15 +1406,13 @@ var Oe = function(props) {
     if (dragActiveRef.current && dragStartXRef.current !== null) {
       var dx = e.clientX - dragStartXRef.current;
       var dy = dragStartYRef.current === null ? 0 : e.clientY - dragStartYRef.current;
-      if (!dragMovedRef.current && (Math.abs(dx) > 8 || Math.abs(dx) > Math.abs(dy))) {
+      if (!dragMovedRef.current && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
         dragMovedRef.current = true;
-        try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
         setIsDragging(true);
         setFlippedMap({});
       }
       if (dragMovedRef.current) {
         setDragOffset(dx);
-        showScrubber();
       }
     } else if (stageRef.current && !isDragging) {
       // 3D Tilt on center card
@@ -1744,24 +1421,23 @@ var Oe = function(props) {
       var centerY = rect.top + rect.height / 2;
       var relX = (e.clientX - centerX) / (rect.width / 2);
       var relY = (e.clientY - centerY) / (rect.height / 2);
-      if (Math.abs(relX) < 1.1 && Math.abs(relY) < 1.1) {
-        setTilt({ x: relY * -7, y: relX * 10 });
+      if (Math.abs(relX) < 1.2 && Math.abs(relY) < 1.2) {
+        setTilt({ x: relY * -9, y: relX * 12 });
       } else {
         setTilt({ x: 0, y: 0 });
       }
     }
   };
 
-  var onPointerUp = function(e) {
+  var onPointerUp = function() {
     if (dragActiveRef.current) {
-      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch(err) {}
       dragActiveRef.current = false;
       if (dragMovedRef.current && dragStartXRef.current !== null) {
         var elapsed = Date.now() - dragStartTimeRef.current;
-        var isFastSwipe = elapsed < 320 && Math.abs(dragOffset) > 20;
-        if (dragOffset < -35 || (isFastSwipe && dragOffset < 0)) {
+        var isFastSwipe = elapsed < 250 && Math.abs(dragOffset) > 20;
+        if (dragOffset < -45 || (isFastSwipe && dragOffset < 0)) {
           nextCard();
-        } else if (dragOffset > 35 || (isFastSwipe && dragOffset > 0)) {
+        } else if (dragOffset > 45 || (isFastSwipe && dragOffset > 0)) {
           prevCard();
         }
       }
@@ -1769,37 +1445,22 @@ var Oe = function(props) {
       setDragOffset(0);
       dragStartXRef.current = null;
       dragStartYRef.current = null;
-      setTimeout(function() { dragMovedRef.current = false; }, 60);
+      dragMovedRef.current = false;
     }
   };
 
-  // Dimensions & Spread for iPhone 15 Pro
-  var cardWidth = isLandscape ? 220 : 280;
-  var cardHeight = isLandscape ? 210 : 310;
-  var stageHeight = isLandscape ? 270 : 440;
-  var marginLeft = isLandscape ? -110 : -140;
-  var marginTop = isLandscape ? -115 : -170;
-  var sideSpread = isLandscape ? 150 : 125;
-  var stepSpread = isLandscape ? 75 : 65;
-  var tiltAngle = isLandscape ? 54 : 48;
-  var reflectionHeight = isLandscape ? 80 : 105;
-  var reflectionTextMarginTop = isLandscape ? "14px" : "20px";
-  var reflectionTextClass = isLandscape
-    ? "text-base font-bold tracking-tight text-center leading-snug line-clamp-1 max-w-[190px]"
-    : "text-lg md:text-xl font-bold tracking-tight text-center leading-snug line-clamp-2 max-w-[240px]";
-
   return (0, P.jsxs)('section', {
     ref: containerRef,
-    className: "relative flex flex-col items-center justify-center w-full flex-1 px-2 py-1 overflow-hidden select-none",
+    className: "relative flex flex-col items-center justify-center w-full min-h-[calc(100vh-64px)] px-3 md:px-4 py-2 overflow-hidden select-none",
     children: [
       // Zen mode exit button
       isZenMode ? (0, P.jsxs)('button', {
         type: "button",
         onClick: onToggleZenMode,
-        className: "fixed top-4 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 border border-white/20 text-white text-xs backdrop-blur-xl shadow-2xl hover:bg-black/80 transition-all cursor-pointer",
+        className: "fixed top-5 right-6 z-50 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 border border-white/20 text-white text-xs backdrop-blur-xl shadow-2xl hover:bg-black/80 transition-all cursor-pointer",
         children: [
           (0, P.jsx)(IconMinimize, { className: "w-3.5 h-3.5" }),
-          (0, P.jsx)('span', { children: "退出 (Esc)" })
+          (0, P.jsx)('span', { children: "退出沉浸 (Esc/F)" })
         ]
       }) : null,
 
@@ -1811,41 +1472,44 @@ var Oe = function(props) {
         onPointerUp: onPointerUp,
         onPointerCancel: onPointerUp,
         onClick: function(e) {
-          if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
-          if (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
+          if (Math.abs(dragOffset) > 8 || (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]'))) return;
           var stage = stageRef.current;
           if (!stage) return;
           var rect = stage.getBoundingClientRect();
           var offset = e.clientX - (rect.left + rect.width / 2);
-          var halfW = cardWidth / 2;
-          if (Math.abs(offset) <= halfW) {
+          if (Math.abs(offset) <= 165) {
             var activeCard = cards[activeIdx];
             if (activeCard) toggleCardFlip(activeCard.id, e);
             return;
           }
-          if (offset < -halfW) {
-            prevCard();
+          if (offset < -165) {
+            var jumpLeft = Math.floor((-offset - 165) / 115) + 1;
+            setActiveIdx(Math.max(0, activeIdx - jumpLeft));
+            SoundEngine.play('slide');
+            showScrubber();
             return;
           }
-          if (offset > halfW) {
-            nextCard();
+          if (offset > 165) {
+            var jumpRight = Math.floor((offset - 165) / 115) + 1;
+            setActiveIdx(Math.min(totalSlots - 1, activeIdx + jumpRight));
+            SoundEngine.play('slide');
+            showScrubber();
             return;
           }
         },
-        style: { height: stageHeight + "px" },
-        className: "relative w-full my-auto flex justify-center items-center perspective-stage overflow-visible cursor-grab active:cursor-grabbing",
+        className: "relative w-full max-w-6xl h-[560px] md:h-[620px] my-auto flex justify-center items-center perspective-stage overflow-visible cursor-grab active:cursor-grabbing",
         children: (0, P.jsxs)('div', {
           className: "relative w-full h-full preserve-3d flex justify-center items-center",
           children: [
             // Render Cards
             cards.map(function(card, idx) {
-              var dragFraction = isDragging ? dragOffset / 240 : 0;
+              var dragFraction = isDragging ? dragOffset / 280 : 0;
               var effIdx = idx - activeIdx - dragFraction;
               var absEff = Math.abs(effIdx);
               var isCenter = (idx - activeIdx) === 0;
               var isFlipped = !!flippedMap[card.id];
 
-              if (absEff > 20) return null;
+              if (absEff > 24) return null;
 
               var transX = 0;
               var transZ = 0;
@@ -1856,23 +1520,23 @@ var Oe = function(props) {
 
               if (Math.abs(effIdx) < 0.05) {
                 transX = 0;
-                transZ = 60;
+                transZ = 68;
                 rotY = 0;
-                scale = 1.0;
+                scale = 1.02;
                 zIndex = 70;
                 opacity = 1;
               } else if (effIdx < 0) {
-                transX = -sideSpread + effIdx * stepSpread;
-                transZ = -Math.min(180, absEff * 40);
-                rotY = tiltAngle;
-                scale = Math.max(0.72, 1 - absEff * 0.07);
-                opacity = Math.max(0.35, 1 - absEff * 0.15);
+                transX = -230 + effIdx * 115;
+                transZ = -Math.min(220, absEff * 50);
+                rotY = 46;
+                scale = Math.max(0.75, 1 - absEff * 0.06);
+                opacity = Math.max(0.35, 1 - absEff * 0.14);
               } else {
-                transX = sideSpread + effIdx * stepSpread;
-                transZ = -Math.min(180, absEff * 40);
-                rotY = -tiltAngle;
-                scale = Math.max(0.72, 1 - absEff * 0.07);
-                opacity = Math.max(0.35, 1 - absEff * 0.15);
+                transX = 230 + effIdx * 115;
+                transZ = -Math.min(220, absEff * 50);
+                rotY = -46;
+                scale = Math.max(0.75, 1 - absEff * 0.06);
+                opacity = Math.max(0.35, 1 - absEff * 0.14);
               }
 
               // Dynamic 3D tilt on center card
@@ -1885,7 +1549,7 @@ var Oe = function(props) {
               var customStyle = cardColColor ? {
                 background: isDark
                   ? "linear-gradient(135deg, " + cardColColor + "48 0%, " + cardColColor + "18 50%, rgba(14, 22, 33, 0.55) 100%)"
-                  : "linear-gradient(135deg, " + cardColColor + "35 0%, " + cardColColor + "12 50%, rgba(255, 255, 255, 0.88) 100%)",
+                  : "linear-gradient(135deg, " + cardColColor + "35 0%, " + cardColColor + "12 50%, rgba(255, 255, 255, 0.78) 100%)",
                 borderColor: cardColColor + "66",
                 borderTopColor: isDark ? (cardColColor + "cc") : "rgba(255,255,255,0.95)",
                 borderLeftColor: cardColColor + "99",
@@ -1901,7 +1565,6 @@ var Oe = function(props) {
               return (0, P.jsxs)('div', {
                 key: card.id,
                 onClick: function(e) {
-                  if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
                   if (isCenter) {
                     toggleCardFlip(card.id, e);
                   } else {
@@ -1912,56 +1575,53 @@ var Oe = function(props) {
                   }
                 },
                 style: {
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  width: cardWidth + "px",
-                  height: cardHeight + "px",
-                  marginLeft: marginLeft + "px",
-                  marginTop: marginTop + "px",
-                  borderRadius: "32px",
                   transform: "translateX(" + transX + "px) translateZ(" + transZ + "px)" + tiltTransform + " scale(" + scale + ")",
                   opacity: opacity,
                   zIndex: zIndex,
-                  transition: isDragging ? "none" : "transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.4s cubic-bezier(0.2, 0.9, 0.3, 1)"
+                  transition: isDragging ? "none" : "transform 0.64s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.45s cubic-bezier(0.2, 0.9, 0.3, 1)"
                 },
-                className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]",
+                className: "absolute top-1/2 left-1/2 -mt-[210px] -ml-[180px] w-[360px] h-[360px] preserve-3d cursor-pointer select-none rounded-[36px]",
                 children: [
+                  // Hit shield for non-center cards
+                  !isCenter ? (0, P.jsx)('button', {
+                    type: "button",
+                    onClick: function(e) {
+                      e.stopPropagation();
+                      setActiveIdx(idx);
+                      SoundEngine.play('slide');
+                      showScrubber();
+                    },
+                    className: "absolute -inset-3 z-50 cursor-pointer rounded-[42px] bg-transparent hover:bg-white/[0.08] active:bg-white/[0.14] transition-colors border-0 outline-none",
+                    title: "定位到卡片: " + card.title
+                  }) : null,
+
                   (0, P.jsxs)('div', {
-                    style: { transformStyle: 'preserve-3d', borderRadius: '32px' },
+                    style: { transformStyle: 'preserve-3d' },
                     className: "coverflow-flipper relative w-full h-full rounded-[36px] preserve-3d",
                     children: [
                       // ==========================================
                       // 1. FRONT FACE - ULTRA-CLEAN: ONLY TITLE!
                       // ==========================================
                       (0, P.jsxs)('div', {
-                        onClick: function(e) {
-                          if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
-                          if (isCenter) {
-                            e.stopPropagation();
-                            toggleCardFlip(card.id, e);
-                          }
-                        },
                         style: Object.assign({}, customStyle, {
                           transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
                           transformStyle: "preserve-3d",
                           backfaceVisibility: "hidden",
                           WebkitBackfaceVisibility: "hidden",
-                          borderRadius: "32px",
                           opacity: isFlipped ? 0 : 1,
                           zIndex: isFlipped ? 0 : 10,
                           pointerEvents: isFlipped ? "none" : "auto",
-                          transition: "transform 0.58s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.2s ease"
+                          transition: "transform 0.62s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.22s ease"
                         }),
-                        className: "face-front absolute inset-0 w-full h-full rounded-[36px] p-5 md:p-6 flex flex-col justify-center items-center border select-none overflow-hidden transition-all duration-300 " + (isDark ? "liquid-glass-flow-dark text-white" : "liquid-glass-flow-white text-slate-900"),
+                        className: "face-front absolute inset-0 w-full h-full rounded-[36px] p-8 flex flex-col justify-center items-center border select-none overflow-hidden transition-all duration-300 " + (isDark ? "liquid-glass-flow-dark text-white" : "liquid-glass-flow-white text-slate-900"),
                         title: isCenter ? "点击翻转卡片 (或按空格键)" : undefined,
                         children: [
                           (0, P.jsx)('div', { className: "liquid-specular-edge" }),
                           (0, P.jsx)('div', { className: "liquid-glass-caustic" }),
                           (0, P.jsx)('div', {
-                            className: "relative z-10 text-center px-4 w-full flex flex-col items-center justify-center pointer-events-none",
+                            className: "relative z-10 text-center px-6 w-full flex flex-col items-center justify-center",
                             children: (0, P.jsx)('h3', {
-                              className: (isLandscape ? "text-lg md:text-xl font-bold line-clamp-3 max-w-[180px]" : "text-xl md:text-2xl font-bold line-clamp-4 max-w-[220px]") + " tracking-tight leading-snug " + (isDark ? "text-white" : "text-slate-800") + " " + (card.complete ? "line-through opacity-50" : ""),
+                              className: "text-2xl md:text-[28px] font-bold tracking-tight leading-snug line-clamp-5 max-w-xs " + (isDark ? "text-white" : "text-slate-800") + " " + (card.complete ? "line-through opacity-50" : ""),
                               children: card.title
                             })
                           })
@@ -1972,23 +1632,18 @@ var Oe = function(props) {
                       // 2. BACK FACE - RICH DETAIL & WELL-FORMATTED
                       // ==========================================
                       (0, P.jsxs)('div', {
-                        onClick: function(e) {
-                          if (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
-                          e.stopPropagation();
-                          toggleCardFlip(card.id, e);
-                        },
+                        onClick: function(e) { toggleCardFlip(card.id, e); },
                         style: Object.assign({}, customStyle, {
                           transform: isFlipped ? "rotateY(0deg)" : "rotateY(-180deg)",
                           transformStyle: "preserve-3d",
                           backfaceVisibility: "hidden",
                           WebkitBackfaceVisibility: "hidden",
-                          borderRadius: "32px",
                           opacity: isFlipped ? 1 : 0,
                           zIndex: isFlipped ? 10 : 0,
                           pointerEvents: isFlipped ? "auto" : "none",
-                          transition: "transform 0.58s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.2s ease"
+                          transition: "transform 0.62s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.22s ease"
                         }),
-                        className: "face-back absolute inset-0 w-full h-full rounded-[36px] p-4 flex flex-col justify-between border select-none overflow-hidden transition-all duration-300 cursor-pointer " + (isDark ? "liquid-glass-flow-dark text-white" : "liquid-glass-flow-white text-slate-900"),
+                        className: "face-back absolute inset-0 w-full h-full rounded-[36px] p-5 md:p-6 flex flex-col justify-between border select-none overflow-hidden transition-all duration-300 cursor-pointer " + (isDark ? "liquid-glass-flow-dark text-white" : "liquid-glass-flow-white text-slate-900"),
                         title: "点击空白处翻回正面",
                         children: [
                           (0, P.jsx)('div', { className: "liquid-specular-edge" }),
@@ -1997,36 +1652,36 @@ var Oe = function(props) {
 
                           // Header on back: Column badge + labels + due date + mastery star + TTS + flip button
                           (0, P.jsxs)('div', {
-                            className: "relative z-10 flex items-center justify-between border-b pb-1.5 mb-1 gap-1.5 " + (isDark ? "border-white/10" : "border-slate-200/80"),
+                            className: "relative z-10 flex items-center justify-between border-b pb-2 mb-1.5 gap-2 " + (isDark ? "border-white/10" : "border-slate-200/80"),
                             children: [
                               (0, P.jsxs)('div', {
-                                className: "flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0",
+                                className: "flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0",
                                 children: [
                                   (0, P.jsxs)('div', {
-                                    className: "flex items-center gap-1 px-1.5 py-0.5 rounded-full backdrop-blur-md shrink-0 " + (isDark ? "bg-white/10 text-white/90 border border-white/10" : "bg-slate-200/90 text-slate-700"),
+                                    className: "flex items-center gap-1.5 px-2 py-0.5 rounded-full backdrop-blur-md shrink-0 " + (isDark ? "bg-white/10 text-white/90 border border-white/10" : "bg-slate-200/90 text-slate-700"),
                                     children: [
                                       (0, P.jsx)('span', { className: "w-2 h-2 rounded-full shadow-sm shrink-0", style: { backgroundColor: card.columnColor || "#30d158" } }),
-                                      (0, P.jsx)('span', { className: "text-[10px] font-semibold truncate max-w-[70px]", children: card.columnTitle })
+                                      (0, P.jsx)('span', { className: "text-[11px] font-semibold truncate max-w-[90px]", children: card.columnTitle })
                                     ]
                                   }),
                                   (card.labels || []).map(function(lbl) {
                                     return (0, P.jsx)('span', {
                                       key: lbl,
-                                      className: "text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0",
+                                      className: "text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0",
                                       children: lbl
                                     });
                                   }),
                                   card.date ? (0, P.jsxs)('span', {
-                                    className: "inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full shrink-0 " + (isDark ? "bg-white/10 text-white/80" : "bg-slate-200 text-slate-700"),
+                                    className: "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full shrink-0 " + (isDark ? "bg-white/10 text-white/80" : "bg-slate-200 text-slate-700"),
                                     children: [
-                                      (0, P.jsx)(ne, { className: "w-2.5 h-2.5" }),
+                                      (0, P.jsx)(ne, { className: "w-3 h-3" }),
                                       card.date
                                     ]
                                   }) : null
                                 ]
                               }),
                               (0, P.jsxs)('div', {
-                                className: "flex items-center gap-1 shrink-0",
+                                className: "flex items-center gap-1.5 shrink-0",
                                 children: [
                                   // Mastery Star Button
                                   (0, P.jsxs)('button', {
@@ -2038,10 +1693,10 @@ var Oe = function(props) {
                                       if (onUpdateCardMastery) onUpdateCardMastery(card.columnId, card.id, nextM);
                                       SoundEngine.play('mastery');
                                     },
-                                    className: "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold border transition-transform hover:scale-105 " + (isDark ? "bg-amber-400/15 text-amber-300 border-amber-400/30" : "bg-amber-100 text-amber-800 border-amber-300"),
+                                    className: "flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-transform hover:scale-105 " + (isDark ? "bg-amber-400/15 text-amber-300 border-amber-400/30" : "bg-amber-100 text-amber-800 border-amber-300"),
                                     title: "点击提升掌握星级 (Lv 1~5)",
                                     children: [
-                                      (0, P.jsx)(IconStar, { className: "w-2.5 h-2.5 text-amber-400 fill-amber-400" }),
+                                      (0, P.jsx)(IconStar, { className: "w-3 h-3 text-amber-400 fill-amber-400" }),
                                       (0, P.jsxs)('span', { children: ["Lv.", mastery] })
                                     ]
                                   }),
@@ -2055,19 +1710,16 @@ var Oe = function(props) {
                                     },
                                     className: "p-1 rounded-full opacity-70 hover:opacity-100 hover:bg-white/10 transition-colors",
                                     title: "语音朗读卡片",
-                                    children: (0, P.jsx)(IconVolume, { className: "w-3 h-3 text-emerald-400" })
+                                    children: (0, P.jsx)(IconVolume, { className: "w-3.5 h-3.5 text-emerald-400" })
                                   }),
                                   // Flip Back Button
                                   (0, P.jsx)('button', {
                                     type: "button",
                                     "data-interactive": "true",
-                                    onClick: function(e) {
-                                      e.stopPropagation();
-                                      toggleCardFlip(card.id, e);
-                                    },
+                                    onClick: function(e) { toggleCardFlip(card.id, e); },
                                     className: "p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-colors",
                                     title: "翻回正面",
-                                    children: (0, P.jsx)(_e, { className: "w-3 h-3" })
+                                    children: (0, P.jsx)(_e, { className: "w-3.5 h-3.5" })
                                   })
                                 ]
                               })
@@ -2076,7 +1728,7 @@ var Oe = function(props) {
 
                           // Title and complete toggle
                           (0, P.jsxs)('div', {
-                            className: "relative z-10 flex items-start gap-1.5 px-0.5 mb-1",
+                            className: "relative z-10 flex items-start gap-2 px-0.5 mb-1.5",
                             children: [
                               (0, P.jsx)('button', {
                                 type: "button",
@@ -2088,10 +1740,10 @@ var Oe = function(props) {
                                 },
                                 className: "mt-0.5 p-0.5 rounded-lg transition-colors shrink-0 flex items-center justify-center " + (card.complete ? "text-emerald-400 hover:bg-emerald-400/10" : (isDark ? "text-white/40 hover:text-white" : "text-slate-400 hover:text-slate-900")),
                                 title: card.complete ? "标记未完成" : "标记已完成",
-                                children: card.complete ? (0, P.jsx)(A, { className: "w-3.5 h-3.5 text-emerald-400" }) : (0, P.jsx)(oe, { className: "w-3.5 h-3.5" })
+                                children: card.complete ? (0, P.jsx)(A, { className: "w-4 h-4 text-emerald-400" }) : (0, P.jsx)(oe, { className: "w-4 h-4" })
                               }),
                               (0, P.jsx)('h4', {
-                                className: "text-xs md:text-sm font-bold tracking-tight line-clamp-2 leading-tight flex-1 " + (card.complete ? "line-through opacity-50" : ""),
+                                className: "text-sm md:text-base font-bold tracking-tight line-clamp-2 leading-snug flex-1 " + (card.complete ? "line-through opacity-50" : ""),
                                 children: card.title
                               })
                             ]
@@ -2099,28 +1751,29 @@ var Oe = function(props) {
 
                           // Scrollable body: Description + Checklist
                           (0, P.jsxs)('div', {
-                            className: "relative z-10 flex-1 overflow-y-auto pr-1 space-y-1.5 my-1",
+                            className: "relative z-10 flex-1 overflow-y-auto pr-1 space-y-2.5 my-1",
                             onClick: function(e) {
                               if (e.target && e.target.closest && e.target.closest('button, a, input, [data-interactive="true"]')) return;
-                              e.stopPropagation();
                               toggleCardFlip(card.id, e);
                             },
                             children: [
+                              // Description
                               card.desc ? (0, P.jsx)('div', {
-                                className: "p-2 rounded-xl text-[11px] leading-relaxed whitespace-pre-wrap transition-colors " + (isDark ? "bg-black/25 text-white/90 border border-white/8 hover:border-white/20" : "bg-slate-100/90 text-slate-700 border border-slate-200/80 hover:border-slate-300"),
+                                className: "p-2.5 rounded-xl text-xs leading-relaxed whitespace-pre-wrap transition-colors " + (isDark ? "bg-black/25 text-white/90 border border-white/8 hover:border-white/20" : "bg-slate-100/90 text-slate-700 border border-slate-200/80 hover:border-slate-300"),
                                 children: card.desc
                               }) : (0, P.jsx)('div', {
-                                className: "p-2 text-center text-[10px] opacity-40 italic border border-dashed border-white/10 rounded-xl my-0.5",
-                                children: "暂无详情描述，可点击下方 ! 补充笔记"
+                                className: "p-2.5 text-center text-[11px] opacity-40 italic border border-dashed border-white/10 rounded-xl my-1",
+                                children: "暂无详情描述，可点击下方 ! 按钮补充完整笔记"
                               }),
 
+                              // Checklist with progress
                               hasCheck ? (0, P.jsxs)('div', {
-                                className: "space-y-1 pt-0.5",
+                                className: "space-y-1.5 pt-0.5",
                                 children: [
                                   (0, P.jsxs)('div', {
-                                    className: "flex items-center justify-between text-[10px] font-semibold opacity-75",
+                                    className: "flex items-center justify-between text-[11px] font-semibold opacity-75",
                                     children: [
-                                      (0, P.jsxs)('span', { children: ["待办步骤 (", doneCheck, "/", totalCheck, ")"] }),
+                                      (0, P.jsxs)('span', { children: ["待办与复习步骤 (", doneCheck, "/", totalCheck, ")"] }),
                                       (0, P.jsxs)('span', { className: "font-mono", children: [Math.round((doneCheck / totalCheck) * 100), "%"] })
                                     ]
                                   }),
@@ -2132,7 +1785,7 @@ var Oe = function(props) {
                                     })
                                   }),
                                   (0, P.jsx)('div', {
-                                    className: "space-y-1 max-h-[75px] overflow-y-auto pr-0.5",
+                                    className: "space-y-1 max-h-[85px] overflow-y-auto pr-0.5",
                                     children: (card.checklistItems || []).map(function(item) {
                                       return (0, P.jsxs)('div', {
                                         key: item.id,
@@ -2142,9 +1795,9 @@ var Oe = function(props) {
                                           onToggleChecklistItem(card.columnId, card.id, item.id);
                                           SoundEngine.play('check');
                                         },
-                                        className: "flex items-center gap-1.5 p-1 rounded-lg text-[11px] cursor-pointer transition-colors " + (isDark ? "hover:bg-white/10" : "hover:bg-slate-100"),
+                                        className: "flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer transition-colors " + (isDark ? "hover:bg-white/10" : "hover:bg-slate-100"),
                                         children: [
-                                          item.done ? (0, P.jsx)(A, { className: "w-3 h-3 text-emerald-400 shrink-0" }) : (0, P.jsx)(oe, { className: "w-3 h-3 opacity-40 shrink-0" }),
+                                          item.done ? (0, P.jsx)(A, { className: "w-3.5 h-3.5 text-emerald-400 shrink-0" }) : (0, P.jsx)(oe, { className: "w-3.5 h-3.5 opacity-40 shrink-0" }),
                                           (0, P.jsx)('span', { className: "truncate " + (item.done ? "line-through opacity-50" : ""), children: item.text })
                                         ]
                                       });
@@ -2157,7 +1810,7 @@ var Oe = function(props) {
 
                           // Footer on back
                           (0, P.jsxs)('div', {
-                            className: "relative z-10 flex items-center justify-between gap-1.5 pt-1.5 border-t " + (isDark ? "border-white/10" : "border-slate-200/80"),
+                            className: "relative z-10 flex items-center justify-between gap-2 pt-2 border-t " + (isDark ? "border-white/10" : "border-slate-200/80"),
                             children: [
                               (0, P.jsxs)('button', {
                                 type: "button",
@@ -2165,10 +1818,10 @@ var Oe = function(props) {
                                   e.stopPropagation();
                                   onOpenAIAssistant(card);
                                 },
-                                className: "flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-xl transition-all " + (isDark ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30" : "bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200"),
+                                className: "flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-xl transition-all " + (isDark ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30" : "bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200"),
                                 title: "用 AI 助教深度拆解与练习",
                                 children: [
-                                  (0, P.jsx)(M, { className: "w-3 h-3" }),
+                                  (0, P.jsx)(M, { className: "w-3.5 h-3.5" }),
                                   (0, P.jsx)('span', { children: "AI 助教" })
                                 ]
                               }),
@@ -2193,27 +1846,25 @@ var Oe = function(props) {
                   // 3. FRONT CARD REFLECTION - ONLY SHOWN FOR FRONT, TEXT SHIFTED UPWARD!
                   // =========================================================================
                   (!isFlipped) ? (0, P.jsx)('div', {
-                    className: "coverflow-card-reflection absolute top-full left-0 w-full pointer-events-none select-none overflow-hidden",
+                    className: "coverflow-card-reflection absolute top-full left-0 w-full h-[180px] pointer-events-none select-none overflow-hidden",
                     style: {
-                      height: reflectionHeight + "px",
                       marginTop: "4px",
-                      borderRadius: "32px",
-                      WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.18) 50%, rgba(0,0,0,0) 82%)",
-                      maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.18) 50%, rgba(0,0,0,0) 82%)",
-                      opacity: isCenter ? (isDark ? 0.45 : 0.35) : Math.max(0.18, opacity * 0.4),
-                      transition: isDragging ? "none" : "opacity 0.4s ease"
+                      WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 45%, rgba(0,0,0,0) 80%)",
+                      maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.2) 45%, rgba(0,0,0,0) 80%)",
+                      opacity: isCenter ? 0.45 : Math.max(0.18, opacity * 0.4),
+                      transition: isDragging ? "none" : "opacity 0.45s ease"
                     },
                     children: (0, P.jsxs)('div', {
-                      className: "w-full rounded-[36px] border p-4 flex flex-col items-center justify-start " + (isDark ? "liquid-glass-flow-dark" : "liquid-glass-flow-white"),
-                      style: Object.assign({}, customStyle, { height: cardHeight + "px", borderRadius: "32px" }),
+                      className: "w-full h-[360px] rounded-[36px] border p-6 flex flex-col items-center justify-start " + (isDark ? "liquid-glass-flow-dark" : "liquid-glass-flow-white"),
+                      style: Object.assign({}, customStyle),
                       children: [
                         (0, P.jsx)('div', { className: "liquid-specular-edge opacity-30" }),
                         (0, P.jsx)('h3', {
-                          className: reflectionTextClass + " " + (isDark ? "text-white" : "text-slate-800"),
+                          className: "text-2xl md:text-[28px] font-bold tracking-tight text-center leading-snug line-clamp-2 max-w-xs " + (isDark ? "text-white" : "text-slate-800"),
                           style: {
                             transform: "scaleY(-1)",
-                            marginTop: reflectionTextMarginTop,
-                            filter: "blur(0.35px)"
+                            marginTop: "32px", // Shifted UP right near the bottom edge of the card, matching the user's yellow arrow!
+                            filter: "blur(0.4px)"
                           },
                           children: card.title
                         })
@@ -2227,7 +1878,7 @@ var Oe = function(props) {
             // End Slot: Add Card
             (function() {
               var endIdx = cards.length;
-              var dragFraction = isDragging ? dragOffset / 240 : 0;
+              var dragFraction = isDragging ? dragOffset / 280 : 0;
               var effIdx = endIdx - activeIdx - dragFraction;
               var absEff = Math.abs(effIdx);
               var isCenter = (endIdx - activeIdx) === 0;
@@ -2243,29 +1894,28 @@ var Oe = function(props) {
 
               if (Math.abs(effIdx) < 0.05) {
                 transX = 0;
-                transZ = 65;
+                transZ = 85;
                 rotY = 0;
-                scale = 1.0;
+                scale = 1.02;
                 zIndex = 60;
                 opacity = 1;
               } else if (effIdx < 0) {
-                transX = -sideSpread + effIdx * stepSpread;
-                transZ = -Math.min(180, absEff * 40);
-                rotY = tiltAngle;
-                scale = Math.max(0.72, 1 - absEff * 0.07);
+                transX = -180 + effIdx * 105;
+                transZ = -Math.min(240, absEff * 55);
+                rotY = 46;
+                scale = Math.max(0.74, 1 - absEff * 0.065);
                 opacity = Math.max(0.35, 1 - absEff * 0.15);
               } else {
-                transX = sideSpread + effIdx * stepSpread;
-                transZ = -Math.min(180, absEff * 40);
-                rotY = -tiltAngle;
-                scale = Math.max(0.72, 1 - absEff * 0.07);
+                transX = 180 + effIdx * 105;
+                transZ = -Math.min(240, absEff * 55);
+                rotY = -46;
+                scale = Math.max(0.74, 1 - absEff * 0.065);
                 opacity = Math.max(0.35, 1 - absEff * 0.15);
               }
 
-              return (0, P.jsx)('div', {
+              return (0, P.jsxs)('div', {
                 key: "end-add-slot",
-                onClick: function(e) {
-                  if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
+                onClick: function() {
                   if (isCenter) {
                     var targetCol = selectedColFilter === 'all' ? (board.columns && board.columns[0] && board.columns[0].id) : selectedColFilter;
                     if (targetCol) onOpenCardModal(targetCol);
@@ -2276,54 +1926,51 @@ var Oe = function(props) {
                   }
                 },
                 style: {
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  width: cardWidth + "px",
-                  height: cardHeight + "px",
-                  marginLeft: marginLeft + "px",
-                  marginTop: marginTop + "px",
-                  borderRadius: "32px",
                   transform: "translateX(" + transX + "px) translateZ(" + transZ + "px) rotateY(" + rotY + "deg) scale(" + scale + ")",
                   opacity: opacity,
                   zIndex: zIndex,
-                  transition: isDragging ? "none" : "transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.4s cubic-bezier(0.2, 0.9, 0.3, 1)"
+                  transition: isDragging ? "none" : "transform 0.64s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.45s cubic-bezier(0.2, 0.9, 0.3, 1)"
                 },
-                className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]",
-                children: (0, P.jsx)('div', {
-                  className: "coverflow-flipper relative w-full h-full rounded-[36px]",
-                  style: { borderRadius: "32px" },
-                  children: (0, P.jsxs)('div', {
-                    className: "relative w-full h-full rounded-[36px] p-5 flex flex-col justify-center items-center gap-3 border-2 border-dashed overflow-hidden transition-all duration-300 " + (isDark ? "liquid-glass-flow-dark border-white/25 hover:border-emerald-400 text-white" : "liquid-glass-flow-white border-slate-300 hover:border-emerald-600 text-slate-900"),
-                    style: { borderRadius: "32px" },
-                    children: [
-                      (0, P.jsx)('div', { className: "liquid-specular-edge" }),
-                      (0, P.jsx)('div', { className: "liquid-glass-caustic" }),
-                      (0, P.jsx)('div', {
-                        className: "w-12 h-12 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-lg transition-transform duration-200 hover:scale-110",
-                        children: (0, P.jsx)(ge, { className: "w-6 h-6" })
-                      }),
-                      (0, P.jsxs)('div', {
-                        className: "text-center",
-                        children: [
-                          (0, P.jsx)('span', { className: "font-bold text-base block", children: "新建卡片" }),
-                          (0, P.jsx)('span', { className: "text-xs opacity-60", children: "点击直接创建新内容" })
-                        ]
-                      })
-                    ]
+                className: "absolute top-1/2 left-1/2 -mt-[210px] -ml-[170px] w-[340px] h-[360px] preserve-3d cursor-pointer select-none rounded-[36px]",
+                children: [
+                  !isCenter ? (0, P.jsx)('button', {
+                    type: "button",
+                    onClick: function(e) {
+                      e.stopPropagation();
+                      setActiveIdx(endIdx);
+                      SoundEngine.play('slide');
+                      showScrubber();
+                    },
+                    className: "absolute -inset-3 z-50 cursor-pointer rounded-[42px] bg-transparent hover:bg-white/[0.08] active:bg-white/[0.14] transition-colors border-0 outline-none"
+                  }) : null,
+                  (0, P.jsx)('div', {
+                    className: "coverflow-flipper relative w-full h-full rounded-[36px]",
+                    children: (0, P.jsxs)('div', {
+                      className: "relative w-full h-full rounded-[36px] p-6 flex flex-col justify-center items-center gap-4 border-2 border-dashed overflow-hidden transition-all duration-300 " + (isDark ? "liquid-glass-flow-dark border-white/25 hover:border-emerald-400 text-white" : "liquid-glass-flow-white border-slate-300 hover:border-emerald-600 text-slate-900"),
+                      children: [
+                        (0, P.jsx)('div', { className: "liquid-specular-edge" }),
+                        (0, P.jsx)('div', { className: "liquid-glass-caustic" }),
+                        (0, P.jsx)('div', {
+                          className: "w-16 h-16 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-lg transition-transform duration-200 hover:scale-110",
+                          children: (0, P.jsx)(ge, { className: "w-8 h-8" })
+                        }),
+                        (0, P.jsxs)('div', {
+                          className: "text-center",
+                          children: [
+                            (0, P.jsx)('span', { className: "font-bold text-lg block", children: "新建卡片" }),
+                            (0, P.jsx)('span', { className: "text-xs opacity-60", children: "点击直接创建新内容" })
+                          ]
+                        })
+                      ]
+                    })
                   })
-                })
+                ]
               });
             })(),
 
             // Ground reflection sheen
             (0, P.jsx)('div', {
-              className: "coverflow-ground-sheen absolute bottom-3 left-1/2 -translate-x-1/2 w-[540px] max-w-full h-[90px] pointer-events-none rounded-[100%] blur-sm opacity-70",
-              style: {
-                background: isDark
-                  ? "radial-gradient(65% 50% at 50% 0%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 40%, rgba(0,0,0,0) 75%)"
-                  : "radial-gradient(65% 50% at 50% 0%, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 40%, rgba(0,0,0,0) 75%)"
-              }
+              className: "coverflow-ground-sheen absolute bottom-6 left-1/2 -translate-x-1/2 w-[840px] max-w-full h-[140px] pointer-events-none rounded-[100%] blur-sm opacity-80"
             })
           ]
         })
@@ -2335,13 +1982,7 @@ var Oe = function(props) {
       (0, P.jsxs)('div', {
         onMouseEnter: function() { setIsScrubberVisible(true); },
         onMouseLeave: function() { setIsScrubberVisible(false); },
-        onTouchStart: function() { showScrubber(); },
-        style: {
-          opacity: isScrubberVisible ? 1 : 0,
-          pointerEvents: isScrubberVisible ? "auto" : "none",
-          transition: "opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)"
-        },
-        className: "flex flex-col items-center justify-center w-full max-w-[260px] md:max-w-xs mt-1 mb-2 z-30",
+        className: "flex flex-col items-center justify-center w-full max-w-sm mt-3 z-30 transition-all duration-300 " + (isScrubberVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"),
         children: [
           (0, P.jsx)('input', {
             type: "range",
@@ -2353,10 +1994,10 @@ var Oe = function(props) {
               SoundEngine.play('slide');
               showScrubber();
             },
-            className: "w-full h-1.5 rounded-full appearance-none cursor-pointer accent-emerald-500 " + (isDark ? "bg-white/20" : "bg-slate-300")
+            className: "w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer accent-emerald-500"
           }),
           (0, P.jsxs)('div', {
-            className: "flex justify-between w-full text-[10px] font-mono opacity-50 mt-1 px-1",
+            className: "flex justify-between w-full text-[11px] font-mono opacity-50 mt-1 px-1",
             children: [
               (0, P.jsx)('span', { children: "1" }),
               (0, P.jsxs)('span', { children: [activeIdx + 1, " / ", totalSlots] }),
@@ -2368,6 +2009,7 @@ var Oe = function(props) {
     ]
   });
 };
+
 
 var FlashcardDrillView = function(props) {
   var board = props.board;
@@ -4643,40 +4285,6 @@ function sanitizeLoadedBoards(list) {
 }
 
 var Be = function() {
-  var isLandscapeState = (0, _.useState)(function() {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth > window.innerHeight && window.innerWidth <= 1024;
-    }
-    return false;
-  });
-  var isLandscape = isLandscapeState[0];
-  var setIsLandscape = isLandscapeState[1];
-
-  var useSimulatorState = (0, _.useState)(function() {
-    if (typeof window !== 'undefined') {
-      var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent) || (window.innerWidth <= 500 && window.innerHeight > window.innerWidth);
-      return !isMobile;
-    }
-    return true;
-  });
-  var useSimulator = useSimulatorState[0];
-  var setUseSimulator = useSimulatorState[1];
-
-  (0, _.useEffect)(function() {
-    var onResize = function() {
-      if (window.innerWidth <= 900) {
-        setIsLandscape(window.innerWidth > window.innerHeight);
-      }
-    };
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
-    return function() {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
-    };
-  }, []);
-
-
   var boardsState = (0, _.useState)(function() {
     try {
       var saved = localStorage.getItem(STORAGE_BOARDS_KEY);
@@ -5295,13 +4903,8 @@ var Be = function() {
     });
   }, [updateActiveBoard]);
 
-    var appContent = (0, P.jsxs)('div', {
-    className: "w-full h-full flex flex-col transition-colors duration-300 relative overflow-hidden " + (themeMode === 'dark' ? "text-white" : "text-slate-900"),
-    style: {
-      background: themeMode === 'dark'
-        ? "#0b1117"
-        : "radial-gradient(at 50% 0%, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%)"
-    },
+  return (0, P.jsxs)('div', {
+    className: "min-h-screen w-full flex flex-col transition-colors duration-300 " + (themeMode === 'dark' ? "text-white" : "text-slate-900"),
     children: [
       // TopBar
       (0, P.jsx)(De, {
@@ -5325,8 +4928,7 @@ var Be = function() {
         isZenMode: isZenMode,
         onToggleZenMode: function() { setIsZenMode(!isZenMode); },
         isStatsOpen: isStatsOpen,
-        onToggleStats: function() { setIsStatsOpen(!isStatsOpen); },
-        isLandscape: isLandscape
+        onToggleStats: function() { setIsStatsOpen(!isStatsOpen); }
       }),
 
       // Optional Dashboard Stats Banner
@@ -5339,7 +4941,7 @@ var Be = function() {
 
       // Main View Router: Coverflow / Kanban / Flashcard Drill
       (0, P.jsx)('main', {
-        className: "flex-1 flex flex-col w-full relative overflow-hidden",
+        className: "flex-1 flex flex-col w-full relative",
         children: viewMode === 'coverflow' ? (
           (0, P.jsx)(Oe, {
             board: activeBoard,
@@ -5353,8 +4955,7 @@ var Be = function() {
             onUpdateCardMastery: updateCardMastery,
             onOpenAIAssistant: function(card) { setAiAssistant({ isOpen: true, card: card }); },
             isZenMode: isZenMode,
-            onToggleZenMode: function() { setIsZenMode(!isZenMode); },
-            isLandscape: isLandscape
+            onToggleZenMode: function() { setIsZenMode(!isZenMode); }
           })
         ) : viewMode === 'board' ? (
           (0, P.jsx)(ke, {
@@ -5459,109 +5060,11 @@ var Be = function() {
       }) : null
     ]
   });
-
-  // Render iPhone Simulator on desktop, or Direct responsive viewport
-  return useSimulator ? (0, P.jsxs)('div', {
-    className: "iphone-simulator-shell " + (themeMode === 'white' ? "theme-white" : "theme-dark"),
-    style: {
-      background: themeMode === 'white'
-        ? "radial-gradient(at 50% 0%, #e2e8f0 0%, #cbd5e1 100%)"
-        : "radial-gradient(at 50% 0%, #17212e 0%, #070b10 100%)"
-    },
-    children: [
-      // Simulator Controls Bar
-      (0, P.jsxs)('div', {
-        className: "flex flex-wrap items-center justify-center gap-2.5 mb-3 text-xs select-none z-50",
-        children: [
-          (0, P.jsxs)('button', {
-            type: "button",
-            onClick: function() { setIsLandscape(!isLandscape); SoundEngine.play('click'); },
-            className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full font-medium border backdrop-blur-xl shadow-lg transition-all active:scale-95 cursor-pointer " + (themeMode === 'white' ? "bg-white hover:bg-slate-50 text-slate-800 border-slate-300 shadow-sm" : "bg-white/10 hover:bg-white/20 text-white border-white/15"),
-            children: [
-              (0, P.jsx)('span', { children: "🔄" }),
-              (0, P.jsx)('span', { children: isLandscape ? "切换为 iPhone 15 Pro 竖屏 (393 × 852)" : "切换为 iPhone 15 Pro 横屏 (852 × 393)" })
-            ]
-          }),
-          (0, P.jsxs)('button', {
-            type: "button",
-            onClick: function() { setThemeMode(themeMode === 'dark' ? 'white' : 'dark'); SoundEngine.play('click'); },
-            className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full font-medium border backdrop-blur-xl shadow-lg transition-all active:scale-95 cursor-pointer " + (themeMode === 'white' ? "bg-white hover:bg-slate-50 text-slate-800 border-slate-300 shadow-sm" : "bg-white/10 hover:bg-white/20 text-white border-white/15"),
-            title: "切换主题（深色极夜 / 明亮雅白）",
-            children: [
-              (0, P.jsx)('span', { children: themeMode === 'dark' ? "☀️" : "🌙" }),
-              (0, P.jsx)('span', { children: themeMode === 'dark' ? "切换明亮雅白模式" : "切换极夜深色模式" })
-            ]
-          }),
-          (0, P.jsxs)('button', {
-            type: "button",
-            onClick: function() { setUseSimulator(false); },
-            className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full font-medium border backdrop-blur-xl shadow-lg transition-all active:scale-95 cursor-pointer " + (themeMode === 'white' ? "bg-white hover:bg-slate-50 text-slate-800 border-slate-300 shadow-sm" : "bg-white/10 hover:bg-white/20 text-white border-white/15"),
-            title: "铺满整个浏览器窗口（适合真机测试）",
-            children: [
-              (0, P.jsx)('span', { children: "🔲" }),
-              (0, P.jsx)('span', { children: "铺满窗口" })
-            ]
-          }),
-          (0, P.jsxs)('a', {
-            href: "web6.0.html",
-            className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-medium border border-emerald-500/40 backdrop-blur-xl shadow-lg transition-all",
-            children: [
-              (0, P.jsx)('span', { children: "💻" }),
-              (0, P.jsx)('span', { children: "Web 6.0 桌面完整版" })
-            ]
-          })
-        ]
-      }),
-
-      // Realistic iPhone 15 Pro Frame
-      (0, P.jsxs)('div', {
-        className: "iphone-frame " + (isLandscape ? "landscape " : "") + (themeMode === 'white' ? "theme-white" : "theme-dark"),
-        style: {
-          background: themeMode === 'white' ? "#ffffff" : "#0b1117",
-          boxShadow: themeMode === 'white'
-            ? "0 0 0 10px #d1d5db, 0 0 0 12px #9ca3af, 0 25px 60px rgba(0,0,0,0.2)"
-            : "0 0 0 10px #1c232e, 0 0 0 12px #2d3848, 0 25px 70px rgba(0,0,0,0.85)"
-        },
-        children: [
-          // Dynamic Island
-          (0, P.jsx)('div', {
-            className: "dynamic-island " + (isLandscape ? "landscape" : ""),
-            children: (0, P.jsx)('div', {
-              className: "w-2.5 h-2.5 rounded-full bg-[#050810] absolute right-2.5 top-1/2 -translate-y-1/2 opacity-70"
-            })
-          }),
-
-          // App inside phone
-          appContent,
-
-          // Home Indicator
-          (0, P.jsx)('div', {
-            className: "home-indicator " + (isLandscape ? "landscape" : ""),
-            style: {
-              background: themeMode === 'white' ? "rgba(0, 0, 0, 0.35)" : "rgba(255, 255, 255, 0.45)"
-            }
-          })
-        ]
-      })
-    ]
-  }) : (0, P.jsxs)('div', {
-    className: "w-screen h-[100dvh] flex flex-col relative overflow-hidden " + (themeMode === 'white' ? "theme-white" : "theme-dark"),
-    children: [
-      appContent,
-      (0, P.jsx)('button', {
-        type: "button",
-        onClick: function() { setUseSimulator(true); },
-        className: "fixed bottom-3 right-3 z-50 p-2 rounded-full bg-black/60 text-white text-xs border border-white/20 hidden md:flex items-center gap-1 cursor-pointer",
-        title: "返回 iPhone 15 Pro 模拟器外观",
-        children: [
-          (0, P.jsx)('span', { children: "📱" }),
-          (0, P.jsx)('span', { children: "模拟框" })
-        ]
-      })
-    ]
-  });
 };
 
+// =========================================================================
+// ErrorBoundary & Mount
+// =========================================================================
 var Ve = (function(_Component) {
   function ErrorBoundary(props) {
     _Component.call(this, props);
