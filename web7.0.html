@@ -126,12 +126,10 @@ body.theme-white {
   transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 .theme-white .liquid-glass-list {
-  background: rgba(255, 255, 255, 0.50) !important;
-  backdrop-filter: blur(28px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.72) !important;
-  border-top: 1.5px solid #ffffff !important;
-  box-shadow: 0 10px 32px -4px rgba(15, 23, 42, 0.06), inset 0 1.5px 2px 0 #ffffff !important;
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 32px -4px rgba(15, 23, 42, 0.06), inset 0 1.5px 2px 0 #ffffff;
 }
 .pinned-column {
   position: sticky !important;
@@ -4168,6 +4166,17 @@ var ke = function(props) {
   var menuColId = menuColIdState[0];
   var setMenuColId = menuColIdState[1];
 
+  // Outside pointer listener to close list options menu on any blank click
+  (0, _.useEffect)(function() {
+    if (!menuColId) return;
+    var handleOutsidePointer = function(e) {
+      if (e.target && e.target.closest && (e.target.closest('.column-menu-popover') || e.target.closest('.column-menu-btn'))) return;
+      setMenuColId(null);
+    };
+    window.addEventListener('pointerdown', handleOutsidePointer);
+    return function() { window.removeEventListener('pointerdown', handleOutsidePointer); };
+  }, [menuColId]);
+
   // Card action menu popover
   var cardActionMenuIdState = (0, _.useState)(null);
   var cardActionMenuId = cardActionMenuIdState[0];
@@ -4495,6 +4504,10 @@ var ke = function(props) {
     e.preventDefault();
     e.stopPropagation();
     clearStackHold();
+    if (dragCol) {
+      handleColDrop(e);
+      return;
+    }
     if (!dragItem || !dropTarget) {
       setDragItem(null);
       setDropTarget(null);
@@ -4539,23 +4552,22 @@ var ke = function(props) {
   };
 
   var handleColDragOverColumn = function(e, colId, cIdx) {
-    if (!dragCol || dragCol.colId === colId) return;
+    if (!dragCol) return;
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
-    var rect = e.currentTarget.getBoundingClientRect();
-    var relX = (e.clientX - rect.left) / rect.width;
-    var targetIdx = relX < 0.5 ? cIdx : cIdx + 1;
-    if (dropColIndex !== targetIdx) {
-      setDropColIndex(targetIdx);
+    if (dropColIndex !== cIdx) {
+      setDropColIndex(cIdx);
     }
   };
 
-  var handleColDrop = function(e) {
+  var handleColDrop = function(e, targetIdx) {
     e.preventDefault();
     e.stopPropagation();
-    if (dragCol && dropColIndex !== null && dropColIndex !== dragCol.sourceIndex) {
+    var toIdx = (typeof targetIdx === 'number') ? targetIdx : dropColIndex;
+    if (dragCol && toIdx !== null && toIdx !== dragCol.sourceIndex) {
       if (onReorderColumns) {
-        onReorderColumns(dragCol.sourceIndex, dropColIndex);
+        onReorderColumns(dragCol.sourceIndex, toIdx);
         SoundEngine.play('slide');
       }
     }
@@ -4730,7 +4742,7 @@ var ke = function(props) {
         ref: swimlaneRef,
         onDragOver: function(e) { e.preventDefault(); },
         onDrop: handleColDrop,
-        onClick: function() { collapseAllStacks(); if (quickMenuCardId) setQuickMenuCardId(null); },
+        onClick: function() { collapseAllStacks(); if (quickMenuCardId) setQuickMenuCardId(null); if (menuColId) setMenuColId(null); if (editingColId) setEditingColId(null); },
         className: layoutMode === 'swimlane' ? "flex items-start gap-5 pb-16 overflow-x-auto w-full min-w-0 pr-48 select-none flex-1 snap-x snap-proximity" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 pb-16 flex-1",
         children: [
           visibleColumns.map(function(col, cIdx) {
@@ -4763,26 +4775,35 @@ var ke = function(props) {
               });
             }
 
-            // Expanded Column (with Trello Header Dragging & Liquid Glass Occlusion)
+            // Expanded Column (with Trello Header Dragging & Liquid Glass Refraction)
+            var isBeingDragged = dragCol && dragCol.colId === col.id;
+            var isDragOverCol = dragCol && dropColIndex === cIdx && dragCol.colId !== col.id;
+
             return (0, P.jsxs)('div', {
               key: col.id,
               'data-col-id': col.id,
               onDragOver: function(e) { handleColDragOverColumn(e, col.id, cIdx); },
+              onDrop: function(e) { handleColDrop(e, cIdx); },
               className: "kanban-column-wrapper snap-start w-72 md:w-80 shrink-0 rounded-3xl p-4 flex flex-col transition-all duration-200 border backdrop-blur-2xl liquid-glass-list " +
                 (isPinned ? "pinned-column " : "") +
                 (isOccluded ? "occluded-by-pin " : "") +
-                (isDark ? "bg-[#121a24]/65 border-white/10 border-t-white/30 shadow-[inset_0_1px_1.5px_0_rgba(255,255,255,0.15),0_12px_32px_-4px_rgba(0,0,0,0.5)] text-white" : "border-white/70 border-t-white shadow-[inset_0_1.5px_2px_0_#ffffff,0_10px_28px_rgba(0,0,0,0.05)] text-slate-800"),
+                (isBeingDragged ? "opacity-30 scale-95 border-dashed border-2 border-emerald-400 " : "") +
+                (isDragOverCol ? "ring-2 ring-emerald-400/90 scale-[1.01] shadow-2xl " : "") +
+                (isDark ? "border-white/10 shadow-[inset_0_1px_1.5px_0_rgba(255,255,255,0.15),0_12px_32px_-4px_rgba(0,0,0,0.5)] text-white" : "border-white/80 shadow-[inset_0_1.5px_2px_0_#ffffff,0_10px_28px_rgba(0,0,0,0.05)] text-slate-800"),
               style: {
-                borderTop: col.color ? ("4px solid " + col.color) : undefined,
-                backgroundColor: col.color ? (isDark ? col.color + '14' : col.color + '0c') : undefined
+                borderTop: col.color ? ("4px solid " + col.color) : (isDark ? "1px solid rgba(255,255,255,0.15)" : "1.5px solid #ffffff"),
+                backgroundColor: col.color ? (isDark ? col.color + '22' : col.color + '18') : (isDark ? "rgba(18, 26, 36, 0.65)" : "rgba(255, 255, 255, 0.55)")
               },
               children: [
                 // Column Header (Draggable for list reordering, inline title rename, sleek pin SVG, and pure count)
                 (0, P.jsxs)('div', {
-                  draggable: true,
-                  onDragStart: function(e) { handleColDragStart(e, col.id, cIdx); },
+                  draggable: !editingColId,
+                  onDragStart: function(e) {
+                    if (editingColId) { e.preventDefault(); return; }
+                    handleColDragStart(e, col.id, cIdx);
+                  },
                   onDragEnd: handleColDragEnd,
-                  className: "relative flex items-center justify-between pb-3 mb-1 cursor-grab active:cursor-grabbing",
+                  className: "relative flex items-center justify-between pb-3 mb-1 cursor-grab active:cursor-grabbing select-none",
                   title: "Drag to reorder list",
                   children: [
                     (0, P.jsxs)('div', {
@@ -4839,7 +4860,7 @@ var ke = function(props) {
                         (0, P.jsx)('button', {
                           type: "button",
                           onClick: function(e) { e.stopPropagation(); setMenuColId(menuColId === col.id ? null : col.id); },
-                          className: "p-1.5 rounded-lg transition-colors " + (isDark ? "hover:bg-white/12 text-white/60 hover:text-white" : "hover:bg-slate-200 text-slate-600"),
+                          className: "column-menu-btn p-1.5 rounded-lg transition-colors " + (isDark ? "hover:bg-white/12 text-white/60 hover:text-white" : "hover:bg-slate-200 text-slate-600"),
                           title: "List options",
                           children: (0, P.jsx)(le, { className: "w-4 h-4" })
                         })
@@ -4849,7 +4870,7 @@ var ke = function(props) {
                     // Column Menu Popover (English)
                     menuColId === col.id ? (0, P.jsxs)('div', {
                       onClick: function(e) { e.stopPropagation(); },
-                      className: "absolute top-10 right-0 z-50 w-56 rounded-2xl p-2.5 shadow-2xl border backdrop-blur-2xl animate-fadeIn " + (isDark ? "bg-[#1a2430] border-white/20 text-white" : "bg-white border-slate-200 text-slate-800"),
+                      className: "column-menu-popover absolute top-10 right-0 z-50 w-56 rounded-2xl p-2.5 shadow-2xl border backdrop-blur-2xl animate-fadeIn " + (isDark ? "bg-[#1a2430] border-white/20 text-white" : "bg-white border-slate-200 text-slate-800"),
                       children: [
                         // List Accent Color (ColorPalettePicker)
                         (0, P.jsx)('div', {
@@ -5088,36 +5109,15 @@ var ke = function(props) {
                                         children: (0, P.jsx)('span', { className: "leading-none", children: "↗" })
                                       })
                                     ) : null,
-                                    (0, P.jsxs)('div', {
-                                      className: "card-action-capsule flex items-center p-0.5 rounded-full border shadow-sm " +
-                                        (isDark ? "bg-black/65 border-white/20 text-white shadow-black/40" : "bg-white/90 border-slate-300/80 text-slate-800 shadow-slate-300/50"),
-                                      children: [
-                                        (0, P.jsxs)('button', {
-                                          type: "button",
-                                          onClick: function(e) {
-                                            e.stopPropagation();
-                                            setHoverCoverCardId(hoverCoverCardId === card.id ? null : card.id);
-                                            SoundEngine.play('click');
-                                          },
-                                          className: "card-action-capsule-btn gap-1",
-                                          title: "Change cover (V)",
-                                          children: [
-                                            (0, P.jsx)(IconImage, { className: "w-3 h-3 text-emerald-400" }),
-                                            (0, P.jsx)('span', { className: "text-[9px] font-semibold leading-none", children: "Cover" })
-                                          ]
-                                        }),
-                                        (0, P.jsx)('span', { className: "w-[1px] h-3 bg-white/20 mx-0.5" }),
-                                        (0, P.jsx)('button', {
-                                          type: "button",
-                                          onClick: function(e) {
-                                            e.stopPropagation();
-                                            openQuickEdit(card, col);
-                                          },
-                                          className: "card-action-capsule-btn p-1",
-                                          title: "Quick edit card (E)",
-                                          children: (0, P.jsx)(IconPencil, { className: "w-3 h-3" })
-                                        })
-                                      ]
+                                    (0, P.jsx)('button', {
+                                      type: "button",
+                                      onClick: function(e) {
+                                        e.stopPropagation();
+                                        openQuickEdit(card, col);
+                                      },
+                                      className: "card-edit-btn shrink-0",
+                                      title: "Quick edit card (E)",
+                                      children: (0, P.jsx)(IconPencil, { className: "w-3.5 h-3.5" })
                                     })
                                   ]
                                 }),
@@ -5286,37 +5286,16 @@ var ke = function(props) {
                                 (0, P.jsx)('div', { className: "liquid-specular-edge opacity-40 group-hover:opacity-100 transition-opacity" }),
                                 (0, P.jsx)('div', { className: "liquid-glass-caustic opacity-50 group-hover:opacity-90 transition-opacity" }),
 
-                                // Top-Right Hover Buttons: Slender Capsule Wheel
-                                (0, P.jsxs)('div', {
-                                  className: "card-action-capsule absolute top-2.5 right-2.5 z-20 flex items-center p-0.5 rounded-full border shadow-sm " +
-                                    (isDark ? "bg-black/65 border-white/20 text-white shadow-black/40" : "bg-white/90 border-slate-300/80 text-slate-800 shadow-slate-300/50"),
-                                  children: [
-                                    (0, P.jsxs)('button', {
-                                      type: "button",
-                                      onClick: function(e) {
-                                        e.stopPropagation();
-                                        setHoverCoverCardId(hoverCoverCardId === card.id ? null : card.id);
-                                        SoundEngine.play('click');
-                                      },
-                                      className: "card-action-capsule-btn gap-1",
-                                      title: "Change cover (V)",
-                                      children: [
-                                        (0, P.jsx)(IconImage, { className: "w-3 h-3 text-emerald-400" }),
-                                        (0, P.jsx)('span', { className: "text-[9px] font-semibold leading-none", children: "Cover" })
-                                      ]
-                                    }),
-                                    (0, P.jsx)('span', { className: "w-[1px] h-3 bg-white/20 mx-0.5" }),
-                                    (0, P.jsx)('button', {
-                                      type: "button",
-                                      onClick: function(e) {
-                                        e.stopPropagation();
-                                        openQuickEdit(card, col);
-                                      },
-                                      className: "card-action-capsule-btn p-1",
-                                      title: "Quick edit card (E)",
-                                      children: (0, P.jsx)(IconPencil, { className: "w-3 h-3" })
-                                    })
-                                  ]
+                                // Top-Right Hover Button: Edit
+                                (0, P.jsx)('button', {
+                                  type: "button",
+                                  onClick: function(e) {
+                                    e.stopPropagation();
+                                    openQuickEdit(card, col);
+                                  },
+                                  className: "card-edit-btn absolute top-2.5 right-2.5 z-20 shrink-0",
+                                  title: "Quick edit card (E)",
+                                  children: (0, P.jsx)(IconPencil, { className: "w-3.5 h-3.5" })
                                 }),
 
                                 hoverCoverCardId === card.id ? (
@@ -8445,11 +8424,10 @@ var Be = function() {
 
   var reorderColumns = (0, _.useCallback)(function(fromIdx, toIdx) {
     updateActiveBoard(function(b) {
-      var cols = b.columns.slice();
-      if (fromIdx < 0 || fromIdx >= cols.length || toIdx < 0 || toIdx > cols.length) return b;
+      var cols = (b.columns || []).slice();
+      if (fromIdx < 0 || fromIdx >= cols.length || toIdx < 0 || toIdx >= cols.length || fromIdx === toIdx) return b;
       var item = cols.splice(fromIdx, 1)[0];
-      var insertIdx = toIdx > fromIdx ? toIdx - 1 : toIdx;
-      cols.splice(insertIdx, 0, item);
+      cols.splice(toIdx, 0, item);
       return Object.assign({}, b, { columns: cols });
     });
   }, [updateActiveBoard]);
