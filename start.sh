@@ -5,10 +5,10 @@ PORT=3005
 # Check if port is already running this server or in use
 if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null ; then
   echo "ℹ️ Port $PORT is already active. Opening browser..."
-  open "http://localhost:$PORT/index.html"
+  open "http://localhost:$PORT/web7.0.html"
   exit 0
 fi
 
 echo "🚀 Starting Focusboard Server on http://localhost:$PORT ..."
-(sleep 1 && open "http://localhost:$PORT/index.html") &
+(sleep 1 && open "http://localhost:$PORT/web7.0.html") &
 python3 -m http.server "$PORT"
