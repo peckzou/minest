@@ -1127,11 +1127,10 @@ body.theme-white {
   pointer-events: auto !important;
 }
 
-/* Card content flow: standard Trello flush left when idle, smooth glide on hover */
+/* Card content flow: standard flush alignment that never shifts or jitters */
 .card-content-flow {
   padding-left: 0px;
   padding-right: 28px;
-  transition: padding-left 0.2s cubic-bezier(0.2, 0.9, 0.3, 1), padding-right 0.2s ease;
 }
 .card-content-flow.has-completed {
   padding-left: 22px !important;
@@ -1139,27 +1138,14 @@ body.theme-white {
 .card-content-flow.has-cover {
   padding-left: 0px !important;
 }
-.liquid-glass-card:hover .card-content-flow:not(.has-cover),
-.group:hover .card-content-flow:not(.has-cover),
-.kanban-card:hover .card-content-flow:not(.has-cover),
-.simulate-hover .card-content-flow:not(.has-cover) {
-  padding-left: 22px !important;
-  padding-right: 110px !important;
-}
 
-/* Subcard content flow */
+/* Subcard content flow: standard flush alignment matching parent cards */
 .subcard-content-flow {
   padding-left: 0px;
   padding-right: 28px;
-  transition: padding-left 0.2s cubic-bezier(0.2, 0.9, 0.3, 1), padding-right 0.2s ease;
 }
 .subcard-content-flow.has-completed {
   padding-left: 22px !important;
-}
-.kanban-subcard:hover .subcard-content-flow,
-.simulate-hover .subcard-content-flow {
-  padding-left: 22px !important;
-  padding-right: 140px !important;
 }
 
 
@@ -5360,10 +5346,19 @@ var ke = function(props) {
   var testUrlParams = (0, _.useMemo)(function() {
     try { return new URLSearchParams(window.location.search); } catch (e) { return new URLSearchParams(); }
   }, []);
-  var isSimHover = testUrlParams.get('simulateHover') === '1';
-  var simCardActions = testUrlParams.get('openCardActions') === '1';
-  var simColMenu = testUrlParams.get('openColMenu') === '1';
-  var simCardPriority = testUrlParams.get('simCardPriority');
+  var isSimHover = false;
+  var simCardActions = false;
+  var simColMenu = false;
+  var simCardPriority = null;
+
+  (0, _.useEffect)(function() {
+    try {
+      if (window.location.search && (window.location.search.indexOf('simulateHover') !== -1 || window.location.search.indexOf('testPriority') !== -1)) {
+        var cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+    } catch(e) {}
+  }, []);
 
   (0, _.useEffect)(function() {
     if (simColMenu && board.columns && board.columns[0]) {
@@ -5681,14 +5676,6 @@ var ke = function(props) {
             var st = col1.cards[1].stack;
             if (st[0] && onUpdateCardPriority) onUpdateCardPriority(col1.id, st[0].id, 'high'); // Dictation / Spelling -> red dot
             if (st[1] && onUpdateCardPriority) onUpdateCardPriority(col1.id, st[1].id, 'medium'); // Speaking -> yellow dot
-          }
-          if (sh) {
-            setTimeout(function() {
-              var cards = document.querySelectorAll('.kanban-card');
-              if (cards[1]) cards[1].classList.add('simulate-hover');
-              var subcards = document.querySelectorAll('.kanban-subcard');
-              if (subcards[0]) subcards[0].classList.add('simulate-hover');
-            }, 100);
           }
         }, 150);
       }
@@ -7147,8 +7134,6 @@ var ke = function(props) {
                             },
                             className: "kanban-card group relative rounded-xl py-2 px-3 select-none cursor-pointer liquid-glass-card transition-all " +
                               (cardActionMenuId === card.id ? "overflow-visible !z-50 " : "overflow-hidden ") +
-                              ((isSimHover && col.id === (board.columns && board.columns[0] && board.columns[0].id) && cIdx === 1) ? "simulate-hover " : "") +
-                              ((testUrlParams.get('simHoverComplete') === '1' && card.complete) ? "simulate-hover " : "") +
                               (card.cover && !isFullCover ? "card-has-cover " : "") +
                               (isDraggingThis ? "is-dragging-card " : "") +
                               (card.complete ? "opacity-60 " : "") +
@@ -7488,7 +7473,6 @@ var ke = function(props) {
                                     },
                                     className: "kanban-subcard group relative rounded-xl py-2 px-3 select-none cursor-pointer liquid-glass-card shadow-none " +
                                       (cardActionMenuId === sub.id ? "overflow-visible !z-50 " : "overflow-hidden ") +
-                                      ((isSimHover && sIdx === 0) ? "simulate-hover " : "") +
                                       (isDraggingSub ? "is-dragging-card " : "") +
                                       (sub.complete ? "opacity-60 " : "") +
                                       (isDark ? "text-white border-white/10" : "text-slate-800 border-slate-200/80"),
