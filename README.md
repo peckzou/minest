@@ -1,6 +1,6 @@
 # Focusboard Cloud (Minest)
 
-> **Focusboard 7.0** · Liquid Glass 3D Cover Flow 视效管理看板、主动提取闪卡系统 & 原生 Trello 风格卡片封面系统。
+> **Focusboard 8.0** · 悬停优先级三点直选 [🔴 🟡 🟢]、严格居中打钩圆圈、标题色彩点对齐、默认时间排序、Liquid Glass 3D Cover Flow 视效管理看板、主动提取闪卡系统 & 原生 Trello 风格卡片封面系统。
 
 ---
 
@@ -8,8 +8,9 @@
 
 | 文件 | 说明 | 适用场景 |
 | :--- | :--- | :--- |
-| **`index.html`** | **自适应路由器入口** | 桌面端自动跳转 `web7.0.html`，移动端自动跳转 `iphone.html` |
-| **`web7.0.html`** | **最新旗舰桌面版 (7.0)** | 纯英文沉浸式 UI、原生 Trello 调色盘与 Unsplash 封面、Liquid Glass 悬浮滤镜、3D 翻转闪卡 |
+| **`index.html`** | **自适应路由器入口** | 桌面端自动跳转 `web8.0.html`，移动端自动跳转 `iphone.html` |
+| **`web8.0.html`** | **最新旗舰桌面版 (8.0)** | 悬停优先级直选按钮、严格居中打钩圈、列表时间默认排序、纯英文沉浸式 UI、原生 Trello 封面、Liquid Glass |
+| **`web7.0.html`** | **桌面版官方存档 (7.0)** | 经典 7.0 视觉版存档 |
 | **`iphone.html`** | **iPhone 15 Pro 伴侣版** | 专为移动端与竖屏设计，灵动岛两翼环抱导航、32px 大圆角触控优化 |
 | **`web6.0.html`** | **桌面版官方存档 (6.0)** | 经典中英双语版存档 |
 | **`iphone1.0.html`** | **移动版官方存档 (1.0)** | 经典 iPhone 初代伴侣版存档 |
