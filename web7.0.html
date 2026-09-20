@@ -1021,79 +1021,100 @@ body.theme-white {
   transform: scale(1.15) !important;
 }
 
-/* Card Hover Priority 3-Dot Buttons */
-.card-priority-dot-btn {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
+/* Authentic macOS Traffic Lights & Priority Buttons */
+.mac-traffic-lights {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  padding: 0;
+}
+
+.mac-dot-btn {
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  border-radius: 50%;
+  padding: 0;
+  margin: 0;
   cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
-  background: rgba(15, 23, 42, 0.7);
-  border: 0.5px solid rgba(255, 255, 255, 0.2);
-  opacity: 0.75;
+  position: relative;
+  display: inline-block;
+  box-sizing: border-box;
+  outline: none;
+  border: 0.5px solid rgba(0, 0, 0, 0.25) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.55), 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.15s ease, box-shadow 0.15s ease;
 }
-.theme-white .card-priority-dot-btn {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(0, 0, 0, 0.14);
-  opacity: 0.8;
-}
-.card-priority-dot-btn:hover {
-  opacity: 1 !important;
-  transform: scale(1.22);
-}
-.card-priority-dot-btn.is-active {
-  opacity: 1 !important;
-  transform: scale(1.12);
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.95), 0 2px 6px rgba(0, 0, 0, 0.4);
-}
-.theme-white .card-priority-dot-btn.is-active {
-  box-shadow: 0 0 0 1.5px rgba(15, 23, 42, 0.85), 0 2px 6px rgba(0, 0, 0, 0.15);
+.theme-white .mac-dot-btn {
+  border: 0.5px solid rgba(0, 0, 0, 0.18) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
-/* Priority Traffic Light Colors & Dimensions */
-.bg-red-500,
+/* macOS Radial Gradients */
+.mac-dot-red,
 .priority-dot-red {
-  background-color: #ef4444 !important;
+  background: radial-gradient(circle at 35% 25%, #ff7b72 0%, #ff5f56 55%, #de3c35 100%) !important;
 }
-.bg-amber-400,
-.bg-amber-500,
+.mac-dot-yellow,
 .priority-dot-yellow {
-  background-color: #f59e0b !important;
+  background: radial-gradient(circle at 35% 25%, #ffdc52 0%, #ffbd2e 55%, #d89617 100%) !important;
 }
-.bg-emerald-500,
+.mac-dot-green,
 .priority-dot-green {
-  background-color: #10b981 !important;
+  background: radial-gradient(circle at 35% 25%, #4ae65f 0%, #27c93f 55%, #179e27 100%) !important;
 }
 
-.w-2 {
-  width: 8px !important;
-}
-.h-2 {
-  height: 8px !important;
-}
-.w-2\.5 {
-  width: 10px !important;
-}
-.h-2\.5 {
-  height: 10px !important;
-}
-.shadow-xs {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+/* Individual Dot Hover: macOS bounce */
+.mac-dot-btn:hover {
+  transform: scale(1.22) !important;
+  opacity: 1 !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7), 0 2px 5px rgba(0, 0, 0, 0.35);
 }
 
-/* Priority Title Dot Optical Centering */
+/* Active Dot: crisp high-contrast border ring & glow */
+.mac-dot-btn.is-active {
+  opacity: 1 !important;
+  transform: scale(1.15) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 0 0 1.5px rgba(255, 255, 255, 0.95), 0 2px 6px rgba(0, 0, 0, 0.45) !important;
+}
+.theme-white .mac-dot-btn.is-active {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 0 0 1.5px rgba(15, 23, 42, 0.85), 0 2px 5px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Dimmed sibling dots when a priority is active */
+.mac-dot-btn.is-dimmed {
+  opacity: 0.55;
+}
+.mac-traffic-lights:hover .mac-dot-btn.is-dimmed {
+  opacity: 0.9;
+}
+
+/* Backwards-compatible legacy classes */
+.bg-red-500 { background-color: #ef4444 !important; }
+.bg-amber-400, .bg-amber-500 { background-color: #f59e0b !important; }
+.bg-emerald-500 { background-color: #10b981 !important; }
+.w-2 { width: 8px !important; }
+.h-2 { height: 8px !important; }
+.w-2\.5 { width: 10px !important; }
+.h-2\.5 { height: 10px !important; }
+.shadow-xs { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+
+/* Priority Title Dot Optical Centering with macOS radial gradient */
 .card-title-priority-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   position: relative;
   top: 1px;
+  border: 0.5px solid rgba(0, 0, 0, 0.22) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.theme-white .card-title-priority-dot {
+  border: 0.5px solid rgba(0, 0, 0, 0.16) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .simulate-hover .card-action-group,
@@ -1139,32 +1160,6 @@ body.theme-white {
   padding-right: 140px !important;
 }
 
-/* Active dot styling */
-.mac-dot-btn.is-active {
-  opacity: 1 !important;
-  transform: scale(1.06);
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.95), 0 1.5px 4px rgba(0, 0, 0, 0.35);
-}
-.theme-white .mac-dot-btn.is-active {
-  box-shadow: 0 0 0 1.5px rgba(15, 23, 42, 0.85), 0 1.5px 4px rgba(0, 0, 0, 0.2);
-}
-
-/* Individual Dot Hover: macOS bounce */
-.mac-traffic-lights .mac-dot-btn:hover {
-  transform: scale(1.22) !important;
-  opacity: 1 !important;
-}
-
-/* macOS Radial Gradients */
-.mac-dot-red {
-  background: radial-gradient(circle at 35% 25%, #ff7b72 0%, #ff5f56 55%, #de3c35 100%) !important;
-}
-.mac-dot-yellow {
-  background: radial-gradient(circle at 35% 25%, #ffdc52 0%, #ffbd2e 55%, #d89617 100%) !important;
-}
-.mac-dot-green {
-  background: radial-gradient(circle at 35% 25%, #4ae65f 0%, #27c93f 55%, #179e27 100%) !important;
-}
 
 /* TopBar Search Input Fix */
 .topbar-search-input {
@@ -5918,14 +5913,15 @@ var ke = function(props) {
     setMenuColId(null);
   };
 
-  var sortColumnByDefaultOrder = function(colId) {
+  var sortColumnByDefaultOrder = function(colId, order) {
+    var isDesc = order === 'desc';
     if (onUpdateBoard) {
       var nextCols = (board.columns || []).map(function(c) {
         if (c.id !== colId) return c;
         var sortedCards = (c.cards || []).slice().sort(function(a, b) {
           var tA = typeof a.createdAt === 'number' ? a.createdAt : 0;
           var tB = typeof b.createdAt === 'number' ? b.createdAt : 0;
-          return tA - tB;
+          return isDesc ? (tB - tA) : (tA - tB);
         });
         return Object.assign({}, c, { cards: sortedCards });
       });
@@ -6729,7 +6725,7 @@ var ke = function(props) {
                     // Column Menu Popover (English)
                     menuColId === col.id ? (0, P.jsxs)('div', {
                       onClick: function(e) { e.stopPropagation(); },
-                      className: "column-menu-popover absolute top-10 right-0 z-50 w-64 rounded-2xl p-2.5 shadow-2xl border backdrop-blur-2xl animate-fadeIn " + (isDark ? "bg-[#1a2430] border-white/20 text-white" : "bg-white border-slate-200 text-slate-800"),
+                      className: "column-menu-popover absolute top-10 right-0 z-50 w-[268px] rounded-2xl p-2.5 shadow-2xl border backdrop-blur-2xl animate-fadeIn " + (isDark ? "bg-[#1a2430] border-white/20 text-white" : "bg-white border-slate-200 text-slate-800"),
                       children: [
                         // List Accent Color (ColorPalettePicker)
                         (0, P.jsx)('div', {
@@ -6779,25 +6775,37 @@ var ke = function(props) {
                                 (0, P.jsxs)('span', {
                                   className: "flex items-center gap-1",
                                   children: [
-                                    (0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-red-500 inline-block shadow-xs" }),
+                                    (0, P.jsx)('span', { className: "w-2 h-2 rounded-full priority-dot-red inline-block shadow-xs" }),
                                     (0, P.jsx)('span', { className: "text-[10px] opacity-40", children: "→" }),
-                                    (0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-amber-400 inline-block shadow-xs" }),
+                                    (0, P.jsx)('span', { className: "w-2 h-2 rounded-full priority-dot-yellow inline-block shadow-xs" }),
                                     (0, P.jsx)('span', { className: "text-[10px] opacity-40", children: "→" }),
-                                    (0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-xs" })
+                                    (0, P.jsx)('span', { className: "w-2 h-2 rounded-full priority-dot-green inline-block shadow-xs" })
                                   ]
                                 })
                               ]
                             }),
-                            // Default Sort button: by addition time (creation time)
+                            // Default Ascending Sort: by addition time (oldest first)
                             (0, P.jsxs)('button', {
                               type: "button",
-                              onClick: function() { sortColumnByDefaultOrder(col.id); },
+                              onClick: function() { sortColumnByDefaultOrder(col.id, 'asc'); },
                               className: "w-full py-1.5 px-2 rounded-lg text-[11px] font-medium transition-all flex items-center justify-between " +
                                 (isDark ? "bg-white/5 hover:bg-white/10 text-white/90" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"),
-                              title: "Sort cards in this list by creation / addition time order",
+                              title: "Sort cards in this list by creation / addition time order (Oldest first)",
                               children: [
-                                (0, P.jsx)('span', { children: "默认排序 (按添加卡片的时间顺序)" }),
-                                (0, P.jsx)('span', { className: "text-xs opacity-70", children: "⏱️" })
+                                (0, P.jsx)('span', { children: "默认排序 (按添加时间正序)" }),
+                                (0, P.jsx)('span', { className: "text-xs opacity-75 font-mono", children: "⏱️↑" })
+                              ]
+                            }),
+                            // Default Descending Sort: by addition time (newest first)
+                            (0, P.jsxs)('button', {
+                              type: "button",
+                              onClick: function() { sortColumnByDefaultOrder(col.id, 'desc'); },
+                              className: "w-full py-1.5 px-2 rounded-lg text-[11px] font-medium transition-all flex items-center justify-between " +
+                                (isDark ? "bg-white/5 hover:bg-white/10 text-white/90" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"),
+                              title: "Sort cards in this list by creation / addition time order (Newest first)",
+                              children: [
+                                (0, P.jsx)('span', { children: "默认排序 (按添加时间倒序)" }),
+                                (0, P.jsx)('span', { className: "text-xs opacity-75 font-mono", children: "⏱️↓" })
                               ]
                             }),
                             // Filter buttons: All, Red, Yellow, Green
@@ -7252,42 +7260,44 @@ var ke = function(props) {
                                 )
                               }),
 
-                              // Top-Right Action Buttons: 3 Priority Dots [ 🔴 🟡 🟢 ] -> Quick Edit [ ✏️ ] -> Archive [ 📦 ]
+                              // Top-Right Action Buttons: macOS Traffic Lights [ 🔴 🟡 🟢 ] -> Quick Edit [ ✏️ ] -> Archive [ 📦 ]
                               (0, P.jsxs)('div', {
-                                className: "card-action-group",
+                                className: "card-action-group flex items-center gap-1.5",
                                 children: [
-                                  (0, P.jsx)('button', {
-                                    type: "button",
-                                    onClick: function(e) {
-                                      e.stopPropagation();
-                                      if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'high' ? null : 'high');
-                                      SoundEngine.play('click');
-                                    },
-                                    className: "card-priority-dot-btn shrink-0 " + (card.priority === 'high' ? "is-active" : ""),
-                                    title: card.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)",
-                                    children: (0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full bg-red-500 inline-block shadow-xs" })
-                                  }),
-                                  (0, P.jsx)('button', {
-                                    type: "button",
-                                    onClick: function(e) {
-                                      e.stopPropagation();
-                                      if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'medium' ? null : 'medium');
-                                      SoundEngine.play('click');
-                                    },
-                                    className: "card-priority-dot-btn shrink-0 " + (card.priority === 'medium' ? "is-active" : ""),
-                                    title: card.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)",
-                                    children: (0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full bg-amber-400 inline-block shadow-xs" })
-                                  }),
-                                  (0, P.jsx)('button', {
-                                    type: "button",
-                                    onClick: function(e) {
-                                      e.stopPropagation();
-                                      if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'low' ? null : 'low');
-                                      SoundEngine.play('click');
-                                    },
-                                    className: "card-priority-dot-btn shrink-0 " + (card.priority === 'low' ? "is-active" : ""),
-                                    title: card.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)",
-                                    children: (0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-xs" })
+                                  (0, P.jsxs)('div', {
+                                    className: "mac-traffic-lights flex items-center gap-1.5 shrink-0",
+                                    children: [
+                                      (0, P.jsx)('button', {
+                                        type: "button",
+                                        onClick: function(e) {
+                                          e.stopPropagation();
+                                          if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'high' ? null : 'high');
+                                          SoundEngine.play('click');
+                                        },
+                                        className: "mac-dot-btn mac-dot-red " + (card.priority === 'high' ? "is-active" : (card.priority ? "is-dimmed" : "")),
+                                        title: card.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)"
+                                      }),
+                                      (0, P.jsx)('button', {
+                                        type: "button",
+                                        onClick: function(e) {
+                                          e.stopPropagation();
+                                          if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'medium' ? null : 'medium');
+                                          SoundEngine.play('click');
+                                        },
+                                        className: "mac-dot-btn mac-dot-yellow " + (card.priority === 'medium' ? "is-active" : (card.priority ? "is-dimmed" : "")),
+                                        title: card.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)"
+                                      }),
+                                      (0, P.jsx)('button', {
+                                        type: "button",
+                                        onClick: function(e) {
+                                          e.stopPropagation();
+                                          if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'low' ? null : 'low');
+                                          SoundEngine.play('click');
+                                        },
+                                        className: "mac-dot-btn mac-dot-green " + (card.priority === 'low' ? "is-active" : (card.priority ? "is-dimmed" : "")),
+                                        title: card.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)"
+                                      })
+                                    ]
                                   }),
                                   (0, P.jsx)('button', {
                                     type: "button",
@@ -7365,7 +7375,7 @@ var ke = function(props) {
                                 children: [
                                   card.priority ? (
                                     (0, P.jsx)('span', {
-                                      className: "inline-block w-2 h-2 rounded-full shrink-0 shadow-sm relative top-[1px] " + (card.priority === 'high' ? 'bg-red-500' : card.priority === 'medium' ? 'bg-amber-400' : 'bg-emerald-500'),
+                                      className: "card-title-priority-dot " + (card.priority === 'high' ? 'priority-dot-red' : card.priority === 'medium' ? 'priority-dot-yellow' : 'priority-dot-green'),
                                       title: card.priority + " priority"
                                     })
                                   ) : null,
@@ -7514,38 +7524,40 @@ var ke = function(props) {
                                              title: "Detach card back to list",
                                              children: "Detach"
                                            }),
-                                           (0, P.jsx)('button', {
-                                             type: "button",
-                                             onClick: function(e) {
-                                               e.stopPropagation();
-                                               if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'high' ? null : 'high');
-                                               SoundEngine.play('click');
-                                             },
-                                             className: "card-priority-dot-btn shrink-0 " + (sub.priority === 'high' ? "is-active" : ""),
-                                             title: sub.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)",
-                                             children: (0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full bg-red-500 inline-block shadow-xs" })
-                                           }),
-                                           (0, P.jsx)('button', {
-                                             type: "button",
-                                             onClick: function(e) {
-                                               e.stopPropagation();
-                                               if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'medium' ? null : 'medium');
-                                               SoundEngine.play('click');
-                                             },
-                                             className: "card-priority-dot-btn shrink-0 " + (sub.priority === 'medium' ? "is-active" : ""),
-                                             title: sub.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)",
-                                             children: (0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full bg-amber-400 inline-block shadow-xs" })
-                                           }),
-                                           (0, P.jsx)('button', {
-                                             type: "button",
-                                             onClick: function(e) {
-                                               e.stopPropagation();
-                                               if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'low' ? null : 'low');
-                                               SoundEngine.play('click');
-                                             },
-                                             className: "card-priority-dot-btn shrink-0 " + (sub.priority === 'low' ? "is-active" : ""),
-                                             title: sub.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)",
-                                             children: (0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-xs" })
+                                           (0, P.jsxs)('div', {
+                                             className: "mac-traffic-lights flex items-center gap-1.5 shrink-0",
+                                             children: [
+                                               (0, P.jsx)('button', {
+                                                 type: "button",
+                                                 onClick: function(e) {
+                                                   e.stopPropagation();
+                                                   if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'high' ? null : 'high');
+                                                   SoundEngine.play('click');
+                                                 },
+                                                 className: "mac-dot-btn mac-dot-red " + (sub.priority === 'high' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
+                                                 title: sub.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)"
+                                               }),
+                                               (0, P.jsx)('button', {
+                                                 type: "button",
+                                                 onClick: function(e) {
+                                                   e.stopPropagation();
+                                                   if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'medium' ? null : 'medium');
+                                                   SoundEngine.play('click');
+                                                 },
+                                                 className: "mac-dot-btn mac-dot-yellow " + (sub.priority === 'medium' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
+                                                 title: sub.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)"
+                                               }),
+                                               (0, P.jsx)('button', {
+                                                 type: "button",
+                                                 onClick: function(e) {
+                                                   e.stopPropagation();
+                                                   if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'low' ? null : 'low');
+                                                   SoundEngine.play('click');
+                                                 },
+                                                 className: "mac-dot-btn mac-dot-green " + (sub.priority === 'low' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
+                                                 title: sub.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)"
+                                               })
+                                             ]
                                            }),
                                            (0, P.jsx)('button', {
                                              type: "button",
