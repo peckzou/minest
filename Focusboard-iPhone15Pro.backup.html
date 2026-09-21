@@ -1,0 +1,3891 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Focusboard" />
+    <title>Focusboard 5.0 · iPhone 15 Pro 极简 3D 云端旗舰版</title>
+    <meta name="description" content="深度还原 Focusboard Web 极简美学的 iPhone 15 Pro 3D Cover Flow 阅览模式与液态玻璃看板系统。" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+/* ==========================================================================
+   RESET & SYSTEM BASE
+   ========================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --safe-top: env(safe-area-inset-top, 54px);
+  --safe-bottom: env(safe-area-inset-bottom, 34px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "DM Sans", "Noto Sans SC", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  
+  --green: #30d158;
+  --green-rgb: 48, 209, 88;
+  --purple: #ac4bff;
+  --amber: #f59e0b;
+  --rose: #f43f5e;
+  
+  
+/* ==========================================================================
+   SUPREME IPHONE 15 PRO TITANIUM & LIQUID GLASS REFINEMENTS
+   ========================================================================== */
+:root {
+  --ti-natural-grad: linear-gradient(135deg, #a49e95 0%, #888279 25%, #6a645c 50%, #888279 75%, #a49e95 100%);
+  --ti-black-grad: linear-gradient(135deg, #38393c 0%, #252628 25%, #18181a 50%, #252628 75%, #38393c 100%);
+  --ti-white-grad: linear-gradient(135deg, #f0f0ed 0%, #deddd8 25%, #c8c7c2 50%, #deddd8 75%, #f0f0ed 100%);
+  --ti-blue-grad: linear-gradient(135deg, #4b5868 0%, #353f4c 25%, #232b35 50%, #353f4c 75%, #4b5868 100%);
+  
+  --ti-active-grad: var(--ti-natural-grad);
+  --active-card-glow: rgba(48, 209, 88, 0.35);
+}
+
+/* Hardware Frame Precision */
+.iphone-frame {
+  position: relative;
+  box-sizing: content-box;
+  background: #000;
+  border-radius: 54px;
+  padding: 10px; /* Precise 1.5mm uniform bezel */
+  background-image: var(--ti-active-grad);
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 0 0 3px rgba(0, 0, 0, 0.85),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.5),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.9),
+    0 35px 85px -10px rgba(0, 0, 0, 0.92),
+    0 60px 120px -20px rgba(0, 0, 0, 0.96);
+  transition: width 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), 
+              height 0.45s cubic-bezier(0.2, 0.9, 0.3, 1),
+              box-shadow 0.3s ease;
+}
+
+/* Precision Hardware Buttons (Action button + Volume + Power) */
+.iphone-frame::before {
+  content: "";
+  position: absolute;
+  left: -8.5px;
+  top: 108px;
+  width: 3.5px;
+  height: 22px; /* Action Button */
+  background: var(--ti-frame-color);
+  border-radius: 3px 0 0 3px;
+  box-shadow: 
+    0 36px 0 0 var(--ti-frame-color), /* Vol Up */
+    0 38px 0 0 var(--ti-frame-color),
+    0 40px 0 0 var(--ti-frame-color),
+    0 86px 0 0 var(--ti-frame-color), /* Vol Down */
+    0 88px 0 0 var(--ti-frame-color),
+    0 90px 0 0 var(--ti-frame-color);
+}
+
+.iphone-frame::after {
+  content: "";
+  position: absolute;
+  right: -8.5px;
+  top: 168px;
+  width: 3.5px;
+  height: 60px;
+  background: var(--ti-frame-color);
+  border-radius: 0 3px 3px 0;
+}
+
+/* Dynamic Island High-End Precision */
+.dynamic-island {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  border-radius: 24px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 11px;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.9), inset 0 0 0 0.5px rgba(255,255,255,0.12);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.dynamic-island.expanded {
+  width: 358px !important;
+  height: 84px !important;
+  border-radius: 38px !important;
+  padding: 14px 18px !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.95), 0 0 0 1px rgba(255,255,255,0.2) !important;
+}
+
+.dynamic-island-cam {
+  position: absolute;
+  width: 12.5px;
+  height: 12.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #18283f 0%, #06090e 70%);
+  border: 0.8px solid #142032;
+  right: 14px;
+  box-shadow: inset 0 0 2px rgba(80, 140, 255, 0.4);
+}
+
+/* 3D Cover Flow Glass Slabs */
+.cf-card-flipper {
+  position: absolute;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  cursor: pointer;
+  -webkit-box-reflect: below 8px linear-gradient(transparent 68%, rgba(0, 0, 0, 0.38) 100%);
+}
+
+.portrait .cf-card-flipper {
+  width: 304px;
+  height: 365px;
+  top: calc(50% - 182px);
+  left: calc(50% - 152px);
+}
+
+.landscape .cf-card-flipper {
+  width: 270px;
+  height: 224px;
+  top: calc(50% - 112px);
+  left: calc(50% - 135px);
+}
+
+/* Refraction Faces */
+.cf-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 34px;
+  display: flex;
+  flex-direction: column;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-top: 1.5px solid var(--glass-specular);
+  background: var(--glass-card);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.62s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.22s ease, box-shadow 0.3s ease;
+}
+
+.landscape .cf-face {
+  border-radius: 26px;
+}
+
+/* Fresnel Glow Shader */
+.glass-fresnel-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  border-radius: inherit;
+  transition: opacity 0.3s;
+}
+
+/* Front Face Architecture */
+.cf-front {
+  transform: rotateY(0deg);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 22px 22px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cf-front-badge-row {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.cf-chk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.theme-white .cf-chk-badge {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.cf-front-center {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px 6px;
+}
+
+.cf-front-title {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.34;
+  letter-spacing: -0.024em;
+  max-width: 255px;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.landscape .cf-front-title {
+  font-size: 17.5px;
+  max-width: 230px;
+  -webkit-line-clamp: 3;
+}
+
+.cf-front-foot {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+}
+.theme-white .cf-front-foot {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+.cf-date-pill {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.65;
+}
+
+.cf-flip-hint {
+  font-size: 11px;
+  font-weight: 700;
+  color: #30d158;
+  opacity: 0.9;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.cf-flip-hint:hover {
+  transform: scale(1.06);
+}
+
+/* Ambient Floor Reflection Glow */
+.cf-ground-sheen {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92%;
+  border-radius: 100%;
+  background: radial-gradient(65% 50% at 50% 0%, var(--active-card-glow, rgba(48,209,88,0.3)) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 75%);
+  pointer-events: none;
+  filter: blur(10px);
+  z-index: 1;
+  transition: background 0.4s ease;
+}
+
+/* Native iOS 18 Bottom Sheet Perfection */
+.portrait .modal-sheet {
+  border-radius: 34px 34px 0 0;
+  backdrop-filter: blur(36px) saturate(210%);
+  -webkit-backdrop-filter: blur(36px) saturate(210%);
+  box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.75), inset 0 1px 1.5px rgba(255, 255, 255, 0.35);
+}
+
+/* Titanium frame colors */
+  --titanium-natural: #8e8a83;
+  --titanium-black: #292a2c;
+  --titanium-white: #e3e2de;
+  --titanium-blue: #37424f;
+  
+  --ti-frame-color: var(--titanium-natural);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  background-color: #05080c;
+  color: #f1f5f9;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Desktop Simulator Shell Layout */
+#desktop-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 20%, #16202c 0%, #0b1017 60%, #05070a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top Desktop Control Bar */
+.desktop-toolbar {
+  position: absolute;
+  top: 14px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(22, 32, 44, 0.78);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.45);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.25);
+}
+
+.dt-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0,0,0,0.35);
+  padding: 3px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.dt-btn {
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.72);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.dt-btn:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.12);
+}
+
+.dt-btn.active {
+  background: #30d158;
+  color: #0b1117;
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(48, 209, 88, 0.45);
+}
+
+.dt-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255,255,255,0.14);
+}
+
+/* Titanium Color Circles */
+.ti-color-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  cursor: pointer;
+  transition: transform 0.18s, border-color 0.18s;
+}
+.ti-color-btn:hover {
+  transform: scale(1.15);
+}
+.ti-color-btn.active {
+  border-color: #fff;
+  transform: scale(1.2);
+  box-shadow: 0 0 0 2px #30d158;
+}
+
+/* ==========================================================================
+   IPHONE 15 PRO CHASSIS MOCKUP (393px × 852px)
+   ========================================================================== */
+.iphone-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.iphone-frame {
+  position: relative;
+  box-sizing: content-box;
+  background: #000;
+  border-radius: 54px;
+  padding: 11px;
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.25),
+    0 0 0 3.5px var(--ti-frame-color),
+    0 0 0 5.5px rgba(0, 0, 0, 0.9),
+    0 30px 80px -10px rgba(0, 0, 0, 0.85),
+    0 50px 100px -20px rgba(0, 0, 0, 0.9);
+  transition: width 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), 
+              height 0.45s cubic-bezier(0.2, 0.9, 0.3, 1),
+              box-shadow 0.3s ease;
+}
+
+/* Hardware Buttons */
+.iphone-frame::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 115px;
+  width: 4px;
+  height: 32px;
+  background: var(--ti-frame-color);
+  border-radius: 3px 0 0 3px;
+  box-shadow: 
+    0 52px 0 0 var(--ti-frame-color),
+    0 114px 0 0 var(--ti-frame-color);
+}
+
+.iphone-frame::after {
+  content: "";
+  position: absolute;
+  right: -9px;
+  top: 170px;
+  width: 4px;
+  height: 64px;
+  background: var(--ti-frame-color);
+  border-radius: 0 3px 3px 0;
+}
+
+/* Portrait Specs: 393px × 852px */
+.iphone-frame.portrait {
+  width: 393px;
+  height: 852px;
+}
+
+/* Landscape Specs: 852px × 393px */
+.iphone-frame.landscape {
+  width: 852px;
+  height: 393px;
+}
+
+/* Screen Canvas */
+.iphone-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 44px;
+  overflow: hidden;
+  background: #0b1117;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dynamic Island */
+.dynamic-island-wrap {
+  position: absolute;
+  z-index: 999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.iphone-frame.portrait .dynamic-island-wrap {
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 126px;
+  height: 37px;
+}
+
+.iphone-frame.landscape .dynamic-island-wrap {
+  top: 50%;
+  left: 11px;
+  transform: translateY(-50%);
+  width: 37px;
+  height: 126px;
+}
+
+.dynamic-island {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  border-radius: 24px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  transition: all 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.dynamic-island-cam {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #080d14;
+  border: 1px solid #141c28;
+  right: 14px;
+}
+.iphone-frame.landscape .dynamic-island-cam {
+  top: 14px;
+  right: auto;
+  left: calc(50% - 6.5px);
+}
+
+.dynamic-island-sensor {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #050608;
+  left: 18px;
+}
+.iphone-frame.landscape .dynamic-island-sensor {
+  bottom: 18px;
+  left: calc(50% - 4px);
+}
+
+/* Expanded Dynamic Island (Live Activity) */
+.dynamic-island.expanded {
+  width: 355px !important;
+  height: 72px !important;
+  border-radius: 36px !important;
+  padding: 12px 18px !important;
+  background: #000 !important;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.15) !important;
+}
+
+.iphone-frame.landscape .dynamic-island.expanded {
+  width: 290px !important;
+  height: 150px !important;
+  border-radius: 32px !important;
+}
+
+.island-compact-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+.dynamic-island.expanded .island-compact-content {
+  display: none;
+}
+
+.island-expanded-content {
+  display: none;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+}
+.dynamic-island.expanded .island-expanded-content {
+  display: flex;
+}
+
+.eq-bar {
+  display: inline-block;
+  width: 3px;
+  background: #30d158;
+  border-radius: 2px;
+  animation: eqBounce 1s infinite alternate ease-in-out;
+}
+@keyframes eqBounce {
+  0% { height: 4px; }
+  100% { height: 16px; }
+}
+
+/* iOS Status Bar */
+.ios-status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 26px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.iphone-frame.landscape .ios-status-bar {
+  display: none;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.battery-icon {
+  width: 25px;
+  height: 12px;
+  border: 1.5px solid #ffffff;
+  border-radius: 3.5px;
+  padding: 1px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.battery-icon::after {
+  content: "";
+  position: absolute;
+  right: -3.5px;
+  top: 2.5px;
+  width: 2px;
+  height: 4px;
+  background: #ffffff;
+  border-radius: 0 1px 1px 0;
+}
+.battery-fill {
+  width: 82%;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 1.5px;
+}
+
+/* iOS Home Indicator Bar */
+.ios-home-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 100px;
+  z-index: 900;
+  pointer-events: none;
+  transition: all 0.25s;
+}
+.iphone-frame.landscape .ios-home-indicator {
+  bottom: 5px;
+  width: 160px;
+  height: 4.5px;
+}
+
+/* Fullscreen Webview Mode */
+body.fullscreen-mode #desktop-container {
+  padding: 0;
+  background: transparent;
+}
+body.fullscreen-mode .desktop-toolbar {
+  display: none !important;
+}
+body.fullscreen-mode .iphone-stage {
+  width: 100vw !important;
+  height: 100dvh !important;
+  transform: none !important;
+}
+body.fullscreen-mode .iphone-frame {
+  width: 100vw !important;
+  height: 100dvh !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+body.fullscreen-mode .iphone-frame::before,
+body.fullscreen-mode .iphone-frame::after {
+  display: none !important;
+}
+body.fullscreen-mode .iphone-screen {
+  border-radius: 0 !important;
+}
+body.fullscreen-mode .dynamic-island-wrap,
+body.fullscreen-mode .ios-status-bar,
+body.fullscreen-mode .ios-home-indicator {
+  display: none !important;
+}
+
+/* ==========================================================================
+   FOCUSBOARD CORE THEMES & LIQUID GLASS VISUALS (IDENTICAL TO WEB 4.0)
+   ========================================================================== */
+.theme-dark {
+  --bg-primary: #0b1117;
+  --text-main: #f1f5f9;
+  --text-muted: rgba(255, 255, 255, 0.65);
+  --header-bg: rgba(14, 20, 27, 0.72);
+  --header-border: rgba(255, 255, 255, 0.12);
+  --glass-card: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 40%, rgba(14, 22, 33, 0.65) 100%);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --glass-specular: rgba(255, 255, 255, 0.85);
+  --glass-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.55), inset 0 1px 1.5px rgba(255, 255, 255, 0.28);
+  --col-bg: rgba(18, 26, 36, 0.58);
+  --col-border: rgba(255, 255, 255, 0.1);
+  --subcard-bg: linear-gradient(135deg, rgba(24, 34, 46, 0.75) 0%, rgba(16, 24, 34, 0.85) 100%);
+  --subcard-border: rgba(255, 255, 255, 0.14);
+}
+
+.theme-white {
+  --bg-primary: #f6f8fa;
+  --text-main: #0f172a;
+  --text-muted: rgba(15, 23, 42, 0.65);
+  --header-bg: rgba(255, 255, 255, 0.82);
+  --header-border: rgba(226, 232, 240, 0.8);
+  --glass-card: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 253, 0.9) 55%, rgba(240, 245, 250, 0.85) 100%);
+  --glass-border: rgba(255, 255, 255, 0.95);
+  --glass-specular: #ffffff;
+  --glass-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.12), inset 0 1.5px 2px #fff;
+  --col-bg: rgba(238, 235, 227, 0.85);
+  --col-border: rgba(226, 232, 240, 0.9);
+  --subcard-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(245, 248, 252, 0.8) 100%);
+  --subcard-border: rgba(255, 255, 255, 0.95);
+}
+
+.app-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  position: relative;
+  overflow: hidden;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.theme-dark .app-root {
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(30, 58, 48, 0.75) 0px, transparent 55%),
+    radial-gradient(at 85% 18%, rgba(35, 45, 75, 0.7) 0px, transparent 55%),
+    radial-gradient(at 50% 50%, rgba(14, 22, 30, 0.9) 0px, transparent 65%),
+    radial-gradient(at 80% 85%, rgba(25, 50, 42, 0.6) 0px, transparent 50%),
+    radial-gradient(at 18% 85%, rgba(38, 30, 55, 0.6) 0px, transparent 50%);
+  background-size: cover;
+}
+
+.theme-white .app-root {
+  background-image: 
+    radial-gradient(at 50% 0%, #ffffff 0%, #eef2f6 50%, #e1e7ee 100%),
+    radial-gradient(at 20% 90%, rgba(210, 225, 240, 0.5) 0px, transparent 50%);
+  background-size: cover;
+}
+
+/* ==========================================================================
+   IPHONE TOPBAR (PORTRAIT & LANDSCAPE)
+   ========================================================================== */
+.app-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--header-bg);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-bottom: 1px solid var(--header-border);
+  z-index: 50;
+  transition: padding 0.3s, height 0.3s;
+}
+
+.portrait .app-header {
+  height: 50px;
+  padding-top: 0;
+  padding-left: 14px;
+  padding-right: 14px;
+  margin-top: 50px;
+}
+
+.landscape .app-header {
+  height: 40px;
+  padding-left: max(56px, var(--safe-left));
+  padding-right: max(40px, var(--safe-right));
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.board-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 5px 10px;
+  border-radius: 12px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  max-width: 140px;
+  white-space: nowrap;
+}
+.theme-white .board-pill-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+.board-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 5px 8px;
+  border-radius: 10px;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 95px;
+  white-space: nowrap;
+}
+.theme-white .col-filter-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.07);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.view-seg {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2.5px;
+  border-radius: 10px;
+  gap: 2px;
+}
+.theme-white .view-seg {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
+.seg-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.18s;
+}
+.seg-btn.active {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--text-main);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+.theme-white .seg-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.icon-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.theme-white .icon-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ==========================================================================
+   3D COVER FLOW STAGE & GEOMETRY (WEB 4.0 MINIMAL AESTHETIC)
+   ========================================================================== */
+.cf-stage-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  perspective: 1150px;
+  -webkit-perspective: 1150px;
+  cursor: grab;
+}
+.cf-stage-container:active {
+  cursor: grabbing;
+}
+
+.cf-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+/* Ground Mirror Sheen */
+.cf-ground-sheen {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  border-radius: 100%;
+  background: radial-gradient(65% 50% at 50% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 40%, transparent 75%);
+  pointer-events: none;
+  filter: blur(8px);
+  z-index: 1;
+}
+.theme-white .cf-ground-sheen {
+  background: radial-gradient(65% 50% at 50% 0%, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.04) 40%, transparent 75%);
+}
+
+.portrait .cf-ground-sheen {
+  bottom: 85px;
+  height: 80px;
+}
+.landscape .cf-ground-sheen {
+  bottom: 35px;
+  height: 60px;
+}
+
+/* 3D Card Flipper Geometry */
+.cf-card-flipper {
+  position: absolute;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  cursor: pointer;
+  -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+/* Card Sizes */
+.portrait .cf-card-flipper {
+  width: 300px;
+  height: 350px;
+  top: calc(50% - 175px);
+  left: calc(50% - 150px);
+}
+
+.landscape .cf-card-flipper {
+  width: 250px;
+  height: 210px;
+  top: calc(50% - 105px);
+  left: calc(50% - 125px);
+}
+
+/* Face Styles (Front & Back) */
+.cf-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 36px;
+  display: flex;
+  flex-direction: column;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-top: 1.5px solid var(--glass-specular);
+  background: var(--glass-card);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.62s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.22s ease;
+}
+
+.landscape .cf-face {
+  border-radius: 26px;
+}
+
+/* Liquid Glass Specular & Caustic Overlay */
+.liquid-specular-edge {
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1.2px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.85) 50%, transparent 100%);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.liquid-caustic {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 25% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 45%, transparent 70%),
+              linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, transparent 50%, rgba(255, 255, 255, 0.06) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+.theme-white .liquid-caustic {
+  background: radial-gradient(circle at 35% 15%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.2) 50%, transparent 80%),
+              linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, transparent 60%, rgba(255, 255, 255, 0.15) 100%);
+}
+
+/* ==========================================================================
+   FRONT FACE: PURE MINIMALIST TYPOGRAPHY (IDENTICAL TO WEB 4.0)
+   ========================================================================== */
+.cf-front {
+  transform: rotateY(0deg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 32px 24px;
+  opacity: 1;
+  pointer-events: auto;
+}
+.cf-front.flipped {
+  transform: rotateY(180deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cf-front-title {
+  position: relative;
+  z-index: 10;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+  max-width: 240px;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.landscape .cf-front-title {
+  font-size: 17.5px;
+  max-width: 210px;
+  -webkit-line-clamp: 4;
+}
+
+/* ==========================================================================
+   BACK FACE: ELEGANT DETAILED SPEC (IDENTICAL TO WEB 4.0)
+   ========================================================================== */
+.cf-back {
+  transform: rotateY(-180deg);
+  opacity: 0;
+  pointer-events: none;
+  padding: 20px 22px;
+  justify-content: space-between;
+}
+.cf-back.flipped {
+  transform: rotateY(0deg);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.landscape .cf-back {
+  padding: 14px 16px;
+}
+
+/* Top Row of Backface */
+.cf-back-top-row {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+.theme-white .cf-back-top-row {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.col-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.theme-white .col-badge-pill {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Title & Checkbox Row */
+.cf-back-title-row {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.cf-back-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  flex: 1;
+}
+.landscape .cf-back-title {
+  font-size: 13.5px;
+}
+
+/* Middle Scrollable Section */
+.cf-back-scroll-area {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cf-back-scroll-area::-webkit-scrollbar {
+  width: 3px;
+}
+.cf-back-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+
+.card-desc-box {
+  font-size: 12px;
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+}
+.theme-white .card-desc-box {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Checklist with thin progress line */
+.cf-progress-line {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  margin: 4px 0 6px 0;
+}
+.cf-progress-fill {
+  height: 100%;
+  background: #30d158;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.cf-chk-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  padding: 4px 6px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cf-chk-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.cf-chk-item.done {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* Bottom Action Row */
+.cf-back-bottom-row {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+.theme-white .cf-back-bottom-row {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+.btn-ai-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  background: rgba(172, 75, 255, 0.18);
+  color: #c488ff;
+  border: 1px solid rgba(172, 75, 255, 0.3);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-ai-pill:hover {
+  background: rgba(172, 75, 255, 0.3);
+}
+
+.btn-edit-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #30d158;
+  color: #000;
+  font-weight: 900;
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  box-shadow: 0 2px 8px rgba(48, 209, 88, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.btn-edit-circle:active {
+  transform: scale(0.9);
+}
+
+/* Landscape Split 2-Column Backface */
+.landscape .cf-back-split {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 12px;
+  height: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+/* Bottom Navigation Slider & Steppers */
+.cf-bottom-nav {
+  position: absolute;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: bottom 0.3s;
+}
+.portrait .cf-bottom-nav {
+  bottom: 40px;
+  width: 85%;
+}
+.landscape .cf-bottom-nav {
+  bottom: 14px;
+  width: 50%;
+}
+
+.cf-slider {
+  width: 100%;
+  height: 4px;
+  border-radius: 4px;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  cursor: pointer;
+}
+.cf-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #30d158;
+  box-shadow: 0 0 8px rgba(48, 209, 88, 0.8);
+  cursor: pointer;
+}
+
+.cf-nav-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   KANBAN BOARD VIEW (PORTRAIT & LANDSCAPE)
+   ========================================================================== */
+.kb-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.kb-col-tabs {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.15);
+}
+.kb-col-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.kb-tab-chip {
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.18s;
+}
+.kb-tab-chip.active {
+  background: #30d158;
+  color: #0b1117;
+  font-weight: 700;
+  border-color: #30d158;
+}
+
+.kb-swimlanes {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  padding: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.landscape .kb-swimlanes {
+  padding-left: max(56px, var(--safe-left));
+  padding-right: max(40px, var(--safe-right));
+  gap: 12px;
+  padding-top: 8px;
+  padding-bottom: 24px;
+}
+
+.kb-column {
+  flex-shrink: 0;
+  scroll-snap-align: center;
+  background: var(--col-bg);
+  border: 1px solid var(--col-border);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 22px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.portrait .kb-column {
+  width: calc(100% - 24px);
+  max-width: 350px;
+}
+.landscape .kb-column {
+  width: 275px;
+}
+
+.kb-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.kb-col-title {
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kb-badge-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.kb-card-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 2px;
+}
+.kb-card-list::-webkit-scrollbar {
+  width: 3px;
+}
+.kb-card-list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+}
+
+/* Kanban Item Card */
+.kb-card {
+  background: var(--subcard-bg);
+  border: 1px solid var(--subcard-border);
+  border-top: 1.2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  padding: 10px 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  transition: transform 0.18s, box-shadow 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+.kb-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+.kb-card.complete {
+  opacity: 0.55;
+}
+.kb-card.complete .kb-card-title {
+  text-decoration: line-through;
+}
+
+.kb-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.kb-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+.kb-card-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.kb-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+/* Floating AI Button */
+.floating-ai-btn {
+  position: absolute;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(172, 75, 255, 0.88), rgba(120, 30, 220, 0.92));
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.7);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(172, 75, 255, 0.45);
+  transition: all 0.2s;
+}
+.floating-ai-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+}
+.portrait .floating-ai-btn {
+  bottom: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.landscape .floating-ai-btn {
+  bottom: 14px;
+  right: max(40px, var(--safe-right));
+}
+
+/* ==========================================================================
+   IOS BOTTOM SHEET & MODAL DIALOGS
+   ========================================================================== */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 800;
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Bottom Sheet in Portrait */
+.portrait .modal-sheet {
+  width: 100%;
+  max-height: 86%;
+  margin-top: auto;
+  background: var(--bg-primary);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+  padding-bottom: var(--safe-bottom);
+}
+.portrait .modal-overlay.open .modal-sheet {
+  transform: translateY(0);
+}
+
+/* Centered Modal in Landscape */
+.landscape .modal-sheet {
+  width: 80%;
+  max-width: 620px;
+  max-height: 90%;
+  margin: auto;
+  background: var(--bg-primary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.92);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.landscape .modal-overlay.open .modal-sheet {
+  transform: scale(1);
+}
+
+.sheet-handle-bar {
+  width: 36px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 10px auto 4px auto;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.sheet-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sheet-body::-webkit-scrollbar {
+  width: 4px;
+}
+.sheet-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.25);
+  border-radius: 4px;
+}
+
+.sheet-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.ios-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+.ios-input, .ios-select, .ios-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 9px 12px;
+  color: inherit;
+  font-family: inherit;
+  font-size: 13.5px;
+  outline: none;
+}
+.theme-white .ios-input, .theme-white .ios-select, .theme-white .ios-textarea {
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.1);
+}
+.ios-input:focus, .ios-textarea:focus {
+  border-color: #30d158;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-primary {
+  background: #30d158;
+  color: #0b1117;
+  border: 0;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(48, 209, 88, 0.35);
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: inherit;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* AI Assistant Drawer */
+.ai-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-primary);
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: -15px 0 40px rgba(0, 0, 0, 0.65);
+  z-index: 850;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ai-drawer.open {
+  transform: translateX(0);
+}
+
+.chat-msg {
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  max-width: 88%;
+  white-space: pre-wrap;
+}
+.chat-msg.assistant {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+.chat-msg.user {
+  background: #30d158;
+  color: #0b1117;
+  font-weight: 600;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.chk-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.chk-circle.checked {
+  background: #30d158;
+  border-color: #30d158;
+}
+.chk-circle.checked::after {
+  content: "✓";
+  color: #000;
+  font-size: 11px;
+  font-weight: 900;
+}
+    </style>
+      <!-- Firebase SDK (loaded with defer to guarantee zero blocking on page open & 100% offline resilience) -->
+    <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  </head>
+  <body>
+    <div id="desktop-container">
+      <!-- Desktop Simulator Control Bar -->
+      <div class="desktop-toolbar" id="desktop-toolbar">
+        <div class="dt-group">
+          <button class="dt-btn active" id="btn-mode-portrait" onclick="setDeviceOrientation('portrait')">
+            <span>📱 竖版 (393×852)</span>
+          </button>
+          <button class="dt-btn" id="btn-mode-landscape" onclick="setDeviceOrientation('landscape')">
+            <span>🔄 横板 (852×393)</span>
+          </button>
+        </div>
+        
+        <div class="dt-divider"></div>
+        
+        <div class="dt-group">
+          <button class="dt-btn" id="btn-zoom-fit" onclick="setDeviceScale('fit')">自适应</button>
+          <button class="dt-btn active" id="btn-zoom-100" onclick="setDeviceScale(1.0)">100%</button>
+          <button class="dt-btn" id="btn-zoom-85" onclick="setDeviceScale(0.85)">85%</button>
+        </div>
+        
+        <div class="dt-divider"></div>
+
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:11px; color:rgba(255,255,255,0.6); font-weight:600;">钛金属:</span>
+          <div class="ti-color-btn active" style="background:#8e8a83;" title="原色钛金属" onclick="setTitaniumColor('var(--titanium-natural)', this)"></div>
+          <div class="ti-color-btn" style="background:#292a2c;" title="深空黑钛金属" onclick="setTitaniumColor('var(--titanium-black)', this)"></div>
+          <div class="ti-color-btn" style="background:#e3e2de;" title="白色钛金属" onclick="setTitaniumColor('var(--titanium-white)', this)"></div>
+          <div class="ti-color-btn" style="background:#37424f;" title="蓝色钛金属" onclick="setTitaniumColor('var(--titanium-blue)', this)"></div>
+        </div>
+
+        <div class="dt-divider"></div>
+
+        <button class="dt-btn" onclick="toggleFullscreenWebview()" title="全屏查看独立网页版本">
+          <span>↗️ 浏览器全屏</span>
+        </button>
+      </div>
+
+      <!-- iPhone 15 Pro Hardware Frame -->
+      <div class="iphone-stage" id="iphone-stage">
+        <div class="iphone-frame portrait" id="iphone-frame">
+          
+          <!-- Dynamic Island (Interactive!) -->
+          <div class="dynamic-island-wrap" onclick="toggleDynamicIsland(event)">
+            <div class="dynamic-island" id="dynamic-island">
+              <div class="dynamic-island-sensor"></div>
+              <div class="dynamic-island-cam"></div>
+              
+              <div class="island-compact-content" id="island-compact-view">
+                <span style="font-size:10px; color:#30d158; font-weight:700;">🎯</span>
+                <div style="display:flex; gap:2px; align-items:flex-end; height:12px; margin-right:12px;">
+                  <span class="eq-bar" style="animation-delay:0s"></span>
+                  <span class="eq-bar" style="animation-delay:0.2s"></span>
+                  <span class="eq-bar" style="animation-delay:0.4s"></span>
+                </div>
+              </div>
+
+              <div class="island-expanded-content" id="island-expanded-view">
+                <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+                  <div style="width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg,#30d158,#0b8043); display:grid; place-items:center; font-size:19px; box-shadow:0 0 12px rgba(48,209,88,0.4); shrink-0;">🎯</div>
+                  <div style="min-width:0;">
+                    <div style="font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px;" id="island-active-task-title">Peck 专注学习中</div>
+                    <div style="font-size:11px; opacity:0.65; display:flex; align-items:center; gap:4px;">
+                      <span id="island-active-task-col">3D Cover Flow</span>
+                      <span style="width:4px; height:4px; border-radius:50%; background:#30d158;"></span>
+                      <span style="color:#30d158; font-weight:600;" id="island-cloud-label">Live</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Interactive Focus Timer -->
+                <div style="display:flex; align-items:center; gap:8px; shrink-0;">
+                  <span style="font-size:13px; font-family:var(--font-mono); color:#30d158; font-weight:700; letter-spacing:0.02em;" id="island-timer-text">25:00</span>
+                  <button type="button" onclick="event.stopPropagation(); toggleFocusTimer()" style="border:0; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,0.14); color:#fff; font-size:10px; cursor:pointer; display:grid; place-items:center;" id="island-timer-btn">
+                    ▶
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- iOS Status Bar -->
+          <div class="ios-status-bar">
+            <span id="ios-clock">9:41</span>
+            <div class="status-right">
+              <svg width="15" height="11" viewBox="0 0 17 11" fill="currentColor">
+                <rect x="0" y="8" width="3" height="3" rx="0.5"/>
+                <rect x="4.5" y="5.5" width="3" height="5.5" rx="0.5"/>
+                <rect x="9" y="3" width="3" height="8" rx="0.5"/>
+                <rect x="13.5" y="0" width="3" height="11" rx="0.5"/>
+              </svg>
+              <span style="font-size:12px; font-weight:700;">5G</span>
+              <div class="battery-icon">
+                <div class="battery-fill"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- iPhone Screen Surface -->
+          <div class="iphone-screen">
+            <div class="app-root theme-dark" id="app-root">
+              
+              <!-- Focusboard Topbar -->
+              <header class="app-header">
+                <div class="header-left">
+                  <button type="button" class="board-pill-btn" onclick="openBoardSwitcherModal()" title="点击切换看板">
+                    <span style="color:#30d158; font-size:14px;">🗂️</span>
+                    <span class="board-title-text" id="header-board-title">Peck Learning System v1</span>
+                    <span style="font-size:10px; opacity:0.6;">▼</span>
+                  </button>
+
+                  <button type="button" class="col-filter-btn" onclick="openColFilterSheet()" id="header-filter-btn">
+                    <span id="filter-dot" style="width:7px; height:7px; border-radius:50%; background:#30d158; display:inline-block;"></span>
+                    <span id="filter-label" style="overflow:hidden; text-overflow:ellipsis;">全部列表</span>
+                  </button>
+                </div>
+
+                <div class="header-right">
+                  <div class="view-seg">
+                    <button type="button" class="seg-btn active" id="btn-seg-cf" onclick="setViewMode('coverflow')">
+                      <span>🎴 3D</span>
+                    </button>
+                    <button type="button" class="seg-btn" id="btn-seg-kb" onclick="setViewMode('board')">
+                      <span>📋 看板</span>
+                    </button>
+                  </div>
+
+                  <button type="button" class="icon-btn" onclick="toggleTheme()" id="btn-theme-toggle" title="切换暗黑/浅色模式">
+                    <span id="theme-icon">☀️</span>
+                  </button>
+
+                  <button type="button" class="icon-btn" onclick="openCloudModal()" id="btn-cloud-sync" title="云端同步与 Google 登录" style="position:relative;">
+                    <span id="cloud-icon" style="font-size:13px;">☁️</span>
+                    <span id="cloud-status-dot" style="position:absolute; bottom:3px; right:3px; width:6px; height:6px; border-radius:50%; background:#94a3b8; transition:background 0.3s;"></span>
+                  </button>
+
+                  <button type="button" class="icon-btn" onclick="openBoardSettingsModal()" title="看板设置">
+                    <span>⚙️</span>
+                  </button>
+                </div>
+              </header>
+
+              <!-- Main Viewport (3D Cover Flow or Kanban) -->
+              <main style="flex:1; width:100%; height:100%; position:relative; overflow:hidden;" id="view-viewport">
+                <!-- Injected dynamically via JS: Cover Flow or Kanban -->
+              </main>
+
+            </div>
+          </div>
+
+          <!-- iOS Home Indicator -->
+          <div class="ios-home-indicator"></div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Card Detail / Edit Sheet -->
+    <div class="modal-overlay" id="card-modal" onclick="closeCardModal(event)">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle-bar"></div>
+        <div class="sheet-head">
+          <span class="sheet-title" id="card-modal-title">编辑卡片</span>
+          <button class="icon-btn" onclick="closeCardModalDirectly()">✕</button>
+        </div>
+        <div class="sheet-body">
+          <div>
+            <div class="ios-label">卡片标题</div>
+            <input type="text" class="ios-input" id="edit-card-title" placeholder="输入卡片核心标题..." />
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <div class="ios-label">归属列表</div>
+              <select class="ios-select" id="edit-card-column"></select>
+            </div>
+            <div>
+              <div class="ios-label">截止时间</div>
+              <input type="text" class="ios-input" id="edit-card-date" placeholder="如: 今天、明天" />
+            </div>
+          </div>
+
+          <div>
+            <div class="ios-label">液态玻璃晶彩 (Color Theme)</div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px;" id="card-color-picker-group"></div>
+          </div>
+
+          <div>
+            <div class="ios-label">要点解析 / 描述</div>
+            <textarea class="ios-textarea" rows="3" id="edit-card-desc" placeholder="记录知识点定义、易错辨析或行动要求..."></textarea>
+          </div>
+
+          <div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <div class="ios-label" style="margin:0;">检查清单 (Checklist)</div>
+              <button type="button" onclick="aiBreakdownChecklist()" style="border:0; background:rgba(172,75,255,0.2); color:#c488ff; border:1px solid rgba(172,75,255,0.35); padding:3px 8px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">
+                ✨ AI 智能拆解
+              </button>
+            </div>
+            
+            <div id="edit-checklist-items" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
+
+            <div style="display:flex; gap:6px;">
+              <input type="text" class="ios-input" id="new-checklist-input" placeholder="输入待办项回车添加..." onkeydown="if(event.key==='Enter'){addChecklistItem();}" />
+              <button type="button" class="btn-secondary" onclick="addChecklistItem()">添加</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sheet-foot">
+          <button type="button" class="btn-secondary" style="color:#f87171; border-color:rgba(248,113,113,0.3);" onclick="deleteCurrentCard()" id="btn-delete-card">删除</button>
+          <button type="button" class="btn-secondary" onclick="duplicateCurrentCard()">复制</button>
+          <button type="button" class="btn-primary" onclick="saveCardModal()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Board Switcher Sheet -->
+    <div class="modal-overlay" id="board-modal" onclick="closeBoardModal(event)">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle-bar"></div>
+        <div class="sheet-head">
+          <span class="sheet-title">切换看板</span>
+          <button class="icon-btn" onclick="closeBoardModalDirectly()">✕</button>
+        </div>
+        <div class="sheet-body">
+          <div id="boards-list-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+          
+          <div style="display:flex; gap:8px; margin-top:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:12px;">
+            <input type="text" class="ios-input" id="new-board-name" placeholder="新建看板名称..." />
+            <button type="button" class="btn-primary" onclick="createNewBoard()" style="flex-shrink:0;">新建</button>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:12px; color:var(--text-muted);">
+            <button type="button" class="btn-secondary" onclick="exportBoardsBackup()">📥 备份 JSON</button>
+            <button type="button" class="btn-secondary" onclick="resetDefaultBoards()" style="color:#f59e0b;">🔄 恢复默认</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Board Settings Sheet -->
+    <div class="modal-overlay" id="board-settings-modal" onclick="closeBoardSettingsModal(event)">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle-bar"></div>
+        <div class="sheet-head">
+          <span class="sheet-title">看板设置</span>
+          <button class="icon-btn" onclick="closeBoardSettingsModalDirectly()">✕</button>
+        </div>
+        <div class="sheet-body">
+          <div>
+            <div class="ios-label">看板名称</div>
+            <input type="text" class="ios-input" id="edit-board-title-input" />
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+            <button type="button" class="btn-secondary" style="color:#f87171; border-color:rgba(248,113,113,0.3);" onclick="deleteCurrentBoard()">删除看板</button>
+            <button type="button" class="btn-primary" onclick="saveBoardSettings()">保存设置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Column Filter Sheet -->
+    <div class="modal-overlay" id="col-filter-modal" onclick="closeColFilterModal(event)">
+      <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:60%;">
+        <div class="sheet-handle-bar"></div>
+        <div class="sheet-head">
+          <span class="sheet-title">列表筛选</span>
+          <button class="icon-btn" onclick="closeColFilterModalDirectly()">✕</button>
+        </div>
+        <div class="sheet-body" id="col-filter-options" style="gap:6px;"></div>
+      </div>
+    </div>
+
+    <!-- MODAL: Cloud Sync & Google Auth Sheet (iOS Style) -->
+    <div class="modal-overlay" id="cloud-modal" onclick="closeCloudModal(event)">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle-bar"></div>
+        <div class="sheet-head">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px;">☁️</span>
+            <div>
+              <div class="sheet-title" style="font-size:15px;">云端同步与 Google 账号</div>
+              <div style="font-size:10.5px; opacity:0.6;">Mac 与 iPhone 实时双向同步 · Firestore</div>
+            </div>
+          </div>
+          <button class="icon-btn" onclick="closeCloudModalDirectly()">✕</button>
+        </div>
+
+        <div class="sheet-body">
+          <!-- Status Banner -->
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="cloud-banner-dot" style="width:10px; height:10px; border-radius:50%; background:#94a3b8; transition:all 0.3s;"></span>
+              <span style="font-size:13px; font-weight:600;" id="cloud-banner-text">未登录云端</span>
+            </div>
+            <span style="font-size:11px; opacity:0.5; font-family:var(--font-mono);" id="cloud-banner-time"></span>
+          </div>
+
+          <!-- User Info when signed in -->
+          <div id="cloud-user-box" style="display:none; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:16px; background:rgba(48,209,88,0.1); border:1px solid rgba(48,209,88,0.25);">
+            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+              <img id="cloud-user-avatar" src="" style="width:36px; height:36px; border-radius:50%; border:2px solid #30d158; flex-shrink:0;" />
+              <div style="min-width:0;">
+                <div style="font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="cloud-user-name">Google 用户</div>
+                <div style="font-size:11px; opacity:0.65; font-family:var(--font-mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="cloud-user-email"></div>
+              </div>
+            </div>
+            <button type="button" class="btn-secondary" style="color:#f87171; border-color:rgba(248,113,113,0.3); font-size:11.5px; padding:5px 10px;" onclick="handleSignOut()">退出</button>
+          </div>
+
+          <!-- Google Sign in Button (when not signed in) -->
+          <div id="cloud-login-section">
+            <button type="button" onclick="handleGoogleSignIn()" style="width:100%; padding:12px; border-radius:16px; background:#10b981; color:#fff; font-weight:700; font-size:14px; border:0; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; box-shadow:0 4px 16px rgba(16,185,129,0.35);">
+              <span>🌐</span>
+              <span>使用 Google 账号登录 (Sign in)</span>
+            </button>
+            <div style="font-size:11px; opacity:0.6; text-align:center; margin-top:8px; line-height:1.5;">
+              登录同一 Google 账号后，Mac 与 iPhone 15 Pro 会自动保持实时双向同步。
+            </div>
+          </div>
+
+          <!-- Actions when signed in -->
+          <div id="cloud-actions-section" style="display:none; flex-direction:column; gap:10px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <button type="button" class="btn-secondary" onclick="handleForcePush()" style="padding:10px; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <span>⚡️</span> 推送至云端
+              </button>
+              <button type="button" class="btn-secondary" onclick="handleForcePull()" style="padding:10px; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <span>🔄</span> 从云端拉取
+              </button>
+            </div>
+          </div>
+
+          <!-- Project Configuration details -->
+          <div style="margin-top:6px; border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; opacity:0.7;">
+              <span>Firebase 项目: <strong style="color:#30d158;">minest-33761</strong></span>
+              <span style="font-family:var(--font-mono); opacity:0.5;">Cloud 5.0 Core</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: AI Study Assistant (Slide-over drawer) -->
+    <div class="ai-drawer" id="ai-drawer">
+      <div class="sheet-head" style="background:rgba(0,0,0,0.2);">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">✨</span>
+          <div>
+            <div style="font-size:14px; font-weight:700;">AI 学习与任务助教</div>
+            <div style="font-size:10px; opacity:0.6; font-family:var(--font-mono);">Gemini 2.5 Pro · 智能辅导</div>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="toggleAIAssistant(false)">✕</button>
+      </div>
+
+      <!-- Quick prompts -->
+      <div style="padding:10px 14px; display:flex; gap:6px; overflow-x:auto; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <button type="button" class="dt-btn" onclick="sendAIPrompt('拆解5步闭环执行待办')" style="background:rgba(255,255,255,0.08); font-size:11px;">
+          📝 拆解5步待办
+        </button>
+        <button type="button" class="dt-btn" onclick="sendAIPrompt('提炼核心知识结构与Anchor Chart')" style="background:rgba(255,255,255,0.08); font-size:11px;">
+          🧠 知识架构要点
+        </button>
+        <button type="button" class="dt-btn" onclick="sendAIPrompt('分析该卡片常见混淆错因与复盘点')" style="background:rgba(255,255,255,0.08); font-size:11px;">
+          🔍 错因与复盘
+        </button>
+      </div>
+
+      <!-- Messages container -->
+      <div style="flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px;" id="ai-chat-messages"></div>
+
+      <!-- Input bar -->
+      <div style="padding:10px 14px; border-top:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.25); display:flex; gap:8px;">
+        <input type="text" class="ios-input" id="ai-user-input" placeholder="输入学习疑问或任务要求..." onkeydown="if(event.key==='Enter'){handleSendAIMessage();}" />
+        <button type="button" class="btn-primary" onclick="handleSendAIMessage()" style="padding:8px 14px;">发送</button>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+       JAVASCRIPT APPLICATION ENGINE
+       ========================================================================== -->
+    <script>
+      const STORAGE_BOARDS = "focusboard_boards_v2";
+      const STORAGE_ACTIVE_ID = "focusboard_active_id_v2";
+      const STORAGE_VIEW_MODE = "focusboard_view_mode_v2";
+      const STORAGE_THEME = "focusboard_theme_mode_v2";
+
+      const DEFAULT_BOARDS = [{"id": "board-peck-learning-map-v1", "title": "Peck Learning System v1", "background": "#e2ece3", "deadline": "2026-12-17", "showLabelNames": true, "labelDefinitions": [{"id": "lm-current", "color": "#4bce97", "name": "Current", "description": "The active learning stage", "pattern": "solid"}, {"id": "lm-input", "color": "#579dff", "name": "Input", "description": "Acquire knowledge from authentic materials", "pattern": "stripe"}, {"id": "lm-retrieve", "color": "#9f8fef", "name": "Retrieve", "description": "Recall without looking at the source", "pattern": "dots"}, {"id": "lm-apply", "color": "#fea362", "name": "Apply", "description": "Use knowledge in speech, writing, and teaching", "pattern": "diagonal"}, {"id": "lm-review", "color": "#f87168", "name": "Review", "description": "Repair errors and revisit weak patterns", "pattern": "grid"}, {"id": "lm-english", "color": "#6cc3e0", "name": "English", "description": "English and EC-6 learning engine", "pattern": "solid"}], "columns": [{"id": "lm-system", "title": "Learning Map", "background": "#e9e6df", "showCardCount": true, "pinned": true, "cards": [{"id": "lm-loop", "title": "Learning Loop", "desc": "Every topic moves through the same five-stage learning cycle.", "labels": ["lm-current"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-loop-s0", "text": "Input", "done": false}, {"id": "lm-loop-s1", "text": "Organize", "done": false}, {"id": "lm-loop-s2", "text": "Retrieve", "done": false}, {"id": "lm-loop-s3", "text": "Apply", "done": false}, {"id": "lm-loop-s4", "text": "Review", "done": false}], "stackChildren": ["lm-input-card", "lm-organize-card", "lm-retrieve-card", "lm-apply-card", "lm-review-card"]}, {"id": "lm-input-card", "title": "1 · Input", "desc": "Read authentic textbooks and encounter real academic language.", "labels": ["lm-input"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-input-card-s0", "text": "Into Reading", "done": false}, {"id": "lm-input-card-s1", "text": "Benchmark Mentor Books", "done": false}, {"id": "lm-input-card-s2", "text": "K–5 subject materials", "done": false}, {"id": "lm-input-card-s3", "text": "Read Aloud", "done": false}], "stackParentId": "lm-loop"}, {"id": "lm-organize-card", "title": "2 · Organize", "desc": "Make unknown points and knowledge structures visible.", "labels": ["lm-input"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-organize-card-s0", "text": "Type Word List", "done": false}, {"id": "lm-organize-card-s1", "text": "Enter textbook contents", "done": false}, {"id": "lm-organize-card-s2", "text": "Build Learning Maps", "done": false}, {"id": "lm-organize-card-s3", "text": "Create Anchor Charts", "done": false}], "stackParentId": "lm-loop"}, {"id": "lm-retrieve-card", "title": "3 · Retrieve", "desc": "Recall vocabulary, patterns, and concepts without looking.", "labels": ["lm-retrieve"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-retrieve-card-s0", "text": "Vocabulary recall", "done": false}, {"id": "lm-retrieve-card-s1", "text": "Anchor Chart recall", "done": false}, {"id": "lm-retrieve-card-s2", "text": "Dictation", "done": false}, {"id": "lm-retrieve-card-s3", "text": "Phonics rules", "done": false}], "stackParentId": "lm-loop"}, {"id": "lm-apply-card", "title": "4 · Apply", "desc": "Use knowledge in meaningful output and classroom situations.", "labels": ["lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-apply-card-s0", "text": "Explain concepts in English", "done": false}, {"id": "lm-apply-card-s1", "text": "Analyze student errors", "done": false}, {"id": "lm-apply-card-s2", "text": "Answer EC-6 scenarios", "done": false}, {"id": "lm-apply-card-s3", "text": "Speaking and writing", "done": false}], "stackParentId": "lm-loop"}, {"id": "lm-review-card", "title": "5 · Review", "desc": "Concentrate practice on real errors and weak patterns.", "labels": ["lm-review"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-review-card-s0", "text": "Pronunciation errors", "done": false}, {"id": "lm-review-card-s1", "text": "Dictation errors", "done": false}, {"id": "lm-review-card-s2", "text": "204 incorrect answers", "done": false}, {"id": "lm-review-card-s3", "text": "Spaced review", "done": false}], "stackParentId": "lm-loop"}]}, {"id": "lm-roadmap", "title": "Current Roadmap", "background": "#dce8dd", "showCardCount": true, "cards": [{"id": "lm-phase-1", "title": "Phase 1 · Input + Organize", "desc": "Current priority: textbooks and Word List. Do not let 204 preparation replace foundational learning.", "labels": ["lm-current", "lm-input"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-phase-1-s0", "text": "Type Word List", "done": false}, {"id": "lm-phase-1-s1", "text": "Benchmark Grade 4 Mentor Books", "done": false}, {"id": "lm-phase-1-s2", "text": "Into Reading Grade 5", "done": false}, {"id": "lm-phase-1-s3", "text": "Finish Language Arts framework", "done": false}], "linkedBoardId": "board-ec6-study-plan"}, {"id": "lm-phase-2", "title": "Phase 2 · 204 Practice", "desc": "Diagnosis → locate gap → relearn concept → retest similar questions.", "labels": ["lm-retrieve"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-phase-3", "title": "Phase 3 · Math Terminology", "desc": "Study Math by Grade → Topic → Skill → Mastery rather than rereading every textbook.", "labels": ["lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-phase-4", "title": "Phase 4 · Weak Areas + Mock Exams", "desc": "Strengthen persistent weaknesses and complete timed simulations.", "labels": ["lm-review"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-vocab-link", "title": "Master Word List", "desc": "Collect unknown words across Language Arts, Science, Social Studies, Math, and general reading.", "labels": ["lm-current", "lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "linkedBoardId": "board-ec6-vocabulary"}]}, {"id": "lm-english-engine", "title": "English / EC-6 Engine", "background": "#dce5eb", "showCardCount": true, "cards": [{"id": "lm-word-root", "title": "Word Recognition", "desc": "Print and sound become increasingly automatic.", "labels": ["lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackChildren": ["lm-phonemic", "lm-phonics", "lm-morphology", "lm-automaticity"]}, {"id": "lm-phonemic", "title": "Phonemic Awareness", "desc": "Hear and manipulate sounds in spoken language.", "labels": ["lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-word-root"}, {"id": "lm-phonics", "title": "Phonics / Sound–Spelling", "desc": "Connect graphemes, phonemes, syllable types, and patterns.", "labels": ["lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-phonics-s0", "text": "Six syllable types", "done": false}, {"id": "lm-phonics-s1", "text": "Vowel teams", "done": false}, {"id": "lm-phonics-s2", "text": "Bossy R / Magic E", "done": false}, {"id": "lm-phonics-s3", "text": "Schwa and multisyllabic decoding", "done": false}], "stackParentId": "lm-word-root"}, {"id": "lm-morphology", "title": "Morphology", "desc": "Use meaningful word parts when they improve understanding.", "labels": ["lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-word-root"}, {"id": "lm-automaticity", "title": "Automaticity", "desc": "Build fast, accurate recognition through continuous Quick Read.", "labels": ["lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-automaticity-s0", "text": "Read continuously", "done": false}, {"id": "lm-automaticity-s1", "text": "Do not interrupt", "done": false}, {"id": "lm-automaticity-s2", "text": "Review errors after “finished”", "done": false}, {"id": "lm-automaticity-s3", "text": "Track miscues and hesitation", "done": false}], "stackParentId": "lm-word-root"}, {"id": "lm-language-root", "title": "Language", "desc": "Build vocabulary, grammar, and oral explanation together.", "labels": ["lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackChildren": ["lm-vocabulary", "lm-grammar", "lm-oral"]}, {"id": "lm-vocabulary", "title": "Vocabulary", "desc": "Collect first; deeply learn only important or weak words.", "labels": ["lm-english", "lm-input"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-vocabulary-s0", "text": "Known / Familiar / Unknown", "done": false}, {"id": "lm-vocabulary-s1", "text": "Pronunciation", "done": false}, {"id": "lm-vocabulary-s2", "text": "English definition", "done": false}, {"id": "lm-vocabulary-s3", "text": "Word family and concept", "done": false}], "stackParentId": "lm-language-root"}, {"id": "lm-grammar", "title": "Grammar", "desc": "Notice and use sentence patterns in reading and output.", "labels": ["lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-language-root"}, {"id": "lm-oral", "title": "Oral Language", "desc": "Retrieve concepts and explain them in complete English.", "labels": ["lm-english", "lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-language-root"}, {"id": "lm-text-root", "title": "Connected Text", "desc": "Move from isolated words into fluent, meaningful reading.", "labels": ["lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackChildren": ["lm-read-aloud", "lm-fluency", "lm-comprehension"]}, {"id": "lm-read-aloud", "title": "Read Aloud", "desc": "A core daily practice rather than an optional extra.", "labels": ["lm-english", "lm-current"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-text-root"}, {"id": "lm-fluency", "title": "Fluency", "desc": "Develop accuracy, phrasing, prosody, and connected speech.", "labels": ["lm-english"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-text-root"}, {"id": "lm-comprehension", "title": "Comprehension", "desc": "Retell, infer, connect evidence, and explain meaning.", "labels": ["lm-english", "lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-text-root"}, {"id": "lm-output-root", "title": "Output", "desc": "Turn recognition into spelling, speaking, writing, and teaching.", "labels": ["lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackChildren": ["lm-dictation", "lm-speaking", "lm-writing", "lm-ec6-application"]}, {"id": "lm-dictation", "title": "Dictation / Spelling", "desc": "Train sound → spelling with 5–10 targeted words.", "labels": ["lm-apply", "lm-review"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-output-root"}, {"id": "lm-speaking", "title": "Speaking", "desc": "Explain what was learned and repair exposed gaps.", "labels": ["lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-output-root"}, {"id": "lm-writing", "title": "Writing", "desc": "Use vocabulary and concepts in complete written language.", "labels": ["lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-output-root"}, {"id": "lm-ec6-application", "title": "EC-6 Application", "desc": "Move from recognition to recall, relationships, and scenarios.", "labels": ["lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": [], "stackParentId": "lm-output-root"}]}, {"id": "lm-daily", "title": "Daily Execution", "background": "#eee4d2", "showCardCount": true, "cards": [{"id": "lm-morning", "title": "7:05–7:35 · Morning Recall", "desc": "Hands-free retrieval of yesterday’s vocabulary, anchor charts, phonics, and reading.", "labels": ["lm-retrieve"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-word-time", "title": "8:33–9:18 · Type Word List", "desc": "Low-cognitive-load warm-up and organization. Tuesday is reserved for PLC.", "labels": ["lm-input", "lm-current"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-benchmark", "title": "1:24–2:09 + 3:15–3:45 · Benchmark", "desc": "Read Benchmark Mentor Books during protected school-day windows.", "labels": ["lm-input", "lm-current"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-deep-voice", "title": "3:45–4:30 · Deep Voice Learning", "desc": "Retrieve → Connect → Apply with GPT and EarPods.", "labels": ["lm-retrieve", "lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-speaking-review", "title": "4:35–5:05 · Speaking + Review", "desc": "Explain the day in English and identify only 2–3 real gaps.", "labels": ["lm-apply", "lm-review"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-evening", "title": "8:00–8:30 · Into Reading", "desc": "Evening input block; formal study ends afterward.", "labels": ["lm-input"], "background": "#fbfaf7", "complete": false, "checklistItems": []}]}, {"id": "lm-review-cycle", "title": "Review & Weekly Cycle", "background": "#eadfea", "showCardCount": true, "cards": [{"id": "lm-error-driven", "title": "Error-Driven Learning", "desc": "Do not repeatedly practice everything. Repair the pattern behind actual errors.", "labels": ["lm-review"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-error-driven-s0", "text": "Identify the error", "done": false}, {"id": "lm-error-driven-s1", "text": "Classify its pattern", "done": false}, {"id": "lm-error-driven-s2", "text": "Practice 3–5 related examples", "done": false}, {"id": "lm-error-driven-s3", "text": "Retest the original item", "done": false}, {"id": "lm-error-driven-s4", "text": "Exit after stable mastery", "done": false}]}, {"id": "lm-saturday", "title": "Saturday · Repair Day", "desc": "Use about one hour of car learning for Unknown, Developing, pronunciation, dictation, and weak phonics patterns.", "labels": ["lm-review"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-sunday", "title": "Sunday · Integration Day", "desc": "Use about one hour for speaking, concept links, Science/SS explanations, and cumulative recall.", "labels": ["lm-apply"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "lm-status", "title": "Mastery Status", "desc": "Track separate dimensions instead of a single learned/not-learned flag.", "labels": ["lm-review"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-status-s0", "text": "? Unknown", "done": false}, {"id": "lm-status-s1", "text": "△ Familiar / Developing", "done": false}, {"id": "lm-status-s2", "text": "✓ Mastered", "done": false}, {"id": "lm-status-s3", "text": "Pronunciation status", "done": false}, {"id": "lm-status-s4", "text": "Spelling status", "done": false}]}, {"id": "lm-principles", "title": "Five Core Principles", "desc": "The non-negotiable rules of Peck Learning System v1.", "labels": ["lm-current"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "lm-principles-s0", "text": "Active Retrieval over Re-reading", "done": false}, {"id": "lm-principles-s1", "text": "Error-Driven Practice", "done": false}, {"id": "lm-principles-s2", "text": "Pattern before Individual Word", "done": false}, {"id": "lm-principles-s3", "text": "Read Aloud Every Day", "done": false}, {"id": "lm-principles-s4", "text": "Learn in Networks", "done": false}]}]}]}, {"id": "board-ec6-study-plan", "title": "EC-6 学习计划", "background": "#e2ece3", "deadline": "2026-12-17", "showLabelNames": true, "labelDefinitions": [{"id": "ec6-priority", "color": "#eb5a46", "name": "重点加强", "description": "需要投入更多时间反复练习", "pattern": "solid"}, {"id": "ec6-reading", "color": "#0079bf", "name": "Language Arts", "description": "阅读、语法、拼读与写作", "pattern": "solid"}, {"id": "ec6-math", "color": "#61bd4f", "name": "Math", "description": "数学内容与英文术语", "pattern": "stripe"}, {"id": "ec6-vocab", "color": "#c377e0", "name": "词汇", "description": "不熟悉的学科词汇和闪卡", "pattern": "dots"}, {"id": "ec6-textbook", "color": "#f2d600", "name": "教材通读", "description": "刷题前先理解各年级教材", "pattern": "solid"}, {"id": "ec6-practice", "color": "#ff9f1a", "name": "刷题阶段", "description": "完成教材后进入题库与计时训练", "pattern": "diagonal"}], "columns": [{"id": "ec6-route", "title": "学习路线", "background": "#e9e6df", "cards": [{"id": "ec6-r1", "title": "阶段 1：通读全部教材", "desc": "先建立 K–5/6 各学科知识框架，不急着大量刷题。", "labels": ["ec6-textbook"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-r1-s0", "text": "按年级阅读教材", "done": false}, {"id": "ec6-r1-s1", "text": "记录陌生术语", "done": false}, {"id": "ec6-r1-s2", "text": "每章写一句核心总结", "done": false}, {"id": "ec6-r1-s3", "text": "完成后再进入题库", "done": false}]}, {"id": "ec6-r2", "title": "阶段 2：逐年级过关", "desc": "以 Language Arts 为例，从一年级开始检查，确认掌握后再升到下一年级。", "labels": ["ec6-reading"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-r2-s0", "text": "知识点快速复习", "done": false}, {"id": "ec6-r2-s1", "text": "口头小测", "done": false}, {"id": "ec6-r2-s2", "text": "记录薄弱点", "done": false}, {"id": "ec6-r2-s3", "text": "薄弱点补练后过关", "done": false}]}, {"id": "ec6-r3", "title": "阶段 3：整理术语和闪卡", "desc": "把教材中不熟悉的英文词汇持续集中到词汇看板或闪卡。", "labels": ["ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-r3-s0", "text": "按学科分类", "done": false}, {"id": "ec6-r3-s1", "text": "写英文解释", "done": false}, {"id": "ec6-r3-s2", "text": "加入例句", "done": false}, {"id": "ec6-r3-s3", "text": "定期复习", "done": false}]}, {"id": "ec6-r4", "title": "阶段 4：题库与计时模考", "desc": "教材通读完成后，再开始 204 题库和整套计时训练。", "labels": ["ec6-practice", "ec6-priority"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-r4-s0", "text": "分科刷题", "done": false}, {"id": "ec6-r4-s1", "text": "整理错题原因", "done": false}, {"id": "ec6-r4-s2", "text": "阅读题计时", "done": false}, {"id": "ec6-r4-s3", "text": "整套模拟考试", "done": false}]}]}, {"id": "ec6-textbooks", "title": "教材通读", "background": "#eee4d2", "cards": [{"id": "ec6-t1", "title": "Kindergarten 教材", "desc": "通读并确认基础概念与课堂术语。", "labels": ["ec6-textbook"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "ec6-t2", "title": "Grade 1 教材", "desc": "一年级 Language Arts 基础已基本通过，大小写规则需要复习。", "labels": ["ec6-textbook", "ec6-reading"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-t2-s0", "text": "Phonemic awareness", "done": false}, {"id": "ec6-t2-s1", "text": "Short vowels", "done": false}, {"id": "ec6-t2-s2", "text": "Sight words", "done": false}, {"id": "ec6-t2-s3", "text": "Basic grammar", "done": false}, {"id": "ec6-t2-s4", "text": "Reading comprehension", "done": false}]}, {"id": "ec6-t3", "title": "Grade 2 教材", "desc": "完成一年级补强后进入二年级内容。", "labels": ["ec6-textbook", "ec6-reading"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "ec6-t4", "title": "Grade 3–4 教材", "desc": "逐章通读，重点记录阅读与写作术语。", "labels": ["ec6-textbook"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "ec6-t5", "title": "Grade 5–6 教材", "desc": "完成高年级内容并整理跨年级知识框架。", "labels": ["ec6-textbook"], "background": "#fbfaf7", "complete": false, "checklistItems": []}]}, {"id": "ec6-elar", "title": "Language Arts 重点", "background": "#dce5eb", "cards": [{"id": "ec6-e1", "title": "短元音听辨与拼读", "desc": "目前短元音偶尔不稳定，需要继续辨认与口头拼读。", "labels": ["ec6-reading", "ec6-priority"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-e1-s0", "text": "short a", "done": false}, {"id": "ec6-e1-s1", "text": "short e", "done": false}, {"id": "ec6-e1-s2", "text": "short i", "done": false}, {"id": "ec6-e1-s3", "text": "short o", "done": false}, {"id": "ec6-e1-s4", "text": "short u", "done": false}]}, {"id": "ec6-e2", "title": "M / N 发音与字尾区分", "desc": "练习嘴唇闭合的 m 和舌尖位置的 n，避免 map / nap 等混淆。", "labels": ["ec6-reading", "ec6-priority"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-e2-s0", "text": "单独发 m / n", "done": false}, {"id": "ec6-e2-s1", "text": "词首辨音", "done": false}, {"id": "ec6-e2-s2", "text": "词尾辨音", "done": false}, {"id": "ec6-e2-s3", "text": "map / nap 对比", "done": false}]}, {"id": "ec6-e3", "title": "大小写规则", "desc": "重点复习句首、人名与专有名词首字母大写。", "labels": ["ec6-reading", "ec6-priority"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-e3-s0", "text": "句首大写", "done": false}, {"id": "ec6-e3-s1", "text": "人名大写", "done": false}, {"id": "ec6-e3-s2", "text": "地名大写", "done": false}, {"id": "ec6-e3-s3", "text": "I 始终大写", "done": false}]}, {"id": "ec6-e4", "title": "一年级语法快速复习", "desc": "完整句子、名词、动词、形容词、代词、单复数、时态和标点。", "labels": ["ec6-reading"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-e4-s0", "text": "完整句子", "done": false}, {"id": "ec6-e4-s1", "text": "名词与动词", "done": false}, {"id": "ec6-e4-s2", "text": "形容词与代词", "done": false}, {"id": "ec6-e4-s3", "text": "单复数", "done": false}, {"id": "ec6-e4-s4", "text": "基本时态", "done": false}, {"id": "ec6-e4-s5", "text": "标点与疑问词", "done": false}]}, {"id": "ec6-e5", "title": "阅读理解与复述", "desc": "继续练习找细节、事件顺序、简单推断和用自己的话复述。", "labels": ["ec6-reading"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-e5-s0", "text": "找关键细节", "done": false}, {"id": "ec6-e5-s1", "text": "排列事件顺序", "done": false}, {"id": "ec6-e5-s2", "text": "回答 why 推断题", "done": false}, {"id": "ec6-e5-s3", "text": "用 1–2 句复述", "done": false}]}, {"id": "ec6-e6", "title": "阅读速度训练", "desc": "考试阅读量较大，需要在理解准确的基础上逐步提高速度。", "labels": ["ec6-reading", "ec6-priority"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-e6-s0", "text": "短文不限时准确阅读", "done": false}, {"id": "ec6-e6-s1", "text": "记录完成时间", "done": false}, {"id": "ec6-e6-s2", "text": "限时阅读练习", "done": false}, {"id": "ec6-e6-s3", "text": "复盘错误位置", "done": false}]}]}, {"id": "ec6-subjects", "title": "Math 与其他科目", "background": "#dce8dd", "cards": [{"id": "ec6-m1", "title": "Math 教材快速通读", "desc": "数学是相对强项，重点放在英文表达、题目语言和教学术语。", "labels": ["ec6-math", "ec6-textbook"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-m1-s0", "text": "按年级确认知识点", "done": false}, {"id": "ec6-m1-s1", "text": "记录英文数学术语", "done": false}, {"id": "ec6-m1-s2", "text": "练习英文题干", "done": false}, {"id": "ec6-m1-s3", "text": "整理易混词", "done": false}]}, {"id": "ec6-m2", "title": "Math 术语闪卡", "desc": "把会做但不熟悉英文说法的概念制作成闪卡。", "labels": ["ec6-math", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "ec6-o1", "title": "Science 教材与术语", "desc": "通读教材并整理实验、生命科学、地球与物理科学术语。", "labels": ["ec6-textbook", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "ec6-o2", "title": "Social Studies 教材与术语", "desc": "整理历史、地理、政府与经济相关英文词汇。", "labels": ["ec6-textbook", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "ec6-o3", "title": "Fine Arts / Health / PE", "desc": "完成基础知识框架和常见教学术语的快速覆盖。", "labels": ["ec6-textbook", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}]}, {"id": "ec6-review", "title": "词汇与刷题", "background": "#e5e3f0", "cards": [{"id": "ec6-v1", "title": "建立 EC-6 总词汇库", "desc": "所有教材中不熟悉的词汇统一收集，再按学科加标签。", "labels": ["ec6-vocab", "ec6-priority"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-v1-s0", "text": "Language Arts", "done": false}, {"id": "ec6-v1-s1", "text": "Math", "done": false}, {"id": "ec6-v1-s2", "text": "Science", "done": false}, {"id": "ec6-v1-s3", "text": "Social Studies", "done": false}, {"id": "ec6-v1-s4", "text": "Fine Arts / Health / PE", "done": false}], "linkedBoardId": "board-ec6-vocabulary"}, {"id": "ec6-v2", "title": "每日闪卡复习", "desc": "优先复习不会主动说出的词，而不只是眼熟的词。", "labels": ["ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-v2-s0", "text": "新词学习", "done": false}, {"id": "ec6-v2-s1", "text": "旧词复习", "done": false}, {"id": "ec6-v2-s2", "text": "英文解释", "done": false}, {"id": "ec6-v2-s3", "text": "口头造句", "done": false}]}, {"id": "ec6-p1", "title": "204 题库：教材完成后开始", "desc": "暂不抢跑；完成主要教材通读后再进入系统刷题。", "labels": ["ec6-practice"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "ec6-p2", "title": "错题看板", "desc": "刷题阶段按“知识不会 / 术语不懂 / 阅读太慢 / 粗心”分类。", "labels": ["ec6-practice"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-p2-s0", "text": "记录原题主题", "done": false}, {"id": "ec6-p2-s1", "text": "标记错误原因", "done": false}, {"id": "ec6-p2-s2", "text": "补回对应教材", "done": false}, {"id": "ec6-p2-s3", "text": "隔天重做", "done": false}]}, {"id": "ec6-p3", "title": "整套计时模拟", "desc": "后期重点确认阅读速度和整套考试时间分配。", "labels": ["ec6-practice", "ec6-priority"], "background": "#fbfaf7", "complete": false, "checklistItems": [{"id": "ec6-p3-s0", "text": "第一次基线模考", "done": false}, {"id": "ec6-p3-s1", "text": "调整各部分时间", "done": false}, {"id": "ec6-p3-s2", "text": "第二次完整模考", "done": false}, {"id": "ec6-p3-s3", "text": "考前最终模拟", "done": false}]}]}]}, {"id": "board-ec6-vocabulary", "title": "EC-6 词汇库", "background": "#e5e3f0", "showLabelNames": true, "labelDefinitions": [{"id": "ec6-priority", "color": "#eb5a46", "name": "重点加强", "description": "需要投入更多时间反复练习", "pattern": "solid"}, {"id": "ec6-reading", "color": "#0079bf", "name": "Language Arts", "description": "阅读、语法、拼读与写作", "pattern": "solid"}, {"id": "ec6-math", "color": "#61bd4f", "name": "Math", "description": "数学内容与英文术语", "pattern": "stripe"}, {"id": "ec6-vocab", "color": "#c377e0", "name": "词汇", "description": "不熟悉的学科词汇和闪卡", "pattern": "dots"}, {"id": "ec6-textbook", "color": "#f2d600", "name": "教材通读", "description": "刷题前先理解各年级教材", "pattern": "solid"}, {"id": "ec6-practice", "color": "#ff9f1a", "name": "刷题阶段", "description": "完成教材后进入题库与计时训练", "pattern": "diagonal"}], "columns": [{"id": "vocab-elar", "title": "Language Arts", "background": "#dce5eb", "cards": [{"id": "word-phoneme", "title": "phoneme", "desc": "The smallest unit of sound in spoken language.", "labels": ["ec6-reading", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "word-phonemic", "title": "phonemic awareness", "desc": "The ability to hear and manipulate individual sounds in spoken words.", "labels": ["ec6-reading", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "word-short-vowel", "title": "short vowel", "desc": "A vowel sound commonly heard in CVC words such as cat, sit, and cup.", "labels": ["ec6-reading", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "word-inference", "title": "inference", "desc": "A conclusion reached by combining text evidence with prior knowledge.", "labels": ["ec6-reading", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "word-retell", "title": "retell", "desc": "To tell a story or text again in the correct sequence using your own words.", "labels": ["ec6-reading", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "word-pronoun", "title": "pronoun", "desc": "A word that replaces a noun, such as he, she, it, or they.", "labels": ["ec6-reading", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}, {"id": "word-capitalization", "title": "capitalization", "desc": "Using uppercase letters at sentence beginnings and for proper nouns.", "labels": ["ec6-reading", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}]}, {"id": "vocab-math", "title": "Math", "background": "#dce8dd", "cards": [{"id": "word-math-inbox", "title": "待添加 Math 术语", "desc": "通读数学教材时，把会计算但不熟悉英文表达的词放到这里。", "labels": ["ec6-math", "ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}]}, {"id": "vocab-science", "title": "Science", "background": "#eee4d2", "cards": [{"id": "word-science-inbox", "title": "待添加 Science 术语", "desc": "按生命科学、地球科学和物理科学分类积累。", "labels": ["ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}]}, {"id": "vocab-social", "title": "Social Studies", "background": "#e9e6df", "cards": [{"id": "word-social-inbox", "title": "待添加 Social Studies 术语", "desc": "记录历史、地理、政府和经济相关词汇。", "labels": ["ec6-vocab"], "background": "#fbfaf7", "complete": false, "checklistItems": []}]}]}, {"id": "board-main", "title": "产品设计看板", "background": "#f4f1eb", "columns": [{"id": "ideas", "title": "灵感池", "color": "#89947f", "cards": [{"id": "c1", "title": "设计新的欢迎页面", "desc": "重新思考首次使用流程，让核心价值更清晰、更吸引人。", "labels": ["设计"], "date": "9月18日", "complete": false, "checklistItems": []}, {"id": "c2", "title": "用户访谈：自由职业者", "desc": "整理 5 位创意工作者的访谈问题与真实诉求。", "labels": ["研究"], "date": "9月20日", "complete": false, "checklistItems": []}]}, {"id": "todo", "title": "待办", "color": "#c49157", "cards": [{"id": "c4", "title": "完成设计系统", "desc": "补充按钮、表单和状态组件规范。", "labels": ["高优先级"], "date": "今天", "complete": false, "checklistItems": [{"id": "ds1", "text": "按钮变体定义", "done": true}, {"id": "ds2", "text": "色彩语义变量", "done": true}, {"id": "ds3", "text": "暗黑模式适配", "done": true}, {"id": "ds4", "text": "弹窗与对话框", "done": false}, {"id": "ds5", "text": "表单校验动效", "done": false}, {"id": "ds6", "text": "无障碍对比度复查", "done": false}]}]}, {"id": "doing", "title": "进行中", "color": "#718a82", "cards": [{"id": "c7", "title": "移动端 3D 触控微交互", "desc": "验证 Cover Flow 轮播在 iPhone 和 iPad 上的陀螺仪与流畅手势。", "labels": ["设计"], "date": "明天", "complete": false, "checklistItems": [{"id": "m1", "text": "手势滑动阻尼计算", "done": true}, {"id": "m2", "text": "3D 倒影渐变衰减", "done": true}, {"id": "m3", "text": "双击翻面交互测试", "done": false}]}]}, {"id": "done", "title": "已完成", "color": "#70866c", "cards": [{"id": "c9", "title": "竞品体验审计", "desc": "主要发现与改进契机已整理进设计白皮书。", "labels": ["研究"], "date": "9月12日", "complete": true, "checklistItems": []}]}]}];
+
+      let boards = [];
+      let activeBoardId = "board-peck-learning-map-v1";
+      let viewMode = "coverflow";
+      let themeMode = "dark";
+      let selectedColFilter = "all";
+      let searchTerm = "";
+      
+      let cfActiveIndex = 0;
+      let cfCardFlipped = {};
+      let isDragging = false;
+      let dragStartX = null;
+      let dragStartY = null;
+      let dragStartTime = 0;
+      let dragDelta = 0;
+      let isPointerLocked = false;
+
+      let wheelAccum = 0;
+      let wheelLocked = false;
+      let wheelTimer = null;
+
+      let currentEditingCardId = null;
+      let currentEditingColId = null;
+      let editingChecklist = [];
+      let editingCardColor = "";
+
+      let deviceOrientation = "portrait";
+      let deviceScale = 1.0;
+      let isFullscreen = false;
+      let dynamicIslandExpanded = false;
+
+      const GLASS_GEM_COLORS = [
+        { hex: "", name: "晶透白 (Default)" },
+        { hex: "#3b82f6", name: "宝石蓝" },
+        { hex: "#10b981", name: "翡翠绿" },
+        { hex: "#8b5cf6", name: "罗兰紫" },
+        { hex: "#fea362", name: "琥珀橙" },
+        { hex: "#f43f5e", name: "珊瑚红" },
+        { hex: "#06b6d4", name: "湖水青" },
+        { hex: "#eab308", name: "晨曦金" },
+        { hex: "#64748b", name: "石墨灰" }
+      ];
+
+      function initApp() {
+        initFirebaseEngine();
+        try {
+          const saved = localStorage.getItem(STORAGE_BOARDS);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              boards = parsed;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to load saved boards:", e);
+        }
+        if (!boards || boards.length === 0) {
+          boards = JSON.parse(JSON.stringify(DEFAULT_BOARDS));
+        }
+
+        const savedId = localStorage.getItem(STORAGE_ACTIVE_ID);
+        if (savedId && boards.some(b => b.id === savedId)) {
+          activeBoardId = savedId;
+        } else {
+          activeBoardId = boards[0].id;
+        }
+
+        const savedView = localStorage.getItem(STORAGE_VIEW_MODE);
+        if (savedView === "board" || savedView === "coverflow") {
+          viewMode = savedView;
+        }
+
+        const savedTheme = localStorage.getItem(STORAGE_THEME);
+        if (savedTheme === "white" || savedTheme === "dark") {
+          themeMode = savedTheme;
+        }
+
+        if (window.innerWidth <= 852 && (window.orientation !== undefined || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent))) {
+          toggleFullscreenWebview(true);
+        }
+
+        applyTheme();
+        updateClock();
+        setInterval(updateClock, 1000);
+        renderHeader();
+        renderMainView();
+
+        window.addEventListener("resize", handleWindowResize);
+        window.addEventListener("orientationchange", () => {
+          setTimeout(handleWindowResize, 200);
+        });
+
+        window.addEventListener("keydown", handleGlobalKeyDown);
+
+        if (window.DeviceOrientationEvent) {
+          window.addEventListener("deviceorientation", handleDeviceTilt, { passive: true });
+        }
+      }
+
+      function handleWindowResize() {
+        if (isFullscreen) {
+          const isLand = window.innerWidth > window.innerHeight;
+          setDeviceOrientation(isLand ? "landscape" : "portrait", false);
+        }
+      }
+
+      function handleGlobalKeyDown(e) {
+        if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+        if (viewMode === "coverflow") {
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            stepCoverFlow(-1);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            stepCoverFlow(1);
+          } else if (e.key === " ") {
+            e.preventDefault();
+            const cards = getFilteredCards();
+            if (cards[cfActiveIndex]) {
+              flipCard(cards[cfActiveIndex].id);
+            }
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            const cards = getFilteredCards();
+            if (cfActiveIndex === cards.length) {
+              openCardModal(null, null);
+            } else if (cards[cfActiveIndex]) {
+              openCardModal(cards[cfActiveIndex].columnId, cards[cfActiveIndex].id);
+            }
+          }
+        }
+      }
+
+      function handleDeviceTilt(e) {
+        if (viewMode !== "coverflow") return;
+        const stage = document.getElementById("cf-stage-3d");
+        if (!stage) return;
+        const gamma = e.gamma || 0;
+        const beta = e.beta || 0;
+        const tiltX = Math.max(-10, Math.min(10, gamma * 0.22));
+        const tiltY = Math.max(-10, Math.min(10, (beta - 45) * 0.18));
+        stage.style.transform = `rotateY(${tiltX.toFixed(2)}deg) rotateX(${(-tiltY).toFixed(2)}deg)`;
+      }
+
+      function saveBoardsLocally() {
+        try {
+          localStorage.setItem(STORAGE_BOARDS, JSON.stringify(boards));
+        } catch (e) {
+          console.error("Save boards error:", e);
+        }
+      }
+
+      function saveBoards() {
+        saveBoardsLocally();
+        if (!isRemoteSyncUpdate && firebaseUser) {
+          pushToCloudFirestore();
+        }
+      }
+
+      function getActiveBoard() {
+        return boards.find(b => b.id === activeBoardId) || boards[0];
+      }
+
+      function applyTheme() {
+        const root = document.getElementById("app-root");
+        root.className = `app-root theme-${themeMode}`;
+        document.getElementById("theme-icon").textContent = themeMode === "dark" ? "☀️" : "🌙";
+        localStorage.setItem(STORAGE_THEME, themeMode);
+      }
+
+      function toggleTheme() {
+        themeMode = themeMode === "dark" ? "white" : "dark";
+        applyTheme();
+        renderMainView();
+      }
+
+      function setDeviceOrientation(orient, manualClick = true) {
+        deviceOrientation = orient;
+        const frame = document.getElementById("iphone-frame");
+        const btnPortrait = document.getElementById("btn-mode-portrait");
+        const btnLandscape = document.getElementById("btn-mode-landscape");
+
+        if (orient === "portrait") {
+          frame.classList.remove("landscape");
+          frame.classList.add("portrait");
+          btnPortrait.classList.add("active");
+          btnLandscape.classList.remove("active");
+        } else {
+          frame.classList.remove("portrait");
+          frame.classList.add("landscape");
+          btnLandscape.classList.add("active");
+          btnPortrait.classList.remove("active");
+        }
+
+        renderHeader();
+        renderMainView();
+      }
+
+      function setDeviceScale(scale) {
+        deviceScale = scale;
+        const stage = document.getElementById("iphone-stage");
+        const btnFit = document.getElementById("btn-zoom-fit");
+        const btn100 = document.getElementById("btn-zoom-100");
+        const btn85 = document.getElementById("btn-zoom-85");
+
+        btnFit.classList.remove("active");
+        btn100.classList.remove("active");
+        btn85.classList.remove("active");
+
+        if (scale === "fit") {
+          btnFit.classList.add("active");
+          const availH = window.innerHeight - 80;
+          const targetH = deviceOrientation === "portrait" ? 874 : 415;
+          const ratio = Math.min(1.0, availH / targetH);
+          stage.style.transform = `scale(${ratio.toFixed(2)})`;
+        } else {
+          if (scale === 1.0) btn100.classList.add("active");
+          if (scale === 0.85) btn85.classList.add("active");
+          stage.style.transform = `scale(${scale})`;
+        }
+      }
+
+      function setTitaniumColor(colorVar, el) {
+        document.documentElement.style.setProperty("--ti-frame-color", colorVar);
+        
+        let grad = 'var(--ti-natural-grad)';
+        if (colorVar.includes('black')) grad = 'var(--ti-black-grad)';
+        else if (colorVar.includes('white')) grad = 'var(--ti-white-grad)';
+        else if (colorVar.includes('blue')) grad = 'var(--ti-blue-grad)';
+        
+        document.documentElement.style.setProperty("--ti-active-grad", grad);
+        document.querySelectorAll(".ti-color-btn").forEach(b => b.classList.remove("active"));
+        if (el) el.classList.add("active");
+        if (navigator.vibrate) navigator.vibrate(10);
+      }
+
+      function toggleFullscreenWebview(forceFull = null) {
+        isFullscreen = forceFull !== null ? forceFull : !isFullscreen;
+        if (isFullscreen) {
+          document.body.classList.add("fullscreen-mode");
+          const isLand = window.innerWidth > window.innerHeight;
+          setDeviceOrientation(isLand ? "landscape" : "portrait", false);
+        } else {
+          document.body.classList.remove("fullscreen-mode");
+          setDeviceScale(deviceScale);
+        }
+        renderMainView();
+      }
+
+      function updateClock() {
+        const now = new Date();
+        const h = now.getHours();
+        const m = String(now.getMinutes()).padStart(2, "0");
+        const clockEl = document.getElementById("ios-clock");
+        if (clockEl) clockEl.textContent = `${h}:${m}`;
+      }
+
+      function toggleDynamicIsland(e) {
+        e.stopPropagation();
+        const island = document.getElementById("dynamic-island");
+        dynamicIslandExpanded = !dynamicIslandExpanded;
+        if (dynamicIslandExpanded) {
+          island.classList.add("expanded");
+          syncActiveCardToIsland();
+          if (navigator.vibrate) navigator.vibrate(10);
+        } else {
+          island.classList.remove("expanded");
+        }
+      }
+
+      
+      // Focus Pomodoro Timer inside Dynamic Island
+      let timerSeconds = 25 * 60;
+      let isTimerRunning = false;
+      let timerInterval = null;
+
+      function toggleFocusTimer() {
+        isTimerRunning = !isTimerRunning;
+        const btn = document.getElementById("island-timer-btn");
+        if (isTimerRunning) {
+          if (btn) btn.textContent = "⏸";
+          timerInterval = setInterval(() => {
+            if (timerSeconds > 0) {
+              timerSeconds--;
+              updateTimerDisplay();
+            } else {
+              clearInterval(timerInterval);
+              isTimerRunning = false;
+              if (btn) btn.textContent = "▶";
+              alert("🎉 恭喜完成 25 分钟专注周期！");
+            }
+          }, 1000);
+        } else {
+          clearInterval(timerInterval);
+          if (btn) btn.textContent = "▶";
+        }
+        if (navigator.vibrate) navigator.vibrate(12);
+      }
+
+      function updateTimerDisplay() {
+        const m = String(Math.floor(timerSeconds / 60)).padStart(2, "0");
+        const s = String(timerSeconds % 60).padStart(2, "0");
+        const el = document.getElementById("island-timer-text");
+        if (el) el.textContent = `${m}:${s}`;
+      }
+
+      function updateAmbientGroundGlow() {
+        const cards = getFilteredCards();
+        const activeCard = cards[cfActiveIndex];
+        if (activeCard) {
+          const color = activeCard.color || activeCard.columnColor || '#30d158';
+          document.documentElement.style.setProperty('--active-card-glow', `${color}40`);
+        }
+      }
+
+      function syncActiveCardToIsland() {
+        updateAmbientGroundGlow();
+        const cards = getFilteredCards();
+        const card = cards[cfActiveIndex];
+        const titleEl = document.getElementById("island-active-task-title");
+        const colEl = document.getElementById("island-active-task-col");
+        if (card && titleEl && colEl) {
+          titleEl.textContent = card.title;
+          colEl.textContent = `${card.columnTitle} · 3D Cover Flow`;
+        }
+      }
+
+      function setViewMode(mode) {
+        viewMode = mode;
+        localStorage.setItem(STORAGE_VIEW_MODE, mode);
+        document.getElementById("btn-seg-cf").classList.toggle("active", mode === "coverflow");
+        document.getElementById("btn-seg-kb").classList.toggle("active", mode === "board");
+        renderMainView();
+      }
+
+      function getFilteredCards() {
+        const b = getActiveBoard();
+        const list = [];
+        (b.columns || []).forEach(col => {
+          if (selectedColFilter === "all" || selectedColFilter === col.id) {
+            (col.cards || []).forEach(card => {
+              if (!searchTerm || `${card.title} ${card.desc || ""} ${(card.labels || []).join(" ")}`.toLowerCase().includes(searchTerm.toLowerCase())) {
+                list.push({
+                  ...card,
+                  columnId: col.id,
+                  columnTitle: col.title,
+                  columnColor: col.color || "#30d158"
+                });
+              }
+            });
+          }
+        });
+        return list;
+      }
+
+      function renderHeader() {
+        const b = getActiveBoard();
+        document.getElementById("header-board-title").textContent = b.title;
+
+        const filterDot = document.getElementById("filter-dot");
+        const filterLabel = document.getElementById("filter-label");
+        if (selectedColFilter === "all") {
+          filterDot.style.background = "#30d158";
+          filterLabel.textContent = "全部列表";
+        } else {
+          const col = (b.columns || []).find(c => c.id === selectedColFilter);
+          if (col) {
+            filterDot.style.background = col.color || "#30d158";
+            filterLabel.textContent = col.title;
+          } else {
+            selectedColFilter = "all";
+            filterLabel.textContent = "全部列表";
+          }
+        }
+
+        document.getElementById("btn-seg-cf").classList.toggle("active", viewMode === "coverflow");
+        document.getElementById("btn-seg-kb").classList.toggle("active", viewMode === "board");
+      }
+
+      function renderMainView() {
+        renderHeader();
+        const container = document.getElementById("view-viewport");
+        if (viewMode === "coverflow") {
+          renderCoverFlow(container);
+        } else {
+          renderKanban(container);
+        }
+        syncActiveCardToIsland();
+      }
+
+      // =========================================================================
+      // 3D COVER FLOW ENGINE (MINIMALIST WEB 4.0 PURITY)
+      // =========================================================================
+      function renderCoverFlow(container) {
+        const cards = getFilteredCards();
+        const total = cards.length;
+        const totalWithGhost = total + 1;
+        
+        if (cfActiveIndex >= totalWithGhost) {
+          cfActiveIndex = Math.max(0, totalWithGhost - 1);
+        }
+
+        const isLand = deviceOrientation === "landscape";
+
+        let html = `
+          <div class="cf-stage-container" id="cf-stage-box"
+               onpointerdown="handleStagePointerDown(event)"
+               onpointermove="handleStagePointerMove(event)"
+               onpointerup="handleStagePointerUp(event)"
+               onpointercancel="handleStagePointerUp(event)"
+               onclick="handleStageClick(event)">
+            <div class="cf-stage" id="cf-stage-3d">
+              <div class="cf-ground-sheen"></div>
+        `;
+
+        cards.forEach((card, idx) => {
+          const isFlipped = !!cfCardFlipped[card.id];
+          const cardColor = card.color || (card.background && card.background !== "#fbfaf7" ? card.background : "");
+          let customBgStyle = "";
+          if (cardColor) {
+            customBgStyle = `background: linear-gradient(135deg, ${cardColor}42 0%, ${cardColor}18 50%, rgba(14,22,33,0.7) 100%); border-color: ${cardColor}66; border-top-color: ${cardColor}dd; box-shadow: 0 16px 36px -8px rgba(0,0,0,0.45), 0 0 28px -4px ${cardColor}38, inset 0 1px 1.5px rgba(255,255,255,0.4);`;
+          }
+
+          const chkTotal = (card.checklistItems || []).length;
+          const chkDone = (card.checklistItems || []).filter(c => c.done).length;
+          const chkPct = chkTotal > 0 ? Math.round(chkDone / chkTotal * 100) : 0;
+
+          html += `
+            <div class="cf-card-flipper" id="cf-card-${idx}" data-card-idx="${idx}" data-card-id="${card.id}">
+              
+              <!-- FRONT FACE: APPLE-GRADE CRYSTALLINE SLAB ARCHITECTURE -->
+              <div class="cf-face cf-front ${isFlipped ? 'flipped' : ''}" style="${customBgStyle}">
+                <div class="liquid-specular-edge"></div>
+                <div class="liquid-caustic"></div>
+                <div class="glass-fresnel-glow" style="background: radial-gradient(ellipse at 50% 12%, ${cardColor ? cardColor + '38' : 'rgba(255,255,255,0.18)'} 0%, transparent 68%);"></div>
+
+                <!-- Top Row: Column Badge & Checklist Indicator -->
+                <div class="cf-front-badge-row">
+                  <div class="col-badge-pill" style="border-color:${card.columnColor}40;">
+                    <span style="width:6px; height:6px; border-radius:50%; background:${card.columnColor}; box-shadow:0 0 6px ${card.columnColor};"></span>
+                    <span>${card.columnTitle}</span>
+                  </div>
+                  ${chkTotal > 0 ? `
+                    <div class="cf-chk-badge">
+                      <span>☑️</span>
+                      <span style="font-family:var(--font-mono);">${chkDone}/${chkTotal}</span>
+                    </div>
+                  ` : ''}
+                </div>
+
+                <!-- Center Hero Title -->
+                <div class="cf-front-center">
+                  <h3 class="cf-front-title ${card.complete ? 'text-decoration:line-through; opacity:0.45;' : ''}">
+                    ${card.title}
+                  </h3>
+                </div>
+
+                <!-- Bottom Footer Row: Date & Flip Prompt -->
+                <div class="cf-front-foot">
+                  <span class="cf-date-pill">${card.date ? '📅 ' + card.date : '✨ 3D Focus'}</span>
+                  <span class="cf-flip-hint" onclick="event.stopPropagation(); flipCard('${card.id}')">翻转详情 ↷</span>
+                </div>
+              </div>
+
+              <!-- BACK FACE: CLEAN INTERACTIVE SPEC (EXACTLY LIKE WEB 4.0) -->
+              <div class="cf-face cf-back ${isFlipped ? 'flipped' : ''}" style="${customBgStyle}">
+                <div class="liquid-specular-edge"></div>
+                <div class="liquid-caustic"></div>
+
+                ${isLand ? `
+                  <!-- LANDSCAPE SPLIT 2-COL BACK -->
+                  <div class="cf-back-split">
+                    <div style="display:flex; flex-direction:column; justify-content:space-between; min-width:0;">
+                      <div>
+                        <div class="cf-back-top-row" style="padding-bottom:4px; margin-bottom:4px;">
+                          <div class="col-badge-pill">
+                            <span style="width:6px; height:6px; border-radius:50%; background:${card.columnColor};"></span>
+                            <span>${card.columnTitle}</span>
+                          </div>
+                        </div>
+                        <div class="cf-back-title" style="margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; ${card.complete ? 'text-decoration:line-through; opacity:0.5;' : ''}">
+                          ${card.title}
+                        </div>
+                        ${card.desc ? `<div class="card-desc-box" style="font-size:11px; max-height:68px; overflow-y:auto;">${card.desc}</div>` : `<div style="font-size:10px; opacity:0.4; font-style:italic;">暂无详情描述</div>`}
+                      </div>
+
+                      <div class="cf-back-bottom-row" style="padding-top:4px; margin-top:2px;">
+                        <button type="button" class="btn-ai-pill" onclick="event.stopPropagation(); launchAIAssistant('${card.id}')">
+                          ✨ AI 助教
+                        </button>
+                        <button type="button" class="btn-edit-circle" onclick="event.stopPropagation(); openCardModal('${card.columnId}', '${card.id}')">
+                          !
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; justify-content:space-between; min-width:0; border-left:1px solid rgba(255,255,255,0.08); padding-left:10px;">
+                      <div class="cf-back-scroll-area">
+                        ${chkTotal > 0 ? `
+                          <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:700;">
+                            <span>清单 (${chkDone}/${chkTotal})</span>
+                            <span>${chkPct}%</span>
+                          </div>
+                          <div class="cf-progress-line">
+                            <div class="cf-progress-fill" style="width:${chkPct}%;"></div>
+                          </div>
+                          <div style="display:flex; flex-direction:column; gap:3px;">
+                            ${(card.checklistItems || []).slice(0, 4).map(item => `
+                              <div class="cf-chk-item ${item.done ? 'done' : ''}" onclick="event.stopPropagation(); toggleChecklistItem('${card.columnId}', '${card.id}', '${item.id}')">
+                                <span class="chk-circle ${item.done ? 'checked' : ''}"></span>
+                                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.text}</span>
+                              </div>
+                            `).join('')}
+                          </div>
+                        ` : `
+                          <div style="font-size:11px; opacity:0.4; padding:16px 0; text-align:center;">无检查清单</div>
+                        `}
+                      </div>
+
+                      <div style="font-size:10px; opacity:0.6; display:flex; justify-content:space-between; align-items:center;">
+                        <span>${card.date ? '📅 ' + card.date : ''}</span>
+                        <span onclick="event.stopPropagation(); flipCard('${card.id}')" style="cursor:pointer; color:#30d158; font-weight:700;">翻回 ↩</span>
+                      </div>
+                    </div>
+                  </div>
+                ` : `
+                  <!-- PORTRAIT BACKFACE -->
+                  <div style="display:flex; flex-direction:column; height:100%; justify-content:space-between;">
+                    <div>
+                      <div class="cf-back-top-row">
+                        <div style="display:flex; align-items:center; gap:6px; overflow-x:auto; no-scrollbar;">
+                          <div class="col-badge-pill">
+                            <span style="width:6px; height:6px; border-radius:50%; background:${card.columnColor};"></span>
+                            <span>${card.columnTitle}</span>
+                          </div>
+                          ${(card.labels || []).map(lbl => `
+                            <span style="font-size:10px; padding:2px 7px; border-radius:9999px; background:rgba(48,209,88,0.15); color:#30d158; border:1px solid rgba(48,209,88,0.25);">
+                              ${lbl}
+                            </span>
+                          `).join('')}
+                        </div>
+                        <span onclick="event.stopPropagation(); flipCard('${card.id}')" style="cursor:pointer; font-size:11px; color:#30d158; font-weight:700;">
+                          翻回 ↩
+                        </span>
+                      </div>
+
+                      <div class="cf-back-title-row">
+                        <span class="chk-circle ${card.complete ? 'checked' : ''}" style="margin-top:2px;" onclick="event.stopPropagation(); toggleCardComplete('${card.columnId}', '${card.id}')"></span>
+                        <h4 class="cf-back-title ${card.complete ? 'line-through opacity-50' : ''}">${card.title}</h4>
+                      </div>
+                    </div>
+
+                    <div class="cf-back-scroll-area">
+                      ${card.desc ? `<div class="card-desc-box">${card.desc}</div>` : ''}
+
+                      ${chkTotal > 0 ? `
+                        <div>
+                          <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; opacity:0.8;">
+                            <span>检查清单 (${chkDone}/${chkTotal})</span>
+                            <span style="font-family:var(--font-mono);">${chkPct}%</span>
+                          </div>
+                          <div class="cf-progress-line">
+                            <div class="cf-progress-fill" style="width:${chkPct}%;"></div>
+                          </div>
+                          <div style="display:flex; flex-direction:column; gap:4px;">
+                            ${(card.checklistItems || []).map(item => `
+                              <div class="cf-chk-item ${item.done ? 'done' : ''}" onclick="event.stopPropagation(); toggleChecklistItem('${card.columnId}', '${card.id}', '${item.id}')">
+                                <span class="chk-circle ${item.done ? 'checked' : ''}"></span>
+                                <span style="flex:1;">${item.text}</span>
+                              </div>
+                            `).join('')}
+                          </div>
+                        </div>
+                      ` : ''}
+
+                      ${card.date ? `<div style="font-size:11px; opacity:0.7;">📅 截止时间: ${card.date}</div>` : ''}
+                    </div>
+
+                    <div class="cf-back-bottom-row">
+                      <button type="button" class="btn-ai-pill" onclick="event.stopPropagation(); launchAIAssistant('${card.id}')">
+                        ✨ AI 助教
+                      </button>
+                      <button type="button" class="btn-edit-circle" onclick="event.stopPropagation(); openCardModal('${card.columnId}', '${card.id}')" title="编辑此卡片">
+                        !
+                      </button>
+                    </div>
+                  </div>
+                `}
+              </div>
+
+            </div>
+          `;
+        });
+
+        // GHOST CARD: "+ 新建卡片"
+        const ghostIdx = total;
+        html += `
+          <div class="cf-card-flipper" id="cf-card-${ghostIdx}" data-card-idx="${ghostIdx}" data-is-ghost="true">
+            <div class="cf-face" style="border:2px dashed rgba(255,255,255,0.25); justify-content:center; align-items:center; text-align:center; gap:12px;">
+              <div class="liquid-specular-edge"></div>
+              <div class="liquid-caustic"></div>
+              
+              <div style="width:56px; height:56px; border-radius:50%; background:rgba(48,209,88,0.2); color:#30d158; border:1px solid rgba(48,209,88,0.35); display:grid; place-items:center; font-size:26px; font-weight:900; box-shadow:0 4px 16px rgba(48,209,88,0.3);">
+                +
+              </div>
+              <div>
+                <div style="font-size:17px; font-weight:800; margin-bottom:2px;">新建卡片</div>
+                <div style="font-size:11px; opacity:0.6;">点击直接创建新内容</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        html += `
+            </div>
+
+            <!-- Bottom Navigation -->
+            <div class="cf-bottom-nav">
+              <input type="range" min="0" max="${totalWithGhost - 1}" value="${cfActiveIndex}" class="cf-slider" 
+                     id="cf-range-slider" oninput="handleSliderInput(this.value)" />
+              <div class="cf-nav-meta">
+                <span onclick="stepCoverFlow(-1)" style="cursor:pointer; padding:2px 6px;">◀ 上一张</span>
+                <span id="cf-counter-text">${cfActiveIndex < total ? (cfActiveIndex + 1) + ' / ' + total : '新建卡片'}</span>
+                <span onclick="stepCoverFlow(1)" style="cursor:pointer; padding:2px 6px;">下一张 ▶</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        container.innerHTML = html;
+        update3DCardTransforms(0, false);
+        bindWheelControl();
+      }
+
+      function update3DCardTransforms(dragOffset = 0, isDraggingNow = false) {
+        const cards = getFilteredCards();
+        const total = cards.length;
+        const totalWithGhost = total + 1;
+        const isLand = deviceOrientation === "landscape";
+        
+        const dragFactor = isLand ? 200 : 220;
+        const n = isDraggingNow ? dragOffset / dragFactor : 0;
+
+        for (let idx = 0; idx < totalWithGhost; idx++) {
+          const el = document.getElementById(`cf-card-${idx}`);
+          if (!el) continue;
+
+          const r = idx - cfActiveIndex - n;
+          const i = idx - cfActiveIndex;
+          const p = Math.abs(r);
+
+          if (p > 14) {
+            el.style.display = "none";
+            continue;
+          } else {
+            el.style.display = "block";
+          }
+
+          let tx = 0, tz = 0, ry = 0, scale = 1, opacity = 1;
+          let zIndex = 50 - Math.round(Math.abs(i));
+
+          if (isLand) {
+            if (p < 0.05) {
+              tx = 0; tz = 65; ry = 0; scale = 1.02; opacity = 1; zIndex = 70;
+            } else if (r < 0) {
+              tx = -190 + r * 80;
+              tz = -Math.min(240, p * 55);
+              ry = 52;
+              scale = Math.max(0.72, 1 - p * 0.065);
+              opacity = Math.max(0.32, 1 - p * 0.15);
+            } else {
+              tx = 190 + r * 80;
+              tz = -Math.min(240, p * 55);
+              ry = -52;
+              scale = Math.max(0.72, 1 - p * 0.065);
+              opacity = Math.max(0.32, 1 - p * 0.15);
+            }
+          } else {
+            if (p < 0.05) {
+              tx = 0; tz = 65; ry = 0; scale = 1.02; opacity = 1; zIndex = 70;
+            } else if (r < 0) {
+              tx = -170 + r * 75;
+              tz = -Math.min(220, p * 50);
+              ry = 46;
+              scale = Math.max(0.75, 1 - p * 0.06);
+              opacity = Math.max(0.35, 1 - p * 0.14);
+            } else {
+              tx = 170 + r * 75;
+              tz = -Math.min(220, p * 50);
+              ry = -46;
+              scale = Math.max(0.75, 1 - p * 0.06);
+              opacity = Math.max(0.35, 1 - p * 0.14);
+            }
+          }
+
+          el.style.transform = `translateX(${tx.toFixed(1)}px) translateZ(${tz.toFixed(1)}px) rotateY(${ry.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
+          el.style.opacity = opacity.toFixed(2);
+          el.style.zIndex = zIndex;
+
+          if (isDraggingNow) {
+            el.style.transition = "none";
+          } else {
+            el.style.transition = "transform 0.64s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.45s cubic-bezier(0.2, 0.9, 0.3, 1)";
+          }
+        }
+
+        const slider = document.getElementById("cf-range-slider");
+        if (slider) slider.value = cfActiveIndex;
+
+        const counter = document.getElementById("cf-counter-text");
+        if (counter) {
+          counter.textContent = cfActiveIndex < total ? `${cfActiveIndex + 1} / ${total}` : "新建卡片";
+        }
+      }
+
+      function handleStagePointerDown(e) {
+        if (e.target.closest("button, input, select, textarea, .cf-chk-item, a")) return;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragStartTime = Date.now();
+        dragDelta = 0;
+        isDragging = false;
+        isPointerLocked = true;
+      }
+
+      function handleStagePointerMove(e) {
+        if (!isPointerLocked || dragStartX === null) return;
+        const dx = e.clientX - dragStartX;
+        const dy = dragStartY === null ? 0 : e.clientY - dragStartY;
+
+        if (!isDragging && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+          isDragging = true;
+          cfCardFlipped = {};
+          updateFaceFlips();
+        }
+
+        if (isDragging) {
+          dragDelta = dx;
+          requestAnimationFrame(() => update3DCardTransforms(dragDelta, true));
+        }
+      }
+
+      function handleStagePointerUp(e) {
+        if (!isPointerLocked) return;
+        isPointerLocked = false;
+
+        if (isDragging) {
+          const elapsed = Date.now() - dragStartTime;
+          const isFlick = elapsed < 250 && Math.abs(dragDelta) > 20;
+
+          if (dragDelta < -40 || (isFlick && dragDelta < 0)) {
+            stepCoverFlow(1);
+          } else if (dragDelta > 40 || (isFlick && dragDelta > 0)) {
+            stepCoverFlow(-1);
+          } else {
+            update3DCardTransforms(0, false);
+          }
+          isDragging = false;
+          dragDelta = 0;
+        }
+        dragStartX = null;
+        dragStartY = null;
+      }
+
+      function handleStageClick(e) {
+        if (Math.abs(dragDelta) > 8) return;
+        if (e.target.closest("button, input, select, textarea, .cf-chk-item, a")) return;
+
+        const cardFlipper = e.target.closest(".cf-card-flipper");
+        if (cardFlipper) {
+          const idx = parseInt(cardFlipper.dataset.cardIdx, 10);
+          if (idx === cfActiveIndex) {
+            if (cardFlipper.dataset.isGhost === "true") {
+              openCardModal(null, null);
+            } else {
+              flipCard(cardFlipper.dataset.cardId);
+            }
+          } else {
+            cfActiveIndex = idx;
+            cfCardFlipped = {};
+            if (navigator.vibrate) navigator.vibrate(10);
+            updateFaceFlips();
+            update3DCardTransforms(0, false);
+            syncActiveCardToIsland();
+          }
+          return;
+        }
+
+        const stageBox = document.getElementById("cf-stage-box");
+        if (stageBox) {
+          const rect = stageBox.getBoundingClientRect();
+          const relX = e.clientX - (rect.left + rect.width / 2);
+          if (relX < -80) {
+            stepCoverFlow(-1);
+          } else if (relX > 80) {
+            stepCoverFlow(1);
+          }
+        }
+      }
+
+      function stepCoverFlow(delta) {
+        const cards = getFilteredCards();
+        const maxIdx = cards.length;
+        const next = Math.max(0, Math.min(maxIdx, cfActiveIndex + delta));
+        if (next !== cfActiveIndex) {
+          cfActiveIndex = next;
+          cfCardFlipped = {};
+          if (navigator.vibrate) navigator.vibrate(8);
+          updateFaceFlips();
+          update3DCardTransforms(0, false);
+          syncActiveCardToIsland();
+        }
+      }
+
+      function handleSliderInput(val) {
+        cfActiveIndex = parseInt(val, 10);
+        cfCardFlipped = {};
+        updateFaceFlips();
+        update3DCardTransforms(0, false);
+        syncActiveCardToIsland();
+      }
+
+      function flipCard(cardId) {
+        cfCardFlipped[cardId] = !cfCardFlipped[cardId];
+        if (navigator.vibrate) navigator.vibrate(12);
+        updateFaceFlips();
+      }
+
+      function updateFaceFlips() {
+        const cards = getFilteredCards();
+        cards.forEach((card, idx) => {
+          const el = document.getElementById(`cf-card-${idx}`);
+          if (!el) return;
+          const front = el.querySelector(".cf-front");
+          const back = el.querySelector(".cf-back");
+          const flipped = !!cfCardFlipped[card.id];
+          if (front) front.classList.toggle("flipped", flipped);
+          if (back) back.classList.toggle("flipped", flipped);
+        });
+      }
+
+      function bindWheelControl() {
+        const stageBox = document.getElementById("cf-stage-box");
+        if (!stageBox) return;
+
+        stageBox.onwheel = e => {
+          const isScrollable = e.target.closest(".cf-back-scroll-area");
+          if (isScrollable && Math.abs(e.deltaY) > Math.abs(e.deltaX)) return;
+
+          e.preventDefault();
+          const delta = e.shiftKey ? e.deltaY : e.deltaX !== 0 ? e.deltaX : e.deltaY;
+          wheelAccum += delta;
+
+          if (wheelLocked) return;
+
+          if (wheelAccum > 30) {
+            stepCoverFlow(1);
+            wheelAccum = 0;
+            wheelLocked = true;
+            clearTimeout(wheelTimer);
+            wheelTimer = setTimeout(() => { wheelLocked = false; }, 220);
+          } else if (wheelAccum < -30) {
+            stepCoverFlow(-1);
+            wheelAccum = 0;
+            wheelLocked = true;
+            clearTimeout(wheelTimer);
+            wheelTimer = setTimeout(() => { wheelLocked = false; }, 220);
+          }
+        };
+      }
+
+      // --- KANBAN BOARD ---
+      function renderKanban(container) {
+        const b = getActiveBoard();
+        const cols = b.columns || [];
+
+        let tabsHtml = `
+          <div class="kb-col-tabs">
+            <button class="kb-tab-chip ${selectedColFilter === 'all' ? 'active' : ''}" onclick="selectColFilter('all')">
+              全部 (${cols.reduce((acc, c) => acc + (c.cards || []).length, 0)})
+            </button>
+            ${cols.map(c => `
+              <button class="kb-tab-chip ${selectedColFilter === c.id ? 'active' : ''}" onclick="selectColFilter('${c.id}')">
+                <span style="width:6px; height:6px; border-radius:50%; background:${c.color || '#30d158'};"></span>
+                <span>${c.title}</span>
+                <span style="font-size:10px; opacity:0.7;">(${(c.cards || []).length})</span>
+              </button>
+            `).join('')}
+          </div>
+        `;
+
+        let colsToRender = cols;
+        if (selectedColFilter !== "all") {
+          colsToRender = cols.filter(c => c.id === selectedColFilter);
+        }
+
+        let swimlanesHtml = `
+          <div class="kb-swimlanes">
+            ${colsToRender.map(col => {
+              const cards = (col.cards || []).filter(card => 
+                !searchTerm || `${card.title} ${card.desc || ""} ${(card.labels || []).join(" ")}`.toLowerCase().includes(searchTerm.toLowerCase())
+              );
+
+              return `
+                <div class="kb-column" id="col-${col.id}">
+                  <div class="kb-col-header">
+                    <div class="kb-col-title">
+                      <span style="width:8px; height:8px; border-radius:50%; background:${col.color || '#30d158'};"></span>
+                      <span>${col.title}</span>
+                      <span class="kb-badge-count">${cards.length}</span>
+                    </div>
+                    <button type="button" class="icon-btn" style="width:26px; height:26px; font-size:11px;" onclick="openCardModal('${col.id}', null)" title="为此列表添加卡片">
+                      +
+                    </button>
+                  </div>
+
+                  <div class="kb-card-list">
+                    ${cards.map(card => {
+                      const chkTotal = (card.checklistItems || []).length;
+                      const chkDone = (card.checklistItems || []).filter(c => c.done).length;
+
+                      return `
+                        <div class="kb-card ${card.complete ? 'complete' : ''}" onclick="openCardModal('${col.id}', '${card.id}')">
+                          <div class="kb-card-top">
+                            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                              ${(card.labels || []).map(lbl => `
+                                <span style="font-size:9.5px; padding:1.5px 6px; border-radius:4px; background:rgba(48,209,88,0.15); color:#30d158; border:1px solid rgba(48,209,88,0.25);">
+                                  ${lbl}
+                                </span>
+                              `).join('')}
+                            </div>
+                            <span class="chk-circle ${card.complete ? 'checked' : ''}" style="width:16px; height:16px;" 
+                                  onclick="event.stopPropagation(); toggleCardComplete('${col.id}', '${card.id}')"></span>
+                          </div>
+
+                          <div class="kb-card-title">${card.title}</div>
+                          ${card.desc ? `<div class="kb-card-desc">${card.desc}</div>` : ''}
+
+                          <div class="kb-card-bottom">
+                            <span style="color:var(--text-muted); font-size:10.5px;">${card.date ? '📅 ' + card.date : ''}</span>
+                            ${chkTotal > 0 ? `
+                              <span style="background:rgba(255,255,255,0.08); padding:1.5px 6px; border-radius:6px; font-size:10px; font-family:var(--font-mono);">
+                                ☑️ ${chkDone}/${chkTotal}
+                              </span>
+                            ` : ''}
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+
+                    <button type="button" class="btn-secondary" style="margin-top:6px; padding:6px; font-size:11.5px; width:100%;" onclick="openCardModal('${col.id}', null)">
+                      + 添加新卡片
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        container.innerHTML = `
+          <div class="kb-container">
+            ${tabsHtml}
+            ${swimlanesHtml}
+            <button class="floating-ai-btn" onclick="launchAIAssistant(null)">
+              <span>✨ Work with AI 学习助教</span>
+            </button>
+          </div>
+        `;
+      }
+
+      function toggleCardComplete(colId, cardId) {
+        const b = getActiveBoard();
+        const col = (b.columns || []).find(c => c.id === colId);
+        if (!col) return;
+        const card = (col.cards || []).find(c => c.id === cardId);
+        if (!card) return;
+        card.complete = !card.complete;
+        saveBoards();
+        if (navigator.vibrate) navigator.vibrate(10);
+        renderMainView();
+      }
+
+      function toggleChecklistItem(colId, cardId, itemId) {
+        const b = getActiveBoard();
+        const col = (b.columns || []).find(c => c.id === colId);
+        if (!col) return;
+        const card = (col.cards || []).find(c => c.id === cardId);
+        if (!card || !card.checklistItems) return;
+        const item = card.checklistItems.find(i => i.id === itemId);
+        if (item) {
+          item.done = !item.done;
+          saveBoards();
+          if (navigator.vibrate) navigator.vibrate(8);
+          renderMainView();
+        }
+      }
+
+      function openCardModal(colId, cardId) {
+        currentEditingColId = colId;
+        currentEditingCardId = cardId;
+
+        const b = getActiveBoard();
+        const colSelect = document.getElementById("edit-card-column");
+        colSelect.innerHTML = (b.columns || []).map(c => `
+          <option value="${c.id}" ${c.id === colId ? 'selected' : ''}>${c.title}</option>
+        `).join('');
+
+        let card = null;
+        if (cardId) {
+          const col = (b.columns || []).find(c => c.id === colId);
+          if (col) card = (col.cards || []).find(c => c.id === cardId);
+        }
+
+        document.getElementById("card-modal-title").textContent = card ? "编辑卡片" : "新建卡片";
+        document.getElementById("edit-card-title").value = card ? card.title : "";
+        document.getElementById("edit-card-date").value = card && card.date ? card.date : "";
+        document.getElementById("edit-card-desc").value = card && card.desc ? card.desc : "";
+        document.getElementById("btn-delete-card").style.display = card ? "inline-block" : "none";
+
+        editingCardColor = card ? (card.color || (card.background !== "#fbfaf7" ? card.background : "") || "") : "";
+        editingChecklist = card && card.checklistItems ? JSON.parse(JSON.stringify(card.checklistItems)) : [];
+
+        renderColorPicker();
+        renderChecklistBuilder();
+
+        document.getElementById("card-modal").classList.add("open");
+      }
+
+      function renderColorPicker() {
+        const group = document.getElementById("card-color-picker-group");
+        group.innerHTML = GLASS_GEM_COLORS.map(c => `
+          <div class="ti-color-btn ${editingCardColor === c.hex ? 'active' : ''}" 
+               style="background:${c.hex || 'rgba(255,255,255,0.2)'};" 
+               title="${c.name}"
+               onclick="selectEditingCardColor('${c.hex}')">
+          </div>
+        `).join('');
+      }
+
+      function selectEditingCardColor(hex) {
+        editingCardColor = hex;
+        renderColorPicker();
+      }
+
+      function renderChecklistBuilder() {
+        const container = document.getElementById("edit-checklist-items");
+        container.innerHTML = editingChecklist.map((item, idx) => `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; background:rgba(255,255,255,0.06); padding:6px 10px; border-radius:10px;">
+            <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+              <span class="chk-circle ${item.done ? 'checked' : ''}" onclick="toggleEditingChecklistItem(${idx})"></span>
+              <span style="font-size:12.5px; ${item.done ? 'text-decoration:line-through; opacity:0.5;' : ''}">${item.text}</span>
+            </div>
+            <button type="button" onclick="removeEditingChecklistItem(${idx})" style="border:0; background:transparent; color:#f87171; cursor:pointer; font-size:12px;">✕</button>
+          </div>
+        `).join('');
+      }
+
+      function toggleEditingChecklistItem(idx) {
+        if (editingChecklist[idx]) {
+          editingChecklist[idx].done = !editingChecklist[idx].done;
+          renderChecklistBuilder();
+        }
+      }
+
+      function removeEditingChecklistItem(idx) {
+        editingChecklist.splice(idx, 1);
+        renderChecklistBuilder();
+      }
+
+      function addChecklistItem() {
+        const input = document.getElementById("new-checklist-input");
+        const val = input.value.trim();
+        if (!val) return;
+        editingChecklist.push({
+          id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          text: val,
+          done: false
+        });
+        input.value = "";
+        renderChecklistBuilder();
+      }
+
+      function aiBreakdownChecklist() {
+        const title = document.getElementById("edit-card-title").value.trim();
+        if (!title) {
+          alert("请先填写卡片标题，便于 AI 针对性拆解！");
+          return;
+        }
+        const presets = [
+          `通读与标记「${title}」的核心概念`,
+          `提炼知识框架与 Anchor Chart 关联图`,
+          `闭卷主动回忆与快速检测`,
+          `分析薄弱错因并进行 3 组针对性变式训练`
+        ];
+        presets.forEach((t, i) => {
+          editingChecklist.push({
+            id: `ai-item-${Date.now()}-${i}`,
+            text: t,
+            done: false
+          });
+        });
+        renderChecklistBuilder();
+      }
+
+      function saveCardModal() {
+        const title = document.getElementById("edit-card-title").value.trim();
+        if (!title) {
+          alert("卡片标题不能为空！");
+          return;
+        }
+
+        const targetColId = document.getElementById("edit-card-column").value;
+        const date = document.getElementById("edit-card-date").value.trim();
+        const desc = document.getElementById("edit-card-desc").value.trim();
+
+        const b = getActiveBoard();
+        let targetCol = (b.columns || []).find(c => c.id === targetColId);
+        if (!targetCol && b.columns.length > 0) targetCol = b.columns[0];
+
+        if (currentEditingCardId) {
+          let origCol = (b.columns || []).find(c => c.id === currentEditingColId);
+          let card = null;
+          if (origCol) {
+            const cardIdx = (origCol.cards || []).findIndex(c => c.id === currentEditingCardId);
+            if (cardIdx !== -1) {
+              card = origCol.cards[cardIdx];
+              if (currentEditingColId !== targetColId) {
+                origCol.cards.splice(cardIdx, 1);
+                targetCol.cards.push(card);
+              }
+            }
+          }
+          if (card) {
+            card.title = title;
+            card.desc = desc;
+            card.date = date;
+            card.color = editingCardColor;
+            card.checklistItems = editingChecklist;
+          }
+        } else {
+          const newCard = {
+            id: `card-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            title: title,
+            desc: desc,
+            date: date,
+            color: editingCardColor,
+            complete: false,
+            checklistItems: editingChecklist,
+            labels: []
+          };
+          targetCol.cards.push(newCard);
+        }
+
+        saveBoards();
+        closeCardModalDirectly();
+        renderMainView();
+      }
+
+      function deleteCurrentCard() {
+        if (!currentEditingCardId) return;
+        if (!confirm("确定要删除这张卡片吗？")) return;
+        const b = getActiveBoard();
+        const col = (b.columns || []).find(c => c.id === currentEditingColId);
+        if (col) {
+          col.cards = (col.cards || []).filter(c => c.id !== currentEditingCardId);
+          saveBoards();
+        }
+        closeCardModalDirectly();
+        renderMainView();
+      }
+
+      function duplicateCurrentCard() {
+        if (!currentEditingCardId) return;
+        const b = getActiveBoard();
+        const col = (b.columns || []).find(c => c.id === currentEditingColId);
+        if (!col) return;
+        const card = (col.cards || []).find(c => c.id === currentEditingCardId);
+        if (card) {
+          const cloned = JSON.parse(JSON.stringify(card));
+          cloned.id = `card-copy-${Date.now()}`;
+          cloned.title = `${cloned.title} (副本)`;
+          col.cards.push(cloned);
+          saveBoards();
+        }
+        closeCardModalDirectly();
+        renderMainView();
+      }
+
+      function closeCardModal(e) {
+        if (e.target.id === "card-modal") closeCardModalDirectly();
+      }
+      function closeCardModalDirectly() {
+        document.getElementById("card-modal").classList.remove("open");
+      }
+
+      function openBoardSwitcherModal() {
+        const container = document.getElementById("boards-list-container");
+        container.innerHTML = boards.map(b => {
+          const isCurrent = b.id === activeBoardId;
+          const totalCards = (b.columns || []).reduce((acc, c) => acc + (c.cards || []).length, 0);
+
+          return `
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:14px; background:${isCurrent ? 'rgba(48,209,88,0.18)' : 'rgba(255,255,255,0.06)'}; border:1px solid ${isCurrent ? '#30d158' : 'rgba(255,255,255,0.1)'}; cursor:pointer;"
+                 onclick="switchBoard('${b.id}')">
+              <div>
+                <div style="font-size:14px; font-weight:700; color:${isCurrent ? '#30d158' : 'inherit'};">${b.title}</div>
+                <div style="font-size:11px; opacity:0.65;">${(b.columns || []).length} 个列表 · ${totalCards} 张卡片</div>
+              </div>
+              ${isCurrent ? '<span style="color:#30d158; font-weight:900;">✓</span>' : ''}
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById("board-modal").classList.add("open");
+      }
+
+      function switchBoard(id) {
+        activeBoardId = id;
+        selectedColFilter = "all";
+        localStorage.setItem(STORAGE_ACTIVE_ID, id);
+        closeBoardModalDirectly();
+        renderMainView();
+      }
+
+      function createNewBoard() {
+        const input = document.getElementById("new-board-name");
+        const val = input.value.trim();
+        if (!val) return;
+        const newBoard = {
+          id: `board-${Date.now()}`,
+          title: val,
+          columns: [
+            { id: `col-${Date.now()}-1`, title: "待办", color: "#49b07a", cards: [] },
+            { id: `col-${Date.now()}-2`, title: "进行中", color: "#5097f4", cards: [] },
+            { id: `col-${Date.now()}-3`, title: "已完成", color: "#a381f2", cards: [] }
+          ]
+        };
+        boards.push(newBoard);
+        activeBoardId = newBoard.id;
+        selectedColFilter = "all";
+        saveBoards();
+        input.value = "";
+        closeBoardModalDirectly();
+        renderMainView();
+      }
+
+      function exportBoardsBackup() {
+        const blob = new Blob([JSON.stringify(boards, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `focusboard-iphone-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+      }
+
+      function resetDefaultBoards() {
+        if (!confirm("确定要恢复预设的 Peck 学习系统与设计看板吗？")) return;
+        boards = JSON.parse(JSON.stringify(DEFAULT_BOARDS));
+        activeBoardId = boards[0].id;
+        selectedColFilter = "all";
+        saveBoards();
+        closeBoardModalDirectly();
+        renderMainView();
+      }
+
+      function closeBoardModal(e) {
+        if (e.target.id === "board-modal") closeBoardModalDirectly();
+      }
+      function closeBoardModalDirectly() {
+        document.getElementById("board-modal").classList.remove("open");
+      }
+
+      function openBoardSettingsModal() {
+        const b = getActiveBoard();
+        document.getElementById("edit-board-title-input").value = b.title;
+        document.getElementById("board-settings-modal").classList.add("open");
+      }
+
+      function saveBoardSettings() {
+        const val = document.getElementById("edit-board-title-input").value.trim();
+        if (!val) return;
+        const b = getActiveBoard();
+        b.title = val;
+        saveBoards();
+        closeBoardSettingsModalDirectly();
+        renderMainView();
+      }
+
+      function deleteCurrentBoard() {
+        if (boards.length <= 1) {
+          alert("至少需要保留一个看板！");
+          return;
+        }
+        const b = getActiveBoard();
+        if (!confirm(`确定要删除看板「${b.title}」及其所有内容吗？`)) return;
+        boards = boards.filter(bd => bd.id !== activeBoardId);
+        activeBoardId = boards[0].id;
+        selectedColFilter = "all";
+        saveBoards();
+        closeBoardSettingsModalDirectly();
+        renderMainView();
+      }
+
+      function closeBoardSettingsModal(e) {
+        if (e.target.id === "board-settings-modal") closeBoardSettingsModalDirectly();
+      }
+      function closeBoardSettingsModalDirectly() {
+        document.getElementById("board-settings-modal").classList.remove("open");
+      }
+
+      function openColFilterSheet() {
+        const b = getActiveBoard();
+        const container = document.getElementById("col-filter-options");
+        
+        let html = `
+          <button class="btn-secondary" style="text-align:left; font-size:13px; font-weight:700; background:${selectedColFilter === 'all' ? '#30d158' : 'rgba(255,255,255,0.06)'}; color:${selectedColFilter === 'all' ? '#000' : 'inherit'};" onclick="selectColFilter('all')">
+            🌟 全部列表
+          </button>
+        `;
+
+        (b.columns || []).forEach(c => {
+          const isSel = selectedColFilter === c.id;
+          html += `
+            <button class="btn-secondary" style="text-align:left; font-size:13px; display:flex; align-items:center; gap:8px; background:${isSel ? '#30d158' : 'rgba(255,255,255,0.06)'}; color:${isSel ? '#000' : 'inherit'};" onclick="selectColFilter('${c.id}')">
+              <span style="width:8px; height:8px; border-radius:50%; background:${c.color || '#30d158'};"></span>
+              <span style="flex:1;">${c.title}</span>
+              <span style="font-size:11px; opacity:0.7;">(${(c.cards || []).length})</span>
+            </button>
+          `;
+        });
+
+        container.innerHTML = html;
+        document.getElementById("col-filter-modal").classList.add("open");
+      }
+
+      function selectColFilter(colId) {
+        selectedColFilter = colId;
+        closeColFilterModalDirectly();
+        renderMainView();
+      }
+
+      function closeColFilterModal(e) {
+        if (e.target.id === "col-filter-modal") closeColFilterModalDirectly();
+      }
+      function closeColFilterModalDirectly() {
+        document.getElementById("col-filter-modal").classList.remove("open");
+      }
+
+      let aiMessages = [
+        { role: "assistant", content: "你好！我是你的 Focusboard 智能学习与任务助教。无论是 3D Cover Flow 拆解还是知识点复盘，我都能随时为你提供支持。" }
+      ];
+
+      function launchAIAssistant(cardId = null) {
+        const b = getActiveBoard();
+        let promptInitial = "";
+        if (cardId) {
+          let card = null;
+          (b.columns || []).forEach(c => {
+            const found = (c.cards || []).find(cd => cd.id === cardId);
+            if (found) card = found;
+          });
+          if (card) {
+            promptInitial = `当前针对卡片「${card.title}」进行聚焦研讨。点击下方快捷按钮即可一键拆解待办或提炼核心知识结构！`;
+            aiMessages = [
+              { role: "assistant", content: promptInitial }
+            ];
+          }
+        }
+
+        renderAIChat();
+        toggleAIAssistant(true);
+      }
+
+      function toggleAIAssistant(open) {
+        const drawer = document.getElementById("ai-drawer");
+        if (open) {
+          drawer.classList.add("open");
+        } else {
+          drawer.classList.remove("open");
+        }
+      }
+
+      function renderAIChat() {
+        const box = document.getElementById("ai-chat-messages");
+        box.innerHTML = aiMessages.map(m => `
+          <div class="chat-msg ${m.role}">${m.content}</div>
+        `).join('');
+        box.scrollTop = box.scrollHeight;
+      }
+
+      function sendAIPrompt(text) {
+        aiMessages.push({ role: "user", content: text });
+        renderAIChat();
+
+        setTimeout(() => {
+          let reply = "";
+          if (text.includes("5步")) {
+            reply = "【AI 建议 5 步闭环学习路径】\n1. 通读教材：标记关键术语与句型\n2. 制作 Anchor Chart：可视化知识框架\n3. 闭卷提取测试：主动回忆词汇与原理\n4. 场景应用：口头复述与变式解题\n5. 错因归纳：修补规律缺陷，杜绝重复错误";
+          } else if (text.includes("知识结构")) {
+            reply = "【知识结构 Anchor Chart 提炼】\n• 核心概念：以真实语境为中心，音-形-义有机结合\n• 常见误区：切忌脱离教材单纯刷题，基础不牢易陷入记忆瓶颈\n• 执行秘诀：每日坚持 Read Aloud，培养地道语言节奏";
+          } else {
+            reply = "【薄弱点分析与复盘策略】\n通过对错误样本的分类定位，针对性设计 3~5 组相关变式演练，待稳定掌握后再进入全新模块。";
+          }
+          aiMessages.push({ role: "assistant", content: reply });
+          renderAIChat();
+        }, 400);
+      }
+
+      function handleSendAIMessage() {
+        const input = document.getElementById("ai-user-input");
+        const val = input.value.trim();
+        if (!val) return;
+        input.value = "";
+        sendAIPrompt(val);
+      }
+
+      
+      // =========================================================================
+      // FIREBASE CLOUD SYNC MODULE (MATCHING CLOUD 5.0)
+      // =========================================================================
+      const FIREBASE_CONFIG = {
+        apiKey: "AIzaSyBH-SonlmNnTLRYUtvnZ9EEiFQSflo1cX8",
+        authDomain: "minest-33761.firebaseapp.com",
+        databaseURL: "https://minest-33761-default-rtdb.firebaseio.com",
+        projectId: "minest-33761",
+        storageBucket: "minest-33761.firebasestorage.app"
+      };
+
+      let firebaseApp = null;
+      let firebaseAuth = null;
+      let firebaseDb = null;
+      let firebaseUser = null;
+      let syncStatus = 'idle'; // 'idle' | 'connecting' | 'synced' | 'saving' | 'error'
+      let lastSyncTime = null;
+      let isRemoteSyncUpdate = false;
+      let cloudSaveTimer = null;
+
+      let fbRetryCount = 0;
+      function initFirebaseEngine() {
+        if (typeof firebase === 'undefined') {
+          if (fbRetryCount++ < 20) {
+            setTimeout(initFirebaseEngine, 500);
+          }
+          return;
+        }
+        try {
+          if (!firebase.apps || !firebase.apps.length) {
+            firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+          } else {
+            firebaseApp = firebase.app();
+          }
+          firebaseAuth = firebase.auth();
+          firebaseDb = firebase.firestore();
+
+          try {
+            firebaseDb.enablePersistence({ synchronizeTabs: true }).catch(err => {
+              if (err.code !== 'failed-precondition' && err.code !== 'unimplemented') {
+                console.warn("Firestore offline persistence warning:", err);
+              }
+            });
+          } catch(e) {}
+
+          firebaseAuth.onAuthStateChanged(user => {
+            handleAuthStateChanged(user);
+          });
+        } catch(err) {
+          console.error("Firebase init failed in iPhone 15 Pro view:", err);
+        }
+      }
+
+      function handleAuthStateChanged(user) {
+        firebaseUser = user;
+        updateCloudUI();
+
+        if (user) {
+          setSyncStatus('connecting');
+          const docRef = firebaseDb.collection('users').doc(user.uid).collection('focusboard').doc('data');
+
+          docRef.onSnapshot(doc => {
+            if (doc.exists) {
+              const data = doc.data();
+              if (data && data.boards && Array.isArray(data.boards) && data.boards.length > 0) {
+                isRemoteSyncUpdate = true;
+                boards = data.boards;
+                if (data.activeBoardId) activeBoardId = data.activeBoardId;
+                if (data.viewMode && (data.viewMode === 'board' || data.viewMode === 'coverflow')) viewMode = data.viewMode;
+                if (data.themeMode && (data.themeMode === 'dark' || data.themeMode === 'white')) themeMode = data.themeMode;
+                
+                saveBoardsLocally();
+                applyTheme();
+                renderHeader();
+                renderMainView();
+                setTimeout(() => { isRemoteSyncUpdate = false; }, 300);
+              }
+              lastSyncTime = new Date();
+              setSyncStatus('synced');
+            } else {
+              // Push local initial boards
+              pushToCloudFirestore();
+            }
+          }, err => {
+            console.error("Firestore onSnapshot error:", err);
+            setSyncStatus('error');
+          });
+        } else {
+          setSyncStatus('idle');
+        }
+      }
+
+      function setSyncStatus(st) {
+        syncStatus = st;
+        updateCloudUI();
+      }
+
+      function updateCloudUI() {
+        const dotHeader = document.getElementById("cloud-status-dot");
+        const bannerDot = document.getElementById("cloud-banner-dot");
+        const bannerText = document.getElementById("cloud-banner-text");
+        const bannerTime = document.getElementById("cloud-banner-time");
+        const userBox = document.getElementById("cloud-user-box");
+        const loginSec = document.getElementById("cloud-login-section");
+        const actionsSec = document.getElementById("cloud-actions-section");
+
+        const colorMap = {
+          idle: '#94a3b8',
+          connecting: '#38bdf8',
+          synced: '#30d158',
+          saving: '#f59e0b',
+          error: '#f43f5e'
+        };
+
+        const activeColor = colorMap[syncStatus] || '#94a3b8';
+        if (dotHeader) dotHeader.style.background = activeColor;
+        if (bannerDot) bannerDot.style.background = activeColor;
+
+        if (bannerText) {
+          if (syncStatus === 'synced') bannerText.textContent = "云端实时已同步 (Live Synced)";
+          else if (syncStatus === 'saving') bannerText.textContent = "正在保存至云端...";
+          else if (syncStatus === 'connecting') bannerText.textContent = "正在连接云端数据库...";
+          else if (syncStatus === 'error') bannerText.textContent = "同步连接异常，请检查网络";
+          else bannerText.textContent = "未登录云端";
+        }
+
+        if (bannerTime && lastSyncTime) {
+          bannerTime.textContent = "上次: " + lastSyncTime.toLocaleTimeString();
+        }
+
+        if (firebaseUser) {
+          if (userBox) userBox.style.display = 'flex';
+          if (loginSec) loginSec.style.display = 'none';
+          if (actionsSec) actionsSec.style.display = 'flex';
+
+          const nameEl = document.getElementById("cloud-user-name");
+          const emailEl = document.getElementById("cloud-user-email");
+          const avatarEl = document.getElementById("cloud-user-avatar");
+
+          if (nameEl) nameEl.textContent = firebaseUser.displayName || "Google 用户";
+          if (emailEl) emailEl.textContent = firebaseUser.email || "";
+          if (avatarEl) {
+            if (firebaseUser.photoURL) avatarEl.src = firebaseUser.photoURL;
+            else avatarEl.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='%2330d158'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+          }
+        } else {
+          if (userBox) userBox.style.display = 'none';
+          if (loginSec) loginSec.style.display = 'block';
+          if (actionsSec) actionsSec.style.display = 'none';
+        }
+      }
+
+      function pushToCloudFirestore() {
+        if (!firebaseUser || !firebaseDb) return;
+        setSyncStatus('saving');
+        if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+
+        cloudSaveTimer = setTimeout(() => {
+          try {
+            firebaseDb.collection('users').doc(firebaseUser.uid).collection('focusboard').doc('data').set({
+              boards: boards,
+              activeBoardId: activeBoardId,
+              viewMode: viewMode,
+              themeMode: themeMode,
+              userEmail: firebaseUser.email,
+              clientUpdatedAt: Date.now(),
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).then(() => {
+              setSyncStatus('synced');
+              lastSyncTime = new Date();
+            }).catch(err => {
+              console.error("Firestore push error:", err);
+              setSyncStatus('error');
+            });
+          } catch(e) {
+            console.error(e);
+            setSyncStatus('error');
+          }
+        }, 500);
+      }
+
+      async function handleGoogleSignIn() {
+        if (typeof firebase === 'undefined' || !firebaseAuth) {
+          alert("Firebase 正在加载中，请稍候再试！");
+          return;
+        }
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        try {
+          await firebaseAuth.signInWithPopup(provider);
+        } catch (err) {
+          if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            try {
+              await firebaseAuth.signInWithRedirect(provider);
+            } catch (rErr) {
+              alert("登录遇到问题: " + rErr.message);
+            }
+          } else {
+            alert("登录遇到问题: " + err.message);
+          }
+        }
+      }
+
+      async function handleSignOut() {
+        if (firebaseAuth) {
+          await firebaseAuth.signOut();
+          setSyncStatus('idle');
+        }
+      }
+
+      async function handleForcePush() {
+        if (!firebaseUser) {
+          alert("请先使用 Google 账号登录！");
+          return;
+        }
+        pushToCloudFirestore();
+        alert("已触发向云端强制保存！");
+      }
+
+      async function handleForcePull() {
+        if (!firebaseUser || !firebaseDb) {
+          alert("请先使用 Google 账号登录！");
+          return;
+        }
+        try {
+          setSyncStatus('saving');
+          const doc = await firebaseDb.collection('users').doc(firebaseUser.uid).collection('focusboard').doc('data').get();
+          if (doc.exists) {
+            const data = doc.data();
+            if (data && data.boards && Array.isArray(data.boards) && data.boards.length > 0) {
+              isRemoteSyncUpdate = true;
+              boards = data.boards;
+              if (data.activeBoardId) activeBoardId = data.activeBoardId;
+              if (data.viewMode) viewMode = data.viewMode;
+              if (data.themeMode) themeMode = data.themeMode;
+              saveBoardsLocally();
+              applyTheme();
+              renderHeader();
+              renderMainView();
+              setTimeout(() => { isRemoteSyncUpdate = false; }, 300);
+              setSyncStatus('synced');
+              lastSyncTime = new Date();
+              alert("已成功从云端重新拉取最新数据！");
+            }
+          }
+        } catch(e) {
+          setSyncStatus('error');
+          alert("拉取失败: " + e.message);
+        }
+      }
+
+      function openCloudModal() {
+        document.getElementById("cloud-modal").classList.add("open");
+        updateCloudUI();
+      }
+
+      function closeCloudModal(e) {
+        if (e.target.id === "cloud-modal") closeCloudModalDirectly();
+      }
+      function closeCloudModalDirectly() {
+        document.getElementById("cloud-modal").classList.remove("open");
+      }
+
+      function saveBoardsLocally() {
+        try {
+          localStorage.setItem(STORAGE_BOARDS, JSON.stringify(boards));
+        } catch (e) {
+          console.error("Save boards error:", e);
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", initApp);
+    </script>
+  </body>
+</html>
