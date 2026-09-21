@@ -8,8 +8,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Focusboard Studio 2.3 · iPhone 15 Pro 横竖屏专属版 (Apple Liquid Glass & iOS Stack)</title>
-    <meta name="description" content="Focusboard Studio 2.3 iPhone 专属版 - Apple Liquid Glass 拟态美学、iOS 通知中心卡片叠放展开、15px 交通灯优先级圆点、3D Cover Flow 与极速触控吸附看板。" />
+    <title>Focusboard Studio 2.4 · iPhone 15 Pro 横竖屏专属版 (Apple Liquid Glass & iOS Stack)</title>
+    <meta name="description" content="Focusboard Studio 2.4 iPhone 专属版 - Apple Liquid Glass 拟态美学、iOS 通知中心卡片叠放展开、15px 交通灯优先级圆点、3D Cover Flow 与极速触控吸附看板。" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -187,7 +187,7 @@ body.theme-white {
   box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.08), 0 6px 16px -4px rgba(15, 23, 42, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
 }
 /* =========================================================================
-   iPhone 15 Pro & Mobile Adaptive Engine (iPhone 2.3)
+   iPhone 15 Pro & Mobile Adaptive Engine (iPhone 2.4)
    ========================================================================= */
 :root {
   --sat: env(safe-area-inset-top, 0px);
@@ -4351,7 +4351,7 @@ var De = function(props) {
                 className: "group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm font-bold text-xs", children: "2.3" }),
+                  (0, P.jsx)('div', { className: "w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm font-bold text-xs", children: "2.4" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -4729,6 +4729,10 @@ var Oe = function(props) {
   var dragStartTimeRef = (0, _.useRef)(0);
   var dragRafRef = (0, _.useRef)(null);
   var pendingDxRef = (0, _.useRef)(0);
+  // DOM refs for the currently-rendered visible cards, keyed by card.id. During
+  // an active drag we write transform/opacity straight to these nodes instead
+  // of going through React state — see applyDragTransform below.
+  var cardElRefs = (0, _.useRef)({}).current;
   (0, _.useEffect)(function() {
     return function() {
       if (dragRafRef.current !== null) cancelAnimationFrame(dragRafRef.current);
@@ -4915,6 +4919,9 @@ var Oe = function(props) {
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
         setIsDragging(true);
         setFlippedMap({});
+        // Nudge the DOM to the current finger position immediately, rather than
+        // waiting for the next rAF tick — avoids a one-frame snap at drag start.
+        applyDragTransform(dx);
       }
       if (dragMovedRef.current) {
         // Belt-and-suspenders alongside touchAction:"none" on the stage: on real
@@ -4924,15 +4931,15 @@ var Oe = function(props) {
         // to a direct swipe even though the native range-slider scrubber (which
         // gets its own browser-native touch handling) tracked the finger fine.
         if (e.cancelable) e.preventDefault();
-        // Batch the state update to once per animation frame instead of once per
-        // pointermove (which iOS can fire many times per frame) — synchronously
-        // re-rendering the whole card deck on every raw event is what made the
-        // drag feel sluggish/janky rather than following the finger smoothly.
+        // Write the new position straight to the DOM once per animation frame,
+        // bypassing React state/re-render for the whole duration of the drag —
+        // see applyDragTransform above for why. `dragOffset` state itself is left
+        // untouched until the drag ends, since nothing needs it while dragging.
         pendingDxRef.current = dx;
         if (dragRafRef.current === null) {
           dragRafRef.current = requestAnimationFrame(function() {
             dragRafRef.current = null;
-            setDragOffset(pendingDxRef.current);
+            applyDragTransform(pendingDxRef.current);
           });
         }
         showScrubber();
@@ -4961,6 +4968,18 @@ var Oe = function(props) {
         dragRafRef.current = null;
       }
       if (dragMovedRef.current && dragStartXRef.current !== null) {
+        // Snap the DOM back to the exact resting transform for the CURRENT
+        // activeIdx before deciding anything. This matters because the drag never
+        // touched React's `dragOffset` state (see applyDragTransform), so if the
+        // gesture is released without crossing the swipe threshold (activeIdx
+        // stays the same), the next render would compute byte-identical transform
+        // strings to the ones from before the drag started and React would skip
+        // re-applying them — leaving the card stuck wherever the finger last left
+        // it instead of snapping back. Resetting here makes that render's (lack
+        // of) DOM writes correct either way, and costs nothing when a swipe DOES
+        // commit since nextCard/prevCard immediately overwrite it via a real,
+        // guaranteed-different transition-animated re-render.
+        applyDragTransform(0);
         // Use the raw, unthrottled pointer distance (not the possibly one-frame-
         // stale `dragOffset` state) so the release decision always matches exactly
         // where the finger actually let go.
@@ -5077,6 +5096,45 @@ var Oe = function(props) {
   var visibleEnd = Math.min(cards.length - 1, activeIdx + visibleWindow);
   var visibleIndices = [];
   for (var _vi = visibleStart; _vi <= visibleEnd; _vi++) visibleIndices.push(_vi);
+
+  // Recomputes and writes each visible card's transform/opacity straight to its
+  // DOM node via cardElRefs, bypassing React state/re-render entirely. Even after
+  // batching drag updates to one setState per animation frame and windowing the
+  // per-frame Math down to only the visible cards, the drag still had to pay for
+  // a full React reconcile every frame — which is heavier main-thread work than
+  // the browser's own GPU-driven CSS transition (why the trackpad's discrete
+  // step-jump stayed smooth while continuous finger-tracking didn't). This must
+  // be kept in sync with the identical per-card math in the render loop below.
+  var applyDragTransform = function(rawDx) {
+    var dragFraction = rawDx / dragNormalizer;
+    for (var i = 0; i < visibleIndices.length; i++) {
+      var idx = visibleIndices[i];
+      var card = cards[idx];
+      if (!card) continue;
+      var el = cardElRefs[card.id];
+      if (!el) continue;
+      var effIdx = idx - activeIdx - dragFraction;
+      var absEff = Math.abs(effIdx);
+      var transX, transZ, rotY, scale, opacity;
+      if (absEff < 0.05) {
+        transX = 0; transZ = 60; rotY = 0; scale = 1.0; opacity = 1;
+      } else if (effIdx < 0) {
+        transX = -sideSpread + effIdx * stepSpread;
+        transZ = -Math.min(180, absEff * 40);
+        rotY = tiltAngle;
+        scale = Math.max(minScale, 1 - absEff * scaleFalloff);
+        opacity = Math.max(minOpacity, 1 - absEff * opacityFalloff);
+      } else {
+        transX = sideSpread + effIdx * stepSpread;
+        transZ = -Math.min(180, absEff * 40);
+        rotY = -tiltAngle;
+        scale = Math.max(minScale, 1 - absEff * scaleFalloff);
+        opacity = Math.max(minOpacity, 1 - absEff * opacityFalloff);
+      }
+      el.style.transform = "translateX(" + transX + "px) translateZ(" + transZ + "px) rotateY(" + rotY + "deg) scale(" + scale + ")";
+      el.style.opacity = String(opacity);
+    }
+  };
 
   return (0, P.jsxs)('section', {
     ref: containerRef,
@@ -5201,6 +5259,9 @@ var Oe = function(props) {
 
               return (0, P.jsxs)('div', {
                 key: card.id,
+                ref: function(el) {
+                  if (el) cardElRefs[card.id] = el; else delete cardElRefs[card.id];
+                },
                 onClick: function(e) {
                   if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
                   if (isCenter) {
@@ -12962,7 +13023,7 @@ var Be = function() {
       (0, P.jsxs)('div', {
         className: "fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl text-white shadow-2xl text-xs font-medium",
         children: [
-          (0, P.jsx)('span', { className: "font-bold text-emerald-400 mr-1", children: "iPhone 2.3" }),
+          (0, P.jsx)('span', { className: "font-bold text-emerald-400 mr-1", children: "iPhone 2.4" }),
           (0, P.jsxs)('button', {
             type: "button",
             onClick: function() { setIsLandscape(!isLandscape); SoundEngine.play('click'); },
