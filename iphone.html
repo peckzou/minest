@@ -5064,6 +5064,20 @@ var Oe = function(props) {
     ? "text-base font-bold tracking-tight text-center leading-snug line-clamp-1 max-w-[190px]"
     : "text-lg md:text-xl font-bold tracking-tight text-center leading-snug line-clamp-2 max-w-[240px]";
 
+  // Only the cards within MAX_VISIBLE_OFFSET (+1 for the drag-transition buffer)
+  // of activeIdx ever render — everything else returns null further down anyway.
+  // But recomputing that per-card Math for the FULL board on every single drag
+  // frame (mapping the whole `cards` array) is real, needless work on a weak
+  // mobile CPU; a board with many cards was very likely the reason single-finger
+  // dragging felt janky on the real device while the trackpad's simple discrete
+  // wheel-step navigation (no per-frame recompute) stayed smooth. Slicing to a
+  // small window keeps the per-frame cost constant regardless of board size.
+  var visibleWindow = Math.ceil(MAX_VISIBLE_OFFSET) + 1;
+  var visibleStart = Math.max(0, activeIdx - visibleWindow);
+  var visibleEnd = Math.min(cards.length - 1, activeIdx + visibleWindow);
+  var visibleIndices = [];
+  for (var _vi = visibleStart; _vi <= visibleEnd; _vi++) visibleIndices.push(_vi);
+
   return (0, P.jsxs)('section', {
     ref: containerRef,
     className: "absolute inset-0 flex flex-col items-center justify-center px-2 py-1 overflow-y-auto overflow-x-hidden select-none",
@@ -5115,8 +5129,10 @@ var Oe = function(props) {
         children: (0, P.jsxs)('div', {
           className: "relative w-full h-full preserve-3d flex justify-center items-center",
           children: [
-            // Render Cards
-            cards.map(function(card, idx) {
+            // Render Cards — only the small window of cards actually near the
+            // active index, not the whole board (see visibleIndices above).
+            visibleIndices.map(function(idx) {
+              var card = cards[idx];
               var dragFraction = isDragging ? dragOffset / dragNormalizer : 0;
               var effIdx = idx - activeIdx - dragFraction;
               var absEff = Math.abs(effIdx);
