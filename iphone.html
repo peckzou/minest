@@ -4727,6 +4727,13 @@ var Oe = function(props) {
   var dragStartXRef = (0, _.useRef)(null);
   var dragStartYRef = (0, _.useRef)(null);
   var dragStartTimeRef = (0, _.useRef)(0);
+  var dragRafRef = (0, _.useRef)(null);
+  var pendingDxRef = (0, _.useRef)(0);
+  (0, _.useEffect)(function() {
+    return function() {
+      if (dragRafRef.current !== null) cancelAnimationFrame(dragRafRef.current);
+    };
+  }, []);
 
   (0, _.useEffect)(function() {
     setActiveIdx(0);
@@ -4896,6 +4903,7 @@ var Oe = function(props) {
     dragStartTimeRef.current = Date.now();
     dragActiveRef.current = true;
     dragMovedRef.current = false;
+    pendingDxRef.current = 0;
   };
 
   var onPointerMove = function(e) {
@@ -4909,7 +4917,17 @@ var Oe = function(props) {
         setFlippedMap({});
       }
       if (dragMovedRef.current) {
-        setDragOffset(dx);
+        // Batch the state update to once per animation frame instead of once per
+        // pointermove (which iOS can fire many times per frame) — synchronously
+        // re-rendering the whole card deck on every raw event is what made the
+        // drag feel sluggish/janky rather than following the finger smoothly.
+        pendingDxRef.current = dx;
+        if (dragRafRef.current === null) {
+          dragRafRef.current = requestAnimationFrame(function() {
+            dragRafRef.current = null;
+            setDragOffset(pendingDxRef.current);
+          });
+        }
         showScrubber();
       }
     } else if (stageRef.current && !isDragging) {
@@ -4931,7 +4949,15 @@ var Oe = function(props) {
     if (dragActiveRef.current) {
       try { e.currentTarget.releasePointerCapture(e.pointerId); } catch(err) {}
       dragActiveRef.current = false;
+      if (dragRafRef.current !== null) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
       if (dragMovedRef.current && dragStartXRef.current !== null) {
+        // Use the raw, unthrottled pointer distance (not the possibly one-frame-
+        // stale `dragOffset` state) so the release decision always matches exactly
+        // where the finger actually let go.
+        var finalDragOffset = pendingDxRef.current;
         // Swipe thresholds scale with the actual card spacing (stepSpread), which
         // is now much smaller in landscape's tightly-packed layout — without this,
         // the old fixed 35px/20px thresholds (tuned for portrait's wider spacing)
@@ -4939,10 +4965,10 @@ var Oe = function(props) {
         var swipeThreshold = Math.max(24, Math.round(stepSpread * 0.32));
         var fastSwipeMinDist = Math.max(14, Math.round(stepSpread * 0.18));
         var elapsed = Date.now() - dragStartTimeRef.current;
-        var isFastSwipe = elapsed < 320 && Math.abs(dragOffset) > fastSwipeMinDist;
-        if (dragOffset < -swipeThreshold || (isFastSwipe && dragOffset < 0)) {
+        var isFastSwipe = elapsed < 320 && Math.abs(finalDragOffset) > fastSwipeMinDist;
+        if (finalDragOffset < -swipeThreshold || (isFastSwipe && finalDragOffset < 0)) {
           nextCard();
-        } else if (dragOffset > swipeThreshold || (isFastSwipe && dragOffset > 0)) {
+        } else if (finalDragOffset > swipeThreshold || (isFastSwipe && finalDragOffset > 0)) {
           prevCard();
         }
       }
@@ -5020,8 +5046,11 @@ var Oe = function(props) {
   // How far (px) the finger must travel to visually shift the deck by one full
   // card position while dragging. Must scale with stepSpread, not be a fixed
   // constant — otherwise a tight landscape layout (small stepSpread) feels like
-  // it barely responds to a normal swipe distance.
-  var dragNormalizer = Math.round(stepSpread * 2.2);
+  // it barely responds to a normal swipe distance. Kept close to 1:1 with
+  // stepSpread itself (not a large multiple of it) so the deck visually tracks
+  // the finger directly instead of lagging noticeably behind it, which is what
+  // made dragging feel heavy/unresponsive rather than smooth.
+  var dragNormalizer = Math.max(50, Math.round(stepSpread * 1.05));
   var reflectionHeight = Math.round(cardHeight * 0.30);
   var reflectionTextMarginTop = isLandscape ? "12px" : "16px";
   var reflectionTextClass = isLandscape
@@ -5172,7 +5201,8 @@ var Oe = function(props) {
                   transform: "translateX(" + transX + "px) translateZ(" + transZ + "px)" + tiltTransform + " scale(" + scale + ")",
                   opacity: opacity,
                   zIndex: zIndex,
-                  transition: isDragging ? "none" : "transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.4s cubic-bezier(0.2, 0.9, 0.3, 1)"
+                  transition: isDragging ? "none" : "transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.4s cubic-bezier(0.2, 0.9, 0.3, 1)",
+                  willChange: "transform, opacity"
                 },
                 className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]",
                 children: [
@@ -5537,7 +5567,8 @@ var Oe = function(props) {
                   transform: "translateX(" + transX + "px) translateZ(" + transZ + "px) rotateY(" + rotY + "deg) scale(" + scale + ")",
                   opacity: opacity,
                   zIndex: zIndex,
-                  transition: isDragging ? "none" : "transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.4s cubic-bezier(0.2, 0.9, 0.3, 1)"
+                  transition: isDragging ? "none" : "transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.4s cubic-bezier(0.2, 0.9, 0.3, 1)",
+                  willChange: "transform, opacity"
                 },
                 className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]",
                 children: (0, P.jsx)('div', {
