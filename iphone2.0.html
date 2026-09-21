@@ -1885,6 +1885,161 @@ html, body {
   line-height: 1.42 !important;
 }
 
+
+/* ========================================================================= 
+/* ========================================================================= */
+/* Swapped Front Traffic Lights (🔴🟡🟢) & Right Check Circle (◯/✔)           */
+/* Smooth Rightward Hover Indentation Engine (Matching media_1789956700859)  */
+/* ========================================================================= */
+.mac-traffic-lights-front {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.card-has-cover .mac-traffic-lights-front {
+  top: auto;
+  bottom: 11px;
+  transform: none;
+}
+/* When idle and no priority: completely hidden */
+.mac-traffic-lights-front.no-priority {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(-6px);
+}
+.card-has-cover .mac-traffic-lights-front.no-priority {
+  transform: translateX(-6px);
+}
+/* When idle and has priority: only show active dot at left: 10px */
+.mac-traffic-lights-front.has-priority .mac-dot-btn:not(.is-active) {
+  opacity: 0;
+  width: 0px !important;
+  min-width: 0px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  pointer-events: none;
+  overflow: hidden;
+  transition: all 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.mac-traffic-lights-front.has-priority .mac-dot-btn.is-active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: scale(1) !important;
+}
+
+/* On hover of card: reveal all 3 traffic lights and expand smoothly! */
+.liquid-glass-card:hover .mac-traffic-lights-front,
+.group:hover .mac-traffic-lights-front,
+.kanban-card:hover .mac-traffic-lights-front,
+.kanban-subcard:hover .mac-traffic-lights-front,
+.simulate-hover .mac-traffic-lights-front {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateY(-50%) translateX(0) !important;
+}
+.card-has-cover:hover .mac-traffic-lights-front {
+  transform: none !important;
+}
+.liquid-glass-card:hover .mac-traffic-lights-front .mac-dot-btn,
+.group:hover .mac-traffic-lights-front .mac-dot-btn,
+.kanban-card:hover .mac-traffic-lights-front .mac-dot-btn,
+.kanban-subcard:hover .mac-traffic-lights-front .mac-dot-btn {
+  opacity: 1 !important;
+  width: 14px !important;
+  min-width: 14px !important;
+  margin: 0 !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.25) !important;
+  pointer-events: auto !important;
+}
+
+/* Card Content Flow with Smooth Rightward Indentation on Hover */
+.card-content-flow,
+.subcard-content-flow {
+  padding-left: 0px;
+  padding-right: 56px;
+  transition: padding-left 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+/* If card has priority, when idle it indents 18px to clear the single active dot */
+.card-content-flow.has-priority-idle,
+.subcard-content-flow.has-priority-idle {
+  padding-left: 18px;
+}
+/* On hover: text automatically indents to the right (58px) to make room for all 3 color dots */
+.liquid-glass-card:hover .card-content-flow,
+.group:hover .card-content-flow,
+.kanban-card:hover .card-content-flow,
+.kanban-subcard:hover .card-content-flow,
+.simulate-hover .card-content-flow,
+.liquid-glass-card:hover .subcard-content-flow,
+.group:hover .subcard-content-flow,
+.kanban-card:hover .subcard-content-flow,
+.kanban-subcard:hover .subcard-content-flow,
+.simulate-hover .subcard-content-flow {
+  padding-left: 58px !important;
+}
+
+/* Right-side Action Group: Check circle [ ◯ / ✔ ] + Pencil Edit [ ✏️ ] + Archive [ 📦 ] */
+.card-action-group {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.card-has-cover .card-action-group {
+  top: auto;
+  bottom: 10px;
+  transform: none;
+}
+/* When card is completed, keep action group visible so green checkmark is seen */
+.has-completed .card-action-group,
+.kanban-card:has(.card-check-action-btn.is-completed) .card-action-group,
+.kanban-subcard:has(.card-check-action-btn.is-completed) .card-action-group {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+/* On card hover: reveal right action group */
+.liquid-glass-card:hover .card-action-group,
+.group:hover .card-action-group,
+.kanban-card:hover .card-action-group,
+.kanban-subcard:hover .card-action-group,
+.simulate-hover .card-action-group {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+@media (hover: none), (max-width: 640px) {
+  .mac-traffic-lights-front {
+    opacity: 0.95 !important;
+    pointer-events: auto !important;
+  }
+  .mac-traffic-lights-front .mac-dot-btn {
+    opacity: 1 !important;
+    width: 14px !important;
+    min-width: 14px !important;
+  }
+  .card-action-group {
+    opacity: 0.95 !important;
+    pointer-events: auto !important;
+  }
+  .card-content-flow,
+  .subcard-content-flow {
+    padding-left: 58px !important;
+  }
+}
+
 </style>
       <!-- Firebase SDK (loaded with defer to guarantee zero blocking on page open & 100% offline resilience) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -7881,60 +8036,60 @@ var ke = function(props) {
                               (0, P.jsx)('div', { className: "liquid-specular-edge opacity-30 group-hover:opacity-100 transition-opacity" }),
                               (0, P.jsx)('div', { className: "liquid-glass-caustic opacity-40 group-hover:opacity-80 transition-opacity" }),
 
-                              // Top-Left Checkbox Circle (Hover: [ ◯ ], Complete: [ ✔ ])
-                              (0, P.jsx)('div', {
-                                onClick: function(e) {
-                                  e.stopPropagation();
-                                  onToggleCardComplete(col.id, card.id);
-                                  SoundEngine.play('check');
-                                },
-                                className: "card-check-trigger-btn " + (card.complete ? "is-completed" : "is-incomplete"),
-                                title: card.complete ? "Mark card active" : "Mark card complete",
-                                children: card.complete ? (
-                                  (0, P.jsx)(re, { className: "w-3 h-3 text-white stroke-[2.5]" })
-                                ) : (
-                                  (0, P.jsx)(re, { className: "w-3 h-3 text-emerald-500 opacity-0 hover:opacity-100 transition-opacity stroke-[2.5]" })
-                                )
+                              // Front Action: macOS Traffic Lights [ 🔴 🟡 🟢 ] at the very front of the card
+                              (0, P.jsxs)('div', {
+                                className: "mac-traffic-lights-front " + (card.priority ? "has-priority" : "no-priority"),
+                                children: [
+                                  (0, P.jsx)('button', {
+                                    type: "button",
+                                    onClick: function(e) {
+                                      e.stopPropagation();
+                                      if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'high' ? null : 'high');
+                                      SoundEngine.play('click');
+                                    },
+                                    className: "mac-dot-btn mac-dot-red " + (card.priority === 'high' ? "is-active" : (card.priority ? "is-dimmed" : "")),
+                                    title: card.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)"
+                                  }),
+                                  (0, P.jsx)('button', {
+                                    type: "button",
+                                    onClick: function(e) {
+                                      e.stopPropagation();
+                                      if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'medium' ? null : 'medium');
+                                      SoundEngine.play('click');
+                                    },
+                                    className: "mac-dot-btn mac-dot-yellow " + (card.priority === 'medium' ? "is-active" : (card.priority ? "is-dimmed" : "")),
+                                    title: card.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)"
+                                  }),
+                                  (0, P.jsx)('button', {
+                                    type: "button",
+                                    onClick: function(e) {
+                                      e.stopPropagation();
+                                      if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'low' ? null : 'low');
+                                      SoundEngine.play('click');
+                                    },
+                                    className: "mac-dot-btn mac-dot-green " + (card.priority === 'low' ? "is-active" : (card.priority ? "is-dimmed" : "")),
+                                    title: card.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)"
+                                  })
+                                ]
                               }),
 
-                              // Top-Right Action Buttons: macOS Traffic Lights [ 🔴 🟡 🟢 ] -> Quick Edit [ ✏️ ] -> Archive [ 📦 ]
+                              // Top-Right Action Buttons: Check Circle [ ◯ / ✔ ] -> Quick Edit [ ✏️ ] -> Archive [ 📦 ]
                               (0, P.jsxs)('div', {
                                 className: "card-action-group flex items-center gap-1.5",
                                 children: [
-                                  (0, P.jsxs)('div', {
-                                    className: "mac-traffic-lights flex items-center gap-1.5 shrink-0",
-                                    children: [
-                                      (0, P.jsx)('button', {
-                                        type: "button",
-                                        onClick: function(e) {
-                                          e.stopPropagation();
-                                          if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'high' ? null : 'high');
-                                          SoundEngine.play('click');
-                                        },
-                                        className: "mac-dot-btn mac-dot-red " + (card.priority === 'high' ? "is-active" : (card.priority ? "is-dimmed" : "")),
-                                        title: card.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)"
-                                      }),
-                                      (0, P.jsx)('button', {
-                                        type: "button",
-                                        onClick: function(e) {
-                                          e.stopPropagation();
-                                          if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'medium' ? null : 'medium');
-                                          SoundEngine.play('click');
-                                        },
-                                        className: "mac-dot-btn mac-dot-yellow " + (card.priority === 'medium' ? "is-active" : (card.priority ? "is-dimmed" : "")),
-                                        title: card.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)"
-                                      }),
-                                      (0, P.jsx)('button', {
-                                        type: "button",
-                                        onClick: function(e) {
-                                          e.stopPropagation();
-                                          if (onUpdateCardPriority) onUpdateCardPriority(col.id, card.id, card.priority === 'low' ? null : 'low');
-                                          SoundEngine.play('click');
-                                        },
-                                        className: "mac-dot-btn mac-dot-green " + (card.priority === 'low' ? "is-active" : (card.priority ? "is-dimmed" : "")),
-                                        title: card.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)"
-                                      })
-                                    ]
+                                  (0, P.jsx)('div', {
+                                    onClick: function(e) {
+                                      e.stopPropagation();
+                                      onToggleCardComplete(col.id, card.id);
+                                      SoundEngine.play('check');
+                                    },
+                                    className: "card-check-action-btn " + (card.complete ? "is-completed" : "is-incomplete"),
+                                    title: card.complete ? "Mark card active" : "Mark card complete",
+                                    children: card.complete ? (
+                                      (0, P.jsx)(re, { className: "w-3 h-3 text-white stroke-[2.5]" })
+                                    ) : (
+                                      (0, P.jsx)(re, { className: "w-3 h-3 text-emerald-500 opacity-0 hover:opacity-100 transition-opacity stroke-[2.5]" })
+                                    )
                                   }),
                                   (0, P.jsx)('button', {
                                     type: "button",
@@ -7983,7 +8138,7 @@ var ke = function(props) {
                               // Micro labels row if any (aligned with title first letter)
                               hasLabels ? (
                                 (0, P.jsx)('div', {
-                                  className: "flex items-center gap-1.5 flex-wrap mb-1 relative z-10 card-content-flow " + (card.complete ? "has-completed " : "") + (card.cover ? "has-cover" : ""),
+                                  className: "flex items-center gap-1.5 flex-wrap mb-1 relative z-10 card-content-flow " + (card.priority ? "has-priority-idle " : "") + (card.complete ? "has-completed " : "") + (card.cover ? "has-cover" : ""),
                                   children: validLabels.map(function(lblId, lIdx) {
                                     var def = (board.labelDefinitions || []).find(function(d) { return d.id === lblId; }) || DEFAULT_PRESET_LABELS.find(function(d) { return d.id === lblId; });
                                     var colColor = def ? def.color : (lblId.startsWith('#') ? lblId : (col.color || "#30d158"));
@@ -8007,15 +8162,10 @@ var ke = function(props) {
 
                               // Title Row (Strictly centered priority dot + title)
                               (0, P.jsxs)('div', {
-                                className: "relative flex items-center gap-1.5 z-10 card-content-flow " + (card.complete ? "has-completed " : "") + (card.cover ? "has-cover" : ""),
+                                className: "relative flex items-center gap-1.5 z-10 card-content-flow " + (card.priority ? "has-priority-idle " : "") + (card.complete ? "has-completed " : "") + (card.cover ? "has-cover" : ""),
                                 style: { minHeight: "20px" },
                                 children: [
-                                  card.priority ? (
-                                    (0, P.jsx)('span', {
-                                      className: "card-title-priority-dot " + (card.priority === 'high' ? 'priority-dot-red' : card.priority === 'medium' ? 'priority-dot-yellow' : 'priority-dot-green'),
-                                      title: card.priority + " priority"
-                                    })
-                                  ) : null,
+                                  /* front traffic lights serve as primary color dots */
                                   (0, P.jsx)('h3', {
                                     className: "font-normal md:font-medium text-sm leading-snug tracking-normal flex-1 break-words whitespace-normal " + (card.complete ? "line-through opacity-70" : (isFullCover ? "text-white font-bold drop-shadow-md" : (isDark ? "text-white" : "text-slate-900"))),
                                     style: { wordBreak: "break-word", overflowWrap: "anywhere", whiteSpace: "normal" },
@@ -8027,8 +8177,8 @@ var ke = function(props) {
                               // Bottom Badges: Checklist Counter, Target Board Jump & iOS Folded Stack Badge
                               (hasChecklist || hasTargetBoard || (hasStack && !isStackExpanded)) ? (
                                 (0, P.jsxs)('div', {
-                                  className: "flex items-center gap-2 mt-1.5 pt-0.5 relative z-10 flex-wrap",
-                                  style: { paddingLeft: card.cover ? "0px" : "18px" },
+                                  className: "flex items-center gap-2 mt-1.5 pt-0.5 relative z-10 flex-wrap card-content-flow " + (card.priority ? "has-priority-idle " : ""),
+                                  style: { paddingLeft: card.cover ? "0px" : undefined },
                                   children: [
                                     /* folded stack badge removed - no data display */
 
@@ -8130,25 +8280,46 @@ var ke = function(props) {
                                       (isDark ? "text-white border-white/10" : "text-slate-800 border-slate-200/80"),
                                     style: { minHeight: "36px" },
                                     children: [
-                                       // Top-Left Checkbox Circle (Hover: [ ◯ ], Complete: [ ✔ ])
-                                       (0, P.jsx)('div', {
-                                         onClick: function(e) {
-                                           e.stopPropagation();
-                                           onToggleCardComplete(col.id, sub.id);
-                                           SoundEngine.play('check');
-                                         },
-                                         className: "card-check-trigger-btn " + (sub.complete ? "is-completed" : "is-incomplete"),
-                                         title: sub.complete ? "Mark card active" : "Mark card complete",
-                                         children: sub.complete ? (
-                                           (0, P.jsx)(re, { className: "w-3 h-3 text-white stroke-[2.5]" })
-                                         ) : (
-                                           (0, P.jsx)(re, { className: "w-3 h-3 text-emerald-500 opacity-0 hover:opacity-100 transition-opacity stroke-[2.5]" })
-                                         )
+                                       // Subcard Front: macOS Traffic Lights [ 🔴 🟡 🟢 ] at the very front
+                                       (0, P.jsxs)('div', {
+                                         className: "mac-traffic-lights-front " + (sub.priority ? "has-priority" : "no-priority"),
+                                         children: [
+                                           (0, P.jsx)('button', {
+                                             type: "button",
+                                             onClick: function(e) {
+                                               e.stopPropagation();
+                                               if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'high' ? null : 'high');
+                                               SoundEngine.play('click');
+                                             },
+                                             className: "mac-dot-btn mac-dot-red " + (sub.priority === 'high' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
+                                             title: sub.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)"
+                                           }),
+                                           (0, P.jsx)('button', {
+                                             type: "button",
+                                             onClick: function(e) {
+                                               e.stopPropagation();
+                                               if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'medium' ? null : 'medium');
+                                               SoundEngine.play('click');
+                                             },
+                                             className: "mac-dot-btn mac-dot-yellow " + (sub.priority === 'medium' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
+                                             title: sub.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)"
+                                           }),
+                                           (0, P.jsx)('button', {
+                                             type: "button",
+                                             onClick: function(e) {
+                                               e.stopPropagation();
+                                               if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'low' ? null : 'low');
+                                               SoundEngine.play('click');
+                                             },
+                                             className: "mac-dot-btn mac-dot-green " + (sub.priority === 'low' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
+                                             title: sub.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)"
+                                           })
+                                         ]
                                        }),
 
-                                       // Top-Right Action Buttons: Detach -> 3 Priority Dots [ 🔴 🟡 🟢 ] -> Quick Edit [ ✏️ ] -> Archive [ 📦 ]
+                                       // Subcard Right Action Buttons: Detach -> Check Circle [ ◯ / ✔ ] -> Quick Edit [ ✏️ ] -> Archive [ 📦 ]
                                        (0, P.jsxs)('div', {
-                                         className: "card-action-group",
+                                         className: "card-action-group flex items-center gap-1.5",
                                          children: [
                                            (0, P.jsx)('button', {
                                              type: "button",
@@ -8161,40 +8332,19 @@ var ke = function(props) {
                                              title: "Detach card back to list",
                                              children: "Detach"
                                            }),
-                                           (0, P.jsxs)('div', {
-                                             className: "mac-traffic-lights flex items-center gap-1.5 shrink-0",
-                                             children: [
-                                               (0, P.jsx)('button', {
-                                                 type: "button",
-                                                 onClick: function(e) {
-                                                   e.stopPropagation();
-                                                   if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'high' ? null : 'high');
-                                                   SoundEngine.play('click');
-                                                 },
-                                                 className: "mac-dot-btn mac-dot-red " + (sub.priority === 'high' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
-                                                 title: sub.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)"
-                                               }),
-                                               (0, P.jsx)('button', {
-                                                 type: "button",
-                                                 onClick: function(e) {
-                                                   e.stopPropagation();
-                                                   if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'medium' ? null : 'medium');
-                                                   SoundEngine.play('click');
-                                                 },
-                                                 className: "mac-dot-btn mac-dot-yellow " + (sub.priority === 'medium' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
-                                                 title: sub.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)"
-                                               }),
-                                               (0, P.jsx)('button', {
-                                                 type: "button",
-                                                 onClick: function(e) {
-                                                   e.stopPropagation();
-                                                   if (onUpdateCardPriority) onUpdateCardPriority(col.id, sub.id, sub.priority === 'low' ? null : 'low');
-                                                   SoundEngine.play('click');
-                                                 },
-                                                 className: "mac-dot-btn mac-dot-green " + (sub.priority === 'low' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
-                                                 title: sub.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)"
-                                               })
-                                             ]
+                                           (0, P.jsx)('div', {
+                                             onClick: function(e) {
+                                               e.stopPropagation();
+                                               onToggleCardComplete(col.id, sub.id);
+                                               SoundEngine.play('check');
+                                             },
+                                             className: "card-check-action-btn " + (sub.complete ? "is-completed" : "is-incomplete"),
+                                             title: sub.complete ? "Mark card active" : "Mark card complete",
+                                             children: sub.complete ? (
+                                               (0, P.jsx)(re, { className: "w-3 h-3 text-white stroke-[2.5]" })
+                                             ) : (
+                                               (0, P.jsx)(re, { className: "w-3 h-3 text-emerald-500 opacity-0 hover:opacity-100 transition-opacity stroke-[2.5]" })
+                                             )
                                            }),
                                            (0, P.jsx)('button', {
                                              type: "button",
@@ -8225,7 +8375,7 @@ var ke = function(props) {
                                        // Micro labels if any
                                        validSubLabels.length > 0 ? (
                                          (0, P.jsx)('div', {
-                                           className: "flex items-center gap-1.5 flex-wrap mb-1 relative z-10 subcard-content-flow " + (sub.complete ? "has-completed " : ""),
+                                           className: "flex items-center gap-1.5 flex-wrap mb-1 relative z-10 subcard-content-flow " + (sub.priority ? "has-priority-idle " : "") + (sub.complete ? "has-completed " : ""),
                                            children: validSubLabels.map(function(lblId, lIdx) {
                                              var def = (board.labelDefinitions || []).find(function(d) { return d.id === lblId; }) || DEFAULT_PRESET_LABELS.find(function(d) { return d.id === lblId; });
                                              var colColor = def ? def.color : (lblId.startsWith('#') ? lblId : "#f97316");
@@ -8240,15 +8390,10 @@ var ke = function(props) {
 
                                        // Title Row (Single row, min-h 20px, strict Trello size)
                                        (0, P.jsxs)('div', {
-                                         className: "relative flex items-center gap-1.5 z-10 subcard-content-flow " + (sub.complete ? "has-completed " : ""),
+                                         className: "relative flex items-center gap-1.5 z-10 subcard-content-flow " + (sub.priority ? "has-priority-idle " : "") + (sub.complete ? "has-completed " : ""),
                                          style: { minHeight: "20px" },
                                          children: [
-                                           sub.priority ? (
-                                             (0, P.jsx)('span', {
-                                               className: "card-title-priority-dot " + (sub.priority === 'high' ? 'priority-dot-red' : sub.priority === 'medium' ? 'priority-dot-yellow' : 'priority-dot-green'),
-                                               title: sub.priority + " priority"
-                                             })
-                                           ) : null,
+                                           /* front traffic lights serve as primary color dots */
                                            (0, P.jsx)('h4', {
                                              className: "font-normal md:font-medium text-sm leading-snug tracking-normal flex-1 break-words whitespace-normal " + (sub.complete ? "line-through opacity-70" : (isDark ? "text-white" : "text-slate-900")),
                                              style: { wordBreak: "break-word", overflowWrap: "anywhere", whiteSpace: "normal" },
