@@ -4328,10 +4328,10 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
 /* Physical Card mode owns the viewport. The surrounding board, dock and
    simulator chrome fall behind one continuous pane of glass. */
 .headsup-physical-shell {
-  position: fixed !important;
+  position: absolute !important;
   inset: 0 !important;
-  width: 100vw !important;
-  height: 100dvh !important;
+  width: 100% !important;
+  height: 100% !important;
   z-index: 2147482500 !important;
   padding: 0 !important;
   overflow: hidden !important;
@@ -4342,8 +4342,10 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   overscroll-behavior: none !important;
 }
 .headsup-physical-shell .perspective-stage {
-  width: 100vw !important;
-  height: 100dvh !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
   margin: 0 !important;
   overflow: hidden !important;
 }
@@ -21307,14 +21309,17 @@ var Oe = function(props) {
                 if (isCenter) {
                   var targetZ = 0;
                   var targetScale = 1;
-                  // Reference proportion: a tall physical card occupying almost
-                  // the full device width, with roughly 6% breathing room above
-                  // and below. Keep this ratio even while the simulator rotates.
+                  // Reference proportion: the card follows device orientation.
+                  // Portrait uses the tall 0.52 silhouette from the reference;
+                  // landscape rotates that same physical proportion.
                   var huPhysicalRatio = 0.52;
                   var huViewportWidth = Math.max(1, viewportSize.w || window.innerWidth);
                   var huViewportHeight = Math.max(1, viewportSize.h || window.innerHeight);
-                  var huCardWidth = Math.round(Math.min(huViewportWidth * 0.96, huViewportHeight * 0.88 * huPhysicalRatio));
-                  var huCardHeight = Math.round(huCardWidth / huPhysicalRatio);
+                  var huCardAspect = isLandscape ? (1 / huPhysicalRatio) : huPhysicalRatio;
+                  var huMaxCardWidth = huViewportWidth * (isLandscape ? 0.92 : 0.96);
+                  var huMaxCardHeight = huViewportHeight * 0.88;
+                  var huCardWidth = Math.round(Math.min(huMaxCardWidth, huMaxCardHeight * huCardAspect));
+                  var huCardHeight = Math.round(huCardWidth / huCardAspect);
                   
                   transX = 0;
                   transY = 0;
