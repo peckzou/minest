@@ -12899,52 +12899,62 @@ var DEFAULT_GOALS = [
 // --- Award Badge Definitions ---
 var BADGE_DEFINITIONS = [
   {
-    id: 'first_complete', title: 'First Complete', desc: 'Complete your first card', emoji: '🎯',
+    id: 'first_complete', badge3Id: 'perfect-week-study', title: 'First Complete', desc: 'Complete your first card', emoji: '🎯',
     colors: ['#ff9f0a', '#ff6b00'], shape: 'hex', rarity: 'common',
     check: function(stats) { return stats.totalCompleted >= 1; }
   },
   {
-    id: 'ten_cards', title: 'Ten Cards', desc: 'Complete 10 cards total', emoji: '🏅',
+    id: 'ten_cards', badge3Id: 'perfect-week-review', title: 'Ten Cards', desc: 'Complete 10 cards total', emoji: '🏅',
     colors: ['#c0c0c0', '#a0a0a0'], shape: 'hex', rarity: 'common',
     check: function(stats) { return stats.totalCompleted >= 10; }
   },
   {
-    id: 'fifty_cards', title: 'Half Century', desc: 'Complete 50 cards', emoji: '🥈',
+    id: 'fifty_cards', badge3Id: 'perfect-week-focus', title: 'Half Century', desc: 'Complete 50 cards', emoji: '🥈',
     colors: ['#c0c0c0', '#888888'], shape: 'hex', rarity: 'uncommon',
     check: function(stats) { return stats.totalCompleted >= 50; }
   },
   {
-    id: 'hundred_cards', title: 'Centurion', desc: 'Complete 100 cards', emoji: '🥇',
+    id: 'hundred_cards', badge3Id: 'cards-100', title: 'Centurion', desc: 'Complete 100 cards', emoji: '🥇',
     colors: ['#ffd700', '#ff9f0a'], shape: 'hex', rarity: 'rare',
     check: function(stats) { return stats.totalCompleted >= 100; }
   },
   {
-    id: 'streak_3', title: '3-Day Streak', desc: 'Active 3 days in a row', emoji: '🔥',
+    id: 'streak_3', badge3Id: 'sept-sprint', title: '3-Day Streak', desc: 'Active 3 days in a row', emoji: '🔥',
     colors: ['#ff6b00', '#ff375f'], shape: 'shield', rarity: 'common',
     check: function(stats) { return stats.streak >= 3; }
   },
   {
-    id: 'streak_7', title: 'Week Warrior', desc: 'Active 7 days in a row', emoji: '⚡',
+    id: 'streak_7', badge3Id: 'streak-7', title: 'Week Warrior', desc: 'Active 7 days in a row', emoji: '⚡',
     colors: ['#30d158', '#00b890'], shape: 'shield', rarity: 'uncommon',
     check: function(stats) { return stats.streak >= 7; }
   },
   {
-    id: 'streak_30', title: 'Monthly Master', desc: '30-day streak', emoji: '🌟',
+    id: 'streak_30', badge3Id: 'streak-30', title: 'Monthly Master', desc: '30-day streak', emoji: '🌟',
     colors: ['#30a8ff', '#0070f3'], shape: 'star', rarity: 'epic',
     check: function(stats) { return stats.streak >= 30; }
   },
   {
-    id: 'all_boards', title: 'Board Explorer', desc: 'Create 4 or more boards', emoji: '🗺️',
+    id: 'all_boards', badge3Id: 'polyglot', title: 'Board Explorer', desc: 'Create 4 or more boards', emoji: '🗺️',
     colors: ['#bf5af2', '#9b30d9'], shape: 'hex', rarity: 'uncommon',
     check: function(stats) { return stats.totalBoards >= 4; }
   },
   {
-    id: 'master_checklist', title: 'Checklist Pro', desc: 'Complete 20 checklist items', emoji: '📋',
+    id: 'master_checklist', badge3Id: 'algorithms', title: 'Checklist Pro', desc: 'Complete 20 checklist items', emoji: '📋',
     colors: ['#64d2ff', '#30a8ff'], shape: 'hex', rarity: 'uncommon',
     check: function(stats) { return stats.totalChecklistDone >= 20; }
   },
   {
-    id: 'perfectionist', title: 'Perfectionist', desc: '100% board completion', emoji: '💎',
+    id: 'pomodoro_focus', badge3Id: 'pomodoro-50', title: 'Deep Flow', desc: 'Complete 25 cards in flow', emoji: '⏳',
+    colors: ['#ff9f0a', '#d97706'], shape: 'shield', rarity: 'rare',
+    check: function(stats) { return stats.totalCompleted >= 25; }
+  },
+  {
+    id: 'crypto_architect', badge3Id: 'turing-marathon', title: 'Turing Cipher', desc: 'Finish 35 checklist tasks', emoji: '🗝️',
+    colors: ['#00F0FF', '#0070f3'], shape: 'hex', rarity: 'epic',
+    check: function(stats) { return stats.totalChecklistDone >= 35; }
+  },
+  {
+    id: 'perfectionist', badge3Id: 'cards-5000', title: 'Perfectionist', desc: '100% board completion', emoji: '💎',
     colors: ['#64d2ff', '#bf5af2', '#ff375f'], shape: 'star', rarity: 'legendary',
     check: function(stats) { return stats.boardCompletionPct >= 100 && stats.totalCards > 0; }
   },
@@ -13311,9 +13321,18 @@ var BadgeDetailModal = function(props) {
             }) : null
           ]
         }),
+        (0, P.jsxs)('a', {
+          href: 'badge3.0.html?award=' + (badge.badge3Id || 'perfect-week-study') + '&from=' + encodeURIComponent(typeof window !== 'undefined' ? (window.location.pathname.split('/').pop() || 'web9.0.html') : 'web9.0.html'),
+          className: 'w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition-all shadow-md active:scale-95 ' + (isDark ? 'bg-gradient-to-r from-amber-500/25 via-orange-500/25 to-pink-500/25 border border-amber-400/40 text-amber-200 hover:text-white hover:border-amber-300' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-105 shadow-amber-500/20'),
+          children: [
+            (0, P.jsx)('span', { children: '🎖️' }),
+            (0, P.jsx)('span', { children: 'Inspect in 3D Spatial Badge Studio' }),
+            (0, P.jsx)('span', { children: '›' })
+          ]
+        }),
         (0, P.jsx)('p', {
-          className: 'text-[11px] opacity-30 mt-1',
-          children: 'Drag to rotate'
+          className: 'text-[11px] opacity-30 mt-0.5',
+          children: 'Drag to rotate • Tap button to open Badge 3.0'
         })
       ]
     })
@@ -13913,7 +13932,15 @@ var SummaryView = function(props) {
                     className: 'w-full flex items-center justify-between mb-1',
                     children: [
                       (0, P.jsx)('span', { className: 'text-sm font-bold tracking-tight ' + textPrimary, children: 'Awards' }),
-                      (0, P.jsx)('div', { className: chevronClass, children: '›' })
+                      (0, P.jsx)('div', {
+                        className: chevronClass,
+                        title: 'Open 3D Spatial Badge Studio',
+                        onClick: function(e) {
+                          e.stopPropagation();
+                          window.location.href = 'badge3.0.html?award=' + (featuredBadge.badge3Id || 'perfect-week-study') + '&from=web9.0.html';
+                        },
+                        children: '›'
+                      })
                     ]
                   }),
                   // 3D Badge on Pedestal
@@ -13923,12 +13950,21 @@ var SummaryView = function(props) {
                       (0, P.jsx)(Badge3DViewer, { badge: featuredBadge, size: (typeof window !== 'undefined' && window.innerWidth <= 640) ? 62 : 82, animate: true, isDark: isDark }),
                     ]
                   }),
-                  // Badge info
+                  // Badge info & Studio link
                   (0, P.jsxs)('div', {
-                    className: 'pt-2 mt-auto w-full border-t flex flex-col items-center ' + (isDark ? 'border-white/[0.08]' : 'border-black/[0.06]'),
+                    className: 'pt-2 mt-auto w-full border-t flex flex-col items-center gap-1 ' + (isDark ? 'border-white/[0.08]' : 'border-black/[0.06]'),
                     children: [
                       (0, P.jsx)('span', { className: 'text-xs font-bold tracking-tight ' + textPrimary, children: featuredBadge.title }),
-                      (0, P.jsx)('span', { className: 'text-[10px] ' + textSecondary, children: '2026 Challenge · Tap to view 3D' })
+                      (0, P.jsxs)('a', {
+                        href: 'badge3.0.html?award=' + (featuredBadge.badge3Id || 'perfect-week-study') + '&from=web9.0.html',
+                        onClick: function(e) { e.stopPropagation(); },
+                        className: 'flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all active:scale-95 ' + (isDark ? 'bg-amber-400/10 text-amber-300 border-amber-400/25 hover:bg-amber-400/20' : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'),
+                        children: [
+                          (0, P.jsx)('span', { children: '🎖️' }),
+                          (0, P.jsx)('span', { children: '3D Badge Studio' }),
+                          (0, P.jsx)('span', { className: 'text-[9px] opacity-70', children: '›' })
+                        ]
+                      })
                     ]
                   })
                 ]
@@ -13941,15 +13977,24 @@ var SummaryView = function(props) {
             className: glassCard + ' flex flex-col gap-4',
             children: [
               (0, P.jsxs)('div', {
-                className: 'flex items-center justify-between',
+                className: 'flex items-center justify-between flex-wrap gap-2',
                 children: [
                   (0, P.jsxs)('div', {
-                    className: 'flex items-center gap-2.5',
+                    className: 'flex items-center gap-2.5 flex-wrap',
                     children: [
                       (0, P.jsx)('span', { className: 'text-base font-bold tracking-tight ' + textPrimary, children: 'Awards Gallery' }),
                       (0, P.jsxs)('span', {
                         className: 'text-xs px-2.5 py-0.5 rounded-full font-bold border ' + (isDark ? 'border-amber-400/30 bg-amber-400/10 text-amber-300' : 'border-amber-500/30 bg-amber-50 text-amber-800'),
                         children: [unlockedBadges.length, ' / ', BADGE_DEFINITIONS.length, ' earned']
+                      }),
+                      (0, P.jsxs)('a', {
+                        href: 'badge3.0.html?from=web9.0.html',
+                        className: 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all shadow-sm active:scale-95 ' + (isDark ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-400/30 text-amber-300 hover:border-amber-300 hover:bg-amber-500/30' : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 text-amber-900 hover:bg-amber-100'),
+                        children: [
+                          (0, P.jsx)('span', { children: '🚀' }),
+                          (0, P.jsx)('span', { children: '3D Spatial Badge Studio (50 Awards)' }),
+                          (0, P.jsx)('span', { className: 'opacity-70', children: '›' })
+                        ]
                       })
                     ]
                   }),
