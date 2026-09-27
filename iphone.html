@@ -21315,8 +21315,12 @@ var Oe = function(props) {
                   var huPhysicalRatio = 0.52;
                   var huViewportWidth = Math.max(1, viewportSize.w || window.innerWidth);
                   var huViewportHeight = Math.max(1, viewportSize.h || window.innerHeight);
-                  var huCardAspect = isLandscape ? (1 / huPhysicalRatio) : huPhysicalRatio;
-                  var huMaxCardWidth = huViewportWidth * (isLandscape ? 0.92 : 0.96);
+                  // Do not trust the outer simulator orientation flag here:
+                  // its phone chrome can rotate independently from this stage.
+                  // The physical viewport is the authoritative orientation.
+                  var huIsLandscape = huViewportWidth > huViewportHeight;
+                  var huCardAspect = huIsLandscape ? (1 / huPhysicalRatio) : huPhysicalRatio;
+                  var huMaxCardWidth = huViewportWidth * (huIsLandscape ? 0.92 : 0.96);
                   var huMaxCardHeight = huViewportHeight * 0.88;
                   var huCardWidth = Math.round(Math.min(huMaxCardWidth, huMaxCardHeight * huCardAspect));
                   var huCardHeight = Math.round(huCardWidth / huCardAspect);
