@@ -3932,6 +3932,7 @@ html.fbfx-board-fx .fb-board-stage .board-add-list-btn, html.fb-cardfx-on .fb-bo
 .theme-white .ios-tab-item.dock-fx-tab.active.spotlight { color: #b8860b; }
 .ios-tab-item.dock-fx-tab.active.smash { color: #ff453a; }
 .ios-tab-item.dock-fx-tab.active.ink { color: #8e8e93; }
+.ios-tab-item.dock-fx-tab.active.headsup { color: #30d158; }
 .ios-tab-item.dock-fx-tab .ios-tab-label { text-transform: none; }
 </style>
 <style id="fb-bar-fx">
@@ -3945,6 +3946,7 @@ html.fbfx-board-fx .fb-board-stage .board-add-list-btn, html.fb-cardfx-on .fb-bo
 .bar-fx-btn.on.spotlight { background: rgba(255,214,10,.28) !important; border-color: rgba(255,214,10,.6) !important; }
 .bar-fx-btn.on.smash { background: rgba(255,69,58,.3) !important; border-color: rgba(255,69,58,.6) !important; }
 .bar-fx-btn.on.ink { background: rgba(142,142,147,.34) !important; border-color: rgba(174,174,178,.6) !important; }
+.bar-fx-btn.on.headsup { background: rgba(48,209,88,.28) !important; border-color: rgba(48,209,88,.55) !important; color: #30d158 !important; }
 .theme-white .bar-fx-btn.on { color: #0f172a !important; }
 </style>
 <style id="fb-bar-fx-pill">
@@ -4236,21 +4238,84 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   cursor: default !important;
 }
 
-/* Card in Heads Up Hero State */
+/* 1. Full-Screen Physical Card Hero Styling */
 .coverflow-card-item.is-headsup-hero {
-  box-shadow: 0 25px 65px -12px rgba(0, 0, 0, 0.55), 0 0 35px rgba(255, 255, 255, 0.08) !important;
+  border-radius: 46px !important;
+  box-shadow: 0 30px 90px -15px rgba(0, 0, 0, 0.75), 0 0 50px rgba(255, 255, 255, 0.08) !important;
   z-index: 120 !important;
 }
 
+/* Grab the glass state */
+.coverflow-card-item.is-headsup-hero.is-grabbed .coverflow-flipper {
+  transform: translateZ(52px) scale(0.97) !important;
+  box-shadow: 0 45px 100px -12px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(255, 255, 255, 0.55), inset 0 2px 4px rgba(255, 255, 255, 0.6) !important;
+  transition: transform 0.22s cubic-bezier(0.18, 0.9, 0.25, 1.2), box-shadow 0.22s ease !important;
+}
+.coverflow-card-item.is-headsup-hero.is-grabbed .cf-broad-reflection {
+  opacity: 1 !important;
+  background: radial-gradient(100% 100% at 50% 25%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.12) 50%, transparent 80%) !important;
+}
+
+/* Action Feedback Glows */
 .coverflow-card-item.is-headsup-hero.action-feedback-correct {
-  box-shadow: 0 25px 75px -10px rgba(52, 211, 153, 0.75), 0 0 60px rgba(52, 211, 153, 0.5) !important;
+  box-shadow: 0 25px 85px -10px rgba(52, 211, 153, 0.85), 0 0 70px rgba(52, 211, 153, 0.6) !important;
 }
-
 .coverflow-card-item.is-headsup-hero.action-feedback-pass {
-  box-shadow: 0 25px 75px -10px rgba(245, 158, 11, 0.75), 0 0 60px rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 25px 85px -10px rgba(245, 158, 11, 0.85), 0 0 70px rgba(245, 158, 11, 0.6) !important;
 }
 
-/* Heads Up Floating Island Top Bar */
+/* 2. Completion Visual Effects: Glass Shatter & Liquid Dissolve */
+@keyframes huGlassShatterDisintegrate {
+  0% { transform: scale(1) translate3d(0,0,0); filter: blur(0px) contrast(1); opacity: 1; }
+  35% { transform: scale(1.04) translate3d(0,-10px,40px) rotateX(4deg); filter: blur(1px) contrast(1.4); opacity: 0.92; }
+  100% { transform: scale(0.85) translate3d(0,40px,-160px) rotateX(24deg); filter: blur(14px) brightness(2); opacity: 0; }
+}
+
+@keyframes huLiquidDissolveDisintegrate {
+  0% { transform: scale(1); filter: blur(0px); opacity: 1; border-radius: 46px; }
+  45% { transform: scale(1.06, 0.94) translateY(18px); filter: blur(6px) saturate(240%); opacity: 0.85; border-radius: 65px; }
+  100% { transform: scale(1.18, 0.4) translateY(120px); filter: blur(28px) saturate(300%) contrast(2); opacity: 0; border-radius: 120px; }
+}
+
+.hu-fx-shatter {
+  animation: huGlassShatterDisintegrate 0.44s cubic-bezier(0.2, 0.9, 0.3, 1) forwards !important;
+  pointer-events: none !important;
+}
+.hu-fx-liquid {
+  animation: huLiquidDissolveDisintegrate 0.48s cubic-bezier(0.25, 0.8, 0.25, 1) forwards !important;
+  pointer-events: none !important;
+}
+
+/* Canvas Particle Layer for Glass & Liquid */
+.hu-particle-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 135;
+}
+
+/* 3. Face Down Standby Blackout Curtain */
+.hu-facedown-curtain {
+  position: absolute;
+  inset: 0;
+  background: #000000;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.38s cubic-bezier(0.2, 0.9, 0.3, 1);
+  pointer-events: none;
+  opacity: 0;
+}
+.hu-facedown-curtain.is-active {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* 4. Heads Up Island and Bottom Bar */
 .hu-island-header {
   position: absolute;
   top: 14px;
@@ -4265,7 +4330,6 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   animation: huFadeIn 0.35s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-/* Heads Up Action Status Toast */
 .hu-status-toast {
   position: absolute;
   top: 68px;
@@ -4276,7 +4340,6 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   animation: huPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Heads Up Bottom Action Bar */
 .hu-bottom-bar {
   position: absolute;
   bottom: 20px;
@@ -4291,6 +4354,54 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   animation: huFadeIn 0.35s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
+/* 5. Motion Lab Debug Panel */
+.hu-motion-lab {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  z-index: 160;
+  width: 230px;
+  border-radius: 18px;
+  padding: 10px;
+  background: rgba(14, 20, 28, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Mono", monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  pointer-events: auto;
+  animation: huFadeIn 0.25s ease-out;
+}
+.hu-motion-lab-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  background: rgba(48, 209, 88, 0.2);
+  color: #30d158;
+  border: 1px solid rgba(48, 209, 88, 0.3);
+}
+.hu-motion-btn {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.hu-motion-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.hu-motion-btn:active {
+  transform: scale(0.95);
+}
+
 @keyframes huFadeIn {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -4299,6 +4410,55 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
 @keyframes huPop {
   from { opacity: 0; transform: translateX(-50%) scale(0.85); }
   to { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+/* ========================================================================= */
+/* Web 18.0 Safari Tab Reorder × Long Glass Panel Physics                   */
+/* ========================================================================= */
+.safari-lifted-column {
+  position: relative !important;
+  z-index: 100 !important;
+  left: auto !important;
+  right: auto !important;
+  pointer-events: none !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  transform-origin: top center !important;
+  will-change: transform, box-shadow, opacity;
+  border-color: rgba(52, 211, 153, 0.65) !important;
+  box-shadow: 0 40px 90px -12px rgba(0, 0, 0, 0.75),
+              0 18px 40px -6px rgba(0, 0, 0, 0.5),
+              0 0 0 2px rgba(52, 211, 153, 0.45),
+              inset 0 2px 3px rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(36px) saturate(220%) brightness(1.06) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(220%) brightness(1.06) !important;
+  cursor: grabbing !important;
+}
+.theme-white .safari-lifted-column {
+  border-color: rgba(16, 185, 129, 0.7) !important;
+  box-shadow: 0 34px 75px -10px rgba(15, 23, 42, 0.3),
+              0 14px 30px -6px rgba(15, 23, 42, 0.18),
+              0 0 0 2px rgba(16, 185, 129, 0.5),
+              inset 0 2px 3px rgba(255, 255, 255, 0.95) !important;
+}
+.safari-recessed-column {
+  will-change: transform, opacity, filter;
+  transform-origin: top center !important;
+  transition: transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 240ms ease, filter 240ms ease !important;
+}
+.safari-recessed-column:not(.safari-lifted-column) {
+  opacity: 0.88 !important;
+  filter: brightness(0.93) saturate(92%) !important;
+}
+.theme-white .safari-recessed-column:not(.safari-lifted-column) {
+  opacity: 0.92 !important;
+  filter: brightness(0.97) saturate(96%) !important;
+}
+body.is-safari-column-dragging {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 </style>
 </head>
@@ -16527,8 +16687,15 @@ var De = function(props) {
   (0, _.useEffect)(function() {
     var read = function() {
       var lm = window.FBFX && window.FBFX.active ? window.FBFX.mode : 'off';
-      var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.perspective-stage ~ .card-mode-btn, section .card-mode-btn');
-      var cm = cb ? cb.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX' : 'off';
+      var isCoverflow = !!document.querySelector('.perspective-stage') || (window.__HeadsUpController && window.__HeadsUpController.isActive());
+      var cm = 'off';
+      if (isCoverflow) {
+        var isHu = window.__HeadsUpController && window.__HeadsUpController.isActive();
+        cm = isHu ? 'Heads Up' : 'Card FX';
+      } else {
+        var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.perspective-stage ~ .card-mode-btn, section .card-mode-btn');
+        cm = cb ? cb.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX' : 'off';
+      }
       var key = lm + '|' + cm;
       setFxTab(function(prev) { return prev === key ? prev : key; });
     };
@@ -16867,16 +17034,26 @@ var De = function(props) {
 
           isLandscape ? (function() {
             var cm = fxTab.split('|')[1], on = cm && cm !== 'Card FX' && cm !== 'off';
+            var cmClass = cm.toLowerCase().replace(/[^a-z0-9]/g, '');
             return (0, P.jsxs)('button', {
               type: "button",
               disabled: cm === 'off',
               onClick: function() {
+                var isCoverflow = !!document.querySelector('.perspective-stage') || (window.__HeadsUpController && window.__HeadsUpController.isActive());
+                if (isCoverflow && window.__HeadsUpController) {
+                  if (window.__HeadsUpController.isActive()) {
+                    window.__HeadsUpController.exit();
+                  } else {
+                    window.__HeadsUpController.enter();
+                  }
+                  return;
+                }
                 var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.card-mode-btn');
                 if (cb) cb.click();
                 setTimeout(function() { var b2 = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.card-mode-btn'); if (b2) setFxTab(fxTab.split('|')[0] + '|' + (b2.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX')); }, 60);
               },
-              className: "bar-fx-btn " + (on ? "on " + cm + " " : "") + "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
-              title: "Card FX: " + (on ? cm : "off") + " — tap to cycle (off → liq → smash → ink)",
+              className: "bar-fx-btn " + (on ? "on " + cmClass + " " : "") + "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
+              title: "Card FX: " + (on ? cm : "off"),
               'aria-label': "Card FX",
               children: [(0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-4 h-4 block", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                 children: [(0, P.jsx)('rect', { x: 3, y: 6, width: 13, height: 15, rx: 2.6 }), (0, P.jsx)('path', { d: "M19 2.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z", fill: "currentColor", stroke: "none" }), (0, P.jsx)('path', { d: "M19.6 10.5l.45 1.1 1.1.45-1.1.45-.45 1.1-.45-1.1-1.1-.45 1.1-.45z", fill: "currentColor", stroke: "none", opacity: 0.7 })] }),
@@ -17213,19 +17390,29 @@ var De = function(props) {
             });
           })(),
 
-// 12.3 Card FX (liq / smash / ink) — drives the board's (or the Cover Flow's) card-mode switch
+// 12.3 Card FX (liq / smash / ink / Heads Up) — drives the board's (or Cover Flow's) card-mode switch
           (function() {
             var cm = fxTab.split('|')[1], on = cm && cm !== 'Card FX' && cm !== 'off';
+            var cmClass = cm.toLowerCase().replace(/[^a-z0-9]/g, '');
             return (0, P.jsxs)('button', {
               type: "button",
               disabled: cm === 'off',
               onClick: function() {
+                var isCoverflow = !!document.querySelector('.perspective-stage') || (window.__HeadsUpController && window.__HeadsUpController.isActive());
+                if (isCoverflow && window.__HeadsUpController) {
+                  if (window.__HeadsUpController.isActive()) {
+                    window.__HeadsUpController.exit();
+                  } else {
+                    window.__HeadsUpController.enter();
+                  }
+                  return;
+                }
                 var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.card-mode-btn');
                 if (cb) cb.click();
                 setTimeout(function() { var b2 = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.card-mode-btn'); if (b2) setFxTab(fxTab.split('|')[0] + '|' + (b2.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX')); }, 60);
               },
-              className: "ios-tab-item dock-fx-tab " + (on ? "active " + cm : ""),
-              title: "Card FX — tap to cycle (off → liq → smash → ink)",
+              className: "ios-tab-item dock-fx-tab " + (on ? "active " + cmClass : ""),
+              title: "Card FX",
               children: [
                 (0, P.jsx)('span', { className: "ios-tab-icon", children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-5 h-5", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                   children: [(0, P.jsx)('rect', { x: 3, y: 6, width: 13, height: 15, rx: 2.6 }), (0, P.jsx)('path', { d: "M19 2.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z", fill: "currentColor", stroke: "none" }), (0, P.jsx)('path', { d: "M19.6 10.5l.45 1.1 1.1.45-1.1.45-.45 1.1-.45-1.1-1.1-.45 1.1-.45z", fill: "currentColor", stroke: "none", opacity: 0.7 })] }) }),
@@ -17234,35 +17421,7 @@ var De = function(props) {
             });
           })(),
 
-          // 3-Ring Activity & Badges Tab
-          (0, P.jsxs)('button', {
-            type: "button",
-            onClick: function() {
-              if (onOpenBadgesModal) onOpenBadgesModal();
-              if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-            },
-            className: "ios-tab-item",
-            title: "活动三圈与电子勋章",
-            children: [
-              (0, P.jsx)('span', {
-                className: "ios-tab-icon",
-                children: (0, P.jsxs)('svg', {
-                  viewBox: "0 0 24 24",
-                  className: "w-5 h-5 block",
-                  fill: "none",
-                  children: [
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 9.5, stroke: "#FA114F", strokeWidth: 2, strokeOpacity: 0.3 }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 9.5, stroke: "#FA114F", strokeWidth: 2, strokeLinecap: "round", strokeDasharray: "59.69", strokeDashoffset: String(59.69 * (1 - Math.min((ringsState ? ringsState.focusMinutes : 18) / 30, 1))), transform: "rotate(-90 12 12)" }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 6.8, stroke: "#30D158", strokeWidth: 2, strokeOpacity: 0.3 }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 6.8, stroke: "#30D158", strokeWidth: 2, strokeLinecap: "round", strokeDasharray: "42.72", strokeDashoffset: String(42.72 * (1 - Math.min((ringsState ? ringsState.checkCount : 6) / 10, 1))), transform: "rotate(-90 12 12)" }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 4.1, stroke: "#00FFF0", strokeWidth: 2, strokeOpacity: 0.3 }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 4.1, stroke: "#00FFF0", strokeWidth: 2, strokeLinecap: "round", strokeDasharray: "25.76", strokeDashoffset: String(25.76 * (1 - Math.min((ringsState ? ringsState.goalPercent : 65) / 100, 1))), transform: "rotate(-90 12 12)" })
-                  ]
-                })
-              }),
-              (0, P.jsx)('span', { className: "ios-tab-label", children: "勋章" })
-            ]
-          })
+          // 3-Ring Activity & Badges Tab removed in portrait mode per user request
         ]
       }) : null
     ]
@@ -17299,11 +17458,17 @@ var Oe = function(props) {
   var isScrubberVisible = scrubberVisibleState[0];
   var setIsScrubberVisible = scrubberVisibleState[1];
 
-  // Heads Up Single Card Mode State
+  // Heads Up Physical Card Mode State & Particle Refs
   var headsUpState_ = (0, _.useState)({
     active: false,
-    cardAnim: 'none', // 'none' | 'next' | 'prev' | 'correct' | 'pass'
-    actionFeedback: null, // null | 'correct' | 'pass'
+    cardAnim: 'none', // 'none' | 'next' | 'prev' | 'shatter' | 'liquid' | 'snooze' | 'correct' | 'pass'
+    actionFeedback: null, // null | 'correct' | 'pass' | 'snooze'
+    physicalState: 'IDLE', // 'IDLE' | 'PRESSING' | 'GRABBED' | 'DRAGGING' | 'THROWING' | 'COMPLETING' | 'TRANSITIONING' | 'PAUSED'
+    completionEffect: 'shatter', // 'shatter' | 'liquid'
+    isFaceDown: false,
+    dragDisplacement: { x: 0, y: 0 },
+    dragVelocity: { vx: 0, vy: 0, speed: 0 },
+    showMotionLab: false,
     pitch: 0,
     roll: 0
   });
@@ -17311,6 +17476,8 @@ var Oe = function(props) {
   var setHeadsUpState = headsUpState_[1];
   var headsUpRef = (0, _.useRef)(headsUpState);
   headsUpRef.current = headsUpState;
+  var huParticleCanvasRef = (0, _.useRef)(null);
+  var huLongPressTimerRef = (0, _.useRef)(null);
 
   var scrubberTimer = (0, _.useRef)(null);
   var stageRef = (0, _.useRef)(null);
@@ -17525,21 +17692,150 @@ var Oe = function(props) {
   }, []);
 
   // =========================================================================
-  // 3D Cover — Heads Up Single Card Mode Controller & Input Adapter
+  // 3D Cover — Physical Card Mode (Heads Up) Controller & Input Adapter
   // Decoupled architecture: Input -> InputAdapter -> Controller -> State -> 3D Render
   // =========================================================================
   var headsUpControllerRef = (0, _.useRef)(null);
   var headsUpInputAdapterRef = (0, _.useRef)(null);
-  var huTouchStartRef = (0, _.useRef)({ x: 0, y: 0, t: 0, active: false });
+  var huTouchStartRef = (0, _.useRef)({ x: 0, y: 0, t: 0, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, active: false });
+
+  // Modular Completion Particle Engine (Glass Shatter & Liquid Dissolve)
+  var triggerCanvasParticles = function(effectType) {
+    var canvas = huParticleCanvasRef.current;
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    var w = canvas.width = canvas.offsetWidth || window.innerWidth;
+    var h = canvas.height = canvas.offsetHeight || window.innerHeight;
+    var particles = [];
+    var count = effectType === 'liquid' ? 55 : 68;
+    var isDarkTheme = themeMode === 'dark';
+
+    if (effectType === 'liquid') {
+      var liquidColors = isDarkTheme
+        ? ['rgba(52, 211, 153, 0.95)', 'rgba(56, 189, 248, 0.9)', 'rgba(167, 139, 250, 0.85)', 'rgba(255, 255, 255, 0.95)']
+        : ['rgba(16, 185, 129, 0.95)', 'rgba(14, 165, 233, 0.9)', 'rgba(139, 92, 246, 0.85)', 'rgba(255, 255, 255, 0.9)'];
+      for (var i = 0; i < count; i++) {
+        var ang = Math.random() * Math.PI * 2;
+        var spd = 2.5 + Math.random() * 8.5;
+        particles.push({
+          x: w / 2 + (Math.random() - 0.5) * (w * 0.45),
+          y: h / 2 + (Math.random() - 0.5) * (h * 0.35),
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd + 3.5,
+          rad: 6 + Math.random() * 18,
+          color: liquidColors[i % liquidColors.length],
+          alpha: 1.0
+        });
+      }
+    } else {
+      var shardColors = ['rgba(255, 255, 255, 0.95)', 'rgba(224, 242, 254, 0.9)', 'rgba(186, 230, 253, 0.85)', 'rgba(125, 211, 252, 0.8)'];
+      for (var j = 0; j < count; j++) {
+        var angS = Math.random() * Math.PI * 2;
+        var spdS = 4.5 + Math.random() * 16;
+        particles.push({
+          x: w / 2 + (Math.random() - 0.5) * (w * 0.5),
+          y: h / 2 + (Math.random() - 0.5) * (h * 0.45),
+          vx: Math.cos(angS) * spdS,
+          vy: Math.sin(angS) * spdS - 2.0,
+          size: 8 + Math.random() * 22,
+          rot: Math.random() * Math.PI * 2,
+          vRot: (Math.random() - 0.5) * 0.32,
+          color: shardColors[j % shardColors.length],
+          alpha: 1.0
+        });
+      }
+    }
+
+    var t0 = performance.now();
+    var duration = 460;
+    var loop = function(now) {
+      var elapsed = now - t0;
+      var prog = Math.min(1, elapsed / duration);
+      ctx.clearRect(0, 0, w, h);
+
+      if (effectType === 'liquid') {
+        particles.forEach(function(p) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.28;
+          p.rad = Math.max(1, p.rad * (1 - prog * 0.4));
+          p.alpha = Math.max(0, 1.0 - prog * 1.1);
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.ellipse(p.x, p.y, p.rad, p.rad * 1.35, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.beginPath();
+          ctx.arc(p.x - p.rad * 0.3, p.y - p.rad * 0.3, p.rad * 0.28, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      } else {
+        particles.forEach(function(p) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.42;
+          p.rot += p.vRot;
+          p.alpha = Math.max(0, 1.0 - prog * 1.15);
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-p.size / 2, -p.size / 2);
+          ctx.lineTo(p.size / 2, -p.size / 4);
+          ctx.lineTo(p.size / 3, p.size / 2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      if (prog < 1) {
+        requestAnimationFrame(loop);
+      } else {
+        ctx.clearRect(0, 0, w, h);
+      }
+    };
+    requestAnimationFrame(loop);
+  };
 
   headsUpControllerRef.current = {
     isActive: function() { return headsUpRef.current.active; },
+    getState: function() { return headsUpRef.current; },
     enter: function(targetIdx) {
+      if (gestureRef.current && gestureRef.current.release) {
+        try { gestureRef.current.release(null, true); } catch(err) {}
+      }
+      if (dragRafRef.current !== null) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
+      continuousPositionRef.current = null;
+      setDragOffset(0);
+      setIsDragging(false);
       var idx = (targetIdx !== undefined && targetIdx !== null) ? targetIdx : activeIdx;
       idx = Math.max(0, Math.min(cards.length - 1, idx));
       if (idx !== activeIdx) setActiveIdx(idx);
       setHeadsUpState(function(s) {
-        return Object.assign({}, s, { active: true, cardAnim: 'none', actionFeedback: null, pitch: 0, roll: 0 });
+        return Object.assign({}, s, {
+          active: true,
+          cardAnim: 'none',
+          actionFeedback: null,
+          physicalState: 'IDLE',
+          isFaceDown: false,
+          dragDisplacement: { x: 0, y: 0 },
+          dragVelocity: { vx: 0, vy: 0, speed: 0 },
+          pitch: 0,
+          roll: 0
+        });
       });
       if (SoundEngine && SoundEngine.play) {
         try { SoundEngine.play('slide'); } catch(e) {}
@@ -17549,8 +17845,19 @@ var Oe = function(props) {
       }
     },
     exit: function() {
+      if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
       setHeadsUpState(function(s) {
-        return Object.assign({}, s, { active: false, cardAnim: 'none', actionFeedback: null, pitch: 0, roll: 0 });
+        return Object.assign({}, s, {
+          active: false,
+          cardAnim: 'none',
+          actionFeedback: null,
+          physicalState: 'IDLE',
+          isFaceDown: false,
+          dragDisplacement: { x: 0, y: 0 },
+          dragVelocity: { vx: 0, vy: 0, speed: 0 },
+          pitch: 0,
+          roll: 0
+        });
       });
       if (SoundEngine && SoundEngine.play) {
         try { SoundEngine.play('slide'); } catch(e) {}
@@ -17560,41 +17867,70 @@ var Oe = function(props) {
       }
     },
     flipCard: function() {
+      var s = headsUpRef.current;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
       var c = cards[activeIdx];
       if (c) toggleCardFlip(c.id);
     },
-    nextCard: function() {
+    previousCard: function() {
+      var s = headsUpRef.current;
       if (cards.length <= 1) return;
-      if (headsUpRef.current.cardAnim !== 'none') return;
-      var nextIdx = (activeIdx + 1) % cards.length;
-      setHeadsUpState(function(s) { return Object.assign({}, s, { cardAnim: 'next' }); });
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      var prevIdx = (activeIdx - 1 + cards.length) % cards.length;
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'TRANSITIONING',
+          cardAnim: 'prev',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
       if (SoundEngine && SoundEngine.play) {
         try { SoundEngine.play('slide'); } catch(e) {}
       }
-      setTimeout(function() {
-        setActiveIdx(nextIdx);
-        setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; });
-        setHeadsUpState(function(s) { return Object.assign({}, s, { cardAnim: 'none' }); });
-      }, 240);
-    },
-    previousCard: function() {
-      if (cards.length <= 1) return;
-      if (headsUpRef.current.cardAnim !== 'none') return;
-      var prevIdx = (activeIdx - 1 + cards.length) % cards.length;
-      setHeadsUpState(function(s) { return Object.assign({}, s, { cardAnim: 'prev' }); });
-      if (SoundEngine && SoundEngine.play) {
-        try { SoundEngine.play('slide'); } catch(e) {}
+      if (navigator.vibrate) {
+        try { navigator.vibrate(12); } catch(e) {}
       }
       setTimeout(function() {
         setActiveIdx(prevIdx);
         setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; });
-        setHeadsUpState(function(s) { return Object.assign({}, s, { cardAnim: 'none' }); });
-      }, 240);
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, { physicalState: 'IDLE', cardAnim: 'none' });
+        });
+      }, 250);
     },
-    correctCard: function() {
+    nextCard: function() {
+      var s = headsUpRef.current;
+      if (cards.length <= 1) return;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      var nextIdx = (activeIdx + 1) % cards.length;
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'TRANSITIONING',
+          cardAnim: 'next',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('slide'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(12); } catch(e) {}
+      }
+      setTimeout(function() {
+        setActiveIdx(nextIdx);
+        setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; });
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, { physicalState: 'IDLE', cardAnim: 'none' });
+        });
+      }, 250);
+    },
+    completeCard: function(customEffect) {
+      var s = headsUpRef.current;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
       var c = cards[activeIdx];
       if (!c) return;
-      if (headsUpRef.current.cardAnim !== 'none') return;
+      var fx = customEffect || s.completionEffect || 'shatter';
+
       if (!c.complete && onToggleCardComplete) {
         onToggleCardComplete(c.columnId, c.id);
       }
@@ -17602,146 +17938,367 @@ var Oe = function(props) {
         try { SoundEngine.play('check'); } catch(e) {}
       }
       if (navigator.vibrate) {
-        try { navigator.vibrate([15, 40, 20]); } catch(e) {}
+        try { navigator.vibrate([18, 45, 20]); } catch(e) {}
       }
-      setHeadsUpState(function(s) { return Object.assign({}, s, { cardAnim: 'correct', actionFeedback: 'correct' }); });
+
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'COMPLETING',
+          cardAnim: fx,
+          actionFeedback: 'correct',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
+
+      triggerCanvasParticles(fx);
+
       setTimeout(function() {
         var nextIdx = (activeIdx + 1) % cards.length;
         setActiveIdx(nextIdx);
         setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; });
-        setHeadsUpState(function(s) { return Object.assign({}, s, { cardAnim: 'none', actionFeedback: null }); });
-      }, 300);
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, {
+            physicalState: 'IDLE',
+            cardAnim: 'none',
+            actionFeedback: null
+          });
+        });
+      }, 420);
     },
-    passCard: function() {
+    snoozeCard: function() {
+      var s = headsUpRef.current;
+      if (cards.length <= 1) return;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
       var c = cards[activeIdx];
       if (!c) return;
-      if (headsUpRef.current.cardAnim !== 'none') return;
+
       if (SoundEngine && SoundEngine.play) {
         try { SoundEngine.play('slide'); } catch(e) {}
       }
       if (navigator.vibrate) {
-        try { navigator.vibrate(15); } catch(e) {}
+        try { navigator.vibrate(22); } catch(e) {}
       }
-      setHeadsUpState(function(s) { return Object.assign({}, s, { cardAnim: 'pass', actionFeedback: 'pass' }); });
+
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'THROWING',
+          cardAnim: 'snooze',
+          actionFeedback: 'snooze',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
+
       setTimeout(function() {
         var nextIdx = (activeIdx + 1) % cards.length;
         setActiveIdx(nextIdx);
         setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; });
-        setHeadsUpState(function(s) { return Object.assign({}, s, { cardAnim: 'none', actionFeedback: null }); });
-      }, 300);
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, {
+            physicalState: 'IDLE',
+            cardAnim: 'none',
+            actionFeedback: null
+          });
+        });
+      }, 360);
+    },
+    expandCard: function() {
+      var s = headsUpRef.current;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      var c = cards[activeIdx];
+      if (!c) return;
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('flip'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(14); } catch(e) {}
+      }
+      if (!flippedMap[c.id]) {
+        toggleCardFlip(c.id);
+      }
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'IDLE',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
+    },
+    grabCard: function() {
+      var s = headsUpRef.current;
+      if (s.physicalState !== 'IDLE' && s.physicalState !== 'PRESSING') return;
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('click'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate([10, 30]); } catch(e) {}
+      }
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, { physicalState: 'GRABBED' });
+      });
+    },
+    releaseCard: function(vx, vy, dx, dy) {
+      var s = headsUpRef.current;
+      if (!['GRABBED', 'DRAGGING', 'PRESSING'].includes(s.physicalState)) return;
+
+      // Flick/Throw gestures:
+      // Right or fast right flick -> Complete Card
+      if (dx > 95 || (vx > 0.55 && dx > 25)) {
+        headsUpControllerRef.current.completeCard();
+        return;
+      }
+      // Left or fast left flick -> Next Card
+      if (dx < -95 || (vx < -0.55 && dx < -25)) {
+        headsUpControllerRef.current.nextCard();
+        return;
+      }
+      // Swipe Up -> Snooze Card
+      if (dy < -85 || (vy < -0.55 && dy < -25)) {
+        headsUpControllerRef.current.snoozeCard();
+        return;
+      }
+      // Pull Down -> Expand Card
+      if (dy > 90 || (vy > 0.55 && dy > 25)) {
+        headsUpControllerRef.current.expandCard();
+        return;
+      }
+
+      // Spring back to neutral
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'IDLE',
+          dragDisplacement: { x: 0, y: 0 },
+          dragVelocity: { vx: 0, vy: 0, speed: 0 }
+        });
+      });
+    },
+    pauseCard: function() {
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('click'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate([25, 50]); } catch(e) {}
+      }
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, { physicalState: 'PAUSED', isFaceDown: true });
+      });
+    },
+    resumeCard: function() {
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('slide'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(16); } catch(e) {}
+      }
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, { physicalState: 'IDLE', isFaceDown: false });
+      });
+    },
+    toggleFaceDown: function() {
+      if (headsUpRef.current.isFaceDown) {
+        headsUpControllerRef.current.resumeCard();
+      } else {
+        headsUpControllerRef.current.pauseCard();
+      }
     },
     setTilt: function(pitch, roll) {
-      var p = Math.max(-25, Math.min(25, pitch));
-      var r = Math.max(-25, Math.min(25, roll));
+      var p = Math.max(-30, Math.min(30, pitch));
+      var r = Math.max(-30, Math.min(30, roll));
       setHeadsUpState(function(s) { return Object.assign({}, s, { pitch: p, roll: r }); });
     },
     returnToNeutral: function() {
       setHeadsUpState(function(s) { return Object.assign({}, s, { pitch: 0, roll: 0 }); });
     },
-    getState: function() { return headsUpRef.current; }
+    setEffect: function(eff) {
+      var nextFx = eff === 'liquid' ? 'liquid' : 'shatter';
+      setHeadsUpState(function(s) { return Object.assign({}, s, { completionEffect: nextFx }); });
+      if (window.GlassUI && window.GlassUI.toast) {
+        window.GlassUI.toast("Completion Effect: " + (nextFx === 'liquid' ? "Liquid Dissolve" : "Glass Shatter"));
+      }
+    },
+    toggleMotionLab: function() {
+      setHeadsUpState(function(s) { return Object.assign({}, s, { showMotionLab: !s.showMotionLab }); });
+    }
   };
   window.__HeadsUpController = headsUpControllerRef.current;
 
   headsUpInputAdapterRef.current = {
     onKeyDown: function(e) {
+      var s = headsUpRef.current;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        headsUpControllerRef.current.exit();
+        return;
+      }
+      if (e.key === 'm' || e.key === 'M' || e.key === '`') {
+        e.preventDefault();
+        headsUpControllerRef.current.toggleMotionLab();
+        return;
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        headsUpControllerRef.current.toggleFaceDown();
+        return;
+      }
+      if (s.isFaceDown) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          headsUpControllerRef.current.resumeCard();
+        }
+        return;
+      }
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         headsUpControllerRef.current.previousCard();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         headsUpControllerRef.current.nextCard();
-      } else if (e.key === 'ArrowDown') {
+      } else if (e.key === 'ArrowDown' || e.key === 'Enter') {
         e.preventDefault();
-        headsUpControllerRef.current.correctCard();
+        headsUpControllerRef.current.completeCard();
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        headsUpControllerRef.current.passCard();
+        headsUpControllerRef.current.snoozeCard();
+      } else if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        headsUpControllerRef.current.expandCard();
+      } else if (e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        if (s.physicalState === 'GRABBED') {
+          headsUpControllerRef.current.releaseCard(0, 0, 0, 0);
+        } else {
+          headsUpControllerRef.current.grabCard();
+        }
       } else if (e.key === ' ') {
         e.preventDefault();
         headsUpControllerRef.current.flipCard();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        headsUpControllerRef.current.exit();
       }
     },
-    onTouchStart: function(e) {
-      if (!e.touches || !e.touches[0]) return;
-      var t = e.touches[0];
-      huTouchStartRef.current = { x: t.clientX, y: t.clientY, t: performance.now(), active: true };
-    },
-    onTouchMove: function(e) {
-      if (!huTouchStartRef.current.active || !e.touches || !e.touches[0]) return;
-      var t = e.touches[0];
-      var dx = t.clientX - huTouchStartRef.current.x;
-      var dy = t.clientY - huTouchStartRef.current.y;
-      headsUpControllerRef.current.setTilt(-dy * 0.12, dx * 0.12);
-      if (e.cancelable && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
-        e.preventDefault();
+    onPointerDown: function(clientX, clientY, target) {
+      var s = headsUpRef.current;
+      if (s.isFaceDown) {
+        headsUpControllerRef.current.resumeCard();
+        return;
       }
-    },
-    onTouchEnd: function(e) {
-      if (!huTouchStartRef.current.active) return;
-      huTouchStartRef.current.active = false;
-      var t = (e && e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
-      headsUpControllerRef.current.returnToNeutral();
-      if (!t) return;
-      var dx = t.clientX - huTouchStartRef.current.x;
-      var dy = t.clientY - huTouchStartRef.current.y;
-      var dt = performance.now() - huTouchStartRef.current.t;
+      if (target && target.closest && target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING'].includes(s.physicalState)) return;
 
-      // Vertical gestures: Swipe Down = Correct, Swipe Up = Pass
-      if (Math.abs(dy) > 55 && Math.abs(dy) > Math.abs(dx) * 1.15 && dt < 450) {
-        if (dy > 0) {
-          headsUpControllerRef.current.correctCard();
-        } else {
-          headsUpControllerRef.current.passCard();
+      huTouchStartRef.current = {
+        x: clientX,
+        y: clientY,
+        t: performance.now(),
+        lastX: clientX,
+        lastY: clientY,
+        lastT: performance.now(),
+        vx: 0,
+        vy: 0,
+        active: true
+      };
+
+      setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'PRESSING' }); });
+
+      // Start 320ms timer for Grab the Glass
+      if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
+      huLongPressTimerRef.current = setTimeout(function() {
+        if (huTouchStartRef.current.active && headsUpRef.current.physicalState === 'PRESSING') {
+          headsUpControllerRef.current.grabCard();
         }
-        return;
-      }
-      // Horizontal gestures: Swipe Left = Next, Swipe Right = Prev
-      if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.15 && dt < 450) {
-        if (dx < 0) {
-          headsUpControllerRef.current.nextCard();
-        } else {
-          headsUpControllerRef.current.previousCard();
-        }
-        return;
-      }
-      // Tap on card: Flip
-      if (Math.hypot(dx, dy) < 12 && dt < 320) {
-        if (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
-        headsUpControllerRef.current.flipCard();
-      }
+      }, 320);
     },
-    onPointerMove: function(e) {
-      if (!headsUpRef.current.active) return;
-      if (e.pointerType === 'mouse') {
+    onPointerMove: function(clientX, clientY) {
+      var s = headsUpRef.current;
+      if (s.isFaceDown) return;
+      var track = huTouchStartRef.current;
+      if (!track.active) {
         var stageEl = stageRef.current;
         if (!stageEl) return;
         var rect = stageEl.getBoundingClientRect();
         var cx = rect.left + rect.width / 2;
         var cy = rect.top + rect.height / 2;
-        var relX = (e.clientX - cx) / (rect.width / 2);
-        var relY = (e.clientY - cy) / (rect.height / 2);
+        var relX = (clientX - cx) / (rect.width / 2);
+        var relY = (clientY - cy) / (rect.height / 2);
         headsUpControllerRef.current.setTilt(relY * -12, relX * 14);
+        return;
+      }
+
+      var dx = clientX - track.x;
+      var dy = clientY - track.y;
+      var now = performance.now();
+      var dt = Math.max(1, now - track.lastT);
+      var instVx = (clientX - track.lastX) / dt;
+      var instVy = (clientY - track.lastY) / dt;
+      track.vx = track.vx * 0.6 + instVx * 0.4;
+      track.vy = track.vy * 0.6 + instVy * 0.4;
+      track.lastX = clientX;
+      track.lastY = clientY;
+      track.lastT = now;
+
+      if (Math.hypot(dx, dy) > 8 && s.physicalState === 'PRESSING') {
+        if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
+        setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'DRAGGING' }); });
+      }
+
+      var curState = headsUpRef.current.physicalState;
+      if (curState === 'GRABBED' || curState === 'DRAGGING') {
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, {
+            dragDisplacement: { x: dx, y: dy },
+            dragVelocity: { vx: track.vx, vy: track.vy, speed: Math.hypot(track.vx, track.vy) }
+          });
+        });
+        headsUpControllerRef.current.setTilt(-dy * 0.12, dx * 0.12);
       }
     },
-    onPointerLeave: function() {
-      if (headsUpRef.current.active) {
-        headsUpControllerRef.current.returnToNeutral();
+    onPointerUp: function(clientX, clientY, target) {
+      if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
+      var track = huTouchStartRef.current;
+      if (!track.active) return;
+      track.active = false;
+
+      var dx = (clientX !== undefined ? clientX : track.lastX) - track.x;
+      var dy = (clientY !== undefined ? clientY : track.lastY) - track.y;
+      var dt = performance.now() - track.t;
+
+      headsUpControllerRef.current.returnToNeutral();
+
+      if (Math.hypot(dx, dy) < 10 && dt < 320) {
+        if (target && target.closest && target.closest('button, input, textarea, a, select, [data-interactive="true"]')) {
+          setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'IDLE' }); });
+          return;
+        }
+        headsUpControllerRef.current.flipCard();
+        setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'IDLE' }); });
+        return;
       }
+
+      headsUpControllerRef.current.releaseCard(track.vx, track.vy, dx, dy);
+    },
+    onTouchStart: function(e) {
+      if (!e.touches || !e.touches[0]) return;
+      var t = e.touches[0];
+      headsUpInputAdapterRef.current.onPointerDown(t.clientX, t.clientY, e.target);
+    },
+    onTouchMove: function(e) {
+      if (!e.touches || !e.touches[0]) return;
+      var t = e.touches[0];
+      headsUpInputAdapterRef.current.onPointerMove(t.clientX, t.clientY);
+      if (e.cancelable && headsUpRef.current.active) {
+        e.preventDefault();
+      }
+    },
+    onTouchEnd: function(e) {
+      var t = (e && e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+      headsUpInputAdapterRef.current.onPointerUp(t ? t.clientX : undefined, t ? t.clientY : undefined, e ? e.target : null);
     },
     onDeviceMotion: function(pitch, roll) {
-      if (!headsUpRef.current.active) return;
+      if (!headsUpRef.current.active || headsUpRef.current.isFaceDown) return;
       if (pitch < -28) {
         if (!headsUpInputAdapterRef.current._tiltArmed) {
           headsUpInputAdapterRef.current._tiltArmed = true;
-          headsUpControllerRef.current.correctCard();
+          headsUpControllerRef.current.completeCard();
         }
       } else if (pitch > 28) {
         if (!headsUpInputAdapterRef.current._tiltArmed) {
           headsUpInputAdapterRef.current._tiltArmed = true;
-          headsUpControllerRef.current.passCard();
+          headsUpControllerRef.current.snoozeCard();
         }
       } else if (Math.abs(pitch) < 14) {
         headsUpInputAdapterRef.current._tiltArmed = false;
@@ -17855,7 +18412,10 @@ var Oe = function(props) {
   // (installed by the effect below and reached through gestureRef), so the
   // simulator's mouse feels exactly like a finger on the phone.
   var onPointerDown = function(e) {
-    if (headsUpRef.current && headsUpRef.current.active) return;
+    if (headsUpRef.current && headsUpRef.current.active) {
+      if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerDown(e.clientX, e.clientY, e.target);
+      return;
+    }
     // iPhone/iPad use the native non-passive touch listeners below. Keeping
     // touch out of the Pointer Events path avoids WebKit cancelling the pointer
     // stream while it decides whether the page should scroll.
@@ -17904,7 +18464,10 @@ var Oe = function(props) {
   };
 
   var onPointerUp = function(e) {
-    if (headsUpRef.current && headsUpRef.current.active) return;
+    if (headsUpRef.current && headsUpRef.current.active) {
+      if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerUp(e.clientX, e.clientY, e.target);
+      return;
+    }
     if (e.pointerType === 'touch') return;
     var engine = gestureRef.current;
     if (!engine || !engine.isActive('mouse')) return;
@@ -20086,6 +20649,7 @@ var Oe = function(props) {
     return rim;
   };
   var applyDragTransform = function(rawDx, fx) {
+    if (headsUpRef.current && headsUpRef.current.active) return;
     var dragFraction = -rawDx / dragNormalizer;
     var fxPress = fx ? (fx.press || 0) : 0;
     var fxBoost = fx ? (fx.boost || 0) : 0;
@@ -20262,63 +20826,6 @@ var Oe = function(props) {
     // handlers below, never by this declarative touch-action.
     style: { paddingBottom: (isLandscape ? "14px" : "68px"), overscrollBehavior: "contain", touchAction: (isLandscape ? "none" : "pan-y") },
     children: [
-      // 8.4 Card mode button (无 ➔ liq ➔ smash), from Web 16.5
-      (0, P.jsxs)('button', {
-        type: "button",
-        style: { opacity: headsUpState.active ? 0 : 1, pointerEvents: headsUpState.active ? "none" : "auto", transition: "opacity 0.25s ease" },
-        className: "card-mode-btn" + (cardMode !== 'none' ? " on " + cardMode : " none"),
-        title: "卡片模式: " + (cardMode === 'liq' ? "liq（流体水波）" : (cardMode === 'smash' ? "smash（钢珠粉碎）" : (cardMode === 'ink' ? "ink（隐形墨水：擦一擦显现，点一下全部显现）" : "无（常规翻转）"))) + " — 点击切换 (无 ➔ liq ➔ smash ➔ ink)",
-        'aria-label': "Card Mode: " + cardMode,
-        onClick: function(e) {
-          e.stopPropagation();
-          var nextMode = cardMode === 'none' ? 'liq' : (cardMode === 'liq' ? 'smash' : (cardMode === 'smash' ? 'ink' : 'none'));
-          setCardMode(nextMode);
-          if (SoundEngine && SoundEngine.play) {
-            try {
-              if (nextMode === 'smash') SoundEngine.play('glass_crack');
-              else if (nextMode === 'liq') SoundEngine.play('slide');
-              else SoundEngine.play('click');
-            } catch(err) {}
-          }
-          
-        },
-        children: [
-          (0, P.jsx)('span', {
-            className: "mode-glyph",
-            children: cardMode === 'smash' ? (0, P.jsxs)('svg', {
-              viewBox: "0 0 16 16", width: 14, height: 14, 'aria-hidden': "true",
-              children: [
-                (0, P.jsx)('path', { d: "M10.2 1.6 8.9 4.4l2.4.4-1.9 2.2 2.8.3M13.9 3.2l-2.6 1.6M14.6 8.2l-2.4-1.2", fill: "none", stroke: "currentColor", strokeWidth: 1.2, strokeLinecap: "round", strokeLinejoin: "round", opacity: 0.9 }),
-                (0, P.jsx)('circle', { cx: 6, cy: 10, r: 4.6, fill: "currentColor" }),
-                (0, P.jsx)('circle', { cx: 4.6, cy: 8.5, r: 1.3, fill: "#fff", opacity: 0.85 })
-              ]
-            }) : (cardMode === 'ink' ? (0, P.jsxs)('svg', {
-              viewBox: "0 0 16 16", width: 14, height: 14, 'aria-hidden': "true",
-              children: [
-                (0, P.jsx)('circle', { cx: 3, cy: 4, r: 1.1, fill: "currentColor", opacity: 0.9 }),
-                (0, P.jsx)('circle', { cx: 7.5, cy: 2.6, r: 0.8, fill: "currentColor", opacity: 0.6 }),
-                (0, P.jsx)('circle', { cx: 12.5, cy: 4.4, r: 1.2, fill: "currentColor" }),
-                (0, P.jsx)('circle', { cx: 5.2, cy: 8.2, r: 1.3, fill: "currentColor" }),
-                (0, P.jsx)('circle', { cx: 10, cy: 8, r: 0.9, fill: "currentColor", opacity: 0.7 }),
-                (0, P.jsx)('circle', { cx: 2.6, cy: 12.4, r: 0.8, fill: "currentColor", opacity: 0.6 }),
-                (0, P.jsx)('circle', { cx: 8, cy: 12.8, r: 1.2, fill: "currentColor", opacity: 0.9 }),
-                (0, P.jsx)('circle', { cx: 13, cy: 11.6, r: 0.9, fill: "currentColor", opacity: 0.75 })
-              ]
-            }) : (cardMode === 'liq' ? "≋" : (0, P.jsxs)('svg', {
-              viewBox: "0 0 16 16", width: 14, height: 14, 'aria-hidden': "true",
-              children: [
-                (0, P.jsx)('rect', { x: 1.5, y: 3.5, width: 9.5, height: 11, rx: 2, fill: "none", stroke: "currentColor", strokeWidth: 1.3 }),
-                (0, P.jsx)('path', { d: "M12.6 1.2l.55 1.45 1.45.55-1.45.55-.55 1.45-.55-1.45-1.45-.55 1.45-.55z", fill: "currentColor" }),
-                (0, P.jsx)('path', { d: "M13.6 7.4l.35.9.9.35-.9.35-.35.9-.35-.9-.9-.35.9-.35z", fill: "currentColor", opacity: 0.7 })
-              ]
-            })))
-          }),
-          (0, P.jsx)('span', {
-            className: "mode-label",
-            children: cardMode === 'liq' ? "liq" : (cardMode === 'smash' ? "smash" : (cardMode === 'ink' ? "ink" : "Card FX"))
-          })
-        ]
-      }),
       // Zen mode exit button
       isZenMode ? (0, P.jsxs)('button', {
         type: "button",
@@ -20338,22 +20845,37 @@ var Oe = function(props) {
             className: "flex items-center gap-1.5 px-3 py-1 rounded-full backdrop-blur-xl bg-black/35 border border-white/20 text-xs font-semibold text-white/90 shadow-md",
             children: [
               (0, P.jsx)('span', { className: "w-2 h-2 rounded-full shadow-sm", style: { backgroundColor: cards[activeIdx].columnColor || "#30d158" } }),
-              (0, P.jsx)('span', { className: "truncate max-w-[120px]", children: cards[activeIdx].columnTitle || "Card" })
+              (0, P.jsx)('span', { className: "truncate max-w-[110px]", children: cards[activeIdx].columnTitle || "Card" })
             ]
           }),
           (0, P.jsxs)('div', {
-            className: "px-3 py-1 rounded-full backdrop-blur-xl bg-white/10 border border-white/15 text-xs font-mono font-medium text-white/90 shadow-sm",
-            children: ["CARD ", activeIdx + 1, " OF ", cards.length]
-          }),
-          (0, P.jsx)('button', {
-            type: "button",
-            onClick: function(e) {
-              e.stopPropagation();
-              headsUpControllerRef.current.exit();
-            },
-            className: "w-7 h-7 rounded-full backdrop-blur-xl bg-black/40 border border-white/20 text-white/80 hover:text-white hover:bg-black/60 flex items-center justify-center transition-all duration-200 active:scale-90 text-sm font-bold shadow-md cursor-pointer",
-            title: "Exit Heads Up (Esc)",
-            children: "✕"
+            className: "flex items-center gap-2",
+            children: [
+              (0, P.jsxs)('div', {
+                className: "px-3 py-1 rounded-full backdrop-blur-xl bg-white/10 border border-white/15 text-xs font-mono font-medium text-white/90 shadow-sm",
+                children: ["CARD ", activeIdx + 1, " OF ", cards.length]
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function(e) {
+                  e.stopPropagation();
+                  headsUpControllerRef.current.toggleMotionLab();
+                },
+                className: "w-7 h-7 rounded-full backdrop-blur-xl bg-white/10 border border-white/20 text-white/80 hover:text-white hover:bg-white/20 flex items-center justify-center transition-all duration-200 active:scale-90 text-xs shadow-md cursor-pointer",
+                title: "Toggle Motion Lab Debug Panel (Press M)",
+                children: "⚗️"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function(e) {
+                  e.stopPropagation();
+                  headsUpControllerRef.current.exit();
+                },
+                className: "w-7 h-7 rounded-full backdrop-blur-xl bg-black/40 border border-white/20 text-white/80 hover:text-white hover:bg-black/60 flex items-center justify-center transition-all duration-200 active:scale-90 text-sm font-bold shadow-md cursor-pointer",
+                title: "Exit Heads Up (Esc)",
+                children: "✕"
+              })
+            ]
           })
         ]
       }) : null,
@@ -20362,9 +20884,150 @@ var Oe = function(props) {
       headsUpState.active && headsUpState.actionFeedback ? (0, P.jsx)('div', {
         className: "hu-status-toast",
         children: (0, P.jsx)('div', {
-          className: "px-4 py-1.5 rounded-full text-xs font-bold shadow-xl border backdrop-blur-xl " + (headsUpState.actionFeedback === 'correct' ? "bg-emerald-500/90 text-white border-emerald-400/50" : "bg-amber-500/90 text-white border-amber-400/50"),
-          children: headsUpState.actionFeedback === 'correct' ? "✓ Complete" : "⤳ Passed"
+          className: "px-4 py-1.5 rounded-full text-xs font-bold shadow-xl border backdrop-blur-xl " + (headsUpState.actionFeedback === 'correct' ? "bg-emerald-500/90 text-white border-emerald-400/50" : (headsUpState.actionFeedback === 'snooze' ? "bg-purple-500/90 text-white border-purple-400/50" : "bg-amber-500/90 text-white border-amber-400/50")),
+          children: headsUpState.actionFeedback === 'correct' ? "✓ Complete" : (headsUpState.actionFeedback === 'snooze' ? "⤳ Snoozed · Later" : "⤳ Passed")
         })
+      }) : null,
+
+      // Particle Canvas for Modular Glass Shatter / Liquid Dissolve
+      headsUpState.active ? (0, P.jsx)('canvas', {
+        ref: huParticleCanvasRef,
+        className: "hu-particle-canvas"
+      }) : null,
+
+      // Face Down Blackout Curtain (Pause Session / Deep Focus)
+      headsUpState.active ? (0, P.jsxs)('div', {
+        className: "hu-facedown-curtain " + (headsUpState.isFaceDown ? "is-active" : ""),
+        onClick: function() { headsUpControllerRef.current.resumeCard(); },
+        children: [
+          (0, P.jsx)('div', {
+            className: "w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 animate-pulse",
+            children: (0, P.jsx)('span', { className: "text-2xl", children: "📴" })
+          }),
+          (0, P.jsx)('span', {
+            className: "text-base font-semibold text-white/50 tracking-wider mb-1",
+            children: "Face Down · Deep Focus"
+          }),
+          (0, P.jsx)('span', {
+            className: "text-xs text-white/30 tracking-tight",
+            children: "Screen standby · Tap or flip face up to resume"
+          })
+        ]
+      }) : null,
+
+      // Web Motion Lab Debug Console
+      headsUpState.active && headsUpState.showMotionLab ? (0, P.jsxs)('div', {
+        className: "hu-motion-lab",
+        children: [
+          (0, P.jsxs)('div', {
+            className: "flex items-center justify-between pb-2 mb-2 border-b border-white/15",
+            children: [
+              (0, P.jsxs)('div', {
+                className: "flex items-center gap-1.5 font-bold text-white text-[12px]",
+                children: [
+                  (0, P.jsx)('span', { children: "⚗️" }),
+                  (0, P.jsx)('span', { children: "Motion Lab" })
+                ]
+              }),
+              (0, P.jsx)('span', {
+                className: "hu-motion-lab-badge " + (
+                  headsUpState.physicalState === 'GRABBED' ? "bg-amber-500/25 text-amber-300 border border-amber-400/40" :
+                  headsUpState.physicalState === 'DRAGGING' ? "bg-cyan-500/25 text-cyan-300 border border-cyan-400/40" :
+                  headsUpState.physicalState === 'COMPLETING' ? "bg-emerald-500/25 text-emerald-300 border border-emerald-400/40" :
+                  headsUpState.physicalState === 'THROWING' ? "bg-purple-500/25 text-purple-300 border border-purple-400/40" :
+                  headsUpState.physicalState === 'PAUSED' ? "bg-rose-500/25 text-rose-300 border border-rose-400/40" :
+                  "bg-white/10 text-white/70 border border-white/10"
+                ),
+                children: headsUpState.physicalState
+              })
+            ]
+          }),
+          (0, P.jsxs)('div', {
+            className: "grid grid-cols-2 gap-1 text-[10px] text-white/75 font-mono mb-2 pb-2 border-b border-white/10",
+            children: [
+              (0, P.jsxs)('div', { children: ["vx: ", headsUpState.dragVelocity.vx.toFixed(2)] }),
+              (0, P.jsxs)('div', { children: ["vy: ", headsUpState.dragVelocity.vy.toFixed(2)] }),
+              (0, P.jsxs)('div', { children: ["dx: ", Math.round(headsUpState.dragDisplacement.x), "px"] }),
+              (0, P.jsxs)('div', { children: ["dy: ", Math.round(headsUpState.dragDisplacement.y), "px"] })
+            ]
+          }),
+          (0, P.jsxs)('div', {
+            className: "flex items-center justify-between mb-2 text-[10px]",
+            children: [
+              (0, P.jsx)('span', { className: "text-white/60", children: "Effect:" }),
+              (0, P.jsxs)('div', {
+                className: "flex gap-1",
+                children: [
+                  (0, P.jsx)('button', {
+                    type: "button",
+                    onClick: function() { headsUpControllerRef.current.setEffect('shatter'); },
+                    className: "px-2 py-0.5 rounded text-[10px] font-semibold transition-all " + (headsUpState.completionEffect === 'shatter' ? "bg-cyan-500 text-white shadow" : "bg-white/10 text-white/60 hover:text-white"),
+                    children: "Shatter"
+                  }),
+                  (0, P.jsx)('button', {
+                    type: "button",
+                    onClick: function() { headsUpControllerRef.current.setEffect('liquid'); },
+                    className: "px-2 py-0.5 rounded text-[10px] font-semibold transition-all " + (headsUpState.completionEffect === 'liquid' ? "bg-emerald-500 text-white shadow" : "bg-white/10 text-white/60 hover:text-white"),
+                    children: "Liquid"
+                  })
+                ]
+              })
+            ]
+          }),
+          (0, P.jsxs)('div', {
+            className: "grid grid-cols-2 gap-1.5",
+            children: [
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.previousCard(); },
+                className: "px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white/90 text-[10px] transition-all active:scale-95",
+                children: "⟵ Tilt Left"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.nextCard(); },
+                className: "px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white/90 text-[10px] transition-all active:scale-95",
+                children: "Tilt Right ⟶"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.completeCard(); },
+                className: "px-2 py-1 rounded bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-400/30 text-[10px] font-semibold transition-all active:scale-95",
+                children: "✓ Complete"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.snoozeCard(); },
+                className: "px-2 py-1 rounded bg-purple-500/25 hover:bg-purple-500/40 text-purple-300 border border-purple-400/30 text-[10px] font-semibold transition-all active:scale-95",
+                children: "⤳ Snooze / Later"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.expandCard(); },
+                className: "px-2 py-1 rounded bg-sky-500/25 hover:bg-sky-500/40 text-sky-300 border border-sky-400/30 text-[10px] transition-all active:scale-95",
+                children: "⬇ Pull Expand"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() {
+                  if (headsUpState.physicalState === 'GRABBED') {
+                    headsUpControllerRef.current.releaseCard(0, 0, 0, 0);
+                  } else {
+                    headsUpControllerRef.current.grabCard();
+                  }
+                },
+                className: "px-2 py-1 rounded bg-amber-500/25 hover:bg-amber-500/40 text-amber-300 border border-amber-400/30 text-[10px] transition-all active:scale-95",
+                children: headsUpState.physicalState === 'GRABBED' ? "Release Glass" : "Grab Glass"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.toggleFaceDown(); },
+                className: "col-span-2 px-2 py-1 rounded bg-rose-500/25 hover:bg-rose-500/40 text-rose-300 border border-rose-400/30 text-[10px] transition-all active:scale-95",
+                children: headsUpState.isFaceDown ? "Wake Up Screen" : "📴 Face Down (Deep Focus)"
+              })
+            ]
+          })
+        ]
       }) : null,
 
       // 3D Perspective Stage
@@ -20380,10 +21043,8 @@ var Oe = function(props) {
             if (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
             var curCard = cards[activeIdx];
             var curEl = curCard ? cardElRefs[curCard.id] : null;
-            if (curEl && curEl.contains(e.target)) {
+            if (curEl && (curEl === e.target || curEl.contains(e.target))) {
               headsUpControllerRef.current.flipCard();
-            } else {
-              headsUpControllerRef.current.exit();
             }
             return;
           }
@@ -20474,10 +21135,10 @@ var Oe = function(props) {
 
               if (isHu) {
                 if (isCenter) {
-                  var targetZ = isLandscape ? 160 : 220;
+                  var targetZ = isLandscape ? 170 : 230;
                   var targetScale = isLandscape 
-                    ? Math.min(1.15, Math.max(0.9, (stageHeight - 40) / cardHeight)) 
-                    : Math.min(1.24, Math.max(1.0, (viewportSize.w - 36) / cardWidth));
+                    ? Math.min(1.22, Math.max(0.95, (stageHeight - 20) / cardHeight)) 
+                    : Math.min(1.36, Math.max(1.05, (viewportSize.w - 14) / cardWidth));
                   
                   transX = 0;
                   transY = 0;
@@ -20489,39 +21150,49 @@ var Oe = function(props) {
 
                   // Departure / Arrival Animations in Heads Up
                   if (huAnim === 'next') {
-                    transX = -340;
-                    rotY = -26;
-                    transZ = targetZ - 100;
-                    opacity = 0;
-                    scale = targetScale * 0.88;
-                  } else if (huAnim === 'prev') {
-                    transX = 340;
-                    rotY = 26;
-                    transZ = targetZ - 100;
-                    opacity = 0;
-                    scale = targetScale * 0.88;
-                  } else if (huAnim === 'correct') {
-                    transY = 140;
-                    rotX = 22;
-                    transZ = targetZ + 40;
-                    opacity = 0;
-                    scale = targetScale * 0.92;
-                  } else if (huAnim === 'pass') {
-                    transY = -150;
-                    rotX = -22;
+                    transX = -360;
+                    rotY = -28;
                     transZ = targetZ - 120;
                     opacity = 0;
-                    scale = targetScale * 0.88;
+                    scale = targetScale * 0.86;
+                  } else if (huAnim === 'prev') {
+                    transX = 360;
+                    rotY = 28;
+                    transZ = targetZ - 120;
+                    opacity = 0;
+                    scale = targetScale * 0.86;
+                  } else if (huAnim === 'correct' || huAnim === 'shatter' || huAnim === 'liquid') {
+                    transY = 160;
+                    rotX = 24;
+                    transZ = targetZ + 60;
+                    opacity = 0;
+                    scale = targetScale * 0.92;
+                  } else if (huAnim === 'pass' || huAnim === 'snooze') {
+                    transY = -380;
+                    rotX = -30;
+                    transZ = targetZ - 280;
+                    opacity = 0;
+                    scale = targetScale * 0.75;
                   } else {
                     rotX = headsUpState.pitch;
                     rotY = headsUpState.roll;
+                    if (headsUpState.physicalState === 'GRABBED') {
+                      transZ = targetZ + 55;
+                      scale = targetScale * 0.97;
+                    } else if (headsUpState.physicalState === 'DRAGGING') {
+                      transX = headsUpState.dragDisplacement.x;
+                      transY = headsUpState.dragDisplacement.y;
+                      rotX = headsUpState.pitch - headsUpState.dragDisplacement.y * 0.08;
+                      rotY = headsUpState.roll + headsUpState.dragDisplacement.x * 0.08;
+                      transZ = targetZ + (headsUpState.physicalState === 'GRABBED' ? 55 : 30);
+                    }
                   }
                 } else {
                   // Surrounding cards recede deep into depth and fade
-                  transZ = pose.z - 480;
-                  transX = pose.x * 1.5;
+                  transZ = pose.z - 650;
+                  transX = pose.x * 1.6;
                   rotY = pose.rotation;
-                  scale = pose.scale * 0.7;
+                  scale = pose.scale * 0.55;
                   opacity = 0;
                   zIndex = 1;
                 }
@@ -20601,11 +21272,10 @@ var Oe = function(props) {
                   transform: "perspective(640px) translate3d(" + transX.toFixed(1) + "px," + transY.toFixed(1) + "px," + transZ.toFixed(1) + "px)" + tiltTransform + " scale(" + scale.toFixed(3) + ")",
                   opacity: opacity,
                   zIndex: zIndex,
-                  pointerEvents: (isHu && !isCenter) ? "none" : "auto",
-                  transition: isDragging ? "none" : "transform 0.42s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.32s ease-out, box-shadow 0.3s ease",
+                  transition: (isDragging || (isHu && isCenter && (headsUpState.physicalState === 'DRAGGING' || headsUpState.physicalState === 'GRABBED'))) ? "none" : "transform 0.42s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.32s ease-out, box-shadow 0.3s ease",
                   willChange: "transform, opacity"
                 },
-                className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]" + (isHu && isCenter ? " is-headsup-hero" : "") + (isHu && isCenter && headsUpState.actionFeedback ? " action-feedback-" + headsUpState.actionFeedback : ""),
+                className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]" + (isHu && isCenter ? " is-headsup-hero" : "") + (isHu && isCenter && headsUpState.physicalState === 'GRABBED' ? " is-grabbed" : "") + (isHu && isCenter && huAnim === 'shatter' ? " hu-fx-shatter" : "") + (isHu && isCenter && huAnim === 'liquid' ? " hu-fx-liquid" : "") + (isHu && isCenter && headsUpState.actionFeedback ? " action-feedback-" + headsUpState.actionFeedback : ""),
                 children: [
                   (0, P.jsxs)('div', {
                     style: { transformStyle: 'preserve-3d', borderRadius: '32px' },
@@ -20641,17 +21311,6 @@ var Oe = function(props) {
                           (0, P.jsx)('div', { className: "cf-broad-reflection", 'aria-hidden': "true" }),
                           (0, P.jsx)('div', { className: "cf-touch-sheen", 'aria-hidden': "true" }),
                           (0, P.jsx)('div', { className: "cf-impact-glint", 'aria-hidden': "true" }),
-                          (!isHu && isCenter) ? (0, P.jsx)('button', {
-                            type: "button",
-                            "data-interactive": "true",
-                            onClick: function(e) {
-                              e.stopPropagation();
-                              headsUpControllerRef.current.enter(activeIdx);
-                            },
-                            className: "absolute top-3.5 right-3.5 z-20 p-1.5 rounded-full bg-black/25 hover:bg-black/45 text-white/80 hover:text-white transition-all backdrop-blur-md border border-white/15 active:scale-90 cursor-pointer",
-                            title: "Enter Heads Up (Single Card Focus)",
-                            children: (0, P.jsx)(IconMaximize, { className: "w-3.5 h-3.5" })
-                          }) : null,
                           (isHu && isCenter) ? (0, P.jsxs)('div', {
                             className: "absolute bottom-3.5 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[10px] text-white/60 tracking-wider font-medium select-none pointer-events-none",
                             children: [
@@ -21038,10 +21697,10 @@ var Oe = function(props) {
             children: [
               (0, P.jsx)('button', {
                 type: "button",
-                onClick: function(e) { e.stopPropagation(); headsUpControllerRef.current.passCard(); },
-                className: "px-3 py-1 rounded-full text-xs font-semibold bg-white/10 hover:bg-amber-500/20 text-white/80 hover:text-amber-300 border border-white/10 hover:border-amber-400/30 transition-all active:scale-95 cursor-pointer",
-                title: "Pass Card (Swipe Up or ↑)",
-                children: "⤳ Pass"
+                onClick: function(e) { e.stopPropagation(); headsUpControllerRef.current.snoozeCard(); },
+                className: "px-3 py-1 rounded-full text-xs font-semibold bg-white/10 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-400/30 transition-all active:scale-95 cursor-pointer",
+                title: "Snooze / Later (Swipe Up or ↑)",
+                children: "⤳ Snooze"
               }),
               (0, P.jsx)('button', {
                 type: "button",
@@ -21052,16 +21711,23 @@ var Oe = function(props) {
               }),
               (0, P.jsx)('button', {
                 type: "button",
-                onClick: function(e) { e.stopPropagation(); headsUpControllerRef.current.correctCard(); },
+                onClick: function(e) { e.stopPropagation(); headsUpControllerRef.current.completeCard(); },
                 className: "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-400/40 transition-all active:scale-95 cursor-pointer",
-                title: "Mark Correct (Swipe Down or ↓)",
+                title: "Mark Complete (Swipe Down or Flick)",
                 children: "✓ Complete"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function(e) { e.stopPropagation(); headsUpControllerRef.current.exit(); },
+                className: "px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 transition-all active:scale-95 cursor-pointer",
+                title: "Exit Heads Up",
+                children: "✕"
               })
             ]
           }),
           (0, P.jsx)('span', {
             className: "text-[10px] text-white/50 tracking-wider font-medium select-none pointer-events-none",
-            children: "Swipe ↓ Complete · Swipe ↑ Pass · ← → Next/Prev · Tap Flip"
+            children: "Swipe ↓ Complete · Swipe ↑ Snooze · Pull ↓ Expand · Hold Grab · ← → Prev/Next"
           })
         ]
       }) : null,
@@ -21101,21 +21767,7 @@ var Oe = function(props) {
             ]
           })
         ]
-      }),
-
-      // Heads Up Single Card Mode Entry Button
-      !headsUpState.active ? (0, P.jsxs)('button', {
-        type: "button",
-        onClick: function(e) {
-          e.stopPropagation();
-          headsUpControllerRef.current.enter(activeIdx);
-        },
-        className: "mt-1 px-3.5 py-1.5 rounded-full text-xs font-semibold backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-95 flex items-center gap-1.5 z-30 cursor-pointer " + (isDark ? "bg-white/10 text-white/95 border-white/20 hover:bg-white/20" : "bg-slate-900/10 text-slate-800 border-slate-900/20 hover:bg-slate-900/15"),
-        children: [
-          (0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-emerald-400 animate-pulse" }),
-          (0, P.jsx)('span', { children: "🎯 Heads Up Mode" })
-        ]
-      }) : null
+      })
     ]
   });
 };
@@ -22067,7 +22719,6 @@ var MinestPortraitGestureManager = (function() {
     var pullGhost = null;
     var lastTap = { time: 0, cardId: null, timer: null };
     var pinchSession = null;
-    var listSwipeState = null;
     var activePointers = new Map();
 
     var removeBackdrops = function(parent) {
@@ -22089,36 +22740,10 @@ var MinestPortraitGestureManager = (function() {
       var clientX = e.clientX, clientY = e.clientY;
       var isAltPinch = (e.pointerType === 'mouse' && e.altKey);
 
-      // List Title Row Swipe (Only swiping on list title row triggers list switching in portrait mode)
+      // List Header and column dragging are handled exclusively by Safari Tab Reorder Engine & inline rename
       var headerEl = (e.target && e.target.closest) ? e.target.closest('.kanban-column-header, [class*="group/colheader"]') : null;
-      var isHeaderInput = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || (e.target.closest && e.target.closest('input, textarea')));
-      if (headerEl && !isHeaderInput && e.button === 0) {
-        var colEl = headerEl.closest('.kanban-column-wrapper');
-        var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper'));
-        var curColIdx = allCols.indexOf(colEl);
-        if (curColIdx === -1) curColIdx = 0;
-
-        var padLeft = parseInt(window.getComputedStyle(lane).paddingLeft || '10', 10);
-        var getColScrollLeft = function(idx) {
-          if (!allCols[idx]) return 0;
-          return Math.max(0, allCols[idx].offsetLeft - padLeft);
-        };
-
-        listSwipeState = {
-          headerEl: headerEl,
-          startX: clientX,
-          startY: clientY,
-          lastX: clientX,
-          lastT: Date.now(),
-          vx: 0,
-          startScrollLeft: lane.scrollLeft,
-          curColIdx: curColIdx,
-          allCols: allCols,
-          getColScrollLeft: getColScrollLeft,
-          isSwiping: false
-        };
-        return;
-      }
+      if (headerEl) return;
+      if (window.__isSafariColDragging || (document.body && document.body.classList.contains('is-safari-column-dragging'))) return;
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
       activePointers.set(pid, { x: clientX, y: clientY, target: e.target });
@@ -22297,42 +22922,8 @@ var MinestPortraitGestureManager = (function() {
         clientY = e.touches[0].clientY;
       }
 
-      // Handle List Title row swipe
-      if (listSwipeState) {
-        var dx = clientX - listSwipeState.startX;
-        var dy = clientY - listSwipeState.startY;
-        var now = Date.now();
-        var dt = Math.max(1, now - listSwipeState.lastT);
-        listSwipeState.vx = (clientX - listSwipeState.lastX) / dt;
-        listSwipeState.lastX = clientX;
-        listSwipeState.lastT = now;
-
-        if (!listSwipeState.isSwiping) {
-          if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
-            listSwipeState.isSwiping = true;
-            lane.style.scrollBehavior = 'auto';
-          } else if (Math.abs(dy) > 10) {
-            listSwipeState = null;
-            return;
-          }
-        }
-
-        if (listSwipeState.isSwiping) {
-          if (e.cancelable) e.preventDefault();
-          e.stopPropagation();
-
-          var rawLeft = listSwipeState.startScrollLeft - dx;
-          var minLeft = 0;
-          var maxLeft = listSwipeState.getColScrollLeft(listSwipeState.allCols.length - 1);
-          var clampedLeft = rawLeft;
-          if (rawLeft < minLeft) {
-            clampedLeft = minLeft + (rawLeft - minLeft) * 0.32;
-          } else if (rawLeft > maxLeft) {
-            clampedLeft = maxLeft + (rawLeft - maxLeft) * 0.32;
-          }
-          lane.scrollLeft = clampedLeft;
-          return;
-        }
+      if (window.__isSafariColDragging || (document.body && document.body.classList.contains('is-safari-column-dragging'))) {
+        return;
       }
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
@@ -22560,34 +23151,8 @@ var MinestPortraitGestureManager = (function() {
       }
       var ctx = ctxRef.current || {};
 
-      // Complete List Title row swipe
-      if (listSwipeState) {
-        var lss = listSwipeState;
-        listSwipeState = null;
-
-        if (lss.isSwiping) {
-          window.__minestGestureSuppressClickUntil = Date.now() + 350;
-          var dx = clientX - lss.startX;
-          var vx = lss.vx;
-          var totalCols = lss.allCols.length;
-          var targetIdx = lss.curColIdx;
-
-          if (dx < -36 || vx < -0.25) {
-            targetIdx = Math.min(totalCols - 1, lss.curColIdx + 1);
-          } else if (dx > 36 || vx > 0.25) {
-            targetIdx = Math.max(0, lss.curColIdx - 1);
-          }
-
-          var targetLeft = lss.getColScrollLeft(targetIdx);
-          lane.style.scrollBehavior = 'smooth';
-          lane.scrollTo({ left: targetLeft, behavior: 'smooth' });
-
-          if (targetIdx !== lss.curColIdx) {
-            haptic('selection');
-            sound('slide');
-          }
-          return;
-        }
+      if (window.__isSafariColDragging || (document.body && document.body.classList.contains('is-safari-column-dragging'))) {
+        return;
       }
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
@@ -24434,6 +24999,10 @@ var ke = function(props) {
     if (!el || layoutMode !== 'swimlane') return;
 
     var handleScroll = function() {
+      if (!isLandscape) {
+        setOccludedCols({});
+        return;
+      }
       var pinnedEl = el.querySelector('.pinned-column');
       if (el.closest('.iphone-frame') || window.matchMedia('(pointer: coarse)').matches) return;
       if (!pinnedEl) {
@@ -24485,7 +25054,7 @@ var ke = function(props) {
       el.removeEventListener('scroll', handleSwimlaneScroll);
       if (scrollTimer) clearTimeout(scrollTimer);
     };
-  }, [board.columns, layoutMode]);
+  }, [board.columns, layoutMode, isLandscape]);
 
   // >>> MINEST DYNAMIC ISLAND: SYNC VERTICAL/PORTRAIT ACTIVE LIST <<<
   (0, _.useEffect)(function() {
@@ -24544,6 +25113,7 @@ var ke = function(props) {
   };
 
   var togglePinColumn = function(colId) {
+    if (!isLandscape) return; // Pinning list disabled in portrait mode
     if (onUpdateBoard) {
       var nextCols = (board.columns || []).map(function(c) {
         return c.id === colId ? Object.assign({}, c, { pinned: !c.pinned }) : c;
@@ -24849,58 +25419,389 @@ var ke = function(props) {
     setDropTarget(null);
   };
 
-  // Column Dragging Handlers
-  var handleColDragStart = function(e, colId, cIdx) {
+  // =========================================================================
+  // Web 18.0 Safari Tab Reorder × Long Glass Panel Engine
+  // =========================================================================
+  var safariColDragActiveRef = (0, _.useRef)(false);
+  var columnSuppressClickUntilRef = (0, _.useRef)(0);
+
+  var handleSafariColumnPointerDown = function(e, colId, cIdx, customColEl) {
+    // 4. In landscape mode, list cannot be dragged
+    if (isLandscape) return;
+
+    // Only handle primary button (left click) or single touch
+    if (e.button !== 0) return;
+
+    // Do NOT drag if clicking inside interactive controls or cards
     if (e.target && e.target.closest) {
-      if (e.target.closest('.liquid-glass-card') ||
-          e.target.closest('button') ||
-          e.target.closest('input') ||
-          e.target.closest('textarea')) {
+      if (e.target.closest('button, a, input, textarea, select, [contenteditable], .column-menu-btn, .column-menu-popover, .card-edit-btn, .mac-dot-btn, .card-check-trigger-btn, .kanban-card, .kanban-subcard, .card-gap-active-composer, .card-gap-insert-zone, .card-mode-btn, .perspective-stage')) {
         return;
       }
     }
-    e.stopPropagation();
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', colId);
-    var colEl = (e.currentTarget && e.currentTarget.closest) ? (e.currentTarget.closest('.kanban-column-wrapper') || e.currentTarget) : null;
-    if (colEl && e.dataTransfer.setDragImage) {
-      var rect = colEl.getBoundingClientRect();
-      var offsetX = Math.max(10, Math.min(e.clientX - rect.left, rect.width - 10));
-      var offsetY = Math.max(10, Math.min(e.clientY - rect.top, 50));
-      e.dataTransfer.setDragImage(colEl, offsetX, offsetY);
-    }
-    setDragCol({ colId: colId, sourceIndex: cIdx });
-  };
 
-  var handleColDragOverColumn = function(e, colId, cIdx) {
-    if (!dragColRef.current) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
-    if (dropColIndexRef.current !== cIdx) {
-      setDropColIndex(cIdx);
-    }
-  };
+    var swimlane = swimlaneRef.current;
+    if (!swimlane) return;
 
-  var handleColDrop = function(e, targetIdx) {
-    e.preventDefault();
-    e.stopPropagation();
-    var liveDragCol = dragColRef.current;
-    var toIdx = (typeof targetIdx === 'number') ? targetIdx : dropColIndexRef.current;
-    if (liveDragCol && toIdx !== null && toIdx !== liveDragCol.sourceIndex) {
-      if (onReorderColumns) {
-        onReorderColumns(liveDragCol.sourceIndex, toIdx);
-        SoundEngine.play('slide');
+    // Identify target column element
+    var colEl = customColEl || (
+      (e.currentTarget && e.currentTarget.classList && e.currentTarget.classList.contains('kanban-column-wrapper'))
+        ? e.currentTarget
+        : (e.target && e.target.closest && e.target.closest('.kanban-column-wrapper'))
+    );
+
+    // If initiated from swimlane background outside any column, find the nearest visible column
+    if (!colEl) {
+      var allColElsOnStage = Array.from(swimlane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
+      if (allColElsOnStage.length > 0) {
+        var clickX = e.clientX;
+        var nearestCol = null;
+        var minDiff = Infinity;
+        allColElsOnStage.forEach(function(w, idx) {
+          var r = w.getBoundingClientRect();
+          var centerX = r.left + r.width / 2;
+          var diff = Math.abs(clickX - centerX);
+          if (diff < minDiff) {
+            minDiff = diff;
+            nearestCol = { el: w, idx: idx, colId: w.getAttribute('data-col-id') || w.dataset.colId };
+          }
+        });
+        if (nearestCol) {
+          colEl = nearestCol.el;
+          colId = nearestCol.colId;
+          cIdx = nearestCol.idx;
+        }
       }
     }
-    setDragCol(null);
-    setDropColIndex(null);
+    if (!colEl) return;
+
+    var startX = e.clientX;
+    var startY = e.clientY;
+    var startTime = Date.now();
+    var lastX = startX;
+    var lastY = startY;
+    var lastTime = startTime;
+    var isDragging = false;
+    var currentClientX = startX;
+    var currentClientY = startY;
+    var currentVx = 0;
+    var smoothedVx = 0;
+
+    var geometry = null;
+    var targetSlot = cIdx;
+    var autoScrollFrame = null;
+    var rAfMove = null;
+
+    var measureGeometry = function() {
+      var colRect = colEl.getBoundingClientRect();
+      var swimlaneRect = swimlane.getBoundingClientRect();
+      var initialScrollLeft = swimlane.scrollLeft;
+
+      // Find all visible column wrappers in the swimlane
+      var allColEls = Array.from(swimlane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
+      var foundIndex = allColEls.indexOf(colEl);
+      if (foundIndex !== -1) cIdx = foundIndex;
+
+      var colsInfo = allColEls.map(function(wrapper, idx) {
+        var r = wrapper.getBoundingClientRect();
+        return {
+          idx: idx,
+          wrapper: wrapper,
+          colId: wrapper.getAttribute('data-col-id') || wrapper.dataset.colId,
+          width: r.width,
+          offsetLeft: wrapper.offsetLeft,
+          screenLeft: r.left,
+          screenCenterX: r.left + r.width / 2
+        };
+      });
+
+      var draggedWidth = colRect.width;
+      var slotPitch = colsInfo.length > 1 ? Math.abs(colsInfo[1].offsetLeft - colsInfo[0].offsetLeft) : (draggedWidth + 20);
+      if (slotPitch < 100) slotPitch = draggedWidth + 20;
+
+      return {
+        colRect: colRect,
+        swimlaneRect: swimlaneRect,
+        initialScrollLeft: initialScrollLeft,
+        colsInfo: colsInfo,
+        draggedWidth: draggedWidth,
+        slotPitch: slotPitch,
+        allColEls: allColEls
+      };
+    };
+
+    var startDrag = function() {
+      isDragging = true;
+      safariColDragActiveRef.current = true;
+      window.__isSafariColDragging = true;
+
+      geometry = measureGeometry();
+
+      document.body.classList.add('is-safari-column-dragging');
+
+      // Lift the dragged List panel
+      colEl.classList.add('safari-lifted-column');
+      colEl.style.position = 'relative';
+      colEl.style.zIndex = '100';
+      colEl.style.pointerEvents = 'none';
+      colEl.style.willChange = 'transform, box-shadow, opacity';
+      colEl.style.transformOrigin = 'top center';
+      colEl.style.transition = 'box-shadow 180ms ease-out, transform 80ms ease-out';
+      colEl.style.transform = 'translate3d(0, 0, 0) scale(1.035)';
+
+      // All sibling columns become recessed
+      geometry.allColEls.forEach(function(w, i) {
+        if (i !== cIdx) {
+          w.classList.add('safari-recessed-column');
+          w.style.transition = 'transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 240ms ease';
+          w.style.transform = 'translate3d(0, 0, 0) scale(0.988)';
+        }
+      });
+
+      SoundEngine.play('click');
+      if (navigator.vibrate) {
+        try { navigator.vibrate(10); } catch(err) {}
+      }
+    };
+
+    var updateColumnDisplacements = function(newSlot) {
+      if (!geometry) return;
+      var N = geometry.colsInfo.length;
+      var pitch = geometry.slotPitch;
+
+      for (var i = 0; i < N; i++) {
+        if (i === cIdx) continue;
+        var dispX = 0;
+        if (newSlot > cIdx) {
+          if (i > cIdx && i <= newSlot) dispX = -pitch;
+        } else if (newSlot < cIdx) {
+          if (i >= newSlot && i < cIdx) dispX = pitch;
+        }
+
+        var dist = Math.abs(i - newSlot);
+        var delay = Math.min(60, dist * 16);
+        var w = geometry.colsInfo[i].wrapper;
+        w.style.transition = 'transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1) ' + delay + 'ms, opacity 240ms ease';
+        w.style.transform = dispX !== 0 ? ('translate3d(' + dispX + 'px, 0, 0) scale(0.988)') : 'translate3d(0, 0, 0) scale(0.988)';
+      }
+    };
+
+    var autoScrollTick = function() {
+      if (!isDragging || !geometry) return;
+      var swimlaneRect = swimlane.getBoundingClientRect();
+      var edgeZone = 80;
+      var speed = 0;
+
+      if (currentClientX < swimlaneRect.left + edgeZone) {
+        var ratio = Math.min(1, (swimlaneRect.left + edgeZone - currentClientX) / edgeZone);
+        speed = -ratio * 18;
+      } else if (currentClientX > swimlaneRect.right - edgeZone) {
+        var ratio = Math.min(1, (currentClientX - (swimlaneRect.right - edgeZone)) / edgeZone);
+        speed = ratio * 18;
+      }
+
+      if (speed !== 0) {
+        swimlane.scrollLeft += speed;
+        applyPointerMove();
+      }
+
+      autoScrollFrame = requestAnimationFrame(autoScrollTick);
+    };
+
+    var applyPointerMove = function() {
+      if (!isDragging || !geometry) return;
+
+      var dx = currentClientX - startX;
+      var dy = currentClientY - startY;
+
+      // Top tight, bottom subtle inertia lag (Long Glass Panel Physics)
+      // Clamped to subtle ±1.8deg tilt around top center origin
+      var tilt = Math.max(-1.8, Math.min(1.8, smoothedVx * 2.5));
+      colEl.style.transition = 'none';
+      colEl.style.transform = 'translate3d(' + dx + 'px, ' + (dy * 0.35) + 'px, 0) scale(1.035) rotate(' + tilt.toFixed(2) + 'deg)';
+
+      // Calculate current visual center of dragged column on screen
+      var currentDraggedCenter = geometry.colsInfo[cIdx].screenCenterX + dx;
+      var scrollDelta = swimlane.scrollLeft - geometry.initialScrollLeft;
+
+      var N = geometry.colsInfo.length;
+      var newSlot = 0;
+      var hysteresis = 18;
+
+      for (var k = 0; k < N - 1; k++) {
+        var mid = (geometry.colsInfo[k].screenCenterX + geometry.colsInfo[k + 1].screenCenterX) / 2.0 - scrollDelta;
+        var effectiveMid = (k + 1 <= targetSlot) ? (mid - hysteresis) : (mid + hysteresis);
+        if (currentDraggedCenter > effectiveMid) {
+          newSlot = k + 1;
+        }
+      }
+
+      if (newSlot !== targetSlot) {
+        targetSlot = newSlot;
+        if (navigator.vibrate) {
+          try { navigator.vibrate(8); } catch(err) {}
+        }
+        updateColumnDisplacements(targetSlot);
+      }
+    };
+
+    var onPointerMove = function(e) {
+      currentClientX = e.clientX;
+      currentClientY = e.clientY;
+
+      var now = Date.now();
+      var dt = Math.max(10, now - lastTime);
+      currentVx = (e.clientX - lastX) / dt;
+      smoothedVx = smoothedVx * 0.7 + currentVx * 0.3;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      lastTime = now;
+
+      if (!isDragging) {
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        var dist = Math.hypot(dx, dy);
+        if (dist >= 6 && Math.abs(dx) >= Math.abs(dy) * 0.75) {
+          e.preventDefault();
+          startDrag();
+          autoScrollFrame = requestAnimationFrame(autoScrollTick);
+        } else if (dist >= 14 && Math.abs(dy) > Math.abs(dx)) {
+          cleanup();
+          return;
+        } else {
+          return;
+        }
+      } else {
+        e.preventDefault();
+      }
+
+      if (rAfMove === null) {
+        rAfMove = requestAnimationFrame(function() {
+          rAfMove = null;
+          applyPointerMove();
+        });
+      }
+    };
+
+    var cleanup = function() {
+      window.removeEventListener('pointermove', onPointerMove, { capture: true });
+      window.removeEventListener('pointerup', onPointerUp, { capture: true });
+      window.removeEventListener('pointercancel', onPointerCancel, { capture: true });
+      if (autoScrollFrame) {
+        cancelAnimationFrame(autoScrollFrame);
+        autoScrollFrame = null;
+      }
+      if (rAfMove) {
+        cancelAnimationFrame(rAfMove);
+        rAfMove = null;
+      }
+    };
+
+    var onPointerUp = function(e) {
+      cleanup();
+
+      if (!isDragging) {
+        columnSuppressClickUntilRef.current = 0;
+        safariColDragActiveRef.current = false;
+        window.__isSafariColDragging = false;
+        return;
+      }
+
+      columnSuppressClickUntilRef.current = Date.now() + 350;
+
+      // Magnetic Landing Settle (Safari Spring: short spring, almost no bounce)
+      var scrollDelta = swimlane.scrollLeft - geometry.initialScrollLeft;
+      var targetDeltaX = (geometry.colsInfo[targetSlot].screenLeft - geometry.colsInfo[cIdx].screenLeft) - scrollDelta;
+
+      colEl.style.transition = 'transform 260ms cubic-bezier(0.18, 1.15, 0.32, 1), box-shadow 260ms ease, opacity 260ms ease';
+      colEl.style.transform = 'translate3d(' + targetDeltaX + 'px, 0, 0) scale(1.0) rotate(0deg)';
+      colEl.style.boxShadow = '';
+
+      SoundEngine.play('slide');
+      if (navigator.vibrate) {
+        try { navigator.vibrate([10, 30, 10]); } catch(err) {}
+      }
+
+      setTimeout(function() {
+        document.body.classList.remove('is-safari-column-dragging');
+        colEl.style.transform = '';
+        colEl.style.transition = '';
+        colEl.style.position = '';
+        colEl.style.zIndex = '';
+        colEl.style.pointerEvents = '';
+        colEl.style.transformOrigin = '';
+        colEl.classList.remove('safari-lifted-column');
+
+        if (geometry && geometry.allColEls) {
+          geometry.allColEls.forEach(function(w) {
+            w.style.transform = '';
+            w.style.transition = '';
+            w.style.opacity = '';
+            w.classList.remove('safari-recessed-column');
+          });
+        }
+        safariColDragActiveRef.current = false;
+        window.__isSafariColDragging = false;
+
+        // Commit reorder in board state if slot changed
+        if (targetSlot !== cIdx) {
+          var fromColId = (geometry.colsInfo[cIdx] && (geometry.colsInfo[cIdx].colId || geometry.colsInfo[cIdx].wrapper.getAttribute('data-col-id'))) || colId;
+          var toColId = geometry.colsInfo[targetSlot] && (geometry.colsInfo[targetSlot].colId || geometry.colsInfo[targetSlot].wrapper.getAttribute('data-col-id'));
+          var fromRealIdx = (board.columns || []).findIndex(function(c) { return c.id === fromColId; });
+          var toRealIdx = (board.columns || []).findIndex(function(c) { return c.id === toColId; });
+          if (fromRealIdx === -1) fromRealIdx = cIdx;
+          if (toRealIdx === -1) toRealIdx = targetSlot;
+          if (fromRealIdx !== toRealIdx && onReorderColumns) {
+            onReorderColumns(fromRealIdx, toRealIdx);
+          }
+        }
+      }, 270);
+    };
+
+    var onPointerCancel = function() {
+      cleanup();
+
+      if (isDragging) {
+        columnSuppressClickUntilRef.current = Date.now() + 350;
+        colEl.style.transition = 'transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1)';
+        colEl.style.transform = 'translate3d(0, 0, 0) scale(1.0) rotate(0deg)';
+
+        if (geometry && geometry.allColEls) {
+          geometry.allColEls.forEach(function(w) {
+            w.style.transition = 'transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1)';
+            w.style.transform = '';
+            w.style.opacity = '';
+            w.classList.remove('safari-recessed-column');
+          });
+        }
+
+        setTimeout(function() {
+          document.body.classList.remove('is-safari-column-dragging');
+          colEl.style.transform = '';
+          colEl.style.transition = '';
+          colEl.style.position = '';
+          colEl.style.zIndex = '';
+          colEl.style.pointerEvents = '';
+          colEl.style.transformOrigin = '';
+          colEl.classList.remove('safari-lifted-column');
+          safariColDragActiveRef.current = false;
+          window.__isSafariColDragging = false;
+        }, 250);
+      } else {
+        safariColDragActiveRef.current = false;
+        window.__isSafariColDragging = false;
+      }
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { capture: true, passive: false });
+    window.addEventListener('pointerup', onPointerUp, { capture: true, passive: false });
+    window.addEventListener('pointercancel', onPointerCancel, { capture: true, passive: false });
   };
 
-  var handleColDragEnd = function() {
-    setDragCol(null);
-    setDropColIndex(null);
-  };
+  // Backwards-compatible Drag-and-Drop fallbacks
+  var handleColDragStart = function() {};
+  var handleColDragOverColumn = function() {};
+  var handleColDrop = function() {};
+  var handleColDragEnd = function() {};
 
   var handleQuickAddSubmit = function(colId) {
     if (!quickAddText.trim()) return;
@@ -24969,13 +25870,18 @@ var ke = function(props) {
         ref: swimlaneRef,
         onDragOver: function(e) { e.preventDefault(); },
         onDrop: handleColDrop,
-        onClick: function() { if (justClosedQuickEditRef.current) return; collapseAllStacks(); if (quickMenuCardId) setQuickMenuCardId(null); if (menuColId) setMenuColId(null); if (editingColId) setEditingColId(null); },
+        onPointerDown: function(e) {
+          if (!e.target.closest('.kanban-column-wrapper')) {
+            handleSafariColumnPointerDown(e, null, null);
+          }
+        },
+        onClick: function() { if (justClosedQuickEditRef.current || (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current)) return; collapseAllStacks(); if (quickMenuCardId) setQuickMenuCardId(null); if (menuColId) setMenuColId(null); if (editingColId) setEditingColId(null); },
         'data-board-id': board.id,
         className: "fb-board-stage " + (layoutMode === 'swimlane' ? "board-swimlane-scroll flex items-start gap-5 pb-2 overflow-x-auto w-full min-w-0 pr-16 select-none flex-1 min-h-0 snap-x snap-proximity" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 pb-4 flex-1 overflow-y-auto min-h-0") + (boardCardMode === 'smash' ? " board-smash-mode" : "") + (boardCardMode === 'liq' ? " board-liquid-mode" : ""),
         children: [
           visibleColumns.map(function(col, cIdx) {
-            var isPinned = !!col.pinned;
-            var isOccluded = !!occludedCols[col.id];
+            var isPinned = isLandscape && !!col.pinned;
+            var isOccluded = isLandscape && !!occludedCols[col.id];
 
             // Filter & sort cards inside column
             var filteredCards = (col.cards || []).filter(function(card) {
@@ -25160,12 +26066,10 @@ var ke = function(props) {
             return (0, P.jsxs)('div', {
               key: col.id,
               'data-col-id': col.id,
-              draggable: false,
-              onDragStart: function(e) { e.preventDefault(); return false; },
-              onDragEnd: handleColDragEnd,
+              onPointerDown: function(e) { handleSafariColumnPointerDown(e, col.id, cIdx); },
               onDragOver: function(e) { if (!portraitLock) handleColDragOverColumn(e, col.id, cIdx); },
               onDrop: function(e) { if (!portraitLock) handleColDrop(e, cIdx); },
-                            onPaste: function(e) {
+              onPaste: function(e) {
                 var tag = e.target && e.target.tagName;
                 if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || (e.target && e.target.isContentEditable)) {
                   return;
@@ -25177,7 +26081,6 @@ var ke = function(props) {
                   SoundEngine.play('add');
                 }
               },
-              'data-col-id': col.id,
               className: "kanban-column-wrapper snap-start w-72 md:w-80 shrink-0 rounded-3xl p-4 flex flex-col transition-all duration-200 border backdrop-blur-2xl liquid-glass-list max-h-[calc(100vh-100px)] " +
                 (isPinned ? "pinned-column " : "") +
                 (isOccluded ? "occluded-by-pin " : "") +
@@ -25189,16 +26092,11 @@ var ke = function(props) {
                 backgroundColor: col.color ? (isDark ? col.color + '22' : col.color + '18') : (isDark ? "rgba(18, 26, 36, 0.65)" : "rgba(255, 255, 255, 0.50)")
               },
               children: [
-                // Column Header (Draggable for list reordering, inline title rename, sleek pin SVG, and pure count)
+                // Column Header (Safari Tab Reorder × Long Glass Panel Grab Handle)
                 (0, P.jsxs)('div', {
-                  draggable: FB_NATIVE_DND && !portraitLock && !editingColId && !dragItem,
-                  onDragStart: function(e) {
-                    if (!FB_NATIVE_DND || portraitLock || editingColId || dragItem) { e.preventDefault(); return; }
-                    handleColDragStart(e, col.id, cIdx);
-                  },
-                  onDragEnd: handleColDragEnd,
-                  className: "kanban-column-header relative flex items-center justify-between pb-3 mb-1 cursor-grab active:cursor-grabbing select-none shrink-0 group/colheader",
-                  title: "Drag to reorder list",
+                  onPointerDown: function(e) { handleSafariColumnPointerDown(e, col.id, cIdx); },
+                  className: "kanban-column-header relative flex items-center justify-between pb-3 mb-1 cursor-grab active:cursor-grabbing select-none shrink-0 group/colheader safari-column-header-grab",
+                  title: "Drag to reorder list (Web 18.0 Safari Tab Reorder)",
                   children: [
                     (0, P.jsxs)('div', {
                       className: "flex items-center gap-1.5 min-w-0 pr-2 flex-1 group/coltitle",
@@ -25233,6 +26131,7 @@ var ke = function(props) {
                             className: "flex items-center gap-1.5 min-w-0 truncate cursor-pointer",
                             onClick: function(e) {
                               if (justClosedQuickEditRef.current) return;
+                              if (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current) return;
                               e.stopPropagation();
                               setEditingColId(col.id);
                               setEditingColTitle(col.title);
@@ -25246,6 +26145,7 @@ var ke = function(props) {
                               (0, P.jsx)('button', {
                                 type: "button",
                                 onClick: function(e) {
+                                  if (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current) return;
                                   e.stopPropagation();
                                   setEditingColId(col.id);
                                   setEditingColTitle(col.title);
@@ -25320,13 +26220,13 @@ var ke = function(props) {
                       onClick: function(e) { e.stopPropagation(); },
                       className: "column-menu-popover absolute top-10 right-0 z-50 w-[268px] rounded-2xl p-2.5 shadow-2xl border backdrop-blur-2xl animate-fadeIn " + (isDark ? "bg-[#1a2430] border-white/20 text-white" : "bg-white border-slate-200 text-slate-800"),
                       children: [
-                        // 18.0: everyday actions first (Pin on top)
-                        (0, P.jsxs)('button', {
+                        // 18.0: everyday actions first (Pin on top) - only in landscape mode
+                        isLandscape ? (0, P.jsxs)('button', {
                           type: "button",
                           onClick: function() { setMenuColId(null); togglePinColumn(col.id); },
                           className: "w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl hover:bg-emerald-500/20 hover:text-emerald-400 text-left transition-colors",
                           children: [(0, P.jsx)(IconPin, { className: "w-3.5 h-3.5" }), (0, P.jsx)('span', { children: isPinned ? "Unpin List" : "Pin List to Left" })]
-                        }),
+                        }) : null,
                         (0, P.jsxs)('button', {
                           type: "button",
                           onClick: function() { setMenuColId(null); onOpenCardModal(col.id); },
