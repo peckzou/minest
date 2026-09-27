@@ -21486,6 +21486,12 @@ var MinestPortraitGestureManager = (function() {
     return (window.innerWidth <= 600 || window.innerHeight > window.innerWidth);
   };
 
+  var isWalletModeActive = function(lane) {
+    if (window.__isWalletMode) return true;
+    if (lane && (lane.classList.contains('wallet-dragging') || lane.classList.contains('wallet-fanning'))) return true;
+    return !!document.querySelector('.wallet-dragging, .wallet-list, .wallet-fanning');
+  };
+
   var haptic = function(style) {
     try {
       if (window.MinestNative && window.MinestNative.haptic) {
@@ -21524,6 +21530,10 @@ var MinestPortraitGestureManager = (function() {
       if (!isPhonePortrait()) return;
       if (window.PointerEvent && e.type.startsWith('touch')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (isWalletModeActive(lane)) {
+        if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
+        return;
+      }
 
       var ctx = ctxRef.current || {};
       var clientX = e.clientX, clientY = e.clientY;
@@ -21688,6 +21698,17 @@ var MinestPortraitGestureManager = (function() {
     var onMove = function(e) {
       if (!isPhonePortrait()) return;
       if (window.PointerEvent && e.type.startsWith('touch')) return;
+      if (isWalletModeActive(lane)) {
+        if (gestureState) {
+          if (gestureState.cardEl) {
+            gestureState.cardEl.style.transform = '';
+            gestureState.cardEl.classList.remove('gesture-manipulating');
+            removeBackdrops(gestureState.cardEl.parentElement);
+          }
+          gestureState = null;
+        }
+        return;
+      }
       var ctx = ctxRef.current || {};
       var clientX = e.clientX, clientY = e.clientY;
       if (e.touches && e.touches[0]) {
@@ -21906,6 +21927,18 @@ var MinestPortraitGestureManager = (function() {
     var onUp = function(e) {
       if (!isPhonePortrait()) return;
       if (window.PointerEvent && e.type.startsWith('touch')) return;
+      if (isWalletModeActive(lane)) {
+        if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
+        if (gestureState) {
+          if (gestureState.cardEl) {
+            gestureState.cardEl.style.transform = '';
+            gestureState.cardEl.classList.remove('gesture-manipulating');
+            removeBackdrops(gestureState.cardEl.parentElement);
+          }
+          gestureState = null;
+        }
+        return;
+      }
       var ctx = ctxRef.current || {};
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
@@ -22322,6 +22355,8 @@ var ke = function(props) {
   };
 
   var openQuickEdit = function(card, col, targetEl) {
+    var isWallet = !!(window.__isWalletMode || document.querySelector('.wallet-dragging, .wallet-list, .wallet-fanning') || (targetEl && targetEl.closest && targetEl.closest('.wallet-list, .wallet-dragging')));
+    if (isWallet) return;
     collapseAllStacks();
     setHoverCoverCardId(null);
     setQuickMenuCardId(card.id);
@@ -22341,6 +22376,7 @@ var ke = function(props) {
     setIsQuickColorOpen(false);
     setHoverCoverCardId(null);
   };
+  window.__closeQuickEdit = closeQuickEdit;
 
   // getQuickEditPos clamps against a fixed 360px height estimate, but the
   // action column is ~430px (10-11 buttons), so the bottom buttons (Archive,
@@ -23332,6 +23368,8 @@ var ke = function(props) {
       }
       s.base = Math.max(0, s.items[hi].top - hi * PEEK);           // the stack forms around the card in hand
       lane.classList.add('wallet-dragging');
+      window.__isWalletMode = true;
+      if (window.__closeQuickEdit) { try { window.__closeQuickEdit(); } catch (err) {} }
       s.items.forEach(function(it, i) {
         it.el.style.zIndex = String(i + 1);
       });
@@ -23358,6 +23396,8 @@ var ke = function(props) {
       s.scroller.style.position = s.prevPos || '';
       s.scroller.classList.remove('wallet-list');
       lane.classList.remove('wallet-dragging', 'wallet-fanning');
+      window.__isWalletMode = false;
+      window.__minestGestureSuppressClickUntil = Date.now() + 500;
       requestAnimationFrame(function() { s.items.forEach(function(it) { it.el.style.transition = ''; }); });
     };
     var fanOut = function() {
@@ -23426,6 +23466,7 @@ var ke = function(props) {
       });
       [s.slot - 1, s.slot + 1].forEach(function(i) { var nb = order[i]; if (nb) nb.v += (i < s.slot ? -1 : 1) * 28; });
       suppressUntil = Date.now() + 500;
+      window.__minestGestureSuppressClickUntil = Date.now() + 500;
       if (moved) commitOrder(s, order, it);
       linger();
       kick();
@@ -23593,7 +23634,8 @@ var ke = function(props) {
       if (pending && pending.wrapper) pressOut(pending.wrapper);
       if (pending && pending.quick) {
         // a tap on a card of the open stack: the stack stays open (and the card doesn't open)
-        pending = null; suppressUntil = Date.now() + 400;
+        pending = null; suppressUntil = Date.now() + 500;
+        window.__minestGestureSuppressClickUntil = Date.now() + 500;
         return true;
       }
       pending = null;
@@ -25144,6 +25186,11 @@ var ke = function(props) {
                             onClick: function(e) {
                               if (justClosedQuickEditRef.current) return;
                               if (window.__minestGestureSuppressClickUntil && Date.now() < window.__minestGestureSuppressClickUntil) return;
+                              var isWallet = !!(window.__isWalletMode || document.querySelector('.wallet-dragging, .wallet-list, .wallet-fanning') || e.currentTarget.closest('.wallet-list, .wallet-dragging'));
+                              if (isWallet) {
+                                e.stopPropagation();
+                                return;
+                              }
                               if (hasStack && !isStackExpanded) {
                                 e.stopPropagation();
                                 toggleStackExpand(col.id, card.id);
@@ -25530,6 +25577,11 @@ var ke = function(props) {
                                     onClick: function(e) {
                                       if (justClosedQuickEditRef.current) return;
                                       if (window.__minestGestureSuppressClickUntil && Date.now() < window.__minestGestureSuppressClickUntil) return;
+                                      var isWallet = !!(window.__isWalletMode || document.querySelector('.wallet-dragging, .wallet-list, .wallet-fanning') || e.currentTarget.closest('.wallet-list, .wallet-dragging'));
+                                      if (isWallet) {
+                                        e.stopPropagation();
+                                        return;
+                                      }
                                       openQuickEdit(sub, col, e.currentTarget);
                                     },
                                     onDoubleClick: function() {
