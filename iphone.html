@@ -3966,12 +3966,84 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
 /* ========================================================================= */
 /* Phase 5: Focusboard iPhone Portrait — Gesture-First Interaction Redesign  */
 /* ========================================================================= */
-/* In iPhone portrait mode, only swiping on the list title row switches lists */
+/* Restore fluid horizontal scrolling & touch snapping between lists */
+.iphone-frame .board-swimlane-scroll,
+.mobile-board-view .board-swimlane-scroll {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
+}
+
 .iphone-frame:not(.landscape) .board-swimlane-scroll,
 .mobile-board-view:not(.landscape) .board-swimlane-scroll {
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
+}
+
+/* ========================================================================= */
+/* List-version Apple Wallet Engine & Styling                                */
+/* ========================================================================= */
+.board-swimlane-scroll.list-wallet-active {
   overflow-x: hidden !important;
   scroll-snap-type: none !important;
-  touch-action: pan-y !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper {
+  will-change: transform;
+  position: relative !important;
+  transform-origin: top center;
+  transition: none !important;
+  border-radius: 28px !important;
+}
+
+.board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    linear-gradient(118deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.12) 44%, rgba(255,255,255,0) 58%),
+    radial-gradient(120% 60% at 20% 0%, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 60%),
+    linear-gradient(170deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.04) 45%, rgba(255,255,255,0) 100%);
+  border: 1px solid rgba(255,255,255,.20);
+  border-top-color: rgba(255,255,255,.45);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 1px 0 0 rgba(255,255,255,.08),
+    0 -8px 20px -12px rgba(0,0,0,.5), 0 16px 28px -14px rgba(0,0,0,.55);
+  transition: opacity .24s ease-out;
+}
+
+body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper::before {
+  background:
+    linear-gradient(118deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.55) 44%, rgba(255,255,255,0) 58%),
+    linear-gradient(170deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,.18) 55%, rgba(255,255,255,.08) 100%);
+  border: 1px solid rgba(255,255,255,.65);
+  border-top-color: #fff;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.75), 0 -8px 18px -12px rgba(15,23,42,.18), 0 16px 30px -16px rgba(15,23,42,.22);
+}
+
+.board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper.list-wallet-lifted {
+  z-index: 100 !important;
+  filter: drop-shadow(0 20px 36px rgba(0,0,0,0.5)) drop-shadow(0 4px 10px rgba(0,0,0,0.25)) !important;
+}
+
+.board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper.list-wallet-lifted::before {
+  border-top-color: rgba(255,255,255,.75) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 1px 0 0 rgba(255,255,255,.12),
+    0 30px 52px -16px rgba(0,0,0,.65), 0 10px 20px -8px rgba(0,0,0,.4) !important;
+}
+
+body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper.list-wallet-lifted::before {
+  box-shadow: inset 0 1px 1px #fff, 0 30px 48px -16px rgba(15,23,42,.32), 0 10px 18px -8px rgba(15,23,42,.18) !important;
+}
+
+.board-swimlane-scroll.list-wallet-fanning > .kanban-column-wrapper::before {
+  opacity: 0 !important;
 }
 
 .iphone-frame:not(.landscape) .kanban-cards-scroll,
@@ -25420,265 +25492,374 @@ var ke = function(props) {
   };
 
   // =========================================================================
-  // Web 18.0 Safari Tab Reorder × Long Glass Panel Engine
+  // List-version Apple Wallet Engine & List Header Swipe Controller
   // =========================================================================
-  var safariColDragActiveRef = (0, _.useRef)(false);
+  var listWalletActiveRef = (0, _.useRef)(false);
   var columnSuppressClickUntilRef = (0, _.useRef)(0);
+  var listWalletSessionRef = (0, _.useRef)(null);
 
-  var handleSafariColumnPointerDown = function(e, colId, cIdx, customColEl) {
-    // 4. In landscape mode, list cannot be dragged
-    if (isLandscape) return;
+  // ---- List Wallet Spring Simulation Engine (matching card wallet) ----
+  var startListWallet = function(heldColEl, colId, cIdx, startX, startY) {
+    var lane = swimlaneRef.current;
+    if (!lane) return;
 
-    // Only handle primary button (left click) or single touch
+    var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
+    if (allCols.length <= 0) return;
+
+    var hi = allCols.indexOf(heldColEl);
+    if (hi === -1) hi = cIdx;
+
+    listWalletActiveRef.current = true;
+    window.__isWalletMode = true;
+    if (window.__closeQuickEdit) { try { window.__closeQuickEdit(); } catch(err) {} }
+
+    lane.classList.add('list-wallet-active');
+    document.body.classList.add('is-safari-column-dragging');
+
+    if (navigator.vibrate) { try { navigator.vibrate([14, 35, 14]); } catch(err) {} }
+    if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+
+    var PEEK_COL = 64; // width showing of each stacked list
+    var PITCH_GAP = Math.min(heldColEl.offsetWidth, 320);
+
+    var items = allCols.map(function(el, i) {
+      return {
+        el: el,
+        id: el.getAttribute('data-col-id') || el.dataset.colId,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        s: 1,
+        sv: 0,
+        rz: 0,
+        targetX: 0,
+        origLeft: el.offsetLeft,
+        w: el.offsetWidth,
+        delayUntil: 0
+      };
+    });
+
+    var heldItem = items[hi];
+    var baseLeft = Math.max(16, lane.scrollLeft + 16);
+
+    var s = {
+      lane: lane,
+      items: items,
+      held: heldItem,
+      heldIdx: hi,
+      slot: hi,
+      fromSlot: hi,
+      baseLeft: baseLeft,
+      peekCol: PEEK_COL,
+      slotGap: PITCH_GAP,
+      fx: startX,
+      fy: startY,
+      startX: startX,
+      startY: startY,
+      lastX: startX,
+      lastY: startY,
+      lastT: performance.now(),
+      vx: 0,
+      vy: 0,
+      tilt: 0,
+      lift: 0,
+      liftV: 0,
+      time: performance.now(),
+      phase: 'stack',
+      frame: 0
+    };
+
+    heldItem.el.classList.add('list-wallet-lifted');
+    heldItem.el.style.zIndex = '120';
+
+    items.forEach(function(it, idx) {
+      if (it !== heldItem) {
+        it.el.style.zIndex = String(idx + 1);
+      }
+    });
+
+    listWalletSessionRef.current = s;
+
+    // Retarget stack positions with wave animation
+    var retarget = function(now, wave) {
+      var listOthers = s.items.filter(function(it) { return it !== s.held; });
+      listOthers.forEach(function(it, m) {
+        var tgtX;
+        if (s.phase === 'fan') {
+          tgtX = 0;
+        } else {
+          var slotOffset = (s.held && m >= s.slot) ? s.slotGap : 0;
+          tgtX = s.baseLeft + m * s.peekCol + slotOffset - it.origLeft;
+        }
+        it.targetX = tgtX;
+        if (wave !== false) {
+          var near = Math.abs(m - s.slot);
+          it.delayUntil = Math.max(it.delayUntil, now + Math.min(5, near) * 16);
+        }
+      });
+    };
+
+    s.retarget = retarget;
+    retarget(performance.now(), true);
+
+    // Spring tick loop (matching card wallet: T_STACK=0.38, Z_STACK=0.86, T_DROP=0.34, T_FAN=0.46)
+    var T_STACK = 0.38, Z_STACK = 0.86;
+    var T_DROP = 0.34, Z_DROP = 0.8;
+    var T_FAN = 0.46, Z_FAN = 0.9;
+
+    var springX = function(it, target, T, zeta, h) {
+      var w = 2 * Math.PI / T;
+      it.vx += (-w * w * (it.x - target) - 2 * zeta * w * it.vx) * h;
+      it.x += it.vx * h;
+    };
+
+    var scaleTo = function(it, target, h) {
+      var w = 2 * Math.PI / 0.22;
+      it.sv += (-w * w * (it.s - target) - 2 * 0.9 * w * it.sv) * h;
+      it.s += it.sv * h;
+    };
+
+    var applyTransform = function(it) {
+      var sc = it.s || 1;
+      it.el.style.transform = 'translate3d(' + (it.x || 0).toFixed(2) + 'px, ' + (it.y || 0).toFixed(2) + 'px, 0)' +
+        (it.rz ? ' rotate(' + it.rz.toFixed(2) + 'deg)' : '') +
+        (Math.abs(sc - 1) > 0.001 ? ' scale(' + sc.toFixed(4) + ')' : '');
+    };
+
+    var tick = function(now) {
+      s.frame = 0;
+      var dt = Math.min(0.05, Math.max(0.001, (now - (s.time || now)) / 1000));
+      s.time = now;
+      var n = Math.max(1, Math.ceil(dt * 240)), h = dt / n;
+
+      if (s.held) {
+        var dx = s.fx - s.startX;
+        var dy = s.fy - s.startY;
+        s.held.x = (s.baseLeft + s.slot * s.peekCol - s.held.origLeft) + dx * 0.88;
+        s.held.y = dy * 0.35;
+        var tiltTo = Math.max(-1.8, Math.min(1.8, s.vx * 0.0015));
+        s.tilt += (tiltTo - s.tilt) * (1 - Math.exp(-dt / 0.12));
+        s.held.rz = s.tilt;
+        s.held.s = 1.035;
+      }
+
+      for (var i = 0; i < n; i++) {
+        var tSub = now - dt * 1000 * (1 - (i + 1) / n);
+        s.items.forEach(function(it) {
+          if (it === s.held) return;
+          var live = tSub >= it.delayUntil;
+          var tgt = live ? (s.phase === 'fan' ? 0 : it.targetX) : (it.prevTargetX || 0);
+          if (s.phase === 'fan' && live) {
+            springX(it, tgt, T_FAN, Z_FAN, h);
+          } else {
+            springX(it, tgt, T_STACK, Z_STACK, h);
+          }
+          scaleTo(it, s.phase === 'fan' ? 1 : 0.985, h);
+        });
+      }
+
+      s.items.forEach(applyTransform);
+
+      var still = !s.held && s.items.every(function(it) {
+        return Math.abs(it.x - (s.phase === 'fan' ? 0 : it.targetX)) < 0.5 && Math.abs(it.vx) < 8;
+      });
+
+      if (still && s.phase === 'fan') {
+        closeListWallet();
+        return;
+      }
+
+      if (!still || s.held) {
+        s.frame = requestAnimationFrame(tick);
+      }
+    };
+
+    s.tick = tick;
+    s.frame = requestAnimationFrame(tick);
+  };
+
+  var trackListWalletMove = function(clientX, clientY) {
+    var s = listWalletSessionRef.current;
+    if (!s || !s.held) return;
+
+    var now = performance.now();
+    var dt = Math.max(1, now - s.lastT);
+    s.vx = s.vx * 0.6 + ((clientX - s.lastX) / dt * 1000) * 0.4;
+    s.vy = s.vy * 0.6 + ((clientY - s.lastY) / dt * 1000) * 0.4;
+    s.lastX = clientX;
+    s.lastY = clientY;
+    s.lastT = now;
+    s.fx = clientX;
+    s.fy = clientY;
+
+    var others = s.items.filter(function(it) { return it !== s.held; });
+    var n = others.length;
+    var rawFingerX = clientX - s.startX;
+    var currentHeldCenter = s.held.origLeft + (s.baseLeft + s.slot * s.peekCol - s.held.origLeft) + rawFingerX + s.held.w / 2;
+
+    var newSlot = 0;
+    for (var k = 0; k < n; k++) {
+      var otherCenter = s.baseLeft + k * s.peekCol + (k >= s.slot ? s.slotGap : 0) + others[k].w / 2;
+      if (currentHeldCenter > otherCenter) {
+        newSlot = k + 1;
+      }
+    }
+    newSlot = Math.max(0, Math.min(n, newSlot));
+
+    if (newSlot !== s.slot) {
+      s.slot = newSlot;
+      if (navigator.vibrate) try { navigator.vibrate(6); } catch(err) {}
+      s.retarget(now, true);
+    }
+  };
+
+  var dropListWallet = function(cancel) {
+    var s = listWalletSessionRef.current;
+    if (!s) return;
+
+    columnSuppressClickUntilRef.current = Date.now() + 450;
+    window.__minestGestureSuppressClickUntil = Date.now() + 450;
+
+    var held = s.held;
+    var fromSlot = s.fromSlot;
+    var targetSlot = cancel ? fromSlot : s.slot;
+    var moved = targetSlot !== fromSlot;
+
+    s.held = null;
+
+    if (held) {
+      held.el.classList.remove('list-wallet-lifted');
+      held.rz = 0;
+    }
+
+    if (SoundEngine && SoundEngine.play) SoundEngine.play('cardDrop');
+    if (navigator.vibrate) try { navigator.vibrate([10, 30, 10]); } catch(err) {}
+
+    var fromColId = s.items[fromSlot] ? s.items[fromSlot].id : null;
+    var fromRealIdx = fromColId ? (board.columns || []).findIndex(function(c) { return c.id === fromColId; }) : fromSlot;
+    var toRealIdx = targetSlot;
+
+    s.phase = 'fan';
+    s.lane.classList.add('list-wallet-fanning');
+    s.retarget(performance.now(), false);
+
+    setTimeout(function() {
+      closeListWallet();
+      if (moved && onReorderColumns && fromRealIdx !== -1 && toRealIdx !== -1 && fromRealIdx !== toRealIdx) {
+        onReorderColumns(fromRealIdx, toRealIdx);
+      }
+    }, 280);
+  };
+
+  var closeListWallet = function() {
+    var s = listWalletSessionRef.current;
+    if (!s) return;
+
+    if (s.frame) cancelAnimationFrame(s.frame);
+
+    s.items.forEach(function(it) {
+      it.el.style.transform = '';
+      it.el.style.transition = '';
+      it.el.style.zIndex = '';
+      it.el.classList.remove('list-wallet-lifted');
+    });
+
+    s.lane.classList.remove('list-wallet-active', 'list-wallet-fanning');
+    document.body.classList.remove('is-safari-column-dragging');
+    listWalletActiveRef.current = false;
+    window.__isWalletMode = false;
+    listWalletSessionRef.current = null;
+  };
+
+  // ---- List Header Gesture Controller (Hold -> Wallet, Swipe -> Switch, Tap -> Rename) ----
+  var handleColHeaderPointerDown = function(e, colId, cIdx) {
     if (e.button !== 0) return;
-
-    // Do NOT drag if clicking inside interactive controls or cards
     if (e.target && e.target.closest) {
-      if (e.target.closest('button, a, input, textarea, select, [contenteditable], .column-menu-btn, .column-menu-popover, .card-edit-btn, .mac-dot-btn, .card-check-trigger-btn, .kanban-card, .kanban-subcard, .card-gap-active-composer, .card-gap-insert-zone, .card-mode-btn, .perspective-stage')) {
+      if (e.target.closest('button, a, input, textarea, select, [contenteditable], .column-menu-btn, .column-menu-popover')) {
         return;
       }
     }
 
-    var swimlane = swimlaneRef.current;
-    if (!swimlane) return;
+    var lane = swimlaneRef.current;
+    if (!lane) return;
 
-    // Identify target column element
-    var colEl = customColEl || (
-      (e.currentTarget && e.currentTarget.classList && e.currentTarget.classList.contains('kanban-column-wrapper'))
-        ? e.currentTarget
-        : (e.target && e.target.closest && e.target.closest('.kanban-column-wrapper'))
-    );
-
-    // If initiated from swimlane background outside any column, find the nearest visible column
-    if (!colEl) {
-      var allColElsOnStage = Array.from(swimlane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
-      if (allColElsOnStage.length > 0) {
-        var clickX = e.clientX;
-        var nearestCol = null;
-        var minDiff = Infinity;
-        allColElsOnStage.forEach(function(w, idx) {
-          var r = w.getBoundingClientRect();
-          var centerX = r.left + r.width / 2;
-          var diff = Math.abs(clickX - centerX);
-          if (diff < minDiff) {
-            minDiff = diff;
-            nearestCol = { el: w, idx: idx, colId: w.getAttribute('data-col-id') || w.dataset.colId };
-          }
-        });
-        if (nearestCol) {
-          colEl = nearestCol.el;
-          colId = nearestCol.colId;
-          cIdx = nearestCol.idx;
-        }
-      }
-    }
+    var colEl = (e.currentTarget && e.currentTarget.closest) ? e.currentTarget.closest('.kanban-column-wrapper') : null;
     if (!colEl) return;
 
     var startX = e.clientX;
     var startY = e.clientY;
     var startTime = Date.now();
     var lastX = startX;
-    var lastY = startY;
-    var lastTime = startTime;
-    var isDragging = false;
-    var currentClientX = startX;
-    var currentClientY = startY;
-    var currentVx = 0;
-    var smoothedVx = 0;
+    var lastT = startTime;
+    var vx = 0;
+    var isSwiping = false;
+    var isWallet = false;
+    var startScrollLeft = lane.scrollLeft;
 
-    var geometry = null;
-    var targetSlot = cIdx;
-    var autoScrollFrame = null;
-    var rAfMove = null;
+    // Press feedback: list header gently sinks under finger while hold builds up
+    colEl.style.transition = 'transform 300ms cubic-bezier(.3,.0,.2,1)';
+    colEl.style.transform = 'scale(0.978)';
 
-    var measureGeometry = function() {
-      var colRect = colEl.getBoundingClientRect();
-      var swimlaneRect = swimlane.getBoundingClientRect();
-      var initialScrollLeft = swimlane.scrollLeft;
-
-      // Find all visible column wrappers in the swimlane
-      var allColEls = Array.from(swimlane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
-      var foundIndex = allColEls.indexOf(colEl);
-      if (foundIndex !== -1) cIdx = foundIndex;
-
-      var colsInfo = allColEls.map(function(wrapper, idx) {
-        var r = wrapper.getBoundingClientRect();
-        return {
-          idx: idx,
-          wrapper: wrapper,
-          colId: wrapper.getAttribute('data-col-id') || wrapper.dataset.colId,
-          width: r.width,
-          offsetLeft: wrapper.offsetLeft,
-          screenLeft: r.left,
-          screenCenterX: r.left + r.width / 2
-        };
-      });
-
-      var draggedWidth = colRect.width;
-      var slotPitch = colsInfo.length > 1 ? Math.abs(colsInfo[1].offsetLeft - colsInfo[0].offsetLeft) : (draggedWidth + 20);
-      if (slotPitch < 100) slotPitch = draggedWidth + 20;
-
-      return {
-        colRect: colRect,
-        swimlaneRect: swimlaneRect,
-        initialScrollLeft: initialScrollLeft,
-        colsInfo: colsInfo,
-        draggedWidth: draggedWidth,
-        slotPitch: slotPitch,
-        allColEls: allColEls
-      };
-    };
-
-    var startDrag = function() {
-      isDragging = true;
-      safariColDragActiveRef.current = true;
-      window.__isSafariColDragging = true;
-
-      geometry = measureGeometry();
-
-      document.body.classList.add('is-safari-column-dragging');
-
-      // Lift the dragged List panel
-      colEl.classList.add('safari-lifted-column');
-      colEl.style.position = 'relative';
-      colEl.style.zIndex = '100';
-      colEl.style.pointerEvents = 'none';
-      colEl.style.willChange = 'transform, box-shadow, opacity';
-      colEl.style.transformOrigin = 'top center';
-      colEl.style.transition = 'box-shadow 180ms ease-out, transform 80ms ease-out';
-      colEl.style.transform = 'translate3d(0, 0, 0) scale(1.035)';
-
-      // All sibling columns become recessed
-      geometry.allColEls.forEach(function(w, i) {
-        if (i !== cIdx) {
-          w.classList.add('safari-recessed-column');
-          w.style.transition = 'transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 240ms ease';
-          w.style.transform = 'translate3d(0, 0, 0) scale(0.988)';
-        }
-      });
-
-      SoundEngine.play('click');
-      if (navigator.vibrate) {
-        try { navigator.vibrate(10); } catch(err) {}
+    var pressOut = function(instant) {
+      colEl.style.transition = instant ? 'none' : 'transform 260ms cubic-bezier(.2,1.3,.4,1)';
+      colEl.style.transform = '';
+      if (!instant) {
+        setTimeout(function() {
+          if (!listWalletActiveRef.current) colEl.style.transition = '';
+        }, 280);
       }
     };
 
-    var updateColumnDisplacements = function(newSlot) {
-      if (!geometry) return;
-      var N = geometry.colsInfo.length;
-      var pitch = geometry.slotPitch;
+    // Long press timer for triggering List Wallet (300ms)
+    var holdTimer = setTimeout(function() {
+      holdTimer = null;
+      if (isSwiping) return;
+      isWallet = true;
+      pressOut(true);
+      startListWallet(colEl, colId, cIdx, startX, startY);
+    }, 300);
 
-      for (var i = 0; i < N; i++) {
-        if (i === cIdx) continue;
-        var dispX = 0;
-        if (newSlot > cIdx) {
-          if (i > cIdx && i <= newSlot) dispX = -pitch;
-        } else if (newSlot < cIdx) {
-          if (i >= newSlot && i < cIdx) dispX = pitch;
-        }
-
-        var dist = Math.abs(i - newSlot);
-        var delay = Math.min(60, dist * 16);
-        var w = geometry.colsInfo[i].wrapper;
-        w.style.transition = 'transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1) ' + delay + 'ms, opacity 240ms ease';
-        w.style.transform = dispX !== 0 ? ('translate3d(' + dispX + 'px, 0, 0) scale(0.988)') : 'translate3d(0, 0, 0) scale(0.988)';
-      }
-    };
-
-    var autoScrollTick = function() {
-      if (!isDragging || !geometry) return;
-      var swimlaneRect = swimlane.getBoundingClientRect();
-      var edgeZone = 80;
-      var speed = 0;
-
-      if (currentClientX < swimlaneRect.left + edgeZone) {
-        var ratio = Math.min(1, (swimlaneRect.left + edgeZone - currentClientX) / edgeZone);
-        speed = -ratio * 18;
-      } else if (currentClientX > swimlaneRect.right - edgeZone) {
-        var ratio = Math.min(1, (currentClientX - (swimlaneRect.right - edgeZone)) / edgeZone);
-        speed = ratio * 18;
-      }
-
-      if (speed !== 0) {
-        swimlane.scrollLeft += speed;
-        applyPointerMove();
-      }
-
-      autoScrollFrame = requestAnimationFrame(autoScrollTick);
-    };
-
-    var applyPointerMove = function() {
-      if (!isDragging || !geometry) return;
-
-      var dx = currentClientX - startX;
-      var dy = currentClientY - startY;
-
-      // Top tight, bottom subtle inertia lag (Long Glass Panel Physics)
-      // Clamped to subtle ±1.8deg tilt around top center origin
-      var tilt = Math.max(-1.8, Math.min(1.8, smoothedVx * 2.5));
-      colEl.style.transition = 'none';
-      colEl.style.transform = 'translate3d(' + dx + 'px, ' + (dy * 0.35) + 'px, 0) scale(1.035) rotate(' + tilt.toFixed(2) + 'deg)';
-
-      // Calculate current visual center of dragged column on screen
-      var currentDraggedCenter = geometry.colsInfo[cIdx].screenCenterX + dx;
-      var scrollDelta = swimlane.scrollLeft - geometry.initialScrollLeft;
-
-      var N = geometry.colsInfo.length;
-      var newSlot = 0;
-      var hysteresis = 18;
-
-      for (var k = 0; k < N - 1; k++) {
-        var mid = (geometry.colsInfo[k].screenCenterX + geometry.colsInfo[k + 1].screenCenterX) / 2.0 - scrollDelta;
-        var effectiveMid = (k + 1 <= targetSlot) ? (mid - hysteresis) : (mid + hysteresis);
-        if (currentDraggedCenter > effectiveMid) {
-          newSlot = k + 1;
-        }
-      }
-
-      if (newSlot !== targetSlot) {
-        targetSlot = newSlot;
-        if (navigator.vibrate) {
-          try { navigator.vibrate(8); } catch(err) {}
-        }
-        updateColumnDisplacements(targetSlot);
-      }
-    };
-
-    var onPointerMove = function(e) {
-      currentClientX = e.clientX;
-      currentClientY = e.clientY;
-
+    var onPointerMove = function(ev) {
+      var cx = ev.clientX;
+      var cy = ev.clientY;
+      var dx = cx - startX;
+      var dy = cy - startY;
       var now = Date.now();
-      var dt = Math.max(10, now - lastTime);
-      currentVx = (e.clientX - lastX) / dt;
-      smoothedVx = smoothedVx * 0.7 + currentVx * 0.3;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      lastTime = now;
+      var dt = Math.max(1, now - lastT);
+      vx = (cx - lastX) / dt;
+      lastX = cx;
+      lastT = now;
 
-      if (!isDragging) {
-        var dx = e.clientX - startX;
-        var dy = e.clientY - startY;
-        var dist = Math.hypot(dx, dy);
-        if (dist >= 6 && Math.abs(dx) >= Math.abs(dy) * 0.75) {
-          e.preventDefault();
-          startDrag();
-          autoScrollFrame = requestAnimationFrame(autoScrollTick);
-        } else if (dist >= 14 && Math.abs(dy) > Math.abs(dx)) {
-          cleanup();
-          return;
-        } else {
-          return;
-        }
-      } else {
-        e.preventDefault();
+      if (isWallet) {
+        if (ev.cancelable) ev.preventDefault();
+        trackListWalletMove(cx, cy);
+        return;
       }
 
-      if (rAfMove === null) {
-        rAfMove = requestAnimationFrame(function() {
-          rAfMove = null;
-          applyPointerMove();
-        });
+      if (!isSwiping) {
+        var dist = Math.hypot(dx, dy);
+        if (dist > 8) {
+          if (holdTimer) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+          }
+          if (Math.abs(dx) >= Math.abs(dy) * 0.7) {
+            isSwiping = true;
+            pressOut(true);
+            lane.style.scrollBehavior = 'auto';
+            lane.style.scrollSnapType = 'none';
+          } else {
+            pressOut(false);
+            cleanup();
+            return;
+          }
+        }
+      }
+
+      if (isSwiping) {
+        if (ev.cancelable) ev.preventDefault();
+        lane.scrollLeft = startScrollLeft - dx;
       }
     };
 
@@ -25686,109 +25867,129 @@ var ke = function(props) {
       window.removeEventListener('pointermove', onPointerMove, { capture: true });
       window.removeEventListener('pointerup', onPointerUp, { capture: true });
       window.removeEventListener('pointercancel', onPointerCancel, { capture: true });
-      if (autoScrollFrame) {
-        cancelAnimationFrame(autoScrollFrame);
-        autoScrollFrame = null;
-      }
-      if (rAfMove) {
-        cancelAnimationFrame(rAfMove);
-        rAfMove = null;
-      }
     };
 
-    var onPointerUp = function(e) {
+    var onPointerUp = function(ev) {
       cleanup();
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
 
-      if (!isDragging) {
-        columnSuppressClickUntilRef.current = 0;
-        safariColDragActiveRef.current = false;
-        window.__isSafariColDragging = false;
+      if (isWallet) {
+        dropListWallet();
         return;
       }
 
-      columnSuppressClickUntilRef.current = Date.now() + 350;
+      pressOut(false);
 
-      // Magnetic Landing Settle (Safari Spring: short spring, almost no bounce)
-      var scrollDelta = swimlane.scrollLeft - geometry.initialScrollLeft;
-      var targetDeltaX = (geometry.colsInfo[targetSlot].screenLeft - geometry.colsInfo[cIdx].screenLeft) - scrollDelta;
+      if (isSwiping) {
+        columnSuppressClickUntilRef.current = Date.now() + 350;
+        lane.style.scrollBehavior = 'smooth';
+        lane.style.scrollSnapType = '';
 
-      colEl.style.transition = 'transform 260ms cubic-bezier(0.18, 1.15, 0.32, 1), box-shadow 260ms ease, opacity 260ms ease';
-      colEl.style.transform = 'translate3d(' + targetDeltaX + 'px, 0, 0) scale(1.0) rotate(0deg)';
-      colEl.style.boxShadow = '';
+        var dx = ev.clientX - startX;
+        var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
+        var totalCols = allCols.length;
+        var foundIdx = allCols.indexOf(colEl);
+        if (foundIdx !== -1) cIdx = foundIdx;
 
-      SoundEngine.play('slide');
-      if (navigator.vibrate) {
-        try { navigator.vibrate([10, 30, 10]); } catch(err) {}
+        var targetIdx = cIdx;
+        if (dx < -32 || vx < -0.22) {
+          targetIdx = Math.min(totalCols - 1, cIdx + 1);
+        } else if (dx > 32 || vx > 0.22) {
+          targetIdx = Math.max(0, cIdx - 1);
+        }
+
+        var padLeft = parseInt(window.getComputedStyle(lane).paddingLeft || '16', 10);
+        var targetLeft = allCols[targetIdx] ? Math.max(0, allCols[targetIdx].offsetLeft - padLeft) : 0;
+        lane.scrollTo({ left: targetLeft, behavior: 'smooth' });
+
+        if (targetIdx !== cIdx) {
+          if (SoundEngine && SoundEngine.play) SoundEngine.play('slide');
+          if (navigator.vibrate) try { navigator.vibrate(8); } catch(err) {}
+        }
+        return;
       }
-
-      setTimeout(function() {
-        document.body.classList.remove('is-safari-column-dragging');
-        colEl.style.transform = '';
-        colEl.style.transition = '';
-        colEl.style.position = '';
-        colEl.style.zIndex = '';
-        colEl.style.pointerEvents = '';
-        colEl.style.transformOrigin = '';
-        colEl.classList.remove('safari-lifted-column');
-
-        if (geometry && geometry.allColEls) {
-          geometry.allColEls.forEach(function(w) {
-            w.style.transform = '';
-            w.style.transition = '';
-            w.style.opacity = '';
-            w.classList.remove('safari-recessed-column');
-          });
-        }
-        safariColDragActiveRef.current = false;
-        window.__isSafariColDragging = false;
-
-        // Commit reorder in board state if slot changed
-        if (targetSlot !== cIdx) {
-          var fromColId = (geometry.colsInfo[cIdx] && (geometry.colsInfo[cIdx].colId || geometry.colsInfo[cIdx].wrapper.getAttribute('data-col-id'))) || colId;
-          var toColId = geometry.colsInfo[targetSlot] && (geometry.colsInfo[targetSlot].colId || geometry.colsInfo[targetSlot].wrapper.getAttribute('data-col-id'));
-          var fromRealIdx = (board.columns || []).findIndex(function(c) { return c.id === fromColId; });
-          var toRealIdx = (board.columns || []).findIndex(function(c) { return c.id === toColId; });
-          if (fromRealIdx === -1) fromRealIdx = cIdx;
-          if (toRealIdx === -1) toRealIdx = targetSlot;
-          if (fromRealIdx !== toRealIdx && onReorderColumns) {
-            onReorderColumns(fromRealIdx, toRealIdx);
-          }
-        }
-      }, 270);
     };
 
     var onPointerCancel = function() {
       cleanup();
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      pressOut(false);
+      if (isWallet) {
+        dropListWallet(true);
+      } else if (isSwiping) {
+        lane.style.scrollBehavior = 'smooth';
+        lane.style.scrollSnapType = '';
+      }
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { capture: true, passive: false });
+    window.addEventListener('pointerup', onPointerUp, { capture: true, passive: false });
+    window.addEventListener('pointercancel', onPointerCancel, { capture: true, passive: false });
+  };
+
+  // Blank area pointer drag for smooth horizontal scroll in board swimlane
+  var handleBlankAreaPointerDown = function(e) {
+    if (e.target && e.target.closest && e.target.closest('.kanban-column-wrapper')) return;
+    if (e.button !== 0) return;
+    var lane = swimlaneRef.current;
+    if (!lane) return;
+
+    var startX = e.clientX;
+    var startScrollLeft = lane.scrollLeft;
+    var isDragging = false;
+    var lastX = startX;
+    var lastT = Date.now();
+    var vx = 0;
+
+    var onPointerMove = function(ev) {
+      var dx = ev.clientX - startX;
+      var now = Date.now();
+      var dt = Math.max(1, now - lastT);
+      vx = (ev.clientX - lastX) / dt;
+      lastX = ev.clientX;
+      lastT = now;
+
+      if (!isDragging) {
+        if (Math.abs(dx) > 4) {
+          isDragging = true;
+          lane.style.scrollBehavior = 'auto';
+          lane.style.scrollSnapType = 'none';
+        }
+      }
+      if (isDragging) {
+        lane.scrollLeft = startScrollLeft - dx;
+      }
+    };
+
+    var onPointerUp = function() {
+      window.removeEventListener('pointermove', onPointerMove, { capture: true });
+      window.removeEventListener('pointerup', onPointerUp, { capture: true });
+      window.removeEventListener('pointercancel', onPointerCancel, { capture: true });
 
       if (isDragging) {
-        columnSuppressClickUntilRef.current = Date.now() + 350;
-        colEl.style.transition = 'transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1)';
-        colEl.style.transform = 'translate3d(0, 0, 0) scale(1.0) rotate(0deg)';
-
-        if (geometry && geometry.allColEls) {
-          geometry.allColEls.forEach(function(w) {
-            w.style.transition = 'transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1)';
-            w.style.transform = '';
-            w.style.opacity = '';
-            w.classList.remove('safari-recessed-column');
-          });
+        columnSuppressClickUntilRef.current = Date.now() + 250;
+        lane.style.scrollBehavior = 'smooth';
+        lane.style.scrollSnapType = '';
+        if (Math.abs(vx) > 0.18) {
+          var fling = -vx * 260;
+          lane.scrollTo({ left: lane.scrollLeft + fling, behavior: 'smooth' });
         }
+      }
+    };
 
-        setTimeout(function() {
-          document.body.classList.remove('is-safari-column-dragging');
-          colEl.style.transform = '';
-          colEl.style.transition = '';
-          colEl.style.position = '';
-          colEl.style.zIndex = '';
-          colEl.style.pointerEvents = '';
-          colEl.style.transformOrigin = '';
-          colEl.classList.remove('safari-lifted-column');
-          safariColDragActiveRef.current = false;
-          window.__isSafariColDragging = false;
-        }, 250);
-      } else {
-        safariColDragActiveRef.current = false;
-        window.__isSafariColDragging = false;
+    var onPointerCancel = function() {
+      window.removeEventListener('pointermove', onPointerMove, { capture: true });
+      window.removeEventListener('pointerup', onPointerUp, { capture: true });
+      window.removeEventListener('pointercancel', onPointerCancel, { capture: true });
+      if (isDragging) {
+        lane.style.scrollBehavior = 'smooth';
+        lane.style.scrollSnapType = '';
       }
     };
 
@@ -25870,11 +26071,7 @@ var ke = function(props) {
         ref: swimlaneRef,
         onDragOver: function(e) { e.preventDefault(); },
         onDrop: handleColDrop,
-        onPointerDown: function(e) {
-          if (!e.target.closest('.kanban-column-wrapper')) {
-            handleSafariColumnPointerDown(e, null, null);
-          }
-        },
+        onPointerDown: handleBlankAreaPointerDown,
         onClick: function() { if (justClosedQuickEditRef.current || (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current)) return; collapseAllStacks(); if (quickMenuCardId) setQuickMenuCardId(null); if (menuColId) setMenuColId(null); if (editingColId) setEditingColId(null); },
         'data-board-id': board.id,
         className: "fb-board-stage " + (layoutMode === 'swimlane' ? "board-swimlane-scroll flex items-start gap-5 pb-2 overflow-x-auto w-full min-w-0 pr-16 select-none flex-1 min-h-0 snap-x snap-proximity" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 pb-4 flex-1 overflow-y-auto min-h-0") + (boardCardMode === 'smash' ? " board-smash-mode" : "") + (boardCardMode === 'liq' ? " board-liquid-mode" : ""),
@@ -26066,7 +26263,6 @@ var ke = function(props) {
             return (0, P.jsxs)('div', {
               key: col.id,
               'data-col-id': col.id,
-              onPointerDown: function(e) { handleSafariColumnPointerDown(e, col.id, cIdx); },
               onDragOver: function(e) { if (!portraitLock) handleColDragOverColumn(e, col.id, cIdx); },
               onDrop: function(e) { if (!portraitLock) handleColDrop(e, cIdx); },
               onPaste: function(e) {
@@ -26092,11 +26288,11 @@ var ke = function(props) {
                 backgroundColor: col.color ? (isDark ? col.color + '22' : col.color + '18') : (isDark ? "rgba(18, 26, 36, 0.65)" : "rgba(255, 255, 255, 0.50)")
               },
               children: [
-                // Column Header (Safari Tab Reorder × Long Glass Panel Grab Handle)
+                // Column Header (Hold for List Wallet, Swipe to switch lists, Click to rename)
                 (0, P.jsxs)('div', {
-                  onPointerDown: function(e) { handleSafariColumnPointerDown(e, col.id, cIdx); },
+                  onPointerDown: function(e) { handleColHeaderPointerDown(e, col.id, cIdx); },
                   className: "kanban-column-header relative flex items-center justify-between pb-3 mb-1 cursor-grab active:cursor-grabbing select-none shrink-0 group/colheader safari-column-header-grab",
-                  title: "Drag to reorder list (Web 18.0 Safari Tab Reorder)",
+                  title: "Swipe horizontally to switch lists, hold to activate List Wallet",
                   children: [
                     (0, P.jsxs)('div', {
                       className: "flex items-center gap-1.5 min-w-0 pr-2 flex-1 group/coltitle",
