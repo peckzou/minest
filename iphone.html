@@ -15767,6 +15767,64 @@ var ActivityBadgesModal = function(props) {
   // Vendored from github.com/peckzou/badge so Awards keeps working offline,
   // inside WKWebView, and after AI Studio preview URLs expire.
   var badgeViewerUrl = "./badge-library/index.html?embed=true";
+  var badgeSourceState = (0, _.useState)(function() {
+    try { return localStorage.getItem('minest_badge_source_v1') || 'local'; } catch(e) { return 'local'; }
+  });
+  var badgeSource = badgeSourceState[0];
+  var setBadgeSource = badgeSourceState[1];
+  var badgeFrameRef = (0, _.useRef)(null);
+  var unlockRulesState = (0, _.useState)(function() {
+    try {
+      var saved = JSON.parse(localStorage.getItem('minest_badge_unlock_rules_v1') || 'null');
+      if (Array.isArray(saved)) return saved;
+    } catch(e) {}
+    return [
+      { badgeId: 'perfect-week-focus', label: 'Deep Focus', metric: 'focusMinutes', target: 30 },
+      { badgeId: 'perfect-week-review', label: 'Daily Checks', metric: 'checkCount', target: 10 },
+      { badgeId: 'daily-ring-200-percent', label: 'Board Goal', metric: 'goalPercent', target: 100 }
+    ];
+  });
+  var unlockRules = unlockRulesState[0];
+  var setUnlockRules = unlockRulesState[1];
+  var unlockSettingsState = (0, _.useState)(false);
+  var showUnlockSettings = unlockSettingsState[0];
+  var setShowUnlockSettings = unlockSettingsState[1];
+  var activeBadgeUrl = badgeSource === 'live' ? 'https://minest-badge.ai.studio/?embed=true' : badgeViewerUrl;
+
+  var sendAwardProgress = function() {
+    var frame = badgeFrameRef.current;
+    if (!frame || !frame.contentWindow) return;
+    frame.contentWindow.postMessage({
+      type: 'minest:award-progress',
+      progress: { focusMinutes: focusMinutes, checkCount: checkCount, goalPercent: goalPercent },
+      rules: unlockRules
+    }, '*');
+  };
+
+  (0, _.useEffect)(function() {
+    try { localStorage.setItem('minest_badge_unlock_rules_v1', JSON.stringify(unlockRules)); } catch(e) {}
+    sendAwardProgress();
+  }, [focusMinutes, checkCount, goalPercent, unlockRules, badgeSource]);
+
+  var updateUnlockRule = function(index, field, value) {
+    setUnlockRules(unlockRules.map(function(rule, ruleIndex) {
+      if (ruleIndex !== index) return rule;
+      var next = Object.assign({}, rule);
+      next[field] = field === 'target' ? clampGoal(value, 1, field === 'target' ? 1000 : 100) : value;
+      return next;
+    }));
+  };
+
+  var badgeChoices = [
+    ['perfect-week-focus', 'Perfect Week · Focus'],
+    ['perfect-week-review', 'Perfect Week · Review'],
+    ['daily-ring-200-percent', '200% Daily Goal'],
+    ['daily-ring-300-percent', '300% Academic Surge'],
+    ['early-bird-mastery', 'Dawn Scholar'],
+    ['owl-wisdom', 'Night Owl Scholar'],
+    ['cute-panda', 'Zen Master Panda'],
+    ['cartoon-astronaut', 'Cosmic Explorer']
+  ];
 
   var clampGoal = function(value, min, max) {
     var parsed = parseInt(value, 10);
@@ -15846,9 +15904,29 @@ var ActivityBadgesModal = function(props) {
               (0, P.jsx)('button', { type: "button", onClick: saveGoals, className: "w-full rounded-2xl bg-white text-black py-3 text-sm font-semibold shadow-lg", children: "Save Goals" })
             ] }) : (0, P.jsxs)('div', { className: "mt-4 grid grid-cols-2 gap-3 text-sm", children: [(0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "FOCUS" }), (0, P.jsx)('strong', { children: targetMinutes + " minutes" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "CHECKS" }), (0, P.jsx)('strong', { children: targetChecks + " items" })] })] })
           ] }),
+          (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
+            (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [
+              (0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Awards Settings" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Library updates and unlock goals." })] }),
+              (0, P.jsx)('button', { type: "button", onClick: function() { setShowUnlockSettings(!showUnlockSettings); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: showUnlockSettings ? "Done" : "Set Up" })
+            ] }),
+            (0, P.jsxs)('div', { className: "mt-4 grid grid-cols-2 gap-1 rounded-full p-1 bg-white/8", style: { display: "grid", gridTemplateColumns: "1fr 1fr" }, children: [
+              (0, P.jsx)('button', { type: "button", onClick: function() { setBadgeSource('local'); try { localStorage.setItem('minest_badge_source_v1', 'local'); } catch(e) {} }, className: "rounded-full py-2 text-[11px] font-semibold", style: { background: badgeSource === 'local' ? '#fff' : 'transparent', color: badgeSource === 'local' ? '#000' : 'inherit', opacity: badgeSource === 'local' ? 1 : .55 }, children: "Built-in Stable" }),
+              (0, P.jsx)('button', { type: "button", onClick: function() { setBadgeSource('live'); try { localStorage.setItem('minest_badge_source_v1', 'live'); } catch(e) {} }, className: "rounded-full py-2 text-[11px] font-semibold", style: { background: badgeSource === 'live' ? '#fff' : 'transparent', color: badgeSource === 'live' ? '#000' : 'inherit', opacity: badgeSource === 'live' ? 1 : .55 }, children: "AI Studio Live" })
+            ] }),
+            showUnlockSettings ? (0, P.jsx)('div', { className: "mt-4 space-y-3", children: unlockRules.map(function(rule, index) {
+              return (0, P.jsxs)('div', { className: "rounded-2xl border border-white/10 bg-white/[0.04] p-3", children: [
+                (0, P.jsx)('p', { className: "text-[10px] font-semibold uppercase tracking-wider opacity-45 mb-2", children: "Unlock Rule " + (index + 1) }),
+                (0, P.jsx)('select', { value: rule.badgeId, onChange: function(e) { updateUnlockRule(index, 'badgeId', e.target.value); }, className: "w-full rounded-xl bg-black/25 border border-white/10 p-2 text-xs", children: badgeChoices.map(function(choice) { return (0, P.jsx)('option', { value: choice[0], children: choice[1] }, choice[0]); }) }),
+                (0, P.jsxs)('div', { className: "mt-2 grid grid-cols-2 gap-2", children: [
+                  (0, P.jsx)('select', { value: rule.metric, onChange: function(e) { updateUnlockRule(index, 'metric', e.target.value); }, className: "rounded-xl bg-black/25 border border-white/10 p-2 text-xs", children: [(0, P.jsx)('option', { value: "focusMinutes", children: "Focus minutes" }), (0, P.jsx)('option', { value: "checkCount", children: "Completed checks" }), (0, P.jsx)('option', { value: "goalPercent", children: "Board progress %" })] }),
+                  (0, P.jsx)('input', { type: "number", min: 1, max: 1000, value: rule.target, onChange: function(e) { updateUnlockRule(index, 'target', e.target.value); }, className: "rounded-xl bg-black/25 border border-white/10 p-2 text-xs", 'aria-label': "Unlock target" })
+                ] })
+              ] }, rule.badgeId + '-' + index);
+            }) }) : null
+          ] }),
           (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "mt-4 w-full rounded-[24px] border border-white/10 bg-gradient-to-r from-amber-400/20 to-fuchsia-500/15 p-4 text-left", children: (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('p', { className: "font-semibold", children: "Explore Awards" }), (0, P.jsx)('p', { className: "text-xs opacity-50", children: "View the live 3D collection" })] }), (0, P.jsx)('span', { className: "text-xl", children: "›" })] }) })
         ] }) : (0, P.jsxs)('div', { className: "px-4 pb-6", children: [
-          (0, P.jsxs)('div', { className: "relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [(0, P.jsx)('iframe', { src: badgeViewerUrl, title: "Minest 3D Awards", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }), (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), "LIVE 3D"] })] }),
+          (0, P.jsxs)('div', { className: "relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [(0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, onLoad: sendAwardProgress, title: "Minest 3D Awards", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }), (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), badgeSource === 'live' ? "AI STUDIO LIVE" : "BUILT-IN 3D"] })] }),
           (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: "Drag to rotate · Pinch to inspect · Gyroscope enabled" })
         ] })
       ]

@@ -3,7 +3,7 @@
 This directory is the production build of the standalone badge repository.
 
 - Source: https://github.com/peckzou/badge
-- Source commit: `f3bbd763a4e493eb07c4e4441186128599b06a72`
+- Source commit: `814e84337b40b5d61ce6fa6c0b07776db97227f9`
 - Built with: `vite build --base=./`
 - Imported: 2026-09-27
 
