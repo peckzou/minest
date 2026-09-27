@@ -3964,6 +3964,32 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
 /* ========================================================================= */
 /* Phase 5: Focusboard iPhone Portrait — Gesture-First Interaction Redesign  */
 /* ========================================================================= */
+/* In iPhone portrait mode, only swiping on the list title row switches lists */
+.iphone-frame:not(.landscape) .board-swimlane-scroll,
+.mobile-board-view:not(.landscape) .board-swimlane-scroll {
+  overflow-x: hidden !important;
+  scroll-snap-type: none !important;
+  touch-action: pan-y !important;
+}
+
+.iphone-frame:not(.landscape) .kanban-cards-scroll,
+.mobile-board-view:not(.landscape) .kanban-cards-scroll,
+.iphone-frame:not(.landscape) article.kanban-card,
+.mobile-board-view:not(.landscape) article.kanban-card,
+.iphone-frame:not(.landscape) .kanban-subcard,
+.mobile-board-view:not(.landscape) .kanban-subcard {
+  touch-action: pan-y !important;
+  overscroll-behavior-x: contain !important;
+}
+
+.iphone-frame:not(.landscape) .kanban-column-header,
+.mobile-board-view:not(.landscape) .kanban-column-header,
+.iphone-frame:not(.landscape) [class*="group/colheader"],
+.mobile-board-view:not(.landscape) [class*="group/colheader"] {
+  touch-action: pan-x !important;
+  cursor: grab;
+}
+
 /* Hide bottom "+ Add card" button in mobile portrait */
 .iphone-frame:not(.landscape) .column-add-card-btn,
 .mobile-board-view:not(.landscape) .column-add-card-btn {
@@ -21518,6 +21544,7 @@ var MinestPortraitGestureManager = (function() {
     var pullGhost = null;
     var lastTap = { time: 0, cardId: null, timer: null };
     var pinchSession = null;
+    var listSwipeState = null;
     var activePointers = new Map();
 
     var removeBackdrops = function(parent) {
@@ -21538,6 +21565,37 @@ var MinestPortraitGestureManager = (function() {
       var ctx = ctxRef.current || {};
       var clientX = e.clientX, clientY = e.clientY;
       var isAltPinch = (e.pointerType === 'mouse' && e.altKey);
+
+      // List Title Row Swipe (Only swiping on list title row triggers list switching in portrait mode)
+      var headerEl = (e.target && e.target.closest) ? e.target.closest('.kanban-column-header, [class*="group/colheader"]') : null;
+      var isHeaderInput = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || (e.target.closest && e.target.closest('input, textarea')));
+      if (headerEl && !isHeaderInput && e.button === 0) {
+        var colEl = headerEl.closest('.kanban-column-wrapper');
+        var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper'));
+        var curColIdx = allCols.indexOf(colEl);
+        if (curColIdx === -1) curColIdx = 0;
+
+        var padLeft = parseInt(window.getComputedStyle(lane).paddingLeft || '10', 10);
+        var getColScrollLeft = function(idx) {
+          if (!allCols[idx]) return 0;
+          return Math.max(0, allCols[idx].offsetLeft - padLeft);
+        };
+
+        listSwipeState = {
+          headerEl: headerEl,
+          startX: clientX,
+          startY: clientY,
+          lastX: clientX,
+          lastT: Date.now(),
+          vx: 0,
+          startScrollLeft: lane.scrollLeft,
+          curColIdx: curColIdx,
+          allCols: allCols,
+          getColScrollLeft: getColScrollLeft,
+          isSwiping: false
+        };
+        return;
+      }
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
       activePointers.set(pid, { x: clientX, y: clientY, target: e.target });
@@ -21714,6 +21772,44 @@ var MinestPortraitGestureManager = (function() {
       if (e.touches && e.touches[0]) {
         clientX = e.touches[0].clientX;
         clientY = e.touches[0].clientY;
+      }
+
+      // Handle List Title row swipe
+      if (listSwipeState) {
+        var dx = clientX - listSwipeState.startX;
+        var dy = clientY - listSwipeState.startY;
+        var now = Date.now();
+        var dt = Math.max(1, now - listSwipeState.lastT);
+        listSwipeState.vx = (clientX - listSwipeState.lastX) / dt;
+        listSwipeState.lastX = clientX;
+        listSwipeState.lastT = now;
+
+        if (!listSwipeState.isSwiping) {
+          if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+            listSwipeState.isSwiping = true;
+            lane.style.scrollBehavior = 'auto';
+          } else if (Math.abs(dy) > 10) {
+            listSwipeState = null;
+            return;
+          }
+        }
+
+        if (listSwipeState.isSwiping) {
+          if (e.cancelable) e.preventDefault();
+          e.stopPropagation();
+
+          var rawLeft = listSwipeState.startScrollLeft - dx;
+          var minLeft = 0;
+          var maxLeft = listSwipeState.getColScrollLeft(listSwipeState.allCols.length - 1);
+          var clampedLeft = rawLeft;
+          if (rawLeft < minLeft) {
+            clampedLeft = minLeft + (rawLeft - minLeft) * 0.32;
+          } else if (rawLeft > maxLeft) {
+            clampedLeft = maxLeft + (rawLeft - maxLeft) * 0.32;
+          }
+          lane.scrollLeft = clampedLeft;
+          return;
+        }
       }
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
@@ -21940,6 +22036,36 @@ var MinestPortraitGestureManager = (function() {
         return;
       }
       var ctx = ctxRef.current || {};
+
+      // Complete List Title row swipe
+      if (listSwipeState) {
+        var lss = listSwipeState;
+        listSwipeState = null;
+
+        if (lss.isSwiping) {
+          window.__minestGestureSuppressClickUntil = Date.now() + 350;
+          var dx = clientX - lss.startX;
+          var vx = lss.vx;
+          var totalCols = lss.allCols.length;
+          var targetIdx = lss.curColIdx;
+
+          if (dx < -36 || vx < -0.25) {
+            targetIdx = Math.min(totalCols - 1, lss.curColIdx + 1);
+          } else if (dx > 36 || vx > 0.25) {
+            targetIdx = Math.max(0, lss.curColIdx - 1);
+          }
+
+          var targetLeft = lss.getColScrollLeft(targetIdx);
+          lane.style.scrollBehavior = 'smooth';
+          lane.scrollTo({ left: targetLeft, behavior: 'smooth' });
+
+          if (targetIdx !== lss.curColIdx) {
+            haptic('selection');
+            sound('slide');
+          }
+          return;
+        }
+      }
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
       activePointers.delete(pid);
@@ -24548,7 +24674,7 @@ var ke = function(props) {
                     handleColDragStart(e, col.id, cIdx);
                   },
                   onDragEnd: handleColDragEnd,
-                  className: "relative flex items-center justify-between pb-3 mb-1 cursor-grab active:cursor-grabbing select-none shrink-0 group/colheader",
+                  className: "kanban-column-header relative flex items-center justify-between pb-3 mb-1 cursor-grab active:cursor-grabbing select-none shrink-0 group/colheader",
                   title: "Drag to reorder list",
                   children: [
                     (0, P.jsxs)('div', {
