@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Minest Badge 2.0 • 3D Spatial Learning Awards System</title>
+  <meta name="description" content="Minest Badge 2.0 standalone archive featuring 50 authentic learning awards, 20 distinct 3D geometric shapes, free-form drag rotation, satin ceramic laser backplates, and Apple Taptic micro-haptics." />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background-color: #000000;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+    .badge-card {
+      background: #1C1C1E;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 26px;
+      transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+    }
+    .badge-card:hover {
+      background: #242426;
+      border-color: rgba(255, 255, 255, 0.14);
+      transform: translateY(-2px);
+    }
+    .badge-card:active {
+      transform: scale(0.98);
+    }
+    .pill-btn {
+      transition: all 0.18s ease;
+    }
+    .pill-btn:active {
+      transform: scale(0.94);
+    }
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spinSlow 8s linear infinite;
+    }
+  </style>
+</head>
+<body class="bg-black text-white antialiased min-h-screen">
+  <!-- Main App Shell -->
+  <div id="app" class="max-w-5xl mx-auto px-4 sm:px-6 pt-5 pb-28">
+    <!-- Top Header -->
+    <header class="flex items-center justify-between mb-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs uppercase tracking-widest font-bold text-[#FA114F]">Archive 2.0</span>
+          <span class="text-xs text-[#8E8E93]">•</span>
+          <span class="text-xs text-[#8E8E93]">Full Standalone HTML</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-0.5">Minest Learning Awards</h1>
+        <p class="text-xs text-[#8E8E93] mt-1">50 High-Prestige Collectibles • 20 Parametric 3D Shapes • Free-Form Drag Rotation</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="award-counter" class="text-xs font-semibold px-3 py-1 rounded-full bg-[#1C1C1E] border border-white/10 text-white/90">
+          50 / 50
+        </span>
+      </div>
+    </header>
+
+    <!-- Search & Filter Strip -->
+    <div class="space-y-3 mb-6">
+      <div class="relative">
+        <input
+          id="search-input"
+          type="text"
+          placeholder="Search 50 awards or 20 styles (e.g. 'Octagon', 'Polyglot', 'Streak', 'Diamond')..."
+          class="w-full bg-[#1C1C1E] text-white placeholder-[#636366] text-sm rounded-full pl-10 pr-4 py-2.5 border border-white/10 focus:outline-none focus:border-white/30 transition-all"
+        />
+        <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E8E93]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div id="category-pills" class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+
+    <!-- Awards Grid -->
+    <div id="awards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Injected via JavaScript -->
+    </div>
+  </div>
+
+  <!-- Detail View Modal / Sheet -->
+  <div id="detail-modal" class="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between overflow-y-auto pb-16 hidden" style="backdrop-filter: blur(20px);">
+    <!-- iOS Pull Grabber -->
+    <div id="dismiss-grabber" class="w-full flex flex-col items-center justify-center pt-3 pb-1 cursor-grab">
+      <div class="w-10 h-1.5 rounded-full bg-white/30"></div>
+      <span class="text-[10px] text-[#8E8E93] mt-1.5 font-medium">Swipe down or tap Back to close</span>
+    </div>
+
+    <!-- Modal Header -->
+    <div class="w-full max-w-2xl mx-auto px-5 pt-1 flex items-center justify-between z-20">
+      <button id="modal-back-btn" class="w-10 h-10 rounded-full bg-[#1C1C1E] border border-white/10 flex items-center justify-center text-white pill-btn">
+        <svg class="w-5 h-5 -ml-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <div class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#8E8E93]">
+        Minest Badge 2.0 Inspection
+      </div>
+      <button id="modal-share-btn" class="w-10 h-10 rounded-full bg-[#1C1C1E] border border-white/10 flex items-center justify-center text-white pill-btn">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+          <polyline points="16 6 12 2 8 6" />
+          <line x1="12" y1="2" x2="12" y2="15" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- 3D Stage Container -->
+    <div class="relative w-full max-w-lg mx-auto flex-1 min-h-[380px] sm:min-h-[440px] flex items-center justify-center px-4 my-auto">
+      <div id="modal-canvas-box" class="relative w-full h-[380px] sm:h-[440px] rounded-[40px] border border-white/10 overflow-hidden bg-gradient-to-b from-white/[0.02] to-transparent shadow-2xl">
+        <!-- Three.js Canvas injected here -->
+        <div id="modal-canvas-target" class="w-full h-full cursor-grab active:cursor-grabbing touch-none"></div>
+
+        <!-- Top-Left 360° indicator -->
+        <div class="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-md text-[10px] text-[#8E8E93] pointer-events-none">
+          <svg class="w-3 h-3 text-[#00F0FF] animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2a10 10 0 0 1 10 10" />
+          </svg>
+          <span>Free-form 3D • Drag 360°</span>
+        </div>
+
+        <!-- Top-Right Zoom & Reset controls -->
+        <div class="absolute top-3 right-3 flex flex-col gap-1.5 z-20">
+          <button id="zoom-in-btn" class="w-8 h-8 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 flex items-center justify-center text-white/90 text-sm font-bold pill-btn" title="Zoom In">+</button>
+          <button id="zoom-out-btn" class="w-8 h-8 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 flex items-center justify-center text-white/90 text-sm font-bold pill-btn" title="Zoom Out">−</button>
+          <button id="zoom-reset-btn" class="w-8 h-8 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 flex items-center justify-center text-white/90 pill-btn" title="Reset View">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Bottom Angle Toolbar -->
+        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 flex-wrap justify-center max-w-full px-2">
+          <button id="angle-front-btn" class="px-2.5 py-1 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 text-[11px] font-medium pill-btn">Front</button>
+          <button id="angle-angled-btn" class="px-2.5 py-1 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 text-[11px] font-medium pill-btn">Angled</button>
+          <button id="angle-edge-btn" class="px-2.5 py-1 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 text-[11px] font-medium pill-btn">Edge</button>
+          <button id="angle-flip-btn" class="px-3 py-1 rounded-full bg-[#1C1C1E] border border-white/20 text-[11px] font-medium text-white flex items-center gap-1 pill-btn">
+            <svg class="w-3 h-3 text-[#8E8E93]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+            <span id="flip-btn-label">Laser Back</span>
+          </button>
+          <button id="lighting-toggle-btn" class="px-2.5 py-1 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 text-[11px] font-medium pill-btn flex items-center gap-1">
+            <span>💡</span>
+            <span>Lighting</span>
+          </button>
+        </div>
+
+        <!-- Studio Lighting Control Panel Sheet -->
+        <div id="lighting-panel" class="absolute inset-x-2 bottom-12 sm:inset-x-4 z-30 bg-[#161618]/95 border border-white/10 rounded-[24px] p-3.5 shadow-2xl backdrop-blur-xl hidden select-none max-w-md mx-auto">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+              <span>Studio Lighting & Liquid Glass</span>
+            </span>
+            <div class="flex items-center gap-2">
+              <button id="lighting-reset-btn" class="text-[10px] text-[#8E8E93] hover:text-white px-2 py-0.5 rounded-full bg-white/5">Reset</button>
+              <button id="lighting-close-btn" class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-[#8E8E93]">✕</button>
+            </div>
+          </div>
+          <div class="space-y-2.5 text-[11px]">
+            <div>
+              <div class="flex justify-between text-[#8E8E93] mb-1">
+                <span>Color Temperature</span>
+                <span id="kelvin-readout" class="text-white font-mono font-semibold">5800K</span>
+              </div>
+              <input id="kelvin-slider" type="range" min="2700" max="8500" step="50" value="5800" class="w-full h-1.5 rounded-full appearance-none cursor-pointer" style="background: linear-gradient(to right, #FF9F0A 0%, #FFFFFF 52%, #00F0FF 100%);" />
+            </div>
+            <div>
+              <div class="flex justify-between text-[#8E8E93] mb-1">
+                <span>Ambient Softbox</span>
+                <span id="ambient-readout" class="text-white font-mono font-semibold">72%</span>
+              </div>
+              <input id="ambient-slider" type="range" min="0.20" max="1.80" step="0.02" value="0.72" class="w-full h-1.5 rounded-full appearance-none cursor-pointer" style="background: linear-gradient(to right, #2C2C2E 0%, #FFFFFF 100%);" />
+            </div>
+            <div>
+              <div class="flex justify-between text-[#8E8E93] mb-1">
+                <span>Glass Specular Gloss</span>
+                <span id="gloss-readout" class="text-white font-mono font-semibold">1.00x</span>
+              </div>
+              <input id="gloss-slider" type="range" min="0.50" max="2.00" step="0.05" value="1.00" class="w-full h-1.5 rounded-full appearance-none cursor-pointer" style="background: linear-gradient(to right, #5E5CE6 0%, #00F0FF 100%);" />
+            </div>
+            <div class="flex items-center gap-1.5 pt-1 overflow-x-auto scrollbar-none">
+              <button id="preset-sunset" class="px-2 py-0.5 rounded-full bg-[#1C1C1E] border border-white/10 text-[10px] whitespace-nowrap">☀️ Sunset</button>
+              <button id="preset-daylight" class="px-2 py-0.5 rounded-full bg-[#1C1C1E] border border-white/10 text-[10px] whitespace-nowrap">💡 Daylight</button>
+              <button id="preset-nordic" class="px-2 py-0.5 rounded-full bg-[#1C1C1E] border border-white/10 text-[10px] whitespace-nowrap">❄️ Nordic</button>
+              <button id="preset-void" class="px-2 py-0.5 rounded-full bg-[#1C1C1E] border border-white/10 text-[10px] whitespace-nowrap">🌙 Void</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metadata Description -->
+    <div class="w-full max-w-md mx-auto px-6 text-center space-y-2 pt-2 z-10">
+      <h2 id="modal-badge-name" class="text-2xl font-bold tracking-tight text-white leading-tight">Badge Name</h2>
+      <p id="modal-badge-desc" class="text-sm text-[#8E8E93] leading-relaxed">Description</p>
+      <div id="modal-badge-specs" class="pt-2 flex items-center justify-center gap-2 text-[11px] text-[#636366] font-medium border-t border-white/10 mt-2 flex-wrap">
+        <!-- Specs injected -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. SPATIAL AUDIO & TAPTIC ENGINE ACOUSTICS (Web Audio API)
+       ========================================================================= */
+    class SpatialAudioSystem {
+      constructor() {
+        this.ctx = null;
+        this.masterGain = null;
+        this.soundscapeGain = null;
+        this.soundscapeFilter = null;
+        this.soundscapePanner = null;
+        this.reverbNode = null;
+        this.isMuted = false;
+        this.soundscapeEnabled = true;
+        this.soundscapeVolume = 0.12;
+        this.lastDragTick = 0;
+        this.currentAzimuth = 0;
+        this.isSoundscapeRunning = false;
+        this.ambientOscs = [];
+
+        if (typeof window !== 'undefined') {
+          const initAudio = () => {
+            this.getContext();
+            window.removeEventListener('pointerdown', initAudio);
+            window.removeEventListener('keydown', initAudio);
+            window.removeEventListener('touchstart', initAudio);
+          };
+          window.addEventListener('pointerdown', initAudio, { passive: true });
+          window.addEventListener('keydown', initAudio, { passive: true });
+          window.addEventListener('touchstart', initAudio, { passive: true });
+        }
+      }
+
+      getContext() {
+        if (!this.ctx) {
+          const AudioClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioClass) {
+            this.ctx = new AudioClass();
+            this.setupGraph();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+        return this.ctx;
+      }
+
+      setupGraph() {
+        if (!this.ctx) return;
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.85, this.ctx.currentTime);
+        this.masterGain.connect(this.ctx.destination);
+
+        // Algorithmic Studio Reverb
+        const rate = this.ctx.sampleRate;
+        const length = Math.floor(rate * 1.8);
+        const impulse = this.ctx.createBuffer(2, length, rate);
+        const l = impulse.getChannelData(0);
+        const r = impulse.getChannelData(1);
+        for (let i = 0; i < length; i++) {
+          const t = i / rate;
+          const env = Math.exp(-t / 0.035) * (1 - t / 1.8);
+          l[i] = (Math.random() * 2 - 1) * env;
+          r[i] = (Math.random() * 2 - 1) * env;
+        }
+        this.reverbNode = this.ctx.createConvolver();
+        this.reverbNode.buffer = impulse;
+        const revGain = this.ctx.createGain();
+        revGain.gain.setValueAtTime(0.26, this.ctx.currentTime);
+        this.reverbNode.connect(revGain);
+        revGain.connect(this.masterGain);
+
+        // Ambient Soundscape Bus
+        this.soundscapeGain = this.ctx.createGain();
+        this.soundscapeGain.gain.setValueAtTime(this.soundscapeEnabled && !this.isMuted ? this.soundscapeVolume : 0, this.ctx.currentTime);
+
+        this.soundscapeFilter = this.ctx.createBiquadFilter();
+        this.soundscapeFilter.type = 'lowpass';
+        this.soundscapeFilter.frequency.setValueAtTime(1400, this.ctx.currentTime);
+
+        if (this.ctx.createStereoPanner) {
+          this.soundscapePanner = this.ctx.createStereoPanner();
+          this.soundscapeGain.connect(this.soundscapeFilter);
+          this.soundscapeFilter.connect(this.soundscapePanner);
+          this.soundscapePanner.connect(this.masterGain);
+        } else {
+          this.soundscapeGain.connect(this.soundscapeFilter);
+          this.soundscapeFilter.connect(this.masterGain);
+        }
+
+        if (this.soundscapeEnabled) this.startSoundscape();
+      }
+
+      startSoundscape() {
+        const ctx = this.getContext();
+        if (!ctx || !this.soundscapeGain || this.isSoundscapeRunning) return;
+        this.isSoundscapeRunning = true;
+        const now = ctx.currentTime;
+        const freqs = [216.0, 324.0, 432.0, 486.0];
+        this.ambientOscs = [];
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+
+          const lfo = ctx.createOscillator();
+          const lfoGain = ctx.createGain();
+          lfo.frequency.setValueAtTime(0.08 + idx * 0.03, now);
+          lfoGain.gain.setValueAtTime(freq * 0.008, now);
+          lfo.connect(lfoGain);
+          lfoGain.connect(osc.frequency);
+          lfo.start(now);
+
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.022 / (idx + 1), now + 2.5);
+
+          osc.connect(gain);
+          gain.connect(this.soundscapeGain);
+          osc.start(now);
+          this.ambientOscs.push(osc);
+        });
+      }
+
+      updateSpatialState(azimuth = 0, elevation = 0, speed = 0, colorTemp = 5800) {
+        this.currentAzimuth = Math.max(-1, Math.min(1, azimuth));
+        const ctx = this.ctx;
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        if (this.soundscapePanner) {
+          this.soundscapePanner.pan.setTargetAtTime(this.currentAzimuth * 0.65, now, 0.08);
+        }
+        if (this.soundscapeFilter) {
+          const cutoff = 800 + (colorTemp - 2700) * 0.35;
+          this.soundscapeFilter.frequency.setTargetAtTime(cutoff, now, 0.1);
+        }
+        if (this.soundscapeGain && this.soundscapeEnabled && !this.isMuted) {
+          const speedBoost = Math.min(0.08, speed * 0.25);
+          this.soundscapeGain.gain.setTargetAtTime(this.soundscapeVolume + speedBoost, now, 0.06);
+        }
+      }
+
+      playClink(variant = 'tap', pan = 0) {
+        if (this.isMuted) return;
+        const ctx = this.getContext();
+        if (!ctx || !this.masterGain) return;
+        const now = ctx.currentTime;
+
+        let dest = this.masterGain;
+        if (ctx.createStereoPanner) {
+          const panner = ctx.createStereoPanner();
+          panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan || this.currentAzimuth)), now);
+          panner.connect(this.masterGain);
+          if (this.reverbNode) panner.connect(this.reverbNode);
+          dest = panner;
+        }
+
+        if (variant === 'rotate_tick') {
+          if (now - this.lastDragTick < 0.05) return;
+          this.lastDragTick = now;
+          this.synthClink(ctx, dest, 3400, [5800, 8200], 220, 0.035, 0.09, 0.05);
+        } else if (variant === 'flip') {
+          this.synthClink(ctx, dest, 1650, [2480, 3960, 5600], 92, 0.22, 0.28, 0.18);
+        } else if (variant === 'facet') {
+          this.synthClink(ctx, dest, 3820, [5940, 8420], 310, 0.14, 0.14, 0.15);
+        } else {
+          this.synthClink(ctx, dest, 2850, [4320, 6800, 9400], 180, 0.09, 0.18, 0.12);
+        }
+      }
+
+      synthClink(ctx, dest, fund, overtones, thump, decay, transGain, ringGain) {
+        const now = ctx.currentTime;
+        const clickOsc = ctx.createOscillator();
+        const clickGain = ctx.createGain();
+        clickOsc.type = 'triangle';
+        clickOsc.frequency.setValueAtTime(6200, now);
+        clickOsc.frequency.exponentialRampToValueAtTime(1400, now + 0.006);
+        clickGain.gain.setValueAtTime(transGain, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.007);
+        clickOsc.connect(clickGain); clickGain.connect(dest);
+        clickOsc.start(now); clickOsc.stop(now + 0.008);
+
+        const fundOsc = ctx.createOscillator();
+        const fundGain = ctx.createGain();
+        fundOsc.type = 'sine';
+        fundOsc.frequency.setValueAtTime(fund, now);
+        fundGain.gain.setValueAtTime(ringGain, now);
+        fundGain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+        fundOsc.connect(fundGain); fundGain.connect(dest);
+        fundOsc.start(now); fundOsc.stop(now + decay + 0.01);
+
+        overtones.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          const d = decay * (0.85 / (idx + 1));
+          gain.gain.setValueAtTime(ringGain * (0.6 / (idx + 1)), now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + d);
+          osc.connect(gain); gain.connect(dest);
+          osc.start(now); osc.stop(now + d + 0.01);
+        });
+
+        if (thump > 0) {
+          const bodyOsc = ctx.createOscillator();
+          const bodyGain = ctx.createGain();
+          bodyOsc.type = 'sine';
+          bodyOsc.frequency.setValueAtTime(thump, now);
+          bodyOsc.frequency.exponentialRampToValueAtTime(thump * 0.45, now + 0.04);
+          bodyGain.gain.setValueAtTime(transGain * 0.7, now);
+          bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+          bodyOsc.connect(bodyGain); bodyGain.connect(dest);
+          bodyOsc.start(now); bodyOsc.stop(now + 0.05);
+        }
+      }
+
+      playChime(variant = 'unlock_fanfare', step = 0) {
+        if (this.isMuted) return;
+        const ctx = this.getContext();
+        if (!ctx || !this.masterGain) return;
+        const now = ctx.currentTime;
+
+        if (variant === 'unlock_step') {
+          const scale = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51, 1567.98, 1760.00, 2093.00];
+          const note = scale[Math.min(step, scale.length - 1)];
+          this.synthChimeNote(ctx, note, now, 0.5, 0.15, ((step / 10) * 2 - 1) * 0.5);
+        } else if (variant === 'unlock_fanfare') {
+          const notes = [
+            { f: 659.25, d: 0.0, p: -0.4, dur: 1.8 },
+            { f: 783.99, d: 0.07, p: -0.2, dur: 2.0 },
+            { f: 987.77, d: 0.14, p: 0.05, dur: 2.2 },
+            { f: 1174.66, d: 0.22, p: 0.3, dur: 2.5 },
+            { f: 1567.98, d: 0.32, p: 0.55, dur: 2.8 },
+            { f: 2349.32, d: 0.42, p: 0.0, dur: 2.4 }
+          ];
+          notes.forEach(n => this.synthChimeNote(ctx, n.f, now + n.d, n.dur, 0.16, n.p));
+        } else if (variant === 'celestial') {
+          this.synthChimeNote(ctx, 880.0, now, 2.0, 0.18, 0);
+          this.synthChimeNote(ctx, 1320.0, now + 0.04, 1.8, 0.12, 0.2);
+          this.synthChimeNote(ctx, 1760.0, now + 0.08, 1.5, 0.09, -0.2);
+        }
+      }
+
+      synthChimeNote(ctx, freq, startTime, dur, vol, pan) {
+        let dest = this.masterGain;
+        if (ctx.createStereoPanner) {
+          const panner = ctx.createStereoPanner();
+          panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), startTime);
+          panner.connect(this.masterGain);
+          if (this.reverbNode) panner.connect(this.reverbNode);
+          dest = panner;
+        }
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(freq, startTime);
+        gain1.gain.setValueAtTime(0.0001, startTime);
+        gain1.gain.exponentialRampToValueAtTime(vol, startTime + 0.008);
+        gain1.gain.exponentialRampToValueAtTime(0.0001, startTime + dur);
+        osc1.connect(gain1); gain1.connect(dest);
+        osc1.start(startTime); osc1.stop(startTime + dur + 0.05);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(freq * 1.0025, startTime);
+        gain2.gain.setValueAtTime(0.0001, startTime);
+        gain2.gain.exponentialRampToValueAtTime(vol * 0.45, startTime + 0.012);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, startTime + dur * 0.8);
+        osc2.connect(gain2); gain2.connect(dest);
+        osc2.start(startTime); osc2.stop(startTime + dur + 0.05);
+      }
+
+      toggleMute() {
+        this.isMuted = !this.isMuted;
+        if (this.masterGain && this.ctx) {
+          this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.85, this.ctx.currentTime);
+        }
+        return this.isMuted;
+      }
+    }
+
+    const spatialAudio = new SpatialAudioSystem();
+
+    function triggerHaptic(type = 'tap') {
+      if ('vibrate' in navigator) {
+        try {
+          if (type === 'tap') navigator.vibrate(10);
+          else if (type === 'flip') navigator.vibrate([15, 25, 20]);
+          else if (type === 'selection') navigator.vibrate(8);
+        } catch(e) {}
+      }
+      spatialAudio.playClink(type === 'flip' ? 'flip' : type === 'selection' ? 'facet' : 'tap', 0);
+    }
+
+    function kelvinToRGB(kelvin) {
+      const temp = Math.max(1500, Math.min(15000, kelvin)) / 100;
+      let r, g, b;
+      if (temp <= 66) {
+        r = 255;
+        g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+        b = temp <= 19 ? 0 : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+      } else {
+        r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+        g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+        b = 255;
+      }
+      return new THREE.Color(
+        Math.max(0, Math.min(255, r)) / 255,
+        Math.max(0, Math.min(255, g)) / 255,
+        Math.max(0, Math.min(255, b)) / 255
+      );
+    }
+
+    /* =========================================================================
+       2. CERAMIC WHITE LASER BACKPLATE TEXTURE GENERATOR
+       ========================================================================= */
+    function createCeramicLaserTexture(earnedDate = 'OCTOBER 20, 2019', badgeTitle = 'PERFECT WEEK') {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 1024;
+      const ctx = canvas.getContext('2d');
+      const cx = 512, cy = 512;
+
+      // Satin ceramic white gradient
+      const bg = ctx.createRadialGradient(cx, cy, 30, cx, cy, 550);
+      bg.addColorStop(0, '#FAF9F6');
+      bg.addColorStop(0.7, '#F2F1EC');
+      bg.addColorStop(1, '#E8E6DF');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, 1024, 1024);
+
+      // Lathe-turned concentric lines
+      for (let r = 60; r < 500; r += 3) {
+        ctx.strokeStyle = r % 9 === 0 ? 'rgba(0,0,0,0.035)' : 'rgba(0,0,0,0.016)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Outer guide rings & tick marks
+      ctx.strokeStyle = 'rgba(0,0,0,0.14)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 410, 0, Math.PI * 2);
+      ctx.stroke();
+
+      for (let deg = 0; deg < 360; deg += 15) {
+        const rad = (deg * Math.PI) / 180;
+        const r1 = deg % 90 === 0 ? 398 : 404;
+        ctx.strokeStyle = deg % 90 === 0 ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.12)';
+        ctx.lineWidth = deg % 90 === 0 ? 2 : 1;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(rad) * r1, cy + Math.sin(rad) * r1);
+        ctx.lineTo(cx + Math.cos(rad) * 410, cy + Math.sin(rad) * 410);
+        ctx.stroke();
+      }
+
+      // Tricentric Top Logo
+      const emblemY = cy - 75;
+      ctx.strokeStyle = '#FA114F'; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.arc(cx, emblemY, 26, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#A6FF00'; ctx.lineWidth = 3.0;
+      ctx.beginPath(); ctx.arc(cx, emblemY, 18, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#00F0FF'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(cx, emblemY, 11, 0, Math.PI * 2); ctx.stroke();
+
+      // Typography
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#6E6E73';
+      ctx.font = '600 24px sans-serif';
+      ctx.fillText('EARNED ON', cx, cy - 12);
+
+      ctx.fillStyle = '#1D1D1F';
+      ctx.font = 'bold 36px sans-serif';
+      ctx.fillText(earnedDate.toUpperCase(), cx, cy + 30);
+
+      ctx.fillStyle = '#3A3A3C';
+      ctx.font = '600 20px sans-serif';
+      ctx.fillText(badgeTitle.toUpperCase(), cx, cy + 72);
+
+      ctx.fillStyle = '#86868B';
+      ctx.font = '500 13px sans-serif';
+      ctx.fillText('DESIGNED BY MINEST IN CALIFORNIA', cx, cy + 128);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.anisotropy = 8;
+      return texture;
+    }
+
+    /* =========================================================================
+       3. 50 AWARDS COMPLETE CATALOG DATA (Covering 20 Distinct Styles)
+       ========================================================================= */
+    const AWARDS_CATALOG = [
+      // Close Your Study Rings (12)
+      { id: 'perfect-week-study', name: 'Perfect Week (Study)', category: 'Close Your Study Rings', style: 'faceted-shield', earnedDate: 'OCTOBER 20, 2019', earnedCount: 14, color: '#FA114F', bezel: 'silver', desc: 'Reached your daily study volume goal every day of a week.', shape: 'Dished Shield' },
+      { id: 'perfect-week-review', name: 'Perfect Week (Review)', category: 'Close Your Study Rings', style: 'faceted-shield', earnedDate: 'AUGUST 16, 2026', earnedCount: 32, color: '#00F0FF', bezel: 'silver', desc: 'Cleared your spaced repetition queue every day of a week.', shape: 'Dished Shield' },
+      { id: 'perfect-week-focus', name: 'Perfect Week (Focus)', category: 'Close Your Study Rings', style: 'faceted-shield', earnedDate: 'SEPTEMBER 12, 2026', earnedCount: 8, color: '#A6FF00', bezel: 'silver', desc: 'Logged 45+ minutes of distraction-free immersion daily.', shape: 'Dished Shield' },
+      { id: 'perfect-week-all-goals', name: 'Perfect Week (All Goals)', category: 'Close Your Study Rings', style: 'faceted-shield', earnedDate: 'JULY 4, 2026', earnedCount: 3, color: '#FA114F', bezel: 'gold', desc: 'Closed Study, Review, and Focus rings every day of the week.', shape: 'Rainbow Striped Shield' },
+      { id: 'daily-ring-200', name: '200% Daily Learning Goal', category: 'Close Your Study Rings', style: 'rhombus-diamond', earnedDate: 'AUGUST 28, 2026', earnedCount: 19, color: '#FF9F0A', bezel: 'gold', desc: 'Doubled your daily card review target in a single session.', shape: 'Brilliant Diamond' },
+      { id: 'daily-ring-300', name: '300% Academic Surge', category: 'Close Your Study Rings', style: 'sunburst-radiant', earnedDate: 'SEPTEMBER 5, 2026', earnedCount: 4, color: '#FF453A', bezel: 'gold', desc: 'Tripled your daily knowledge acquisition target in 24 hours.', shape: '12-Ray Sunburst' },
+      { id: 'perfect-month-study', name: 'Perfect Month (Study)', category: 'Close Your Study Rings', style: 'circular-coin', earnedDate: 'AUGUST 31, 2026', earnedCount: 2, color: '#0A84FF', bezel: 'gold', desc: 'Closed your Study ring every day of a full calendar month.', shape: 'Laurel Medallion Coin' },
+      { id: 'perfect-month-review', name: 'Perfect Month (Retention)', category: 'Close Your Study Rings', style: 'shield-arch', earnedDate: 'JULY 31, 2026', earnedCount: 1, color: '#00F0FF', bezel: 'silver', desc: 'Zero retention backlog for 30 consecutive calendar days.', shape: 'Keystone Arch' },
+      { id: 'perfect-month-all', name: 'Perfect Month (All Goals)', category: 'Close Your Study Rings', style: 'concentric-rings', earnedDate: 'JUNE 30, 2026', earnedCount: 1, color: '#FFD60A', bezel: 'gold', desc: 'All 3 learning rings closed every single day of the month.', shape: 'Tricentric Openwork Rings' },
+      { id: 'weekend-warrior', name: 'Weekend Academic Sprint', category: 'Close Your Study Rings', style: 'rounded-squircle', earnedDate: 'SEPTEMBER 20, 2026', earnedCount: 12, color: '#5E5CE6', bezel: 'silver', desc: 'Logged 4+ hours of review during Saturday and Sunday.', shape: 'Squircle Pebble with Folio' },
+      { id: 'early-bird', name: 'Dawn Scholar (5 AM Club)', category: 'Close Your Study Rings', style: 'sunburst-radiant', earnedDate: 'SEPTEMBER 15, 2026', earnedCount: 7, color: '#FF9F0A', bezel: 'gold', desc: 'Closed your daily study ring before 8:00 AM.', shape: 'Helios Sunburst' },
+      { id: 'night-owl', name: 'Midnight Intellect', category: 'Close Your Study Rings', style: 'wave-crescent', earnedDate: 'SEPTEMBER 22, 2026', earnedCount: 18, color: '#5E5CE6', bezel: 'silver', desc: 'Completed 60+ minutes of deep review past midnight.', shape: 'Midnight Crescent & Star' },
+
+      // Learning Milestones (16)
+      { id: 'cards-100', name: '100 Cards Mastered', category: 'Learning Milestones', style: 'concentric-rings', earnedDate: 'NOVEMBER 9, 2017', earnedCount: 1, color: '#F5C518', bezel: 'gold', desc: 'Promoted 100 flashcards into permanent recall memory.', shape: 'Tricentric Rings' },
+      { id: 'cards-365', name: '365 Cards Mastered', category: 'Learning Milestones', style: 'concentric-rings', earnedDate: 'MARCH 14, 2020', earnedCount: 1, color: '#30D158', bezel: 'gold', desc: 'A full year of knowledge: 365 cards in long-term memory.', shape: 'Tricentric Rings' },
+      { id: 'cards-500', name: '500 Cards Mastered', category: 'Learning Milestones', style: 'decagon-wheel', earnedDate: 'JANUARY 2, 2022', earnedCount: 1, color: '#0A84FF', bezel: 'gold', desc: '500 comprehensive knowledge nodes verified in permanent recall.', shape: '10-Spoke Wheel' },
+      { id: 'cards-1000', name: '1,000 Cards Mastered', category: 'Learning Milestones', style: 'circular-coin', earnedDate: 'OCTOBER 10, 2024', earnedCount: 1, color: '#FFD60A', bezel: 'gold', desc: 'Ascended to Grandmaster: 1,000 concepts in permanent memory.', shape: 'Olympic Medallion Coin' },
+      { id: 'cards-2500', name: '2,500 Cards Mastered', category: 'Learning Milestones', style: 'pentagon-star', earnedDate: 'MAY 18, 2026', earnedCount: 1, color: '#5E5CE6', bezel: 'gold', desc: 'Vast polymath recall across 2,500 active conceptual nodes.', shape: 'Pentagon Citadel' },
+      { id: 'cards-5000', name: '5,000 Cards Mastered', category: 'Learning Milestones', style: 'infinity-loop', earnedDate: 'SEPTEMBER 1, 2026', earnedCount: 1, color: '#30D158', bezel: 'gold', desc: 'Encyclopedic intellect: 5,000 cards in permanent recall.', shape: 'Twin-Well Möbius Squircle' },
+      { id: 'streak-7', name: '7-Day Study Streak', category: 'Learning Milestones', style: 'faceted-octagon', earnedDate: 'SEPTEMBER 20, 2026', earnedCount: 14, color: '#0A84FF', bezel: 'silver', desc: 'Completed your daily study quota 7 days in a row.', shape: 'Faceted Octagon' },
+      { id: 'streak-14', name: '14-Day Study Streak', category: 'Learning Milestones', style: 'clover-quatrefoil', earnedDate: 'SEPTEMBER 14, 2026', earnedCount: 8, color: '#A6FF00', bezel: 'silver', desc: 'Two unbroken weeks of daily learning dedication.', shape: 'Cathedral Quatrefoil' },
+      { id: 'streak-30', name: '30-Day Study Streak', category: 'Learning Milestones', style: 'decagon-wheel', earnedDate: 'AUGUST 30, 2026', earnedCount: 4, color: '#FF9F0A', bezel: 'gold', desc: 'One full month of unbroken academic study streak.', shape: '10-Spoke Sunburst' },
+      { id: 'streak-100', name: '100-Day Study Streak', category: 'Learning Milestones', style: 'teardrop-flame', earnedDate: 'JULY 10, 2026', earnedCount: 2, color: '#FF453A', bezel: 'gold', desc: 'Century of Knowledge: 100 days of daily learning.', shape: 'Aerodynamic Teardrop Flame' },
+      { id: 'streak-365', name: '365-Day Study Streak', category: 'Learning Milestones', style: 'infinity-loop', earnedDate: 'JANUARY 1, 2026', earnedCount: 1, color: '#30D158', bezel: 'gold', desc: '365 days of unbroken lifelong learning mastery.', shape: '3D Gold Möbius Ribbon' },
+      { id: 'streak-1000', name: '1,000-Day Study Streak', category: 'Learning Milestones', style: 'circular-coin', earnedDate: 'SEPTEMBER 26, 2026', earnedCount: 1, color: '#FFD60A', bezel: 'gold', desc: 'Nearly 3 full years of daily intellectual discipline.', shape: 'Grand Imperial Medallion' },
+      { id: 'pomodoro-50', name: '50 Deep Focus Hours', category: 'Learning Milestones', style: 'hourglass-nexus', earnedDate: 'JULY 15, 2026', earnedCount: 1, color: '#FF9F0A', bezel: 'gold', desc: 'Logged 50 cumulative hours of uninterrupted immersion.', shape: 'Chrono Hourglass' },
+      { id: 'pomodoro-250', name: '250 Deep Focus Hours', category: 'Learning Milestones', style: 'hourglass-nexus', earnedDate: 'AUGUST 20, 2026', earnedCount: 1, color: '#A6FF00', bezel: 'silver', desc: 'Quarter-millennium hours of deep cognitive flow.', shape: 'Chrono Hourglass' },
+      { id: 'pomodoro-500', name: '500 Deep Focus Hours', category: 'Learning Milestones', style: 'hourglass-nexus', earnedDate: 'SEPTEMBER 10, 2026', earnedCount: 1, color: '#5E5CE6', bezel: 'gold', desc: '500 cumulative hours of intense problem-solving.', shape: 'Chrono Hourglass' },
+      { id: 'study-goals-365', name: '365 Days of Learning', category: 'Learning Milestones', style: 'faceted-shield', earnedDate: 'IN PROGRESS (309/365)', earnedCount: 0, color: '#8E8E93', bezel: 'silver', desc: 'Reach your daily study goal 365 times. Currently 309 of 365.', shape: 'Progress Shield' },
+
+      // Academic Disciplines & Mastery (12)
+      { id: 'polyglot', name: 'Polyglot Linguistics Mastery', category: 'Academic Disciplines', style: 'interlocking-rings', earnedDate: 'SEPTEMBER 1, 2026', earnedCount: 1, color: '#00F0FF', bezel: 'gold', desc: 'Mastered 1,500 vocabulary words across foreign languages.', shape: 'Dual-Venn Interlocking Rings' },
+      { id: 'math-proofs', name: 'Abstract Mathematics Proofs', category: 'Academic Disciplines', style: 'triangle-prism', earnedDate: 'AUGUST 12, 2026', earnedCount: 1, color: '#0A84FF', bezel: 'silver', desc: 'Memorized and applied 100 core theorems and axioms.', shape: 'Delta Triad Prism' },
+      { id: 'algorithms', name: 'Systems Architecture & Algorithms', category: 'Academic Disciplines', style: 'rhombus-diamond', earnedDate: 'JULY 28, 2026', earnedCount: 1, color: '#30D158', bezel: 'silver', desc: 'Full recall of core algorithmic data structures & design patterns.', shape: 'Brilliant Diamond' },
+      { id: 'neuroscience', name: 'Neuroscience & Synaptic Plasticity', category: 'Academic Disciplines', style: 'oval-cameo', earnedDate: 'JUNE 15, 2026', earnedCount: 1, color: '#FA114F', bezel: 'gold', desc: 'Complete mastery of neural transmission and memory encoding.', shape: 'Roman Oval Cameo' },
+      { id: 'history', name: 'World Civilizations & Heritage', category: 'Academic Disciplines', style: 'shield-crested', earnedDate: 'MAY 22, 2026', earnedCount: 1, color: '#FFD60A', bezel: 'gold', desc: 'Chronological timeline recall spanning 5,000 years of history.', shape: 'Oxford Scalloped Shield' },
+      { id: 'quantum-physics', name: 'Quantum Mechanics & Relativity', category: 'Academic Disciplines', style: 'wave-crescent', earnedDate: 'AUGUST 5, 2026', earnedCount: 1, color: '#00F0FF', bezel: 'silver', desc: 'Retention of Schrödinger wave functions and tensor fields.', shape: 'Midnight Crescent & Star' },
+      { id: 'biomedicine', name: 'Genetics & Cellular Biology', category: 'Academic Disciplines', style: 'clover-quatrefoil', earnedDate: 'APRIL 30, 2026', earnedCount: 1, color: '#30D158', bezel: 'gold', desc: 'Mastered 300 metabolic pathways and molecular genetic cascades.', shape: 'Cathedral Quatrefoil' },
+      { id: 'philosophy', name: 'Classical Philosophy & Ethics', category: 'Academic Disciplines', style: 'shield-arch', earnedDate: 'MARCH 10, 2026', earnedCount: 1, color: '#FF9F0A', bezel: 'gold', desc: 'Dialectical mastery of Stoicism, Epistemology, and Moral Logic.', shape: 'Keystone Arch' },
+      { id: 'economics', name: 'Macroeconomics & Game Theory', category: 'Academic Disciplines', style: 'decagon-wheel', earnedDate: 'FEBRUARY 18, 2026', earnedCount: 1, color: '#0A84FF', bezel: 'gold', desc: 'Mastered Nash equilibria, fiscal models, and monetary systems.', shape: '10-Spoke Wheel' },
+      { id: 'literary', name: 'Literary Classics & Poetics', category: 'Academic Disciplines', style: 'rounded-squircle', earnedDate: 'JANUARY 25, 2026', earnedCount: 1, color: '#FA114F', bezel: 'silver', desc: 'Memorized 50 canonical sonnets and rhetorical structures.', shape: 'Squircle with Folio' },
+      { id: 'data-science', name: 'Machine Learning & Neural Nets', category: 'Academic Disciplines', style: 'faceted-octagon', earnedDate: 'SEPTEMBER 18, 2026', earnedCount: 1, color: '#00F0FF', bezel: 'silver', desc: 'Fluency in attention transformers, backprop, and loss surfaces.', shape: 'Faceted Octagon' },
+      { id: 'memory-theory', name: 'Cognitive Science & Memory Theory', category: 'Academic Disciplines', style: 'interlocking-rings', earnedDate: 'SEPTEMBER 25, 2026', earnedCount: 1, color: '#FA114F', bezel: 'gold', desc: 'Mastering cognitive load theory and spaced consolidation.', shape: 'Dual-Venn Rings' },
+
+      // Limited Edition Challenges (10)
+      { id: 'sept-sprint', name: 'September Learning Sprint', category: 'Limited Challenges', style: 'challenge-hex', earnedDate: 'SEPTEMBER 17, 2026', earnedCount: 1, color: '#FF9F0A', bezel: 'gold', desc: 'Exceeded your monthly study card target during September Sprint.', shape: 'Topographic Hexagon' },
+      { id: 'curator-quest', name: "Curator's Knowledge Quest", category: 'Limited Challenges', style: 'challenge-hex', earnedDate: 'AUGUST 25, 2019', earnedCount: 1, color: '#FFD60A', bezel: 'gold', desc: 'Curated, tagged, and mastered 10 specialized academic subjects.', shape: 'Topographic Hexagon' },
+      { id: 'summer-solstice', name: 'Summer Solstice Knowledge Sprint', category: 'Limited Challenges', style: 'sunburst-radiant', earnedDate: 'JUNE 21, 2026', earnedCount: 1, color: '#FFD60A', bezel: 'gold', desc: 'Logged 300 card reviews on the longest day of the year.', shape: '12-Ray Sunburst' },
+      { id: 'spring-equinox', name: 'Spring Equinox Awakening', category: 'Limited Challenges', style: 'clover-quatrefoil', earnedDate: 'MARCH 20, 2026', earnedCount: 1, color: '#30D158', bezel: 'silver', desc: 'Refreshed 100% of dormant winter decks without errors.', shape: 'Cathedral Quatrefoil' },
+      { id: 'winter-solstice', name: 'Winter Solstice Midnight Oil', category: 'Limited Challenges', style: 'wave-crescent', earnedDate: 'DECEMBER 21, 2025', earnedCount: 1, color: '#0A84FF', bezel: 'silver', desc: 'Conquered the longest night with 120 minutes of focus.', shape: 'Midnight Crescent & Star' },
+      { id: 'new-year', name: 'New Year Academic Renaissance', category: 'Limited Challenges', style: 'circular-coin', earnedDate: 'JANUARY 1, 2026', earnedCount: 1, color: '#FA114F', bezel: 'gold', desc: 'Created 5 new learning decks on New Year’s Day.', shape: 'Laurel Medallion Coin' },
+      { id: 'earth-day', name: 'Earth Day Ecological Study Quest', category: 'Limited Challenges', style: 'challenge-hex', earnedDate: 'APRIL 22, 2026', earnedCount: 1, color: '#30D158', bezel: 'gold', desc: 'Completed 150 flashcards on earth science & ecology.', shape: 'Topographic Hexagon' },
+      { id: 'curie-lab', name: 'Curie Laboratory Sprint', category: 'Limited Challenges', style: 'triangle-prism', earnedDate: 'NOVEMBER 7, 2025', earnedCount: 1, color: '#A6FF00', bezel: 'silver', desc: 'Mastered 200 chemistry & atomic physics cards in 48 hours.', shape: 'Delta Triad Prism' },
+      { id: 'da-vinci', name: 'Da Vinci Polymath Challenge', category: 'Limited Challenges', style: 'pentagon-star', earnedDate: 'APRIL 15, 2026', earnedCount: 1, color: '#FF9F0A', bezel: 'gold', desc: 'Closed study goals across Science, Art, and Code in one day.', shape: 'Pentagon Citadel' },
+      { id: 'turing-marathon', name: 'Turing Cryptographic Marathon', category: 'Limited Challenges', style: 'decagon-wheel', earnedDate: 'JUNE 23, 2026', earnedCount: 1, color: '#0A84FF', bezel: 'silver', desc: 'Mastery of finite state automata, ciphers, and computability.', shape: '10-Spoke Wheel' }
+    ];
+
+    /* =========================================================================
+       4. PARAMETRIC 3D GEOMETRY GENERATOR (20 STYLES)
+       ========================================================================= */
+    function buildBadge3D(badgeData) {
+      const group = new THREE.Group();
+      const isGold = badgeData.bezel === 'gold';
+      const bezelMat = new THREE.MeshStandardMaterial({
+        color: isGold ? 0xE6C670 : 0xE0E0E5,
+        metalness: 0.94,
+        roughness: 0.22,
+        side: THREE.DoubleSide
+      });
+      const parsedColor = parseInt(badgeData.color.replace('#', '0x'), 16);
+      const enamelMat = new THREE.MeshStandardMaterial({
+        color: parsedColor,
+        roughness: 0.18,
+        metalness: 0.28,
+        side: THREE.DoubleSide
+      });
+      const ceramicBackMat = new THREE.MeshStandardMaterial({
+        map: createCeramicLaserTexture(badgeData.earnedDate, badgeData.name),
+        color: 0xFFFFFF,
+        roughness: 0.24,
+        metalness: 0.08,
+        side: THREE.DoubleSide
+      });
+
+      // Contour points based on shape style
+      const pts = [];
+      const segments = 96;
+      const style = badgeData.style;
+
+      for (let i = 0; i < segments; i++) {
+        const t = (i / segments) * Math.PI * 2;
+        const cosT = Math.cos(t), sinT = Math.sin(t);
+        let x = 0, y = 0;
+
+        if (style === 'circular-coin') {
+          x = cosT * 1.5; y = sinT * 1.5;
+        } else if (style === 'rhombus-diamond') {
+          const denom = Math.abs(cosT)/1.2 + Math.abs(sinT)/1.7;
+          x = cosT / denom; y = sinT / denom;
+        } else if (style === 'pentagon-star') {
+          const sec = (Math.PI * 2) / 5;
+          const loc = Math.abs((t % sec) - sec/2);
+          const r = (1.52 * Math.cos(sec/2)) / Math.cos(loc);
+          x = r * cosT; y = r * sinT;
+        } else if (style === 'rounded-squircle') {
+          const r = 1.45 / Math.pow(Math.pow(Math.abs(cosT), 4) + Math.pow(Math.abs(sinT), 4), 0.25);
+          x = r * cosT; y = r * sinT;
+        } else if (style === 'clover-quatrefoil') {
+          const r = 1.30 + 0.30 * Math.cos(4 * t);
+          x = r * cosT; y = r * sinT;
+        } else if (style === 'oval-cameo') {
+          x = cosT * 1.2; y = sinT * 1.65;
+        } else if (style === 'triangle-prism') {
+          const sec = (Math.PI * 2) / 3;
+          const loc = Math.abs((t % sec) - sec/2);
+          const r = (1.6 * Math.cos(sec/2)) / Math.cos(loc);
+          x = r * cosT; y = r * sinT;
+        } else if (style === 'decagon-wheel') {
+          const sec = (Math.PI * 2) / 10;
+          const loc = Math.abs((t % sec) - sec/2);
+          const r = (1.52 * Math.cos(sec/2)) / Math.cos(loc);
+          x = r * cosT; y = r * sinT;
+        } else if (style === 'shield-arch') {
+          x = cosT * 1.25;
+          y = sinT < -0.2 ? -1.45 : sinT * 1.65;
+        } else if (style === 'wave-crescent') {
+          x = cosT * 1.5; y = sinT * 1.5;
+        } else if (style === 'interlocking-rings') {
+          x = cosT * 1.7; y = sinT * 1.2;
+        } else if (style === 'hourglass-nexus') {
+          const w = 1.35 * (0.42 + 0.58 * Math.pow(sinT, 2));
+          x = cosT > 0 ? w : -w;
+          y = sinT * 1.7;
+        } else if (style === 'sunburst-radiant') {
+          const r = 1.2 + 0.4 * Math.pow(Math.abs(Math.cos(6 * t)), 1.5);
+          x = r * cosT; y = r * sinT;
+        } else if (style === 'concentric-rings') {
+          x = cosT * 1.55; y = sinT * 1.55;
+        } else if (style === 'teardrop-flame') {
+          const s = Math.sin(t / 2);
+          x = cosT * 1.35 * s * s;
+          y = (sinT - 0.4) * 1.5;
+        } else {
+          // Faceted shield & hex
+          x = cosT * 1.3;
+          y = sinT * (sinT < 0 ? 1.7 : 1.4);
+        }
+        pts.push(new THREE.Vector2(x, y));
+      }
+
+      // Parabolic Dish Z calculation
+      const getZ = (px, py, isBack) => {
+        const d = Math.sqrt(px * px + py * py) / 1.5;
+        if (!isBack) return d * d * 0.24 - 0.15;
+        return -(1 - d * 0.6) * 0.08 - 0.075;
+      };
+
+      // 1. Outer Rim Ribbon
+      const rimPos = [], rimIdx = [];
+      for (let i = 0; i < segments; i++) {
+        const p = pts[i];
+        rimPos.push(p.x, p.y, getZ(p.x, p.y, false));
+        rimPos.push(p.x, p.y, getZ(p.x, p.y, true));
+      }
+      for (let i = 0; i < segments; i++) {
+        const next = (i + 1) % segments;
+        const f1 = i * 2, b1 = i * 2 + 1, f2 = next * 2, b2 = next * 2 + 1;
+        rimIdx.push(f1, f2, b1);
+        rimIdx.push(b1, f2, b2);
+      }
+      const rimGeo = new THREE.BufferGeometry();
+      rimGeo.setAttribute('position', new THREE.Float32BufferAttribute(rimPos, 3));
+      rimGeo.setIndex(rimIdx);
+      rimGeo.computeVertexNormals();
+      group.add(new THREE.Mesh(rimGeo, bezelMat));
+
+      // 2. Front Face Inlay
+      const frontPos = [], frontIdx = [];
+      frontPos.push(0, 0, getZ(0, 0, false));
+      for (let r = 1; r <= 12; r++) {
+        const frac = r / 12;
+        for (let i = 0; i < segments; i++) {
+          const p = pts[i];
+          frontPos.push(p.x * frac, p.y * frac, getZ(p.x * frac, p.y * frac, false));
+        }
+      }
+      for (let i = 0; i < segments; i++) {
+        frontIdx.push(0, 1 + i, 1 + ((i + 1) % segments));
+      }
+      for (let r = 1; r < 12; r++) {
+        const cS = 1 + (r - 1) * segments, nS = 1 + r * segments;
+        for (let i = 0; i < segments; i++) {
+          const next = (i + 1) % segments;
+          frontIdx.push(cS + i, cS + next, nS + next);
+          frontIdx.push(cS + i, nS + next, nS + i);
+        }
+      }
+      const frontGeo = new THREE.BufferGeometry();
+      frontGeo.setAttribute('position', new THREE.Float32BufferAttribute(frontPos, 3));
+      frontGeo.setIndex(frontIdx);
+      frontGeo.computeVertexNormals();
+      group.add(new THREE.Mesh(frontGeo, enamelMat));
+
+      // 3. White Ceramic Laser Reverse Shell
+      const backPos = [], backUv = [], backIdx = [];
+      backPos.push(0, 0, getZ(0, 0, true));
+      backUv.push(0.5, 0.5);
+      for (let r = 1; r <= 12; r++) {
+        const frac = r / 12;
+        for (let i = 0; i < segments; i++) {
+          const p = pts[i];
+          const px = p.x * frac, py = p.y * frac;
+          backPos.push(px, py, getZ(px, py, true));
+          backUv.push(-(px / 1.55) * 0.5 + 0.5, (py / 1.55) * 0.5 + 0.5);
+        }
+      }
+      for (let i = 0; i < segments; i++) {
+        backIdx.push(0, 1 + ((i + 1) % segments), 1 + i);
+      }
+      for (let r = 1; r < 12; r++) {
+        const cS = 1 + (r - 1) * segments, nS = 1 + r * segments;
+        for (let i = 0; i < segments; i++) {
+          const next = (i + 1) % segments;
+          backIdx.push(cS + i, nS + next, cS + next);
+          backIdx.push(cS + i, nS + i, nS + next);
+        }
+      }
+      const backGeo = new THREE.BufferGeometry();
+      backGeo.setAttribute('position', new THREE.Float32BufferAttribute(backPos, 3));
+      backGeo.setAttribute('uv', new THREE.Float32BufferAttribute(backUv, 2));
+      backGeo.setIndex(backIdx);
+      backGeo.computeVertexNormals();
+      group.add(new THREE.Mesh(backGeo, ceramicBackMat));
+
+      return group;
+    }
+
+    /* =========================================================================
+       5. 3D SCENE CONTROLLER WITH FREE-FORM DRAG & PINCH/WHEEL ZOOM
+       ========================================================================= */
+    class StandaloneBadgeScene {
+      constructor(container) {
+        this.container = container;
+        this.width = container.clientWidth || 380;
+        this.height = container.clientHeight || 380;
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(38, this.width / this.height, 0.1, 50);
+        this.camera.position.set(0, 0, 5.4);
+        this.cameraDistance = 5.4;
+        this.targetCameraDistance = 5.4;
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setSize(this.width, this.height);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.15;
+        this.container.appendChild(this.renderer.domElement);
+
+        // Lighting
+        this.ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.75);
+        this.scene.add(this.ambientLight);
+        this.keyLight = new THREE.DirectionalLight(0xFFFFFF, 2.5);
+        this.keyLight.position.set(2.4, 3.8, 4.2);
+        this.scene.add(this.keyLight);
+        this.rimLight = new THREE.DirectionalLight(0xFFFFFF, 2.8);
+        this.rimLight.position.set(0, 3.8, -3.8);
+        this.scene.add(this.rimLight);
+
+        this.badgeGroup = new THREE.Group();
+        this.scene.add(this.badgeGroup);
+
+        this.targetQuaternion = new THREE.Quaternion();
+        this.currentQuaternion = new THREE.Quaternion();
+        this.angularVelocity = { x: 0, y: 0 };
+        this.isDragging = false;
+        this.prevMouse = { x: 0, y: 0 };
+
+        this.setupEvents();
+        this.animate();
+      }
+
+      loadBadge(badgeData) {
+        while (this.badgeGroup.children.length > 0) {
+          const obj = this.badgeGroup.children[0];
+          this.badgeGroup.remove(obj);
+        }
+        const mesh = buildBadge3D(badgeData);
+        this.badgeGroup.add(mesh);
+        this.targetQuaternion.identity();
+        this.currentQuaternion.identity();
+        this.targetCameraDistance = 5.4;
+      }
+
+      flip() {
+        const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.targetQuaternion);
+        if (forward.z < 0) {
+          this.targetQuaternion.identity();
+        } else {
+          this.targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+        }
+        this.angularVelocity = { x: 0, y: 0 };
+      }
+
+      setAngle(angle) {
+        if (angle === 'front') this.targetQuaternion.identity();
+        else if (angle === 'angled') this.targetQuaternion.setFromEuler(new THREE.Euler(0.22, -0.58, 0));
+        else if (angle === 'profile') this.targetQuaternion.setFromEuler(new THREE.Euler(0.08, -1.35, 0));
+        else if (angle === 'back') this.targetQuaternion.setFromEuler(new THREE.Euler(0.04, Math.PI, 0));
+        this.angularVelocity = { x: 0, y: 0 };
+      }
+
+      zoomIn() { this.targetCameraDistance = Math.max(2.8, this.targetCameraDistance - 0.65); }
+      zoomOut() { this.targetCameraDistance = Math.min(7.5, this.targetCameraDistance + 0.65); }
+      reset() {
+        this.targetQuaternion.identity();
+        this.targetCameraDistance = 5.4;
+        this.angularVelocity = { x: 0, y: 0 };
+      }
+
+      setLighting(ambient, kelvin, gloss = 1.0) {
+        const tint = kelvinToRGB(kelvin);
+        if (this.ambientLight) {
+          this.ambientLight.intensity = ambient;
+          this.ambientLight.color.copy(tint);
+        }
+        if (this.keyLight) {
+          this.keyLight.color.copy(tint);
+          this.keyLight.intensity = 2.2 + ambient * 0.55;
+        }
+        if (this.rimLight) {
+          this.rimLight.color.copy(tint);
+          this.rimLight.intensity = 2.8 * gloss;
+        }
+      }
+
+      setupEvents() {
+        const el = this.renderer.domElement;
+        this.accumulatedDrag = 0;
+        const onDown = (cx, cy) => {
+          this.isDragging = true;
+          this.prevMouse = { x: cx, y: cy };
+          this.angularVelocity = { x: 0, y: 0 };
+          this.accumulatedDrag = 0;
+          const rect = el.getBoundingClientRect();
+          const pan = rect.width ? ((cx - rect.left) / rect.width) * 2 - 1 : 0;
+          spatialAudio.playClink('tap', pan);
+        };
+        const onMove = (cx, cy) => {
+          if (!this.isDragging) return;
+          const dx = cx - this.prevMouse.x;
+          const dy = cy - this.prevMouse.y;
+          this.accumulatedDrag += Math.hypot(dx, dy);
+          if (this.accumulatedDrag > 28) {
+            this.accumulatedDrag = 0;
+            const rect = el.getBoundingClientRect();
+            const nx = rect.width ? ((cx - rect.left) / rect.width) * 2 - 1 : 0;
+            spatialAudio.playClink('rotate_tick', nx);
+          }
+          const rotSpeed = 0.0075;
+          const qY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx * rotSpeed);
+          const qX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), dy * rotSpeed);
+          const deltaQ = new THREE.Quaternion().multiplyQuaternions(qY, qX);
+          this.targetQuaternion.premultiply(deltaQ);
+          this.angularVelocity = { x: dy * rotSpeed, y: dx * rotSpeed };
+          this.prevMouse = { x: cx, y: cy };
+        };
+        const onUp = () => { this.isDragging = false; };
+
+        el.addEventListener('pointerdown', (e) => {
+          try { el.setPointerCapture(e.pointerId); } catch(err) {}
+          onDown(e.clientX, e.clientY);
+        });
+        el.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY));
+        el.addEventListener('pointerup', (e) => {
+          try { el.releasePointerCapture(e.pointerId); } catch(err) {}
+          onUp();
+        });
+        el.addEventListener('pointercancel', (e) => {
+          try { el.releasePointerCapture(e.pointerId); } catch(err) {}
+          onUp();
+        });
+        el.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          this.targetCameraDistance += e.deltaY * 0.0035;
+          this.targetCameraDistance = Math.max(2.8, Math.min(7.5, this.targetCameraDistance));
+          spatialAudio.playClink('facet', 0);
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+          this.width = this.container.clientWidth;
+          this.height = this.container.clientHeight;
+          if (this.width && this.height) {
+            this.camera.aspect = this.width / this.height;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(this.width, this.height);
+          }
+        });
+      }
+
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        // Inertia
+        if (!this.isDragging) {
+          if (Math.abs(this.angularVelocity.x) > 0.0001 || Math.abs(this.angularVelocity.y) > 0.0001) {
+            const inertiaQ = new THREE.Quaternion().multiplyQuaternions(
+              new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.angularVelocity.y),
+              new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), this.angularVelocity.x)
+            );
+            this.targetQuaternion.premultiply(inertiaQ);
+            this.angularVelocity.x *= 0.93;
+            this.angularVelocity.y *= 0.93;
+          }
+        }
+        this.currentQuaternion.slerp(this.targetQuaternion, 0.18);
+        this.badgeGroup.quaternion.copy(this.currentQuaternion);
+
+        this.cameraDistance += (this.targetCameraDistance - this.cameraDistance) * 0.15;
+        this.camera.position.z = this.cameraDistance;
+
+        // Dynamic spatial soundscape tracking
+        const forwardVec = new THREE.Vector3(0, 0, 1).applyQuaternion(this.badgeGroup.quaternion);
+        const speed = Math.hypot(this.angularVelocity.x, this.angularVelocity.y) * 10;
+        spatialAudio.updateSpatialState(forwardVec.x, forwardVec.y, speed, this.colorTemperature || 5800);
+
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    /* =========================================================================
+       6. UI CONTROLLER (Rendering Grid, Search, Filter & Swipe-to-Dismiss)
+       ========================================================================= */
+    let currentCategory = 'all';
+    let searchQuery = '';
+    let detailScene = null;
+    let currentBadge = null;
+
+    const categories = [
+      { key: 'all', label: 'All Awards' },
+      { key: 'Close Your Study Rings', label: 'Study Rings' },
+      { key: 'Learning Milestones', label: 'Milestones' },
+      { key: 'Academic Disciplines', label: 'Disciplines' },
+      { key: 'Limited Challenges', label: 'Challenges' }
+    ];
+
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      container.innerHTML = '';
+      categories.forEach(cat => {
+        const count = cat.key === 'all'
+          ? AWARDS_CATALOG.length
+          : AWARDS_CATALOG.filter(a => a.category === cat.key).length;
+        const btn = document.createElement('button');
+        const isSelected = currentCategory === cat.key;
+        btn.className = `px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap pill-btn ${
+          isSelected
+            ? 'bg-white text-black font-semibold shadow-sm'
+            : 'bg-[#1C1C1E] text-[#8E8E93] hover:text-white border border-white/10'
+        }`;
+        btn.innerText = `${cat.label} (${count})`;
+        btn.onclick = () => {
+          triggerHaptic('selection');
+          currentCategory = cat.key;
+          renderCategoryPills();
+          renderGrid();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('awards-grid');
+      grid.innerHTML = '';
+      const filtered = AWARDS_CATALOG.filter(item => {
+        const matchCat = currentCategory === 'all' || item.category === currentCategory;
+        const q = searchQuery.toLowerCase().trim();
+        const matchQuery = !q || item.name.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q) || item.shape.toLowerCase().includes(q);
+        return matchCat && matchQuery;
+      });
+
+      document.getElementById('award-counter').innerText = `${filtered.length} / ${AWARDS_CATALOG.length}`;
+
+      filtered.forEach(badge => {
+        const card = document.createElement('div');
+        card.className = 'badge-card p-5 flex flex-col justify-between';
+        card.style.minHeight = '320px';
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between text-left">
+            <span class="text-[11px] font-semibold tracking-wider uppercase text-[#8E8E93]">${badge.category}</span>
+            <span class="text-[10px] font-medium text-[#636366] px-2 py-0.5 rounded-full bg-white/5">${badge.shape}</span>
+          </div>
+          <div class="relative w-full h-[180px] flex items-center justify-center my-2 pointer-events-none">
+            <div class="w-28 h-28 rounded-full border border-white/10 flex items-center justify-center shadow-lg" style="background: radial-gradient(circle at 35% 35%, ${badge.color} 0%, #151517 75%);">
+              <span class="text-xs font-bold text-white/90 text-center px-2">${badge.bezel.toUpperCase()}</span>
+            </div>
+          </div>
+          <div class="text-center space-y-1">
+            <h3 class="text-[15px] font-semibold text-white tracking-tight leading-snug">${badge.name}</h3>
+            <div class="text-xs text-[#8E8E93]">${badge.earnedDate}</div>
+          </div>
+        `;
+
+        card.onclick = () => openDetailModal(badge);
+        grid.appendChild(card);
+      });
+    }
+
+    function openDetailModal(badge) {
+      triggerHaptic('tap');
+      spatialAudio.playChime('celestial');
+      currentBadge = badge;
+      document.getElementById('modal-badge-name').innerText = badge.name;
+      document.getElementById('modal-badge-desc').innerText = badge.desc;
+      document.getElementById('modal-badge-specs').innerHTML = `
+        <span>Shape: ${badge.shape}</span>
+        <span>•</span>
+        <span>Bezel: Mirror ${badge.bezel.toUpperCase()}</span>
+        <span>•</span>
+        <span>Theme: ${badge.color}</span>
+      `;
+
+      const modal = document.getElementById('detail-modal');
+      modal.classList.remove('hidden');
+
+      if (!detailScene) {
+        const target = document.getElementById('modal-canvas-target');
+        detailScene = new StandaloneBadgeScene(target);
+      }
+      detailScene.loadBadge(badge);
+    }
+
+    function closeDetailModal() {
+      triggerHaptic('tap');
+      spatialAudio.playClink('tap', 0);
+      document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    // Modal Events
+    document.getElementById('modal-back-btn').onclick = closeDetailModal;
+    document.getElementById('dismiss-grabber').onclick = closeDetailModal;
+    document.getElementById('modal-share-btn').onclick = () => {
+      triggerHaptic('selection');
+      spatialAudio.playClink('facet', 0);
+      if (currentBadge && navigator.clipboard) {
+        navigator.clipboard.writeText(`${currentBadge.name} - ${currentBadge.desc}`);
+        alert('Badge info copied to clipboard!');
+      }
+    };
+    document.getElementById('zoom-in-btn').onclick = (e) => {
+      e.stopPropagation(); triggerHaptic('selection'); spatialAudio.playClink('facet', 0.2); detailScene?.zoomIn();
+    };
+    document.getElementById('zoom-out-btn').onclick = (e) => {
+      e.stopPropagation(); triggerHaptic('selection'); spatialAudio.playClink('facet', -0.2); detailScene?.zoomOut();
+    };
+    document.getElementById('zoom-reset-btn').onclick = (e) => {
+      e.stopPropagation(); triggerHaptic('selection'); spatialAudio.playClink('facet', 0); detailScene?.reset();
+    };
+    document.getElementById('angle-front-btn').onclick = () => {
+      triggerHaptic('selection'); spatialAudio.playClink('facet', -0.3); detailScene?.setAngle('front');
+    };
+    document.getElementById('angle-angled-btn').onclick = () => {
+      triggerHaptic('selection'); spatialAudio.playClink('facet', 0); detailScene?.setAngle('angled');
+    };
+    document.getElementById('angle-edge-btn').onclick = () => {
+      triggerHaptic('selection'); spatialAudio.playClink('facet', 0.3); detailScene?.setAngle('profile');
+    };
+    document.getElementById('angle-flip-btn').onclick = () => {
+      triggerHaptic('flip'); spatialAudio.playClink('flip', 0); detailScene?.flip();
+    };
+
+    // Studio Lighting Controls
+    let curAmbient = 0.72;
+    let curKelvin = 5800;
+    let curGloss = 1.0;
+
+    function updateLighting() {
+      document.getElementById('ambient-readout').innerText = `${Math.round(curAmbient * 100)}%`;
+      document.getElementById('kelvin-readout').innerText = `${curKelvin}K`;
+      document.getElementById('gloss-readout').innerText = `${curGloss.toFixed(2)}x`;
+      detailScene?.setLighting(curAmbient, curKelvin, curGloss);
+    }
+
+    document.getElementById('lighting-toggle-btn').onclick = () => {
+      triggerHaptic('selection');
+      spatialAudio.playClink('facet', 0);
+      const panel = document.getElementById('lighting-panel');
+      panel.classList.toggle('hidden');
+    };
+    document.getElementById('lighting-close-btn').onclick = () => {
+      document.getElementById('lighting-panel').classList.add('hidden');
+    };
+    document.getElementById('lighting-reset-btn').onclick = () => {
+      triggerHaptic('selection');
+      spatialAudio.playClink('facet', 0);
+      curAmbient = 0.72; curKelvin = 5800; curGloss = 1.0;
+      document.getElementById('ambient-slider').value = curAmbient;
+      document.getElementById('kelvin-slider').value = curKelvin;
+      document.getElementById('gloss-slider').value = curGloss;
+      updateLighting();
+    };
+    document.getElementById('ambient-slider').oninput = (e) => {
+      curAmbient = parseFloat(e.target.value);
+      spatialAudio.playClink('slider');
+      updateLighting();
+    };
+    document.getElementById('kelvin-slider').oninput = (e) => {
+      curKelvin = parseInt(e.target.value);
+      spatialAudio.playClink('slider');
+      updateLighting();
+    };
+    document.getElementById('gloss-slider').oninput = (e) => {
+      curGloss = parseFloat(e.target.value);
+      spatialAudio.playClink('slider');
+      updateLighting();
+    };
+    document.getElementById('preset-sunset').onclick = () => {
+      triggerHaptic('selection');
+      spatialAudio.playClink('facet', 0);
+      curAmbient = 0.85; curKelvin = 3000; curGloss = 1.2;
+      document.getElementById('ambient-slider').value = curAmbient;
+      document.getElementById('kelvin-slider').value = curKelvin;
+      document.getElementById('gloss-slider').value = curGloss;
+      updateLighting();
+    };
+    document.getElementById('preset-daylight').onclick = () => {
+      triggerHaptic('selection');
+      spatialAudio.playClink('facet', 0);
+      curAmbient = 0.72; curKelvin = 5800; curGloss = 1.0;
+      document.getElementById('ambient-slider').value = curAmbient;
+      document.getElementById('kelvin-slider').value = curKelvin;
+      document.getElementById('gloss-slider').value = curGloss;
+      updateLighting();
+    };
+    document.getElementById('preset-nordic').onclick = () => {
+      triggerHaptic('selection');
+      spatialAudio.playClink('facet', 0);
+      curAmbient = 0.65; curKelvin = 7800; curGloss = 1.35;
+      document.getElementById('ambient-slider').value = curAmbient;
+      document.getElementById('kelvin-slider').value = curKelvin;
+      document.getElementById('gloss-slider').value = curGloss;
+      updateLighting();
+    };
+    document.getElementById('preset-void').onclick = () => {
+      triggerHaptic('selection');
+      spatialAudio.playClink('facet', 0);
+      curAmbient = 0.35; curKelvin = 8500; curGloss = 1.8;
+      document.getElementById('ambient-slider').value = curAmbient;
+      document.getElementById('kelvin-slider').value = curKelvin;
+      document.getElementById('gloss-slider').value = curGloss;
+      updateLighting();
+    };
+
+    // Search Input
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderGrid();
+    });
+
+    // ESC to close modal
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeDetailModal();
+    });
+
+    // Init
+    renderCategoryPills();
+    renderGrid();
+  </script>
+</body>
+</html>

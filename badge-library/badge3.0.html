@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Minest Badge 3.0 • 3D Spatial Learning Awards & Collection Summary</title>
+  <meta name="description" content="Minest Badge 3.0 standalone archive featuring 50 authentic learning awards, 20 distinct 3D geometric shapes, Collection Summary, Web Audio spatial audio soundscape, and Studio Lighting." />
+  
+  <!-- Fallback Three.js from CDN with multiple CDNs or local resilience -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Tailwind CSS CDN for enhanced typography and utility classes -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* =========================================================================
+       CRITICAL BULLETPROOF OFFLINE & FILE PROTOCOL CSS
+       Ensures 100% direct browser preview without relying on external CDN
+       ========================================================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background-color: #000000;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .justify-between { justify-content: space-between; }
+    .grid { display: grid; }
+    .w-full { width: 100%; }
+    .h-full { height: 100%; }
+    .relative { position: relative; }
+    .absolute { position: absolute; }
+    .fixed { position: fixed; }
+    .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+    .z-50 { z-index: 50; }
+    .z-30 { z-index: 30; }
+    .z-20 { z-index: 20; }
+    .z-10 { z-index: 10; }
+    
+    /* Layout utilities */
+    .max-w-5xl { max-width: 64rem; margin-left: auto; margin-right: auto; }
+    .max-w-4xl { max-width: 56rem; margin-left: auto; margin-right: auto; }
+    .max-w-lg { max-width: 32rem; }
+    .max-w-sm { max-width: 24rem; }
+    .rounded-full { border-radius: 9999px; }
+    .rounded-2xl { border-radius: 1rem; }
+    .rounded-3xl { border-radius: 1.5rem; }
+    .rounded-\[24px\] { border-radius: 24px; }
+    .rounded-\[26px\] { border-radius: 26px; }
+    .rounded-\[28px\] { border-radius: 28px; }
+    .p-4 { padding: 1rem; }
+    .p-5 { padding: 1.25rem; }
+    .p-6 { padding: 1.5rem; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 0.75rem; }
+    .gap-4 { gap: 1rem; }
+    .gap-5 { gap: 1.25rem; }
+    .gap-8 { gap: 2rem; }
+
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .badge-card {
+      background: #1C1C1E;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 26px;
+      transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+    }
+    .badge-card:hover {
+      background: #242426;
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-2px);
+    }
+    .badge-card:active {
+      transform: scale(0.98);
+    }
+    .pill-btn {
+      transition: all 0.18s ease;
+    }
+    .pill-btn:active {
+      transform: scale(0.95);
+    }
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spinSlow 8s linear infinite;
+    }
+  </style>
+</head>
+<body class="bg-black text-white antialiased min-h-screen">
+  <!-- Sticky Top Header & Segmented Mode Switcher -->
+  <header class="sticky top-0 z-30 w-full bg-black/85 backdrop-blur-xl border-b border-white/[0.08] px-4 py-3">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <span class="text-sm font-bold tracking-tight text-white">Minest Learning Awards</span>
+        <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-[#FA114F]/20 text-[#FA114F] border border-[#FA114F]/30">
+          Archive 3.0
+        </span>
+      </div>
+
+      <!-- Segmented Mode Controls -->
+      <div class="flex items-center gap-2">
+        <!-- Spatial Audio Status & Toggle -->
+        <button id="audio-toggle-btn" class="px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 transition-all shadow-sm active:scale-95 bg-[#1C1C1E] text-[#00F0FF] border-[#00F0FF]/30">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+          </svg>
+          <span id="audio-toggle-label">Spatial Audio</span>
+        </button>
+
+        <div class="flex items-center p-0.5 rounded-full bg-[#1C1C1E] border border-white/[0.08]">
+          <button id="tab-grid" class="px-3 py-1 rounded-full text-xs font-semibold bg-white text-black shadow-sm transition-all">
+            Awards Grid
+          </button>
+          <button id="tab-summary" class="px-3 py-1 rounded-full text-xs font-medium text-[#8E8E93] hover:text-white transition-all flex items-center gap-1">
+            <div class="flex items-center -space-x-1">
+              <div class="w-1.5 h-1.5 rounded-full bg-[#FA114F]"></div>
+              <div class="w-1.5 h-1.5 rounded-full bg-[#A6FF00]"></div>
+              <div class="w-1.5 h-1.5 rounded-full bg-[#00F0FF]"></div>
+            </div>
+            <span>Summary</span>
+          </button>
+          <button id="tab-comparison" class="px-3 py-1 rounded-full text-xs font-medium text-[#8E8E93] hover:text-white transition-all">
+            3 Directions
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- VIEW 1: AWARDS GRID -->
+  <main id="view-grid" class="max-w-5xl mx-auto px-4 sm:px-6 pt-5 pb-28">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">50 High-Prestige Learning Awards</h1>
+        <p class="text-xs text-[#8E8E93] mt-0.5 font-medium">20 Parametric 3D Shapes • Free-Form Inertial Rotation • Vitreous Enamel Finish</p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="quick-summary-btn" class="flex items-center gap-2 px-3 py-1 rounded-full bg-[#1C1C1E] hover:bg-[#2C2C2E] border border-white/[0.08] text-xs font-medium text-white transition-all active:scale-95">
+          <div class="flex items-center -space-x-1">
+            <div class="w-2 h-2 rounded-full border border-black bg-[#FA114F]"></div>
+            <div class="w-2 h-2 rounded-full border border-black bg-[#A6FF00]"></div>
+            <div class="w-2 h-2 rounded-full border border-black bg-[#00F0FF]"></div>
+          </div>
+          <span>Collection Summary</span>
+          <span class="text-[#00F0FF] font-semibold">98%</span>
+        </button>
+
+        <span id="award-counter" class="text-xs font-semibold px-3 py-1 rounded-full bg-[#1C1C1E] border border-white/10 text-white/90">
+          50 / 50
+        </span>
+      </div>
+    </div>
+
+    <!-- Search & Filter Strip -->
+    <div class="space-y-3 mb-6">
+      <div class="relative">
+        <input
+          id="search-input"
+          type="text"
+          placeholder="Search 50 awards or 20 styles (e.g. 'Octagon', 'Polyglot', 'Streak', 'Diamond')..."
+          class="w-full bg-[#1C1C1E] text-white placeholder-[#636366] text-sm rounded-full pl-10 pr-4 py-2 border border-white/10 focus:outline-none focus:border-white/30 transition-all"
+        />
+        <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E8E93]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div id="category-pills" class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"></div>
+    </div>
+
+    <!-- Awards Grid Container -->
+    <div id="awards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </main>
+
+  <!-- VIEW 2: COLLECTION SUMMARY (V3.0 NEW) -->
+  <section id="view-summary" class="max-w-5xl mx-auto px-4 sm:px-6 pt-6 pb-28 space-y-8 hidden">
+    <!-- Header -->
+    <div class="border-b border-white/[0.08] pb-5">
+      <div class="text-xs font-semibold text-[#FA114F] uppercase tracking-wider mb-1">
+        Activity & Honors Portfolio
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">Collection Summary</h2>
+      <p class="text-sm text-[#8E8E93] mt-1">Scholarly Archive · Lifetime Knowledge Portfolio</p>
+    </div>
+
+    <!-- 3 Core Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <!-- Total Earned -->
+      <div class="rounded-[24px] bg-[#1C1C1E] p-6 border border-white/[0.05] shadow-lg flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-[#8E8E93]">Total Earned</span>
+            <div class="w-2 h-2 rounded-full bg-[#30D158]"></div>
+          </div>
+          <div class="mt-4 flex items-baseline gap-2">
+            <span class="text-5xl font-extrabold text-white tracking-tight">49</span>
+            <span class="text-sm text-[#8E8E93] font-medium">/ 50 Distinct</span>
+          </div>
+          <div class="mt-4 space-y-1.5 pt-4 border-t border-white/[0.06] text-xs text-[#8E8E93]">
+            <div class="flex justify-between">
+              <span>Cumulative Medals Minted:</span>
+              <span class="font-semibold text-white">186</span>
+            </div>
+            <div class="flex justify-between">
+              <span>In Progress:</span>
+              <span class="font-semibold text-[#FFD60A]">1</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Locked:</span>
+              <span class="font-semibold text-[#8E8E93]">0</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 text-[11px] text-[#8E8E93]">
+          Recognizes habit rings, streak multipliers, and masteries.
+        </div>
+      </div>
+
+      <!-- Catalog Completion -->
+      <div class="rounded-[24px] bg-[#1C1C1E] p-6 border border-white/[0.05] shadow-lg flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-[#8E8E93]">Catalog Completion</span>
+            <span class="text-xs font-semibold text-[#00F0FF]">98.0%</span>
+          </div>
+          <div class="mt-4 flex items-center justify-between gap-4">
+            <div>
+              <div class="text-5xl font-extrabold text-white tracking-tight">98.0%</div>
+              <div class="text-xs text-[#8E8E93] mt-1 font-normal">49 of 50 awards unlocked</div>
+            </div>
+            <!-- Circular Radial SVG -->
+            <div class="relative w-16 h-16 flex items-center justify-center flex-shrink-0">
+              <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                <path class="text-[#2C2C2E]" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="text-[#00F0FF]" strokeDasharray="98, 100" strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">98%</div>
+            </div>
+          </div>
+          <div class="mt-4 pt-4 border-t border-white/[0.06] text-xs text-[#8E8E93] space-y-1">
+            <div class="flex justify-between">
+              <span>Remaining Goal:</span>
+              <span class="font-semibold text-white">365 Days of Learning</span>
+            </div>
+            <div class="w-full bg-[#2C2C2E] h-1.5 rounded-full overflow-hidden mt-1">
+              <div class="h-full bg-[#A6FF00] rounded-full" style="width: 84.7%;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 text-[11px] text-[#8E8E93]">1 award remaining to reach 100% catalog completion.</div>
+      </div>
+
+      <!-- Rarest Award Overview -->
+      <div class="rounded-[24px] bg-[#1C1C1E] p-6 border border-white/[0.05] shadow-lg flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-[#8E8E93]">Rarest Distinction</span>
+            <span class="text-xs font-bold text-[#FFD60A]">Mythic</span>
+          </div>
+          <div class="mt-3">
+            <h3 class="text-xl font-bold text-white tracking-tight line-clamp-1">1,000-Day Study Streak</h3>
+            <div class="text-xs text-[#8E8E93] mt-1">Learning Milestones · Top 0.1% Globally</div>
+          </div>
+          <div class="mt-4 pt-4 border-t border-white/[0.06] space-y-1.5 text-xs text-[#8E8E93]">
+            <div class="flex justify-between">
+              <span>Scarcity Rate:</span>
+              <span class="font-semibold text-white">Top 0.1% Worldwide</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Rarity Score:</span>
+              <span class="font-semibold text-[#FFD60A]">99.8 / 100</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Bezel Finish:</span>
+              <span class="font-semibold text-white">24K Mirror Gold</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4">
+          <button id="inspect-rarest-btn" class="w-full py-2 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-all flex items-center justify-center gap-1.5">
+            <span>Inspect in 3D Studio</span>
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Breakdown Bars -->
+    <div class="rounded-[28px] bg-[#1C1C1E] p-6 border border-white/[0.06] space-y-4">
+      <h3 class="text-lg font-bold text-white tracking-tight">Curriculum & Discipline Progress</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Cat 1 -->
+        <div class="p-4 rounded-2xl bg-black/40 border border-white/[0.04] space-y-2">
+          <div class="flex justify-between text-xs">
+            <span class="font-semibold text-white">Close Your Study Rings</span>
+            <span class="text-[#30D158] font-bold">12/12 (100%)</span>
+          </div>
+          <div class="w-full bg-[#2C2C2E] h-2 rounded-full overflow-hidden">
+            <div class="bg-[#30D158] h-full rounded-full" style="width: 100%;"></div>
+          </div>
+        </div>
+        <!-- Cat 2 -->
+        <div class="p-4 rounded-2xl bg-black/40 border border-white/[0.04] space-y-2">
+          <div class="flex justify-between text-xs">
+            <span class="font-semibold text-white">Learning Milestones</span>
+            <span class="text-[#FFD60A] font-bold">15/16 (93.8%)</span>
+          </div>
+          <div class="w-full bg-[#2C2C2E] h-2 rounded-full overflow-hidden">
+            <div class="bg-[#FF9F0A] h-full rounded-full" style="width: 93.8%;"></div>
+          </div>
+        </div>
+        <!-- Cat 3 -->
+        <div class="p-4 rounded-2xl bg-black/40 border border-white/[0.04] space-y-2">
+          <div class="flex justify-between text-xs">
+            <span class="font-semibold text-white">Academic Disciplines & Mastery</span>
+            <span class="text-[#30D158] font-bold">12/12 (100%)</span>
+          </div>
+          <div class="w-full bg-[#2C2C2E] h-2 rounded-full overflow-hidden">
+            <div class="bg-[#30D158] h-full rounded-full" style="width: 100%;"></div>
+          </div>
+        </div>
+        <!-- Cat 4 -->
+        <div class="p-4 rounded-2xl bg-black/40 border border-white/[0.04] space-y-2">
+          <div class="flex justify-between text-xs">
+            <span class="font-semibold text-white">Limited Edition Challenges</span>
+            <span class="text-[#30D158] font-bold">10/10 (100%)</span>
+          </div>
+          <div class="w-full bg-[#2C2C2E] h-2 rounded-full overflow-hidden">
+            <div class="bg-[#30D158] h-full rounded-full" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW 3: 3 DIRECTIONS STUDIO -->
+  <section id="view-comparison" class="max-w-5xl mx-auto px-4 py-8 space-y-8 hidden">
+    <div class="text-center max-w-2xl mx-auto space-y-2">
+      <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Three Architectural Award Directions</h2>
+      <p class="text-xs sm:text-sm text-[#8E8E93]">Slim convex crowned physical medals, mirror chamfers, and satin ceramic unibody backs.</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <!-- Direction A -->
+      <div id="comp-card-a" class="badge-card p-5 flex flex-col justify-between" style="min-height: 380px;">
+        <div>
+          <div class="text-xs font-semibold text-[#FA114F] uppercase tracking-wider">Direction A</div>
+          <h3 class="text-lg font-bold text-white mt-1">Perfect Week (Study)</h3>
+          <p class="text-xs text-[#8E8E93] mt-1">Convex crowned pebble face with Study crimson lacquer and mirror chamfer bevel.</p>
+        </div>
+        <div class="w-full h-[200px] flex items-center justify-center">
+          <div class="w-28 h-28 rounded-full border border-white/10 flex items-center justify-center shadow-lg" style="background: radial-gradient(circle at 35% 35%, #FA114F 0%, #151517 75%);">
+            <span class="text-xs font-bold text-white/90">SHIELD</span>
+          </div>
+        </div>
+        <div class="text-center">
+          <span class="text-xs text-white/70 bg-white/10 px-3 py-1 rounded-full font-medium">Tap to Inspect 3D</span>
+        </div>
+      </div>
+
+      <!-- Direction B -->
+      <div id="comp-card-b" class="badge-card p-5 flex flex-col justify-between" style="min-height: 380px;">
+        <div>
+          <div class="text-xs font-semibold text-[#F5C518] uppercase tracking-wider">Direction B</div>
+          <h3 class="text-lg font-bold text-white mt-1">100 Cards Mastered</h3>
+          <p class="text-xs text-[#8E8E93] mt-1">Dished toroidal concentric tubular rings with 24K mirror gold chassis.</p>
+        </div>
+        <div class="w-full h-[200px] flex items-center justify-center">
+          <div class="w-28 h-28 rounded-full border border-white/10 flex items-center justify-center shadow-lg" style="background: radial-gradient(circle at 35% 35%, #F5C518 0%, #151517 75%);">
+            <span class="text-xs font-bold text-white/90">RINGS</span>
+          </div>
+        </div>
+        <div class="text-center">
+          <span class="text-xs text-white/70 bg-white/10 px-3 py-1 rounded-full font-medium">Tap to Inspect 3D</span>
+        </div>
+      </div>
+
+      <!-- Direction C -->
+      <div id="comp-card-c" class="badge-card p-5 flex flex-col justify-between" style="min-height: 380px;">
+        <div>
+          <div class="text-xs font-semibold text-[#FF9F0A] uppercase tracking-wider">Direction C</div>
+          <h3 class="text-lg font-bold text-white mt-1">September Learning Sprint</h3>
+          <p class="text-xs text-[#8E8E93] mt-1">Multi-plane landscape enamel plates and continuous 3D ribbon.</p>
+        </div>
+        <div class="w-full h-[200px] flex items-center justify-center">
+          <div class="w-28 h-28 rounded-full border border-white/10 flex items-center justify-center shadow-lg" style="background: radial-gradient(circle at 35% 35%, #FF9F0A 0%, #151517 75%);">
+            <span class="text-xs font-bold text-white/90">HEX</span>
+          </div>
+        </div>
+        <div class="text-center">
+          <span class="text-xs text-white/70 bg-white/10 px-3 py-1 rounded-full font-medium">Tap to Inspect 3D</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Detail View Modal / Sheet -->
+  <div id="detail-modal" class="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between overflow-y-auto pb-16 hidden" style="backdrop-filter: blur(20px);">
+    <!-- iOS Pull Grabber -->
+    <div id="dismiss-grabber" class="w-full flex flex-col items-center justify-center pt-3 pb-1 cursor-grab">
+      <div class="w-10 h-1.5 rounded-full bg-white/30"></div>
+      <span class="text-[10px] text-[#8E8E93] mt-1.5 font-medium">Swipe down or tap Back to close</span>
+    </div>
+
+    <!-- Modal Header -->
+    <div class="w-full max-w-2xl mx-auto px-5 pt-1 flex items-center justify-between z-20">
+      <button id="modal-back-btn" class="w-10 h-10 rounded-full bg-[#1C1C1E] border border-white/10 flex items-center justify-center text-white pill-btn">
+        <svg class="w-5 h-5 -ml-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <div class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#8E8E93]">
+        Minest Badge 3.0 Inspection
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="modal-unlock-btn" class="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#FA114F]/25 to-[#00F0FF]/25 border border-white/20 text-xs font-semibold text-white pill-btn flex items-center gap-1.5 hover:border-white/40 active:scale-95 transition-all" title="播放 Apple 风格拟物解锁过场动画">
+          <span class="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse"></span>
+          <span>Apple 解锁动画</span>
+        </button>
+        <button id="modal-flip-btn" class="px-3.5 py-1.5 rounded-full bg-[#1C1C1E] border border-white/10 text-xs font-semibold text-white pill-btn flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
+          <span>Flip 180°</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3D Stage Container -->
+    <div class="relative w-full max-w-lg mx-auto flex-1 min-h-[360px] sm:min-h-[420px] flex items-center justify-center px-4 my-auto">
+      <div id="modal-canvas-box" class="relative w-full h-[360px] sm:h-[420px] rounded-[36px] border border-white/10 overflow-hidden bg-gradient-to-b from-white/[0.03] to-transparent shadow-2xl">
+        <div id="modal-canvas-target" class="w-full h-full cursor-grab active:cursor-grabbing touch-none"></div>
+
+        <!-- Unlock Stage Status Banner -->
+        <div id="unlock-status-banner" class="absolute bottom-4 inset-x-4 mx-auto max-w-sm px-4 py-2 rounded-2xl bg-black/85 border border-[#00F0FF]/40 backdrop-blur-md text-center text-xs font-medium text-white shadow-2xl hidden transition-all z-20">
+          <span id="unlock-status-text">Apple 解锁过场中...</span>
+        </div>
+
+        <div class="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-md text-[10px] text-[#8E8E93] pointer-events-none">
+          <svg class="w-3 h-3 text-[#00F0FF] animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2a10 10 0 0 1 10 10" />
+          </svg>
+          <span>Free-form 3D • Drag 360°</span>
+        </div>
+
+        <div class="absolute top-3 right-3 flex flex-col gap-1.5 z-20">
+          <button id="zoom-in-btn" class="w-8 h-8 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 flex items-center justify-center text-white/90 text-sm font-bold pill-btn" title="Zoom In">+</button>
+          <button id="zoom-out-btn" class="w-8 h-8 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 flex items-center justify-center text-white/90 text-sm font-bold pill-btn" title="Zoom Out">−</button>
+          <button id="zoom-reset-btn" class="w-8 h-8 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 flex items-center justify-center text-white/90 pill-btn" title="Reset View">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inspector Bottom Controls (Metadata & Lighting) -->
+    <div class="w-full max-w-xl mx-auto px-5 z-10 space-y-4">
+      <div class="text-center space-y-1">
+        <h2 id="modal-badge-name" class="text-2xl font-bold tracking-tight text-white">Award Name</h2>
+        <p id="modal-badge-desc" class="text-xs sm:text-sm text-[#8E8E93]">Award description goes here.</p>
+        <div id="modal-badge-specs" class="text-[11px] text-[#636366] flex items-center justify-center gap-2 pt-1"></div>
+      </div>
+
+      <!-- Studio Lighting Presets -->
+      <div class="p-3.5 rounded-2xl bg-[#1C1C1E] border border-white/10 flex items-center justify-between text-xs">
+        <span class="text-[#8E8E93] font-medium">Studio Lighting:</span>
+        <div class="flex items-center gap-1.5">
+          <button id="preset-sunset" class="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium pill-btn">Sunset (3000K)</button>
+          <button id="preset-daylight" class="px-2.5 py-1 rounded-full bg-white text-black font-semibold pill-btn">Daylight (5800K)</button>
+          <button id="preset-nordic" class="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium pill-btn">Nordic (7800K)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. WEB AUDIO API SPATIAL AUDIO & PHYSICAL ACOUSTIC ENGINE
+       ========================================================================= */
+    class SpatialAudioSystem {
+      constructor() {
+        this.ctx = null;
+        this.masterGain = null;
+        this.isMuted = false;
+        this.initOnGesture();
+      }
+
+      initOnGesture() {
+        const unlock = () => {
+          this.getContext();
+          window.removeEventListener('pointerdown', unlock);
+          window.removeEventListener('keydown', unlock);
+        };
+        window.addEventListener('pointerdown', unlock, { passive: true });
+        window.addEventListener('keydown', unlock, { passive: true });
+      }
+
+      getContext() {
+        if (!this.ctx && typeof window !== 'undefined') {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            this.ctx = new AudioContextClass();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.value = this.isMuted ? 0 : 0.85;
+            this.masterGain.connect(this.ctx.destination);
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+        return this.ctx;
+      }
+
+      playClink(variant = 'tap', pan = 0) {
+        if (this.isMuted) return;
+        const ctx = this.getContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+        if (panner) panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), now);
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        const baseFreq = variant === 'flip' ? 1800 : variant === 'rotate_tick' ? 2400 : 2100;
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        if (panner) {
+          osc.connect(gain);
+          gain.connect(panner);
+          panner.connect(this.masterGain);
+        } else {
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+        }
+        osc.start(now);
+        osc.stop(now + 0.09);
+      }
+
+      playChime(type = 'celestial') {
+        if (this.isMuted) return;
+        const ctx = this.getContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const freqs = type === 'celestial' ? [523.25, 659.25, 783.99, 1046.50] : [440, 554.37, 659.25, 880];
+        freqs.forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, now + i * 0.06);
+
+          gain.gain.setValueAtTime(0, now + i * 0.06);
+          gain.gain.linearRampToValueAtTime(0.25, now + i * 0.06 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 1.2);
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+          osc.start(now + i * 0.06);
+          osc.stop(now + i * 0.06 + 1.3);
+        });
+      }
+
+      toggleMute() {
+        this.isMuted = !this.isMuted;
+        if (this.masterGain && this.ctx) {
+          this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.85, this.ctx.currentTime);
+        }
+        return this.isMuted;
+      }
+    }
+
+    const spatialAudio = new SpatialAudioSystem();
+
+    function triggerHaptic(type = 'tap') {
+      if ('vibrate' in navigator) {
+        try {
+          if (type === 'tap') navigator.vibrate(10);
+          else if (type === 'selection') navigator.vibrate(8);
+        } catch(e) {}
+      }
+      spatialAudio.playClink(type === 'selection' ? 'facet' : 'tap', 0);
+    }
+
+    /* =========================================================================
+       2. CERAMIC BACKPLATE TEXTURE GENERATOR
+       ========================================================================= */
+    function createCeramicTexture(earnedDate = 'OCTOBER 20, 2019', badgeTitle = 'PERFECT WEEK') {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      const cx = 256, cy = 256;
+
+      ctx.fillStyle = '#FAF9F6';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Lathe rings
+      ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+      for (let r = 40; r < 240; r += 5) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#6E6E73';
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText('MINEST 3.0', cx, cy - 30);
+      ctx.font = '12px sans-serif';
+      ctx.fillText('EARNED ON', cx, cy);
+      ctx.fillStyle = '#1C1C1E';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(earnedDate, cx, cy + 22);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    /* =========================================================================
+       3. 50 AWARDS CATALOG DATA
+       ========================================================================= */
+    const AWARDS_CATALOG = [
+      { id: 'perfect-week-study', name: 'Perfect Week (Study)', category: 'Close Your Study Rings', style: 'faceted-shield', earnedDate: 'OCTOBER 20, 2019', earnedCount: 14, color: '#FA114F', bezel: 'silver', desc: 'Reached daily Study volume goal every day of a week.', shape: 'Faceted Shield' },
+      { id: 'perfect-week-review', name: 'Perfect Week (Review)', category: 'Close Your Study Rings', style: 'faceted-shield', earnedDate: 'AUGUST 16, 2026', earnedCount: 32, color: '#00F0FF', bezel: 'silver', desc: 'Cleared spaced repetition queue daily.', shape: 'Faceted Shield' },
+      { id: 'perfect-week-focus', name: 'Perfect Week (Focus)', category: 'Close Your Study Rings', style: 'faceted-shield', earnedDate: 'SEPTEMBER 12, 2026', earnedCount: 8, color: '#A6FF00', bezel: 'silver', desc: 'Logged 45+ minutes of focus immersion daily.', shape: 'Faceted Shield' },
+      { id: 'perfect-week-all', name: 'Perfect Week (All Goals)', category: 'Close Your Study Rings', style: 'faceted-shield', earnedDate: 'JULY 4, 2026', earnedCount: 3, color: '#FA114F', bezel: 'gold', desc: 'Closed Study, Review, and Focus rings every day.', shape: 'Faceted Shield' },
+      { id: 'cards-100', name: '100 Cards Mastered', category: 'Learning Milestones', style: 'concentric-rings', earnedDate: 'NOVEMBER 9, 2017', earnedCount: 1, color: '#F5C518', bezel: 'gold', desc: 'Promoted 100 flashcards into permanent recall.', shape: 'Tricentric Rings' },
+      { id: 'cards-365', name: '365 Cards Mastered', category: 'Learning Milestones', style: 'concentric-rings', earnedDate: 'MARCH 14, 2020', earnedCount: 1, color: '#30D158', bezel: 'gold', desc: '365 cards cemented in permanent memory.', shape: 'Tricentric Rings' },
+      { id: 'sept-sprint', name: 'September Learning Sprint', category: 'Limited Challenges', style: 'challenge-hex', earnedDate: 'SEPTEMBER 17, 2026', earnedCount: 1, color: '#FF9F0A', bezel: 'gold', desc: 'Exceeded monthly target during September Sprint.', shape: 'Topographic Hexagon' },
+      { id: 'streak-1000', name: '1,000-Day Study Streak', category: 'Learning Milestones', style: 'circular-coin', earnedDate: 'SEPTEMBER 26, 2026', earnedCount: 1, color: '#FFD60A', bezel: 'gold', desc: 'Nearly 3 full years of daily intellectual discipline.', shape: 'Imperial Medallion' },
+      { id: 'cards-5000', name: '5,000 Cards Mastered', category: 'Learning Milestones', style: 'infinity-loop', earnedDate: 'SEPTEMBER 1, 2026', earnedCount: 1, color: '#30D158', bezel: 'gold', desc: 'Encyclopedic intellect: 5,000 cards in permanent recall.', shape: 'Möbius Ribbon' },
+      { id: 'polyglot', name: 'Polyglot Linguistics Mastery', category: 'Academic Disciplines', style: 'interlocking-rings', earnedDate: 'SEPTEMBER 1, 2026', earnedCount: 1, color: '#00F0FF', bezel: 'gold', desc: 'Mastered 1,500 vocabulary words in foreign languages.', shape: 'Dual-Venn Rings' },
+      { id: 'algorithms', name: 'Systems Architecture & Algorithms', category: 'Academic Disciplines', style: 'rhombus-diamond', earnedDate: 'JULY 28, 2026', earnedCount: 1, color: '#30D158', bezel: 'silver', desc: 'Recall of core algorithmic structures & complexity proofs.', shape: 'Brilliant Diamond' },
+      { id: 'night-owl-scholar', name: '夜鹰学者 · 雅典娜智慧之枭 Night Owl Scholar', category: 'Learning Milestones', style: 'owl-wisdom', earnedDate: 'OCTOBER 24, 2026', earnedCount: 1, color: '#5E5CE6', bezel: 'space-gray', desc: 'Embodying Athena’s legendary owl of nocturnal wisdom. Awarded for mastering 50+ quiet nighttime study hours with deep focus.', shape: 'Nocturnal Owl Silhouette' },
+      { id: 'octopus-polymath', name: '八爪博学全才 Octopus Polymath', category: 'Academic Disciplines', style: 'octopus-polymath', earnedDate: 'OCTOBER 28, 2026', earnedCount: 1, color: '#FF2D55', bezel: 'gold', desc: 'Simultaneously mastered flashcard decks across 8 distinct knowledge disciplines. Omniscient multitasking intellect.', shape: 'Eight-Tentacle Crest' },
+      { id: 'deep-abyss-octopus', name: '深渊潜思章鱼 Deep Abyss Octopus', category: 'Learning Milestones', style: 'octopus-abyss', earnedDate: 'OCTOBER 26, 2026', earnedCount: 2, color: '#00F0FF', bezel: 'space-gray', desc: 'Anchored 1,000 flashcards into deep permanent subconscious memory with high stability.', shape: 'Abyssal Trench Spiral' },
+      { id: 'quantum-weaver-octopus', name: '量子织网章鱼 Quantum Weaver Octopus', category: 'Academic Disciplines', style: 'octopus-quantum', earnedDate: 'OCTOBER 27, 2026', earnedCount: 1, color: '#A6FF00', bezel: 'gold', desc: 'Constructed multi-disciplinary synthesis nodes bridging STEM, philosophy, and computing.', shape: 'Quantum Synaptic Toroid' },
+      { id: 'flow-state-jellyfish', name: '心流澄明水母 Flow State Jellyfish', category: 'Close Your Study Rings', style: 'jellyfish-flow', earnedDate: 'OCTOBER 25, 2026', earnedCount: 4, color: '#70D7FF', bezel: 'silver', desc: 'Achieved 10 consecutive frictionless 90-minute deep flow sessions without distraction.', shape: 'Pelagic Dome with Tendril Ribbons' },
+      { id: 'nebula-pulse-jellyfish', name: '星云游弋水母 Cosmic Nebula Jellyfish', category: 'Limited Challenges', style: 'jellyfish-nebula', earnedDate: 'OCTOBER 26, 2026', earnedCount: 1, color: '#BF5AF2', bezel: 'space-gray', desc: 'Conquered the 30-Day Galactic Exploration Challenge with steady curiosity pulses.', shape: 'Dual Concentric Nebula Bell' },
+      { id: 'sovereign-eagle-vision', name: '苍穹金鹰 · 宏观知见 Aquila Sovereign Eagle', category: 'Learning Milestones', style: 'eagle-sovereign', earnedDate: 'OCTOBER 28, 2026', earnedCount: 1, color: '#FA114F', bezel: 'gold', desc: 'Architected grand macro-synthesis frameworks unifying entire domains of knowledge.', shape: 'Swept Wing Blades & Raptor Beak' },
+      { id: 'clockwork-owl-intellect', name: '阿基米德机械之枭 Archimedes Clockwork Owl', category: 'Academic Disciplines', style: 'owl-clockwork', earnedDate: 'IN PROGRESS (44/50)', earnedCount: 0, color: '#30D158', bezel: 'gold', desc: 'Mastered 50 complex algorithmic and mathematical proofs with clockwork consistency.', shape: 'Epicyclic Gears & Chrono-Aperture' },
+      { id: 'study-goals-365', name: '365 Days of Learning', category: 'Learning Milestones', style: 'faceted-shield', earnedDate: 'IN PROGRESS (309/365)', earnedCount: 0, color: '#8E8E93', bezel: 'silver', desc: 'Reach study goal 365 times. Currently 309 of 365.', shape: 'Progress Wafer' }
+    ];
+
+    /* =========================================================================
+       4. PARAMETRIC 3D GEOMETRY GENERATOR
+       ========================================================================= */
+    function buildBadge3D(badge) {
+      const group = new THREE.Group();
+      const isGold = badge.bezel === 'gold';
+      const isSpaceGray = badge.bezel === 'space-gray';
+      const bezelColor = isGold ? 0xE6C670 : isSpaceGray ? 0x383B44 : 0xE0E0E5;
+      const bezelMat = new THREE.MeshStandardMaterial({
+        color: bezelColor,
+        metalness: isSpaceGray ? 0.88 : 0.94,
+        roughness: isSpaceGray ? 0.35 : 0.18,
+        side: THREE.DoubleSide
+      });
+      const parsedColor = parseInt(badge.color.replace('#', '0x'), 16);
+      const enamelMat = new THREE.MeshStandardMaterial({
+        color: parsedColor,
+        roughness: 0.15,
+        metalness: 0.22,
+        side: THREE.DoubleSide
+      });
+      const backMat = new THREE.MeshStandardMaterial({
+        map: createCeramicTexture(badge.earnedDate, badge.name),
+        color: 0xFFFFFF,
+        roughness: 0.28,
+        metalness: 0.05,
+        side: THREE.DoubleSide
+      });
+
+      if (badge.style === 'owl-wisdom') {
+        const bodyGeo = new THREE.CylinderGeometry(1.4, 1.1, 0.2, 48);
+        const bodyMesh = new THREE.Mesh(bodyGeo, [bezelMat, enamelMat, backMat]);
+        bodyMesh.rotation.x = Math.PI / 2;
+        group.add(bodyMesh);
+
+        const earGeo = new THREE.ConeGeometry(0.35, 0.6, 16);
+        const earL = new THREE.Mesh(earGeo, bezelMat);
+        earL.position.set(-0.7, 1.35, 0);
+        earL.rotation.z = 0.25;
+        const earR = new THREE.Mesh(earGeo, bezelMat);
+        earR.position.set(0.7, 1.35, 0);
+        earR.rotation.z = -0.25;
+        group.add(earL, earR);
+
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xFFD60A, roughness: 0.1, metalness: 0.6 });
+        const eyeGeo = new THREE.TorusGeometry(0.3, 0.08, 16, 32);
+        const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeL.position.set(-0.48, 0.35, 0.12);
+        const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeR.position.set(0.48, 0.35, 0.12);
+        group.add(eyeL, eyeR);
+
+        const beakGeo = new THREE.ConeGeometry(0.18, 0.36, 4);
+        const beak = new THREE.Mesh(beakGeo, bezelMat);
+        beak.position.set(0, 0.05, 0.14);
+        beak.rotation.z = Math.PI;
+        group.add(beak);
+      } else if (badge.style === 'octopus-polymath') {
+        const centerGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.2, 48);
+        const centerMesh = new THREE.Mesh(centerGeo, [bezelMat, enamelMat, backMat]);
+        centerMesh.rotation.x = Math.PI / 2;
+        group.add(centerMesh);
+
+        for (let i = 0; i < 8; i++) {
+          const angle = (i / 8) * Math.PI * 2;
+          const tentacleGeo = new THREE.TorusGeometry(0.55, 0.1, 12, 24, Math.PI * 1.1);
+          const tentacle = new THREE.Mesh(tentacleGeo, bezelMat);
+          tentacle.position.set(Math.cos(angle) * 1.3, Math.sin(angle) * 1.3, 0.02);
+          tentacle.rotation.z = angle + Math.PI / 4;
+          group.add(tentacle);
+        }
+
+        const pearlMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.1, metalness: 0.2 });
+        const pearlGeo = new THREE.SphereGeometry(0.36, 24, 24);
+        const pearl = new THREE.Mesh(pearlGeo, pearlMat);
+        pearl.position.z = 0.12;
+        group.add(pearl);
+      } else if (badge.style === 'octopus-abyss') {
+        // Deep Abyss Octopus (Space gray + bioluminescent trench cyan)
+        const baseGeo = new THREE.CylinderGeometry(1.65, 1.65, 0.16, 64);
+        const baseMesh = new THREE.Mesh(baseGeo, [bezelMat, enamelMat, backMat]);
+        baseMesh.rotation.x = Math.PI / 2;
+        group.add(baseMesh);
+
+        // 8 Spiraling Abyss tentacles
+        for (let i = 0; i < 8; i++) {
+          const angle = (i / 8) * Math.PI * 2;
+          const arm = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.04, 12, 24, Math.PI * 0.75), bezelMat);
+          arm.position.set(Math.cos(angle) * 0.7, Math.sin(angle) * 0.7, 0.03);
+          arm.rotation.z = angle + 0.3;
+          group.add(arm);
+        }
+        const abyssEyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), new THREE.MeshStandardMaterial({ color: 0x00F0FF }));
+        abyssEyeL.position.set(-0.25, 0.2, 0.12);
+        const abyssEyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), new THREE.MeshStandardMaterial({ color: 0x00F0FF }));
+        abyssEyeR.position.set(0.25, 0.2, 0.12);
+        group.add(abyssEyeL, abyssEyeR);
+      } else if (badge.style === 'octopus-quantum') {
+        // Quantum Weaver Octopus (Interlocking volt/magenta lattice)
+        const baseGeo = new THREE.CylinderGeometry(1.65, 1.65, 0.16, 64);
+        const baseMesh = new THREE.Mesh(baseGeo, [bezelMat, enamelMat, backMat]);
+        baseMesh.rotation.x = Math.PI / 2;
+        group.add(baseMesh);
+
+        for (let k = 0; k < 8; k++) {
+          const angle = (k / 8) * Math.PI * 2;
+          const arc = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.035, 12, 24, Math.PI * 0.5), bezelMat);
+          arc.rotation.z = angle;
+          group.add(arc);
+        }
+        const coreJewel = new THREE.Mesh(new THREE.IcosahedronGeometry(0.28, 1), new THREE.MeshStandardMaterial({ color: 0xFFD60A, metalness: 0.8 }));
+        coreJewel.position.z = 0.12;
+        group.add(coreJewel);
+      } else if (badge.style === 'jellyfish-flow') {
+        // Flow State Jellyfish (Translucent pelagic dome + cascading tendril ribbons)
+        const bellGeo = new THREE.SphereGeometry(1.35, 36, 18, 0, Math.PI * 2, 0, Math.PI * 0.52);
+        bellGeo.scale(1.0, 0.9, 0.35);
+        const bellMesh = new THREE.Mesh(bellGeo, enamelMat);
+        bellMesh.position.set(0, 0.35, 0.04);
+        group.add(bellMesh);
+
+        const bellRim = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.06, 16, 48, Math.PI * 1.05), bezelMat);
+        bellRim.position.set(0, 0.35, 0.04);
+        bellRim.rotation.z = Math.PI * 0.97;
+        group.add(bellRim);
+
+        for (let t = 0; t < 6; t++) {
+          const x = -0.75 + (t / 5) * 1.5;
+          const ribbon = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.03, 10, 20, Math.PI * 0.8), bezelMat);
+          ribbon.position.set(x, -0.4 - (t % 2) * 0.15, 0.04);
+          ribbon.rotation.z = (t % 2 === 0 ? 0.4 : -0.4);
+          group.add(ribbon);
+        }
+        const backPlate = new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.65, 0.14, 64), [bezelMat, enamelMat, backMat]);
+        backPlate.rotation.x = Math.PI / 2;
+        backPlate.position.z = -0.06;
+        group.add(backPlate);
+      } else if (badge.style === 'jellyfish-nebula') {
+        // Cosmic Nebula Jellyfish
+        const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.65, 0.16, 64), [bezelMat, enamelMat, backMat]);
+        baseMesh.rotation.x = Math.PI / 2;
+        group.add(baseMesh);
+
+        const domeRing = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.05, 16, 36, Math.PI * 1.1), new THREE.MeshStandardMaterial({ color: 0xFFD60A }));
+        domeRing.position.set(0, 0.3, 0.04);
+        domeRing.rotation.z = Math.PI * 0.95;
+        group.add(domeRing);
+
+        for (let k = 0; k < 5; k++) {
+          const x = -0.6 + (k / 4) * 1.2;
+          const trail = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.03, 10, 20, Math.PI * 0.75), bezelMat);
+          trail.position.set(x, -0.35, 0.05);
+          trail.rotation.z = k % 2 === 0 ? 0.3 : -0.3;
+          group.add(trail);
+        }
+      } else if (badge.style === 'eagle-sovereign') {
+        // Aquila Sovereign Eagle (Swept golden wing blades & raptor beak)
+        const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.68, 1.68, 0.16, 64), [bezelMat, enamelMat, backMat]);
+        baseMesh.rotation.x = Math.PI / 2;
+        group.add(baseMesh);
+
+        for (let side = -1; side <= 1; side += 2) {
+          for (let f = 0; f < 3; f++) {
+            const blade = new THREE.Mesh(new THREE.BoxGeometry(0.65 + f * 0.2, 0.14, 0.04), bezelMat);
+            blade.position.set(side * (0.6 + f * 0.25), 0.25 + f * 0.3, 0.05);
+            blade.rotation.z = side * (0.35 + f * 0.18);
+            group.add(blade);
+          }
+        }
+        const beak = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.45, 6), bezelMat);
+        beak.position.set(0, -0.1, 0.14);
+        beak.rotation.z = Math.PI;
+        beak.rotation.x = -0.3;
+        group.add(beak);
+      } else if (badge.style === 'owl-clockwork') {
+        // Archimedes Clockwork Owl (Epicyclic gears & chrono-aperture)
+        const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.65, 0.16, 64), [bezelMat, enamelMat, backMat]);
+        baseMesh.rotation.x = Math.PI / 2;
+        group.add(baseMesh);
+
+        for (let side = -1; side <= 1; side += 2) {
+          const gearEar = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.05, 12, 16), bezelMat);
+          gearEar.position.set(side * 0.7, 1.25, 0.04);
+          group.add(gearEar);
+
+          const eyeGear = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.045, 16, 24), bezelMat);
+          eyeGear.position.set(side * 0.45, 0.35, 0.08);
+          group.add(eyeGear);
+
+          const jewel = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), new THREE.MeshStandardMaterial({ color: 0x00F0FF }));
+          jewel.position.set(side * 0.45, 0.35, 0.11);
+          group.add(jewel);
+        }
+      } else {
+        const frontGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.18, 64);
+        const frontMesh = new THREE.Mesh(frontGeo, [bezelMat, enamelMat, backMat]);
+        frontMesh.rotation.x = Math.PI / 2;
+        group.add(frontMesh);
+
+        const ringGeo = new THREE.TorusGeometry(1.6, 0.08, 16, 64);
+        const ringMesh = new THREE.Mesh(ringGeo, bezelMat);
+        group.add(ringMesh);
+      }
+
+      return group;
+    }
+
+    /* =========================================================================
+       5. THREE.JS CONTROLLER & INTERACTION
+       ========================================================================= */
+    let scene, camera, renderer, badgeGroup, detailBadge;
+    let isDragging = false, prevMouse = { x: 0, y: 0 };
+    let targetQuat = new THREE.Quaternion(), currentQuat = new THREE.Quaternion();
+
+    function init3DScene() {
+      const container = document.getElementById('modal-canvas-target');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const width = container.clientWidth || 380;
+      const height = container.clientHeight || 380;
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+      camera.position.z = 5.2;
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      const amb = new THREE.AmbientLight(0xffffff, 0.75);
+      scene.add(amb);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
+      dirLight.position.set(5, 5, 5);
+      scene.add(dirLight);
+
+      badgeGroup = new THREE.Group();
+      scene.add(badgeGroup);
+
+      // Events
+      const el = renderer.domElement;
+      el.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        prevMouse = { x: e.clientX, y: e.clientY };
+        spatialAudio.playClink('tap', 0);
+      });
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - prevMouse.x;
+        const dy = e.clientY - prevMouse.y;
+        const qY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx * 0.008);
+        const qX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), dy * 0.008);
+        targetQuat.premultiply(qY.multiply(qX));
+        prevMouse = { x: e.clientX, y: e.clientY };
+      });
+      window.addEventListener('pointerup', () => { isDragging = false; });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        currentQuat.slerp(targetQuat, 0.15);
+        badgeGroup.quaternion.copy(currentQuat);
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+
+    function loadBadgeInModal(badge) {
+      if (!scene) init3DScene();
+      while (badgeGroup.children.length > 0) {
+        badgeGroup.remove(badgeGroup.children[0]);
+      }
+      detailBadge = badge;
+      const mesh = buildBadge3D(badge);
+      badgeGroup.add(mesh);
+      targetQuat.identity();
+      currentQuat.identity();
+
+      document.getElementById('modal-badge-name').innerText = badge.name;
+      document.getElementById('modal-badge-desc').innerText = badge.desc;
+      document.getElementById('modal-badge-specs').innerHTML = `
+        <span>Category: ${badge.category}</span> · 
+        <span>Bezel: ${badge.bezel.toUpperCase()}</span> · 
+        <span>${badge.earnedDate}</span>
+      `;
+      document.getElementById('detail-modal').classList.remove('hidden');
+    }
+
+    /* =========================================================================
+       6. UI CONTROLLER & VIEW SWITCHING
+       ========================================================================= */
+    let activeTab = 'grid';
+    let searchQuery = '';
+    let selectedCat = 'all';
+
+    function switchView(tab) {
+      activeTab = tab;
+      triggerHaptic('selection');
+      spatialAudio.playClink('facet', 0);
+
+      document.getElementById('view-grid').classList.toggle('hidden', tab !== 'grid');
+      document.getElementById('view-summary').classList.toggle('hidden', tab !== 'summary');
+      document.getElementById('view-comparison').classList.toggle('hidden', tab !== 'comparison');
+
+      const btnGrid = document.getElementById('tab-grid');
+      const btnSummary = document.getElementById('tab-summary');
+      const btnComp = document.getElementById('tab-comparison');
+
+      btnGrid.className = `px-3 py-1 rounded-full text-xs font-medium transition-all ${
+        tab === 'grid' ? 'bg-white text-black font-semibold shadow-sm' : 'text-[#8E8E93] hover:text-white'
+      }`;
+      btnSummary.className = `px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
+        tab === 'summary' ? 'bg-white text-black font-semibold shadow-sm' : 'text-[#8E8E93] hover:text-white'
+      }`;
+      btnComp.className = `px-3 py-1 rounded-full text-xs font-medium transition-all ${
+        tab === 'comparison' ? 'bg-white text-black font-semibold shadow-sm' : 'text-[#8E8E93] hover:text-white'
+      }`;
+    }
+
+    function renderGrid() {
+      const container = document.getElementById('awards-grid');
+      container.innerHTML = '';
+      const filtered = AWARDS_CATALOG.filter(b => {
+        const matchCat = selectedCat === 'all' || b.category === selectedCat;
+        const q = searchQuery.toLowerCase().trim();
+        const matchQ = !q || b.name.toLowerCase().includes(q) || b.desc.toLowerCase().includes(q) || b.shape.toLowerCase().includes(q);
+        return matchCat && matchQ;
+      });
+
+      document.getElementById('award-counter').innerText = `${filtered.length} / ${AWARDS_CATALOG.length}`;
+
+      filtered.forEach(badge => {
+        const card = document.createElement('div');
+        card.className = 'badge-card p-5 flex flex-col justify-between';
+        card.style.minHeight = '320px';
+        card.innerHTML = `
+          <div class="flex items-center justify-between text-left">
+            <span class="text-[11px] font-semibold tracking-wider uppercase text-[#8E8E93]">${badge.category}</span>
+            <span class="text-[10px] font-medium text-[#636366] px-2 py-0.5 rounded-full bg-white/5">${badge.shape}</span>
+          </div>
+          <div class="relative w-full h-[180px] flex items-center justify-center my-2 pointer-events-none">
+            <div class="w-28 h-28 rounded-full border border-white/10 flex items-center justify-center shadow-lg" style="background: radial-gradient(circle at 35% 35%, ${badge.color} 0%, #151517 75%);">
+              <span class="text-xs font-bold text-white/90 text-center px-2">${badge.bezel.toUpperCase()}</span>
+            </div>
+          </div>
+          <div class="text-center space-y-1">
+            <h3 class="text-[15px] font-semibold text-white tracking-tight leading-snug line-clamp-1">${badge.name}</h3>
+            <div class="text-xs text-[#8E8E93]">${badge.earnedDate}</div>
+          </div>
+        `;
+        card.onclick = () => {
+          triggerHaptic('tap');
+          spatialAudio.playChime('celestial');
+          loadBadgeInModal(badge);
+        };
+        container.appendChild(card);
+      });
+    }
+
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      container.innerHTML = '';
+      const cats = ['all', 'Close Your Study Rings', 'Learning Milestones', 'Academic Disciplines', 'Limited Challenges'];
+      cats.forEach(c => {
+        const btn = document.createElement('button');
+        const isSel = selectedCat === c;
+        btn.className = `px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap pill-btn ${
+          isSel ? 'bg-white text-black font-semibold shadow-sm' : 'bg-[#1C1C1E] text-[#8E8E93] hover:text-white border border-white/10'
+        }`;
+        btn.innerText = c === 'all' ? 'All Awards' : c;
+        btn.onclick = () => {
+          selectedCat = c;
+          triggerHaptic('selection');
+          renderCategoryPills();
+          renderGrid();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    // Apple Unlock Animation Sequence (Multi-Phase Apple Fitness/Watch Ceremony)
+    let isUnlocking = false;
+    let unlockStartTime = 0;
+    function triggerAppleUnlockAnimation() {
+      if (!scene || isUnlocking) return;
+      isUnlocking = true;
+      unlockStartTime = performance.now();
+      const banner = document.getElementById('unlock-status-banner');
+      const bannerText = document.getElementById('unlock-status-text');
+      if (banner) banner.classList.remove('hidden');
+      triggerHaptic('tap');
+      spatialAudio.playChime('celestial');
+
+      camera.position.z = 6.4;
+      targetQuat.setFromEuler(new THREE.Euler(0.25, -0.45, 0.12));
+
+      function updateUnlock() {
+        if (!isUnlocking) return;
+        const now = performance.now();
+        const elapsed = (now - unlockStartTime) / 1000;
+        const smoothStep = (t) => t * t * (3 - 2 * t);
+
+        if (elapsed < 1.0) {
+          const p = smoothStep(elapsed / 1.0);
+          if (bannerText) bannerText.innerText = '1/5 暗态神秘悬浮 · 镜头推入';
+          camera.position.z = 6.4 - p * 1.3;
+          const s = 0.88 + p * 0.12;
+          badgeGroup.scale.set(s, s, s);
+          targetQuat.setFromEuler(new THREE.Euler(0.25 * (1 - p * 0.5), -0.45 * (1 - p * 0.4), 0.12 * (1 - p)));
+        } else if (elapsed < 2.2) {
+          if (bannerText) bannerText.innerText = '2/5 炫彩珐琅流转注色 · 几何微棱镜激越';
+          const p = smoothStep((elapsed - 1.0) / 1.2);
+          camera.position.z = 5.1 - p * 0.2;
+          if (elapsed > 1.15 && elapsed < 1.25) spatialAudio.playChime('celestial');
+        } else if (elapsed < 3.2) {
+          if (bannerText) bannerText.innerText = '3/5 苹果阻尼弹簧回弹 · 边缘自发光锁定';
+          const p = (elapsed - 2.2) / 1.0;
+          const bounce = Math.sin(p * Math.PI * 3.5) * Math.exp(-p * 3.8) * 0.15;
+          badgeGroup.scale.set(1 + bounce, 1 + bounce, 1 + bounce);
+          targetQuat.identity();
+        } else if (elapsed < 4.6) {
+          if (bannerText) bannerText.innerText = '4/5 180°反转 · 陶瓷底盖高精度激光镭雕鉴赏';
+          const p = smoothStep((elapsed - 3.2) / 1.4);
+          const rotY = p * Math.PI;
+          targetQuat.setFromEuler(new THREE.Euler(0.08 * Math.sin(p * Math.PI), rotY, 0));
+          if (elapsed > 3.25 && elapsed < 3.35) spatialAudio.playClink('flip', 0.2);
+        } else if (elapsed < 5.6) {
+          if (bannerText) bannerText.innerText = '5/5 回正前方 · 奖章点亮典藏入库';
+          const p = smoothStep((elapsed - 4.6) / 1.0);
+          const rotY = Math.PI + p * Math.PI;
+          targetQuat.setFromEuler(new THREE.Euler(0, rotY, 0));
+        } else {
+          isUnlocking = false;
+          targetQuat.identity();
+          badgeGroup.scale.set(1, 1, 1);
+          camera.position.z = 5.2;
+          if (bannerText) bannerText.innerText = '✨ 恭喜！奖章已成功解锁，可自由 360° 拖拽把玩';
+          spatialAudio.playChime('celestial');
+          setTimeout(() => { if (banner) banner.classList.add('hidden'); }, 3000);
+          return;
+        }
+        requestAnimationFrame(updateUnlock);
+      }
+      requestAnimationFrame(updateUnlock);
+    }
+
+    // Attach listeners
+    document.getElementById('tab-grid').onclick = () => switchView('grid');
+    document.getElementById('tab-summary').onclick = () => switchView('summary');
+    document.getElementById('tab-comparison').onclick = () => switchView('comparison');
+    document.getElementById('quick-summary-btn').onclick = () => switchView('summary');
+    const unlockBtn = document.getElementById('modal-unlock-btn');
+    if (unlockBtn) unlockBtn.onclick = triggerAppleUnlockAnimation;
+
+    document.getElementById('inspect-rarest-btn').onclick = () => {
+      triggerHaptic('tap');
+      spatialAudio.playChime('celestial');
+      loadBadgeInModal(AWARDS_CATALOG[7]); // 1,000-Day Study Streak
+    };
+
+    document.getElementById('modal-back-btn').onclick = () => {
+      triggerHaptic('tap');
+      document.getElementById('detail-modal').classList.add('hidden');
+    };
+    document.getElementById('dismiss-grabber').onclick = () => {
+      triggerHaptic('tap');
+      document.getElementById('detail-modal').classList.add('hidden');
+    };
+    document.getElementById('modal-flip-btn').onclick = () => {
+      triggerHaptic('tap');
+      spatialAudio.playClink('flip', 0);
+      const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+      targetQuat.multiply(q);
+    };
+
+    document.getElementById('audio-toggle-btn').onclick = () => {
+      triggerHaptic('selection');
+      const muted = spatialAudio.toggleMute();
+      document.getElementById('audio-toggle-label').innerText = muted ? 'Muted' : 'Spatial Audio';
+      document.getElementById('audio-toggle-btn').className = `px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 transition-all shadow-sm active:scale-95 ${
+        muted ? 'bg-[#1C1C1E] text-[#8E8E93] border-white/10' : 'bg-[#1C1C1E] text-[#00F0FF] border-[#00F0FF]/30'
+      }`;
+    };
+
+    document.getElementById('comp-card-a').onclick = () => loadBadgeInModal(AWARDS_CATALOG[0]);
+    document.getElementById('comp-card-b').onclick = () => loadBadgeInModal(AWARDS_CATALOG[4]);
+    document.getElementById('comp-card-c').onclick = () => loadBadgeInModal(AWARDS_CATALOG[6]);
+
+    document.getElementById('search-input').oninput = (e) => {
+      searchQuery = e.target.value;
+      renderGrid();
+    };
+
+    // Zoom controls
+    document.getElementById('zoom-in-btn').onclick = () => {
+      if (camera) camera.position.z = Math.max(3.2, camera.position.z - 0.6);
+      spatialAudio.playClink('facet', 0);
+    };
+    document.getElementById('zoom-out-btn').onclick = () => {
+      if (camera) camera.position.z = Math.min(7.5, camera.position.z + 0.6);
+      spatialAudio.playClink('facet', 0);
+    };
+    document.getElementById('zoom-reset-btn').onclick = () => {
+      if (camera) camera.position.z = 5.2;
+      targetQuat.identity();
+      spatialAudio.playClink('facet', 0);
+    };
+
+    // ESC to close modal
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') document.getElementById('detail-modal').classList.add('hidden');
+    });
+
+    // Initialize
+    renderCategoryPills();
+    renderGrid();
+  </script>
+</body>
+</html>
