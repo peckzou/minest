@@ -3964,6 +3964,12 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
 /* ========================================================================= */
 /* Phase 5: Focusboard iPhone Portrait — Gesture-First Interaction Redesign  */
 /* ========================================================================= */
+/* Hide bottom "+ Add card" button in mobile portrait */
+.iphone-frame:not(.landscape) .column-add-card-btn,
+.mobile-board-view:not(.landscape) .column-add-card-btn {
+  display: none !important;
+}
+
 
 /* 1. Remove Mobile Card Hover / Floating Action Buttons (Requirement 1 & 13) */
 .iphone-frame:not(.landscape) .card-action-group,
@@ -3994,7 +4000,7 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   display: flex !important;
 }
 
-/* 2. Pull Down → New Card Ghost Container (Requirement 2) */
+/* 2. Pull Down → New Card Ghost Container (Requirement 2: matches iOS .fb-composer capsule style) */
 .gesture-pull-ghost {
   width: 100%;
   height: 0px;
@@ -4003,40 +4009,68 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   align-items: center;
   justify-content: center;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1.5px dashed rgba(52, 211, 153, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: #10b981;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 8px 22px -12px rgba(0, 0, 0, 0.45);
+  color: inherit;
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
   margin: 0;
   box-sizing: border-box;
   pointer-events: none;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
+.theme-white .gesture-pull-ghost {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 1px 0 #fff, 0 8px 20px -14px rgba(15, 23, 42, 0.35);
+}
 .gesture-pull-ghost.is-ready {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(52, 211, 153, 0.9);
-  border-style: solid;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  border-color: rgba(10, 132, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 3px rgba(10, 132, 255, 0.22), 0 8px 22px -12px rgba(0, 0, 0, 0.45);
 }
 .gesture-pull-ghost-inner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 16px;
-  white-space: nowrap;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px 0 14px;
+  box-sizing: border-box;
 }
-.gesture-pull-ghost-icon {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2.4;
-  transition: transform 0.2s ease;
+.gesture-pull-ghost-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: -0.01em;
 }
-.gesture-pull-ghost.is-ready .gesture-pull-ghost-icon {
-  transform: scale(1.18);
+.theme-white .gesture-pull-ghost-label {
+  color: rgba(15, 23, 42, 0.45);
+}
+.gesture-pull-ghost.is-ready .gesture-pull-ghost-label {
+  color: #ffffff;
+  font-weight: 600;
+}
+.theme-white .gesture-pull-ghost.is-ready .gesture-pull-ghost-label {
+  color: #0f172a;
+}
+.gesture-pull-ghost-btn {
+  flex: none;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 7px;
+  border-radius: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.gesture-pull-ghost.is-ready .gesture-pull-ghost-btn {
+  background: #0a84ff;
+  box-shadow: 0 2px 8px -2px rgba(10, 132, 255, 0.6);
+  transform: scale(1.08);
 }
 
 /* 3. Swipe Right → Complete Backdrop Track (Requirement 4) */
@@ -20108,7 +20142,7 @@ var Oe = function(props) {
                           transition: "transform 0.58s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.2s ease"
                         }),
                         className: "face-front absolute inset-0 w-full h-full rounded-[36px] p-5 md:p-6 flex flex-col justify-center items-center border select-none overflow-hidden transition-all duration-300 " + (isDark ? "liquid-glass-flow-dark text-white" : "liquid-glass-flow-white text-slate-900"),
-                        title: isCenter ? "点击翻转卡片 (或按空格键)" : undefined,
+                        title: isCenter ? "Click to flip card (or press Space)" : undefined,
                         children: [
                           (0, P.jsx)('div', { className: "liquid-specular-edge" }),
                           (0, P.jsx)('div', { className: "liquid-glass-caustic" }),
@@ -20147,7 +20181,7 @@ var Oe = function(props) {
                           transition: "transform 0.58s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.2s ease"
                         }),
                         className: "face-back absolute inset-0 w-full h-full rounded-[36px] p-4 flex flex-col justify-between border select-none overflow-hidden transition-all duration-300 cursor-pointer " + (isDark ? "liquid-glass-flow-dark text-white" : "liquid-glass-flow-white text-slate-900"),
-                        title: "点击空白处翻回正面",
+                        title: "Click outside to flip back",
                         children: [
                           (0, P.jsx)('div', { className: "liquid-specular-edge" }),
                           (0, P.jsx)('div', { className: "liquid-glass-caustic" }),
@@ -20198,7 +20232,7 @@ var Oe = function(props) {
                                       SoundEngine.play('mastery');
                                     },
                                     className: "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold border transition-transform hover:scale-105 " + (isDark ? "bg-amber-400/15 text-amber-300 border-amber-400/30" : "bg-amber-100 text-amber-800 border-amber-300"),
-                                    title: "点击提升掌握星级 (Lv 1~5)",
+                                    title: "Tap to increase mastery (Lv 1~5)",
                                     children: [
                                       (0, P.jsx)(IconStar, { className: "w-2.5 h-2.5 text-amber-400 fill-amber-400" }),
                                       (0, P.jsxs)('span', { children: ["Lv.", mastery] })
@@ -20213,7 +20247,7 @@ var Oe = function(props) {
                                       SpeechAssistant.speak(card.title + ". " + (card.desc || ""));
                                     },
                                     className: "p-1 rounded-full opacity-70 hover:opacity-100 hover:bg-white/10 transition-colors",
-                                    title: "语音朗读卡片",
+                                    title: "Read card aloud",
                                     children: (0, P.jsx)(IconVolume, { className: "w-3 h-3 text-emerald-400" })
                                   }),
                                   // Flip Back Button
@@ -20225,7 +20259,7 @@ var Oe = function(props) {
                                       toggleCardFlip(card.id, e);
                                     },
                                     className: "p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-colors",
-                                    title: "翻回正面",
+                                    title: "Flip to front",
                                     children: (0, P.jsx)(_e, { className: "w-3 h-3" })
                                   })
                                 ]
@@ -20246,7 +20280,7 @@ var Oe = function(props) {
                                   SoundEngine.play('check');
                                 },
                                 className: "mt-0.5 p-0.5 rounded-lg transition-colors shrink-0 flex items-center justify-center " + (card.complete ? "text-emerald-400 hover:bg-emerald-400/10" : (isDark ? "text-white/40 hover:text-white" : "text-slate-400 hover:text-slate-900")),
-                                title: card.complete ? "标记未完成" : "标记已完成",
+                                title: card.complete ? "Mark as Incomplete" : "Mark as Complete",
                                 children: card.complete ? (0, P.jsx)(A, { className: "w-3.5 h-3.5 text-emerald-400" }) : (0, P.jsx)(oe, { className: "w-3.5 h-3.5" })
                               }),
                               (0, P.jsx)('h4', {
@@ -20270,7 +20304,7 @@ var Oe = function(props) {
                                 children: card.desc
                               }) : (0, P.jsx)('div', {
                                 className: "p-2 text-center text-[10px] opacity-40 italic border border-dashed border-white/10 rounded-xl my-0.5",
-                                children: "暂无详情描述，可点击下方 ! 补充笔记"
+                                children: "No description yet. Tap ! below to add notes."
                               }),
 
                               hasCheck ? (0, P.jsxs)('div', {
@@ -20279,7 +20313,7 @@ var Oe = function(props) {
                                   (0, P.jsxs)('div', {
                                     className: "flex items-center justify-between text-[10px] font-semibold opacity-75",
                                     children: [
-                                      (0, P.jsxs)('span', { children: ["待办步骤 (", doneCheck, "/", totalCheck, ")"] }),
+                                      (0, P.jsxs)('span', { children: ["Checklist (", doneCheck, "/", totalCheck, ")"] }),
                                       (0, P.jsxs)('span', { className: "font-mono", children: [Math.round((doneCheck / totalCheck) * 100), "%"] })
                                     ]
                                   }),
@@ -20325,10 +20359,10 @@ var Oe = function(props) {
                                   onOpenAIAssistant(card);
                                 },
                                 className: "flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-xl transition-all " + (isDark ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30" : "bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200"),
-                                title: "用 AI 助教深度拆解与练习",
+                                title: "Deconstruct & Practice with AI Tutor",
                                 children: [
                                   (0, P.jsx)(M, { className: "w-3 h-3" }),
-                                  (0, P.jsx)('span', { children: "AI 助教" })
+                                  (0, P.jsx)('span', { children: "AI Tutor" })
                                 ]
                               }),
                               (0, P.jsx)('button', {
@@ -20338,7 +20372,7 @@ var Oe = function(props) {
                                   onOpenCardModal(card.columnId, card.id);
                                 },
                                 className: "w-6 h-6 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-90 text-white font-black text-xs flex items-center justify-center shadow-md transition-all duration-200 border-0 outline-none shrink-0 cursor-pointer",
-                                title: "编辑完整卡片 (!)",
+                                title: "Edit Card (!)",
                                 children: "!"
                               })
                             ]
@@ -20458,8 +20492,8 @@ var Oe = function(props) {
                       (0, P.jsxs)('div', {
                         className: "text-center",
                         children: [
-                          (0, P.jsx)('span', { className: "font-bold text-base block", children: "新建卡片" }),
-                          (0, P.jsx)('span', { className: "text-xs opacity-60", children: "点击直接创建新内容" })
+                          (0, P.jsx)('span', { className: "font-bold text-base block", children: "New Card" }),
+                          (0, P.jsx)('span', { className: "text-xs opacity-60", children: "Tap to create new card" })
                         ]
                       })
                     ]
@@ -20530,7 +20564,7 @@ var Oe = function(props) {
         className: "mt-1 px-3.5 py-1.5 rounded-full text-xs font-semibold backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-95 flex items-center gap-1.5 z-30 " + (isDark ? "bg-white/10 text-white/95 border-white/20 hover:bg-white/20" : "bg-slate-900/10 text-slate-800 border-slate-900/20 hover:bg-slate-900/15"),
         children: [
           (0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-emerald-400 animate-pulse" }),
-          (0, P.jsx)('span', { children: "📇 实体卡片模式" })
+          (0, P.jsx)('span', { children: "📇 Physical Card Mode" })
         ]
       })
     ]
@@ -20668,7 +20702,7 @@ var PhysicalCardModeOverlay = function(props) {
       window.MinestNative.send('triggerHaptic', { style: 'success', sound: true });
     }
     if (window.GlassUI && window.GlassUI.toast) {
-      window.GlassUI.toast("✅ 拂击完成 · 卡片已归档");
+      window.GlassUI.toast("✅ Swiped Complete · Card Archived");
     }
     setTimeout(function() {
       setIsFlicking(false);
@@ -20815,11 +20849,11 @@ var PhysicalCardModeOverlay = function(props) {
           }),
           (0, P.jsx)('span', {
             className: "text-base font-semibold text-white/50 tracking-wider mb-1",
-            children: "已反扣 · 沉浸专注中"
+            children: "Flipped Face Down · Deep Focus"
           }),
           (0, P.jsx)('span', {
             className: "text-xs text-white/30 tracking-tight",
-            children: "屏幕已调暗至超低功耗 · 拿起手机立即唤醒"
+            children: "Ultra-low power standby · Pick up phone to resume"
           })
         ]
       }),
@@ -20860,14 +20894,14 @@ var PhysicalCardModeOverlay = function(props) {
               // Category Chip
               (0, P.jsx)('div', {
                 className: "px-3 py-1 rounded-full backdrop-blur-xl bg-emerald-500/15 border border-emerald-500/25 text-xs font-semibold text-emerald-400",
-                children: currentCard.columnTitle || currentCard.category || "学习看板"
+                children: currentCard.columnTitle || currentCard.category || "Study Board"
               }),
 
               // Exit Dissolution Button (✕ with glass ring)
               (0, P.jsx)('button', {
                 onClick: handleDissolveExit,
                 className: "w-8 h-8 rounded-full backdrop-blur-xl bg-white/10 border border-white/20 text-white/80 hover:text-white hover:bg-white/20 flex items-center justify-center transition-all duration-200 active:scale-90 text-sm font-bold shadow-md",
-                title: "碎片溶解退出",
+                title: "Dissolve Shards & Exit",
                 children: "✕"
               })
             ]
@@ -20882,7 +20916,7 @@ var PhysicalCardModeOverlay = function(props) {
                 className: "self-start mb-3 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-1.5",
                 children: [
                   (0, P.jsx)('span', { children: "✓" }),
-                  (0, P.jsx)('span', { children: "已完成" })
+                  (0, P.jsx)('span', { children: "Completed" })
                 ]
               }) : null,
 
@@ -20941,7 +20975,7 @@ var PhysicalCardModeOverlay = function(props) {
               // Natural Gesture Hint
               (0, P.jsx)('div', {
                 className: "text-[11px] font-medium tracking-wider text-white/50 mb-1",
-                children: "← 倾斜翻页 →  ·  轻拂完成 ↑  ·  反扣暂停 📴"
+                children: "← Tilt to Flip →  ·  Swipe Up to Complete ↑  ·  Face Down to Pause 📴"
               }),
 
               // Action Trigger Bar (Full support for Simulator testing & direct touch)
@@ -20951,27 +20985,27 @@ var PhysicalCardModeOverlay = function(props) {
                   (0, P.jsx)('button', {
                     onClick: handlePrevCard,
                     className: "px-3 py-1.5 rounded-full text-xs font-semibold text-white/85 hover:bg-white/15 active:scale-95 transition-all duration-150",
-                    children: "‹ 前张"
+                    children: "‹ Prev"
                   }),
                   (0, P.jsx)('button', {
                     onClick: handleFlickComplete,
                     className: "px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-500/35 hover:bg-emerald-500/35 active:scale-95 transition-all duration-150 shadow-sm",
-                    children: "⚡ 拂击完成"
+                    children: "⚡ Swipe Done"
                   }),
                   (0, P.jsx)('button', {
                     onClick: function() { setIsFaceDown(true); },
                     className: "px-3 py-1.5 rounded-full text-xs font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/25 hover:bg-amber-500/25 active:scale-95 transition-all duration-150",
-                    children: "📴 反扣暂停"
+                    children: "📴 Face Down Pause"
                   }),
                   (0, P.jsx)('button', {
                     onClick: handleNextCard,
                     className: "px-3 py-1.5 rounded-full text-xs font-semibold text-white/85 hover:bg-white/15 active:scale-95 transition-all duration-150",
-                    children: "后张 ›"
+                    children: "Next ›"
                   }),
                   (0, P.jsx)('button', {
                     onClick: handleDissolveExit,
                     className: "px-3 py-1.5 rounded-full text-xs font-semibold text-rose-300 bg-rose-500/15 border border-rose-500/25 hover:bg-rose-500/25 active:scale-95 transition-all duration-150",
-                    children: "✨ 碎片溶解退出"
+                    children: "✨ Dissolve Exit"
                   })
                 ]
               })
@@ -21488,6 +21522,7 @@ var MinestPortraitGestureManager = (function() {
 
     var onDown = function(e) {
       if (!isPhonePortrait()) return;
+      if (window.PointerEvent && e.type.startsWith('touch')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
 
       var ctx = ctxRef.current || {};
@@ -21497,7 +21532,7 @@ var MinestPortraitGestureManager = (function() {
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
       activePointers.set(pid, { x: clientX, y: clientY, target: e.target });
 
-      // --- TWO-FINGER GESTURE (Pinch / Spread or Alt+Drag on desktop) ---
+      // --- TWO-FINGER GESTURE (Pinch to fold / Spread to expand / Alt+Drag on desktop) ---
       if (activePointers.size === 2 || isAltPinch || (e.touches && e.touches.length === 2)) {
         if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
         if (gestureState) {
@@ -21512,46 +21547,68 @@ var MinestPortraitGestureManager = (function() {
 
         var pts = Array.from(activePointers.values());
         if (e.touches && e.touches.length === 2) {
-          pts = [{ x: e.touches[0].clientX, y: e.touches[0].clientY }, { x: e.touches[1].clientX, y: e.touches[1].clientY }];
+          pts = [{ x: e.touches[0].clientX, y: e.touches[0].clientY, target: e.touches[0].target }, { x: e.touches[1].clientX, y: e.touches[1].clientY, target: e.touches[1].target }];
         }
-        var p1 = pts[0], p2 = pts[1] || { x: clientX, y: clientY + (isAltPinch ? 100 : 0) };
+        var p1 = pts[0], p2 = pts[1] || { x: clientX, y: clientY + (isAltPinch ? 100 : 0), target: e.target };
         var d0 = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 120;
         var yMin = Math.min(p1.y, p2.y);
         var yMax = Math.max(p1.y, p2.y);
 
         var colEl = (e.target && e.target.closest) ? e.target.closest('.kanban-column-wrapper') : null;
+        if (!colEl && p1.target && p1.target.closest) colEl = p1.target.closest('.kanban-column-wrapper');
         if (!colEl) return;
         var colId = colEl.getAttribute('data-col-id');
         var colObj = (ctx.board && ctx.board.columns ? ctx.board.columns.find(function(c) { return c.id === colId; }) : null);
         if (!colObj) return;
 
+        // Direct check: did either touch point touch a folded card or its deck?
+        var directWalletEl = (p1.target && p1.target.closest ? p1.target.closest('[data-wallet-item]') : null) ||
+                             (p2.target && p2.target.closest ? p2.target.closest('[data-wallet-item]') : null) ||
+                             (e.target && e.target.closest ? e.target.closest('[data-wallet-item]') : null);
+        var foldedItem = null;
+        if (directWalletEl) {
+          var dwId = directWalletEl.getAttribute('data-wallet-item');
+          var dwCard = (colObj.cards || []).find(function(c) { return c.id === dwId; });
+          if (dwCard) {
+            var hasStack = (!!dwCard.hasStack || (Array.isArray(dwCard.stack) && dwCard.stack.length > 0));
+            var isExpanded = !!(ctx.expandedStacks && ctx.expandedStacks[dwCard.id]) || !!dwCard.isStackExpanded;
+            if (hasStack && !isExpanded) {
+              var articleEl = directWalletEl.querySelector('article.kanban-card') || directWalletEl;
+              foldedItem = { el: articleEl, card: dwCard, wrapper: directWalletEl };
+            }
+          }
+        }
+
         var cardEls = Array.from(colEl.querySelectorAll('article.kanban-card'));
         var touchedCards = [];
         cardEls.forEach(function(el) {
           var r = el.getBoundingClientRect();
-          if (r.bottom >= yMin - 20 && r.top <= yMax + 20) {
+          if (r.bottom >= yMin - 35 && r.top <= yMax + 35) {
             var cid = el.getAttribute('data-card-id');
             var cd = (colObj.cards || []).find(function(c) { return c.id === cid; });
             if (cd) touchedCards.push({ el: el, card: cd });
           }
         });
 
-        if (touchedCards.length === 0) return;
-
-        var foldedItem = touchedCards.find(function(tc) {
-          var hasStack = (!!tc.card.hasStack || (Array.isArray(tc.card.stack) && tc.card.stack.length > 0));
-          var isExpanded = !!(ctx.expandedStacks && ctx.expandedStacks[tc.card.id]) || !!tc.card.isStackExpanded;
-          return hasStack && !isExpanded;
-        });
+        if (!foldedItem && touchedCards.length > 0) {
+          var foundFolded = touchedCards.find(function(tc) {
+            var hasStack = (!!tc.card.hasStack || (Array.isArray(tc.card.stack) && tc.card.stack.length > 0));
+            var isExpanded = !!(ctx.expandedStacks && ctx.expandedStacks[tc.card.id]) || !!tc.card.isStackExpanded;
+            return hasStack && !isExpanded;
+          });
+          if (foundFolded) foldedItem = foundFolded;
+        }
 
         if (foldedItem) {
+          var deckEl = foldedItem.wrapper ? foldedItem.wrapper.querySelector('.card-stack-deck') :
+                       (foldedItem.el.parentElement ? foldedItem.el.parentElement.querySelector('.card-stack-deck') : null);
           pinchSession = {
             mode: 'spread',
             d0: d0,
             colId: colId,
             card: foldedItem.card,
             el: foldedItem.el,
-            deckEl: foldedItem.el.parentElement ? foldedItem.el.parentElement.querySelector('.card-stack-deck') : null,
+            deckEl: deckEl,
             progress: 0,
             reachedThreshold: false,
             startY: clientY
@@ -21630,6 +21687,7 @@ var MinestPortraitGestureManager = (function() {
 
     var onMove = function(e) {
       if (!isPhonePortrait()) return;
+      if (window.PointerEvent && e.type.startsWith('touch')) return;
       var ctx = ctxRef.current || {};
       var clientX = e.clientX, clientY = e.clientY;
       if (e.touches && e.touches[0]) {
@@ -21669,24 +21727,29 @@ var MinestPortraitGestureManager = (function() {
             item.el.style.transition = 'none';
           });
 
-          if (progress >= 0.75 && !pinchSession.reachedThreshold) {
+          if (progress >= 0.70 && !pinchSession.reachedThreshold) {
             pinchSession.reachedThreshold = true;
             haptic('selection');
-          } else if (progress < 0.75 && pinchSession.reachedThreshold) {
+          } else if (progress < 0.70 && pinchSession.reachedThreshold) {
             pinchSession.reachedThreshold = false;
           }
         } else if (pinchSession.mode === 'spread') {
-          var ratio = d / (pinchSession.d0 || 120);
-          var progress = clamp((ratio - 1) / 0.5, 0, 1);
+          var deltaD = d - pinchSession.d0;
+          var ratio = pinchSession.d0 > 0 ? (d / pinchSession.d0) : 1;
+          var progress = clamp(Math.max((ratio - 1) / 0.32, deltaD / 36), 0, 1);
           pinchSession.progress = progress;
           if (pinchSession.deckEl) {
-            pinchSession.deckEl.style.transform = 'translateY(' + (progress * 18).toFixed(1) + 'px) scale(' + (1 + progress * 0.08).toFixed(3) + ')';
+            pinchSession.deckEl.style.transform = 'translateY(' + (progress * 22).toFixed(1) + 'px) scale(' + (1 + progress * 0.06).toFixed(3) + ')';
             pinchSession.deckEl.style.transition = 'none';
           }
-          if (progress >= 0.75 && !pinchSession.reachedThreshold) {
+          if (pinchSession.el) {
+            pinchSession.el.style.transform = 'scale(' + (1 + progress * 0.02).toFixed(3) + ')';
+            pinchSession.el.style.transition = 'none';
+          }
+          if ((progress >= 0.35 || deltaD >= 22) && !pinchSession.reachedThreshold) {
             pinchSession.reachedThreshold = true;
             haptic('selection');
-          } else if (progress < 0.75 && pinchSession.reachedThreshold) {
+          } else if (progress < 0.35 && deltaD < 22 && pinchSession.reachedThreshold) {
             pinchSession.reachedThreshold = false;
           }
         }
@@ -21709,8 +21772,8 @@ var MinestPortraitGestureManager = (function() {
             pullGhost = document.createElement('div');
             pullGhost.className = 'gesture-pull-ghost';
             pullGhost.innerHTML = '<div class="gesture-pull-ghost-inner">' +
-              '<svg class="gesture-pull-ghost-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>' +
-              '<span class="gesture-pull-ghost-label">下拉创建新卡片</span>' +
+              '<span class="gesture-pull-ghost-label">Pull down for new card</span>' +
+              '<span class="gesture-pull-ghost-btn">↑</span>' +
               '</div>';
             gestureState.scrollEl.insertBefore(pullGhost, gestureState.scrollEl.firstChild);
           }
@@ -21732,7 +21795,7 @@ var MinestPortraitGestureManager = (function() {
                 '<div class="gesture-complete-circle">' +
                 '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
                 '</div>' +
-                '<span class="gesture-complete-text">滑动完成</span>' +
+                '<span class="gesture-complete-text">Slide to complete</span>' +
                 '</div>';
               parent.insertBefore(b, gestureState.cardEl);
               gestureState.backdropEl = b;
@@ -21740,9 +21803,9 @@ var MinestPortraitGestureManager = (function() {
               var b = document.createElement('div');
               b.className = 'gesture-priority-backdrop';
               b.innerHTML = '<div class="gesture-priority-track">' +
-                '<div class="gesture-priority-lens lens-red" data-stage="1"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">高</span></div>' +
-                '<div class="gesture-priority-lens lens-yellow" data-stage="2"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">中</span></div>' +
-                '<div class="gesture-priority-lens lens-green" data-stage="3"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">低</span></div>' +
+                '<div class="gesture-priority-lens lens-red" data-stage="1"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">High</span></div>' +
+                '<div class="gesture-priority-lens lens-yellow" data-stage="2"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">Med</span></div>' +
+                '<div class="gesture-priority-lens lens-green" data-stage="3"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">Low</span></div>' +
                 '</div>';
               parent.insertBefore(b, gestureState.cardEl);
               gestureState.backdropEl = b;
@@ -21754,18 +21817,18 @@ var MinestPortraitGestureManager = (function() {
       if (gestureState.mode === 'pull_down') {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
-        var pullY = clamp(dy * 0.48, 0, 78);
+        var pullY = clamp(dy * 0.48, 0, 72);
         gestureState.pullY = pullY;
         if (pullGhost) {
           pullGhost.style.height = pullY.toFixed(1) + 'px';
-          var p = clamp(pullY / 56, 0, 1);
+          var p = clamp(pullY / 48, 0, 1);
           pullGhost.style.opacity = p.toFixed(2);
-          if (pullY >= 54) {
+          if (pullY >= 48) {
             if (!gestureState.thresholdCrossed) {
               gestureState.thresholdCrossed = true;
               pullGhost.classList.add('is-ready');
               var lbl = pullGhost.querySelector('.gesture-pull-ghost-label');
-              if (lbl) lbl.textContent = '松手立即创建';
+              if (lbl) lbl.textContent = 'Release to create';
               haptic('selection');
             }
           } else {
@@ -21773,7 +21836,7 @@ var MinestPortraitGestureManager = (function() {
               gestureState.thresholdCrossed = false;
               pullGhost.classList.remove('is-ready');
               var lbl = pullGhost.querySelector('.gesture-pull-ghost-label');
-              if (lbl) lbl.textContent = '下拉创建新卡片';
+              if (lbl) lbl.textContent = 'Pull down for new card';
             }
           }
         }
@@ -21792,7 +21855,7 @@ var MinestPortraitGestureManager = (function() {
               var c = gestureState.backdropEl.querySelector('.gesture-complete-circle');
               var txt = gestureState.backdropEl.querySelector('.gesture-complete-text');
               if (c) c.classList.add('is-triggered');
-              if (txt) txt.textContent = '松手确认完成 ✓';
+              if (txt) txt.textContent = 'Release to complete ✓';
             }
           }
         } else {
@@ -21802,7 +21865,7 @@ var MinestPortraitGestureManager = (function() {
               var c = gestureState.backdropEl.querySelector('.gesture-complete-circle');
               var txt = gestureState.backdropEl.querySelector('.gesture-complete-text');
               if (c) c.classList.remove('is-triggered');
-              if (txt) txt.textContent = '滑动完成';
+              if (txt) txt.textContent = 'Slide to complete';
             }
           }
         }
@@ -21842,6 +21905,7 @@ var MinestPortraitGestureManager = (function() {
 
     var onUp = function(e) {
       if (!isPhonePortrait()) return;
+      if (window.PointerEvent && e.type.startsWith('touch')) return;
       var ctx = ctxRef.current || {};
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
@@ -21853,7 +21917,7 @@ var MinestPortraitGestureManager = (function() {
         pinchSession = null;
 
         if (sess.mode === 'pinch') {
-          if (sess.progress >= 0.72) {
+          if (sess.reachedThreshold || sess.progress >= 0.55) {
             haptic('light');
             sound('slide');
             var leadCard = sess.lead.card;
@@ -21880,6 +21944,13 @@ var MinestPortraitGestureManager = (function() {
               });
               ctx.onUpdateBoard(Object.assign({}, ctx.board, { columns: nextCols }));
             }
+            if (ctx.setExpandedStacks) {
+              ctx.setExpandedStacks(function(prev) {
+                var next = Object.assign({}, prev);
+                delete next[leadCard.id];
+                return next;
+              });
+            }
           }
           sess.rest.forEach(function(item) {
             item.el.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease';
@@ -21887,16 +21958,41 @@ var MinestPortraitGestureManager = (function() {
             item.el.style.opacity = '';
           });
         } else if (sess.mode === 'spread') {
-          if (sess.progress >= 0.72) {
+          var shouldExpand = sess.reachedThreshold || sess.progress >= 0.35;
+          if (shouldExpand) {
             haptic('light');
             sound('slide');
-            if (ctx.toggleStackExpand) {
+            if (ctx.setExpandedStacks) {
+              ctx.setExpandedStacks(function(prev) {
+                var next = Object.assign({}, prev);
+                next[sess.card.id] = true;
+                return next;
+              });
+            }
+            if (ctx.board && ctx.onUpdateBoard) {
+              var nextCols = (ctx.board.columns || []).map(function(col) {
+                if (col.id !== sess.colId) return col;
+                var updatedCards = (col.cards || []).map(function(c) {
+                  if (c.id === sess.card.id) {
+                    return Object.assign({}, c, { isStackExpanded: true });
+                  }
+                  return c;
+                });
+                return Object.assign({}, col, { cards: updatedCards });
+              });
+              ctx.onUpdateBoard(Object.assign({}, ctx.board, { columns: nextCols }));
+            }
+            if (!ctx.setExpandedStacks && ctx.toggleStackExpand) {
               ctx.toggleStackExpand(sess.colId, sess.card.id);
             }
           }
           if (sess.deckEl) {
             sess.deckEl.style.transition = 'transform 0.25s ease';
             sess.deckEl.style.transform = '';
+          }
+          if (sess.el) {
+            sess.el.style.transition = 'transform 0.25s ease';
+            sess.el.style.transform = '';
           }
         }
         return;
@@ -23720,7 +23816,7 @@ var ke = function(props) {
     var cardItems = cards.map(function(c) {
       return {
         id: c.id,
-        text: c.title || '未命名卡片',
+        text: c.title || 'Untitled Card',
         done: !!(c.complete || c.done || c.isDone || c.mastery === 3)
       };
     });
@@ -23728,8 +23824,8 @@ var ke = function(props) {
     if (window.MinestNative) {
       window.MinestNative.send('activeListUpdated', {
         boardTitle: (board && board.title) || 'Minest',
-        listName: activeCol.title || '清单',
-        cardTitle: activeCol.title || '清单',
+        listName: activeCol.title || 'List',
+        cardTitle: activeCol.title || 'List',
         totalCards: totalCards,
         completedCards: completedCards,
         totalCount: totalCards,
@@ -23873,7 +23969,7 @@ var ke = function(props) {
     if (fxb && fxb.parentElement && b.parentElement !== fxb.parentElement) fxb.parentElement.appendChild(b);
     var inShell = !!(fxb && fxb.classList.contains('in-shell'));
     b.className = "card-mode-btn board-mode-btn" + (inShell ? " in-shell" : "") + (m !== 'none' ? " on " + m : " none");
-    b.title = "看板卡片模式: " + (m === 'liq' ? "liq（卡片变成液态玻璃：划过有水波，按一下是一滴水）" : (m === 'smash' ? "smash（点卡片发射钢珠；退出 smash 时所有卡片复原）" : (m === 'ink' ? "ink（整个 Board 的 Invisible Ink）" : "Card FX 关"))) + " — 点击切换 (Card FX ➔ liq ➔ smash ➔ ink)";
+    b.title = "Board card mode: " + (m === 'liq' ? "liq (Liquid Glass cards with ripples)" : (m === 'smash' ? "smash (Shoot steel ball at glass cards)" : (m === 'ink' ? "ink (Invisible Ink across entire board)" : "Off"))) + " — Tap to cycle (Card FX ➔ liq ➔ smash ➔ ink)";
     b.setAttribute('aria-label', "Board card mode: " + m);
     b.innerHTML = '<span class="mode-glyph">' + GLYPH[m] + '</span><span class="mode-label">' + LABEL[m] + '</span>';
     document.documentElement.classList.toggle('fb-cardfx-on', m !== 'none');
@@ -24241,6 +24337,54 @@ var ke = function(props) {
             var renderInlineComposer = function(beforeCardId, targetIndex) {
               var gLines = gapInsertText.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
               var gCount = gLines.length;
+              var isPhone = window.MinestPortraitGestureManager && window.MinestPortraitGestureManager.isPhonePortrait();
+              if (isPhone) {
+                return (0, P.jsxs)('div', {
+                  className: "fb-composer shrink-0 my-1.5 animate-fadeIn select-text " + (isDark ? "text-white" : "text-slate-800"),
+                  onClick: function(e) { e.stopPropagation(); },
+                  children: [
+                    (0, P.jsx)('textarea', {
+                      ref: function(el) {
+                        if (el && !el._gapFocused) {
+                          el._gapFocused = true;
+                          el.focus();
+                        }
+                      },
+                      value: gapInsertText,
+                      onChange: function(e) { setGapInsertText(e.target.value); },
+                      placeholder: "New card",
+                      rows: Math.min(4, Math.max(1, gCount)),
+                      autoFocus: true,
+                      'aria-label': "New card title",
+                      onKeyDown: function(e) {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleGapInsertSubmit(col.id, beforeCardId, targetIndex);
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setGapInsertSlot(null);
+                          setGapInsertText("");
+                        }
+                      }
+                    }),
+                    (0, P.jsx)('button', {
+                      type: "button",
+                      onClick: function() { handleGapInsertSubmit(col.id, beforeCardId, targetIndex); },
+                      disabled: !gapInsertText.trim(),
+                      className: "fbc-send",
+                      'aria-label': "Add card",
+                      children: (0, P.jsx)('span', { children: "↑" })
+                    }),
+                    (0, P.jsx)('button', {
+                      type: "button",
+                      onClick: function() { setGapInsertSlot(null); setGapInsertText(""); },
+                      className: "fbc-x",
+                      'aria-label': "Cancel",
+                      children: "✕"
+                    })
+                  ]
+                });
+              }
               return (0, P.jsxs)('div', {
                 className: "card-gap-active-composer my-2 p-3 rounded-2xl liquid-glass-card shadow-xl border animate-scaleIn select-text " +
                   (isDark ? "bg-[#182330]/95 border-emerald-500/50 text-white" : "bg-white border-emerald-500/60 text-slate-800 shadow-emerald-500/15"),
@@ -24632,7 +24776,7 @@ var ke = function(props) {
                                   className: "flex items-center gap-1.5",
                                   children: [
                                     (0, P.jsx)('span', { className: "text-xs", children: "🚦" }),
-                                    (0, P.jsx)('span', { className: "text-[10px] font-bold uppercase tracking-wider opacity-70", children: "Priority / 优先级" })
+                                    (0, P.jsx)('span', { className: "text-[10px] font-bold uppercase tracking-wider opacity-70", children: "Priority" })
                                   ]
                                 }),
                                 colPriorityFilters[col.id] ? (
@@ -24653,7 +24797,7 @@ var ke = function(props) {
                                 (isDark ? "bg-white/5 hover:bg-white/10 text-white/90" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"),
                               title: "Sort cards in this list by High -> Medium -> Low priority",
                               children: [
-                                (0, P.jsx)('span', { children: "按优先级排序 (红-黄-绿)" }),
+                                (0, P.jsx)('span', { children: "Sort by Priority (High → Low)" }),
                                 (0, P.jsxs)('span', {
                                   className: "flex items-center gap-1",
                                   children: [
@@ -24674,7 +24818,7 @@ var ke = function(props) {
                                 (isDark ? "bg-white/5 hover:bg-white/10 text-white/90" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"),
                               title: "Sort cards in this list by creation / addition time order (Oldest first)",
                               children: [
-                                (0, P.jsx)('span', { children: "默认排序 (按添加时间正序)" }),
+                                (0, P.jsx)('span', { children: "Default Order (Oldest first)" }),
                                 (0, P.jsx)('span', { className: "text-xs opacity-75 font-mono", children: "⏱️↑" })
                               ]
                             }),
@@ -24686,7 +24830,7 @@ var ke = function(props) {
                                 (isDark ? "bg-white/5 hover:bg-white/10 text-white/90" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"),
                               title: "Sort cards in this list by creation / addition time order (Newest first)",
                               children: [
-                                (0, P.jsx)('span', { children: "默认排序 (按添加时间倒序)" }),
+                                (0, P.jsx)('span', { children: "Default Order (Newest first)" }),
                                 (0, P.jsx)('span', { className: "text-xs opacity-75 font-mono", children: "⏱️↓" })
                               ]
                             }),
@@ -24699,28 +24843,28 @@ var ke = function(props) {
                                   onClick: function() { setColPriorityFilter(col.id, 'all'); },
                                   className: "flex-1 py-1 text-[10px] font-semibold rounded-lg border transition-all text-center " +
                                     (!colPriorityFilters[col.id] ? (isDark ? "bg-white/20 text-white border-white/30 font-bold" : "bg-slate-200 text-slate-800 border-slate-300 font-bold") : (isDark ? "border-white/10 opacity-60 hover:opacity-100" : "border-slate-200 opacity-60 hover:opacity-100")),
-                                  children: "全部"
+                                  children: "All"
                                 }),
                                 (0, P.jsxs)('button', {
                                   type: "button",
                                   onClick: function() { setColPriorityFilter(col.id, 'high'); },
                                   className: "flex-1 py-1 text-[10px] font-semibold rounded-lg border transition-all flex items-center justify-center gap-1 " +
                                     (colPriorityFilters[col.id] === 'high' ? "bg-red-500/25 text-red-400 border-red-500/50 font-bold" : (isDark ? "border-white/10 opacity-60 hover:opacity-100 text-red-400" : "border-slate-200 opacity-60 hover:opacity-100 text-red-600")),
-                                  children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-red-500 shrink-0 shadow-xs" }), (0, P.jsx)('span', { children: "红" })]
+                                  children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-red-500 shrink-0 shadow-xs" }), (0, P.jsx)('span', { children: "High" })]
                                 }),
                                 (0, P.jsxs)('button', {
                                   type: "button",
                                   onClick: function() { setColPriorityFilter(col.id, 'medium'); },
                                   className: "flex-1 py-1 text-[10px] font-semibold rounded-lg border transition-all flex items-center justify-center gap-1 " +
                                     (colPriorityFilters[col.id] === 'medium' ? "bg-amber-500/25 text-amber-400 border-amber-500/50 font-bold" : (isDark ? "border-white/10 opacity-60 hover:opacity-100 text-amber-400" : "border-slate-200 opacity-60 hover:opacity-100 text-amber-600")),
-                                  children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-amber-400 shrink-0 shadow-xs" }), (0, P.jsx)('span', { children: "黄" })]
+                                  children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-amber-400 shrink-0 shadow-xs" }), (0, P.jsx)('span', { children: "Med" })]
                                 }),
                                 (0, P.jsxs)('button', {
                                   type: "button",
                                   onClick: function() { setColPriorityFilter(col.id, 'low'); },
                                   className: "flex-1 py-1 text-[10px] font-semibold rounded-lg border transition-all flex items-center justify-center gap-1 " +
                                     (colPriorityFilters[col.id] === 'low' ? "bg-emerald-500/25 text-emerald-400 border-emerald-500/50 font-bold" : (isDark ? "border-white/10 opacity-60 hover:opacity-100 text-emerald-400" : "border-slate-200 opacity-60 hover:opacity-100 text-emerald-600")),
-                                  children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-xs" }), (0, P.jsx)('span', { children: "绿" })]
+                                  children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-xs" }), (0, P.jsx)('span', { children: "Low" })]
                                 })
                               ]
                             })
@@ -25164,7 +25308,7 @@ var ke = function(props) {
                                           SoundEngine.play('click');
                                         },
                                         className: "mac-dot-btn mac-dot-red " + (card.priority === 'high' ? "is-active" : (card.priority ? "is-dimmed" : "")),
-                                        title: card.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)"
+                                        title: card.priority === 'high' ? "Remove High Priority" : "Set High Priority (Red)"
                                       }),
                                       (0, P.jsx)('button', {
                                         type: "button",
@@ -25174,7 +25318,7 @@ var ke = function(props) {
                                           SoundEngine.play('click');
                                         },
                                         className: "mac-dot-btn mac-dot-yellow " + (card.priority === 'medium' ? "is-active" : (card.priority ? "is-dimmed" : "")),
-                                        title: card.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)"
+                                        title: card.priority === 'medium' ? "Remove Medium Priority" : "Set Medium Priority (Yellow)"
                                       }),
                                       (0, P.jsx)('button', {
                                         type: "button",
@@ -25184,7 +25328,7 @@ var ke = function(props) {
                                           SoundEngine.play('click');
                                         },
                                         className: "mac-dot-btn mac-dot-green " + (card.priority === 'low' ? "is-active" : (card.priority ? "is-dimmed" : "")),
-                                        title: card.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)"
+                                        title: card.priority === 'low' ? "Remove Low Priority" : "Set Low Priority (Green)"
                                       })
                                     ]
                                   }),
@@ -25461,7 +25605,7 @@ var ke = function(props) {
                                                    SoundEngine.play('click');
                                                  },
                                                  className: "mac-dot-btn mac-dot-red " + (sub.priority === 'high' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
-                                                 title: sub.priority === 'high' ? "取消高优先级" : "设为高优先级 (红)"
+                                                 title: sub.priority === 'high' ? "Remove High Priority" : "Set High Priority (Red)"
                                                }),
                                                (0, P.jsx)('button', {
                                                  type: "button",
@@ -25471,7 +25615,7 @@ var ke = function(props) {
                                                    SoundEngine.play('click');
                                                  },
                                                  className: "mac-dot-btn mac-dot-yellow " + (sub.priority === 'medium' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
-                                                 title: sub.priority === 'medium' ? "取消中优先级" : "设为中优先级 (黄)"
+                                                 title: sub.priority === 'medium' ? "Remove Medium Priority" : "Set Medium Priority (Yellow)"
                                                }),
                                                (0, P.jsx)('button', {
                                                  type: "button",
@@ -25481,7 +25625,7 @@ var ke = function(props) {
                                                    SoundEngine.play('click');
                                                  },
                                                  className: "mac-dot-btn mac-dot-green " + (sub.priority === 'low' ? "is-active" : (sub.priority ? "is-dimmed" : "")),
-                                                 title: sub.priority === 'low' ? "取消低优先级" : "设为低优先级 (绿)"
+                                                 title: sub.priority === 'low' ? "Remove Low Priority" : "Set Low Priority (Green)"
                                                })
                                              ]
                                            }),
@@ -25676,17 +25820,19 @@ var ke = function(props) {
                     });
                   })()
                 ) : (
-                  // "+ Add card" button at the bottom of the list (Auto-hidden, appears on list hover)
-                  (0, P.jsxs)('button', {
-                    type: "button",
-                    onClick: function() { setQuickAddColId(col.id); },
-                    className: "column-add-card-btn shrink-0 mt-2 w-full h-9 flex items-center justify-start gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all " +
-                      (isDark ? "text-white/70 hover:text-white hover:bg-white/10" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/70"),
-                    children: [
-                      (0, P.jsx)(ge, { className: "w-4 h-4" }),
-                      (0, P.jsx)('span', { children: "Add card" })
-                    ]
-                  })
+                  // "+ Add card" button at the bottom of the list (Hidden in mobile portrait)
+                  (window.MinestPortraitGestureManager && window.MinestPortraitGestureManager.isPhonePortrait()) ? null : (
+                    (0, P.jsxs)('button', {
+                      type: "button",
+                      onClick: function() { setQuickAddColId(col.id); },
+                      className: "column-add-card-btn shrink-0 mt-2 w-full h-9 flex items-center justify-start gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all " +
+                        (isDark ? "text-white/70 hover:text-white hover:bg-white/10" : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/70"),
+                      children: [
+                        (0, P.jsx)(ge, { className: "w-4 h-4" }),
+                        (0, P.jsx)('span', { children: "Add card" })
+                      ]
+                    })
+                  )
                 )
               ]
             });
@@ -27371,7 +27517,7 @@ var Ne = function(props) {
                                 className: "text-[11px] font-semibold opacity-70 flex items-center gap-1.5",
                                 children: [
                                   (0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-red-500 inline-block shadow-xs" }),
-                                  "Priority Filter / 优先级筛选"
+                                  "Priority Filter"
                                 ]
                               }),
                               priorityFilter !== 'all' ? (
@@ -27387,10 +27533,10 @@ var Ne = function(props) {
                           (0, P.jsx)('div', {
                             className: "flex items-center gap-1 p-1 rounded-xl border " + (isDark ? "bg-black/30 border-white/10" : "bg-slate-200/60 border-slate-300/60"),
                             children: [
-                              { id: 'all', label: '全部' },
-                              { id: 'high', label: '🔴 红 (高)', color: 'text-red-400' },
-                              { id: 'medium', label: '🟡 黄 (中)', color: 'text-amber-400' },
-                              { id: 'low', label: '🟢 绿 (低)', color: 'text-emerald-400' }
+                              { id: 'all', label: 'All' },
+                              { id: 'high', label: '🔴 High', color: 'text-red-400' },
+                              { id: 'medium', label: '🟡 Med', color: 'text-amber-400' },
+                              { id: 'low', label: '🟢 Low', color: 'text-emerald-400' }
                             ].map(function(item) {
                               var isSelected = priorityFilter === item.id;
                               return (0, P.jsx)('button', {
@@ -27488,7 +27634,7 @@ var Ne = function(props) {
                               (isDark ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25" : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"),
                             title: "Permanently re-order all columns by Red -> Yellow -> Green priority",
                             children: [
-                              (0, P.jsx)('span', { children: "按优先级一键排序" }),
+                              (0, P.jsx)('span', { children: "Sort by Priority" }),
                               (0, P.jsxs)('span', {
                                 className: "flex items-center gap-0.5",
                                 children: [
@@ -27505,7 +27651,7 @@ var Ne = function(props) {
                         className: "grid grid-cols-1 sm:grid-cols-2 gap-2.5",
                         children: [
                           { id: 'default', title: 'Default (Manual)', desc: 'Custom drag-and-drop order', icon: IconMove },
-                          { id: 'priority', title: '按优先级排序 (红-黄-绿)', desc: '高 (红) → 中 (黄) → 低 (绿)', icon: IconStar },
+                          { id: 'priority', title: 'Sort by Priority (High → Low)', desc: 'High (Red) → Med (Yellow) → Low (Green)', icon: IconStar },
                           { id: 'title', title: 'Card Title (A → Z)', desc: 'Alphabetical sorting by title', icon: IconFileText },
                           { id: 'checklist', title: 'Checklist Progress', desc: 'Highest completion % first', icon: IconChecklist },
                           { id: 'mastery', title: 'Mastery Level', desc: 'Highest mastery rating first', icon: IconStar }
@@ -29064,7 +29210,7 @@ var Be = function() {
         });
       });
       if (window.GlassUI && window.GlassUI.toast) {
-        window.GlassUI.toast("📥 已收录至看板：" + newCard.title);
+        window.GlassUI.toast("📥 Added to board: " + newCard.title);
       }
     };
     window.addEventListener('minestCardCreated', handleCardCreated);
@@ -30459,7 +30605,7 @@ var Be = function() {
             onClick: function() { setUseSimulator(true); SoundEngine.play('click'); },
             className: "fixed top-3 left-3 z-50 px-2.5 py-1 rounded-xl bg-black/60 border border-white/20 text-white text-xs backdrop-blur-md shadow-lg hover:bg-black/80",
             style: { position: "fixed", top: "12px", left: "12px", right: "auto", zIndex: 99999 },
-            children: "📱 开启 iPhone 模拟器"
+            children: "📱 Open iPhone Simulator"
           })
         ) : null,
         appContent
@@ -30489,7 +30635,7 @@ var Be = function() {
             title: "Rotate orientation",
             children: [
               (0, P.jsx)('span', { children: "🔄" }),
-              (0, P.jsx)('span', { children: isLandscape ? "竖屏 (Portrait)" : "横屏 (Landscape)" })
+              (0, P.jsx)('span', { children: isLandscape ? "Portrait" : "Landscape" })
             ]
           }),
           (0, P.jsxs)('button', {
@@ -30499,14 +30645,14 @@ var Be = function() {
             title: "Switch to Fullscreen Real-phone view",
             children: [
               (0, P.jsx)('span', { children: "📱" }),
-              (0, P.jsx)('span', { children: "真机全屏" })
+              (0, P.jsx)('span', { children: "Fullscreen" })
             ]
           }),
           (0, P.jsx)('button', {
             type: "button",
             onClick: function() { setThemeMode(themeMode === 'dark' ? 'white' : 'dark'); SoundEngine.play('click'); },
             className: "px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 transition-colors",
-            children: themeMode === 'dark' ? "☀️ 浅色" : "🌙 深色"
+            children: themeMode === 'dark' ? "☀️ Light" : "🌙 Dark"
           })
         ]
       }),
@@ -30750,7 +30896,7 @@ var Ve = (function(_Component) {
       ctx = cv.getContext('2d');
       handle = document.createElement('div');
       handle.className = 'fbfx-handle';
-      handle.title = '拖动光源';
+      handle.title = 'Drag Light';
       layer.appendChild(cv);
       layer.appendChild(handle);
       if (HOST_SHELL) layer.classList.add('in-shell');
@@ -32939,7 +33085,7 @@ var Ve = (function(_Component) {
     c.font = '600 12px -apple-system,BlinkMacSystemFont,sans-serif';
     c.textAlign = 'center';
     // on a dark pill, so it reads on a white card as well as in the dark
-    var htxt = mode === 'spotlight' ? '在空白处按住拖动：追光跟着你走 · 拖光束：换灯位 · 双击空白处：回到卡片' : (behind ? '按住卡片边缘溢出的光，把光源拖出来 · 双击回到原位' : '拖动光源 · 双击回到原位');
+    var htxt = mode === 'spotlight' ? 'Drag to follow · Drag beam to reposition · Double-tap empty space to reset' : (behind ? 'Drag spilled light around card edge · Double-tap to reset' : 'Drag light source · Double-tap to reset');
     var hy2 = clamp(hy, 22, H - 12), tw = c.measureText(htxt).width, hx2 = clamp(hx, tw / 2 + 18, W - tw / 2 - 18);
     c.fillStyle = 'rgba(10,12,20,0.62)';
     rrect(c, hx2 - tw / 2 - 12, hy2 - 16, tw + 24, 24, 12); c.fill();
@@ -33655,7 +33801,7 @@ var Ve = (function(_Component) {
     if (!btn) return;
     btn.classList.toggle('on', on);
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    btn.title = on ? 'Board 卡片：厚玻璃材质（开）— 点击改回普通玻璃' : 'Board 卡片：厚玻璃材质（关）— 点击开启';
+    btn.title = on ? 'Board Cards: Heavy Glass (ON) — Click for normal glass' : 'Board Cards: Heavy Glass (OFF) — Click to enable';
   }
   function mount() {
     var anchor = document.querySelector('header button[title="Switch to light mode"], header button[title="Switch to dark mode"]');
@@ -33664,7 +33810,7 @@ var Ve = (function(_Component) {
       btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'fbg-toggle'; btn.setAttribute('aria-label', 'Board Glass');
       btn.innerHTML = ICON;
-      btn.addEventListener('click', function (e) { e.stopPropagation(); setOn(!on); toast(on ? '厚玻璃 · 开' : '厚玻璃 · 关'); });
+      btn.addEventListener('click', function (e) { e.stopPropagation(); setOn(!on); toast(on ? 'Heavy Glass · ON' : 'Heavy Glass · OFF'); });
       renderBtn();
     }
     if (btn.parentNode !== anchor.parentNode || btn.nextSibling !== anchor) anchor.parentNode.insertBefore(btn, anchor);
