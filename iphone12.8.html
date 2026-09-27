@@ -170,6 +170,88 @@ body.theme-white .perspective-stage[data-card-inspecting] .coverflow-flipper {
   animation: cardFlyUp 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) forwards !important;
   pointer-events: none !important;
 }
+
+/* ========================================================================= */
+/* Phase 4: Physical Card Mode & Dissolution Fragmentation CSS               */
+/* ========================================================================= */
+.physical-card-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  background: #000000;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.physical-card-bezel {
+  position: absolute;
+  inset: 0;
+  border-radius: 54px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22),
+              inset 0 0 50px rgba(0, 0, 0, 0.95);
+  pointer-events: none;
+  z-index: 40;
+}
+.physical-card-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 54px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+  transition: transform 0.42s cubic-bezier(0.18, 0.9, 0.25, 1), opacity 0.25s ease;
+}
+.physical-card-face.card-flick-flying {
+  transform: perspective(1000px) translateY(-120vh) rotateZ(-6deg) scale(0.9) !important;
+  opacity: 0 !important;
+  transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.35s ease !important;
+}
+.physical-card-face.card-slide-left-exit {
+  transform: perspective(1000px) translateX(-100vw) rotateY(-30deg) !important;
+  opacity: 0 !important;
+  transition: transform 0.38s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease !important;
+}
+.physical-card-face.card-slide-right-exit {
+  transform: perspective(1000px) translateX(100vw) rotateY(30deg) !important;
+  opacity: 0 !important;
+  transition: transform 0.38s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease !important;
+}
+.physical-card-facedown-cover {
+  position: absolute;
+  inset: 0;
+  background: #000000;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+  pointer-events: none;
+}
+.physical-card-facedown-cover.is-active {
+  pointer-events: auto;
+  opacity: 1;
+}
+.physical-card-facedown-cover:not(.is-active) {
+  opacity: 0;
+}
+.dissolution-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+}
+
 .mt-2\.5 {
   margin-top: 10px !important;
 }
@@ -3878,6 +3960,214 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
 @media (orientation: landscape) { html.fbfx-board-fx header.sticky { z-index: 46 !important; } }
 @keyframes barFxIn { from { opacity: 0; transform: translateX(-3px); } to { opacity: 1; transform: none; } }
 </style>
+<style id="fb-iphone-portrait-gestures">
+/* ========================================================================= */
+/* Phase 5: Focusboard iPhone Portrait — Gesture-First Interaction Redesign  */
+/* ========================================================================= */
+
+/* 1. Remove Mobile Card Hover / Floating Action Buttons (Requirement 1 & 13) */
+.iphone-frame:not(.landscape) .card-action-group,
+.iphone-frame:not(.landscape) .card-hover-actions-wrapper,
+.iphone-frame:not(.landscape) .card-hover-actions-pill,
+.iphone-frame:not(.landscape) .card-quick-actions-sidebar,
+.iphone-frame:not(.landscape) .mac-traffic-lights,
+.iphone-frame:not(.landscape) .card-edit-btn,
+.iphone-frame:not(.landscape) .card-archive-btn,
+.mobile-board-view .card-action-group,
+.mobile-board-view .card-hover-actions-wrapper,
+.mobile-board-view .card-hover-actions-pill,
+.mobile-board-view .card-quick-actions-sidebar,
+.mobile-board-view .mac-traffic-lights,
+.mobile-board-view .card-edit-btn,
+.mobile-board-view .card-archive-btn {
+  display: none !important;
+}
+
+/* Hide incomplete checkmark triggers in mobile portrait (replaced by direct Swipe Right) */
+.iphone-frame:not(.landscape) .card-check-trigger-btn.is-incomplete,
+.mobile-board-view .card-check-trigger-btn.is-incomplete {
+  display: none !important;
+}
+
+/* Completed card checkmark remains visible to show completed state */
+.card-check-trigger-btn.is-completed {
+  display: flex !important;
+}
+
+/* 2. Pull Down → New Card Ghost Container (Requirement 2) */
+.gesture-pull-ghost {
+  width: 100%;
+  height: 0px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px dashed rgba(52, 211, 153, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #10b981;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.gesture-pull-ghost.is-ready {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(52, 211, 153, 0.9);
+  border-style: solid;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.gesture-pull-ghost-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+.gesture-pull-ghost-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.4;
+  transition: transform 0.2s ease;
+}
+.gesture-pull-ghost.is-ready .gesture-pull-ghost-icon {
+  transform: scale(1.18);
+}
+
+/* 3. Swipe Right → Complete Backdrop Track (Requirement 4) */
+.gesture-complete-backdrop {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.88), rgba(5, 150, 105, 0.96));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 20px;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.gesture-complete-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+}
+.gesture-complete-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s ease;
+}
+.gesture-complete-circle.is-triggered {
+  background: #ffffff;
+  transform: scale(1.22);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.8);
+}
+.gesture-complete-circle.is-triggered svg {
+  color: #059669;
+}
+
+/* 4. Swipe Left → Continuous Priority Selector Track (Requirement 5) */
+.gesture-priority-backdrop {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: rgba(12, 18, 28, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 14px;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.gesture-priority-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.gesture-priority-lens {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  opacity: 0.32;
+  transform: scale(0.9);
+  transition: transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.18s ease;
+}
+.gesture-priority-lens.is-active {
+  opacity: 1 !important;
+  transform: scale(1.28) !important;
+}
+.gesture-lens-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  position: relative;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+.lens-red .gesture-lens-dot {
+  background: #ef4444;
+}
+.lens-red.is-active .gesture-lens-dot {
+  box-shadow: 0 0 18px #ef4444, inset 0 1px 2px #fff;
+}
+.lens-yellow .gesture-lens-dot {
+  background: #f59e0b;
+}
+.lens-yellow.is-active .gesture-lens-dot {
+  box-shadow: 0 0 18px #f59e0b, inset 0 1px 2px #fff;
+}
+.lens-green .gesture-lens-dot {
+  background: #10b981;
+}
+.lens-green.is-active .gesture-lens-dot {
+  box-shadow: 0 0 18px #10b981, inset 0 1px 2px #fff;
+}
+.gesture-lens-name {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: -0.01em;
+}
+.gesture-priority-lens.is-active .gesture-lens-name {
+  color: #ffffff;
+}
+
+/* 5. Smooth direct manipulation on Card element */
+.kanban-card.gesture-manipulating,
+.kanban-subcard.gesture-manipulating {
+  transition: none !important;
+  will-change: transform, opacity !important;
+}
+</style>
 </head>
   <body>
     <div id="root"></div>
@@ -6354,6 +6644,16 @@ var RippleExplore = (function() {
     var inLane = function(x, y) { var r = lane.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; };
     var onDown = function(e) {
       if (e.button !== 0) return;
+      var isPhonePortrait = function() {
+        var f = lane.closest('.iphone-frame');
+        if (f) return !f.classList.contains('landscape');
+        return (window.innerWidth <= 600 || window.innerHeight > window.innerWidth) && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      };
+      if (isPhonePortrait() && !(w && w.active)) {
+        // Requirement 9 & 15: Remove old list-side Ripple trigger on iPhone Portrait
+        // Ripple Mode is now triggered exclusively by Double Tap Card
+        return;
+      }
       // more fingers while the water is live: each one is another drop
       if (w && w.active && w.source === 'press' && e.pointerId !== pressId && inLane(e.clientX, e.clientY)) {
         if (!dropById(e.pointerId) && w.drops.length < 4) {
@@ -6444,13 +6744,33 @@ var RippleExplore = (function() {
       if (w && w.lane === lane) stop(true);
     };
   };
-  return { mount: mount, _state: function() {
-    if (!w) return null;
-    var f = w.field;
-    return { active: w.active, source: w.source, drops: w.drops.map(function(s) { return { held: s.held, coast: s.coast, depth: Math.round(s.depth * 100) / 100, x: Math.round(s.x), y: Math.round(s.y) }; }),
-      lists: w.items.length, tier: w.tier, energy: f ? Math.round(f.energy * 1e5) / 1e5 : 0, maxH: f ? Math.round(f.maxH * 1000) / 1000 : 0,
-      grid: f ? f.nx + 'x' + f.ny + '@' + f.cs : null, lifts: w.items.map(function(it) { return Math.round(-(it.y + it.heave) * 10) / 10; }) };
-  }, _probe: function(x, y) { return w && w.field ? sample(w.field, x, y) : null; } };
+  var triggerAt = function(lane, x, y) {
+    if (!lane) lane = document.querySelector('.board-swimlane-scroll') || document.body;
+    if (w && w.active) {
+      addDrop('dt_' + Date.now(), x, y, false);
+      sound('ripple_plip');
+      kick();
+      return;
+    }
+    start(lane, x, y, 'press', 'dt_' + Date.now());
+    setTimeout(function() {
+      if (w && w.active) release();
+    }, 2200);
+  };
+  var api = {
+    mount: mount,
+    triggerAt: triggerAt,
+    _state: function() {
+      if (!w) return null;
+      var f = w.field;
+      return { active: w.active, source: w.source, drops: w.drops.map(function(s) { return { held: s.held, coast: s.coast, depth: Math.round(s.depth * 100) / 100, x: Math.round(s.x), y: Math.round(s.y) }; }),
+        lists: w.items.length, tier: w.tier, energy: f ? Math.round(f.energy * 1e5) / 1e5 : 0, maxH: f ? Math.round(f.maxH * 1000) / 1000 : 0,
+        grid: f ? f.nx + 'x' + f.ny + '@' + f.cs : null, lifts: w.items.map(function(it) { return Math.round(-(it.y + it.heave) * 10) / 10; }) };
+    },
+    _probe: function(x, y) { return w && w.field ? sample(w.field, x, y) : null; }
+  };
+  window.RippleExplore = api;
+  return api;
 })();
 
 // =========================================================================
@@ -19738,6 +20058,12 @@ var Oe = function(props) {
                     toggleCardFlip(card.id, e);
                   }
                 },
+                onDoubleClick: function(e) {
+                  e.stopPropagation();
+                  if (window.openPhysicalCardMode) {
+                    window.openPhysicalCardMode(activeIdx);
+                  }
+                },
                 style: {
                   position: "absolute",
                   top: "50%",
@@ -20190,11 +20516,472 @@ var Oe = function(props) {
             ]
           })
         ]
+      }),
+
+      // Physical Card Mode Entry Button
+      (0, P.jsxs)('button', {
+        type: "button",
+        onClick: function(e) {
+          e.stopPropagation();
+          if (window.openPhysicalCardMode) {
+            window.openPhysicalCardMode(activeIdx);
+          }
+        },
+        className: "mt-1 px-3.5 py-1.5 rounded-full text-xs font-semibold backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-95 flex items-center gap-1.5 z-30 " + (isDark ? "bg-white/10 text-white/95 border-white/20 hover:bg-white/20" : "bg-slate-900/10 text-slate-800 border-slate-900/20 hover:bg-slate-900/15"),
+        children: [
+          (0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-emerald-400 animate-pulse" }),
+          (0, P.jsx)('span', { children: "📇 实体卡片模式" })
+        ]
       })
     ]
   });
 };
 
+/* ========================================================================= */
+/* Phase 4: Physical Card Mode Component (iPhone IS the Physical Card)       */
+/* ========================================================================= */
+var PhysicalCardModeOverlay = function(props) {
+  var cards = props.cards || [];
+  var initialIndex = props.initialIndex || 0;
+  var board = props.board;
+  var themeMode = props.themeMode;
+  var onClose = props.onClose;
+  var onToggleCardComplete = props.onToggleCardComplete;
+  var onToggleChecklistItem = props.onToggleChecklistItem;
+  var onUpdateCardMastery = props.onUpdateCardMastery;
+
+  var idxState = (0, _.useState)(Math.max(0, Math.min(initialIndex, Math.max(0, cards.length - 1))));
+  var idx = idxState[0];
+  var setIdx = idxState[1];
+
+  var isFlickingState = (0, _.useState)(false);
+  var isFlicking = isFlickingState[0];
+  var setIsFlicking = isFlickingState[1];
+
+  var slideDirState = (0, _.useState)('none');
+  var slideDir = slideDirState[0];
+  var setSlideDir = slideDirState[1];
+
+  var isFaceDownState = (0, _.useState)(false);
+  var isFaceDown = isFaceDownState[0];
+  var setIsFaceDown = isFaceDownState[1];
+
+  var isDissolvingState = (0, _.useState)(false);
+  var isDissolving = isDissolvingState[0];
+  var setIsDissolving = isDissolvingState[1];
+
+  var tiltState = (0, _.useState)({
+    x: 0, y: 0, roll: 0, pitch: 0, specularX: 0, specularY: 0,
+    refractionAngle: 135, shadowOffsetX: 0, shadowOffsetY: 12
+  });
+  var tilt = tiltState[0];
+  var setTilt = tiltState[1];
+
+  var canvasRef = (0, _.useRef)(null);
+  var currentCard = cards[idx] || (cards.length > 0 ? cards[0] : null);
+
+  // Micro-motion & Intent Event Listener
+  (0, _.useEffect)(function() {
+    var handleNativeEvent = function(e) {
+      if (!e.detail) return;
+      var ev = e.detail.event;
+      var pl = e.detail.payload || {};
+      if (ev === 'onMotionIntent') {
+        if (pl.type === 'tiltLeft') {
+          handleNextCard();
+        } else if (pl.type === 'tiltRight') {
+          handlePrevCard();
+        } else if (pl.type === 'flickComplete') {
+          handleFlickComplete();
+        } else if (pl.type === 'faceDown') {
+          setIsFaceDown(true);
+          if (window.MinestNative && window.MinestNative.send) {
+            window.MinestNative.send('studyPaused', { completedCards: 0, isPaused: true });
+          }
+        } else if (pl.type === 'faceUp') {
+          setIsFaceDown(false);
+          if (window.MinestNative && window.MinestNative.send) {
+            window.MinestNative.send('triggerHaptic', { style: 'medium' });
+          }
+        }
+      }
+    };
+
+    var handleTilt = function(data) {
+      if (!data) return;
+      setTilt({
+        x: data.x || 0,
+        y: data.y || 0,
+        roll: data.roll || 0,
+        pitch: data.pitch || 0,
+        specularX: data.specularX || 0,
+        specularY: data.specularY || 0,
+        refractionAngle: data.refractionAngle || 135,
+        shadowOffsetX: data.shadowOffsetX || 0,
+        shadowOffsetY: data.shadowOffsetY || 12
+      });
+    };
+
+    window.addEventListener('minestNativeEvent', handleNativeEvent);
+    if (window.MinestNative) {
+      window.MinestNative.onDeviceTilt = handleTilt;
+    }
+    return function() {
+      window.removeEventListener('minestNativeEvent', handleNativeEvent);
+      if (window.MinestNative && window.MinestNative.onDeviceTilt === handleTilt) {
+        window.MinestNative.onDeviceTilt = null;
+      }
+    };
+  }, [idx, cards]);
+
+  var handleNextCard = function() {
+    if (cards.length <= 1) return;
+    setSlideDir('left');
+    if (window.MinestNative && window.MinestNative.send) {
+      window.MinestNative.send('cardAction', { subAction: 'swipe' });
+    }
+    setTimeout(function() {
+      setIdx(function(prev) { return (prev + 1) % cards.length; });
+      setSlideDir('none');
+    }, 200);
+  };
+
+  var handlePrevCard = function() {
+    if (cards.length <= 1) return;
+    setSlideDir('right');
+    if (window.MinestNative && window.MinestNative.send) {
+      window.MinestNative.send('cardAction', { subAction: 'swipe' });
+    }
+    setTimeout(function() {
+      setIdx(function(prev) { return (prev - 1 + cards.length) % cards.length; });
+      setSlideDir('none');
+    }, 200);
+  };
+
+  var handleFlickComplete = function() {
+    if (!currentCard) return;
+    setIsFlicking(true);
+    if (onToggleCardComplete) {
+      onToggleCardComplete(currentCard.columnId, currentCard.id);
+    }
+    if (window.MinestNative && window.MinestNative.send) {
+      window.MinestNative.send('triggerHaptic', { style: 'success', sound: true });
+    }
+    if (window.GlassUI && window.GlassUI.toast) {
+      window.GlassUI.toast("✅ 拂击完成 · 卡片已归档");
+    }
+    setTimeout(function() {
+      setIsFlicking(false);
+      if (cards.length > 1) {
+        setIdx(function(prev) { return (prev + 1) % cards.length; });
+      }
+    }, 360);
+  };
+
+  var handleDissolveExit = function() {
+    setIsDissolving(true);
+    if (window.MinestNative && window.MinestNative.send) {
+      window.MinestNative.send('cardAction', { subAction: 'shatter' });
+    }
+    var canvas = canvasRef.current;
+    if (canvas) {
+      var ctx = canvas.getContext('2d');
+      var w = canvas.width = window.innerWidth;
+      var h = canvas.height = window.innerHeight;
+      var shards = [];
+      var colors = ["#ffffff", "#34d399", "#38bdf8", "#fbbf24", "#a78bfa", "#f43f5e"];
+      for (var i = 0; i < 90; i++) {
+        var ang = Math.random() * Math.PI * 2;
+        var spd = 6 + Math.random() * 18;
+        shards.push({
+          x: w / 2 + (Math.random() - 0.5) * (w * 0.6),
+          y: h / 2 + (Math.random() - 0.5) * (h * 0.6),
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd - 3,
+          rot: Math.random() * Math.PI * 2,
+          vRot: (Math.random() - 0.5) * 0.35,
+          size: 10 + Math.random() * 26,
+          color: colors[i % colors.length],
+          alpha: 1.0
+        });
+      }
+      var startTime = performance.now();
+      var render = function(now) {
+        var elapsed = now - startTime;
+        ctx.clearRect(0, 0, w, h);
+        shards.forEach(function(s) {
+          s.x += s.vx;
+          s.y += s.vy;
+          s.vy += 0.55;
+          s.rot += s.vRot;
+          s.alpha = Math.max(0, 1.0 - elapsed / 450);
+          ctx.save();
+          ctx.translate(s.x, s.y);
+          ctx.rotate(s.rot);
+          ctx.globalAlpha = s.alpha;
+          ctx.fillStyle = s.color;
+          ctx.beginPath();
+          ctx.moveTo(-s.size / 2, -s.size / 2);
+          ctx.lineTo(s.size / 2, -s.size / 3);
+          ctx.lineTo(s.size / 3, s.size / 2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        });
+        if (elapsed < 450) {
+          requestAnimationFrame(render);
+        } else {
+          onClose();
+        }
+      };
+      requestAnimationFrame(render);
+    } else {
+      setTimeout(onClose, 350);
+    }
+  };
+
+  // Expose global controller
+  (0, _.useEffect)(function() {
+    window.MinestPhysicalCard = {
+      next: handleNextCard,
+      prev: handlePrevCard,
+      flickComplete: handleFlickComplete,
+      toggleFaceDown: function() { setIsFaceDown(function(v) { return !v; }); },
+      dissolveExit: handleDissolveExit,
+      close: onClose
+    };
+    return function() {
+      window.MinestPhysicalCard = null;
+    };
+  }, [idx, cards]);
+
+  // Touch Swipe Gesture Fallbacks on physical card face
+  var touchStartRef = (0, _.useRef)({ x: 0, y: 0, time: 0 });
+  var onTouchStart = function(e) {
+    if (!e.touches || !e.touches[0]) return;
+    var t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, time: performance.now() };
+  };
+  var onTouchEnd = function(e) {
+    if (!e.changedTouches || !e.changedTouches[0]) return;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - touchStartRef.current.x;
+    var dy = t.clientY - touchStartRef.current.y;
+    var dt = performance.now() - touchStartRef.current.time;
+    if (dy < -80 && dt < 350 && Math.abs(dy) > Math.abs(dx) * 1.3) {
+      handleFlickComplete();
+      return;
+    }
+    if (Math.abs(dx) > 70 && dt < 400) {
+      if (dx < 0) {
+        handleNextCard();
+      } else {
+        handlePrevCard();
+      }
+      return;
+    }
+  };
+
+  if (!currentCard) return null;
+
+  var isCardComplete = !!currentCard.complete;
+  var cardTiltX = tilt.pitch * 0.16;
+  var cardTiltY = tilt.roll * 0.16;
+
+  var faceClasses = "physical-card-face p-6 pt-14 pb-8 " +
+    (isFlicking ? "card-flick-flying " : "") +
+    (slideDir === 'left' ? "card-slide-left-exit " : "") +
+    (slideDir === 'right' ? "card-slide-right-exit " : "");
+
+  return (0, P.jsxs)('div', {
+    className: "physical-card-overlay",
+    onTouchStart: onTouchStart,
+    onTouchEnd: onTouchEnd,
+    children: [
+      // 1. Titanium Curved Outer Bezel
+      (0, P.jsx)('div', { className: "physical-card-bezel" }),
+
+      // 2. Dissolution Particle Canvas
+      (0, P.jsx)('canvas', { ref: canvasRef, className: "dissolution-canvas" }),
+
+      // 3. Face-down Blackout Screen (Pauses session, ultra-low power display)
+      (0, P.jsxs)('div', {
+        className: "physical-card-facedown-cover " + (isFaceDown ? "is-active" : ""),
+        onClick: function() { setIsFaceDown(false); },
+        children: [
+          (0, P.jsx)('div', {
+            className: "w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 animate-pulse",
+            children: (0, P.jsx)('span', { className: "text-2xl", children: "📴" })
+          }),
+          (0, P.jsx)('span', {
+            className: "text-base font-semibold text-white/50 tracking-wider mb-1",
+            children: "已反扣 · 沉浸专注中"
+          }),
+          (0, P.jsx)('span', {
+            className: "text-xs text-white/30 tracking-tight",
+            children: "屏幕已调暗至超低功耗 · 拿起手机立即唤醒"
+          })
+        ]
+      }),
+
+      // 4. Physical Card Face (The iPhone screen IS the card)
+      (0, P.jsxs)('div', {
+        className: faceClasses,
+        style: {
+          opacity: isDissolving ? 0 : 1,
+          transform: isFlicking || slideDir !== 'none' ? undefined : ("perspective(1200px) rotateX(" + cardTiltX.toFixed(2) + "deg) rotateY(" + cardTiltY.toFixed(2) + "deg)"),
+          background: "radial-gradient(circle at calc(50% + " + tilt.specularX + "px) calc(28% + " + tilt.specularY + "px), rgba(255,255,255,0.18) 0%, rgba(13,19,26,0.95) 75%)",
+          boxShadow: isCardComplete ? "0 0 60px rgba(52, 211, 153, 0.4)" : "none"
+        },
+        children: [
+          // Dynamic Optical Sheens
+          (0, P.jsx)('div', {
+            className: "liquid-specular-edge",
+            style: { opacity: 0.85, background: "linear-gradient(" + tilt.refractionAngle + "deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.35) 100%)" }
+          }),
+          (0, P.jsx)('div', {
+            className: "cf-broad-reflection",
+            style: { opacity: 0.7, transform: "translate(" + tilt.specularX + "px, " + tilt.specularY + "px)" }
+          }),
+
+          // Top Header (Zero chrome, minimal island badges)
+          (0, P.jsxs)('div', {
+            className: "relative z-20 flex items-center justify-between w-full pt-1 px-1",
+            children: [
+              // Index Capsule
+              (0, P.jsxs)('div', {
+                className: "flex items-center gap-1.5 px-3 py-1 rounded-full backdrop-blur-xl bg-white/10 border border-white/15 text-xs font-mono font-medium text-white/90 shadow-sm",
+                children: [
+                  (0, P.jsx)('span', { className: "w-2 h-2 rounded-full", style: { backgroundColor: currentCard.columnColor || "#30d158" } }),
+                  (0, P.jsxs)('span', { children: ["CARD ", idx + 1, " OF ", cards.length] })
+                ]
+              }),
+
+              // Category Chip
+              (0, P.jsx)('div', {
+                className: "px-3 py-1 rounded-full backdrop-blur-xl bg-emerald-500/15 border border-emerald-500/25 text-xs font-semibold text-emerald-400",
+                children: currentCard.columnTitle || currentCard.category || "学习看板"
+              }),
+
+              // Exit Dissolution Button (✕ with glass ring)
+              (0, P.jsx)('button', {
+                onClick: handleDissolveExit,
+                className: "w-8 h-8 rounded-full backdrop-blur-xl bg-white/10 border border-white/20 text-white/80 hover:text-white hover:bg-white/20 flex items-center justify-center transition-all duration-200 active:scale-90 text-sm font-bold shadow-md",
+                title: "碎片溶解退出",
+                children: "✕"
+              })
+            ]
+          }),
+
+          // Center Body: Large Title, Notes, Checklists, Tags
+          (0, P.jsxs)('div', {
+            className: "relative z-20 flex-1 flex flex-col justify-center max-w-md mx-auto w-full px-2 my-auto",
+            children: [
+              // Completion status pill
+              isCardComplete ? (0, P.jsxs)('div', {
+                className: "self-start mb-3 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-1.5",
+                children: [
+                  (0, P.jsx)('span', { children: "✓" }),
+                  (0, P.jsx)('span', { children: "已完成" })
+                ]
+              }) : null,
+
+              // Card Title
+              (0, P.jsx)('h1', {
+                className: "text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug mb-4 " + (isCardComplete ? "line-through opacity-70" : ""),
+                children: currentCard.title
+              }),
+
+              // Card Notes / Description
+              (currentCard.desc || currentCard.item || currentCard.notes) ? (0, P.jsx)('p', {
+                className: "text-sm sm:text-base text-white/80 leading-relaxed font-normal mb-5 whitespace-pre-wrap bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md shadow-inner max-h-48 overflow-y-auto no-scrollbar",
+                children: currentCard.desc || currentCard.item || currentCard.notes
+              }) : null,
+
+              // Checklist Items (if any)
+              (currentCard.checklistItems && currentCard.checklistItems.length > 0) ? (0, P.jsx)('div', {
+                className: "flex flex-col gap-2 mb-5",
+                children: currentCard.checklistItems.map(function(item) {
+                  return (0, P.jsxs)('div', {
+                    key: item.id,
+                    onClick: function() {
+                      if (onToggleChecklistItem) onToggleChecklistItem(currentCard.columnId, currentCard.id, item.id);
+                      if (window.MinestNative && window.MinestNative.send) window.MinestNative.send('triggerHaptic', { style: 'light', sound: true });
+                    },
+                    className: "flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/8 border border-white/10 text-xs sm:text-sm text-white/90 cursor-pointer active:scale-98 transition-all duration-150 backdrop-blur-md",
+                    children: [
+                      (0, P.jsx)('div', {
+                        className: "w-4 h-4 rounded-md border flex items-center justify-center shrink-0 " + (item.done ? "bg-emerald-500 border-emerald-500 text-black font-bold text-[10px]" : "border-white/30 bg-transparent"),
+                        children: item.done ? "✓" : ""
+                      }),
+                      (0, P.jsx)('span', { className: item.done ? "line-through opacity-60" : "", children: item.text })
+                    ]
+                  });
+                })
+              }) : null,
+
+              // Tags
+              (currentCard.labels && currentCard.labels.length > 0) ? (0, P.jsx)('div', {
+                className: "flex flex-wrap gap-1.5 mb-2",
+                children: currentCard.labels.map(function(lbl) {
+                  return (0, P.jsxs)('span', {
+                    key: lbl,
+                    className: "px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/25",
+                    children: ["#", lbl]
+                  });
+                })
+              }) : null
+            ]
+          }),
+
+          // Bottom Physical Interaction HUD & Simulator Controls
+          (0, P.jsxs)('div', {
+            className: "relative z-20 flex flex-col items-center gap-2 w-full pt-2",
+            children: [
+              // Natural Gesture Hint
+              (0, P.jsx)('div', {
+                className: "text-[11px] font-medium tracking-wider text-white/50 mb-1",
+                children: "← 倾斜翻页 →  ·  轻拂完成 ↑  ·  反扣暂停 📴"
+              }),
+
+              // Action Trigger Bar (Full support for Simulator testing & direct touch)
+              (0, P.jsxs)('div', {
+                className: "flex items-center justify-center gap-1.5 flex-wrap px-2 py-1.5 rounded-full backdrop-blur-2xl bg-white/10 border border-white/15 shadow-xl max-w-full",
+                children: [
+                  (0, P.jsx)('button', {
+                    onClick: handlePrevCard,
+                    className: "px-3 py-1.5 rounded-full text-xs font-semibold text-white/85 hover:bg-white/15 active:scale-95 transition-all duration-150",
+                    children: "‹ 前张"
+                  }),
+                  (0, P.jsx)('button', {
+                    onClick: handleFlickComplete,
+                    className: "px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-500/35 hover:bg-emerald-500/35 active:scale-95 transition-all duration-150 shadow-sm",
+                    children: "⚡ 拂击完成"
+                  }),
+                  (0, P.jsx)('button', {
+                    onClick: function() { setIsFaceDown(true); },
+                    className: "px-3 py-1.5 rounded-full text-xs font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/25 hover:bg-amber-500/25 active:scale-95 transition-all duration-150",
+                    children: "📴 反扣暂停"
+                  }),
+                  (0, P.jsx)('button', {
+                    onClick: handleNextCard,
+                    className: "px-3 py-1.5 rounded-full text-xs font-semibold text-white/85 hover:bg-white/15 active:scale-95 transition-all duration-150",
+                    children: "后张 ›"
+                  }),
+                  (0, P.jsx)('button', {
+                    onClick: handleDissolveExit,
+                    className: "px-3 py-1.5 rounded-full text-xs font-semibold text-rose-300 bg-rose-500/15 border border-rose-500/25 hover:bg-rose-500/25 active:scale-95 transition-all duration-150",
+                    children: "✨ 碎片溶解退出"
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  });
+};
 
 var FlashcardDrillView = function(props) {
   var board = props.board;
@@ -20650,6 +21437,564 @@ var FlashcardDrillView = function(props) {
     ]
   });
 };
+
+// =========================================================================
+// Minest iPhone Portrait — Gesture-First Interaction Redesign Manager
+// Direct Manipulation: Pull-down New Card, Swipe Right Complete, Swipe Left Priority,
+// Two-Finger Pinch Fold, Two-Finger Spread Expand, Double Tap Ripple Mode.
+// =========================================================================
+var MinestPortraitGestureManager = (function() {
+  var clamp = function(v, min, max) { return Math.max(min, Math.min(max, v)); };
+
+  var isPhonePortrait = function() {
+    var f = document.querySelector('.iphone-frame');
+    if (f) return !f.classList.contains('landscape');
+    return (window.innerWidth <= 600 || window.innerHeight > window.innerWidth);
+  };
+
+  var haptic = function(style) {
+    try {
+      if (window.MinestNative && window.MinestNative.haptic) {
+        window.MinestNative.haptic(style);
+      } else if (navigator.vibrate) {
+        var ms = style === 'success' ? [12, 40, 12] : style === 'selection' ? 6 : 10;
+        navigator.vibrate(ms);
+      }
+    } catch (e) {}
+  };
+
+  var sound = function(type) {
+    try {
+      if (window.SoundEngine && window.SoundEngine.play) {
+        window.SoundEngine.play(type);
+      }
+    } catch (e) {}
+  };
+
+  var mount = function(lane, ctxRef) {
+    if (!lane) return function() {};
+
+    var gestureState = null;
+    var pullGhost = null;
+    var lastTap = { time: 0, cardId: null, timer: null };
+    var pinchSession = null;
+
+    var removeBackdrops = function(parent) {
+      if (!parent) return;
+      var els = parent.querySelectorAll('.gesture-complete-backdrop, .gesture-priority-backdrop');
+      els.forEach(function(el) { el.remove(); });
+    };
+
+    var onTouchStart = function(e) {
+      if (!isPhonePortrait()) return;
+      var ctx = ctxRef.current || {};
+      var touches = e.touches;
+
+      // --- TWO-FINGER GESTURE (Pinch to Fold / Spread to Expand) ---
+      if (touches.length === 2) {
+        if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
+        if (gestureState) {
+          if (gestureState.cardEl) {
+            gestureState.cardEl.style.transform = '';
+            gestureState.cardEl.classList.remove('gesture-manipulating');
+            removeBackdrops(gestureState.cardEl.parentElement);
+          }
+          gestureState = null;
+        }
+        if (pullGhost) { pullGhost.remove(); pullGhost = null; }
+
+        var t1 = touches[0], t2 = touches[1];
+        var d0 = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        var yMin = Math.min(t1.clientY, t2.clientY);
+        var yMax = Math.max(t1.clientY, t2.clientY);
+
+        var colEl = (document.elementFromPoint(t1.clientX, t1.clientY) || t1.target).closest('.kanban-column-wrapper');
+        if (!colEl) return;
+        var colId = colEl.getAttribute('data-col-id');
+        var colObj = (ctx.board && ctx.board.columns ? ctx.board.columns.find(function(c) { return c.id === colId; }) : null);
+        if (!colObj) return;
+
+        var cardEls = Array.from(colEl.querySelectorAll('article.kanban-card'));
+        var touchedCards = [];
+        cardEls.forEach(function(el) {
+          var r = el.getBoundingClientRect();
+          if (r.bottom >= yMin - 15 && r.top <= yMax + 15) {
+            var cid = el.getAttribute('data-card-id');
+            var cd = (colObj.cards || []).find(function(c) { return c.id === cid; });
+            if (cd) touchedCards.push({ el: el, card: cd });
+          }
+        });
+
+        if (touchedCards.length === 0) return;
+
+        // Check if an already-folded stack is between fingers -> SPREAD (Expand)
+        var foldedItem = touchedCards.find(function(tc) {
+          var hasStack = (!!tc.card.hasStack || (Array.isArray(tc.card.stack) && tc.card.stack.length > 0));
+          var isExpanded = !!(ctx.expandedStacks && ctx.expandedStacks[tc.card.id]) || !!tc.card.isStackExpanded;
+          return hasStack && !isExpanded;
+        });
+
+        if (foldedItem) {
+          pinchSession = {
+            mode: 'spread',
+            d0: d0,
+            colId: colId,
+            card: foldedItem.card,
+            el: foldedItem.el,
+            deckEl: foldedItem.el.parentElement ? foldedItem.el.parentElement.querySelector('.card-stack-deck') : null,
+            progress: 0,
+            reachedThreshold: false
+          };
+          e.preventDefault();
+        } else if (touchedCards.length >= 2) {
+          // Multiple sibling cards under the fingers -> PINCH (Fold)
+          pinchSession = {
+            mode: 'pinch',
+            d0: d0,
+            colId: colId,
+            lead: touchedCards[0],
+            rest: touchedCards.slice(1),
+            all: touchedCards,
+            progress: 0,
+            reachedThreshold: false
+          };
+          e.preventDefault();
+        }
+        return;
+      }
+
+      // --- SINGLE FINGER GESTURE (Swipe / Tap / Pull Down) ---
+      if (touches.length === 1) {
+        var t = touches[0];
+        var cardEl = t.target.closest('article.kanban-card, article.kanban-subcard');
+        var colEl = t.target.closest('.kanban-column-wrapper');
+        var scrollEl = colEl ? colEl.querySelector('.kanban-cards-scroll') : null;
+
+        var colId = colEl ? colEl.getAttribute('data-col-id') : null;
+        var colObj = (colId && ctx.board && ctx.board.columns ? ctx.board.columns.find(function(c) { return c.id === colId; }) : null);
+        var cardId = cardEl ? cardEl.getAttribute('data-card-id') : null;
+        var cardObj = null;
+        if (colObj && cardId) {
+          cardObj = (colObj.cards || []).find(function(c) { return c.id === cardId; });
+          if (!cardObj) {
+            (colObj.cards || []).forEach(function(c) {
+              if (Array.isArray(c.stack)) {
+                var sc = c.stack.find(function(s) { return s.id === cardId; });
+                if (sc) cardObj = sc;
+              }
+            });
+          }
+        }
+
+        gestureState = {
+          startX: t.clientX,
+          startY: t.clientY,
+          currentX: t.clientX,
+          currentY: t.clientY,
+          startTime: Date.now(),
+          cardEl: cardEl,
+          cardObj: cardObj,
+          colObj: colObj,
+          colId: colId,
+          scrollEl: scrollEl,
+          mode: 'undecided',
+          thresholdCrossed: false,
+          activePriorityStage: 0,
+          backdropEl: null,
+          cardW: cardEl ? cardEl.offsetWidth : 300,
+          cardH: cardEl ? cardEl.offsetHeight : 60,
+          canPullDown: false
+        };
+
+        if (scrollEl && scrollEl.scrollTop <= 2 && !cardEl) {
+          gestureState.canPullDown = true;
+        } else if (scrollEl && scrollEl.scrollTop <= 2 && cardEl) {
+          var r = cardEl.getBoundingClientRect();
+          if (t.clientY - r.top < 28) {
+            gestureState.canPullDown = true;
+          }
+        }
+      }
+    };
+
+    var onTouchMove = function(e) {
+      if (!isPhonePortrait()) return;
+
+      // Handle Two-Finger Pinch / Spread
+      if (pinchSession && e.touches.length === 2) {
+        if (e.cancelable) e.preventDefault();
+        var t1 = e.touches[0], t2 = e.touches[1];
+        var d = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
+        if (pinchSession.mode === 'pinch') {
+          var ratio = d / pinchSession.d0;
+          var progress = clamp((1 - ratio) / 0.45, 0, 1);
+          pinchSession.progress = progress;
+
+          var leadTop = pinchSession.lead.el.getBoundingClientRect().top;
+          pinchSession.rest.forEach(function(item, idx) {
+            var r = item.el.getBoundingClientRect();
+            var targetDeltaY = -(r.top - leadTop) * progress * 0.88;
+            var sc = 1 - progress * 0.04 * (idx + 1);
+            var op = 1 - progress * 0.4;
+            item.el.style.transform = 'translate3d(0, ' + targetDeltaY.toFixed(1) + 'px, 0) scale(' + sc.toFixed(3) + ')';
+            item.el.style.opacity = op.toFixed(2);
+            item.el.style.transition = 'none';
+          });
+
+          if (progress >= 0.75 && !pinchSession.reachedThreshold) {
+            pinchSession.reachedThreshold = true;
+            haptic('selection');
+          } else if (progress < 0.75 && pinchSession.reachedThreshold) {
+            pinchSession.reachedThreshold = false;
+          }
+        } else if (pinchSession.mode === 'spread') {
+          var ratio = d / pinchSession.d0;
+          var progress = clamp((ratio - 1) / 0.5, 0, 1);
+          pinchSession.progress = progress;
+          if (pinchSession.deckEl) {
+            pinchSession.deckEl.style.transform = 'translateY(' + (progress * 18).toFixed(1) + 'px) scale(' + (1 + progress * 0.08).toFixed(3) + ')';
+            pinchSession.deckEl.style.transition = 'none';
+          }
+          if (progress >= 0.75 && !pinchSession.reachedThreshold) {
+            pinchSession.reachedThreshold = true;
+            haptic('selection');
+          } else if (progress < 0.75 && pinchSession.reachedThreshold) {
+            pinchSession.reachedThreshold = false;
+          }
+        }
+        return;
+      }
+
+      if (!gestureState || e.touches.length !== 1) return;
+      var t = e.touches[0];
+      var dx = t.clientX - gestureState.startX;
+      var dy = t.clientY - gestureState.startY;
+      gestureState.currentX = t.clientX;
+      gestureState.currentY = t.clientY;
+
+      if (gestureState.mode === 'undecided') {
+        var absX = Math.abs(dx), absY = Math.abs(dy);
+        if (absX < 8 && absY < 8) return;
+
+        if (gestureState.canPullDown && dy > absX + 4 && dy > 10 && gestureState.scrollEl && gestureState.scrollEl.scrollTop <= 2) {
+          gestureState.mode = 'pull_down';
+          if (!pullGhost && gestureState.scrollEl) {
+            pullGhost = document.createElement('div');
+            pullGhost.className = 'gesture-pull-ghost';
+            pullGhost.innerHTML = '<div class="gesture-pull-ghost-inner">' +
+              '<svg class="gesture-pull-ghost-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>' +
+              '<span class="gesture-pull-ghost-label">下拉创建新卡片</span>' +
+              '</div>';
+            gestureState.scrollEl.insertBefore(pullGhost, gestureState.scrollEl.firstChild);
+          }
+        } else if (absY > absX + 4) {
+          gestureState.mode = 'scroll';
+          return;
+        } else if (gestureState.cardEl && absX > absY + 4 && absX > 10) {
+          gestureState.mode = dx > 0 ? 'swipe_right' : 'swipe_left';
+          gestureState.cardEl.classList.add('gesture-manipulating');
+          var parent = gestureState.cardEl.parentElement;
+          if (parent) {
+            parent.style.position = 'relative';
+            removeBackdrops(parent);
+
+            if (gestureState.mode === 'swipe_right') {
+              var b = document.createElement('div');
+              b.className = 'gesture-complete-backdrop';
+              b.innerHTML = '<div class="gesture-complete-pill">' +
+                '<div class="gesture-complete-circle">' +
+                '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
+                '</div>' +
+                '<span class="gesture-complete-text">滑动完成</span>' +
+                '</div>';
+              parent.insertBefore(b, gestureState.cardEl);
+              gestureState.backdropEl = b;
+            } else {
+              var b = document.createElement('div');
+              b.className = 'gesture-priority-backdrop';
+              b.innerHTML = '<div class="gesture-priority-track">' +
+                '<div class="gesture-priority-lens lens-red" data-stage="1"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">高</span></div>' +
+                '<div class="gesture-priority-lens lens-yellow" data-stage="2"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">中</span></div>' +
+                '<div class="gesture-priority-lens lens-green" data-stage="3"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">低</span></div>' +
+                '</div>';
+              parent.insertBefore(b, gestureState.cardEl);
+              gestureState.backdropEl = b;
+            }
+          }
+        }
+      }
+
+      if (gestureState.mode === 'pull_down') {
+        if (e.cancelable) e.preventDefault();
+        var pullY = clamp(dy * 0.48, 0, 78);
+        gestureState.pullY = pullY;
+        if (pullGhost) {
+          pullGhost.style.height = pullY.toFixed(1) + 'px';
+          var p = clamp(pullY / 56, 0, 1);
+          pullGhost.style.opacity = p.toFixed(2);
+          if (pullY >= 54) {
+            if (!gestureState.thresholdCrossed) {
+              gestureState.thresholdCrossed = true;
+              pullGhost.classList.add('is-ready');
+              var lbl = pullGhost.querySelector('.gesture-pull-ghost-label');
+              if (lbl) lbl.textContent = '松手立即创建';
+              haptic('selection');
+            }
+          } else {
+            if (gestureState.thresholdCrossed) {
+              gestureState.thresholdCrossed = false;
+              pullGhost.classList.remove('is-ready');
+              var lbl = pullGhost.querySelector('.gesture-pull-ghost-label');
+              if (lbl) lbl.textContent = '下拉创建新卡片';
+            }
+          }
+        }
+      } else if (gestureState.mode === 'swipe_right') {
+        if (e.cancelable) e.preventDefault();
+        var moveX = Math.max(0, dx);
+        gestureState.cardEl.style.transform = 'translate3d(' + moveX.toFixed(1) + 'px, 0, 0) rotate(' + (moveX * 0.035).toFixed(2) + 'deg)';
+
+        var completeThreshold = 85;
+        if (moveX >= completeThreshold) {
+          if (!gestureState.thresholdCrossed) {
+            gestureState.thresholdCrossed = true;
+            haptic('selection');
+            if (gestureState.backdropEl) {
+              var c = gestureState.backdropEl.querySelector('.gesture-complete-circle');
+              var txt = gestureState.backdropEl.querySelector('.gesture-complete-text');
+              if (c) c.classList.add('is-triggered');
+              if (txt) txt.textContent = '松手确认完成 ✓';
+            }
+          }
+        } else {
+          if (gestureState.thresholdCrossed) {
+            gestureState.thresholdCrossed = false;
+            if (gestureState.backdropEl) {
+              var c = gestureState.backdropEl.querySelector('.gesture-complete-circle');
+              var txt = gestureState.backdropEl.querySelector('.gesture-complete-text');
+              if (c) c.classList.remove('is-triggered');
+              if (txt) txt.textContent = '滑动完成';
+            }
+          }
+        }
+      } else if (gestureState.mode === 'swipe_left') {
+        if (e.cancelable) e.preventDefault();
+        var pullLeft = Math.max(0, -dx);
+        gestureState.cardEl.style.transform = 'translate3d(-' + pullLeft.toFixed(1) + 'px, 0, 0)';
+
+        var W = gestureState.cardW || 300;
+        var nextStage = 0;
+        if (pullLeft >= 22 && pullLeft < W * 0.33) {
+          nextStage = 1;
+        } else if (pullLeft >= W * 0.33 && pullLeft < W * 0.52) {
+          nextStage = 2;
+        } else if (pullLeft >= W * 0.52) {
+          nextStage = 3;
+        }
+
+        if (nextStage !== gestureState.activePriorityStage) {
+          gestureState.activePriorityStage = nextStage;
+          if (nextStage > 0) {
+            haptic('selection');
+            sound('click');
+          }
+          if (gestureState.backdropEl) {
+            var red = gestureState.backdropEl.querySelector('.lens-red');
+            var yel = gestureState.backdropEl.querySelector('.lens-yellow');
+            var grn = gestureState.backdropEl.querySelector('.lens-green');
+            if (red) red.classList.toggle('is-active', nextStage === 1);
+            if (yel) yel.classList.toggle('is-active', nextStage === 2);
+            if (grn) grn.classList.toggle('is-active', nextStage === 3);
+          }
+        }
+      }
+    };
+
+    var onTouchEnd = function(e) {
+      if (!isPhonePortrait()) return;
+      var ctx = ctxRef.current || {};
+
+      if (pinchSession) {
+        var sess = pinchSession;
+        pinchSession = null;
+
+        if (sess.mode === 'pinch') {
+          if (sess.progress >= 0.72) {
+            haptic('light');
+            sound('slide');
+            var leadCard = sess.lead.card;
+            var restCards = sess.rest.map(function(r) { return r.card; });
+            var restIds = restCards.map(function(c) { return c.id; });
+
+            if (ctx.board && ctx.onUpdateBoard) {
+              var nextCols = (ctx.board.columns || []).map(function(col) {
+                if (col.id !== sess.colId) return col;
+                var updatedCards = [];
+                (col.cards || []).forEach(function(card) {
+                  if (card.id === leadCard.id) {
+                    var curStack = Array.isArray(card.stack) ? card.stack.slice() : [];
+                    updatedCards.push(Object.assign({}, card, {
+                      hasStack: true,
+                      isStackExpanded: false,
+                      stack: curStack.concat(restCards)
+                    }));
+                  } else if (restIds.indexOf(card.id) === -1) {
+                    updatedCards.push(card);
+                  }
+                });
+                return Object.assign({}, col, { cards: updatedCards });
+              });
+              ctx.onUpdateBoard(Object.assign({}, ctx.board, { columns: nextCols }));
+            }
+          }
+          sess.rest.forEach(function(item) {
+            item.el.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease';
+            item.el.style.transform = '';
+            item.el.style.opacity = '';
+          });
+        } else if (sess.mode === 'spread') {
+          if (sess.progress >= 0.72) {
+            haptic('light');
+            sound('slide');
+            if (ctx.toggleStackExpand) {
+              ctx.toggleStackExpand(sess.colId, sess.card.id);
+            }
+          }
+          if (sess.deckEl) {
+            sess.deckEl.style.transition = 'transform 0.25s ease';
+            sess.deckEl.style.transform = '';
+          }
+        }
+        return;
+      }
+
+      if (!gestureState) return;
+      var gs = gestureState;
+      gestureState = null;
+
+      if (gs.mode === 'pull_down') {
+        window.__minestGestureSuppressClickUntil = Date.now() + 350;
+        if (gs.thresholdCrossed && gs.colId) {
+          haptic('light');
+          sound('add');
+          if (pullGhost) {
+            pullGhost.style.transition = 'all 0.22s ease';
+            pullGhost.style.height = '0px';
+            pullGhost.style.opacity = '0';
+            setTimeout(function() { if (pullGhost) { pullGhost.remove(); pullGhost = null; } }, 230);
+          }
+          if (ctx.setGapInsertSlot && ctx.setGapInsertText) {
+            var firstCard = gs.colObj && gs.colObj.cards && gs.colObj.cards[0] ? gs.colObj.cards[0].id : null;
+            ctx.setGapInsertSlot({ colId: gs.colId, beforeCardId: firstCard, targetIndex: 0 });
+            ctx.setGapInsertText('');
+          }
+        } else {
+          if (pullGhost) {
+            pullGhost.style.transition = 'all 0.25s ease';
+            pullGhost.style.height = '0px';
+            pullGhost.style.opacity = '0';
+            setTimeout(function() { if (pullGhost) { pullGhost.remove(); pullGhost = null; } }, 260);
+          }
+        }
+      } else if (gs.mode === 'swipe_right') {
+        window.__minestGestureSuppressClickUntil = Date.now() + 350;
+        if (gs.thresholdCrossed && gs.cardObj && gs.colId) {
+          haptic('success');
+          sound('check');
+          gs.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.28s ease';
+          gs.cardEl.style.transform = 'translate3d(115%, 0, 0)';
+          gs.cardEl.style.opacity = '0';
+          setTimeout(function() {
+            if (ctx.onToggleCardComplete) ctx.onToggleCardComplete(gs.colId, gs.cardObj.id);
+            if (gs.cardEl) {
+              gs.cardEl.style.transform = '';
+              gs.cardEl.style.opacity = '';
+              gs.cardEl.classList.remove('gesture-manipulating');
+              removeBackdrops(gs.cardEl.parentElement);
+            }
+          }, 290);
+        } else {
+          gs.cardEl.style.transition = 'transform 0.36s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+          gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
+          setTimeout(function() {
+            if (gs.cardEl) {
+              gs.cardEl.classList.remove('gesture-manipulating');
+              removeBackdrops(gs.cardEl.parentElement);
+            }
+          }, 370);
+        }
+      } else if (gs.mode === 'swipe_left') {
+        window.__minestGestureSuppressClickUntil = Date.now() + 350;
+        if (gs.activePriorityStage > 0 && gs.cardObj && gs.colId) {
+          var pVal = (gs.activePriorityStage === 1 ? 'high' : gs.activePriorityStage === 2 ? 'medium' : 'low');
+          if (gs.cardObj.priority === pVal && pVal === 'high') pVal = null;
+          haptic('light');
+          sound('add');
+          if (ctx.onUpdateCardPriority) ctx.onUpdateCardPriority(gs.colId, gs.cardObj.id, pVal);
+        }
+        gs.cardEl.style.transition = 'transform 0.36s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
+        setTimeout(function() {
+          if (gs.cardEl) {
+            gs.cardEl.classList.remove('gesture-manipulating');
+            removeBackdrops(gs.cardEl.parentElement);
+          }
+        }, 370);
+      } else if (gs.mode === 'undecided' && gs.cardEl && gs.cardObj) {
+        // TAP: Single Tap vs Double Tap
+        var now = Date.now();
+        var cardId = gs.cardObj.id;
+
+        if (lastTap.cardId === cardId && (now - lastTap.time) < 280) {
+          // DOUBLE TAP -> Ripple Mode
+          window.__minestGestureSuppressClickUntil = Date.now() + 350;
+          if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
+          lastTap.time = 0;
+          lastTap.cardId = null;
+
+          haptic('selection');
+          sound('ripple_plip');
+          if (window.RippleExplore && window.RippleExplore.triggerAt) {
+            window.RippleExplore.triggerAt(lane, gs.currentX, gs.currentY);
+          }
+        } else {
+          // First tap -> start timer for Single Tap
+          lastTap.time = now;
+          lastTap.cardId = cardId;
+          if (lastTap.timer) clearTimeout(lastTap.timer);
+          lastTap.timer = setTimeout(function() {
+            lastTap.time = 0;
+            lastTap.cardId = null;
+            lastTap.timer = null;
+            // SINGLE TAP -> Open Existing Quick Edit
+            if (ctx.openQuickEdit && gs.cardEl && gs.cardObj && gs.colObj) {
+              ctx.openQuickEdit(gs.cardObj, gs.colObj, gs.cardEl);
+            }
+          }, 240);
+        }
+      }
+    };
+
+    lane.addEventListener('touchstart', onTouchStart, { passive: false });
+    lane.addEventListener('touchmove', onTouchMove, { passive: false });
+    lane.addEventListener('touchend', onTouchEnd, { passive: false });
+    lane.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+    return function() {
+      if (lastTap.timer) clearTimeout(lastTap.timer);
+      lane.removeEventListener('touchstart', onTouchStart);
+      lane.removeEventListener('touchmove', onTouchMove);
+      lane.removeEventListener('touchend', onTouchEnd);
+      lane.removeEventListener('touchcancel', onTouchEnd);
+      if (pullGhost) { pullGhost.remove(); pullGhost = null; }
+    };
+  };
+
+  var api = { mount: mount, isPhonePortrait: isPhonePortrait };
+  window.MinestPortraitGestureManager = api;
+  return api;
+})();
 
 // =========================================================================
 // Kanban Board View Component (ke) - Upgraded with Collapse, Filters, Sort
@@ -22175,6 +23520,27 @@ var ke = function(props) {
     return RippleExplore.mount(lane);
   }, [layoutMode, board.id]);
 
+  // Phase 5: Focusboard iPhone Portrait — Gesture-First Interaction Redesign
+  var mobileGestureContextRef = (0, _.useRef)({});
+  mobileGestureContextRef.current = {
+    board: board,
+    onToggleCardComplete: onToggleCardComplete,
+    onUpdateCardPriority: onUpdateCardPriority,
+    openQuickEdit: openQuickEdit,
+    setGapInsertSlot: setGapInsertSlot,
+    setGapInsertText: setGapInsertText,
+    onUpdateBoard: onUpdateBoard,
+    toggleStackExpand: toggleStackExpand,
+    expandedStacks: expandedStacks,
+    setExpandedStacks: setExpandedStacks
+  };
+
+  (0, _.useEffect)(function() {
+    var lane = swimlaneRef.current;
+    if (!lane || layoutMode !== 'swimlane') return;
+    return MinestPortraitGestureManager.mount(lane, mobileGestureContextRef);
+  }, [layoutMode, board.id]);
+
   // Measure the actual board, including the desktop iPhone preview frame.
   (0, _.useLayoutEffect)(function() {
     var el = swimlaneRef.current;
@@ -22927,6 +24293,7 @@ var ke = function(props) {
                   SoundEngine.play('add');
                 }
               },
+              'data-col-id': col.id,
               className: "kanban-column-wrapper snap-start w-72 md:w-80 shrink-0 rounded-3xl p-4 flex flex-col transition-all duration-200 border backdrop-blur-2xl liquid-glass-list max-h-[calc(100vh-100px)] " +
                 (isPinned ? "pinned-column " : "") +
                 (isOccluded ? "occluded-by-pin " : "") +
@@ -23583,6 +24950,7 @@ var ke = function(props) {
                             },
                             onClick: function(e) {
                               if (justClosedQuickEditRef.current) return;
+                              if (window.__minestGestureSuppressClickUntil && Date.now() < window.__minestGestureSuppressClickUntil) return;
                               if (hasStack && !isStackExpanded) {
                                 e.stopPropagation();
                                 toggleStackExpand(col.id, card.id);
@@ -23594,6 +24962,10 @@ var ke = function(props) {
                             },
                             onDoubleClick: function() {
                               if (justClosedQuickEditRef.current) return;
+                              if (window.__minestGestureSuppressClickUntil && Date.now() < window.__minestGestureSuppressClickUntil) return;
+                              if (window.MinestPortraitGestureManager && window.MinestPortraitGestureManager.isPhonePortrait()) {
+                                return;
+                              }
                               if (!isStackExpanded) collapseAllStacks();
                               if (quickMenuCardId) closeQuickEdit();
                               onOpenCardModal(col.id, card.id);
@@ -23964,10 +25336,15 @@ var ke = function(props) {
                                     onDragEnd: handleCardDragEnd,
                                     onClick: function(e) {
                                       if (justClosedQuickEditRef.current) return;
+                                      if (window.__minestGestureSuppressClickUntil && Date.now() < window.__minestGestureSuppressClickUntil) return;
                                       openQuickEdit(sub, col, e.currentTarget);
                                     },
                                     onDoubleClick: function() {
                                       if (justClosedQuickEditRef.current) return;
+                                      if (window.__minestGestureSuppressClickUntil && Date.now() < window.__minestGestureSuppressClickUntil) return;
+                                      if (window.MinestPortraitGestureManager && window.MinestPortraitGestureManager.isPhonePortrait()) {
+                                        return;
+                                      }
                                       if (quickMenuCardId) closeQuickEdit();
                                       onOpenCardModal(col.id, sub.id);
                                     },
@@ -27412,6 +28789,10 @@ var Be = function() {
   var cardModal = cardModalState[0];
   var setCardModal = cardModalState[1];
 
+  var physicalCardState = (0, _.useState)({ isOpen: false, initialIdx: 0, cards: [] });
+  var physicalCard = physicalCardState[0];
+  var setPhysicalCard = physicalCardState[1];
+
   var boardPickerState = (0, _.useState)(false);
   var isBoardPickerOpen = boardPickerState[0];
   var setIsBoardPickerOpen = boardPickerState[1];
@@ -27571,7 +28952,7 @@ var Be = function() {
     }
   }, [activeBoard, selectedColFilter]);
 
-  // Handle board/list selection triggered from Apple Watch
+  // Handle board/list selection and physical card mode triggered from native
   (0, _.useEffect)(function() {
     var handleNativeEvent = function(e) {
       if (e.detail) {
@@ -27581,12 +28962,66 @@ var Be = function() {
           setActiveBoardId(pl.boardId);
         } else if (ev === 'watchListSelected' && pl.listId) {
           setSelectedColFilter(pl.listId);
+        } else if (ev === 'openPhysicalCard') {
+          setPhysicalCard({ isOpen: true, initialIdx: pl.initialIdx || 0, cards: pl.cards || [] });
+        } else if (ev === 'closePhysicalCard') {
+          setPhysicalCard({ isOpen: false, initialIdx: 0, cards: [] });
         }
       }
     };
     window.addEventListener('minestNativeEvent', handleNativeEvent);
-    return function() { window.removeEventListener('minestNativeEvent', handleNativeEvent); };
+
+    window.openPhysicalCardMode = function(idx, cardList) {
+      setPhysicalCard({ isOpen: true, initialIdx: idx || 0, cards: cardList || [] });
+    };
+    window.closePhysicalCardMode = function() {
+      setPhysicalCard({ isOpen: false, initialIdx: 0, cards: [] });
+    };
+
+    return function() {
+      window.removeEventListener('minestNativeEvent', handleNativeEvent);
+      window.openPhysicalCardMode = null;
+      window.closePhysicalCardMode = null;
+    };
   }, []);
+
+  // Ingestion listener for Share Extension & Siri cards
+  (0, _.useEffect)(function() {
+    var handleCardCreated = function(e) {
+      if (!e.detail) return;
+      var detail = e.detail;
+      var newCard = {
+        id: detail.id || ("card-share-" + Date.now()),
+        title: detail.title || "Shared Card",
+        desc: detail.item || detail.notes || "",
+        labels: ["l-green"],
+        complete: false,
+        mastery: 3,
+        checklistItems: []
+      };
+      setBoards(function(prevBoards) {
+        return prevBoards.map(function(board) {
+          var isTargetBoard = (board.id === activeBoardId) || (board.title && detail.category && board.title.indexOf(detail.category) !== -1);
+          if (!isTargetBoard) return board;
+          var newCols = (board.columns || []).map(function(col, idx) {
+            if (idx === 0) {
+              return Object.assign({}, col, {
+                cards: [newCard].concat(col.cards || [])
+              });
+            }
+            return col;
+          });
+          return Object.assign({}, board, { columns: newCols });
+        });
+      });
+      if (window.GlassUI && window.GlassUI.toast) {
+        window.GlassUI.toast("📥 已收录至看板：" + newCard.title);
+      }
+    };
+    window.addEventListener('minestCardCreated', handleCardCreated);
+    return function() { window.removeEventListener('minestCardCreated', handleCardCreated); };
+  }, [activeBoardId]);
+
 
   // Auto-track App Usage Focus Duration: 1 min per 60 seconds
   (0, _.useEffect)(function() {
@@ -28838,6 +30273,26 @@ var Be = function() {
           })
         )
       }),
+
+      // Physical Card Mode (iPhone IS the Physical Card)
+      physicalCard.isOpen ? (0, P.jsx)(PhysicalCardModeOverlay, {
+        cards: (physicalCard.cards && physicalCard.cards.length > 0) ? physicalCard.cards : (activeBoard.columns || []).flatMap(function(c) {
+          return (c.cards || []).map(function(card) {
+            return Object.assign({}, card, {
+              columnId: c.id,
+              columnTitle: c.title,
+              columnColor: c.color || "#30d158"
+            });
+          });
+        }),
+        initialIndex: physicalCard.initialIdx || 0,
+        board: activeBoard,
+        themeMode: themeMode,
+        onClose: function() { setPhysicalCard({ isOpen: false, initialIdx: 0, cards: [] }); },
+        onToggleCardComplete: toggleCardComplete,
+        onToggleChecklistItem: toggleChecklistItem,
+        onUpdateCardMastery: updateCardMastery
+      }) : null,
 
       // Card Modal
       cardModal.isOpen ? (0, P.jsx)(je, {
