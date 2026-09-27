@@ -13370,88 +13370,34 @@ var Badge3DViewer = function(props) {
   });
 };
 
-// --- Badge Detail Modal ---
+// --- Official Minest 3D Awards Modal (AI Studio Embed) ---
 var BadgeDetailModal = function(props) {
-  var badge = props.badge;
-  var unlocked = props.unlocked;
-  var unlockedAt = props.unlockedAt;
-  var isDark = props.isDark;
   var onClose = props.onClose;
 
   (0, _.useEffect)(function() {
     var handler = function(e) { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
     return function() { document.removeEventListener('keydown', handler); };
-  }, []);
+  }, [onClose]);
 
-  return (0, P.jsx)('div', {
-    className: 'fixed inset-0 z-[200] flex items-center justify-center p-4',
-    onClick: function(e) { if (e.target === e.currentTarget) onClose(); },
-    style: { background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(20px)' },
-    children: (0, P.jsxs)('div', {
-      className: 'relative flex flex-col items-center gap-5 p-8 rounded-3xl border shadow-2xl max-w-xs w-full animate-fadeIn',
-      style: {
-        background: isDark ? 'linear-gradient(180deg, #1a2332 0%, #111827 100%)' : 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)',
-        borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-      },
-      children: [
-        (0, P.jsx)('button', {
-          onClick: onClose,
-          style: { position: 'absolute', top: '16px', right: '16px' },
-          className: 'p-1.5 rounded-full opacity-60 hover:opacity-100 transition-opacity ' + (isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'),
-          children: (0, P.jsx)(Te, { className: 'w-4 h-4' })
-        }),
-        (0, P.jsx)('div', {
-          className: 'text-xs font-semibold uppercase tracking-widest opacity-50',
-          children: unlocked ? '✦ Earned' : '🔒 Locked'
-        }),
-        (0, P.jsx)(Badge3DViewer, {
-          badge: badge, size: 160, animate: true, isDark: isDark
-        }),
-        (0, P.jsxs)('div', {
-          className: 'flex flex-col items-center gap-1.5',
-          children: [
-            (0, P.jsx)('h2', {
-              className: 'text-xl font-bold tracking-tight ' + (isDark ? 'text-white' : 'text-slate-900'),
-              children: badge.title
-            }),
-            (0, P.jsx)('p', {
-              className: 'text-sm text-center opacity-60 ' + (isDark ? 'text-white' : 'text-slate-700'),
-              children: badge.desc
-            }),
-            (0, P.jsx)('div', {
-              className: 'px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider',
-              style: {
-                background: badge.rarity === 'legendary' ? 'linear-gradient(90deg,#ffd700,#ff9f0a)' :
-                             badge.rarity === 'epic' ? 'linear-gradient(90deg,#bf5af2,#9b30d9)' :
-                             badge.rarity === 'rare' ? 'linear-gradient(90deg,#30a8ff,#0070f3)' :
-                             badge.rarity === 'uncommon' ? 'linear-gradient(90deg,#30d158,#00b890)' :
-                             'rgba(150,150,150,0.3)',
-                color: badge.rarity === 'common' ? (isDark ? '#999' : '#666') : '#fff',
-              },
-              children: badge.rarity || 'Common'
-            }),
-            unlocked && unlockedAt ? (0, P.jsx)('p', {
-              className: 'text-[11px] opacity-40 ' + (isDark ? 'text-white' : 'text-slate-700'),
-              children: 'Earned ' + new Date(unlockedAt).toLocaleDateString()
-            }) : null
-          ]
-        }),
-        (0, P.jsxs)('a', {
-          href: 'badge3.0.html?award=' + (badge.badge3Id || 'perfect-week-study') + '&from=iphone.html',
-          className: 'w-full py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition-all shadow-md active:scale-95 ' + (isDark ? 'bg-gradient-to-r from-amber-500/25 via-orange-500/25 to-pink-500/25 border border-amber-400/40 text-amber-200 hover:text-white hover:border-amber-300' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:brightness-105 shadow-amber-500/20'),
-          children: [
-            (0, P.jsx)('span', { children: '🎖️' }),
-            (0, P.jsx)('span', { children: 'Inspect in 3D Spatial Badge Studio' }),
-            (0, P.jsx)('span', { children: '›' })
-          ]
-        }),
-        (0, P.jsx)('p', {
-          className: 'text-[11px] opacity-30 mt-0.5',
-          children: 'Drag to rotate • Tap button to open Badge 3.0'
-        })
-      ]
-    })
+  return (0, P.jsxs)('div', {
+    className: 'minest-award-modal fixed inset-0 z-[200] flex flex-col bg-black animate-fadeIn',
+    style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, background: '#000000' },
+    children: [
+      (0, P.jsx)('button', {
+        onClick: onClose,
+        style: { position: 'absolute', top: '16px', right: '16px', zIndex: 210 },
+        className: 'w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 border border-white/20 flex items-center justify-center text-white backdrop-blur-md transition-all active:scale-95 shadow-xl',
+        title: 'Close Awards (ESC)',
+        children: (0, P.jsx)(Te, { className: 'w-5 h-5' })
+      }),
+      (0, P.jsx)('iframe', {
+        src: 'https://ais-dev-iy5etp3ruh7et6mk4yggge-867932209015.us-east1.run.app?embed=true',
+        title: 'Minest 3D Awards',
+        style: { width: '100%', height: '100vh', border: 'none', background: '#000000' },
+        allow: 'accelerometer; gyroscope'
+      })
+    ]
   });
 };
 
@@ -14059,11 +14005,14 @@ var SummaryView = function(props) {
                       })
                     ]
                   }),
-                  // 3D Badge on Pedestal
+                  // Award Icon (No fallback sphere)
                   (0, P.jsxs)('div', {
                     className: 'my-1 py-1 flex flex-col items-center justify-center ios-badge-glow',
                     children: [
-                      (0, P.jsx)(Badge3DViewer, { badge: featuredBadge, size: (typeof window !== 'undefined' && window.innerWidth <= 640) ? 62 : 82, animate: true, isDark: isDark }),
+                      (0, P.jsx)('div', {
+                        className: 'w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400/25 to-orange-500/20 border border-amber-400/35 flex items-center justify-center text-3xl shadow-md',
+                        children: featuredBadge.emoji || '🎖️'
+                      })
                     ]
                   }),
                   // Badge info & Studio link
@@ -14071,13 +14020,16 @@ var SummaryView = function(props) {
                     className: 'pt-2 mt-auto w-full border-t flex flex-col items-center gap-1 ' + (isDark ? 'border-white/[0.08]' : 'border-black/[0.06]'),
                     children: [
                       (0, P.jsx)('span', { className: 'text-xs font-bold tracking-tight ' + textPrimary, children: featuredBadge.title }),
-                      (0, P.jsxs)('a', {
-                        href: 'badge3.0.html?award=' + (featuredBadge.badge3Id || 'perfect-week-study') + '&from=iphone.html',
-                        onClick: function(e) { e.stopPropagation(); },
+                      (0, P.jsxs)('button', {
+                        onClick: function(e) {
+                          e.stopPropagation();
+                          setBadgeModal({ badge: featuredBadge, unlocked: true });
+                          SoundEngine.play('click');
+                        },
                         className: 'flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all active:scale-95 ' + (isDark ? 'bg-amber-400/10 text-amber-300 border-amber-400/25 hover:bg-amber-400/20' : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'),
                         children: [
                           (0, P.jsx)('span', { children: '🎖️' }),
-                          (0, P.jsx)('span', { children: '3D Badge Studio' }),
+                          (0, P.jsx)('span', { children: 'View in 3D Awards' }),
                           (0, P.jsx)('span', { className: 'text-[9px] opacity-70', children: '›' })
                         ]
                       })
@@ -14088,104 +14040,16 @@ var SummaryView = function(props) {
             ]
           }),
 
-          // ── 3. Awards Gallery (Liquid Glass Showcase) ──
-          (0, P.jsxs)('div', {
-            className: glassCard + ' flex flex-col gap-4',
-            children: [
-              (0, P.jsxs)('div', {
-                className: 'flex items-center justify-between flex-wrap gap-2',
-                children: [
-                  (0, P.jsxs)('div', {
-                    className: 'flex items-center gap-2 flex-wrap',
-                    children: [
-                      (0, P.jsx)('span', { className: 'text-base font-bold tracking-tight ' + textPrimary, children: 'Awards Gallery' }),
-                      (0, P.jsxs)('span', {
-                        className: 'text-xs px-2.5 py-0.5 rounded-full font-bold border ' + (isDark ? 'border-amber-400/30 bg-amber-400/10 text-amber-300' : 'border-amber-500/30 bg-amber-50 text-amber-800'),
-                        children: [unlockedBadges.length, ' / ', BADGE_DEFINITIONS.length, ' earned']
-                      }),
-                      (0, P.jsxs)('a', {
-                        href: 'badge3.0.html?from=iphone.html',
-                        className: 'flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all shadow-sm active:scale-95 ' + (isDark ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-400/30 text-amber-300 hover:border-amber-300 hover:bg-amber-500/30' : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 text-amber-900 hover:bg-amber-100'),
-                        children: [
-                          (0, P.jsx)('span', { children: '🚀' }),
-                          (0, P.jsx)('span', { children: '3D Studio (50 Awards)' }),
-                          (0, P.jsx)('span', { className: 'opacity-70', children: '›' })
-                        ]
-                      })
-                    ]
-                  }),
-                  // Filter tabs
-                  (0, P.jsxs)('div', {
-                    className: 'flex items-center p-0.5 rounded-xl border ' + (isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-100'),
-                    children: [
-                      ['all', 'All'],
-                      ['earned', 'Earned'],
-                      ['locked', 'Locked']
-                    ].map(function(item) {
-                      var key = item[0], label = item[1];
-                      var active = galleryFilter === key;
-                      return (0, P.jsx)('button', {
-                        key: key,
-                        onClick: function() { setGalleryFilter(key); SoundEngine.play('click'); },
-                        className: 'px-2 py-0.5 rounded-lg text-[11px] font-semibold transition-all ' + (active ? (isDark ? 'bg-white/20 text-white shadow-sm' : 'bg-white text-slate-900 shadow-sm') : textSecondary),
-                        children: label
-                      });
-                    })
-                  })
-                ]
-              }),
-
-              // Badges Grid
-              (0, P.jsx)('div', {
-                className: 'ios-badges-grid pt-1',
-                children: BADGE_DEFINITIONS.filter(function(b) {
-                  if (galleryFilter === 'earned') return unlockedMap[b.id];
-                  if (galleryFilter === 'locked') return !unlockedMap[b.id];
-                  return true;
-                }).map(function(b) {
-                  var isUnlocked = !!unlockedMap[b.id];
-                  return (0, P.jsxs)('div', {
-                    key: b.id,
-                    onClick: function() {
-                      setBadgeModal({ badge: b, unlocked: isUnlocked, unlockedAt: unlockedMap[b.id] });
-                      SoundEngine.play('click');
-                    },
-                    className: 'cursor-pointer flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all duration-200 group ' + (isUnlocked ? (isDark ? 'border-white/12 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/25 hover:scale-105' : 'border-slate-200 bg-white/60 hover:bg-white hover:border-slate-300 hover:scale-105') : (isDark ? 'border-white/5 bg-white/[0.01] opacity-45 hover:opacity-70' : 'border-slate-200/50 bg-slate-100/50 opacity-45 hover:opacity-70')),
-                    children: [
-                      isUnlocked ? (
-                        (0, P.jsx)('div', {
-                          className: 'ios-badge-glow',
-                          children: (0, P.jsx)(Badge3DViewer, { badge: b, size: 68, animate: true, isDark: isDark })
-                        })
-                      ) : (
-                        (0, P.jsx)('div', {
-                          style: {
-                            width: 68, height: 68,
-                            clipPath: 'polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%)',
-                            background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '22px',
-                            filter: 'grayscale(1)',
-                            border: '1px solid ' + (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)')
-                          },
-                          children: '🔒'
-                        })
-                      ),
-                      (0, P.jsxs)('div', {
-                        className: 'flex flex-col items-center text-center',
-                        children: [
-                          (0, P.jsx)('span', { className: 'text-[11px] font-bold truncate max-w-[85px] ' + (isUnlocked ? textPrimary : textSecondary), children: b.title }),
-                          (0, P.jsx)('span', {
-                            className: 'text-[9px] uppercase tracking-wider font-semibold opacity-60',
-                            children: b.rarity
-                          })
-                        ]
-                      })
-                    ]
-                  });
-                })
-              })
-            ]
+          // ── 3. Minest 3D Awards (AI Studio Official Embedded iframe) ──
+          (0, P.jsx)('div', {
+            className: 'minest-award-modal w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl my-2',
+            style: { width: '100%', minHeight: '650px', height: '85vh', background: '#000000', border: 'none' },
+            children: (0, P.jsx)('iframe', {
+              src: 'https://ais-dev-iy5etp3ruh7et6mk4yggge-867932209015.us-east1.run.app?embed=true',
+              title: 'Minest 3D Awards',
+              style: { width: '100%', height: '100%', minHeight: '650px', border: 'none', background: '#000000', display: 'block' },
+              allow: 'accelerometer; gyroscope'
+            })
           }),
 
           // ── 4. Configurable Goals Section (Apple Health / Fitness Style) ──
