@@ -110,7 +110,7 @@ public struct MinestWebView: UIViewRepresentable {
         }
         
         private func fallback(in webView: WKWebView) {
-            if let fallbackURL = URL(string: "https://focusboard-drab.vercel.app") {
+            if let fallbackURL = URL(string: "https://minest-app.vercel.app") {
                 print("🔄 [MinestWebView] Falling back to remote production URL: \(fallbackURL)")
                 webView.load(URLRequest(url: fallbackURL))
             }

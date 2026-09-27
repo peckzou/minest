@@ -11,7 +11,7 @@ struct ContentView: View {
             return bundlePath
         }
         // 2. Fallback to production web URL
-        return URL(string: "https://focusboard-drab.vercel.app") ?? URL(string: "http://localhost:3005")!
+        return URL(string: "https://minest-app.vercel.app") ?? URL(string: "http://localhost:3005")!
     }
     
     var body: some View {

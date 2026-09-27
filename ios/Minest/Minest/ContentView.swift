@@ -38,7 +38,7 @@ struct ContentView: View {
             return indexPath
         }
         print("⚠️ [ContentView] No local bundle found, falling back to remote URL")
-        return URL(string: "https://focusboard-drab.vercel.app")!
+        return URL(string: "https://minest-app.vercel.app")!
     }
     
     var body: some View {

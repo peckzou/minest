@@ -379,7 +379,7 @@ public struct MinestWebView: UIViewRepresentable {
             if let bundlePath = Bundle.main.url(forResource: "iphone12.8", withExtension: "html") ?? Bundle.main.url(forResource: "iphone12.8.html", withExtension: nil) {
                 print("🔄 [MinestWebView] Falling back to local bundle: \(bundlePath)")
                 webView.loadFileURL(bundlePath, allowingReadAccessTo: bundlePath.deletingLastPathComponent())
-            } else if let fallbackURL = URL(string: "https://focusboard-drab.vercel.app") {
+            } else if let fallbackURL = URL(string: "https://minest-app.vercel.app") {
                 print("🔄 [MinestWebView] Falling back to remote production URL: \(fallbackURL)")
                 webView.load(URLRequest(url: fallbackURL))
             }
