@@ -13470,13 +13470,23 @@ var ActivityRings = function(props) {
             transform: 'rotate(-90 ' + cx + ' ' + cy + ')',
             style: { transition: 'stroke-dashoffset 1s ease', filter: 'drop-shadow(0 0 4px ' + ring.color + '99)' },
           }),
-          // Dot at end of arc
-          pct > 2 ? (0, P.jsx)('circle', {
-            cx: cx + radius * Math.cos((pct / 100 * 360 - 90) * Math.PI / 180),
-            cy: cy + radius * Math.sin((pct / 100 * 360 - 90) * Math.PI / 180),
-            r: ringW / 2 + 1,
-            fill: ring.color,
-            style: { filter: 'drop-shadow(0 0 3px ' + ring.color + ')' },
+          // Specular glowing tip at end of arc (Apple Fitness design)
+          pct > 2 ? (0, P.jsxs)('g', {
+            transform: 'translate(' + (cx + radius * Math.cos((pct / 100 * 360 - 90) * Math.PI / 180)) + ', ' + (cy + radius * Math.sin((pct / 100 * 360 - 90) * Math.PI / 180)) + ')',
+            children: [
+              (0, P.jsx)('circle', {
+                cx: 0, cy: 0,
+                r: ringW / 2 + 0.6,
+                fill: ring.color,
+                style: { filter: 'drop-shadow(0 0 5px ' + ring.color + ')' },
+              }),
+              (0, P.jsx)('circle', {
+                cx: 0, cy: 0,
+                r: ringW / 3.8,
+                fill: '#ffffff',
+                opacity: 0.95
+              })
+            ]
           }) : null,
         ]
       });
@@ -13620,19 +13630,19 @@ var SummaryView = function(props) {
                 // Apple Health / Fitness style Goals pill button
                 (0, P.jsxs)('button', {
                   onClick: function() { setIsGoalEditOpen(true); SoundEngine.play('click'); },
-                  className: 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ' + (isDark ? 'border-white/15 bg-white/10 text-white/90 hover:bg-white/15 hover:border-white/25 shadow-sm' : 'border-slate-300 bg-white/90 text-slate-700 hover:bg-white hover:border-slate-400 shadow-sm'),
+                  className: 'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ' + (isDark ? 'border-white/15 bg-white/10 text-white/90 hover:bg-white/15 hover:border-white/25 shadow-sm' : 'border-slate-300 bg-white/90 text-slate-700 hover:bg-white hover:border-slate-400 shadow-sm'),
                   children: [
                     (0, P.jsx)('span', { children: '⚙️' }),
-                    (0, P.jsx)('span', { children: 'Goals' })
+                    (0, P.jsx)('span', { className: 'hidden sm:inline', children: 'Goals' })
                   ]
                 }),
-                // Return to Board button
+                // Return to Board button (hidden on mobile when bottom dock is present)
                 (0, P.jsxs)('button', {
                   onClick: function() { onSetViewMode('board'); SoundEngine.play('click'); },
-                  className: 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ' + (isDark ? 'border-white/15 bg-white/10 text-white/90 hover:bg-white/15 hover:border-white/25 shadow-sm' : 'border-slate-300 bg-white/90 text-slate-700 hover:bg-white hover:border-slate-400 shadow-sm'),
+                  className: 'hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ' + (isDark ? 'border-white/15 bg-white/10 text-white/90 hover:bg-white/15 hover:border-white/25 shadow-sm' : 'border-slate-300 bg-white/90 text-slate-700 hover:bg-white hover:border-slate-400 shadow-sm'),
                   children: [
                     (0, P.jsx)('span', { children: '←' }),
-                    (0, P.jsx)('span', { className: 'hidden sm:inline', children: 'Board' })
+                    (0, P.jsx)('span', { children: 'Board' })
                   ]
                 }),
                 // Apple Fitness user avatar circle
@@ -13652,7 +13662,7 @@ var SummaryView = function(props) {
 
       // ── Main Layout Body ──
       (0, P.jsxs)('div', {
-        className: 'px-4 sm:px-6 pt-5 pb-16 max-w-3xl mx-auto flex flex-col gap-4 sm:gap-5',
+        className: 'px-4 sm:px-6 pt-5 pb-28 sm:pb-16 max-w-3xl mx-auto flex flex-col gap-4 sm:gap-5',
         children: [
 
           // ── 1. Activity Rings Card (Exact Apple Fitness Layout) ──
@@ -13662,7 +13672,7 @@ var SummaryView = function(props) {
               // Rings SVG on Left
               (0, P.jsx)('div', {
                 className: 'shrink-0 flex items-center justify-center relative py-1',
-                children: (0, P.jsx)(ActivityRings, { rings: ringData, size: 155 })
+                children: (0, P.jsx)(ActivityRings, { rings: ringData, size: (typeof window !== 'undefined' && window.innerWidth <= 640) ? 128 : 155 })
               }),
               // Right Column: Move / Exercise / Stand stats
               (0, P.jsxs)('div', {
