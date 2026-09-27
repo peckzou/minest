@@ -4350,14 +4350,14 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
 
 /* 1. Full-Screen Physical Card Hero Styling */
 .coverflow-card-item.is-headsup-hero {
-  border-radius: 0 !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), inset 0 1px 0 rgba(255,255,255,.42) !important;
+  border-radius: 42px !important;
+  box-shadow: 0 34px 90px -18px rgba(0,0,0,.82), inset 0 0 0 1px rgba(255,255,255,.18), inset 0 1px 0 rgba(255,255,255,.48) !important;
   z-index: 120 !important;
 }
 .coverflow-card-item.is-headsup-hero .coverflow-flipper,
 .coverflow-card-item.is-headsup-hero .face-front,
 .coverflow-card-item.is-headsup-hero .face-back {
-  border-radius: 0 !important;
+  border-radius: 42px !important;
 }
 .coverflow-card-item.is-headsup-hero::after {
   content: "";
@@ -4365,6 +4365,7 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   inset: 0;
   z-index: 80;
   pointer-events: none;
+  border-radius: inherit;
   box-shadow: inset 0 0 44px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.5);
   background: linear-gradient(118deg, transparent 28%, rgba(255,255,255,.08) 45%, transparent 62%);
 }
@@ -17607,6 +17608,7 @@ var Oe = function(props) {
   var huParticleCanvasRef = (0, _.useRef)(null);
   var huLongPressTimerRef = (0, _.useRef)(null);
   var huActionLockRef = (0, _.useRef)(false);
+  var huSuppressClickRef = (0, _.useRef)(false);
   var PHYSICAL_THRESHOLDS = {
     throwDistance: 95,
     throwVelocity: 0.55,
@@ -18355,6 +18357,7 @@ var Oe = function(props) {
       if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
       huLongPressTimerRef.current = setTimeout(function() {
         if (huTouchStartRef.current.active && headsUpRef.current.physicalState === 'PRESSING') {
+          huSuppressClickRef.current = true;
           headsUpControllerRef.current.grabCard();
         }
       }, PHYSICAL_THRESHOLDS.longPressMs);
@@ -18388,6 +18391,7 @@ var Oe = function(props) {
       track.lastT = now;
 
       if (Math.hypot(dx, dy) > PHYSICAL_THRESHOLDS.dragSlop && s.physicalState === 'PRESSING') {
+        huSuppressClickRef.current = true;
         if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
         setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'DRAGGING' }); });
       }
@@ -18565,6 +18569,9 @@ var Oe = function(props) {
   var onPointerDown = function(e) {
     if (headsUpRef.current && headsUpRef.current.active) {
       if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerDown(e.clientX, e.clientY, e.target);
+      try {
+        if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+      } catch(err) {}
       return;
     }
     // iPhone/iPad use the native non-passive touch listeners below. Keeping
@@ -18584,7 +18591,8 @@ var Oe = function(props) {
 
   var onPointerMove = function(e) {
     if (headsUpRef.current && headsUpRef.current.active) {
-      if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerMove(e);
+      if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerMove(e.clientX, e.clientY);
+      if (e.cancelable) e.preventDefault();
       return;
     }
     if (e.pointerType === 'touch') return;
@@ -18617,6 +18625,9 @@ var Oe = function(props) {
   var onPointerUp = function(e) {
     if (headsUpRef.current && headsUpRef.current.active) {
       if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerUp(e.clientX, e.clientY, e.target);
+      try {
+        if (e.currentTarget && e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch(err) {}
       return;
     }
     if (e.pointerType === 'touch') return;
@@ -21195,6 +21206,10 @@ var Oe = function(props) {
         onLostPointerCapture: onPointerUp,
         onClick: function(e) {
           if (headsUpRef.current && headsUpRef.current.active) {
+            if (huSuppressClickRef.current) {
+              huSuppressClickRef.current = false;
+              return;
+            }
             if (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
             var curCard = cards[activeIdx];
             var curEl = curCard ? cardElRefs[curCard.id] : null;
@@ -21292,6 +21307,11 @@ var Oe = function(props) {
                 if (isCenter) {
                   var targetZ = 0;
                   var targetScale = 1;
+                  var huMaxWidth = Math.max(260, viewportSize.w - (isLandscape ? 72 : 28));
+                  var huMaxHeight = Math.max(360, stageHeight - (isLandscape ? 28 : 76));
+                  var huCardScale = Math.min(huMaxWidth / cardWidth, huMaxHeight / cardHeight, isLandscape ? 1.18 : 1.34);
+                  var huCardWidth = Math.round(cardWidth * huCardScale);
+                  var huCardHeight = Math.round(cardHeight * huCardScale);
                   
                   transX = 0;
                   transY = 0;
@@ -21404,6 +21424,11 @@ var Oe = function(props) {
                 // the correct target from the tap's actual screen position
                 // instead of from whichever overlapping element caught it.
                 onClick: function(e) {
+                  if (isHu && huSuppressClickRef.current) {
+                    huSuppressClickRef.current = false;
+                    e.stopPropagation();
+                    return;
+                  }
                   if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
                   if (isCenter) {
                     toggleCardFlip(card.id, e);
@@ -21417,11 +21442,11 @@ var Oe = function(props) {
                   position: "absolute",
                   top: "50%",
                   left: "50%",
-                  width: isHu && isCenter ? "100vw" : cardWidth + "px",
-                  height: isHu && isCenter ? "100dvh" : cardHeight + "px",
-                  marginLeft: isHu && isCenter ? "-50vw" : marginLeft + "px",
-                  marginTop: isHu && isCenter ? "-50dvh" : marginTop + "px",
-                  borderRadius: isHu && isCenter ? "0" : "32px",
+                  width: isHu && isCenter ? huCardWidth + "px" : cardWidth + "px",
+                  height: isHu && isCenter ? huCardHeight + "px" : cardHeight + "px",
+                  marginLeft: isHu && isCenter ? (-huCardWidth / 2) + "px" : marginLeft + "px",
+                  marginTop: isHu && isCenter ? (-huCardHeight / 2) + "px" : marginTop + "px",
+                  borderRadius: isHu && isCenter ? "42px" : "32px",
                   transform: "perspective(640px) translate3d(" + transX.toFixed(1) + "px," + transY.toFixed(1) + "px," + transZ.toFixed(1) + "px)" + tiltTransform + " scale(" + scale.toFixed(3) + ")",
                   opacity: opacity,
                   zIndex: zIndex,
@@ -21431,7 +21456,7 @@ var Oe = function(props) {
                 className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]" + (isHu && isCenter ? " is-headsup-hero" : "") + (isHu && isCenter && headsUpState.physicalState === 'GRABBED' ? " is-grabbed" : "") + (isHu && isCenter && huAnim === 'shatter' ? " hu-fx-shatter" : "") + (isHu && isCenter && huAnim === 'liquid' ? " hu-fx-liquid" : "") + (isHu && isCenter && headsUpState.actionFeedback ? " action-feedback-" + headsUpState.actionFeedback : ""),
                 children: [
                   (0, P.jsxs)('div', {
-                    style: { transformStyle: 'preserve-3d', borderRadius: isHu && isCenter ? '0' : '32px' },
+                    style: { transformStyle: 'preserve-3d', borderRadius: isHu && isCenter ? '42px' : '32px' },
                     className: "coverflow-flipper relative w-full h-full rounded-[36px] preserve-3d",
                     children: [
                       // ==========================================
@@ -21439,6 +21464,11 @@ var Oe = function(props) {
                       // ==========================================
                       (0, P.jsxs)('div', {
                         onClick: function(e) {
+                          if (isHu && huSuppressClickRef.current) {
+                            huSuppressClickRef.current = false;
+                            e.stopPropagation();
+                            return;
+                          }
                           if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
                           if (isCenter) {
                             e.stopPropagation();
