@@ -21478,6 +21478,7 @@ var MinestPortraitGestureManager = (function() {
     var pullGhost = null;
     var lastTap = { time: 0, cardId: null, timer: null };
     var pinchSession = null;
+    var activePointers = new Map();
 
     var removeBackdrops = function(parent) {
       if (!parent) return;
@@ -21485,13 +21486,19 @@ var MinestPortraitGestureManager = (function() {
       els.forEach(function(el) { el.remove(); });
     };
 
-    var onTouchStart = function(e) {
+    var onDown = function(e) {
       if (!isPhonePortrait()) return;
-      var ctx = ctxRef.current || {};
-      var touches = e.touches;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-      // --- TWO-FINGER GESTURE (Pinch to Fold / Spread to Expand) ---
-      if (touches.length === 2) {
+      var ctx = ctxRef.current || {};
+      var clientX = e.clientX, clientY = e.clientY;
+      var isAltPinch = (e.pointerType === 'mouse' && e.altKey);
+
+      var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
+      activePointers.set(pid, { x: clientX, y: clientY, target: e.target });
+
+      // --- TWO-FINGER GESTURE (Pinch / Spread or Alt+Drag on desktop) ---
+      if (activePointers.size === 2 || isAltPinch || (e.touches && e.touches.length === 2)) {
         if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
         if (gestureState) {
           if (gestureState.cardEl) {
@@ -21503,12 +21510,16 @@ var MinestPortraitGestureManager = (function() {
         }
         if (pullGhost) { pullGhost.remove(); pullGhost = null; }
 
-        var t1 = touches[0], t2 = touches[1];
-        var d0 = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-        var yMin = Math.min(t1.clientY, t2.clientY);
-        var yMax = Math.max(t1.clientY, t2.clientY);
+        var pts = Array.from(activePointers.values());
+        if (e.touches && e.touches.length === 2) {
+          pts = [{ x: e.touches[0].clientX, y: e.touches[0].clientY }, { x: e.touches[1].clientX, y: e.touches[1].clientY }];
+        }
+        var p1 = pts[0], p2 = pts[1] || { x: clientX, y: clientY + (isAltPinch ? 100 : 0) };
+        var d0 = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 120;
+        var yMin = Math.min(p1.y, p2.y);
+        var yMax = Math.max(p1.y, p2.y);
 
-        var colEl = (document.elementFromPoint(t1.clientX, t1.clientY) || t1.target).closest('.kanban-column-wrapper');
+        var colEl = (e.target && e.target.closest) ? e.target.closest('.kanban-column-wrapper') : null;
         if (!colEl) return;
         var colId = colEl.getAttribute('data-col-id');
         var colObj = (ctx.board && ctx.board.columns ? ctx.board.columns.find(function(c) { return c.id === colId; }) : null);
@@ -21518,7 +21529,7 @@ var MinestPortraitGestureManager = (function() {
         var touchedCards = [];
         cardEls.forEach(function(el) {
           var r = el.getBoundingClientRect();
-          if (r.bottom >= yMin - 15 && r.top <= yMax + 15) {
+          if (r.bottom >= yMin - 20 && r.top <= yMax + 20) {
             var cid = el.getAttribute('data-card-id');
             var cd = (colObj.cards || []).find(function(c) { return c.id === cid; });
             if (cd) touchedCards.push({ el: el, card: cd });
@@ -21527,7 +21538,6 @@ var MinestPortraitGestureManager = (function() {
 
         if (touchedCards.length === 0) return;
 
-        // Check if an already-folded stack is between fingers -> SPREAD (Expand)
         var foldedItem = touchedCards.find(function(tc) {
           var hasStack = (!!tc.card.hasStack || (Array.isArray(tc.card.stack) && tc.card.stack.length > 0));
           var isExpanded = !!(ctx.expandedStacks && ctx.expandedStacks[tc.card.id]) || !!tc.card.isStackExpanded;
@@ -21543,11 +21553,12 @@ var MinestPortraitGestureManager = (function() {
             el: foldedItem.el,
             deckEl: foldedItem.el.parentElement ? foldedItem.el.parentElement.querySelector('.card-stack-deck') : null,
             progress: 0,
-            reachedThreshold: false
+            reachedThreshold: false,
+            startY: clientY
           };
-          e.preventDefault();
+          if (e.cancelable) e.preventDefault();
+          e.stopPropagation();
         } else if (touchedCards.length >= 2) {
-          // Multiple sibling cards under the fingers -> PINCH (Fold)
           pinchSession = {
             mode: 'pinch',
             d0: d0,
@@ -21556,78 +21567,94 @@ var MinestPortraitGestureManager = (function() {
             rest: touchedCards.slice(1),
             all: touchedCards,
             progress: 0,
-            reachedThreshold: false
+            reachedThreshold: false,
+            startY: clientY
           };
-          e.preventDefault();
+          if (e.cancelable) e.preventDefault();
+          e.stopPropagation();
         }
         return;
       }
 
-      // --- SINGLE FINGER GESTURE (Swipe / Tap / Pull Down) ---
-      if (touches.length === 1) {
-        var t = touches[0];
-        var cardEl = t.target.closest('article.kanban-card, article.kanban-subcard');
-        var colEl = t.target.closest('.kanban-column-wrapper');
-        var scrollEl = colEl ? colEl.querySelector('.kanban-cards-scroll') : null;
+      // --- SINGLE POINTER GESTURE (Swipe / Tap / Pull Down) ---
+      var cardEl = e.target.closest('article.kanban-card, article.kanban-subcard');
+      var colEl = e.target.closest('.kanban-column-wrapper');
+      var scrollEl = colEl ? colEl.querySelector('.kanban-cards-scroll') : null;
 
-        var colId = colEl ? colEl.getAttribute('data-col-id') : null;
-        var colObj = (colId && ctx.board && ctx.board.columns ? ctx.board.columns.find(function(c) { return c.id === colId; }) : null);
-        var cardId = cardEl ? cardEl.getAttribute('data-card-id') : null;
-        var cardObj = null;
-        if (colObj && cardId) {
-          cardObj = (colObj.cards || []).find(function(c) { return c.id === cardId; });
-          if (!cardObj) {
-            (colObj.cards || []).forEach(function(c) {
-              if (Array.isArray(c.stack)) {
-                var sc = c.stack.find(function(s) { return s.id === cardId; });
-                if (sc) cardObj = sc;
-              }
-            });
-          }
+      var colId = colEl ? colEl.getAttribute('data-col-id') : null;
+      var colObj = (colId && ctx.board && ctx.board.columns ? ctx.board.columns.find(function(c) { return c.id === colId; }) : null);
+      var cardId = cardEl ? cardEl.getAttribute('data-card-id') : null;
+      var cardObj = null;
+      if (colObj && cardId) {
+        cardObj = (colObj.cards || []).find(function(c) { return c.id === cardId; });
+        if (!cardObj) {
+          (colObj.cards || []).forEach(function(c) {
+            if (Array.isArray(c.stack)) {
+              var sc = c.stack.find(function(s) { return s.id === cardId; });
+              if (sc) cardObj = sc;
+            }
+          });
         }
+      }
 
-        gestureState = {
-          startX: t.clientX,
-          startY: t.clientY,
-          currentX: t.clientX,
-          currentY: t.clientY,
-          startTime: Date.now(),
-          cardEl: cardEl,
-          cardObj: cardObj,
-          colObj: colObj,
-          colId: colId,
-          scrollEl: scrollEl,
-          mode: 'undecided',
-          thresholdCrossed: false,
-          activePriorityStage: 0,
-          backdropEl: null,
-          cardW: cardEl ? cardEl.offsetWidth : 300,
-          cardH: cardEl ? cardEl.offsetHeight : 60,
-          canPullDown: false
-        };
+      gestureState = {
+        startX: clientX,
+        startY: clientY,
+        currentX: clientX,
+        currentY: clientY,
+        startTime: Date.now(),
+        cardEl: cardEl,
+        cardObj: cardObj,
+        colObj: colObj,
+        colId: colId,
+        scrollEl: scrollEl,
+        mode: 'undecided',
+        thresholdCrossed: false,
+        activePriorityStage: 0,
+        backdropEl: null,
+        cardW: cardEl ? cardEl.offsetWidth : 300,
+        cardH: cardEl ? cardEl.offsetHeight : 60,
+        canPullDown: false,
+        isMouse: e.pointerType === 'mouse' || !e.touches
+      };
 
-        if (scrollEl && scrollEl.scrollTop <= 2 && !cardEl) {
+      if (scrollEl && scrollEl.scrollTop <= 2 && !cardEl) {
+        gestureState.canPullDown = true;
+      } else if (scrollEl && scrollEl.scrollTop <= 2 && cardEl) {
+        var r = cardEl.getBoundingClientRect();
+        if (clientY - r.top < 32) {
           gestureState.canPullDown = true;
-        } else if (scrollEl && scrollEl.scrollTop <= 2 && cardEl) {
-          var r = cardEl.getBoundingClientRect();
-          if (t.clientY - r.top < 28) {
-            gestureState.canPullDown = true;
-          }
         }
       }
     };
 
-    var onTouchMove = function(e) {
+    var onMove = function(e) {
       if (!isPhonePortrait()) return;
+      var ctx = ctxRef.current || {};
+      var clientX = e.clientX, clientY = e.clientY;
+      if (e.touches && e.touches[0]) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+
+      var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
+      if (activePointers.has(pid)) {
+        activePointers.set(pid, { x: clientX, y: clientY, target: e.target });
+      }
 
       // Handle Two-Finger Pinch / Spread
-      if (pinchSession && e.touches.length === 2) {
+      if (pinchSession) {
         if (e.cancelable) e.preventDefault();
-        var t1 = e.touches[0], t2 = e.touches[1];
-        var d = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        e.stopPropagation();
+
+        var pts = Array.from(activePointers.values());
+        if (e.touches && e.touches.length === 2) {
+          pts = [{ x: e.touches[0].clientX, y: e.touches[0].clientY }, { x: e.touches[1].clientX, y: e.touches[1].clientY }];
+        }
+        var d = pts.length >= 2 ? Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y) : Math.abs(clientY - pinchSession.startY) * 2;
 
         if (pinchSession.mode === 'pinch') {
-          var ratio = d / pinchSession.d0;
+          var ratio = d / (pinchSession.d0 || 120);
           var progress = clamp((1 - ratio) / 0.45, 0, 1);
           pinchSession.progress = progress;
 
@@ -21649,7 +21676,7 @@ var MinestPortraitGestureManager = (function() {
             pinchSession.reachedThreshold = false;
           }
         } else if (pinchSession.mode === 'spread') {
-          var ratio = d / pinchSession.d0;
+          var ratio = d / (pinchSession.d0 || 120);
           var progress = clamp((ratio - 1) / 0.5, 0, 1);
           pinchSession.progress = progress;
           if (pinchSession.deckEl) {
@@ -21666,18 +21693,17 @@ var MinestPortraitGestureManager = (function() {
         return;
       }
 
-      if (!gestureState || e.touches.length !== 1) return;
-      var t = e.touches[0];
-      var dx = t.clientX - gestureState.startX;
-      var dy = t.clientY - gestureState.startY;
-      gestureState.currentX = t.clientX;
-      gestureState.currentY = t.clientY;
+      if (!gestureState) return;
+      var dx = clientX - gestureState.startX;
+      var dy = clientY - gestureState.startY;
+      gestureState.currentX = clientX;
+      gestureState.currentY = clientY;
 
       if (gestureState.mode === 'undecided') {
         var absX = Math.abs(dx), absY = Math.abs(dy);
-        if (absX < 8 && absY < 8) return;
+        if (absX < 6 && absY < 6) return;
 
-        if (gestureState.canPullDown && dy > absX + 4 && dy > 10 && gestureState.scrollEl && gestureState.scrollEl.scrollTop <= 2) {
+        if (gestureState.canPullDown && dy > absX + 3 && dy > 8 && gestureState.scrollEl && gestureState.scrollEl.scrollTop <= 2) {
           gestureState.mode = 'pull_down';
           if (!pullGhost && gestureState.scrollEl) {
             pullGhost = document.createElement('div');
@@ -21688,10 +21714,10 @@ var MinestPortraitGestureManager = (function() {
               '</div>';
             gestureState.scrollEl.insertBefore(pullGhost, gestureState.scrollEl.firstChild);
           }
-        } else if (absY > absX + 4) {
+        } else if (absY > absX + 3 && !gestureState.isMouse) {
           gestureState.mode = 'scroll';
           return;
-        } else if (gestureState.cardEl && absX > absY + 4 && absX > 10) {
+        } else if (gestureState.cardEl && absX > 6) {
           gestureState.mode = dx > 0 ? 'swipe_right' : 'swipe_left';
           gestureState.cardEl.classList.add('gesture-manipulating');
           var parent = gestureState.cardEl.parentElement;
@@ -21727,6 +21753,7 @@ var MinestPortraitGestureManager = (function() {
 
       if (gestureState.mode === 'pull_down') {
         if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
         var pullY = clamp(dy * 0.48, 0, 78);
         gestureState.pullY = pullY;
         if (pullGhost) {
@@ -21752,6 +21779,7 @@ var MinestPortraitGestureManager = (function() {
         }
       } else if (gestureState.mode === 'swipe_right') {
         if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
         var moveX = Math.max(0, dx);
         gestureState.cardEl.style.transform = 'translate3d(' + moveX.toFixed(1) + 'px, 0, 0) rotate(' + (moveX * 0.035).toFixed(2) + 'deg)';
 
@@ -21780,12 +21808,13 @@ var MinestPortraitGestureManager = (function() {
         }
       } else if (gestureState.mode === 'swipe_left') {
         if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
         var pullLeft = Math.max(0, -dx);
         gestureState.cardEl.style.transform = 'translate3d(-' + pullLeft.toFixed(1) + 'px, 0, 0)';
 
         var W = gestureState.cardW || 300;
         var nextStage = 0;
-        if (pullLeft >= 22 && pullLeft < W * 0.33) {
+        if (pullLeft >= 20 && pullLeft < W * 0.33) {
           nextStage = 1;
         } else if (pullLeft >= W * 0.33 && pullLeft < W * 0.52) {
           nextStage = 2;
@@ -21811,9 +21840,13 @@ var MinestPortraitGestureManager = (function() {
       }
     };
 
-    var onTouchEnd = function(e) {
+    var onUp = function(e) {
       if (!isPhonePortrait()) return;
       var ctx = ctxRef.current || {};
+
+      var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
+      activePointers.delete(pid);
+      if (activePointers.size === 0) activePointers.clear();
 
       if (pinchSession) {
         var sess = pinchSession;
@@ -21942,12 +21975,10 @@ var MinestPortraitGestureManager = (function() {
           }
         }, 370);
       } else if (gs.mode === 'undecided' && gs.cardEl && gs.cardObj) {
-        // TAP: Single Tap vs Double Tap
         var now = Date.now();
         var cardId = gs.cardObj.id;
 
         if (lastTap.cardId === cardId && (now - lastTap.time) < 280) {
-          // DOUBLE TAP -> Ripple Mode
           window.__minestGestureSuppressClickUntil = Date.now() + 350;
           if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
           lastTap.time = 0;
@@ -21959,7 +21990,6 @@ var MinestPortraitGestureManager = (function() {
             window.RippleExplore.triggerAt(lane, gs.currentX, gs.currentY);
           }
         } else {
-          // First tap -> start timer for Single Tap
           lastTap.time = now;
           lastTap.cardId = cardId;
           if (lastTap.timer) clearTimeout(lastTap.timer);
@@ -21967,7 +21997,6 @@ var MinestPortraitGestureManager = (function() {
             lastTap.time = 0;
             lastTap.cardId = null;
             lastTap.timer = null;
-            // SINGLE TAP -> Open Existing Quick Edit
             if (ctx.openQuickEdit && gs.cardEl && gs.cardObj && gs.colObj) {
               ctx.openQuickEdit(gs.cardObj, gs.colObj, gs.cardEl);
             }
@@ -21976,17 +22005,37 @@ var MinestPortraitGestureManager = (function() {
       }
     };
 
-    lane.addEventListener('touchstart', onTouchStart, { passive: false });
-    lane.addEventListener('touchmove', onTouchMove, { passive: false });
-    lane.addEventListener('touchend', onTouchEnd, { passive: false });
-    lane.addEventListener('touchcancel', onTouchEnd, { passive: false });
+    var onDragStart = function(e) {
+      if (isPhonePortrait()) {
+        e.preventDefault();
+      }
+    };
+
+    lane.addEventListener('pointerdown', onDown, { capture: true });
+    window.addEventListener('pointermove', onMove, { passive: false, capture: true });
+    window.addEventListener('pointerup', onUp, { capture: true });
+    window.addEventListener('pointercancel', onUp, { capture: true });
+
+    lane.addEventListener('touchstart', onDown, { passive: false, capture: true });
+    lane.addEventListener('touchmove', onMove, { passive: false, capture: true });
+    lane.addEventListener('touchend', onUp, { passive: false, capture: true });
+    lane.addEventListener('touchcancel', onUp, { passive: false, capture: true });
+
+    lane.addEventListener('dragstart', onDragStart, true);
 
     return function() {
       if (lastTap.timer) clearTimeout(lastTap.timer);
-      lane.removeEventListener('touchstart', onTouchStart);
-      lane.removeEventListener('touchmove', onTouchMove);
-      lane.removeEventListener('touchend', onTouchEnd);
-      lane.removeEventListener('touchcancel', onTouchEnd);
+      lane.removeEventListener('pointerdown', onDown, { capture: true });
+      window.removeEventListener('pointermove', onMove, { capture: true });
+      window.removeEventListener('pointerup', onUp, { capture: true });
+      window.removeEventListener('pointercancel', onUp, { capture: true });
+
+      lane.removeEventListener('touchstart', onDown, { capture: true });
+      lane.removeEventListener('touchmove', onMove, { capture: true });
+      lane.removeEventListener('touchend', onUp, { capture: true });
+      lane.removeEventListener('touchcancel', onUp, { capture: true });
+
+      lane.removeEventListener('dragstart', onDragStart, true);
       if (pullGhost) { pullGhost.remove(); pullGhost = null; }
     };
   };
