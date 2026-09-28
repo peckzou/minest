@@ -4548,6 +4548,26 @@ body.is-safari-column-dragging {
   -webkit-user-select: none !important;
 }
 </style>
+<style id="minest-rings-phase1">
+.minest-rings-panel {
+  background: radial-gradient(circle at 22% 8%, rgba(255,255,255,.13), transparent 38%), linear-gradient(155deg, rgba(33,37,49,.92), rgba(9,12,20,.97));
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.17), 0 22px 42px rgba(0,0,0,.24);
+}
+.theme-white .minest-rings-panel {
+  background: radial-gradient(circle at 15% 5%, #fff, transparent 42%), linear-gradient(155deg, #eef0f7, #dce1eb);
+  border-color: rgba(255,255,255,.82);
+  box-shadow: inset 0 1px 0 #fff, 0 14px 30px rgba(30,41,59,.12);
+}
+.minest-rings-svg { overflow: visible; filter: drop-shadow(0 9px 18px rgba(0,0,0,.28)); }
+.minest-ring-track { fill: none; stroke: rgba(255,255,255,.09); stroke-width: 15; }
+.theme-white .minest-ring-track { stroke: rgba(49,60,78,.11); }
+.minest-ring-depth { fill: none; stroke: rgba(0,0,0,.44); stroke-width: 16; transform: translateY(3px); }
+.minest-ring-progress { fill: none; stroke-width: 13; stroke-linecap: round; transition: stroke-dashoffset 1150ms cubic-bezier(.2,.8,.2,1); }
+.minest-ring-metric { border-top: 1px solid rgba(255,255,255,.09); }
+.theme-white .minest-ring-metric { border-top-color: rgba(15,23,42,.1); }
+@media (prefers-reduced-motion: reduce) { .minest-ring-progress { transition: none; } }
+</style>
 </head>
   <body>
     <div id="root"></div>
@@ -15665,6 +15685,72 @@ var ThreeDMedal = function(props) {
 // =========================================================================
 // Apple Activity 3-Ring & Digital Badges Modal Component
 // =========================================================================
+var PhaseOneRingsPreview = function() {
+  // Phase 1 uses a clearly labeled sample day. Real activity wiring belongs to Phase 2.
+  var sample = { focusMinutes: 14, focusGoal: 20, completedCards: 7, completeGoal: 10, currentStreak: 18 };
+  var shownState = (0, _.useState)(false);
+  var shown = shownState[0];
+  var setShown = shownState[1];
+  (0, _.useEffect)(function() {
+    var frame = requestAnimationFrame(function() { setShown(true); });
+    return function() { cancelAnimationFrame(frame); };
+  }, []);
+  var focusProgress = Math.min(1, sample.focusMinutes / sample.focusGoal);
+  var completeProgress = Math.min(1, sample.completedCards / sample.completeGoal);
+  var dailyProgress = Math.max(focusProgress, completeProgress);
+  var rings = [
+    { id: 'focus', radius: 76, progress: focusProgress, gradient: 'minest-focus-gradient' },
+    { id: 'complete', radius: 56, progress: completeProgress, gradient: 'minest-complete-gradient' },
+    { id: 'daily', radius: 36, progress: dailyProgress, gradient: 'minest-daily-gradient' }
+  ];
+  var rows = [
+    { label: 'FOCUS', value: sample.focusMinutes + ' / ' + sample.focusGoal + ' min', note: 'Time invested today', color: '#ff537e' },
+    { label: 'COMPLETE', value: sample.completedCards + ' / ' + sample.completeGoal, note: 'Cards finished today', color: '#b9e853' },
+    { label: 'DAILY', value: 'Day ' + sample.currentStreak, note: 'Closes when either goal closes', color: '#5ddce5' }
+  ];
+  return (0, P.jsxs)('section', {
+    className: 'minest-rings-panel relative overflow-hidden rounded-[30px] px-5 pt-5 pb-4',
+    'aria-label': 'Three Rings sample preview',
+    children: [
+      (0, P.jsxs)('div', { className: 'flex items-start justify-between gap-3', children: [
+        (0, P.jsxs)('div', { children: [
+          (0, P.jsx)('p', { className: 'text-[10px] font-bold tracking-[0.18em] opacity-50', children: 'TODAY · THREE RINGS' }),
+          (0, P.jsx)('h3', { className: 'mt-1 text-xl font-semibold tracking-tight', children: 'Three Rings' })
+        ] }),
+        (0, P.jsx)('span', { className: 'shrink-0 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider opacity-70', children: 'Phase 1 · Sample' })
+      ] }),
+      (0, P.jsxs)('div', { className: 'relative mx-auto my-2 h-[218px] w-[218px]', children: [
+        (0, P.jsxs)('svg', { viewBox: '0 0 200 200', className: 'minest-rings-svg h-full w-full', role: 'img', 'aria-label': 'Focus 70 percent, Complete 70 percent, Daily 70 percent', children: [
+          (0, P.jsxs)('defs', { children: [
+            (0, P.jsxs)('linearGradient', { id: 'minest-focus-gradient', x1: '0', y1: '0', x2: '1', y2: '1', children: [(0, P.jsx)('stop', { offset: '0%', stopColor: '#ff9aaf' }), (0, P.jsx)('stop', { offset: '100%', stopColor: '#fa315f' })] }),
+            (0, P.jsxs)('linearGradient', { id: 'minest-complete-gradient', x1: '0', y1: '0', x2: '1', y2: '1', children: [(0, P.jsx)('stop', { offset: '0%', stopColor: '#e5ffa5' }), (0, P.jsx)('stop', { offset: '100%', stopColor: '#83cf45' })] }),
+            (0, P.jsxs)('linearGradient', { id: 'minest-daily-gradient', x1: '0', y1: '0', x2: '1', y2: '1', children: [(0, P.jsx)('stop', { offset: '0%', stopColor: '#adfbff' }), (0, P.jsx)('stop', { offset: '100%', stopColor: '#43b9d6' })] })
+          ] }),
+          rings.map(function(ring) {
+            var length = 2 * Math.PI * ring.radius;
+            return (0, P.jsxs)('g', { transform: 'rotate(-90 100 100)', children: [
+              (0, P.jsx)('circle', { className: 'minest-ring-depth', cx: 100, cy: 100, r: ring.radius }),
+              (0, P.jsx)('circle', { className: 'minest-ring-track', cx: 100, cy: 100, r: ring.radius }),
+              (0, P.jsx)('circle', { className: 'minest-ring-progress', cx: 100, cy: 100, r: ring.radius, stroke: 'url(#' + ring.gradient + ')', strokeDasharray: length, strokeDashoffset: length * (1 - (shown ? ring.progress : 0)) })
+            ] }, ring.id);
+          })
+        ] }),
+        (0, P.jsxs)('div', { className: 'absolute inset-0 flex flex-col items-center justify-center text-center', children: [
+          (0, P.jsx)('span', { className: 'text-[9px] font-bold tracking-[0.2em] opacity-45', children: 'STREAK' }),
+          (0, P.jsx)('strong', { className: 'text-[35px] leading-none font-semibold tracking-[-0.05em]', children: sample.currentStreak }),
+          (0, P.jsx)('span', { className: 'mt-1 text-[10px] opacity-55', children: 'days' })
+        ] })
+      ] }),
+      (0, P.jsx)('div', { className: 'space-y-0.5', children: rows.map(function(row) { return (0, P.jsxs)('div', { className: 'minest-ring-metric flex items-center gap-3 py-2.5', children: [
+        (0, P.jsx)('span', { className: 'h-2.5 w-2.5 shrink-0 rounded-full', style: { background: row.color, boxShadow: '0 0 10px ' + row.color } }),
+        (0, P.jsxs)('div', { className: 'min-w-0 flex-1', children: [(0, P.jsx)('p', { className: 'text-[10px] font-bold tracking-[0.13em] opacity-65', children: row.label }), (0, P.jsx)('p', { className: 'text-[10px] opacity-45', children: row.note })] }),
+        (0, P.jsx)('strong', { className: 'text-sm font-semibold tabular-nums', children: row.value })
+      ] }, row.label); }) }),
+      (0, P.jsx)('p', { className: 'mt-3 text-center text-[10px] opacity-45', children: 'Preview values only · Live timer and card progress arrive in Phase 2' })
+    ]
+  });
+};
+
 var ActivityBadgesModal = function(props) {
   var themeMode = props.themeMode;
   var rings = props.ringsState || {};
@@ -15898,14 +15984,7 @@ var ActivityBadgesModal = function(props) {
           ] })
         }),
         activeSection === 'summary' ? (0, P.jsxs)('div', { className: "px-5 pb-7", children: [
-          (0, P.jsxs)('section', { className: "relative overflow-hidden rounded-[30px] border p-5 " + (isDark ? "bg-white/[0.055] border-white/10" : "bg-white/75 border-white"), children: [
-            (0, P.jsx)('div', { className: "absolute -top-20 -right-16 w-48 h-48 rounded-full blur-3xl opacity-25", style: { background: "linear-gradient(135deg,#fa114f,#30d158,#00fff0)" } }),
-            (0, P.jsxs)('div', { className: "relative flex items-center justify-between", children: [
-              (0, P.jsxs)('div', { children: [(0, P.jsx)('p', { className: "text-xs font-semibold opacity-50", children: "DAILY RINGS" }), (0, P.jsxs)('p', { className: "mt-1 text-3xl font-bold tracking-tight", children: [closedCount, (0, P.jsx)('span', { className: "text-base opacity-35", children: " / 3" })] }), (0, P.jsx)('p', { className: "mt-1 text-xs opacity-55", children: isAllClosed ? "All goals closed. Beautiful work." : "One small push at a time." })] }),
-              (0, P.jsx)(ThreeDMedal, { badge: selectedBadge, size: 112, interactive: true, isDark: isDark })
-            ] })
-          ] }),
-          (0, P.jsxs)('div', { className: "mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3", children: [ringCard("FOCUS", focusMinutes, targetMinutes, "#fa114f", "m"), ringCard("CHECKS", checkCount, targetChecks, "#30d158", ""), ringCard("BOARD", goalPercent, 100, "#00fff0", "%")] }),
+          (0, P.jsx)(PhaseOneRingsPreview, {}),
           (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
             (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
             editingGoals ? (0, P.jsxs)('div', { className: "mt-4 space-y-4", children: [
