@@ -5840,6 +5840,11 @@ function buildAppleOctopusBadge(materials, earnedDate = 'OCTOBER 26, 2026', isLo
     let revealPreviousMousePosition = { x: 0, y: 0 };
     let revealAssemblyRef = null;
 
+    // ── Animation State ─────────────────────────────────────────────────────
+    let revealAnimState = null; // null = idle, object = animating
+    let revealCenterPulseLight = null; // energy pulse PointLight ref
+    let revealCurrentBadgeData = null; // badge being unlocked
+
     function initReveal3D() {
       const target = document.getElementById('reveal-canvas-target');
       if (!target || revealRenderer) return;
@@ -5958,7 +5963,296 @@ function buildAppleOctopusBadge(materials, earnedDate = 'OCTOBER 26, 2026', isLo
       });
     }
 
+    /* =========================================================================
+       HEX ASSEMBLY REVEAL ANIMATION — Full 8-Phase Sequence
+       Phase 1: Mystery Hex idle → Brackets fly in (0–800ms)
+       Phase 2: All brackets docked → Lock energy pulse (800–1100ms)
+       Phase 3: 3D high-speed spin (1100–1900ms)
+       Phase 4: Brackets burst out + Mystery hex dissolve (1900–2300ms)
+       Phase 5: Real badge fade in with glow (2300–2750ms)
+       Phase 6: Badge settle + mark collected (2750–3300ms)
+       ========================================================================= */
+
+    function easeInOut(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+    function easeIn(t) { return t * t * t; }
+    function bounce(t) {
+      // overshoot bounce: reaches 1.0 + 8% overshoot then settles
+      if (t < 0.85) return easeOut(t / 0.85);
+      const sub = (t - 0.85) / 0.15;
+      return 1 + 0.08 * Math.sin(sub * Math.PI);
+    }
+
+    function triggerRevealAnimation(badgeDataOverride) {
+      if (!revealScene || !revealBadgeGroup) {
+        initReveal3D();
+        switchRevealMode('base');
+      }
+      if (revealAnimState) return; // already animating
+
+      const badge = badgeDataOverride || revealCurrentBadgeData || (() => {
+        // pick first pending_mystery badge, or fall back to first catalog badge
+        const pending = AWARDS_CATALOG.find(b => BadgeRevealStateEngine.isMystery(b.id));
+        return pending || AWARDS_CATALOG[0];
+      })();
+      revealCurrentBadgeData = badge;
+
+      // ── Setup scene: mystery hex + assembly in spread position ────────────
+      while (revealBadgeGroup.children.length > 0) revealBadgeGroup.remove(revealBadgeGroup.children[0]);
+      revealQuatTarget.identity();
+      revealQuatCurrent.identity();
+      revealBadgeGroup.quaternion.identity();
+      revealBadgeGroup.position.set(0, 0, 0);
+
+      const mysteryHex = buildAppleMysteryHexBase(sharedMaterials);
+      revealBadgeGroup.add(mysteryHex);
+
+      const assemblyGroup = buildOuterMechanicalAssembly(sharedMaterials, { initialProgress: 0.0 });
+      // Start brackets fully spread (farther out, off screen)
+      assemblyGroup.brackets.forEach((b, i) => {
+        const u = b.userData;
+        const spreadFar = u.spreadRadius * 2.5;
+        b.position.set(u.dirX * spreadFar, u.dirY * spreadFar, 0.8);
+        b.scale.setScalar(0.4);
+        b.visible = false; // hidden until their staggered start time
+      });
+      revealBadgeGroup.add(assemblyGroup);
+
+      // Energy pulse PointLight (center, starts off)
+      if (!revealCenterPulseLight) {
+        revealCenterPulseLight = new THREE.PointLight(0x00f0ff, 0, 8);
+        revealScene.add(revealCenterPulseLight);
+      }
+      revealCenterPulseLight.intensity = 0;
+
+      // ── Animation timeline ─────────────────────────────────────────────────
+      const T_BRACKET_START = 0;
+      const T_BRACKET_STAGGER = 100;   // ms between each bracket start
+      const T_BRACKET_DURATION = 450;  // ms each bracket takes to fly in
+      const T_LAST_BRACKET_END = T_BRACKET_START + T_BRACKET_STAGGER * 5 + T_BRACKET_DURATION; // ~950ms
+      const T_PULSE_START = T_LAST_BRACKET_END;
+      const T_PULSE_DURATION = 350;
+      const T_PULSE_END = T_PULSE_START + T_PULSE_DURATION;         // ~1300ms
+      const T_SPIN_START = T_PULSE_END;
+      const T_SPIN_DURATION = 900;
+      const T_SPIN_END = T_SPIN_START + T_SPIN_DURATION;            // ~2200ms
+      const T_BURST_START = T_SPIN_END;
+      const T_BURST_DURATION = 300;
+      const T_BURST_END = T_BURST_START + T_BURST_DURATION;         // ~2500ms
+      const T_FADEIN_START = T_BURST_END - 80;
+      const T_FADEIN_DURATION = 520;
+      const T_FADEIN_END = T_FADEIN_START + T_FADEIN_DURATION;      // ~2940ms
+      const T_SETTLE_START = T_FADEIN_END;
+      const T_SETTLE_DURATION = 700;
+      const T_TOTAL = T_SETTLE_START + T_SETTLE_DURATION;           // ~3640ms
+
+      const startTime = performance.now();
+      let spinBaseRot = 0;
+      let realBadgeMesh = null;
+      let realBadgeMaterials = []; // for opacity animation
+      let burstDone = false;
+      let revealDone = false;
+      let mysteryDissolved = false;
+
+      revealAnimState = { active: true, startTime };
+
+      // helper: recursively collect all materials from an Object3D
+      function collectMaterials(obj) {
+        const mats = [];
+        obj.traverse(child => {
+          if (child.isMesh) {
+            const matArr = Array.isArray(child.material) ? child.material : [child.material];
+            matArr.forEach(m => {
+              if (m && !mats.includes(m)) mats.push(m);
+            });
+          }
+        });
+        return mats;
+      }
+
+      function animStep() {
+        if (!revealAnimState || !revealAnimState.active) return;
+
+        const elapsed = performance.now() - startTime;
+
+        // ── Phase 1: Brackets fly in staggered ────────────────────────────
+        if (elapsed < T_BURST_START) {
+          assemblyGroup.brackets.forEach((b, i) => {
+            const bracketStart = T_BRACKET_START + i * T_BRACKET_STAGGER;
+            const bracketEnd = bracketStart + T_BRACKET_DURATION;
+            if (elapsed < bracketStart) {
+              b.visible = false;
+              return;
+            }
+            b.visible = true;
+            const u = b.userData;
+            const bracketT = Math.min(1, (elapsed - bracketStart) / T_BRACKET_DURATION);
+            const bt = bounce(bracketT);
+            const spreadFar = u.spreadRadius * 2.5;
+            const currentR = spreadFar + (u.dockRadius - spreadFar) * bt;
+            b.position.x = u.dirX * currentR;
+            b.position.y = u.dirY * currentR;
+            b.position.z = (1 - bracketT) * 0.8;
+            b.scale.setScalar(0.4 + 0.6 * easeOut(bracketT));
+
+            // Slight arc: arc path using perpendicular wobble during fly-in
+            if (bracketT < 0.85) {
+              const perp = Math.sin(bracketT * Math.PI) * 0.35;
+              b.position.x += (-u.dirY) * perp;
+              b.position.y += (u.dirX) * perp;
+            }
+          });
+        }
+
+        // ── Phase 2: Lock pulse ────────────────────────────────────────────
+        if (elapsed >= T_PULSE_START && elapsed < T_PULSE_END) {
+          const pt = (elapsed - T_PULSE_START) / T_PULSE_DURATION;
+          // Pulse curve: ramps up fast then falls
+          const pulseWave = Math.sin(pt * Math.PI);
+          if (revealCenterPulseLight) {
+            revealCenterPulseLight.intensity = pulseWave * 8.0;
+            revealCenterPulseLight.color.setHex(pt < 0.5 ? 0x00f0ff : 0xffd60a);
+          }
+          // Emissive boost on mystery hex during pulse
+          mysteryHex.traverse(child => {
+            if (child.isMesh && child.material && child.material.emissive) {
+              child.material.emissiveIntensity = 0.38 + pulseWave * 1.2;
+            }
+          });
+        } else if (elapsed >= T_PULSE_END && !mysteryDissolved) {
+          if (revealCenterPulseLight) revealCenterPulseLight.intensity = 0;
+        }
+
+        // ── Phase 3: High-speed spin ───────────────────────────────────────
+        if (elapsed >= T_SPIN_START && elapsed < T_SPIN_END) {
+          const st = (elapsed - T_SPIN_START) / T_SPIN_DURATION;
+          // easeIn for first half (accelerate), easeOut for second (decelerate)
+          let speedCurve;
+          if (st < 0.45) {
+            speedCurve = easeIn(st / 0.45);
+          } else {
+            speedCurve = 1 - easeIn((st - 0.45) / 0.55);
+          }
+          // 3.5 full rotations total
+          spinBaseRot = st * Math.PI * 2 * 3.5;
+          revealBadgeGroup.rotation.y = spinBaseRot;
+          // Lock manual drag during spin
+          revealQuatTarget.identity();
+          revealQuatCurrent.identity();
+        }
+
+        // ── Phase 4: Brackets burst + mystery hex dissolve ────────────────
+        if (elapsed >= T_BURST_START && elapsed < T_BURST_END && !burstDone) {
+          const bt = (elapsed - T_BURST_START) / T_BURST_DURATION;
+          // Brackets fly out radially
+          assemblyGroup.brackets.forEach((b, i) => {
+            const u = b.userData;
+            const burstR = u.dockRadius + easeIn(bt) * 5.0;
+            b.position.x = u.dirX * burstR;
+            b.position.y = u.dirY * burstR;
+            b.position.z = bt * 1.5;
+            b.scale.setScalar(1.0 - bt * 0.8);
+          });
+          // Mystery hex dissolves (opacity fade)
+          mysteryHex.traverse(child => {
+            if (child.isMesh && child.material) {
+              const mats = Array.isArray(child.material) ? child.material : [child.material];
+              mats.forEach(m => {
+                m.transparent = true;
+                m.opacity = 1 - easeIn(bt);
+              });
+            }
+          });
+          // Energy flash pulse at burst moment
+          if (revealCenterPulseLight) {
+            revealCenterPulseLight.intensity = (1 - bt) * 6.0;
+            revealCenterPulseLight.color.setHex(0xffffff);
+          }
+        }
+        if (elapsed >= T_BURST_END && !burstDone) {
+          burstDone = true;
+          // Remove burst objects cleanly
+          revealBadgeGroup.remove(assemblyGroup);
+          revealBadgeGroup.remove(mysteryHex);
+          if (revealCenterPulseLight) revealCenterPulseLight.intensity = 0;
+        }
+
+        // ── Phase 5: Real badge fade in ────────────────────────────────────
+        if (elapsed >= T_FADEIN_START && !realBadgeMesh) {
+          // Build and add the real badge
+          realBadgeMesh = buildAppleBadge3D(sharedMaterials, badge);
+          realBadgeMesh.scale.setScalar(0.01);
+          revealBadgeGroup.add(realBadgeMesh);
+          realBadgeMaterials = collectMaterials(realBadgeMesh);
+          realBadgeMaterials.forEach(m => {
+            m.transparent = true;
+            m.opacity = 0;
+          });
+          // Gold reveal burst
+          if (revealCenterPulseLight) {
+            revealCenterPulseLight.color.setHex(0xffd60a);
+            revealCenterPulseLight.intensity = 5.0;
+          }
+        }
+        if (elapsed >= T_FADEIN_START && elapsed < T_FADEIN_END && realBadgeMesh) {
+          const ft = (elapsed - T_FADEIN_START) / T_FADEIN_DURATION;
+          const fe = easeOut(ft);
+          realBadgeMesh.scale.setScalar(0.01 + 0.99 * fe);
+          realBadgeMaterials.forEach(m => { m.opacity = Math.min(1, ft * 2); });
+          // Fade pulse light out
+          if (revealCenterPulseLight) {
+            revealCenterPulseLight.intensity = (1 - ft) * 5.0;
+          }
+          // Normalize spin during reveal
+          revealBadgeGroup.rotation.y *= (1 - 0.08);
+        }
+
+        // ── Phase 6: Settle ────────────────────────────────────────────────
+        if (elapsed >= T_SETTLE_START && realBadgeMesh && !revealDone) {
+          const set_t = Math.min(1, (elapsed - T_SETTLE_START) / T_SETTLE_DURATION);
+          // Ensure fully opaque and full scale
+          realBadgeMesh.scale.setScalar(1.0);
+          realBadgeMaterials.forEach(m => { m.opacity = 1; m.transparent = false; });
+          revealBadgeGroup.rotation.y *= (1 - 0.05);
+          if (revealCenterPulseLight) revealCenterPulseLight.intensity = 0;
+        }
+        if (elapsed >= T_TOTAL && !revealDone) {
+          revealDone = true;
+          revealAnimState = null;
+          revealBadgeGroup.rotation.y = 0;
+          // Mark badge as collected
+          if (badge && badge.id) {
+            BadgeRevealStateEngine.markCollected(badge.id);
+            renderGrid();
+          }
+          // Update UI label
+          const label = document.getElementById('reveal-current-mode-label');
+          if (label) label.innerText = `✨ ${badge.name || 'Badge'} — Revealed! (Click inspect buttons to view)`;
+          triggerHaptic('success');
+          spatialAudio.playChime();
+        }
+
+        requestAnimationFrame(animStep);
+      }
+
+      // Update mode label
+      const label = document.getElementById('reveal-current-mode-label');
+      if (label) label.innerText = '🔓 Initiating Hex Assembly Reveal Sequence…';
+
+      // Switch scene to animation mode (clear and start fresh)
+      revealCurrentMode = 'reveal_anim';
+      requestAnimationFrame(animStep);
+    }
+
     function switchRevealMode(mode) {
+
+      // Cancel any in-progress reveal animation
+      if (revealAnimState) {
+        revealAnimState.active = false;
+        revealAnimState = null;
+      }
+      if (revealCenterPulseLight) revealCenterPulseLight.intensity = 0;
+
       revealCurrentMode = mode;
       triggerHaptic('selection');
 
@@ -6142,16 +6436,16 @@ function buildAppleOctopusBadge(materials, earnedDate = 'OCTOBER 26, 2026', isLo
     document.getElementById('reveal-btn-mode-combined').onclick = () => switchRevealMode('combined');
 
     document.getElementById('reveal-tap-mystery-btn').onclick = () => {
-      triggerHaptic('tap');
+      triggerHaptic('impact');
       spatialAudio.playClink('tap');
-      console.log('[BadgeRevealController] onStartUnlock Hook Triggered! Ready for Assembly Phase 2.');
-      const label = document.getElementById('reveal-current-mode-label');
-      if (label) {
-        label.innerText = '⚡ [Hook Triggered] onStartUnlock() — Ready for Piece 1-6 Assembly Animation';
-        setTimeout(() => {
-          if (label) label.innerText = 'Mode 1: 3D Mystery Hex Base (六边形胚体)';
-        }, 3000);
+      // Ensure the 3D canvas is initialized first
+      if (!revealRenderer) {
+        initReveal3D();
       }
+      // Pick the first pending mystery badge for the reveal
+      const pendingBadge = AWARDS_CATALOG.find(b => BadgeRevealStateEngine.isMystery(b.id))
+                           || AWARDS_CATALOG[0];
+      triggerRevealAnimation(pendingBadge);
     };
 
     document.getElementById('reveal-flip-mystery-btn').onclick = () => {
