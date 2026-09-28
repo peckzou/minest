@@ -103,6 +103,10 @@
           <button id="tab-comparison" class="px-3 py-1 rounded-full text-xs font-medium text-[#8E8E93] hover:text-white transition-all">
             3 Directions
           </button>
+          <button id="tab-reveal" class="px-3 py-1 rounded-full text-xs font-medium text-[#8E8E93] hover:text-white transition-all flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse"></span>
+            <span>Hex Assembly (首次领取)</span>
+          </button>
         </div>
       </div>
     </div>
@@ -228,6 +232,131 @@
         <button id="inspect-rarest-btn" class="mt-4 w-full py-2 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-all flex items-center justify-center gap-1.5">
           <span>Inspect in 3D Studio</span>
         </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW 4: FIRST-TIME BADGE UNLOCK — HEX ASSEMBLY SHOWCASE -->
+  <section id="view-reveal" class="max-w-5xl mx-auto px-4 sm:px-6 pt-5 pb-28 space-y-6 hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-5">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-full bg-[#00F0FF]/10 text-[#00F0FF] border border-[#00F0FF]/30 text-[11px] font-semibold uppercase tracking-wider">
+            First-Time Unlock Preview
+          </span>
+          <span class="text-xs text-[#8E8E93] font-mono">Anti-Leak Architecture</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white mt-1">Hex Assembly Reveal (首次领取架构)</h1>
+        <p class="text-xs sm:text-sm text-[#8E8E93] mt-1 leading-relaxed max-w-2xl">
+          首次领取 Badge 时统一显示为 Apple Fitness 风格的 3D 金属六边形胚体（中心略凸起，带真实厚度与镜面倒角），绝不提前泄露最终勋章的图案、颜色与身份。
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="reveal-mock-mystery-btn" class="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white transition-all active:scale-95 flex items-center gap-1.5">
+          <span>🎁</span>
+          <span>模拟获得新神秘勋章</span>
+        </button>
+        <button id="reveal-reset-states-btn" class="px-3 py-1.5 rounded-full bg-[#1C1C1E] hover:bg-[#2C2C2E] border border-white/10 text-xs font-medium text-[#8E8E93] hover:text-white transition-all active:scale-95">
+          重置领取记录
+        </button>
+      </div>
+    </div>
+
+    <!-- 3D Interactive Stage for Mystery Hex & Outer Shell -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-8 flex flex-col">
+        <div id="reveal-stage-box" class="relative w-full h-[440px] sm:h-[500px] rounded-[36px] border border-white/10 overflow-hidden bg-gradient-to-b from-[#0c1017] via-[#080b0f] to-[#040608] shadow-2xl flex items-center justify-center">
+          <div id="reveal-canvas-target" class="w-full h-full cursor-grab active:cursor-grabbing touch-none"></div>
+
+          <!-- Ambient Lighting Aura Indicator -->
+          <div class="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-md text-[10px] text-white/80 pointer-events-none z-10">
+            <span class="w-2 h-2 rounded-full bg-[#00F0FF] animate-ping"></span>
+            <span id="reveal-current-mode-label" class="font-medium">Mode 1: 3D Mystery Hex Base (六边形胚体)</span>
+          </div>
+
+          <!-- 3D Controls -->
+          <div class="absolute top-4 right-4 flex flex-col gap-1.5 z-20">
+            <button id="reveal-zoom-in-btn" class="w-8 h-8 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 flex items-center justify-center text-white/90 text-sm font-bold shadow-md">+</button>
+            <button id="reveal-zoom-out-btn" class="w-8 h-8 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 flex items-center justify-center text-white/90 text-sm font-bold shadow-md">−</button>
+            <button id="reveal-reset-cam-btn" class="w-8 h-8 rounded-full bg-[#1C1C1E]/90 hover:bg-[#2C2C2E] border border-white/10 flex items-center justify-center text-white/90 shadow-md" title="Reset Camera">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+          </div>
+
+          <!-- Tap Simulation Floating Pill -->
+          <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-black/75 backdrop-blur-xl border border-white/15 px-4 py-2 rounded-full shadow-2xl">
+            <button id="reveal-tap-mystery-btn" class="px-3.5 py-1 rounded-full bg-[#00F0FF] hover:bg-[#38bdf8] text-black font-bold text-xs transition-all active:scale-95 shadow-lg flex items-center gap-1.5">
+              <span>⚡</span>
+              <span>模拟点击 Mystery 胚体 (触发首次解锁 Hook)</span>
+            </button>
+            <button id="reveal-flip-mystery-btn" class="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/10 transition-all active:scale-95">
+              查看背面刻字
+            </button>
+          </div>
+        </div>
+
+        <!-- 3D Component Inspector Selector Bar -->
+        <div class="mt-3 p-1.5 rounded-2xl bg-[#1C1C1E] border border-white/[0.08] flex items-center gap-1.5 overflow-x-auto">
+          <button id="reveal-btn-mode-base" class="flex-1 min-w-[130px] px-3 py-2 rounded-xl text-xs font-semibold bg-white text-black shadow-sm transition-all text-center">
+            1. 六边形胚体 (Mystery)
+          </button>
+          <button id="reveal-btn-mode-brackets" class="flex-1 min-w-[130px] px-3 py-2 rounded-xl text-xs font-medium text-[#8E8E93] hover:text-white transition-all text-center">
+            2. 外围组件 x6 (Brackets)
+          </button>
+          <button id="reveal-btn-mode-shell" class="flex-1 min-w-[130px] px-3 py-2 rounded-xl text-xs font-medium text-[#8E8E93] hover:text-white transition-all text-center">
+            3. 锁定外壳 (Locked Shell)
+          </button>
+          <button id="reveal-btn-mode-combined" class="flex-1 min-w-[130px] px-3 py-2 rounded-xl text-xs font-medium text-[#8E8E93] hover:text-white transition-all text-center">
+            4. 胚体+外壳完整合体
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Specification & Anti-Leak Rules Card -->
+      <div class="lg:col-span-4 flex flex-col gap-4">
+        <div class="p-5 rounded-3xl bg-[#16181D] border border-white/10 space-y-3.5 shadow-xl">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white tracking-tight">Mystery Badge 规格标准</h3>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">VERIFIED</span>
+          </div>
+
+          <div class="space-y-2.5 text-xs text-[#8E8E93]">
+            <div class="flex items-start gap-2">
+              <span class="text-[#00F0FF] font-bold">✓</span>
+              <div><strong class="text-white">六边形基础轮廓：</strong>正六边形（Apple Fitness Award 黄金几何体）</div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-[#00F0FF] font-bold">✓</span>
+              <div><strong class="text-white">中心微凸 (Convex Surface)：</strong>抛物线中心隆起 +0.15 轴高，带来张力饱满的流光高光</div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-[#00F0FF] font-bold">✓</span>
+              <div><strong class="text-white">真实厚度与镜面倒角：</strong>无缝 45° 铂金镜面倒角外圈 (Beveled Edge)</div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-[#00F0FF] font-bold">✓</span>
+              <div><strong class="text-white">暗色金属材质：</strong>深空黑钛+电光青反射釉面 (0 泄露任何勋章图案与色彩)</div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-[#00F0FF] font-bold">✓</span>
+              <div><strong class="text-white">慢速悬浮与摇摆：</strong>实时真实三维多轴平滑呼吸倾斜 (Idle Floating & Sway)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collection & Anti-Leak Principles Card -->
+        <div class="p-5 rounded-3xl bg-[#16181D] border border-white/10 space-y-3 shadow-xl">
+          <h3 class="text-sm font-bold text-white tracking-tight">防泄露与二次点击规则</h3>
+          <p class="text-xs text-[#8E8E93] leading-relaxed">
+            • <strong class="text-white">首次领取前 (Mystery)：</strong>UI、DOM 节点、WebGL 贴图均经过严格遮蔽，用户绝无法提前得知随机抽中的勋章身份。<br>
+            • <strong class="text-white">已领取后 (Collected)：</strong>徽章点亮并固化至个人徽章墙。以后用户再次点击该徽章，<strong>只播放普通 3D 检查器，永久不再播放 Assembly 解锁流程</strong>。
+          </p>
+          <div class="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-[#636366]">
+            <span>持久化缓存：localStorage</span>
+            <span id="reveal-storage-status-pill" class="text-[#00F0FF] font-mono">ACTIVE</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -737,7 +866,7 @@ class AppleAwardMaterials {
 
   // Dark Recessed Wireframe Channel Material (Partition grooves)
   
-  getSpaceGrayBezel(isLocked: boolean = false): THREE.MeshStandardMaterial {
+  getSpaceGrayBezel(isLocked = false) {
     return new THREE.MeshStandardMaterial({
       color: isLocked ? 0x1f2126 : 0x48484a,
       metalness: isLocked ? 0.7 : 0.88,
@@ -1627,6 +1756,457 @@ function buildAppleChallengeHexBadge(materials, earnedDate = 'SEPTEMBER 17, 2026
  * PROTOTYPE 4: Apple "Longest Study Streak" (Fluid Teardrop / Solar Flame Medal)
  * 100% Watertight Teardrop Chassis
  */
+
+/**
+ * =========================================================================
+ * FIRST-TIME BADGE UNLOCK — HEX ASSEMBLY 3D ASSETS
+ * 1. Apple Fitness Award Geometry Hexagon Base (Convex Parabolic Dish)
+ * 2. 6 Precision Outer Mechanical Assembly Brackets (Gold + Blue Liquid Glass)
+ * 3. Assembled Armor Shell (Locked Status Exoskeleton)
+ * =========================================================================
+ */
+function getMysteryHexSurfaceZ(x, y, isBack = false, thickness = 0.088) {
+  const rHex = 1.48;
+  const dist = Math.sqrt(x * x + y * y);
+  const rNorm = Math.min(1.0, dist / rHex);
+  const normY = y / rHex;
+
+  // Convex parabolic crown: centers at +0.15, smoothly bowing toward edges
+  const convexCenterBulge = (1.0 - rNorm * rNorm) * 0.15;
+  const subtleLongBow = (1.0 - normY * normY) * 0.05;
+
+  if (!isBack) {
+    return convexCenterBulge + subtleLongBow;
+  } else {
+    // Back shell: smooth unibody dome extending backwards
+    const backDome = -(1.0 - rNorm * 0.5) * 0.07;
+    return backDome - thickness;
+  }
+}
+
+function buildAppleMysteryHexBase(materials, options = {}) {
+  const badge = new THREE.Group();
+  badge.name = 'mystery-hex-base';
+
+  const thickness = options.thickness || 0.088;
+  const rHex = options.rHex || 1.48;
+  const pts = [];
+  const numSteps = 72;
+
+  for (let i = 0; i < 6; i++) {
+    const a1 = (i / 6) * Math.PI * 2 + Math.PI / 6;
+    const a2 = ((i + 1) / 6) * Math.PI * 2 + Math.PI / 6;
+    const x1 = Math.cos(a1) * rHex;
+    const y1 = Math.sin(a1) * rHex;
+    const x2 = Math.cos(a2) * rHex;
+    const y2 = Math.sin(a2) * rHex;
+
+    for (let s = 0; s < numSteps / 6; s++) {
+      const t = s / (numSteps / 6);
+      pts.push([x1 + (x2 - x1) * t, y1 + (y2 - y1) * t]);
+    }
+  }
+
+  const len = pts.length;
+
+  // 1. Mirror Chamfered Perimeter Rim (Platinum / Chrome)
+  const rimPos = [];
+  const rimIdx = [];
+  for (let i = 0; i < len; i++) {
+    const x = pts[i][0];
+    const y = pts[i][1];
+    const zFront = getMysteryHexSurfaceZ(x, y, false, thickness);
+    const zBack = getMysteryHexSurfaceZ(x, y, true, thickness);
+    rimPos.push(x, y, zFront);
+    rimPos.push(x, y, zBack);
+  }
+  for (let i = 0; i < len; i++) {
+    const next = (i + 1) % len;
+    const f1 = i * 2, b1 = i * 2 + 1;
+    const f2 = next * 2, b2 = next * 2 + 1;
+    rimIdx.push(f1, f2, b1);
+    rimIdx.push(b1, f2, b2);
+  }
+  const rimGeo = new THREE.BufferGeometry();
+  rimGeo.setAttribute('position', new THREE.Float32BufferAttribute(rimPos, 3));
+  rimGeo.setIndex(rimIdx);
+  rimGeo.computeVertexNormals();
+
+  const mysteryRimMat = new THREE.MeshStandardMaterial({
+    color: 0xd0d8e4, // Polished platinum mirror chamfer
+    metalness: 0.98,
+    roughness: 0.12,
+    envMap: materials.envMap,
+    envMapIntensity: 2.6,
+    side: THREE.DoubleSide
+  });
+  const rimMesh = new THREE.Mesh(rimGeo, mysteryRimMat);
+  badge.add(rimMesh);
+
+  // 2. Convex Dished Front Plate (Deep Metallic Obsidian Titanium with Specular Sheen)
+  const hexPos = [];
+  const hexUv = [];
+  const hexIdx = [];
+  const rings = 24;
+
+  hexPos.push(0, 0, getMysteryHexSurfaceZ(0, 0, false, thickness));
+  hexUv.push(0.5, 0.5);
+
+  for (let rg = 1; rg <= rings; rg++) {
+    const frac = rg / rings;
+    for (let i = 0; i < len; i++) {
+      const x = pts[i][0] * frac;
+      const y = pts[i][1] * frac;
+      const z = getMysteryHexSurfaceZ(x, y, false, thickness);
+      hexPos.push(x, y, z);
+      hexUv.push((x / rHex) * 0.5 + 0.5, (y / rHex) * 0.5 + 0.5);
+    }
+  }
+
+  for (let i = 0; i < len; i++) {
+    const next = (i + 1) % len;
+    hexIdx.push(0, 1 + i, 1 + next);
+  }
+  for (let rg = 1; rg < rings; rg++) {
+    const rStart = 1 + (rg - 1) * len;
+    const nrStart = 1 + rg * len;
+    for (let i = 0; i < len; i++) {
+      const next = (i + 1) % len;
+      const a = rStart + i, b = rStart + next;
+      const c = nrStart + next, d = nrStart + i;
+      hexIdx.push(a, b, c);
+      hexIdx.push(a, c, d);
+    }
+  }
+
+  const hexGeo = new THREE.BufferGeometry();
+  hexGeo.setAttribute('position', new THREE.Float32BufferAttribute(hexPos, 3));
+  hexGeo.setAttribute('uv', new THREE.Float32BufferAttribute(hexUv, 2));
+  hexGeo.setIndex(hexIdx);
+  hexGeo.computeVertexNormals();
+
+  const mysteryFrontMat = new THREE.MeshStandardMaterial({
+    color: 0x2e7deb,              // Rich royal sapphire blue crystal
+    emissive: 0x092b60,           // Deep bio-luminescent cyan/blue internal glow
+    emissiveIntensity: 0.38,
+    metalness: 0.30,              // Crisp crystal-metallic luster
+    roughness: 0.15,              // Polished liquid glass finish
+    envMap: materials.envMap,
+    envMapIntensity: 2.2,
+    side: THREE.DoubleSide
+  });
+  const frontMesh = new THREE.Mesh(hexGeo, mysteryFrontMat);
+  badge.add(frontMesh);
+
+  // 3. Reverse Ceramic Unibody Shell (With anonymous specimen laser engraving)
+  const backPos = [];
+  const backUv = [];
+  const backIdx = [];
+
+  backPos.push(0, 0, getMysteryHexSurfaceZ(0, 0, true, thickness));
+  backUv.push(0.5, 0.5);
+
+  for (let rg = 1; rg <= rings; rg++) {
+    const frac = rg / rings;
+    for (let i = 0; i < len; i++) {
+      const x = pts[i][0] * frac;
+      const y = pts[i][1] * frac;
+      const z = getMysteryHexSurfaceZ(x, y, true, thickness);
+      backPos.push(x, y, z);
+      backUv.push((-(x / rHex) * 0.5 + 0.5), (y / rHex) * 0.5 + 0.5);
+    }
+  }
+  for (let i = 0; i < len; i++) {
+    const next = (i + 1) % len;
+    backIdx.push(0, 1 + next, 1 + i);
+  }
+  for (let rg = 1; rg < rings; rg++) {
+    const rStart = 1 + (rg - 1) * len;
+    const nrStart = 1 + rg * len;
+    for (let i = 0; i < len; i++) {
+      const next = (i + 1) % len;
+      const a = rStart + i, b = rStart + next;
+      const c = nrStart + next, d = nrStart + i;
+      backIdx.push(a, c, b);
+      backIdx.push(a, d, c);
+    }
+  }
+
+  const backGeo = new THREE.BufferGeometry();
+  backGeo.setAttribute('position', new THREE.Float32BufferAttribute(backPos, 3));
+  backGeo.setAttribute('uv', new THREE.Float32BufferAttribute(backUv, 2));
+  backGeo.setIndex(backIdx);
+  backGeo.computeVertexNormals();
+
+  const mysteryBackCanvas = document.createElement('canvas');
+  mysteryBackCanvas.width = 1024; mysteryBackCanvas.height = 1024;
+  const bctx = mysteryBackCanvas.getContext('2d');
+  bctx.fillStyle = '#1c1f26';
+  bctx.fillRect(0, 0, 1024, 1024);
+  bctx.strokeStyle = 'rgba(255,255,255,0.14)';
+  bctx.lineWidth = 4;
+  bctx.beginPath(); bctx.arc(512, 512, 360, 0, Math.PI * 2); bctx.stroke();
+  bctx.beginPath(); bctx.arc(512, 512, 440, 0, Math.PI * 2); bctx.stroke();
+  bctx.fillStyle = 'rgba(255,255,255,0.85)';
+  bctx.font = 'bold 26px -apple-system, sans-serif';
+  bctx.textAlign = 'center';
+  bctx.textBaseline = 'middle';
+  bctx.fillText('MINEST ARCHITECTURAL AWARDS', 512, 440);
+  bctx.font = '600 20px monospace';
+  bctx.fillStyle = '#00F0FF';
+  bctx.fillText('UNREVEALED SPECIMEN • CLASSIFIED', 512, 512);
+  bctx.font = '500 18px -apple-system, sans-serif';
+  bctx.fillStyle = 'rgba(255,255,255,0.55)';
+  bctx.fillText('WATERTIGHT HERMETIC SEAL', 512, 580);
+
+  const backTex = new THREE.CanvasTexture(mysteryBackCanvas);
+  const mysteryBackMat = new THREE.MeshStandardMaterial({
+    map: backTex,
+    color: 0xffffff,
+    roughness: 0.28,
+    metalness: 0.12,
+    envMap: materials.envMap,
+    envMapIntensity: 1.2,
+    side: THREE.DoubleSide
+  });
+
+  const backMesh = new THREE.Mesh(backGeo, mysteryBackMat);
+  badge.add(backMesh);
+
+  return badge;
+}
+
+function buildOuterMechanicalAssembly(materials, options = {}) {
+  const assembly = new THREE.Group();
+  assembly.name = 'outer-mechanical-assembly';
+
+  const brackets = [];
+  const rHex = 1.48;
+  const apothem = rHex * Math.cos(Math.PI / 6); // Distance from center to flat edge (~1.282)
+
+  const goldMat = new THREE.MeshStandardMaterial({
+    color: 0xf5c518, // 24K mirror-polished gold
+    metalness: 0.95,
+    roughness: 0.16,
+    envMap: materials.envMap,
+    envMapIntensity: 2.2,
+    side: THREE.DoubleSide
+  });
+
+  const blueInlayMat = new THREE.MeshStandardMaterial({
+    color: 0x0c3b98, // Royal cobalt blue liquid enamel
+    metalness: 0.35,
+    roughness: 0.15,
+    envMap: materials.envMap,
+    envMapIntensity: 1.8,
+    side: THREE.DoubleSide
+  });
+
+  const cyanEnergyMat = new THREE.MeshStandardMaterial({
+    color: 0x00f0ff,
+    emissive: 0x00f0ff,
+    emissiveIntensity: 0.9,
+    roughness: 0.2,
+    metalness: 0.3
+  });
+
+  for (let i = 0; i < 6; i++) {
+    const bracketGroup = new THREE.Group();
+    bracketGroup.name = 'outer-bracket-' + (i + 1);
+
+    // Exact edge midpoint angle (60°, 120°, 180°, 240°, 300°, 0°)
+    const theta = (i / 6) * Math.PI * 2 + Math.PI / 3;
+    const dirX = Math.cos(theta);
+    const dirY = Math.sin(theta);
+
+    // Gold outer mechanical chassis (trapezoidal mitered bracket)
+    const frameShape = new THREE.Shape();
+    const w = 1.46, h = 0.36;
+    frameShape.moveTo(-w / 2 + 0.12, -h / 2);
+    frameShape.lineTo(w / 2 - 0.12, -h / 2);
+    frameShape.lineTo(w / 2, h / 2);
+    frameShape.lineTo(-w / 2, h / 2);
+    frameShape.closePath();
+
+    const extrudeSettings = { depth: 0.12, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.025, bevelThickness: 0.025 };
+    const frameGeo = new THREE.ExtrudeGeometry(frameShape, extrudeSettings);
+    frameGeo.center();
+    const frameMesh = new THREE.Mesh(frameGeo, goldMat);
+    bracketGroup.add(frameMesh);
+
+    // Royal Blue Enamel Inlay
+    const inlayShape = new THREE.Shape();
+    const iw = 1.20, ih = 0.22;
+    inlayShape.moveTo(-iw / 2 + 0.08, -ih / 2);
+    inlayShape.lineTo(iw / 2 - 0.08, -ih / 2);
+    inlayShape.lineTo(iw / 2, ih / 2);
+    inlayShape.lineTo(-iw / 2, ih / 2);
+    inlayShape.closePath();
+
+    const inlayGeo = new THREE.ExtrudeGeometry(inlayShape, { depth: 0.05, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.015, bevelThickness: 0.015 });
+    inlayGeo.center();
+    const inlayMesh = new THREE.Mesh(inlayGeo, blueInlayMat);
+    inlayMesh.position.z = 0.05;
+    bracketGroup.add(inlayMesh);
+
+    // Cyan glowing energy conduit
+    const conduitGeo = new THREE.BoxGeometry(0.85, 0.035, 0.03);
+    const conduitMesh = new THREE.Mesh(conduitGeo, cyanEnergyMat);
+    conduitMesh.position.z = 0.08;
+    bracketGroup.add(conduitMesh);
+
+    // Decorative Gold Corner Studs / Interlocking Bosses
+    const studGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.04, 12);
+    studGeo.rotateX(Math.PI / 2);
+    const studLeft = new THREE.Mesh(studGeo, goldMat);
+    studLeft.position.set(-w / 2 + 0.14, 0, 0.08);
+    bracketGroup.add(studLeft);
+    const studRight = new THREE.Mesh(studGeo, goldMat);
+    studRight.position.set(w / 2 - 0.14, 0, 0.08);
+    bracketGroup.add(studRight);
+
+    // Alignment: tangent to edge
+    bracketGroup.rotation.z = theta + Math.PI / 2;
+    bracketGroup.userData = {
+      baseAngle: theta,
+      dirX: dirX,
+      dirY: dirY,
+      dockRadius: apothem + 0.04,
+      spreadRadius: apothem * 1.22 // ~1.56: compact hovering radial distance
+    };
+
+    assembly.add(bracketGroup);
+    brackets.push(bracketGroup);
+  }
+
+  // Method to control assembly extension/docking
+  assembly.setAssemblyProgress = function(progress) {
+    const p = Math.max(0, Math.min(1, progress));
+    brackets.forEach((b) => {
+      const u = b.userData;
+      const currentR = u.spreadRadius + (u.dockRadius - u.spreadRadius) * p;
+      b.position.x = u.dirX * currentR;
+      b.position.y = u.dirY * currentR;
+      b.position.z = (1 - p) * 0.42;
+      b.scale.setScalar(0.92 + 0.08 * p);
+      b.rotation.x = (1 - p) * 0.22;
+    });
+  };
+
+  assembly.setAssemblyProgress(options.initialProgress !== undefined ? options.initialProgress : 0.0);
+  assembly.brackets = brackets;
+  return assembly;
+}
+
+function buildAssembledArmorShell(materials, options = {}) {
+  const shell = new THREE.Group();
+  shell.name = 'assembled-armor-shell';
+
+  const rHex = 1.48;
+  const apothem = rHex * Math.cos(Math.PI / 6);
+
+  // 1. 6 Outer Mechanical Brackets docked at progress = 1.0
+  const lockedAssembly = buildOuterMechanicalAssembly(materials, { initialProgress: 1.0 });
+  shell.add(lockedAssembly);
+
+  // 2. Stepped Royal Blue Hexagonal Armor Face Plate (covering mystery badge face)
+  const plateShape = new THREE.Shape();
+  const pr = apothem - 0.02;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+    const x = Math.cos(a) * pr;
+    const y = Math.sin(a) * pr;
+    if (i === 0) plateShape.moveTo(x, y);
+    else plateShape.lineTo(x, y);
+  }
+  plateShape.closePath();
+
+  const plateGeo = new THREE.ExtrudeGeometry(plateShape, { depth: 0.06, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.03, bevelThickness: 0.03 });
+  plateGeo.center();
+
+  const bluePlateMat = new THREE.MeshStandardMaterial({
+    color: 0x0b358a, // Deep royal cobalt blue
+    metalness: 0.38,
+    roughness: 0.16,
+    envMap: materials.envMap,
+    envMapIntensity: 2.0
+  });
+  const plateMesh = new THREE.Mesh(plateGeo, bluePlateMat);
+  plateMesh.position.z = 0.06;
+  shell.add(plateMesh);
+
+  // 3. Gold Concentric Hexagonal Frame Inset
+  const insetShape = new THREE.Shape();
+  const ir = pr * 0.72;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+    const x = Math.cos(a) * ir;
+    const y = Math.sin(a) * ir;
+    if (i === 0) insetShape.moveTo(x, y);
+    else insetShape.lineTo(x, y);
+  }
+  insetShape.closePath();
+
+  const insetGeo = new THREE.BufferGeometry().setFromPoints(insetShape.getPoints());
+  const goldWireMat = new THREE.LineBasicMaterial({ color: 0xf5c518, linewidth: 2 });
+  const insetLine = new THREE.LineLoop(insetGeo, goldWireMat);
+  insetLine.position.z = 0.10;
+  shell.add(insetLine);
+
+  // 4. Center 24K Gold Hexagonal Lock Crest
+  const lockShape = new THREE.Shape();
+  const lr = 0.52;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+    const x = Math.cos(a) * lr;
+    const y = Math.sin(a) * lr;
+    if (i === 0) lockShape.moveTo(x, y);
+    else lockShape.lineTo(x, y);
+  }
+  lockShape.closePath();
+
+  const lockGeo = new THREE.ExtrudeGeometry(lockShape, { depth: 0.07, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.03, bevelThickness: 0.03 });
+  lockGeo.center();
+
+  const lockGoldMat = new THREE.MeshStandardMaterial({
+    color: 0xf5c518,
+    metalness: 0.95,
+    roughness: 0.16,
+    envMap: materials.envMap,
+    envMapIntensity: 2.2
+  });
+  const lockMesh = new THREE.Mesh(lockGeo, lockGoldMat);
+  lockMesh.position.z = 0.11;
+  shell.add(lockMesh);
+
+  // 5. Core Cyan Energy Aperture / Royal Gem Crest
+  const coreShape = new THREE.Shape();
+  const cr = 0.22;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const x = Math.cos(a) * cr;
+    const y = Math.sin(a) * cr;
+    if (i === 0) coreShape.moveTo(x, y);
+    else coreShape.lineTo(x, y);
+  }
+  coreShape.closePath();
+
+  const coreGeo = new THREE.ExtrudeGeometry(coreShape, { depth: 0.04, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.015, bevelThickness: 0.015 });
+  coreGeo.center();
+  const coreMat = new THREE.MeshStandardMaterial({
+    color: 0x00f0ff,
+    emissive: 0x00f0ff,
+    emissiveIntensity: 0.9,
+    metalness: 0.4,
+    roughness: 0.15
+  });
+  const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+  coreMesh.position.z = 0.16;
+  shell.add(coreMesh);
+
+  return shell;
+}
+
 function buildAppleTeardropStreakBadge(materials, earnedDate = 'SEPTEMBER 24, 2026', isLocked = false) {
   const badge = new THREE.Group() ;
 
@@ -5063,22 +5643,45 @@ function buildAppleOctopusBadge(materials, earnedDate = 'OCTOBER 26, 2026', isLo
     function openModalWithBadge(badge) {
       triggerHaptic('tap');
       spatialAudio.playChime();
-      document.getElementById('modal-badge-name').innerText = badge.name;
-      document.getElementById('modal-badge-desc').innerText = badge.longDescription || badge.description;
-      document.getElementById('modal-badge-specs').innerHTML = `
-        <span>Shape: ${badge.badgeStyle}</span>
-        <span>•</span>
-        <span>Finish: Mirror ${badge.colorTheme.bezel.toUpperCase()}</span>
-        <span>•</span>
-        <span>${badge.earnedDate || 'In Progress'}</span>
-      `;
+
+      const isMystery = BadgeRevealStateEngine.isMystery(badge.id);
+      const displayData = isMystery ? BadgeRevealStateEngine.getMaskedBadgeData(badge) : badge;
+
+      document.getElementById('modal-badge-name').innerText = displayData.name;
+      document.getElementById('modal-badge-desc').innerText = displayData.longDescription || displayData.description;
+      
+      if (isMystery) {
+        document.getElementById('modal-badge-specs').innerHTML = `
+          <span class="text-[#00F0FF] font-semibold">⚡ 首次获得未揭晓勋章</span>
+          <span>•</span>
+          <span>Apple Fitness 风格六边形金属胚体</span>
+          <span>•</span>
+          <span class="text-white/60">等待首次组装仪式 (Zero Leakage)</span>
+        `;
+      } else {
+        document.getElementById('modal-badge-specs').innerHTML = `
+          <span>Shape: ${displayData.badgeStyle}</span>
+          <span>•</span>
+          <span>Finish: Mirror ${(displayData.colorTheme && displayData.colorTheme.bezel) ? displayData.colorTheme.bezel.toUpperCase() : 'PLATINUM'}</span>
+          <span>•</span>
+          <span>${displayData.earnedDate || 'Collected'}</span>
+          <span>•</span>
+          <span class="text-emerald-400 font-semibold">✓ 已收录 (常规 3D 预览)</span>
+        `;
+      }
+      
       document.getElementById('detail-modal').classList.remove('hidden');
 
       initDetail3D();
       while (detailBadgeGroup.children.length > 0) {
         detailBadgeGroup.remove(detailBadgeGroup.children[0]);
       }
-      const mesh = buildAppleBadge3D(sharedMaterials, badge);
+
+      // STRICT ANTI-LEAK: If mystery, render pure Mystery Hex Base! If collected, render real 3D badge!
+      const mesh = isMystery 
+        ? buildAppleMysteryHexBase(sharedMaterials)
+        : buildAppleBadge3D(sharedMaterials, badge);
+      
       detailBadgeGroup.add(mesh);
       targetQuat.identity();
       currentQuat.identity();
@@ -5159,11 +5762,266 @@ function buildAppleOctopusBadge(materials, earnedDate = 'OCTOBER 26, 2026', isLo
       });
     }
 
+
+    /* =========================================================================
+     * FIRST-TIME BADGE UNLOCK — HEX ASSEMBLY STATE ENGINE & REVEAL CONTROLLER
+     * ========================================================================= */
+    const BadgeRevealStateEngine = (function() {
+      const STORAGE_KEY = 'minest_badge_unlock_states_v2';
+
+      function loadStates() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) return JSON.parse(raw);
+        } catch(e) {}
+        // By default: first badge (Perfect Week) is pending mystery, rest are collected
+        return {
+          'perfect-week-study': 'pending_mystery',
+          'september-sprint': 'collected'
+        };
+      }
+
+      function saveStates(st) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
+        } catch(e) {}
+      }
+
+      let currentStates = loadStates();
+
+      return {
+        getState: function(badgeId) {
+          return currentStates[badgeId] || 'collected';
+        },
+        isMystery: function(badgeId) {
+          return this.getState(badgeId) === 'pending_mystery';
+        },
+        isCollected: function(badgeId) {
+          return this.getState(badgeId) === 'collected';
+        },
+        setMystery: function(badgeId) {
+          currentStates[badgeId] = 'pending_mystery';
+          saveStates(currentStates);
+        },
+        markCollected: function(badgeId) {
+          currentStates[badgeId] = 'collected';
+          saveStates(currentStates);
+        },
+        resetAll: function() {
+          currentStates = {
+            'perfect-week-study': 'pending_mystery'
+          };
+          saveStates(currentStates);
+        },
+        getMaskedBadgeData: function(badge) {
+          return {
+            id: badge.id,
+            name: 'Mystery Hex Distinction (未揭晓)',
+            badgeStyle: 'Convex Hex Base',
+            category: 'First-Time Reveal',
+            earnedDate: 'Awaiting Reveal Ceremony',
+            description: 'A high-prestige architectural distinction has been forged. Tap to initiate the Hex Assembly sequence.',
+            longDescription: 'This badge is locked inside its hermetic mystery metallic shell. Its true identity, color scheme, and 3D insignia remain strictly concealed until the completion of the reveal ceremony.',
+            colorTheme: { bezel: 'Platinum', primary: '#00F0FF' },
+            state: 'mystery_ready'
+          };
+        }
+      };
+    })();
+
+    // 3D Scene for the Hex Assembly Showcase
+    let revealRenderer = null, revealScene = null, revealCamera = null;
+    let revealBadgeGroup = null;
+    let revealQuatCurrent = new THREE.Quaternion();
+    let revealQuatTarget = new THREE.Quaternion();
+    let revealCurrentMode = 'base'; // 'base' | 'brackets' | 'shell' | 'combined'
+    let revealIdleTime = 0;
+    let revealIsDragging = false;
+    let revealPreviousMousePosition = { x: 0, y: 0 };
+    let revealAssemblyRef = null;
+
+    function initReveal3D() {
+      const target = document.getElementById('reveal-canvas-target');
+      if (!target || revealRenderer) return;
+
+      const rect = target.getBoundingClientRect();
+      const w = Math.max(320, rect.width || target.clientWidth || (target.parentElement ? target.parentElement.clientWidth : 0) || 600);
+      const h = Math.max(320, rect.height || target.clientHeight || (target.parentElement ? target.parentElement.clientHeight : 0) || 480);
+
+      revealScene = new THREE.Scene();
+      revealScene.background = new THREE.Color(0x06080c);
+      revealScene.environment = sharedMaterials.envMap;
+
+      revealCamera = new THREE.PerspectiveCamera(36, w / h, 0.1, 100);
+      revealCamera.position.set(0, 0, 5.4);
+
+      revealRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+      revealRenderer.setSize(w, h);
+      revealRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      revealRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+      revealRenderer.toneMappingExposure = 1.05;
+      revealRenderer.shadowMap.enabled = true;
+      revealRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      target.appendChild(revealRenderer.domElement);
+
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.45);
+      revealScene.add(ambLight);
+
+      const hemi = new THREE.HemisphereLight(0xddeeff, 0x080c14, 0.4);
+      revealScene.add(hemi);
+
+      const frontFill = new THREE.DirectionalLight(0xe8f4ff, 0.9);
+      frontFill.position.set(0, 1.2, 5.0);
+      revealScene.add(frontFill);
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
+      keyLight.position.set(3.2, 4.0, 4.5);
+      revealScene.add(keyLight);
+
+      const cyanRim = new THREE.PointLight(0x00f0ff, 1.4, 12);
+      cyanRim.position.set(-2.8, -2.4, 2.8);
+      revealScene.add(cyanRim);
+
+      const goldFill = new THREE.PointLight(0xffd60a, 1.0, 10);
+      goldFill.position.set(2.8, -2.6, 2.2);
+      revealScene.add(goldFill);
+
+      revealBadgeGroup = new THREE.Group();
+      revealScene.add(revealBadgeGroup);
+
+      // Mouse / Touch Drag handling
+      const onPointerDown = (e) => {
+        revealIsDragging = true;
+        revealPreviousMousePosition = { x: e.clientX, y: e.clientY };
+      };
+      const onPointerMove = (e) => {
+        if (!revealIsDragging) return;
+        const deltaX = e.clientX - revealPreviousMousePosition.x;
+        const deltaY = e.clientY - revealPreviousMousePosition.y;
+
+        const qX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), deltaX * 0.008);
+        const qY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), deltaY * 0.008);
+
+        revealQuatTarget.premultiply(qX);
+        revealQuatTarget.premultiply(qY);
+
+        revealPreviousMousePosition = { x: e.clientX, y: e.clientY };
+      };
+      const onPointerUp = () => { revealIsDragging = false; };
+
+      target.addEventListener('pointerdown', onPointerDown);
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+
+      // Render Loop
+      let lastTime = performance.now();
+      function animateReveal() {
+        requestAnimationFrame(animateReveal);
+
+        const now = performance.now();
+        const dt = (now - lastTime) / 1000;
+        lastTime = now;
+        revealIdleTime += dt;
+
+        // Smooth manual drag slerp
+        revealQuatCurrent.slerp(revealQuatTarget, 0.12);
+
+        // Idle gentle multi-axis floating sway when not dragging
+        if (!revealIsDragging) {
+          const swayY = Math.sin(revealIdleTime * 1.5) * 0.07;
+          const swayPitch = Math.sin(revealIdleTime * 0.8) * 0.04;
+          const swayRoll = Math.cos(revealIdleTime * 0.6) * 0.05;
+
+          revealBadgeGroup.position.y = swayY;
+          const idleEuler = new THREE.Euler(swayPitch, 0, swayRoll);
+          const idleQuat = new THREE.Quaternion().setFromEuler(idleEuler);
+          
+          const combined = revealQuatCurrent.clone().multiply(idleQuat);
+          revealBadgeGroup.quaternion.copy(combined);
+        } else {
+          revealBadgeGroup.quaternion.copy(revealQuatCurrent);
+          revealBadgeGroup.position.y = 0;
+        }
+
+        revealRenderer.render(revealScene, revealCamera);
+      }
+      animateReveal();
+
+      // Window resize
+      window.addEventListener('resize', () => {
+        if (!target || !revealRenderer || !revealCamera) return;
+        const nw = target.clientWidth || 600;
+        const nh = target.clientHeight || 480;
+        revealCamera.aspect = nw / nh;
+        revealCamera.updateProjectionMatrix();
+        revealRenderer.setSize(nw, nh);
+      });
+    }
+
+    function switchRevealMode(mode) {
+      revealCurrentMode = mode;
+      triggerHaptic('selection');
+
+      // Update button styles
+      ['base', 'brackets', 'shell', 'combined'].forEach(m => {
+        const btn = document.getElementById('reveal-btn-mode-' + m);
+        if (btn) {
+          btn.className = `flex-1 min-w-[130px] px-3 py-2 rounded-xl text-xs font-medium transition-all text-center ${
+            m === mode ? 'bg-white text-black font-semibold shadow-sm' : 'text-[#8E8E93] hover:text-white'
+          }`;
+        }
+      });
+
+      const label = document.getElementById('reveal-current-mode-label');
+      if (label) {
+        if (mode === 'base') label.innerText = 'Mode 1: 3D Mystery Hex Base (六边形胚体)';
+        else if (mode === 'brackets') label.innerText = 'Mode 2: 6 Outer Mechanical Brackets (外围组件 x6)';
+        else if (mode === 'shell') label.innerText = 'Mode 3: Assembled Armor Shell (锁定状态外壳)';
+        else if (mode === 'combined') label.innerText = 'Mode 4: Mystery Base + Locked Exoskeleton (合体状态)';
+      }
+
+      if (!revealBadgeGroup) return;
+      while (revealBadgeGroup.children.length > 0) {
+        revealBadgeGroup.remove(revealBadgeGroup.children[0]);
+      }
+
+      if (mode === 'base') {
+        const baseMesh = buildAppleMysteryHexBase(sharedMaterials);
+        revealBadgeGroup.add(baseMesh);
+      } else if (mode === 'brackets') {
+        const brackets = buildOuterMechanicalAssembly(sharedMaterials, { initialProgress: 0.0 });
+        revealAssemblyRef = brackets;
+        revealBadgeGroup.add(brackets);
+      } else if (mode === 'shell') {
+        const shell = buildAssembledArmorShell(sharedMaterials);
+        revealBadgeGroup.add(shell);
+      } else if (mode === 'combined') {
+        const baseMesh = buildAppleMysteryHexBase(sharedMaterials);
+        const lockedShell = buildAssembledArmorShell(sharedMaterials);
+        lockedShell.position.z = 0.10;
+        revealBadgeGroup.add(baseMesh);
+        revealBadgeGroup.add(lockedShell);
+      }
+
+      if (revealCamera) {
+        revealCamera.position.z = (mode === 'brackets') ? 5.9 : 5.4;
+      }
+      revealQuatTarget.identity();
+    }
+
     function switchView(tab) {
       triggerHaptic('selection');
       document.getElementById('view-grid').classList.toggle('hidden', tab !== 'grid');
       document.getElementById('view-summary').classList.toggle('hidden', tab !== 'summary');
       document.getElementById('view-comparison').classList.toggle('hidden', tab !== 'comparison');
+      document.getElementById('view-reveal').classList.toggle('hidden', tab !== 'reveal');
+
+      const tabReveal = document.getElementById('tab-reveal');
+      if (tabReveal) {
+        tabReveal.className = `px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+          tab === 'reveal' ? 'bg-[#00F0FF] text-black font-semibold shadow-sm' : 'text-[#8E8E93] hover:text-white'
+        }`;
+      }
 
       document.getElementById('tab-grid').className = `px-3 py-1 rounded-full text-xs font-medium transition-all ${
         tab === 'grid' ? 'bg-white text-black font-semibold shadow-sm' : 'text-[#8E8E93] hover:text-white'
@@ -5177,6 +6035,22 @@ function buildAppleOctopusBadge(materials, earnedDate = 'OCTOBER 26, 2026', isLo
 
       if (tab === 'comparison') {
         renderComparison3D();
+      }
+      if (tab === 'reveal') {
+        initReveal3D();
+        switchRevealMode(revealCurrentMode || 'base');
+        requestAnimationFrame(() => {
+          if (revealRenderer && revealCamera) {
+            const target = document.getElementById('reveal-canvas-target');
+            if (target) {
+              const nw = Math.max(320, target.clientWidth || 600);
+              const nh = Math.max(320, target.clientHeight || 480);
+              revealCamera.aspect = nw / nh;
+              revealCamera.updateProjectionMatrix();
+              revealRenderer.setSize(nw, nh);
+            }
+          }
+        });
       }
     }
 
@@ -5257,9 +6131,84 @@ function buildAppleOctopusBadge(materials, earnedDate = 'OCTOBER 26, 2026', isLo
       if (e.key === 'Escape') document.getElementById('detail-modal').classList.add('hidden');
     });
 
+
+    // Reveal Showcase Events
+    const tabRevealBtn = document.getElementById('tab-reveal');
+    if (tabRevealBtn) tabRevealBtn.onclick = () => switchView('reveal');
+
+    document.getElementById('reveal-btn-mode-base').onclick = () => switchRevealMode('base');
+    document.getElementById('reveal-btn-mode-brackets').onclick = () => switchRevealMode('brackets');
+    document.getElementById('reveal-btn-mode-shell').onclick = () => switchRevealMode('shell');
+    document.getElementById('reveal-btn-mode-combined').onclick = () => switchRevealMode('combined');
+
+    document.getElementById('reveal-tap-mystery-btn').onclick = () => {
+      triggerHaptic('tap');
+      spatialAudio.playClink('tap');
+      console.log('[BadgeRevealController] onStartUnlock Hook Triggered! Ready for Assembly Phase 2.');
+      const label = document.getElementById('reveal-current-mode-label');
+      if (label) {
+        label.innerText = '⚡ [Hook Triggered] onStartUnlock() — Ready for Piece 1-6 Assembly Animation';
+        setTimeout(() => {
+          if (label) label.innerText = 'Mode 1: 3D Mystery Hex Base (六边形胚体)';
+        }, 3000);
+      }
+    };
+
+    document.getElementById('reveal-flip-mystery-btn').onclick = () => {
+      triggerHaptic('flip');
+      spatialAudio.playClink('flip');
+      const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+      revealQuatTarget.multiply(q);
+    };
+
+    document.getElementById('reveal-zoom-in-btn').onclick = () => {
+      if (revealCamera) revealCamera.position.z = Math.max(3.2, revealCamera.position.z - 0.5);
+      triggerHaptic('selection');
+    };
+    document.getElementById('reveal-zoom-out-btn').onclick = () => {
+      if (revealCamera) revealCamera.position.z = Math.min(8.0, revealCamera.position.z + 0.5);
+      triggerHaptic('selection');
+    };
+    document.getElementById('reveal-reset-cam-btn').onclick = () => {
+      if (revealCamera) revealCamera.position.z = 5.4;
+      revealQuatTarget.identity();
+      triggerHaptic('selection');
+    };
+
+    document.getElementById('reveal-mock-mystery-btn').onclick = () => {
+      triggerHaptic('success');
+      spatialAudio.playChime();
+      BadgeRevealStateEngine.setMystery('perfect-week-study');
+      renderGrid();
+      switchView('reveal');
+      alert('已模拟获得新徽章！可在「Hex Assembly」展台或回到「Awards Grid」点击该勋章预览 Mystery 胚体。已严格屏蔽真实外观！');
+    };
+
+    document.getElementById('reveal-reset-states-btn').onclick = () => {
+      triggerHaptic('selection');
+      BadgeRevealStateEngine.resetAll();
+      renderGrid();
+      alert('领取状态已重置！');
+    };
+
     // Initialize
     renderCategoryPills();
     renderGrid();
+    try {
+      const initParams = new URLSearchParams(window.location.search);
+      if (initParams.get('tab') === 'reveal' || window.location.hash === '#reveal') {
+        switchView('reveal');
+      }
+      const initialMode = initParams.get('mode');
+      if (initialMode && ['base', 'brackets', 'shell', 'combined'].includes(initialMode)) {
+        switchRevealMode(initialMode);
+      }
+      if (initParams.get('flip') === '1') {
+        const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+        revealQuatTarget.multiply(q);
+        revealQuatCurrent.copy(revealQuatTarget);
+      }
+    } catch(e) {}
   </script>
 </body>
 </html>
