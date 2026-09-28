@@ -15858,6 +15858,15 @@ var ActivityBadgesModal = function(props) {
   });
   var badgeSource = badgeSourceState[0];
   var setBadgeSource = badgeSourceState[1];
+  var awardPaneState = (0, _.useState)('library');
+  var awardPane = awardPaneState[0];
+  var setAwardPane = awardPaneState[1];
+  var animationTabs = ['rings', 'summon', 'pending', 'reveal', 'inspector', 'badgewall', 'watchos4'];
+  var animationLabels = { rings: 'Rings 4.0', summon: 'Summon', pending: 'Pending', reveal: 'Hex Reveal', inspector: '3D Inspect', badgewall: 'Badge Wall', watchos4: 'Watch' };
+  var animationUrl = './badge-animations/index.html?embed=1&tab=' + encodeURIComponent(awardPane) +
+    '&focus=' + encodeURIComponent(Math.min(200, Math.round(focusMinutes / targetMinutes * 100))) +
+    '&checks=' + encodeURIComponent(Math.min(200, Math.round(checkCount / targetChecks * 100))) +
+    '&goal=' + encodeURIComponent(goalPercent) + '&v=da4b834';
   var badgeFrameRef = (0, _.useRef)(null);
   var unlockRulesState = (0, _.useState)(function() {
     try {
@@ -15985,6 +15994,7 @@ var ActivityBadgesModal = function(props) {
         }),
         activeSection === 'summary' ? (0, P.jsxs)('div', { className: "px-5 pb-7", children: [
           (0, P.jsx)(PhaseOneRingsPreview, {}),
+          (0, P.jsx)('button', { type: 'button', onClick: function() { setAwardPane('rings'); setActiveSection('awards'); }, className: 'mt-3 w-full rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-left text-xs font-semibold', children: 'Explore animated Rings 4.0  ›' }),
           (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
             (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
             editingGoals ? (0, P.jsxs)('div', { className: "mt-4 space-y-4", children: [
@@ -16015,8 +16025,18 @@ var ActivityBadgesModal = function(props) {
           ] }),
           (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "mt-4 w-full rounded-[24px] border border-white/10 bg-gradient-to-r from-amber-400/20 to-fuchsia-500/15 p-4 text-left", children: (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('p', { className: "font-semibold", children: "Explore Awards" }), (0, P.jsx)('p', { className: "text-xs opacity-50", children: "View the live 3D collection" })] }), (0, P.jsx)('span', { className: "text-xl", children: "›" })] }) })
         ] }) : (0, P.jsxs)('div', { className: "px-4 pb-6", children: [
-          (0, P.jsxs)('div', { className: "relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [(0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, onLoad: sendAwardProgress, title: "Minest 3D Awards", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }), (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), "BUILT-IN 3D"] })] }),
-          (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: "Drag to rotate · Pinch to inspect · Gyroscope enabled" })
+          (0, P.jsx)('div', { className: "mb-3 flex gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/[0.06] p-1", children: [
+            ['library', 'Collection'], ['rings', 'Rings 4.0'], ['summon', 'Summon'], ['pending', 'Pending'], ['reveal', 'Hex Reveal'], ['inspector', '3D Inspect'], ['badgewall', 'Badge Wall'], ['watchos4', 'Watch'], ['base', 'Mystery Hex'], ['brackets', 'Assembly Study']
+          ].map(function(option) {
+            return (0, P.jsx)('button', { type: 'button', onClick: function() { setAwardPane(option[0]); }, className: 'shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold transition-colors', style: { background: awardPane === option[0] ? '#fff' : 'transparent', color: awardPane === option[0] ? '#0b0d11' : 'inherit', opacity: awardPane === option[0] ? 1 : .6 }, children: option[1] }, option[0]);
+          }) }),
+          (0, P.jsxs)('div', { className: "relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [
+            awardPane === 'library' ? (0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, onLoad: sendAwardProgress, title: "Minest 3D Awards", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }) :
+              animationTabs.indexOf(awardPane) >= 0 ? (0, P.jsx)('iframe', { src: animationUrl, title: animationLabels[awardPane] + ' animation', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07090d' }, loading: 'eager' }) :
+              (0, P.jsx)('iframe', { src: './badge-studio.html?tab=reveal&mode=' + awardPane + '&embed=1&v=6e7a1f2', title: awardPane === 'base' ? 'Mystery Hex 3D preview' : 'Mechanical assembly 3D preview', className: 'w-full border-0', style: { height: 'min(64vh, 530px)', background: '#06080c' }, loading: 'eager' }),
+            (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'library' ? "BUILT-IN 3D" : animationTabs.indexOf(awardPane) >= 0 ? 'ANIMATION SDK · PREVIEW' : "MYSTERY STUDY · v6e7a1f2"] })
+          ] }),
+          (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'library' ? "Drag to rotate · Pinch to inspect · Gyroscope enabled" : animationTabs.indexOf(awardPane) >= 0 ? 'Interactive animation preview · does not change earned awards' : "Penultimate Claude preview · Mystery and mechanical components only · no final reveal sequence" })
         ] })
       ]
     })
