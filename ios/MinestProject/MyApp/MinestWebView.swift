@@ -24,7 +24,7 @@ public struct MinestWebView: UIViewRepresentable {
         
         // Inject native identifiers so Web JS knows it is inside the native app
         let injectScript = WKUserScript(
-            source: "window.__isMinestNative = true; window.__isFocusboardNative = true; window.__minestAppVersion = '13.1';",
+            source: "window.__isMinestNative = true; window.__isFocusboardNative = true; window.__minestAppVersion = '13.2';",
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         )

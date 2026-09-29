@@ -7,7 +7,7 @@ struct ContentView: View {
     // Choose between remote web app or local bundled HTML
     private var targetURL: URL {
         // 1. Try local bundled HTML inside app bundle
-        if let bundlePath = Bundle.main.url(forResource: "iphone13.1", withExtension: "html") {
+        if let bundlePath = Bundle.main.url(forResource: "iphone13.2", withExtension: "html") {
             return bundlePath
         }
         // 2. Fallback to production web URL
