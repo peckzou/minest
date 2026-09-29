@@ -4325,11 +4325,51 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   cursor: default !important;
 }
 
+/* Physical Card mode owns the viewport. The surrounding board, dock and
+   simulator chrome fall behind one continuous pane of glass. */
+.headsup-physical-shell {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 2147482500 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,.10), transparent 55%),
+    linear-gradient(155deg, #111923 0%, #070b10 64%, #030507 100%);
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+}
+.headsup-physical-shell .perspective-stage {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
 /* 1. Full-Screen Physical Card Hero Styling */
 .coverflow-card-item.is-headsup-hero {
-  border-radius: 46px !important;
-  box-shadow: 0 30px 90px -15px rgba(0, 0, 0, 0.75), 0 0 50px rgba(255, 255, 255, 0.08) !important;
+  border-radius: 38px !important;
+  box-shadow: 0 34px 90px -18px rgba(0,0,0,.82), inset 0 0 0 1px rgba(255,255,255,.18), inset 0 1px 0 rgba(255,255,255,.48) !important;
   z-index: 120 !important;
+}
+.coverflow-card-item.is-headsup-hero .coverflow-flipper,
+.coverflow-card-item.is-headsup-hero .face-front,
+.coverflow-card-item.is-headsup-hero .face-back {
+  border-radius: 38px !important;
+}
+.coverflow-card-item.is-headsup-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 44px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.5);
+  background: linear-gradient(118deg, transparent 28%, rgba(255,255,255,.08) 45%, transparent 62%);
 }
 
 /* Grab the glass state */
@@ -4410,11 +4450,15 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   right: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 16px;
   z-index: 140;
   pointer-events: auto;
   animation: huFadeIn 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.hu-island-header > div:first-child,
+.hu-island-header button[title^="Toggle Motion Lab"] {
+  display: none !important;
 }
 
 .hu-status-toast {
@@ -4432,7 +4476,7 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   gap: 8px;
@@ -17900,6 +17944,25 @@ var Oe = function(props) {
   headsUpRef.current = headsUpState;
   var huParticleCanvasRef = (0, _.useRef)(null);
   var huLongPressTimerRef = (0, _.useRef)(null);
+  var huActionLockRef = (0, _.useRef)(false);
+  var huSuppressClickRef = (0, _.useRef)(false);
+  var PHYSICAL_THRESHOLDS = {
+    throwDistance: 95,
+    throwVelocity: 0.55,
+    directionalDistance: 25,
+    snoozeDistance: 85,
+    expandDistance: 90,
+    longPressMs: 320,
+    dragSlop: 8
+  };
+  var beginPhysicalAction = function() {
+    if (huActionLockRef.current) return false;
+    huActionLockRef.current = true;
+    return true;
+  };
+  var endPhysicalAction = function() {
+    huActionLockRef.current = false;
+  };
 
   var scrubberTimer = (0, _.useRef)(null);
   var stageRef = (0, _.useRef)(null);
@@ -18233,6 +18296,7 @@ var Oe = function(props) {
     isActive: function() { return headsUpRef.current.active; },
     getState: function() { return headsUpRef.current; },
     enter: function(targetIdx) {
+      endPhysicalAction();
       if (gestureRef.current && gestureRef.current.release) {
         try { gestureRef.current.release(null, true); } catch(err) {}
       }
@@ -18267,6 +18331,7 @@ var Oe = function(props) {
       }
     },
     exit: function() {
+      endPhysicalAction();
       if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
       setHeadsUpState(function(s) {
         return Object.assign({}, s, {
@@ -18298,6 +18363,7 @@ var Oe = function(props) {
       var s = headsUpRef.current;
       if (cards.length <= 1) return;
       if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      if (!beginPhysicalAction()) return;
       var prevIdx = (activeIdx - 1 + cards.length) % cards.length;
       setHeadsUpState(function(prev) {
         return Object.assign({}, prev, {
@@ -18318,12 +18384,14 @@ var Oe = function(props) {
         setHeadsUpState(function(prev) {
           return Object.assign({}, prev, { physicalState: 'IDLE', cardAnim: 'none' });
         });
+        endPhysicalAction();
       }, 250);
     },
     nextCard: function() {
       var s = headsUpRef.current;
       if (cards.length <= 1) return;
       if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      if (!beginPhysicalAction()) return;
       var nextIdx = (activeIdx + 1) % cards.length;
       setHeadsUpState(function(prev) {
         return Object.assign({}, prev, {
@@ -18344,6 +18412,7 @@ var Oe = function(props) {
         setHeadsUpState(function(prev) {
           return Object.assign({}, prev, { physicalState: 'IDLE', cardAnim: 'none' });
         });
+        endPhysicalAction();
       }, 250);
     },
     completeCard: function(customEffect) {
@@ -18351,6 +18420,7 @@ var Oe = function(props) {
       if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
       var c = cards[activeIdx];
       if (!c) return;
+      if (!beginPhysicalAction()) return;
       var fx = customEffect || s.completionEffect || 'shatter';
 
       if (!c.complete && onToggleCardComplete) {
@@ -18385,6 +18455,7 @@ var Oe = function(props) {
             actionFeedback: null
           });
         });
+        endPhysicalAction();
       }, 420);
     },
     snoozeCard: function() {
@@ -18393,6 +18464,7 @@ var Oe = function(props) {
       if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
       var c = cards[activeIdx];
       if (!c) return;
+      if (!beginPhysicalAction()) return;
 
       if (SoundEngine && SoundEngine.play) {
         try { SoundEngine.play('slide'); } catch(e) {}
@@ -18421,6 +18493,7 @@ var Oe = function(props) {
             actionFeedback: null
           });
         });
+        endPhysicalAction();
       }, 360);
     },
     expandCard: function() {
@@ -18463,22 +18536,22 @@ var Oe = function(props) {
 
       // Flick/Throw gestures:
       // Right or fast right flick -> Complete Card
-      if (dx > 95 || (vx > 0.55 && dx > 25)) {
+      if (dx > PHYSICAL_THRESHOLDS.throwDistance || (vx > PHYSICAL_THRESHOLDS.throwVelocity && dx > PHYSICAL_THRESHOLDS.directionalDistance)) {
         headsUpControllerRef.current.completeCard();
         return;
       }
       // Left or fast left flick -> Next Card
-      if (dx < -95 || (vx < -0.55 && dx < -25)) {
+      if (dx < -PHYSICAL_THRESHOLDS.throwDistance || (vx < -PHYSICAL_THRESHOLDS.throwVelocity && dx < -PHYSICAL_THRESHOLDS.directionalDistance)) {
         headsUpControllerRef.current.nextCard();
         return;
       }
       // Swipe Up -> Snooze Card
-      if (dy < -85 || (vy < -0.55 && dy < -25)) {
+      if (dy < -PHYSICAL_THRESHOLDS.snoozeDistance || (vy < -PHYSICAL_THRESHOLDS.throwVelocity && dy < -PHYSICAL_THRESHOLDS.directionalDistance)) {
         headsUpControllerRef.current.snoozeCard();
         return;
       }
       // Pull Down -> Expand Card
-      if (dy > 90 || (vy > 0.55 && dy > 25)) {
+      if (dy > PHYSICAL_THRESHOLDS.expandDistance || (vy > PHYSICAL_THRESHOLDS.throwVelocity && dy > PHYSICAL_THRESHOLDS.directionalDistance)) {
         headsUpControllerRef.current.expandCard();
         return;
       }
@@ -18617,13 +18690,14 @@ var Oe = function(props) {
 
       setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'PRESSING' }); });
 
-      // Start 320ms timer for Grab the Glass
+      // Hold past the physical threshold to lift the glass from its surface.
       if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
       huLongPressTimerRef.current = setTimeout(function() {
         if (huTouchStartRef.current.active && headsUpRef.current.physicalState === 'PRESSING') {
+          huSuppressClickRef.current = true;
           headsUpControllerRef.current.grabCard();
         }
-      }, 320);
+      }, PHYSICAL_THRESHOLDS.longPressMs);
     },
     onPointerMove: function(clientX, clientY) {
       var s = headsUpRef.current;
@@ -18653,7 +18727,8 @@ var Oe = function(props) {
       track.lastY = clientY;
       track.lastT = now;
 
-      if (Math.hypot(dx, dy) > 8 && s.physicalState === 'PRESSING') {
+      if (Math.hypot(dx, dy) > PHYSICAL_THRESHOLDS.dragSlop && s.physicalState === 'PRESSING') {
+        huSuppressClickRef.current = true;
         if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
         setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'DRAGGING' }); });
       }
@@ -18681,7 +18756,7 @@ var Oe = function(props) {
 
       headsUpControllerRef.current.returnToNeutral();
 
-      if (Math.hypot(dx, dy) < 10 && dt < 320) {
+      if (Math.hypot(dx, dy) < PHYSICAL_THRESHOLDS.dragSlop + 2 && dt < PHYSICAL_THRESHOLDS.longPressMs) {
         if (target && target.closest && target.closest('button, input, textarea, a, select, [data-interactive="true"]')) {
           setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'IDLE' }); });
           return;
@@ -18712,21 +18787,16 @@ var Oe = function(props) {
     },
     onDeviceMotion: function(pitch, roll) {
       if (!headsUpRef.current.active || headsUpRef.current.isFaceDown) return;
-      if (pitch < -28) {
-        if (!headsUpInputAdapterRef.current._tiltArmed) {
-          headsUpInputAdapterRef.current._tiltArmed = true;
-          headsUpControllerRef.current.completeCard();
-        }
-      } else if (pitch > 28) {
-        if (!headsUpInputAdapterRef.current._tiltArmed) {
-          headsUpInputAdapterRef.current._tiltArmed = true;
-          headsUpControllerRef.current.snoozeCard();
-        }
-      } else if (Math.abs(pitch) < 14) {
-        headsUpInputAdapterRef.current._tiltArmed = false;
+      headsUpControllerRef.current.setTilt(pitch, roll);
+      if (roll < -22 && headsUpInputAdapterRef.current._tiltDirection !== 'left') {
+        headsUpInputAdapterRef.current._tiltDirection = 'left';
+        headsUpControllerRef.current.previousCard();
+      } else if (roll > 22 && headsUpInputAdapterRef.current._tiltDirection !== 'right') {
+        headsUpInputAdapterRef.current._tiltDirection = 'right';
+        headsUpControllerRef.current.nextCard();
+      } else if (Math.abs(roll) < 10) {
+        headsUpInputAdapterRef.current._tiltDirection = null;
         headsUpControllerRef.current.returnToNeutral();
-      } else {
-        headsUpControllerRef.current.setTilt(pitch, roll);
       }
     }
   };
@@ -18836,6 +18906,9 @@ var Oe = function(props) {
   var onPointerDown = function(e) {
     if (headsUpRef.current && headsUpRef.current.active) {
       if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerDown(e.clientX, e.clientY, e.target);
+      try {
+        if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+      } catch(err) {}
       return;
     }
     // iPhone/iPad use the native non-passive touch listeners below. Keeping
@@ -18855,7 +18928,8 @@ var Oe = function(props) {
 
   var onPointerMove = function(e) {
     if (headsUpRef.current && headsUpRef.current.active) {
-      if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerMove(e);
+      if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerMove(e.clientX, e.clientY);
+      if (e.cancelable) e.preventDefault();
       return;
     }
     if (e.pointerType === 'touch') return;
@@ -18888,6 +18962,9 @@ var Oe = function(props) {
   var onPointerUp = function(e) {
     if (headsUpRef.current && headsUpRef.current.active) {
       if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerUp(e.clientX, e.clientY, e.target);
+      try {
+        if (e.currentTarget && e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch(err) {}
       return;
     }
     if (e.pointerType === 'touch') return;
@@ -21233,7 +21310,7 @@ var Oe = function(props) {
   return (0, P.jsxs)('section', {
     ref: containerRef,
     'data-sf-ready': viewportSize.w > 0 ? "1" : "0",
-    className: "absolute inset-0 flex flex-col items-center justify-center px-2 py-1 overflow-y-auto overflow-x-hidden select-none" + (cardMode !== 'none' ? " fx-card-mode" : "") + (liquidMode ? " liquid-mode" : "") + (glassCrackMode ? " smash-mode" : "") + (cardMode === 'ink' ? " ink-mode" : ""),
+    className: "absolute inset-0 flex flex-col items-center justify-center px-2 py-1 overflow-y-auto overflow-x-hidden select-none" + (headsUpState.active ? " headsup-physical-shell" : "") + (cardMode !== 'none' ? " fx-card-mode" : "") + (liquidMode ? " liquid-mode" : "") + (glassCrackMode ? " smash-mode" : "") + (cardMode === 'ink' ? " ink-mode" : ""),
     // 4.1: was 46px in landscape, sized for the bottom dock that used to sit
     // here — now that the dock lives in the top bar instead, this only needs
     // to clear the thin home-indicator bar.
@@ -21246,7 +21323,7 @@ var Oe = function(props) {
     // to "none" here; horizontal dragging is unaffected either way since
     // that's always claimed explicitly via preventDefault() in the drag
     // handlers below, never by this declarative touch-action.
-    style: { paddingBottom: (isLandscape ? "14px" : "68px"), overscrollBehavior: "contain", touchAction: (isLandscape ? "none" : "pan-y") },
+    style: { paddingBottom: headsUpState.active ? "0" : (isLandscape ? "14px" : "68px"), overscrollBehavior: "contain", touchAction: headsUpState.active ? "none" : (isLandscape ? "none" : "pan-y") },
     children: [
       // Zen mode exit button
       isZenMode ? (0, P.jsxs)('button', {
@@ -21370,7 +21447,11 @@ var Oe = function(props) {
               (0, P.jsxs)('div', { children: ["vx: ", headsUpState.dragVelocity.vx.toFixed(2)] }),
               (0, P.jsxs)('div', { children: ["vy: ", headsUpState.dragVelocity.vy.toFixed(2)] }),
               (0, P.jsxs)('div', { children: ["dx: ", Math.round(headsUpState.dragDisplacement.x), "px"] }),
-              (0, P.jsxs)('div', { children: ["dy: ", Math.round(headsUpState.dragDisplacement.y), "px"] })
+              (0, P.jsxs)('div', { children: ["dy: ", Math.round(headsUpState.dragDisplacement.y), "px"] }),
+              (0, P.jsxs)('div', { children: ["gesture: ", headsUpState.cardAnim !== 'none' ? headsUpState.cardAnim : headsUpState.physicalState.toLowerCase()] }),
+              (0, P.jsxs)('div', { children: ["direction: ", Math.abs(headsUpState.dragDisplacement.x) > Math.abs(headsUpState.dragDisplacement.y) ? (headsUpState.dragDisplacement.x < 0 ? "left" : headsUpState.dragDisplacement.x > 0 ? "right" : "neutral") : (headsUpState.dragDisplacement.y < 0 ? "up" : headsUpState.dragDisplacement.y > 0 ? "down" : "neutral")] }),
+              (0, P.jsxs)('div', { className: "col-span-2", children: ["threshold: ", PHYSICAL_THRESHOLDS.throwDistance, "px / ", PHYSICAL_THRESHOLDS.throwVelocity.toFixed(2), "px·ms⁻¹"] }),
+              (0, P.jsxs)('div', { className: "col-span-2 truncate", children: ["card: ", activeIdx + 1, "/", cards.length, " · ", cards[activeIdx] ? cards[activeIdx].title : "—"] })
             ]
           }),
           (0, P.jsxs)('div', {
@@ -21462,6 +21543,10 @@ var Oe = function(props) {
         onLostPointerCapture: onPointerUp,
         onClick: function(e) {
           if (headsUpRef.current && headsUpRef.current.active) {
+            if (huSuppressClickRef.current) {
+              huSuppressClickRef.current = false;
+              return;
+            }
             if (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
             var curCard = cards[activeIdx];
             var curEl = curCard ? cardElRefs[curCard.id] : null;
@@ -21557,10 +21642,23 @@ var Oe = function(props) {
 
               if (isHu) {
                 if (isCenter) {
-                  var targetZ = isLandscape ? 170 : 230;
-                  var targetScale = isLandscape 
-                    ? Math.min(1.22, Math.max(0.95, (stageHeight - 20) / cardHeight)) 
-                    : Math.min(1.36, Math.max(1.05, (viewportSize.w - 14) / cardWidth));
+                  var targetZ = 0;
+                  var targetScale = 1;
+                  // Reference proportion: the card follows device orientation.
+                  // Portrait uses the tall 0.52 silhouette from the reference;
+                  // landscape rotates that same physical proportion.
+                  var huPhysicalRatio = 0.52;
+                  var huViewportWidth = Math.max(1, viewportSize.w || window.innerWidth);
+                  var huViewportHeight = Math.max(1, viewportSize.h || window.innerHeight);
+                  // Do not trust the outer simulator orientation flag here:
+                  // its phone chrome can rotate independently from this stage.
+                  // The physical viewport is the authoritative orientation.
+                  var huIsLandscape = huViewportWidth > huViewportHeight;
+                  var huCardAspect = huIsLandscape ? (1 / huPhysicalRatio) : huPhysicalRatio;
+                  var huMaxCardWidth = huViewportWidth * (huIsLandscape ? 0.92 : 0.96);
+                  var huMaxCardHeight = huViewportHeight * 0.88;
+                  var huCardWidth = Math.round(Math.min(huMaxCardWidth, huMaxCardHeight * huCardAspect));
+                  var huCardHeight = Math.round(huCardWidth / huCardAspect);
                   
                   transX = 0;
                   transY = 0;
@@ -21673,6 +21771,11 @@ var Oe = function(props) {
                 // the correct target from the tap's actual screen position
                 // instead of from whichever overlapping element caught it.
                 onClick: function(e) {
+                  if (isHu && huSuppressClickRef.current) {
+                    huSuppressClickRef.current = false;
+                    e.stopPropagation();
+                    return;
+                  }
                   if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
                   if (isCenter) {
                     toggleCardFlip(card.id, e);
@@ -21686,21 +21789,21 @@ var Oe = function(props) {
                   position: "absolute",
                   top: "50%",
                   left: "50%",
-                  width: cardWidth + "px",
-                  height: cardHeight + "px",
-                  marginLeft: marginLeft + "px",
-                  marginTop: marginTop + "px",
-                  borderRadius: "32px",
+                  width: isHu && isCenter ? huCardWidth + "px" : cardWidth + "px",
+                  height: isHu && isCenter ? huCardHeight + "px" : cardHeight + "px",
+                  marginLeft: isHu && isCenter ? (-huCardWidth / 2) + "px" : marginLeft + "px",
+                  marginTop: isHu && isCenter ? (-huCardHeight / 2) + "px" : marginTop + "px",
+                  borderRadius: isHu && isCenter ? "38px" : "32px",
                   transform: "perspective(640px) translate3d(" + transX.toFixed(1) + "px," + transY.toFixed(1) + "px," + transZ.toFixed(1) + "px)" + tiltTransform + " scale(" + scale.toFixed(3) + ")",
                   opacity: opacity,
                   zIndex: zIndex,
-                  transition: (isDragging || (isHu && isCenter && (headsUpState.physicalState === 'DRAGGING' || headsUpState.physicalState === 'GRABBED'))) ? "none" : "transform 0.42s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.32s ease-out, box-shadow 0.3s ease",
-                  willChange: "transform, opacity"
+                  transition: (isDragging || (isHu && isCenter && (headsUpState.physicalState === 'DRAGGING' || headsUpState.physicalState === 'GRABBED'))) ? "none" : "transform 0.48s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.32s ease-out, width 0.48s cubic-bezier(0.19, 1, 0.22, 1), height 0.48s cubic-bezier(0.19, 1, 0.22, 1), margin 0.48s cubic-bezier(0.19, 1, 0.22, 1), border-radius 0.32s ease, box-shadow 0.3s ease",
+                  willChange: "transform, opacity, width, height, margin"
                 },
                 className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]" + (isHu && isCenter ? " is-headsup-hero" : "") + (isHu && isCenter && headsUpState.physicalState === 'GRABBED' ? " is-grabbed" : "") + (isHu && isCenter && huAnim === 'shatter' ? " hu-fx-shatter" : "") + (isHu && isCenter && huAnim === 'liquid' ? " hu-fx-liquid" : "") + (isHu && isCenter && headsUpState.actionFeedback ? " action-feedback-" + headsUpState.actionFeedback : ""),
                 children: [
                   (0, P.jsxs)('div', {
-                    style: { transformStyle: 'preserve-3d', borderRadius: '32px' },
+                    style: { transformStyle: 'preserve-3d', borderRadius: isHu && isCenter ? '38px' : '32px' },
                     className: "coverflow-flipper relative w-full h-full rounded-[36px] preserve-3d",
                     children: [
                       // ==========================================
@@ -21708,6 +21811,11 @@ var Oe = function(props) {
                       // ==========================================
                       (0, P.jsxs)('div', {
                         onClick: function(e) {
+                          if (isHu && huSuppressClickRef.current) {
+                            huSuppressClickRef.current = false;
+                            e.stopPropagation();
+                            return;
+                          }
                           if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
                           if (isCenter) {
                             e.stopPropagation();
@@ -21733,14 +21841,6 @@ var Oe = function(props) {
                           (0, P.jsx)('div', { className: "cf-broad-reflection", 'aria-hidden': "true" }),
                           (0, P.jsx)('div', { className: "cf-touch-sheen", 'aria-hidden': "true" }),
                           (0, P.jsx)('div', { className: "cf-impact-glint", 'aria-hidden': "true" }),
-                          (isHu && isCenter) ? (0, P.jsxs)('div', {
-                            className: "absolute bottom-3.5 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[10px] text-white/60 tracking-wider font-medium select-none pointer-events-none",
-                            children: [
-                              (0, P.jsx)('span', { children: "Tap to Flip" }),
-                              (0, P.jsx)('span', { className: "opacity-40", children: "•" }),
-                              (0, P.jsx)('span', { children: "Swipe ↓ to Complete" })
-                            ]
-                          }) : null,
                           (0, P.jsx)('div', {
                             className: "relative z-10 text-center px-4 w-full flex flex-col items-center justify-center pointer-events-none",
                             children: (0, P.jsx)('h3', {
