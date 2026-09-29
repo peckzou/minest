@@ -24,7 +24,9 @@ badge to its actual wall slot. Only that final return marks it collected.
 
 The single reward ledger lives in `minest_reward_system_v2`; legacy
 `minest_challenge_wall_v1` unlocks are imported as existing collection items,
-without inventing qualifying dates. Collection reads this same ledger, while
+except old Strike unlocks without the required qualified-day count. The old
+storage remains untouched for recovery; no qualifying dates are invented.
+Collection reads this same ledger, while
 the separate catalog preview remains a non-reward demo. Use
 `npx tsx --test src/rewardEngine.test.ts` to run the idempotency and milestone
 tests. Browser smoke tests use an isolated origin so they cannot alter real

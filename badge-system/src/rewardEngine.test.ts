@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { collectReward, emptyRewardState, reconcileRewards, RingProgress } from './rewardEngine';
+import { collectReward, emptyRewardState, loadRewardState, reconcileRewards, REWARD_STORAGE_KEY, RingProgress } from './rewardEngine';
 
 const progress = (date: string, focus = 0, checks = 0, goal = 0, qualifiedDates: string[] = []): RingProgress => ({
   date, focusMinutes: focus, checkCount: checks, goalPercent: goal,
@@ -37,4 +37,14 @@ test('strike milestones use total unique days and do not repeat', () => {
   const sevenDays = Array.from({ length: 7 }, (_, index) => '2026-10-' + String(index + 1).padStart(2, '0'));
   const seven = reconcileRewards(again, progress('2026-10-07', 0, 0, 0, [...threeDays, ...sevenDays]));
   assert.deepEqual(seven.pending.map((reward) => reward.id), ['strike-3-days', 'strike-7-days']);
+});
+
+test('legacy strike unlocks below the day threshold are not carried into the new wall', () => {
+  const storage = new Map<string, string>([
+    [REWARD_STORAGE_KEY, JSON.stringify({ ...emptyRewardState(), collectedIds: ['strike-3-days'] })],
+  ]);
+  const previous = globalThis.localStorage;
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (key: string) => storage.get(key) || null } });
+  try { assert.deepEqual(loadRewardState().collectedIds, []); }
+  finally { Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: previous }); }
 });

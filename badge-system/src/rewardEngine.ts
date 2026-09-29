@@ -34,19 +34,31 @@ export function emptyRewardState(): RewardState {
 export function loadRewardState(): RewardState {
   try {
     const raw = JSON.parse(localStorage.getItem(REWARD_STORAGE_KEY) || 'null');
-    if (raw) return {
-      qualifiedDates: dates(raw.qualifiedDates),
-      rewardedThreeRingDates: dates(raw.rewardedThreeRingDates),
-      pending: Array.isArray(raw.pending) ? raw.pending.filter((item: PendingReward) =>
-        item && catalogIds.has(item.id) && (item.kind === 'rings' || item.kind === 'strike') && validDate(item.date)) : [],
-      collectedIds: Array.isArray(raw.collectedIds) ? [...new Set<string>(raw.collectedIds.filter((id: string) => catalogIds.has(id)))] : [],
-      earnedDates: raw.earnedDates && typeof raw.earnedDates === 'object' ? raw.earnedDates : {},
-    };
+    let storedQualifiedDates: string[] = [];
+    try { storedQualifiedDates = dates(JSON.parse(localStorage.getItem(QUALIFIED_DAYS_KEY) || '[]')); } catch { /* keep reward ledger */ }
+    const validCollected = (ids: unknown, qualifiedCount: number) => Array.isArray(ids)
+      ? [...new Set<string>(ids.filter((id: string) => {
+        if (!catalogIds.has(id)) return false;
+        const strike = /^strike-(\d+)-days$/.exec(id);
+        return !strike || qualifiedCount >= Number(strike[1]);
+      }))] : [];
+    if (raw) {
+      const qualifiedDates = dates([...dates(raw.qualifiedDates), ...storedQualifiedDates]);
+      return {
+        qualifiedDates,
+        rewardedThreeRingDates: dates(raw.rewardedThreeRingDates),
+        pending: Array.isArray(raw.pending) ? raw.pending.filter((item: PendingReward) =>
+          item && catalogIds.has(item.id) && (item.kind === 'rings' || item.kind === 'strike') && validDate(item.date)) : [],
+        collectedIds: validCollected(raw.collectedIds, qualifiedDates.length),
+        earnedDates: raw.earnedDates && typeof raw.earnedDates === 'object' ? raw.earnedDates : {},
+      };
+    }
     // Preserve rewards earned in the first Badge Wall implementation.
     const previous = JSON.parse(localStorage.getItem('minest_challenge_wall_v1') || 'null');
     if (Array.isArray(previous?.unlockedIds)) return {
       ...emptyRewardState(),
-      collectedIds: previous.unlockedIds.filter((id: string) => catalogIds.has(id)),
+      qualifiedDates: storedQualifiedDates,
+      collectedIds: validCollected(previous.unlockedIds, storedQualifiedDates.length),
       earnedDates: previous.earnedDates || {},
     };
   } catch { /* malformed or unavailable storage */ }
