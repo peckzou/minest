@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Focusboard Studio 12.8 · iPhone Top-Left Web Controls</title>
+    <title>Minest iPhone 13.1 · Strike Awards</title>
     <meta name="description" content="Focusboard Studio 3.3 - 液态玻璃卡片、横竖屏自适应设置面板与简洁 Board 选择器。" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3932,6 +3932,7 @@ html.fbfx-board-fx .fb-board-stage .board-add-list-btn, html.fb-cardfx-on .fb-bo
 .theme-white .ios-tab-item.dock-fx-tab.active.spotlight { color: #b8860b; }
 .ios-tab-item.dock-fx-tab.active.smash { color: #ff453a; }
 .ios-tab-item.dock-fx-tab.active.ink { color: #8e8e93; }
+.ios-tab-item.dock-fx-tab.active.headsup { color: #30d158; }
 .ios-tab-item.dock-fx-tab .ios-tab-label { text-transform: none; }
 </style>
 <style id="fb-bar-fx">
@@ -3945,6 +3946,7 @@ html.fbfx-board-fx .fb-board-stage .board-add-list-btn, html.fb-cardfx-on .fb-bo
 .bar-fx-btn.on.spotlight { background: rgba(255,214,10,.28) !important; border-color: rgba(255,214,10,.6) !important; }
 .bar-fx-btn.on.smash { background: rgba(255,69,58,.3) !important; border-color: rgba(255,69,58,.6) !important; }
 .bar-fx-btn.on.ink { background: rgba(142,142,147,.34) !important; border-color: rgba(174,174,178,.6) !important; }
+.bar-fx-btn.on.headsup { background: rgba(48,209,88,.28) !important; border-color: rgba(48,209,88,.55) !important; color: #30d158 !important; }
 .theme-white .bar-fx-btn.on { color: #0f172a !important; }
 </style>
 <style id="fb-bar-fx-pill">
@@ -3964,12 +3966,104 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
 /* ========================================================================= */
 /* Phase 5: Focusboard iPhone Portrait — Gesture-First Interaction Redesign  */
 /* ========================================================================= */
-/* In iPhone portrait mode, only swiping on the list title row switches lists */
+/* Restore fluid horizontal scrolling & touch snapping between lists */
+.iphone-frame .board-swimlane-scroll,
+.mobile-board-view .board-swimlane-scroll {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
+}
+
 .iphone-frame:not(.landscape) .board-swimlane-scroll,
 .mobile-board-view:not(.landscape) .board-swimlane-scroll {
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+}
+.iphone-frame:not(.landscape) .board-swimlane-scroll.is-gesture-scrolling,
+.mobile-board-view:not(.landscape) .board-swimlane-scroll.is-gesture-scrolling {
+  scroll-snap-type: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* ========================================================================= */
+/* List-version Apple Wallet Engine & Styling                                */
+/* ========================================================================= */
+.kanban-column-header {
+  touch-action: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+.board-swimlane-scroll.list-wallet-active {
   overflow-x: hidden !important;
   scroll-snap-type: none !important;
-  touch-action: pan-y !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: none !important;
+}
+
+.board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper {
+  will-change: transform;
+  position: relative !important;
+  transform-origin: top center;
+  transition: none !important;
+  border-radius: 26px !important;
+  background-color: rgba(22, 30, 44, 0.96) !important;
+  box-shadow: 0 14px 32px -8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+}
+
+body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 14px 32px -8px rgba(15,23,42,0.20), inset 0 1px 0 #fff !important;
+}
+
+.board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 26px;
+  pointer-events: none;
+  z-index: 10;
+  background:
+    linear-gradient(118deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.14) 44%, rgba(255,255,255,0) 58%),
+    radial-gradient(120% 60% at 20% 0%, rgba(255,255,255,.24) 0%, rgba(255,255,255,0) 60%),
+    linear-gradient(170deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 45%, rgba(255,255,255,0) 100%);
+  border: 1px solid rgba(255,255,255,.22);
+  border-top-color: rgba(255,255,255,.50);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.32), inset 1px 0 0 rgba(255,255,255,.08),
+    0 -8px 20px -12px rgba(0,0,0,.5), 0 16px 28px -14px rgba(0,0,0,.55);
+  transition: opacity .24s ease-out;
+}
+
+body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper::before {
+  background:
+    linear-gradient(118deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.55) 44%, rgba(255,255,255,0) 58%),
+    linear-gradient(170deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,.18) 55%, rgba(255,255,255,.08) 100%);
+  border: 1px solid rgba(255,255,255,.65);
+  border-top-color: #fff;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.75), 0 -8px 18px -12px rgba(15,23,42,.18), 0 16px 30px -16px rgba(15,23,42,.22);
+}
+
+.board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper.list-wallet-lifted {
+  z-index: 120 !important;
+  filter: drop-shadow(0 24px 44px rgba(0,0,0,0.55)) drop-shadow(0 6px 14px rgba(0,0,0,0.3)) !important;
+}
+
+.board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper.list-wallet-lifted::before {
+  border-top-color: rgba(255,255,255,.85) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 1px 0 0 rgba(255,255,255,.16),
+    0 32px 56px -16px rgba(0,0,0,.7), 0 12px 24px -8px rgba(0,0,0,.45) !important;
+}
+
+body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrapper.list-wallet-lifted::before {
+  box-shadow: inset 0 1px 1px #fff, 0 32px 52px -16px rgba(15,23,42,.35), 0 12px 20px -8px rgba(15,23,42,.2) !important;
+}
+
+.board-swimlane-scroll.list-wallet-fanning > .kanban-column-wrapper::before {
+  opacity: 0 !important;
 }
 
 .iphone-frame:not(.landscape) .kanban-cards-scroll,
@@ -4104,7 +4198,8 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   position: absolute;
   inset: 0;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.88), rgba(5, 150, 105, 0.96));
+  background: rgba(12, 18, 28, 0.94);
+  opacity: var(--gesture-reveal, 0);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -4112,11 +4207,40 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding-left: 20px;
+  padding-left: 0;
   z-index: 1;
   pointer-events: none;
   overflow: hidden;
 }
+.gesture-swipe-actions {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  pointer-events: auto;
+}
+.gesture-swipe-action {
+  width: 74px;
+  border: 0;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font: 600 10px/1.1 -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.gesture-swipe-action span:first-child { font-size: 21px; line-height: 1; }
+.gesture-swipe-action.complete { background: #30b66a; }
+.gesture-swipe-action.archive { background: #3b82f6; }
+.gesture-swipe-action.high { background: #e45159; }
+.gesture-swipe-action.medium { background: #d99528; }
+.gesture-swipe-action.low { background: #36a977; }
+.gesture-swipe-action.is-active { filter: brightness(1.25); box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); }
+.gesture-swipe-action:active { filter: brightness(1.13); }
+.gesture-swipe-actions.is-trailing { margin-left: auto; }
+.gesture-swipe-actions.is-trailing .gesture-swipe-action { width: 59px; }
 .gesture-complete-pill {
   display: flex;
   align-items: center;
@@ -4152,6 +4276,7 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   inset: 0;
   border-radius: 14px;
   background: rgba(12, 18, 28, 0.94);
+  opacity: var(--gesture-reveal, 0);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -4159,11 +4284,13 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding-right: 14px;
+  padding-right: 0;
   z-index: 1;
   pointer-events: none;
   overflow: hidden;
 }
+.gesture-complete-backdrop.is-open,
+.gesture-priority-backdrop.is-open { opacity: 1; pointer-events: auto; }
 .gesture-priority-track {
   display: flex;
   align-items: center;
@@ -4227,6 +4354,310 @@ html.fbfx-board-fx .iphone-frame header, html.fbfx-board-fx .mobile-board-view ~
   transition: none !important;
   will-change: transform, opacity !important;
 }
+.kanban-card.gesture-manipulating,
+.kanban-subcard.gesture-manipulating,
+.kanban-card.gesture-swipe-open,
+.kanban-subcard.gesture-swipe-open { position: relative; z-index: 2; }
+</style>
+<style id="fb-headsup-mode">
+/* ========================================================================= */
+/* Phase 6: 3D Cover — Heads Up Single Card Mode                             */
+/* ========================================================================= */
+.perspective-stage.is-headsup-active {
+  cursor: default !important;
+}
+
+/* Physical Card mode owns the viewport. The surrounding board, dock and
+   simulator chrome fall behind one continuous pane of glass. */
+.headsup-physical-shell {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 2147482500 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,.10), transparent 55%),
+    linear-gradient(155deg, #111923 0%, #070b10 64%, #030507 100%);
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+}
+.headsup-physical-shell .perspective-stage {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+/* 1. Full-Screen Physical Card Hero Styling */
+.coverflow-card-item.is-headsup-hero {
+  border-radius: 38px !important;
+  box-shadow: 0 34px 90px -18px rgba(0,0,0,.82), inset 0 0 0 1px rgba(255,255,255,.18), inset 0 1px 0 rgba(255,255,255,.48) !important;
+  z-index: 120 !important;
+}
+.coverflow-card-item.is-headsup-hero .coverflow-flipper,
+.coverflow-card-item.is-headsup-hero .face-front,
+.coverflow-card-item.is-headsup-hero .face-back {
+  border-radius: 38px !important;
+}
+.coverflow-card-item.is-headsup-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 44px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.5);
+  background: linear-gradient(118deg, transparent 28%, rgba(255,255,255,.08) 45%, transparent 62%);
+}
+
+/* Grab the glass state */
+.coverflow-card-item.is-headsup-hero.is-grabbed .coverflow-flipper {
+  transform: translateZ(52px) scale(0.97) !important;
+  box-shadow: 0 45px 100px -12px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(255, 255, 255, 0.55), inset 0 2px 4px rgba(255, 255, 255, 0.6) !important;
+  transition: transform 0.22s cubic-bezier(0.18, 0.9, 0.25, 1.2), box-shadow 0.22s ease !important;
+}
+.coverflow-card-item.is-headsup-hero.is-grabbed .cf-broad-reflection {
+  opacity: 1 !important;
+  background: radial-gradient(100% 100% at 50% 25%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.12) 50%, transparent 80%) !important;
+}
+
+/* Action Feedback Glows */
+.coverflow-card-item.is-headsup-hero.action-feedback-correct {
+  box-shadow: 0 25px 85px -10px rgba(52, 211, 153, 0.85), 0 0 70px rgba(52, 211, 153, 0.6) !important;
+}
+.coverflow-card-item.is-headsup-hero.action-feedback-pass {
+  box-shadow: 0 25px 85px -10px rgba(245, 158, 11, 0.85), 0 0 70px rgba(245, 158, 11, 0.6) !important;
+}
+
+/* 2. Completion Visual Effects: Glass Shatter & Liquid Dissolve */
+@keyframes huGlassShatterDisintegrate {
+  0% { transform: scale(1) translate3d(0,0,0); filter: blur(0px) contrast(1); opacity: 1; }
+  35% { transform: scale(1.04) translate3d(0,-10px,40px) rotateX(4deg); filter: blur(1px) contrast(1.4); opacity: 0.92; }
+  100% { transform: scale(0.85) translate3d(0,40px,-160px) rotateX(24deg); filter: blur(14px) brightness(2); opacity: 0; }
+}
+
+@keyframes huLiquidDissolveDisintegrate {
+  0% { transform: scale(1); filter: blur(0px); opacity: 1; border-radius: 46px; }
+  45% { transform: scale(1.06, 0.94) translateY(18px); filter: blur(6px) saturate(240%); opacity: 0.85; border-radius: 65px; }
+  100% { transform: scale(1.18, 0.4) translateY(120px); filter: blur(28px) saturate(300%) contrast(2); opacity: 0; border-radius: 120px; }
+}
+
+.hu-fx-shatter {
+  animation: huGlassShatterDisintegrate 0.44s cubic-bezier(0.2, 0.9, 0.3, 1) forwards !important;
+  pointer-events: none !important;
+}
+.hu-fx-liquid {
+  animation: huLiquidDissolveDisintegrate 0.48s cubic-bezier(0.25, 0.8, 0.25, 1) forwards !important;
+  pointer-events: none !important;
+}
+
+/* Canvas Particle Layer for Glass & Liquid */
+.hu-particle-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 135;
+}
+
+/* 3. Face Down Standby Blackout Curtain */
+.hu-facedown-curtain {
+  position: absolute;
+  inset: 0;
+  background: #000000;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.38s cubic-bezier(0.2, 0.9, 0.3, 1);
+  pointer-events: none;
+  opacity: 0;
+}
+.hu-facedown-curtain.is-active {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* 4. Heads Up Island and Bottom Bar */
+.hu-island-header {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 16px;
+  z-index: 140;
+  pointer-events: auto;
+  animation: huFadeIn 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.hu-island-header > div:first-child,
+.hu-island-header button[title^="Toggle Motion Lab"] {
+  display: none !important;
+}
+
+.hu-status-toast {
+  position: absolute;
+  top: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  pointer-events: none;
+  animation: huPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.hu-bottom-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 140;
+  pointer-events: auto;
+  animation: huFadeIn 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* 5. Motion Lab Debug Panel */
+.hu-motion-lab {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  z-index: 160;
+  width: 230px;
+  border-radius: 18px;
+  padding: 10px;
+  background: rgba(14, 20, 28, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Mono", monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  pointer-events: auto;
+  animation: huFadeIn 0.25s ease-out;
+}
+.hu-motion-lab-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  background: rgba(48, 209, 88, 0.2);
+  color: #30d158;
+  border: 1px solid rgba(48, 209, 88, 0.3);
+}
+.hu-motion-btn {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.hu-motion-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.hu-motion-btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes huFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes huPop {
+  from { opacity: 0; transform: translateX(-50%) scale(0.85); }
+  to { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+/* ========================================================================= */
+/* Web 18.0 Safari Tab Reorder × Long Glass Panel Physics                   */
+/* ========================================================================= */
+.safari-lifted-column {
+  position: relative !important;
+  z-index: 100 !important;
+  left: auto !important;
+  right: auto !important;
+  pointer-events: none !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  transform-origin: top center !important;
+  will-change: transform, box-shadow, opacity;
+  border-color: rgba(52, 211, 153, 0.65) !important;
+  box-shadow: 0 40px 90px -12px rgba(0, 0, 0, 0.75),
+              0 18px 40px -6px rgba(0, 0, 0, 0.5),
+              0 0 0 2px rgba(52, 211, 153, 0.45),
+              inset 0 2px 3px rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(36px) saturate(220%) brightness(1.06) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(220%) brightness(1.06) !important;
+  cursor: grabbing !important;
+}
+.theme-white .safari-lifted-column {
+  border-color: rgba(16, 185, 129, 0.7) !important;
+  box-shadow: 0 34px 75px -10px rgba(15, 23, 42, 0.3),
+              0 14px 30px -6px rgba(15, 23, 42, 0.18),
+              0 0 0 2px rgba(16, 185, 129, 0.5),
+              inset 0 2px 3px rgba(255, 255, 255, 0.95) !important;
+}
+.safari-recessed-column {
+  will-change: transform, opacity, filter;
+  transform-origin: top center !important;
+  transition: transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 240ms ease, filter 240ms ease !important;
+}
+.safari-recessed-column:not(.safari-lifted-column) {
+  opacity: 0.88 !important;
+  filter: brightness(0.93) saturate(92%) !important;
+}
+.theme-white .safari-recessed-column:not(.safari-lifted-column) {
+  opacity: 0.92 !important;
+  filter: brightness(0.97) saturate(96%) !important;
+}
+body.is-safari-column-dragging {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+</style>
+<style id="minest-rings-phase1">
+.minest-rings-panel {
+  background: radial-gradient(circle at 22% 8%, rgba(255,255,255,.13), transparent 38%), linear-gradient(155deg, rgba(33,37,49,.92), rgba(9,12,20,.97));
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.17), 0 22px 42px rgba(0,0,0,.24);
+}
+.theme-white .minest-rings-panel {
+  background: radial-gradient(circle at 15% 5%, #fff, transparent 42%), linear-gradient(155deg, #eef0f7, #dce1eb);
+  border-color: rgba(255,255,255,.82);
+  box-shadow: inset 0 1px 0 #fff, 0 14px 30px rgba(30,41,59,.12);
+}
+.minest-rings-svg { overflow: visible; filter: drop-shadow(0 9px 18px rgba(0,0,0,.28)); }
+.minest-ring-track { fill: none; stroke: rgba(255,255,255,.09); stroke-width: 15; }
+.theme-white .minest-ring-track { stroke: rgba(49,60,78,.11); }
+.minest-ring-depth { fill: none; stroke: rgba(0,0,0,.44); stroke-width: 16; transform: translateY(3px); }
+.minest-ring-progress { fill: none; stroke-width: 13; stroke-linecap: round; transition: stroke-dashoffset 1150ms cubic-bezier(.2,.8,.2,1); }
+.minest-ring-metric { border-top: 1px solid rgba(255,255,255,.09); }
+.theme-white .minest-ring-metric { border-top-color: rgba(15,23,42,.1); }
+.minest-rings-celebration { position: fixed; inset: 0; z-index: 80; background: #07090d; transform-origin: center center; transition: transform 820ms cubic-bezier(.18,.8,.2,1), border-radius 820ms ease, opacity 820ms ease; overflow: hidden; }
+.minest-rings-celebration.is-returning { transform: translate(var(--ring-return-x), var(--ring-return-y)) scale(var(--ring-return-scale)); border-radius: 30px; opacity: .82; pointer-events: none; }
+.minest-rings-celebration iframe { width: 100%; height: 100%; border: 0; background: #07090d; }
+.minest-pending-modal { width: 100vw !important; max-width: none !important; height: 100dvh !important; max-height: none !important; border-radius: 0 !important; }
+.minest-pending-wall-frame { position: fixed !important; inset: 0; z-index: 100; width: 100vw !important; height: 100dvh !important; }
+@media (prefers-reduced-motion: reduce) { .minest-ring-progress { transition: none; } }
 </style>
 </head>
   <body>
@@ -15345,11 +15776,78 @@ var ThreeDMedal = function(props) {
 // =========================================================================
 // Apple Activity 3-Ring & Digital Badges Modal Component
 // =========================================================================
+var PhaseOneRingsPreview = function(props) {
+  var live = props.ringsState || {};
+  var sample = { focusMinutes: live.focusMinutes || 0, focusGoal: live.targetMinutes || 30, completedCards: live.checkCount || 0, completeGoal: live.targetChecks || 10, goalPercent: live.goalPercent || 0, currentStreak: props.strikeDays || 0 };
+  var shownState = (0, _.useState)(false);
+  var shown = shownState[0];
+  var setShown = shownState[1];
+  (0, _.useEffect)(function() {
+    var frame = requestAnimationFrame(function() { setShown(true); });
+    return function() { cancelAnimationFrame(frame); };
+  }, []);
+  var focusProgress = Math.min(1, sample.focusMinutes / sample.focusGoal);
+  var completeProgress = Math.min(1, sample.completedCards / sample.completeGoal);
+  var dailyProgress = Math.min(1, sample.goalPercent / 100);
+  var rings = [
+    { id: 'focus', radius: 76, progress: focusProgress, gradient: 'minest-focus-gradient' },
+    { id: 'complete', radius: 56, progress: completeProgress, gradient: 'minest-complete-gradient' },
+    { id: 'daily', radius: 36, progress: dailyProgress, gradient: 'minest-daily-gradient' }
+  ];
+  var rows = [
+    { label: 'FOCUS', value: sample.focusMinutes + ' / ' + sample.focusGoal + ' min', note: 'Time invested today', color: '#ff537e' },
+    { label: 'COMPLETE', value: sample.completedCards + ' / ' + sample.completeGoal, note: 'Cards finished today', color: '#b9e853' },
+    { label: 'GOAL', value: sample.goalPercent + '%', note: 'Board goal', color: '#5ddce5' }
+  ];
+  return (0, P.jsxs)('section', {
+    className: 'minest-rings-panel relative overflow-hidden rounded-[30px] px-5 pt-5 pb-4',
+    'aria-label': 'Three Rings live progress',
+    children: [
+      (0, P.jsxs)('div', { className: 'flex items-start justify-between gap-3', children: [
+        (0, P.jsxs)('div', { children: [
+          (0, P.jsx)('p', { className: 'text-[10px] font-bold tracking-[0.18em] opacity-50', children: 'TODAY · THREE RINGS' }),
+          (0, P.jsx)('h3', { className: 'mt-1 text-xl font-semibold tracking-tight', children: 'Three Rings' })
+        ] }),
+        (0, P.jsx)('span', { className: 'shrink-0 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider opacity-70', children: 'Live' })
+      ] }),
+      (0, P.jsxs)('div', { className: 'relative mx-auto my-2 h-[218px] w-[218px]', children: [
+        (0, P.jsxs)('svg', { viewBox: '0 0 200 200', className: 'minest-rings-svg h-full w-full', role: 'img', 'aria-label': 'Focus ' + Math.round(focusProgress * 100) + ' percent, Complete ' + Math.round(completeProgress * 100) + ' percent, Goal ' + Math.round(dailyProgress * 100) + ' percent', children: [
+          (0, P.jsxs)('defs', { children: [
+            (0, P.jsxs)('linearGradient', { id: 'minest-focus-gradient', x1: '0', y1: '0', x2: '1', y2: '1', children: [(0, P.jsx)('stop', { offset: '0%', stopColor: '#ff9aaf' }), (0, P.jsx)('stop', { offset: '100%', stopColor: '#fa315f' })] }),
+            (0, P.jsxs)('linearGradient', { id: 'minest-complete-gradient', x1: '0', y1: '0', x2: '1', y2: '1', children: [(0, P.jsx)('stop', { offset: '0%', stopColor: '#e5ffa5' }), (0, P.jsx)('stop', { offset: '100%', stopColor: '#83cf45' })] }),
+            (0, P.jsxs)('linearGradient', { id: 'minest-daily-gradient', x1: '0', y1: '0', x2: '1', y2: '1', children: [(0, P.jsx)('stop', { offset: '0%', stopColor: '#adfbff' }), (0, P.jsx)('stop', { offset: '100%', stopColor: '#43b9d6' })] })
+          ] }),
+          rings.map(function(ring) {
+            var length = 2 * Math.PI * ring.radius;
+            return (0, P.jsxs)('g', { transform: 'rotate(-90 100 100)', children: [
+              (0, P.jsx)('circle', { className: 'minest-ring-depth', cx: 100, cy: 100, r: ring.radius }),
+              (0, P.jsx)('circle', { className: 'minest-ring-track', cx: 100, cy: 100, r: ring.radius }),
+              (0, P.jsx)('circle', { className: 'minest-ring-progress', cx: 100, cy: 100, r: ring.radius, stroke: 'url(#' + ring.gradient + ')', strokeDasharray: length, strokeDashoffset: length * (1 - (shown ? ring.progress : 0)) })
+            ] }, ring.id);
+          })
+        ] }),
+        (0, P.jsxs)('div', { className: 'absolute inset-0 flex flex-col items-center justify-center text-center', children: [
+          (0, P.jsx)('span', { className: 'text-[9px] font-bold tracking-[0.2em] opacity-45', children: 'STRIKE' }),
+          (0, P.jsx)('strong', { className: 'text-[35px] leading-none font-semibold tracking-[-0.05em]', children: sample.currentStreak }),
+          (0, P.jsx)('span', { className: 'mt-1 text-[10px] opacity-55', children: 'days' })
+        ] })
+      ] }),
+      (0, P.jsx)('div', { className: 'space-y-0.5', children: rows.map(function(row) { return (0, P.jsxs)('div', { className: 'minest-ring-metric flex items-center gap-3 py-2.5', children: [
+        (0, P.jsx)('span', { className: 'h-2.5 w-2.5 shrink-0 rounded-full', style: { background: row.color, boxShadow: '0 0 10px ' + row.color } }),
+        (0, P.jsxs)('div', { className: 'min-w-0 flex-1', children: [(0, P.jsx)('p', { className: 'text-[10px] font-bold tracking-[0.13em] opacity-65', children: row.label }), (0, P.jsx)('p', { className: 'text-[10px] opacity-45', children: row.note })] }),
+        (0, P.jsx)('strong', { className: 'text-sm font-semibold tabular-nums', children: row.value })
+      ] }, row.label); }) }),
+      (0, P.jsx)('p', { className: 'mt-3 text-center text-[10px] opacity-45', children: '任意一环闭合，当天 Strike +1 · 累计天数不归零' })
+    ]
+  });
+};
+
 var ActivityBadgesModal = function(props) {
   var themeMode = props.themeMode;
   var rings = props.ringsState || {};
   var badges = props.badges || [];
   var onClose = props.onClose;
+  var onUpdateRings = props.onUpdateRings;
   var isDark = themeMode === 'dark';
 
   var focusMinutes = rings.focusMinutes || 0;
@@ -15357,6 +15855,7 @@ var ActivityBadgesModal = function(props) {
   var checkCount = rings.checkCount || 0;
   var targetChecks = rings.targetChecks || 10;
   var goalPercent = Math.min(Math.max(rings.goalPercent || 0, 0), 100);
+  var strikeDays = props.strikeDays || 0;
 
   var closedCount = 0;
   if (focusMinutes >= targetMinutes) closedCount++;
@@ -15427,10 +15926,309 @@ var ActivityBadgesModal = function(props) {
   }) : defaultBadges;
 
   var unlockedCount = displayBadges.filter(function(b) { return b.isUnlocked; }).length;
+  var collectedCountState = (0, _.useState)(function() {
+    try { return (JSON.parse(localStorage.getItem('minest_reward_system_v2') || 'null')?.collectedIds || []).length; } catch(e) { return 0; }
+  });
+  var collectedCount = collectedCountState[0];
+  var setCollectedCount = collectedCountState[1];
 
   var selectedBadgeState = (0, _.useState)(displayBadges[0]);
   var selectedBadge = selectedBadgeState[0] || displayBadges[0];
   var setSelectedBadge = selectedBadgeState[1];
+
+  var sectionState = (0, _.useState)(function() {
+    return 'awards';
+  });
+  var activeSection = sectionState[0];
+  var setActiveSection = sectionState[1];
+  var editingGoalsState = (0, _.useState)(false);
+  var editingGoals = editingGoalsState[0];
+  var setEditingGoals = editingGoalsState[1];
+  var draftGoalsState = (0, _.useState)({ targetMinutes: targetMinutes, targetChecks: targetChecks });
+  var draftGoals = draftGoalsState[0];
+  var setDraftGoals = draftGoalsState[1];
+  // Vendored from github.com/peckzou/badge so Awards keeps working offline,
+  // inside WKWebView, and after AI Studio preview URLs expire.
+  var badgeViewerUrl = "./badge-index/index-preview.html?v=index-preview-color-v2";
+  var badgeChallengeUrl = './badge-challenge/index.html?embed=1&v=wall-collection-index-v1';
+  var badgeCollectionUrl = './badge-challenge/index.html?embed=1&collection=1&v=wall-collection-index-v1';
+  var badgeSourceState = (0, _.useState)(function() {
+    return 'local';
+  });
+  var badgeSource = badgeSourceState[0];
+  var setBadgeSource = badgeSourceState[1];
+  var awardPaneState = (0, _.useState)('challenge');
+  var awardPane = awardPaneState[0];
+  var setAwardPane = awardPaneState[1];
+  var strikeOverlayState = (0, _.useState)(!!props.strikeCelebrationDays);
+  var strikeOverlayOpen = strikeOverlayState[0];
+  var setStrikeOverlayOpen = strikeOverlayState[1];
+  var ringPreviewRef = (0, _.useRef)(null);
+  var celebrationReturnState = (0, _.useState)(null);
+  var celebrationReturn = celebrationReturnState[0];
+  var setCelebrationReturn = celebrationReturnState[1];
+  (0, _.useEffect)(function() {
+    if (props.strikeCelebrationDays) {
+      setActiveSection('awards');
+      setAwardPane('collection');
+      setStrikeOverlayOpen(true);
+      setCelebrationReturn(null);
+    } else if (props.celebrateRings) {
+      setActiveSection('summary');
+      setCelebrationReturn(null);
+    }
+  }, [props.celebrateRings, props.strikeCelebrationDays]);
+  var animationTabs = ['rings', 'unified', 'summon', 'pending', 'reveal', 'inspector', 'badgewall', 'watchos4'];
+  var animationLabels = { rings: 'Rings 4.0', unified: '3-in-1 Ceremony', summon: 'Summon', pending: 'Pending', reveal: 'Hex Reveal', inspector: '3D Inspect', badgewall: 'Return Wall', watchos4: 'Watch' };
+  var animationUrl = './badge-animations/index.html?embed=1&tab=' + encodeURIComponent(awardPane) +
+    '&focus=' + encodeURIComponent(Math.min(200, Math.round(focusMinutes / targetMinutes * 100))) +
+    '&checks=' + encodeURIComponent(Math.min(200, Math.round(checkCount / targetChecks * 100))) +
+    '&goal=' + encodeURIComponent(goalPercent) + '&strike=' + encodeURIComponent(strikeDays) +
+    '&celebrate=' + (props.celebrateRings && awardPane === 'rings' ? '1' : '0') + '&v=reward-system-v2';
+  var badgeFrameRef = (0, _.useRef)(null);
+  var challengeFrameRef = (0, _.useRef)(null);
+  var rewardSyncFrameRef = (0, _.useRef)(null);
+  var challengePendingState = (0, _.useState)(false);
+  var challengePending = challengePendingState[0];
+  var setChallengePending = challengePendingState[1];
+  var animationFrameRef = (0, _.useRef)(null);
+  var unlockRulesState = (0, _.useState)(function() {
+    try {
+      var saved = JSON.parse(localStorage.getItem('minest_badge_unlock_rules_v1') || 'null');
+      if (Array.isArray(saved)) return saved;
+    } catch(e) {}
+    return [
+      { badgeId: 'perfect-week-focus', label: 'Deep Focus', metric: 'focusMinutes', target: 30 },
+      { badgeId: 'perfect-week-review', label: 'Daily Checks', metric: 'checkCount', target: 10 },
+      { badgeId: 'daily-ring-200-percent', label: 'Board Goal', metric: 'goalPercent', target: 100 }
+    ];
+  });
+  var unlockRules = unlockRulesState[0];
+  var setUnlockRules = unlockRulesState[1];
+  var unlockSettingsState = (0, _.useState)(false);
+  var showUnlockSettings = unlockSettingsState[0];
+  var setShowUnlockSettings = unlockSettingsState[1];
+  // AI Studio currently redirects some embedded sessions through Google auth,
+  // so the reliable in-app renderer stays local. The live site opens directly.
+  var activeBadgeUrl = badgeViewerUrl;
+  var badgeMessageTargetOrigin = window.location.protocol === 'file:' ? '*' : window.location.origin;
+  var isBadgeMessageOrigin = function(origin) {
+    return origin === window.location.origin || (window.location.protocol === 'file:' && origin === 'null');
+  };
+
+  var sendAwardProgress = function() {
+    var frame = badgeFrameRef.current;
+    if (!frame || !frame.contentWindow) return;
+    frame.contentWindow.postMessage({
+      type: 'minest:award-progress',
+      progress: { focusMinutes: focusMinutes, checkCount: checkCount, goalPercent: goalPercent },
+      rules: unlockRules
+    }, '*');
+  };
+  var sendChallengeProgress = function() {
+    [challengeFrameRef.current, rewardSyncFrameRef.current].forEach(function(frame) {
+      if (!frame || !frame.contentWindow) return;
+      frame.contentWindow.postMessage({
+      type: 'minest:challenge-progress',
+      progress: {
+        focusMinutes: focusMinutes,
+        checkCount: checkCount,
+        goalPercent: goalPercent,
+        targetMinutes: targetMinutes,
+        targetChecks: targetChecks,
+        date: rings.date || '',
+        qualifiedDates: props.qualifiedDates || []
+      }
+      }, badgeMessageTargetOrigin);
+    });
+  };
+
+  (0, _.useEffect)(function() {
+    try { localStorage.setItem('minest_badge_unlock_rules_v1', JSON.stringify(unlockRules)); } catch(e) {}
+    sendAwardProgress();
+    sendChallengeProgress();
+  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, rings.date, props.qualifiedDates, unlockRules, badgeSource]);
+
+  (0, _.useEffect)(function() {
+    var handleBadgeReady = function(event) {
+      if (event.data && event.data.type === 'minest:award-ready') sendAwardProgress();
+      if (event.data && event.data.type === 'minest:challenge-ready' && isBadgeMessageOrigin(event.origin) && (event.source === challengeFrameRef.current?.contentWindow || event.source === rewardSyncFrameRef.current?.contentWindow)) {
+        if (typeof event.data.collectedCount === 'number') setCollectedCount(event.data.collectedCount);
+        sendChallengeProgress();
+      }
+      if (event.data && event.data.type === 'minest:challenge-unlocked' && isBadgeMessageOrigin(event.origin) && (event.source === challengeFrameRef.current?.contentWindow || event.source === rewardSyncFrameRef.current?.contentWindow)) {
+        if (window.location.protocol === 'file:') {
+          setCollectedCount(function(count) { return count + 1; });
+        } else {
+          try { setCollectedCount((JSON.parse(localStorage.getItem('minest_reward_system_v2') || 'null')?.collectedIds || []).length); } catch(e) {}
+        }
+      }
+      if (event.data && event.data.type === 'minest:challenge-pending-state' && isBadgeMessageOrigin(event.origin) && event.source === challengeFrameRef.current?.contentWindow) {
+        setChallengePending(!!event.data.hasPending);
+      }
+      if (event.data && event.data.type === 'minest:rings-celebration-exited' && isBadgeMessageOrigin(event.origin) && event.source === animationFrameRef.current?.contentWindow) {
+        var target = ringPreviewRef.current?.getBoundingClientRect();
+        if (target) {
+          setCelebrationReturn({
+            x: target.left + target.width / 2 - window.innerWidth / 2,
+            y: target.top + target.height / 2 - window.innerHeight / 2,
+            scale: Math.min(target.width / window.innerWidth, target.height / window.innerHeight)
+          });
+        }
+        window.setTimeout(function() {
+          setCelebrationReturn(null);
+          if (props.onCelebrationExit) props.onCelebrationExit();
+          setAwardPane('challenge');
+          setActiveSection('awards');
+        }, target ? 830 : 0);
+      }
+    };
+    window.addEventListener('message', handleBadgeReady);
+    return function() { window.removeEventListener('message', handleBadgeReady); };
+  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, rings.date, props.qualifiedDates, unlockRules]);
+
+  var updateUnlockRule = function(index, field, value) {
+    setUnlockRules(unlockRules.map(function(rule, ruleIndex) {
+      if (ruleIndex !== index) return rule;
+      var next = Object.assign({}, rule);
+      next[field] = field === 'target' ? clampGoal(value, 1, field === 'target' ? 1000 : 100) : value;
+      return next;
+    }));
+  };
+
+  var badgeChoices = [
+    ['perfect-week-focus', 'Perfect Week · Focus'],
+    ['perfect-week-review', 'Perfect Week · Review'],
+    ['daily-ring-200-percent', '200% Daily Goal'],
+    ['daily-ring-300-percent', '300% Academic Surge'],
+    ['early-bird-mastery', 'Dawn Scholar'],
+    ['owl-wisdom', 'Night Owl Scholar'],
+    ['cute-panda', 'Zen Master Panda'],
+    ['cartoon-astronaut', 'Cosmic Explorer']
+  ];
+
+  var clampGoal = function(value, min, max) {
+    var parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return min;
+    return Math.max(min, Math.min(max, parsed));
+  };
+
+  var saveGoals = function() {
+    var next = Object.assign({}, rings, {
+      targetMinutes: clampGoal(draftGoals.targetMinutes, 5, 240),
+      targetChecks: clampGoal(draftGoals.targetChecks, 1, 100)
+    });
+    if (onUpdateRings) onUpdateRings(next);
+    setEditingGoals(false);
+    if (window.SoundEngine && window.SoundEngine.play) window.SoundEngine.play('click');
+  };
+
+  var ringCard = function(label, value, target, color, unit) {
+    var progress = Math.min(100, Math.round((value / Math.max(1, target)) * 100));
+    return (0, P.jsxs)('div', {
+      className: "relative overflow-hidden rounded-[24px] border p-4 " + (isDark ? "bg-white/[0.055] border-white/10" : "bg-white/70 border-white shadow-sm"),
+      children: [
+        (0, P.jsx)('div', { className: "absolute inset-x-0 bottom-0 h-1", style: { background: "linear-gradient(90deg," + color + " " + progress + "%,transparent " + progress + "%)" } }),
+        (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [
+          (0, P.jsx)('span', { className: "text-[11px] font-semibold opacity-60", children: label }),
+          (0, P.jsx)('span', { className: "w-2.5 h-2.5 rounded-full", style: { background: color, boxShadow: "0 0 12px " + color } })
+        ] }),
+        (0, P.jsxs)('div', { className: "mt-2 flex items-baseline gap-1", children: [
+          (0, P.jsx)('span', { className: "text-2xl font-bold tracking-tight", children: value }),
+          (0, P.jsx)('span', { className: "text-[11px] opacity-50", children: "/ " + target + unit })
+        ] }),
+        (0, P.jsx)('div', { className: "mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden", children:
+          (0, P.jsx)('div', { className: "h-full rounded-full transition-all duration-500", style: { width: progress + "%", background: color } })
+        }),
+        (0, P.jsx)('span', { className: "mt-2 block text-[10px] opacity-50", children: progress >= 100 ? "Goal complete" : progress + "% complete" })
+      ]
+    });
+  };
+
+  return (0, P.jsx)('div', {
+    className: "fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-2xl animate-fadeIn",
+    onClick: function(e) { if (e.target === e.currentTarget) onClose(); },
+    children: (0, P.jsxs)('div', {
+      className: "relative w-full sm:max-w-xl h-[94vh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-t-[34px] sm:rounded-[34px] border shadow-2xl " + (challengePending && activeSection === 'awards' && awardPane === 'challenge' ? 'minest-pending-modal ' : '') + (isDark ? "bg-[#08090d]/94 border-white/15 text-white" : "bg-[#f3f3f7]/94 border-white/80 text-slate-950"),
+      style: { WebkitBackdropFilter: "blur(42px) saturate(170%)", backdropFilter: "blur(42px) saturate(170%)" },
+      children: [
+        (0, P.jsx)('div', { className: "sticky top-0 z-20 px-5 pt-3 pb-4 " + (isDark ? "bg-[#08090d]/78" : "bg-[#f3f3f7]/78"), style: { WebkitBackdropFilter: "blur(28px)", backdropFilter: "blur(28px)" }, children:
+          (0, P.jsxs)('div', { children: [
+            (0, P.jsx)('div', { className: "mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/25 sm:hidden" }),
+            (0, P.jsxs)('div', { className: "flex items-start justify-between", children: [
+              (0, P.jsxs)('div', { children: [
+                (0, P.jsx)('p', { className: "text-[11px] font-semibold uppercase tracking-[0.18em] opacity-45", children: "Today" }),
+                (0, P.jsx)('h2', { className: "text-[28px] leading-tight font-bold tracking-[-0.035em]", children: activeSection === 'summary' ? "Summary" : "Awards" })
+              ] }),
+              (0, P.jsx)('button', { type: "button", onClick: onClose, className: "w-8 h-8 rounded-full bg-white/10 border border-white/10 text-sm font-semibold", 'aria-label': "Close", children: "×" })
+            ] }),
+            (0, P.jsxs)('div', { className: "mt-4 gap-1 rounded-full p-1 bg-white/8 border border-white/10", style: { display: "grid", gridTemplateColumns: "1fr 1fr" }, children: [
+              (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('summary'); }, className: "rounded-full py-2 text-xs font-semibold transition", style: { background: activeSection === 'summary' ? "#fff" : "transparent", color: activeSection === 'summary' ? "#000" : "inherit", opacity: activeSection === 'summary' ? 1 : 0.55, boxShadow: activeSection === 'summary' ? "0 8px 20px rgba(0,0,0,.22)" : "none" }, children: "Summary" }),
+              (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "rounded-full py-2 text-xs font-semibold transition", style: { background: activeSection === 'awards' ? "#fff" : "transparent", color: activeSection === 'awards' ? "#000" : "inherit", opacity: activeSection === 'awards' ? 1 : 0.55, boxShadow: activeSection === 'awards' ? "0 8px 20px rgba(0,0,0,.22)" : "none" }, children: "Awards · " + collectedCount })
+            ] })
+          ] })
+        }),
+        activeSection === 'summary' ? (0, P.jsxs)('div', { className: "px-5 pb-7", children: [
+          (0, P.jsx)('iframe', { ref: rewardSyncFrameRef, src: badgeChallengeUrl + '&sync=1', onLoad: sendChallengeProgress, title: 'Reward state sync', 'aria-hidden': true, tabIndex: -1, style: { position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none', border: 0 } }),
+          (0, P.jsx)('div', { ref: ringPreviewRef, children: (0, P.jsx)(PhaseOneRingsPreview, { ringsState: rings, strikeDays: strikeDays }) }),
+          (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
+            (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
+            editingGoals ? (0, P.jsxs)('div', { className: "mt-4 space-y-4", children: [
+              (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Focus minutes" }), (0, P.jsx)('strong', { children: draftGoals.targetMinutes + " min" })] }), (0, P.jsx)('input', { type: "range", min: 5, max: 240, step: 5, value: draftGoals.targetMinutes, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetMinutes: e.target.value })); }, className: "w-full accent-[#fa114f]" })] }),
+              (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Daily checks" }), (0, P.jsx)('strong', { children: draftGoals.targetChecks })] }), (0, P.jsx)('input', { type: "range", min: 1, max: 100, step: 1, value: draftGoals.targetChecks, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetChecks: e.target.value })); }, className: "w-full accent-[#30d158]" })] }),
+              (0, P.jsx)('button', { type: "button", onClick: saveGoals, className: "w-full rounded-2xl bg-white text-black py-3 text-sm font-semibold shadow-lg", children: "Save Goals" })
+            ] }) : (0, P.jsxs)('div', { className: "mt-4 grid grid-cols-2 gap-3 text-sm", children: [(0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "FOCUS" }), (0, P.jsx)('strong', { children: targetMinutes + " minutes" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "CHECKS" }), (0, P.jsx)('strong', { children: targetChecks + " items" })] })] })
+          ] }),
+          (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
+            (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [
+              (0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Awards Settings" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Library updates and unlock goals." })] }),
+              (0, P.jsx)('button', { type: "button", onClick: function() { setShowUnlockSettings(!showUnlockSettings); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: showUnlockSettings ? "Done" : "Set Up" })
+            ] }),
+            (0, P.jsxs)('div', { className: "mt-4 grid grid-cols-2 gap-1 rounded-full p-1 bg-white/8", style: { display: "grid", gridTemplateColumns: "1fr 1fr" }, children: [
+              (0, P.jsx)('button', { type: "button", onClick: function() { setBadgeSource('local'); try { localStorage.setItem('minest_badge_source_v1', 'local'); } catch(e) {} }, className: "rounded-full py-2 text-[11px] font-semibold", style: { background: badgeSource === 'local' ? '#fff' : 'transparent', color: badgeSource === 'local' ? '#000' : 'inherit', opacity: badgeSource === 'local' ? 1 : .55 }, children: "Built-in Stable" }),
+              (0, P.jsx)('button', { type: "button", onClick: function() { window.open('https://minest-badge.ai.studio/', '_blank', 'noopener,noreferrer'); }, className: "rounded-full py-2 text-[11px] font-semibold", style: { background: "transparent", color: "inherit", opacity: .65 }, children: "Open AI Studio ↗" })
+            ] }),
+            showUnlockSettings ? (0, P.jsx)('div', { className: "mt-4 space-y-3", children: unlockRules.map(function(rule, index) {
+              return (0, P.jsxs)('div', { className: "rounded-2xl border border-white/10 bg-white/[0.04] p-3", children: [
+                (0, P.jsx)('p', { className: "text-[10px] font-semibold uppercase tracking-wider opacity-45 mb-2", children: "Unlock Rule " + (index + 1) }),
+                (0, P.jsx)('select', { value: rule.badgeId, onChange: function(e) { updateUnlockRule(index, 'badgeId', e.target.value); }, className: "w-full rounded-xl bg-black/25 border border-white/10 p-2 text-xs", children: badgeChoices.map(function(choice) { return (0, P.jsx)('option', { value: choice[0], children: choice[1] }, choice[0]); }) }),
+                (0, P.jsxs)('div', { className: "mt-2 grid grid-cols-2 gap-2", children: [
+                  (0, P.jsx)('select', { value: rule.metric, onChange: function(e) { updateUnlockRule(index, 'metric', e.target.value); }, className: "rounded-xl bg-black/25 border border-white/10 p-2 text-xs", children: [(0, P.jsx)('option', { value: "focusMinutes", children: "Focus minutes" }), (0, P.jsx)('option', { value: "checkCount", children: "Completed checks" }), (0, P.jsx)('option', { value: "goalPercent", children: "Board progress %" })] }),
+                  (0, P.jsx)('input', { type: "number", min: 1, max: 1000, value: rule.target, onChange: function(e) { updateUnlockRule(index, 'target', e.target.value); }, className: "rounded-xl bg-black/25 border border-white/10 p-2 text-xs", 'aria-label': "Unlock target" })
+                ] })
+              ] }, rule.badgeId + '-' + index);
+            }) }) : null
+          ] }),
+          (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "mt-4 w-full rounded-[24px] border border-white/10 bg-gradient-to-r from-amber-400/20 to-fuchsia-500/15 p-4 text-left", children: (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('p', { className: "font-semibold", children: "Explore Awards" }), (0, P.jsx)('p', { className: "text-xs opacity-50", children: "View the live 3D collection" })] }), (0, P.jsx)('span', { className: "text-xl", children: "›" })] }) })
+        ] }) : (0, P.jsxs)('div', { className: "px-4 pb-6", children: [
+          (0, P.jsx)('div', { className: "mb-3 grid grid-cols-3 gap-1 rounded-full border border-white/10 bg-white/[0.06] p-1", children: [
+            ['challenge', 'Wall'], ['collection', 'Collection'], ['library', 'Index']
+          ].map(function(option) {
+            return (0, P.jsx)('button', { type: 'button', onClick: function() { setAwardPane(option[0]); if (option[0] !== 'collection' && strikeOverlayOpen) { setStrikeOverlayOpen(false); if (props.onDismissStrikeCelebration) props.onDismissStrikeCelebration(); } }, className: 'shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold transition-colors', style: { background: awardPane === option[0] ? '#fff' : 'transparent', color: awardPane === option[0] ? '#0b0d11' : 'inherit', opacity: awardPane === option[0] ? 1 : .6 }, children: option[1] }, option[0]);
+          }) }),
+          (0, P.jsxs)('div', { className: "relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [
+            (awardPane === 'challenge' || awardPane === 'collection') ? (0, P.jsx)('iframe', { ref: challengeFrameRef, src: awardPane === 'collection' ? badgeCollectionUrl : badgeChallengeUrl, onLoad: sendChallengeProgress, title: awardPane === 'collection' ? 'Minest Badge Collection' : 'Minest Badge Wall', className: 'w-full border-0' + (awardPane === 'challenge' && challengePending ? ' minest-pending-wall-frame' : ''), style: { height: 'min(68vh, 720px)', background: '#07080c' }, loading: 'eager' }) :
+            awardPane === 'library' ? (0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, title: "Minest Badge Index Preview", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }) :
+              animationTabs.indexOf(awardPane) >= 0 ? (0, P.jsx)('iframe', { ref: animationFrameRef, src: animationUrl, title: animationLabels[awardPane] + ' animation', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07090d' }, loading: 'eager' }) :
+              (0, P.jsx)('iframe', { src: './badge-studio.html?tab=reveal&mode=' + awardPane + '&embed=1&v=6e7a1f2', title: awardPane === 'base' ? 'Mystery Hex 3D preview' : 'Mechanical assembly 3D preview', className: 'w-full border-0', style: { height: 'min(64vh, 530px)', background: '#06080c' }, loading: 'eager' }),
+            (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'challenge' ? 'WALL · LIVE REWARDS' : awardPane === 'collection' ? 'COLLECTION · COLLECTED' : 'INDEX · PREVIEW'] }),
+            awardPane === 'collection' && strikeOverlayOpen && props.strikeCelebrationDays ? (0, P.jsxs)('div', { className: 'absolute inset-0 z-20 flex flex-col bg-[#080a11]/82 backdrop-blur-2xl', children: [
+              (0, P.jsx)('iframe', { src: './badge-animations/index.html?embed=1&tab=strike&mode=collection&milestone=' + encodeURIComponent(props.strikeCelebrationDays) + '&v=strike-345f94d', title: 'Strike milestone celebration', className: 'min-h-0 flex-1 w-full border-0', allow: 'autoplay', loading: 'eager' }),
+              (0, P.jsx)('button', { type: 'button', onClick: function() { setStrikeOverlayOpen(false); setAwardPane('challenge'); if (props.onDismissStrikeCelebration) props.onDismissStrikeCelebration(); }, className: 'mx-5 mb-5 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 shadow-xl', children: '前往 Badge Wall 领取 →' })
+            ] }) : null
+          ] }),
+          (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'challenge' ? '三环闭合生成待领勋章 · 领取后点亮墙' : awardPane === 'collection' ? '仅显示已领取的勋章' : 'Preview · browse the complete badge index' })
+        ] }),
+        props.celebrateRings && !props.strikeCelebrationDays ? (0, P.jsx)('div', {
+          className: 'minest-rings-celebration' + (celebrationReturn ? ' is-returning' : ''),
+          style: celebrationReturn ? { '--ring-return-x': celebrationReturn.x + 'px', '--ring-return-y': celebrationReturn.y + 'px', '--ring-return-scale': celebrationReturn.scale } : undefined,
+          children: (0, P.jsx)('iframe', { ref: animationFrameRef, src: './badge-animations/index.html?embed=1&ceremony=1&tab=rings&focus=100&checks=100&goal=100&strike=' + encodeURIComponent(strikeDays) + '&celebrate=1&v=summary-rings-v1', title: 'Three Rings celebration in Summary', allow: 'autoplay', loading: 'eager' })
+        }) : null
+      ]
+    })
+  });
+
+  /* Legacy award gallery retained below for easy rollback. */
 
   return (0, P.jsx)('div', {
     className: "fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xl animate-fadeIn",
@@ -16454,8 +17252,15 @@ var De = function(props) {
   (0, _.useEffect)(function() {
     var read = function() {
       var lm = window.FBFX && window.FBFX.active ? window.FBFX.mode : 'off';
-      var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.perspective-stage ~ .card-mode-btn, section .card-mode-btn');
-      var cm = cb ? cb.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX' : 'off';
+      var isCoverflow = !!document.querySelector('.perspective-stage') || (window.__HeadsUpController && window.__HeadsUpController.isActive());
+      var cm = 'off';
+      if (isCoverflow) {
+        var isHu = window.__HeadsUpController && window.__HeadsUpController.isActive();
+        cm = isHu ? 'Heads Up' : 'Card FX';
+      } else {
+        var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.perspective-stage ~ .card-mode-btn, section .card-mode-btn');
+        cm = cb ? cb.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX' : 'off';
+      }
       var key = lm + '|' + cm;
       setFxTab(function(prev) { return prev === key ? prev : key; });
     };
@@ -16655,7 +17460,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "12.8" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "13.1" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -16794,16 +17599,26 @@ var De = function(props) {
 
           isLandscape ? (function() {
             var cm = fxTab.split('|')[1], on = cm && cm !== 'Card FX' && cm !== 'off';
+            var cmClass = cm.toLowerCase().replace(/[^a-z0-9]/g, '');
             return (0, P.jsxs)('button', {
               type: "button",
               disabled: cm === 'off',
               onClick: function() {
+                var isCoverflow = !!document.querySelector('.perspective-stage') || (window.__HeadsUpController && window.__HeadsUpController.isActive());
+                if (isCoverflow && window.__HeadsUpController) {
+                  if (window.__HeadsUpController.isActive()) {
+                    window.__HeadsUpController.exit();
+                  } else {
+                    window.__HeadsUpController.enter();
+                  }
+                  return;
+                }
                 var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.card-mode-btn');
                 if (cb) cb.click();
                 setTimeout(function() { var b2 = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.card-mode-btn'); if (b2) setFxTab(fxTab.split('|')[0] + '|' + (b2.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX')); }, 60);
               },
-              className: "bar-fx-btn " + (on ? "on " + cm + " " : "") + "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
-              title: "Card FX: " + (on ? cm : "off") + " — tap to cycle (off → liq → smash → ink)",
+              className: "bar-fx-btn " + (on ? "on " + cmClass + " " : "") + "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
+              title: "Card FX: " + (on ? cm : "off"),
               'aria-label': "Card FX",
               children: [(0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-4 h-4 block", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                 children: [(0, P.jsx)('rect', { x: 3, y: 6, width: 13, height: 15, rx: 2.6 }), (0, P.jsx)('path', { d: "M19 2.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z", fill: "currentColor", stroke: "none" }), (0, P.jsx)('path', { d: "M19.6 10.5l.45 1.1 1.1.45-1.1.45-.45 1.1-.45-1.1-1.1-.45 1.1-.45z", fill: "currentColor", stroke: "none", opacity: 0.7 })] }),
@@ -17140,19 +17955,29 @@ var De = function(props) {
             });
           })(),
 
-// 12.3 Card FX (liq / smash / ink) — drives the board's (or the Cover Flow's) card-mode switch
+// 12.3 Card FX (liq / smash / ink / Heads Up) — drives the board's (or Cover Flow's) card-mode switch
           (function() {
             var cm = fxTab.split('|')[1], on = cm && cm !== 'Card FX' && cm !== 'off';
+            var cmClass = cm.toLowerCase().replace(/[^a-z0-9]/g, '');
             return (0, P.jsxs)('button', {
               type: "button",
               disabled: cm === 'off',
               onClick: function() {
+                var isCoverflow = !!document.querySelector('.perspective-stage') || (window.__HeadsUpController && window.__HeadsUpController.isActive());
+                if (isCoverflow && window.__HeadsUpController) {
+                  if (window.__HeadsUpController.isActive()) {
+                    window.__HeadsUpController.exit();
+                  } else {
+                    window.__HeadsUpController.enter();
+                  }
+                  return;
+                }
                 var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.card-mode-btn');
                 if (cb) cb.click();
                 setTimeout(function() { var b2 = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.card-mode-btn'); if (b2) setFxTab(fxTab.split('|')[0] + '|' + (b2.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX')); }, 60);
               },
-              className: "ios-tab-item dock-fx-tab " + (on ? "active " + cm : ""),
-              title: "Card FX — tap to cycle (off → liq → smash → ink)",
+              className: "ios-tab-item dock-fx-tab " + (on ? "active " + cmClass : ""),
+              title: "Card FX",
               children: [
                 (0, P.jsx)('span', { className: "ios-tab-icon", children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-5 h-5", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                   children: [(0, P.jsx)('rect', { x: 3, y: 6, width: 13, height: 15, rx: 2.6 }), (0, P.jsx)('path', { d: "M19 2.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z", fill: "currentColor", stroke: "none" }), (0, P.jsx)('path', { d: "M19.6 10.5l.45 1.1 1.1.45-1.1.45-.45 1.1-.45-1.1-1.1-.45 1.1-.45z", fill: "currentColor", stroke: "none", opacity: 0.7 })] }) }),
@@ -17161,35 +17986,7 @@ var De = function(props) {
             });
           })(),
 
-          // 3-Ring Activity & Badges Tab
-          (0, P.jsxs)('button', {
-            type: "button",
-            onClick: function() {
-              if (onOpenBadgesModal) onOpenBadgesModal();
-              if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-            },
-            className: "ios-tab-item",
-            title: "活动三圈与电子勋章",
-            children: [
-              (0, P.jsx)('span', {
-                className: "ios-tab-icon",
-                children: (0, P.jsxs)('svg', {
-                  viewBox: "0 0 24 24",
-                  className: "w-5 h-5 block",
-                  fill: "none",
-                  children: [
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 9.5, stroke: "#FA114F", strokeWidth: 2, strokeOpacity: 0.3 }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 9.5, stroke: "#FA114F", strokeWidth: 2, strokeLinecap: "round", strokeDasharray: "59.69", strokeDashoffset: String(59.69 * (1 - Math.min((ringsState ? ringsState.focusMinutes : 18) / 30, 1))), transform: "rotate(-90 12 12)" }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 6.8, stroke: "#30D158", strokeWidth: 2, strokeOpacity: 0.3 }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 6.8, stroke: "#30D158", strokeWidth: 2, strokeLinecap: "round", strokeDasharray: "42.72", strokeDashoffset: String(42.72 * (1 - Math.min((ringsState ? ringsState.checkCount : 6) / 10, 1))), transform: "rotate(-90 12 12)" }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 4.1, stroke: "#00FFF0", strokeWidth: 2, strokeOpacity: 0.3 }),
-                    (0, P.jsx)('circle', { cx: 12, cy: 12, r: 4.1, stroke: "#00FFF0", strokeWidth: 2, strokeLinecap: "round", strokeDasharray: "25.76", strokeDashoffset: String(25.76 * (1 - Math.min((ringsState ? ringsState.goalPercent : 65) / 100, 1))), transform: "rotate(-90 12 12)" })
-                  ]
-                })
-              }),
-              (0, P.jsx)('span', { className: "ios-tab-label", children: "勋章" })
-            ]
-          })
+          // 3-Ring Activity & Badges Tab removed in portrait mode per user request
         ]
       }) : null
     ]
@@ -17225,6 +18022,46 @@ var Oe = function(props) {
   var scrubberVisibleState = (0, _.useState)(false);
   var isScrubberVisible = scrubberVisibleState[0];
   var setIsScrubberVisible = scrubberVisibleState[1];
+
+  // Heads Up Physical Card Mode State & Particle Refs
+  var headsUpState_ = (0, _.useState)({
+    active: false,
+    cardAnim: 'none', // 'none' | 'next' | 'prev' | 'shatter' | 'liquid' | 'snooze' | 'correct' | 'pass'
+    actionFeedback: null, // null | 'correct' | 'pass' | 'snooze'
+    physicalState: 'IDLE', // 'IDLE' | 'PRESSING' | 'GRABBED' | 'DRAGGING' | 'THROWING' | 'COMPLETING' | 'TRANSITIONING' | 'PAUSED'
+    completionEffect: 'shatter', // 'shatter' | 'liquid'
+    isFaceDown: false,
+    dragDisplacement: { x: 0, y: 0 },
+    dragVelocity: { vx: 0, vy: 0, speed: 0 },
+    showMotionLab: false,
+    pitch: 0,
+    roll: 0
+  });
+  var headsUpState = headsUpState_[0];
+  var setHeadsUpState = headsUpState_[1];
+  var headsUpRef = (0, _.useRef)(headsUpState);
+  headsUpRef.current = headsUpState;
+  var huParticleCanvasRef = (0, _.useRef)(null);
+  var huLongPressTimerRef = (0, _.useRef)(null);
+  var huActionLockRef = (0, _.useRef)(false);
+  var huSuppressClickRef = (0, _.useRef)(false);
+  var PHYSICAL_THRESHOLDS = {
+    throwDistance: 95,
+    throwVelocity: 0.55,
+    directionalDistance: 25,
+    snoozeDistance: 85,
+    expandDistance: 90,
+    longPressMs: 320,
+    dragSlop: 8
+  };
+  var beginPhysicalAction = function() {
+    if (huActionLockRef.current) return false;
+    huActionLockRef.current = true;
+    return true;
+  };
+  var endPhysicalAction = function() {
+    huActionLockRef.current = false;
+  };
 
   var scrubberTimer = (0, _.useRef)(null);
   var stageRef = (0, _.useRef)(null);
@@ -17438,11 +18275,641 @@ var Oe = function(props) {
     return function() { window.removeEventListener('fbfx:noflip', unflip); };
   }, []);
 
+  // =========================================================================
+  // 3D Cover — Physical Card Mode (Heads Up) Controller & Input Adapter
+  // Decoupled architecture: Input -> InputAdapter -> Controller -> State -> 3D Render
+  // =========================================================================
+  var headsUpControllerRef = (0, _.useRef)(null);
+  var headsUpInputAdapterRef = (0, _.useRef)(null);
+  var huTouchStartRef = (0, _.useRef)({ x: 0, y: 0, t: 0, lastX: 0, lastY: 0, lastT: 0, vx: 0, vy: 0, active: false });
+
+  // Modular Completion Particle Engine (Glass Shatter & Liquid Dissolve)
+  var triggerCanvasParticles = function(effectType) {
+    var canvas = huParticleCanvasRef.current;
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    var w = canvas.width = canvas.offsetWidth || window.innerWidth;
+    var h = canvas.height = canvas.offsetHeight || window.innerHeight;
+    var particles = [];
+    var count = effectType === 'liquid' ? 55 : 68;
+    var isDarkTheme = themeMode === 'dark';
+
+    if (effectType === 'liquid') {
+      var liquidColors = isDarkTheme
+        ? ['rgba(52, 211, 153, 0.95)', 'rgba(56, 189, 248, 0.9)', 'rgba(167, 139, 250, 0.85)', 'rgba(255, 255, 255, 0.95)']
+        : ['rgba(16, 185, 129, 0.95)', 'rgba(14, 165, 233, 0.9)', 'rgba(139, 92, 246, 0.85)', 'rgba(255, 255, 255, 0.9)'];
+      for (var i = 0; i < count; i++) {
+        var ang = Math.random() * Math.PI * 2;
+        var spd = 2.5 + Math.random() * 8.5;
+        particles.push({
+          x: w / 2 + (Math.random() - 0.5) * (w * 0.45),
+          y: h / 2 + (Math.random() - 0.5) * (h * 0.35),
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd + 3.5,
+          rad: 6 + Math.random() * 18,
+          color: liquidColors[i % liquidColors.length],
+          alpha: 1.0
+        });
+      }
+    } else {
+      var shardColors = ['rgba(255, 255, 255, 0.95)', 'rgba(224, 242, 254, 0.9)', 'rgba(186, 230, 253, 0.85)', 'rgba(125, 211, 252, 0.8)'];
+      for (var j = 0; j < count; j++) {
+        var angS = Math.random() * Math.PI * 2;
+        var spdS = 4.5 + Math.random() * 16;
+        particles.push({
+          x: w / 2 + (Math.random() - 0.5) * (w * 0.5),
+          y: h / 2 + (Math.random() - 0.5) * (h * 0.45),
+          vx: Math.cos(angS) * spdS,
+          vy: Math.sin(angS) * spdS - 2.0,
+          size: 8 + Math.random() * 22,
+          rot: Math.random() * Math.PI * 2,
+          vRot: (Math.random() - 0.5) * 0.32,
+          color: shardColors[j % shardColors.length],
+          alpha: 1.0
+        });
+      }
+    }
+
+    var t0 = performance.now();
+    var duration = 460;
+    var loop = function(now) {
+      var elapsed = now - t0;
+      var prog = Math.min(1, elapsed / duration);
+      ctx.clearRect(0, 0, w, h);
+
+      if (effectType === 'liquid') {
+        particles.forEach(function(p) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.28;
+          p.rad = Math.max(1, p.rad * (1 - prog * 0.4));
+          p.alpha = Math.max(0, 1.0 - prog * 1.1);
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.ellipse(p.x, p.y, p.rad, p.rad * 1.35, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.beginPath();
+          ctx.arc(p.x - p.rad * 0.3, p.y - p.rad * 0.3, p.rad * 0.28, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      } else {
+        particles.forEach(function(p) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.42;
+          p.rot += p.vRot;
+          p.alpha = Math.max(0, 1.0 - prog * 1.15);
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-p.size / 2, -p.size / 2);
+          ctx.lineTo(p.size / 2, -p.size / 4);
+          ctx.lineTo(p.size / 3, p.size / 2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      if (prog < 1) {
+        requestAnimationFrame(loop);
+      } else {
+        ctx.clearRect(0, 0, w, h);
+      }
+    };
+    requestAnimationFrame(loop);
+  };
+
+  headsUpControllerRef.current = {
+    isActive: function() { return headsUpRef.current.active; },
+    getState: function() { return headsUpRef.current; },
+    enter: function(targetIdx) {
+      endPhysicalAction();
+      if (gestureRef.current && gestureRef.current.release) {
+        try { gestureRef.current.release(null, true); } catch(err) {}
+      }
+      if (dragRafRef.current !== null) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
+      continuousPositionRef.current = null;
+      setDragOffset(0);
+      setIsDragging(false);
+      var idx = (targetIdx !== undefined && targetIdx !== null) ? targetIdx : activeIdx;
+      idx = Math.max(0, Math.min(cards.length - 1, idx));
+      if (idx !== activeIdx) setActiveIdx(idx);
+      setHeadsUpState(function(s) {
+        return Object.assign({}, s, {
+          active: true,
+          cardAnim: 'none',
+          actionFeedback: null,
+          physicalState: 'IDLE',
+          isFaceDown: false,
+          dragDisplacement: { x: 0, y: 0 },
+          dragVelocity: { vx: 0, vy: 0, speed: 0 },
+          pitch: 0,
+          roll: 0
+        });
+      });
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('slide'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(14); } catch(e) {}
+      }
+    },
+    exit: function() {
+      endPhysicalAction();
+      if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
+      setHeadsUpState(function(s) {
+        return Object.assign({}, s, {
+          active: false,
+          cardAnim: 'none',
+          actionFeedback: null,
+          physicalState: 'IDLE',
+          isFaceDown: false,
+          dragDisplacement: { x: 0, y: 0 },
+          dragVelocity: { vx: 0, vy: 0, speed: 0 },
+          pitch: 0,
+          roll: 0
+        });
+      });
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('slide'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(10); } catch(e) {}
+      }
+    },
+    flipCard: function() {
+      var s = headsUpRef.current;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      var c = cards[activeIdx];
+      if (c) toggleCardFlip(c.id);
+    },
+    previousCard: function() {
+      var s = headsUpRef.current;
+      if (cards.length <= 1) return;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      if (!beginPhysicalAction()) return;
+      var prevIdx = (activeIdx - 1 + cards.length) % cards.length;
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'TRANSITIONING',
+          cardAnim: 'prev',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('slide'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(12); } catch(e) {}
+      }
+      setTimeout(function() {
+        setActiveIdx(prevIdx);
+        setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; });
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, { physicalState: 'IDLE', cardAnim: 'none' });
+        });
+        endPhysicalAction();
+      }, 250);
+    },
+    nextCard: function() {
+      var s = headsUpRef.current;
+      if (cards.length <= 1) return;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      if (!beginPhysicalAction()) return;
+      var nextIdx = (activeIdx + 1) % cards.length;
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'TRANSITIONING',
+          cardAnim: 'next',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('slide'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(12); } catch(e) {}
+      }
+      setTimeout(function() {
+        setActiveIdx(nextIdx);
+        setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; });
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, { physicalState: 'IDLE', cardAnim: 'none' });
+        });
+        endPhysicalAction();
+      }, 250);
+    },
+    completeCard: function(customEffect) {
+      var s = headsUpRef.current;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      var c = cards[activeIdx];
+      if (!c) return;
+      if (!beginPhysicalAction()) return;
+      var fx = customEffect || s.completionEffect || 'shatter';
+
+      if (!c.complete && onToggleCardComplete) {
+        onToggleCardComplete(c.columnId, c.id);
+      }
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('check'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate([18, 45, 20]); } catch(e) {}
+      }
+
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'COMPLETING',
+          cardAnim: fx,
+          actionFeedback: 'correct',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
+
+      triggerCanvasParticles(fx);
+
+      setTimeout(function() {
+        var nextIdx = (activeIdx + 1) % cards.length;
+        setActiveIdx(nextIdx);
+        setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; });
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, {
+            physicalState: 'IDLE',
+            cardAnim: 'none',
+            actionFeedback: null
+          });
+        });
+        endPhysicalAction();
+      }, 420);
+    },
+    snoozeCard: function() {
+      var s = headsUpRef.current;
+      if (cards.length <= 1) return;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      var c = cards[activeIdx];
+      if (!c) return;
+      if (!beginPhysicalAction()) return;
+
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('slide'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(22); } catch(e) {}
+      }
+
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'THROWING',
+          cardAnim: 'snooze',
+          actionFeedback: 'snooze',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
+
+      setTimeout(function() {
+        var nextIdx = (activeIdx + 1) % cards.length;
+        setActiveIdx(nextIdx);
+        setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; });
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, {
+            physicalState: 'IDLE',
+            cardAnim: 'none',
+            actionFeedback: null
+          });
+        });
+        endPhysicalAction();
+      }, 360);
+    },
+    expandCard: function() {
+      var s = headsUpRef.current;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      var c = cards[activeIdx];
+      if (!c) return;
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('flip'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(14); } catch(e) {}
+      }
+      if (!flippedMap[c.id]) {
+        toggleCardFlip(c.id);
+      }
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'IDLE',
+          dragDisplacement: { x: 0, y: 0 }
+        });
+      });
+    },
+    grabCard: function() {
+      var s = headsUpRef.current;
+      if (s.physicalState !== 'IDLE' && s.physicalState !== 'PRESSING') return;
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('click'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate([10, 30]); } catch(e) {}
+      }
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, { physicalState: 'GRABBED' });
+      });
+    },
+    releaseCard: function(vx, vy, dx, dy) {
+      var s = headsUpRef.current;
+      if (!['GRABBED', 'DRAGGING', 'PRESSING'].includes(s.physicalState)) return;
+
+      // Flick/Throw gestures:
+      // Right or fast right flick -> Complete Card
+      if (dx > PHYSICAL_THRESHOLDS.throwDistance || (vx > PHYSICAL_THRESHOLDS.throwVelocity && dx > PHYSICAL_THRESHOLDS.directionalDistance)) {
+        headsUpControllerRef.current.completeCard();
+        return;
+      }
+      // Left or fast left flick -> Next Card
+      if (dx < -PHYSICAL_THRESHOLDS.throwDistance || (vx < -PHYSICAL_THRESHOLDS.throwVelocity && dx < -PHYSICAL_THRESHOLDS.directionalDistance)) {
+        headsUpControllerRef.current.nextCard();
+        return;
+      }
+      // Swipe Up -> Snooze Card
+      if (dy < -PHYSICAL_THRESHOLDS.snoozeDistance || (vy < -PHYSICAL_THRESHOLDS.throwVelocity && dy < -PHYSICAL_THRESHOLDS.directionalDistance)) {
+        headsUpControllerRef.current.snoozeCard();
+        return;
+      }
+      // Pull Down -> Expand Card
+      if (dy > PHYSICAL_THRESHOLDS.expandDistance || (vy > PHYSICAL_THRESHOLDS.throwVelocity && dy > PHYSICAL_THRESHOLDS.directionalDistance)) {
+        headsUpControllerRef.current.expandCard();
+        return;
+      }
+
+      // Spring back to neutral
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, {
+          physicalState: 'IDLE',
+          dragDisplacement: { x: 0, y: 0 },
+          dragVelocity: { vx: 0, vy: 0, speed: 0 }
+        });
+      });
+    },
+    pauseCard: function() {
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('click'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate([25, 50]); } catch(e) {}
+      }
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, { physicalState: 'PAUSED', isFaceDown: true });
+      });
+    },
+    resumeCard: function() {
+      if (SoundEngine && SoundEngine.play) {
+        try { SoundEngine.play('slide'); } catch(e) {}
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(16); } catch(e) {}
+      }
+      setHeadsUpState(function(prev) {
+        return Object.assign({}, prev, { physicalState: 'IDLE', isFaceDown: false });
+      });
+    },
+    toggleFaceDown: function() {
+      if (headsUpRef.current.isFaceDown) {
+        headsUpControllerRef.current.resumeCard();
+      } else {
+        headsUpControllerRef.current.pauseCard();
+      }
+    },
+    setTilt: function(pitch, roll) {
+      var p = Math.max(-30, Math.min(30, pitch));
+      var r = Math.max(-30, Math.min(30, roll));
+      setHeadsUpState(function(s) { return Object.assign({}, s, { pitch: p, roll: r }); });
+    },
+    returnToNeutral: function() {
+      setHeadsUpState(function(s) { return Object.assign({}, s, { pitch: 0, roll: 0 }); });
+    },
+    setEffect: function(eff) {
+      var nextFx = eff === 'liquid' ? 'liquid' : 'shatter';
+      setHeadsUpState(function(s) { return Object.assign({}, s, { completionEffect: nextFx }); });
+      if (window.GlassUI && window.GlassUI.toast) {
+        window.GlassUI.toast("Completion Effect: " + (nextFx === 'liquid' ? "Liquid Dissolve" : "Glass Shatter"));
+      }
+    },
+    toggleMotionLab: function() {
+      setHeadsUpState(function(s) { return Object.assign({}, s, { showMotionLab: !s.showMotionLab }); });
+    }
+  };
+  window.__HeadsUpController = headsUpControllerRef.current;
+
+  headsUpInputAdapterRef.current = {
+    onKeyDown: function(e) {
+      var s = headsUpRef.current;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        headsUpControllerRef.current.exit();
+        return;
+      }
+      if (e.key === 'm' || e.key === 'M' || e.key === '`') {
+        e.preventDefault();
+        headsUpControllerRef.current.toggleMotionLab();
+        return;
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        headsUpControllerRef.current.toggleFaceDown();
+        return;
+      }
+      if (s.isFaceDown) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          headsUpControllerRef.current.resumeCard();
+        }
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        headsUpControllerRef.current.previousCard();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        headsUpControllerRef.current.nextCard();
+      } else if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        e.preventDefault();
+        headsUpControllerRef.current.completeCard();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        headsUpControllerRef.current.snoozeCard();
+      } else if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        headsUpControllerRef.current.expandCard();
+      } else if (e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        if (s.physicalState === 'GRABBED') {
+          headsUpControllerRef.current.releaseCard(0, 0, 0, 0);
+        } else {
+          headsUpControllerRef.current.grabCard();
+        }
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        headsUpControllerRef.current.flipCard();
+      }
+    },
+    onPointerDown: function(clientX, clientY, target) {
+      var s = headsUpRef.current;
+      if (s.isFaceDown) {
+        headsUpControllerRef.current.resumeCard();
+        return;
+      }
+      if (target && target.closest && target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING'].includes(s.physicalState)) return;
+
+      huTouchStartRef.current = {
+        x: clientX,
+        y: clientY,
+        t: performance.now(),
+        lastX: clientX,
+        lastY: clientY,
+        lastT: performance.now(),
+        vx: 0,
+        vy: 0,
+        active: true
+      };
+
+      setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'PRESSING' }); });
+
+      // Hold past the physical threshold to lift the glass from its surface.
+      if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
+      huLongPressTimerRef.current = setTimeout(function() {
+        if (huTouchStartRef.current.active && headsUpRef.current.physicalState === 'PRESSING') {
+          huSuppressClickRef.current = true;
+          headsUpControllerRef.current.grabCard();
+        }
+      }, PHYSICAL_THRESHOLDS.longPressMs);
+    },
+    onPointerMove: function(clientX, clientY) {
+      var s = headsUpRef.current;
+      if (s.isFaceDown) return;
+      var track = huTouchStartRef.current;
+      if (!track.active) {
+        var stageEl = stageRef.current;
+        if (!stageEl) return;
+        var rect = stageEl.getBoundingClientRect();
+        var cx = rect.left + rect.width / 2;
+        var cy = rect.top + rect.height / 2;
+        var relX = (clientX - cx) / (rect.width / 2);
+        var relY = (clientY - cy) / (rect.height / 2);
+        headsUpControllerRef.current.setTilt(relY * -12, relX * 14);
+        return;
+      }
+
+      var dx = clientX - track.x;
+      var dy = clientY - track.y;
+      var now = performance.now();
+      var dt = Math.max(1, now - track.lastT);
+      var instVx = (clientX - track.lastX) / dt;
+      var instVy = (clientY - track.lastY) / dt;
+      track.vx = track.vx * 0.6 + instVx * 0.4;
+      track.vy = track.vy * 0.6 + instVy * 0.4;
+      track.lastX = clientX;
+      track.lastY = clientY;
+      track.lastT = now;
+
+      if (Math.hypot(dx, dy) > PHYSICAL_THRESHOLDS.dragSlop && s.physicalState === 'PRESSING') {
+        huSuppressClickRef.current = true;
+        if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
+        setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'DRAGGING' }); });
+      }
+
+      var curState = headsUpRef.current.physicalState;
+      if (curState === 'GRABBED' || curState === 'DRAGGING') {
+        setHeadsUpState(function(prev) {
+          return Object.assign({}, prev, {
+            dragDisplacement: { x: dx, y: dy },
+            dragVelocity: { vx: track.vx, vy: track.vy, speed: Math.hypot(track.vx, track.vy) }
+          });
+        });
+        headsUpControllerRef.current.setTilt(-dy * 0.12, dx * 0.12);
+      }
+    },
+    onPointerUp: function(clientX, clientY, target) {
+      if (huLongPressTimerRef.current) clearTimeout(huLongPressTimerRef.current);
+      var track = huTouchStartRef.current;
+      if (!track.active) return;
+      track.active = false;
+
+      var dx = (clientX !== undefined ? clientX : track.lastX) - track.x;
+      var dy = (clientY !== undefined ? clientY : track.lastY) - track.y;
+      var dt = performance.now() - track.t;
+
+      headsUpControllerRef.current.returnToNeutral();
+
+      if (Math.hypot(dx, dy) < PHYSICAL_THRESHOLDS.dragSlop + 2 && dt < PHYSICAL_THRESHOLDS.longPressMs) {
+        if (target && target.closest && target.closest('button, input, textarea, a, select, [data-interactive="true"]')) {
+          setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'IDLE' }); });
+          return;
+        }
+        headsUpControllerRef.current.flipCard();
+        setHeadsUpState(function(prev) { return Object.assign({}, prev, { physicalState: 'IDLE' }); });
+        return;
+      }
+
+      headsUpControllerRef.current.releaseCard(track.vx, track.vy, dx, dy);
+    },
+    onTouchStart: function(e) {
+      if (!e.touches || !e.touches[0]) return;
+      var t = e.touches[0];
+      headsUpInputAdapterRef.current.onPointerDown(t.clientX, t.clientY, e.target);
+    },
+    onTouchMove: function(e) {
+      if (!e.touches || !e.touches[0]) return;
+      var t = e.touches[0];
+      headsUpInputAdapterRef.current.onPointerMove(t.clientX, t.clientY);
+      if (e.cancelable && headsUpRef.current.active) {
+        e.preventDefault();
+      }
+    },
+    onTouchEnd: function(e) {
+      var t = (e && e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+      headsUpInputAdapterRef.current.onPointerUp(t ? t.clientX : undefined, t ? t.clientY : undefined, e ? e.target : null);
+    },
+    onDeviceMotion: function(pitch, roll) {
+      if (!headsUpRef.current.active || headsUpRef.current.isFaceDown) return;
+      headsUpControllerRef.current.setTilt(pitch, roll);
+      if (roll < -22 && headsUpInputAdapterRef.current._tiltDirection !== 'left') {
+        headsUpInputAdapterRef.current._tiltDirection = 'left';
+        headsUpControllerRef.current.previousCard();
+      } else if (roll > 22 && headsUpInputAdapterRef.current._tiltDirection !== 'right') {
+        headsUpInputAdapterRef.current._tiltDirection = 'right';
+        headsUpControllerRef.current.nextCard();
+      } else if (Math.abs(roll) < 10) {
+        headsUpInputAdapterRef.current._tiltDirection = null;
+        headsUpControllerRef.current.returnToNeutral();
+      }
+    }
+  };
+  window.__HeadsUpInputAdapter = headsUpInputAdapterRef.current;
+
   // Keyboard navigation
   (0, _.useEffect)(function() {
     var keyHandler = function(e) {
       var tag = e.target && e.target.tagName;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      if (headsUpRef.current && headsUpRef.current.active) {
+        headsUpInputAdapterRef.current.onKeyDown(e);
+        return;
+      }
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         prevCard();
@@ -17504,12 +18971,20 @@ var Oe = function(props) {
         if (isCooling) return;
         accDelta += delta;
         if (accDelta > 20) {
-          nextCard();
+          if (headsUpRef.current && headsUpRef.current.active) {
+            headsUpControllerRef.current.nextCard();
+          } else {
+            nextCard();
+          }
           accDelta = 0;
           isCooling = true;
           coolTimer = setTimeout(function() { isCooling = false; }, 200);
         } else if (accDelta < -20) {
-          prevCard();
+          if (headsUpRef.current && headsUpRef.current.active) {
+            headsUpControllerRef.current.previousCard();
+          } else {
+            prevCard();
+          }
           accDelta = 0;
           isCooling = true;
           coolTimer = setTimeout(function() { isCooling = false; }, 200);
@@ -17528,6 +19003,13 @@ var Oe = function(props) {
   // (installed by the effect below and reached through gestureRef), so the
   // simulator's mouse feels exactly like a finger on the phone.
   var onPointerDown = function(e) {
+    if (headsUpRef.current && headsUpRef.current.active) {
+      if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerDown(e.clientX, e.clientY, e.target);
+      try {
+        if (e.currentTarget && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+      } catch(err) {}
+      return;
+    }
     // iPhone/iPad use the native non-passive touch listeners below. Keeping
     // touch out of the Pointer Events path avoids WebKit cancelling the pointer
     // stream while it decides whether the page should scroll.
@@ -17544,6 +19026,11 @@ var Oe = function(props) {
   };
 
   var onPointerMove = function(e) {
+    if (headsUpRef.current && headsUpRef.current.active) {
+      if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerMove(e.clientX, e.clientY);
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
     if (e.pointerType === 'touch') return;
     var engine = gestureRef.current;
     if (engine && engine.isActive('mouse')) {
@@ -17572,6 +19059,13 @@ var Oe = function(props) {
   };
 
   var onPointerUp = function(e) {
+    if (headsUpRef.current && headsUpRef.current.active) {
+      if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onPointerUp(e.clientX, e.clientY, e.target);
+      try {
+        if (e.currentTarget && e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch(err) {}
+      return;
+    }
     if (e.pointerType === 'touch') return;
     var engine = gestureRef.current;
     if (!engine || !engine.isActive('mouse')) return;
@@ -19444,6 +20938,10 @@ var Oe = function(props) {
       return null;
     };
     var handleTouchStart = function(e) {
+      if (headsUpRef.current && headsUpRef.current.active) {
+        if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onTouchStart(e);
+        return;
+      }
       if (e.touches.length !== 1) {
         if (g.active && g.kind === 'touch') release(null, true);
         return;
@@ -19458,18 +20956,30 @@ var Oe = function(props) {
       begin(t.clientX, t.clientY, 'touch', t.identifier, e.target);
     };
     var handleTouchMove = function(e) {
+      if (headsUpRef.current && headsUpRef.current.active) {
+        if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onTouchMove(e);
+        return;
+      }
       if (!g.active || g.kind !== 'touch') return;
       var t = findTouch(e.touches);
       if (!t) return;
       if (move(t.clientX, t.clientY) && e.cancelable) e.preventDefault();
     };
     var handleTouchEnd = function(e) {
+      if (headsUpRef.current && headsUpRef.current.active) {
+        if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onTouchEnd(e);
+        return;
+      }
       if (!g.active || g.kind !== 'touch') return;
       var t = findTouch(e.changedTouches);
       if (!t && e.touches.length) return;
       release(t ? t.clientX : null, false);
     };
     var handleTouchCancel = function() {
+      if (headsUpRef.current && headsUpRef.current.active) {
+        if (headsUpInputAdapterRef.current) headsUpInputAdapterRef.current.onTouchEnd(null);
+        return;
+      }
       if (g.active && g.kind === 'touch') release(null, true);
     };
 
@@ -19737,6 +21247,7 @@ var Oe = function(props) {
     return rim;
   };
   var applyDragTransform = function(rawDx, fx) {
+    if (headsUpRef.current && headsUpRef.current.active) return;
     var dragFraction = -rawDx / dragNormalizer;
     var fxPress = fx ? (fx.press || 0) : 0;
     var fxBoost = fx ? (fx.boost || 0) : 0;
@@ -19898,7 +21409,7 @@ var Oe = function(props) {
   return (0, P.jsxs)('section', {
     ref: containerRef,
     'data-sf-ready': viewportSize.w > 0 ? "1" : "0",
-    className: "absolute inset-0 flex flex-col items-center justify-center px-2 py-1 overflow-y-auto overflow-x-hidden select-none" + (cardMode !== 'none' ? " fx-card-mode" : "") + (liquidMode ? " liquid-mode" : "") + (glassCrackMode ? " smash-mode" : "") + (cardMode === 'ink' ? " ink-mode" : ""),
+    className: "absolute inset-0 flex flex-col items-center justify-center px-2 py-1 overflow-y-auto overflow-x-hidden select-none" + (headsUpState.active ? " headsup-physical-shell" : "") + (cardMode !== 'none' ? " fx-card-mode" : "") + (liquidMode ? " liquid-mode" : "") + (glassCrackMode ? " smash-mode" : "") + (cardMode === 'ink' ? " ink-mode" : ""),
     // 4.1: was 46px in landscape, sized for the bottom dock that used to sit
     // here — now that the dock lives in the top bar instead, this only needs
     // to clear the thin home-indicator bar.
@@ -19911,64 +21422,8 @@ var Oe = function(props) {
     // to "none" here; horizontal dragging is unaffected either way since
     // that's always claimed explicitly via preventDefault() in the drag
     // handlers below, never by this declarative touch-action.
-    style: { paddingBottom: (isLandscape ? "14px" : "68px"), overscrollBehavior: "contain", touchAction: (isLandscape ? "none" : "pan-y") },
+    style: { paddingBottom: headsUpState.active ? "0" : (isLandscape ? "14px" : "68px"), overscrollBehavior: "contain", touchAction: headsUpState.active ? "none" : (isLandscape ? "none" : "pan-y") },
     children: [
-      // 8.4 Card mode button (无 ➔ liq ➔ smash), from Web 16.5
-      (0, P.jsxs)('button', {
-        type: "button",
-        className: "card-mode-btn" + (cardMode !== 'none' ? " on " + cardMode : " none"),
-        title: "卡片模式: " + (cardMode === 'liq' ? "liq（流体水波）" : (cardMode === 'smash' ? "smash（钢珠粉碎）" : (cardMode === 'ink' ? "ink（隐形墨水：擦一擦显现，点一下全部显现）" : "无（常规翻转）"))) + " — 点击切换 (无 ➔ liq ➔ smash ➔ ink)",
-        'aria-label': "Card Mode: " + cardMode,
-        onClick: function(e) {
-          e.stopPropagation();
-          var nextMode = cardMode === 'none' ? 'liq' : (cardMode === 'liq' ? 'smash' : (cardMode === 'smash' ? 'ink' : 'none'));
-          setCardMode(nextMode);
-          if (SoundEngine && SoundEngine.play) {
-            try {
-              if (nextMode === 'smash') SoundEngine.play('glass_crack');
-              else if (nextMode === 'liq') SoundEngine.play('slide');
-              else SoundEngine.play('click');
-            } catch(err) {}
-          }
-          
-        },
-        children: [
-          (0, P.jsx)('span', {
-            className: "mode-glyph",
-            children: cardMode === 'smash' ? (0, P.jsxs)('svg', {
-              viewBox: "0 0 16 16", width: 14, height: 14, 'aria-hidden': "true",
-              children: [
-                (0, P.jsx)('path', { d: "M10.2 1.6 8.9 4.4l2.4.4-1.9 2.2 2.8.3M13.9 3.2l-2.6 1.6M14.6 8.2l-2.4-1.2", fill: "none", stroke: "currentColor", strokeWidth: 1.2, strokeLinecap: "round", strokeLinejoin: "round", opacity: 0.9 }),
-                (0, P.jsx)('circle', { cx: 6, cy: 10, r: 4.6, fill: "currentColor" }),
-                (0, P.jsx)('circle', { cx: 4.6, cy: 8.5, r: 1.3, fill: "#fff", opacity: 0.85 })
-              ]
-            }) : (cardMode === 'ink' ? (0, P.jsxs)('svg', {
-              viewBox: "0 0 16 16", width: 14, height: 14, 'aria-hidden': "true",
-              children: [
-                (0, P.jsx)('circle', { cx: 3, cy: 4, r: 1.1, fill: "currentColor", opacity: 0.9 }),
-                (0, P.jsx)('circle', { cx: 7.5, cy: 2.6, r: 0.8, fill: "currentColor", opacity: 0.6 }),
-                (0, P.jsx)('circle', { cx: 12.5, cy: 4.4, r: 1.2, fill: "currentColor" }),
-                (0, P.jsx)('circle', { cx: 5.2, cy: 8.2, r: 1.3, fill: "currentColor" }),
-                (0, P.jsx)('circle', { cx: 10, cy: 8, r: 0.9, fill: "currentColor", opacity: 0.7 }),
-                (0, P.jsx)('circle', { cx: 2.6, cy: 12.4, r: 0.8, fill: "currentColor", opacity: 0.6 }),
-                (0, P.jsx)('circle', { cx: 8, cy: 12.8, r: 1.2, fill: "currentColor", opacity: 0.9 }),
-                (0, P.jsx)('circle', { cx: 13, cy: 11.6, r: 0.9, fill: "currentColor", opacity: 0.75 })
-              ]
-            }) : (cardMode === 'liq' ? "≋" : (0, P.jsxs)('svg', {
-              viewBox: "0 0 16 16", width: 14, height: 14, 'aria-hidden': "true",
-              children: [
-                (0, P.jsx)('rect', { x: 1.5, y: 3.5, width: 9.5, height: 11, rx: 2, fill: "none", stroke: "currentColor", strokeWidth: 1.3 }),
-                (0, P.jsx)('path', { d: "M12.6 1.2l.55 1.45 1.45.55-1.45.55-.55 1.45-.55-1.45-1.45-.55 1.45-.55z", fill: "currentColor" }),
-                (0, P.jsx)('path', { d: "M13.6 7.4l.35.9.9.35-.9.35-.35.9-.35-.9-.9-.35.9-.35z", fill: "currentColor", opacity: 0.7 })
-              ]
-            })))
-          }),
-          (0, P.jsx)('span', {
-            className: "mode-label",
-            children: cardMode === 'liq' ? "liq" : (cardMode === 'smash' ? "smash" : (cardMode === 'ink' ? "ink" : "Card FX"))
-          })
-        ]
-      }),
       // Zen mode exit button
       isZenMode ? (0, P.jsxs)('button', {
         type: "button",
@@ -19977,6 +21432,203 @@ var Oe = function(props) {
         children: [
           (0, P.jsx)(IconMinimize, { className: "w-3.5 h-3.5" }),
           (0, P.jsx)('span', { children: "退出 (Esc)" })
+        ]
+      }) : null,
+
+      // Heads Up Minimal Top Island
+      headsUpState.active && cards[activeIdx] ? (0, P.jsxs)('div', {
+        className: "hu-island-header",
+        children: [
+          (0, P.jsxs)('div', {
+            className: "flex items-center gap-1.5 px-3 py-1 rounded-full backdrop-blur-xl bg-black/35 border border-white/20 text-xs font-semibold text-white/90 shadow-md",
+            children: [
+              (0, P.jsx)('span', { className: "w-2 h-2 rounded-full shadow-sm", style: { backgroundColor: cards[activeIdx].columnColor || "#30d158" } }),
+              (0, P.jsx)('span', { className: "truncate max-w-[110px]", children: cards[activeIdx].columnTitle || "Card" })
+            ]
+          }),
+          (0, P.jsxs)('div', {
+            className: "flex items-center gap-2",
+            children: [
+              (0, P.jsxs)('div', {
+                className: "px-3 py-1 rounded-full backdrop-blur-xl bg-white/10 border border-white/15 text-xs font-mono font-medium text-white/90 shadow-sm",
+                children: ["CARD ", activeIdx + 1, " OF ", cards.length]
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function(e) {
+                  e.stopPropagation();
+                  headsUpControllerRef.current.toggleMotionLab();
+                },
+                className: "w-7 h-7 rounded-full backdrop-blur-xl bg-white/10 border border-white/20 text-white/80 hover:text-white hover:bg-white/20 flex items-center justify-center transition-all duration-200 active:scale-90 text-xs shadow-md cursor-pointer",
+                title: "Toggle Motion Lab Debug Panel (Press M)",
+                children: "⚗️"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function(e) {
+                  e.stopPropagation();
+                  headsUpControllerRef.current.exit();
+                },
+                className: "w-7 h-7 rounded-full backdrop-blur-xl bg-black/40 border border-white/20 text-white/80 hover:text-white hover:bg-black/60 flex items-center justify-center transition-all duration-200 active:scale-90 text-sm font-bold shadow-md cursor-pointer",
+                title: "Exit Heads Up (Esc)",
+                children: "✕"
+              })
+            ]
+          })
+        ]
+      }) : null,
+
+      // Heads Up Status Action Toast
+      headsUpState.active && headsUpState.actionFeedback ? (0, P.jsx)('div', {
+        className: "hu-status-toast",
+        children: (0, P.jsx)('div', {
+          className: "px-4 py-1.5 rounded-full text-xs font-bold shadow-xl border backdrop-blur-xl " + (headsUpState.actionFeedback === 'correct' ? "bg-emerald-500/90 text-white border-emerald-400/50" : (headsUpState.actionFeedback === 'snooze' ? "bg-purple-500/90 text-white border-purple-400/50" : "bg-amber-500/90 text-white border-amber-400/50")),
+          children: headsUpState.actionFeedback === 'correct' ? "✓ Complete" : (headsUpState.actionFeedback === 'snooze' ? "⤳ Snoozed · Later" : "⤳ Passed")
+        })
+      }) : null,
+
+      // Particle Canvas for Modular Glass Shatter / Liquid Dissolve
+      headsUpState.active ? (0, P.jsx)('canvas', {
+        ref: huParticleCanvasRef,
+        className: "hu-particle-canvas"
+      }) : null,
+
+      // Face Down Blackout Curtain (Pause Session / Deep Focus)
+      headsUpState.active ? (0, P.jsxs)('div', {
+        className: "hu-facedown-curtain " + (headsUpState.isFaceDown ? "is-active" : ""),
+        onClick: function() { headsUpControllerRef.current.resumeCard(); },
+        children: [
+          (0, P.jsx)('div', {
+            className: "w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 animate-pulse",
+            children: (0, P.jsx)('span', { className: "text-2xl", children: "📴" })
+          }),
+          (0, P.jsx)('span', {
+            className: "text-base font-semibold text-white/50 tracking-wider mb-1",
+            children: "Face Down · Deep Focus"
+          }),
+          (0, P.jsx)('span', {
+            className: "text-xs text-white/30 tracking-tight",
+            children: "Screen standby · Tap or flip face up to resume"
+          })
+        ]
+      }) : null,
+
+      // Web Motion Lab Debug Console
+      headsUpState.active && headsUpState.showMotionLab ? (0, P.jsxs)('div', {
+        className: "hu-motion-lab",
+        children: [
+          (0, P.jsxs)('div', {
+            className: "flex items-center justify-between pb-2 mb-2 border-b border-white/15",
+            children: [
+              (0, P.jsxs)('div', {
+                className: "flex items-center gap-1.5 font-bold text-white text-[12px]",
+                children: [
+                  (0, P.jsx)('span', { children: "⚗️" }),
+                  (0, P.jsx)('span', { children: "Motion Lab" })
+                ]
+              }),
+              (0, P.jsx)('span', {
+                className: "hu-motion-lab-badge " + (
+                  headsUpState.physicalState === 'GRABBED' ? "bg-amber-500/25 text-amber-300 border border-amber-400/40" :
+                  headsUpState.physicalState === 'DRAGGING' ? "bg-cyan-500/25 text-cyan-300 border border-cyan-400/40" :
+                  headsUpState.physicalState === 'COMPLETING' ? "bg-emerald-500/25 text-emerald-300 border border-emerald-400/40" :
+                  headsUpState.physicalState === 'THROWING' ? "bg-purple-500/25 text-purple-300 border border-purple-400/40" :
+                  headsUpState.physicalState === 'PAUSED' ? "bg-rose-500/25 text-rose-300 border border-rose-400/40" :
+                  "bg-white/10 text-white/70 border border-white/10"
+                ),
+                children: headsUpState.physicalState
+              })
+            ]
+          }),
+          (0, P.jsxs)('div', {
+            className: "grid grid-cols-2 gap-1 text-[10px] text-white/75 font-mono mb-2 pb-2 border-b border-white/10",
+            children: [
+              (0, P.jsxs)('div', { children: ["vx: ", headsUpState.dragVelocity.vx.toFixed(2)] }),
+              (0, P.jsxs)('div', { children: ["vy: ", headsUpState.dragVelocity.vy.toFixed(2)] }),
+              (0, P.jsxs)('div', { children: ["dx: ", Math.round(headsUpState.dragDisplacement.x), "px"] }),
+              (0, P.jsxs)('div', { children: ["dy: ", Math.round(headsUpState.dragDisplacement.y), "px"] }),
+              (0, P.jsxs)('div', { children: ["gesture: ", headsUpState.cardAnim !== 'none' ? headsUpState.cardAnim : headsUpState.physicalState.toLowerCase()] }),
+              (0, P.jsxs)('div', { children: ["direction: ", Math.abs(headsUpState.dragDisplacement.x) > Math.abs(headsUpState.dragDisplacement.y) ? (headsUpState.dragDisplacement.x < 0 ? "left" : headsUpState.dragDisplacement.x > 0 ? "right" : "neutral") : (headsUpState.dragDisplacement.y < 0 ? "up" : headsUpState.dragDisplacement.y > 0 ? "down" : "neutral")] }),
+              (0, P.jsxs)('div', { className: "col-span-2", children: ["threshold: ", PHYSICAL_THRESHOLDS.throwDistance, "px / ", PHYSICAL_THRESHOLDS.throwVelocity.toFixed(2), "px·ms⁻¹"] }),
+              (0, P.jsxs)('div', { className: "col-span-2 truncate", children: ["card: ", activeIdx + 1, "/", cards.length, " · ", cards[activeIdx] ? cards[activeIdx].title : "—"] })
+            ]
+          }),
+          (0, P.jsxs)('div', {
+            className: "flex items-center justify-between mb-2 text-[10px]",
+            children: [
+              (0, P.jsx)('span', { className: "text-white/60", children: "Effect:" }),
+              (0, P.jsxs)('div', {
+                className: "flex gap-1",
+                children: [
+                  (0, P.jsx)('button', {
+                    type: "button",
+                    onClick: function() { headsUpControllerRef.current.setEffect('shatter'); },
+                    className: "px-2 py-0.5 rounded text-[10px] font-semibold transition-all " + (headsUpState.completionEffect === 'shatter' ? "bg-cyan-500 text-white shadow" : "bg-white/10 text-white/60 hover:text-white"),
+                    children: "Shatter"
+                  }),
+                  (0, P.jsx)('button', {
+                    type: "button",
+                    onClick: function() { headsUpControllerRef.current.setEffect('liquid'); },
+                    className: "px-2 py-0.5 rounded text-[10px] font-semibold transition-all " + (headsUpState.completionEffect === 'liquid' ? "bg-emerald-500 text-white shadow" : "bg-white/10 text-white/60 hover:text-white"),
+                    children: "Liquid"
+                  })
+                ]
+              })
+            ]
+          }),
+          (0, P.jsxs)('div', {
+            className: "grid grid-cols-2 gap-1.5",
+            children: [
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.previousCard(); },
+                className: "px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white/90 text-[10px] transition-all active:scale-95",
+                children: "⟵ Tilt Left"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.nextCard(); },
+                className: "px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white/90 text-[10px] transition-all active:scale-95",
+                children: "Tilt Right ⟶"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.completeCard(); },
+                className: "px-2 py-1 rounded bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-400/30 text-[10px] font-semibold transition-all active:scale-95",
+                children: "✓ Complete"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.snoozeCard(); },
+                className: "px-2 py-1 rounded bg-purple-500/25 hover:bg-purple-500/40 text-purple-300 border border-purple-400/30 text-[10px] font-semibold transition-all active:scale-95",
+                children: "⤳ Snooze / Later"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.expandCard(); },
+                className: "px-2 py-1 rounded bg-sky-500/25 hover:bg-sky-500/40 text-sky-300 border border-sky-400/30 text-[10px] transition-all active:scale-95",
+                children: "⬇ Pull Expand"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() {
+                  if (headsUpState.physicalState === 'GRABBED') {
+                    headsUpControllerRef.current.releaseCard(0, 0, 0, 0);
+                  } else {
+                    headsUpControllerRef.current.grabCard();
+                  }
+                },
+                className: "px-2 py-1 rounded bg-amber-500/25 hover:bg-amber-500/40 text-amber-300 border border-amber-400/30 text-[10px] transition-all active:scale-95",
+                children: headsUpState.physicalState === 'GRABBED' ? "Release Glass" : "Grab Glass"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function() { headsUpControllerRef.current.toggleFaceDown(); },
+                className: "col-span-2 px-2 py-1 rounded bg-rose-500/25 hover:bg-rose-500/40 text-rose-300 border border-rose-400/30 text-[10px] transition-all active:scale-95",
+                children: headsUpState.isFaceDown ? "Wake Up Screen" : "📴 Face Down (Deep Focus)"
+              })
+            ]
+          })
         ]
       }) : null,
 
@@ -19989,6 +21641,19 @@ var Oe = function(props) {
         onPointerCancel: onPointerUp,
         onLostPointerCapture: onPointerUp,
         onClick: function(e) {
+          if (headsUpRef.current && headsUpRef.current.active) {
+            if (huSuppressClickRef.current) {
+              huSuppressClickRef.current = false;
+              return;
+            }
+            if (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
+            var curCard = cards[activeIdx];
+            var curEl = curCard ? cardElRefs[curCard.id] : null;
+            if (curEl && (curEl === e.target || curEl.contains(e.target))) {
+              headsUpControllerRef.current.flipCard();
+            }
+            return;
+          }
           if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
           if (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
           var stage = stageRef.current;
@@ -20026,8 +21691,8 @@ var Oe = function(props) {
         // 5.0: landscape switches to "none" — same reasoning as the section's
         // touchAction above (this stage is what a stray vertical touch
         // actually lands on).
-        style: { height: stageHeight + "px", touchAction: (isLandscape ? "none" : "pan-y"), perspective: "none" },
-        className: "relative w-full my-auto flex justify-center items-center perspective-stage overflow-visible cursor-grab active:cursor-grabbing",
+        style: { height: stageHeight + "px", touchAction: ((headsUpState.active || isLandscape) ? "none" : "pan-y"), perspective: "none" },
+        className: "relative w-full my-auto flex justify-center items-center perspective-stage overflow-visible " + (headsUpState.active ? "is-headsup-active" : "cursor-grab active:cursor-grabbing"),
         children: (0, P.jsxs)('div', {
           className: "relative w-full h-full preserve-3d flex justify-center items-center",
           children: [
@@ -20069,8 +21734,91 @@ var Oe = function(props) {
 
               var pose = flowPose(effIdx);
               transX = pose.x; transZ = pose.z; rotY = pose.rotation; scale = pose.scale; opacity = pose.opacity;
+              var isHu = headsUpState.active;
+              var huAnim = headsUpState.cardAnim;
+              var rotX = 0;
+              var transY = 0;
+
+              if (isHu) {
+                if (isCenter) {
+                  var targetZ = 0;
+                  var targetScale = 1;
+                  // Reference proportion: the card follows device orientation.
+                  // Portrait uses the tall 0.52 silhouette from the reference;
+                  // landscape rotates that same physical proportion.
+                  var huPhysicalRatio = 0.52;
+                  var huViewportWidth = Math.max(1, viewportSize.w || window.innerWidth);
+                  var huViewportHeight = Math.max(1, viewportSize.h || window.innerHeight);
+                  // Do not trust the outer simulator orientation flag here:
+                  // its phone chrome can rotate independently from this stage.
+                  // The physical viewport is the authoritative orientation.
+                  var huIsLandscape = huViewportWidth > huViewportHeight;
+                  var huCardAspect = huIsLandscape ? (1 / huPhysicalRatio) : huPhysicalRatio;
+                  var huMaxCardWidth = huViewportWidth * (huIsLandscape ? 0.92 : 0.96);
+                  var huMaxCardHeight = huViewportHeight * 0.88;
+                  var huCardWidth = Math.round(Math.min(huMaxCardWidth, huMaxCardHeight * huCardAspect));
+                  var huCardHeight = Math.round(huCardWidth / huCardAspect);
+                  
+                  transX = 0;
+                  transY = 0;
+                  transZ = targetZ;
+                  scale = targetScale;
+                  rotY = 0;
+                  opacity = 1;
+                  zIndex = 120;
+
+                  // Departure / Arrival Animations in Heads Up
+                  if (huAnim === 'next') {
+                    transX = -360;
+                    rotY = -28;
+                    transZ = targetZ - 120;
+                    opacity = 0;
+                    scale = targetScale * 0.86;
+                  } else if (huAnim === 'prev') {
+                    transX = 360;
+                    rotY = 28;
+                    transZ = targetZ - 120;
+                    opacity = 0;
+                    scale = targetScale * 0.86;
+                  } else if (huAnim === 'correct' || huAnim === 'shatter' || huAnim === 'liquid') {
+                    transY = 160;
+                    rotX = 24;
+                    transZ = targetZ + 60;
+                    opacity = 0;
+                    scale = targetScale * 0.92;
+                  } else if (huAnim === 'pass' || huAnim === 'snooze') {
+                    transY = -380;
+                    rotX = -30;
+                    transZ = targetZ - 280;
+                    opacity = 0;
+                    scale = targetScale * 0.75;
+                  } else {
+                    rotX = headsUpState.pitch;
+                    rotY = headsUpState.roll;
+                    if (headsUpState.physicalState === 'GRABBED') {
+                      transZ = targetZ + 55;
+                      scale = targetScale * 0.97;
+                    } else if (headsUpState.physicalState === 'DRAGGING') {
+                      transX = headsUpState.dragDisplacement.x;
+                      transY = headsUpState.dragDisplacement.y;
+                      rotX = headsUpState.pitch - headsUpState.dragDisplacement.y * 0.08;
+                      rotY = headsUpState.roll + headsUpState.dragDisplacement.x * 0.08;
+                      transZ = targetZ + (headsUpState.physicalState === 'GRABBED' ? 55 : 30);
+                    }
+                  }
+                } else {
+                  // Surrounding cards recede deep into depth and fade
+                  transZ = pose.z - 650;
+                  transX = pose.x * 1.6;
+                  rotY = pose.rotation;
+                  scale = pose.scale * 0.55;
+                  opacity = 0;
+                  zIndex = 1;
+                }
+              }
+
               // Dynamic 3D tilt on center card
-              var tiltTransform = (isCenter && !isDragging) ? (" rotateX(" + tilt.x + "deg) rotateY(" + (rotY + tilt.y) + "deg)") : (" rotateY(" + rotY + "deg)");
+              var tiltTransform = (isCenter && !isDragging) ? (" rotateX(" + (rotX || tilt.x) + "deg) rotateY(" + (rotY + (isHu ? 0 : tilt.y)) + "deg)") : (" rotateY(" + rotY + "deg)");
 
               var totalCheck = (card.checklistItems || []).length;
               var doneCheck = (card.checklistItems || []).filter(function(i) { return i.done; }).length;
@@ -20089,6 +21837,15 @@ var Oe = function(props) {
                 backdropFilter: "blur(24px) saturate(180%)",
                 WebkitBackdropFilter: "blur(24px) saturate(180%)"
               } : {};
+
+              if (isHu && isCenter) {
+                var reflX = (-headsUpState.roll * 2.5).toFixed(1) + 'px';
+                var reflY = (headsUpState.pitch * 2.5).toFixed(1) + 'px';
+                customStyle['--inspect-rx'] = rotX.toFixed(2) + 'deg';
+                customStyle['--inspect-ry'] = rotY.toFixed(2) + 'deg';
+                customStyle['--refl-x'] = reflX;
+                customStyle['--refl-y'] = reflY;
+              }
 
               var mastery = card.mastery || 1;
 
@@ -20113,6 +21870,11 @@ var Oe = function(props) {
                 // the correct target from the tap's actual screen position
                 // instead of from whichever overlapping element caught it.
                 onClick: function(e) {
+                  if (isHu && huSuppressClickRef.current) {
+                    huSuppressClickRef.current = false;
+                    e.stopPropagation();
+                    return;
+                  }
                   if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
                   if (isCenter) {
                     toggleCardFlip(card.id, e);
@@ -20120,29 +21882,27 @@ var Oe = function(props) {
                 },
                 onDoubleClick: function(e) {
                   e.stopPropagation();
-                  if (window.openPhysicalCardMode) {
-                    window.openPhysicalCardMode(activeIdx);
-                  }
+                  headsUpControllerRef.current.enter(activeIdx);
                 },
                 style: {
                   position: "absolute",
                   top: "50%",
                   left: "50%",
-                  width: cardWidth + "px",
-                  height: cardHeight + "px",
-                  marginLeft: marginLeft + "px",
-                  marginTop: marginTop + "px",
-                  borderRadius: "32px",
-                  transform: "perspective(640px) translate3d(" + transX + "px,0," + transZ + "px)" + tiltTransform + " scale(" + scale + ")",
+                  width: isHu && isCenter ? huCardWidth + "px" : cardWidth + "px",
+                  height: isHu && isCenter ? huCardHeight + "px" : cardHeight + "px",
+                  marginLeft: isHu && isCenter ? (-huCardWidth / 2) + "px" : marginLeft + "px",
+                  marginTop: isHu && isCenter ? (-huCardHeight / 2) + "px" : marginTop + "px",
+                  borderRadius: isHu && isCenter ? "38px" : "32px",
+                  transform: "perspective(640px) translate3d(" + transX.toFixed(1) + "px," + transY.toFixed(1) + "px," + transZ.toFixed(1) + "px)" + tiltTransform + " scale(" + scale.toFixed(3) + ")",
                   opacity: opacity,
                   zIndex: zIndex,
-                  transition: isDragging ? "none" : "transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease-out",
-                  willChange: "transform, opacity"
+                  transition: (isDragging || (isHu && isCenter && (headsUpState.physicalState === 'DRAGGING' || headsUpState.physicalState === 'GRABBED'))) ? "none" : "transform 0.48s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.32s ease-out, width 0.48s cubic-bezier(0.19, 1, 0.22, 1), height 0.48s cubic-bezier(0.19, 1, 0.22, 1), margin 0.48s cubic-bezier(0.19, 1, 0.22, 1), border-radius 0.32s ease, box-shadow 0.3s ease",
+                  willChange: "transform, opacity, width, height, margin"
                 },
-                className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]",
+                className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]" + (isHu && isCenter ? " is-headsup-hero" : "") + (isHu && isCenter && headsUpState.physicalState === 'GRABBED' ? " is-grabbed" : "") + (isHu && isCenter && huAnim === 'shatter' ? " hu-fx-shatter" : "") + (isHu && isCenter && huAnim === 'liquid' ? " hu-fx-liquid" : "") + (isHu && isCenter && headsUpState.actionFeedback ? " action-feedback-" + headsUpState.actionFeedback : ""),
                 children: [
                   (0, P.jsxs)('div', {
-                    style: { transformStyle: 'preserve-3d', borderRadius: '32px' },
+                    style: { transformStyle: 'preserve-3d', borderRadius: isHu && isCenter ? '38px' : '32px' },
                     className: "coverflow-flipper relative w-full h-full rounded-[36px] preserve-3d",
                     children: [
                       // ==========================================
@@ -20150,6 +21910,11 @@ var Oe = function(props) {
                       // ==========================================
                       (0, P.jsxs)('div', {
                         onClick: function(e) {
+                          if (isHu && huSuppressClickRef.current) {
+                            huSuppressClickRef.current = false;
+                            e.stopPropagation();
+                            return;
+                          }
                           if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
                           if (isCenter) {
                             e.stopPropagation();
@@ -20419,7 +22184,7 @@ var Oe = function(props) {
                       borderRadius: "32px",
                       WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.18) 50%, rgba(0,0,0,0) 82%)",
                       maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.18) 50%, rgba(0,0,0,0) 82%)",
-                      opacity: isCenter ? (isDark ? 0.45 : 0.35) : Math.max(0.18, opacity * 0.4),
+                      opacity: isHu ? 0 : (isCenter ? (isDark ? 0.45 : 0.35) : Math.max(0.18, opacity * 0.4)),
                       transition: isDragging ? "none" : "opacity 0.4s ease"
                     },
                     children: (0, P.jsxs)('div', {
@@ -20445,6 +22210,7 @@ var Oe = function(props) {
 
             // End Slot: Add Card
             (function() {
+              if (headsUpState.active) return null;
               var endIdx = cards.length;
               var dragFraction = isDragging ? -dragOffset / dragNormalizer : 0;
               var effIdx = endIdx - (continuousPositionRef.current === null ? activeIdx + dragFraction : continuousPositionRef.current);
@@ -20532,6 +22298,8 @@ var Oe = function(props) {
             (0, P.jsx)('div', {
               className: "coverflow-ground-sheen absolute bottom-3 left-1/2 -translate-x-1/2 w-[540px] max-w-full h-[90px] pointer-events-none rounded-[100%] blur-sm opacity-70",
               style: {
+                opacity: headsUpState.active ? 0 : 0.7,
+                transition: "opacity 0.35s ease",
                 background: isDark
                   ? "radial-gradient(65% 50% at 50% 0%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 40%, rgba(0,0,0,0) 75%)"
                   : "radial-gradient(65% 50% at 50% 0%, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 40%, rgba(0,0,0,0) 75%)"
@@ -20541,6 +22309,50 @@ var Oe = function(props) {
         })
       }),
 
+      // Heads Up Minimal Bottom Action Capsule
+      headsUpState.active ? (0, P.jsxs)('div', {
+        className: "hu-bottom-bar",
+        children: [
+          (0, P.jsxs)('div', {
+            className: "flex items-center gap-2 p-1.5 rounded-full backdrop-blur-2xl bg-black/45 border border-white/20 shadow-2xl",
+            children: [
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function(e) { e.stopPropagation(); headsUpControllerRef.current.snoozeCard(); },
+                className: "px-3 py-1 rounded-full text-xs font-semibold bg-white/10 hover:bg-purple-500/20 text-white/80 hover:text-purple-300 border border-white/10 hover:border-purple-400/30 transition-all active:scale-95 cursor-pointer",
+                title: "Snooze / Later (Swipe Up or ↑)",
+                children: "⤳ Snooze"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function(e) { e.stopPropagation(); headsUpControllerRef.current.flipCard(); },
+                className: "px-3.5 py-1 rounded-full text-xs font-semibold bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-all active:scale-95 cursor-pointer",
+                title: "Flip Card (Tap or Space)",
+                children: "⎌ Flip"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function(e) { e.stopPropagation(); headsUpControllerRef.current.completeCard(); },
+                className: "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-400/40 transition-all active:scale-95 cursor-pointer",
+                title: "Mark Complete (Swipe Down or Flick)",
+                children: "✓ Complete"
+              }),
+              (0, P.jsx)('button', {
+                type: "button",
+                onClick: function(e) { e.stopPropagation(); headsUpControllerRef.current.exit(); },
+                className: "px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 transition-all active:scale-95 cursor-pointer",
+                title: "Exit Heads Up",
+                children: "✕"
+              })
+            ]
+          }),
+          (0, P.jsx)('span', {
+            className: "text-[10px] text-white/50 tracking-wider font-medium select-none pointer-events-none",
+            children: "Swipe ↓ Complete · Swipe ↑ Snooze · Pull ↓ Expand · Hold Grab · ← → Prev/Next"
+          })
+        ]
+      }) : null,
+
       // =========================================================================
       // 2. BOTTOM NAVIGATION BAR - ONLY CLEAN SLIDER, NO LONG BAR ABOVE!
       // =========================================================================
@@ -20549,8 +22361,8 @@ var Oe = function(props) {
         onMouseLeave: function() { setIsScrubberVisible(false); },
         onTouchStart: function() { showScrubber(); },
         style: {
-          opacity: isScrubberVisible ? 1 : 0,
-          pointerEvents: isScrubberVisible ? "auto" : "none",
+          opacity: (!headsUpState.active && isScrubberVisible) ? 1 : 0,
+          pointerEvents: (!headsUpState.active && isScrubberVisible) ? "auto" : "none",
           transition: "opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)"
         },
         className: "flex flex-col items-center justify-center w-full max-w-[260px] md:max-w-xs mt-1 mb-2 z-30",
@@ -20575,22 +22387,6 @@ var Oe = function(props) {
               (0, P.jsx)('span', { children: totalSlots })
             ]
           })
-        ]
-      }),
-
-      // Physical Card Mode Entry Button
-      (0, P.jsxs)('button', {
-        type: "button",
-        onClick: function(e) {
-          e.stopPropagation();
-          if (window.openPhysicalCardMode) {
-            window.openPhysicalCardMode(activeIdx);
-          }
-        },
-        className: "mt-1 px-3.5 py-1.5 rounded-full text-xs font-semibold backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-95 flex items-center gap-1.5 z-30 " + (isDark ? "bg-white/10 text-white/95 border-white/20 hover:bg-white/20" : "bg-slate-900/10 text-slate-800 border-slate-900/20 hover:bg-slate-900/15"),
-        children: [
-          (0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-emerald-400 animate-pulse" }),
-          (0, P.jsx)('span', { children: "📇 Physical Card Mode" })
         ]
       })
     ]
@@ -21544,13 +23340,74 @@ var MinestPortraitGestureManager = (function() {
     var pullGhost = null;
     var lastTap = { time: 0, cardId: null, timer: null };
     var pinchSession = null;
-    var listSwipeState = null;
     var activePointers = new Map();
+    var openSwipe = null;
 
     var removeBackdrops = function(parent) {
       if (!parent) return;
       var els = parent.querySelectorAll('.gesture-complete-backdrop, .gesture-priority-backdrop');
       els.forEach(function(el) { el.remove(); });
+    };
+
+    var resetCardGesture = function(gs) {
+      if (!gs || !gs.cardEl) return;
+      gs.cardEl.style.transform = '';
+      gs.cardEl.style.opacity = '';
+      gs.cardEl.style.transition = '';
+      gs.cardEl.classList.remove('gesture-manipulating', 'gesture-swipe-open');
+      removeBackdrops(gs.cardEl.parentElement);
+    };
+
+    var closeOpenSwipe = function() {
+      if (!openSwipe) return;
+      var old = openSwipe;
+      openSwipe = null;
+      old.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+      old.cardEl.style.transform = 'translate3d(0, 0, 0)';
+      if (old.backdropEl) old.backdropEl.classList.remove('is-open');
+      setTimeout(function() {
+        if (old.cardEl && !old.cardEl.classList.contains('gesture-manipulating')) resetCardGesture(old);
+      }, 290);
+    };
+
+    var runSwipeAction = function(gs, action, keepOpen) {
+      if (!gs || !gs.cardObj || !gs.colId) return;
+      window.__minestGestureSuppressClickUntil = Date.now() + 350;
+      haptic(action === 'complete' ? 'success' : 'light');
+      sound(action === 'complete' ? 'check' : 'slide');
+      if (action === 'complete' || action === 'archive') {
+        if (openSwipe === gs) openSwipe = null;
+        gs.cardEl.classList.remove('gesture-manipulating');
+        gs.cardEl.classList.add('gesture-swipe-open');
+        gs.cardEl.style.transition = 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease';
+        gs.cardEl.style.transform = 'translate3d(' + (gs.cardW + 36) + 'px, 0, 0)';
+        gs.cardEl.style.opacity = '0';
+        setTimeout(function() {
+          var latest = ctxRef.current || {};
+          if (action === 'archive' && latest.onArchiveCard) latest.onArchiveCard(gs.colId, gs.cardObj.id);
+          if (action === 'complete' && latest.onToggleCardComplete) latest.onToggleCardComplete(gs.colId, gs.cardObj.id);
+          resetCardGesture(gs);
+        }, 230);
+      } else {
+        var latest = ctxRef.current || {};
+        if (latest.onUpdateCardPriority) latest.onUpdateCardPriority(gs.colId, gs.cardObj.id, action);
+        if (keepOpen && gs.backdropEl) {
+          gs.backdropEl.classList.add('is-open');
+          gs.backdropEl.querySelectorAll('.gesture-swipe-action').forEach(function(button) {
+            button.classList.toggle('is-active', button.getAttribute('data-swipe-action') === action);
+          });
+          gs.cardEl.classList.remove('gesture-manipulating');
+          gs.cardEl.classList.add('gesture-swipe-open');
+          gs.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          gs.cardEl.style.transform = 'translate3d(-177px, 0, 0)';
+          openSwipe = gs;
+        } else if (openSwipe === gs) closeOpenSwipe();
+        else {
+          gs.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
+          setTimeout(function() { resetCardGesture(gs); }, 290);
+        }
+      }
     };
 
     var onDown = function(e) {
@@ -21562,40 +23419,20 @@ var MinestPortraitGestureManager = (function() {
         return;
       }
 
+      if (openSwipe) {
+        if (e.target && e.target.closest && e.target.closest('.gesture-swipe-action')) return;
+        closeOpenSwipe();
+        return;
+      }
+
       var ctx = ctxRef.current || {};
       var clientX = e.clientX, clientY = e.clientY;
       var isAltPinch = (e.pointerType === 'mouse' && e.altKey);
 
-      // List Title Row Swipe (Only swiping on list title row triggers list switching in portrait mode)
+      // List Header and column dragging are handled exclusively by Safari Tab Reorder Engine & inline rename
       var headerEl = (e.target && e.target.closest) ? e.target.closest('.kanban-column-header, [class*="group/colheader"]') : null;
-      var isHeaderInput = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || (e.target.closest && e.target.closest('input, textarea')));
-      if (headerEl && !isHeaderInput && e.button === 0) {
-        var colEl = headerEl.closest('.kanban-column-wrapper');
-        var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper'));
-        var curColIdx = allCols.indexOf(colEl);
-        if (curColIdx === -1) curColIdx = 0;
-
-        var padLeft = parseInt(window.getComputedStyle(lane).paddingLeft || '10', 10);
-        var getColScrollLeft = function(idx) {
-          if (!allCols[idx]) return 0;
-          return Math.max(0, allCols[idx].offsetLeft - padLeft);
-        };
-
-        listSwipeState = {
-          headerEl: headerEl,
-          startX: clientX,
-          startY: clientY,
-          lastX: clientX,
-          lastT: Date.now(),
-          vx: 0,
-          startScrollLeft: lane.scrollLeft,
-          curColIdx: curColIdx,
-          allCols: allCols,
-          getColScrollLeft: getColScrollLeft,
-          isSwiping: false
-        };
-        return;
-      }
+      if (headerEl) return;
+      if (window.__isSafariColDragging || (document.body && document.body.classList.contains('is-safari-column-dragging'))) return;
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
       activePointers.set(pid, { x: clientX, y: clientY, target: e.target });
@@ -21723,6 +23560,7 @@ var MinestPortraitGestureManager = (function() {
       }
 
       gestureState = {
+        pointerId: pid,
         startX: clientX,
         startY: clientY,
         currentX: clientX,
@@ -21736,9 +23574,12 @@ var MinestPortraitGestureManager = (function() {
         mode: 'undecided',
         thresholdCrossed: false,
         activePriorityStage: 0,
+        activeRightStage: 0,
         backdropEl: null,
-        cardW: cardEl ? cardEl.offsetWidth : 300,
-        cardH: cardEl ? cardEl.offsetHeight : 60,
+        // Pointer coordinates are viewport pixels. The simulator scales the
+        // phone, so layout (offset) dimensions would shift every swipe stage.
+        cardW: cardEl ? cardEl.getBoundingClientRect().width : 300,
+        cardH: cardEl ? cardEl.getBoundingClientRect().height : 60,
         canPullDown: false,
         isMouse: e.pointerType === 'mouse' || !e.touches
       };
@@ -21774,42 +23615,8 @@ var MinestPortraitGestureManager = (function() {
         clientY = e.touches[0].clientY;
       }
 
-      // Handle List Title row swipe
-      if (listSwipeState) {
-        var dx = clientX - listSwipeState.startX;
-        var dy = clientY - listSwipeState.startY;
-        var now = Date.now();
-        var dt = Math.max(1, now - listSwipeState.lastT);
-        listSwipeState.vx = (clientX - listSwipeState.lastX) / dt;
-        listSwipeState.lastX = clientX;
-        listSwipeState.lastT = now;
-
-        if (!listSwipeState.isSwiping) {
-          if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
-            listSwipeState.isSwiping = true;
-            lane.style.scrollBehavior = 'auto';
-          } else if (Math.abs(dy) > 10) {
-            listSwipeState = null;
-            return;
-          }
-        }
-
-        if (listSwipeState.isSwiping) {
-          if (e.cancelable) e.preventDefault();
-          e.stopPropagation();
-
-          var rawLeft = listSwipeState.startScrollLeft - dx;
-          var minLeft = 0;
-          var maxLeft = listSwipeState.getColScrollLeft(listSwipeState.allCols.length - 1);
-          var clampedLeft = rawLeft;
-          if (rawLeft < minLeft) {
-            clampedLeft = minLeft + (rawLeft - minLeft) * 0.32;
-          } else if (rawLeft > maxLeft) {
-            clampedLeft = maxLeft + (rawLeft - maxLeft) * 0.32;
-          }
-          lane.scrollLeft = clampedLeft;
-          return;
-        }
+      if (window.__isSafariColDragging || (document.body && document.body.classList.contains('is-safari-column-dragging'))) {
+        return;
       }
 
       var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
@@ -21874,6 +23681,7 @@ var MinestPortraitGestureManager = (function() {
       }
 
       if (!gestureState) return;
+      if (pid !== gestureState.pointerId) return;
       var dx = clientX - gestureState.startX;
       var dy = clientY - gestureState.startY;
       gestureState.currentX = clientX;
@@ -21908,21 +23716,19 @@ var MinestPortraitGestureManager = (function() {
             if (gestureState.mode === 'swipe_right') {
               var b = document.createElement('div');
               b.className = 'gesture-complete-backdrop';
-              b.innerHTML = '<div class="gesture-complete-pill">' +
-                '<div class="gesture-complete-circle">' +
-                '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
-                '</div>' +
-                '<span class="gesture-complete-text">Slide to complete</span>' +
+              b.innerHTML = '<div class="gesture-swipe-actions">' +
+                '<button type="button" class="gesture-swipe-action complete" data-swipe-action="complete" aria-label="Complete card"><span>✓</span><span>Done</span></button>' +
+                '<button type="button" class="gesture-swipe-action archive" data-swipe-action="archive" aria-label="Archive card"><span>▤</span><span>Archive</span></button>' +
                 '</div>';
               parent.insertBefore(b, gestureState.cardEl);
               gestureState.backdropEl = b;
             } else {
               var b = document.createElement('div');
               b.className = 'gesture-priority-backdrop';
-              b.innerHTML = '<div class="gesture-priority-track">' +
-                '<div class="gesture-priority-lens lens-red" data-stage="1"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">High</span></div>' +
-                '<div class="gesture-priority-lens lens-yellow" data-stage="2"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">Med</span></div>' +
-                '<div class="gesture-priority-lens lens-green" data-stage="3"><span class="gesture-lens-dot"></span><span class="gesture-lens-name">Low</span></div>' +
+              b.innerHTML = '<div class="gesture-swipe-actions is-trailing">' +
+                '<button type="button" class="gesture-swipe-action high" data-swipe-action="high" aria-label="Set high priority"><span>●</span><span>High</span></button>' +
+                '<button type="button" class="gesture-swipe-action medium" data-swipe-action="medium" aria-label="Set medium priority"><span>●</span><span>Med</span></button>' +
+                '<button type="button" class="gesture-swipe-action low" data-swipe-action="low" aria-label="Set low priority"><span>●</span><span>Low</span></button>' +
                 '</div>';
               parent.insertBefore(b, gestureState.cardEl);
               gestureState.backdropEl = b;
@@ -21960,47 +23766,34 @@ var MinestPortraitGestureManager = (function() {
       } else if (gestureState.mode === 'swipe_right') {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
-        var moveX = Math.max(0, dx);
-        gestureState.cardEl.style.transform = 'translate3d(' + moveX.toFixed(1) + 'px, 0, 0) rotate(' + (moveX * 0.035).toFixed(2) + 'deg)';
-
-        var completeThreshold = 85;
-        if (moveX >= completeThreshold) {
-          if (!gestureState.thresholdCrossed) {
-            gestureState.thresholdCrossed = true;
-            haptic('selection');
-            if (gestureState.backdropEl) {
-              var c = gestureState.backdropEl.querySelector('.gesture-complete-circle');
-              var txt = gestureState.backdropEl.querySelector('.gesture-complete-text');
-              if (c) c.classList.add('is-triggered');
-              if (txt) txt.textContent = 'Release to complete ✓';
-            }
-          }
-        } else {
-          if (gestureState.thresholdCrossed) {
-            gestureState.thresholdCrossed = false;
-            if (gestureState.backdropEl) {
-              var c = gestureState.backdropEl.querySelector('.gesture-complete-circle');
-              var txt = gestureState.backdropEl.querySelector('.gesture-complete-text');
-              if (c) c.classList.remove('is-triggered');
-              if (txt) txt.textContent = 'Slide to complete';
-            }
+        var moveX = clamp(dx, 0, (gestureState.cardW || 300) * 0.84);
+        gestureState.cardEl.style.transform = 'translate3d(' + moveX.toFixed(1) + 'px, 0, 0)';
+        if (gestureState.backdropEl) gestureState.backdropEl.style.setProperty('--gesture-reveal', clamp((moveX - 8) / 64, 0, 1).toFixed(2));
+        var rightW = gestureState.cardW || 300;
+        var nextRightStage = moveX >= rightW * 2 / 3 ? 0 :
+          moveX >= rightW / 2 ? 2 : moveX >= 20 ? 1 : 0;
+        if (nextRightStage !== gestureState.activeRightStage) {
+          gestureState.activeRightStage = nextRightStage;
+          if (nextRightStage > 0) { haptic('selection'); sound('click'); }
+          if (gestureState.backdropEl) {
+            gestureState.backdropEl.querySelectorAll('.gesture-swipe-action').forEach(function(button) {
+              button.classList.toggle('is-active',
+                (nextRightStage === 1 && button.dataset.swipeAction === 'complete') ||
+                (nextRightStage === 2 && button.dataset.swipeAction === 'archive'));
+            });
           }
         }
       } else if (gestureState.mode === 'swipe_left') {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
-        var pullLeft = Math.max(0, -dx);
+        var pullLeft = clamp(-dx, 0, (gestureState.cardW || 300) * 0.84);
         gestureState.cardEl.style.transform = 'translate3d(-' + pullLeft.toFixed(1) + 'px, 0, 0)';
-
+        if (gestureState.backdropEl) gestureState.backdropEl.style.setProperty('--gesture-reveal', clamp((pullLeft - 6) / 78, 0, 1).toFixed(2));
         var W = gestureState.cardW || 300;
         var nextStage = 0;
-        if (pullLeft >= 20 && pullLeft < W * 0.33) {
-          nextStage = 1;
-        } else if (pullLeft >= W * 0.33 && pullLeft < W * 0.52) {
-          nextStage = 2;
-        } else if (pullLeft >= W * 0.52) {
-          nextStage = 3;
-        }
+        if (pullLeft >= 20 && pullLeft < W / 3) nextStage = 1;
+        else if (pullLeft >= W / 3 && pullLeft < W / 2) nextStage = 2;
+        else if (pullLeft >= W / 2 && pullLeft < W * 2 / 3) nextStage = 3;
 
         if (nextStage !== gestureState.activePriorityStage) {
           gestureState.activePriorityStage = nextStage;
@@ -22009,12 +23802,9 @@ var MinestPortraitGestureManager = (function() {
             sound('click');
           }
           if (gestureState.backdropEl) {
-            var red = gestureState.backdropEl.querySelector('.lens-red');
-            var yel = gestureState.backdropEl.querySelector('.lens-yellow');
-            var grn = gestureState.backdropEl.querySelector('.lens-green');
-            if (red) red.classList.toggle('is-active', nextStage === 1);
-            if (yel) yel.classList.toggle('is-active', nextStage === 2);
-            if (grn) grn.classList.toggle('is-active', nextStage === 3);
+            gestureState.backdropEl.querySelectorAll('.gesture-swipe-action').forEach(function(button) {
+              button.classList.toggle('is-active', (nextStage === 1 && button.dataset.swipeAction === 'high') || (nextStage === 2 && button.dataset.swipeAction === 'medium') || (nextStage === 3 && button.dataset.swipeAction === 'low'));
+            });
           }
         }
       }
@@ -22037,39 +23827,22 @@ var MinestPortraitGestureManager = (function() {
       }
       var ctx = ctxRef.current || {};
 
-      // Complete List Title row swipe
-      if (listSwipeState) {
-        var lss = listSwipeState;
-        listSwipeState = null;
-
-        if (lss.isSwiping) {
-          window.__minestGestureSuppressClickUntil = Date.now() + 350;
-          var dx = clientX - lss.startX;
-          var vx = lss.vx;
-          var totalCols = lss.allCols.length;
-          var targetIdx = lss.curColIdx;
-
-          if (dx < -36 || vx < -0.25) {
-            targetIdx = Math.min(totalCols - 1, lss.curColIdx + 1);
-          } else if (dx > 36 || vx > 0.25) {
-            targetIdx = Math.max(0, lss.curColIdx - 1);
-          }
-
-          var targetLeft = lss.getColScrollLeft(targetIdx);
-          lane.style.scrollBehavior = 'smooth';
-          lane.scrollTo({ left: targetLeft, behavior: 'smooth' });
-
-          if (targetIdx !== lss.curColIdx) {
-            haptic('selection');
-            sound('slide');
-          }
-          return;
-        }
+      if (window.__isSafariColDragging || (document.body && document.body.classList.contains('is-safari-column-dragging'))) {
+        return;
       }
 
-      var pid = e.pointerId !== undefined ? e.pointerId : (e.touches && e.touches[0] ? e.touches[0].identifier : 'main');
+      var endedTouch = e.changedTouches && e.changedTouches[0];
+      var pid = e.pointerId !== undefined ? e.pointerId : (endedTouch ? endedTouch.identifier : 'main');
       activePointers.delete(pid);
       if (activePointers.size === 0) activePointers.clear();
+
+      if (e.type === 'pointercancel' || e.type === 'touchcancel') {
+        resetCardGesture(gestureState);
+        gestureState = null;
+        pinchSession = null;
+        if (pullGhost) { pullGhost.remove(); pullGhost = null; }
+        return;
+      }
 
       if (pinchSession) {
         var sess = pinchSession;
@@ -22158,6 +23931,7 @@ var MinestPortraitGestureManager = (function() {
       }
 
       if (!gestureState) return;
+      if (pid !== gestureState.pointerId) return;
       var gs = gestureState;
       gestureState = null;
 
@@ -22187,48 +23961,45 @@ var MinestPortraitGestureManager = (function() {
         }
       } else if (gs.mode === 'swipe_right') {
         window.__minestGestureSuppressClickUntil = Date.now() + 350;
-        if (gs.thresholdCrossed && gs.cardObj && gs.colId) {
-          haptic('success');
-          sound('check');
-          gs.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.28s ease';
-          gs.cardEl.style.transform = 'translate3d(115%, 0, 0)';
-          gs.cardEl.style.opacity = '0';
-          setTimeout(function() {
-            if (ctx.onToggleCardComplete) ctx.onToggleCardComplete(gs.colId, gs.cardObj.id);
-            if (gs.cardEl) {
-              gs.cardEl.style.transform = '';
-              gs.cardEl.style.opacity = '';
-              gs.cardEl.classList.remove('gesture-manipulating');
-              removeBackdrops(gs.cardEl.parentElement);
-            }
-          }, 290);
-        } else {
-          gs.cardEl.style.transition = 'transform 0.36s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        gs.cardEl.classList.remove('gesture-manipulating');
+        gs.cardEl.classList.add('gesture-swipe-open');
+        if (gs.activeRightStage > 0 && gs.cardObj && gs.colId) {
+          runSwipeAction(gs, gs.activeRightStage === 1 ? 'complete' : 'archive');
+        } else if (gs.currentX - gs.startX >= (gs.cardW || 300) * 2 / 3) {
+          gs.cardEl.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1)';
           gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
-          setTimeout(function() {
-            if (gs.cardEl) {
-              gs.cardEl.classList.remove('gesture-manipulating');
-              removeBackdrops(gs.cardEl.parentElement);
-            }
-          }, 370);
+          setTimeout(function() { resetCardGesture(gs); }, 330);
+        } else if (gs.currentX - gs.startX >= 42 && gs.backdropEl) {
+          gs.backdropEl.classList.add('is-open');
+          gs.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          gs.cardEl.style.transform = 'translate3d(148px, 0, 0)';
+          openSwipe = gs;
+        } else {
+          gs.cardEl.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
+          setTimeout(function() { resetCardGesture(gs); }, 330);
         }
       } else if (gs.mode === 'swipe_left') {
         window.__minestGestureSuppressClickUntil = Date.now() + 350;
+        gs.cardEl.classList.remove('gesture-manipulating');
+        gs.cardEl.classList.add('gesture-swipe-open');
         if (gs.activePriorityStage > 0 && gs.cardObj && gs.colId) {
           var pVal = (gs.activePriorityStage === 1 ? 'high' : gs.activePriorityStage === 2 ? 'medium' : 'low');
-          if (gs.cardObj.priority === pVal && pVal === 'high') pVal = null;
-          haptic('light');
-          sound('add');
-          if (ctx.onUpdateCardPriority) ctx.onUpdateCardPriority(gs.colId, gs.cardObj.id, pVal);
+          runSwipeAction(gs, pVal, true);
+        } else if (gs.startX - gs.currentX >= (gs.cardW || 300) * 2 / 3) {
+          gs.cardEl.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
+          setTimeout(function() { resetCardGesture(gs); }, 330);
+        } else if (gs.startX - gs.currentX >= 8 && gs.backdropEl) {
+          gs.backdropEl.classList.add('is-open');
+          gs.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          gs.cardEl.style.transform = 'translate3d(-177px, 0, 0)';
+          openSwipe = gs;
+        } else {
+          gs.cardEl.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1)';
+          gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
+          setTimeout(function() { resetCardGesture(gs); }, 330);
         }
-        gs.cardEl.style.transition = 'transform 0.36s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-        gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
-        setTimeout(function() {
-          if (gs.cardEl) {
-            gs.cardEl.classList.remove('gesture-manipulating');
-            removeBackdrops(gs.cardEl.parentElement);
-          }
-        }, 370);
       } else if (gs.mode === 'undecided' && gs.cardEl && gs.cardObj) {
         var now = Date.now();
         var cardId = gs.cardObj.id;
@@ -22266,6 +24037,18 @@ var MinestPortraitGestureManager = (function() {
       }
     };
 
+    var onActionClick = function(e) {
+      var button = e.target && e.target.closest ? e.target.closest('.gesture-swipe-action') : null;
+      if (!button || !openSwipe || !openSwipe.backdropEl || !openSwipe.backdropEl.contains(button)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      runSwipeAction(openSwipe, button.getAttribute('data-swipe-action'));
+    };
+
+    var onOutsideDown = function(e) {
+      if (openSwipe && !lane.contains(e.target)) closeOpenSwipe();
+    };
+
     lane.addEventListener('pointerdown', onDown, { capture: true });
     window.addEventListener('pointermove', onMove, { passive: false, capture: true });
     window.addEventListener('pointerup', onUp, { capture: true });
@@ -22277,6 +24060,8 @@ var MinestPortraitGestureManager = (function() {
     lane.addEventListener('touchcancel', onUp, { passive: false, capture: true });
 
     lane.addEventListener('dragstart', onDragStart, true);
+    lane.addEventListener('click', onActionClick, true);
+    document.addEventListener('pointerdown', onOutsideDown, true);
 
     return function() {
       if (lastTap.timer) clearTimeout(lastTap.timer);
@@ -22291,6 +24076,9 @@ var MinestPortraitGestureManager = (function() {
       lane.removeEventListener('touchcancel', onUp, { capture: true });
 
       lane.removeEventListener('dragstart', onDragStart, true);
+      lane.removeEventListener('click', onActionClick, true);
+      document.removeEventListener('pointerdown', onOutsideDown, true);
+      if (openSwipe) resetCardGesture(openSwipe);
       if (pullGhost) { pullGhost.remove(); pullGhost = null; }
     };
   };
@@ -23838,6 +25626,7 @@ var ke = function(props) {
   mobileGestureContextRef.current = {
     board: board,
     onToggleCardComplete: onToggleCardComplete,
+    onArchiveCard: onArchiveCard,
     onUpdateCardPriority: onUpdateCardPriority,
     openQuickEdit: openQuickEdit,
     setGapInsertSlot: setGapInsertSlot,
@@ -23911,6 +25700,10 @@ var ke = function(props) {
     if (!el || layoutMode !== 'swimlane') return;
 
     var handleScroll = function() {
+      if (!isLandscape) {
+        setOccludedCols({});
+        return;
+      }
       var pinnedEl = el.querySelector('.pinned-column');
       if (el.closest('.iphone-frame') || window.matchMedia('(pointer: coarse)').matches) return;
       if (!pinnedEl) {
@@ -23962,7 +25755,7 @@ var ke = function(props) {
       el.removeEventListener('scroll', handleSwimlaneScroll);
       if (scrollTimer) clearTimeout(scrollTimer);
     };
-  }, [board.columns, layoutMode]);
+  }, [board.columns, layoutMode, isLandscape]);
 
   // >>> MINEST DYNAMIC ISLAND: SYNC VERTICAL/PORTRAIT ACTIVE LIST <<<
   (0, _.useEffect)(function() {
@@ -24021,6 +25814,7 @@ var ke = function(props) {
   };
 
   var togglePinColumn = function(colId) {
+    if (!isLandscape) return; // Pinning list disabled in portrait mode
     if (onUpdateBoard) {
       var nextCols = (board.columns || []).map(function(c) {
         return c.id === colId ? Object.assign({}, c, { pinned: !c.pinned }) : c;
@@ -24326,58 +26120,601 @@ var ke = function(props) {
     setDropTarget(null);
   };
 
-  // Column Dragging Handlers
-  var handleColDragStart = function(e, colId, cIdx) {
+  // =========================================================================
+  // List-version Apple Wallet Engine & List Header Swipe Controller
+  // Fully replicating Card Wallet's spring physics, specular glass, and gestures
+  // =========================================================================
+  var listWalletActiveRef = (0, _.useRef)(false);
+  var columnSuppressClickUntilRef = (0, _.useRef)(0);
+  var listWalletSessionRef = (0, _.useRef)(null);
+
+  var fanOutListWallet = function() {
+    var s = listWalletSessionRef.current;
+    if (!s || s.phase === 'fan') return;
+    s.phase = 'fan';
+    s.lane.classList.add('list-wallet-fanning');
+    var now = performance.now(), anchor = s.lastIdx || 0;
+    s.items.forEach(function(it, i) {
+      it.prevTargetX = it.targetX;
+      it.prevTargetY = it.targetY;
+      it.targetX = 0;
+      it.targetY = 0;
+      it.delayUntil = now + Math.min(6, Math.abs(i - anchor)) * 16 * 0.8;
+    });
+    if (!s.frame) s.frame = requestAnimationFrame(s.tick);
+  };
+
+  var closeListWallet = function() {
+    var s = listWalletSessionRef.current;
+    if (!s) return;
+    listWalletSessionRef.current = null;
+    listWalletActiveRef.current = false;
+    window.__isWalletMode = false;
+    if (s.frame) cancelAnimationFrame(s.frame);
+    s.items.forEach(function(it) {
+      it.el.style.transform = '';
+      it.el.style.transition = '';
+      it.el.style.zIndex = '';
+      it.el.classList.remove('list-wallet-lifted');
+    });
+    s.lane.classList.remove('list-wallet-active', 'list-wallet-fanning');
+    s.lane.style.scrollBehavior = '';
+    document.body.classList.remove('is-safari-column-dragging');
+    window.__minestGestureSuppressClickUntil = Date.now() + 500;
+  };
+
+  var startListWallet = function(heldColEl, colId, cIdx, startX, startY) {
+    var lane = swimlaneRef.current;
+    if (!lane) return;
+
+    var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
+    if (allCols.length <= 1) return;
+
+    var hi = allCols.indexOf(heldColEl);
+    if (hi === -1) hi = cIdx;
+
+    listWalletActiveRef.current = true;
+    window.__isWalletMode = true;
+    if (window.__closeQuickEdit) { try { window.__closeQuickEdit(); } catch(err) {} }
+
+    lane.classList.add('list-wallet-active');
+    document.body.classList.add('is-safari-column-dragging');
+
+    if (navigator.vibrate) { try { navigator.vibrate([12, 35, 12]); } catch(err) {} }
+    if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+
+    var laneW = lane.clientWidth || 375;
+    var laneScroll = lane.scrollLeft;
+    var colW = heldColEl.offsetWidth || 300;
+    var stackX = laneScroll + Math.max(12, (laneW - colW) / 2);
+    var PEEK = 64; // px of each stacked list header left showing vertically
+    var stackY = Math.max(20, Math.min(80, (lane.clientHeight - 420) / 3));
+
+    var items = allCols.map(function(el) {
+      return {
+        el: el,
+        id: el.getAttribute('data-col-id') || el.dataset.colId,
+        x: 0, vx: 0,
+        y: 0, vy: 0,
+        s: 1, sv: 0,
+        rz: 0,
+        targetX: 0, targetY: 0,
+        prevTargetX: null, prevTargetY: null,
+        delayUntil: 0,
+        left: el.offsetLeft,
+        top: el.offsetTop,
+        w: el.offsetWidth,
+        h: el.offsetHeight
+      };
+    });
+
+    var heldItem = items[hi];
+    var slotGap = Math.min(heldItem.h, 220) - PEEK + 16;
+
+    var s = {
+      lane: lane,
+      items: items,
+      held: heldItem,
+      heldIdx: hi,
+      slot: hi,
+      fromSlot: hi,
+      slotGap: slotGap,
+      stackX: stackX,
+      stackY: stackY,
+      peek: PEEK,
+      lift: 0,
+      liftV: 0,
+      time: performance.now(),
+      dropping: null,
+      phase: 'stack',
+      sBase: 0.975,
+      heldX0: 0,
+      heldY0: 0,
+      fx: startX, fy: startY, fx0: startX, fy0: startY,
+      lastX: startX, lastY: startY, lastT: performance.now(),
+      scroll0: lane.scrollLeft,
+      vx: 0, vy: 0,
+      tilt: 0, give: 0, dropGive: 0, dropTilt: 0,
+      frame: 0
+    };
+
+    heldItem.el.classList.add('list-wallet-lifted');
+    heldItem.el.style.zIndex = '120';
+
+    items.forEach(function(it, idx) {
+      if (it !== heldItem) {
+        it.el.style.zIndex = String(idx + 1);
+      }
+    });
+
+    listWalletSessionRef.current = s;
+
+    // Transition from Horizontal columns to Vertical Wallet Stack with wave delay
+    var WAVE = 16;
+    var now = performance.now();
+    var others = items.filter(function(it) { return it !== heldItem; });
+    others.forEach(function(it, m) {
+      it.delayUntil = now + Math.min(6, Math.abs(items.indexOf(it) - hi)) * WAVE;
+      it.targetX = stackX - it.left;
+      var slotOffset = (m >= hi) ? slotGap : 0;
+      it.targetY = stackY + m * PEEK + slotOffset - it.top;
+    });
+    heldItem.targetX = stackX - heldItem.left;
+    heldItem.targetY = stackY + hi * PEEK - heldItem.top;
+
+    var T_STACK = 0.38, Z_STACK = 0.86;
+    var T_DROP = 0.34, Z_DROP = 0.8;
+    var T_FAN = 0.46, Z_FAN = 0.9;
+    var LIFT_SCALE = 1.04;
+
+    var spring2D = function(it, tgtX, tgtY, T, zeta, h) {
+      var w = 2 * Math.PI / T;
+      it.vx += (-w * w * (it.x - tgtX) - 2 * zeta * w * it.vx) * h;
+      it.x += it.vx * h;
+      it.vy += (-w * w * (it.y - tgtY) - 2 * zeta * w * it.vy) * h;
+      it.y += it.vy * h;
+    };
+
+    var scaleTo = function(it, target, h) {
+      var w = 2 * Math.PI / 0.22;
+      it.sv += (-w * w * (it.s - target) - 2 * 0.9 * w * it.sv) * h;
+      it.s += it.sv * h;
+    };
+
+    var applyTransform = function(it) {
+      var sc = it.s || 1;
+      it.el.style.transform = 'translate3d(' + (it.x || 0).toFixed(2) + 'px, ' + (it.y || 0).toFixed(2) + 'px, 0)' +
+        (it.rz ? ' rotate(' + it.rz.toFixed(2) + 'deg)' : '') +
+        (Math.abs(sc - 1) > 0.001 ? ' scale(' + sc.toFixed(4) + ')' : '');
+    };
+
+    var tick = function(tickNow) {
+      s.frame = 0;
+      var dt = Math.min(0.05, Math.max(0.001, (tickNow - (s.time || tickNow)) / 1000));
+      s.time = tickNow;
+      var n = Math.max(1, Math.ceil(dt * 240)), h = dt / n;
+      var held = s.held;
+
+      for (var i = 0; i < n; i++) {
+        var tSub = tickNow - dt * 1000 * (1 - (i + 1) / n);
+        s.items.forEach(function(it) {
+          if (it === held) return;
+          var live = tSub >= it.delayUntil;
+          if (!live && it.prevTargetX == null && it.prevTargetY == null) return;
+          var tgtX = live ? (s.phase === 'fan' ? 0 : it.targetX) : (it.prevTargetX || 0);
+          var tgtY = live ? (s.phase === 'fan' ? 0 : it.targetY) : (it.prevTargetY || 0);
+          if (it === s.dropping && s.phase !== 'fan') spring2D(it, tgtX, tgtY, T_DROP, Z_DROP, h);
+          else if (s.phase === 'fan' && live) spring2D(it, tgtX, tgtY, T_FAN, Z_FAN, h);
+          else spring2D(it, tgtX, tgtY, T_STACK, Z_STACK, h);
+          scaleTo(it, s.phase === 'fan' ? 1 : (it === s.dropping ? 1 : 0.985), h);
+        });
+        var liftTo = held ? 1 : 0;
+        var wl = 2 * Math.PI / (held ? 0.16 : 0.3);
+        s.liftV += (-wl * wl * (s.lift - liftTo) - 2 * 0.9 * wl * s.liftV) * h;
+        s.lift += s.liftV * h;
+      }
+
+      if (held) {
+        var heldTopFinger = held.top + s.heldY0 + (s.fy - s.fy0);
+        var rawY = heldTopFinger - held.top;
+        var pullY = (s.stackY + s.slot * s.peek - held.top) - rawY;
+        held.y = rawY + 5 * Math.tanh(pullY / 30) * Math.exp(-Math.abs(pullY) / 60);
+        held.vy = 0;
+        s.give = 12 * Math.tanh((s.fx - s.fx0) / 60);
+        held.x = (s.stackX - held.left) + s.give;
+        var tiltTo = Math.max(-1.8, Math.min(1.8, s.vy * 0.0012 + s.vx * 0.0006));
+        s.tilt += (tiltTo - s.tilt) * (1 - Math.exp(-dt / 0.14));
+        held.rz = s.tilt;
+        held.s = s.sBase + (LIFT_SCALE - s.sBase) * Math.max(0, Math.min(1.2, s.lift));
+      } else if (s.dropping) {
+        var d = s.dropping;
+        s.dropGive *= Math.exp(-dt / 0.14);
+        s.dropTilt *= Math.exp(-dt / 0.12);
+        d.x = (s.stackX - d.left) + s.dropGive;
+        d.rz = s.dropTilt;
+        d.s = 1 + (LIFT_SCALE - 1) * Math.max(0, Math.min(1.2, s.lift));
+        if (Math.abs(d.y - d.targetY) < 0.4 && Math.abs(d.vy) < 8 && s.lift < 0.02) {
+          d.rz = 0; d.el.style.zIndex = '';
+          s.dropping = null;
+        }
+      }
+
+      s.items.forEach(applyTransform);
+
+      var still = !held && !s.dropping && s.items.every(function(it) {
+        var tX = s.phase === 'fan' ? 0 : it.targetX;
+        var tY = s.phase === 'fan' ? 0 : it.targetY;
+        return Math.abs(it.x - tX) < 0.5 && Math.abs(it.y - tY) < 0.5 && Math.abs(it.vx) < 8 && Math.abs(it.vy) < 8 && Math.abs(it.s - (s.phase === 'fan' ? 1 : 0.985)) < 0.002;
+      });
+
+      if (still && s.phase === 'fan') {
+        closeListWallet();
+        return;
+      }
+
+      if (!still || held) {
+        s.frame = requestAnimationFrame(tick);
+      }
+    };
+
+    s.tick = tick;
+    s.frame = requestAnimationFrame(tick);
+  };
+
+  var trackListWalletMove = function(clientX, clientY) {
+    var s = listWalletSessionRef.current;
+    if (!s || !s.held) return;
+
+    var now = performance.now();
+    var dt = Math.max(1, now - s.lastT);
+    s.vx = s.vx * 0.5 + ((clientX - s.lastX) / dt * 1000) * 0.5;
+    s.vy = s.vy * 0.5 + ((clientY - s.lastY) / dt * 1000) * 0.5;
+    s.lastX = clientX;
+    s.lastY = clientY;
+    s.lastT = now;
+    s.fx = clientX;
+    s.fy = clientY;
+
+    var PEEK = s.peek;
+    var list = s.items.filter(function(it) { return it !== s.held; });
+    var n = list.length;
+    var heldTopFinger = s.held.top + s.heldY0 + (clientY - s.fy0);
+    var refY = heldTopFinger + PEEK / 2;
+    var slot = s.slot;
+    var band = 12;
+
+    while (slot < n && refY > s.stackY + slot * PEEK + PEEK / 2 + s.slotGap * 0.5 + band) slot++;
+    while (slot > 0 && refY < s.stackY + (slot - 1) * PEEK + PEEK / 2 + s.slotGap * 0.5 - band) slot--;
+
+    if (slot !== s.slot) {
+      s.slot = slot;
+      if (navigator.vibrate) try { navigator.vibrate(6); } catch (err) {}
+      list.forEach(function(it, m) {
+        var slotOffset = (m >= s.slot) ? s.slotGap : 0;
+        var tgtY = s.stackY + m * PEEK + slotOffset - it.top;
+        if (Math.abs(tgtY - it.targetY) > 0.01) {
+          it.prevTargetY = it.targetY;
+          it.targetY = tgtY;
+          var near = Math.min(Math.abs(m - s.slot), Math.abs(m - (s.slot - 1)));
+          it.delayUntil = Math.max(it.delayUntil, now + Math.min(4, near) * 16 * 0.7);
+        }
+      });
+    }
+
+    if (!s.frame) s.frame = requestAnimationFrame(s.tick);
+  };
+
+  var dropListWallet = function(cancel) {
+    var s = listWalletSessionRef.current;
+    if (!s || !s.held) return;
+
+    columnSuppressClickUntilRef.current = Date.now() + 500;
+    window.__minestGestureSuppressClickUntil = Date.now() + 500;
+
+    var it = s.held;
+    if (cancel) s.slot = s.fromSlot;
+    var list = s.items.filter(function(q) { return q !== it; });
+    var moved = s.slot !== s.fromSlot;
+    s.held = null;
+    s.dropping = it;
+    s.lastIdx = s.slot;
+
+    it.vy = Math.max(-1800, Math.min(1800, s.vy * 0.6));
+    it.el.classList.remove('list-wallet-lifted');
+    s.dropGive = s.give;
+    s.dropTilt = s.tilt;
+
+    var PEEK = s.peek;
+    var order = list.slice();
+    order.splice(s.slot, 0, it);
+    order.forEach(function(q, i) {
+      q.targetX = s.stackX - q.left;
+      q.targetY = s.stackY + i * PEEK - q.top;
+      q.el.style.zIndex = String(i + 1);
+    });
+
+    if (SoundEngine && SoundEngine.play) SoundEngine.play('cardDrop');
+    if (navigator.vibrate) try { navigator.vibrate([10, 30, 10]); } catch(err) {}
+
+    if (moved && onReorderColumns) {
+      var fromColId = it.id;
+      var fromRealIdx = (board.columns || []).findIndex(function(c) { return c.id === fromColId; });
+      var toRealIdx = s.slot;
+      if (fromRealIdx !== -1 && toRealIdx !== -1 && fromRealIdx !== toRealIdx) {
+        onReorderColumns(fromRealIdx, toRealIdx);
+      }
+    }
+
+    // Automatically transition from vertical stack back to horizontal swimlane
+    setTimeout(function() {
+      if (listWalletSessionRef.current) {
+        fanOutListWallet();
+      }
+    }, 240);
+
+    if (!s.frame) s.frame = requestAnimationFrame(s.tick);
+  };
+
+  // ---- List Header Gesture Controller (Hold -> Wallet, Swipe -> Switch, Tap -> Rename) ----
+  var handleColHeaderPointerDown = function(e, colId, cIdx) {
+    if (e.button !== 0) return;
     if (e.target && e.target.closest) {
-      if (e.target.closest('.liquid-glass-card') ||
-          e.target.closest('button') ||
-          e.target.closest('input') ||
-          e.target.closest('textarea')) {
+      if (e.target.closest('button, a, input, textarea, select, [contenteditable], .column-menu-btn, .column-menu-popover')) {
         return;
       }
     }
-    e.stopPropagation();
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', colId);
-    var colEl = (e.currentTarget && e.currentTarget.closest) ? (e.currentTarget.closest('.kanban-column-wrapper') || e.currentTarget) : null;
-    if (colEl && e.dataTransfer.setDragImage) {
-      var rect = colEl.getBoundingClientRect();
-      var offsetX = Math.max(10, Math.min(e.clientX - rect.left, rect.width - 10));
-      var offsetY = Math.max(10, Math.min(e.clientY - rect.top, 50));
-      e.dataTransfer.setDragImage(colEl, offsetX, offsetY);
-    }
-    setDragCol({ colId: colId, sourceIndex: cIdx });
-  };
 
-  var handleColDragOverColumn = function(e, colId, cIdx) {
-    if (!dragColRef.current) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
-    if (dropColIndexRef.current !== cIdx) {
-      setDropColIndex(cIdx);
-    }
-  };
+    var lane = swimlaneRef.current;
+    if (!lane) return;
 
-  var handleColDrop = function(e, targetIdx) {
-    e.preventDefault();
-    e.stopPropagation();
-    var liveDragCol = dragColRef.current;
-    var toIdx = (typeof targetIdx === 'number') ? targetIdx : dropColIndexRef.current;
-    if (liveDragCol && toIdx !== null && toIdx !== liveDragCol.sourceIndex) {
-      if (onReorderColumns) {
-        onReorderColumns(liveDragCol.sourceIndex, toIdx);
-        SoundEngine.play('slide');
+    var colEl = (e.currentTarget && e.currentTarget.closest) ? e.currentTarget.closest('.kanban-column-wrapper') : null;
+    if (!colEl) return;
+
+    var currentHeader = e.currentTarget;
+    var pid = e.pointerId;
+    if (currentHeader && currentHeader.setPointerCapture && pid !== undefined) {
+      try { currentHeader.setPointerCapture(pid); } catch (err) {}
+    }
+
+    var startX = e.clientX;
+    var startY = e.clientY;
+    var startTime = performance.now();
+    var lastX = startX;
+    var lastY = startY;
+    var lastT = startTime;
+    var vx = 0;
+    var isSwiping = false;
+    var isWallet = false;
+    var startScrollLeft = lane.scrollLeft;
+
+    // Press feedback: list header gently sinks under finger while hold builds up
+    colEl.style.transition = 'transform 300ms cubic-bezier(.3,.0,.2,1)';
+    colEl.style.transform = 'scale(0.975)';
+
+    var pressOut = function(instant) {
+      colEl.style.transition = instant ? 'none' : 'transform 260ms cubic-bezier(.2,1.3,.4,1)';
+      colEl.style.transform = '';
+      if (!instant) {
+        setTimeout(function() {
+          if (!listWalletActiveRef.current) colEl.style.transition = '';
+        }, 280);
       }
-    }
-    setDragCol(null);
-    setDropColIndex(null);
+    };
+
+    var holdTimer = setTimeout(function() {
+      holdTimer = null;
+      if (isSwiping) return;
+      isWallet = true;
+      pressOut(true);
+      startListWallet(colEl, colId, cIdx, startX, startY);
+    }, 300);
+
+    var onPointerMove = function(ev) {
+      if (pid !== undefined && ev.pointerId !== undefined && ev.pointerId !== pid) return;
+      var cx = ev.clientX;
+      var cy = ev.clientY;
+      var dx = cx - startX;
+      var dy = cy - startY;
+      var now = performance.now();
+      var dt = Math.max(1, now - lastT);
+      vx = (cx - lastX) / dt;
+      lastX = cx;
+      lastY = cy;
+      lastT = now;
+
+      if (isWallet) {
+        if (ev.cancelable) ev.preventDefault();
+        trackListWalletMove(cx, cy);
+        return;
+      }
+
+      if (!isSwiping) {
+        var dist = Math.hypot(dx, dy);
+        // Micro-tremors under 12px DO NOT cancel hold timer
+        if (dist > 12) {
+          if (holdTimer) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+          }
+          if (Math.abs(dx) >= Math.abs(dy) * 0.6) {
+            isSwiping = true;
+            pressOut(true);
+            lane.classList.add('is-gesture-scrolling');
+          } else {
+            pressOut(false);
+            cleanup();
+            return;
+          }
+        }
+      }
+
+      if (isSwiping) {
+        if (ev.cancelable) ev.preventDefault();
+        ev.stopPropagation();
+        lane.scrollLeft = startScrollLeft - dx;
+      }
+    };
+
+    var cleanup = function() {
+      if (currentHeader && currentHeader.releasePointerCapture && pid !== undefined) {
+        try { currentHeader.releasePointerCapture(pid); } catch (err) {}
+      }
+      window.removeEventListener('pointermove', onPointerMove, { capture: true });
+      window.removeEventListener('pointerup', onPointerUp, { capture: true });
+      window.removeEventListener('pointercancel', onPointerCancel, { capture: true });
+    };
+
+    var onPointerUp = function(ev) {
+      cleanup();
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+
+      if (isWallet) {
+        dropListWallet();
+        return;
+      }
+
+      pressOut(false);
+
+      if (isSwiping) {
+        columnSuppressClickUntilRef.current = Date.now() + 350;
+
+        var dx = ev.clientX - startX;
+        var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
+        var totalCols = allCols.length;
+        var foundIdx = allCols.indexOf(colEl);
+        if (foundIdx !== -1) cIdx = foundIdx;
+
+        var targetIdx = cIdx;
+        if (dx < -28 || vx < -0.2) {
+          targetIdx = Math.min(totalCols - 1, cIdx + 1);
+        } else if (dx > 28 || vx > 0.2) {
+          targetIdx = Math.max(0, cIdx - 1);
+        }
+
+        var padLeft = parseInt(window.getComputedStyle(lane).paddingLeft || '16', 10);
+        var targetLeft = allCols[targetIdx] ? Math.max(0, allCols[targetIdx].offsetLeft - padLeft) : 0;
+        lane.scrollTo({ left: targetLeft, behavior: 'smooth' });
+        setTimeout(function() { lane.classList.remove('is-gesture-scrolling'); }, 420);
+
+        if (targetIdx !== cIdx) {
+          if (SoundEngine && SoundEngine.play) SoundEngine.play('slide');
+          if (navigator.vibrate) try { navigator.vibrate(8); } catch(err) {}
+        }
+        return;
+      }
+    };
+
+    var onPointerCancel = function() {
+      cleanup();
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      pressOut(false);
+      if (isWallet) {
+        dropListWallet(true);
+      } else if (isSwiping) {
+        lane.classList.remove('is-gesture-scrolling');
+      }
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { capture: true, passive: false });
+    window.addEventListener('pointerup', onPointerUp, { capture: true, passive: false });
+    window.addEventListener('pointercancel', onPointerCancel, { capture: true, passive: false });
   };
 
-  var handleColDragEnd = function() {
-    setDragCol(null);
-    setDropColIndex(null);
+  // Blank area pointer drag for smooth horizontal scroll in board swimlane
+  var handleBlankAreaPointerDown = function(e) {
+    if (layoutMode !== 'swimlane') return;
+    if (e.target && e.target.closest && e.target.closest('.kanban-column-wrapper')) return;
+    if (e.button !== 0) return;
+    var lane = swimlaneRef.current;
+    if (!lane) return;
+
+    var pointerId = e.pointerId;
+    var startX = e.clientX;
+    var startY = e.clientY;
+    var startScrollLeft = lane.scrollLeft;
+    var isDragging = false;
+    var lastX = startX;
+    var lastT = Date.now();
+    var vx = 0;
+
+    var onPointerMove = function(ev) {
+      if (pointerId !== undefined && ev.pointerId !== pointerId) return;
+      var dx = ev.clientX - startX;
+      var dy = ev.clientY - startY;
+      var now = Date.now();
+      var dt = Math.max(1, now - lastT);
+      vx = (ev.clientX - lastX) / dt;
+      lastX = ev.clientX;
+      lastT = now;
+
+      if (!isDragging) {
+        if (Math.abs(dy) > Math.abs(dx) + 8) { onPointerCancel(); return; }
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+          isDragging = true;
+          lane.classList.add('is-gesture-scrolling');
+          if (lane.setPointerCapture && pointerId !== undefined) {
+            try { lane.setPointerCapture(pointerId); } catch (err) {}
+          }
+        }
+      }
+      if (isDragging) {
+        if (ev.cancelable) ev.preventDefault();
+        ev.stopPropagation();
+        lane.scrollLeft = startScrollLeft - dx;
+      }
+    };
+
+    var cleanupBlankDrag = function(keepSnapDisabled) {
+      window.removeEventListener('pointermove', onPointerMove, { capture: true });
+      window.removeEventListener('pointerup', onPointerUp, { capture: true });
+      window.removeEventListener('pointercancel', onPointerCancel, { capture: true });
+      if (lane.releasePointerCapture && pointerId !== undefined) {
+        try { lane.releasePointerCapture(pointerId); } catch (err) {}
+      }
+      if (!keepSnapDisabled) lane.classList.remove('is-gesture-scrolling');
+    };
+
+    var onPointerUp = function(ev) {
+      if (pointerId !== undefined && ev.pointerId !== pointerId) return;
+      cleanupBlankDrag(isDragging);
+
+      if (isDragging) {
+        columnSuppressClickUntilRef.current = Date.now() + 250;
+        var dx = ev.clientX - startX;
+        var cols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
+        var padLeft = parseInt(window.getComputedStyle(lane).paddingLeft || '16', 10);
+        var startIdx = 0, nearest = Infinity;
+        cols.forEach(function(col, idx) {
+          var distance = Math.abs(Math.max(0, col.offsetLeft - padLeft) - startScrollLeft);
+          if (distance < nearest) { nearest = distance; startIdx = idx; }
+        });
+        var direction = dx < -28 || vx < -0.2 ? 1 : (dx > 28 || vx > 0.2 ? -1 : 0);
+        var targetIdx = Math.max(0, Math.min(cols.length - 1, startIdx + direction));
+        if (cols[targetIdx]) lane.scrollTo({ left: Math.max(0, cols[targetIdx].offsetLeft - padLeft), behavior: 'smooth' });
+        setTimeout(function() { lane.classList.remove('is-gesture-scrolling'); }, 420);
+      }
+    };
+
+    var onPointerCancel = function() {
+      cleanupBlankDrag();
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { capture: true, passive: false });
+    window.addEventListener('pointerup', onPointerUp, { capture: true, passive: false });
+    window.addEventListener('pointercancel', onPointerCancel, { capture: true, passive: false });
   };
+
+  // Backwards-compatible Drag-and-Drop fallbacks
+  var handleColDragStart = function() {};
+  var handleColDragOverColumn = function() {};
+  var handleColDrop = function() {};
+  var handleColDragEnd = function() {};
 
   var handleQuickAddSubmit = function(colId) {
     if (!quickAddText.trim()) return;
@@ -24446,13 +26783,14 @@ var ke = function(props) {
         ref: swimlaneRef,
         onDragOver: function(e) { e.preventDefault(); },
         onDrop: handleColDrop,
-        onClick: function() { if (justClosedQuickEditRef.current) return; collapseAllStacks(); if (quickMenuCardId) setQuickMenuCardId(null); if (menuColId) setMenuColId(null); if (editingColId) setEditingColId(null); },
+        onPointerDown: handleBlankAreaPointerDown,
+        onClick: function() { if (listWalletSessionRef.current) { fanOutListWallet(); return; } if (justClosedQuickEditRef.current || (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current)) return; collapseAllStacks(); if (quickMenuCardId) setQuickMenuCardId(null); if (menuColId) setMenuColId(null); if (editingColId) setEditingColId(null); },
         'data-board-id': board.id,
         className: "fb-board-stage " + (layoutMode === 'swimlane' ? "board-swimlane-scroll flex items-start gap-5 pb-2 overflow-x-auto w-full min-w-0 pr-16 select-none flex-1 min-h-0 snap-x snap-proximity" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 pb-4 flex-1 overflow-y-auto min-h-0") + (boardCardMode === 'smash' ? " board-smash-mode" : "") + (boardCardMode === 'liq' ? " board-liquid-mode" : ""),
         children: [
           visibleColumns.map(function(col, cIdx) {
-            var isPinned = !!col.pinned;
-            var isOccluded = !!occludedCols[col.id];
+            var isPinned = isLandscape && !!col.pinned;
+            var isOccluded = isLandscape && !!occludedCols[col.id];
 
             // Filter & sort cards inside column
             var filteredCards = (col.cards || []).filter(function(card) {
@@ -24637,12 +26975,9 @@ var ke = function(props) {
             return (0, P.jsxs)('div', {
               key: col.id,
               'data-col-id': col.id,
-              draggable: false,
-              onDragStart: function(e) { e.preventDefault(); return false; },
-              onDragEnd: handleColDragEnd,
               onDragOver: function(e) { if (!portraitLock) handleColDragOverColumn(e, col.id, cIdx); },
               onDrop: function(e) { if (!portraitLock) handleColDrop(e, cIdx); },
-                            onPaste: function(e) {
+              onPaste: function(e) {
                 var tag = e.target && e.target.tagName;
                 if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || (e.target && e.target.isContentEditable)) {
                   return;
@@ -24654,7 +26989,6 @@ var ke = function(props) {
                   SoundEngine.play('add');
                 }
               },
-              'data-col-id': col.id,
               className: "kanban-column-wrapper snap-start w-72 md:w-80 shrink-0 rounded-3xl p-4 flex flex-col transition-all duration-200 border backdrop-blur-2xl liquid-glass-list max-h-[calc(100vh-100px)] " +
                 (isPinned ? "pinned-column " : "") +
                 (isOccluded ? "occluded-by-pin " : "") +
@@ -24666,16 +27000,11 @@ var ke = function(props) {
                 backgroundColor: col.color ? (isDark ? col.color + '22' : col.color + '18') : (isDark ? "rgba(18, 26, 36, 0.65)" : "rgba(255, 255, 255, 0.50)")
               },
               children: [
-                // Column Header (Draggable for list reordering, inline title rename, sleek pin SVG, and pure count)
+                // Column Header (Hold for List Wallet, Swipe to switch lists, Click to rename)
                 (0, P.jsxs)('div', {
-                  draggable: FB_NATIVE_DND && !portraitLock && !editingColId && !dragItem,
-                  onDragStart: function(e) {
-                    if (!FB_NATIVE_DND || portraitLock || editingColId || dragItem) { e.preventDefault(); return; }
-                    handleColDragStart(e, col.id, cIdx);
-                  },
-                  onDragEnd: handleColDragEnd,
-                  className: "kanban-column-header relative flex items-center justify-between pb-3 mb-1 cursor-grab active:cursor-grabbing select-none shrink-0 group/colheader",
-                  title: "Drag to reorder list",
+                  onPointerDown: function(e) { handleColHeaderPointerDown(e, col.id, cIdx); },
+                  className: "kanban-column-header relative flex items-center justify-between pb-3 mb-1 cursor-grab active:cursor-grabbing select-none shrink-0 group/colheader safari-column-header-grab",
+                  title: "Swipe horizontally to switch lists, hold to activate List Wallet",
                   children: [
                     (0, P.jsxs)('div', {
                       className: "flex items-center gap-1.5 min-w-0 pr-2 flex-1 group/coltitle",
@@ -24710,6 +27039,7 @@ var ke = function(props) {
                             className: "flex items-center gap-1.5 min-w-0 truncate cursor-pointer",
                             onClick: function(e) {
                               if (justClosedQuickEditRef.current) return;
+                              if (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current) return;
                               e.stopPropagation();
                               setEditingColId(col.id);
                               setEditingColTitle(col.title);
@@ -24723,6 +27053,7 @@ var ke = function(props) {
                               (0, P.jsx)('button', {
                                 type: "button",
                                 onClick: function(e) {
+                                  if (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current) return;
                                   e.stopPropagation();
                                   setEditingColId(col.id);
                                   setEditingColTitle(col.title);
@@ -24797,13 +27128,13 @@ var ke = function(props) {
                       onClick: function(e) { e.stopPropagation(); },
                       className: "column-menu-popover absolute top-10 right-0 z-50 w-[268px] rounded-2xl p-2.5 shadow-2xl border backdrop-blur-2xl animate-fadeIn " + (isDark ? "bg-[#1a2430] border-white/20 text-white" : "bg-white border-slate-200 text-slate-800"),
                       children: [
-                        // 18.0: everyday actions first (Pin on top)
-                        (0, P.jsxs)('button', {
+                        // 18.0: everyday actions first (Pin on top) - only in landscape mode
+                        isLandscape ? (0, P.jsxs)('button', {
                           type: "button",
                           onClick: function() { setMenuColId(null); togglePinColumn(col.id); },
                           className: "w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl hover:bg-emerald-500/20 hover:text-emerald-400 text-left transition-colors",
                           children: [(0, P.jsx)(IconPin, { className: "w-3.5 h-3.5" }), (0, P.jsx)('span', { children: isPinned ? "Unpin List" : "Pin List to Left" })]
-                        }),
+                        }) : null,
                         (0, P.jsxs)('button', {
                           type: "button",
                           onClick: function() { setMenuColId(null); onOpenCardModal(col.id); },
@@ -29199,13 +31530,19 @@ var Be = function() {
   var setIsStatsOpen = statsOpenState[1];
 
   // 3-Ring Activity & Badges Center (App使用时长 / 打勾频率与进步 / 每日目标完成度)
-  var badgesModalState = (0, _.useState)(false);
+  var badgesModalState = (0, _.useState)(function() {
+    try { return !!new URLSearchParams(window.location.search).get('awards'); } catch(e) { return false; }
+  });
   var isBadgesModalOpen = badgesModalState[0];
   var setIsBadgesModalOpen = badgesModalState[1];
 
+  var minestLocalDay = function() {
+    var now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  };
   var activityRingsState = (0, _.useState)(function() {
     try {
-      var today = new Date().toISOString().slice(0, 10);
+      var today = minestLocalDay();
       var raw = localStorage.getItem("minest_activity_rings_v1");
       if (raw) {
         var parsed = JSON.parse(raw);
@@ -29213,16 +31550,72 @@ var Be = function() {
       }
     } catch(e) {}
     return {
-      focusMinutes: 18,
+      focusMinutes: 0,
       targetMinutes: 30,
-      checkCount: 6,
+      checkCount: 0,
       targetChecks: 10,
-      goalPercent: 65,
-      date: new Date().toISOString().slice(0, 10)
+      goalPercent: 0,
+      date: minestLocalDay()
     };
   });
   var activityRings = activityRingsState[0];
   var setActivityRings = activityRingsState[1];
+  var qualifiedDaysState = (0, _.useState)(function() {
+    try {
+      var storedDays = JSON.parse(localStorage.getItem('minest_qualified_ring_days_v1') || '[]');
+      return Array.isArray(storedDays) ? storedDays.filter(function(day) { return typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day); }) : [];
+    } catch(e) { return []; }
+  });
+  var qualifiedDays = qualifiedDaysState[0];
+  var setQualifiedDays = qualifiedDaysState[1];
+  var celebrateRingsState = (0, _.useState)(false);
+  var celebrateRings = celebrateRingsState[0];
+  var setCelebrateRings = celebrateRingsState[1];
+  var strikeCelebrationState = (0, _.useState)(null);
+  var strikeCelebrationDays = strikeCelebrationState[0];
+  var setStrikeCelebrationDays = strikeCelebrationState[1];
+  (0, _.useEffect)(function() {
+    var today = minestLocalDay();
+    if (activityRings.date !== today) return;
+    var anyClosed = (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) ||
+      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) || (activityRings.goalPercent || 0) >= 100;
+    var allClosed = (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) &&
+      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) && (activityRings.goalPercent || 0) >= 100;
+    if (anyClosed && qualifiedDays.indexOf(today) < 0) {
+      var nextDays = qualifiedDays.concat(today).sort();
+      setQualifiedDays(nextDays);
+      try { localStorage.setItem('minest_qualified_ring_days_v1', JSON.stringify(nextDays)); } catch(e) {}
+      if ([3, 7, 14, 30, 40, 50, 60, 80, 90, 100].indexOf(nextDays.length) >= 0) {
+        setStrikeCelebrationDays(nextDays.length);
+        setCelebrateRings(false);
+        if (allClosed) {
+          try { localStorage.setItem('minest_rings_celebrated_day_v1', today); } catch(e) {}
+        }
+        setIsBadgesModalOpen(true);
+      }
+    }
+    if (allClosed && !strikeCelebrationDays && !(anyClosed && qualifiedDays.indexOf(today) < 0 && [3, 7, 14, 30, 40, 50, 60, 80, 90, 100].indexOf(qualifiedDays.length + 1) >= 0)) {
+      try {
+        if (localStorage.getItem('minest_rings_celebrated_day_v1') !== today) {
+          localStorage.setItem('minest_rings_celebrated_day_v1', today);
+          setCelebrateRings(true);
+          setIsBadgesModalOpen(true);
+        }
+      } catch(e) {}
+    }
+  }, [activityRings, qualifiedDays, strikeCelebrationDays]);
+  (0, _.useEffect)(function() {
+    var timer = setInterval(function() {
+      var today = minestLocalDay();
+      setActivityRings(function(prev) {
+        if (prev.date === today) return prev;
+        var next = { focusMinutes: 0, targetMinutes: prev.targetMinutes || 30, checkCount: 0, targetChecks: prev.targetChecks || 10, goalPercent: 0, date: today };
+        try { localStorage.setItem('minest_activity_rings_v1', JSON.stringify(next)); } catch(e) {}
+        return next;
+      });
+    }, 30000);
+    return function() { clearInterval(timer); };
+  }, []);
 
   // Cloud Sync
   var fbUserState = (0, _.useState)(null);
@@ -29336,18 +31729,34 @@ var Be = function() {
         } else if (ev === 'watchListSelected' && pl.listId) {
           setSelectedColFilter(pl.listId);
         } else if (ev === 'openPhysicalCard') {
-          setPhysicalCard({ isOpen: true, initialIdx: pl.initialIdx || 0, cards: pl.cards || [] });
+          if (window.__HeadsUpController) {
+            window.__HeadsUpController.enter(pl.initialIdx || 0);
+          } else {
+            setPhysicalCard({ isOpen: true, initialIdx: pl.initialIdx || 0, cards: pl.cards || [] });
+          }
         } else if (ev === 'closePhysicalCard') {
-          setPhysicalCard({ isOpen: false, initialIdx: 0, cards: [] });
+          if (window.__HeadsUpController && window.__HeadsUpController.isActive()) {
+            window.__HeadsUpController.exit();
+          } else {
+            setPhysicalCard({ isOpen: false, initialIdx: 0, cards: [] });
+          }
         }
       }
     };
     window.addEventListener('minestNativeEvent', handleNativeEvent);
 
     window.openPhysicalCardMode = function(idx, cardList) {
+      if (window.__HeadsUpController) {
+        window.__HeadsUpController.enter(idx || 0);
+        return;
+      }
       setPhysicalCard({ isOpen: true, initialIdx: idx || 0, cards: cardList || [] });
     };
     window.closePhysicalCardMode = function() {
+      if (window.__HeadsUpController && window.__HeadsUpController.isActive()) {
+        window.__HeadsUpController.exit();
+        return;
+      }
       setPhysicalCard({ isOpen: false, initialIdx: 0, cards: [] });
     };
 
@@ -29430,7 +31839,7 @@ var Be = function() {
       var completed = allCards.filter(function(c) {
         return !!(c.complete || c.done || c.isDone || c.mastery === 3);
       }).length;
-      var calculatedGoal = total > 0 ? Math.round((completed / total) * 100) : 100;
+      var calculatedGoal = total > 0 ? Math.round((completed / total) * 100) : 0;
       var nextChecks = (prev.checkCount || 0) + (extraChecks || 0);
 
       var next = Object.assign({}, prev, {
@@ -30553,7 +32962,14 @@ var Be = function() {
         onToggleZenMode: function() { setIsZenMode(!isZenMode); },
         isStatsOpen: isStatsOpen,
         onToggleStats: function() { setIsStatsOpen(!isStatsOpen); },
-        onOpenBadgesModal: function() { setIsBadgesModalOpen(true); },
+        onOpenBadgesModal: function() {
+          var fullyClosed = activityRings.date === minestLocalDay() &&
+            (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) &&
+            (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) &&
+            (activityRings.goalPercent || 0) >= 100;
+          setCelebrateRings(fullyClosed);
+          setIsBadgesModalOpen(true);
+        },
         ringsState: activityRings,
         canUndo: canUndo,
         canRedo: canRedo,
@@ -30573,7 +32989,20 @@ var Be = function() {
       isBadgesModalOpen ? (0, P.jsx)(ActivityBadgesModal, {
         themeMode: themeMode,
         ringsState: activityRings,
-        onClose: function() { setIsBadgesModalOpen(false); }
+        strikeDays: qualifiedDays.length,
+        qualifiedDates: qualifiedDays,
+        celebrateRings: celebrateRings,
+        strikeCelebrationDays: strikeCelebrationDays,
+        onDismissStrikeCelebration: function() { setStrikeCelebrationDays(null); },
+        onCelebrationExit: function() { setCelebrateRings(false); },
+        onUpdateRings: function(next) {
+          setActivityRings(next);
+          try { localStorage.setItem("minest_activity_rings_v1", JSON.stringify(next)); } catch(e) {}
+          if (window.MinestNative) {
+            try { window.MinestNative.send('updateActivityRings', next); } catch(e) {}
+          }
+        },
+        onClose: function() { setIsBadgesModalOpen(false); setStrikeCelebrationDays(null); }
       }) : null,
 
       // Main View Router: Coverflow / Kanban / Flashcard Drill

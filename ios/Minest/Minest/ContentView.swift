@@ -30,7 +30,7 @@ struct ContentView: View {
     
     // Choose between local bundled HTML or remote web app
     private var targetURL: URL {
-        if let bundlePath = Bundle.main.url(forResource: "iphone12.8", withExtension: "html") ?? Bundle.main.url(forResource: "iphone12.8.html", withExtension: nil) {
+        if let bundlePath = Bundle.main.url(forResource: "iphone13.1", withExtension: "html") ?? Bundle.main.url(forResource: "iphone", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.1.html", withExtension: nil) {
             print("📱 [ContentView] Found local bundle URL: \(bundlePath)")
             return bundlePath
         }
@@ -38,7 +38,7 @@ struct ContentView: View {
             return indexPath
         }
         print("⚠️ [ContentView] No local bundle found, falling back to remote URL")
-        return URL(string: "https://minest-app.vercel.app")!
+        return URL(string: "https://minest-app.vercel.app/iphone.html")!
     }
     
     var body: some View {
@@ -333,7 +333,7 @@ struct ContentView: View {
             }
         } else if cmd == "load_bundle" {
             DispatchQueue.main.async {
-                if let bundleURL = Bundle.main.url(forResource: "iphone12.8", withExtension: "html") ?? Bundle.main.url(forResource: "iphone12.8.html", withExtension: nil) {
+                if let bundleURL = Bundle.main.url(forResource: "iphone13.1", withExtension: "html") ?? Bundle.main.url(forResource: "iphone", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.1.html", withExtension: nil) {
                     print("⚡ [Minest] Loading local bundle URL directly: \(bundleURL)")
                     self.bridge.webView?.loadFileURL(bundleURL, allowingReadAccessTo: bundleURL.deletingLastPathComponent())
                 }

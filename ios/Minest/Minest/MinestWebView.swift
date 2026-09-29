@@ -49,7 +49,7 @@ public struct MinestWebView: UIViewRepresentable {
         let scriptSource = """
         window.__isMinestNative = true;
         window.__isFocusboardNative = true;
-        window.__minestAppVersion = '12.8';
+        window.__minestAppVersion = '13.1';
         
         // Disable viewport pinch zoom for native app feel
         document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
@@ -376,10 +376,10 @@ public struct MinestWebView: UIViewRepresentable {
         }
         
         private func fallback(in webView: WKWebView) {
-            if let bundlePath = Bundle.main.url(forResource: "iphone12.8", withExtension: "html") ?? Bundle.main.url(forResource: "iphone12.8.html", withExtension: nil) {
+            if let bundlePath = Bundle.main.url(forResource: "iphone13.1", withExtension: "html") ?? Bundle.main.url(forResource: "iphone", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.1.html", withExtension: nil) {
                 print("🔄 [MinestWebView] Falling back to local bundle: \(bundlePath)")
                 webView.loadFileURL(bundlePath, allowingReadAccessTo: bundlePath.deletingLastPathComponent())
-            } else if let fallbackURL = URL(string: "https://minest-app.vercel.app") {
+            } else if let fallbackURL = URL(string: "https://minest-app.vercel.app/iphone.html") {
                 print("🔄 [MinestWebView] Falling back to remote production URL: \(fallbackURL)")
                 webView.load(URLRequest(url: fallbackURL))
             }
