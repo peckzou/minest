@@ -15853,6 +15853,7 @@ var ActivityBadgesModal = function(props) {
   // Vendored from github.com/peckzou/badge so Awards keeps working offline,
   // inside WKWebView, and after AI Studio preview URLs expire.
   var badgeViewerUrl = "./badge-library/index.html?embed=true&v=751f06f";
+  var badgeChallengeUrl = './badge-challenge/index.html?embed=1&v=challenge-wall-v2';
   var badgeSourceState = (0, _.useState)(function() {
     return 'local';
   });
@@ -15862,12 +15863,13 @@ var ActivityBadgesModal = function(props) {
   var awardPane = awardPaneState[0];
   var setAwardPane = awardPaneState[1];
   var animationTabs = ['rings', 'unified', 'summon', 'pending', 'reveal', 'inspector', 'badgewall', 'watchos4'];
-  var animationLabels = { rings: 'Rings 4.0', unified: '3-in-1 Ceremony', summon: 'Summon', pending: 'Pending', reveal: 'Hex Reveal', inspector: '3D Inspect', badgewall: 'Badge Wall', watchos4: 'Watch' };
+  var animationLabels = { rings: 'Rings 4.0', unified: '3-in-1 Ceremony', summon: 'Summon', pending: 'Pending', reveal: 'Hex Reveal', inspector: '3D Inspect', badgewall: 'Return Wall', watchos4: 'Watch' };
   var animationUrl = './badge-animations/index.html?embed=1&tab=' + encodeURIComponent(awardPane) +
     '&focus=' + encodeURIComponent(Math.min(200, Math.round(focusMinutes / targetMinutes * 100))) +
     '&checks=' + encodeURIComponent(Math.min(200, Math.round(checkCount / targetChecks * 100))) +
     '&goal=' + encodeURIComponent(goalPercent) + '&v=legacy-mechanical-unlock';
   var badgeFrameRef = (0, _.useRef)(null);
+  var challengeFrameRef = (0, _.useRef)(null);
   var unlockRulesState = (0, _.useState)(function() {
     try {
       var saved = JSON.parse(localStorage.getItem('minest_badge_unlock_rules_v1') || 'null');
@@ -15897,19 +15899,35 @@ var ActivityBadgesModal = function(props) {
       rules: unlockRules
     }, '*');
   };
+  var sendChallengeProgress = function() {
+    var frame = challengeFrameRef.current;
+    if (!frame || !frame.contentWindow) return;
+    frame.contentWindow.postMessage({
+      type: 'minest:challenge-progress',
+      progress: {
+        focusMinutes: focusMinutes,
+        checkCount: checkCount,
+        goalPercent: goalPercent,
+        targetMinutes: targetMinutes,
+        targetChecks: targetChecks
+      }
+    }, window.location.origin);
+  };
 
   (0, _.useEffect)(function() {
     try { localStorage.setItem('minest_badge_unlock_rules_v1', JSON.stringify(unlockRules)); } catch(e) {}
     sendAwardProgress();
-  }, [focusMinutes, checkCount, goalPercent, unlockRules, badgeSource]);
+    sendChallengeProgress();
+  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, unlockRules, badgeSource]);
 
   (0, _.useEffect)(function() {
     var handleBadgeReady = function(event) {
       if (event.data && event.data.type === 'minest:award-ready') sendAwardProgress();
+      if (event.data && event.data.type === 'minest:challenge-ready' && event.origin === window.location.origin) sendChallengeProgress();
     };
     window.addEventListener('message', handleBadgeReady);
     return function() { window.removeEventListener('message', handleBadgeReady); };
-  }, [focusMinutes, checkCount, goalPercent, unlockRules]);
+  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, unlockRules]);
 
   var updateUnlockRule = function(index, field, value) {
     setUnlockRules(unlockRules.map(function(rule, ruleIndex) {
@@ -16026,17 +16044,18 @@ var ActivityBadgesModal = function(props) {
           (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "mt-4 w-full rounded-[24px] border border-white/10 bg-gradient-to-r from-amber-400/20 to-fuchsia-500/15 p-4 text-left", children: (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('p', { className: "font-semibold", children: "Explore Awards" }), (0, P.jsx)('p', { className: "text-xs opacity-50", children: "View the live 3D collection" })] }), (0, P.jsx)('span', { className: "text-xl", children: "›" })] }) })
         ] }) : (0, P.jsxs)('div', { className: "px-4 pb-6", children: [
           (0, P.jsx)('div', { className: "mb-3 flex gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/[0.06] p-1", children: [
-            ['library', 'Collection'], ['rings', 'Rings 4.0'], ['unified', '3-in-1'], ['summon', 'Summon'], ['pending', 'Pending'], ['reveal', 'Hex Reveal'], ['inspector', '3D Inspect'], ['badgewall', 'Badge Wall'], ['watchos4', 'Watch'], ['base', 'Mystery Hex'], ['brackets', 'Assembly Study']
+            ['challenge', '通关模式'], ['library', 'Collection'], ['rings', 'Rings 4.0'], ['unified', '3-in-1'], ['summon', 'Summon'], ['pending', 'Pending'], ['reveal', 'Hex Reveal'], ['inspector', '3D Inspect'], ['badgewall', '归位动画'], ['watchos4', 'Watch'], ['base', 'Mystery Hex'], ['brackets', 'Assembly Study']
           ].map(function(option) {
             return (0, P.jsx)('button', { type: 'button', onClick: function() { setAwardPane(option[0]); }, className: 'shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold transition-colors', style: { background: awardPane === option[0] ? '#fff' : 'transparent', color: awardPane === option[0] ? '#0b0d11' : 'inherit', opacity: awardPane === option[0] ? 1 : .6 }, children: option[1] }, option[0]);
           }) }),
           (0, P.jsxs)('div', { className: "relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [
+            awardPane === 'challenge' ? (0, P.jsx)('iframe', { ref: challengeFrameRef, src: badgeChallengeUrl, onLoad: sendChallengeProgress, title: 'Minest Badge Challenge Wall', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07080c' }, loading: 'eager' }) :
             awardPane === 'library' ? (0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, onLoad: sendAwardProgress, title: "Minest 3D Awards", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }) :
               animationTabs.indexOf(awardPane) >= 0 ? (0, P.jsx)('iframe', { src: animationUrl, title: animationLabels[awardPane] + ' animation', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07090d' }, loading: 'eager' }) :
               (0, P.jsx)('iframe', { src: './badge-studio.html?tab=reveal&mode=' + awardPane + '&embed=1&v=6e7a1f2', title: awardPane === 'base' ? 'Mystery Hex 3D preview' : 'Mechanical assembly 3D preview', className: 'w-full border-0', style: { height: 'min(64vh, 530px)', background: '#06080c' }, loading: 'eager' }),
-            (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'library' ? "BUILT-IN 3D" : animationTabs.indexOf(awardPane) >= 0 ? 'ANIMATION SDK · PREVIEW' : "MYSTERY STUDY · v6e7a1f2"] })
+            (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'challenge' ? 'CHALLENGE · LIVE GOALS' : awardPane === 'library' ? "BUILT-IN 3D" : animationTabs.indexOf(awardPane) >= 0 ? 'ANIMATION SDK · PREVIEW' : "MYSTERY STUDY · v6e7a1f2"] })
           ] }),
-          (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'library' ? "Drag to rotate · Pinch to inspect · Gyroscope enabled" : animationTabs.indexOf(awardPane) >= 0 ? 'Interactive animation preview · does not change earned awards' : "Penultimate Claude preview · Mystery and mechanical components only · no final reveal sequence" })
+          (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'challenge' ? '完成目标后逐枚点亮 · 进度自动保存' : awardPane === 'library' ? "Drag to rotate · Pinch to inspect · Gyroscope enabled" : animationTabs.indexOf(awardPane) >= 0 ? 'Interactive animation preview · does not change earned awards' : "Penultimate Claude preview · Mystery and mechanical components only · no final reveal sequence" })
         ] })
       ]
     })
