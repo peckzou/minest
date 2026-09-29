@@ -1,8 +1,8 @@
 # Minest Badge Challenge Wall
 
 Source: the user-provided `minest-3d-badge-system.zip` (Badge Wall and its 3D badge library).
-This directory keeps the imported React/Three.js source editable. Build it with
-`node node_modules/vite/bin/vite.js build`; the same-origin output is written to
+This directory keeps the imported React/Three.js source editable. Run
+`npm install` once, then `npm run build`; the same-origin output is written to
 `../badge-challenge/` and embedded as the **通关模式** pane in `iphone.html` Awards.
 
 The source catalog contains 123 actual badges. The wall preserves its 150-slot
