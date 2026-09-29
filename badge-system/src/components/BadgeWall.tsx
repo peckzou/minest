@@ -12,10 +12,11 @@ interface BadgeWallProps {
   challengeMode?: boolean;
   activeIndex?: number;
   onLockedSelect?: (slotNumber: number) => void;
+  initialFilter?: 'all' | 'unlocked';
 }
 
-export const BadgeWall: React.FC<BadgeWallProps> = ({ awards, onSelectAward, onToggleUnlockAll, challengeMode = false, activeIndex = 0, onLockedSelect }) => {
-  const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked' | 'mythic'>('all');
+export const BadgeWall: React.FC<BadgeWallProps> = ({ awards, onSelectAward, onToggleUnlockAll, challengeMode = false, activeIndex = 0, onLockedSelect, initialFilter = 'all' }) => {
+  const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked' | 'mythic'>(initialFilter);
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredBadge, setHoveredBadge] = useState<{ badge: BadgeModel; index: number } | null>(null);
 
@@ -111,7 +112,7 @@ export const BadgeWall: React.FC<BadgeWallProps> = ({ awards, onSelectAward, onT
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-[#8E8E93] font-medium">
-              {challengeMode ? `${awards.length} 枚真实勋章逐关点亮 · ${totalSlots - awards.length} 个未来槽位 · 未解锁前隐藏身份` : 'Pokémon GO style 150-slot collection • All initial badges in grey shadow mode'}
+              {challengeMode ? `${awards.length} 枚真实勋章随机掉落与 Strike 里程碑 · ${totalSlots - awards.length} 个未来槽位 · 未领取前隐藏身份` : 'Pokémon GO style 150-slot collection • All initial badges in grey shadow mode'}
             </p>
           </div>
 
@@ -235,11 +236,12 @@ export const BadgeWall: React.FC<BadgeWallProps> = ({ awards, onSelectAward, onT
           const rarityColor = getRarityColor(badge.rarity || 'Common');
           const slotTag = `#${String(slotNumber).padStart(3, '0')}`;
           const isFuture = challengeMode && slotNumber > awards.length;
-          const isNext = challengeMode && !isFuture && slotNumber === activeIndex + 1;
+          const isNext = challengeMode && activeIndex >= 0 && !isFuture && slotNumber === activeIndex + 1;
 
           return (
             <div
               key={badge.id}
+              data-badge-id={badge.id}
               onClick={() => handleCardClick(item)}
               onMouseEnter={() => setHoveredBadge({ badge, index: slotNumber })}
               onMouseLeave={() => setHoveredBadge(null)}

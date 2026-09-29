@@ -37,6 +37,7 @@ const ringProgress = (['focus', 'checks', 'goal'] as const).map((key) => {
   const value = Number(pageParams.get(key));
   return Number.isFinite(value) ? Math.max(0, Math.min(200, value)) : 0;
 }) as [number, number, number];
+const embeddedStrikeDays = Number(pageParams.get('strike'));
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AnimationTab>(initialTab);
@@ -341,6 +342,11 @@ export default function App() {
               onMetricsUpdate={setMetrics}
               sharedMaterials={sharedMaterials}
               minestProgress={isMinestEmbed ? ringProgress : undefined}
+              strikeDays={isMinestEmbed && Number.isFinite(embeddedStrikeDays) ? Math.max(0, embeddedStrikeDays) : undefined}
+              autoCelebrate={isMinestEmbed && pageParams.get('celebrate') === '1'}
+              onCelebrationExit={() => {
+                if (isMinestEmbed) window.parent.postMessage({ type: 'minest:rings-celebration-exited' }, window.location.origin);
+              }}
             />
           )}
 

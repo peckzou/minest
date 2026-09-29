@@ -6,7 +6,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   // =========================================================================
   {
     id: 'strike-3-days',
-    name: '3-Day Spark Strike (3天连续打卡)',
+    name: '3-Day Spark Strike (累计3天)',
     category: 'Liquid Glass Strike',
     rarity: 'Common',
     earnedDate: 'OCTOBER 28, 2026',
@@ -17,7 +17,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       secondary: '#0A2540',
       bezel: 'silver',
     },
-    description: 'Liquid glass hexagonal medal for 3 consecutive days of strike.',
+    description: 'Liquid glass hexagonal medal for 3 qualified days in total.',
     longDescription:
       'Features a translucent liquid ice cyan glass unibody with refractions, 3D embossed spark ember flame, and 3-day strike plaque.',
     badgeStyle: 'strike-3-days',
@@ -30,7 +30,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   },
   {
     id: 'strike-7-days',
-    name: '7-Day Aurora Strike (7天连续打卡)',
+    name: '7-Day Aurora Strike (累计7天)',
     category: 'Liquid Glass Strike',
     rarity: 'Common',
     earnedDate: 'OCTOBER 28, 2026',
@@ -41,7 +41,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       secondary: '#00F0FF',
       bezel: 'silver',
     },
-    description: 'Liquid glass hexagonal medal commemorating a full 7-day week strike.',
+    description: 'Liquid glass hexagonal medal for 7 qualified days in total.',
     longDescription:
       'Features a dual-tone liquid violet and cyan aurora glass crystal chassis with a 7-point aurora ring and 3D engraved digit 7.',
     badgeStyle: 'strike-7-days',
@@ -54,7 +54,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   },
   {
     id: 'strike-14-days',
-    name: '14-Day Emerald Blade Strike (14天连续打卡)',
+    name: '14-Day Emerald Blade Strike (累计14天)',
     category: 'Liquid Glass Strike',
     rarity: 'Rare',
     earnedDate: 'OCTOBER 28, 2026',
@@ -65,7 +65,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       secondary: '#0A3A22',
       bezel: 'silver',
     },
-    description: 'Liquid glass hexagonal medal celebrating 14 consecutive days of strike.',
+    description: 'Liquid glass hexagonal medal for 14 qualified days in total.',
     longDescription:
       'Crafted with high-refraction emerald liquid glass, dual crossed silver energy blades, and crisp 3D 14-day strike emblem.',
     badgeStyle: 'strike-14-days',
@@ -78,7 +78,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   },
   {
     id: 'strike-30-days',
-    name: '30-Day Solar Flare Strike (30天月度连胜)',
+    name: '30-Day Solar Flare Strike (累计30天)',
     category: 'Liquid Glass Strike',
     rarity: 'Rare',
     earnedDate: 'OCTOBER 28, 2026',
@@ -89,7 +89,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       secondary: '#FF6B00',
       bezel: 'gold',
     },
-    description: 'Liquid glass 24K gold hexagonal medal for 30 consecutive days.',
+    description: 'Liquid glass 24K gold hexagonal medal for 30 qualified days in total.',
     longDescription:
       'Features a solar flare amber glass crystal with 12 radial solar rays, 24K gold mirror rim, and 30-day strike ribbon.',
     badgeStyle: 'strike-30-days',
@@ -102,7 +102,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   },
   {
     id: 'strike-40-days',
-    name: '40-Day Crimson Plasma Strike (40天连续打卡)',
+    name: '40-Day Crimson Plasma Strike (累计40天)',
     category: 'Liquid Glass Strike',
     rarity: 'Rare',
     earnedDate: 'OCTOBER 28, 2026',
@@ -113,7 +113,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       secondary: '#3D000F',
       bezel: 'space-gray',
     },
-    description: 'Liquid glass graphite hexagonal medal for 40 consecutive days.',
+    description: 'Liquid glass graphite hexagonal medal for 40 qualified days in total.',
     longDescription:
       'Dynamic crimson plasma liquid glass crystal with orbital plasma ring and space gray graphite bezel.',
     badgeStyle: 'strike-40-days',
@@ -126,7 +126,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   },
   {
     id: 'strike-50-days',
-    name: '50-Day Quantum Amethyst Strike (50天半百纪元)',
+    name: '50-Day Quantum Amethyst Strike (累计50天)',
     category: 'Liquid Glass Strike',
     rarity: 'Legendary',
     earnedDate: 'OCTOBER 28, 2026',
@@ -137,7 +137,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       secondary: '#10002B',
       bezel: 'space-gray',
     },
-    description: 'Liquid glass hexagonal medal for 50 days of unwavering dedication.',
+    description: 'Liquid glass hexagonal medal for 50 qualified days in total.',
     longDescription:
       'Deep quantum amethyst liquid glass crystal with a floating 3D octahedron crystal core and 50-day strike plaque.',
     badgeStyle: 'strike-50-days',
@@ -150,7 +150,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   },
   {
     id: 'strike-60-days',
-    name: '60-Day Hyper Frost Strike (60天双月里程碑)',
+    name: '60-Day Hyper Frost Strike (累计60天)',
     category: 'Liquid Glass Strike',
     rarity: 'Legendary',
     earnedDate: 'OCTOBER 28, 2026',
@@ -161,7 +161,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       secondary: '#03045E',
       bezel: 'silver',
     },
-    description: 'Liquid glass crystal hexagonal medal for 60 consecutive days.',
+    description: 'Liquid glass crystal hexagonal medal for 60 qualified days in total.',
     longDescription:
       'Glacial crystal liquid glass with a floating nested inner glass hexagon frame and mirror silver bezel.',
     badgeStyle: 'strike-60-days',
@@ -174,7 +174,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   },
   {
     id: 'strike-80-days',
-    name: '80-Day Nebula Prism Strike (80天星云极光)',
+    name: '80-Day Nebula Prism Strike (累计80天)',
     category: 'Liquid Glass Strike',
     rarity: 'Legendary',
     earnedDate: 'OCTOBER 28, 2026',
@@ -185,7 +185,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       secondary: '#240046',
       bezel: 'silver',
     },
-    description: 'Liquid glass hexagonal medal celebrating 80 days of continuous strike.',
+    description: 'Liquid glass hexagonal medal for 80 qualified days in total.',
     longDescription:
       'Nebula magenta liquid glass crystal with floating diamond prism vortex and 80-day strike insignia.',
     badgeStyle: 'strike-80-days',
@@ -198,7 +198,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   },
   {
     id: 'strike-90-days',
-    name: '90-Day Titanium Dragon Strike (90天季度霸主)',
+    name: '90-Day Titanium Dragon Strike (累计90天)',
     category: 'Liquid Glass Strike',
     rarity: 'Mythic',
     earnedDate: 'OCTOBER 28, 2026',
@@ -209,7 +209,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       secondary: '#121212',
       bezel: 'gold',
     },
-    description: 'Liquid glass 24K gold hexagonal medal for 90 days of peak performance.',
+    description: 'Liquid glass 24K gold hexagonal medal for 90 qualified days in total.',
     longDescription:
       'Titanium amber liquid glass crystal with platinum dragon flame wings, 24K mirror gold rim, and 90-day strike plaque.',
     badgeStyle: 'strike-90-days',
@@ -222,7 +222,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
   },
   {
     id: 'strike-100-days',
-    name: '100-Day Apex Mythic Crown Strike (100天百日神话皇冠)',
+    name: '100-Day Apex Mythic Crown Strike (累计100天)',
     category: 'Liquid Glass Strike',
     rarity: 'Mythic',
     earnedDate: 'OCTOBER 28, 2026',
@@ -234,7 +234,7 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
       accent: '#00F0FF',
       bezel: 'gold',
     },
-    description: 'Ultimate Liquid Glass Hexagonal Medal for the 100-Day Centurion Strike.',
+    description: 'Ultimate liquid glass hexagonal medal for 100 qualified days in total.',
     longDescription:
       'Full holographic prism liquid glass unibody with a 3D triple-tiered gold mythic crown, embedded cyan gems, 24K gold bezel, and 100 DAYS APEX plaque.',
     badgeStyle: 'strike-100-days',
@@ -2937,4 +2937,3 @@ export const APPLE_LEARNING_AWARDS_CATALOG: BadgeModel[] = [
     },
   },
 ];
-

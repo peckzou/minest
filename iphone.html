@@ -15685,9 +15685,9 @@ var ThreeDMedal = function(props) {
 // =========================================================================
 // Apple Activity 3-Ring & Digital Badges Modal Component
 // =========================================================================
-var PhaseOneRingsPreview = function() {
-  // Phase 1 uses a clearly labeled sample day. Real activity wiring belongs to Phase 2.
-  var sample = { focusMinutes: 14, focusGoal: 20, completedCards: 7, completeGoal: 10, currentStreak: 18 };
+var PhaseOneRingsPreview = function(props) {
+  var live = props.ringsState || {};
+  var sample = { focusMinutes: live.focusMinutes || 0, focusGoal: live.targetMinutes || 30, completedCards: live.checkCount || 0, completeGoal: live.targetChecks || 10, goalPercent: live.goalPercent || 0, currentStreak: props.strikeDays || 0 };
   var shownState = (0, _.useState)(false);
   var shown = shownState[0];
   var setShown = shownState[1];
@@ -15697,7 +15697,7 @@ var PhaseOneRingsPreview = function() {
   }, []);
   var focusProgress = Math.min(1, sample.focusMinutes / sample.focusGoal);
   var completeProgress = Math.min(1, sample.completedCards / sample.completeGoal);
-  var dailyProgress = Math.max(focusProgress, completeProgress);
+  var dailyProgress = Math.min(1, sample.goalPercent / 100);
   var rings = [
     { id: 'focus', radius: 76, progress: focusProgress, gradient: 'minest-focus-gradient' },
     { id: 'complete', radius: 56, progress: completeProgress, gradient: 'minest-complete-gradient' },
@@ -15706,21 +15706,21 @@ var PhaseOneRingsPreview = function() {
   var rows = [
     { label: 'FOCUS', value: sample.focusMinutes + ' / ' + sample.focusGoal + ' min', note: 'Time invested today', color: '#ff537e' },
     { label: 'COMPLETE', value: sample.completedCards + ' / ' + sample.completeGoal, note: 'Cards finished today', color: '#b9e853' },
-    { label: 'DAILY', value: 'Day ' + sample.currentStreak, note: 'Closes when either goal closes', color: '#5ddce5' }
+    { label: 'GOAL', value: sample.goalPercent + '%', note: 'Board goal', color: '#5ddce5' }
   ];
   return (0, P.jsxs)('section', {
     className: 'minest-rings-panel relative overflow-hidden rounded-[30px] px-5 pt-5 pb-4',
-    'aria-label': 'Three Rings sample preview',
+    'aria-label': 'Three Rings live progress',
     children: [
       (0, P.jsxs)('div', { className: 'flex items-start justify-between gap-3', children: [
         (0, P.jsxs)('div', { children: [
           (0, P.jsx)('p', { className: 'text-[10px] font-bold tracking-[0.18em] opacity-50', children: 'TODAY · THREE RINGS' }),
           (0, P.jsx)('h3', { className: 'mt-1 text-xl font-semibold tracking-tight', children: 'Three Rings' })
         ] }),
-        (0, P.jsx)('span', { className: 'shrink-0 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider opacity-70', children: 'Phase 1 · Sample' })
+        (0, P.jsx)('span', { className: 'shrink-0 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider opacity-70', children: 'Live' })
       ] }),
       (0, P.jsxs)('div', { className: 'relative mx-auto my-2 h-[218px] w-[218px]', children: [
-        (0, P.jsxs)('svg', { viewBox: '0 0 200 200', className: 'minest-rings-svg h-full w-full', role: 'img', 'aria-label': 'Focus 70 percent, Complete 70 percent, Daily 70 percent', children: [
+        (0, P.jsxs)('svg', { viewBox: '0 0 200 200', className: 'minest-rings-svg h-full w-full', role: 'img', 'aria-label': 'Focus ' + Math.round(focusProgress * 100) + ' percent, Complete ' + Math.round(completeProgress * 100) + ' percent, Goal ' + Math.round(dailyProgress * 100) + ' percent', children: [
           (0, P.jsxs)('defs', { children: [
             (0, P.jsxs)('linearGradient', { id: 'minest-focus-gradient', x1: '0', y1: '0', x2: '1', y2: '1', children: [(0, P.jsx)('stop', { offset: '0%', stopColor: '#ff9aaf' }), (0, P.jsx)('stop', { offset: '100%', stopColor: '#fa315f' })] }),
             (0, P.jsxs)('linearGradient', { id: 'minest-complete-gradient', x1: '0', y1: '0', x2: '1', y2: '1', children: [(0, P.jsx)('stop', { offset: '0%', stopColor: '#e5ffa5' }), (0, P.jsx)('stop', { offset: '100%', stopColor: '#83cf45' })] }),
@@ -15736,7 +15736,7 @@ var PhaseOneRingsPreview = function() {
           })
         ] }),
         (0, P.jsxs)('div', { className: 'absolute inset-0 flex flex-col items-center justify-center text-center', children: [
-          (0, P.jsx)('span', { className: 'text-[9px] font-bold tracking-[0.2em] opacity-45', children: 'STREAK' }),
+          (0, P.jsx)('span', { className: 'text-[9px] font-bold tracking-[0.2em] opacity-45', children: 'STRIKE' }),
           (0, P.jsx)('strong', { className: 'text-[35px] leading-none font-semibold tracking-[-0.05em]', children: sample.currentStreak }),
           (0, P.jsx)('span', { className: 'mt-1 text-[10px] opacity-55', children: 'days' })
         ] })
@@ -15746,7 +15746,7 @@ var PhaseOneRingsPreview = function() {
         (0, P.jsxs)('div', { className: 'min-w-0 flex-1', children: [(0, P.jsx)('p', { className: 'text-[10px] font-bold tracking-[0.13em] opacity-65', children: row.label }), (0, P.jsx)('p', { className: 'text-[10px] opacity-45', children: row.note })] }),
         (0, P.jsx)('strong', { className: 'text-sm font-semibold tabular-nums', children: row.value })
       ] }, row.label); }) }),
-      (0, P.jsx)('p', { className: 'mt-3 text-center text-[10px] opacity-45', children: 'Preview values only · Live timer and card progress arrive in Phase 2' })
+      (0, P.jsx)('p', { className: 'mt-3 text-center text-[10px] opacity-45', children: '任意一环闭合，当天 Strike +1 · 累计天数不归零' })
     ]
   });
 };
@@ -15764,6 +15764,7 @@ var ActivityBadgesModal = function(props) {
   var checkCount = rings.checkCount || 0;
   var targetChecks = rings.targetChecks || 10;
   var goalPercent = Math.min(Math.max(rings.goalPercent || 0, 0), 100);
+  var strikeDays = props.strikeDays || 0;
 
   var closedCount = 0;
   if (focusMinutes >= targetMinutes) closedCount++;
@@ -15834,6 +15835,11 @@ var ActivityBadgesModal = function(props) {
   }) : defaultBadges;
 
   var unlockedCount = displayBadges.filter(function(b) { return b.isUnlocked; }).length;
+  var collectedCountState = (0, _.useState)(function() {
+    try { return (JSON.parse(localStorage.getItem('minest_reward_system_v2') || 'null')?.collectedIds || []).length; } catch(e) { return 0; }
+  });
+  var collectedCount = collectedCountState[0];
+  var setCollectedCount = collectedCountState[1];
 
   var selectedBadgeState = (0, _.useState)(displayBadges[0]);
   var selectedBadge = selectedBadgeState[0] || displayBadges[0];
@@ -15853,23 +15859,29 @@ var ActivityBadgesModal = function(props) {
   // Vendored from github.com/peckzou/badge so Awards keeps working offline,
   // inside WKWebView, and after AI Studio preview URLs expire.
   var badgeViewerUrl = "./badge-library/index.html?embed=true&v=751f06f";
-  var badgeChallengeUrl = './badge-challenge/index.html?embed=1&v=challenge-wall-v2';
+  var badgeChallengeUrl = './badge-challenge/index.html?embed=1&v=reward-system-v2';
+  var badgeCollectionUrl = './badge-challenge/index.html?embed=1&collection=1&v=reward-system-v2';
   var badgeSourceState = (0, _.useState)(function() {
     return 'local';
   });
   var badgeSource = badgeSourceState[0];
   var setBadgeSource = badgeSourceState[1];
-  var awardPaneState = (0, _.useState)('library');
+  var awardPaneState = (0, _.useState)('challenge');
   var awardPane = awardPaneState[0];
   var setAwardPane = awardPaneState[1];
+  (0, _.useEffect)(function() {
+    if (props.celebrateRings) { setActiveSection('awards'); setAwardPane('rings'); }
+  }, [props.celebrateRings]);
   var animationTabs = ['rings', 'unified', 'summon', 'pending', 'reveal', 'inspector', 'badgewall', 'watchos4'];
   var animationLabels = { rings: 'Rings 4.0', unified: '3-in-1 Ceremony', summon: 'Summon', pending: 'Pending', reveal: 'Hex Reveal', inspector: '3D Inspect', badgewall: 'Return Wall', watchos4: 'Watch' };
   var animationUrl = './badge-animations/index.html?embed=1&tab=' + encodeURIComponent(awardPane) +
     '&focus=' + encodeURIComponent(Math.min(200, Math.round(focusMinutes / targetMinutes * 100))) +
     '&checks=' + encodeURIComponent(Math.min(200, Math.round(checkCount / targetChecks * 100))) +
-    '&goal=' + encodeURIComponent(goalPercent) + '&v=legacy-mechanical-unlock';
+    '&goal=' + encodeURIComponent(goalPercent) + '&strike=' + encodeURIComponent(strikeDays) +
+    '&celebrate=' + (props.celebrateRings && awardPane === 'rings' ? '1' : '0') + '&v=reward-system-v2';
   var badgeFrameRef = (0, _.useRef)(null);
   var challengeFrameRef = (0, _.useRef)(null);
+  var animationFrameRef = (0, _.useRef)(null);
   var unlockRulesState = (0, _.useState)(function() {
     try {
       var saved = JSON.parse(localStorage.getItem('minest_badge_unlock_rules_v1') || 'null');
@@ -15909,7 +15921,9 @@ var ActivityBadgesModal = function(props) {
         checkCount: checkCount,
         goalPercent: goalPercent,
         targetMinutes: targetMinutes,
-        targetChecks: targetChecks
+        targetChecks: targetChecks,
+        date: rings.date || '',
+        qualifiedDates: props.qualifiedDates || []
       }
     }, window.location.origin);
   };
@@ -15918,16 +15932,26 @@ var ActivityBadgesModal = function(props) {
     try { localStorage.setItem('minest_badge_unlock_rules_v1', JSON.stringify(unlockRules)); } catch(e) {}
     sendAwardProgress();
     sendChallengeProgress();
-  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, unlockRules, badgeSource]);
+  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, rings.date, props.qualifiedDates, unlockRules, badgeSource]);
 
   (0, _.useEffect)(function() {
     var handleBadgeReady = function(event) {
       if (event.data && event.data.type === 'minest:award-ready') sendAwardProgress();
-      if (event.data && event.data.type === 'minest:challenge-ready' && event.origin === window.location.origin) sendChallengeProgress();
+      if (event.data && event.data.type === 'minest:challenge-ready' && event.origin === window.location.origin && event.source === challengeFrameRef.current?.contentWindow) {
+        if (typeof event.data.collectedCount === 'number') setCollectedCount(event.data.collectedCount);
+        sendChallengeProgress();
+      }
+      if (event.data && event.data.type === 'minest:challenge-unlocked' && event.origin === window.location.origin && event.source === challengeFrameRef.current?.contentWindow) {
+        try { setCollectedCount((JSON.parse(localStorage.getItem('minest_reward_system_v2') || 'null')?.collectedIds || []).length); } catch(e) {}
+      }
+      if (event.data && event.data.type === 'minest:rings-celebration-exited' && event.origin === window.location.origin && event.source === animationFrameRef.current?.contentWindow) {
+        setAwardPane('challenge');
+        if (props.onCelebrationExit) props.onCelebrationExit();
+      }
     };
     window.addEventListener('message', handleBadgeReady);
     return function() { window.removeEventListener('message', handleBadgeReady); };
-  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, unlockRules]);
+  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, rings.date, props.qualifiedDates, unlockRules]);
 
   var updateUnlockRule = function(index, field, value) {
     setUnlockRules(unlockRules.map(function(rule, ruleIndex) {
@@ -16006,12 +16030,12 @@ var ActivityBadgesModal = function(props) {
             ] }),
             (0, P.jsxs)('div', { className: "mt-4 gap-1 rounded-full p-1 bg-white/8 border border-white/10", style: { display: "grid", gridTemplateColumns: "1fr 1fr" }, children: [
               (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('summary'); }, className: "rounded-full py-2 text-xs font-semibold transition", style: { background: activeSection === 'summary' ? "#fff" : "transparent", color: activeSection === 'summary' ? "#000" : "inherit", opacity: activeSection === 'summary' ? 1 : 0.55, boxShadow: activeSection === 'summary' ? "0 8px 20px rgba(0,0,0,.22)" : "none" }, children: "Summary" }),
-              (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "rounded-full py-2 text-xs font-semibold transition", style: { background: activeSection === 'awards' ? "#fff" : "transparent", color: activeSection === 'awards' ? "#000" : "inherit", opacity: activeSection === 'awards' ? 1 : 0.55, boxShadow: activeSection === 'awards' ? "0 8px 20px rgba(0,0,0,.22)" : "none" }, children: "Awards · " + unlockedCount })
+              (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "rounded-full py-2 text-xs font-semibold transition", style: { background: activeSection === 'awards' ? "#fff" : "transparent", color: activeSection === 'awards' ? "#000" : "inherit", opacity: activeSection === 'awards' ? 1 : 0.55, boxShadow: activeSection === 'awards' ? "0 8px 20px rgba(0,0,0,.22)" : "none" }, children: "Awards · " + collectedCount })
             ] })
           ] })
         }),
         activeSection === 'summary' ? (0, P.jsxs)('div', { className: "px-5 pb-7", children: [
-          (0, P.jsx)(PhaseOneRingsPreview, {}),
+          (0, P.jsx)(PhaseOneRingsPreview, { ringsState: rings, strikeDays: strikeDays }),
           (0, P.jsx)('button', { type: 'button', onClick: function() { setAwardPane('rings'); setActiveSection('awards'); }, className: 'mt-3 w-full rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-left text-xs font-semibold', children: 'Explore animated Rings 4.0  ›' }),
           (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
             (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
@@ -16044,18 +16068,18 @@ var ActivityBadgesModal = function(props) {
           (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "mt-4 w-full rounded-[24px] border border-white/10 bg-gradient-to-r from-amber-400/20 to-fuchsia-500/15 p-4 text-left", children: (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('p', { className: "font-semibold", children: "Explore Awards" }), (0, P.jsx)('p', { className: "text-xs opacity-50", children: "View the live 3D collection" })] }), (0, P.jsx)('span', { className: "text-xl", children: "›" })] }) })
         ] }) : (0, P.jsxs)('div', { className: "px-4 pb-6", children: [
           (0, P.jsx)('div', { className: "mb-3 flex gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/[0.06] p-1", children: [
-            ['challenge', '通关模式'], ['library', 'Collection'], ['rings', 'Rings 4.0'], ['unified', '3-in-1'], ['summon', 'Summon'], ['pending', 'Pending'], ['reveal', 'Hex Reveal'], ['inspector', '3D Inspect'], ['badgewall', '归位动画'], ['watchos4', 'Watch'], ['base', 'Mystery Hex'], ['brackets', 'Assembly Study']
+            ['challenge', 'Badge Wall'], ['collection', 'Collection'], ['library', '图鉴预览'], ['rings', 'Rings 4.0'], ['unified', '3-in-1'], ['summon', 'Summon'], ['pending', 'Pending'], ['reveal', 'Hex Reveal'], ['inspector', '3D Inspect'], ['badgewall', '归位动画'], ['watchos4', 'Watch'], ['base', 'Mystery Hex'], ['brackets', 'Assembly Study']
           ].map(function(option) {
             return (0, P.jsx)('button', { type: 'button', onClick: function() { setAwardPane(option[0]); }, className: 'shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold transition-colors', style: { background: awardPane === option[0] ? '#fff' : 'transparent', color: awardPane === option[0] ? '#0b0d11' : 'inherit', opacity: awardPane === option[0] ? 1 : .6 }, children: option[1] }, option[0]);
           }) }),
           (0, P.jsxs)('div', { className: "relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [
-            awardPane === 'challenge' ? (0, P.jsx)('iframe', { ref: challengeFrameRef, src: badgeChallengeUrl, onLoad: sendChallengeProgress, title: 'Minest Badge Challenge Wall', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07080c' }, loading: 'eager' }) :
+            (awardPane === 'challenge' || awardPane === 'collection') ? (0, P.jsx)('iframe', { ref: challengeFrameRef, src: awardPane === 'collection' ? badgeCollectionUrl : badgeChallengeUrl, onLoad: sendChallengeProgress, title: awardPane === 'collection' ? 'Minest Badge Collection' : 'Minest Badge Wall', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07080c' }, loading: 'eager' }) :
             awardPane === 'library' ? (0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, onLoad: sendAwardProgress, title: "Minest 3D Awards", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }) :
-              animationTabs.indexOf(awardPane) >= 0 ? (0, P.jsx)('iframe', { src: animationUrl, title: animationLabels[awardPane] + ' animation', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07090d' }, loading: 'eager' }) :
+              animationTabs.indexOf(awardPane) >= 0 ? (0, P.jsx)('iframe', { ref: animationFrameRef, src: animationUrl, title: animationLabels[awardPane] + ' animation', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07090d' }, loading: 'eager' }) :
               (0, P.jsx)('iframe', { src: './badge-studio.html?tab=reveal&mode=' + awardPane + '&embed=1&v=6e7a1f2', title: awardPane === 'base' ? 'Mystery Hex 3D preview' : 'Mechanical assembly 3D preview', className: 'w-full border-0', style: { height: 'min(64vh, 530px)', background: '#06080c' }, loading: 'eager' }),
-            (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'challenge' ? 'CHALLENGE · LIVE GOALS' : awardPane === 'library' ? "BUILT-IN 3D" : animationTabs.indexOf(awardPane) >= 0 ? 'ANIMATION SDK · PREVIEW' : "MYSTERY STUDY · v6e7a1f2"] })
+            (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'challenge' ? 'BADGE WALL · LIVE REWARDS' : awardPane === 'collection' ? 'COLLECTION · COLLECTED' : awardPane === 'library' ? "CATALOG · PREVIEW" : animationTabs.indexOf(awardPane) >= 0 ? 'ANIMATION SDK · PREVIEW' : "MYSTERY STUDY · v6e7a1f2"] })
           ] }),
-          (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'challenge' ? '完成目标后逐枚点亮 · 进度自动保存' : awardPane === 'library' ? "Drag to rotate · Pinch to inspect · Gyroscope enabled" : animationTabs.indexOf(awardPane) >= 0 ? 'Interactive animation preview · does not change earned awards' : "Penultimate Claude preview · Mystery and mechanical components only · no final reveal sequence" })
+          (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'challenge' ? '三环闭合生成神秘 Pending · 点击领取后点亮墙 · Strike 累计达标' : awardPane === 'collection' ? '和勋章墙同步 · 仅显示已领取的勋章' : awardPane === 'library' ? "Catalog preview · does not affect earned awards" : animationTabs.indexOf(awardPane) >= 0 ? 'Interactive animation preview · does not change earned awards' : "Penultimate Claude preview · Mystery and mechanical components only · no final reveal sequence" })
         ] })
       ]
     })
@@ -31216,9 +31240,13 @@ var Be = function() {
   var isBadgesModalOpen = badgesModalState[0];
   var setIsBadgesModalOpen = badgesModalState[1];
 
+  var minestLocalDay = function() {
+    var now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  };
   var activityRingsState = (0, _.useState)(function() {
     try {
-      var today = new Date().toISOString().slice(0, 10);
+      var today = minestLocalDay();
       var raw = localStorage.getItem("minest_activity_rings_v1");
       if (raw) {
         var parsed = JSON.parse(raw);
@@ -31226,16 +31254,61 @@ var Be = function() {
       }
     } catch(e) {}
     return {
-      focusMinutes: 18,
+      focusMinutes: 0,
       targetMinutes: 30,
-      checkCount: 6,
+      checkCount: 0,
       targetChecks: 10,
-      goalPercent: 65,
-      date: new Date().toISOString().slice(0, 10)
+      goalPercent: 0,
+      date: minestLocalDay()
     };
   });
   var activityRings = activityRingsState[0];
   var setActivityRings = activityRingsState[1];
+  var qualifiedDaysState = (0, _.useState)(function() {
+    try {
+      var storedDays = JSON.parse(localStorage.getItem('minest_qualified_ring_days_v1') || '[]');
+      return Array.isArray(storedDays) ? storedDays.filter(function(day) { return typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day); }) : [];
+    } catch(e) { return []; }
+  });
+  var qualifiedDays = qualifiedDaysState[0];
+  var setQualifiedDays = qualifiedDaysState[1];
+  var celebrateRingsState = (0, _.useState)(false);
+  var celebrateRings = celebrateRingsState[0];
+  var setCelebrateRings = celebrateRingsState[1];
+  (0, _.useEffect)(function() {
+    var today = minestLocalDay();
+    if (activityRings.date !== today) return;
+    var anyClosed = (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) ||
+      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) || (activityRings.goalPercent || 0) >= 100;
+    var allClosed = (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) &&
+      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) && (activityRings.goalPercent || 0) >= 100;
+    if (anyClosed && qualifiedDays.indexOf(today) < 0) {
+      var nextDays = qualifiedDays.concat(today).sort();
+      setQualifiedDays(nextDays);
+      try { localStorage.setItem('minest_qualified_ring_days_v1', JSON.stringify(nextDays)); } catch(e) {}
+    }
+    if (allClosed) {
+      try {
+        if (localStorage.getItem('minest_rings_celebrated_day_v1') !== today) {
+          localStorage.setItem('minest_rings_celebrated_day_v1', today);
+          setCelebrateRings(true);
+          setIsBadgesModalOpen(true);
+        }
+      } catch(e) {}
+    }
+  }, [activityRings, qualifiedDays]);
+  (0, _.useEffect)(function() {
+    var timer = setInterval(function() {
+      var today = minestLocalDay();
+      setActivityRings(function(prev) {
+        if (prev.date === today) return prev;
+        var next = { focusMinutes: 0, targetMinutes: prev.targetMinutes || 30, checkCount: 0, targetChecks: prev.targetChecks || 10, goalPercent: 0, date: today };
+        try { localStorage.setItem('minest_activity_rings_v1', JSON.stringify(next)); } catch(e) {}
+        return next;
+      });
+    }, 30000);
+    return function() { clearInterval(timer); };
+  }, []);
 
   // Cloud Sync
   var fbUserState = (0, _.useState)(null);
@@ -31459,7 +31532,7 @@ var Be = function() {
       var completed = allCards.filter(function(c) {
         return !!(c.complete || c.done || c.isDone || c.mastery === 3);
       }).length;
-      var calculatedGoal = total > 0 ? Math.round((completed / total) * 100) : 100;
+      var calculatedGoal = total > 0 ? Math.round((completed / total) * 100) : 0;
       var nextChecks = (prev.checkCount || 0) + (extraChecks || 0);
 
       var next = Object.assign({}, prev, {
@@ -32602,6 +32675,10 @@ var Be = function() {
       isBadgesModalOpen ? (0, P.jsx)(ActivityBadgesModal, {
         themeMode: themeMode,
         ringsState: activityRings,
+        strikeDays: qualifiedDays.length,
+        qualifiedDates: qualifiedDays,
+        celebrateRings: celebrateRings,
+        onCelebrationExit: function() { setCelebrateRings(false); },
         onUpdateRings: function(next) {
           setActivityRings(next);
           try { localStorage.setItem("minest_activity_rings_v1", JSON.stringify(next)); } catch(e) {}

@@ -107,12 +107,18 @@ interface AppleFitnessRingsViewProps {
   onMetricsUpdate?: (metrics: RingsPerformanceMetrics) => void;
   sharedMaterials?: AppleAwardMaterials;
   minestProgress?: [number, number, number];
+  strikeDays?: number;
+  autoCelebrate?: boolean;
+  onCelebrationExit?: () => void;
 }
 
 export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
   onMetricsUpdate,
   sharedMaterials,
   minestProgress,
+  strikeDays,
+  autoCelebrate = false,
+  onCelebrationExit,
 }) => {
   // DOM Viewport Ref
   const threeContainerRef = useRef<HTMLDivElement>(null);
@@ -406,10 +412,10 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
   // Auto-trigger 3-ring completion fireworks celebration automatically on mount without clicking any switch!
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!hasAutoStartedRef.current) triggerFullClosureCelebration();
+      if (autoCelebrate && minestProgress?.every((value) => value >= 100) && !hasAutoStartedRef.current) triggerFullClosureCelebration();
     }, 300);
     return () => clearTimeout(timer);
-  }, [triggerFullClosureCelebration]);
+  }, [triggerFullClosureCelebration, autoCelebrate, minestProgress]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 4. Quick Jump: 片头常驻 (Head) 与 片尾持续自转 (Continuous Spin)
@@ -457,12 +463,13 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
         scene3DRef.current.startSmoothDecelerationExit(() => {
           setCelebrationStage('tail');
           isExitingRef.current = false;
+          onCelebrationExit?.();
         });
       } else {
         jumpToHeadStandby();
       }
     }
-  }, [celebrationStage, isSpinning, jumpToHeadStandby]);
+  }, [celebrationStage, isSpinning, jumpToHeadStandby, onCelebrationExit]);
   handleRingExitRef.current = handleRingExit;
 
   // Handle single ring slider change
@@ -694,10 +701,10 @@ scene.settleToRestingTailState();`;
               {/* Center Counter Overlay */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center animate-in fade-in duration-300">
                 <div className="text-[10px] uppercase tracking-widest text-[#8e8e93] font-semibold">
-                  ACTIVITY RINGS
+                  {strikeDays !== undefined ? 'STRIKE · 累计达标' : 'ACTIVITY RINGS'}
                 </div>
                 <div className="text-3xl sm:text-4xl font-black text-white tracking-tight font-mono drop-shadow-[0_0_12px_rgba(255,255,255,0.3)]">
-                  {displayPct[0]}%
+                  {strikeDays !== undefined ? strikeDays : displayPct[0] + '%'}
                 </div>
                 <div className="text-[10px] text-amber-300 font-mono font-bold flex items-center gap-1 justify-center mt-0.5">
                   {celebrationStage === 'head' && <span>🟢 片头待闭合 · 2D 原生质感态</span>}
