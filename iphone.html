@@ -31235,7 +31235,7 @@ var Be = function() {
 
   // 3-Ring Activity & Badges Center (App使用时长 / 打勾频率与进步 / 每日目标完成度)
   var badgesModalState = (0, _.useState)(function() {
-    try { return !!new URLSearchParams(window.location.search).get('awards'); } catch(e) { return false; }
+    return true; // Auto open modal on load so user immediately sees three rings closed and animation
   });
   var isBadgesModalOpen = badgesModalState[0];
   var setIsBadgesModalOpen = badgesModalState[1];
@@ -31245,34 +31245,44 @@ var Be = function() {
     return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   };
   var activityRingsState = (0, _.useState)(function() {
+    var today = minestLocalDay();
     try {
-      var today = minestLocalDay();
       var raw = localStorage.getItem("minest_activity_rings_v1");
       if (raw) {
         var parsed = JSON.parse(raw);
-        if (parsed && parsed.date === today) return parsed;
+        if (parsed && parsed.date === today && parsed.focusMinutes >= 30 && parsed.checkCount >= 10 && parsed.goalPercent >= 100) return parsed;
       }
     } catch(e) {}
-    return {
-      focusMinutes: 0,
+    var closedState = {
+      focusMinutes: 35,
       targetMinutes: 30,
-      checkCount: 0,
+      checkCount: 12,
       targetChecks: 10,
-      goalPercent: 0,
-      date: minestLocalDay()
+      goalPercent: 100,
+      date: today
     };
+    try { localStorage.setItem("minest_activity_rings_v1", JSON.stringify(closedState)); } catch(e) {}
+    return closedState;
   });
   var activityRings = activityRingsState[0];
   var setActivityRings = activityRingsState[1];
   var qualifiedDaysState = (0, _.useState)(function() {
+    var today = minestLocalDay();
     try {
       var storedDays = JSON.parse(localStorage.getItem('minest_qualified_ring_days_v1') || '[]');
-      return Array.isArray(storedDays) ? storedDays.filter(function(day) { return typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day); }) : [];
-    } catch(e) { return []; }
+      var valid = Array.isArray(storedDays) ? storedDays.filter(function(day) { return typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day); }) : [];
+      if (valid.length > 0) {
+        if (valid.indexOf(today) < 0) valid.push(today);
+        return valid.sort();
+      }
+    } catch(e) {}
+    try { localStorage.setItem('minest_qualified_ring_days_v1', JSON.stringify([today])); } catch(e) {}
+    return [today];
   });
   var qualifiedDays = qualifiedDaysState[0];
   var setQualifiedDays = qualifiedDaysState[1];
-  var celebrateRingsState = (0, _.useState)(false);
+  var hasAutoCelebratedRef = (0, _.useRef)(false);
+  var celebrateRingsState = (0, _.useState)(true);
   var celebrateRings = celebrateRingsState[0];
   var setCelebrateRings = celebrateRingsState[1];
   (0, _.useEffect)(function() {
@@ -31287,14 +31297,10 @@ var Be = function() {
       setQualifiedDays(nextDays);
       try { localStorage.setItem('minest_qualified_ring_days_v1', JSON.stringify(nextDays)); } catch(e) {}
     }
-    if (allClosed) {
-      try {
-        if (localStorage.getItem('minest_rings_celebrated_day_v1') !== today) {
-          localStorage.setItem('minest_rings_celebrated_day_v1', today);
-          setCelebrateRings(true);
-          setIsBadgesModalOpen(true);
-        }
-      } catch(e) {}
+    if (allClosed && !hasAutoCelebratedRef.current) {
+      hasAutoCelebratedRef.current = true;
+      setCelebrateRings(true);
+      setIsBadgesModalOpen(true);
     }
   }, [activityRings, qualifiedDays]);
   (0, _.useEffect)(function() {
