@@ -3,22 +3,17 @@ import { BADGE_CATALOG, BadgeCatalogItem } from '../three/BadgeGeometries';
 import {
   OptimizedHexRevealScene,
   REVEAL_PHASES,
-  RevealPhaseInfo,
 } from '../three/OptimizedHexRevealScene';
 import { AppleAwardMaterials } from '../three/AppleAwardMaterials';
 import { PerformanceMetrics } from '../three/OptimizedBadgeInspectorScene';
 import {
-  Play,
-  Pause,
-  RotateCcw,
-  FastForward,
   Sparkles,
   Zap,
   CheckCircle,
-  Clock,
-  Layers,
   Award,
   ArrowRight,
+  ChevronRight,
+  RotateCcw,
 } from 'lucide-react';
 
 interface HexAssemblyRevealViewProps {
@@ -39,14 +34,13 @@ export const HexAssemblyRevealView: React.FC<HexAssemblyRevealViewProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(1);
-  const [playbackSpeed, setPlaybackSpeed] = useState(0.5);
   const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const scene = new OptimizedHexRevealScene(containerRef.current, sharedMaterials);
-    scene.playbackSpeed = 0.5;
+    scene.playbackSpeed = 1.0;
     scene.onMetricsUpdate = onMetricsUpdate;
     scene.onPhaseChange = (phaseIdx, timeMs) => {
       setCurrentPhaseIndex(phaseIdx);
@@ -64,64 +58,13 @@ export const HexAssemblyRevealView: React.FC<HexAssemblyRevealViewProps> = ({
       scene.destroy();
       sceneRef.current = null;
     };
-  }, [sharedMaterials]);
+  }, [sharedMaterials, selectedBadge]);
 
-  // Synchronize timeline scrubber in UI
-  useEffect(() => {
-    let animId: number;
-    const sync = () => {
-      if (sceneRef.current) {
-        setCurrentTimeMs(sceneRef.current.currentTimeMs);
-        setIsPlaying(sceneRef.current.isPlaying);
-      }
-      animId = requestAnimationFrame(sync);
-    };
-    animId = requestAnimationFrame(sync);
-    return () => cancelAnimationFrame(animId);
-  }, []);
-
-  const handleStartReveal = () => {
-    if (!sceneRef.current) return;
-    setIsCompleted(false);
-    sceneRef.current.restart();
-    setIsPlaying(true);
-  };
-
-  const handleTogglePlay = () => {
-    if (!sceneRef.current) return;
-    if (sceneRef.current.isPlaying) {
-      sceneRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      sceneRef.current.play();
-      setIsPlaying(true);
-    }
-  };
-
-  const handleRestart = () => {
-    if (!sceneRef.current) return;
-    setIsCompleted(false);
-    sceneRef.current.restart();
-    setIsPlaying(true);
-  };
-
-  const handleScrub = (timeMs: number) => {
-    if (!sceneRef.current) return;
-    sceneRef.current.seekTime(timeMs);
-    setCurrentTimeMs(timeMs);
-  };
-
-  const handleSetSpeed = (speed: number) => {
-    setPlaybackSpeed(speed);
+  // Actions
+  const handleNextStep = () => {
     if (sceneRef.current) {
-      sceneRef.current.playbackSpeed = speed;
+      sceneRef.current.advanceNextStep();
     }
-  };
-
-  const handleJumpToPhase = (phase: RevealPhaseInfo) => {
-    if (!sceneRef.current) return;
-    sceneRef.current.seekTime(phase.timeRange[0] + 10);
-    setCurrentPhaseIndex(phase.phaseIndex);
   };
 
   const handleSelectBadge = (badge: BadgeCatalogItem) => {
@@ -136,7 +79,7 @@ export const HexAssemblyRevealView: React.FC<HexAssemblyRevealViewProps> = ({
     REVEAL_PHASES.find((p) => p.phaseIndex === currentPhaseIndex) || REVEAL_PHASES[0];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start select-none">
       {/* 3D Viewport Column */}
       <div className="lg:col-span-7 flex flex-col gap-4">
         {/* Main 3D Canvas Box */}
@@ -144,6 +87,7 @@ export const HexAssemblyRevealView: React.FC<HexAssemblyRevealViewProps> = ({
           <div
             ref={containerRef}
             className="w-full h-full cursor-grab active:cursor-grabbing touch-none select-none"
+            title="轻触 Badge 或点击「下一步」按步骤开启六边机械拼装"
           />
 
           {/* Top Status Overlay */}
@@ -160,117 +104,56 @@ export const HexAssemblyRevealView: React.FC<HexAssemblyRevealViewProps> = ({
             </div>
           </div>
 
-          {/* Bottom Floating Action Overlay */}
-          <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-3 pointer-events-none">
-            {/* Celebration Banner when completed */}
+          {/* Floating Action Overlay: Primary "下一步" Button */}
+          <div className="absolute bottom-6 inset-x-0 mx-auto w-fit max-w-[92%] z-20 flex items-center gap-3">
+            {sceneRef.current?.isPending && (
+              <button
+                onClick={handleNextStep}
+                className="px-6 py-3.5 rounded-full bg-gradient-to-r from-[#00f0ff] via-cyan-400 to-blue-500 hover:brightness-110 active:scale-95 text-black font-extrabold text-sm shadow-2xl shadow-[#00f0ff]/30 transition-all flex items-center gap-2.5 animate-bounce"
+              >
+                <Sparkles className="w-5 h-5 text-black animate-spin" />
+                <span>轻触 Badge 或点击「下一步」开启六边形装配</span>
+                <ChevronRight className="w-5 h-5 text-black font-bold" />
+              </button>
+            )}
+
+            {!sceneRef.current?.isPending && !isCompleted && (
+              <button
+                onClick={handleNextStep}
+                className="px-6 py-3.5 rounded-full bg-black/85 hover:bg-black/95 active:scale-95 text-white font-extrabold text-sm shadow-2xl border border-[#00f0ff]/60 backdrop-blur-xl transition-all flex items-center gap-2.5"
+              >
+                <Sparkles className="w-5 h-5 text-[#00f0ff] animate-spin" />
+                <span>机械合拢破茧中... 点击「下一步」跳过揭晓</span>
+                <ChevronRight className="w-5 h-5 text-[#00f0ff]" />
+              </button>
+            )}
+
             {isCompleted && (
-              <div className="mx-auto bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-amber-400/40 backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-3 text-xs font-semibold text-amber-200 pointer-events-auto shadow-lg animate-bounce flex-wrap justify-center">
-                <div className="flex items-center gap-1.5">
-                  <Award className="w-4 h-4 text-amber-300" />
-                  <span>🎉 勋章解构破茧化形完成！已解锁入库</span>
+              <div className="flex items-center gap-2.5 bg-black/85 border border-emerald-500/40 p-2.5 rounded-2xl backdrop-blur-xl shadow-2xl flex-wrap justify-center">
+                <div className="flex items-center gap-2 px-2">
+                  <Award className="w-5 h-5 text-amber-300 shrink-0" />
+                  <span className="text-xs font-bold text-white">破茧化形完成</span>
                 </div>
+
                 {onNavigateToBadgeWall && (
                   <button
                     onClick={onNavigateToBadgeWall}
-                    className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-extrabold text-[11px] hover:brightness-105 active:scale-95 flex items-center gap-1 shadow-md transition-all"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:brightness-110 active:scale-95 text-black font-extrabold text-xs shadow-md transition-all flex items-center gap-1.5"
                   >
-                    <span>收入 Badge Wall (Pokémon GO 归位)</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-black" />
+                    <span>收入 Badge Wall (磁吸归位)</span>
+                    <ArrowRight className="w-4 h-4 text-black" />
                   </button>
                 )}
+
+                <button
+                  onClick={handleNextStep}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold text-xs border border-white/10 transition-all flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>重置金胚</span>
+                </button>
               </div>
             )}
-
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2 pointer-events-auto">
-                <button
-                  onClick={handleStartReveal}
-                  className="px-4 py-2 rounded-full bg-[#00f0ff] hover:bg-[#38bdf8] text-black font-bold text-xs shadow-lg transition-all active:scale-95 flex items-center gap-1.5"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{isPlaying ? '重播仪式' : '启动六边形解锁仪式'}</span>
-                </button>
-
-                <button
-                  onClick={handleTogglePlay}
-                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white transition-all active:scale-95"
-                  title={isPlaying ? '暂停' : '播放'}
-                >
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                </button>
-
-                <button
-                  onClick={handleRestart}
-                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white transition-all active:scale-95"
-                  title="重置至起始点"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Speed Buttons */}
-              <div className="flex items-center gap-1 bg-[#121620]/80 backdrop-blur-md border border-white/10 p-1 rounded-full pointer-events-auto">
-                {[0.5, 1.0, 2.0].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => handleSetSpeed(s)}
-                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono transition-all ${
-                      playbackSpeed === s
-                        ? 'bg-[#00f0ff] text-black font-bold shadow-sm'
-                        : 'text-[#8e8e93] hover:text-white'
-                    }`}
-                  >
-                    {s}x
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Interactive Timeline Scrubber */}
-        <div className="bg-[#121620]/90 border border-white/10 rounded-2xl p-4 space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-[#00f0ff]" />
-              <span className="font-semibold text-white">动画时间轴精确逐帧拖拽 (Timeline Scrubber)</span>
-            </div>
-            <span className="font-mono text-[#00f0ff]">
-              {Math.round(currentTimeMs)} ms / 3640 ms
-            </span>
-          </div>
-
-          <div className="relative">
-            <input
-              type="range"
-              min="0"
-              max="3640"
-              step="10"
-              value={currentTimeMs}
-              onChange={(e) => handleScrub(Number(e.target.value))}
-              className="w-full accent-[#00f0ff] cursor-pointer h-2 bg-[#181e28] rounded-lg appearance-none"
-            />
-          </div>
-
-          {/* Phase Markers along Timeline */}
-          <div className="grid grid-cols-6 gap-1 pt-1">
-            {REVEAL_PHASES.map((p) => {
-              const isCurrent = p.phaseIndex === currentPhaseIndex;
-              return (
-                <button
-                  key={p.phaseIndex}
-                  onClick={() => handleJumpToPhase(p)}
-                  className={`py-1 px-1.5 rounded-lg text-center transition-all border ${
-                    isCurrent
-                      ? 'bg-[#00f0ff]/15 border-[#00f0ff] text-white font-semibold'
-                      : 'bg-[#181e28]/40 border-white/5 text-[#8e8e93] hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <div className="text-[10px] uppercase truncate">P{p.phaseIndex}</div>
-                  <div className="text-[9px] truncate text-[#8e8e93]">{p.name}</div>
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>
@@ -304,7 +187,6 @@ export const HexAssemblyRevealView: React.FC<HexAssemblyRevealViewProps> = ({
               return (
                 <div
                   key={phase.phaseIndex}
-                  onClick={() => handleJumpToPhase(phase)}
                   className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${
                     isActive
                       ? 'bg-[#00f0ff]/15 border border-[#00f0ff]/60 text-white font-medium'

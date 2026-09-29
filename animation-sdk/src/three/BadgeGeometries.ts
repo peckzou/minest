@@ -798,3 +798,57 @@ export function buildApplePendingConvexHexBlank(
   return buildAppleHexMechanicalPendingBadge(mats, options);
 }
 
+export interface ActivityRings3In1Group extends THREE.Group {
+  moveRing: THREE.Group;
+  exerciseRing: THREE.Group;
+  standRing: THREE.Group;
+  setRingsProgress?: (progress: number) => void;
+}
+
+/**
+ * Build 3-in-1 Apple Activity Rings (Move Red, Exercise Green, Stand Cyan)
+ * Physical 3D Glowing Concentric Rings for assembly and spark fusion
+ */
+export function buildActivityRings3In1Group(mats: AppleAwardMaterials): ActivityRings3In1Group {
+  const root = new THREE.Group() as ActivityRings3In1Group;
+  root.name = 'apple-activity-rings-3in1';
+
+  // 1. Move Ring (Red #ff2d55)
+  const moveGroup = new THREE.Group();
+  moveGroup.name = 'move-ring-red';
+  const moveTorus = new THREE.Mesh(new THREE.TorusGeometry(1.42, 0.08, 24, 64), mats.moveRingMat);
+  moveGroup.add(moveTorus);
+
+  // Beveled outer mirror trim on Move Ring
+  const moveTrim = new THREE.Mesh(new THREE.TorusGeometry(1.48, 0.018, 16, 64), mats.pendingChamferMirror);
+  moveGroup.add(moveTrim);
+
+  // 2. Exercise Ring (Green #a1e70a)
+  const exerciseGroup = new THREE.Group();
+  exerciseGroup.name = 'exercise-ring-green';
+  const exerciseTorus = new THREE.Mesh(new THREE.TorusGeometry(1.12, 0.075, 24, 64), mats.exerciseRingMat);
+  exerciseGroup.add(exerciseTorus);
+
+  const exerciseTrim = new THREE.Mesh(new THREE.TorusGeometry(1.18, 0.016, 16, 64), mats.pendingChamferMirror);
+  exerciseGroup.add(exerciseTrim);
+
+  // 3. Stand Ring (Cyan #00e5ff)
+  const standGroup = new THREE.Group();
+  standGroup.name = 'stand-ring-cyan';
+  const standTorus = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.07, 24, 64), mats.standRingMat);
+  standGroup.add(standTorus);
+
+  const standTrim = new THREE.Mesh(new THREE.TorusGeometry(0.87, 0.014, 16, 64), mats.pendingChamferMirror);
+  standGroup.add(standTrim);
+
+  root.add(moveGroup);
+  root.add(exerciseGroup);
+  root.add(standGroup);
+
+  root.moveRing = moveGroup;
+  root.exerciseRing = exerciseGroup;
+  root.standRing = standGroup;
+
+  return root;
+}
+

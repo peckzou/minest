@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   Flame,
   Zap,
@@ -120,7 +120,11 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
 
   // Core Stage: 片头 (head) -> 闭合 (closing) -> 喷发 (erupting) -> 持续自转 (spinning)
   const [celebrationStage, setCelebrationStage] = useState<FitnessCelebrationStage>('head');
-  const pointerDownPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const handleRingExitRef = useRef<() => void>(() => {});
+  const closureFrameRef = useRef<number | null>(null);
+  const hasAutoStartedRef = useRef(false);
+  const isExitingRef = useRef(false);
+  const initialPct = useMemo<[number, number, number]>(() => minestProgress || [85, 90, 75], []);
 
   // Ring Data State (Initially in 2D Native presentation: 85%, 90%, 75%)
   const [rings, setRings] = useState<RingConfig[]>(() => minestProgress
@@ -133,7 +137,7 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
         unit: '%',
       }))
     : DEFAULT_RINGS);
-  const [displayPct, setDisplayPct] = useState<[number, number, number]>(minestProgress || [85, 90, 75]);
+  const [displayPct, setDisplayPct] = useState<[number, number, number]>(initialPct);
   const [isClosingAnim, setIsClosingAnim] = useState(false);
 
   // Check if all 3 rings are fully closed (>=100%)
@@ -166,9 +170,9 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
   };
 
   // Target percentages from user inputs
-  const targetPct = rings.map((r) =>
+  const targetPct = useMemo(() => rings.map((r) =>
     Math.round((r.current / r.goal) * 100)
-  ) as [number, number, number];
+  ) as [number, number, number], [rings]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 1. Initialize Three.js Scene with Controlled Bloom & Blacksmith Sparks
@@ -194,7 +198,8 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
     scene3d.flowFieldEnabled = flowFieldEnabled;
     scene3d.flowFieldIntensity = flowFieldIntensity;
     scene3d.brakeSparksEnabled = brakeSparksEnabled;
-    scene3d.updateRingPercentages(displayPct[0], displayPct[1], displayPct[2], isClosingAnim);
+    scene3d.onTapRing = () => handleRingExitRef.current();
+    scene3d.updateRingPercentages(displayPct[0], displayPct[1], displayPct[2], true);
 
     scene3DRef.current = scene3d;
 
@@ -202,6 +207,7 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
       scene3d.destroy();
       scene3DRef.current = null;
       clearAllStageTimers();
+      if (closureFrameRef.current !== null) cancelAnimationFrame(closureFrameRef.current);
     };
   }, [sharedMaterials]);
 
@@ -226,7 +232,7 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
   // Sync ring percentages live to scene
   useEffect(() => {
     if (scene3DRef.current) {
-      scene3DRef.current.updateRingPercentages(displayPct[0], displayPct[1], displayPct[2], isClosingAnim);
+      scene3DRef.current.updateRingPercentages(displayPct[0], displayPct[1], displayPct[2], true);
     }
   }, [displayPct, isClosingAnim]);
 
@@ -248,6 +254,59 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
     [soundEnabled]
   );
 
+  const prevClosedRingsRef = useRef<[boolean, boolean, boolean]>([false, false, false]);
+  const prevAllClosedRef = useRef<boolean>(false);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 1.5 Reactive 3-Ring Closure Status Detection & Instant Fireworks Eruption
+  // 检测三环闭合状态：满足条件即刻调用烟花粒子发射函数，并施加闭合瞬间环体高亮效果
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const isClosed0 = displayPct[0] >= 100;
+    const isClosed1 = displayPct[1] >= 100;
+    const isClosed2 = displayPct[2] >= 100;
+    const isAllClosedNow = isClosed0 && isClosed1 && isClosed2;
+
+    // Detect individual ring closure moments & trigger ring highlight glow + tip sparks
+    if (isClosed0 && !prevClosedRingsRef.current[0]) {
+      scene3DRef.current?.triggerRingHighlightGlow(0);
+      scene3DRef.current?.spawnRingTipSparks(0, 280);
+      if (soundEnabled) badgeAudio.playRingCloseSound(0);
+      triggerHaptic('impact');
+    }
+    if (isClosed1 && !prevClosedRingsRef.current[1]) {
+      scene3DRef.current?.triggerRingHighlightGlow(1);
+      scene3DRef.current?.spawnRingTipSparks(1, 280);
+      if (soundEnabled) badgeAudio.playRingCloseSound(1);
+      triggerHaptic('impact');
+    }
+    if (isClosed2 && !prevClosedRingsRef.current[2]) {
+      scene3DRef.current?.triggerRingHighlightGlow(2);
+      scene3DRef.current?.spawnRingTipSparks(2, 280);
+      if (soundEnabled) badgeAudio.playRingCloseSound(2);
+      triggerHaptic('impact');
+    }
+
+    // Master 3-Ring Full Closure Condition Met!
+    if (isAllClosedNow && !prevAllClosedRef.current) {
+      // 1. Immediately invoke firework particle emission
+      triggerInstancedSparks(2400);
+
+      // 2. Trigger ring body highlight glow effect on all 3 rings
+      scene3DRef.current?.triggerRingHighlightGlow(-1);
+
+      // 3. Play master audio flourish & success haptic feedback
+      if (soundEnabled) {
+        badgeAudio.playAllRingsMasterFlourish();
+        badgeAudio.playBurst();
+      }
+      triggerHaptic('success');
+    }
+
+    prevClosedRingsRef.current = [isClosed0, isClosed1, isClosed2];
+    prevAllClosedRef.current = isAllClosedNow;
+  }, [displayPct, soundEnabled, triggerInstancedSparks]);
+
   // Trigger Racing Carbon-Ceramic Brake Sparks ("赛车刹车铁火花")
   const triggerRacingBrakeSparks = useCallback(
     (count: number = 320, intensity: number = 1.0) => {
@@ -259,11 +318,15 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
   );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 3. Staged Closure Celebration Full Cycle:
-  //    片头 (Head) -> 闭合 (Closing 1.2s) -> 喷发 (Erupting 650ms) -> 自转 (Spinning 2.8s) -> 片尾常驻 (Tail)
+  // 3. Staged Closure Celebration:
+  //    片头 -> 一次闭合 -> 持续喷花与自转，直到用户点击三环主体减速退出。
   // ─────────────────────────────────────────────────────────────────────────
   const triggerFullClosureCelebration = useCallback(() => {
     clearAllStageTimers();
+    if (closureFrameRef.current !== null) cancelAnimationFrame(closureFrameRef.current);
+    hasAutoStartedRef.current = true;
+    isExitingRef.current = false;
+    setIsSpinning(false);
     setIsClosingAnim(true);
     setCelebrationStage('closing');
     hasTriggeredClosureSoundRef.current = [false, false, false];
@@ -277,6 +340,7 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
     const duration = 1200; // ms
 
     const animateClosure = (now: number) => {
+      if (isExitingRef.current) return;
       const elapsed = now - startTime;
       const progress = Math.min(1, elapsed / duration);
 
@@ -320,82 +384,86 @@ export const AppleFitnessRingsView: React.FC<AppleFitnessRingsViewProps> = ({
       }
 
       if (progress < 1) {
-        requestAnimationFrame(animateClosure);
+        closureFrameRef.current = requestAnimationFrame(animateClosure);
       } else {
+        closureFrameRef.current = null;
         setIsClosingAnim(false);
 
         // ─────────────────────────────────────────────────────────────────
-        // 阶段 2: 喷发 2,200+ 熔铁铁花暴烈爆发 (650ms flat)
+        // 同步触发 3D 高速自转与 360° 持续烟花喷发 (零延迟)
         // ─────────────────────────────────────────────────────────────────
-        setCelebrationStage('erupting');
+        setCelebrationStage('spinning');
+        setIsSpinning(true);
         if (scene3DRef.current) {
           scene3DRef.current.triggerStagedClosureCelebration();
         }
-
-        // ─────────────────────────────────────────────────────────────────
-        // 阶段 3: 650ms 后加速进入 3D 空间持续自转与离心火花 (片尾成就卡片去掉，改为持续自转)
-        // ─────────────────────────────────────────────────────────────────
-        const tSpin = setTimeout(() => {
-          setCelebrationStage('spinning');
-          setIsSpinning(true);
-          if (soundEnabled) {
-            badgeAudio.playTurbineAcceleration();
-            badgeAudio.playSpinWhoosh(1.4);
-          }
-        }, 650);
-
-        stageTimersRef.current.push(tSpin);
       }
     };
 
-    requestAnimationFrame(animateClosure);
+    closureFrameRef.current = requestAnimationFrame(animateClosure);
   }, [targetPct, soundEnabled]);
+
+  // Auto-trigger 3-ring completion fireworks celebration automatically on mount without clicking any switch!
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!hasAutoStartedRef.current) triggerFullClosureCelebration();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [triggerFullClosureCelebration]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 4. Quick Jump: 片头常驻 (Head) 与 片尾持续自转 (Continuous Spin)
   // ─────────────────────────────────────────────────────────────────────────
   const jumpToHeadStandby = useCallback(() => {
     clearAllStageTimers();
+    if (closureFrameRef.current !== null) cancelAnimationFrame(closureFrameRef.current);
+    closureFrameRef.current = null;
+    isExitingRef.current = true;
     setIsClosingAnim(false);
     setIsSpinning(false);
     setCelebrationStage('head');
-    setDisplayPct([85, 90, 75]);
+    setDisplayPct(initialPct);
     if (scene3DRef.current) {
       scene3DRef.current.resetToHeadState();
-      scene3DRef.current.updateRingPercentages(85, 90, 75, true);
+      scene3DRef.current.updateRingPercentages(initialPct[0], initialPct[1], initialPct[2], true);
     }
     triggerHaptic('selection');
-  }, []);
+  }, [initialPct]);
 
   // 片尾改为持续 3D 空间立体自转，全闭合绚丽旋转
   const jumpToTailContinuousSpin = useCallback(() => {
     clearAllStageTimers();
+    if (closureFrameRef.current !== null) cancelAnimationFrame(closureFrameRef.current);
+    closureFrameRef.current = null;
+    isExitingRef.current = false;
     setIsClosingAnim(false);
     setIsSpinning(true);
     setCelebrationStage('spinning');
     setDisplayPct([100, 100, 100]);
     if (scene3DRef.current) {
       scene3DRef.current.updateRingPercentages(100, 100, 100, true);
-      scene3DRef.current.isSpinning = true;
-      scene3DRef.current.targetTiltX = 0.22;
-    }
-    if (soundEnabled) {
-      badgeAudio.playTurbineAcceleration();
-      badgeAudio.playSpinWhoosh(1.2);
+      scene3DRef.current.triggerStagedClosureCelebration();
     }
     triggerHaptic('success');
-  }, [soundEnabled]);
+  }, []);
 
-  // 点击三环就退出自转态，平滑回归片头常驻就绪态
+  // 点击三环就退出自转态，平滑减速降速归零至静止状态
   const handleRingExit = useCallback(() => {
+    if (isExitingRef.current) return;
     if (celebrationStage === 'spinning' || isSpinning || celebrationStage === 'erupting') {
-      jumpToHeadStandby();
-      if (soundEnabled) {
-        badgeAudio.playClick(1.2);
+      isExitingRef.current = true;
+      setIsSpinning(false);
+      if (scene3DRef.current) {
+        scene3DRef.current.startSmoothDecelerationExit(() => {
+          setCelebrationStage('tail');
+          isExitingRef.current = false;
+        });
+      } else {
+        jumpToHeadStandby();
       }
-      triggerHaptic('tap');
     }
-  }, [celebrationStage, isSpinning, jumpToHeadStandby, soundEnabled]);
+  }, [celebrationStage, isSpinning, jumpToHeadStandby]);
+  handleRingExitRef.current = handleRingExit;
 
   // Handle single ring slider change
   const handleRingValueChange = (index: number, val: number) => {
@@ -613,19 +681,6 @@ scene.settleToRestingTailState();`;
             {/* Interactive Three.js Viewport: 点击ring即可退出自转 */}
             <div
               className="relative w-full flex-1 flex items-center justify-center my-auto overflow-hidden"
-              onPointerDown={(e) => {
-                pointerDownPosRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
-              }}
-              onPointerUp={(e) => {
-                if (pointerDownPosRef.current) {
-                  const dist = Math.hypot(e.clientX - pointerDownPosRef.current.x, e.clientY - pointerDownPosRef.current.y);
-                  const duration = Date.now() - pointerDownPosRef.current.time;
-                  // If it was a quick tap/click on ring (not an orbit drag), exit celebration
-                  if (dist < 8 && duration < 500) {
-                    handleRingExit();
-                  }
-                }
-              }}
             >
               <div
                 ref={threeContainerRef}

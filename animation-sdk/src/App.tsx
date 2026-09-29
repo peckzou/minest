@@ -6,9 +6,10 @@ import { AppleWatchActivityView } from './components/AppleWatchActivityView';
 import { AppleFitnessRingsView } from './components/AppleFitnessRingsView';
 import { HexAssemblyRevealView } from './components/HexAssemblyRevealView';
 import { PendingBadgeView } from './components/PendingBadgeView';
+import { BadgeWallReturnCeremonyView } from './components/BadgeWallReturnCeremonyView';
+import { UnifiedAwardCeremonyFlowView } from './components/UnifiedAwardCeremonyFlowView';
 import { MinestSummonCeremonyView } from './components/MinestSummonCeremonyView';
 import { BadgeInspectorView } from './components/BadgeInspectorView';
-import { BadgeWallReturnCeremonyView } from './components/BadgeWallReturnCeremonyView';
 import { OptimizationReportModal } from './components/OptimizationReportModal';
 import { GitHubPackageExportModal } from './components/GitHubPackageExportModal';
 import {
@@ -26,19 +27,18 @@ import {
   Package,
 } from 'lucide-react';
 
-type AnimationTab = 'badgewall' | 'pending' | 'reveal' | 'watchos4' | 'rings' | 'summon' | 'inspector';
-const EMBED_TABS: AnimationTab[] = ['rings', 'summon', 'pending', 'reveal', 'inspector', 'badgewall', 'watchos4'];
+type AnimationTab = 'unified' | 'badgewall' | 'pending' | 'reveal' | 'watchos4' | 'rings' | 'summon' | 'inspector';
+const EMBED_TABS: AnimationTab[] = ['rings', 'unified', 'summon', 'pending', 'reveal', 'inspector', 'badgewall', 'watchos4'];
 const pageParams = new URLSearchParams(window.location.search);
 const isMinestEmbed = pageParams.get('embed') === '1';
 const requestedTab = pageParams.get('tab') as AnimationTab;
-const initialTab: AnimationTab = EMBED_TABS.includes(requestedTab) ? requestedTab : 'rings';
+const initialTab: AnimationTab = EMBED_TABS.includes(requestedTab) ? requestedTab : 'unified';
 const ringProgress = (['focus', 'checks', 'goal'] as const).map((key) => {
   const value = Number(pageParams.get(key));
   return Number.isFinite(value) ? Math.max(0, Math.min(200, value)) : 0;
 }) as [number, number, number];
 
 export default function App() {
-  // Focus on the requested core modules: 徽章墙磁吸归位, 待领取金勋章 (基于六边机械装配专属造型), 六边形机械装配破茧, watchOS 4 融合版, and fitness 3.0
   const [activeTab, setActiveTab] = useState<AnimationTab>(initialTab);
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -56,20 +56,20 @@ export default function App() {
     color: string;
   }[] = [
     {
-      id: 'summon',
-      label: 'Minest 勋章召唤',
-      sublabel: '粒子召唤与 3D 入场仪式',
-      tag: '召唤仪式',
-      icon: <Sparkles className="w-4 h-4 text-amber-400" />,
-      color: 'from-amber-400 to-cyan-500',
+      id: 'summon', label: 'Minest 勋章召唤', sublabel: '粒子召唤与 3D 入场仪式',
+      tag: '召唤仪式', icon: <Sparkles className="w-4 h-4 text-amber-400" />, color: 'from-amber-400 to-cyan-500',
     },
     {
-      id: 'inspector',
-      label: '3D 勋章自由检视',
-      sublabel: '旋转、翻面与材质细节检视',
-      tag: '6DoF 检视',
-      icon: <Award className="w-4 h-4 text-cyan-400" />,
-      color: 'from-cyan-400 to-blue-500',
+      id: 'inspector', label: '3D 勋章自由检视', sublabel: '旋转、翻面与材质细节检视',
+      tag: '6DoF 检视', icon: <Award className="w-4 h-4 text-cyan-400" />, color: 'from-cyan-400 to-blue-500',
+    },
+    {
+      id: 'unified',
+      label: 'Apple 勋章 3 合 1 全流程连续仪式 (Unified)',
+      sublabel: '待领取金胚 · 6 机械臂破茧装配 · 3D 赏玩与 180° 翻面 · 飞回勋章墙磁吸弹簧归位',
+      tag: '⭐ 3 合 1 全流程旗舰',
+      icon: <Sparkles className="w-4 h-4 text-amber-400" />,
+      color: 'from-amber-400 via-yellow-400 to-amber-500',
     },
     {
       id: 'badgewall',
@@ -314,6 +314,13 @@ export default function App() {
 
         {/* Active Stage */}
         <div className="transition-all duration-300">
+          {activeTab === 'unified' && (
+            <UnifiedAwardCeremonyFlowView
+              onMetricsUpdate={setMetrics}
+              sharedMaterials={sharedMaterials}
+            />
+          )}
+
           {activeTab === 'badgewall' && (
             <BadgeWallReturnCeremonyView
               onMetricsUpdate={setMetrics}
@@ -337,13 +344,8 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'summon' && (
-            <MinestSummonCeremonyView onMetricsUpdate={setMetrics} />
-          )}
-
-          {activeTab === 'inspector' && (
-            <BadgeInspectorView onMetricsUpdate={setMetrics} sharedMaterials={sharedMaterials} />
-          )}
+          {activeTab === 'summon' && <MinestSummonCeremonyView onMetricsUpdate={setMetrics} />}
+          {activeTab === 'inspector' && <BadgeInspectorView onMetricsUpdate={setMetrics} sharedMaterials={sharedMaterials} />}
 
           {activeTab === 'pending' && (
             <PendingBadgeView

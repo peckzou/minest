@@ -7,10 +7,11 @@ import * as THREE from 'three';
 
 export interface FresnelConfig {
   fresnelColor: THREE.Color | number | string;
-  intensity: number;      // 0.0 ~ 3.0
-  power: number;          // 1.5 ~ 6.0 (sharpness of the grazing rim)
-  bias: number;           // 0.0 ~ 0.4 (base ambient floor)
-  iridescence?: boolean;  // multi-spectral thin-film iridescent color shift
+  intensity: number;          // 0.0 ~ 3.0 (edge grazing specular multiplier)
+  power: number;              // 1.0 ~ 6.0 (sharpness of the grazing rim falloff curve)
+  bias: number;               // 0.0 ~ 0.4 (base ambient floor)
+  centerSuppression?: number; // 0.1 ~ 1.0 (attenuates normal-incident flat reflection wash in center)
+  iridescence?: boolean;      // multi-spectral thin-film iridescent color shift
 }
 
 export interface FresnelUniforms {
@@ -18,6 +19,7 @@ export interface FresnelUniforms {
   uFresnelIntensity: { value: number };
   uFresnelPower: { value: number };
   uFresnelBias: { value: number };
+  uFresnelCenterSuppression: { value: number };
   uFresnelIridescence: { value: number };
 }
 
@@ -39,6 +41,9 @@ export class AppleAwardMaterials {
   public bracketAccent: THREE.MeshStandardMaterial;
   public lockEnergyCyan: THREE.MeshStandardMaterial;
   public goldAccent: THREE.MeshStandardMaterial;
+  public moveRingMat: THREE.MeshStandardMaterial;
+  public exerciseRingMat: THREE.MeshStandardMaterial;
+  public standRingMat: THREE.MeshStandardMaterial;
   public glassShield: THREE.MeshPhysicalMaterial;
   public ceramicWhite: THREE.MeshStandardMaterial;
   public backEngravedMetal: THREE.MeshStandardMaterial;
@@ -199,6 +204,37 @@ export class AppleAwardMaterials {
       envMap: this.envMap,
       envMapIntensity: 1.5,
     });
+
+    // 10. Apple Watch 3 Activity Rings (Move Red, Exercise Green, Stand Cyan)
+    this.moveRingMat = new THREE.MeshStandardMaterial({
+      color: 0xff2d55,
+      emissive: 0xff2d55,
+      emissiveIntensity: 2.4,
+      roughness: 0.1,
+      metalness: 0.85,
+      envMap: this.envMap,
+      envMapIntensity: 1.8,
+    });
+
+    this.exerciseRingMat = new THREE.MeshStandardMaterial({
+      color: 0xa1e70a,
+      emissive: 0xa1e70a,
+      emissiveIntensity: 2.4,
+      roughness: 0.1,
+      metalness: 0.85,
+      envMap: this.envMap,
+      envMapIntensity: 1.8,
+    });
+
+    this.standRingMat = new THREE.MeshStandardMaterial({
+      color: 0x00e5ff,
+      emissive: 0x00e5ff,
+      emissiveIntensity: 2.4,
+      roughness: 0.1,
+      metalness: 0.85,
+      envMap: this.envMap,
+      envMapIntensity: 1.8,
+    });
     this.applyDynamicFresnel(this.goldAccent, {
       fresnelColor: 0xffe066,
       intensity: 1.4,
@@ -337,6 +373,9 @@ export class AppleAwardMaterials {
       uFresnelIntensity: { value: config.intensity !== undefined ? config.intensity : 1.0 },
       uFresnelPower: { value: config.power !== undefined ? config.power : 3.2 },
       uFresnelBias: { value: config.bias !== undefined ? config.bias : 0.08 },
+      uFresnelCenterSuppression: {
+        value: config.centerSuppression !== undefined ? config.centerSuppression : 0.88,
+      },
       uFresnelIridescence: { value: config.iridescence ? 1 : 0 },
     };
 
@@ -348,6 +387,7 @@ export class AppleAwardMaterials {
       shader.uniforms.uFresnelIntensity = uniforms.uFresnelIntensity;
       shader.uniforms.uFresnelPower = uniforms.uFresnelPower;
       shader.uniforms.uFresnelBias = uniforms.uFresnelBias;
+      shader.uniforms.uFresnelCenterSuppression = uniforms.uFresnelCenterSuppression;
       shader.uniforms.uFresnelIridescence = uniforms.uFresnelIridescence;
 
       // 1. Vertex Shader Injection
@@ -373,6 +413,7 @@ export class AppleAwardMaterials {
         uniform float uFresnelIntensity;
         uniform float uFresnelPower;
         uniform float uFresnelBias;
+        uniform float uFresnelCenterSuppression;
         uniform int uFresnelIridescence;
 
         varying vec3 vWorldNormalFresnel;
@@ -384,12 +425,20 @@ export class AppleAwardMaterials {
         `#include <dithering_fragment>
 
         // ─────────────────────────────────────────────────────────────
-        // Dynamic View-Angle Fresnel Reflection (菲涅尔金属润泽)
+        // View-Dependent Fresnel Falloff & Grazing Rim Specular Transition
+        // (基于视角的菲涅尔高光衰减与细腻过渡)
         // ─────────────────────────────────────────────────────────────
         vec3 N_fresnel = normalize(vWorldNormalFresnel);
         vec3 V_fresnel = normalize(cameraPosition - vWorldPositionFresnel);
         float NdotV_fresnel = clamp(dot(N_fresnel, V_fresnel), 0.0, 1.0);
-        float fresnelFactor = uFresnelBias + (1.0 - uFresnelBias) * pow(1.0 - NdotV_fresnel, uFresnelPower);
+
+        // Grazing term: 0 at head-on normal view, 1 at extreme grazing angles (edges/bevels)
+        float grazingTerm = pow(1.0 - NdotV_fresnel, uFresnelPower);
+        float fresnelFactor = uFresnelBias + (1.0 - uFresnelBias) * grazingTerm;
+
+        // View-dependent reflection attenuation: prevents flat/blown-out global reflection in center
+        // while preserving deep golden alloy color and razor-sharp rim highlights
+        float centerFalloff = mix(uFresnelCenterSuppression, 1.0, grazingTerm);
 
         vec3 activeFresnelCol = uFresnelColor;
         if (uFresnelIridescence == 1) {
@@ -402,11 +451,35 @@ export class AppleAwardMaterials {
           activeFresnelCol = mix(uFresnelColor, irid, 0.40);
         }
 
+        gl_FragColor.rgb *= centerFalloff;
         gl_FragColor.rgb += activeFresnelCol * (fresnelFactor * uFresnelIntensity);`
       );
     };
 
     material.needsUpdate = true;
+  }
+
+  /**
+   * Set View-Dependent Fresnel Falloff Parameters on Pending Materials
+   */
+  public setPendingFresnelFalloff(options: {
+    intensity?: number;
+    power?: number;
+    centerSuppression?: number;
+    bias?: number;
+    colorHex?: number;
+  }) {
+    const pendingMats = [this.pendingBlankFace, this.pendingChamferMirror, this.pendingSideWall];
+    for (const mat of pendingMats) {
+      const u = mat.userData?.fresnelUniforms as FresnelUniforms | undefined;
+      if (u) {
+        if (options.intensity !== undefined) u.uFresnelIntensity.value = options.intensity;
+        if (options.power !== undefined) u.uFresnelPower.value = options.power;
+        if (options.centerSuppression !== undefined) u.uFresnelCenterSuppression.value = options.centerSuppression;
+        if (options.bias !== undefined) u.uFresnelBias.value = options.bias;
+        if (options.colorHex !== undefined) u.uFresnelColor.value.setHex(options.colorHex);
+      }
+    }
   }
 
   /**
@@ -480,7 +553,32 @@ export class AppleAwardMaterials {
 
     const texture = new THREE.CanvasTexture(this.envCanvas);
     texture.mapping = THREE.EquirectangularReflectionMapping;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.center.set(0.5, 0.5);
     return texture;
+  }
+
+  /**
+   * Switch HDRi lighting environment preset dynamically
+   */
+  public updateEnvironmentPreset(env: AwardLightingEnvironment) {
+    this.currentEnvironment = env;
+    this.renderProceduralStudioEnv(env);
+    if (this.envMap) {
+      this.envMap.needsUpdate = true;
+    }
+  }
+
+  /**
+   * Update Dynamic HDRi Environmental Reflection Rotation & Viewport Offset
+   */
+  public updateDynamicEnvironmentRotation(angleRad: number, pitchOffset: number = 0) {
+    if (this.envMap) {
+      this.envMap.offset.x = (angleRad / (Math.PI * 2)) % 1.0;
+      this.envMap.offset.y = THREE.MathUtils.clamp(pitchOffset * 0.1, -0.2, 0.2);
+      this.envMap.rotation = angleRad;
+    }
   }
 
   private renderProceduralStudioEnv(env: AwardLightingEnvironment) {

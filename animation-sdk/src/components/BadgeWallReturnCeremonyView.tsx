@@ -52,6 +52,14 @@ export const BadgeWallReturnCeremonyView: React.FC<BadgeWallReturnCeremonyViewPr
   const [hapticActive, setHapticActive] = useState(false);
   const [telemetry, setTelemetry] = useState<SpringPhysicsTelemetry | null>(null);
 
+  // Global Spring Physics Parameters (Apple UI Spec)
+  const [springDamping, setSpringDamping] = useState(28); // c (N·s/m)
+  const [springStiffness, setSpringStiffness] = useState(380); // k (N/m)
+  const [springMass, setSpringMass] = useState(0.85); // m (kg)
+
+  // Computed damping ratio zeta = c / (2 * sqrt(k * m))
+  const zeta = springDamping / (2 * Math.sqrt(springStiffness * springMass));
+
   // Initialize Unified 3D Scene
   useEffect(() => {
     if (!containerRef.current) return;
@@ -61,6 +69,9 @@ export const BadgeWallReturnCeremonyView: React.FC<BadgeWallReturnCeremonyViewPr
     scene.playbackSpeed = playbackSpeed;
     scene.overshootElasticity = elasticity;
     scene.vibrationIntensity = vibration;
+    scene.springDamping = springDamping;
+    scene.springStiffness = springStiffness;
+    scene.springMass = springMass;
 
     scene.onStateChange = (state, badge) => {
       setSpatialState(state);
@@ -99,8 +110,11 @@ export const BadgeWallReturnCeremonyView: React.FC<BadgeWallReturnCeremonyViewPr
       sceneRef.current.playbackSpeed = playbackSpeed;
       sceneRef.current.overshootElasticity = elasticity;
       sceneRef.current.vibrationIntensity = vibration;
+      sceneRef.current.springDamping = springDamping;
+      sceneRef.current.springStiffness = springStiffness;
+      sceneRef.current.springMass = springMass;
     }
-  }, [playbackSpeed, elasticity, vibration]);
+  }, [playbackSpeed, elasticity, vibration, springDamping, springStiffness, springMass]);
 
   // Click slot directly
   const handleSelectSlot = (slotIdx: number) => {
@@ -363,6 +377,103 @@ export const BadgeWallReturnCeremonyView: React.FC<BadgeWallReturnCeremonyViewPr
                   {el.label}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Apple Official Spring Physics Tuning Panel ── */}
+        <div className="p-3 bg-[#0a0d14]/80 rounded-xl border border-white/5 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Gauge className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-xs font-bold text-white">Apple UI 物理弹簧参数 (Spring Physics Integrator)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                阻尼比 ζ = {zeta.toFixed(2)}{' '}
+                {zeta < 0.95 ? '(欠阻尼 · 灵动回弹)' : zeta <= 1.05 ? '(临界阻尼 · 极速贴合)' : '(过阻尼 · 平稳缓沉)'}
+              </span>
+            </div>
+          </div>
+
+          {/* Preset Buttons */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            {[
+              { label: 'Apple 标准弹性', c: 28, k: 380, m: 0.85, desc: 'ζ=0.78 官方轻快质感' },
+              { label: '高灵动回弹', c: 18, k: 420, m: 0.85, desc: 'ζ=0.48 充沛弹性超调' },
+              { label: '临界快速归位', c: 36, k: 380, m: 0.85, desc: 'ζ=1.00 零回弹极速磁吸' },
+              { label: '厚重机械沉稳', c: 48, k: 320, m: 1.30, desc: 'ζ=1.18 强阻尼平稳缓冲' },
+            ].map((preset) => (
+              <button
+                key={preset.label}
+                onClick={() => {
+                  setSpringDamping(preset.c);
+                  setSpringStiffness(preset.k);
+                  setSpringMass(preset.m);
+                }}
+                className={`p-1.5 rounded-lg text-left border transition-all active:scale-95 ${
+                  springDamping === preset.c && springStiffness === preset.k && springMass === preset.m
+                    ? 'bg-amber-400/20 border-amber-400 text-white shadow-sm'
+                    : 'bg-white/5 border-white/5 text-[#8e8e93] hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <div className="text-[11px] font-bold text-amber-300">{preset.label}</div>
+                <div className="text-[9px] text-[#8e8e93]">{preset.desc}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Sliders Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            {/* Damping Slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[#8e8e93]">全局阻尼系数 c (Damping)</span>
+                <span className="font-mono text-amber-400 font-bold">{springDamping} N·s/m</span>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="60"
+                step="2"
+                value={springDamping}
+                onChange={(e) => setSpringDamping(Number(e.target.value))}
+                className="w-full accent-amber-400 cursor-pointer h-1.5 bg-white/10 rounded-lg"
+              />
+            </div>
+
+            {/* Stiffness Slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[#8e8e93]">弹簧刚度 k (Stiffness)</span>
+                <span className="font-mono text-cyan-400 font-bold">{springStiffness} N/m</span>
+              </div>
+              <input
+                type="range"
+                min="150"
+                max="600"
+                step="10"
+                value={springStiffness}
+                onChange={(e) => setSpringStiffness(Number(e.target.value))}
+                className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-white/10 rounded-lg"
+              />
+            </div>
+
+            {/* Mass Slider */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[#8e8e93]">勋章惯性质量 m (Mass)</span>
+                <span className="font-mono text-purple-400 font-bold">{springMass.toFixed(2)} kg</span>
+              </div>
+              <input
+                type="range"
+                min="0.4"
+                max="1.8"
+                step="0.05"
+                value={springMass}
+                onChange={(e) => setSpringMass(parseFloat(e.target.value))}
+                className="w-full accent-purple-400 cursor-pointer h-1.5 bg-white/10 rounded-lg"
+              />
             </div>
           </div>
         </div>

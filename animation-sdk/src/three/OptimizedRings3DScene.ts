@@ -222,12 +222,38 @@ export class OptimizedRings3DScene {
   private sparkBaseWidths = new Float32Array(this.MAX_INSTANCED_SPARKS);
   private sparkTypes = new Uint8Array(this.MAX_INSTANCED_SPARKS); // 0: White-Hot, 1: Molten Gold, 2: Fire Orange, 3: Ring Accent
   private activeSparkCount = 0;
+  private sparkPoolCursor = 0;
+
+  /**
+   * Zero-Allocation Particle Object Pool Slot Recycler
+   * Reuses dead/expired particle slots first; if all slots are active, recycles oldest slots in circular order.
+   * Completely eliminates heap allocations & GC micro-stutters during continuous fireworks!
+   */
+  private acquireSparkSlot(): number {
+    for (let i = 0; i < this.MAX_INSTANCED_SPARKS; i++) {
+      const slot = (this.sparkPoolCursor + i) % this.MAX_INSTANCED_SPARKS;
+      if (this.sparkLifespans[slot] <= 0) {
+        this.sparkPoolCursor = (slot + 1) % this.MAX_INSTANCED_SPARKS;
+        return slot;
+      }
+    }
+    // Pool 100% full with active particles: overwrite oldest slot at cursor
+    const slot = this.sparkPoolCursor;
+    this.sparkPoolCursor = (this.sparkPoolCursor + 1) % this.MAX_INSTANCED_SPARKS;
+    return slot;
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // 3D Self-Rotation & Staged Timing State
   // ─────────────────────────────────────────────────────────────────────────
   public isAllClosed = false;
+  public ringHighlightIntensities: [number, number, number] = [0, 0, 0];
   public isSpinning = false;
+  public isDecelerating = false;
+  private decelerationCallback?: () => void;
+  private decelerationTargetYaw = 0;
+  private fireworkAccumulator = 0;
+  public onTapRing?: () => void;
   public spinSpeed: Rings3DSpinSpeed = 'turbo';
   public spinAngleY = 0;
   public currentYawVelocity = 0;
@@ -339,17 +365,17 @@ export class OptimizedRings3DScene {
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.35;
+    this.renderer.toneMappingExposure = 1.05;
     this.renderer.setClearColor(0x000000, 0.0);
 
     this.container.innerHTML = '';
     this.container.appendChild(this.renderer.domElement);
 
     // Studio Ambient & Directional Lighting
-    const amb = new THREE.AmbientLight(0xffffff, 0.95);
+    const amb = new THREE.AmbientLight(0xffffff, 0.75);
     this.scene.add(amb);
 
-    this.keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    this.keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
     this.keyLight.position.set(2.4, 3.8, 4.2);
     this.scene.add(this.keyLight);
 
@@ -396,9 +422,9 @@ export class OptimizedRings3DScene {
      */
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(width, height),
-      0.65, // strength
-      0.30, // radius
-      0.82  // threshold
+      0.25, // strength (cut in half: extremely subtle, crisp specular accents)
+      0.25, // radius
+      0.78  // threshold (strictly filters out ring surfaces so main ring colors are deep and sharp)
     );
 
     // Unified Single-Pass Kinematic Motion Blur & Centrifugal Deformation Pass
@@ -496,10 +522,13 @@ export class OptimizedRings3DScene {
 
     this.ringNormalTexture = this.createRingNormalMap();
 
-    // High-Precision Apple Metallic Physical Material with Studio HDRi Reflections
+    // High-Precision Apple Metallic Physical Material with Studio HDRi Reflections & Controlled Breathing
     const planeGeo = new THREE.PlaneGeometry(3.6, 3.6);
     this.ringMaterial = new THREE.MeshPhysicalMaterial({
       map: this.ringTexture,
+      emissiveMap: this.ringTexture,
+      emissive: new THREE.Color(0x222222), // Ultra-subtle dark emissive tint
+      emissiveIntensity: 0.05,
       normalMap: this.ringNormalTexture,
       normalScale: new THREE.Vector2(0.65, 0.65),
       transparent: true,
@@ -517,6 +546,14 @@ export class OptimizedRings3DScene {
 
     this.mainRingMesh = new THREE.Mesh(planeGeo, this.ringMaterial);
     this.ringsGroup.add(this.mainRingMesh);
+
+    // Apply Dynamic View-Angle Metallic Luster & Anisotropic Grazing Sheen
+    this.sharedMaterials.applyDynamicFresnel(this.ringMaterial, {
+      fresnelColor: 0xffffff,
+      intensity: 1.25,
+      power: 2.8,
+      bias: 0.10,
+    });
   }
 
   /**
@@ -531,7 +568,7 @@ export class OptimizedRings3DScene {
 
     ctx.clearRect(0, 0, size, size);
 
-    this.ringConfigs.forEach((ring) => {
+    this.ringConfigs.forEach((ring, index) => {
       const radius = ring.radius;
       const w = ring.width;
       const pct = ring.pct;
@@ -590,6 +627,34 @@ export class OptimizedRings3DScene {
       ctx.shadowBlur = 10;
       ctx.stroke();
       ctx.restore();
+
+      // 3.5 Ring Body Instant Closure Highlight Glow Effect (闭合瞬间环体高亮)
+      const hl = this.ringHighlightIntensities[index] || 0;
+      if (hl > 0) {
+        // Outer intense bloom aura
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startAngle, endAngle);
+        ctx.strokeStyle = ring.glowColor;
+        ctx.lineWidth = w + hl * 22;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 36 * hl;
+        ctx.globalAlpha = hl * 0.9;
+        ctx.stroke();
+        ctx.restore();
+
+        // White-hot core flash stroke
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startAngle, endAngle);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = w * 0.45;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 18 * hl;
+        ctx.globalAlpha = hl * 0.95;
+        ctx.stroke();
+        ctx.restore();
+      }
 
       // 4. Multi-Lap Overlap with Cast Shadow (>100%)
       if (pct > 100) {
@@ -658,14 +723,14 @@ export class OptimizedRings3DScene {
   // Tapered aerodynamic needle droplet that stretches along the velocity vector
   // ─────────────────────────────────────────────────────────────────────────
   private initBlacksmithMoltenSparksSystem() {
-    // Custom tapered aerodynamic molten needle
+    // Custom tapered aerodynamic molten needle (Enlarged 4x for thick, prominent, blazing firework sparks)
     const sparkGeo = new THREE.BufferGeometry();
     // 4 vertices forming a diamond needle (pointed head, wide mid-section, tapered tail)
     const vertices = new Float32Array([
-      0, 0.045, 0,    // 0: Pointed leading head
-      -0.009, 0.012, 0, // 1: Left shoulder
-      0.009, 0.012, 0,  // 2: Right shoulder
-      0, -0.045, 0,   // 3: Tapered trailing tail
+      0, 0.18, 0,       // 0: Pointed leading head
+      -0.038, 0.045, 0, // 1: Left shoulder
+      0.038, 0.045, 0,  // 2: Right shoulder
+      0, -0.18, 0,      // 3: Tapered trailing tail
     ]);
     const indices = new Uint16Array([
       0, 1, 2, // Top triangle
@@ -736,21 +801,24 @@ export class OptimizedRings3DScene {
    */
   public triggerStagedClosureCelebration() {
     this.isAllClosed = true;
+    this.isSpinning = true;
+    this.targetTiltX = 0.28; // Immediate 3D perspective isometric elevation!
+    this.currentYawVelocity = 4.8; // Immediate high-speed self-rotation acceleration!
+    this.isPreSpinErupting = false;
+    this.isVortexBursted = true;
+    this.vortexStartTime = performance.now();
 
-    // 1. Immediately Erupt Molten Iron Sparks with LOD Scaling WHILE FLAT
-    this.spawnBlacksmithMoltenSparks(2200);
+    // 1. Initial massive fireworks burst (2,400 sparks)
+    this.spawnBlacksmithMoltenSparks(2400);
 
     // Audio & Haptic impact
-    badgeAudio.playSparksEruption();
-    badgeAudio.playBurst();
+    if (this.soundEnabled) {
+      badgeAudio.playSparksEruption();
+      badgeAudio.playBurst();
+      badgeAudio.playTurbineAcceleration();
+      badgeAudio.playSpinWhoosh(1.4);
+    }
     triggerHaptic('success');
-
-    // Pre-Spin Timer: Rings stay flat front for 650ms so user VIVIDLY SEES molten iron spray!
-    this.isPreSpinErupting = true;
-    this.preSpinStartTime = performance.now();
-    this.isSpinning = false;
-    this.targetTiltX = 0;
-    this.currentYawVelocity = 0;
   }
 
   /**
@@ -796,6 +864,7 @@ export class OptimizedRings3DScene {
     const radii3D = [1.195, 0.942, 0.689];
 
     for (let i = 0; i < totalToSpawn; i++) {
+      const slot = this.acquireSparkSlot();
       const ringIdx = i % 3;
       const R = radii3D[ringIdx] + (Math.random() - 0.5) * 0.06;
       const theta = Math.random() * Math.PI * 2;
@@ -805,45 +874,45 @@ export class OptimizedRings3DScene {
       const y0 = Math.sin(theta) * R;
       const z0 = (Math.random() - 0.5) * 0.15;
 
-      this.sparkPositions[i * 3] = x0;
-      this.sparkPositions[i * 3 + 1] = y0;
-      this.sparkPositions[i * 3 + 2] = z0;
+      this.sparkPositions[slot * 3] = x0;
+      this.sparkPositions[slot * 3 + 1] = y0;
+      this.sparkPositions[slot * 3 + 2] = z0;
 
       // Violent molten iron explosion velocity: Radial splatter + tangential fling + forward Z kick!
-      const burstSpeed = 4.5 + Math.random() * 6.5; // Fast initial velocity!
-      const tangentFling = (Math.random() - 0.5) * 2.8;
-      const zSpread = 0.8 + Math.random() * 4.2; // Shooting directly forward towards viewer!
+      const burstSpeed = 6.8 + Math.random() * 8.5; // Fast initial explosive velocity!
+      const tangentFling = (Math.random() - 0.5) * 4.2;
+      const zSpread = 1.2 + Math.random() * 5.8; // Shooting directly forward towards viewer!
 
       const vx = Math.cos(theta) * burstSpeed - Math.sin(theta) * tangentFling;
       const vy = Math.sin(theta) * burstSpeed + Math.cos(theta) * tangentFling;
       const vz = zSpread;
 
-      this.sparkVelocities[i * 3] = vx;
-      this.sparkVelocities[i * 3 + 1] = vy;
-      this.sparkVelocities[i * 3 + 2] = vz;
+      this.sparkVelocities[slot * 3] = vx;
+      this.sparkVelocities[slot * 3 + 1] = vy;
+      this.sparkVelocities[slot * 3 + 2] = vz;
 
       // Spark thermal color type
       const rand = Math.random();
       if (rand < 0.35) {
-        this.sparkTypes[i] = 0; // Blinding White-Hot Incandescent (#FFFFFF)
-        this.sparkInstancedMesh.setColorAt(i, _colorScratch.setHex(0xffffff));
+        this.sparkTypes[slot] = 0; // Blinding White-Hot Incandescent (#FFFFFF)
+        this.sparkInstancedMesh.setColorAt(slot, _colorScratch.setHex(0xffffff));
       } else if (rand < 0.70) {
-        this.sparkTypes[i] = 1; // 24K Molten Gold (#FFD24D)
-        this.sparkInstancedMesh.setColorAt(i, _colorScratch.setHex(0xffc83b));
+        this.sparkTypes[slot] = 1; // 24K Molten Gold (#FFD24D)
+        this.sparkInstancedMesh.setColorAt(slot, _colorScratch.setHex(0xffc83b));
       } else if (rand < 0.88) {
-        this.sparkTypes[i] = 2; // Forged Molten Orange (#FF7700)
-        this.sparkInstancedMesh.setColorAt(i, _colorScratch.setHex(0xff6e14));
+        this.sparkTypes[slot] = 2; // Forged Molten Orange (#FF7700)
+        this.sparkInstancedMesh.setColorAt(slot, _colorScratch.setHex(0xff6e14));
       } else {
-        this.sparkTypes[i] = 3; // Apple Ring Accent (Carmine/Lime/Cyan)
+        this.sparkTypes[slot] = 3; // Apple Ring Accent (Carmine/Lime/Cyan)
         const accentCol = ringIdx === 0 ? 0xff1453 : ringIdx === 1 ? 0xa6ff00 : 0x00f0ff;
-        this.sparkInstancedMesh.setColorAt(i, _colorScratch.setHex(accentCol));
+        this.sparkInstancedMesh.setColorAt(slot, _colorScratch.setHex(accentCol));
       }
 
-      const life = 0.95 + Math.random() * 1.5; // seconds
-      this.sparkLifespans[i] = life;
-      this.sparkMaxLife[i] = life;
-      this.sparkBaseLengths[i] = 0.08 + Math.random() * 0.08;
-      this.sparkBaseWidths[i] = 0.016 + Math.random() * 0.012;
+      const life = 1.1 + Math.random() * 1.6; // seconds
+      this.sparkLifespans[slot] = life;
+      this.sparkMaxLife[slot] = life;
+      this.sparkBaseLengths[slot] = 0.22 + Math.random() * 0.25;
+      this.sparkBaseWidths[slot] = 0.045 + Math.random() * 0.035;
     }
 
     // Hide inactive instances beyond current LOD budget to prevent ghost render
@@ -874,11 +943,9 @@ export class OptimizedRings3DScene {
     const tipY = Math.sin(tipAngle) * ringR;
 
     const accentCol = ringIdx === 0 ? 0xff1453 : ringIdx === 1 ? 0x30d158 : 0x00f0ff;
-    const startSlot = this.activeSparkCount % this.MAX_INSTANCED_SPARKS;
-    const spawnNum = Math.min(effectiveCount, this.MAX_INSTANCED_SPARKS - this.activeSparkCount);
 
-    for (let i = 0; i < spawnNum; i++) {
-      const slot = (startSlot + i) % this.MAX_INSTANCED_SPARKS;
+    for (let i = 0; i < effectiveCount; i++) {
+      const slot = this.acquireSparkSlot();
       this.sparkPositions[slot * 3] = tipX + (Math.random() - 0.5) * 0.04;
       this.sparkPositions[slot * 3 + 1] = tipY + (Math.random() - 0.5) * 0.04;
       this.sparkPositions[slot * 3 + 2] = (Math.random() - 0.5) * 0.06;
@@ -905,7 +972,89 @@ export class OptimizedRings3DScene {
       this.sparkTypes[slot] = 3;
     }
 
-    this.activeSparkCount = Math.min(this.MAX_INSTANCED_SPARKS, this.activeSparkCount + spawnNum);
+    this.sparkInstancedMesh.instanceMatrix.needsUpdate = true;
+    if (this.sparkInstancedMesh.instanceColor) {
+      this.sparkInstancedMesh.instanceColor.needsUpdate = true;
+    }
+  }
+
+  /**
+   * Trigger Ring Body Highlight Glow Effect at the instant of closure
+   * ringIdx: 0 (Move), 1 (Exercise), 2 (Stand), or -1 (All 3 Rings)
+   */
+  public triggerRingHighlightGlow(ringIdx: number = -1) {
+    if (ringIdx === -1) {
+      this.ringHighlightIntensities = [1.0, 1.0, 1.0];
+      if (this.sparkFlashLight) this.sparkFlashLight.intensity = 18.0;
+    } else if (ringIdx >= 0 && ringIdx < 3) {
+      this.ringHighlightIntensities[ringIdx] = 1.0;
+      if (this.sparkFlashLight) this.sparkFlashLight.intensity = 12.0;
+    }
+    this.drawNativeAppleFitnessRingsCanvas();
+  }
+
+  /**
+   * Continuous 360° Fireworks Fountain Emission
+   * Keeps fireworks constantly erupting across all 3 rings indefinitely while closed/spinning!
+   * Recycles dead slots using zero-allocation pool to prevent GC lag spikes.
+   */
+  public emitContinuousFireworksFountain(rate: number = 6) {
+    if (this.MAX_INSTANCED_SPARKS <= 0) return;
+
+    const densityFactor = this.getEffectiveLODDensityFactor();
+    const effectiveRate = Math.max(1, Math.round(rate * densityFactor));
+
+    const radii3D = [1.195, 0.942, 0.689];
+    const ringAccents = [0xff1453, 0x30d158, 0x00f0ff]; // Carmine, Lime, Cyan ring colors
+    const thermalColors = [0xffffff, 0xffd24d, 0xff6e14];
+
+    for (let r = 0; r < 3; r++) {
+      const R = radii3D[r];
+
+      for (let s = 0; s < effectiveRate; s++) {
+        const slot = this.acquireSparkSlot();
+        const theta = Math.random() * Math.PI * 2; // Full 360 degree ring contour!
+
+        // Spawn position along 3D ring contour
+        const px = Math.cos(theta) * R + (Math.random() - 0.5) * 0.04;
+        const py = Math.sin(theta) * R + (Math.random() - 0.5) * 0.04;
+        const pz = (Math.random() - 0.5) * 0.12;
+
+        this.sparkPositions[slot * 3] = px;
+        this.sparkPositions[slot * 3 + 1] = py;
+        this.sparkPositions[slot * 3 + 2] = pz;
+
+        // Radial outward + tangential spinning fling + forward Z kick
+        const speed = 3.2 + Math.random() * 5.5;
+        const tangentFling = (Math.random() - 0.5) * 3.0;
+        const zKick = 0.8 + Math.random() * 3.5;
+
+        const vx = Math.cos(theta) * speed - Math.sin(theta) * tangentFling;
+        const vy = Math.sin(theta) * speed + Math.cos(theta) * tangentFling;
+        const vz = zKick;
+
+        this.sparkVelocities[slot * 3] = vx;
+        this.sparkVelocities[slot * 3 + 1] = vy;
+        this.sparkVelocities[slot * 3 + 2] = vz;
+
+        // Rich thermal + ring color palette
+        const rand = Math.random();
+        let colHex = thermalColors[s % thermalColors.length];
+        if (rand < 0.28) {
+          colHex = ringAccents[r]; // Red/Green/Cyan spark accents matching ring!
+        }
+        this.sparkInstancedMesh.setColorAt(slot, _colorScratch.setHex(colHex));
+
+        const life = 0.6 + Math.random() * 0.7; // Continuous refresh
+        this.sparkLifespans[slot] = life;
+        this.sparkMaxLife[slot] = life;
+        this.sparkBaseLengths[slot] = 0.18 + Math.random() * 0.20;
+        this.sparkBaseWidths[slot] = 0.04 + Math.random() * 0.03;
+        this.sparkTypes[slot] = 1;
+      }
+    }
+
+    this.sparkInstancedMesh.instanceMatrix.needsUpdate = true;
     if (this.sparkInstancedMesh.instanceColor) {
       this.sparkInstancedMesh.instanceColor.needsUpdate = true;
     }
@@ -916,8 +1065,6 @@ export class OptimizedRings3DScene {
    * Emitted continuously from spinning ring tips tangentially into space!
    */
   public emitCentrifugalFlungSparks(rate: number = 3) {
-    if (this.activeSparkCount >= this.MAX_INSTANCED_SPARKS - 12) return;
-
     const densityFactor = this.getEffectiveLODDensityFactor();
     const effectiveRate = Math.max(1, Math.round(rate * densityFactor));
 
@@ -934,7 +1081,7 @@ export class OptimizedRings3DScene {
       const tipY = Math.sin(tipAngle) * R;
 
       for (let s = 0; s < effectiveRate; s++) {
-        const slot = (this.activeSparkCount + s) % this.MAX_INSTANCED_SPARKS;
+        const slot = this.acquireSparkSlot();
         this.sparkPositions[slot * 3] = tipX + (Math.random() - 0.5) * 0.05;
         this.sparkPositions[slot * 3 + 1] = tipY + (Math.random() - 0.5) * 0.05;
         this.sparkPositions[slot * 3 + 2] = (Math.random() - 0.5) * 0.08;
@@ -957,9 +1104,9 @@ export class OptimizedRings3DScene {
         this.sparkBaseWidths[slot] = 0.016;
         this.sparkTypes[slot] = 1;
       }
-      this.activeSparkCount = Math.min(this.MAX_INSTANCED_SPARKS, this.activeSparkCount + effectiveRate);
     }
 
+    this.sparkInstancedMesh.instanceMatrix.needsUpdate = true;
     if (this.sparkInstancedMesh.instanceColor) {
       this.sparkInstancedMesh.instanceColor.needsUpdate = true;
     }
@@ -987,7 +1134,7 @@ export class OptimizedRings3DScene {
     const caliperAngles = [Math.PI * 0.72, -Math.PI * 0.28, Math.PI * 0.15];
 
     for (let i = 0; i < effectiveCount; i++) {
-      const slot = (startSlot + i) % this.MAX_INSTANCED_SPARKS;
+      const slot = this.acquireSparkSlot();
       const ringIdx = i % 3;
       const ringR = radii3D[ringIdx];
       const baseAngle = caliperAngles[ringIdx % caliperAngles.length];
@@ -1047,9 +1194,15 @@ export class OptimizedRings3DScene {
 
   private bindEvents() {
     const el = this.renderer.domElement;
+    let downTime = 0;
+    let downX = 0;
+    let downY = 0;
 
     el.addEventListener('pointerdown', (e: PointerEvent) => {
       this.isDragging = true;
+      downTime = performance.now();
+      downX = e.clientX;
+      downY = e.clientY;
       this.prevPointerX = e.clientX;
       this.prevPointerY = e.clientY;
       this.pointerVelocityX = 0;
@@ -1079,9 +1232,21 @@ export class OptimizedRings3DScene {
       this.prevPointerY = e.clientY;
     });
 
-    window.addEventListener('pointerup', () => {
+    window.addEventListener('pointerup', (e: PointerEvent) => {
       if (this.isDragging) {
         this.isDragging = false;
+        const dist = Math.hypot(e.clientX - downX, e.clientY - downY);
+        const elapsed = performance.now() - downTime;
+
+        // Click / tap detection on 3D rings body
+        if (dist < 8 && elapsed < 320) {
+          if (this.isSpinning && this.isPointerOnRing(e)) {
+            if (this.onTapRing) this.onTapRing();
+            else this.startSmoothDecelerationExit();
+          }
+          return;
+        }
+
         const throwSpeed = Math.hypot(this.pointerVelocityX, this.pointerVelocityY);
 
         // High-velocity throw triggers racing brake friction sparks spray
@@ -1108,6 +1273,22 @@ export class OptimizedRings3DScene {
       }
     });
     ro.observe(this.container);
+  }
+
+  private isPointerOnRing(e: PointerEvent): boolean {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const pointer = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(pointer, this.camera);
+    const hit = raycaster.intersectObject(this.mainRingMesh, false)[0];
+    if (!hit?.uv) return false;
+    const x = (hit.uv.x - 0.5) * this.canvasSize;
+    const y = (hit.uv.y - 0.5) * this.canvasSize;
+    const distance = Math.hypot(x, y);
+    return this.ringConfigs.some((ring) => Math.abs(distance - ring.radius) <= ring.width * 0.72);
   }
 
   private startLoop() {
@@ -1154,24 +1335,120 @@ export class OptimizedRings3DScene {
         }
       }
 
-      const targetVelocity = this.isAllClosed && this.isSpinning ? baseSpeed : 0;
-      this.currentYawVelocity += (targetVelocity - this.currentYawVelocity) * (dt * 4.5);
+      if (this.isSpinning && this.targetTiltX === 0) {
+        this.targetTiltX = 0.28;
+      }
 
-      // Smooth 3D perspective tilt
-      this.currentTiltX += (this.targetTiltX - this.currentTiltX) * (dt * 5.0);
-      this.ringsContainer.rotation.x = this.currentTiltX;
+      if (this.isDecelerating) {
+        // Apply friction braking to yaw velocity (exponential decay)
+        this.currentYawVelocity *= Math.exp(-3.2 * dt);
 
-      // ─────────────────────────────────────────────────────────────────────
-      // 3. 3D Self-Rotation around Y-axis (像六边形装配那样的自转)
-      // ─────────────────────────────────────────────────────────────────────
-      if (Math.abs(this.currentYawVelocity) > 0.001) {
+        // Advance angle with decaying velocity
         this.spinAngleY += this.currentYawVelocity * dt;
+
+        // Only align to the front as momentum fades; never restart a closure.
+        const alignment = (1 - Math.exp(-4.0 * dt)) * Math.max(0, 1 - Math.abs(this.currentYawVelocity) / 0.75);
+        this.spinAngleY += (this.decelerationTargetYaw - this.spinAngleY) * alignment;
+
+        // Smoothly return 3D tilt X to 0 (flat facing)
+        this.currentTiltX += (0 - this.currentTiltX) * (dt * 4.5);
+        this.ringsContainer.rotation.x = this.currentTiltX;
+
         this.ringsGroup.rotation.y = this.spinAngleY;
-        this.ringsGroup.rotation.z = Math.sin(this.idleTime * 1.5) * 0.03;
+        this.ringsGroup.rotation.z *= Math.exp(-4.0 * dt);
+
+        // Check if rotation has come to complete standstill
+        if (
+          Math.abs(this.currentYawVelocity) < 0.015 &&
+          Math.abs(this.spinAngleY - this.decelerationTargetYaw) < 0.015 &&
+          Math.abs(this.currentTiltX) < 0.005
+        ) {
+          this.isDecelerating = false;
+          this.currentYawVelocity = 0;
+          this.spinAngleY = 0;
+          this.currentTiltX = 0;
+          this.ringsContainer.rotation.set(0, 0, 0);
+          this.ringsGroup.rotation.set(0, 0, 0);
+          this.targetQuat.identity();
+          this.currentQuat.identity();
+
+          if (this.decelerationCallback) {
+            const cb = this.decelerationCallback;
+            this.decelerationCallback = undefined;
+            cb();
+          }
+        }
       } else {
-        this.spinAngleY *= Math.exp(-6.0 * dt);
-        this.ringsGroup.rotation.y = this.spinAngleY;
-        this.ringsGroup.rotation.z = 0;
+        const targetVelocity = this.isSpinning ? baseSpeed : 0;
+        this.currentYawVelocity += (targetVelocity - this.currentYawVelocity) * (dt * 4.5);
+
+        // Smooth 3D perspective tilt
+        this.currentTiltX += (this.targetTiltX - this.currentTiltX) * (dt * 5.0);
+        this.ringsContainer.rotation.x = this.currentTiltX;
+
+        // 3D Self-Rotation around Y-axis
+        if (Math.abs(this.currentYawVelocity) > 0.001) {
+          this.spinAngleY += this.currentYawVelocity * dt;
+          this.ringsGroup.rotation.y = this.spinAngleY;
+          this.ringsGroup.rotation.z = Math.sin(this.idleTime * 1.5) * 0.03;
+        } else {
+          this.spinAngleY *= Math.exp(-6.0 * dt);
+          this.ringsGroup.rotation.y = this.spinAngleY;
+          this.ringsGroup.rotation.z = 0;
+        }
+      }
+
+      // Continuous Fireworks Fountain & Centrifugal Flung Sparks while spinning
+      if (this.isSpinning || this.isDecelerating) {
+        this.fireworkAccumulator = Math.min(3, this.fireworkAccumulator + dt * 60);
+        while (this.fireworkAccumulator >= 1) {
+          this.fireworkAccumulator -= 1;
+          if (this.isSpinning) {
+            this.emitContinuousFireworksFountain(6);
+            this.emitCentrifugalFlungSparks(3);
+          } else {
+            const speedRatio = Math.min(1, Math.abs(this.currentYawVelocity) / 3.6);
+            if (speedRatio > 0.08) this.emitContinuousFireworksFountain(Math.max(1, Math.round(5 * speedRatio)));
+          }
+        }
+      }
+
+      // Smoothly decay ring body highlight intensities
+      let needsRedrawGlow = false;
+      for (let i = 0; i < 3; i++) {
+        if (this.ringHighlightIntensities[i] > 0) {
+          this.ringHighlightIntensities[i] = Math.max(0, this.ringHighlightIntensities[i] - dt * 2.2);
+          needsRedrawGlow = true;
+        }
+      }
+      if (needsRedrawGlow) {
+        this.drawNativeAppleFitnessRingsCanvas();
+      }
+      if (this.sparkFlashLight && this.sparkFlashLight.intensity > 0) {
+        this.sparkFlashLight.intensity *= Math.exp(-6.0 * dt);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // 3.5. Optimized Sine Breathing Light Effect mapped to emissiveIntensity
+      //      Rhythm matched with firework sparks eruption frequency
+      // ─────────────────────────────────────────────────────────────────────
+      // Base frequency w = 3.8 rad/s (Period T ~ 1.65s, matching 1.5s spark lifespan)
+      // Fundamental + 2nd harmonic (7.6 rad/s) for natural incandescent pulsing
+      const sineBase = Math.sin(this.idleTime * 3.8);
+      const sineHarmonic = Math.sin(this.idleTime * 7.6 + 0.5) * 0.32;
+      const breathingPulse = (sineBase + sineHarmonic) * 0.5 + 0.5; // Normalized [0, 1]
+
+      // Ultra-subtle, minimal emissive range (reduced by half)
+      let targetEmissive = 0.02 + breathingPulse * 0.05; // Normal idle range: 0.02 ~ 0.07
+
+      // During active fireworks eruption (subtle pulse boost, peak max: 0.15)
+      if (this.isPreSpinErupting || this.isVortexBursted || this.activeSparkCount > 0) {
+        const sparkRatio = Math.min(1.0, this.activeSparkCount / 1200);
+        targetEmissive = 0.05 + breathingPulse * 0.06 + sparkRatio * 0.04; // Peak max: 0.15
+      }
+
+      if (this.ringMaterial) {
+        this.ringMaterial.emissiveIntensity = targetEmissive;
       }
 
       // ─────────────────────────────────────────────────────────────────────
@@ -1236,11 +1513,6 @@ export class OptimizedRings3DScene {
       // 5. Update Blacksmith Molten Sparks Physics (Velocity-Stretched Needles)
       // ─────────────────────────────────────────────────────────────────────
       this.updateBlacksmithSparksPhysics(dt);
-
-      // Centrifugal sparks flung outward while rotating at high speed
-      if (this.isSpinning && Math.abs(this.currentYawVelocity) > 2.5) {
-        this.emitCentrifugalFlungSparks(2);
-      }
 
       // ─────────────────────────────────────────────────────────────────────
       // 6. Unified Single-Pass Motion Blur & Post-Processing Bloom Pipeline
@@ -1316,10 +1588,16 @@ export class OptimizedRings3DScene {
       aliveCount++;
       const lifeRatio = this.sparkLifespans[i] / this.sparkMaxLife[i];
 
-      // 1. Velocity decay by air drag & gravity
+      // 1. Velocity decay by air drag & gravity + Hot-air thermal buoyancy lift
       let vx = this.sparkVelocities[i * 3] * airDrag;
       let vy = (this.sparkVelocities[i * 3 + 1] + gravity) * airDrag;
       let vz = this.sparkVelocities[i * 3 + 2] * airDrag;
+
+      // Super-heated sparks experience initial thermal hot-air plume updraft
+      if (lifeRatio > 0.40) {
+        const thermalBuoyancy = 3.6 * (lifeRatio - 0.40);
+        vy += thermalBuoyancy * dt;
+      }
 
       let px = this.sparkPositions[i * 3];
       let py = this.sparkPositions[i * 3 + 1];
@@ -1399,10 +1677,10 @@ export class OptimizedRings3DScene {
       }
     }
 
-    // Dynamic Flash Point Light update
+    // Dynamic Flash Point Light update (subtle spark fill)
     if (this.sparkFlashLight) {
       const sparkRatio = aliveCount / Math.max(1, this.MAX_INSTANCED_SPARKS);
-      this.sparkFlashLight.intensity = Math.min(7.0, sparkRatio * 9.5);
+      this.sparkFlashLight.intensity = Math.min(1.5, sparkRatio * 2.2);
     }
 
     if (aliveCount > 0) {
@@ -1441,10 +1719,34 @@ export class OptimizedRings3DScene {
     this.resetTo2DFlat();
   }
 
+  /**
+   * 平滑减速停下动画 (Smooth Mechanical Deceleration Exit)
+   * 点击三环或关闭时，停止持续喷发烟花，三环旋转平滑施加阻尼减速归零至静止状态，
+   * 视角平滑回正至 2D 平面原生质感态。
+   */
+  public startSmoothDecelerationExit(onComplete?: () => void) {
+    if (this.isDecelerating) return;
+    this.isSpinning = false;
+    this.isDecelerating = true;
+    this.isVortexBursted = false;
+    this.isPreSpinErupting = false;
+    const stoppingYaw = this.spinAngleY + this.currentYawVelocity / 3.2;
+    this.decelerationTargetYaw = Math.round(stoppingYaw / (Math.PI * 2)) * Math.PI * 2;
+    this.targetTiltX = 0; // Return tilt to 0 (flat front)
+
+    if (this.soundEnabled) {
+      badgeAudio.playSpinDownSound();
+    }
+    triggerHaptic('selection');
+
+    this.decelerationCallback = onComplete;
+  }
+
   public resetTo2DFlat() {
     this.isAllClosed = false;
     this.isPreSpinErupting = false;
     this.isSpinning = false;
+    this.isDecelerating = false;
     this.targetTiltX = 0;
     this.currentTiltX = 0;
     this.spinAngleY = 0;

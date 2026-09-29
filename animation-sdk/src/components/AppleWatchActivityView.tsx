@@ -97,6 +97,34 @@ export const AppleWatchActivityView: React.FC<AppleWatchActivityViewProps> = ({
     stageTimerRef.current = [];
   };
 
+  // 点击三环退出自转，平滑减速归零回到静态原生三环态
+  const exitCelebration = useCallback(() => {
+    clearAllTimers();
+    const checkComplete = () => {
+      setCelebrationStage('idle');
+      setAnimatedPcts([ringPcts[0], ringPcts[1], ringPcts[2]]);
+    };
+
+    let has3DScene = false;
+    if (scene3DWatchRef.current) {
+      has3DScene = true;
+      scene3DWatchRef.current.startSmoothDecelerationExit(checkComplete);
+    }
+    if (scene3DFullscreenRef.current) {
+      has3DScene = true;
+      scene3DFullscreenRef.current.startSmoothDecelerationExit(checkComplete);
+    }
+
+    if (!has3DScene) {
+      setCelebrationStage('idle');
+      setAnimatedPcts([ringPcts[0], ringPcts[1], ringPcts[2]]);
+      if (soundEnabled) {
+        badgeAudio.playClick(1.2);
+      }
+      triggerHaptic('tap');
+    }
+  }, [ringPcts, soundEnabled]);
+
   // ───────────────────────────────────────────────────────────────────────────
   // 1. Initialize Three.js 3D Scenes for Watch Frame & Fullscreen
   // ───────────────────────────────────────────────────────────────────────────
@@ -106,6 +134,9 @@ export const AppleWatchActivityView: React.FC<AppleWatchActivityViewProps> = ({
         const scene = new OptimizedRings3DScene(watchThreeContainerRef.current, sharedMaterials);
         scene.spinSpeed = spinSpeed;
         scene.updateRingPercentages(animatedPcts[0], animatedPcts[1], animatedPcts[2], false);
+        scene.onTapRing = () => {
+          exitCelebration();
+        };
         scene3DWatchRef.current = scene;
       }
     }
@@ -116,7 +147,7 @@ export const AppleWatchActivityView: React.FC<AppleWatchActivityViewProps> = ({
         scene3DWatchRef.current = null;
       }
     };
-  }, [sharedMaterials]);
+  }, [sharedMaterials, exitCelebration]);
 
   useEffect(() => {
     if (displayMode === 'fullscreen' && fullscreenThreeContainerRef.current) {
@@ -124,6 +155,9 @@ export const AppleWatchActivityView: React.FC<AppleWatchActivityViewProps> = ({
         const scene = new OptimizedRings3DScene(fullscreenThreeContainerRef.current, sharedMaterials);
         scene.spinSpeed = spinSpeed;
         scene.updateRingPercentages(animatedPcts[0], animatedPcts[1], animatedPcts[2], false);
+        scene.onTapRing = () => {
+          exitCelebration();
+        };
         scene3DFullscreenRef.current = scene;
       }
     } else {
@@ -132,7 +166,7 @@ export const AppleWatchActivityView: React.FC<AppleWatchActivityViewProps> = ({
         scene3DFullscreenRef.current = null;
       }
     }
-  }, [displayMode, sharedMaterials]);
+  }, [displayMode, sharedMaterials, exitCelebration]);
 
   // Sync spin speed to both 3D scenes
   useEffect(() => {
@@ -296,25 +330,6 @@ export const AppleWatchActivityView: React.FC<AppleWatchActivityViewProps> = ({
 
     requestAnimationFrame(animateRings);
   }, [ringPcts, soundEnabled, displayMode, triggerActiveBlasts, celebrationStage]);
-
-  // 点击三环退出自转，平滑回到静态原生三环态
-  const exitCelebration = useCallback(() => {
-    clearAllTimers();
-    if (scene3DWatchRef.current) {
-      scene3DWatchRef.current.resetTo2DFlat();
-      scene3DWatchRef.current.isSpinning = false;
-    }
-    if (scene3DFullscreenRef.current) {
-      scene3DFullscreenRef.current.resetTo2DFlat();
-      scene3DFullscreenRef.current.isSpinning = false;
-    }
-    setCelebrationStage('idle');
-    setAnimatedPcts([ringPcts[0], ringPcts[1], ringPcts[2]]);
-    if (soundEnabled) {
-      badgeAudio.playClick(1.2);
-    }
-    triggerHaptic('tap');
-  }, [ringPcts, soundEnabled]);
 
   // Initial trigger on mount
   useEffect(() => {

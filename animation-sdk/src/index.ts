@@ -19,6 +19,7 @@
  */
 
 // UI View Components
+export { UnifiedAwardCeremonyFlowView } from './components/UnifiedAwardCeremonyFlowView';
 export { AppleFitnessRingsView } from './components/AppleFitnessRingsView';
 export { AppleWatchActivityView } from './components/AppleWatchActivityView';
 export { AppleWatchDeviceFrame } from './components/AppleWatchDeviceFrame';
@@ -31,6 +32,10 @@ export { PerformanceHUD } from './components/PerformanceHUD';
 export { OptimizationReportModal } from './components/OptimizationReportModal';
 
 // Three.js 3D Core Engines & Scene Managers
+export {
+  UnifiedAwardCeremonyFlowScene,
+  type UnifiedCeremonyStage,
+} from './three/UnifiedAwardCeremonyFlowScene';
 export { OptimizedRings3DScene, type RingsPerformanceMetrics, type RingsLODMode } from './three/OptimizedRings3DScene';
 export {
   AppleAwardMaterials,

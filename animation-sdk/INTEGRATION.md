@@ -1,6 +1,6 @@
 # Minest animation integration
 
-Source: [peckzou/-](https://github.com/peckzou/-), commit `da4b834` (2026-09-28).
+Source: [peckzou/-](https://github.com/peckzou/-), commit `530162d` (2026-09-28), with Minest continuity and Rings 4.0 interaction adjustments.
 The upstream React/Three.js SDK is kept here as editable source. Vite builds the
 same-origin static app into `../badge-animations/`, which `iphone.html` embeds
 inside Awards. Minest remains usable from a plain static HTTP server.
@@ -12,7 +12,7 @@ pnpm install
 node node_modules/vite/bin/vite.js build
 ```
 
-`?embed=1&tab=rings|summon|pending|reveal|inspector|badgewall|watchos4`
+`?embed=1&tab=rings|unified|summon|pending|reveal|inspector|badgewall|watchos4`
 opens a focused animation. The Rings view accepts `focus`, `checks`, and `goal`
 percentages from the current Minest session. Other views are interactive
 previews. They do not grant awards, alter unlock rules, or write collection

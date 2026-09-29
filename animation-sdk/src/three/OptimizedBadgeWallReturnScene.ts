@@ -67,6 +67,11 @@ export class OptimizedBadgeWallReturnScene {
   public overshootElasticity = 1.0;
   public vibrationIntensity = 1.0;
 
+  // Spring Physics Tuning Parameters
+  public springDamping = 28;    // c: Damping coefficient (N·s/m)
+  public springStiffness = 380;  // k: Spring stiffness (N/m)
+  public springMass = 0.85;      // m: Mass (kg)
+
   // Flight Path Interpolation Vectors
   private flightStartPos = new THREE.Vector3();
   private flightEndPos = new THREE.Vector3();
@@ -575,15 +580,21 @@ export class OptimizedBadgeWallReturnScene {
       }
     }
 
-    // ── STATE: FLYING BACK (Step 2 & 3: 3D Trajectory, Spin, Wall Re-emerges) ──
+      // ── STATE: FLYING BACK (Step 2 & 3: 3D Trajectory, Spin, Wall Re-emerges) ──
     else if (this.currentState === 'flying_back') {
       const actualDuration = Math.max(100, this.animDuration / this.playbackSpeed);
       const p = Math.min(1.0, elapsed / actualDuration);
+
+      // Calculate real-time damping ratio zeta = c / (2 * sqrt(k * m))
+      const zeta = this.springDamping / (2 * Math.sqrt(this.springStiffness * this.springMass));
       
-      // Smooth deceleration curve with magnetic lead-in in final 20%
-      const ease = p < 0.8
-        ? Math.pow(p / 0.8, 0.92) * 0.78
-        : 0.78 + (1.0 - 0.78) * Math.pow((p - 0.8) / 0.2, 1.4);
+      // Dynamic Apple-grade Spring Ease Curve modulated by damping ratio
+      // When zeta < 0.8: snappy swift entry with magnetic suction acceleration
+      // When zeta > 1.0: overdamped gentle smooth deceleration
+      const easePower = THREE.MathUtils.lerp(0.85, 1.25, Math.min(1.5, zeta));
+      const ease = p < 0.82
+        ? Math.pow(p / 0.82, easePower) * 0.80
+        : 0.80 + (1.0 - 0.80) * Math.pow((p - 0.82) / 0.18, 1.35 * zeta);
 
       // 3D Parabolic Arc Trajectory: Curves in X, Y and forward arch in Z
       const curX = THREE.MathUtils.lerp(this.flightStartPos.x, this.flightEndPos.x, ease);
@@ -617,10 +628,11 @@ export class OptimizedBadgeWallReturnScene {
         this.snapFlashLight.intensity = 5.0;
 
         // Initialize Spring ODE with physical parameters & trigger impact haptics at t=0
+        const effectiveDamping = (this.springDamping / Math.max(0.4, this.overshootElasticity));
         this.springIntegrator.configure({
-          mass: 0.85,
-          stiffness: 380,
-          damping: Math.max(14, 28 / Math.max(0.4, this.overshootElasticity)),
+          mass: this.springMass,
+          stiffness: this.springStiffness,
+          damping: effectiveDamping,
           restTolerance: 0.0008,
         });
         this.springIntegrator.reset(1.0, 16.5 * this.overshootElasticity);

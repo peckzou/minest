@@ -18,6 +18,32 @@ class BadgeAudioEngine {
     }
   }
 
+  // Smooth turbine deceleration spin-down acoustic effect
+  playSpinDownSound() {
+    try {
+      this.initCtx();
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      const dur = 0.85;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(420, t);
+      osc.frequency.exponentialRampToValueAtTime(80, t + dur);
+
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + dur + 0.05);
+    } catch {}
+  }
+
   // Metallic tick for bracket dock or rotation click
   playClick(pitch = 1.0) {
     try {
@@ -210,7 +236,7 @@ class BadgeAudioEngine {
     } catch {}
   }
 
-  // All 3 rings closed master celebration flourish
+  // All 3 rings closed master celebration flourish with sub-bass & crystal overtones
   playAllRingsMasterFlourish() {
     try {
       this.initCtx();
@@ -218,9 +244,10 @@ class BadgeAudioEngine {
       const t = this.ctx.currentTime;
       const arpeggio = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98, 2093.0]; // C Major Arpeggio
 
+      // 1. Crystal bell arpeggio notes
       arpeggio.forEach((freq, idx) => {
         if (!this.ctx) return;
-        const noteStart = t + idx * 0.05;
+        const noteStart = t + idx * 0.045;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
 
@@ -228,15 +255,31 @@ class BadgeAudioEngine {
         osc.frequency.setValueAtTime(freq, noteStart);
 
         gain.gain.setValueAtTime(0.001, noteStart);
-        gain.gain.linearRampToValueAtTime(0.08, noteStart + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.8);
+        gain.gain.linearRampToValueAtTime(0.09, noteStart + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.85);
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
 
         osc.start(noteStart);
-        osc.stop(noteStart + 0.85);
+        osc.stop(noteStart + 0.9);
       });
+
+      // 2. Resonant sub-bass foundation (65.4Hz C2)
+      const sub = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(65.4, t);
+      sub.frequency.exponentialRampToValueAtTime(45.0, t + 0.7);
+
+      subGain.gain.setValueAtTime(0.001, t);
+      subGain.gain.linearRampToValueAtTime(0.18, t + 0.04);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+
+      sub.connect(subGain);
+      subGain.connect(this.ctx.destination);
+      sub.start(t);
+      sub.stop(t + 0.8);
     } catch {}
   }
 
