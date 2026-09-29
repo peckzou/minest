@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+  }
+}
+
+/* Smooth subtle dark scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(10, 11, 14, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Refined parabolic dish slope with liquid-glass aesthetic & continuous squircle curvature */
+.AppleAwardDetailView .BadgeCanvas {
+  border-radius: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 22px 2px rgba(0, 0, 0, 0.45),
+    inset 0 0 80px 20px rgba(0, 0, 0, 0.88),
+    inset 0 14px 32px -8px rgba(255, 255, 255, 0.05),
+    inset 0 -36px 52px -12px rgba(0, 0, 0, 0.95);
+}
+@keyframes reward-hover { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-7px) rotate(3deg); } }
+@keyframes reward-lock { from { opacity: 0; transform: translate(-50%, -50%) rotate(calc(var(--piece-index) * 60deg)) translateY(-125px) scale(.6); } to { opacity: 1; transform: translate(-50%, -50%) rotate(calc(var(--piece-index) * 60deg)) translateY(-84px) scale(1); } }
+.reward-pending-hex, .reward-ceremony-hex { clip-path: polygon(25% 3%,75% 3%,98% 50%,75% 97%,25% 97%,2% 50%); background: linear-gradient(135deg,#fff2b3 0%,#9b5a13 26%,#ffca54 52%,#3f240d 85%,#f9d780 100%); box-shadow: inset 0 0 0 5px rgba(255,240,190,.28),0 12px 35px rgba(255,174,46,.22); animation: reward-hover 3s ease-in-out infinite; }
+.reward-ceremony-hex { box-shadow: inset 0 0 0 10px rgba(255,240,190,.28),0 12px 35px rgba(255,174,46,.22); }
+.reward-assembly-piece { position: absolute; left: 50%; top: 50%; width: 35px; height: 14px; border: 2px solid #f8d688; border-radius: 4px; background: linear-gradient(#fff0b4,#a36b20); box-shadow: 0 0 15px rgba(255,209,99,.65); opacity: 0; transform-origin: center center; animation: reward-lock .38s cubic-bezier(.2,1.45,.3,1) forwards; animation-delay: calc(var(--piece-index) * 320ms); }
+@media (prefers-reduced-motion: reduce) { .reward-pending-hex, .reward-ceremony-hex { animation: none; } .reward-assembly-piece { animation-duration: .01ms; animation-delay: 0ms; } }
