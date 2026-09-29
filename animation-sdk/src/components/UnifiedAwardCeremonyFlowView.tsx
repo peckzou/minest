@@ -105,7 +105,7 @@ export const UnifiedAwardCeremonyFlowView: React.FC<UnifiedAwardCeremonyFlowView
                 </span>
               </div>
               <p className="text-xs text-[#8e8e93] mt-0.5">
-                待领取金胚 $\to$ 3合1 健身环与 6 臂破茧装配 $\to$ 3D 赏玩与 180° 翻面 $\to$ 飞回勋章墙磁吸归位
+                待领取六边机械金胚 → 6 臂依次装配 → 金胚旋转揭晓 → 3D 检视 → 勋章墙磁吸归位
               </p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export const UnifiedAwardCeremonyFlowView: React.FC<UnifiedAwardCeremonyFlowView
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/10">
           {[
             { id: 'pending', title: '1. 待领取金胚', sub: '24K 金胚悬浮星芒' },
-            { id: 'reveal', title: '2. 3合1破茧装配', sub: '健身三环拼装 · 极速爆燃' },
+            { id: 'reveal', title: '2. 六臂机械解锁', sub: '依次锁入 · 旋转揭晓' },
             { id: 'inspect', title: '3. 3D 赏玩与翻面', sub: '背面镌刻 · 激光纹理' },
             { id: 'wall', title: '4. 磁吸弹簧归位', sub: '抛物线入槽 · Spring 震颤' },
           ].map((st, idx) => {
@@ -158,7 +158,7 @@ export const UnifiedAwardCeremonyFlowView: React.FC<UnifiedAwardCeremonyFlowView
               className="px-6 py-3.5 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:brightness-110 active:scale-95 text-black font-extrabold text-sm shadow-2xl shadow-amber-400/35 border border-amber-300 transition-all flex items-center gap-2.5 animate-bounce"
             >
               <Sparkles className="w-5 h-5 text-black animate-spin" />
-              <span>轻触 Badge 或点击「下一步」开启 3合1 装配揭晓</span>
+              <span>领取六边机械金勋章</span>
               <ChevronRight className="w-5 h-5 text-black font-bold" />
             </button>
           )}

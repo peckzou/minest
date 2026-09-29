@@ -133,6 +133,7 @@ export class UnifiedAwardCeremonyFlowScene {
   private isFlipped = false;
   private flipProgress = 0;
   private ringSparksTriggered = { move: false, exercise: false, stand: false, lock: false };
+  private bracketSnapTriggered = [false, false, false, false, false, false];
   private isFlipAnimating = false;
   private flipStartTime = 0;
 
@@ -637,6 +638,7 @@ export class UnifiedAwardCeremonyFlowScene {
   public resetToPending() {
     this.currentStage = 'pending';
     this.camera.position.z = this.getCeremonyCameraZ();
+    this.wallGroup.visible = false;
     this.badgeGroup.visible = true;
     this.badgeGroup.position.set(0, 0, 0);
     this.badgeGroup.scale.setScalar(1.0);
@@ -648,7 +650,10 @@ export class UnifiedAwardCeremonyFlowScene {
     this.flipProgress = 0;
     this.isFlipAnimating = false;
 
-    if (this.mysteryHex) this.mysteryHex.visible = true;
+    if (this.mysteryHex) {
+      this.mysteryHex.visible = true;
+      this.mysteryHex.scale.setScalar(1);
+    }
     if (this.assemblyGroup) this.assemblyGroup.visible = false;
     if (this.activityRings3In1Group) {
       this.activityRings3In1Group.visible = false;
@@ -702,25 +707,19 @@ export class UnifiedAwardCeremonyFlowScene {
   private transitionToBracketsLock() {
     this.currentStage = 'brackets_lock';
     this.stageStartTime = performance.now();
-    this.stageDuration = 1100 / this.playbackSpeed;
-    this.ringSparksTriggered = { move: false, exercise: false, stand: false, lock: false };
+    this.stageDuration = 950 / this.playbackSpeed;
+    this.bracketSnapTriggered.fill(false);
 
     if (this.assemblyGroup) {
       this.assemblyGroup.visible = true;
       this.assemblyGroup.setAssemblyProgress(0);
+      this.assemblyGroup.brackets.forEach((bracket) => { bracket.visible = false; });
     }
     if (this.activityRings3In1Group) {
-      this.activityRings3In1Group.visible = true;
-      this.activityRings3In1Group.scale.setScalar(1);
+      this.activityRings3In1Group.visible = false;
     }
     if (this.starGlintsGroup) {
       this.starGlintsGroup.visible = false;
-    }
-
-    this.emitSparkBurst({ count: 180, originRadius: 1.42, colorHex: 0xff2d55, speed: 5.5 });
-
-    if (this.soundEnabled) {
-      badgeAudio.playBracketSnap(0);
     }
 
     if (this.onStageChange) {
@@ -731,7 +730,7 @@ export class UnifiedAwardCeremonyFlowScene {
   private transitionToLaserCharge() {
     this.currentStage = 'laser_charge';
     this.stageStartTime = performance.now();
-    this.stageDuration = 680 / this.playbackSpeed;
+    this.stageDuration = 350 / this.playbackSpeed;
 
     if (this.soundEnabled) {
       badgeAudio.playEnergyPulse(this.playbackSpeed);
@@ -745,25 +744,18 @@ export class UnifiedAwardCeremonyFlowScene {
   private transitionToBreakoutBurst() {
     this.currentStage = 'breakout_burst';
     this.stageStartTime = performance.now();
-    this.stageDuration = 1200 / this.playbackSpeed;
+    this.stageDuration = 1640 / this.playbackSpeed;
     this.burstStartYaw = this.badgeGroup.rotation.y;
     this.burstStartPitch = this.badgeGroup.rotation.x;
     this.burstStartRoll = this.badgeGroup.rotation.z;
+    this.ringSparksTriggered.lock = false;
 
-    if (this.shockwaveRing) this.shockwaveRing.visible = true;
-    if (this.particleCloud) this.particleCloud.visible = true;
-
-    // 360° Multi-colored Grand Fireworks Celebration
-    this.emitSparkBurst({ count: 280, originRadius: 1.45, colorHex: 0xff2d55, speed: 8.8 });
-    this.emitSparkBurst({ count: 280, originRadius: 1.15, colorHex: 0xa1e70a, speed: 8.8 });
-    this.emitSparkBurst({ count: 280, originRadius: 0.85, colorHex: 0x00e5ff, speed: 8.8 });
-    this.emitSparkBurst({ count: 380, originRadius: 1.25, colorHex: 0xffd60a, speed: 10.2 });
+    if (this.shockwaveRing) this.shockwaveRing.visible = false;
+    if (this.particleCloud) this.particleCloud.visible = false;
 
     if (this.soundEnabled) {
-      badgeAudio.playBurst(this.playbackSpeed);
-      badgeAudio.playAllRingsMasterFlourish();
+      badgeAudio.playSpinWhoosh(0.9, this.playbackSpeed);
     }
-    triggerHaptic('impact');
 
     if (this.onStageChange) {
       this.onStageChange('breakout_burst', this.activeBadgeItem);
@@ -810,6 +802,7 @@ export class UnifiedAwardCeremonyFlowScene {
     if (this.currentStage !== 'inspect') return;
 
     this.currentStage = 'flying_back';
+    this.wallGroup.visible = true;
     this.stageStartTime = performance.now();
     this.stageDuration = 760 / this.playbackSpeed;
 
@@ -923,51 +916,31 @@ export class UnifiedAwardCeremonyFlowScene {
         }
       }
 
-      // ── 2a. STAGE: BRACKETS LOCK (6 Clamps Converge) ──
+      // ── 2a. ZIP VERSION: six independent clamps dock one after another ──
       else if (this.currentStage === 'brackets_lock') {
-        const p = Math.min(1.0, elapsed / this.stageDuration);
-        const ease = 1 - Math.pow(1 - p, 3); // ease-out cubic
-        if (this.assemblyGroup) {
-          this.assemblyGroup.setAssemblyProgress(ease);
-        }
-
-        if (this.activityRings3In1Group) {
-          this.activityRings3In1Group.visible = true;
-          this.activityRings3In1Group.moveRing.scale.setScalar(2.2 - 1.2 * ease);
-          this.activityRings3In1Group.exerciseRing.scale.setScalar(2.0 - 1.0 * Math.min(1, ease * 1.2));
-          this.activityRings3In1Group.standRing.scale.setScalar(1.8 - 0.8 * Math.min(1, ease * 1.4));
-        }
-
-        // Progressive Spark Bursts for Activity Rings Snap
-        if (p >= 0.22 && !this.ringSparksTriggered.move) {
-          this.ringSparksTriggered.move = true;
-          this.emitSparkBurst({ count: 220, originRadius: 1.42, colorHex: 0xff2d55, speed: 6.2 });
-          if (this.soundEnabled) badgeAudio.playBracketSnap(0, this.playbackSpeed);
-          triggerHaptic('impact');
-        }
-        if (p >= 0.52 && !this.ringSparksTriggered.exercise) {
-          this.ringSparksTriggered.exercise = true;
-          this.emitSparkBurst({ count: 220, originRadius: 1.12, colorHex: 0xa1e70a, speed: 6.2 });
-          if (this.soundEnabled) badgeAudio.playBracketSnap(1, this.playbackSpeed);
-          triggerHaptic('impact');
-        }
-        if (p >= 0.82 && !this.ringSparksTriggered.stand) {
-          this.ringSparksTriggered.stand = true;
-          this.emitSparkBurst({ count: 220, originRadius: 0.82, colorHex: 0x00e5ff, speed: 6.2 });
-          if (this.soundEnabled) badgeAudio.playBracketSnap(2, this.playbackSpeed);
-          triggerHaptic('impact');
-        }
-        if (p >= 0.96 && !this.ringSparksTriggered.lock) {
-          this.ringSparksTriggered.lock = true;
-          this.emitSparkBurst({ count: 300, originRadius: 1.1, colorHex: 0xffd60a, speed: 7.2 });
-          if (this.soundEnabled) badgeAudio.playEnergyPulse(this.playbackSpeed);
-          triggerHaptic('impact');
-        }
-
+        const localMs = elapsed * this.playbackSpeed;
+        if (this.assemblyGroup) this.assemblyGroup.brackets.forEach((bracket, index) => {
+          const startMs = index * 90;
+          if (localMs < startMs) { bracket.visible = false; return; }
+          bracket.visible = true;
+          const raw = Math.min(1, (localMs - startMs) / 420);
+          const dock = raw < 0.85
+            ? 1 - Math.pow(1 - raw / 0.85, 3)
+            : 1 + 0.08 * Math.sin(((raw - 0.85) / 0.15) * Math.PI);
+          const data = bracket.userData;
+          const far = data.spreadRadius * 2.2;
+          const radius = far + (data.dockRadius - far) * dock;
+          const arc = raw < 0.85 ? Math.sin(raw * Math.PI) * 0.28 : 0;
+          bracket.position.set(data.dirX * radius - data.dirY * arc, data.dirY * radius + data.dirX * arc, (1 - raw) * 0.7);
+          bracket.scale.setScalar(0.45 + 0.55 * Math.min(1, raw * 1.15));
+          if (raw >= 1 && !this.bracketSnapTriggered[index]) {
+            this.bracketSnapTriggered[index] = true;
+            if (this.soundEnabled) badgeAudio.playBracketSnap(index, this.playbackSpeed);
+            triggerHaptic('tap');
+          }
+        });
         this.badgeGroup.position.set(0, 0, 0);
-        this.badgeGroup.rotation.z = ease * 0.12;
-
-        if (p >= 1.0) {
+        if (localMs >= 950) {
           this.transitionToLaserCharge();
         }
       }
@@ -975,9 +948,9 @@ export class UnifiedAwardCeremonyFlowScene {
       // ── 2b. STAGE: LASER CHARGE ──
       else if (this.currentStage === 'laser_charge') {
         const p = Math.min(1.0, elapsed / this.stageDuration);
-        const pulse = Math.sin(p * Math.PI * 4) * 0.5 + 0.5;
-        this.centerPulseLight.intensity = pulse * 4.5;
-        this.centerPulseLight.color.setHex(0x00f0ff);
+        const pulse = Math.sin(p * Math.PI);
+        this.centerPulseLight.intensity = pulse * 5.5;
+        this.centerPulseLight.color.setHex(p < 0.55 ? 0x00f0ff : 0xffd60a);
 
         // Micro-tremor
         this.badgeGroup.position.x = (Math.random() - 0.5) * 0.015 * pulse;
@@ -990,61 +963,62 @@ export class UnifiedAwardCeremonyFlowScene {
 
       // ── 2c. STAGE: BREAKOUT BURST & REVEAL ──
       else if (this.currentStage === 'breakout_burst') {
-        const p = Math.min(1.0, elapsed / this.stageDuration);
-
-        // One continuous object rotates exactly three turns, then faces front.
-        const spinEase = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-        this.badgeGroup.rotation.y = THREE.MathUtils.lerp(this.burstStartYaw, 0, spinEase) + Math.PI * 6 * spinEase;
+        const localMs = elapsed * this.playbackSpeed;
+        const spinT = Math.min(1, localMs / 900);
+        const spinEase = spinT < 0.5 ? 4 * spinT ** 3 : 1 - Math.pow(-2 * spinT + 2, 3) / 2;
+        // The original golden hex stays opaque through the mechanical vortex.
+        // Four complete turns let the very same object face front at materialization.
+        this.badgeGroup.rotation.y = this.burstStartYaw + Math.PI * 8 * spinEase;
         this.badgeGroup.rotation.x = THREE.MathUtils.lerp(this.burstStartPitch, 0, spinEase);
         this.badgeGroup.rotation.z = THREE.MathUtils.lerp(this.burstStartRoll, 0, spinEase);
         this.badgeGroup.position.x *= Math.exp(-9 * dt);
         this.badgeGroup.position.y *= Math.exp(-9 * dt);
 
-        if (Math.random() < 0.4) {
-          this.emitSparkBurst({ count: 25, originRadius: 1.35, colorHex: 0xffea75, speed: 7.0 });
+        if (localMs >= 900 && !this.ringSparksTriggered.lock) {
+          this.ringSparksTriggered.lock = true;
+          this.emitSparkBurst({ count: 380, originRadius: 1.25, colorHex: 0xffd60a, speed: 9.2 });
+          if (this.soundEnabled) badgeAudio.playBurst(this.playbackSpeed);
+          triggerHaptic('impact');
+          if (this.shockwaveRing) this.shockwaveRing.visible = true;
+          if (this.particleCloud) this.particleCloud.visible = true;
         }
 
-        // Shockwave expansion
-        if (this.shockwaveRing) {
-          const rScale = 1.0 + p * 7.5;
-          this.shockwaveRing.scale.setScalar(rScale);
-          (this.shockwaveRing.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 1.0 - p * 1.2);
-        }
-
-        // Golden dust expansion
-        if (this.particleCloud) {
-          const pos = this.particleCloud.geometry.attributes.position as THREE.BufferAttribute;
-          const vel = this.particleCloud.geometry.attributes.velocity as THREE.BufferAttribute;
-          for (let i = 0; i < pos.count; i++) {
-            pos.setXYZ(
-              i,
-              pos.getX(i) + vel.getX(i) * dt,
-              pos.getY(i) + vel.getY(i) * dt,
-              pos.getZ(i) + vel.getZ(i) * dt
-            );
+        if (localMs >= 900 && localMs < 1200) {
+          const burstT = (localMs - 900) / 300;
+          this.assemblyGroup?.brackets.forEach((bracket) => {
+            const data = bracket.userData;
+            const radius = data.dockRadius + burstT * burstT * 6.5;
+            bracket.position.set(data.dirX * radius, data.dirY * radius, burstT * 1.8);
+            bracket.scale.setScalar(Math.max(0.01, 1 - burstT * 0.9));
+          });
+          if (this.shockwaveRing) {
+            this.shockwaveRing.scale.setScalar(0.5 + burstT * 4.2);
+            (this.shockwaveRing.material as THREE.MeshBasicMaterial).opacity = (1 - burstT) * 0.85;
           }
-          pos.needsUpdate = true;
-          (this.particleCloud.material as THREE.PointsMaterial).opacity = Math.max(0, (1.0 - p) * 1.2);
+          if (this.particleCloud) {
+            const pos = this.particleCloud.geometry.attributes.position as THREE.BufferAttribute;
+            const vel = this.particleCloud.geometry.attributes.velocity as THREE.BufferAttribute;
+            for (let i = 0; i < pos.count; i++) pos.setXYZ(i, vel.getX(i) * burstT * 1.4, vel.getY(i) * burstT * 1.4, vel.getZ(i) * burstT * 1.4);
+            pos.needsUpdate = true;
+            (this.particleCloud.material as THREE.PointsMaterial).opacity = (1 - burstT) * 0.95;
+          }
+          if (this.mysteryHex) this.mysteryHex.scale.setScalar(Math.max(0.001, 1 - burstT));
         }
 
-        // Funnel the ring assembly into the same center before the identity appears.
-        if (this.activityRings3In1Group && p < 0.82) {
-          this.activityRings3In1Group.scale.setScalar(Math.max(0.001, 1 - p / 0.82));
-        }
-
-        // Reveal only as the rotation settles front-facing, never during spin.
-        if (p >= 0.82) {
+        // Identity appears only after the spinning gold blank has dissolved.
+        if (localMs >= 1200) {
           if (this.mysteryHex) this.mysteryHex.visible = false;
           if (this.assemblyGroup) this.assemblyGroup.visible = false;
-          if (this.activityRings3In1Group) this.activityRings3In1Group.visible = false;
+          if (this.shockwaveRing) this.shockwaveRing.visible = false;
+          if (this.particleCloud) this.particleCloud.visible = false;
           if (this.realBadgeMesh) {
             this.realBadgeMesh.visible = true;
-            const revealScale = Math.min(1.0, (p - 0.82) / 0.18);
-            this.realBadgeMesh.scale.setScalar(revealScale);
+            const revealT = Math.min(1, (localMs - 1200) / 440);
+            this.realBadgeMesh.scale.setScalar(0.01 + 0.99 * (1 - Math.pow(1 - revealT, 3)));
           }
         }
 
-        if (p >= 1.0) {
+        if (localMs >= 1640) {
           this.transitionToInspect();
         }
       }

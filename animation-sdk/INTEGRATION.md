@@ -1,6 +1,8 @@
 # Minest animation integration
 
 Source: [peckzou/-](https://github.com/peckzou/-), commit `530162d` (2026-09-28), with Minest continuity and Rings 4.0 interaction adjustments.
+The 3-in-1 unlock phase uses the staggered six-bracket 24K pending badge sequence
+from the user-provided `badge-anim-optimizer.zip`; inspection and wall return stay unified.
 The upstream React/Three.js SDK is kept here as editable source. Vite builds the
 same-origin static app into `../badge-animations/`, which `iphone.html` embeds
 inside Awards. Minest remains usable from a plain static HTTP server.
