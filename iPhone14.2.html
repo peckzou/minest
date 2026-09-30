@@ -15947,11 +15947,13 @@ var ActivityBadgesModal = function(props) {
   var draftGoalsState = (0, _.useState)({ targetMinutes: targetMinutes, targetChecks: targetChecks });
   var draftGoals = draftGoalsState[0];
   var setDraftGoals = draftGoalsState[1];
-  // Vendored from github.com/peckzou/badge so Awards keeps working offline,
-  // inside WKWebView, and after AI Studio preview URLs expire.
-  var badgeViewerUrl = "./badge-index/index-preview.html?v=index-preview-color-v2";
-  var badgeChallengeUrl = './badge-challenge/index.html?embed=1&v=wall-collection-index-v1';
-  var badgeCollectionUrl = './badge-challenge/index.html?embed=1&collection=1&v=wall-collection-index-v1';
+  // Use the checked-in badge bundle on HTTP/WKWebView, and the deployed bundle
+  // when a standalone file is opened (file:// cannot reliably load its assets).
+  var isLocalFile = window.location.protocol === 'file:' || window.location.protocol === 'blob:' || !window.location.protocol;
+  var badgeBaseUrl = isLocalFile ? 'https://minest-app.vercel.app' : '.';
+  var badgeViewerUrl = badgeBaseUrl + "/badge-index/index-preview.html?v=index-preview-color-v2";
+  var badgeChallengeUrl = badgeBaseUrl + '/badge-challenge/index.html?embed=1&v=wall-collection-index-v1';
+  var badgeCollectionUrl = badgeBaseUrl + '/badge-challenge/index.html?embed=1&collection=1&v=wall-collection-index-v1';
   var badgeSourceState = (0, _.useState)(function() {
     return 'local';
   });
@@ -15980,7 +15982,7 @@ var ActivityBadgesModal = function(props) {
   }, [props.celebrateRings, props.strikeCelebrationDays]);
   var animationTabs = ['rings', 'unified', 'summon', 'pending', 'reveal', 'inspector', 'badgewall', 'watchos4'];
   var animationLabels = { rings: 'Rings 4.0', unified: '3-in-1 Ceremony', summon: 'Summon', pending: 'Pending', reveal: 'Hex Reveal', inspector: '3D Inspect', badgewall: 'Return Wall', watchos4: 'Watch' };
-  var animationUrl = './badge-animations/index.html?embed=1&tab=' + encodeURIComponent(awardPane) +
+  var animationUrl = badgeBaseUrl + '/badge-animations/index.html?embed=1&tab=' + encodeURIComponent(awardPane) +
     '&focus=' + encodeURIComponent(Math.min(200, Math.round(focusMinutes / targetMinutes * 100))) +
     '&checks=' + encodeURIComponent(Math.min(200, Math.round(checkCount / targetChecks * 100))) +
     '&goal=' + encodeURIComponent(goalPercent) + '&strike=' + encodeURIComponent(strikeDays) +
@@ -16011,9 +16013,9 @@ var ActivityBadgesModal = function(props) {
   // AI Studio currently redirects some embedded sessions through Google auth,
   // so the reliable in-app renderer stays local. The live site opens directly.
   var activeBadgeUrl = badgeViewerUrl;
-  var badgeMessageTargetOrigin = window.location.protocol === 'file:' ? '*' : window.location.origin;
+  var badgeMessageTargetOrigin = '*';
   var isBadgeMessageOrigin = function(origin) {
-    return origin === window.location.origin || (window.location.protocol === 'file:' && origin === 'null');
+    return !origin || origin === window.location.origin || origin === 'null' || (origin && origin.indexOf('minest-app.vercel.app') !== -1);
   };
 
   var sendAwardProgress = function() {
