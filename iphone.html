@@ -16015,7 +16015,13 @@ var ActivityBadgesModal = function(props) {
   var activeBadgeUrl = badgeViewerUrl;
   var badgeMessageTargetOrigin = '*';
   var isBadgeMessageOrigin = function(origin) {
-    return origin === window.location.origin || origin === 'null' || (origin && origin.indexOf('minest-app.vercel.app') !== -1);
+    return !origin || origin === window.location.origin || origin === 'null' || (origin && origin.indexOf('minest-app.vercel.app') !== -1);
+  };
+  var handleDirectExitCelebration = function() {
+    setCelebrationReturn(null);
+    if (props.onCelebrationExit) props.onCelebrationExit();
+    setAwardPane('challenge');
+    setActiveSection('awards');
   };
 
   var sendAwardProgress = function() {
@@ -16068,7 +16074,7 @@ var ActivityBadgesModal = function(props) {
       if (event.data && event.data.type === 'minest:challenge-pending-state' && isBadgeMessageOrigin(event.origin) && event.source === challengeFrameRef.current?.contentWindow) {
         setChallengePending(!!event.data.hasPending);
       }
-      if (event.data && event.data.type === 'minest:rings-celebration-exited' && isBadgeMessageOrigin(event.origin) && event.source === animationFrameRef.current?.contentWindow) {
+      if (event.data && (event.data.type === 'minest:rings-celebration-exited' || event.data.type === 'minest:pending-animation-complete')) {
         var target = ringPreviewRef.current?.getBoundingClientRect();
         if (target) {
           setCelebrationReturn({
@@ -16078,16 +16084,29 @@ var ActivityBadgesModal = function(props) {
           });
         }
         window.setTimeout(function() {
-          setCelebrationReturn(null);
-          if (props.onCelebrationExit) props.onCelebrationExit();
-          setAwardPane('challenge');
-          setActiveSection('awards');
+          handleDirectExitCelebration();
         }, target ? 830 : 0);
       }
     };
     window.addEventListener('message', handleBadgeReady);
     return function() { window.removeEventListener('message', handleBadgeReady); };
   }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, rings.date, props.qualifiedDates, unlockRules]);
+
+  (0, _.useEffect)(function() {
+    if (props.celebrateRings) {
+      var handleKeyDown = function(e) {
+        if (e.key === 'Escape') handleDirectExitCelebration();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      var timer = setTimeout(function() {
+        handleDirectExitCelebration();
+      }, 7500);
+      return function() {
+        window.removeEventListener('keydown', handleKeyDown);
+        clearTimeout(timer);
+      };
+    }
+  }, [props.celebrateRings]);
 
   var updateUnlockRule = function(index, field, value) {
     setUnlockRules(unlockRules.map(function(rule, ruleIndex) {
@@ -16221,10 +16240,24 @@ var ActivityBadgesModal = function(props) {
           ] }),
           (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'challenge' ? '三环闭合生成待领勋章 · 领取后点亮墙' : awardPane === 'collection' ? '仅显示已领取的勋章' : 'Preview · browse the complete badge index' })
         ] }),
-        props.celebrateRings && !props.strikeCelebrationDays ? (0, P.jsx)('div', {
+        props.celebrateRings && !props.strikeCelebrationDays ? (0, P.jsxs)('div', {
           className: 'minest-rings-celebration' + (celebrationReturn ? ' is-returning' : ''),
           style: celebrationReturn ? { '--ring-return-x': celebrationReturn.x + 'px', '--ring-return-y': celebrationReturn.y + 'px', '--ring-return-scale': celebrationReturn.scale } : undefined,
-          children: (0, P.jsx)('iframe', { ref: animationFrameRef, src: badgeBaseUrl + '/badge-animations/index.html?embed=1&ceremony=1&tab=rings&focus=100&checks=100&goal=100&strike=' + encodeURIComponent(strikeDays) + '&celebrate=1&v=summary-rings-v1', title: 'Three Rings celebration in Summary', allow: 'autoplay', loading: 'eager' })
+          children: [
+            (0, P.jsx)('iframe', { ref: animationFrameRef, src: badgeBaseUrl + '/badge-animations/index.html?embed=1&ceremony=1&tab=rings&focus=100&checks=100&goal=100&strike=' + encodeURIComponent(strikeDays) + '&celebrate=1&v=summary-rings-v2', title: 'Three Rings celebration in Summary', allow: 'autoplay', loading: 'eager' }),
+            (0, P.jsxs)('button', {
+              type: 'button',
+              onClick: function(e) { e.stopPropagation(); handleDirectExitCelebration(); },
+              className: 'absolute top-5 right-5 z-[90] flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur-xl border border-white/20 shadow-lg cursor-pointer transition-all active:scale-95',
+              children: [(0, P.jsx)('span', { children: '✕' }), (0, P.jsx)('span', { children: '退出动画' })]
+            }),
+            (0, P.jsx)('button', {
+              type: 'button',
+              onClick: function(e) { e.stopPropagation(); handleDirectExitCelebration(); },
+              className: 'absolute bottom-8 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-2 px-6 py-2.5 rounded-full bg-white text-slate-900 text-xs font-bold shadow-2xl cursor-pointer hover:bg-white/90 active:scale-95 transition-all',
+              children: '前往勋章馆 →'
+            })
+          ]
         }) : null
       ]
     })
@@ -16275,9 +16308,20 @@ var ActivityBadgesModal = function(props) {
             }),
 
             // Status message
-            (0, P.jsx)('div', {
-              className: "mt-3 px-3.5 py-1.5 rounded-full text-xs font-semibold " + (isAllClosed ? "bg-amber-400/20 text-amber-300 border border-amber-400/30" : (isDark ? "bg-white/8 text-white/80" : "bg-slate-100 text-slate-700")),
-              children: isAllClosed ? "🌟 恭喜达成今日三圈全闭环！电子勋章已点亮！" : ("今日已完成 " + closedCount + " / 3 圈 · 继续冲刺闭环！")
+            (0, P.jsxs)('div', {
+              className: "mt-3 flex items-center justify-center gap-2",
+              children: [
+                (0, P.jsx)('div', {
+                  className: "px-3.5 py-1.5 rounded-full text-xs font-semibold " + (isAllClosed ? "bg-amber-400/20 text-amber-300 border border-amber-400/30" : (isDark ? "bg-white/8 text-white/80" : "bg-slate-100 text-slate-700")),
+                  children: isAllClosed ? "🌟 恭喜达成今日三圈全闭环！电子勋章已点亮！" : ("今日已完成 " + closedCount + " / 3 圈 · 继续冲刺闭环！")
+                }),
+                isAllClosed ? (0, P.jsx)('button', {
+                  type: 'button',
+                  onClick: function() { if (props.onReplayCelebration) props.onReplayCelebration(); },
+                  className: "px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/10 hover:bg-white/20 border border-white/15 text-white/90 transition-all cursor-pointer",
+                  children: "▶ 播放庆祝"
+                }) : null
+              ]
             }),
 
             // 3 Rings Metric Cards
@@ -33163,11 +33207,7 @@ var Be = function() {
         isStatsOpen: isStatsOpen,
         onToggleStats: function() { setIsStatsOpen(!isStatsOpen); },
         onOpenBadgesModal: function() {
-          var fullyClosed = activityRings.date === minestLocalDay() &&
-            (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) &&
-            (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) &&
-            (activityRings.goalPercent || 0) >= 100;
-          setCelebrateRings(fullyClosed);
+          setCelebrateRings(false);
           setIsBadgesModalOpen(true);
         },
         ringsState: activityRings,
@@ -33195,6 +33235,7 @@ var Be = function() {
         strikeCelebrationDays: strikeCelebrationDays,
         onDismissStrikeCelebration: function() { setStrikeCelebrationDays(null); },
         onCelebrationExit: function() { setCelebrateRings(false); },
+        onReplayCelebration: function() { setCelebrateRings(true); },
         onUpdateRings: function(next) {
           setActivityRings(next);
           try { localStorage.setItem("minest_activity_rings_v1", JSON.stringify(next)); } catch(e) {}
@@ -33202,7 +33243,7 @@ var Be = function() {
             try { window.MinestNative.send('updateActivityRings', next); } catch(e) {}
           }
         },
-        onClose: function() { setIsBadgesModalOpen(false); setStrikeCelebrationDays(null); }
+        onClose: function() { setIsBadgesModalOpen(false); setStrikeCelebrationDays(null); setCelebrateRings(false); }
       }) : null,
 
       // Main View Router: Coverflow / Kanban / Flashcard Drill
