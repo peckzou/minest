@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 18.0 · Strike Awards</title>
+    <title>Minest iPhone 14.2 · Strike Awards</title>
     <meta name="description" content="Focusboard Studio 3.3 - 液态玻璃卡片、横竖屏自适应设置面板与简洁 Board 选择器。" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15947,13 +15947,11 @@ var ActivityBadgesModal = function(props) {
   var draftGoalsState = (0, _.useState)({ targetMinutes: targetMinutes, targetChecks: targetChecks });
   var draftGoals = draftGoalsState[0];
   var setDraftGoals = draftGoalsState[1];
-  // Vendored from github.com/peckzou/badge with automatic online CDN fallback
-  // Ensures 3D medals, shaders, and stylesheets load smoothly without local file:// CORS blocks.
-  var isLocalFile = window.location.protocol === 'file:' || window.location.protocol === 'blob:' || !window.location.protocol;
-  var badgeBaseUrl = isLocalFile ? 'https://minest-app.vercel.app' : '.';
-  var badgeViewerUrl = badgeBaseUrl + "/badge-index/index-preview.html?v=index-preview-color-v2";
-  var badgeChallengeUrl = badgeBaseUrl + '/badge-challenge/index.html?embed=1&v=wall-collection-index-v1';
-  var badgeCollectionUrl = badgeBaseUrl + '/badge-challenge/index.html?embed=1&collection=1&v=wall-collection-index-v1';
+  // Vendored from github.com/peckzou/badge so Awards keeps working offline,
+  // inside WKWebView, and after AI Studio preview URLs expire.
+  var badgeViewerUrl = "./badge-index/index-preview.html?v=index-preview-color-v2";
+  var badgeChallengeUrl = './badge-challenge/index.html?embed=1&v=wall-collection-index-v1';
+  var badgeCollectionUrl = './badge-challenge/index.html?embed=1&collection=1&v=wall-collection-index-v1';
   var badgeSourceState = (0, _.useState)(function() {
     return 'local';
   });
@@ -15982,7 +15980,7 @@ var ActivityBadgesModal = function(props) {
   }, [props.celebrateRings, props.strikeCelebrationDays]);
   var animationTabs = ['rings', 'unified', 'summon', 'pending', 'reveal', 'inspector', 'badgewall', 'watchos4'];
   var animationLabels = { rings: 'Rings 4.0', unified: '3-in-1 Ceremony', summon: 'Summon', pending: 'Pending', reveal: 'Hex Reveal', inspector: '3D Inspect', badgewall: 'Return Wall', watchos4: 'Watch' };
-  var animationUrl = badgeBaseUrl + '/badge-animations/index.html?embed=1&tab=' + encodeURIComponent(awardPane) +
+  var animationUrl = './badge-animations/index.html?embed=1&tab=' + encodeURIComponent(awardPane) +
     '&focus=' + encodeURIComponent(Math.min(200, Math.round(focusMinutes / targetMinutes * 100))) +
     '&checks=' + encodeURIComponent(Math.min(200, Math.round(checkCount / targetChecks * 100))) +
     '&goal=' + encodeURIComponent(goalPercent) + '&strike=' + encodeURIComponent(strikeDays) +
@@ -16013,9 +16011,9 @@ var ActivityBadgesModal = function(props) {
   // AI Studio currently redirects some embedded sessions through Google auth,
   // so the reliable in-app renderer stays local. The live site opens directly.
   var activeBadgeUrl = badgeViewerUrl;
-  var badgeMessageTargetOrigin = '*';
+  var badgeMessageTargetOrigin = window.location.protocol === 'file:' ? '*' : window.location.origin;
   var isBadgeMessageOrigin = function(origin) {
-    return origin === window.location.origin || origin === 'null' || (origin && origin.indexOf('minest-app.vercel.app') !== -1);
+    return origin === window.location.origin || (window.location.protocol === 'file:' && origin === 'null');
   };
 
   var sendAwardProgress = function() {
@@ -16212,10 +16210,10 @@ var ActivityBadgesModal = function(props) {
             (awardPane === 'challenge' || awardPane === 'collection') ? (0, P.jsx)('iframe', { ref: challengeFrameRef, src: awardPane === 'collection' ? badgeCollectionUrl : badgeChallengeUrl, onLoad: sendChallengeProgress, title: awardPane === 'collection' ? 'Minest Badge Collection' : 'Minest Badge Wall', className: 'w-full border-0' + (awardPane === 'challenge' && challengePending ? ' minest-pending-wall-frame' : ''), style: { height: 'min(68vh, 720px)', background: '#07080c' }, loading: 'eager' }) :
             awardPane === 'library' ? (0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, title: "Minest Badge Index Preview", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }) :
               animationTabs.indexOf(awardPane) >= 0 ? (0, P.jsx)('iframe', { ref: animationFrameRef, src: animationUrl, title: animationLabels[awardPane] + ' animation', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07090d' }, loading: 'eager' }) :
-              (0, P.jsx)('iframe', { src: badgeBaseUrl + '/badge-studio.html?tab=reveal&mode=' + awardPane + '&embed=1&v=6e7a1f2', title: awardPane === 'base' ? 'Mystery Hex 3D preview' : 'Mechanical assembly 3D preview', className: 'w-full border-0', style: { height: 'min(64vh, 530px)', background: '#06080c' }, loading: 'eager' }),
+              (0, P.jsx)('iframe', { src: './badge-studio.html?tab=reveal&mode=' + awardPane + '&embed=1&v=6e7a1f2', title: awardPane === 'base' ? 'Mystery Hex 3D preview' : 'Mechanical assembly 3D preview', className: 'w-full border-0', style: { height: 'min(64vh, 530px)', background: '#06080c' }, loading: 'eager' }),
             (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'challenge' ? 'WALL · LIVE REWARDS' : awardPane === 'collection' ? 'COLLECTION · COLLECTED' : 'INDEX · PREVIEW'] }),
             awardPane === 'collection' && strikeOverlayOpen && props.strikeCelebrationDays ? (0, P.jsxs)('div', { className: 'absolute inset-0 z-20 flex flex-col bg-[#080a11]/82 backdrop-blur-2xl', children: [
-              (0, P.jsx)('iframe', { src: badgeBaseUrl + '/badge-animations/index.html?embed=1&tab=strike&mode=collection&milestone=' + encodeURIComponent(props.strikeCelebrationDays) + '&v=strike-345f94d', title: 'Strike milestone celebration', className: 'min-h-0 flex-1 w-full border-0', allow: 'autoplay', loading: 'eager' }),
+              (0, P.jsx)('iframe', { src: './badge-animations/index.html?embed=1&tab=strike&mode=collection&milestone=' + encodeURIComponent(props.strikeCelebrationDays) + '&v=strike-345f94d', title: 'Strike milestone celebration', className: 'min-h-0 flex-1 w-full border-0', allow: 'autoplay', loading: 'eager' }),
               (0, P.jsx)('button', { type: 'button', onClick: function() { setStrikeOverlayOpen(false); setAwardPane('challenge'); if (props.onDismissStrikeCelebration) props.onDismissStrikeCelebration(); }, className: 'mx-5 mb-5 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 shadow-xl', children: '前往 Badge Wall 领取 →' })
             ] }) : null
           ] }),
@@ -16224,7 +16222,7 @@ var ActivityBadgesModal = function(props) {
         props.celebrateRings && !props.strikeCelebrationDays ? (0, P.jsx)('div', {
           className: 'minest-rings-celebration' + (celebrationReturn ? ' is-returning' : ''),
           style: celebrationReturn ? { '--ring-return-x': celebrationReturn.x + 'px', '--ring-return-y': celebrationReturn.y + 'px', '--ring-return-scale': celebrationReturn.scale } : undefined,
-          children: (0, P.jsx)('iframe', { ref: animationFrameRef, src: badgeBaseUrl + '/badge-animations/index.html?embed=1&ceremony=1&tab=rings&focus=100&checks=100&goal=100&strike=' + encodeURIComponent(strikeDays) + '&celebrate=1&v=summary-rings-v1', title: 'Three Rings celebration in Summary', allow: 'autoplay', loading: 'eager' })
+          children: (0, P.jsx)('iframe', { ref: animationFrameRef, src: './badge-animations/index.html?embed=1&ceremony=1&tab=rings&focus=100&checks=100&goal=100&strike=' + encodeURIComponent(strikeDays) + '&celebrate=1&v=summary-rings-v1', title: 'Three Rings celebration in Summary', allow: 'autoplay', loading: 'eager' })
         }) : null
       ]
     })
@@ -17462,7 +17460,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "18.0" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "14.2" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -23882,6 +23880,14 @@ var MinestPortraitGestureManager = (function() {
         return;
       }
 
+      // A pinch is a two-finger gesture; do not commit or reset it until the
+      // last finger is lifted. Pointer and legacy Touch Events expose this
+      // remaining-contact state differently.
+      if (pinchSession && ((e.type.startsWith('pointer') && activePointers.size > 0) ||
+          (e.type.startsWith('touch') && e.touches && e.touches.length > 0))) {
+        return;
+      }
+
       if (pinchSession) {
         var sess = pinchSession;
         pinchSession = null;
@@ -24086,8 +24092,8 @@ var MinestPortraitGestureManager = (function() {
 
     lane.addEventListener('touchstart', onDown, { passive: false, capture: true });
     lane.addEventListener('touchmove', onMove, { passive: false, capture: true });
-    lane.addEventListener('touchend', onUp, { passive: false, capture: true });
-    lane.addEventListener('touchcancel', onUp, { passive: false, capture: true });
+    window.addEventListener('touchend', onUp, { passive: false, capture: true });
+    window.addEventListener('touchcancel', onUp, { passive: false, capture: true });
 
     lane.addEventListener('dragstart', onDragStart, true);
     lane.addEventListener('click', onActionClick, true);
@@ -24102,8 +24108,8 @@ var MinestPortraitGestureManager = (function() {
 
       lane.removeEventListener('touchstart', onDown, { capture: true });
       lane.removeEventListener('touchmove', onMove, { capture: true });
-      lane.removeEventListener('touchend', onUp, { capture: true });
-      lane.removeEventListener('touchcancel', onUp, { capture: true });
+      window.removeEventListener('touchend', onUp, { capture: true });
+      window.removeEventListener('touchcancel', onUp, { capture: true });
 
       lane.removeEventListener('dragstart', onDragStart, true);
       lane.removeEventListener('click', onActionClick, true);
@@ -26206,11 +26212,21 @@ var ke = function(props) {
 
   var closeListWallet = function() {
     var s = listWalletSessionRef.current;
-    if (!s) return;
+    if (!s) {
+      listWalletActiveRef.current = false;
+      window.__isWalletMode = false;
+      var staleLane = swimlaneRef.current;
+      if (staleLane) staleLane.classList.remove('list-wallet-active', 'list-wallet-fanning');
+      document.body.classList.remove('is-safari-column-dragging');
+      return;
+    }
 
     // Clean up gesture listeners
     if (s.cleanupGestures) {
       try { s.cleanupGestures(); } catch(err) {}
+    }
+    if (s.cleanupSession) {
+      try { s.cleanupSession(); } catch(err) {}
     }
 
     listWalletSessionRef.current = null;
@@ -26232,6 +26248,7 @@ var ke = function(props) {
   var startListWallet = function(heldColEl, colId, cIdx, startX, startY) {
     var lane = swimlaneRef.current;
     if (!lane) return;
+    if (listWalletSessionRef.current) closeListWallet();
 
     var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
     if (allCols.length <= 1) return;
@@ -26302,6 +26319,24 @@ var ke = function(props) {
       vx: 0, vy: 0,
       tilt: 0, give: 0, dropGive: 0, dropTilt: 0,
       frame: 0
+    };
+
+    var onWalletEscape = function(e) {
+      if (e.key === 'Escape' && listWalletSessionRef.current === s) {
+        e.preventDefault();
+        closeListWallet();
+      }
+    };
+    var onWalletOutsidePointer = function(e) {
+      if (listWalletSessionRef.current !== s) return;
+      if (lane.contains(e.target) && e.target.closest && e.target.closest('.kanban-column-wrapper')) return;
+      closeListWallet();
+    };
+    window.addEventListener('keydown', onWalletEscape);
+    document.addEventListener('pointerdown', onWalletOutsidePointer, true);
+    s.cleanupSession = function() {
+      window.removeEventListener('keydown', onWalletEscape);
+      document.removeEventListener('pointerdown', onWalletOutsidePointer, true);
     };
 
     heldItem.el.classList.add('list-wallet-lifted');
