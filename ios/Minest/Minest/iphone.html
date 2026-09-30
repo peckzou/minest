@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 13.2 · Strike Awards</title>
+    <title>Minest iPhone 13.9 · Strike Awards</title>
     <meta name="description" content="Focusboard Studio 3.3 - 液态玻璃卡片、横竖屏自适应设置面板与简洁 Board 选择器。" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17460,7 +17460,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "13.2" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "13.9" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -20424,7 +20424,7 @@ var Oe = function(props) {
               window.MinestNative.send('triggerHaptic', { style: 'medium', sound: false });
             }
           }
-        }, 340);
+        }, 240);
         // 7.2 特性: 手指碰到停 (Touch to Stop / Catch in Flight)!
         // 若卡片正在自由惯性自转 (inspect_spin) 或回正 (inspect_settle) 中，手指碰到立即瞬间急停并无缝接管！
         // 10.2: grab a fast-spinning card and it keeps spinning in your hand — carry it into the deck
@@ -23471,6 +23471,7 @@ var MinestPortraitGestureManager = (function() {
                              (p2.target && p2.target.closest ? p2.target.closest('[data-wallet-item]') : null) ||
                              (e.target && e.target.closest ? e.target.closest('[data-wallet-item]') : null);
         var foldedItem = null;
+        var expandedItem = null;
         if (directWalletEl) {
           var dwId = directWalletEl.getAttribute('data-wallet-item');
           var dwCard = (colObj.cards || []).find(function(c) { return c.id === dwId; });
@@ -23480,6 +23481,8 @@ var MinestPortraitGestureManager = (function() {
             if (hasStack && !isExpanded) {
               var articleEl = directWalletEl.querySelector('article.kanban-card') || directWalletEl;
               foldedItem = { el: articleEl, card: dwCard, wrapper: directWalletEl };
+            } else if (hasStack && isExpanded) {
+              expandedItem = { card: dwCard, colId: colId };
             }
           }
         }
@@ -23495,13 +23498,22 @@ var MinestPortraitGestureManager = (function() {
           }
         });
 
-        if (!foldedItem && touchedCards.length > 0) {
+        if (!foldedItem && !expandedItem && touchedCards.length > 0) {
           var foundFolded = touchedCards.find(function(tc) {
             var hasStack = (!!tc.card.hasStack || (Array.isArray(tc.card.stack) && tc.card.stack.length > 0));
             var isExpanded = !!(ctx.expandedStacks && ctx.expandedStacks[tc.card.id]) || !!tc.card.isStackExpanded;
             return hasStack && !isExpanded;
           });
           if (foundFolded) foldedItem = foundFolded;
+
+          if (!foundFolded) {
+            var foundExpanded = touchedCards.find(function(tc) {
+              var hasStack = (!!tc.card.hasStack || (Array.isArray(tc.card.stack) && tc.card.stack.length > 0));
+              var isExpanded = !!(ctx.expandedStacks && ctx.expandedStacks[tc.card.id]) || !!tc.card.isStackExpanded;
+              return hasStack && isExpanded;
+            });
+            if (foundExpanded) expandedItem = { card: foundExpanded.card, colId: colId };
+          }
         }
 
         if (foldedItem) {
@@ -23516,10 +23528,24 @@ var MinestPortraitGestureManager = (function() {
             deckEl: deckEl,
             progress: 0,
             reachedThreshold: false,
-            startY: clientY
+            startY: clientY,
+            centerX: (p1.x + p2.x) / 2,
+            centerY: (p1.y + p2.y) / 2
           };
           if (e.cancelable) e.preventDefault();
           e.stopPropagation();
+        } else if (expandedItem) {
+          // DISABLED: Double-finger pinch collapse is no longer allowed
+          // pinchSession = {
+          //   mode: 'collapse',
+          //   d0: d0,
+          //   colId: expandedItem.colId,
+          //   card: expandedItem.card,
+          //   progress: 0,
+          //   reachedThreshold: false
+          // };
+          // if (e.cancelable) e.preventDefault();
+          // e.stopPropagation();
         } else if (touchedCards.length >= 2) {
           pinchSession = {
             mode: 'pinch',
@@ -23676,6 +23702,16 @@ var MinestPortraitGestureManager = (function() {
           } else if (progress < 0.35 && deltaD < 22 && pinchSession.reachedThreshold) {
             pinchSession.reachedThreshold = false;
           }
+        } else if (pinchSession.mode === 'collapse') {
+          var ratio = d / (pinchSession.d0 || 120);
+          var progress = clamp((1 - ratio) / 0.45, 0, 1);
+          pinchSession.progress = progress;
+          if (progress >= 0.60 && !pinchSession.reachedThreshold) {
+            pinchSession.reachedThreshold = true;
+            haptic('selection');
+          } else if (progress < 0.60 && pinchSession.reachedThreshold) {
+            pinchSession.reachedThreshold = false;
+          }
         }
         return;
       }
@@ -23689,9 +23725,9 @@ var MinestPortraitGestureManager = (function() {
 
       if (gestureState.mode === 'undecided') {
         var absX = Math.abs(dx), absY = Math.abs(dy);
-        if (absX < 6 && absY < 6) return;
+        if (absX < 18 && absY < 18) return;
 
-        if (gestureState.canPullDown && dy > absX + 3 && dy > 8 && gestureState.scrollEl && gestureState.scrollEl.scrollTop <= 2) {
+        if (gestureState.canPullDown && dy > absX * 1.5 + 8 && dy > 16 && gestureState.scrollEl && gestureState.scrollEl.scrollTop <= 2) {
           gestureState.mode = 'pull_down';
           if (!pullGhost && gestureState.scrollEl) {
             pullGhost = document.createElement('div');
@@ -23702,10 +23738,10 @@ var MinestPortraitGestureManager = (function() {
               '</div>';
             gestureState.scrollEl.insertBefore(pullGhost, gestureState.scrollEl.firstChild);
           }
-        } else if (absY > absX + 3 && !gestureState.isMouse) {
+        } else if (absY > absX * 1.8 + 10 && !gestureState.isMouse) {
           gestureState.mode = 'scroll';
           return;
-        } else if (gestureState.cardEl && absX > 6) {
+        } else if (gestureState.cardEl && absX > 24 && absX > absY * 1.8) {
           gestureState.mode = dx > 0 ? 'swipe_right' : 'swipe_left';
           gestureState.cardEl.classList.add('gesture-manipulating');
           var parent = gestureState.cardEl.parentElement;
@@ -23890,32 +23926,12 @@ var MinestPortraitGestureManager = (function() {
             item.el.style.opacity = '';
           });
         } else if (sess.mode === 'spread') {
-          var shouldExpand = sess.reachedThreshold || sess.progress >= 0.35;
-          if (shouldExpand) {
+          var shouldTrigger = sess.reachedThreshold || sess.progress >= 0.35;
+          if (shouldTrigger) {
             haptic('light');
-            sound('slide');
-            if (ctx.setExpandedStacks) {
-              ctx.setExpandedStacks(function(prev) {
-                var next = Object.assign({}, prev);
-                next[sess.card.id] = true;
-                return next;
-              });
-            }
-            if (ctx.board && ctx.onUpdateBoard) {
-              var nextCols = (ctx.board.columns || []).map(function(col) {
-                if (col.id !== sess.colId) return col;
-                var updatedCards = (col.cards || []).map(function(c) {
-                  if (c.id === sess.card.id) {
-                    return Object.assign({}, c, { isStackExpanded: true });
-                  }
-                  return c;
-                });
-                return Object.assign({}, col, { cards: updatedCards });
-              });
-              ctx.onUpdateBoard(Object.assign({}, ctx.board, { columns: nextCols }));
-            }
-            if (!ctx.setExpandedStacks && ctx.toggleStackExpand) {
-              ctx.toggleStackExpand(sess.colId, sess.card.id);
+            sound('ripple_plip');
+            if (window.RippleExplore && window.RippleExplore.triggerAt && sess.centerX !== undefined && sess.centerY !== undefined) {
+              window.RippleExplore.triggerAt(lane, sess.centerX, sess.centerY);
             }
           }
           if (sess.deckEl) {
@@ -23925,6 +23941,19 @@ var MinestPortraitGestureManager = (function() {
           if (sess.el) {
             sess.el.style.transition = 'transform 0.25s ease';
             sess.el.style.transform = '';
+          }
+        } else if (sess.mode === 'collapse') {
+          var shouldCollapse = sess.reachedThreshold || sess.progress >= 0.60;
+          if (shouldCollapse && sess.card) {
+            haptic('light');
+            sound('tap');
+            if (ctx.setExpandedStacks) {
+              ctx.setExpandedStacks(function(prev) {
+                var next = Object.assign({}, prev);
+                delete next[sess.card.id];
+                return next;
+              });
+            }
           }
         }
         return;
@@ -24011,9 +24040,10 @@ var MinestPortraitGestureManager = (function() {
           lastTap.cardId = null;
 
           haptic('selection');
-          sound('ripple_plip');
-          if (window.RippleExplore && window.RippleExplore.triggerAt) {
-            window.RippleExplore.triggerAt(lane, gs.currentX, gs.currentY);
+          sound('tap');
+          // Double tap: open card editor instead of water step
+          if (ctx.openQuickEdit && gs.cardEl && gs.cardObj && gs.colObj) {
+            ctx.openQuickEdit(gs.cardObj, gs.colObj, gs.cardEl);
           }
         } else {
           lastTap.time = now;
@@ -24023,9 +24053,7 @@ var MinestPortraitGestureManager = (function() {
             lastTap.time = 0;
             lastTap.cardId = null;
             lastTap.timer = null;
-            if (ctx.openQuickEdit && gs.cardEl && gs.cardObj && gs.colObj) {
-              ctx.openQuickEdit(gs.cardObj, gs.colObj, gs.cardEl);
-            }
+            // Single tap: do nothing, wait for potential double tap
           }, 240);
         }
       }
@@ -25087,7 +25115,7 @@ var ke = function(props) {
     if (!lane || layoutMode !== 'swimlane') return;
     // 9.2: once a card has landed the stack folds straight back into the list
     // (LINGER is only the short beat after landing), so no blank is left behind
-    var LONG_PRESS = 300, SLOP = 14, MOUSE_SLOP = 6, LINGER = 200;
+    var LONG_PRESS = 1000, SLOP = 20, MOUSE_SLOP = 8, LINGER = 200;
     var LIFT_SCALE = 1.04, EDGE = 64, SCROLL_MAX = 760, PRESS_SCALE = 0.972;
     var PEEK = 54;                          // px of each stacked card left showing
     var CARD_RATIO = 1.586;                 // bank card
@@ -25492,7 +25520,25 @@ var ke = function(props) {
           if (it) { pending = { quick: true, it: it, x: x, y: y, kind: kind }; return; }
         }
         var sessCol = sess.scroller.closest('[data-col-id]');
-        if (!sess.held && sessCol && target.closest && target.closest('[data-col-id]') === sessCol && !wrapper) {
+        // Close list wallet when tapping: (1) blank area in the same column, or (2) column header/title area
+        var isBlankArea = sessCol && target.closest && target.closest('[data-col-id]') === sessCol && !wrapper;
+        var isHeaderArea = target.closest && target.closest('.kanban-column-header, .column-header, [class*="group/colheader"]');
+        if (!sess.held && (isBlankArea || isHeaderArea)) {
+          // Check if this is a long press for ripple explore
+          if (kind === 'touch' && isBlankArea) {
+            pending = { listRipple: true, x: x, y: y, kind: kind, sessCol: sessCol };
+            timer = setTimeout(function() {
+              if (!pending || !pending.listRipple) return;
+              pending = null;
+              suppressUntil = Date.now() + 450;
+              haptic('selection');
+              sound('ripple_plip');
+              if (window.RippleExplore && window.RippleExplore.triggerAt) {
+                window.RippleExplore.triggerAt(lane, x, y);
+              }
+            }, LONG_PRESS);
+            return;
+          }
           suppressUntil = Date.now() + 450;          // the tap that closes it does nothing else
           fanOut();
         }
@@ -25522,6 +25568,11 @@ var ke = function(props) {
       }
       if (!pending) return false;
       var dist = Math.hypot(x - pending.x, y - pending.y);
+      if (pending.listRipple) {
+        // Cancel long press for ripple if moved too far
+        if (dist > SLOP) { clearTimeout(timer); pending = null; }
+        return false;
+      }
       if (pending.quick) {
         // in an open stack a card moves as soon as it is dragged
         if (dist > (pending.kind === 'touch' ? 3 : MOUSE_SLOP)) {
@@ -25546,6 +25597,13 @@ var ke = function(props) {
     var end = function(cancel) {
       clearTimeout(timer);
       if (pending && pending.wrapper) pressOut(pending.wrapper);
+      if (pending && pending.listRipple) {
+        // Long press for ripple was canceled, just close the list wallet
+        pending = null;
+        suppressUntil = Date.now() + 450;
+        fanOut();
+        return true;
+      }
       if (pending && pending.quick) {
         // a tap on a card of the open stack: the stack stays open (and the card doesn't open)
         pending = null; suppressUntil = Date.now() + 500;
@@ -26147,6 +26205,12 @@ var ke = function(props) {
   var closeListWallet = function() {
     var s = listWalletSessionRef.current;
     if (!s) return;
+
+    // Clean up gesture listeners
+    if (s.cleanupGestures) {
+      try { s.cleanupGestures(); } catch(err) {}
+    }
+
     listWalletSessionRef.current = null;
     listWalletActiveRef.current = false;
     window.__isWalletMode = false;
@@ -26249,6 +26313,111 @@ var ke = function(props) {
 
     listWalletSessionRef.current = s;
 
+    // Add gesture listeners for list wallet mode: spread gesture and long press to trigger water step
+    var listWalletGestureState = {
+      touches: [],
+      initialDistance: 0,
+      longPressTimer: null,
+      longPressTriggered: false
+    };
+
+    var handleListWalletTouchStart = function(e) {
+      if (!listWalletSessionRef.current) return;
+
+      listWalletGestureState.touches = Array.from(e.touches).map(function(t) {
+        return { id: t.identifier, x: t.clientX, y: t.clientY };
+      });
+
+      // Start long press timer (1 second)
+      if (listWalletGestureState.touches.length === 1) {
+        listWalletGestureState.longPressTriggered = false;
+        if (listWalletGestureState.longPressTimer) clearTimeout(listWalletGestureState.longPressTimer);
+        listWalletGestureState.longPressTimer = setTimeout(function() {
+          if (listWalletSessionRef.current && !listWalletGestureState.longPressTriggered) {
+            listWalletGestureState.longPressTriggered = true;
+            if (navigator.vibrate) try { navigator.vibrate([15, 40, 15]); } catch(err) {}
+            if (cycleBoardCardModeRef.current) cycleBoardCardModeRef.current();
+          }
+        }, 1000);
+      }
+
+      // Track initial distance for spread gesture
+      if (listWalletGestureState.touches.length === 2) {
+        if (listWalletGestureState.longPressTimer) {
+          clearTimeout(listWalletGestureState.longPressTimer);
+          listWalletGestureState.longPressTimer = null;
+        }
+        var dx = listWalletGestureState.touches[1].x - listWalletGestureState.touches[0].x;
+        var dy = listWalletGestureState.touches[1].y - listWalletGestureState.touches[0].y;
+        listWalletGestureState.initialDistance = Math.sqrt(dx * dx + dy * dy);
+        listWalletGestureState.spreadTriggered = false;
+      }
+    };
+
+    var handleListWalletTouchMove = function(e) {
+      if (!listWalletSessionRef.current) return;
+
+      // Cancel long press if finger moves
+      if (listWalletGestureState.longPressTimer) {
+        clearTimeout(listWalletGestureState.longPressTimer);
+        listWalletGestureState.longPressTimer = null;
+      }
+
+      listWalletGestureState.touches = Array.from(e.touches).map(function(t) {
+        return { id: t.identifier, x: t.clientX, y: t.clientY };
+      });
+
+      // Detect spread gesture
+      if (listWalletGestureState.touches.length === 2 && listWalletGestureState.initialDistance > 0) {
+        var dx = listWalletGestureState.touches[1].x - listWalletGestureState.touches[0].x;
+        var dy = listWalletGestureState.touches[1].y - listWalletGestureState.touches[0].y;
+        var currentDistance = Math.sqrt(dx * dx + dy * dy);
+        var spreadRatio = currentDistance / listWalletGestureState.initialDistance;
+
+        // Trigger if spread by 35% or more
+        if (spreadRatio >= 1.35 && !listWalletGestureState.spreadTriggered) {
+          listWalletGestureState.spreadTriggered = true;
+          if (navigator.vibrate) try { navigator.vibrate([10, 30, 10]); } catch(err) {}
+          if (cycleBoardCardModeRef.current) cycleBoardCardModeRef.current();
+        }
+      }
+    };
+
+    var handleListWalletTouchEnd = function(e) {
+      if (!listWalletSessionRef.current) return;
+
+      if (listWalletGestureState.longPressTimer) {
+        clearTimeout(listWalletGestureState.longPressTimer);
+        listWalletGestureState.longPressTimer = null;
+      }
+
+      listWalletGestureState.touches = Array.from(e.touches).map(function(t) {
+        return { id: t.identifier, x: t.clientX, y: t.clientY };
+      });
+
+      if (listWalletGestureState.touches.length < 2) {
+        listWalletGestureState.initialDistance = 0;
+      }
+    };
+
+    // Attach gesture listeners to lane
+    lane.addEventListener('touchstart', handleListWalletTouchStart, { passive: true });
+    lane.addEventListener('touchmove', handleListWalletTouchMove, { passive: true });
+    lane.addEventListener('touchend', handleListWalletTouchEnd, { passive: true });
+    lane.addEventListener('touchcancel', handleListWalletTouchEnd, { passive: true });
+
+    // Store cleanup function
+    s.cleanupGestures = function() {
+      lane.removeEventListener('touchstart', handleListWalletTouchStart);
+      lane.removeEventListener('touchmove', handleListWalletTouchMove);
+      lane.removeEventListener('touchend', handleListWalletTouchEnd);
+      lane.removeEventListener('touchcancel', handleListWalletTouchEnd);
+      if (listWalletGestureState.longPressTimer) {
+        clearTimeout(listWalletGestureState.longPressTimer);
+        listWalletGestureState.longPressTimer = null;
+      }
+    };
+
     // Transition from Horizontal columns to Vertical Wallet Stack with wave delay
     var WAVE = 16;
     var now = performance.now();
@@ -26347,10 +26516,7 @@ var ke = function(props) {
         return Math.abs(it.x - tX) < 0.5 && Math.abs(it.y - tY) < 0.5 && Math.abs(it.vx) < 8 && Math.abs(it.vy) < 8 && Math.abs(it.s - (s.phase === 'fan' ? 1 : 0.985)) < 0.002;
       });
 
-      if (still && s.phase === 'fan') {
-        closeListWallet();
-        return;
-      }
+      // Don't auto-close when fanned out - let user click title/blank to exit
 
       if (!still || held) {
         s.frame = requestAnimationFrame(tick);
@@ -26509,6 +26675,21 @@ var ke = function(props) {
       startListWallet(colEl, colId, cIdx, startX, startY);
     }, 300);
 
+    // Long press 1s triggers stairwell/ripple explore
+    var longPressTimer = setTimeout(function() {
+      longPressTimer = null;
+      if (isSwiping || isWallet) return;
+      pressOut(true);
+      if (window.MinestNative && window.MinestNative.send) {
+        window.MinestNative.send('triggerHaptic', { style: 'selection', sound: false });
+      }
+      if (SoundEngine && SoundEngine.play) SoundEngine.play('ripple_plip');
+      if (window.RippleExplore && window.RippleExplore.triggerAt) {
+        window.RippleExplore.triggerAt(lane, startX, startY);
+      }
+      cleanup();
+    }, 1000);
+
     var onPointerMove = function(ev) {
       if (pid !== undefined && ev.pointerId !== undefined && ev.pointerId !== pid) return;
       var cx = ev.clientX;
@@ -26535,6 +26716,10 @@ var ke = function(props) {
           if (holdTimer) {
             clearTimeout(holdTimer);
             holdTimer = null;
+          }
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
           }
           if (Math.abs(dx) >= Math.abs(dy) * 0.6) {
             isSwiping = true;
@@ -26569,6 +26754,10 @@ var ke = function(props) {
       if (holdTimer) {
         clearTimeout(holdTimer);
         holdTimer = null;
+      }
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
       }
 
       if (isWallet) {
@@ -26612,6 +26801,10 @@ var ke = function(props) {
       if (holdTimer) {
         clearTimeout(holdTimer);
         holdTimer = null;
+      }
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
       }
       pressOut(false);
       if (isWallet) {
@@ -26784,7 +26977,7 @@ var ke = function(props) {
         onDragOver: function(e) { e.preventDefault(); },
         onDrop: handleColDrop,
         onPointerDown: handleBlankAreaPointerDown,
-        onClick: function() { if (listWalletSessionRef.current) { fanOutListWallet(); return; } if (justClosedQuickEditRef.current || (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current)) return; collapseAllStacks(); if (quickMenuCardId) setQuickMenuCardId(null); if (menuColId) setMenuColId(null); if (editingColId) setEditingColId(null); },
+        onClick: function() { if (listWalletSessionRef.current) { closeListWallet(); return; } if (justClosedQuickEditRef.current || (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current)) return; collapseAllStacks(); if (quickMenuCardId) setQuickMenuCardId(null); if (menuColId) setMenuColId(null); if (editingColId) setEditingColId(null); },
         'data-board-id': board.id,
         className: "fb-board-stage " + (layoutMode === 'swimlane' ? "board-swimlane-scroll flex items-start gap-5 pb-2 overflow-x-auto w-full min-w-0 pr-16 select-none flex-1 min-h-0 snap-x snap-proximity" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 pb-4 flex-1 overflow-y-auto min-h-0") + (boardCardMode === 'smash' ? " board-smash-mode" : "") + (boardCardMode === 'liq' ? " board-liquid-mode" : ""),
         children: [
@@ -27041,6 +27234,11 @@ var ke = function(props) {
                               if (justClosedQuickEditRef.current) return;
                               if (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current) return;
                               e.stopPropagation();
+                              // If list wallet is active, close it instead of editing
+                              if (listWalletSessionRef.current) {
+                                closeListWallet();
+                                return;
+                              }
                               setEditingColId(col.id);
                               setEditingColTitle(col.title);
                             },
