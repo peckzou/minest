@@ -9,7 +9,8 @@ struct MinestWatchApp: App {
     
     var body: some Scene {
         WindowGroup {
-            WatchChecklistView()
+            // Watch 4.0: Fitness rings page on top, checklist below
+            WatchFitnessRootView()
         }
     }
 }

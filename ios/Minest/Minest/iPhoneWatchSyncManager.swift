@@ -105,13 +105,14 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
     }
     
     /// Push 3-Ring Activity State to Apple Watch
-    public func pushActivityRingsToWatch(focusMinutes: Int, checkCount: Int, goalPercent: Int, targetMinutes: Int = 30, targetChecks: Int = 10) {
+    public func pushActivityRingsToWatch(focusMinutes: Int, checkCount: Int, goalPercent: Int, targetMinutes: Int = 30, targetChecks: Int = 10, targetGoalPercent: Int = 100) {
         let ringsDict: [String: Any] = [
             "focusMinutes": focusMinutes,
             "targetMinutes": targetMinutes,
             "checkCount": checkCount,
             "targetChecks": targetChecks,
-            "goalPercent": goalPercent
+            "goalPercent": goalPercent,
+            "targetGoalPercent": targetGoalPercent
         ]
         if let encoded = try? JSONSerialization.data(withJSONObject: ringsDict) {
             UserDefaults.standard.set(encoded, forKey: watchRingsKey)
@@ -340,6 +341,21 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
                     self.syncToWatch()
                 }
                 
+            case "updateRingGoals":
+                // Watch 4.0: goals changed on the watch → web Summary goals
+                let targetM = dict["targetMinutes"] as? Int ?? 30
+                let targetC = dict["targetChecks"] as? Int ?? 10
+                let targetG = dict["targetGoalPercent"] as? Int ?? 100
+                print("⌚️ [iPhoneWatchSync] Watch updated ring goals: \(targetM)m, \(targetC) checks, \(targetG)%")
+                let js = """
+                (function() {
+                    window.dispatchEvent(new CustomEvent('minestActivityRingsUpdated', {
+                        detail: { targetMinutes: \(targetM), targetChecks: \(targetC), targetGoalPercent: \(targetG) }
+                    }));
+                })();
+                """
+                self.bridge?.webView?.evaluateJavaScript(js, completionHandler: nil)
+
             case "selectBoard":
                 if let boardId = dict["boardId"] as? String {
                     print("⌚️ [iPhoneWatchSync] Watch switched active board to: \(boardId)")

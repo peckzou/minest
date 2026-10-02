@@ -136,6 +136,12 @@ public struct ActivityRingsState: Codable, Hashable, Equatable {
     
     // Ring 3: 每日目标闭环 (Cyan)
     public var goalPercent: Int // 0..100
+    // Watch 4.0: user-set goal % (optional so older caches still decode; nil = 100%)
+    public var targetGoalPercent: Int?
+
+    public var goalTarget: Int {
+        max(targetGoalPercent ?? 100, 1)
+    }
     
     public var focusProgress: Double {
         guard targetMinutes > 0 else { return 0 }
@@ -148,14 +154,14 @@ public struct ActivityRingsState: Codable, Hashable, Equatable {
     }
     
     public var goalProgress: Double {
-        return Double(min(max(goalPercent, 0), 100)) / 100.0
+        return Double(max(goalPercent, 0)) / Double(goalTarget)
     }
     
     public var closedRingsCount: Int {
         var count = 0
         if focusMinutes >= targetMinutes && targetMinutes > 0 { count += 1 }
         if checkCount >= targetChecks && targetChecks > 0 { count += 1 }
-        if goalPercent >= 100 { count += 1 }
+        if goalPercent >= goalTarget { count += 1 }
         return count
     }
     
@@ -221,6 +227,8 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
     
     // 3-Ring Activity & Digital Badges
     @Published public var ringsState: ActivityRingsState = ActivityRingsState()
+    /// Watch 4.0: true while a focus workout is counting or paused
+    public var isFocusWorkoutActive: Bool = false
     @Published public var badges: [WatchBadgeModel] = WatchSyncManager.makeDefaultBadges()
     
     public var unlockedBadgesCount: Int {
@@ -284,7 +292,9 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
     
     private func startMinuteTimer() {
         minuteTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
-            self?.addFocusMinutes(1)
+            // Watch 4.0: a running focus workout commits its own minutes on End
+            guard let self = self, !self.isFocusWorkoutActive else { return }
+            self.addFocusMinutes(1)
         }
     }
     
@@ -895,6 +905,13 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
                 if let gP = rings["goalPercent"] as? Int {
                     self.ringsState.goalPercent = gP
                 }
+                // Watch 4.0: goals set on the phone/web (skip briefly after a wrist edit)
+                if !RingGoalSyncGuard.recentlyEditedOnWatch {
+                    if let tM = rings["targetMinutes"] as? Int, tM > 0 { self.ringsState.targetMinutes = tM }
+                    if let tC = rings["targetChecks"] as? Int, tC > 0 { self.ringsState.targetChecks = tC }
+                    if let tG = rings["targetGoalPercent"] as? Int, tG > 0 { self.ringsState.targetGoalPercent = tG }
+                }
+                self.saveLocalCache()
                 self.checkBadgeUnlocks()
             }
             

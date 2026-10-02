@@ -7,7 +7,41 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 18.0 · Strike Awards</title>
+    <title>Minest iPhone 27.4 · Watch Goal Sync</title>
+    <script>
+      /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
+      (function () {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var testStrike = Number(params.get('testStrike'));
+          var hasStrikeFixture = testStrike === 3 || testStrike === 7;
+          if (params.get('testRings') !== '1' && !hasStrikeFixture) return;
+          var reset = params.get('resetRewards') === '1';
+          var now = new Date();
+          var today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+          localStorage.setItem('minest_activity_rings_v1', JSON.stringify({ focusMinutes: 30, targetMinutes: 30, checkCount: 10, targetChecks: 10, goalPercent: 100, date: today }));
+          var localDay = function (offset) {
+            var value = new Date(now);
+            value.setDate(value.getDate() - offset);
+            return value.getFullYear() + '-' + String(value.getMonth() + 1).padStart(2, '0') + '-' + String(value.getDate()).padStart(2, '0');
+          };
+          var priorDays = [];
+          if (hasStrikeFixture) {
+            for (var offset = testStrike - 1; offset >= 1; offset -= 1) priorDays.push(localDay(offset));
+          }
+          localStorage.setItem('minest_qualified_ring_days_v1', JSON.stringify(priorDays));
+          // Strike fixtures are repeatable. Clear prior claims so reopening
+          // ?testStrike=3 or ?testStrike=7 exposes the complete test flow again.
+          if (reset || hasStrikeFixture) {
+            localStorage.removeItem('minest_rings_celebrated_day_v1');
+            localStorage.removeItem('minest_reward_system_v2');
+            localStorage.removeItem('minest_learning_awards_catalog_v27');
+            localStorage.removeItem('minest_strike_claimed_v1');
+            localStorage.removeItem('minest_rings_celebrated_day_v1');
+          }
+        } catch (error) {}
+      }());
+    </script>
     <meta name="description" content="Focusboard Studio 3.3 - 液态玻璃卡片、横竖屏自适应设置面板与简洁 Board 选择器。" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3726,6 +3760,82 @@ html.arcade-open, html.arcade-open body { overflow: hidden; }
 .face-front.card-pulverized-core { opacity: 0 !important; filter: none !important; transition: opacity .09s ease-out !important; }
 .card-pulverized-item .coverflow-card-reflection { opacity: 0 !important; transition: opacity .12s ease-out !important; }
 </style>
+<style id="iphone202-liquid-glass">
+/* iPhone 18.1: keep modal controls clear of the Dynamic Island and make the
+   Summary surface read as one iOS 27 liquid-glass sheet. */
+.minest-activity-modal-shell {
+  padding-top: max(env(safe-area-inset-top, 0px), 14px) !important;
+}
+.minest-activity-modal-close {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-top: 2px !important;
+  font-size: 22px !important;
+  line-height: 1 !important;
+  touch-action: manipulation !important;
+  position: relative !important;
+  z-index: 30 !important;
+}
+.minest-summary-glass {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.055) 48%, rgba(255,255,255,.10)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 18px 42px rgba(0,0,0,.22) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  backdrop-filter: blur(30px) saturate(170%);
+}
+.minest-summary-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 70% at 0% 0%, rgba(255,255,255,.22), transparent 52%), linear-gradient(110deg, transparent 35%, rgba(255,255,255,.08), transparent 65%);
+}
+.minest-summary-glass > * { position: relative; z-index: 1; }
+.minest-summary-glass button { border-color: rgba(255,255,255,.18) !important; }
+.minest-summary-glass .minest-rings-panel {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  -webkit-backdrop-filter: blur(24px) saturate(175%);
+  backdrop-filter: blur(24px) saturate(175%);
+}
+.minest-summary-glass .minest-ring-metric { border-top-color: transparent !important; }
+.minest-summary-glass section { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+.minest-summary-glass .minest-rings-svg { filter: drop-shadow(0 8px 18px rgba(0,0,0,.18)); }
+.theme-white .minest-summary-glass .minest-rings-panel {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+/* 26.1: the activity sheet is the single glass surface; the rings sit directly on it. */
+.minest-summary-glass {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.minest-summary-glass::before { display: none !important; }
+.minest-summary-glass .minest-rings-panel {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.minest-activity-modal-backdrop { background: rgba(3,7,14,.42) !important; }
+.minest-activity-modal-panel { background-color: rgba(9,13,20,.72) !important; }
+.minest-activity-modal-header { background-color: rgba(9,13,20,.52) !important; }
+.theme-white .minest-activity-modal-panel { background-color: rgba(241,245,249,.70) !important; }
+.theme-white .minest-activity-modal-header { background-color: rgba(241,245,249,.48) !important; }
+.minest-awards-wall-frame { contain: layout paint; overflow: hidden; }
+.minest-awards-wall-frame iframe { display: block; contain: strict; }
+@media (prefers-reduced-transparency: reduce) {
+  .minest-summary-glass, .minest-summary-glass .minest-rings-panel { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+</style>
       <!-- Firebase SDK (loaded with defer to guarantee zero blocking on page open & 100% offline resilience) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -4219,19 +4329,20 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   pointer-events: auto;
 }
 .gesture-swipe-action {
-  width: 74px;
+  width: 68px;
   border: 0;
   color: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  font: 600 10px/1.1 -apple-system, BlinkMacSystemFont, sans-serif;
+  gap: 0;
+  font: 600 10px/1 -apple-system, BlinkMacSystemFont, sans-serif;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.gesture-swipe-action span:first-child { font-size: 21px; line-height: 1; }
+.gesture-swipe-action span:first-child { font-size: 24px; line-height: 1; }
+.gesture-swipe-action span:last-child { display: none; }
 .gesture-swipe-action.complete { background: #30b66a; }
 .gesture-swipe-action.archive { background: #3b82f6; }
 .gesture-swipe-action.high { background: #e45159; }
@@ -4239,8 +4350,364 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
 .gesture-swipe-action.low { background: #36a977; }
 .gesture-swipe-action.is-active { filter: brightness(1.25); box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); }
 .gesture-swipe-action:active { filter: brightness(1.13); }
+/* ========================================================================= */
+/* Clear Mode: Full-Screen Gestural List (Portrait & Landscape Adaptive)     */
+/* ========================================================================= */
+.clear-mode {
+  overflow: hidden !important;
+}
+
+.clear-mode .board-add-list-btn,
+.clear-mode .card-mode-btn,
+.clear-mode .fbfx-btn,
+.clear-mode .fbi-wrap {
+  display: none !important;
+}
+
+.clear-mode header.iphone-topbar,
+.clear-mode .iphone-frame > header,
+.clear-mode .ios-bottom-tab-bar {
+  display: none !important;
+}
+
+/* Ensure desktop simulator controls remain visible at top-left for rotation/fullscreen toggle */
+.clear-mode .simulator-desktop-controls {
+  display: flex !important;
+  z-index: 99999 !important;
+}
+
+/* Mobile board view container fills its host viewport cleanly */
+.clear-mode .mobile-board-view {
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 79 !important;
+  background: #000000 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.clear-mode .board-swimlane-scroll {
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  box-sizing: border-box !important;
+}
+
+/* Inactive columns hidden */
+.clear-mode .kanban-column-wrapper:not(.clear-active-column) {
+  display: none !important;
+}
+
+/* Active column in Clear Mode: 100% full-screen adaptive in both portrait and landscape */
+.clear-mode .kanban-column-wrapper.clear-active-column,
+.clear-mode .iphone-frame .kanban-column-wrapper.clear-active-column,
+.clear-mode .iphone-frame:not(.landscape) .kanban-column-wrapper.clear-active-column,
+.clear-mode .iphone-frame.landscape .kanban-column-wrapper.clear-active-column,
+.clear-mode .iphone-frame .mobile-board-view .board-swimlane-scroll > .kanban-column-wrapper.clear-active-column,
+.clear-mode .iphone-frame.landscape .mobile-board-view .board-swimlane-scroll > .kanban-column-wrapper.clear-active-column,
+.clear-mode .mobile-board-view .board-swimlane-scroll > .kanban-column-wrapper.clear-active-column,
+.clear-mode .clear-active-column {
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  flex: 1 1 100% !important;
+  z-index: 80 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  margin: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  translate: none !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Portrait Safe Area padding: clears Dynamic Island at top and Home Indicator at bottom */
+.clear-mode .clear-active-column,
+.clear-mode .iphone-frame:not(.landscape) .clear-active-column,
+.clear-mode .mobile-board-view:not(.landscape) .clear-active-column {
+  padding-top: max(var(--sat, 44px) + 14px, env(safe-area-inset-top, 0px) + 14px, 58px) !important;
+  padding-bottom: max(var(--sab, 20px) + 8px, env(safe-area-inset-bottom, 0px) + 8px, 24px) !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Landscape Safe Area padding: clears Dynamic Island on left, home indicator on bottom */
+.landscape .clear-mode .clear-active-column,
+.clear-mode.landscape .clear-active-column,
+.clear-mode .landscape .clear-active-column,
+.clear-mode .iphone-frame.landscape .clear-active-column,
+.clear-mode .mobile-board-view.landscape .clear-active-column {
+  padding-top: max(var(--sat, 0px), env(safe-area-inset-top, 0px), 12px) !important;
+  padding-bottom: max(var(--sab, 16px), env(safe-area-inset-bottom, 0px), 14px) !important;
+  padding-left: max(var(--sal, 48px) + 10px, env(safe-area-inset-left, 0px) + 10px, 58px) !important;
+  padding-right: max(var(--sar, 16px) + 10px, env(safe-area-inset-right, 0px) + 10px, 24px) !important;
+}
+
+@media (orientation: landscape) {
+  .clear-mode .clear-active-column {
+    padding-top: max(var(--sat, 0px), env(safe-area-inset-top, 0px), 12px) !important;
+    padding-bottom: max(var(--sab, 16px), env(safe-area-inset-bottom, 0px), 14px) !important;
+    padding-left: max(var(--sal, 48px) + 10px, env(safe-area-inset-left, 0px) + 10px, 58px) !important;
+    padding-right: max(var(--sar, 16px) + 10px, env(safe-area-inset-right, 0px) + 10px, 24px) !important;
+  }
+}
+
+/* Column Header in Clear Mode: ONLY the title, no buttons */
+.clear-mode .clear-active-column > .kanban-column-header,
+.clear-mode .clear-active-column > [class*='group/colheader'] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  min-height: 52px !important;
+  margin: 0 !important;
+  padding: 4px 20px 12px 20px !important;
+  border: 0 !important;
+  color: #ffffff !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+.clear-mode .clear-active-column .kanban-column-header h1,
+.clear-mode .clear-active-column .kanban-column-header h2,
+.clear-mode .clear-active-column .kanban-column-header [class*='font-bold'] {
+  font-size: 26px !important;
+  line-height: 1.2 !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.02em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 !important;
+}
+
+/* Landscape compact header */
+.clear-mode .iphone-frame.landscape .clear-active-column > .kanban-column-header,
+.landscape .clear-mode .clear-active-column > .kanban-column-header {
+  min-height: 42px !important;
+  padding: 2px 16px 8px 16px !important;
+}
+
+.clear-mode .iphone-frame.landscape .clear-active-column .kanban-column-header [class*='font-bold'],
+.landscape .clear-mode .clear-active-column .kanban-column-header [class*='font-bold'] {
+  font-size: 22px !important;
+}
+
+/* Completely remove/hide all buttons, Done button, icons and badges in Clear Mode header */
+.clear-mode .clear-active-column .kanban-column-header button,
+.clear-mode .clear-active-column .kanban-column-header svg,
+.clear-mode .clear-active-column .kanban-column-header [class*='badge'],
+.clear-mode .clear-exit-btn {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Global removal of card folding / stacking / collapsing controls */
+.card-stack-deck,
+.stack-chevron-pill,
+.ios-show-less-pill,
+.ios-close-circle-btn,
+.ios-group-header,
+.ios-folded-stack-badge,
+.liquid-glass-deck-step1,
+.liquid-glass-deck-step2 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Card list scroller */
+.clear-mode .clear-active-column .kanban-cards-scroll {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.clear-mode .clear-active-column .kanban-cards-scroll > [data-wallet-item] {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  transform: none !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.clear-mode .clear-active-column .card-stack-deck,
+.clear-mode .clear-active-column .card-gap-insert-zone,
+.clear-mode .clear-active-column .card-gap-insert-trigger,
+.clear-mode .clear-active-column .liquid-glass-deck-step1,
+.clear-mode .clear-active-column .liquid-glass-deck-step2 {
+  display: none !important;
+}
+
+/* Card Row: full-bleed heat-map color bar (Clear style) */
+.clear-mode .clear-active-column article {
+  display: flex !important;
+  align-items: center !important;
+  flex: 0 0 62px !important;
+  width: 100% !important;
+  min-height: 62px !important;
+  padding: 0 20px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  opacity: 1 !important;
+  color: #ffffff !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 -12px 26px rgba(0, 0, 0, 0.10) !important;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.20), rgba(255, 255, 255, 0.04) 45%, rgba(0, 0, 0, 0.12)) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(155%) !important;
+  backdrop-filter: blur(18px) saturate(155%) !important;
+  background: var(--clear-row-color, #ec3b21) !important;
+}
+
+.clear-mode .clear-active-column article .liquid-specular-edge,
+.clear-mode .clear-active-column article .liquid-glass-caustic,
+.clear-mode .clear-active-column article .card-action-group,
+.clear-mode .clear-active-column article .card-check-trigger-btn,
+.clear-mode .clear-active-column article .card-front-priority-dot,
+.clear-mode .clear-active-column article .card-title-priority-dot,
+.clear-mode .clear-active-column article .card-front-cover-container,
+.clear-mode .clear-active-column article .card-front-cover-color,
+.clear-mode .clear-active-column article .card-link-preview-box,
+.clear-mode .clear-active-column article .card-content-flow:not(:has(h3)) {
+  display: none !important;
+}
+
+.clear-mode .clear-active-column article .card-content-flow {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  min-height: 56px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.clear-mode .clear-active-column article h3,
+.clear-mode .clear-active-column article h4 {
+  color: #ffffff !important;
+  font-size: 19px !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  opacity: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.clear-mode .clear-active-card {
+  width: 100% !important;
+  min-height: 62px !important;
+  border-radius: 0 !important;
+}
+
+/* Landscape compact adjustments for card rows */
+.clear-mode .iphone-frame.landscape .clear-active-column article,
+.landscape .clear-mode .clear-active-column article {
+  flex: 0 0 52px !important;
+  min-height: 52px !important;
+  padding: 0 16px !important;
+}
+
+.clear-mode .iphone-frame.landscape .clear-active-column article h3,
+.clear-mode .iphone-frame.landscape .clear-active-column article h4,
+.landscape .clear-mode .clear-active-column article h3,
+.landscape .clear-mode .clear-active-column article h4 {
+  font-size: 16.5px !important;
+}
+
+/* Swipe action backdrops in Clear mode */
+.clear-mode .clear-active-column .gesture-complete-backdrop,
+.clear-mode .clear-active-column .gesture-priority-backdrop {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.clear-mode .clear-active-column .gesture-swipe-actions {
+  display: flex !important;
+  align-items: stretch !important;
+  height: 100% !important;
+}
+
+.clear-mode .clear-active-column .gesture-swipe-action {
+  height: 100% !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
 .gesture-swipe-actions.is-trailing { margin-left: auto; }
-.gesture-swipe-actions.is-trailing .gesture-swipe-action { width: 59px; }
+.gesture-swipe-actions.is-trailing .gesture-swipe-action { width: 56px; }
+.gesture-swipe-action.complete { background: #30b66a; }
+.gesture-swipe-action.archive { background: #3b82f6; }
+.gesture-swipe-action.high { background: #e45159; }
+.gesture-swipe-action.medium { background: #d99528; }
+.gesture-swipe-action.low { background: #36a977; }
+.gesture-swipe-action.is-active { filter: brightness(1.25); box-shadow: inset 0 0 0 2px rgba(255,255,255,.85); }
+.gesture-swipe-action:active { filter: brightness(1.13); }
 .gesture-complete-pill {
   display: flex;
   align-items: center;
@@ -4658,6 +5125,569 @@ body.is-safari-column-dragging {
 .minest-pending-modal { width: 100vw !important; max-width: none !important; height: 100dvh !important; max-height: none !important; border-radius: 0 !important; }
 .minest-pending-wall-frame { position: fixed !important; inset: 0; z-index: 100; width: 100vw !important; height: 100dvh !important; }
 @media (prefers-reduced-motion: reduce) { .minest-ring-progress { transition: none; } }
+</style>
+<style>
+/* 27.3 Collection: resident Strike Wall and milestone focus animation. */
+.minest-strike-wall-label { position:absolute; left:14px; top:10px; z-index:2; font-size:10px; font-weight:700; letter-spacing:.14em; color:rgba(255,255,255,.58); pointer-events:none; }
+.minest-strike-frame { position:absolute; left:0; top:0; width:100%; height:188px; z-index:2; border:0; background:radial-gradient(100% 120% at 50% 0%, rgba(105,117,134,.16), rgba(17,23,34,.92) 72%); filter:brightness(1.45) saturate(1.15); transition:filter 420ms ease; }
+.minest-strike-frame.is-focus { height:100%; z-index:4; animation:minestStrikeRise 520ms cubic-bezier(.2,.9,.25,1) both; }
+.minest-strike-frame.is-focus { filter:none; }
+.minest-strike-veil { position:absolute; inset:0; z-index:3; background:rgba(6,8,12,.38); -webkit-backdrop-filter:blur(18px) saturate(1.15); backdrop-filter:blur(18px) saturate(1.15); animation:minestStrikeVeil 420ms ease both; pointer-events:none; }
+.minest-strike-later { position:absolute; top:10px; right:10px; z-index:6; padding:6px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(20,22,30,.55); color:rgba(255,255,255,.84); font-size:11px; font-weight:600; -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); }
+@keyframes minestStrikeVeil { from { opacity:0; } to { opacity:1; } }
+@keyframes minestStrikeRise { from { opacity:0; transform:translateY(14px) scale(.98); } to { opacity:1; transform:none; } }
+</style>
+<style>
+/* 21.3 Card Wallet */
+.apple-wallet-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  background: #000000 !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  border-radius: inherit !important;
+  animation: appleWalletFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+}
+
+@keyframes appleWalletFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.apple-wallet-overlay.apple-wallet-closing {
+  animation: appleWalletFadeOut 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes appleWalletFadeOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.98); }
+}
+
+/* Top spacer for Dynamic Island / status bar */
+.apple-wallet-top-spacer {
+  height: max(var(--sat, 44px) + 8px, env(safe-area-inset-top, 0px) + 8px, 48px) !important;
+  flex-shrink: 0 !important;
+}
+
+/* Apple Wallet Top Navigation Bar */
+.apple-wallet-nav-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 18px 14px 18px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: #000000 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  flex-shrink: 0 !important;
+  z-index: 20 !important;
+}
+
+.apple-wallet-nav-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.apple-wallet-nav-logo {
+  font-size: 22px !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+.apple-wallet-nav-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  color: #ffffff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "DM Sans", sans-serif !important;
+}
+
+.apple-wallet-nav-count {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  white-space: nowrap !important;
+  margin-left: 2px !important;
+}
+
+.apple-wallet-nav-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+.apple-wallet-add-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.apple-wallet-add-btn:active {
+  transform: scale(0.92) !important;
+}
+
+.apple-wallet-done-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 32px !important;
+  padding: 0 15px !important;
+  border-radius: 9999px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  background: rgba(48, 209, 88, 0.28) !important;
+  border: 1px solid rgba(48, 209, 88, 0.55) !important;
+  box-shadow: 0 4px 12px rgba(48, 209, 88, 0.25) !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.apple-wallet-done-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* Card Scroll Container */
+.apple-wallet-scroll-zone {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: calc(100% - 90px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 16px 16px 140px 16px !important;
+  box-sizing: border-box !important;
+  scroll-behavior: smooth !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.apple-wallet-stack-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 365px !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Individual Card Shell in Stack */
+.apple-wallet-card-shell {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  aspect-ratio: 1.586 / 1 !important;
+  min-height: 215px !important;
+  border-radius: 18px !important;
+  box-sizing: border-box !important;
+  padding: 16px 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  border-top-color: rgba(255, 255, 255, 0.55) !important;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.4), 0 14px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  cursor: grab !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  will-change: transform, box-shadow;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  overflow: hidden !important;
+}
+
+.apple-wallet-card-shell.is-dragging {
+  z-index: 1000 !important;
+  cursor: grabbing !important;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.8), 0 12px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  border-top-color: rgba(255, 255, 255, 0.85) !important;
+  transition: none !important;
+}
+
+.apple-wallet-card-shell.is-settling {
+  transition: transform 0.34s cubic-bezier(0.18, 1.25, 0.32, 1), box-shadow 0.3s ease !important;
+}
+.apple-wallet-card-shell:active {
+  transform: scale(0.985);
+}
+
+.apple-wallet-card-shell.is-expanded {
+  transform: translateY(-24px) scale(1.03) !important;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Card Title in Peek Strip */
+.apple-wallet-card-peek {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  height: 44px !important;
+  box-sizing: border-box !important;
+}
+
+.apple-wallet-card-title {
+  font-size: 19px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.015em !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "DM Sans", sans-serif !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* 10 Signature Apple Wallet Themes from the screenshot */
+.wallet-card-theme-0 {
+  background: linear-gradient(135deg, #fffbf6 0%, #ffdfcc 40%, #f7cfdb 72%, #ecd8f6 100%) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+}
+.wallet-card-theme-0 .apple-wallet-card-title { color: #1c1c20 !important; }
+
+.wallet-card-theme-1 {
+  background: radial-gradient(circle at 100% 0%, rgba(0, 180, 255, 0.45) 0%, transparent 60%),
+              linear-gradient(135deg, #021a3a 0%, #00459c 50%, #002254 100%) !important;
+}
+.wallet-card-theme-1 .apple-wallet-card-title { color: #ffffff !important; }
+
+.wallet-card-theme-2 {
+  background: linear-gradient(135deg, #e4e7ed 0%, #bcc1c9 35%, #a8aeb8 55%, #d8dbe2 100%) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+}
+.wallet-card-theme-2 .apple-wallet-card-title { color: #1e2229 !important; text-shadow: 0 1px 0 rgba(255,255,255,0.4); }
+
+.wallet-card-theme-3 {
+  background: linear-gradient(135deg, #3ccdf5 0%, #15a5df 60%, #0d82c4 100%) !important;
+}
+.wallet-card-theme-3 .apple-wallet-card-title { color: #ffffff !important; }
+
+.wallet-card-theme-4 {
+  background: linear-gradient(135deg, #2c3238 0%, #1a1e22 100%) !important;
+}
+.wallet-card-theme-4 .apple-wallet-card-title { color: #ffffff !important; }
+
+.wallet-card-theme-5 {
+  background: radial-gradient(circle at 80% 80%, rgba(0, 210, 255, 0.45) 0%, transparent 45%),
+              linear-gradient(135deg, #001f4d 0%, #003785 50%, #00112e 100%) !important;
+}
+.wallet-card-theme-5 .apple-wallet-card-title { color: #ffffff !important; }
+
+.wallet-card-theme-6 {
+  background: linear-gradient(115deg, #18191c 0%, #25282d 62%, #a80f1a 62.5%, #be1220 100%) !important;
+}
+.wallet-card-theme-6 .apple-wallet-card-title { color: #ffffff !important; }
+
+.wallet-card-theme-7 {
+  background: linear-gradient(125deg, #8fe0ea 0%, #fad4d7 32%, #e0c2fb 68%, #ffd19c 100%) !important;
+}
+.wallet-card-theme-7 .apple-wallet-card-title { color: #1a1a1e !important; }
+
+.wallet-card-theme-8 {
+  background: linear-gradient(135deg, #16171a 0%, #09090a 100%) !important;
+}
+.wallet-card-theme-8 .apple-wallet-card-title { color: #ffffff !important; }
+
+.wallet-card-theme-9 {
+  background: linear-gradient(135deg, #e4be58 0%, #fbe28e 45%, #c89c38 85%, #b58826 100%) !important;
+}
+.wallet-card-theme-9 .apple-wallet-card-title { color: #2b1f06 !important; }
+
+</style>
+<style>
+.col-wallet-trigger-btn { color: rgba(255,255,255,.7); }
+.theme-white .col-wallet-trigger-btn { color: #475569; }
+</style>
+<style>
+/* 24.4 Clear to do pull-down composer: keep the new-card surface visible
+   while Clear mode hides the normal board editing affordances. */
+.clear-mode .clear-active-column .card-gap-insert-zone,
+.clear-mode .clear-active-column .card-gap-insert-trigger,
+.clear-mode .clear-active-column .fb-composer,
+.clear-mode .clear-active-column .card-gap-active-composer {
+  width: 100% !important;
+  max-width: none !important;
+  align-self: stretch !important;
+  flex: 0 0 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+}
+.clear-mode .clear-active-column .fb-composer,
+.clear-mode .clear-active-column .card-gap-active-composer {
+  position: relative !important;
+  z-index: 40 !important;
+  width: calc(100% - 24px) !important;
+  margin: 10px 12px 14px !important;
+  padding: 7px !important;
+  align-items: center !important;
+  gap: 7px !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 18px !important;
+  background: rgba(24,28,35,.86) !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.18) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(150%) !important;
+  backdrop-filter: blur(22px) saturate(150%) !important;
+  animation: clearTodoComposerIn .28s cubic-bezier(.16,1,.3,1) both !important;
+}
+.clear-mode .clear-active-column .fb-composer textarea,
+.clear-mode .clear-active-column .card-gap-active-composer textarea {
+  min-height: 36px !important;
+  max-height: 112px !important;
+  flex: 1 1 auto !important;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  outline: 0 !important;
+  resize: none !important;
+  color: #fff !important;
+  background: transparent !important;
+  font: 500 15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif !important;
+}
+.clear-mode .clear-active-column .fb-composer textarea::placeholder,
+.clear-mode .clear-active-column .card-gap-active-composer textarea::placeholder {
+  color: rgba(255,255,255,.5) !important;
+}
+.clear-mode .clear-active-column .fb-composer .fbc-send,
+.clear-mode .clear-active-column .card-gap-active-composer .fbc-send {
+  width: 32px !important;
+  height: 32px !important;
+  flex: 0 0 32px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #fff !important;
+  background: #0a84ff !important;
+  box-shadow: 0 4px 12px rgba(10,132,255,.4) !important;
+}
+.clear-mode .clear-active-column .fb-composer .fbc-x,
+.clear-mode .clear-active-column .card-gap-active-composer .fbc-x {
+  width: 28px !important;
+  height: 28px !important;
+  flex: 0 0 28px !important;
+  border-radius: 50% !important;
+  color: rgba(255,255,255,.65) !important;
+  background: rgba(255,255,255,.08) !important;
+}
+@keyframes clearTodoComposerIn {
+  from { opacity: 0; transform: translateY(-12px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.theme-white .clear-mode .clear-active-column .fb-composer,
+.theme-white .clear-mode .clear-active-column .card-gap-active-composer {
+  color: #0f172a !important;
+  border-color: rgba(15,23,42,.12) !important;
+  background: rgba(255,255,255,.88) !important;
+}
+.theme-white .clear-mode .clear-active-column .fb-composer textarea,
+.theme-white .clear-mode .clear-active-column .card-gap-active-composer textarea { color: #0f172a !important; }
+.theme-white .clear-mode .clear-active-column .fb-composer textarea::placeholder,
+.theme-white .clear-mode .clear-active-column .card-gap-active-composer textarea::placeholder { color: rgba(15,23,42,.45) !important; }
+/* Clear to do uses a large elastic add surface instead of a tiny toolbar hint. */
+.clear-mode .clear-active-column .gesture-pull-ghost {
+  min-height: 0 !important; margin: 8px 0 12px !important; border-radius: 22px !important;
+  background: linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.06)) !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3),0 16px 34px rgba(0,0,0,.24) !important;
+  transition: height .12s cubic-bezier(.2,.8,.2,1),opacity .2s ease,transform .2s ease !important;
+}
+.clear-mode .clear-active-column .gesture-pull-ghost-inner { min-height: 74px !important; padding: 0 18px !important; flex-direction: column !important; justify-content: center !important; gap: 8px !important; }
+.clear-mode .clear-active-column .gesture-pull-ghost-label { color: rgba(255,255,255,.72) !important; font-size: 17px !important; font-weight: 600 !important; letter-spacing: -.02em !important; }
+.clear-mode .clear-active-column .gesture-pull-ghost-btn { width: 34px !important; height: 34px !important; border-radius: 50% !important; padding: 0 !important; font-size: 19px !important; background: rgba(255,255,255,.16) !important; }
+.clear-mode .clear-active-column .gesture-pull-ghost.is-ready { background: linear-gradient(180deg,rgba(10,132,255,.32),rgba(10,132,255,.14)) !important; border-color: rgba(90,180,255,.82) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.42),0 0 0 4px rgba(10,132,255,.16),0 18px 38px rgba(0,0,0,.28) !important; transform: scale(1.012) !important; }
+.clear-mode .clear-active-column .gesture-pull-ghost.is-ready .gesture-pull-ghost-label { color: #fff !important; }
+.theme-white .clear-mode .clear-active-column .gesture-pull-ghost { background: linear-gradient(180deg,rgba(255,255,255,.95),rgba(239,244,250,.84)) !important; border-color: rgba(15,23,42,.14) !important; }
+.theme-white .clear-mode .clear-active-column .gesture-pull-ghost-label { color: rgba(15,23,42,.7) !important; }
+/* During the pull, the ghost is a real Clear-style first card, not a toolbar. */
+.clear-mode .clear-active-column .gesture-pull-ghost {
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,.42) !important;
+  background: var(--clear-ghost-color, #198eea) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.34), 0 8px 18px rgba(0,0,0,.2) !important;
+}
+.clear-mode .clear-active-column .gesture-pull-ghost + [data-wallet-item] { margin-top: 0 !important; }
+.clear-mode .clear-active-column > .kanban-column-header { padding-bottom: 0 !important; }
+.clear-mode .clear-active-column .gesture-pull-ghost-inner {
+  min-height: 78px !important;
+  padding: 0 28px !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+}
+.clear-mode .clear-active-column .gesture-pull-ghost-label {
+  color: rgba(255,255,255,.96) !important;
+  font-size: 25px !important;
+  font-weight: 600 !important;
+  letter-spacing: -.025em !important;
+}
+.clear-mode .clear-active-column .gesture-pull-ghost-btn { display: none !important; }
+.clear-mode .clear-active-column .gesture-pull-ghost.is-ready { transform: none !important; }
+/* Clear's composer is a floating, full-width capsule. */
+.clear-mode .clear-active-column .fb-composer,
+.clear-mode .clear-active-column .card-gap-active-composer {
+  min-height: 96px !important;
+  height: auto !important;
+  padding: 10px 12px 10px 22px !important;
+  margin: 10px 0 18px !important;
+  border: 2px solid rgba(255,255,255,.26) !important;
+  border-radius: 28px !important;
+  background: #171a20 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.13), 0 10px 26px rgba(0,0,0,.35) !important;
+}
+.clear-mode .clear-active-column .fb-composer textarea,
+.clear-mode .clear-active-column .card-gap-active-composer textarea {
+  min-height: 68px !important;
+  max-height: 180px !important;
+  padding: 8px 0 !important;
+  font-size: 28px !important;
+  line-height: 1.15 !important;
+  font-weight: 500 !important;
+  letter-spacing: -.02em !important;
+}
+.clear-mode .clear-active-column .fb-composer .fbc-send,
+.clear-mode .clear-active-column .card-gap-active-composer .fbc-send {
+  width: 64px !important;
+  height: 64px !important;
+  flex-basis: 64px !important;
+  border-radius: 50% !important;
+  font-size: 26px !important;
+  background: #087bea !important;
+  box-shadow: 0 5px 15px rgba(0,122,255,.42) !important;
+}
+.clear-mode .clear-active-column .fb-composer .fbc-x,
+.clear-mode .clear-active-column .card-gap-active-composer .fbc-x {
+  width: 54px !important;
+  height: 54px !important;
+  flex-basis: 54px !important;
+  border-radius: 50% !important;
+  font-size: 26px !important;
+  color: rgba(255,255,255,.44) !important;
+  background: #20242b !important;
+}
+.theme-white .clear-mode .clear-active-column .fb-composer,
+.theme-white .clear-mode .clear-active-column .card-gap-active-composer { background: rgba(247,248,250,.96) !important; border-color: rgba(15,23,42,.18) !important; }
+.theme-white .clear-mode .clear-active-column .fb-composer .fbc-x,
+.theme-white .clear-mode .clear-active-column .card-gap-active-composer .fbc-x { color: rgba(15,23,42,.44) !important; background: #e6e8ec !important; }
+/* Final Clear card composer: replace the pill with a normal Clear task card. */
+.clear-mode .clear-active-column .fb-composer,
+.clear-mode .clear-active-column .card-gap-active-composer {
+  min-height: 64px !important;
+  height: 64px !important;
+  margin: 0 !important;
+  padding: 0 14px 0 22px !important;
+  border: 1px solid rgba(255,255,255,.55) !important;
+  border-radius: 0 !important;
+  background: linear-gradient(135deg,#1b8ff0 0%,#1478d4 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.32), 0 2px 5px rgba(0,0,0,.2) !important;
+  animation: clearTodoCardIn .24s cubic-bezier(.2,.9,.2,1) both !important;
+}
+.clear-mode .clear-active-column .fb-composer + [data-wallet-item],
+.clear-mode .clear-active-column .card-gap-active-composer + [data-wallet-item] {
+  margin-top: -1px !important;
+}
+.clear-mode .clear-active-column .fb-composer textarea,
+.clear-mode .clear-active-column .card-gap-active-composer textarea {
+  min-height: 62px !important;
+  max-height: 62px !important;
+  padding: 0 !important;
+  font-size: 24px !important;
+  line-height: 62px !important;
+  color: #fff !important;
+}
+.clear-mode .clear-active-column .fb-composer textarea::placeholder,
+.clear-mode .clear-active-column .card-gap-active-composer textarea::placeholder { color: rgba(255,255,255,.82) !important; }
+.clear-mode .clear-active-column .fb-composer .fbc-send,
+.clear-mode .clear-active-column .card-gap-active-composer .fbc-send {
+  width: 38px !important; height: 38px !important; flex-basis: 38px !important;
+  font-size: 20px !important; background: rgba(255,255,255,.2) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.32) !important;
+}
+.clear-mode .clear-active-column .fb-composer .fbc-x,
+.clear-mode .clear-active-column .card-gap-active-composer .fbc-x {
+  width: 34px !important; height: 34px !important; flex-basis: 34px !important;
+  font-size: 20px !important; color: rgba(255,255,255,.74) !important;
+  background: rgba(0,0,0,.14) !important;
+}
+@keyframes clearTodoCardIn { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: translateY(0); } }
+.theme-white .clear-mode .clear-active-column .fb-composer,
+.theme-white .clear-mode .clear-active-column .card-gap-active-composer { background: linear-gradient(135deg,#31a4f5 0%,#1989dc 100%) !important; }
+/* Resting new card: return to the same compact row height as Clear cards. */
+.clear-mode .clear-active-column .gesture-pull-ghost,
+.clear-mode .clear-active-column .fb-composer,
+.clear-mode .clear-active-column .card-gap-active-composer {
+  width: calc(100% + 48px) !important;
+  max-width: none !important;
+  min-height: 62px !important;
+  height: 62px !important;
+  margin-left: 0 !important;
+  margin-right: -48px !important;
+  border-radius: 0 !important;
+}
+.clear-mode .clear-active-column .gesture-pull-ghost-inner { min-height: 60px !important; }
+.clear-mode .clear-active-column .fb-composer textarea,
+.clear-mode .clear-active-column .card-gap-active-composer textarea {
+  min-height: 60px !important;
+  max-height: 60px !important;
+  line-height: 60px !important;
+}
+</style>
+<style>
+/* 21.5 List Wallet */
+.apple-wallet-overlay.list-wallet .list-wallet-exit { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%;
+  padding: 4px 10px 4px 4px; margin-left: -4px; border-radius: 12px; background: transparent; border: 0; color: inherit; cursor: pointer;
+  transition: background .18s ease, transform .15s ease; -webkit-tap-highlight-color: transparent; }
+.apple-wallet-overlay.list-wallet .list-wallet-exit:hover { background: rgba(255,255,255,.08); }
+.apple-wallet-overlay.list-wallet .list-wallet-exit:active { transform: scale(.96); background: rgba(255,255,255,.12); }
+.apple-wallet-overlay.list-wallet .list-wallet-exit .apple-wallet-nav-title::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 8px;
+  border-right: 2px solid rgba(255,255,255,.55); border-bottom: 2px solid rgba(255,255,255,.55); transform: rotate(-45deg) translateY(-2px); }
+.list-wallet-peek { gap: 10px !important; }
+.list-wallet-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,.55); }
+.list-wallet-peek .apple-wallet-card-title { flex: 1 1 auto; min-width: 0; }
+.list-wallet-count { flex: none; min-width: 26px; height: 24px; padding: 0 8px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+  font: 700 12px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; color: inherit; background: rgba(255,255,255,.22); }
+.wallet-card-theme-0 .list-wallet-count { background: rgba(28,28,32,.1); color: #1c1c20; }
+.list-wallet-body { margin-top: 10px; opacity: 0; transform: translateY(6px); transition: opacity .25s ease, transform .3s ease; pointer-events: none; }
+.apple-wallet-card-shell.is-expanded .list-wallet-body { opacity: 1; transform: none; }
+.list-wallet-meta { font: 600 12px/1.3 -apple-system, BlinkMacSystemFont, sans-serif; opacity: .78; margin-bottom: 8px; }
+.list-wallet-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.list-wallet-cards li { font: 500 13.5px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; padding: 7px 10px; border-radius: 10px;
+  background: rgba(255,255,255,.16); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wallet-card-theme-0 .list-wallet-cards li { background: rgba(28,28,32,.07); }
+.list-wallet-cards li.list-wallet-more { background: transparent; opacity: .7; padding-top: 2px; }
+.list-wallet-empty { font: 500 13px/1.3 -apple-system, sans-serif; opacity: .7; }
+.apple-wallet-overlay.list-wallet [class*="wallet-card-theme-"] .list-wallet-meta,
+.apple-wallet-overlay.list-wallet [class*="wallet-card-theme-"] .list-wallet-cards li,
+.apple-wallet-overlay.list-wallet [class*="wallet-card-theme-"] .list-wallet-empty { color: inherit; }
+/* the launcher beside the board name */
+.list-wallet-launch { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; flex: none; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color: rgba(255,255,255,.82); transition: background .18s, transform .15s; }
+.list-wallet-launch:hover { background: rgba(255,255,255,.14); color: #fff; }
+.list-wallet-launch:active { transform: scale(.94); }
+.theme-white .list-wallet-launch { border-color: rgba(15,23,42,.1); background: rgba(15,23,42,.04); color: #334155; }
+
 </style>
 </head>
   <body>
@@ -15778,7 +16808,7 @@ var ThreeDMedal = function(props) {
 // =========================================================================
 var PhaseOneRingsPreview = function(props) {
   var live = props.ringsState || {};
-  var sample = { focusMinutes: live.focusMinutes || 0, focusGoal: live.targetMinutes || 30, completedCards: live.checkCount || 0, completeGoal: live.targetChecks || 10, goalPercent: live.goalPercent || 0, currentStreak: props.strikeDays || 0 };
+  var sample = { focusMinutes: live.focusMinutes || 0, focusGoal: live.targetMinutes || 30, completedCards: live.checkCount || 0, completeGoal: live.targetChecks || 10, goalPercent: live.goalPercent || 0, goalTarget: live.targetGoalPercent || 100, currentStreak: props.strikeDays || 0 };
   var shownState = (0, _.useState)(false);
   var shown = shownState[0];
   var setShown = shownState[1];
@@ -15788,7 +16818,7 @@ var PhaseOneRingsPreview = function(props) {
   }, []);
   var focusProgress = Math.min(1, sample.focusMinutes / sample.focusGoal);
   var completeProgress = Math.min(1, sample.completedCards / sample.completeGoal);
-  var dailyProgress = Math.min(1, sample.goalPercent / 100);
+  var dailyProgress = Math.min(1, sample.goalPercent / sample.goalTarget);
   var rings = [
     { id: 'focus', radius: 76, progress: focusProgress, gradient: 'minest-focus-gradient' },
     { id: 'complete', radius: 56, progress: completeProgress, gradient: 'minest-complete-gradient' },
@@ -15797,7 +16827,7 @@ var PhaseOneRingsPreview = function(props) {
   var rows = [
     { label: 'FOCUS', value: sample.focusMinutes + ' / ' + sample.focusGoal + ' min', note: 'Time invested today', color: '#ff537e' },
     { label: 'COMPLETE', value: sample.completedCards + ' / ' + sample.completeGoal, note: 'Cards finished today', color: '#b9e853' },
-    { label: 'GOAL', value: sample.goalPercent + '%', note: 'Board goal', color: '#5ddce5' }
+    { label: 'GOAL', value: sample.goalPercent + ' / ' + sample.goalTarget + '%', note: 'Board goal', color: '#5ddce5' }
   ];
   return (0, P.jsxs)('section', {
     className: 'minest-rings-panel relative overflow-hidden rounded-[30px] px-5 pt-5 pb-4',
@@ -15855,12 +16885,13 @@ var ActivityBadgesModal = function(props) {
   var checkCount = rings.checkCount || 0;
   var targetChecks = rings.targetChecks || 10;
   var goalPercent = Math.min(Math.max(rings.goalPercent || 0, 0), 100);
+  var targetGoalPercent = rings.targetGoalPercent || 100;
   var strikeDays = props.strikeDays || 0;
 
   var closedCount = 0;
   if (focusMinutes >= targetMinutes) closedCount++;
   if (checkCount >= targetChecks) closedCount++;
-  if (goalPercent >= 100) closedCount++;
+  if (goalPercent >= targetGoalPercent) closedCount++;
   var isAllClosed = closedCount >= 3;
 
   var defaultBadges = [
@@ -15937,23 +16968,24 @@ var ActivityBadgesModal = function(props) {
   var setSelectedBadge = selectedBadgeState[1];
 
   var sectionState = (0, _.useState)(function() {
-    return 'awards';
+    return 'summary';
   });
   var activeSection = sectionState[0];
   var setActiveSection = sectionState[1];
   var editingGoalsState = (0, _.useState)(false);
   var editingGoals = editingGoalsState[0];
   var setEditingGoals = editingGoalsState[1];
-  var draftGoalsState = (0, _.useState)({ targetMinutes: targetMinutes, targetChecks: targetChecks });
+  var draftGoalsState = (0, _.useState)({ targetMinutes: targetMinutes, targetChecks: targetChecks, targetGoalPercent: targetGoalPercent });
   var draftGoals = draftGoalsState[0];
   var setDraftGoals = draftGoalsState[1];
-  // Vendored from github.com/peckzou/badge with automatic online CDN fallback
-  // Ensures 3D medals, shaders, and stylesheets load smoothly without local file:// CORS blocks.
+  // The 27.x badge bundles are shipped beside this HTML file. Keep their URLs
+  // relative so direct file:// previews use the same local assets as localhost.
   var isLocalFile = window.location.protocol === 'file:' || window.location.protocol === 'blob:' || !window.location.protocol;
-  var badgeBaseUrl = isLocalFile ? 'https://minest-app.vercel.app' : '.';
+  var badgeBaseUrl = '.';
   var badgeViewerUrl = badgeBaseUrl + "/badge-index/index-preview.html?v=index-preview-color-v2";
-  var badgeChallengeUrl = badgeBaseUrl + '/badge-challenge/index.html?embed=1&v=wall-collection-index-v1';
-  var badgeCollectionUrl = badgeBaseUrl + '/badge-challenge/index.html?embed=1&collection=1&v=wall-collection-index-v1';
+  var badgeChallengeUrl = badgeBaseUrl + '/badge-challenge-27.3/index.html?embed=1&ringsFirst=1&v=wall-collection-index-v1';
+  var badgeCollectionUrl = badgeBaseUrl + '/badge-challenge-27.3/index.html?embed=1&collection=1&strikeWall=1&v=wall-collection-index-v2';
+  var badgeWallUrl = badgeBaseUrl + '/badge-source-27.0/index.html?embed=1&v=badge-wall-27-2';
   var badgeSourceState = (0, _.useState)(function() {
     return 'local';
   });
@@ -15965,6 +16997,61 @@ var ActivityBadgesModal = function(props) {
   var strikeOverlayState = (0, _.useState)(!!props.strikeCelebrationDays);
   var strikeOverlayOpen = strikeOverlayState[0];
   var setStrikeOverlayOpen = strikeOverlayState[1];
+  var STRIKE_MILESTONES = [3, 7, 14, 30, 40, 50, 60, 80, 90, 100];
+  var readStrikeClaimed = function() {
+    try {
+      var list = JSON.parse(localStorage.getItem('minest_strike_claimed_v1') || '[]');
+      return Array.isArray(list) ? list.filter(function(days) { return STRIKE_MILESTONES.indexOf(days) >= 0; }) : [];
+    } catch(e) { return []; }
+  };
+  var strikeClaimedState = (0, _.useState)(readStrikeClaimed);
+  var strikeClaimed = strikeClaimedState[0];
+  var setStrikeClaimed = strikeClaimedState[1];
+  var strikeJustClaimedState = (0, _.useState)(false);
+  var strikeJustClaimed = strikeJustClaimedState[0];
+  var setStrikeJustClaimed = strikeJustClaimedState[1];
+  var strikeClaimedPendingRef = (0, _.useRef)(null);
+  var strikeQualifiedCount = (props.qualifiedDates || []).length;
+  var pendingStrike = (props.strikeCelebrationDays && strikeClaimed.indexOf(props.strikeCelebrationDays) < 0) ? props.strikeCelebrationDays :
+    (STRIKE_MILESTONES.filter(function(days) { return days <= strikeQualifiedCount && strikeClaimed.indexOf(days) < 0; })[0] || null);
+  var strikeFocus = awardPane === 'collection' && strikeOverlayOpen && !!pendingStrike;
+  var strikeWallUrl = badgeBaseUrl + '/badge-animations-v23/index.html?embed=1&tab=strike&transparent=1&shadow=light&claimed=' +
+    encodeURIComponent(strikeClaimed.join(',')) + (strikeFocus ? '&pending=' + encodeURIComponent(pendingStrike) : '') + '&v=strike-77520c3-m233';
+  var closeStrikeFocus = function() {
+    setStrikeClaimed(readStrikeClaimed());
+    setStrikeJustClaimed(false);
+    setStrikeOverlayOpen(false);
+    if (props.onDismissStrikeCelebration) props.onDismissStrikeCelebration();
+  };
+  (0, _.useEffect)(function() {
+    if (awardPane === 'collection' && pendingStrike) setStrikeOverlayOpen(true);
+  }, [awardPane, pendingStrike]);
+  (0, _.useEffect)(function() {
+    var onStrikeMessage = function(event) {
+      if (!event.data || !isBadgeMessageOrigin(event.origin)) return;
+      if (event.data.type === 'minest:strike-claimed' && STRIKE_MILESTONES.indexOf(event.data.days) >= 0) {
+        try {
+          var list = readStrikeClaimed();
+          if (list.indexOf(event.data.days) < 0) list.push(event.data.days);
+          localStorage.setItem('minest_strike_claimed_v1', JSON.stringify(list.sort(function(a, b) { return a - b; })));
+          strikeClaimedPendingRef.current = list;
+        } catch(e) {}
+        if (event.data.days === 3) {
+          queueWallUnlock('strike-3-days');
+          sendWallUnlocks();
+        }
+        setStrikeJustClaimed(true);
+      }
+      if (event.data.type === 'minest:strike-flow-done') {
+        var completedClaims = strikeClaimedPendingRef.current || readStrikeClaimed();
+        strikeClaimedPendingRef.current = null;
+        setStrikeClaimed(completedClaims);
+        closeStrikeFocus();
+      }
+    };
+    window.addEventListener('message', onStrikeMessage);
+    return function() { window.removeEventListener('message', onStrikeMessage); };
+  }, []);
   var ringPreviewRef = (0, _.useRef)(null);
   var celebrationReturnState = (0, _.useState)(null);
   var celebrationReturn = celebrationReturnState[0];
@@ -15990,6 +17077,13 @@ var ActivityBadgesModal = function(props) {
   var badgeFrameRef = (0, _.useRef)(null);
   var challengeFrameRef = (0, _.useRef)(null);
   var rewardSyncFrameRef = (0, _.useRef)(null);
+  var challengeEngineFrameRef = (0, _.useRef)(null);
+  var challengeClaimFrameRef = (0, _.useRef)(null);
+  var wallFrameRef = (0, _.useRef)(null);
+  var wallSyncFrameRef = (0, _.useRef)(null);
+  var wallFrameReadyRef = (0, _.useRef)({ visible: false, sync: false });
+  var wallUnlockSentRef = (0, _.useRef)({});
+  var wallUnlockQueueRef = (0, _.useRef)({});
   var challengePendingState = (0, _.useState)(false);
   var challengePending = challengePendingState[0];
   var setChallengePending = challengePendingState[1];
@@ -16033,8 +17127,33 @@ var ActivityBadgesModal = function(props) {
       rules: unlockRules
     }, '*');
   };
+  var queueWallUnlock = function(badgeId) {
+    if (!badgeId) return;
+    wallUnlockQueueRef.current[String(badgeId)] = true;
+  };
+  var postWallUnlocks = function(frame, frameKey) {
+    if (!frame || !frame.contentWindow || !wallFrameReadyRef.current[frameKey]) return;
+    Object.keys(wallUnlockQueueRef.current).forEach(function(badgeId) {
+      var sentKey = frameKey + '::' + badgeId;
+      if (wallUnlockSentRef.current[sentKey]) return;
+      frame.contentWindow.postMessage({ type: 'MINEST_TRIGGER_UNLOCK', badgeId: badgeId }, '*');
+      wallUnlockSentRef.current[sentKey] = true;
+    });
+  };
+  var sendWallUnlocks = function() {
+    postWallUnlocks(wallFrameRef.current, 'visible');
+    postWallUnlocks(wallSyncFrameRef.current, 'sync');
+  };
+  var markWallFrameReady = function(frameKey, frame) {
+    if (!frame || !frame.contentWindow) return;
+    wallFrameReadyRef.current[frameKey] = true;
+    Object.keys(wallUnlockSentRef.current).forEach(function(sentKey) {
+      if (sentKey.indexOf(frameKey + '::') === 0) delete wallUnlockSentRef.current[sentKey];
+    });
+    sendWallUnlocks();
+  };
   var sendChallengeProgress = function() {
-    [challengeFrameRef.current, rewardSyncFrameRef.current].forEach(function(frame) {
+    [challengeEngineFrameRef.current, challengeClaimFrameRef.current, rewardSyncFrameRef.current].forEach(function(frame) {
       if (!frame || !frame.contentWindow) return;
       frame.contentWindow.postMessage({
       type: 'minest:challenge-progress',
@@ -16049,6 +17168,10 @@ var ActivityBadgesModal = function(props) {
       }
       }, badgeMessageTargetOrigin);
     });
+    sendWallUnlocks();
+  };
+  var isNormalChallengeSource = function(source) {
+    return source === challengeEngineFrameRef.current?.contentWindow || source === challengeClaimFrameRef.current?.contentWindow || source === rewardSyncFrameRef.current?.contentWindow;
   };
 
   (0, _.useEffect)(function() {
@@ -16060,18 +17183,24 @@ var ActivityBadgesModal = function(props) {
   (0, _.useEffect)(function() {
     var handleBadgeReady = function(event) {
       if (event.data && event.data.type === 'minest:award-ready') sendAwardProgress();
-      if (event.data && event.data.type === 'minest:challenge-ready' && isBadgeMessageOrigin(event.origin) && (event.source === challengeFrameRef.current?.contentWindow || event.source === rewardSyncFrameRef.current?.contentWindow)) {
+      if (event.data && event.data.type === 'minest:challenge-ready' && isBadgeMessageOrigin(event.origin) && (event.source === challengeEngineFrameRef.current?.contentWindow || event.source === challengeClaimFrameRef.current?.contentWindow || event.source === rewardSyncFrameRef.current?.contentWindow)) {
         if (typeof event.data.collectedCount === 'number') setCollectedCount(event.data.collectedCount);
         sendChallengeProgress();
       }
-      if (event.data && event.data.type === 'minest:challenge-unlocked' && isBadgeMessageOrigin(event.origin) && (event.source === challengeFrameRef.current?.contentWindow || event.source === rewardSyncFrameRef.current?.contentWindow)) {
+      if (event.data && event.data.type === 'minest:challenge-unlocked' && isBadgeMessageOrigin(event.origin) && isNormalChallengeSource(event.source)) {
+        queueWallUnlock(event.data.badgeId);
+        sendWallUnlocks();
+        var unlockedBadgeId = String(event.data.badgeId || '');
+        if (props.pendingStrikeAfterRings && unlockedBadgeId && unlockedBadgeId.indexOf('strike-') !== 0 && props.onPromoteStrike) {
+          props.onPromoteStrike(props.pendingStrikeAfterRings);
+        }
         if (window.location.protocol === 'file:') {
           setCollectedCount(function(count) { return count + 1; });
         } else {
           try { setCollectedCount((JSON.parse(localStorage.getItem('minest_reward_system_v2') || 'null')?.collectedIds || []).length); } catch(e) {}
         }
       }
-      if (event.data && event.data.type === 'minest:challenge-pending-state' && isBadgeMessageOrigin(event.origin) && event.source === challengeFrameRef.current?.contentWindow) {
+      if (event.data && event.data.type === 'minest:challenge-pending-state' && isBadgeMessageOrigin(event.origin) && (event.source === challengeEngineFrameRef.current?.contentWindow || event.source === challengeClaimFrameRef.current?.contentWindow)) {
         setChallengePending(!!event.data.hasPending);
       }
       if (event.data && (event.data.type === 'minest:rings-celebration-exited' || event.data.type === 'minest:pending-animation-complete')) {
@@ -16090,7 +17219,7 @@ var ActivityBadgesModal = function(props) {
     };
     window.addEventListener('message', handleBadgeReady);
     return function() { window.removeEventListener('message', handleBadgeReady); };
-  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, rings.date, props.qualifiedDates, unlockRules]);
+  }, [focusMinutes, checkCount, goalPercent, targetMinutes, targetChecks, rings.date, props.qualifiedDates, unlockRules, props.pendingStrikeAfterRings, props.onPromoteStrike]);
 
   (0, _.useEffect)(function() {
     if (props.celebrateRings) {
@@ -16137,7 +17266,8 @@ var ActivityBadgesModal = function(props) {
   var saveGoals = function() {
     var next = Object.assign({}, rings, {
       targetMinutes: clampGoal(draftGoals.targetMinutes, 5, 240),
-      targetChecks: clampGoal(draftGoals.targetChecks, 1, 100)
+      targetChecks: clampGoal(draftGoals.targetChecks, 1, 100),
+      targetGoalPercent: clampGoal(draftGoals.targetGoalPercent || 100, 10, 100)
     });
     if (onUpdateRings) onUpdateRings(next);
     setEditingGoals(false);
@@ -16167,13 +17297,13 @@ var ActivityBadgesModal = function(props) {
   };
 
   return (0, P.jsx)('div', {
-    className: "fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-2xl animate-fadeIn",
+    className: "minest-activity-modal-backdrop minest-activity-modal-shell fixed inset-0 z-50 flex items-end sm:items-center justify-center backdrop-blur-2xl animate-fadeIn",
     onClick: function(e) { if (e.target === e.currentTarget) onClose(); },
     children: (0, P.jsxs)('div', {
-      className: "relative w-full sm:max-w-xl h-[94vh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-t-[34px] sm:rounded-[34px] border shadow-2xl " + (challengePending && activeSection === 'awards' && awardPane === 'challenge' ? 'minest-pending-modal ' : '') + (isDark ? "bg-[#08090d]/94 border-white/15 text-white" : "bg-[#f3f3f7]/94 border-white/80 text-slate-950"),
+      className: "minest-activity-modal-panel relative w-full sm:max-w-xl h-[94vh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-t-[34px] sm:rounded-[34px] border shadow-2xl " + (challengePending && activeSection === 'awards' && awardPane === 'challenge' ? 'minest-pending-modal ' : '') + (isDark ? "border-white/15 text-white" : "border-white/80 text-slate-950"),
       style: { WebkitBackdropFilter: "blur(42px) saturate(170%)", backdropFilter: "blur(42px) saturate(170%)" },
       children: [
-        (0, P.jsx)('div', { className: "sticky top-0 z-20 px-5 pt-3 pb-4 " + (isDark ? "bg-[#08090d]/78" : "bg-[#f3f3f7]/78"), style: { WebkitBackdropFilter: "blur(28px)", backdropFilter: "blur(28px)" }, children:
+        (0, P.jsx)('div', { className: "minest-activity-modal-header sticky top-0 z-20 px-5 pt-3 pb-4", style: { WebkitBackdropFilter: "blur(28px)", backdropFilter: "blur(28px)" }, children:
           (0, P.jsxs)('div', { children: [
             (0, P.jsx)('div', { className: "mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/25 sm:hidden" }),
             (0, P.jsxs)('div', { className: "flex items-start justify-between", children: [
@@ -16181,7 +17311,7 @@ var ActivityBadgesModal = function(props) {
                 (0, P.jsx)('p', { className: "text-[11px] font-semibold uppercase tracking-[0.18em] opacity-45", children: "Today" }),
                 (0, P.jsx)('h2', { className: "text-[28px] leading-tight font-bold tracking-[-0.035em]", children: activeSection === 'summary' ? "Summary" : "Awards" })
               ] }),
-              (0, P.jsx)('button', { type: "button", onClick: onClose, className: "w-8 h-8 rounded-full bg-white/10 border border-white/10 text-sm font-semibold", 'aria-label': "Close", children: "×" })
+              (0, P.jsx)('button', { type: "button", onClick: onClose, className: "minest-activity-modal-close w-8 h-8 rounded-full bg-white/10 border border-white/10 text-sm font-semibold", 'aria-label': "Close", children: "×" })
             ] }),
             (0, P.jsxs)('div', { className: "mt-4 gap-1 rounded-full p-1 bg-white/8 border border-white/10", style: { display: "grid", gridTemplateColumns: "1fr 1fr" }, children: [
               (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('summary'); }, className: "rounded-full py-2 text-xs font-semibold transition", style: { background: activeSection === 'summary' ? "#fff" : "transparent", color: activeSection === 'summary' ? "#000" : "inherit", opacity: activeSection === 'summary' ? 1 : 0.55, boxShadow: activeSection === 'summary' ? "0 8px 20px rgba(0,0,0,.22)" : "none" }, children: "Summary" }),
@@ -16189,16 +17319,17 @@ var ActivityBadgesModal = function(props) {
             ] })
           ] })
         }),
-        activeSection === 'summary' ? (0, P.jsxs)('div', { className: "px-5 pb-7", children: [
+        activeSection === 'summary' ? (0, P.jsxs)('div', { className: "minest-summary-glass mx-3 mb-4 rounded-[30px] px-4 pb-5 pt-1", children: [
           (0, P.jsx)('iframe', { ref: rewardSyncFrameRef, src: badgeChallengeUrl + '&sync=1', onLoad: sendChallengeProgress, title: 'Reward state sync', 'aria-hidden': true, tabIndex: -1, style: { position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none', border: 0 } }),
           (0, P.jsx)('div', { ref: ringPreviewRef, children: (0, P.jsx)(PhaseOneRingsPreview, { ringsState: rings, strikeDays: strikeDays }) }),
           (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
-            (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
+            (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { if (!editingGoals) setDraftGoals({ targetMinutes: targetMinutes, targetChecks: targetChecks, targetGoalPercent: targetGoalPercent }); setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
             editingGoals ? (0, P.jsxs)('div', { className: "mt-4 space-y-4", children: [
               (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Focus minutes" }), (0, P.jsx)('strong', { children: draftGoals.targetMinutes + " min" })] }), (0, P.jsx)('input', { type: "range", min: 5, max: 240, step: 5, value: draftGoals.targetMinutes, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetMinutes: e.target.value })); }, className: "w-full accent-[#fa114f]" })] }),
               (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Daily checks" }), (0, P.jsx)('strong', { children: draftGoals.targetChecks })] }), (0, P.jsx)('input', { type: "range", min: 1, max: 100, step: 1, value: draftGoals.targetChecks, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetChecks: e.target.value })); }, className: "w-full accent-[#30d158]" })] }),
+              (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Board goal" }), (0, P.jsx)('strong', { children: (draftGoals.targetGoalPercent || 100) + "%" })] }), (0, P.jsx)('input', { type: "range", min: 10, max: 100, step: 5, value: draftGoals.targetGoalPercent || 100, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetGoalPercent: Number(e.target.value) })); }, className: "w-full accent-cyan-400" })] }),
               (0, P.jsx)('button', { type: "button", onClick: saveGoals, className: "w-full rounded-2xl bg-white text-black py-3 text-sm font-semibold shadow-lg", children: "Save Goals" })
-            ] }) : (0, P.jsxs)('div', { className: "mt-4 grid grid-cols-2 gap-3 text-sm", children: [(0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "FOCUS" }), (0, P.jsx)('strong', { children: targetMinutes + " minutes" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "CHECKS" }), (0, P.jsx)('strong', { children: targetChecks + " items" })] })] })
+            ] }) : (0, P.jsxs)('div', { className: "mt-4 grid gap-2 text-sm", style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }, children: [(0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "FOCUS" }), (0, P.jsx)('strong', { children: targetMinutes + " min" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "CHECKS" }), (0, P.jsx)('strong', { children: targetChecks + " items" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "GOAL" }), (0, P.jsx)('strong', { children: targetGoalPercent + "%" })] })] })
           ] }),
           (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
             (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [
@@ -16227,16 +17358,23 @@ var ActivityBadgesModal = function(props) {
           ].map(function(option) {
             return (0, P.jsx)('button', { type: 'button', onClick: function() { setAwardPane(option[0]); if (option[0] !== 'collection' && strikeOverlayOpen) { setStrikeOverlayOpen(false); if (props.onDismissStrikeCelebration) props.onDismissStrikeCelebration(); } }, className: 'shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold transition-colors', style: { background: awardPane === option[0] ? '#fff' : 'transparent', color: awardPane === option[0] ? '#0b0d11' : 'inherit', opacity: awardPane === option[0] ? 1 : .6 }, children: option[1] }, option[0]);
           }) }),
-          (0, P.jsxs)('div', { className: "relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [
-            (awardPane === 'challenge' || awardPane === 'collection') ? (0, P.jsx)('iframe', { ref: challengeFrameRef, src: awardPane === 'collection' ? badgeCollectionUrl : badgeChallengeUrl, onLoad: sendChallengeProgress, title: awardPane === 'collection' ? 'Minest Badge Collection' : 'Minest Badge Wall', className: 'w-full border-0' + (awardPane === 'challenge' && challengePending ? ' minest-pending-wall-frame' : ''), style: { height: 'min(68vh, 720px)', background: '#07080c' }, loading: 'eager' }) :
+          (0, P.jsxs)('div', { className: "minest-awards-wall-frame relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [
+            (0, P.jsx)('iframe', { ref: challengeEngineFrameRef, src: badgeChallengeUrl, onLoad: sendChallengeProgress, title: 'Three Rings reward engine', 'aria-hidden': true, tabIndex: -1, style: { position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 0 } }),
+            (0, P.jsx)('iframe', { ref: wallSyncFrameRef, src: badgeWallUrl, onLoad: function() { markWallFrameReady('sync', wallSyncFrameRef.current); }, title: 'Badge wall unlock sync', 'aria-hidden': true, tabIndex: -1, style: { position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 0 } }),
+            awardPane === 'challenge' ? (0, P.jsx)('iframe', { ref: wallFrameRef, src: badgeWallUrl, onLoad: function() { markWallFrameReady('visible', wallFrameRef.current); sendChallengeProgress(); }, title: 'Minest Pokémon Badge Wall', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07080c', display: 'block', contain: 'strict' }, loading: 'eager' }) :
+            awardPane === 'collection' ? (0, P.jsxs)('div', { className: 'minest-collection-stack' + (strikeFocus ? ' is-strike-focus' : ''), style: { position: 'relative', height: 'min(68vh, 720px)', background: '#07080c', display: 'flex', flexDirection: 'column', overflow: 'hidden' }, children: [
+              (0, P.jsx)('div', { className: 'minest-strike-wall-slot', style: { position: 'relative', flex: '0 0 auto', height: 188, borderBottom: '1px solid rgba(255,255,255,.08)', background: 'radial-gradient(120% 90% at 50% 0%, rgba(255,149,0,.10), rgba(7,8,12,0) 70%)', filter: strikeFocus ? 'blur(14px) brightness(.55)' : 'none', transition: 'filter 420ms ease' }, children: (0, P.jsx)('div', { className: 'minest-strike-wall-label', children: 'STRIKE WALL · ' + strikeClaimed.length + ' / 10' }) }),
+              (0, P.jsx)('iframe', { src: badgeCollectionUrl, onLoad: sendChallengeProgress, title: 'Minest Badge Collection', className: 'w-full border-0', style: { flex: '1 1 auto', minHeight: 0, background: '#07080c', filter: strikeFocus ? 'blur(14px) brightness(.55) saturate(1.1)' : 'none', transform: strikeFocus ? 'scale(1.03)' : 'none', transition: 'filter 420ms ease, transform 420ms ease' }, loading: 'eager' }),
+              strikeFocus ? (0, P.jsx)('div', { className: 'minest-strike-veil' }) : null,
+              (0, P.jsx)('iframe', { src: strikeWallUrl, title: strikeFocus ? 'Pending Strike badge' : 'Strike wall slots', allow: 'autoplay', className: 'minest-strike-frame' + (strikeFocus ? ' is-focus' : ''), loading: 'eager' }),
+              strikeFocus && !strikeJustClaimed ? (0, P.jsx)('button', { type: 'button', onClick: closeStrikeFocus, className: 'minest-strike-later', children: '稍后领取' }) : null
+            ] }) :
             awardPane === 'library' ? (0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, title: "Minest Badge Index Preview", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }) :
               animationTabs.indexOf(awardPane) >= 0 ? (0, P.jsx)('iframe', { ref: animationFrameRef, src: animationUrl, title: animationLabels[awardPane] + ' animation', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07090d' }, loading: 'eager' }) :
               (0, P.jsx)('iframe', { src: badgeBaseUrl + '/badge-studio.html?tab=reveal&mode=' + awardPane + '&embed=1&v=6e7a1f2', title: awardPane === 'base' ? 'Mystery Hex 3D preview' : 'Mechanical assembly 3D preview', className: 'w-full border-0', style: { height: 'min(64vh, 530px)', background: '#06080c' }, loading: 'eager' }),
             (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'challenge' ? 'WALL · LIVE REWARDS' : awardPane === 'collection' ? 'COLLECTION · COLLECTED' : 'INDEX · PREVIEW'] }),
-            awardPane === 'collection' && strikeOverlayOpen && props.strikeCelebrationDays ? (0, P.jsxs)('div', { className: 'absolute inset-0 z-20 flex flex-col bg-[#080a11]/82 backdrop-blur-2xl', children: [
-              (0, P.jsx)('iframe', { src: badgeBaseUrl + '/badge-animations/index.html?embed=1&tab=strike&mode=collection&milestone=' + encodeURIComponent(props.strikeCelebrationDays) + '&v=strike-345f94d', title: 'Strike milestone celebration', className: 'min-h-0 flex-1 w-full border-0', allow: 'autoplay', loading: 'eager' }),
-              (0, P.jsx)('button', { type: 'button', onClick: function() { setStrikeOverlayOpen(false); setAwardPane('challenge'); if (props.onDismissStrikeCelebration) props.onDismissStrikeCelebration(); }, className: 'mx-5 mb-5 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 shadow-xl', children: '前往 Badge Wall 领取 →' })
-            ] }) : null
+            challengePending && awardPane === 'challenge' ? (0, P.jsx)('div', { className: 'absolute inset-0 z-30 bg-[#07080c]', children: (0, P.jsx)('iframe', { ref: challengeClaimFrameRef, src: badgeChallengeUrl, onLoad: sendChallengeProgress, title: 'Three Rings badge claim', className: 'h-full w-full border-0', style: { background: '#07080c', display: 'block', contain: 'strict' }, loading: 'eager' }) }) : null,
+            null
           ] }),
           (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'challenge' ? '三环闭合生成待领勋章 · 领取后点亮墙' : awardPane === 'collection' ? '仅显示已领取的勋章' : 'Preview · browse the complete badge index' })
         ] }),
@@ -16352,7 +17490,7 @@ var ActivityBadgesModal = function(props) {
                   children: [
                     (0, P.jsxs)('div', { className: "flex items-center gap-1 text-[11px] font-semibold text-[#00FFF0]", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-[#00FFF0]" }), "每日目标"] }),
                     (0, P.jsxs)('div', { className: "text-base font-bold mt-1 text-[#00FFF0] font-mono", children: [goalPercent, "%"] }),
-                    (0, P.jsx)('span', { className: "text-[10px] opacity-50 mt-0.5", children: goalPercent >= 100 ? "✓ 闭环达成" : "进行中" })
+                    (0, P.jsx)('span', { className: "text-[10px] opacity-50 mt-0.5", children: goalPercent >= targetGoalPercent ? "✓ 闭环达成" : "进行中" })
                   ]
                 })
               ]
@@ -17244,6 +18382,552 @@ var IconInk = function(p) {
   });
 };
 
+window.openCardWalletForCol = function(colId) {
+  var lane = document.querySelector('.board-swimlane-scroll');
+  if (!lane) return;
+  
+  var colEl = colId ? lane.querySelector('[data-col-id="' + colId + '"]') : null;
+  if (!colEl) {
+    var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
+    if (!allCols.length) return;
+    var center = lane.scrollLeft + lane.clientWidth / 2;
+    var best = null, minD = Infinity;
+    allCols.forEach(function(col) {
+      var d = Math.abs(col.offsetLeft + col.offsetWidth / 2 - center);
+      if (d < minD) { minD = d; best = col; }
+    });
+    colEl = best || allCols[0];
+  }
+  if (!colEl) return;
+  var targetColId = colEl.getAttribute('data-col-id') || colEl.dataset.colId;
+  
+  // Close existing overlay if any
+  var oldOverlay = document.querySelector('.apple-wallet-overlay');
+  if (oldOverlay && oldOverlay.parentNode) oldOverlay.parentNode.removeChild(oldOverlay);
+
+  var colTitleNode = colEl.querySelector('.kanban-column-header h2, .kanban-column-header h1, [class*="coltitle"]');
+  var colTitle = colTitleNode ? colTitleNode.textContent.trim() : 'Wallet';
+
+  var cardElements = Array.from(colEl.querySelectorAll('[data-wallet-item]'));
+  if (!cardElements.length) {
+    cardElements = Array.from(colEl.querySelectorAll('article.kanban-card'));
+  }
+
+  var cardsData = cardElements.map(function(item, idx) {
+    var titleNode = item.querySelector('h3, h4, [class*="font-semibold"], [class*="font-bold"], .wallet-minimal-card-title, .apple-wallet-card-title');
+    var t = titleNode ? titleNode.textContent.trim() : ('Card ' + (idx + 1));
+    return { id: item.getAttribute('data-wallet-item') || item.getAttribute('data-card-id') || ('card-' + idx), title: t };
+  });
+
+  // Create Overlay (Portrait Screen Adapted)
+  var overlay = document.createElement('div');
+  overlay.className = 'apple-wallet-overlay';
+
+  // Mount to .iphone-frame for portrait simulator on desktop, or document.body
+  var host = document.querySelector('.iphone-frame') || document.body;
+
+  function renderCards() {
+    return cardsData.map(function(card, i) {
+      var themeIdx = i % 10;
+      return '<div class="apple-wallet-card-shell wallet-card-theme-' + themeIdx + '" data-card-idx="' + i + '" data-card-id="' + card.id + '" style="top: ' + (i * 54) + 'px; z-index: ' + (i + 1) + ';">' +
+        '<div class="apple-wallet-card-peek">' +
+        '<span class="apple-wallet-card-title">' + card.title + '</span>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  var totalHeight = Math.max(cardsData.length * 54 + 230, 480);
+
+  overlay.innerHTML = '<div class="apple-wallet-top-spacer"></div>' +
+    '<div class="apple-wallet-nav-bar">' +
+    '<div class="apple-wallet-nav-left">' +
+    '<span class="apple-wallet-nav-logo"></span>' +
+    '<span class="apple-wallet-nav-title">' + colTitle + '</span>' +
+    '<span class="apple-wallet-nav-count">' + cardsData.length + ' 张卡片</span>' +
+    '</div>' +
+    '<div class="apple-wallet-nav-right">' +
+    '<button type="button" class="apple-wallet-add-btn" title="Add Card">' +
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+    '</button>' +
+    '<button type="button" class="apple-wallet-done-btn" title="Done">完成</button>' +
+    '</div>' +
+    '</div>' +
+    '<div class="apple-wallet-scroll-zone">' +
+    '<div class="apple-wallet-stack-wrapper" style="height: ' + totalHeight + 'px;">' +
+    renderCards() +
+    '</div>' +
+    '</div>';
+
+  function closeOverlay() {
+    window.__isWalletMode = false;
+    overlay.classList.add('apple-wallet-closing');
+    setTimeout(function() {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    }, 220);
+  }
+
+  overlay.querySelector('.apple-wallet-done-btn').addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    closeOverlay();
+  });
+
+  overlay.querySelector('.apple-wallet-add-btn').addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    closeOverlay();
+    var addBtn = colEl.querySelector('.column-add-card-btn');
+    if (addBtn) addBtn.click();
+  });
+
+  var stackWrapper = overlay.querySelector('.apple-wallet-stack-wrapper');
+  var currentExpanded = null;
+  var isDraggingAny = false;
+
+  function bindCardGestures() {
+    var cardShells = Array.from(stackWrapper.querySelectorAll('.apple-wallet-card-shell'));
+
+    cardShells.forEach(function(shell) {
+      var startY = 0;
+      var lastY = 0;
+      var lastT = 0;
+      var vy = 0;
+      var heldIdx = 0;
+      var currentSlot = 0;
+      var startTop = 0;
+      var isDragging = false;
+      var hasMoved = false;
+
+      function onPointerDown(e) {
+        if (e.button != null && e.button !== 0) return;
+        startY = e.clientY;
+        lastY = e.clientY;
+        lastT = performance.now();
+        vy = 0;
+        heldIdx = parseInt(shell.getAttribute('data-card-idx'), 10) || 0;
+        currentSlot = heldIdx;
+        startTop = heldIdx * 54;
+        isDragging = false;
+        hasMoved = false;
+
+        shell.setPointerCapture(e.pointerId);
+        shell.addEventListener('pointermove', onPointerMove);
+        shell.addEventListener('pointerup', onPointerUp);
+        shell.addEventListener('pointercancel', onPointerUp);
+      }
+
+      function onPointerMove(e) {
+        var now = performance.now();
+        var dt = Math.max(1, now - lastT);
+        vy = (e.clientY - lastY) / dt;
+        lastY = e.clientY;
+        lastT = now;
+
+        var dy = e.clientY - startY;
+
+        if (!isDragging && Math.abs(dy) > 7) {
+          isDragging = true;
+          isDraggingAny = true;
+          hasMoved = true;
+          if (currentExpanded) {
+            currentExpanded = null;
+            cardShells.forEach(function(s) { s.classList.remove('is-expanded'); s.style.transform = ''; s.style.opacity = '1'; });
+          }
+          if (navigator.vibrate) try { navigator.vibrate(12); } catch(err) {}
+          if (typeof SoundEngine !== 'undefined' && SoundEngine.play) SoundEngine.play('click');
+          shell.classList.add('is-dragging');
+          shell.style.zIndex = '1000';
+          shell.style.transition = 'none';
+        }
+
+        if (isDragging) {
+          var curTop = startTop + dy;
+          var maxTop = (cardsData.length - 1) * 54;
+          // Rubber banding past boundaries
+          if (curTop < 0) curTop = curTop * 0.32;
+          if (curTop > maxTop) curTop = maxTop + (curTop - maxTop) * 0.32;
+          var effDy = curTop - startTop;
+
+          var tilt = Math.max(-2.5, Math.min(2.5, vy * 0.04));
+          shell.style.transform = 'translate3d(0, ' + effDy.toFixed(1) + 'px, 0) scale(1.035) rotate(' + tilt.toFixed(1) + 'deg)';
+
+          // Calculate target slot
+          var targetSlot = Math.round((startTop + effDy) / 54);
+          targetSlot = Math.max(0, Math.min(cardsData.length - 1, targetSlot));
+
+          if (targetSlot !== currentSlot) {
+            currentSlot = targetSlot;
+            if (navigator.vibrate) try { navigator.vibrate(6); } catch(err) {}
+
+            // Part other cards to create dynamic gap
+            cardShells.forEach(function(otherShell) {
+              if (otherShell === shell) return;
+              var oIdx = parseInt(otherShell.getAttribute('data-card-idx'), 10);
+              var vSlot = oIdx;
+              if (oIdx > heldIdx && oIdx <= targetSlot) {
+                vSlot = oIdx - 1;
+              } else if (oIdx < heldIdx && oIdx >= targetSlot) {
+                vSlot = oIdx + 1;
+              }
+              var targetY = (vSlot - oIdx) * 54;
+              otherShell.style.transition = 'transform 0.28s cubic-bezier(0.2, 1, 0.32, 1.1)';
+              otherShell.style.transform = 'translate3d(0, ' + targetY + 'px, 0)';
+            });
+          }
+        }
+      }
+
+      function onPointerUp(e) {
+        shell.removeEventListener('pointermove', onPointerMove);
+        shell.removeEventListener('pointerup', onPointerUp);
+        shell.removeEventListener('pointercancel', onPointerUp);
+        try { shell.releasePointerCapture(e.pointerId); } catch(err) {}
+
+        if (!isDragging) {
+          // Tap: Toggle focus/expand
+          var idx = parseInt(shell.getAttribute('data-card-idx'), 10) || 0;
+          if (currentExpanded === shell) {
+            currentExpanded = null;
+            cardShells.forEach(function(s, si) {
+              s.classList.remove('is-expanded');
+              s.style.transition = 'transform 0.35s cubic-bezier(0.2, 1, 0.3, 1), box-shadow 0.3s ease, opacity 0.25s ease';
+              s.style.transform = '';
+              s.style.zIndex = String(si + 1);
+              s.style.opacity = '1';
+            });
+          } else {
+            if (currentExpanded) currentExpanded.classList.remove('is-expanded');
+            currentExpanded = shell;
+            shell.classList.add('is-expanded');
+            if (navigator.vibrate) try { navigator.vibrate(10); } catch(err) {}
+            cardShells.forEach(function(s, si) {
+              s.style.transition = 'transform 0.38s cubic-bezier(0.18, 1, 0.25, 1), box-shadow 0.3s ease, opacity 0.25s ease';
+              if (s === shell) {
+                s.style.zIndex = '500';
+                s.style.transform = 'translateY(-26px) scale(1.03)';
+                s.style.opacity = '1';
+              } else if (si > idx) {
+                s.style.zIndex = String(si + 1);
+                s.style.transform = 'translateY(160px)';
+                s.style.opacity = '0.92';
+              } else {
+                s.style.zIndex = String(si + 1);
+                s.style.transform = '';
+                s.style.opacity = '0.65';
+              }
+            });
+          }
+          return;
+        }
+
+        // Drag Release: Snap into targetSlot
+        if (navigator.vibrate) try { navigator.vibrate([10, 25]); } catch(err) {}
+        shell.classList.remove('is-dragging');
+        shell.classList.add('is-settling');
+
+        var snapOffset = (currentSlot - heldIdx) * 54;
+        shell.style.transition = 'transform 0.34s cubic-bezier(0.18, 1.25, 0.32, 1), box-shadow 0.28s ease';
+        shell.style.transform = 'translate3d(0, ' + snapOffset + 'px, 0) scale(1) rotate(0deg)';
+
+        setTimeout(function() {
+          shell.classList.remove('is-settling');
+          shell.style.transition = '';
+          shell.style.transform = '';
+          isDraggingAny = false;
+
+          if (currentSlot !== heldIdx) {
+            // Commit new order
+            var moved = cardsData.splice(heldIdx, 1)[0];
+            cardsData.splice(currentSlot, 0, moved);
+
+            // Re-render stack DOM with new order
+            stackWrapper.innerHTML = renderCards();
+            bindCardGestures();
+          }
+        }, 340);
+      }
+
+      shell.addEventListener('pointerdown', onPointerDown);
+    });
+  }
+
+  bindCardGestures();
+
+  // Tap background to collapse
+  overlay.querySelector('.apple-wallet-scroll-zone').addEventListener('click', function(e) {
+    if (isDraggingAny || e.target.closest('.apple-wallet-card-shell')) return;
+    if (currentExpanded) {
+      currentExpanded.classList.remove('is-expanded');
+      var cardShells = overlay.querySelectorAll('.apple-wallet-card-shell');
+      cardShells.forEach(function(s, si) {
+        s.style.transition = 'transform 0.32s cubic-bezier(0.2, 1, 0.3, 1), opacity 0.25s ease';
+        s.style.transform = '';
+        s.style.zIndex = String(si + 1);
+        s.style.opacity = '1';
+      });
+      currentExpanded = null;
+    }
+  });
+
+  host.appendChild(overlay);
+  window.__isWalletMode = true;
+  window.__closeAppleWalletOverlay = closeOverlay;
+};
+
+window.exitAllWalletModes = function(force) {
+  if (window.__closeAppleWalletOverlay) { try { window.__closeAppleWalletOverlay(); } catch(e) {} }
+  var curOv = document.querySelector(".apple-wallet-overlay"); if (curOv && curOv.parentNode) curOv.parentNode.removeChild(curOv);
+  window.__isWalletMode = false;
+  if (document.documentElement) {
+    document.documentElement.classList.remove('wallet-drag-mode', 'wallet-fullscreen-mode', 'clear-mode');
+  }
+  if (document.body) {
+    document.body.classList.remove('wallet-drag-mode', 'wallet-fullscreen-mode', 'clear-mode', 'is-safari-column-dragging');
+  }
+  document.querySelectorAll('.wallet-fullscreen-header').forEach(function(h) {
+    if (h && h.parentNode) h.parentNode.removeChild(h);
+  });
+  document.querySelectorAll('.kanban-column-wrapper').forEach(function(c) {
+    c.classList.remove('wallet-fullscreen-column');
+  });
+
+  // Remove floating exit buttons
+  var exitBtns = document.querySelectorAll('.wallet-exit-done-pill, .clear-mode-exit-pill');
+  exitBtns.forEach(function(btn) { if (btn && btn.parentNode) btn.parentNode.removeChild(btn); });
+
+  // Unhide any nodes that had display set to none
+  document.querySelectorAll('[data-clear-mode-display]').forEach(function(node) {
+    node.style.display = node.dataset.clearModeDisplay || '';
+    delete node.dataset.clearModeDisplay;
+  });
+  document.querySelectorAll('.iphone-topbar, .ios-bottom-tab-bar, .simulator-desktop-controls').forEach(function(node) {
+    if (node.style.display === 'none') node.style.display = '';
+  });
+
+  // Restore swimlanes
+  document.querySelectorAll('.board-swimlane-scroll').forEach(function(lane) {
+    lane.classList.remove('wallet-dragging', 'wallet-fanning', 'list-wallet-active', 'list-wallet-fanning', 'is-gesture-scrolling');
+    lane.style.scrollBehavior = '';
+  });
+
+  // Restore column wrappers
+  document.querySelectorAll('.kanban-column-wrapper').forEach(function(col) {
+    col.classList.remove('wallet-active-column', 'list-wallet-lifted', 'clear-active-column');
+    col.style.transform = '';
+    col.style.transition = '';
+    col.style.zIndex = '';
+  });
+
+  // Restore card scrollers & wallet items
+  document.querySelectorAll('.kanban-cards-scroll').forEach(function(sc) {
+    sc.classList.remove('wallet-list');
+  });
+
+  document.querySelectorAll('[data-wallet-item], article.kanban-card').forEach(function(item) {
+    item.classList.remove('wallet-lifted', 'clear-active-card', 'gesture-manipulating', 'gesture-swipe-open');
+    item.style.transform = '';
+    item.style.transition = '';
+    item.style.opacity = '';
+    item.style.zIndex = '';
+    item.style.position = '';
+    item.style.removeProperty('--wallet-ext');
+    item.style.removeProperty('--wallet-chip');
+    var box = item.querySelector(':scope > .wallet-art');
+    if (box && box.parentNode) box.parentNode.removeChild(box);
+  });
+
+  // Remove swipe backdrops
+  document.querySelectorAll('.gesture-complete-backdrop, .gesture-priority-backdrop').forEach(function(el) {
+    el.remove();
+  });
+
+  // Call active session closers if any
+  if (window.__exitClearModeSession) {
+    try { window.__exitClearModeSession(); } catch(e) {}
+  }
+  if (window.__closeCardWalletSession) {
+    try { window.__closeCardWalletSession(force !== false); } catch(e) {}
+  }
+  if (window.__closeListWalletSession) {
+    try { window.__closeListWalletSession(force !== false); } catch(e) {}
+  }
+
+  window.__minestGestureSuppressClickUntil = Date.now() + 300;
+};
+
+
+window.openListWallet = function() {
+  var lane = document.querySelector('.board-swimlane-scroll');
+  if (!lane) return;
+  var cols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id]'));
+  if (!cols.length) return;
+  var esc = function(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var boardNameEl = document.querySelector('.board-switcher .truncate, .board-switcher span.font-semibold');
+  var boardName = boardNameEl ? boardNameEl.textContent.trim() : 'Board';
+
+  var lists = cols.map(function(col, idx) {
+    var tn = col.querySelector('.kanban-column-header h2, .kanban-column-header h1, h2, h3, [class*="coltitle"]');
+    var arts = Array.from(col.querySelectorAll('article.kanban-card[data-card-id]'));
+    var titles = arts.map(function(a) { var h = a.querySelector('h3, h4'); return h ? h.textContent.trim() : ''; }).filter(Boolean);
+    var done = arts.filter(function(a) { return a.classList.contains('opacity-60') || !!a.querySelector('.line-through'); }).length;
+    var accent = (col.style.borderTopColor || '').trim() || (getComputedStyle(col).borderTopColor || '');
+    return { id: col.getAttribute('data-col-id') || ('list-' + idx), title: tn ? tn.textContent.trim() : ('List ' + (idx + 1)), titles: titles, total: arts.length, done: done, accent: accent };
+  });
+
+  var old = document.querySelector('.apple-wallet-overlay.list-wallet');
+  if (old && old.parentNode) old.parentNode.removeChild(old);
+
+  var overlay = document.createElement('div');
+  overlay.className = 'apple-wallet-overlay list-wallet';
+  var PEEK = 54;
+
+  function cardHTML(L, i) {
+    var more = L.titles.length > 6 ? '<li class="list-wallet-more">+' + (L.titles.length - 6) + '</li>' : '';
+    var rows = L.titles.slice(0, 6).map(function(t) { return '<li>' + esc(t) + '</li>'; }).join('') + more;
+    return '<div class="apple-wallet-card-shell wallet-card-theme-' + (i % 10) + '" data-card-idx="' + i + '" data-list-id="' + esc(L.id) + '" style="top: ' + (i * PEEK) + 'px; z-index: ' + (i + 1) + ';">' +
+      '<div class="apple-wallet-card-peek list-wallet-peek">' +
+        (L.accent ? '<span class="list-wallet-dot" style="background:' + esc(L.accent) + '"></span>' : '') +
+        '<span class="apple-wallet-card-title">' + esc(L.title) + '</span>' +
+        '<span class="list-wallet-count">' + L.total + '</span>' +
+      '</div>' +
+      '<div class="list-wallet-body">' +
+        '<div class="list-wallet-meta">' + L.done + ' / ' + L.total + ' 已完成</div>' +
+        (rows ? '<ul class="list-wallet-cards">' + rows + '</ul>' : '<div class="list-wallet-empty">还没有卡片</div>') +
+      '</div>' +
+    '</div>';
+  }
+  function renderCards() { return lists.map(cardHTML).join(''); }
+  var totalHeight = Math.max(lists.length * PEEK + 240, 480);
+
+  overlay.innerHTML = '<div class="apple-wallet-top-spacer"></div>' +
+    '<div class="apple-wallet-nav-bar">' +
+      '<div class="apple-wallet-nav-left">' +
+        '<button type="button" class="list-wallet-exit" title="点 Board 名退出 Wallet" aria-label="Exit wallet: ' + esc(boardName) + '">' +
+          '<span class="apple-wallet-nav-logo"></span>' +
+          '<span class="apple-wallet-nav-title">' + esc(boardName) + '</span>' +
+        '</button>' +
+        '<span class="apple-wallet-nav-count">' + lists.length + ' 个列表</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="apple-wallet-scroll-zone">' +
+      '<div class="apple-wallet-stack-wrapper" style="height: ' + totalHeight + 'px;">' + renderCards() + '</div>' +
+    '</div>';
+
+  var open = true, keep = 0;
+  function closeOverlay() {
+    open = false; clearInterval(keep);
+    window.__isListWalletMode = false;
+    overlay.classList.add('apple-wallet-closing');
+    setTimeout(function() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 220);
+    try { if (SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch (e) {}
+  }
+  // the board name is the way out
+  overlay.querySelector('.list-wallet-exit').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); closeOverlay(); });
+  // nothing inside the wallet reaches the board under it
+  ['pointerdown', 'click', 'touchstart', 'contextmenu'].forEach(function(t) { overlay.addEventListener(t, function(e) { e.stopPropagation(); }, t === 'touchstart' ? { passive: true } : false); });
+
+  var stack = overlay.querySelector('.apple-wallet-stack-wrapper');
+  var expanded = null, draggingAny = false;
+  function restAll(T) {
+    Array.from(stack.querySelectorAll('.apple-wallet-card-shell')).forEach(function(s, si) {
+      s.classList.remove('is-expanded');
+      s.style.transition = 'transform ' + (T || 0.34) + 's cubic-bezier(0.2, 1, 0.3, 1), box-shadow 0.3s ease, opacity 0.25s ease';
+      s.style.transform = ''; s.style.zIndex = String(si + 1); s.style.opacity = '1';
+    });
+    expanded = null;
+  }
+  function bind() {
+    var shells = Array.from(stack.querySelectorAll('.apple-wallet-card-shell'));
+    shells.forEach(function(shell) {
+      var startY = 0, lastY = 0, lastT = 0, vy = 0, held = 0, slot = 0, top0 = 0, dragging = false;
+      function down(e) {
+        if (e.button != null && e.button !== 0) return;
+        startY = lastY = e.clientY; lastT = performance.now(); vy = 0;
+        held = slot = parseInt(shell.getAttribute('data-card-idx'), 10) || 0; top0 = held * PEEK; dragging = false;
+        try { shell.setPointerCapture(e.pointerId); } catch (err) {}
+        shell.addEventListener('pointermove', move); shell.addEventListener('pointerup', up); shell.addEventListener('pointercancel', up);
+      }
+      function move(e) {
+        var now = performance.now(), dt = Math.max(1, now - lastT);
+        vy = (e.clientY - lastY) / dt; lastY = e.clientY; lastT = now;
+        var dy = e.clientY - startY;
+        if (!dragging && Math.abs(dy) > 7) {
+          dragging = true; draggingAny = true;
+          if (expanded) restAll(0.2);
+          if (navigator.vibrate) try { navigator.vibrate(12); } catch (err) {}
+          try { if (SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch (err) {}
+          shell.classList.add('is-dragging'); shell.style.zIndex = '1000'; shell.style.transition = 'none';
+        }
+        if (!dragging) return;
+        var cur = top0 + dy, max = (lists.length - 1) * PEEK;
+        if (cur < 0) cur *= 0.32;
+        if (cur > max) cur = max + (cur - max) * 0.32;
+        var eff = cur - top0, tilt = Math.max(-2.5, Math.min(2.5, vy * 0.04));
+        shell.style.transform = 'translate3d(0,' + eff.toFixed(1) + 'px,0) scale(1.035) rotate(' + tilt.toFixed(1) + 'deg)';
+        var t = Math.max(0, Math.min(lists.length - 1, Math.round((top0 + eff) / PEEK)));
+        if (t !== slot) {
+          slot = t;
+          if (navigator.vibrate) try { navigator.vibrate(6); } catch (err) {}
+          shells.forEach(function(o) {
+            if (o === shell) return;
+            var oi = parseInt(o.getAttribute('data-card-idx'), 10), v = oi;
+            if (oi > held && oi <= slot) v = oi - 1; else if (oi < held && oi >= slot) v = oi + 1;
+            o.style.transition = 'transform 0.28s cubic-bezier(0.2, 1, 0.32, 1.1)';
+            o.style.transform = 'translate3d(0,' + ((v - oi) * PEEK) + 'px,0)';
+          });
+        }
+      }
+      function up(e) {
+        shell.removeEventListener('pointermove', move); shell.removeEventListener('pointerup', up); shell.removeEventListener('pointercancel', up);
+        try { shell.releasePointerCapture(e.pointerId); } catch (err) {}
+        if (!dragging) {
+          // a tap lifts the list out to read it; a second tap puts it back
+          var idx = parseInt(shell.getAttribute('data-card-idx'), 10) || 0;
+          if (expanded === shell) { restAll(); return; }
+          if (expanded) expanded.classList.remove('is-expanded');
+          expanded = shell; shell.classList.add('is-expanded');
+          if (navigator.vibrate) try { navigator.vibrate(10); } catch (err) {}
+          shells.forEach(function(s, si) {
+            s.style.transition = 'transform 0.38s cubic-bezier(0.18, 1, 0.25, 1), box-shadow 0.3s ease, opacity 0.25s ease';
+            if (s === shell) { s.style.zIndex = '500'; s.style.transform = 'translateY(-26px) scale(1.03)'; s.style.opacity = '1'; }
+            else if (si > idx) { s.style.zIndex = String(si + 1); s.style.transform = 'translateY(200px)'; s.style.opacity = '0.92'; }
+            else { s.style.zIndex = String(si + 1); s.style.transform = ''; s.style.opacity = '0.65'; }
+          });
+          return;
+        }
+        if (navigator.vibrate) try { navigator.vibrate([10, 25]); } catch (err) {}
+        shell.classList.remove('is-dragging'); shell.classList.add('is-settling');
+        shell.style.transition = 'transform 0.34s cubic-bezier(0.18, 1.25, 0.32, 1), box-shadow 0.28s ease';
+        shell.style.transform = 'translate3d(0,' + ((slot - held) * PEEK) + 'px,0) scale(1) rotate(0deg)';
+        setTimeout(function() {
+          shell.classList.remove('is-settling'); shell.style.transition = ''; shell.style.transform = ''; draggingAny = false;
+          if (slot !== held) {
+            var m = lists.splice(held, 1)[0]; lists.splice(slot, 0, m);
+            stack.innerHTML = renderCards(); bind();
+          }
+        }, 340);
+      }
+      shell.addEventListener('pointerdown', down);
+    });
+  }
+  bind();
+  // a tap on the empty part of the wallet puts a lifted list back (it does not leave the wallet)
+  overlay.querySelector('.apple-wallet-scroll-zone').addEventListener('click', function(e) {
+    if (draggingAny || e.target.closest('.apple-wallet-card-shell')) return;
+    if (expanded) restAll(0.32);
+  });
+
+  var mount = function() {
+    var host = document.querySelector('.iphone-frame') || document.body;
+    if (overlay.parentNode !== host) host.appendChild(overlay);
+  };
+  mount();
+  // the phone frame can be rebuilt (rotation, a re-render): the wallet follows it until it is left
+  keep = setInterval(function() { if (open) mount(); }, 500);
+  window.__isListWalletMode = true;
+  try { if (SoundEngine && SoundEngine.play) SoundEngine.play('slide'); } catch (e) {}
+};
+
+
 var De = function(props) {
   var activeBoard = props.activeBoard;
   var boards = props.boards || [];
@@ -17506,7 +19190,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "18.0" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "27.4" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -17823,7 +19507,7 @@ var De = function(props) {
                   (0, P.jsx)('circle', { cx: 12, cy: 12, r: 4.1, stroke: "#00FFF0", strokeWidth: 2, strokeLinecap: "round", strokeDasharray: "25.76", strokeDashoffset: String(25.76 * (1 - Math.min((ringsState ? ringsState.goalPercent : 65) / 100, 1))), transform: "rotate(-90 12 12)" })
                 ]
               }),
-              (ringsState && ringsState.focusMinutes >= 30 && ringsState.checkCount >= 10 && ringsState.goalPercent >= 100) ? (0, P.jsx)('span', {
+              (ringsState && ringsState.focusMinutes >= (ringsState.targetMinutes || 30) && ringsState.checkCount >= (ringsState.targetChecks || 10) && ringsState.goalPercent >= (ringsState.targetGoalPercent || 100)) ? (0, P.jsx)('span', {
                 className: "absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-white shadow-[0_0_8px_#F59E0B] animate-pulse"
               }) : null
             ]
@@ -23388,6 +25072,42 @@ var MinestPortraitGestureManager = (function() {
     var pinchSession = null;
     var activePointers = new Map();
     var openSwipe = null;
+    var clearModeCard = null;
+    var clearModeColumn = null;
+    var clearHiddenNodes = [];
+    var enterClearMode = function(cardEl) {
+      clearModeCard = cardEl || null;
+      if (clearModeCard) {
+        document.body.classList.add('clear-mode');
+        document.documentElement.classList.add('clear-mode');
+        clearHiddenNodes = Array.from(document.querySelectorAll('.iphone-topbar, .ios-bottom-tab-bar'));
+        clearHiddenNodes.forEach(function(node) { node.dataset.clearModeDisplay = node.style.display || ''; node.style.display = 'none'; });
+        clearModeCard.classList.add('clear-active-card');
+        clearModeColumn = clearModeCard.closest('.kanban-column-wrapper');
+        if (clearModeColumn) {
+          clearModeColumn.classList.add('clear-active-column');
+          var clearScroller = clearModeColumn.querySelector('.kanban-cards-scroll');
+          if (clearScroller) { clearScroller.scrollLeft = 0; clearScroller.scrollTop = 0; }
+          var clearSwimlane = clearModeColumn.closest('.board-swimlane-scroll');
+          if (clearSwimlane) clearSwimlane.scrollLeft = 0;
+
+
+        }
+      }
+    };
+    var exitClearMode = function() {
+      if (clearModeCard) clearModeCard.classList.remove('clear-active-card');
+      if (clearModeColumn) {
+        clearModeColumn.classList.remove('clear-active-column');
+
+      }
+      clearHiddenNodes.forEach(function(node) { node.style.display = node.dataset.clearModeDisplay || ''; delete node.dataset.clearModeDisplay; });
+      clearHiddenNodes = [];
+      clearModeColumn = null;
+      clearModeCard = null;
+      document.body.classList.remove('clear-mode');
+      document.documentElement.classList.remove('clear-mode');
+    };
 
     var removeBackdrops = function(parent) {
       if (!parent) return;
@@ -23457,7 +25177,7 @@ var MinestPortraitGestureManager = (function() {
     };
 
     var onDown = function(e) {
-      if (!isPhonePortrait()) return;
+      if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
       if (window.PointerEvent && e.type.startsWith('touch')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (isWalletModeActive(lane)) {
@@ -23667,7 +25387,7 @@ var MinestPortraitGestureManager = (function() {
     };
 
     var onMove = function(e) {
-      if (!isPhonePortrait()) return;
+      if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
       if (window.PointerEvent && e.type.startsWith('touch')) return;
       if (isWalletModeActive(lane)) {
         if (gestureState) {
@@ -23778,9 +25498,17 @@ var MinestPortraitGestureManager = (function() {
           if (!pullGhost && gestureState.scrollEl) {
             pullGhost = document.createElement('div');
             pullGhost.className = 'gesture-pull-ghost';
+            var firstClearCard = gestureState.colEl && gestureState.colEl.querySelector('article.kanban-card');
+            if (firstClearCard) {
+              var firstBg = getComputedStyle(firstClearCard).backgroundColor;
+              if (firstBg && firstBg !== 'rgba(0, 0, 0, 0)') pullGhost.style.setProperty('--clear-ghost-color', firstBg);
+            }
+            if (gestureState.colObj && gestureState.colObj.color) {
+              pullGhost.style.setProperty('--clear-ghost-color', gestureState.colObj.color);
+            }
             pullGhost.innerHTML = '<div class="gesture-pull-ghost-inner">' +
-              '<span class="gesture-pull-ghost-label">Pull down for new card</span>' +
-              '<span class="gesture-pull-ghost-btn">↑</span>' +
+              '<span class="gesture-pull-ghost-label">Pull down to add</span>' +
+              '<span class="gesture-pull-ghost-btn">＋</span>' +
               '</div>';
             gestureState.scrollEl.insertBefore(pullGhost, gestureState.scrollEl.firstChild);
           }
@@ -23789,6 +25517,7 @@ var MinestPortraitGestureManager = (function() {
           return;
         } else if (gestureState.cardEl && absX > 24 && absX > absY * 1.8) {
           gestureState.mode = dx > 0 ? 'swipe_right' : 'swipe_left';
+          enterClearMode(gestureState.cardEl);
           gestureState.cardEl.classList.add('gesture-manipulating');
           var parent = gestureState.cardEl.parentElement;
           if (parent) {
@@ -23808,9 +25537,9 @@ var MinestPortraitGestureManager = (function() {
               var b = document.createElement('div');
               b.className = 'gesture-priority-backdrop';
               b.innerHTML = '<div class="gesture-swipe-actions is-trailing">' +
-                '<button type="button" class="gesture-swipe-action high" data-swipe-action="high" aria-label="Set high priority"><span>●</span><span>High</span></button>' +
-                '<button type="button" class="gesture-swipe-action medium" data-swipe-action="medium" aria-label="Set medium priority"><span>●</span><span>Med</span></button>' +
                 '<button type="button" class="gesture-swipe-action low" data-swipe-action="low" aria-label="Set low priority"><span>●</span><span>Low</span></button>' +
+                '<button type="button" class="gesture-swipe-action medium" data-swipe-action="medium" aria-label="Set medium priority"><span>●</span><span>Med</span></button>' +
+                '<button type="button" class="gesture-swipe-action high" data-swipe-action="high" aria-label="Set high priority"><span>●</span><span>High</span></button>' +
                 '</div>';
               parent.insertBefore(b, gestureState.cardEl);
               gestureState.backdropEl = b;
@@ -23822,13 +25551,13 @@ var MinestPortraitGestureManager = (function() {
       if (gestureState.mode === 'pull_down') {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
-        var pullY = clamp(dy * 0.48, 0, 72);
+        var pullY = clamp(dy * 0.9, 0, 220);
         gestureState.pullY = pullY;
         if (pullGhost) {
           pullGhost.style.height = pullY.toFixed(1) + 'px';
-          var p = clamp(pullY / 48, 0, 1);
+          var p = clamp(pullY / 120, 0, 1);
           pullGhost.style.opacity = p.toFixed(2);
-          if (pullY >= 48) {
+          if (pullY >= 120) {
             if (!gestureState.thresholdCrossed) {
               gestureState.thresholdCrossed = true;
               pullGhost.classList.add('is-ready');
@@ -23841,7 +25570,7 @@ var MinestPortraitGestureManager = (function() {
               gestureState.thresholdCrossed = false;
               pullGhost.classList.remove('is-ready');
               var lbl = pullGhost.querySelector('.gesture-pull-ghost-label');
-              if (lbl) lbl.textContent = 'Pull down for new card';
+              if (lbl) lbl.textContent = 'Pull down to add';
             }
           }
         }
@@ -23893,7 +25622,7 @@ var MinestPortraitGestureManager = (function() {
     };
 
     var onUp = function(e) {
-      if (!isPhonePortrait()) return;
+      if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
       if (window.PointerEvent && e.type.startsWith('touch')) return;
       if (isWalletModeActive(lane)) {
         if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
@@ -24120,7 +25849,31 @@ var MinestPortraitGestureManager = (function() {
     };
 
     var onOutsideDown = function(e) {
-      if (openSwipe && !lane.contains(e.target)) closeOpenSwipe();
+      if (!clearModeCard) {
+        if (openSwipe && !lane.contains(e.target)) closeOpenSwipe();
+        return;
+      }
+      var target = e.target;
+      var inActiveList = clearModeColumn && clearModeColumn.contains(target);
+      var inTitle = target && target.closest && target.closest('.clear-active-column .kanban-column-header');
+      if (!inActiveList || inTitle) {
+        if (openSwipe) closeOpenSwipe();
+        exitClearMode();
+      }
+    };
+    var onClearModeKey = function(e) {
+      if (e.key === 'Escape' && clearModeCard) {
+        closeOpenSwipe();
+        exitClearMode();
+      }
+    };
+    var onClearModeClick = function(e) {
+      if (!clearModeCard || !e.target || !e.target.closest) return;
+      if (e.target.closest('.gesture-swipe-action')) return;
+      if (e.target.closest('.clear-active-column article')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     };
 
     lane.addEventListener('pointerdown', onDown, { capture: true });
@@ -24136,6 +25889,8 @@ var MinestPortraitGestureManager = (function() {
     lane.addEventListener('dragstart', onDragStart, true);
     lane.addEventListener('click', onActionClick, true);
     document.addEventListener('pointerdown', onOutsideDown, true);
+    document.addEventListener('keydown', onClearModeKey, true);
+    document.addEventListener('click', onClearModeClick, true);
 
     return function() {
       if (lastTap.timer) clearTimeout(lastTap.timer);
@@ -24152,7 +25907,10 @@ var MinestPortraitGestureManager = (function() {
       lane.removeEventListener('dragstart', onDragStart, true);
       lane.removeEventListener('click', onActionClick, true);
       document.removeEventListener('pointerdown', onOutsideDown, true);
+      document.removeEventListener('keydown', onClearModeKey, true);
+      document.removeEventListener('click', onClearModeClick, true);
       if (openSwipe) resetCardGesture(openSwipe);
+      exitClearMode();
       if (pullGhost) { pullGhost.remove(); pullGhost = null; }
     };
   };
@@ -25554,6 +27312,12 @@ var ke = function(props) {
       kick();
     };
     var begin = function(x, y, target, kind) {
+      // 24.1 removes the legacy in-list wallet gesture. Card Wallet is opened
+      // explicitly from the wallet button in the list title row; this engine
+      // must not claim card touches before Clear mode can process them.
+      return;
+      /* legacy list-wallet gesture implementation retained below for source
+         compatibility, but intentionally unreachable in 24.1. */
       if (!isPortrait() || !target) return;
       var excluded = target.closest && target.closest('button,input,textarea,select,a,[contenteditable],.kanban-subcard');
       if (excluded) return;
@@ -25957,7 +27721,8 @@ var ke = function(props) {
   //   (ink is the board's own Invisible Ink — Apply to Whole Board — so the header's Ink button
   //    and this one always agree)
   var boardCardModeState = (0, _.useState)('none'), boardCardModeRaw = boardCardModeState[0], setBoardCardMode = boardCardModeState[1];
-  var boardCardMode = board.inkEnabled ? 'ink' : boardCardModeRaw;
+  // Let the local cycle advance past persisted ink; use board ink only while idle.
+  var boardCardMode = boardCardModeRaw !== 'none' ? boardCardModeRaw : (board.inkEnabled ? 'ink' : 'none');
   (0, _.useEffect)(function() {
     var root = swimlaneRef.current;
     if (!root) return;
@@ -25972,12 +27737,24 @@ var ke = function(props) {
     return function() { GlassLiquid.setBoardActive(false); CardGlassShatter.setBoardActive(false); };
   }, []);
   var cycleBoardCardMode = function() {
-    var next = boardCardMode === 'none' ? 'liq' : (boardCardMode === 'liq' ? 'smash' : (boardCardMode === 'smash' ? 'ink' : 'none'));
+    var next = boardCardMode === 'none' ? 'liq' : (boardCardMode === 'liq' ? 'smash' : (boardCardMode === 'smash' ? 'ink' : (boardCardMode === 'ink' ? 'ripple' : (boardCardMode === 'ripple' ? 'list-wallet' : 'none'))));
+    if (boardCardMode === 'ink' && next !== 'ink' && onUpdateBoard) {
+      onUpdateBoard(Object.assign({}, board, { inkEnabled: false }));
+    }
     if (next === 'ink') {
       setBoardCardMode('none');
       if (onUpdateBoard) onUpdateBoard(Object.assign({}, board, { inkEnabled: true }));
+    } else if (next === 'ripple') {
+      setBoardCardMode('ripple');
+      var rippleLane = document.querySelector('.board-swimlane-scroll');
+      if (rippleLane && window.RippleExplore && window.RippleExplore.triggerAt) {
+        var rr = rippleLane.getBoundingClientRect();
+        window.RippleExplore.triggerAt(rippleLane, rr.left + rr.width / 2, rr.top + rr.height / 2);
+      }
+    } else if (next === 'list-wallet') {
+      setBoardCardMode('list-wallet');
+      if (window.openListWallet) window.openListWallet();
     } else {
-      if (boardCardMode === 'ink' && onUpdateBoard) onUpdateBoard(Object.assign({}, board, { inkEnabled: false }));
       setBoardCardMode(next);
     }
     try {
@@ -26027,15 +27804,17 @@ var ke = function(props) {
     var GLYPH = {
       none: CARD_FX_ICON, liq: '≋',
       smash: '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10.2 1.6 8.9 4.4l2.4.4-1.9 2.2 2.8.3M13.9 3.2l-2.6 1.6M14.6 8.2l-2.4-1.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="10" r="4.6" fill="currentColor"/><circle cx="4.6" cy="8.5" r="1.3" fill="#fff" opacity=".85"/></svg>',
-      ink: '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M9.2 3.2c-2.3 3-4 5.3-4 7.6a4.8 4.8 0 0 0 9.6 0c0-2.3-1.7-4.6-4-7.6a.97.97 0 0 0-1.6 0z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.4" cy="11.4" r=".95" fill="currentColor"/><circle cx="11.4" cy="12.6" r=".75" fill="currentColor" opacity=".75"/><circle cx="16.2" cy="5.2" r=".8" fill="currentColor" opacity=".55"/></svg>'
+      ink: '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M9.2 3.2c-2.3 3-4 5.3-4 7.6a4.8 4.8 0 0 0 9.6 0c0-2.3-1.7-4.6-4-7.6a.97.97 0 0 0-1.6 0z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.4" cy="11.4" r=".95" fill="currentColor"/><circle cx="11.4" cy="12.6" r=".75" fill="currentColor" opacity=".75"/><circle cx="16.2" cy="5.2" r=".8" fill="currentColor" opacity=".55"/></svg>',
+      'list-wallet': '▣', ripple: '≋'
     };
-    var LABEL = { none: 'Card FX', liq: 'liq', smash: 'smash', ink: 'ink' };
+    var LABEL = { none: 'Card FX', liq: 'liq', smash: 'smash', ink: 'ink', ripple: 'ripple', 'list-wallet': 'List Wallet' };
     // sit beside the light-effects button, wherever that lives (inside the phone screen on iPhone)
     var fxb = document.querySelector('.fbfx-btn');
     if (fxb && fxb.parentElement && b.parentElement !== fxb.parentElement) fxb.parentElement.appendChild(b);
     var inShell = !!(fxb && fxb.classList.contains('in-shell'));
     b.className = "card-mode-btn board-mode-btn" + (inShell ? " in-shell" : "") + (m !== 'none' ? " on " + m : " none");
-    b.title = "Board card mode: " + (m === 'liq' ? "liq (Liquid Glass cards with ripples)" : (m === 'smash' ? "smash (Shoot steel ball at glass cards)" : (m === 'ink' ? "ink (Invisible Ink across entire board)" : "Off"))) + " — Tap to cycle (Card FX ➔ liq ➔ smash ➔ ink)";
+    var modeTitle = m === 'liq' ? "liq (Liquid Glass cards with ripples)" : (m === 'smash' ? "smash (Shoot steel ball at glass cards)" : (m === 'ink' ? "ink (Invisible Ink across entire board)" : (m === 'ripple' ? "ripple" : (m === 'list-wallet' ? "List Wallet" : "Off"))));
+    b.title = "Board card mode: " + modeTitle + " — Tap to cycle (Card FX ➔ liq ➔ smash ➔ ink ➔ ripple ➔ List Wallet)";
     b.setAttribute('aria-label', "Board card mode: " + m);
     b.innerHTML = '<span class="mode-glyph">' + GLYPH[m] + '</span><span class="mode-label">' + LABEL[m] + '</span>';
     document.documentElement.classList.toggle('fb-cardfx-on', m !== 'none');
@@ -26713,13 +28492,10 @@ var ke = function(props) {
       }
     };
 
-    var holdTimer = setTimeout(function() {
-      holdTimer = null;
-      if (isSwiping) return;
-      isWallet = true;
-      pressOut(true);
-      startListWallet(colEl, colId, cIdx, startX, startY);
-    }, 300);
+    // The legacy list-wallet hold gesture is intentionally disabled in 24.1.
+    // Card Wallet is available from the wallet button in the list title row;
+    // keeping this hold path active steals the gesture before Clear mode can see it.
+    var holdTimer = null;
 
     // Long press 1s triggers stairwell/ripple explore
     var longPressTimer = setTimeout(function() {
@@ -27277,6 +29053,11 @@ var ke = function(props) {
                           (0, P.jsxs)('div', {
                             className: "flex items-center gap-1.5 min-w-0 truncate cursor-pointer",
                             onClick: function(e) {
+                              if (document.body.classList.contains('clear-mode')) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return;
+                              }
                               if (justClosedQuickEditRef.current) return;
                               if (columnSuppressClickUntilRef.current && Date.now() < columnSuppressClickUntilRef.current) return;
                               e.stopPropagation();
@@ -27355,6 +29136,22 @@ var ke = function(props) {
                             children: (0, P.jsx)(IconPushpin, { className: "w-4 h-4" })
                           })
                         ) : null,
+
+                        // 21.3 Card Wallet button in the list title row
+                        (0, P.jsx)('button', {
+                          type: "button",
+                          onClick: function(e) {
+                            e.stopPropagation();
+                            if (window.openCardWalletForCol) window.openCardWalletForCol(col.id);
+                          },
+                          className: "col-wallet-trigger-btn p-1.5 rounded-lg transition-colors shrink-0 " + (isDark ? "hover:bg-white/12 text-white/70 hover:text-white" : "hover:bg-slate-200 text-slate-600"),
+                          title: "进入 Apple Wallet 卡包模式",
+                          'aria-label': "进入 Wallet 模式",
+                          children: (0, P.jsxs)('svg', {
+                            viewBox: "0 0 24 24", className: "w-3.5 h-3.5", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round",
+                            children: [(0, P.jsx)('rect', { x: "2", y: "5", width: "20", height: "14", rx: "3" }), (0, P.jsx)('line', { x1: "2", y1: "10", x2: "22", y2: "10" })]
+                          })
+                        }),
 
                         // List Options Menu Button
                         (0, P.jsx)('button', {
@@ -27902,6 +29699,7 @@ var ke = function(props) {
                               openQuickEdit(card, col, e.currentTarget);
                             },
                             onDoubleClick: function() {
+                              if (document.body.classList.contains('clear-mode')) return;
                               if (justClosedQuickEditRef.current) return;
                               if (window.__minestGestureSuppressClickUntil && Date.now() < window.__minestGestureSuppressClickUntil) return;
                               if (window.MinestPortraitGestureManager && window.MinestPortraitGestureManager.isPhonePortrait()) {
@@ -27926,7 +29724,8 @@ var ke = function(props) {
                             style: {
                               minHeight: isFullCover ? "120px" : card.cover ? "60px" : "36px",
                               backgroundColor: card.color ? (isDark ? card.color + '26' : card.color + '18') : undefined,
-                              borderColor: card.color ? card.color + '55' : undefined
+                              borderColor: card.color ? card.color + '55' : undefined,
+                              '--clear-row-color': card.priority === 'high' ? '#e3131e' : card.priority === 'medium' ? '#f47b16' : card.priority === 'low' ? '#168df5' : ['#1683f5', '#188cf1', '#159be9', '#ec3b21', '#f47d16', '#f5ae19'][cIdx % 6]
                             },
                             children: [
                               // Front Cover (Supports Full Cover vs Banner Cover)
@@ -31790,7 +33589,9 @@ var Be = function() {
       var raw = localStorage.getItem("minest_activity_rings_v1");
       if (raw) {
         var parsed = JSON.parse(raw);
-        if (parsed && parsed.date === today) return parsed;
+        if (parsed && parsed.date === today) return Object.assign({ targetGoalPercent: 100 }, parsed);
+        // New day: progress resets, the user's goals carry over
+        if (parsed) return { focusMinutes: 0, targetMinutes: parsed.targetMinutes || 30, checkCount: 0, targetChecks: parsed.targetChecks || 10, goalPercent: 0, targetGoalPercent: parsed.targetGoalPercent || 100, date: today };
       }
     } catch(e) {}
     return {
@@ -31799,6 +33600,7 @@ var Be = function() {
       checkCount: 0,
       targetChecks: 10,
       goalPercent: 0,
+      targetGoalPercent: 100,
       date: minestLocalDay()
     };
   });
@@ -31818,20 +33620,29 @@ var Be = function() {
   var strikeCelebrationState = (0, _.useState)(null);
   var strikeCelebrationDays = strikeCelebrationState[0];
   var setStrikeCelebrationDays = strikeCelebrationState[1];
+  // Complete the ordinary three-ring reward before presenting its Strike milestone.
+  var pendingStrikeAfterRingsState = (0, _.useState)(null);
+  var pendingStrikeAfterRings = pendingStrikeAfterRingsState[0];
+  var setPendingStrikeAfterRings = pendingStrikeAfterRingsState[1];
   (0, _.useEffect)(function() {
     var today = minestLocalDay();
     if (activityRings.date !== today) return;
     var anyClosed = (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) ||
-      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) || (activityRings.goalPercent || 0) >= 100;
+      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) || (activityRings.goalPercent || 0) >= (activityRings.targetGoalPercent || 100);
     var allClosed = (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) &&
-      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) && (activityRings.goalPercent || 0) >= 100;
+      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) && (activityRings.goalPercent || 0) >= (activityRings.targetGoalPercent || 100);
     if (anyClosed && qualifiedDays.indexOf(today) < 0) {
       var nextDays = qualifiedDays.concat(today).sort();
       setQualifiedDays(nextDays);
       try { localStorage.setItem('minest_qualified_ring_days_v1', JSON.stringify(nextDays)); } catch(e) {}
       if ([3, 7, 14, 30, 40, 50, 60, 80, 90, 100].indexOf(nextDays.length) >= 0) {
-        setStrikeCelebrationDays(nextDays.length);
-        setCelebrateRings(false);
+        if (allClosed) {
+          setPendingStrikeAfterRings(nextDays.length);
+          setCelebrateRings(true);
+        } else {
+          setStrikeCelebrationDays(nextDays.length);
+          setCelebrateRings(false);
+        }
         if (allClosed) {
           try { localStorage.setItem('minest_rings_celebrated_day_v1', today); } catch(e) {}
         }
@@ -31853,7 +33664,7 @@ var Be = function() {
       var today = minestLocalDay();
       setActivityRings(function(prev) {
         if (prev.date === today) return prev;
-        var next = { focusMinutes: 0, targetMinutes: prev.targetMinutes || 30, checkCount: 0, targetChecks: prev.targetChecks || 10, goalPercent: 0, date: today };
+        var next = { focusMinutes: 0, targetMinutes: prev.targetMinutes || 30, checkCount: 0, targetChecks: prev.targetChecks || 10, goalPercent: 0, targetGoalPercent: prev.targetGoalPercent || 100, date: today };
         try { localStorage.setItem('minest_activity_rings_v1', JSON.stringify(next)); } catch(e) {}
         return next;
       });
@@ -32061,7 +33872,8 @@ var Be = function() {
             targetMinutes: next.targetMinutes || 30,
             checkCount: next.checkCount || 0,
             targetChecks: next.targetChecks || 10,
-            goalPercent: next.goalPercent || 0
+            goalPercent: next.goalPercent || 0,
+            targetGoalPercent: next.targetGoalPercent || 100
           });
         }
         return next;
@@ -32097,7 +33909,8 @@ var Be = function() {
           targetMinutes: next.targetMinutes || 30,
           checkCount: next.checkCount,
           targetChecks: next.targetChecks || 10,
-          goalPercent: next.goalPercent
+          goalPercent: next.goalPercent,
+          targetGoalPercent: next.targetGoalPercent || 100
         });
       }
       return next;
@@ -32112,7 +33925,10 @@ var Be = function() {
           var next = Object.assign({}, prev, {
             focusMinutes: e.detail.focusMinutes !== undefined ? e.detail.focusMinutes : prev.focusMinutes,
             checkCount: e.detail.checkCount !== undefined ? e.detail.checkCount : prev.checkCount,
-            goalPercent: e.detail.goalPercent !== undefined ? e.detail.goalPercent : prev.goalPercent
+            goalPercent: e.detail.goalPercent !== undefined ? e.detail.goalPercent : prev.goalPercent,
+            targetMinutes: e.detail.targetMinutes !== undefined ? e.detail.targetMinutes : prev.targetMinutes,
+            targetChecks: e.detail.targetChecks !== undefined ? e.detail.targetChecks : prev.targetChecks,
+            targetGoalPercent: e.detail.targetGoalPercent !== undefined ? e.detail.targetGoalPercent : prev.targetGoalPercent
           });
           try { localStorage.setItem("minest_activity_rings_v1", JSON.stringify(next)); } catch(err) {}
           return next;
@@ -33233,6 +35049,8 @@ var Be = function() {
         qualifiedDates: qualifiedDays,
         celebrateRings: celebrateRings,
         strikeCelebrationDays: strikeCelebrationDays,
+        pendingStrikeAfterRings: pendingStrikeAfterRings,
+        onPromoteStrike: function(days) { setStrikeCelebrationDays(days); setPendingStrikeAfterRings(null); },
         onDismissStrikeCelebration: function() { setStrikeCelebrationDays(null); },
         onCelebrationExit: function() { setCelebrateRings(false); },
         onReplayCelebration: function() { setCelebrateRings(true); },
@@ -33243,7 +35061,7 @@ var Be = function() {
             try { window.MinestNative.send('updateActivityRings', next); } catch(e) {}
           }
         },
-        onClose: function() { setIsBadgesModalOpen(false); setStrikeCelebrationDays(null); setCelebrateRings(false); }
+        onClose: function() { setIsBadgesModalOpen(false); setStrikeCelebrationDays(null); setPendingStrikeAfterRings(null); setCelebrateRings(false); }
       }) : null,
 
       // Main View Router: Coverflow / Kanban / Flashcard Drill
@@ -36611,6 +38429,10 @@ var Ve = (function(_Component) {
     '.theme-white .fbg-toggle{color:#334155;background:#f1f5f9;border-color:#e2e8f0;}',
     '.theme-white .fbg-toggle.on{color:#0c4a6e;background:linear-gradient(180deg,#fff,#e0f2fe);border-color:rgba(14,165,233,.5);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(14,165,233,.12),0 2px 10px -3px rgba(14,165,233,.45);}',
     '.theme-white .fbg-toggle.on::after{background:#0ea5e9;box-shadow:0 0 5px rgba(14,165,233,.65);}',
+    // Keep the Heavy Glass control quiet in the header: no status lamp or glow.
+    '.fbg-toggle::after,.fbg-toggle.on::after,.theme-white .fbg-toggle.on::after{display:none !important;box-shadow:none !important;}',
+    '.fbg-toggle.on{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);box-shadow:none;}',
+    '.theme-white .fbg-toggle.on{background:#f1f5f9;border-color:#e2e8f0;box-shadow:none;}',
     // a short confirmation under the button on every tap
     '.fbg-toast{position:fixed;z-index:9999;padding:5px 10px;border-radius:9px;font:600 11.5px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#fff;background:rgba(15,23,42,.8);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.14);pointer-events:none;white-space:nowrap;opacity:0;transform:translate(-50%,-4px);transition:opacity .18s,transform .18s;}',
     '.fbg-toast.show{opacity:1;transform:translate(-50%,0);}',

@@ -258,12 +258,14 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
             let checkCount = data["checkCount"] as? Int ?? 0
             let targetChecks = data["targetChecks"] as? Int ?? 10
             let goalPercent = data["goalPercent"] as? Int ?? 0
+            let targetGoalPercent = data["targetGoalPercent"] as? Int ?? 100
             iPhoneWatchSyncManager.shared.pushActivityRingsToWatch(
                 focusMinutes: focusMinutes,
                 checkCount: checkCount,
                 goalPercent: goalPercent,
                 targetMinutes: targetMinutes,
-                targetChecks: targetChecks
+                targetChecks: targetChecks,
+                targetGoalPercent: targetGoalPercent
             )
             
         case "selectBoard":

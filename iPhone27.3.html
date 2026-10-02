@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 27.4 · Watch Goal Sync</title>
+    <title>Minest iPhone 27.3 · Strike Badge Wall</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -16808,7 +16808,7 @@ var ThreeDMedal = function(props) {
 // =========================================================================
 var PhaseOneRingsPreview = function(props) {
   var live = props.ringsState || {};
-  var sample = { focusMinutes: live.focusMinutes || 0, focusGoal: live.targetMinutes || 30, completedCards: live.checkCount || 0, completeGoal: live.targetChecks || 10, goalPercent: live.goalPercent || 0, goalTarget: live.targetGoalPercent || 100, currentStreak: props.strikeDays || 0 };
+  var sample = { focusMinutes: live.focusMinutes || 0, focusGoal: live.targetMinutes || 30, completedCards: live.checkCount || 0, completeGoal: live.targetChecks || 10, goalPercent: live.goalPercent || 0, currentStreak: props.strikeDays || 0 };
   var shownState = (0, _.useState)(false);
   var shown = shownState[0];
   var setShown = shownState[1];
@@ -16818,7 +16818,7 @@ var PhaseOneRingsPreview = function(props) {
   }, []);
   var focusProgress = Math.min(1, sample.focusMinutes / sample.focusGoal);
   var completeProgress = Math.min(1, sample.completedCards / sample.completeGoal);
-  var dailyProgress = Math.min(1, sample.goalPercent / sample.goalTarget);
+  var dailyProgress = Math.min(1, sample.goalPercent / 100);
   var rings = [
     { id: 'focus', radius: 76, progress: focusProgress, gradient: 'minest-focus-gradient' },
     { id: 'complete', radius: 56, progress: completeProgress, gradient: 'minest-complete-gradient' },
@@ -16827,7 +16827,7 @@ var PhaseOneRingsPreview = function(props) {
   var rows = [
     { label: 'FOCUS', value: sample.focusMinutes + ' / ' + sample.focusGoal + ' min', note: 'Time invested today', color: '#ff537e' },
     { label: 'COMPLETE', value: sample.completedCards + ' / ' + sample.completeGoal, note: 'Cards finished today', color: '#b9e853' },
-    { label: 'GOAL', value: sample.goalPercent + ' / ' + sample.goalTarget + '%', note: 'Board goal', color: '#5ddce5' }
+    { label: 'GOAL', value: sample.goalPercent + '%', note: 'Board goal', color: '#5ddce5' }
   ];
   return (0, P.jsxs)('section', {
     className: 'minest-rings-panel relative overflow-hidden rounded-[30px] px-5 pt-5 pb-4',
@@ -16885,13 +16885,12 @@ var ActivityBadgesModal = function(props) {
   var checkCount = rings.checkCount || 0;
   var targetChecks = rings.targetChecks || 10;
   var goalPercent = Math.min(Math.max(rings.goalPercent || 0, 0), 100);
-  var targetGoalPercent = rings.targetGoalPercent || 100;
   var strikeDays = props.strikeDays || 0;
 
   var closedCount = 0;
   if (focusMinutes >= targetMinutes) closedCount++;
   if (checkCount >= targetChecks) closedCount++;
-  if (goalPercent >= targetGoalPercent) closedCount++;
+  if (goalPercent >= 100) closedCount++;
   var isAllClosed = closedCount >= 3;
 
   var defaultBadges = [
@@ -16975,7 +16974,7 @@ var ActivityBadgesModal = function(props) {
   var editingGoalsState = (0, _.useState)(false);
   var editingGoals = editingGoalsState[0];
   var setEditingGoals = editingGoalsState[1];
-  var draftGoalsState = (0, _.useState)({ targetMinutes: targetMinutes, targetChecks: targetChecks, targetGoalPercent: targetGoalPercent });
+  var draftGoalsState = (0, _.useState)({ targetMinutes: targetMinutes, targetChecks: targetChecks });
   var draftGoals = draftGoalsState[0];
   var setDraftGoals = draftGoalsState[1];
   // The 27.x badge bundles are shipped beside this HTML file. Keep their URLs
@@ -17266,8 +17265,7 @@ var ActivityBadgesModal = function(props) {
   var saveGoals = function() {
     var next = Object.assign({}, rings, {
       targetMinutes: clampGoal(draftGoals.targetMinutes, 5, 240),
-      targetChecks: clampGoal(draftGoals.targetChecks, 1, 100),
-      targetGoalPercent: clampGoal(draftGoals.targetGoalPercent || 100, 10, 100)
+      targetChecks: clampGoal(draftGoals.targetChecks, 1, 100)
     });
     if (onUpdateRings) onUpdateRings(next);
     setEditingGoals(false);
@@ -17323,13 +17321,12 @@ var ActivityBadgesModal = function(props) {
           (0, P.jsx)('iframe', { ref: rewardSyncFrameRef, src: badgeChallengeUrl + '&sync=1', onLoad: sendChallengeProgress, title: 'Reward state sync', 'aria-hidden': true, tabIndex: -1, style: { position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none', border: 0 } }),
           (0, P.jsx)('div', { ref: ringPreviewRef, children: (0, P.jsx)(PhaseOneRingsPreview, { ringsState: rings, strikeDays: strikeDays }) }),
           (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
-            (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { if (!editingGoals) setDraftGoals({ targetMinutes: targetMinutes, targetChecks: targetChecks, targetGoalPercent: targetGoalPercent }); setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
+            (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
             editingGoals ? (0, P.jsxs)('div', { className: "mt-4 space-y-4", children: [
               (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Focus minutes" }), (0, P.jsx)('strong', { children: draftGoals.targetMinutes + " min" })] }), (0, P.jsx)('input', { type: "range", min: 5, max: 240, step: 5, value: draftGoals.targetMinutes, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetMinutes: e.target.value })); }, className: "w-full accent-[#fa114f]" })] }),
               (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Daily checks" }), (0, P.jsx)('strong', { children: draftGoals.targetChecks })] }), (0, P.jsx)('input', { type: "range", min: 1, max: 100, step: 1, value: draftGoals.targetChecks, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetChecks: e.target.value })); }, className: "w-full accent-[#30d158]" })] }),
-              (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Board goal" }), (0, P.jsx)('strong', { children: (draftGoals.targetGoalPercent || 100) + "%" })] }), (0, P.jsx)('input', { type: "range", min: 10, max: 100, step: 5, value: draftGoals.targetGoalPercent || 100, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetGoalPercent: Number(e.target.value) })); }, className: "w-full accent-cyan-400" })] }),
               (0, P.jsx)('button', { type: "button", onClick: saveGoals, className: "w-full rounded-2xl bg-white text-black py-3 text-sm font-semibold shadow-lg", children: "Save Goals" })
-            ] }) : (0, P.jsxs)('div', { className: "mt-4 grid gap-2 text-sm", style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }, children: [(0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "FOCUS" }), (0, P.jsx)('strong', { children: targetMinutes + " min" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "CHECKS" }), (0, P.jsx)('strong', { children: targetChecks + " items" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "GOAL" }), (0, P.jsx)('strong', { children: targetGoalPercent + "%" })] })] })
+            ] }) : (0, P.jsxs)('div', { className: "mt-4 grid grid-cols-2 gap-3 text-sm", children: [(0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "FOCUS" }), (0, P.jsx)('strong', { children: targetMinutes + " minutes" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "CHECKS" }), (0, P.jsx)('strong', { children: targetChecks + " items" })] })] })
           ] }),
           (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
             (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [
@@ -17490,7 +17487,7 @@ var ActivityBadgesModal = function(props) {
                   children: [
                     (0, P.jsxs)('div', { className: "flex items-center gap-1 text-[11px] font-semibold text-[#00FFF0]", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-[#00FFF0]" }), "每日目标"] }),
                     (0, P.jsxs)('div', { className: "text-base font-bold mt-1 text-[#00FFF0] font-mono", children: [goalPercent, "%"] }),
-                    (0, P.jsx)('span', { className: "text-[10px] opacity-50 mt-0.5", children: goalPercent >= targetGoalPercent ? "✓ 闭环达成" : "进行中" })
+                    (0, P.jsx)('span', { className: "text-[10px] opacity-50 mt-0.5", children: goalPercent >= 100 ? "✓ 闭环达成" : "进行中" })
                   ]
                 })
               ]
@@ -19190,7 +19187,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "27.4" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "20.2" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -19507,7 +19504,7 @@ var De = function(props) {
                   (0, P.jsx)('circle', { cx: 12, cy: 12, r: 4.1, stroke: "#00FFF0", strokeWidth: 2, strokeLinecap: "round", strokeDasharray: "25.76", strokeDashoffset: String(25.76 * (1 - Math.min((ringsState ? ringsState.goalPercent : 65) / 100, 1))), transform: "rotate(-90 12 12)" })
                 ]
               }),
-              (ringsState && ringsState.focusMinutes >= (ringsState.targetMinutes || 30) && ringsState.checkCount >= (ringsState.targetChecks || 10) && ringsState.goalPercent >= (ringsState.targetGoalPercent || 100)) ? (0, P.jsx)('span', {
+              (ringsState && ringsState.focusMinutes >= 30 && ringsState.checkCount >= 10 && ringsState.goalPercent >= 100) ? (0, P.jsx)('span', {
                 className: "absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-white shadow-[0_0_8px_#F59E0B] animate-pulse"
               }) : null
             ]
@@ -33589,9 +33586,7 @@ var Be = function() {
       var raw = localStorage.getItem("minest_activity_rings_v1");
       if (raw) {
         var parsed = JSON.parse(raw);
-        if (parsed && parsed.date === today) return Object.assign({ targetGoalPercent: 100 }, parsed);
-        // New day: progress resets, the user's goals carry over
-        if (parsed) return { focusMinutes: 0, targetMinutes: parsed.targetMinutes || 30, checkCount: 0, targetChecks: parsed.targetChecks || 10, goalPercent: 0, targetGoalPercent: parsed.targetGoalPercent || 100, date: today };
+        if (parsed && parsed.date === today) return parsed;
       }
     } catch(e) {}
     return {
@@ -33600,7 +33595,6 @@ var Be = function() {
       checkCount: 0,
       targetChecks: 10,
       goalPercent: 0,
-      targetGoalPercent: 100,
       date: minestLocalDay()
     };
   });
@@ -33628,9 +33622,9 @@ var Be = function() {
     var today = minestLocalDay();
     if (activityRings.date !== today) return;
     var anyClosed = (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) ||
-      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) || (activityRings.goalPercent || 0) >= (activityRings.targetGoalPercent || 100);
+      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) || (activityRings.goalPercent || 0) >= 100;
     var allClosed = (activityRings.focusMinutes || 0) >= (activityRings.targetMinutes || 30) &&
-      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) && (activityRings.goalPercent || 0) >= (activityRings.targetGoalPercent || 100);
+      (activityRings.checkCount || 0) >= (activityRings.targetChecks || 10) && (activityRings.goalPercent || 0) >= 100;
     if (anyClosed && qualifiedDays.indexOf(today) < 0) {
       var nextDays = qualifiedDays.concat(today).sort();
       setQualifiedDays(nextDays);
@@ -33664,7 +33658,7 @@ var Be = function() {
       var today = minestLocalDay();
       setActivityRings(function(prev) {
         if (prev.date === today) return prev;
-        var next = { focusMinutes: 0, targetMinutes: prev.targetMinutes || 30, checkCount: 0, targetChecks: prev.targetChecks || 10, goalPercent: 0, targetGoalPercent: prev.targetGoalPercent || 100, date: today };
+        var next = { focusMinutes: 0, targetMinutes: prev.targetMinutes || 30, checkCount: 0, targetChecks: prev.targetChecks || 10, goalPercent: 0, date: today };
         try { localStorage.setItem('minest_activity_rings_v1', JSON.stringify(next)); } catch(e) {}
         return next;
       });
@@ -33872,8 +33866,7 @@ var Be = function() {
             targetMinutes: next.targetMinutes || 30,
             checkCount: next.checkCount || 0,
             targetChecks: next.targetChecks || 10,
-            goalPercent: next.goalPercent || 0,
-            targetGoalPercent: next.targetGoalPercent || 100
+            goalPercent: next.goalPercent || 0
           });
         }
         return next;
@@ -33909,8 +33902,7 @@ var Be = function() {
           targetMinutes: next.targetMinutes || 30,
           checkCount: next.checkCount,
           targetChecks: next.targetChecks || 10,
-          goalPercent: next.goalPercent,
-          targetGoalPercent: next.targetGoalPercent || 100
+          goalPercent: next.goalPercent
         });
       }
       return next;
@@ -33925,10 +33917,7 @@ var Be = function() {
           var next = Object.assign({}, prev, {
             focusMinutes: e.detail.focusMinutes !== undefined ? e.detail.focusMinutes : prev.focusMinutes,
             checkCount: e.detail.checkCount !== undefined ? e.detail.checkCount : prev.checkCount,
-            goalPercent: e.detail.goalPercent !== undefined ? e.detail.goalPercent : prev.goalPercent,
-            targetMinutes: e.detail.targetMinutes !== undefined ? e.detail.targetMinutes : prev.targetMinutes,
-            targetChecks: e.detail.targetChecks !== undefined ? e.detail.targetChecks : prev.targetChecks,
-            targetGoalPercent: e.detail.targetGoalPercent !== undefined ? e.detail.targetGoalPercent : prev.targetGoalPercent
+            goalPercent: e.detail.goalPercent !== undefined ? e.detail.goalPercent : prev.goalPercent
           });
           try { localStorage.setItem("minest_activity_rings_v1", JSON.stringify(next)); } catch(err) {}
           return next;

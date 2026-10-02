@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Minest 3D Badge System</title>
+    <meta name="description" content="Experimental spatial 3D digital badge library inspired by Apple Watch Activity Rings, physical medals, and liquid glass craftsmanship." />
+    <meta property="og:title" content="Minest 3D Badge System" />
+    <meta property="og:description" content="Experimental spatial 3D digital badge library inspired by Apple Watch Activity Rings, physical medals, and liquid glass craftsmanship." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="./assets/index-ClvX0Rwh.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BLDw5SSI.css">
+  </head>
+  <body class="bg-[#0A0B0E] text-slate-100 antialiased selection:bg-rose-500/30 selection:text-rose-200 overflow-x-hidden">
+    <div id="root"></div>
+    <script>
+      (() => {
+        if (new URLSearchParams(location.search).get('embed') !== '1') return;
+        const theme = `
+          :root { color-scheme: light !important; }
+          html, body { min-height:100% !important; background:linear-gradient(180deg,#fbfaff 0%,#dbe8ff 100%) !important; color:#575477 !important; }
+          body { overflow-x:hidden !important; }
+          body > div { min-height:100% !important; background:transparent !important; }
+          body > div > div { background:transparent !important; }
+          body > div * { background-color:transparent !important; background-image:none !important; }
+          body:before { content:""; position:fixed; inset:0; z-index:-1; background:linear-gradient(180deg,#fbfaff 0%,#dbe8ff 100%); pointer-events:none; }
+          body > div:first-child > header, body > header, header { display:none !important; }
+          main { max-width:none !important; width:100% !important; padding:0 0 34px !important; margin:0 !important; }
+          main > div:first-child { padding:30px 8px 8px !important; margin:0 !important; }
+          main > div:first-child h1 { display:block !important; margin:0 !important; width:100% !important; color:#6f6792 !important; text-align:center !important; letter-spacing:.12em !important; text-transform:uppercase !important; font-size:24px !important; }
+          main > div:first-child p { display:block !important; width:100% !important; color:#9993bd !important; text-align:center !important; margin:4px 0 0 !important; font-size:12px !important; }
+          main > div:first-child input, main > div:first-child input + *, main > div:first-child button, main > div:first-child .overflow-x-auto, main > div:first-child [class*="grid"] { display:none !important; }
+          main > div:nth-child(2), main > div:nth-child(3) { display:none !important; }
+          .grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3 { display:grid !important; grid-template-columns:repeat(5,minmax(0,1fr)) !important; gap:3px !important; padding:0 6px 30px !important; margin:0 !important; }
+          [style*="min-height: 340px"] { min-height:116px !important; height:116px !important; padding:0 !important; margin:0 !important; border-radius:0 !important; background:transparent !important; border:0 !important; box-shadow:none !important; color:#6a6790 !important; overflow:visible !important; }
+          [style*="min-height: 340px"] > div:first-child, [style*="min-height: 340px"] > div:last-child { display:none !important; }
+          [style*="min-height: 340px"] .h-\\[180px\\] { width:100% !important; height:116px !important; margin:0 !important; }
+          [style*="min-height: 340px"] canvas { width:100% !important; height:116px !important; max-height:none !important; }
+          [style*="min-height: 340px"] img { max-height:116px !important; }
+          .pokedex-empty { min-height:116px !important; height:116px !important; border-radius:14px !important; background:#cbdcff !important; color:#fff !important; display:grid !important; place-items:center !important; font:300 28px -apple-system,BlinkMacSystemFont,sans-serif !important; }
+          nav, footer, [class*="fixed"][class*="bottom"], [class*="fixed"][class*="top"] { display:none !important; }
+        `;
+        let selected = false;
+        const applyTheme = () => {
+          const doc = document;
+          let style = doc.getElementById('pokemon-go-wall-style');
+          if (!style) { style = doc.createElement('style'); style.id = 'pokemon-go-wall-style'; (doc.head || doc.documentElement).appendChild(style); }
+          if (style.textContent !== theme) style.textContent = theme;
+          const pokemonButton = [...doc.querySelectorAll('button')].find(button => button.textContent.includes('Pokémon Hex'));
+          if (pokemonButton && !selected) { selected = true; pokemonButton.click(); }
+          const title = doc.querySelector('main h1');
+          if (title) { if (title.textContent !== 'POKÉDEX') title.textContent = 'POKÉDEX'; if (!title.dataset.pokedexStyled) { title.style.cssText += ';display:block!important;width:100%!important;text-align:center!important;'; title.dataset.pokedexStyled = '1'; } }
+          const summary = doc.querySelector('main p');
+          if (summary) { if (summary.textContent !== 'CAUGHT: 10   SEEN: 10') summary.textContent = 'CAUGHT: 10   SEEN: 10'; if (!summary.dataset.pokedexStyled) { summary.style.cssText += ';display:block!important;width:100%!important;text-align:center!important;'; summary.dataset.pokedexStyled = '1'; } }
+          const sourceGrid = doc.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3');
+          if (sourceGrid && !sourceGrid.querySelector('.pokedex-empty')) {
+            for (let n = 11; n <= 25; n++) {
+              const empty = doc.createElement('div'); empty.className = 'pokedex-empty'; empty.textContent = String(n); sourceGrid.appendChild(empty);
+            }
+          }
+          [...doc.querySelectorAll('*')].forEach((node) => {
+            const text = (node.textContent || '').trim();
+            if (node.children.length === 0 && text === '10 / 133' && node.parentElement && node.parentElement.style.display !== 'none') node.parentElement.style.display = 'none';
+            if (text.includes('Minest 3D Award Subsystem Active Bridge')) {
+              let target = node;
+              for (let i = 0; i < 5 && target.parentElement; i++) {
+                const height = target.getBoundingClientRect().height;
+                if (height > 0 && height < 80) { if (target.style.display !== 'none') target.style.display = 'none'; break; }
+                target = target.parentElement;
+              }
+            }
+          });
+        };
+        new MutationObserver(applyTheme).observe(document.documentElement, { childList:true, subtree:true });
+        window.setInterval(applyTheme, 500);
+        applyTheme();
+      })();
+    </script>
+  </body>
+</html>
