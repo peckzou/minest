@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 27.6 · Clear Exit Fix</title>
+    <title>Minest iPhone 27.5 · Island Rings</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -19190,7 +19190,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "27.6" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "27.5" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -25848,25 +25848,17 @@ var MinestPortraitGestureManager = (function() {
       runSwipeAction(openSwipe, button.getAttribute('data-swipe-action'));
     };
 
-    var lastClearExitAt = 0;
     var onOutsideDown = function(e) {
       if (!clearModeCard) {
         if (openSwipe && !lane.contains(e.target)) closeOpenSwipe();
         return;
       }
-      // touchstart + pointerdown both arrive for one tap on iOS: handle it once
-      if (Date.now() - lastClearExitAt < 350) return;
-      var target = e.target && e.target.nodeType === 1 ? e.target : (e.target && e.target.parentElement);
-      if (!target || !target.closest) return;
+      var target = e.target;
       var inActiveList = clearModeColumn && clearModeColumn.contains(target);
-      var inTitle = target.closest('.clear-active-column .kanban-column-header');
-      var onCard = target.closest('article.kanban-card, .gesture-swipe-action, .gesture-complete-backdrop, .gesture-priority-backdrop, .gesture-pull-ghost, input, textarea, [contenteditable="true"]');
-      if (!inActiveList || inTitle || !onCard) {
-        lastClearExitAt = Date.now();
+      var inTitle = target && target.closest && target.closest('.clear-active-column .kanban-column-header');
+      if (!inActiveList || inTitle) {
         if (openSwipe) closeOpenSwipe();
-        if (clearModeCard) clearModeCard.classList.remove('gesture-manipulating', 'gesture-swipe-open');
         exitClearMode();
-        if (e.cancelable && inTitle) e.preventDefault();
       }
     };
     var onClearModeKey = function(e) {
@@ -25897,14 +25889,12 @@ var MinestPortraitGestureManager = (function() {
     lane.addEventListener('dragstart', onDragStart, true);
     lane.addEventListener('click', onActionClick, true);
     document.addEventListener('pointerdown', onOutsideDown, true);
-    document.addEventListener('touchstart', onOutsideDown, { capture: true, passive: false });
     document.addEventListener('keydown', onClearModeKey, true);
     document.addEventListener('click', onClearModeClick, true);
 
     return function() {
       if (lastTap.timer) clearTimeout(lastTap.timer);
       lane.removeEventListener('pointerdown', onDown, { capture: true });
-      document.removeEventListener('touchstart', onOutsideDown, { capture: true });
       window.removeEventListener('pointermove', onMove, { capture: true });
       window.removeEventListener('pointerup', onUp, { capture: true });
       window.removeEventListener('pointercancel', onUp, { capture: true });

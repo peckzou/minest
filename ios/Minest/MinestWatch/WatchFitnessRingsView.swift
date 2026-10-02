@@ -10,7 +10,7 @@ import Combine
 // Finished focus time is committed to Ring 1 and pushed to the phone.
 
 public enum MinestWatchVersion {
-    public static let label = "Watch 4.0"
+    public static let label = "Watch 4.4"
 }
 
 // MARK: - Ring palette (Minest colors, Apple Fitness gradients)
@@ -139,7 +139,8 @@ struct FitnessTripleRings: View {
     }
 }
 
-// MARK: - Root: rings page first, goal pages, then checklist (Digital Crown / vertical swipe)
+// MARK: - Root: rings page first, then goal pages (Digital Crown / vertical swipe).
+// The original List UI and the Badge Wall open from the rings page's bottom corners.
 
 public struct WatchFitnessRootView: View {
     @State private var page: Int = 0
@@ -157,8 +158,6 @@ public struct WatchFitnessRootView: View {
                 .tag(2)
             WatchRingGoalPage(kind: .goal)
                 .tag(3)
-            WatchChecklistView()
-                .tag(4)
         }
         .tabViewStyle(.verticalPage)
     }
@@ -168,32 +167,82 @@ public struct WatchFitnessRootView: View {
 
 public struct WatchFitnessRingsView: View {
     @ObservedObject private var syncManager = WatchSyncManager.shared
-    @StateObject private var workout = FocusWorkoutModel()
+    @ObservedObject private var workout = FocusWorkoutModel.shared
     @State private var animatedScale: Double = 0
     @State private var dragOffset: CGFloat = 0
     @State private var showWorkout = false
+    @State private var showList = false
+    @State private var showBadges = false
+    // Rings alone by default; tap the rings to reveal the numbers
+    @State private var showStats = false
 
     public init() {}
 
     private var rings: ActivityRingsState { syncManager.ringsState }
 
     public var body: some View {
-        VStack(spacing: 6) {
-            HStack {
-                Text("活动")
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundColor(Color(hex: "#FA114F"))
-                Spacer()
+        NavigationStack {
+            ringsContent
+                .navigationTitle("活动")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    // Apple Watch style corner buttons: List (left) · Badge Wall (right)
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        Button {
+                            showList = true
+                        } label: {
+                            Image(systemName: "list.bullet")
+                        }
+                        .accessibilityLabel("List")
+                        Spacer()
+                        Button {
+                            showBadges = true
+                        } label: {
+                            Image(systemName: "medal.fill")
+                        }
+                        .accessibilityLabel("Badge Wall")
+                    }
+                }
+        }
+        // Original Watch List UI, untouched (boards → lists → checklist)
+        .fullScreenCover(isPresented: $showList) {
+            WatchChecklistView()
+        }
+        .fullScreenCover(isPresented: $showBadges) {
+            NavigationStack {
+                WatchBadgesView()
+                    .navigationTitle("勋章墙")
             }
-            .padding(.horizontal, 4)
+        }
+        .fullScreenCover(isPresented: $showWorkout) {
+            WatchFocusWorkoutView(workout: workout, onClose: {
+                showWorkout = false
+            })
+        }
+        .onAppear {
+            FocusWorkoutModel.shared.requestPhoneTimer()
+            if workout.phase == .running || workout.phase == .paused { showWorkout = true }
+        }
+        .onChange(of: workout.phase) { phase in
+            if (phase == .running || phase == .paused) && !showWorkout { showWorkout = true }
+            if phase == .idle && workout.closedRemotely { showWorkout = false }
+        }
+    }
 
+    private var ringsContent: some View {
+        VStack(spacing: 2) {
             FitnessTripleRings(
                 focus: rings.focusProgress * animatedScale,
                 checks: rings.checkProgress * animatedScale,
                 goal: rings.goalProgress * animatedScale
             )
-            .frame(height: 104)
+            .frame(height: showStats ? 82 : 128)
             .offset(x: dragOffset)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                WKInterfaceDevice.current().play(.click)
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) { showStats.toggle() }
+            }
             .overlay(alignment: .leading) {
                 // Swipe-right affordance
                 Image(systemName: "chevron.right")
@@ -221,27 +270,25 @@ public struct WatchFitnessRingsView: View {
                     }
             )
 
-            VStack(spacing: 1) {
-                ringStatRow(.focus, value: "\(rings.focusMinutes)/\(rings.targetMinutes)", unit: "MIN")
-                ringStatRow(.checks, value: "\(rings.checkCount)/\(rings.targetChecks)", unit: "次")
-                ringStatRow(.goal, value: "\(rings.goalPercent)/\(rings.goalTarget)", unit: "%")
+            if showStats {
+                VStack(spacing: 0) {
+                    ringStatRow(.focus, value: "\(rings.focusMinutes)/\(rings.targetMinutes)", unit: "MIN")
+                    ringStatRow(.checks, value: "\(rings.checkCount)/\(rings.targetChecks)", unit: "次")
+                    ringStatRow(.goal, value: "\(rings.goalPercent)/\(rings.goalTarget)", unit: "%")
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
-            Text("右滑三环 开始专注计时 · \(MinestWatchVersion.label)")
-                .font(.system(size: 9, weight: .medium, design: .rounded))
-                .foregroundColor(.secondary)
         }
         .padding(.horizontal, 2)
+        // Sit high so the stats clear the corner buttons
+        .frame(maxHeight: .infinity, alignment: .top)
+        .padding(.top, -6)
         .onAppear {
             animatedScale = 0
             withAnimation(.spring(response: 1.2, dampingFraction: 0.86).delay(0.1)) {
                 animatedScale = 1
             }
-        }
-        .fullScreenCover(isPresented: $showWorkout) {
-            WatchFocusWorkoutView(workout: workout, onClose: {
-                showWorkout = false
-            })
         }
     }
 
@@ -252,7 +299,7 @@ public struct WatchFitnessRingsView: View {
                 .foregroundColor(.white)
                 .frame(width: 28, alignment: .leading)
             Text(value)
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundColor(kind.colors[1])
             Text(unit)
@@ -268,6 +315,12 @@ public struct WatchFitnessRingsView: View {
 
 final class FocusWorkoutModel: ObservableObject {
     enum Phase { case idle, countdown, running, paused, ended }
+
+    /// One timer per app, shared with the iPhone Dynamic Island timer.
+    static let shared = FocusWorkoutModel()
+    private(set) var sessionId: String = UUID().uuidString
+    /// True when the iPhone ended the session (the watch closes without its own summary).
+    @Published private(set) var closedRemotely = false
 
     @Published var phase: Phase = .idle
     @Published var countdownValue: Int = 3
@@ -305,11 +358,14 @@ final class FocusWorkoutModel: ObservableObject {
 
     func start() {
         WatchSyncManager.shared.isFocusWorkoutActive = true
+        sessionId = UUID().uuidString
+        closedRemotely = false
         startedAt = Date()
         runStart = Date()
         phase = .running
         FocusHealthSession.shared.start()
         WKInterfaceDevice.current().play(.start)
+        sendToPhone()
     }
 
     func pause() {
@@ -319,6 +375,7 @@ final class FocusWorkoutModel: ObservableObject {
         phase = .paused
         FocusHealthSession.shared.pause()
         WKInterfaceDevice.current().play(.stop)
+        sendToPhone()
     }
 
     func resume() {
@@ -327,6 +384,7 @@ final class FocusWorkoutModel: ObservableObject {
         phase = .running
         FocusHealthSession.shared.resume()
         WKInterfaceDevice.current().play(.start)
+        sendToPhone()
     }
 
     func end() {
@@ -341,6 +399,75 @@ final class FocusWorkoutModel: ObservableObject {
         FocusHealthSession.shared.end(save: minutes > 0)
         phase = .ended
         WKInterfaceDevice.current().play(.success)
+        // The watch committed the minutes; the island timer just clears
+        sendToPhone(ended: true)
+    }
+
+    // MARK: Shared timer sync (same model as the island: runningSince + accumulated)
+
+    private func sendToPhone(ended: Bool = false) {
+        var payload: [String: Any] = ["sessionId": sessionId, "updatedAt": Date().timeIntervalSince1970]
+        if ended {
+            payload["state"] = "ended"
+        } else {
+            payload["state"] = phase == .paused ? "paused" : "running"
+            payload["runningSince"] = runStart?.timeIntervalSince1970 ?? 0
+            payload["accumulated"] = accumulated
+        }
+        Self.deliver(["action": "focusTimer", "focusTimer": payload])
+    }
+
+    func requestPhoneTimer() {
+        Self.deliver(["action": "requestFocusTimer"], queueIfUnreachable: false)
+    }
+
+    private static func deliver(_ message: [String: Any], queueIfUnreachable: Bool = true) {
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(message, replyHandler: nil) { _ in
+                if queueIfUnreachable { WCSession.default.transferUserInfo(message) }
+            }
+        } else if queueIfUnreachable {
+            WCSession.default.transferUserInfo(message)
+        }
+    }
+
+    /// Follow a timer change made on the iPhone (Dynamic Island). Never echoes back.
+    func applyRemote(_ payload: [String: Any]) {
+        let state = payload["state"] as? String ?? "ended"
+        if state == "ended" {
+            guard phase == .running || phase == .paused || phase == .countdown else { return }
+            if let remoteId = payload["sessionId"] as? String, !remoteId.isEmpty, remoteId != sessionId, phase != .countdown {
+                // An unrelated session ended elsewhere; keep ours
+                return
+            }
+            countdownTimer?.invalidate()
+            FocusHealthSession.shared.end(save: false)
+            WatchSyncManager.shared.isFocusWorkoutActive = false
+            accumulated = 0
+            runStart = nil
+            closedRemotely = true
+            phase = .idle
+            WKInterfaceDevice.current().play(.stop)
+            return
+        }
+        guard state == "running" || state == "paused" else { return }
+        countdownTimer?.invalidate()
+        let wasLive = phase == .running || phase == .paused
+        sessionId = payload["sessionId"] as? String ?? sessionId
+        accumulated = payload["accumulated"] as? Double ?? 0
+        let since = payload["runningSince"] as? Double ?? 0
+        runStart = (state == "running" && since > 0) ? Date(timeIntervalSince1970: since) : nil
+        if startedAt == nil || !wasLive { startedAt = Date().addingTimeInterval(-elapsed()) }
+        closedRemotely = false
+        WatchSyncManager.shared.isFocusWorkoutActive = true
+        let newPhase: Phase = state == "running" ? .running : .paused
+        if newPhase != phase {
+            if !wasLive { FocusHealthSession.shared.start() }
+            if newPhase == .paused { FocusHealthSession.shared.pause() } else if wasLive { FocusHealthSession.shared.resume() }
+            phase = newPhase
+            WKInterfaceDevice.current().play(.click)
+        }
     }
 
     func cancelCountdown() {
@@ -366,7 +493,10 @@ extension WatchSyncManager {
             "action": "updateActivityRings",
             "focusMinutes": ringsState.focusMinutes,
             "checkCount": ringsState.checkCount,
-            "goalPercent": ringsState.goalPercent
+            "goalPercent": ringsState.goalPercent,
+            "targetMinutes": ringsState.targetMinutes,
+            "targetChecks": ringsState.targetChecks,
+            "targetGoalPercent": ringsState.goalTarget
         ]
         guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
         if WCSession.default.isReachable {
@@ -397,9 +527,7 @@ struct WatchFocusWorkoutView: View {
                 })
             case .running, .paused:
                 TabView(selection: $page) {
-                    WorkoutControlsView(workout: workout, onAfterAction: {
-                        withAnimation { page = 1 }
-                    })
+                    WorkoutControlsView(workout: workout)
                     .tag(0)
                     WorkoutMetricsView(workout: workout)
                         .tag(1)
@@ -493,7 +621,7 @@ struct WorkoutMetricsView: View {
                     .font(.system(size: 38, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .foregroundColor(Color(hex: "#FFD60A"))
-                    .opacity(workout.phase == .paused ? (Int(context.date.timeIntervalSince1970 * 2) % 2 == 0 ? 1 : 0.35) : 1)
+                    .opacity(workout.phase == .paused ? (context.date.timeIntervalSince1970.truncatingRemainder(dividingBy: 1.0) < 0.5 ? 1 : 0.35) : 1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
 
@@ -554,9 +682,27 @@ struct WorkoutMetricsView: View {
 
 struct WorkoutControlsView: View {
     @ObservedObject var workout: FocusWorkoutModel
-    var onAfterAction: () -> Void
 
     var body: some View {
+        VStack(spacing: 8) {
+            // Current state stays visible while paused (Pause never leaves this screen)
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                HStack(spacing: 6) {
+                    Text(workout.phase == .paused ? "已暂停" : "专注中")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundColor(workout.phase == .paused ? Color(hex: "#FFD60A") : .secondary)
+                    Text(WorkoutMetricsView.format(workout.elapsed(at: context.date), hundredths: false))
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundColor(Color(hex: "#FFD60A"))
+                }
+            }
+            controlsRow
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var controlsRow: some View {
         HStack(spacing: 14) {
             controlButton(
                 symbol: "xmark",
@@ -570,11 +716,9 @@ struct WorkoutControlsView: View {
                 tint: Color(hex: "#FFD60A"),
                 action: {
                     if workout.phase == .paused { workout.resume() } else { workout.pause() }
-                    onAfterAction()
                 }
             )
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func controlButton(symbol: String, title: String, tint: Color, action: @escaping () -> Void) -> some View {

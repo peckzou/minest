@@ -16,7 +16,7 @@ public struct CompleteCardIntent: LiveActivityIntent {
             let newCompleted = min(current.completedCount + 1, current.totalCount)
             let isAllDone = (newCompleted >= current.totalCount)
             
-            let updatedState = StudyActivityAttributes.ContentState(
+            var updatedState = StudyActivityAttributes.ContentState(
                 completedCount: newCompleted,
                 totalCount: current.totalCount,
                 cardTitle: current.cardTitle,
@@ -26,6 +26,8 @@ public struct CompleteCardIntent: LiveActivityIntent {
                 isAllDone: isAllDone
             )
             
+            updatedState.rings = activity.content.state.rings
+            updatedState.timer = activity.content.state.timer
             await activity.update(ActivityContent(state: updatedState, staleDate: nil))
         }
         
@@ -56,7 +58,7 @@ public struct StartFocusIntent: AppIntent {
         if ActivityAuthorizationInfo().areActivitiesEnabled {
             let active = Activity<StudyActivityAttributes>.activities
             if let first = active.first {
-                let newState = StudyActivityAttributes.ContentState(
+                var newState = StudyActivityAttributes.ContentState(
                     completedCount: first.content.state.completedCount,
                     totalCount: first.content.state.totalCount,
                     cardTitle: cardTitle,
@@ -65,6 +67,8 @@ public struct StartFocusIntent: AppIntent {
                     remainingMinutes: 25,
                     isAllDone: false
                 )
+                newState.rings = first.content.state.rings
+                newState.timer = first.content.state.timer
                 await first.update(ActivityContent(state: newState, staleDate: nil))
             } else {
                 let attributes = StudyActivityAttributes(boardTitle: "Minest 看板")
@@ -122,7 +126,7 @@ public struct DrawRandomCardIntent: AppIntent {
     public func perform() async throws -> some IntentResult {
         for activity in Activity<StudyActivityAttributes>.activities {
             let current = activity.content.state
-            let updatedState = StudyActivityAttributes.ContentState(
+            var updatedState = StudyActivityAttributes.ContentState(
                 completedCount: current.completedCount,
                 totalCount: current.totalCount,
                 cardTitle: "抽卡挑战 · 专注进行",
@@ -131,6 +135,8 @@ public struct DrawRandomCardIntent: AppIntent {
                 remainingMinutes: current.remainingMinutes,
                 isAllDone: false
             )
+            updatedState.rings = activity.content.state.rings
+            updatedState.timer = activity.content.state.timer
             await activity.update(ActivityContent(state: updatedState, staleDate: nil))
         }
         WidgetCenter.shared.reloadAllTimelines()
@@ -166,7 +172,7 @@ public struct ToggleChecklistItemIntent: AppIntent {
             let totalCount = currentItems.count
             let isAllDone = (doneCount >= totalCount && totalCount > 0)
             
-            let updatedState = StudyActivityAttributes.ContentState(
+            var updatedState = StudyActivityAttributes.ContentState(
                 completedCount: doneCount,
                 totalCount: max(totalCount, 1),
                 cardTitle: activity.content.state.cardTitle,
@@ -176,6 +182,8 @@ public struct ToggleChecklistItemIntent: AppIntent {
                 isAllDone: isAllDone,
                 items: currentItems
             )
+            updatedState.rings = activity.content.state.rings
+            updatedState.timer = activity.content.state.timer
             await activity.update(ActivityContent(state: updatedState, staleDate: nil))
         }
         

@@ -104,6 +104,8 @@ struct ContentView: View {
             NativeMotionManager.shared.startUpdates()
             iPhoneWatchSyncManager.shared.bridge = bridge
             iPhoneWatchSyncManager.shared.syncToWatch()
+            LiveActivityManager.shared.bridge = bridge
+            LiveActivityManager.shared.observeTimer()
             
             // Ensure minimum splash duration to enjoy full 3D icon animation & haptic ticks
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) {

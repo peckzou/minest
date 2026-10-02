@@ -649,7 +649,10 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
             "action": "updateActivityRings",
             "focusMinutes": ringsState.focusMinutes,
             "checkCount": ringsState.checkCount,
-            "goalPercent": ringsState.goalPercent
+            "goalPercent": ringsState.goalPercent,
+            "targetMinutes": ringsState.targetMinutes,
+            "targetChecks": ringsState.targetChecks,
+            "targetGoalPercent": ringsState.goalTarget
         ])
     }
     
@@ -891,9 +894,17 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
     public func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
         handleIncomingData(applicationContext)
     }
+
+    public func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
+        handleIncomingData(userInfo)
+    }
     
     private func handleIncomingData(_ dict: [String: Any]) {
         DispatchQueue.main.async {
+            // Watch 4.2: shared focus timer from the iPhone / Dynamic Island
+            if let timer = dict["focusTimer"] as? [String: Any] {
+                FocusWorkoutModel.shared.applyRemote(timer)
+            }
             // Activity Rings Sync from iPhone
             if let rings = dict["activityRings"] as? [String: Any] {
                 if let fM = rings["focusMinutes"] as? Int {

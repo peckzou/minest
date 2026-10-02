@@ -16,6 +16,49 @@ public struct StudyActivityAttributes: ActivityAttributes {
         }
     }
     
+    /// Live Three Rings snapshot (progress values come from Minest's own ring state; >1 = over goal)
+    public struct RingsSnapshot: Codable, Hashable {
+        public var focus: Double
+        public var complete: Double
+        public var goal: Double
+        public var strikeDays: Int
+        // Raw values for the expanded detail rows (optional: older payloads lack them)
+        public var focusMinutes: Int?
+        public var targetMinutes: Int?
+        public var checkCount: Int?
+        public var targetChecks: Int?
+        public var goalPercent: Int?
+        public var targetGoalPercent: Int?
+
+        public init(focus: Double = 0, complete: Double = 0, goal: Double = 0, strikeDays: Int = 0) {
+            self.focus = focus
+            self.complete = complete
+            self.goal = goal
+            self.strikeDays = strikeDays
+        }
+    }
+
+    /// Focus timer driven from the Dynamic Island (start / pause / stop)
+    public struct FocusTimerState: Codable, Hashable {
+        public var sessionId: String
+        public var runningSince: Date?      // non-nil while running
+        public var accumulated: Double      // seconds banked before the current run
+        public var stoppedSeconds: Double?  // set on Stop; the app commits it to the Focus ring once
+
+        public init(sessionId: String = UUID().uuidString, runningSince: Date? = nil, accumulated: Double = 0, stoppedSeconds: Double? = nil) {
+            self.sessionId = sessionId
+            self.runningSince = runningSince
+            self.accumulated = accumulated
+            self.stoppedSeconds = stoppedSeconds
+        }
+
+        public var isRunning: Bool { runningSince != nil }
+
+        public func elapsed(at date: Date = Date()) -> Double {
+            accumulated + (runningSince.map { date.timeIntervalSince($0) } ?? 0)
+        }
+    }
+
     public struct ContentState: Codable, Hashable {
         public var completedCount: Int       // e.g. 3 (checklist) or 7 (flashcard)
         public var totalCount: Int           // e.g. 5 (checklist) or 20 (flashcard)
@@ -25,6 +68,8 @@ public struct StudyActivityAttributes: ActivityAttributes {
         public var remainingMinutes: Int     // e.g. 12
         public var isAllDone: Bool           // true when all items completed
         public var items: [ChecklistItemState] // Interactive checklist items
+        public var rings: RingsSnapshot?     // Optional so older activity payloads still decode
+        public var timer: FocusTimerState?
         
         public var progress: Double {
             guard totalCount > 0 else { return 0 }

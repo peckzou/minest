@@ -267,6 +267,13 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
                 targetChecks: targetChecks,
                 targetGoalPercent: targetGoalPercent
             )
+            // Dynamic Island: live Three Rings + Strike days
+            LiveActivityManager.shared.updateRings(
+                focusMinutes: focusMinutes, targetMinutes: targetMinutes,
+                checkCount: checkCount, targetChecks: targetChecks,
+                goalPercent: goalPercent, targetGoalPercent: targetGoalPercent,
+                strikeDays: data["strikeDays"] as? Int
+            )
             
         case "selectBoard":
             if let boardId = data["boardId"] as? String {

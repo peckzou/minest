@@ -246,6 +246,24 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
     public func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
         handleWatchMessage(applicationContext)
     }
+
+    public func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
+        handleWatchMessage(userInfo)
+    }
+
+    /// Shared focus timer (Dynamic Island ⇄ Watch). Queued delivery so it never clobbers the
+    /// boards/rings application context and still arrives when the watch app opens later.
+    public func sendFocusTimerToWatch(_ payload: [String: Any]) {
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
+        let message: [String: Any] = ["focusTimer": payload]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(message, replyHandler: nil) { _ in
+                WCSession.default.transferUserInfo(message)
+            }
+        } else {
+            WCSession.default.transferUserInfo(message)
+        }
+    }
     
     private func handleWatchMessage(_ dict: [String: Any]) {
         guard let action = dict["action"] as? String else { return }
@@ -341,6 +359,15 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
                     self.syncToWatch()
                 }
                 
+            case "focusTimer":
+                // Watch started / paused / resumed / ended the shared focus timer
+                if let payload = dict["focusTimer"] as? [String: Any] {
+                    Task { @MainActor in LiveActivityManager.shared.applyWatchTimer(payload) }
+                }
+
+            case "requestFocusTimer":
+                Task { @MainActor in LiveActivityManager.shared.sendTimerToWatch(force: true) }
+
             case "updateRingGoals":
                 // Watch 4.0: goals changed on the watch → web Summary goals
                 let targetM = dict["targetMinutes"] as? Int ?? 30
@@ -386,6 +413,17 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
                         UserDefaults.standard.set(encoded, forKey: self.watchRingsKey)
                     }
                     self.bridge?.sendEventToWeb(event: "activityRingsUpdated", payload: ringsDict)
+                    // Dynamic Island follows rings changed on the watch (goals/strike keep their last values)
+                    Task { @MainActor in
+                        let last = LiveActivityManager.shared.latestRings
+                        let tM = dict["targetMinutes"] as? Int ?? 30
+                        let tC = dict["targetChecks"] as? Int ?? 10
+                        let tG = dict["targetGoalPercent"] as? Int ?? 100
+                        LiveActivityManager.shared.updateRings(
+                            focusMinutes: focusM, targetMinutes: tM, checkCount: checkC, targetChecks: tC,
+                            goalPercent: goalP, targetGoalPercent: tG, strikeDays: last.strikeDays
+                        )
+                    }
                     let js = """
                     (function() {
                         window.dispatchEvent(new CustomEvent('minestActivityRingsUpdated', {
