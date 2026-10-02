@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 27.93 · Clear Pull Edit</title>
+    <title>Minest iPhone 27.9992 · Mail Swipe</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -514,7 +514,8 @@ html, body {
   --sar: 16px;
 }
 .iphone-topbar {
-  padding-top: max(var(--sat, 0px), 8px);
+  /* 27.94: clear the Dynamic Island with some breathing room */
+  padding-top: max(calc(var(--sat, 0px) + 6px), 8px);
 }
 /* --sal/--sar (env(safe-area-inset-left/right)) were defined at :root but never
    actually consumed anywhere for the real device — only inside the dead (on a
@@ -4689,6 +4690,11 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   display: none !important;
 }
 .clear-mode .clear-active-column .kanban-cards-scroll { overscroll-behavior-y: contain !important; }
+/* 27.95: iOS treated a two-finger pinch as its own zoom gesture and cancelled both pointers
+   before the fold could be recognised; pan-y keeps scrolling native and pinches in JS */
+.clear-mode .clear-active-column,
+.clear-mode .clear-active-column .kanban-cards-scroll,
+.clear-mode .clear-active-column article.kanban-card { touch-action: pan-y !important; }
 .clear-mode .clear-active-column .ios-notification-group {
   margin: 0 !important;
   padding: 0 !important;
@@ -5829,6 +5835,91 @@ body.clear-mode .clear-active-column .fb-composer .fbc-send,
 body.clear-mode .clear-active-column .fb-composer .fbc-x,
 body.clear-mode .clear-active-column .card-gap-active-composer .fbc-send,
 body.clear-mode .clear-active-column .card-gap-active-composer .fbc-x { display: none !important; }
+</style>
+<style>
+/* 27.992 Clear: expanded stacks are plain rows too — no gaps, one height, labels inline */
+body.clear-mode .clear-active-column .ios-notification-group > div.flex-col,
+body.clear-mode .clear-active-column .card-stack-base > div.flex-col {
+  gap: 0 !important; row-gap: 0 !important; margin: 0 !important; padding: 0 !important;
+}
+body.clear-mode .clear-active-column article.kanban-subcard {
+  flex: 0 0 62px !important; height: 62px !important; min-height: 62px !important; max-height: 62px !important;
+  margin: 0 !important; justify-content: flex-start !important; gap: 0 !important; overflow: hidden !important;
+}
+body.clear-mode .clear-active-column article .subcard-content-flow,
+body.clear-mode .clear-active-column article .card-content-flow {
+  margin: 0 !important; justify-content: flex-start !important;
+}
+/* label row: a compact strip of bars at the row's right end, so every title lines up on the left */
+body.clear-mode .clear-active-column article .subcard-content-flow.flex-wrap,
+body.clear-mode .clear-active-column article .card-content-flow.flex-wrap {
+  position: absolute !important; right: 20px !important; top: 50% !important; transform: translateY(-50%) !important;
+  flex-wrap: nowrap !important; width: auto !important; height: auto !important; min-height: 0 !important;
+  margin: 0 !important; gap: 4px !important; pointer-events: none !important;
+}
+body.clear-mode .clear-active-column article.kanban-subcard:has(.flex-wrap > span.rounded-full) h4 { padding-right: 64px !important; }
+body.clear-mode .clear-active-column article .flex-wrap > span.rounded-full { width: 16px !important; flex: 0 0 16px !important; }
+/* title row takes the rest, left aligned */
+body.clear-mode .clear-active-column article .subcard-content-flow:not(.flex-wrap),
+body.clear-mode .clear-active-column article .card-content-flow:not(.flex-wrap) {
+  flex: 1 1 auto !important; min-width: 0 !important; width: auto !important; min-height: 0 !important; height: auto !important;
+}
+/* 27.99 iOS Mail swipe actions (replaces the earlier Done/Archive + Low/Med/High design) */
+.mail-swipe { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: visible; }
+.mail-swipe.is-open { pointer-events: auto; }
+.mail-swipe .mail-act {
+  position: absolute; top: 50%; right: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: 0; padding: 0; background: none; color: #fff;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  -webkit-tap-highlight-color: transparent;
+}
+.mail-swipe.is-leading .mail-act { right: auto; left: 0; }
+/* the buttons also carry .gesture-swipe-action (for the shared click handling): undo its old look */
+.mail-swipe .mail-act.gesture-swipe-action {
+  position: absolute !important; top: 50% !important; bottom: auto !important;
+  width: auto !important; height: auto !important; min-width: 0 !important; min-height: 0 !important;
+  margin: 0 !important; padding: 0 !important; flex: none !important;
+  background: none !important; box-shadow: none !important; border: 0 !important; border-radius: 0 !important;
+  font-size: 0 !important; line-height: 1 !important;
+}
+.mail-swipe.is-trailing .mail-act.gesture-swipe-action { right: 0 !important; left: auto !important; }
+.mail-swipe.is-leading .mail-act.gesture-swipe-action { left: 0 !important; right: auto !important; }
+.mail-swipe .mail-act .mail-lbl { font-size: 11px !important; display: block !important; visibility: visible !important; }
+.mail-swipe .mail-act .mail-dot { display: flex !important; visibility: visible !important; }
+.mail-swipe .mail-act .mail-dot {
+  width: var(--mD, 40px); height: var(--mD, 40px); border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+}
+.mail-swipe .mail-act .mail-dot svg { width: 46%; height: 46%; }
+.mail-swipe .mail-act .mail-lbl { font: 600 11px/1 -apple-system, "SF Pro Text", system-ui, sans-serif; letter-spacing: -.01em; color: rgba(60,60,67,.6); white-space: nowrap; }
+:not(.theme-white) .mail-swipe .mail-act .mail-lbl, .clear-mode .mail-swipe .mail-act .mail-lbl { color: rgba(235,235,245,.62); }
+.mail-swipe .mail-act .mail-dot b { font: 800 15px/1 -apple-system, "SF Pro Text", system-ui, sans-serif; color: #fff; letter-spacing: -.04em; }
+
+/* motion is driven frame by frame (spring); no CSS transitions on the actions */
+article.kanban-card.mail-swiping { border-radius: var(--mail-r, 0px) !important; overflow: hidden; position: relative; z-index: 1; will-change: transform; }
+.clear-mode .clear-active-column article.kanban-card.mail-swiping { border-radius: var(--mail-r, 0px) !important; }
+</style>
+<style>
+/* 27.998 Clear: a white bar marks rows with a priority light */
+html body.clear-mode .clear-active-column article.kanban-card[data-priority="high"]:not([data-clear-done]),
+html body.clear-mode .clear-active-column article.kanban-card[data-priority="medium"]:not([data-clear-done]),
+html body.clear-mode .clear-active-column article.kanban-card[data-priority="low"]:not([data-clear-done]),
+html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="high"],
+html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="medium"],
+html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="low"] {
+  box-shadow: inset 6px 0 0 #ffffff !important;
+}
+html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="high"] { background: #ff3b30 !important; }
+html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="medium"] { background: #ffcc00 !important; }
+html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="low"] { background: #34c759 !important; }
+</style>
+<style>
+/* 27.999 Clear: the pull row and the new-item row never shrink inside an overflowing list */
+html body.clear-mode .clear-active-column .kanban-cards-scroll > .gesture-pull-ghost,
+html body.clear-mode .clear-active-column .kanban-cards-scroll > .fb-composer,
+html body.clear-mode .clear-active-column .kanban-cards-scroll > .card-gap-active-composer { flex-shrink: 0 !important; }
 </style>
 </head>
   <body>
@@ -18877,7 +18968,7 @@ window.exitAllWalletModes = function(force) {
   });
 
   // Remove swipe backdrops
-  document.querySelectorAll('.gesture-complete-backdrop, .gesture-priority-backdrop').forEach(function(el) {
+  document.querySelectorAll('.gesture-complete-backdrop, .gesture-priority-backdrop, .mail-swipe').forEach(function(el) {
     el.remove();
   });
 
@@ -19331,7 +19422,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "27.93" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "27.9992" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -25222,12 +25313,22 @@ var MinestPortraitGestureManager = (function() {
     var clearModeColumn = null;
     var clearHiddenNodes = [];
     var enterClearMode = function(cardEl) {
+      if (clearModeCard && cardEl) {
+        // 27.94: already in Clear mode — just move the active card; the bars are already hidden
+        clearModeCard.classList.remove('clear-active-card');
+        clearModeCard = cardEl;
+        clearModeCard.classList.add('clear-active-card');
+        return;
+      }
       clearModeCard = cardEl || null;
       if (clearModeCard) {
         document.body.classList.add('clear-mode');
         document.documentElement.classList.add('clear-mode');
         clearHiddenNodes = Array.from(document.querySelectorAll('.iphone-topbar, .ios-bottom-tab-bar'));
-        clearHiddenNodes.forEach(function(node) { node.dataset.clearModeDisplay = node.style.display || ''; node.style.display = 'none'; });
+        clearHiddenNodes.forEach(function(node) {
+          if (node.dataset.clearModeDisplay === undefined) node.dataset.clearModeDisplay = node.style.display === 'none' ? '' : (node.style.display || '');
+          node.style.display = 'none';
+        });
         clearModeCard.classList.add('clear-active-card');
         clearModeColumn = clearModeCard.closest('.kanban-column-wrapper');
         if (clearModeColumn) {
@@ -25247,8 +25348,16 @@ var MinestPortraitGestureManager = (function() {
         clearModeColumn.classList.remove('clear-active-column');
 
       }
-      clearHiddenNodes.forEach(function(node) { node.style.display = node.dataset.clearModeDisplay || ''; delete node.dataset.clearModeDisplay; });
+      clearHiddenNodes.forEach(function(node) {
+        var was = node.dataset.clearModeDisplay;
+        node.style.display = (was && was !== 'none') ? was : '';
+        delete node.dataset.clearModeDisplay;
+      });
       clearHiddenNodes = [];
+      document.querySelectorAll('.iphone-topbar, .ios-bottom-tab-bar').forEach(function(node) {
+        if (node.style.display === 'none') node.style.display = '';
+      });
+      if (clearModeColumn) window.__minestSnapTo = clearModeColumn;
       clearModeColumn = null;
       clearModeCard = null;
       document.body.classList.remove('clear-mode');
@@ -25257,16 +25366,219 @@ var MinestPortraitGestureManager = (function() {
 
     var removeBackdrops = function(parent) {
       if (!parent) return;
-      var els = parent.querySelectorAll('.gesture-complete-backdrop, .gesture-priority-backdrop');
+      var els = parent.querySelectorAll('.gesture-complete-backdrop, .gesture-priority-backdrop, .mail-swipe');
       els.forEach(function(el) { el.remove(); });
     };
+
+    // ---- 27.99 Mail-style swipe mechanics (the actions are Minest's own) ---------------
+    // leading (swipe right): Done · Archive        trailing (swipe left): High (outermost) · Medium · Low
+    // Listed from the outer edge inwards — the outermost action runs on a full swipe.
+    var MAIL_SET = {
+      leading:  [ { a: 'complete', label: 'Done',    color: '#34c759', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' },
+                  { a: 'archive',  label: 'Archive', color: '#5e5ce6', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h17v4h-17zM5 9v10h14V9M10 13h4"/></svg>' } ],
+      trailing: [ { a: 'high',     label: 'High',    color: '#ff3b30', icon: '<b>!!!</b>' },
+                  { a: 'medium',   label: 'Med',     color: '#ffcc00', icon: '<b>!!</b>' },
+                  { a: 'low',      label: 'Low',     color: '#34c759', icon: '<b>!</b>' } ]
+    };
+    var mailDims = function(gs, side) {
+      var H = gs.cardH || 60;
+      // circle + label must fit inside the row (Mail rows are taller; keep the proportion)
+      var H2 = gs.cardEl ? gs.cardEl.getBoundingClientRect().height : H;
+      var D = Math.max(24, Math.min(52, Math.round(H2 - 30)));
+      var S = D + 18;
+      var n = MAIL_SET[side || gs.mailSide || 'trailing'].length;
+      return { D: D, S: S, n: n, open: n * S + 8, W: gs.cardW || 300 };
+    };
+    // full-swipe point (Mail feel): just before half the row for the leading side, half the
+    // row for the trailing side; never inside the open width. The edge action starts to
+    // stretch from 1/3 of the row while the finger is down.
+    var mailFullAt = function(gs, m) {
+      return Math.max(m.W * (gs.mailSide === 'leading' ? 0.45 : 0.5), m.open + 6);
+    };
+    var mailStretchFrom = function(gs, m) { return m.W / 3; };
+    var mailBuild = function(gs, side) {
+      var parent = gs.cardEl.parentElement;
+      if (!parent) return;
+      parent.style.position = 'relative';
+      parent.style.zIndex = '3';            // keep the labels above the next row while swiping
+      removeBackdrops(parent);
+      gs.mailSide = side;
+      var m = mailDims(gs, side);
+      var el = document.createElement('div');
+      el.className = 'mail-swipe ' + (side === 'leading' ? 'is-leading' : 'is-trailing');
+      el.style.setProperty('--mD', m.D + 'px');
+      el.innerHTML = MAIL_SET[side].map(function(it) {
+        return '<button type="button" class="mail-act gesture-swipe-action" data-swipe-action="' + it.a + '" aria-label="' + it.label + '">' +
+          '<span class="mail-dot" style="background:' + it.color + '">' + it.icon + '</span><span class="mail-lbl">' + it.label + '</span></button>';
+      }).join('');
+      parent.insertBefore(el, gs.cardEl);
+      gs.backdropEl = el;
+      gs.mailFull = false;
+      mailAlign(gs);
+    };
+    var mailAlign = function(gs) {
+      var el = gs.backdropEl, parent = gs.cardEl && gs.cardEl.parentElement;
+      if (!el || !parent) return;
+      var pr = parent.getBoundingClientRect(), cr = gs.cardEl.getBoundingClientRect();
+      var tx = gs.mailTx || 0;   // the card's own horizontal translate is not part of its slot
+      el.style.top = (cr.top - pr.top) + 'px';
+      el.style.height = cr.height + 'px';
+      el.style.left = (cr.left - tx - pr.left) + 'px';
+      el.style.width = cr.width + 'px';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+    };
+    // p = revealed width. Region model as in Mail: the revealed width is shared by the actions
+    // in proportion; each button is centred in its region and grows with it. Past the open
+    // width the outermost region takes the extra; on a full swipe it takes everything and its
+    // button stretches into a capsule while the others fade under it.
+    var clamp01 = function(v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
+    var smooth = function(a, b, v) { var t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+    var easeOut = function(t) { t = clamp01(t); return 1 - Math.pow(1 - t, 3); };
+    var mailLayout = function(gs, p) {
+      var el = gs.backdropEl;
+      if (!el || !el.classList.contains('mail-swipe')) return;
+      if (!el.classList.contains('is-anim')) mailAlign(gs);
+      var m = mailDims(gs);
+      var lead = gs.mailSide === 'leading';
+      var fullAt = mailFullAt(gs, m);
+      var full = p >= fullAt;
+      // pre-stretch between 1/3 and the full point (only while dragging, so a resting open row stays separate)
+      var s0 = Math.min(mailStretchFrom(gs, m), fullAt - 1);
+      gs.mailPre = 0.6 * smooth(s0, fullAt, p);
+      if (full !== gs.mailFull) { gs.mailFull = full; haptic(full ? 'medium' : 'selection'); }
+      var f = gs.mailF || 0;                        // 0 = normal layout, 1 = full-swipe capsule (smoothed)
+      var k = Math.min(p / m.open, 1), extra = Math.max(0, p - m.open);
+      var acts = Array.prototype.slice.call(el.querySelectorAll('.mail-act'));
+      var edge = 0;
+      acts.forEach(function(b, i) {
+        var normalRegion = m.S * k + (i === 0 ? extra : 0);
+        var region = normalRegion + ((i === 0 ? p : 0) - normalRegion) * f;
+        var dot = b.querySelector('.mail-dot'), lbl = b.querySelector('.mail-lbl');
+        var w = i === 0 ? m.D + (Math.max(m.D, p - 14) - m.D) * f : m.D;
+        dot.style.width = w.toFixed(1) + 'px';
+        var normalCentre = edge + region / 2;
+        var centre = i === 0 ? normalCentre + ((7 + w / 2) - normalCentre) * f : normalCentre;
+        var x = centre - w / 2;
+        // staggered, eased reveal (inner actions a touch later), shrinking under the capsule
+        var reveal = smooth(0.04 + 0.07 * i, 0.5 + 0.07 * i, k);
+        var sc = (0.62 + 0.38 * easeOut(k * 1.15)) * (i === 0 ? 1 : (1 - 0.45 * f));
+        var op = reveal * (i === 0 ? 1 : (1 - f));
+        var y = -(m.D + 14) / 2;
+        b.style.transform = 'translate3d(' + (lead ? x : -x).toFixed(2) + 'px,' + y.toFixed(1) + 'px,0) scale(' + sc.toFixed(3) + ')';
+        b.style.opacity = op.toFixed(3);
+        if (lbl) lbl.style.opacity = (1 - f).toFixed(3);
+        edge += region;
+      });
+    };
+    // One rAF loop per swiped row: smooths the full-swipe blend while dragging, and runs a
+    // velocity-aware spring when the finger lets go (Apple-style, slightly under-damped).
+    var mailApply = function(gs) {
+      if (!gs.cardEl) return;
+      var dirA = gs.mailSide === 'leading' ? 1 : -1;
+      var pp = gs.mailP || 0;
+      gs.mailTx = pp * dirA;
+      gs.cardEl.style.transition = 'none';
+      gs.cardEl.style.transform = 'translate3d(' + gs.mailTx.toFixed(2) + 'px,0,0)';
+      gs.cardEl.style.setProperty('--mail-r', Math.min(18, Math.abs(pp) * 0.28).toFixed(1) + 'px');
+      mailLayout(gs, Math.max(0, pp));
+    };
+    var mailTick = function(gs) {
+      if (gs.mailRaf) return;
+      var last = performance.now();
+      var step = function(now) {
+        gs.mailRaf = 0;
+        var dt = Math.min(0.034, Math.max(0.001, (now - last) / 1000)); last = now;
+        var busy = false;
+        var target = gs.mailFull ? 1 : (gs.mailDragging ? (gs.mailPre || 0) : 0), cur = gs.mailF || 0;
+        if (Math.abs(target - cur) > 0.002) { gs.mailF = cur + (target - cur) * (1 - Math.exp(-dt * 20)); busy = true; }
+        else gs.mailF = target;
+        var sp = gs.mailSpring;
+        if (sp) {
+          var K = 520, C = 2 * Math.sqrt(K) * 0.82;   // stiffness / damping (ζ ≈ 0.82)
+          var x = gs.mailP || 0, v = sp.v;
+          var a = -K * (x - sp.to) - C * v;
+          v += a * dt; x += v * dt;
+          sp.v = v; gs.mailP = x;
+          if (Math.abs(x - sp.to) < 0.35 && Math.abs(v) < 12) {
+            gs.mailP = sp.to; gs.mailSpring = null;
+            mailApply(gs);
+            if (sp.cb) sp.cb();
+          } else busy = true;
+        }
+        if (gs.mailSpring || busy || gs.mailDragging) {
+          mailApply(gs);
+          gs.mailRaf = requestAnimationFrame(step);
+        }
+      };
+      gs.mailRaf = requestAnimationFrame(step);
+    };
+    var mailSettle = function(gs, p, cb) {
+      if (!gs.backdropEl) { if (cb) cb(); return; }
+      gs.mailDragging = false;
+      var done = false;
+      var finish = function() { if (done) return; done = true; if (cb) cb(); };
+      var spring = { to: p, v: gs.mailV || 0, cb: finish };
+      gs.mailSpring = spring;
+      gs.mailV = 0;
+      mailTick(gs);
+      // frames can be paused (background tab): land anyway
+      setTimeout(function() {
+        if (done || gs.mailSpring !== spring) return;
+        gs.mailSpring = null; gs.mailP = p; mailApply(gs);
+        finish();
+      }, 900);
+    };
+    // Run one of Minest's actions with Mail motion
+    var mailRun = function(gs, action) {
+      if (!gs || !gs.cardObj || !gs.colId) return;
+      window.__minestGestureSuppressClickUntil = Date.now() + 350;
+      if (openSwipe === gs) openSwipe = null;
+      if (gs.backdropEl) gs.backdropEl.classList.remove('is-open');
+      if (gs.mailSpring) { gs.mailV = gs.mailSpring.v; gs.mailSpring = null; }
+      if (action === 'archive') {
+        // the row slides off the way it was swiped, the action fills the row, then it collapses
+        haptic('medium'); sound('slide');
+        var wrap = gs.cardEl.parentElement, dirA = gs.mailSide === 'leading' ? 1 : -1;
+        gs.mailFull = true;
+        mailSettle(gs, gs.cardW + 40);
+        setTimeout(function() {
+          if (wrap) {
+            wrap.style.height = wrap.offsetHeight + 'px';
+            wrap.style.overflow = 'hidden';
+            wrap.style.transition = 'height 0.24s cubic-bezier(0.3, 0.7, 0.2, 1), opacity 0.24s ease';
+            requestAnimationFrame(function() { wrap.style.height = '0px'; wrap.style.opacity = '0'; });
+          }
+          setTimeout(function() {
+            var latest = ctxRef.current || {};
+            if (latest.onArchiveCard) latest.onArchiveCard(gs.colId, gs.cardObj.id);
+            if (wrap) { wrap.style.height = ''; wrap.style.overflow = ''; wrap.style.transition = ''; wrap.style.opacity = ''; }
+            resetCardGesture(gs);
+          }, 250);
+        }, 240);
+        return;
+      }
+      haptic(action === 'complete' ? 'success' : 'light');
+      sound(action === 'complete' ? 'check' : 'click');
+      mailSettle(gs, 0, function() {
+        var latest = ctxRef.current || {};
+        if (action === 'complete' && latest.onToggleCardComplete) latest.onToggleCardComplete(gs.colId, gs.cardObj.id);
+        if ((action === 'high' || action === 'medium' || action === 'low') && latest.onUpdateCardPriority) latest.onUpdateCardPriority(gs.colId, gs.cardObj.id, action);
+        resetCardGesture(gs);
+      });
+    };
+
 
     var resetCardGesture = function(gs) {
       if (!gs || !gs.cardEl) return;
       gs.cardEl.style.transform = '';
       gs.cardEl.style.opacity = '';
       gs.cardEl.style.transition = '';
-      gs.cardEl.classList.remove('gesture-manipulating', 'gesture-swipe-open');
+      if (gs.mailRaf) { cancelAnimationFrame(gs.mailRaf); gs.mailRaf = 0; }
+      gs.mailSpring = null; gs.mailDragging = false;
+      gs.cardEl.style.removeProperty('--mail-r');
+      gs.cardEl.classList.remove('gesture-manipulating', 'gesture-swipe-open', 'mail-swiping');
+      if (gs.cardEl.parentElement) gs.cardEl.parentElement.style.zIndex = '';
       removeBackdrops(gs.cardEl.parentElement);
     };
 
@@ -25274,9 +25586,14 @@ var MinestPortraitGestureManager = (function() {
       if (!openSwipe) return;
       var old = openSwipe;
       openSwipe = null;
-      old.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
-      old.cardEl.style.transform = 'translate3d(0, 0, 0)';
-      if (old.backdropEl) old.backdropEl.classList.remove('is-open');
+      if (old.backdropEl && old.backdropEl.classList.contains('mail-swipe')) {
+        old.backdropEl.classList.remove('is-open');
+        mailSettle(old, 0);
+      } else {
+        old.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
+        old.cardEl.style.transform = 'translate3d(0, 0, 0)';
+        if (old.backdropEl) old.backdropEl.classList.remove('is-open');
+      }
       setTimeout(function() {
         if (old.cardEl && !old.cardEl.classList.contains('gesture-manipulating')) resetCardGesture(old);
       }, 290);
@@ -25285,6 +25602,7 @@ var MinestPortraitGestureManager = (function() {
     var runSwipeAction = function(gs, action, keepOpen) {
       if (!gs || !gs.cardObj || !gs.colId) return;
       window.__minestGestureSuppressClickUntil = Date.now() + 350;
+      if (gs.backdropEl && gs.backdropEl.classList.contains('mail-swipe')) { mailRun(gs, action); return; }
       haptic(action === 'complete' ? 'success' : 'light');
       sound(action === 'complete' ? 'check' : 'slide');
       if (action === 'complete' || action === 'archive') {
@@ -25324,7 +25642,10 @@ var MinestPortraitGestureManager = (function() {
 
     var onDown = function(e) {
       if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
-      if (window.PointerEvent && e.type.startsWith('touch')) return;
+      // 27.95: a two-finger touch in Clear mode starts the pinch from touch events
+      var clearTouchPinch = !!(clearModeCard && e.type === 'touchstart' && e.touches && e.touches.length >= 2 && !pinchSession);
+      if (window.PointerEvent && e.type.startsWith('touch') && !clearTouchPinch) return;
+      if (pinchSession && pinchSession.viaTouch && !e.type.startsWith('touch')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (isWalletModeActive(lane)) {
         if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
@@ -25475,6 +25796,10 @@ var MinestPortraitGestureManager = (function() {
           if (e.cancelable) e.preventDefault();
           e.stopPropagation();
         }
+        if (pinchSession && clearTouchPinch) {
+          pinchSession.viaTouch = true;
+          if (e.cancelable) e.preventDefault();      // no native scroll / zoom for this touch sequence
+        }
         return;
       }
 
@@ -25528,7 +25853,7 @@ var MinestPortraitGestureManager = (function() {
         gestureState.canPullDown = true;
       } else if (scrollEl && scrollEl.scrollTop <= 2 && cardEl) {
         var r = cardEl.getBoundingClientRect();
-        if (clientY - r.top < 32) {
+        if (clientY - r.top < 32 || clearModeCard) {
           gestureState.canPullDown = true;
         }
       }
@@ -25536,7 +25861,9 @@ var MinestPortraitGestureManager = (function() {
 
     var onMove = function(e) {
       if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
-      if (window.PointerEvent && e.type.startsWith('touch')) return;
+      var clearTouchMove = !!(pinchSession && pinchSession.viaTouch && e.type === 'touchmove' && e.touches && e.touches.length >= 2);
+      if (window.PointerEvent && e.type.startsWith('touch') && !clearTouchMove) return;
+      if (pinchSession && pinchSession.viaTouch && !e.type.startsWith('touch')) return;   // ignore (cancelled) pointers
       if (isWalletModeActive(lane)) {
         if (gestureState) {
           if (gestureState.cardEl) {
@@ -25673,6 +26000,13 @@ var MinestPortraitGestureManager = (function() {
           gestureState.mode = 'scroll';
           return;
         } else if (gestureState.cardEl && absX > 24 && absX > absY * 1.8) {
+          if (!clearModeCard) {
+            enterClearMode(gestureState.cardEl);
+            gestureState.mode = 'clear_enter';          // this finger is spent; the next swipe acts on rows
+            window.__minestGestureSuppressClickUntil = Date.now() + 500;
+            if (e.cancelable) e.preventDefault();
+            return;
+          }
           gestureState.mode = dx > 0 ? 'swipe_right' : 'swipe_left';
           enterClearMode(gestureState.cardEl);
           gestureState.cardEl.classList.add('gesture-manipulating');
@@ -25681,30 +26015,17 @@ var MinestPortraitGestureManager = (function() {
             parent.style.position = 'relative';
             removeBackdrops(parent);
 
-            if (gestureState.mode === 'swipe_right') {
-              var b = document.createElement('div');
-              b.className = 'gesture-complete-backdrop';
-              b.innerHTML = '<div class="gesture-swipe-actions">' +
-                '<button type="button" class="gesture-swipe-action complete" data-swipe-action="complete" aria-label="Complete card"><span>✓</span><span>Done</span></button>' +
-                '<button type="button" class="gesture-swipe-action archive" data-swipe-action="archive" aria-label="Archive card"><span>▤</span><span>Archive</span></button>' +
-                '</div>';
-              parent.insertBefore(b, gestureState.cardEl);
-              gestureState.backdropEl = b;
-            } else {
-              var b = document.createElement('div');
-              b.className = 'gesture-priority-backdrop';
-              b.innerHTML = '<div class="gesture-swipe-actions is-trailing">' +
-                '<button type="button" class="gesture-swipe-action low" data-swipe-action="low" aria-label="Set low priority"><span>●</span><span>Low</span></button>' +
-                '<button type="button" class="gesture-swipe-action medium" data-swipe-action="medium" aria-label="Set medium priority"><span>●</span><span>Med</span></button>' +
-                '<button type="button" class="gesture-swipe-action high" data-swipe-action="high" aria-label="Set high priority"><span>●</span><span>High</span></button>' +
-                '</div>';
-              parent.insertBefore(b, gestureState.cardEl);
-              gestureState.backdropEl = b;
-            }
+            // 27.99: iOS Mail actions — leading Done, trailing More / Flag / Trash
+            mailBuild(gestureState, gestureState.mode === 'swipe_right' ? 'leading' : 'trailing');
+            gestureState.cardEl.classList.add('mail-swiping');
           }
         }
       }
 
+      if (gestureState.mode === 'clear_enter') {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
       if (gestureState.mode === 'pull_down') {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
@@ -25750,56 +26071,35 @@ var MinestPortraitGestureManager = (function() {
             }
           }
         }
-      } else if (gestureState.mode === 'swipe_right') {
+      } else if (gestureState.mode === 'swipe_right' || gestureState.mode === 'swipe_left') {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
-        var moveX = clamp(dx, 0, (gestureState.cardW || 300) * 0.84);
-        gestureState.cardEl.style.transform = 'translate3d(' + moveX.toFixed(1) + 'px, 0, 0)';
-        if (gestureState.backdropEl) gestureState.backdropEl.style.setProperty('--gesture-reveal', clamp((moveX - 8) / 64, 0, 1).toFixed(2));
-        var rightW = gestureState.cardW || 300;
-        var nextRightStage = moveX >= rightW * 2 / 3 ? 0 :
-          moveX >= rightW / 2 ? 2 : moveX >= 20 ? 1 : 0;
-        if (nextRightStage !== gestureState.activeRightStage) {
-          gestureState.activeRightStage = nextRightStage;
-          if (nextRightStage > 0) { haptic('selection'); sound('click'); }
-          if (gestureState.backdropEl) {
-            gestureState.backdropEl.querySelectorAll('.gesture-swipe-action').forEach(function(button) {
-              button.classList.toggle('is-active',
-                (nextRightStage === 1 && button.dataset.swipeAction === 'complete') ||
-                (nextRightStage === 2 && button.dataset.swipeAction === 'archive'));
-            });
-          }
+        // 27.99 Mail: the row follows the finger; a little rubber band past the full-swipe point
+        var dir = gestureState.mode === 'swipe_right' ? 1 : -1;
+        var raw = Math.max(0, dx * dir);
+        var Wm = gestureState.cardW || 300;
+        var p = raw <= Wm * 0.9 ? raw : Wm * 0.9 + (raw - Wm * 0.9) * 0.35;
+        var nowM = performance.now();
+        if (gestureState.mailLastT) {
+          var dtm = Math.max(1, nowM - gestureState.mailLastT);
+          var vNow = (p - (gestureState.mailP || 0)) / dtm * 1000;           // px/s toward "open"
+          gestureState.mailV = (gestureState.mailV || 0) * 0.6 + vNow * 0.4;    // light smoothing
         }
-      } else if (gestureState.mode === 'swipe_left') {
-        if (e.cancelable) e.preventDefault();
-        e.stopPropagation();
-        var pullLeft = clamp(-dx, 0, (gestureState.cardW || 300) * 0.84);
-        gestureState.cardEl.style.transform = 'translate3d(-' + pullLeft.toFixed(1) + 'px, 0, 0)';
-        if (gestureState.backdropEl) gestureState.backdropEl.style.setProperty('--gesture-reveal', clamp((pullLeft - 6) / 78, 0, 1).toFixed(2));
-        var W = gestureState.cardW || 300;
-        var nextStage = 0;
-        if (pullLeft >= 20 && pullLeft < W / 3) nextStage = 1;
-        else if (pullLeft >= W / 3 && pullLeft < W / 2) nextStage = 2;
-        else if (pullLeft >= W / 2 && pullLeft < W * 2 / 3) nextStage = 3;
-
-        if (nextStage !== gestureState.activePriorityStage) {
-          gestureState.activePriorityStage = nextStage;
-          if (nextStage > 0) {
-            haptic('selection');
-            sound('click');
-          }
-          if (gestureState.backdropEl) {
-            gestureState.backdropEl.querySelectorAll('.gesture-swipe-action').forEach(function(button) {
-              button.classList.toggle('is-active', (nextStage === 1 && button.dataset.swipeAction === 'high') || (nextStage === 2 && button.dataset.swipeAction === 'medium') || (nextStage === 3 && button.dataset.swipeAction === 'low'));
-            });
-          }
-        }
+        gestureState.mailLastT = nowM;
+        gestureState.mailP = p;
+        gestureState.mailDragging = true;
+        gestureState.mailSpring = null;
+        mailApply(gestureState);
+        mailTick(gestureState);
       }
     };
 
     var onUp = function(e) {
       if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
-      if (window.PointerEvent && e.type.startsWith('touch')) return;
+      var clearTouchEnd = !!(pinchSession && pinchSession.viaTouch && (e.type === 'touchend' || e.type === 'touchcancel'));
+      if (window.PointerEvent && e.type.startsWith('touch') && !clearTouchEnd) return;
+      if (pinchSession && pinchSession.viaTouch && !e.type.startsWith('touch')) return;   // pointercancel no longer kills it
+      if (clearTouchEnd && e.touches && e.touches.length >= 2) return;                   // still two fingers down
       if (isWalletModeActive(lane)) {
         if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
         if (gestureState) {
@@ -26011,52 +26311,32 @@ var MinestPortraitGestureManager = (function() {
             setTimeout(function() { if (pullGhost) { pullGhost.remove(); pullGhost = null; } }, 260);
           }
         }
-      } else if (gs.mode === 'swipe_right') {
+      } else if (gs.mode === 'swipe_right' || gs.mode === 'swipe_left') {
+        // 27.99 Mail release: full swipe → run the edge action; past half the open width → stay
+        // open with tappable buttons; otherwise spring closed
         window.__minestGestureSuppressClickUntil = Date.now() + 350;
         gs.cardEl.classList.remove('gesture-manipulating');
-        gs.cardEl.classList.add('gesture-swipe-open');
-        if (gs.activeRightStage > 0 && gs.cardObj && gs.colId) {
-          runSwipeAction(gs, gs.activeRightStage === 1 ? 'complete' : 'archive');
-        } else if (gs.currentX - gs.startX >= (gs.cardW || 300) * 2 / 3) {
-          gs.cardEl.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
-          setTimeout(function() { resetCardGesture(gs); }, 330);
-        } else if (gs.currentX - gs.startX >= 42 && gs.backdropEl) {
+        var md = mailDims(gs);
+        var pr = gs.mailP || 0;
+        var openW = md.open;
+        var vr = gs.mailV || 0;
+        var wantsOpen = vr > 350 ? true : vr < -350 ? false : pr >= openW * 0.5;
+        gs.mailDragging = false;
+        if (gs.mailFull && gs.cardObj && gs.colId) {
+          mailRun(gs, MAIL_SET[gs.mailSide][0].a);
+        } else if (wantsOpen && gs.backdropEl) {
+          gs.cardEl.classList.add('gesture-swipe-open');
           gs.backdropEl.classList.add('is-open');
-          gs.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          gs.cardEl.style.transform = 'translate3d(148px, 0, 0)';
+          mailSettle(gs, openW);
           openSwipe = gs;
         } else {
-          gs.cardEl.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
-          setTimeout(function() { resetCardGesture(gs); }, 330);
-        }
-      } else if (gs.mode === 'swipe_left') {
-        window.__minestGestureSuppressClickUntil = Date.now() + 350;
-        gs.cardEl.classList.remove('gesture-manipulating');
-        gs.cardEl.classList.add('gesture-swipe-open');
-        if (gs.activePriorityStage > 0 && gs.cardObj && gs.colId) {
-          var pVal = (gs.activePriorityStage === 1 ? 'high' : gs.activePriorityStage === 2 ? 'medium' : 'low');
-          runSwipeAction(gs, pVal, true);
-        } else if (gs.startX - gs.currentX >= (gs.cardW || 300) * 2 / 3) {
-          gs.cardEl.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
-          setTimeout(function() { resetCardGesture(gs); }, 330);
-        } else if (gs.startX - gs.currentX >= 8 && gs.backdropEl) {
-          gs.backdropEl.classList.add('is-open');
-          gs.cardEl.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          gs.cardEl.style.transform = 'translate3d(-177px, 0, 0)';
-          openSwipe = gs;
-        } else {
-          gs.cardEl.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          gs.cardEl.style.transform = 'translate3d(0, 0, 0)';
-          setTimeout(function() { resetCardGesture(gs); }, 330);
+          mailSettle(gs, 0, function() { resetCardGesture(gs); });
         }
       } else if (gs.mode === 'undecided' && gs.cardEl && gs.cardObj) {
         var now = Date.now();
         var cardId = gs.cardObj.id;
 
-        if (false && lastTap.cardId === cardId && (now - lastTap.time) < 280) {   // 27.9: double-tap entry removed
+        if (clearModeCard && lastTap.cardId === cardId && (now - lastTap.time) < 320) {   // 27.995: Clear double tap = edit
           window.__minestGestureSuppressClickUntil = Date.now() + 350;
           if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
           lastTap.time = 0;
@@ -26064,8 +26344,20 @@ var MinestPortraitGestureManager = (function() {
 
           haptic('selection');
           sound('tap');
-          // Double tap: open card editor instead of water step
+          // Double tap: open card editor. iOS only shows the keyboard for a focus inside the
+          // gesture, so focus a proxy input now; the editor's autoFocus textarea takes it over.
           if (ctx.openQuickEdit && gs.cardEl && gs.cardObj && gs.colObj) {
+            var editProxy = document.getElementById('clear-kb-proxy');
+            if (!editProxy) {
+              editProxy = document.createElement('input');
+              editProxy.id = 'clear-kb-proxy';
+              editProxy.type = 'text';
+              editProxy.setAttribute('aria-hidden', 'true');
+              editProxy.tabIndex = -1;
+              editProxy.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none;';
+              document.body.appendChild(editProxy);
+            }
+            try { editProxy.focus({ preventScroll: true }); } catch (err) { editProxy.focus(); }
             ctx.openQuickEdit(gs.cardObj, gs.colObj, gs.cardEl);
           }
         } else {
@@ -26108,7 +26400,7 @@ var MinestPortraitGestureManager = (function() {
       if (!target || !target.closest) return;
       var inActiveList = clearModeColumn && clearModeColumn.contains(target);
       var inTitle = target.closest('.clear-active-column .kanban-column-header');
-      var onCard = target.closest('article.kanban-card, .gesture-swipe-action, .gesture-complete-backdrop, .gesture-priority-backdrop, .gesture-pull-ghost, input, textarea, [contenteditable="true"]');
+      var onCard = target.closest('article.kanban-card, .gesture-swipe-action, .gesture-complete-backdrop, .gesture-priority-backdrop, .mail-swipe, .gesture-pull-ghost, input, textarea, [contenteditable="true"]');
       if (!inActiveList || inTitle || !onCard) {
         lastClearExitAt = Date.now();
         var pt = e.touches && e.touches[0] ? e.touches[0] : e;
@@ -26165,6 +26457,7 @@ var MinestPortraitGestureManager = (function() {
     // otherwise pointercancel ends the pull-to-add gesture (mouse never had this problem)
     var onPullTouchMove = function(e) {
       if (!gestureState || !e.touches || e.touches.length !== 1) return;
+      if (gestureState.mode === 'clear_enter') { if (e.cancelable) e.preventDefault(); return; }
       if (gestureState.mode !== 'pull_down' && !(gestureState.mode === 'undecided' && gestureState.canPullDown)) return;
       var t = e.touches[0];
       var pdy = t.clientY - gestureState.startY, pdx = t.clientX - gestureState.startX;
@@ -26173,6 +26466,17 @@ var MinestPortraitGestureManager = (function() {
       }
     };
     lane.addEventListener('touchmove', onPullTouchMove, { passive: false, capture: true });
+    // 27.95: Clear-mode pinch-to-fold on a real iPhone — keep Safari/WKWebView from claiming
+    // the two-finger gesture (gesturestart = iOS pinch zoom; 2-finger touchmove = native pan/zoom)
+    var onClearTwoFingerMove = function(e) {
+      if (clearModeCard && e.touches && e.touches.length >= 2 && e.cancelable) e.preventDefault();
+    };
+    var onClearGesture = function(e) {
+      if (clearModeCard && e.cancelable) e.preventDefault();
+    };
+    lane.addEventListener('touchmove', onClearTwoFingerMove, { passive: false, capture: true });
+    document.addEventListener('gesturestart', onClearGesture, { passive: false });
+    document.addEventListener('gesturechange', onClearGesture, { passive: false });
     lane.addEventListener('touchend', onUp, { passive: false, capture: true });
     lane.addEventListener('touchcancel', onUp, { passive: false, capture: true });
 
@@ -26192,6 +26496,9 @@ var MinestPortraitGestureManager = (function() {
       if (lastTap.timer) clearTimeout(lastTap.timer);
       lane.removeEventListener('pointerdown', onDown, { capture: true });
       lane.removeEventListener('touchmove', onPullTouchMove, { capture: true });
+      lane.removeEventListener('touchmove', onClearTwoFingerMove, { capture: true });
+      document.removeEventListener('gesturestart', onClearGesture);
+      document.removeEventListener('gesturechange', onClearGesture);
       document.removeEventListener('touchstart', onOutsideDown, { capture: true });
       document.removeEventListener('pointermove', onOutsideMove, true);
       document.removeEventListener('touchmove', onOutsideMove, { capture: true });
@@ -29937,6 +30244,7 @@ var ke = function(props) {
                           // Base Card Front (Unified Trello Standard Proportions & macOS Header)
                           (0, P.jsxs)('article', {
                             'data-card-id': card.id,
+                            'data-priority': card.priority || '',
                             draggable: FB_NATIVE_DND && !portraitLock,
                             onDragStart: function(e) { if (!FB_NATIVE_DND) { e.preventDefault(); return; } handleCardDragStart(e, col.id, card, cIdx); },
                             onDragEnd: handleCardDragEnd,
@@ -29988,6 +30296,8 @@ var ke = function(props) {
                                 SoundEngine.play('slide');
                                 return;
                               }
+                              // 27.995: in Clear mode editing is a double tap (handled by the gesture engine)
+                              if (document.body.classList.contains('clear-mode')) { e.stopPropagation(); return; }
                               if (!isStackExpanded) collapseAllStacks();
                               openQuickEdit(card, col, e.currentTarget);
                             },
@@ -30364,6 +30674,7 @@ var ke = function(props) {
                                   return (0, P.jsxs)('article', {
                                     key: sub.id,
                                     'data-card-id': sub.id,
+                                    'data-priority': sub.priority || '',
                                     draggable: FB_NATIVE_DND && !portraitLock,
                                     onDragStart: function(e) { if (!FB_NATIVE_DND) { e.preventDefault(); return; } handleSubcardDragStart(e, col.id, card.id, sub, sIdx); },
                                     onDragEnd: handleCardDragEnd,
@@ -39430,7 +39741,9 @@ var Ve = (function(_Component) {
       rows.forEach(function (a) {
         if (isDone(a)) { a.setAttribute('data-clear-done', ''); a.setAttribute('data-clear-heat', ''); a.style.setProperty('--clear-heat', '#050505'); return; }
         a.removeAttribute('data-clear-done');
-        var c = window.__clearHeatColor(open.indexOf(a), open.length);
+        var pv = a.getAttribute('data-priority');
+        var prc = pv === 'high' ? '#ff3b30' : pv === 'medium' ? '#ffcc00' : pv === 'low' ? '#34c759' : null;
+        var c = prc || window.__clearHeatColor(open.indexOf(a), open.length);
         if (a.getAttribute('data-clear-heat') !== c) a.setAttribute('data-clear-heat', c);
         a.style.setProperty('--clear-heat', c);
       });
@@ -39445,8 +39758,69 @@ var Ve = (function(_Component) {
       if (m.type === 'attributes' && m.attributeName === 'style' && m.target.matches && m.target.matches('article.kanban-card')) continue;
       schedule(); return;
     }
-  }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+  }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-priority'] });
   setInterval(paint, 1500);   // safety net for state that changes without DOM mutations
+})();
+</script>
+<script>
+/* 27.9992 iPhone board: WebKit only snaps after a finger scroll, so a lane left between two lists
+   by a mode switch (Clear, 3D, wallet...) or a resize stays there. Once nothing touches the screen,
+   ease the lane to the nearest list (or to the list that was open in Clear). */
+(function () {
+  var touching = 0, timer = 0;
+  function portrait() {
+    var m = window.MinestPortraitGestureManager;
+    return m && m.isPhonePortrait ? m.isPhonePortrait() : (innerWidth < 768 && innerHeight > innerWidth);
+  }
+  function targetFor(sc, col, sr, cs) {
+    var r = col.getBoundingClientRect();
+    var align = (getComputedStyle(col).scrollSnapAlign || 'start').split(' ').pop();
+    var d;
+    if (align === 'center') d = (r.left + r.width / 2) - (sr.left + sr.width / 2);
+    else if (align === 'end') d = r.right - (sr.right - (parseFloat(cs.scrollPaddingRight) || 0));
+    else d = r.left - (sr.left + (parseFloat(cs.scrollPaddingLeft) || 0));
+    var max = sc.scrollWidth - sc.clientWidth;
+    return Math.max(0, Math.min(max, sc.scrollLeft + d));
+  }
+  function snap() {
+    timer = 0;
+    var pref = window.__minestSnapTo;
+    if (touching || !portrait() || document.body.classList.contains('clear-mode')) return;
+    window.__minestSnapTo = null;
+    document.querySelectorAll('.board-swimlane-scroll').forEach(function (sc) {
+      if (!sc.offsetParent || sc.scrollWidth <= sc.clientWidth + 2) return;
+      if (sc.classList.contains('is-gesture-scrolling') || sc.classList.contains('list-wallet-active') || sc.classList.contains('touch-card-dragging')) return;
+      var cs = getComputedStyle(sc);
+      if (!/x|both|inline/.test(cs.scrollSnapType || '')) return;
+      var sr = sc.getBoundingClientRect();
+      var cols = Array.prototype.filter.call(sc.querySelectorAll('.kanban-column-wrapper'), function (c) {
+        return c.offsetParent && c.closest('.board-swimlane-scroll') === sc;
+      });
+      if (!cols.length) return;
+      var best = null;
+      if (pref && cols.indexOf(pref) >= 0) best = targetFor(sc, pref, sr, cs);
+      else cols.forEach(function (c) {
+        var t = targetFor(sc, c, sr, cs);
+        if (best === null || Math.abs(t - sc.scrollLeft) < Math.abs(best - sc.scrollLeft)) best = t;
+      });
+      if (best !== null && Math.abs(best - sc.scrollLeft) > 2) sc.scrollTo({ left: best, behavior: 'smooth' });
+    });
+  }
+  function schedule(ms) { clearTimeout(timer); timer = setTimeout(snap, ms); }
+  document.addEventListener('touchstart', function (e) { touching = e.touches.length; clearTimeout(timer); }, { capture: true, passive: true });
+  function lift(e) { touching = e.touches ? e.touches.length : 0; if (!touching) schedule(260); }
+  document.addEventListener('touchend', lift, { capture: true, passive: true });
+  document.addEventListener('touchcancel', lift, { capture: true, passive: true });
+  document.addEventListener('scroll', function (e) {
+    var t = e.target;
+    if (t && t.classList && t.classList.contains('board-swimlane-scroll')) schedule(220);
+  }, { capture: true, passive: true });
+  var mo = new MutationObserver(function () { schedule(450); });
+  mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('resize', function () { schedule(450); });
+  window.addEventListener('orientationchange', function () { schedule(600); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) schedule(450); });
 })();
 </script>
 </body>

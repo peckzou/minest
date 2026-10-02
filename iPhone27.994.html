@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 27.9992 · Mail Swipe</title>
+    <title>Minest iPhone 27.994 · Mail Swipe</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -5900,26 +5900,6 @@ body.clear-mode .clear-active-column article .card-content-flow:not(.flex-wrap) 
 /* motion is driven frame by frame (spring); no CSS transitions on the actions */
 article.kanban-card.mail-swiping { border-radius: var(--mail-r, 0px) !important; overflow: hidden; position: relative; z-index: 1; will-change: transform; }
 .clear-mode .clear-active-column article.kanban-card.mail-swiping { border-radius: var(--mail-r, 0px) !important; }
-</style>
-<style>
-/* 27.998 Clear: a white bar marks rows with a priority light */
-html body.clear-mode .clear-active-column article.kanban-card[data-priority="high"]:not([data-clear-done]),
-html body.clear-mode .clear-active-column article.kanban-card[data-priority="medium"]:not([data-clear-done]),
-html body.clear-mode .clear-active-column article.kanban-card[data-priority="low"]:not([data-clear-done]),
-html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="high"],
-html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="medium"],
-html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="low"] {
-  box-shadow: inset 6px 0 0 #ffffff !important;
-}
-html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="high"] { background: #ff3b30 !important; }
-html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="medium"] { background: #ffcc00 !important; }
-html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="low"] { background: #34c759 !important; }
-</style>
-<style>
-/* 27.999 Clear: the pull row and the new-item row never shrink inside an overflowing list */
-html body.clear-mode .clear-active-column .kanban-cards-scroll > .gesture-pull-ghost,
-html body.clear-mode .clear-active-column .kanban-cards-scroll > .fb-composer,
-html body.clear-mode .clear-active-column .kanban-cards-scroll > .card-gap-active-composer { flex-shrink: 0 !important; }
 </style>
 </head>
   <body>
@@ -19422,7 +19402,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "27.9992" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "27.994" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -25357,7 +25337,6 @@ var MinestPortraitGestureManager = (function() {
       document.querySelectorAll('.iphone-topbar, .ios-bottom-tab-bar').forEach(function(node) {
         if (node.style.display === 'none') node.style.display = '';
       });
-      if (clearModeColumn) window.__minestSnapTo = clearModeColumn;
       clearModeColumn = null;
       clearModeCard = null;
       document.body.classList.remove('clear-mode');
@@ -25853,7 +25832,7 @@ var MinestPortraitGestureManager = (function() {
         gestureState.canPullDown = true;
       } else if (scrollEl && scrollEl.scrollTop <= 2 && cardEl) {
         var r = cardEl.getBoundingClientRect();
-        if (clientY - r.top < 32 || clearModeCard) {
+        if (clientY - r.top < 32) {
           gestureState.canPullDown = true;
         }
       }
@@ -26000,13 +25979,6 @@ var MinestPortraitGestureManager = (function() {
           gestureState.mode = 'scroll';
           return;
         } else if (gestureState.cardEl && absX > 24 && absX > absY * 1.8) {
-          if (!clearModeCard) {
-            enterClearMode(gestureState.cardEl);
-            gestureState.mode = 'clear_enter';          // this finger is spent; the next swipe acts on rows
-            window.__minestGestureSuppressClickUntil = Date.now() + 500;
-            if (e.cancelable) e.preventDefault();
-            return;
-          }
           gestureState.mode = dx > 0 ? 'swipe_right' : 'swipe_left';
           enterClearMode(gestureState.cardEl);
           gestureState.cardEl.classList.add('gesture-manipulating');
@@ -26022,10 +25994,6 @@ var MinestPortraitGestureManager = (function() {
         }
       }
 
-      if (gestureState.mode === 'clear_enter') {
-        if (e.cancelable) e.preventDefault();
-        return;
-      }
       if (gestureState.mode === 'pull_down') {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
@@ -26336,7 +26304,7 @@ var MinestPortraitGestureManager = (function() {
         var now = Date.now();
         var cardId = gs.cardObj.id;
 
-        if (clearModeCard && lastTap.cardId === cardId && (now - lastTap.time) < 320) {   // 27.995: Clear double tap = edit
+        if (false && lastTap.cardId === cardId && (now - lastTap.time) < 280) {   // 27.9: double-tap entry removed
           window.__minestGestureSuppressClickUntil = Date.now() + 350;
           if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
           lastTap.time = 0;
@@ -26344,20 +26312,8 @@ var MinestPortraitGestureManager = (function() {
 
           haptic('selection');
           sound('tap');
-          // Double tap: open card editor. iOS only shows the keyboard for a focus inside the
-          // gesture, so focus a proxy input now; the editor's autoFocus textarea takes it over.
+          // Double tap: open card editor instead of water step
           if (ctx.openQuickEdit && gs.cardEl && gs.cardObj && gs.colObj) {
-            var editProxy = document.getElementById('clear-kb-proxy');
-            if (!editProxy) {
-              editProxy = document.createElement('input');
-              editProxy.id = 'clear-kb-proxy';
-              editProxy.type = 'text';
-              editProxy.setAttribute('aria-hidden', 'true');
-              editProxy.tabIndex = -1;
-              editProxy.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none;';
-              document.body.appendChild(editProxy);
-            }
-            try { editProxy.focus({ preventScroll: true }); } catch (err) { editProxy.focus(); }
             ctx.openQuickEdit(gs.cardObj, gs.colObj, gs.cardEl);
           }
         } else {
@@ -26457,7 +26413,6 @@ var MinestPortraitGestureManager = (function() {
     // otherwise pointercancel ends the pull-to-add gesture (mouse never had this problem)
     var onPullTouchMove = function(e) {
       if (!gestureState || !e.touches || e.touches.length !== 1) return;
-      if (gestureState.mode === 'clear_enter') { if (e.cancelable) e.preventDefault(); return; }
       if (gestureState.mode !== 'pull_down' && !(gestureState.mode === 'undecided' && gestureState.canPullDown)) return;
       var t = e.touches[0];
       var pdy = t.clientY - gestureState.startY, pdx = t.clientX - gestureState.startX;
@@ -30244,7 +30199,6 @@ var ke = function(props) {
                           // Base Card Front (Unified Trello Standard Proportions & macOS Header)
                           (0, P.jsxs)('article', {
                             'data-card-id': card.id,
-                            'data-priority': card.priority || '',
                             draggable: FB_NATIVE_DND && !portraitLock,
                             onDragStart: function(e) { if (!FB_NATIVE_DND) { e.preventDefault(); return; } handleCardDragStart(e, col.id, card, cIdx); },
                             onDragEnd: handleCardDragEnd,
@@ -30296,8 +30250,6 @@ var ke = function(props) {
                                 SoundEngine.play('slide');
                                 return;
                               }
-                              // 27.995: in Clear mode editing is a double tap (handled by the gesture engine)
-                              if (document.body.classList.contains('clear-mode')) { e.stopPropagation(); return; }
                               if (!isStackExpanded) collapseAllStacks();
                               openQuickEdit(card, col, e.currentTarget);
                             },
@@ -30674,7 +30626,6 @@ var ke = function(props) {
                                   return (0, P.jsxs)('article', {
                                     key: sub.id,
                                     'data-card-id': sub.id,
-                                    'data-priority': sub.priority || '',
                                     draggable: FB_NATIVE_DND && !portraitLock,
                                     onDragStart: function(e) { if (!FB_NATIVE_DND) { e.preventDefault(); return; } handleSubcardDragStart(e, col.id, card.id, sub, sIdx); },
                                     onDragEnd: handleCardDragEnd,
@@ -39741,9 +39692,7 @@ var Ve = (function(_Component) {
       rows.forEach(function (a) {
         if (isDone(a)) { a.setAttribute('data-clear-done', ''); a.setAttribute('data-clear-heat', ''); a.style.setProperty('--clear-heat', '#050505'); return; }
         a.removeAttribute('data-clear-done');
-        var pv = a.getAttribute('data-priority');
-        var prc = pv === 'high' ? '#ff3b30' : pv === 'medium' ? '#ffcc00' : pv === 'low' ? '#34c759' : null;
-        var c = prc || window.__clearHeatColor(open.indexOf(a), open.length);
+        var c = window.__clearHeatColor(open.indexOf(a), open.length);
         if (a.getAttribute('data-clear-heat') !== c) a.setAttribute('data-clear-heat', c);
         a.style.setProperty('--clear-heat', c);
       });
@@ -39758,69 +39707,8 @@ var Ve = (function(_Component) {
       if (m.type === 'attributes' && m.attributeName === 'style' && m.target.matches && m.target.matches('article.kanban-card')) continue;
       schedule(); return;
     }
-  }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-priority'] });
+  }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
   setInterval(paint, 1500);   // safety net for state that changes without DOM mutations
-})();
-</script>
-<script>
-/* 27.9992 iPhone board: WebKit only snaps after a finger scroll, so a lane left between two lists
-   by a mode switch (Clear, 3D, wallet...) or a resize stays there. Once nothing touches the screen,
-   ease the lane to the nearest list (or to the list that was open in Clear). */
-(function () {
-  var touching = 0, timer = 0;
-  function portrait() {
-    var m = window.MinestPortraitGestureManager;
-    return m && m.isPhonePortrait ? m.isPhonePortrait() : (innerWidth < 768 && innerHeight > innerWidth);
-  }
-  function targetFor(sc, col, sr, cs) {
-    var r = col.getBoundingClientRect();
-    var align = (getComputedStyle(col).scrollSnapAlign || 'start').split(' ').pop();
-    var d;
-    if (align === 'center') d = (r.left + r.width / 2) - (sr.left + sr.width / 2);
-    else if (align === 'end') d = r.right - (sr.right - (parseFloat(cs.scrollPaddingRight) || 0));
-    else d = r.left - (sr.left + (parseFloat(cs.scrollPaddingLeft) || 0));
-    var max = sc.scrollWidth - sc.clientWidth;
-    return Math.max(0, Math.min(max, sc.scrollLeft + d));
-  }
-  function snap() {
-    timer = 0;
-    var pref = window.__minestSnapTo;
-    if (touching || !portrait() || document.body.classList.contains('clear-mode')) return;
-    window.__minestSnapTo = null;
-    document.querySelectorAll('.board-swimlane-scroll').forEach(function (sc) {
-      if (!sc.offsetParent || sc.scrollWidth <= sc.clientWidth + 2) return;
-      if (sc.classList.contains('is-gesture-scrolling') || sc.classList.contains('list-wallet-active') || sc.classList.contains('touch-card-dragging')) return;
-      var cs = getComputedStyle(sc);
-      if (!/x|both|inline/.test(cs.scrollSnapType || '')) return;
-      var sr = sc.getBoundingClientRect();
-      var cols = Array.prototype.filter.call(sc.querySelectorAll('.kanban-column-wrapper'), function (c) {
-        return c.offsetParent && c.closest('.board-swimlane-scroll') === sc;
-      });
-      if (!cols.length) return;
-      var best = null;
-      if (pref && cols.indexOf(pref) >= 0) best = targetFor(sc, pref, sr, cs);
-      else cols.forEach(function (c) {
-        var t = targetFor(sc, c, sr, cs);
-        if (best === null || Math.abs(t - sc.scrollLeft) < Math.abs(best - sc.scrollLeft)) best = t;
-      });
-      if (best !== null && Math.abs(best - sc.scrollLeft) > 2) sc.scrollTo({ left: best, behavior: 'smooth' });
-    });
-  }
-  function schedule(ms) { clearTimeout(timer); timer = setTimeout(snap, ms); }
-  document.addEventListener('touchstart', function (e) { touching = e.touches.length; clearTimeout(timer); }, { capture: true, passive: true });
-  function lift(e) { touching = e.touches ? e.touches.length : 0; if (!touching) schedule(260); }
-  document.addEventListener('touchend', lift, { capture: true, passive: true });
-  document.addEventListener('touchcancel', lift, { capture: true, passive: true });
-  document.addEventListener('scroll', function (e) {
-    var t = e.target;
-    if (t && t.classList && t.classList.contains('board-swimlane-scroll')) schedule(220);
-  }, { capture: true, passive: true });
-  var mo = new MutationObserver(function () { schedule(450); });
-  mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-  window.addEventListener('resize', function () { schedule(450); });
-  window.addEventListener('orientationchange', function () { schedule(600); });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) schedule(450); });
 })();
 </script>
 </body>
