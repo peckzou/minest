@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 27.93 · Clear Pull Edit</title>
+    <title>Minest iPhone 27.9 · Gesture Cleanup</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -4594,88 +4594,6 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   display: none !important;
 }
 
-/* 27.91 Clear replica: rows take a positional heat map (red → yellow), done rows go black */
-.clear-mode .clear-active-column article.kanban-card[data-clear-heat] {
-  background: var(--clear-heat) !important;
-  box-shadow: none !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  transition: background-color .35s ease, filter .25s ease !important;
-}
-.clear-mode .clear-active-column article.kanban-card[data-clear-heat] h3 {
-  color: #fff !important;
-  font-weight: 600 !important;
-  text-shadow: 0 1px 1px rgba(0,0,0,.12) !important;
-}
-.clear-mode .clear-active-column article.kanban-card[data-clear-done] { background: #050505 !important; }
-.clear-mode .clear-active-column article.kanban-card[data-clear-done] h3 {
-  color: rgba(255,255,255,.34) !important;
-  text-decoration-color: rgba(255,255,255,.34) !important;
-}
-/* Pull to create: a real row hinged on its bottom edge that folds up into place */
-.clear-mode .clear-active-column .gesture-pull-ghost.clear-pull {
-  position: relative !important;
-  height: var(--pull-h, 0px) !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: #000 !important;
-  box-shadow: none !important;
-  opacity: 1 !important;
-  overflow: visible !important;
-  perspective: 520px;
-  perspective-origin: 50% 100%;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-.clear-pull-row {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  height: var(--row-h, 62px);
-  display: flex; align-items: center;
-  padding: 0 22px;
-  box-sizing: border-box;
-  background: var(--clear-pull-color, #d8171c);
-  color: #fff;
-  font: 600 20px/1 -apple-system, "SF Pro Text", system-ui, sans-serif;
-  letter-spacing: -.01em;
-  transform-origin: 50% 100%;
-  transform: rotateX(var(--pull-angle, 90deg));
-  backface-visibility: hidden;
-  will-change: transform;
-}
-.clear-pull-row::after {   /* the row is darker while it still faces away */
-  content: ""; position: absolute; inset: 0;
-  background: #000; opacity: var(--pull-shade, .6);
-  pointer-events: none;
-}
-.clear-pull-label { position: relative; z-index: 1; white-space: nowrap; }
-.gesture-pull-ghost.clear-pull.is-settling { transition: height .2s cubic-bezier(.2,.9,.3,1) !important; }
-.gesture-pull-ghost.clear-pull.is-settling .clear-pull-row { transition: transform .2s cubic-bezier(.2,.9,.3,1); }
-/* The new item is edited in place as the top red row; everything else dims */
-.clear-mode .clear-active-column .card-gap-active-composer,
-.clear-mode .clear-active-column .fb-composer {
-  background: #d8171c !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  animation: none !important;
-}
-.clear-mode .clear-active-column .card-gap-active-composer textarea,
-.clear-mode .clear-active-column .fb-composer textarea {
-  background: transparent !important;
-  color: #fff !important;
-  caret-color: #fff !important;
-  font: 600 20px/60px -apple-system, "SF Pro Text", system-ui, sans-serif !important;
-  padding-left: 22px !important;
-}
-.clear-mode .clear-active-column .kanban-cards-scroll:has(.card-gap-active-composer) article.kanban-card,
-.clear-mode .clear-active-column .kanban-cards-scroll:has(.fb-composer) article.kanban-card {
-  filter: brightness(.38) saturate(.8) !important;
-}
-
 /* 27.9 Clear mode: a card in a folded group is simply Pink — no deck, depth or heavy shadow */
 .clear-mode .clear-active-column .card-stack-base article.kanban-card {
   --clear-row-color: #ff5fa2 !important;
@@ -5794,41 +5712,6 @@ body.is-safari-column-dragging {
 .list-wallet-launch:active { transform: scale(.94); }
 .theme-white .list-wallet-launch { border-color: rgba(15,23,42,.1); background: rgba(15,23,42,.04); color: #334155; }
 
-</style>
-<style>
-/* 27.91 Clear replica: the new item is just the top red row with a caret */
-body.clear-mode .clear-active-column .fb-composer,
-body.clear-mode .clear-active-column .card-gap-active-composer {
-  height: 62px !important;
-  min-height: 62px !important;
-  margin: 0 !important;
-  padding: 0 22px !important;
-  flex: 0 0 62px !important;
-  align-items: center !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: #d8171c !important;
-  background-image: none !important;
-  box-shadow: none !important;
-  animation: none !important;
-}
-body.clear-mode .clear-active-column .fb-composer textarea,
-body.clear-mode .clear-active-column .card-gap-active-composer textarea {
-  height: 62px !important;
-  min-height: 62px !important;
-  max-height: 62px !important;
-  padding: 0 !important;
-  background: transparent !important;
-  color: #fff !important;
-  caret-color: #fff !important;
-  font: 600 20px/62px -apple-system, "SF Pro Text", system-ui, sans-serif !important;
-}
-body.clear-mode .clear-active-column .fb-composer textarea::placeholder,
-body.clear-mode .clear-active-column .card-gap-active-composer textarea::placeholder { color: rgba(255,255,255,.55) !important; }
-body.clear-mode .clear-active-column .fb-composer .fbc-send,
-body.clear-mode .clear-active-column .fb-composer .fbc-x,
-body.clear-mode .clear-active-column .card-gap-active-composer .fbc-send,
-body.clear-mode .clear-active-column .card-gap-active-composer .fbc-x { display: none !important; }
 </style>
 </head>
   <body>
@@ -19331,7 +19214,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "27.93" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "27.9" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -25654,19 +25537,10 @@ var MinestPortraitGestureManager = (function() {
             if (gestureState.colObj && gestureState.colObj.color) {
               pullGhost.style.setProperty('--clear-ghost-color', gestureState.colObj.color);
             }
-            if (clearModeCard) {
-              // 27.91: Clear-style hinged row; it takes the top heat colour it will have as item #1
-              pullGhost.classList.add('clear-pull');
-              pullGhost.style.setProperty('--clear-pull-color', (window.__clearHeatColor ? window.__clearHeatColor(0) : '#d8171c'));
-              pullGhost.style.setProperty('--pull-h', '0px');
-              pullGhost.style.setProperty('background', '#000', 'important');
-              pullGhost.innerHTML = '<div class="clear-pull-row"><span class="clear-pull-label">Pull to Create Item</span></div>';
-            } else {
-              pullGhost.innerHTML = '<div class="gesture-pull-ghost-inner">' +
-                '<span class="gesture-pull-ghost-label">Pull down to add</span>' +
-                '<span class="gesture-pull-ghost-btn">＋</span>' +
-                '</div>';
-            }
+            pullGhost.innerHTML = '<div class="gesture-pull-ghost-inner">' +
+              '<span class="gesture-pull-ghost-label">Pull down to add</span>' +
+              '<span class="gesture-pull-ghost-btn">＋</span>' +
+              '</div>';
             gestureState.scrollEl.insertBefore(pullGhost, gestureState.scrollEl.firstChild);
           }
         } else if (absY > absX * 1.8 + 10 && !gestureState.isMouse) {
@@ -25708,45 +25582,26 @@ var MinestPortraitGestureManager = (function() {
       if (gestureState.mode === 'pull_down') {
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
-        var isClearPull = !!(pullGhost && pullGhost.classList.contains('clear-pull'));
-        var pullThreshold = isClearPull ? 62 : 120;
-        var pullY = isClearPull ? clamp(dy * 0.9, 0, 420) : clamp(dy * 0.9, 0, 220);
-        if (pullGhost && isClearPull) {
-          // 27.92: 0 → 62 px the row stands up on its hinge; past that the row itself stretches
-          // taller with rubber-band resistance (it is pulled, not revealed)
-          var hinge = clamp(pullY / 62, 0, 1);
-          var over = Math.max(0, pullY - 62);
-          var stretch = over > 0 ? 150 * (1 - 1 / (over / 160 + 1)) : 0;
-          var rowH = 62 + stretch;
-          pullY = hinge < 1 ? pullY : rowH;
-          pullGhost.style.setProperty('--pull-h', pullY.toFixed(1) + 'px');
-          pullGhost.style.setProperty('--row-h', rowH.toFixed(1) + 'px');
-          pullGhost.style.setProperty('--pull-angle', ((1 - hinge) * 90).toFixed(1) + 'deg');
-          pullGhost.style.setProperty('--pull-shade', ((1 - hinge) * 0.65).toFixed(3));
-          pullGhost.__rowH = rowH;
-          pullGhost.__pullH = pullY;
-        }
+        var pullY = clamp(dy * 0.9, 0, 220);
         gestureState.pullY = pullY;
         if (pullGhost) {
-          if (!isClearPull) {
-            pullGhost.style.height = pullY.toFixed(1) + 'px';
-            var p = clamp(pullY / 120, 0, 1);
-            pullGhost.style.opacity = p.toFixed(2);
-          }
-          if (pullY >= pullThreshold) {
+          pullGhost.style.height = pullY.toFixed(1) + 'px';
+          var p = clamp(pullY / 120, 0, 1);
+          pullGhost.style.opacity = p.toFixed(2);
+          if (pullY >= 120) {
             if (!gestureState.thresholdCrossed) {
               gestureState.thresholdCrossed = true;
               pullGhost.classList.add('is-ready');
-              var lbl = pullGhost.querySelector('.gesture-pull-ghost-label, .clear-pull-label');
-              if (lbl) lbl.textContent = isClearPull ? 'Release to Create Item' : 'Release to create';
+              var lbl = pullGhost.querySelector('.gesture-pull-ghost-label');
+              if (lbl) lbl.textContent = 'Release to create';
               haptic('selection');
             }
           } else {
             if (gestureState.thresholdCrossed) {
               gestureState.thresholdCrossed = false;
               pullGhost.classList.remove('is-ready');
-              var lbl = pullGhost.querySelector('.gesture-pull-ghost-label, .clear-pull-label');
-              if (lbl) lbl.textContent = isClearPull ? 'Pull to Create Item' : 'Pull down to add';
+              var lbl = pullGhost.querySelector('.gesture-pull-ghost-label');
+              if (lbl) lbl.textContent = 'Pull down to add';
             }
           }
         }
@@ -25914,64 +25769,7 @@ var MinestPortraitGestureManager = (function() {
 
       if (gs.mode === 'pull_down') {
         window.__minestGestureSuppressClickUntil = Date.now() + 350;
-        if (gs.thresholdCrossed && gs.colId && pullGhost && pullGhost.classList.contains('clear-pull')) {
-          // 27.92: the stretched row snaps back with a damped spring (overshoot, then rest),
-          // and only then becomes the editable top row
-          haptic('light');
-          sound('add');
-          var kbProxy = document.getElementById('clear-kb-proxy');
-          if (!kbProxy) {
-            kbProxy = document.createElement('input');
-            kbProxy.id = 'clear-kb-proxy';
-            kbProxy.type = 'text';
-            kbProxy.setAttribute('aria-hidden', 'true');
-            kbProxy.tabIndex = -1;
-            kbProxy.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none;';
-            document.body.appendChild(kbProxy);
-          }
-          try { kbProxy.focus({ preventScroll: true }); } catch (err) { kbProxy.focus(); }
-          var springEl = pullGhost;
-          pullGhost = null;
-          var h0 = springEl.__rowH || 62;
-          var lblSp = springEl.querySelector('.clear-pull-label');
-          var springStart = performance.now();
-          var springGs = gs, springCtx = ctx;
-          springEl.style.setProperty('--pull-angle', '0deg');
-          springEl.style.setProperty('--pull-shade', '0');
-          var springDone = false;
-          var springFinish = function() {
-            if (springDone) return;
-            springDone = true;
-            springEl.style.setProperty('--row-h', '62px');
-            springEl.style.setProperty('--pull-h', '62px');
-            if (lblSp) lblSp.textContent = '';
-            if (springCtx.setGapInsertSlot && springCtx.setGapInsertText) {
-              var firstCardS = springGs.colObj && springGs.colObj.cards && springGs.colObj.cards[0] ? springGs.colObj.cards[0].id : null;
-              springCtx.setGapInsertSlot({ colId: springGs.colId, beforeCardId: firstCardS, targetIndex: 0 });
-              springCtx.setGapInsertText('');
-            }
-            // remove the ghost once the composer row has rendered in its place, and move the
-            // (already open) keyboard from the proxy to the new row
-            setTimeout(function() {
-              if (springEl.parentNode) springEl.remove();
-              var ta = document.querySelector('.clear-active-column .fb-composer textarea, .clear-active-column .card-gap-active-composer textarea');
-              if (ta) { try { ta.focus({ preventScroll: true }); } catch (err) { ta.focus(); } }
-            }, 60);
-          };
-          setTimeout(springFinish, 520);   // frames can be paused (background tab): finish anyway
-          var springFrame = function(now) {
-            if (springDone) return;
-            var t = (now - springStart) / 1000;
-            // under-damped spring towards 62 px; starts from h0 (or from a small dip if barely over)
-            var amp = Math.max(h0 - 62, 14);
-            var h = 62 + amp * Math.exp(-t * 14) * Math.cos(t * 22) * (h0 > 62 ? 1 : -1);
-            springEl.style.setProperty('--row-h', h.toFixed(1) + 'px');
-            springEl.style.setProperty('--pull-h', Math.max(h, 0).toFixed(1) + 'px');
-            if (t < 0.46) { requestAnimationFrame(springFrame); return; }
-            springFinish();
-          };
-          requestAnimationFrame(springFrame);
-        } else if (gs.thresholdCrossed && gs.colId) {
+        if (gs.thresholdCrossed && gs.colId) {
           haptic('light');
           sound('add');
           if (pullGhost) {
@@ -25986,25 +25784,7 @@ var MinestPortraitGestureManager = (function() {
             ctx.setGapInsertText('');
           }
         } else {
-          if (pullGhost && pullGhost.classList.contains('clear-pull')) {
-            // not far enough: the row folds back down flat (with a little spring) and the list closes up
-            var folding = pullGhost;
-            pullGhost = null;
-            var fold0 = folding.__pullH || 0, foldStart = performance.now();
-            setTimeout(function() { if (folding.parentNode) folding.remove(); }, 420);
-            var foldFrame = function(now) {
-              var t = (now - foldStart) / 1000;
-              var k = Math.exp(-t * 12) * Math.cos(t * 20);       // 1 → small negative overshoot → 0
-              var hh = Math.max(0, fold0 * k);
-              var hinge = Math.max(0, Math.min(1, hh / 62));
-              folding.style.setProperty('--pull-h', hh.toFixed(1) + 'px');
-              folding.style.setProperty('--pull-angle', ((1 - hinge) * 90).toFixed(1) + 'deg');
-              folding.style.setProperty('--pull-shade', ((1 - hinge) * 0.65).toFixed(3));
-              if (t < 0.36) { requestAnimationFrame(foldFrame); return; }
-              if (folding.parentNode) folding.remove();
-            };
-            requestAnimationFrame(foldFrame);
-          } else if (pullGhost) {
+          if (pullGhost) {
             pullGhost.style.transition = 'all 0.25s ease';
             pullGhost.style.height = '0px';
             pullGhost.style.opacity = '0';
@@ -26795,7 +26575,7 @@ var ke = function(props) {
   (0, _.useEffect)(function() {
     if (!gapInsertSlot) return;
     var handleOutsideGapClick = function(e) {
-      if (e.target && e.target.closest && e.target.closest('.card-gap-active-composer, .fb-composer')) return;
+      if (e.target && e.target.closest && e.target.closest('.card-gap-active-composer')) return;
       setGapInsertSlot(null);
       setGapInsertText("");
     };
@@ -39395,59 +39175,5 @@ var Ve = (function(_Component) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fit); else fit();
 })();
   </script>
-  <script>
-/* 27.91 Clear replica: positional heat map (top red → yellow), done rows black,
-   folded groups stay pink. Only paints while body.clear-mode is on. */
-(function () {
-  var STOPS = [[216, 23, 28], [233, 76, 30], [242, 128, 32], [246, 170, 31], [247, 201, 39]];
-  function heatColor(t) {
-    t = Math.max(0, Math.min(1, t));
-    var seg = t * (STOPS.length - 1), i = Math.min(Math.floor(seg), STOPS.length - 2), f = seg - i;
-    var a = STOPS[i], b = STOPS[i + 1];
-    return 'rgb(' + [0, 1, 2].map(function (k) { return Math.round(a[k] + (b[k] - a[k]) * f); }).join(',') + ')';
-  }
-  window.__clearHeatColor = function (index, count) {
-    var n = count || window.__clearHeatCount || 6;
-    return heatColor(index / Math.max(Math.min(n - 1, 9), 1));
-  };
-  function isDone(article) {
-    var h = article.querySelector('h3');
-    return !!(h && /line-through/.test(getComputedStyle(h).textDecorationLine || ''));
-  }
-  var painting = false;
-  function paint() {
-    if (painting) return;
-    painting = true;
-    try {
-      var col = document.querySelector('.clear-mode .clear-active-column');
-      document.querySelectorAll('article.kanban-card[data-clear-heat]').forEach(function (a) {
-        if (!col || !col.contains(a)) { a.removeAttribute('data-clear-heat'); a.removeAttribute('data-clear-done'); a.style.removeProperty('--clear-heat'); }
-      });
-      if (!col) return;
-      var rows = Array.prototype.slice.call(col.querySelectorAll('article.kanban-card'));
-      var open = rows.filter(function (a) { return !isDone(a); });
-      window.__clearHeatCount = open.length;
-      rows.forEach(function (a) {
-        if (isDone(a)) { a.setAttribute('data-clear-done', ''); a.setAttribute('data-clear-heat', ''); a.style.setProperty('--clear-heat', '#050505'); return; }
-        a.removeAttribute('data-clear-done');
-        var c = window.__clearHeatColor(open.indexOf(a), open.length);
-        if (a.getAttribute('data-clear-heat') !== c) a.setAttribute('data-clear-heat', c);
-        a.style.setProperty('--clear-heat', c);
-      });
-    } finally { painting = false; }
-  }
-  var raf = 0;
-  function schedule() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; paint(); }); }
-  new MutationObserver(function (list) {
-    for (var i = 0; i < list.length; i++) {
-      var m = list[i];
-      if (m.type === 'attributes' && m.attributeName && m.attributeName.indexOf('data-clear') === 0) continue;
-      if (m.type === 'attributes' && m.attributeName === 'style' && m.target.matches && m.target.matches('article.kanban-card')) continue;
-      schedule(); return;
-    }
-  }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
-  setInterval(paint, 1500);   // safety net for state that changes without DOM mutations
-})();
-</script>
-</body>
+  </body>
 </html>

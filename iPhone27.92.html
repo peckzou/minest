@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 27.93 · Clear Pull Edit</title>
+    <title>Minest iPhone 27.92 · Clear Spring Pull</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -19331,7 +19331,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "27.93" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "27.92" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -25919,17 +25919,6 @@ var MinestPortraitGestureManager = (function() {
           // and only then becomes the editable top row
           haptic('light');
           sound('add');
-          var kbProxy = document.getElementById('clear-kb-proxy');
-          if (!kbProxy) {
-            kbProxy = document.createElement('input');
-            kbProxy.id = 'clear-kb-proxy';
-            kbProxy.type = 'text';
-            kbProxy.setAttribute('aria-hidden', 'true');
-            kbProxy.tabIndex = -1;
-            kbProxy.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none;';
-            document.body.appendChild(kbProxy);
-          }
-          try { kbProxy.focus({ preventScroll: true }); } catch (err) { kbProxy.focus(); }
           var springEl = pullGhost;
           pullGhost = null;
           var h0 = springEl.__rowH || 62;
@@ -25950,13 +25939,8 @@ var MinestPortraitGestureManager = (function() {
               springCtx.setGapInsertSlot({ colId: springGs.colId, beforeCardId: firstCardS, targetIndex: 0 });
               springCtx.setGapInsertText('');
             }
-            // remove the ghost once the composer row has rendered in its place, and move the
-            // (already open) keyboard from the proxy to the new row
-            setTimeout(function() {
-              if (springEl.parentNode) springEl.remove();
-              var ta = document.querySelector('.clear-active-column .fb-composer textarea, .clear-active-column .card-gap-active-composer textarea');
-              if (ta) { try { ta.focus({ preventScroll: true }); } catch (err) { ta.focus(); } }
-            }, 60);
+            // remove the ghost once the composer row has rendered in its place
+            setTimeout(function() { if (springEl.parentNode) springEl.remove(); }, 60);
           };
           setTimeout(springFinish, 520);   // frames can be paused (background tab): finish anyway
           var springFrame = function(now) {
@@ -26795,7 +26779,7 @@ var ke = function(props) {
   (0, _.useEffect)(function() {
     if (!gapInsertSlot) return;
     var handleOutsideGapClick = function(e) {
-      if (e.target && e.target.closest && e.target.closest('.card-gap-active-composer, .fb-composer')) return;
+      if (e.target && e.target.closest && e.target.closest('.card-gap-active-composer')) return;
       setGapInsertSlot(null);
       setGapInsertText("");
     };
