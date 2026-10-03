@@ -20782,8 +20782,8 @@ var Oe = function(props) {
     enter: function(targetIdx) {
       // 32.1: iOS only grants motion access from a user gesture, and enter() runs in one.
       try {
-        if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
-          DeviceOrientationEvent.requestPermission().catch(function() {});
+        if (window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function') {
+          DeviceMotionEvent.requestPermission().catch(function() {});
         }
       } catch (permErr) {}
       endPhysicalAction();
@@ -21292,91 +21292,54 @@ var Oe = function(props) {
   };
   window.__HeadsUpInputAdapter = headsUpInputAdapterRef.current;
 
-  // 32.1: drive the Heads Up gestures from the iPhone gyroscope.
-  // Tilt is measured against the pose the phone was in when the card opened
-  // (the baseline slowly follows small changes), so holding the phone at any
-  // angle feels neutral. Tilt left/right = previous/next card, screen down = pause.
+  // 32.1: Heads Up gestures from the gyroscope only. No orientation/gravity
+  // "viewing" tilt: the card stays still and a quick wrist flick (rotation rate,
+  // deg/s) triggers one action: flick left/right = previous/next card,
+  // flick up/down = flip the card over.
   var huMotionActive = headsUpState.active;
   (0, _.useEffect)(function() {
     if (!huMotionActive || typeof window === 'undefined') return;
-    var base = null;
-    var latest = null;
-    var lastNavAt = 0;
-    var faceDownSince = 0;
-    var tiltDir = null;
+    var FLICK_RATE = 210;      // deg/s needed to count as a flick
+    var DOMINANCE = 1.6;       // main axis must beat the other one by this much
+    var LOCKOUT_MS = 650;      // swallow the return swing after a flick
+    var lockedUntil = 0;
     var screenAngle = function() {
       var a = (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number')
         ? window.screen.orientation.angle
         : (typeof window.orientation === 'number' ? window.orientation : 0);
       return ((a % 360) + 360) % 360;
     };
-    // Map device axes onto the screen as the user sees it.
-    var toScreen = function(beta, gamma) {
+    // Rotation rates about the axes the user sees: lr = turning around the
+    // screen's vertical axis (left/right flick), ud = around its horizontal axis.
+    var toScreen = function(rb, rg) {
       var a = screenAngle();
-      if (a === 90) return { pitch: -gamma, roll: beta };
-      if (a === 270) return { pitch: gamma, roll: -beta };
-      if (a === 180) return { pitch: -beta, roll: -gamma };
-      return { pitch: beta, roll: gamma };
-    };
-    var wrap = function(d) { while (d > 180) d -= 360; while (d < -180) d += 360; return d; };
-    var apply = function() {
-      if (!latest || !headsUpRef.current.active || headsUpRef.current.isFaceDown) return;
-      var cur = toScreen(latest.beta, latest.gamma);
-      if (!base) { base = cur; return; }
-      var pitch = wrap(cur.pitch - base.pitch);
-      var roll = wrap(cur.roll - base.roll);
-      if (Math.abs(pitch) < 10 && Math.abs(roll) < 10) {
-        base.pitch += pitch * 0.02;
-        base.roll += roll * 0.02;
-      }
-      var busy = ['GRABBED', 'DRAGGING', 'PRESSING', 'THROWING', 'COMPLETING', 'TRANSITIONING'].includes(headsUpRef.current.physicalState);
-      if (busy) return;
-      headsUpControllerRef.current.setTilt(-pitch * 0.55, roll * 0.7);
-      var now = Date.now();
-      if (roll < -24 && tiltDir !== 'left' && now - lastNavAt > 450) {
-        tiltDir = 'left';
-        lastNavAt = now;
-        headsUpControllerRef.current.previousCard();
-        if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
-      } else if (roll > 24 && tiltDir !== 'right' && now - lastNavAt > 450) {
-        tiltDir = 'right';
-        lastNavAt = now;
-        headsUpControllerRef.current.nextCard();
-        if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
-      } else if (Math.abs(roll) < 10) {
-        tiltDir = null;
-      }
-    };
-    var onOrientation = function(e) {
-      if (e.beta == null || e.gamma == null) return;
-      latest = { beta: e.beta, gamma: e.gamma };
-      apply();
+      if (a === 90) return { ud: -rg, lr: rb };
+      if (a === 270) return { ud: rg, lr: -rb };
+      if (a === 180) return { ud: -rb, lr: -rg };
+      return { ud: rb, lr: rg };
     };
     var onMotion = function(e) {
-      var g = e.accelerationIncludingGravity;
-      if (!g || g.z == null) return;
-      // iOS reports z ≈ -9.8 face up and ≈ +9.8 screen down.
+      var r = e.rotationRate;
+      if (!r || r.beta == null || r.gamma == null) return;
+      var s = headsUpRef.current;
+      if (!s.active || s.physicalState !== 'IDLE') return;
       var now = Date.now();
-      if (g.z > 8) {
-        if (!faceDownSince) faceDownSince = now;
-        if (!headsUpRef.current.isFaceDown && now - faceDownSince > 400) headsUpControllerRef.current.pauseCard();
-      } else {
-        faceDownSince = 0;
-        if (headsUpRef.current.isFaceDown && g.z < 2) {
-          base = null;
-          headsUpControllerRef.current.resumeCard();
-        }
+      if (now < lockedUntil) return;
+      var v = toScreen(r.beta, r.gamma);
+      var alr = Math.abs(v.lr), aud = Math.abs(v.ud);
+      var ctl = headsUpControllerRef.current;
+      if (alr > FLICK_RATE && alr > aud * DOMINANCE) {
+        lockedUntil = now + LOCKOUT_MS;
+        if (v.lr > 0) ctl.nextCard(); else ctl.previousCard();
+      } else if (aud > FLICK_RATE && aud > alr * DOMINANCE) {
+        lockedUntil = now + LOCKOUT_MS;
+        ctl.flipCard();
+        if (navigator.vibrate) { try { navigator.vibrate(10); } catch (err) {} }
       }
     };
-    var onRotate = function() { base = null; };
-    window.addEventListener('deviceorientation', onOrientation);
     window.addEventListener('devicemotion', onMotion);
-    window.addEventListener('orientationchange', onRotate);
     return function() {
-      window.removeEventListener('deviceorientation', onOrientation);
       window.removeEventListener('devicemotion', onMotion);
-      window.removeEventListener('orientationchange', onRotate);
-      headsUpControllerRef.current.returnToNeutral();
     };
   }, [huMotionActive]);
 
