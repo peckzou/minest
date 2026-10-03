@@ -21084,6 +21084,15 @@ var Oe = function(props) {
   var liquidMode = (cardMode === 'liq');
   var glassCrackMode = (cardMode === 'smash');
   var cardModeRef = (0, _.useRef)('none');
+  // 40.9: another button was tapped — Cover Flow's Card FX (and Heads Up) switch off
+  (0, _.useEffect)(function() {
+    var reset = function() {
+      setCardMode('none');
+      try { if (headsUpControllerRef.current && headsUpControllerRef.current.isActive()) headsUpControllerRef.current.exit(); } catch (err) {}
+    };
+    window.addEventListener('minest:fx-reset', reset);
+    return function() { window.removeEventListener('minest:fx-reset', reset); };
+  }, []);
   cardModeRef.current = cardMode;
   var liquidBridgeRef = (0, _.useRef)({ activeId: null, tilt: { x: 0, y: 0 } });
   liquidBridgeRef.current.tilt = tilt;
@@ -29633,6 +29642,15 @@ var ke = function(props) {
   (0, _.useEffect)(function() {
     return function() { GlassLiquid.setBoardActive(false); CardGlassShatter.setBoardActive(false); };
   }, []);
+  // 40.9: another button was tapped — the board's Card FX switches off (ink included)
+  (0, _.useEffect)(function() {
+    var reset = function() {
+      setBoardCardMode('none');
+      if (board.inkEnabled && onUpdateBoard) onUpdateBoard(Object.assign({}, board, { inkEnabled: false }));
+    };
+    window.addEventListener('minest:fx-reset', reset);
+    return function() { window.removeEventListener('minest:fx-reset', reset); };
+  }, [board, onUpdateBoard]);
   // 40.8 Repo mode runs exactly while the board card mode is 'ripple'
   (0, _.useEffect)(function() {
     if (!window.RippleExplore || !window.RippleExplore.enterMode) return;
@@ -40299,6 +40317,23 @@ var Ve = (function(_Component) {
     dtap.t = now; dtap.at = Date.now(); dtap.x = e.clientX; dtap.y = e.clientY;
     var fc = mode === 'neon' ? neonCardFrom(tg) : null;
     dtap.card = fc ? fc.getAttribute('data-card-id') : null;
+  }, true);
+
+  // 40.9: tapping any other button (a tab, the top bar, Summary, a menu…) leaves Light FX
+  // and Card FX — the effects belong to the screen they were turned on for
+  window.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var b = t.closest('button, [role="button"], a[href], .ios-tab-item');
+    if (!b) return;
+    if (b.closest('.dock-fx-tab, .bar-fx-btn, .fbfx-btn, .fbfx-neon-ctl, .card-mode-btn, [data-card-id], .perspective-stage, .apple-wallet-overlay, .hu-island-header, .fb-composer, .card-gap-active-composer')) return;
+    var root = document.documentElement;
+    var cardFxOn = root.classList.contains('fb-cardfx-on') || !!document.querySelector('.board-swimlane-scroll.ripple-active') ||
+      !!(window.__HeadsUpController && window.__HeadsUpController.isActive && window.__HeadsUpController.isActive());
+    var lightOn = mode !== 'none';
+    if (!lightOn && !cardFxOn) return;
+    if (lightOn) setMode('none');
+    if (cardFxOn) { try { window.dispatchEvent(new Event('minest:fx-reset')); } catch (err) {} }
   }, true);
 
   // Fireworks: a click on empty space sends a rocket up to that point.
