@@ -37,9 +37,13 @@
       var button = document.getElementById('google');
       var CALLBACK = 'minest://auth';
 
+      // The sign-in handler is proxied through this host (vercel.json rewrites
+      // /__/auth and /__/firebase to minest-33761.firebaseapp.com), so the
+      // redirect flow stays same-origin and survives Safari storage partitioning.
+      var sameOriginAuth = /\.vercel\.app$/.test(window.location.hostname);
       firebase.initializeApp({
         apiKey: "AIzaSyBH-SonlmNnTLRYUtvnZ9EEiFQSflo1cX8",
-        authDomain: "minest-33761.firebaseapp.com",
+        authDomain: sameOriginAuth ? window.location.hostname : "minest-33761.firebaseapp.com",
         projectId: "minest-33761"
       });
       var auth = firebase.auth();
@@ -70,13 +74,8 @@
         status.textContent = 'Opening Google…';
         var provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        auth.signInWithPopup(provider).then(function (result) {
-          finish(result.credential);
-        }).catch(function (err) {
-          if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment')) {
-            return auth.signInWithRedirect(provider);
-          }
-          if (err && err.code === 'auth/popup-closed-by-user') { return fail('Sign-in was cancelled.'); }
+        // The iOS sign-in sheet cannot open popups, so use the (same-origin) redirect flow.
+        auth.signInWithRedirect(provider).catch(function (err) {
           fail((err && err.message) || String(err));
         });
       });
