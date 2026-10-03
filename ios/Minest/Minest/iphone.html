@@ -20835,7 +20835,8 @@ var Oe = function(props) {
     return list;
   }, [board, selectedColFilter, searchTerm]);
 
-  var totalSlots = cards.length + 1;
+  // 40.8: 3D Cover is for reading (front / back) only — no "add card" slot at the end
+  var totalSlots = Math.max(1, cards.length);
 
   // Spatial Fold: open centred on the card the Board transition anchored on
   // (layout effect, so the first painted frame already has it centred).
@@ -21694,14 +21695,10 @@ var Oe = function(props) {
         var card = cards[activeIdx];
         if (card) toggleCardFlip(card.id);
       } else if (e.key === 'Enter') {
+        // 40.8: reading only — Enter turns the card over instead of opening the editor
         e.preventDefault();
-        if (activeIdx === cards.length) {
-          var targetCol = selectedColFilter === 'all' ? (board.columns && board.columns[0] && board.columns[0].id) : selectedColFilter;
-          if (targetCol) onOpenCardModal(targetCol);
-        } else {
-          var c = cards[activeIdx];
-          if (c) onOpenCardModal(c.columnId, c.id);
-        }
+        var cEnter = cards[activeIdx];
+        if (cEnter) toggleCardFlip(cEnter.id);
       } else if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
         onToggleZenMode();
@@ -23647,10 +23644,7 @@ var Oe = function(props) {
             if (window.MinestNative && window.MinestNative.send) {
               window.MinestNative.send('triggerHaptic', { style: 'medium', sound: false });
             }
-            var onOpenFn = rt().onOpenCardModal || onOpenCardModal;
-            if (activeCard && onOpenFn) {
-              onOpenFn(activeCard.columnId, activeCard.id);
-            }
+            // 40.8: 3D Cover is for reading — the pull settles back, no editor opens
             yieldDeck();
             return;
           }
@@ -24899,7 +24893,7 @@ var Oe = function(props) {
                                 children: card.desc
                               }) : (0, P.jsx)('div', {
                                 className: "p-2 text-center text-[10px] opacity-40 italic border border-dashed border-white/10 rounded-xl my-0.5",
-                                children: "No description yet. Tap ! below to add notes."
+                                children: "No description yet."
                               }),
 
                               hasCheck ? (0, P.jsxs)('div', {
@@ -24960,16 +24954,7 @@ var Oe = function(props) {
                                   (0, P.jsx)('span', { children: "AI Tutor" })
                                 ]
                               }),
-                              (0, P.jsx)('button', {
-                                type: "button",
-                                onClick: function(e) {
-                                  e.stopPropagation();
-                                  onOpenCardModal(card.columnId, card.id);
-                                },
-                                className: "w-6 h-6 rounded-full bg-emerald-500 hover:bg-emerald-400 active:scale-90 text-white font-black text-xs flex items-center justify-center shadow-md transition-all duration-200 border-0 outline-none shrink-0 cursor-pointer",
-                                title: "Edit Card (!)",
-                                children: "!"
-                              })
+                              null   // 40.8: no "Edit Card" button — 3D Cover is for reading
                             ]
                           })
                         ]
@@ -25012,9 +24997,9 @@ var Oe = function(props) {
               });
             }),
 
-            // End Slot: Add Card
+            // End Slot: Add Card (40.8: removed — 3D Cover only shows cards to read)
             (function() {
-              if (headsUpState.active) return null;
+              if (true || headsUpState.active) return null;
               var endIdx = cards.length;
               var dragFraction = isDragging ? -dragOffset / dragNormalizer : 0;
               var effIdx = endIdx - (continuousPositionRef.current === null ? activeIdx + dragFraction : continuousPositionRef.current);
