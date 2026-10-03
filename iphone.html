@@ -34820,6 +34820,28 @@ var Be = function() {
     };
   }, []);
 
+  // 31.6: the Home Screen widget mirrors the home list (first list of the active board)
+  (0, _.useEffect)(function() {
+    if (!window.MinestNative || !window.MinestNative.isNative()) return;
+    var timer = setTimeout(function() {
+      var board = (boards || []).find(function(b) { return b.id === activeBoardId; }) || (boards || [])[0];
+      var col = board && (board.columns || [])[0];
+      if (!col) return;
+      var items = (col.cards || []).map(function(c) {
+        return { id: c.id, text: c.title || 'Untitled Card', done: !!(c.complete || c.done || c.isDone || c.mastery === 3) };
+      });
+      var completed = items.filter(function(i) { return i.done; }).length;
+      window.MinestNative.send('updateHomeList', {
+        boardTitle: board.title || 'Minest',
+        listName: col.title || 'List',
+        items: items,
+        completedCount: completed,
+        totalCount: items.length
+      });
+    }, 400);
+    return function() { clearTimeout(timer); };
+  }, [boards, activeBoardId]);
+
   // Ingestion listener for Share Extension & Siri cards
   (0, _.useEffect)(function() {
     var handleCardCreated = function(e) {

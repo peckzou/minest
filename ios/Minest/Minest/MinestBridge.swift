@@ -1,6 +1,7 @@
 import Foundation
 import WebKit
 import UIKit
+import WidgetKit
 
 /// Enhanced Swift Bridge connecting WKWebView JS to native iOS capabilities
 public final class MinestBridge: NSObject, WKScriptMessageHandler {
@@ -276,6 +277,16 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
                 strikeDays: data["strikeDays"] as? Int
             )
             
+        case "updateHomeList":
+            // 31.6: the Home Screen widget mirrors the home list (first list of the active board)
+            let rows = data["items"] as? [[String: Any]] ?? []
+            let items: [StudyActivityAttributes.ChecklistItemState] = rows.compactMap { d in
+                guard let text = d["text"] as? String, !text.isEmpty else { return nil }
+                return StudyActivityAttributes.ChecklistItemState(id: (d["id"] as? String) ?? text, text: text, isDone: (d["done"] as? Bool) ?? false)
+            }
+            MinestWidgetDataStore.shared.saveItems(items, boardTitle: data["boardTitle"] as? String, cardTitle: data["listName"] as? String)
+            WidgetCenter.shared.reloadAllTimelines()
+
         case "updateBadgeWall":
             if let ids = data["unlockedIds"] as? [String] {
                 iPhoneWatchSyncManager.shared.pushBadgeWallToWatch(unlockedIds: ids)

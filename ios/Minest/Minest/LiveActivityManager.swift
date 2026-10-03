@@ -221,10 +221,8 @@ public final class LiveActivityManager: ObservableObject {
             return
         }
         
-        // Sync with Home Screen Widget Data Store
-        if !items.isEmpty {
-            MinestWidgetDataStore.shared.saveItems(items, boardTitle: boardTitle, cardTitle: cardTitle)
-        }
+        // 31.6: the Home Screen widget mirrors the home list only (updateHomeList),
+        // so a card's sub-checklist shown on the island no longer replaces it.
         
         var state = StudyActivityAttributes.ContentState(
             completedCount: completedCount,

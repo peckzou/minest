@@ -9,6 +9,11 @@ public final class MinestWidgetDataStore {
     private let boardTitleKey = "minest_widget_board_title"
     private let cardTitleKey = "minest_widget_card_title"
     
+    /// 31.6: shared with the widget extension through the App Group; plain
+    /// `.standard` defaults are private to each process, so the widget never saw
+    /// the app's data and fell back to the sample list.
+    private let store = UserDefaults(suiteName: "group.com.zouminmin.minest") ?? .standard
+
     private init() {}
     
     /// Default checklist tasks if no board has synced yet
@@ -22,13 +27,9 @@ public final class MinestWidgetDataStore {
         ]
     }
     
-    /// Get current checklist items (prefers active Live Activity, then cached storage, then fallback)
+    /// Get the home list items mirrored from the app (fallback until the first sync)
     public func getItems() -> [StudyActivityAttributes.ChecklistItemState] {
-        if let liveItems = Activity<StudyActivityAttributes>.activities.first?.content.state.items, !liveItems.isEmpty {
-            return liveItems
-        }
-        
-        if let data = UserDefaults.standard.data(forKey: defaultsKey),
+        if let data = store.data(forKey: defaultsKey),
            let decoded = try? JSONDecoder().decode([StudyActivityAttributes.ChecklistItemState].self, from: data),
            !decoded.isEmpty {
             return decoded
@@ -39,24 +40,21 @@ public final class MinestWidgetDataStore {
     
     /// Get current board & card title
     public func getTitles() -> (board: String, card: String) {
-        if let live = Activity<StudyActivityAttributes>.activities.first {
-            return (live.attributes.boardTitle, live.content.state.cardTitle)
-        }
-        let board = UserDefaults.standard.string(forKey: boardTitleKey) ?? "Minest 学习看板"
-        let card = UserDefaults.standard.string(forKey: cardTitleKey) ?? "Core Subjects: Literacy & Math"
+        let board = store.string(forKey: boardTitleKey) ?? "Minest 学习看板"
+        let card = store.string(forKey: cardTitleKey) ?? "Core Subjects: Literacy & Math"
         return (board, card)
     }
     
     /// Save items into cache
     public func saveItems(_ items: [StudyActivityAttributes.ChecklistItemState], boardTitle: String? = nil, cardTitle: String? = nil) {
         if let encoded = try? JSONEncoder().encode(items) {
-            UserDefaults.standard.set(encoded, forKey: defaultsKey)
+            store.set(encoded, forKey: defaultsKey)
         }
         if let board = boardTitle {
-            UserDefaults.standard.set(board, forKey: boardTitleKey)
+            store.set(board, forKey: boardTitleKey)
         }
         if let card = cardTitle {
-            UserDefaults.standard.set(card, forKey: cardTitleKey)
+            store.set(card, forKey: cardTitleKey)
         }
     }
     
