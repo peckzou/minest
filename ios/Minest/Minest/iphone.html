@@ -25896,6 +25896,7 @@ var MinestPortraitGestureManager = (function() {
     var foldPick = null;
     var foldHoldTimer = null;
     var lastSingleTouchId = null;
+    var lastSingleTouchAt = 0;
     var FOLD_HOLD_MS = 420;
     var enterClearMode = function(cardEl) {
       if (clearModeCard && cardEl) {
@@ -26357,7 +26358,10 @@ var MinestPortraitGestureManager = (function() {
     // Fold-pick owns every touch while it runs: other fingers pick rows, the mother finger ends it
     var onFoldTouchStart = function(e) {
       if (!foldPick) {
-        if (e.touches && e.touches.length === 1 && e.changedTouches[0]) lastSingleTouchId = e.changedTouches[0].identifier;
+        if (e.touches && e.touches.length === 1 && e.changedTouches[0]) {
+          lastSingleTouchId = e.changedTouches[0].identifier;
+          lastSingleTouchAt = Date.now();
+        }
         return;
       }
       if (e.cancelable) e.preventDefault();
@@ -26609,12 +26613,14 @@ var MinestPortraitGestureManager = (function() {
         (colObj.cards || []).some(function(c) { return c.id === cardObj.id; }));
       if (clearModeCard && isTopLevelRow && !document.querySelector('.clear-active-column .fb-composer')) {
         var holdGs = gestureState;
-        var holdTouchId = lastSingleTouchId;
         foldHoldTimer = setTimeout(function() {
           foldHoldTimer = null;
           if (gestureState !== holdGs || holdGs.mode !== 'undecided' || foldPick) return;
           if (Math.hypot(holdGs.currentX - holdGs.startX, holdGs.currentY - holdGs.startY) > 10) return;
-          beginFoldPick(holdGs, holdTouchId);
+          // WebKit fires pointerdown before touchstart, so the mother's touch id is only known
+          // now; take it only if that touchstart belongs to this press
+          var motherTouchId = lastSingleTouchAt >= holdGs.startTime - 80 ? lastSingleTouchId : null;
+          beginFoldPick(holdGs, motherTouchId);
         }, FOLD_HOLD_MS);
       }
     };
