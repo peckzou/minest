@@ -20986,6 +20986,19 @@ var Oe = function(props) {
         endPhysicalAction();
       }, 360);
     },
+    // 32.1: "don't know": move on to the next card with the amber Pass feedback.
+    passCard: function() {
+      var s = headsUpRef.current;
+      if (cards.length <= 1) return;
+      if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
+      headsUpControllerRef.current.nextCard();
+      setHeadsUpState(function(prev) { return Object.assign({}, prev, { actionFeedback: 'pass' }); });
+      setTimeout(function() {
+        setHeadsUpState(function(prev) {
+          return prev.actionFeedback === 'pass' ? Object.assign({}, prev, { actionFeedback: null }) : prev;
+        });
+      }, 650);
+    },
     expandCard: function() {
       var s = headsUpRef.current;
       if (['COMPLETING', 'TRANSITIONING', 'THROWING', 'PAUSED'].includes(s.physicalState)) return;
@@ -21292,49 +21305,90 @@ var Oe = function(props) {
   };
   window.__HeadsUpInputAdapter = headsUpInputAdapterRef.current;
 
-  // 32.1: Heads Up gestures from the gyroscope only. No orientation/gravity
-  // "viewing" tilt: the card stays still and a quick wrist flick (rotation rate,
-  // deg/s) triggers one action: flick left/right = previous/next card,
-  // flick up/down = flip the card over.
+  // 32.1: Heads Up gestures from the gyroscope only (rotation rate, deg/s).
+  //   flick down (cover the phone) = correct: tick the card, dissolve effect
+  //   flick up                      = not sure: keep it, mark it to study again
+  //   flick left                    = flip the card over to its details
+  //   flick right                   = pass: don't know, next card
+  // Every gesture fires a native haptic.
   var huMotionActive = headsUpState.active;
+  var huGyroCardRef = (0, _.useRef)(null);
+  huGyroCardRef.current = { card: cards[activeIdx], rate: onUpdateCardMastery };
   (0, _.useEffect)(function() {
     if (!huMotionActive || typeof window === 'undefined') return;
-    var FLICK_RATE = 210;      // deg/s needed to count as a flick
-    var DOMINANCE = 1.6;       // main axis must beat the other one by this much
-    var LOCKOUT_MS = 650;      // swallow the return swing after a flick
+    var FLICK_RATE = 170;      // deg/s needed to count as a flick
+    var DOMINANCE = 1.5;       // main axis must beat the other one by this much
+    var LOCKOUT_MS = 550;      // minimum gap between gestures
+    var RETURN_MS = 4000;      // the swing back to neutral is not a new gesture
     var lockedUntil = 0;
+    var lastGesture = null;    // { axis, sign, at }
+    // WebKit on iOS reports rotationRate as alpha = x, beta = y, gamma = z
+    // (CoreMotion order); the spec, and other browsers, use beta = x, gamma = y.
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var screenAngle = function() {
       var a = (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number')
         ? window.screen.orientation.angle
         : (typeof window.orientation === 'number' ? window.orientation : 0);
       return ((a % 360) + 360) % 360;
     };
-    // Rotation rates about the axes the user sees: lr = turning around the
-    // screen's vertical axis (left/right flick), ud = around its horizontal axis.
-    var toScreen = function(rb, rg) {
+    // x = rotation about the screen's horizontal axis (+ = top edge toward you),
+    // y = about its vertical axis (+ = right edge away from you).
+    var toScreen = function(rx, ry) {
       var a = screenAngle();
-      if (a === 90) return { ud: -rg, lr: rb };
-      if (a === 270) return { ud: rg, lr: -rb };
-      if (a === 180) return { ud: -rb, lr: -rg };
-      return { ud: rb, lr: rg };
+      if (a === 90) return { x: -ry, y: rx };
+      if (a === 270) return { x: ry, y: -rx };
+      if (a === 180) return { x: -rx, y: -ry };
+      return { x: rx, y: ry };
+    };
+    var buzz = function(style) {
+      try {
+        if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic(style);
+        else if (navigator.vibrate) navigator.vibrate(style === 'success' ? [14, 40, 14] : 12);
+      } catch (err) {}
+    };
+    var rate = function(level) {
+      var cur = huGyroCardRef.current;
+      if (cur && cur.card && cur.rate) { try { cur.rate(cur.card.columnId, cur.card.id, level); } catch (err) {} }
     };
     var onMotion = function(e) {
       var r = e.rotationRate;
-      if (!r || r.beta == null || r.gamma == null) return;
+      if (!r) return;
+      var rx = isIOS ? r.alpha : r.beta;
+      var ry = isIOS ? r.beta : r.gamma;
+      if (rx == null || ry == null) return;
       var s = headsUpRef.current;
       if (!s.active || s.physicalState !== 'IDLE') return;
       var now = Date.now();
       if (now < lockedUntil) return;
-      var v = toScreen(r.beta, r.gamma);
-      var alr = Math.abs(v.lr), aud = Math.abs(v.ud);
+      var v = toScreen(rx, ry);
+      var ax = Math.abs(v.x), ay = Math.abs(v.y);
+      var axis = null, sign = 0;
+      if (ax > FLICK_RATE && ax > ay * DOMINANCE) { axis = 'x'; sign = v.x > 0 ? 1 : -1; }
+      else if (ay > FLICK_RATE && ay > ax * DOMINANCE) { axis = 'y'; sign = v.y > 0 ? 1 : -1; }
+      if (!axis) return;
+      lockedUntil = now + LOCKOUT_MS;
+      // Coming back from the previous flick (e.g. turning the phone face up again).
+      if (lastGesture && lastGesture.axis === axis && lastGesture.sign === -sign && now - lastGesture.at < RETURN_MS) {
+        lastGesture = null;
+        return;
+      }
+      lastGesture = { axis: axis, sign: sign, at: now };
       var ctl = headsUpControllerRef.current;
-      if (alr > FLICK_RATE && alr > aud * DOMINANCE) {
-        lockedUntil = now + LOCKOUT_MS;
-        if (v.lr > 0) ctl.nextCard(); else ctl.previousCard();
-      } else if (aud > FLICK_RATE && aud > alr * DOMINANCE) {
-        lockedUntil = now + LOCKOUT_MS;
+      if (axis === 'x' && sign < 0) {
+        buzz('success');
+        ctl.completeCard();
+      } else if (axis === 'x') {
+        buzz('warning');
+        rate(2);
+        ctl.snoozeCard();
+      } else if (sign < 0) {
+        buzz('medium');
         ctl.flipCard();
-        if (navigator.vibrate) { try { navigator.vibrate(10); } catch (err) {} }
+      } else {
+        buzz('rigid');
+        rate(1);
+        ctl.passCard();
       }
     };
     window.addEventListener('devicemotion', onMotion);
@@ -23900,7 +23954,7 @@ var Oe = function(props) {
         className: "hu-status-toast",
         children: (0, P.jsx)('div', {
           className: "px-4 py-1.5 rounded-full text-xs font-bold shadow-xl border backdrop-blur-xl " + (headsUpState.actionFeedback === 'correct' ? "bg-emerald-500/90 text-white border-emerald-400/50" : (headsUpState.actionFeedback === 'snooze' ? "bg-purple-500/90 text-white border-purple-400/50" : "bg-amber-500/90 text-white border-amber-400/50")),
-          children: headsUpState.actionFeedback === 'correct' ? "✓ Complete" : (headsUpState.actionFeedback === 'snooze' ? "⤳ Snoozed · Later" : "⤳ Passed")
+          children: headsUpState.actionFeedback === 'correct' ? "✓ Correct" : (headsUpState.actionFeedback === 'snooze' ? "↻ Not sure · Again later" : "⤳ Pass")
         })
       }) : null,
 
