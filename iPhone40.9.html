@@ -21107,6 +21107,7 @@ var Oe = function(props) {
     // spotlight (screen effect): the lit card stays face up — no turning it over to the answer
     // (turning a flipped card back to its front is still allowed)
     if (window.FBFX && window.FBFX.noFlip && !flippedMap[id]) return;
+    if (window.__fbfxNeonPainting) return;   // 40.9: neon single-card mode — the tap recolours, it does not flip
     if (e && e.stopPropagation) e.stopPropagation();
     SoundEngine.play('flip');
     window.__cfLastFlip = { id: id, at: Date.now() };
@@ -37737,22 +37738,43 @@ var Ve = (function(_Component) {
   // single-card mode: a tap on a card gives that card the next gas (after Rn it follows the
   // shared colour again); the tap does not flip or open the card
   var neonCardFrom = function (t) { return t && t.closest ? t.closest('.perspective-stage [data-card-id], article.kanban-card[data-card-id]') : null; };
-  ['pointerdown', 'pointerup', 'mousedown', 'mouseup'].forEach(function (type) {
-    window.addEventListener(type, function (e) {
-      if (!(neonPaint && stageOn && mode === 'neon') || !neonCardFrom(e.target)) return;
-      e.preventDefault(); e.stopImmediatePropagation();
-    }, true);
-  });
-  window.addEventListener('click', function (e) {
-    if (!(neonPaint && stageOn && mode === 'neon')) return;
-    var el = neonCardFrom(e.target);
-    if (!el) return;
-    e.preventDefault(); e.stopImmediatePropagation();
+  var neonPainting = function () { return neonPaint && stageOn && mode === 'neon'; };
+  var paintDown = null, lastPaintAt = 0;
+  var paintCard = function (el) {
     var id = el.getAttribute('data-card-id'), cur = neonGasIdx(id);
     var nxt = cur < 0 ? (neonIdx + 1) % NEON.length : cur + 1;
     if (nxt >= NEON.length) delete neonCards.ov[id]; else neonCards.ov[id] = nxt;
+    lastPaintAt = Date.now();
     neonSave(); neonPaintCards(); neonFlash(el); neonHaptic();
-    neonShow();
+  };
+  // 40.9c: the tap is read from pointer events — on the iPhone the Cover Flow handles touches
+  // itself and swallows the click, so waiting for a click never fired. Swipes still browse.
+  window.addEventListener('pointerdown', function (e) {
+    if (!neonPainting()) return;
+    var el = neonCardFrom(e.target);
+    if (!el) { paintDown = null; return; }
+    paintDown = { id: el.getAttribute('data-card-id'), x: e.clientX, y: e.clientY, t: Date.now(), pid: e.pointerId };
+    e.stopImmediatePropagation();
+  }, true);
+  window.addEventListener('pointerup', function (e) {
+    if (!neonPainting() || !paintDown || e.pointerId !== paintDown.pid) return;
+    var d = paintDown; paintDown = null;
+    var el = neonCardFrom(e.target) || document.querySelector('[data-card-id="' + d.id + '"]');
+    e.stopImmediatePropagation();
+    if (!el || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || Date.now() - d.t > 650) return;   // that was a swipe
+    paintCard(el);
+  }, true);
+  ['mousedown', 'mouseup'].forEach(function (type) {
+    window.addEventListener(type, function (e) {
+      if (neonPainting() && neonCardFrom(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
+  });
+  window.addEventListener('click', function (e) {
+    if (!neonPainting()) return;
+    var el = neonCardFrom(e.target);
+    if (!el) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (Date.now() - lastPaintAt > 500) paintCard(el);   // a click without pointer events (old browsers)
   }, true);
   try { var nsv = parseInt(localStorage.getItem('fbfx_neon_gas') || '0', 10); if (nsv >= 0 && nsv < NEON.length) neonIdx = nsv; } catch (e) {}
   function neonApply(ignite) {
@@ -37776,7 +37798,7 @@ var Ve = (function(_Component) {
   }
   function neonRenderBtn() {
     var on = stageOn && mode === 'neon';
-    if (!on) { if (neonCtl) neonCtl.classList.remove('show'); neonPaint = false; document.documentElement.classList.remove('fbfx-neon-painting'); return; }
+    if (!on) { if (neonCtl) neonCtl.classList.remove('show'); neonPaint = false; window.__fbfxNeonPainting = false; document.documentElement.classList.remove('fbfx-neon-painting'); return; }
     var host = hostEl();
     if (!neonCtl || !host.contains(neonCtl)) {
       if (neonCtl && neonCtl.parentNode) neonCtl.parentNode.removeChild(neonCtl);
@@ -37816,6 +37838,7 @@ var Ve = (function(_Component) {
       one.addEventListener('click', function (e) {
         e.preventDefault(); e.stopPropagation();
         neonPaint = !neonPaint;
+        window.__fbfxNeonPainting = neonPaint;
         document.documentElement.classList.toggle('fbfx-neon-painting', neonPaint);
         neonHaptic();
         neonRenderBtn(); neonShow();
@@ -37846,14 +37869,16 @@ var Ve = (function(_Component) {
     if (!neonCtl) return;
     neonCtl.classList.add('show');
     clearTimeout(neonHideT);
-    // while you are setting single cards the controls stay up
-    var hide = function () { if (neonPaint) { neonHideT = setTimeout(hide, 3200); return; } if (neonCtl) neonCtl.classList.remove('show'); };
-    neonHideT = setTimeout(hide, 3200);
+    neonHideT = setTimeout(neonHide, 3200);   // always out of the way again (single-card mode stays on)
   }
+  function neonHide() { clearTimeout(neonHideT); if (neonCtl) neonCtl.classList.remove('show'); }
+  // a tap on empty space shows the controls, or hides them if they are up
   window.addEventListener('pointerdown', function (e) {
     if (!(stageOn && mode === 'neon')) return;
     if (neonCtl && neonCtl.contains(e.target)) return;
-    neonShow();
+    var onCard = e.target && e.target.closest && e.target.closest('[data-card-id], article.kanban-card');
+    if (onCard) return;
+    if (neonCtl && neonCtl.classList.contains('show')) neonHide(); else neonShow();
   }, true);
   var LS_KEY = 'focusboard_fx_mode_v1';
   var TAU = Math.PI * 2;
