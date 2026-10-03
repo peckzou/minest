@@ -22163,8 +22163,8 @@ var Oe = function(props) {
       var q = function(k) { return (hash01(id + ':' + k) + 1) / 2; };   // 0..1
       return (bodies[rel] = { x: 0, vx: 0, y: 0, vy: 0, z: 0, vz: 0, ry: 0, vry: 0, l: 0, vl: 0, f: 0, vf: 0, touching: false, recoverAt: 0, recT: 0.32,
         m: 0.7 + 0.9 * q('m'),                 // relative mass
-        tipL: 22 + 18 * q('tl'),               // deg: past this sideways lean it topples over
-        tipF: 20 + 18 * q('tf'),               // deg: past this backward tilt it falls flat
+        tipL: 34 + 14 * q('tl'),               // deg: past this sideways lean it topples over (sturdy)
+        tipF: 34 + 12 * q('tf'),               // deg: past this backward tilt it falls flat
         lieL: 62 + 24 * q('ll'),               // deg: where a toppled pane comes to rest
         lieF: 72 + 15 * q('lf'),
         restL: 2 + 9 * q('rl'),                // deg: friction can hold it this crooked
@@ -22223,19 +22223,23 @@ var Oe = function(props) {
     // crash: it sails off into the depth (smaller and smaller in perspective), arcs up and
     // falls under gravity, tumbling; it crashes onto the table, bounces, and slides to a
     // stop lying down. It stays in the wreck until the deck is left alone, then flies home.
-    var FLY_J = 1000, flyLog = [];
+    var FLY_J = 950, flyLog = [];
     var relOf = function(b) { for (var k in bodies) if (bodies[k] === b) return +k; return null; };
     var launch = function(b, side, speed) {
       var k = clamp((speed - FLY_J) / 1400, 0, 1), now = performance.now();
       b.flying = true; b.landed = false; b.landedAt = 0; b.bounces = 0; b.flyT0 = now; b.touching = false;
-      b.vz = -(1250 + 2100 * k) * (0.8 + 0.4 * Math.random());
-      b.vx += side * (280 + 700 * k) * (0.7 + 0.6 * Math.random());
-      b.vy = -(380 + 620 * k) * (0.7 + 0.6 * Math.random());
-      b.vry += side * (500 + 900 * k) * (Math.random() < 0.5 ? 1 : -1);
-      b.vl += side * (180 + 520 * k) * (0.5 + Math.random());
-      b.vf -= (120 + 480 * k) * (0.4 + Math.random());
+      // 40.8: thrown like a car in a crash — it keeps the striker's momentum, flies out
+      // sideways and up (in view, not straight into the distance), tumbling end over end
+      var carry = clamp(speed / 1600, 0.6, 1.6);
+      b.vz = -(520 + 900 * k) * (0.8 + 0.4 * Math.random());
+      b.vx += side * (760 + 900 * k) * carry * (0.8 + 0.4 * Math.random());
+      b.vy = -(620 + 700 * k) * (0.8 + 0.4 * Math.random());
+      b.vry += side * (700 + 1100 * k) * (Math.random() < 0.7 ? 1 : -1);
+      b.vl += side * (420 + 620 * k) * (0.7 + 0.6 * Math.random());
+      b.vf -= (200 + 520 * k) * (0.5 + Math.random());
       recovering = false; lastImpactT = now;
-      g.shakeA = Math.max(g.shakeA || 0, 5 + 3 * k); g.shakeDir = side;
+      g.shakeA = Math.max(g.shakeA || 0, 8 + 5 * k); g.shakeDir = side;
+      g.recoilZV -= 260; g.recoilRYV += -side * 120;            // the striker is jolted too
       var rel = relOf(b), c = rel != null ? cardAtRel(rel) : null, rr = rt();
       var el = c && rr.cardElFor ? rr.cardElFor(c.id) : null;
       if (el) { var bx = el.getBoundingClientRect(); throwGrit(side < 0 ? bx.right - 6 : bx.left + 6, bx.top + bx.height * 0.5, side, 1); }
@@ -22252,8 +22256,8 @@ var Oe = function(props) {
         // throws at most three panes a second
         var nowK = performance.now();
         flyLog = flyLog.filter(function(t) { return nowK - t < 1000; });
-        var canFly = nowK - (b.stoodAt || -1e9) > 600 && flyLog.length < 3 && nowK - (flyLog[flyLog.length - 1] || -1e9) > 280;
-        if (canFly && Math.random() < clamp((speed - FLY_J) / 2600 + 0.1, 0.1, 0.6)) { flyLog.push(nowK); launch(b, side, speed); return; }
+        var canFly = nowK - (b.stoodAt || -1e9) > 600 && flyLog.length < 2 && nowK - (flyLog[flyLog.length - 1] || -1e9) > 280;
+        if (canFly && Math.random() < clamp((speed - FLY_J) / 900 + 0.55, 0.55, 0.95)) { flyLog.push(nowK); launch(b, side, speed); return; }
         b.stoodAt = nowK;
       }
       var over = speed - KNOCK_J;
@@ -22529,6 +22533,7 @@ var Oe = function(props) {
         // 10.4: whole turns are the same pose — start the way home from the nearest one
         b.l -= Math.round(b.l / 360) * 360; b.f -= Math.round(b.f / 360) * 360;
         if (b.flying) { b.flying = false; b.recT += 0.28; b.recoverAt += 60; }
+        b.over = false;
       }
     };
     var bodyStep = function(dt) {
@@ -22620,7 +22625,8 @@ var Oe = function(props) {
                 var obl = innerHeld ? clamp((g.inspectRY || 0) / 18 + (g.vy || 0) / 1400, -1, 1) : clamp(inner ? inner.vry / 400 : 0, -1, 1);
                 var hitB = contactAt(rel, hgt, obl);
                 hitB.hitVY = innerHeld ? g.holdYV : (inner ? inner.vy : 0);
-                knock(hitB, side, Math.max(vrel, side * innerV));
+                // only the pane the card in hand strikes can be thrown off the deck
+                knock(hitB, side, innerHeld ? Math.max(vrel, side * innerV) : Math.min(Math.max(vrel, side * innerV), FLY_J - 1));
                 if (vrel > 60) flash(rel, side, Math.tanh(Math.max(vrel, side * innerV) / 900) * (innerHeld ? 1 : 0.8), 1 + 0.06 * (k - 1));
                 shatter(rel, side, Math.tanh(Math.max(vrel, side * innerV) / 1100) * (innerHeld ? 1 : 0.85), hgt, innerHeld);   // 10.2
               }
@@ -22667,7 +22673,7 @@ var Oe = function(props) {
             bd.vf += (-wf * wf * bd.f - 2 * 0.62 * wf * bd.vf) * h;
           } else if (bd.flying) {
             var cardHh = r.cardHeight || 360, floorY = 0.5 * cardHh;
-            var air = Math.exp(-h / (bd.landed ? 0.22 : 1.1));
+            var air = Math.exp(-h / (bd.landed ? 0.5 : 1.8));   // 40.8: it slides on after it lands
             bd.vx *= air; bd.vz *= air;
             if (bd.y < floorY - 0.5 || bd.vy < 0) bd.vy += 2300 * h;       // gravity
             if (bd.y >= floorY && bd.vy > 0) {
@@ -22697,6 +22703,14 @@ var Oe = function(props) {
             // and past that it pulls it over. Each time it rocks across its base it loses
             // energy; static friction can leave it standing crooked.
             var tipL = bd.tipL || 24, gL = bd.gL || 2000, aL = Math.abs(bd.l), sL = bd.l >= 0 ? 1 : -1;
+            // 40.8: one or two panes go down in a crash, not the whole row
+            if (!bd.over && (aL > tipL || Math.abs(bd.f) > (bd.tipF || 30))) {
+              var downs = 0; for (var dk in bodies) if (bodies[dk].over || bodies[dk].flying) downs++;
+              if (downs >= 2) {
+                if (aL > tipL * 0.92) { bd.l = sL * tipL * 0.92; if (bd.vl * sL > 0) bd.vl *= -0.35; aL = Math.abs(bd.l); }
+                if (Math.abs(bd.f) > (bd.tipF || 30) * 0.92) { bd.f = (bd.f >= 0 ? 1 : -1) * (bd.tipF || 30) * 0.92; if (bd.vf * bd.f > 0) bd.vf *= -0.35; }
+              } else bd.over = true;
+            }
             var torqueL = aL < tipL ? -sL * gL * Math.sin((tipL - aL) * Math.PI / 180) : sL * gL * Math.sin(Math.min(90, aL - tipL) * Math.PI / 180) * 1.4;
             var lPrev = bd.l;
             bd.vl += torqueL * h / Math.max(0.6, bd.m || 1);
@@ -22975,7 +22989,7 @@ var Oe = function(props) {
             // 10.2: spinning in the hand — it keeps turning (a little air drag) while you carry it
             g.inspectRY += g.inspectRYV * dt;
             g.inspectRYV *= Math.exp(-dt / 1.3);
-            if (Math.abs(g.inspectRYV) < 160) {
+            if (Math.abs(g.inspectRYV) < 300) {
               g.spinCarry = false;
               g.baseInspectRY = g.inspectRY - (g.lastRYDelta || 0);   // hand the angle back to the finger, no jump
               g.targetInspectRY = g.inspectRY;
@@ -22989,7 +23003,7 @@ var Oe = function(props) {
           g.inspectRX += g.inspectRXV * dt;
 
           // 空气阻尼衰减 (tau_Y = 0.65s, tau_X = 0.50s)
-          var decayY = Math.exp(-dt / 1.3);    // 10.5: a high-speed spin keeps going longer
+          var decayY = Math.exp(-dt / 0.55);   // 40.8: spins die out quickly (was 1.3 s) — no long edge-on drift
           var decayX = Math.exp(-dt / 0.50);
           g.inspectRYV *= decayY;
           g.inspectRXV *= decayX;
@@ -23002,9 +23016,11 @@ var Oe = function(props) {
 
           // 判定自然停止阈值：当转速衰减至极低时，磁吸进入平稳结算阶段
           var spinSpeed = Math.hypot(g.inspectRYV, g.inspectRXV);
-          if (spinSpeed < 18) {
-            // 对齐至最近的完整 360° 正面 (如 0°, 360°, 720°, 1080°)
-            g.targetInspectRY = Math.round(g.inspectRY / 360) * 360;
+          if (spinSpeed < 300) {
+            // 40.8: while it still turns briskly, finish the turn forward to the next face-on
+            // (never crawl through the edge-on angle, never wind back against the spin)
+            var fwd = g.inspectRYV >= 0 ? Math.ceil(g.inspectRY / 360) * 360 : Math.floor(g.inspectRY / 360) * 360;
+            g.targetInspectRY = Math.abs(fwd - g.inspectRY) <= 200 ? fwd : Math.round(g.inspectRY / 360) * 360;
             g.targetInspectRX = 0;
             g.phase = 'inspect_settle';
             if (navigator.vibrate) {
@@ -23251,7 +23267,7 @@ var Oe = function(props) {
         // 7.2 特性: 手指碰到停 (Touch to Stop / Catch in Flight)!
         // 若卡片正在自由惯性自转 (inspect_spin) 或回正 (inspect_settle) 中，手指碰到立即瞬间急停并无缝接管！
         // 10.2: grab a fast-spinning card and it keeps spinning in your hand — carry it into the deck
-        g.spinCarry = g.phase === 'inspect_spin' && Math.abs(g.inspectRYV) > 300;
+        g.spinCarry = g.phase === 'inspect_spin' && Math.abs(g.inspectRYV) > 700;
         if (g.phase === 'inspect_spin' || g.phase === 'inspect_settle') {
           if (!g.spinCarry) g.inspectRYV = 0;
           g.inspectRXV = 0;
@@ -23676,7 +23692,18 @@ var Oe = function(props) {
           // 10.6: a real flick always spins (Pokémon TCG Pocket style): at least a fast turn,
           // more the harder it is flicked
           var avxF = Math.abs(vx);
-          g.inspectRYV = avxF > 250 ? (vx > 0 ? 1 : -1) * (900 + V_MAX_Y * Math.tanh(((avxF - 250) * GAIN_Y) / V_MAX_Y)) : V_MAX_Y * Math.tanh((vx * GAIN_Y) / V_MAX_Y);
+          // 40.8: the front card is for reading — only a deliberate, fast flick spins it;
+          // anything softer just settles back face-on
+          if (avxF < 900) {
+            g.targetInspectRY = Math.round(g.inspectRY / 360) * 360;
+            g.targetInspectRX = 0;
+            g.inspectRYV = 0;
+            g.inspectRXV = 0;
+            g.phase = 'inspect_settle';
+            kick();
+            return;
+          }
+          g.inspectRYV = (vx > 0 ? 1 : -1) * (900 + V_MAX_Y * Math.tanh(((avxF - 900) * GAIN_Y) / V_MAX_Y));
           g.inspectRXV = -V_MAX_X * Math.tanh((vy * GAIN_X) / V_MAX_X);
 
           g.phase = 'inspect_spin';
