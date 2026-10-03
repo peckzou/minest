@@ -296,6 +296,19 @@ struct ContentView: View {
     private func checkPendingCards() {
         checkPendingSiriCards()
         checkPendingShareCards()
+        applyPendingWidgetTicks()
+    }
+
+    /// 31.6: ticks made on the Home Screen widget are applied to the board in the web app.
+    private func applyPendingWidgetTicks() {
+        guard isWebViewReady else { return }
+        let ticks = MinestWidgetDataStore.shared.consumePendingToggles()
+        guard !ticks.isEmpty else { return }
+        let rows: [[String: Any]] = ticks.map { ["cardId": $0.id, "isDone": $0.done] }
+        guard let data = try? JSONSerialization.data(withJSONObject: rows),
+              let json = String(data: data, encoding: .utf8) else { return }
+        let js = "\(json).forEach(function (t) { window.dispatchEvent(new CustomEvent('minestCardToggled', { detail: t })); });"
+        bridge.webView?.evaluateJavaScript(js, completionHandler: nil)
     }
     
     private func checkPendingSiriCards() {

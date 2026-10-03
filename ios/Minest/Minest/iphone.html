@@ -17473,7 +17473,7 @@ var ActivityBadgesModal = function(props) {
   var isLocalFile = window.location.protocol === 'file:' || window.location.protocol === 'blob:' || !window.location.protocol;
   var badgeBaseUrl = '.';
   var badgeViewerUrl = badgeBaseUrl + "/badge-index/badge-wall-32.0.html?preview=1&embed=1&v=badge-wall-32-0-316b";
-  var badgeChallengeUrl = badgeBaseUrl + '/badge-challenge-31.5/index.html?embed=1&ringsFirst=1&v=316-gpu';
+  var badgeChallengeUrl = badgeBaseUrl + '/badge-challenge-31.5/index.html?embed=1&ringsFirst=1&v=316c';
   var badgeCollectionUrl = badgeBaseUrl + '/badge-challenge-31.5/index.html?embed=1&collection=1&strikeWall=1&v=wall-collection-index-v2';
   var badgeWallUrl = badgeBaseUrl + '/badge-index/badge-wall-31.0.html?embed=1&v=badge-wall-31-0-316b';
   var badgeFullScreenState = (0, _.useState)(false);
@@ -17993,7 +17993,7 @@ var ActivityBadgesModal = function(props) {
           className: 'minest-rings-celebration' + (celebrationReturn ? ' is-returning' : ''),
           style: celebrationReturn ? { '--ring-return-x': celebrationReturn.x + 'px', '--ring-return-y': celebrationReturn.y + 'px', '--ring-return-scale': celebrationReturn.scale } : undefined,
           children: [
-            (0, P.jsx)('iframe', { ref: animationFrameRef, src: badgeBaseUrl + '/badge-animations-31.5-ceremony/index.html?embed=1&ceremony=1&tab=rings&focus=100&checks=100&goal=100&strike=' + encodeURIComponent(strikeDays) + '&celebrate=1&v=summary-rings-315', title: 'Three Rings celebration in Summary', allow: 'autoplay', loading: 'eager' }),
+            (0, P.jsx)('iframe', { ref: animationFrameRef, src: badgeBaseUrl + '/badge-animations-31.5-ceremony/index.html?embed=1&ceremony=1&tab=rings&focus=100&checks=100&goal=100&strike=' + encodeURIComponent(strikeDays) + '&celebrate=1&v=summary-rings-316c', title: 'Three Rings celebration in Summary', allow: 'autoplay', loading: 'eager' }),
             (0, P.jsxs)('button', {
               type: 'button',
               onClick: function(e) { e.stopPropagation(); handleDirectExitCelebration(); },
@@ -34818,6 +34818,31 @@ var Be = function() {
       window.openPhysicalCardMode = null;
       window.closePhysicalCardMode = null;
     };
+  }, []);
+
+  // 31.6: ticks from the Home Screen widget or the watch mark the card done on the board
+  (0, _.useEffect)(function() {
+    var onToggled = function(e) {
+      var d = (e && e.detail) || {};
+      if (!d.cardId) return;
+      var done = d.isDone !== false;
+      setBoards(function(prev) {
+        return prev.map(function(board) {
+          var touched = false;
+          var cols = (board.columns || []).map(function(col) {
+            var cards = (col.cards || []).map(function(card) {
+              if (card.id !== d.cardId) return card;
+              touched = true;
+              return Object.assign({}, card, { complete: done });
+            });
+            return touched ? Object.assign({}, col, { cards: cards }) : col;
+          });
+          return touched ? Object.assign({}, board, { columns: cols }) : board;
+        });
+      });
+    };
+    window.addEventListener('minestCardToggled', onToggled);
+    return function() { window.removeEventListener('minestCardToggled', onToggled); };
   }, []);
 
   // 31.6: the Home Screen widget mirrors the home list (first list of the active board)

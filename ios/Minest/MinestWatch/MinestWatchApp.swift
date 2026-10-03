@@ -8,7 +8,7 @@ struct MinestWatchApp: App {
         #if DEBUG
         // Simulator preview of the ceremonies: launch with MINEST_DEMO_CEREMONY=1
         if ProcessInfo.processInfo.environment["MINEST_DEMO_CEREMONY"] == "1" {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 7) {
                 WatchSyncManager.shared.enqueueCeremony(.rings(strikeDays: 1))
                 WatchSyncManager.shared.enqueueCeremony(.claim(badgeId: "cartoon-pixel-retro"))
             }

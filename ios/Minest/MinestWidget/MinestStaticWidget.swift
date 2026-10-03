@@ -208,8 +208,11 @@ private struct SmallChecklistWidgetView: View {
             
             // Interactive Checklist Items (up to 3)
             VStack(alignment: .leading, spacing: 5) {
-                ForEach(entry.items.prefix(3)) { item in
+                ForEach(entry.items.filter { !$0.isDone }.prefix(3)) { item in
                     ChecklistRowItem(item: item, fontSize: 11, iconSize: 14)
+                }
+                if entry.items.allSatisfy({ $0.isDone }) {
+                    AllDoneRow(fontSize: 11)
                 }
             }
             
@@ -255,8 +258,11 @@ private struct MediumChecklistWidgetView: View {
                 
                 // Interactive Checklist Items (up to 4)
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(entry.items.prefix(4)) { item in
+                    ForEach(entry.items.filter { !$0.isDone }.prefix(4)) { item in
                         ChecklistRowItem(item: item, fontSize: 12, iconSize: 15)
+                    }
+                    if entry.items.allSatisfy({ $0.isDone }) {
+                        AllDoneRow(fontSize: 12)
                     }
                 }
                 
@@ -345,8 +351,11 @@ private struct LargeChecklistWidgetView: View {
             
             // Interactive Checklist Items (up to 7)
             VStack(alignment: .leading, spacing: 8) {
-                ForEach(entry.items.prefix(7)) { item in
+                ForEach(entry.items.filter { !$0.isDone }.prefix(7)) { item in
                     ChecklistRowItem(item: item, fontSize: 13, iconSize: 16)
+                }
+                if entry.items.allSatisfy({ $0.isDone }) {
+                    AllDoneRow(fontSize: 13)
                 }
             }
             
@@ -357,6 +366,17 @@ private struct LargeChecklistWidgetView: View {
 }
 
 // MARK: - Interactive Row with Checkbox
+/// 31.6: shown when every card in the home list is ticked.
+private struct AllDoneRow: View {
+    let fontSize: CGFloat
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.seal.fill").foregroundColor(Color.emerald400)
+            Text("全部完成").font(.system(size: fontSize, weight: .semibold)).foregroundColor(.white.opacity(0.85))
+        }
+    }
+}
+
 private struct ChecklistRowItem: View {
     let item: StudyActivityAttributes.ChecklistItemState
     var fontSize: CGFloat = 12

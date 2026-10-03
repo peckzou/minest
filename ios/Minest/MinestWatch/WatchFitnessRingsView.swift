@@ -162,11 +162,7 @@ public struct WatchFitnessRootView: View {
         }
         .tabViewStyle(.verticalPage)
         // 31.6: three-ring close and badge claim ceremonies, mirrored from the iPhone
-        .fullScreenCover(item: $ceremonies.activeCeremony) { ceremony in
-            WatchCeremonyView(ceremony: ceremony) {
-                ceremonies.finishCeremony()
-            }
-        }
+        .minestCeremonyCover()
     }
 }
 
@@ -214,12 +210,14 @@ public struct WatchFitnessRingsView: View {
         // Original Watch List UI, untouched (boards → lists → checklist)
         .fullScreenCover(isPresented: $showList) {
             WatchChecklistView()
+                .minestCeremonyCover(level: 1)
         }
         .fullScreenCover(isPresented: $showBadges) {
             NavigationStack {
                 WatchBadgesView()
                     .navigationTitle("勋章墙")
             }
+            .minestCeremonyCover(level: 1)
         }
         .fullScreenCover(isPresented: $showWorkout) {
             WatchFocusWorkoutView(workout: workout, onClose: {
@@ -244,6 +242,14 @@ public struct WatchFitnessRingsView: View {
                 goal: rings.goalProgress * animatedScale
             )
             .frame(height: showStats ? 82 : 128)
+            .overlay {
+                // 31.6: Strike days in the middle of the rings, as on the iPhone
+                Text("\(rings.strikeDays ?? 0)")
+                    .font(.system(size: showStats ? 12 : 18, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(.white)
+                    .allowsHitTesting(false)
+            }
             .offset(x: dragOffset)
             .contentShape(Rectangle())
             .onTapGesture {
@@ -968,3 +974,31 @@ struct WatchClaimCeremonyView: View {
     }
 }
 
+extension View {
+    /// 31.6: ring / claim ceremonies. Attached to the root (level 0) and to each
+    /// full-screen sheet (list, badge wall: level 1). Only the topmost open level
+    /// presents, because two simultaneous presentations make watchOS drop both.
+    func minestCeremonyCover(level: Int = 0) -> some View {
+        modifier(MinestCeremonyCover(level: level))
+    }
+}
+
+struct MinestCeremonyCover: ViewModifier {
+    let level: Int
+    @ObservedObject private var sync = WatchSyncManager.shared
+
+    func body(content: Content) -> some View {
+        content
+            .fullScreenCover(item: Binding(
+                get: { sync.sheetLevel == level ? sync.activeCeremony : nil },
+                set: { value in
+                    // Closed with the system X: move on (guard against SwiftUI echoing nil)
+                    if value == nil, sync.sheetLevel == level, sync.activeCeremony != nil { sync.finishCeremony() }
+                }
+            )) { ceremony in
+                WatchCeremonyView(ceremony: ceremony) { sync.finishCeremony() }
+            }
+            .onAppear { if level > 0 { sync.sheetLevel = level } }
+            .onDisappear { if level > 0 && sync.sheetLevel == level { sync.sheetLevel = level - 1 } }
+    }
+}

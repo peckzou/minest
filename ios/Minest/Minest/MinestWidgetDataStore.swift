@@ -60,11 +60,29 @@ public final class MinestWidgetDataStore {
     
     /// Toggle item state
     public func toggleItem(id: String) {
+        // 31.6: remember the change so the app can apply it to the board on next launch
+        var pending = store.array(forKey: pendingTogglesKey) as? [[String: Any]] ?? []
+        let wasDone = getItems().first(where: { $0.id == id })?.isDone ?? false
+        pending.append(["id": id, "done": !wasDone])
+        store.set(pending, forKey: pendingTogglesKey)
         var items = getItems()
         if let idx = items.firstIndex(where: { $0.id == id }) {
             items[idx].isDone.toggle()
         }
         saveItems(items)
+    }
+
+    // MARK: - 31.6 Widget ticks waiting to be applied to the board
+    private let pendingTogglesKey = "minest_widget_pending_toggles"
+
+    /// Card ticks made on the widget since the app last ran; cleared on read.
+    public func consumePendingToggles() -> [(id: String, done: Bool)] {
+        let list = store.array(forKey: pendingTogglesKey) as? [[String: Any]] ?? []
+        store.removeObject(forKey: pendingTogglesKey)
+        return list.compactMap { d in
+            guard let id = d["id"] as? String else { return nil }
+            return (id, d["done"] as? Bool ?? true)
+        }
     }
     
     // MARK: - Siri Card Creation & Pending Queue

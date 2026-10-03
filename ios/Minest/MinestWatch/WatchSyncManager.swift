@@ -277,6 +277,8 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
     // MARK: - 31.6 Ceremonies (three-ring close, badge claim)
 
     @Published public var activeCeremony: WatchCeremony? = nil
+    /// How many full-screen sheets are open above the root (0 = rings page).
+    @Published public var sheetLevel: Int = 0
     private var ceremonyQueue: [WatchCeremony] = []
 
     public func enqueueCeremony(_ ceremony: WatchCeremony) {
