@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 27.9992 · Mail Swipe</title>
+    <title>Minest iPhone 31.6 · Mail Swipe + Badge Wall</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -36,6 +36,7 @@
             localStorage.removeItem('minest_rings_celebrated_day_v1');
             localStorage.removeItem('minest_reward_system_v2');
             localStorage.removeItem('minest_learning_awards_catalog_v27');
+            localStorage.removeItem('minest_badge_wall_30_0_v1');
             localStorage.removeItem('minest_strike_claimed_v1');
             localStorage.removeItem('minest_rings_celebrated_day_v1');
           }
@@ -3833,6 +3834,161 @@ html.arcade-open, html.arcade-open body { overflow: hidden; }
 .theme-white .minest-activity-modal-header { background-color: rgba(241,245,249,.48) !important; }
 .minest-awards-wall-frame { contain: layout paint; overflow: hidden; }
 .minest-awards-wall-frame iframe { display: block; contain: strict; }
+.minest-compact-nav { position: relative; z-index: 35; }
+.minest-compact-nav > button { min-height: 40px; }
+.minest-awards-content { position: relative; }
+/* 31.0: the Summary header hides instantly on scroll-down. It only moves
+   with transform, never changes height, so the scroll position no longer
+   jumps and the old collapse/expand feedback loop (the flicker) is gone. */
+.minest-summary-header { transition: none; will-change: transform; }
+.minest-summary-header.is-collapsed {
+  transform: translateY(-100%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.minest-summary-glass.is-editing-goals > [data-summary-rings],
+.minest-summary-glass.is-editing-goals > .minest-summary-card-grid { display: none !important; }
+.minest-summary-glass.is-editing-goals .minest-goals-settings-panel {
+  display: block;
+  margin-top: 0 !important;
+  padding-top: 18px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.minest-goals-settings-panel { display: none; }
+.minest-goals-settings-panel.is-open { display: block; }
+.minest-awards-settings-panel, .minest-explore-awards-legacy { display: none !important; }
+/* 31.0 Summary cards — Apple Fitness style: borderless graphite tiles,
+   bold titles with a quiet chevron, ring-coloured values, metallic hexes. */
+.minest-summary-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 10px;
+}
+.minest-summary-glass .minest-summary-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 172px;
+  padding: 15px 14px 14px 16px;
+  border: 0 !important;
+  border-radius: 22px;
+  background: #1c1c1e;
+  color: #fff;
+  text-align: left;
+  overflow: hidden;
+  box-shadow: inset 0 .5px 0 rgba(255,255,255,.09), 0 10px 24px rgba(0,0,0,.28);
+  transition: transform .18s cubic-bezier(.2,.8,.2,1), background-color .18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.minest-summary-glass .minest-summary-card:active { transform: scale(.97); background: #232326; }
+.minest-summary-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.minest-summary-card-heading h3 { margin: 0; font-size: 20px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; }
+.minest-summary-card-heading p { margin: 3px 0 0; color: #8e8e93; font-size: 12.5px; line-height: 1.3; letter-spacing: -.005em; }
+.minest-summary-card-chevron { flex: 0 0 auto; display: grid; place-items: center; width: 14px; height: 24px; color: #5e5e63; }
+.minest-summary-card-chevron svg { width: 8px; height: 14px; }
+.minest-summary-card-body { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-end; margin-top: 12px; }
+.minest-summary-goal-row { display: flex; align-items: center; gap: 10px; }
+.minest-summary-goal-row + .minest-summary-goal-row { margin-top: 12px; }
+.minest-summary-goal-ring { flex: 0 0 auto; width: 30px; height: 30px; }
+.minest-summary-goal-row .minest-summary-goal-label { display: block; color: #d1d1d6; font-size: 11px; font-weight: 600; letter-spacing: .06em; }
+.minest-summary-goal-row strong { display: block; margin-top: 1px; font-size: 21px; line-height: 1.05; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.minest-summary-goal-row strong small { margin-left: 2px; font-size: 13px; font-weight: 700; letter-spacing: .02em; }
+.minest-summary-award-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 0; padding-right: 2px; }
+.minest-summary-hex { display: block; overflow: visible; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45)); }
+.minest-summary-hex.is-locked { filter: none; opacity: .9; }
+.minest-summary-award-meta { margin-top: 10px; color: #8e8e93; font-size: 11.5px; font-weight: 500; }
+.minest-summary-award-meta b { color: #fff; font-weight: 700; }
+.minest-summary-streak { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; }
+.minest-summary-streak-count { display: block; font-size: 46px; line-height: .9; font-weight: 800; letter-spacing: -.045em; font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #ffd25a 0%, #ff8a1f 55%, #ff453a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.minest-summary-streak-unit { display: block; white-space: nowrap; margin-top: 6px; color: #ff9f0a; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.minest-summary-flame { position: relative; flex: 0 0 auto; width: 56px; height: 56px; display: grid; place-items: center; font-size: 46px; line-height: 1; }
+.minest-summary-flame::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: radial-gradient(circle, rgba(255,120,30,.45), rgba(255,69,58,0) 70%); filter: blur(6px); }
+.minest-summary-flame > span { position: relative; filter: drop-shadow(0 4px 8px rgba(255,69,58,.45)); }
+.minest-summary-streak-week { display: flex; justify-content: space-between; margin-top: 12px; }
+.minest-summary-streak-week i { width: 13px; height: 13px; border-radius: 50%; background: #2c2c2e; }
+.minest-summary-streak-week i.is-on { background: linear-gradient(145deg, #ffb340, #ff453a); box-shadow: 0 0 6px rgba(255,100,40,.5); }
+.minest-summary-award-feature-card { padding-bottom: 12px !important; }
+.minest-summary-feature-viewport { margin: 6px -14px 0 -16px; overflow: hidden; }
+.minest-summary-feature-track { display: flex; transition: transform .55s cubic-bezier(.22,.8,.2,1); }
+.minest-summary-feature-slide { flex: 0 0 100%; display: flex; flex-direction: column; align-items: center; padding: 0 10px; text-align: center; }
+.minest-summary-badge-img { display: block; flex: 0 0 auto; object-fit: contain; filter: drop-shadow(0 4px 7px rgba(0,0,0,.5)); -webkit-user-drag: none; user-select: none; }
+.minest-summary-feature-slide .minest-summary-badge-img { margin: -6px 0 -4px; filter: drop-shadow(0 8px 14px rgba(0,0,0,.55)); }
+.minest-summary-index-badges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: center; justify-items: center; }
+.minest-summary-index-badges .minest-summary-badge-img { width: 100%; max-width: 64px; height: auto; aspect-ratio: 1; }
+.minest-summary-feature-slide strong { display: block; max-width: 100%; margin-top: 8px; overflow: hidden; color: #fff; font-size: 13px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; text-overflow: ellipsis; }
+.minest-summary-feature-slide span { display: block; letter-spacing: .04em; text-transform: uppercase; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-top: 2px; color: #8e8e93; font-size: 11px; font-variant-numeric: tabular-nums; }
+.minest-summary-feature-dots { display: flex; justify-content: center; gap: 6px; margin-top: 9px; }
+.minest-summary-feature-dots i { width: 6px; height: 6px; border-radius: 50%; background: #48484a; transition: background-color .25s ease, transform .25s ease; }
+.minest-summary-feature-dots i.is-active { background: #f2f2f7; transform: scale(1.15); }
+.minest-summary-index-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 4px; justify-items: center; }
+@media (max-width: 380px) {
+  .minest-summary-card-grid { gap: 8px; }
+  .minest-summary-glass .minest-summary-card { padding-inline: 12px; min-height: 160px; }
+  .minest-summary-card-heading h3 { font-size: 18px; }
+  .minest-summary-goal-row strong { font-size: 18px; }
+  .minest-summary-streak-count { font-size: 38px; }
+}
+.minest-awards-content .minest-awards-wall-frame { min-height: min(68vh, 720px); }
+.minest-activity-modal-panel.minest-awards-level-panel .minest-activity-modal-close { display: none !important; }
+.minest-activity-modal-panel.minest-awards-level-panel .minest-summary-title,
+.minest-activity-modal-panel.minest-awards-level-panel .minest-award-tabs {
+  display: none !important;
+}
+.minest-activity-modal-panel.minest-awards-level-panel .minest-activity-modal-header {
+  min-height: 58px;
+  padding-bottom: 8px !important;
+}
+.minest-activity-modal-panel.minest-awards-level-panel .minest-awards-wall-frame {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.minest-activity-modal-panel.minest-awards-level-panel .minest-awards-content > p { display: none !important; }
+.minest-activity-modal-panel:has(.minest-awards-content) { display: flex; flex-direction: column; }
+.minest-activity-modal-panel:has(.minest-awards-content) .minest-awards-content { flex: 1 1 auto; min-height: 0; }
+.minest-activity-modal-panel.minest-awards-level-panel .minest-awards-content {
+  min-height: 0 !important;
+  height: calc(100dvh - 58px);
+  overflow: hidden;
+  padding-bottom: 0 !important;
+}
+.minest-activity-modal-panel.minest-awards-level-panel .minest-awards-wall-frame {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+.minest-activity-modal-panel.minest-awards-level-panel .minest-awards-wall-frame > iframe {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+.minest-awards-wall-frame.is-badge-fullscreen,
+.minest-activity-modal-panel.is-badge-fullscreen .minest-awards-wall-frame { contain: none !important; overflow: visible !important; }
+.minest-activity-modal-panel.is-badge-fullscreen { overflow: visible !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.minest-activity-modal-panel.is-badge-fullscreen .minest-compact-nav { display: none; }
+.minest-activity-modal-panel.is-badge-fullscreen .minest-award-tabs { display: none; }
+.minest-award-tabs { min-height: 42px; }
+/* Strike wall slot keeps its 188px height so it matches the 188px .minest-strike-frame overlay. */
+@media (max-width: 639px) {
+  .minest-activity-modal-panel.minest-awards-level-panel {
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #000 !important;
+    box-shadow: none !important;
+  }
+  .minest-activity-modal-panel.minest-awards-level-panel .minest-activity-modal-header {
+    background: #000 !important;
+  }
+  .minest-activity-modal-panel.minest-awards-level-panel .minest-awards-content {
+    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+  }
+}
 @media (prefers-reduced-transparency: reduce) {
   .minest-summary-glass, .minest-summary-glass .minest-rings-panel { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
@@ -5241,7 +5397,7 @@ body.is-safari-column-dragging {
 <style>
 /* 27.3 Collection: resident Strike Wall and milestone focus animation. */
 .minest-strike-wall-label { position:absolute; left:14px; top:10px; z-index:2; font-size:10px; font-weight:700; letter-spacing:.14em; color:rgba(255,255,255,.58); pointer-events:none; }
-.minest-strike-frame { position:absolute; left:0; top:0; width:100%; height:188px; z-index:2; border:0; background:radial-gradient(100% 120% at 50% 0%, rgba(105,117,134,.16), rgba(17,23,34,.92) 72%); filter:brightness(1.45) saturate(1.15); transition:filter 420ms ease; }
+.minest-strike-frame { position:absolute; left:0; top:0; width:100%; height:188px; z-index:2; border:0; background:transparent; filter:brightness(1.45) saturate(1.15); transition:filter 420ms ease; }
 .minest-strike-frame.is-focus { height:100%; z-index:4; animation:minestStrikeRise 520ms cubic-bezier(.2,.9,.25,1) both; }
 .minest-strike-frame.is-focus { filter:none; }
 .minest-strike-veil { position:absolute; inset:0; z-index:3; background:rgba(6,8,12,.38); -webkit-backdrop-filter:blur(18px) saturate(1.15); backdrop-filter:blur(18px) saturate(1.15); animation:minestStrikeVeil 420ms ease both; pointer-events:none; }
@@ -17040,7 +17196,7 @@ var ThreeDMedal = function(props) {
 // =========================================================================
 var PhaseOneRingsPreview = function(props) {
   var live = props.ringsState || {};
-  var sample = { focusMinutes: live.focusMinutes || 0, focusGoal: live.targetMinutes || 30, completedCards: live.checkCount || 0, completeGoal: live.targetChecks || 10, goalPercent: live.goalPercent || 0, goalTarget: live.targetGoalPercent || 100, currentStreak: props.strikeDays || 0 };
+  var sample = { focusMinutes: live.focusMinutes || 0, focusGoal: live.targetMinutes || 30, completedCards: live.checkCount || 0, completeGoal: live.targetChecks || 10, goalPercent: live.goalPercent || 0, currentStreak: props.strikeDays || 0 };
   var shownState = (0, _.useState)(false);
   var shown = shownState[0];
   var setShown = shownState[1];
@@ -17050,7 +17206,7 @@ var PhaseOneRingsPreview = function(props) {
   }, []);
   var focusProgress = Math.min(1, sample.focusMinutes / sample.focusGoal);
   var completeProgress = Math.min(1, sample.completedCards / sample.completeGoal);
-  var dailyProgress = Math.min(1, sample.goalPercent / sample.goalTarget);
+  var dailyProgress = Math.min(1, sample.goalPercent / 100);
   var rings = [
     { id: 'focus', radius: 76, progress: focusProgress, gradient: 'minest-focus-gradient' },
     { id: 'complete', radius: 56, progress: completeProgress, gradient: 'minest-complete-gradient' },
@@ -17059,19 +17215,12 @@ var PhaseOneRingsPreview = function(props) {
   var rows = [
     { label: 'FOCUS', value: sample.focusMinutes + ' / ' + sample.focusGoal + ' min', note: 'Time invested today', color: '#ff537e' },
     { label: 'COMPLETE', value: sample.completedCards + ' / ' + sample.completeGoal, note: 'Cards finished today', color: '#b9e853' },
-    { label: 'GOAL', value: sample.goalPercent + ' / ' + sample.goalTarget + '%', note: 'Board goal', color: '#5ddce5' }
+    { label: 'GOAL', value: sample.goalPercent + '%', note: 'Board goal', color: '#5ddce5' }
   ];
   return (0, P.jsxs)('section', {
     className: 'minest-rings-panel relative overflow-hidden rounded-[30px] px-5 pt-5 pb-4',
     'aria-label': 'Three Rings live progress',
     children: [
-      (0, P.jsxs)('div', { className: 'flex items-start justify-between gap-3', children: [
-        (0, P.jsxs)('div', { children: [
-          (0, P.jsx)('p', { className: 'text-[10px] font-bold tracking-[0.18em] opacity-50', children: 'TODAY · THREE RINGS' }),
-          (0, P.jsx)('h3', { className: 'mt-1 text-xl font-semibold tracking-tight', children: 'Three Rings' })
-        ] }),
-        (0, P.jsx)('span', { className: 'shrink-0 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider opacity-70', children: 'Live' })
-      ] }),
       (0, P.jsxs)('div', { className: 'relative mx-auto my-2 h-[218px] w-[218px]', children: [
         (0, P.jsxs)('svg', { viewBox: '0 0 200 200', className: 'minest-rings-svg h-full w-full', role: 'img', 'aria-label': 'Focus ' + Math.round(focusProgress * 100) + ' percent, Complete ' + Math.round(completeProgress * 100) + ' percent, Goal ' + Math.round(dailyProgress * 100) + ' percent', children: [
           (0, P.jsxs)('defs', { children: [
@@ -17098,8 +17247,7 @@ var PhaseOneRingsPreview = function(props) {
         (0, P.jsx)('span', { className: 'h-2.5 w-2.5 shrink-0 rounded-full', style: { background: row.color, boxShadow: '0 0 10px ' + row.color } }),
         (0, P.jsxs)('div', { className: 'min-w-0 flex-1', children: [(0, P.jsx)('p', { className: 'text-[10px] font-bold tracking-[0.13em] opacity-65', children: row.label }), (0, P.jsx)('p', { className: 'text-[10px] opacity-45', children: row.note })] }),
         (0, P.jsx)('strong', { className: 'text-sm font-semibold tabular-nums', children: row.value })
-      ] }, row.label); }) }),
-      (0, P.jsx)('p', { className: 'mt-3 text-center text-[10px] opacity-45', children: '任意一环闭合，当天 Strike +1 · 累计天数不归零' })
+      ] }, row.label); }) })
     ]
   });
 };
@@ -17117,13 +17265,12 @@ var ActivityBadgesModal = function(props) {
   var checkCount = rings.checkCount || 0;
   var targetChecks = rings.targetChecks || 10;
   var goalPercent = Math.min(Math.max(rings.goalPercent || 0, 0), 100);
-  var targetGoalPercent = rings.targetGoalPercent || 100;
   var strikeDays = props.strikeDays || 0;
 
   var closedCount = 0;
   if (focusMinutes >= targetMinutes) closedCount++;
   if (checkCount >= targetChecks) closedCount++;
-  if (goalPercent >= targetGoalPercent) closedCount++;
+  if (goalPercent >= 100) closedCount++;
   var isAllClosed = closedCount >= 3;
 
   var defaultBadges = [
@@ -17207,17 +17354,71 @@ var ActivityBadgesModal = function(props) {
   var editingGoalsState = (0, _.useState)(false);
   var editingGoals = editingGoalsState[0];
   var setEditingGoals = editingGoalsState[1];
-  var draftGoalsState = (0, _.useState)({ targetMinutes: targetMinutes, targetChecks: targetChecks, targetGoalPercent: targetGoalPercent });
+  var draftGoalsState = (0, _.useState)({ targetMinutes: targetMinutes, targetChecks: targetChecks });
   var draftGoals = draftGoalsState[0];
   var setDraftGoals = draftGoalsState[1];
+  /* 31.0 Summary card art: small SVG pieces in Apple Fitness style. */
+  var summaryChevron = function() {
+    return (0, P.jsx)('span', { className: 'minest-summary-card-chevron', 'aria-hidden': true, children: (0, P.jsx)('svg', { viewBox: '0 0 8 14', fill: 'none', children: (0, P.jsx)('path', { d: 'M1.5 1.5 6.5 7l-5 5.5', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }) }) });
+  };
+  var summaryGoalRing = function(color, progress) {
+    var r = 11, c = 2 * Math.PI * r, pct = Math.max(0.04, Math.min(1, progress || 0));
+    return (0, P.jsxs)('svg', { className: 'minest-summary-goal-ring', viewBox: '0 0 30 30', 'aria-hidden': true, children: [
+      (0, P.jsx)('circle', { cx: 15, cy: 15, r: r, fill: 'none', stroke: color, strokeOpacity: 0.22, strokeWidth: 5 }),
+      (0, P.jsx)('circle', { cx: 15, cy: 15, r: r, fill: 'none', stroke: color, strokeWidth: 5, strokeLinecap: 'round', strokeDasharray: (c * pct) + ' ' + c, transform: 'rotate(-90 15 15)' })
+    ] });
+  };
+  /* Real badge art, pre-rendered from the Badge Wall 3D renderer (badge-index/thumbs). */
+  var summaryBadgeImg = function(id, size) {
+    return (0, P.jsx)('img', { key: id, className: 'minest-summary-badge-img', src: badgeBaseUrl + '/badge-index/thumbs/' + id + '.webp', width: size, height: size, alt: '', draggable: false, decoding: 'async' });
+  };
+  var summaryHex = function(key, tone, label, size) {
+    var id = 'mshx-' + key;
+    var locked = !tone;
+    var t = tone || ['#3a3a3c', '#1f1f21'];
+    return (0, P.jsxs)('svg', { key: key, className: 'minest-summary-hex' + (locked ? ' is-locked' : ''), viewBox: '0 0 48 54', width: size, height: Math.round(size * 54 / 48), 'aria-hidden': true, children: [
+      (0, P.jsxs)('defs', { children: [
+        (0, P.jsxs)('linearGradient', { id: id + '-f', x1: 0.15, y1: 0, x2: 0.55, y2: 1, children: [(0, P.jsx)('stop', { offset: 0, stopColor: t[0] }), (0, P.jsx)('stop', { offset: 1, stopColor: t[1] })] }),
+        (0, P.jsxs)('linearGradient', { id: id + '-r', x1: 0, y1: 0, x2: 1, y2: 1, children: [(0, P.jsx)('stop', { offset: 0, stopColor: locked ? '#6e6e73' : '#ffffff' }), (0, P.jsx)('stop', { offset: 0.5, stopColor: locked ? '#3a3a3c' : '#a1a1a6' }), (0, P.jsx)('stop', { offset: 1, stopColor: locked ? '#5a5a5e' : '#f5f5f7' })] })
+      ] }),
+      (0, P.jsx)('path', { d: 'M24 2.5 44.5 14.3v25.4L24 51.5 3.5 39.7V14.3Z', fill: 'url(#' + id + '-f)', stroke: 'url(#' + id + '-r)', strokeWidth: 2.6, strokeLinejoin: 'round' }),
+      (0, P.jsx)('path', { d: 'M24 7.5 40 16.7v20.6L24 46.5 8 37.3V16.7Z', fill: 'none', stroke: '#fff', strokeOpacity: locked ? 0.08 : 0.32, strokeWidth: 0.9, strokeLinejoin: 'round' }),
+      locked ? null : (0, P.jsx)('path', { d: 'M24 4.2 43 15.2v8.4Q24 30.5 5 23.6v-8.4Z', fill: '#fff', fillOpacity: 0.2 }),
+      locked ? (0, P.jsxs)('g', { fill: 'none', stroke: '#8e8e93', strokeWidth: 2, strokeLinecap: 'round', children: [(0, P.jsx)('path', { d: 'M19.5 25v-3a4.5 4.5 0 0 1 9 0v3' }), (0, P.jsx)('rect', { x: 17, y: 25, width: 14, height: 10.5, rx: 2.6, fill: '#8e8e93', stroke: 'none' })] }) :
+        (0, P.jsx)('text', { x: 24, y: 32.5, textAnchor: 'middle', fontSize: String(label).length > 2 ? 13 : 17, fontWeight: 800, fill: '#fff', style: { fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Rounded", system-ui, sans-serif', letterSpacing: '-0.04em', paintOrder: 'stroke', stroke: 'rgba(0,0,0,.28)', strokeWidth: 1.2 }, children: label })
+    ] });
+  };
+  /* Awards card: Fitness-style featured badge carousel. */
+  var summaryAwardSlides = [
+    { key: 'lucy-axolotl', name: 'Lucy Axolotl', note: 'OCTOBER 28, 2026' },
+    { key: 'ender-dragon', name: 'Ender Dragon Sovereign', note: 'OCTOBER 28, 2026' },
+    { key: 'octopus-polymath', name: 'Octopus Polymath', note: '' },
+    { key: 'perfect-week', name: 'Perfect Week', note: 'JULY 4, 2026' },
+    { key: 'minion-stuart', name: 'Minion Stuart', note: 'OCTOBER 28, 2026' }
+  ];
+  var summaryAwardSlideState = (0, _.useState)(0);
+  var summaryAwardSlide = summaryAwardSlideState[0];
+  var setSummaryAwardSlide = summaryAwardSlideState[1];
+  (0, _.useEffect)(function() {
+    var timer = window.setInterval(function() {
+      setSummaryAwardSlide(function(current) { return (current + 1) % summaryAwardSlides.length; });
+    }, 3200);
+    return function() { window.clearInterval(timer); };
+  }, [summaryAwardSlide]);
+  var summaryHeaderCollapsedState = (0, _.useState)(false);
+  var summaryHeaderCollapsed = summaryHeaderCollapsedState[0];
+  var setSummaryHeaderCollapsed = summaryHeaderCollapsedState[1];
   // The 27.x badge bundles are shipped beside this HTML file. Keep their URLs
   // relative so direct file:// previews use the same local assets as localhost.
   var isLocalFile = window.location.protocol === 'file:' || window.location.protocol === 'blob:' || !window.location.protocol;
   var badgeBaseUrl = '.';
-  var badgeViewerUrl = badgeBaseUrl + "/badge-index/index-preview.html?v=index-preview-color-v2";
-  var badgeChallengeUrl = badgeBaseUrl + '/badge-challenge-27.3/index.html?embed=1&ringsFirst=1&v=wall-collection-index-v1';
-  var badgeCollectionUrl = badgeBaseUrl + '/badge-challenge-27.3/index.html?embed=1&collection=1&strikeWall=1&v=wall-collection-index-v2';
-  var badgeWallUrl = badgeBaseUrl + '/badge-source-27.0/index.html?embed=1&v=badge-wall-27-2';
+  var badgeViewerUrl = badgeBaseUrl + "/badge-index/badge-wall-32.0.html?preview=1&v=badge-wall-32-0-claim";
+  var badgeChallengeUrl = badgeBaseUrl + '/badge-challenge-31.5/index.html?embed=1&ringsFirst=1&v=wall-collection-index-v1';
+  var badgeCollectionUrl = badgeBaseUrl + '/badge-challenge-31.5/index.html?embed=1&collection=1&strikeWall=1&v=wall-collection-index-v2';
+  var badgeWallUrl = badgeBaseUrl + '/badge-index/badge-wall-31.0.html?embed=1&v=badge-wall-31-0-claim';
+  var badgeFullScreenState = (0, _.useState)(false);
+  var badgeFullScreen = badgeFullScreenState[0];
+  var setBadgeFullScreen = badgeFullScreenState[1];
   var badgeSourceState = (0, _.useState)(function() {
     return 'local';
   });
@@ -17226,6 +17427,30 @@ var ActivityBadgesModal = function(props) {
   var awardPaneState = (0, _.useState)('challenge');
   var awardPane = awardPaneState[0];
   var setAwardPane = awardPaneState[1];
+  var activityPanelRef = (0, _.useRef)(null);
+  (0, _.useEffect)(function() {
+    var panel = activityPanelRef.current;
+    if (!panel || activeSection !== 'summary') {
+      setSummaryHeaderCollapsed(false);
+      return;
+    }
+    var previousTop = panel.scrollTop;
+    var onScroll = function() {
+      var currentTop = panel.scrollTop;
+      if (currentTop > previousTop + 2 && currentTop > 8) setSummaryHeaderCollapsed(true);
+      else if (currentTop < previousTop - 12 || currentTop < 8) setSummaryHeaderCollapsed(false);
+      previousTop = currentTop;
+    };
+    panel.addEventListener('scroll', onScroll, { passive: true });
+    return function() { panel.removeEventListener('scroll', onScroll); };
+  }, [activeSection]);
+  (0, _.useEffect)(function() {
+    var panel = activityPanelRef.current;
+    if (panel) panel.classList.toggle('is-badge-fullscreen', !!badgeFullScreen);
+    if (badgeFullScreen) document.body.classList.add('badge-detail-fullscreen-host');
+    else document.body.classList.remove('badge-detail-fullscreen-host');
+    return function() { document.body.classList.remove('badge-detail-fullscreen-host'); };
+  }, [badgeFullScreen]);
   var strikeOverlayState = (0, _.useState)(!!props.strikeCelebrationDays);
   var strikeOverlayOpen = strikeOverlayState[0];
   var setStrikeOverlayOpen = strikeOverlayState[1];
@@ -17247,7 +17472,7 @@ var ActivityBadgesModal = function(props) {
   var pendingStrike = (props.strikeCelebrationDays && strikeClaimed.indexOf(props.strikeCelebrationDays) < 0) ? props.strikeCelebrationDays :
     (STRIKE_MILESTONES.filter(function(days) { return days <= strikeQualifiedCount && strikeClaimed.indexOf(days) < 0; })[0] || null);
   var strikeFocus = awardPane === 'collection' && strikeOverlayOpen && !!pendingStrike;
-  var strikeWallUrl = badgeBaseUrl + '/badge-animations-v23/index.html?embed=1&tab=strike&transparent=1&shadow=light&claimed=' +
+  var strikeWallUrl = badgeBaseUrl + '/badge-animations-v31.5/index.html?embed=1&tab=strike&transparent=1&shadow=light&claimed=' +
     encodeURIComponent(strikeClaimed.join(',')) + (strikeFocus ? '&pending=' + encodeURIComponent(pendingStrike) : '') + '&v=strike-77520c3-m233';
   var closeStrikeFocus = function() {
     setStrikeClaimed(readStrikeClaimed());
@@ -17268,10 +17493,9 @@ var ActivityBadgesModal = function(props) {
           localStorage.setItem('minest_strike_claimed_v1', JSON.stringify(list.sort(function(a, b) { return a - b; })));
           strikeClaimedPendingRef.current = list;
         } catch(e) {}
-        if (event.data.days === 3) {
-          queueWallUnlock('strike-3-days');
-          sendWallUnlocks();
-        }
+        // Every claimed Strike milestone lights its badge on the wall (not only 3 days).
+        queueWallUnlock('strike-' + event.data.days + '-days');
+        sendWallUnlocks();
         setStrikeJustClaimed(true);
       }
       if (event.data.type === 'minest:strike-flow-done') {
@@ -17343,6 +17567,23 @@ var ActivityBadgesModal = function(props) {
   var isBadgeMessageOrigin = function(origin) {
     return !origin || origin === window.location.origin || origin === 'null' || (origin && origin.indexOf('minest-app.vercel.app') !== -1);
   };
+  var isAwardFrameSource = function(source) {
+    return source === badgeFrameRef.current?.contentWindow || source === wallFrameRef.current?.contentWindow;
+  };
+  var goBackFromAwards = function() {
+    if (badgeFullScreen) {
+      [badgeFrameRef.current, wallFrameRef.current].forEach(function(frame) {
+        if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'MINEST_CLOSE_AWARD' }, '*');
+      });
+      setBadgeFullScreen(false);
+      if (document.fullscreenElement && document.exitFullscreen) {
+        var exitResult = document.exitFullscreen();
+        if (exitResult && exitResult.catch) exitResult.catch(function() {});
+      }
+      return;
+    }
+    setActiveSection('summary');
+  };
   var handleDirectExitCelebration = function() {
     setCelebrationReturn(null);
     if (props.onCelebrationExit) props.onCelebrationExit();
@@ -17385,19 +17626,20 @@ var ActivityBadgesModal = function(props) {
     sendWallUnlocks();
   };
   var sendChallengeProgress = function() {
-    [challengeEngineFrameRef.current, challengeClaimFrameRef.current, rewardSyncFrameRef.current].forEach(function(frame) {
+    [challengeEngineFrameRef.current, challengeClaimFrameRef.current, rewardSyncFrameRef.current, wallFrameRef.current, wallSyncFrameRef.current].forEach(function(frame) {
       if (!frame || !frame.contentWindow) return;
       frame.contentWindow.postMessage({
-      type: 'minest:challenge-progress',
-      progress: {
-        focusMinutes: focusMinutes,
-        checkCount: checkCount,
-        goalPercent: goalPercent,
-        targetMinutes: targetMinutes,
-        targetChecks: targetChecks,
-        date: rings.date || '',
-        qualifiedDates: props.qualifiedDates || []
-      }
+        type: 'minest:challenge-progress',
+        progress: {
+          focusMinutes: focusMinutes,
+          checkCount: checkCount,
+          goalPercent: goalPercent,
+          targetMinutes: targetMinutes,
+          targetChecks: targetChecks,
+          date: rings.date || '',
+          qualifiedDates: props.qualifiedDates || []
+        },
+        rules: unlockRules
       }, badgeMessageTargetOrigin);
     });
     sendWallUnlocks();
@@ -17415,6 +17657,21 @@ var ActivityBadgesModal = function(props) {
   (0, _.useEffect)(function() {
     var handleBadgeReady = function(event) {
       if (event.data && event.data.type === 'minest:award-ready') sendAwardProgress();
+      if (event.data && event.data.type === 'MINEST_AWARD_SELECTED' && isBadgeMessageOrigin(event.origin) && isAwardFrameSource(event.source)) {
+        setBadgeFullScreen(true);
+        var frame = event.source === wallFrameRef.current?.contentWindow ? wallFrameRef.current : badgeFrameRef.current;
+        if (frame && frame.requestFullscreen) {
+          var fullscreenResult = frame.requestFullscreen();
+          if (fullscreenResult && fullscreenResult.catch) fullscreenResult.catch(function() {});
+        }
+      }
+      if (event.data && event.data.type === 'MINEST_AWARD_DETAIL_CLOSED' && isAwardFrameSource(event.source)) {
+        setBadgeFullScreen(false);
+        if (document.fullscreenElement && document.exitFullscreen) {
+          var exitResult = document.exitFullscreen();
+          if (exitResult && exitResult.catch) exitResult.catch(function() {});
+        }
+      }
       if (event.data && event.data.type === 'minest:challenge-ready' && isBadgeMessageOrigin(event.origin) && (event.source === challengeEngineFrameRef.current?.contentWindow || event.source === challengeClaimFrameRef.current?.contentWindow || event.source === rewardSyncFrameRef.current?.contentWindow)) {
         if (typeof event.data.collectedCount === 'number') setCollectedCount(event.data.collectedCount);
         sendChallengeProgress();
@@ -17498,8 +17755,7 @@ var ActivityBadgesModal = function(props) {
   var saveGoals = function() {
     var next = Object.assign({}, rings, {
       targetMinutes: clampGoal(draftGoals.targetMinutes, 5, 240),
-      targetChecks: clampGoal(draftGoals.targetChecks, 1, 100),
-      targetGoalPercent: clampGoal(draftGoals.targetGoalPercent || 100, 10, 100)
+      targetChecks: clampGoal(draftGoals.targetChecks, 1, 100)
     });
     if (onUpdateRings) onUpdateRings(next);
     setEditingGoals(false);
@@ -17532,38 +17788,99 @@ var ActivityBadgesModal = function(props) {
     className: "minest-activity-modal-backdrop minest-activity-modal-shell fixed inset-0 z-50 flex items-end sm:items-center justify-center backdrop-blur-2xl animate-fadeIn",
     onClick: function(e) { if (e.target === e.currentTarget) onClose(); },
     children: (0, P.jsxs)('div', {
-      className: "minest-activity-modal-panel relative w-full sm:max-w-xl h-[94vh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-t-[34px] sm:rounded-[34px] border shadow-2xl " + (challengePending && activeSection === 'awards' && awardPane === 'challenge' ? 'minest-pending-modal ' : '') + (isDark ? "border-white/15 text-white" : "border-white/80 text-slate-950"),
+      ref: activityPanelRef,
+      className: "minest-activity-modal-panel relative w-full sm:max-w-xl h-[94vh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-t-[34px] sm:rounded-[34px] border shadow-2xl " + (activeSection === 'awards' ? 'minest-awards-level-panel ' : '') + (challengePending && activeSection === 'awards' && awardPane === 'challenge' ? 'minest-pending-modal ' : '') + (isDark ? "border-white/15 text-white" : "border-white/80 text-slate-950"),
       style: { WebkitBackdropFilter: "blur(42px) saturate(170%)", backdropFilter: "blur(42px) saturate(170%)" },
       children: [
-        (0, P.jsx)('div', { className: "minest-activity-modal-header sticky top-0 z-20 px-5 pt-3 pb-4", style: { WebkitBackdropFilter: "blur(28px)", backdropFilter: "blur(28px)" }, children:
+        (0, P.jsx)('div', { className: "minest-activity-modal-header minest-summary-header sticky top-0 z-20 px-5 pt-3 pb-3 " + (activeSection === 'summary' && summaryHeaderCollapsed ? 'is-collapsed' : ''), style: { WebkitBackdropFilter: "blur(28px)", backdropFilter: "blur(28px)" }, children:
           (0, P.jsxs)('div', { children: [
             (0, P.jsx)('div', { className: "mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/25 sm:hidden" }),
-            (0, P.jsxs)('div', { className: "flex items-start justify-between", children: [
-              (0, P.jsxs)('div', { children: [
-                (0, P.jsx)('p', { className: "text-[11px] font-semibold uppercase tracking-[0.18em] opacity-45", children: "Today" }),
-                (0, P.jsx)('h2', { className: "text-[28px] leading-tight font-bold tracking-[-0.035em]", children: activeSection === 'summary' ? "Summary" : "Awards" })
+            (0, P.jsxs)('div', { className: "flex items-center justify-between gap-3", children: [
+              (0, P.jsxs)('div', { className: "flex min-w-0 items-center gap-2", children: [
+                activeSection === 'awards' ? (0, P.jsx)('button', {
+                  type: "button",
+                  onClick: goBackFromAwards,
+                  className: "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xl leading-none transition active:scale-95",
+                  'aria-label': badgeFullScreen ? "Back to Awards" : "Back to Summary",
+                  children: "←"
+                }) : null,
+                (0, P.jsxs)('div', { className: "min-w-0", children: [
+                  (0, P.jsx)('h2', { className: "minest-summary-title text-[28px] leading-tight font-bold tracking-[-0.035em]", children: activeSection === 'summary' ? "Summary" : "Awards" })
+                ] })
               ] }),
-              (0, P.jsx)('button', { type: "button", onClick: onClose, className: "minest-activity-modal-close w-8 h-8 rounded-full bg-white/10 border border-white/10 text-sm font-semibold", 'aria-label': "Close", children: "×" })
+              (0, P.jsx)('button', { type: "button", onClick: onClose, className: "minest-activity-modal-close h-8 w-8 shrink-0 rounded-full bg-white/10 border border-white/10 text-sm font-semibold", 'aria-label': "Close", children: "×" })
             ] }),
-            (0, P.jsxs)('div', { className: "mt-4 gap-1 rounded-full p-1 bg-white/8 border border-white/10", style: { display: "grid", gridTemplateColumns: "1fr 1fr" }, children: [
-              (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('summary'); }, className: "rounded-full py-2 text-xs font-semibold transition", style: { background: activeSection === 'summary' ? "#fff" : "transparent", color: activeSection === 'summary' ? "#000" : "inherit", opacity: activeSection === 'summary' ? 1 : 0.55, boxShadow: activeSection === 'summary' ? "0 8px 20px rgba(0,0,0,.22)" : "none" }, children: "Summary" }),
-              (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "rounded-full py-2 text-xs font-semibold transition", style: { background: activeSection === 'awards' ? "#fff" : "transparent", color: activeSection === 'awards' ? "#000" : "inherit", opacity: activeSection === 'awards' ? 1 : 0.55, boxShadow: activeSection === 'awards' ? "0 8px 20px rgba(0,0,0,.22)" : "none" }, children: "Awards · " + collectedCount })
-            ] })
+            activeSection === 'awards' && !badgeFullScreen ? (0, P.jsx)('div', { className: "minest-award-tabs mt-3 grid grid-cols-3 gap-1 rounded-2xl border border-white/10 bg-white/[0.06] p-1", children: [
+              ['challenge', 'Wall'], ['collection', 'Collection'], ['library', 'Index']
+            ].map(function(option) {
+              return (0, P.jsx)('button', {
+                type: 'button',
+                onClick: function() {
+                  setAwardPane(option[0]);
+                  if (option[0] !== 'collection' && strikeOverlayOpen) {
+                    setStrikeOverlayOpen(false);
+                    if (props.onDismissStrikeCelebration) props.onDismissStrikeCelebration();
+                  }
+                },
+                className: "min-w-0 rounded-xl px-2 py-2 text-[10px] font-semibold transition-colors",
+                style: { background: awardPane === option[0] ? '#fff' : 'transparent', color: awardPane === option[0] ? '#0b0d11' : 'inherit', opacity: awardPane === option[0] ? 1 : .6 },
+                children: option[1]
+              }, option[0]);
+            }) }) : null
           ] })
         }),
-        activeSection === 'summary' ? (0, P.jsxs)('div', { className: "minest-summary-glass mx-3 mb-4 rounded-[30px] px-4 pb-5 pt-1", children: [
+        activeSection === 'summary' ? (0, P.jsxs)('div', { className: "minest-summary-glass mx-3 mb-4 rounded-[30px] px-4 pb-5 pt-1" + (editingGoals ? ' is-editing-goals' : ''), children: [
           (0, P.jsx)('iframe', { ref: rewardSyncFrameRef, src: badgeChallengeUrl + '&sync=1', onLoad: sendChallengeProgress, title: 'Reward state sync', 'aria-hidden': true, tabIndex: -1, style: { position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none', border: 0 } }),
-          (0, P.jsx)('div', { ref: ringPreviewRef, children: (0, P.jsx)(PhaseOneRingsPreview, { ringsState: rings, strikeDays: strikeDays }) }),
-          (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
-            (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { if (!editingGoals) setDraftGoals({ targetMinutes: targetMinutes, targetChecks: targetChecks, targetGoalPercent: targetGoalPercent }); setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
+          (0, P.jsx)('div', { ref: ringPreviewRef, 'data-summary-rings': true, children: (0, P.jsx)(PhaseOneRingsPreview, { ringsState: rings, strikeDays: strikeDays }) }),
+          (0, P.jsxs)('div', { className: 'minest-summary-card-grid mt-3', children: [
+            (0, P.jsxs)('button', { type: 'button', className: 'minest-summary-card', onClick: function() { setEditingGoals(true); }, children: [
+              (0, P.jsxs)('div', { className: 'minest-summary-card-heading', children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { children: 'Goals' }), (0, P.jsx)('p', { children: 'Make the rings fit your day.' })] }), summaryChevron()] }),
+              (0, P.jsxs)('div', { className: 'minest-summary-card-body', children: [
+                (0, P.jsxs)('div', { className: 'minest-summary-goal-row', children: [summaryGoalRing('#ff537e', focusMinutes / targetMinutes), (0, P.jsxs)('div', { children: [(0, P.jsx)('span', { className: 'minest-summary-goal-label', children: 'Focus' }), (0, P.jsxs)('strong', { style: { color: '#ff537e' }, children: [targetMinutes, (0, P.jsx)('small', { children: 'MIN' })] })] })] }),
+                (0, P.jsxs)('div', { className: 'minest-summary-goal-row', children: [summaryGoalRing('#b9e853', checkCount / targetChecks), (0, P.jsxs)('div', { children: [(0, P.jsx)('span', { className: 'minest-summary-goal-label', children: 'Checks' }), (0, P.jsxs)('strong', { style: { color: '#b9e853' }, children: [targetChecks, (0, P.jsx)('small', { children: 'ITEMS' })] })] })] })
+              ] })
+            ] }),
+            (0, P.jsxs)('button', { type: 'button', className: 'minest-summary-card minest-summary-award-feature-card', onClick: function() { setAwardPane('challenge'); setActiveSection('awards'); }, children: [
+              (0, P.jsxs)('div', { className: 'minest-summary-card-heading', children: [(0, P.jsx)('div', { children: (0, P.jsx)('h3', { children: 'Awards' }) }), summaryChevron()] }),
+              (0, P.jsx)('div', { className: 'minest-summary-feature-viewport', children: (0, P.jsx)('div', { className: 'minest-summary-feature-track', style: { transform: 'translateX(' + (-100 * summaryAwardSlide) + '%)' }, children: summaryAwardSlides.map(function(slide) {
+                return (0, P.jsxs)('div', { className: 'minest-summary-feature-slide', children: [
+                  summaryBadgeImg(slide.key, 96),
+                  (0, P.jsx)('strong', { children: slide.name }),
+                  slide.note ? (0, P.jsx)('span', { children: slide.note }) : (0, P.jsx)('span', { 'aria-hidden': true, children: '\u00a0' })
+                ] }, slide.key);
+              }) }) }),
+              (0, P.jsx)('div', { className: 'minest-summary-feature-dots', children: summaryAwardSlides.map(function(slide, index) {
+                return (0, P.jsx)('i', { role: 'presentation', className: index === summaryAwardSlide ? 'is-active' : '', onClick: function(event) { event.stopPropagation(); setSummaryAwardSlide(index); } }, slide.key);
+              }) })
+            ] }),
+            (0, P.jsxs)('button', { type: 'button', className: 'minest-summary-card minest-summary-streak-card', onClick: function() { setAwardPane('collection'); setActiveSection('awards'); }, children: [
+              (0, P.jsxs)('div', { className: 'minest-summary-card-heading', children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { children: 'Streaks' }), (0, P.jsx)('p', { children: 'Close any ring to keep it alive.' })] }), summaryChevron()] }),
+              (0, P.jsxs)('div', { className: 'minest-summary-card-body', children: [
+                (0, P.jsxs)('div', { className: 'minest-summary-streak', children: [
+                  (0, P.jsxs)('div', { children: [(0, P.jsx)('span', { className: 'minest-summary-streak-count', children: Number(strikeDays) || 0 }), (0, P.jsx)('span', { className: 'minest-summary-streak-unit', children: Number(strikeDays) === 1 ? 'DAY' : 'DAYS' })] }),
+                  (0, P.jsx)('div', { className: 'minest-summary-flame', 'aria-hidden': true, children: (0, P.jsx)('span', { children: '🔥' }) })
+                ] }),
+                (0, P.jsx)('div', { className: 'minest-summary-streak-week', 'aria-hidden': true, children: [0, 1, 2, 3, 4, 5, 6].map(function(day) { return (0, P.jsx)('i', { className: day < Math.min(7, Number(strikeDays) || 0) ? 'is-on' : '' }, day); }) })
+              ] })
+            ] }),
+            (0, P.jsxs)('button', { type: 'button', className: 'minest-summary-card minest-summary-index-card', onClick: function() { setAwardPane('library'); setActiveSection('awards'); }, children: [
+              (0, P.jsxs)('div', { className: 'minest-summary-card-heading', children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { children: 'Index' }), (0, P.jsx)('p', { children: 'Complete challenges and collect badges.' })] }), summaryChevron()] }),
+              (0, P.jsx)('div', { className: 'minest-summary-card-body', children: (0, P.jsx)('div', { className: 'minest-summary-index-badges', children: [
+                summaryBadgeImg('strike-100', 40),
+                summaryBadgeImg('sith-lightsaber', 40),
+                summaryBadgeImg('pikachu', 40)
+              ] }) })
+            ] })
+          ] }),
+          (0, P.jsxs)('section', { className: "minest-goals-settings-panel mt-4 rounded-[26px] border p-4 " + (editingGoals ? 'is-open ' : '') + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
+            (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Goals" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Make the rings fit your day." })] }), (0, P.jsx)('button', { type: "button", onClick: function() { setEditingGoals(!editingGoals); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: editingGoals ? "Cancel" : "Change" })] }),
             editingGoals ? (0, P.jsxs)('div', { className: "mt-4 space-y-4", children: [
               (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Focus minutes" }), (0, P.jsx)('strong', { children: draftGoals.targetMinutes + " min" })] }), (0, P.jsx)('input', { type: "range", min: 5, max: 240, step: 5, value: draftGoals.targetMinutes, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetMinutes: e.target.value })); }, className: "w-full accent-[#fa114f]" })] }),
               (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Daily checks" }), (0, P.jsx)('strong', { children: draftGoals.targetChecks })] }), (0, P.jsx)('input', { type: "range", min: 1, max: 100, step: 1, value: draftGoals.targetChecks, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetChecks: e.target.value })); }, className: "w-full accent-[#30d158]" })] }),
-              (0, P.jsxs)('label', { className: "block", children: [(0, P.jsxs)('span', { className: "flex justify-between text-xs mb-2", children: [(0, P.jsx)('span', { children: "Board goal" }), (0, P.jsx)('strong', { children: (draftGoals.targetGoalPercent || 100) + "%" })] }), (0, P.jsx)('input', { type: "range", min: 10, max: 100, step: 5, value: draftGoals.targetGoalPercent || 100, onChange: function(e) { setDraftGoals(Object.assign({}, draftGoals, { targetGoalPercent: Number(e.target.value) })); }, className: "w-full accent-cyan-400" })] }),
               (0, P.jsx)('button', { type: "button", onClick: saveGoals, className: "w-full rounded-2xl bg-white text-black py-3 text-sm font-semibold shadow-lg", children: "Save Goals" })
-            ] }) : (0, P.jsxs)('div', { className: "mt-4 grid gap-2 text-sm", style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }, children: [(0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "FOCUS" }), (0, P.jsx)('strong', { children: targetMinutes + " min" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "CHECKS" }), (0, P.jsx)('strong', { children: targetChecks + " items" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "GOAL" }), (0, P.jsx)('strong', { children: targetGoalPercent + "%" })] })] })
+            ] }) : (0, P.jsxs)('div', { className: "mt-4 grid grid-cols-2 gap-3 text-sm", children: [(0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "FOCUS" }), (0, P.jsx)('strong', { children: targetMinutes + " minutes" })] }), (0, P.jsxs)('div', { className: "rounded-2xl bg-white/[0.055] p-3", children: [(0, P.jsx)('p', { className: "text-[10px] opacity-45", children: "CHECKS" }), (0, P.jsx)('strong', { children: targetChecks + " items" })] })] })
           ] }),
-          (0, P.jsxs)('section', { className: "mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
+          (0, P.jsxs)('section', { className: "minest-awards-settings-panel mt-4 rounded-[26px] border p-4 " + (isDark ? "bg-white/[0.045] border-white/10" : "bg-white/70 border-white"), children: [
             (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [
               (0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { className: "font-semibold text-sm", children: "Awards Settings" }), (0, P.jsx)('p', { className: "text-[11px] opacity-45", children: "Library updates and unlock goals." })] }),
               (0, P.jsx)('button', { type: "button", onClick: function() { setShowUnlockSettings(!showUnlockSettings); }, className: "px-3 py-1.5 rounded-full text-xs font-semibold text-[#0a84ff] bg-[#0a84ff]/10", children: showUnlockSettings ? "Done" : "Set Up" })
@@ -17583,38 +17900,36 @@ var ActivityBadgesModal = function(props) {
               ] }, rule.badgeId + '-' + index);
             }) }) : null
           ] }),
-          (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "mt-4 w-full rounded-[24px] border border-white/10 bg-gradient-to-r from-amber-400/20 to-fuchsia-500/15 p-4 text-left", children: (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('p', { className: "font-semibold", children: "Explore Awards" }), (0, P.jsx)('p', { className: "text-xs opacity-50", children: "View the live 3D collection" })] }), (0, P.jsx)('span', { className: "text-xl", children: "›" })] }) })
-        ] }) : (0, P.jsxs)('div', { className: "px-4 pb-6", children: [
-          (0, P.jsx)('div', { className: "mb-3 grid grid-cols-3 gap-1 rounded-full border border-white/10 bg-white/[0.06] p-1", children: [
-            ['challenge', 'Wall'], ['collection', 'Collection'], ['library', 'Index']
-          ].map(function(option) {
-            return (0, P.jsx)('button', { type: 'button', onClick: function() { setAwardPane(option[0]); if (option[0] !== 'collection' && strikeOverlayOpen) { setStrikeOverlayOpen(false); if (props.onDismissStrikeCelebration) props.onDismissStrikeCelebration(); } }, className: 'shrink-0 rounded-full px-3 py-2 text-[10px] font-semibold transition-colors', style: { background: awardPane === option[0] ? '#fff' : 'transparent', color: awardPane === option[0] ? '#0b0d11' : 'inherit', opacity: awardPane === option[0] ? 1 : .6 }, children: option[1] }, option[0]);
-          }) }),
+          (0, P.jsx)('button', { type: "button", onClick: function() { setActiveSection('awards'); }, className: "minest-explore-awards-legacy mt-4 w-full rounded-[24px] border border-white/10 bg-gradient-to-r from-amber-400/20 to-fuchsia-500/15 p-4 text-left", children: (0, P.jsxs)('div', { className: "flex items-center justify-between", children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('p', { className: "font-semibold", children: "Explore Awards" }), (0, P.jsx)('p', { className: "text-xs opacity-50", children: "View the live 3D collection" })] }), (0, P.jsx)('span', { className: "text-xl", children: "›" })] }) })
+        ] }) : (0, P.jsxs)('div', { className: "px-4 pb-5 minest-awards-content", children: [
           (0, P.jsxs)('div', { className: "minest-awards-wall-frame relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-2xl", children: [
             (0, P.jsx)('iframe', { ref: challengeEngineFrameRef, src: badgeChallengeUrl, onLoad: sendChallengeProgress, title: 'Three Rings reward engine', 'aria-hidden': true, tabIndex: -1, style: { position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 0 } }),
             (0, P.jsx)('iframe', { ref: wallSyncFrameRef, src: badgeWallUrl, onLoad: function() { markWallFrameReady('sync', wallSyncFrameRef.current); }, title: 'Badge wall unlock sync', 'aria-hidden': true, tabIndex: -1, style: { position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 0 } }),
-            awardPane === 'challenge' ? (0, P.jsx)('iframe', { ref: wallFrameRef, src: badgeWallUrl, onLoad: function() { markWallFrameReady('visible', wallFrameRef.current); sendChallengeProgress(); }, title: 'Minest Pokémon Badge Wall', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07080c', display: 'block', contain: 'strict' }, loading: 'eager' }) :
+            awardPane === 'challenge' ? (0, P.jsx)('iframe', { ref: wallFrameRef, src: badgeWallUrl, onLoad: function() { markWallFrameReady('visible', wallFrameRef.current); sendChallengeProgress(); }, title: 'Minest Badge Wall 31.0', className: 'w-full border-0', style: badgeFullScreen ? { position: 'fixed', inset: 0, zIndex: 1000, width: '100vw', height: '100vh', background: '#000' } : { height: 'min(68vh, 720px)', background: '#07080c', display: 'block', contain: 'strict' }, allow: 'accelerometer; gyroscope; fullscreen', allowFullScreen: true, loading: 'eager' }) :
             awardPane === 'collection' ? (0, P.jsxs)('div', { className: 'minest-collection-stack' + (strikeFocus ? ' is-strike-focus' : ''), style: { position: 'relative', height: 'min(68vh, 720px)', background: '#07080c', display: 'flex', flexDirection: 'column', overflow: 'hidden' }, children: [
-              (0, P.jsx)('div', { className: 'minest-strike-wall-slot', style: { position: 'relative', flex: '0 0 auto', height: 188, borderBottom: '1px solid rgba(255,255,255,.08)', background: 'radial-gradient(120% 90% at 50% 0%, rgba(255,149,0,.10), rgba(7,8,12,0) 70%)', filter: strikeFocus ? 'blur(14px) brightness(.55)' : 'none', transition: 'filter 420ms ease' }, children: (0, P.jsx)('div', { className: 'minest-strike-wall-label', children: 'STRIKE WALL · ' + strikeClaimed.length + ' / 10' }) }),
+              (0, P.jsx)('div', { className: 'minest-strike-wall-slot', style: { position: 'relative', flex: '0 0 auto', height: 188, background: 'transparent', filter: strikeFocus ? 'blur(14px) brightness(.55)' : 'none', transition: 'filter 420ms ease' }, children: (0, P.jsx)('div', { className: 'minest-strike-wall-label', children: 'STRIKE WALL · ' + strikeClaimed.length + ' / 10' }) }),
               (0, P.jsx)('iframe', { src: badgeCollectionUrl, onLoad: sendChallengeProgress, title: 'Minest Badge Collection', className: 'w-full border-0', style: { flex: '1 1 auto', minHeight: 0, background: '#07080c', filter: strikeFocus ? 'blur(14px) brightness(.55) saturate(1.1)' : 'none', transform: strikeFocus ? 'scale(1.03)' : 'none', transition: 'filter 420ms ease, transform 420ms ease' }, loading: 'eager' }),
               strikeFocus ? (0, P.jsx)('div', { className: 'minest-strike-veil' }) : null,
               (0, P.jsx)('iframe', { src: strikeWallUrl, title: strikeFocus ? 'Pending Strike badge' : 'Strike wall slots', allow: 'autoplay', className: 'minest-strike-frame' + (strikeFocus ? ' is-focus' : ''), loading: 'eager' }),
               strikeFocus && !strikeJustClaimed ? (0, P.jsx)('button', { type: 'button', onClick: closeStrikeFocus, className: 'minest-strike-later', children: '稍后领取' }) : null
             ] }) :
-            awardPane === 'library' ? (0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, title: "Minest Badge Index Preview", className: "w-full border-0", style: { height: "min(68vh, 720px)", background: "#000" }, allow: "accelerometer; gyroscope", loading: "eager" }) :
+            awardPane === 'library' ? (0, P.jsxs)(P.Fragment, { children: [
+              (0, P.jsx)('iframe', { ref: badgeFrameRef, src: activeBadgeUrl, title: "Minest Badge Index Preview", className: "w-full border-0", style: badgeFullScreen ? { position: 'fixed', inset: 0, zIndex: 1000, width: '100vw', height: '100vh', background: '#000' } : { height: "min(62vh, 760px)", background: "#000" }, allow: "accelerometer; gyroscope; fullscreen", allowFullScreen: true, loading: "eager" }),
+              null
+            ] }) :
               animationTabs.indexOf(awardPane) >= 0 ? (0, P.jsx)('iframe', { ref: animationFrameRef, src: animationUrl, title: animationLabels[awardPane] + ' animation', className: 'w-full border-0', style: { height: 'min(68vh, 720px)', background: '#07090d' }, loading: 'eager' }) :
               (0, P.jsx)('iframe', { src: badgeBaseUrl + '/badge-studio.html?tab=reveal&mode=' + awardPane + '&embed=1&v=6e7a1f2', title: awardPane === 'base' ? 'Mystery Hex 3D preview' : 'Mechanical assembly 3D preview', className: 'w-full border-0', style: { height: 'min(64vh, 530px)', background: '#06080c' }, loading: 'eager' }),
-            (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'challenge' ? 'WALL · LIVE REWARDS' : awardPane === 'collection' ? 'COLLECTION · COLLECTED' : 'INDEX · PREVIEW'] }),
+            null && (0, P.jsxs)('div', { className: "pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-semibold text-white backdrop-blur-xl", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" }), awardPane === 'challenge' ? 'WALL · LIVE REWARDS' : 'COLLECTION · COLLECTED'] }),
             challengePending && awardPane === 'challenge' ? (0, P.jsx)('div', { className: 'absolute inset-0 z-30 bg-[#07080c]', children: (0, P.jsx)('iframe', { ref: challengeClaimFrameRef, src: badgeChallengeUrl, onLoad: sendChallengeProgress, title: 'Three Rings badge claim', className: 'h-full w-full border-0', style: { background: '#07080c', display: 'block', contain: 'strict' }, loading: 'eager' }) }) : null,
             null
           ] }),
-          (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'challenge' ? '三环闭合生成待领勋章 · 领取后点亮墙' : awardPane === 'collection' ? '仅显示已领取的勋章' : 'Preview · browse the complete badge index' })
+          null && (0, P.jsx)('p', { className: "mt-3 px-2 text-center text-[11px] opacity-45", children: awardPane === 'challenge' ? '三环闭合生成待领勋章 · 领取后点亮墙' : '仅显示已领取的勋章' })
         ] }),
         props.celebrateRings && !props.strikeCelebrationDays ? (0, P.jsxs)('div', {
           className: 'minest-rings-celebration' + (celebrationReturn ? ' is-returning' : ''),
           style: celebrationReturn ? { '--ring-return-x': celebrationReturn.x + 'px', '--ring-return-y': celebrationReturn.y + 'px', '--ring-return-scale': celebrationReturn.scale } : undefined,
           children: [
-            (0, P.jsx)('iframe', { ref: animationFrameRef, src: badgeBaseUrl + '/badge-animations/index.html?embed=1&ceremony=1&tab=rings&focus=100&checks=100&goal=100&strike=' + encodeURIComponent(strikeDays) + '&celebrate=1&v=summary-rings-v2', title: 'Three Rings celebration in Summary', allow: 'autoplay', loading: 'eager' }),
+            (0, P.jsx)('iframe', { ref: animationFrameRef, src: badgeBaseUrl + '/badge-animations-31.5-ceremony/index.html?embed=1&ceremony=1&tab=rings&focus=100&checks=100&goal=100&strike=' + encodeURIComponent(strikeDays) + '&celebrate=1&v=summary-rings-315', title: 'Three Rings celebration in Summary', allow: 'autoplay', loading: 'eager' }),
             (0, P.jsxs)('button', {
               type: 'button',
               onClick: function(e) { e.stopPropagation(); handleDirectExitCelebration(); },
@@ -17722,7 +18037,7 @@ var ActivityBadgesModal = function(props) {
                   children: [
                     (0, P.jsxs)('div', { className: "flex items-center gap-1 text-[11px] font-semibold text-[#00FFF0]", children: [(0, P.jsx)('span', { className: "w-2 h-2 rounded-full bg-[#00FFF0]" }), "每日目标"] }),
                     (0, P.jsxs)('div', { className: "text-base font-bold mt-1 text-[#00FFF0] font-mono", children: [goalPercent, "%"] }),
-                    (0, P.jsx)('span', { className: "text-[10px] opacity-50 mt-0.5", children: goalPercent >= targetGoalPercent ? "✓ 闭环达成" : "进行中" })
+                    (0, P.jsx)('span', { className: "text-[10px] opacity-50 mt-0.5", children: goalPercent >= 100 ? "✓ 闭环达成" : "进行中" })
                   ]
                 })
               ]
@@ -19422,7 +19737,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "27.9992" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "31.6" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
