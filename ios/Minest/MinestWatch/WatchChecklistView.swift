@@ -739,18 +739,18 @@ public struct WatchBadgesView: View {
     }
 }
 
-/// Large badge that swings left/right and settles on open, like Apple Fitness awards.
+/// Large badge with a five-turn entrance spin (tap the badge to replay it).
 struct WatchWallBadgeDetail: View {
     let badge: WatchWallBadge
     let unlocked: Bool
-    @State private var swing: Double = 0
+    @State private var turns: Double = 0
 
     var body: some View {
         ScrollView {
             VStack(spacing: 6) {
                 WatchWallBadgeImage(badge: badge, unlocked: unlocked)
                     .frame(width: 120, height: 120)
-                    .rotation3DEffect(.degrees(swing), axis: (x: 0, y: 1, z: 0), perspective: 0.45)
+                    .rotation3DEffect(.degrees(turns * 360), axis: (x: 0, y: 1, z: 0), perspective: 0.45)
                     .onTapGesture { spin() }
                 Text(badge.shortName)
                     .font(.system(size: 15, weight: .semibold))
@@ -774,13 +774,6 @@ struct WatchWallBadgeDetail: View {
     }
 
     private func spin() {
-        // Start turned to one side, then a lightly damped spring rocks it back
-        // and forth until it settles face-on.
-        var start = Transaction()
-        start.disablesAnimations = true
-        withTransaction(start) { swing = 38 }
-        DispatchQueue.main.async {
-            withAnimation(.interpolatingSpring(stiffness: 70, damping: 5)) { swing = 0 }
-        }
+        withAnimation(.timingCurve(0.12, 0.8, 0.22, 1, duration: 4.6)) { turns += 5 }
     }
 }
