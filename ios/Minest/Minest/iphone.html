@@ -35106,6 +35106,32 @@ var Be = function() {
       setIsCloudModalOpen(true);
       return;
     }
+    // 31.6: inside the iOS app Google sign-in runs in a system sign-in sheet
+    // (the bundled file:// page cannot use popup/redirect); the app returns the
+    // Google credential and we sign in to Firebase with it here.
+    if (window.MinestNative && window.MinestNative.isNative()) {
+      var credential = await new Promise(function(resolve) {
+        var onEvent = function(e) {
+          var d = e.detail || {};
+          if (d.event !== 'googleCredential') return;
+          window.removeEventListener('minestNativeEvent', onEvent);
+          resolve(d.payload || {});
+        };
+        window.addEventListener('minestNativeEvent', onEvent);
+        window.MinestNative.send('googleSignIn', {});
+      });
+      if (credential.cancelled) return;
+      if (credential.error || (!credential.idToken && !credential.accessToken)) {
+        GlassUI.toast("Sign in failed: " + (credential.error || "no credential returned"));
+        return;
+      }
+      try {
+        await fb.auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(credential.idToken || null, credential.accessToken || null));
+      } catch (credErr) {
+        GlassUI.toast("Sign in failed: " + credErr.message);
+      }
+      return;
+    }
     var provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     try {

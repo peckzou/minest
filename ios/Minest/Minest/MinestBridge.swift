@@ -2,6 +2,7 @@ import Foundation
 import WebKit
 import UIKit
 import WidgetKit
+import AuthenticationServices
 
 /// Enhanced Swift Bridge connecting WKWebView JS to native iOS capabilities
 public final class MinestBridge: NSObject, WKScriptMessageHandler {
@@ -277,6 +278,9 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
                 strikeDays: data["strikeDays"] as? Int
             )
             
+        case "googleSignIn":
+            startGoogleSignIn()
+
         case "updateHomeList":
             // 31.6: the Home Screen widget mirrors the home list (first list of the active board)
             let rows = data["items"] as? [[String: Any]] ?? []
@@ -307,6 +311,40 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
         }
     }
     
+    // MARK: - 31.6 Google sign-in
+    //
+    // Google blocks OAuth inside embedded web views, and Firebase rejects the
+    // file:// origin of the bundled page ("The requested action is invalid").
+    // Sign in instead in a system ASWebAuthenticationSession on the hosted
+    // auth-bridge page, which returns the Google credential via minest://auth.
+
+    private var authSession: ASWebAuthenticationSession?
+
+    private func startGoogleSignIn() {
+        guard authSession == nil,
+              let url = URL(string: "https://focusboard-drab.vercel.app/auth-bridge.html?v=316") else { return }
+        let session = ASWebAuthenticationSession(url: url, callbackURLScheme: "minest") { [weak self] callbackURL, error in
+            DispatchQueue.main.async {
+                self?.authSession = nil
+                var payload: [String: Any] = [:]
+                if let callbackURL = callbackURL,
+                   let items = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?.queryItems {
+                    payload["idToken"] = items.first(where: { $0.name == "idToken" })?.value ?? ""
+                    payload["accessToken"] = items.first(where: { $0.name == "accessToken" })?.value ?? ""
+                } else if let error = error as? ASWebAuthenticationSessionError, error.code == .canceledLogin {
+                    payload["cancelled"] = true
+                } else {
+                    payload["error"] = error?.localizedDescription ?? "Sign-in failed"
+                }
+                self?.sendEventToWeb(event: "googleCredential", payload: payload)
+            }
+        }
+        session.presentationContextProvider = self
+        session.prefersEphemeralWebBrowserSession = false
+        authSession = session
+        if !session.start() { authSession = nil }
+    }
+
     // MARK: - Native to Web Events
     
     /// Notify Web of Low Power Mode state change
@@ -449,3 +487,12 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
         webView?.evaluateJavaScript(js, completionHandler: nil)
     }
 }
+
+extension MinestBridge: ASWebAuthenticationPresentationContextProviding {
+    public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        webView?.window ?? UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first ?? ASPresentationAnchor()
+    }
+}
+
