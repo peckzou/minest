@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 40.7 · Smooth Wallet</title>
+    <title>Minest iPhone 40.8 · FX, Cover Flow &amp; Repo</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -4859,6 +4859,9 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   filter: brightness(.38) saturate(.8) !important;
 }
 
+/* 40.8 Repo mode: the finger is the source, no lens or halo marks it */
+.ripple-drop.ripple-ghost { display: none !important; }
+
 /* 40.6 Clear tap-to-edit: the composer takes the row's place (same row as Pull to Create) */
 .clear-mode .clear-active-column [data-wallet-item]:has(> .clear-edit-composer) > article.kanban-card { display: none !important; }
 .clear-mode .clear-active-column .fb-composer.clear-edit-composer { margin: 0 !important; border-radius: 0 !important; min-height: 62px; }
@@ -8320,8 +8323,8 @@ var RippleExplore = (function() {
   // ---------------------------------------------------------------------
   // drops (the halo) — one per finger
   // ---------------------------------------------------------------------
-  var addDrop = function(id, x, y, primary) {
-    var el = document.createElement('div'); el.className = 'ripple-drop';
+  var addDrop = function(id, x, y, primary, ghost) {
+    var el = document.createElement('div'); el.className = ghost ? 'ripple-drop ripple-ghost' : 'ripple-drop';
     el.style.position = w.hostPos;
     w.host.appendChild(el);
     var s = { id: id, x: x, y: y, lx: x, ly: y, vx: 0, vy: 0, t0: performance.now(), lastT: performance.now(), lastMove: performance.now(),
@@ -8329,8 +8332,8 @@ var RippleExplore = (function() {
       depth: 0, st: 0, stv: 0, sc: 0.6, scv: 0, ang: 0, alpha: 1, skipAcc: 0, gone: false };
     w.drops.push(s);
     // the first touch of the glass: two pressure rings, and the water takes the drop
-    ring(x, y, 0); ring(x, y, 110);
-    if (w.field) poke(w.field, x, y, 26, -0.16);
+    if (!ghost) { ring(x, y, 0); ring(x, y, 110); }
+    if (w.field) poke(w.field, x, y, ghost ? 30 : 26, ghost ? -0.24 : -0.16);
     return s;
   };
   var ring = function(x, y, delay) {
@@ -8492,13 +8495,16 @@ var RippleExplore = (function() {
       it.cards.forEach(function(c) { c.el.style.transition = 'none'; c.el.style.willChange = 'transform, opacity'; if (getComputedStyle(c.el).position === 'static') c.el.style.position = 'relative'; });
       if (it.sc) { it.prevPersp = it.sc.style.perspective; it.sc.style.perspective = '900px'; it.sc.style.perspectiveOrigin = '50% 50%'; }
     });
-    addDrop(pid == null ? 'p' : pid, x, y, true);
+    // 40.8 Repo mode: the water runs on its own; the finger, not a fixed point, is the source
+    w.mode = source === 'mode';
+    w.env = 0; w.ambT = 0;
+    if (!w.mode) addDrop(pid == null ? 'p' : pid, x, y, true);
     if (source === 'press' && navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }
     // ignition: the lists by the contact point are pressed down first, then rise ring by ring
     items.forEach(function(it) {
       var d = Math.abs((it.cx - lane.scrollLeft) - x) / w.pitch;
       it.kickAt = w.t0 + d * KICK_MS;
-      it.kick = reduce ? 0 : 170 * Math.exp(-d / 3.2);
+      it.kick = (reduce || w.mode) ? 0 : 170 * Math.exp(-d / 3.2);
     });
     sound('ripple_on');
     water.on(items, now); water.bedStart();
@@ -8558,7 +8564,7 @@ var RippleExplore = (function() {
     w.drops = w.drops.filter(function(s) { return !s.gone; });
     // the water runs at its own fixed rate, independent of the frame rate
     if (f) {
-      f.calm = !w.active && !w.drops.some(function(s) { return s.held || s.coast; }) && now - w.endT > 700;
+      f.calm = !w.mode && !w.active && !w.drops.some(function(s) { return s.held || s.coast; }) && now - w.endT > 700;
       f.acc += dt * f.rate;
       var steps = 0;
       while (f.acc >= 1 && steps < 8) { fieldStep(f); f.acc -= 1; steps++; }
@@ -8569,6 +8575,20 @@ var RippleExplore = (function() {
     }
     var primary = null;
     for (var pi = 0; pi < w.drops.length; pi++) if (w.drops[pi].primary && w.drops[pi].held) primary = w.drops[pi];
+    // 40.8 Repo mode: a finger on the glass ramps the local response up; lifting it lets the
+    // strong zone ease away while the water itself keeps moving (small random raindrops)
+    if (w.mode) {
+      var envTo = primary ? 1 : 0;
+      w.env += (envTo - w.env) * (1 - Math.exp(-dt / (envTo ? 0.12 : 0.9)));
+      if (f && !reduce && now >= w.ambT) {
+        w.ambT = now + 80 + Math.random() * 100;
+        poke(f, f.x0 + Math.random() * f.W, f.y0 + Math.random() * f.H, 20 + Math.random() * 14, -(0.08 + Math.random() * 0.09));
+      }
+      if (primary && f && now - (primary.driveT || 0) > 110) {
+        primary.driveT = now;
+        poke(f, primary.x, primary.y, w.phone ? 26 : 32, -0.11);
+      }
+    }
     var speed = Math.abs(w.vx);
     if (!w.active || now - w.lastT > 60) w.vx *= Math.exp(-dt / 0.08);
     var sigma = clamp(1.9 - speed / 1400, 0.9, 1.9);
@@ -8583,7 +8603,7 @@ var RippleExplore = (function() {
       var dNow = Math.abs(cx - w.x) / w.pitch;
       var srcX = xAt(dNow * RING_MS, now);
       var d = (cx - srcX) / w.pitch;
-      var target = w.active ? -amp * Math.exp(-(d * d) / (2 * sigma * sigma)) : 0;
+      var target = w.active ? -amp * (w.mode ? w.env : 1) * Math.exp(-(d * d) / (2 * sigma * sigma)) : 0;
       if (now < (w.t0 + 90) && it.kickAt > now) target = 0;
       if (it.kick && now >= it.kickAt) { it.v += it.kick; it.kick = 0; }
       var T = 0.2 + 0.05 * Math.min(4, Math.abs(d));
@@ -8612,7 +8632,7 @@ var RippleExplore = (function() {
       if (Math.abs(it.y) > 0.08 || Math.abs(it.v) > 1.5 || it.kick || Math.abs(it.heave) > 0.1) busy = true;
 
       // ---- 14.5/14.6: inside the list the drop is over, the cards splash ----
-      var inside = !!primary && w.x >= it.left - sl && w.x <= it.right - sl;
+      var inside = (w.mode ? w.env > 0.03 : !!primary) && w.x >= it.left - sl && w.x <= it.right - sl;
       if (inside && w.inList !== it) {
         w.inList = it;
         var scT0 = it.sc ? it.sc.scrollTop : 0, scTopNow = it.sc ? it.sc.getBoundingClientRect().top : 0;
@@ -8643,7 +8663,7 @@ var RippleExplore = (function() {
       it.cards.forEach(function(c) {
         var cyScreen = (c.cy - scScroll) + it.y;
         var dyc = (cyScreen - w.y) / 64;
-        var here = inside ? 1 : 0;
+        var here = inside ? (w.mode ? w.env : 1) : 0;
         var crest = Math.exp(-(dyc * dyc) / 1.6);
         var ad = Math.abs(dyc) - 1.9, trough = Math.exp(-(ad * ad) / 0.55);
         var tgtY = here * (-20 * c.rand * crest + 7 * trough);
@@ -8702,11 +8722,17 @@ var RippleExplore = (function() {
         if (f && cyS > -120 && cyS < vh + 120) {
           var q2 = sample(f, cx + (c.cxOff || 0), cyS);
           if (q2) {
-            fy = clamp(-q2.h * (w.phone ? 10 : 13) * c.rand, -24, 24);
-            fz = clamp(q2.h * 26, -34, 34);
-            frx = clamp(-q2.sy * 900, -11, 11);
-            fry = clamp(q2.sx * 700, -9, 9);
-            frz = clamp(q2.sx * 260 * c.rand, -4.5, 4.5);
+            // 40.8: cards near the finger answer the water much harder than distant ones
+            var near = 1;
+            if (w.mode && w.env > 0.01) {
+              var ddx = (cx + (c.cxOff || 0)) - w.x, ddy = cyS - w.y;
+              near = 1 + 1.6 * w.env * Math.exp(-(ddx * ddx + ddy * ddy) / (2 * 130 * 130));
+            }
+            fy = clamp(-q2.h * (w.phone ? 10 : 13) * c.rand * near, -24 * near, 24 * near);
+            fz = clamp(q2.h * 26 * near, -34 * near, 34 * near);
+            frx = clamp(-q2.sy * 900 * near, -11 * near, 11 * near);
+            fry = clamp(q2.sx * 700 * near, -9 * near, 9 * near);
+            frz = clamp(q2.sx * 260 * c.rand * near, -4.5 * near, 4.5 * near);
           }
         }
         c.el.style.transform = 'translate3d(' + (c.x + hum * 0.7).toFixed(2) + 'px,' + (c.y + fy).toFixed(2) + 'px,' + (c.z + fz).toFixed(1) + 'px) rotateX(' + (c.rx + frx).toFixed(2) + 'deg) rotateY(' + fry.toFixed(2) + 'deg) rotateZ(' + (frz + c.wz + hum * 0.8).toFixed(2) + 'deg) scale(' + c.s.toFixed(4) + ')';
@@ -8721,6 +8747,7 @@ var RippleExplore = (function() {
       if (rp >= 1) { if (R.el.parentNode) R.el.parentNode.removeChild(R.el); w.rings.splice(ri, 1); }
     }
     if (w.rings.length) busy = true;
+    if (w.mode) busy = true;                       // Repo mode only ends when the user leaves it
     if (!busy && !w.active && now - w.endT > 200) { stop(); return; }
     frame = requestAnimationFrame(tick);
   };
@@ -8738,6 +8765,20 @@ var RippleExplore = (function() {
         if (f) return !f.classList.contains('landscape');
         return (window.innerWidth <= 600 || window.innerHeight > window.innerWidth) && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
       };
+      // 40.8 Repo mode: wherever a finger lands becomes the source
+      if (w && w.mode && w.lane === lane) {
+        if (!dropById(e.pointerId) && w.drops.filter(function(q) { return q.held; }).length < 4) {
+          w.drops.forEach(function(q) { q.primary = false; });
+          addDrop(e.pointerId, e.clientX, e.clientY, true, true);
+          w.x = e.clientX; w.y = e.clientY; w.lastT = performance.now();
+          w.hist.push({ t: w.lastT, x: e.clientX }); if (w.hist.length > 90) w.hist.shift();
+          try { lane.setPointerCapture(e.pointerId); } catch (err) {}
+          sound('ripple_plip');
+          kick();
+        }
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
       if ((isPhonePortrait() || lane.closest('.iphone-frame') || 'ontouchstart' in window || navigator.maxTouchPoints > 0) && !(w && w.active)) {
         // Requirement 9 & 15: Remove old list-side Ripple trigger on iPhone Portrait
         // Ripple Mode is now triggered exclusively by Double Tap Card
@@ -8768,7 +8809,7 @@ var RippleExplore = (function() {
         if (Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > (e.pointerType === 'touch' ? STILL_TOUCH : STILL_PX)) { clearTimeout(hold.timer); hold = null; }
         return;
       }
-      if (w && w.active && w.source === 'press') {
+      if (w && w.active && (w.source === 'press' || w.mode)) {
         var s = dropById(e.pointerId);
         if (s && s.held) { if (e.cancelable) e.preventDefault(); moveDrop(s, e.clientX, e.clientY); }
       } else if (w && w.active && w.source === 'space') {
@@ -8779,6 +8820,21 @@ var RippleExplore = (function() {
     };
     var onUp = function(e) {
       if (hold && e.pointerId === hold.id) { clearTimeout(hold.timer); hold = null; }
+      if (w && w.mode) {
+        var sm = dropById(e.pointerId);
+        if (!sm) return;
+        try { lane.releasePointerCapture(e.pointerId); } catch (err) {}
+        releaseDrop(sm);
+        // the lead passes to a finger still down, if any
+        if (sm.primary) {
+          sm.primary = false;
+          var next = null;
+          w.drops.forEach(function(q) { if (q.held && q !== sm) next = q; });
+          if (next) { next.primary = true; w.x = next.x; w.y = next.y; }
+        }
+        suppressUntil = Date.now() + 300;
+        return;
+      }
       if (!w || !w.active || w.source !== 'press') return;
       var s = dropById(e.pointerId);
       if (!s) return;
@@ -8802,7 +8858,7 @@ var RippleExplore = (function() {
     };
     var onClick = function(e) { if (Date.now() < suppressUntil) { e.preventDefault(); e.stopPropagation(); } };
     // iPhone: while the water is live, touches drive it instead of scrolling the lists
-    var onTouchMove = function(e) { if (w && w.active && w.source === 'press' && e.cancelable) e.preventDefault(); };
+    var onTouchMove = function(e) { if (w && w.active && (w.source === 'press' || w.mode) && e.cancelable) e.preventDefault(); };
     var onContext = function(e) { if (hold || (w && w.active)) e.preventDefault(); };
     var onDragStart = function(e) { if (hold || w || !FB_NATIVE_DND) { e.preventDefault(); } };   // 8.6: never a native drag on touch
     var onScroll = function() { if (w && w.lane === lane && w.back) w.back.style.left = (lane.scrollLeft + w.backLeft0) + 'px'; };
@@ -8846,9 +8902,21 @@ var RippleExplore = (function() {
       if (w && w.active) release();
     }, 2200);
   };
+  // 40.8 Repo mode: continuous water until the user leaves the mode
+  var enterMode = function(lane) {
+    if (!lane) lane = document.querySelector('.board-swimlane-scroll');
+    if (!lane) return;
+    if (w && w.mode && w.lane === lane) return;
+    var r = lane.getBoundingClientRect();
+    start(lane, r.left + r.width / 2, r.top + r.height / 2, 'mode', null);
+  };
+  var exitMode = function() { if (w && w.mode) stop(true); };
   var api = {
     mount: mount,
     triggerAt: triggerAt,
+    enterMode: enterMode,
+    exitMode: exitMode,
+    isMode: function() { return !!(w && w.mode); },
     _state: function() {
       if (!w) return null;
       var f = w.field;
@@ -20039,7 +20107,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "40.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "40.8" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -20845,6 +20913,7 @@ var Oe = function(props) {
     if (window.FBFX && window.FBFX.noFlip && !flippedMap[id]) return;
     if (e && e.stopPropagation) e.stopPropagation();
     SoundEngine.play('flip');
+    window.__cfLastFlip = { id: id, at: Date.now() };
     setFlippedMap(function(m) {
       var next = Object.assign({}, m);
       next[id] = !next[id];
@@ -20855,8 +20924,15 @@ var Oe = function(props) {
   // spotlight switched on: any card showing its back turns face up
   (0, _.useEffect)(function() {
     var unflip = function() { setFlippedMap(function(m) { return Object.keys(m).length ? {} : m; }); };
+    // 40.8: a double-tap that leaves a light effect takes back the flip its first tap made
+    var undoFlip = function(e) {
+      var id = e && e.detail && e.detail.id;
+      if (!id) return;
+      setFlippedMap(function(m) { var next = Object.assign({}, m); next[id] = !next[id]; return next; });
+    };
     window.addEventListener('fbfx:noflip', unflip);
-    return function() { window.removeEventListener('fbfx:noflip', unflip); };
+    window.addEventListener('fbfx:undoflip', undoFlip);
+    return function() { window.removeEventListener('fbfx:noflip', unflip); window.removeEventListener('fbfx:undoflip', undoFlip); };
   }, []);
 
   // =========================================================================
@@ -22065,7 +22141,7 @@ var Oe = function(props) {
     var E_HELD = 0.15, E_BODY = 0.35;  // restitution
     var FRICTION_TAU = 0.2;     // s, sliding friction on x
     var SPIN_TAU = 0.85;        // s, free spin damping
-    var WALL = 1.1;             // × pitch a body may be thrown from its slot before a soft wall
+    var WALL = 1.6;             // × pitch a body may be thrown from its slot before a soft wall (40.8: 1.1)
     var KNOCK_J = 550;          // px/s of impact speed above which a pane is thrown back
     var bodies = {};            // rel → body
     var recovering = false, lastImpactT = -1e9, impactCount = 0;
@@ -22081,10 +22157,25 @@ var Oe = function(props) {
       for (var i = 0; i < str.length; i++) { hsh ^= str.charCodeAt(i); hsh = Math.imul(hsh, 16777619); }
       return ((hsh >>> 0) % 20001) / 10000 - 1;
     };
-    var bodyAt = function(rel) {
-      return bodies[rel] || (bodies[rel] = { x: 0, vx: 0, y: 0, vy: 0, z: 0, vz: 0, ry: 0, vry: 0, l: 0, vl: 0, f: 0, vf: 0, touching: false, recoverAt: 0, recT: 0.32 });
-    };
     var cardAtRel = function(rel) { var r = rt(); return r.cards ? r.cards[r.activeIdx + rel] : null; };
+    // 40.8: every pane is its own object — mass, how far it can tip before it goes over,
+    // how crooked it can stay, how it bounces. Stable per card, so a deck has character.
+    var bodyAt = function(rel) {
+      if (bodies[rel]) return bodies[rel];
+      var c = cardAtRel(rel), id = c ? String(c.id) : 'rel' + rel;
+      var q = function(k) { return (hash01(id + ':' + k) + 1) / 2; };   // 0..1
+      return (bodies[rel] = { x: 0, vx: 0, y: 0, vy: 0, z: 0, vz: 0, ry: 0, vry: 0, l: 0, vl: 0, f: 0, vf: 0, touching: false, recoverAt: 0, recT: 0.32,
+        m: 0.7 + 0.9 * q('m'),                 // relative mass
+        tipL: 22 + 18 * q('tl'),               // deg: past this sideways lean it topples over
+        tipF: 20 + 18 * q('tf'),               // deg: past this backward tilt it falls flat
+        lieL: 62 + 24 * q('ll'),               // deg: where a toppled pane comes to rest
+        lieF: 72 + 15 * q('lf'),
+        restL: 2 + 9 * q('rl'),                // deg: friction can hold it this crooked
+        rock: 0.5 + 0.3 * q('rk'),             // energy kept each time it rocks over its base
+        gL: 1500 + 1100 * q('gl'),             // deg/s²: gravity's pull at the pivot (taller feel = slower)
+        fr: 0.14 + 0.16 * q('fr')              // s: sliding friction time
+      });
+    };
     // Glint + clink for one glass-on-glass contact between the held card (or
     // the inner card, `rel - side`) and the card at `rel`.
     var flash = function(rel, side, energy, pitch) {
@@ -22113,11 +22204,16 @@ var Oe = function(props) {
     //   low & square → PUSH, high → TIP, oblique → SPIN, fast → KNOCK-AWAY.
     var impulse = function(b, side, dv) {
       var hi = Math.max(0, b.hitH || 0), o = b.hitO || 0;
-      var tipShare = 0.1 + 0.9 * hi * hi;
-      var spinShare = Math.min(0.8, o * o);
-      b.vx += side * dv * (1 - 0.45 * spinShare - 0.25 * tipShare);
-      b.vl += side * dv * tipShare * 0.55;                         // deg/s of lean
-      b.vry += -side * dv * spinShare * (o >= 0 ? 1 : -1) * 0.42;  // deg/s of yaw spin
+      var m = b.m || 1;
+      // 40.8: no two hits split the same way — a heavier pane slides less and turns less
+      var jit = 0.65 + 0.7 * Math.random();
+      // a slow, steady push slides a pane along; only a real impact makes it tip or turn
+      var hard = clamp((dv - 120) / 500, 0, 1);
+      var tipShare = (0.18 + 0.82 * hi * hi) * jit * hard;
+      var spinShare = Math.min(0.8, o * o + 0.12 * Math.random()) * hard;
+      b.vx += side * dv * (1 - 0.4 * spinShare - 0.2 * tipShare) / m;
+      b.vl += side * dv * tipShare * 0.62 / m;                     // deg/s of lean
+      b.vry += -side * dv * spinShare * (o >= 0 ? 1 : -1) * 0.42 / m;  // deg/s of yaw spin
       // 7.8: a struck pane is also driven along the striker's vertical motion,
       // and a high hit — or one coming down on its top edge — tips it backwards.
       var vyIn = b.hitVY || 0;
@@ -22160,7 +22256,7 @@ var Oe = function(props) {
         var nowK = performance.now();
         flyLog = flyLog.filter(function(t) { return nowK - t < 1000; });
         var canFly = nowK - (b.stoodAt || -1e9) > 600 && flyLog.length < 3 && nowK - (flyLog[flyLog.length - 1] || -1e9) > 280;
-        if (canFly && Math.random() < clamp((speed - FLY_J) / 1200 + 0.2, 0.2, 0.85)) { flyLog.push(nowK); launch(b, side, speed); return; }
+        if (canFly && Math.random() < clamp((speed - FLY_J) / 2600 + 0.1, 0.1, 0.6)) { flyLog.push(nowK); launch(b, side, speed); return; }
         b.stoodAt = nowK;
       }
       var over = speed - KNOCK_J;
@@ -22429,8 +22525,8 @@ var Oe = function(props) {
         var b = bodies[k], a = Math.abs(+k);
         var energy = Math.min(1, Math.abs(b.vx) / 1500 + Math.abs(b.vry) / 720 + Math.abs(b.vz) / 800);
         var far = Math.min(1, (Math.abs(b.x) + Math.abs(b.z)) / (0.8 * unit()));
-        b.recoverAt = now + 45 * (a - 1) + 110 * energy + 90 * far;
-        b.recT = 0.30 + 0.05 * a + 0.12 * far;
+        b.recoverAt = now + 70 * (a - 1) + 110 * energy + 120 * far + 260 * Math.random();
+        b.recT = 0.34 + 0.06 * a + 0.14 * far + 0.08 * (b.m || 1);
         // A spinning pane finishes on the nearest face-on turn, not by unwinding.
         b.ryTarget = Math.round(b.ry / 360) * 360;
         // 10.4: whole turns are the same pose — start the way home from the nearest one
@@ -22443,7 +22539,8 @@ var Oe = function(props) {
       var n = Math.max(1, Math.ceil(dt * 240)), h = dt / n;
       var mainAtRest = !g.active && Math.abs(g.holdXV) < 200 && Math.abs(g.holdX) < 0.25 * U && Math.abs(g.holdYV) < 200 &&
         (g.phase === 'inspect_settle' || (g.phase === 'inspect_spin' && Math.hypot(g.inspectRYV, g.inspectRXV) < 90));
-      if (!recovering && mainAtRest && now - lastImpactT > 220 && !wreckBusy(now)) startRecovery(now);
+      // 40.8: the wreck stays a moment (it settles crooked, fallen, scattered) before anyone tidies up
+      if (!recovering && mainAtRest && now - lastImpactT > 1100 && !wreckBusy(now)) startRecovery(now);
       if (g.active && recovering) recovering = false;   // grabbed again: the world is live again
       var fricK = Math.exp(-h / FRICTION_TAU), spinK = Math.exp(-h / SPIN_TAU);
       var wallW = 2 * Math.PI / 0.25;
@@ -22494,6 +22591,7 @@ var Oe = function(props) {
         }
         // ---- contacts along each side of the row (not while regrouping:
         // cards finding their way home do not knock each other again) ----
+        for (var pass2 = 0; pass2 < 2; pass2++)       // 40.8: two passes so a push travels down the chain
         for (var side = -1; side <= 1 && !recovering; side += 2) {
           var innerPos = g.holdX, innerV = g.holdXV, innerHeld = true;
           for (var k = 1; k <= 3; k++) {
@@ -22501,8 +22599,10 @@ var Oe = function(props) {
             if (!cardAtRel(rel)) break;
             var b = bodyAt(rel);
             if (b.flying || b.z < -0.6 * U) { b.touching = false; continue; }   // 10.4: thrown clear of the row
+            // 40.8: a pane lying flat is out of the row; a leaning one meets its neighbour with its top
+            if (Math.abs(b.f) > 55) { b.touching = false; continue; }
             var pr = pass[rel] ? pass[rel].x : 0;
-            var pos = rel * U + slide.x + pr + b.x;
+            var pos = rel * U + slide.x + pr + b.x + 0.18 * (r.cardHeight || 360) * Math.sin(b.l * Math.PI / 180) * Math.cos(b.f * Math.PI / 180);
             var reach = (innerHeld ? HELD_REACH - 0.45 * (1 - g.holdScale) : BODY_REACH) * U;
             var overlap = reach - side * (pos - innerPos);
             // 7.8: the held card flies in 2D — carried far enough above or below
@@ -22519,7 +22619,7 @@ var Oe = function(props) {
               if (entering) {
                 // Where it lands on this pane: the held card's grip point and
                 // tilt, or — card on card — how the inner pane is leaning/turning.
-                var hgt = innerHeld ? clamp(g.normTouchY * -0.5 + (g.inspectRX || 0) / 20 - (g.holdY - b.y) / (0.5 * cardH), -1, 1) : clamp(inner ? inner.l / 12 + inner.f / 30 : 0, -1, 1);
+                var hgt = innerHeld ? clamp(g.normTouchY * -0.5 + (g.inspectRX || 0) / 20 - (g.holdY - b.y) / (0.5 * cardH), -1, 1) : clamp(inner ? inner.l / 34 + inner.f / 60 + 0.35 * (Math.random() - 0.5) : 0, -1, 1);
                 var obl = innerHeld ? clamp((g.inspectRY || 0) / 18 + (g.vy || 0) / 1400, -1, 1) : clamp(inner ? inner.vry / 400 : 0, -1, 1);
                 var hitB = contactAt(rel, hgt, obl);
                 hitB.hitVY = innerHeld ? g.holdYV : (inner ? inner.vy : 0);
@@ -22532,16 +22632,21 @@ var Oe = function(props) {
                 b.x += side * overlap * (1 - shareH); g.holdX -= side * overlap * shareH;
                 if (vrel > 0) {
                   var eH = E_HELD + 0.2 * Math.tanh(vrel / 1400);         // harder hits bounce more
-                  var jj = (1 + eH) * vrel;
-                  impulse(b, side, jj * HELD_MASS / (1 + HELD_MASS));
-                  g.holdXV -= side * jj / (1 + HELD_MASS);
+                  var mb = b.m || 1;
+                  var jj = (1 + eH) * vrel * HELD_MASS * mb / (HELD_MASS + mb);
+                  impulse(b, side, jj);                                   // impulse divides by the pane's mass
+                  g.holdXV -= side * jj / HELD_MASS;
                   if (entering) heldJolt(side, vrel);
                 }
               } else {
-                b.x += side * overlap * 0.5; if (inner) inner.x -= side * overlap * 0.5;
+                // 40.8: masses decide who moves: a light pane is thrown, a heavy one barely gives
+                var mi = inner ? (inner.m || 1) : 1, mo = b.m || 1;
+                b.x += side * overlap * mi / (mi + mo); if (inner) inner.x -= side * overlap * mo / (mi + mo);
                 if (vrel > 0) {
-                  var dv = (1 + E_BODY + 0.15 * Math.tanh(vrel / 1400)) * 0.5 * vrel;
-                  impulse(b, side, dv); if (inner) inner.vx -= side * dv;
+                  var jb = (1 + E_BODY + 0.15 * Math.tanh(vrel / 1400)) * vrel * mi * mo / (mi + mo);
+                  impulse(b, side, jb); if (inner) inner.vx -= side * jb / mi;
+                  // the inner pane leaning into it hands over some of its lean
+                  if (inner && side * inner.l > 4) { var tl = inner.vl * (0.12 + 0.18 * Math.random()); b.vl += tl * mi / mo; inner.vl -= tl; }
                 }
               }
             } else if (overlap < -0.04 * U) {
@@ -22585,22 +22690,37 @@ var Oe = function(props) {
               bd.vf += (-wfl * wfl * (bd.f - fT) - 2 * 0.7 * wfl * bd.vf) * h;
             } else bd.vf *= Math.exp(-h / 1.6);
           } else {
-            bd.vx *= fricK;
+            bd.vx *= Math.exp(-h / (bd.fr || FRICTION_TAU));
             var lim = WALL * U;
             if (Math.abs(bd.x) > lim) bd.vx += -wallW * wallW * (bd.x - (bd.x > 0 ? lim : -lim)) * h;
             bd.vz += (-Math.pow(2 * Math.PI / 0.9, 2) * bd.z - 2 * 0.5 * (2 * Math.PI / 0.9) * bd.vz) * h;
             bd.vry *= spinK;
-            bd.vl += (-leanW * leanW * bd.l - 2 * leanZ * leanW * bd.vl) * h;
+            // 40.8 LEAN as a rigid pane on its bottom edge: gravity rights it while it is
+            // inside its tipping angle (strongest near upright, gone at the tipping point),
+            // and past that it pulls it over. Each time it rocks across its base it loses
+            // energy; static friction can leave it standing crooked.
+            var tipL = bd.tipL || 24, gL = bd.gL || 2000, aL = Math.abs(bd.l), sL = bd.l >= 0 ? 1 : -1;
+            var torqueL = aL < tipL ? -sL * gL * Math.sin((tipL - aL) * Math.PI / 180) : sL * gL * Math.sin(Math.min(90, aL - tipL) * Math.PI / 180) * 1.4;
+            var lPrev = bd.l;
+            bd.vl += torqueL * h / Math.max(0.6, bd.m || 1);
+            bd.vl *= Math.exp(-h / 2.2);                                  // air
+            if (lPrev * (bd.l + bd.vl * h) < 0) bd.vl *= bd.rock || 0.65; // rocking over its base
+            if (aL < (bd.restL || 4) && Math.abs(bd.vl) < 26 && !bd.touching) bd.vl = 0;   // friction holds it there
             // Vertical: displaced panes settle back onto the row.
             var wy = 2 * Math.PI / 0.55;
             bd.vy += (-wy * wy * bd.y - 2 * 0.45 * wy * bd.vy) * h;
             // Fall (rotateX, backwards): below ~32° it rights itself; past that
             // "gravity" wins and it goes down to lie almost flat, where it stays
             // until recovery stands it back up.
-            var FALL_TIP = 32, FALL_FLAT = 84;
-            var wf2 = 2 * Math.PI / 0.42;
-            var fTarget = Math.abs(bd.f) < FALL_TIP ? 0 : (bd.f > 0 ? FALL_FLAT : -FALL_FLAT);
-            bd.vf += (-wf2 * wf2 * (bd.f - fTarget) - 2 * (fTarget ? 0.55 : 0.3) * wf2 * bd.vf) * h;
+            // 40.8 FALL the same way: inside its tipping angle it rocks back (and may stay a
+            // little tilted), past it gravity takes it down to lie at its own angle
+            var tipF = bd.tipF || 30, aF = Math.abs(bd.f), sF = bd.f >= 0 ? 1 : -1;
+            var torqueF = aF < tipF ? -sF * 1700 * Math.sin((tipF - aF) * Math.PI / 180) : sF * 2400 * Math.sin(Math.min(90, aF - tipF) * Math.PI / 180);
+            var fPrev = bd.f;
+            bd.vf += torqueF * h / Math.max(0.6, bd.m || 1);
+            bd.vf *= Math.exp(-h / 1.8);
+            if (fPrev * (bd.f + bd.vf * h) < 0) bd.vf *= 0.55;
+            if (aF < 3 && Math.abs(bd.vf) < 20) bd.vf = 0;
           }
           bd.vx = clamp(bd.vx, -3000, 3000);
           // Keep the chaos inside the stage: thrown panes stop ~a card-width back,
@@ -22613,10 +22733,19 @@ var Oe = function(props) {
           if (!bd.flying && (bd.z <= -1.3 * U || bd.z >= 0.35 * U)) bd.vz *= -0.25;
           bd.vy = clamp(bd.vy, -2000, 2000);
           bd.y = clamp(bd.y + bd.vy * h, (bd.flying ? -2.2 : -0.6) * (r.cardHeight || 360), (bd.flying ? 0.5 : 0.6) * (r.cardHeight || 360));
-          if (bd.flying) bd.f += bd.vf * h;
-          else { bd.f = clamp(bd.f + bd.vf * h, -88, 88); if (Math.abs(bd.f) >= 88) bd.vf *= -0.2; }
-          if (bd.flying) bd.l += bd.vl * h;
-          else { bd.l = clamp(bd.l + bd.vl * h, -LEAN_MAX, LEAN_MAX); if (Math.abs(bd.l) >= LEAN_MAX) bd.vl *= -0.3; }              // hit the tipping limit: bounce back
+          if (bd.flying || recovering) bd.f += bd.vf * h;
+          else {
+            // 40.8: a falling pane lands at its own angle and bounces a little off the table
+            var lf = bd.lieF || 84;
+            bd.f = clamp(bd.f + bd.vf * h, -lf, lf);
+            if (Math.abs(bd.f) >= lf && bd.vf * bd.f > 0) { bd.vf *= -0.22; if (Math.abs(bd.vf) < 40) bd.vf = 0; }
+          }
+          if (bd.flying || recovering) bd.l += bd.vl * h;
+          else {
+            var ll = bd.lieL || 75;
+            bd.l = clamp(bd.l + bd.vl * h, -ll, ll);
+            if (Math.abs(bd.l) >= ll && bd.vl * bd.l > 0) { bd.vl *= -0.25; if (Math.abs(bd.vl) < 40) bd.vl = 0; }   // toppled onto its side
+          }
         }
       }
       for (var key2 in bodies) {
@@ -23863,7 +23992,10 @@ var Oe = function(props) {
     // landscape's much longer flowSpan, from packing more columns into the
     // same formula, would overshoot even higher than 1) fixes this.
     var shoulder = isLandscape ? 0.45 : flowSpan * 0.15;
-    var focus = Math.max(0, 1 - distance / shoulder);
+    var focusLin = Math.max(0, 1 - distance / shoulder);
+    // 40.8: the turn to face the viewer eases in and out (smoothstep) instead of a linear
+    // ramp that stops dead at the shoulder — the card settles to face you, not clicks in
+    var focus = focusLin * focusLin * (3 - 2 * focusLin);
     var edge = Math.min(1, Math.max(0, (distance - shoulder) / (flowSpan * 0.35)));
     // 6.8: x is pre-divided by the perspective's magnification of the z push,
     // so every card's projected centre sits at exactly offset * flowPitch —
@@ -23913,7 +24045,7 @@ var Oe = function(props) {
   // No fx = the resting pose.
   // 10.5: the glass rim of a card — 4 straight sides + 3 segments per rounded corner, each a
   // thin strip standing perpendicular to the face, built once per card size
-  var SLAB_T = 6.4;  // 11.6: 2/5 of 11.3's slab — light, not clunky, while spinning fast
+  var SLAB_T = 3.4;  // 40.8: thinner, lighter glass (was 6.4) — 11.6: 2/5 of 11.3's slab — light, not clunky, while spinning fast
   var buildRim = function(el) {
     var W = el.offsetWidth, H = el.offsetHeight;
     if (!W || !H) return el.__rim || null;
@@ -26389,6 +26521,7 @@ var MinestPortraitGestureManager = (function() {
       // iOS only opens the keyboard for a focus inside the gesture: hold it on a proxy
       try { kb.focus({ preventScroll: true }); } catch (err) { kb.focus(); }
       var caret = caretOffsetAt(gs.cardEl, gs.startX, gs.startY, title);
+      window.__clearEditStartedAt = Date.now();
       var bg = getComputedStyle(gs.cardEl).backgroundColor;
       ctx.setGapInsertText(title);
       ctx.setGapInsertSlot({ colId: gs.colId, editCardId: gs.cardObj.id, beforeCardId: null, targetIndex: -1, caret: caret, bg: bg });
@@ -26508,6 +26641,8 @@ var MinestPortraitGestureManager = (function() {
 
     var onDown = function(e) {
       if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
+      // 40.8: while the Repo water runs, fingers drive the water, not card gestures
+      if (window.RippleExplore && window.RippleExplore.isMode && window.RippleExplore.isMode()) return;
       if (foldPick) {
         if (e.type.startsWith('touch')) return;                       // handled by onFoldTouchStart
         if (e.pointerId !== foldPick.pointerId) pickIntoFold(e.target);
@@ -29290,21 +29425,33 @@ var ke = function(props) {
   (0, _.useEffect)(function() {
     return function() { GlassLiquid.setBoardActive(false); CardGlassShatter.setBoardActive(false); };
   }, []);
+  // 40.8 Repo mode runs exactly while the board card mode is 'ripple'
+  (0, _.useEffect)(function() {
+    if (!window.RippleExplore || !window.RippleExplore.enterMode) return;
+    if (boardCardMode === 'ripple' && layoutMode === 'swimlane') {
+      var lane = swimlaneRef.current || document.querySelector('.board-swimlane-scroll');
+      // after the commit, so the lists are laid out
+      var t = setTimeout(function() { window.RippleExplore.enterMode(lane); }, 30);
+      return function() { clearTimeout(t); };
+    }
+    window.RippleExplore.exitMode();
+  }, [boardCardMode, layoutMode, board.id]);
+  (0, _.useEffect)(function() {
+    return function() { if (window.RippleExplore && window.RippleExplore.exitMode) window.RippleExplore.exitMode(); };
+  }, []);
   var cycleBoardCardMode = function() {
     var next = boardCardMode === 'none' ? 'liq' : (boardCardMode === 'liq' ? 'smash' : (boardCardMode === 'smash' ? 'ink' : (boardCardMode === 'ink' ? 'ripple' : (boardCardMode === 'ripple' ? 'list-wallet' : 'none'))));
     if (boardCardMode === 'ink' && next !== 'ink' && onUpdateBoard) {
       onUpdateBoard(Object.assign({}, board, { inkEnabled: false }));
     }
     if (next === 'ink') {
-      setBoardCardMode('none');
+      // 40.8: stay on 'ink' so the next tap moves on to ripple (it used to fall back to
+      // 'none', which made the cycle skip ripple and List Wallet entirely)
+      setBoardCardMode('ink');
       if (onUpdateBoard) onUpdateBoard(Object.assign({}, board, { inkEnabled: true }));
     } else if (next === 'ripple') {
+      // 40.8 Repo mode: continuous water, started/stopped by the effect below
       setBoardCardMode('ripple');
-      var rippleLane = document.querySelector('.board-swimlane-scroll');
-      if (rippleLane && window.RippleExplore && window.RippleExplore.triggerAt) {
-        var rr = rippleLane.getBoundingClientRect();
-        window.RippleExplore.triggerAt(rippleLane, rr.left + rr.width / 2, rr.top + rr.height / 2);
-      }
     } else if (next === 'list-wallet') {
       setBoardCardMode('list-wallet');
       if (window.openListWallet) window.openListWallet();
@@ -37406,6 +37553,7 @@ var Ve = (function(_Component) {
     document.head.appendChild(st);
   }
 
+  var layerRO = null;
   function ensureDOM() {
     if (!document.body) return;
     injectCSS();
@@ -37428,7 +37576,9 @@ var Ve = (function(_Component) {
       resize(true);
       // the phone screen changes size without a window resize (rotation, full-screen view)
       // (the work runs a frame later: resizing inside the observer's own callback loops it)
-      if (window.ResizeObserver) { try { new ResizeObserver(function () { requestAnimationFrame(function () { resize(false); placeBtn(); kick(); }); }).observe(layer); } catch (e) {} }
+      // (40.8: one observer only — the old layer's observer was never disconnected)
+      if (layerRO) { try { layerRO.disconnect(); } catch (e) {} layerRO = null; }
+      if (window.ResizeObserver) { try { layerRO = new ResizeObserver(function () { requestAnimationFrame(function () { resize(false); placeBtn(); kick(); }); }); layerRO.observe(layer); } catch (e) {} }
     }
     if (!btn || !host.contains(btn)) {
       if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
@@ -39680,6 +39830,39 @@ var Ve = (function(_Component) {
     kick();
   }
 
+  // 40.8: double-tap anywhere leaves the running light effect. The tab bar sits under the
+  // effect, so this is the way out; no extra button, the screen stays immersive.
+  var dtap = { t: 0, x: 0, y: 0, at: 0 };
+  window.addEventListener('pointerdown', function (e) {
+    if (!stageOn || mode === 'none') { dtap.t = 0; return; }
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    var tg = e.target;
+    if (tg && tg.closest && tg.closest('button, a, input, textarea, select, [contenteditable="true"], .fbfx-btn')) { dtap.t = 0; return; }
+    var now = performance.now();
+    if (dtap.t && now - dtap.t < 340 && Math.hypot(e.clientX - dtap.x, e.clientY - dtap.y) < 56) {
+      var firstAt = dtap.at;
+      dtap.t = 0;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      // the click this second tap makes must not reach the page
+      var swallow = function (ev) { ev.preventDefault(); ev.stopImmediatePropagation(); };
+      window.addEventListener('click', swallow, true);
+      setTimeout(function () { window.removeEventListener('click', swallow, true); }, 450);
+      // undo what the first tap did: a Cover Flow flip, a Clear row opened for editing
+      var lf = window.__cfLastFlip;
+      if (lf && lf.at >= firstAt - 30) { try { window.dispatchEvent(new CustomEvent('fbfx:undoflip', { detail: { id: lf.id } })); } catch (err) {} }
+      if ((window.__clearEditStartedAt || 0) >= firstAt - 30) {
+        var ta = document.querySelector('.clear-active-column .fb-composer textarea');
+        if (ta) { try { ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); } catch (err) {} }
+      }
+      window.__fbfxExitAt = Date.now();
+      setMode('none');
+      try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic('light'); else if (navigator.vibrate) navigator.vibrate(12); } catch (err) {}
+      return;
+    }
+    dtap.t = now; dtap.at = Date.now(); dtap.x = e.clientX; dtap.y = e.clientY;
+  }, true);
+
   // Fireworks: a click on empty space sends a rocket up to that point.
   document.addEventListener('pointerdown', function (e) {
     if (!stageOn || mode !== 'firework' || !W) return;
@@ -39807,7 +39990,8 @@ var Ve = (function(_Component) {
     if (kind !== stageKind) {
       if (kind && lastStageKind && kind !== lastStageKind && Date.now() - lastIntroAt > 3000) introNow = true;
       if (kind) lastStageKind = kind;
-      if (stageKind) modeByKind[stageKind] = mode;
+      // 40.8: leaving a stage turns its effect off (it used to come back on the next visit)
+      if (stageKind) modeByKind[stageKind] = 'none';
       stageKind = kind;
       fc.t = -1; boardFocus = null;
       // each stage has its own light mode (a laser show on the board does not follow you into
@@ -39824,7 +40008,7 @@ var Ve = (function(_Component) {
       if (on) modeT = 0;
       renderBtn();
       placeBtn();
-      if (!on) { clearAllLit(); document.documentElement.classList.remove('fbfx-grab', 'fbfx-grabbing'); if (poolEl) poolEl.style.opacity = '0'; }
+      if (!on) { clearAllLit(); intro = null; document.documentElement.classList.remove('fbfx-grab', 'fbfx-grabbing'); if (poolEl) poolEl.style.opacity = '0'; }
       audioMode(on ? mode : 'none');
       kick();
     } else if (on) {
