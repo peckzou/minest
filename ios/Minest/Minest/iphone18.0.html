@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 40.8 · FX, Cover Flow &amp; Repo</title>
+    <title>Minest iPhone 40.9 · Neon Light Box</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -4222,6 +4222,7 @@ html.fbfx-board-fx .fb-board-stage .board-add-list-btn, html.fb-cardfx-on .fb-bo
 .ios-tab-item.dock-fx-tab.active.lasers { color: #bf5af2; }
 .ios-tab-item.dock-fx-tab.active.firework { color: #ff9f0a; }
 .ios-tab-item.dock-fx-tab.active.spotlight { color: #ffd60a; }
+.ios-tab-item.dock-fx-tab.active.neon { color: var(--neon, #ff3a1a); text-shadow: 0 0 8px var(--neon, #ff3a1a); }
 .theme-white .ios-tab-item.dock-fx-tab.active.spotlight { color: #b8860b; }
 .ios-tab-item.dock-fx-tab.active.smash { color: #ff453a; }
 .ios-tab-item.dock-fx-tab.active.ink { color: #8e8e93; }
@@ -4858,6 +4859,68 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
 .clear-mode .clear-active-column .kanban-cards-scroll:has(.fb-composer) article.kanban-card {
   filter: brightness(.38) saturate(.8) !important;
 }
+
+/* 40.9 Light FX · NEON — cards become 3D light boxes lit from inside: a frosted diffuser
+   glowing hottest at the centre, a neon tube round the edge, light spilling onto the room. */
+html.fbfx-neon .coverflow-card-item .face-front,
+html.fbfx-neon .coverflow-card-item .face-back,
+html.fbfx-neon .fb-board-stage article.kanban-card,
+html.fbfx-neon .board-swimlane-scroll article.kanban-card {
+  background:
+    radial-gradient(115% 85% at 50% 42%, color-mix(in srgb, var(--neon2) 70%, #fff 30%) 0%, color-mix(in srgb, var(--neon) 62%, #1a1a1a) 48%, color-mix(in srgb, var(--neon) 26%, #050506) 100%) !important;
+  border: 1.5px solid var(--neon2) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--neon) 70%, transparent),
+    0 0 8px var(--neon2),
+    0 0 22px var(--neon),
+    0 0 54px color-mix(in srgb, var(--neon) 55%, transparent),
+    0 22px 38px rgba(0, 0, 0, .55),
+    inset 0 0 18px color-mix(in srgb, var(--neon2) 75%, transparent),
+    inset 0 0 46px color-mix(in srgb, var(--neon) 55%, transparent),
+    inset 0 -10px 22px rgba(0, 0, 0, .28) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  transition: background .35s ease, box-shadow .35s ease, border-color .35s ease;
+}
+html.fbfx-neon .coverflow-card-item .face-front *,
+html.fbfx-neon .coverflow-card-item .face-back *,
+html.fbfx-neon .fb-board-stage article.kanban-card *,
+html.fbfx-neon .board-swimlane-scroll article.kanban-card * {
+  color: #fff !important;
+  text-shadow: 0 0 3px var(--neon2), 0 0 10px var(--neon), 0 0 22px var(--neon) !important;
+}
+/* the glass overlays would wash the light out */
+html.fbfx-neon .coverflow-card-item .cf-broad-reflection,
+html.fbfx-neon .coverflow-card-item .liquid-glass-caustic,
+html.fbfx-neon .coverflow-card-item .cf-touch-sheen { opacity: .25 !important; }
+html.fbfx-neon .coverflow-card-item .coverflow-flipper { box-shadow: 0 0 60px color-mix(in srgb, var(--neon) 45%, transparent) !important; }
+@keyframes fbfxNeonIgnite {
+  0% { filter: brightness(.25); } 12% { filter: brightness(1.25); } 20% { filter: brightness(.4); }
+  32% { filter: brightness(1.1); } 40% { filter: brightness(.7); } 58% { filter: brightness(1.18); } 100% { filter: brightness(1); }
+}
+html.fbfx-neon-ignite .coverflow-card-item .face-front,
+html.fbfx-neon-ignite .coverflow-card-item .face-back,
+html.fbfx-neon-ignite .fb-board-stage article.kanban-card,
+html.fbfx-neon-ignite .board-swimlane-scroll article.kanban-card { animation: fbfxNeonIgnite .62s steps(1, end) both; }
+/* the gas tile: a periodic-table square, top-right, shown for a moment */
+.fbfx-neon-btn {
+  position: fixed; z-index: 60; width: 64px; height: 64px; padding: 6px 7px; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+  border-radius: 12px; border: 1.5px solid var(--neon2, #ff9a6b);
+  background: rgba(10, 10, 14, .72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  color: #fff; font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; line-height: 1; cursor: pointer;
+  box-shadow: 0 0 10px var(--neon, #ff3a1a), inset 0 0 12px color-mix(in srgb, var(--neon, #ff3a1a) 45%, transparent);
+  opacity: 0; transform: scale(.86); pointer-events: none;
+  transition: opacity .25s ease, transform .3s cubic-bezier(.2,.9,.3,1.3);
+  -webkit-tap-highlight-color: transparent;
+}
+.fbfx-neon-btn.in-shell { position: absolute; }
+.fbfx-neon-btn.show { opacity: 1; transform: scale(1); pointer-events: auto; }
+.fbfx-neon-btn:active { transform: scale(.94); }
+.fbfx-neon-btn .nb-n { font-size: 10px; font-weight: 600; opacity: .8; }
+.fbfx-neon-btn .nb-s { font-size: 25px; font-weight: 700; letter-spacing: -.5px; align-self: center; color: #fff;
+  text-shadow: 0 0 4px var(--neon2, #ff9a6b), 0 0 12px var(--neon, #ff3a1a), 0 0 22px var(--neon, #ff3a1a); }
+.fbfx-neon-btn .nb-name { font-size: 7.5px; font-weight: 600; letter-spacing: .3px; opacity: .78; align-self: center; text-transform: uppercase; }
 
 /* 40.8 Repo mode: the finger is the source, no lens or halo marks it */
 .ripple-drop.ripple-ghost { display: none !important; }
@@ -20107,7 +20170,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "40.8" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "40.9" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -20231,7 +20294,7 @@ var De = function(props) {
               disabled: lm === 'off',
               onClick: function() {
                 if (!window.FBFX || !window.FBFX.active) return;
-                var M = ['none', 'lasers', 'firework', 'spotlight'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
                 window.FBFX.setMode(M[(M.indexOf(window.FBFX.mode) + 1) % M.length]);
                 setFxTab(window.FBFX.mode + '|' + fxTab.split('|')[1]);
               },
@@ -20593,12 +20656,12 @@ var De = function(props) {
               disabled: lm === 'off',
               onClick: function() {
                 if (!window.FBFX || !window.FBFX.active) return;
-                var M = ['none', 'lasers', 'firework', 'spotlight'];
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
                 window.FBFX.setMode(M[(M.indexOf(window.FBFX.mode) + 1) % M.length]);
                 setFxTab(window.FBFX.mode + '|' + fxTab.split('|')[1]);
               },
               className: "ios-tab-item dock-fx-tab " + (on ? "active " + lm : ""),
-              title: "Light FX — tap to cycle (off → lasers → firework → spotlight)",
+              title: "Light FX — tap to cycle (off → lasers → firework → spotlight → neon)",
               children: [
                 (0, P.jsx)('span', { className: "ios-tab-icon", children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-5 h-5", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true",
                   children: [(0, P.jsx)('path', { d: "M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z" }), (0, P.jsx)('path', { d: "M18.5 16v4M16.5 18h4" })] }) }),
@@ -37462,10 +37525,87 @@ var Ve = (function(_Component) {
   'use strict';
   if (window.FBFX) return;
 
-  var MODES = ['none', 'lasers', 'firework', 'spotlight'];
+  var MODES = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
   var INTROS = ['balloons', 'confetti', 'celebration', 'love'];
-  var LABEL = { none: 'Light FX', lasers: 'lasers', firework: 'firework', spotlight: 'spotlight' };
-  var GLYPH = { none: '✦', lasers: '⟡', firework: '✺', spotlight: '◎' };
+  var LABEL = { none: 'Light FX', lasers: 'lasers', firework: 'firework', spotlight: 'spotlight', neon: 'neon' };
+  var GLYPH = { none: '✦', lasers: '⟡', firework: '✺', spotlight: '◎', neon: '◈' };
+
+  // 40.9 NEON — every card becomes a 3D light box glowing from inside. The colour is a
+  // real noble-gas discharge, picked from the right-hand column of the periodic table.
+  var NEON = [
+    { s: 'He', n: 2,  name: 'Helium',  c: '#ff9f6e', c2: '#ffd6bd' },
+    { s: 'Ne', n: 10, name: 'Neon',    c: '#ff3a1a', c2: '#ff9a6b' },
+    { s: 'Ar', n: 18, name: 'Argon',   c: '#9a6bff', c2: '#d8c6ff' },
+    { s: 'Kr', n: 36, name: 'Krypton', c: '#c9c3ff', c2: '#f4f2ff' },
+    { s: 'Xe', n: 54, name: 'Xenon',   c: '#3d8bff', c2: '#a9cdff' },
+    { s: 'Rn', n: 86, name: 'Radon',   c: '#ff1f4f', c2: '#ff9bb0' }
+  ];
+  var neonIdx = 0, neonBtn = null, neonHideT = 0;
+  try { var nsv = parseInt(localStorage.getItem('fbfx_neon_gas') || '0', 10); if (nsv >= 0 && nsv < NEON.length) neonIdx = nsv; } catch (e) {}
+  function neonApply(ignite) {
+    var root = document.documentElement, on = stageOn && mode === 'neon', gas = NEON[neonIdx];
+    root.classList.toggle('fbfx-neon', on);
+    if (on) {
+      root.style.setProperty('--neon', gas.c);
+      root.style.setProperty('--neon2', gas.c2);
+      root.setAttribute('data-neon', gas.s.toLowerCase());
+      if (ignite) {
+        // a neon tube strikes: a few flickers before it holds
+        root.classList.remove('fbfx-neon-ignite'); void root.offsetWidth; root.classList.add('fbfx-neon-ignite');
+        clearTimeout(neonApply.t); neonApply.t = setTimeout(function () { root.classList.remove('fbfx-neon-ignite'); }, 700);
+      }
+    } else {
+      root.classList.remove('fbfx-neon-ignite');
+      root.removeAttribute('data-neon');
+    }
+    neonRenderBtn();
+  }
+  function neonRenderBtn() {
+    var on = stageOn && mode === 'neon';
+    if (!on) { if (neonBtn) neonBtn.classList.remove('show'); return; }
+    var host = hostEl();
+    if (!neonBtn || !host.contains(neonBtn)) {
+      if (neonBtn && neonBtn.parentNode) neonBtn.parentNode.removeChild(neonBtn);
+      neonBtn = document.createElement('button');
+      neonBtn.type = 'button';
+      neonBtn.className = 'fbfx-neon-btn' + (HOST_SHELL ? ' in-shell' : '');
+      neonBtn.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        neonIdx = (neonIdx + 1) % NEON.length;
+        try { localStorage.setItem('fbfx_neon_gas', String(neonIdx)); } catch (err) {}
+        try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic('selection'); else if (navigator.vibrate) navigator.vibrate(8); } catch (err) {}
+        neonApply(true);
+        neonShow();
+      });
+      host.appendChild(neonBtn);
+    }
+    var gas = NEON[neonIdx];
+    neonBtn.innerHTML = '<span class="nb-n">' + gas.n + '</span><span class="nb-s">' + gas.s + '</span><span class="nb-name">' + gas.name + '</span>';
+    neonBtn.setAttribute('aria-label', 'Neon colour: ' + gas.name + ' — tap for the next gas');
+    // top-right of the stage
+    syncOrigin();
+    var st = stageEl(), sr = st && lrect(st.getBoundingClientRect());
+    // just under the top bar, clear of the cards
+    var bar = document.querySelector('.iphone-topbar, header.iphone-topbar');
+    var br = bar && bar.getBoundingClientRect().height ? lrect(bar.getBoundingClientRect()) : null;
+    var top = br ? br.bottom + 8 : (sr ? sr.top + 8 : 58);
+    neonBtn.style.top = Math.round(top) + 'px';
+    neonBtn.style.left = Math.round((sr ? Math.min(sr.right, W) : W) - 64 - 12) + 'px';
+  }
+  // the tile shows for a few seconds, then gets out of the way; a tap brings it back
+  function neonShow() {
+    if (!(stageOn && mode === 'neon')) return;
+    neonRenderBtn();
+    if (!neonBtn) return;
+    neonBtn.classList.add('show');
+    clearTimeout(neonHideT);
+    neonHideT = setTimeout(function () { if (neonBtn) neonBtn.classList.remove('show'); }, 3200);
+  }
+  window.addEventListener('pointerdown', function (e) {
+    if (!(stageOn && mode === 'neon')) return;
+    if (neonBtn && neonBtn.contains(e.target)) return;
+    neonShow();
+  }, true);
   var LS_KEY = 'focusboard_fx_mode_v1';
   var TAU = Math.PI * 2;
 
@@ -39795,6 +39935,8 @@ var Ve = (function(_Component) {
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, W, H);
     if (poolEl && !(ambient && mode === 'spotlight' && stageKind === 'board')) poolEl.style.opacity = '0';
+    // 40.9: neon glows through CSS alone — no canvas work, the loop stops until needed
+    if (ambient && mode === 'neon' && !intro && !inkOn) { clearAllLit(); placeBtn(); lastT = 0; return; }
     if (ambient) {
       modeT += dt;
       // ease the room into the dark when a mode is switched on
@@ -39839,6 +39981,8 @@ var Ve = (function(_Component) {
     placeBtn();
     // under the spotlight no card may show its back: turn any flipped one face up again
     if (m === 'spotlight') { try { window.dispatchEvent(new Event('fbfx:noflip')); } catch (e) {} }
+    neonApply(m === 'neon');
+    if (m === 'neon') neonShow();
     kick();
   }
 
@@ -40021,6 +40165,7 @@ var Ve = (function(_Component) {
       renderBtn();
       placeBtn();
       if (!on) { clearAllLit(); intro = null; document.documentElement.classList.remove('fbfx-grab', 'fbfx-grabbing'); if (poolEl) poolEl.style.opacity = '0'; }
+      neonApply(false);
       audioMode(on ? mode : 'none');
       kick();
     } else if (on) {
