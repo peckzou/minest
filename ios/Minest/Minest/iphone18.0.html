@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 31.6 · Mail Swipe + Badge Wall</title>
+    <title>Minest iPhone 31.7 · Wallet Reorder</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -19135,7 +19135,7 @@ window.openCardWalletForCol = function(colId) {
 
         var dy = e.clientY - startY;
 
-        if (!isDragging && Math.abs(dy) > 7) {
+        if (!isDragging && Math.abs(dy) > 3) {
           isDragging = true;
           isDraggingAny = true;
           hasMoved = true;
@@ -19154,15 +19154,15 @@ window.openCardWalletForCol = function(colId) {
           var curTop = startTop + dy;
           var maxTop = (cardsData.length - 1) * 54;
           // Rubber banding past boundaries
-          if (curTop < 0) curTop = curTop * 0.32;
-          if (curTop > maxTop) curTop = maxTop + (curTop - maxTop) * 0.32;
+          if (curTop < 0) curTop = curTop * 0.5;
+          if (curTop > maxTop) curTop = maxTop + (curTop - maxTop) * 0.5;
           var effDy = curTop - startTop;
 
-          var tilt = Math.max(-2.5, Math.min(2.5, vy * 0.04));
-          shell.style.transform = 'translate3d(0, ' + effDy.toFixed(1) + 'px, 0) scale(1.035) rotate(' + tilt.toFixed(1) + 'deg)';
+          var tilt = Math.max(-7, Math.min(7, vy * 0.11));
+          shell.style.transform = 'translate3d(0, ' + effDy.toFixed(1) + 'px, 0) scale(1.07) rotate(' + tilt.toFixed(1) + 'deg)';
 
           // Calculate target slot
-          var targetSlot = Math.round((startTop + effDy) / 54);
+          var targetSlot = Math.round((startTop + effDy) / 54 + (effDy > 0 ? 0.15 : -0.15));
           targetSlot = Math.max(0, Math.min(cardsData.length - 1, targetSlot));
 
           if (targetSlot !== currentSlot) {
@@ -19180,7 +19180,7 @@ window.openCardWalletForCol = function(colId) {
                 vSlot = oIdx + 1;
               }
               var targetY = (vSlot - oIdx) * 54;
-              otherShell.style.transition = 'transform 0.28s cubic-bezier(0.2, 1, 0.32, 1.1)';
+              otherShell.style.transition = 'transform 0.22s cubic-bezier(0.25, 1.45, 0.4, 1)';
               otherShell.style.transform = 'translate3d(0, ' + targetY + 'px, 0)';
             });
           }
@@ -19211,14 +19211,14 @@ window.openCardWalletForCol = function(colId) {
             shell.classList.add('is-expanded');
             if (navigator.vibrate) try { navigator.vibrate(10); } catch(err) {}
             cardShells.forEach(function(s, si) {
-              s.style.transition = 'transform 0.38s cubic-bezier(0.18, 1, 0.25, 1), box-shadow 0.3s ease, opacity 0.25s ease';
+              s.style.transition = 'transform 0.46s cubic-bezier(0.2, 1.35, 0.3, 1), box-shadow 0.3s ease, opacity 0.25s ease';
               if (s === shell) {
                 s.style.zIndex = '500';
-                s.style.transform = 'translateY(-26px) scale(1.03)';
+                s.style.transform = 'translateY(-44px) scale(1.06)';
                 s.style.opacity = '1';
               } else if (si > idx) {
                 s.style.zIndex = String(si + 1);
-                s.style.transform = 'translateY(160px)';
+                s.style.transform = 'translateY(260px)';
                 s.style.opacity = '0.92';
               } else {
                 s.style.zIndex = String(si + 1);
@@ -19236,7 +19236,7 @@ window.openCardWalletForCol = function(colId) {
         shell.classList.add('is-settling');
 
         var snapOffset = (currentSlot - heldIdx) * 54;
-        shell.style.transition = 'transform 0.34s cubic-bezier(0.18, 1.25, 0.32, 1), box-shadow 0.28s ease';
+        shell.style.transition = 'transform 0.42s cubic-bezier(0.2, 1.5, 0.3, 1), box-shadow 0.28s ease';
         shell.style.transform = 'translate3d(0, ' + snapOffset + 'px, 0) scale(1) rotate(0deg)';
 
         setTimeout(function() {
@@ -19249,12 +19249,14 @@ window.openCardWalletForCol = function(colId) {
             // Commit new order
             var moved = cardsData.splice(heldIdx, 1)[0];
             cardsData.splice(currentSlot, 0, moved);
+            // 31.7: the list on the board follows the wallet order
+            window.dispatchEvent(new CustomEvent('minestReorderCards', { detail: { colId: targetColId, order: cardsData.map(function(c) { return c.id; }) } }));
 
             // Re-render stack DOM with new order
             stackWrapper.innerHTML = renderCards();
             bindCardGestures();
           }
-        }, 340);
+        }, 420);
       }
 
       shell.addEventListener('pointerdown', onPointerDown);
@@ -19461,7 +19463,7 @@ window.openListWallet = function() {
         var now = performance.now(), dt = Math.max(1, now - lastT);
         vy = (e.clientY - lastY) / dt; lastY = e.clientY; lastT = now;
         var dy = e.clientY - startY;
-        if (!dragging && Math.abs(dy) > 7) {
+        if (!dragging && Math.abs(dy) > 3) {
           dragging = true; draggingAny = true;
           if (expanded) restAll(0.2);
           if (navigator.vibrate) try { navigator.vibrate(12); } catch (err) {}
@@ -19470,11 +19472,11 @@ window.openListWallet = function() {
         }
         if (!dragging) return;
         var cur = top0 + dy, max = (lists.length - 1) * PEEK;
-        if (cur < 0) cur *= 0.32;
-        if (cur > max) cur = max + (cur - max) * 0.32;
-        var eff = cur - top0, tilt = Math.max(-2.5, Math.min(2.5, vy * 0.04));
-        shell.style.transform = 'translate3d(0,' + eff.toFixed(1) + 'px,0) scale(1.035) rotate(' + tilt.toFixed(1) + 'deg)';
-        var t = Math.max(0, Math.min(lists.length - 1, Math.round((top0 + eff) / PEEK)));
+        if (cur < 0) cur *= 0.5;
+        if (cur > max) cur = max + (cur - max) * 0.5;
+        var eff = cur - top0, tilt = Math.max(-7, Math.min(7, vy * 0.11));
+        shell.style.transform = 'translate3d(0,' + eff.toFixed(1) + 'px,0) scale(1.07) rotate(' + tilt.toFixed(1) + 'deg)';
+        var t = Math.max(0, Math.min(lists.length - 1, Math.round((top0 + eff) / PEEK + (eff > 0 ? 0.15 : -0.15))));
         if (t !== slot) {
           slot = t;
           if (navigator.vibrate) try { navigator.vibrate(6); } catch (err) {}
@@ -19482,7 +19484,7 @@ window.openListWallet = function() {
             if (o === shell) return;
             var oi = parseInt(o.getAttribute('data-card-idx'), 10), v = oi;
             if (oi > held && oi <= slot) v = oi - 1; else if (oi < held && oi >= slot) v = oi + 1;
-            o.style.transition = 'transform 0.28s cubic-bezier(0.2, 1, 0.32, 1.1)';
+            o.style.transition = 'transform 0.22s cubic-bezier(0.25, 1.45, 0.4, 1)';
             o.style.transform = 'translate3d(0,' + ((v - oi) * PEEK) + 'px,0)';
           });
         }
@@ -19498,24 +19500,26 @@ window.openListWallet = function() {
           expanded = shell; shell.classList.add('is-expanded');
           if (navigator.vibrate) try { navigator.vibrate(10); } catch (err) {}
           shells.forEach(function(s, si) {
-            s.style.transition = 'transform 0.38s cubic-bezier(0.18, 1, 0.25, 1), box-shadow 0.3s ease, opacity 0.25s ease';
-            if (s === shell) { s.style.zIndex = '500'; s.style.transform = 'translateY(-26px) scale(1.03)'; s.style.opacity = '1'; }
-            else if (si > idx) { s.style.zIndex = String(si + 1); s.style.transform = 'translateY(200px)'; s.style.opacity = '0.92'; }
+            s.style.transition = 'transform 0.46s cubic-bezier(0.2, 1.35, 0.3, 1), box-shadow 0.3s ease, opacity 0.25s ease';
+            if (s === shell) { s.style.zIndex = '500'; s.style.transform = 'translateY(-44px) scale(1.06)'; s.style.opacity = '1'; }
+            else if (si > idx) { s.style.zIndex = String(si + 1); s.style.transform = 'translateY(300px)'; s.style.opacity = '0.92'; }
             else { s.style.zIndex = String(si + 1); s.style.transform = ''; s.style.opacity = '0.65'; }
           });
           return;
         }
         if (navigator.vibrate) try { navigator.vibrate([10, 25]); } catch (err) {}
         shell.classList.remove('is-dragging'); shell.classList.add('is-settling');
-        shell.style.transition = 'transform 0.34s cubic-bezier(0.18, 1.25, 0.32, 1), box-shadow 0.28s ease';
+        shell.style.transition = 'transform 0.42s cubic-bezier(0.2, 1.5, 0.3, 1), box-shadow 0.28s ease';
         shell.style.transform = 'translate3d(0,' + ((slot - held) * PEEK) + 'px,0) scale(1) rotate(0deg)';
         setTimeout(function() {
           shell.classList.remove('is-settling'); shell.style.transition = ''; shell.style.transform = ''; draggingAny = false;
           if (slot !== held) {
             var m = lists.splice(held, 1)[0]; lists.splice(slot, 0, m);
             stack.innerHTML = renderCards(); bind();
+            // 31.7: the board follows the wallet order
+            window.dispatchEvent(new CustomEvent('minestReorderColumns', { detail: { order: lists.map(function(l) { return l.id; }) } }));
           }
-        }, 340);
+        }, 420);
       }
       shell.addEventListener('pointerdown', down);
     });
@@ -19801,7 +19805,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "31.6" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "31.7" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -34822,6 +34826,76 @@ var Be = function() {
       window.closePhysicalCardMode = null;
     };
   }, []);
+
+  // 31.7: List Wallet / Card Wallet reorders are written back to the active board
+  (0, _.useEffect)(function() {
+    var byOrder = function(items, order) {
+      var rank = {};
+      order.forEach(function(id, i) { rank[id] = i; });
+      return items.slice().sort(function(a, b) {
+        var ra = rank[a.id] == null ? 1e9 : rank[a.id], rb = rank[b.id] == null ? 1e9 : rank[b.id];
+        return ra - rb;
+      });
+    };
+    var onColumns = function(e) {
+      var order = (e.detail && e.detail.order) || [];
+      if (!order.length) return;
+      setBoards(function(prev) {
+        return prev.map(function(b) {
+          return b.id === activeBoardId ? Object.assign({}, b, { columns: byOrder(b.columns || [], order) }) : b;
+        });
+      });
+    };
+    var onCards = function(e) {
+      var d = e.detail || {};
+      if (!d.colId || !d.order || !d.order.length) return;
+      setBoards(function(prev) {
+        return prev.map(function(b) {
+          if (b.id !== activeBoardId) return b;
+          return Object.assign({}, b, { columns: (b.columns || []).map(function(col) {
+            return col.id === d.colId ? Object.assign({}, col, { cards: byOrder(col.cards || [], d.order) }) : col;
+          }) });
+        });
+      });
+    };
+    window.addEventListener('minestReorderColumns', onColumns);
+    window.addEventListener('minestReorderCards', onCards);
+    return function() {
+      window.removeEventListener('minestReorderColumns', onColumns);
+      window.removeEventListener('minestReorderCards', onCards);
+    };
+  }, [activeBoardId]);
+
+  // 31.7: in Board mode a ticked card sinks to the bottom of its list, wherever it was
+  // ticked (phone, widget, watch). Stable: open and done cards keep their own order.
+  (0, _.useEffect)(function() {
+    if (viewMode !== 'board') return;
+    var isDone = function(c) { return !!(c && (c.complete || c.done || c.isDone || c.mastery === 3)); };
+    var needsSink = function(cards) {
+      var seenDone = false;
+      for (var i = 0; i < cards.length; i++) {
+        if (isDone(cards[i])) seenDone = true; else if (seenDone) return true;
+      }
+      return false;
+    };
+    var any = (boards || []).some(function(b) { return (b.columns || []).some(function(col) { return needsSink(col.cards || []); }); });
+    if (!any) return;
+    var timer = setTimeout(function() {
+      setBoards(function(prev) {
+        return prev.map(function(b) {
+          var changed = false;
+          var cols = (b.columns || []).map(function(col) {
+            var cards = col.cards || [];
+            if (!needsSink(cards)) return col;
+            changed = true;
+            return Object.assign({}, col, { cards: cards.filter(function(c) { return !isDone(c); }).concat(cards.filter(isDone)) });
+          });
+          return changed ? Object.assign({}, b, { columns: cols }) : b;
+        });
+      });
+    }, 450); // let the tick animation play before the card moves down
+    return function() { clearTimeout(timer); };
+  }, [boards, viewMode]);
 
   // 31.6: ticks from the Home Screen widget or the watch mark the card done on the board
   (0, _.useEffect)(function() {
