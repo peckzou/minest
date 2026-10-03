@@ -4920,19 +4920,35 @@ html.fbfx-neon-ignite .coverflow-card-item .face-back,
 html.fbfx-neon-ignite .fb-board-stage article.kanban-card,
 html.fbfx-neon-ignite .board-swimlane-scroll article.kanban-card { animation: fbfxNeonIgnite .62s steps(1, end) both; }
 /* the gas tile: a periodic-table square, top-right, shown for a moment */
+.fbfx-neon-ctl {
+  position: fixed; z-index: 60; width: 64px; display: flex; flex-direction: column; gap: 6px;
+  opacity: 0; transform: scale(.86); transform-origin: top right; pointer-events: none;
+  transition: opacity .25s ease, transform .3s cubic-bezier(.2,.9,.3,1.3);
+}
+.fbfx-neon-ctl.in-shell { position: absolute; }
+.fbfx-neon-ctl.show { opacity: 1; transform: scale(1); pointer-events: auto; }
+.fbfx-neon-pill {
+  height: 26px; border-radius: 13px; border: 1px solid rgba(255,255,255,.22); background: rgba(10,10,14,.72);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); color: #fff;
+  font: 600 11px/1 -apple-system, "SF Pro Text", system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+  -webkit-tap-highlight-color: transparent; cursor: pointer;
+}
+.fbfx-neon-pill span { font-size: 12px; }
+.fbfx-neon-pill.on { border-color: var(--neon2, #ff9a6b); box-shadow: 0 0 8px var(--neon, #ff3a1a); background: color-mix(in srgb, var(--neon, #ff3a1a) 35%, rgba(10,10,14,.8)); }
+.fbfx-neon-pill:active { transform: scale(.94); }
+html.fbfx-neon-painting .perspective-stage [data-card-id],
+html.fbfx-neon-painting article.kanban-card[data-card-id] { cursor: crosshair !important; }
+@keyframes fbfxNeonStrike { 0% { filter: brightness(.3); } 15% { filter: brightness(1.35); } 28% { filter: brightness(.55); } 45% { filter: brightness(1.2); } 100% { filter: brightness(1); } }
+.fbfx-neon-strike, .fbfx-neon-strike .face-front, .fbfx-neon-strike .face-back { animation: fbfxNeonStrike .6s steps(1, end) both; }
 .fbfx-neon-btn {
-  position: fixed; z-index: 60; width: 64px; height: 64px; padding: 6px 7px; box-sizing: border-box;
+  position: relative; z-index: 60; width: 64px; height: 64px; padding: 6px 7px; box-sizing: border-box;
   display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
   border-radius: 12px; border: 1.5px solid var(--neon2, #ff9a6b);
   background: rgba(10, 10, 14, .72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   color: #fff; font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; line-height: 1; cursor: pointer;
   box-shadow: 0 0 10px var(--neon, #ff3a1a), inset 0 0 12px color-mix(in srgb, var(--neon, #ff3a1a) 45%, transparent);
-  opacity: 0; transform: scale(.86); pointer-events: none;
-  transition: opacity .25s ease, transform .3s cubic-bezier(.2,.9,.3,1.3);
   -webkit-tap-highlight-color: transparent;
 }
-.fbfx-neon-btn.in-shell { position: absolute; }
-.fbfx-neon-btn.show { opacity: 1; transform: scale(1); pointer-events: auto; }
 .fbfx-neon-btn:active { transform: scale(.94); }
 .fbfx-neon-btn .nb-n { font-size: 10px; font-weight: 600; opacity: .8; }
 .fbfx-neon-btn .nb-s { font-size: 25px; font-weight: 700; letter-spacing: -.5px; align-self: center; color: #fff;
@@ -37681,7 +37697,63 @@ var Ve = (function(_Component) {
     { s: 'Xe', n: 54, name: 'Xenon',   c: '#3d8bff', c2: '#a9cdff' },
     { s: 'Rn', n: 86, name: 'Radon',   c: '#ff1f4f', c2: '#ff9bb0' }
   ];
-  var neonIdx = 0, neonBtn = null, neonHideT = 0;
+  var neonIdx = 0, neonBtn = null, neonHideT = 0, neonCtl = null, neonPaint = false, neonTick = 0;
+  // 40.9b: per-card neon. mode 'all' = one gas for every card, 'random' = each card its own
+  // (a new shuffle per tap); `ov` holds the cards you set one by one (they win over both).
+  var neonCards = { mode: 'all', seed: 1, ov: {} };
+  try { var ncs = JSON.parse(localStorage.getItem('fbfx_neon_cards_v1') || 'null'); if (ncs && ncs.ov) neonCards = ncs; } catch (e) {}
+  function neonSave() { try { localStorage.setItem('fbfx_neon_cards_v1', JSON.stringify(neonCards)); } catch (e) {} }
+  function neonHash(str) { var x = 2166136261; for (var i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
+  function neonGasIdx(id) {
+    if (neonCards.ov[id] != null) return neonCards.ov[id];
+    if (neonCards.mode === 'random') return neonHash(id + ':' + neonCards.seed) % NEON.length;
+    return -1;   // follows the shared gas
+  }
+  function neonPaintCards() {
+    var on = stageOn && mode === 'neon';
+    var els = document.querySelectorAll('.perspective-stage [data-card-id], .board-swimlane-scroll article.kanban-card[data-card-id], .fb-board-stage article.kanban-card[data-card-id]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], gi = on ? neonGasIdx(el.getAttribute('data-card-id')) : -1;
+      if (gi >= 0) {
+        var gas = NEON[gi];
+        if (el.__neonGas !== gas.s) { el.style.setProperty('--neon', gas.c); el.style.setProperty('--neon2', gas.c2); el.__neonGas = gas.s; }
+      } else if (el.__neonGas) {
+        el.style.removeProperty('--neon'); el.style.removeProperty('--neon2'); el.__neonGas = null;
+      }
+    }
+  }
+  function neonTickStart(on) {
+    // cards come and go as the deck moves: keep their colours on them
+    if (on && !neonTick) neonTick = setInterval(neonPaintCards, 180);
+    if (!on && neonTick) { clearInterval(neonTick); neonTick = 0; }
+    neonPaintCards();
+  }
+  function neonFlash(el) {
+    if (!el) return;
+    el.classList.remove('fbfx-neon-strike'); void el.offsetWidth; el.classList.add('fbfx-neon-strike');
+    setTimeout(function () { el.classList.remove('fbfx-neon-strike'); }, 650);
+  }
+  function neonHaptic(s) { try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic(s || 'selection'); else if (navigator.vibrate) navigator.vibrate(8); } catch (e) {} }
+  // single-card mode: a tap on a card gives that card the next gas (after Rn it follows the
+  // shared colour again); the tap does not flip or open the card
+  var neonCardFrom = function (t) { return t && t.closest ? t.closest('.perspective-stage [data-card-id], article.kanban-card[data-card-id]') : null; };
+  ['pointerdown', 'pointerup', 'mousedown', 'mouseup'].forEach(function (type) {
+    window.addEventListener(type, function (e) {
+      if (!(neonPaint && stageOn && mode === 'neon') || !neonCardFrom(e.target)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+    }, true);
+  });
+  window.addEventListener('click', function (e) {
+    if (!(neonPaint && stageOn && mode === 'neon')) return;
+    var el = neonCardFrom(e.target);
+    if (!el) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    var id = el.getAttribute('data-card-id'), cur = neonGasIdx(id);
+    var nxt = cur < 0 ? (neonIdx + 1) % NEON.length : cur + 1;
+    if (nxt >= NEON.length) delete neonCards.ov[id]; else neonCards.ov[id] = nxt;
+    neonSave(); neonPaintCards(); neonFlash(el); neonHaptic();
+    neonShow();
+  }, true);
   try { var nsv = parseInt(localStorage.getItem('fbfx_neon_gas') || '0', 10); if (nsv >= 0 && nsv < NEON.length) neonIdx = nsv; } catch (e) {}
   function neonApply(ignite) {
     var root = document.documentElement, on = stageOn && mode === 'neon', gas = NEON[neonIdx];
@@ -37699,30 +37771,64 @@ var Ve = (function(_Component) {
       root.classList.remove('fbfx-neon-ignite');
       root.removeAttribute('data-neon');
     }
+    neonTickStart(on);
     neonRenderBtn();
   }
   function neonRenderBtn() {
     var on = stageOn && mode === 'neon';
-    if (!on) { if (neonBtn) neonBtn.classList.remove('show'); return; }
+    if (!on) { if (neonCtl) neonCtl.classList.remove('show'); neonPaint = false; document.documentElement.classList.remove('fbfx-neon-painting'); return; }
     var host = hostEl();
-    if (!neonBtn || !host.contains(neonBtn)) {
-      if (neonBtn && neonBtn.parentNode) neonBtn.parentNode.removeChild(neonBtn);
+    if (!neonCtl || !host.contains(neonCtl)) {
+      if (neonCtl && neonCtl.parentNode) neonCtl.parentNode.removeChild(neonCtl);
+      neonCtl = document.createElement('div');
+      neonCtl.className = 'fbfx-neon-ctl' + (HOST_SHELL ? ' in-shell' : '');
       neonBtn = document.createElement('button');
       neonBtn.type = 'button';
-      neonBtn.className = 'fbfx-neon-btn' + (HOST_SHELL ? ' in-shell' : '');
+      neonBtn.className = 'fbfx-neon-btn';
+      // the tile: every card in one gas, the next one per tap
       neonBtn.addEventListener('click', function (e) {
         e.preventDefault(); e.stopPropagation();
-        neonIdx = (neonIdx + 1) % NEON.length;
+        neonIdx = neonCards.mode === 'all' && !Object.keys(neonCards.ov).length ? (neonIdx + 1) % NEON.length : neonIdx;
+        neonCards = { mode: 'all', seed: neonCards.seed, ov: {} };
+        neonSave();
         try { localStorage.setItem('fbfx_neon_gas', String(neonIdx)); } catch (err) {}
-        try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic('selection'); else if (navigator.vibrate) navigator.vibrate(8); } catch (err) {}
+        neonHaptic();
         neonApply(true);
         neonShow();
       });
-      host.appendChild(neonBtn);
+      var rnd = document.createElement('button');
+      rnd.type = 'button'; rnd.className = 'fbfx-neon-pill nb-random';
+      rnd.innerHTML = '<span aria-hidden="true">⚄</span>随机';
+      rnd.setAttribute('aria-label', 'Every card its own random neon colour');
+      rnd.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        neonCards = { mode: 'random', seed: (Date.now() % 100000) + 1, ov: {} };
+        neonSave(); neonPaintCards(); neonHaptic('medium');
+        var root = document.documentElement;
+        root.classList.remove('fbfx-neon-ignite'); void root.offsetWidth; root.classList.add('fbfx-neon-ignite');
+        setTimeout(function () { root.classList.remove('fbfx-neon-ignite'); }, 700);
+        neonRenderBtn(); neonShow();
+      });
+      var one = document.createElement('button');
+      one.type = 'button'; one.className = 'fbfx-neon-pill nb-one';
+      one.innerHTML = '<span aria-hidden="true">✎</span>单卡';
+      one.setAttribute('aria-label', 'Set one card: tap a card to change its colour');
+      one.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        neonPaint = !neonPaint;
+        document.documentElement.classList.toggle('fbfx-neon-painting', neonPaint);
+        neonHaptic();
+        neonRenderBtn(); neonShow();
+      });
+      neonCtl.appendChild(neonBtn); neonCtl.appendChild(rnd); neonCtl.appendChild(one);
+      host.appendChild(neonCtl);
     }
     var gas = NEON[neonIdx];
-    neonBtn.innerHTML = '<span class="nb-n">' + gas.n + '</span><span class="nb-s">' + gas.s + '</span><span class="nb-name">' + gas.name + '</span>';
-    neonBtn.setAttribute('aria-label', 'Neon colour: ' + gas.name + ' — tap for the next gas');
+    var mixed = neonCards.mode === 'random' || Object.keys(neonCards.ov).length > 0;
+    neonBtn.innerHTML = '<span class="nb-n">' + gas.n + '</span><span class="nb-s">' + gas.s + '</span><span class="nb-name">' + (mixed ? 'All · ' : '') + gas.name + '</span>';
+    neonBtn.setAttribute('aria-label', 'Neon colour for every card: ' + gas.name + ' — tap for the next gas');
+    neonCtl.querySelector('.nb-random').classList.toggle('on', neonCards.mode === 'random');
+    neonCtl.querySelector('.nb-one').classList.toggle('on', neonPaint);
     // top-right of the stage
     syncOrigin();
     var st = stageEl(), sr = st && lrect(st.getBoundingClientRect());
@@ -37730,21 +37836,23 @@ var Ve = (function(_Component) {
     var bar = document.querySelector('.iphone-topbar, header.iphone-topbar');
     var br = bar && bar.getBoundingClientRect().height ? lrect(bar.getBoundingClientRect()) : null;
     var top = br ? br.bottom + 8 : (sr ? sr.top + 8 : 58);
-    neonBtn.style.top = Math.round(top) + 'px';
-    neonBtn.style.left = Math.round((sr ? Math.min(sr.right, W) : W) - 64 - 12) + 'px';
+    neonCtl.style.top = Math.round(top) + 'px';
+    neonCtl.style.left = Math.round((sr ? Math.min(sr.right, W) : W) - 64 - 12) + 'px';
   }
   // the tile shows for a few seconds, then gets out of the way; a tap brings it back
   function neonShow() {
     if (!(stageOn && mode === 'neon')) return;
     neonRenderBtn();
-    if (!neonBtn) return;
-    neonBtn.classList.add('show');
+    if (!neonCtl) return;
+    neonCtl.classList.add('show');
     clearTimeout(neonHideT);
-    neonHideT = setTimeout(function () { if (neonBtn) neonBtn.classList.remove('show'); }, 3200);
+    // while you are setting single cards the controls stay up
+    var hide = function () { if (neonPaint) { neonHideT = setTimeout(hide, 3200); return; } if (neonCtl) neonCtl.classList.remove('show'); };
+    neonHideT = setTimeout(hide, 3200);
   }
   window.addEventListener('pointerdown', function (e) {
     if (!(stageOn && mode === 'neon')) return;
-    if (neonBtn && neonBtn.contains(e.target)) return;
+    if (neonCtl && neonCtl.contains(e.target)) return;
     neonShow();
   }, true);
   var LS_KEY = 'focusboard_fx_mode_v1';
@@ -40134,7 +40242,7 @@ var Ve = (function(_Component) {
     if (!stageOn || mode === 'none') { dtap.t = 0; return; }
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     var tg = e.target;
-    if (tg && tg.closest && tg.closest('button, a, input, textarea, select, [contenteditable="true"], .fbfx-btn')) { dtap.t = 0; return; }
+    if (tg && tg.closest && tg.closest('button, a, input, textarea, select, [contenteditable="true"], .fbfx-btn, .fbfx-neon-ctl')) { dtap.t = 0; return; }
     var now = performance.now();
     if (dtap.t && now - dtap.t < 340 && Math.hypot(e.clientX - dtap.x, e.clientY - dtap.y) < 56) {
       var firstAt = dtap.at;
