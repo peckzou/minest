@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>Minest Sign In</title>
+  <!-- 31.6: Google sign-in for the iOS app. The app opens this page in an
+       ASWebAuthenticationSession (real Safari, authorised domain), signs in
+       with Firebase here, then hands the Google credential back through
+       minest://auth so the in-app web view can call signInWithCredential. -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #000; color: #f5f5f7; font: 16px -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+    main { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; box-sizing: border-box; text-align: center; }
+    h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+    p { margin: 0; color: #8e8e93; font-size: 14px; line-height: 1.45; max-width: 300px; }
+    button { display: inline-flex; align-items: center; gap: 10px; height: 50px; padding: 0 22px; border: 0; border-radius: 25px; background: #fff; color: #111; font: inherit; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: .55; }
+    .error { color: #ff6b6b; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Minest</h1>
+    <p id="status">Sign in with your Google account to sync Minest.</p>
+    <button id="google" type="button">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+      Continue with Google
+    </button>
+  </main>
+  <script>
+    (function () {
+      var status = document.getElementById('status');
+      var button = document.getElementById('google');
+      var CALLBACK = 'minest://auth';
+
+      firebase.initializeApp({
+        apiKey: "AIzaSyBH-SonlmNnTLRYUtvnZ9EEiFQSflo1cX8",
+        authDomain: "minest-33761.firebaseapp.com",
+        projectId: "minest-33761"
+      });
+      var auth = firebase.auth();
+
+      var finish = function (credential) {
+        if (!credential || (!credential.idToken && !credential.accessToken)) {
+          return fail('Google did not return a sign-in credential.');
+        }
+        status.textContent = 'Signed in. Returning to Minest…';
+        var q = 'idToken=' + encodeURIComponent(credential.idToken || '') +
+                '&accessToken=' + encodeURIComponent(credential.accessToken || '');
+        window.location.replace(CALLBACK + '?' + q);
+      };
+      var fail = function (message) {
+        status.textContent = message;
+        status.className = 'error';
+        button.disabled = false;
+      };
+
+      // Coming back from the redirect fallback
+      auth.getRedirectResult().then(function (result) {
+        if (result && result.credential) finish(result.credential);
+      }).catch(function (err) { fail(err.message || String(err)); });
+
+      button.addEventListener('click', function () {
+        button.disabled = true;
+        status.className = '';
+        status.textContent = 'Opening Google…';
+        var provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        auth.signInWithPopup(provider).then(function (result) {
+          finish(result.credential);
+        }).catch(function (err) {
+          if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment')) {
+            return auth.signInWithRedirect(provider);
+          }
+          if (err && err.code === 'auth/popup-closed-by-user') { return fail('Sign-in was cancelled.'); }
+          fail((err && err.message) || String(err));
+        });
+      });
+    }());
+  </script>
+</body>
+</html>
