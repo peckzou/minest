@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en" class="dark" data-minest-badge-wall="32.0-live">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <title>Minest Badge Wall 32.0</title>
+    <link rel="stylesheet" crossorigin href="./assets/index-preview-UedRseAb.css" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --fitness-black: #000;
+        --fitness-copy: #f5f5f7;
+        --fitness-muted: #a1a1a6;
+        --fitness-green: #b6ff00;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, ui-sans-serif, system-ui, sans-serif;
+        background: var(--fitness-black);
+      }
+
+      * { box-sizing: border-box; }
+      html, body, #root { margin: 0; min-width: 0; min-height: 100%; background: var(--fitness-black); }
+      body { color: var(--fitness-copy); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+      button { font: inherit; }
+
+      #minest-apple-wall {
+        position: relative;
+        min-height: 100svh;
+        padding-top: env(safe-area-inset-top);
+        background: #000;
+      }
+
+      .apple-statusbar {
+        display: block;
+        height: auto;
+        padding: 24px 20px 12px;
+        color: #f5f5f7;
+        font-size: 15px;
+        font-weight: 650;
+        letter-spacing: .01em;
+      }
+      .apple-statusbar > * { display: none !important; }
+      .apple-statusbar::before {
+        content: "Badge Wall";
+        display: block;
+        color: #f5f5f7;
+        font-size: clamp(25px, 6vw, 34px);
+        font-weight: 750;
+        line-height: 1.08;
+        letter-spacing: -.035em;
+      }
+      .apple-statusbar::after {
+        content: "Explore every badge in the collection.";
+        display: block;
+        max-width: 34rem;
+        margin-top: 9px;
+        color: #8e8e93;
+        font-size: 15px;
+        font-weight: 450;
+        line-height: 1.45;
+        letter-spacing: 0;
+      }
+      #minest-apple-wall[data-preview="true"] .apple-statusbar::after {
+        content: "";
+      }
+      html[data-minest-embed="true"] #minest-apple-wall > .apple-statusbar {
+        display: none !important;
+      }
+      html[data-minest-embed="true"] #minest-apple-wall > .apple-statusbar + div {
+        padding-top: max(12px, env(safe-area-inset-top)) !important;
+      }
+      .apple-time { font-variant-numeric: tabular-nums; }
+      .apple-status-icons { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+      .status-signal { letter-spacing: -3px; font-size: 13px; line-height: 1; }
+      .status-network { font-weight: 500; }
+      .status-battery {
+        position: relative;
+        min-width: 39px;
+        padding: 3px 5px;
+        border-radius: 6px;
+        background: #34c759;
+        color: #fff;
+        font-size: 13px;
+        line-height: 1;
+        text-align: center;
+      }
+      .status-battery::after {
+        content: "";
+        position: absolute;
+        top: 6px;
+        right: -3px;
+        width: 2px;
+        height: 7px;
+        border-radius: 0 2px 2px 0;
+        background: #d8d8dc;
+      }
+
+      /* Keep the preview focused on the complete badge collection. */
+      #minest-apple-wall > .apple-statusbar + div {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 14px 18px !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(1),
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(2) { display: none !important; }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 0 7px !important;
+        width: 100% !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div {
+        display: flex !important;
+        min-width: 0 !important;
+        min-height: 174px !important;
+        padding: 0 0 2px !important;
+        align-items: stretch !important;
+        justify-content: flex-start !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        transform: none !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(1) { display: none !important; }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(2) {
+        flex: 0 0 126px !important;
+        width: 100% !important;
+        height: 126px !important;
+        min-height: 126px !important;
+        margin: 0 !important;
+        transform: none !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(2) > div {
+        min-height: 174px !important;
+        transform: scale(.92) !important;
+        transform-origin: center center !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(2) img,
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(2) svg {
+        width: 136px !important;
+        height: 136px !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(3) {
+        min-width: 0 !important;
+        width: 100% !important;
+        padding: 0 1px !important;
+        text-align: center !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(3) h3 {
+        display: -webkit-box !important;
+        min-height: 30px !important;
+        max-height: 30px !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        color: var(--fitness-copy) !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        line-height: 1.25 !important;
+        letter-spacing: 0 !important;
+        text-align: center !important;
+        -webkit-box-orient: vertical !important;
+        -webkit-line-clamp: 2 !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(3) > div {
+        color: var(--fitness-muted) !important;
+        font-size: 11px !important;
+        font-weight: 450 !important;
+        line-height: 1.25 !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(3) .bg-\[\#2C2C2E\] {
+        width: 22px !important;
+        height: 22px !important;
+        margin: 3px auto 0 !important;
+        background: #b9b9be !important;
+        color: #171719 !important;
+        font-size: 11px !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(3) .h-1 {
+        width: 82px !important;
+        height: 4px !important;
+        margin: 4px auto 0 !important;
+        background: #38383d !important;
+      }
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(3) .h-full {
+        background: var(--fitness-green) !important;
+      }
+
+
+      /* Preview keeps the shared 3D detail renderer and plays its entrance spin. */
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView .BadgeCanvas { pointer-events: auto !important; }
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView button { display: none !important; }
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView .DismissGrabber,
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView .DismissGrabber + div,
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView [class*="top-3"][class*="left-3"],
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView [class*="top-3"][class*="right-3"],
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView [class*="absolute"][class*="bottom-1"] { display: none !important; }
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView .DismissBottomZone > div:first-child,
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView .DismissBottomZone > div:last-child { display: none !important; }
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView {
+        padding: 0 !important;
+        overflow: auto !important;
+        overscroll-behavior: contain !important;
+      }
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView > div {
+        min-height: 0 !important;
+        flex: 1 0 auto !important;
+        justify-content: flex-start !important;
+        overflow: visible !important;
+      }
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView div[class*="min-h-[380px]"],
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView div[class*="min-h-[440px]"] {
+        min-height: 0 !important;
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: min(58vh, 500px) !important;
+        margin: 0 auto !important;
+        padding: 0 16px !important;
+      }
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView .BadgeCanvas {
+        min-height: 0 !important;
+        height: 100% !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView .BadgeCanvas canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      #minest-apple-wall[data-preview="true"] .AppleAwardDetailView .DismissBottomZone {
+        padding: 8px 24px max(24px, env(safe-area-inset-bottom)) !important;
+        margin-top: 8px !important;
+      }
+      /* Embedded wall details use the host's single back affordance. */
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView button,
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView .DismissGrabber,
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView .DismissGrabber + div,
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView [class*="top-3"][class*="left-3"],
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView [class*="top-3"][class*="right-3"],
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView [class*="absolute"][class*="bottom-1"] {
+        display: none !important;
+      }
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView {
+        padding: 0 !important;
+        overflow: auto !important;
+        overscroll-behavior: contain !important;
+      }
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView > div {
+        min-height: 0 !important;
+        flex: 1 0 auto !important;
+        justify-content: flex-start !important;
+        overflow: visible !important;
+      }
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView div[class*="min-h-[380px]"],
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView div[class*="min-h-[440px]"] {
+        min-height: 0 !important;
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: min(58vh, 500px) !important;
+        margin: 0 auto !important;
+        padding: 0 16px !important;
+      }
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView .BadgeCanvas {
+        min-height: 0 !important;
+        height: 100% !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView .BadgeCanvas canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      /* 31.0 detail mode: one clear escape hatch, independent of the
+         renderer's internal controls (which remain hidden in preview). */
+      #badge-wall-detail-return {
+        position: fixed;
+        top: max(14px, env(safe-area-inset-top));
+        left: max(14px, env(safe-area-inset-left));
+        z-index: 100000;
+        display: none;
+        align-items: center;
+        gap: 7px;
+        min-height: 40px;
+        padding: 0 14px 0 11px;
+        border: 1px solid rgba(255, 255, 255, .16);
+        border-radius: 999px;
+        background: rgba(28, 28, 30, .86);
+        color: #f5f5f7;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .36);
+        backdrop-filter: blur(18px) saturate(135%);
+        -webkit-backdrop-filter: blur(18px) saturate(135%);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1;
+      }
+      #badge-wall-detail-return.is-visible { display: inline-flex; }
+      #badge-wall-detail-return:active { transform: scale(.96); }
+      #badge-wall-detail-return .return-chevron {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-left: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(45deg);
+      }
+      body.badge-detail-fullscreen,
+      body.badge-detail-fullscreen #root,
+      body.badge-detail-fullscreen #minest-apple-wall {
+        min-height: 100dvh;
+        background: #000;
+      }
+      body.badge-detail-fullscreen #minest-apple-wall {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        width: 100vw;
+        height: 100dvh;
+        overflow: auto;
+        padding-top: env(safe-area-inset-top);
+      }
+      .apple-fitness-tabbar {
+        position: fixed;
+        right: 50%;
+        bottom: max(10px, env(safe-area-inset-bottom));
+        z-index: 20;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        width: min(350px, calc(100vw - 34px));
+        height: 68px;
+        padding: 7px 10px 5px;
+        border: 1px solid rgba(255, 255, 255, .16);
+        border-radius: 38px;
+        background: rgba(43, 43, 45, .88);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .58), inset 0 1px 1px rgba(255,255,255,.14);
+        backdrop-filter: blur(22px) saturate(135%);
+        transform: translateX(50%);
+      }
+      .apple-fitness-tabbar { display: none !important; }
+      .apple-fitness-tabbar button {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        flex-direction: column;
+        border: 0;
+        background: transparent;
+        color: #f2f2f7;
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 500;
+        line-height: 1.1;
+      }
+      .apple-fitness-tabbar button.is-active { color: var(--fitness-green); }
+      .tab-glyph { display: grid; width: 27px; height: 27px; place-items: center; font-size: 25px; line-height: 1; }
+      .tab-rings { font-size: 32px; font-weight: 300; }
+      .tab-fitness { border: 2px solid currentColor; border-radius: 50%; font-size: 21px; }
+      .tab-workout { font-size: 31px; transform: rotate(-24deg); }
+      .tab-sharing { font-size: 15px; letter-spacing: -4px; }
+
+      #minest-apple-wall > div[style*="position: fixed"],
+      #minest-apple-wall > div[class*="fixed"] { z-index: 30; }
+      @media (min-width: 560px) {
+        #minest-apple-wall > .apple-statusbar + div { padding-inline: 22px !important; }
+        #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) { gap: 0 14px !important; }
+        #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div { min-height: 208px !important; }
+        #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(2) { flex-basis: 150px !important; height: 150px !important; min-height: 150px !important; }
+        #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > div:nth-child(2) > div { min-height: 170px !important; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #minest-apple-wall *, #minest-apple-wall *::before, #minest-apple-wall *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+      }
+      /* 31.5: grid cards show only the badge and its name. No earned date,
+         count bubble or ring dots. */
+      #minest-apple-wall > .apple-statusbar + div > div:nth-child(3) > div > .text-center > :not(h3) {
+        display: none !important;
+      }
+      /* 31.6: inside the app the host header already clears the notch, so the
+         embedded wall adds no safe-area gap of its own. */
+      html[data-minest-embed="true"] #minest-apple-wall { padding-top: 0 !important; }
+      html[data-minest-embed="true"] #minest-apple-wall > .apple-statusbar + div { padding-top: 12px !important; }
+      /* 31.6: detail badge a little smaller and centred on the page. */
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView > div {
+        min-height: 100% !important;
+        justify-content: center !important;
+      }
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView div[class*="min-h-[380px]"],
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView div[class*="min-h-[440px]"] {
+        height: 300px !important;
+        max-width: 340px !important;
+      }
+      /* 31.6: detail page is plain Fitness black. The badge-coloured conic
+         spin and pulsing glow behind it are removed (they also kept the GPU
+         busy for the whole time a detail was open). */
+      #minest-apple-wall .AppleAwardDetailView,
+      #minest-apple-wall .AppleAwardDetailView > div { background: #000 !important; }
+      #minest-apple-wall .AppleAwardDetailView [class*="animate-[spin_24s"],
+      #minest-apple-wall .AppleAwardDetailView .animate-pulse.inset-0 { display: none !important; }
+      #minest-apple-wall .AppleAwardDetailView div[class*="rounded-[inherit]"][class*="transition-all"] { display: none !important; }
+      #minest-apple-wall .AppleAwardDetailView > div,
+      #minest-apple-wall .AppleAwardDetailView .BadgeCanvas { border: 0 !important; box-shadow: none !important; }
+      html[data-minest-embed="true"] #minest-apple-wall .AppleAwardDetailView .DismissBottomZone { padding-bottom: 0 !important; margin-bottom: 0 !important; }
+    </style>
+    <script>
+      /* Hydrate the new wall from the reward state used by the 27.x host. */
+      (function () {
+        var storageKey = 'minest_badge_wall_30_0_v1';
+        var legacyCatalogKey = 'minest_learning_awards_catalog_v27';
+        var rewardKey = 'minest_reward_system_v2';
+        var strikeKey = 'minest_strike_claimed_v1';
+        var challengeKey = 'minest_challenge_wall_v1';
+        var strikeMilestones = [3, 7, 14, 30, 40, 50, 60, 80, 90, 100];
+        var latestRules = [];
+        var readJson = function (key, fallback) {
+          try {
+            var value = JSON.parse(localStorage.getItem(key) || 'null');
+            return value == null ? fallback : value;
+          } catch (error) { return fallback; }
+        };
+        var addIds = function (set, values) {
+          if (!Array.isArray(values)) return;
+          values.forEach(function (id) { if (id != null && String(id)) set.add(String(id)); });
+        };
+        var collectLegacyIds = function () {
+          var ids = new Set();
+          var catalog = readJson(legacyCatalogKey, []);
+          if (Array.isArray(catalog)) catalog.forEach(function (badge) {
+            if (badge && (badge.state === 'unlocked' || badge.isUnlocked) && badge.id) ids.add(String(badge.id));
+          });
+          var rewards = readJson(rewardKey, null);
+          addIds(ids, rewards && rewards.collectedIds);
+          var challenge = readJson(challengeKey, null);
+          addIds(ids, challenge && challenge.unlockedIds);
+          var claimed = readJson(strikeKey, []);
+          if (Array.isArray(claimed)) claimed.forEach(function (days) {
+            if (strikeMilestones.indexOf(Number(days)) >= 0) ids.add('strike-' + Number(days) + '-days');
+          });
+          return ids;
+        };
+        var readCurrentIds = function () {
+          var saved = readJson(storageKey, []);
+          var ids = new Set();
+          addIds(ids, Array.isArray(saved) ? saved : saved && saved.unlockedIds);
+          return ids;
+        };
+        var persist = function (ids) {
+          try { localStorage.setItem(storageKey, JSON.stringify(Array.from(ids))); } catch (error) {}
+        };
+        var persistedRules = readJson('minest_badge_unlock_rules_v1', []);
+        if (Array.isArray(persistedRules)) latestRules = persistedRules;
+        var unlocked = readCurrentIds();
+        var claimedIds = collectLegacyIds();
+        claimedIds.forEach(function (id) { unlocked.add(id); });
+        /* 31.5: badges unlock on the wall only after a real claim. Earlier
+           builds also unlocked the three ring-rule badges and Strike
+           milestones straight from progress, skipping the claim ceremony.
+           Drop those entries unless a claim record backs them. */
+        var ruleIds = ['perfect-week-focus', 'perfect-week-review', 'daily-ring-200-percent'];
+        (Array.isArray(latestRules) ? latestRules : []).forEach(function (rule) { if (rule && rule.badgeId) ruleIds.push(String(rule.badgeId)); });
+        Array.from(unlocked).forEach(function (id) {
+          var autoOnly = ruleIds.indexOf(id) >= 0 || /^strike-\d+-days$/.test(id);
+          if (autoOnly && !claimedIds.has(id)) unlocked.delete(id);
+        });
+        persist(unlocked);
+        var notifyUnlock = function (id) {
+          var value = String(id || '');
+          if (!value || unlocked.has(value)) return;
+          unlocked.add(value);
+          persist(unlocked);
+          window.postMessage({ type: 'MINEST_TRIGGER_UNLOCK', badgeId: value }, '*');
+        };
+        var numeric = function (value) {
+          var number = Number(value);
+          return Number.isFinite(number) ? number : 0;
+        };
+        var applyRules = function (data) {
+          /* 31.5: progress no longer unlocks badges directly. Ring rewards and
+             Strike milestones reach the wall only through their claim flow
+             (MINEST_TRIGGER_UNLOCK from the host after the ceremony). */
+          return;
+          var progress = data && data.progress && typeof data.progress === 'object' ? data.progress : {};
+          var explicitRules = Array.isArray(data && data.rules);
+          if (explicitRules) latestRules = data.rules;
+          else if (data.type === 'minest:award-progress') {
+            var savedRules = readJson('minest_badge_unlock_rules_v1', []);
+            if (Array.isArray(savedRules)) latestRules = savedRules;
+          }
+          var fallbackRules = [
+            { badgeId: 'perfect-week-focus', metric: 'focusMinutes', target: 30 },
+            { badgeId: 'perfect-week-review', metric: 'checkCount', target: 10 },
+            { badgeId: 'daily-ring-200-percent', metric: 'goalPercent', target: 100 }
+          ];
+          var rules = explicitRules || data.type === 'minest:award-progress' ? (latestRules.length ? latestRules : fallbackRules) : [];
+          rules.forEach(function (rule) {
+            if (!rule || !rule.badgeId || !rule.metric) return;
+            if (numeric(progress[rule.metric]) >= numeric(rule.target)) notifyUnlock(rule.badgeId);
+          });
+          var qualifiedDates = Array.isArray(progress.qualifiedDates) ? Array.from(new Set(progress.qualifiedDates)) : [];
+          var ringClosed = numeric(progress.focusMinutes) >= numeric(progress.targetMinutes || 30) ||
+            numeric(progress.checkCount) >= numeric(progress.targetChecks || 10) || numeric(progress.goalPercent) >= 100;
+          if (ringClosed && progress.date && qualifiedDates.indexOf(progress.date) < 0) qualifiedDates.push(progress.date);
+          strikeMilestones.forEach(function (days) {
+            if (qualifiedDates.length >= days) notifyUnlock('strike-' + days + '-days');
+          });
+        };
+        window.addEventListener('message', function (event) {
+          var data = event && event.data;
+          if (!data || typeof data !== 'object') return;
+          if (data.type === 'minest:award-progress' || data.type === 'minest:challenge-progress') applyRules(data);
+          if (data.type === 'MINEST_RESET_BADGES') {
+            unlocked = new Set();
+            try { localStorage.removeItem(storageKey); } catch (error) {}
+          }
+        });
+      }());
+    </script>
+    <script>
+      /* The shared renderer uses this flag to suppress its entrance spin in
+         preview mode. Keep the wall in preview mode for unlock state, while
+         allowing the detail view to play the full 2x 360-degree reveal. */
+      (function () {
+        var preview = new URLSearchParams(window.location.search).get('preview') === '1' ||
+          new URLSearchParams(window.location.search).get('mode') === 'preview';
+        var embedded = new URLSearchParams(window.location.search).get('embed') === '1';
+        if (embedded) document.documentElement.setAttribute('data-minest-embed', 'true');
+        if (!preview) return;
+        try {
+          Object.defineProperty(window, '__MINEST_PREVIEW_MODE', {
+            configurable: true,
+            get: function () { return false; },
+            set: function () {}
+          });
+        } catch (error) {}
+      }());
+    </script>
+    <script defer src="./assets/index-preview-31.0.js?v=316-spin5"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      /*
+       * The shared React bundle owns selection state, so this small adapter
+       * observes its detail layer instead of forking that renderer. A capture
+       * click requests fullscreen while the browser still has user activation;
+       * the CSS class keeps the same experience when iframe fullscreen is
+       * denied by the host browser.
+       */
+      (function () {
+        var wall = null;
+        var returnButton = null;
+        var detailOpen = false;
+        var fallbackFullscreen = false;
+        var spinKickoffScheduled = false;
+        var isPreview = function () {
+          var query = new URLSearchParams(window.location.search);
+          return query.get('preview') === '1' || query.get('mode') === 'preview';
+        };
+        var isEmbedded = function () {
+          return new URLSearchParams(window.location.search).get('embed') === '1';
+        };
+        // Standalone Preview and the embedded Awards Wall both need the same
+        // detail escape hatch. The parent can pin the iframe while this
+        // adapter supplies the local fallback and return affordance.
+        if (!isPreview() && !isEmbedded()) return;
+
+        var setFallbackFullscreen = function (active) {
+          fallbackFullscreen = !!active;
+          document.body.classList.toggle('badge-detail-fullscreen', fallbackFullscreen);
+        };
+        var enterFullscreen = function () {
+          setFallbackFullscreen(true);
+          var target = document.documentElement;
+          if (target && target.requestFullscreen) {
+            var request = target.requestFullscreen({ navigationUI: 'hide' });
+            if (request && request.catch) request.catch(function () {});
+          }
+        };
+        var exitFullscreen = function () {
+          setFallbackFullscreen(false);
+          if (document.fullscreenElement && document.exitFullscreen) {
+            var exit = document.exitFullscreen();
+            if (exit && exit.catch) exit.catch(function () {});
+          }
+        };
+        var closeDetail = function () {
+          window.postMessage({ type: 'MINEST_CLOSE_AWARD' }, '*');
+          exitFullscreen();
+        };
+        var ensureReturnButton = function () {
+          if (returnButton) return returnButton;
+          returnButton = document.createElement('button');
+          returnButton.id = 'badge-wall-detail-return';
+          returnButton.type = 'button';
+          returnButton.setAttribute('aria-label', 'Back to Badge Wall');
+          returnButton.innerHTML = '<span class="return-chevron" aria-hidden="true"></span><span>Back</span>';
+          returnButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            closeDetail();
+          });
+          document.body.appendChild(returnButton);
+          return returnButton;
+        };
+        var ensurePreviewSpin = function () {
+          if ((!isPreview() && !isEmbedded()) || spinKickoffScheduled) return;
+          spinKickoffScheduled = true;
+          var attempts = 0;
+          var retry = function () {
+            var detail = wall && wall.querySelector('.AppleAwardDetailView');
+            var replay = detail && detail.querySelector('button[title*="5-turn entrance spin"]');
+            if (!replay) {
+              if (++attempts < 30) window.setTimeout(retry, 100);
+              return;
+            }
+            // The renderer's own entrance spin may still be running. If it is
+            // idle, replay the same 1800-degree (5-turn) motion programmatically.
+            if (replay.disabled) return;
+            replay.click();
+          };
+          window.setTimeout(retry, 80);
+        };
+        var syncDetailState = function () {
+          wall = wall || document.getElementById('minest-apple-wall');
+          var detail = wall && wall.querySelector('.AppleAwardDetailView');
+          var nextOpen = !!detail;
+          if (nextOpen !== detailOpen) {
+            detailOpen = nextOpen;
+            if (detailOpen) ensurePreviewSpin();
+            else spinKickoffScheduled = false;
+            var button = ensureReturnButton();
+            button.classList.toggle('is-visible', detailOpen);
+            if (!detailOpen) exitFullscreen();
+          }
+        };
+        var observer = new MutationObserver(syncDetailState);
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        document.addEventListener('fullscreenchange', function () {
+          if (!document.fullscreenElement && detailOpen) setFallbackFullscreen(true);
+        });
+        document.addEventListener('click', function (event) {
+          if (detailOpen || !wall) return;
+          var target = event.target && event.target.closest && event.target.closest('[class~="cursor-pointer"]');
+          if (!target || !wall.contains(target) || target.closest('.AppleAwardDetailView')) return;
+          enterFullscreen();
+        }, true);
+        syncDetailState();
+      }());
+    </script>
+    <style>
+      /* 32.0 Strike milestone claim: pending float → claim → magnet back into the wall */
+      .strike-claim-overlay { position: fixed; inset: 0; z-index: 99990; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; }
+      .strike-claim-overlay .sc-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.8); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); opacity: 0; transition: opacity .45s ease; }
+      .strike-claim-overlay.is-in .sc-backdrop { opacity: 1; }
+      .strike-claim-overlay .sc-stage { position: relative; width: min(62vw, 260px); aspect-ratio: 1 / 1; transform: translateY(-5vh); will-change: transform; }
+      .strike-claim-overlay .sc-enter { position: absolute; inset: 0; animation: scEnter .75s cubic-bezier(.2,1.35,.3,1) both; }
+      .strike-claim-overlay .sc-halo { position: absolute; inset: -22%; border-radius: 50%; background: radial-gradient(circle, rgba(255,214,120,.34), rgba(255,170,60,.1) 46%, transparent 70%); animation: scHalo 2.4s ease-in-out infinite; pointer-events: none; }
+      .strike-claim-overlay .sc-float { position: absolute; inset: 0; animation: scFloat 3.2s ease-in-out infinite; }
+      .strike-claim-overlay .sc-tilt { position: absolute; inset: 0; animation: scSway 4.4s ease-in-out infinite; transform-style: preserve-3d; }
+      .strike-claim-overlay .sc-medal { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: grayscale(.92) brightness(.42) contrast(1.15) drop-shadow(0 18px 28px rgba(0,0,0,.6)); transition: filter .9s ease; user-select: none; -webkit-user-drag: none; }
+      .strike-claim-overlay .sc-sheen { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255,240,200,.55) 48%, transparent 61%); background-size: 260% 100%; animation: scSheen 2.8s ease-in-out infinite; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+      .strike-claim-overlay.is-claimed .sc-float, .strike-claim-overlay.is-claimed .sc-tilt { animation: none; }
+      .strike-claim-overlay.is-claimed .sc-sheen, .strike-claim-overlay.is-claimed .sc-halo { opacity: 0; transition: opacity .4s ease; }
+      .strike-claim-overlay.is-claimed .sc-medal { filter: drop-shadow(0 18px 30px rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(255,214,120,.45)); }
+      .strike-claim-overlay .sc-flash { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.95), rgba(255,236,190,.5) 22%, transparent 55%); opacity: 0; }
+      .strike-claim-overlay .sc-wave { position: absolute; left: 50%; top: 45%; width: min(62vw, 260px); aspect-ratio: 1 / 1; margin-left: calc(min(62vw, 260px) / -2); margin-top: calc(min(62vw, 260px) / -2); border-radius: 50%; border: 3px solid rgba(255,214,120,.9); box-shadow: 0 0 28px rgba(255,200,90,.65); opacity: 0; pointer-events: none; }
+      .strike-claim-overlay canvas.sc-sparks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+      @keyframes scEnter { 0% { opacity: 0; transform: scale(.3) translateY(40px); } 100% { opacity: 1; transform: none; } }
+      @keyframes scHalo { 0%,100% { transform: scale(.92); opacity: .65; } 50% { transform: scale(1.06); opacity: 1; } }
+      @keyframes scFloat { 0%,100% { transform: translateY(-7px); } 50% { transform: translateY(7px); } }
+      @keyframes scSway { 0%,100% { transform: perspective(700px) rotateY(-17deg) rotateX(4deg); } 50% { transform: perspective(700px) rotateY(17deg) rotateX(-3deg); } }
+      @keyframes scSheen { 0% { background-position: 120% 0; } 55%,100% { background-position: -40% 0; } }
+    </style>
+    <script>
+      /* 32.0: the host posts MINEST_STRIKE_PENDING {days}; the Strike badge floats over the
+         wall until tapped, then spins into colour and flies back into its own card. */
+      (function () {
+        var MILESTONES = [3, 7, 14, 30, 40, 50, 60, 80, 90, 100];
+        var active = null;
+        var send = function (m) { if (window.parent && window.parent !== window) window.parent.postMessage(m, '*'); };
+        var haptic = function (style) { try { window.parent.MinestNative && window.parent.MinestNative.haptic(style); } catch (e) {} };
+        var findCard = function (days) {
+          return Array.from(document.querySelectorAll('#minest-apple-wall [class~="cursor-pointer"]')).find(function (c) {
+            var h = c.querySelector('h3'); return h && h.textContent.trim().indexOf(days + '-Day ') === 0;
+          }) || null;
+        };
+        var sparks = function (canvas, cx, cy, count, colors) {
+          var dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+          canvas.width = w * dpr; canvas.height = h * dpr;
+          var ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+          var parts = [];
+          for (var i = 0; i < count; i++) {
+            var a = Math.random() * Math.PI * 2, sp = 3 + Math.random() * 7;
+            parts.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2, r: 1.5 + Math.random() * 2.8, life: 1, c: colors[i % colors.length] });
+          }
+          var step = function () {
+            ctx.clearRect(0, 0, w, h);
+            var alive = false;
+            parts.forEach(function (p) {
+              if (p.life <= 0) return;
+              alive = true;
+              p.x += p.vx; p.y += p.vy; p.vy += 0.16; p.vx *= 0.985; p.life -= 0.016;
+              ctx.globalAlpha = Math.max(0, p.life);
+              ctx.fillStyle = p.c;
+              ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life + 0.4, 0, Math.PI * 2); ctx.fill();
+            });
+            if (alive) requestAnimationFrame(step); else ctx.clearRect(0, 0, w, h);
+          };
+          requestAnimationFrame(step);
+        };
+        var show = function (days) {
+          var id = 'strike-' + days + '-days';
+          var src = './thumbs/hd/' + id + '.webp';
+          var ov = document.createElement('div');
+          ov.className = 'strike-claim-overlay';
+          ov.setAttribute('role', 'button');
+          ov.setAttribute('aria-label', days + ' day Strike badge — tap to claim');
+          ov.innerHTML = '<div class="sc-backdrop"></div><canvas class="sc-sparks"></canvas>' +
+            '<div class="sc-stage"><div class="sc-enter"><div class="sc-halo"></div><div class="sc-float"><div class="sc-tilt">' +
+            '<img class="sc-medal" alt="" draggable="false" src="' + src + '"><div class="sc-sheen"></div>' +
+            '</div></div></div></div><div class="sc-wave"></div><div class="sc-flash"></div>';
+          var sheen = ov.querySelector('.sc-sheen');
+          sheen.style.webkitMaskImage = 'url(' + src + ')'; sheen.style.maskImage = 'url(' + src + ')';
+          document.body.appendChild(ov);
+          active = { days: days, el: ov };
+          requestAnimationFrame(function () { ov.classList.add('is-in'); });
+          haptic('light');
+          var claimed = false;
+          ov.addEventListener('click', function (e) {
+            e.preventDefault(); e.stopPropagation();
+            if (claimed) return;
+            claimed = true;
+            claim(days, ov);
+          });
+          ['pointerdown', 'touchstart'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+        };
+        var claim = function (days, ov) {
+          var stage = ov.querySelector('.sc-stage'), tilt = ov.querySelector('.sc-tilt');
+          var flash = ov.querySelector('.sc-flash'), wave = ov.querySelector('.sc-wave'), canvas = ov.querySelector('canvas.sc-sparks');
+          ov.classList.add('is-claimed');
+          haptic('success');
+          // spin into colour
+          tilt.animate([
+            { transform: 'perspective(700px) rotateY(0deg) scale(1)' },
+            { transform: 'perspective(700px) rotateY(540deg) scale(1.2)', offset: 0.45 },
+            { transform: 'perspective(700px) rotateY(1080deg) scale(1)' }
+          ], { duration: 1400, easing: 'cubic-bezier(.15,.85,.25,1)', fill: 'forwards' });
+          flash.animate([{ opacity: 0 }, { opacity: 0.9, offset: 0.25 }, { opacity: 0 }], { duration: 650, easing: 'ease-out' });
+          wave.animate([
+            { opacity: 1, transform: 'scale(.45)' },
+            { opacity: 0, transform: 'scale(2.6)' }
+          ], { duration: 950, easing: 'cubic-bezier(.1,.7,.3,1)' });
+          var r = stage.getBoundingClientRect();
+          sparks(canvas, r.left + r.width / 2, r.top + r.height / 2, 70, ['#ffd60a', '#fff4c2', '#ffb340', '#ffffff']);
+          setTimeout(function () { flyBack(days, ov); }, 1750);
+        };
+        var flyBack = function (days, ov) {
+          var stage = ov.querySelector('.sc-stage');
+          var card = findCard(days);
+          var finish = function () {
+            if (ov.parentNode) ov.parentNode.removeChild(ov);
+            active = null;
+            // light the card on the wall, then tell the host the milestone is claimed
+            window.postMessage({ type: 'MINEST_TRIGGER_UNLOCK', badgeId: 'strike-' + days + '-days' }, '*');
+            send({ type: 'minest:strike-claimed', days: days });
+            haptic('medium');
+            if (card) {
+              card.animate([
+                { transform: 'scale(1)', filter: 'none' },
+                { transform: 'scale(1.14)', filter: 'drop-shadow(0 0 18px rgba(255,214,120,.95))', offset: 0.4 },
+                { transform: 'scale(1)', filter: 'none' }
+              ], { duration: 720, easing: 'cubic-bezier(.2,1.4,.3,1)' });
+            }
+            setTimeout(function () { send({ type: 'minest:strike-flow-done', days: days }); }, 760);
+          };
+          if (!card) { finish(); return; }
+          card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          setTimeout(function () {
+            var target = (card.children[1] || card).getBoundingClientRect();
+            var from = stage.getBoundingClientRect();
+            var dx = (target.left + target.width / 2) - (from.left + from.width / 2);
+            var dy = (target.top + target.height / 2) - (from.top + from.height / 2);
+            var s = Math.max(0.2, Math.min(1, (target.width * 0.78) / from.width));
+            var base = getComputedStyle(stage).transform; base = base === 'none' ? '' : base + ' ';
+            ov.querySelector('.sc-backdrop').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 820, easing: 'ease-in', fill: 'forwards' });
+            var anim = stage.animate([
+              { transform: base + 'translate(0px, 0px) scale(1) rotate(0deg)' },
+              { transform: base + 'translate(' + (dx * 0.3) + 'px, ' + (dy * 0.2 - 150) + 'px) scale(' + ((1 + s) / 2 + 0.08) + ') rotate(-10deg)', offset: 0.42 },
+              { transform: base + 'translate(' + dx + 'px, ' + dy + 'px) scale(' + s + ') rotate(0deg)' }
+            ], { duration: 900, easing: 'cubic-bezier(.55,0,.25,1)', fill: 'forwards' });
+            anim.onfinish = finish;
+          }, 460);
+        };
+        window.addEventListener('message', function (e) {
+          var d = e.data || {};
+          if (d.type !== 'MINEST_STRIKE_PENDING') return;
+          var days = Number(d.days);
+          if (MILESTONES.indexOf(days) < 0) return;
+          if (!active) show(days);
+          if (active && active.days === days) send({ type: 'minest:strike-pending-shown', days: days });
+        });
+      }());
+    </script>
+  </body>
+
+</html>

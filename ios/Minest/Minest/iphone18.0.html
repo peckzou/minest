@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 31.7 · Wallet Reorder</title>
+    <title>Minest iPhone 32.0 · Strike Badges</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -17476,7 +17476,7 @@ var ActivityBadgesModal = function(props) {
   var badgeViewerUrl = badgeBaseUrl + "/badge-index/badge-wall-32.0.html?preview=1&embed=1&v=badge-wall-32-0-316b";
   var badgeChallengeUrl = badgeBaseUrl + '/badge-challenge-31.5/index.html?embed=1&ringsFirst=1&v=317e';
   var badgeCollectionUrl = badgeBaseUrl + '/badge-challenge-31.5/index.html?embed=1&collection=1&strikeWall=1&v=wall-collection-index-v2';
-  var badgeWallUrl = badgeBaseUrl + '/badge-index/badge-wall-31.0.html?embed=1&v=badge-wall-31-0-316b';
+  var badgeWallUrl = badgeBaseUrl + '/badge-index/badge-wall-32.0-live.html?embed=1&v=badge-wall-32-0-live';
   var badgeFullScreenState = (0, _.useState)(false);
   var badgeFullScreen = badgeFullScreenState[0];
   var setBadgeFullScreen = badgeFullScreenState[1];
@@ -17532,7 +17532,8 @@ var ActivityBadgesModal = function(props) {
   var strikeQualifiedCount = (props.qualifiedDates || []).length;
   var pendingStrike = (props.strikeCelebrationDays && strikeClaimed.indexOf(props.strikeCelebrationDays) < 0) ? props.strikeCelebrationDays :
     (STRIKE_MILESTONES.filter(function(days) { return days <= strikeQualifiedCount && strikeClaimed.indexOf(days) < 0; })[0] || null);
-  var strikeFocus = awardPane === 'collection' && strikeOverlayOpen && !!pendingStrike;
+  // 32.0: Strike milestones are claimed on the Badge Wall; the Collection Strike Wall only shows claimed flames
+  var strikeFocus = false;
   var strikeWallUrl = badgeBaseUrl + '/badge-animations-v31.5/index.html?embed=1&tab=strike&transparent=1&shadow=light&claimed=' +
     encodeURIComponent(strikeClaimed.join(',')) + (strikeFocus ? '&pending=' + encodeURIComponent(pendingStrike) : '') + '&v=strike-77520c3-m233';
   var closeStrikeFocus = function() {
@@ -17576,7 +17577,8 @@ var ActivityBadgesModal = function(props) {
   (0, _.useEffect)(function() {
     if (props.strikeCelebrationDays) {
       setActiveSection('awards');
-      setAwardPane('collection');
+      // 32.0: Strike milestones are claimed on the Badge Wall
+      setAwardPane('challenge');
       setStrikeOverlayOpen(true);
       setCelebrationReturn(null);
     } else if (props.celebrateRings) {
@@ -17678,6 +17680,26 @@ var ActivityBadgesModal = function(props) {
     postWallUnlocks(wallFrameRef.current, 'visible');
     postWallUnlocks(wallSyncFrameRef.current, 'sync');
   };
+  // 32.0: show the pending Strike milestone on the Badge Wall (after any mystery-badge claim)
+  var strikeShownRef = (0, _.useRef)(null);
+  (0, _.useEffect)(function() {
+    var onShown = function(event) {
+      if (event.data && event.data.type === 'minest:strike-pending-shown') strikeShownRef.current = event.data.days;
+    };
+    window.addEventListener('message', onShown);
+    return function() { window.removeEventListener('message', onShown); };
+  }, []);
+  (0, _.useEffect)(function() {
+    if (activeSection !== 'awards' || awardPane !== 'challenge' || !pendingStrike || challengePending) return;
+    strikeShownRef.current = null;
+    var tries = 0;
+    var timer = setInterval(function() {
+      var frame = wallFrameRef.current;
+      if (strikeShownRef.current === pendingStrike || ++tries > 40) { clearInterval(timer); return; }
+      if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'MINEST_STRIKE_PENDING', days: pendingStrike }, '*');
+    }, 500);
+    return function() { clearInterval(timer); };
+  }, [activeSection, awardPane, pendingStrike, challengePending]);
   var markWallFrameReady = function(frameKey, frame) {
     if (!frame || !frame.contentWindow) return;
     wallFrameReadyRef.current[frameKey] = true;
@@ -19806,7 +19828,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "31.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "32.0" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
