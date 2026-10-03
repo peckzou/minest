@@ -40249,8 +40249,8 @@ var Ve = (function(_Component) {
     kick();
   }
 
-  // 40.8: double-tap anywhere leaves the running light effect. The tab bar sits under the
-  // effect, so this is the way out; no extra button, the screen stays immersive.
+  // 40.8: double-tap anywhere moves the running light effect on (40.9: to the next mode; after
+  // neon it is off). The tab bar sits under the effect, so this is the way through and out.
   var dtap = { t: 0, x: 0, y: 0, at: 0 };
   window.addEventListener('pointerdown', function (e) {
     if (!stageOn || mode === 'none') { dtap.t = 0; return; }
@@ -40288,8 +40288,11 @@ var Ve = (function(_Component) {
         var ta = document.querySelector('.clear-active-column .fb-composer textarea');
         if (ta) { try { ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); } catch (err) {} }
       }
-      window.__fbfxExitAt = Date.now();
-      setMode('none');
+      // 40.9: a double-tap moves on to the next light mode (lasers → firework → spotlight →
+      // neon); neon is the last, so there it means off
+      var nextMode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
+      if (nextMode === 'none') window.__fbfxExitAt = Date.now();
+      setMode(nextMode);
       try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic('light'); else if (navigator.vibrate) navigator.vibrate(12); } catch (err) {}
       return;
     }
