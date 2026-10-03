@@ -291,6 +291,13 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
                 strikeDays: data["strikeDays"] as? Int
             )
             
+        case "debugWatchCeremony":
+            // Development: replay the ring + claim ceremonies on the watch
+            iPhoneWatchSyncManager.shared.sendDebugCeremony(
+                strikeDays: data["strikeDays"] as? Int ?? 1,
+                badgeId: data["badgeId"] as? String ?? ""
+            )
+
         case "googleSignIn":
             startGoogleSignIn()
 

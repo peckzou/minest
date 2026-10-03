@@ -170,6 +170,17 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
         }
     }
 
+    /// Development: ask the watch to replay its ring and claim ceremonies.
+    public func sendDebugCeremony(strikeDays: Int, badgeId: String) {
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
+        let payload: [String: Any] = ["debugCeremony": ["strikeDays": strikeDays, "badgeId": badgeId, "at": Date().timeIntervalSince1970]]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: nil) { _ in WCSession.default.transferUserInfo(payload) }
+        } else {
+            WCSession.default.transferUserInfo(payload)
+        }
+    }
+
     /// Save boards from Web canvas and push to Apple Watch
     public func updateBoardsFromWeb(boardsJSON: String) {
         guard let data = boardsJSON.data(using: .utf8),

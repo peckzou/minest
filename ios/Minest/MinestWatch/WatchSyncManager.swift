@@ -940,6 +940,15 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
             if let timer = dict["focusTimer"] as? [String: Any] {
                 FocusWorkoutModel.shared.applyRemote(timer)
             }
+            #if DEBUG
+            // Development: replay the ceremonies on request from the phone
+            if let dbg = dict["debugCeremony"] as? [String: Any] {
+                self.enqueueCeremony(.rings(strikeDays: dbg["strikeDays"] as? Int ?? 1))
+                if let badgeId = dbg["badgeId"] as? String, !badgeId.isEmpty {
+                    self.enqueueCeremony(.claim(badgeId: badgeId))
+                }
+            }
+            #endif
             // 31.6: Badge Wall unlocks from the iPhone
             if let wall = dict["badgeWall"] as? [String: Any] {
                 self.applyBadgeWall(wall)
