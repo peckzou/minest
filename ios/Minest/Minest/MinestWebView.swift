@@ -370,6 +370,18 @@ public struct MinestWebView: UIViewRepresentable {
         }
         
         // MARK: - WKWebContentProcess Termination Recovery (Memory Crash Handling)
+        // 32.1: Heads Up reads the gyroscope through DeviceOrientationEvent.
+        // Our own bundled page is trusted, so grant motion access without a prompt.
+        @available(iOS 15.0, *)
+        public func webView(
+            _ webView: WKWebView,
+            requestDeviceOrientationAndMotionPermissionFor origin: WKSecurityOrigin,
+            initiatedByFrame frame: WKFrameInfo,
+            decisionHandler: @escaping (WKPermissionDecision) -> Void
+        ) {
+            decisionHandler(.grant)
+        }
+
         public func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
             print("⚠️ [MinestWebView] WebContent process terminated by system! Reloading smoothly...")
             webView.reload()

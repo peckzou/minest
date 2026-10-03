@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 32.0 · Strike Badges</title>
+    <title>Minest iPhone 32.1 · Heads Up Gyro</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -5138,9 +5138,8 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   z-index: 2147482500 !important;
   padding: 0 !important;
   overflow: hidden !important;
-  background:
-    radial-gradient(120% 90% at 50% -10%, rgba(255,255,255,.10), transparent 55%),
-    linear-gradient(155deg, #111923 0%, #070b10 64%, #030507 100%);
+  /* 32.1: no backdrop of its own: the card floats on the app background. */
+  background: transparent !important;
   touch-action: none !important;
   overscroll-behavior: none !important;
 }
@@ -5259,7 +5258,20 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   pointer-events: auto;
   animation: huFadeIn 0.35s cubic-bezier(0.19, 1, 0.22, 1);
 }
-.hu-island-header > div:first-child,
+.hu-island-header {
+  top: 6px;
+  padding: 0 10px;
+  pointer-events: none;
+}
+.hu-counter {
+  font: 600 12px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+  color: rgba(255,255,255,.62);
+  padding: 4px 2px;
+  text-shadow: 0 1px 6px rgba(0,0,0,.35);
+}
+.hu-island-header > div:first-child:not(.hu-counter),
 .hu-island-header button[title^="Toggle Motion Lab"] {
   display: none !important;
 }
@@ -19828,7 +19840,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "32.0" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "32.1" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -20768,6 +20780,12 @@ var Oe = function(props) {
     isActive: function() { return headsUpRef.current.active; },
     getState: function() { return headsUpRef.current; },
     enter: function(targetIdx) {
+      // 32.1: iOS only grants motion access from a user gesture, and enter() runs in one.
+      try {
+        if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          DeviceOrientationEvent.requestPermission().catch(function() {});
+        }
+      } catch (permErr) {}
       endPhysicalAction();
       if (gestureRef.current && gestureRef.current.release) {
         try { gestureRef.current.release(null, true); } catch(err) {}
@@ -21273,6 +21291,94 @@ var Oe = function(props) {
     }
   };
   window.__HeadsUpInputAdapter = headsUpInputAdapterRef.current;
+
+  // 32.1: drive the Heads Up gestures from the iPhone gyroscope.
+  // Tilt is measured against the pose the phone was in when the card opened
+  // (the baseline slowly follows small changes), so holding the phone at any
+  // angle feels neutral. Tilt left/right = previous/next card, screen down = pause.
+  var huMotionActive = headsUpState.active;
+  (0, _.useEffect)(function() {
+    if (!huMotionActive || typeof window === 'undefined') return;
+    var base = null;
+    var latest = null;
+    var lastNavAt = 0;
+    var faceDownSince = 0;
+    var tiltDir = null;
+    var screenAngle = function() {
+      var a = (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number')
+        ? window.screen.orientation.angle
+        : (typeof window.orientation === 'number' ? window.orientation : 0);
+      return ((a % 360) + 360) % 360;
+    };
+    // Map device axes onto the screen as the user sees it.
+    var toScreen = function(beta, gamma) {
+      var a = screenAngle();
+      if (a === 90) return { pitch: -gamma, roll: beta };
+      if (a === 270) return { pitch: gamma, roll: -beta };
+      if (a === 180) return { pitch: -beta, roll: -gamma };
+      return { pitch: beta, roll: gamma };
+    };
+    var wrap = function(d) { while (d > 180) d -= 360; while (d < -180) d += 360; return d; };
+    var apply = function() {
+      if (!latest || !headsUpRef.current.active || headsUpRef.current.isFaceDown) return;
+      var cur = toScreen(latest.beta, latest.gamma);
+      if (!base) { base = cur; return; }
+      var pitch = wrap(cur.pitch - base.pitch);
+      var roll = wrap(cur.roll - base.roll);
+      if (Math.abs(pitch) < 10 && Math.abs(roll) < 10) {
+        base.pitch += pitch * 0.02;
+        base.roll += roll * 0.02;
+      }
+      var busy = ['GRABBED', 'DRAGGING', 'PRESSING', 'THROWING', 'COMPLETING', 'TRANSITIONING'].includes(headsUpRef.current.physicalState);
+      if (busy) return;
+      headsUpControllerRef.current.setTilt(-pitch * 0.55, roll * 0.7);
+      var now = Date.now();
+      if (roll < -24 && tiltDir !== 'left' && now - lastNavAt > 450) {
+        tiltDir = 'left';
+        lastNavAt = now;
+        headsUpControllerRef.current.previousCard();
+        if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+      } else if (roll > 24 && tiltDir !== 'right' && now - lastNavAt > 450) {
+        tiltDir = 'right';
+        lastNavAt = now;
+        headsUpControllerRef.current.nextCard();
+        if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+      } else if (Math.abs(roll) < 10) {
+        tiltDir = null;
+      }
+    };
+    var onOrientation = function(e) {
+      if (e.beta == null || e.gamma == null) return;
+      latest = { beta: e.beta, gamma: e.gamma };
+      apply();
+    };
+    var onMotion = function(e) {
+      var g = e.accelerationIncludingGravity;
+      if (!g || g.z == null) return;
+      // iOS reports z ≈ -9.8 face up and ≈ +9.8 screen down.
+      var now = Date.now();
+      if (g.z > 8) {
+        if (!faceDownSince) faceDownSince = now;
+        if (!headsUpRef.current.isFaceDown && now - faceDownSince > 400) headsUpControllerRef.current.pauseCard();
+      } else {
+        faceDownSince = 0;
+        if (headsUpRef.current.isFaceDown && g.z < 2) {
+          base = null;
+          headsUpControllerRef.current.resumeCard();
+        }
+      }
+    };
+    var onRotate = function() { base = null; };
+    window.addEventListener('deviceorientation', onOrientation);
+    window.addEventListener('devicemotion', onMotion);
+    window.addEventListener('orientationchange', onRotate);
+    return function() {
+      window.removeEventListener('deviceorientation', onOrientation);
+      window.removeEventListener('devicemotion', onMotion);
+      window.removeEventListener('orientationchange', onRotate);
+      headsUpControllerRef.current.returnToNeutral();
+    };
+  }, [huMotionActive]);
 
   // Keyboard navigation
   (0, _.useEffect)(function() {
@@ -23819,34 +23925,9 @@ var Oe = function(props) {
               (0, P.jsx)('span', { className: "truncate max-w-[110px]", children: cards[activeIdx].columnTitle || "Card" })
             ]
           }),
-          (0, P.jsxs)('div', {
-            className: "flex items-center gap-2",
-            children: [
-              (0, P.jsxs)('div', {
-                className: "px-3 py-1 rounded-full backdrop-blur-xl bg-white/10 border border-white/15 text-xs font-mono font-medium text-white/90 shadow-sm",
-                children: ["CARD ", activeIdx + 1, " OF ", cards.length]
-              }),
-              (0, P.jsx)('button', {
-                type: "button",
-                onClick: function(e) {
-                  e.stopPropagation();
-                  headsUpControllerRef.current.toggleMotionLab();
-                },
-                className: "w-7 h-7 rounded-full backdrop-blur-xl bg-white/10 border border-white/20 text-white/80 hover:text-white hover:bg-white/20 flex items-center justify-center transition-all duration-200 active:scale-90 text-xs shadow-md cursor-pointer",
-                title: "Toggle Motion Lab Debug Panel (Press M)",
-                children: "⚗️"
-              }),
-              (0, P.jsx)('button', {
-                type: "button",
-                onClick: function(e) {
-                  e.stopPropagation();
-                  headsUpControllerRef.current.exit();
-                },
-                className: "w-7 h-7 rounded-full backdrop-blur-xl bg-black/40 border border-white/20 text-white/80 hover:text-white hover:bg-black/60 flex items-center justify-center transition-all duration-200 active:scale-90 text-sm font-bold shadow-md cursor-pointer",
-                title: "Exit Heads Up (Esc)",
-                children: "✕"
-              })
-            ]
+          (0, P.jsx)('div', {
+            className: "hu-counter",
+            children: (activeIdx + 1) + "/" + cards.length
           })
         ]
       }) : null,
