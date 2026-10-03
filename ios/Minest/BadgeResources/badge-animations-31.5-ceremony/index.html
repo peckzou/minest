@@ -14,7 +14,23 @@
     <style>
       /* 31.6: the three-ring ceremony sits smaller on the phone (whole stage scaled) */
       html, body { background: #000 !important; }
-      #root { transform: scale(0.8); transform-origin: 50% 45%; }
+      /* (31.6 scaled the whole stage to 80%; the square stage below sizes the rings instead) */
+      /* 31.7: no visible panel behind the rings, and nothing clips them */
+      #root .min-h-screen { background: #000 !important; }
+      /* the 3D canvas clears to a very dark grey; crush it to black so no square shows */
+      #root canvas { filter: contrast(1.22); }
+      #root [class*="h-[480px]"] { background: transparent !important; border: 0 !important; box-shadow: none !important; overflow: visible !important; }
+      #root [class*="h-[480px]"] > .overflow-hidden {
+        overflow: visible !important;
+        /* a square stage: on a tall, narrow phone the 3D rings were sized by
+           height and cut off at the sides */
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 1 / 1;
+        margin-top: auto !important;
+        margin-bottom: auto !important;
+      }
     </style>
   </head>
   <body>
