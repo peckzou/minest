@@ -28641,6 +28641,9 @@ var ke = function(props) {
 
     if (window.MinestNative) {
       window.MinestNative.send('activeListUpdated', {
+        // 31.6: ids let the widget and the watch follow the list last open on the phone
+        boardId: (board && board.id) || '',
+        listId: activeCol.id || '',
         boardTitle: (board && board.title) || 'Minest',
         listName: activeCol.title || 'List',
         cardTitle: activeCol.title || 'List',
@@ -34845,27 +34848,25 @@ var Be = function() {
     return function() { window.removeEventListener('minestCardToggled', onToggled); };
   }, []);
 
-  // 31.6: the Home Screen widget mirrors the home list (first list of the active board)
+  // 31.6: keep the watch's boards, lists and cards current (boards live in IndexedDB,
+  // so the native side cannot read them from localStorage). Sent slim: ids, titles,
+  // done state and sub-checklists only.
   (0, _.useEffect)(function() {
     if (!window.MinestNative || !window.MinestNative.isNative()) return;
     var timer = setTimeout(function() {
-      var board = (boards || []).find(function(b) { return b.id === activeBoardId; }) || (boards || [])[0];
-      var col = board && (board.columns || [])[0];
-      if (!col) return;
-      var items = (col.cards || []).map(function(c) {
-        return { id: c.id, text: c.title || 'Untitled Card', done: !!(c.complete || c.done || c.isDone || c.mastery === 3) };
+      var isDone = function(c) { return !!(c.complete || c.done || c.isDone || c.mastery === 3); };
+      var slim = (boards || []).map(function(b) {
+        return { id: b.id, title: b.title, columns: (b.columns || []).map(function(col) {
+          return { id: col.id, title: col.title, color: col.color, cards: (col.cards || []).map(function(c) {
+            return { id: c.id, title: c.title || 'Untitled Card', complete: isDone(c),
+              checklistItems: (c.checklistItems || []).map(function(it) { return { id: it.id, text: it.text || it.title || '', done: !!(it.done || it.isDone) }; }) };
+          }) };
+        }) };
       });
-      var completed = items.filter(function(i) { return i.done; }).length;
-      window.MinestNative.send('updateHomeList', {
-        boardTitle: board.title || 'Minest',
-        listName: col.title || 'List',
-        items: items,
-        completedCount: completed,
-        totalCount: items.length
-      });
-    }, 400);
+      window.MinestNative.send('syncAllBoards', { boardsJSON: JSON.stringify(slim) });
+    }, 600);
     return function() { clearTimeout(timer); };
-  }, [boards, activeBoardId]);
+  }, [boards]);
 
   // Ingestion listener for Share Extension & Siri cards
   (0, _.useEffect)(function() {

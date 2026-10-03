@@ -77,6 +77,19 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
                 totalCards: total,
                 items: itemsList
             )
+
+            // 31.6: the Home Screen widget and the watch follow the list last open on the
+            // phone (list-level updates only; a card's sub-checklist never replaces it).
+            if action == "activeListUpdated" || action == "columnChanged" {
+                MinestWidgetDataStore.shared.saveItems(itemsList, boardTitle: boardTitle, cardTitle: listName)
+                WidgetCenter.shared.reloadAllTimelines()
+                if let boardId = data["boardId"] as? String, !boardId.isEmpty {
+                    iPhoneWatchSyncManager.shared.setSelectedBoard(boardId)
+                }
+                if let listId = data["listId"] as? String, !listId.isEmpty {
+                    iPhoneWatchSyncManager.shared.setSelectedList(listId)
+                }
+            }
             
             // Audio-haptic synchrony when explicitly toggled
             if action == "cardToggled" || action == "checklistToggled" {
@@ -280,16 +293,6 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
             
         case "googleSignIn":
             startGoogleSignIn()
-
-        case "updateHomeList":
-            // 31.6: the Home Screen widget mirrors the home list (first list of the active board)
-            let rows = data["items"] as? [[String: Any]] ?? []
-            let items: [StudyActivityAttributes.ChecklistItemState] = rows.compactMap { d in
-                guard let text = d["text"] as? String, !text.isEmpty else { return nil }
-                return StudyActivityAttributes.ChecklistItemState(id: (d["id"] as? String) ?? text, text: text, isDone: (d["done"] as? Bool) ?? false)
-            }
-            MinestWidgetDataStore.shared.saveItems(items, boardTitle: data["boardTitle"] as? String, cardTitle: data["listName"] as? String)
-            WidgetCenter.shared.reloadAllTimelines()
 
         case "updateBadgeWall":
             if let ids = data["unlockedIds"] as? [String] {
