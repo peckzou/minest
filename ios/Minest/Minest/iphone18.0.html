@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 32.1 · Heads Up Gyro</title>
+    <title>Minest iPhone 40.6 · Clear Edit &amp; Fold</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -4859,6 +4859,35 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   filter: brightness(.38) saturate(.8) !important;
 }
 
+/* 40.6 Clear tap-to-edit: the composer takes the row's place (same row as Pull to Create) */
+.clear-mode .clear-active-column [data-wallet-item]:has(> .clear-edit-composer) > article.kanban-card { display: none !important; }
+.clear-mode .clear-active-column .fb-composer.clear-edit-composer { margin: 0 !important; border-radius: 0 !important; min-height: 62px; }
+.clear-mode .clear-active-column .kanban-cards-scroll:has(.clear-edit-composer) article.kanban-card { filter: brightness(.38) saturate(.8) !important; }
+
+/* 40.6 fold-pick: hold a row (mother), the rest jiggle; rows tapped by the other hand fold into it */
+@keyframes clearFoldJiggle {
+  0%   { transform: translate3d(-.6px, 0, 0) rotate(-.55deg); }
+  50%  { transform: translate3d(.6px, 0, 0) rotate(.55deg); }
+  100% { transform: translate3d(-.6px, 0, 0) rotate(-.55deg); }
+}
+@keyframes clearFoldGulp { 0% { transform: scale(1.035); } 40% { transform: scale(1.075); } 100% { transform: scale(1.035); } }
+.clear-mode .clear-active-column.clear-fold-picking,
+.clear-mode .clear-active-column.clear-fold-picking .kanban-cards-scroll,
+.clear-mode .clear-active-column.clear-fold-picking article.kanban-card { touch-action: none !important; }
+.clear-mode .clear-active-column.clear-fold-picking article.kanban-card:not(.clear-fold-mother):not(.clear-fold-picked) {
+  animation: clearFoldJiggle .28s ease-in-out infinite !important;
+}
+.clear-mode .clear-active-column.clear-fold-picking [data-wallet-item]:nth-child(2n) article.kanban-card:not(.clear-fold-mother):not(.clear-fold-picked) { animation-delay: -.14s !important; animation-duration: .3s !important; }
+.clear-mode .clear-active-column.clear-fold-picking [data-wallet-item]:nth-child(3n) article.kanban-card:not(.clear-fold-mother):not(.clear-fold-picked) { animation-delay: -.07s !important; animation-duration: .26s !important; }
+.clear-mode .clear-active-column article.kanban-card.clear-fold-mother {
+  position: relative; z-index: 6;
+  transform: scale(1.035) !important;
+  box-shadow: 0 14px 34px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.55) !important;
+  transition: transform .18s cubic-bezier(.2,.9,.3,1.2), box-shadow .18s ease !important;
+}
+.clear-mode .clear-active-column article.kanban-card.clear-fold-mother.clear-fold-gulp { animation: clearFoldGulp .3s ease-out !important; }
+.clear-mode .clear-active-column article.kanban-card.clear-fold-picked { pointer-events: none; z-index: 5; }
+
 /* 27.9 Clear mode: a card in a folded group is simply Pink — no deck, depth or heavy shadow */
 .clear-mode .clear-active-column .card-stack-base article.kanban-card {
   --clear-row-color: #ff5fa2 !important;
@@ -5640,7 +5669,7 @@ body.is-safari-column-dragging {
 }
 
 .apple-wallet-card-shell.is-expanded {
-  transform: translateY(-24px) scale(1.03) !important;
+  transform: translateY(-48px) scale(1.045) !important;
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
 }
 
@@ -6114,6 +6143,46 @@ html body.clear-mode .clear-active-column article.kanban-subcard[data-priority="
 html body.clear-mode .clear-active-column .kanban-cards-scroll > .gesture-pull-ghost,
 html body.clear-mode .clear-active-column .kanban-cards-scroll > .fb-composer,
 html body.clear-mode .clear-active-column .kanban-cards-scroll > .card-gap-active-composer { flex-shrink: 0 !important; }
+</style>
+<style>
+/* 40.0 wallet motion polish: keep both Wallet surfaces on one responsive rhythm. */
+.apple-wallet-card-shell {
+  transition: transform .22s cubic-bezier(.2,.9,.25,1), box-shadow .22s ease;
+  will-change: transform, opacity, box-shadow;
+  transform-origin: 50% 12%;
+  contain: paint;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.apple-wallet-card-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(112deg, transparent 28%, rgba(255,255,255,.16) 44%, transparent 59%);
+  opacity: .18;
+  transform: translateX(-12%);
+  transition: opacity .24s ease, transform .42s cubic-bezier(.2,.8,.2,1);
+}
+.apple-wallet-card-shell.is-dragging::before { opacity: .5; transform: translateX(8%); }
+.apple-wallet-card-shell.is-dragging {
+  filter: saturate(1.08) brightness(1.06);
+  box-shadow: 0 38px 78px rgba(0,0,0,.76), 0 14px 28px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.72) !important;
+}
+.apple-wallet-card-shell.is-settling { transition: transform .38s cubic-bezier(.16,1.22,.3,1), box-shadow .34s ease !important; }
+.wallet-dragging .kanban-cards-scroll.wallet-list > [data-wallet-item] { will-change: transform, filter; backface-visibility: hidden; }
+.wallet-dragging .kanban-cards-scroll.wallet-list > [data-wallet-item].wallet-lifted { filter: drop-shadow(0 22px 34px rgba(0,0,0,.42)) drop-shadow(0 5px 10px rgba(0,0,0,.2)); }
+.apple-wallet-card-shell.is-yielding {
+  filter: brightness(1.06) saturate(1.06);
+  box-shadow: 0 18px 34px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.5) !important;
+}
+.wallet-dragging .kanban-cards-scroll.wallet-list > [data-wallet-item].wallet-yielding {
+  filter: brightness(1.045) saturate(1.06) drop-shadow(0 10px 18px rgba(0,0,0,.2));
+}
+.apple-wallet-overlay.list-wallet .apple-wallet-card-shell.list-wallet-yielding {
+  filter: brightness(1.045) saturate(1.05);
+}
 </style>
 </head>
   <body>
@@ -19075,7 +19144,7 @@ window.openCardWalletForCol = function(colId) {
   function renderCards() {
     return cardsData.map(function(card, i) {
       var themeIdx = i % 10;
-      return '<div class="apple-wallet-card-shell wallet-card-theme-' + themeIdx + '" data-card-idx="' + i + '" data-card-id="' + card.id + '" style="top: ' + (i * 54) + 'px; z-index: ' + (i + 1) + ';">' +
+      return '<div class="apple-wallet-card-shell wallet-card-theme-' + themeIdx + '" data-card-idx="' + i + '" data-card-id="' + card.id + '" style="top: ' + (i * 44) + 'px; z-index: ' + (i + 1) + ';">' +
         '<div class="apple-wallet-card-peek">' +
         '<span class="apple-wallet-card-title">' + card.title + '</span>' +
         '</div>' +
@@ -19083,7 +19152,7 @@ window.openCardWalletForCol = function(colId) {
     }).join('');
   }
 
-  var totalHeight = Math.max(cardsData.length * 54 + 230, 480);
+  var totalHeight = Math.max(cardsData.length * 44 + 230, 480);
 
   overlay.innerHTML = '<div class="apple-wallet-top-spacer"></div>' +
     '<div class="apple-wallet-nav-bar">' +
@@ -19151,7 +19220,7 @@ window.openCardWalletForCol = function(colId) {
         vy = 0;
         heldIdx = parseInt(shell.getAttribute('data-card-idx'), 10) || 0;
         currentSlot = heldIdx;
-        startTop = heldIdx * 54;
+        startTop = heldIdx * 44;
         isDragging = false;
         hasMoved = false;
 
@@ -19164,7 +19233,7 @@ window.openCardWalletForCol = function(colId) {
       function onPointerMove(e) {
         var now = performance.now();
         var dt = Math.max(1, now - lastT);
-        vy = (e.clientY - lastY) / dt;
+        vy = vy * 0.62 + ((e.clientY - lastY) / dt) * 0.38;
         lastY = e.clientY;
         lastT = now;
 
@@ -19187,17 +19256,17 @@ window.openCardWalletForCol = function(colId) {
 
         if (isDragging) {
           var curTop = startTop + dy;
-          var maxTop = (cardsData.length - 1) * 54;
+          var maxTop = (cardsData.length - 1) * 44;
           // Rubber banding past boundaries
           if (curTop < 0) curTop = curTop * 0.5;
           if (curTop > maxTop) curTop = maxTop + (curTop - maxTop) * 0.5;
           var effDy = curTop - startTop;
 
-          var tilt = Math.max(-7, Math.min(7, vy * 0.11));
-          shell.style.transform = 'translate3d(0, ' + effDy.toFixed(1) + 'px, 0) scale(1.07) rotate(' + tilt.toFixed(1) + 'deg)';
+          var tilt = Math.max(-9, Math.min(9, vy * 0.18));
+          shell.style.transform = 'translate3d(0, ' + effDy.toFixed(1) + 'px, 0) scale(1.09) rotate(' + tilt.toFixed(1) + 'deg)';
 
           // Calculate target slot
-          var targetSlot = Math.round((startTop + effDy) / 54 + (effDy > 0 ? 0.15 : -0.15));
+          var targetSlot = Math.round((startTop + effDy) / 44 + (effDy > 0 ? 0.16 : -0.16));
           targetSlot = Math.max(0, Math.min(cardsData.length - 1, targetSlot));
 
           if (targetSlot !== currentSlot) {
@@ -19214,9 +19283,11 @@ window.openCardWalletForCol = function(colId) {
               } else if (oIdx < heldIdx && oIdx >= targetSlot) {
                 vSlot = oIdx + 1;
               }
-              var targetY = (vSlot - oIdx) * 54;
-              otherShell.style.transition = 'transform 0.22s cubic-bezier(0.25, 1.45, 0.4, 1)';
-              otherShell.style.transform = 'translate3d(0, ' + targetY + 'px, 0)';
+              var yieldGap = Math.min(220, Math.max(52, shell.offsetHeight - 44 + 14));
+              var targetY = (vSlot - oIdx) * 44 + (vSlot >= targetSlot ? yieldGap : 0);
+              otherShell.classList.toggle('is-yielding', vSlot !== oIdx);
+              otherShell.style.transition = 'transform 0.34s cubic-bezier(0.12, 1.46, 0.24, 1)';
+              otherShell.style.transform = 'translate3d(0, ' + targetY.toFixed(1) + 'px, 0) scale(' + (vSlot !== oIdx ? '.965' : '1') + ')';
             });
           }
         }
@@ -19246,15 +19317,15 @@ window.openCardWalletForCol = function(colId) {
             shell.classList.add('is-expanded');
             if (navigator.vibrate) try { navigator.vibrate(10); } catch(err) {}
             cardShells.forEach(function(s, si) {
-              s.style.transition = 'transform 0.46s cubic-bezier(0.2, 1.35, 0.3, 1), box-shadow 0.3s ease, opacity 0.25s ease';
+              s.style.transition = 'transform 0.38s cubic-bezier(0.16, 1.22, 0.3, 1), box-shadow 0.34s ease, opacity 0.25s ease';
               if (s === shell) {
                 s.style.zIndex = '500';
-                s.style.transform = 'translateY(-44px) scale(1.06)';
+                s.style.transform = 'translateY(-48px) scale(1.045)';
                 s.style.opacity = '1';
               } else if (si > idx) {
                 s.style.zIndex = String(si + 1);
-                s.style.transform = 'translateY(260px)';
-                s.style.opacity = '0.92';
+                s.style.transform = 'translateY(320px)';
+                s.style.opacity = '0.9';
               } else {
                 s.style.zIndex = String(si + 1);
                 s.style.transform = '';
@@ -19270,9 +19341,10 @@ window.openCardWalletForCol = function(colId) {
         shell.classList.remove('is-dragging');
         shell.classList.add('is-settling');
 
-        var snapOffset = (currentSlot - heldIdx) * 54;
-        shell.style.transition = 'transform 0.42s cubic-bezier(0.2, 1.5, 0.3, 1), box-shadow 0.28s ease';
-        shell.style.transform = 'translate3d(0, ' + snapOffset + 'px, 0) scale(1) rotate(0deg)';
+        var snapOffset = (currentSlot - heldIdx) * 44;
+        shell.style.transition = 'transform 0.22s cubic-bezier(0.12, 1.25, 0.24, 1), box-shadow 0.2s ease';
+        shell.style.transform = 'translate3d(0, ' + snapOffset.toFixed(1) + 'px, 0) scale(.985) rotate(0deg)';
+        setTimeout(function() { if (shell.classList.contains('is-settling')) shell.style.zIndex = String(currentSlot + 1); }, 78);
 
         setTimeout(function() {
           shell.classList.remove('is-settling');
@@ -19291,7 +19363,7 @@ window.openCardWalletForCol = function(colId) {
             stackWrapper.innerHTML = renderCards();
             bindCardGestures();
           }
-        }, 420);
+        }, 245);
       }
 
       shell.addEventListener('pointerdown', onPointerDown);
@@ -19426,7 +19498,7 @@ window.openListWallet = function() {
 
   var overlay = document.createElement('div');
   overlay.className = 'apple-wallet-overlay list-wallet';
-  var PEEK = 54;
+  var PEEK = 44;
 
   function cardHTML(L, i) {
     var more = L.titles.length > 6 ? '<li class="list-wallet-more">+' + (L.titles.length - 6) + '</li>' : '';
@@ -19496,7 +19568,7 @@ window.openListWallet = function() {
       }
       function move(e) {
         var now = performance.now(), dt = Math.max(1, now - lastT);
-        vy = (e.clientY - lastY) / dt; lastY = e.clientY; lastT = now;
+        vy = vy * 0.62 + ((e.clientY - lastY) / dt) * 0.38; lastY = e.clientY; lastT = now;
         var dy = e.clientY - startY;
         if (!dragging && Math.abs(dy) > 3) {
           dragging = true; draggingAny = true;
@@ -19509,9 +19581,9 @@ window.openListWallet = function() {
         var cur = top0 + dy, max = (lists.length - 1) * PEEK;
         if (cur < 0) cur *= 0.5;
         if (cur > max) cur = max + (cur - max) * 0.5;
-        var eff = cur - top0, tilt = Math.max(-7, Math.min(7, vy * 0.11));
-        shell.style.transform = 'translate3d(0,' + eff.toFixed(1) + 'px,0) scale(1.07) rotate(' + tilt.toFixed(1) + 'deg)';
-        var t = Math.max(0, Math.min(lists.length - 1, Math.round((top0 + eff) / PEEK + (eff > 0 ? 0.15 : -0.15))));
+        var eff = cur - top0, tilt = Math.max(-9, Math.min(9, vy * 0.18));
+        shell.style.transform = 'translate3d(0,' + eff.toFixed(1) + 'px,0) scale(1.09) rotate(' + tilt.toFixed(1) + 'deg)';
+        var t = Math.max(0, Math.min(lists.length - 1, Math.round((top0 + eff) / PEEK + (eff > 0 ? 0.2 : -0.2))));
         if (t !== slot) {
           slot = t;
           if (navigator.vibrate) try { navigator.vibrate(6); } catch (err) {}
@@ -19519,8 +19591,11 @@ window.openListWallet = function() {
             if (o === shell) return;
             var oi = parseInt(o.getAttribute('data-card-idx'), 10), v = oi;
             if (oi > held && oi <= slot) v = oi - 1; else if (oi < held && oi >= slot) v = oi + 1;
-            o.style.transition = 'transform 0.22s cubic-bezier(0.25, 1.45, 0.4, 1)';
-            o.style.transform = 'translate3d(0,' + ((v - oi) * PEEK) + 'px,0)';
+            var yieldGap = Math.min(220, Math.max(52, o.offsetHeight - PEEK + 14));
+            var targetY = (v - oi) * PEEK + (v >= slot ? yieldGap : 0);
+            o.classList.toggle('is-yielding', v !== oi);
+            o.style.transition = 'transform 0.34s cubic-bezier(0.12, 1.46, 0.24, 1)';
+            o.style.transform = 'translate3d(0,' + targetY.toFixed(1) + 'px,0) scale(' + (v !== oi ? '.965' : '1') + ')';
           });
         }
       }
@@ -19535,16 +19610,16 @@ window.openListWallet = function() {
           expanded = shell; shell.classList.add('is-expanded');
           if (navigator.vibrate) try { navigator.vibrate(10); } catch (err) {}
           shells.forEach(function(s, si) {
-            s.style.transition = 'transform 0.46s cubic-bezier(0.2, 1.35, 0.3, 1), box-shadow 0.3s ease, opacity 0.25s ease';
-            if (s === shell) { s.style.zIndex = '500'; s.style.transform = 'translateY(-44px) scale(1.06)'; s.style.opacity = '1'; }
-            else if (si > idx) { s.style.zIndex = String(si + 1); s.style.transform = 'translateY(300px)'; s.style.opacity = '0.92'; }
+            s.style.transition = 'transform 0.38s cubic-bezier(0.16, 1.22, 0.3, 1), box-shadow 0.34s ease, opacity 0.25s ease';
+            if (s === shell) { s.style.zIndex = '500'; s.style.transform = 'translateY(-48px) scale(1.045)'; s.style.opacity = '1'; }
+            else if (si > idx) { s.style.zIndex = String(si + 1); s.style.transform = 'translateY(320px)'; s.style.opacity = '0.9'; }
             else { s.style.zIndex = String(si + 1); s.style.transform = ''; s.style.opacity = '0.65'; }
           });
           return;
         }
         if (navigator.vibrate) try { navigator.vibrate([10, 25]); } catch (err) {}
         shell.classList.remove('is-dragging'); shell.classList.add('is-settling');
-        shell.style.transition = 'transform 0.42s cubic-bezier(0.2, 1.5, 0.3, 1), box-shadow 0.28s ease';
+        shell.style.transition = 'transform 0.38s cubic-bezier(0.16, 1.22, 0.3, 1), box-shadow 0.34s ease';
         shell.style.transform = 'translate3d(0,' + ((slot - held) * PEEK) + 'px,0) scale(1) rotate(0deg)';
         setTimeout(function() {
           shell.classList.remove('is-settling'); shell.style.transition = ''; shell.style.transform = ''; draggingAny = false;
@@ -19554,7 +19629,7 @@ window.openListWallet = function() {
             // 31.7: the board follows the wallet order
             window.dispatchEvent(new CustomEvent('minestReorderColumns', { detail: { order: lists.map(function(l) { return l.id; }) } }));
           }
-        }, 420);
+        }, 380);
       }
       shell.addEventListener('pointerdown', down);
     });
@@ -19840,7 +19915,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "32.1" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "40.6" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -25817,6 +25892,11 @@ var MinestPortraitGestureManager = (function() {
     var clearModeCard = null;
     var clearModeColumn = null;
     var clearHiddenNodes = [];
+    // 40.6 fold-pick: hold one row (the mother), every row the other hand taps folds into it
+    var foldPick = null;
+    var foldHoldTimer = null;
+    var lastSingleTouchId = null;
+    var FOLD_HOLD_MS = 420;
     var enterClearMode = function(cardEl) {
       if (clearModeCard && cardEl) {
         // 27.94: already in Clear mode — just move the active card; the bars are already hidden
@@ -26145,8 +26225,167 @@ var MinestPortraitGestureManager = (function() {
       }
     };
 
+    // Text offset inside a row's title under a viewport point (Clear: the caret goes where you tap)
+    var caretOffsetAt = function(cardEl, x, y, title) {
+      var titleEl = cardEl.querySelector('h3') || cardEl;
+      var range = null;
+      try {
+        if (document.caretRangeFromPoint) range = document.caretRangeFromPoint(x, y);
+        else if (document.caretPositionFromPoint) {
+          var cp = document.caretPositionFromPoint(x, y);
+          if (cp) { range = document.createRange(); range.setStart(cp.offsetNode, cp.offset); }
+        }
+      } catch (err) { range = null; }
+      if (!range || !titleEl.contains(range.startContainer)) {
+        var tr = titleEl.getBoundingClientRect();
+        return x < tr.left ? 0 : title.length;
+      }
+      var pre = document.createRange();
+      pre.selectNodeContents(titleEl);
+      pre.setEnd(range.startContainer, range.startOffset);
+      var n = pre.toString().length;
+      var at = (titleEl.textContent || '').indexOf(title);
+      if (at > 0) n -= at;
+      return Math.max(0, Math.min(title.length, n));
+    };
+    var startClearEdit = function(gs, ctx) {
+      var title = gs.cardObj.title || '';
+      var kb = document.getElementById('clear-kb-proxy');
+      if (!kb) {
+        kb = document.createElement('input');
+        kb.id = 'clear-kb-proxy';
+        kb.type = 'text';
+        kb.setAttribute('aria-hidden', 'true');
+        kb.tabIndex = -1;
+        kb.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none;';
+        document.body.appendChild(kb);
+      }
+      // iOS only opens the keyboard for a focus inside the gesture: hold it on a proxy
+      try { kb.focus({ preventScroll: true }); } catch (err) { kb.focus(); }
+      var caret = caretOffsetAt(gs.cardEl, gs.startX, gs.startY, title);
+      var bg = getComputedStyle(gs.cardEl).backgroundColor;
+      ctx.setGapInsertText(title);
+      ctx.setGapInsertSlot({ colId: gs.colId, editCardId: gs.cardObj.id, beforeCardId: null, targetIndex: -1, caret: caret, bg: bg });
+    };
+
+    var cancelFoldHold = function() {
+      if (foldHoldTimer) { clearTimeout(foldHoldTimer); foldHoldTimer = null; }
+    };
+    var beginFoldPick = function(gs, touchId) {
+      var colEl = gs.cardEl.closest('.kanban-column-wrapper');
+      if (!colEl) return;
+      foldPick = { motherEl: gs.cardEl, mother: gs.cardObj, colId: gs.colId, colEl: colEl, pointerId: gs.pointerId, touchId: touchId, picked: [], lastPickAt: {} };
+      gs.mode = 'fold_hold';
+      colEl.classList.add('clear-fold-picking');
+      gs.cardEl.classList.add('clear-fold-mother');
+      window.__minestGestureSuppressClickUntil = Date.now() + 100000;
+      haptic('medium');
+      sound('click');
+    };
+    var pickIntoFold = function(target) {
+      if (!foldPick || !target || !target.closest) return;
+      var art = target.closest('article.kanban-card');
+      if (!art || art === foldPick.motherEl || !foldPick.colEl.contains(art) || art.classList.contains('clear-fold-picked')) return;
+      var id = art.getAttribute('data-card-id');
+      var now = Date.now();
+      if (foldPick.lastPickAt[id] && now - foldPick.lastPickAt[id] < 350) return;   // pointer + touch echo
+      foldPick.lastPickAt[id] = now;
+      var ctx = ctxRef.current || {};
+      var colObj = ctx.board && (ctx.board.columns || []).find(function(c) { return c.id === foldPick.colId; });
+      var cd = colObj && (colObj.cards || []).find(function(c) { return c.id === id; });
+      if (!cd) return;
+      foldPick.picked.push(cd);
+      art.classList.add('clear-fold-picked');
+      // the row flies up into the mother and its slot closes
+      var mr = foldPick.motherEl.getBoundingClientRect(), ar = art.getBoundingClientRect();
+      art.style.transition = 'transform .32s cubic-bezier(.2,.9,.25,1), opacity .32s ease';
+      art.style.transform = 'translate3d(0,' + (mr.top - ar.top).toFixed(1) + 'px,0) scale(.92)';
+      art.style.opacity = '0';
+      var wrap = art.closest('[data-wallet-item]') || art.parentElement;
+      if (wrap) {
+        wrap.style.height = wrap.offsetHeight + 'px';
+        wrap.style.overflow = 'visible';
+        wrap.style.transition = 'height .3s cubic-bezier(.3,.7,.2,1) .06s';
+        requestAnimationFrame(function() { wrap.style.height = '0px'; });
+      }
+      foldPick.motherEl.classList.remove('clear-fold-gulp');
+      void foldPick.motherEl.offsetWidth;
+      foldPick.motherEl.classList.add('clear-fold-gulp');
+      haptic('selection');
+      sound('tap');
+    };
+    var finishFoldPick = function() {
+      if (!foldPick) return;
+      var fp = foldPick;
+      foldPick = null;
+      window.__minestGestureSuppressClickUntil = Date.now() + 350;
+      fp.colEl.classList.remove('clear-fold-picking');
+      fp.motherEl.classList.remove('clear-fold-mother', 'clear-fold-gulp');
+      var ctx = ctxRef.current || {};
+      if (fp.picked.length && ctx.board && ctx.onUpdateBoard) {
+        var pickedIds = fp.picked.map(function(c) { return c.id; });
+        var nextCols = (ctx.board.columns || []).map(function(col) {
+          if (col.id !== fp.colId) return col;
+          var updated = [];
+          (col.cards || []).forEach(function(card) {
+            if (card.id === fp.mother.id) {
+              var cur = Array.isArray(card.stack) ? card.stack.slice() : [];
+              updated.push(Object.assign({}, card, { hasStack: true, isStackExpanded: false, stack: cur.concat(fp.picked) }));
+            } else if (pickedIds.indexOf(card.id) === -1) {
+              updated.push(card);
+            }
+          });
+          return Object.assign({}, col, { cards: updated });
+        });
+        ctx.onUpdateBoard(Object.assign({}, ctx.board, { columns: nextCols }));
+        if (ctx.setExpandedStacks) {
+          ctx.setExpandedStacks(function(prev) { var next = Object.assign({}, prev); delete next[fp.mother.id]; return next; });
+        }
+        haptic('success');
+        sound('slide');
+      }
+      // React re-renders the list; clear any inline motion left on reused nodes
+      setTimeout(function() {
+        fp.colEl.querySelectorAll('.clear-fold-picked').forEach(function(a) {
+          a.classList.remove('clear-fold-picked');
+          a.style.transition = ''; a.style.transform = ''; a.style.opacity = '';
+          var w = a.closest('[data-wallet-item]') || a.parentElement;
+          if (w) { w.style.height = ''; w.style.overflow = ''; w.style.transition = ''; }
+        });
+      }, 60);
+    };
+    // Fold-pick owns every touch while it runs: other fingers pick rows, the mother finger ends it
+    var onFoldTouchStart = function(e) {
+      if (!foldPick) {
+        if (e.touches && e.touches.length === 1 && e.changedTouches[0]) lastSingleTouchId = e.changedTouches[0].identifier;
+        return;
+      }
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      Array.prototype.forEach.call(e.changedTouches, function(t) {
+        if (t.identifier === foldPick.touchId) return;
+        pickIntoFold(document.elementFromPoint(t.clientX, t.clientY));
+      });
+    };
+    var onFoldTouchMove = function(e) {
+      if (!foldPick) return;
+      if (e.cancelable) e.preventDefault();
+    };
+    var onFoldTouchEnd = function(e) {
+      if (!foldPick || foldPick.touchId == null) return;
+      var stillDown = Array.prototype.some.call(e.touches || [], function(t) { return t.identifier === foldPick.touchId; });
+      if (!stillDown) finishFoldPick();
+    };
+
     var onDown = function(e) {
       if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
+      if (foldPick) {
+        if (e.type.startsWith('touch')) return;                       // handled by onFoldTouchStart
+        if (e.pointerId !== foldPick.pointerId) pickIntoFold(e.target);
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       // 27.95: a two-finger touch in Clear mode starts the pinch from touch events
       var clearTouchPinch = !!(clearModeCard && e.type === 'touchstart' && e.touches && e.touches.length >= 2 && !pinchSession);
       if (window.PointerEvent && e.type.startsWith('touch') && !clearTouchPinch) return;
@@ -26286,7 +26525,8 @@ var MinestPortraitGestureManager = (function() {
           // };
           // if (e.cancelable) e.preventDefault();
           // e.stopPropagation();
-        } else if (touchedCards.length >= 2) {
+        } else if (false && touchedCards.length >= 2) {
+          // 40.6: two-finger pinch folding is replaced by hold-a-mother + tap fold-pick
           pinchSession = {
             mode: 'pinch',
             d0: d0,
@@ -26362,10 +26602,28 @@ var MinestPortraitGestureManager = (function() {
           gestureState.canPullDown = true;
         }
       }
+
+      // 40.6: holding a top-level row still in Clear mode makes it the fold mother
+      cancelFoldHold();
+      var isTopLevelRow = !!(cardEl && cardObj && colObj && cardEl.matches('article.kanban-card') &&
+        (colObj.cards || []).some(function(c) { return c.id === cardObj.id; }));
+      if (clearModeCard && isTopLevelRow && !document.querySelector('.clear-active-column .fb-composer')) {
+        var holdGs = gestureState;
+        var holdTouchId = lastSingleTouchId;
+        foldHoldTimer = setTimeout(function() {
+          foldHoldTimer = null;
+          if (gestureState !== holdGs || holdGs.mode !== 'undecided' || foldPick) return;
+          if (Math.hypot(holdGs.currentX - holdGs.startX, holdGs.currentY - holdGs.startY) > 10) return;
+          beginFoldPick(holdGs, holdTouchId);
+        }, FOLD_HOLD_MS);
+      }
     };
 
     var onMove = function(e) {
       if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
+      if (foldPick) { if (e.cancelable) e.preventDefault(); return; }
+      if (foldHoldTimer && gestureState && !e.type.startsWith('touch') && e.pointerId === gestureState.pointerId &&
+          Math.hypot(e.clientX - gestureState.startX, e.clientY - gestureState.startY) > 10) cancelFoldHold();
       var clearTouchMove = !!(pinchSession && pinchSession.viaTouch && e.type === 'touchmove' && e.touches && e.touches.length >= 2);
       if (window.PointerEvent && e.type.startsWith('touch') && !clearTouchMove) return;
       if (pinchSession && pinchSession.viaTouch && !e.type.startsWith('touch')) return;   // ignore (cancelled) pointers
@@ -26601,6 +26859,15 @@ var MinestPortraitGestureManager = (function() {
 
     var onUp = function(e) {
       if (!isPhonePortrait() && !document.querySelector('.iphone-frame.landscape') && !document.querySelector('.landscape')) return;
+      cancelFoldHold();
+      if (foldPick) {
+        if (!e.type.startsWith('touch') && e.type === 'pointerup' && e.pointerId === foldPick.pointerId) {
+          gestureState = null;
+          activePointers.clear();
+          finishFoldPick();
+        }
+        return;
+      }
       var clearTouchEnd = !!(pinchSession && pinchSession.viaTouch && (e.type === 'touchend' || e.type === 'touchcancel'));
       if (window.PointerEvent && e.type.startsWith('touch') && !clearTouchEnd) return;
       if (pinchSession && pinchSession.viaTouch && !e.type.startsWith('touch')) return;   // pointercancel no longer kills it
@@ -26841,28 +27108,19 @@ var MinestPortraitGestureManager = (function() {
         var now = Date.now();
         var cardId = gs.cardObj.id;
 
-        if (clearModeCard && lastTap.cardId === cardId && (now - lastTap.time) < 320) {   // 27.995: Clear double tap = edit
+        if (clearModeCard) {   // 40.6: Clear single tap = edit in place, caret at the finger
+          if (Date.now() - (window.__clearComposerClosedAt || 0) < 500) return;   // this tap just closed an editor
           window.__minestGestureSuppressClickUntil = Date.now() + 350;
           if (lastTap.timer) { clearTimeout(lastTap.timer); lastTap.timer = null; }
           lastTap.time = 0;
           lastTap.cardId = null;
-
           haptic('selection');
           sound('tap');
-          // Double tap: open card editor. iOS only shows the keyboard for a focus inside the
-          // gesture, so focus a proxy input now; the editor's autoFocus textarea takes it over.
-          if (ctx.openQuickEdit && gs.cardEl && gs.cardObj && gs.colObj) {
-            var editProxy = document.getElementById('clear-kb-proxy');
-            if (!editProxy) {
-              editProxy = document.createElement('input');
-              editProxy.id = 'clear-kb-proxy';
-              editProxy.type = 'text';
-              editProxy.setAttribute('aria-hidden', 'true');
-              editProxy.tabIndex = -1;
-              editProxy.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none;';
-              document.body.appendChild(editProxy);
-            }
-            try { editProxy.focus({ preventScroll: true }); } catch (err) { editProxy.focus(); }
+          var isTopRow = gs.colObj && (gs.colObj.cards || []).some(function(c) { return c.id === cardId; });
+          if (isTopRow && ctx.setGapInsertSlot && ctx.setGapInsertText) {
+            startClearEdit(gs, ctx);
+          } else if (ctx.openQuickEdit && gs.cardEl && gs.cardObj && gs.colObj) {
+            // a card inside an open folded group keeps the quick editor
             ctx.openQuickEdit(gs.cardObj, gs.colObj, gs.cardEl);
           }
         } else {
@@ -26901,6 +27159,8 @@ var MinestPortraitGestureManager = (function() {
       }
       // touchstart + pointerdown both arrive for one tap on iOS: handle it once
       if (Date.now() - lastClearExitAt < 350) return;
+      // 40.6: with a row being typed into, a tap outside only saves it (the composer handles that)
+      if (foldPick || document.querySelector('.clear-active-column .fb-composer')) { pendingClearExit = null; return; }
       var target = e.target && e.target.nodeType === 1 ? e.target : (e.target && e.target.parentElement);
       if (!target || !target.closest) return;
       var inActiveList = clearModeColumn && clearModeColumn.contains(target);
@@ -26956,7 +27216,11 @@ var MinestPortraitGestureManager = (function() {
     window.addEventListener('pointerup', onUp, { capture: true });
     window.addEventListener('pointercancel', onUp, { capture: true });
 
+    lane.addEventListener('touchstart', onFoldTouchStart, { passive: false, capture: true });
     lane.addEventListener('touchstart', onDown, { passive: false, capture: true });
+    window.addEventListener('touchmove', onFoldTouchMove, { passive: false, capture: true });
+    window.addEventListener('touchend', onFoldTouchEnd, { capture: true });
+    window.addEventListener('touchcancel', onFoldTouchEnd, { capture: true });
     lane.addEventListener('touchmove', onMove, { passive: false, capture: true });
     // 27.9: a finger pulling down at the top of a list must not start native scrolling,
     // otherwise pointercancel ends the pull-to-add gesture (mouse never had this problem)
@@ -26999,6 +27263,12 @@ var MinestPortraitGestureManager = (function() {
 
     return function() {
       if (lastTap.timer) clearTimeout(lastTap.timer);
+      cancelFoldHold();
+      if (foldPick) finishFoldPick();
+      lane.removeEventListener('touchstart', onFoldTouchStart, { capture: true });
+      window.removeEventListener('touchmove', onFoldTouchMove, { capture: true });
+      window.removeEventListener('touchend', onFoldTouchEnd, { capture: true });
+      window.removeEventListener('touchcancel', onFoldTouchEnd, { capture: true });
       lane.removeEventListener('pointerdown', onDown, { capture: true });
       lane.removeEventListener('touchmove', onPullTouchMove, { capture: true });
       lane.removeEventListener('touchmove', onClearTwoFingerMove, { capture: true });
@@ -27603,13 +27873,42 @@ var ke = function(props) {
   var gapInsertText = gapInsertTextState[0];
   var setGapInsertText = gapInsertTextState[1];
 
-  // Outside pointer listener to auto-close gap insertion composer
+  // 40.6: one commit path for the composer, used by Enter, the send button and
+  // a tap outside it. A new-card slot adds its text as card(s); an edit slot
+  // (editCardId, Clear-style tap-to-edit) saves the new title in place.
+  var gapInsertSlotRef = (0, _.useRef)(null);
+  gapInsertSlotRef.current = gapInsertSlot;
+  var gapInsertTextRef = (0, _.useRef)("");
+  gapInsertTextRef.current = gapInsertText;
+  var commitGapInsertRef = (0, _.useRef)(null);
+  commitGapInsertRef.current = function() {
+    var slot = gapInsertSlotRef.current;
+    var text = gapInsertTextRef.current || "";
+    if (!slot) return;
+    if (slot.editCardId) {
+      var editCol = (board.columns || []).find(function(c) { return c.id === slot.colId; });
+      var editCard = editCol && (editCol.cards || []).find(function(c) { return c.id === slot.editCardId; });
+      var newTitle = text.replace(/\s*\n\s*/g, " ").trim();
+      if (editCard && newTitle && newTitle !== editCard.title && onSaveCard) {
+        onSaveCard(editCol.id, Object.assign({}, editCard, { title: newTitle }), editCol.id);
+        SoundEngine.play('check');
+      }
+    } else if (text.trim()) {
+      onQuickAddCard(slot.colId, text, slot.beforeCardId || slot.targetIndex);
+      SoundEngine.play('add');
+    }
+    setGapInsertSlot(null);
+    setGapInsertText("");
+  };
+
+  // Outside pointer listener: a tap anywhere else keeps what was typed
   (0, _.useEffect)(function() {
     if (!gapInsertSlot) return;
     var handleOutsideGapClick = function(e) {
       if (e.target && e.target.closest && e.target.closest('.card-gap-active-composer, .fb-composer')) return;
-      setGapInsertSlot(null);
-      setGapInsertText("");
+      // this tap only closes the editor; the Clear gesture layer must not start a new edit with it
+      window.__clearComposerClosedAt = Date.now();
+      commitGapInsertRef.current();
     };
     window.addEventListener('pointerdown', handleOutsideGapClick);
     return function() { window.removeEventListener('pointerdown', handleOutsideGapClick); };
@@ -28034,15 +28333,15 @@ var ke = function(props) {
     if (!lane || layoutMode !== 'swimlane') return;
     // 9.2: once a card has landed the stack folds straight back into the list
     // (LINGER is only the short beat after landing), so no blank is left behind
-    var LONG_PRESS = 1000, SLOP = 20, MOUSE_SLOP = 8, LINGER = 200;
-    var LIFT_SCALE = 1.04, EDGE = 64, SCROLL_MAX = 760, PRESS_SCALE = 0.972;
-    var PEEK = 54;                          // px of each stacked card left showing
+    var LONG_PRESS = 850, SLOP = 16, MOUSE_SLOP = 6, LINGER = 200;
+    var LIFT_SCALE = 1.075, EDGE = 64, SCROLL_MAX = 900, PRESS_SCALE = 0.968;
+    var PEEK = 48;                          // px of each stacked card left showing
     var CARD_RATIO = 1.586;                 // bank card
     // 9.2: iOS-like springs — critically-damped-ish, one soft overshoot on landing
-    var T_STACK = 0.38, Z_STACK = 0.86;     // gathering / re-spacing the stack
-    var T_FAN = 0.46, Z_FAN = 0.9;          // the stack opening back into the list
-    var T_DROP = 0.34, Z_DROP = 0.8;        // a released card settling into the stack
-    var WAVE = 16;                          // ms per card of the gather/part wave
+    var T_STACK = 0.31, Z_STACK = 0.78;     // gathering / re-spacing the stack
+    var T_FAN = 0.39, Z_FAN = 0.84;         // the stack opening back into the list
+    var T_DROP = 0.28, Z_DROP = 0.72;       // a released card settling into the stack
+    var WAVE = 11;                          // ms per card of the gather/part wave
     var sess = null;                        // the open Wallet session (one list)
     var pending = null, timer = 0, frame = 0, suppressUntil = 0;
     var clamp = function(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); };
@@ -28184,7 +28483,7 @@ var ke = function(props) {
           it.target = tgt;
           if (wave !== false) {
             var near = s.held ? Math.min(Math.abs(m - s.slot), Math.abs(m - (s.slot - 1))) : 0;
-            it.delayUntil = Math.max(it.delayUntil, now + Math.min(4, near) * WAVE * 0.7);
+            it.delayUntil = Math.max(it.delayUntil, now + Math.min(3, near) * WAVE * 0.55);
           }
         }
       });
@@ -28208,7 +28507,7 @@ var ke = function(props) {
       it.y += it.v * h;
     };
     var scaleTo = function(it, target, h) {
-      var w = 2 * Math.PI / 0.22;
+      var w = 2 * Math.PI / 0.18;
       it.sv += (-w * w * (it.s - target) - 2 * 0.9 * w * it.sv) * h;
       it.s += it.sv * h;
     };
@@ -28250,7 +28549,7 @@ var ke = function(props) {
         it.el.style.transform = ''; it.el.style.willChange = ''; it.el.style.zIndex = ''; it.el.style.position = '';
         it.el.style.removeProperty('--wallet-ext');
         it.el.style.removeProperty('--wallet-chip');
-        it.el.classList.remove('wallet-lifted');
+        it.el.classList.remove('wallet-lifted', 'wallet-yielding');
         var box = it.el.querySelector(':scope > .wallet-art');
         if (box) box.parentNode.removeChild(box);
       });
@@ -28296,7 +28595,7 @@ var ke = function(props) {
       var list = others(s), pos = 0;
       for (var m = 0; m < list.length; m++) if (s.items.indexOf(list[m]) < s.heldIdx) pos = m + 1;
       s.slot = pos; s.fromSlot = pos;
-      s.slotGap = Math.min(it.h + parseFloat(it.el.style.getPropertyValue('--wallet-ext') || 0), PEEK * 2.4) - PEEK + 18;
+      s.slotGap = Math.min(it.h + parseFloat(it.el.style.getPropertyValue('--wallet-ext') || 0), PEEK * 2.35) - PEEK + 12;
       s.heldY0 = it.y;                                 // pick it up wherever it is right now
       s.fx0 = s.fx = x; s.fy0 = s.fy = y; s.lastX = x; s.lastY = y; s.lastT = performance.now(); s.vx = 0; s.vy = 0;
       s.scroll0 = s.scroller.scrollTop; s.tilt = 0; s.give = 0;
@@ -28316,7 +28615,7 @@ var ke = function(props) {
       var list = others(s);
       var moved = s.slot !== s.fromSlot;
       s.held = null; s.dropping = it; s.lastIdx = s.slot;
-      it.v = clamp(s.vy * 0.6, -1800, 1800);
+      it.v = clamp(s.vy * 0.85, -2200, 2200);
       it.el.classList.remove('wallet-lifted');
       s.dropGive = s.give; s.dropTilt = s.tilt;
       // new visual order: the others with the card at its slot
@@ -28325,7 +28624,7 @@ var ke = function(props) {
         q.target = s.base + i * PEEK - q.top;
         q.el.style.zIndex = String(i + 1);
       });
-      [s.slot - 1, s.slot + 1].forEach(function(i) { var nb = order[i]; if (nb) nb.v += (i < s.slot ? -1 : 1) * 28; });
+      [s.slot - 1, s.slot + 1].forEach(function(i) { var nb = order[i]; if (nb) nb.v += (i < s.slot ? -1 : 1) * 52; });
       suppressUntil = Date.now() + 500;
       window.__minestGestureSuppressClickUntil = Date.now() + 500;
       if (moved) commitOrder(s, order, it);
@@ -28370,6 +28669,12 @@ var ke = function(props) {
         var slot = pickSlot(s);
         if (slot !== s.slot) {
           s.slot = slot; retarget(s, now);
+          var yieldItems = others(s);
+          yieldItems.forEach(function(it, m) {
+            var yielding = m >= s.slot;
+            it.el.classList.toggle('wallet-yielding', yielding);
+            if (yielding && m === s.slot) it.v += 46;
+          });
           if (navigator.vibrate) { try { navigator.vibrate(4); } catch (err) {} }
         }
       }
@@ -28393,7 +28698,7 @@ var ke = function(props) {
       if (held) {
         var raw = heldTopFinger(s) - held.top;
         var pull = (s.base + s.slot * PEEK - held.top) - raw;
-        held.y = raw + 5 * Math.tanh(pull / 30) * Math.exp(-Math.abs(pull) / 60);
+        held.y = raw + 8 * Math.tanh(pull / 34) * Math.exp(-Math.abs(pull) / 72);
         held.v = 0;
         s.give = 10 * Math.tanh((s.fx - s.fx0) / 60);               // portrait: a card cannot leave its list
         var tiltTo = clamp(s.vx * 0.0009 + s.vy * 0.0004, -0.9, 0.9);
@@ -28402,7 +28707,7 @@ var ke = function(props) {
         held.s = s.sBase + (LIFT_SCALE - s.sBase) * clamp(s.lift, 0, 1.2);
       } else if (s.dropping) {
         var d = s.dropping;
-        s.dropGive *= Math.exp(-dt / 0.14); s.dropTilt *= Math.exp(-dt / 0.12);
+        s.dropGive *= Math.exp(-dt / 0.09); s.dropTilt *= Math.exp(-dt / 0.08);
         d.x = s.dropGive; d.rz = s.dropTilt;
         d.s = 1 + (LIFT_SCALE - 1) * clamp(s.lift, 0, 1.2);
         if (Math.abs(d.y - d.target) < 0.4 && Math.abs(d.v) < 8 && s.lift < 0.02) {
@@ -29364,7 +29669,7 @@ var ke = function(props) {
     };
 
     // Transition from Horizontal columns to Vertical Wallet Stack with wave delay
-    var WAVE = 16;
+    var WAVE = 11;
     var now = performance.now();
     var others = items.filter(function(it) { return it !== heldItem; });
     others.forEach(function(it, m) {
@@ -29376,10 +29681,10 @@ var ke = function(props) {
     heldItem.targetX = stackX - heldItem.left;
     heldItem.targetY = stackY + hi * PEEK - heldItem.top;
 
-    var T_STACK = 0.38, Z_STACK = 0.86;
-    var T_DROP = 0.34, Z_DROP = 0.8;
-    var T_FAN = 0.46, Z_FAN = 0.9;
-    var LIFT_SCALE = 1.04;
+    var T_STACK = 0.24, Z_STACK = 0.68;
+    var T_DROP = 0.2, Z_DROP = 0.62;
+    var T_FAN = 0.34, Z_FAN = 0.78;
+    var LIFT_SCALE = 1.075;
 
     var spring2D = function(it, tgtX, tgtY, T, zeta, h) {
       var w = 2 * Math.PI / T;
@@ -29390,7 +29695,7 @@ var ke = function(props) {
     };
 
     var scaleTo = function(it, target, h) {
-      var w = 2 * Math.PI / 0.22;
+      var w = 2 * Math.PI / 0.18;
       it.sv += (-w * w * (it.s - target) - 2 * 0.9 * w * it.sv) * h;
       it.s += it.sv * h;
     };
@@ -29432,11 +29737,11 @@ var ke = function(props) {
         var heldTopFinger = held.top + s.heldY0 + (s.fy - s.fy0);
         var rawY = heldTopFinger - held.top;
         var pullY = (s.stackY + s.slot * s.peek - held.top) - rawY;
-        held.y = rawY + 5 * Math.tanh(pullY / 30) * Math.exp(-Math.abs(pullY) / 60);
+        held.y = rawY + 8 * Math.tanh(pullY / 34) * Math.exp(-Math.abs(pullY) / 72);
         held.vy = 0;
-        s.give = 12 * Math.tanh((s.fx - s.fx0) / 60);
+        s.give = 18 * Math.tanh((s.fx - s.fx0) / 58);
         held.x = (s.stackX - held.left) + s.give;
-        var tiltTo = Math.max(-1.8, Math.min(1.8, s.vy * 0.0012 + s.vx * 0.0006));
+        var tiltTo = Math.max(-3.2, Math.min(3.2, s.vy * 0.0018 + s.vx * 0.001));
         s.tilt += (tiltTo - s.tilt) * (1 - Math.exp(-dt / 0.14));
         held.rz = s.tilt;
         held.s = s.sBase + (LIFT_SCALE - s.sBase) * Math.max(0, Math.min(1.2, s.lift));
@@ -29501,13 +29806,15 @@ var ke = function(props) {
       s.slot = slot;
       if (navigator.vibrate) try { navigator.vibrate(6); } catch (err) {}
       list.forEach(function(it, m) {
+        it.el.classList.toggle('list-wallet-yielding', m >= s.slot);
+        if (m >= s.slot && m === s.slot) it.vy += 42;
         var slotOffset = (m >= s.slot) ? s.slotGap : 0;
         var tgtY = s.stackY + m * PEEK + slotOffset - it.top;
         if (Math.abs(tgtY - it.targetY) > 0.01) {
           it.prevTargetY = it.targetY;
           it.targetY = tgtY;
-          var near = Math.min(Math.abs(m - s.slot), Math.abs(m - (s.slot - 1)));
-          it.delayUntil = Math.max(it.delayUntil, now + Math.min(4, near) * 16 * 0.7);
+            var near = Math.min(Math.abs(m - s.slot), Math.abs(m - (s.slot - 1)));
+            it.delayUntil = Math.max(it.delayUntil, now + Math.min(3, near) * 7 * 0.55);
         }
       });
     }
@@ -29530,7 +29837,7 @@ var ke = function(props) {
     s.dropping = it;
     s.lastIdx = s.slot;
 
-    it.vy = Math.max(-1800, Math.min(1800, s.vy * 0.6));
+    it.vy = Math.max(-2200, Math.min(2200, s.vy * 0.85));
     it.el.classList.remove('list-wallet-lifted');
     s.dropGive = s.give;
     s.dropTilt = s.tilt;
@@ -29561,7 +29868,7 @@ var ke = function(props) {
       if (listWalletSessionRef.current) {
         fanOutListWallet();
       }
-    }, 240);
+    }, 150);
 
     if (!s.frame) s.frame = requestAnimationFrame(s.tick);
   };
@@ -29848,6 +30155,7 @@ var ke = function(props) {
   };
 
   var handleGapInsertSubmit = function(colId, beforeCardId, targetIndex) {
+    if (gapInsertSlot && gapInsertSlot.editCardId) { commitGapInsertRef.current(); return; }
     if (!gapInsertText.trim()) return;
     onQuickAddCard(colId, gapInsertText, beforeCardId || targetIndex);
     SoundEngine.play('add');
@@ -29963,13 +30271,18 @@ var ke = function(props) {
               });
             }
 
-            var renderInlineComposer = function(beforeCardId, targetIndex) {
+            var renderInlineComposer = function(beforeCardId, targetIndex, editCard) {
               var gLines = gapInsertText.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
               var gCount = gLines.length;
               var isPhone = window.MinestPortraitGestureManager && window.MinestPortraitGestureManager.isPhonePortrait();
               if (isPhone) {
+                var editSlot = editCard ? gapInsertSlot : null;
                 return (0, P.jsxs)('div', {
-                  className: "fb-composer shrink-0 my-1.5 animate-fadeIn select-text " + (isDark ? "text-white" : "text-slate-800"),
+                  className: "fb-composer shrink-0 my-1.5 animate-fadeIn select-text " + (editCard ? "clear-edit-composer " : "") + (isDark ? "text-white" : "text-slate-800"),
+                  ref: function(el) {
+                    // the edited row keeps its own heat colour
+                    if (el && editSlot && editSlot.bg) el.style.setProperty('background', editSlot.bg, 'important');
+                  },
                   onClick: function(e) { e.stopPropagation(); },
                   children: [
                     (0, P.jsx)('textarea', {
@@ -29977,14 +30290,19 @@ var ke = function(props) {
                         if (el && !el._gapFocused) {
                           el._gapFocused = true;
                           el.focus();
+                          // 40.6: the caret lands where the finger tapped the title
+                          if (editSlot && typeof editSlot.caret === 'number') {
+                            var caretAt = Math.max(0, Math.min(el.value.length, editSlot.caret));
+                            try { el.setSelectionRange(caretAt, caretAt); } catch (err) {}
+                          }
                         }
                       },
                       value: gapInsertText,
                       onChange: function(e) { setGapInsertText(e.target.value); },
-                      placeholder: "New card",
+                      placeholder: editCard ? "Card title" : "New card",
                       rows: Math.min(4, Math.max(1, gCount)),
                       autoFocus: true,
-                      'aria-label': "New card title",
+                      'aria-label': editCard ? "Edit card title" : "New card title",
                       onKeyDown: function(e) {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -30705,6 +31023,9 @@ var ke = function(props) {
                               ) : null
                             )
                           ) : null,
+
+                          // 40.6: Clear tap-to-edit — the composer takes this row's place
+                          gapInsertSlot && gapInsertSlot.editCardId === card.id && gapInsertSlot.colId === col.id ? renderInlineComposer(null, -1, card) : null,
 
                           // iOS Notification Center Group Header (Expanded Stack)
                           hasStack && isStackExpanded ? (
