@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" class="dark" data-minest-preview>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Minest Badge Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        background: transparent;
+        overflow-x: hidden;
+      }
+      html,
+      body,
+      #root {
+        width: 100%;
+        min-width: 0;
+        min-height: 100%;
+        margin: 0;
+        overflow-x: hidden;
+        overscroll-behavior-x: none;
+        background: transparent !important;
+      }
+      body {
+        -webkit-overflow-scrolling: touch;
+      }
+      /* The Preview owns the badge visuals, while Minest owns the page surface. */
+      #root > main,
+      #root > main > div {
+        background: transparent !important;
+        max-width: 100%;
+        min-width: 0;
+      }
+      /* Keep the existing AI Studio badge renderer, but avoid painting the full
+         off-screen catalog on every scroll frame. */
+      #root .grid > div {
+        content-visibility: auto;
+        contain: layout paint style;
+        contain-intrinsic-size: 340px;
+        min-width: 0;
+      }
+      #root img,
+      #root canvas,
+      #root svg {
+        max-width: 100%;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #root *,
+        #root *::before,
+        #root *::after {
+          animation-duration: 0.001ms !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+    <script defer src="./assets/index-preview-Dx2CrB_3.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-preview-UedRseAb.css">
+  </head>
+  <body class="bg-[#07080c] text-white">
+    <div id="root"></div>
+    <script>
+      (function () {
+        function syncPreviewVisibility() {
+          var service = window.__MINEST_BADGE_PREVIEW_SERVICE;
+          if (!service) return;
+          if (document.hidden) service.pause();
+          else service.resume();
+        }
+        document.addEventListener('visibilitychange', syncPreviewVisibility, { passive: true });
+        window.addEventListener('pagehide', function () {
+          var service = window.__MINEST_BADGE_PREVIEW_SERVICE;
+          if (service) service.pause();
+        }, { passive: true });
+        window.addEventListener('pageshow', syncPreviewVisibility, { passive: true });
+      }());
+    </script>
+  </body>
+</html>
