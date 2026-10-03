@@ -231,6 +231,24 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
     public var isFocusWorkoutActive: Bool = false
     @Published public var badges: [WatchBadgeModel] = WatchSyncManager.makeDefaultBadges()
     
+    /// 31.6: ids unlocked on the iPhone Badge Wall (claim-only), mirrored from the phone.
+    @Published public var wallUnlockedIds: Set<String> = WatchSyncManager.loadWallUnlockedIds()
+    private static let wallUnlockedKey = "minest_watch_badge_wall_v1"
+
+    private static func loadWallUnlockedIds() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: wallUnlockedKey) ?? [])
+    }
+
+    private func applyBadgeWall(_ wall: [String: Any]) {
+        guard let ids = wall["unlockedIds"] as? [String] else { return }
+        let next = Set(ids)
+        guard next != wallUnlockedIds else { return }
+        let gained = !next.subtracting(wallUnlockedIds).isEmpty
+        wallUnlockedIds = next
+        UserDefaults.standard.set(Array(next), forKey: Self.wallUnlockedKey)
+        if gained { WKInterfaceDevice.current().play(.success) }
+    }
+
     public var unlockedBadgesCount: Int {
         badges.filter { $0.isUnlocked }.count
     }
@@ -665,47 +683,7 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
     
     /// Evaluate badge unlock criteria
     public func checkBadgeUnlocks() {
-        var didUnlockAny = false
-        
-        // 1. 三圈圆满
-        if ringsState.isAllClosed {
-            if let idx = badges.firstIndex(where: { $0.id == "badge-perfect-closure" }), !badges[idx].isUnlocked {
-                badges[idx].isUnlocked = true
-                badges[idx].unlockedDate = Date()
-                didUnlockAny = true
-            }
-        }
-        
-        // 2. 心流大师
-        if ringsState.focusMinutes >= ringsState.targetMinutes {
-            if let idx = badges.firstIndex(where: { $0.id == "badge-deep-focus" }), !badges[idx].isUnlocked {
-                badges[idx].isUnlocked = true
-                badges[idx].unlockedDate = Date()
-                didUnlockAny = true
-            }
-        }
-        
-        // 3. 神速打勾
-        if ringsState.checkCount >= ringsState.targetChecks {
-            if let idx = badges.firstIndex(where: { $0.id == "badge-lightning-check" }), !badges[idx].isUnlocked {
-                badges[idx].isUnlocked = true
-                badges[idx].unlockedDate = Date()
-                didUnlockAny = true
-            }
-        }
-        
-        // 4. 清单征服
-        if let list = currentList, list.totalCardsCount > 0, list.completedCardsCount >= list.totalCardsCount {
-            if let idx = badges.firstIndex(where: { $0.id == "badge-list-conqueror" }), !badges[idx].isUnlocked {
-                badges[idx].isUnlocked = true
-                badges[idx].unlockedDate = Date()
-                didUnlockAny = true
-            }
-        }
-        
-        if didUnlockAny {
-            WKInterfaceDevice.current().play(.success)
-        }
+        // 31.6: badges unlock only after a claim on the iPhone (see wallUnlockedIds).
     }
     
     /// Toggle sub-checklist item inside a card
@@ -904,6 +882,10 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
             // Watch 4.2: shared focus timer from the iPhone / Dynamic Island
             if let timer = dict["focusTimer"] as? [String: Any] {
                 FocusWorkoutModel.shared.applyRemote(timer)
+            }
+            // 31.6: Badge Wall unlocks from the iPhone
+            if let wall = dict["badgeWall"] as? [String: Any] {
+                self.applyBadgeWall(wall)
             }
             // Activity Rings Sync from iPhone
             if let rings = dict["activityRings"] as? [String: Any] {

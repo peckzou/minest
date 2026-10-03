@@ -654,488 +654,126 @@ public struct WatchMiniThreeRingsView: View {
 
 // MARK: - Activity Rings & Badges View (Apple Watch)
 
+// MARK: - Badge Wall (31.6, mirrors the iPhone Badge Wall)
+
+/// One badge from the iPhone Badge Wall catalog (bundled as the `badge_catalog` data asset).
+public struct WatchWallBadge: Identifiable, Decodable, Hashable {
+    public let id: String
+    public let file: String
+    public let name: String
+    public let category: String
+    public let description: String
+
+    /// Wall names carry a Chinese suffix in brackets, e.g. "3-Day Spark Strike (累计3天)".
+    var shortName: String {
+        if let range = name.range(of: " (累计") { return String(name[..<range.lowerBound]) }
+        return name
+    }
+
+    static let catalog: [WatchWallBadge] = {
+        guard let asset = NSDataAsset(name: "badge_catalog"),
+              let list = try? JSONDecoder().decode([WatchWallBadge].self, from: asset.data) else { return [] }
+        return list
+    }()
+}
+
+/// Badge art: colour when unlocked, a dim grey silhouette when locked.
+struct WatchWallBadgeImage: View {
+    let badge: WatchWallBadge
+    let unlocked: Bool
+
+    var body: some View {
+        Image(badge.file)
+            .resizable()
+            .scaledToFit()
+            .saturation(unlocked ? 1 : 0)
+            .brightness(unlocked ? 0 : -0.32)
+            .opacity(unlocked ? 1 : 0.55)
+    }
+}
+
 public struct WatchBadgesView: View {
     @ObservedObject private var syncManager = WatchSyncManager.shared
-    @State private var selectedBadgeFor3D: WatchBadgeModel? = nil
-    
+    @State private var selected: WatchWallBadge? = nil
+
+    private let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
+
     public init() {}
-    
+
     public var body: some View {
-        List {
-            // Hero: Concentric 3-Rings Graphic & Metrics
-            Section {
-                VStack(spacing: 8) {
-                    WatchMiniThreeRingsView(ringsState: syncManager.ringsState, size: 76)
-                        .padding(.top, 4)
-                    
-                    if syncManager.ringsState.isAllClosed {
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(hex: "#FFD700"))
-                            Text("今日三圈圆满闭环！")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(Color(hex: "#FFD700"))
-                        }
-                    } else {
-                        Text("今日已闭环 \(syncManager.ringsState.closedRingsCount) / 3 圈")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-            }
-            
-            // 3 Rings Detailed Breakdown
-            Section(header: Text("三圈闭环指标").font(.system(size: 11)).foregroundColor(.secondary)) {
-                // Ring 1: 专注时长
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(Color(hex: "#FA114F"))
-                        .frame(width: 9, height: 9)
-                    
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("专注时长")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.primary)
-                        Text("目标 \(syncManager.ringsState.targetMinutes) 分钟")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 2) {
-                        Text("\(syncManager.ringsState.focusMinutes)")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(hex: "#FA114F"))
-                        Text("m")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if syncManager.ringsState.focusMinutes >= syncManager.ringsState.targetMinutes {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(hex: "#FA114F"))
-                    }
-                }
-                .padding(.vertical, 2)
-                
-                // Ring 2: 打勾进阶
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(Color(hex: "#30D158"))
-                        .frame(width: 9, height: 9)
-                    
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("打勾进阶")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.primary)
-                        Text("目标 \(syncManager.ringsState.targetChecks) 次勾选")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 2) {
-                        Text("\(syncManager.ringsState.checkCount)")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(hex: "#30D158"))
-                        Text("次")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if syncManager.ringsState.checkCount >= syncManager.ringsState.targetChecks {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(hex: "#30D158"))
-                    }
-                }
-                .padding(.vertical, 2)
-                
-                // Ring 3: 每日目标
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(Color(hex: "#00FFF0"))
-                        .frame(width: 9, height: 9)
-                    
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("每日目标")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.primary)
-                        Text("当前看板全清")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 2) {
-                        Text("\(syncManager.ringsState.goalPercent)%")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(hex: "#00FFF0"))
-                    }
-                    
-                    if syncManager.ringsState.goalPercent >= 100 {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(hex: "#00FFF0"))
-                    }
-                }
-                .padding(.vertical, 2)
-            }
-            
-            // Badges Wall Section
-            Section(header: Text("3D 电子勋章 (\(syncManager.unlockedBadgesCount)/\(syncManager.badges.count)) · 点按进入3D旋转").font(.system(size: 10)).foregroundColor(.secondary)) {
-                ForEach(syncManager.badges) { badge in
-                    Button(action: {
-                        selectedBadgeFor3D = badge
+        let badges = WatchWallBadge.catalog
+        let unlocked = syncManager.wallUnlockedIds
+        ScrollView {
+            Text("\(badges.filter { unlocked.contains($0.id) }.count) / \(badges.count)")
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 2)
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(badges) { badge in
+                    Button {
                         WKInterfaceDevice.current().play(.click)
-                    }) {
-                        HStack(spacing: 8) {
-                            // Badge Icon with 3-Ring Glowing Frame
-                            ZStack {
-                                Circle()
-                                    .fill(badge.isUnlocked ? Color(hex: badge.colorHex).opacity(0.2) : Color.white.opacity(0.08))
-                                    .frame(width: 30, height: 30)
-                                
-                                Circle()
-                                    .stroke(badge.isUnlocked ? Color(hex: badge.colorHex) : Color.white.opacity(0.15), lineWidth: 1.5)
-                                    .frame(width: 30, height: 30)
-                                
-                                Image(systemName: badge.isUnlocked ? badge.icon : "lock.fill")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(badge.isUnlocked ? Color(hex: badge.colorHex) : .secondary)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 1) {
-                                HStack(spacing: 4) {
-                                    Text(badge.title)
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(badge.isUnlocked ? .primary : .secondary)
-                                    
-                                    if badge.isUnlocked {
-                                        Text("已点亮")
-                                            .font(.system(size: 8, weight: .bold))
-                                            .foregroundColor(Color(hex: badge.colorHex))
-                                            .padding(.horizontal, 4)
-                                            .padding(.vertical, 1)
-                                            .background(Capsule().fill(Color(hex: badge.colorHex).opacity(0.18)))
-                                    }
-                                }
-                                
-                                Text(badge.subtitle)
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "cube.transparent")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary.opacity(0.6))
+                        selected = badge
+                    } label: {
+                        VStack(spacing: 3) {
+                            WatchWallBadgeImage(badge: badge, unlocked: unlocked.contains(badge.id))
+                                .frame(height: 46)
+                            Text(badge.shortName)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(unlocked.contains(badge.id) ? .white : .secondary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .frame(height: 22, alignment: .top)
                         }
-                        .padding(.vertical, 3)
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
-        .navigationTitle("活动与勋章")
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $selectedBadgeFor3D) { badge in
-            Watch3DMedalSheet(badge: badge)
+        .padding(.horizontal, 2)
+        // Badge art is rendered on black; keep the page pure black so it blends in.
+        .background(Color.black.ignoresSafeArea())
+        .sheet(item: $selected) { badge in
+            WatchWallBadgeDetail(badge: badge, unlocked: unlocked.contains(badge.id))
         }
     }
 }
 
-// MARK: - 3D Rotatable Apple Watch Medal Sheet
+/// Large badge with the same five-turn entrance spin as the iPhone detail view.
+struct WatchWallBadgeDetail: View {
+    let badge: WatchWallBadge
+    let unlocked: Bool
+    @State private var turns: Double = 0
 
-public struct Watch3DMedalSheet: View {
-    let badge: WatchBadgeModel
-    @Environment(\.presentationMode) var presentationMode
-    
-    @State private var rotationAngle: Double = 0
-    @State private var crownAngle: Double = 0
-    
-    private var isBackFace: Bool {
-        let norm = abs(rotationAngle.truncatingRemainder(dividingBy: 360))
-        return norm > 90 && norm < 270
-    }
-    
-    public var body: some View {
+    var body: some View {
         ScrollView {
-            VStack(spacing: 8) {
-                // Top Dismiss
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        presentationMode.wrappedValue.dismiss()
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
+            VStack(spacing: 6) {
+                WatchWallBadgeImage(badge: badge, unlocked: unlocked)
+                    .frame(width: 120, height: 120)
+                    .rotation3DEffect(.degrees(turns * 360), axis: (x: 0, y: 1, z: 0), perspective: 0.45)
+                    .onTapGesture { spin() }
+                Text(badge.shortName)
+                    .font(.system(size: 15, weight: .semibold))
+                    .multilineTextAlignment(.center)
+                if !unlocked {
+                    Text("未解锁")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
                 }
-                .padding(.horizontal, 2)
-                
-                // 3D Rotatable Medal Stage
-                ZStack {
-                    if isBackFace {
-                        WatchMedalBackFace(badge: badge)
-                            .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
-                    } else {
-                        WatchMedalFrontFace(badge: badge)
-                    }
-                }
-                .frame(width: 120, height: 120)
-                .rotation3DEffect(
-                    .degrees(rotationAngle),
-                    axis: (x: 0, y: 1, z: 0),
-                    perspective: 0.4
-                )
-                .gesture(
-                    DragGesture()
-                        .onChanged { val in
-                            rotationAngle += Double(val.translation.width) * 0.12
-                            WKInterfaceDevice.current().play(.click)
-                        }
-                )
-                .focusable(true)
-                .digitalCrownRotation(
-                    $crownAngle,
-                    from: -720,
-                    through: 720,
-                    by: 2,
-                    sensitivity: .medium,
-                    isContinuous: true,
-                    isHapticFeedbackEnabled: true
-                )
-                .onChange(of: crownAngle) { newAngle in
-                    rotationAngle = newAngle
-                }
-                
-                // Title & Subtitle
-                VStack(spacing: 2) {
-                    Text(badge.title)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.primary)
-                    
-                    Text(badge.subtitle)
-                        .font(.system(size: 9))
+                if !badge.description.isEmpty {
+                    Text(badge.description)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .padding(.horizontal, 4)
                 }
-                
-                // Status pill
-                if badge.isUnlocked {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 9))
-                        Text("3环勋章已点亮")
-                            .font(.system(size: 9, weight: .bold))
-                    }
-                    .foregroundColor(Color(hex: badge.colorHex))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color(hex: badge.colorHex).opacity(0.18)))
-                } else {
-                    HStack(spacing: 4) {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 9))
-                        Text("挑战进行中")
-                            .font(.system(size: 9, weight: .semibold))
-                    }
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.white.opacity(0.1)))
-                }
-                
-                // Action: Flip Front/Back Button
-                Button(action: {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                        rotationAngle += isBackFace ? -180 : 180
-                        crownAngle = rotationAngle
-                    }
-                    WKInterfaceDevice.current().play(.directionUp)
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                        Text(isBackFace ? "看正面" : "翻转看背面")
-                    }
-                    .font(.system(size: 11, weight: .medium))
-                }
-                .buttonStyle(.bordered)
-                .tint(.secondary)
-                
-                Text("旋转数码表冠或拖动可 3D 旋转")
-                    .font(.system(size: 8))
-                    .foregroundColor(.secondary.opacity(0.6))
-                    .padding(.bottom, 4)
             }
+            .frame(maxWidth: .infinity)
         }
+        .background(Color.black.ignoresSafeArea())
+        .onAppear { spin() }
+    }
+
+    private func spin() {
+        withAnimation(.timingCurve(0.12, 0.8, 0.22, 1, duration: 4.6)) { turns += 5 }
     }
 }
-
-// MARK: - 3D Medal Front Face (Watch 3-Rings Medallion)
-
-struct WatchMedalFrontFace: View {
-    let badge: WatchBadgeModel
-    
-    var body: some View {
-        ZStack {
-            // Layer 1: Metallic Rim Bezel
-            Circle()
-                .fill(
-                    RadialGradient(
-                        gradient: Gradient(colors: badge.isUnlocked ? [Color(hex: "#FFE082"), Color(hex: "#B8860B"), Color(hex: "#78500C")] : [Color.gray.opacity(0.4), Color.gray.opacity(0.2)]),
-                        center: .center,
-                        startRadius: 36,
-                        endRadius: 58
-                    )
-                )
-                .overlay(
-                    Circle().stroke(badge.isUnlocked ? Color(hex: "#FFF3B0") : Color.white.opacity(0.2), lineWidth: 1.5)
-                )
-                .shadow(color: Color.black.opacity(0.5), radius: 5, x: 0, y: 2)
-            
-            // Layer 2: Inner Dark Enamel Dish
-            Circle()
-                .fill(RadialGradient(gradient: Gradient(colors: [Color(hex: "#111827"), Color.black]), center: .center, startRadius: 0, endRadius: 50))
-                .padding(6)
-            
-            // Layer 3: Concentric Apple Watch 3-Rings
-            // Outer Ring: Red #FA114F (Focus)
-            Circle()
-                .stroke(Color(hex: "#FA114F").opacity(0.25), lineWidth: 4)
-                .padding(9)
-            Circle()
-                .trim(from: 0, to: badge.isUnlocked ? 1.0 : 0.65)
-                .stroke(Color(hex: "#FA114F"), style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .padding(9)
-                .shadow(color: badge.isUnlocked ? Color(hex: "#FA114F").opacity(0.8) : .clear, radius: 2)
-            
-            // Middle Ring: Green #30D158 (Checks)
-            Circle()
-                .stroke(Color(hex: "#30D158").opacity(0.25), lineWidth: 4)
-                .padding(16)
-            Circle()
-                .trim(from: 0, to: badge.isUnlocked ? 1.0 : 0.5)
-                .stroke(Color(hex: "#30D158"), style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .padding(16)
-                .shadow(color: badge.isUnlocked ? Color(hex: "#30D158").opacity(0.8) : .clear, radius: 2)
-            
-            // Inner Ring: Cyan #00FFF0 (Goal)
-            Circle()
-                .stroke(Color(hex: "#00FFF0").opacity(0.25), lineWidth: 4)
-                .padding(23)
-            Circle()
-                .trim(from: 0, to: badge.isUnlocked ? 1.0 : 0.4)
-                .stroke(Color(hex: "#00FFF0"), style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .padding(23)
-                .shadow(color: badge.isUnlocked ? Color(hex: "#00FFF0").opacity(0.8) : .clear, radius: 2)
-            
-            // Center Core: Raised Medallion with Badge Icon
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            gradient: Gradient(colors: badge.isUnlocked ? [Color(hex: "#FDE047"), Color(hex: "#CA8A04")] : [Color.gray.opacity(0.6), Color.gray.opacity(0.3)]),
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: 18
-                        )
-                    )
-                    .frame(width: 38, height: 38)
-                    .overlay(
-                        Circle().stroke(badge.isUnlocked ? Color(hex: "#FEF08A") : Color.white.opacity(0.2), lineWidth: 1.5)
-                    )
-                    .shadow(color: Color.black.opacity(0.4), radius: 3, x: 0, y: 1)
-                
-                Image(systemName: badge.icon)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(badge.isUnlocked ? Color(hex: "#451A03") : .white.opacity(0.7))
-            }
-            
-            // Specular glass gleam
-            LinearGradient(
-                gradient: Gradient(colors: [Color.white.opacity(0.25), Color.clear, Color.clear]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .clipShape(Circle())
-            .padding(6)
-        }
-    }
-}
-
-// MARK: - 3D Medal Back Face (Engraved Metallic Reverse)
-
-struct WatchMedalBackFace: View {
-    let badge: WatchBadgeModel
-    
-    var body: some View {
-        ZStack {
-            // Metallic Brushed Backplate
-            Circle()
-                .fill(
-                    RadialGradient(
-                        gradient: Gradient(colors: badge.isUnlocked ? [Color(hex: "#FEF08A"), Color(hex: "#CA8A04"), Color(hex: "#854D0E")] : [Color.gray.opacity(0.5), Color.gray.opacity(0.2)]),
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: 58
-                    )
-                )
-                .overlay(
-                    Circle().stroke(badge.isUnlocked ? Color(hex: "#B45309") : Color.white.opacity(0.2), lineWidth: 2.5)
-                )
-                .shadow(color: Color.black.opacity(0.5), radius: 5, x: 0, y: 2)
-            
-            // Concentric Engraving Rings
-            Circle()
-                .stroke(Color.black.opacity(0.15), lineWidth: 1)
-                .padding(9)
-            Circle()
-                .stroke(Color.black.opacity(0.15), lineWidth: 1)
-                .padding(16)
-            
-            // Engraved Text
-            VStack(spacing: 2) {
-                Text("★ MINEST 3 RINGS ★")
-                    .font(.system(size: 7, weight: .black))
-                    .foregroundColor(badge.isUnlocked ? Color(hex: "#78350F") : Color.white.opacity(0.7))
-                
-                VStack(spacing: 1) {
-                    Text(badge.title)
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundColor(badge.isUnlocked ? Color(hex: "#451A03") : Color.white)
-                    
-                    Text(badge.isUnlocked ? "✓ 闭环达成" : "🔒 待点亮")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(badge.isUnlocked ? Color(hex: "#15803D") : Color.white.opacity(0.6))
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Capsule().fill(Color.black.opacity(0.15)))
-                }
-                
-                Text("3D MEDAL 2026")
-                    .font(.system(size: 6, weight: .semibold, design: .monospaced))
-                    .foregroundColor(badge.isUnlocked ? Color(hex: "#78350F") : Color.white.opacity(0.5))
-            }
-            .padding(10)
-        }
-    }
-}
-

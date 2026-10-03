@@ -88,6 +88,9 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
             payload["activityRings"] = json
         }
         
+        if let wall = cachedBadgeWall() {
+            payload["badgeWall"] = wall
+        }
         if !selectedBoardId.isEmpty {
             payload["selectedBoardId"] = selectedBoardId
         }
@@ -118,10 +121,13 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
             UserDefaults.standard.set(encoded, forKey: watchRingsKey)
         }
         
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "activityRings": ringsDict,
             "timestamp": Date().timeIntervalSince1970
         ]
+        if let wall = cachedBadgeWall() {
+            payload["badgeWall"] = wall
+        }
         
         guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
         if WCSession.default.isReachable {
@@ -133,6 +139,35 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
         }
     }
     
+    // MARK: - 31.6 Badge Wall
+
+    private let watchBadgeWallKey = "minest_watch_badge_wall_ids_v1"
+
+    private func cachedBadgeWall() -> [String: Any]? {
+        guard let ids = UserDefaults.standard.stringArray(forKey: watchBadgeWallKey) else { return nil }
+        return ["unlockedIds": ids]
+    }
+
+    /// Mirror the Badge Wall unlocks (claim-only ids from the web app) to Apple Watch.
+    public func pushBadgeWallToWatch(unlockedIds: [String]) {
+        let ids = Array(Set(unlockedIds)).sorted()
+        if UserDefaults.standard.stringArray(forKey: watchBadgeWallKey) == ids { return }
+        UserDefaults.standard.set(ids, forKey: watchBadgeWallKey)
+
+        let payload: [String: Any] = [
+            "badgeWall": ["unlockedIds": ids],
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: nil) { _ in
+                WCSession.default.transferUserInfo(payload)
+            }
+        } else {
+            WCSession.default.transferUserInfo(payload)
+        }
+    }
+
     /// Save boards from Web canvas and push to Apple Watch
     public func updateBoardsFromWeb(boardsJSON: String) {
         guard let data = boardsJSON.data(using: .utf8),

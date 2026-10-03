@@ -275,6 +275,11 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
                 strikeDays: data["strikeDays"] as? Int
             )
             
+        case "updateBadgeWall":
+            if let ids = data["unlockedIds"] as? [String] {
+                iPhoneWatchSyncManager.shared.pushBadgeWallToWatch(unlockedIds: ids)
+            }
+
         case "selectBoard":
             if let boardId = data["boardId"] as? String {
                 iPhoneWatchSyncManager.shared.setSelectedBoard(boardId)
