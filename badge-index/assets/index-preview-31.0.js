@@ -4247,12 +4247,18 @@ void main() {
     return Object.assign({}, badge, { state: isUnlocked ? 'unlocked' : 'locked', isUnlocked: isUnlocked });
   });
   var send = function (message) { if (window.parent && window.parent !== window) window.parent.postMessage(message, '*'); };
+  /* 31.6: the hidden sync wall never renders thumbnails, and the visible wall
+     pauses thumbnail rendering while a 3D detail spins, so the two never
+     compete for the GPU. */
+  if (new URLSearchParams(window.location.search).get('sync') === '1') { try { Cf.pause(); } catch (error) {} }
   var selectAward = function (badge) {
+    try { Cf.pause(); } catch (error) {}
     setSelected(badge);
     send({ type: 'MINEST_AWARD_SELECTED', badgeId: badge.id, name: badge.name });
   };
   var closeAward = function () {
     setSelected(null);
+    if (new URLSearchParams(window.location.search).get('sync') !== '1') { try { Cf.resume(); } catch (error) {} }
     send({ type: 'MINEST_AWARD_DETAIL_CLOSED' });
   };
   var markUnlocked = function (badgeId) {
