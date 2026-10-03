@@ -50,7 +50,8 @@ public struct MinestWidgetProvider: TimelineProvider {
         let done = items.filter { $0.isDone }.count
         completion(MinestWidgetEntry(
             date: Date(),
-            boardTitle: titles.board,
+            // 31.7: the header shows the list the phone last had open (board as fallback)
+            boardTitle: titles.card.isEmpty ? titles.board : titles.card,
             currentCard: titles.card,
             items: items,
             completedCount: done,
@@ -68,7 +69,8 @@ public struct MinestWidgetProvider: TimelineProvider {
         
         let entry = MinestWidgetEntry(
             date: Date(),
-            boardTitle: titles.board,
+            // 31.7: the header shows the list the phone last had open (board as fallback)
+            boardTitle: titles.card.isEmpty ? titles.board : titles.card,
             currentCard: titles.card,
             items: items,
             completedCount: doneCount,
