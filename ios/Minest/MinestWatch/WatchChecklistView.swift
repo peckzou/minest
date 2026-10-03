@@ -733,6 +733,8 @@ public struct WatchBadgesView: View {
         .padding(.horizontal, 2)
         // Badge art is rendered on black; keep the page pure black so it blends in.
         .background(Color.black.ignoresSafeArea())
+        // Ask the iPhone for the latest unlocks whenever the wall opens.
+        .onAppear { syncManager.requestSyncFromPhone() }
         .sheet(item: $selected) { badge in
             WatchWallBadgeDetail(badge: badge, unlocked: unlocked.contains(badge.id))
         }

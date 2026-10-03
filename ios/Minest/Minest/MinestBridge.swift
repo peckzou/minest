@@ -265,7 +265,8 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
                 goalPercent: goalPercent,
                 targetMinutes: targetMinutes,
                 targetChecks: targetChecks,
-                targetGoalPercent: targetGoalPercent
+                targetGoalPercent: targetGoalPercent,
+                strikeDays: data["strikeDays"] as? Int
             )
             // Dynamic Island: live Three Rings + Strike days
             LiveActivityManager.shared.updateRings(

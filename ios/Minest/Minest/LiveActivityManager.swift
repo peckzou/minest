@@ -83,6 +83,26 @@ public final class LiveActivityManager: ObservableObject {
         iPhoneWatchSyncManager.shared.sendFocusTimerToWatch(timerPayload(current))
     }
 
+    /// 31.6: Home Screen quick action — start (or resume) the shared focus timer
+    /// on the Dynamic Island, creating the Live Activity first when none is running.
+    public func startFocusTimerFromShortcut() {
+        if Activity<StudyActivityAttributes>.activities.first(where: { $0.activityState == .active }) == nil {
+            startStudySession(boardTitle: "Minest", totalCards: 0)
+        }
+        Task {
+            // Give a freshly requested activity a moment to become active.
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            guard let activity = Activity<StudyActivityAttributes>.activities.first(where: { $0.activityState == .active }) else { return }
+            var state = activity.content.state
+            var timer = state.timer ?? StudyActivityAttributes.FocusTimerState()
+            if timer.stoppedSeconds != nil { timer = StudyActivityAttributes.FocusTimerState() }
+            if timer.runningSince == nil { timer.runningSince = Date() }
+            state.timer = timer
+            await activity.update(ActivityContent(state: state, staleDate: nil))
+            await MainActor.run { LiveActivityManager.shared.sendTimerToWatch(force: true) }
+        }
+    }
+
     /// Apply a timer change made on the watch to the Dynamic Island (no echo back).
     public func applyWatchTimer(_ payload: [String: Any]) {
         let state = payload["state"] as? String ?? "ended"

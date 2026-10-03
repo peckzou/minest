@@ -144,6 +144,7 @@ struct FitnessTripleRings: View {
 
 public struct WatchFitnessRootView: View {
     @State private var page: Int = 0
+    @ObservedObject private var ceremonies = WatchSyncManager.shared
 
     public init() {}
 
@@ -160,6 +161,12 @@ public struct WatchFitnessRootView: View {
                 .tag(3)
         }
         .tabViewStyle(.verticalPage)
+        // 31.6: three-ring close and badge claim ceremonies, mirrored from the iPhone
+        .fullScreenCover(item: $ceremonies.activeCeremony) { ceremony in
+            WatchCeremonyView(ceremony: ceremony) {
+                ceremonies.finishCeremony()
+            }
+        }
     }
 }
 
@@ -281,9 +288,10 @@ public struct WatchFitnessRingsView: View {
 
         }
         .padding(.horizontal, 2)
-        // Sit high so the stats clear the corner buttons
-        .frame(maxHeight: .infinity, alignment: .top)
-        .padding(.top, -6)
+        // Rings alone sit centred; with the stats open they sit high so the
+        // numbers clear the corner buttons.
+        .frame(maxHeight: .infinity, alignment: showStats ? .top : .center)
+        .padding(.top, showStats ? -6 : 0)
         .onAppear {
             animatedScale = 0
             withAnimation(.spring(response: 1.2, dampingFraction: 0.86).delay(0.1)) {
@@ -801,3 +809,162 @@ struct WorkoutSummaryView: View {
         }
     }
 }
+
+// MARK: - 31.6 Ceremonies
+
+struct WatchCeremonyView: View {
+    let ceremony: WatchCeremony
+    let onDone: () -> Void
+
+    var body: some View {
+        switch ceremony {
+        case .rings(let days):
+            WatchRingsCelebrationView(strikeDays: days, onDone: onDone)
+        case .claim(let badgeId):
+            if let badge = WatchWallBadge.catalog.first(where: { $0.id == badgeId }) {
+                WatchClaimCeremonyView(badge: badge, onDone: onDone)
+            } else {
+                Color.black.onAppear(perform: onDone)
+            }
+        }
+    }
+}
+
+/// Sparks thrown out from the centre, drawn with Canvas for a light footprint.
+struct WatchSparkBurst: View {
+    let start: Date
+    var colors: [Color] = [Color(hex: "#FA114F"), Color(hex: "#A6FF00"), Color(hex: "#00F0FF"), Color(hex: "#FFD60A")]
+    var count: Int = 46
+    var duration: Double = 2.2
+
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            Canvas { context, size in
+                let t = timeline.date.timeIntervalSince(start)
+                guard t >= 0, t <= duration else { return }
+                let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+                let reach = min(size.width, size.height) * 0.62
+                for i in 0..<count {
+                    let seed = Double(i) * 12.9898
+                    let angle = Double(i) / Double(count) * .pi * 2 + sin(seed) * 0.35
+                    let speed = 0.55 + (sin(seed * 3.1) + 1) * 0.25
+                    let p = min(1, t / duration)
+                    let eased = 1 - pow(1 - p, 2.4)
+                    let r = reach * speed * eased
+                    let point = CGPoint(x: centre.x + cos(angle) * r, y: centre.y + sin(angle) * r + 26 * p * p)
+                    let dot = 4.2 * (1 - p) + 1.0
+                    context.opacity = 1 - p
+                    context.fill(Path(ellipseIn: CGRect(x: point.x - dot, y: point.y - dot, width: dot * 2, height: dot * 2)),
+                                 with: .color(colors[i % colors.count]))
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// Three rings fill, spin in 3D with sparks, and show the Strike count.
+struct WatchRingsCelebrationView: View {
+    let strikeDays: Int
+    let onDone: () -> Void
+    @State private var fill: Double = 0
+    @State private var spin: Double = 0
+    @State private var burst: Date? = nil
+    @State private var showCount = false
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            if let burst { WatchSparkBurst(start: burst) }
+            FitnessTripleRings(focus: fill, checks: fill, goal: fill)
+                .frame(width: 136, height: 136)
+                .rotation3DEffect(.degrees(spin), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                .shadow(color: Color(hex: "#FA114F").opacity(fill * 0.45), radius: 14)
+            if showCount {
+                Text("\(strikeDays)")
+                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onDone)
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.1)) { fill = 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+                WKInterfaceDevice.current().play(.success)
+                burst = Date()
+                withAnimation(.timingCurve(0.15, 0.7, 0.25, 1, duration: 2.6)) { spin = 720 }
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2)) { showCount = true }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6.5) { onDone() }
+        }
+    }
+}
+
+/// Sealed medal → tap → flash and five-turn reveal of the real badge.
+struct WatchClaimCeremonyView: View {
+    let badge: WatchWallBadge
+    let onDone: () -> Void
+    @State private var revealed = false
+    @State private var pulse = false
+    @State private var flash: Double = 0
+    @State private var turns: Double = 0
+    @State private var burst: Date? = nil
+    @State private var showName = false
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            if let burst { WatchSparkBurst(start: burst, colors: [Color(hex: "#FFD60A"), .white, Color(hex: "#FFB340")], count: 36) }
+            if revealed {
+                VStack(spacing: 8) {
+                    WatchWallBadgeImage(badge: badge, unlocked: true)
+                        .frame(width: 124, height: 124)
+                        .rotation3DEffect(.degrees(turns * 360), axis: (x: 0, y: 1, z: 0), perspective: 0.45)
+                    if showName {
+                        Text(badge.shortName)
+                            .font(.system(size: 15, weight: .semibold))
+                            .multilineTextAlignment(.center)
+                            .transition(.opacity)
+                    }
+                }
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
+            } else {
+                Image(systemName: "hexagon.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 104, height: 104)
+                    .foregroundStyle(LinearGradient(colors: [Color(hex: "#FFE08A"), Color(hex: "#C8961E")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .overlay(Image(systemName: "hexagon").resizable().scaledToFit().foregroundColor(.white.opacity(0.55)).padding(14))
+                    .shadow(color: Color(hex: "#FFD60A").opacity(pulse ? 0.7 : 0.25), radius: pulse ? 18 : 8)
+                    .scaleEffect(pulse ? 1.05 : 0.95)
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { pulse = true }
+                    }
+            }
+            Color.white.opacity(flash).ignoresSafeArea().allowsHitTesting(false)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if !revealed { reveal() } else if showName { onDone() }
+        }
+        .onAppear { WKInterfaceDevice.current().play(.notification) }
+    }
+
+    private func reveal() {
+        WKInterfaceDevice.current().play(.start)
+        withAnimation(.easeOut(duration: 0.12)) { flash = 0.85 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.72)) { revealed = true }
+            withAnimation(.easeOut(duration: 0.5)) { flash = 0 }
+            burst = Date()
+            withAnimation(.timingCurve(0.12, 0.8, 0.22, 1, duration: 4.6)) { turns = 5 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                WKInterfaceDevice.current().play(.success)
+                withAnimation(.easeIn(duration: 0.4)) { showName = true }
+            }
+        }
+    }
+}
+

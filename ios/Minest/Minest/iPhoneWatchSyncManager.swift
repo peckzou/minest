@@ -108,8 +108,8 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
     }
     
     /// Push 3-Ring Activity State to Apple Watch
-    public func pushActivityRingsToWatch(focusMinutes: Int, checkCount: Int, goalPercent: Int, targetMinutes: Int = 30, targetChecks: Int = 10, targetGoalPercent: Int = 100) {
-        let ringsDict: [String: Any] = [
+    public func pushActivityRingsToWatch(focusMinutes: Int, checkCount: Int, goalPercent: Int, targetMinutes: Int = 30, targetChecks: Int = 10, targetGoalPercent: Int = 100, strikeDays: Int? = nil) {
+        var ringsDict: [String: Any] = [
             "focusMinutes": focusMinutes,
             "targetMinutes": targetMinutes,
             "checkCount": checkCount,
@@ -117,6 +117,7 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
             "goalPercent": goalPercent,
             "targetGoalPercent": targetGoalPercent
         ]
+        if let strikeDays = strikeDays { ringsDict["strikeDays"] = strikeDays }
         if let encoded = try? JSONSerialization.data(withJSONObject: ringsDict) {
             UserDefaults.standard.set(encoded, forKey: watchRingsKey)
         }
@@ -151,7 +152,8 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
     /// Mirror the Badge Wall unlocks (claim-only ids from the web app) to Apple Watch.
     public func pushBadgeWallToWatch(unlockedIds: [String]) {
         let ids = Array(Set(unlockedIds)).sorted()
-        if UserDefaults.standard.stringArray(forKey: watchBadgeWallKey) == ids { return }
+        // Always cache first; the full sync and ring pushes attach the cached list too,
+        // so a send that happens before the watch session is ready is not lost.
         UserDefaults.standard.set(ids, forKey: watchBadgeWallKey)
 
         let payload: [String: Any] = [

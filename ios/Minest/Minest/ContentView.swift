@@ -23,6 +23,10 @@ struct ContentView: View {
     private let bridge = MinestBridge()
     private let featuresTip = MinestFeaturesTip()
     @State private var isWebViewReady = false
+    // 31.6: Home Screen quick actions
+    @ObservedObject private var quickActions = MinestQuickActionRouter.shared
+    @State private var showNewCardPrompt = false
+    @State private var newCardTitle = ""
     @State private var pollTimer: Timer? = nil
     @State private var isSplashDismissed = false
     @State private var minSplashElapsed = false
@@ -155,6 +159,22 @@ struct ContentView: View {
         .onOpenURL { url in
             handleOpenURL(url)
         }
+        .onChange(of: quickActions.pending) { _, _ in runPendingQuickAction() }
+        .onChange(of: isWebViewReady) { _, _ in runPendingQuickAction() }
+        .alert("新建卡片", isPresented: $showNewCardPrompt) {
+            TextField("卡片标题", text: $newCardTitle)
+            Button("取消", role: .cancel) { newCardTitle = "" }
+            Button("添加") {
+                let title = newCardTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                newCardTitle = ""
+                guard !title.isEmpty else { return }
+                // Empty category → the active board; the web app puts it at the top of its first list.
+                bridge.createCard(id: "card-\(UUID().uuidString.prefix(6))", title: title, category: "", item: "")
+                NativeSoundAndHaptics.shared.playChecklistTick(isDone: true)
+            }
+        } message: {
+            Text("添加到首页 List")
+        }
         // Handle iOS Spotlight search results
         .onContinueUserActivity(CSSearchableItemActionType) { userActivity in
             if let identifier = userActivity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
@@ -226,6 +246,20 @@ struct ContentView: View {
     }
     
     // MARK: - Deep Link URL Handler
+    /// Run a Home Screen quick action once the web app has loaded.
+    private func runPendingQuickAction() {
+        guard isWebViewReady, let action = quickActions.pending else { return }
+        quickActions.pending = nil
+        switch action {
+        case .startTimer:
+            LiveActivityManager.shared.startFocusTimerFromShortcut()
+            NativeSoundAndHaptics.shared.playChecklistTick(isDone: true)
+        case .newCard:
+            newCardTitle = ""
+            showNewCardPrompt = true
+        }
+    }
+
     private func handleOpenURL(_ url: URL) {
         print("🔗 [Minest] Received URL: \(url)")
         let host = url.host ?? ""

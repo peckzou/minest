@@ -138,6 +138,8 @@ public struct ActivityRingsState: Codable, Hashable, Equatable {
     public var goalPercent: Int // 0..100
     // Watch 4.0: user-set goal % (optional so older caches still decode; nil = 100%)
     public var targetGoalPercent: Int?
+    // 31.6: Strike days from the iPhone (optional so older caches still decode)
+    public var strikeDays: Int?
 
     public var goalTarget: Int {
         max(targetGoalPercent ?? 100, 1)
@@ -212,6 +214,19 @@ public struct WatchBadgeModel: Identifiable, Codable, Hashable, Equatable {
     }
 }
 
+/// 31.6: full-screen moments mirrored from the iPhone.
+public enum WatchCeremony: Identifiable, Equatable {
+    case rings(strikeDays: Int)
+    case claim(badgeId: String)
+
+    public var id: String {
+        switch self {
+        case .rings(let days): return "rings-\(days)"
+        case .claim(let badgeId): return "claim-\(badgeId)"
+        }
+    }
+}
+
 // MARK: - WatchSyncManager
 
 /// Watch-side data sync manager connecting to iPhone via WCSession
@@ -239,14 +254,54 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
         Set(UserDefaults.standard.stringArray(forKey: wallUnlockedKey) ?? [])
     }
 
+    private static let wallSyncedOnceKey = "minest_watch_badge_wall_synced_v1"
+    private static let ringsCelebratedKey = "minest_watch_rings_celebrated_day_v1"
+
     private func applyBadgeWall(_ wall: [String: Any]) {
         guard let ids = wall["unlockedIds"] as? [String] else { return }
         let next = Set(ids)
+        let firstSync = !UserDefaults.standard.bool(forKey: Self.wallSyncedOnceKey)
+        UserDefaults.standard.set(true, forKey: Self.wallSyncedOnceKey)
         guard next != wallUnlockedIds else { return }
-        let gained = !next.subtracting(wallUnlockedIds).isEmpty
+        let gained = next.subtracting(wallUnlockedIds)
         wallUnlockedIds = next
         UserDefaults.standard.set(Array(next), forKey: Self.wallUnlockedKey)
-        if gained { WKInterfaceDevice.current().play(.success) }
+        // The very first sync just mirrors the wall; later new unlocks get a claim ceremony.
+        guard !firstSync, !gained.isEmpty else { return }
+        let order = WatchWallBadge.catalog.map { $0.id }
+        gained.sorted { (order.firstIndex(of: $0) ?? .max) < (order.firstIndex(of: $1) ?? .max) }
+            .prefix(3)
+            .forEach { enqueueCeremony(.claim(badgeId: $0)) }
+    }
+
+    // MARK: - 31.6 Ceremonies (three-ring close, badge claim)
+
+    @Published public var activeCeremony: WatchCeremony? = nil
+    private var ceremonyQueue: [WatchCeremony] = []
+
+    public func enqueueCeremony(_ ceremony: WatchCeremony) {
+        if activeCeremony == nil { activeCeremony = ceremony } else { ceremonyQueue.append(ceremony) }
+    }
+
+    public func finishCeremony() {
+        activeCeremony = nil
+        guard !ceremonyQueue.isEmpty else { return }
+        let next = ceremonyQueue.removeFirst()
+        // Let the previous full-screen cover dismiss before presenting the next one.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { self.activeCeremony = next }
+    }
+
+    /// Celebrate once per day the first time all three rings are closed.
+    public func checkRingsCelebration() {
+        guard ringsState.isAllClosed else { return }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let today = formatter.string(from: Date())
+        guard UserDefaults.standard.string(forKey: Self.ringsCelebratedKey) != today else { return }
+        UserDefaults.standard.set(today, forKey: Self.ringsCelebratedKey)
+        // Rings first, ahead of any badge claims already waiting.
+        if let current = activeCeremony { ceremonyQueue.insert(current, at: 0) }
+        activeCeremony = .rings(strikeDays: ringsState.strikeDays ?? 0)
     }
 
     public var unlockedBadgesCount: Int {
@@ -898,6 +953,9 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
                 if let gP = rings["goalPercent"] as? Int {
                     self.ringsState.goalPercent = gP
                 }
+                if let sD = rings["strikeDays"] as? Int {
+                    self.ringsState.strikeDays = sD
+                }
                 // Watch 4.0: goals set on the phone/web (skip briefly after a wrist edit)
                 if !RingGoalSyncGuard.recentlyEditedOnWatch {
                     if let tM = rings["targetMinutes"] as? Int, tM > 0 { self.ringsState.targetMinutes = tM }
@@ -906,6 +964,7 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
                 }
                 self.saveLocalCache()
                 self.checkBadgeUnlocks()
+                self.checkRingsCelebration()
             }
             
             // Full boards sync
