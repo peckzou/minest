@@ -37831,19 +37831,8 @@ var Ve = (function(_Component) {
         setTimeout(function () { root.classList.remove('fbfx-neon-ignite'); }, 700);
         neonRenderBtn(); neonShow();
       });
-      var one = document.createElement('button');
-      one.type = 'button'; one.className = 'fbfx-neon-pill nb-one';
-      one.innerHTML = '<span aria-hidden="true">✎</span>单卡';
-      one.setAttribute('aria-label', 'Set one card: tap a card to change its colour');
-      one.addEventListener('click', function (e) {
-        e.preventDefault(); e.stopPropagation();
-        neonPaint = !neonPaint;
-        window.__fbfxNeonPainting = neonPaint;
-        document.documentElement.classList.toggle('fbfx-neon-painting', neonPaint);
-        neonHaptic();
-        neonRenderBtn(); neonShow();
-      });
-      neonCtl.appendChild(neonBtn); neonCtl.appendChild(rnd); neonCtl.appendChild(one);
+      // (40.9: no single-card button — double-tap a card to recolour it)
+      neonCtl.appendChild(neonBtn); neonCtl.appendChild(rnd);
       host.appendChild(neonCtl);
     }
     var gas = NEON[neonIdx];
@@ -37851,7 +37840,7 @@ var Ve = (function(_Component) {
     neonBtn.innerHTML = '<span class="nb-n">' + gas.n + '</span><span class="nb-s">' + gas.s + '</span><span class="nb-name">' + (mixed ? 'All · ' : '') + gas.name + '</span>';
     neonBtn.setAttribute('aria-label', 'Neon colour for every card: ' + gas.name + ' — tap for the next gas');
     neonCtl.querySelector('.nb-random').classList.toggle('on', neonCards.mode === 'random');
-    neonCtl.querySelector('.nb-one').classList.toggle('on', neonPaint);
+
     // top-right of the stage
     syncOrigin();
     var st = stageEl(), sr = st && lrect(st.getBoundingClientRect());
@@ -40281,6 +40270,20 @@ var Ve = (function(_Component) {
       // undo what the first tap did: a Cover Flow flip, a Clear row opened for editing
       var lf = window.__cfLastFlip;
       if (lf && lf.at >= firstAt - 30) { try { window.dispatchEvent(new CustomEvent('fbfx:undoflip', { detail: { id: lf.id } })); } catch (err) {} }
+      // 40.9: in neon, a double-tap on a card gives that card the next gas (a single tap
+      // still flips it); a double-tap anywhere else leaves the effect
+      if (mode === 'neon' && dtap.card) {
+        var tc = neonCardFrom(tg);
+        if (tc && tc.getAttribute('data-card-id') === dtap.card) {
+          if ((window.__clearEditStartedAt || 0) >= firstAt - 30) {
+            var ta0 = document.querySelector('.clear-active-column .fb-composer textarea');
+            if (ta0) { try { ta0.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); } catch (err) {} }
+          }
+          dtap.card = null;
+          paintCard(tc);
+          return;
+        }
+      }
       if ((window.__clearEditStartedAt || 0) >= firstAt - 30) {
         var ta = document.querySelector('.clear-active-column .fb-composer textarea');
         if (ta) { try { ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); } catch (err) {} }
@@ -40291,6 +40294,8 @@ var Ve = (function(_Component) {
       return;
     }
     dtap.t = now; dtap.at = Date.now(); dtap.x = e.clientX; dtap.y = e.clientY;
+    var fc = mode === 'neon' ? neonCardFrom(tg) : null;
+    dtap.card = fc ? fc.getAttribute('data-card-id') : null;
   }, true);
 
   // Fireworks: a click on empty space sends a rocket up to that point.
