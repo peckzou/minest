@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 41.34 · AI on Vercel</title>
+    <title>Minest iPhone 41.33 · AI on Vercel</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21106,7 +21106,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "41.34" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "41.33" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -22085,7 +22085,7 @@ var MinestAnalyze = (function() {
 
     var out = root.querySelector('.mz-ai-out');
     fetch(endpoint(), { method: 'POST', headers: minestAIHeaders(), body: JSON.stringify(Object.assign({ board: snap.board, stats: st, today: today() }, modelBody())) })
-      .then(function(r) { return r.json().catch(function() { return {}; }).then(function(p) { if (!r.ok || p.error) throw new Error(p.error || ('AI 请求失败（' + r.status + '）')); return p; }); })
+      .then(function(r) { return r.json().catch(function() { return {}; }).then(function(p) { if (!r.ok) throw new Error(p.error || ('AI 请求失败（' + r.status + '）')); return p; }); })
       .then(function(p) { render(out, p.analysis || {}, ix, board); })
       .catch(function(err) {
         var t = (err && err.message) || '';
@@ -39557,7 +39557,7 @@ var Be = function() {
     try {
       var response = await fetch(endpoint, { method: 'POST', headers: minestAIHeaders(), body: JSON.stringify(aiProv({ prompt: prompt, model: model || 'chatgpt', attachments: attachments || [], history: history || [], mode: 'conversation' })) });
       var payload = await response.json().catch(function() { return {}; });
-      if (!response.ok || (payload && payload.error)) throw new Error(payload.error || ('ChatGPT 请求失败（' + response.status + '）'));
+      if (!response.ok) throw new Error(payload.error || ('ChatGPT 请求失败（' + response.status + '）'));
       return payload && (payload.reply || payload.message || payload.text) || '';
     } catch (e) {
       var error = new Error(e && e.message ? e.message : 'ChatGPT 请求失败');
@@ -39587,7 +39587,7 @@ var Be = function() {
     body = aiProv(Object.assign({}, body));
     var response = await fetch(aiUrl(name), { method: 'POST', headers: minestAIHeaders(), body: JSON.stringify(body) });
     var payload = await response.json().catch(function() { return {}; });
-    if (!response.ok || (payload && payload.error)) throw new Error(payload.error || ('AI 请求失败（' + response.status + '）'));
+    if (!response.ok) throw new Error(payload.error || ('AI 请求失败（' + response.status + '）'));
     return payload;
   };
   var diagnoseAI = (0, _.useCallback)(function(model) { return aiPost('ai-diagnose', { model: model || 'chatgpt' }); }, []);
@@ -39658,7 +39658,7 @@ var Be = function() {
       if (board) throw new Error('local mode');
       var response = await fetch(endpoint, { method: 'POST', headers: minestAIHeaders(), body: JSON.stringify({ prompt: prompt, model: model || 'chatgpt', attachments: attachments || [], history: history || [], schema: 'minest-board-v1' }) });
       var payload = await response.json().catch(function() { return {}; });
-      if (!response.ok || (payload && payload.error)) throw new Error(payload.error || ('ChatGPT 建板请求失败（' + response.status + '）'));
+      if (!response.ok) throw new Error(payload.error || ('ChatGPT 建板请求失败（' + response.status + '）'));
       board = payload && (payload.board || (payload.data && payload.data.board) || payload);
     } catch (networkError) {
       throw networkError;

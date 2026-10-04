@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 41.34 · AI on Vercel</title>
+    <title>Minest iPhone 41.31 · Plan A / B</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -19820,7 +19820,7 @@ var MinestAIBoardBuilder = function(props) {
     } catch (err) {
       var errorText = err && err.message ? err.message : '请求失败，请稍后重试。';
       var unavailable = /尚未连接|Failed to fetch|NetworkError|Load failed/i.test(errorText);
-      setMessages(function(prev) { return prev.concat([{ role: 'system', text: unavailable ? '没有连接到 AI 服务，请检查网络后重试。' : errorText }]); });
+      setMessages(function(prev) { return prev.concat([{ role: 'system', text: unavailable ? '没有连接到 AI 服务。请先在这台电脑上启动 Minest AI 服务（minest-ai-server.mjs），再重试。' : errorText }]); });
       setAttachments(submittedAttachments);   // nothing is lost: the files come back to the box
       setStreamText('');
       setStatus('');
@@ -19890,7 +19890,7 @@ var MinestAIBoardBuilder = function(props) {
       setMessages(function(prev) { return prev.concat([{ role: 'assistant', text: lines.join('\n') }]); });
     } catch (err) {
       var t = (err && err.message) || '';
-      setMessages(function(prev) { return prev.concat([{ role: 'system', text: /Failed to fetch|NetworkError|Load failed/i.test(t) ? '没有连接到 AI 服务，请检查网络后重试。' : ('检测失败：' + t) }]); });
+      setMessages(function(prev) { return prev.concat([{ role: 'system', text: /Failed to fetch|NetworkError|Load failed/i.test(t) ? '没有连接到 AI 服务。请先启动 minest-ai-server.mjs。' : ('检测失败：' + t) }]); });
     } finally { setLoading(false); setStatus(''); }
   };
   var newChat = function() { if (loading) return; rejectedRef.current = []; setMessages([]); setDraft(null); setProgress(null); setAttachments([]); setPrompt(''); setStatus(''); if (textRef.current) textRef.current.focus(); };
@@ -21106,7 +21106,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "41.34" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "41.31" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -21950,19 +21950,12 @@ var MinestChrome = (function() {
 //   Clean Up (duplicates, overdue, misplaced, stale). Stats are computed locally and exactly;
 //   the AI only interprets them. Every apply is one board update (one undo step).
 // =========================================================================
-// 41.32: requests to the Minest AI server carry this device's token (needed when the server runs
-// on the Mac and the request comes from the phone over Wi-Fi)
-var minestAIHeaders = function() {
-  var h = { 'Content-Type': 'application/json' };
-  try { var t = localStorage.getItem('minest_ai_token'); if (t) h['X-Minest-Token'] = t; } catch (e) {}
-  return h;
-};
 var MinestAnalyze = (function() {
   var today = function() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   var esc = function(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var LABEL = { 'l-core': 'Core', 'l-reading': 'Reading', 'l-math': 'Math', 'l-science': 'Science', 'l-review': 'Review', 'l-advanced': 'Advanced' };
   var endpoint = function() {
-    var base = 'https://minest-app.vercel.app/api/minest/ai-board';
+    var base = 'http://127.0.0.1:8787/api/minest/ai-board';
     try { base = localStorage.getItem('minest_ai_endpoint') || base; } catch (e) {}
     return base.replace(/ai-board\/?$/, 'ai-analyze');
   };
@@ -22084,12 +22077,12 @@ var MinestAnalyze = (function() {
     document.body.appendChild(back); document.body.appendChild(root);
 
     var out = root.querySelector('.mz-ai-out');
-    fetch(endpoint(), { method: 'POST', headers: minestAIHeaders(), body: JSON.stringify(Object.assign({ board: snap.board, stats: st, today: today() }, modelBody())) })
-      .then(function(r) { return r.json().catch(function() { return {}; }).then(function(p) { if (!r.ok || p.error) throw new Error(p.error || ('AI 请求失败（' + r.status + '）')); return p; }); })
+    fetch(endpoint(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ board: snap.board, stats: st, today: today() }, modelBody())) })
+      .then(function(r) { return r.json().catch(function() { return {}; }).then(function(p) { if (!r.ok) throw new Error(p.error || ('AI 请求失败（' + r.status + '）')); return p; }); })
       .then(function(p) { render(out, p.analysis || {}, ix, board); })
       .catch(function(err) {
         var t = (err && err.message) || '';
-        out.innerHTML = '<div class="mz-sec"><div class="mz-err">' + esc(/Failed to fetch|NetworkError|Load failed/i.test(t) ? '没有连接到 AI 服务（检查网络）。上面的统计不需要 AI。' : t) + '</div></div>';
+        out.innerHTML = '<div class="mz-sec"><div class="mz-err">' + esc(/Failed to fetch|NetworkError|Load failed/i.test(t) ? '没有连接到 AI 服务。请先在 Mac 上启动 minest-ai-server.mjs。上面的统计不需要 AI。' : t) + '</div></div>';
       });
   };
 
@@ -34236,10 +34229,7 @@ var ke = function(props) {
                                         e.stopPropagation();
                                         return;
                                       }
-                                      // 41.33: a card inside a set is a normal card — a tap shows its details
-                                      e.stopPropagation();
-                                      if (quickMenuCardId) closeQuickEdit();
-                                      onOpenCardModal(col.id, sub.id);
+                                      openQuickEdit(sub, col, e.currentTarget);
                                     },
                                     onDoubleClick: function() {
                                       if (justClosedQuickEditRef.current) return;
@@ -35089,20 +35079,7 @@ var je = function(props) {
   var isDark = themeMode === 'dark';
   var isNew = !cardId;
   var columns = board.columns || [];
-  // 41.33: cards folded into a set open here like any other card
-  var currentCard = (function() {
-    var col = columns.find(function(c) { return c.id === columnId; }) || columns[0];
-    var found = null;
-    (col ? [col] : []).concat(columns).some(function(c) {
-      (c.cards || []).some(function(card) {
-        if (card.id === cardId) { found = card; return true; }
-        if (Array.isArray(card.stack)) { var sc = card.stack.find(function(x) { return x.id === cardId; }); if (sc) { found = sc; return true; } }
-        return false;
-      });
-      return !!found;
-    });
-    return found || undefined;
-  })();
+  var currentCard = (columns.find(function(c) { return c.id === columnId; }) || columns[0])?.cards?.find(function(c) { return c.id === cardId; });
 
   var titleState = (0, _.useState)(currentCard ? currentCard.title : "");
   var title = titleState[0];
@@ -39529,14 +39506,14 @@ var Be = function() {
   // 41.0: send only the user's request to the configured server. The server
   // should return { board: {...} } or a Board object compatible with import.
   var chatWithAI = (0, _.useCallback)(async function(prompt, model, attachments, report, history, onDelta) {
-    var endpoint = 'https://minest-app.vercel.app/api/minest/ai-chat';
+    var endpoint = 'http://127.0.0.1:8787/api/minest/ai-chat';
     try { endpoint = localStorage.getItem('minest_ai_chat_endpoint') || endpoint; } catch (e) {}
     report('正在思考…');
     // 42.0: stream the reply (text shows up while the model writes); old servers fall back below
     if (onDelta && window.ReadableStream && window.TextDecoder) {
       var streamed = null;
       try {
-        var sr = await fetch(endpoint + '-stream', { method: 'POST', headers: minestAIHeaders(), body: JSON.stringify(aiProv({ prompt: prompt, model: model || 'chatgpt', attachments: attachments || [], history: history || [], mode: 'conversation' })) });
+        var sr = await fetch(endpoint + '-stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(aiProv({ prompt: prompt, model: model || 'chatgpt', attachments: attachments || [], history: history || [], mode: 'conversation' })) });
         if (sr.ok && /event-stream/.test(sr.headers.get('content-type') || '') && sr.body) {
           var reader = sr.body.getReader(), dec = new TextDecoder(), buf = '', text = '', failed = '';
           while (true) {
@@ -39555,9 +39532,9 @@ var Be = function() {
       if (streamed !== null) return streamed;
     }
     try {
-      var response = await fetch(endpoint, { method: 'POST', headers: minestAIHeaders(), body: JSON.stringify(aiProv({ prompt: prompt, model: model || 'chatgpt', attachments: attachments || [], history: history || [], mode: 'conversation' })) });
+      var response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(aiProv({ prompt: prompt, model: model || 'chatgpt', attachments: attachments || [], history: history || [], mode: 'conversation' })) });
       var payload = await response.json().catch(function() { return {}; });
-      if (!response.ok || (payload && payload.error)) throw new Error(payload.error || ('ChatGPT 请求失败（' + response.status + '）'));
+      if (!response.ok) throw new Error(payload.error || ('ChatGPT 请求失败（' + response.status + '）'));
       return payload && (payload.reply || payload.message || payload.text) || '';
     } catch (e) {
       var error = new Error(e && e.message ? e.message : 'ChatGPT 请求失败');
@@ -39571,7 +39548,7 @@ var Be = function() {
   //   2. ai-expand → the cards of each list (in parallel; exact word lists come from ai/blocks)
   //   3. here      → assemble with fresh ids, fold sets into stacks, add the how-to card
   var aiUrl = function(name) {
-    var base = 'https://minest-app.vercel.app/api/minest/ai-board';
+    var base = 'http://127.0.0.1:8787/api/minest/ai-board';
     try { base = localStorage.getItem('minest_ai_endpoint') || base; } catch (e) {}
     return base.replace(/ai-board\/?$/, name);
   };
@@ -39585,9 +39562,9 @@ var Be = function() {
   };
   var aiPost = async function(name, body) {
     body = aiProv(Object.assign({}, body));
-    var response = await fetch(aiUrl(name), { method: 'POST', headers: minestAIHeaders(), body: JSON.stringify(body) });
+    var response = await fetch(aiUrl(name), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     var payload = await response.json().catch(function() { return {}; });
-    if (!response.ok || (payload && payload.error)) throw new Error(payload.error || ('AI 请求失败（' + response.status + '）'));
+    if (!response.ok) throw new Error(payload.error || ('AI 请求失败（' + response.status + '）'));
     return payload;
   };
   var diagnoseAI = (0, _.useCallback)(function(model) { return aiPost('ai-diagnose', { model: model || 'chatgpt' }); }, []);
@@ -39637,7 +39614,7 @@ var Be = function() {
   }, []);
 
   var createBoardFromAI = (0, _.useCallback)(async function(prompt, model, attachments, report, history, opts) {
-    var endpoint = 'https://minest-app.vercel.app/api/minest/ai-board';
+    var endpoint = 'http://127.0.0.1:8787/api/minest/ai-board';
     try { endpoint = localStorage.getItem('minest_ai_endpoint') || endpoint; } catch (e) {}
     report('AI 正在设计看板骨架…');
     var board = null;
@@ -39656,9 +39633,9 @@ var Be = function() {
     }
     try {
       if (board) throw new Error('local mode');
-      var response = await fetch(endpoint, { method: 'POST', headers: minestAIHeaders(), body: JSON.stringify({ prompt: prompt, model: model || 'chatgpt', attachments: attachments || [], history: history || [], schema: 'minest-board-v1' }) });
+      var response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt, model: model || 'chatgpt', attachments: attachments || [], history: history || [], schema: 'minest-board-v1' }) });
       var payload = await response.json().catch(function() { return {}; });
-      if (!response.ok || (payload && payload.error)) throw new Error(payload.error || ('ChatGPT 建板请求失败（' + response.status + '）'));
+      if (!response.ok) throw new Error(payload.error || ('ChatGPT 建板请求失败（' + response.status + '）'));
       board = payload && (payload.board || (payload.data && payload.data.board) || payload);
     } catch (networkError) {
       throw networkError;
