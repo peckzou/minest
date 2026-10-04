@@ -149,6 +149,25 @@ body.theme-white .cf-touch-sheen {
 body.theme-white .perspective-stage[data-card-inspecting] .coverflow-flipper {
   box-shadow: none !important;
 }
+/* 41.0 smoothness: while the deck moves (finger down, coasting, settling, inspecting) every
+   card skips its live backdrop blur and the blend-mode light layers — each one made iOS
+   re-blur / re-blend the scene behind ~7 moving 3D cards on every frame. They come back the
+   moment the deck is still, so the resting look is unchanged. */
+.perspective-stage:is([data-flow-touch], [data-flow-settling], [data-card-inspecting], .cf-moving) .coverflow-card-item .face-front,
+.perspective-stage:is([data-flow-touch], [data-flow-settling], [data-card-inspecting], .cf-moving) .coverflow-card-item .face-back {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.perspective-stage:is([data-flow-touch], [data-flow-settling], .cf-moving) .coverflow-card-item .cf-broad-reflection,
+.perspective-stage:is([data-flow-touch], [data-flow-settling], .cf-moving) .coverflow-card-item .liquid-glass-caustic {
+  opacity: 0 !important;
+  transition: none !important;
+}
+.perspective-stage:is([data-flow-touch], [data-flow-settling], [data-card-inspecting], .cf-moving) .coverflow-card-item .liquid-specular-edge {
+  animation-play-state: paused !important;
+}
+.perspective-stage.cf-moving .coverflow-card-reflection { opacity: 0 !important; transition: none !important; }
+
 /* 倒影在加速穿行与检视时瞬间隐藏，其内部也绝不带任何外投影 */
 .perspective-stage[data-card-inspecting] .coverflow-card-reflection,
 .perspective-stage[data-flow-touch] .coverflow-card-reflection,
@@ -23124,7 +23143,10 @@ var Oe = function(props) {
       if (nearest === g.lastAsk) return;
       g.lastAsk = nearest;
       g.mine['r' + nearest] = true;
-      setActiveIdx(nearest);
+      // 41.0: the deck itself moves frame by frame on the GPU; telling React which card is
+      // in front is low priority, so its re-render never steals a frame from the motion
+      var st = _ && _.startTransition;
+      if (st) st(function() { setActiveIdx(nearest); }); else setActiveIdx(nearest);
     };
 
     var isMine = function(idx) { return !!g.mine['r' + idx]; };
@@ -24450,6 +24472,12 @@ var Oe = function(props) {
       }
     }
     var stgS = stageRef.current;
+    // 41.0: the deck is moving — heavy glass effects rest until it has been still a moment
+    if (stgS) {
+      if (!stgS.classList.contains('cf-moving')) stgS.classList.add('cf-moving');
+      clearTimeout(window.__cfMovingT);
+      window.__cfMovingT = setTimeout(function() { if (stgS) stgS.classList.remove('cf-moving'); }, 180);
+    }
     if (stgS) { if (slabOn && !stgS.classList.contains('cf-slab')) stgS.classList.add('cf-slab'); else if (!slabOn && stgS.classList.contains('cf-slab')) stgS.classList.remove('cf-slab'); }
     // Keep the final "add card" slot on the same compositor-only drag path.
     var endEl = endSlotElRef.current;
@@ -24953,7 +24981,7 @@ var Oe = function(props) {
                   opacity: opacity,
                   zIndex: zIndex,
                   transition: (isDragging || (isHu && isCenter && (headsUpState.physicalState === 'DRAGGING' || headsUpState.physicalState === 'GRABBED'))) ? "none" : "transform 0.48s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.32s ease-out, width 0.48s cubic-bezier(0.19, 1, 0.22, 1), height 0.48s cubic-bezier(0.19, 1, 0.22, 1), margin 0.48s cubic-bezier(0.19, 1, 0.22, 1), border-radius 0.32s ease, box-shadow 0.3s ease",
-                  willChange: "transform, opacity, width, height, margin"
+                  willChange: "transform"   // 41.0: only transform moves per frame (it promoted 5 properties)
                 },
                 className: "coverflow-card-item preserve-3d cursor-pointer select-none rounded-[36px]" + (isHu && isCenter ? " is-headsup-hero" : "") + (isHu && isCenter && headsUpState.physicalState === 'GRABBED' ? " is-grabbed" : "") + (isHu && isCenter && huAnim === 'shatter' ? " hu-fx-shatter" : "") + (isHu && isCenter && huAnim === 'liquid' ? " hu-fx-liquid" : "") + (isHu && isCenter && headsUpState.actionFeedback ? " action-feedback-" + headsUpState.actionFeedback : ""),
                 children: [
