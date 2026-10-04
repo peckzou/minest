@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 40.9 · Neon Light Box</title>
+    <title>Minest iPhone 41.0</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -4897,8 +4897,15 @@ html.fbfx-neon .board-swimlane-scroll article.kanban-card {
     inset 0 -10px 22px rgba(0, 0, 0, .28) !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  transition: background .35s ease, box-shadow .35s ease, border-color .35s ease;
 }
+/* 41.0: the 3D Cover card keeps its rounded corners in neon, and the face turned away never
+   paints its glow (WebKit draws box-shadows on a hidden backface) — so it flips cleanly */
+html.fbfx-neon .coverflow-card-item .face-front,
+html.fbfx-neon .coverflow-card-item .face-back { border-radius: 32px !important; -webkit-backface-visibility: hidden !important; backface-visibility: hidden !important; }
+html.fbfx-neon .coverflow-card-item .face-front[style*="rotateY(180deg)"],
+html.fbfx-neon .coverflow-card-item .face-back[style*="rotateY(-180deg)"] { box-shadow: none !important; background: transparent !important; border-color: transparent !important; }
+html.fbfx-neon .coverflow-card-item .face-front[style*="rotateY(180deg)"] *,
+html.fbfx-neon .coverflow-card-item .face-back[style*="rotateY(-180deg)"] * { text-shadow: none !important; }
 html.fbfx-neon .coverflow-card-item .face-front *,
 html.fbfx-neon .coverflow-card-item .face-back *,
 html.fbfx-neon .fb-board-stage article.kanban-card *,
@@ -4910,7 +4917,7 @@ html.fbfx-neon .board-swimlane-scroll article.kanban-card * {
 html.fbfx-neon .coverflow-card-item .cf-broad-reflection,
 html.fbfx-neon .coverflow-card-item .liquid-glass-caustic,
 html.fbfx-neon .coverflow-card-item .cf-touch-sheen { opacity: .25 !important; }
-html.fbfx-neon .coverflow-card-item .coverflow-flipper { box-shadow: 0 0 60px color-mix(in srgb, var(--neon) 45%, transparent) !important; }
+html.fbfx-neon .coverflow-card-item .coverflow-flipper { box-shadow: 0 0 60px color-mix(in srgb, var(--neon) 45%, transparent) !important; border-radius: 32px !important; }
 @keyframes fbfxNeonIgnite {
   0% { filter: brightness(.25); } 12% { filter: brightness(1.25); } 20% { filter: brightness(.4); }
   32% { filter: brightness(1.1); } 40% { filter: brightness(.7); } 58% { filter: brightness(1.18); } 100% { filter: brightness(1); }
@@ -8019,6 +8026,13 @@ var SpatialFold = (function() {
     if (!f || f.raf) return;
     f.last = 0;
     f.raf = requestAnimationFrame(tick);
+    // 41.0: watchdog — a fold never holds the stage hostage. While it runs the slots are
+    // inert (pointer-events: none); if frames stall or the gate never opens, land it so the
+    // cards answer taps again.
+    if (!f.watchdog) {
+      var thisFold = f;
+      f.watchdog = setTimeout(function() { if (f === thisFold) finish(thisFold.targetMode); }, 1800);
+    }
   }
   function tick(t) {
     if (!f) return;
@@ -8055,6 +8069,7 @@ var SpatialFold = (function() {
     f = null;
     if (!done) return;
     if (done.raf) cancelAnimationFrame(done.raf);
+    if (done.watchdog) clearTimeout(done.watchdog);
     window.removeEventListener('resize', onViewportChange);
     window.removeEventListener('orientationchange', onViewportChange);
     document.removeEventListener('visibilitychange', onViewportChange);
@@ -18301,8 +18316,7 @@ var ActivityBadgesModal = function(props) {
               (0, P.jsxs)('div', { className: 'minest-summary-card-heading', children: [(0, P.jsxs)('div', { children: [(0, P.jsx)('h3', { children: 'Goals' }), (0, P.jsx)('p', { children: 'Make the rings fit your day.' })] }), summaryChevron()] }),
               (0, P.jsxs)('div', { className: 'minest-summary-card-body', children: [
                 (0, P.jsxs)('div', { className: 'minest-summary-goal-row', children: [summaryGoalRing('#ff537e', focusMinutes / effMinutes), (0, P.jsxs)('div', { children: [(0, P.jsx)('span', { className: 'minest-summary-goal-label', children: 'Focus' }), (0, P.jsxs)('strong', { style: { color: '#ff537e' }, children: [targetMinutes, (0, P.jsx)('small', { children: 'MIN' })] })] })] }),
-                (0, P.jsxs)('div', { className: 'minest-summary-goal-row', children: [summaryGoalRing('#b9e853', checkCount / effChecks), (0, P.jsxs)('div', { children: [(0, P.jsx)('span', { className: 'minest-summary-goal-label', children: 'Checks' }), (0, P.jsxs)('strong', { style: { color: '#b9e853' }, children: [targetChecks, (0, P.jsx)('small', { children: 'ITEMS' })] })] })] }),
-                (0, P.jsxs)('div', { className: 'minest-summary-goal-row', children: [summaryGoalRing('#5ddce5', goalPercent / targetGoalPercent), (0, P.jsxs)('div', { children: [(0, P.jsx)('span', { className: 'minest-summary-goal-label', children: 'Goal' }), (0, P.jsxs)('strong', { style: { color: '#5ddce5' }, children: [targetGoalPercent, (0, P.jsx)('small', { children: '%' })] })] })] })
+                (0, P.jsxs)('div', { className: 'minest-summary-goal-row', children: [summaryGoalRing('#b9e853', checkCount / effChecks), (0, P.jsxs)('div', { children: [(0, P.jsx)('span', { className: 'minest-summary-goal-label', children: 'Checks' }), (0, P.jsxs)('strong', { style: { color: '#b9e853' }, children: [targetChecks, (0, P.jsx)('small', { children: 'ITEMS' })] })] })] })
               ] })
             ] }),
             (0, P.jsxs)('button', { type: 'button', className: 'minest-summary-card minest-summary-award-feature-card', onClick: function() { setAwardPane('challenge'); setActiveSection('awards'); }, children: [
@@ -20302,7 +20316,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "40.9" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "41.0" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -20365,7 +20379,13 @@ var De = function(props) {
                 onClick: function() { setIsDropdownOpen(!isDropdownOpen); },
                 className: "p-2 rounded-xl border transition-all duration-200 " + ((isDropdownOpen || isFilterActive) ? (isDark ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300" : "bg-emerald-50 border-emerald-600/30 text-emerald-800") : (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200")),
                 title: activeCol ? ("Filter by list: " + activeCol.title) : "Filter by list",
-                children: (0, P.jsx)(fe, { className: "w-4 h-4" })
+                // 41.0: the same list icon as the portrait dock's Lists tab
+                children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", className: "w-4 h-4", fill: "none", stroke: "currentColor", strokeWidth: 1.9, strokeLinecap: "round", strokeLinejoin: "round", 'aria-hidden': "true", children: [
+                  (0, P.jsx)('path', { d: "M9 6.5h10.5M9 12h10.5M9 17.5h10.5" }),
+                  (0, P.jsx)('circle', { cx: "4.75", cy: "6.5", r: "1.25", fill: "currentColor", stroke: "none" }),
+                  (0, P.jsx)('circle', { cx: "4.75", cy: "12", r: "1.25", fill: "currentColor", stroke: "none" }),
+                  (0, P.jsx)('circle', { cx: "4.75", cy: "17.5", r: "1.25", fill: "currentColor", stroke: "none" })
+                ] })
               }),
               isDropdownOpen ? (0, P.jsxs)('div', {
                 className: "list-filter-popover absolute left-0 top-full mt-2 w-56 py-1.5 rounded-2xl border shadow-2xl z-50 backdrop-blur-2xl transition-all duration-150 animate-fadeIn " + (isDark ? "bg-[#141d26]/95 border-white/15 text-white shadow-[0_16px_36px_rgba(0,0,0,0.6)]" : "bg-white/95 border-slate-200 text-slate-900 shadow-[0_12px_28px_rgba(0,0,0,0.12)]"),
@@ -23658,7 +23678,7 @@ var Oe = function(props) {
           var upThresh = g.isPickedUp ? -80 : -105;
           var downThresh = g.isPickedUp ? 90 : 115;
 
-          if (dx > rightThresh && !g.completeArmed && absDx >= absDy * 0.75) {
+          if (false && dx > rightThresh && !g.completeArmed && absDx >= absDy * 0.75) {   // 41.0: 3D Cover never completes a card
             g.completeArmed = true;
             if (window.MinestNative && window.MinestNative.send) window.MinestNative.send('triggerHaptic', { style: 'selection', sound: false });
           } else if (dx < rightThresh - 25 && g.completeArmed) {
@@ -23806,7 +23826,7 @@ var Oe = function(props) {
           // PHASE 2 PHYSICAL COVER FLOW GESTURES:
           // =========================================================================
           // 1. Swipe/fling right -> Complete Card
-          var isFlingRight = g.completeArmed || (dx > 100) || (dx > 45 && vx > 500);
+          var isFlingRight = false;   // 41.0: 3D Cover is for reading — a swipe right never completes the card
           if (isFlingRight && Math.abs(dx) >= Math.abs(dy) * 0.7) {
             var activeCard = rt().cards ? rt().cards[rt().activeIdx] : null;
             var activeEl = activeCard ? cardElRefs[activeCard.id] : null;
@@ -24348,12 +24368,18 @@ var Oe = function(props) {
 
         transX += fxHoldX;
         transY += fxHoldY - 10 * driveK;
+        // 41.0: the card in your hand keeps facing you — while it is carried or driven through
+        // the deck it takes only a little of the deck's side angle, and its tilt is capped
+        // (a deliberate spin, a big inspect angle, still turns it freely)
+        var spinningY = Math.abs(fxInspectRY) > 30;
+        if (!spinningY) rotY = pose.rotation * 0.15;
         rotY += fxInspectRY * 0.75;
         // 10.0: speed and inertia — it turns into its motion like a sail, its top lags when it
         // accelerates (and leans the other way when it brakes), it stretches a hair at speed,
         // and a hit throws it back and turns it
         var hvx = fx ? (fx.holdVX || 0) : 0, hax = fx ? (fx.holdAX || 0) : 0;
         rotY += Math.max(-9, Math.min(9, hvx * 0.0045)) + (fx ? (fx.recoilRY || 0) : 0);
+        if (!spinningY) rotY = Math.max(-32, Math.min(32, rotY));
         rollZ = fx ? (fx.roll || 0) : 0;
         var stretch = Math.min(0.05, Math.abs(hvx) / 40000);
         sxK = 1 + stretch; syK = 1 - stretch * 0.5;
