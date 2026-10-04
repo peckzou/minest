@@ -310,7 +310,9 @@ export async function handle(path, input) {
       const twoSchema = { type: 'object', additionalProperties: false, required: ['plans'], properties: { plans: { type: 'array', items: {
         ...planSchema, required: [...planSchema.required, 'approach'], properties: { ...planSchema.properties, approach: str } } } } };
       const data2 = await callModel(input, [{ role: 'system', content: twoSys }, ...history, { role: 'user', content: userContent }], jsonOut('minest_plans', twoSchema, 7000, EFFORT.plan));
-      const plans = (JSON.parse(outputText(data2)).plans || []).slice(0, 2).map(finish);
+      // outlines without lists are not outlines (the model sometimes answers with a question) —
+      // keep only real ones; with none left, fall through to a single outline
+      const plans = (JSON.parse(outputText(data2)).plans || []).filter(p => Array.isArray(p.lists) && p.lists.length).slice(0, 2).map(finish);
       if (plans.length) return { plans };
     }
     const data = await callModel(input, [{ role: 'system', content: sys }, ...history, { role: 'user', content: userContent }], jsonOut('minest_plan', planSchema, 4000, EFFORT.plan));
