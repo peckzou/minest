@@ -388,7 +388,7 @@ public struct MinestWebView: UIViewRepresentable {
         }
         
         private func fallback(in webView: WKWebView) {
-            if let bundlePath = Bundle.main.url(forResource: "iphone18.0", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.9", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.2", withExtension: "html") ?? Bundle.main.url(forResource: "iphone", withExtension: "html") ?? Bundle.main.url(forResource: "iphone18.0.html", withExtension: nil) {
+            if let bundlePath = (UIDevice.current.userInterfaceIdiom == .pad ? Bundle.main.url(forResource: "ipad", withExtension: "html") : nil) ?? Bundle.main.url(forResource: "iphone18.0", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.9", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.2", withExtension: "html") ?? Bundle.main.url(forResource: "iphone", withExtension: "html") ?? Bundle.main.url(forResource: "iphone18.0.html", withExtension: nil) {
                 print("🔄 [MinestWebView] Falling back to local bundle: \(bundlePath)")
                 webView.loadFileURL(bundlePath, allowingReadAccessTo: bundlePath.deletingLastPathComponent())
             } else if let fallbackURL = URL(string: "https://minest-app.vercel.app/iphone.html") {

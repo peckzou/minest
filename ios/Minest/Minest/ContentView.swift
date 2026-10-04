@@ -34,7 +34,7 @@ struct ContentView: View {
     
     // Choose between local bundled HTML or remote web app
     private var targetURL: URL {
-        if let bundlePath = Bundle.main.url(forResource: "iphone18.0", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.9", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.2", withExtension: "html") ?? Bundle.main.url(forResource: "iphone", withExtension: "html") ?? Bundle.main.url(forResource: "iphone18.0.html", withExtension: nil) {
+        if let bundlePath = (UIDevice.current.userInterfaceIdiom == .pad ? Bundle.main.url(forResource: "ipad", withExtension: "html") : nil) ?? Bundle.main.url(forResource: "iphone18.0", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.9", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.2", withExtension: "html") ?? Bundle.main.url(forResource: "iphone", withExtension: "html") ?? Bundle.main.url(forResource: "iphone18.0.html", withExtension: nil) {
             print("📱 [ContentView] Found local bundle URL: \(bundlePath)")
             return bundlePath
         }
@@ -382,7 +382,7 @@ struct ContentView: View {
             }
         } else if cmd == "load_bundle" {
             DispatchQueue.main.async {
-                if let bundleURL = Bundle.main.url(forResource: "iphone18.0", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.9", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.2", withExtension: "html") ?? Bundle.main.url(forResource: "iphone", withExtension: "html") ?? Bundle.main.url(forResource: "iphone18.0.html", withExtension: nil) {
+                if let bundleURL = (UIDevice.current.userInterfaceIdiom == .pad ? Bundle.main.url(forResource: "ipad", withExtension: "html") : nil) ?? Bundle.main.url(forResource: "iphone18.0", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.9", withExtension: "html") ?? Bundle.main.url(forResource: "iphone13.2", withExtension: "html") ?? Bundle.main.url(forResource: "iphone", withExtension: "html") ?? Bundle.main.url(forResource: "iphone18.0.html", withExtension: nil) {
                     print("⚡ [Minest] Loading local bundle URL directly: \(bundleURL)")
                     self.bridge.webView?.loadFileURL(bundleURL, allowingReadAccessTo: bundleURL.deletingLastPathComponent())
                 }
