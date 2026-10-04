@@ -72,22 +72,34 @@ async function assess(targetWord, audio) {
   const result = await new Promise((resolve, reject) => {
     let settled = false;
     let assessmentData = '';
+    let handshakeReady = false;
+    let audioStarted = false;
+    const pendingFrames = [];
     const finish = (fn, value) => { if (!settled) { settled = true; clearTimeout(timer); try { socket.close(); } catch {} fn(value); } };
     const timer = setTimeout(() => finish(reject, new Error('讯飞评测超时')), 30000);
-    socket.addEventListener('open', async () => {
+    socket.addEventListener('open', () => {
       const referenceText = `[word]\n${targetWord}`;
-      socket.send(JSON.stringify({ common: { app_id: process.env.XFYUN_APP_ID }, business: { language: 'en_us', category: 'read_word', group: 'adult', ent: 'en_vip', cmd: 'ssb', textmode: 'normal', aue: 'raw', auf: 'audio/L16;rate=16000', rstcd: 'utf8' }, data: { status: 0, data: Buffer.from(referenceText, 'utf8').toString('base64'), data_type: 1, encoding: 'utf8' } }));
-      const frameBytes = 1280;
-      for (let offset = 0; offset < audio.length; offset += frameBytes) {
-        socket.send(JSON.stringify({ data: { status: 1, data: audio.subarray(offset, offset + frameBytes).toString('base64'), data_type: 1, encoding: 'raw' } }));
-        await new Promise(resolve => setTimeout(resolve, 40));
-      }
-      socket.send(JSON.stringify({ data: { status: 2, data: '', data_type: 1, encoding: 'raw' } }));
+      socket.send(JSON.stringify({ common: { app_id: process.env.XFYUN_APP_ID }, business: { sub: 'ise', ent: 'en_vip', category: 'read_word', cmd: 'ssb', text: '\ufeff' + referenceText, tte: 'utf-8', ttp_skip: true, aue: 'raw', auf: 'audio/L16;rate=16000', rst: 'entirety', ise_unite: '1', extra_ability: 'multi_dimension' }, data: { status: 0, data: '' } }));
+      pendingFrames.push(audio);
     });
     socket.addEventListener('message', event => {
       let packet;
       try { packet = JSON.parse(String(event.data)); } catch { return finish(reject, new Error('invalid response from 讯飞')); }
       if (packet.code && Number(packet.code) !== 0) return finish(reject, new Error(`讯飞错误 ${packet.code}`));
+      if (!handshakeReady) {
+        handshakeReady = true;
+        if (packet.code !== 0) return finish(reject, new Error(`讯飞 ssb 握手失败 ${packet.code}`));
+        const pcm = pendingFrames.shift();
+        const frameBytes = 1280;
+        for (let offset = 0; offset < pcm.length; offset += frameBytes) {
+          const chunk = pcm.subarray(offset, offset + frameBytes);
+          const aus = audioStarted ? 2 : 1;
+          audioStarted = true;
+          socket.send(JSON.stringify({ business: { cmd: 'auw', aus }, data: { status: 1, data: chunk.toString('base64') } }));
+        }
+        socket.send(JSON.stringify({ business: { cmd: 'auw', aus: 4 }, data: { status: 2, data: '' } }));
+        return;
+      }
       if (typeof packet.data?.data === 'string') assessmentData += packet.data.data;
       if (packet.status === 2 || packet.data?.status === 2) {
         try { finish(resolve, parseAssessment({ data: assessmentData })); } catch (error) { finish(reject, error); }
