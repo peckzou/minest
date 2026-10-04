@@ -75,14 +75,13 @@ async function assess(targetWord, audio) {
     const finish = (fn, value) => { if (!settled) { settled = true; clearTimeout(timer); try { socket.close(); } catch {} fn(value); } };
     const timer = setTimeout(() => finish(reject, new Error('讯飞评测超时')), 30000);
     socket.addEventListener('open', async () => {
-      socket.send(JSON.stringify({ common: { app_id: process.env.XFYUN_APP_ID }, business: { language: 'en_us', category: 'read_word', group: 'adult', ent: 'en_vip', cmd: 'ssb', textmode: 'normal', rstcd: 'utf8' }, data: { status: 0, format: 'audio/L16;rate=16000', encoding: 'raw', audio: '' } }));
-      socket.send(JSON.stringify({ common: { app_id: process.env.XFYUN_APP_ID }, data: { status: 0, encoding: 'utf8', data_type: 1, data: Buffer.from(targetWord, 'utf8').toString('base64') } }));
+      socket.send(JSON.stringify({ common: { app_id: process.env.XFYUN_APP_ID }, business: { language: 'en_us', category: 'read_word', group: 'adult', ent: 'en_vip', cmd: 'ssb', textmode: 'normal', aue: 'raw', auf: 'audio/L16;rate=16000', rstcd: 'utf8' }, data: { status: 0, data: Buffer.from(targetWord, 'utf8').toString('base64'), data_type: 1, encoding: 'utf8' } }));
       const frameBytes = 1280;
       for (let offset = 0; offset < audio.length; offset += frameBytes) {
-        socket.send(JSON.stringify({ common: { app_id: process.env.XFYUN_APP_ID }, data: { status: 1, format: 'audio/L16;rate=16000', encoding: 'raw', audio: audio.subarray(offset, offset + frameBytes).toString('base64') } }));
+        socket.send(JSON.stringify({ data: { status: 1, data: audio.subarray(offset, offset + frameBytes).toString('base64'), data_type: 1, encoding: 'raw' } }));
         await new Promise(resolve => setTimeout(resolve, 40));
       }
-      socket.send(JSON.stringify({ common: { app_id: process.env.XFYUN_APP_ID }, data: { status: 2, format: 'audio/L16;rate=16000', encoding: 'raw', audio: '' } }));
+      socket.send(JSON.stringify({ data: { status: 2, data: '', data_type: 1, encoding: 'raw' } }));
     });
     socket.addEventListener('message', event => {
       let packet;
