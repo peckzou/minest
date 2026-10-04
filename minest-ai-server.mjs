@@ -19,17 +19,17 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204, headers); return res.end(); }
   if (!isLocal(req.socket.remoteAddress) && req.headers['x-minest-token'] !== TOKEN) { res.writeHead(401, headers); return res.end(JSON.stringify({ error: 'Minest AI: 设备未授权（缺少 token）' })); }
   if (req.method !== 'POST') { res.writeHead(405, headers); return res.end(JSON.stringify({ error: 'POST required' })); }
-  let streaming = false;
-  try {
-    const input = await readBody(req);
-    const result = await handle(req.url || '', input);
-    if (result && result.__stream) { streaming = true; return await streamChat(res, input, result.__stream); }
-    res.writeHead(200, headers); res.end(JSON.stringify(result));
+  let input;
+  try { input = await readBody(req); } catch (error) { res.writeHead(error.statusCode || 400, headers); return res.end(JSON.stringify({ error: error.message })); }
+  if (String(req.url || '').endsWith('/ai-chat-stream')) {
+    try { const r = await handle(req.url, input); return await streamChat(res, input, r.__stream); }
+    catch (error) { try { res.end('data: ' + JSON.stringify({ error: error.message }) + '\n\n'); } catch (e) {} return; }
   }
-  catch (error) {
-    if (streaming) { try { res.end('data: ' + JSON.stringify({ error: error.message }) + '\n\n'); } catch (e) {} return; }
-    res.writeHead(error.statusCode || 500, headers); res.end(JSON.stringify({ error: error.message }));
-  }
+  // same as on Vercel: answer at once, a space every 8 s, then the JSON (errors as 200 + { error })
+  res.writeHead(200, headers); res.write(' ');
+  const beat = setInterval(() => { try { res.write(' '); } catch (e) {} }, 8000);
+  try { const result = await handle(req.url || '', input); clearInterval(beat); res.end(JSON.stringify(result)); }
+  catch (error) { clearInterval(beat); res.end(JSON.stringify({ error: error.message })); }
 });
 server.on('error', error => {
   if (error.code === 'EADDRINUSE') {

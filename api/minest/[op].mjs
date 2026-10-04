@@ -20,13 +20,21 @@ export default async function handler(req, res) {
   if (req.headers['x-minest-token'] !== token) return send(res, 401, { error: 'Minest AI: 设备未授权（缺少 token）' });
   const op = String((req.query && req.query.op) || '').replace(/[^a-z-]/g, '');
   const input = req.body && typeof req.body === 'object' ? req.body : {};
-  let streaming = false;
+  if (op === 'ai-chat-stream') {
+    try { const r = await handle('/' + op, input); return await streamChat(res, input, r.__stream); }
+    catch (error) { try { res.end('data: ' + JSON.stringify({ error: error.message }) + '\n\n'); } catch (e) {} return; }
+  }
+  // Long AI calls (40–80 s) can outlast the phone's idle timeout, so the reply starts at once and a
+  // space goes out every 8 s until the JSON is ready (leading whitespace is valid JSON).
+  // Errors therefore come back as 200 + { error } — the app checks for that.
+  res.statusCode = 200;
+  Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
+  res.write(' ');
+  const beat = setInterval(() => { try { res.write(' '); } catch (e) {} }, 8000);
   try {
     const result = await handle('/' + op, input);
-    if (result && result.__stream) { streaming = true; return await streamChat(res, input, result.__stream); }
-    return send(res, 200, result);
+    clearInterval(beat); res.end(JSON.stringify(result));
   } catch (error) {
-    if (streaming) { try { res.end('data: ' + JSON.stringify({ error: error.message }) + '\n\n'); } catch (e) {} return; }
-    return send(res, error.statusCode || 500, { error: error.message });
+    clearInterval(beat); res.end(JSON.stringify({ error: error.message }));
   }
 }
