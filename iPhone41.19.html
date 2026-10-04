@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 41.27 · Card Details</title>
+    <title>Minest iPhone 41.19 · Study Cover</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -3123,13 +3123,6 @@ html.arcade-open, html.arcade-open body { overflow: hidden; }
 .ar-btn.know { color: #6ee7b7; } .ar-btn.again { color: #fdba74; }
 .ar-x { width: 32px; height: 32px; padding: 0; border-radius: 10px; }
 .ar-end { padding: 5px 11px; font-size: 12px; }
-/* 41.25: one family for the top-right controls — same height, same glass, round or pill */
-.arcade .ar-top .ar-btn { height: 32px !important; box-sizing: border-box; display: inline-flex !important; align-items: center; justify-content: center;
-  border-radius: 16px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.16) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.14) !important; line-height: 1; }
-.arcade .ar-top .ar-bgbtn, .arcade .ar-top .ar-x { width: 32px !important; padding: 0 !important; font-size: 14px; }
-.arcade .ar-top .ar-bgbtn svg { width: 15px; height: 15px; }
-.arcade .ar-top .ar-end { padding: 0 13px !important; font-size: 12.5px; }
-.arcade .ar-top .ar-bgbtn.on { border-color: rgba(125,211,252,.7) !important; color: #7dd3fc; }
 .ar-stage { position: relative; z-index: 2; flex: 1; min-height: 0; }
 
 /* shared card look: Liquid Glass tinted by the card's colour */
@@ -11723,40 +11716,6 @@ var StudyArcade = (function() {
   };
 
   // =====================================================================
-  // 41.24 auto read-aloud for Card Flinger and Swipe Judgment: one tap turns it on (remembered),
-  // and every card is spoken the moment it appears
-  var arRead = {
-    on: (function() { try { return localStorage.getItem('minest_arcade_autoread') === '1'; } catch (e) { return false; } })(),
-    say: function(text) {
-      if (!arRead.on || !window.speechSynthesis) return;
-      var t = String(text || '').replace(/\s+/g, ' ').trim(); if (!t) return;
-      try {
-        speechSynthesis.cancel();
-        var u = new SpeechSynthesisUtterance(t.slice(0, 200));
-        u.lang = /[\u4e00-\u9fff]/.test(t) ? 'zh-CN' : 'en-US'; u.rate = 0.9;
-        speechSynthesis.speak(u);
-      } catch (e) {}
-    },
-    button: function(parent, current) {
-      var b = el('button', 'ar-btn ar-read' + (arRead.on ? ' on' : ''), parent);
-      b.type = 'button'; b.title = 'Auto read-aloud'; b.setAttribute('aria-label', 'Auto read-aloud');
-      b.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="w1" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="w2" d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
-      b.addEventListener('click', function() {
-        arRead.on = !arRead.on; b.classList.toggle('on', arRead.on);
-        try { localStorage.setItem('minest_arcade_autoread', arRead.on ? '1' : '0'); } catch (e) {}
-        if (arRead.on) { var c = current && current(); if (c) arRead.say(c); } else { try { speechSynthesis.cancel(); } catch (e) {} }
-      });
-      return b;
-    }
-  };
-  (function() {
-    var st = document.createElement('style');
-    st.textContent = '.ar-btn.ar-read{width:46px;min-width:46px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;opacity:.6}' +
-      '.ar-btn.ar-read.on{opacity:1;color:#30d158!important;box-shadow:0 0 0 1px rgba(48,209,88,.55),0 0 16px rgba(48,209,88,.35)!important}' +
-      '.ar-btn.ar-read:not(.on) .w1,.ar-btn.ar-read:not(.on) .w2{opacity:.25}';
-    (document.head || document.documentElement).appendChild(st);
-  })();
-
   // 1) CARD FLINGER
   // =====================================================================
   MODES.flinger = function(stage, api, opts) {
@@ -11787,7 +11746,6 @@ var StudyArcade = (function() {
       else if (cur && (!flipOn || cur.phase === 'back')) decide('mastered');
     }, flipOn ? 'Flip (Space)' : 'Seen (Space)');
     mk('Know ✓', 'know', function() { decide('mastered'); }, 'Know it (→)');
-    arRead.button(ctrls, function() { return cur && cur.item && cur.item.front; });
     var hint = el('div', 'ar-fl-hint', root, flipOn ? 'Fling up-right = Mastered · down-left = Again · Space flips' : 'Scan: ← keeps a card for another pass');
     var cur = null, flying = 0;
 
@@ -12031,7 +11989,6 @@ var StudyArcade = (function() {
 
       var c = makeCard(item);
       slot.appendChild(c.el);
-      arRead.say(item.front);
 
       cur = {
         item: item,
@@ -12323,7 +12280,6 @@ var StudyArcade = (function() {
     mk('Peek', 'flip', function() { if (cards[0]) reveal(cards[0]); }, 'Peek at the answer (Space)');
     mk('Again ↻', 'again', function() { out(1, 1700, -120); }, 'Again (→)');
     var cards = [], flying = [], TH = 110;
-    arRead.button(ctrls, function() { return cards[0] && cards[0].item.front; });
 
     var makeCard = function(item) {
       var c = { item: item, x: 0, y: 0, rot: 0, flips: 0, retreats: 0, hold: 0, lastLean: 0, shownAt: 0, revealed: false };
@@ -12343,7 +12299,7 @@ var StudyArcade = (function() {
       cards.forEach(function(c, i) {
         c.el.style.zIndex = String(10 - i);
         var s = 1 - i * 0.05, y = i * 16, o = i > 1 ? 0.55 : 1;
-        if (i === 0) { c.el.classList.add('front'); if (!c.shownAt) { c.shownAt = performance.now(); arRead.say(c.item.front); } }
+        if (i === 0) { c.el.classList.add('front'); if (!c.shownAt) c.shownAt = performance.now(); }
         if (animate && c.li != null && c.li !== i) {
           var s0 = 1 - c.li * 0.05, y0 = c.li * 16;
           (function(c, s0, y0, s, y) {
@@ -20656,7 +20612,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "41.27" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "41.19" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -21615,33 +21571,6 @@ var MinestPron = (function() {
       '.mpron-card-back{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.25)}',
       '.mpron-card{position:fixed;z-index:99991;border-radius:18px;padding:16px;background:#1c1c1e;color:#fff;box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;transform-origin:top center;animation:mpronOpen .26s cubic-bezier(.2,.9,.25,1)}',
       '.theme-white .mpron-card{background:#fff;color:#111}',
-      // 41.23 liquid glass: clear frosted body, bright rim, specular sheen, soft lens shadow
-      '.mpron-card{border-radius:30px!important;padding:20px 18px 18px!important;background:linear-gradient(160deg,rgba(255,255,255,.26),rgba(255,255,255,.07) 45%,rgba(255,255,255,.13))!important;border:1px solid rgba(255,255,255,.34);-webkit-backdrop-filter:blur(30px) saturate(190%);backdrop-filter:blur(30px) saturate(190%);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -1px 1px rgba(255,255,255,.15),0 24px 60px rgba(0,0,0,.35)!important;overflow:visible}',
-      '.mpron-card::before{content:"";position:absolute;inset:1px 1px 55% 1px;border-radius:29px 29px 50% 50%;background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,0));pointer-events:none}',
-      '.theme-white .mpron-card{background:linear-gradient(160deg,rgba(255,255,255,.82),rgba(255,255,255,.55) 50%,rgba(255,255,255,.7))!important;border-color:rgba(255,255,255,.95);box-shadow:inset 0 1px 0 #fff,0 24px 60px rgba(15,23,42,.22)!important}',
-      '.mpron-card-back{background:rgba(0,0,0,.18)!important;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}',
-      '.mpron-card .mpron-mic{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.06))!important;border:1px solid rgba(255,255,255,.3)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 20px rgba(0,0,0,.2);color:inherit;border-radius:26px!important;height:54px!important}',
-      '.theme-white .mpron-card .mpron-mic{background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(241,245,249,.8))!important;border-color:rgba(15,23,42,.08)!important;color:#111}',
-      '.mpron-card .mpron-mic.on{background:linear-gradient(180deg,#ff5a7a,#ff2d55)!important;color:#fff;border-color:rgba(255,255,255,.5)!important;box-shadow:0 0 0 calc(4px + var(--lvl) * 14px) rgba(255,45,85,.22),0 10px 26px rgba(255,45,85,.45)}',
-      '.mpron-card .mpron-btn{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.07));border:1px solid rgba(255,255,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}',
-      '.mpron-card .mpron-btn.primary{background:#fff;color:#000}',
-      // score reveal: ring + count-up, then a band-specific effect
-      '.mpron-ring-wrap{position:relative;width:136px;height:136px;display:flex;align-items:center;justify-content:center}',
-      '.mpron-ring-wrap svg{position:absolute;inset:0;transform:rotate(-90deg)}',
-      '.mpron-ring-wrap .trk{fill:none;stroke:rgba(127,127,127,.18);stroke-width:9}',
-      '.mpron-ring-wrap .val{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .9s cubic-bezier(.2,.9,.25,1);filter:drop-shadow(0 0 6px currentColor)}',
-      '.mpron-ring-wrap .mpron-num{font-size:54px!important;letter-spacing:-2px}',
-      '.mpron-fx-excellent .mpron-ring-wrap{animation:mpronGlow 1.2s ease-out .85s}',
-      '@keyframes mpronGlow{0%{filter:none}35%{filter:drop-shadow(0 0 18px rgba(48,209,88,.85)) brightness(1.15)}100%{filter:none}}',
-      '.mpron-fx-good .mpron-ring-wrap{animation:mpronBounce .6s cubic-bezier(.3,1.6,.5,1) .85s}',
-      '@keyframes mpronBounce{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}',
-      '.mpron-fx-practice .mpron-ring-wrap{animation:mpronSoft 1s ease-in-out .85s}',
-      '@keyframes mpronSoft{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}',
-      '.mpron-fx-again .mpron-ring-wrap{animation:mpronShake .5s ease-in-out .85s}',
-      '@keyframes mpronShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}',
-      '.mpron-particle{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:2px;pointer-events:none;animation:mpronBurst var(--d,900ms) cubic-bezier(.15,.8,.3,1) forwards}',
-      '.mpron-particle.star{width:14px;height:14px;border-radius:0;background:none!important;color:var(--c);font-size:14px;line-height:14px}',
-      '@keyframes mpronBurst{0%{transform:translate(-50%,-50%) scale(.4) rotate(0);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1) rotate(var(--r));opacity:0}}',
       '.theme-white .mpron-card .mpron-btn{background:rgba(0,0,0,.06)} .theme-white .mpron-card .mpron-btn.primary{background:#111;color:#fff}',
       '.mpron-card .mpron-mic{width:100%;height:52px}',
       '@keyframes mpronOpen{from{opacity:0;transform:scaleY(.6)}to{opacity:1;transform:none}}',
@@ -21669,72 +21598,15 @@ var MinestPron = (function() {
   var esc = function(s) { return String(s).replace(/[&<>"]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var micLabel = function(state, idle) { return MIC_SVG + '<span>' + (state === 'listening' ? 'Listening…' : state === 'scoring' ? 'Scoring…' : state === 'opening' ? '…' : idle) + '</span>'; };
 
-  // ---- 41.23 score reveal: ring + count-up + band effect + band sound ----
-  var tier = function(sc) { return sc >= 90 ? 'excellent' : sc >= 80 ? 'good' : sc >= 70 ? 'practice' : 'again'; };
-  var sfxCtx = null;
-  var chime = function(t) {
-    try {
-      closeMic();   // with the mic open iOS plays sounds through the quiet earpiece
-      var AC = window.AudioContext || window.webkitAudioContext; sfxCtx = sfxCtx || new AC(); if (sfxCtx.state === 'suspended') sfxCtx.resume();
-      var c = sfxCtx, t0 = c.currentTime + 0.02;
-      var note = function(f, at, dur, vol, type) {
-        var o = c.createOscillator(), g = c.createGain(); o.type = type || 'sine'; o.frequency.value = f;
-        g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(vol, t0 + at + 0.015); g.gain.exponentialRampToValueAtTime(0.0008, t0 + at + dur);
-        o.connect(g); g.connect(c.destination); o.start(t0 + at); o.stop(t0 + at + dur + 0.05);
-      };
-      if (t === 'excellent') { [523.25, 659.25, 783.99, 1046.5].forEach(function(f, i) { note(f, i * 0.09, 0.55, 0.16); note(f * 2, i * 0.09, 0.3, 0.035, 'triangle'); }); }
-      else if (t === 'good') { note(659.25, 0, 0.4, 0.15); note(987.77, 0.11, 0.55, 0.14); }
-      else if (t === 'practice') { note(587.33, 0, 0.6, 0.13, 'triangle'); }
-      else { note(311.13, 0, 0.28, 0.14, 'triangle'); note(233.08, 0.16, 0.42, 0.14, 'triangle'); }
-    } catch (e) {}
-  };
-  var burst = function(host, t) {
-    var colors = t === 'excellent' ? ['#30d158', '#ffd60a', '#64d2ff', '#ff375f', '#bf5af2', '#ff9f0a'] : ['#64d2ff', '#ffffff', '#5ac8fa'];
-    var n = t === 'excellent' ? 34 : t === 'good' ? 10 : 0;
-    for (var i = 0; i < n; i++) {
-      var p = document.createElement('i'), a = Math.random() * Math.PI * 2, d = (t === 'excellent' ? 90 : 60) + Math.random() * (t === 'excellent' ? 110 : 50);
-      p.className = 'mpron-particle' + (t === 'good' ? ' star' : '');
-      if (t === 'good') p.textContent = '✦';
-      p.style.cssText = '--dx:' + Math.cos(a) * d + 'px;--dy:' + Math.sin(a) * d + 'px;--r:' + (Math.random() * 540 - 270) + 'deg;--d:' + (750 + Math.random() * 500) + 'ms;--c:' + colors[i % colors.length] + ';background:' + colors[i % colors.length];
-      host.appendChild(p);
-      setTimeout(function(el) { el.remove(); }.bind(null, p), 1400);
-    }
-  };
-  // fills `host` (an element already in the page) with the animated score
-  var reveal = function(host, sc, size) {
-    var b = band(sc), t = tier(sc), R = 58, C = 2 * Math.PI * R;
-    var wrap = host.querySelector('.mpron-ring-wrap');
-    if (!wrap) return;
-    var num = wrap.querySelector('.mpron-num'), val = wrap.querySelector('.val');
-    val.style.strokeDasharray = C; val.style.strokeDashoffset = C; val.style.stroke = b.color; val.style.color = b.color;
-    requestAnimationFrame(function() { requestAnimationFrame(function() { val.style.strokeDashoffset = C * (1 - Math.max(0, Math.min(100, sc)) / 100); }); });
-    var t0 = performance.now();
-    (function step(now) { var k = Math.min(1, (now - t0) / 850); num.textContent = Math.round(sc * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); })(t0);
-    host.classList.remove('mpron-fx-excellent', 'mpron-fx-good', 'mpron-fx-practice', 'mpron-fx-again');
-    void host.offsetWidth; host.classList.add('mpron-fx-' + t);
-    setTimeout(function() { chime(t); burst(wrap, t); haptic(sc >= 80 ? 'success' : 'warning'); }, 820);
-  };
-  var ringHTML = function(sc) {
-    var b = band(sc);
-    return '<div class="mpron-ring-wrap"><svg viewBox="0 0 136 136"><circle class="trk" cx="68" cy="68" r="58"/><circle class="val" cx="68" cy="68" r="58"/></svg><div class="mpron-num" style="color:' + b.color + '">0</div></div>' +
-      '<div class="mpron-band" style="color:' + b.color + '">' + b.name + '</div>';
-  };
-
   // ---- Card: opens in place over the card ----
-  var openCard = function(card, anchor, opts) {
+  var openCard = function(card, anchor) {
     var word = wordOf(card.title);
     if (!word) { if (window.GlassUI) GlassUI.toast('这张卡没有可以朗读的英文单词'); return; }
     css(); closeCard();
     var r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
     var vw = window.innerWidth, vh = window.innerHeight;
     var w = Math.min(vw - 24, Math.max(280, r ? r.width : 300)), left = r ? Math.min(Math.max(12, r.left + r.width / 2 - w / 2), vw - w - 12) : (vw - w) / 2;
-    // 41.26: never under the status bar / Dynamic Island; over a big anchor (the details sheet,
-    // a large 3D card) the card sits in the middle of the screen instead of at its top
-    var probe = document.createElement('div'); probe.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none';
-    document.body.appendChild(probe); var safeTop = probe.getBoundingClientRect().height || 0; probe.remove();
-    var minTop = safeTop + 14, estH = 330;
-    var top = (!r || r.height > vh * 0.5) ? Math.max(minTop, (vh - estH) / 2) : Math.min(Math.max(minTop, r.top), vh - estH - 20);
-    if (r && r.height > vh * 0.5) { w = Math.min(vw - 32, 360); left = (vw - w) / 2; }
+    var top = r ? Math.min(Math.max(12 + (window.visualViewport ? 0 : 0), r.top), vh - 300) : vh * 0.3;
     var back = document.createElement('div'); back.className = 'mpron-card-back';
     var box = document.createElement('div'); box.className = 'mpron-card';
     box.style.cssText = 'left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;';
@@ -21742,10 +21614,9 @@ var MinestPron = (function() {
     var render = function(st) {
       if (st.res && !st.res.isRejected) {
         var b = band(st.res.score);
-        box.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">' + ringHTML(st.res.score) + '</div>' +
+        box.innerHTML = '<div class="mpron-pop" style="display:flex;flex-direction:column;align-items:center"><div class="mpron-num" style="color:' + b.color + '">' + st.res.score + '</div><div class="mpron-band" style="color:' + b.color + '">' + b.name + '</div></div>' +
           '<div class="mpron-word" style="font-size:18px">' + esc(word) + '</div>' +
           '<div style="display:flex;gap:10px"><button type="button" class="mpron-btn" data-a="again">Again</button><button type="button" class="mpron-btn primary" data-a="done">Done</button></div>';
-        reveal(box, st.res.score);
         return;
       }
       box.innerHTML = '<div class="mpron-word">' + esc(word) + '</div>' +
@@ -21757,7 +21628,7 @@ var MinestPron = (function() {
         state: function(s) { btn.classList.toggle('on', s === 'listening'); btn.innerHTML = micLabel(s, 'Hold to speak'); if (s === 'listening') box.querySelector('.mpron-msg').textContent = ''; },
         error: function(m) { box.querySelector('.mpron-msg').textContent = m; },
         result: function(res) {
-          if (!res.isRejected) { save(card.id, res); best = Math.max(best || 0, res.score); card = Object.assign({}, card, { pron: { best: best, attempts: ((card.pron && card.pron.attempts) || 0) + 1 } }); }
+          if (!res.isRejected) { save(card.id, res); best = Math.max(best || 0, res.score); card = Object.assign({}, card, { pron: { best: best, attempts: ((card.pron && card.pron.attempts) || 0) + 1 } }); haptic(res.score >= 80 ? 'success' : 'warning'); }
           render({ res: res });
         }
       });
@@ -21770,55 +21641,6 @@ var MinestPron = (function() {
     document.body.appendChild(back); document.body.appendChild(box);
     render({ state: 'idle' });
     openCard.el = [back, box];
-    // 41.22: opened by a long press on a 🎤 button — it is already listening while the finger
-    // stays down; letting go scores it here (then Again / Done as usual)
-    if (opts && opts.hold) {
-      var btn0 = box.querySelector('.mpron-mic'), released = false, live = false;
-      var setLabel = function(s) { if (!btn0 || !btn0.isConnected) return; btn0.classList.toggle('on', s === 'listening'); btn0.innerHTML = micLabel(s, 'Hold to speak'); };
-      setLabel('opening'); haptic('medium');
-      openMic().then(function() { if (released) return; startCapture(); live = true; setLabel('listening'); })
-        .catch(function() { setLabel('idle'); var m = box.querySelector('.mpron-msg'); if (m) m.textContent = '无法使用麦克风'; });
-      return {
-        release: function() {
-          if (released) return; released = true;
-          if (!live) { setLabel('idle'); return; }
-          setTimeout(function() {   // a moment more, so the end of the word is kept
-            var cap = endCapture(true);
-            if (cap.seconds < 0.25) { setLabel('idle'); var m = box.querySelector('.mpron-msg'); if (m) m.textContent = '没有录到声音'; return; }
-            setLabel('scoring');
-            score(word, cap.b64).then(function(res) {
-              if (!res.isRejected) { save(card.id, res); best = Math.max(best || 0, res.score); card = Object.assign({}, card, { pron: { best: best, attempts: ((card.pron && card.pron.attempts) || 0) + 1 } }); }
-              if (openCard.el && openCard.el[1] === box) render({ res: res });
-            }).catch(function(err) { setLabel('idle'); var m = box.querySelector('.mpron-msg'); if (m) m.textContent = err.message || '评分失败'; });
-          }, 180);
-        }
-      };
-    }
-  };
-  // 41.22: long press on any 🎤 button → the hold-to-score card (tap keeps the button's own action)
-  var longPress = function(el) {
-    if (el._mpronLP) return; el._mpronLP = true;
-    el.style.webkitTouchCallout = 'none'; el.style.webkitUserSelect = 'none'; el.style.userSelect = 'none';
-    var timer = 0, hold = null, pid = null;
-    el.addEventListener('pointerdown', function(e) {
-      pid = e.pointerId; clearTimeout(timer); hold = null;
-      timer = setTimeout(function() {
-        var card = el.__mpronCard; if (!card) return;
-        if (sh) { var prev = sh; mic.chunks = null; shEnd(prev); }
-        el._lpAt = Date.now();
-        try { el.setPointerCapture(pid); } catch (err) {}
-        var anchor = el.closest('.coverflow-card-item') || el.closest('[role="dialog"]') || el.closest('.fixed') || el;
-        hold = openCard(card, anchor, { hold: true }) || null;
-      }, 380);
-    });
-    var up = function(e) {
-      clearTimeout(timer);
-      if (hold) { e.stopPropagation(); hold.release(); hold = null; el._lpAt = Date.now(); }
-    };
-    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
-    el.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-    // the click that follows a long press must not also start the tap recorder
-    el.addEventListener('click', function(e) { if (el._lpAt && Date.now() - el._lpAt < 900) { e.stopPropagation(); e.preventDefault(); } }, true);
   };
   var closeCard = function() { (openCard.el || []).forEach(function(n) { if (n.parentNode) n.parentNode.removeChild(n); }); openCard.el = null; closeMic(); };
 
@@ -21845,7 +21667,7 @@ var MinestPron = (function() {
       root.innerHTML = head() +
         '<div class="mpron-stage">' +
           (shown
-            ? '<div class="mpron-reveal" style="display:flex;flex-direction:column;align-items:center;gap:2px">' + ringHTML(res.score) + '</div><div class="mpron-word" style="margin-top:10px">' + esc(it.word) + '</div>'
+            ? '<div class="mpron-pop" style="display:flex;flex-direction:column;align-items:center"><div class="mpron-num" style="color:' + b.color + '">' + res.score + '</div><div class="mpron-band" style="color:' + b.color + ';font-size:22px">' + b.name + '</div></div><div class="mpron-word" style="margin-top:14px">' + esc(it.word) + '</div>'
             : '<div class="mpron-word big">' + esc(it.word) + '</div>' + (it.prev && it.prev.best ? '<div class="mpron-sub">Best ' + it.prev.best + '</div>' : '')) +
           '<div class="mpron-msg">' + esc(stateMsg) + '</div>' +
         '</div>' +
@@ -21858,9 +21680,9 @@ var MinestPron = (function() {
         result: function(res) {
           if (res.isRejected) { stateMsg = '没听清，再读一次'; haptic('warning'); word(); return; }
           stateMsg = ''; results[it.id] = res.score; save(it.id, res);
+          haptic(res.score >= 80 ? 'success' : 'warning');
           word(res);
-          reveal(root.querySelector('.mpron-reveal'), res.score);
-          timer = setTimeout(next, 2300);   // read → score (with its little show) → next word, hands-free
+          timer = setTimeout(next, 1500);   // read → score → next word, without touching anything
         }
       });
     };
@@ -21990,44 +21812,6 @@ var MinestPron = (function() {
       }, 80);
     }).catch(function() { shEnd(st); if (window.GlassUI) GlassUI.toast('无法使用麦克风：请在设置里允许 Minest 使用麦克风'); });
   };
-  // 41.21 toggles for the card details: 🔊 speaks / stops, 🎤 records / stops and scores
-  var speakBtn = null;
-  var toggleSpeak = function(text, btn) {
-    if (!window.speechSynthesis) return;
-    var was = speakBtn; 
-    try { speechSynthesis.cancel(); } catch (e) {}
-    if (was) { was.classList.remove('mpron-sh-speaking'); speakBtn = null; if (was === btn) return; }
-    var clean = String(text || '').replace(/[#*`_\[\]]/g, '').replace(/\s+/g, ' ').trim();
-    if (!clean) return;
-    if (sh) { var prev = sh; mic.chunks = null; shEnd(prev); }
-    var u = new SpeechSynthesisUtterance(clean); u.lang = 'en-US'; u.rate = 0.92;
-    speakBtn = btn; btn.classList.add('mpron-sh-speaking');
-    u.onend = u.onerror = function() { if (speakBtn === btn) { btn.classList.remove('mpron-sh-speaking'); speakBtn = null; } };
-    speechSynthesis.speak(u);
-  };
-  var toggleRecord = function(card, btn) {
-    if (sh && sh.manual && sh.btn === btn) {   // second tap: stop and score
-      var st0 = sh; clearTimeout(st0.cap);
-      var cap = endCapture(true);
-      if (cap.seconds < 0.25) { shEnd(st0, null); return; }
-      st0.btn.classList.remove('mpron-sh-listening'); huLine(false);
-      score(st0.word, cap.b64).then(function(res) { if (!res.isRejected) save(st0.card.id, res); haptic(res.score >= 80 ? 'success' : 'warning'); shEnd(st0, res); }).catch(function() { shEnd(st0, null); });
-      return;
-    }
-    if (sh) { var prev = sh; mic.chunks = null; shEnd(prev); }
-    if (speakBtn) { try { speechSynthesis.cancel(); } catch (e) {} speakBtn.classList.remove('mpron-sh-speaking'); speakBtn = null; }
-    var word = wordOf(card.title); if (!word) return;
-    css();
-    try { var AC = window.AudioContext || window.webkitAudioContext; if (!mic.ctx) mic.ctx = new AC(); if (mic.ctx.state === 'suspended') mic.ctx.resume(); } catch (e) {}
-    var st = sh = { btn: btn, word: word, card: card, manual: true };
-    haptic('light');
-    openMic().then(function() {
-      if (sh !== st) return;
-      startCapture(); btn.classList.add('mpron-sh-listening'); huLine(true, 30);
-      st.cap = setTimeout(function() { if (sh === st) toggleRecord(card, btn); }, 30000);   // stops itself after 30 s
-    }).catch(function() { shEnd(st); if (window.GlassUI) GlassUI.toast('无法使用麦克风：请在设置里允许 Minest 使用麦克风'); });
-  };
-
   // the recorder alone: listen, stop on silence, score (no voice first)
   var record = function(card, btn) {
     if (sh) { var prev = sh; mic.chunks = null; try { speechSynthesis.cancel(); } catch (e) {} shEnd(prev); if (prev.btn === btn) return; }
@@ -22118,22 +21902,6 @@ var MinestPron = (function() {
       // 41.17 shadowing: the 🔊 button speaks (green pulse), then listens (red); the score pops below it
       '.mpron-sh-speaking{animation:mpronShPulse 1s ease-in-out infinite}.mpron-sh-listening{background:#ff375f!important;opacity:1!important}.mpron-sh-listening svg{color:#fff!important}' +
       '@keyframes mpronShPulse{50%{transform:scale(1.25)}}' +
-      '.cf-pron-score{display:flex;align-items:center;gap:7px;min-height:38px}.cf-pron-score b{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums}' +
-      '.cf-pron-score span{display:flex;flex-direction:column;line-height:1.15}.cf-pron-score i{font-style:normal;font-size:11px;font-weight:700}.cf-pron-score em{font-style:normal;font-size:10px;opacity:.5}' +
-      '.cf-pron-score .cf-pron-none{color:currentColor;opacity:.3;font-weight:600}' +
-      '.mpron-detail-btn.text-emerald-500{color:#10b981!important;background:rgba(16,185,129,.14)}.mpron-detail-btn.text-rose-500{color:#f43f5e!important;background:rgba(244,63,94,.12)}' +
-      '.mpron-detail-btn.mpron-sh-listening{color:#fff!important}' +
-      // 41.27 card details header: List | 🔊🎤  /  Mastery | score — a tidy 2×2 grid
-      'div:has(> .mn-dm){min-width:0!important;flex:1 1 auto}.mn-dm-list{min-width:0}.mn-dm-list select{min-width:0;width:100%;max-width:220px}' +
-      '.mn-dm{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"list btns" "mast score";align-items:center;column-gap:12px;row-gap:12px;margin-top:6px}' +
-      '.mn-dm-list{grid-area:list}.mn-dm-btns{grid-area:btns;justify-self:end}.mn-dm-mastery{grid-area:mast}.mn-dm .mpron-detail-score{grid-area:score;justify-self:end;min-height:0;margin:0}' +
-      '.mn-dm-k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.5;min-width:58px}' +
-      '.mn-dm select{border-radius:12px!important;padding:6px 10px!important;font-size:13px}' +
-      '.mn-dm .mpron-detail-btn{width:52px!important;height:52px!important;border-radius:26px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 16px rgba(0,0,0,.12)}' +
-      '.mn-dm .mpron-detail-btn svg{width:24px!important;height:24px!important}' +
-      '.mn-dm .mpron-detail-score b{font-size:30px}' +
-      'html body textarea[data-mn-title]:not(#a):not(#b):not(#c){font-size:22px!important;font-weight:700!important;letter-spacing:-.3px;background:transparent!important;border:0!important;border-bottom:1px solid rgba(127,127,127,.22)!important;border-radius:0!important;padding:4px 2px 8px!important;box-shadow:none!important}' +
-      'html body textarea[data-mn-title]:not(#a):not(#b):not(#c):focus{border-bottom-color:#10b981!important}' +
       '.cf-study-btn{width:38px;height:38px;border-radius:19px;display:inline-flex;align-items:center;justify-content:center;border:0;font-weight:900;font-size:16px;transition:transform .15s;box-shadow:0 4px 12px rgba(0,0,0,.18)}.cf-study-btn:active{transform:scale(.9)}' +
       '.cf-study-speak{background:rgba(16,185,129,.16);color:#10b981}.cf-study-rec{background:rgba(244,63,94,.14);color:#f43f5e}.cf-study-open{background:#10b981;color:#fff}' +
       '.mpron-detail-btn{width:40px;height:40px;border-radius:20px;flex:none;display:inline-flex;align-items:center;justify-content:center;background:rgba(127,127,127,.12);transition:transform .15s}.mpron-detail-btn:active{transform:scale(.92)}' +
@@ -22149,7 +21917,7 @@ var MinestPron = (function() {
     (document.head || document.documentElement).appendChild(st);
   })();
 
-  return { wordOf: wordOf, band: band, openCard: openCard, practice: practice, close: closeCard, attachHeadsUp: attachHeadsUp, attachHeadsUp2: attachHeadsUp2, huGesture: huGesture, shadow: shadow, record: record, toggleSpeak: toggleSpeak, toggleRecord: toggleRecord, longPress: longPress, _fx: { reveal: reveal, ringHTML: ringHTML } };
+  return { wordOf: wordOf, band: band, openCard: openCard, practice: practice, close: closeCard, attachHeadsUp: attachHeadsUp, attachHeadsUp2: attachHeadsUp2, huGesture: huGesture, shadow: shadow, record: record };
 })();
 
 var MinestPronunciationPreview = function(props) {
@@ -26564,20 +26332,7 @@ var Oe = function(props) {
                           (0, P.jsxs)('div', {
                             className: "relative z-10 flex items-center justify-between gap-1.5 pt-1.5 border-t " + (isDark ? "border-white/10" : "border-slate-200/80"),
                             children: [
-                              // 41.20: the card's pronunciation score, always shown (replaces AI Tutor here)
-                              (function() {
-                                var pr = card.pron && typeof card.pron.latest === 'number' ? card.pron : null;
-                                var bd = pr ? MinestPron.band(pr.latest) : null;
-                                return (0, P.jsxs)('div', {
-                                  className: "cf-pron-score",
-                                  title: pr ? ("Pronunciation · best " + pr.best + " · " + pr.attempts + "×") : "Not scored yet",
-                                  children: pr ? [
-                                    (0, P.jsx)('b', { style: { color: bd.color }, children: pr.latest }),
-                                    (0, P.jsxs)('span', { children: [(0, P.jsx)('i', { style: { color: bd.color }, children: bd.name }), (0, P.jsx)('em', { children: "Best " + pr.best })] })
-                                  ] : [(0, P.jsx)('b', { className: "cf-pron-none", children: "—" })]
-                                });
-                              })(),
-                              false ? (0, P.jsxs)('button', {
+                              (0, P.jsxs)('button', {
                                 type: "button",
                                 onClick: function(e) {
                                   e.stopPropagation();
@@ -26589,7 +26344,7 @@ var Oe = function(props) {
                                   (0, P.jsx)(M, { className: "w-3 h-3" }),
                                   (0, P.jsx)('span', { children: "AI Tutor" })
                                 ]
-                              }) : null,
+                              }),
                               // 41.19 study tools: read aloud · record & score · open the card (!) — big, easy to hit
                               (0, P.jsxs)('div', {
                                 className: "flex items-center gap-2",
@@ -26605,9 +26360,8 @@ var Oe = function(props) {
                                   MinestPron.wordOf(card.title) ? (0, P.jsx)('button', {
                                     type: "button", "data-interactive": "true",
                                     onPointerDown: function(e) { e.stopPropagation(); }, onTouchStart: function(e) { e.stopPropagation(); },
-                                    ref: function(el) { if (el) { el.__mpronCard = card; MinestPron.longPress(el); } },
-                                    onPointerUp: function(e) { e.stopPropagation(); var b = e.currentTarget; if (b._lpAt && Date.now() - b._lpAt < 900) return; if (b._at && Date.now() - b._at < 700) return; b._at = Date.now(); MinestPron.record(card, b); },
-                                    onClick: function(e) { e.stopPropagation(); var b = e.currentTarget; if (b._lpAt && Date.now() - b._lpAt < 900) return; if (b._at && Date.now() - b._at < 700) return; b._at = Date.now(); MinestPron.record(card, b); },
+                                    onPointerUp: function(e) { e.stopPropagation(); var b = e.currentTarget; if (b._at && Date.now() - b._at < 700) return; b._at = Date.now(); MinestPron.record(card, b); },
+                                    onClick: function(e) { e.stopPropagation(); var b = e.currentTarget; if (b._at && Date.now() - b._at < 700) return; b._at = Date.now(); MinestPron.record(card, b); },
                                     className: "cf-study-btn cf-study-rec", title: "Record and score", 'aria-label': "Record and score",
                                     children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", width: 18, height: 18, fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", children: [(0, P.jsx)('rect', { x: 9, y: 3, width: 6, height: 11, rx: 3 }), (0, P.jsx)('path', { d: "M5 11a7 7 0 0 0 14 0M12 18v3" })] })
                                   }) : null,
@@ -33370,7 +33124,7 @@ var ke = function(props) {
                                     children: card.title
                                   }),
                                   // 41.4: latest pronunciation score
-                                  false && card.pron && typeof card.pron.latest === 'number' ? (0, P.jsx)('span', {
+                                  card.pron && typeof card.pron.latest === 'number' ? (0, P.jsx)('span', {
                                     className: "minest-pron-badge",
                                     style: { color: MinestPron.band(card.pron.latest).color },
                                     title: "Pronunciation · best " + card.pron.best + " · " + card.pron.attempts + " tries",
@@ -34638,30 +34392,43 @@ var je = function(props) {
                 ) : null,
 
                 (0, P.jsxs)('div', { className: "flex items-center gap-2", children: [
-                (0, P.jsx)('textarea', {
+                (0, P.jsx)('input', {
                   // 41.18: opening a card shows its details — no keyboard; only a new card starts typing
-                  // 41.21: the whole title shows — the field wraps and grows with it
                   autoFocus: isNew,
-                  rows: 1,
-                  ref: function(el) { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } },
-                  onInput: function(e) { var el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; },
-                  onKeyDown: function(e) { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } },
-                  style: { resize: 'none', overflow: 'hidden', lineHeight: 1.25 },
-                  'data-mn-title': "1",
                   value: title,
                   onChange: function(e) { setTitle(e.target.value); },
                   onPaste: handlePasteForCover,
                   placeholder: "Enter card title...",
                   className: "w-full min-w-0 flex-1 text-lg md:text-xl font-bold bg-transparent border-b outline-none pb-1 transition-colors " + (isDark ? "border-white/15 focus:border-emerald-400 text-white placeholder-white/35" : "border-slate-300 focus:border-emerald-600 text-slate-900 placeholder-slate-400")
                 }),
-                  ] }),
+                  // 41.18: speaker (read the card) and recorder (read it yourself → score), icons only
+                    (0, P.jsxs)('div', {
+                      className: "flex items-center gap-1.5",
+                      children: [
+                        (0, P.jsx)('button', {
+                          type: "button",
+                          onClick: function() { SpeechAssistant.speak(title + ". " + desc); },
+                          className: "mpron-detail-btn text-emerald-400",
+                          title: "Read aloud", 'aria-label': "Read aloud",
+                          children: (0, P.jsx)(IconVolume, { className: "w-4 h-4" })
+                        }),
+                        MinestPron.wordOf(title) ? (0, P.jsx)('button', {
+                          type: "button",
+                          onClick: function(e) { MinestPron.record({ id: cardId, title: title }, e.currentTarget); },
+                          className: "mpron-detail-btn text-rose-400",
+                          title: "Read it yourself and get a pronunciation score", 'aria-label': "Record pronunciation",
+                          children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", children: [(0, P.jsx)('rect', { x: 9, y: 3, width: 6, height: 11, rx: 3 }), (0, P.jsx)('path', { d: "M5 11a7 7 0 0 0 14 0M12 18v3" })] })
+                        }) : null
+                      ]
+                    })
+                ] }),
                 (0, P.jsxs)('div', {
-                  className: "mn-dm text-xs",
+                  className: "flex items-center gap-3 text-xs opacity-75 flex-wrap",
                   children: [
                     (0, P.jsxs)('div', {
-                      className: "mn-dm-list flex items-center gap-1.5",
+                      className: "flex items-center gap-1.5",
                       children: [
-                        (0, P.jsx)('span', { className: "mn-dm-k", children: "List" }),
+                        (0, P.jsx)('span', { children: "List:" }),
                         (0, P.jsx)('select', {
                           value: targetColId,
                           onChange: function(e) { setTargetColId(e.target.value); },
@@ -34673,9 +34440,9 @@ var je = function(props) {
                       ]
                     }),
                     (0, P.jsxs)('div', {
-                      className: "mn-dm-mastery flex items-center gap-1.5",
+                      className: "flex items-center gap-1.5",
                       children: [
-                        (0, P.jsx)('span', { className: "mn-dm-k", children: "Mastery" }),
+                        (0, P.jsx)('span', { children: "Mastery Level:" }),
                         (0, P.jsxs)('div', {
                           className: "flex items-center gap-1",
                           children: [1, 2, 3, 4, 5].map(function(star) {
@@ -34691,44 +34458,9 @@ var je = function(props) {
                           })
                         })
                       ]
-                    }),
-                    // 41.21: the pronunciation score, right of the stars
-                    (function() {
-                      var pr = currentCard && currentCard.pron && typeof currentCard.pron.latest === 'number' ? currentCard.pron : null;
-                      var bd = pr ? MinestPron.band(pr.latest) : null;
-                      return (0, P.jsxs)('div', {
-                        className: "cf-pron-score mpron-detail-score",
-                        title: pr ? ("Pronunciation · best " + pr.best + " · " + pr.attempts + "×") : "Not scored yet",
-                        children: pr ? [
-                          (0, P.jsx)('b', { style: { color: bd.color }, children: pr.latest }),
-                          (0, P.jsxs)('span', { children: [(0, P.jsx)('i', { style: { color: bd.color }, children: bd.name }), (0, P.jsx)('em', { children: "Best " + pr.best })] })
-                        ] : [(0, P.jsx)('b', { className: "cf-pron-none", children: "—" })]
-                      });
-                    })(),
-                // 41.21: read aloud · record — each a tap to start, a tap to stop
-                (0, P.jsxs)('div', {
-                  className: "mn-dm-btns flex items-center gap-2.5",
-                  children: [
-                    (0, P.jsx)('button', {
-                      type: "button",
-                      onClick: function(e) { MinestPron.toggleSpeak(title, e.currentTarget); },
-                      className: "mpron-detail-btn text-emerald-500",
-                      title: "Read aloud", 'aria-label': "Read aloud",
-                      children: (0, P.jsx)(IconVolume, { className: "w-[18px] h-[18px]" })
-                    }),
-                    MinestPron.wordOf(title) ? (0, P.jsx)('button', {
-                      type: "button",
-                      ref: function(el) { if (el) { el.__mpronCard = Object.assign({}, currentCard || {}, { id: cardId, title: title }); MinestPron.longPress(el); } },
-                      onClick: function(e) { MinestPron.toggleRecord({ id: cardId, title: title }, e.currentTarget); },
-                      className: "mpron-detail-btn text-rose-500",
-                      title: "Record — tap again to stop and score", 'aria-label': "Record",
-                      children: (0, P.jsxs)('svg', { viewBox: "0 0 24 24", width: 18, height: 18, fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", children: [(0, P.jsx)('rect', { x: 9, y: 3, width: 6, height: 11, rx: 3 }), (0, P.jsx)('path', { d: "M5 11a7 7 0 0 0 14 0M12 18v3" })] })
-                    }) : null
+                    })
                   ]
                 })
-                  ]
-                })
-
               ]
             }),
             (0, P.jsx)('button', {
@@ -34824,14 +34556,6 @@ var je = function(props) {
                       className: "flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider opacity-70",
                       children: [(0, P.jsx)(Ce, { className: "w-3.5 h-3.5" }), (0, P.jsx)('span', { children: "Key Takeaways & Notes" })]
                     }),
-                    // 41.21: read the notes aloud (tap again to stop)
-                    desc ? (0, P.jsx)('button', {
-                      type: "button",
-                      onClick: function(e) { MinestPron.toggleSpeak(desc, e.currentTarget); },
-                      className: "mpron-detail-btn text-emerald-500",
-                      title: "Read notes aloud", 'aria-label': "Read notes aloud",
-                      children: (0, P.jsx)(IconVolume, { className: "w-[18px] h-[18px]" })
-                    }) : null
 
                   ]
                 }),

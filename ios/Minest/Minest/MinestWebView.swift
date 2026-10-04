@@ -382,6 +382,19 @@ public struct MinestWebView: UIViewRepresentable {
             decisionHandler(.grant)
         }
 
+        // 41.4: pronunciation scoring records while the mic button is held. iOS still asks the
+        // user once (NSMicrophoneUsageDescription); this only skips WebKit's second prompt.
+        @available(iOS 15.0, *)
+        public func webView(
+            _ webView: WKWebView,
+            requestMediaCapturePermissionFor origin: WKSecurityOrigin,
+            initiatedByFrame frame: WKFrameInfo,
+            type: WKMediaCaptureType,
+            decisionHandler: @escaping (WKPermissionDecision) -> Void
+        ) {
+            decisionHandler(type == .microphone ? .grant : .prompt)
+        }
+
         public func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
             print("⚠️ [MinestWebView] WebContent process terminated by system! Reloading smoothly...")
             webView.reload()

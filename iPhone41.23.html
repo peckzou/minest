@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 41.27 · Card Details</title>
+    <title>Minest iPhone 41.23 · Glass Scorer</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -3123,13 +3123,6 @@ html.arcade-open, html.arcade-open body { overflow: hidden; }
 .ar-btn.know { color: #6ee7b7; } .ar-btn.again { color: #fdba74; }
 .ar-x { width: 32px; height: 32px; padding: 0; border-radius: 10px; }
 .ar-end { padding: 5px 11px; font-size: 12px; }
-/* 41.25: one family for the top-right controls — same height, same glass, round or pill */
-.arcade .ar-top .ar-btn { height: 32px !important; box-sizing: border-box; display: inline-flex !important; align-items: center; justify-content: center;
-  border-radius: 16px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.16) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.14) !important; line-height: 1; }
-.arcade .ar-top .ar-bgbtn, .arcade .ar-top .ar-x { width: 32px !important; padding: 0 !important; font-size: 14px; }
-.arcade .ar-top .ar-bgbtn svg { width: 15px; height: 15px; }
-.arcade .ar-top .ar-end { padding: 0 13px !important; font-size: 12.5px; }
-.arcade .ar-top .ar-bgbtn.on { border-color: rgba(125,211,252,.7) !important; color: #7dd3fc; }
 .ar-stage { position: relative; z-index: 2; flex: 1; min-height: 0; }
 
 /* shared card look: Liquid Glass tinted by the card's colour */
@@ -11723,40 +11716,6 @@ var StudyArcade = (function() {
   };
 
   // =====================================================================
-  // 41.24 auto read-aloud for Card Flinger and Swipe Judgment: one tap turns it on (remembered),
-  // and every card is spoken the moment it appears
-  var arRead = {
-    on: (function() { try { return localStorage.getItem('minest_arcade_autoread') === '1'; } catch (e) { return false; } })(),
-    say: function(text) {
-      if (!arRead.on || !window.speechSynthesis) return;
-      var t = String(text || '').replace(/\s+/g, ' ').trim(); if (!t) return;
-      try {
-        speechSynthesis.cancel();
-        var u = new SpeechSynthesisUtterance(t.slice(0, 200));
-        u.lang = /[\u4e00-\u9fff]/.test(t) ? 'zh-CN' : 'en-US'; u.rate = 0.9;
-        speechSynthesis.speak(u);
-      } catch (e) {}
-    },
-    button: function(parent, current) {
-      var b = el('button', 'ar-btn ar-read' + (arRead.on ? ' on' : ''), parent);
-      b.type = 'button'; b.title = 'Auto read-aloud'; b.setAttribute('aria-label', 'Auto read-aloud');
-      b.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="w1" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="w2" d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
-      b.addEventListener('click', function() {
-        arRead.on = !arRead.on; b.classList.toggle('on', arRead.on);
-        try { localStorage.setItem('minest_arcade_autoread', arRead.on ? '1' : '0'); } catch (e) {}
-        if (arRead.on) { var c = current && current(); if (c) arRead.say(c); } else { try { speechSynthesis.cancel(); } catch (e) {} }
-      });
-      return b;
-    }
-  };
-  (function() {
-    var st = document.createElement('style');
-    st.textContent = '.ar-btn.ar-read{width:46px;min-width:46px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;opacity:.6}' +
-      '.ar-btn.ar-read.on{opacity:1;color:#30d158!important;box-shadow:0 0 0 1px rgba(48,209,88,.55),0 0 16px rgba(48,209,88,.35)!important}' +
-      '.ar-btn.ar-read:not(.on) .w1,.ar-btn.ar-read:not(.on) .w2{opacity:.25}';
-    (document.head || document.documentElement).appendChild(st);
-  })();
-
   // 1) CARD FLINGER
   // =====================================================================
   MODES.flinger = function(stage, api, opts) {
@@ -11787,7 +11746,6 @@ var StudyArcade = (function() {
       else if (cur && (!flipOn || cur.phase === 'back')) decide('mastered');
     }, flipOn ? 'Flip (Space)' : 'Seen (Space)');
     mk('Know ✓', 'know', function() { decide('mastered'); }, 'Know it (→)');
-    arRead.button(ctrls, function() { return cur && cur.item && cur.item.front; });
     var hint = el('div', 'ar-fl-hint', root, flipOn ? 'Fling up-right = Mastered · down-left = Again · Space flips' : 'Scan: ← keeps a card for another pass');
     var cur = null, flying = 0;
 
@@ -12031,7 +11989,6 @@ var StudyArcade = (function() {
 
       var c = makeCard(item);
       slot.appendChild(c.el);
-      arRead.say(item.front);
 
       cur = {
         item: item,
@@ -12323,7 +12280,6 @@ var StudyArcade = (function() {
     mk('Peek', 'flip', function() { if (cards[0]) reveal(cards[0]); }, 'Peek at the answer (Space)');
     mk('Again ↻', 'again', function() { out(1, 1700, -120); }, 'Again (→)');
     var cards = [], flying = [], TH = 110;
-    arRead.button(ctrls, function() { return cards[0] && cards[0].item.front; });
 
     var makeCard = function(item) {
       var c = { item: item, x: 0, y: 0, rot: 0, flips: 0, retreats: 0, hold: 0, lastLean: 0, shownAt: 0, revealed: false };
@@ -12343,7 +12299,7 @@ var StudyArcade = (function() {
       cards.forEach(function(c, i) {
         c.el.style.zIndex = String(10 - i);
         var s = 1 - i * 0.05, y = i * 16, o = i > 1 ? 0.55 : 1;
-        if (i === 0) { c.el.classList.add('front'); if (!c.shownAt) { c.shownAt = performance.now(); arRead.say(c.item.front); } }
+        if (i === 0) { c.el.classList.add('front'); if (!c.shownAt) c.shownAt = performance.now(); }
         if (animate && c.li != null && c.li !== i) {
           var s0 = 1 - c.li * 0.05, y0 = c.li * 16;
           (function(c, s0, y0, s, y) {
@@ -20656,7 +20612,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "41.27" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "41.23" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -21728,13 +21684,7 @@ var MinestPron = (function() {
     var r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
     var vw = window.innerWidth, vh = window.innerHeight;
     var w = Math.min(vw - 24, Math.max(280, r ? r.width : 300)), left = r ? Math.min(Math.max(12, r.left + r.width / 2 - w / 2), vw - w - 12) : (vw - w) / 2;
-    // 41.26: never under the status bar / Dynamic Island; over a big anchor (the details sheet,
-    // a large 3D card) the card sits in the middle of the screen instead of at its top
-    var probe = document.createElement('div'); probe.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none';
-    document.body.appendChild(probe); var safeTop = probe.getBoundingClientRect().height || 0; probe.remove();
-    var minTop = safeTop + 14, estH = 330;
-    var top = (!r || r.height > vh * 0.5) ? Math.max(minTop, (vh - estH) / 2) : Math.min(Math.max(minTop, r.top), vh - estH - 20);
-    if (r && r.height > vh * 0.5) { w = Math.min(vw - 32, 360); left = (vw - w) / 2; }
+    var top = r ? Math.min(Math.max(12 + (window.visualViewport ? 0 : 0), r.top), vh - 300) : vh * 0.3;
     var back = document.createElement('div'); back.className = 'mpron-card-back';
     var box = document.createElement('div'); box.className = 'mpron-card';
     box.style.cssText = 'left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;';
@@ -22123,17 +22073,7 @@ var MinestPron = (function() {
       '.cf-pron-score .cf-pron-none{color:currentColor;opacity:.3;font-weight:600}' +
       '.mpron-detail-btn.text-emerald-500{color:#10b981!important;background:rgba(16,185,129,.14)}.mpron-detail-btn.text-rose-500{color:#f43f5e!important;background:rgba(244,63,94,.12)}' +
       '.mpron-detail-btn.mpron-sh-listening{color:#fff!important}' +
-      // 41.27 card details header: List | 🔊🎤  /  Mastery | score — a tidy 2×2 grid
-      'div:has(> .mn-dm){min-width:0!important;flex:1 1 auto}.mn-dm-list{min-width:0}.mn-dm-list select{min-width:0;width:100%;max-width:220px}' +
-      '.mn-dm{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"list btns" "mast score";align-items:center;column-gap:12px;row-gap:12px;margin-top:6px}' +
-      '.mn-dm-list{grid-area:list}.mn-dm-btns{grid-area:btns;justify-self:end}.mn-dm-mastery{grid-area:mast}.mn-dm .mpron-detail-score{grid-area:score;justify-self:end;min-height:0;margin:0}' +
-      '.mn-dm-k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.5;min-width:58px}' +
-      '.mn-dm select{border-radius:12px!important;padding:6px 10px!important;font-size:13px}' +
-      '.mn-dm .mpron-detail-btn{width:52px!important;height:52px!important;border-radius:26px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 16px rgba(0,0,0,.12)}' +
-      '.mn-dm .mpron-detail-btn svg{width:24px!important;height:24px!important}' +
-      '.mn-dm .mpron-detail-score b{font-size:30px}' +
-      'html body textarea[data-mn-title]:not(#a):not(#b):not(#c){font-size:22px!important;font-weight:700!important;letter-spacing:-.3px;background:transparent!important;border:0!important;border-bottom:1px solid rgba(127,127,127,.22)!important;border-radius:0!important;padding:4px 2px 8px!important;box-shadow:none!important}' +
-      'html body textarea[data-mn-title]:not(#a):not(#b):not(#c):focus{border-bottom-color:#10b981!important}' +
+      '.mpron-detail-score{margin-left:auto}div:has(> .mpron-detail-score){opacity:1!important}div:has(> .mpron-detail-score) > :not(.mpron-detail-score){opacity:.75}' +
       '.cf-study-btn{width:38px;height:38px;border-radius:19px;display:inline-flex;align-items:center;justify-content:center;border:0;font-weight:900;font-size:16px;transition:transform .15s;box-shadow:0 4px 12px rgba(0,0,0,.18)}.cf-study-btn:active{transform:scale(.9)}' +
       '.cf-study-speak{background:rgba(16,185,129,.16);color:#10b981}.cf-study-rec{background:rgba(244,63,94,.14);color:#f43f5e}.cf-study-open{background:#10b981;color:#fff}' +
       '.mpron-detail-btn{width:40px;height:40px;border-radius:20px;flex:none;display:inline-flex;align-items:center;justify-content:center;background:rgba(127,127,127,.12);transition:transform .15s}.mpron-detail-btn:active{transform:scale(.92)}' +
@@ -34647,7 +34587,6 @@ var je = function(props) {
                   onInput: function(e) { var el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; },
                   onKeyDown: function(e) { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } },
                   style: { resize: 'none', overflow: 'hidden', lineHeight: 1.25 },
-                  'data-mn-title': "1",
                   value: title,
                   onChange: function(e) { setTitle(e.target.value); },
                   onPaste: handlePasteForCover,
@@ -34656,12 +34595,12 @@ var je = function(props) {
                 }),
                   ] }),
                 (0, P.jsxs)('div', {
-                  className: "mn-dm text-xs",
+                  className: "flex items-center gap-3 text-xs opacity-75 flex-wrap",
                   children: [
                     (0, P.jsxs)('div', {
-                      className: "mn-dm-list flex items-center gap-1.5",
+                      className: "flex items-center gap-1.5",
                       children: [
-                        (0, P.jsx)('span', { className: "mn-dm-k", children: "List" }),
+                        (0, P.jsx)('span', { children: "List:" }),
                         (0, P.jsx)('select', {
                           value: targetColId,
                           onChange: function(e) { setTargetColId(e.target.value); },
@@ -34673,9 +34612,9 @@ var je = function(props) {
                       ]
                     }),
                     (0, P.jsxs)('div', {
-                      className: "mn-dm-mastery flex items-center gap-1.5",
+                      className: "flex items-center gap-1.5",
                       children: [
-                        (0, P.jsx)('span', { className: "mn-dm-k", children: "Mastery" }),
+                        (0, P.jsx)('span', { children: "Mastery Level:" }),
                         (0, P.jsxs)('div', {
                           className: "flex items-center gap-1",
                           children: [1, 2, 3, 4, 5].map(function(star) {
@@ -34704,10 +34643,12 @@ var je = function(props) {
                           (0, P.jsxs)('span', { children: [(0, P.jsx)('i', { style: { color: bd.color }, children: bd.name }), (0, P.jsx)('em', { children: "Best " + pr.best })] })
                         ] : [(0, P.jsx)('b', { className: "cf-pron-none", children: "—" })]
                       });
-                    })(),
+                    })()
+                  ]
+                }),
                 // 41.21: read aloud · record — each a tap to start, a tap to stop
                 (0, P.jsxs)('div', {
-                  className: "mn-dm-btns flex items-center gap-2.5",
+                  className: "flex items-center gap-2 pt-1",
                   children: [
                     (0, P.jsx)('button', {
                       type: "button",
@@ -34726,9 +34667,6 @@ var je = function(props) {
                     }) : null
                   ]
                 })
-                  ]
-                })
-
               ]
             }),
             (0, P.jsx)('button', {
