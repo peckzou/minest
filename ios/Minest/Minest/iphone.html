@@ -149,6 +149,19 @@ body.theme-white .cf-touch-sheen {
 body.theme-white .perspective-stage[data-card-inspecting] .coverflow-flipper {
   box-shadow: none !important;
 }
+/* 41.0 full bleed: in landscape the Cover Flow runs edge to edge, under the side safe areas,
+   like a full-screen photo or video in iOS — the outer cards are no longer cut off by a
+   vertical line 59 px in from each edge (the centre card still sits in the middle) */
+.landscape .sf-slot > .absolute.inset-0:has(.perspective-stage),
+.landscape .absolute.inset-0:has(> .relative > .perspective-stage),
+.landscape .absolute.inset-0:has(.perspective-stage):not(.sf-slot) {
+  left: calc(-1 * var(--sal, env(safe-area-inset-left, 0px))) !important;
+  right: calc(-1 * var(--sar, env(safe-area-inset-right, 0px))) !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  overflow-x: hidden !important;   /* clipped exactly at the screen edge — no sideways scroll */
+}
+
 /* 41.0 smoothness: while the deck moves (finger down, coasting, settling, inspecting) every
    card skips its live backdrop blur and the blend-mode light layers — each one made iOS
    re-blur / re-blend the scene behind ~7 moving 3D cards on every frame. They come back the
