@@ -9,6 +9,9 @@ const MAX_AUDIO_BYTES = 8 * 1024 * 1024;
 
 function json(res, status, body) {
   res.statusCode = status;
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.end(JSON.stringify(body));
 }
@@ -112,6 +115,7 @@ async function assess(targetWord, audio) {
 }
 
 export default async function handler(req, res) {
+  if (req.method === 'OPTIONS') return json(res, 204, {});
   if (req.method !== 'POST') return json(res, 405, { error: 'POST required' });
   try {
     const body = req.body || {};
