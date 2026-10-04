@@ -3857,6 +3857,22 @@ html.arcade-open, html.arcade-open body { overflow: hidden; }
   background: transparent !important;
 }
 .minest-goals-settings-panel { display: none; }
+/* iPad 1.0: easy to hit and easy to leave — every exit and top-bar control is a full 44 pt
+   target on a tablet, and Clear's list sits in a centred column, so the blank margins beside
+   it are a big place to tap out */
+@media (min-width: 700px) and (min-height: 700px) {
+  html body .iphone-topbar button { min-width: 44px !important; min-height: 44px !important; }
+  html body .iphone-topbar button svg { width: 20px !important; height: 20px !important; }
+  html body .apple-wallet-overlay .apple-wallet-done-btn { min-height: 44px !important; padding: 0 22px !important; font-size: 17px !important; border-radius: 22px !important; }
+  html body .apple-wallet-overlay .apple-wallet-add-btn { min-width: 44px !important; min-height: 44px !important; border-radius: 22px !important; }
+  html body .apple-wallet-overlay.list-wallet .list-wallet-exit { min-height: 44px !important; padding: 0 14px !important; }
+  html.clear-mode body.clear-mode .mobile-board-view .board-swimlane-scroll > .kanban-column-wrapper.clear-active-column,
+  html.clear-mode body.clear-mode .mobile-board-view .kanban-column-wrapper.clear-active-column.clear-active-column {
+    padding-left: max(24px, calc((100% - 760px) / 2)) !important;
+    padding-right: max(24px, calc((100% - 760px) / 2)) !important;
+  }
+}
+
 /* iPad 1.0: Clear rows keep their height (the pull-to-create spring is built on it) but read
    larger on a tablet */
 @media (min-width: 700px) and (min-height: 700px) {
@@ -19778,6 +19794,9 @@ window.openCardWalletForCol = function(colId) {
   // Tap background to collapse
   overlay.querySelector('.apple-wallet-scroll-zone').addEventListener('click', function(e) {
     if (isDraggingAny || e.target.closest('.apple-wallet-card-shell')) return;
+    // iPad 1.0: on a tablet the stack sits in the middle — a tap on the empty space beside it
+    // leaves the wallet (when no card is lifted)
+    if (!currentExpanded && Math.min(window.innerWidth, window.innerHeight) >= 700 && !e.target.closest('.apple-wallet-stack-wrapper')) { closeOverlay(); return; }
     if (currentExpanded) {
       currentExpanded.classList.remove('is-expanded');
       var cardShells = overlay.querySelectorAll('.apple-wallet-card-shell');
@@ -20057,7 +20076,9 @@ window.openListWallet = function() {
   // a tap on the empty part of the wallet puts a lifted list back (it does not leave the wallet)
   overlay.querySelector('.apple-wallet-scroll-zone').addEventListener('click', function(e) {
     if (draggingAny || e.target.closest('.apple-wallet-card-shell')) return;
-    if (expanded) restAll(0.32);
+    if (expanded) { restAll(0.32); return; }
+    // iPad 1.0: the empty space beside the stack is a way out on a tablet
+    if (Math.min(window.innerWidth, window.innerHeight) >= 700 && !e.target.closest('.apple-wallet-stack-wrapper')) closeOverlay();
   });
 
   var mount = function() {
