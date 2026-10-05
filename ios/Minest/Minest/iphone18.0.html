@@ -5774,6 +5774,18 @@ body.is-safari-column-dragging {
 }
 
 /* Individual Card Shell in Stack */
+.apple-wallet-add-btn.is-flipped-mode {
+  background: rgba(48, 209, 88, 0.32) !important;
+  border-color: rgba(48, 209, 88, 0.75) !important;
+  box-shadow: 0 0 14px rgba(48, 209, 88, 0.45) !important;
+}
+.apple-wallet-add-btn.is-flipped-mode .apple-wallet-add-icon {
+  transform: rotate(45deg) !important;
+}
+.apple-wallet-add-icon {
+  transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
+}
+
 .apple-wallet-card-shell {
   position: absolute !important;
   left: 0 !important;
@@ -5783,19 +5795,214 @@ body.is-safari-column-dragging {
   min-height: 215px !important;
   border-radius: 18px !important;
   box-sizing: border-box !important;
-  padding: 16px 18px !important;
-  border: 1px solid rgba(255, 255, 255, 0.24) !important;
-  border-top-color: rgba(255, 255, 255, 0.55) !important;
-  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.4), 0 14px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  padding: 0 !important;
   cursor: grab !important;
   touch-action: none !important;
   user-select: none !important;
   -webkit-user-select: none !important;
-  will-change: transform, box-shadow;
+  will-change: transform;
+  display: block !important;
+  perspective: 1200px !important;
+}
+
+.apple-wallet-card-inner {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 18px !important;
+  transform-style: preserve-3d !important;
+  -webkit-transform-style: preserve-3d !important;
+  transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.4), 0 14px 32px rgba(0, 0, 0, 0.6) !important;
+}
+
+.apple-wallet-card-shell.is-card-flipped .apple-wallet-card-inner {
+  transform: rotateY(180deg) !important;
+}
+
+.apple-wallet-card-face {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 16px 18px !important;
+  box-sizing: border-box !important;
+  border-radius: 18px !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: flex-start !important;
+  justify-content: space-between !important;
   overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  border-top-color: rgba(255, 255, 255, 0.55) !important;
+  transition: opacity 0.26s ease, visibility 0.26s ease !important;
+}
+
+.apple-wallet-card-front {
+  transform: rotateY(0deg) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 2 !important;
+}
+
+.apple-wallet-card-back {
+  transform: rotateY(180deg) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+  background: linear-gradient(145deg, rgba(20, 26, 36, 0.96) 0%, rgba(10, 14, 20, 0.98) 100%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  border-top-color: rgba(255, 255, 255, 0.5) !important;
+  color: #ffffff !important;
+}
+
+.apple-wallet-card-shell.is-card-flipped .apple-wallet-card-front {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+.apple-wallet-card-shell.is-card-flipped .apple-wallet-card-back {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 2 !important;
+}
+
+.apple-wallet-back-tag {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  padding: 2px 7px !important;
+  border-radius: 6px !important;
+  background: rgba(48, 209, 88, 0.25) !important;
+  color: #30d158 !important;
+  border: 1px solid rgba(48, 209, 88, 0.45) !important;
+  margin-right: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.apple-wallet-back-peek-text {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  flex: 1 1 auto !important;
+}
+
+.apple-wallet-card-back-body {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  flex: 1 1 auto !important;
+  margin-top: 6px !important;
+  min-height: 0 !important;
+}
+
+.apple-wallet-back-desc {
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  overflow-y: auto !important;
+  max-height: 100px !important;
+  padding-right: 4px !important;
+  word-break: break-word !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+.apple-wallet-back-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.apple-wallet-chip-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 10px !important;
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+}
+.apple-wallet-chip-btn:active {
+  transform: scale(0.93) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+.apple-wallet-chip-btn.apple-wallet-speak-btn {
+  background: rgba(56, 189, 248, 0.22) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  color: #7dd3fc !important;
+}
+.apple-wallet-chip-btn.apple-wallet-rec-btn {
+  background: rgba(168, 85, 247, 0.22) !important;
+  border-color: rgba(168, 85, 247, 0.45) !important;
+  color: #d8b4fe !important;
+}
+
+.apple-wallet-front-phonetic, .apple-wallet-back-phonetic {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 11px !important;
+  opacity: 0.7 !important;
+  margin-left: 8px !important;
+  font-weight: 500 !important;
+}
+
+.apple-wallet-card-front-body {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  flex: 1 1 auto !important;
+  padding-bottom: 2px !important;
+}
+
+.apple-wallet-chip-graphic {
+  width: 32px !important;
+  height: 24px !important;
+  border-radius: 5px !important;
+  background: linear-gradient(135deg, #d4af37 0%, #f7e089 50%, #aa8010 100%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.25) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6) !important;
+  position: relative !important;
+  opacity: 0.88 !important;
+}
+.apple-wallet-chip-graphic::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 4px 6px !important;
+  border: 1px solid rgba(0, 0, 0, 0.3) !important;
+  border-radius: 2px !important;
+}
+
+.apple-wallet-watermark-logo {
+  font-size: 15px !important;
+  margin-right: 4px !important;
+  vertical-align: middle !important;
+}
+.apple-wallet-watermark-text {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  opacity: 0.6 !important;
 }
 
 .apple-wallet-card-shell.is-dragging {
@@ -20132,7 +20339,7 @@ var IconInk = function(p) {
   });
 };
 
-window.openCardWalletForCol = function(colId) {
+window.openCardWalletForCol = function(colId, colData) {
   var lane = document.querySelector('.board-swimlane-scroll');
   if (!lane) return;
   
@@ -20158,16 +20365,35 @@ window.openCardWalletForCol = function(colId) {
   var colTitleNode = colEl.querySelector('.kanban-column-header h2, .kanban-column-header h1, [class*="coltitle"]');
   var colTitle = colTitleNode ? colTitleNode.textContent.trim() : 'Wallet';
 
-  var cardElements = Array.from(colEl.querySelectorAll('[data-wallet-item]'));
-  if (!cardElements.length) {
-    cardElements = Array.from(colEl.querySelectorAll('article.kanban-card'));
-  }
+  var colCards = (colData && colData.cards) ||
+                 (window.__currentBoard && window.__currentBoard.columns && (window.__currentBoard.columns.find(function(c) { return c.id === targetColId; }) || {}).cards) ||
+                 null;
 
-  var cardsData = cardElements.map(function(item, idx) {
-    var titleNode = item.querySelector('h3, h4, [class*="font-semibold"], [class*="font-bold"], .wallet-minimal-card-title, .apple-wallet-card-title');
-    var t = titleNode ? titleNode.textContent.trim() : ('Card ' + (idx + 1));
-    return { id: item.getAttribute('data-wallet-item') || item.getAttribute('data-card-id') || ('card-' + idx), title: t };
-  });
+  var cardsData = [];
+  if (colCards && colCards.length) {
+    cardsData = colCards.map(function(c, idx) {
+      return {
+        id: c.id || ('card-' + idx),
+        title: c.title || ('Card ' + (idx + 1)),
+        desc: c.desc || '',
+        phonetic: c.phonetic || '',
+        color: c.color || null,
+        complete: !!c.complete
+      };
+    });
+  } else {
+    var cardElements = Array.from(colEl.querySelectorAll('[data-wallet-item]'));
+    if (!cardElements.length) {
+      cardElements = Array.from(colEl.querySelectorAll('article.kanban-card'));
+    }
+    cardsData = cardElements.map(function(item, idx) {
+      var titleNode = item.querySelector('h3, h4, [class*="font-semibold"], [class*="font-bold"], .wallet-minimal-card-title, .apple-wallet-card-title');
+      var t = titleNode ? titleNode.textContent.trim() : ('Card ' + (idx + 1));
+      var descNode = item.querySelector('.card-desc, [class*="desc"], p');
+      var d = descNode ? descNode.textContent.trim() : '';
+      return { id: item.getAttribute('data-wallet-item') || item.getAttribute('data-card-id') || ('card-' + idx), title: t, desc: d, phonetic: '' };
+    });
+  }
 
   // Create Overlay (Portrait Screen Adapted)
   var overlay = document.createElement('div');
@@ -20176,14 +20402,60 @@ window.openCardWalletForCol = function(colId) {
   // Mount to .iphone-frame for portrait simulator on desktop, or document.body
   var host = document.querySelector('.iphone-frame') || document.body;
 
+  var isAllFlipped = false;
+
   function renderCards() {
     return cardsData.map(function(card, i) {
       var themeIdx = i % 10;
-      return '<div class="apple-wallet-card-shell wallet-card-theme-' + themeIdx + '" data-card-idx="' + i + '" data-card-id="' + card.id + '" style="top: ' + (i * 44) + 'px; z-index: ' + (i + 1) + ';">' +
-        '<div class="apple-wallet-card-peek">' +
-        '<span class="apple-wallet-card-title">' + card.title + '</span>' +
+      var hasDesc = !!(card.desc && card.desc.trim());
+      var descText = hasDesc ? card.desc.trim() : card.title;
+      var cleanTitle = card.title.replace(/"/g, '&quot;');
+      var cleanDesc = descText.replace(/"/g, '&quot;');
+      var flippedClass = isAllFlipped ? ' is-card-flipped' : '';
+
+      return '<div class="apple-wallet-card-shell' + flippedClass + '" data-card-idx="' + i + '" data-card-id="' + card.id + '" style="top: ' + (i * 44) + 'px; z-index: ' + (i + 1) + ';">' +
+        '<div class="apple-wallet-card-inner">' +
+          // Front Face
+          '<div class="apple-wallet-card-face apple-wallet-card-front wallet-card-theme-' + themeIdx + '">' +
+            '<div class="apple-wallet-card-peek">' +
+              '<span class="apple-wallet-card-title">' + cleanTitle + '</span>' +
+              (card.phonetic ? '<span class="apple-wallet-front-phonetic">' + card.phonetic + '</span>' : '') +
+            '</div>' +
+            '<div class="apple-wallet-card-front-body">' +
+              '<div class="apple-wallet-chip-graphic"></div>' +
+              '<div class="apple-wallet-front-watermark">' +
+                '<span class="apple-wallet-watermark-logo"></span>' +
+                '<span class="apple-wallet-watermark-text">Minest Study Pass</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          // Back Face (Meaning / Explanation)
+          '<div class="apple-wallet-card-face apple-wallet-card-back">' +
+            '<div class="apple-wallet-card-peek apple-wallet-back-peek">' +
+              '<span class="apple-wallet-back-tag">MEANING</span>' +
+              '<span class="apple-wallet-card-title apple-wallet-back-peek-text">' + cleanDesc + '</span>' +
+              (card.phonetic ? '<span class="apple-wallet-back-phonetic">' + card.phonetic + '</span>' : '') +
+            '</div>' +
+            '<div class="apple-wallet-card-back-body">' +
+              '<div class="apple-wallet-back-desc">' + cleanDesc + '</div>' +
+              '<div class="apple-wallet-back-actions">' +
+                '<button type="button" class="apple-wallet-chip-btn apple-wallet-speak-btn" data-card-idx="' + i + '" title="朗读发音">' +
+                  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>' +
+                  '<span>朗读</span>' +
+                '</button>' +
+                '<button type="button" class="apple-wallet-chip-btn apple-wallet-rec-btn" data-card-idx="' + i + '" title="录音跟读">' +
+                  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>' +
+                  '<span>跟读</span>' +
+                '</button>' +
+                '<button type="button" class="apple-wallet-chip-btn apple-wallet-single-flip-btn" data-card-idx="' + i + '" title="翻转此卡">' +
+                  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>' +
+                  '<span>翻面</span>' +
+                '</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
         '</div>' +
-        '</div>';
+      '</div>';
     }).join('');
   }
 
@@ -20197,8 +20469,8 @@ window.openCardWalletForCol = function(colId) {
     '<span class="apple-wallet-nav-count">' + cardsData.length + ' 张卡片</span>' +
     '</div>' +
     '<div class="apple-wallet-nav-right">' +
-    '<button type="button" class="apple-wallet-add-btn" title="Add Card">' +
-    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+    '<button type="button" class="apple-wallet-add-btn" title="全部翻转为背面 (背面释义)">' +
+    '<svg class="apple-wallet-add-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
     '</button>' +
     '<button type="button" class="apple-wallet-done-btn" title="Done">完成</button>' +
     '</div>' +
@@ -20222,23 +20494,77 @@ window.openCardWalletForCol = function(colId) {
     closeOverlay();
   });
 
-  overlay.querySelector('.apple-wallet-add-btn').addEventListener('click', function(e) {
+  // Toggle all cards to back face state on "+" button click
+  var addBtn = overlay.querySelector('.apple-wallet-add-btn');
+  addBtn.addEventListener('click', function(e) {
     e.preventDefault(); e.stopPropagation();
-    closeOverlay();
-    var addBtn = colEl.querySelector('.column-add-card-btn');
-    if (addBtn) addBtn.click();
+    isAllFlipped = !isAllFlipped;
+    if (window.SoundEngine && window.SoundEngine.play) SoundEngine.play('flip');
+    if (window.MinestNative && window.MinestNative.haptic) {
+      try { window.MinestNative.haptic('medium'); } catch(err) {}
+    } else if (navigator.vibrate) {
+      try { navigator.vibrate(14); } catch(err) {}
+    }
+
+    addBtn.classList.toggle('is-flipped-mode', isAllFlipped);
+    addBtn.setAttribute('title', isAllFlipped ? '全部翻转为正面 (正面单词)' : '全部翻转为背面 (背面释义)');
+
+    var cardShells = Array.from(stackWrapper.querySelectorAll('.apple-wallet-card-shell'));
+    cardShells.forEach(function(shell, idx) {
+      setTimeout(function() {
+        shell.classList.toggle('is-card-flipped', isAllFlipped);
+      }, Math.min(idx * 28, 220));
+    });
+  });
+
+  // Action button delegates on overlay
+  overlay.addEventListener('click', function(e) {
+    var speakBtn = e.target.closest('.apple-wallet-speak-btn');
+    if (speakBtn) {
+      e.preventDefault(); e.stopPropagation();
+      var cIdx = parseInt(speakBtn.getAttribute('data-card-idx'), 10);
+      var cd = cardsData[cIdx];
+      if (cd) {
+        var toSpeak = cd.title + (cd.desc ? ('. ' + cd.desc) : '');
+        if (window.SpeechAssistant && window.SpeechAssistant.speak) {
+          SpeechAssistant.speak(toSpeak);
+        } else if (window.MinestPron && window.MinestPron.toggleSpeak) {
+          MinestPron.toggleSpeak(toSpeak, speakBtn);
+        }
+      }
+      return;
+    }
+
+    var recBtn = e.target.closest('.apple-wallet-rec-btn');
+    if (recBtn) {
+      e.preventDefault(); e.stopPropagation();
+      var cIdx = parseInt(recBtn.getAttribute('data-card-idx'), 10);
+      var cd = cardsData[cIdx];
+      if (cd && window.MinestPron && MinestPron.openCard) {
+        var shell = recBtn.closest('.apple-wallet-card-shell');
+        MinestPron.openCard(cd, shell, { hold: true });
+      }
+      return;
+    }
+
+    var flipBtn = e.target.closest('.apple-wallet-single-flip-btn');
+    if (flipBtn) {
+      e.preventDefault(); e.stopPropagation();
+      var shell = flipBtn.closest('.apple-wallet-card-shell');
+      if (shell) {
+        shell.classList.toggle('is-card-flipped');
+        if (window.SoundEngine && window.SoundEngine.play) SoundEngine.play('flip');
+      }
+      return;
+    }
   });
 
   var stackWrapper = overlay.querySelector('.apple-wallet-stack-wrapper');
   var currentExpanded = null;
   var isDraggingAny = false;
 
-  // 40.7b: Apple Wallet handling that scales to long stacks — a swipe scrolls the
-  // wallet natively; a short hold lifts a card to reorder it, and dragging near the
-  // top or bottom edge scrolls the stack under it.
   var scrollZone = overlay.querySelector('.apple-wallet-scroll-zone');
   var PICK_MS = 200, SLOP = 8, EDGE = 96;
-  // once a card is lifted the page must not scroll under the finger
   overlay.addEventListener('touchmove', function(e) { if (isDraggingAny && e.cancelable) e.preventDefault(); }, { passive: false });
 
   function bindCardGestures() {
@@ -20260,7 +20586,7 @@ window.openCardWalletForCol = function(colId) {
           else if (oIdx < heldIdx && oIdx >= targetSlot) vSlot = oIdx + 1;
           var targetY = (vSlot - oIdx) * 44 + (vSlot >= targetSlot ? gapPx : 0);
           var tf = targetY ? 'translate3d(0, ' + targetY.toFixed(1) + 'px, 0)' : '';
-          if (otherShell.__walletTf === tf) return;          // untouched cards keep their layer as is
+          if (otherShell.__walletTf === tf) return;
           otherShell.__walletTf = tf;
           otherShell.classList.toggle('is-yielding', vSlot !== oIdx);
           otherShell.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.08)';
@@ -20290,7 +20616,6 @@ window.openCardWalletForCol = function(colId) {
       }
       function scheduleDrag() { if (!dragRaf) dragRaf = requestAnimationFrame(renderDrag); }
 
-      // edge auto-scroll: speed grows the deeper the finger sits in the edge band
       function autoScroll() {
         autoRaf = 0;
         if (!isDragging) return;
@@ -20340,6 +20665,7 @@ window.openCardWalletForCol = function(colId) {
 
       function onPointerDown(e) {
         if (e.button != null && e.button !== 0) return;
+        if (e.target.closest('button, [data-interactive="true"]')) return;
         if (isDraggingAny) return;
         startY = lastY = clientYNow = e.clientY;
         startX = e.clientX;
@@ -20366,7 +20692,6 @@ window.openCardWalletForCol = function(colId) {
         lastT = now;
         clientYNow = e.clientY;
         if (!isDragging) {
-          // moved before the hold completed: this is a scroll, the browser owns it
           if (pressing && Math.hypot(e.clientX - startX, e.clientY - startY) > SLOP) {
             pressing = false;
             if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
@@ -20385,8 +20710,17 @@ window.openCardWalletForCol = function(colId) {
         pressing = false;
 
         if (!isDragging) {
-          // a scroll (or a cancelled touch) is not a tap
           if (!wasPressing || e.type === 'pointercancel') return;
+          var now = performance.now();
+          if (shell.__lastTap && (now - shell.__lastTap < 300)) {
+            shell.__lastTap = 0;
+            shell.classList.toggle('is-card-flipped');
+            if (window.SoundEngine && window.SoundEngine.play) SoundEngine.play('flip');
+            if (window.MinestNative && window.MinestNative.haptic) try { window.MinestNative.haptic('light'); } catch(err) {}
+            return;
+          }
+          shell.__lastTap = now;
+
           // Tap: Toggle focus/expand
           var idx = parseInt(shell.getAttribute('data-card-idx'), 10) || 0;
           if (currentExpanded === shell) {
@@ -20438,7 +20772,7 @@ window.openCardWalletForCol = function(colId) {
         shell.style.transition = 'transform 0.28s cubic-bezier(0.2, 1, 0.3, 1.04)';
         shell.style.transform = 'translate3d(0, ' + snapOffset.toFixed(1) + 'px, 0)';
         setTimeout(function() { if (shell.classList.contains('is-settling')) shell.style.zIndex = String(currentSlot + 1); }, 78);
-        // the others close the gap now, so the rebuilt stack lands exactly where they are
+
         cardShells.forEach(function(o) {
           if (o === shell) return;
           var oi = parseInt(o.getAttribute('data-card-idx'), 10), v = oi;
@@ -20451,6 +20785,7 @@ window.openCardWalletForCol = function(colId) {
           o.style.transition = 'transform 0.28s cubic-bezier(0.2, 1, 0.3, 1)';
           o.style.transform = tf;
         });
+
         var finalSlot = currentSlot;
         setTimeout(function() {
           shell.classList.remove('is-settling');
@@ -20461,7 +20796,6 @@ window.openCardWalletForCol = function(colId) {
           if (finalSlot !== heldIdx) {
             var moved = cardsData.splice(heldIdx, 1)[0];
             cardsData.splice(finalSlot, 0, moved);
-            // 31.7: the list on the board follows the wallet order
             window.dispatchEvent(new CustomEvent('minestReorderCards', { detail: { colId: targetColId, order: cardsData.map(function(c) { return c.id; }) } }));
             stackWrapper.innerHTML = renderCards();
             bindCardGestures();
@@ -20497,6 +20831,7 @@ window.openCardWalletForCol = function(colId) {
   window.__isWalletMode = true;
   window.__closeAppleWalletOverlay = closeOverlay;
 };
+
 
 window.exitAllWalletModes = function(force) {
   if (window.__closeAppleWalletOverlay) { try { window.__closeAppleWalletOverlay(); } catch(e) {} }
@@ -31892,6 +32227,7 @@ var isDark = themeMode === 'dark';
 
   // Phase 5: Focusboard iPhone Portrait — Gesture-First Interaction Redesign
   var mobileGestureContextRef = (0, _.useRef)({});
+  window.__currentBoard = board;
   mobileGestureContextRef.current = {
     board: board,
     onToggleCardComplete: onToggleCardComplete,
@@ -33570,7 +33906,7 @@ var isDark = themeMode === 'dark';
                           type: "button",
                           onClick: function(e) {
                             e.stopPropagation();
-                            if (window.openCardWalletForCol) window.openCardWalletForCol(col.id);
+                            if (window.openCardWalletForCol) window.openCardWalletForCol(col.id, col);
                           },
                           className: "col-wallet-trigger-btn p-1.5 rounded-lg transition-colors shrink-0 " + (isDark ? "hover:bg-white/12 text-white/70 hover:text-white" : "hover:bg-slate-200 text-slate-600"),
                           title: "进入 Apple Wallet 卡包模式",
