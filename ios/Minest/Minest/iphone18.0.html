@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 41.34 · AI on Vercel</title>
+    <title>Minest iPhone 41.37 · Unified Gestures & Voice</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -16945,6 +16945,7 @@ var SpeechAssistant = {
     }
   }
 };
+window.SpeechAssistant = SpeechAssistant;
 
 // =========================================================================
 // Gemini API Client & Domain-Aware Fallback Engine
@@ -21106,7 +21107,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "41.34" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "41.37" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -21779,6 +21780,7 @@ var MinestChrome = (function() {
       'html.mn-navmenu .mn-redge,body.clear-mode .mn-redge,html:has(.hu-island-header) .mn-redge,html:has(.mpron-practice) .mn-redge,html:has(.minest-ai-modal-backdrop) .mn-redge,html:has(.apple-wallet-overlay) .mn-redge,html:not(.mn-immersive) .mn-redge{display:none}',
       'html.mn-chrome .mn-edge,html:not(.mn-immersive) .mn-edge{display:none}',
       '.mn-hint{position:fixed;left:50%;top:calc(var(--sat, 0px) + 10px);transform:translateX(-50%);z-index:61;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.72);color:#fff;font:600 13px -apple-system,system-ui;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);animation:mnHint 3.6s ease forwards;pointer-events:none;white-space:nowrap}',
+      '@keyframes mnBoardBackIn{from{opacity:0;transform:rotateY(-90deg)}to{opacity:1;transform:rotateY(0deg)}}',
       '@keyframes mnHint{0%{opacity:0;transform:translate(-50%,-8px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}'
     ].join('\n');
     document.head.appendChild(st);
@@ -21827,17 +21829,50 @@ var MinestChrome = (function() {
     document.addEventListener('touchmove', function(e) {
       if (!edge || e.touches.length !== 1) return;
       var t = e.touches[0], dx = t.clientX - edge.x, dy = t.clientY - edge.y;
-      // 41.13: a touch that starts on the right edge never scrolls the lists — held from its very
-      // first move (iOS decides on scrolling then), and for the rest of the gesture once it fired
       if (!edge.open) e.preventDefault();
       if (edge.done) { if (edge.open) e.preventDefault(); return; }
-      if (!edge.horiz) { if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.3) edge.horiz = true; else if (Math.abs(dy) > 14) { if (edge.open) edge = null; return; } }
+      if (!edge.horiz) { if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.2) edge.horiz = true; else if (Math.abs(dy) > 18) { if (edge.open) edge = null; return; } }
       if (!edge.horiz) return;
-      if (edge.open) e.preventDefault();   // closing doesn't switch lists either
-      if (!edge.open && dx < -42) { edge.done = true; buzz('medium'); show(); window.dispatchEvent(new CustomEvent('minestNavMenu', { detail: { open: true } })); }
-      else if (edge.open && dx > 50) { edge.done = true; buzz('light'); window.dispatchEvent(new CustomEvent('minestNavMenu', { detail: { open: false } })); }
+      if (edge.open) e.preventDefault();
+      if (!edge.open && dx < -38) { edge.done = true; buzz('medium'); show(); window.dispatchEvent(new CustomEvent('minestNavMenu', { detail: { open: true } })); }
+      else if (edge.open && dx > 28 && Math.abs(dx) > Math.abs(dy) * 0.9) { edge.done = true; buzz('light'); window.dispatchEvent(new CustomEvent('minestNavMenu', { detail: { open: false } })); }
     }, { capture: true, passive: false });
     document.addEventListener('touchend', function() { edge = null; }, { capture: true, passive: true });
+
+    // 41.36: menu area right-swipe closes the menu immediately
+    var menuSwipe = null;
+    document.addEventListener('touchstart', function(e) {
+      if (!root.classList.contains('mn-navmenu') || e.touches.length !== 1) return;
+      var t = e.touches[0];
+      menuSwipe = { x: t.clientX, y: t.clientY, done: false };
+    }, { capture: true, passive: true });
+    document.addEventListener('touchmove', function(e) {
+      if (!menuSwipe || menuSwipe.done || e.touches.length !== 1) return;
+      if (!root.classList.contains('mn-navmenu')) { menuSwipe = null; return; }
+      var t = e.touches[0], dx = t.clientX - menuSwipe.x, dy = t.clientY - menuSwipe.y;
+      if (dx > 25 && Math.abs(dx) > Math.abs(dy) * 0.9) {
+        menuSwipe.done = true;
+        e.preventDefault();
+        buzz('light');
+        window.dispatchEvent(new CustomEvent('minestNavMenu', { detail: { open: false } }));
+      }
+    }, { capture: true, passive: false });
+    document.addEventListener('touchend', function() { menuSwipe = null; }, { capture: true, passive: true });
+
+    // 41.36: upward swipe on the visible topbar hides it immediately.
+    // There is intentionally no downward reveal gesture here because iOS owns that edge.
+    var topSwipe = null;
+    document.addEventListener('touchstart', function(e) {
+      if (!root.classList.contains('mn-chrome') || e.touches.length !== 1) return;
+      var el = e.target && e.target.closest ? e.target.closest('header.iphone-topbar') : null;
+      if (el) { var t = e.touches[0]; topSwipe = { x: t.clientX, y: t.clientY, done: false }; }
+    }, { capture: true, passive: true });
+    document.addEventListener('touchmove', function(e) {
+      if (!topSwipe || topSwipe.done || e.touches.length !== 1) return;
+      var t = e.touches[0], dy = t.clientY - topSwipe.y, dx = t.clientX - topSwipe.x;
+      if (dy < -20 && Math.abs(dy) > Math.abs(dx) * 0.9) { topSwipe.done = true; e.preventDefault(); buzz('light'); hide(); }
+    }, { capture: true, passive: false });
+    document.addEventListener('touchend', function() { topSwipe = null; }, { capture: true, passive: true });
     // Mac trackpad pinch (ctrl + wheel) does the same in the browser
     window.addEventListener('wheel', function(e) { if (e.ctrlKey && onBoard(e.target)) { e.preventDefault(); show(); } }, { passive: false });
     // using the bars keeps them up; leaving them lets them hide
@@ -22458,7 +22493,7 @@ var MinestPron = (function() {
       '<div class="mpron-band" style="color:' + b.color + '">' + b.name + '</div>';
   };
 
-  // ---- Card: opens in place over the card ----
+  // ---- Card: opens with continuous morphing expansion over the card ----
   var openCard = function(card, anchor, opts) {
     var word = wordOf(card.title);
     if (!word) { if (window.GlassUI) GlassUI.toast('这张卡没有可以朗读的英文单词'); return; }
@@ -22475,7 +22510,28 @@ var MinestPron = (function() {
     if (r && r.height > vh * 0.5) { w = Math.min(vw - 32, 360); left = (vw - w) / 2; }
     var back = document.createElement('div'); back.className = 'mpron-card-back';
     var box = document.createElement('div'); box.className = 'mpron-card';
+    openCard.anchor = anchor;
     box.style.cssText = 'left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;';
+    if (r) {
+      var dx = (r.left + r.width / 2) - (left + w / 2);
+      var dy = (r.top + r.height / 2) - (top + 160);
+      var sx = Math.max(0.1, r.width / w);
+      var sy = Math.max(0.1, r.height / 320);
+      box.style.transformOrigin = 'center center';
+      box.style.transform = 'translate3d(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px, 0) scale(' + sx.toFixed(3) + ', ' + sy.toFixed(3) + ')';
+      box.style.opacity = '0.3';
+      box.style.animation = 'none';
+      back.style.opacity = '0';
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          box.style.transition = 'transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease';
+          box.style.transform = 'translate3d(0, 0, 0) scale(1, 1)';
+          box.style.opacity = '1';
+          back.style.transition = 'opacity 0.35s ease';
+          back.style.opacity = '1';
+        });
+      });
+    }
     var best = card.pron && card.pron.best;
     var render = function(st) {
       if (st.res && !st.res.isRejected) {
@@ -22558,7 +22614,39 @@ var MinestPron = (function() {
     // the click that follows a long press must not also start the tap recorder
     el.addEventListener('click', function(e) { if (el._lpAt && Date.now() - el._lpAt < 900) { e.stopPropagation(); e.preventDefault(); } }, true);
   };
-  var closeCard = function() { (openCard.el || []).forEach(function(n) { if (n.parentNode) n.parentNode.removeChild(n); }); openCard.el = null; closeMic(); };
+  var closeCard = function(cb) {
+    var nodes = openCard.el || [];
+    if (!nodes.length) { closeMic(); if (cb) cb(); return; }
+    var box = nodes.find(function(n) { return n && n.classList && n.classList.contains('mpron-card'); });
+    var back = nodes.find(function(n) { return n && n.classList && n.classList.contains('mpron-card-back'); });
+    var anchor = openCard.anchor;
+    if (box && anchor && anchor.getBoundingClientRect) {
+      var ar = anchor.getBoundingClientRect();
+      var br = box.getBoundingClientRect();
+      var dx = (ar.left + ar.width / 2) - (br.left + br.width / 2);
+      var dy = (ar.top + ar.height / 2) - (br.top + br.height / 2);
+      var sx = Math.max(0.1, ar.width / Math.max(1, br.width));
+      var sy = Math.max(0.1, ar.height / Math.max(1, br.height));
+      box.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.28s ease';
+      box.style.transform = 'translate3d(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px, 0) scale(' + sx.toFixed(3) + ', ' + sy.toFixed(3) + ')';
+      box.style.opacity = '0';
+      if (back) {
+        back.style.transition = 'opacity 0.28s ease';
+        back.style.opacity = '0';
+      }
+      setTimeout(function() {
+        nodes.forEach(function(n) { if (n.parentNode) n.parentNode.removeChild(n); });
+        openCard.el = null;
+        closeMic();
+        if (cb) cb();
+      }, 300);
+      return;
+    }
+    nodes.forEach(function(n) { if (n.parentNode) n.parentNode.removeChild(n); });
+    openCard.el = null;
+    closeMic();
+    if (cb) cb();
+  };
 
   // ---- List: immersive practice, one word after another ----
   var practice = function(title, cards) {
@@ -22975,6 +23063,107 @@ var Oe = function(props) {
   var scrubberVisibleState = (0, _.useState)(false);
   var isScrubberVisible = scrubberVisibleState[0];
   var setIsScrubberVisible = scrubberVisibleState[1];
+  // 41.36: unified gestures for 3D Cover Flow:
+  // - Single tap: read aloud (TTS / Audio) with light haptic (delayed to avoid accidental trigger)
+  // - Long press: pronunciation scoring (MinestPron.openCard) with medium haptic
+  // - Double tap: in-place flip with flip sound & light haptic
+  var coverGestureRef = (0, _.useRef)({});
+  var isThickGlassOn = function() {
+    return document.documentElement.classList.contains('fbg-on') || (window.FBGlass && window.FBGlass.on);
+  };
+  var coverHaptic = function(style) { try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic(style || 'light'); else if (navigator.vibrate) navigator.vibrate(style === 'medium' ? 15 : 8); } catch (e) {} };
+  var coverSpeak = function(card, el) {
+    if (isThickGlassOn()) return; // 厚玻璃仅为美观和阅览，不触发朗读
+    coverHaptic('light');
+    var word = (window.MinestPron && window.MinestPron.wordOf) ? window.MinestPron.wordOf(card.title) : null;
+    var toSpeak = word ? card.title : (card.title || card.desc || '');
+    if (typeof SpeechAssistant !== 'undefined' && SpeechAssistant && SpeechAssistant.speak) {
+      SpeechAssistant.speak(toSpeak);
+    } else if (window.SpeechAssistant && window.SpeechAssistant.speak) {
+      window.SpeechAssistant.speak(toSpeak);
+    } else if (window.MinestPron && window.MinestPron.toggleSpeak) {
+      window.MinestPron.toggleSpeak(toSpeak, el || document.createElement('button'));
+    }
+  };
+  var coverPointerDown = function(e, card, el) {
+    if (!el || (e.button != null && e.button !== 0)) return;
+    if (e.target && e.target.closest && e.target.closest('button, a, input, textarea, select, [role="button"], .no-flip, .minest-pron-btn, [data-interactive="true"]')) return;
+    if (isThickGlassOn()) {
+      // 厚玻璃仅为美观和阅览：不触发单击朗读和长按录音评分
+      return;
+    }
+    var g = coverGestureRef.current[card.id] || (coverGestureRef.current[card.id] = { lastTap: 0, holdTimer: null, singleTimer: null });
+    var now = Date.now();
+    if (g.lastTap && (now - g.lastTap < 300)) {
+      if (g.singleTimer) { clearTimeout(g.singleTimer); g.singleTimer = null; }
+      if (g.holdTimer) { clearTimeout(g.holdTimer); g.holdTimer = null; }
+      g.lastTap = 0;
+      g.double = true;
+      coverHaptic('light');
+      SoundEngine.play('flip');
+      toggleCardFlip(card.id, e);
+      return;
+    }
+    g.startX = e.clientX; g.startY = e.clientY;
+    g.moved = false; g.holdFired = false; g.double = false; g.el = el;
+    if (g.holdTimer) clearTimeout(g.holdTimer);
+    g.holdTimer = setTimeout(function() {
+      if (!g.moved && !g.double) {
+        g.holdFired = true;
+        coverHaptic('medium');
+        if (window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });
+      }
+    }, 420);
+
+    // Global release fallback so pointerup is never lost even if stage captures pointer
+    var onGlobalRelease = function(ev) {
+      window.removeEventListener('pointerup', onGlobalRelease, true);
+      window.removeEventListener('touchend', onGlobalRelease, true);
+      window.removeEventListener('pointercancel', onGlobalCancel, true);
+      window.removeEventListener('touchcancel', onGlobalCancel, true);
+      coverPointerUp(ev, card);
+    };
+    var onGlobalCancel = function(ev) {
+      window.removeEventListener('pointerup', onGlobalRelease, true);
+      window.removeEventListener('touchend', onGlobalRelease, true);
+      window.removeEventListener('pointercancel', onGlobalCancel, true);
+      window.removeEventListener('touchcancel', onGlobalCancel, true);
+      coverPointerCancel(card);
+    };
+    window.addEventListener('pointerup', onGlobalRelease, true);
+    window.addEventListener('touchend', onGlobalRelease, true);
+    window.addEventListener('pointercancel', onGlobalCancel, true);
+    window.addEventListener('touchcancel', onGlobalCancel, true);
+  };
+  var coverPointerMove = function(e, card) {
+    var g = coverGestureRef.current[card.id];
+    if (!g) return;
+    if (Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > 8) {
+      g.moved = true;
+      if (g.holdTimer) { clearTimeout(g.holdTimer); g.holdTimer = null; }
+    }
+  };
+  var coverPointerUp = function(e, card) {
+    var g = coverGestureRef.current[card.id];
+    if (!g) return;
+    if (g.holdTimer) { clearTimeout(g.holdTimer); g.holdTimer = null; }
+    if (g.moved || g.holdFired || g.double) { return; }
+    g.lastTap = Date.now();
+    if (g.singleTimer) clearTimeout(g.singleTimer);
+    g.singleTimer = setTimeout(function() {
+      coverSpeak(card, g.el);
+      g.lastTap = 0;
+      g.singleTimer = null;
+    }, 290);
+  };
+  var coverPointerCancel = function(card) {
+    var g = coverGestureRef.current[card.id];
+    if (g) {
+      if (g.holdTimer) { clearTimeout(g.holdTimer); g.holdTimer = null; }
+      if (g.singleTimer) { clearTimeout(g.singleTimer); g.singleTimer = null; }
+      g.moved = true;
+    }
+  };
 
   // Heads Up Physical Card Mode State & Particle Refs
   var headsUpState_ = (0, _.useState)({
@@ -26837,7 +27026,7 @@ var Oe = function(props) {
           var halfW = cardWidth / 2;
           if (Math.abs(offset) <= halfW) {
             var activeCard = cards[activeIdx];
-            if (activeCard) toggleCardFlip(activeCard.id, e);
+            if (activeCard && isThickGlassOn()) toggleCardFlip(activeCard.id, e);
             return;
           }
           // 3.6: was a blunt "beyond halfW -> just nudge one card" (prevCard/
@@ -27029,6 +27218,10 @@ var Oe = function(props) {
                 ref: function(el) {
                   if (el) cardElRefs[card.id] = el; else delete cardElRefs[card.id];
                 },
+                onPointerDown: function(e) { if (isCenter && !isHu) coverPointerDown(e, card, e.currentTarget); },
+                onPointerMove: function(e) { if (isCenter && !isHu) coverPointerMove(e, card); },
+                onPointerUp: function(e) { if (isCenter && !isHu) coverPointerUp(e, card); },
+                onPointerCancel: function() { if (isCenter && !isHu) coverPointerCancel(card); },
                 // 3.6: non-center used to trust ITS OWN `idx` and stop the
                 // click right here (`e.stopPropagation()`). That trusts the
                 // browser's native hit-test to have picked the visually
@@ -27050,9 +27243,7 @@ var Oe = function(props) {
                     return;
                   }
                   if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
-                  if (isCenter) {
-                    toggleCardFlip(card.id, e);
-                  }
+                  if (isCenter && isHu) toggleCardFlip(card.id, e);
                 },
                 onDoubleClick: function(e) {
                   // 27.9: the double-tap Heads Up entry is removed
@@ -27092,7 +27283,7 @@ var Oe = function(props) {
                           if (dragMovedRef.current || Math.abs(dragOffset) > 6) return;
                           if (isCenter) {
                             e.stopPropagation();
-                            toggleCardFlip(card.id, e);
+                            if (isThickGlassOn()) toggleCardFlip(card.id, e);
                           }
                         },
                         style: Object.assign({}, customStyle, {
@@ -27132,7 +27323,7 @@ var Oe = function(props) {
                         onClick: function(e) {
                           if (e.target && e.target.closest && e.target.closest('button, input, textarea, a, select, [data-interactive="true"]')) return;
                           e.stopPropagation();
-                          toggleCardFlip(card.id, e);
+                          if (isThickGlassOn()) toggleCardFlip(card.id, e);
                         },
                         style: Object.assign({}, customStyle, {
                           transform: isFlipped ? "rotateY(0deg)" : "rotateY(-180deg)",
@@ -27249,7 +27440,7 @@ var Oe = function(props) {
                             onClick: function(e) {
                               if (e.target && e.target.closest && e.target.closest('button, a, input, [data-interactive="true"]')) return;
                               e.stopPropagation();
-                              toggleCardFlip(card.id, e);
+                              if (isThickGlassOn()) toggleCardFlip(card.id, e);
                             },
                             children: [
                               card.desc ? (0, P.jsx)('div', {
@@ -29998,7 +30189,125 @@ var ke = function(props) {
   var onUpdateColumnColor = props.onUpdateColumnColor;
   var onSaveCard = props.onSaveCard;
 
-  var isDark = themeMode === 'dark';
+    // 41.37: unified gestures for Board View:
+  // - Single tap: read aloud (TTS / SpeechAssistant) with light haptic
+  // - Long press: pronunciation scoring (MinestPron.openCard) with medium haptic
+  // - Double tap: in-place flip with flip sound & light haptic
+  var boardFlipState = (0, _.useState)({});
+  var boardFlipped = boardFlipState[0];
+  var setBoardFlipped = boardFlipState[1];
+  var boardGestureRef = (0, _.useRef)({});
+  var boardHaptic = function(style) {
+    try {
+      if (window.MinestNative && window.MinestNative.haptic) {
+        window.MinestNative.haptic(style || "light");
+      } else if (navigator.vibrate) {
+        navigator.vibrate(style === "medium" ? 15 : 8);
+      }
+    } catch (e) {}
+  };
+  var boardSpeak = function(card, el) {
+    boardHaptic("light");
+    var text = (card && card.title) ? (card.title + (card.desc ? (". " + card.desc) : "")) : "";
+    if (!text) return;
+    try {
+      if (window.SpeechAssistant && window.SpeechAssistant.speak) {
+        window.SpeechAssistant.speak(text);
+        return;
+      }
+      if (typeof SpeechAssistant !== "undefined" && SpeechAssistant && SpeechAssistant.speak) {
+        SpeechAssistant.speak(text);
+        return;
+      }
+      if (window.MinestPron && window.MinestPron.toggleSpeak) {
+        window.MinestPron.toggleSpeak(text, el || document.body);
+        return;
+      }
+    } catch(err) {
+      console.warn("boardSpeak failed", err);
+    }
+  };
+  var boardGestureDown = function(e, card, col, el) {
+    if (!el || (e.button != null && e.button !== 0)) return;
+    if (e.target && e.target.closest && e.target.closest("button, a, input, textarea, select, [role=\"button\"], .no-flip, .minest-pron-btn, .card-check-trigger-btn, .mac-dot-btn, .card-edit-btn, .card-archive-btn, .ios-close-circle-btn, [data-interactive=\"true\"]")) return;
+    var id = card.id, now = Date.now();
+    var g = boardGestureRef.current[id] || (boardGestureRef.current[id] = { lastTap: 0, holdTimer: null, singleTimer: null, startX: 0, startY: 0, moved: false, holdFired: false, double: false, el: null });
+    if (g.lastTap && (now - g.lastTap < 300)) {
+      if (g.singleTimer) { clearTimeout(g.singleTimer); g.singleTimer = null; }
+      if (g.holdTimer) { clearTimeout(g.holdTimer); g.holdTimer = null; }
+      g.lastTap = 0;
+      g.double = true;
+      boardHaptic("light");
+      if (window.SoundEngine && window.SoundEngine.play) SoundEngine.play("flip");
+      setBoardFlipped(function(m) { var n = Object.assign({}, m); n[id] = !n[id]; return n; });
+      return;
+    }
+    g.startX = e.clientX; g.startY = e.clientY;
+    g.moved = false; g.holdFired = false; g.double = false; g.el = el;
+    if (g.holdTimer) clearTimeout(g.holdTimer);
+    if (g.singleTimer) { clearTimeout(g.singleTimer); g.singleTimer = null; }
+    g.holdTimer = setTimeout(function() {
+      if (!g.moved && !g.double) {
+        g.holdFired = true;
+        boardHaptic("medium");
+        if (window.MinestPron && MinestPron.openCard) MinestPron.openCard(card, g.el, { hold: true });
+      }
+    }, 380);
+    var onGlobalRelease = function(upEvt) {
+      window.removeEventListener("pointerup", onGlobalRelease, true);
+      window.removeEventListener("pointercancel", onGlobalCancel, true);
+      window.removeEventListener("touchend", onGlobalRelease, true);
+      window.removeEventListener("mouseup", onGlobalRelease, true);
+      boardGestureUp(upEvt, card, col);
+    };
+    var onGlobalCancel = function() {
+      window.removeEventListener("pointerup", onGlobalRelease, true);
+      window.removeEventListener("pointercancel", onGlobalCancel, true);
+      window.removeEventListener("touchend", onGlobalRelease, true);
+      window.removeEventListener("mouseup", onGlobalRelease, true);
+      boardGestureCancel(card);
+    };
+    window.addEventListener("pointerup", onGlobalRelease, { capture: true, once: true });
+    window.addEventListener("pointercancel", onGlobalCancel, { capture: true, once: true });
+  };
+  var boardGestureMove = function(e, card) {
+    var g = boardGestureRef.current[card.id];
+    if (!g || g.moved) return;
+    if (Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > 10) {
+      g.moved = true;
+      if (g.holdTimer) { clearTimeout(g.holdTimer); g.holdTimer = null; }
+    }
+  };
+  var boardGestureUp = function(e, card, col) {
+    var g = boardGestureRef.current[card.id];
+    if (!g) return;
+    if (g.holdTimer) { clearTimeout(g.holdTimer); g.holdTimer = null; }
+    if (g.moved || g.holdFired || g.double) { return; }
+    var hasStack = (!!card.hasStack || (Array.isArray(card.stack) && card.stack.length > 0));
+    var isStackExpanded = !!expandedStacks[card.id] || !!card.isStackExpanded;
+    if (hasStack && !isStackExpanded) {
+      toggleStackExpand(col.id, card.id);
+      if (window.SoundEngine && window.SoundEngine.play) SoundEngine.play("slide");
+      return;
+    }
+    g.lastTap = Date.now();
+    if (g.singleTimer) clearTimeout(g.singleTimer);
+    g.singleTimer = setTimeout(function() {
+      boardSpeak(card, g.el);
+      g.lastTap = 0;
+      g.singleTimer = null;
+    }, 260);
+  };
+  var boardGestureCancel = function(card) {
+    var g = boardGestureRef.current[card.id];
+    if (g) {
+      if (g.holdTimer) { clearTimeout(g.holdTimer); g.holdTimer = null; }
+      if (g.singleTimer) { clearTimeout(g.singleTimer); g.singleTimer = null; }
+      g.moved = true;
+    }
+  };
+
+var isDark = themeMode === 'dark';
 
   // Card Quick Actions & Quick Card Editor state (media_1789802486809.png)
   var quickMenuCardState = (0, _.useState)(null);
@@ -33628,6 +33937,7 @@ var ke = function(props) {
                       var hasCover = !!card.cover;
                       var hasTargetBoard = !!card.targetBoardId;
                       var tgtBoard = hasTargetBoard ? allBoards.find(function(b) { return b.id === card.targetBoardId; }) : null;
+                      var isBoardFlipped = !!boardFlipped[card.id];
 
                       var renderHoldIndicator = function() {
                         return (0, P.jsxs)('div', {
@@ -33823,43 +34133,28 @@ var ke = function(props) {
                                 }
                               }
                             },
-                            onClick: function(e) {
-                              if (justClosedQuickEditRef.current) return;
-                              if (window.__minestGestureSuppressClickUntil && Date.now() < window.__minestGestureSuppressClickUntil) return;
+                            onPointerDown: function(e) {
+                              if (justClosedQuickEditRef.current || document.body.classList.contains('clear-mode')) return;
                               var isWallet = !!(window.__isWalletMode || document.querySelector('.wallet-dragging, .wallet-list, .wallet-fanning') || e.currentTarget.closest('.wallet-list, .wallet-dragging'));
-                              if (isWallet) {
-                                e.stopPropagation();
-                                return;
-                              }
-                              if (hasStack && !isStackExpanded) {
-                                e.stopPropagation();
-                                toggleStackExpand(col.id, card.id);
-                                SoundEngine.play('slide');
-                                return;
-                              }
-                              // 27.995: in Clear mode editing is a double tap (handled by the gesture engine)
-                              if (document.body.classList.contains('clear-mode')) { e.stopPropagation(); return; }
-                              if (!isStackExpanded) collapseAllStacks();
-                              // 41.18: a tap shows the card's details (no keyboard); quick edit stays on the ✏️ button
-                              if (quickMenuCardId) closeQuickEdit();
-                              onOpenCardModal(col.id, card.id);
+                              if (isWallet) return;
+                              boardGestureDown(e, card, col, e.currentTarget);
                             },
-                            onDoubleClick: function() {
-                              if (document.body.classList.contains('clear-mode')) return;
-                              if (justClosedQuickEditRef.current) return;
-                              if (window.__minestGestureSuppressClickUntil && Date.now() < window.__minestGestureSuppressClickUntil) return;
-                              if (window.MinestPortraitGestureManager && window.MinestPortraitGestureManager.isPhonePortrait()) {
-                                return;
-                              }
-                              if (!isStackExpanded) collapseAllStacks();
-                              if (quickMenuCardId) closeQuickEdit();
-                              onOpenCardModal(col.id, card.id);
+                            onPointerMove: function(e) {
+                              boardGestureMove(e, card);
                             },
-                            onMouseEnter: function() {
-                              setHoveredCard({ card: card, col: col });
+                            onPointerUp: function(e) {
+                              boardGestureUp(e, card, col);
                             },
-                            onMouseLeave: function() {
-                              setHoveredCard(null);
+                            onPointerCancel: function() {
+                              boardGestureCancel(card);
+                            },
+                            onClick: function(e) {
+                              if (e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, [data-interactive="true"], .card-check-trigger-btn, .mac-dot-btn, .card-edit-btn, .card-archive-btn, .ios-close-circle-btn, [role="button"]')) return;
+                              e.stopPropagation();
+                            },
+                            onDoubleClick: function(e) {
+                              if (e.target && e.target.closest && e.target.closest('button, a, input, select, textarea, [data-interactive="true"], .card-check-trigger-btn, .mac-dot-btn, .card-edit-btn, .card-archive-btn, .ios-close-circle-btn, [role="button"]')) return;
+                              e.stopPropagation();
                             },
                             className: "kanban-card group relative rounded-xl py-2 px-3 select-none cursor-pointer liquid-glass-card transition-all " +
                               (cardActionMenuId === card.id ? "overflow-visible !z-50 " : "overflow-hidden ") +
@@ -33868,12 +34163,73 @@ var ke = function(props) {
                               (card.complete ? "opacity-60 " : "") +
                               (isDark ? "text-white" : "text-slate-800"),
                             style: {
-                              minHeight: isFullCover ? "120px" : card.cover ? "60px" : "36px",
+                              minHeight: isBoardFlipped ? "92px" : (isFullCover ? "120px" : card.cover ? "60px" : "36px"),
+                              transition: "min-height 0.28s cubic-bezier(0.2, 0.9, 0.3, 1)",
                               backgroundColor: card.color ? (isDark ? card.color + '26' : card.color + '18') : undefined,
                               borderColor: card.color ? card.color + '55' : undefined,
                               '--clear-row-color': card.priority === 'high' ? '#e3131e' : card.priority === 'medium' ? '#f47b16' : card.priority === 'low' ? '#168df5' : ['#1683f5', '#188cf1', '#159be9', '#ec3b21', '#f47d16', '#f5ae19'][cIdx % 6]
                             },
-                            children: [
+                            children: isBoardFlipped ? [
+                              (0, P.jsxs)('div', {
+                                key: 'board-card-back',
+                                className: "w-full h-full flex flex-col justify-between select-text animate-fadeIn",
+                                style: { minHeight: "84px", animation: "mnBoardBackIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) both" },
+                                onClick: function(e) {
+                                  if (e.target && e.target.closest && e.target.closest('button, a, [data-interactive="true"]')) return;
+                                  e.stopPropagation();
+                                  boardSpeak(card, e.currentTarget);
+                                },
+                                children: [
+                                  (0, P.jsxs)('div', {
+                                    className: "min-w-0 flex-1 pr-1",
+                                    children: [
+                                      (0, P.jsxs)('div', {
+                                        className: "text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1 flex items-center justify-between",
+                                        children: [
+                                          (0, P.jsx)('span', { children: "Meaning" }),
+                                          card.phonetic ? (0, P.jsx)('span', { className: "font-mono normal-case tracking-normal opacity-75", children: card.phonetic }) : null
+                                        ]
+                                      }),
+                                      (0, P.jsx)('div', {
+                                        className: "text-xs leading-relaxed font-normal line-clamp-3 select-text " + (isDark ? "text-white/90" : "text-slate-800"),
+                                        children: card.desc || card.title
+                                      })
+                                    ]
+                                  }),
+                                  (0, P.jsxs)('div', {
+                                    className: "flex items-center justify-between mt-2 pt-1 border-t " + (isDark ? "border-white/10" : "border-slate-200/80"),
+                                    children: [
+                                      (0, P.jsxs)('button', {
+                                        type: 'button',
+                                        title: 'Flip back',
+                                        onClick: function(e) {
+                                          e.stopPropagation();
+                                          boardHaptic('light');
+                                          if (window.SoundEngine && window.SoundEngine.play) SoundEngine.play('flip');
+                                          setBoardFlipped(function(m) { var n = Object.assign({}, m); n[card.id] = false; return n; });
+                                        },
+                                        className: "text-[11px] font-medium opacity-65 hover:opacity-100 flex items-center gap-1 transition-opacity",
+                                        children: [
+                                          (0, P.jsx)('span', { children: "↩" }),
+                                          (0, P.jsx)('span', { children: "Back" })
+                                        ]
+                                      }),
+                                      (0, P.jsx)('button', {
+                                        type: 'button',
+                                        'aria-label': 'Open details',
+                                        title: 'Open full details / edit',
+                                        className: "w-5 h-5 rounded-full text-[11px] font-bold opacity-75 hover:opacity-100 border border-current/30 flex items-center justify-center transition-opacity hover:scale-110",
+                                        onClick: function(e) {
+                                          e.stopPropagation();
+                                          onOpenCardModal(col.id, card.id);
+                                        },
+                                        children: '!'
+                                      })
+                                    ]
+                                  })
+                                ]
+                              })
+                            ] : [
                               // Front Cover (Supports Full Cover vs Banner Cover)
                               card.cover ? (
                                 isFullCover ? (
@@ -35078,6 +35434,7 @@ var je = function(props) {
   var board = props.board;
   var columnId = props.columnId;
   var cardId = props.cardId;
+  var originRect = props.originRect;
   var themeMode = props.themeMode;
   var onClose = props.onClose;
   var onSaveCard = props.onSaveCard;
@@ -35085,6 +35442,57 @@ var je = function(props) {
   var onArchiveCard = props.onArchiveCard;
   var onDuplicateCard = props.onDuplicateCard;
   var allBoards = props.allBoards || [];
+
+  var panelRef = (0, _.useRef)(null);
+  var backdropRef = (0, _.useRef)(null);
+  var closingRef = (0, _.useRef)(false);
+
+  // Helper to obtain origin rect from props or DOM
+  var getOriginRect = function() {
+    if (originRect) return originRect;
+    if (cardId) {
+      var el = document.querySelector('.perspective-stage [data-card-id="' + cardId + '"]') || document.querySelector('[data-card-id="' + cardId + '"]');
+      if (el && el.getBoundingClientRect) return el.getBoundingClientRect();
+    }
+    return null;
+  };
+
+  // Continuous morphing expansion on mount (Apple Music Mini Player -> Full Screen Player)
+  (0, _.useEffect)(function() {
+    var panel = panelRef.current;
+    var backdrop = backdropRef.current;
+    if (!panel) return;
+    var origin = getOriginRect();
+    if (origin && origin.width > 20 && origin.height > 20) {
+      var pr = panel.getBoundingClientRect();
+      var dx = (origin.left + origin.width / 2) - (pr.left + pr.width / 2);
+      var dy = (origin.top + origin.height / 2) - (pr.top + pr.height / 2);
+      var sx = Math.max(0.08, origin.width / Math.max(1, pr.width));
+      var sy = Math.max(0.08, origin.height / Math.max(1, pr.height));
+
+      panel.style.transformOrigin = 'center center';
+      panel.style.transition = 'none';
+      panel.style.transform = 'translate3d(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px, 0) scale(' + sx.toFixed(4) + ', ' + sy.toFixed(4) + ')';
+      panel.style.borderRadius = (origin.borderRadius || 20) + 'px';
+      if (backdrop) {
+        backdrop.style.transition = 'none';
+        backdrop.style.opacity = '0';
+      }
+
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          if (!panelRef.current) return;
+          panel.style.transition = 'transform 0.44s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.4s ease, opacity 0.25s ease';
+          panel.style.transform = 'translate3d(0, 0, 0) scale(1, 1)';
+          panel.style.borderRadius = '28px';
+          if (backdrop) {
+            backdrop.style.transition = 'opacity 0.38s ease';
+            backdrop.style.opacity = '1';
+          }
+        });
+      });
+    }
+  }, []);
 
   var isDark = themeMode === 'dark';
   var isNew = !cardId;
@@ -35224,7 +35632,44 @@ var je = function(props) {
   }, [title, desc, labels, checklist, cardColor, cover, mastery, targetBoardId, targetColId, columnId, onSaveCard, currentCard]);
 
   var handleClose = (0, _.useCallback)(function() {
+    if (closingRef.current) return;
+    closingRef.current = true;
     saveCurrentCard();
+
+    var panel = panelRef.current;
+    var backdrop = backdropRef.current;
+    var origin = getOriginRect();
+    if (panel && origin && origin.width > 20 && origin.height > 20) {
+      var pr = panel.getBoundingClientRect();
+      var dx = (origin.left + origin.width / 2) - (pr.left + pr.width / 2);
+      var dy = (origin.top + origin.height / 2) - (pr.top + pr.height / 2);
+      var sx = Math.max(0.08, origin.width / Math.max(1, pr.width));
+      var sy = Math.max(0.08, origin.height / Math.max(1, pr.height));
+
+      panel.style.transition = 'transform 0.34s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.28s ease, border-radius 0.3s ease';
+      panel.style.transform = 'translate3d(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px, 0) scale(' + sx.toFixed(4) + ', ' + sy.toFixed(4) + ')';
+      panel.style.opacity = '0';
+      panel.style.borderRadius = (origin.borderRadius || 20) + 'px';
+      if (backdrop) {
+        backdrop.style.transition = 'opacity 0.3s ease';
+        backdrop.style.opacity = '0';
+      }
+      setTimeout(function() {
+        onClose();
+      }, 320);
+      return;
+    }
+    if (backdrop) {
+      backdrop.style.transition = 'opacity 0.22s ease';
+      backdrop.style.opacity = '0';
+      if (panel) {
+        panel.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+        panel.style.transform = 'scale(0.94)';
+        panel.style.opacity = '0';
+      }
+      setTimeout(function() { onClose(); }, 200);
+      return;
+    }
     onClose();
   }, [saveCurrentCard, onClose]);
 
@@ -35275,9 +35720,11 @@ var je = function(props) {
   var pctC = totalC > 0 ? Math.round((doneC / totalC) * 100) : 0;
 
   return (0, P.jsx)('div', {
+    ref: backdropRef,
     onClick: handleClose,
-    className: "fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/70 backdrop-blur-md overflow-y-auto animate-fadeIn",
+    className: "fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/70 backdrop-blur-md overflow-y-auto",
     children: (0, P.jsxs)('div', {
+      ref: panelRef,
       onClick: function(e) { e.stopPropagation(); },
       onDragOver: function(e) {
         if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
@@ -39877,7 +40324,13 @@ var Be = function() {
             themeMode: themeMode,
             searchTerm: searchTerm,
             selectedColFilter: selectedColFilter,
-            onOpenCardModal: function(colId, cardId, opts) { setCardModal({ isOpen: true, columnId: colId, cardId: cardId, openCover: opts && opts.openCoverPicker }); },
+            onOpenCardModal: function(colId, cardId, opts) {
+              var origin = (opts && opts.originRect) || (cardId ? (function() {
+                var el = document.querySelector('.perspective-stage [data-card-id="' + cardId + '"]') || document.querySelector('[data-card-id="' + cardId + '"]');
+                return el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+              })() : null);
+              setCardModal({ isOpen: true, columnId: colId, cardId: cardId, openCover: opts && opts.openCoverPicker, originRect: origin });
+            },
             onOpenNewListModal: createNewList,
             onToggleCardComplete: toggleCardComplete,
             onToggleChecklistItem: toggleChecklistItem,
@@ -39914,7 +40367,13 @@ var Be = function() {
             searchTerm: searchTerm,
             selectedColFilter: selectedColFilter,
             onSelectColFilter: setSelectedColFilter,
-            onOpenCardModal: function(colId, cardId) { setCardModal({ isOpen: true, columnId: colId, cardId: cardId }); },
+            onOpenCardModal: function(colId, cardId, opts) {
+              var origin = (opts && opts.originRect) || (cardId ? (function() {
+                var el = document.querySelector('.perspective-stage [data-card-id="' + cardId + '"]') || document.querySelector('[data-card-id="' + cardId + '"]');
+                return el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+              })() : null);
+              setCardModal({ isOpen: true, columnId: colId, cardId: cardId, openCover: opts && opts.openCoverPicker, originRect: origin });
+            },
             onToggleCardComplete: toggleCardComplete,
             onToggleChecklistItem: toggleChecklistItem,
             onUpdateCardMastery: updateCardMastery,
@@ -39958,15 +40417,16 @@ var Be = function() {
         onUpdateCardMastery: updateCardMastery
       }) : null,
 
-      // Card Modal
+      // Card Modal (continuous morphing expansion layer)
       cardModal.isOpen ? (0, P.jsx)(je, {
         board: activeBoard,
         columnId: cardModal.columnId,
         cardId: cardModal.cardId,
         openCover: cardModal.openCover,
+        originRect: cardModal.originRect,
         themeMode: themeMode,
         allBoards: boards,
-        onClose: function() { setCardModal({ isOpen: false, columnId: "", cardId: "", openCover: false }); },
+        onClose: function() { setCardModal({ isOpen: false, columnId: "", cardId: "", openCover: false, originRect: null }); },
         onSaveCard: saveCard,
         onDeleteCard: deleteCard,
         onArchiveCard: archiveCard,
