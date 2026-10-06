@@ -40931,11 +40931,14 @@ var PetMode = function(props) {
   var modelGroupRef = (0, _.useRef)(null);
 
 
-  // Rotation & touch gesture state
+  // Transform & gesture state (scale, position, rotation)
   var isDraggingRef = (0, _.useRef)(false);
   var prevPointerRef = (0, _.useRef)({ x: 0, y: 0 });
   var rotationVelocityRef = (0, _.useRef)({ x: 0, y: 0 });
   var rotationRef = (0, _.useRef)({ x: 0, y: 0 });
+  var scaleRef = (0, _.useRef)(1.0);
+  var positionOffsetRef = (0, _.useRef)({ x: 0, y: 0 });
+  var lastTapTimeRef = (0, _.useRef)(0);
 
   // Mature Action List with display labels and emojis
   var ACTION_CATALOG = [
@@ -40995,17 +40998,29 @@ var PetMode = function(props) {
 
   window.playSemanticAction = playSemanticAction;
 
-  // Touch gesture listeners: double finger pinch to exit + Right-edge swipe to exit + 3D rotation
+  // Gesture listeners on container: 1-finger rotate, 2-finger pinch zoom & pan translate, double-tap reset, edge swipe exit
   (0, _.useEffect)(function() {
     if (!isOpen) return;
 
-    var d0 = 0;
-    var pinchExitTriggered = false;
+    var container = containerRef.current;
+    if (!container) return;
+
+    var initialPinchDist = 0;
+    var initialPinchCenter = { x: 0, y: 0 };
+    var initialScale = 1.0;
+    var initialPosition = { x: 0, y: 0 };
     var startX = 0, startY = 0;
     var isEdgeSwipe = false;
 
     var dist = function(t) {
       return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    };
+
+    var center = function(t) {
+      return {
+        x: (t[0].clientX + t[1].clientX) / 2,
+        y: (t[0].clientY + t[1].clientY) / 2
+      };
     };
 
     var handleExit = function() {
@@ -41014,37 +41029,61 @@ var PetMode = function(props) {
     };
 
     var onTouchStart = function(e) {
-      // Don't capture touches inside the bottom action strip
-      if (e.target && e.target.closest && e.target.closest('.pet-action-strip')) {
-        return;
-      }
-
       if (e.touches.length === 2) {
-        d0 = dist(e.touches);
-        pinchExitTriggered = false;
+        // Two fingers: Pinch zoom & Pan translate
+        initialPinchDist = dist(e.touches);
+        initialPinchCenter = center(e.touches);
+        initialScale = scaleRef.current;
+        initialPosition = { x: positionOffsetRef.current.x, y: positionOffsetRef.current.y };
         isDraggingRef.current = false;
+        rotationVelocityRef.current = { x: 0, y: 0 };
       } else if (e.touches.length === 1) {
         var t = e.touches[0];
+        var now = Date.now();
+        // Double tap on screen resets avatar zoom & position
+        if (now - lastTapTimeRef.current < 280) {
+          scaleRef.current = 1.0;
+          positionOffsetRef.current = { x: 0, y: 0 };
+          rotationRef.current = { x: 0, y: 0 };
+          rotationVelocityRef.current = { x: 0, y: 0 };
+          if (modelGroupRef.current) {
+            modelGroupRef.current.scale.setScalar(1.0);
+            modelGroupRef.current.position.set(0, 0, 0);
+            modelGroupRef.current.rotation.set(0, 0, 0);
+          }
+          if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+        }
+        lastTapTimeRef.current = now;
+
         startX = t.clientX;
         startY = t.clientY;
         prevPointerRef.current = { x: t.clientX, y: t.clientY };
         isDraggingRef.current = true;
         rotationVelocityRef.current = { x: 0, y: 0 };
-        isEdgeSwipe = startX > window.innerWidth - 50;
+        isEdgeSwipe = startX > window.innerWidth - 45;
       }
     };
 
     var onTouchMove = function(e) {
-      if (e.target && e.target.closest && e.target.closest('.pet-action-strip')) {
-        return;
-      }
-
-      if (e.touches.length === 2 && d0 && !pinchExitTriggered) {
+      if (e.touches.length === 2 && initialPinchDist > 0) {
+        // Pinch Zoom
         var currentDist = dist(e.touches);
-        // 双指捏合 (Pinch) 立即退出
-        if (Math.abs(currentDist - d0) > 30) {
-          pinchExitTriggered = true;
-          handleExit();
+        var scaleFactor = currentDist / initialPinchDist;
+        var newScale = Math.max(0.4, Math.min(3.5, initialScale * scaleFactor));
+        scaleRef.current = newScale;
+
+        // Two-Finger Pan Translate
+        var currentCenter = center(e.touches);
+        var deltaCenterX = (currentCenter.x - initialPinchCenter.x) * 0.004;
+        var deltaCenterY = -(currentCenter.y - initialPinchCenter.y) * 0.004;
+        positionOffsetRef.current = {
+          x: Math.max(-2.5, Math.min(2.5, initialPosition.x + deltaCenterX)),
+          y: Math.max(-2.5, Math.min(2.5, initialPosition.y + deltaCenterY))
+        };
+
+        if (modelGroupRef.current) {
+          modelGroupRef.current.scale.setScalar(scaleRef.current);
+          modelGroupRef.current.position.set(positionOffsetRef.current.x, positionOffsetRef.current.y, 0);
         }
       } else if (e.touches.length === 1 && isDraggingRef.current) {
         var t = e.touches[0];
@@ -41052,8 +41091,8 @@ var PetMode = function(props) {
         var deltaY = t.clientY - prevPointerRef.current.y;
         prevPointerRef.current = { x: t.clientX, y: t.clientY };
 
-        // 侧边向左滑出直接退出
-        if (isEdgeSwipe && (startX - t.clientX > 45) && Math.abs(t.clientY - startY) < 60) {
+        // 屏幕最右边缘滑动退出
+        if (isEdgeSwipe && (startX - t.clientX > 50) && Math.abs(t.clientY - startY) < 60) {
           isDraggingRef.current = false;
           handleExit();
           return;
@@ -41074,7 +41113,9 @@ var PetMode = function(props) {
     };
 
     var onTouchEnd = function(e) {
-      if (e.touches.length < 2) d0 = 0;
+      if (e.touches.length < 2) {
+        initialPinchDist = 0;
+      }
       if (e.touches.length === 0) {
         isDraggingRef.current = false;
         isEdgeSwipe = false;
@@ -41082,9 +41123,6 @@ var PetMode = function(props) {
     };
 
     var onPointerDown = function(e) {
-      if (e.target && e.target.closest && e.target.closest('.pet-action-strip')) {
-        return;
-      }
       if (e.pointerType === 'mouse') {
         isDraggingRef.current = true;
         prevPointerRef.current = { x: e.clientX, y: e.clientY };
@@ -41096,13 +41134,21 @@ var PetMode = function(props) {
         var deltaY = e.clientY - prevPointerRef.current.y;
         prevPointerRef.current = { x: e.clientX, y: e.clientY };
 
-        rotationRef.current.y += deltaX * 0.007;
-        rotationRef.current.x += deltaY * 0.005;
-        rotationRef.current.x = Math.max(-0.85, Math.min(0.85, rotationRef.current.x));
-
-        if (modelGroupRef.current) {
-          modelGroupRef.current.rotation.y = rotationRef.current.y;
-          modelGroupRef.current.rotation.x = rotationRef.current.x;
+        if (e.shiftKey) {
+          // Shift + drag with mouse: translate position
+          positionOffsetRef.current.x += deltaX * 0.004;
+          positionOffsetRef.current.y -= deltaY * 0.004;
+          if (modelGroupRef.current) {
+            modelGroupRef.current.position.set(positionOffsetRef.current.x, positionOffsetRef.current.y, 0);
+          }
+        } else {
+          rotationRef.current.y += deltaX * 0.007;
+          rotationRef.current.x += deltaY * 0.005;
+          rotationRef.current.x = Math.max(-0.85, Math.min(0.85, rotationRef.current.x));
+          if (modelGroupRef.current) {
+            modelGroupRef.current.rotation.y = rotationRef.current.y;
+            modelGroupRef.current.rotation.x = rotationRef.current.x;
+          }
         }
       }
     };
@@ -41110,20 +41156,31 @@ var PetMode = function(props) {
       isDraggingRef.current = false;
     };
 
-    window.addEventListener('touchstart', onTouchStart, { passive: true, capture: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true, capture: true });
-    window.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
-    window.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
+    var onWheel = function(e) {
+      e.preventDefault();
+      var zoomDelta = -e.deltaY * 0.0015;
+      scaleRef.current = Math.max(0.4, Math.min(3.5, scaleRef.current + zoomDelta));
+      if (modelGroupRef.current) {
+        modelGroupRef.current.scale.setScalar(scaleRef.current);
+      }
+    };
+
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('pointerdown', onPointerDown);
+    container.addEventListener('pointermove', onPointerMove);
+    container.addEventListener('pointerup', onPointerUp);
+    container.addEventListener('wheel', onWheel, { passive: false });
 
     return function() {
-      window.removeEventListener('touchstart', onTouchStart, { capture: true });
-      window.removeEventListener('touchmove', onTouchMove, { capture: true });
-      window.removeEventListener('touchend', onTouchEnd, { capture: true });
-      window.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('pointerdown', onPointerDown);
+      container.removeEventListener('pointermove', onPointerMove);
+      container.removeEventListener('pointerup', onPointerUp);
+      container.removeEventListener('wheel', onWheel);
     };
   }, [isOpen, onClose]);
 
@@ -41356,32 +41413,23 @@ var PetMode = function(props) {
 
       // Compact Horizontal Scrolling Action Strip (Bottom)
       (0, P.jsx)('div', {
-        className: "pet-action-strip absolute left-0 right-0 z-50 flex items-center overflow-x-auto no-scrollbar pointer-events-auto",
+        className: "pet-action-strip absolute left-0 right-0 z-50 overflow-x-auto",
         style: {
           bottom: 'max(42px, calc(env(safe-area-inset-bottom, 24px) + 24px))',
           width: '100%',
-          maxWidth: '100vw',
-          overflowX: 'scroll',
+          overflowX: 'auto',
           overflowY: 'hidden',
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-x',
-          paddingLeft: '16px',
-          paddingRight: '16px',
-          paddingTop: '6px',
-          paddingBottom: '6px'
+          padding: '6px 16px'
         },
-        onTouchStart: function(e) { e.stopPropagation(); },
-        onTouchMove: function(e) { e.stopPropagation(); },
-        onTouchEnd: function(e) { e.stopPropagation(); },
         children: (0, P.jsx)('div', {
           className: "flex items-center gap-2",
           style: {
-            display: 'flex',
-            flexDirection: 'row',
+            display: 'inline-flex',
             flexWrap: 'nowrap',
             width: 'max-content',
-            minWidth: 'max-content',
-            touchAction: 'pan-x'
+            minWidth: '100%'
           },
           children: ACTION_CATALOG.map(function(act) {
             var isActive = currentActionName === act.id;
