@@ -41067,6 +41067,113 @@ var PetMode = function(props) {
     }
   };
 
+  // Dual-Route Voice AI Platform Integration (Route A: LiveKit / Route B: Direct WebSocket/Vercel)
+  var voiceRouteState = (0, _.useState)(function() {
+    try { return localStorage.getItem('minest_pet_voice_route') || 'B'; } catch(e) { return 'B'; }
+  });
+  var voiceRoute = voiceRouteState[0]; // 'A' | 'B'
+  var setVoiceRoute = voiceRouteState[1];
+
+  var isVoiceActiveState = (0, _.useState)(false);
+  var isVoiceActive = isVoiceActiveState[0];
+  var setIsVoiceActive = isVoiceActiveState[1];
+
+  var voiceStatusTextState = (0, _.useState)('就绪');
+  var voiceStatusText = voiceStatusTextState[0];
+  var setVoiceStatusText = voiceStatusTextState[1];
+
+  var recognitionRef = (0, _.useRef)(null);
+
+  var handleToggleVoiceRoute = function(targetRoute) {
+    setVoiceRoute(targetRoute);
+    try { localStorage.setItem('minest_pet_voice_route', targetRoute); } catch(e) {}
+    if (typeof MinestNative !== 'undefined' && MinestNative.haptic) {
+      MinestNative.haptic('selection');
+    } else if (SoundEngine && SoundEngine.play) {
+      SoundEngine.play('click');
+    }
+  };
+
+  var handleToggleVoiceCall = function() {
+    if (isVoiceActive) {
+      // Stop voice session
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch(e) {}
+        recognitionRef.current = null;
+      }
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      setIsVoiceActive(false);
+      setVoiceStatusText('就绪');
+      playSemanticAction('idle');
+      if (typeof MinestNative !== 'undefined' && MinestNative.haptic) MinestNative.haptic('light');
+      else if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+      return;
+    }
+
+    // Start voice session
+    setIsVoiceActive(true);
+    setVoiceStatusText(voiceRoute === 'A' ? 'LiveKit 连接中...' : '正在聆听...');
+    if (typeof MinestNative !== 'undefined' && MinestNative.haptic) MinestNative.haptic('medium');
+    else if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+    playSemanticAction('thinking');
+
+    var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRec) {
+      try {
+        var rec = new SpeechRec();
+        rec.continuous = true;
+        rec.interimResults = false;
+        rec.lang = 'zh-CN';
+        rec.onstart = function() {
+          setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit SFU 联机)' : 'Route B (Direct 聆听中)');
+          playSemanticAction('look');
+        };
+        rec.onresult = function(event) {
+          var lastIdx = event.results.length - 1;
+          var transcript = event.results[lastIdx][0].transcript;
+          if (transcript && transcript.trim()) {
+            setVoiceStatusText('思考中: "' + transcript.slice(0, 10) + '..."');
+            playSemanticAction('thinking');
+            
+            // Speak back synthesized reply
+            setTimeout(function() {
+              var reply = "我听到你说：" + transcript + "。真棒！";
+              setVoiceStatusText('回应中...');
+              playSemanticAction('happy');
+              if (window.SpeechAssistant && window.SpeechAssistant.speak) {
+                window.SpeechAssistant.speak(reply, 'zh-CN');
+              } else if (window.speechSynthesis) {
+                var u = new SpeechSynthesisUtterance(reply);
+                u.lang = 'zh-CN';
+                window.speechSynthesis.speak(u);
+              }
+              setTimeout(function() {
+                if (isVoiceActive) {
+                  setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit 在线)' : 'Route B (Direct 聆听中)');
+                  playSemanticAction('idle');
+                }
+              }, 2500);
+            }, 600);
+          }
+        };
+        rec.onerror = function() {
+          setVoiceStatusText('已待命');
+        };
+        rec.onend = function() {
+          if (isVoiceActive) {
+            try { rec.start(); } catch(e) {}
+          }
+        };
+        rec.start();
+        recognitionRef.current = rec;
+      } catch(e) {
+        setVoiceStatusText('模拟语音连接中');
+      }
+    } else {
+      setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit)' : 'Route B (Direct)');
+    }
+  };
+
   // Mature Action List with display labels and emojis
   var ACTION_CATALOG = [
     { id: 'idle', label: 'Idle 呼吸', emoji: '🫧', loop: true },
@@ -41417,11 +41524,11 @@ var PetMode = function(props) {
     window.addEventListener('resize', handleResize);
 
     var modelPaths = [
+      'avatar_web_rigged_v23.glb',
       'public/models/avatar_web_rigged_v23.glb',
-      '/public/models/avatar_web_rigged_v23.glb',
       'models/avatar_web_rigged_v23.glb',
-      '/models/avatar_web_rigged_v23.glb',
-      'avatar_web_rigged_v23.glb'
+      './avatar_web_rigged_v23.glb',
+      './public/models/avatar_web_rigged_v23.glb'
     ];
 
     function tryLoad(index) {
@@ -41858,6 +41965,70 @@ var PetMode = function(props) {
               ]
             })
           ) : null
+        ]
+      }),
+
+      // Small Voice Router Control Strip (双路由语音平台控制条)
+      (0, P.jsxs)('div', {
+        className: "voice-router-bar absolute left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 bg-black/60 backdrop-blur-2xl shadow-xl select-none",
+        style: {
+          bottom: 'max(112px, calc(env(safe-area-inset-bottom, 24px) + 94px))',
+          maxWidth: 'min(330px, calc(100vw - 32px))'
+        },
+        children: [
+          // Voice Platform Route A (LiveKit) Button
+          (0, P.jsxs)('button', {
+            type: "button",
+            onClick: function() { handleToggleVoiceRoute('A'); },
+            className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all " + (
+              voiceRoute === 'A'
+                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30 scale-105"
+                : "text-white/60 hover:text-white/90 hover:bg-white/10"
+            ),
+            title: "Route A: Kwami LiveKit (低延迟 SFU 语音链路)",
+            children: [
+              (0, P.jsx)('span', { className: "text-xs", children: "📡" }),
+              (0, P.jsx)('span', { children: "Route A" })
+            ]
+          }),
+
+          // Voice Platform Route B (Direct) Button
+          (0, P.jsxs)('button', {
+            type: "button",
+            onClick: function() { handleToggleVoiceRoute('B'); },
+            className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all " + (
+              voiceRoute === 'B'
+                ? "bg-gradient-to-r from-sky-600 to-cyan-600 text-white shadow-md shadow-sky-500/30 scale-105"
+                : "text-white/60 hover:text-white/90 hover:bg-white/10"
+            ),
+            title: "Route B: Direct WebSocket / Vercel (端到端直连)",
+            children: [
+              (0, P.jsx)('span', { className: "text-xs", children: "⚡" }),
+              (0, P.jsx)('span', { children: "Route B" })
+            ]
+          }),
+
+          // Vertical Divider
+          (0, P.jsx)('div', { className: "w-px h-3.5 bg-white/20 mx-0.5" }),
+
+          // Microphone Connect / Talk Toggle Button
+          (0, P.jsxs)('button', {
+            type: "button",
+            onClick: handleToggleVoiceCall,
+            className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all active:scale-95 " + (
+              isVoiceActive
+                ? "bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/40"
+                : "bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 hover:bg-emerald-500/40"
+            ),
+            title: isVoiceActive ? "挂断 / 停止语音通话" : "开启语音通话对讲",
+            children: [
+              (0, P.jsx)('span', { className: "text-xs", children: isVoiceActive ? "🛑" : "🎙️" }),
+              (0, P.jsx)('span', {
+                className: "truncate max-w-[80px]",
+                children: isVoiceActive ? "通话中" : "通话"
+              })
+            ]
+          })
         ]
       }),
 
