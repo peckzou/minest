@@ -40917,6 +40917,9 @@ var PetMode = function(props) {
   var animIdRef = (0, _.useRef)(null);
   var actionsMapRef = (0, _.useRef)({});
   var loadTokenRef = (0, _.useRef)(0);
+  var showMenuState = (0, _.useState)(false);
+  var showMenu = showMenuState[0];
+  var setShowMenu = showMenuState[1];
 
   // Future semantic action hook
   var playSemanticAction = (0, _.useCallback)(function(actionId) {
@@ -40933,6 +40936,68 @@ var PetMode = function(props) {
   }, []);
 
   window.playSemanticAction = playSemanticAction;
+
+  // Touch gesture listeners: double finger pinch OR swipe from right edge
+  (0, _.useEffect)(function() {
+    if (!isOpen) return;
+
+    var d0 = 0;
+    var pinchTriggered = false;
+    var sx = 0, sy = 0, swiping = false;
+
+    var dist = function(t) {
+      return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    };
+
+    var onTouchStart = function(e) {
+      if (e.touches.length === 2) {
+        d0 = dist(e.touches);
+        pinchTriggered = false;
+      } else if (e.touches.length === 1) {
+        sx = e.touches[0].clientX;
+        sy = e.touches[0].clientY;
+        // Check if start touch is near edges or a horizontal swipe
+        swiping = true;
+      }
+    };
+
+    var onTouchMove = function(e) {
+      if (e.touches.length === 2 && d0 && !pinchTriggered) {
+        var currentDist = dist(e.touches);
+        if (Math.abs(currentDist - d0) > 28) {
+          pinchTriggered = true;
+          if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+          setShowMenu(function(prev) { return !prev; });
+        }
+      } else if (e.touches.length === 1 && swiping) {
+        var dx = e.touches[0].clientX - sx;
+        var dy = e.touches[0].clientY - sy;
+        // Right swipe (left-to-right dx > 60) OR right-edge swipe left (dx < -60 starting from right 40px)
+        if (Math.abs(dx) > Math.abs(dy) * 1.5) {
+          if (dx > 70 || (sx > window.innerWidth - 60 && dx < -50)) {
+            swiping = false;
+            if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+            setShowMenu(true);
+          }
+        }
+      }
+    };
+
+    var onTouchEnd = function(e) {
+      if (e.touches.length < 2) d0 = 0;
+      if (e.touches.length === 0) swiping = false;
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true, capture: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true, capture: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
+
+    return function() {
+      window.removeEventListener('touchstart', onTouchStart, { capture: true });
+      window.removeEventListener('touchmove', onTouchMove, { capture: true });
+      window.removeEventListener('touchend', onTouchEnd, { capture: true });
+    };
+  }, [isOpen]);
 
   (0, _.useEffect)(function() {
     if (!isOpen) return;
@@ -40954,8 +41019,8 @@ var PetMode = function(props) {
     var scene = new window.THREE.Scene();
 
     var camera = new window.THREE.PerspectiveCamera(38, width / height, 0.1, 50);
-    camera.position.set(0, 0.1, 4.6);
-    camera.lookAt(0, -0.1, 0);
+    camera.position.set(0, 0.05, 4.8);
+    camera.lookAt(0, 0, 0);
 
     var renderer = new window.THREE.WebGLRenderer({
       antialias: true,
@@ -40982,7 +41047,7 @@ var PetMode = function(props) {
     rendererRef.current = renderer;
 
     // Studio Lighting
-    var hemiLight = new window.THREE.HemisphereLight(0xfff6f8, 0xe8daf5, 1.2);
+    var hemiLight = new window.THREE.HemisphereLight(0xfff6f8, 0xe8daf5, 1.25);
     scene.add(hemiLight);
 
     var ambientLight = new window.THREE.AmbientLight(0xffffff, 0.65);
@@ -41045,15 +41110,15 @@ var PetMode = function(props) {
           if (isDisposed || token !== loadTokenRef.current) return;
           var model = gltf.scene;
 
-          // Mobile-first framing & centering
+          // 缩小居中（精确自适应比例：targetHeight = 2.05，适度留白且不显拥挤）
           var bounds = new window.THREE.Box3().setFromObject(model);
           var size = bounds.getSize(new window.THREE.Vector3());
           var center = bounds.getCenter(new window.THREE.Vector3());
           var maxDimension = Math.max(size.x, size.y, size.z) || 1;
-          var targetHeight = 3.2;
+          var targetHeight = 2.05;
           var scale = targetHeight / maxDimension;
           model.scale.setScalar(scale);
-          model.position.set(-center.x * scale, -center.y * scale + 0.15, -center.z * scale);
+          model.position.set(-center.x * scale, -center.y * scale - 0.05, -center.z * scale);
 
           scene.add(model);
 
@@ -41066,7 +41131,6 @@ var PetMode = function(props) {
             gltf.animations.forEach(function(clip) {
               actionsMapRef.current[clip.name] = mixer.clipAction(clip);
             });
-            // Auto play idle clip
             playSemanticAction('idle');
           }
         },
@@ -41103,13 +41167,13 @@ var PetMode = function(props) {
   if (!isOpen) return null;
 
   return (0, P.jsxs)('div', {
-    className: "minest-pet-mode-fullscreen fixed inset-0 z-[999999] flex flex-col items-center justify-center overflow-hidden",
+    className: "minest-pet-mode-fullscreen fixed inset-0 z-[999999] flex flex-col items-center justify-center overflow-hidden select-none",
     style: {
       position: 'fixed',
       inset: 0,
       width: '100vw',
       height: '100dvh',
-      background: 'radial-gradient(circle at 50% 38%, #1e1a2e 0%, #12101e 55%, #080812 100%)',
+      background: 'radial-gradient(circle at 50% 45%, #181528 0%, #0d0b16 55%, #05040a 100%)',
       touchAction: 'none'
     },
     children: [
@@ -41117,26 +41181,51 @@ var PetMode = function(props) {
         ref: containerRef,
         className: "w-full h-full absolute inset-0 pointer-events-none"
       }),
-      (0, P.jsxs)('button', {
-        type: "button",
-        onClick: function() {
-          if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-          onClose();
-        },
-        className: "absolute top-5 left-5 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 bg-black/40 text-white/90 text-xs font-medium backdrop-blur-xl hover:bg-black/60 transition-all",
-        style: {
-          paddingTop: 'max(8px, env(safe-area-inset-top, 8px))',
-          left: 'max(16px, env(safe-area-inset-left, 16px))'
-        },
-        'aria-label': "Back to Minest",
-        children: [
-          (0, P.jsx)('span', { className: "text-base leading-none", children: "‹" }),
-          (0, P.jsx)('span', { children: "Back" })
-        ]
-      })
+
+      // 菜单栏（仅在双指捏合或侧边滑动时优雅唤出）
+      showMenu ? (
+        (0, P.jsxs)('div', {
+          className: "absolute top-4 left-4 right-4 z-50 flex items-center justify-between px-4 py-2.5 rounded-2xl bg-black/60 border border-white/15 backdrop-blur-2xl shadow-2xl animate-fadeIn",
+          style: {
+            top: 'max(14px, env(safe-area-inset-top, 14px))',
+            left: 'max(16px, env(safe-area-inset-left, 16px))',
+            right: 'max(16px, env(safe-area-inset-right, 16px))'
+          },
+          children: [
+            (0, P.jsxs)('div', {
+              className: "flex items-center gap-2",
+              children: [
+                (0, P.jsx)('span', { className: "text-sm", children: "🐙" }),
+                (0, P.jsx)('span', { className: "text-xs font-semibold text-white/90", children: "Pet Mode" })
+              ]
+            }),
+            (0, P.jsxs)('div', {
+              className: "flex items-center gap-2",
+              children: [
+                (0, P.jsx)('button', {
+                  type: "button",
+                  onClick: function() { setShowMenu(false); },
+                  className: "px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 text-xs font-medium transition-colors",
+                  children: "Hide Bar"
+                }),
+                (0, P.jsx)('button', {
+                  type: "button",
+                  onClick: function() {
+                    if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+                    onClose();
+                  },
+                  className: "px-3 py-1 rounded-xl bg-red-500/20 border border-red-500/40 text-red-200 hover:bg-red-500/30 text-xs font-medium transition-colors",
+                  children: "Exit Pet"
+                })
+              ]
+            })
+          ]
+        })
+      ) : null
     ]
   });
 };
+
 
 // =========================================================================
 // ErrorBoundary & Mount
