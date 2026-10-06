@@ -40949,6 +40949,9 @@ var PetMode = function(props) {
   var rotationRef = (0, _.useRef)({ x: 0, y: 0 });
   var scaleRef = (0, _.useRef)(1.0);
   var positionOffsetRef = (0, _.useRef)({ x: 0, y: 0 });
+  var targetPositionRef = (0, _.useRef)({ x: 0, y: 0 }); // Target destination for interactive swimming
+  var isSwimmingRef = (0, _.useRef)(false);
+  var swimPitchRef = (0, _.useRef)(0); // Dynamic body tilt when swimming up/down
   var lastTapTimeRef = (0, _.useRef)(0);
 
   // Curated Pet Mode Environments (Default: Deep Ocean / 海底世界)
@@ -41273,6 +41276,24 @@ var PetMode = function(props) {
       onClose();
     };
 
+    var triggerSwimTo = function(clientX, clientY) {
+      // Calculate normalized 3D viewport coordinate (-2.2 to +2.2)
+      var normX = ((clientX / window.innerWidth) - 0.5) * 3.6;
+      var normY = -((clientY / window.innerHeight) - 0.5) * 3.6;
+      targetPositionRef.current = {
+        x: Math.max(-1.8, Math.min(1.8, normX)),
+        y: Math.max(-1.6, Math.min(1.6, normY))
+      };
+      isSwimmingRef.current = true;
+      // Trigger swimming animation (bounce or happy swim impulse)
+      playSemanticAction('bounce');
+      if (typeof MinestNative !== 'undefined' && MinestNative.haptic) {
+        MinestNative.haptic('selection');
+      } else if (SoundEngine && SoundEngine.play) {
+        SoundEngine.play('click');
+      }
+    };
+
     var onTouchStart = function(e) {
       if (e.touches.length === 2) {
         // Two fingers: Pinch zoom & Pan translate
@@ -41289,14 +41310,18 @@ var PetMode = function(props) {
         if (now - lastTapTimeRef.current < 280) {
           scaleRef.current = 1.0;
           positionOffsetRef.current = { x: 0, y: 0 };
+          targetPositionRef.current = { x: 0, y: 0 };
           rotationRef.current = { x: 0, y: 0 };
           rotationVelocityRef.current = { x: 0, y: 0 };
+          isSwimmingRef.current = false;
           if (modelGroupRef.current) {
             modelGroupRef.current.scale.setScalar(1.0);
             modelGroupRef.current.position.set(0, 0, 0);
             modelGroupRef.current.rotation.set(0, 0, 0);
           }
           if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+          lastTapTimeRef.current = 0;
+          return;
         }
         lastTapTimeRef.current = now;
 
@@ -41325,6 +41350,7 @@ var PetMode = function(props) {
           x: Math.max(-2.5, Math.min(2.5, initialPosition.x + deltaCenterX)),
           y: Math.max(-2.5, Math.min(2.5, initialPosition.y + deltaCenterY))
         };
+        targetPositionRef.current = { x: positionOffsetRef.current.x, y: positionOffsetRef.current.y };
 
         if (modelGroupRef.current) {
           modelGroupRef.current.scale.setScalar(scaleRef.current);
@@ -41341,6 +41367,12 @@ var PetMode = function(props) {
           isDraggingRef.current = false;
           handleExit();
           return;
+        }
+
+        // If moved significantly, direct swim guide to finger position
+        var totalDist = Math.hypot(t.clientX - startX, t.clientY - startY);
+        if (totalDist > 15) {
+          triggerSwimTo(t.clientX, t.clientY);
         }
 
         rotationVelocityRef.current.y = deltaX * 0.007;
@@ -41362,6 +41394,11 @@ var PetMode = function(props) {
         initialPinchDist = 0;
       }
       if (e.touches.length === 0) {
+        // Tap gesture: If lifted without dragging far, swim to that tapped coordinate
+        var totalMove = Math.hypot(prevPointerRef.current.x - startX, prevPointerRef.current.y - startY);
+        if (totalMove < 15 && isDraggingRef.current) {
+          triggerSwimTo(startX, startY);
+        }
         isDraggingRef.current = false;
         isEdgeSwipe = false;
       }
@@ -41370,6 +41407,8 @@ var PetMode = function(props) {
     var onPointerDown = function(e) {
       if (e.pointerType === 'mouse') {
         isDraggingRef.current = true;
+        startX = e.clientX;
+        startY = e.clientY;
         prevPointerRef.current = { x: e.clientX, y: e.clientY };
       }
     };
@@ -41383,10 +41422,13 @@ var PetMode = function(props) {
           // Shift + drag with mouse: translate position
           positionOffsetRef.current.x += deltaX * 0.004;
           positionOffsetRef.current.y -= deltaY * 0.004;
+          targetPositionRef.current = { x: positionOffsetRef.current.x, y: positionOffsetRef.current.y };
           if (modelGroupRef.current) {
             modelGroupRef.current.position.set(positionOffsetRef.current.x, positionOffsetRef.current.y, 0);
           }
         } else {
+          // Mouse drag: follow cursor in 3D water
+          triggerSwimTo(e.clientX, e.clientY);
           rotationRef.current.y += deltaX * 0.007;
           rotationRef.current.x += deltaY * 0.005;
           rotationRef.current.x = Math.max(-0.85, Math.min(0.85, rotationRef.current.x));
@@ -41397,7 +41439,13 @@ var PetMode = function(props) {
         }
       }
     };
-    var onPointerUp = function() {
+    var onPointerUp = function(e) {
+      if (e && isDraggingRef.current) {
+        var moveDist = Math.hypot(e.clientX - startX, e.clientY - startY);
+        if (moveDist < 12) {
+          triggerSwimTo(e.clientX, e.clientY);
+        }
+      }
       isDraggingRef.current = false;
     };
 
@@ -41739,15 +41787,52 @@ var PetMode = function(props) {
         }
       }
 
+      // Underwater Swimming Physics & Kinematics (Follow finger/tap & float)
+      if (modelGroupRef.current) {
+        var dx = targetPositionRef.current.x - positionOffsetRef.current.x;
+        var dy = targetPositionRef.current.y - positionOffsetRef.current.y;
+        var dist = Math.hypot(dx, dy);
+
+        if (dist > 0.01) {
+          // Smooth fluid movement toward finger target position
+          var swimSpeed = isSwimmingRef.current ? 0.075 : 0.045;
+          positionOffsetRef.current.x += dx * swimSpeed;
+          positionOffsetRef.current.y += dy * swimSpeed;
+
+          // Realistic swimming body pitch: tilt up when swimming upward, tilt down when diving down
+          var targetPitch = Math.max(-0.45, Math.min(0.45, -dy * 0.35));
+          swimPitchRef.current += (targetPitch - swimPitchRef.current) * 0.1;
+
+          // Slight bank/yaw into swim direction
+          var targetRoll = Math.max(-0.25, Math.min(0.25, -dx * 0.2));
+          modelGroupRef.current.rotation.z += (targetRoll - modelGroupRef.current.rotation.z) * 0.1;
+        } else {
+          isSwimmingRef.current = false;
+          swimPitchRef.current += (0 - swimPitchRef.current) * 0.08;
+          modelGroupRef.current.rotation.z += (0 - modelGroupRef.current.rotation.z) * 0.08;
+        }
+
+        // Natural underwater idle vertical bobbing & wave breathing
+        var waterBob = isUnderwaterEnv ? Math.sin(elapsedTime * 1.8) * 0.07 : 0;
+        var waterSway = isUnderwaterEnv ? Math.cos(elapsedTime * 1.2) * 0.03 : 0;
+
+        modelGroupRef.current.position.set(
+          positionOffsetRef.current.x + waterSway,
+          positionOffsetRef.current.y + waterBob,
+          0
+        );
+      }
+
       if (!isDraggingRef.current && modelGroupRef.current) {
         rotationVelocityRef.current.x *= 0.92;
         rotationVelocityRef.current.y *= 0.92;
         if (Math.abs(rotationVelocityRef.current.x) > 0.0001 || Math.abs(rotationVelocityRef.current.y) > 0.0001) {
           rotationRef.current.x = Math.max(-0.85, Math.min(0.85, rotationRef.current.x + rotationVelocityRef.current.x));
           rotationRef.current.y += rotationVelocityRef.current.y;
-          modelGroupRef.current.rotation.x = rotationRef.current.x;
-          modelGroupRef.current.rotation.y = rotationRef.current.y;
         }
+        // Combine user manual rotation with dynamic swim pitch
+        modelGroupRef.current.rotation.x = rotationRef.current.x + swimPitchRef.current;
+        modelGroupRef.current.rotation.y = rotationRef.current.y;
       }
 
       renderer.render(scene, camera);
