@@ -40940,6 +40940,91 @@ var PetMode = function(props) {
   var positionOffsetRef = (0, _.useRef)({ x: 0, y: 0 });
   var lastTapTimeRef = (0, _.useRef)(0);
 
+  // Curated Pet Mode Environments (Default: Deep Ocean / 海底世界)
+  var PET_BACKGROUNDS = [
+    {
+      id: 'underwater',
+      name: '海底世界',
+      subtitle: 'Deep Ocean Coral',
+      emoji: '🌊',
+      css: 'radial-gradient(ellipse at 50% 30%, #034f84 0%, #012b48 45%, #001220 75%, #000810 100%)',
+      ambientColor: 0x5cb3ff,
+      waterEffect: true
+    },
+    {
+      id: 'abyss',
+      name: '深海星渊',
+      subtitle: 'Abyssal Bioluminescence',
+      emoji: '🪼',
+      css: 'radial-gradient(circle at 50% 40%, #0a2e5c 0%, #051833 50%, #020b18 100%)',
+      ambientColor: 0x4dd0e1,
+      waterEffect: true
+    },
+    {
+      id: 'aurora',
+      name: '极光幻夜',
+      subtitle: 'Boreal Aurora',
+      emoji: '🌌',
+      css: 'radial-gradient(circle at 40% 30%, #1e1b4b 0%, #0f172a 55%, #020617 100%)',
+      ambientColor: 0xa855f7,
+      waterEffect: false
+    },
+    {
+      id: 'sunset',
+      name: '黄昏霞光',
+      subtitle: 'Sunset Glow',
+      emoji: '🌅',
+      css: 'radial-gradient(circle at 50% 35%, #4c1d95 0%, #311042 45%, #180922 100%)',
+      ambientColor: 0xf472b6,
+      waterEffect: false
+    },
+    {
+      id: 'cyber',
+      name: '赛博霓虹',
+      subtitle: 'Cyberpunk Neon',
+      emoji: '⚡',
+      css: 'radial-gradient(circle at 50% 40%, #172554 0%, #090d16 60%, #020408 100%)',
+      ambientColor: 0x38bdf8,
+      waterEffect: false
+    },
+    {
+      id: 'studio',
+      name: '纯粹暗影',
+      subtitle: 'Obsidian Studio',
+      emoji: '🎬',
+      css: 'radial-gradient(circle at 50% 45%, #181528 0%, #0d0b16 55%, #05040a 100%)',
+      ambientColor: 0xffffff,
+      waterEffect: false
+    }
+  ];
+
+  var petBgState = (0, _.useState)(function() {
+    try {
+      return localStorage.getItem('minest_pet_bg') || 'underwater';
+    } catch(e) {
+      return 'underwater';
+    }
+  });
+  var activePetBgId = petBgState[0];
+  var setActivePetBgId = petBgState[1];
+
+  var isBgMenuOpenState = (0, _.useState)(false);
+  var isBgMenuOpen = isBgMenuOpenState[0];
+  var setIsBgMenuOpen = isBgMenuOpenState[1];
+
+  var currentPetBg = PET_BACKGROUNDS.find(function(b) { return b.id === activePetBgId; }) || PET_BACKGROUNDS[0];
+
+  var handleSelectBg = function(bgId) {
+    setActivePetBgId(bgId);
+    try { localStorage.setItem('minest_pet_bg', bgId); } catch(e) {}
+    if (typeof MinestNative !== 'undefined' && MinestNative.haptic) {
+      MinestNative.haptic('selection');
+    } else if (SoundEngine && SoundEngine.play) {
+      SoundEngine.play('click');
+    }
+    setIsBgMenuOpen(false);
+  };
+
   // Mature Action List with display labels and emojis
   var ACTION_CATALOG = [
     { id: 'idle', label: 'Idle 呼吸', emoji: '🫧', loop: true },
@@ -41411,52 +41496,400 @@ var PetMode = function(props) {
         ]
       }),
 
-      // Compact Horizontal Scrolling Action Strip (Bottom)
-      (0, P.jsx)('div', {
-        className: "pet-action-strip absolute left-0 right-0 z-50 overflow-x-auto",
-        style: {
-          bottom: 'max(42px, calc(env(safe-area-inset-bottom, 24px) + 24px))',
-          width: '100%',
-          overflowX: 'auto',
-          overflowY: 'hidden',
-          WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-x',
-          padding: '6px 16px'
-        },
-        children: (0, P.jsx)('div', {
-          className: "flex items-center gap-2",
+  // iOS Time Picker / Alarm Wheel 3D Cylinder Scroller
+  var wheelContainerRef = (0, _.useRef)(null);
+  var wheelStateRef = (0, _.useRef)({
+    offset: 0,            // current visual scroll offset in pixels
+    targetOffset: 0,      // target offset for snapping/scrolling
+    isDragging: false,
+    startY: 0,
+    startOffset: 0,
+    lastY: 0,
+    lastTime: 0,
+    velocity: 0,
+    lastSnappedIndex: 0,
+    animFrame: null
+  });
+
+  // Keep track of active item index
+  var activeIndex = Math.max(0, ACTION_CATALOG.findIndex(function(it) { return it.id === currentActionName; }));
+  if (activeIndex === -1) activeIndex = 0;
+
+  var ITEM_HEIGHT = 44; // standard iOS picker item row height
+
+  // Trigger action whenever wheel settles on an index
+  var selectWheelIndex = (0, _.useCallback)(function(index, userDriven) {
+    if (index < 0 || index >= ACTION_CATALOG.length) return;
+    var target = ACTION_CATALOG[index];
+    if (target && target.id !== currentActionName) {
+      if (typeof MinestNative !== 'undefined' && MinestNative.haptic) {
+        MinestNative.haptic('selection');
+      } else if (SoundEngine && SoundEngine.play) {
+        SoundEngine.play('click');
+      }
+      playSemanticAction(target.id);
+    }
+  }, [currentActionName, playSemanticAction]);
+
+  // Momentum + Physics Animation Loop for Wheel
+  (0, _.useEffect)(function() {
+    if (!isOpen) return;
+
+    var state = wheelStateRef.current;
+    var maxOffset = 0;
+    var minOffset = -(ACTION_CATALOG.length - 1) * ITEM_HEIGHT;
+
+    var updateItemTransforms = function() {
+      var container = wheelContainerRef.current;
+      if (!container) return;
+      var items = container.querySelectorAll('.ios-wheel-item');
+      var RADIUS = 110; // 3D cylinder depth radius
+      var DEG_PER_ITEM = 22; // angle step per item
+
+      var currentIdxFloat = -state.offset / ITEM_HEIGHT;
+
+      items.forEach(function(el, i) {
+        var diff = i - currentIdxFloat;
+        var angle = diff * DEG_PER_ITEM; // degrees
+        var absAngle = Math.abs(angle);
+
+        if (absAngle > 90) {
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+          el.style.transform = 'translate3d(0,0,-999px)';
+          return;
+        }
+
+        var rad = (angle * Math.PI) / 180;
+        var y = Math.sin(rad) * RADIUS;
+        var z = (Math.cos(rad) - 1) * RADIUS;
+        var rotateX = -angle;
+        var opacity = Math.max(0.12, Math.cos(rad));
+        var scale = 1 - Math.min(0.25, Math.abs(diff) * 0.08);
+
+        el.style.opacity = opacity.toFixed(3);
+        el.style.pointerEvents = Math.abs(diff) < 0.6 ? 'auto' : 'none';
+        el.style.transform = 'translate3d(0px, ' + y.toFixed(1) + 'px, ' + z.toFixed(1) + 'px) rotateX(' + rotateX.toFixed(1) + 'deg) scale(' + scale.toFixed(3) + ')';
+        
+        var isCenter = Math.abs(diff) < 0.5;
+        if (isCenter) {
+          el.classList.add('ios-wheel-selected');
+        } else {
+          el.classList.remove('ios-wheel-selected');
+        }
+      });
+    };
+
+    var physicsTick = function() {
+      if (!state.isDragging) {
+        // Friction decay
+        state.velocity *= 0.92;
+        state.offset += state.velocity;
+
+        // Boundary resistance & spring snap
+        if (state.offset > maxOffset) {
+          state.offset += (maxOffset - state.offset) * 0.2;
+          state.velocity *= 0.5;
+        } else if (state.offset < minOffset) {
+          state.offset += (minOffset - state.offset) * 0.2;
+          state.velocity *= 0.5;
+        } else if (Math.abs(state.velocity) < 0.35) {
+          // Snap to nearest row
+          var nearestIndex = Math.round(-state.offset / ITEM_HEIGHT);
+          nearestIndex = Math.max(0, Math.min(ACTION_CATALOG.length - 1, nearestIndex));
+          var snapTarget = -nearestIndex * ITEM_HEIGHT;
+          state.offset += (snapTarget - state.offset) * 0.22;
+
+          if (Math.abs(snapTarget - state.offset) < 0.5) {
+            state.offset = snapTarget;
+            state.velocity = 0;
+            if (state.lastSnappedIndex !== nearestIndex) {
+              state.lastSnappedIndex = nearestIndex;
+              selectWheelIndex(nearestIndex, true);
+            }
+          }
+        }
+
+        // Haptic feedback during scrolling across boundaries
+        var currentIndex = Math.round(-state.offset / ITEM_HEIGHT);
+        if (currentIndex !== state.lastSnappedIndex && Math.abs(state.velocity) > 0.8) {
+          state.lastSnappedIndex = currentIndex;
+          if (typeof MinestNative !== 'undefined' && MinestNative.haptic) {
+            MinestNative.haptic('selection');
+          }
+        }
+      }
+
+      updateItemTransforms();
+      state.animFrame = requestAnimationFrame(physicsTick);
+    };
+
+    // Initial position aligned to active index
+    var initialIdx = Math.max(0, ACTION_CATALOG.findIndex(function(it) { return it.id === currentActionName; }));
+    if (initialIdx === -1) initialIdx = 0;
+    state.offset = -initialIdx * ITEM_HEIGHT;
+    state.lastSnappedIndex = initialIdx;
+    updateItemTransforms();
+
+    state.animFrame = requestAnimationFrame(physicsTick);
+
+    return function() {
+      if (state.animFrame) cancelAnimationFrame(state.animFrame);
+    };
+  }, [isOpen, selectWheelIndex]);
+
+  // Touch event handlers for wheel cylinder
+  var handleWheelTouchStart = function(e) {
+    var state = wheelStateRef.current;
+    if (e.touches.length !== 1) return;
+    var t = e.touches[0];
+    state.isDragging = true;
+    state.startY = t.clientY;
+    state.startOffset = state.offset;
+    state.lastY = t.clientY;
+    state.lastTime = Date.now();
+    state.velocity = 0;
+  };
+
+  var handleWheelTouchMove = function(e) {
+    var state = wheelStateRef.current;
+    if (!state.isDragging || e.touches.length !== 1) return;
+    e.preventDefault(); // prevent background scroll
+    var t = e.touches[0];
+    var deltaY = t.clientY - state.startY;
+    var now = Date.now();
+    var dt = Math.max(1, now - state.lastTime);
+    var dy = t.clientY - state.lastY;
+
+    state.velocity = (dy / dt) * 16;
+    state.lastY = t.clientY;
+    state.lastTime = now;
+
+    var newOffset = state.startOffset + deltaY;
+    var maxOffset = 0;
+    var minOffset = -(ACTION_CATALOG.length - 1) * ITEM_HEIGHT;
+
+    // Resistance beyond edges
+    if (newOffset > maxOffset) {
+      newOffset = maxOffset + (newOffset - maxOffset) * 0.35;
+    } else if (newOffset < minOffset) {
+      newOffset = minOffset + (newOffset - minOffset) * 0.35;
+    }
+
+    state.offset = newOffset;
+  };
+
+  var handleWheelTouchEnd = function(e) {
+    var state = wheelStateRef.current;
+    state.isDragging = false;
+  };
+
+  var handleWheelItemClick = function(index) {
+    var state = wheelStateRef.current;
+    state.velocity = 0;
+    state.offset = -index * ITEM_HEIGHT;
+    state.lastSnappedIndex = index;
+    selectWheelIndex(index, true);
+  };
+
+  return (0, P.jsxs)('div', {
+    className: "minest-pet-mode-fullscreen fixed inset-0 z-[999999] flex flex-col items-center justify-center overflow-hidden select-none transition-colors duration-500",
+    style: {
+      position: 'fixed',
+      inset: 0,
+      width: '100vw',
+      height: '100dvh',
+      background: currentPetBg.css,
+      touchAction: 'none'
+    },
+    children: [
+      // Optional subtle underwater caustic shimmer layer
+      currentPetBg.waterEffect ? (
+        (0, P.jsx)('div', {
+          className: "absolute inset-0 pointer-events-none opacity-30 mix-blend-screen",
           style: {
-            display: 'inline-flex',
-            flexWrap: 'nowrap',
-            width: 'max-content',
-            minWidth: '100%'
-          },
-          children: ACTION_CATALOG.map(function(act) {
-            var isActive = currentActionName === act.id;
-            return (0, P.jsxs)('button', {
-              key: act.id,
-              type: "button",
-              onClick: function(e) {
-                e.stopPropagation();
-                if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-                playSemanticAction(act.id);
-              },
-              className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full border shrink-0 transition-all active:scale-95 " + (
-                isActive
-                  ? "bg-purple-600/70 border-purple-400 text-white shadow-lg shadow-purple-500/30 scale-105"
-                  : "bg-black/50 border-white/20 text-white/85 hover:bg-black/70 hover:text-white backdrop-blur-xl"
-              ),
-              style: {
-                flexShrink: 0,
-                whiteSpace: 'nowrap'
-              },
-              children: [
-                (0, P.jsx)('span', { className: "text-sm leading-none", children: act.emoji }),
-                (0, P.jsx)('span', { className: "text-xs font-medium whitespace-nowrap", children: act.label.split(' ')[0] })
-              ]
-            });
-          })
+            background: 'radial-gradient(ellipse at 30% 20%, rgba(56, 189, 248, 0.4) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(14, 165, 233, 0.25) 0%, transparent 60%)'
+          }
         })
+      ) : null,
+
+      (0, P.jsx)('div', {
+        ref: containerRef,
+        className: "w-full h-full absolute inset-0"
+      }),
+
+      // Subtle Exit Control Button (Top Left)
+      (0, P.jsxs)('button', {
+        type: "button",
+        onClick: function() {
+          if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+          onClose();
+        },
+        className: "absolute top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 bg-black/45 text-white/90 text-xs font-medium backdrop-blur-2xl hover:bg-black/65 transition-all shadow-lg active:scale-95",
+        style: {
+          top: 'max(14px, env(safe-area-inset-top, 14px))',
+          left: 'max(16px, env(safe-area-inset-left, 16px))'
+        },
+        'aria-label': "Back to Minest",
+        children: [
+          (0, P.jsx)('span', { className: "text-sm leading-none", children: "‹" }),
+          (0, P.jsx)('span', { children: "Back" })
+        ]
+      }),
+
+      // Minest Theme / Wallpaper Button (Top Right)
+      (0, P.jsxs)('div', {
+        className: "absolute top-4 right-4 z-50 flex items-center",
+        style: {
+          top: 'max(14px, env(safe-area-inset-top, 14px))',
+          right: 'max(16px, env(safe-area-inset-right, 16px))'
+        },
+        children: [
+          (0, P.jsxs)('button', {
+            type: "button",
+            onClick: function(e) {
+              e.stopPropagation();
+              if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+              setIsBgMenuOpen(!isBgMenuOpen);
+            },
+            className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-200 backdrop-blur-2xl shadow-lg active:scale-95 " + (
+              isBgMenuOpen
+                ? "bg-emerald-500/25 border-emerald-400 text-emerald-200 ring-2 ring-emerald-400/40"
+                : "bg-black/45 border-white/20 text-white/90 hover:bg-black/65 hover:text-white"
+            ),
+            title: "切换背景环境 (默认海底世界)",
+            'aria-label': "Change Background",
+            children: [
+              (0, P.jsx)(IconPalette, { className: "w-3.5 h-3.5 text-emerald-400" }),
+              (0, P.jsx)('span', { className: "text-xs font-medium", children: currentPetBg.name })
+            ]
+          }),
+
+          // Background Options Popover Menu
+          isBgMenuOpen ? (
+            (0, P.jsxs)('div', {
+              className: "absolute right-0 top-full mt-2 w-56 p-2 rounded-2xl border border-white/20 bg-black/75 backdrop-blur-2xl shadow-2xl z-50 flex flex-col gap-1 animate-fadeIn",
+              onClick: function(e) { e.stopPropagation(); },
+              children: [
+                (0, P.jsx)('div', {
+                  className: "px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white/50 border-b border-white/10 mb-1",
+                  children: "选择背景环境"
+                }),
+                PET_BACKGROUNDS.map(function(bg) {
+                  var isSelected = bg.id === activePetBgId;
+                  return (0, P.jsxs)('button', {
+                    key: bg.id,
+                    type: "button",
+                    onClick: function() { handleSelectBg(bg.id); },
+                    className: "flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all " + (
+                      isSelected
+                        ? "bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30"
+                        : "text-white/80 hover:bg-white/10 hover:text-white"
+                    ),
+                    children: [
+                      (0, P.jsxs)('div', {
+                        className: "flex items-center gap-2",
+                        children: [
+                          (0, P.jsx)('span', { className: "text-base", children: bg.emoji }),
+                          (0, P.jsxs)('div', {
+                            className: "flex flex-col",
+                            children: [
+                              (0, P.jsx)('span', { className: "text-xs leading-snug", children: bg.name }),
+                              (0, P.jsx)('span', { className: "text-[10px] opacity-60 leading-none", children: bg.subtitle })
+                            ]
+                          })
+                        ]
+                      }),
+                      isSelected ? (0, P.jsx)('span', { className: "text-xs text-emerald-400 font-bold", children: "✓" }) : null
+                    ]
+                  });
+                })
+              ]
+            })
+          ) : null
+        ]
+      }),
+
+      // iOS Alarm/Timer 3D Cylinder Gear Wheel Scroller (Bottom Center)
+      (0, P.jsxs)('div', {
+        className: "ios-alarm-wheel-wrapper absolute left-1/2 -translate-x-1/2 z-50 flex flex-col items-center pointer-events-auto",
+        style: {
+          bottom: 'max(28px, calc(env(safe-area-inset-bottom, 24px) + 16px))',
+          width: '260px',
+          height: '160px',
+          touchAction: 'none'
+        },
+        onTouchStart: handleWheelTouchStart,
+        onTouchMove: handleWheelTouchMove,
+        onTouchEnd: handleWheelTouchEnd,
+        children: [
+          // Glass frosted background pill container
+          (0, P.jsx)('div', {
+            className: "absolute inset-0 rounded-3xl bg-black/45 border border-white/15 backdrop-blur-2xl shadow-2xl pointer-events-none",
+            style: {
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+            }
+          }),
+
+          // Center Selection Lens Glass Indicator (Highlight Band)
+          (0, P.jsx)('div', {
+            className: "absolute left-2 right-2 rounded-xl pointer-events-none",
+            style: {
+              top: '58px', // Center of 160px with 44px height: (160 - 44)/2 = 58px
+              height: '44px',
+              background: 'linear-gradient(90deg, rgba(168, 85, 247, 0.22) 0%, rgba(217, 70, 239, 0.32) 50%, rgba(168, 85, 247, 0.22) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.28)',
+              boxShadow: '0 0 20px rgba(168, 85, 247, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.35)'
+            }
+          }),
+
+          // Top & Bottom Vignette Masking Gradients for 3D illusion
+          (0, P.jsx)('div', {
+            className: "absolute inset-x-0 top-0 h-12 rounded-t-3xl pointer-events-none z-20",
+            style: {
+              background: 'linear-gradient(to bottom, rgba(10, 8, 18, 0.85) 0%, transparent 100%)'
+            }
+          }),
+          (0, P.jsx)('div', {
+            className: "absolute inset-x-0 bottom-0 h-12 rounded-b-3xl pointer-events-none z-20",
+            style: {
+              background: 'linear-gradient(to top, rgba(10, 8, 18, 0.85) 0%, transparent 100%)'
+            }
+          }),
+
+          // 3D Perspective Wheel Stage
+          (0, P.jsx)('div', {
+            ref: wheelContainerRef,
+            className: "w-full h-full relative overflow-hidden flex items-center justify-center",
+            style: {
+              perspective: '600px',
+              perspectiveOrigin: '50% 50%'
+            },
+            children: ACTION_CATALOG.map(function(act, index) {
+              return (0, P.jsxs)('div', {
+                key: act.id,
+                onClick: function() { handleWheelItemClick(index); },
+                className: "ios-wheel-item absolute w-full flex items-center justify-center gap-2 cursor-pointer transition-colors duration-150",
+                style: {
+                  height: '44px',
+                  top: '58px',
+                  transformStyle: 'preserve-3d',
+                  willChange: 'transform, opacity'
+                },
+                children: [
+                  (0, P.jsx)('span', {
+                    className: "text-xl leading-none select-none drop-shadow",
+                    children: act.emoji
+                  }),
+                  (0, P.jsx)('span', {
+                    className: "text-sm font-semibold tracking-wide text-white select-none drop-shadow-md",
+                    children: act.label
+                  })
+                ]
+              });
+            })
+          })
+        ]
       })
     ]
   });
