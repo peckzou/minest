@@ -41628,11 +41628,11 @@ var PetMode = function(props) {
     animFrame: null
   });
 
-  // Trigger action whenever wheel settles on an index
+  // Trigger action whenever wheel settles on an index (or is clicked)
   var selectWheelIndex = (0, _.useCallback)(function(index, userDriven) {
     if (index < 0 || index >= ACTION_CATALOG.length) return;
     var target = ACTION_CATALOG[index];
-    if (target && target.id !== currentActionName) {
+    if (target) {
       if (typeof MinestNative !== 'undefined' && MinestNative.haptic) {
         MinestNative.haptic('selection');
       } else if (SoundEngine && SoundEngine.play) {
@@ -41640,7 +41640,7 @@ var PetMode = function(props) {
       }
       playSemanticAction(target.id);
     }
-  }, [currentActionName, playSemanticAction]);
+  }, [playSemanticAction]);
 
   // Momentum + Physics Animation Loop for Horizontal Wheel
   (0, _.useEffect)(function() {
@@ -41675,11 +41675,12 @@ var PetMode = function(props) {
         var x = Math.sin(rad) * RADIUS;
         var z = (Math.cos(rad) - 1) * RADIUS;
         var rotateY = angle; // horizontal cylinder: rotate around Y axis (文字方向绝对正)
-        var opacity = Math.max(0.15, Math.cos(rad));
+        var opacity = Math.max(0.2, Math.cos(rad));
         var scale = 1 - Math.min(0.25, Math.abs(diff) * 0.08);
 
         el.style.opacity = opacity.toFixed(3);
-        el.style.pointerEvents = Math.abs(diff) < 0.6 ? 'auto' : 'none';
+        // Allow clicking any visible item on the cylinder
+        el.style.pointerEvents = absAngle < 78 ? 'auto' : 'none';
         el.style.transform = 'translate3d(' + x.toFixed(1) + 'px, 0px, ' + z.toFixed(1) + 'px) rotateY(' + rotateY.toFixed(1) + 'deg) scale(' + scale.toFixed(3) + ')';
         
         var isCenter = Math.abs(diff) < 0.5;
@@ -41745,6 +41746,7 @@ var PetMode = function(props) {
 
   // Touch event handlers for horizontal wheel cylinder
   var handleWheelTouchStart = function(e) {
+    e.stopPropagation();
     var state = wheelStateRef.current;
     if (e.touches.length !== 1) return;
     var t = e.touches[0];
@@ -41757,6 +41759,7 @@ var PetMode = function(props) {
   };
 
   var handleWheelTouchMove = function(e) {
+    e.stopPropagation();
     var state = wheelStateRef.current;
     if (!state.isDragging || e.touches.length !== 1) return;
     e.preventDefault(); // prevent background scroll
@@ -41785,12 +41788,18 @@ var PetMode = function(props) {
   };
 
   var handleWheelTouchEnd = function(e) {
+    e.stopPropagation();
     var state = wheelStateRef.current;
     state.isDragging = false;
   };
 
-  var handleWheelItemClick = function(index) {
+  var handleWheelItemClick = function(index, e) {
+    if (e) {
+      if (e.stopPropagation) e.stopPropagation();
+    }
     var state = wheelStateRef.current;
+    // If was dragging significantly, don't trigger click
+    if (Math.abs(state.startX - state.lastX) > 12) return;
     state.velocity = 0;
     state.offset = -index * ITEM_WIDTH;
     state.lastSnappedIndex = index;
@@ -41826,14 +41835,21 @@ var PetMode = function(props) {
       // Subtle Exit Control Button (Top Left)
       (0, P.jsxs)('button', {
         type: "button",
-        onClick: function() {
+        onClick: function(e) {
+          e.stopPropagation();
           if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
           onClose();
         },
-        className: "absolute top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 bg-black/45 text-white/90 text-xs font-medium backdrop-blur-2xl hover:bg-black/65 transition-all shadow-lg active:scale-95",
+        onTouchEnd: function(e) {
+          e.stopPropagation();
+          if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+          onClose();
+        },
+        className: "absolute top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 bg-black/45 text-white/90 text-xs font-medium backdrop-blur-2xl hover:bg-black/65 transition-all shadow-lg active:scale-95 pointer-events-auto",
         style: {
           top: 'max(14px, env(safe-area-inset-top, 14px))',
-          left: 'max(16px, env(safe-area-inset-left, 16px))'
+          left: 'max(16px, env(safe-area-inset-left, 16px))',
+          touchAction: 'manipulation'
         },
         'aria-label': "Back to Minest",
         children: [
@@ -41853,10 +41869,11 @@ var PetMode = function(props) {
 
       // Minest Theme / Wallpaper Button (Top Right)
       (0, P.jsxs)('div', {
-        className: "absolute top-4 right-4 z-50 flex items-center",
+        className: "absolute top-4 right-4 z-50 flex items-center pointer-events-auto",
         style: {
           top: 'max(14px, env(safe-area-inset-top, 14px))',
-          right: 'max(16px, env(safe-area-inset-right, 16px))'
+          right: 'max(16px, env(safe-area-inset-right, 16px))',
+          touchAction: 'manipulation'
         },
         children: [
           (0, P.jsxs)('button', {
@@ -41866,7 +41883,12 @@ var PetMode = function(props) {
               if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
               setIsBgMenuOpen(!isBgMenuOpen);
             },
-            className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-200 backdrop-blur-2xl shadow-lg active:scale-95 " + (
+            onTouchEnd: function(e) {
+              e.stopPropagation();
+              if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+              setIsBgMenuOpen(!isBgMenuOpen);
+            },
+            className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-200 backdrop-blur-2xl shadow-lg active:scale-95 pointer-events-auto " + (
               isBgMenuOpen
                 ? "bg-emerald-500/25 border-emerald-400 text-emerald-200 ring-2 ring-emerald-400/40"
                 : "bg-black/45 border-white/20 text-white/90 hover:bg-black/65 hover:text-white"
@@ -41882,8 +41904,9 @@ var PetMode = function(props) {
           // Background Options Popover Menu
           isBgMenuOpen ? (
             (0, P.jsxs)('div', {
-              className: "absolute right-0 top-full mt-2 w-60 p-2 rounded-2xl border border-white/20 bg-black/80 backdrop-blur-2xl shadow-2xl z-50 flex flex-col gap-1 animate-fadeIn",
+              className: "absolute right-0 top-full mt-2 w-60 p-2 rounded-2xl border border-white/20 bg-black/80 backdrop-blur-2xl shadow-2xl z-50 flex flex-col gap-1 animate-fadeIn pointer-events-auto",
               onClick: function(e) { e.stopPropagation(); },
+              onTouchEnd: function(e) { e.stopPropagation(); },
               children: [
                 (0, P.jsx)('div', {
                   className: "px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white/50 border-b border-white/10 mb-1",
@@ -41896,7 +41919,8 @@ var PetMode = function(props) {
                   return (0, P.jsxs)('button', {
                     key: bg.id,
                     type: "button",
-                    onClick: function() { handleSelectBg(bg.id); },
+                    onClick: function(e) { e.stopPropagation(); handleSelectBg(bg.id); },
+                    onTouchEnd: function(e) { e.stopPropagation(); handleSelectBg(bg.id); },
                     className: "flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all " + (
                       isSelected
                         ? "bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30"
@@ -41927,7 +41951,12 @@ var PetMode = function(props) {
                   children: [
                     (0, P.jsxs)('button', {
                       type: "button",
-                      onClick: function() {
+                      onClick: function(e) {
+                        e.stopPropagation();
+                        if (petBgFileInputRef.current) petBgFileInputRef.current.click();
+                      },
+                      onTouchEnd: function(e) {
+                        e.stopPropagation();
                         if (petBgFileInputRef.current) petBgFileInputRef.current.click();
                       },
                       className: "flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all " + (
@@ -41955,7 +41984,8 @@ var PetMode = function(props) {
                     customPetBgUrl && activePetBgId !== 'custom' ? (
                       (0, P.jsx)('button', {
                         type: "button",
-                        onClick: function() { handleSelectBg('custom'); },
+                        onClick: function(e) { e.stopPropagation(); handleSelectBg('custom'); },
+                        onTouchEnd: function(e) { e.stopPropagation(); handleSelectBg('custom'); },
                         className: "text-[11px] text-emerald-400/90 hover:text-emerald-300 px-2.5 py-1 text-left",
                         children: "↺ 使用上次上传的照片"
                       })
@@ -41970,17 +42000,21 @@ var PetMode = function(props) {
 
       // Small Voice Router Control Strip (双路由语音平台控制条)
       (0, P.jsxs)('div', {
-        className: "voice-router-bar absolute left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 bg-black/60 backdrop-blur-2xl shadow-xl select-none",
+        className: "voice-router-bar absolute left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 bg-black/60 backdrop-blur-2xl shadow-xl select-none pointer-events-auto",
         style: {
           bottom: 'max(112px, calc(env(safe-area-inset-bottom, 24px) + 94px))',
-          maxWidth: 'min(330px, calc(100vw - 32px))'
+          maxWidth: 'min(330px, calc(100vw - 32px))',
+          touchAction: 'manipulation'
         },
+        onTouchStart: function(e) { e.stopPropagation(); },
+        onTouchEnd: function(e) { e.stopPropagation(); },
         children: [
           // Voice Platform Route A (LiveKit) Button
           (0, P.jsxs)('button', {
             type: "button",
-            onClick: function() { handleToggleVoiceRoute('A'); },
-            className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all " + (
+            onClick: function(e) { e.stopPropagation(); handleToggleVoiceRoute('A'); },
+            onTouchEnd: function(e) { e.stopPropagation(); handleToggleVoiceRoute('A'); },
+            className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer " + (
               voiceRoute === 'A'
                 ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30 scale-105"
                 : "text-white/60 hover:text-white/90 hover:bg-white/10"
@@ -41995,8 +42029,9 @@ var PetMode = function(props) {
           // Voice Platform Route B (Direct) Button
           (0, P.jsxs)('button', {
             type: "button",
-            onClick: function() { handleToggleVoiceRoute('B'); },
-            className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all " + (
+            onClick: function(e) { e.stopPropagation(); handleToggleVoiceRoute('B'); },
+            onTouchEnd: function(e) { e.stopPropagation(); handleToggleVoiceRoute('B'); },
+            className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer " + (
               voiceRoute === 'B'
                 ? "bg-gradient-to-r from-sky-600 to-cyan-600 text-white shadow-md shadow-sky-500/30 scale-105"
                 : "text-white/60 hover:text-white/90 hover:bg-white/10"
@@ -42014,8 +42049,9 @@ var PetMode = function(props) {
           // Microphone Connect / Talk Toggle Button
           (0, P.jsxs)('button', {
             type: "button",
-            onClick: handleToggleVoiceCall,
-            className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all active:scale-95 " + (
+            onClick: function(e) { e.stopPropagation(); handleToggleVoiceCall(); },
+            onTouchEnd: function(e) { e.stopPropagation(); handleToggleVoiceCall(); },
+            className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer " + (
               isVoiceActive
                 ? "bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/40"
                 : "bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 hover:bg-emerald-500/40"
@@ -42082,7 +42118,7 @@ var PetMode = function(props) {
           // 3D Perspective Wheel Stage (Horizontal Cylinder)
           (0, P.jsx)('div', {
             ref: wheelContainerRef,
-            className: "w-full h-full relative overflow-hidden flex items-center justify-center",
+            className: "w-full h-full relative overflow-hidden flex items-center justify-center pointer-events-auto",
             style: {
               perspective: '600px',
               perspectiveOrigin: '50% 50%'
@@ -42090,22 +42126,24 @@ var PetMode = function(props) {
             children: ACTION_CATALOG.map(function(act, index) {
               return (0, P.jsxs)('div', {
                 key: act.id,
-                onClick: function() { handleWheelItemClick(index); },
-                className: "ios-wheel-item absolute flex flex-col items-center justify-center cursor-pointer transition-colors duration-150 select-none",
+                onClick: function(e) { handleWheelItemClick(index, e); },
+                onTouchEnd: function(e) { handleWheelItemClick(index, e); },
+                className: "ios-wheel-item absolute flex flex-col items-center justify-center cursor-pointer transition-colors duration-150 select-none pointer-events-auto",
                 style: {
                   width: '96px',
                   height: '48px',
                   left: 'calc(50% - 48px)',
                   transformStyle: 'preserve-3d',
-                  willChange: 'transform, opacity'
+                  willChange: 'transform, opacity',
+                  touchAction: 'manipulation'
                 },
                 children: [
                   (0, P.jsx)('span', {
-                    className: "text-lg leading-none select-none drop-shadow",
+                    className: "text-lg leading-none select-none drop-shadow pointer-events-none",
                     children: act.emoji
                   }),
                   (0, P.jsx)('span', {
-                    className: "text-[11px] font-semibold tracking-tight text-white select-none drop-shadow-md truncate max-w-full px-1",
+                    className: "text-[11px] font-semibold tracking-tight text-white select-none drop-shadow-md truncate max-w-full px-1 pointer-events-none",
                     children: act.label.split(' ')[0]
                   })
                 ]
