@@ -31,7 +31,10 @@ export default async function handler(req, res) {
       token = readFileSync(join(homedir(), '.minest-ai-token'), 'utf8').trim();
     } catch (e) {}
   }
-  if (!token || req.headers['x-minest-token'] !== token) {
+  const authHeader = req.headers['authorization'] || '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const reqToken = req.headers['x-minest-token'] || bearerToken;
+  if (!token || reqToken !== token) {
     res.statusCode = 401;
     Object.entries(cors).forEach(([key, value]) => res.setHeader(key, value));
     return res.end(JSON.stringify({ error: 'Voice proxy: unauthorized' }));
@@ -51,8 +54,17 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'OPENAI_API_KEY is not configured on the server' }));
   }
 
-  const baseUrl = (process.env.OPENAI_BASE_URL || 'https://ai.aiclick.cc/v1').replace(/\/$/, '');
   const body = req.body && typeof req.body === 'object' ? { ...req.body, stream: true } : { stream: true };
+  if (!body.max_tokens && !body.max_completion_tokens) {
+    body.max_tokens = 96;
+  }
+
+  // Barge-in: abort upstream request as soon as client closes/disconnects
+  const controller = new AbortController();
+  req.on('close', () => {
+    controller.abort();
+  });
+
   let upstream;
   try {
     upstream = await fetch(baseUrl + '/chat/completions', {
@@ -60,11 +72,13 @@ export default async function handler(req, res) {
       headers: {
         Authorization: 'Bearer ' + apiKey,
         'Content-Type': 'application/json',
-        'User-Agent': 'OpenAI/Python 1.0.0'
+        'User-Agent': 'OpenAI/Python 1.0.0',
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
   } catch (error) {
+    if (controller.signal.aborted) return res.end();
     res.statusCode = 502;
     Object.entries(cors).forEach(([key, value]) => res.setHeader(key, value));
     return res.end(JSON.stringify({ error: 'Voice proxy upstream connection failed' }));
@@ -81,10 +95,16 @@ export default async function handler(req, res) {
     ...cors,
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
+    'X-Accel-Buffering': 'no',
     Connection: 'keep-alive',
   });
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
   try {
-    for await (const chunk of upstream.body) res.write(chunk);
+    for await (const chunk of upstream.body) {
+      res.write(chunk);
+      if (typeof res.flush === 'function') res.flush();
+    }
   } catch (error) {
     // The client may cancel when barge-in interrupts the current response.
   } finally {
