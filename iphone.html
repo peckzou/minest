@@ -40820,6 +40820,13 @@ var Be = function() {
     ]
   });
 
+  if (isPetModeOpen) {
+    return (0, P.jsx)(PetMode, {
+      isOpen: isPetModeOpen,
+      onClose: function() { setIsPetModeOpen(false); }
+    });
+  }
+
   if (!useSimulator) {
     return (0, P.jsxs)('div', {
       // min-h-screen = min-height:100vh, which fights the "height:100dvh" set
@@ -41019,7 +41026,7 @@ var PetMode = function(props) {
     var scene = new window.THREE.Scene();
 
     var camera = new window.THREE.PerspectiveCamera(38, width / height, 0.1, 50);
-    camera.position.set(0, 0.05, 4.8);
+    camera.position.set(0, 0.0, 5.2);
     camera.lookAt(0, 0, 0);
 
     var renderer = new window.THREE.WebGLRenderer({
@@ -41115,7 +41122,7 @@ var PetMode = function(props) {
           var size = bounds.getSize(new window.THREE.Vector3());
           var center = bounds.getCenter(new window.THREE.Vector3());
           var maxDimension = Math.max(size.x, size.y, size.z) || 1;
-          var targetHeight = 2.05;
+          var targetHeight = 1.15;
           var scale = targetHeight / maxDimension;
           model.scale.setScalar(scale);
           model.position.set(-center.x * scale, -center.y * scale - 0.05, -center.z * scale);
