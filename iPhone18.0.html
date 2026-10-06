@@ -1392,6 +1392,17 @@ html, body {
   from { opacity: 0; transform: translateX(-6px); }
   to { opacity: 1; transform: translateX(0); }
 }
+@keyframes underwaterCaustics {
+  0% { transform: scale(1) translate(0px, 0px); opacity: 0.28; }
+  33% { transform: scale(1.08, 1.04) translate(-15px, 8px); opacity: 0.42; }
+  66% { transform: scale(0.96, 1.06) translate(12px, -10px); opacity: 0.32; }
+  100% { transform: scale(1) translate(0px, 0px); opacity: 0.28; }
+}
+@keyframes underwaterCurrent {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-20px, 15px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
 .card-quick-menu-pill {
   display: flex;
   align-items: center;
@@ -41489,6 +41500,93 @@ var PetMode = function(props) {
     groundLight.position.set(0, -3.0, 1.0);
     scene.add(groundLight);
 
+    // Dynamic Underwater Ecosystem (3D Animated Bubbles & Bioluminescent Plankton)
+    var isUnderwaterEnv = currentPetBg.waterEffect || activePetBgId === 'underwater' || activePetBgId === 'abyss';
+    var underwaterGroup = new window.THREE.Group();
+    scene.add(underwaterGroup);
+
+    // 1. Rising Translucent 3D Bubbles
+    var bubbleCount = 45;
+    var bubbleGeometry = new window.THREE.SphereGeometry(1, 14, 14);
+    var bubbleMaterial = new window.THREE.MeshPhysicalMaterial({
+      color: 0x9be8ff,
+      transmission: 0.88,
+      opacity: 0.75,
+      transparent: true,
+      roughness: 0.1,
+      metalness: 0.05,
+      ior: 1.12
+    });
+    var bubbles = [];
+    if (isUnderwaterEnv) {
+      for (var bi = 0; bi < bubbleCount; bi++) {
+        var bMesh = new window.THREE.Mesh(bubbleGeometry, bubbleMaterial);
+        var bScale = 0.02 + Math.random() * 0.065;
+        bMesh.scale.set(bScale, bScale * (1 + Math.random() * 0.15), bScale);
+        bMesh.position.set(
+          (Math.random() - 0.5) * 4.6,
+          -2.6 + Math.random() * 5.2,
+          (Math.random() - 0.5) * 3.2 - 0.2
+        );
+        bMesh.userData = {
+          baseX: bMesh.position.x,
+          baseZ: bMesh.position.z,
+          speedY: 0.35 + Math.random() * 0.65,
+          wobbleFreq: 1.5 + Math.random() * 2.5,
+          wobbleAmp: 0.04 + Math.random() * 0.08,
+          phase: Math.random() * Math.PI * 2
+        };
+        underwaterGroup.add(bMesh);
+        bubbles.push(bMesh);
+      }
+    }
+
+    // 2. Bioluminescent Floating Marine Plankton / Star Dust Particles
+    var planktonCount = 90;
+    var planktonGeo = new window.THREE.BufferGeometry();
+    var planktonPositions = new Float32Array(planktonCount * 3);
+    var planktonPhases = new Float32Array(planktonCount);
+    for (var pi = 0; pi < planktonCount; pi++) {
+      planktonPositions[pi * 3] = (Math.random() - 0.5) * 5.5;
+      planktonPositions[pi * 3 + 1] = -2.5 + Math.random() * 5.5;
+      planktonPositions[pi * 3 + 2] = (Math.random() - 0.5) * 4.0 - 0.5;
+      planktonPhases[pi] = Math.random() * Math.PI * 2;
+    }
+    planktonGeo.setAttribute('position', new window.THREE.BufferAttribute(planktonPositions, 3));
+    var planktonMat = new window.THREE.PointsMaterial({
+      color: 0x5eead4,
+      size: 0.042,
+      transparent: true,
+      opacity: 0.65,
+      blending: window.THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    var planktonPoints = new window.THREE.Points(planktonGeo, planktonMat);
+    if (isUnderwaterEnv) {
+      underwaterGroup.add(planktonPoints);
+    }
+
+    // 3. Volumetric Underwater Sunbeam / Caustic Light Rays
+    var rayGroup = new window.THREE.Group();
+    if (isUnderwaterEnv) {
+      var rayGeo = new window.THREE.PlaneGeometry(0.35, 6.5);
+      var rayMat = new window.THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.08,
+        blending: window.THREE.AdditiveBlending,
+        side: window.THREE.DoubleSide,
+        depthWrite: false
+      });
+      for (var ri = 0; ri < 5; ri++) {
+        var rayMesh = new window.THREE.Mesh(rayGeo, rayMat);
+        rayMesh.position.set(-1.8 + ri * 0.9, 1.2, -1.8 + (ri % 2) * 0.3);
+        rayMesh.rotation.z = -0.22 + (ri * 0.06);
+        rayGroup.add(rayMesh);
+      }
+      underwaterGroup.add(rayGroup);
+    }
+
     var mixer = null;
     var clock = new window.THREE.Clock();
 
@@ -41496,7 +41594,46 @@ var PetMode = function(props) {
       if (isDisposed) return;
       animIdRef.current = requestAnimationFrame(renderLoop);
       var delta = clock.getDelta();
+      var elapsedTime = clock.getElapsedTime();
       if (mixer) mixer.update(delta);
+
+      // Animate Underwater 3D Dynamic Background
+      if (isUnderwaterEnv) {
+        // Animate Bubbles Rising & Swaying
+        for (var b = 0; b < bubbles.length; b++) {
+          var bm = bubbles[b];
+          var ud = bm.userData;
+          bm.position.y += ud.speedY * delta;
+          bm.position.x = ud.baseX + Math.sin(elapsedTime * ud.wobbleFreq + ud.phase) * ud.wobbleAmp;
+          bm.position.z = ud.baseZ + Math.cos(elapsedTime * ud.wobbleFreq * 0.8 + ud.phase) * (ud.wobbleAmp * 0.5);
+          if (bm.position.y > 3.0) {
+            bm.position.y = -2.7;
+            bm.position.x = ud.baseX;
+          }
+        }
+
+        // Animate Plankton Drift & Twinkle
+        if (planktonPoints) {
+          var pAttr = planktonGeo.attributes.position;
+          var pArr = pAttr.array;
+          for (var p = 0; p < planktonCount; p++) {
+            pArr[p * 3 + 1] += Math.sin(elapsedTime * 0.8 + planktonPhases[p]) * 0.002;
+            pArr[p * 3] += Math.cos(elapsedTime * 0.5 + planktonPhases[p]) * 0.0015;
+            if (pArr[p * 3 + 1] > 3.0) pArr[p * 3 + 1] = -2.5;
+            if (pArr[p * 3 + 1] < -2.6) pArr[p * 3 + 1] = 2.9;
+          }
+          pAttr.needsUpdate = true;
+          planktonMat.opacity = 0.45 + Math.sin(elapsedTime * 1.5) * 0.25;
+        }
+
+        // Animate Volumetric Sunbeams sway
+        if (rayGroup) {
+          rayGroup.rotation.z = Math.sin(elapsedTime * 0.35) * 0.04;
+          for (var rj = 0; rj < rayGroup.children.length; rj++) {
+            rayGroup.children[rj].material.opacity = 0.05 + Math.sin(elapsedTime * 0.8 + rj) * 0.035;
+          }
+        }
+      }
 
       if (!isDraggingRef.current && modelGroupRef.current) {
         rotationVelocityRef.current.x *= 0.92;
@@ -41817,13 +41954,35 @@ var PetMode = function(props) {
       touchAction: 'none'
     },
     children: [
-      // Optional subtle underwater caustic shimmer layer
+      // Dynamic Multi-layer Underwater Caustic & Light Rays Ambient Layer
       currentPetBg.waterEffect ? (
-        (0, P.jsx)('div', {
-          className: "absolute inset-0 pointer-events-none opacity-30 mix-blend-screen",
-          style: {
-            background: 'radial-gradient(ellipse at 30% 20%, rgba(56, 189, 248, 0.4) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(14, 165, 233, 0.25) 0%, transparent 60%)'
-          }
+        (0, P.jsxs)('div', {
+          className: "absolute inset-0 pointer-events-none overflow-hidden",
+          children: [
+            // Deep water radial volumetric glow
+            (0, P.jsx)('div', {
+              className: "absolute -inset-[20%] opacity-45 mix-blend-screen",
+              style: {
+                background: 'radial-gradient(ellipse at 50% 15%, rgba(56, 189, 248, 0.45) 0%, rgba(14, 165, 233, 0.22) 40%, transparent 70%)',
+                animation: 'underwaterCurrent 16s ease-in-out infinite'
+              }
+            }),
+            // Upper water caustic light refraction network
+            (0, P.jsx)('div', {
+              className: "absolute -inset-[15%] opacity-35 mix-blend-color-dodge",
+              style: {
+                background: 'radial-gradient(ellipse at 25% 20%, rgba(125, 211, 252, 0.5) 0%, transparent 45%), radial-gradient(ellipse at 75% 30%, rgba(56, 189, 248, 0.4) 0%, transparent 50%), radial-gradient(ellipse at 45% 75%, rgba(14, 165, 233, 0.25) 0%, transparent 55%)',
+                animation: 'underwaterCaustics 12s ease-in-out infinite'
+              }
+            }),
+            // Bottom deep sea bioluminescent benthic glow
+            (0, P.jsx)('div', {
+              className: "absolute bottom-0 inset-x-0 h-1/3 opacity-30 mix-blend-screen",
+              style: {
+                background: 'linear-gradient(to top, rgba(6, 182, 212, 0.25) 0%, transparent 100%)'
+              }
+            })
+          ]
         })
       ) : null,
 
