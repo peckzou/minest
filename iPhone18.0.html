@@ -41208,7 +41208,7 @@ var PetMode = function(props) {
     { id: 'keyboard_tap', label: 'Tap 敲键', emoji: '⌨️', loop: false }
   ];
 
-  // Semantic Action Player with smooth crossfade
+  // Semantic Action Player with smooth crossfade and idle tentacle layer blending
   var playSemanticAction = (0, _.useCallback)(function(actionId) {
     if (!mixerRef.current) return false;
     var targetAction = actionsMapRef.current[actionId];
@@ -41216,6 +41216,23 @@ var PetMode = function(props) {
       targetAction = actionsMapRef.current['Neutral'] || Object.values(actionsMapRef.current)[0];
     }
     if (!targetAction) return false;
+
+    var idleAction = actionsMapRef.current['idle'] || actionsMapRef.current['Neutral'];
+
+    // Special dual-layer blend for swimming: keep idle tentacle waving active while layering bounce propulsion
+    if (actionId === 'bounce' && idleAction) {
+      if (idleAction !== targetAction) {
+        idleAction.setEffectiveWeight(0.55).play();
+        targetAction.reset().setEffectiveWeight(0.75);
+        if (window.THREE && window.THREE.LoopRepeat) {
+          targetAction.setLoop(window.THREE.LoopRepeat, Infinity);
+        }
+        targetAction.fadeIn(0.2).play();
+        currentActionRef.current = targetAction;
+        setCurrentActionName('bounce');
+        return true;
+      }
+    }
 
     var prevAction = currentActionRef.current;
     if (prevAction === targetAction) {
@@ -41227,6 +41244,7 @@ var PetMode = function(props) {
     var isLoop = catalogItem ? catalogItem.loop : (actionId === 'idle' || actionId === 'thinking' || actionId === 'bounce' || actionId === 'typing');
 
     targetAction.reset();
+    targetAction.setEffectiveWeight(1.0);
     if (!isLoop && window.THREE && window.THREE.LoopOnce) {
       targetAction.setLoop(window.THREE.LoopOnce, 1);
       targetAction.clampWhenFinished = true;
@@ -41235,7 +41253,11 @@ var PetMode = function(props) {
       targetAction.clampWhenFinished = false;
     }
 
-    if (prevAction) {
+    if (actionId === 'idle' && actionsMapRef.current['bounce']) {
+      actionsMapRef.current['bounce'].fadeOut(0.35);
+    }
+
+    if (prevAction && prevAction !== targetAction) {
       targetAction.crossFadeFrom(prevAction, 0.35, true);
     }
     targetAction.fadeIn(0.25).play();
@@ -41807,7 +41829,10 @@ var PetMode = function(props) {
           var targetRoll = Math.max(-0.25, Math.min(0.25, -dx * 0.2));
           modelGroupRef.current.rotation.z += (targetRoll - modelGroupRef.current.rotation.z) * 0.1;
         } else {
-          isSwimmingRef.current = false;
+          if (isSwimmingRef.current) {
+            isSwimmingRef.current = false;
+            playSemanticAction('idle');
+          }
           swimPitchRef.current += (0 - swimPitchRef.current) * 0.08;
           modelGroupRef.current.rotation.z += (0 - modelGroupRef.current.rotation.z) * 0.08;
         }
