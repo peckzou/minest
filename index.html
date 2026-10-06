@@ -41111,14 +41111,268 @@ var PetMode = function(props) {
     }
   };
 
+  // FastVoiceChunker for low-latency clause-level speech synthesis
+  var FastVoiceChunker = (function() {
+    function Chunker() {
+      this.buffer = '';
+      this.isFirstChunk = true;
+    }
+    Chunker.prototype.push = function(text) {
+      this.buffer += text;
+      var emitted = [];
+      while (true) {
+        var raw = this.buffer.trim();
+        if (!raw) break;
+        var isChinese = /[\u4e00-\u9fa5]/.test(raw);
+        if (this.isFirstChunk) {
+          var clauseBreaks = ['，', '。', '！', '？', '；', '：', '、', ',', ':', ';', '—', '-', '.', '!', '?', '\n'];
+          var idx = -1;
+          for (var i = 0; i < this.buffer.length; i++) {
+            if (clauseBreaks.indexOf(this.buffer[i]) !== -1 && i >= 2) {
+              idx = i;
+              break;
+            }
+          }
+          if (idx !== -1) {
+            var chunk = this.buffer.slice(0, idx + 1).trim();
+            this.buffer = this.buffer.slice(idx + 1);
+            this.isFirstChunk = false;
+            emitted.push(chunk);
+            continue;
+          } else if (isChinese && raw.length >= 6) {
+            var chunkZh = raw.slice(0, 6);
+            this.buffer = this.buffer.slice(6);
+            this.isFirstChunk = false;
+            emitted.push(chunkZh);
+            continue;
+          } else if (!isChinese && raw.split(/\s+/).length >= 3 && raw.length >= 12) {
+            var spaceIdx = this.buffer.lastIndexOf(' ');
+            if (spaceIdx > 10) {
+              var chunkEn = this.buffer.slice(0, spaceIdx).trim();
+              this.buffer = this.buffer.slice(spaceIdx + 1);
+              this.isFirstChunk = false;
+              emitted.push(chunkEn);
+              continue;
+            }
+          }
+          break;
+        } else {
+          var sentBreaks = ['。', '！', '？', '；', '，', '.', '!', '?', ';', '\n'];
+          var sIdx = -1;
+          for (var j = 0; j < this.buffer.length; j++) {
+            if (sentBreaks.indexOf(this.buffer[j]) !== -1 && j >= (isChinese ? 8 : 16)) {
+              sIdx = j;
+              break;
+            }
+          }
+          if (sIdx !== -1) {
+            var sChunk = this.buffer.slice(0, sIdx + 1).trim();
+            this.buffer = this.buffer.slice(sIdx + 1);
+            emitted.push(sChunk);
+            continue;
+          }
+          break;
+        }
+      }
+      return emitted;
+    };
+    Chunker.prototype.flush = function() {
+      var rem = this.buffer.trim();
+      this.buffer = '';
+      return rem ? [rem] : [];
+    };
+    return Chunker;
+  })();
+
+  var voiceAbortRef = (0, _.useRef)(null);
+  var speechQueueRef = (0, _.useRef)([]);
+  var isPlayingQueueRef = (0, _.useRef)(false);
+  var voiceHistoryRef = (0, _.useRef)([
+    {
+      role: 'system',
+      content: 'You are Minest AI Pet, an instant voice companion. Always reply directly and naturally in 1-2 short sentences (under 25 words). Do not do internal reasoning or chain-of-thought. If user speaks Chinese or mixed English/Chinese (code-switching), reply in fluent Chinese smoothly incorporating technical terms. If user speaks English, reply in English.'
+    }
+  ]);
+
+  var handleVoiceBargeIn = function() {
+    if (voiceAbortRef.current) {
+      try { voiceAbortRef.current.abort(); } catch(e) {}
+      voiceAbortRef.current = null;
+    }
+    if (window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch(e) {}
+    }
+    speechQueueRef.current = [];
+    isPlayingQueueRef.current = false;
+  };
+
+  var processSpeechQueue = function() {
+    if (isPlayingQueueRef.current || speechQueueRef.current.length === 0) return;
+    if (!('speechSynthesis' in window)) return;
+
+    var nextText = speechQueueRef.current.shift();
+    if (!nextText || !nextText.trim()) {
+      processSpeechQueue();
+      return;
+    }
+
+    isPlayingQueueRef.current = true;
+    setVoiceStatusText('回应中...');
+    playSemanticAction('happy');
+
+    window.speechSynthesis.resume();
+    var isZh = /[\u4e00-\u9fa5]/.test(nextText);
+    var u = new SpeechSynthesisUtterance(nextText);
+    u.lang = isZh ? 'zh-CN' : 'en-US';
+    u.rate = isZh ? 1.15 : 1.08;
+    u.pitch = 1.05;
+
+    u.onstart = function() {
+      window.speechSynthesis.resume();
+      playSemanticAction('happy');
+    };
+    u.onend = function() {
+      isPlayingQueueRef.current = false;
+      if (speechQueueRef.current.length > 0) {
+        processSpeechQueue();
+      } else {
+        setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit 在线)' : 'Route B (Direct 聆听中)');
+        playSemanticAction('idle');
+      }
+    };
+    u.onerror = function() {
+      isPlayingQueueRef.current = false;
+      if (speechQueueRef.current.length > 0) {
+        processSpeechQueue();
+      } else {
+        setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit 在线)' : 'Route B (Direct 聆听中)');
+        playSemanticAction('idle');
+      }
+    };
+
+    window.speechSynthesis.speak(u);
+  };
+
+  var queueSpeakChunk = function(text) {
+    if (!text || !text.trim()) return;
+    speechQueueRef.current.push(text);
+    processSpeechQueue();
+  };
+
+  var executeVoiceStreamQuery = async function(userPrompt) {
+    handleVoiceBargeIn();
+    setVoiceStatusText('思考中: "' + userPrompt.slice(0, 10) + '..."');
+    playSemanticAction('thinking');
+
+    var history = voiceHistoryRef.current;
+    history.push({ role: 'user', content: userPrompt });
+    if (history.length > 8) {
+      voiceHistoryRef.current = [history[0]].concat(history.slice(-6));
+    }
+
+    var controller = new AbortController();
+    voiceAbortRef.current = controller;
+    var chunker = new FastVoiceChunker();
+    var fullReply = '';
+
+    var baseEndpoint = 'https://minest-app.vercel.app/api/minest/ai-chat';
+    try { baseEndpoint = localStorage.getItem('minest_ai_chat_endpoint') || baseEndpoint; } catch (e) {}
+
+    try {
+      var sr = await fetch(baseEndpoint + '-stream', {
+        method: 'POST',
+        headers: minestAIHeaders(),
+        body: JSON.stringify(aiProv({
+          prompt: userPrompt,
+          model: 'chatgpt',
+          history: voiceHistoryRef.current.slice(1, -1),
+          mode: 'conversation'
+        })),
+        signal: controller.signal
+      });
+
+      if (sr.ok && /event-stream/.test(sr.headers.get('content-type') || '') && sr.body) {
+        var reader = sr.body.getReader();
+        var dec = new TextDecoder();
+        var buf = '';
+        var prevEmittedLength = 0;
+
+        while (true) {
+          var part = await reader.read();
+          if (part.done) break;
+          buf += dec.decode(part.value, { stream: true });
+          var cut;
+          while ((cut = buf.indexOf('\n\n')) >= 0) {
+            var line = buf.slice(0, cut).replace(/^data:\s*/, '').trim();
+            buf = buf.slice(cut + 2);
+            if (!line) continue;
+            try {
+              var ev = JSON.parse(line);
+              if (typeof ev.t === 'string') {
+                var newDelta = ev.t.slice(prevEmittedLength);
+                prevEmittedLength = ev.t.length;
+                fullReply = ev.t;
+                if (newDelta) {
+                  var chunks = chunker.push(newDelta);
+                  for (var ci = 0; ci < chunks.length; ci++) {
+                    queueSpeakChunk(chunks[ci]);
+                  }
+                }
+              }
+            } catch (e) {}
+          }
+        }
+
+        var remChunks = chunker.flush();
+        for (var ri = 0; ri < remChunks.length; ri++) {
+          queueSpeakChunk(remChunks[ri]);
+        }
+      } else {
+        // Fallback to standard endpoint
+        var resp = await fetch(baseEndpoint, {
+          method: 'POST',
+          headers: minestAIHeaders(),
+          body: JSON.stringify(aiProv({
+            prompt: userPrompt,
+            model: 'chatgpt',
+            history: voiceHistoryRef.current.slice(1, -1),
+            mode: 'conversation'
+          })),
+          signal: controller.signal
+        });
+        var data = await resp.json();
+        var reply = data.reply || (data.board && data.board.title) || '收到！';
+        fullReply = reply;
+        queueSpeakChunk(reply);
+      }
+
+      if (fullReply) {
+        voiceHistoryRef.current.push({ role: 'assistant', content: fullReply });
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        // Barge-in interrupted
+      } else {
+        setVoiceStatusText('服务暂忙，请重试');
+        playSemanticAction('confused');
+        setTimeout(function() {
+          if (isVoiceActive) {
+            setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit 在线)' : 'Route B (Direct 聆听中)');
+            playSemanticAction('idle');
+          }
+        }, 2000);
+      }
+    }
+  };
+
   var handleToggleVoiceCall = function() {
     if (isVoiceActive) {
       // Stop voice session
+      handleVoiceBargeIn();
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch(e) {}
         recognitionRef.current = null;
       }
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
       setIsVoiceActive(false);
       setVoiceStatusText('就绪');
       playSemanticAction('idle');
@@ -41129,62 +41383,82 @@ var PetMode = function(props) {
 
     // Start voice session
     setIsVoiceActive(true);
-    setVoiceStatusText(voiceRoute === 'A' ? 'LiveKit 连接中...' : '正在聆听...');
+    setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit SFU 联机)' : 'Route B (Direct 聆听中)');
     if (typeof MinestNative !== 'undefined' && MinestNative.haptic) MinestNative.haptic('medium');
     else if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-    playSemanticAction('thinking');
+    playSemanticAction('look');
+
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.resume(); } catch(e) {}
+    }
 
     var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRec) {
       try {
         var rec = new SpeechRec();
         rec.continuous = true;
-        rec.interimResults = false;
+        rec.interimResults = true;
         rec.lang = 'zh-CN';
+
+        var accumulatedFinal = '';
+        var silenceTimer = null;
+
         rec.onstart = function() {
           setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit SFU 联机)' : 'Route B (Direct 聆听中)');
-          playSemanticAction('look');
+          playSemanticAction('idle');
         };
+
         rec.onresult = function(event) {
-          var lastIdx = event.results.length - 1;
-          var transcript = event.results[lastIdx][0].transcript;
-          if (transcript && transcript.trim()) {
-            setVoiceStatusText('思考中: "' + transcript.slice(0, 10) + '..."');
+          var interim = '';
+          for (var i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              accumulatedFinal += event.results[i][0].transcript;
+            } else {
+              interim += event.results[i][0].transcript;
+            }
+          }
+
+          var currentSpoken = (accumulatedFinal + ' ' + interim).trim();
+
+          // Barge-in: if AI is speaking and user speaks again, interrupt immediately
+          if (isPlayingQueueRef.current && currentSpoken.length > 1) {
+            handleVoiceBargeIn();
             playSemanticAction('thinking');
-            
-            // Speak back synthesized reply
-            setTimeout(function() {
-              var reply = "我听到你说：" + transcript + "。真棒！";
-              setVoiceStatusText('回应中...');
-              playSemanticAction('happy');
-              if (window.SpeechAssistant && window.SpeechAssistant.speak) {
-                window.SpeechAssistant.speak(reply, 'zh-CN');
-              } else if (window.speechSynthesis) {
-                var u = new SpeechSynthesisUtterance(reply);
-                u.lang = 'zh-CN';
-                window.speechSynthesis.speak(u);
+          }
+
+          if (currentSpoken.length > 0) {
+            setVoiceStatusText('🎤 "' + currentSpoken.slice(-14) + '..."');
+          }
+
+          clearTimeout(silenceTimer);
+          if (currentSpoken.length > 0) {
+            // Adaptive snappy endpointing: 520ms
+            var waitMs = currentSpoken.length > 6 ? 480 : 550;
+            silenceTimer = setTimeout(function() {
+              if (currentSpoken.length >= 1) {
+                accumulatedFinal = '';
+                executeVoiceStreamQuery(currentSpoken);
               }
-              setTimeout(function() {
-                if (isVoiceActive) {
-                  setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit 在线)' : 'Route B (Direct 聆听中)');
-                  playSemanticAction('idle');
-                }
-              }, 2500);
-            }, 600);
+            }, waitMs);
           }
         };
-        rec.onerror = function() {
-          setVoiceStatusText('已待命');
+
+        rec.onerror = function(e) {
+          if (e && e.error !== 'no-speech') {
+            console.warn('STT note:', e.error);
+          }
         };
+
         rec.onend = function() {
           if (isVoiceActive) {
             try { rec.start(); } catch(e) {}
           }
         };
+
         rec.start();
         recognitionRef.current = rec;
       } catch(e) {
-        setVoiceStatusText('模拟语音连接中');
+        setVoiceStatusText('正在连接语音引擎...');
       }
     } else {
       setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit)' : 'Route B (Direct)');
