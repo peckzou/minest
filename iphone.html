@@ -40930,10 +40930,6 @@ var PetMode = function(props) {
   var loadTokenRef = (0, _.useRef)(0);
   var modelGroupRef = (0, _.useRef)(null);
 
-  // Console drawer state
-  var isConsoleOpenState = (0, _.useState)(false);
-  var isConsoleOpen = isConsoleOpenState[0];
-  var setIsConsoleOpen = isConsoleOpenState[1];
 
   // Rotation & touch gesture state
   var isDraggingRef = (0, _.useRef)(false);
@@ -41018,8 +41014,8 @@ var PetMode = function(props) {
     };
 
     var onTouchStart = function(e) {
-      // Don't capture touches inside the bottom action console drawer
-      if (e.target && e.target.closest && e.target.closest('.pet-console-drawer, .pet-console-trigger')) {
+      // Don't capture touches inside the bottom action strip
+      if (e.target && e.target.closest && e.target.closest('.pet-action-strip')) {
         return;
       }
 
@@ -41039,7 +41035,7 @@ var PetMode = function(props) {
     };
 
     var onTouchMove = function(e) {
-      if (e.target && e.target.closest && e.target.closest('.pet-console-drawer, .pet-console-trigger')) {
+      if (e.target && e.target.closest && e.target.closest('.pet-action-strip')) {
         return;
       }
 
@@ -41086,7 +41082,7 @@ var PetMode = function(props) {
     };
 
     var onPointerDown = function(e) {
-      if (e.target && e.target.closest && e.target.closest('.pet-console-drawer, .pet-console-trigger')) {
+      if (e.target && e.target.closest && e.target.closest('.pet-action-strip')) {
         return;
       }
       if (e.pointerType === 'mouse') {
@@ -41358,73 +41354,43 @@ var PetMode = function(props) {
         ]
       }),
 
-      // Console Switch Pill (Bottom Center)
-      (0, P.jsxs)('button', {
-        type: "button",
-        onClick: function() {
-          if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-          setIsConsoleOpen(function(prev) { return !prev; });
-        },
-        className: "pet-console-trigger absolute z-50 flex items-center gap-2 px-4 py-2 rounded-full border transition-all shadow-2xl active:scale-95 " + (isConsoleOpen ? "bg-purple-600/90 border-purple-400 text-white shadow-purple-500/25" : "bg-black/60 border-white/20 text-white/90 backdrop-blur-2xl hover:bg-black/80"),
+      // Compact Horizontal Scrolling Action Strip (Bottom)
+      (0, P.jsx)('div', {
+        className: "pet-action-strip absolute left-0 right-0 z-50 flex items-center justify-start overflow-x-auto no-scrollbar px-4 py-2 pointer-events-auto",
         style: {
-          bottom: isConsoleOpen ? 'max(216px, calc(env(safe-area-inset-bottom, 20px) + 200px))' : 'max(24px, env(safe-area-inset-bottom, 24px))',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          transition: 'all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+          bottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
         },
-        children: [
-          (0, P.jsx)('span', { className: "text-sm", children: "🎮" }),
-          (0, P.jsx)('span', { className: "text-xs font-semibold tracking-wide", children: isConsoleOpen ? "收起控制台" : "动作控制台" }),
-          (0, P.jsx)('span', { className: "text-[10px] px-1.5 py-0.5 rounded-md bg-white/20 text-white/90 font-mono font-medium uppercase", children: currentActionName })
-        ]
-      }),
-
-      // Floating Action Console Panel
-      isConsoleOpen ? (
-        (0, P.jsxs)('div', {
-          className: "pet-console-drawer absolute bottom-0 left-0 right-0 z-40 flex flex-col p-4 pb-7 rounded-t-[32px] border-t border-white/20 bg-[#0e0c18]/90 backdrop-blur-3xl shadow-[0_-20px_50px_rgba(0,0,0,0.7)] animate-slideUp",
+        children: (0, P.jsx)('div', {
+          className: "flex items-center gap-2 mx-auto",
           style: {
-            paddingBottom: 'max(28px, calc(env(safe-area-inset-bottom, 20px) + 12px))'
+            display: 'inline-flex',
+            padding: '2px 4px'
           },
-          children: [
-            (0, P.jsxs)('div', {
-              className: "flex items-center justify-between px-2 mb-3",
-              children: [
-                (0, P.jsxs)('div', {
-                  className: "flex items-center gap-1.5",
-                  children: [
-                    (0, P.jsx)('span', { className: "text-xs text-white/60 font-medium", children: "当前状态:" }),
-                    (0, P.jsx)('span', { className: "text-xs font-bold text-purple-300 font-mono", children: currentActionName.toUpperCase() })
-                  ]
-                }),
-                (0, P.jsx)('span', { className: "text-[11px] text-white/40", children: "共 16 种动作" })
-              ]
-            }),
-            (0, P.jsx)('div', {
-              className: "grid grid-cols-4 gap-2 max-h-[175px] overflow-y-auto px-1 py-1 no-scrollbar",
-              style: {
-                WebkitOverflowScrolling: 'touch'
+          children: ACTION_CATALOG.map(function(act) {
+            var isActive = currentActionName === act.id;
+            return (0, P.jsxs)('button', {
+              key: act.id,
+              type: "button",
+              onClick: function() {
+                if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+                playSemanticAction(act.id);
               },
-              children: ACTION_CATALOG.map(function(act) {
-                var isActive = currentActionName === act.id;
-                return (0, P.jsxs)('button', {
-                  key: act.id,
-                  type: "button",
-                  onClick: function() {
-                    if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-                    playSemanticAction(act.id);
-                  },
-                  className: "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 " + (isActive ? "bg-purple-600/40 border-purple-400 text-white shadow-lg shadow-purple-600/30 scale-[1.02]" : "bg-white/5 border-white/10 hover:bg-white/10 text-white/80"),
-                  children: [
-                    (0, P.jsx)('span', { className: "text-lg mb-1 leading-none", children: act.emoji }),
-                    (0, P.jsx)('span', { className: "text-[11px] font-semibold truncate w-full text-center leading-tight", children: act.label.split(' ')[0] })
-                  ]
-                });
-              })
-            })
-          ]
+              className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full border shrink-0 transition-all active:scale-95 " + (
+                isActive
+                  ? "bg-purple-600/60 border-purple-400 text-white shadow-lg shadow-purple-500/30 scale-105"
+                  : "bg-black/40 border-white/15 text-white/80 hover:bg-black/60 hover:text-white backdrop-blur-xl"
+              ),
+              children: [
+                (0, P.jsx)('span', { className: "text-sm leading-none", children: act.emoji }),
+                (0, P.jsx)('span', { className: "text-xs font-medium whitespace-nowrap", children: act.label.split(' ')[0] })
+              ]
+            });
+          })
         })
-      ) : null
+      })
     ]
   });
 };
