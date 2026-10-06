@@ -41356,33 +41356,52 @@ var PetMode = function(props) {
 
       // Compact Horizontal Scrolling Action Strip (Bottom)
       (0, P.jsx)('div', {
-        className: "pet-action-strip absolute left-0 right-0 z-50 flex items-center justify-start overflow-x-auto no-scrollbar px-4 py-2 pointer-events-auto",
+        className: "pet-action-strip absolute left-0 right-0 z-50 flex items-center overflow-x-auto no-scrollbar pointer-events-auto",
         style: {
           bottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
+          width: '100%',
+          maxWidth: '100vw',
+          overflowX: 'scroll',
+          overflowY: 'hidden',
           WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+          touchAction: 'pan-x',
+          paddingLeft: '16px',
+          paddingRight: '16px',
+          paddingTop: '6px',
+          paddingBottom: '6px'
         },
+        onTouchStart: function(e) { e.stopPropagation(); },
+        onTouchMove: function(e) { e.stopPropagation(); },
+        onTouchEnd: function(e) { e.stopPropagation(); },
         children: (0, P.jsx)('div', {
-          className: "flex items-center gap-2 mx-auto",
+          className: "flex items-center gap-2",
           style: {
-            display: 'inline-flex',
-            padding: '2px 4px'
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'nowrap',
+            width: 'max-content',
+            minWidth: 'max-content',
+            touchAction: 'pan-x'
           },
           children: ACTION_CATALOG.map(function(act) {
             var isActive = currentActionName === act.id;
             return (0, P.jsxs)('button', {
               key: act.id,
               type: "button",
-              onClick: function() {
+              onClick: function(e) {
+                e.stopPropagation();
                 if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
                 playSemanticAction(act.id);
               },
               className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full border shrink-0 transition-all active:scale-95 " + (
                 isActive
-                  ? "bg-purple-600/60 border-purple-400 text-white shadow-lg shadow-purple-500/30 scale-105"
-                  : "bg-black/40 border-white/15 text-white/80 hover:bg-black/60 hover:text-white backdrop-blur-xl"
+                  ? "bg-purple-600/70 border-purple-400 text-white shadow-lg shadow-purple-500/30 scale-105"
+                  : "bg-black/50 border-white/20 text-white/85 hover:bg-black/70 hover:text-white backdrop-blur-xl"
               ),
+              style: {
+                flexShrink: 0,
+                whiteSpace: 'nowrap'
+              },
               children: [
                 (0, P.jsx)('span', { className: "text-sm leading-none", children: act.emoji }),
                 (0, P.jsx)('span', { className: "text-xs font-medium whitespace-nowrap", children: act.label.split(' ')[0] })
