@@ -40924,9 +40924,13 @@ var PetMode = function(props) {
   var animIdRef = (0, _.useRef)(null);
   var actionsMapRef = (0, _.useRef)({});
   var loadTokenRef = (0, _.useRef)(0);
-  var showMenuState = (0, _.useState)(false);
-  var showMenu = showMenuState[0];
-  var setShowMenu = showMenuState[1];
+  var modelGroupRef = (0, _.useRef)(null);
+
+  // Rotation & touch gesture state
+  var isDraggingRef = (0, _.useRef)(false);
+  var prevPointerRef = (0, _.useRef)({ x: 0, y: 0 });
+  var rotationVelocityRef = (0, _.useRef)({ x: 0, y: 0 });
+  var rotationRef = (0, _.useRef)({ x: 0, y: 0 });
 
   // Future semantic action hook
   var playSemanticAction = (0, _.useCallback)(function(actionId) {
@@ -40944,67 +40948,130 @@ var PetMode = function(props) {
 
   window.playSemanticAction = playSemanticAction;
 
-  // Touch gesture listeners: double finger pinch OR swipe from right edge
+  // Single finger drag to rotate + Double finger pinch to exit + Right-edge swipe to exit
   (0, _.useEffect)(function() {
     if (!isOpen) return;
 
     var d0 = 0;
-    var pinchTriggered = false;
-    var sx = 0, sy = 0, swiping = false;
+    var pinchExitTriggered = false;
+    var startX = 0, startY = 0;
+    var isEdgeSwipe = false;
 
     var dist = function(t) {
       return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
     };
 
+    var handleExit = function() {
+      if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+      onClose();
+    };
+
     var onTouchStart = function(e) {
       if (e.touches.length === 2) {
         d0 = dist(e.touches);
-        pinchTriggered = false;
+        pinchExitTriggered = false;
+        isDraggingRef.current = false;
       } else if (e.touches.length === 1) {
-        sx = e.touches[0].clientX;
-        sy = e.touches[0].clientY;
-        // Check if start touch is near edges or a horizontal swipe
-        swiping = true;
+        var t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        prevPointerRef.current = { x: t.clientX, y: t.clientY };
+        isDraggingRef.current = true;
+        rotationVelocityRef.current = { x: 0, y: 0 };
+
+        // Check if starting near the right edge (within 50px of right screen)
+        isEdgeSwipe = startX > window.innerWidth - 50;
       }
     };
 
     var onTouchMove = function(e) {
-      if (e.touches.length === 2 && d0 && !pinchTriggered) {
+      if (e.touches.length === 2 && d0 && !pinchExitTriggered) {
         var currentDist = dist(e.touches);
-        if (Math.abs(currentDist - d0) > 28) {
-          pinchTriggered = true;
-          if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-          setShowMenu(function(prev) { return !prev; });
+        // 双指捏合 (Pinch in/out) 直接退出
+        if (Math.abs(currentDist - d0) > 30) {
+          pinchExitTriggered = true;
+          handleExit();
         }
-      } else if (e.touches.length === 1 && swiping) {
-        var dx = e.touches[0].clientX - sx;
-        var dy = e.touches[0].clientY - sy;
-        // Right swipe (left-to-right dx > 60) OR right-edge swipe left (dx < -60 starting from right 40px)
-        if (Math.abs(dx) > Math.abs(dy) * 1.5) {
-          if (dx > 70 || (sx > window.innerWidth - 60 && dx < -50)) {
-            swiping = false;
-            if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-            setShowMenu(true);
-          }
+      } else if (e.touches.length === 1 && isDraggingRef.current) {
+        var t = e.touches[0];
+        var deltaX = t.clientX - prevPointerRef.current.x;
+        var deltaY = t.clientY - prevPointerRef.current.y;
+        prevPointerRef.current = { x: t.clientX, y: t.clientY };
+
+        // Check right edge swipe to left: start from edge, moved left > 45px
+        if (isEdgeSwipe && (startX - t.clientX > 45) && Math.abs(t.clientY - startY) < 60) {
+          isDraggingRef.current = false;
+          handleExit();
+          return;
+        }
+
+        // Apply rotation (上下左右自由旋转)
+        rotationVelocityRef.current.y = deltaX * 0.007;
+        rotationVelocityRef.current.x = deltaY * 0.005;
+
+        rotationRef.current.y += rotationVelocityRef.current.y;
+        rotationRef.current.x += rotationVelocityRef.current.x;
+        // Limit pitch rotation so octopus does not flip upside down
+        rotationRef.current.x = Math.max(-0.85, Math.min(0.85, rotationRef.current.x));
+
+        if (modelGroupRef.current) {
+          modelGroupRef.current.rotation.y = rotationRef.current.y;
+          modelGroupRef.current.rotation.x = rotationRef.current.x;
         }
       }
     };
 
     var onTouchEnd = function(e) {
       if (e.touches.length < 2) d0 = 0;
-      if (e.touches.length === 0) swiping = false;
+      if (e.touches.length === 0) {
+        isDraggingRef.current = false;
+        isEdgeSwipe = false;
+      }
+    };
+
+    // Pointer events for desktop simulator testing
+    var onPointerDown = function(e) {
+      if (e.pointerType === 'mouse') {
+        isDraggingRef.current = true;
+        prevPointerRef.current = { x: e.clientX, y: e.clientY };
+      }
+    };
+    var onPointerMove = function(e) {
+      if (e.pointerType === 'mouse' && isDraggingRef.current) {
+        var deltaX = e.clientX - prevPointerRef.current.x;
+        var deltaY = e.clientY - prevPointerRef.current.y;
+        prevPointerRef.current = { x: e.clientX, y: e.clientY };
+
+        rotationRef.current.y += deltaX * 0.007;
+        rotationRef.current.x += deltaY * 0.005;
+        rotationRef.current.x = Math.max(-0.85, Math.min(0.85, rotationRef.current.x));
+
+        if (modelGroupRef.current) {
+          modelGroupRef.current.rotation.y = rotationRef.current.y;
+          modelGroupRef.current.rotation.x = rotationRef.current.x;
+        }
+      }
+    };
+    var onPointerUp = function() {
+      isDraggingRef.current = false;
     };
 
     window.addEventListener('touchstart', onTouchStart, { passive: true, capture: true });
     window.addEventListener('touchmove', onTouchMove, { passive: true, capture: true });
     window.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
 
     return function() {
       window.removeEventListener('touchstart', onTouchStart, { capture: true });
       window.removeEventListener('touchmove', onTouchMove, { capture: true });
       window.removeEventListener('touchend', onTouchEnd, { capture: true });
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   (0, _.useEffect)(function() {
     if (!isOpen) return;
@@ -41053,7 +41120,7 @@ var PetMode = function(props) {
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Studio Lighting
+    // Lighting
     var hemiLight = new window.THREE.HemisphereLight(0xfff6f8, 0xe8daf5, 1.25);
     scene.add(hemiLight);
 
@@ -41084,6 +41151,19 @@ var PetMode = function(props) {
       animIdRef.current = requestAnimationFrame(renderLoop);
       var delta = clock.getDelta();
       if (mixer) mixer.update(delta);
+
+      // Smooth inertia damping for rotation
+      if (!isDraggingRef.current && modelGroupRef.current) {
+        rotationVelocityRef.current.x *= 0.92;
+        rotationVelocityRef.current.y *= 0.92;
+        if (Math.abs(rotationVelocityRef.current.x) > 0.0001 || Math.abs(rotationVelocityRef.current.y) > 0.0001) {
+          rotationRef.current.x = Math.max(-0.85, Math.min(0.85, rotationRef.current.x + rotationVelocityRef.current.x));
+          rotationRef.current.y += rotationVelocityRef.current.y;
+          modelGroupRef.current.rotation.x = rotationRef.current.x;
+          modelGroupRef.current.rotation.y = rotationRef.current.y;
+        }
+      }
+
       renderer.render(scene, camera);
     }
     animIdRef.current = requestAnimationFrame(renderLoop);
@@ -41117,7 +41197,7 @@ var PetMode = function(props) {
           if (isDisposed || token !== loadTokenRef.current) return;
           var model = gltf.scene;
 
-          // 缩小居中（精确自适应比例：targetHeight = 2.05，适度留白且不显拥挤）
+          // 缩小居中（targetHeight = 1.15，小巧居中）
           var bounds = new window.THREE.Box3().setFromObject(model);
           var size = bounds.getSize(new window.THREE.Vector3());
           var center = bounds.getCenter(new window.THREE.Vector3());
@@ -41127,7 +41207,10 @@ var PetMode = function(props) {
           model.scale.setScalar(scale);
           model.position.set(-center.x * scale, -center.y * scale - 0.05, -center.z * scale);
 
-          scene.add(model);
+          var group = new window.THREE.Group();
+          group.add(model);
+          scene.add(group);
+          modelGroupRef.current = group;
 
           // Animation mixer & auto-play idle
           mixer = new window.THREE.AnimationMixer(model);
@@ -41156,16 +41239,22 @@ var PetMode = function(props) {
       window.removeEventListener('resize', handleResize);
       if (animIdRef.current) cancelAnimationFrame(animIdRef.current);
       if (mixerRef.current) {
-        mixerRef.current.stopAllAction();
-        mixerRef.current.uncacheRoot(mixerRef.current.getRoot());
+        try {
+          mixerRef.current.stopAllAction();
+          mixerRef.current.uncacheRoot(mixerRef.current.getRoot());
+        } catch(e) {}
         mixerRef.current = null;
       }
       actionsMapRef.current = {};
+      modelGroupRef.current = null;
       if (rendererRef.current) {
-        rendererRef.current.dispose();
-        if (rendererRef.current.domElement && rendererRef.current.domElement.parentNode) {
-          rendererRef.current.domElement.parentNode.removeChild(rendererRef.current.domElement.parentNode);
-        }
+        try {
+          rendererRef.current.dispose();
+          var dom = rendererRef.current.domElement;
+          if (dom && dom.parentNode) {
+            dom.parentNode.removeChild(dom);
+          }
+        } catch(e) {}
         rendererRef.current = null;
       }
     };
@@ -41186,52 +41275,12 @@ var PetMode = function(props) {
     children: [
       (0, P.jsx)('div', {
         ref: containerRef,
-        className: "w-full h-full absolute inset-0 pointer-events-none"
-      }),
-
-      // 菜单栏（仅在双指捏合或侧边滑动时优雅唤出）
-      showMenu ? (
-        (0, P.jsxs)('div', {
-          className: "absolute top-4 left-4 right-4 z-50 flex items-center justify-between px-4 py-2.5 rounded-2xl bg-black/60 border border-white/15 backdrop-blur-2xl shadow-2xl animate-fadeIn",
-          style: {
-            top: 'max(14px, env(safe-area-inset-top, 14px))',
-            left: 'max(16px, env(safe-area-inset-left, 16px))',
-            right: 'max(16px, env(safe-area-inset-right, 16px))'
-          },
-          children: [
-            (0, P.jsxs)('div', {
-              className: "flex items-center gap-2",
-              children: [
-                (0, P.jsx)('span', { className: "text-sm", children: "🐙" }),
-                (0, P.jsx)('span', { className: "text-xs font-semibold text-white/90", children: "Pet Mode" })
-              ]
-            }),
-            (0, P.jsxs)('div', {
-              className: "flex items-center gap-2",
-              children: [
-                (0, P.jsx)('button', {
-                  type: "button",
-                  onClick: function() { setShowMenu(false); },
-                  className: "px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 text-xs font-medium transition-colors",
-                  children: "Hide Bar"
-                }),
-                (0, P.jsx)('button', {
-                  type: "button",
-                  onClick: function() {
-                    if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-                    onClose();
-                  },
-                  className: "px-3 py-1 rounded-xl bg-red-500/20 border border-red-500/40 text-red-200 hover:bg-red-500/30 text-xs font-medium transition-colors",
-                  children: "Exit Pet"
-                })
-              ]
-            })
-          ]
-        })
-      ) : null
+        className: "w-full h-full absolute inset-0"
+      })
     ]
   });
 };
+
 
 
 // =========================================================================
