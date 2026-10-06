@@ -40923,8 +40923,17 @@ var PetMode = function(props) {
   var mixerRef = (0, _.useRef)(null);
   var animIdRef = (0, _.useRef)(null);
   var actionsMapRef = (0, _.useRef)({});
+  var currentActionRef = (0, _.useRef)(null);
+  var currentActionNameState = (0, _.useState)('idle');
+  var currentActionName = currentActionNameState[0];
+  var setCurrentActionName = currentActionNameState[1];
   var loadTokenRef = (0, _.useRef)(0);
   var modelGroupRef = (0, _.useRef)(null);
+
+  // Console drawer state
+  var isConsoleOpenState = (0, _.useState)(false);
+  var isConsoleOpen = isConsoleOpenState[0];
+  var setIsConsoleOpen = isConsoleOpenState[1];
 
   // Rotation & touch gesture state
   var isDraggingRef = (0, _.useRef)(false);
@@ -40932,23 +40941,65 @@ var PetMode = function(props) {
   var rotationVelocityRef = (0, _.useRef)({ x: 0, y: 0 });
   var rotationRef = (0, _.useRef)({ x: 0, y: 0 });
 
-  // Future semantic action hook
+  // Mature Action List with display labels and emojis
+  var ACTION_CATALOG = [
+    { id: 'idle', label: 'Idle 呼吸', emoji: '🫧', loop: true },
+    { id: 'happy', label: 'Happy 开心', emoji: '🥰', loop: false },
+    { id: 'excited', label: 'Excited 雀跃', emoji: '✨', loop: false },
+    { id: 'thinking', label: 'Thinking 思考', emoji: '🤔', loop: true },
+    { id: 'bounce', label: 'Bounce 律动', emoji: '🎵', loop: true },
+    { id: 'wave', label: 'Wave 挥手', emoji: '👋', loop: false },
+    { id: 'nod', label: 'Nod 点头', emoji: '🙆', loop: false },
+    { id: 'scratch_head', label: 'Scratch 挠头', emoji: '🧐', loop: false },
+    { id: 'look', label: 'Look 环顾', emoji: '👀', loop: false },
+    { id: 'point', label: 'Point 指向', emoji: '👉', loop: false },
+    { id: 'poke', label: 'Poke 戳戳', emoji: '👆', loop: false },
+    { id: 'reach', label: 'Reach 伸手', emoji: '👐', loop: false },
+    { id: 'confused', label: 'Confused 疑惑', emoji: '❓', loop: false },
+    { id: 'grab', label: 'Grab 抓取', emoji: '✊', loop: false },
+    { id: 'typing', label: 'Typing 打字', emoji: '💻', loop: true },
+    { id: 'keyboard_tap', label: 'Tap 敲键', emoji: '⌨️', loop: false }
+  ];
+
+  // Semantic Action Player with smooth crossfade
   var playSemanticAction = (0, _.useCallback)(function(actionId) {
     if (!mixerRef.current) return false;
     var targetAction = actionsMapRef.current[actionId];
     if (!targetAction && actionId === 'idle') {
       targetAction = actionsMapRef.current['Neutral'] || Object.values(actionsMapRef.current)[0];
     }
-    if (targetAction) {
-      targetAction.reset().fadeIn(0.3).play();
+    if (!targetAction) return false;
+
+    var prevAction = currentActionRef.current;
+    if (prevAction === targetAction) {
+      targetAction.reset().play();
       return true;
     }
-    return false;
+
+    var catalogItem = ACTION_CATALOG.find(function(it) { return it.id === actionId; });
+    var isLoop = catalogItem ? catalogItem.loop : (actionId === 'idle' || actionId === 'thinking' || actionId === 'bounce' || actionId === 'typing');
+
+    targetAction.reset();
+    if (!isLoop && window.THREE && window.THREE.LoopOnce) {
+      targetAction.setLoop(window.THREE.LoopOnce, 1);
+      targetAction.clampWhenFinished = true;
+    } else if (window.THREE && window.THREE.LoopRepeat) {
+      targetAction.setLoop(window.THREE.LoopRepeat, Infinity);
+      targetAction.clampWhenFinished = false;
+    }
+
+    if (prevAction) {
+      targetAction.crossFadeFrom(prevAction, 0.35, true);
+    }
+    targetAction.fadeIn(0.25).play();
+    currentActionRef.current = targetAction;
+    setCurrentActionName(actionId);
+    return true;
   }, []);
 
   window.playSemanticAction = playSemanticAction;
 
-  // Single finger drag to rotate + Double finger pinch to exit + Right-edge swipe to exit
+  // Touch gesture listeners: double finger pinch to exit + Right-edge swipe to exit + 3D rotation
   (0, _.useEffect)(function() {
     if (!isOpen) return;
 
@@ -40967,6 +41018,11 @@ var PetMode = function(props) {
     };
 
     var onTouchStart = function(e) {
+      // Don't capture touches inside the bottom action console drawer
+      if (e.target && e.target.closest && e.target.closest('.pet-console-drawer, .pet-console-trigger')) {
+        return;
+      }
+
       if (e.touches.length === 2) {
         d0 = dist(e.touches);
         pinchExitTriggered = false;
@@ -40978,16 +41034,18 @@ var PetMode = function(props) {
         prevPointerRef.current = { x: t.clientX, y: t.clientY };
         isDraggingRef.current = true;
         rotationVelocityRef.current = { x: 0, y: 0 };
-
-        // Check if starting near the right edge (within 50px of right screen)
         isEdgeSwipe = startX > window.innerWidth - 50;
       }
     };
 
     var onTouchMove = function(e) {
+      if (e.target && e.target.closest && e.target.closest('.pet-console-drawer, .pet-console-trigger')) {
+        return;
+      }
+
       if (e.touches.length === 2 && d0 && !pinchExitTriggered) {
         var currentDist = dist(e.touches);
-        // 双指捏合 (Pinch in/out) 直接退出
+        // 双指捏合 (Pinch) 立即退出
         if (Math.abs(currentDist - d0) > 30) {
           pinchExitTriggered = true;
           handleExit();
@@ -40998,20 +41056,18 @@ var PetMode = function(props) {
         var deltaY = t.clientY - prevPointerRef.current.y;
         prevPointerRef.current = { x: t.clientX, y: t.clientY };
 
-        // Check right edge swipe to left: start from edge, moved left > 45px
+        // 侧边向左滑出直接退出
         if (isEdgeSwipe && (startX - t.clientX > 45) && Math.abs(t.clientY - startY) < 60) {
           isDraggingRef.current = false;
           handleExit();
           return;
         }
 
-        // Apply rotation (上下左右自由旋转)
         rotationVelocityRef.current.y = deltaX * 0.007;
         rotationVelocityRef.current.x = deltaY * 0.005;
 
         rotationRef.current.y += rotationVelocityRef.current.y;
         rotationRef.current.x += rotationVelocityRef.current.x;
-        // Limit pitch rotation so octopus does not flip upside down
         rotationRef.current.x = Math.max(-0.85, Math.min(0.85, rotationRef.current.x));
 
         if (modelGroupRef.current) {
@@ -41029,8 +41085,10 @@ var PetMode = function(props) {
       }
     };
 
-    // Pointer events for desktop simulator testing
     var onPointerDown = function(e) {
+      if (e.target && e.target.closest && e.target.closest('.pet-console-drawer, .pet-console-trigger')) {
+        return;
+      }
       if (e.pointerType === 'mouse') {
         isDraggingRef.current = true;
         prevPointerRef.current = { x: e.clientX, y: e.clientY };
@@ -41073,6 +41131,7 @@ var PetMode = function(props) {
     };
   }, [isOpen, onClose]);
 
+  // Three.js Scene Setup & GLB Loading
   (0, _.useEffect)(function() {
     if (!isOpen) return;
 
@@ -41152,7 +41211,6 @@ var PetMode = function(props) {
       var delta = clock.getDelta();
       if (mixer) mixer.update(delta);
 
-      // Smooth inertia damping for rotation
       if (!isDraggingRef.current && modelGroupRef.current) {
         rotationVelocityRef.current.x *= 0.92;
         rotationVelocityRef.current.y *= 0.92;
@@ -41178,7 +41236,6 @@ var PetMode = function(props) {
     }
     window.addEventListener('resize', handleResize);
 
-    // Load Stable GLB candidate
     var modelPaths = [
       'public/models/avatar_web_rigged_v23.glb',
       '/public/models/avatar_web_rigged_v23.glb',
@@ -41197,7 +41254,6 @@ var PetMode = function(props) {
           if (isDisposed || token !== loadTokenRef.current) return;
           var model = gltf.scene;
 
-          // 缩小居中（targetHeight = 1.15，小巧居中）
           var bounds = new window.THREE.Box3().setFromObject(model);
           var size = bounds.getSize(new window.THREE.Vector3());
           var center = bounds.getCenter(new window.THREE.Vector3());
@@ -41212,10 +41268,14 @@ var PetMode = function(props) {
           scene.add(group);
           modelGroupRef.current = group;
 
-          // Animation mixer & auto-play idle
           mixer = new window.THREE.AnimationMixer(model);
           mixerRef.current = mixer;
           actionsMapRef.current = {};
+
+          // Auto return to idle when non-looping animation finishes
+          mixer.addEventListener('finished', function(e) {
+            playSemanticAction('idle');
+          });
 
           if (gltf.animations && gltf.animations.length > 0) {
             gltf.animations.forEach(function(clip) {
@@ -41246,6 +41306,7 @@ var PetMode = function(props) {
         mixerRef.current = null;
       }
       actionsMapRef.current = {};
+      currentActionRef.current = null;
       modelGroupRef.current = null;
       if (rendererRef.current) {
         try {
@@ -41276,10 +41337,98 @@ var PetMode = function(props) {
       (0, P.jsx)('div', {
         ref: containerRef,
         className: "w-full h-full absolute inset-0"
-      })
+      }),
+
+      // Subtle Exit Control Button (Top Left)
+      (0, P.jsxs)('button', {
+        type: "button",
+        onClick: function() {
+          if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+          onClose();
+        },
+        className: "absolute top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 bg-black/45 text-white/90 text-xs font-medium backdrop-blur-2xl hover:bg-black/65 transition-all shadow-lg active:scale-95",
+        style: {
+          top: 'max(14px, env(safe-area-inset-top, 14px))',
+          left: 'max(16px, env(safe-area-inset-left, 16px))'
+        },
+        'aria-label': "Back to Minest",
+        children: [
+          (0, P.jsx)('span', { className: "text-sm leading-none", children: "‹" }),
+          (0, P.jsx)('span', { children: "Back" })
+        ]
+      }),
+
+      // Console Switch Pill (Bottom Center)
+      (0, P.jsxs)('button', {
+        type: "button",
+        onClick: function() {
+          if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+          setIsConsoleOpen(function(prev) { return !prev; });
+        },
+        className: "pet-console-trigger absolute z-50 flex items-center gap-2 px-4 py-2 rounded-full border transition-all shadow-2xl active:scale-95 " + (isConsoleOpen ? "bg-purple-600/90 border-purple-400 text-white shadow-purple-500/25" : "bg-black/60 border-white/20 text-white/90 backdrop-blur-2xl hover:bg-black/80"),
+        style: {
+          bottom: isConsoleOpen ? 'max(216px, calc(env(safe-area-inset-bottom, 20px) + 200px))' : 'max(24px, env(safe-area-inset-bottom, 24px))',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          transition: 'all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+        },
+        children: [
+          (0, P.jsx)('span', { className: "text-sm", children: "🎮" }),
+          (0, P.jsx)('span', { className: "text-xs font-semibold tracking-wide", children: isConsoleOpen ? "收起控制台" : "动作控制台" }),
+          (0, P.jsx)('span', { className: "text-[10px] px-1.5 py-0.5 rounded-md bg-white/20 text-white/90 font-mono font-medium uppercase", children: currentActionName })
+        ]
+      }),
+
+      // Floating Action Console Panel
+      isConsoleOpen ? (
+        (0, P.jsxs)('div', {
+          className: "pet-console-drawer absolute bottom-0 left-0 right-0 z-40 flex flex-col p-4 pb-7 rounded-t-[32px] border-t border-white/20 bg-[#0e0c18]/90 backdrop-blur-3xl shadow-[0_-20px_50px_rgba(0,0,0,0.7)] animate-slideUp",
+          style: {
+            paddingBottom: 'max(28px, calc(env(safe-area-inset-bottom, 20px) + 12px))'
+          },
+          children: [
+            (0, P.jsxs)('div', {
+              className: "flex items-center justify-between px-2 mb-3",
+              children: [
+                (0, P.jsxs)('div', {
+                  className: "flex items-center gap-1.5",
+                  children: [
+                    (0, P.jsx)('span', { className: "text-xs text-white/60 font-medium", children: "当前状态:" }),
+                    (0, P.jsx)('span', { className: "text-xs font-bold text-purple-300 font-mono", children: currentActionName.toUpperCase() })
+                  ]
+                }),
+                (0, P.jsx)('span', { className: "text-[11px] text-white/40", children: "共 16 种动作" })
+              ]
+            }),
+            (0, P.jsx)('div', {
+              className: "grid grid-cols-4 gap-2 max-h-[175px] overflow-y-auto px-1 py-1 no-scrollbar",
+              style: {
+                WebkitOverflowScrolling: 'touch'
+              },
+              children: ACTION_CATALOG.map(function(act) {
+                var isActive = currentActionName === act.id;
+                return (0, P.jsxs)('button', {
+                  key: act.id,
+                  type: "button",
+                  onClick: function() {
+                    if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+                    playSemanticAction(act.id);
+                  },
+                  className: "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 " + (isActive ? "bg-purple-600/40 border-purple-400 text-white shadow-lg shadow-purple-600/30 scale-[1.02]" : "bg-white/5 border-white/10 hover:bg-white/10 text-white/80"),
+                  children: [
+                    (0, P.jsx)('span', { className: "text-lg mb-1 leading-none", children: act.emoji }),
+                    (0, P.jsx)('span', { className: "text-[11px] font-semibold truncate w-full text-center leading-tight", children: act.label.split(' ')[0] })
+                  ]
+                });
+              })
+            })
+          ]
+        })
+      ) : null
     ]
   });
 };
+
 
 
 
