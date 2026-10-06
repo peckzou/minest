@@ -41718,6 +41718,7 @@ var PetMode = function(props) {
 
     var mixer = null;
     var clock = new window.THREE.Clock();
+    var tentacleChains = []; // 8 tentacle bone hierarchies for procedural realistic kinetics
 
     function renderLoop() {
       if (isDisposed) return;
@@ -41725,6 +41726,40 @@ var PetMode = function(props) {
       var delta = clock.getDelta();
       var elapsedTime = clock.getElapsedTime();
       if (mixer) mixer.update(delta);
+
+      // Procedural Organic Tentacle Kinetics (Amplified, natural ocean undulation & swim flare)
+      if (tentacleChains.length > 0) {
+        var isMoving = isSwimmingRef.current || (modelGroupRef.current && (Math.hypot(targetPositionRef.current.x - positionOffsetRef.current.x, targetPositionRef.current.y - positionOffsetRef.current.y) > 0.02));
+        var swimBoost = isMoving ? 1.85 : 1.0;
+        var waveSpeed = isMoving ? 3.6 : 2.2;
+
+        for (var tc = 0; tc < tentacleChains.length; tc++) {
+          var chain = tentacleChains[tc];
+          var tentAngleOffset = (tc / tentacleChains.length) * Math.PI * 2.0;
+
+          // Propagate organic wave down tentacle from base to tip
+          for (var bj = 1; bj < chain.length; bj++) {
+            var bone = chain[bj];
+            var depthRatio = bj / chain.length; // 0.0 at base to 1.0 at tip
+            var phaseDelay = bj * 0.38;
+
+            // Multi-harmonic sine waves simulating genuine invertebrate ocean locomotion
+            var mainWave = Math.sin(elapsedTime * waveSpeed - tentAngleOffset - phaseDelay);
+            var crossWave = Math.cos(elapsedTime * (waveSpeed * 0.75) + tentAngleOffset * 0.5 - phaseDelay * 0.8);
+            var flutter = Math.sin(elapsedTime * 5.2 - phaseDelay * 1.5) * 0.15;
+
+            // Cumulative organic amplitude: tips wave much more dynamically than roots
+            var waveAmpX = (0.05 + depthRatio * 0.22) * swimBoost;
+            var waveAmpZ = (0.04 + depthRatio * 0.18) * swimBoost;
+
+            // Inward curl & outward parachute flare when swimming vs idling
+            var flareImpulse = isMoving ? Math.sin(elapsedTime * 4.0 - phaseDelay) * (depthRatio * 0.25) : 0;
+
+            bone.rotation.x += (mainWave * waveAmpX + flareImpulse);
+            bone.rotation.z += (crossWave * waveAmpZ + flutter * waveAmpZ);
+          }
+        }
+      }
 
       // Animate Underwater 3D Dynamic Background
       if (isUnderwaterEnv) {
@@ -41895,6 +41930,26 @@ var PetMode = function(props) {
               actionsMapRef.current[clip.name] = mixer.clipAction(clip);
             });
             playSemanticAction('idle');
+          }
+
+          // Discover and index all 8 tentacle bone chains for organic dynamic physics
+          tentacleChains = [];
+          for (var ti = 0; ti < 8; ti++) {
+            var tBones = [];
+            model.traverse(function(node) {
+              if (node.isBone && node.name && node.name.indexOf('tentacle_' + ti + '_') === 0) {
+                tBones.push(node);
+              }
+            });
+            // Sort from base (0) to tip (11 or 13)
+            tBones.sort(function(a, b) {
+              var na = parseInt(a.name.split('_')[2]) || 0;
+              var nb = parseInt(b.name.split('_')[2]) || 0;
+              return na - nb;
+            });
+            if (tBones.length > 0) {
+              tentacleChains.push(tBones);
+            }
           }
         },
         undefined,
