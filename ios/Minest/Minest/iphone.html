@@ -40678,11 +40678,7 @@ var Be = function() {
         onClose: function() { setIsStatsOpen(false); }
       }) : null,
 
-      // Full-Screen Pet Mode (Octopus GLB + Idle loop)
-      isPetModeOpen ? (0, P.jsx)(PetMode, {
-        isOpen: isPetModeOpen,
-        onClose: function() { setIsPetModeOpen(false); }
-      }) : null,
+      // Full-Screen Pet Mode (rendered at top-level below when isPetModeOpen is true)
 
       // Activity 3-Ring & Digital Badges Modal
       isBadgesModalOpen ? (0, P.jsx)(ActivityBadgesModal, {
@@ -41491,187 +41487,199 @@ var PetMode = function(props) {
   };
 
   var handleToggleVoiceCall = function() {
-    if (isVoiceActive) {
-      // Stop voice session
-      handleVoiceBargeIn();
-      if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch(e) {}
-        recognitionRef.current = null;
-      }
-      if (webAudioMicRef.current) {
-        try {
-          if (webAudioMicRef.current.stream) {
-            webAudioMicRef.current.stream.getTracks().forEach(function(t) { t.stop(); });
-          }
-          if (webAudioMicRef.current.ctx) {
-            webAudioMicRef.current.ctx.close();
-          }
-        } catch(e) {}
-        webAudioMicRef.current = null;
-      }
-      setIsVoiceActive(false);
-      setVoiceStage('idle');
-      playSemanticAction('idle');
-      if (typeof MinestNative !== 'undefined' && MinestNative.haptic) MinestNative.haptic('light');
-      else if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-      return;
-    }
-
-    // Start voice session
-    setIsVoiceActive(true);
-    setVoiceStage('listening');
-    setConvoUser('');
-    setConvoReply('');
-    if (typeof MinestNative !== 'undefined' && MinestNative.haptic) MinestNative.haptic('medium');
-    else if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
-    playSemanticAction('look');
-
-    if ('speechSynthesis' in window) {
-      try { window.speechSynthesis.resume(); } catch(e) {}
-    }
-
-    // Pipeline 1: Web Speech API (continuous bilingual STT)
-    var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    var recognitionStarted = false;
-    if (SpeechRec) {
-      try {
-        var rec = new SpeechRec();
-        rec.continuous = true;
-        rec.interimResults = true;
-        rec.lang = 'zh-CN';
-
-        var accumulatedFinal = '';
-        var silenceTimer = null;
-
-        rec.onstart = function() {
-          recognitionStarted = true;
-          setVoiceStage('listening');
-          playSemanticAction('idle');
-        };
-
-        rec.onresult = function(event) {
-          var interim = '';
-          for (var i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              accumulatedFinal += event.results[i][0].transcript;
-            } else {
-              interim += event.results[i][0].transcript;
-            }
-          }
-
-          var currentSpoken = (accumulatedFinal + ' ' + interim).trim();
-
-          // Barge-in: if AI is speaking and user speaks again, interrupt immediately
-          if (isPlayingQueueRef.current && currentSpoken.length > 1) {
-            handleVoiceBargeIn();
-            setVoiceStage('listening');
-          }
-
-          if (currentSpoken.length > 0) {
-            setConvoUser(currentSpoken);
-            setVoiceStage('listening');
-          }
-
-          clearTimeout(silenceTimer);
-          if (currentSpoken.length > 0) {
-            var waitMs = currentSpoken.length > 6 ? 480 : 550;
-            silenceTimer = setTimeout(function() {
-              if (currentSpoken.length >= 1) {
-                accumulatedFinal = '';
-                executeVoiceStreamQuery(currentSpoken);
-              }
-            }, waitMs);
-          }
-        };
-
-        rec.onerror = function(e) {
-          if (e && e.error !== 'no-speech') {
-            console.warn('STT note:', e.error);
-          }
-        };
-
-        rec.onend = function() {
-          if (isVoiceActiveRef.current) {
-            try { rec.start(); } catch(e) {}
-          }
-        };
-
-        rec.start();
-        recognitionRef.current = rec;
-      } catch(e) {
-        console.warn('SpeechRecognition start failed, fallback to WebAudio VAD', e);
-      }
-    }
-
-    // Pipeline 2: iOS WebAudio API Mic Stream & Energy VAD Fallback
-    // In WKWebView where Web Speech API is absent or restricted, WebAudio getUserMedia provides guaranteed real-time voice detection
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) {
-        var aCtx = new AC();
-        if (aCtx.state === 'suspended') {
-          aCtx.resume();
+    try {
+      if (isVoiceActive) {
+        // Stop voice session
+        handleVoiceBargeIn();
+        if (recognitionRef.current) {
+          try { recognitionRef.current.abort(); } catch(e) {}
+          recognitionRef.current = null;
         }
-        navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
-          .then(function(stream) {
-            if (!isVoiceActiveRef.current) {
-              stream.getTracks().forEach(function(t) { t.stop(); });
-              aCtx.close();
-              return;
+        if (webAudioMicRef.current) {
+          try {
+            if (webAudioMicRef.current.stream) {
+              webAudioMicRef.current.stream.getTracks().forEach(function(t) { t.stop(); });
             }
-            var src = aCtx.createMediaStreamSource(stream);
-            var analyser = aCtx.createAnalyser();
-            analyser.fftSize = 256;
-            analyser.smoothingTimeConstant = 0.6;
-            src.connect(analyser);
+            if (webAudioMicRef.current.ctx) {
+              webAudioMicRef.current.ctx.close();
+            }
+          } catch(e) {}
+          webAudioMicRef.current = null;
+        }
+        setIsVoiceActive(false);
+        setVoiceStage('idle');
+        playSemanticAction('idle');
+        if (typeof MinestNative !== 'undefined' && MinestNative.haptic) MinestNative.haptic('light');
+        else if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+        return;
+      }
 
-            webAudioMicRef.current = { stream: stream, ctx: aCtx, analyser: analyser };
-            var freqData = new Uint8Array(analyser.frequencyBinCount);
+      // Start voice session
+      setIsVoiceActive(true);
+      setVoiceStage('listening');
+      setConvoUser('');
+      setConvoReply('');
+      if (typeof MinestNative !== 'undefined' && MinestNative.haptic) MinestNative.haptic('medium');
+      else if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
+      playSemanticAction('look');
 
-            var vadSpeaking = false;
-            var vadSilenceCounter = 0;
-            var vadPromptCandidates = [
-              "你好呀小章鱼！你在游水吗？",
-              "看看我的敏捷卡片今天完成度怎么样？",
-              "今天我们一起做个新任务吧！",
-              "小章鱼，游慢一点，我想摸摸你的触手。"
-            ];
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.resume(); } catch(e) {}
+      }
 
-            var monitorLoop = function() {
-              if (!isVoiceActiveRef.current || !webAudioMicRef.current) return;
-              analyser.getByteFrequencyData(freqData);
-              var sum = 0;
-              for (var fi = 0; fi < freqData.length; fi++) sum += freqData[fi];
-              var avgVolume = sum / freqData.length;
+      // Pipeline 1: Web Speech API (continuous bilingual STT)
+      var recognitionStarted = false;
+      var SpeechRec = (typeof window !== 'undefined') ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+      if (SpeechRec) {
+        try {
+          var rec = new SpeechRec();
+          rec.continuous = true;
+          rec.interimResults = true;
+          rec.lang = 'zh-CN';
 
-              // If Web Speech API is not picking up transcripts, energy VAD triggers interaction
-              if (!recognitionStarted && !isPlayingQueueRef.current) {
-                if (avgVolume > 24) {
-                  if (!vadSpeaking) {
-                    vadSpeaking = true;
-                    setVoiceStage('listening');
-                    setConvoUser("🎤 (倾听您的声音...)");
-                  }
-                  vadSilenceCounter = 0;
-                } else if (vadSpeaking) {
-                  vadSilenceCounter++;
-                  if (vadSilenceCounter > 28) { // ~500ms of silence after speaking
-                    vadSpeaking = false;
-                    vadSilenceCounter = 0;
-                    var picked = vadPromptCandidates[Math.floor(Math.random() * vadPromptCandidates.length)];
-                    executeVoiceStreamQuery(picked);
-                  }
+          var accumulatedFinal = '';
+          var silenceTimer = null;
+
+          rec.onstart = function() {
+            recognitionStarted = true;
+            setVoiceStage('listening');
+            playSemanticAction('idle');
+          };
+
+          rec.onresult = function(event) {
+            try {
+              var interim = '';
+              for (var i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                  accumulatedFinal += event.results[i][0].transcript;
+                } else {
+                  interim += event.results[i][0].transcript;
                 }
               }
 
-              requestAnimationFrame(monitorLoop);
-            };
-            requestAnimationFrame(monitorLoop);
-          })
-          .catch(function(err) {
-            console.warn('WebAudio mic access note:', err);
-          });
+              var currentSpoken = (accumulatedFinal + ' ' + interim).trim();
+
+              // Barge-in: if AI is speaking and user speaks again, interrupt immediately
+              if (isPlayingQueueRef.current && currentSpoken.length > 1) {
+                handleVoiceBargeIn();
+                setVoiceStage('listening');
+              }
+
+              if (currentSpoken.length > 0) {
+                setConvoUser(currentSpoken);
+                setVoiceStage('listening');
+              }
+
+              clearTimeout(silenceTimer);
+              if (currentSpoken.length > 0) {
+                var waitMs = currentSpoken.length > 6 ? 480 : 550;
+                silenceTimer = setTimeout(function() {
+                  if (currentSpoken.length >= 1) {
+                    accumulatedFinal = '';
+                    executeVoiceStreamQuery(currentSpoken);
+                  }
+                }, waitMs);
+              }
+            } catch(re) {
+              console.warn('STT onresult err:', re);
+            }
+          };
+
+          rec.onerror = function(e) {
+            if (e && e.error !== 'no-speech') {
+              console.warn('STT note:', e.error);
+            }
+          };
+
+          rec.onend = function() {
+            if (isVoiceActiveRef.current) {
+              try { rec.start(); } catch(e) {}
+            }
+          };
+
+          rec.start();
+          recognitionRef.current = rec;
+        } catch(e) {
+          console.warn('SpeechRecognition start failed, fallback to WebAudio VAD', e);
+        }
       }
+
+      // Pipeline 2: iOS WebAudio API Mic Stream & Energy VAD Fallback
+      // In WKWebView where Web Speech API is absent or restricted, WebAudio getUserMedia provides guaranteed real-time voice detection
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) {
+            var aCtx = new AC();
+            if (aCtx.state === 'suspended') {
+              aCtx.resume();
+            }
+            navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } })
+              .then(function(stream) {
+                if (!isVoiceActiveRef.current) {
+                  stream.getTracks().forEach(function(t) { t.stop(); });
+                  try { aCtx.close(); } catch(e) {}
+                  return;
+                }
+                var src = aCtx.createMediaStreamSource(stream);
+                var analyser = aCtx.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.6;
+                src.connect(analyser);
+
+                webAudioMicRef.current = { stream: stream, ctx: aCtx, analyser: analyser };
+                var freqData = new Uint8Array(analyser.frequencyBinCount);
+
+                var vadSpeaking = false;
+                var vadSilenceCounter = 0;
+                var vadPromptCandidates = [
+                  "你好呀小章鱼！你在游水吗？",
+                  "看看我的敏捷卡片今天完成度怎么样？",
+                  "今天我们一起做个新任务吧！",
+                  "小章鱼，游慢一点，我想摸摸你的触手。"
+                ];
+
+                var monitorLoop = function() {
+                  if (!isVoiceActiveRef.current || !webAudioMicRef.current) return;
+                  analyser.getByteFrequencyData(freqData);
+                  var sum = 0;
+                  for (var fi = 0; fi < freqData.length; fi++) sum += freqData[fi];
+                  var avgVolume = sum / freqData.length;
+
+                  // If Web Speech API is not picking up transcripts, energy VAD triggers interaction
+                  if (!recognitionStarted && !isPlayingQueueRef.current) {
+                    if (avgVolume > 24) {
+                      if (!vadSpeaking) {
+                        vadSpeaking = true;
+                        setVoiceStage('listening');
+                        setConvoUser("🎤 (倾听您的声音...)");
+                      }
+                      vadSilenceCounter = 0;
+                    } else if (vadSpeaking) {
+                      vadSilenceCounter++;
+                      if (vadSilenceCounter > 28) { // ~500ms of silence after speaking
+                        vadSpeaking = false;
+                        vadSilenceCounter = 0;
+                        var picked = vadPromptCandidates[Math.floor(Math.random() * vadPromptCandidates.length)];
+                        executeVoiceStreamQuery(picked);
+                      }
+                    }
+                  }
+
+                  requestAnimationFrame(monitorLoop);
+                };
+                requestAnimationFrame(monitorLoop);
+              })
+              .catch(function(err) {
+                console.warn('WebAudio mic access note:', err);
+              });
+          }
+        } catch(audioErr) {
+          console.warn('WebAudio init error:', audioErr);
+        }
+      }
+    } catch(globalVoiceErr) {
+      console.error('handleToggleVoiceCall error caught safely:', globalVoiceErr);
     }
   };
 
@@ -41842,7 +41850,8 @@ var PetMode = function(props) {
         prevPointerRef.current = { x: t.clientX, y: t.clientY };
         isDraggingRef.current = true;
         rotationVelocityRef.current = { x: 0, y: 0 };
-        isEdgeSwipe = startX > window.innerWidth - 45;
+        // Only consider edge swipe if touch started near the right edge, in the middle-top area (not near bottom controls)
+        isEdgeSwipe = (startX > window.innerWidth - 30) && (startY < window.innerHeight - 180) && (startY > 100);
       }
     };
 
@@ -41874,9 +41883,10 @@ var PetMode = function(props) {
         var deltaY = t.clientY - prevPointerRef.current.y;
         prevPointerRef.current = { x: t.clientX, y: t.clientY };
 
-        // 屏幕最右边缘滑动退出
-        if (isEdgeSwipe && (startX - t.clientX > 50) && Math.abs(t.clientY - startY) < 60) {
+        // 屏幕最右边缘滑动退出 (严格限制手势，避免误退出)
+        if (isEdgeSwipe && (startX - t.clientX > 70) && Math.abs(t.clientY - startY) < 45) {
           isDraggingRef.current = false;
+          isEdgeSwipe = false;
           handleExit();
           return;
         }
@@ -42959,14 +42969,17 @@ var PetMode = function(props) {
           maxWidth: 'min(330px, calc(100vw - 32px))',
           touchAction: 'manipulation'
         },
-        onTouchStart: function(e) { e.stopPropagation(); },
-        onTouchEnd: function(e) { e.stopPropagation(); },
+        onTouchStart: function(e) { if (e) { e.stopPropagation(); } },
+        onTouchMove: function(e) { if (e) { e.stopPropagation(); } },
+        onTouchEnd: function(e) { if (e) { e.stopPropagation(); } },
         children: [
           // Voice Platform Route A (LiveKit) Button
           (0, P.jsxs)('button', {
             type: "button",
-            onClick: function(e) { e.stopPropagation(); handleToggleVoiceRoute('A'); },
-            onTouchEnd: function(e) { e.stopPropagation(); handleToggleVoiceRoute('A'); },
+            onClick: function(e) {
+              if (e) { e.preventDefault(); e.stopPropagation(); }
+              handleToggleVoiceRoute('A');
+            },
             className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer " + (
               voiceRoute === 'A'
                 ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30 scale-105"
@@ -42982,8 +42995,10 @@ var PetMode = function(props) {
           // Voice Platform Route B (Direct) Button
           (0, P.jsxs)('button', {
             type: "button",
-            onClick: function(e) { e.stopPropagation(); handleToggleVoiceRoute('B'); },
-            onTouchEnd: function(e) { e.stopPropagation(); handleToggleVoiceRoute('B'); },
+            onClick: function(e) {
+              if (e) { e.preventDefault(); e.stopPropagation(); }
+              handleToggleVoiceRoute('B');
+            },
             className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer " + (
               voiceRoute === 'B'
                 ? "bg-gradient-to-r from-sky-600 to-cyan-600 text-white shadow-md shadow-sky-500/30 scale-105"
@@ -43002,8 +43017,10 @@ var PetMode = function(props) {
           // Microphone Connect / Talk Toggle Button
           (0, P.jsxs)('button', {
             type: "button",
-            onClick: function(e) { e.stopPropagation(); handleToggleVoiceCall(); },
-            onTouchEnd: function(e) { e.stopPropagation(); handleToggleVoiceCall(); },
+            onClick: function(e) {
+              if (e) { e.preventDefault(); e.stopPropagation(); }
+              handleToggleVoiceCall();
+            },
             className: "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all active:scale-95 cursor-pointer " + (
               isVoiceActive
                 ? "bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/40"
