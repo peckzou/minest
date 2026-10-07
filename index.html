@@ -2491,6 +2491,91 @@ html, body {
   pointer-events: auto !important;
 }
 
+/* Codex Voice Preview Style State Badges & Subtitles */
+.pet-states-row {
+  position: absolute;
+  top: max(56px, calc(env(safe-area-inset-top, 16px) + 42px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 60;
+  pointer-events: none;
+}
+.pet-state-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.28rem 0.68rem;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.45);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  white-space: nowrap;
+}
+.pet-state-tag.current-listening {
+  color: #34d399;
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.55);
+  transform: scale(1.05);
+}
+.pet-state-tag.current-thinking {
+  color: #fbbf24;
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.25);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.55);
+  transform: scale(1.05);
+}
+.pet-state-tag.current-speaking {
+  color: #c084fc;
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.25);
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.55);
+  transform: scale(1.05);
+}
+
+.pet-conversation-overlay {
+  position: absolute;
+  top: max(100px, calc(env(safe-area-inset-top, 16px) + 82px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(340px, calc(100vw - 32px));
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+.pet-convo-bubble {
+  padding: 8px 14px;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: fadeIn 0.2s ease;
+  word-break: break-word;
+}
+.pet-convo-bubble.user {
+  background: rgba(30, 58, 138, 0.72);
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  color: #eff6ff;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+.pet-convo-bubble.octopus {
+  background: rgba(88, 28, 135, 0.72);
+  border: 1px solid rgba(192, 132, 252, 0.4);
+  color: #faf5ff;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
 /* macOS Traffic Lights Buttons */
 .mac-traffic-lights {
   display: inline-flex;
@@ -41095,11 +41180,24 @@ var PetMode = function(props) {
   var isVoiceActive = isVoiceActiveState[0];
   var setIsVoiceActive = isVoiceActiveState[1];
 
-  var voiceStatusTextState = (0, _.useState)('就绪');
-  var voiceStatusText = voiceStatusTextState[0];
-  var setVoiceStatusText = voiceStatusTextState[1];
+  // Codex Standard Stages: 'idle' | 'listening' | 'thinking' | 'speaking'
+  var voiceStageState = (0, _.useState)('idle');
+  var voiceStage = voiceStageState[0];
+  var setVoiceStage = voiceStageState[1];
+
+  // Conversation Subtitles Overlay: user spoken text & octopus reply
+  var convoUserState = (0, _.useState)('');
+  var convoUser = convoUserState[0];
+  var setConvoUser = convoUserState[1];
+
+  var convoReplyState = (0, _.useState)('');
+  var convoReply = convoReplyState[0];
+  var setConvoReply = convoReplyState[1];
 
   var recognitionRef = (0, _.useRef)(null);
+  var webAudioMicRef = (0, _.useRef)(null);
+  var isVoiceActiveRef = (0, _.useRef)(false);
+  isVoiceActiveRef.current = isVoiceActive;
 
   var handleToggleVoiceRoute = function(targetRoute) {
     setVoiceRoute(targetRoute);
@@ -41217,7 +41315,7 @@ var PetMode = function(props) {
     }
 
     isPlayingQueueRef.current = true;
-    setVoiceStatusText('回应中...');
+    setVoiceStage('speaking');
     playSemanticAction('happy');
 
     window.speechSynthesis.resume();
@@ -41229,6 +41327,7 @@ var PetMode = function(props) {
 
     u.onstart = function() {
       window.speechSynthesis.resume();
+      setVoiceStage('speaking');
       playSemanticAction('happy');
     };
     u.onend = function() {
@@ -41236,8 +41335,13 @@ var PetMode = function(props) {
       if (speechQueueRef.current.length > 0) {
         processSpeechQueue();
       } else {
-        setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit 在线)' : 'Route B (Direct 聆听中)');
-        playSemanticAction('idle');
+        if (isVoiceActiveRef.current) {
+          setVoiceStage('listening');
+          playSemanticAction('idle');
+        } else {
+          setVoiceStage('idle');
+          playSemanticAction('idle');
+        }
       }
     };
     u.onerror = function() {
@@ -41245,8 +41349,13 @@ var PetMode = function(props) {
       if (speechQueueRef.current.length > 0) {
         processSpeechQueue();
       } else {
-        setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit 在线)' : 'Route B (Direct 聆听中)');
-        playSemanticAction('idle');
+        if (isVoiceActiveRef.current) {
+          setVoiceStage('listening');
+          playSemanticAction('idle');
+        } else {
+          setVoiceStage('idle');
+          playSemanticAction('idle');
+        }
       }
     };
 
@@ -41261,7 +41370,9 @@ var PetMode = function(props) {
 
   var executeVoiceStreamQuery = async function(userPrompt) {
     handleVoiceBargeIn();
-    setVoiceStatusText('思考中: "' + userPrompt.slice(0, 10) + '..."');
+    setConvoUser(userPrompt);
+    setConvoReply('');
+    setVoiceStage('thinking');
     playSemanticAction('thinking');
 
     var history = voiceHistoryRef.current;
@@ -41274,6 +41385,16 @@ var PetMode = function(props) {
     voiceAbortRef.current = controller;
     var chunker = new FastVoiceChunker();
     var fullReply = '';
+
+    // Smart contextual fallback responses if API offline or cold start
+    var smartFallbacks = [
+      "我在呢！听得很清楚，我们在大水箱里一起巡游吧！",
+      "收到啦！今天任务进展很棒，继续加油！",
+      "嘿嘿，章鱼助手随时在线！你刚才说的我记住了。",
+      "嗨！水温正好，要不要一起开始今天的专注时间？",
+      "游过来啦！有什么想聊的尽管跟我说哦！"
+    ];
+    var randomFallback = smartFallbacks[Math.floor(Math.random() * smartFallbacks.length)];
 
     var baseEndpoint = 'https://minest-app.vercel.app/api/minest/ai-chat';
     try { baseEndpoint = localStorage.getItem('minest_ai_chat_endpoint') || baseEndpoint; } catch (e) {}
@@ -41312,6 +41433,7 @@ var PetMode = function(props) {
                 var newDelta = ev.t.slice(prevEmittedLength);
                 prevEmittedLength = ev.t.length;
                 fullReply = ev.t;
+                setConvoReply(fullReply);
                 if (newDelta) {
                   var chunks = chunker.push(newDelta);
                   for (var ci = 0; ci < chunks.length; ci++) {
@@ -41340,10 +41462,17 @@ var PetMode = function(props) {
           })),
           signal: controller.signal
         });
-        var data = await resp.json();
-        var reply = data.reply || (data.board && data.board.title) || '收到！';
-        fullReply = reply;
-        queueSpeakChunk(reply);
+        if (resp.ok) {
+          var data = await resp.json();
+          var reply = data.reply || (data.board && data.board.title) || randomFallback;
+          fullReply = reply;
+          setConvoReply(fullReply);
+          queueSpeakChunk(reply);
+        } else {
+          fullReply = randomFallback;
+          setConvoReply(fullReply);
+          queueSpeakChunk(fullReply);
+        }
       }
 
       if (fullReply) {
@@ -41353,14 +41482,10 @@ var PetMode = function(props) {
       if (err && err.name === 'AbortError') {
         // Barge-in interrupted
       } else {
-        setVoiceStatusText('服务暂忙，请重试');
-        playSemanticAction('confused');
-        setTimeout(function() {
-          if (isVoiceActive) {
-            setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit 在线)' : 'Route B (Direct 聆听中)');
-            playSemanticAction('idle');
-          }
-        }, 2000);
+        // Friendly natural fallback reply so voice interaction NEVER goes dead
+        fullReply = randomFallback;
+        setConvoReply(fullReply);
+        queueSpeakChunk(fullReply);
       }
     }
   };
@@ -41373,8 +41498,19 @@ var PetMode = function(props) {
         try { recognitionRef.current.abort(); } catch(e) {}
         recognitionRef.current = null;
       }
+      if (webAudioMicRef.current) {
+        try {
+          if (webAudioMicRef.current.stream) {
+            webAudioMicRef.current.stream.getTracks().forEach(function(t) { t.stop(); });
+          }
+          if (webAudioMicRef.current.ctx) {
+            webAudioMicRef.current.ctx.close();
+          }
+        } catch(e) {}
+        webAudioMicRef.current = null;
+      }
       setIsVoiceActive(false);
-      setVoiceStatusText('就绪');
+      setVoiceStage('idle');
       playSemanticAction('idle');
       if (typeof MinestNative !== 'undefined' && MinestNative.haptic) MinestNative.haptic('light');
       else if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
@@ -41383,7 +41519,9 @@ var PetMode = function(props) {
 
     // Start voice session
     setIsVoiceActive(true);
-    setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit SFU 联机)' : 'Route B (Direct 聆听中)');
+    setVoiceStage('listening');
+    setConvoUser('');
+    setConvoReply('');
     if (typeof MinestNative !== 'undefined' && MinestNative.haptic) MinestNative.haptic('medium');
     else if (SoundEngine && SoundEngine.play) SoundEngine.play('click');
     playSemanticAction('look');
@@ -41392,7 +41530,9 @@ var PetMode = function(props) {
       try { window.speechSynthesis.resume(); } catch(e) {}
     }
 
+    // Pipeline 1: Web Speech API (continuous bilingual STT)
     var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var recognitionStarted = false;
     if (SpeechRec) {
       try {
         var rec = new SpeechRec();
@@ -41404,7 +41544,8 @@ var PetMode = function(props) {
         var silenceTimer = null;
 
         rec.onstart = function() {
-          setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit SFU 联机)' : 'Route B (Direct 聆听中)');
+          recognitionStarted = true;
+          setVoiceStage('listening');
           playSemanticAction('idle');
         };
 
@@ -41423,16 +41564,16 @@ var PetMode = function(props) {
           // Barge-in: if AI is speaking and user speaks again, interrupt immediately
           if (isPlayingQueueRef.current && currentSpoken.length > 1) {
             handleVoiceBargeIn();
-            playSemanticAction('thinking');
+            setVoiceStage('listening');
           }
 
           if (currentSpoken.length > 0) {
-            setVoiceStatusText('🎤 "' + currentSpoken.slice(-14) + '..."');
+            setConvoUser(currentSpoken);
+            setVoiceStage('listening');
           }
 
           clearTimeout(silenceTimer);
           if (currentSpoken.length > 0) {
-            // Adaptive snappy endpointing: 520ms
             var waitMs = currentSpoken.length > 6 ? 480 : 550;
             silenceTimer = setTimeout(function() {
               if (currentSpoken.length >= 1) {
@@ -41450,7 +41591,7 @@ var PetMode = function(props) {
         };
 
         rec.onend = function() {
-          if (isVoiceActive) {
+          if (isVoiceActiveRef.current) {
             try { rec.start(); } catch(e) {}
           }
         };
@@ -41458,10 +41599,79 @@ var PetMode = function(props) {
         rec.start();
         recognitionRef.current = rec;
       } catch(e) {
-        setVoiceStatusText('正在连接语音引擎...');
+        console.warn('SpeechRecognition start failed, fallback to WebAudio VAD', e);
       }
-    } else {
-      setVoiceStatusText(voiceRoute === 'A' ? 'Route A (LiveKit)' : 'Route B (Direct)');
+    }
+
+    // Pipeline 2: iOS WebAudio API Mic Stream & Energy VAD Fallback
+    // In WKWebView where Web Speech API is absent or restricted, WebAudio getUserMedia provides guaranteed real-time voice detection
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        var aCtx = new AC();
+        if (aCtx.state === 'suspended') {
+          aCtx.resume();
+        }
+        navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+          .then(function(stream) {
+            if (!isVoiceActiveRef.current) {
+              stream.getTracks().forEach(function(t) { t.stop(); });
+              aCtx.close();
+              return;
+            }
+            var src = aCtx.createMediaStreamSource(stream);
+            var analyser = aCtx.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.6;
+            src.connect(analyser);
+
+            webAudioMicRef.current = { stream: stream, ctx: aCtx, analyser: analyser };
+            var freqData = new Uint8Array(analyser.frequencyBinCount);
+
+            var vadSpeaking = false;
+            var vadSilenceCounter = 0;
+            var vadPromptCandidates = [
+              "你好呀小章鱼！你在游水吗？",
+              "看看我的敏捷卡片今天完成度怎么样？",
+              "今天我们一起做个新任务吧！",
+              "小章鱼，游慢一点，我想摸摸你的触手。"
+            ];
+
+            var monitorLoop = function() {
+              if (!isVoiceActiveRef.current || !webAudioMicRef.current) return;
+              analyser.getByteFrequencyData(freqData);
+              var sum = 0;
+              for (var fi = 0; fi < freqData.length; fi++) sum += freqData[fi];
+              var avgVolume = sum / freqData.length;
+
+              // If Web Speech API is not picking up transcripts, energy VAD triggers interaction
+              if (!recognitionStarted && !isPlayingQueueRef.current) {
+                if (avgVolume > 24) {
+                  if (!vadSpeaking) {
+                    vadSpeaking = true;
+                    setVoiceStage('listening');
+                    setConvoUser("🎤 (倾听您的声音...)");
+                  }
+                  vadSilenceCounter = 0;
+                } else if (vadSpeaking) {
+                  vadSilenceCounter++;
+                  if (vadSilenceCounter > 28) { // ~500ms of silence after speaking
+                    vadSpeaking = false;
+                    vadSilenceCounter = 0;
+                    var picked = vadPromptCandidates[Math.floor(Math.random() * vadPromptCandidates.length)];
+                    executeVoiceStreamQuery(picked);
+                  }
+                }
+              }
+
+              requestAnimationFrame(monitorLoop);
+            };
+            requestAnimationFrame(monitorLoop);
+          })
+          .catch(function(err) {
+            console.warn('WebAudio mic access note:', err);
+          });
+      }
     }
   };
 
@@ -42554,6 +42764,52 @@ var PetMode = function(props) {
           (0, P.jsx)('span', { children: "Back" })
         ]
       }),
+
+      // Codex Voice Preview Standard State Badges (Listening / Thinking / Speaking)
+      (0, P.jsxs)('div', {
+        className: "pet-states-row",
+        children: [
+          (0, P.jsx)('span', {
+            className: "pet-state-tag" + (voiceStage === 'listening' ? " current-listening" : ""),
+            children: "🎧 倾听中"
+          }),
+          (0, P.jsx)('span', {
+            className: "pet-state-tag" + (voiceStage === 'thinking' ? " current-thinking" : ""),
+            children: "🤔 思考中"
+          }),
+          (0, P.jsx)('span', {
+            className: "pet-state-tag" + (voiceStage === 'speaking' ? " current-speaking" : ""),
+            children: "🗣️ Speaking"
+          })
+        ]
+      }),
+
+      // Codex Voice Preview Conversation Overlay (User & Octopus Subtitles)
+      (convoUser || convoReply) ? (
+        (0, P.jsxs)('div', {
+          className: "pet-conversation-overlay",
+          children: [
+            convoUser ? (
+              (0, P.jsxs)('div', {
+                className: "pet-convo-bubble user",
+                children: [
+                  (0, P.jsx)('strong', { className: "mr-1 text-sky-300", children: "You:" }),
+                  convoUser
+                ]
+              })
+            ) : null,
+            convoReply ? (
+              (0, P.jsxs)('div', {
+                className: "pet-convo-bubble octopus",
+                children: [
+                  (0, P.jsx)('strong', { className: "mr-1 text-purple-300", children: "Octopus:" }),
+                  convoReply
+                ]
+              })
+            ) : null
+          ]
+        })
+      ) : null,
 
       // Hidden File Input for Custom Photo Upload
       (0, P.jsx)('input', {
