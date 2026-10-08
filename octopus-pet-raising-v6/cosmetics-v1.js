@@ -115,25 +115,50 @@
     if (item.slot === 'head') group.position.z = .32;
     if (item.slot === 'neck') group.position.z = .28;
     if (id === 'headphones') {
-      // Reference shape: one continuous over-head band plus two front-facing
-      // circular ear cups with a smaller padded inner disc.
-      var band = new THREE.Mesh(new THREE.TorusGeometry(.31, .035, 12, 32, Math.PI), material);
-      band.position.set(0, .38, -.08); group.add(band);
-      var padMaterial = makeMaterial(THREE, 0xcbbcf0, .5, .02);
-      [-1, 1].forEach(function (side) {
-        var cup = new THREE.Mesh(new THREE.CylinderGeometry(.108, .108, .065, 24), material);
-        cup.rotation.x = Math.PI / 2;
-        cup.position.set(side * .30, .20, .08);
-        group.add(cup);
-        var pad = new THREE.Mesh(new THREE.CylinderGeometry(.078, .078, .072, 24), padMaterial);
-        pad.rotation.x = Math.PI / 2;
-        pad.position.set(side * .30, .20, .125);
-        group.add(pad);
-        var rim = new THREE.Mesh(new THREE.TorusGeometry(.088, .012, 8, 24), material);
-        rim.position.set(side * .30, .20, .165);
-        group.add(rim);
+      // 44.0: plush over-ear headphones fitted to the v23 head (measured in head-bone space: top of the
+      // head y≈.64, widest ±.50 at y≈.30, front z≈.35, back z≈-.62). A thick padded band arcs over the
+      // top into two big round cups on the sides; soft fuzzy lavender like the octopus itself.
+      var furTex = null;
+      try {
+        if (THREE.CanvasTexture) {
+          var fc = document.createElement('canvas'); fc.width = fc.height = 128;
+          var fx = fc.getContext('2d'); fx.fillStyle = '#ffffff'; fx.fillRect(0, 0, 128, 128);
+          for (var f = 0; f < 900; f++) {           // short soft fur strokes
+            var gx = Math.random() * 128, gy = Math.random() * 128, ga = Math.random() * Math.PI * 2, gl = 3 + Math.random() * 5, gv = 205 + Math.random() * 50;
+            fx.strokeStyle = 'rgba(' + gv + ',' + gv + ',' + gv + ',.55)'; fx.lineWidth = 1 + Math.random();
+            fx.beginPath(); fx.moveTo(gx, gy); fx.lineTo(gx + Math.cos(ga) * gl, gy + Math.sin(ga) * gl); fx.stroke();
+          }
+          furTex = new THREE.CanvasTexture(fc);
+          if (THREE.RepeatWrapping) { furTex.wrapS = furTex.wrapT = THREE.RepeatWrapping; furTex.repeat.set(3, 3); }
+          if (THREE.SRGBColorSpace) furTex.colorSpace = THREE.SRGBColorSpace;
+        }
+      } catch (e) { furTex = null; }
+      var plush = function (hex, glow) {
+        var m = new THREE.MeshStandardMaterial({ color: hex, roughness: .96, metalness: 0, map: furTex || null });
+        if (m.emissive) { m.emissive.setHex(hex); m.emissiveIntensity = glow == null ? .16 : glow; }
+        return m;
+      };
+      var shell = plush(0xa88de2, .1), shellDeep = plush(0x8f72d0, .08), cushion = plush(0xc9b8f3, .14), capRing = plush(0xbba5ee, .12);
+      var cy = .27, cz = -.03, side = .53;
+      // band: elliptical arc over the head (torus scaled in y), resting just above the plush
+      var a = .56, b = .44;
+      var band = new THREE.Mesh(new THREE.TorusGeometry(a, .07, 16, 48, Math.PI), shell);
+      band.scale.set(1, (b + .03) / a, 1.35); band.position.set(0, cy, cz - .03); group.add(band);
+      [-1, 1].forEach(function (sd) {
+        var cup = new THREE.Group(); cup.position.set(sd * side, cy, cz); cup.rotation.y = sd * .12; group.add(cup);
+        // outer shell: a fat rounded puck
+        // big puffy cup: a rounded pillow shape
+        var body = new THREE.Mesh(makeSphere(.24, 32, 24), shell); body.scale.set(.62, 1, 1); body.position.x = sd * .07; cup.add(body);
+        // fat ear cushion against the head
+        var ring = new THREE.Mesh(new THREE.TorusGeometry(.16, .065, 16, 36), cushion); ring.rotation.y = Math.PI / 2; ring.position.x = -sd * .005; cup.add(ring);
+        // outer cap: a soft dome with a deeper rim
+        var cap = new THREE.Mesh(makeSphere(.15, 28, 20), capRing); cap.scale.set(.32, 1, 1); cap.position.x = sd * .2; cup.add(cap);
+        var rim = new THREE.Mesh(new THREE.TorusGeometry(.155, .022, 10, 36), shellDeep); rim.rotation.y = Math.PI / 2; rim.position.x = sd * .19; cup.add(rim);
+        // yoke where the band meets the cup
+        var yoke = new THREE.Mesh(new THREE.CylinderGeometry(.05, .058, .12, 16), shellDeep); yoke.position.set(sd * .03, .24, 0); cup.add(yoke);
       });
-      group.scale.setScalar(1.12);
+      group.position.set(0, 0, 0);
+      group.scale.setScalar(1);
     } else if (id === 'small_crown') {
       // Cartoon 3D crown: a thick gold base, five stepped points, round tips,
       // and a purple center jewel matching the supplied reference.

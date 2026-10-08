@@ -39,7 +39,8 @@
     if (!window.MinestCosmetics.isUnlocked(CROWN)) window.MinestCosmetics.unlock(CROWN);
     if (equip) {
       var state = window.MinestCosmetics.getState();
-      if (!state.equippedBySlot || state.equippedBySlot.head !== CROWN) window.MinestCosmetics.equipAccessory(CROWN);
+      // 44.0: only when nothing is on the head — the user may have chosen headphones
+      if (!state.equippedBySlot || !state.equippedBySlot.head) window.MinestCosmetics.equipAccessory(CROWN);
     }
     stateReady = true;
     return true;
@@ -70,16 +71,20 @@
       event.preventDefault();
       event.stopPropagation();
       if (!ensureCrownState(false)) return;
-      var equipped = window.MinestCosmetics.getState().equippedBySlot.head === CROWN;
-      if (equipped) window.MinestCosmetics.clearSlot('head');
-      else window.MinestCosmetics.equipAccessory(CROWN);
+      // 44.0: cycle the head accessory — Crown → Headphones → none
+      var C = window.MinestCosmetics, head = C.getState().equippedBySlot.head;
+      if (!C.isUnlocked('headphones')) C.unlock('headphones');
+      if (head === CROWN) C.equipAccessory('headphones');
+      else if (head === 'headphones') C.clearSlot('head');
+      else C.equipAccessory(CROWN);
       syncControl();
     });
     document.body.appendChild(button);
     function syncControl() {
-      var equipped = stateReady && window.MinestCosmetics.getState().equippedBySlot.head === CROWN;
-      button.setAttribute('aria-pressed', String(equipped));
-      button.textContent = equipped ? '♕ Crown on' : '♕ Crown';
+      var head = stateReady ? window.MinestCosmetics.getState().equippedBySlot.head : null;
+      button.setAttribute('aria-pressed', String(!!head));
+      button.setAttribute('aria-label', 'Head accessory: ' + (head || 'none') + ' (tap to change)');
+      button.textContent = head === CROWN ? '♕ Crown' : head === 'headphones' ? '🎧 Headphones' : '○ No hat';
     }
     window.addEventListener('minest-cosmetics-changed', syncControl);
     syncControl();
