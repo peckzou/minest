@@ -54,6 +54,7 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'OPENAI_API_KEY is not configured on the server' }));
   }
 
+  const primaryBaseUrl = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
   const body = req.body && typeof req.body === 'object' ? { ...req.body, stream: true } : { stream: true };
   if (!body.max_tokens && !body.max_completion_tokens) {
     body.max_tokens = 96;
@@ -67,7 +68,7 @@ export default async function handler(req, res) {
 
   let upstream;
   try {
-    upstream = await fetch(baseUrl + '/chat/completions', {
+    upstream = await fetch(primaryBaseUrl + '/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: 'Bearer ' + apiKey,
@@ -79,9 +80,25 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     if (controller.signal.aborted) return res.end();
-    res.statusCode = 502;
-    Object.entries(cors).forEach(([key, value]) => res.setHeader(key, value));
-    return res.end(JSON.stringify({ error: 'Voice proxy upstream connection failed' }));
+    if (primaryBaseUrl !== 'https://api.openai.com/v1') {
+      try {
+        upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + apiKey,
+            'Content-Type': 'application/json',
+            'User-Agent': 'OpenAI/Python 1.0.0',
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+      } catch (e2) {}
+    }
+    if (!upstream) {
+      res.statusCode = 502;
+      Object.entries(cors).forEach(([key, value]) => res.setHeader(key, value));
+      return res.end(JSON.stringify({ error: 'Voice proxy upstream connection failed' }));
+    }
   }
 
   if (!upstream.ok || !upstream.body) {

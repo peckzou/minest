@@ -7,6 +7,26 @@
   var section = null;
   var raf = 0;
   var capturedAvatar = null;
+  // 43.6 motion v2 — expression layer on top of the preset (offsets in eye radii; y < 0 = up)
+  var EXPR = {
+    neutral:   { dx: 0, dy: 0, size: 1, sec: 1, twinkle: 0, twinkleHz: 2, orbit: 0, shimmer: 0, dim: 1 },
+    happy:     { dx: 0, dy: -.08, size: 1.2, sec: 1.25, twinkle: .1, twinkleHz: 2.4, orbit: 0, shimmer: 0, dim: 1 },
+    excited:   { dx: 0, dy: -.04, size: 1.32, sec: 1.5, twinkle: .22, twinkleHz: 4.5, orbit: 0, shimmer: 0, dim: 1 },
+    curious:   { dx: .14, dy: -.06, size: 1.1, sec: .9, twinkle: 0, twinkleHz: 2, orbit: 0, shimmer: 0, dim: 1 },
+    surprised: { dx: 0, dy: .06, size: 1.42, sec: 1.3, twinkle: 0, twinkleHz: 2, orbit: 0, shimmer: 0, dim: 1 },
+    sleepy:    { dx: 0, dy: .16, size: .7, sec: .6, twinkle: 0, twinkleHz: 2, orbit: 0, shimmer: 0, dim: .62 },
+    sad:       { dx: 0, dy: .2, size: 1.12, sec: 1.9, twinkle: .05, twinkleHz: 1.2, orbit: 0, shimmer: .018, dim: 1 },
+    shy:       { dx: -.12, dy: .12, size: .86, sec: .8, twinkle: 0, twinkleHz: 2, orbit: 0, shimmer: 0, dim: .9 },
+    dizzy:     { dx: 0, dy: 0, size: 1.05, sec: 1, twinkle: 0, twinkleHz: 2, orbit: .2, shimmer: 0, dim: 1 },
+    love:      { dx: 0, dy: -.1, size: 1.3, sec: 1.6, twinkle: .16, twinkleHz: 1.6, orbit: 0, shimmer: 0, dim: 1 }
+  };
+  var expr = { name: 'neutral', until: 0, cur: Object.assign({}, EXPR.neutral), target: EXPR.neutral, look: 0 };
+  function setExpression(name, holdMs, opts) {
+    var e = EXPR[name] || EXPR.neutral;
+    expr.name = EXPR[name] ? name : 'neutral';
+    expr.target = opts ? Object.assign({}, e, opts) : e;
+    expr.until = holdMs ? performance.now() + holdMs : 0;
+  }
   var presets = { center: [0, 0], 'upper-center': [0, -0.22], left: [-0.24, -0.04], right: [0.24, -0.04], upper: [0, -0.28], lower: [0, 0.22] };
 
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
@@ -250,12 +270,44 @@
     });
     if (!dots.length) { skinned.remove(group); return; }
     var pos = new V3(), ctr = new V3(), edge = new V3(), q = new Q();
+    var cW = new V3(), eW = new V3(), nW = new V3(), rW = new V3(), uW = new V3(), Vv = new V3(), Lv = new V3(), Hv = new V3(), wUp = new V3(0, 1, 0), tmp = new V3();
+    var keyLight = null, reflCache = {};
+    // 43.6 motion v2: where the key light's reflection would sit on this eye, relative to where it sits
+    // when the eye looks straight at the camera. Turning, spinning or tilting slides the catchlight
+    // across the eye like a real reflection; facing the camera it rests at the chosen preset.
+    function reflection(E) {
+      var frame = avatar.__eyeFrameId || 0, c = reflCache[E.side];
+      if (c && c.f === frame) return c;
+      c = reflCache[E.side] = { f: frame, x: 0, y: 0 };
+      var cam = avatar.camera;
+      if (!cam) return c;
+      if (!keyLight && avatar.scene) keyLight = avatar.scene.getObjectByName('keyLight') || null;
+      skinnedPoint(E.center, cW); var nl = nrm.clone();
+      skinnedPoint(E.edge, eW);
+      cW.applyMatrix4(skinned.matrixWorld); eW.applyMatrix4(skinned.matrixWorld);
+      nW.copy(nl).transformDirection(skinned.matrixWorld);
+      rW.subVectors(eW, cW).addScaledVector(nW, -tmp.subVectors(eW, cW).dot(nW)).normalize();
+      uW.crossVectors(nW, rW).normalize();
+      Vv.setFromMatrixPosition(cam.matrixWorld).sub(cW).normalize();
+      if (keyLight) { Lv.setFromMatrixPosition(keyLight.matrixWorld); if (keyLight.target) Lv.sub(tmp.setFromMatrixPosition(keyLight.target.matrixWorld)); else Lv.sub(cW); Lv.normalize(); }
+      else Lv.set(.55, .7, .45).normalize();
+      Hv.addVectors(Lv, Vv).normalize();
+      // same half-vector seen by an eye facing the camera
+      var upR = tmp.copy(wUp).addScaledVector(Vv, -wUp.dot(Vv)).normalize();
+      var hu0 = Hv.dot(upR), hr0 = Hv.dot(tmp.crossVectors(upR, Vv).normalize());
+      c.x = Hv.dot(rW) - hr0; c.y = -(Hv.dot(uW) - hu0);
+      return c;
+    }
     function placeDot(dot) {
-      var E = dot.userData.eye, d = group.userData.v6EyeHighlight;
-      // main catchlight at the preset; a small secondary one diagonally opposite (classic plush/anime eye)
-      var ox = d.x * 1.75, oy = d.y * 1.75;
-      if (!dot.userData.main) { ox = -d.x * 1.2 + .3; oy = -d.y * .6 + .34; }
-      var key = ox.toFixed(3) + ',' + oy.toFixed(3);
+      var E = dot.userData.eye, d = group.userData.v6EyeHighlight, ex = expr.cur, t = performance.now() * .001;
+      var rf = reflection(E), K = 1.35;
+      // main catchlight at the preset (+ reflection + expression); a small secondary one opposite it
+      var ox = d.x * 1.75 + rf.x * K + ex.dx + Math.cos(t * 5.2 + E.side) * ex.orbit, oy = d.y * 1.75 + rf.y * K + ex.dy + Math.sin(t * 5.2 + E.side) * ex.orbit;
+      ox += Math.sin(t * 23 + E.side * 2) * ex.shimmer; oy += Math.cos(t * 19 + E.side) * ex.shimmer;
+      if (!dot.userData.main) { ox = -d.x * 1.2 + .3 - rf.x * K * .6 - ex.dx * .5; oy = -d.y * .6 + .34 - rf.y * K * .6 + ex.dy * .4 - Math.sin(t * 5.2 + E.side) * ex.orbit; }
+      var len = Math.hypot(ox, oy), lim = dot.userData.main ? .62 : .7;
+      if (len > lim) { ox *= lim / len; oy *= lim / len; }
+      var key = (Math.round(ox * 200) / 200) + ',' + (Math.round(oy * 200) / 200);
       if (dot.userData.key !== key) {
         dot.userData.key = key;
         var tx = E.C.x + (E.right.x * ox - E.up.x * oy) * E.R, ty = E.C.y + (E.right.y * ox - E.up.y * oy) * E.R, tz = E.C.z + (E.right.z * ox - E.up.z * oy) * E.R;
@@ -267,7 +319,8 @@
       skinnedPoint(dot.userData.edge, edge);
       var eyeR = ctr.distanceTo(edge);
       skinnedPoint(dot.userData.hit, pos);              // also leaves the surface normal in nrm
-      var r = eyeR * (dot.userData.main ? .31 : .12) * d.size;
+      var tw = 1 + ex.twinkle * Math.sin(t * ex.twinkleHz * Math.PI * 2 + (dot.userData.main ? 0 : 1.7) + E.side * .6);
+      var r = eyeR * (dot.userData.main ? .31 * ex.size : .12 * ex.sec) * d.size * tw;
       dot.position.copy(pos).addScaledVector(nrm, r * .18);
       q.setFromUnitVectors(Z, nrm);
       dot.quaternion.copy(q);
@@ -275,6 +328,7 @@
       dot.updateMatrix();
       dot.matrixWorld.multiplyMatrices(group.matrixWorld, dot.matrix);
     }
+    group.userData.material = material;
     model.userData.v6EyeHighlightGroup = group;
     avatar.setV6EyeHighlightVisible = function (visible) { group.visible = Boolean(visible); };
     avatar.setV6EyeHighlight = function (x, y, size) {
@@ -294,7 +348,18 @@
     if (typeof avatar.setV6EyeHighlightVisible === 'function') avatar.setV6EyeHighlightVisible(state.enabled);
   }
 
+  function tickExpression() {
+    if (expr.until && performance.now() > expr.until) { expr.target = EXPR.neutral; expr.name = 'neutral'; expr.until = 0; }
+    var c = expr.cur, t = expr.target, k = .085;
+    for (var key in t) if (typeof t[key] === 'number') c[key] += (t[key] - c[key]) * (key === 'orbit' || key === 'size' ? .12 : k);
+    if (expr.look) c.dx += expr.look * .16;
+    var avatar = getAvatar(), g = avatar && avatar.importedModel && avatar.importedModel.userData.v6EyeHighlightGroup;
+    if (g && g.userData.material) g.userData.material.opacity = .97 * c.dim;
+    if (avatar) avatar.__eyeFrameId = (avatar.__eyeFrameId || 0) + 1;
+  }
+
   function tick() {
+    tickExpression();
     state.currentX += (state.targetX - state.currentX) * .13;
     state.currentY += (state.targetY - state.currentY) * .13;
     state.currentSize += (state.targetSize - state.currentSize) * .13;
@@ -370,7 +435,7 @@
     if (!raf) raf = window.requestAnimationFrame(tick);
     new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', scan, { passive: true });
-    window.__v6EyeHighlight = { setPreset: setPreset, setSize: setSize, setEnabled: setEnabled, getState: function () { return { x: state.targetX, y: state.targetY, size: state.targetSize, preset: state.preset, enabled: state.enabled }; } };
+    window.__v6EyeHighlight = { setPreset: setPreset, setSize: setSize, setEnabled: setEnabled, setExpression: setExpression, setLook: function (v) { expr.look = clamp(Number(v) || 0, -1, 1); }, expressions: Object.keys(EXPR), getExpression: function () { return expr.name; }, getState: function () { return { x: state.targetX, y: state.targetY, size: state.targetSize, preset: state.preset, enabled: state.enabled }; } };
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

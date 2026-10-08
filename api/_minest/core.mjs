@@ -402,6 +402,13 @@ export async function handle(path, input) {
     return { analysis: a, model: data.model || '' };
   }
   if (path.endsWith('/ai-chat') || path.endsWith('/ai-chat-stream')) {
+    if (input.mode === 'voice' || input.mode === 'pet_voice') {
+      const voiceSystem = input.system || 'You are Minest AI Pet, an instant voice companion. Always reply directly and naturally in 1-2 short sentences (under 25 words). Do not do internal reasoning or chain-of-thought. If user speaks Chinese or mixed English/Chinese (code-switching), reply in fluent Chinese smoothly incorporating technical terms. If user speaks English, reply in English.';
+      const messages = [{ role: 'system', content: voiceSystem }, ...history, { role: 'user', content: String(input.prompt || '') }];
+      if (path.endsWith('/ai-chat-stream')) return { __stream: messages };
+      const data = await callModel(input, messages, { max_tokens: 80, effort: 'low' });
+      return { reply: outputText(data) };
+    }
     const userContent = [{ type: 'text', text: String(input.prompt || '') + attachmentContext }, ...imageParts];
     const messages = [{ role: 'system', content: loadGuide() + '\n\n## Data blocks available\n' + (datasetCatalog(loadBlocks()) || '(none)') + chatRole }, ...history, { role: 'user', content: userContent }];
     if (path.endsWith('/ai-chat-stream')) return { __stream: messages };
@@ -423,15 +430,18 @@ export async function handle(path, input) {
 // Chat replies are streamed (text appears while the model writes), which matters on slow relays.
 // Wire format to the app: server-sent events `data: {"t": "<text so far>"}`, then `data: {"done": true}`.
 export async function streamChat(res, input, messages) {
+  const isVoice = input.mode === 'voice' || input.mode === 'pet_voice';
+  const voiceMaxTokens = isVoice ? 80 : 1500;
+  const voiceEffort = isVoice ? 'low' : EFFORT.chat;
   const sse = { ...headers, 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' };
   if (input.provider === 'openrouter') {   // no streaming path for OpenRouter here: send the whole reply once
-    const data = await openrouter(messages, { max_tokens: 1500 }, input.model);
+    const data = await openrouter(messages, { max_tokens: voiceMaxTokens }, input.model);
     res.writeHead(200, sse); res.write('data: ' + JSON.stringify({ t: outputText(data) }) + '\n\n'); return res.end('data: {"done":true}\n\n');
   }
   let upstream;
   for (let attempt = 0; ; attempt++) {
     await acquire();
-    try { upstream = await openai(messages, { max_tokens: 1500, effort: EFFORT.chat, stream: true, raw: true }, input.modelName); break; }
+    try { upstream = await openai(messages, { max_tokens: voiceMaxTokens, effort: voiceEffort, stream: true, raw: true }, input.modelName); break; }
     catch (e) { release(); if (attempt >= 4 || !/concurren|rate limit|too many|overloaded|retry later|429|503|timeout/i.test(e.message || '')) throw e; }
     await sleep(2000 * 2 ** attempt + Math.random() * 1000);
   }

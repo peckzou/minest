@@ -25,6 +25,11 @@ const server = http.createServer(async (req, res) => {
     try { const r = await handle(req.url, input); return await streamChat(res, input, r.__stream); }
     catch (error) { try { res.end('data: ' + JSON.stringify({ error: error.message }) + '\n\n'); } catch (e) {} return; }
   }
+  if (String(req.url || '').includes('/voice/v1/chat/completions')) {
+    req.body = input;
+    const { default: voiceHandler } = await import('./api/voice/v1/chat/completions.mjs');
+    return await voiceHandler(req, res);
+  }
   // same as on Vercel: answer at once, a space every 8 s, then the JSON (errors as 200 + { error })
   res.writeHead(200, headers); res.write(' ');
   const beat = setInterval(() => { try { res.write(' '); } catch (e) {} }, 8000);
