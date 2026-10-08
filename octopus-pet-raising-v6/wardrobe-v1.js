@@ -6,12 +6,12 @@
   'use strict';
   if (window.__octoWardrobe) return;
   var ZH = {
-    small_crown: ['👑', '小皇冠'], headphones: ['🎧', '毛绒耳机'], scarf: ['🧣', '围巾'], bow: ['🎀', '蝴蝶结'], straw_hat: ['👒', '草帽'],
-    starfish_clip: ['⭐', '海星发夹'], glasses: ['👓', '圆框眼镜'], pearl_necklace: ['📿', '珍珠项链'],
-    default_purple: ['#c9b3f2', '薰衣草紫'], blue_lavender: ['#7fa8ff', '蓝薰衣草'], pearl_pink: ['#ff9fc6', '珍珠粉'],
-    mint_green: ['#7fe3c4', '薄荷绿'], peach_pink: ['#ffb39b', '蜜桃粉'], starry_night: ['linear-gradient(135deg,#2b2f7a,#5a4fc0 60%,#9a8cff)', '星空']
+    small_crown: ['👑', 'Little Crown'], headphones: ['🎧', 'Fluffy Headphones'], scarf: ['🧣', 'Scarf'], bow: ['🎀', 'Bow'], straw_hat: ['👒', 'Straw Hat'],
+    starfish_clip: ['⭐', 'Starfish Clip'], glasses: ['👓', 'Round Glasses'], pearl_necklace: ['📿', 'Pearl Necklace'],
+    default_purple: ['#c9b3f2', 'Lavender'], blue_lavender: ['#7fa8ff', 'Blue Lavender'], pearl_pink: ['#ff9fc6', 'Pearl Pink'],
+    mint_green: ['#7fe3c4', 'Mint Green'], peach_pink: ['#ffb39b', 'Peach Pink'], starry_night: ['linear-gradient(135deg,#2b2f7a,#5a4fc0 60%,#9a8cff)', 'Starry Night']
   };
-  var SLOT_ZH = { head: '头饰', hair: '发饰', face: '脸部', neck: '颈部' };
+  var SLOT_ZH = { head: 'Head', hair: 'Hair', face: 'Face', neck: 'Neck' };
   var LEGACY_LEVEL = { scarf: 4, pearl_pink: 5 };          // older items that had no Care level
   var FREE = ['default_purple', 'blue_lavender', 'small_crown', 'headphones'];
 
@@ -26,7 +26,7 @@
       var lv = levelOf(id);
       if (lv && careLevel() >= lv && !c.isUnlocked(id)) { c.unlock(id); got.push(id); }
     });
-    if (got.length && !silent) toast('解锁了新衣服 ' + got.map(function (id) { return (ZH[id] || [''])[0].charAt(0) === '#' || (ZH[id] || [''])[0].indexOf('gradient') >= 0 ? '🎨' : (ZH[id] || ['✨'])[0]; }).join(' '));
+    if (got.length && !silent) toast('New outfit unlocked ' + got.map(function (id) { return (ZH[id] || [''])[0].charAt(0) === '#' || (ZH[id] || [''])[0].indexOf('gradient') >= 0 ? '🎨' : (ZH[id] || ['✨'])[0]; }).join(' '));
     return got;
   }
 
@@ -71,8 +71,8 @@
     btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); open(); });
     document.body.appendChild(btn);
     sheet = document.createElement('div'); sheet.className = 'wd-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Wardrobe');
-    sheet.innerHTML = '<div class="wd-head"><b>👗 衣柜</b><span class="lv"></span><button class="wd-x" aria-label="Close">✕</button></div><div class="wd-next"></div>' +
-      '<div class="wd-tabs"><button class="wd-tab on" data-t="acc">饰品</button><button class="wd-tab" data-t="skin">皮肤</button></div><div class="wd-body"></div>';
+    sheet.innerHTML = '<div class="wd-head"><b>👗 Wardrobe</b><span class="lv"></span><button class="wd-x" aria-label="Close">✕</button></div><div class="wd-next"></div>' +
+      '<div class="wd-tabs"><button class="wd-tab on" data-t="acc">Accessories</button><button class="wd-tab" data-t="skin">Skins</button></div><div class="wd-body"></div>';
     ['pointerdown', 'touchstart', 'click'].forEach(function (ev) { sheet.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
     sheet.querySelector('.wd-x').addEventListener('click', close);
     sheet.querySelectorAll('.wd-tab').forEach(function (t) { t.addEventListener('click', function () { tab = t.dataset.t; render(); }); });
@@ -88,7 +88,7 @@
     var on = kind === 'skin' ? st.equippedSkin === id : st.equippedBySlot[item.slot] === id;
     var el = document.createElement('div'); el.className = 'wd-card' + (on ? ' on' : '') + (unlocked ? '' : ' locked');
     var icon = kind === 'skin' ? '<div class="ic"><div class="sw" style="background:' + zh[0] + '"></div></div>' : '<div class="ic">' + zh[0] + '</div>';
-    el.innerHTML = icon + '<div class="nm">' + zh[1] + '</div><div class="st">' + (on ? '✓ 穿着' : unlocked ? '点一下穿上' : '🔒 ' + (lv ? '亲密度 Lv ' + lv : item.requirement)) + '</div>' + (unlocked ? '' : '<span class="try">试穿</span>');
+    el.innerHTML = icon + '<div class="nm">' + zh[1] + '</div><div class="st">' + (on ? '✓ Wearing' : unlocked ? 'Tap to wear' : '🔒 ' + (lv ? 'Bond Lv ' + lv : item.requirement)) + '</div>' + (unlocked ? '' : '<span class="try">Try</span>');
     el.addEventListener('click', function () {
       if (!unlocked) return tryOn(id, kind);
       if (kind === 'skin') c.equipSkin(id);
@@ -101,35 +101,35 @@
   }
   function tryOn(id, kind) {
     var c = C(), model = window.__minestCosmeticsModel, T = window.__minestCosmeticsTHREE;
-    if (!model || !T || !c.previewModel) { toast('🔒 亲密度 Lv ' + levelOf(id) + ' 解锁'); return; }
+    if (!model || !T || !c.previewModel) { toast('🔒 Unlocks at bond Lv ' + levelOf(id)); return; }
     var st = c.getState();
     if (kind === 'skin') { st.equippedSkin = id; st.renderMode = id === 'default_purple' ? 'source' : 'tinted'; }
     else st.equippedBySlot[c.accessories[id].slot] = id;
     clearTimeout(tryTimer);
     c.previewModel(model, T, st);
-    toast('试穿 5 秒 · 亲密度 Lv ' + levelOf(id) + ' 解锁 ' + (ZH[id] || ['', ''])[1]);
+    toast('5 s try-on · ' + (ZH[id] || ['', ''])[1] + ' unlocks at bond Lv ' + levelOf(id));
     var E = window.__v6EyeHighlight; if (E) E.setExpression('surprised', 1200);
     tryTimer = setTimeout(function () { c.applyModel(model, T); }, 5000);
   }
   function render() {
     var c = C(); if (!c || !body) return;
     var lv = careLevel();
-    sheet.querySelector('.lv').textContent = '💜 亲密度 Lv ' + lv;
+    sheet.querySelector('.lv').textContent = '💜 Bond Lv ' + lv;
     var all = Object.keys(c.accessories).concat(Object.keys(c.skins)).filter(function (id) { return !c.isUnlocked(id) && levelOf(id) > lv; })
       .sort(function (a, b) { return levelOf(a) - levelOf(b); });
-    sheet.querySelector('.wd-next').textContent = all.length ? '下一个：' + (ZH[all[0]] || ['', all[0]])[1] + '（Lv ' + levelOf(all[0]) + '）· 喂食、洗澡、玩耍、抚摸都能涨亲密度' : '全部解锁啦 ✨';
+    sheet.querySelector('.wd-next').textContent = all.length ? 'Next: ' + (ZH[all[0]] || ['', all[0]])[1] + ' (Lv ' + levelOf(all[0]) + ') · feeding, baths, play and petting all raise the bond' : 'Everything unlocked ✨';
     sheet.querySelectorAll('.wd-tab').forEach(function (t) { t.classList.toggle('on', t.dataset.t === tab); });
     body.innerHTML = '';
     if (tab === 'skin') {
       // 44.3: back to the original look in one tap (skin + colour adjustments)
       var st0 = c.getState(), isDefault = st0.equippedSkin === 'default_purple' && st0.renderMode !== 'tinted';
-      var reset = document.createElement('button'); reset.type = 'button'; reset.className = 'wd-reset'; reset.textContent = '↺ 恢复默认皮肤';
+      var reset = document.createElement('button'); reset.type = 'button'; reset.className = 'wd-reset'; reset.textContent = '↺ Restore default skin';
       reset.disabled = isDefault;
       reset.addEventListener('click', function () {
         if (c.setSkinAdjustments) c.setSkinAdjustments({ hue: 0, saturation: 1, brightness: 1 });
         c.equipSkin('default_purple'); if (c.setRenderMode) c.setRenderMode('source');
         var E = window.__v6EyeHighlight; if (E) E.setExpression('happy', 1500);
-        toast('已恢复默认皮肤 💜'); render();
+        toast('Default skin restored 💜'); render();
       });
       body.appendChild(reset);
       var g = document.createElement('div'); g.className = 'wd-grid';

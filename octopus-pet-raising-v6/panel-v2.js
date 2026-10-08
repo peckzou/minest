@@ -47,18 +47,18 @@
   function lids(c) { var l = window.__octoLids; if (l && l.play) l.play(c); }
   function spin(k) { var m = window.__motionV4; if (m && m.spin) m.spin(k); }
   var FINAL = [
-    ['游动', [['自由游', function () { var a = A(); a && a.playAction && a.playAction('free_swim_aquarium'); }], ['滑行', function () { swimClip('swim_glide'); }], ['冲刺', function () { swimClip('swim_dash'); }],
-      ['翻滚游', function () { swimClip('swim_roll'); }], ['之字游', function () { swimClip('swim_zigzag'); }], ['悬停', function () { swimClip('swim_hover'); }], ['仰泳', function () { swimClip('swim_backstroke'); }], ['急停', function () { swimClip('swim_brake'); }]]],
-    ['自转', [['转圈', function () { spin('pirouette'); }], ['侧滚翻', function () { spin('barrel'); }], ['螺旋转', function () { spin('corkscrew'); }], ['空翻', function () { spin('loop'); }], ['扭身', function () { spin('wiggle'); }]]],
-    ['动作', [['挥手', function () { gesture('tip_wave_right'); }], ['张望', function () { gesture('peek_around'); }], ['回头看', function () { gesture('double_take'); }], ['点头', function () { gesture('agree_nod'); }],
-      ['摇头', function () { gesture('no_shake'); }], ['触手扇', function () { gesture('tentacle_fan'); }], ['大跳', function () { gesture('big_bounce'); }], ['小跳', function () { gesture('tiny_bounce'); }],
-      ['伸懒腰', function () { gesture('stretch_release'); }], ['深呼吸', function () { gesture('breath_deep'); }], ['发抖', function () { gesture('shiver'); }], ['害羞', function () { gesture('tentacle_fold'); }], ['得意', function () { gesture('settle_proud'); }]]],
-    ['生活', [['开心', function () { gesture('happy'); }], ['被摸', function () { gesture('petted'); }], ['好奇', function () { gesture('curious'); }], ['困了', function () { gesture('sleepy'); }],
-      ['醒来', function () { gesture('wake'); }], ['吃东西', function () { gesture('fed'); }], ['难过', function () { gesture('sad'); }], ['回家睡觉', function () { var h = window.__octoHouse; h && h.goHome(); }]]],
-    ['嘴巴', [['咯咯笑', function () { mouth('giggle'); }], ['哇——', function () { mouth('wheee'); }], ['打哈欠', function () { mouth('yawn'); lids('yawn'); }], ['吐泡泡', function () { mouth('puff'); }],
-      ['哼歌', function () { mouth('hum'); }], ['吃惊', function () { mouth('gasp'); lids('gasp'); }], ['嚼嚼', function () { mouth('munch'); }], ['嘟嘴', function () { mouth('pout'); }]]],
-    ['眼睛', [['眨眼', function () { lids('blink'); }], ['单眼眨', function () { lids('wink'); }], ['笑眯眼', function () { lids('happy'); }], ['困眼', function () { lids('sleepy'); }],
-      ['瞪大', function () { lids('gasp'); }], ['晕乎乎', function () { lids('dizzy'); }], ['喜欢你', function () { lids('love'); }]]]
+    ['Swim', [['Free swim', function () { var a = A(); a && a.playAction && a.playAction('free_swim_aquarium'); }], ['Glide', function () { swimClip('swim_glide'); }], ['Dash', function () { swimClip('swim_dash'); }],
+      ['Roll swim', function () { swimClip('swim_roll'); }], ['Zigzag', function () { swimClip('swim_zigzag'); }], ['Hover', function () { swimClip('swim_hover'); }], ['Backstroke', function () { swimClip('swim_backstroke'); }], ['Brake', function () { swimClip('swim_brake'); }]]],
+    ['Spin', [['Pirouette', function () { spin('pirouette'); }], ['Barrel roll', function () { spin('barrel'); }], ['Corkscrew', function () { spin('corkscrew'); }], ['Loop', function () { spin('loop'); }], ['Wiggle', function () { spin('wiggle'); }]]],
+    ['Gestures', [['Wave', function () { gesture('tip_wave_right'); }], ['Peek', function () { gesture('peek_around'); }], ['Double take', function () { gesture('double_take'); }], ['Nod', function () { gesture('agree_nod'); }],
+      ['Shake head', function () { gesture('no_shake'); }], ['Tentacle fan', function () { gesture('tentacle_fan'); }], ['Big bounce', function () { gesture('big_bounce'); }], ['Tiny bounce', function () { gesture('tiny_bounce'); }],
+      ['Stretch', function () { gesture('stretch_release'); }], ['Deep breath', function () { gesture('breath_deep'); }], ['Shiver', function () { gesture('shiver'); }], ['Shy', function () { gesture('tentacle_fold'); }], ['Proud', function () { gesture('settle_proud'); }]]],
+    ['Life', [['Happy', function () { gesture('happy'); }], ['Petted', function () { gesture('petted'); }], ['Curious', function () { gesture('curious'); }], ['Sleepy', function () { gesture('sleepy'); }],
+      ['Wake up', function () { gesture('wake'); }], ['Eat', function () { gesture('fed'); }], ['Sad', function () { gesture('sad'); }], ['Go home to sleep', function () { var h = window.__octoHouse; h && h.goHome(); }]]],
+    ['Mouth', [['Giggle', function () { mouth('giggle'); }], ['Wheee', function () { mouth('wheee'); }], ['Yawn', function () { mouth('yawn'); lids('yawn'); }], ['Puff', function () { mouth('puff'); }],
+      ['Hum', function () { mouth('hum'); }], ['Gasp', function () { mouth('gasp'); lids('gasp'); }], ['Munch', function () { mouth('munch'); }], ['Pout', function () { mouth('pout'); }]]],
+    ['Eyes', [['Blink', function () { lids('blink'); }], ['Wink', function () { lids('wink'); }], ['Happy eyes', function () { lids('happy'); }], ['Sleepy eyes', function () { lids('sleepy'); }],
+      ['Wide eyes', function () { lids('gasp'); }], ['Dizzy', function () { lids('dizzy'); }], ['Love', function () { lids('love'); }]]]
   ];
   function buildFinal(p) {
     var anchor = p.querySelector('[data-expr-section]') || p.querySelector('.apc-search');
@@ -76,15 +76,15 @@
       sec.appendChild(row); frag.appendChild(sec);
     });
     if (anchor && anchor.nextSibling) p.insertBefore(frag, anchor.nextSibling); else p.appendChild(frag);
-    var dev = document.createElement('button'); dev.type = 'button'; dev.className = 'apc-dev-toggle'; dev.textContent = '开发者：全部动作 ▸';
-    dev.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); p.classList.toggle('apc-dev'); dev.textContent = p.classList.contains('apc-dev') ? '开发者：全部动作 ▾' : '开发者：全部动作 ▸'; });
+    var dev = document.createElement('button'); dev.type = 'button'; dev.className = 'apc-dev-toggle'; dev.textContent = 'Developer: all motions ▸';
+    dev.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); p.classList.toggle('apc-dev'); dev.textContent = p.classList.contains('apc-dev') ? 'Developer: all motions ▾' : 'Developer: all motions ▸'; });
     p.appendChild(dev);
   }
   function setup(p) {
     if (p.__apc) { order(p); return; }
     p.__apc = true;
     var header = p.querySelector('.avatar-control-header');
-    var search = document.createElement('input'); search.className = 'apc-search'; search.type = 'search'; search.placeholder = '搜索动作 · Search motions';
+    var search = document.createElement('input'); search.className = 'apc-search'; search.type = 'search'; search.placeholder = 'Search motions';
     search.addEventListener('input', function () { filter(p, search.value.trim().toLowerCase()); });
     ['pointerdown', 'keydown'].forEach(function (ev) { search.addEventListener(ev, function (e) { e.stopPropagation(); }); });
     if (header && header.nextSibling) p.insertBefore(search, header.nextSibling); else p.appendChild(search);

@@ -95,7 +95,13 @@ async function openai(messages, options = {}, requestedModel) {
   const body = { model: requestedModel || model, messages, temperature: 0.3, ...rest };
   if (effort && effortSupported) body.reasoning_effort = effort;
   const response = await fetch(baseUrl + '/chat/completions', {
-    method: 'POST', headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + apiKey,
+      'Content-Type': 'application/json',
+      'Accept': raw ? 'text/event-stream' : 'application/json'
+    },
+    body: JSON.stringify(body)
   });
   if (raw && response.ok) return response;   // streaming: the caller reads the body
   const data = await response.json().catch(() => ({}));
@@ -433,7 +439,12 @@ export async function streamChat(res, input, messages) {
   const isVoice = input.mode === 'voice' || input.mode === 'pet_voice';
   const voiceMaxTokens = isVoice ? 80 : 1500;
   const voiceEffort = isVoice ? 'low' : EFFORT.chat;
-  const sse = { ...headers, 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' };
+  const sse = {
+    ...headers,
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    'X-Accel-Buffering': 'no'
+  };
   if (input.provider === 'openrouter') {   // no streaming path for OpenRouter here: send the whole reply once
     const data = await openrouter(messages, { max_tokens: voiceMaxTokens }, input.model);
     res.writeHead(200, sse); res.write('data: ' + JSON.stringify({ t: outputText(data) }) + '\n\n'); return res.end('data: {"done":true}\n\n');
@@ -447,6 +458,10 @@ export async function streamChat(res, input, messages) {
   }
   try {
     res.writeHead(200, sse);
+    // Send headers and a comment immediately so relays establish the stream
+    // without waiting for the first model token. The client ignores comments.
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+    res.write(': stream-ready\n\n');
     const type = upstream.headers.get('content-type') || '';
     if (!/event-stream/.test(type)) {   // provider ignored stream:true
       const data = await upstream.json().catch(() => ({}));
@@ -465,7 +480,17 @@ export async function streamChat(res, input, messages) {
       }
       if (text.length !== last) { last = text.length; res.write('data: ' + JSON.stringify({ t: text }) + '\n\n'); }
     }
+    // A provider may end the body without a trailing newline. Flush the
+    // decoder and parse that final SSE record so the last token is preserved.
+    buf += decoder.decode();
+    const tail = buf.trim();
+    if (tail.startsWith('data:')) {
+      const payload = tail.slice(5).trim();
+      if (payload !== '[DONE]') {
+        try { const d = JSON.parse(payload); text += d?.choices?.[0]?.delta?.content || ''; } catch (e) {}
+      }
+      if (text.length !== last) { last = text.length; res.write('data: ' + JSON.stringify({ t: text }) + '\n\n'); }
+    }
     res.end('data: {"done":true}\n\n');
   } finally { release(); }
 }
-

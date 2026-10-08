@@ -151,7 +151,7 @@
     var p = d.data || {};
     arkitAt = performance.now();
     if (!on) return;
-    if (source !== 'arkit') { source = 'arkit'; status('ARKit 面部追踪中 · 说点什么吧'); }
+    if (source !== 'arkit') { source = 'arkit'; status('ARKit face tracking · say something'); }
     // ARKit names are already the person's own left/right; head angles mirrored for a mirror image
     liveFace = { shapes: p, yaw: -(+p.headYaw || 0), pitch: +p.headPitch || 0, roll: -(+p.headRoll || 0), t: performance.now() };
   });
@@ -161,7 +161,7 @@
   }
   async function startMediaPipe() {
     if (!stream || !stream.getVideoTracks().length) return false;
-    status('正在加载面部追踪…');
+    status('Loading face tracking…');
     var vision = await import(MP_URL + '/vision_bundle.mjs');
     var fileset = await vision.FilesetResolver.forVisionTasks(MP_URL + '/wasm');
     var opts = { baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' }, runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true, outputFacialTransformationMatrixes: true };
@@ -209,7 +209,7 @@
     if (!vad.speaking) {
       vad.floor = vad.floor * .97 + Math.min(rms, .05) * .03;      // adaptive noise floor
       pre.push(copy); if (pre.length > 6) pre.shift();             // ~0.25 s pre-roll
-      if (rms > thr) { vad.speaking = true; vad.startAt = now; vad.lastVoice = now; chunks = pre.slice(); pre = []; faceRec = []; status('🎙 在听你说…'); var E = window.__v6EyeHighlight; if (E && !liveFace) E.setExpression('curious', 0); }
+      if (rms > thr) { vad.speaking = true; vad.startAt = now; vad.lastVoice = now; chunks = pre.slice(); pre = []; faceRec = []; status('🎙 Listening…'); var E = window.__v6EyeHighlight; if (E && !liveFace) E.setExpression('curious', 0); }
       return;
     }
     chunks.push(copy);
@@ -238,7 +238,7 @@
     var out = ac.createGain(); out.gain.value = 1;
     src.connect(analyser); analyser.connect(out); out.connect(ac.destination);
     playing = { src: src, start: ac.currentTime, faces: faces, dur: buf.duration / PITCH };
-    status('🔁 小章鱼学你说话…');
+    status('🔁 Octo is copying you…');
     var E = window.__v6EyeHighlight; if (E) E.setExpression('happy', 0);
     src.onended = function () {
       try { analyser.disconnect(out); } catch (e) {}
@@ -260,7 +260,7 @@
     var open = clamp((rms - .015) * 6, 0, 1);
     return { open: open, round: clamp((.16 - centroid) * 5, 0, 1), wide: clamp(.9 + (centroid - .12) * 2.5, .7, 1.25) };
   }
-  function statusIdle() { return source === 'arkit' ? 'ARKit 面部追踪中 · 说点什么吧' : source === 'mediapipe' ? (liveFace ? '模仿你的表情中 · 说点什么吧' : '把脸放进镜头里 · 说点什么吧') : '说点什么吧，小章鱼会学你'; }
+  function statusIdle() { return source === 'arkit' ? 'ARKit face tracking · say something' : source === 'mediapipe' ? (liveFace ? 'Copying your face · say something' : 'Put your face in view · say something') : 'Say something — Octo will copy you'; }
 
   // ---------------------------------------------------------------------------------------------------
   // main loop
@@ -300,7 +300,7 @@
   // ---------------------------------------------------------------------------------------------------
   async function start() {
     if (on) return;
-    on = true; btn.dataset.on = 'true'; panel.classList.add('on'); status('请求摄像头和麦克风…');
+    on = true; btn.dataset.on = 'true'; panel.classList.add('on'); status('Requesting camera and microphone…');
     hookRender(); guardActions();
     // calm the octopus: no choreography, hold still facing you
     var mo = window.__motionV3 || window.__motionV2; if (mo && mo.setEnabled) mo.setEnabled(false);
@@ -319,7 +319,7 @@
       if (waited > (arkitCapable ? 3500 : 900)) break;                    // give ARKit time only in the app
     }
     var wantVideo = !(performance.now() - arkitAt < 1500);
-    if (!wantVideo) status('ARKit 面部追踪中…');
+    if (!wantVideo) status('ARKit face tracking…');
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: wantVideo ? { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } : false, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     } catch (e) {
@@ -333,9 +333,9 @@
     if (source !== 'arkit' && stream && stream.getVideoTracks().length) {
       try { await startMediaPipe(); } catch (e) { console.warn('[copycat] face tracking unavailable', e); source = 'none'; }
     }
-    if (source === 'arkit') status(hasAudio ? statusIdle() : 'ARKit 面部追踪中（没有麦克风，不能学说话）');
-    else if (!stream) status('没有拿到摄像头/麦克风权限');
-    else status(hasAudio ? statusIdle() : '只有面部模仿（没有麦克风）');
+    if (source === 'arkit') status(hasAudio ? statusIdle() : 'ARKit face tracking (no microphone, so no voice copying)');
+    else if (!stream) status('No camera / microphone permission');
+    else status(hasAudio ? statusIdle() : 'Face only (no microphone)');
     requestAnimationFrame(loop);
   }
   function stopTracks() { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }

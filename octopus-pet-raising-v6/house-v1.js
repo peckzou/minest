@@ -338,7 +338,7 @@
 
   function updateLabel() {
     if (!label) return;
-    var txt = { roam: '', goingHome: '回家休息…', entering: '', resting: 'Zzz · 点小屋叫醒', peeking: '睡醒啦！', exiting: '' }[state] || '';
+    var txt = { roam: '', goingHome: 'Going home to rest…', entering: '', resting: 'Zzz · tap the house to wake', peeking: 'Awake!', exiting: '' }[state] || '';
     label.textContent = txt; label.style.opacity = txt ? '1' : '0';
     var g = geo(house.s);
     label.style.left = house.x + 'px'; label.style.top = (house.y - g.h1 - g.ry - house.s * .3) + 'px';

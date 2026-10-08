@@ -18,10 +18,10 @@
   function R(a, b) { return a + (b - a) * Math.random(); }
   var KEY = 'minest.octo.care.v2';
   var SNACKS = [
-    { id: 'shrimp', e: '🦐', name: '小虾', food: 26 },
-    { id: 'cookie', e: '🍪', name: '海带饼干', food: 22 },
-    { id: 'jelly', e: '⭐', name: '星星果冻', food: 18 },
-    { id: 'berry', e: '🍓', name: '海莓', food: 16 }
+    { id: 'shrimp', e: '🦐', name: 'Shrimp', food: 26 },
+    { id: 'cookie', e: '🍪', name: 'Kelp Cookie', food: 22 },
+    { id: 'jelly', e: '⭐', name: 'Star Jelly', food: 18 },
+    { id: 'berry', e: '🍓', name: 'Sea Berry', food: 16 }
   ];
 
   // ---- needs ------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@
   function level() { return 1 + Math.floor(S.bond / 20); }
   function addBond(n) {
     var before = level(); S.bond += n; save();
-    if (level() > before) celebrate('Lv ' + level() + ' · 更亲近了！');
+    if (level() > before) celebrate('Lv ' + level() + ' · closer than ever!');
   }
   var DAY = new Date().toDateString(), fav = SNACKS[Math.abs(DAY.split('').reduce(function (a, c) { return a * 31 + c.charCodeAt(0) | 0; }, 7)) % SNACKS.length].id;
 
@@ -92,7 +92,7 @@
     '.oc2-tray{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);z-index:46;display:flex;gap:10px;padding:10px 12px;border-radius:22px;background:rgba(255,255,255,.86);box-shadow:0 10px 30px rgba(0,0,0,.25)}',
     '.oc2-snack{position:relative;width:58px;height:66px;border-radius:16px;background:#fff6ef;display:flex;flex-direction:column;align-items:center;justify-content:center;font:30px/1 system-ui;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}',
     '.oc2-snack small{font:700 9px -apple-system,system-ui,sans-serif;color:#7a5a4a;margin-top:3px}',
-    '.oc2-snack.fav:before{content:"✨ 想吃";position:absolute;top:-10px;left:50%;transform:translateX(-50%);font:800 9px -apple-system,system-ui,sans-serif;background:#ff8fb1;color:#fff;padding:2px 6px;border-radius:999px;white-space:nowrap}',
+    '.oc2-snack.fav:before{content:"✨ Craving";position:absolute;top:-10px;left:50%;transform:translateX(-50%);font:800 9px -apple-system,system-ui,sans-serif;background:#ff8fb1;color:#fff;padding:2px 6px;border-radius:999px;white-space:nowrap}',
     '.oc2-drag{position:fixed;z-index:48;font:44px/1 system-ui;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.3));transition:transform .08s}',
     '.oc2-fx{position:fixed;z-index:48;pointer-events:none;font:20px/1 system-ui;transform:translate(-50%,-50%)}',
     '.oc2-foam{position:fixed;z-index:46;pointer-events:none;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,rgba(255,255,255,.75) 45%,rgba(220,240,255,.4) 70%,rgba(255,255,255,0) 72%);transform:translate(-50%,-50%)}',
@@ -111,7 +111,7 @@
   function buildUI() {
     var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     dock = document.createElement('div'); dock.className = 'oc2-dock';
-    [['feed', '🍤', '喂食'], ['bath', '🫧', '洗澡'], ['play', '🎾', '玩耍'], ['pet', '🤚', '抚摸'], ['sleep', '🌙', '睡觉']].forEach(function (b) {
+    [['feed', '🍤', 'Feed'], ['bath', '🫧', 'Bath'], ['play', '🎾', 'Play'], ['pet', '🤚', 'Pet'], ['sleep', '🌙', 'Sleep']].forEach(function (b) {
       var el = document.createElement('button'); el.type = 'button'; el.className = 'oc2-btn'; el.innerHTML = b[1] + '<small>' + b[2] + '</small>';
       el.setAttribute('aria-label', b[2]);
       el.addEventListener('pointerdown', function (e) { e.stopPropagation(); }, true);
@@ -208,13 +208,13 @@
   function start(kind) {
     if (mode) stop();
     var b = busy();
-    if (b === 'house' && kind !== 'sleep') { var H = window.__octoHouse; if (H.state === 'resting') { toast('它在睡觉 · 点小屋叫醒'); } return; }
-    if (b === 'copycat') { toast('先关掉 Copy Cat 吧'); return; }
+    if (b === 'house' && kind !== 'sleep') { var H = window.__octoHouse; if (H.state === 'resting') { toast('Sleeping · tap the house to wake it'); } return; }
+    if (b === 'copycat') { toast('Turn off Copy Cat first'); return; }
     if (kind === 'sleep') { var H2 = window.__octoHouse; if (H2) H2.goHome(); return; }
     mode = kind;
     layer = document.createElement('div'); layer.className = 'oc2-layer'; document.body.appendChild(layer);
     hud = document.createElement('div'); hud.className = 'oc2-hud'; document.body.appendChild(hud);
-    doneBtn = document.createElement('button'); doneBtn.className = 'oc2-done'; doneBtn.textContent = '完成';
+    doneBtn = document.createElement('button'); doneBtn.className = 'oc2-done'; doneBtn.textContent = 'Done';
     doneBtn.addEventListener('click', function (e) { e.stopPropagation(); finish(); });
     document.body.appendChild(doneBtn);
     dock.style.opacity = '.35'; dock.style.pointerEvents = 'none';
@@ -236,7 +236,7 @@
   // 🍤 FEED -----------------------------------------------------------------------------------------
   function feedMode() {
     layer.style.pointerEvents = 'none';
-    hud.textContent = '把零食拖到它嘴边 🍤';
+    hud.textContent = 'Drag a snack to its mouth 🍤';
     var tray = document.createElement('div'); tray.className = 'oc2-tray'; document.body.appendChild(tray);
     cleanup.push(function () { tray.remove(); });
     SNACKS.forEach(function (sn) {
@@ -271,7 +271,7 @@
     if (S.hunger <= 6) {
       // full: pushes it away, shakes its head
       var av = A(); try { av.referenceMotion && av.referenceMotion.play('no_shake'); } catch (e) {}
-      mouth('pout'); eyes('sad', 1500); toast('吃饱啦～');
+      mouth('pout'); eyes('sad', 1500); toast('All full~');
       g.style.transition = 'left .5s, top .5s, opacity .5s'; g.style.left = (mp.x + 90) + 'px'; g.style.top = (mp.y + 140) + 'px'; g.style.opacity = '0';
       setTimeout(function () { g.remove(); }, 520);
       return;
@@ -286,7 +286,7 @@
     S.hunger = clamp(S.hunger - sn.food * (isFav ? 1.5 : 1), 0, 100); S.fun = clamp(S.fun + 4, 0, 100);
     for (var i = 0; i < (isFav ? 6 : 2); i++) fx(isFav ? '💖' : '💜', mp.x + R(-20, 20), mp.y - 20, { life: 1200 });
     fx('+' + Math.round(sn.food * (isFav ? 1.5 : 1)) + ' 🍤', mp.x + 40, mp.y - 30, { size: 15, dx: 20, dy: -60 });
-    if (isFav) setTimeout(function () { toast('最爱的' + sn.name + '！'); }, 300);
+    if (isFav) setTimeout(function () { toast('Favourite ' + sn.name + '!'); }, 300);
     if (Math.random() < .35) setTimeout(function () { var mm = M(); if (mm && mm.bubbles) mm.bubbles(2); mouth('giggle'); }, 1300);   // a happy little burp
     addBond(isFav ? 3 : 1.5); renderNeeds();
   }
@@ -304,7 +304,7 @@
   function bathMode() {
     hold(true);
     var progress = 0, lastX = null, lastY = null, lastTickle = 0, lastSquint = 0, foams = [], idle = performance.now();
-    hud.textContent = '用手指给它搓搓澡 🫧 0%';
+    hud.textContent = 'Scrub it with your finger 🫧 0%';
     eyes('playful', 2000);
     function down(e) { lastX = e.clientX; lastY = e.clientY; }
     function move(e) {
@@ -318,7 +318,7 @@
         f.style.width = f.style.height = sz + 'px'; f.style.left = (x + R(-8, 8)) + 'px'; f.style.top = (y + R(-8, 8)) + 'px';
         document.body.appendChild(f); foams.push({ el: f, t: performance.now() });
         progress = Math.min(100, progress + d / (c.r * .18));
-        hud.textContent = '用手指给它搓搓澡 🫧 ' + Math.round(progress) + '%';
+        hud.textContent = 'Scrub it with your finger 🫧 ' + Math.round(progress) + '%';
         lastX = x; lastY = y;
       }
       var now = performance.now();
@@ -343,7 +343,7 @@
       if (c) for (var i = 0; i < 12; i++) fx(i % 2 ? '✨' : '💧', c.x + R(-c.r, c.r), c.y + R(-c.r * .6, c.r * .6), { dx: R(-90, 90), dy: R(-120, -30), life: 1400 });
       S.clean = 100; S.fun = clamp(S.fun + 8, 0, 100); addBond(2);
       eyes('happy', 3000); mouth('giggle'); lids('happy');
-      toast('香喷喷 ✨');
+      toast('Squeaky clean ✨');
       setTimeout(function () { if (mode === 'bath') finish(); }, 1600);
     }
   }
@@ -374,7 +374,7 @@
       fx('+' + pts + (combo >= 3 ? ' ×' + combo : ''), b.x, b.y, { size: 15, dy: -50, life: 800 });
       attend(b.x, b.y);
       if (score % 3 === 0 || b.gold) { mouth('giggle'); lids('happy'); }
-      hud.textContent = '🫧 戳泡泡！ ' + score + ' 分 · ' + Math.max(0, Math.ceil((DUR - (now - t0)) / 1000)) + 's';
+      hud.textContent = '🫧 Pop the bubbles! ' + score + ' pts · ' + Math.max(0, Math.ceil((DUR - (now - t0)) / 1000)) + 's';
     }
     var last = performance.now();
     (function step(now) {
@@ -389,14 +389,14 @@
         return true;
       });
       var left = DUR - (now - t0);
-      if (!over) hud.textContent = '🫧 戳泡泡！ ' + score + ' 分 · ' + Math.max(0, Math.ceil(left / 1000)) + 's';
+      if (!over) hud.textContent = '🫧 Pop the bubbles! ' + score + ' pts · ' + Math.max(0, Math.ceil(left / 1000)) + 's';
       if (!over && left <= 0) { over = true; end(); }
     })(last);
     cleanup.push(function () { cancelAnimationFrame(raf); bubbles.forEach(function (b) { b.el.remove(); }); });
     function end() {
       S.fun = clamp(S.fun + Math.min(60, 10 + score * 3), 0, 100); S.energy = clamp(S.energy - 6, 0, 100);
       addBond(1 + score / 6);
-      toast(score >= 15 ? '🏆 ' + score + ' 分！太厉害了' : '🎉 ' + score + ' 分！');
+      toast(score >= 15 ? '🏆 ' + score + ' pts! Amazing' : '🎉 ' + score + ' pts!');
       eyes('happy', 3000); mouth('giggle');
       setTimeout(function () { if (mode === 'play') { finish(); var mo = window.__motionV4; if (mo && mo.spin) setTimeout(function () { mo.spin(score >= 15 ? 'loop' : 'pirouette'); }, 400); } }, 1500);
     }
@@ -407,11 +407,11 @@
   function petMode() {
     hold(true);
     var lastX = null, lastY = null, dist = 0, lastHeart = 0, lastBlink = 0, lastTickle = 0, taps = [], idle = performance.now(), total = 0;
-    hud.textContent = '摸摸头 💜 · 挠挠触手 😆';
+    hud.textContent = 'Pat its head 💜 · tickle a tentacle 😆';
     function down(e) {
       lastX = e.clientX; lastY = e.clientY; idle = performance.now();
       var now = performance.now(); taps = taps.filter(function (t) { return now - t < 1200; }); taps.push(now);
-      if (taps.length >= 5) { taps = []; eyes('surprised', 1200); mouth('gasp'); lids('gasp'); toast('哎呀，太快啦！'); }
+      if (taps.length >= 5) { taps = []; eyes('surprised', 1200); mouth('gasp'); lids('gasp'); toast('Whoa, too fast!'); }
     }
     function move(e) {
       if (lastX == null) return;
