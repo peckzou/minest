@@ -64,7 +64,7 @@
     pout: [[0, O(0, .8, .2, -.6, 1)], [1.4, O(0, .8, .2, -.55, 1)]],
     chatter: [[0, O(.1, .95, 0, 0)], [.06, O(.02, .95, 0, 0)], [.12, O(.1, .95, 0, 0)], [.18, O(.02, .95, 0, 0)], [.24, O(.1, .95, 0, 0)], [.3, O(.02, .95, 0, 0)], [.36, O(.1, .95, 0, 0)], [.5, O(.05, .95, 0, .1)]]
   };
-  var clip = null;
+  var clip = null, liveShape = null, liveUntil = 0;
   function clipShape(now) {
     if (!clip) return null;
     var t = (now - clip.start) / 1000;
@@ -372,14 +372,15 @@
   function tick() {
     requestAnimationFrame(tick);
     if (!region || !enabled) return;
-    var tgt = target, cs = clipShape(performance.now());
+    var tgt = target, cs = clipShape(performance.now()), liveOn = liveShape && performance.now() < liveUntil;
     if (cs) tgt = cs;
     if (visemeTarget && performance.now() < talkUntil) {
       // blend the resting mood with the viseme (talking keeps a little of the mood's smile)
       var v = visemeTarget.shape, w = visemeTarget.w;
       tgt = { open: lerp(MOODS[mood].open * .3, v.open, w), wide: lerp(1, v.wide, w), round: lerp(0, v.round, w), smile: lerp(MOODS[mood].smile, v.smile, w * .7), press: (v.press || 0) * w, wobble: 0 };
     }
-    var k = visemeTarget && performance.now() < talkUntil ? .45 : cs ? .32 : .14;   // fast while talking / acting, gentle otherwise
+    if (liveOn) tgt = liveShape;                 // 43.8 face capture / echo lip sync wins over everything
+    var k = liveOn ? .55 : visemeTarget && performance.now() < talkUntil ? .45 : cs ? .32 : .14;   // fast while live / talking / acting
     ['open', 'wide', 'round', 'smile', 'press', 'wobble'].forEach(function (p) { cur[p] += ((tgt[p] || 0) - cur[p]) * k; });
     upload(false);
   }
@@ -448,6 +449,8 @@
     // play a mouth clip (ignored while talking); delayMs lets choreography line it up with a gesture
     play: function (name, delayMs) { if (!CLIPS[name]) return false; clip = { name: name, start: performance.now() + (delayMs || 0), fired: {} }; return true; },
     stop: function () { clip = null; },
+    // 43.8: drive the mouth directly (face capture, voice echo); holds for 300 ms after the last call
+    live: function (shape) { liveShape = Object.assign({ open: 0, wide: 1, round: 0, smile: .4, press: 0, wobble: 0 }, shape || {}); liveUntil = performance.now() + 300; },
     get clip() { return clip && clip.name; },
     bubbles: puffBubbles,
     clips: Object.keys(CLIPS), visemes: Object.keys(VISEMES), moods: Object.keys(MOODS),

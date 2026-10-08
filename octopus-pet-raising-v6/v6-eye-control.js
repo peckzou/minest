@@ -21,6 +21,8 @@
     love:      { dx: 0, dy: -.1, size: 1.3, sec: 1.6, twinkle: .16, twinkleHz: 1.6, orbit: 0, shimmer: 0, dim: 1 }
   };
   var expr = { name: 'neutral', until: 0, cur: Object.assign({}, EXPR.neutral), target: EXPR.neutral, look: 0 };
+  // 43.8: live layer for face capture / eyelids (dx,dy in eye radii; lid per screen side: -1 left, 1 right)
+  var live = { dx: 0, dy: 0, size: 1, lid: { '-1': 0, '1': 0 } };
   function setExpression(name, holdMs, opts) {
     var e = EXPR[name] || EXPR.neutral;
     expr.name = EXPR[name] ? name : 'neutral';
@@ -303,7 +305,7 @@
       var rf = reflection(E), K = 1.35;
       // main catchlight at the preset (+ reflection + expression); a small secondary one opposite it
       var ox = d.x * 1.75 + rf.x * K + ex.dx + Math.cos(t * 5.2 + E.side) * ex.orbit, oy = d.y * 1.75 + rf.y * K + ex.dy + Math.sin(t * 5.2 + E.side) * ex.orbit;
-      ox += Math.sin(t * 23 + E.side * 2) * ex.shimmer; oy += Math.cos(t * 19 + E.side) * ex.shimmer;
+      ox += Math.sin(t * 23 + E.side * 2) * ex.shimmer + live.dx; oy += Math.cos(t * 19 + E.side) * ex.shimmer + live.dy;
       if (!dot.userData.main) { ox = -d.x * 1.2 + .3 - rf.x * K * .6 - ex.dx * .5; oy = -d.y * .6 + .34 - rf.y * K * .6 + ex.dy * .4 - Math.sin(t * 5.2 + E.side) * ex.orbit; }
       var len = Math.hypot(ox, oy), lim = dot.userData.main ? .62 : .7;
       if (len > lim) { ox *= lim / len; oy *= lim / len; }
@@ -320,7 +322,8 @@
       var eyeR = ctr.distanceTo(edge);
       skinnedPoint(dot.userData.hit, pos);              // also leaves the surface normal in nrm
       var tw = 1 + ex.twinkle * Math.sin(t * ex.twinkleHz * Math.PI * 2 + (dot.userData.main ? 0 : 1.7) + E.side * .6);
-      var r = eyeR * (dot.userData.main ? .31 * ex.size : .12 * ex.sec) * d.size * tw;
+      var lid = live.lid[E.side] || 0;
+      var r = eyeR * (dot.userData.main ? .31 * ex.size : .12 * ex.sec) * d.size * tw * live.size * Math.max(.001, 1 - lid * 1.25);
       dot.position.copy(pos).addScaledVector(nrm, r * .18);
       q.setFromUnitVectors(Z, nrm);
       dot.quaternion.copy(q);
@@ -435,7 +438,9 @@
     if (!raf) raf = window.requestAnimationFrame(tick);
     new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', scan, { passive: true });
-    window.__v6EyeHighlight = { setPreset: setPreset, setSize: setSize, setEnabled: setEnabled, setExpression: setExpression, setLook: function (v) { expr.look = clamp(Number(v) || 0, -1, 1); }, expressions: Object.keys(EXPR), getExpression: function () { return expr.name; }, getState: function () { return { x: state.targetX, y: state.targetY, size: state.targetSize, preset: state.preset, enabled: state.enabled }; } };
+    window.__v6EyeHighlight = { setPreset: setPreset, setSize: setSize, setEnabled: setEnabled, setExpression: setExpression, setLook: function (v) { expr.look = clamp(Number(v) || 0, -1, 1); },
+      setLive: function (o) { o = o || {}; if (o.dx != null) live.dx = clamp(+o.dx, -.6, .6); if (o.dy != null) live.dy = clamp(+o.dy, -.6, .6); if (o.size != null) live.size = clamp(+o.size, .4, 1.8); if (o.lidL != null) live.lid['-1'] = clamp(+o.lidL, 0, 1); if (o.lidR != null) live.lid['1'] = clamp(+o.lidR, 0, 1); },
+      eyes: function () { var a = getAvatar(), g = a && a.importedModel && a.importedModel.userData.v6EyeHighlightGroup; return g ? g.children.filter(function (d) { return d.userData.main; }).map(function (d) { return d.userData.eye; }) : []; }, expressions: Object.keys(EXPR), getExpression: function () { return expr.name; }, getState: function () { return { x: state.targetX, y: state.targetY, size: state.targetSize, preset: state.preset, enabled: state.enabled }; } };
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

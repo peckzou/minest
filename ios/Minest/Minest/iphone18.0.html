@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 43.7 · Realtime Voice Pet</title>
+    <title>Minest iPhone 43.8 · Copy Cat</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21396,7 +21396,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "43.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "43.8" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -45064,10 +45064,10 @@ var Ve = (function(_Component) {
         '#' + overlayId + ' .minest-pet-close{border:1px solid rgba(148,220,255,.3);border-radius:10px;background:rgba(116,209,255,.12);color:#e8f8ff;padding:8px 12px;cursor:pointer;font:600 12px/1 system-ui,-apple-system,sans-serif}' +
         '#' + overlayId + ' .minest-pet-close:hover{background:rgba(116,209,255,.24)}' +
         '#' + overlayId + ' iframe{display:block;width:100%;height:calc(100% - 46px);border:0;background:#0a0d12}' +
-        '</style><div class="minest-pet-toolbar"><span>Pet Raising V6 · Voice 43.7</span><button type="button" class="minest-pet-close" aria-label="Close Pet Raising">Close</button></div><iframe title="Octopus Pet Raising V6 with Realtime Voice 43.7" allow="microphone; autoplay; camera" loading="eager"></iframe>';
+        '</style><div class="minest-pet-toolbar"><span>Pet Raising V6 · Copy Cat 43.8</span><button type="button" class="minest-pet-close" aria-label="Close Pet Raising">Close</button></div><iframe title="Octopus Pet Raising V6 with Realtime Voice 43.7" allow="microphone; autoplay; camera" loading="eager"></iframe>';
       document.body.appendChild(overlay);
       var frame = overlay.querySelector('iframe');
-      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=437');
+      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=438');
       overlay.querySelector('.minest-pet-close').addEventListener('click', closePetRaising);
       document.documentElement.classList.add('pet-raising-open');
     },
@@ -46318,6 +46318,27 @@ var Ve = (function(_Component) {
   else boot();
 }());
 
+</script>
+<!-- 43.8 Copy Cat: forward native ARKit face frames (iOS app) into the Pet Raising frame -->
+<script>
+(function () {
+  'use strict';
+  function frame() { return document.querySelector('#minest-pet-raising-overlay iframe'); }
+  var running = false;
+  window.addEventListener('message', function (event) {
+    var d = event.data, f = frame();
+    if (!d || d.type !== 'minest-copycat' || !f || event.source !== f.contentWindow) return;
+    var N = window.MinestNative;
+    if (d.action === 'start' && N && N.send) { running = true; try { N.send('startARFaceTracking'); } catch (e) {} }
+    if (d.action === 'stop' && N && N.send) { running = false; try { N.send('stopARFaceTracking'); } catch (e) {} }
+  });
+  var prev = window.__onARKitFaceData;
+  window.__onARKitFaceData = function (payload) {
+    var f = frame();
+    if (running && f && f.contentWindow) { try { f.contentWindow.postMessage({ type: 'minest-arkit', data: payload }, '*'); } catch (e) {} }
+    if (typeof prev === 'function') prev(payload);
+  };
+}());
 </script>
 </body>
 </html>
