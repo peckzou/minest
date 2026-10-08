@@ -16,12 +16,17 @@ const reply = (res, status, body, type = 'application/json; charset=utf-8') => {
   res.end(body);
 };
 
-function rawBody(req) {
-  const body = req.body;
+// Vercel only pre-parses JSON / text / form bodies; an application/sdp body has to be read from the stream.
+async function rawBody(req) {
+  let body;
+  try { body = req.body; } catch (error) { body = undefined; }   // the body getter can throw on unknown types
   if (Buffer.isBuffer(body)) return body.toString('utf8');
-  if (typeof body === 'string') return body;
-  if (body && typeof body === 'object') return String(body.sdp || body.offer || '');
-  return '';
+  if (typeof body === 'string' && body) return body;
+  if (body && typeof body === 'object' && (body.sdp || body.offer)) return String(body.sdp || body.offer);
+  if (req.readableEnded) return '';
+  const chunks = [];
+  for await (const chunk of req) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 function safetyIdentifier(token) {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return reply(res, 503, JSON.stringify({ error: 'OPENAI_API_KEY is not configured on the server' }));
 
-  const sdp = rawBody(req).trim();
+  const sdp = (await rawBody(req)).trim();
   if (!sdp || !/^v=0\s/m.test(sdp)) return reply(res, 400, JSON.stringify({ error: 'Invalid WebRTC SDP offer' }));
 
   // 44.4: the voice the user picked in the voice orb (one of the Realtime voices), else the default
