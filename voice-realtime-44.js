@@ -206,7 +206,7 @@
       // status + captions
       '#voice43-status-row{display:flex;align-items:center;gap:6px;font:600 11px -apple-system,system-ui,sans-serif;letter-spacing:.02em;opacity:.8;text-shadow:0 1px 6px rgba(0,0,0,.5)}',
       '#voice43-detail{display:none;max-width:100%;text-align:center;font-size:11px;line-height:1.4;opacity:.75;text-shadow:0 1px 6px rgba(0,0,0,.6)}',
-      '#voice43-backdrop[data-state="error"] #voice43-detail,#voice43-backdrop[data-state="connecting"] #voice43-detail,#voice43-backdrop[data-state="idle"].opts #voice43-detail{display:block}',
+      '#voice43-backdrop[data-state="error"] #voice43-detail,#voice43-backdrop[data-state="connecting"] #voice43-detail,#voice43-backdrop[data-state="listening"] #voice43-detail,#voice43-backdrop[data-state="idle"].opts #voice43-detail{display:block}',
       '#voice43-transcript{display:flex;flex-direction:column;align-items:center;gap:4px;max-width:100%;text-align:center;pointer-events:none!important}',
       '#voice43-transcript .user{font-size:13px;line-height:1.35;opacity:.62;text-shadow:0 1px 6px rgba(0,0,0,.65)}',
       '#voice43-transcript .assistant{font:600 17px/1.38 -apple-system,system-ui,sans-serif;text-shadow:0 2px 10px rgba(0,0,0,.7);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
@@ -1012,7 +1012,7 @@
     setState('connecting', 'Requesting dictation permission…');
     if (window.speechSynthesis) { try { window.speechSynthesis.resume(); } catch (error) {} }
 
-    if (window.MinestNative && window.MinestNative.startSpeechRecognition && window.MinestNative.requestMicrophonePermission) {
+    if (inNativeApp() && window.MinestNative && window.MinestNative.startSpeechRecognition && window.MinestNative.requestMicrophonePermission) {
       nativeMode = true;
       bindNativeEvents();
       try {
@@ -1047,8 +1047,17 @@
     }
   }
 
+  // only the iOS app (WKWebView) has native dictation; the web page defines its own MinestNative stand-in
+  function inNativeApp() {
+    var w = window.webkit && window.webkit.messageHandlers;
+    return !!(w && (w.minestBridge || w.focusboardBridge));
+  }
+  function hasToken() { try { return !!localStorage.getItem('minest_ai_token'); } catch (error) { return false; } }
+  var NO_TOKEN = 'This browser has no Minest AI token yet, so voice can’t reach the AI. Open Minest in the iOS app, or add the token to this browser once.';
+
   async function startSession() {
     if (active) return;
+    if (!hasToken()) { setState('error', NO_TOKEN); showOptions(true); return; }
     if (realtimePreferred()) {
       try {
         await startRealtimeSession();
@@ -1057,6 +1066,8 @@
         stopRealtimeSession();
         if (!active) return;
         active = false;
+        if (/401|not authori[sz]ed|未授权/i.test(error && error.message || '')) { setState('error', NO_TOKEN); showOptions(true); return; }
+        if (/Permission|NotAllowed|denied/i.test(error && (error.name + ' ' + error.message) || '')) { setState('error', 'Microphone permission was denied. Allow the microphone for this site and try again.'); showOptions(true); return; }
         try {
           if (/HTTP 404|NOT_FOUND|not found/i.test(error && error.message || '')) localStorage.setItem('minest_realtime_unavailable_until', String(Date.now() + 15 * 60 * 1000));
         } catch (storageError) {}
