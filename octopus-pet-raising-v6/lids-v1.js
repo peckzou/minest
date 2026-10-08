@@ -12,6 +12,38 @@
   if (window.__octoLids) return;
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 
+  // 43.9 motion v4 — keyframed eyelid acting. Keys: [t s, left, right] (0 open … 1 closed, screen sides);
+  // 'W' = a wink on a random side (left/right swapped at play time).
+  var CLIPS = {
+    blink: [[0, 0, 0], [.07, 1, 1], [.17, 0, 0]],
+    blinkDouble: [[0, 0, 0], [.07, 1, 1], [.16, 0, 0], [.24, 1, 1], [.34, 0, 0]],
+    wink: [[0, 0, 0], [.12, 1, 0], [.45, 1, .12], [.62, 0, 0]],
+    happy: [[0, 0, 0], [.18, .5, .5], [1.1, .48, .48], [1.4, 0, 0]],            // smiling eyes
+    sleepy: [[0, 0, 0], [.5, .55, .55], [1.1, .6, .6], [1.25, 1, 1], [1.5, .62, .62], [2.3, .58, .58], [2.7, 0, 0]],
+    yawn: [[0, 0, 0], [.35, .3, .3], [1.05, .92, .92], [1.75, .9, .9], [2.25, .2, .2], [2.6, 0, 0]],
+    gasp: [[0, 0, 0], [.05, 0, 0], [.75, 0, 0], [.82, 1, 1], [.92, 0, 0], [.99, 1, 1], [1.1, 0, 0]],
+    dizzy: [[0, 0, 0], [.12, .7, .1], [.24, .1, .7], [.36, .75, .15], [.48, .15, .75], [.6, .6, .2], [.8, 0, 0]],
+    love: [[0, 0, 0], [.45, 1, 1], [.85, 1, 1], [1.35, 0, 0]],                 // slow trusting blink
+    shy: [[0, 0, 0], [.3, .35, .35], [1.2, .4, .4], [1.35, 1, 1], [1.5, .38, .38], [2.2, .35, .35], [2.5, 0, 0]],
+    focus: [[0, 0, 0], [.25, .25, .25], [1.2, .28, .28], [1.45, 0, 0]],
+    puff: [[0, 0, 0], [.4, .55, .55], [1.4, .5, .5], [1.6, 0, 0]],
+    pout: [[0, 0, 0], [.3, .3, .3], [1.3, .32, .32], [1.6, 0, 0]],
+    squeeze: [[0, 0, 0], [.1, 1, 1], [.55, 1, 1], [.7, 0, 0]]
+  };
+  var clip = null;
+  function clipLids(now) {
+    if (!clip) return null;
+    var t = (now - clip.start) / 1000;
+    if (t < 0) return null;
+    var k = CLIPS[clip.name];
+    if (t > k[k.length - 1][0]) { clip = null; nextBlink = now + 1800 + Math.random() * 3000; return null; }
+    var a = k[0], b = k[k.length - 1];
+    for (var i = 0; i < k.length - 1; i++) if (t >= k[i][0] && t <= k[i + 1][0]) { a = k[i]; b = k[i + 1]; break; }
+    var u = b[0] > a[0] ? clamp((t - a[0]) / (b[0] - a[0]), 0, 1) : 1; u = u * u * (3 - 2 * u);
+    var l = a[1] + (b[1] - a[1]) * u, r = a[2] + (b[2] - a[2]) * u;
+    return clip.flip ? [r, l] : [l, r];
+  }
+
   var av, skinned, tex, R, Vec2, TexCtor, eyes = [];
   var cur = { '-1': 0, '1': 0 }, target = { '-1': 0, '1': 0 }, liveUntil = 0, auto = true, nextBlink = 0, blinkT = -1, doubleBlink = false;
 
@@ -111,7 +143,9 @@
   function tick(now) {
     requestAnimationFrame(tick);
     if (!eyes.length) return;
-    if (now > liveUntil && auto) {
+    var cl = now > liveUntil ? clipLids(now) : null;
+    if (cl) { target['-1'] = cl[0]; target['1'] = cl[1]; blinkT = -1; }
+    else if (now > liveUntil && auto) {
       if (!nextBlink) nextBlink = now + 2500 + Math.random() * 3500;
       if (blinkT < 0 && now > nextBlink) { blinkT = now; doubleBlink = Math.random() < .2; }
       var a = 0;
@@ -152,6 +186,11 @@
   var api = {
     set: function (left, right) { target['-1'] = clamp(+left || 0, 0, 1); target['1'] = clamp(right == null ? +left || 0 : +right || 0, 0, 1); liveUntil = performance.now() + 300; },
     blink: function () { blinkT = performance.now(); },
+    // play an eyelid clip (ignored while face capture drives the lids); delayMs to line it up
+    play: function (name, delayMs) { if (!CLIPS[name]) return false; clip = { name: name, start: performance.now() + (delayMs || 0), flip: Math.random() < .5 }; return true; },
+    stop: function () { clip = null; },
+    get clip() { return clip && clip.name; },
+    clips: Object.keys(CLIPS),
     setAuto: function (v) { auto = !!v; },
     get state() { return { left: cur['-1'], right: cur['1'] }; }
   };
