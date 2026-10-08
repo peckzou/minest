@@ -26,6 +26,7 @@
   var speechQueue = [];
   var speechPlaying = false;
   var speechBuffer = '';
+  var replySpoken = false;
   var responseComplete = false;
   var assistantText = '';
   var interimText = '';
@@ -48,9 +49,9 @@
   // Keep the turn-taking delay short while leaving enough room for normal
   // pauses in a sentence. Native iOS recognition has its own final event, so
   // it can submit sooner than browser interim results.
-  var FINAL_SUBMIT_DELAY = 360;
-  var INTERIM_SUBMIT_DELAY = 720;
-  var NATIVE_INTERIM_SUBMIT_DELAY = 520;
+  var FINAL_SUBMIT_DELAY = 200;
+  var INTERIM_SUBMIT_DELAY = 620;
+  var NATIVE_INTERIM_SUBMIT_DELAY = 440;
   var petBridge = {
     state: { kind: 'state', state: 'idle' },
     speech: null,
@@ -158,6 +159,7 @@
     try { v = localStorage.getItem('minest_realtime_voice') || v; } catch (error) {}
     return VOICES.some(function (x) { return x[0] === v; }) ? v : 'marin';
   }
+  function realtimeEnabled() { try { return localStorage.getItem('minest_voice_mode') === 'realtime'; } catch (error) { return false; } }
   function voiceName(id) { var f = VOICES.filter(function (x) { return x[0] === id; })[0]; return f ? f[1] : id; }
 
   function addStyles() {
@@ -312,7 +314,15 @@
     renderTranscript();
   }
 
+  // wake the chat function (and the TLS connection) as soon as the orb opens, so the first reply
+  // doesn't pay a serverless cold start; repeated while the orb stays open
+  var warmTimer = 0;
+  function warmUp() {
+    try { fetch(getChatEndpoint() + '-stream', { method: 'OPTIONS', mode: 'cors', cache: 'no-store' }).catch(function () {}); } catch (error) {}
+    try { if (window.speechSynthesis && !speechVoices.length) speechVoices = window.speechSynthesis.getVoices() || []; } catch (error) {}
+  }
   function openPanel() {
+    warmUp(); clearInterval(warmTimer); warmTimer = setInterval(warmUp, 120000);
     panel.classList.add('is-open');
     panel.setAttribute('aria-hidden', 'false');
     launchButton.setAttribute('aria-expanded', 'true');
@@ -320,6 +330,7 @@
   }
 
   function closePanel() {
+    clearInterval(warmTimer); warmTimer = 0;
     if (active) stopSession();
     showOptions(false);
     panel.classList.remove('is-open');
@@ -347,6 +358,7 @@
     startButton = h('button', { className: 'voice43-action primary', type: 'button' }, 'Start');
     interruptButton = h('button', { className: 'voice43-action', type: 'button', disabled: 'disabled' }, 'Interrupt');
     voiceButton = h('button', { className: 'voice43-action', type: 'button' }, '🎙 ' + voiceName(getVoice()));
+    if (!realtimeEnabled()) voiceButton.style.display = 'none';   // the voice list only applies to Realtime
     outputTestButton = h('button', { className: 'voice43-action', type: 'button' }, 'Test');
     var closeBottom = h('button', { className: 'voice43-action', type: 'button', 'aria-label': 'Close realtime voice' }, '✕');
     startButton.addEventListener('click', function () { if (active) stopSession(); else startSession(); showOptions(false); });
@@ -367,6 +379,7 @@
     var orb = h('button', { id: 'voice43-orb', type: 'button', 'aria-label': 'Voice options' });
     orb.innerHTML = '<i class="glow"></i><i class="wrap"><i class="b1"></i><i class="b2"></i><i class="core"></i><i class="b3"></i></i>';
     orb.addEventListener('click', function () {
+      if (active && (state === 'speaking' || state === 'thinking')) { interruptReply(); return; }   // tap to cut in
       if (!active && !panel.classList.contains('opts')) { showOptions(true); return; }
       showOptions(!panel.classList.contains('opts'));
     });
@@ -431,8 +444,8 @@
     if (!window.RTCPeerConnection || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
     try {
       var mode = localStorage.getItem('minest_voice_mode');
-      if (mode === 'legacy' || mode === 'sse') return false;
-      if (mode === 'realtime') return true;
+      // 44.4: streaming voice is the default; the Realtime attempt cost ~1–2 s per start and needs an official OpenAI key
+      if (mode !== 'realtime') return false;
       var unavailableUntil = Number(localStorage.getItem('minest_realtime_unavailable_until') || 0);
       if (unavailableUntil > Date.now()) return false;
     } catch (error) {}
@@ -701,6 +714,12 @@
 
   function speakSegments(delta, flush) {
     speechBuffer += String(delta || '');
+    // 44.4 low latency: start talking at the first comma of a reply instead of waiting for a full sentence
+    if (!speechPlaying && !speechQueue.length && !replySpoken) {
+      var cjk = /[\u4e00-\u9fff]/.test(speechBuffer);
+      var cm = speechBuffer.match(cjk ? /^[\s\S]{4,}?[，,、：:]/ : /^[\s\S]{15,}?[，,:]/);   // first comma after a few words
+      if (cm) { speechQueue.push(cm[0].trim()); speechBuffer = speechBuffer.slice(cm[0].length); replySpoken = true; }
+    }
     var breaks = /[。！？；\n.!?;]+/g;
     var match;
     while ((match = breaks.exec(speechBuffer)) !== null) {
@@ -708,17 +727,17 @@
       var piece = speechBuffer.slice(0, end).trim();
       speechBuffer = speechBuffer.slice(end);
       breaks.lastIndex = 0;
-      if (piece) speechQueue.push(piece);
+      if (piece) { speechQueue.push(piece); replySpoken = true; }
     }
     // Start speech before a long response reaches its final punctuation. Keep
     // English words intact when possible; CJK can safely split at a character.
-    var max = /[\u4e00-\u9fff]/.test(speechBuffer) ? 24 : 72;
+    var max = /[\u4e00-\u9fff]/.test(speechBuffer) ? (replySpoken ? 24 : 14) : (replySpoken ? 72 : 40);
     while (speechBuffer.length > max) {
       var cut = speechBuffer.lastIndexOf(' ', max);
       if (cut < 20) cut = max;
       var early = speechBuffer.slice(0, cut).trim();
       speechBuffer = speechBuffer.slice(cut).replace(/^\s+/, '');
-      if (early) speechQueue.push(early);
+      if (early) { speechQueue.push(early); replySpoken = true; }
     }
     if (flush && speechBuffer.trim()) {
       speechQueue.push(speechBuffer.trim());
@@ -741,11 +760,13 @@
     var utteranceGeneration = speechGeneration;
     var speechSeq = ++speechSequence;
     utterance.lang = /[\u4e00-\u9fff]/.test(text) ? 'zh-CN' : 'en-US';
-    utterance.rate = 1.02;
+    utterance.rate = 1.08;
     utterance.pitch = 1.04;
     try {
       var voices = speechVoices.length ? speechVoices : window.speechSynthesis.getVoices();
-      var voice = voices.find(function (item) { return item.lang && item.lang.toLowerCase().indexOf(utterance.lang.toLowerCase().slice(0, 2)) === 0; });
+      var same = voices.filter(function (item) { return item.lang && item.lang.toLowerCase().indexOf(utterance.lang.toLowerCase().slice(0, 2)) === 0; });
+      // prefer the higher-quality voices (Premium / Enhanced / Siri / Google) when installed
+      var voice = same.filter(function (v) { return /premium|enhanced|siri|google|natural/i.test(v.name); })[0] || same.filter(function (v) { return v.localService; })[0] || same[0];
       if (voice) utterance.voice = voice;
     } catch (error) {}
     speechPlaying = true;
@@ -797,6 +818,7 @@
     lastSubmitted = prompt;
     pauseRecognition();
     cancelPlayback();
+    replySpoken = false;
     addTranscript('user', prompt);
     assistantText = '';
     setState('thinking', 'Connecting to Minest streaming chat…');
@@ -985,7 +1007,7 @@
   function resumeRecognition() {
     if (!active) return;
     clearTimeout(recognitionRestartTimer);
-    recognitionRestartTimer = window.setTimeout(function () { recognitionRestartTimer = 0; startRecognition(); }, 140);
+    recognitionRestartTimer = window.setTimeout(function () { recognitionRestartTimer = 0; startRecognition(); }, 60);
   }
 
   function onNativeSpeech(event) {
@@ -997,7 +1019,7 @@
     nativeLatest = text;
     var interim = document.getElementById('voice43-interim');
     if (interim) interim.textContent = text;
-    scheduleSubmit(text, detail.isFinal ? 120 : NATIVE_INTERIM_SUBMIT_DELAY);
+    scheduleSubmit(text, detail.isFinal ? 60 : NATIVE_INTERIM_SUBMIT_DELAY);
   }
 
   function onNativeSpeechError(event) {
