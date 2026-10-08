@@ -137,9 +137,17 @@
   // ---------------------------------------------------------------------------------------------------
   var on = false, source = 'none', landmarker = null, stream = null, lastVideoTime = -1, liveFace = null, arkitAt = 0;
   // ARKit (iOS app): the parent page forwards native frames
+  // 44.1: the parent tells us whether native ARKit exists (iOS app) and forwards ARKit errors
+  var arkitCapable = false, arkitFailed = false;
   window.addEventListener('message', function (event) {
     var d = event.data;
-    if (!d || d.type !== 'minest-arkit' || (inFrame && event.source !== window.parent)) return;
+    if (!d || (inFrame && event.source !== window.parent)) return;
+    if (d.type === 'minest-copycat' && d.arkit != null) { arkitCapable = !!d.arkit; return; }
+    if (d.type === 'minest-arkit' && d.error) { arkitFailed = true; if (window.__octoTex) window.__octoTex.note('arkit error ' + d.error); return; }
+  });
+  window.addEventListener('message', function (event) {
+    var d = event.data;
+    if (!d || d.type !== 'minest-arkit' || !d.data || (inFrame && event.source !== window.parent)) return;
     var p = d.data || {};
     arkitAt = performance.now();
     if (!on) return;
@@ -300,8 +308,18 @@
     var Ld = window.__octoLids; if (Ld) Ld.setAuto(false);
     // the iOS app can provide ARKit; ask, and give it a moment before using the camera ourselves
     if (inFrame) { try { window.parent.postMessage({ type: 'minest-copycat', action: 'start' }, '*'); } catch (e) {} }
-    await new Promise(function (r) { setTimeout(r, 700); });
+    // ARKit needs 1–2 s to start, and only one of ARKit / the web camera can hold the camera: when the
+    // app says ARKit exists, wait up to 3.5 s for its frames before falling back to the web camera.
+    var t0 = performance.now();
+    while (true) {
+      await new Promise(function (r) { setTimeout(r, 100); });
+      var waited = performance.now() - t0;
+      if (performance.now() - arkitAt < 600) break;                       // ARKit frames are arriving
+      if (arkitFailed) break;                                             // the app reported an ARKit error
+      if (waited > (arkitCapable ? 3500 : 900)) break;                    // give ARKit time only in the app
+    }
     var wantVideo = !(performance.now() - arkitAt < 1500);
+    if (!wantVideo) status('ARKit 面部追踪中…');
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: wantVideo ? { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } : false, audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     } catch (e) {

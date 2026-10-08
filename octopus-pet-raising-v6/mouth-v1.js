@@ -46,7 +46,8 @@
     sleepy: { open: 0, wide: .85, round: 0, smile: .35 },
     sad: { open: .08, wide: .85, round: 0, smile: -.65 },
     shy: { open: 0, wide: .8, round: 0, smile: .6 },
-    dizzy: { open: .35, wide: .9, round: .3, smile: -.1, wobble: 1 }
+    dizzy: { open: .35, wide: .9, round: .3, smile: -.1, wobble: 1 },
+    playful: { open: .42, wide: 1.06, round: .08, smile: .95 }
   };
 
   // 43.6 motion v3 — short keyframed mouth performances. Keys: t (s), shape fields; `b` = puff bubbles.
@@ -120,13 +121,14 @@
   // 1 + 2: find and erase the painted mouth
   // ---------------------------------------------------------------------------------------------
   function analyse() {
-    var img = tex.image, W = img.width, H = img.height;
+    var img = window.__octoTex ? window.__octoTex.base(tex, R) : tex.image, W = img.width, H = img.height;
     var g = skinned.geometry, P = g.attributes.position, UV = g.attributes.uv;
     // dark texels on the front of the face, centred between the eyes and below them
     var maxY = 0; for (var i = 0; i < P.count; i++) maxY = Math.max(maxY, P.getY(i));
     var probe = document.createElement('canvas'), S = 1024; probe.width = probe.height = S;
     var pc = probe.getContext('2d', { willReadFrequently: true }); pc.drawImage(img, 0, 0, S, S);
     var pd = pc.getImageData(0, 0, S, S).data;
+    probe.width = probe.height = 0;
     function lumUV(u, v) { var x = clamp(Math.floor(u * S), 0, S - 1), y = clamp(Math.floor(v * S), 0, S - 1), k = (y * S + x) * 4; return .3 * pd[k] + .59 * pd[k + 1] + .11 * pd[k + 2]; }
     var su = 0, sv = 0, n = 0;
     for (var j = 0; j < P.count; j++) {
@@ -358,6 +360,7 @@
     c.restore();
   }
 
+  function FACE() { return window.__octoTex && window.__octoTex.face; }
   function upload(force) {
     var m = cur;
     var key = [m.open, m.wide, m.round, m.smile, m.press].map(function (v) { return Math.round(v * 40); }).join(',') + (m.wobble > .05 ? ',' + Math.round(performance.now() / 50) : '');
@@ -365,6 +368,7 @@
     if (!force && (key === lastKey || t - lastUpload < 33)) return;
     lastKey = key; lastUpload = t;
     draw(m);
+    if (FACE()) { FACE().invalidate(); return; }      // 44.2: shared face compositor (no overlap fights with the eyelids)
     patchTex.needsUpdate = true;
     try { R.copyTextureToTexture(patchTex, tex, null, new Vec2(region.x, region.y)); } catch (e) { console.warn('[mouth] upload failed', e); }
   }
@@ -394,11 +398,14 @@
     if (!tex || !tex.image || !tex.image.width || !R.copyTextureToTexture) return false;
     Vec2 = tex.offset.constructor; TexCtor = tex.constructor;
     if (!analyse()) return false;
+    // 44.1: after a WebGL context restore the texture is re-uploaded clean — paint the mouth again
+    window.addEventListener('octo-gl-restored', function () { lastKey = ''; upload(true); });
     patch = document.createElement('canvas'); patch.width = region.w; patch.height = region.h;
     pctx = patch.getContext('2d');
     patchTex = new TexCtor(patch);
     patchTex.flipY = tex.flipY; patchTex.colorSpace = tex.colorSpace; patchTex.generateMipmaps = false;
     patchTex.premultiplyAlpha = tex.premultiplyAlpha;
+    if (FACE()) FACE().layer('mouth', tex, R, region, function (c) { if (enabled) c.drawImage(patch, 0, 0); }, 0);
     upload(true);
     // the talk pipeline's calls now drive the mouth
     var origV = a.setViseme && a.setViseme.bind(a);
@@ -445,7 +452,7 @@
       var seq = ['aa', 'O', 'U', 'mm', 'E', 'I', 'aa', 'PP', 'O', 'sil'], i = 0;
       (function step() { api.viseme(seq[i], 1); i++; if (i < seq.length) setTimeout(step, 220); })();
     },
-    setEnabled: function (v) { enabled = !!v; if (!enabled && region) { var c = pctx; c.clearRect(0, 0, region.w, region.h); c.drawImage(tex.image, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h); patchTex.needsUpdate = true; R.copyTextureToTexture(patchTex, tex, null, new Vec2(region.x, region.y)); lastKey = ''; } },
+    setEnabled: function (v) { enabled = !!v; if (FACE()) { FACE().invalidate(); lastKey = ''; return; } if (!enabled && region) { var c = pctx; c.clearRect(0, 0, region.w, region.h); c.drawImage(tex.image, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h); patchTex.needsUpdate = true; R.copyTextureToTexture(patchTex, tex, null, new Vec2(region.x, region.y)); lastKey = ''; } },
     // play a mouth clip (ignored while talking); delayMs lets choreography line it up with a gesture
     play: function (name, delayMs) { if (!CLIPS[name]) return false; clip = { name: name, start: performance.now() + (delayMs || 0), fired: {} }; return true; },
     stop: function () { clip = null; },
@@ -453,6 +460,7 @@
     live: function (shape) { liveShape = Object.assign({ open: 0, wide: 1, round: 0, smile: .4, press: 0, wobble: 0 }, shape || {}); liveUntil = performance.now() + 300; },
     get clip() { return clip && clip.name; },
     bubbles: puffBubbles,
+    point: function () { return mouthClientPoint(); },   // 44.1: mouth position on screen (Care: feeding)
     clips: Object.keys(CLIPS), visemes: Object.keys(VISEMES), moods: Object.keys(MOODS),
     get state() { return Object.assign({}, cur); }, get region() { return region; }
   };

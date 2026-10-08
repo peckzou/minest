@@ -6,20 +6,31 @@
   var DEFAULT_STATE = {
     unlockedItems: ['default_purple', 'blue_lavender', 'headphones'],
     equippedSkin: 'default_purple',
-    equippedBySlot: { head: null, neck: null },
+    equippedBySlot: { head: null, hair: null, face: null, neck: null },
     skinAdjustments: { hue: 0, saturation: 1, brightness: 1 },
     renderMode: 'source'
   };
   var SKINS = {
     default_purple: { label: 'Default Purple', color: 0xffffff, accent: 0x8c6bd9, requirement: 'Base' },
     blue_lavender: { label: 'Blue Lavender', color: 0x6d9dff, accent: 0x667eea, requirement: 'Growth Level 2' },
-    pearl_pink: { label: 'Pearl Pink', color: 0xff91bd, accent: 0xf06f9d, requirement: 'Badge milestone' }
+    pearl_pink: { label: 'Pearl Pink', color: 0xff91bd, accent: 0xf06f9d, requirement: 'Badge milestone' },
+    // 44.2 wardrobe
+    mint_green: { label: 'Mint Green', color: 0x7fe3c4, accent: 0x3fbf98, requirement: 'Bond Lv 2', level: 2 },
+    peach_pink: { label: 'Peach Pink', color: 0xffa98f, accent: 0xff8a6a, requirement: 'Bond Lv 3', level: 3 },
+    starry_night: { label: 'Starry Night', color: 0x4a4fb0, accent: 0x2b2f7a, requirement: 'Bond Lv 6', level: 6, starry: true }
   };
   var ACCESSORIES = {
     headphones: { label: 'Headphones', slot: 'head', accent: 0x9a7bd3, requirement: 'Growth Level 3' },
     small_crown: { label: 'Small Crown', slot: 'head', accent: 0xffd76a, requirement: 'Badge milestone' },
-    scarf: { label: 'Scarf', slot: 'neck', accent: 0xff7c91e8, requirement: 'Streak milestone' }
+    scarf: { label: 'Scarf', slot: 'neck', accent: 0xff7c91e8, requirement: 'Streak milestone' },
+    // 44.2 wardrobe
+    bow: { label: 'Bow', slot: 'head', accent: 0xff7aa8, requirement: 'Bond Lv 2', level: 2 },
+    glasses: { label: 'Round Glasses', slot: 'face', accent: 0x3a2b4a, requirement: 'Bond Lv 3', level: 3 },
+    straw_hat: { label: 'Straw Hat', slot: 'head', accent: 0xe8c77a, requirement: 'Bond Lv 4', level: 4 },
+    starfish_clip: { label: 'Starfish Clip', slot: 'hair', accent: 0xff9f43, requirement: 'Bond Lv 5', level: 5 },
+    pearl_necklace: { label: 'Pearl Necklace', slot: 'neck', accent: 0xf6f1ea, requirement: 'Bond Lv 7', level: 7 }
   };
+  var SLOTS = ['head', 'hair', 'face', 'neck'];
   var listeners = [];
   var channel = null;
   try { channel = new BroadcastChannel(CHANNEL_NAME); } catch (error) {}
@@ -29,7 +40,7 @@
     return {
       unlockedItems: Array.from(new Set((state.unlockedItems || []).filter(Boolean))),
       equippedSkin: state.equippedSkin || DEFAULT_STATE.equippedSkin,
-      equippedBySlot: Object.assign({ head: null, neck: null }, state.equippedBySlot || {}),
+      equippedBySlot: Object.assign({ head: null, hair: null, face: null, neck: null }, state.equippedBySlot || {}),
       skinAdjustments: {
         hue: Math.max(-.5, Math.min(.5, Number(adjustments.hue) || 0)),
         saturation: Math.max(0, Math.min(2, Number(adjustments.saturation) || 0)),
@@ -66,7 +77,10 @@
   }
   function equipSkin(itemId) {
     if (!SKINS[itemId] || !isUnlocked(itemId)) return false;
-    state.equippedSkin = itemId; persist(); return true;
+    state.equippedSkin = itemId;
+    // 44.2: the original look is the untouched GLB; any other skin needs the tint shader
+    state.renderMode = itemId === 'default_purple' ? 'source' : 'tinted';
+    persist(); return true;
   }
   function equipAccessory(itemId) {
     var item = ACCESSORIES[itemId];
@@ -191,6 +205,65 @@
       var tail = new THREE.Mesh(new THREE.BoxGeometry(.075, .25, .035), material);
       tail.position.set(.19, -.01, .02); tail.rotation.z = -.16; group.add(tail);
       group.scale.setScalar(1.1);
+    } else if (id === 'bow') {
+      // 44.2: a satin bow perched on the top-right of the head (head-bone space; top of head y≈.64)
+      var satin = new THREE.MeshStandardMaterial({ color: 0xff7aa8, roughness: .35, metalness: .05 });
+      if (satin.emissive) { satin.emissive.setHex(0xff7aa8); satin.emissiveIntensity = .12; }
+      var bowG = new THREE.Group(); bowG.position.set(.2, .6, .12); bowG.rotation.set(-.25, 0, -.35); group.add(bowG);
+      [-1, 1].forEach(function (sd) {
+        var loop = new THREE.Mesh(makeSphere(.11, 20, 14), satin); loop.scale.set(1.15, .72, .45); loop.position.x = sd * .105; loop.rotation.z = sd * .25; bowG.add(loop);
+        var tail = new THREE.Mesh(new THREE.BoxGeometry(.05, .13, .02), satin); tail.position.set(sd * .05, -.1, 0); tail.rotation.z = sd * .35; bowG.add(tail);
+      });
+      var knot = new THREE.Mesh(makeSphere(.05, 16, 12), new THREE.MeshStandardMaterial({ color: 0xff5a90, roughness: .3 })); knot.scale.z = .7; bowG.add(knot);
+      group.position.set(0, 0, 0);
+    } else if (id === 'straw_hat') {
+      // a sun hat: wide brim, low crown and a ribbon band, tipped a little
+      var straw = new THREE.MeshStandardMaterial({ color: 0xe9c97c, roughness: .9, metalness: 0 });
+      if (straw.emissive) { straw.emissive.setHex(0xe9c97c); straw.emissiveIntensity = .1; }
+      var hatG = new THREE.Group(); hatG.position.set(0, .6, -.06); hatG.rotation.set(-.12, 0, .1); group.add(hatG);
+      var brim = new THREE.Mesh(new THREE.CylinderGeometry(.62, .66, .028, 40), straw); hatG.add(brim);
+      var crownM = new THREE.Mesh(new THREE.CylinderGeometry(.27, .32, .2, 32), straw); crownM.position.y = .11; hatG.add(crownM);
+      var top = new THREE.Mesh(makeSphere(.27, 24, 12), straw); top.scale.y = .35; top.position.y = .21; hatG.add(top);
+      var ribbon = new THREE.Mesh(new THREE.CylinderGeometry(.325, .325, .06, 32), new THREE.MeshStandardMaterial({ color: 0xff8fb1, roughness: .5 })); ribbon.position.y = .045; hatG.add(ribbon);
+      var flower = new THREE.Mesh(makeSphere(.055, 14, 10), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .5 })); flower.position.set(.24, .06, .18); hatG.add(flower);
+      group.position.set(0, 0, 0);
+    } else if (id === 'starfish_clip') {
+      // a little orange starfish hair clip on the left side of the head
+      var orange = new THREE.MeshStandardMaterial({ color: 0xff9f43, roughness: .55 });
+      if (orange.emissive) { orange.emissive.setHex(0xff9f43); orange.emissiveIntensity = .14; }
+      var star = new THREE.Group(); star.position.set(-.34, .5, .26); star.rotation.set(-.4, -.45, .2); group.add(star);
+      for (var a5 = 0; a5 < 5; a5++) {
+        var arm = new THREE.Mesh(makeCone(.04, .12, 8), orange);
+        var ang = a5 / 5 * Math.PI * 2;
+        arm.position.set(Math.sin(ang) * .06, Math.cos(ang) * .06, 0); arm.rotation.z = -ang; star.add(arm);
+      }
+      var mid = new THREE.Mesh(makeSphere(.045, 14, 10), orange); mid.scale.z = .6; star.add(mid);
+      group.position.set(0, 0, 0);
+    } else if (id === 'glasses') {
+      // round glasses in front of the eyes (measured eye centres in head-bone space: x ±.23, y .164,
+      // z .30, eye radius ≈ .083)
+      var frame = new THREE.MeshStandardMaterial({ color: 0x3a2b4a, roughness: .35, metalness: .3 });
+      var glass = new THREE.MeshStandardMaterial({ color: 0xcfe9ff, roughness: .05, metalness: 0, transparent: true, opacity: .18 });
+      [-1, 1].forEach(function (sd) {
+        var ring = new THREE.Mesh(new THREE.TorusGeometry(.115, .016, 10, 32), frame); ring.position.set(sd * .232, .166, .37); ring.rotation.y = sd * .22; group.add(ring);
+        var lens = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .006, 28), glass); lens.rotation.x = Math.PI / 2; lens.rotation.z = 0; lens.position.copy(ring.position); lens.rotation.y = sd * .22; group.add(lens);
+        var temple = new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, .3, 8), frame); temple.rotation.x = Math.PI / 2; temple.position.set(sd * .4, .18, .2); temple.rotation.y = sd * .5; group.add(temple);
+      });
+      var bridge = new THREE.Mesh(new THREE.TorusGeometry(.05, .013, 8, 16, Math.PI), frame); bridge.position.set(0, .2, .4); group.add(bridge);
+      group.position.set(0, 0, 0);
+    } else if (id === 'pearl_necklace') {
+      // 44.2: draped in a U across the front just below the mouth (head-bone space; the face ends near
+      // y≈.08, its front surface z≈.37), so it is visible — the neck slot sits inside the plush
+      var pearl = new THREE.MeshStandardMaterial({ color: 0xfbf6ee, roughness: .18, metalness: .12 });
+      if (pearl.emissive) { pearl.emissive.setHex(0xfff3e8); pearl.emissiveIntensity = .14; }
+      var n = 17;
+      for (var k = 0; k < n; k++) {
+        var a = (k / (n - 1) - .5) * 2.3, big = k === (n - 1) / 2 ? 1.5 : 1;
+        var p = new THREE.Mesh(makeSphere(.036 * big, 12, 10), pearl);
+        p.position.set(Math.sin(a) * .37, -.19 + (1 - Math.cos(a)) * .1, .24 + Math.cos(a) * .24); group.add(p);
+      }
+      group.position.set(0, 0, 0); group.scale.setScalar(1);
+      group.userData.minestHeadAnchored = true;
     }
     return group;
   }
@@ -226,7 +299,7 @@
     if (!index || !index.count) {
       var fallback = new Float32Array(count);
       fallback.fill(1);
-      geometry.setAttribute('minestPlushPart', new THREE.BufferAttribute(fallback, 1));
+      geometry.setAttribute('minestPlushPart', new (THREE.BufferAttribute || geometry.getAttribute('position').constructor)(fallback, 1));
       return;
     }
     var parent = new Int32Array(count);
@@ -301,8 +374,10 @@
         }
       } catch (error) {}
     }
-    geometry.setAttribute('minestPlushPart', new THREE.BufferAttribute(mask, 1));
+    geometry.setAttribute('minestPlushPart', new (THREE.BufferAttribute || geometry.getAttribute('position').constructor)(mask, 1));
   }
+  var TINTED = [];
+  (function tick(t) { requestAnimationFrame(tick); for (var i = TINTED.length - 1; i >= 0; i--) { var sh = TINTED[i].userData.minestShader; if (sh && sh.uniforms.minestTime) sh.uniforms.minestTime.value = t / 1000; } if (TINTED.length > 40) TINTED.splice(0, TINTED.length - 40); })(0);
   function installSurfaceTint(material, rgb, THREE) {
     if (!material || !material.onBeforeCompile) return;
     material.userData = material.userData || {};
@@ -318,16 +393,35 @@
       // it. Multiplication gets washed out by the pale baked texture and made
       // the controls appear unresponsive while still leaving texture detail.
       var tintBlend = 'vec3 minestFurTint = minestSkinTint;';
-      shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  ' + mask + '\n  ' + tintBlend + '\n  diffuseColor.rgb = mix(diffuseColor.rgb, minestFurTint, minestSurfaceMask);');
-      shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance = mix(totalEmissiveRadiance, minestSkinTint, minestSurfaceMask * 0.18);');
+      shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  ' + mask + '\n  ' + tintBlend + '\n  diffuseColor.rgb = mix(diffuseColor.rgb, minestFurTint * .18, minestSurfaceMask);');
+      // 44.2: recolour the baked fur by its brightness (keeps shading and fur detail; dark pixels such
+      // as the eyes stay as they are); the starry skin adds twinkling stars
+      shader.uniforms.minestTime = { value: 0 };
+      shader.uniforms.minestStarry = { value: material.userData.minestStarry ? 1 : 0 };
+      material.userData.minestShader = shader; TINTED.push(material);
+      shader.fragmentShader = 'uniform float minestTime;\nuniform float minestStarry;\n' + shader.fragmentShader;
+      shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', [
+        '#include <emissivemap_fragment>',
+        '  { vec3 e = totalEmissiveRadiance; float lum = dot(e, vec3(.299,.587,.114));',
+        '    float keep = smoothstep(.1, .3, lum);',
+        '    vec3 fur = minestSkinTint * (.06 + .6 * lum);',
+        '    totalEmissiveRadiance = mix(e, fur, minestSurfaceMask * keep * .95);',
+        '    #ifdef USE_EMISSIVEMAP',
+        '    if (minestStarry > .5) { vec2 g = vEmissiveMapUv * 420.0; vec2 c = floor(g); float h = fract(sin(dot(c, vec2(12.9898,78.233))) * 43758.5453);',
+        '      float star = step(.985, h) * smoothstep(.45, .0, length(fract(g) - .5)) * (.55 + .45 * sin(minestTime * 2.5 + h * 60.0));',
+        '      totalEmissiveRadiance += vec3(1., .95, .8) * star * 1.4 * minestSurfaceMask * keep; }',
+        '    #endif',
+        '  }'
+      ].join('\n'));
     };
     material.customProgramCacheKey = function () {
-      return 'minest-surface-tint-v4-' + [rgb.r, rgb.g, rgb.b].map(function (value) { return Math.round(value * 1000); }).join('-');
+      return 'minest-surface-tint-v7-' + (material.userData.minestStarry ? 's-' : '') + [rgb.r, rgb.g, rgb.b].map(function (value) { return Math.round(value * 1000); }).join('-');
     };
     material.needsUpdate = true;
   }
   function applyModel(model, THREE, binding) {
     if (!model || !THREE) return;
+    THREE = completeTHREE(THREE, model);
     binding = binding || {};
     var viewState = binding.previewState || state;
     var skin = SKINS[viewState.equippedSkin] || SKINS.default_purple;
@@ -351,17 +445,19 @@
       var material = Array.isArray(base) ? base.map(function (item) { return item.clone(); }) : base.clone();
       var apply = function (item) {
         if (!item) return;
+        item.userData = item.userData || {}; item.userData.minestStarry = !!skin.starry;
         installSurfaceTint(item, rgb, THREE);
         item.needsUpdate = true;
       };
       Array.isArray(material) ? material.forEach(apply) : apply(material);
       node.material = material;
     });
-    ['head', 'neck'].forEach(function (slot) {
-      var anchor = slot === 'head' ? findBone(model, ['head', 'Head']) : findBone(model, ['body', 'Body', 'neck', 'Neck']);
+    SLOTS.forEach(function (slot) {
+      var useHead = slot !== 'neck' || viewState.equippedBySlot[slot] === 'pearl_necklace';
+      var anchor = useHead ? findBone(model, ['head', 'Head']) : findBone(model, ['body', 'Body', 'neck', 'Neck']);
       if (!anchor) return;
       var marker = 'minestCosmetic:' + slot;
-      anchor.children.slice().forEach(function (child) { if (child.userData && child.userData.minestCosmeticSlot === marker) anchor.remove(child); });
+      [findBone(model, ['head', 'Head']), findBone(model, ['body', 'Body', 'neck', 'Neck'])].forEach(function (bone) { if (bone) bone.children.slice().forEach(function (child) { if (child.userData && child.userData.minestCosmeticSlot === marker) bone.remove(child); }); });
       var itemId = viewState.equippedBySlot[slot];
       if (!itemId) return;
       var accessory = makeAccessory(THREE, itemId);
@@ -371,7 +467,22 @@
     });
     if (binding.onApplied) binding.onApplied(cloneState(viewState));
   }
+  // 44.2: Pet Raising hands over a trimmed Three.js adapter (no Color / BufferAttribute …), which made
+  // every non-default skin throw. Fill the gaps from the model's own objects.
+  function completeTHREE(THREE, model) {
+    if (!THREE || THREE.__completed) return THREE;
+    var T = Object.create(THREE), mesh = null;
+    model.traverse(function (n) { if (!mesh && n.isMesh && n.material && n.geometry) mesh = n; });
+    var mat = mesh && (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material);
+    if (!THREE.Color && mat && mat.color) T.Color = mat.color.constructor;
+    if (!THREE.BufferAttribute && mesh) T.BufferAttribute = mesh.geometry.getAttribute('position').constructor;
+    if (!THREE.Vector3) T.Vector3 = model.position.constructor;
+    T.__completed = true;
+    return T;
+  }
   function watchModel(model, THREE, binding) {
+    THREE = completeTHREE(THREE, model);
+    if (!binding || !binding.previewState) { window.__minestCosmeticsModel = model; window.__minestCosmeticsTHREE = THREE; }   // 44.2: wardrobe try-on
     var apply = function () { applyModel(model, THREE, binding); };
     apply(); listeners.push(apply);
     return function () { listeners = listeners.filter(function (item) { return item !== apply; }); };

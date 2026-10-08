@@ -21,6 +21,10 @@
       event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
       try { window.parent.postMessage({ type: 'minest-voice', action: 'open' }, '*'); } catch (e) {}
     }, true);
+    // Parent pages can open the panel before this iframe finishes loading.
+    // Announce readiness so the parent can replay the current voice state and
+    // the active sentence timeline without relying on a fragile load race.
+    try { window.parent.postMessage({ type: 'minest-voice', action: 'ready' }, '*'); } catch (e) {}
   }
 
   function mouth() { return window.__octoMouth || null; }
@@ -76,11 +80,14 @@
 
   // ---- playback ---------------------------------------------------------------------------------------
   var speaking = null;   // { tl, start, idx }
-  function startSentence(text, rate) {
-    speaking = { tl: timeline(String(text || ''), rate), start: performance.now(), idx: 0 };
+  var realtimeLevel = 0;
+  function startSentence(text, rate, seq) {
+    var value = String(text || '').trim();
+    if (!value) { speaking = null; return; }
+    speaking = { tl: timeline(value, rate), start: performance.now(), idx: 0, seq: seq || 0 };
   }
-  function resyncTo(charIndex) {
-    if (!speaking) return;
+  function resyncTo(charIndex, seq) {
+    if (!speaking || (seq && speaking.seq && seq !== speaking.seq)) return;
     var tl = speaking.tl;
     for (var j = 0; j < tl.length; j++) if (tl[j].i >= charIndex) {
       // shift the clock so this word starts now (the engine knows the real timing)
@@ -90,7 +97,15 @@
   function tick() {
     requestAnimationFrame(tick);
     var m = mouth();
-    if (!speaking || !m) return;
+    if (!m) return;
+    // Realtime WebRTC has no browser speech-boundary events. Drive the same
+    // mouth compositor from the remote audio RMS while keeping the text
+    // timeline for the legacy SpeechSynthesis fallback.
+    if (realtimeLevel > .012) {
+      var open = Math.min(.92, realtimeLevel * 1.55);
+      m.live({ open: open, wide: .88 + realtimeLevel * .22, round: .08 + realtimeLevel * .55, smile: .42, press: 0 });
+    }
+    if (!speaking) return;
     var t = performance.now() - speaking.start, tl = speaking.tl;
     while (speaking.idx < tl.length - 1 && tl[speaking.idx + 1].at <= t) speaking.idx++;
     var cur = tl[speaking.idx];
@@ -125,9 +140,13 @@
     if (!d || d.type !== 'minest-voice-state') return;
     if (inFrame && event.source !== window.parent) return;
     if (d.kind === 'state') onState(d.state);
-    else if (d.kind === 'speak-start') startSentence(d.text, d.rate);
-    else if (d.kind === 'boundary') resyncTo(d.charIndex || 0);
-    else if (d.kind === 'speak-end') { speaking = null; var m = mouth(); if (m) m.viseme('sil', 0); }
+    else if (d.kind === 'speak-start') startSentence(d.text, d.rate, d.seq);
+    else if (d.kind === 'boundary') resyncTo(d.charIndex || 0, d.seq);
+    else if (d.kind === 'audio-level') {
+      realtimeLevel += (Math.max(0, Math.min(1, Number(d.level) || 0)) - realtimeLevel) * .45;
+      if (realtimeLevel <= .012 && !speaking) { var closed = mouth(); if (closed) closed.live({ open: 0, wide: 1, round: 0, smile: .45, press: 0 }); }
+    }
+    else if (d.kind === 'speak-end' && (!speaking || !d.seq || d.seq === speaking.seq)) { speaking = null; var m = mouth(); if (m) m.viseme('sil', 0); }
   });
 
   window.__octoVoiceBridge = { say: function (text, rate) { startSentence(text, rate); }, state: onState, timeline: timeline };

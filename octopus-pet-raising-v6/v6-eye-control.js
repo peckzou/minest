@@ -18,7 +18,8 @@
     sad:       { dx: 0, dy: .2, size: 1.12, sec: 1.9, twinkle: .05, twinkleHz: 1.2, orbit: 0, shimmer: .018, dim: 1 },
     shy:       { dx: -.12, dy: .12, size: .86, sec: .8, twinkle: 0, twinkleHz: 2, orbit: 0, shimmer: 0, dim: .9 },
     dizzy:     { dx: 0, dy: 0, size: 1.05, sec: 1, twinkle: 0, twinkleHz: 2, orbit: .2, shimmer: 0, dim: 1 },
-    love:      { dx: 0, dy: -.1, size: 1.3, sec: 1.6, twinkle: .16, twinkleHz: 1.6, orbit: 0, shimmer: 0, dim: 1 }
+    love:      { dx: 0, dy: -.1, size: 1.3, sec: 1.6, twinkle: .16, twinkleHz: 1.6, orbit: 0, shimmer: 0, dim: 1 },
+    playful:   { dx: .06, dy: -.06, size: 1.18, sec: 1.4, twinkle: .14, twinkleHz: 3.2, orbit: 0, shimmer: 0, dim: 1 }
   };
   var expr = { name: 'neutral', until: 0, cur: Object.assign({}, EXPR.neutral), target: EXPR.neutral, look: 0 };
   // 43.8: live layer for face capture / eyelids (dx,dy in eye radii; lid per screen side: -1 left, 1 right)
@@ -73,12 +74,14 @@
   // the face, so any rotation or head motion slid them off the eyes.)
   function findEyes(skinned) {
     var map = skinned.material && (skinned.material.emissiveMap || skinned.material.map);
-    var img = map && map.image;
+    // 44.1: read from the owned copy (tex-guard) — the loader's <img> can lose its pixels on iOS
+    var img = map && (window.__octoTex ? window.__octoTex.base(map, window.__octopusAvatar && window.__octopusAvatar.renderer) : map.image);
     if (!img || !img.width) return null;
     var S = 1024, cv = document.createElement('canvas'); cv.width = cv.height = S;
     var cx = cv.getContext('2d', { willReadFrequently: true });
     cx.drawImage(img, 0, 0, S, S);
     var px = cx.getImageData(0, 0, S, S).data;
+    cv.width = cv.height = 0;   // free the probe canvas at once (iOS counts canvas memory)
     var flip = !!map.flipY;
     function lumAt(u, v) {
       var x = Math.min(S - 1, Math.max(0, Math.floor(u * S))), y = Math.min(S - 1, Math.max(0, Math.floor((flip ? 1 - v : v) * S)));

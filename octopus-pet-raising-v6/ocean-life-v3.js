@@ -887,12 +887,18 @@
     if (this.kelp) for (var i = 2; i < this.n; i += 1) this.leaves.push({ i: i, side: i % 2 ? 1 : -1, len: R(.12, .2) * this.len, w: R(.012, .02) * this.len });
   }
   Blade.prototype.update = function (t) {
+    if (this.push) this.push *= .965;
     var b = this, seg = b.len / b.n, x = b.x, y = b.y, ang = b.a0, p = b.pts;
     p[0] = x; p[1] = y;
     for (var i = 1; i <= b.n; i++) {
       var u = i / b.n;
       var cur = currentAt(b.x, t - i * b.lag) + .25 * Math.sin(t * 1.9 + b.seed + i * .5);
       ang += cur * .055 * b.stiff * (.4 + u) + (b.a0 * -.08);
+      if (presence) {                       // 44.2: kelp and grass bend away from the octopus
+        var pdx = x - presence.x, pdy = y - presence.y, pd = Math.hypot(pdx, pdy), pr = presence.r * 1.4;
+        if (pd < pr) { var push = (1 - pd / pr); b.push = Math.min(1, (b.push || 0) + push * .08); }
+        ang += (b.push || 0) * (pdx >= 0 ? 1 : -1) * .07 * u;
+      }
       x += Math.sin(ang) * seg; y -= Math.cos(ang) * seg;
       p[i * 2] = x; p[i * 2 + 1] = y;
     }
@@ -1220,9 +1226,42 @@
     return true;
   }
 
+  // 44.2: where the octopus is (ocean coordinates), fed by interact-v1.js
+  var presence = null, presenceCool = {};
+  function setPresence(cx, cy, r) {
+    if (!ocean || !W) return;
+    var oRect = ocean.getBoundingClientRect(), k = oRect.width / Math.max(1, ocean.clientWidth);
+    presence = { x: (cx - oRect.left) / k, y: (cy - oRect.top) / k, r: r / k, t: T };
+  }
+  function presenceReact() {
+    if (!presence || T - presence.t > .5) { presence = null; return; }
+    var P = presence;
+    for (var i = 0; i < things.length; i++) {
+      var o = things[i], kind = o.kind || (o.lead ? 'school' : '');
+      if (kind === 'fish' && !o.home && Math.hypot(o.x - P.x, o.y - P.y) < P.r * 1.1 && !(o.flee > 0)) o.scare(P.x, P.y, P.r * 1.1);
+      else if (kind === 'fish' && o.home && Math.hypot(o.x - P.x, o.y - P.y) < P.r * 1.3 && !(o.flee > 0)) { o.scare(P.x, P.y, P.r * .8); }
+      else if (o.members && Math.hypot(o.lead.x - P.x, o.lead.y - P.y) < P.r * 1.6) o.scare(P.x, P.y, P.r * 1.2);
+      else if (kind === 'puffer' && Math.hypot(o.x - P.x, o.y - P.y) < P.r * 1.2 && !o.infT) o.puff();
+      else if (kind === 'anemone' && Math.hypot(o.x - P.x, o.y - o.s * .6 - P.y) < P.r * 1.3) o.flinch = Math.max(o.flinch, .8);
+      else if (kind === 'jelly' && Math.hypot(o.x - P.x, o.y - P.y) < P.r) o.scare(P.x, P.y, P.r);
+      else if (kind === 'crab' && Math.abs(o.x - P.x) < P.r * 1.4 && P.y > sandTop - P.r * 1.6 && o.state !== 'wave' && T > (presenceCool.crab || 0)) { o.state = 'wave'; o.timer = 2; presenceCool.crab = T + 6; }
+    }
+    // sand puffs when it swims close to the floor
+    if (P.y + P.r * .8 > sandTop && Math.random() < .25) for (var b = 0; b < 2; b++) sandPuff(P.x + R(-P.r * .6, P.r * .6), sandTop + sandH * R(.05, .3));
+  }
+  var puffs = [];
+  function sandPuff(x, y) { if (puffs.length < 40) puffs.push({ x: x, y: y, r: R(4, 9) * U, a: .35, vx: R(-8, 8), vy: R(-14, -4) }); }
+  function drawPuffs(c, dt) {
+    for (var i = puffs.length - 1; i >= 0; i--) {
+      var p = puffs[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.r += 10 * U * dt; p.a -= dt * .3;
+      if (p.a <= 0) { puffs.splice(i, 1); continue; }
+      c.fillStyle = 'rgba(215,200,170,' + p.a.toFixed(3) + ')'; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill();
+    }
+  }
   function step(dt) {
     T += dt;
     current = currentAt(W * .5, T);
+    presenceReact();
     for (var i = 0; i < things.length; i++) things[i].update(dt, T);
     updateBubbles(dt, T); updateSnow(dt, T);
   }
@@ -1233,6 +1272,7 @@
     drawShafts(c, T);
     drawSnow(c, false);
     for (var i = 0; i < things.length; i++) things[i].draw(c, T);
+    drawPuffs(c, 1 / 60);
     drawBubbles(c);
     drawSnow(c, true);
   }
@@ -1273,7 +1313,21 @@
     if (window.ResizeObserver) new ResizeObserver(function () { resize(); }).observe(ocean);
     else window.addEventListener('resize', resize);
     window.addEventListener('pointerdown', onTap, { passive: true, capture: true });
-    window.__oceanLifeV3 = { things: things, get fps30() { return skip; } };
+    window.__oceanLifeV3 = { things: things, get fps30() { return skip; }, presence: setPresence,
+      // where things are, in screen (client) coordinates — for the octopus's reactions
+      near: function (cx, cy, radius) {
+        var oRect = ocean.getBoundingClientRect(), k = oRect.width / Math.max(1, ocean.clientWidth), out = [];
+        things.forEach(function (o) {
+          var list = o.members ? o.members : [o];
+          list.forEach(function (m) {
+            if (m.x == null || !m.kind) return;
+            var y = m.kind === 'crab' ? m.y() - m.s * .3 : m.y;
+            var sx = oRect.left + m.x * k, sy = oRect.top + y * k, d = Math.hypot(sx - cx, sy - cy);
+            if (d < radius) out.push({ kind: m.kind === 'fish' && o.members ? 'school' : m.kind, sp: m.spName || m.sp || '', x: sx, y: sy, d: d });
+          });
+        });
+        return out.sort(function (a, b) { return a.d - b.d; });
+      } };
     requestAnimationFrame(loop);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { boot(0); }); else boot(0);

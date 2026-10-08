@@ -144,7 +144,7 @@
     house.s = clamp(Math.min(w, h) * .27, 104, 200);
     house.x = clamp(w * .66, house.s * .62, w - house.s * .62);
     house.y = y;
-    buildSprite();
+    try { buildSprite(); } catch (e) { sprite = null; if (window.__octoTex) window.__octoTex.note('house sprite failed ' + e.message); }
   }
 
   // ---------------------------------------------------------------------------------------------------
@@ -169,6 +169,8 @@
   }
   function drawFront(now, dt) {
     var c = fctx, s = house.s, g = geo(s), resting = state === 'resting';
+    // 44.1: iOS can reclaim canvas memory — rebuild the cottage if its picture is gone
+    if (!sprite || !sprite.cv.width) { layout(); if (!sprite) return; }
     c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, W, H);
     c.drawImage(sprite.cv, house.x - sprite.ox, house.y - sprite.oy, sprite.w, sprite.h);
     c.translate(house.x, house.y);
@@ -373,6 +375,7 @@
     canvasWrap.parentNode.insertBefore(front, canvasWrap.nextSibling);
     label = document.createElement('div'); label.className = 'octo-house-label'; stage.appendChild(label);
     bctx = back.getContext('2d'); fctx = front.getContext('2d');
+    [back, front].forEach(function (cv) { cv.addEventListener('contextrestored', function () { sprite = null; layout(); }); });
     layout();
     if (window.ResizeObserver) new ResizeObserver(function () { layout(); updateLabel(); }).observe(stage); else window.addEventListener('resize', layout);
     guard();

@@ -30,7 +30,7 @@
     pout: [[0, 0, 0], [.3, .3, .3], [1.3, .32, .32], [1.6, 0, 0]],
     squeeze: [[0, 0, 0], [.1, 1, 1], [.55, 1, 1], [.7, 0, 0]]
   };
-  var clip = null;
+  var clip = null, baseLid = 0;
   function clipLids(now) {
     if (!clip) return null;
     var t = (now - clip.start) / 1000;
@@ -64,7 +64,7 @@
   }
 
   function prepare(E) {
-    var img = tex.image, W = img.width, H = img.height, g = skinned.geometry;
+    var img = window.__octoTex ? window.__octoTex.base(tex, R) : tex.image, W = img.width, H = img.height, g = skinned.geometry;
     var cx = E.u * W, cy = E.v * H, rx = E.ru * W, ry = E.rv * H, rr = Math.max(rx, ry);
     // face axes at the eye: texels per face unit along face-right / face-down
     var d = .025, p0 = uvAtFace(g, E.C.x, E.C.y), px = uvAtFace(g, E.C.x + d, E.C.y), py = uvAtFace(g, E.C.x, E.C.y - d);
@@ -97,11 +97,13 @@
       rx: rx * .98, ry: ry * .9, axes: [ax[0] / sx, ax[1] / sx, ay[0] / sx, ay[1] / sx], skin: [r / n, gg / n, b / n], ring: ring, last: -1 };
   }
 
+  function FACE() { return window.__octoTex && window.__octoTex.face; }
   function draw(L, amt) {
     var c = L.ctx, rx = L.rx, ry = L.ry;
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, L.reg.w, L.reg.h);
-    c.drawImage(L.orig, 0, 0);
+    // 44.2: only the lid is drawn here (transparent elsewhere); the face compositor puts it over the base
+    if (!FACE()) c.drawImage(L.orig, 0, 0);
     if (amt > .01) {
       c.save();
       c.translate(L.cx, L.cy); c.transform(L.axes[0], L.axes[1], L.axes[2], L.axes[3], 0, 0);
@@ -136,6 +138,7 @@
       c.beginPath(); c.moveTo(-span, upY - sagU * .15 + ry * .02); c.quadraticCurveTo(0, upY + sagU, span, upY - sagU * .15 + ry * .02); c.stroke();
       c.restore();
     }
+    if (FACE()) { FACE().invalidate(); return; }
     L.tex.needsUpdate = true;
     try { R.copyTextureToTexture(L.tex, tex, null, new Vec2(L.reg.x, L.reg.y)); } catch (e) {}
   }
@@ -157,7 +160,8 @@
           a = 0;
         }
       }
-      target['-1'] = target['1'] = clamp(a, 0, 1);
+      // 44.1: blinks ride on the expression's resting lid level (smiling / sleepy eyes still blink)
+      target['-1'] = target['1'] = clamp(Math.max(a, baseLid + (1 - baseLid) * a), 0, 1);
     }
     var e = window.__v6EyeHighlight;
     eyes.forEach(function (L) {
@@ -180,6 +184,8 @@
     if (list.length < 2 || !list[0].C) return false;
     Vec2 = tex.offset.constructor; TexCtor = tex.constructor;
     eyes = list.map(prepare);
+    if (FACE()) eyes.forEach(function (L, i) { FACE().layer('lid' + i, tex, R, L.reg, function (c) { c.drawImage(L.canvas, 0, 0); }, 1 + i); });
+    window.addEventListener('octo-gl-restored', function () { eyes.forEach(function (L) { L.last = -1; }); });
     return true;
   }
 
@@ -189,6 +195,7 @@
     // play an eyelid clip (ignored while face capture drives the lids); delayMs to line it up
     play: function (name, delayMs) { if (!CLIPS[name]) return false; clip = { name: name, start: performance.now() + (delayMs || 0), flip: Math.random() < .5 }; return true; },
     stop: function () { clip = null; },
+    setBase: function (v) { baseLid = clamp(+v || 0, 0, .7); },
     get clip() { return clip && clip.name; },
     clips: Object.keys(CLIPS),
     setAuto: function (v) { auto = !!v; },

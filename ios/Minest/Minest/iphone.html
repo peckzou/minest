@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 44.0 · Octo House</title>
+    <title>Minest iPhone 44.3 · Wardrobe & World</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21396,7 +21396,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "44.0" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "44.3" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -45051,6 +45051,11 @@ var Ve = (function(_Component) {
     if (overlay) overlay.remove();
     document.documentElement.classList.remove('pet-raising-open');
   }
+  // 44.3: Pet Raising's own ✕ button asks to close (works in the app, where the frame is cross-origin)
+  window.addEventListener('message', function (event) {
+    var d = event.data, f = document.querySelector('#' + overlayId + ' iframe');
+    if (d && d.type === 'minest-pet' && d.action === 'close' && f && event.source === f.contentWindow) closePetRaising();
+  });
   window.MinestPetRaising = {
     open: function () {
       if (document.getElementById(overlayId)) return;
@@ -45060,14 +45065,15 @@ var Ve = (function(_Component) {
       overlay.setAttribute('aria-label', 'Pet Raising');
       overlay.innerHTML = '<style>' +
         '#' + overlayId + '{position:fixed;inset:0;z-index:2147483000;background:#07131d;display:flex;flex-direction:column;overflow:hidden}' +
-        '#' + overlayId + ' .minest-pet-toolbar{height:46px;flex:0 0 46px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:rgba(5,16,25,.94);color:#e8f8ff;font:600 13px/1 system-ui,-apple-system,sans-serif;border-bottom:1px solid rgba(148,220,255,.18);backdrop-filter:blur(18px)}' +
+        '#' + overlayId + ' .minest-pet-toolbar{height:calc(46px + env(safe-area-inset-top, 0px));flex:0 0 calc(46px + env(safe-area-inset-top, 0px));padding-top:env(safe-area-inset-top, 0px)!important;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:rgba(5,16,25,.94);color:#e8f8ff;font:600 13px/1 system-ui,-apple-system,sans-serif;border-bottom:1px solid rgba(148,220,255,.18);backdrop-filter:blur(18px)}' +
         '#' + overlayId + ' .minest-pet-close{border:1px solid rgba(148,220,255,.3);border-radius:10px;background:rgba(116,209,255,.12);color:#e8f8ff;padding:8px 12px;cursor:pointer;font:600 12px/1 system-ui,-apple-system,sans-serif}' +
         '#' + overlayId + ' .minest-pet-close:hover{background:rgba(116,209,255,.24)}' +
-        '#' + overlayId + ' iframe{display:block;width:100%;height:calc(100% - 46px);border:0;background:#0a0d12}' +
-        '</style><div class="minest-pet-toolbar"><span>Pet Raising V6 · Octo House 44.0</span><button type="button" class="minest-pet-close" aria-label="Close Pet Raising">Close</button></div><iframe title="Octopus Pet Raising V6 with Realtime Voice 43.7" allow="microphone; autoplay; camera" loading="eager"></iframe>';
+        '#' + overlayId + ' .minest-pet-close{min-width:64px;min-height:34px}' +
+        '#' + overlayId + ' iframe{display:block;width:100%;height:calc(100% - 46px - env(safe-area-inset-top, 0px));border:0;background:#0a0d12}' +
+        '</style><div class="minest-pet-toolbar"><span>Pet Raising</span><button type="button" class="minest-pet-close" aria-label="Close Pet Raising">Close</button></div><iframe title="Octopus Pet Raising V6 with Realtime Voice 43.7" allow="microphone; autoplay; camera" loading="eager"></iframe>';
       document.body.appendChild(overlay);
       var frame = overlay.querySelector('iframe');
-      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=440');
+      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=443');
       overlay.querySelector('.minest-pet-close').addEventListener('click', closePetRaising);
       document.documentElement.classList.add('pet-raising-open');
     },
@@ -45454,7 +45460,7 @@ var Ve = (function(_Component) {
         }
         if (!document.getElementById('minest-cosmetics-v1')) {
           var cs = document.createElement('script'); cs.id = 'minest-cosmetics-v1';
-          cs.src = asset('octopus-pet-raising-v6/cosmetics-v1.js?v=crown2');
+          cs.src = asset('octopus-pet-raising-v6/cosmetics-v1.js?v=4426');
           document.head.appendChild(cs);
         }
         if (tries < 60) setTimeout(function () { attachCosmetics(tries + 1); }, 100);
@@ -46343,6 +46349,67 @@ var Ve = (function(_Component) {
     if (running && f && f.contentWindow) { try { f.contentWindow.postMessage({ type: 'minest-arkit', data: payload }, '*'); } catch (e) {} }
     if (typeof prev === 'function') prev(payload);
   };
+}());
+</script>
+<!-- 44.1 fixes -->
+<style>
+/* the floating "Voice 43" launcher is gone — voice opens from Pet Raising's Voice button */
+#voice43-launch{display:none!important}
+</style>
+<script>
+(function () {
+  'use strict';
+  // ≡ menu: the dock column used to be positioned from a measurement taken while the top bar and the
+  // menu buttons were still animating, so it overlapped them. Place it under the last menu button.
+  function placeDock() {
+    if (!document.documentElement.classList.contains('mn-navmenu')) return;
+    var g = document.querySelector('.mn-rgroup.mn-open'), nav = document.querySelector('.mn-dockrow.mn-open');
+    if (!g || !nav) return;
+    var bottom = 0;
+    Array.prototype.forEach.call(g.children, function (c) {
+      if (c.getAttribute('data-mn') === 'cloud') return;
+      var cs = getComputedStyle(c); if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      var r = c.getBoundingClientRect(); if (r.height) bottom = Math.max(bottom, r.bottom);
+    });
+    var header = document.querySelector('header.iphone-topbar'), hb = header ? Math.max(0, header.getBoundingClientRect().bottom) : 50;
+    var top = Math.max(bottom + 8, hb + 8);
+    var rs = document.documentElement.style;
+    if (Math.abs((parseFloat(rs.getPropertyValue('--mn-dock2-top')) || 0) - top) > 1) rs.setProperty('--mn-dock2-top', top + 'px');
+    var n = Array.prototype.filter.call(nav.children, function (c) { return getComputedStyle(c).display !== 'none'; }).length;
+    rs.setProperty('--mn-cloud-top', (top - hb + n * 48 + 6) + 'px');
+  }
+  setInterval(placeDock, 120);
+  window.addEventListener('resize', placeDock);
+
+  // native bridge: the page's own MinestNative replaced the app's injected one, losing the speech
+  // helpers (voice fell back to the WebView recogniser) and the native-event hook.
+  function patchNative() {
+    var N = window.MinestNative;
+    if (!N || N.__p441) return;
+    N.__p441 = true;
+    if (!N.requestMicrophonePermission) N.requestMicrophonePermission = function () { N.send('requestMicrophonePermission'); };
+    if (!N.startSpeechRecognition) N.startSpeechRecognition = function () { N.send('startSpeechRecognition'); };
+    if (!N.stopSpeechRecognition) N.stopSpeechRecognition = function () { N.send('stopSpeechRecognition'); };
+    var prev = N.onNativeEvent;
+    N.onNativeEvent = function (event, data) {
+      // ARKit could not start (unsupported / camera busy): tell Copy Cat to use the camera instead
+      if (event === '__onARKitTrackingError') {
+        var f = document.querySelector('#minest-pet-raising-overlay iframe');
+        if (f && f.contentWindow) try { f.contentWindow.postMessage({ type: 'minest-arkit', error: (data && data.error) || 'error' }, '*'); } catch (e) {}
+      }
+      if (typeof prev === 'function') return prev.apply(N, arguments);
+    };
+  }
+  patchNative(); setTimeout(patchNative, 1000);
+
+  // Copy Cat: answer a start request with "ARKit available" so the frame waits for native frames
+  // instead of grabbing the camera itself (the camera can only be used by one of them)
+  window.addEventListener('message', function (event) {
+    var d = event.data, f = document.querySelector('#minest-pet-raising-overlay iframe');
+    if (!d || d.type !== 'minest-copycat' || !f || event.source !== f.contentWindow) return;
+    var N = window.MinestNative, native = !!(N && N.isNative && N.isNative());
+    if (d.action === 'start' || d.action === 'hello') { try { f.contentWindow.postMessage({ type: 'minest-copycat', arkit: native }, '*'); } catch (e) {} }
+  });
 }());
 </script>
 </body>
