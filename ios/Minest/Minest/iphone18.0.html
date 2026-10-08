@@ -45911,6 +45911,10 @@ var Ve = (function(_Component) {
       '#voice43-transcript .assistant{font:600 17px/1.38 -apple-system,system-ui,sans-serif;text-shadow:0 2px 10px rgba(0,0,0,.7);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
       '#voice43-interim{min-height:0;font-size:13px;font-style:italic;opacity:.6;text-align:center;text-shadow:0 1px 6px rgba(0,0,0,.65);pointer-events:none!important}',
       '#voice43-interim:empty{display:none}',
+      '#voice43-token{display:none;gap:8px;align-items:center;width:min(340px,100%)}',
+      '#voice43-backdrop.need-token #voice43-token{display:flex}',
+      '#voice43-token input{flex:1;min-width:0;height:36px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(14,22,40,.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#fff;font:13px -apple-system,system-ui,sans-serif;outline:none}',
+      '#voice43-token input::placeholder{color:rgba(255,255,255,.5)}',
       '@media(prefers-reduced-motion:reduce){#voice43-orb .b1,#voice43-orb .b2,#voice43-orb .wrap{animation:none!important}}'
     ].join('');
     document.head.appendChild(style);
@@ -46075,6 +46079,23 @@ var Ve = (function(_Component) {
 
     card.appendChild(voiceRow); card.appendChild(actions); card.appendChild(orb);
     card.appendChild(statusRow); card.appendChild(detailNode);
+    // browsers without the app's token: paste it once here (stored only in this browser)
+    var tokenBox = h('form', { id: 'voice43-token' });
+    var tokenInput = h('input', { type: 'password', placeholder: 'Minest AI token', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Minest AI token' });
+    var tokenSave = h('button', { className: 'voice43-action primary', type: 'submit' }, 'Save');
+    tokenBox.appendChild(tokenInput); tokenBox.appendChild(tokenSave);
+    tokenBox.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var v = tokenInput.value.trim();
+      if (!v) { tokenInput.focus(); return; }
+      try { localStorage.setItem('minest_ai_token', v); } catch (error) {}
+      tokenInput.value = '';
+      panel.classList.remove('need-token');
+      setState('idle', 'Token saved in this browser.');
+      startSession();
+    });
+    ['pointerdown', 'keydown'].forEach(function (ev) { tokenBox.addEventListener(ev, function (e) { e.stopPropagation(); }); });
+    card.appendChild(tokenBox);
     card.appendChild(interimNode); card.appendChild(transcriptNode);
     panel.appendChild(card); document.body.appendChild(panel);
     setState('idle', 'Tap Start to talk. Uses the Minest AI token set up on this device.');
@@ -46756,7 +46777,7 @@ var Ve = (function(_Component) {
 
   async function startSession() {
     if (active) return;
-    if (!hasToken()) { setState('error', NO_TOKEN); showOptions(true); return; }
+    if (!hasToken()) { setState('error', NO_TOKEN); panel.classList.add('need-token'); showOptions(true); return; }
     if (realtimePreferred()) {
       try {
         await startRealtimeSession();
@@ -46765,7 +46786,7 @@ var Ve = (function(_Component) {
         stopRealtimeSession();
         if (!active) return;
         active = false;
-        if (/401|not authori[sz]ed|未授权/i.test(error && error.message || '')) { setState('error', NO_TOKEN); showOptions(true); return; }
+        if (/401|not authori[sz]ed|未授权/i.test(error && error.message || '')) { if (!inNativeApp()) { try { localStorage.removeItem('minest_ai_token'); } catch (e) {} } setState('error', NO_TOKEN); panel.classList.add('need-token'); showOptions(true); return; }
         if (/Permission|NotAllowed|denied/i.test(error && (error.name + ' ' + error.message) || '')) { setState('error', 'Microphone permission was denied. Allow the microphone for this site and try again.'); showOptions(true); return; }
         try {
           if (/HTTP 404|NOT_FOUND|not found/i.test(error && error.message || '')) localStorage.setItem('minest_realtime_unavailable_until', String(Date.now() + 15 * 60 * 1000));
