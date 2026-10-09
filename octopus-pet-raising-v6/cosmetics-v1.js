@@ -6,7 +6,7 @@
   var DEFAULT_STATE = {
     unlockedItems: ['default_purple', 'blue_lavender', 'headphones'],
     equippedSkin: 'default_purple',
-    equippedBySlot: { head: null, hair: null, face: null, neck: null },
+    equippedBySlot: { head: null, hair: null, face: null, neck: null, hand: null },
     skinAdjustments: { hue: 0, saturation: 1, brightness: 1 },
     renderMode: 'source'
   };
@@ -28,9 +28,22 @@
     glasses: { label: 'Round Glasses', slot: 'face', accent: 0x3a2b4a, requirement: 'Bond Lv 3', level: 3 },
     straw_hat: { label: 'Straw Hat', slot: 'head', accent: 0xe8c77a, requirement: 'Bond Lv 4', level: 4 },
     starfish_clip: { label: 'Starfish Clip', slot: 'hair', accent: 0xff9f43, requirement: 'Bond Lv 5', level: 5 },
-    pearl_necklace: { label: 'Pearl Necklace', slot: 'neck', accent: 0xf6f1ea, requirement: 'Bond Lv 7', level: 7 }
+    pearl_necklace: { label: 'Pearl Necklace', slot: 'neck', accent: 0xf6f1ea, requirement: 'Bond Lv 7', level: 7 },
+    // 44.5: Octo holds your newest badge in a tentacle and plays with it
+    badge_held: { label: 'Badge in Hand', slot: 'hand', accent: 0xffd76a, requirement: 'Earn a badge' },
+    // 44.5: ten toys and decorations
+    bubble_wand: { label: 'Bubble Wand', slot: 'hand', accent: 0x7fd6ff, requirement: 'Bond Lv 2', level: 2, toy: true },
+    lollipop: { label: 'Lollipop', slot: 'hand', accent: 0xff7ab8, requirement: 'Bond Lv 3', level: 3, toy: true },
+    party_hat: { label: 'Party Hat', slot: 'head', accent: 0xff6fa8, requirement: 'Bond Lv 3', level: 3 },
+    sunglasses: { label: 'Sunglasses', slot: 'face', accent: 0x1d1b2e, requirement: 'Bond Lv 4', level: 4 },
+    pencil: { label: 'Pencil', slot: 'hand', accent: 0xffc93c, requirement: 'Bond Lv 4', level: 4, toy: true },
+    magnifier: { label: 'Magnifier', slot: 'hand', accent: 0xd8a24a, requirement: 'Bond Lv 5', level: 5, toy: true },
+    flower_lei: { label: 'Flower Lei', slot: 'neck', accent: 0xff8fc0, requirement: 'Bond Lv 5', level: 5 },
+    beach_ball: { label: 'Beach Ball', slot: 'hand', accent: 0xff5a5a, requirement: 'Bond Lv 6', level: 6, toy: true },
+    ukulele: { label: 'Ukulele', slot: 'hand', accent: 0xc98a4b, requirement: 'Bond Lv 7', level: 7, toy: true },
+    pirate_hat: { label: 'Pirate Hat', slot: 'head', accent: 0x2a2433, requirement: 'Treasure chest' }
   };
-  var SLOTS = ['head', 'hair', 'face', 'neck'];
+  var SLOTS = ['head', 'hair', 'face', 'neck', 'hand'];
   var listeners = [];
   var channel = null;
   try { channel = new BroadcastChannel(CHANNEL_NAME); } catch (error) {}
@@ -40,7 +53,7 @@
     return {
       unlockedItems: Array.from(new Set((state.unlockedItems || []).filter(Boolean))),
       equippedSkin: state.equippedSkin || DEFAULT_STATE.equippedSkin,
-      equippedBySlot: Object.assign({ head: null, hair: null, face: null, neck: null }, state.equippedBySlot || {}),
+      equippedBySlot: Object.assign({ head: null, hair: null, face: null, neck: null, hand: null }, state.equippedBySlot || {}),
       skinAdjustments: {
         hue: Math.max(-.5, Math.min(.5, Number(adjustments.hue) || 0)),
         saturation: Math.max(0, Math.min(2, Number(adjustments.saturation) || 0)),
@@ -264,9 +277,269 @@
       }
       group.position.set(0, 0, 0); group.scale.setScalar(1);
       group.userData.minestHeadAnchored = true;
+    } else if (id === 'party_hat') {
+      // 44.5: a striped party cone with a pom-pom, perched on the top-left of the head
+      var hatP = new THREE.Group(); hatP.position.set(-.12, .6, .02); hatP.rotation.set(-.1, 0, .32); group.add(hatP);
+      var cols = [0xff6fa8, 0xffd84d, 0x6fd6ff, 0xff6fa8, 0xffd84d];
+      cols.forEach(function (col, i) {
+        var r0 = .2 * (1 - i / 5), r1 = .2 * (1 - (i + 1) / 5), hh = .44 / 5;
+        var m = new THREE.MeshStandardMaterial({ color: col, roughness: .45 }); if (m.emissive) { m.emissive.setHex(col); m.emissiveIntensity = .16; }
+        var seg = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, hh, 24), m); seg.position.y = hh * (i + .5); hatP.add(seg);
+      });
+      var pom = new THREE.Mesh(makeSphere(.06, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .9 })); pom.position.y = .47; hatP.add(pom);
+      var rim = new THREE.Mesh(new THREE.TorusGeometry(.2, .02, 8, 28), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .8 })); rim.rotation.x = Math.PI / 2; hatP.add(rim);
+      group.position.set(0, 0, 0);
+    } else if (id === 'sunglasses') {
+      // 44.5: round dark shades with a gold rim, over the eyes (eye centres x ±.23, y .164, z .30)
+      var gold = new THREE.MeshStandardMaterial({ color: 0xf2c14e, roughness: .25, metalness: .6 });
+      var shade = new THREE.MeshStandardMaterial({ color: 0x15131f, roughness: .08, metalness: .4 });
+      [-1, 1].forEach(function (sd) {
+        var lensS = new THREE.Mesh(new THREE.CylinderGeometry(.122, .122, .02, 28), shade); lensS.rotation.x = Math.PI / 2; lensS.position.set(sd * .232, .166, .375); lensS.rotation.y = sd * .22; group.add(lensS);
+        var ringS = new THREE.Mesh(new THREE.TorusGeometry(.124, .016, 10, 32), gold); ringS.position.copy(lensS.position); ringS.rotation.y = sd * .22; group.add(ringS);
+        var shine = new THREE.Mesh(makeSphere(.022, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .1 })); shine.scale.z = .3; shine.position.set(sd * .232 - .05, .21, .39); group.add(shine);
+        var templeS = new THREE.Mesh(new THREE.CylinderGeometry(.011, .011, .3, 8), gold); templeS.rotation.x = Math.PI / 2; templeS.position.set(sd * .4, .18, .2); templeS.rotation.y = sd * .5; group.add(templeS);
+      });
+      var bridgeS = new THREE.Mesh(new THREE.TorusGeometry(.05, .013, 8, 16, Math.PI), gold); bridgeS.position.set(0, .2, .4); group.add(bridgeS);
+      group.position.set(0, 0, 0);
+    } else if (id === 'flower_lei') {
+      // 44.5: a Hawaiian lei of little pink / yellow / white flowers, draped like the pearl necklace
+      var petalCols = [0xff7ab8, 0xffd84d, 0xffffff, 0xff9f43];
+      var nF = 11;
+      for (var fi = 0; fi < nF; fi++) {
+        var aF = (fi / (nF - 1) - .5) * 2.4, col2 = petalCols[fi % petalCols.length];
+        var fl = new THREE.Group(); fl.position.set(Math.sin(aF) * .38, -.2 + (1 - Math.cos(aF)) * .1, .25 + Math.cos(aF) * .25); fl.rotation.y = aF * .9; group.add(fl);
+        var pm = new THREE.MeshStandardMaterial({ color: col2, roughness: .5 }); if (pm.emissive) { pm.emissive.setHex(col2); pm.emissiveIntensity = .18; }
+        for (var pe = 0; pe < 5; pe++) { var pa = pe / 5 * Math.PI * 2, pt = new THREE.Mesh(makeSphere(.032, 10, 8), pm); pt.scale.z = .45; pt.position.set(Math.cos(pa) * .036, Math.sin(pa) * .036, 0); fl.add(pt); }
+        var ctr = new THREE.Mesh(makeSphere(.02, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffc23c, roughness: .4 })); ctr.position.z = .012; fl.add(ctr);
+      }
+      group.position.set(0, 0, 0); group.userData.minestHeadAnchored = true;
+    } else if (id === 'pirate_hat') {
+      // 44.5: a tricorn pirate hat with gold trim and a little skull (goes with the treasure chest)
+      var felt = new THREE.MeshStandardMaterial({ color: 0x2a2433, roughness: .85 }); if (felt.emissive) { felt.emissive.setHex(0x3a3046); felt.emissiveIntensity = .12; }
+      var trim = new THREE.MeshStandardMaterial({ color: 0xf2c14e, roughness: .3, metalness: .5 });
+      var hatT = new THREE.Group(); hatT.position.set(0, .6, -.02); hatT.rotation.set(-.12, 0, 0); group.add(hatT);
+      var crownT = new THREE.Mesh(new THREE.CylinderGeometry(.27, .33, .26, 28), felt); crownT.position.y = .13; hatT.add(crownT);
+      var topT = new THREE.Mesh(makeSphere(.27, 20, 10), felt); topT.scale.y = .32; topT.position.y = .26; hatT.add(topT);
+      // three up-turned flaps (a point at the front, between two of them), each edged in gold
+      [Math.PI / 3, Math.PI, -Math.PI / 3].forEach(function (ang) {
+        var flap = new THREE.Group(); flap.rotation.y = ang; hatT.add(flap);
+        var f = new THREE.Mesh(new THREE.BoxGeometry(.56, .2, .035), felt); f.position.set(0, .1, .3); f.rotation.x = -.42; flap.add(f);
+        var e = new THREE.Mesh(new THREE.BoxGeometry(.58, .03, .045), trim); e.position.set(0, .2, .26); e.rotation.x = -.42; flap.add(e);
+      });
+      var skull = new THREE.Mesh(makeSphere(.055, 14, 10), new THREE.MeshStandardMaterial({ color: 0xf6f1e8, roughness: .6 })); skull.scale.z = .5; skull.position.set(.17, .2, .3); hatT.add(skull);
+      [-1, 1].forEach(function (sd) { var bone2 = new THREE.Mesh(new THREE.BoxGeometry(.15, .022, .02), new THREE.MeshStandardMaterial({ color: 0xf6f1e8, roughness: .6 })); bone2.position.set(.17, .14, .3); bone2.rotation.z = sd * .6; hatT.add(bone2); });
+      group.position.set(0, 0, 0);
     }
     return group;
   }
+
+
+  // ---- 44.5 toys Octo holds and plays with ---------------------------------------------------------
+  function toyMat(THREE, col, rough, metal, glow) {
+    var m = new THREE.MeshStandardMaterial({ color: col, roughness: rough == null ? .5 : rough, metalness: metal || 0 });
+    if (m.emissive) { m.emissive.setHex(col); m.emissiveIntensity = glow == null ? .18 : glow; }
+    return m;
+  }
+  function sph(THREE, r) { return THREE.SphereGeometry ? new THREE.SphereGeometry(r, 18, 12) : new THREE.CylinderGeometry(r, r, r * 1.6, 12); }
+  function buildToy(THREE, id, g) {
+    var M = function (c, r, m, e) { return toyMat(THREE, c, r, m, e); };
+    if (id === 'bubble_wand') {
+      var stick = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .42, 10), M(0x7fd6ff, .4)); stick.position.y = -.08; g.add(stick);
+      var ring = new THREE.Mesh(new THREE.TorusGeometry(.1, .018, 10, 28), M(0xff9fd0, .3)); ring.position.y = .2; g.add(ring);
+      var film = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .004, 24), new THREE.MeshStandardMaterial({ color: 0xcff4ff, roughness: .05, transparent: true, opacity: .35 })); film.rotation.x = Math.PI / 2; film.position.y = .2; g.add(film);
+    } else if (id === 'lollipop') {
+      var st2 = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .38, 8), M(0xffffff, .6, 0, .1)); st2.position.y = -.08; g.add(st2);
+      [0xff5aa0, 0xffffff, 0x7fd6ff, 0xffffff, 0xffd84d].forEach(function (col, i) {
+        var tr = new THREE.Mesh(new THREE.TorusGeometry(.03 + i * .028, .016, 8, 28), M(col, .35)); tr.position.y = .2; g.add(tr);
+      });
+      var dot = new THREE.Mesh(sph(THREE, .03), M(0xff5aa0, .35)); dot.scale.z = .5; dot.position.y = .2; g.add(dot);
+    } else if (id === 'pencil') {
+      var body = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .38, 6), M(0xffc93c, .45)); g.add(body);
+      var tip = new THREE.Mesh(new THREE.CylinderGeometry(0, .04, .1, 6), M(0xf2d2a2, .7)); tip.position.y = -.24; tip.rotation.x = Math.PI; g.add(tip);
+      var lead = new THREE.Mesh(new THREE.CylinderGeometry(0, .012, .03, 6), M(0x333333, .5, 0, .05)); lead.position.y = -.29; lead.rotation.x = Math.PI; g.add(lead);
+      var band = new THREE.Mesh(new THREE.CylinderGeometry(.042, .042, .04, 12), M(0xc0c4cc, .3, .6, .1)); band.position.y = .21; g.add(band);
+      var eraser = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .06, 12), M(0xff8fb1, .7)); eraser.position.y = .26; g.add(eraser);
+      g.rotation.z = -.35;
+    } else if (id === 'magnifier') {
+      var rim = new THREE.Mesh(new THREE.TorusGeometry(.12, .022, 10, 32), M(0xd8a24a, .3, .5)); rim.position.y = .14; g.add(rim);
+      var glass = new THREE.Mesh(new THREE.CylinderGeometry(.115, .115, .01, 28), new THREE.MeshStandardMaterial({ color: 0xdff4ff, roughness: .02, transparent: true, opacity: .32 })); glass.rotation.x = Math.PI / 2; glass.position.y = .14; g.add(glass);
+      var handle = new THREE.Mesh(new THREE.CylinderGeometry(.026, .03, .22, 12), M(0x7a4a24, .6)); handle.position.y = -.08; g.add(handle);
+    } else if (id === 'beach_ball') {
+      var cols = [0xff5a5a, 0xffffff, 0x4aa8ff, 0xffffff, 0xffd84d, 0xffffff];
+      cols.forEach(function (col, i) {   // six coloured wedges: slim spheres turned around the axis
+        var w = new THREE.Mesh(sph(THREE, .16), M(col, .35, 0, .14)); w.scale.set(.52, 1, 1); w.rotation.y = i / cols.length * Math.PI; g.add(w);
+      });
+      var cap = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .33, 12), M(0xffffff, .4)); g.add(cap);
+    } else if (id === 'ukulele') {
+      var wood = M(0xc98a4b, .55, 0, .14), dark = M(0x5a3418, .6, 0, .08);
+      var lower = new THREE.Mesh(sph(THREE, .13), wood); lower.scale.set(1, 1.05, .32); lower.position.y = -.1; g.add(lower);
+      var upper = new THREE.Mesh(sph(THREE, .1), wood); upper.scale.set(1, 1, .32); upper.position.y = .06; g.add(upper);
+      var hole = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .01, 20), dark); hole.rotation.x = Math.PI / 2; hole.position.set(0, -.02, .045); g.add(hole);
+      var neck = new THREE.Mesh(new THREE.BoxGeometry(.05, .3, .03), dark); neck.position.y = .27; g.add(neck);
+      var head = new THREE.Mesh(new THREE.BoxGeometry(.075, .08, .035), wood); head.position.y = .45; g.add(head);
+      for (var k = 0; k < 4; k++) { var str = new THREE.Mesh(new THREE.BoxGeometry(.003, .5, .003), M(0xf6f1e8, .3, .3, .3)); str.position.set((k - 1.5) * .011, .12, .05); g.add(str); }
+      g.rotation.z = -.5;
+    }
+    return g;
+  }
+  // what each toy does now and then (called from heldTick); returns extra motion for the frame
+  function toyPlay(h, t, dt) {
+    var out = { spin: 0, lift: 0, tilt: 0, rx: 0, toward: 0 };
+    var X = window.__octoExpression, Mo = window.__octoMouth;
+    if (!h.act && t > h.next) h.act = { t: 0 };
+    var u = h.act ? Math.min(1, (h.act.t += dt) / 1.4) : 0, wave = h.act ? Math.sin(u * Math.PI) : 0;
+    if (h.kind === 'bubble_wand') {
+      out.tilt = Math.sin(t * 2) * .15 + wave * .5; out.toward = wave * .6;
+      if (h.act && !h.act.done && u > .45) { h.act.done = true; if (Mo && Mo.bubbles) Mo.bubbles(7); if (Mo && Mo.play) Mo.play('puff', 0); }
+    } else if (h.kind === 'lollipop') {
+      out.tilt = Math.sin(t * 1.5) * .12; out.toward = wave * .8; out.lift = wave * .05;
+      if (h.act && !h.act.done && u > .5) { h.act.done = true; if (Mo && Mo.play) Mo.play('munch', 0); if (X && X.set) X.set('happy', 1500); }
+    } else if (h.kind === 'pencil') {
+      out.tilt = Math.sin(t * 18) * .08 * (h.act ? 1 : .2); out.lift = Math.sin(t * 9) * .012 * (h.act ? 1 : 0);
+      if (h.act && !h.act.done && u > .3) { h.act.done = true; if (X && X.set) X.set('curious', 1600); }
+    } else if (h.kind === 'magnifier') {
+      out.toward = wave * .9; out.lift = wave * .12; out.spin = Math.sin(t * .8) * .25;
+      if (h.act && !h.act.done && u > .4) { h.act.done = true; if (X && X.set) X.set('curious', 2200); var L = window.__octoLids; if (L && L.play) L.play('focus', 0); }
+    } else if (h.kind === 'beach_ball') {
+      out.spin = t * 1.2 + (h.act ? u * Math.PI * 6 : 0); out.lift = wave * .32; out.rx = t * .7;
+      if (h.act && !h.act.done && u > .9) { h.act.done = true; if (X && X.set) X.set('happy', 1500); if (Mo && Mo.play) Mo.play('giggle', 0); }
+    } else if (h.kind === 'ukulele') {
+      out.tilt = Math.sin(t * 3.2) * .12; out.lift = Math.abs(Math.sin(t * 3.2)) * .015;
+      if (h.act && !h.act.done) { h.act.done = true; if (Mo && Mo.play) Mo.play('hum', 0); }
+    }
+    if (h.act && u >= 1) { h.act = null; h.next = t + 4 + Math.random() * 4; }
+    return out;
+  }
+
+  // ---- 44.5 the badge in Octo's tentacle ----------------------------------------------------------
+  // The newest badge (localStorage 'minest.octo.latestBadge' = {id, icon, color}) is shown as a little
+  // 3D medal: the badge-wall render on both faces, darker layers in between for thickness. It follows a
+  // front tentacle tip every frame (not parented to the bone, so it stays upright) and Octo plays with it:
+  // it turns slowly, now and then flips over or gets tossed up and caught.
+  var HELD = [], badgeImgs = {};
+  function latestBadge() { try { return JSON.parse(localStorage.getItem('minest.octo.latestBadge') || 'null'); } catch (e) { return null; } }
+  function badgeURL(id) {
+    var m = /^strike-(\d+)-days$/.exec(id || ''), file = m ? 'strike-' + m[1] : id;
+    var base = location.protocol === 'file:' ? 'https://minest-app.vercel.app/' : location.origin + '/';
+    return base + 'badge-index/thumbs/' + file + '.webp';
+  }
+  function drawFallback(ctx, b) {   // badges without a wall render: a gold hexagon with their icon
+    var S = 256, col = (b && b.color) || '#f5c542';
+    ctx.clearRect(0, 0, S, S);
+    ctx.beginPath();
+    for (var i = 0; i < 6; i++) { var a = Math.PI / 3 * i - Math.PI / 2; ctx[i ? 'lineTo' : 'moveTo'](S / 2 + Math.cos(a) * 118, S / 2 + Math.sin(a) * 118); }
+    ctx.closePath();
+    var g = ctx.createLinearGradient(0, 0, S, S); g.addColorStop(0, '#fff6d0'); g.addColorStop(.45, col); g.addColorStop(1, '#6b4a10');
+    ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 10; ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.stroke();
+    ctx.font = '112px system-ui, "Apple Color Emoji", "Segoe UI Emoji"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText((b && b.icon) || '🏅', S / 2, S / 2 + 6);
+  }
+  function badgeCanvas(b, done) {
+    var c = document.createElement('canvas'); c.width = c.height = 256;
+    var ctx = c.getContext('2d');
+    drawFallback(ctx, b); done(c);
+    if (!b || !b.id) return;
+    var url = badgeURL(b.id), img = badgeImgs[url];
+    var paint = function () { if (img.naturalWidth) { ctx.clearRect(0, 0, 256, 256); ctx.drawImage(img, 0, 0, 256, 256); done(c, true); } };
+    if (img) { if (img.complete) paint(); else img.addEventListener('load', paint); return; }
+    img = badgeImgs[url] = new Image(); img.crossOrigin = 'anonymous';
+    img.onload = paint; img.src = url;
+  }
+  function holdBadge(model, THREE, itemId) {
+    var old = model.userData.minestHeldBadge;
+    if (old) { if (old.parent) old.parent.remove(old); model.userData.minestHeldBadge = null; }
+    HELD = HELD.filter(function (h) { return h.model !== model; });
+    var isToy = !!(ACCESSORIES[itemId] && ACCESSORIES[itemId].toy);
+    if ((itemId !== 'badge_held' && !isToy) || !THREE.Mesh || !THREE.BoxGeometry || !THREE.MeshStandardMaterial) return;
+    var bone = null;
+    ['tentacle_2_10', 'tentacle_2_9', 'tentacle_2_8', 'tentacle_1_10', 'tentacle_1_9'].some(function (n) { bone = findBone(model, [n]); return !!bone; });
+    if (!bone) return;
+    var src = null; model.traverse(function (n) { if (!src && n.isMesh && n.material) { var m0 = Array.isArray(n.material) ? n.material[0] : n.material; if (m0 && (m0.emissiveMap || m0.map)) src = m0.emissiveMap || m0.map; } });
+    if (!src && !isToy) return;
+    var group = new THREE.Group(); group.name = 'cosmetic:' + itemId;
+    var inner = new THREE.Group(); group.add(inner);
+    if (isToy) {
+      buildToy(THREE, itemId, inner);
+      model.add(group); model.userData.minestHeldBadge = group;
+      HELD.push({ kind: itemId, body: findBone(model, ['body', 'Body', 'root']), model: model, bone: bone, group: group, inner: inner, t0: performance.now(), next: 3 + Math.random() * 3, act: null, V: model.position.constructor });
+      return;
+    }
+    var size = .42, mats = [];
+    var b = latestBadge(), tex = null;
+    badgeCanvas(b, function (canvas) {
+      if (!tex) {
+        tex = new src.constructor(canvas);
+        // the badge art is sRGB (three r151+: colorSpace; older builds such as the board's r128: encoding)
+        if ('colorSpace' in src) tex.colorSpace = 'srgb';
+        if (src.encoding !== undefined) tex.encoding = (THREE && THREE.sRGBEncoding) || 3001;
+        tex.flipY = true;
+      }
+      tex.image = canvas; tex.needsUpdate = true;
+    });
+    // faces + 4 darker layers in between = a medal with some thickness
+    [-2, -1, 0, 1, 2].forEach(function (k) {
+      var face = k === -2 || k === 2;
+      var mat = new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, transparent: true, alphaTest: .5, roughness: .35, metalness: face ? .25 : .6 });
+      mat.color.setRGB(face ? .82 : .45, face ? .82 : .4, face ? .82 : .32);
+      if (mat.emissive) mat.emissive.setRGB(face ? .26 : .08, face ? .26 : .07, face ? .26 : .05);
+      var mesh = new THREE.Mesh(new THREE.BoxGeometry(size, size, .0006), mat);
+      mesh.position.z = k * .0035; mesh.renderOrder = 3;
+      inner.add(mesh); mats.push(mat);
+    });
+    model.add(group);
+    model.userData.minestHeldBadge = group;
+    HELD.push({ kind: 'badge', body: findBone(model, ['body', 'Body', 'root']), model: model, bone: bone, group: group, inner: inner, t0: performance.now(), next: 4 + Math.random() * 3, act: null, V: model.position.constructor });
+  }
+  function refreshHeld() {   // a new badge was earned: repaint the medals
+    HELD.forEach(function (h) {
+      if (h.kind !== 'badge') return;
+      var mat = h.inner.children[0] && h.inner.children[0].material, tex = mat && mat.map;
+      if (!tex) return;
+      badgeCanvas(latestBadge(), function (canvas) { tex.image = canvas; tex.needsUpdate = true; });
+      h.act = { kind: 'toss', t: 0 };   // show it off
+    });
+  }
+  window.addEventListener('minest-latest-badge', refreshHeld);
+  window.addEventListener('storage', function (e) { if (e.key === 'minest.octo.latestBadge') refreshHeld(); });
+  var lastHeldT = 0;
+  (function heldTick(now) {
+    requestAnimationFrame(heldTick);
+    var dt = Math.min(.05, (now - (lastHeldT || now)) / 1000); lastHeldT = now;
+    for (var i = HELD.length - 1; i >= 0; i--) {
+      var h = HELD[i];
+      if (!h.group.parent) { HELD.splice(i, 1); continue; }
+      var t = (now - h.t0) / 1000, v = new h.V();
+      h.bone.getWorldPosition(v); h.model.worldToLocal(v);
+      // hold it out from the body along the tentacle (centre → tip), a little raised: never in front of the face
+      var c = new h.V(); if (h.body) { h.body.getWorldPosition(c); h.model.worldToLocal(c); }
+      var dx = v.x - c.x, dz = v.z - c.z, dl = Math.sqrt(dx * dx + dz * dz) || 1;
+      h.group.position.set(v.x + dx / dl * .2, v.y + .22, v.z + dz / dl * .2);
+      if (h.kind !== 'badge') {
+        var o = toyPlay(h, t, dt);
+        // "toward" brings the toy in front of the face (to look through, lick, blow…)
+        if (o.toward) { var fx = c.x, fy = c.y + .55, fz = c.z + .45; h.group.position.x += (fx - h.group.position.x) * o.toward * .7; h.group.position.y += (fy - h.group.position.y) * o.toward * .5; h.group.position.z += (fz - h.group.position.z) * o.toward * .7; }
+        h.group.position.y += o.lift;
+        h.inner.rotation.set(o.rx, o.spin, o.tilt);
+        continue;
+      }
+      var spin = t * 1.4, flip = 0, lift = 0;
+      if (!h.act && t > h.next) { h.act = { kind: Math.random() < .5 ? 'flip' : 'toss', t: 0 }; }
+      if (h.act) {
+        h.act.t += dt;
+        var u = Math.min(1, h.act.t / (h.act.kind === 'toss' ? 1.1 : .9));
+        var e = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+        if (h.act.kind === 'flip') flip = e * Math.PI * 2;
+        else { lift = Math.sin(u * Math.PI) * .28; spin += e * Math.PI * 4; }
+        if (u >= 1) {
+          if (h.act.kind === 'toss') { var X = window.__octoExpression; if (X && X.set) X.set('happy', 1800); var M = window.__octoMouth; if (M && M.play) M.play('giggle', 40); }
+          h.act = null; h.next = t + 5 + Math.random() * 5;
+        }
+      }
+      h.inner.rotation.set(flip, spin, Math.sin(t * 1.7) * .12);
+      h.group.position.y += lift + Math.sin(t * 2.2) * .008;
+    }
+  })(0);
+
   function findBone(model, names) {
     var found = null;
     model.traverse(function (node) { if (!found && names.indexOf(node.name) >= 0) found = node; });
@@ -382,6 +655,9 @@
     if (!material || !material.onBeforeCompile) return;
     material.userData = material.userData || {};
     material.userData.minestSurfaceTint = rgb;
+    // 44.5: three r151+ names the emissive-map UV varying vEmissiveMapUv; older builds (the board's Mini Pet
+    // runs r128) only have vUv — the wrong name broke the shader and the Mini Pet's body vanished
+    var rev = parseInt(THREE && THREE.REVISION, 10), emUv = rev && rev < 151 ? 'vUv' : 'vEmissiveMapUv';
     material.onBeforeCompile = function (shader) {
       // WebGL uniforms need a Three.js color/vector instance. A plain
       // `{r,g,b}` object is silently ignored by WebGLUniforms.
@@ -407,7 +683,7 @@
         '    vec3 fur = minestSkinTint * (.06 + .6 * lum);',
         '    totalEmissiveRadiance = mix(e, fur, minestSurfaceMask * keep * .95);',
         '    #ifdef USE_EMISSIVEMAP',
-        '    if (minestStarry > .5) { vec2 g = vEmissiveMapUv * 420.0; vec2 c = floor(g); float h = fract(sin(dot(c, vec2(12.9898,78.233))) * 43758.5453);',
+        '    if (minestStarry > .5) { vec2 g = ' + emUv + ' * 420.0; vec2 c = floor(g); float h = fract(sin(dot(c, vec2(12.9898,78.233))) * 43758.5453);',
         '      float star = step(.985, h) * smoothstep(.45, .0, length(fract(g) - .5)) * (.55 + .45 * sin(minestTime * 2.5 + h * 60.0));',
         '      totalEmissiveRadiance += vec3(1., .95, .8) * star * 1.4 * minestSurfaceMask * keep; }',
         '    #endif',
@@ -415,7 +691,7 @@
       ].join('\n'));
     };
     material.customProgramCacheKey = function () {
-      return 'minest-surface-tint-v7-' + (material.userData.minestStarry ? 's-' : '') + [rgb.r, rgb.g, rgb.b].map(function (value) { return Math.round(value * 1000); }).join('-');
+      return 'minest-surface-tint-v8-' + emUv + '-' + (material.userData.minestStarry ? 's-' : '') + [rgb.r, rgb.g, rgb.b].map(function (value) { return Math.round(value * 1000); }).join('-');
     };
     material.needsUpdate = true;
   }
@@ -453,7 +729,8 @@
       node.material = material;
     });
     SLOTS.forEach(function (slot) {
-      var useHead = slot !== 'neck' || viewState.equippedBySlot[slot] === 'pearl_necklace';
+      if (slot === 'hand') { holdBadge(model, THREE, viewState.equippedBySlot.hand); return; }
+      var useHead = slot !== 'neck' || viewState.equippedBySlot[slot] === 'pearl_necklace' || viewState.equippedBySlot[slot] === 'flower_lei';
       var anchor = useHead ? findBone(model, ['head', 'Head']) : findBone(model, ['body', 'Body', 'neck', 'Neck']);
       if (!anchor) return;
       var marker = 'minestCosmetic:' + slot;
@@ -477,6 +754,33 @@
     if (!THREE.Color && mat && mat.color) T.Color = mat.color.constructor;
     if (!THREE.BufferAttribute && mesh) T.BufferAttribute = mesh.geometry.getAttribute('position').constructor;
     if (!THREE.Vector3) T.Vector3 = model.position.constructor;
+    // 44.5: Pet Raising's adapter has no SphereGeometry (spheres fell back to little cylinders): build one
+    if (!THREE.SphereGeometry && mesh && T.BufferAttribute) {
+      var Geo = mesh.geometry.constructor, BA = T.BufferAttribute;
+      T.SphereGeometry = function (r, ws, hs) {
+        r = r || 1; ws = Math.max(3, ws || 16); hs = Math.max(2, hs || 12);
+        var pos = [], nor = [], uv = [], idx = [];
+        for (var iy = 0; iy <= hs; iy++) {
+          var v = iy / hs, th = v * Math.PI;
+          for (var ix = 0; ix <= ws; ix++) {
+            var u = ix / ws, ph = u * Math.PI * 2;
+            var x = -Math.cos(ph) * Math.sin(th), y = Math.cos(th), z = Math.sin(ph) * Math.sin(th);
+            pos.push(x * r, y * r, z * r); nor.push(x, y, z); uv.push(u, 1 - v);
+          }
+        }
+        for (iy = 0; iy < hs; iy++) for (var jx = 0; jx < ws; jx++) {
+          var a = iy * (ws + 1) + jx, b = a + ws + 1;
+          if (iy !== 0) idx.push(a, b, a + 1);
+          if (iy !== hs - 1) idx.push(b, b + 1, a + 1);
+        }
+        var g = new Geo();
+        g.setAttribute('position', new BA(new Float32Array(pos), 3));
+        g.setAttribute('normal', new BA(new Float32Array(nor), 3));
+        g.setAttribute('uv', new BA(new Float32Array(uv), 2));
+        g.setIndex(new BA(new Uint16Array(idx), 1));
+        return g;
+      };
+    }
     T.__completed = true;
     return T;
   }

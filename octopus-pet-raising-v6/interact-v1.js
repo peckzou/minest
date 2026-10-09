@@ -59,6 +59,7 @@
   }
   function swimStep(dt) {
     var av = A(), m = av.importedModel;
+    if (swim.follow && !swim.arrived) { followStep(dt); return; }
     if (!swim.arrived) {
       swim.t += dt;
       var u = clamp(swim.t / swim.dur, 0, 1), e = ease(u);
@@ -87,26 +88,79 @@
       var mo = window.__motionV4 || window.__motionV3; if (mo && mo.setEnabled) mo.setEnabled(true);
     }
   }
-  // tap = quick press without much movement, on open water (not UI, not the octopus, not the house)
-  var down = null;
-  window.addEventListener('pointerdown', function (e) {
-    var t = e.target;
-    if (t && t.closest && t.closest('button, input, a, [role="dialog"], .avatar-control-panel, .wd-sheet, .oc2-dock, .oc2-layer, .oc2-tray, .oc2-thought, .oc2-handle, #octo-cc-panel, #voice43-backdrop')) { down = null; return; }
-    down = { x: e.clientX, y: e.clientY, t: performance.now() };
-  }, true);
-  window.addEventListener('pointerup', function (e) {
-    if (!down) return;
-    var d = down; down = null;
-    if (performance.now() - d.t > 350 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || blocked()) return;
-    var c = X() && X().octo ? X().octo() : null;
-    if (c && Math.hypot(e.clientX - c.x, e.clientY - c.y) < c.r) return;                 // that's petting
-    var H = window.__octoHouse;
-    if (H && H.rect) {
-      var st = document.querySelector('.avatar-stage'), sr = st && st.getBoundingClientRect(), hr = H.rect;
-      if (sr && Math.abs(e.clientX - sr.left - hr.x) < hr.s * .6 && e.clientY - sr.top > hr.y - hr.s * 1.1 && e.clientY - sr.top < hr.y + hr.s * .1) return;
+  // 44.5: press and drag on open water to LURE the octopus — a glowing lure follows your finger and it
+  // swims after it (a tap no longer sends it off; taps poke things instead, see ocean-life-v3)
+  var lureEl = null, drag = null;
+  function lureDot(x, y, on) {
+    if (!lureEl) {
+      lureEl = document.createElement('div'); lureEl.className = 'octo-lure';
+      var st = document.createElement('style');
+      st.textContent = '.octo-lure{position:fixed;z-index:46;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;pointer-events:none;opacity:0;transform:scale(.4);transition:opacity .25s,transform .25s;' +
+        'background:radial-gradient(circle,#f4fffb 0%,#9ff5e0 35%,rgba(110,230,255,.35) 60%,rgba(110,230,255,0) 72%);box-shadow:0 0 22px 8px rgba(140,255,230,.45)}' +
+        '.octo-lure.on{opacity:1;transform:scale(1);animation:octoLure 1.1s ease-in-out infinite}@keyframes octoLure{50%{box-shadow:0 0 30px 12px rgba(140,255,230,.6)}}';
+      document.head.appendChild(st); document.body.appendChild(lureEl);
     }
-    goTo(e.clientX, e.clientY);
+    lureEl.style.left = x + 'px'; lureEl.style.top = y + 'px';
+    lureEl.classList.toggle('on', !!on);
+  }
+  function openWater(t) {
+    return !(t && t.closest && t.closest('button, input, a, [role="dialog"], .avatar-control-panel, .wd-sheet, .oc2-dock, .oc2-layer, .oc2-tray, .oc2-thought, .oc2-handle, #octo-cc-panel, #voice43-backdrop, .ui-voice, .ui-exit, .octo-chest-label'));
+  }
+  window.addEventListener('pointerdown', function (e) {
+    if (!openWater(e.target) || blocked()) { drag = null; return; }
+    var c = X() && X().octo ? X().octo() : null;
+    if (c && Math.hypot(e.clientX - c.x, e.clientY - c.y) < c.r * .8) { drag = null; return; }   // that's petting
+    drag = { x: e.clientX, y: e.clientY, luring: false, id: e.pointerId };
   }, true);
+  window.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag.luring && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 14) { drag.luring = startLure(); }
+    if (drag.luring) { lureDot(e.clientX, e.clientY, true); aimLure(e.clientX, e.clientY); }
+  }, true);
+  function endDrag(e) {
+    if (!drag || (e && e.pointerId !== drag.id)) return;
+    var was = drag.luring; drag = null;
+    if (lureEl) lureEl.classList.remove('on');
+    if (was && swim && swim.follow) { swim.arrived = true; swim.linger = R(1.6, 2.4); ref('swim_hover'); eyes('happy', 1600); }
+  }
+  window.addEventListener('pointerup', endDrag, true);
+  window.addEventListener('pointercancel', endDrag, true);
+  function startLure() {
+    var av = A(); if (!av || !av.importedModel || !av.camera || blocked()) return false;
+    if (!V3) V3 = av.importedModel.position.constructor;
+    if (!homeBase) homeBase = av.importedModelBasePosition.clone();
+    av.freeSwimActive = false;
+    var mo = window.__motionV4 || window.__motionV3; if (mo && mo.setEnabled) mo.setEnabled(false);
+    var from = centerWorld();
+    swim = { follow: true, target: from.clone(), vel: new V3(0, 0, 0), z: from.z, dir: 1, linger: 0, gait: '' };
+    eyes('excited', 2000); lids('focus');
+    return true;
+  }
+  function aimLure(cx, cy) {
+    if (!swim || !swim.follow) return;
+    var c = X() && X().octo ? X().octo() : null, rad = c ? c.r : 60;
+    var stage = document.querySelector('.avatar-stage'), sr = stage ? stage.getBoundingClientRect() : { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
+    // the octopus's centre trails a little below-behind the lure (it "nibbles" at it)
+    var tx = clamp(cx, sr.left + rad * 1.05, sr.right - rad * 1.05), ty = clamp(cy + rad * .55, sr.top + rad * 1.2, sr.bottom - rad * 1.15);
+    swim.target = screenToWorld(tx, ty, swim.z);
+    swim.lureX = cx; swim.lureY = cy;
+  }
+  function followStep(dt) {
+    var av = A(), m = av.importedModel, cur = centerWorld();
+    var d = swim.target.clone().sub(cur);
+    // a soft spring with drag: it accelerates after the lure and glides to a stop
+    swim.vel.addScaledVector(d, 7 * dt).multiplyScalar(Math.max(0, 1 - 3.2 * dt));
+    var sp = swim.vel.length(), max = 2.4; if (sp > max) { swim.vel.multiplyScalar(max / sp); sp = max; }
+    cur.addScaledVector(swim.vel, dt); setCenter(cur);
+    var vx = clamp(swim.vel.x / 1.6, -1, 1), vy = clamp(swim.vel.y / 1.6, -1, 1);
+    if (Math.abs(vx) > .15) swim.dir = vx > 0 ? 1 : -1;
+    var B = av.importedModelBaseRotation;
+    m.rotation.set(B.x + (vy < 0 ? .14 : -.12) * Math.abs(vy) + .05 * Math.abs(vx), B.y + vx * .6, -vx * .22);
+    var g = sp > 1.1 ? 'swim_fast' : sp > .35 ? 'swim_glide' : 'swim_hover';
+    if (g !== swim.gait) { swim.gait = g; ref(g); }
+    if (swim.lureX != null && X() && X().attend) X().attend(swim.lureX, swim.lureY);
+    if (sp > 1.6 && Math.random() < dt * .5) mouth('wheee');
+  }
 
   // ---------------------------------------------------------------------------------------------
   // 2) presence + reactions
@@ -153,6 +207,27 @@
       av[name] = function () { if (swim && !self) return false; return orig.apply(av, arguments); };
     });
   }
+
+  // 44.5: you tapped something in the ocean — Octo looks at it and reacts to what it was
+  var tapCool = 0;
+  window.addEventListener('ocean-tap', function (e) {
+    var d = e.detail || {}, now = performance.now();
+    if (blocked() || now < tapCool) return;
+    tapCool = now + 700;
+    var x2 = X(); if (x2 && x2.attend) x2.attend(d.x, d.y);
+    var k = d.kind;
+    if (!k) { eyes('curious', 1200); if (Math.random() < .4) { var mo = window.__octoMouth; if (mo && mo.bubbles) mo.bubbles(3); } return; }
+    if (k === 'puffer') { eyes('surprised', 800); setTimeout(function () { mouth('giggle'); eyes('playful', 1800); }, 600); }
+    else if (k === 'crab') { ref(d.x < (x2 && x2.octo ? x2.octo().x : 0) ? 'tip_wave_left' : 'tip_wave_right'); eyes('happy', 1800); mouth('giggle'); }
+    else if (k === 'hermit') { eyes('curious', 2000); mouth('ooh'); setTimeout(function () { lids('happy'); }, 1600); }
+    else if (k === 'angler') { eyes('surprised', 1000); lids('gasp'); mouth('gasp'); setTimeout(function () { eyes('curious', 1800); }, 900); }
+    else if (k === 'jelly') { eyes('curious', 1500); mouth('ooh'); }
+    else if (k === 'turtle') { eyes('happy', 2200); lids('happy'); }
+    else if (k === 'ray') { eyes('excited', 1500); mouth('wheee'); }
+    else if (k === 'anemone') { eyes('curious', 1500); lids('blink'); }
+    else { eyes(Math.random() < .5 ? 'playful' : 'excited', 1500); if (Math.random() < .5) mouth('giggle'); }
+    var mb = window.__octoMouth; if (mb && mb.bubbles && Math.random() < .5) setTimeout(function () { mb.bubbles(2); }, 500);
+  });
 
   function loop(now) {
     requestAnimationFrame(loop);

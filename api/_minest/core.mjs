@@ -214,6 +214,12 @@ const EFFORT = { chat: process.env.MINEST_AI_EFFORT_CHAT || 'low', plan: process
 // Each request has a ~20 s fixed cost on relay services, so a list is written in as few
 // requests as possible: up to 60 cards per request, split evenly (52 → 52, 70 → 35 + 35).
 const CHUNK = Math.max(10, Number(process.env.MINEST_AI_CHUNK || 60));
+const judgeRole = `You grade a learner's SPOKEN answers in a vocabulary / concept quiz. Answers come from speech recognition, so ignore punctuation, casing, filler words ("um", "嗯", "是"), homophone and spacing errors, and Chinese/English mixing.
+For each item (same order), return { correct, partial, feedback }:
+- kind "meaning": the answer gives the meaning of "term"; "expected" is the card's back (translation or definition). Correct if it captures the core meaning (synonyms, paraphrase, a correct translation in either language, or a correct meaning not listed). Partial if related but incomplete or too vague.
+- kind "term": the answer names the term for the given definition; "expected" is the term. Correct if it is the term or an obvious speech-recognition spelling of it (e.g. "photo synthesis"). Partial for a close relative (wrong form, related word).
+- kind "spell": the answer spells "expected" letter by letter; correct only if the letters match exactly (spaces ignored).
+feedback: at most 12 words, in the language of the answer, e.g. what was missing. Empty if correct.`;
 const chatRole = `\n\n## Your role now: the chat step\nFollow B10 exactly. Ask everything that is missing in ONE message (max 4 questions, each with a suggested default), never more than 2 rounds of questions, then end with the \`\`\`brief block. Reply in the user's language. Markdown is rendered. Never write the cards in the chat.`;
 const datasetCatalog = (blocks) => Object.values(blocks).map(b => `- ${b.id}: ${b.title} — ` + b.groups.map(g => `${b.id}:${g.id} "${g.title}" (${g.items.length} items)`).join('; ')).join('\n');
 function resolveItems(blocks, list) {
@@ -389,6 +395,23 @@ export async function handle(path, input) {
       return { cards, checked: { expected: items.length || job.count, returned: got.length, matched: (items.length || cards.length) - missing, filled: missing } };
     });
     return many ? { results, requests: bins.length } : { ...results[0], requests: bins.length };
+  }
+  // 44.7 Learning Path voice quiz: grade spoken answers that the app could not decide by itself.
+  // Batched (up to 20). Input items: { kind: meaning|term|spell, term, expected, answer }.
+  if (path.endsWith('/ai-judge')) {
+    const items = (Array.isArray(input.items) ? input.items : [input]).slice(0, 20).map(x => ({
+      kind: ['meaning', 'term', 'spell'].includes(x && x.kind) ? x.kind : 'meaning',
+      term: String((x && x.term) || '').slice(0, 200), expected: String((x && x.expected) || '').slice(0, 500), answer: String((x && x.answer) || '').slice(0, 300)
+    }));
+    const schema = { type: 'object', additionalProperties: false, required: ['results'], properties: { results: { type: 'array', items: {
+      type: 'object', additionalProperties: false, required: ['correct', 'partial', 'feedback'],
+      properties: { correct: { type: 'boolean' }, partial: { type: 'boolean' }, feedback: { type: 'string' } } } } } };
+    const data = await callModel(input, [
+      { role: 'system', content: judgeRole },
+      { role: 'user', content: JSON.stringify(items) }
+    ], jsonOut('minest_judge', schema, 120 + items.length * 60, EFFORT.cards));
+    const r = (JSON.parse(outputText(data)).results || []);
+    return { results: items.map((_, i) => r[i] ? { correct: !!r[i].correct, partial: !!r[i].partial && !r[i].correct, feedback: String(r[i].feedback || '').slice(0, 120) } : { correct: false, partial: false, feedback: '' }) };
   }
   if (path.endsWith('/ai-analyze')) {
     const board = input.board || {}, stats = input.stats || {};

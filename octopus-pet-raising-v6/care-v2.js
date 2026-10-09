@@ -447,5 +447,8 @@
 
   function boot() { if (!document.body) return setTimeout(boot, 50); buildUI(); }
   boot();
-  window.__octoCare = { start: start, stop: function () { if (mode) finish(); }, get state() { return Object.assign({}, S); }, get mode() { return mode; }, level: level, set: function (o) { Object.assign(S, o || {}); save(); renderNeeds(); } };
+  window.__octoCare = { start: start, stop: function () { if (mode) finish(); }, get state() { return Object.assign({}, S); }, get mode() { return mode; }, level: level, set: function (o) { Object.assign(S, o || {}); save(); renderNeeds(); },
+    // 44.5: rewards from the board (ticks, rings, badges) — bond XP with the normal level-up celebration
+    reward: function (n) { n = Number(n) || 0; if (n > 0) { addBond(n); renderNeeds(); } return level(); },
+    fx: fx, toast: toast, celebrate: celebrate, octo: octo };
 })();

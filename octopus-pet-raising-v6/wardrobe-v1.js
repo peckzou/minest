@@ -7,11 +7,11 @@
   if (window.__octoWardrobe) return;
   var ZH = {
     small_crown: ['👑', 'Little Crown'], headphones: ['🎧', 'Fluffy Headphones'], scarf: ['🧣', 'Scarf'], bow: ['🎀', 'Bow'], straw_hat: ['👒', 'Straw Hat'],
-    starfish_clip: ['⭐', 'Starfish Clip'], glasses: ['👓', 'Round Glasses'], pearl_necklace: ['📿', 'Pearl Necklace'],
+    starfish_clip: ['⭐', 'Starfish Clip'], glasses: ['👓', 'Round Glasses'], pearl_necklace: ['📿', 'Pearl Necklace'], badge_held: ['🏅', 'Badge in Hand'], bubble_wand: ['🫧', 'Bubble Wand'], lollipop: ['🍭', 'Lollipop'], party_hat: ['🥳', 'Party Hat'], sunglasses: ['🕶️', 'Sunglasses'], pencil: ['✏️', 'Pencil'], magnifier: ['🔍', 'Magnifier'], flower_lei: ['🌺', 'Flower Lei'], beach_ball: ['🏐', 'Beach Ball'], ukulele: ['🎸', 'Ukulele'], pirate_hat: ['🏴‍☠️', 'Pirate Hat'],
     default_purple: ['#c9b3f2', 'Lavender'], blue_lavender: ['#7fa8ff', 'Blue Lavender'], pearl_pink: ['#ff9fc6', 'Pearl Pink'],
     mint_green: ['#7fe3c4', 'Mint Green'], peach_pink: ['#ffb39b', 'Peach Pink'], starry_night: ['linear-gradient(135deg,#2b2f7a,#5a4fc0 60%,#9a8cff)', 'Starry Night']
   };
-  var SLOT_ZH = { head: 'Head', hair: 'Hair', face: 'Face', neck: 'Neck' };
+  var SLOT_ZH = { head: 'Head', hair: 'Hair', face: 'Face', neck: 'Neck', hand: 'Hand' };
   var LEGACY_LEVEL = { scarf: 4, pearl_pink: 5 };          // older items that had no Care level
   var FREE = ['default_purple', 'blue_lavender', 'small_crown', 'headphones'];
 
@@ -72,7 +72,7 @@
     document.body.appendChild(btn);
     sheet = document.createElement('div'); sheet.className = 'wd-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Wardrobe');
     sheet.innerHTML = '<div class="wd-head"><b>👗 Wardrobe</b><span class="lv"></span><button class="wd-x" aria-label="Close">✕</button></div><div class="wd-next"></div>' +
-      '<div class="wd-tabs"><button class="wd-tab on" data-t="acc">Accessories</button><button class="wd-tab" data-t="skin">Skins</button></div><div class="wd-body"></div>';
+      '<div class="wd-tabs"><button class="wd-tab on" data-t="acc">Accessories</button><button class="wd-tab" data-t="skin">Skins</button><button class="wd-tab" data-t="home">Home</button></div><div class="wd-body"></div>';
     ['pointerdown', 'touchstart', 'click'].forEach(function (ev) { sheet.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
     sheet.querySelector('.wd-x').addEventListener('click', close);
     sheet.querySelectorAll('.wd-tab').forEach(function (t) { t.addEventListener('click', function () { tab = t.dataset.t; render(); }); });
@@ -120,6 +120,25 @@
     sheet.querySelector('.wd-next').textContent = all.length ? 'Next: ' + (ZH[all[0]] || ['', all[0]])[1] + ' (Lv ' + levelOf(all[0]) + ') · feeding, baths, play and petting all raise the bond' : 'Everything unlocked ✨';
     sheet.querySelectorAll('.wd-tab').forEach(function (t) { t.classList.toggle('on', t.dataset.t === tab); });
     body.innerHTML = '';
+    if (tab === 'home') {   // 44.5: Octo's house — the Shell House by default, more styles unlock with the bond
+      var Hh = window.__octoHouse, grid = document.createElement('div'); grid.className = 'wd-grid';
+      if (!Hh || !Hh.styles) { body.textContent = 'The house is still being built…'; return; }
+      Object.keys(Hh.styles).forEach(function (id) {
+        var it = Hh.styles[id], unlockedH = (it.level || 0) <= lv, onH = Hh.style === id;
+        var el = document.createElement('div'); el.className = 'wd-card' + (onH ? ' on' : '') + (unlockedH ? '' : ' locked');
+        el.innerHTML = '<div class="ic">' + it.icon + '</div><div class="nm">' + it.label + '</div><div class="st">' + (onH ? '✓ Home' : unlockedH ? 'Tap to move in' : '🔒 Bond Lv ' + it.level) + '</div>';
+        el.addEventListener('click', function () {
+          if (!unlockedH) { toast('🔒 ' + it.label + ' unlocks at bond Lv ' + it.level); return; }
+          if (onH) return;
+          Hh.setStyle(id); toast(it.icon + ' Octo moved into the ' + it.label + '!');
+          var E = window.__v6EyeHighlight; if (E) E.setExpression('happy', 1800);
+          render();
+        });
+        grid.appendChild(el);
+      });
+      body.appendChild(grid);
+      return;
+    }
     if (tab === 'skin') {
       // 44.3: back to the original look in one tap (skin + colour adjustments)
       var st0 = c.getState(), isDefault = st0.equippedSkin === 'default_purple' && st0.renderMode !== 'tinted';
@@ -136,7 +155,7 @@
       Object.keys(c.skins).forEach(function (id) { g.appendChild(card(id, 'skin')); });
       body.appendChild(g);
     } else {
-      ['head', 'hair', 'face', 'neck'].forEach(function (slot) {
+      ['hand', 'head', 'hair', 'face', 'neck'].forEach(function (slot) {
         var ids = Object.keys(c.accessories).filter(function (id) { return c.accessories[id].slot === slot; });
         if (!ids.length) return;
         var h = document.createElement('div'); h.className = 'wd-group'; h.textContent = SLOT_ZH[slot]; body.appendChild(h);

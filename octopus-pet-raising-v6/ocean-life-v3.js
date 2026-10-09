@@ -40,7 +40,7 @@
   var layout = null;          // fractional positions measured from the old CSS scenery
   var things = [];            // everything drawn, sorted far → near
   var fishes = [], schools = [], jellies = [], bubbles = [], snow = [], kelps = [], swayCorals = [];
-  var anemone = null, crab = null, puffer = null, turtle = null, ray = null;
+  var anemone = null, crab = null, puffer = null, turtle = null, ray = null, angler = null, hermit = null;
   var coralCache = null, bubbleSprite = null;
   var current = 0, T = 0;
   var tapAt = null;
@@ -289,10 +289,32 @@
     var back = []; for (var b = _bot.length - 2; b >= 0; b -= 2) back.push(_bot[b], _bot[b + 1]);
     smooth(c, back, false);
     c.closePath();
+    // 44.5: a soft contact shadow below the near fish (they read as bodies in the water, not cut-outs)
+    var near = f.z < .5;
+    if (near) { c.shadowColor = 'rgba(0,12,24,' + (.32 * (1 - f.z)).toFixed(3) + ')'; c.shadowBlur = 9 * U; c.shadowOffsetY = 7 * U * (1 - f.z); }
     c.fillStyle = f.grad; c.fill();
+    if (near) { c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0; }
     c.save(); c.clip();
     this.markings(c, hl, Lb, H, uP);
     c.fillStyle = f.shineG; c.fillRect(-hl, -H, Lb, H);
+    // 44.5: volume — round shading across the body (lit back, shadowed belly), darker towards the
+    // outline, a soft specular spot on the shoulder and a thin rim light along the back
+    if (!f.vol) {
+      var k3 = 1 - f.z * .65;
+      f.vol = c.createLinearGradient(0, -H / 2, 0, H / 2 * s.belly);
+      f.vol.addColorStop(0, 'rgba(255,255,255,' + (.2 * k3).toFixed(3) + ')'); f.vol.addColorStop(.28, 'rgba(255,255,255,' + (.06 * k3).toFixed(3) + ')');
+      f.vol.addColorStop(.55, 'rgba(0,0,0,0)'); f.vol.addColorStop(1, 'rgba(0,18,36,' + (.42 * k3).toFixed(3) + ')');
+      f.edgeG = c.createRadialGradient(Lb * .04, 0, 0, Lb * .04, 0, hl * 1.05);
+      f.edgeG.addColorStop(0, 'rgba(0,0,0,0)'); f.edgeG.addColorStop(.62, 'rgba(0,0,0,0)'); f.edgeG.addColorStop(1, 'rgba(0,16,32,' + (.38 * k3).toFixed(3) + ')');
+      f.specG = c.createRadialGradient(hl - Lb * .3, -H * .26, 0, hl - Lb * .3, -H * .26, Lb * .14);
+      f.specG.addColorStop(0, 'rgba(255,255,255,' + (.55 * k3).toFixed(3) + ')'); f.specG.addColorStop(1, 'rgba(255,255,255,0)');
+      f.k3 = k3;
+    }
+    c.fillStyle = f.vol; c.fillRect(-hl * 1.2, -H, Lb * 1.3, H * 2);
+    c.save(); c.scale(1, H / Lb * 1.15); c.fillStyle = f.edgeG; c.fillRect(-hl * 1.3, -Lb, Lb * 1.4, Lb * 2); c.restore();
+    c.fillStyle = f.specG; c.fillRect(-hl, -H, Lb, H);
+    c.strokeStyle = 'rgba(220,245,255,' + (.38 * f.k3).toFixed(3) + ')'; c.lineWidth = 1.4;
+    c.beginPath(); smooth(c, _top, true); c.stroke();
     // lateral line + soft scale shimmer moving with the turn
     c.strokeStyle = f.cA.line; c.lineWidth = .7;
     c.beginPath(); c.moveTo(hl - Lb * .2, -H * .16); c.quadraticCurveTo(0, -H * .26, xp, pedY); c.stroke();
@@ -876,6 +898,170 @@
     }
   };
 
+
+  // =================================================================================================
+  // 44.5 ANGLERFISH: cruises slowly in the deep with its glowing lure bobbing ahead of its big toothy
+  // mouth; the lure flickers, and now and then flares bright and the jaw snaps.
+  // =================================================================================================
+  function Angler(o) {
+    this.kind = 'angler'; this.z = o.z; this.s = 44 * U * depthScale(o.z); this.x = o.x; this.y = o.y; this.y0 = o.y;
+    this.dir = 1; this.vx = 0; this.mouth = 0; this.mouthT = 0; this.flash = 0; this.nextSnap = R(5, 9); this.ph = R(0, TAU); this.tail = 0;
+  }
+  Angler.prototype.update = function (dt, t) {
+    var a = this, want = 16 * U * depthScale(a.z) * (a.flee > 0 ? 3 : 1);
+    if (a.x < W * .12) a.dir = 1; if (a.x > W * .88) a.dir = -1;
+    a.vx += (a.dir * want - a.vx) * Math.min(1, dt * 1.5);
+    a.x += a.vx * dt; a.y = a.y0 + Math.sin(t * .4 + a.ph) * 14 * U;
+    a.tail += dt * (2 + Math.abs(a.vx) * .08);
+    if (a.flee > 0) a.flee -= dt;
+    a.nextSnap -= dt;
+    if (a.nextSnap <= 0) { a.mouthT = 1; a.flash = 1; a.nextSnap = R(6, 11); setTimeout(function () { a.mouthT = 0; }, 450); }
+    a.mouth += (a.mouthT - a.mouth) * Math.min(1, dt * 10);
+    a.flash = Math.max(0, a.flash - dt * 1.3);
+  };
+  Angler.prototype.scare = function (px, py, r) { if (Math.hypot(this.x - px, this.y - py) < r) this.poke(); };
+  Angler.prototype.poke = function () {
+    var a = this; a.flash = 1; a.mouthT = 1; a.flee = .8; setTimeout(function () { a.mouthT = 0; }, 500);
+    for (var b = 0; b < 5; b++) spawnBubble(a.x + a.dir * a.s * .8, a.y + R(-6, 6), R(1.5, 3.5) * U);
+  };
+  Angler.prototype.lure = function (t) {   // the glowing bulb, dangling in front of the mouth
+    var a = this, s = a.s, bob = Math.sin(t * 2.1 + a.ph) * s * .07, sw = Math.sin(t * 1.3 + a.ph) * s * .05;
+    return { x: a.x + a.dir * (s * 1.12 + sw), y: a.y - s * .42 + bob };
+  };
+  Angler.prototype.draw = function (c, t) {
+    // a deep-sea anglerfish: an enormous head on a short tapering body, a huge up-turned mouth with an
+    // under-bite and long needle fangs, tiny eyes high up, rough dark skin, and the rod over the head
+    // with its glowing lure hanging right in front of the mouth
+    var a = this, s = a.s, z = a.z, L = a.lure(t);
+    var flick = .65 + .25 * Math.sin(t * 7.3 + a.ph) + .1 * Math.sin(t * 17 + a.ph * 2), I = Math.min(1.4, flick + a.flash * 1.2);
+    var gR = s * (1.25 + a.flash * .9), g = c.createRadialGradient(L.x, L.y, 0, L.x, L.y, gR);
+    g.addColorStop(0, 'rgba(200,255,240,' + (.75 * I).toFixed(3) + ')'); g.addColorStop(.3, 'rgba(140,240,230,' + (.25 * I).toFixed(3) + ')'); g.addColorStop(1, 'rgba(120,220,255,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(L.x, L.y, gR, 0, TAU); c.fill();
+    c.save(); c.translate(a.x, a.y); c.scale(a.dir, 1);
+    var gape = a.mouth;                         // 0 = resting open a little, 1 = wide snap
+    var jaw = s * (.1 + gape * .22);            // how far the lower jaw drops
+    // tail fin + little dorsal spines
+    var tw = Math.sin(a.tail * 3) * .3;
+    c.fillStyle = col('#2a2219', z);
+    c.beginPath(); c.moveTo(-s * .78, -s * .05); c.quadraticCurveTo(-s * 1.12, -s * (.38 + tw * .2), -s * 1.22, -s * (.14 + tw * .1)); c.quadraticCurveTo(-s * 1.1, 0, -s * 1.22, s * (.16 - tw * .1)); c.quadraticCurveTo(-s * 1.12, s * (.36 - tw * .2), -s * .78, s * .07); c.closePath(); c.fill();
+    c.strokeStyle = col('#2a2219', z); c.lineWidth = s * .03; c.lineCap = 'round';
+    for (var d = 0; d < 3; d++) { var dx = -s * (.25 + d * .16), dy = -s * (.5 - d * .1); c.beginPath(); c.moveTo(dx, dy); c.lineTo(dx - s * .08, dy - s * .16 + d * s * .03); c.stroke(); }
+    // body outline: huge round head tapering fast to the tail; the lower jaw juts out past the upper
+    c.beginPath();
+    c.moveTo(s * .78, -s * .16);                                                  // upper lip corner (front)
+    c.bezierCurveTo(s * .7, -s * .62, s * .05, -s * .8, -s * .35, -s * .5);       // over the big head
+    c.quadraticCurveTo(-s * .7, -s * .28, -s * .8, -s * .06);                     // taper to the tail
+    c.lineTo(-s * .8, s * .08);
+    c.quadraticCurveTo(-s * .55, s * .42, -s * .05, s * .58);                     // round belly
+    c.bezierCurveTo(s * .45, s * .66, s * .9, s * .48 + jaw * .4, s * 1.02, s * .2 + jaw);   // lower jaw, out front
+    c.lineTo(s * .62, s * .02 + jaw * .4);                                        // inside of the gape
+    c.closePath();
+    var bg = c.createRadialGradient(s * .05, -s * .32, s * .08, 0, 0, s * 1.05);
+    bg.addColorStop(0, col('#5a4a3a', z)); bg.addColorStop(.6, col('#2e251c', z)); bg.addColorStop(1, col('#171210', z));
+    c.fillStyle = bg; c.fill();
+    c.save(); c.clip();
+    // paler belly + rough bumpy skin
+    var bl = c.createLinearGradient(0, s * .1, 0, s * .6); bl.addColorStop(0, 'rgba(120,100,80,0)'); bl.addColorStop(1, col('#7a6650', z, .55));
+    c.fillStyle = bl; c.fillRect(-s, 0, s * 2.2, s);
+    c.fillStyle = col('#7a6a54', z, .45);
+    for (var p = 0; p < 16; p++) { var px = -s * .6 + hash(p * 3.1) * s * 1.3, py = -s * .55 + hash(p * 7.7) * s * .95; c.beginPath(); c.arc(px, py, s * (.02 + hash(p) * .025), 0, TAU); c.fill(); }
+    c.restore();
+    // the dark gape and the fangs
+    c.fillStyle = col('#0a0706', z);
+    c.beginPath(); c.moveTo(s * .78, -s * .16); c.quadraticCurveTo(s * .55, -s * .02, s * .6, s * .03 + jaw * .4); c.quadraticCurveTo(s * .82, s * .14 + jaw * .7, s * 1.02, s * .2 + jaw); c.quadraticCurveTo(s * .95, -s * .02, s * .78, -s * .16); c.fill();
+    c.fillStyle = col('#f4ecd8', z);
+    var fangs = [[.62, .1], [.7, .16], [.78, .12], [.85, .2], [.92, .1]];   // upper jaw, pointing down
+    fangs.forEach(function (f, i) { var fx = s * f[0], fy = -s * .12 + (fx - s * .6) * -.15; c.beginPath(); c.moveTo(fx - s * .018, fy); c.lineTo(fx + s * .01, fy + s * f[1]); c.lineTo(fx + s * .028, fy); c.fill(); });
+    var low = [[.64, .12], [.72, .2], [.8, .14], [.88, .24], [.96, .16]];  // lower jaw, pointing up and out
+    low.forEach(function (f, i) { var fx = s * f[0], fy = s * .06 + (fx - s * .6) / (s * .42) * (s * .14 + jaw * .6) + jaw * .4; c.beginPath(); c.moveTo(fx - s * .02, fy); c.lineTo(fx + s * .03, fy - s * f[1]); c.lineTo(fx + s * .025, fy); c.fill(); });
+    // tiny eye high on the head
+    c.fillStyle = col('#d8d0a0', z); c.beginPath(); c.arc(s * .36, -s * .42, s * .07, 0, TAU); c.fill();
+    c.fillStyle = '#060606'; c.beginPath(); c.arc(s * .38, -s * .42, s * .042, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(s * .355, -s * .445, s * .016, 0, TAU); c.fill();
+    // small pectoral fin
+    c.fillStyle = col('#3a3024', z); c.beginPath(); c.ellipse(-s * .12, s * .22, s * .2, s * .09, .7 + Math.sin(t * 3 + a.ph) * .25, 0, TAU); c.fill();
+    // the rod (illicium) from the top of the head, arching forward over the mouth to the lure
+    var lx = (L.x - a.x) * a.dir, ly = L.y - a.y;
+    c.strokeStyle = col('#4a3c2c', z); c.lineWidth = s * .035;
+    c.beginPath(); c.moveTo(s * .3, -s * .7); c.bezierCurveTo(s * .55, -s * 1.3, s * 1.2, -s * 1.15, lx, ly - s * .06); c.stroke();
+    c.restore();
+    // the bulb, with a fine filament
+    c.fillStyle = 'rgba(230,255,250,' + Math.min(1, .7 + I * .3).toFixed(3) + ')'; c.beginPath(); c.arc(L.x, L.y, s * .08, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(140,255,230,' + (.6 * I).toFixed(3) + ')'; c.beginPath(); c.arc(L.x, L.y, s * .14, 0, TAU); c.fill();
+    c.strokeStyle = 'rgba(200,255,245,' + (.5 * I).toFixed(3) + ')'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(L.x, L.y + s * .08); c.quadraticCurveTo(L.x + a.dir * s * .05, L.y + s * .18, L.x, L.y + s * .26); c.stroke();
+  };
+
+  // =================================================================================================
+  // 44.5 HERMIT CRAB: a little crab dragging a spiral shell along the sand; poke it (or swim close) and
+  // it pulls into the shell, which wobbles; then the eyes peek out and it walks on.
+  // =================================================================================================
+  function Hermit(o) {
+    this.kind = 'hermit'; this.z = o.z; this.s = 32 * U * depthScale(o.z); this.x = o.x; this.dir = -1;
+    this.state = 'walk'; this.timer = R(2, 4); this.gait = 0; this.speed = 0; this.out = 1; this.wob = 0;
+    this.y = sandTop + sandH * .58;
+  }
+  Hermit.prototype.update = function (dt, t) {
+    var h = this; h.y = sandTop + sandH * .58;
+    h.timer -= dt;
+    if (h.timer <= 0) {
+      if (h.state === 'hide') { h.state = 'peek'; h.timer = 1.2; }
+      else if (h.state === 'peek') { h.state = 'walk'; h.timer = R(2, 4); }
+      else if (h.state === 'walk') { h.state = 'rest'; h.timer = R(1.5, 3); }
+      else { h.state = 'walk'; h.timer = R(2.5, 5); if (rnd() < .4) h.dir *= -1; }
+    }
+    if (h.x < W * .06) h.dir = 1; if (h.x > W * .94) h.dir = -1;
+    var want = h.state === 'walk' ? 12 * U * depthScale(h.z) : 0;
+    h.speed += (want - h.speed) * Math.min(1, dt * 4);
+    h.x += h.dir * h.speed * dt;
+    h.gait += h.speed * dt / (h.s * .3);
+    var outT = h.state === 'hide' ? 0 : h.state === 'peek' ? .45 : 1;
+    h.out += (outT - h.out) * Math.min(1, dt * (outT < h.out ? 14 : 3));
+    h.wob = Math.max(0, h.wob - dt * 1.6);
+  };
+  Hermit.prototype.scare = function (px, py, r) { if (Math.hypot(this.x - px, this.y - py) < r * .8) this.poke(); };
+  Hermit.prototype.poke = function () {
+    if (this.state === 'hide') { this.wob = 1; this.timer = Math.max(this.timer, 1.5); return; }
+    this.state = 'hide'; this.timer = 2.4; this.wob = 1;
+    for (var b = 0; b < 3; b++) spawnBubble(this.x + R(-4, 4), this.y - this.s * .6, R(1.2, 2.6) * U);
+  };
+  Hermit.prototype.draw = function (c, t) {
+    var h = this, s = h.s, z = h.z, x = h.x, y = h.y, o = h.out;
+    c.fillStyle = 'rgba(0,20,30,.22)'; c.beginPath(); c.ellipse(x, y + s * .28, s * 1.05, s * .16, 0, 0, TAU); c.fill();
+    c.save(); c.translate(x, y); c.scale(h.dir, 1);
+    var wob = Math.sin(t * 30) * h.wob * .12, bob = Math.abs(Math.sin(h.gait * PI)) * s * .04;
+    // legs + claw (slide out of the shell opening, in front)
+    if (o > .05) {
+      c.strokeStyle = col('#c8502a', z); c.lineCap = 'round'; c.lineWidth = s * .08;
+      for (var i = 0; i < 3; i++) {
+        var lift = Math.max(0, Math.sin(h.gait * PI + i * 2.1)) * s * .12;
+        var hx = s * (.35 + i * .08) * o, hy = s * .05;
+        c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx + s * .22 * o, hy - s * .1 - lift); c.lineTo(hx + s * .32 * o, s * .27 - lift * .5); c.stroke();
+      }
+      c.fillStyle = col('#e0663a', z); c.beginPath(); c.ellipse(s * .62 * o, -s * .05, s * .14 * o, s * .1, -.3, 0, TAU); c.fill();
+      // eye stalks
+      c.strokeStyle = col('#c8502a', z); c.lineWidth = s * .05;
+      for (var e = 0; e < 2; e++) {
+        var ex = s * (.42 + e * .1) * o, ey = -s * (.28 + .1 * o) + Math.sin(t * 2 + e) * s * .02;
+        c.beginPath(); c.moveTo(s * .38 * o, -s * .08); c.lineTo(ex, ey); c.stroke();
+        c.fillStyle = '#0b0b0b'; c.beginPath(); c.arc(ex, ey, s * .055, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(ex - s * .015, ey - s * .02, s * .018, 0, TAU); c.fill();
+      }
+    }
+    // the shell: a spiral whelk, opening to the front
+    c.save(); c.translate(-s * .1, -s * .1 - bob); c.rotate(-.25 + wob);
+    var sg = c.createRadialGradient(-s * .15, -s * .25, s * .05, 0, 0, s * .75);
+    sg.addColorStop(0, col('#ffffff', z)); sg.addColorStop(.6, col('#f1ece6', z)); sg.addColorStop(1, col('#bdb3aa', z));
+    c.fillStyle = sg; c.beginPath(); c.ellipse(0, 0, s * .62, s * .5, 0, 0, TAU); c.fill();
+    c.fillStyle = col('#ece4dc', z); c.beginPath(); c.moveTo(-s * .45, -s * .3); c.lineTo(-s * .95, -s * .62); c.lineTo(-s * .5, -s * .05); c.closePath(); c.fill();
+    c.fillStyle = col('#c98a5a', z, .55); for (var sp2 = 0; sp2 < 12; sp2++) { c.beginPath(); c.arc(-s * .5 + hash(sp2 * 2.7) * s * .95, -s * .4 + hash(sp2 * 5.3) * s * .75, s * .028, 0, TAU); c.fill(); }
+    c.strokeStyle = col('#a89a90', z, .8); c.lineWidth = s * .04;
+    c.beginPath(); for (var a2 = 0; a2 < 11; a2++) { var ang = a2 * .55, rr2 = s * (.42 - a2 * .035); c[a2 ? 'lineTo' : 'moveTo'](Math.cos(ang) * rr2 - s * .05, Math.sin(ang) * rr2 * .8 - s * .02); } c.stroke();
+    c.fillStyle = col('#5a2e1a', z, .85); c.beginPath(); c.ellipse(s * .45, s * .05, s * .14, s * .22, .2, 0, TAU); c.fill();
+    c.restore();
+    c.restore();
+  };
+
   // =================================================================================================
   // PLANTS: kelp + sea grass (the current's wave runs up each blade), anemone
   // =================================================================================================
@@ -1178,8 +1364,9 @@
     fishes.push(new Fish('clown', { x: home.x + 20, y: home.y - 10, z: .3, size: .8, home: home, anchor: clownA[1], agility: 2 }));
     fishes.push(new Fish('tang', { x: W * .7, y: H * .3, z: .32, zone: [.15, .55], anchor: null }));
     fishes.push(new Fish('tang', { x: W * .2, y: H * .42, z: .5, size: .9, zone: [.2, .55] }));
-    fishes.push(new Fish('butterfly', { x: W * .35, y: H * .55, z: .22, zone: [.4, .66] }));
-    fishes.push(new Fish('butterfly', { x: W * .4, y: H * .58, z: .26, size: .92, zone: [.4, .66] }));
+    // 44.5: the two yellow butterflyfish gave way to an anglerfish in the deep and a hermit crab
+    angler = new Angler({ x: W * .25, y: H * .64, z: .32 });
+    hermit = new Hermit({ x: W * .42, z: .08 });
     var lc = L('branchR', .73, .86);
     var lion = anchor('.lionfish', 0);
     fishes.push(new Fish('lion', { x: lc.cx * W, y: lc.y * H - 10, z: .4, home: { x: lc.cx * W, y: (lc.y - .03) * H, r: 70 * U }, anchor: lion, agility: .6 }));
@@ -1202,7 +1389,7 @@
     swayCorals.push(new SeaFan({ x: cr.cx * W, y: cr.by * H, h: Math.min(cr.h * H * .8, 150 * U), w: Math.min(cr.h * H * .65, 120 * U), z: .6, hexes: ['#d27a2a', '#ffb060'] }));
     vents = [{ x: anemone.x + 30 * U, y: sandTop + sandH * .2 }, { x: W * .58, y: sandTop + sandH * .3 }, { x: W * .86, y: sandTop + sandH * .15 }];
 
-    things = [].concat([kelp], swayCorals, [new CoralCache()], fishes, schools, jellies, [turtle, ray, puffer, crab, anemone, grassClump]);
+    things = [].concat([kelp], swayCorals, [new CoralCache()], fishes, schools, jellies, [turtle, ray, puffer, crab, anemone, grassClump, angler, hermit]);
     things.sort(function (a, b) { return zOf(b) - zOf(a); });
     buildCorals();
     initSnow(); initShafts();
@@ -1244,6 +1431,8 @@
       else if (kind === 'puffer' && Math.hypot(o.x - P.x, o.y - P.y) < P.r * 1.2 && !o.infT) o.puff();
       else if (kind === 'anemone' && Math.hypot(o.x - P.x, o.y - o.s * .6 - P.y) < P.r * 1.3) o.flinch = Math.max(o.flinch, .8);
       else if (kind === 'jelly' && Math.hypot(o.x - P.x, o.y - P.y) < P.r) o.scare(P.x, P.y, P.r);
+      else if (kind === 'hermit' && Math.hypot(o.x - P.x, o.y - P.y) < P.r * 1.3 && o.state !== 'hide' && o.state !== 'peek') o.poke();
+      else if (kind === 'angler' && Math.hypot(o.x - P.x, o.y - P.y) < P.r * 1.5 && T > (presenceCool.angler || 0)) { o.flash = 1; presenceCool.angler = T + 4; }
       else if (kind === 'crab' && Math.abs(o.x - P.x) < P.r * 1.4 && P.y > sandTop - P.r * 1.6 && o.state !== 'wave' && T > (presenceCool.crab || 0)) { o.state = 'wave'; o.timer = 2; presenceCool.crab = T + 6; }
     }
     // sand puffs when it swims close to the floor
@@ -1291,12 +1480,46 @@
     render();
   }
 
+  // 44.5: a tap pokes the one thing under your finger (it does its own little act, bubbles rise) and
+  // tells the octopus what you tapped; dragging (luring the octopus) is not a tap
+  var tapDown = null;
+  function onDown(e) { tapDown = { x: e.clientX, y: e.clientY, t: performance.now() }; }
+  function hitTest(px, py) {
+    var best = null, bd = 1e9;
+    for (var i = 0; i < things.length; i++) {
+      var o = things[i], list = o.members ? o.members : [o];
+      for (var j = 0; j < list.length; j++) {
+        var m = list[j]; if (m.x == null || !m.kind) continue;
+        var my = typeof m.y === 'function' ? m.y() - (m.s || 0) * .3 : m.kind === 'anemone' ? m.y - m.s * .6 : m.y;
+        var rad = m.kind === 'fish' ? Math.max(m.Lb * .6 || 0, 26 * U) : m.kind === 'jelly' ? (m.r || 30) * U * 1.3 : (m.s || 30 * U) * 1.2;
+        if (m.kind === 'turtle' || m.kind === 'ray') rad = 60 * U;
+        var d = Math.hypot(m.x - px, my - py);
+        if (d < rad && d < bd) { bd = d; best = { o: o, m: m, y: my }; }
+      }
+    }
+    return best;
+  }
   function onTap(e) {
-    if (!W) return;
+    if (!W || !tapDown) return;
+    var moved = Math.hypot(e.clientX - tapDown.x, e.clientY - tapDown.y), long = performance.now() - tapDown.t;
+    tapDown = null;
+    if (moved > 12 || long > 450) return;
+    var t = e.target; if (t && t.closest && t.closest('button, input, a, [role="dialog"], .avatar-control-panel, .wd-sheet, .oc2-dock, .oc2-layer, .oc2-tray, #octo-cc-panel, #voice43-backdrop, .ui-voice, .ui-exit')) return;
     var oRect = ocean.getBoundingClientRect(), k = oRect.width / Math.max(1, ocean.clientWidth);
-    var px = (e.clientX - oRect.left) / k, py = (e.clientY - oRect.top) / k, r = 130 * U;
-    for (var i = 0; i < things.length; i++) if (things[i].scare) things[i].scare(px, py, r);
-    for (var b = 0; b < 4; b++) spawnBubble(px + R(-6, 6), py + R(-4, 4), R(1.2, 3) * U);
+    var px = (e.clientX - oRect.left) / k, py = (e.clientY - oRect.top) / k;
+    for (var b = 0; b < 5; b++) spawnBubble(px + R(-8, 8), py + R(-6, 6), R(1.2, 3.2) * U);
+    var hit = hitTest(px, py), kind = '';
+    if (hit) {
+      var o = hit.o, m = hit.m; kind = m.kind === 'fish' && o.members ? 'school' : m.kind;
+      if (m.poke) m.poke();
+      else if (kind === 'puffer' && o.puff) o.puff();
+      else if (kind === 'crab') { o.state = 'wave'; o.timer = 2; }
+      else if (kind === 'anemone') o.flinch = 1;
+      else if (kind === 'jelly' && o.scare) o.scare(px, py + 10, 200);
+      else if (o.scare) o.scare(px, py, 90 * U);
+      for (var b2 = 0; b2 < 6; b2++) spawnBubble(m.x + R(-12, 12), hit.y + R(-10, 4), R(1.5, 3.8) * U);
+    }
+    try { window.dispatchEvent(new CustomEvent('ocean-tap', { detail: { kind: kind, sp: hit && (hit.m.spName || hit.m.sp && hit.m.sp.name) || '', x: e.clientX, y: e.clientY } })); } catch (err) {}
   }
 
   function boot(n) {
@@ -1312,7 +1535,8 @@
     resize();
     if (window.ResizeObserver) new ResizeObserver(function () { resize(); }).observe(ocean);
     else window.addEventListener('resize', resize);
-    window.addEventListener('pointerdown', onTap, { passive: true, capture: true });
+    window.addEventListener('pointerdown', onDown, { passive: true, capture: true });
+    window.addEventListener('pointerup', onTap, { passive: true, capture: true });
     window.__oceanLifeV3 = { things: things, get fps30() { return skip; }, presence: setPresence,
       // where things are, in screen (client) coordinates — for the octopus's reactions
       near: function (cx, cy, radius) {

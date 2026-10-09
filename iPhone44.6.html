@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 44.7 · Learning Path 2.0</title>
+    <title>Minest iPhone 44.6 · Learning Path</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -11581,7 +11581,7 @@ var StudyArcade = window.StudyArcade = (function() {
     saveStat(item, result, rt);
     hud();
     // 44.6: Learning Path — each judgement is study activity and its Quick Test result
-    try { window.dispatchEvent(new CustomEvent('minest:study-activity', { detail: { source: 'arcade', mode: S.modeKey, type: 'judge', cardId: item.id, result: result, rt: Math.round(rt) } })); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent('minest:study-activity', { detail: { source: 'arcade', mode: S.modeKey, type: 'judge', cardId: item.id, result: result } })); } catch (e) {}
   };
   var maybeEnd = function() {
     var S = A && A.S; if (!S || S.ended || S.ending || S.queue.length) return;
@@ -21416,7 +21416,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "44.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "44.5" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -22387,26 +22387,6 @@ var MinestAnalyze = (function() {
       lists.push({ id: col.id, title: col.title, cards: cards });
       stats.lists.push(ls);
     });
-    // 44.7 Learning Path 2.0: studied is not mastered — skills per card
-    var LP = window.MinestLearn;
-    if (LP && LP.cardStatus) {
-      stats.learn = { studied: 0, mastered: 0, notMastered: 0, reviewNow: 0, weakBy: {}, notMasteredCards: [] };
-      (board.columns || []).forEach(function(col) {
-        (col.cards || []).forEach(function(c) {
-          if (c.complete) return;
-          var s; try { s = LP.cardStatus(c, col); } catch (e) { return; }
-          if (!s.studied) return;
-          stats.learn.studied++;
-          if (s.mastered) stats.learn.mastered++;
-          else {
-            stats.learn.notMastered++;
-            if (s.weakest) stats.learn.weakBy[s.weakest.key] = (stats.learn.weakBy[s.weakest.key] || 0) + 1;
-            if (stats.learn.notMasteredCards.length < 24) stats.learn.notMasteredCards.push({ id: c.id, t: String(c.title || '').slice(0, 60), weak: s.weakest ? s.weakest.icon : '' });
-          }
-          if (s.due) stats.learn.reviewNow++;
-        });
-      });
-    }
     var open = stats.lists.slice().sort(function(a, b) { return (b.total - b.done) - (a.total - a.done); });
     stats.mostOpenList = open[0] ? open[0].title + ' (' + (open[0].total - open[0].done) + ' open)' : '';
     var lag = stats.lists.filter(function(l) { return l.total >= 3; }).sort(function(a, b) { return a.done / a.total - b.done / b.total; });
@@ -22418,9 +22398,6 @@ var MinestAnalyze = (function() {
     if (document.getElementById('mz-css')) return;
     var st = document.createElement('style'); st.id = 'mz-css';
     st.textContent = [
-      '.mz-learn{margin:12px 0 4px}.mz-learn-h{font:700 11px -apple-system,system-ui;letter-spacing:.06em;text-transform:uppercase;opacity:.55;margin:0 2px 8px}' +
-      '.mz-learn-w,.mz-learn-c{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.mz-learn-w span{padding:4px 10px;border-radius:999px;background:rgba(255,159,10,.16);color:#ff9f0a;font:700 11.5px -apple-system,system-ui}' +
-      '.mz-learn-c span{padding:4px 9px;border-radius:999px;background:rgba(127,127,127,.14);font:500 12px -apple-system,system-ui;cursor:pointer}',
       '.mz-back{position:fixed;inset:0;z-index:99980;background:rgba(0,0,0,.28);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:mzFade .25s ease}',
       '.mz{position:fixed;left:0;right:0;bottom:0;z-index:99981;height:min(90dvh,860px);display:flex;flex-direction:column;border-radius:30px 30px 0 0;color:#fff;font-family:-apple-system,system-ui;',
       'background:linear-gradient(170deg,rgba(40,44,56,.86),rgba(20,22,30,.9));-webkit-backdrop-filter:blur(34px) saturate(180%);backdrop-filter:blur(34px) saturate(180%);border:1px solid rgba(255,255,255,.18);border-bottom:0;',
@@ -22477,20 +22454,10 @@ var MinestAnalyze = (function() {
           '<div class="mz-tile"><b style="color:' + (st.overdue ? '#ff453a' : 'inherit') + '">' + st.overdue + '</b><i>Overdue</i></div>' +
           '<div class="mz-tile"><b style="color:' + (st.review ? '#ff9f0a' : 'inherit') + '">' + st.review + '</b><i>Review</i></div>' +
         '</div>' +
-        (st.learn && st.learn.studied ? '<div class="mz-learn"><div class="mz-learn-h">Learning · studied is not mastered</div><div class="mz-tiles">' +
-          '<div class="mz-tile"><b>' + st.learn.studied + '</b><i>Studied</i></div>' +
-          '<div class="mz-tile"><b style="color:#30d158">' + st.learn.mastered + '</b><i>Mastered</i></div>' +
-          '<div class="mz-tile"><b style="color:' + (st.learn.notMastered ? '#ff9f0a' : 'inherit') + '">' + st.learn.notMastered + '</b><i>Studied · not mastered</i></div>' +
-          '<div class="mz-tile"><b style="color:' + (st.learn.reviewNow ? '#64d2ff' : 'inherit') + '">' + st.learn.reviewNow + '</b><i>Review now</i></div></div>' +
-          (st.learn.notMastered ? '<div class="mz-learn-w">' + [['recall', '🧠 Memory'], ['meaning', '💡 Meaning'], ['pron', '🗣 Pronunciation']].filter(function(k) { return st.learn.weakBy[k[0]]; }).map(function(k) { return '<span>' + k[1] + ' weakest · ' + st.learn.weakBy[k[0]] + '</span>'; }).join('') + '</div>' +
-            '<div class="mz-learn-c">' + st.learn.notMasteredCards.map(function(x) { return '<span role="button" data-card="' + esc(x.id) + '">' + x.weak + ' ' + esc(x.t) + '</span>'; }).join('') + '</div>' : '') +
-          '</div>' : '') +
         '<div class="mz-lists">' + st.lists.map(function(l) { var k = l.total ? Math.round(100 * l.done / l.total) : 0; return '<div class="mz-li"><span>' + esc(l.title) + '</span><em>' + l.done + '/' + l.total + '</em><div class="mz-bar"><i style="width:' + k + '%"></i></div></div>'; }).join('') + '</div>' +
         '<div class="mz-ai-out"><div class="mz-sec"><div class="mz-wait"><i></i>AI is reading this board… (about 30–60 s)</div></div></div>' +
       '</div>';
     root.querySelector('.mz-x').addEventListener('click', close);
-    // 44.7: a card that is studied but not mastered → its details (skills)
-    root.querySelectorAll('[data-card]').forEach(function(el) { el.addEventListener('click', function() { var id = el.getAttribute('data-card'); close(); if (window.MinestAI && window.MinestAI.openCard) window.MinestAI.openCard(id); }); });
     document.body.appendChild(back); document.body.appendChild(root);
 
     var out = root.querySelector('.mz-ai-out');
@@ -23619,346 +23586,7 @@ var MinestPron = (function() {
     return { close: close };
   };
 
-  // ---- 44.7 Learning Path · Hands-Free voice quiz ---------------------------------------------------
-  // The pet says a prompt, you answer out loud, it judges and moves on. Three kinds:
-  //   meaning: hear the word → say what it means · term: hear the meaning → say the word ·
-  //   spell: hear the word → spell it letter by letter. New cards are introduced first ("apple — 苹果").
-  // Judging: local rules first (exact / near / key phrase); what they can't decide goes to the AI
-  // (/api/minest/ai-judge, batched, cached) in the background — the quiz never waits for it.
-  // Offline: the local verdict stands and those answers are confirmed by you at the end.
-  // While answering you can say: skip / again / pause / stop / how many left.
-  var judge = (function() {
-    function nf(s) { s = String(s == null ? '' : s); try { s = s.normalize('NFKC'); } catch (e) {} return s.toLowerCase(); }
-    function bare(s) { return nf(s).replace(/[\s\-_'’"“”.,，。;；:：!！?？、\/\\()（）\[\]【】<>《》·…~`]+/g, ''); }
-    function cjk(s) { return (nf(s).match(/[一-鿿]/g) || []).join(''); }
-    function lev(a, b) {
-      if (a === b) return 0; if (!a.length) return b.length; if (!b.length) return a.length;
-      var prev = [], cur, i, j;
-      for (j = 0; j <= b.length; j++) prev[j] = j;
-      for (i = 1; i <= a.length; i++) {
-        cur = [i];
-        for (j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-        prev = cur;
-      }
-      return prev[b.length];
-    }
-    function grams(s) { var o = []; for (var i = 0; i < s.length - 1; i++) o.push(s.substr(i, 2)); return o.length ? o : s ? [s] : []; }
-    function dice(a, b) {
-      var A = grams(a), B = grams(b).slice(), m = 0;
-      if (!A.length || !B.length) return 0;
-      A.forEach(function(x) { var k = B.indexOf(x); if (k >= 0) { m++; B.splice(k, 1); } });
-      return 2 * m / (A.length + grams(b).length);
-    }
-    var STOP = 'the a an of to and or in on for is are be by with as at that this it its from which who what into when where how can will'.split(' ');
-    function words(s) { return (nf(s).match(/[a-z][a-z'-]{2,}/g) || []).filter(function(w) { return STOP.indexOf(w) < 0; }); }
-    function cands(exp) {
-      var t = String(exp || '').replace(/\b(n|v|vt|vi|adj|adv|prep|conj|pron|num|art)\.\s*/gi, ' ');
-      return t.split(/[；;，,、\/|\n]+|\s或\s/).map(function(x) { return x.replace(/[（(][^)）]*[)）]/g, '').trim(); }).filter(Boolean);
-    }
-    var NOPE = /^(不知道|不会|忘了|不记得|想不起来|i\s*don'?t\s*know|no\s*idea|pass|i\s*forgot)$/i;
-    // → 'correct' | 'wrong' | 'unsure'
-    function local(kind, expected, answer) {
-      var raw = String(answer || '').trim(), a = bare(raw);
-      if (!a || NOPE.test(raw.replace(/[。.!！?？]+$/, ''))) return 'wrong';
-      if (kind === 'spell') {
-        var toks = nf(raw).split(/[\s,，.。\-]+/).filter(Boolean);
-        var letters = toks.length > 1 && toks.every(function(t) { return /^[a-z]$/.test(t); }) ? toks.join('') : a.replace(/[^a-z]/g, '');
-        return letters && letters === bare(expected).replace(/[^a-z]/g, '') ? 'correct' : 'wrong';
-      }
-      if (kind === 'term') {
-        var e = bare(expected); if (!e) return 'unsure';
-        if (a === e || (e.length >= 3 && a.indexOf(e) >= 0)) return 'correct';
-        if (lev(a, e) <= Math.max(1, Math.floor(e.length * 0.2))) return 'correct';
-        return dice(a, e) < 0.25 ? 'wrong' : 'unsure';
-      }
-      var ac = cjk(raw), cs = cands(expected), i;
-      if (ac) for (i = 0; i < cs.length; i++) {
-        var cc = cjk(cs[i]); if (!cc) continue;
-        if (ac.indexOf(cc) >= 0) return 'correct';
-        if (cc.indexOf(ac) >= 0 && ac.length >= Math.max(1, Math.ceil(cc.length * 0.5))) return 'correct';
-        if (dice(ac, cc) >= 0.5) return 'correct';
-      }
-      var aw = words(raw), ew = words(expected);
-      if (aw.length && ew.length) {
-        var hit = ew.filter(function(w) { return aw.some(function(x) { return x === w || (x.length >= 5 && w.length >= 5 && x.slice(0, 5) === w.slice(0, 5)); }); }).length;
-        if (hit / Math.min(ew.length, 5) >= 0.4) return 'correct';
-      }
-      if (!/[a-z一-鿿]/.test(nf(expected))) return 'unsure';
-      return 'unsure';
-    }
-    // ---- the AI, in the background (batched, cached) ----
-    var CK = 'minest.learn.judge.v1', queue = [], timer = 0;
-    function endpointUrl() { var base = 'https://minest-app.vercel.app/api/minest/ai-board'; try { base = localStorage.getItem('minest_ai_endpoint') || base; } catch (e) {} return base.replace(/ai-board\/?$/, 'ai-judge'); }
-    function modelOpts() {
-      var m = 'chatgpt'; try { m = localStorage.getItem('minest_ai_model') || m; } catch (e) {}
-      if (m === 'openrouter') { var slug = 'openai/gpt-4o-mini'; try { slug = localStorage.getItem('minest_ai_openrouter_model') || slug; } catch (e) {} return { provider: 'openrouter', model: slug }; }
-      return { model: m };
-    }
-    function cacheAll() { try { return JSON.parse(localStorage.getItem(CK) || '{}') || {}; } catch (e) { return {}; } }
-    function cacheSet(k, v) { try { var c = cacheAll(), keys = Object.keys(c); c[k] = v; if (keys.length > 400) keys.slice(0, 100).forEach(function(x) { delete c[x]; }); localStorage.setItem(CK, JSON.stringify(c)); } catch (e) {} }
-    function ai(item, cb) {
-      var key = item.kind + '|' + bare(item.expected) + '|' + bare(item.answer), hit = cacheAll()[key];
-      if (hit) { setTimeout(function() { cb(hit); }, 0); return; }
-      queue.push({ item: { kind: item.kind, term: item.term || '', expected: item.expected, answer: item.answer }, key: key, cb: cb });
-      if (!timer) timer = setTimeout(flush, 1500);
-    }
-    function flush() {
-      timer = 0;
-      var batch = queue.splice(0, 20); if (!batch.length) return;
-      var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function() { if (ctl) ctl.abort(); }, 30000);
-      var headers = typeof minestAIHeaders === 'function' ? minestAIHeaders() : { 'Content-Type': 'application/json' };
-      fetch(endpointUrl(), { method: 'POST', headers: headers, body: JSON.stringify(Object.assign({ items: batch.map(function(b) { return b.item; }) }, modelOpts())), signal: ctl ? ctl.signal : undefined })
-        .then(function(r) { return r.text(); })
-        .then(function(t2) { clearTimeout(t); var p = JSON.parse(String(t2).trim() || '{}'); if (p.error || !Array.isArray(p.results)) throw new Error(p.error || 'no results'); batch.forEach(function(b, i) { var r = p.results[i] || null; if (r) cacheSet(b.key, r); b.cb(r); }); })
-        .catch(function() { clearTimeout(t); batch.forEach(function(b) { b.cb(null); }); });
-      if (queue.length) timer = setTimeout(flush, 300);
-    }
-    return { local: local, ai: ai, bare: bare, cjk: cjk, lev: lev, dice: dice };
-  })();
-
-  // ---- speech recognition: the app's dictation, or the browser's ----
-  var asrAvailable = function() {
-    var N = window.MinestNative;
-    return !!((N && N.isNative && N.isNative() && N.startSpeechRecognition) || window.SpeechRecognition || window.webkitSpeechRecognition);
-  };
-  // hear(lang, { onStart, onInterim, onDone(text, alternatives, error) }) → { stop() }
-  var hear = function(lang, cb) {
-    var done = false, text = '', alts = [], quiet = 0, cap = 0, N = window.MinestNative, native = N && N.isNative && N.isNative() && N.startSpeechRecognition, rec = null, started = false;
-    function finish(err) {
-      if (done) return; done = true;
-      clearTimeout(quiet); clearTimeout(cap);
-      if (native) { try { N.stopSpeechRecognition && N.stopSpeechRecognition(); } catch (e) {} window.removeEventListener('minestNativeEvent', onNative); window.removeEventListener('minestSpeechResult', onNativeOld); }
-      else if (rec) { try { rec.onresult = rec.onend = rec.onerror = null; rec.abort(); } catch (e) {} }
-      cb.onDone && cb.onDone(text.trim(), alts, err || null);
-    }
-    function got(t, isFinal, list) {
-      if (done) return;
-      if (!started && t) { started = true; cb.onStart && cb.onStart(); }
-      text = t || text; if (list && list.length) alts = list;
-      cb.onInterim && cb.onInterim(text);
-      clearTimeout(quiet); quiet = setTimeout(function() { finish(); }, isFinal ? 450 : 1300);
-    }
-    function onNative(e) { var d = e && e.detail || {}; if (d.event === 'minestSpeechResult') got(String((d.payload || {}).text || ''), !!(d.payload || {}).isFinal); else if (d.event === 'minestSpeechError') finish('asr'); }
-    function onNativeOld(e) { var d = e && e.detail || {}; got(String(d.text || ''), !!d.isFinal); }
-    cap = setTimeout(function() { finish(text ? null : 'silence'); }, 9000);
-    if (native) {
-      window.addEventListener('minestNativeEvent', onNative); window.addEventListener('minestSpeechResult', onNativeOld);
-      try { if (N.requestMicrophonePermission && !hear.asked) { hear.asked = true; N.requestMicrophonePermission(); } N.startSpeechRecognition(); } catch (e) { setTimeout(function() { finish('asr'); }, 0); }
-    } else {
-      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) { setTimeout(function() { finish('asr'); }, 0); return { stop: function() {} }; }
-      rec = new SR(); rec.lang = lang || 'en-US'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 3;
-      rec.onresult = function(ev) {
-        var t = '', fin = false, list = [];
-        for (var i = 0; i < ev.results.length; i++) { t += ev.results[i][0].transcript; if (ev.results[i].isFinal) fin = true; }
-        var last = ev.results[ev.results.length - 1];
-        for (var k = 0; last && k < last.length; k++) list.push(last[k].transcript);
-        got(t, fin, list);
-      };
-      rec.onerror = function(ev) { finish(ev && ev.error === 'no-speech' ? 'silence' : 'asr'); };
-      rec.onend = function() { finish(text ? null : 'silence'); };
-      try { rec.start(); } catch (e) { setTimeout(function() { finish('asr'); }, 0); }
-    }
-    return { stop: function() { finish('stopped'); } };
-  };
-  var talk = function(text, lang, done) {
-    var fin = false;
-    var end = function() { if (fin) return; fin = true; if (done) done(); };
-    var N = window.MinestNative;
-    if (window.speechSynthesis) {
-      try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(text); u.lang = lang || 'en-US'; u.rate = /^zh/.test(u.lang) ? 1 : 0.9; u.onend = u.onerror = function() { setTimeout(end, 200); }; speechSynthesis.speak(u); } catch (e) {}
-    } else if (N && N.isNative && N.isNative()) { try { N.send('speakText', { text: text, lang: lang || 'en-US', rate: 0.9 }); } catch (e) {} }
-    setTimeout(end, 900 + String(text).length * (/^zh/.test(lang || '') ? 260 : 85));
-  };
-  var langOf = function(s) { return /[一-鿿]/.test(String(s || '')) ? 'zh-CN' : 'en-US'; };
-
-  // items: [{ id, kind: 'meaning'|'term'|'spell', term, prompt, expected, intro }]
-  // opts: { title, onResult(id, res), onFinish(results), onClose(results, {finished}) }
-  //   res = { skill: 'meaning'|'spell', kind, correct, partial, rt, answer, source: 'local'|'ai'|'self', pending }
-  var voiceQuiz = function(items, opts) {
-    opts = opts || {};
-    items = (items || []).filter(function(x) { return x && x.id && x.expected && x.prompt; });
-    if (!items.length) return false;
-    css(); loopCss(); quizCss();
-    var root = document.createElement('div'); root.className = 'mpron-practice mpron-loop mvq';
-    var i = 0, results = {}, closed = false, finished = false, paused = false, gen = 0, timers = [], listener = null, fails = 0, manual = false;
-    var phase = 'intro', interim = '', last = null, msg = '';
-    var KIND = { meaning: ['💡', 'What does it mean?'], term: ['🔤', 'Which word is it?'], spell: ['✍️', 'Spell it'] };
-    var COMMANDS = [
-      ['skip', /^(跳过|下一个|下一题|skip|next)$/i], ['again', /^(再来一次|再说一遍|重复|再听一遍|again|repeat|once more|say it again)$/i],
-      ['pause', /^(暂停|停一下|pause|wait)$/i], ['stop', /^(结束|退出|不学了|stop|quit|exit)$/i], ['left', /(还剩多少|还有几个|还有多少|how many left|how much left)/i]
-    ];
-    var later = function(fn, ms) { var g = gen; timers.push(setTimeout(function() { if (g === gen && !closed && !paused) fn(); }, ms)); };
-    var stopAll = function() { gen++; timers.forEach(clearTimeout); timers = []; if (listener) { listener.stop(); listener = null; } try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {} };
-    var cur = function() { return items[i]; };
-    var ping = function(type) { try { window.dispatchEvent(new CustomEvent('minest:study-activity', { detail: { source: 'voiceQuiz', type: type, cardId: cur() && cur().id } })); } catch (e) {} };
-    var emitResult = function(it, r) {
-      results[it.id] = Object.assign(results[it.id] || {}, r);
-      if (opts.onResult) { try { opts.onResult(it.id, results[it.id]); } catch (e) {} }
-      if (finished) renderSummary();
-    };
-    var head = function() {
-      return '<div class="mpron-top"><button type="button" class="mpron-x" data-a="close" aria-label="Close">✕</button>' +
-        '<div class="mpron-sub" style="font-size:14px">' + esc(opts.title || 'Voice Quiz') + '</div>' +
-        '<div class="mpron-count">' + Math.min(i + 1, items.length) + '/' + items.length + '</div></div>' +
-        '<div class="mpron-bar"><i style="width:' + Math.round(100 * i / items.length) + '%"></i></div>';
-    };
-    var render = function() {
-      if (closed || finished) return;
-      var it = cur(); if (!it) return;
-      var k = KIND[it.kind] || KIND.meaning;
-      var show = it.kind === 'spell' ? '🔊' : it.prompt;
-      var body;
-      if (phase === 'intro') body = '<div class="mpl-phase hear">🆕 New</div><div class="mpron-word big">' + esc(it.term) + '</div><div class="mpl-sub">' + esc(it.expected) + '</div>';
-      else if (phase === 'result' && last) body = '<div class="mpl-phase ' + (last.correct ? 'ok' : last.pending ? 'scoring' : 'bad') + '">' + (last.correct ? '✓ Right' : last.pending ? '… Checking' : last.partial ? '≈ Almost' : '✗ Not quite') + '</div>' +
-        '<div class="mpron-word big">' + esc(it.kind === 'term' || it.kind === 'spell' ? it.term : it.term) + '</div><div class="mpl-sub">' + esc(it.kind === 'term' ? it.prompt : it.expected) + '</div>' +
-        (last.answer ? '<div class="mvq-ans">You said: “' + esc(last.answer) + '”</div>' : '') +
-        (last.feedback ? '<div class="mvq-ans">' + esc(last.feedback) + '</div>' : '') +
-        '<div class="mvq-fix">' + (last.correct ? '<button type="button" data-a="fix-wrong">I was wrong</button>' : '<button type="button" data-a="fix-right">I was right</button>') + '</div>';
-      else body = '<div class="mpl-phase ' + (phase === 'listen' ? 'solo' : 'hear') + '">' + k[0] + ' ' + k[1] + '</div>' +
-        '<div class="mpron-word big' + (show.length > 40 ? ' mvq-long' : '') + '">' + esc(show) + '</div>' +
-        '<div class="mpl-meter' + (phase === 'ask' ? ' spk' : phase === 'listen' && !manual ? ' on' : '') + '">' + (phase === 'ask' ? SPK_SVG : MIC_SVG) + '</div>' +
-        '<div class="mvq-int">' + esc(interim) + '</div>' +
-        (manual && phase === 'listen' ? '<div class="mvq-fix"><button type="button" data-a="self-yes">I knew it</button><button type="button" data-a="self-no">I didn’t</button></div>' : '');
-      root.innerHTML = head() + '<div class="mpron-stage">' + body + '<div class="mpron-msg">' + esc(msg) + '</div></div>' +
-        '<div class="mpl-ctrl"><button type="button" data-a="again">↺ Repeat</button>' +
-        (paused ? '<button type="button" class="pri" data-a="resume">▶ Resume</button>' : '<button type="button" data-a="pause">⏸ Pause</button>') +
-        '<button type="button" data-a="skip">Skip ⏭</button></div>';
-    };
-    var runItem = function() {
-      var it = cur(); if (!it) { summary(); return; }
-      msg = ''; interim = ''; last = null;
-      if (it.intro && !it.introDone) {
-        it.introDone = true; phase = 'intro'; render(); ping('intro');
-        talk(it.term, langOf(it.term), function() { later(function() { talk(it.expected, langOf(it.expected), function() { later(ask, 600); }); }, 250); });
-        return;
-      }
-      ask();
-    };
-    var ask = function() {
-      var it = cur(); if (!it) return;
-      phase = 'ask'; interim = ''; render(); ping('ask');
-      var say = it.kind === 'spell' ? 'Spell: ' + it.term : it.prompt;
-      talk(say, it.kind === 'spell' ? 'en-US' : langOf(it.prompt), function() { later(listen, 150); });
-    };
-    var listen = function() {
-      var it = cur(); if (!it) return;
-      phase = 'listen'; render();
-      if (manual) return;
-      var t0 = Date.now(), firstAt = 0, g = gen;
-      var answerLang = it.kind === 'meaning' ? langOf(it.expected) : 'en-US';
-      listener = hear(answerLang, {
-        onStart: function() { firstAt = Date.now(); ping('speak'); },
-        onInterim: function(t) { interim = t; var el = root.querySelector('.mvq-int'); if (el) el.textContent = t; var m = root.querySelector('.mpl-meter'); if (m) m.style.setProperty('--lvl', '.6'); },
-        onDone: function(text, alts, err) {
-          listener = null;
-          if (g !== gen || closed || paused) return;
-          if (err && err !== 'silence' && err !== 'stopped') {
-            if (++fails >= 3) { manual = true; msg = 'Can’t listen here — answer in your head, then tap'; render(); return; }
-            msg = 'Didn’t catch that — once more'; render(); later(listen, 900); return;
-          }
-          fails = 0;
-          var said = String(text || '').trim();
-          // spoken commands
-          for (var c = 0; c < COMMANDS.length; c++) if (COMMANDS[c][1].test(said.replace(/[。.!！?？，,]+$/, ''))) { command(COMMANDS[c][0]); return; }
-          if (!said) {
-            it.silent = (it.silent || 0) + 1;
-            if (it.silent === 1) { msg = 'Take your time — I’m listening'; render(); later(listen, 300); return; }
-          }
-          decide(it, said, alts, firstAt ? firstAt - t0 : 0);
-        }
-      });
-    };
-    var decide = function(it, said, alts, rt) {
-      var verdict = judge.local(it.kind, it.expected, said);
-      (alts || []).forEach(function(a) { if (verdict !== 'correct' && a && judge.local(it.kind, it.expected, a) === 'correct') { verdict = 'correct'; said = a; } });
-      var skill = it.kind === 'spell' ? 'spell' : 'meaning';
-      var r = { skill: skill, kind: it.kind, answer: said, rt: rt, source: 'local', correct: verdict === 'correct', partial: false, pending: false };
-      if (verdict === 'unsure') {
-        r.pending = true; r.correct = false;
-        judge.ai({ kind: it.kind, term: it.term, expected: it.expected, answer: said }, function(res) {
-          if (closed && !opts.onResult) return;
-          if (res) emitResult(it, { correct: !!res.correct, partial: !!res.partial, feedback: res.feedback || '', source: 'ai', pending: false });
-          else emitResult(it, { pending: false, confirm: true });   // offline: you confirm at the end
-        });
-      }
-      last = r; emitResult(it, r);
-      phase = 'result'; render();
-      haptic(r.correct ? 'success' : r.pending ? 'light' : 'warning');
-      if (r.correct) { try { celebrate(tier(92), root.querySelector('.mpl-phase')); } catch (e) {} talk('Right!', 'en-US', function() { later(next, 500); }); }
-      else if (r.pending) talk(it.kind === 'meaning' && langOf(it.expected) === 'zh-CN' ? '好，' + it.expected : 'Okay — ' + (it.kind === 'meaning' ? it.expected : it.term), langOf(it.kind === 'meaning' ? it.expected : it.term), function() { later(next, 600); });
-      else talk(it.kind === 'meaning' ? (langOf(it.expected) === 'zh-CN' ? '答案是：' + it.expected : 'It means: ' + it.expected) : 'It’s ' + it.term + (it.kind === 'spell' ? ': ' + it.term.split('').join(' ') : ''), it.kind === 'meaning' ? langOf(it.expected) : 'en-US', function() { later(next, 900); });
-    };
-    var next = function() { gen++; timers.forEach(clearTimeout); timers = []; i++; if (i >= items.length) summary(); else runItem(); };
-    var command = function(name) {
-      if (name === 'skip') { stopAll(); next(); }
-      else if (name === 'again') { stopAll(); paused = false; ask(); }
-      else if (name === 'pause') { stopAll(); paused = true; msg = 'Paused — say or tap Resume'; render(); }
-      else if (name === 'stop') close();
-      else if (name === 'left') { var n = items.length - i; stopAll(); talk(n + (n === 1 ? ' left' : ' left'), 'en-US', function() { later(ask, 200); }); }
-    };
-    var renderSummary = function() {
-      var list = items.map(function(it) { return { it: it, r: results[it.id] }; }).filter(function(x) { return x.r; });
-      var ok = list.filter(function(x) { return x.r.correct; }).length;
-      var pend = list.filter(function(x) { return x.r.pending; });
-      var conf = list.filter(function(x) { return x.r.confirm; });
-      var wrong = list.filter(function(x) { return !x.r.correct && !x.r.pending && !x.r.confirm; });
-      root.innerHTML = '<div class="mpron-top"><button type="button" class="mpron-x" data-a="close" aria-label="Close">✕</button><div class="mpron-sub" style="font-size:14px">' + esc(opts.title || 'Voice Quiz') + '</div><div style="width:44px"></div></div>' +
-        '<div class="mpron-stage" style="justify-content:flex-start;padding-top:6vh;overflow:auto">' +
-          '<div class="mpron-sub">' + list.length + ' answered</div><div class="mpron-num mpron-pop" style="color:#30d158">' + ok + '<span style="font-size:.4em;opacity:.6"> / ' + list.length + '</span></div><div class="mpron-band">right</div>' +
-          (pend.length ? '<div class="mvq-list"><div class="mpron-sub">Checking ' + pend.length + '…</div>' + pend.map(function(x) { return '<div class="mpron-li"><span>' + esc(x.it.term) + '</span><b>…</b></div>'; }).join('') + '</div>' : '') +
-          (conf.length ? '<div class="mvq-list"><div class="mpron-sub">Couldn’t check these — were you right?</div>' + conf.map(function(x) { return '<div class="mpron-li"><span>' + esc(x.it.term) + ' · <i>“' + esc(x.r.answer || '—') + '”</i><br><em>' + esc(x.it.kind === 'meaning' ? x.it.expected : x.it.prompt + ' → ' + x.it.term) + '</em></span><span class="mvq-fix"><button type="button" data-a="conf-yes" data-id="' + esc(x.it.id) + '">✓</button><button type="button" data-a="conf-no" data-id="' + esc(x.it.id) + '">✗</button></span></div>'; }).join('') + '</div>' : '') +
-          (wrong.length ? '<div class="mvq-list"><div class="mpron-sub">Review these</div>' + wrong.map(function(x) { return '<div class="mpron-li"><span>' + esc(x.it.term) + '</span><em>' + esc(x.it.kind === 'meaning' ? x.it.expected : x.it.prompt) + '</em></div>'; }).join('') + '</div>' : '') +
-        '</div><div class="mpl-ctrl"><button type="button" class="pri" data-a="close">Done</button></div>';
-    };
-    var summary = function() {
-      stopAll(); finished = true; renderSummary();
-      if (opts.onFinish) { try { opts.onFinish(results, { waiting: Object.keys(results).some(function(k) { return results[k].pending || results[k].confirm; }) }); } catch (e) {} }
-    };
-    var close = function() {
-      if (closed) return;
-      stopAll(); closed = true;
-      document.removeEventListener('visibilitychange', onVis);
-      if (root.parentNode) root.parentNode.removeChild(root);
-      if (opts.onClose) { try { opts.onClose(results, { finished: finished }); } catch (e) {} }
-    };
-    var onVis = function() { if (document.hidden && !paused && !finished && phase !== 'intro') { stopAll(); paused = true; msg = 'Paused'; render(); } };
-    root.addEventListener('click', function(e) {
-      var a = e.target.closest('[data-a]'); if (!a) return;
-      var act = a.getAttribute('data-a'), it = cur();
-      if (act === 'close') close();
-      else if (act === 'go') { unlockAudio(); runItem(); }
-      else if (act === 'pause') command('pause');
-      else if (act === 'resume') { paused = false; msg = ''; ask(); }
-      else if (act === 'again') command('again');
-      else if (act === 'skip') command('skip');
-      else if (act === 'fix-right' && it) { emitResult(it, { correct: true, partial: false, pending: false, confirm: false, source: 'self' }); last = results[it.id]; render(); }
-      else if (act === 'fix-wrong' && it) { emitResult(it, { correct: false, partial: false, pending: false, confirm: false, source: 'self' }); last = results[it.id]; render(); }
-      else if ((act === 'self-yes' || act === 'self-no') && it) {   // no microphone: you judge yourself, then see the answer
-        stopAll();
-        last = { skill: it.kind === 'spell' ? 'spell' : 'meaning', kind: it.kind, answer: '', rt: 0, source: 'self', correct: act === 'self-yes', partial: false, pending: false };
-        emitResult(it, last); phase = 'result'; render(); later(next, 1600);
-      }
-      else if (act === 'conf-yes' || act === 'conf-no') { var id = a.getAttribute('data-id'), x = items.filter(function(q) { return q.id === id; })[0]; if (x) emitResult(x, { correct: act === 'conf-yes', confirm: false, source: 'self' }); }
-    });
-    document.addEventListener('visibilitychange', onVis);
-    document.body.appendChild(root);
-    var ready = mic.ctx && mic.ctx.state === 'running' && (unlockAudio.done || !window.speechSynthesis);
-    if (ready && !opts.tapToStart) runItem();
-    else root.innerHTML = head() + '<div class="mpron-stage"><div class="mpl-phase hear">🎧 Voice Quiz</div><div class="mpron-word big">' + items.length + ' questions</div><div class="mpl-sub">I ask, you answer out loud — no tapping. Say “skip”, “again” or “pause” any time.</div></div><div class="mpl-ctrl"><button type="button" class="pri" data-a="go">Start</button></div>';
-    return { close: close, command: command };
-  };
-  var quizCss = function() {
-    if (document.getElementById('mvq-css')) return;
-    var st = document.createElement('style'); st.id = 'mvq-css';
-    st.textContent = '.mvq .mpl-phase.ok{color:#30d158}.mvq .mpl-phase.bad{color:#ff6b6b}.mvq .mvq-long{font-size:22px!important;line-height:1.35;max-width:92%}' +
-      '.mvq .mvq-int{min-height:22px;font:500 16px -apple-system,system-ui;opacity:.8;max-width:90%}.mvq .mvq-ans{font:500 14px -apple-system,system-ui;opacity:.75;max-width:90%}' +
-      '.mvq .mvq-fix{display:inline-flex;gap:8px;margin-top:6px}.mvq .mvq-fix button{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:6px 12px;font:600 12.5px -apple-system,system-ui;cursor:pointer}' +
-      '.mvq .mvq-list{width:100%;max-width:440px;margin-top:14px;text-align:left}.mvq .mpron-li em{font-style:normal;opacity:.6;font-size:13px}.mvq .mpron-li i{opacity:.7}';
-    document.head.appendChild(st);
-  };
-
-  return { wordOf: wordOf, band: band, openCard: openCard, practice: practice, learnLoop: learnLoop, unlockAudio: unlockAudio, voiceQuiz: voiceQuiz, judge: judge, asrAvailable: asrAvailable, close: closeCard, attachHeadsUp: attachHeadsUp, attachHeadsUp2: attachHeadsUp2, huGesture: huGesture, shadow: shadow, record: record, toggleSpeak: toggleSpeak, toggleRecord: toggleRecord, longPress: longPress, _fx: { reveal: reveal, ringHTML: ringHTML, celebrate: celebrate } };
+  return { wordOf: wordOf, band: band, openCard: openCard, practice: practice, learnLoop: learnLoop, unlockAudio: unlockAudio, close: closeCard, attachHeadsUp: attachHeadsUp, attachHeadsUp2: attachHeadsUp2, huGesture: huGesture, shadow: shadow, record: record, toggleSpeak: toggleSpeak, toggleRecord: toggleRecord, longPress: longPress, _fx: { reveal: reveal, ringHTML: ringHTML, celebrate: celebrate } };
 })();
 
 var MinestPronunciationPreview = function(props) {
@@ -28369,7 +27997,6 @@ var Oe = function(props) {
                                       e.stopPropagation();
                                       var nextM = (mastery % 5) + 1;
                                       if (onUpdateCardMastery) onUpdateCardMastery(card.columnId, card.id, nextM);
-                                      try { window.dispatchEvent(new CustomEvent('minest:mastery-manual', { detail: { cardId: card.id, m: nextM } })); } catch (err) {}
                                       SoundEngine.play('mastery');
                                     },
                                     className: "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold border transition-transform hover:scale-105 " + (isDark ? "bg-amber-400/15 text-amber-300 border-amber-400/30" : "bg-amber-100 text-amber-800 border-amber-300"),
@@ -29276,8 +28903,8 @@ var FlashcardDrillView = function(props) {
   var currentCard = drillCards[currentIndex] || null;
 
   // 44.6: Learning Path — every flip / rating counts as study activity; the end of the deck is reported
-  var learnPing = function(type, rating) {
-    try { window.dispatchEvent(new CustomEvent('minest:study-activity', { detail: { source: 'drill', type: type, rating: rating, cardId: currentCard && currentCard.id } })); } catch (e) {}
+  var learnPing = function(type) {
+    try { window.dispatchEvent(new CustomEvent('minest:study-activity', { detail: { source: 'drill', type: type, cardId: currentCard && currentCard.id } })); } catch (e) {}
   };
   (0, _.useEffect)(function() {
     if (isFinished) { try { window.dispatchEvent(new CustomEvent('minest:drill-done', { detail: { scope: filterScope, score: sessionScore } })); } catch (e) {} }
@@ -29311,7 +28938,7 @@ var FlashcardDrillView = function(props) {
 
   var handleRate = function(rateType) {
     if (!currentCard) return;
-    learnPing('rate', rateType);
+    learnPing('rate');
     setAutoOn(false);
     var curM = currentCard.mastery || 1;
     var newM = curM;
@@ -36959,11 +36586,6 @@ var je = function(props) {
                         ] : [(0, P.jsx)('b', { className: "cf-pron-none", children: "—" })]
                       });
                     })(),
-                    // 44.7 Learning Path 2.0: memory · meaning · pronunciation, each with its level and next review
-                    (function() {
-                      var v = currentCard && window.MinestLearn && window.MinestLearn.skillView ? window.MinestLearn.skillView(currentCard) : null;
-                      return v ? (0, P.jsx)('div', { className: "mn-dm-skills", dangerouslySetInnerHTML: { __html: v } }) : null;
-                    })(),
                 // 41.21: read aloud · record — each a tap to start, a tap to stop
                 (0, P.jsxs)('div', {
                   className: "mn-dm-btns flex items-center gap-2.5",
@@ -39671,15 +39293,6 @@ var Be = function() {
         if (listId) setTimeout(function() { setSelectedColFilter(listId); }, 60);
       },
       selectList: function(listId) { setSelectedColFilter(listId || 'all'); },
-      // open a card's details (on the board it lives on)
-      openCard: function(cardId) {
-        var hit = null;
-        (window.MinestAI.boards() || []).some(function(b) { return (b.columns || []).some(function(col) { if ((col.cards || []).some(function(c) { return c.id === cardId; })) { hit = { b: b, col: col }; return true; } return false; }); });
-        if (!hit) return false;
-        setActiveBoardId(hit.b.id);
-        setTimeout(function() { setCardModal({ isOpen: true, columnId: hit.col.id, cardId: cardId }); }, 60);
-        return true;
-      },
       setViewMode: function(m) { setViewMode(m); },
       // jump to a list on the board and bring its column into view
       showList: function(boardId, listId) {
@@ -40547,10 +40160,6 @@ var Be = function() {
           }
         }
         fullCard = Object.assign({}, existing || {}, cardData, { id: targetCardId });
-        // 44.7 Learning Path 2.0: stars changed by hand are kept as an override (skills untouched)
-        if (existing && cardData && cardData.mastery && cardData.mastery !== (existing.mastery || 1)) {
-          fullCard.learn = Object.assign({}, existing.learn || {}, { override: { m: cardData.mastery, at: Date.now() } });
-        }
       } else {
         fullCard = Object.assign({
           id: "c-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
@@ -45908,7 +45517,7 @@ var Ve = (function(_Component) {
         '</style><iframe title="Octo" allow="microphone; autoplay; camera" loading="eager"></iframe><button type="button" class="minest-pet-x" aria-label="Close">✕</button>';
       document.body.appendChild(overlay);
       var frame = overlay.querySelector('iframe');
-      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=447&pexit=1&sat=' + sat + '&sab=' + sab);
+      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=445&pexit=1&sat=' + sat + '&sab=' + sab);
       overlay.querySelector('.minest-pet-x').addEventListener('click', closePetRaising);
       document.documentElement.classList.add('pet-raising-open');
     },
@@ -46774,8 +46383,6 @@ var Ve = (function(_Component) {
   window.addEventListener('minest:reward', function (e) {
     var d = e.detail || {}, p = P(), now = Date.now();
     if (!p) return;
-    // 44.7 Learning Path 2.0: no cheering per card in the middle of a study round (key moments only)
-    if ((d.kind === 'pron' || d.kind === 'tick') && window.MinestLearn && window.MinestLearn.active && window.MinestLearn.active()) return;
     if (d.kind === 'tick') {
       ticks = ticks.filter(function (t) { return now - t < 20000; }); ticks.push(now);
       var combo = ticks.length;
@@ -48224,19 +47831,7 @@ var Ve = (function(_Component) {
   function routeIntent(t) {
     var AI = window.MinestAI, low = t.toLowerCase();
     var go = null, say = '';
-    // 44.7 Learning Path 2.0: during a study round, short spoken commands steer it
-    var LP = window.MinestLearn, bareT = t.replace(/[。.!！?？，,\s]+$/g, '').trim(), lpCmd = null;
-    if (LP && LP.active && LP.active() && LP.command) {
-      if (/^(跳过|跳过这个|跳过这张|skip|skip it|skip this)$/i.test(bareT)) lpCmd = 'skip';
-      else if (/^(继续|下一步|下一阶段|next|continue|go on|keep going)$/i.test(bareT)) lpCmd = 'next';
-      else if (/^(再练一次|再来一次|再来|重来|again|once more|one more time)$/i.test(bareT)) lpCmd = 'again';
-      else if (/^(暂停|停一下|先到这|先到这里|pause|stop studying|take a break)$/i.test(bareT)) lpCmd = 'pause';
-      else if (/(还剩多少|还有多少|还剩几|还有几张|how (much|many).{0,6}left)/i.test(bareT)) lpCmd = 'left';
-    }
-    if (lpCmd) { go = function () { LP.command(lpCmd); }; say = /[\u4e00-\u9fff]/.test(t) ? { skip: '跳过。', next: '好，下一步。', again: '再来一次。', pause: '好，先暂停。', left: '我看看。' }[lpCmd] : { skip: 'Skipped.', next: 'Next.', again: 'Once more.', pause: 'Pausing.', left: 'Let me check.' }[lpCmd]; }
-    // hands-free: a voice-only round
-    else if (LP && LP.start && /(语音复习|语音学习|听着学|用耳朵学|免手|hands-?free|voice (review|quiz|study)|listen(ing)? mode)/i.test(t)) { go = function () { LP.start({ intent: 'voice' }); }; say = /[\u4e00-\u9fff]/.test(t) ? '好，我们用语音来复习。' : 'Let’s review by voice.'; }
-    else if (/(建|创建|生成|做|搭|新建|make|build|create|set up).{0,16}(看板|学习板|board)/i.test(t) && AI) { go = function () { AI.openBuilder(t); }; say = /[\u4e00-\u9fff]/.test(t) ? '好的，帮你打开建板。' : 'Opening the board builder.'; }
+    if (/(建|创建|生成|做|搭|新建|make|build|create|set up).{0,16}(看板|学习板|board)/i.test(t) && AI) { go = function () { AI.openBuilder(t); }; say = /[\u4e00-\u9fff]/.test(t) ? '好的，帮你打开建板。' : 'Opening the board builder.'; }
     // 44.6 Learning Path ("学习发音" stays a pronunciation request)
     else if (window.MinestLearn && !/(发音|读音|pronunci|pronounce)/i.test(t) && /(开始|我要|我想|一起|带我|陪我|来)(学习|复习|背单词|背书)|^(学习|复习|背单词)(吧|啦|了)?[。.!！]?$|今天(该|要)学什么|学习时间|start (studying|learning|reviewing|a study)|study time|let'?s (study|learn|review)|what should i study|time to study/i.test(t)) { go = function () { window.MinestLearn.start(); }; say = /[\u4e00-\u9fff]/.test(t) ? '好的，我们开始学习！' : 'Let’s study!'; }
     else if (/(分析|总结|整理|review|analy[sz]e).{0,10}(看板|卡片|board|cards|进度|progress)|今天(该|要)做什么|what should i do/i.test(t) && AI) { go = function () { AI.analyze(); }; say = /[\u4e00-\u9fff]/.test(t) ? '我来看看你的看板。' : 'Let me look at your board.'; }
@@ -48713,309 +48308,27 @@ var Ve = (function(_Component) {
 }());
 </script>
 <script>
-/* 44.7 Learning Path 2.0 · Engine (decision layer). Pure logic: no DOM, no storage — it gets cards and
-   answers, and returns routes, plans and updated card records, so every subject (vocabulary, Science,
-   Phonics, reading…) is just a path config, and the logic can be tested on its own (node).
-   - card.learn v2 = { v: 2, studied: {count, first, last}, skills: {recall, meaning, pron, spell?}, history }
-     skill = { lv 0–5, s (stability, days), due 'YYYY-MM-DD', reps, lapses, rtMs, last }
-   - route(card): which activities this card needs today (new → Flash + Quick, due → Quick, weak skill →
-     that skill's activity); plan(): the most important cards that fit the time, grouped into stages;
-     grade() + update(): spaced review per skill from correctness, reaction time and history;
-     mastery(): the card's 1–5 level = its weakest required skill. */
-(function (root) {
-  'use strict';
-  var DAY = 864e5;
-  var ACTS = {
-    flash:     { name: 'Flash',          icon: '⚡', skills: [],          cost: 5,  order: 0 },
-    quick:     { name: 'Quick Test',     icon: '↔', skills: ['recall'],  cost: 4,  order: 1 },
-    voiceQuiz: { name: 'Voice Quiz',     icon: '🎧', skills: ['meaning'], cost: 10, order: 2 },
-    shadow:    { name: 'Read Aloud',     icon: '🗣', skills: ['pron'],    cost: 20, order: 3 },
-    reflash:   { name: 'Second Look',    icon: '👀', skills: [],          cost: 5,  order: 4 }
-  };
-  // one config per kind of content; a new subject = a new entry here
-  var PATHS = {
-    vocab:   { label: 'Vocabulary', skills: ['recall', 'meaning', 'pron'], fresh: ['flash', 'quick'],
-               review: { recall: 'quick', meaning: 'voiceQuiz', pron: 'shadow' },
-               weak: { recall: ['flash', 'quick'], meaning: ['voiceQuiz'], pron: ['shadow'] }, failQuick: 'shadow', quiz: ['meaning', 'term', 'spell'] },
-    concept: { label: 'Science / Social Studies', skills: ['recall', 'meaning'], fresh: ['flash', 'quick'],
-               review: { recall: 'quick', meaning: 'voiceQuiz' },
-               weak: { recall: ['flash', 'quick'], meaning: ['voiceQuiz'] }, failQuick: 'reflash', quiz: ['term', 'meaning'] },
-    phonics: { label: 'Phonics', skills: ['recall', 'pron'], fresh: ['flash', 'shadow'],
-               review: { recall: 'quick', pron: 'shadow' },
-               weak: { recall: ['flash', 'quick'], pron: ['shadow'] }, failQuick: 'shadow', quiz: ['spell'] },
-    reading: { label: 'Reading', skills: ['pron', 'meaning'], fresh: ['shadow'],
-               review: { pron: 'shadow', meaning: 'voiceQuiz' },
-               weak: { pron: ['shadow'], meaning: ['voiceQuiz'] }, failQuick: 'shadow', quiz: ['meaning'] }
-  };
-  // an activity that isn't available yet is replaced (Phase A has no voice quiz: Quick's self-check stands in)
-  var STAND_IN = { voiceQuiz: 'quick', reflash: 'flash' };
-
-  function dayKey(t) { var d = new Date(t); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
-  function addDays(today, n) { var p = today.split('-'); return dayKey(new Date(+p[0], +p[1] - 1, +p[2] + n, 12).getTime()); }
-  function daysBetween(a, b) { var pa = a.split('-'), pb = b.split('-'); return Math.round((new Date(+pb[0], +pb[1] - 1, +pb[2], 12) - new Date(+pa[0], +pa[1] - 1, +pa[2], 12)) / DAY); }
-  function clone(o) { return JSON.parse(JSON.stringify(o)); }
-
-  // ---------------------------------------------------------------- card records (v2, with the 1.0 migration)
-  function lvFromMastery(m) { return m >= 5 ? 4 : m >= 4 ? 4 : m >= 3 ? 3 : m >= 2 ? 2 : 1; }
-  function lvFromPron(best) { return best >= 90 ? 4 : best >= 80 ? 3 : best >= 70 ? 2 : 1; }
-  function norm(card) {
-    var L = card && card.learn;
-    if (L && L.v === 2) return L;
-    var out = { v: 2, studied: { count: 0, first: 0, last: 0 }, skills: {}, history: [] };
-    if (!card) return out;
-    if (L && L.override) out.override = L.override;   // stars set by hand (kept through the 1.0 migration)
-    var m = card.mastery || 1, reviewed = card.lastReviewed || (L && L.lastReviewed) || 0;
-    var touched = !!(L || reviewed || m > 1);
-    if (L) {   // 1.0 record
-      var hist = Array.isArray(L.history) ? L.history : [];
-      out.skills.recall = { lv: lvFromMastery(m), s: L.interval || 1, due: L.nextReview || null, reps: L.seen || 1,
-        lapses: hist.filter(function (h) { return h.g === 'again'; }).length, rtMs: 0, last: L.lastReviewed || reviewed };
-      out.history = hist.slice(-30).map(function (h) { return { at: h.at, act: 'v1', skill: 'recall', grade: h.g === 'ok' ? 'hard' : h.g === 'seen' ? 'seen' : h.g }; });
-    } else if (touched) {
-      out.skills.recall = { lv: lvFromMastery(m), s: m >= 4 ? 7 : 1, due: null, reps: 1, lapses: 0, rtMs: 0, last: reviewed };
-    }
-    if (touched && m >= 4) out.skills.meaning = { lv: 3, s: 7, due: null, reps: 1, lapses: 0, rtMs: 0, last: reviewed, src: 'mastery' };
-    if (card.pron && typeof card.pron.best === 'number') {
-      out.skills.pron = { lv: lvFromPron(card.pron.best), s: 1, due: null, reps: card.pron.attempts || 1, lapses: 0, rtMs: 0, last: card.pron.at || 0 };
-    }
-    if (Object.keys(out.skills).length) out.studied = { count: (L && L.seen) || 1, first: reviewed, last: reviewed };
-    return out;
-  }
-  function isNew(card) { var L = norm(card); return !L.studied.count && !Object.keys(L.skills).length && !overrideOf(L); }
-  // stars set by hand count until the next answer (newer evidence wins)
-  function overrideOf(L) {
-    var o = L && L.override; if (!o || !o.m) return null;
-    var last = 0; Object.keys(L.skills || {}).forEach(function (k) { last = Math.max(last, L.skills[k].last || 0); });
-    return o.at > last ? o : null;
-  }
-  // the card has an answer to check against (notes on the back, or a translation in the title)
-  function hasBack(card) {
-    if (!card) return false;
-    if (String(card.desc || '').replace(/[#*_`>\s]/g, '').length >= 1) return true;
-    var t = String(card.title || '');
-    return /[（(].+[)）]/.test(t) || (/[A-Za-z]/.test(t) && /[\u4e00-\u9fff]/.test(t)) || (Array.isArray(card.checklistItems) && card.checklistItems.length > 0);
-  }
-  function requiredSkills(pathKey, hasWord, back) {
-    var cfg = PATHS[pathKey] || PATHS.vocab;
-    return cfg.skills.filter(function (s) { return (s !== 'pron' || hasWord) && (s !== 'meaning' || back !== false); });
-  }
-  function weakSkill(rec) {
-    if (!rec) return true;   // never measured
-    if ((rec.lv || 0) <= 1) return true;
-    return false;
-  }
-  function lastAgain(L, sk) {
-    for (var i = L.history.length - 1; i >= 0; i--) if (L.history[i].skill === sk) return L.history[i].grade === 'again';
-    return false;
-  }
-  function dueNow(rec, today) { return !!rec && (!rec.due || rec.due <= today); }
-
-  // ---------------------------------------------------------------- routing
-  // opts: { today, hasWord, avail: {act: true} }
-  function available(act, opts) {
-    var avail = opts.avail || { flash: 1, quick: 1, shadow: 1, reflash: 1 };
-    if (act === 'shadow' && !opts.hasWord) return null;
-    if (act === 'voiceQuiz' && opts.hasBack === false) return avail.quick ? 'quick' : null;
-    if (avail[act]) return act;
-    var s = STAND_IN[act];
-    return s && avail[s] ? s : null;
-  }
-  function route(card, pathKey, opts) {
-    var cfg = PATHS[pathKey] || PATHS.vocab, today = opts.today, L = norm(card), acts = [], why = null;
-    if (opts.hasBack == null) opts = Object.assign({}, opts, { hasBack: hasBack(card) });
-    var skills = requiredSkills(pathKey, opts.hasWord, opts.hasBack);
-    function add(list) { [].concat(list).forEach(function (a) { var x = available(a, opts); if (x && acts.indexOf(x) < 0) acts.push(x); }); }
-    var ov = overrideOf(L);
-    if (ov && ov.m >= 4) { if (card.date && String(card.date).slice(0, 10) <= today) { add(cfg.review[skills[0]] || 'quick'); why = 'deadline'; } }
-    else if (ov && ov.m <= 2) { add(cfg.weak[skills[0]] || cfg.fresh); why = 'weak'; }
-    else if (isNew(card)) { add(cfg.fresh); why = 'new'; }
-    else {
-      skills.forEach(function (sk) {
-        var rec = L.skills[sk];
-        if (weakSkill(rec) || lastAgain(L, sk)) { add(cfg.weak[sk] || []); why = why || 'weak'; }
-        else if (dueNow(rec, today)) { add(cfg.review[sk]); why = why || 'due'; }
-      });
-      // a board due date (card.date) brings it in even if the schedule says later
-      if (!acts.length && card.date && String(card.date).slice(0, 10) <= today) { add(cfg.review[skills[0]] || 'quick'); why = 'deadline'; }
-    }
-    acts.sort(function (a, b) { return ACTS[a].order - ACTS[b].order; });
-    return { acts: acts, why: why };
-  }
-  function priority(card, pathKey, opts) {
-    var L = norm(card), today = opts.today, p = 0;
-    if (card.date && String(card.date).slice(0, 10) <= today) p += 100;
-    if (isNew(card)) return p + 5;
-    requiredSkills(pathKey, opts.hasWord, opts.hasBack == null ? hasBack(card) : opts.hasBack).forEach(function (sk) {
-      var rec = L.skills[sk];
-      if (weakSkill(rec) || lastAgain(L, sk)) p += 30;
-      else if (dueNow(rec, today)) {
-        var over = rec.due ? Math.max(0, daysBetween(rec.due, today)) : 1;
-        p += 20 + over * (1 + (rec.lapses || 0)) * 2;
-      }
-    });
-    return p;
-  }
-  function cost(acts, costs) { return acts.reduce(function (t, a) { return t + ((costs && costs[a]) || ACTS[a].cost); }, 0); }
-
-  // ---------------------------------------------------------------- planning a session under a time budget
-  // input: { cards: [card], pathOf(card) → key, hasWord(card) → bool, intent: 'auto'|'review'|'new'|'read',
-  //          minutes, today, avail, costs }
-  function plan(input) {
-    var today = input.today, budget = Math.max(60, (input.minutes || 15) * 60 * 0.9), intent = input.intent || 'auto';
-    var items = [];
-    (input.cards || []).forEach(function (c) {
-      if (!c || c.complete) return;
-      var pk = input.pathOf ? input.pathOf(c) : 'vocab', hw = input.hasWord ? !!input.hasWord(c) : false, hb = hasBack(c);
-      var o = { today: today, hasWord: hw, hasBack: hb, avail: input.avail };
-      var r = route(c, pk, o);
-      if (intent === 'read') {
-        if (!hw || (PATHS[pk] || PATHS.vocab).skills.indexOf('pron') < 0) return;
-        r = { acts: ['shadow'], why: isNew(c) ? 'new' : 'read' };
-      }
-      // hands-free: everything as voice questions (new cards are introduced first, then asked)
-      if (intent === 'voice') {
-        if (!hb || !(input.avail && input.avail.voiceQuiz)) return;
-        r = r.acts.length || isNew(c) ? { acts: ['voiceQuiz'], why: r.why || 'new' } : { acts: [], why: null };
-      }
-      if (!r.acts.length) return;
-      items.push({ id: c.id, acts: r.acts, why: r.why, isNew: r.why === 'new', pr: priority(c, pk, o), cost: cost(r.acts, input.costs) });
-    });
-    var fresh = items.filter(function (x) { return x.isNew; });
-    var old = items.filter(function (x) { return !x.isNew; }).sort(function (a, b) { return b.pr - a.pr; });
-    var picked = [], used = 0;
-    function take(list, cap) {
-      list.forEach(function (x) {
-        if (x.taken || used + x.cost > cap) return;
-        x.taken = true; picked.push(x); used += x.cost;
-      });
-    }
-    if (intent === 'review' || intent === 'voice') { take(old, budget); if (intent === 'voice' && !(input.minutes <= 5 && old.length)) take(fresh, budget); }
-    else if (intent === 'new') { take(fresh, budget * 0.7); take(old, budget); take(fresh, budget); }
-    else { take(old, budget); if (!(input.minutes <= 5 && old.length)) take(fresh, budget); }   // 5 min: only the most important reviews
-    if (!picked.length && items.length) {   // nothing fits: at least the most important card
-      var first = (intent === 'new' ? fresh.concat(old) : old.concat(fresh))[0];
-      if (first) { picked.push(first); used += first.cost; }
-    }
-    var stages = [];
-    Object.keys(ACTS).sort(function (a, b) { return ACTS[a].order - ACTS[b].order; }).forEach(function (act) {
-      var ids = picked.filter(function (x) { return x.acts.indexOf(act) >= 0; }).map(function (x) { return x.id; });
-      if (ids.length) stages.push({ act: act, ids: ids, estSec: cost([act], input.costs) * ids.length });
-    });
-    var n = { 'new': 0, due: 0, weak: 0, deadline: 0, read: 0 };
-    picked.forEach(function (x) { n[x.why] = (n[x.why] || 0) + 1; });
-    return { picked: picked.map(function (x) { return { id: x.id, acts: x.acts, why: x.why }; }), stages: stages, estSec: used,
-      counts: n, available: items.length, left: items.length - picked.length };
-  }
-
-  // ---------------------------------------------------------------- grading + spaced review per skill
-  // r: { skill, correct, unsure, rt (ms), score (pronunciation), rtMedian, threshold }
-  function grade(r) {
-    if (r.skill === 'pron') { var sc = +r.score || 0, th = r.threshold || 80; return sc < th ? 'again' : sc < 90 ? 'hard' : sc < 95 ? 'good' : 'easy'; }
-    if (!r.correct) return 'again';
-    if (r.unsure) return 'hard';
-    if (r.rt && r.rtMedian) { if (r.rt > 1.6 * r.rtMedian) return 'hard'; if (r.rt < 0.6 * r.rtMedian) return 'easy'; }
-    return 'good';
-  }
-  function update(rec, g, now, today) {
-    rec = rec ? clone(rec) : { lv: 0, s: 0, due: null, reps: 0, lapses: 0, rtMs: 0, last: 0 };
-    var first = !rec.reps, s = rec.s || 0, lv = rec.lv || 0;
-    if (g === 'again') { s = first ? 0.5 : Math.max(0.5, s * 0.3); if (!first) rec.lapses = (rec.lapses || 0) + 1; lv = Math.max(1, Math.min(lv - 1, 2)); }
-    else if (g === 'hard') { s = first ? 1 : Math.max(1, s * 1.2); lv = Math.max(2, lv); }
-    else if (g === 'good') { s = first ? 2 : s * (2.2 + 0.15 * lv); lv = Math.min(4, Math.max(2, lv + 1)); }
-    else if (g === 'easy') { s = first ? 4 : s * (3 + 0.2 * lv); lv = Math.min(4, Math.max(3, lv + 2)); }
-    if (g !== 'again' && (rec.lapses || 0) >= 3) s *= 0.8;   // keeps slipping: come back sooner
-    s = Math.min(180, s);
-    if ((g === 'good' || g === 'easy') && lv >= 4 && s >= 21) lv = 5;   // solid: still there after weeks
-    rec.s = Math.round(s * 100) / 100; rec.lv = lv; rec.reps = (rec.reps || 0) + 1; rec.last = now;
-    rec.due = addDays(today, g === 'again' ? 1 : Math.max(1, Math.round(s)));   // forgotten: back tomorrow
-    return rec;
-  }
-  // one answer → the card's new record (pure: returns a new object)
-  function apply(card, ev, now, today) {
-    var L = clone(norm(card));
-    if (ev.studied) {
-      L.studied.count = (L.studied.count || 0) + 1; L.studied.last = now; if (!L.studied.first) L.studied.first = now;
-      if (!L.skills.recall) L.skills.recall = { lv: 1, s: 0, due: today, reps: 0, lapses: 0, rtMs: 0, last: now };   // seen once
-    }
-    if (ev.skill) {
-      delete L.override;   // a real answer replaces stars set by hand
-      var g = ev.grade || grade(ev);
-      L.skills[ev.skill] = update(L.skills[ev.skill], g, now, today);
-      if (ev.rt) L.skills[ev.skill].rtMs = Math.round(ev.rt);
-      if (ev.src) L.skills[ev.skill].src = ev.src; else delete L.skills[ev.skill].src;
-      if (!L.studied.count) { L.studied.count = 1; L.studied.first = L.studied.first || now; }
-      L.studied.last = now;
-      L.history = L.history.concat([{ at: now, act: ev.act || '', skill: ev.skill, grade: g, rt: ev.rt ? Math.round(ev.rt) : undefined, score: ev.score }]).slice(-30);
-    }
-    return L;
-  }
-  // the card's 1–5 level: its weakest required skill (unmeasured = 1)
-  function mastery(card, pathKey, hasWord) {
-    var L = norm(card), lv = 5, ov = overrideOf(L);
-    if (ov) return Math.max(1, Math.min(5, ov.m));
-    requiredSkills(pathKey, hasWord, hasBack(card)).forEach(function (sk) { var r = L.skills[sk]; lv = Math.min(lv, r ? r.lv || 0 : 0); });
-    return Math.max(1, Math.min(5, lv));
-  }
-  // the next review day for a card (earliest due among required skills)
-  function nextDue(card, pathKey, hasWord) {
-    var L = norm(card), d = null;
-    requiredSkills(pathKey, hasWord, hasBack(card)).forEach(function (sk) { var r = L.skills[sk]; if (r && r.due && (!d || r.due < d)) d = r.due; });
-    return d;
-  }
-  // which path fits a list: most titles a single English word → vocabulary, otherwise concepts
-  function detectPath(cards, wordOf) {
-    var n = 0, w = 0;
-    (cards || []).forEach(function (c) {
-      var t = String(c.title || '').trim(); if (!t) return; n++;
-      var word = wordOf ? wordOf(t) : '';
-      if (word && word.split(/\s+/).length <= 2 && word.length >= t.replace(/[（(].*$/, '').trim().length * 0.6) w++;
-    });
-    return n && w / n > 0.6 ? 'vocab' : 'concept';
-  }
-
-  var E = { ACTS: ACTS, PATHS: PATHS, norm: norm, isNew: isNew, requiredSkills: requiredSkills, route: route, priority: priority, plan: plan,
-    grade: grade, update: update, apply: apply, mastery: mastery, overrideOf: overrideOf, hasBack: hasBack, nextDue: nextDue, detectPath: detectPath, dayKey: dayKey, addDays: addDays };
-  if (typeof module !== 'undefined' && module.exports) module.exports = E; else root.MinestLearnEngine = E;
-})(typeof window !== 'undefined' ? window : this);
-</script>
-<script>
-/* 44.7 Learning Path 2.0 — runner + coach (on top of MinestLearnEngine, the decision layer).
-   Mini Pet asks how you want to study (recommended / review / new / read aloud) and for how long
-   (5 / 15 / 30 min); the engine picks the cards that matter most and routes each one (new → Flash →
-   Quick, due → Quick, weak skill → its activity); the runner plays the stages with the existing tools
-   (Drill, Study Arcade swipe, read-aloud loop), records every answer per skill on the card
-   (card.learn v2) and keeps the board's mastery = the weakest required skill.
-   The coach speaks only at key moments: start, stage switch, struggling, time's up, finish.
-   Storage: minest.learn.session.v2 (round in progress, resumable to the card), minest.learn.log.v1 (study
-   time, per device, cloud-merged), minest.learn.settings.v1, minest.learn.pathType.v1 (list → path),
-   minest.learn.rt.v1 (your reaction times). Events: minest:learn {type, step, session}. */
+/* 44.6 Learning Path 1.0 — one controller that links the board, Flash (Drill), Quick Test (Study Arcade ·
+   Swipe Judgment), Deep Learning (pronunciation practice), the Mini Pet and the study log.
+   Say "start studying" (or tap 📚 on the Mini Pet): it picks today's cards, walks through the steps, times
+   real study activity only (idle 90 s / app in background = paused) and sums up at the end.
+   Storage: minest.learn.session.v1 (the round in progress), minest.learn.log.v1 (daily study time),
+   minest.learn.settings.v1. Events: minest:learn {type, step, session}. */
 (function () {
   'use strict';
   if (window.MinestLearn) return;
-  var E = window.MinestLearnEngine;
-  if (!E) return;
-  var SKEY = 'minest.learn.session.v2', LKEY = 'minest.learn.log.v1', CKEY = 'minest.learn.settings.v1', PKEY = 'minest.learn.pathType.v1', RTKEY = 'minest.learn.rt.v1';
-  var NAMES = { flash: 'Flash', quick: 'Quick Test', voiceQuiz: 'Voice Quiz', shadow: 'Read Aloud', reflash: 'Second Look', summary: 'Summary' };
-  var INTENTS = { auto: '✨ Recommended', review: '🔁 Review', 'new': '🆕 New', read: '🗣 Read aloud', voice: '🎧 Voice only' };
+  var SKEY = 'minest.learn.session.v1', LKEY = 'minest.learn.log.v1', CKEY = 'minest.learn.settings.v1';
+  var STEPS = ['flash', 'quicktest', 'deep', 'summary'];
+  var NAMES = { flash: 'Flash', quicktest: 'Quick Test', deep: 'Deep Learning', summary: 'Summary' };
   function load(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } }
   function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-  function dayKey(t) { return E.dayKey(t || Date.now()); }
+  function dayKey(t) { var d = t ? new Date(t) : new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function settings() { return Object.assign({ minutes: 15, intent: 'auto', idleSec: 90, remindAt: '19:00', remind: true, threshold: 80, flashSec: 2.5, auto: true }, load(CKEY, {})); }
+  function settings() { return Object.assign({ cards: 12, idleSec: 90, remindAt: '19:00', remind: true, threshold: 80, flashSec: 2.5, auto: true }, load(CKEY, {})); }
   function P() { var c = window.__miniPetCtl; return c && c.visible ? c : null; }
-  function say(text, ms, motion) { var p = P(); if (!p) return; if (motion) try { p.play(motion); } catch (e) {} if (text) try { p.say(text, ms || 3200); } catch (e) {} }
+  function say(text, ms, motion) { var p = P(); if (!p) return; if (motion) try { p.play(motion); } catch (e) {} try { p.say(text, ms || 3200); } catch (e) {} }
   function AI() { return window.MinestAI || null; }
   function boards() { var a = AI(); return (a && a.boards && a.boards()) || []; }
-  function emit(type) { try { window.dispatchEvent(new CustomEvent('minest:learn', { detail: { type: type, step: S && curAct(), session: S } })); } catch (e) {} }
-  function wordOf(t) { try { return window.MinestPron ? window.MinestPron.wordOf(t) : ''; } catch (e) { return ''; } }
-  function hasWord(c) { return !!(c && wordOf(c.title)); }
-  function avail() {
-    var M = window.MinestPron;
-    return { flash: 1, quick: 1, reflash: 1, shadow: M && M.learnLoop ? 1 : 0, voiceQuiz: M && M.voiceQuiz && M.asrAvailable && M.asrAvailable() ? 1 : 0 };
-  }
-
-  // cards as the engine last wrote them (the board updates a moment later)
-  var pending = {};
   function findCard(id) {
     var out = null;
     boards().some(function (b) {
@@ -49023,109 +48336,90 @@ var Ve = (function(_Component) {
         return (col.cards || []).some(function (c) { if (c.id === id) { out = { card: c, col: col, board: b }; return true; } return false; });
       });
     });
-    if (out && pending[id] && Date.now() - pending[id].t < 4000) out.card = Object.assign({}, out.card, pending[id].patch);
     return out;
   }
-  function pathOf(listId, cards) {
-    var map = load(PKEY, {});
-    return map[listId] && E.PATHS[map[listId]] ? map[listId] : E.detectPath(cards, wordOf);
-  }
-  // seconds per card for each activity, learnt from how long you really take (EWMA, within 0.5–3× the default)
-  var COSTKEY = 'minest.learn.cost.v1';
-  function costs() {
-    var c = load(COSTKEY, {}), out = {};
-    Object.keys(E.ACTS).forEach(function (a) { var d = E.ACTS[a].cost, v = +c[a]; out[a] = v ? Math.max(d * 0.5, Math.min(d * 3, v)) : d; });
-    return out;
-  }
-  function calibrate(act, sec, n) {
-    if (!E.ACTS[act] || n < 3 || !(sec > 0)) return;
-    var d = E.ACTS[act].cost, per = Math.max(d * 0.4, Math.min(d * 4, sec / n)), c = load(COSTKEY, {});
-    c[act] = Math.round((c[act] ? c[act] * 0.7 + per * 0.3 : per) * 10) / 10;
-    store(COSTKEY, c);
-  }
-  function rtMedian() { var a = load(RTKEY, []).slice().sort(function (x, y) { return x - y; }); return a.length >= 8 ? a[Math.floor(a.length / 2)] : 0; }
-  function addRt(ms) { if (!(ms > 150 && ms < 30000)) return; var a = load(RTKEY, []); a.push(Math.round(ms)); store(RTKEY, a.slice(-200)); }
+  function emit(type) { try { window.dispatchEvent(new CustomEvent('minest:learn', { detail: { type: type, step: S && S.step, session: S } })); } catch (e) {} }
+  function haptic(s) { try { if (window.MinestNative && window.MinestNative.isNative()) window.MinestNative.haptic(s || 'light'); } catch (e) {} }
 
-  // ---------------------------------------------------------------- coach voice: key moments only
-  // start · stage switch · struggling · time's up · finish (and direct replies to you). Within a round,
-  // two prompts are at least 25 s apart; nothing per card.
-  var lastCoachAt = 0;
-  function coach(kind, text, motion, ms) {
-    var now = Date.now();
-    if (running() && kind !== 'start' && kind !== 'finish' && kind !== 'reply' && now - lastCoachAt < 25000) { if (motion) say('', 0, motion); return; }
-    lastCoachAt = now;
-    say(text, ms || 3400, motion);
+  // ---------------------------------------------------------------- today's plan
+  // Per list: due/overdue cards > review due (card.learn.nextReview) > mastery ≤ 2 > pronunciation < 80 > not yet reviewed.
+  function wordOf(t) { try { return window.MinestPron ? window.MinestPron.wordOf(t) : ''; } catch (e) { return ''; } }
+  function weigh(c, today) {
+    if (!c || c.complete) return null;
+    var m = c.mastery || 1, why = null, w = 0;
+    var nr = c.learn && c.learn.nextReview ? String(c.learn.nextReview).slice(0, 10) : '';
+    if (c.date && String(c.date).slice(0, 10) <= today) { w = 50; why = 'due'; }
+    else if (nr && nr > today) return null;                    // 44.6 spaced review: not yet
+    else if (nr && nr <= today) { w = 40; why = 'review'; }
+    else if (m <= 2) { w = 30; why = 'weak'; }
+    else if (c.pron && typeof c.pron.latest === 'number' && c.pron.latest < settings().threshold) { w = 20; why = 'pron'; }
+    else if (!c.lastReviewed && m < 4) { w = 10; why = 'new'; }
+    else if (m < 4) { w = 5; why = 'learning'; }
+    if (!why) return null;
+    // older reviews first inside a group
+    return { w: w + Math.min(4, ((Date.now() - (c.lastReviewed || 0)) / 864e5) / 7), why: why };
   }
-
-  // ---------------------------------------------------------------- planning (engine) + list choice
-  function minutesOf(sec) { return Math.max(1, Math.round(sec / 60)); }
-  function planList(b, col, intent, minutes) {
-    var cards = col.cards || [], pk = pathOf(col.id, cards);
-    var p = E.plan({ cards: cards, pathOf: function () { return pk; }, hasWord: hasWord, intent: intent, minutes: minutes, today: dayKey(), avail: avail(), costs: costs() });
-    var score = 0;
-    p.picked.forEach(function (x) { var f = cards.filter(function (c) { return c.id === x.id; })[0]; score += f ? E.priority(f, pk, { today: dayKey(), hasWord: hasWord(f) }) + 1 : 0; });
-    return { boardId: b.id, boardTitle: b.title, listId: col.id, listTitle: col.title, pathKey: pk, plan: p, score: score, intent: intent, minutes: minutes };
-  }
-  function bestPlan(intent, minutes, only) {
-    var a = AI(), active = a && a.board && a.board(), lf = a && a.listFilter && a.listFilter(), best = null;
+  function todayPlan(only) {
+    var today = dayKey(), N = settings().cards, a = AI(), active = a && a.board && a.board(), best = null;
+    var listFilter = a && a.listFilter && a.listFilter();
     boards().forEach(function (b) {
-      if (b.archived || (only && only.boardId && b.id !== only.boardId)) return;
+      if (b.archived) return;
+      if (only && only.boardId && b.id !== only.boardId) return;
       (b.columns || []).forEach(function (col) {
         if (only && only.listId && col.id !== only.listId) return;
-        if (!(col.cards || []).length) return;
-        var r = planList(b, col, intent, minutes);
-        if (!r.plan.picked.length) return;
-        if (active && b.id === active.id) r.score *= 1.25;
-        if (lf && col.id === lf) r.score *= 1.25;
-        if (!best || r.score > best.score) best = r;
+        var picks = [];
+        (col.cards || []).forEach(function (c) { var r = weigh(c, today); if (r) picks.push({ c: c, w: r.w, why: r.why }); });
+        if (!picks.length) return;
+        picks.sort(function (x, y) { return y.w - x.w; });
+        picks = picks.slice(0, N);
+        var score = picks.reduce(function (t, p) { return t + p.w; }, 0);
+        if (active && b.id === active.id) score *= 1.25;          // the board on screen first
+        if (listFilter && col.id === listFilter) score *= 1.25;    // and the list on screen
+        if (!best || score > best.score) best = { score: score, board: b, col: col, picks: picks };
       });
     });
-    if (!best && only && only.listId) {   // the chosen list, even if nothing is due there
-      boards().some(function (b) { return (b.columns || []).some(function (col) { if (col.id === only.listId) { best = planList(b, col, intent, minutes); return true; } return false; }); });
+    if (!best) {
+      // nothing open or weak: the list on screen (or its first list), least recently reviewed first
+      var b0 = active || boards()[0], col0 = b0 && ((b0.columns || []).filter(function (c) { return c.id === (only && only.listId || listFilter); })[0] || (b0.columns || []).filter(function (c) { return (c.cards || []).length; })[0]);
+      if (!col0) return null;
+      var cs = (col0.cards || []).slice().sort(function (x, y) { return (x.lastReviewed || 0) - (y.lastReviewed || 0); }).slice(0, N);
+      best = { board: b0, col: col0, picks: cs.map(function (c) { return { c: c, why: 'refresh' }; }) };
     }
-    return best;
-  }
-  function reasonOf(p) {
-    var n = p.counts, parts = [];
-    if (n.deadline) parts.push(n.deadline + ' due on the board');
-    if (n.due) parts.push(n.due + ' to review');
-    if (n.weak) parts.push(n.weak + ' need work');
+    var n = {}; best.picks.forEach(function (p) { n[p.why] = (n[p.why] || 0) + 1; });
+    var parts = [];
+    if (n.due) parts.push(n.due + ' due');
+    if (n.review) parts.push(n.review + ' to review');
+    if (n.weak) parts.push(n.weak + ' still tricky (Lv ≤ 2)');
+    if (n.pron) parts.push(n.pron + ' to say better');
     if (n['new']) parts.push(n['new'] + ' new');
-    if (n.read) parts.push(n.read + ' to read aloud');
-    if (p.left > 0) parts.push(p.left + ' more for another time');
-    return parts.join(' · ');
-  }
-  // compatible with 1.0 (tips, reminders, Mac desktop pet)
-  function todayPlan(only) {
-    var st = settings(), r = bestPlan('auto', st.minutes, only);
-    if (!r) return null;
-    return { boardId: r.boardId, boardTitle: r.boardTitle, listId: r.listId, listTitle: r.listTitle, cardIds: r.plan.picked.map(function (x) { return x.id; }),
-      minutes: minutesOf(r.plan.estSec), reason: reasonOf(r.plan), pathKey: r.pathKey };
-  }
-  function coachLine(r) {
-    var p = r.plan, first = p.stages[0], n = p.picked.length, due = (p.counts.due || 0) + (p.counts.weak || 0) + (p.counts.deadline || 0);
-    var lead = due ? due + (due === 1 ? ' card' : ' cards') + ' to review today' : n + (n === 1 ? ' card' : ' cards') + ' for today';
-    return lead + ' — let’s start with ' + (first ? minutesOf(first.estSec) + ' min of ' + NAMES[first.act] : 'a quick look') + ' 📚';
+    if (n.learning) parts.push(n.learning + ' half-learnt');
+    if (n.refresh) parts.push('a quick refresh');
+    var count = best.picks.length;
+    return {
+      boardId: best.board.id, boardTitle: best.board.title, listId: best.col.id, listTitle: best.col.title,
+      cardIds: best.picks.map(function (p) { return p.c.id; }), minutes: Math.max(3, Math.round(count * 0.8)),
+      reason: parts.join(' · ')
+    };
   }
 
   // ---------------------------------------------------------------- session + timing
   var S = load(SKEY, null);
   if (S && (S.status === 'running' || S.status === 'paused')) S.status = 'suspended';   // a reload ends the live part, not the round
-  if (S && Date.now() - (S.updatedAt || 0) > 36 * 3600e3) S = null;
-  var lastAct = 0, idleShown = false, lastSave = 0;
+  if (S && Date.now() - (S.updatedAt || 0) > 36 * 3600e3) S = null;                       // stale: over a day and a half old
+  var lastAct = 0, idleSaid = false, lastSave = 0;
   function save() { if (S) { S.updatedAt = Date.now(); store(SKEY, S); } else { try { localStorage.removeItem(SKEY); } catch (e) {} } }
   function running() { return !!(S && S.status === 'running'); }
-  function curStage() { return S && S.stages[S.si]; }
-  function curAct() { var st = curStage(); return S && S.si >= S.stages.length ? 'summary' : st ? st.act : 'idle'; }
   function activity() {
     if (!running()) return;
     var wasIdle = isIdle();
     lastAct = Date.now();
-    if (wasIdle && S.time.activeMs > 0) { idleShown = false; paint(); liveProgress(true); }
+    if (wasIdle && S.time.activeMs > 0) { idleSaid = false; paint(); liveProgress(true); }
     else liveProgress(false);
   }
   function isIdle() { return !lastAct || Date.now() - lastAct > settings().idleSec * 1000; }
-  function counting() { return running() && !document.hidden && !isIdle() && curAct() !== 'summary'; }
+  function counting() { return running() && !document.hidden && !isIdle() && S.step !== 'summary'; }
+  // study log, kept per device so two devices never overwrite each other's time; the whole log rides
+  // along with every cloud save (users/{uid}/focusboard/data → learning) and is merged on load
   var DEV = (function () {
     var d = ''; try { d = localStorage.getItem('minest.learn.device') || ''; } catch (e) {}
     if (!d) { d = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); try { localStorage.setItem('minest.learn.device', d); } catch (e) {} }
@@ -49139,11 +48433,18 @@ var Ve = (function(_Component) {
     return L;
   }
   function logSave(L) {
-    Object.keys(L.devs).forEach(function (dv) { var days = (L.devs[dv] && L.devs[dv].days) || {}, keys = Object.keys(days).sort(); while (keys.length > 120) delete days[keys.shift()]; });
+    Object.keys(L.devs).forEach(function (dv) {
+      var days = (L.devs[dv] && L.devs[dv].days) || {}, keys = Object.keys(days).sort();
+      while (keys.length > 120) delete days[keys.shift()];
+    });
     L.sessions = L.sessions.slice(-50);
     store(LKEY, L);
   }
-  function myDay(L, k) { var m = L.devs[DEV] || (L.devs[DEV] = { days: {} }); m.days = m.days || {}; return m.days[k] || (m.days[k] = { activeMs: 0, sessions: 0, byList: {}, bySubject: {} }); }
+  function myDay(L, k) {
+    var m = L.devs[DEV] || (L.devs[DEV] = { days: {} });
+    m.days = m.days || {};
+    return m.days[k] || (m.days[k] = { activeMs: 0, sessions: 0, byList: {}, bySubject: {} });
+  }
   function dayTotal(L, k) {
     var t = { activeMs: 0, sessions: 0, byList: {}, bySubject: {} };
     Object.keys(L.devs).forEach(function (dv) {
@@ -49156,9 +48457,12 @@ var Ve = (function(_Component) {
   function logAdd(ms) {
     if (!(ms > 0) || !S) return;
     var L = logLoad(), d = myDay(L, dayKey()), lk = keyOf(S.listId), sk = keyOf(S.subject);
-    d.activeMs += ms; d.byList[lk] = (d.byList[lk] || 0) + ms; d.bySubject[sk] = (d.bySubject[sk] || 0) + ms;
+    d.activeMs += ms;
+    d.byList[lk] = (d.byList[lk] || 0) + ms;
+    d.bySubject[sk] = (d.bySubject[sk] || 0) + ms;
     logSave(L);
   }
+  // merge what another device saved: per device and day the larger record wins; sessions by id
   function mergeCloud(R) {
     if (!R || typeof R !== 'object' || !R.devs) return false;
     var L = logLoad(), changed = false;
@@ -49175,113 +48479,33 @@ var Ve = (function(_Component) {
     if (changed) { L.sessions.sort(function (a, b) { return (a.at || 0) - (b.at || 0); }); logSave(L); }
     return changed;
   }
+  // whole minutes go to the focus ring as they accrue (the ring's own "app open" minute is paused meanwhile)
   function commit(final) {
     if (!S) return;
-    var pend = S.time.activeMs - S.time.committedMs, mins = Math.floor(pend / 60000);
-    if (final && pend - mins * 60000 >= 30000) mins++;
+    var pending = S.time.activeMs - S.time.committedMs;
+    var mins = Math.floor(pending / 60000);
+    if (final && pending - mins * 60000 >= 30000) mins++;
     if (mins > 0) { try { window.dispatchEvent(new CustomEvent('minestFocusSessionCommitted', { detail: { minutes: mins, source: 'learning-path' } })); } catch (e) {} }
-    var ms = final ? pend : mins * 60000;
+    var ms = final ? pending : mins * 60000;
     if (ms > 0) { logAdd(ms); S.time.committedMs += ms; }
   }
   setInterval(function () {
     if (!running()) return;
     if (counting()) {
       S.time.activeMs += 1000;
-      var a = curAct(); S.time.byStep[a] = (S.time.byStep[a] || 0) + 1000;
+      S.time.byStep[S.step] = (S.time.byStep[S.step] || 0) + 1000;
       if (S.time.activeMs - S.time.committedMs >= 60000) commit(false);
-    } else if (lastAct && isIdle() && !idleShown && !document.hidden) {
-      idleShown = true; paintTime(); livePaused();   // quiet: the bar shows ⏸, no speech bubble
+    } else if (lastAct && isIdle() && !idleSaid && !document.hidden && S.step !== 'summary') {
+      idleSaid = true; say('Still there? I paused the timer ⏸', 3600, 'look');
+      livePaused();
     }
     if (Date.now() - lastSave > 5000) { lastSave = Date.now(); save(); }
     paintTime();
   }, 1000);
-  window.addEventListener('minest:study-activity', activity);
+  ['minest:study-activity'].forEach(function (n) { window.addEventListener(n, activity); });
   ['pointerdown', 'keydown', 'wheel', 'touchmove'].forEach(function (n) { document.addEventListener(n, function (e) { if (running() && !(e.target.closest && e.target.closest('.mn-learn-bar,.mn-learn-card'))) activity(); }, { capture: true, passive: true }); });
   document.addEventListener('visibilitychange', function () { if (document.hidden && S) { commit(false); save(); } paint(); });
   window.addEventListener('pagehide', function () { if (S) save(); });
-
-  // ---------------------------------------------------------------- recording answers on the card
-  function record(id, ev) {
-    var f = findCard(id); if (!f || !S) return null;
-    var now = Date.now(), today = dayKey(), L = E.apply(f.card, ev, now, today);
-    if (ev.also) L = E.apply(Object.assign({}, f.card, { learn: L }), ev.also, now, today);
-    var c2 = Object.assign({}, f.card, { learn: L });
-    var patch = { learn: L, lastReviewed: now, mastery: E.mastery(c2, S.pathKey, hasWord(f.card)) };
-    pending[id] = { t: now, patch: patch };
-    var a = AI(); if (a && a.patchCard) a.patchCard(id, patch);
-    return L;
-  }
-  // a card that failed Quick Test gets its weak-skill activity later in this round
-  function sendOn(id, act) {
-    if (!act || !S) return;
-    if (act === 'shadow') { var f = findCard(id); if (!avail().shadow || !(f && hasWord(f.card))) act = 'reflash'; }
-    for (var i = S.si + 1; i < S.stages.length; i++) if (S.stages[i].act === act) { if (S.stages[i].ids.indexOf(id) < 0) S.stages[i].ids.push(id); return; }
-    S.stages.push({ act: act, ids: [id], done: {}, added: true });
-  }
-
-  // ---------------------------------------------------------------- Smart Review everywhere (outside a round too)
-  // Drill ratings, Study Arcade answers (any game) and pronunciation scores feed the same skill records,
-  // so review keeps tracking what you really remember; stars tapped by hand are kept as an override.
-  function recordAny(id, ev) {
-    var f = findCard(id); if (!f) return;
-    var pk = pathOf(f.col.id, f.col.cards || []), now = Date.now(), L = E.apply(f.card, ev, now, dayKey());
-    var patch = { learn: L, lastReviewed: now, mastery: E.mastery(Object.assign({}, f.card, { learn: L }), pk, hasWord(f.card)) };
-    pending[id] = { t: now, patch: patch };
-    var a = AI(); if (a && a.patchCard) a.patchCard(id, patch);
-  }
-  function inRound(source) { var a = curAct(); return running() && (source === 'drill' ? a === 'flash' || a === 'reflash' : source === 'arcade' ? a === 'quick' : a === 'shadow'); }
-  window.addEventListener('minest:study-activity', function (e) {
-    var d = e.detail || {};
-    if (!d.cardId || inRound(d.source)) return;
-    if (d.source === 'drill' && d.type === 'rate' && d.rating) {
-      var g = d.rating === 'fail' ? 'again' : d.rating === 'hard' ? 'hard' : 'good';
-      setTimeout(function () { recordAny(d.cardId, { skill: 'recall', grade: g, act: 'drill' }); }, 0);   // after the Drill's own star change
-    } else if (d.source === 'arcade' && d.type === 'judge') {
-      var correct = d.result === 'mastered', unsure = d.result === 'low';
-      if (correct) addRt(d.rt);
-      recordAny(d.cardId, { skill: 'recall', grade: E.grade({ skill: 'recall', correct: correct || unsure, unsure: unsure, rt: d.rt, rtMedian: rtMedian() }), rt: d.rt, act: 'arcade:' + (d.mode || '') });
-    }
-  });
-  window.addEventListener('minestPronScore', function (e) {
-    var d = e.detail || {};
-    if (!d.cardId || typeof d.score !== 'number' || inRound('pron')) return;
-    recordAny(d.cardId, { skill: 'pron', score: d.score, threshold: settings().threshold, act: 'pron' });
-  });
-  window.addEventListener('minest:mastery-manual', function (e) {
-    var d = e.detail || {}, f = d.cardId && findCard(d.cardId); if (!f || !d.m) return;
-    setTimeout(function () {
-      var f2 = findCard(d.cardId); if (!f2) return;
-      var a = AI(); if (a && a.patchCard) a.patchCard(d.cardId, { learn: Object.assign({}, f2.card.learn || {}, { override: { m: d.m, at: Date.now() } }) });
-    }, 0);
-  });
-
-  var SKILL = { recall: ['🧠', 'Memory'], meaning: ['💡', 'Meaning'], pron: ['🗣', 'Pronunciation'], spell: ['✍️', 'Spelling'] };
-  var LV = ['Not yet', 'Seen', 'Learning', 'Basically', 'Mastered', 'Solid'];
-  // a card's learning state (for card details and Analyze)
-  function cardStatus(card, col) {
-    var f = col ? { col: col } : findCard(card.id);
-    var pk = f ? pathOf(f.col.id, f.col.cards || []) : 'vocab', hw = hasWord(card), L = E.norm(card), today = dayKey();
-    var req = E.requiredSkills(pk, hw), weakest = null;
-    var skills = req.concat(Object.keys(L.skills).filter(function (k) { return req.indexOf(k) < 0; })).map(function (k) {
-      var r = L.skills[k] || null, x = { key: k, icon: (SKILL[k] || ['•'])[0], name: (SKILL[k] || ['', k])[1], lv: r ? r.lv || 0 : 0, due: r && r.due || null, self: !!(r && r.src === 'self'), required: req.indexOf(k) >= 0, measured: !!r };
-      if (x.required && (!weakest || x.lv < weakest.lv)) weakest = x;
-      return x;
-    });
-    var m = E.mastery(card, pk, hw), studied = !!(L.studied.count || Object.keys(L.skills).length);
-    return { path: pk, label: E.PATHS[pk].label, skills: skills, weakest: weakest, mastery: m, studied: studied, mastered: m >= 4,
-      due: E.route(card, pk, { today: today, hasWord: hw, avail: avail() }).acts.length > 0 && studied, next: E.nextDue(card, pk, hw), studiedCount: L.studied.count || 0, override: E.overrideOf(L) };
-  }
-  function skillView(card) {
-    if (!card || !card.id) return null;
-    var st = cardStatus(card), today = dayKey();
-    function when(d) { return !d ? '' : d <= today ? 'review now' : 'next ' + d.slice(5); }
-    var rows = st.skills.map(function (x) {
-      return '<div class="mn-sk' + (x.required ? '' : ' opt') + '"><i>' + x.icon + '</i><b>' + esc(x.name) + '</b><span class="lv l' + x.lv + '">' + [1, 2, 3, 4, 5].map(function (n) { return '<u class="' + (n <= x.lv ? 'on' : '') + '"></u>'; }).join('') + '</span>' +
-        '<em>' + (x.measured ? LV[x.lv] + (x.self ? ' · self-check' : '') + (x.due ? ' · ' + when(x.due) : '') : 'not measured yet') + '</em></div>';
-    }).join('');
-    return '<div class="mn-sk-h"><span>Skills · ' + esc(st.label) + '</span><em>' + (st.studied ? 'studied ' + st.studiedCount + '×' + (st.next ? ' · ' + when(st.next) : '') : 'not studied yet') + '</em></div>' + rows +
-      (st.override ? '<div class="mn-sk-n">⭐ Stars set by hand — your next answer updates them</div>' : st.studied && !st.mastered && st.weakest ? '<div class="mn-sk-n">Mastered when every skill reaches Lv 4 · weakest: ' + st.weakest.icon + ' ' + esc(st.weakest.name) + '</div>' : '');
-  }
 
   // ---------------------------------------------------------------- UI (liquid glass)
   var css = document.createElement('style');
@@ -49294,45 +48518,37 @@ var Ve = (function(_Component) {
     '.mn-learn-bar button{border:0;border-radius:999px;padding:6px 11px;font:700 12px -apple-system,system-ui,sans-serif;color:#fff;background:rgba(255,255,255,.18);cursor:pointer}.mn-learn-bar button.nx{background:rgba(120,220,170,.45)}.mn-learn-bar button.x{padding:6px 9px;background:transparent;opacity:.75}' +
     '.mn-learn-scrim{position:fixed;inset:0;z-index:2147483200;background:rgba(10,14,24,.28);opacity:0;transition:opacity .25s;display:flex;align-items:center;justify-content:center;padding:16px}' +
     '.mn-learn-scrim.on{opacity:1}' +
-    '.mn-learn-card{width:min(390px,100%);max-height:calc(100vh - 40px);overflow:auto;border-radius:26px;padding:20px 18px 16px;color:#fff;font:14px/1.45 -apple-system,system-ui,sans-serif;transform:translateY(14px) scale(.97);transition:transform .32s cubic-bezier(.2,1.2,.4,1)}' +
+    '.mn-learn-card{width:min(380px,100%);max-height:calc(100vh - 40px);overflow:auto;border-radius:26px;padding:20px 18px 16px;color:#fff;font:14px/1.45 -apple-system,system-ui,sans-serif;transform:translateY(14px) scale(.97);transition:transform .32s cubic-bezier(.2,1.2,.4,1)}' +
     '.mn-learn-scrim.on .mn-learn-card{transform:none}' +
     '.mn-learn-card h3{margin:0 0 2px;font-size:19px;font-weight:800;letter-spacing:-.01em}.mn-learn-card .sub{opacity:.75;font-size:12.5px}' +
     '.mn-learn-card .big{font-size:15px;margin:12px 0 4px}.mn-learn-card .big b{font-size:17px}' +
-    '.mn-learn-card .why{margin:8px 0 2px;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.1);font-size:12.5px}' +
-    '.mn-learn-card .q{margin:14px 0 6px;font-size:12px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.04em}' +
-    '.mn-learn-card .seg{display:flex;gap:6px;flex-wrap:wrap}.mn-learn-card .seg button{flex:1 1 auto;border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:8px 10px;font:700 12.5px -apple-system,system-ui,sans-serif;color:#fff;background:rgba(255,255,255,.08);cursor:pointer;white-space:nowrap}' +
-    '.mn-learn-card .seg button.on{background:rgba(255,255,255,.88);color:#16202e;border-color:#fff}' +
-    '.mn-learn-card select{width:100%;border-radius:12px;padding:8px 10px;font:600 13px -apple-system,system-ui,sans-serif;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}.mn-learn-card select option{color:#111}' +
-    '.mn-learn-card .stg{margin-top:12px;display:flex;flex-direction:column;gap:6px}.mn-learn-card .stg div{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.1);font-size:13.5px}' +
-    '.mn-learn-card .stg i{font-style:normal;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.mn-learn-card .stg b{flex:1}.mn-learn-card .stg em{font-style:normal;opacity:.75;font-size:12px}' +
-    '.mn-learn-card .tot{display:flex;justify-content:space-between;margin-top:8px;font-size:12.5px;opacity:.85}' +
+    '.mn-learn-card .why{margin:6px 0 2px;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.1);font-size:12.5px}' +
+    '.mn-learn-card .path{display:flex;gap:6px;margin:12px 0 4px;flex-wrap:wrap}.mn-learn-card .path span{padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.12);font-size:11.5px;font-weight:700}' +
     '.mn-learn-card .row{display:flex;gap:8px;margin-top:14px}.mn-learn-card .row button{flex:1;border:0;border-radius:14px;padding:11px 8px;font:700 14px -apple-system,system-ui,sans-serif;color:#fff;background:rgba(255,255,255,.16);cursor:pointer}' +
     '.mn-learn-card .row button.pri{background:linear-gradient(180deg,rgba(110,225,170,.75),rgba(60,180,130,.75))}' +
     '.mn-learn-card .lists{display:flex;flex-direction:column;gap:6px;margin-top:10px}.mn-learn-card .lists button{display:flex;justify-content:space-between;gap:10px;text-align:left;border:0;border-radius:12px;padding:10px 12px;color:#fff;background:rgba(255,255,255,.1);font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer}.mn-learn-card .lists button em{font-style:normal;opacity:.65;font-weight:500}' +
     '.mn-learn-card .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 4px}.mn-learn-card .stats div{padding:10px 6px;border-radius:14px;background:rgba(255,255,255,.1);text-align:center}.mn-learn-card .stats b{display:block;font-size:20px}.mn-learn-card .stats span{font-size:11px;opacity:.75}' +
     '.mn-learn-card .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.mn-learn-card .chips span{padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.12);font-size:12px}' +
     '.mn-learn-card .plan{margin-top:8px;font-size:12.5px}.mn-learn-card .plan div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.1)}' +
-    '.mn-dm-skills{grid-column:1/-1;margin-top:2px;padding:10px 12px;border-radius:16px;background:rgba(127,127,127,.1);font:500 12.5px -apple-system,system-ui,sans-serif}' +
-    '.mn-sk-h{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}.mn-sk-h span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.55}.mn-sk-h em{font-style:normal;font-size:11.5px;opacity:.6}' +
-    '.mn-sk{display:grid;grid-template-columns:20px 96px auto 1fr;align-items:center;gap:8px;padding:3px 0}.mn-sk.opt{opacity:.55}.mn-sk i{font-style:normal}.mn-sk b{font-weight:650}.mn-sk em{font-style:normal;font-size:11.5px;opacity:.6;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '.mn-sk .lv{display:flex;gap:3px}.mn-sk .lv u{display:block;width:14px;height:6px;border-radius:3px;background:rgba(127,127,127,.25)}.mn-sk .lv u.on{background:#ff9f0a}.mn-sk .lv.l4 u.on,.mn-sk .lv.l5 u.on{background:#30d158}.mn-sk .lv.l1 u.on{background:#ff453a}' +
-    '.mn-sk-n{margin-top:6px;font-size:11.5px;opacity:.65}' +
     '.kanban-column-wrapper.mn-learn-flash{animation:mnLearnFlash 1.6s ease}@keyframes mnLearnFlash{0%,100%{filter:none}30%{filter:drop-shadow(0 0 14px rgba(110,225,170,.95))}}';
   document.head.appendChild(css);
 
-  var bar = null, scrim = null, onCard = null;
+  var bar = null, scrim = null;
   function fmt(ms) { var s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
   function paint() {
-    if (!S || S.status !== 'running' || curAct() === 'summary') { if (bar) bar.classList.remove('on'); return; }
+    if (!S || S.status !== 'running' || S.step === 'summary') { if (bar) bar.classList.remove('on'); return; }
     if (!bar) {
       bar = document.createElement('div'); bar.className = 'mn-learn-bar mn-glass';
-      bar.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; if (b.classList.contains('nx')) next(); else if (b.classList.contains('x')) exit(); });
+      bar.addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b) return;
+        if (b.classList.contains('nx')) next(); else if (b.classList.contains('x')) exit();
+      });
       document.body.appendChild(bar);
     }
-    var st = curStage(), done = st && st.finished, nx = S.stages[S.si + 1];
-    bar.innerHTML = '<span class="st">' + S.stages.map(function (s, i) { return '<i class="' + (i < S.si ? 'd' : i === S.si ? 'c' : '') + '"></i>'; }).join('') + '</span>' +
-      '<span class="nm">📚 ' + NAMES[st ? st.act : 'summary'] + '</span><span class="tm"></span>' +
-      '<button type="button" class="nx">' + (done ? 'Next: ' + (nx ? NAMES[nx.act] : 'Summary') + ' ›' : 'Next ›') + '</button>' +
+    var idx = STEPS.indexOf(S.step), done = S.stepDone && S.stepDone[S.step];
+    bar.innerHTML = '<span class="st">' + STEPS.slice(0, 3).map(function (s, i) { return '<i class="' + (i < idx ? 'd' : i === idx ? 'c' : '') + '"></i>'; }).join('') + '</span>' +
+      '<span class="nm">📚 ' + NAMES[S.step] + '</span><span class="tm"></span>' +
+      '<button type="button" class="nx">' + (done ? 'Next: ' + NAMES[STEPS[idx + 1]] + ' ›' : 'Next ›') + '</button>' +
       '<button type="button" class="x" aria-label="Exit Learning Path">✕</button>';
     paintTime();
     requestAnimationFrame(function () { if (bar) bar.classList.add('on'); });
@@ -49343,154 +48559,31 @@ var Ve = (function(_Component) {
     t.textContent = fmt(S.time.activeMs) + (paused ? ' ⏸' : '');
     t.classList.toggle('p', paused);
   }
-  function closeCard() { if (!scrim) return; var s = scrim; scrim = null; onCard = null; s.classList.remove('on'); setTimeout(function () { s.remove(); }, 260); }
+  function closeCard() { if (!scrim) return; var s = scrim; scrim = null; s.classList.remove('on'); setTimeout(function () { s.remove(); }, 260); }
   function card(html, onClick, dismissable) {
-    if (scrim) { scrim.querySelector('.mn-learn-card').innerHTML = html; onCard = onClick; scrim.__dismiss = dismissable; return; }   // same card, new content
+    closeCard();
     scrim = document.createElement('div'); scrim.className = 'mn-learn-scrim';
     scrim.innerHTML = '<div class="mn-learn-card mn-glass" role="dialog" aria-label="Learning Path">' + html + '</div>';
-    onCard = onClick; scrim.__dismiss = dismissable;
-    var me = scrim;
-    me.addEventListener('click', function (e) {
-      try { if (window.MinestPron && window.MinestPron.unlockAudio) window.MinestPron.unlockAudio(); } catch (err) {}   // audio for the read-aloud stage
-      if (e.target === me) { var d = me.__dismiss; if (d !== false) { closeCard(); if (typeof d === 'function') d(); } return; }
-      var b = e.target.closest('[data-a]'); if (b && onCard) onCard(b.getAttribute('data-a'), b);
+    scrim.addEventListener('click', function (e) {
+      // any tap on a Learning Path card unlocks audio for the hands-free Deep Learning later on
+      try { if (window.MinestPron && window.MinestPron.unlockAudio) window.MinestPron.unlockAudio(); } catch (err) {}
+      if (e.target === scrim) { if (dismissable !== false) { closeCard(); if (typeof dismissable === 'function') dismissable(); } return; }
+      var b = e.target.closest('[data-a]'); if (b) onClick(b.getAttribute('data-a'), b);
     });
-    me.addEventListener('change', function (e) { var t = e.target; if (t && t.getAttribute('data-a') && onCard) onCard(t.getAttribute('data-a'), t); });
-    document.body.appendChild(me);
-    requestAnimationFrame(function () { me.classList.add('on'); });
+    document.body.appendChild(scrim);
+    requestAnimationFrame(function () { if (scrim) scrim.classList.add('on'); });
   }
 
-  // ---------------------------------------------------------------- the coach card: how, how long, the path
-  var offerState = null;
-  function offer(st) {
-    offerState = st;
-    var r = bestPlan(st.intent, st.minutes, st.only), head = '';
-    if (!r) {
-      st.r = null;
-      card('<h3>All caught up 🎉</h3><div class="sub">Nothing ' + (st.intent === 'new' ? 'new' : 'due') + ' right now.</div>' +
-        '<div class="q">Try something else</div><div class="seg">' + Object.keys(INTENTS).filter(function (k) { return k !== st.intent; }).map(function (k) { return '<button type="button" data-a="intent:' + k + '">' + INTENTS[k] + '</button>'; }).join('') + '</div>' +
-        '<div class="row"><button type="button" data-a="change">Pick a list</button><button type="button" data-a="later">Close</button></div>', offerClick);
-      return;
-    }
-    st.only = st.only || null; st.r = r;
-    var p = r.plan, path = E.PATHS[r.pathKey];
-    head = '<h3>Today’s study</h3><div class="sub">' + esc(r.boardTitle) + ' · <b>' + esc(r.listTitle) + '</b></div>';
-    var stages = p.stages.map(function (s, i) {
-      return '<div><i>' + (i + 1) + '</i><b>' + E.ACTS[s.act].icon + ' ' + NAMES[s.act] + '</b><em>' + s.ids.length + (s.ids.length === 1 ? ' card' : ' cards') + ' · ~' + minutesOf(s.estSec) + ' min</em></div>';
-    }).join('') + '<div><i>✓</i><b>Summary</b><em>review plan</em></div>';
-    card(head +
-      '<div class="q">How do you want to study?</div><div class="seg">' + Object.keys(INTENTS).filter(function (k) { return k !== 'voice' || avail().voiceQuiz; }).map(function (k) { return '<button type="button" class="' + (k === st.intent ? 'on' : '') + '" data-a="intent:' + k + '">' + INTENTS[k] + '</button>'; }).join('') + '</div>' +
-      '<div class="q">How much time?</div><div class="seg">' + [5, 15, 30].map(function (m) { return '<button type="button" class="' + (m === st.minutes ? 'on' : '') + '" data-a="min:' + m + '">' + m + ' min</button>'; }).join('') + '</div>' +
-      '<div class="q">Suggested path</div><div class="stg">' + stages + '</div>' +
-      '<div class="tot"><span>' + p.picked.length + ' cards · ' + esc(reasonOf(p)) + '</span><b>~' + minutesOf(p.estSec) + ' min</b></div>' +
-      '<div class="q">Content type</div><select data-a="path">' + Object.keys(E.PATHS).map(function (k) { return '<option value="' + k + '"' + (k === r.pathKey ? ' selected' : '') + '>' + esc(E.PATHS[k].label) + '</option>'; }).join('') + '</select>' +
-      '<div class="row"><button type="button" data-a="change">Other list</button><button type="button" data-a="later">Later</button><button type="button" class="pri" data-a="start">Start</button></div>', offerClick);
-  }
-  function offerClick(a, el) {
-    var st = offerState; if (!st) return;
-    if (a.indexOf('intent:') === 0) { st.intent = a.slice(7); store(CKEY, Object.assign(load(CKEY, {}), { intent: st.intent })); offer(st); }
-    else if (a.indexOf('min:') === 0) { st.minutes = +a.slice(4); store(CKEY, Object.assign(load(CKEY, {}), { minutes: st.minutes })); offer(st); }
-    else if (a === 'path' && st.r) { var m = load(PKEY, {}); m[st.r.listId] = el.value; store(PKEY, m); st.only = { boardId: st.r.boardId, listId: st.r.listId }; offer(st); }
-    else if (a === 'start' && st.r) { closeCard(); begin(st.r); }
-    else if (a === 'later') { closeCard(); coach('reply', 'Okay — I’ll remind you later ⏰', 'nod', 2600); }
-    else if (a === 'change') chooseList(st);
-    else if (a === 'pick') { st.only = { boardId: el.getAttribute('data-b'), listId: el.getAttribute('data-l') }; offer(st); }
-    else if (a === 'back') offer(st);
-  }
-  function chooseList(st) {
-    var rows = [], a = AI(), active = a && a.board && a.board();
-    var bs = boards().filter(function (b) { return !b.archived; });
-    if (active) bs.sort(function (x, y) { return (y.id === active.id) - (x.id === active.id); });
-    bs.forEach(function (b) {
-      (b.columns || []).forEach(function (col) {
-        var n = (col.cards || []).filter(function (c) { return !c.complete; }).length; if (!n) return;
-        rows.push('<button type="button" data-a="pick" data-b="' + esc(b.id) + '" data-l="' + esc(col.id) + '"><span>' + esc(col.title) + '<br><em>' + esc(b.title) + '</em></span><em>' + n + '</em></button>');
-      });
-    });
-    card('<h3>Pick a list</h3><div class="sub">The coach plans the cards that need you most.</div><div class="lists">' + rows.slice(0, 40).join('') + '</div>' +
-      '<div class="row"><button type="button" data-a="back">Back</button></div>', offerClick);
-  }
-
-  // ---------------------------------------------------------------- running the stages
-  function begin(r) {
-    var before = {}, skillsBefore = {};
-    r.plan.picked.forEach(function (x) {
-      var f = findCard(x.id); if (!f) return;
-      before[x.id] = f.card.mastery || 1;
-      var L = E.norm(f.card), sb = {}; Object.keys(L.skills).forEach(function (k) { sb[k] = L.skills[k].lv; }); skillsBefore[x.id] = sb;
-    });
-    var b = boards().filter(function (x) { return x.id === r.boardId; })[0];
-    S = {
-      v: 2, id: 'lp-' + Date.now().toString(36), startedAt: Date.now(), updatedAt: Date.now(), status: 'running',
-      boardId: r.boardId, listId: r.listId, listTitle: r.listTitle, subject: (b && b.title) || r.boardTitle || 'Study',
-      pathKey: r.pathKey, intent: r.intent, minutes: r.minutes,
-      cardIds: r.plan.picked.map(function (x) { return x.id; }), routes: {},
-      stages: r.plan.stages.map(function (s) { return { act: s.act, ids: s.ids.slice(), done: {} }; }), si: 0,
-      res: { again: {}, quick: {}, pron: {}, studied: {} }, streak: 0, struggled: {}, askedTime: false,
-      time: { activeMs: 0, committedMs: 0, byStep: {} }, masteryBefore: before, skillsBefore: skillsBefore
-    };
-    r.plan.picked.forEach(function (x) { S.routes[x.id] = x.acts; });
-    lastAct = 0; idleShown = false;
-    save(); emit('start'); liveStart();
-    if (Date.now() - lastCoachAt > 15000) coach('start', coachLine(r), 'excited', 4200);   // the coach card just said it
-    else { lastCoachAt = Date.now(); say('', 0, 'excited'); }
-    go(0);
-  }
-  function remaining(st) { return st.ids.filter(function (id) { return !st.done[id]; }); }
-  function go(si) {
-    if (!S) return;
-    clearInterval(transT);
-    S.si = si; S.status = 'running';
-    var st = curStage();
-    lastAct = Date.now();
-    closeCard();
-    if (!st) { save(); summary(); return; }
-    if (!remaining(st).length) { st.finished = true; go(si + 1); return; }
-    st.finished = false; S.streak = 0;
-    st.t0 = S.time.activeMs; st.n0 = Object.keys(st.done).length;
-    save(); emit('step'); paint(); liveProgress(true);
-    if (st.act === 'flash' || st.act === 'reflash') runFlash(st);
-    else if (st.act === 'quick') runQuick(st);
-    else if (st.act === 'shadow') runShadow(st);
-    else if (st.act === 'voiceQuiz') runVoiceQuiz(st);
-    else { st.finished = true; go(si + 1); }   // not available here
-  }
-  function next() { if (!S) return; clearInterval(transT); leaveStage(); go(S.si + 1); }
-  function again() { var st = curStage(); if (!st) return; leaveStage(); st.done = {}; go(S.si); }
-  function back() { if (S && S.si > 0) { leaveStage(); go(S.si - 1); } }
-  function leaveStage() {
-    if (!S) return;
-    var st = curStage(); if (!st) return;
-    if (st.act === 'flash' || st.act === 'reflash') { window.__drillLearnIds = null; var a = AI(); if (a && a.viewMode && a.viewMode() === 'drill') a.setViewMode('board'); }
-    if (st.act === 'quick' && window.StudyArcade && window.StudyArcade.isOpen()) window.StudyArcade.close(true);
-    if (st.act === 'shadow' || st.act === 'voiceQuiz') { var px = document.querySelector('.mpron-practice .mpron-x'); if (px) px.click(); }
-  }
-  function stageDone() {
-    var st = curStage(); if (!st || st.finished) return;
-    st.finished = true;
-    calibrate(st.act, (S.time.activeMs - (st.t0 || 0)) / 1000, Object.keys(st.done).length - (st.n0 || 0));
-    save(); paint(); emit('progress');
-  }
-  // between stages: a short card with a countdown; once over the planned time, ask once
+  // ---------------------------------------------------------------- step transitions (phase 2)
+  // a short card with a 3-second countdown, then the next step starts by itself ("Wait" stops it)
   var transT = 0;
   function transition(title, sub) {
     if (!S) return;
     clearInterval(transT);
-    var nx = S.stages[S.si + 1];
-    if (nx && !S.askedTime && S.time.activeMs > S.minutes * 60000 * 1.2) {
-      S.askedTime = true;
-      coach('timeup', 'Time’s up ⏰ — keep going or stop here?', 'look', 3600);
-      card('<h3>Time’s up ⏰</h3><div class="sub">You planned ' + S.minutes + ' min · ' + fmt(S.time.activeMs) + ' so far</div>' +
-        '<div class="big">Next would be <b>' + NAMES[nx.act] + '</b> · ' + remaining(nx).length + ' cards</div>' +
-        '<div class="row"><button type="button" data-a="stop">Stop here</button><button type="button" class="pri" data-a="go">Keep going</button></div>',
-        function (a) { if (a === 'go') next(); else { closeCard(); leaveStage(); S.si = S.stages.length; summary(); } }, false);
-      return;
-    }
     if (!settings().auto) { paint(); return; }
-    var n = 3;
-    coach('stage', title, 'nod', 2600);
+    var to = nextStepOf(S.step), n = 3;
     card('<h3>' + esc(title) + '</h3>' + (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') +
-      '<div class="big">Next: <b>' + (nx ? NAMES[nx.act] : 'Summary') + '</b> in <b class="cd">' + n + '</b>…</div>' +
+      '<div class="big">Next: <b>' + NAMES[to] + '</b> in <b class="cd">' + n + '</b>…</div>' +
       '<div class="row"><button type="button" data-a="wait">Wait</button><button type="button" class="pri" data-a="go">Go now</button></div>',
       function (a) { clearInterval(transT); if (a === 'go') next(); else { closeCard(); paint(); } },
       function () { clearInterval(transT); paint(); });
@@ -49500,235 +48593,338 @@ var Ve = (function(_Component) {
       if (n <= 0) { clearInterval(transT); if (S && scrim) next(); }
     }, 1000);
   }
-  function struggling() {
-    var st = curStage(); if (!st || S.struggled[S.si]) return;
-    S.struggled[S.si] = true;
-    coach('struggle', 'Tricky ones — no rush. They’ll come back in this round 💪', 'nod', 3600);
+
+  // ---------------------------------------------------------------- Live Activity / Dynamic Island (app)
+  function NV() { var n = window.MinestNative; return n && n.isNative && n.isNative() ? n : null; }
+  var laAt = 0, laKey = '', laOn = false;
+  function stepProgress() {
+    var tot = S.cardIds.length, done = 0;
+    if (S.step === 'flash') done = Object.keys((S.flash && S.flash.seen) || {}).length;
+    else if (S.step === 'quicktest') done = Object.keys(quickSeen).length;
+    else if (S.step === 'deep') { tot = S.deep.queue.length || tot; done = Object.keys(S.deep.tried || S.deep.scores).length; }
+    done = Math.min(done, tot);
+    // rough time left: flash ~5 s, quick test ~4 s, deep ~20 s per card
+    var left = S.step === 'flash' ? (tot - done) * 5 + tot * 4 + S.cardIds.length * 10
+      : S.step === 'quicktest' ? (tot - done) * 4 + S.cardIds.length * 10 : (tot - done) * 20;
+    return { done: done, total: tot, remaining: Math.max(1, Math.round(left / 60)), title: NAMES[S.step] + ' · ' + (S.listTitle || '') };
+  }
+  function liveStart() {
+    var n = NV(); if (!n || !S) return;
+    var p = stepProgress();
+    try { n.startStudy({ boardTitle: '📚 ' + (S.listTitle || 'Learning Path'), totalCards: p.total, completedCards: p.done, remainingMinutes: p.remaining, currentCardTitle: p.title }); laOn = true; } catch (e) {}
+  }
+  // throttled: each update makes a soft tick on the phone
+  function liveProgress(force) {
+    var n = NV(); if (!n || !laOn || !running()) return;
+    var p = stepProgress(), key = S.step + ':' + p.done;
+    if (key === laKey || (!force && Date.now() - laAt < 15000)) return;
+    laKey = key; laAt = Date.now();
+    try { n.updateProgress(p.done, p.total, p.remaining, p.title); } catch (e) {}
+  }
+  function livePaused() { var n = NV(); if (!n || !laOn || !S) return; try { n.send('studyPaused', { completedCards: stepProgress().done }); } catch (e) {} laKey = ''; }
+  function liveEnd(finished) {
+    var n = NV(); if (!n || !laOn) return;
+    laOn = false; laKey = '';
+    try { if (finished) n.endStudy(); else n.endIsland(); } catch (e) {}
   }
 
-  // Flash (Drill on this stage's cards) — "studied", no grade
-  function runFlash(st) {
+  // ---------------------------------------------------------------- the Mini Pet studies along
+  setInterval(function () {
+    if (!counting()) return;
+    var p = P(); if (!p || scrim) return;
+    if (document.querySelector('.mpet-say, .mpet-tip')) return;   // not over its own words
+    var r = Math.random();
+    try {
+      if (S.step === 'flash') { p.play(r < .45 ? 'thinking' : r < .8 ? 'look' : 'nod'); if (r < .25) p.burst(['📖'], 2, { up: true, dist: 40, size: 15 }); }
+      else if (S.step === 'quicktest') p.play(r < .6 ? 'nod' : 'bounce');
+      else if (S.step === 'deep') p.play(r < .6 ? 'look' : 'nod');
+    } catch (e) {}
+  }, 7000);
+
+  // ---------------------------------------------------------------- the path
+  function offer(plan) {
+    if (!plan) { say('No cards to study yet — build a board first? 🧱', 3600, 'scratch_head'); return; }
+    var path = '<div class="path"><span>⚡ Flash</span><span>↔ Quick Test</span><span>🗣 Deep Learning</span><span>✓ Summary</span></div>';
+    card('<h3>Today’s study</h3><div class="sub">' + esc(plan.boardTitle) + '</div>' +
+      '<div class="big"><b>' + esc(plan.listTitle) + '</b> · ' + plan.cardIds.length + ' cards · ~' + plan.minutes + ' min</div>' +
+      (plan.reason ? '<div class="why">' + esc(plan.reason) + '</div>' : '') + path +
+      '<div class="row"><button type="button" data-a="later">Later</button><button type="button" data-a="change">Change</button><button type="button" class="pri" data-a="start">Start</button></div>',
+      function (a) {
+        if (a === 'start') { closeCard(); begin(plan); }
+        else if (a === 'later') { closeCard(); say('Okay — I’ll remind you later ⏰', 2600, 'nod'); }
+        else if (a === 'change') chooseList(plan);
+      });
+    say(plan.reason ? 'Today: ' + plan.cardIds.length + ' cards in ' + plan.listTitle + ' 📚' : 'Ready to study? 📚', 3400, 'excited');
+  }
+  function chooseList(cur) {
+    var rows = [];
+    var a = AI(), active = a && a.board && a.board();
+    var bs = boards().filter(function (b) { return !b.archived; });
+    if (active) bs.sort(function (x, y) { return (y.id === active.id) - (x.id === active.id); });
+    bs.forEach(function (b) {
+      (b.columns || []).forEach(function (col) {
+        var n = (col.cards || []).filter(function (c) { return !c.complete; }).length;
+        if (!n) return;
+        rows.push('<button type="button" data-a="pick" data-b="' + esc(b.id) + '" data-l="' + esc(col.id) + '"><span>' + esc(col.title) + '<br><em>' + esc(b.title) + '</em></span><em>' + n + '</em></button>');
+      });
+    });
+    card('<h3>Pick a list</h3><div class="sub">Learning Path starts with the cards that need you most.</div><div class="lists">' + rows.slice(0, 40).join('') + '</div>' +
+      '<div class="row"><button type="button" data-a="back">Back</button></div>',
+      function (act, el) {
+        if (act === 'back') offer(cur);
+        else if (act === 'pick') offer(todayPlan({ boardId: el.getAttribute('data-b'), listId: el.getAttribute('data-l') }));
+      });
+  }
+  function begin(plan) {
+    var before = {};
+    plan.cardIds.forEach(function (id) { var f = findCard(id); before[id] = f ? (f.card.mastery || 1) : 1; });
+    var b = boards().filter(function (x) { return x.id === plan.boardId; })[0];
+    S = {
+      id: 'lp-' + Date.now().toString(36), startedAt: Date.now(), updatedAt: Date.now(), status: 'running',
+      boardId: plan.boardId, listId: plan.listId, listTitle: plan.listTitle, subject: (b && b.title) || plan.boardTitle || 'Study',
+      cardIds: plan.cardIds.slice(), step: 'flash', stepDone: {},
+      flash: { seen: {} }, quicktest: { known: [], unsure: [], unknown: [] }, deep: { queue: [], scores: {} },
+      time: { activeMs: 0, committedMs: 0, byStep: {} }, masteryBefore: before
+    };
+    lastAct = 0; idleSaid = false;
+    save(); emit('start');
+    liveStart();
+    go('flash');
+  }
+  function go(step) {
+    if (!S) return;
+    S.step = step; S.status = 'running'; save();
+    lastAct = Date.now();   // entering a step counts as starting it
+    closeCard();
+    emit('step');
+    paint();
+    if (step !== 'summary') liveProgress(true);
+    if (step === 'flash') runFlash();
+    else if (step === 'quicktest') runQuick();
+    else if (step === 'deep') runDeep();
+    else if (step === 'summary') summary();
+  }
+  function nextStepOf(step) {
+    var i = STEPS.indexOf(step), to = STEPS[Math.min(STEPS.length - 1, i + 1)];
+    if (to === 'deep' && S && S.stepDone.quicktest && !S.deep.queue.length) to = 'summary';
+    return to;
+  }
+  function next() {
+    if (!S) return;
+    clearInterval(transT);
+    var to = nextStepOf(S.step);
+    leaveStep();
+    go(to);
+  }
+  function back() { if (!S) return; var i = STEPS.indexOf(S.step); if (i > 0) { leaveStep(); go(STEPS[i - 1]); } }
+  function leaveStep() {
+    if (!S) return;
+    if (S.step === 'flash') { window.__drillLearnIds = null; var a = AI(); if (a && a.viewMode && a.viewMode() === 'drill') a.setViewMode('board'); }
+    if (S.step === 'quicktest') { harvestQuick(); if (window.StudyArcade && window.StudyArcade.isOpen()) window.StudyArcade.close(true); }
+    if (S.step === 'deep') { var px = document.querySelector('.mpron-practice .mpron-x'); if (px) px.click(); }
+  }
+  function stepDone(step) {
+    if (!S || S.step !== step) return;
+    S.stepDone[step] = true; save(); paint(); emit('progress');
+  }
+
+  // 01 Flash — the Drill on this round's cards
+  function runFlash() {
     var a = AI(); if (!a) return;
     a.selectBoard(S.boardId, S.listId);
-    window.__drillLearnIds = remaining(st);
+    window.__drillLearnIds = S.cardIds.slice();
+    // the drill reads its scope when it mounts, so leave drill first if it is already open
     var wasDrill = a.viewMode && a.viewMode() === 'drill';
     if (wasDrill) a.setViewMode('board');
     setTimeout(function () { a.setViewMode('drill'); }, wasDrill ? 120 : 90);
+    say('Flash first — just get a feel for them ⚡', 3200, 'thinking');
   }
-  window.addEventListener('minest:study-activity', function (e) {
-    var d = e.detail || {}, st = curStage();
-    if (!running() || !st || (st.act !== 'flash' && st.act !== 'reflash') || d.source !== 'drill' || !d.cardId || st.ids.indexOf(d.cardId) < 0) return;
-    if (d.type !== 'auto' && d.type !== 'flip' && d.type !== 'rate') return;
-    if (!st.done[d.cardId]) {
-      st.done[d.cardId] = 1;
-      if (!S.res.studied[d.cardId]) { S.res.studied[d.cardId] = 1; record(d.cardId, { studied: true }); }
-    }
-  });
   window.addEventListener('minest:drill-done', function (e) {
-    var st = curStage();
-    if (!running() || !st || (st.act !== 'flash' && st.act !== 'reflash') || !(e.detail && e.detail.scope === 'learn')) return;
-    st.ids.forEach(function (id) { if (!st.done[id]) { st.done[id] = 1; if (!S.res.studied[id]) { S.res.studied[id] = 1; record(id, { studied: true }); } } });
-    stageDone();
-    var n = st.ids.length, nx = S.stages[S.si + 1];
-    transition(n + (n === 1 ? ' card' : ' cards') + ' seen ⚡', nx && nx.act === 'quick' ? 'Now swipe: ← I know it · Again →' : '');
+    if (!running() || S.step !== 'flash') return;
+    if (!(e.detail && e.detail.scope === 'learn')) return;
+    stepDone('flash');
+    var n = Object.keys(S.flash.seen || {}).length || S.cardIds.length;
+    say('All seen! Let’s test what stuck', 3200, 'excited');
+    transition(n + (n === 1 ? ' card' : ' cards') + ' seen ⚡', 'Now swipe: ← I know it · Again →');
+  });
+  window.addEventListener('minest:study-activity', function (e) {
+    var d = e.detail || {};
+    if (running() && S.step === 'flash' && d.source === 'drill' && d.cardId) { S.flash = S.flash || { seen: {} }; S.flash.seen[d.cardId] = (S.flash.seen[d.cardId] || 0) + 1; }
   });
 
-  // Quick Test (Study Arcade swipe) — recall (and, until the voice quiz exists, a self-check of meaning)
-  function runQuick(st) {
-    S.quickFinished = false;
+  // 02 Quick Test — Swipe Judgment on the same cards; results become mastery
+  var quickSeen = {};
+  function runQuick() {
+    quickSeen = {}; S.quickFinished = false;
     var b = boards().filter(function (x) { return x.id === S.boardId; })[0];
-    var ok = b && window.StudyArcade && window.StudyArcade.learn(b, remaining(st), 'swipe');
-    if (!ok) { stageDone(); next(); return; }
+    var ok = b && window.StudyArcade && window.StudyArcade.learn(b, S.cardIds, 'swipe');
+    if (!ok) { stepDone('quicktest'); say('Quick Test can’t open here — skipping', 3000, 'scratch_head'); return; }
+    say('← I know it · Again →', 3000, 'nod');
     watchArcade();
   }
   function watchArcade() {
     clearInterval(watchArcade.t);
     watchArcade.t = setInterval(function () {
-      var st = curStage();
-      if (!S || !st || st.act !== 'quick') { clearInterval(watchArcade.t); return; }
+      if (!S || S.step !== 'quicktest') { clearInterval(watchArcade.t); return; }
       if (window.StudyArcade && !window.StudyArcade.isOpen()) {
         clearInterval(watchArcade.t);
-        stageDone();
-        if (!S.quickFinished) { paint(); return; }   // closed early: wait for Next
-        var known = st.ids.filter(function (id) { return S.res.quick[id] && S.res.quick[id] !== 'again'; }).length, miss = st.ids.length - known;
-        var nx = S.stages[S.si + 1];
-        transition(known + ' known · ' + miss + ' to work on', nx ? NAMES[nx.act] + ': ' + remaining(nx).length + ' cards' : 'On to the summary');
+        harvestQuick();
+        stepDone('quicktest');
+        var Q = S.quicktest, k = S.deep.queue.length;
+        if (!S.quickFinished) { say('Paused — tap Next when you’re ready', 3200, 'nod'); return; }
+        if (k) say(k + ' to practise out loud 🗣', 3200, 'point');
+        else say('You knew them all! 🎉', 3000, 'excited');
+        transition(Q.known.length + ' known · ' + (Q.unsure.length + Q.unknown.length) + ' to work on',
+          k ? 'Deep Learning: listen, repeat, get scored' : (Q.unsure.length + Q.unknown.length ? 'No English words to read aloud — on to the summary' : 'Nothing left to drill — on to the summary'));
       }
     }, 600);
   }
   window.addEventListener('minest:study-activity', function (e) {
-    var d = e.detail || {}, st = curStage();
-    if (!running() || !st || st.act !== 'quick' || d.source !== 'arcade' || !d.cardId || st.ids.indexOf(d.cardId) < 0) return;
-    if (st.done[d.cardId]) return;   // the first answer counts (the game repeats the missed ones)
-    st.done[d.cardId] = 1;
-    var correct = d.result === 'mastered', unsure = d.result === 'low';
-    var g = E.grade({ skill: 'recall', correct: correct || unsure, unsure: unsure, rt: d.rt, rtMedian: rtMedian() });
-    if (correct) addRt(d.rt);
-    S.res.quick[d.cardId] = g;
-    var withMeaning = E.PATHS[S.pathKey].skills.indexOf('meaning') >= 0 && !avail().voiceQuiz;
-    record(d.cardId, { skill: 'recall', grade: g, rt: d.rt, act: 'quick', also: withMeaning ? { skill: 'meaning', grade: g, act: 'quick', src: 'self' } : null });
-    if (g === 'again') {
-      S.res.again[d.cardId] = 1;
-      sendOn(d.cardId, E.PATHS[S.pathKey].failQuick);
-      if (++S.streak >= 3) struggling();
-    } else S.streak = 0;
-    save();
+    var d = e.detail || {};
+    if (!running() || S.step !== 'quicktest' || d.source !== 'arcade' || !d.cardId) return;
+    var q = quickSeen[d.cardId] || (quickSeen[d.cardId] = { mastered: false, again: 0, low: 0 });
+    if (d.result === 'mastered') q.mastered = true; else q[d.result] = (q[d.result] || 0) + 1;
   });
-  window.addEventListener('minest:arcade-done', function () {
-    var st = curStage();
-    if (!running() || !st || st.act !== 'quick') return;
+  window.addEventListener('minest:arcade-done', function (e) {
+    if (!running() || S.step !== 'quicktest' || !e.detail || !e.detail.res) return;
+    Object.keys(e.detail.res).forEach(function (id) { quickSeen[id] = e.detail.res[id]; });
+    // the round is over: show Study Arcade's result for a moment, then move on
     S.quickFinished = true;
     setTimeout(function () {
-      var A = window.StudyArcade, s2 = A && A._state && A._state();
-      if (S && curStage() === st && s2 && s2.screen === 'finale') A.close(true);
+      var A = window.StudyArcade, st = A && A._state && A._state();
+      if (S && S.step === 'quicktest' && st && st.screen === 'finale') A.close(true);
     }, settings().auto ? 3800 : 864e5);
   });
+  function harvestQuick() {
+    if (!S || !Object.keys(quickSeen).length) return;
+    var Q = { known: [], unsure: [], unknown: [] }, a = AI();
+    S.cardIds.forEach(function (id) {
+      var r = quickSeen[id]; if (!r) return;
+      var f = findCard(id), m = f ? (f.card.mastery || 1) : 1, kind, nm;
+      if (r.again) { kind = 'unknown'; nm = 1; }
+      else if (r.low || r.needed || !r.mastered) { kind = 'unsure'; nm = m >= 4 ? 3 : Math.max(2, m); }
+      else { kind = 'known'; nm = Math.max(4, m); }
+      Q[kind].push(id);
+      if (a && a.rateCard) a.rateCard(id, nm);
+    });
+    S.quicktest = Q;
+    // Deep Learning practises what was not known (English word cards only)
+    S.deep.queue = Q.unsure.concat(Q.unknown).filter(function (id) { var f = findCard(id); return f && wordOf(f.card.title); });
+    quickSeen = {};
+    save();
+  }
 
-  // Read Aloud (hands-free shadowing loop) — pronunciation
-  function runShadow(st) {
-    var cards = remaining(st).map(function (id) { var f = findCard(id); return f && f.card; }).filter(function (c) { return c && hasWord(c); });
-    if (!cards.length || !window.MinestPron || !window.MinestPron.learnLoop) { st.ids.forEach(function (id) { st.done[id] = 1; }); stageDone(); next(); return; }
-    var finT = 0, TH = settings().threshold;
-    function take(res) {
-      Object.keys(res || {}).forEach(function (id) {
-        if (typeof res[id] !== 'number' || S.res.pron[id] === res[id] && st.done[id]) return;
-        st.done[id] = 1; S.res.pron[id] = res[id];
-        record(id, { skill: 'pron', score: res[id], threshold: TH, act: 'shadow' });
-        if (res[id] < TH) S.res.again[id] = 1;
-      });
-      save();
+  // 03 Deep Learning — pronunciation practice on the cards that need it (1.0: existing practice loop)
+  function runDeep() {
+    var ids = S.deep.queue.length ? S.deep.queue : (S.quicktest.known.length + S.quicktest.unsure.length + S.quicktest.unknown.length ? [] : S.cardIds);
+    var cards = ids.map(function (id) { var f = findCard(id); return f && f.card; }).filter(function (c) { return c && wordOf(c.title); });
+    if (!cards.length || !window.MinestPron) {
+      stepDone('deep');
+      say(cards.length ? 'Pronunciation isn’t available here' : 'Nothing to practise out loud — on to the summary ✓', 3000, 'nod');
+      setTimeout(function () { if (S && S.step === 'deep') next(); }, 1400);
+      return;
     }
-    var opened = window.MinestPron.learnLoop(cards, {
-      title: 'Read Aloud · ' + (S.listTitle || ''), threshold: TH, maxTries: 2,
-      onFinish: function (res) {
-        take(res);
+    var finT = 0;
+    var useLoop = !!window.MinestPron.learnLoop;
+    var deepOpts = {
+      title: 'Deep Learning · ' + (S.listTitle || ''), threshold: settings().threshold, maxTries: 2,
+      onFinish: function () {
+        // its own score summary shows for a moment ("Practice these" keeps you here)
         clearTimeout(finT);
         if (!settings().auto) return;
-        finT = setTimeout(function () { var root = document.querySelector('.mpron-practice'); if (root && S && curStage() === st) { var x = root.querySelector('.mpron-x'); if (x) x.click(); } }, 4200);
+        finT = setTimeout(function () {
+          var root = document.querySelector('.mpron-practice');
+          if (root && (useLoop || !root.querySelector('.mpron-mic')) && S && S.step === 'deep') { var x = root.querySelector('.mpron-x'); if (x) x.click(); }
+        }, 4200);
       },
       onClose: function (res, info) {
         clearTimeout(finT);
-        if (!S || curStage() !== st) return;
-        take(res);
-        if (info && info.finished) { st.ids.forEach(function (id) { st.done[id] = 1; }); stageDone(); setTimeout(function () { if (S && curStage() === st) next(); }, 400); }
-        else paint();
+        if (!S || S.step !== 'deep') return;
+        Object.keys(res || {}).forEach(function (id) { S.deep.scores[id] = res[id]; });
+        stepDone('deep'); save();
+        if (info && info.detail) S.deep.detail = info.detail;
+        if (info && info.finished) setTimeout(function () { if (S && S.step === 'deep') next(); }, 400);
+        else say('Paused — tap Next for the summary', 3000, 'nod');
       }
+    };
+    var opened = useLoop ? window.MinestPron.learnLoop(cards, deepOpts)
+      : window.MinestPron.practice('Learning Path · ' + (S.listTitle || ''), cards, Object.assign({ quiet: true }, deepOpts));
+    window.addEventListener('minest:study-activity', function onDeep(e) {
+      if (!S || S.step !== 'deep') { window.removeEventListener('minest:study-activity', onDeep); return; }
+      var d = e.detail || {};
+      if (d.source === 'pron' && d.type === 'score' && d.cardId) { S.deep.tried = S.deep.tried || {}; S.deep.tried[d.cardId] = 1; liveProgress(true); }
     });
-    if (opened === false) { stageDone(); next(); }
+    if (opened === false) { stepDone('deep'); return; }
+    say(useLoop ? 'Listen, say it with me, then on your own 🗣' : 'Listen, then say it with me 🗣', 3200, 'look');
   }
 
-  // Voice Quiz (hands-free) — meaning (and spelling): hear it, say it, judged, next
-  var RTVKEY = 'minest.learn.rtv.v1';
-  function rtvMedian() { var a = load(RTVKEY, []).slice().sort(function (x, y) { return x - y; }); return a.length >= 6 ? a[Math.floor(a.length / 2)] : 0; }
-  function addRtv(ms) { if (!(ms > 200 && ms < 30000)) return; var a = load(RTVKEY, []); a.push(Math.round(ms)); store(RTVKEY, a.slice(-200)); }
-  function quizItems(ids, pathKey, intro) {
-    var b = boards().filter(function (x) { return x.id === S.boardId; })[0], byId = {};
-    try { (window.StudyArcade && window.StudyArcade._deck ? window.StudyArcade._deck(b, null, true) : []).forEach(function (d) { byId[d.id] = d; }); } catch (e) {}
-    var kinds = (E.PATHS[pathKey] || E.PATHS.vocab).quiz || ['meaning'];
-    return ids.map(function (id, n) {
-      var f = findCard(id); if (!f) return null;
-      var c = f.card, d = byId[id] || {}, term = d.term || wordOf(c.title) || String(c.title || '').trim();
-      var back = String(d.zh || d.def || d.back || c.desc || '').replace(/[#*_`>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160);
-      if (!back && !/^[A-Za-z]{3,14}$/.test(term)) return null;
-      var ok = kinds.filter(function (k) { return k === 'spell' ? /^[A-Za-z]{3,14}$/.test(term) : !!back; });
-      if (!ok.length) return null;
-      // mostly meaning ↔ term in turn; a spelling now and then
-      var spellTurn = ok.indexOf('spell') >= 0 && (ok.length === 1 || n % 4 === 3);
-      var main = ok.filter(function (k) { return k !== 'spell'; });
-      var kind = spellTurn ? 'spell' : main[n % main.length] || ok[0];
-      var isNew = intro || E.isNew(c) || !E.norm(c).skills.meaning;
-      return { id: id, kind: kind, term: term, expected: kind === 'meaning' ? back : term, prompt: kind === 'term' ? back : term, intro: isNew && back ? term + ' — ' + back : '' };
-    }).filter(Boolean);
-  }
-  function runVoiceQuiz(st) {
-    var M = window.MinestPron, items = quizItems(remaining(st), S.pathKey, false);
-    if (!items.length || !M || !M.voiceQuiz) { st.ids.forEach(function (id) { st.done[id] = 1; }); stageDone(); next(); return; }
-    var TH = settings().threshold, finT = 0, mine = st;
-    function take(id, r) {
-      if (r.pending || r.confirm) return;   // decided later (AI) or by you at the end
-      if (r.rt && r.correct) addRtv(r.rt);
-      var ev = { skill: r.skill, correct: r.correct || r.partial, unsure: r.partial, rt: r.rt, rtMedian: rtvMedian(), act: 'voiceQuiz', src: r.source === 'self' ? 'self' : undefined };
-      if (S && curStage() === mine) {
-        mine.done[id] = 1;
-        record(id, ev);
-        if (!r.correct) { S.res.again[id] = 1; if (++S.streak >= 3) struggling(); } else S.streak = 0;
-        S.res.quiz = S.res.quiz || {}; S.res.quiz[id] = r.correct ? 'right' : r.partial ? 'almost' : 'wrong';
-        save();
-      } else recordAny(id, ev);   // the AI answered after the round moved on
-    }
-    var h = M.voiceQuiz(items, {
-      title: 'Voice Quiz · ' + (S.listTitle || ''),
-      onResult: take,
-      onFinish: function (res, info) {
-        clearTimeout(finT);
-        if (!settings().auto || info.waiting) return;   // answers still being checked / to confirm: wait for you
-        finT = setTimeout(function () { var root = document.querySelector('.mpron-practice.mvq'); if (root && S && curStage() === mine) { var x = root.querySelector('.mpron-x'); if (x) x.click(); } }, 4200);
-      },
-      onClose: function (res, info) {
-        clearTimeout(finT);
-        // unresolved answers count as "almost" (you'll see them again soon)
-        Object.keys(res || {}).forEach(function (id) { var r = res[id]; if (r.pending || r.confirm) take(id, Object.assign({}, r, { pending: false, confirm: false, correct: false, partial: true })); });
-        if (!S || curStage() !== mine) return;
-        if (info && info.finished) { mine.ids.forEach(function (id) { mine.done[id] = 1; }); stageDone(); setTimeout(function () { if (S && curStage() === mine) next(); }, 400); }
-        else paint();
-      }
+  // 04 Summary
+  // spaced review (simple): the weaker of the Quick Test answer and the read-aloud score decides
+  // (saying a word well doesn't mean you know it, and knowing it doesn't mean you say it well)
+  //   good (known / ≥ 90) → interval × 2.2 (first time 3 days) · ok (shaky / 80–89) → × 1.3 (first time 2)
+  //   again (didn't know / < 80) → tomorrow · only seen in Flash → keeps its interval (≥ 1 day)
+  function applyReview() {
+    var TH = settings().threshold, Q = S.quicktest, sc = S.deep.scores || {}, now = Date.now(), out = { plan: {}, after: {} }, a = AI();
+    S.cardIds.forEach(function (id) {
+      var f = findCard(id); if (!f) return;
+      var q = Q.known.indexOf(id) >= 0 ? 'known' : Q.unsure.indexOf(id) >= 0 ? 'unsure' : Q.unknown.indexOf(id) >= 0 ? 'unknown' : null;
+      var v = typeof sc[id] === 'number' ? sc[id] : null;
+      var RANK = { again: 0, ok: 1, good: 2 };
+      var gq = q === 'known' ? 'good' : q === 'unsure' ? 'ok' : q === 'unknown' ? 'again' : null;
+      var gv = v != null ? (v >= 90 ? 'good' : v >= TH ? 'ok' : 'again') : null;
+      var g = gq && gv ? (RANK[gq] <= RANK[gv] ? gq : gv) : gq || gv || (S.flash && S.flash.seen && S.flash.seen[id] ? 'seen' : null);
+      if (!g) return;
+      var L0 = f.card.learn || {}, iv = L0.interval || 0;
+      var niv = g === 'good' ? (iv ? Math.round(iv * 2.2) : 3) : g === 'ok' ? (iv ? Math.max(1, Math.round(iv * 1.3)) : 2) : g === 'again' ? 1 : Math.max(1, iv || 1);
+      niv = Math.min(niv, 120);
+      var m = f.card.mastery || 1;
+      if (v != null && v >= TH && q !== 'unknown' && m < 3) m = 3;   // shaky but said it well on your own: "basically known"
+      out.after[id] = m;
+      var hist = (L0.history || []).concat([{ at: now, g: g, q: q || '', s: v }]).slice(-20);
+      var learn = { seen: (L0.seen || 0) + 1, lastReviewed: now, interval: niv, nextReview: dayKey(now + niv * 864e5), history: hist };
+      out.plan[niv] = (out.plan[niv] || 0) + 1;
+      if (a && a.patchCard) a.patchCard(id, { learn: learn, lastReviewed: now, mastery: m });
     });
-    if (h === false) { stageDone(); next(); return; }
-    S.quizCtl = h;
+    return out;
   }
-
-  // ---------------------------------------------------------------- summary
-  function planRows(byDay) {
-    var today = dayKey();
-    return Object.keys(byDay).sort().map(function (d) {
-      var n = byDay[d], days = Math.max(1, Math.round((new Date(d) - new Date(today)) / 864e5));
-      var label = days <= 1 ? 'Tomorrow' : days < 7 ? 'In ' + days + ' days' : days < 14 ? 'In a week' : 'In ' + Math.round(days / 7) + ' weeks';
-      return [label + ' · ' + d.slice(5), n + (n === 1 ? ' card' : ' cards')];
+  function planRows(plan) {
+    return Object.keys(plan).map(Number).sort(function (x, y) { return x - y; }).map(function (d) {
+      var label = d === 1 ? 'Tomorrow' : d < 7 ? 'In ' + d + ' days' : d < 14 ? 'In a week' : 'In ' + Math.round(d / 7) + ' weeks';
+      return [label + ' · ' + dayKey(Date.now() + d * 864e5).slice(5), plan[d] + (plan[d] === 1 ? ' card' : ' cards')];
     });
   }
   function summary() {
-    if (!S) return;
     commit(true);
-    var before = S.masteryBefore || {}, up = 0, mastered = 0, byDay = {}, skillUp = { recall: 0, meaning: 0, pron: 0 }, touched = [];
+    var Q = S.quicktest, before = S.masteryBefore || {}, up = 0, mastered = 0;
+    var rv = applyReview();
     S.cardIds.forEach(function (id) {
       var f = findCard(id); if (!f) return;
-      var L = E.norm(f.card), hw = hasWord(f.card), sb = S.skillsBefore[id] || {};
-      var did = S.res.studied[id] || S.res.quick[id] || S.res.pron[id] != null || (S.res.quiz && S.res.quiz[id]);
-      if (!did) return;
-      touched.push(id);
-      var m = E.mastery(f.card, S.pathKey, hw), b = before[id] || 1;
+      var m = rv.after[id] || f.card.mastery || 1, b = before[id] || 1;
       if (m > b) up++;
       if (m >= 4 && b < 4) mastered++;
-      Object.keys(skillUp).forEach(function (k) { if (L.skills[k] && (L.skills[k].lv || 0) > (sb[k] || 0)) skillUp[k]++; });
-      var due = E.nextDue(f.card, S.pathKey, hw); if (due) byDay[due] = (byDay[due] || 0) + 1;
     });
-    var TH = settings().threshold, sc = S.res.pron, sids = Object.keys(sc);
-    var avg = sids.length ? Math.round(sids.reduce(function (t, id) { return t + sc[id]; }, 0) / sids.length) : null;
+    var TH = settings().threshold;
+    var sc = S.deep.scores, sids = Object.keys(sc), avg = sids.length ? Math.round(sids.reduce(function (t, id) { return t + sc[id]; }, 0) / sids.length) : null;
     var low = sids.filter(function (id) { return sc[id] < TH; }).map(function (id) { var f = findCard(id); return f ? wordOf(f.card.title) || f.card.title : ''; }).filter(Boolean);
-    var weakT = Object.keys(S.res.again).map(function (id) { var f = findCard(id); return f ? f.card.title : ''; }).filter(Boolean);
-    var left = S.cardIds.length - touched.length;
     var mins = Math.max(0, Math.round(S.time.activeMs / 60000));
-    var known = Object.keys(S.res.quick).filter(function (id) { return S.res.quick[id] !== 'again'; }).length;
-    var quiz = S.res.quiz || {}, quizN = Object.keys(quiz).length, quizOk = Object.keys(quiz).filter(function (id) { return quiz[id] === 'right'; }).length;
+    var weak = Q.unsure.concat(Q.unknown);
+    var weakT = weak.map(function (id) { var f = findCard(id); return f ? f.card.title : ''; }).filter(Boolean);
+    var plan = planRows(rv.plan);
     var L = logLoad();
-    L.sessions.push({ id: S.id, dev: DEV, at: S.startedAt, end: Date.now(), list: S.listTitle, subject: S.subject, path: S.pathKey, intent: S.intent, planned: S.minutes,
-      cards: touched.length, activeMs: S.time.activeMs, known: known, again: Object.keys(S.res.again).length, avg: avg });
+    L.sessions.push({ id: S.id, dev: DEV, at: S.startedAt, end: Date.now(), list: S.listTitle, subject: S.subject, cards: S.cardIds.length, activeMs: S.time.activeMs, known: Q.known.length, unsure: Q.unsure.length, unknown: Q.unknown.length, avg: avg });
     myDay(L, dayKey()).sessions++;
     logSave(L);
     S.status = 'done'; var fin = S; emit('finish');
     liveEnd(true);
-    try { if (window.MinestRewards && window.MinestRewards.emit) window.MinestRewards.emit('study', { minutes: mins, cards: touched.length, xp: Math.min(6, Math.max(1, Math.floor(mins / 5))), itemId: fin.id }); } catch (e) {}
-    var st = settings(), plan = planRows(byDay);
-    var skills = [['🧠', 'Memory', skillUp.recall], ['💡', 'Meaning', skillUp.meaning], ['🗣', 'Pronunciation', skillUp.pron]].filter(function (x) { return x[2]; });
-    card('<h3>Nice work! 🎉</h3><div class="sub">' + esc(fin.listTitle) + ' · ' + esc(E.PATHS[fin.pathKey].label) + '</div>' +
-      '<div class="stats"><div><b>' + fmt(fin.time.activeMs) + '</b><span>active time</span></div><div><b>' + touched.length + '</b><span>cards</span></div>' +
-        (quizN ? '<div><b>' + quizOk + '/' + quizN + '</b><span>voice answers right</span></div>' : '<div><b>' + (avg == null ? '–' : avg) + '</b><span>avg pronunciation</span></div>') + '</div>' +
-      (skills.length ? '<div class="stats">' + skills.map(function (x) { return '<div><b>+' + x[2] + '</b><span>' + x[0] + ' ' + x[1] + '</span></div>'; }).join('') + '</div>' : '') +
-      (up ? '<div class="why">' + up + ' card' + (up > 1 ? 's' : '') + ' levelled up' + (mastered ? ' · ' + mastered + ' now mastered (all skills Lv 4+)' : '') + '</div>' : '') +
-      (left > 0 ? '<div class="why">' + left + ' card' + (left > 1 ? 's' : '') + ' carried to next time</div>' : '') +
+    try { if (window.MinestRewards && window.MinestRewards.emit) window.MinestRewards.emit('study', { minutes: mins, cards: fin.cardIds.length, xp: Math.min(6, Math.max(1, Math.floor(mins / 5))), itemId: fin.id }); } catch (e) {}
+    var st = settings();
+    card('<h3>Nice work! 🎉</h3><div class="sub">' + esc(fin.listTitle) + ' · ' + esc(fin.subject) + '</div>' +
+      '<div class="stats"><div><b>' + fmt(fin.time.activeMs) + '</b><span>active time</span></div><div><b>' + fin.cardIds.length + '</b><span>cards</span></div><div><b>' + (avg == null ? '–' : avg) + '</b><span>avg pronunciation</span></div></div>' +
+      '<div class="stats"><div><b>' + Q.known.length + '</b><span>knew it</span></div><div><b>' + Q.unsure.length + '</b><span>shaky</span></div><div><b>' + Q.unknown.length + '</b><span>again</span></div></div>' +
+      (up ? '<div class="why">' + up + ' card' + (up > 1 ? 's' : '') + ' levelled up' + (mastered ? ' · ' + mastered + ' now mastered (Lv 4+)' : '') + '</div>' : '') +
       (weakT.length ? '<div class="sub" style="margin-top:10px">Needs review</div><div class="chips">' + weakT.slice(0, 16).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div>' : '') +
       (low.length ? '<div class="sub" style="margin-top:10px">Say these again</div><div class="chips">' + low.slice(0, 12).map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div>' : '') +
-      (plan.length ? '<div class="sub" style="margin-top:10px">Review plan</div><div class="plan">' + plan.slice(0, 6).map(function (p) { return '<div><span>' + p[0] + '</span><b>' + p[1] + '</b></div>'; }).join('') + '</div>' : '') +
+      (plan.length ? '<div class="sub" style="margin-top:10px">Review plan</div><div class="plan">' + plan.map(function (p) { return '<div><span>' + p[0] + '</span><b>' + p[1] + '</b></div>'; }).join('') + '</div>' : '') +
       '<div class="row"><button type="button" data-a="remind">' + (st.remind && st.remindOk ? '🔔 Daily ' + esc(st.remindAt) : '🔔 Remind me daily') + '</button></div>' +
       '<div class="row" style="margin-top:8px"><button type="button" data-a="board">Open list</button><button type="button" class="pri" data-a="done">Done</button></div>',
       function (a, el) {
@@ -49738,11 +48934,13 @@ var Ve = (function(_Component) {
       }, true);
     var p = P();
     if (p) { try { p.play('excited'); p.spin(); p.burst(['📚', '✨', '⭐'], 12, { dist: 95, size: 19 }); } catch (e) {} }
-    coach('finish', mastered ? '+' + mastered + ' mastered! 🎉' : mins + ' min of study ✓', null, 4000);
+    say(mastered ? '+' + mastered + ' mastered! 🎉' : mins + ' min of study ✓', 4000);
     window.__drillLearnIds = null;
     S = null; save(); paint();
     scheduleReminder();
   }
+  // "Remind me daily": on the phone a local notification, on the web (Mac) a browser notification
+  // when the page is in the background, otherwise the Mini Pet's tip
   function enableReminder(btn) {
     var st = settings();
     store(CKEY, Object.assign(load(CKEY, {}), { remind: true, remindOk: true }));
@@ -49750,101 +48948,41 @@ var Ve = (function(_Component) {
     var N = window.MinestNative;
     if (N && N.isNative && N.isNative()) scheduleReminder(true);
     else if (window.Notification && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) {} }
-    coach('reply', 'I’ll remind you at ' + st.remindAt + ' ⏰', 'nod', 2600);
+    say('I’ll remind you at ' + st.remindAt + ' ⏰', 2600, 'nod');
   }
-
-  // ---------------------------------------------------------------- Live Activity / Dynamic Island (app)
-  function NV() { var n = window.MinestNative; return n && n.isNative && n.isNative() ? n : null; }
-  var laAt = 0, laKey = '', laOn = false;
-  function stepProgress() {
-    var st = curStage(), tot = st ? st.ids.length : 0, done = st ? Object.keys(st.done).length : 0, left = 0;
-    var cs = costs();
-    for (var i = S.si; i < S.stages.length; i++) left += remaining(S.stages[i]).length * cs[S.stages[i].act];
-    return { done: Math.min(done, tot), total: tot, remaining: Math.max(1, Math.round(left / 60)), title: NAMES[curAct()] + ' · ' + (S.listTitle || '') };
-  }
-  function liveStart() {
-    var n = NV(); if (!n || !S) return;
-    var p = stepProgress();
-    try { n.startStudy({ boardTitle: '📚 ' + (S.listTitle || 'Learning Path'), totalCards: p.total, completedCards: p.done, remainingMinutes: p.remaining, currentCardTitle: p.title }); laOn = true; } catch (e) {}
-  }
-  function liveProgress(force) {
-    var n = NV(); if (!n || !laOn || !running()) return;
-    var p = stepProgress(), key = S.si + ':' + p.done;
-    if (key === laKey || (!force && Date.now() - laAt < 15000)) return;
-    laKey = key; laAt = Date.now();
-    try { n.updateProgress(p.done, p.total, p.remaining, p.title); } catch (e) {}
-  }
-  function livePaused() { var n = NV(); if (!n || !laOn || !S) return; try { n.send('studyPaused', { completedCards: stepProgress().done }); } catch (e) {} laKey = ''; }
-  function liveEnd(finished) { var n = NV(); if (!n || !laOn) return; laOn = false; laKey = ''; try { if (finished) n.endStudy(); else n.endIsland(); } catch (e) {} }
-
-  // ---------------------------------------------------------------- the Mini Pet studies along, quietly
-  // a slow background motion now and then (no bubbles, no particles); words only at key moments
-  setInterval(function () {
-    if (!counting()) return;
-    var p = P(); if (!p || scrim) return;
-    if (document.querySelector('.mpet-say, .mpet-tip')) return;
-    var r = Math.random(), a = curAct();
-    try {
-      if (a === 'flash' || a === 'reflash') p.play(r < .5 ? 'thinking' : 'look');
-      else if (a === 'quick') p.play(r < .6 ? 'nod' : 'look');
-      else p.play(r < .6 ? 'look' : 'nod');
-    } catch (e) {}
-  }, 20000);
 
   // ---------------------------------------------------------------- start / exit / resume
   function start(opts) {
     opts = opts || {};
     closeCard();
-    if (running() && !opts.fresh) { paint(); coach('reply', 'We’re studying — ' + NAMES[curAct()] + ' 📚', 'nod', 2800); return S; }
+    if (running() && !opts.fresh) { paint(); say('We’re already studying — ' + NAMES[S.step] + ' 📚', 2800, 'nod'); return S; }
     if (S && S.status !== 'done' && !opts.fresh && !opts.boardId) {
-      var cur = S, cs = curStage(), left = cur.stages.slice(cur.si).reduce(function (t, s) { return t + remaining(s).length; }, 0);
-      card('<h3>Continue studying?</h3><div class="sub">' + esc(cur.listTitle) + '</div>' +
-        '<div class="big">Stopped at <b>' + NAMES[cs ? cs.act : 'summary'] + '</b>' + (cs ? ' · ' + Object.keys(cs.done).length + '/' + cs.ids.length : '') + '</div>' +
-        '<div class="sub">' + left + ' cards left · ' + fmt(cur.time.activeMs) + ' so far</div>' +
+      var cur = S;
+      card('<h3>Continue studying?</h3><div class="sub">' + esc(cur.listTitle) + ' · ' + cur.cardIds.length + ' cards</div>' +
+        '<div class="big">Stopped at <b>' + NAMES[cur.step] + '</b> · ' + fmt(cur.time.activeMs) + ' so far</div>' +
         '<div class="row"><button type="button" data-a="new">Start fresh</button><button type="button" class="pri" data-a="go">Continue</button></div>',
         function (a) {
-          if (a === 'go') { closeCard(); S.status = 'running'; emit('resume'); liveStart(); coach('start', 'Welcome back — picking up where we stopped 📚', 'wave'); go(S.si); }
+          if (a === 'go') { closeCard(); S.status = 'running'; emit('resume'); liveStart(); go(S.step); }
           else { S = null; save(); start({ fresh: true }); }
         });
       return null;
     }
-    var st = settings();
-    offer({ intent: opts.intent || st.intent || 'auto', minutes: opts.minutes || st.minutes || 15, only: opts.boardId || opts.listId ? { boardId: opts.boardId, listId: opts.listId } : null });
-    var r = offerState && offerState.r;
-    coach('reply', r ? coachLine(r) : 'All caught up 🎉', r ? 'excited' : 'happy', 4200);
-    return r ? r.plan : null;
+    if (opts.cardIds && opts.cardIds.length) { begin(Object.assign({ minutes: Math.round(opts.cardIds.length * 0.8) }, opts)); return S; }
+    var plan = todayPlan(opts.boardId || opts.listId ? opts : null);
+    offer(plan);
+    return plan;
   }
   function exit() {
     if (!S) return;
     clearInterval(transT); closeCard();
-    leaveStage();
+    leaveStep();
     commit(true);
     S.status = 'suspended'; save(); emit('exit');
-    liveEnd(false); paint();
-    coach('reply', 'Saved — say “start studying” to pick up again 📌', 'nod', 3200);
+    liveEnd(false);
+    paint();
+    say('Saved — say “start studying” to pick up again 📌', 3200, 'nod');
   }
   function pause() { if (running()) { lastAct = 0; paintTime(); emit('pause'); } }
-  var lastSkip = 0;
-  function command(name) {
-    if (!running()) return false;
-    var loop = document.querySelector('.mpron-practice.mpron-loop'), a = curAct();
-    if (name === 'skip') {
-      // once: this card (where the activity has cards one by one), twice in a row: the whole stage
-      var twice = Date.now() - lastSkip < 6000; lastSkip = Date.now();
-      if (loop && !twice) { var b = loop.querySelector('[data-a=skip]'); if (b) { b.click(); return true; } }
-      next(); return true;
-    }
-    if (name === 'next') { if (scrim && scrim.querySelector('[data-a=go]')) { scrim.querySelector('[data-a=go]').click(); return true; } next(); return true; }
-    if (name === 'again') { if (loop) { var r = loop.querySelector('[data-a=retry],[data-a=again]'); if (r) { r.click(); return true; } } again(); return true; }
-    if (name === 'pause') { exit(); return true; }
-    if (name === 'left') {
-      var n = 0, sec = 0, cs = costs();
-      for (var i = S.si; i < S.stages.length; i++) { var k = remaining(S.stages[i]).length; n += k; sec += k * cs[S.stages[i].act]; }
-      coach('reply', n + (n === 1 ? ' card' : ' cards') + ' left · about ' + minutesOf(sec) + ' min (' + NAMES[a] + ' now)', 'nod', 3600);
-      return true;
-    }
-    return false;
-  }
 
   // ---------------------------------------------------------------- reminders
   function studiedToday() { return dayTotal(logLoad(), dayKey()).activeMs >= 60000; }
@@ -49877,37 +49015,45 @@ var Ve = (function(_Component) {
     }
     if (window.MinestTips && window.MinestTips.show && window.MinestTips.show('study')) { try { localStorage.setItem(RKEY, dayKey()); } catch (e) {} }
   }, 60000);
+  // the app: a local notification for the next reminder (one-shot, so it is re-armed on every visit / round)
   function scheduleReminder(asked) {
     var N = window.MinestNative, st = settings();
     if (!(N && N.isNative && N.isNative()) || !st.remind) return;
-    if (!asked && !st.remindOk && !logLoad().sessions.length) return;
+    if (!asked && !st.remindOk && !logLoad().sessions.length) return;   // only once Learning Path has been used (asks for permission)
     var t = remindTime(studiedToday() || Date.now() > remindTime(0).getTime() ? 1 : 0);
     var plan = null; try { plan = todayPlan(); } catch (e) {}
     try { N.scheduleNotification({ id: 'minest-learning-path-daily', title: 'Time to study 📚', body: plan ? plan.listTitle + ' · ' + plan.cardIds.length + ' cards waiting — Octo is ready' : 'Your Mini Pet is ready to study with you', delaySeconds: Math.max(60, Math.round((t - Date.now()) / 1000)) }); } catch (e) {}
   }
   setTimeout(scheduleReminder, 8000);
 
+  // ---------------------------------------------------------------- the Mini Pet acts along
+  window.addEventListener('minest:learn', function (e) {
+    var p = P(), d = e.detail || {}; if (!p) return;
+    try {
+      if (d.type === 'start') { p.hop(); p.burst(['📚', '✨'], 6, { up: true }); }
+      else if (d.type === 'step' && d.step === 'quicktest') p.play('nod');
+      else if (d.type === 'step' && d.step === 'deep') p.lookAt(innerWidth / 2, innerHeight / 2, 1600);
+    } catch (err) {}
+  });
+
   window.MinestLearn = {
-    start: start, next: next, skip: next, again: again, back: back, pause: pause, exit: exit, command: command,
-    resume: function () { if (S && S.status !== 'done') { S.status = 'running'; emit('resume'); go(S.si); } },
+    start: start, next: next, back: back, skip: next, pause: pause, exit: exit,
+    resume: function () { if (S && S.status !== 'done') { S.status = 'running'; emit('resume'); go(S.step); } },
     active: function () { return running(); },
-    get state() { return { step: S ? curAct() : 'idle', status: S ? S.status : 'idle', session: S }; },
+    get state() { return { step: S ? S.step : 'idle', status: S ? S.status : 'idle', session: S }; },
     todayPlan: todayPlan,
-    plan: function (intent, minutes, only) { return bestPlan(intent || 'auto', minutes || settings().minutes, only); },
     settings: function (patch) { if (patch) store(CKEY, Object.assign(load(CKEY, {}), patch)); return settings(); },
     history: function (range) {
       var L = logLoad(), n = range === 'week' ? 7 : range === 'month' ? 30 : 1, out = [];
       for (var i = 0; i < n; i++) { var k = dayKey(Date.now() - i * 864e5); out.push(Object.assign({ day: k }, dayTotal(L, k))); }
       return { days: out, sessions: L.sessions.slice(-10), device: DEV };
     },
-    engine: E,
-    cardStatus: cardStatus, skillView: skillView, pathOf: pathOf, costs: costs,
-    _calibrate: calibrate,
+    // cloud sync (main page): what to upload, and what came down from another device
     _cloud: function () { return logLoad(); },
     _mergeCloud: mergeCloud,
     tick: activity
   };
-  if (S && S.status === 'suspended') setTimeout(function () { if (S) coach('reply', 'Your Learning Path is waiting — tap 📚 to continue', 'wave', 3600); }, 6000);
+  if (S && S.status === 'suspended') setTimeout(function () { if (S) say('Your Learning Path is waiting — tap 📚 to continue', 3600, 'wave'); }, 6000);
 })();
 </script>
 <script>

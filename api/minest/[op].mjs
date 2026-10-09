@@ -1,5 +1,5 @@
 // Minest AI on Vercel: /api/minest/<op> — ai-chat, ai-chat-stream, ai-plan, ai-expand, ai-analyze,
-// ai-diagnose, ai-board. Same logic as the Mac server (api/_minest/core.mjs).
+// ai-diagnose, ai-board, ai-judge (44.7 voice quiz). Same logic as the Mac server (api/_minest/core.mjs).
 // Every request must carry X-Minest-Token = MINEST_AI_TOKEN (set in the Vercel project), so the
 // API key behind it cannot be used by anyone else. Without a configured token nothing is served.
 import { headers, handle, streamChat } from '../_minest/core.mjs';

@@ -27,8 +27,12 @@
   // ---------------------------------------------------------------------------------------------------
   // drawing the cottage (static parts → sprite; door opening left transparent)
   // ---------------------------------------------------------------------------------------------------
+  // 44.5: house styles — the pearl Shell House is the default; the Coral Cottage stays as an unlockable
+  var STYLES = { shell: { label: 'Shell House', icon: '🐚', level: 0 }, cottage: { label: 'Coral Cottage', icon: '🏡', level: 3 } };
+  function style() { var v = ''; try { v = localStorage.getItem('minest.octo.house.style') || ''; } catch (e) {} return STYLES[v] ? v : 'shell'; }
   function geo(s) {
     var h1 = s * .22, ry = s * .46;
+    if (style() === 'shell') return { h1: h1, ry: ry, dw: s * .26, dh: s * .36, win: { x: -s * .22, y: -s * .25, r: s * .075 }, chim: { x: -s * .02, y: -s * .86 }, shell: true };
     return { h1: h1, ry: ry, dw: s * .3, dh: s * .4, win: { x: -s * .2, y: -h1 - ry * .3, r: s * .085 }, chim: { x: s * .22, y: -h1 - ry * .7 } };
   }
   function doorPath(c, s, inset) {
@@ -49,6 +53,7 @@
       c.strokeStyle = col; c.lineCap = 'round';
       for (var i = 0; i < n; i++) { var a = (i - (n - 1) / 2) * .22, len = hgt * R(.7, 1.1); c.lineWidth = s * .018; c.beginPath(); c.moveTo(x + i * s * .012, 0); c.quadraticCurveTo(x + Math.sin(a) * len * .5, -len * .6, x + Math.sin(a) * len, -len); c.stroke(); }
     }
+    if (g.shell) { drawShellHouse(c, s, g); return; }
     grass(-s * .55, 5, s * .32, '#3f9d72'); grass(s * .5, 4, s * .26, '#4bb083');
     // body: wall + dome
     c.save();
@@ -130,6 +135,130 @@
     c.fillStyle = '#ffd7c4'; c.beginPath(); c.ellipse(0, s * .012, g.dw * .62, s * .03, 0, 0, TAU); c.fill();
   }
 
+
+  // ---- the Shell House (44.5 default): a mint egg-shaped cottage under a big pearly scallop, a wavy
+  // shell awning, pearl portholes, a lit round window, a wooden arched door, hanging pearl lamps, coral
+  // clusters and a mossy mound with stepping stones
+  function pearl(c, x, y, r) {
+    var g = c.createRadialGradient(x - r * .35, y - r * .4, r * .05, x, y, r);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(.45, '#f6eef4'); g.addColorStop(.8, '#e2cfe6'); g.addColorStop(1, '#c9b2c9');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(255,220,240,.45)'; c.beginPath(); c.arc(x + r * .25, y + r * .3, r * .35, 0, TAU); c.fill();
+  }
+  function coral(c, x, y, size, col, seed) {   // a branching coral with knobbly tips
+    c.strokeStyle = col; c.fillStyle = col; c.lineCap = 'round';
+    var rnd = function (n) { var v = Math.sin(seed * 12.9898 + n * 78.233) * 43758.5453; return v - Math.floor(v); };
+    var k = 0;
+    function br(x1, y1, a, len, w, d) {
+      var x2 = x1 + Math.cos(a) * len, y2 = y1 + Math.sin(a) * len;
+      c.lineWidth = w; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+      if (d > 0) { br(x2, y2, a - .45 - rnd(k++) * .3, len * .72, w * .78, d - 1); br(x2, y2, a + .4 + rnd(k++) * .3, len * .7, w * .78, d - 1); }
+      else { c.beginPath(); c.arc(x2, y2, w * .62, 0, TAU); c.fill(); }
+      if (d < 2) for (var dd = 0; dd < 2; dd++) { c.beginPath(); c.arc(x1 + (x2 - x1) * (.3 + dd * .4) + w * .5, y1 + (y2 - y1) * (.3 + dd * .4), w * .22, 0, TAU); c.fill(); }
+    }
+    br(x, y, -Math.PI / 2 - .25, size * .34, size * .07, 2);
+    br(x, y, -Math.PI / 2 + .3, size * .3, size * .065, 2);
+  }
+  function pom(c, x, y, r, col) {   // a little round sea pom-pom
+    c.fillStyle = col;
+    for (var i = 0; i < 9; i++) { var a = i / 9 * TAU; c.beginPath(); c.arc(x + Math.cos(a) * r * .55, y + Math.sin(a) * r * .45, r * .42, 0, TAU); c.fill(); }
+    c.fillStyle = 'rgba(255,255,255,.25)'; c.beginPath(); c.arc(x - r * .2, y - r * .25, r * .3, 0, TAU); c.fill();
+  }
+  function drawShellHouse(c, s, g) {
+    var cx = 0, bodyY = -s * .33, rx = s * .36, ryB = s * .41;
+    // 44.5: a low scallop fan standing behind the house, opening towards you (kept low and narrow so the
+    // house stays compact), then the egg body, pearl portholes and a thick wavy shell awning
+    // 1) the scallop behind
+    var fx = 0, fy = -s * .4, fw = s * .56, fh = s * .44, ribs = 11;
+    c.beginPath(); c.moveTo(fx - fw * .2, fy + s * .05);
+    for (var i = 0; i <= ribs; i++) {
+      var a0 = Math.PI * (1 - i / ribs), a1 = Math.PI * (1 - (i + .5) / ribs), a2 = Math.PI * (1 - (i + 1) / ribs);
+      if (i === 0) c.lineTo(fx + Math.cos(a0) * fw, fy - Math.sin(a0) * fh);
+      if (i < ribs) c.quadraticCurveTo(fx + Math.cos(a1) * fw * 1.08, fy - Math.sin(a1) * fh * 1.08, fx + Math.cos(a2) * fw, fy - Math.sin(a2) * fh);
+    }
+    c.lineTo(fx + fw * .2, fy + s * .05); c.closePath();
+    var sg = c.createLinearGradient(-fw, 0, fw, 0);
+    sg.addColorStop(0, '#f7d7c4'); sg.addColorStop(.25, '#f2c3d6'); sg.addColorStop(.5, '#fbe9df'); sg.addColorStop(.75, '#e9c6e6'); sg.addColorStop(1, '#f9d2b8');
+    c.fillStyle = sg; c.fill();
+    c.save(); c.clip();
+    for (var r = 0; r < ribs; r++) {
+      var a = Math.PI * (1 - (r + 1) / ribs), b = Math.PI * (1 - (r + .5) / ribs);
+      c.strokeStyle = 'rgba(170,110,140,.16)'; c.lineWidth = s * .028; c.beginPath(); c.moveTo(fx, fy); c.lineTo(fx + Math.cos(a) * fw * 1.1, fy - Math.sin(a) * fh * 1.1); c.stroke();
+      c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = s * .011; c.beginPath(); c.moveTo(fx, fy); c.lineTo(fx + Math.cos(b) * fw * 1.1, fy - Math.sin(b) * fh * 1.1); c.stroke();
+    }
+    c.strokeStyle = 'rgba(230,170,150,.35)'; c.lineWidth = s * .006;
+    for (var gl = 1; gl < 6; gl++) { c.beginPath(); c.ellipse(fx, fy, fw * gl / 6, fh * gl / 6, 0, Math.PI, 0); c.stroke(); }
+    c.restore();
+    // 2) the egg-shaped body
+    c.save();
+    c.beginPath(); c.ellipse(cx, bodyY, rx, ryB, 0, 0, TAU);
+    var bg = c.createRadialGradient(-rx * .35, bodyY - ryB * .4, s * .03, cx, bodyY, rx * 1.15);
+    bg.addColorStop(0, '#eef8f1'); bg.addColorStop(.6, '#c7e2d6'); bg.addColorStop(1, '#8fb8a8');
+    c.fillStyle = bg; c.fill();
+    c.restore();
+    // 3) two pearl portholes above the awning
+    [[-s * .11, -s * .58, s * .055], [s * .12, -s * .61, s * .068]].forEach(function (p) {
+      c.fillStyle = '#b48a76'; c.beginPath(); c.arc(p[0], p[1], p[2] * 1.32, 0, TAU); c.fill();
+      c.fillStyle = '#d9b8a4'; c.beginPath(); c.arc(p[0] - p[2] * .1, p[1] - p[2] * .1, p[2] * 1.18, 0, TAU); c.fill();
+      pearl(c, p[0], p[1], p[2]);
+    });
+    // 4) the thick wavy shell awning: an arched top edge and a scalloped, drooping lip with ridges
+    var ay = -s * .44, aw = s * .6, nb = 7;
+    function lower(x) { return ay + s * .1 + Math.pow(Math.abs(x) / aw, 2) * s * .1; }
+    function awPath() {
+      c.beginPath();
+      c.moveTo(-aw, lower(-aw) - s * .02);
+      c.quadraticCurveTo(0, ay - s * .26, aw, lower(aw) - s * .02);
+      for (var k2 = nb; k2 > 0; k2--) {
+        var xa = -aw + k2 / nb * aw * 2, xb = -aw + (k2 - 1) / nb * aw * 2, xm = (xa + xb) / 2;
+        c.quadraticCurveTo(xm, lower(xm) + s * .085, xb, lower(xb));
+      }
+      c.closePath();
+    }
+    awPath();
+    var ag = c.createLinearGradient(0, ay - s * .12, 0, ay + s * .18);
+    ag.addColorStop(0, '#fff6ef'); ag.addColorStop(.45, '#f9d9d4'); ag.addColorStop(1, '#eba9b2');
+    c.fillStyle = ag; c.fill();
+    c.save(); c.clip();
+    c.lineWidth = s * .008;
+    for (var rl = 1; rl <= 6; rl++) {
+      c.strokeStyle = rl % 2 ? 'rgba(214,128,140,.42)' : 'rgba(255,255,255,.5)';
+      c.beginPath();
+      for (var q2 = 0; q2 <= 64; q2++) { var xx2 = -aw + q2 / 64 * aw * 2, wv = Math.sin((xx2 + aw) / (aw * 2) * Math.PI * nb); c.lineTo(xx2, lower(xx2) - s * .022 * rl + Math.abs(wv) * s * .03 - s * .005); }
+      c.stroke();
+    }
+    var hl = c.createLinearGradient(0, ay - s * .2, 0, ay); hl.addColorStop(0, 'rgba(255,255,255,.55)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = hl; c.fillRect(-aw, ay - s * .2, aw * 2, s * .16);
+    c.restore();
+    awPath(); c.strokeStyle = 'rgba(200,120,135,.45)'; c.lineWidth = s * .006; c.stroke();
+    // 5) hanging pearl lamps
+    [[-s * .2, s * .1], [s * .36, s * .12]].forEach(function (h) {
+      c.strokeStyle = 'rgba(150,110,90,.8)'; c.lineWidth = 1; c.beginPath(); c.moveTo(h[0], ay + s * .04); c.lineTo(h[0], ay + h[1]); c.stroke();
+      pearl(c, h[0], ay + h[1] + s * .025, s * .028);
+    });
+    // 6) the round window frame + sill (the glass and its mullion are drawn live)
+    var wn = g.win;
+    c.fillStyle = '#b48a76'; c.beginPath(); c.arc(wn.x, wn.y, wn.r * 1.35, 0, TAU); c.fill();
+    c.fillStyle = '#d9b8a4'; c.beginPath(); c.arc(wn.x, wn.y, wn.r * 1.18, 0, TAU); c.fill();
+    c.fillStyle = '#a07a66'; c.beginPath(); c.roundRect ? c.roundRect(wn.x - wn.r * 1.3, wn.y + wn.r * 1.15, wn.r * 2.6, s * .03, s * .01) : c.rect(wn.x - wn.r * 1.3, wn.y + wn.r * 1.15, wn.r * 2.6, s * .03); c.fill();
+    // 7) moss patches on the walls
+    c.fillStyle = '#7f9a3e';
+    [[rx * .78, -s * .3, s * .05], [-rx * .9, -s * .12, s * .04], [rx * .55, -s * .1, s * .035]].forEach(function (m) { for (var k = 0; k < 5; k++) { c.beginPath(); c.arc(m[0] + Math.cos(k * 1.3) * m[2] * .5, m[1] + Math.sin(k * 1.7) * m[2] * .6, m[2] * .45, 0, TAU); c.fill(); } });
+    // 8) the door: a wooden arch frame; the opening is cut out (the interior is drawn behind the octopus)
+    doorPath(c, s, -s * .028); c.fillStyle = '#a8806a'; c.fill();
+    c.strokeStyle = '#c9a58c'; c.lineWidth = s * .01; doorPath(c, s, -s * .016); c.stroke();
+    c.globalCompositeOperation = 'destination-out'; doorPath(c, s, s * .01); c.fill(); c.globalCompositeOperation = 'source-over';
+    // 9) the mossy mound, stones and stepping stones
+    var moss = ['#6f8f34', '#87a644', '#5f7d2c'];
+    for (var mm = 0; mm < 13; mm++) { var mx = -s * .52 + mm * s * .087, my = s * .005 - Math.sin(mm * .9) * s * .012; c.fillStyle = moss[mm % 3]; c.beginPath(); c.ellipse(mx, my, s * .075, s * .045, 0, Math.PI, 0); c.fill(); }
+    c.fillStyle = '#8c8aa0'; [[-s * .44, s * .01, s * .05], [s * .46, s * .005, s * .045]].forEach(function (r2) { c.beginPath(); c.ellipse(r2[0], r2[1], r2[2], r2[2] * .55, 0, 0, TAU); c.fill(); });
+    c.fillStyle = '#a9a3b4'; [[0, s * .03, s * .1], [s * .1, s * .065, s * .085]].forEach(function (st2) { c.beginPath(); c.ellipse(st2[0], st2[1], st2[2], s * .022, 0, 0, TAU); c.fill(); c.fillStyle = '#c2bdcc'; c.beginPath(); c.ellipse(st2[0], st2[1] - s * .006, st2[2] * .85, s * .012, 0, 0, TAU); c.fill(); c.fillStyle = '#a9a3b4'; });
+    // 10) a few small corals and pom-poms at the base (kept light, so the house stays clean)
+    coral(c, -s * .42, -s * .02, s * .36, '#e4789a', 1); coral(c, -s * .33, -s * .02, s * .26, '#5bb3ad', 2);
+    coral(c, s * .4, -s * .02, s * .36, '#f39b7e', 3);
+    pom(c, -s * .2, -s * .035, s * .038, '#f6a487'); pom(c, s * .3, -s * .035, s * .035, '#7cc9c2');
+  }
+
   // ---------------------------------------------------------------------------------------------------
   // layout
   // ---------------------------------------------------------------------------------------------------
@@ -189,6 +318,7 @@
       c.globalCompositeOperation = 'source-over';
     }
     c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.ellipse(w.x - w.r * .35, w.y - w.r * .4, w.r * .28, w.r * .14, -.6, 0, TAU); c.fill();
+    if (g.shell) { c.fillStyle = '#b48a76'; c.fillRect(w.x - w.r, w.y - s * .006, w.r * 2, s * .012); c.fillRect(w.x - s * .006, w.y - w.r, s * .012, w.r * 2); }
     // chimney bubbles (busier while someone is home) and Zzz
     var cx = g.chim.x + Math.sin(.18) * s * .14, cy = g.chim.y - Math.cos(.18) * s * .14;
     if (Math.random() < (resting ? .06 : .025)) particles.push({ x: cx + R(-2, 2), y: cy, r: R(1.5, 3.5) * s / 150, vy: R(14, 24), ph: R(0, TAU), life: 0 });
@@ -389,6 +519,8 @@
 
   window.__octoHouse = {
     goHome: function () { goHome(); }, wake: function () { wake(); },
+    styles: STYLES, get style() { return style(); },
+    setStyle: function (id) { if (!STYLES[id]) return false; try { localStorage.setItem('minest.octo.house.style', id); } catch (e) {} sprite = null; layout(); return true; },
     get state() { return state; }, get energy() { return energy; }, set energy(v) { energy = clamp(+v || 0, 0, 1); },
     get rect() { return { x: house.x, y: house.y, s: house.s }; }
   };
