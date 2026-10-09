@@ -45935,6 +45935,7 @@ var Ve = (function(_Component) {
       '#voice43-transcript .assistant{font:600 14px/1.4 -apple-system,system-ui,sans-serif;text-shadow:0 2px 10px rgba(0,0,0,.7);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
       '#voice43-interim{min-height:0;font-size:13px;font-style:italic;opacity:.6;text-align:center;text-shadow:0 1px 6px rgba(0,0,0,.65);pointer-events:none!important}',
       '#voice43-interim:empty{display:none}',
+      '#voice43-backdrop[data-state="thinking"] #voice43-interim,#voice43-backdrop[data-state="speaking"] #voice43-interim{display:none}',
       '#voice43-token{display:none;gap:8px;align-items:center;width:min(340px,100%)}',
       '#voice43-backdrop.need-token #voice43-token{display:flex}',
       '#voice43-token input{flex:1;min-width:0;height:36px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(14,22,40,.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#fff;font:13px -apple-system,system-ui,sans-serif;outline:none}',
@@ -46695,6 +46696,20 @@ var Ve = (function(_Component) {
     requestReply(value);
   }
 
+  // 44.4: how long a pause means "done talking". A fixed 0.2–0.6 s cut people off mid-sentence; now it
+  // depends on how the words so far end.
+  function endOfTurnDelay(text, isFinal) {
+    var t = String(text || '').trim();
+    var bare = t.replace(/[\s，,。.！!？?、；;：:…]+$/, '');
+    var len = bare.replace(/\s+/g, '').length;
+    if (/[？?！!。.]$/.test(t)) return isFinal ? 450 : 700;                             // ended with a full stop / question mark
+    if (len <= 2) return 1600;                                                        // "嗯", "我想" …
+    if (/(然后|因为|所以|但是|还有|而且|如果|就是|那个|这个|我想|我要|还是|或者|和|跟|的|地|得|在|把|被|给|对|是)$/.test(bare) ||
+        /\b(and|but|so|because|or|the|a|an|to|of|with|my|i|um|uh|like|then)$/i.test(bare)) return 1600;   // clearly not finished
+    if (/(吗|呢|吧|啊|呀|了|嘛|么)$/.test(bare)) return isFinal ? 450 : 700;             // sentence-final particles
+    return isFinal ? 800 : 1100;
+  }
+
   function scheduleSubmit(text, delay) {
     clearTimeout(submitTimer);
     submitTimer = window.setTimeout(function () { submitPending(text); }, delay);
@@ -46713,6 +46728,7 @@ var Ve = (function(_Component) {
       if (active && !recognitionPaused) setState('listening', 'Browser dictation started — go ahead and speak.');
     };
     recognition.onresult = function (event) {
+      if (recognitionPaused || state === 'thinking' || state === 'speaking') return;
       var finalPart = '';
       var interimPart = '';
       for (var i = event.resultIndex; i < event.results.length; i++) {
@@ -46728,9 +46744,9 @@ var Ve = (function(_Component) {
       }
       if (finalPart.trim()) {
         pendingTranscript = (pendingTranscript + ' ' + finalPart).trim();
-        scheduleSubmit(pendingTranscript, FINAL_SUBMIT_DELAY);
+        scheduleSubmit(pendingTranscript, endOfTurnDelay(pendingTranscript, true));
       } else if (interimPart.trim()) {
-        scheduleSubmit((pendingTranscript + ' ' + interimPart).trim(), INTERIM_SUBMIT_DELAY);
+        scheduleSubmit((pendingTranscript + ' ' + interimPart).trim(), endOfTurnDelay((pendingTranscript + ' ' + interimPart).trim(), false));
       }
     };
     recognition.onerror = function (event) {
@@ -46784,11 +46800,14 @@ var Ve = (function(_Component) {
   function resumeRecognition() {
     if (!active) return;
     clearTimeout(recognitionRestartTimer);
-    recognitionRestartTimer = window.setTimeout(function () { recognitionRestartTimer = 0; startRecognition(); }, 60);
+    recognitionRestartTimer = window.setTimeout(function () { recognitionRestartTimer = 0; startRecognition(); }, nativeMode ? 300 : 60);   // let the speaker fall silent first
   }
 
   function onNativeSpeech(event) {
     if (!active || !nativeMode) return;
+    // 44.4: iOS still sends a late result or two after we stopped listening (often with different
+    // punctuation); showing them laid the question over the reply, and could re-submit it
+    if (recognitionPaused || state === 'thinking' || state === 'speaking') return;
     var detail = event && event.detail || {};
     var text = String(detail.text || '').trim();
     var key = normalizeTranscript(text);
@@ -46796,7 +46815,7 @@ var Ve = (function(_Component) {
     nativeLatest = text;
     var interim = document.getElementById('voice43-interim');
     if (interim) interim.textContent = text;
-    scheduleSubmit(text, detail.isFinal ? 60 : NATIVE_INTERIM_SUBMIT_DELAY);
+    scheduleSubmit(text, endOfTurnDelay(text, !!detail.isFinal));
   }
 
   function onNativeSpeechError(event) {
