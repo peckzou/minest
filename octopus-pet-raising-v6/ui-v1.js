@@ -47,6 +47,45 @@
   ].join('\n');
   var st = document.createElement('style'); st.textContent = css; (document.head || document.documentElement).appendChild(st);
 
+  // ---- 44.4 full screen inside Minest -------------------------------------------------------------
+  // env(safe-area-inset-*) is 0 inside an iframe, so the Minest page passes the real insets in the URL
+  // (?sat=&sab=) and draws its own ✕ (&pexit=1): a tap on the frame's ✕ didn't reach the app's page.
+  var q = new URLSearchParams(location.search);
+  var SAT = Math.max(0, +q.get('sat') || 0), SAB = Math.max(0, +q.get('sab') || 0), PEXIT = q.get('pexit') === '1';
+  var T = 'max(env(safe-area-inset-top,0px),' + SAT + 'px)', B = 'max(env(safe-area-inset-bottom,0px),' + SAB + 'px)';
+  var css2 = [
+    PEXIT ? '.ui-exit{display:none!important}' : '.ui-exit{top:calc(' + T + ' + 10px)!important}',
+    '.oc2-needs{top:calc(' + T + ' + 62px)!important}',
+    '.oc2-hud{top:calc(' + T + ' + 12px)!important}',
+    '.oc2-done{top:calc(' + T + ' + 54px)!important}',
+    '.wd-btn{top:calc(' + T + ' + 14px)!important}',
+    '[data-v4-render-toggle]{top:calc(' + T + ' + 62px)!important}',
+    '[data-v4-mini-toggle]{top:calc(' + T + ' + 110px)!important}',
+    '[data-v4-crown-toggle]{top:calc(' + T + ' + 14px)!important}',
+    '.oc2-tray{bottom:calc(' + B + ' + 14px)!important}',
+    '#octo-cc-btn{bottom:calc(' + B + ' + 92px)!important}',
+    '#octo-cc-panel{bottom:calc(' + B + ' + 140px)!important}',
+    '[data-v4-render-panel]{bottom:calc(' + B + ' + 58px)!important}',
+    '.utility-toggle-bar{bottom:calc(' + B + ' + 10px)!important}',
+    // the old small voice button in the bottom bar → one big voice button at the bottom left
+    '.utility-toggle-bar button[aria-label="Live voice"]{display:none!important}',
+    '.ui-voice{position:fixed;left:14px;bottom:calc(' + B + ' + 14px);z-index:62;width:60px;height:60px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.45),rgba(255,255,255,0) 45%),linear-gradient(135deg,#3fd9c8,#6f7cff 60%,#b26bff);box-shadow:0 10px 26px rgba(40,60,160,.45),inset 0 1px 0 rgba(255,255,255,.5);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .35s,transform .15s;-webkit-tap-highlight-color:transparent}',
+    '.ui-voice:active{transform:scale(.92)}',
+    '.ui-voice svg{width:26px;height:26px}',
+    'html.ui-idle .ui-voice{opacity:0!important;pointer-events:none!important}'
+  ].join('\n');
+  var st2 = document.createElement('style'); st2.textContent = css2; (document.head || document.documentElement).appendChild(st2);
+  function addVoice() {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'ui-voice'; b.setAttribute('aria-label', 'Voice');
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+    b.addEventListener('pointerdown', function (e) { e.stopPropagation(); }, true);
+    b.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      if (inFrame) { try { window.parent.postMessage({ type: 'minest-voice', action: 'open' }, '*'); } catch (err) {} }
+    });
+    document.body.appendChild(b);
+  }
+
   // ---- no placeholder octopus ---------------------------------------------------------------------
   document.documentElement.classList.add('ui-loading');
   (function waitModel(n) {
@@ -96,6 +135,6 @@
   ['pointerdown', 'touchstart', 'keydown'].forEach(function (ev) { window.addEventListener(ev, wake, { capture: true, passive: true }); });
   window.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') wake(); }, { passive: true });
 
-  function boot() { if (!document.body) return setTimeout(boot, 50); addExit(); wake(); }
+  function boot() { if (!document.body) return setTimeout(boot, 50); addExit(); if (inFrame) addVoice(); wake(); }
   boot();
 })();

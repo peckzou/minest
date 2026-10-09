@@ -45079,18 +45079,23 @@ var Ve = (function(_Component) {
       overlay.id = overlayId;
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-label', 'Pet Raising');
+      // 44.4: full screen (no title bar); our own ✕ top left (a tap on the frame's ✕ never reached this
+      // page in the app), and the real safe-area insets passed in (env() is 0 inside the frame)
+      var probe = document.createElement('div');
+      probe.style.cssText = 'position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';
+      document.body.appendChild(probe);
+      var sat = Math.round(parseFloat(getComputedStyle(probe).paddingTop) || 0), sab = Math.round(parseFloat(getComputedStyle(probe).paddingBottom) || 0);
+      probe.remove();
       overlay.innerHTML = '<style>' +
-        '#' + overlayId + '{position:fixed;inset:0;z-index:2147483000;background:#07131d;display:flex;flex-direction:column;overflow:hidden}' +
-        '#' + overlayId + ' .minest-pet-toolbar{height:calc(46px + env(safe-area-inset-top, 0px));flex:0 0 calc(46px + env(safe-area-inset-top, 0px));padding-top:env(safe-area-inset-top, 0px)!important;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:rgba(5,16,25,.94);color:#e8f8ff;font:600 13px/1 system-ui,-apple-system,sans-serif;border-bottom:1px solid rgba(148,220,255,.18);backdrop-filter:blur(18px)}' +
-        '#' + overlayId + ' .minest-pet-close{border:1px solid rgba(148,220,255,.3);border-radius:10px;background:rgba(116,209,255,.12);color:#e8f8ff;padding:8px 12px;cursor:pointer;font:600 12px/1 system-ui,-apple-system,sans-serif}' +
-        '#' + overlayId + ' .minest-pet-close:hover{background:rgba(116,209,255,.24)}' +
-        '#' + overlayId + ' .minest-pet-close{min-width:64px;min-height:34px}' +
-        '#' + overlayId + ' iframe{display:block;width:100%;height:calc(100% - 46px - env(safe-area-inset-top, 0px));border:0;background:#0a0d12}' +
-        '</style><div class="minest-pet-toolbar"><span>Pet Raising</span><button type="button" class="minest-pet-close" aria-label="Close Pet Raising">Close</button></div><iframe title="Octopus Pet Raising V6 with Realtime Voice 43.7" allow="microphone; autoplay; camera" loading="eager"></iframe>';
+        '#' + overlayId + '{position:fixed;inset:0;z-index:2147483000;background:#07131d;overflow:hidden}' +
+        '#' + overlayId + ' iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;background:#0a0d12}' +
+        '#' + overlayId + ' .minest-pet-x{position:absolute;left:12px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:2;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(10,26,43,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:#fff;font:600 20px/1 system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.25);cursor:pointer;-webkit-tap-highlight-color:transparent}' +
+        '#' + overlayId + ' .minest-pet-x:active{transform:scale(.92)}' +
+        '</style><iframe title="Octo" allow="microphone; autoplay; camera" loading="eager"></iframe><button type="button" class="minest-pet-x" aria-label="Close">✕</button>';
       document.body.appendChild(overlay);
       var frame = overlay.querySelector('iframe');
-      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=444');
-      overlay.querySelector('.minest-pet-close').addEventListener('click', closePetRaising);
+      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=4441&pexit=1&sat=' + sat + '&sab=' + sab);
+      overlay.querySelector('.minest-pet-x').addEventListener('click', closePetRaising);
       document.documentElement.classList.add('pet-raising-open');
     },
     close: closePetRaising
@@ -45098,6 +45103,22 @@ var Ve = (function(_Component) {
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && document.getElementById(overlayId)) closePetRaising();
   });
+  // 44.4: warm the cache with Pet Raising's scripts, styles and model a few seconds after start-up
+  function prefetchPetRaising() {
+    var base = window.minestPetAsset('octopus-pet-raising-v6/index.html');
+    fetch(base + '?prefetch=1', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (html) {
+      var urls = [], re = /(?:src|href)="([^"]+\.(?:js|css)[^"]*)"/g, m;
+      while ((m = re.exec(html))) urls.push({ u: new URL(m[1], base).href, mod: /type="module"/.test(html.slice(Math.max(0, m.index - 60), m.index)) });
+      urls.push({ u: new URL('models/avatar_web_rigged_v23j.glb', base).href });
+      urls.forEach(function (x) {
+        var l = document.createElement('link'); l.rel = 'prefetch'; l.href = x.u;
+        if (x.mod || /\.css/.test(x.u)) l.crossOrigin = 'anonymous';
+        document.head.appendChild(l);
+      });
+    }).catch(function () {});
+  }
+  function schedulePrefetch() { setTimeout(function () { (window.requestIdleCallback || function (f) { setTimeout(f, 1); })(prefetchPetRaising); }, 4000); }
+  if (document.readyState === 'complete') schedulePrefetch(); else window.addEventListener('load', schedulePrefetch, { once: true });
 })();
 </script>
 <script src="three.min.js"></script>
@@ -45492,6 +45513,7 @@ var Ve = (function(_Component) {
     }
 
     var modelCandidates = [
+      asset('octopus-pet-raising-v6/models/avatar_web_rigged_v23j.glb'),   // 44.4: JPEG texture, 2.9 MB instead of 6.6 MB (same file Pet Raising loads, so it is cached once)
       asset('octopus-pet-raising-v6/models/avatar_web_rigged_v23.glb'),
       asset('avatar_web_rigged_v23.glb'),
       asset('models/avatar_web_rigged_v23.glb'),
@@ -45865,7 +45887,7 @@ var Ve = (function(_Component) {
     var style = document.createElement('style');
     style.textContent = [
       '#voice43-launch{display:none!important}',
-      '#voice43-backdrop{position:fixed;inset:0;z-index:2147483600;display:none;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 16px calc(26px + env(safe-area-inset-bottom));pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;color:#fff}',
+      '#voice43-backdrop{position:fixed;inset:0;z-index:2147483600;display:none;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 16px calc(84px + env(safe-area-inset-bottom));pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;color:#fff}',
       '#voice43-backdrop.is-open{display:flex}',
       '#voice43-backdrop:before{content:"";position:absolute;left:0;right:0;bottom:0;height:46vh;background:linear-gradient(to top,rgba(3,10,22,.62),rgba(3,10,22,0));pointer-events:none}',
       '#voice43-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;width:min(560px,100%);pointer-events:none}',
@@ -45909,8 +45931,8 @@ var Ve = (function(_Component) {
       '#voice43-detail{display:none;max-width:100%;text-align:center;font-size:11px;line-height:1.4;opacity:.75;text-shadow:0 1px 6px rgba(0,0,0,.6)}',
       '#voice43-backdrop[data-state="error"] #voice43-detail,#voice43-backdrop[data-state="connecting"] #voice43-detail,#voice43-backdrop[data-state="listening"] #voice43-detail,#voice43-backdrop[data-state="idle"].opts #voice43-detail{display:block}',
       '#voice43-transcript{display:flex;flex-direction:column;align-items:center;gap:4px;max-width:100%;text-align:center;pointer-events:none!important}',
-      '#voice43-transcript .user{font-size:13px;line-height:1.35;opacity:.62;text-shadow:0 1px 6px rgba(0,0,0,.65)}',
-      '#voice43-transcript .assistant{font:600 17px/1.38 -apple-system,system-ui,sans-serif;text-shadow:0 2px 10px rgba(0,0,0,.7);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
+      '#voice43-transcript .user{font-size:12px;line-height:1.35;opacity:.62;text-shadow:0 1px 6px rgba(0,0,0,.65)}',
+      '#voice43-transcript .assistant{font:600 14px/1.4 -apple-system,system-ui,sans-serif;text-shadow:0 2px 10px rgba(0,0,0,.7);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
       '#voice43-interim{min-height:0;font-size:13px;font-style:italic;opacity:.6;text-align:center;text-shadow:0 1px 6px rgba(0,0,0,.65);pointer-events:none!important}',
       '#voice43-interim:empty{display:none}',
       '#voice43-token{display:none;gap:8px;align-items:center;width:min(340px,100%)}',
@@ -46389,6 +46411,9 @@ var Ve = (function(_Component) {
     if (model === 'openrouter') {
       try { return localStorage.getItem('minest_ai_openrouter_model') || 'openai/gpt-4o-mini'; } catch (error) { return 'openai/gpt-4o-mini'; }
     }
+    // 44.4: the board builder stores provider labels ('chatgpt', 'gemini') here; they are not model ids and
+    // made the voice request fail ("Load failed") — voice uses the default fast model for those
+    if (!/[-\/.]/.test(model)) return 'gpt-6-sol';
     return model;
   }
 
@@ -46445,6 +46470,24 @@ var Ve = (function(_Component) {
     processSpeechQueue();
   }
 
+  // 44.4: inside the iOS app speak with AVSpeechSynthesizer (the web view's speechSynthesis was silent there)
+  var ttsSeq = 0, ttsHandlers = {};
+  function useNativeTTS() { return inNativeApp() && window.MinestNative && typeof window.MinestNative.send === 'function'; }
+  function nativeSpeak(text, lang, rate, h) {
+    var id = 'tts' + (++ttsSeq);
+    ttsHandlers[id] = h;
+    // if the app never answers (older build without speakText), finish so the conversation goes on
+    h.guard = setTimeout(function () { if (ttsHandlers[id] && !h.started) { delete ttsHandlers[id]; if (h.onerror) h.onerror({ error: 'native-tts-timeout' }); } }, 3500);
+    window.MinestNative.send('speakText', { text: text, lang: lang, rate: rate, id: id });
+  }
+  window.addEventListener('minestNativeEvent', function (e) {
+    var d = e && e.detail || {}, p = d.payload || {}, h = ttsHandlers[p.id];
+    if (!h) return;
+    if (d.event === 'minestTTSStart') { h.started = true; clearTimeout(h.guard); if (h.onstart) h.onstart(); }
+    else if (d.event === 'minestTTSBoundary') { if (h.onboundary) h.onboundary({ charIndex: p.charIndex || 0, charLength: p.charLength || 0 }); }
+    else if (d.event === 'minestTTSEnd') { clearTimeout(h.guard); delete ttsHandlers[p.id]; if (h.onend) h.onend(); }
+  });
+
   function processSpeechQueue() {
     if (speechPlaying || !speechQueue.length) { finishPlaybackIfReady(); return; }
     if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== 'function') {
@@ -46493,6 +46536,10 @@ var Ve = (function(_Component) {
       }
       processSpeechQueue();
     };
+    if (useNativeTTS()) {
+      nativeSpeak(text, utterance.lang, utterance.rate, { onstart: utterance.onstart, onboundary: utterance.onboundary, onend: utterance.onend, onerror: utterance.onerror });
+      return;
+    }
     try { window.speechSynthesis.speak(utterance); }
     catch (error) { toPet({ kind: 'speak-end', seq: speechSeq }); speechPlaying = false; processSpeechQueue(); }
   }
@@ -46507,6 +46554,7 @@ var Ve = (function(_Component) {
   function cancelPlayback() {
     speechGeneration += 1;
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (error) {} }
+    if (useNativeTTS()) { try { window.MinestNative.send('stopSpeaking', {}); } catch (error) {} }
     speechQueue.length = 0; speechBuffer = ''; speechPlaying = false; responseComplete = false;
     toPet({ kind: 'speak-end' });
   }
@@ -46743,6 +46791,14 @@ var Ve = (function(_Component) {
     window.addEventListener('minestSpeechResult', onNativeSpeech);
     window.addEventListener('minestSpeechError', onNativeSpeechError);
     window.addEventListener('microphonePermissionResponse', onNativePermission);
+    // 44.4: the app delivers native events as one 'minestNativeEvent' { event, payload } (the page's own
+    // MinestNative replaces the injected one, so the per-name events above never arrive)
+    window.addEventListener('minestNativeEvent', function (e) {
+      var d = e && e.detail || {}, wrap = { detail: d.payload || {} };
+      if (d.event === 'minestSpeechResult') onNativeSpeech(wrap);
+      else if (d.event === 'minestSpeechError') onNativeSpeechError(wrap);
+      else if (d.event === 'microphonePermissionResponse') onNativePermission(wrap);
+    });
   }
 
   async function startLegacySession() {
@@ -46881,7 +46937,8 @@ var Ve = (function(_Component) {
       utterance.onend = utterance.onerror = function () {
         if (testGeneration === speechGeneration) toPet({ kind: 'speak-end', seq: testSeq });
       };
-      window.speechSynthesis.cancel(); window.speechSynthesis.resume(); window.speechSynthesis.speak(utterance);
+      if (useNativeTTS()) nativeSpeak(text, 'en-US', 1, { onstart: utterance.onstart, onboundary: utterance.onboundary, onend: utterance.onend, onerror: utterance.onend });
+      else { window.speechSynthesis.cancel(); window.speechSynthesis.resume(); window.speechSynthesis.speak(utterance); }
       setState(active ? 'listening' : 'idle', 'Playing a speaker test; Octo lip-syncs along.');
     } catch (error) { setState('error', 'Speaker test failed: ' + (error.message || 'unknown error')); }
   }

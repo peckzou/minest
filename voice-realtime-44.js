@@ -166,7 +166,7 @@
     var style = document.createElement('style');
     style.textContent = [
       '#voice43-launch{display:none!important}',
-      '#voice43-backdrop{position:fixed;inset:0;z-index:2147483600;display:none;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 16px calc(26px + env(safe-area-inset-bottom));pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;color:#fff}',
+      '#voice43-backdrop{position:fixed;inset:0;z-index:2147483600;display:none;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 16px calc(84px + env(safe-area-inset-bottom));pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;color:#fff}',
       '#voice43-backdrop.is-open{display:flex}',
       '#voice43-backdrop:before{content:"";position:absolute;left:0;right:0;bottom:0;height:46vh;background:linear-gradient(to top,rgba(3,10,22,.62),rgba(3,10,22,0));pointer-events:none}',
       '#voice43-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;width:min(560px,100%);pointer-events:none}',
@@ -210,8 +210,8 @@
       '#voice43-detail{display:none;max-width:100%;text-align:center;font-size:11px;line-height:1.4;opacity:.75;text-shadow:0 1px 6px rgba(0,0,0,.6)}',
       '#voice43-backdrop[data-state="error"] #voice43-detail,#voice43-backdrop[data-state="connecting"] #voice43-detail,#voice43-backdrop[data-state="listening"] #voice43-detail,#voice43-backdrop[data-state="idle"].opts #voice43-detail{display:block}',
       '#voice43-transcript{display:flex;flex-direction:column;align-items:center;gap:4px;max-width:100%;text-align:center;pointer-events:none!important}',
-      '#voice43-transcript .user{font-size:13px;line-height:1.35;opacity:.62;text-shadow:0 1px 6px rgba(0,0,0,.65)}',
-      '#voice43-transcript .assistant{font:600 17px/1.38 -apple-system,system-ui,sans-serif;text-shadow:0 2px 10px rgba(0,0,0,.7);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
+      '#voice43-transcript .user{font-size:12px;line-height:1.35;opacity:.62;text-shadow:0 1px 6px rgba(0,0,0,.65)}',
+      '#voice43-transcript .assistant{font:600 14px/1.4 -apple-system,system-ui,sans-serif;text-shadow:0 2px 10px rgba(0,0,0,.7);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
       '#voice43-interim{min-height:0;font-size:13px;font-style:italic;opacity:.6;text-align:center;text-shadow:0 1px 6px rgba(0,0,0,.65);pointer-events:none!important}',
       '#voice43-interim:empty{display:none}',
       '#voice43-token{display:none;gap:8px;align-items:center;width:min(340px,100%)}',
@@ -690,6 +690,9 @@
     if (model === 'openrouter') {
       try { return localStorage.getItem('minest_ai_openrouter_model') || 'openai/gpt-4o-mini'; } catch (error) { return 'openai/gpt-4o-mini'; }
     }
+    // 44.4: the board builder stores provider labels ('chatgpt', 'gemini') here; they are not model ids and
+    // made the voice request fail ("Load failed") — voice uses the default fast model for those
+    if (!/[-\/.]/.test(model)) return 'gpt-6-sol';
     return model;
   }
 
@@ -746,6 +749,24 @@
     processSpeechQueue();
   }
 
+  // 44.4: inside the iOS app speak with AVSpeechSynthesizer (the web view's speechSynthesis was silent there)
+  var ttsSeq = 0, ttsHandlers = {};
+  function useNativeTTS() { return inNativeApp() && window.MinestNative && typeof window.MinestNative.send === 'function'; }
+  function nativeSpeak(text, lang, rate, h) {
+    var id = 'tts' + (++ttsSeq);
+    ttsHandlers[id] = h;
+    // if the app never answers (older build without speakText), finish so the conversation goes on
+    h.guard = setTimeout(function () { if (ttsHandlers[id] && !h.started) { delete ttsHandlers[id]; if (h.onerror) h.onerror({ error: 'native-tts-timeout' }); } }, 3500);
+    window.MinestNative.send('speakText', { text: text, lang: lang, rate: rate, id: id });
+  }
+  window.addEventListener('minestNativeEvent', function (e) {
+    var d = e && e.detail || {}, p = d.payload || {}, h = ttsHandlers[p.id];
+    if (!h) return;
+    if (d.event === 'minestTTSStart') { h.started = true; clearTimeout(h.guard); if (h.onstart) h.onstart(); }
+    else if (d.event === 'minestTTSBoundary') { if (h.onboundary) h.onboundary({ charIndex: p.charIndex || 0, charLength: p.charLength || 0 }); }
+    else if (d.event === 'minestTTSEnd') { clearTimeout(h.guard); delete ttsHandlers[p.id]; if (h.onend) h.onend(); }
+  });
+
   function processSpeechQueue() {
     if (speechPlaying || !speechQueue.length) { finishPlaybackIfReady(); return; }
     if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== 'function') {
@@ -794,6 +815,10 @@
       }
       processSpeechQueue();
     };
+    if (useNativeTTS()) {
+      nativeSpeak(text, utterance.lang, utterance.rate, { onstart: utterance.onstart, onboundary: utterance.onboundary, onend: utterance.onend, onerror: utterance.onerror });
+      return;
+    }
     try { window.speechSynthesis.speak(utterance); }
     catch (error) { toPet({ kind: 'speak-end', seq: speechSeq }); speechPlaying = false; processSpeechQueue(); }
   }
@@ -808,6 +833,7 @@
   function cancelPlayback() {
     speechGeneration += 1;
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (error) {} }
+    if (useNativeTTS()) { try { window.MinestNative.send('stopSpeaking', {}); } catch (error) {} }
     speechQueue.length = 0; speechBuffer = ''; speechPlaying = false; responseComplete = false;
     toPet({ kind: 'speak-end' });
   }
@@ -1044,6 +1070,14 @@
     window.addEventListener('minestSpeechResult', onNativeSpeech);
     window.addEventListener('minestSpeechError', onNativeSpeechError);
     window.addEventListener('microphonePermissionResponse', onNativePermission);
+    // 44.4: the app delivers native events as one 'minestNativeEvent' { event, payload } (the page's own
+    // MinestNative replaces the injected one, so the per-name events above never arrive)
+    window.addEventListener('minestNativeEvent', function (e) {
+      var d = e && e.detail || {}, wrap = { detail: d.payload || {} };
+      if (d.event === 'minestSpeechResult') onNativeSpeech(wrap);
+      else if (d.event === 'minestSpeechError') onNativeSpeechError(wrap);
+      else if (d.event === 'microphonePermissionResponse') onNativePermission(wrap);
+    });
   }
 
   async function startLegacySession() {
@@ -1182,7 +1216,8 @@
       utterance.onend = utterance.onerror = function () {
         if (testGeneration === speechGeneration) toPet({ kind: 'speak-end', seq: testSeq });
       };
-      window.speechSynthesis.cancel(); window.speechSynthesis.resume(); window.speechSynthesis.speak(utterance);
+      if (useNativeTTS()) nativeSpeak(text, 'en-US', 1, { onstart: utterance.onstart, onboundary: utterance.onboundary, onend: utterance.onend, onerror: utterance.onend });
+      else { window.speechSynthesis.cancel(); window.speechSynthesis.resume(); window.speechSynthesis.speak(utterance); }
       setState(active ? 'listening' : 'idle', 'Playing a speaker test; Octo lip-syncs along.');
     } catch (error) { setState('error', 'Speaker test failed: ' + (error.message || 'unknown error')); }
   }
