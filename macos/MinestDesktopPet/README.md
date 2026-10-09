@@ -44,9 +44,9 @@ Messages from the desktop pet to the page:
 
 - `cmd` with one of: `study`, `build`, `analyze`, `speak`, `octo`, `talk`, `inbox`, `ptt` start/end (hold-to-talk), `act` (tip action).
 - The app brings the browser forward, except for hold-to-talk.
-- If no page is connected, it opens `https://minest-app.vercel.app/?desktopPet=1&pet=<cmd>`.
+- If no page is connected, it opens `https://minest-app.vercel.app/web?desktopPet=1&pet=<cmd>`.
 
-Use `https://minest-app.vercel.app/iphone` (the site root `/` still serves an older page). The first time the page connects, Chrome asks whether `minest-app.vercel.app` may access devices on the local network: allow it once.
+"Open Minest" opens `https://minest-app.vercel.app/web` (Minest Web 30, the desktop web app; same data as the phone). `/iphone` works too. The first time the page connects, Chrome asks whether `minest-app.vercel.app` may access devices on the local network: allow it once.
 
 Opt-in: the page connects only after it has been opened once with `?desktopPet=1`. "Open Minest" in the pet's menu does that. Without this flag, visitors who don't have the app never see the browser's local-network permission prompt.
 

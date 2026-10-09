@@ -72,6 +72,23 @@
         window.dispatchEvent(new CustomEvent('minest:minipet-tap', { detail: { double: false } }));
         setTimeout(function () { var b = document.querySelector('.mpet-menu button[aria-label="' + String(m.label).replace(/"/g, '') + '"]'); if (b) b.click(); }, 500);
       }
+      else if (m.t === 'diag-pixels') {   // a check: the average colour of the pet as drawn (WebKit rendering checks)
+        var best = { r: 0, g: 0, b: 0, n: 0 }, tries = 0;
+        (function sample() {
+          requestAnimationFrame(function () {
+            var cv = document.querySelector('#minest-mini-pet-p0 canvas'), gl = cv && (cv.getContext('webgl2') || cv.getContext('webgl'));
+            if (gl) {
+              var w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, px = new Uint8Array(w * h * 4), o = { r: 0, g: 0, b: 0, n: 0 };
+              gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+              for (var i = 0; i < px.length; i += 16) if (px[i + 3] > 200) { o.r += px[i]; o.g += px[i + 1]; o.b += px[i + 2]; o.n++; }
+              if (o.n > best.n) best = { r: Math.round(o.r / o.n), g: Math.round(o.g / o.n), b: Math.round(o.b / o.n), n: o.n };
+            }
+            if (++tries < 24) { sample(); return; }
+            var K = window.MinestCosmetics;
+            post({ type: 'link', msg: { t: 'diag-pixels', avg: best, skin: K && K.getState().equippedSkin, mode: K && K.getState().renderMode } });
+          });
+        })();
+      }
       else if (m.t === 'diag') {   // a check from the page: what the desktop pet looks like right now
         var K = window.MinestCosmetics, say = document.querySelector('.mpet-say'), tip = document.querySelector('.mpet-tip');
         post({ type: 'link', msg: { t: 'diag', state: { ctl: !!c, visible: !!(c && c.visible), base: c && c.base, linked: linked,

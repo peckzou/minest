@@ -14,8 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, DesktopPetViewDelegate
     private var hitRects: [CGRect] = []
     private var mouseTimer: Timer?
 
-    // the current iPhone build (the site root still serves an older page)
-    static let minestURL = "https://minest-app.vercel.app/iphone"
+    // the desktop web app (Minest Web 30 · same data as the phone)
+    static let minestURL = "https://minest-app.vercel.app/web"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Run as accessory app (no Dock icon, stays in menu bar & desktop)

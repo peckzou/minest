@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 44.7 · Learning Path 2.0</title>
+    <title>Minest iPhone 44.8 · Learning Path 2.0</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21416,7 +21416,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "44.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "44.8" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -21790,12 +21790,15 @@ var De = function(props) {
             type: "button",
             onClick: function() {
               SoundEngine.play('click');
-              // 44.6: the Mac uses this same page now (web18 can't read the phone's compressed cloud data and
-              // drops pronunciation / Learning Path fields): the button switches full window ↔ phone frame
+              // 44.8: on a computer the desktop app is Minest Web 30 (web18's board + this build's 3D Cover,
+              // AI, pets, Learning Path; same data). Inside the iOS app (no web30 in the bundle) the button
+              // keeps switching full window ↔ phone frame.
+              var inApp = window.MinestNative && window.MinestNative.isNative && window.MinestNative.isNative();
+              if (!inApp && location.protocol !== 'file:') { window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'web30.0.html'; return; }
               try { window.dispatchEvent(new CustomEvent('minest:toggle-sim')); } catch (e) {}
             },
             className: "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"),
-            title: "Desktop: full window / phone frame",
+            title: "Desktop version (Minest Web 30)",
             children: (0, P.jsx)(IconMonitor, { className: "w-4 h-4" })
           }),
 
@@ -46210,12 +46213,61 @@ var Ve = (function(_Component) {
     petEvent('minest:minipet-tap', { double: false });
   }
 
+  // 44.8: on the iPhone the Mini Pet sometimes turned black after the app came back from the background
+  // (the model's colour is all in its emissive texture). Textures are kept as canvases instead of
+  // ImageBitmaps, a lost/restored GL context re-uploads them, and a watchdog checks the drawn colour every
+  // 4 s: nearly all black → upload the textures again, still black → load the model again. Each repair
+  // is logged in minest.miniPet.heal (last 20).
+  function eachTexture(model, fn) {
+    var seen = [];
+    model.traverse(function (n) {
+      if (!n.isMesh || !n.material) return;
+      [].concat(n.material).forEach(function (m) {
+        ['map', 'emissiveMap', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'alphaMap'].forEach(function (k) { var t = m[k]; if (t && seen.indexOf(t) < 0) { seen.push(t); fn(t, m); } });
+        fn(null, m);
+      });
+    });
+  }
+  function stabilizeTextures(model) {
+    if (typeof ImageBitmap === 'undefined') return;
+    eachTexture(model, function (t) {
+      if (!t || !(t.image instanceof ImageBitmap)) return;
+      try {
+        var c = document.createElement('canvas'); c.width = t.image.width; c.height = t.image.height;
+        c.getContext('2d').drawImage(t.image, 0, 0);
+        try { t.image.close(); } catch (e) {}
+        t.image = c; t.needsUpdate = true;
+      } catch (e) {}
+    });
+  }
+  function healLog(what, extra) {
+    try { var a = JSON.parse(localStorage.getItem('minest.miniPet.heal') || '[]'); a.push(Object.assign({ at: Date.now(), what: what }, extra || {})); localStorage.setItem('minest.miniPet.heal', JSON.stringify(a.slice(-20))); } catch (e) {}
+  }
+  function reupload(model) { eachTexture(model, function (t, m) { if (t) t.needsUpdate = true; else m.needsUpdate = true; }); }
+  var watch = { at: 0, dark: 0, heals: 0 }, reloadModel = null;
+  function watchdog(now) {
+    if (!avatar || now - watch.at < 4000) return;
+    watch.at = now;
+    try {
+      var gl = renderer.getContext(), w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, px = new Uint8Array(w * h * 4), n = 0, dark = 0;
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      for (var i = 0; i < px.length; i += 32) if (px[i + 3] > 200) { n++; if (px[i] + px[i + 1] + px[i + 2] < 60) dark++; }
+      if (n < 40) return;
+      if (dark / n < 0.7) { if (watch.dark) healLog('recovered', { heals: watch.heals }); watch.dark = 0; watch.heals = 0; return; }
+      watch.dark++;
+      if (watch.heals < 2) { watch.heals++; reupload(avatar); healLog('black → re-upload', { share: Math.round(100 * dark / n) }); }
+      else if (watch.heals === 2 && reloadModel) { watch.heals++; healLog('black → reload model'); scene.remove(avatar); avatar = null; reloadModel(); }
+    } catch (e) {}
+  }
+
   function setup() {
     if (!window.THREE) {
       setTimeout(setup, 100);
       return;
     }
     renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true, powerPreference: 'low-power' });
+    canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); healLog('context lost'); }, false);
+    canvas.addEventListener('webglcontextrestored', function () { healLog('context restored'); if (avatar) reupload(avatar); }, false);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5)); // 43.5: was 2× — 44% fewer pixels on a 152-px pet
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -46310,6 +46362,7 @@ var Ve = (function(_Component) {
         }
       });
       scene.add(avatar);
+      stabilizeTextures(avatar);
       // 41.378: the same skin and accessories (crown…) as Pet Raising — cosmetics-v1.js reads the
       // shared state (localStorage + BroadcastChannel), so changes there show up here live
       (function attachCosmetics(tries) {
@@ -46356,6 +46409,7 @@ var Ve = (function(_Component) {
       );
     }
     loadNextModel(0);
+    reloadModel = function () { loadNextModel(0); };
 
     clock = new THREE.Clock();
     // 43.5: 30 fps while the pet just floats, 60 fps for 2 s after a touch; no drawing at all
@@ -46453,6 +46507,7 @@ var Ve = (function(_Component) {
         }
       }
       renderer.render(scene, camera);
+      watchdog(now);
     }
     resize(); frame();
   }
@@ -46587,7 +46642,9 @@ var Ve = (function(_Component) {
     get base() { return baseVariant; },
     get idle() { return freeSwimming && swimVariant === baseVariant; },
     get visible() { return !!root.getClientRects().length && !root.classList.contains('is-hidden'); },
-    get busy() { return !!drag; }
+    get busy() { return !!drag; },
+    // 44.8 diagnostics (phone debug channel): the model and the repairs so far
+    _debug: { avatar: function () { return avatar; }, heals: function () { try { return JSON.parse(localStorage.getItem('minest.miniPet.heal') || '[]'); } catch (e) { return []; } } }
   };
 
   setup();
@@ -49976,6 +50033,7 @@ var Ve = (function(_Component) {
     // hidden here but the desktop pet is linked: reactions still happen (over there)
     Object.defineProperty(W, 'visible', { get: function () { return orig.visible || connected; } });
     ['busy', 'idle', 'base'].forEach(function (k) { Object.defineProperty(W, k, { get: function () { return orig[k]; } }); });
+    W._debug = orig._debug;
     window.__miniPetCtl = W;
   }
   (function waitCtl(n) { if (window.__miniPetCtl) wrap(); else if (n < 300) setTimeout(function () { waitCtl(n + 1); }, 100); })(0);
