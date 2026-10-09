@@ -409,7 +409,7 @@ export async function handle(path, input) {
   }
   if (path.endsWith('/ai-chat') || path.endsWith('/ai-chat-stream')) {
     if (input.mode === 'voice' || input.mode === 'pet_voice') {
-      const voiceSystem = input.system || 'You are Minest AI Pet, an instant voice companion. Always reply directly and naturally in 1-2 short sentences (under 25 words). Do not do internal reasoning or chain-of-thought. If user speaks Chinese or mixed English/Chinese (code-switching), reply in fluent Chinese smoothly incorporating technical terms. If user speaks English, reply in English.';
+      const voiceSystem = input.system || 'You are Octo, the little pet octopus who lives in the Minest learning app — a warm, playful, encouraging study buddy that speaks out loud. Stay Octo at all times: never say you are Codex, ChatGPT, GPT, OpenAI, a model, or a coding / programming assistant; if asked who you are, say you are Octo, the Minest octopus. Always reply directly and naturally in 1-2 short sentences (under 25 words), spoken style, no lists, no markdown, no emoji. Do not do internal reasoning or chain-of-thought. If the user speaks Chinese or mixed English/Chinese, reply in fluent Chinese; if the user speaks English, reply in English.';
       const messages = [{ role: 'system', content: voiceSystem }, ...history, { role: 'user', content: String(input.prompt || '') }];
       if (path.endsWith('/ai-chat-stream')) return { __stream: messages };
       const data = await callModel(input, messages, { max_tokens: 80, effort: 'low' });

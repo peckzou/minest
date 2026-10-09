@@ -756,7 +756,7 @@
     var id = 'tts' + (++ttsSeq);
     ttsHandlers[id] = h;
     // if the app never answers (older build without speakText), finish so the conversation goes on
-    h.guard = setTimeout(function () { if (ttsHandlers[id] && !h.started) { delete ttsHandlers[id]; if (h.onerror) h.onerror({ error: 'native-tts-timeout' }); } }, 3500);
+    if (!h.queued) h.guard = setTimeout(function () { if (ttsHandlers[id] && !h.started) { delete ttsHandlers[id]; if (h.onerror) h.onerror({ error: 'native-tts-timeout' }); } }, 3500);
     window.MinestNative.send('speakText', { text: text, lang: lang, rate: rate, id: id });
   }
   window.addEventListener('minestNativeEvent', function (e) {
@@ -767,7 +767,37 @@
     else if (d.event === 'minestTTSEnd') { clearTimeout(h.guard); delete ttsHandlers[p.id]; if (h.onend) h.onend(); }
   });
 
+  // In the app, hand every ready sentence to AVSpeechSynthesizer at once: it queues them and reads them
+  // back to back (one at a time left ~0.5 s gaps and audio restarts between sentences).
+  var nativeOutstanding = 0;
+  function processNativeQueue() {
+    while (speechQueue.length) {
+      (function (text) {
+        var gen = speechGeneration, seq = ++speechSequence, lang = /[\u4e00-\u9fff]/.test(text) ? 'zh-CN' : 'en-US';
+        nativeOutstanding++; speechPlaying = true;
+        pauseRecognition();
+        setState('speaking', 'Speaking — tap the orb to interrupt.');
+        var done = function () {
+          if (gen !== speechGeneration) return;
+          toPet({ kind: 'speak-end', seq: seq });
+          nativeOutstanding = Math.max(0, nativeOutstanding - 1);
+          if (!nativeOutstanding) { speechPlaying = false; processSpeechQueue(); }
+        };
+        nativeSpeak(text, lang, 1.08, {
+          onstart: function () { if (gen === speechGeneration) toPet({ kind: 'speak-start', text: text, lang: lang, rate: 1.08, seq: seq }); },
+          onboundary: function (e) { if (gen === speechGeneration) toPet({ kind: 'boundary', charIndex: e.charIndex || 0, charLength: e.charLength || 0, seq: seq }); },
+          onend: done, onerror: done, queued: nativeOutstanding > 1   // queued behind another sentence: no start timeout
+        });
+      })(speechQueue.shift());
+    }
+  }
+
   function processSpeechQueue() {
+    if (useNativeTTS()) {
+      if (speechQueue.length) processNativeQueue();
+      if (!nativeOutstanding) { speechPlaying = false; finishPlaybackIfReady(); }
+      return;
+    }
     if (speechPlaying || !speechQueue.length) { finishPlaybackIfReady(); return; }
     if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== 'function') {
       speechQueue.length = 0;
@@ -833,7 +863,7 @@
   function cancelPlayback() {
     speechGeneration += 1;
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (error) {} }
-    if (useNativeTTS()) { try { window.MinestNative.send('stopSpeaking', {}); } catch (error) {} }
+    if (useNativeTTS()) { nativeOutstanding = 0; try { window.MinestNative.send('stopSpeaking', {}); } catch (error) {} }
     speechQueue.length = 0; speechBuffer = ''; speechPlaying = false; responseComplete = false;
     toPet({ kind: 'speak-end' });
   }
