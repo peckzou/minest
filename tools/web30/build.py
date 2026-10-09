@@ -138,9 +138,13 @@ def ported_css(I, web_text):
     return '/* web30: CSS for the ported iPhone components (%d classes) */\n' % len(keys) + '\n'.join(keep)
 
 
-def main():
-    iphone_path = sys.argv[1] if len(sys.argv) > 1 else latest_iphone()
-    iphone_path = iphone_path if os.path.isabs(iphone_path) else os.path.join(REPO, iphone_path)
+def resolve_iphone(arg=None):
+    p = arg or latest_iphone()
+    return p if os.path.isabs(p) else os.path.join(REPO, p)
+
+
+def build(iphone_path):
+    """web30.0's text (web31 and later start from it)"""
     W = Src(read(os.path.join(REPO, 'web18.0.html')))
     I = Src(read(iphone_path))
     iname = os.path.basename(iphone_path)
@@ -239,8 +243,11 @@ def main():
               isRemoteUpdateRef.current = true;
               rawSetBoards(sanitizeLoadedBoards(data.boards));""", """            // web30: boards may be compressed (boardsGz, written by the phone); the study log rides along
             try { if (data && data.learning && window.MinestLearn && window.MinestLearn._mergeCloud) window.MinestLearn._mergeCloud(data.learning); } catch (e) {}
+            var seqAtSnapshot = localBoardsSeqRef.current;
             if (data && !isOwnPendingEcho && !hasUnconfirmedLocalChange) minestCloudBoards(data).then(function(remoteBoards) {
               if (!remoteBoards || !remoteBoards.length) return;
+              // web30: unpacking is async — a local edit made meanwhile (a list dragged, a card moved) wins
+              if (localBoardsSeqRef.current !== seqAtSnapshot || localBoardsSeqRef.current !== confirmedBoardsSeqRef.current) return;
               isRemoteUpdateRef.current = true;
               rawSetBoards(sanitizeLoadedBoards(remoteBoards));""", 'cloud: snapshot read')
     out = once(out, """              if (['dark', 'white'].includes(data.themeMode)) setThemeMode(data.themeMode);
@@ -304,6 +311,98 @@ def main():
           data = Object.assign({}, data, { boards: pulled });
           isRemoteUpdateRef.current = true;""", 'cloud: force pull')
 
+    # ------------------------------------------------------------------ 4b. Settings → 🐙 Pets: the Mac desktop pet + the Mini Pet
+    pets_panel = r"""
+// web30: Settings → 🐙 Pets. The Mac desktop pet is a separate native app (macos/MinestDesktopPet): its own
+// link minest-desktop-pet://show|hide starts / shows / hides it; the page links to it over ws://127.0.0.1:47321
+// (MinestDesktopLink) so it mirrors this page's Mini Pet. The Mini Pet is this page's own 3D pet.
+var Web30PetsPanel = function(props) {
+  var isDark = props.isDark;
+  var tick = (0, _.useState)(0), setTick = tick[1];
+  (0, _.useEffect)(function() { var t = setInterval(function() { setTick(function(n) { return n + 1; }); }, 1000); return function() { clearInterval(t); }; }, []);
+  var L = window.MinestDesktopLink, M = window.MinestMiniPet;
+  var KEY = 'minest.desktopPet.webVisible.v1';
+  var linked = !!(L && L.connected);
+  var deskOn = (function() { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } })();
+  var miniOn = !!(M && M.isVisible && M.isVisible());
+  // on: start / show the app and link it to this page · off: hide it
+  var setDesk = function(on) {
+    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+    // linked: tell the app directly (no browser prompt); otherwise its link starts / shows / hides it
+    if (L && L.connected && L.pet) L.pet(on);
+    else { try { window.location.href = 'minest-desktop-pet://' + (on ? 'show' : 'hide'); } catch (e) {} }
+    if (on && L && L.enable) setTimeout(function() { L.enable(true); }, 1200);
+    SoundEngine.play('click'); setTick(function(n) { return n + 1; });
+  };
+  var sw = function(on, onChange, label) {
+    return (0, P.jsx)('button', { type: "button", role: "switch", 'aria-checked': on ? "true" : "false", 'aria-label': label, onClick: function() { onChange(!on); },
+      className: "web30-switch",
+      // inline styles: web18's prebuilt CSS has no sizes for a switch
+      style: { position: 'relative', flex: '0 0 auto', width: 50, height: 30, borderRadius: 999, padding: 0, cursor: 'pointer', transition: 'background .2s, border-color .2s',
+        background: on ? '#10b981' : (isDark ? 'rgba(255,255,255,.12)' : '#e2e8f0'), border: '1px solid ' + (on ? '#34d399' : (isDark ? 'rgba(255,255,255,.22)' : '#cbd5e1')) },
+      children: (0, P.jsx)('span', { style: { position: 'absolute', top: 2, left: on ? 22 : 2, width: 24, height: 24, borderRadius: 999, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,.3)', transition: 'left .2s' } }) });
+  };
+  var card = "rounded-2xl border p-4 space-y-2 " + (isDark ? "bg-white/[0.03] border-white/10" : "bg-white/70 border-slate-200");
+  var status = !deskOn ? "Off" : linked ? "On · linked to this page" : "On · waiting for the app";
+  return (0, P.jsxs)('div', { className: "space-y-4 pt-1 web30-pets", children: [
+    (0, P.jsxs)('div', { className: card, children: [
+      (0, P.jsxs)('div', { className: "flex items-center justify-between gap-4", children: [
+        (0, P.jsxs)('div', { children: [
+          (0, P.jsx)('div', { className: "font-bold text-sm", children: "🐙 Mac Desktop Pet" }),
+          (0, P.jsx)('div', { className: "text-xs opacity-70", children: "The Mini Pet on your Mac desktop — same look and moves as here, tips while Minest is in the background." }),
+          (0, P.jsx)('div', { className: "text-xs font-semibold mt-1 web30-desk-status " + (deskOn && linked ? "text-emerald-400" : "opacity-60"), children: status })
+        ] }),
+        sw(deskOn, setDesk, "Mac Desktop Pet")
+      ] }),
+      (0, P.jsx)('div', { className: "text-[11px] opacity-60 leading-relaxed", children: "Needs the Minest Desktop Pet app on this Mac (macos/MinestDesktopPet → build.sh install). The first time, the browser asks to open the app and to allow local network access — allow both." })
+    ] }),
+    (0, P.jsx)('div', { className: card, children: (0, P.jsxs)('div', { className: "flex items-center justify-between gap-4", children: [
+      (0, P.jsxs)('div', { children: [
+        (0, P.jsx)('div', { className: "font-bold text-sm", children: "Mini Pet on this page" }),
+        (0, P.jsx)('div', { className: "text-xs opacity-70", children: "Tap it for the menu (Study, Talk, Build…), hold to talk, double-tap for Octo." })
+      ] }),
+      sw(miniOn, function(on) { if (M) { on ? M.show() : M.hide(); } SoundEngine.play('click'); setTick(function(n) { return n + 1; }); }, "Mini Pet on this page")
+    ] }) })
+  ] });
+};
+"""
+    out = once(out, '// Board Settings Studio (Ne) - Apple Liquid Glass 4-Tab Studio', pets_panel + '\n// Board Settings Studio (Ne) - Apple Liquid Glass 4-Tab Studio', 'Pets panel component')
+    out = once(out, """              { id: 'data', label: 'Data' }
+            ].map(function(tab) {""", """              { id: 'data', label: 'Data' },
+              { id: 'pets', label: '🐙 Pets' }
+            ].map(function(tab) {""", 'Settings: Pets tab')
+    out = once(out, "            activeTab === 'general' ? (", "            activeTab === 'pets' ? (0, P.jsx)(Web30PetsPanel, { isDark: isDark }) : null,\n            activeTab === 'general' ? (", 'Settings: Pets panel')
+
+    # ------------------------------------------------------------------ 4c. fixes for web18 behaviour
+    # Sign-in: the Firebase SDK scripts are `defer`, so the auth effect ran before `firebase` existed,
+    # returned early and never re-ran: a sign-in then never reached the app. Wait for the SDK.
+    out = once(out, """  // Firebase Auth & Firestore Listener
+  (0, _.useEffect)(function() {
+    if (typeof firebase === 'undefined') return;""", """  // web30: wait for the deferred Firebase SDK, then (re)run the auth listener
+  var fbReadyState = (0, _.useState)(function() { return typeof firebase !== 'undefined' && !!firebase.auth; });
+  var fbReady = fbReadyState[0];
+  var setFbReady = fbReadyState[1];
+  (0, _.useEffect)(function() {
+    if (fbReady) return;
+    var iv = setInterval(function() { if (typeof firebase !== 'undefined' && firebase.auth) { clearInterval(iv); setFbReady(true); } }, 150);
+    return function() { clearInterval(iv); };
+  }, [fbReady]);
+
+  // Firebase Auth & Firestore Listener
+  (0, _.useEffect)(function() {
+    if (typeof firebase === 'undefined') return;""", 'Be: wait for Firebase SDK')
+    out = once(out, "  }, [firebaseConfig]);\n\n  // Firestore Debounced Save", "  }, [firebaseConfig, fbReady]);\n\n  // Firestore Debounced Save", 'Be: auth effect deps')
+    # List reorder: the header and its list wrapper both start a drag on the same press (the event
+    # bubbles), so a drop reordered twice and the list jumped back. One drag per press.
+    out = once(out, """  var handleSafariColumnPointerDown = function(e, colId, cIdx) {
+    // Only handle primary button (left click) or single touch
+    if (e.button !== 0) return;""", """  var handleSafariColumnPointerDown = function(e, colId, cIdx) {
+    // Only handle primary button (left click) or single touch
+    if (e.button !== 0) return;
+    var ne = e.nativeEvent || e;
+    if (ne.__mnColDrag || safariColDragActiveRef.current) return;   // web30: one drag per press (header + wrapper both listen)
+    ne.__mnColDrag = true;""", 'board: one column drag per press')
+
     # ------------------------------------------------------------------ 5. the top bar: entries next to Arcade
     arcade_end = """              (0, P.jsx)('span', { className: "hidden lg:inline", children: "Arcade" })
             ]
@@ -362,8 +461,14 @@ def main():
 
     out = once(out, 'className: "studio-version w-7 h-7 flex items-center justify-center font-bold text-xs", children: "18.0" }', 'className: "studio-version w-7 h-7 flex items-center justify-center font-bold text-xs", children: "30.0" }', 'version badge')
 
+    return out
+
+
+def main():
+    iphone_path = resolve_iphone(sys.argv[1] if len(sys.argv) > 1 else None)
+    out = build(iphone_path)
     open(os.path.join(REPO, 'web30.0.html'), 'w', encoding='utf-8').write(out)
-    print('web30.0.html ← web18.0.html + %s (%d KB)' % (iname, len(out) // 1024))
+    print('web30.0.html ← web18.0.html + %s (%d KB)' % (os.path.basename(iphone_path), len(out) // 1024))
 
 
 if __name__ == '__main__':

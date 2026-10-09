@@ -47,7 +47,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, DesktopPetViewDelegate
         rewardListener.delegate = self
 
         // 6. Link to the Minest page in the browser
-        link.onMessage = { [weak self] json in self?.petView.deliverLink(json: json) }
+        link.onMessage = { [weak self] json in
+            guard let self = self else { return }
+            // {t:'pet', visible} from the page's settings switch: show / hide this window
+            if let data = json.data(using: .utf8), let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               obj["t"] as? String == "pet", let visible = obj["visible"] as? Bool {
+                self.setPetVisibility(visible)
+                return
+            }
+            self.petView.deliverLink(json: json)
+        }
         link.onStatus = { [weak self] connected, _ in
             guard let self = self else { return }
             self.petView.linkStatus(connected: connected)

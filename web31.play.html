@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1020">
+<title>Minest Live · Join</title>
+<style>html,body{margin:0;background:#0d1020;color:#f4f6ff;min-height:100%}</style>
+</head>
+<body>
+<script>window.__MINEST_LIVE_STANDALONE = true;</script>
+<script>
+/* web31 · Minest Live — a Gimkit-style class game, plus the teacher room entry.
+   Teacher (🎓 in the top bar): pick a board and lists → host a live game → students join with a code,
+   answer questions to earn money, spend it in the shop (money per question, streak bonus, multiplier,
+   insurance, power-ups) → live leaderboard → podium and a per-question report.
+   The same panel publishes the board to a Web 20 course room (/api/rooms/CODE).
+   Student: 🎮 Join in the top bar, or web31.play.html?code=CODE (this file alone, no app around it).
+   Data: Firebase Realtime Database /minest-live/{CODE} — host: settings + questions + state,
+   players/{pid}: money, answers. Streams with EventSource, falls back to polling. */
+(function () {
+  'use strict';
+  if (window.MinestLive) return;
+
+  var DB = 'https://minest-33761-default-rtdb.firebaseio.com/minest-live/';
+  var API = /vercel\.app$/.test(location.hostname) ? '' : 'https://minest-app.vercel.app';
+  var PLAY_PAGE = 'web31.play.html';
+
+  // ------------------------------------------------------------------ helpers
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function $(root, sel) { return root.querySelector(sel); }
+  function cleanCode(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); }
+  function newCode() { var a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', o = ''; for (var i = 0; i < 6; i++) o += a[Math.floor(Math.random() * a.length)]; return o; }
+  function uid() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function money(n) {
+    n = Math.floor(n || 0); var neg = n < 0; n = Math.abs(n);
+    var s = n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? (n / 1e3).toFixed(n >= 1e5 ? 0 : 1) + 'K' : n.toLocaleString();
+    return (neg ? '−$' : '$') + s.replace('.0', '');
+  }
+  function clock(ms) { ms = Math.max(0, ms); var s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+
+  function db(path, method, body) {
+    return fetch(DB + path + '.json', { method: method || 'GET', headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('Live service ' + r.status); return r.json(); });
+  }
+  // a live copy of one path: EventSource (put/patch) or polling every 1.5 s
+  function watch(path, onData) {
+    var tree = null, es = null, poll = null, closed = false;
+    function setAt(p, v) {
+      if (p === '/' || !p) { tree = v; return; }
+      var ks = p.replace(/^\//, '').split('/'), o = tree && typeof tree === 'object' ? tree : (tree = {});
+      for (var i = 0; i < ks.length - 1; i++) { if (!o[ks[i]] || typeof o[ks[i]] !== 'object') o[ks[i]] = {}; o = o[ks[i]]; }
+      if (v === null) delete o[ks[ks.length - 1]]; else o[ks[ks.length - 1]] = v;
+    }
+    function startPoll() {
+      if (poll || closed) return;
+      var tick = function () { db(path).then(function (d) { if (!closed) { tree = d; onData(tree); } }).catch(function () {}); };
+      tick(); poll = setInterval(tick, 1500);
+    }
+    try {
+      es = new EventSource(DB + path + '.json');
+      es.addEventListener('put', function (e) { var m = JSON.parse(e.data); setAt(m.path, m.data); onData(tree); });
+      es.addEventListener('patch', function (e) { var m = JSON.parse(e.data); Object.keys(m.data || {}).forEach(function (k) { setAt((m.path === '/' ? '' : m.path) + '/' + k, m.data[k]); }); onData(tree); });
+      es.onerror = function () { if (es && es.readyState === 2) { es = null; startPoll(); } };
+    } catch (e) { startPoll(); }
+    return { close: function () { closed = true; if (es) es.close(); if (poll) clearInterval(poll); } };
+  }
+
+  // tiny sounds (the board's SoundEngine when there is one)
+  var actx = null;
+  function beep(kind) {
+    try {
+      if (window.SoundEngine && SoundEngine.play) { SoundEngine.play(kind === 'bad' ? 'delete' : kind === 'buy' ? 'add' : 'click'); return; }
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      var o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+      o.frequency.value = kind === 'good' ? 880 : kind === 'buy' ? 660 : kind === 'bad' ? 180 : 440;
+      g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.2);
+    } catch (e) {}
+  }
+
+  // ------------------------------------------------------------------ questions from a board
+  // a card's answer: "pinyin · meaning\n例句 Example: …" (Web 20 / Minest decks), "word (meaning)", or its notes
+  function cardAnswer(card) {
+    var first = String(card.desc || card.description || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(function (s) { return s && !/^例句|^example:/i.test(s); })[0] || '';
+    first = first.replace(/[#*_`>]/g, '').trim();
+    var parts = first.split(/\s*[·•|]\s*/).filter(Boolean);
+    if (parts.length >= 2 && /^[a-zA-ZāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙ'’\s-]+$/.test(parts[0])) return { hint: parts[0], answer: parts.slice(1).join(' · ') };
+    if (first) return { hint: '', answer: parts.join(' · ') };
+    var m = String(card.title || '').match(/^(.+?)\s*[（(](.+)[)）]\s*$/);
+    if (m) return { hint: '', answer: m[2].trim(), term: m[1].trim() };
+    return null;
+  }
+  function cut(s, n) { s = String(s || '').trim(); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  function buildKit(board, colIds) {
+    var items = [], qs = [], sorts = [], lists = {};
+    (board.columns || []).forEach(function (col) {
+      if (colIds && colIds.indexOf(col.id) < 0) return;
+      (col.cards || []).forEach(function (card) {
+        var all = [card].concat(Array.isArray(card.stack) ? card.stack : []);
+        all.forEach(function (c) {
+          (Array.isArray(c.questions) ? c.questions : []).forEach(function (q) {
+            var ch = (q.choices || []).map(String).filter(Boolean);
+            if (q.prompt && q.answer && ch.length >= 2) { if (ch.indexOf(q.answer) < 0) ch.push(q.answer); qs.push({ p: cut(q.prompt, 160), c: ch.slice(0, 6), a: String(q.answer) }); }
+          });
+          var a = cardAnswer(c);
+          if (a && a.answer) items.push({ term: cut(a.term || c.title, 80), answer: cut(a.answer, 90), hint: a.hint });
+          else if (c.title && col.title) sorts.push({ term: cut(c.title, 90), list: cut(col.title, 60) });
+        });
+      });
+    });
+    // term → meaning and meaning → term, with the other cards as choices
+    var uniqA = {}, uniqT = {};
+    items.forEach(function (it) { uniqA[it.answer] = 1; uniqT[it.term] = 1; });
+    var answers = Object.keys(uniqA), terms = Object.keys(uniqT);
+    items.forEach(function (it, i) {
+      var wrongA = shuffle(answers.filter(function (x) { return x !== it.answer; })).slice(0, 3);
+      if (wrongA.length >= 1) qs.push({ p: it.term + (it.hint ? '  (' + it.hint + ')' : ''), c: shuffle(wrongA.concat([it.answer])), a: it.answer, k: 'meaning' });
+      var wrongT = shuffle(terms.filter(function (x) { return x !== it.term; })).slice(0, 3);
+      if (wrongT.length >= 1 && i % 2 === 0) qs.push({ p: it.answer, c: shuffle(wrongT.concat([it.term])), a: it.term, k: 'term' });
+    });
+    // cards with nothing on the back: which list is it in? (needs two lists or more)
+    sorts.forEach(function (it) { lists[it.list] = 1; });
+    var names = Object.keys(lists);
+    if (names.length >= 2) sorts.forEach(function (it) {
+      qs.push({ p: 'Which list is “' + it.term + '” in?', c: shuffle(shuffle(names.filter(function (x) { return x !== it.list; })).slice(0, 3).concat([it.list])), a: it.list, k: 'list' });
+    });
+    return qs.slice(0, 200);
+  }
+
+  // ------------------------------------------------------------------ the shop (Gimkit Classic values)
+  var UPG = {
+    mpq: { name: 'Money per Question', icon: '💵', vals: [1, 5, 50, 100, 500, 2000, 5000, 10000, 250000, 1000000], cost: [0, 10, 100, 1000, 10000, 75000, 300000, 1000000, 10000000, 100000000], fmt: function (v) { return money(v); } },
+    sb: { name: 'Streak Bonus', icon: '🔥', vals: [1, 3, 10, 50, 250, 1200, 6500, 35000, 175000, 1000000], cost: [0, 20, 200, 2000, 20000, 200000, 2000000, 20000000, 200000000, 2000000000], fmt: function (v) { return money(v); } },
+    mult: { name: 'Multiplier', icon: '✖️', vals: [1, 1.5, 2, 3, 5, 8, 12, 18, 30, 100], cost: [0, 50, 300, 2000, 12000, 85000, 700000, 6500000, 65000000, 1000000000], fmt: function (v) { return '×' + v; } },
+    ins: { name: 'Insurance', icon: '🛡', vals: [0, 10, 25, 40, 50, 70, 80, 90, 95, 99], cost: [0, 10, 250, 1000, 25000, 100000, 1000000, 5000000, 25000000, 500000000], fmt: function (v) { return v + '%'; } }
+  };
+  var POWER = {
+    mini: { name: 'Mini Bonus', icon: '⚡', desc: '×2 on your next correct answer', price: function (e) { return Math.max(20, e * 2); } },
+    mega: { name: 'Mega Bonus', icon: '💥', desc: '×5 on your next correct answer', price: function (e) { return Math.max(100, e * 6); } },
+    shield: { name: 'Streak Shield', icon: '🧲', desc: 'Keep your streak through one wrong answer', price: function (e) { return Math.max(50, e * 3); } }
+  };
+  function earnOf(s) { return (UPG.mpq.vals[s.u.mpq] + UPG.sb.vals[s.u.sb] * s.streak) * UPG.mult.vals[s.u.mult]; }
+
+  // ------------------------------------------------------------------ styles
+  var CSS = [
+    '.mlv{position:fixed;inset:0;z-index:2147483200;display:flex;flex-direction:column;background:radial-gradient(900px 600px at 0 -10%,rgba(124,92,255,.35),transparent 60%),radial-gradient(900px 600px at 100% 110%,rgba(32,201,151,.25),transparent 60%),#0d1020;color:#f4f6ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI","PingFang SC",sans-serif;-webkit-font-smoothing:antialiased;overflow:auto}',
+    '.mlv *{box-sizing:border-box}.mlv button{font:inherit;cursor:pointer}',
+    '.mlv-top{display:flex;align-items:center;gap:12px;padding:14px 18px;position:sticky;top:0;background:rgba(13,16,32,.75);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:2;border-bottom:1px solid rgba(255,255,255,.07)}',
+    '.mlv-brand{font-weight:900;font-size:17px;letter-spacing:.01em;display:flex;align-items:center;gap:9px}.mlv-brand i{font-style:normal;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:linear-gradient(140deg,#8b5cf6,#22c55e)}',
+    '.mlv-sp{flex:1}.mlv-x{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;border-radius:11px;padding:8px 13px;font-weight:700}',
+    '.mlv-body{width:min(1100px,100%);margin:0 auto;padding:22px 18px 60px;flex:1}',
+    '.mlv-card{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);border-radius:20px;padding:18px;margin-bottom:14px}',
+    '.mlv h2{margin:0 0 6px;font-size:20px}.mlv h3{margin:0 0 10px;font-size:15px}.mlv .sub{color:#a9b0d6;font-size:13px;line-height:1.5;margin:0 0 12px}',
+    '.mlv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}',
+    '.mlv label.f{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#a9b0d6;margin:12px 0 6px}',
+    '.mlv select,.mlv input[type=text]{width:100%;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.25);color:#fff;border-radius:11px;padding:11px 12px;font:inherit;font-size:14px}',
+    '.mlv-chips{display:flex;flex-wrap:wrap;gap:7px}.mlv-chip{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#e6e9ff;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:700}.mlv-chip.on{background:#8b5cf6;border-color:#a78bfa;color:#fff}',
+    '.mlv-btn{border:0;border-radius:13px;padding:12px 18px;font-weight:850;font-size:15px;color:#0b1020;background:linear-gradient(135deg,#a3e635,#22c55e);box-shadow:0 10px 26px rgba(34,197,94,.3)}.mlv-btn:disabled{opacity:.45;cursor:default}',
+    '.mlv-btn.alt{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:none}.mlv-btn.warn{background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff}',
+    '.mlv-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:14px}',
+    '.mlv-code{font-size:clamp(46px,9vw,92px);font-weight:950;letter-spacing:.12em;line-height:1;background:linear-gradient(135deg,#c4b5fd,#86efac);-webkit-background-clip:text;background-clip:text;color:transparent}',
+    '.mlv-link{font-size:14px;color:#c7cdf5;word-break:break-all}',
+    '.mlv-players{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.mlv-players span{background:rgba(139,92,246,.2);border:1px solid rgba(167,139,250,.35);border-radius:999px;padding:7px 13px;font-weight:750;animation:mlvPop .35s ease}',
+    '@keyframes mlvPop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}',
+    '.mlv-lb{display:grid;gap:7px}.mlv-lb .r{display:grid;grid-template-columns:44px 1fr auto auto;gap:12px;align-items:center;padding:11px 14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);transition:transform .3s}',
+    '.mlv-lb .r b{font-size:18px}.mlv-lb .m{font-weight:900;color:#86efac;font-variant-numeric:tabular-nums}.mlv-lb .a{color:#a9b0d6;font-size:12px;min-width:64px;text-align:right}',
+    '.mlv-stat{display:flex;gap:18px;flex-wrap:wrap}.mlv-stat div{min-width:110px}.mlv-stat small{display:block;color:#a9b0d6;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.mlv-stat strong{font-size:28px;font-variant-numeric:tabular-nums}',
+    '.mlv-bar{height:10px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px}.mlv-bar i{display:block;height:100%;background:linear-gradient(90deg,#8b5cf6,#22c55e);transition:width .6s}',
+    '.mlv-pod{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:18px 0 6px}.mlv-pod div{width:min(30%,200px);text-align:center;border-radius:16px 16px 6px 6px;padding:12px 8px;background:linear-gradient(180deg,rgba(139,92,246,.5),rgba(139,92,246,.12));font-weight:850}',
+    '.mlv-pod div em{display:block;font-style:normal;font-size:30px}.mlv-pod div small{display:block;color:#86efac;font-size:14px;margin-top:4px}',
+    '.mlv-q{max-width:760px;margin:0 auto;text-align:center}.mlv-qp{font-size:clamp(24px,5vw,40px);font-weight:900;line-height:1.2;margin:18px 0 22px;overflow-wrap:anywhere}',
+    '.mlv-ch{display:grid;grid-template-columns:1fr 1fr;gap:11px}.mlv-ch button{min-height:92px;border:0;border-radius:18px;padding:14px;color:#fff;font-size:clamp(15px,2.6vw,20px);font-weight:800;line-height:1.25;box-shadow:inset 0 -5px 0 rgba(0,0,0,.2);transition:transform .12s,filter .2s;overflow-wrap:anywhere}',
+    '.mlv-ch button:active{transform:scale(.97)}.mlv-ch button:nth-child(1){background:#7c3aed}.mlv-ch button:nth-child(2){background:#2563eb}.mlv-ch button:nth-child(3){background:#db2777}.mlv-ch button:nth-child(4){background:#d97706}.mlv-ch button:nth-child(n+5){background:#0d9488}',
+    '.mlv-ch button.dim{filter:grayscale(.8) brightness(.55)}.mlv-ch button.ok{background:#16a34a!important;filter:none}',
+    '.mlv-hud{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.mlv-cash{font-size:26px;font-weight:950;color:#86efac;font-variant-numeric:tabular-nums}.mlv-pill{background:rgba(255,255,255,.08);border-radius:999px;padding:6px 11px;font-size:13px;font-weight:800}',
+    '.mlv-fb{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);padding:16px 26px;border-radius:20px;font-size:30px;font-weight:950;pointer-events:none;animation:mlvFb .9s ease forwards;z-index:3}',
+    '.mlv-fb.good{background:#16a34a;color:#fff}.mlv-fb.bad{background:#e11d48;color:#fff;font-size:20px;max-width:90vw;text-align:center}',
+    '@keyframes mlvFb{0%{opacity:0;transform:translate(-50%,-40%) scale(.8)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%)}}',
+    '.mlv-shop{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:11px}.mlv-up{border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:14px}',
+    '.mlv-up .t{font-weight:850;display:flex;gap:8px;align-items:center}.mlv-up .lv{display:flex;gap:3px;margin:9px 0}.mlv-up .lv i{flex:1;height:6px;border-radius:9px;background:rgba(255,255,255,.12)}.mlv-up .lv i.on{background:#22c55e}',
+    '.mlv-up .v{font-size:13px;color:#c7cdf5;margin-bottom:9px}.mlv-up button{width:100%}',
+    '.mlv-table{width:100%;border-collapse:collapse;font-size:13px}.mlv-table td,.mlv-table th{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left}.mlv-table th{color:#a9b0d6;font-size:11px;text-transform:uppercase;letter-spacing:.06em}',
+    '.mlv-note{font-size:12px;color:#a9b0d6;margin-top:8px}.mlv-err{color:#fda4af;font-size:13px;margin-top:8px;min-height:1em}',
+    '@media(max-width:560px){.mlv-ch{grid-template-columns:1fr}.mlv-ch button{min-height:64px}.mlv-lb .r{grid-template-columns:34px 1fr auto}.mlv-lb .a{display:none}}'
+  ].join('\n');
+  function ensureCss() {
+    if (document.getElementById('mlv-css')) return;
+    var st = document.createElement('style'); st.id = 'mlv-css'; st.textContent = CSS; document.head.appendChild(st);
+  }
+
+  var current = null;   // the open overlay
+  function overlay(title, standalone) {
+    ensureCss(); close();
+    var el = document.createElement('div'); el.className = 'mlv'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', title);
+    el.innerHTML = '<div class="mlv-top"><div class="mlv-brand"><i>🎮</i><span></span></div><div class="mlv-sp"></div>' + (standalone ? '' : '<button class="mlv-x" type="button" data-x>✕ Close</button>') + '</div><div class="mlv-body"></div>';
+    $(el, '.mlv-brand span').textContent = title;
+    document.body.appendChild(el);
+    var o = { el: el, body: $(el, '.mlv-body'), top: $(el, '.mlv-top'), cleanup: [] };
+    var x = $(el, '[data-x]'); if (x) x.onclick = function () { close(); };
+    current = o; return o;
+  }
+  function close() {
+    if (!current) return;
+    current.cleanup.forEach(function (f) { try { f(); } catch (e) {} });
+    current.el.remove(); current = null;
+  }
+
+  // ================================================================== TEACHER
+  function boardsList() { try { return (window.MinestAI && MinestAI.boards && MinestAI.boards()) || []; } catch (e) { return []; } }
+  function activeBoard() { try { return window.MinestAI && MinestAI.board && MinestAI.board(); } catch (e) { return null; } }
+  function playUrl(code) {
+    var base = /vercel\.app$/.test(location.hostname) || /^localhost$|^127\./.test(location.hostname) ? location.origin + location.pathname.replace(/[^/]*$/, '') : 'https://minest-app.vercel.app/';
+    return base + PLAY_PAGE + '?code=' + code;
+  }
+
+  function openTeacher() {
+    var o = overlay('Minest Live · Teacher');
+    var boards = boardsList(), cur = activeBoard();
+    var st = { boardId: (cur && cur.id) || (boards[0] && boards[0].id), cols: null, goal: 'time', time: 7, target: 100000 };
+    function board() { return boards.filter(function (b) { return b.id === st.boardId; })[0] || cur; }
+
+    function render() {
+      var b = board();
+      if (!b) { o.body.innerHTML = '<div class="mlv-card"><h2>No board yet</h2><p class="sub">Make a board with cards (a word and its meaning on the back), then host a game from it.</p></div>'; return; }
+      var cols = b.columns || [];
+      if (!st.cols) st.cols = cols.map(function (c) { return c.id; });
+      var kit = buildKit(b, st.cols);
+      o.body.innerHTML =
+        '<div class="mlv-grid">' +
+        '<section class="mlv-card"><h2>🎮 Host a live game</h2><p class="sub">Gimkit-style: students answer questions to earn money, buy upgrades and climb the leaderboard. Questions come from your cards (word ↔ meaning) and any questions added in the teacher editor.</p>' +
+        '<label class="f">Board</label><select data-board>' + boards.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === b.id ? ' selected' : '') + '>' + esc(x.title || 'Board') + '</option>'; }).join('') + '</select>' +
+        '<label class="f">Lists in this game</label><div class="mlv-chips">' + cols.map(function (c) { return '<button type="button" class="mlv-chip' + (st.cols.indexOf(c.id) >= 0 ? ' on' : '') + '" data-col="' + esc(c.id) + '">' + esc(c.title || 'List') + ' · ' + (c.cards || []).length + '</button>'; }).join('') + '</div>' +
+        '<label class="f">Goal</label><div class="mlv-chips">' +
+        [3, 5, 7, 10, 15].map(function (m) { return '<button type="button" class="mlv-chip' + (st.goal === 'time' && st.time === m ? ' on' : '') + '" data-time="' + m + '">⏱ ' + m + ' min</button>'; }).join('') +
+        [10000, 100000, 1000000].map(function (v) { return '<button type="button" class="mlv-chip' + (st.goal === 'money' && st.target === v ? ' on' : '') + '" data-target="' + v + '">🏁 First to ' + money(v) + '</button>'; }).join('') + '</div>' +
+        '<p class="mlv-note">' + kit.length + ' questions ready' + (kit.length < 4 ? ' — add more cards with meanings (at least 4 questions)' : '') + '.</p>' +
+        '<div class="mlv-row"><button class="mlv-btn" data-host' + (kit.length < 4 ? ' disabled' : '') + '>Create game</button></div><div class="mlv-err" data-err></div></section>' +
+        '<section class="mlv-card"><h2>🎓 Course room (Web 20)</h2><p class="sub">Assign this board as a guided course: students open the link, learn list by list and play Study Arcade. The full card & question editor is in the teacher room.</p>' +
+        '<label class="f">Room code</label><div class="mlv-row" style="margin-top:0"><input type="text" data-room maxlength="8" value="' + esc(localStorage.getItem('minest.live.room') || '') + '" placeholder="e.g. CPA2G4" style="flex:1"><button class="mlv-btn alt" data-newroom type="button">New</button></div>' +
+        '<div class="mlv-row"><button class="mlv-btn alt" data-publish>Publish this board to the room</button><button class="mlv-btn alt" data-editor>Open teacher editor ↗</button><button class="mlv-btn alt" data-student>Student view ↗</button></div><div class="mlv-err" data-roomnote></div></section>' +
+        '</div>';
+      $(o.body, '[data-board]').onchange = function (e) { st.boardId = e.target.value; st.cols = null; render(); };
+      Array.prototype.forEach.call(o.body.querySelectorAll('[data-col]'), function (btn) {
+        btn.onclick = function () { var id = btn.getAttribute('data-col'), i = st.cols.indexOf(id); if (i >= 0) st.cols.splice(i, 1); else st.cols.push(id); render(); };
+      });
+      Array.prototype.forEach.call(o.body.querySelectorAll('[data-time]'), function (btn) { btn.onclick = function () { st.goal = 'time'; st.time = +btn.getAttribute('data-time'); render(); }; });
+      Array.prototype.forEach.call(o.body.querySelectorAll('[data-target]'), function (btn) { btn.onclick = function () { st.goal = 'money'; st.target = +btn.getAttribute('data-target'); render(); }; });
+      $(o.body, '[data-host]').onclick = function () { host(b, kit); };
+      var roomIn = $(o.body, '[data-room]'), note = $(o.body, '[data-roomnote]');
+      function room() { var c = cleanCode(roomIn.value); roomIn.value = c; try { localStorage.setItem('minest.live.room', c); } catch (e) {} return c; }
+      roomIn.oninput = room;
+      $(o.body, '[data-newroom]').onclick = function () { roomIn.value = newCode(); room(); };
+      $(o.body, '[data-publish]').onclick = function () {
+        var c = room(); if (!c) { note.textContent = 'Enter or create a room code first.'; return; }
+        note.textContent = 'Publishing…';
+        publishRoom(c, b).then(function () { note.style.color = '#86efac'; note.textContent = 'Published to room ' + c + '. Students: ' + roomStudentUrl(c); })
+          .catch(function (e) { note.style.color = ''; note.textContent = 'Could not publish: ' + e.message; });
+      };
+      $(o.body, '[data-editor]').onclick = function () { var c = room(); window.open(roomBase() + 'web20.teacher.html' + (c ? '?code=' + c : ''), '_blank', 'noopener'); };
+      $(o.body, '[data-student]').onclick = function () { var c = room(); if (!c) { note.textContent = 'Enter a room code first.'; return; } window.open(roomStudentUrl(c), '_blank', 'noopener'); };
+    }
+
+    function host(b, kit) {
+      var code = newCode(), err = $(o.body, '[data-err]');
+      var game = { v: 1, title: b.title || 'Minest board', q: kit, goal: st.goal === 'time' ? { type: 'time', min: st.time } : { type: 'money', target: st.target }, state: 'lobby', created: { '.sv': 'timestamp' } };
+      $(o.body, '[data-host]').disabled = true;
+      db(code + '/host', 'PUT', game).then(function (r) { game.offset = (r && r.created ? r.created - Date.now() : 0); lobby(code, game); })
+        .catch(function (e) { err.textContent = 'Could not create the game: ' + e.message; $(o.body, '[data-host]').disabled = false; });
+    }
+
+    function lobby(code, game) {
+      var players = {}, stateNow = 'lobby', hostData = game, ended = false;
+      var link = playUrl(code);
+      var w = watch(code, function (tree) {
+        tree = tree || {}; players = tree.players || {}; hostData = tree.host || hostData; stateNow = hostData.state;
+        draw();
+      });
+      o.cleanup.push(function () { w.close(); });
+      var timer = setInterval(function () { if (stateNow === 'live') { draw(); checkEnd(); } }, 500);
+      o.cleanup.push(function () { clearInterval(timer); });
+
+      function rows() {
+        return Object.keys(players).map(function (k) { var p = players[k] || {}; return { id: k, name: p.name || 'Player', m: p.money || 0, c: p.correct || 0, w: p.wrong || 0, qs: p.qs || {} }; })
+          .sort(function (a, b) { return b.m - a.m || b.c - a.c; });
+      }
+      function left() { return hostData.startedAt ? hostData.startedAt + hostData.goal.min * 60000 - (Date.now() + (game.offset || 0)) : hostData.goal.min * 60000; }
+      function checkEnd() {
+        if (ended || stateNow !== 'live') return;
+        var r = rows();
+        if ((hostData.goal.type === 'time' && left() <= 0) || (hostData.goal.type === 'money' && r[0] && r[0].m >= hostData.goal.target)) endGame();
+      }
+      function endGame() { ended = true; db(code + '/host', 'PATCH', { state: 'ended', endedAt: { '.sv': 'timestamp' } }).catch(function () { ended = false; }); }
+
+      function draw() {
+        var r = rows();
+        if (stateNow === 'lobby') {
+          o.body.innerHTML = '<section class="mlv-card" style="text-align:center"><p class="sub">Join at <b>' + esc(link.replace(/\?.*/, '')) + '</b> or open the link · game code</p><div class="mlv-code">' + code + '</div>' +
+            '<p class="mlv-link">' + esc(link) + '</p><div class="mlv-row" style="justify-content:center"><button class="mlv-btn alt" data-copy>Copy link</button><button class="mlv-btn alt" data-try>Open a student view ↗</button></div></section>' +
+            '<section class="mlv-card"><h3>' + r.length + ' player' + (r.length === 1 ? '' : 's') + ' · ' + esc(game.title) + ' · ' + game.q.length + ' questions · ' + (game.goal.type === 'time' ? game.goal.min + ' min' : 'first to ' + money(game.goal.target)) + '</h3>' +
+            '<div class="mlv-players">' + (r.length ? r.map(function (p) { return '<span>' + esc(p.name) + '</span>'; }).join('') : '<p class="sub">Waiting for students…</p>') + '</div>' +
+            '<div class="mlv-row"><button class="mlv-btn" data-start' + (r.length ? '' : ' disabled') + '>▶ Start game</button><button class="mlv-btn alt" data-cancel>Cancel</button></div></section>';
+          $(o.body, '[data-copy]').onclick = function () { try { navigator.clipboard.writeText(link); this.textContent = 'Copied ✓'; } catch (e) {} };
+          $(o.body, '[data-try]').onclick = function () { window.open(link, '_blank', 'noopener'); };
+          $(o.body, '[data-start]').onclick = function () { this.disabled = true; db(code + '/host', 'PATCH', { state: 'live', startedAt: { '.sv': 'timestamp' } }).then(function (h) { hostData.startedAt = h.startedAt; beep('buy'); }); };
+          $(o.body, '[data-cancel]').onclick = function () { db(code, 'DELETE').catch(function () {}); close(); openTeacher(); };
+        } else if (stateNow === 'live') {
+          var top = r[0], prog = hostData.goal.type === 'time' ? 1 - left() / (hostData.goal.min * 60000) : (top ? top.m / hostData.goal.target : 0);
+          var totC = 0, totW = 0; r.forEach(function (p) { totC += p.c; totW += p.w; });
+          o.body.innerHTML = '<section class="mlv-card"><div class="mlv-stat"><div><small>' + (hostData.goal.type === 'time' ? 'Time left' : 'Goal') + '</small><strong>' + (hostData.goal.type === 'time' ? clock(left()) : money(hostData.goal.target)) + '</strong></div>' +
+            '<div><small>Players</small><strong>' + r.length + '</strong></div><div><small>Answers</small><strong>' + (totC + totW) + '</strong></div><div><small>Class accuracy</small><strong>' + (totC + totW ? Math.round(100 * totC / (totC + totW)) + '%' : '—') + '</strong></div>' +
+            '<div class="mlv-sp"></div><div><button class="mlv-btn warn" data-end>End game</button></div></div><div class="mlv-bar"><i style="width:' + Math.min(100, Math.round(prog * 100)) + '%"></i></div></section>' +
+            '<section class="mlv-card"><h3>Leaderboard · code ' + code + '</h3><div class="mlv-lb">' + r.map(function (p, i) {
+              return '<div class="r"><b>' + (i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)) + '</b><span>' + esc(p.name) + '</span><span class="m">' + money(p.m) + '</span><span class="a">' + (p.c + p.w ? Math.round(100 * p.c / (p.c + p.w)) + '% · ' + (p.c + p.w) : '—') + '</span></div>';
+            }).join('') + '</div></section>';
+          $(o.body, '[data-end]').onclick = function () { endGame(); };
+        } else if (stateNow === 'ended') {
+          report(r);
+        }
+      }
+
+      function report(r) {
+        var qStats = game.q.map(function (q, i) { var c = 0, w = 0; r.forEach(function (p) { var s = p.qs[i]; if (s) { c += s.c || 0; w += s.w || 0; } }); return { i: i, p: q.p, a: q.a, c: c, w: w }; })
+          .filter(function (s) { return s.c + s.w > 0; }).sort(function (a, b) { return (a.c / (a.c + a.w)) - (b.c / (b.c + b.w)) || b.w - a.w; });
+        var pod = [r[1], r[0], r[2]];
+        o.body.innerHTML = '<section class="mlv-card" style="text-align:center"><h2>🏆 Game over · ' + esc(game.title) + '</h2><div class="mlv-pod">' +
+          pod.map(function (p, i) { if (!p) return '<div style="visibility:hidden"></div>'; var h = [130, 170, 100][i]; return '<div style="height:' + h + 'px"><em>' + ['🥈', '🥇', '🥉'][i] + '</em>' + esc(p.name) + '<small>' + money(p.m) + '</small></div>'; }).join('') + '</div></section>' +
+          '<div class="mlv-grid"><section class="mlv-card"><h3>Students</h3><table class="mlv-table"><tr><th>#</th><th>Name</th><th>Money</th><th>Correct</th><th>Accuracy</th></tr>' +
+          r.map(function (p, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(p.name) + '</td><td>' + money(p.m) + '</td><td>' + p.c + '/' + (p.c + p.w) + '</td><td>' + (p.c + p.w ? Math.round(100 * p.c / (p.c + p.w)) + '%' : '—') + '</td></tr>'; }).join('') + '</table></section>' +
+          '<section class="mlv-card"><h3>Hardest questions</h3><table class="mlv-table"><tr><th>Question</th><th>Answer</th><th>Correct</th></tr>' +
+          qStats.slice(0, 12).map(function (s) { return '<tr><td>' + esc(cut(s.p, 50)) + '</td><td>' + esc(cut(s.a, 40)) + '</td><td>' + Math.round(100 * s.c / (s.c + s.w)) + '% (' + (s.c + s.w) + ')</td></tr>'; }).join('') + '</table>' +
+          (qStats.length ? '' : '<p class="sub">No answers yet.</p>') + '</section></div>' +
+          '<div class="mlv-row"><button class="mlv-btn" data-again>Play again</button><button class="mlv-btn alt" data-csv>Download results (CSV)</button><button class="mlv-btn alt" data-done>Done</button></div>';
+        // the results leave with the teacher (CSV first if they are needed): the game's data is removed
+        $(o.body, '[data-again]').onclick = function () { db(code, 'DELETE').catch(function () {}); close(); openTeacher(); };
+        $(o.body, '[data-done]').onclick = function () { db(code, 'DELETE').catch(function () {}); close(); };
+        $(o.body, '[data-csv]').onclick = function () {
+          var lines = [['rank', 'name', 'money', 'correct', 'wrong', 'accuracy']].concat(r.map(function (p, i) { return [i + 1, p.name, Math.floor(p.m), p.c, p.w, p.c + p.w ? Math.round(100 * p.c / (p.c + p.w)) + '%' : '']; }));
+          var csv = lines.map(function (l) { return l.map(function (x) { return '"' + String(x).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+          var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' })); a.download = 'minest-live-' + code + '.csv'; a.click();
+        };
+      }
+      draw();
+    }
+    render();
+  }
+
+  // the Web 20 course room: a snapshot the student page and Study Arcade read
+  function roomBase() { return API ? 'https://minest1.vercel.app/' : location.origin + '/'; }
+  function roomStudentUrl(code) { return roomBase() + 'web20.0.html?code=' + code; }
+  function publishRoom(code, b) {
+    var snap = { id: b.id, title: b.title || 'Assigned board', columns: (b.columns || []).map(function (c) {
+      return { id: c.id, title: c.title || 'List', color: c.color || '#60a5fa', cards: (c.cards || []).map(function (k) {
+        return { id: k.id, title: k.title || '', desc: k.desc || k.description || '', labels: k.labels || [], complete: false, mastery: 0, checklistItems: [], questions: Array.isArray(k.questions) ? k.questions : [] };
+      }) };
+    }) };
+    var payload = { code: code, title: snap.title, data: '', board: snap, open: true, updated: Date.now(), source: 'web31' };
+    try { localStorage.setItem('minest-room-config-' + code, JSON.stringify(payload)); } catch (e) {}
+    return fetch(API + '/api/rooms/' + code, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      .then(function (r) { if (!r.ok) throw new Error('room service ' + r.status); return r.json(); });
+  }
+
+  // ================================================================== STUDENT
+  function openJoin(code, standalone) {
+    var o = overlay('Minest Live', standalone);
+    var saved = {}; try { saved = JSON.parse(sessionStorage.getItem('minest.live.me') || '{}'); } catch (e) {}
+    code = cleanCode(code || '');
+    o.body.innerHTML = '<section class="mlv-card" style="max-width:440px;margin:6vh auto 0;text-align:center"><h2>Join a game</h2><p class="sub">Enter the code on your teacher’s screen.</p>' +
+      '<input type="text" data-code maxlength="8" placeholder="GAME CODE" style="text-align:center;font-size:24px;font-weight:900;letter-spacing:.15em" value="' + esc(code) + '">' +
+      '<input type="text" data-name maxlength="20" placeholder="Your name" style="margin-top:10px;text-align:center;font-size:18px" value="' + esc(saved.name || '') + '">' +
+      '<div class="mlv-row" style="justify-content:center"><button class="mlv-btn" data-join>Join</button></div><div class="mlv-err" data-err></div></section>';
+    var codeIn = $(o.body, '[data-code]'), nameIn = $(o.body, '[data-name]'), err = $(o.body, '[data-err]');
+    (code ? nameIn : codeIn).focus();
+    codeIn.oninput = function () { codeIn.value = cleanCode(codeIn.value); };
+    function go() {
+      var c = cleanCode(codeIn.value), name = nameIn.value.trim().slice(0, 20);
+      if (!c) { err.textContent = 'Enter the game code.'; return; }
+      if (!name) { err.textContent = 'Enter your name.'; nameIn.focus(); return; }
+      err.textContent = 'Joining…'; $(o.body, '[data-join]').disabled = true;
+      db(c + '/host').then(function (h) {
+        if (!h || !h.q) throw new Error('No game with code ' + c + '.');
+        if (h.state === 'ended') throw new Error('That game has ended.');
+        var pid = saved.code === c && saved.pid ? saved.pid : uid();
+        return db(c + '/players/' + pid, 'PATCH', { name: name, joined: { '.sv': 'timestamp' } }).then(function (r) {
+          var me = { code: c, pid: pid, name: name, offset: (r.joined || Date.now()) - Date.now() };
+          try { sessionStorage.setItem('minest.live.me', JSON.stringify(me)); } catch (e) {}
+          play(o, h, me);
+        });
+      }).catch(function (e) { err.textContent = e.message; $(o.body, '[data-join]').disabled = false; });
+    }
+    $(o.body, '[data-join]').onclick = go;
+    nameIn.onkeydown = codeIn.onkeydown = function (e) { if (e.key === 'Enter') go(); };
+  }
+
+  function play(o, host, me) {
+    var path = me.code + '/players/' + me.pid;
+    var s = { money: 0, streak: 0, best: 0, correct: 0, wrong: 0, u: { mpq: 0, sb: 0, mult: 0, ins: 0 }, bonus: 1, shield: false, qs: {} };
+    try { var keep = JSON.parse(sessionStorage.getItem('minest.live.state.' + path) || 'null'); if (keep) s = keep; } catch (e) {}
+    var order = [], qi = -1, screen = 'wait', locked = false;
+    function nextQ() { if (!order.length) order = shuffle(host.q.map(function (_, i) { return i; })); qi = order.shift(); }
+    function save(extra) {
+      try { sessionStorage.setItem('minest.live.state.' + path, JSON.stringify(s)); } catch (e) {}
+      var body = { money: Math.floor(s.money), correct: s.correct, wrong: s.wrong, streak: s.streak, best: s.best, last: { '.sv': 'timestamp' } };
+      if (extra) Object.keys(extra).forEach(function (k) { body[k] = extra[k]; });
+      return db(path, 'PATCH', body).catch(function () {});
+    }
+    var w = watch(me.code + '/host', function (h) {
+      if (!h) return;
+      var was = host.state; host = h;
+      if (h.state === 'live' && screen === 'wait') { screen = 'q'; nextQ(); draw(); }
+      else if (h.state === 'ended' && screen !== 'end') { screen = 'end'; draw(); }
+      else if (was !== h.state) draw();
+    });
+    o.cleanup.push(function () { w.close(); });
+    var t = setInterval(function () { var el = $(o.el, '[data-left]'); if (el && host.startedAt && host.goal.type === 'time') el.textContent = '⏱ ' + clock(host.startedAt + host.goal.min * 60000 - (Date.now() + me.offset)); }, 500);
+    o.cleanup.push(function () { clearInterval(t); });
+
+    function hud() {
+      return '<div class="mlv-card mlv-hud"><span class="mlv-cash">' + money(s.money) + '</span><span class="mlv-pill">🔥 ' + s.streak + '</span>' +
+        (s.bonus > 1 ? '<span class="mlv-pill">' + (s.bonus === 5 ? '💥' : '⚡') + ' ×' + s.bonus + ' next</span>' : '') + (s.shield ? '<span class="mlv-pill">🧲 shield</span>' : '') +
+        '<span class="mlv-sp"></span>' + (host.goal.type === 'time' ? '<span class="mlv-pill" data-left>⏱</span>' : '<span class="mlv-pill">🏁 ' + money(host.goal.target) + '</span>') +
+        '<button class="mlv-btn alt" data-shop style="padding:9px 14px">' + (screen === 'shop' ? '← Questions' : '🛒 Shop') + '</button></div>';
+    }
+    function draw() {
+      if (!current || current.el !== o.el) return;
+      if (screen === 'wait') {
+        o.body.innerHTML = '<section class="mlv-card" style="max-width:520px;margin:8vh auto 0;text-align:center"><div style="font-size:54px">🎮</div><h2>You’re in, ' + esc(me.name) + '!</h2><p class="sub">' + esc(host.title || '') + ' · waiting for your teacher to start…</p></section>';
+        return;
+      }
+      if (screen === 'end') {
+        o.body.innerHTML = '<section class="mlv-card" style="max-width:520px;margin:8vh auto 0;text-align:center"><div style="font-size:54px">🏁</div><h2>Game over</h2><p class="sub">Look at your teacher’s screen for the podium.</p>' +
+          '<div class="mlv-stat" style="justify-content:center"><div><small>Money</small><strong>' + money(s.money) + '</strong></div><div><small>Correct</small><strong>' + s.correct + '/' + (s.correct + s.wrong) + '</strong></div><div><small>Best streak</small><strong>' + s.best + '</strong></div></div></section>';
+        return;
+      }
+      if (screen === 'shop') { shop(); return; }
+      var q = host.q[qi];
+      o.body.innerHTML = hud() + '<div class="mlv-q"><div class="mlv-qp"></div><div class="mlv-ch">' + q.c.map(function (c, i) { return '<button type="button" data-i="' + i + '"></button>'; }).join('') + '</div>' +
+        '<p class="mlv-note">Correct: +' + money(earnOf(s) * s.bonus) + ' · wrong: −' + money(UPG.mpq.vals[s.u.mpq] * (1 - UPG.ins.vals[s.u.ins] / 100)) + '</p></div>';
+      $(o.body, '.mlv-qp').textContent = q.p;
+      Array.prototype.forEach.call(o.body.querySelectorAll('[data-i]'), function (b) { b.textContent = q.c[+b.getAttribute('data-i')]; b.onclick = function () { answer(b, q); }; });
+      $(o.body, '[data-shop]').onclick = function () { screen = 'shop'; draw(); };
+      locked = false;
+    }
+    function fb(text, good) { var d = document.createElement('div'); d.className = 'mlv-fb ' + (good ? 'good' : 'bad'); d.textContent = text; o.el.appendChild(d); setTimeout(function () { d.remove(); }, 950); }
+    function answer(btn, q) {
+      if (locked || host.state !== 'live') return; locked = true;
+      var ok = q.c[+btn.getAttribute('data-i')] === q.a, rec = s.qs[qi] || (s.qs[qi] = { c: 0, w: 0 });
+      Array.prototype.forEach.call(o.body.querySelectorAll('[data-i]'), function (b) { var right = q.c[+b.getAttribute('data-i')] === q.a; b.classList.add(right ? 'ok' : 'dim'); });
+      if (ok) {
+        s.streak++; s.best = Math.max(s.best, s.streak); s.correct++; rec.c++;
+        var gain = earnOf(s) * s.bonus; s.bonus = 1; s.money += gain; beep('good'); fb('+' + money(gain), true);
+      } else {
+        var loss = UPG.mpq.vals[s.u.mpq] * (1 - UPG.ins.vals[s.u.ins] / 100);
+        if (s.shield) s.shield = false; else s.streak = 0;
+        s.wrong++; rec.w++; s.money = Math.max(0, s.money - loss); beep('bad'); fb('✗ ' + cut(q.a, 60), false);
+      }
+      var up = {}; up['qs/' + qi] = rec;
+      save(up);
+      setTimeout(function () { if (screen === 'q') { nextQ(); draw(); } }, ok ? 700 : 1500);
+    }
+    function shop() {
+      var e = earnOf(s);
+      o.body.innerHTML = hud() + '<h3>Upgrades</h3><div class="mlv-shop">' + Object.keys(UPG).map(function (k) {
+        var u = UPG[k], lv = s.u[k], nx = lv + 1 < u.vals.length ? lv + 1 : -1;
+        return '<div class="mlv-up"><div class="t">' + u.icon + ' ' + u.name + '</div><div class="lv">' + u.vals.map(function (_, i) { return '<i class="' + (i <= lv ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
+          '<div class="v">Now ' + u.fmt(u.vals[lv]) + (nx > 0 ? ' → ' + u.fmt(u.vals[nx]) : ' · max') + '</div>' +
+          (nx > 0 ? '<button class="mlv-btn' + (s.money >= u.cost[nx] ? '' : ' alt') + '" data-up="' + k + '"' + (s.money >= u.cost[nx] ? '' : ' disabled') + '>Buy · ' + money(u.cost[nx]) + '</button>' : '') + '</div>';
+      }).join('') + '</div><h3 style="margin-top:18px">Power-ups</h3><div class="mlv-shop">' + Object.keys(POWER).map(function (k) {
+        var p = POWER[k], price = Math.round(p.price(e)), owned = (k === 'shield' && s.shield) || (k !== 'shield' && s.bonus > 1);
+        return '<div class="mlv-up"><div class="t">' + p.icon + ' ' + p.name + '</div><div class="v">' + p.desc + '</div><button class="mlv-btn' + (s.money >= price && !owned ? '' : ' alt') + '" data-pw="' + k + '"' + (s.money >= price && !owned ? '' : ' disabled') + '>' + (owned ? 'Active' : 'Buy · ' + money(price)) + '</button></div>';
+      }).join('') + '</div>';
+      $(o.body, '[data-shop]').onclick = function () { screen = 'q'; draw(); };
+      Array.prototype.forEach.call(o.body.querySelectorAll('[data-up]'), function (b) {
+        b.onclick = function () { var k = b.getAttribute('data-up'), u = UPG[k], nx = s.u[k] + 1; if (s.money < u.cost[nx]) return; s.money -= u.cost[nx]; s.u[k] = nx; beep('buy'); save(); shop(); };
+      });
+      Array.prototype.forEach.call(o.body.querySelectorAll('[data-pw]'), function (b) {
+        b.onclick = function () { var k = b.getAttribute('data-pw'), price = Math.round(POWER[k].price(earnOf(s))); if (s.money < price) return; s.money -= price; if (k === 'shield') s.shield = true; else s.bonus = k === 'mega' ? 5 : 2; beep('buy'); save(); shop(); };
+      });
+    }
+    if (host.state === 'live') { screen = 'q'; nextQ(); }
+    else if (host.state === 'ended') screen = 'end';
+    draw();
+  }
+
+  window.MinestLive = { openTeacher: openTeacher, openJoin: openJoin, close: close, buildKit: buildKit, version: '31.0' };
+
+  // web31.0.html?play=CODE (or the play page) opens the join screen straight away
+  try {
+    var qp = new URLSearchParams(location.search), pc = qp.get('play') || qp.get('code');
+    if (window.__MINEST_LIVE_STANDALONE || qp.get('play') != null) {
+      var start = function () { openJoin(pc || '', !!window.__MINEST_LIVE_STANDALONE); };
+      if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+    }
+  } catch (e) {}
+})();
+
+</script>
+</body>
+</html>
