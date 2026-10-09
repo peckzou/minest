@@ -1109,6 +1109,8 @@
 
   function play(o, host, me) {
     var path = me.code + '/players/' + me.pid, SA = window.StudyArcade;
+    var hadNoVoice = window.__mnNoVoice; window.__mnNoVoice = true;   // a student: no read-aloud, no recording
+    o.cleanup.push(function () { window.__mnNoVoice = hadNoVoice; });
     var s = { money: 0, streak: 0, best: 0, correct: 0, wrong: 0, u: { mpq: 0, sb: 0, mult: 0, ins: 0 }, bonus: 1, shield: 0, lv: {}, cards: {}, coll: {}, av: '', packs: 0 };
     try { var keep = JSON.parse(sessionStorage.getItem('minest.live.state.' + path) || 'null'); if (keep && keep.u) s = keep; } catch (e) {}
     // a signed-in player on a new device: pick up where they were from the game's own copy

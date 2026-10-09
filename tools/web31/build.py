@@ -54,6 +54,19 @@ def build(iphone_path):
   };
   return {
     open: open, close: close, learn: learn, level: level, isOpen: function() { return !!A; },""", 'Arcade: level()')
+    # Students: no read-aloud and no recording on cards (window.__mnNoVoice is set by the play page, the study
+    # room and a student's live session) — the Arcade's auto read-aloud and the 3D Cover's tap-to-read / hold-to-record
+    out = once(out, """    say: function(text) {
+      if (!arRead.on || !window.speechSynthesis) return;""", """    say: function(text) {
+      if (window.__mnNoVoice) return;   // web31: students
+      if (!arRead.on || !window.speechSynthesis) return;""", 'Arcade: no read-aloud for students')
+    out = once(out, """    button: function(parent, current) {
+      var b = el('button', 'ar-btn ar-read' + (arRead.on ? ' on' : ''), parent);""", """    button: function(parent, current) {
+      if (window.__mnNoVoice) return null;   // web31: students
+      var b = el('button', 'ar-btn ar-read' + (arRead.on ? ' on' : ''), parent);""", 'Arcade: no read-aloud button for students')
+    out = once(out, """  var coverSpeak = function(card, el) {""", """  var coverSpeak = function(card, el) {
+    if (window.__mnNoVoice) return;   // web31: students""", '3D Cover: no tap-to-read for students')
+    out = once(out, """        if (window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });""", """        if (!window.__mnNoVoice && window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });""", '3D Cover: no hold-to-record for students')
     # Student 3D Cover study room: web31.0.html?learn=CODE mounts only the 3D Cover (the iPhone build's Oe) on
     # the live game's cards — the board app (its storage, sync) never starts, so nothing of the student's changes.
     # Only two buttons: Light FX (FBFX's own, it appears by itself on the stage) and the thick-glass switch.
@@ -104,7 +117,7 @@ var CoverKiosk = function() {
   (0, P.jsx)(_.StrictMode, {
     children: (0, P.jsx)(Ve, {
       children: (0, P.jsx)(window.__mnKiosk ? CoverKiosk : Be, {})""", 'Cover study room (kiosk)')
-    out = once(out, '</head>', """<script>/* web31: the student 3D Cover study room */ if (/[?&]learn=/.test(location.search)) { window.__mnKiosk = true; document.documentElement.classList.add('mn-kiosk'); }</script>
+    out = once(out, '</head>', """<script>/* web31: the student 3D Cover study room */ if (/[?&]learn=/.test(location.search)) { window.__mnKiosk = true; window.__mnNoVoice = true; document.documentElement.classList.add('mn-kiosk'); }</script>
 <style id="mn31-kiosk">
 .mn-kiosk body{background:radial-gradient(1000px 700px at 20% -10%,rgba(124,92,255,.28),transparent 60%),#0b0f1c!important;color:#f1f5f9}
 .mn-kiosk #minest-mini-pet-p0,.mn-kiosk .mpet-menu,.mn-kiosk .mpet-tip,.mn-kiosk .mpet-say{display:none!important}
@@ -113,7 +126,7 @@ var CoverKiosk = function() {
 .mlk-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;border-radius:11px;padding:8px 13px;font:700 13px Inter,system-ui,sans-serif;cursor:pointer}.mlk-btn.on{background:rgba(125,211,252,.22);border-color:rgba(125,211,252,.6)}
 .mlk-load{min-height:100vh;display:grid;place-items:center;color:#c7cdf5;font:600 16px Inter,system-ui,sans-serif;background:#0b0f1c}
 /* only flip, read aloud and record — the board's own tools stay closed */
-.mlk .cf-study-open,.mlk [title="Deconstruct & Practice with AI Tutor"],.mlk [title="Mark as Complete"],.mlk [title^="Tap to increase mastery"],.mlk [aria-label="Pronunciation: record each card"],.mlk [title="Create new card"],.mlk .coverflow-card-item:has(.border-dashed){display:none!important}
+.mlk .cf-study-open,.mlk [title="Deconstruct & Practice with AI Tutor"],.mlk [title="Mark as Complete"],.mlk [title^="Tap to increase mastery"],.mlk [aria-label="Pronunciation: record each card"],.mlk [title="Create new card"],.mlk .cf-study-speak,.mlk .cf-study-rec,.mlk .coverflow-card-item:has(.border-dashed){display:none!important}
 </style>
 </head>""", 'kiosk flag + CSS')
     # the top bar no longer pushes the page sideways on a narrower window (web31 added two buttons)
@@ -171,6 +184,7 @@ PLAY = """<!doctype html>
 /* what the Study Arcade expects from the board app around it */
 var SoundEngine = { muted: false, ctx: null, init: function () { try { if (!this.ctx) { var C = window.AudioContext || window.webkitAudioContext; if (C) this.ctx = new C(); } } catch (e) {} }, play: function () {}, toggleMute: function () { this.muted = !this.muted; return this.muted; } };
 window.__MINEST_LIVE_STANDALONE = true;
+window.__mnNoVoice = true;   // students: no read-aloud, no recording
 %FBCFG%
 </script>
 <script>

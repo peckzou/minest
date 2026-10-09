@@ -111,7 +111,9 @@ During a level, the money and streak sit in the Arcade's own top bar, with +$ / 
 **📖 3D Cover study room** (always available to students: map / shop / badges / waiting screens):
 - `web31.0.html?learn=CODE` mounts only the 3D Cover (the iPhone build's `Oe`) on the live game's cards. The board app (`Be`) never starts, so nothing in the student's own storage or sync changes.
 - The top bar has only the two effect buttons: ✦ Light FX (FBFX's own button) and 🧊 Glass (`FBGlass`, off at the start because thick glass pauses tap / flip / record), plus ✕.
-- On a card, students can flip (double-tap), read aloud and record & score. Open card, AI Tutor, Complete, mastery and New Card are hidden.
+- On a card, students can only flip it (double-tap). Read aloud, record & score, open card, AI Tutor, Complete, mastery and New Card are hidden.
+
+**No voice for students** (`window.__mnNoVoice`): the play page, the study room and a student's live session turn off card read-aloud and recording: the Arcade's auto read-aloud button (Card Flinger, Swipe Judgment), and the 3D Cover's tap-to-read and hold-to-record. The teacher's own app is unchanged.
 - The play page shows it in a full-screen iframe. ✕ returns to the game (`postMessage minest-live:cover-close`).
 
 ## Teacher (🎓)

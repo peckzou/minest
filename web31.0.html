@@ -3752,7 +3752,7 @@ html.fbfx-neon-ignite .board-swimlane-scroll article.kanban-card{ animation: fbf
 @keyframes maiDot{ 0%, 80%, 100% { opacity:.25; transform:translateY(0); } 40% { opacity:.9; transform:translateY(-3px); } }
 @keyframes mai-spin{ to { transform:rotate(360deg); } }
 </style>
-<script>/* web31: the student 3D Cover study room */ if (/[?&]learn=/.test(location.search)) { window.__mnKiosk = true; document.documentElement.classList.add('mn-kiosk'); }</script>
+<script>/* web31: the student 3D Cover study room */ if (/[?&]learn=/.test(location.search)) { window.__mnKiosk = true; window.__mnNoVoice = true; document.documentElement.classList.add('mn-kiosk'); }</script>
 <style id="mn31-kiosk">
 .mn-kiosk body{background:radial-gradient(1000px 700px at 20% -10%,rgba(124,92,255,.28),transparent 60%),#0b0f1c!important;color:#f1f5f9}
 .mn-kiosk #minest-mini-pet-p0,.mn-kiosk .mpet-menu,.mn-kiosk .mpet-tip,.mn-kiosk .mpet-say{display:none!important}
@@ -3761,7 +3761,7 @@ html.fbfx-neon-ignite .board-swimlane-scroll article.kanban-card{ animation: fbf
 .mlk-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;border-radius:11px;padding:8px 13px;font:700 13px Inter,system-ui,sans-serif;cursor:pointer}.mlk-btn.on{background:rgba(125,211,252,.22);border-color:rgba(125,211,252,.6)}
 .mlk-load{min-height:100vh;display:grid;place-items:center;color:#c7cdf5;font:600 16px Inter,system-ui,sans-serif;background:#0b0f1c}
 /* only flip, read aloud and record — the board's own tools stay closed */
-.mlk .cf-study-open,.mlk [title="Deconstruct & Practice with AI Tutor"],.mlk [title="Mark as Complete"],.mlk [title^="Tap to increase mastery"],.mlk [aria-label="Pronunciation: record each card"],.mlk [title="Create new card"],.mlk .coverflow-card-item:has(.border-dashed){display:none!important}
+.mlk .cf-study-open,.mlk [title="Deconstruct & Practice with AI Tutor"],.mlk [title="Mark as Complete"],.mlk [title^="Tap to increase mastery"],.mlk [aria-label="Pronunciation: record each card"],.mlk [title="Create new card"],.mlk .cf-study-speak,.mlk .cf-study-rec,.mlk .coverflow-card-item:has(.border-dashed){display:none!important}
 </style>
 <style id="mn31-topbar">html,body{overflow-x:hidden}.mn30-entries{min-width:0;max-width:30vw;overflow-x:auto;scrollbar-width:none}.mn30-entries::-webkit-scrollbar{display:none}</style>
 </head>
@@ -9243,6 +9243,7 @@ var StudyArcade = window.StudyArcade = (function() {
   var arRead = {
     on: (function() { try { return localStorage.getItem('minest_arcade_autoread') === '1'; } catch (e) { return false; } })(),
     say: function(text) {
+      if (window.__mnNoVoice) return;   // web31: students
       if (!arRead.on || !window.speechSynthesis) return;
       var t = String(text || '').replace(/\s+/g, ' ').trim(); if (!t) return;
       try {
@@ -9253,6 +9254,7 @@ var StudyArcade = window.StudyArcade = (function() {
       } catch (e) {}
     },
     button: function(parent, current) {
+      if (window.__mnNoVoice) return null;   // web31: students
       var b = el('button', 'ar-btn ar-read' + (arRead.on ? ' on' : ''), parent);
       b.type = 'button'; b.title = 'Auto read-aloud'; b.setAttribute('aria-label', 'Auto read-aloud');
       b.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="w1" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="w2" d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
@@ -18631,6 +18633,7 @@ var Oe = function(props) {
   };
   var coverHaptic = function(style) { try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic(style || 'light'); else if (navigator.vibrate) navigator.vibrate(style === 'medium' ? 15 : 8); } catch (e) {} };
   var coverSpeak = function(card, el) {
+    if (window.__mnNoVoice) return;   // web31: students
     if (isThickGlassOn()) return; // 厚玻璃仅为美观和阅览，不触发朗读
     coverHaptic('light');
     var word = (window.MinestPron && window.MinestPron.wordOf) ? window.MinestPron.wordOf(card.title) : null;
@@ -18669,7 +18672,7 @@ var Oe = function(props) {
       if (!g.moved && !g.double) {
         g.holdFired = true;
         coverHaptic('medium');
-        if (window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });
+        if (!window.__mnNoVoice && window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });
       }
     }, 420);
 
@@ -44239,6 +44242,8 @@ var CoverKiosk = function() {
 
   function play(o, host, me) {
     var path = me.code + '/players/' + me.pid, SA = window.StudyArcade;
+    var hadNoVoice = window.__mnNoVoice; window.__mnNoVoice = true;   // a student: no read-aloud, no recording
+    o.cleanup.push(function () { window.__mnNoVoice = hadNoVoice; });
     var s = { money: 0, streak: 0, best: 0, correct: 0, wrong: 0, u: { mpq: 0, sb: 0, mult: 0, ins: 0 }, bonus: 1, shield: 0, lv: {}, cards: {}, coll: {}, av: '', packs: 0 };
     try { var keep = JSON.parse(sessionStorage.getItem('minest.live.state.' + path) || 'null'); if (keep && keep.u) s = keep; } catch (e) {}
     // a signed-in player on a new device: pick up where they were from the game's own copy
