@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 45.3 · Add list reachable</title>
+    <title>Minest iPhone 45.4 · New list screen</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21416,7 +21416,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "45.3" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "45.4" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -34060,7 +34060,7 @@ var isDark = themeMode === 'dark';
         columnSuppressClickUntilRef.current = Date.now() + 350;
 
         var dx = ev.clientX - startX;
-        var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id], .board-add-list-btn'));   // 45.3: + Add list
+        var allCols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id], .board-add-list-btn, .mn-addlist'));   // 45.3: + Add list
         var totalCols = allCols.length;
         var foundIdx = allCols.indexOf(colEl);
         if (foundIdx !== -1) cIdx = foundIdx;
@@ -34169,7 +34169,7 @@ var isDark = themeMode === 'dark';
       if (isDragging) {
         columnSuppressClickUntilRef.current = Date.now() + 250;
         var dx = ev.clientX - startX;
-        var cols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id], .board-add-list-btn'));   // 45.3: + Add list
+        var cols = Array.from(lane.querySelectorAll('.kanban-column-wrapper[data-col-id], .board-add-list-btn, .mn-addlist'));   // 45.3: + Add list
         var padLeft = parseInt(window.getComputedStyle(lane).paddingLeft || '16', 10);
         var startIdx = 0, nearest = Infinity;
         cols.forEach(function(col, idx) {
@@ -45851,7 +45851,7 @@ var Ve = (function(_Component) {
       if (!/x|both|inline/.test(cs.scrollSnapType || '')) return;
       var sr = sc.getBoundingClientRect();
       // 45.3: "Add another list" is a resting place too (the snap-back pulled the lane off it)
-      var cols = Array.prototype.filter.call(sc.querySelectorAll('.kanban-column-wrapper, .board-add-list-btn'), function (c) {
+      var cols = Array.prototype.filter.call(sc.querySelectorAll('.kanban-column-wrapper, .board-add-list-btn, .mn-addlist'), function (c) {
         return c.offsetParent && c.closest('.board-swimlane-scroll') === sc;
       });
       if (!cols.length) return;
@@ -50111,7 +50111,33 @@ var Ve = (function(_Component) {
   // 45.2: the lane scrolls sideways itself again (it was up/down only: lists got stuck, "Add another list" out of reach)
   var st = document.createElement('style'); st.id = 'mn-lane-452';
   st.textContent = '.mobile-board-view:not(.landscape) .board-swimlane-scroll,.iphone-frame:not(.landscape) .board-swimlane-scroll{touch-action:pan-x pan-y!important}' +
-    '.board-swimlane-scroll > .board-add-list-btn{scroll-snap-align:center!important;flex:none}';
+    '.board-swimlane-scroll > .board-add-list-btn,.board-swimlane-scroll > .mn-addlist{scroll-snap-align:center!important;flex:none}' +
+    // 45.4: in portrait "Add another list" is a whole screen, as wide as a list — swipe there and type the name
+    '@media (max-width:768px) and (orientation:portrait){' +
+      '.mobile-board-view:not(.landscape) .board-swimlane-scroll > .board-add-list-btn,.mobile-board-view:not(.landscape) .board-swimlane-scroll > .mn-addlist{width:calc(100vw - 20px)!important;min-width:calc(100vw - 20px)!important;max-width:none!important;border-radius:34px!important}' +
+      '.mobile-board-view:not(.landscape) .board-swimlane-scroll > .board-add-list-btn{min-height:150px;justify-content:center!important;font-size:17px!important;border-style:dashed!important}' +
+      '.mobile-board-view:not(.landscape) .board-swimlane-scroll > .mn-addlist{padding:22px 18px!important}' +
+      '.mobile-board-view:not(.landscape) .board-swimlane-scroll > .mn-addlist input{font-size:17px!important;padding:14px 16px!important}' +
+      '.mobile-board-view:not(.landscape) .board-swimlane-scroll > .mn-addlist button{font-size:15px!important;padding:10px 18px!important}' +
+    '}';
+  // the open new-list form gets a mark (snap target), and landing on the add-list screen opens it
+  function markAdd() {
+    document.querySelectorAll('.board-swimlane-scroll > div').forEach(function (d) {
+      var f = d.querySelector(':scope > input[placeholder="Enter list title..."]');
+      if (f && !d.classList.contains('mn-addlist')) { d.classList.add('mn-addlist'); var L = d.parentNode; setTimeout(function () { L.scrollTo({ left: d.offsetLeft - (L.clientWidth - d.offsetWidth) / 2, behavior: 'smooth' }); try { f.focus({ preventScroll: true }); } catch (e) {} }, 60); }
+    });
+  }
+  new MutationObserver(markAdd).observe(document.body, { childList: true, subtree: true });
+  var landT = 0;
+  document.addEventListener('scroll', function (e) {
+    var L = e.target; if (!L || !L.classList || !L.classList.contains('board-swimlane-scroll')) return;
+    clearTimeout(landT);
+    landT = setTimeout(function () {
+      var b = L.querySelector(':scope > .board-add-list-btn'); if (!b || !window.matchMedia('(max-width:768px) and (orientation:portrait)').matches) return;
+      var r = b.getBoundingClientRect(), lr = L.getBoundingClientRect();
+      if (Math.abs(r.left + r.width / 2 - (lr.left + lr.width / 2)) < 30) b.click();   // on the add-list screen: open the form
+    }, 380);
+  }, { capture: true, passive: true });
   document.head.appendChild(st);
   // can the finger's own spot scroll sideways natively? (a list's card area is up/down only)
   function sideways(el, L) {
@@ -50149,7 +50175,7 @@ var Ve = (function(_Component) {
   document.addEventListener('touchend', end, { passive: true, capture: true });
   document.addEventListener('touchcancel', end, { passive: true, capture: true });
   function step(L, dir) {
-    var cols = Array.prototype.filter.call(L.children, function (c) { return c.matches('.kanban-column-wrapper, .board-add-list-btn') && c.offsetWidth; });
+    var cols = Array.prototype.filter.call(L.children, function (c) { return c.matches('.kanban-column-wrapper, .board-add-list-btn, .mn-addlist') && c.offsetWidth; });
     if (!cols.length) return;
     var lr = L.getBoundingClientRect(), cur = 0, best = 1e9;
     cols.forEach(function (c, i) { var d = Math.abs(c.getBoundingClientRect().left + c.offsetWidth / 2 - (lr.left + lr.width / 2)); if (d < best) { best = d; cur = i; } });
