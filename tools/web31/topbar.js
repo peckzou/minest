@@ -5,7 +5,7 @@
    Each new button presses the old one; a menu that drops from an old button is moved under the new one.
    The bar slides away and comes back with the pointer at the top edge or a two-finger pinch.
    A right-click (or a long press on a touch screen) on empty space opens Appearance (wallpaper).
-   Teacher / Join live in the Study Arcade's own top bar. The two floating FX buttons in the corner are gone. */
+   Teacher / Join / Locker live in the Study Arcade's own top bar. The two floating FX buttons in the corner are gone. */
 (function () {
   'use strict';
   if (window.__mn31TopBar || /[?&]learn=/.test(location.search)) return;
@@ -416,6 +416,8 @@
     var ref = chips.querySelector('.ar-bgbtn') || chips.firstChild;
     chips.insertBefore(mk('mn31-ar-te', '🎓 Teacher', 'Host a live Arcade game for your class', function () { window.MinestLive.openTeacher(); }), ref);
     chips.insertBefore(mk('mn31-ar-jo', '🎮 Join', 'Join a live Arcade game with a code', function () { window.MinestLive.openJoin(''); }), ref);
+    // the five games pay 💎 outside a live game too: the Locker (animals, outfits) is one tap away
+    if (window.MinestLive.openLocker) chips.insertBefore(mk('mn31-ar-lk', '👕 Locker', 'Your animal and outfits — unlock them with 💎 from the games', function () { window.MinestLive.openLocker(); }), ref);
   }
   new MutationObserver(function () { if (document.querySelector('.arcade .ar-chips')) arcadeButtons(); }).observe(document.body || document.documentElement, { childList: true });
 })();
