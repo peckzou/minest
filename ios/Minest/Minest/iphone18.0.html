@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 44.9 · Mini Pet edges</title>
+    <title>Minest iPhone 45.0 · Free Mini Pet</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21416,7 +21416,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "44.9" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "45.0" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -21794,11 +21794,11 @@ var De = function(props) {
               // AI, pets, Learning Path; same data). Inside the iOS app (no web30 in the bundle) the button
               // keeps switching full window ↔ phone frame.
               var inApp = window.MinestNative && window.MinestNative.isNative && window.MinestNative.isNative();
-              if (!inApp && location.protocol !== 'file:') { window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'web30.0.html'; return; }
+              if (!inApp && location.protocol !== 'file:') { window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'web31.0.html'; return; }
               try { window.dispatchEvent(new CustomEvent('minest:toggle-sim')); } catch (e) {}
             },
             className: "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"),
-            title: "Desktop version (Minest Web 30)",
+            title: "Desktop version (Minest Web 31)",
             children: (0, P.jsx)(IconMonitor, { className: "w-4 h-4" })
           }),
 
@@ -46554,9 +46554,7 @@ var Ve = (function(_Component) {
     drag = null;
     if (wasMoved && host) { if (host.drag) host.drag('end', event && event.screenX, event && event.screenY); return; }
     if (wasMoved) {
-      var edge = Math.round(root.offsetWidth * .16);   // 44.9: rests close to the edge (the box overhangs a little)
-      var left = root.offsetLeft < (window.innerWidth - root.offsetWidth) / 2 ? -edge : window.innerWidth - root.offsetWidth + edge;
-      root.style.left = left + 'px';
+      clamp();   // 45.0: the pet stays where it is put — anywhere on screen, the middle too (no snap to a side)
       try { localStorage.setItem('minest.miniPetP0.position', JSON.stringify({ x: root.offsetLeft, y: root.offsetTop })); } catch (error) {}
     } else {
       handleTap();

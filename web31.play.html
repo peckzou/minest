@@ -7089,9 +7089,7 @@ var StudyArcade = window.StudyArcade = (function() {
     drag = null;
     if (wasMoved && host) { if (host.drag) host.drag('end', event && event.screenX, event && event.screenY); return; }
     if (wasMoved) {
-      var edge = Math.round(root.offsetWidth * .16);   // 44.9: rests close to the edge (the box overhangs a little)
-      var left = root.offsetLeft < (window.innerWidth - root.offsetWidth) / 2 ? -edge : window.innerWidth - root.offsetWidth + edge;
-      root.style.left = left + 'px';
+      clamp();   // 45.0: the pet stays where it is put — anywhere on screen, the middle too (no snap to a side)
       try { localStorage.setItem('minest.miniPetP0.position', JSON.stringify({ x: root.offsetLeft, y: root.offsetTop })); } catch (error) {}
     } else {
       handleTap();

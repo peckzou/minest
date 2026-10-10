@@ -141,6 +141,9 @@ var CoverKiosk = function() {
 """, 'top bar: Teacher + Join')
     tail = out.rindex('</body>')
     out = out[:tail] + '\n<!-- ---- web31: Minest Live (tools/web31/minest-live.js) ---- -->\n<script>\n' + live_js() + '\n</script>\n' + out[tail:]
+    # the top bar, laid out like iPhone 45.0 (switcher left, the rest right, ≡ column) + Teacher / Join in the Arcade bar
+    tail = out.rindex('</body>')
+    out = out[:tail] + '<script>\n' + open(os.path.join(HERE, 'topbar.js'), encoding='utf-8').read() + '\n</script>\n' + out[tail:]
     out = once(out, '<title>Minest Web 30.0 · Board + 3D Cover · Learning Path</title>', '<title>Minest Web 31.0 · Board + Live Arcade Class Game</title>', 'title')
     out = once(out, 'className: "studio-version w-7 h-7 flex items-center justify-center font-bold text-xs", children: "30.0" }', 'className: "studio-version w-7 h-7 flex items-center justify-center font-bold text-xs", children: "31.0" }', 'version badge')
     return out
