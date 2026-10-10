@@ -26,7 +26,7 @@
   window.addEventListener('load', function () { place(); setTimeout(place, 1500); setTimeout(place, 4000); });
 
   // 3D octopus at ≤1.5× pixel density (the page asks for up to 2×, also on every resize)
-  var MAX_PR = 1.5;
+  var MAX_PR = 1.25;   // 46.7 (was 1.5)
   function patchRenderer() {
     var av = window.__octopusAvatar, r = av && av.renderer;
     if (!r) return false;

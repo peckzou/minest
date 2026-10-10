@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPad 46.0 · Minest Live</title>
+    <title>Minest iPad 46.1 · Minest Live</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -6698,6 +6698,12 @@ html body.clear-mode .clear-active-column .kanban-cards-scroll > .card-gap-activ
   .minest-activity-modal-panel .minest-rings-panel > .relative{width:min(48vh,440px)!important;height:min(48vh,440px)!important}
   .minest-activity-modal-panel .minest-summary-card-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 }
+</style>
+<style id="mn-pet-x">
+#minest-pet-raising-overlay .minest-pet-x{left:12px!important;top:calc(env(safe-area-inset-top,0px) + 8px)!important;width:46px!important;height:46px!important;font-size:20px!important;transition:opacity .35s,transform .15s!important;
+  background:radial-gradient(120% 90% at 30% 0%,rgba(255,255,255,.34),rgba(255,255,255,0) 55%),linear-gradient(180deg,rgba(120,200,225,.34),rgba(14,60,88,.5))!important;border:1px solid rgba(255,255,255,.34)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 20px rgba(0,20,40,.32)!important}
+#minest-pet-raising-overlay .minest-pet-x.idle{opacity:0;pointer-events:none}
 </style>
 <style id="mn-live-mobile">
 /* the Arcade's top bar stays below the status bar (the iPad did not pass taps there to its buttons) */
@@ -19290,7 +19296,7 @@ var WallpaperAndTintStudio = function(props) {
           (0, P.jsxs)('div', {
             className: "flex items-center justify-between",
             children: [
-              (0, P.jsx)('span', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Live Board Preview" }),
+              (0, P.jsx)('span', {}),   // web31: no Live Board Preview
               (wallpaper || color) ? (
                 (0, P.jsx)('button', {
                   type: "button",
@@ -19306,7 +19312,7 @@ var WallpaperAndTintStudio = function(props) {
               )
             ]
           }),
-          (0, P.jsxs)('div', {
+          false && (0, P.jsxs)('div', {   // web31: no Live Board Preview
             className: "h-32 w-full rounded-2xl overflow-hidden relative border shadow-inner transition-all flex flex-col p-3 " +
               (isDark ? "border-white/20 shadow-black/50" : "border-slate-300 shadow-slate-200"),
             style: previewBgStyle,
@@ -21498,7 +21504,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "46.0" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "46.1" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -30562,6 +30568,14 @@ var MinestPortraitGestureManager = (function() {
       // --- SINGLE POINTER GESTURE (Swipe / Tap / Pull Down) ---
       var cardEl = e.target.closest('article.kanban-card, article.kanban-subcard');
       var colEl = e.target.closest('.kanban-column-wrapper');
+      // 46.7: a pull in the empty space under a list adds to that list too
+      if (!colEl && !cardEl && lane.contains(e.target) && !e.target.closest('button, a, input, textarea, select, [contenteditable], .board-add-list-btn, .mn-addlist')) {
+        var laneCols = lane.querySelectorAll('.kanban-column-wrapper');
+        for (var lci = 0; lci < laneCols.length; lci++) {
+          var lcr = laneCols[lci].getBoundingClientRect();
+          if (clientX >= lcr.left && clientX <= lcr.right && clientY >= lcr.top) { colEl = laneCols[lci]; break; }
+        }
+      }
       var scrollEl = colEl ? colEl.querySelector('.kanban-cards-scroll') : null;
 
       var colId = colEl ? colEl.getAttribute('data-col-id') : null;
@@ -35369,10 +35383,10 @@ var isDark = themeMode === 'dark';
                                   (0, P.jsxs)('div', {
                                     className: "min-w-0 flex-1 pr-1",
                                     children: [
-                                      (0, P.jsxs)('div', {
+                                      card.phonetic && (0, P.jsxs)('div', {   // web31: no "Meaning" label
                                         className: "text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1 flex items-center justify-between",
                                         children: [
-                                          (0, P.jsx)('span', { children: "Meaning" }),
+                                          (0, P.jsx)('span', {}),
                                           card.phonetic ? (0, P.jsx)('span', { className: "font-mono normal-case tracking-normal opacity-75", children: card.phonetic }) : null
                                         ]
                                       }),
@@ -35385,7 +35399,8 @@ var isDark = themeMode === 'dark';
                                   (0, P.jsxs)('div', {
                                     className: "flex items-center justify-between mt-2 pt-1 border-t " + (isDark ? "border-white/10" : "border-slate-200/80"),
                                     children: [
-                                      (0, P.jsxs)('button', {
+                                      (0, P.jsx)('span', {}),   // web31: no Back button
+                                      false && (0, P.jsxs)('button', {
                                         type: 'button',
                                         title: 'Flip back',
                                         onClick: function(e) {
@@ -46014,7 +46029,7 @@ var Ve = (function(_Component) {
   // 41.378: inside the iOS app the page is a bundled file, but the pet (octopus-pet-raising-v6/,
   // ~27 MB) lives on the website — so its files are fetched from there; on the web: same site.
   window.minestPetAsset = window.minestPetAsset || function (path) {
-    if (location.protocol === 'file:' && /^octopus-pet-raising-v6\//.test(path)) return 'https://minest-app.vercel.app/' + path;
+    // 46.7: the app carries its own copy (ios/Minest/BadgeResources/octopus-pet-raising-v6) — relative to this page
     try { return new URL(path, document.baseURI).href; } catch (e) { return path; }
   };
   var overlayId = 'minest-pet-raising-overlay';
@@ -46027,6 +46042,8 @@ var Ve = (function(_Component) {
   window.addEventListener('message', function (event) {
     var d = event.data, f = document.querySelector('#' + overlayId + ' iframe');
     if (d && d.type === 'minest-pet' && d.action === 'close' && f && event.source === f.contentWindow) closePetRaising();
+    // 46.7: the ✕ hides and comes back with the pet's own controls
+    if (d && d.type === 'minest-pet' && d.action === 'idle' && f && event.source === f.contentWindow) { var x = document.querySelector('#' + overlayId + ' .minest-pet-x'); if (x) x.classList.toggle('idle', !!d.idle); }
   });
   window.MinestPetRaising = {
     open: function () {
@@ -46050,7 +46067,7 @@ var Ve = (function(_Component) {
         '</style><iframe title="Octo" allow="microphone; autoplay; camera" loading="eager"></iframe><button type="button" class="minest-pet-x" aria-label="Close">✕</button>';
       document.body.appendChild(overlay);
       var frame = overlay.querySelector('iframe');
-      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=447&pexit=1&sat=' + sat + '&sab=' + sab);
+      frame.src = window.minestPetAsset('octopus-pet-raising-v6/index.html?motion-set=p0&v=467&pexit=1&sat=' + sat + '&sab=' + sab);
       overlay.querySelector('.minest-pet-x').addEventListener('click', closePetRaising);
       document.documentElement.classList.add('pet-raising-open');
     },
@@ -46061,6 +46078,7 @@ var Ve = (function(_Component) {
   });
   // 44.4: warm the cache with Pet Raising's scripts, styles and model a few seconds after start-up
   function prefetchPetRaising() {
+    if (location.protocol === 'file:') return;   // 46.7: bundled in the app
     var base = window.minestPetAsset('octopus-pet-raising-v6/index.html');
     fetch(base + '?prefetch=1', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (html) {
       var urls = [], re = /(?:src|href)="([^"]+\.(?:js|css)[^"]*)"/g, m;

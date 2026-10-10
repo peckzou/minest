@@ -27,7 +27,7 @@
   function layout() {
     var w = stage.clientWidth, h = stage.clientHeight;
     if (!w || !h) return;
-    DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+    DPR = Math.min(window.devicePixelRatio || 1, 1.25);   // 46.7
     W = w; H = h; cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
     var sRect = stage.getBoundingClientRect(), sand = document.querySelector('.ocean-sand'), y = h * .9;
     if (sand) { var r = sand.getBoundingClientRect(); y = clamp(r.top - sRect.top + Math.min(r.height, sRect.bottom - r.top) * .62, h * .7, h - 12); }
@@ -159,7 +159,7 @@
   }
   function badgeImg(id) {
     var m = /^strike-(\d+)-days$/.exec(id), file = m ? 'strike-' + m[1] : id;
-    return location.origin + '/badge-index/thumbs/' + file + '.webp';
+    return (location.protocol === 'file:' ? 'https://minest-app.vercel.app/' : location.origin + '/') + 'badge-index/thumbs/' + file + '.webp';   // 46.7: in the app the pet is a bundled file
   }
   function stageToScreen(x, y) { var r = stage.getBoundingClientRect(); return { x: r.left + x, y: r.top + y }; }
   function openChest(auto) {

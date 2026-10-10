@@ -68,7 +68,39 @@ def arcade_patches(out):
     out = once(out, """  var coverSpeak = function(card, el) {""", """  var coverSpeak = function(card, el) {
     if (window.__mnNoVoice) return;   // web31: students""", '3D Cover: no tap-to-read for students')
     out = once(out, """        if (window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });""", """        if (!window.__mnNoVoice && window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });""", '3D Cover: no hold-to-record for students')
-    return toon_patches(out)
+    return card_back(no_board_preview(toon_patches(out)))
+
+
+def no_board_preview(out):
+    """Wallpaper & Tint Studio (also opened from Settings): no "Live Board Preview" mock board — only the
+    Reset to Default Theme link stays, on the right."""
+    out = once(out, """              (0, P.jsx)('span', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Live Board Preview" }),""",
+               """              (0, P.jsx)('span', {}),   // web31: no Live Board Preview""", 'no board preview: label')
+    out = once(out, """          (0, P.jsxs)('div', {
+            className: "h-32 w-full rounded-2xl overflow-hidden relative border shadow-inner transition-all flex flex-col p-3 " +""",
+               """          false && (0, P.jsxs)('div', {   // web31: no Live Board Preview
+            className: "h-32 w-full rounded-2xl overflow-hidden relative border shadow-inner transition-all flex flex-col p-3 " +""", 'no board preview: board')
+    return out
+
+
+def card_back(out):
+    """A flipped card's back: just the meaning (no "Meaning" label, no ↩ Back button — a tap flips it back)."""
+    if "title: 'Flip back'," not in out:   # the desktop page has no such card back
+        return out
+    out = once(out, """                                      (0, P.jsxs)('div', {
+                                        className: "text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1 flex items-center justify-between",
+                                        children: [
+                                          (0, P.jsx)('span', { children: "Meaning" }),""", """                                      card.phonetic && (0, P.jsxs)('div', {   // web31: no "Meaning" label
+                                        className: "text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1 flex items-center justify-between",
+                                        children: [
+                                          (0, P.jsx)('span', {}),""", 'card back: no Meaning')
+    out = once(out, """                                      (0, P.jsxs)('button', {
+                                        type: 'button',
+                                        title: 'Flip back',""", """                                      (0, P.jsx)('span', {}),   // web31: no Back button
+                                      false && (0, P.jsxs)('button', {
+                                        type: 'button',
+                                        title: 'Flip back',""", 'card back: no Back')
+    return out
 
 
 def toon_patches(out):

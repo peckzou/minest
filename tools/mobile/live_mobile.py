@@ -72,10 +72,57 @@ def once(s, a, b, what):
     return s.replace(a, b)
 
 
+def pet_patches(s):
+    """Pet Raising (46.7): opens from the app bundle (tools/ios/bundle-pet.sh) instead of the website, no
+    prefetch in the app, and the ✕ fades with the pet's other controls (the frame says when: 'minest-pet' / 'idle')."""
+    s = once(s, "    if (location.protocol === 'file:' && /^octopus-pet-raising-v6\\//.test(path)) return 'https://minest-app.vercel.app/' + path;\n",
+             "    // 46.7: the app carries its own copy (ios/Minest/BadgeResources/octopus-pet-raising-v6) — relative to this page\n", 'pet: bundled')
+    s = once(s, "  function prefetchPetRaising() {\n", "  function prefetchPetRaising() {\n    if (location.protocol === 'file:') return;   // 46.7: bundled in the app\n", 'pet: no prefetch in the app')
+    s = once(s, "    if (d && d.type === 'minest-pet' && d.action === 'close' && f && event.source === f.contentWindow) closePetRaising();\n",
+             "    if (d && d.type === 'minest-pet' && d.action === 'close' && f && event.source === f.contentWindow) closePetRaising();\n"
+             "    // 46.7: the ✕ hides and comes back with the pet's own controls\n"
+             "    if (d && d.type === 'minest-pet' && d.action === 'idle' && f && event.source === f.contentWindow) { var x = document.querySelector('#' + overlayId + ' .minest-pet-x'); if (x) x.classList.toggle('idle', !!d.idle); }\n", 'pet: idle ✕')
+    s = once(s, "'octopus-pet-raising-v6/index.html?motion-set=p0&v=447&pexit=1&sat='", "'octopus-pet-raising-v6/index.html?motion-set=p0&v=467&pexit=1&sat='", 'pet: version')
+    s = once(s, '</head>', """<style id="mn-pet-x">
+#minest-pet-raising-overlay .minest-pet-x{left:12px!important;top:calc(env(safe-area-inset-top,0px) + 8px)!important;width:46px!important;height:46px!important;font-size:20px!important;transition:opacity .35s,transform .15s!important;
+  background:radial-gradient(120% 90% at 30% 0%,rgba(255,255,255,.34),rgba(255,255,255,0) 55%),linear-gradient(180deg,rgba(120,200,225,.34),rgba(14,60,88,.5))!important;border:1px solid rgba(255,255,255,.34)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 20px rgba(0,20,40,.32)!important}
+#minest-pet-raising-overlay .minest-pet-x.idle{opacity:0;pointer-events:none}
+</style>
+</head>""", 'pet: ✕ style')
+    return s
+
+
+def board_patches(s):
+    """Board (46.7): pull down in the empty space under a list adds a card to it (as a pull inside the list
+    does), and the portrait "Add another list" screen is as tall as a list, not 150 px."""
+    s = once(s, """      var cardEl = e.target.closest('article.kanban-card, article.kanban-subcard');
+      var colEl = e.target.closest('.kanban-column-wrapper');
+      var scrollEl = colEl ? colEl.querySelector('.kanban-cards-scroll') : null;
+""", """      var cardEl = e.target.closest('article.kanban-card, article.kanban-subcard');
+      var colEl = e.target.closest('.kanban-column-wrapper');
+      // 46.7: a pull in the empty space under a list adds to that list too
+      if (!colEl && !cardEl && lane.contains(e.target) && !e.target.closest('button, a, input, textarea, select, [contenteditable], .board-add-list-btn, .mn-addlist')) {
+        var laneCols = lane.querySelectorAll('.kanban-column-wrapper');
+        for (var lci = 0; lci < laneCols.length; lci++) {
+          var lcr = laneCols[lci].getBoundingClientRect();
+          if (clientX >= lcr.left && clientX <= lcr.right && clientY >= lcr.top) { colEl = laneCols[lci]; break; }
+        }
+      }
+      var scrollEl = colEl ? colEl.querySelector('.kanban-cards-scroll') : null;
+""", 'board: pull in the empty space')
+    if ".board-swimlane-scroll > .board-add-list-btn{min-height:150px;" in s:   # the iPhone's portrait add-list screen
+      s = once(s, ".board-swimlane-scroll > .board-add-list-btn{min-height:150px;justify-content:center!important;",
+               ".board-swimlane-scroll > .board-add-list-btn{min-height:0;height:var(--mn-list-h,100px);justify-content:center!important;", 'board: add-list height')
+    return s
+
+
 def main():
     src, dst, title, ver = sys.argv[1:5]
     s = open(os.path.join(REPO, src), encoding='utf-8').read()
     s = web31.arcade_patches(s)
+    s = pet_patches(s)
+    s = board_patches(s)
     s = re.sub(r'<title>[^<]*</title>', '<title>' + title + '</title>', s, count=1)
     old_ver = re.search(r'className: "board-version", children: "([\d.]+)" \}', s).group(1)
     s = once(s, 'className: "board-version", children: "%s" }' % old_ver, 'className: "board-version", children: "%s" }' % ver, 'version badge')

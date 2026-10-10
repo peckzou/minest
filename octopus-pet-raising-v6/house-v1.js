@@ -265,7 +265,7 @@
   function layout() {
     var w = stage.clientWidth, h = stage.clientHeight;
     if (!w || !h) return;
-    DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+    DPR = Math.min(window.devicePixelRatio || 1, 1.25);   // 46.7
     W = w; H = h;
     [back, front].forEach(function (cv) { cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR); });
     var sRect = stage.getBoundingClientRect(), sand = document.querySelector('.ocean-sand'), y = h * .9;

@@ -1403,7 +1403,7 @@
     if (w === W && h === H) return true;
     var first = !W;
     W = w; H = h; U = clamp(Math.min(W, H) / 560, .62, 1.35);
-    DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+    DPR = Math.min(window.devicePixelRatio || 1, 1);   // 46.7: soft sea life, full-screen canvas redrawn every frame
     canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
     build();
     if (first) {

@@ -192,7 +192,7 @@
     var avatarMotion = { x: 0, y: 0, scale: .52, rotation: 0 };
     window.__oceanAvatarMotion = avatarMotion;
     var motionTarget = { x: 0, y: 0, scale: .52, rotation: 0 };
-    var userScale = .52;
+    var userScale = .38;   // 46.7: the octopus smaller by default (was .52)
     var userRotation = 0;
     var userPitch = 0;
     var lastBubbleAt = 0;
