@@ -44813,10 +44813,10 @@ var CoverKiosk = function() {
     '.mn31-title:hover,.mn31-s:hover,.mn31-status button:hover{background:rgba(255,255,255,.16)}html:has(.theme-white) :is(.mn31-title,.mn31-s,.mn31-status button):hover{background:rgba(0,0,0,.08)}',
     // status: plain menu-bar items (icon + word), each also a switch
     '.mn31-status{flex:none;display:flex;align-items:center;gap:1px;margin-right:4px}',
-    '.mn31-status button{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 7px;border:0;border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:13px;white-space:nowrap;cursor:pointer;opacity:.92}',
+    '.mn31-status button{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:24px;min-width:28px;padding:0 6px;border:0;border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:13px;white-space:nowrap;cursor:pointer;opacity:.92}',
     '.mn31-status button[hidden],.mn31-status .sep{display:none}',
     '.mn31-status svg{width:14px;height:14px}.mn31-status i{width:7px;height:7px;border-radius:50%;background:#94a3b8}',
-    '@media (max-width:900px){.mn31-status .lbl{display:none}}',
+    '.mn31-status .lbl{display:none}',   // icons only, as on macOS (the words are in the tooltips)
     '.mn31-s.pin.on{background:rgba(125,211,252,.22);color:#7dd3fc}html:has(.theme-white) .mn31-s.pin.on{background:rgba(14,165,233,.14);color:#0369a1}',
     // while the bar and Dock are out, the board steps back: a little smaller, clear of the bar and the Dock
     'main{transition:padding .32s cubic-bezier(.2,.9,.25,1)}',
@@ -44917,11 +44917,10 @@ var CoverKiosk = function() {
   };
   ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (t) { document.addEventListener(t, syncFull); });
   syncFull(); bar.appendChild(fullB);
-  // status: board / 3D Cover · dark / light · Light FX · Card FX · cloud
+  // status (icons only): board / 3D Cover · Light FX · Card FX · cloud
   var status = document.createElement('div'); status.className = 'mn31-status'; status.setAttribute('role', 'group'); status.setAttribute('aria-label', 'Status');
   var ST = {};
   [['view', function () { BTNS.filter(function (b) { return b.k === 'view'; })[0].run(); }],
-   ['theme', function () { BTNS.filter(function (b) { return b.k === 'theme'; })[0].run(); }],
    ['fx', function () { var r = fxBtn(); if (r) r.click(); }],
    ['card', function () { var r = cmBtn(); if (r) r.click(); }],
    ['cloud', function () { var c = document.querySelector('.board-settings-modal'); if (!c) press('button[title^="Board settings"]'); }]].forEach(function (x, i) {
@@ -44930,7 +44929,8 @@ var CoverKiosk = function() {
     b.onclick = function (e) { e.stopPropagation(); x[1](); setTimeout(refresh, 120); };
     ST[x[0]] = b; status.appendChild(b);
   });
-  bar.insertBefore(status, search.parentNode === bar ? search : null);
+  // search first, then the status icons, then +, theme, pin, full screen
+  bar.insertBefore(status, els.plus && els.plus.parentNode === bar ? els.plus : null);
   var SI = {
     board: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>',
     cover: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>',
@@ -44948,8 +44948,6 @@ var CoverKiosk = function() {
   function refreshStatus() {
     var cover = document.body && document.body.classList.contains('mode-coverflow');
     setSt('view', (cover ? SI.cover : SI.board) + '<span class="lbl">' + (cover ? '3D Cover' : 'Board') + '</span>', 'View: ' + (cover ? '3D Cover' : 'Board') + ' — click to switch', true);
-    var dark = !!q('button[title^="Switch to light"]');
-    setSt('theme', (dark ? SI.moon : SI.sun) + '<span class="lbl">' + (dark ? 'Dark' : 'Light') + '</span>', (dark ? 'Dark' : 'Light') + ' mode — click to switch', true);
     var fr = fxBtn(), fxOn = !!(fr && /\bon\b/.test(fr.className));
     var lv = fr && (fr.getAttribute('data-level') || (fr.title || '').replace(/^.*?:\s*/, ''));
     setSt('fx', SI.fx + '<span class="lbl">Light FX' + (lv && lv.length < 14 && fxOn ? ' · ' + lv : '') + '</span>', 'Light FX is on — click to change', fxOn);
