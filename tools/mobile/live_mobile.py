@@ -129,6 +129,9 @@ def main():
     s = once(s, '</head>', CSS + '</head>', 'css')
     tail = s.rindex('</body>')
     s = s[:tail] + '\n<!-- ---- Minest Live (tools/web31/minest-live.js) ---- -->\n<script>\n' + web31.live_js() + '\n</script>\n<script>' + BUTTONS + '</script>\n' + s[tail:]
+    # 46.8: every pop-up in the card details' glass, opening out of the button tapped (tools/mobile/sheets.js)
+    tail = s.rindex('</body>')
+    s = s[:tail] + '<script>\n' + open(os.path.join(HERE, 'sheets.js'), encoding='utf-8').read() + '\n</script>\n' + s[tail:]
     open(os.path.join(REPO, dst), 'w', encoding='utf-8').write(s)
     print('%s ← %s + Minest Live (%d KB)' % (dst, src, len(s) // 1024))
 
