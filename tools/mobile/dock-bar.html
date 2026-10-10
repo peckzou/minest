@@ -1,6 +1,6 @@
 <script>
 /* 45.7 A Dock (macOS): one liquid-glass shelf with the icons on it (no frame of their own) — they swell under a
-   finger, the name shows beside it; slide along it and lift on the one you want. On the right by default; a long
+   finger, the name shows beside it; a tap (or a slide) picks an icon, a second tap on it opens it. On the right by default; a long
    press on the Dock moves it (Left · Bottom · Right). It comes and goes with the top bar, and a tap on empty space
    puts both away at once. At the bottom the lists make room for it. The ≡ button and its column are gone; every
    icon presses the button it stands for. */
@@ -187,6 +187,7 @@
     menu.style.left = Math.max(8, Math.min(innerWidth - w - 8, L)) + 'px'; menu.style.top = Math.max(8, Math.min(innerHeight - h - 8, T)) + 'px';
   }
   dock.addEventListener('touchstart', function (e) {
+    swallow = false;
     if (lp) clearTimeout(lp.t);
     if (e.touches.length !== 1) { lp = null; return; }
     var p = e.touches[0];

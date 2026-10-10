@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPad 45.0 · Dock</title>
+    <title>Minest iPad 45.1 · Dock: pick, then open</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21428,7 +21428,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "45.0" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "45.1" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -22055,7 +22055,7 @@ window.minestSafeSide = (function() {
   };
 })();
 var MinestChrome = (function() {
-  var root = document.documentElement, timer = 0, HIDE_MS = 4000;
+  var root = document.documentElement, timer = 0, HIDE_MS = 60000;   // 45.9: the bars stay a minute (a tap on empty space puts them away)
   // running inside the Minest iOS app (WKWebView bridge present)
   // (only WKWebView exposes webkit.messageHandlers; the page defines its own MinestNative fallback on the web)
   if (window.webkit && window.webkit.messageHandlers) root.classList.add('mn-in-app');
@@ -50171,8 +50171,9 @@ var Ve = (function(_Component) {
 </script>
 <script>
 /* Minest Dock — a macOS-style dock: tiles that swell under the pointer (the neighbours a little less), a name
-   bubble beside the one you point at, and on a touch screen you can slide a finger along the dock and lift it on
-   the one you want. Used by web31 (its Dock on the right) and the iPhone / iPad page (the ≡ column).
+   bubble beside the one you point at. On a touch screen a tap (or a slide along the dock) picks an icon — it
+   stays swollen with its name — and a second tap on it opens it; a mouse opens with one click, as on a Mac. 
+   Used by web31 and the iPhone / iPad pages.
      MinestDock.attach(container, {
        axis: 'y' | 'x', side: 'left' | 'right' | 'top' | 'bottom', base: 46 | function, max: 1.65,
        items: '.selector' (inside the container)  — or tiles: function () { return [elements] },
@@ -50279,7 +50280,17 @@ var Ve = (function(_Component) {
     }
     function kick() { if (!raf) raf = requestAnimationFrame(apply); }
     function at(x, y) { pos = axis === 'y' ? y : x; kick(); }
-    function leave() { pos = null; kick(); }
+    function leave() { pos = null; sel = null; clearTimeout(selT); kick(); }
+    // a finger picks first, opens second (like pointing, then clicking, on a Mac): the tile it lands or lifts on
+    // stays swollen with its name; a tap on that same tile opens it
+    var sel = null, selT = 0;
+    function pick(t) {
+      sel = t; pos = restC(t); kick();
+      clearTimeout(selT); selT = setTimeout(leave, 6000);
+    }
+    document.addEventListener('touchstart', function (e) {
+      if (sel && !boxes.some(function (b2) { return b2.contains(e.target); })) leave();
+    }, { capture: true, passive: true });
     sizes(); window.addEventListener('resize', function () { sizes(); kick(); });
     boxes.forEach(function (bx) {
       bx.addEventListener('mousemove', function (e) { at(e.clientX, e.clientY); });
@@ -50300,11 +50311,13 @@ var Ve = (function(_Component) {
       }, { passive: false });
       bx.addEventListener('touchend', function (e) {
         var s = scrub; scrub = null;
-        setTimeout(leave, 260);
-        if (!s || !s.moved) return;
+        if (!s) return;
         var hit = null, best = 1e9;
         tiles().forEach(function (t) { var d = Math.abs((axis === 'y' ? s.ly : s.lx) - restC(t)); if (d < best) { best = d; hit = t; } });
-        if (hit && best < base) { if (e.cancelable) e.preventDefault(); (hit.matches('button') ? hit : (hit.querySelector('button') || hit)).click(); }
+        if (!hit || best >= base * 0.75) { leave(); return; }
+        if (!s.moved && hit === sel) { clearTimeout(selT); setTimeout(leave, 260); return; }   // the second tap: let it open
+        if (e.cancelable) e.preventDefault();   // the first tap / a slide only picks it
+        pick(hit);
       });
     });
     kick();
@@ -50315,7 +50328,7 @@ var Ve = (function(_Component) {
 </script>
 <script>
 /* 45.7 A Dock (macOS): one liquid-glass shelf with the icons on it (no frame of their own) — they swell under a
-   finger, the name shows beside it; slide along it and lift on the one you want. On the right by default; a long
+   finger, the name shows beside it; a tap (or a slide) picks an icon, a second tap on it opens it. On the right by default; a long
    press on the Dock moves it (Left · Bottom · Right). It comes and goes with the top bar, and a tap on empty space
    puts both away at once. At the bottom the lists make room for it. The ≡ button and its column are gone; every
    icon presses the button it stands for. */
@@ -50502,6 +50515,7 @@ var Ve = (function(_Component) {
     menu.style.left = Math.max(8, Math.min(innerWidth - w - 8, L)) + 'px'; menu.style.top = Math.max(8, Math.min(innerHeight - h - 8, T)) + 'px';
   }
   dock.addEventListener('touchstart', function (e) {
+    swallow = false;
     if (lp) clearTimeout(lp.t);
     if (e.touches.length !== 1) { lp = null; return; }
     var p = e.touches[0];

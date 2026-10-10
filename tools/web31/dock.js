@@ -1,6 +1,7 @@
 /* Minest Dock — a macOS-style dock: tiles that swell under the pointer (the neighbours a little less), a name
-   bubble beside the one you point at, and on a touch screen you can slide a finger along the dock and lift it on
-   the one you want. Used by web31 (its Dock on the right) and the iPhone / iPad page (the ≡ column).
+   bubble beside the one you point at. On a touch screen a tap (or a slide along the dock) picks an icon — it
+   stays swollen with its name — and a second tap on it opens it; a mouse opens with one click, as on a Mac. 
+   Used by web31 and the iPhone / iPad pages.
      MinestDock.attach(container, {
        axis: 'y' | 'x', side: 'left' | 'right' | 'top' | 'bottom', base: 46 | function, max: 1.65,
        items: '.selector' (inside the container)  — or tiles: function () { return [elements] },
@@ -107,7 +108,17 @@
     }
     function kick() { if (!raf) raf = requestAnimationFrame(apply); }
     function at(x, y) { pos = axis === 'y' ? y : x; kick(); }
-    function leave() { pos = null; kick(); }
+    function leave() { pos = null; sel = null; clearTimeout(selT); kick(); }
+    // a finger picks first, opens second (like pointing, then clicking, on a Mac): the tile it lands or lifts on
+    // stays swollen with its name; a tap on that same tile opens it
+    var sel = null, selT = 0;
+    function pick(t) {
+      sel = t; pos = restC(t); kick();
+      clearTimeout(selT); selT = setTimeout(leave, 6000);
+    }
+    document.addEventListener('touchstart', function (e) {
+      if (sel && !boxes.some(function (b2) { return b2.contains(e.target); })) leave();
+    }, { capture: true, passive: true });
     sizes(); window.addEventListener('resize', function () { sizes(); kick(); });
     boxes.forEach(function (bx) {
       bx.addEventListener('mousemove', function (e) { at(e.clientX, e.clientY); });
@@ -128,11 +139,13 @@
       }, { passive: false });
       bx.addEventListener('touchend', function (e) {
         var s = scrub; scrub = null;
-        setTimeout(leave, 260);
-        if (!s || !s.moved) return;
+        if (!s) return;
         var hit = null, best = 1e9;
         tiles().forEach(function (t) { var d = Math.abs((axis === 'y' ? s.ly : s.lx) - restC(t)); if (d < best) { best = d; hit = t; } });
-        if (hit && best < base) { if (e.cancelable) e.preventDefault(); (hit.matches('button') ? hit : (hit.querySelector('button') || hit)).click(); }
+        if (!hit || best >= base * 0.75) { leave(); return; }
+        if (!s.moved && hit === sel) { clearTimeout(selT); setTimeout(leave, 260); return; }   // the second tap: let it open
+        if (e.cancelable) e.preventDefault();   // the first tap / a slide only picks it
+        pick(hit);
       });
     });
     kick();

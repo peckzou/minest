@@ -8508,7 +8508,7 @@ var CardGlassShatter = (function() {
   };
 })();
 
-// ---- web30: Study Arcade from iPhone45.8.html ----
+// ---- web30: Study Arcade from iPhone45.9.html ----
 var StudyArcade = window.StudyArcade = (function() {
   var clamp = function(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); };
   var rnd = function(a, b) { return a + Math.random() * (b - a); };
@@ -16418,7 +16418,7 @@ var De = function(props) {
 // =========================================================================
 // 3D Cover Flow View Component (Oe) - Kept 100% Intact
 // =========================================================================
-// ---- web30: from iPhone45.8.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
+// ---- web30: from iPhone45.9.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
 var IconCloud = E('cloud', [
   ['path', { d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z', key: 'cl1' }]
 ]);
@@ -33099,7 +33099,7 @@ function parseAndNormalizeBoardJson(raw) {
   }
 }
 
-// ---- web30: cloud format from iPhone45.8.html ----
+// ---- web30: cloud format from iPhone45.9.html ----
 var MINEST_CLOUD_GZ_LIMIT = 950000;
 function minestBytesToB64(bytes) {
   var s = '';
@@ -38982,7 +38982,7 @@ var CoverKiosk = function() {
 
   </script>
   
-<!-- ---- web30: add-ons from iPhone45.8.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
+<!-- ---- web30: add-ons from iPhone45.9.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
 <script>
 /* 41.377 Pet Raising V6: keep the V6 experience isolated from the board while
    making it available from the same menu as the other Minest tools. */
@@ -44551,8 +44551,9 @@ var CoverKiosk = function() {
 </script>
 <script>
 /* Minest Dock — a macOS-style dock: tiles that swell under the pointer (the neighbours a little less), a name
-   bubble beside the one you point at, and on a touch screen you can slide a finger along the dock and lift it on
-   the one you want. Used by web31 (its Dock on the right) and the iPhone / iPad page (the ≡ column).
+   bubble beside the one you point at. On a touch screen a tap (or a slide along the dock) picks an icon — it
+   stays swollen with its name — and a second tap on it opens it; a mouse opens with one click, as on a Mac. 
+   Used by web31 and the iPhone / iPad pages.
      MinestDock.attach(container, {
        axis: 'y' | 'x', side: 'left' | 'right' | 'top' | 'bottom', base: 46 | function, max: 1.65,
        items: '.selector' (inside the container)  — or tiles: function () { return [elements] },
@@ -44659,7 +44660,17 @@ var CoverKiosk = function() {
     }
     function kick() { if (!raf) raf = requestAnimationFrame(apply); }
     function at(x, y) { pos = axis === 'y' ? y : x; kick(); }
-    function leave() { pos = null; kick(); }
+    function leave() { pos = null; sel = null; clearTimeout(selT); kick(); }
+    // a finger picks first, opens second (like pointing, then clicking, on a Mac): the tile it lands or lifts on
+    // stays swollen with its name; a tap on that same tile opens it
+    var sel = null, selT = 0;
+    function pick(t) {
+      sel = t; pos = restC(t); kick();
+      clearTimeout(selT); selT = setTimeout(leave, 6000);
+    }
+    document.addEventListener('touchstart', function (e) {
+      if (sel && !boxes.some(function (b2) { return b2.contains(e.target); })) leave();
+    }, { capture: true, passive: true });
     sizes(); window.addEventListener('resize', function () { sizes(); kick(); });
     boxes.forEach(function (bx) {
       bx.addEventListener('mousemove', function (e) { at(e.clientX, e.clientY); });
@@ -44680,11 +44691,13 @@ var CoverKiosk = function() {
       }, { passive: false });
       bx.addEventListener('touchend', function (e) {
         var s = scrub; scrub = null;
-        setTimeout(leave, 260);
-        if (!s || !s.moved) return;
+        if (!s) return;
         var hit = null, best = 1e9;
         tiles().forEach(function (t) { var d = Math.abs((axis === 'y' ? s.ly : s.lx) - restC(t)); if (d < best) { best = d; hit = t; } });
-        if (hit && best < base) { if (e.cancelable) e.preventDefault(); (hit.matches('button') ? hit : (hit.querySelector('button') || hit)).click(); }
+        if (!hit || best >= base * 0.75) { leave(); return; }
+        if (!s.moved && hit === sel) { clearTimeout(selT); setTimeout(leave, 260); return; }   // the second tap: let it open
+        if (e.cancelable) e.preventDefault();   // the first tap / a slide only picks it
+        pick(hit);
       });
     });
     kick();
@@ -44869,7 +44882,7 @@ var CoverKiosk = function() {
   function setPin(v) {
     pinned = v; pinB.classList.toggle('on', v); pinB.title = v ? 'Unpin the menu bar (hide it again)' : 'Pin the menu bar (always show)'; pinB.setAttribute('aria-label', pinB.title); pinB.setAttribute('aria-pressed', String(v));
     try { localStorage.setItem('minest.web31.pin', v ? '1' : '0'); } catch (e) {}
-    if (v) root.classList.add('mn31-chrome'); else hideSoon(1400);
+    if (v) root.classList.add('mn31-chrome'); else hideSoon(HIDE);
   }
   pinB.onclick = function (e) { e.stopPropagation(); setPin(!pinned); };
   bar.appendChild(pinB);
@@ -44913,7 +44926,7 @@ var CoverKiosk = function() {
     [['left', 'Left'], ['bottom', 'Bottom'], ['right', 'Right']].forEach(function (o) {
       var b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitemradio'); b.setAttribute('aria-checked', String(o[0] === dockPos));
       b.innerHTML = '<i>' + (o[0] === dockPos ? '✓' : '') + '</i>' + o[1];
-      b.onclick = function (ev) { ev.stopPropagation(); closeDockMenu(); setDockPos(o[0]); show(2600); };
+      b.onclick = function (ev) { ev.stopPropagation(); closeDockMenu(); setDockPos(o[0]); show(); };
       dmenu.appendChild(b);
     });
     document.body.appendChild(dmenu);
@@ -44965,10 +44978,11 @@ var CoverKiosk = function() {
   new MutationObserver(function () { if (anchor) placePops(); }).observe(document.documentElement, { childList: true, subtree: true });
 
   // ---------------------------------------------------------------- show / hide (menu bar and Dock together)
-  var hideT = 0, away = false;
+  // the bar and the Dock go away by themselves after a minute (a click on empty space puts them away at once)
+  var HIDE = 60000, hideT = 0, away = false;
   function popOpen() { var h = oldBar(); return !!h && Array.prototype.some.call(h.querySelectorAll('.mn31-pop'), function (p) { return p.isConnected && p.getBoundingClientRect().height > 30; }); }
   function busy() { return bar.matches(':hover') || dock.matches(':hover') || document.activeElement === sInput || popOpen(); }
-  function show(ms) { root.classList.add('mn31-chrome', 'mn31-dockon'); away = false; hideSoon(ms || 2600); }
+  function show(ms) { root.classList.add('mn31-chrome', 'mn31-dockon'); away = false; hideSoon(ms || HIDE); }
   function hideNow() { clearTimeout(hideT); root.classList.remove('mn31-dockon'); if (!pinned) { root.classList.remove('mn31-chrome'); search.classList.remove('open'); } if (dockCtl) dockCtl.leave(); }
   function hideSoon(ms) {
     clearTimeout(hideT);
@@ -44992,16 +45006,16 @@ var CoverKiosk = function() {
     if (e.clientY <= 10 || (dockPos === 'bottom' ? e.clientY >= innerHeight - 8 : dockPos === 'right' ? e.clientX >= innerWidth - 8 : e.clientX <= 8)) { show(); return; }
     if (!root.classList.contains('mn31-chrome') && !root.classList.contains('mn31-dockon')) return;
     if (near(e)) { away = false; clearTimeout(hideT); }
-    else if (!away) { away = true; hideSoon(1400); }
+    else if (!away) { away = true; hideSoon(HIDE); }
   }, { passive: true });
-  window.addEventListener('wheel', function (e) { if (e.ctrlKey) { e.preventDefault(); show(3200); } }, { passive: false });
-  window.addEventListener('gesturestart', function (e) { e.preventDefault(); show(3200); });
+  window.addEventListener('wheel', function (e) { if (e.ctrlKey) { e.preventDefault(); show(); } }, { passive: false });
+  window.addEventListener('gesturestart', function (e) { e.preventDefault(); show(); });
   var pinch0 = 0;
   document.addEventListener('touchstart', function (e) { pinch0 = e.touches.length === 2 ? Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) : 0; }, { passive: true });
   document.addEventListener('touchmove', function (e) {
     if (!pinch0 || e.touches.length !== 2) return;
     var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    if (Math.abs(d - pinch0) > 28) { pinch0 = 0; show(3500); }
+    if (Math.abs(d - pinch0) > 28) { pinch0 = 0; show(); }
   }, { passive: true });
   setTimeout(function () {
     setPin(pinned);
@@ -45020,7 +45034,7 @@ var CoverKiosk = function() {
   function blank(el) { return el && el.closest && !el.closest(BLOCK) && !!el.closest('#root') && !el.closest('.mlv, .mlv-open, .arcade, [role="dialog"]'); }
   // a click / tap on empty space puts the bar (unless pinned) and the Dock away at once
   document.addEventListener('pointerdown', function (e) { if (e.button === 0 && blank(e.target) && !(dmenu && dmenu.contains(e.target))) hideNow(); }, true);
-  function appearance() { show(4000); anchor = els.wall; press('button[title^="Board Wallpaper"]'); watchPop(); }
+  function appearance() { show(); anchor = els.wall; press('button[title^="Board Wallpaper"]'); watchPop(); }
   document.addEventListener('contextmenu', function (e) { if (!blank(e.target)) return; e.preventDefault(); appearance(); });
   var lp = null;
   document.addEventListener('touchstart', function (e) {

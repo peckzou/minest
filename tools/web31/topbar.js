@@ -172,7 +172,7 @@
   function setPin(v) {
     pinned = v; pinB.classList.toggle('on', v); pinB.title = v ? 'Unpin the menu bar (hide it again)' : 'Pin the menu bar (always show)'; pinB.setAttribute('aria-label', pinB.title); pinB.setAttribute('aria-pressed', String(v));
     try { localStorage.setItem('minest.web31.pin', v ? '1' : '0'); } catch (e) {}
-    if (v) root.classList.add('mn31-chrome'); else hideSoon(1400);
+    if (v) root.classList.add('mn31-chrome'); else hideSoon(HIDE);
   }
   pinB.onclick = function (e) { e.stopPropagation(); setPin(!pinned); };
   bar.appendChild(pinB);
@@ -216,7 +216,7 @@
     [['left', 'Left'], ['bottom', 'Bottom'], ['right', 'Right']].forEach(function (o) {
       var b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitemradio'); b.setAttribute('aria-checked', String(o[0] === dockPos));
       b.innerHTML = '<i>' + (o[0] === dockPos ? '✓' : '') + '</i>' + o[1];
-      b.onclick = function (ev) { ev.stopPropagation(); closeDockMenu(); setDockPos(o[0]); show(2600); };
+      b.onclick = function (ev) { ev.stopPropagation(); closeDockMenu(); setDockPos(o[0]); show(); };
       dmenu.appendChild(b);
     });
     document.body.appendChild(dmenu);
@@ -268,10 +268,11 @@
   new MutationObserver(function () { if (anchor) placePops(); }).observe(document.documentElement, { childList: true, subtree: true });
 
   // ---------------------------------------------------------------- show / hide (menu bar and Dock together)
-  var hideT = 0, away = false;
+  // the bar and the Dock go away by themselves after a minute (a click on empty space puts them away at once)
+  var HIDE = 60000, hideT = 0, away = false;
   function popOpen() { var h = oldBar(); return !!h && Array.prototype.some.call(h.querySelectorAll('.mn31-pop'), function (p) { return p.isConnected && p.getBoundingClientRect().height > 30; }); }
   function busy() { return bar.matches(':hover') || dock.matches(':hover') || document.activeElement === sInput || popOpen(); }
-  function show(ms) { root.classList.add('mn31-chrome', 'mn31-dockon'); away = false; hideSoon(ms || 2600); }
+  function show(ms) { root.classList.add('mn31-chrome', 'mn31-dockon'); away = false; hideSoon(ms || HIDE); }
   function hideNow() { clearTimeout(hideT); root.classList.remove('mn31-dockon'); if (!pinned) { root.classList.remove('mn31-chrome'); search.classList.remove('open'); } if (dockCtl) dockCtl.leave(); }
   function hideSoon(ms) {
     clearTimeout(hideT);
@@ -295,16 +296,16 @@
     if (e.clientY <= 10 || (dockPos === 'bottom' ? e.clientY >= innerHeight - 8 : dockPos === 'right' ? e.clientX >= innerWidth - 8 : e.clientX <= 8)) { show(); return; }
     if (!root.classList.contains('mn31-chrome') && !root.classList.contains('mn31-dockon')) return;
     if (near(e)) { away = false; clearTimeout(hideT); }
-    else if (!away) { away = true; hideSoon(1400); }
+    else if (!away) { away = true; hideSoon(HIDE); }
   }, { passive: true });
-  window.addEventListener('wheel', function (e) { if (e.ctrlKey) { e.preventDefault(); show(3200); } }, { passive: false });
-  window.addEventListener('gesturestart', function (e) { e.preventDefault(); show(3200); });
+  window.addEventListener('wheel', function (e) { if (e.ctrlKey) { e.preventDefault(); show(); } }, { passive: false });
+  window.addEventListener('gesturestart', function (e) { e.preventDefault(); show(); });
   var pinch0 = 0;
   document.addEventListener('touchstart', function (e) { pinch0 = e.touches.length === 2 ? Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) : 0; }, { passive: true });
   document.addEventListener('touchmove', function (e) {
     if (!pinch0 || e.touches.length !== 2) return;
     var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    if (Math.abs(d - pinch0) > 28) { pinch0 = 0; show(3500); }
+    if (Math.abs(d - pinch0) > 28) { pinch0 = 0; show(); }
   }, { passive: true });
   setTimeout(function () {
     setPin(pinned);
@@ -323,7 +324,7 @@
   function blank(el) { return el && el.closest && !el.closest(BLOCK) && !!el.closest('#root') && !el.closest('.mlv, .mlv-open, .arcade, [role="dialog"]'); }
   // a click / tap on empty space puts the bar (unless pinned) and the Dock away at once
   document.addEventListener('pointerdown', function (e) { if (e.button === 0 && blank(e.target) && !(dmenu && dmenu.contains(e.target))) hideNow(); }, true);
-  function appearance() { show(4000); anchor = els.wall; press('button[title^="Board Wallpaper"]'); watchPop(); }
+  function appearance() { show(); anchor = els.wall; press('button[title^="Board Wallpaper"]'); watchPop(); }
   document.addEventListener('contextmenu', function (e) { if (!blank(e.target)) return; e.preventDefault(); appearance(); });
   var lp = null;
   document.addEventListener('touchstart', function (e) {

@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 45.8 · Activity full screen</title>
+    <title>Minest iPhone 45.9 · Dock: pick, then open</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21423,7 +21423,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "45.8" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "45.9" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -22050,7 +22050,7 @@ window.minestSafeSide = (function() {
   };
 })();
 var MinestChrome = (function() {
-  var root = document.documentElement, timer = 0, HIDE_MS = 4000;
+  var root = document.documentElement, timer = 0, HIDE_MS = 60000;   // 45.9: the bars stay a minute (a tap on empty space puts them away)
   // running inside the Minest iOS app (WKWebView bridge present)
   // (only WKWebView exposes webkit.messageHandlers; the page defines its own MinestNative fallback on the web)
   if (window.webkit && window.webkit.messageHandlers) root.classList.add('mn-in-app');
@@ -50208,8 +50208,9 @@ var Ve = (function(_Component) {
 </script>
 <script>
 /* Minest Dock — a macOS-style dock: tiles that swell under the pointer (the neighbours a little less), a name
-   bubble beside the one you point at, and on a touch screen you can slide a finger along the dock and lift it on
-   the one you want. Used by web31 (its Dock on the right) and the iPhone / iPad page (the ≡ column).
+   bubble beside the one you point at. On a touch screen a tap (or a slide along the dock) picks an icon — it
+   stays swollen with its name — and a second tap on it opens it; a mouse opens with one click, as on a Mac. 
+   Used by web31 and the iPhone / iPad pages.
      MinestDock.attach(container, {
        axis: 'y' | 'x', side: 'left' | 'right' | 'top' | 'bottom', base: 46 | function, max: 1.65,
        items: '.selector' (inside the container)  — or tiles: function () { return [elements] },
@@ -50316,7 +50317,17 @@ var Ve = (function(_Component) {
     }
     function kick() { if (!raf) raf = requestAnimationFrame(apply); }
     function at(x, y) { pos = axis === 'y' ? y : x; kick(); }
-    function leave() { pos = null; kick(); }
+    function leave() { pos = null; sel = null; clearTimeout(selT); kick(); }
+    // a finger picks first, opens second (like pointing, then clicking, on a Mac): the tile it lands or lifts on
+    // stays swollen with its name; a tap on that same tile opens it
+    var sel = null, selT = 0;
+    function pick(t) {
+      sel = t; pos = restC(t); kick();
+      clearTimeout(selT); selT = setTimeout(leave, 6000);
+    }
+    document.addEventListener('touchstart', function (e) {
+      if (sel && !boxes.some(function (b2) { return b2.contains(e.target); })) leave();
+    }, { capture: true, passive: true });
     sizes(); window.addEventListener('resize', function () { sizes(); kick(); });
     boxes.forEach(function (bx) {
       bx.addEventListener('mousemove', function (e) { at(e.clientX, e.clientY); });
@@ -50337,11 +50348,13 @@ var Ve = (function(_Component) {
       }, { passive: false });
       bx.addEventListener('touchend', function (e) {
         var s = scrub; scrub = null;
-        setTimeout(leave, 260);
-        if (!s || !s.moved) return;
+        if (!s) return;
         var hit = null, best = 1e9;
         tiles().forEach(function (t) { var d = Math.abs((axis === 'y' ? s.ly : s.lx) - restC(t)); if (d < best) { best = d; hit = t; } });
-        if (hit && best < base) { if (e.cancelable) e.preventDefault(); (hit.matches('button') ? hit : (hit.querySelector('button') || hit)).click(); }
+        if (!hit || best >= base * 0.75) { leave(); return; }
+        if (!s.moved && hit === sel) { clearTimeout(selT); setTimeout(leave, 260); return; }   // the second tap: let it open
+        if (e.cancelable) e.preventDefault();   // the first tap / a slide only picks it
+        pick(hit);
       });
     });
     kick();
@@ -50353,7 +50366,7 @@ var Ve = (function(_Component) {
 </script>
 <script>
 /* 45.7 A Dock (macOS): one liquid-glass shelf with the icons on it (no frame of their own) — they swell under a
-   finger, the name shows beside it; slide along it and lift on the one you want. On the right by default; a long
+   finger, the name shows beside it; a tap (or a slide) picks an icon, a second tap on it opens it. On the right by default; a long
    press on the Dock moves it (Left · Bottom · Right). It comes and goes with the top bar, and a tap on empty space
    puts both away at once. At the bottom the lists make room for it. The ≡ button and its column are gone; every
    icon presses the button it stands for. */
@@ -50361,6 +50374,8 @@ var Ve = (function(_Component) {
   'use strict';
   if (/^Minest Web/.test(document.title)) return;   // web30 / web31 have their own Dock
   var root = document.documentElement;
+  // iPad: the old macOS Dock of web31 — icons standing on a glass shelf, at the bottom by default, the icons really grow
+  var TAB = Math.min(screen.width, screen.height) >= 700;
   // the icons, left to right: what each one presses (label / title prefix)
   var ITEMS = [
     { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },
@@ -50398,7 +50413,20 @@ var Ve = (function(_Component) {
     'html[data-mn-bd=left] .mn-bdock{left:max(calc(var(--sal, 0px) - 30px), 5px);top:calc(50% + var(--mn-bd-top, 60px) / 2);flex-direction:column;align-items:center;padding:7px 3px;transform:translate(-160%,-50%)}',
     'html[data-mn-bd=bottom].mn-chrome:not(.mn-navmenu) body:not(.clear-mode) .mn-bdock{transform:translate(-50%,0);opacity:1;pointer-events:auto}',
     'html[data-mn-bd=right].mn-chrome:not(.mn-navmenu) body:not(.clear-mode) .mn-bdock,html[data-mn-bd=left].mn-chrome:not(.mn-navmenu) body:not(.clear-mode) .mn-bdock{transform:translate(0,-50%);opacity:1;pointer-events:auto}',
-    'html:not([data-mn-bd=bottom]) .mn-bapp{width:calc(var(--mn-bd-b,30px) + 8px)!important;height:var(--mn-bd-b,30px)!important}',
+    'html:not(.mn-bd-tab):not([data-mn-bd=bottom]) .mn-bapp{width:calc(var(--mn-bd-b,30px) + 8px)!important;height:var(--mn-bd-b,30px)!important}',
+    // iPad (web31's Dock): no capsule — a glass shelf in perspective at the bottom, a flat glass bar at a side
+    'html.mn-bd-tab .mn-bdock{background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0;isolation:isolate;gap:6px}',
+    'html.mn-bd-tab .mn-bdock::before{content:"";position:absolute;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.62) 0%,rgba(225,232,245,.34) 45%,rgba(200,210,230,.3) 100%);border:1px solid rgba(255,255,255,.75);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 26px rgba(0,0,0,.3)}',
+    'html.mn-bd-tab[data-mn-bd=bottom] .mn-bdock{bottom:max(calc(env(safe-area-inset-bottom, 0px) - 14px), 0px);padding:0 22px calc(var(--mn-bd-b,46px) * .1)}',
+    'html.mn-bd-tab[data-mn-bd=bottom] .mn-bdock::before{left:0;right:0;bottom:0;height:calc(var(--mn-bd-b,46px) * .82);border-radius:6px 6px 2px 2px;transform:perspective(calc(var(--mn-bd-b,46px) * 6)) rotateX(38deg);transform-origin:50% 100%}',
+    'html.mn-bd-tab[data-mn-bd=right] .mn-bdock{right:0;padding:12px 8px}html.mn-bd-tab[data-mn-bd=left] .mn-bdock{left:0;padding:12px 8px}',
+    'html.mn-bd-tab[data-mn-bd=right] .mn-bdock::before{inset:0;border-radius:10px 0 0 10px;border-right:0}html.mn-bd-tab[data-mn-bd=left] .mn-bdock::before{inset:0;border-radius:0 10px 10px 0;border-left:0}',
+    'html.mn-bd-tab:has(.theme-white) .mn-bdock::before{background:linear-gradient(180deg,rgba(255,255,255,.85) 0%,rgba(255,255,255,.55) 55%,rgba(255,255,255,.66) 100%);border-color:rgba(255,255,255,.95);box-shadow:inset 0 1px 0 #fff,0 8px 26px rgba(15,23,42,.18)}',
+    'html.mn-bd-tab .mn-bapp{width:var(--mn-bd-b,46px);height:var(--mn-bd-b,46px)}html.mn-bd-tab .mn-bapp svg{width:70%;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}html.mn-bd-tab .mn-bapp img{width:66%}',
+    'html.mn-bd-tab[data-mn-bd=bottom] .mn-bapp.on::after{bottom:calc(var(--mn-bd-b,46px) * -.12);box-shadow:0 0 6px 1px currentColor}',
+    // iPad: while the bar and the Dock are out the lists sit below the bar and stop above the Dock
+    'html.mn-bd-tab.mn-immersive.mn-chrome:not(.mn-navmenu) body:not(.clear-mode) .mobile-board-view{padding-top:calc(var(--mn-bd-top, 51px) + 6px)!important}',
+    'html.mn-bd-tab.mn-immersive.mn-chrome[data-mn-bd=bottom]:not(.mn-navmenu) body:not(.clear-mode) .kanban-column-wrapper{max-height:calc(100dvh - var(--mn-bd-top, 51px) - 6px - var(--mn-bd-h, 70px) - 14px)!important}',
     // long press on the Dock: where it sits
     '.mn-bd-menu{position:fixed;z-index:2147483200;min-width:190px;padding:6px;border-radius:14px;background:rgba(36,38,48,.9);color:#fff;-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);border:1px solid rgba(255,255,255,.14);box-shadow:0 16px 40px rgba(0,0,0,.4);font:500 15px -apple-system,system-ui,sans-serif;animation:mnBdIn .18s ease-out}',
     '.mn-bd-menu h6{margin:4px 10px 6px;font-size:12px;font-weight:600;opacity:.6}',
@@ -50474,23 +50502,32 @@ var Ve = (function(_Component) {
     if (h) root.style.setProperty('--mn-bd-top', Math.round(h.getBoundingClientRect().height) + 'px');
   }
   // where the Dock sits: right (default) · bottom · left — remembered
-  var pos = 'right'; try { pos = localStorage.getItem('minest.iphone.dockPos') || 'right'; } catch (e) {}
-  if (!/^(bottom|left|right)$/.test(pos)) pos = 'right';
+  var KEY = TAB ? 'minest.ipad.dockPos' : 'minest.iphone.dockPos', DEF = TAB ? 'bottom' : 'right';
+  var pos = DEF; try { pos = localStorage.getItem(KEY) || DEF; } catch (e) {}
+  if (!/^(bottom|left|right)$/.test(pos)) pos = DEF;
+  if (TAB) root.classList.add('mn-bd-tab');
   // as big as fits along the Dock (up to 46 px across, 40 px down a side), the glass shelf included
   function base() {
     var n = 0; ITEMS.forEach(function (it) { if (els[it.k].style.display !== 'none') n++; });
     var top = parseFloat(getComputedStyle(root).getPropertyValue('--mn-bd-top')) || 60;
-    var b = pos === 'bottom' ? Math.floor((innerWidth - 24 - 16 - (n - 1) * 2) / (n || 12)) : Math.floor((innerHeight - top - 60 - 14 - (n - 1) * 2) / (n || 12));
+    var b;
+    if (TAB) {   // room for the swell (about 2.3 icons more), as on web31
+      b = pos === 'bottom' ? Math.floor((innerWidth - 80 - (n - 1) * 6) / ((n || 12) + 2.3)) : Math.floor((innerHeight - top - 60 - (n - 1) * 6) / ((n || 12) + 2.3));
+      b = Math.max(30, Math.min(54, b));
+      root.style.setProperty('--mn-bd-b', b + 'px'); root.style.setProperty('--mn-bd-h', Math.round(b * 1.12 + 6) + 'px');
+      return b;
+    }
+    b = pos === 'bottom' ? Math.floor((innerWidth - 24 - 16 - (n - 1) * 2) / (n || 12)) : Math.floor((innerHeight - top - 60 - 14 - (n - 1) * 2) / (n || 12));
     b = Math.max(24, Math.min(pos === 'bottom' ? 46 : 40, b));
     root.style.setProperty('--mn-bd-b', b + 'px');
     root.style.setProperty('--mn-bd-h', (b + 8 + 12) + 'px');
     return b;
   }
-  var opts = { base: base, max: 1.6, mode: 'transform', contain: 6, items: '.mn-bapp' };
+  var opts = TAB ? { base: base, max: 1.75, mode: 'size', items: '.mn-bapp' } : { base: base, max: 1.6, mode: 'transform', contain: 6, items: '.mn-bapp' };
   function setPos(v) {
     pos = v; root.setAttribute('data-mn-bd', v);
     opts.axis = v === 'bottom' ? 'x' : 'y'; opts.side = v;
-    try { localStorage.setItem('minest.iphone.dockPos', v); } catch (e) {}
+    try { localStorage.setItem(KEY, v); } catch (e) {}
     if (ctl) { ctl.leave(); ctl.refresh(); }
   }
   setPos(pos);
@@ -50516,6 +50553,7 @@ var Ve = (function(_Component) {
     menu.style.left = Math.max(8, Math.min(innerWidth - w - 8, L)) + 'px'; menu.style.top = Math.max(8, Math.min(innerHeight - h - 8, T)) + 'px';
   }
   dock.addEventListener('touchstart', function (e) {
+    swallow = false;
     if (lp) clearTimeout(lp.t);
     if (e.touches.length !== 1) { lp = null; return; }
     var p = e.touches[0];
