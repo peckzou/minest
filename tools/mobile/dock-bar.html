@@ -22,8 +22,7 @@
     { k: 'card', m: /^Card FX/ },
     { k: 'theme', m: /^Switch to (light|dark)/ },
     { k: 'device', m: /^Switch between the iPhone/ },
-    { k: 'gear', m: /^Board settings/ },
-    { k: 'cloud', m: /^(Cloud Sync|Signed in)/, label: 'Cloud Sync', find: function () { var c = document.querySelector('[data-mn=cloud]'); return c ? (c.matches('button') ? c : c.querySelector('button')) : null; } }
+    { k: 'gear', m: /^Board settings/ }
   ];
   function nameOf(b) { return b ? (b.getAttribute('aria-label') || b.title || '') : ''; }
   function original(it) {
@@ -47,7 +46,16 @@
     'html[data-mn-bd=left] .mn-bdock{left:max(calc(var(--sal, 0px) - 30px), 5px);top:calc(50% + var(--mn-bd-top, 60px) / 2);flex-direction:column;align-items:center;padding:7px 3px;transform:translate(-160%,-50%)}',
     'html[data-mn-bd=bottom].mn-chrome:not(.mn-navmenu) body:not(.clear-mode) .mn-bdock{transform:translate(-50%,0);opacity:1;pointer-events:auto}',
     'html[data-mn-bd=right].mn-chrome:not(.mn-navmenu) body:not(.clear-mode) .mn-bdock,html[data-mn-bd=left].mn-chrome:not(.mn-navmenu) body:not(.clear-mode) .mn-bdock{transform:translate(0,-50%);opacity:1;pointer-events:auto}',
-    'html:not(.mn-bd-tab):not([data-mn-bd=bottom]) .mn-bapp{width:calc(var(--mn-bd-b,30px) + 8px)!important;height:var(--mn-bd-b,30px)!important}',
+    // iPhone: the thick liquid-glass tiles of 45.6 again, floating free (no shelf)
+    'html:not(.mn-bd-tab) .mn-bdock{background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;gap:7px!important;padding:6px!important}',
+    'html:not(.mn-bd-tab) .mn-bapp{width:var(--mn-bd-b,40px)!important;height:var(--mn-bd-b,40px)!important;border-radius:28%!important;overflow:hidden;color:#fff;',
+    'background:linear-gradient(180deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,.08) 46%,rgba(255,255,255,.12) 100%)!important;border:1px solid rgba(255,255,255,.32)!important;',
+    '-webkit-backdrop-filter:blur(22px) saturate(190%);backdrop-filter:blur(22px) saturate(190%);',
+    'box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 1px rgba(255,255,255,.14),inset 0 0 12px rgba(255,255,255,.06),0 10px 24px rgba(0,0,0,.28)}',
+    'html:not(.mn-bd-tab) .mn-bapp::before{content:"";position:absolute;inset:1px 1px 50% 1px;border-radius:12px 12px 40% 40%;background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,0));pointer-events:none}',
+    'html:not(.mn-bd-tab) .mn-bapp svg{width:52%!important;filter:none!important;position:relative}html:not(.mn-bd-tab) .mn-bapp img{width:62%!important;position:relative}',
+    'html:not(.mn-bd-tab):has(.theme-white) .mn-bapp{background:linear-gradient(180deg,rgba(255,255,255,.72) 0%,rgba(255,255,255,.42) 50%,rgba(255,255,255,.52) 100%)!important;color:#111;border-color:rgba(255,255,255,.85)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 10px 24px rgba(15,23,42,.16)}',
+    'html:not(.mn-bd-tab) .mn-bapp.on{border-color:rgba(125,211,252,.85)!important;color:#7dd3fc}html:not(.mn-bd-tab) .mn-bapp.on::after{display:none}',
     // iPad (web31's Dock): no capsule — a glass shelf in perspective at the bottom, a flat glass bar at a side
     'html.mn-bd-tab .mn-bdock{background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0;isolation:isolate;gap:6px}',
     'html.mn-bd-tab .mn-bdock::before{content:"";position:absolute;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.62) 0%,rgba(225,232,245,.34) 45%,rgba(200,210,230,.3) 100%);border:1px solid rgba(255,255,255,.75);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 26px rgba(0,0,0,.3)}',
@@ -121,7 +129,8 @@
     return null;
   }
   function glyph(o) {
-    var s = o.querySelector('.mn-devswitch i.on svg') || o.querySelector('svg') || o.querySelector('img');   // signed in: the account picture
+    // the device switch shows where it goes (the other device), as its own button does
+    var s = o.querySelector('.mn-devswitch i:not(.on) svg') || o.querySelector('svg') || o.querySelector('img');   // signed in: the account picture
     if (!s) return '';
     var c = s.cloneNode(true); c.removeAttribute('class'); c.removeAttribute('width'); c.removeAttribute('height');
     return c.outerHTML;
@@ -155,10 +164,10 @@
       root.style.setProperty('--mn-bd-b', b + 'px'); root.style.setProperty('--mn-bd-h', Math.round(b * 1.12 + 6) + 'px');
       return b;
     }
-    b = pos === 'bottom' ? Math.floor((innerWidth - 24 - 16 - (n - 1) * 2) / (n || 12)) : Math.floor((innerHeight - top - 60 - 14 - (n - 1) * 2) / (n || 12));
-    b = Math.max(24, Math.min(pos === 'bottom' ? 46 : 40, b));
+    b = pos === 'bottom' ? Math.floor((innerWidth - 24 - 12 - (n - 1) * 7) / (n || 11)) : Math.floor((innerHeight - top - 60 - 12 - (n - 1) * 7) / (n || 11));
+    b = Math.max(24, Math.min(44, b));
     root.style.setProperty('--mn-bd-b', b + 'px');
-    root.style.setProperty('--mn-bd-h', (b + 8 + 12) + 'px');
+    root.style.setProperty('--mn-bd-h', (b + 12) + 'px');
     return b;
   }
   var opts = TAB ? { base: base, max: 1.75, mode: 'size', items: '.mn-bapp' } : { base: base, max: 1.6, mode: 'transform', contain: 6, items: '.mn-bapp' };

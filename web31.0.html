@@ -8508,7 +8508,7 @@ var CardGlassShatter = (function() {
   };
 })();
 
-// ---- web30: Study Arcade from iPhone46.0.html ----
+// ---- web30: Study Arcade from iPhone46.1.html ----
 var StudyArcade = window.StudyArcade = (function() {
   var clamp = function(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); };
   var rnd = function(a, b) { return a + Math.random() * (b - a); };
@@ -16418,7 +16418,7 @@ var De = function(props) {
 // =========================================================================
 // 3D Cover Flow View Component (Oe) - Kept 100% Intact
 // =========================================================================
-// ---- web30: from iPhone46.0.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
+// ---- web30: from iPhone46.1.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
 var IconCloud = E('cloud', [
   ['path', { d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z', key: 'cl1' }]
 ]);
@@ -33099,7 +33099,7 @@ function parseAndNormalizeBoardJson(raw) {
   }
 }
 
-// ---- web30: cloud format from iPhone46.0.html ----
+// ---- web30: cloud format from iPhone46.1.html ----
 var MINEST_CLOUD_GZ_LIMIT = 950000;
 function minestBytesToB64(bytes) {
   var s = '';
@@ -38982,7 +38982,7 @@ var CoverKiosk = function() {
 
   </script>
   
-<!-- ---- web30: add-ons from iPhone46.0.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
+<!-- ---- web30: add-ons from iPhone46.1.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
 <script>
 /* 41.377 Pet Raising V6: keep the V6 experience isolated from the board while
    making it available from the same menu as the other Minest tools. */
@@ -44755,8 +44755,6 @@ var CoverKiosk = function() {
     { k: 'search', at: 'bar', title: 'Search', icon: function () { return ICON.search; }, run: function () { toggleSearch(); } },
     { k: 'plus', at: 'bar', title: 'New board or list', icon: function () { return ICON.plus; }, run: function () { press('button[title^="Create new"]'); } },
     { k: 'theme', at: 'bar', title: 'Light / dark', icon: function () { return q('button[title^="Switch to light"]') ? ICON.sun : ICON.moon; }, run: function () { press('button[title^="Switch to light"], button[title^="Switch to dark"]'); } },
-    { k: 'cloud', at: 'bar', title: 'Cloud sync & Google sign-in', icon: function () { return ICON.cloud; }, run: function () { press('button[title^="Cloud sync"]'); },
-      dot: function () { var d = q('button[title^="Cloud sync"] span.rounded-full'); return d ? getComputedStyle(d).backgroundColor : ''; } },
 
     { k: 'view', at: 'dock', title: function () { return document.body.classList.contains('mode-coverflow') ? 'Board' : '3D Cover'; }, bg: 'linear-gradient(160deg,#6366f1,#312e81)',
       icon: function () { return document.body.classList.contains('mode-coverflow') ? ICON.board : ICON.cover; },
@@ -44770,7 +44768,6 @@ var CoverKiosk = function() {
       on: function () { var r = fxBtn(); return !!(r && /\bon\b/.test(r.className)); } },
     { k: 'card', at: 'dock', title: 'Card FX', bg: 'linear-gradient(160deg,#22d3ee,#0e7490)', icon: function () { return ICON.card; }, run: function () { var r = cmBtn(); if (r) r.click(); },
       on: function () { var r = cmBtn(); return !!(r && /\bon\b/.test(r.className) && !/\bnone\b/.test(r.className)); } },
-    { k: 'ink', at: 'dock', title: 'Invisible Ink', bg: 'linear-gradient(160deg,#64748b,#1e293b)', icon: function () { return ICON.ink; }, run: function () { press('.fbi-btn'); } },
     { k: 'iphone', at: 'dock', title: 'iPhone version', bg: 'linear-gradient(160deg,#e2e8f0,#94a3b8)', dark: true, icon: function () { return ICON.phone; },
       run: function () { if (/[?&]from=app/.test(location.search) && history.length > 1) history.back(); else location.href = '/iphone'; } },
     { k: 'gear', at: 'dock', title: 'Settings', bg: 'linear-gradient(160deg,#9ca3af,#4b5563)', icon: function () { return ICON.gear; }, run: function () { press('button[title^="Board settings"]'); } }
@@ -44787,26 +44784,29 @@ var CoverKiosk = function() {
     'header, header *:not(.mn31-pop):not(.mn31-pop *){-webkit-backdrop-filter:none!important;backdrop-filter:none!important;filter:none!important;transform:none!important;background:transparent!important;border-color:transparent!important;box-shadow:none!important}',
     'header .mn31-pop *{visibility:visible}',
     '.fbfx-btn,.card-mode-btn{visibility:hidden!important;pointer-events:none!important}',
-    // the menu bar (macOS): thin, translucent, small monochrome status icons
-    '.mn31-bar{position:fixed;top:0;left:0;right:0;z-index:61;height:32px;display:flex;align-items:center;gap:2px;padding:0 12px;',
-    'background:rgba(30,32,40,.42);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);border-bottom:1px solid rgba(255,255,255,.06);color:#f8fafc;',
-    'font:500 13.5px -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;transform:translateY(-110%);opacity:0;transition:transform .32s cubic-bezier(.2,.9,.25,1),opacity .22s ease;pointer-events:none}',
-    'html.mn31-chrome .mn31-bar{transform:none;opacity:1;pointer-events:auto}',
-    'html:has(.theme-white) .mn31-bar{background:rgba(255,255,255,.55);color:#111827;border-bottom-color:rgba(0,0,0,.06)}',
-    '.mn31-logo{font-size:15px;margin-right:6px;opacity:.9}',
-    '.mn31-title{flex:0 1 auto;min-width:0;border:0;background:transparent;color:inherit;font-weight:700;font-size:13.5px;padding:3px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw;margin-right:auto;text-align:left}',
-    '.mn31-title:hover,.mn31-s:hover{background:rgba(255,255,255,.16)}html:has(.theme-white) .mn31-title:hover,html:has(.theme-white) .mn31-s:hover{background:rgba(0,0,0,.08)}',
-    '.mn31-s{position:relative;flex:none;height:24px;min-width:30px;padding:0 6px;border:0;border-radius:6px;background:transparent;color:inherit;display:grid;place-items:center;cursor:pointer}',
-    '.mn31-s svg{width:16px;height:16px}.mn31-s .dot{position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%}',
-    '.mn31-s.pin.on{background:rgba(125,211,252,.22);color:#7dd3fc}html:has(.theme-white) .mn31-s.pin.on{background:rgba(14,165,233,.14);color:#0369a1}',
+    // the menu bar: thick liquid-glass buttons floating along the top (no strip behind them)
+    '.mn31-bar{position:fixed;top:0;left:0;right:0;z-index:61;height:58px;display:flex;align-items:center;gap:8px;padding:0 14px;background:transparent;color:#f8fafc;pointer-events:none;',
+    'font:600 14px -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;transform:translateY(-120%);opacity:0;transition:transform .32s cubic-bezier(.2,.9,.25,1),opacity .22s ease}',
+    'html.mn31-chrome .mn31-bar{transform:none;opacity:1}html.mn31-chrome .mn31-bar > *{pointer-events:auto}',
+    '.mn31-logo{display:none}',
+    '.mn31-title,.mn31-s{position:relative;overflow:hidden;color:#fff;border:1px solid rgba(255,255,255,.32);cursor:pointer;',
+    'background:linear-gradient(180deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,.08) 46%,rgba(255,255,255,.12) 100%);-webkit-backdrop-filter:blur(22px) saturate(190%);backdrop-filter:blur(22px) saturate(190%);',
+    'box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 1px rgba(255,255,255,.14),inset 0 0 12px rgba(255,255,255,.06),0 10px 24px rgba(0,0,0,.28)}',
+    '.mn31-title::before,.mn31-s::before{content:"";position:absolute;inset:1px 1px 50% 1px;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,0));pointer-events:none}',
+    '.mn31-title{flex:0 1 auto;min-width:0;height:42px;padding:0 18px;border-radius:15px;font-weight:700;font-size:15px;white-space:nowrap;text-overflow:ellipsis;max-width:46vw;margin-right:auto;text-align:left}',
+    '.mn31-s{flex:none;width:42px;height:42px;padding:0;border-radius:28%;display:grid;place-items:center}',
+    '.mn31-s svg{width:46%;height:46%;position:relative}',
+    '.mn31-title:active,.mn31-s:active{filter:brightness(.85)}',
+    'html:has(.theme-white) .mn31-title,html:has(.theme-white) .mn31-s{background:linear-gradient(180deg,rgba(255,255,255,.72) 0%,rgba(255,255,255,.42) 50%,rgba(255,255,255,.52) 100%);color:#111;border-color:rgba(255,255,255,.85);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 10px 24px rgba(15,23,42,.16)}',
+    '.mn31-s.pin.on{border-color:rgba(125,211,252,.9);color:#7dd3fc}html:has(.theme-white) .mn31-s.pin.on{border-color:rgba(14,165,233,.8);color:#0369a1}',
     // while the bar and Dock are out, the board steps back: a little smaller, clear of the bar and the Dock
     'main{transition:padding .32s cubic-bezier(.2,.9,.25,1)}',
-    'html:is(.mn31-chrome,.mn31-dockon) main{padding:18px!important}html.mn31-chrome main{padding-top:36px!important}',
+    'html:is(.mn31-chrome,.mn31-dockon) main{padding:18px!important}html.mn31-chrome main{padding-top:62px!important}',
     'html.mn31-dockon[data-mn31-dock=bottom] main{padding-bottom:var(--mn31-dock-room,84px)!important}html.mn31-dockon[data-mn31-dock=right] main{padding-right:var(--mn31-dock-room,70px)!important}html.mn31-dockon[data-mn31-dock=left] main{padding-left:var(--mn31-dock-room,70px)!important}',
     'html:is(.mn31-chrome,.mn31-dockon) main{box-sizing:border-box!important;height:100vh!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important}',
     '.mn31-search{flex:none;width:0;opacity:0;transition:width .22s ease,opacity .18s;overflow:hidden}',
-    '.mn31-search.open{width:min(220px,28vw);opacity:1;margin:0 4px}',
-    '.mn31-search input{width:100%;height:22px;border-radius:6px;border:0;background:rgba(255,255,255,.18);color:inherit;padding:0 9px;font:500 12.5px inherit;outline:none}',
+    '.mn31-search.open{width:min(240px,28vw);opacity:1;margin:0 2px}',
+    '.mn31-search input{width:100%;height:42px;border-radius:15px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);color:inherit;padding:0 14px;font:500 14px inherit;outline:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}',
     'html:has(.theme-white) .mn31-search input{background:rgba(0,0,0,.07)}',
     // the Dock (old macOS): the icons stand on a glass shelf — a long strip in perspective at the bottom, a flat
     // translucent bar on the left / right. Right-click it to move it (Left · Bottom · Right).
@@ -45063,6 +45063,103 @@ var CoverKiosk = function() {
     chips.insertBefore(mk('mn31-ar-jo', '🎮 Join', 'Join a live Arcade game with a code', function () { window.MinestLive.openJoin(''); }), ref);
   }
   new MutationObserver(function () { if (document.querySelector('.arcade .ar-chips')) arcadeButtons(); }).observe(document.body || document.documentElement, { childList: true });
+})();
+
+</script>
+<script>
+/* Minest · Board Settings Studio, refined (iPhone 46.1 / iPad 45.4 / web31): one sheet of liquid glass with no
+   outlines anywhere — soft glass cards, a segmented tab bar with a raised glass pill for the open tab, glass
+   buttons — and Cloud Sync lives here now (top right of the sheet), not in the Dock / menu bar. */
+(function () {
+  'use strict';
+  if (window.__mnSettingsStudio) return;
+  window.__mnSettingsStudio = true;
+  // (html body … lifts these rules over the app's older glass-button rules on every build)
+  var M = 'html body .board-settings-modal', L = 'html:has(.theme-white) body .board-settings-modal';
+  var css = document.createElement('style'); css.id = 'mn-settings-css';
+  css.textContent = [
+    // the sheet
+    M + '{border:0!important;border-radius:34px!important;background:linear-gradient(180deg,rgba(44,52,70,.80) 0%,rgba(22,28,40,.90) 100%)!important;',
+    '-webkit-backdrop-filter:blur(40px) saturate(180%)!important;backdrop-filter:blur(40px) saturate(180%)!important;',
+    'box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 0 0 .5px rgba(255,255,255,.06),0 30px 80px rgba(0,0,0,.5)!important;overflow:hidden}',
+    // no outlines anywhere inside
+    M + ' *{border-color:transparent!important}',
+    M + ' :is(.border-b,.border-t){border-width:0!important}',
+    // header
+    M + ' > :first-child{padding:18px 18px 10px 20px!important;background:transparent!important}',
+    M + ' > :first-child h3{font-size:17px!important;letter-spacing:-.01em}',
+    M + ' > :first-child > :first-child > :first-child{border-radius:12px!important;background:linear-gradient(160deg,rgba(52,211,153,.32),rgba(16,185,129,.14))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}',
+    // the tab bar: a segmented control, the open tab a raised glass pill
+    M + ' > :nth-child(2){background:transparent!important;padding:4px 14px 10px!important}',
+    M + ' > :nth-child(2) > div{background:rgba(255,255,255,.06)!important;border-radius:20px!important;padding:5px!important;gap:4px!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}',
+    M + ' > :nth-child(2) button{border-radius:15px!important;font-size:13px!important;min-height:38px;transition:background .2s,box-shadow .2s,opacity .2s}',
+    M + ' > :nth-child(2) button:not([class*="opacity-"]){background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,.12))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 4px 12px rgba(0,0,0,.25)!important}',
+    // section cards: soft glass, no frame
+    M + ' .rounded-2xl:not(button){border-radius:22px!important}',
+    M + ' :is(.p-4.rounded-2xl,.p-3.rounded-2xl):not(button){background:rgba(255,255,255,.055)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)!important}',
+    // inner segmented choices (All Tasks / Active / Completed, priorities…)
+    M + ' :is(.bg-black\\/30,[class*="bg-black/30"]){background:rgba(0,0,0,.22)!important;border-radius:16px!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}',
+    M + ' :is(.bg-black\\/30,[class*="bg-black/30"]) button{border-radius:12px!important}',
+    M + ' :is(.bg-black\\/30,[class*="bg-black/30"]) button:not([class*="opacity-"]){background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.1))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 10px rgba(0,0,0,.22)!important}',
+    // the choices that are not picked: flat, no glass (the app's older glass button style would fill them)
+    M + ' > :nth-child(2) button[class*="opacity-"],' + M + ' :is(.bg-black\\/30,[class*="bg-black/30"]) button[class*="opacity-"]{background:transparent!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}',
+    // option rows / chips
+    M + ' button.rounded-2xl,' + M + ' button.rounded-xl{box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}',
+    M + ' button.rounded-2xl:not([class*="bg-emerald"]){background:rgba(255,255,255,.05)!important}',
+    M + ' button.rounded-xl.text-white[style*="background"],' + M + ' button.rounded-xl.text-white[class*="bg-"]{border-radius:14px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 6px 16px rgba(0,0,0,.22)!important}',
+    // footer
+    M + ' > :last-child{background:transparent!important;padding:12px 16px 16px!important}',
+    M + ' > :last-child button{border-radius:16px!important;min-height:40px;padding-left:18px!important;padding-right:18px!important}',
+    M + ' > :last-child button:not([class*="bg-emerald"]){background:rgba(255,255,255,.1)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}',
+    M + ' > :last-child button[class*="bg-emerald"]{background:linear-gradient(180deg,#34d399,#059669)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 8px 22px rgba(16,185,129,.35)!important}',
+    // light theme
+    L + '{background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(241,245,249,.92))!important;box-shadow:inset 0 1px 0 #fff,0 30px 80px rgba(15,23,42,.22)!important}',
+    L + ' > :nth-child(2) > div,html:has(.theme-white) ' + M + ' :is(.bg-black\\/30,[class*="bg-black/30"]){background:rgba(15,23,42,.06)!important;box-shadow:inset 0 1px 2px rgba(15,23,42,.08)}',
+    L + ' :is(.p-4.rounded-2xl,.p-3.rounded-2xl):not(button),html:has(.theme-white) ' + M + ' button.rounded-2xl:not([class*="bg-emerald"]){background:rgba(15,23,42,.045)!important;box-shadow:none!important}',
+    L + ' > :nth-child(2) button:not([class*="opacity-"]){background:#fff!important;box-shadow:0 2px 8px rgba(15,23,42,.14)!important}',
+    L + ' > :last-child button:not([class*="bg-emerald"]){background:rgba(15,23,42,.06)!important;box-shadow:none}',
+    // Cloud Sync in the sheet's header
+    M + ' > .mn-set-head{position:relative!important}' + M + ' > .mn-set-head > :first-child{margin-right:150px}',
+    '@media (max-width:520px){' + M + ' > .mn-set-head > :first-child{margin-right:48px}.mn-set-cloud span{display:none}.mn-set-cloud{padding:0 5px!important}}',
+    'html body .mn-set-cloud{position:absolute!important;right:58px!important;top:50%!important;transform:translateY(-50%);margin:0!important;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px 0 6px;border:0;border-radius:17px;color:inherit;font:600 12.5px -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;cursor:pointer;',
+    'background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08));box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 12px rgba(0,0,0,.2);-webkit-tap-highlight-color:transparent}',
+    '.mn-set-cloud i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:rgba(56,189,248,.22);color:#7dd3fc;overflow:hidden}',
+    '.mn-set-cloud i img{width:100%;height:100%;object-fit:cover}.mn-set-cloud i svg{width:15px;height:15px}',
+    '.mn-set-cloud.on i{box-shadow:0 0 0 1.5px #34d399}',
+    '.mn-set-cloud:active{transform:translateY(-50%) scale(.96)}',
+    'html:has(.theme-white) .mn-set-cloud{background:rgba(15,23,42,.06);box-shadow:none}'
+  ].join('\n');
+  (document.head || document.documentElement).appendChild(css);
+
+  var CLOUD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>';
+  // the app's own Cloud button (it stays in the page, out of sight)
+  function cloudBtn() {
+    var c = document.querySelector('[data-mn=cloud]');
+    if (c) return c.matches('button') ? c : c.querySelector('button');
+    var all = document.querySelectorAll('header button');
+    for (var i = 0; i < all.length; i++) if (/^(Cloud sync|Cloud Sync|Signed in)/i.test(all[i].getAttribute('aria-label') || all[i].title || '')) return all[i];
+    return null;
+  }
+  function decorate(m) {
+    var head = m.firstElementChild, close = head && head.lastElementChild;
+    if (!close || head.querySelector('.mn-set-cloud')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mn-set-cloud';
+    var o = cloudBtn(), img = o && o.querySelector('img'), signed = /^Signed in/i.test(o ? (o.getAttribute('aria-label') || o.title || '') : '') || !!img;
+    b.innerHTML = '<i>' + (img ? '<img alt="" src="' + img.getAttribute('src') + '">' : CLOUD_SVG) + '</i><span>' + (signed ? 'Cloud Sync' : 'Sign in · Sync') + '</span>';
+    b.classList.toggle('on', signed);
+    b.title = o ? (o.getAttribute('aria-label') || o.title || 'Cloud Sync') : 'Cloud Sync';
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var btn = cloudBtn(); if (!btn) return;
+      close.click();                                  // the settings sheet steps aside for the Cloud sheet
+      setTimeout(function () { btn.click(); }, 180);
+    });
+    // React owns the header's own children: the button is only added, never moves them
+    head.classList.add('mn-set-head'); head.appendChild(b);
+  }
+  new MutationObserver(function () {
+    var m = document.querySelector('.board-settings-modal'); if (m) decorate(m);
+  }).observe(document.documentElement, { childList: true, subtree: true });
 })();
 
 </script>
