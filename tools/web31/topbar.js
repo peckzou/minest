@@ -21,7 +21,7 @@
     { sel: 'button.fbg-toggle', label: 'Glass' },
     { sel: 'button[title^="Switch to light"], button[title^="Switch to dark"]', label: 'Theme' },
     { sel: 'button[title^="Board settings"]', label: 'Settings' },
-    { sel: 'a[title^="Open iPhone"]', label: 'iPhone' }
+    { sel: 'a[title^="Open iPhone"]', label: 'iPhone ⇄ Desktop', sw: true }
   ];
 
   var css = document.createElement('style');
@@ -49,10 +49,13 @@
     '.mn31-col button:hover .lbl{opacity:1}',
     '.theme-white .mn31-col button{background:rgba(255,255,255,.82);color:#0f172a;border-color:rgba(15,23,42,.12)}',
     '@keyframes mn31In{to{opacity:1;transform:none}}',
-    '.mn31-scrim{position:fixed;inset:0;z-index:2147481999}'
+    '.mn31-scrim{position:fixed;inset:0;z-index:2147481999}',
+    '.mn31-sw{display:inline-flex;gap:1px;padding:2px;border-radius:9px;background:rgba(127,127,127,.2)}.mn31-sw i{display:grid;place-items:center;width:15px;height:17px;border-radius:7px;opacity:.5}.mn31-sw i.on{opacity:1;background:rgba(255,255,255,.28)}.mn31-sw svg{width:12px!important;height:12px!important}'
   ].join('\n');
   document.head.appendChild(css);
 
+  // the iPhone ⇄ Desktop switch (the same as the iPhone page's; here the desktop half is lit)
+  var SWITCH = '<span class="mn31-sw"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.5h2"/></svg></i><i class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg></i></span>';
   var burger = null, col = null, scrim = null;
   function header() { return document.querySelector('header'); }
   function close() {
@@ -73,11 +76,17 @@
       var b = document.createElement('button'); b.type = 'button';
       var title = real.title || real.getAttribute('aria-label') || t.label;
       b.title = title; b.setAttribute('aria-label', title);
-      var glyph = real.querySelector('svg') ? real.querySelector('svg').outerHTML : (real.querySelector('[aria-hidden="true"]') || real).textContent.trim().slice(0, 2);
+      var glyph = t.sw ? SWITCH : real.querySelector('svg') ? real.querySelector('svg').outerHTML : (real.querySelector('[aria-hidden="true"]') || real).textContent.trim().slice(0, 2);
+      if (t.sw) title = 'iPhone ⇄ Desktop — back to the iPhone version';
       b.innerHTML = glyph + '<span class="lbl">' + t.label + '</span>';
       if (/\bon\b/.test(real.className && real.className.baseVal == null ? real.className : '')) b.classList.add('on');
       b.style.animationDelay = (i++ * 22) + 'ms';
-      b.onclick = function (e) { e.stopPropagation(); close(); if (real.tagName === 'A') { location.href = real.href; return; } real.click(); };
+      b.onclick = function (e) {
+        e.stopPropagation(); close();
+        if (t.sw) { if (/[?&]from=app/.test(location.search) && history.length > 1) history.back(); else location.href = '/iphone'; return; }   // came from the app: back into it
+        if (real.tagName === 'A') { location.href = real.href; return; }
+        real.click();
+      };
       col.appendChild(b);
     });
     document.body.appendChild(col);

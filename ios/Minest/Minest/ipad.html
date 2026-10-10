@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPad 44.7 · Free Mini Pet</title>
+    <title>Minest iPad 44.8 · Full screen & list swipes</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21422,7 +21422,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "44.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "44.8" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -21799,13 +21799,16 @@ var De = function(props) {
               // 44.8: on a computer the desktop app is Minest Web 30 (web18's board + this build's 3D Cover,
               // AI, pets, Learning Path; same data). Inside the iOS app (no web30 in the bundle) the button
               // keeps switching full window ↔ phone frame.
+              // 45.1: an iPhone ⇄ Desktop switch — always opens Minest Web 31 (inside the app it opens there;
+              // its own switch comes back here). No more phone frame on a phone.
               var inApp = window.MinestNative && window.MinestNative.isNative && window.MinestNative.isNative();
-              if (!inApp && location.protocol !== 'file:') { window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'web31.0.html'; return; }
-              try { window.dispatchEvent(new CustomEvent('minest:toggle-sim')); } catch (e) {}
+              if (inApp || location.protocol === 'file:') { window.location.href = 'https://minest-app.vercel.app/web?from=app'; return; }
+              window.location.href = window.location.pathname.replace(/[^/]*$/, '') + 'web31.0.html';
             },
             className: "p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"),
-            title: "Desktop version (Minest Web 31)",
-            children: (0, P.jsx)(IconMonitor, { className: "w-4 h-4" })
+            title: "iPhone ⇄ Desktop — switch to Minest Web 31",
+            'aria-label': "Switch between the iPhone and the desktop version",
+            children: (0, P.jsx)('span', { className: "mn-devswitch", 'aria-hidden': "true", dangerouslySetInnerHTML: { __html: '<i class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.5h2"/></svg></i><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg></i>' } })
           }),
 
           // Cloud Sync — the modal, state (firebaseUser/syncStatus/
@@ -22291,6 +22294,13 @@ var MinestChrome = (function() {
     'html.mn-in-app body .mn-rgroup button[title*="desktop web"]{display:none!important}',
     // portrait: Cloud sits at the very bottom, under the bottom-dock tiles
     '@media (orientation:portrait), (min-height:521px){.mn-rgroup.mn-open > [data-mn=cloud]{position:absolute!important;top:var(--mn-cloud-top, 0px);right:0;animation-delay:340ms!important}}',
+    // 45.1: Settings sits at the bottom, right above Cloud
+    '@media (orientation:portrait), (min-height:521px){.mn-rgroup.mn-open:not(.mn-nodock) > button[title^="Board settings"],.mn-rgroup.mn-open:not(.mn-nodock) > :has(> button[title^="Board settings"]){position:absolute!important;top:var(--mn-cloud-top, 0px);right:0;animation-delay:320ms!important}' +
+      '.mn-rgroup.mn-open:not(.mn-nodock) > [data-mn=cloud]{top:calc(var(--mn-cloud-top, 0px) + 48px)!important}}',
+    // 45.1: the iPhone ⇄ Desktop switch: two small icons, the current one lit
+    '.mn-devswitch{display:inline-flex;align-items:center;gap:1px;padding:2px;border-radius:9px;background:rgba(127,127,127,.18)}',
+    '.mn-devswitch i{display:grid;place-items:center;width:15px;height:17px;border-radius:7px;opacity:.5}.mn-devswitch i.on{opacity:1;background:rgba(255,255,255,.28)}',
+    '.theme-white .mn-devswitch i.on{background:rgba(15,23,42,.12)}.mn-devswitch svg{width:12px;height:12px}',
     // 横屏：回到横着顶部第二栏位置 (Landscape Top Second Bar)
     // 44.4: only a short phone in landscape still gets the row; everywhere else the menu is one column on the right
     '@media (orientation:landscape) and (max-height:520px){' +
@@ -39287,6 +39297,9 @@ var Be = function() {
     if (isMobileAgent) return false;   // an iPad / phone is never shown in the phone frame
     // 44.6: the Mac uses this page as its desktop app (web18 is retired), so a desktop browser opens
     // in the full window; the phone frame is one click away and the choice is remembered
+    // 45.1: a phone, an iPad or the app is never shown in the phone frame (an old remembered choice is ignored)
+    var touchDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) || !!(window.MinestNative && window.MinestNative.isNative && window.MinestNative.isNative());
+    if (touchDevice) { try { localStorage.removeItem('minest.web.sim'); } catch (e) {} return false; }
     try { var pref = localStorage.getItem('minest.web.sim'); if (pref === '1') return true; if (pref === '0') return false; } catch (e) {}
     return false;
   });
@@ -48729,6 +48742,7 @@ var Ve = (function(_Component) {
       return;
     }
     var navShown = !!(nav && getComputedStyle(nav).display !== 'none');
+    var settingsLow = navShown && window.matchMedia('(orientation:portrait), (min-height:521px)').matches;
     if (g.classList.contains('mn-nodock') === navShown) g.classList.toggle('mn-nodock', !navShown);
     // a column taller than the screen wraps into a second column to its left (still on the right side)
     var frame = g.closest('.iphone-frame'), limit = (frame ? Math.min(innerHeight, frame.getBoundingClientRect().bottom) : innerHeight) - 12;
@@ -48741,9 +48755,11 @@ var Ve = (function(_Component) {
     var hb = header ? Math.max(0, (header.getBoundingClientRect().bottom - (cr ? cr.top : 0)) / k - (cb ? cb.clientTop : 0)) : 50;
     var n = Array.prototype.filter.call(g.children, function (c) {
       if (c.getAttribute('data-mn') === 'cloud') return false;
+      if (settingsLow && (c.matches('button[title^="Board settings"]') || c.querySelector(':scope > button[title^="Board settings"]'))) return false;   // 45.1: drawn above Cloud
       var cs = getComputedStyle(c); return cs.display !== 'none' && cs.visibility !== 'hidden';
     }).length;
-    var gTop = hb + 8;
+    // 45.1: from where the column really is (the estimate alone could leave the nav tiles touching the last tile)
+    var gTop = Math.max(hb + 8, (g.getBoundingClientRect().top - (cr ? cr.top : 0)) / k);
     var top = gTop + n * 48;
     var rs = document.documentElement.style;
     if (Math.abs((parseFloat(rs.getPropertyValue('--mn-dock2-top')) || 0) - top) > 0.5) rs.setProperty('--mn-dock2-top', top + 'px');
@@ -50102,6 +50118,50 @@ var Ve = (function(_Component) {
     _receive: receive
   };
   if (enabled()) setTimeout(connect, 1500);
+})();
+</script>
+<script>
+/* 45.1 Lists: on a list's empty space (not on a card, a button or a list's title) a sideways swipe moves to
+   the next / previous list, and a long press opens Appearance (wallpaper & tint) for a quick new background. */
+(function () {
+  if (window.__mnBlankGestures) return; window.__mnBlankGestures = true;
+  var BLOCK = 'article, .kanban-card, .kanban-subcard, button, a, input, textarea, select, label, [contenteditable], [role="button"], [title^="Swipe horizontally"], .mpet-menu, #minest-mini-pet-p0, .mn-rgroup, .ios-bottom-tab-bar';
+  var t = null;
+  function haptic(k) { try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic(k); else if (navigator.vibrate) navigator.vibrate(k === 'medium' ? 18 : 8); } catch (e) {} }
+  function laneOf(el) { return el && el.closest ? el.closest('.board-swimlane-scroll') : null; }
+  function end() { if (t) clearTimeout(t.timer); t = null; }
+  document.addEventListener('touchstart', function (e) {
+    end();
+    if (e.touches.length !== 1 || document.body.classList.contains('clear-mode')) return;
+    var el = e.target, L = laneOf(el);
+    if (!L || (el.closest && el.closest(BLOCK))) return;
+    var p = e.touches[0];
+    t = { x: p.clientX, y: p.clientY, L: L, done: false };
+    t.timer = setTimeout(function () {
+      if (!t || t.done) return; t.done = true;
+      var b = document.querySelector('button[title*="Wallpaper"]');
+      if (b) { haptic('medium'); b.click(); }
+    }, 560);
+  }, { passive: true, capture: true });
+  document.addEventListener('touchmove', function (e) {
+    if (!t || t.done) return;
+    var p = e.touches[0], dx = p.clientX - t.x, dy = p.clientY - t.y;
+    if (Math.abs(dx) > 9 || Math.abs(dy) > 9) clearTimeout(t.timer);
+    // only where the lane itself doesn't scroll sideways (portrait: one list per screen)
+    if (/pan-x|auto|manipulation/.test(getComputedStyle(t.L).touchAction)) return;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4) { t.done = true; step(t.L, dx < 0 ? 1 : -1); }
+  }, { passive: true, capture: true });
+  document.addEventListener('touchend', end, { passive: true, capture: true });
+  document.addEventListener('touchcancel', end, { passive: true, capture: true });
+  function step(L, dir) {
+    var cols = Array.prototype.slice.call(L.querySelectorAll('.kanban-column-wrapper'));
+    if (!cols.length) return;
+    var lr = L.getBoundingClientRect(), cur = 0, best = 1e9;
+    cols.forEach(function (c, i) { var d = Math.abs(c.getBoundingClientRect().left + c.offsetWidth / 2 - (lr.left + lr.width / 2)); if (d < best) { best = d; cur = i; } });
+    var nx = Math.max(0, Math.min(cols.length - 1, cur + dir)); if (nx === cur) return;
+    haptic('light');
+    L.scrollTo({ left: L.scrollLeft + (cols[nx].getBoundingClientRect().left - cols[cur].getBoundingClientRect().left), behavior: 'smooth' });
+  }
 })();
 </script>
 </body>
