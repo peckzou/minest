@@ -18,7 +18,8 @@ once = web30.once
 
 
 def live_js():
-    return open(os.path.join(HERE, 'minest-live.js'), encoding='utf-8').read()
+    # Minest Live + the Blooket look of the Arcade's games in a live game
+    return open(os.path.join(HERE, 'minest-live.js'), encoding='utf-8').read() + '\n' + open(os.path.join(HERE, 'arcade-toon.js'), encoding='utf-8').read()
 
 
 def arcade_patches(out):
@@ -67,6 +68,85 @@ def arcade_patches(out):
     out = once(out, """  var coverSpeak = function(card, el) {""", """  var coverSpeak = function(card, el) {
     if (window.__mnNoVoice) return;   // web31: students""", '3D Cover: no tap-to-read for students')
     out = once(out, """        if (window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });""", """        if (!window.__mnNoVoice && window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });""", '3D Cover: no hold-to-record for students')
+    return toon_patches(out)
+
+
+def toon_patches(out):
+    """The Arcade's canvas games in Minest Live (a live game, Solo play): Blooket-style when window.__arToon is on —
+    a cartoon background from window.__arToonBg (tools/web31/minest-live.js), solid fruit and rocks with a dark outline,
+    and the answers on white plates in dark text. Smash It is left as it is (Minest Live never turns __arToon on for it).
+    Also for web31.1.html / web31.1.play.html (tools/web31/toon_sync.py)."""
+    if 'window.__arToonBg' in out:
+        return out
+    # the canvas games read their font once: Nunito in a live game
+    n = out.count("    var FONT = (getComputedStyle(root).fontFamily || 'system-ui, sans-serif');")
+    if n != 4:
+        raise SystemExit('toon: expected 4 canvas fonts, found %d' % n)
+    out = out.replace("    var FONT = (getComputedStyle(root).fontFamily || 'system-ui, sans-serif');",
+                      "    var FONT = window.__arToon ? \"'Nunito', 'DM Sans', system-ui, sans-serif\" : (getComputedStyle(root).fontFamily || 'system-ui, sans-serif');   // web31: Minest Live")
+    # backgrounds
+    out = once(out, """    var drawBg = function(dt) {
+      g.fillStyle = 'rgba(4,8,22,0.72)'; g.fillRect(0, 0, W, H);""", """    var drawBg = function(dt) {
+      if (window.__arToon && window.__arToonBg && window.__arToonBg(g, W, H, clock, 'slice')) return;   // web31: Minest Live
+      g.fillStyle = 'rgba(4,8,22,0.72)'; g.fillRect(0, 0, W, H);""", 'toon: slice bg')
+    out = once(out, """    var drawSpace = function(dt) {
+      g.fillStyle = 'rgba(2,5,16,0.78)'; g.fillRect(0, 0, W, H);""", """    var drawSpace = function(dt) {
+      if (window.__arToon && window.__arToonBg && window.__arToonBg(g, W, H, clock, 'blast', playTop)) return;   // web31: Minest Live
+      g.fillStyle = 'rgba(2,5,16,0.78)'; g.fillRect(0, 0, W, H);""", 'toon: blast bg')
+    out = once(out, """    var drawBg = function(dt) {
+      g.fillStyle = 'rgba(4,8,22,0.7)'; g.fillRect(0, 0, W, H);""", """    var drawBg = function(dt) {
+      if (window.__arToon && window.__arToonBg && window.__arToonBg(g, W, H, clock, 'whack', (holes.length ? holes[0].cy - holes[0].rx * 1.6 : H * 0.35) + 30)) return;   // web31: Minest Live
+      g.fillStyle = 'rgba(4,8,22,0.7)'; g.fillRect(0, 0, W, H);""", 'toon: whack bg')
+    # Glass Fruit: a solid fruit with a dark outline, the word on a white plate
+    out = once(out, """      g.fillStyle = bg; g.fill();
+      g.shadowBlur = 0;
+      g.save(); fruitPath(kind, R); g.clip();""", """      g.fillStyle = bg; g.fill();
+      if (window.__arToon) { g.fillStyle = col(tint, 1); g.fill(); }   // web31: Minest Live
+      g.shadowBlur = 0;
+      g.save(); fruitPath(kind, R); g.clip();""", 'toon: fruit body')
+    out = once(out, "g.strokeStyle = eg; g.lineWidth = 2.2; g.stroke();",
+               "if (window.__arToon) { g.strokeStyle = '#2e1065'; g.lineWidth = 3.5; } else { g.strokeStyle = eg; g.lineWidth = 2.2; } g.stroke();", 'toon: fruit rim')
+    out = once(out, """        g.fillStyle = 'rgba(2,6,23,0.36)'; g.fill();
+        g.fillStyle = '#fff'; g.font = '800 ' + f.px + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle';
+        if (tier === 0) {""", """        var TN = window.__arToon;   // web31: Minest Live
+        g.fillStyle = TN ? '#fff' : 'rgba(2,6,23,0.36)'; g.fill();
+        if (TN) { g.strokeStyle = '#2e1065'; g.lineWidth = 2.5; g.stroke(); }
+        g.fillStyle = TN ? '#2e1065' : '#fff'; g.font = (TN ? '900 ' : '800 ') + f.px + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle';
+        if (tier === 0 && !TN) {""", 'toon: fruit plate')
+    # Glass Blast: solid rocks, white plates
+    out = once(out, """      g.fillStyle = bg; g.fill(); g.shadowBlur = 0;
+      // crystal facets""", """      g.fillStyle = bg; g.fill(); g.shadowBlur = 0;
+      if (window.__arToon) { g.fillStyle = col(rk.col, 1); g.fill(); g.strokeStyle = '#2e1065'; g.lineWidth = 4; g.stroke(); }   // web31: Minest Live
+      // crystal facets""", 'toon: rock body')
+    out = once(out, """      g.fillStyle = bad ? 'rgba(127,29,29,0.72)' : 'rgba(2,6,23,0.6)'; g.fill();
+      g.strokeStyle = bad ? 'rgba(248,113,113,0.8)' : 'rgba(255,255,255,0.35)'; g.lineWidth = 1; g.stroke();
+      g.fillStyle = '#fff'; g.font = '800 ' + Math.round(rk.px * sc) + 'px ' + FONT;""", """      var TN = window.__arToon;   // web31: Minest Live
+      g.fillStyle = TN ? (bad ? '#fee2e2' : '#fff') : (bad ? 'rgba(127,29,29,0.72)' : 'rgba(2,6,23,0.6)'); g.fill();
+      g.strokeStyle = TN ? (bad ? '#dc2626' : '#2e1065') : (bad ? 'rgba(248,113,113,0.8)' : 'rgba(255,255,255,0.35)'); g.lineWidth = TN ? 2.5 : 1; g.stroke();
+      g.fillStyle = TN ? '#2e1065' : '#fff'; g.font = (TN ? '900 ' : '800 ') + Math.round(rk.px * sc) + 'px ' + FONT;""", 'toon: rock plate')
+    # Whack-a-Term: a solid mole with a dark outline, the sign in white
+    out = once(out, "        g.fillStyle = col(tint, 0.5); g.fill(); g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 1; g.stroke();",
+               "        if (window.__arToon) { g.fillStyle = col(tint, 1); g.fill(); g.strokeStyle = '#2e1065'; g.lineWidth = 2.5; } else { g.fillStyle = col(tint, 0.5); g.fill(); g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 1; } g.stroke();   // web31: Minest Live",
+               'toon: mole ears')
+    out = once(out, """      g.fillStyle = bg; g.fill();
+      g.shadowBlur = 0;
+      g.strokeStyle = bad ? 'rgba(248,113,113,0.95)' : 'rgba(255,255,255,0.7)'; g.lineWidth = bad ? 2.5 : 1.5; g.stroke();
+      // glass: a highlight""", """      g.fillStyle = bg; g.fill();
+      if (window.__arToon) { g.fillStyle = col(tint, 1); g.fill(); }   // web31: Minest Live
+      g.shadowBlur = 0;
+      g.strokeStyle = bad ? 'rgba(248,113,113,0.95)' : (window.__arToon ? '#2e1065' : 'rgba(255,255,255,0.7)'); g.lineWidth = window.__arToon ? 3.5 : (bad ? 2.5 : 1.5); g.stroke();
+      // glass: a highlight""", 'toon: mole body')
+    out = once(out, "      g.fillStyle = col(light(tint, 0.6), 0.22); g.fill();\n      // the face",
+               "      g.fillStyle = col(light(tint, 0.6), window.__arToon ? 0.6 : 0.22); g.fill();\n      // the face", 'toon: mole belly')
+    # Whack-a-Term: the sign in white
+    out = once(out, """      g.fillStyle = m.reveal ? 'rgba(6,78,59,0.78)' : 'rgba(15,23,42,0.72)'; g.fill();
+      g.strokeStyle = m.reveal || m.hint ? 'rgba(52,211,153,' + (0.7 + 0.3 * Math.sin(clock * 7)).toFixed(3) + ')' : (bad ? 'rgba(248,113,113,0.95)' : 'rgba(255,255,255,0.7)');
+      g.lineWidth = m.reveal || m.hint || bad ? 2.2 : 1.3; g.stroke();
+      g.fillStyle = '#fff'; g.font = '800 ' + m.px + 'px ' + FONT;""", """      var TN = window.__arToon;   // web31: Minest Live
+      g.fillStyle = TN ? (m.reveal ? '#bbf7d0' : '#fff') : (m.reveal ? 'rgba(6,78,59,0.78)' : 'rgba(15,23,42,0.72)'); g.fill();
+      g.strokeStyle = m.reveal || m.hint ? 'rgba(' + (TN ? '22,163,74,' : '52,211,153,') + (0.7 + 0.3 * Math.sin(clock * 7)).toFixed(3) + ')' : (bad ? (TN ? '#dc2626' : 'rgba(248,113,113,0.95)') : (TN ? '#2e1065' : 'rgba(255,255,255,0.7)'));
+      g.lineWidth = TN ? 3 : (m.reveal || m.hint || bad ? 2.2 : 1.3); g.stroke();
+      g.fillStyle = TN ? '#2e1065' : '#fff'; g.font = (TN ? '900 ' : '800 ') + m.px + 'px ' + FONT;""", 'toon: mole sign')
     return out
 
 

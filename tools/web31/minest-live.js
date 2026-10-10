@@ -2100,7 +2100,9 @@
       run = { k: k, c: 0, w: 0, earned: 0, bonus: s.bonus, seen: 0 };
       var pk = perksOf(s); if (pk.streak && s.streak < pk.streak) s.streak = pk.streak;   // a card's head start
       s.bonus = 1;   // a bought bonus lasts one level
+      var TO = window.MinestArcadeToon; if (TO) TO.on(k);   // Blooket style for every game but Smash It (tools/web31/arcade-toon.js)
       var ok = SA.level ? SA.level(host.board, k, opts) : false;
+      if (TO) { if (ok) TO.on(k); else TO.off(); }
       if (!ok) { run = null; toast('No cards here can be asked this way — level skipped.'); s.lv[k] = 1; save(); draw(); return; }
       o.el.hidden = true;
       showFloat();
