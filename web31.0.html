@@ -8508,7 +8508,7 @@ var CardGlassShatter = (function() {
   };
 })();
 
-// ---- web30: Study Arcade from iPhone45.4.html ----
+// ---- web30: Study Arcade from iPhone45.5.html ----
 var StudyArcade = window.StudyArcade = (function() {
   var clamp = function(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); };
   var rnd = function(a, b) { return a + Math.random() * (b - a); };
@@ -16418,7 +16418,7 @@ var De = function(props) {
 // =========================================================================
 // 3D Cover Flow View Component (Oe) - Kept 100% Intact
 // =========================================================================
-// ---- web30: from iPhone45.4.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
+// ---- web30: from iPhone45.5.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
 var IconCloud = E('cloud', [
   ['path', { d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z', key: 'cl1' }]
 ]);
@@ -33099,7 +33099,7 @@ function parseAndNormalizeBoardJson(raw) {
   }
 }
 
-// ---- web30: cloud format from iPhone45.4.html ----
+// ---- web30: cloud format from iPhone45.5.html ----
 var MINEST_CLOUD_GZ_LIMIT = 950000;
 function minestBytesToB64(bytes) {
   var s = '';
@@ -38982,7 +38982,7 @@ var CoverKiosk = function() {
 
   </script>
   
-<!-- ---- web30: add-ons from iPhone45.4.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
+<!-- ---- web30: add-ons from iPhone45.5.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
 <script>
 /* 41.377 Pet Raising V6: keep the V6 experience isolated from the board while
    making it available from the same menu as the other Minest tools. */
@@ -44550,115 +44550,200 @@ var CoverKiosk = function() {
 
 </script>
 <script>
-/* web31 · the top bar, laid out like iPhone 45.0: the board switcher on the left, everything else on the
-   right, and the less-used tools tucked into ≡ — a column of glass icon buttons down the right edge.
-   The tucked buttons stay in the board app (hidden); each icon in the column is a stand-in that clicks the
-   real one, so every tool works exactly as before. Teacher / Join live in the Study Arcade's own top bar. */
+/* web31 · the top bar, like iPhone 45.x: the board takes the whole window and the bar stays out of the way.
+   · It slides in when the pointer goes to the top edge, or with a two-finger pinch (trackpad or touch screen),
+     and slides away again a moment after you leave it (not while one of its menus or the search is open).
+   · One row: the board switcher on the left; on the right the iPhone dock's buttons laid out across — search,
+     +, 3D / Board, theme, stats, iPhone ⇄ Desktop, lists, wallpaper, Arcade, Octo, Light FX, Card FX, ink,
+     settings — and Cloud last, on the far right. No ≡; the two floating FX buttons in the bottom-right corner
+     are gone (their stand-ins are in the bar).
+   · A right-click (or a long press on a touch screen) on the board's empty space opens Appearance (wallpaper).
+   · Teacher / Join live in the Study Arcade's own top bar. */
 (function () {
   'use strict';
   if (window.__mn31TopBar || /[?&]learn=/.test(location.search)) return;
   window.__mn31TopBar = true;
+  var root = document.documentElement;
 
-  // what goes into ≡ (selectors inside the header, in column order)
-  var TUCK = [
-    { sel: '.mn30-entries button[title^="Build a board"]', label: 'AI Build' },
-    { sel: '.mn30-entries button[title^="AI Analyze"]', label: 'Analyze' },
-    { sel: '.mn30-entries button[title^="Learning Path"]', label: 'Learn' },
-    { sel: '.mn30-entries button[title^="Read aloud"]', label: 'Speak' },
-    { sel: '.mn30-entries button[title^="Pet Raising"]', label: 'Octo' },
-    { sel: '.mn30-entries button[title^="Talk to Minest"]', label: 'Voice' },
-    { sel: 'button[title^="Board Wallpaper"]', label: 'Wallpaper' },
-    { sel: 'button[title^="Show statistics"], button[title^="Hide statistics"]', label: 'Stats' },
-    { sel: 'button[title^="Mute"], button[title^="Unmute"]', label: 'Sound' },
-    { sel: 'button.fbg-toggle', label: 'Glass' },
-    { sel: 'button[title^="Switch to light"], button[title^="Switch to dark"]', label: 'Theme' },
-    { sel: 'button[title^="Board settings"]', label: 'Settings' },
-    { sel: 'a[title^="Open iPhone"]', label: 'iPhone ⇄ Desktop', sw: true }
+  // the bar's order, left to right after the switcher (the dock's top-to-bottom order, Cloud last)
+  var ORDER = [
+    ['header > div:nth-child(2) > div.relative.flex.items-center.flex-1', 1],              // search
+    ['header > div:nth-child(2) > :has(> button[title^="Create new"])', 2],               // +
+    ['header .sf-mode-switch', 3],                                                         // 3D / Board
+    ['header button[title^="Switch to light"], header button[title^="Switch to dark"]', 4],
+    ['header button[title$="statistics panel"]', 5],
+    ['header a[title^="Open iPhone"]', 6],                                                 // iPhone ⇄ Desktop
+    ['header > div:nth-child(2) > :has(> button[title^="Filter by list"])', 7],
+    ['header > div:nth-child(3) > :has(> button[title^="Board Wallpaper"])', 8],
+    ['header .arcade-entry', 9],
+    ['header .mn30-entries button[title^="Pet Raising"]', 10],
+    ['header .mn31-p-fx', 11], ['header .mn31-p-cm', 12],                                  // Light FX, Card FX
+    ['header .fbi-wrap', 13],                                                              // ink
+    ['header button[title^="Board settings"]', 14],
+    ['header button[title^="Cloud sync"]', 15]
   ];
-
   var css = document.createElement('style');
   css.id = 'mn31-topbar-css';
   css.textContent = [
-    // everything after the switcher sits on the right
-    'header > div:nth-child(2){flex:1 1 auto!important;justify-content:flex-start!important;min-width:0}',
-    'header > div:nth-child(2) > :first-child{margin-left:auto}',   // right-aligned, never spilling left over the switcher
-    'header > div:nth-child(2) > div.flex-1{flex:0 1 220px!important;min-width:38px}',
-    '@media (max-width:1100px){header .studio-progress-badge{display:none!important}}',
-    'header > div:nth-child(3){flex:0 0 auto!important}',
-    // tucked tools (the board app keeps them; ≡ shows them)
-    'header .mn30-entries,' + TUCK.slice(6).map(function (t) { return t.sel.split(',').map(function (x) { return 'header ' + x.trim(); }).join(','); }).join(',') + '{display:none!important}',
-    // ≡ (the iPhone 45.0 burger)
-    '.mn31-burger{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:inherit;cursor:pointer;transition:background .2s}',
-    '.mn31-burger:hover{background:rgba(255,255,255,.12)}.theme-white .mn31-burger{border-color:rgba(15,23,42,.12);background:rgba(15,23,42,.04)}',
-    '.mn31-burger svg{width:18px;height:18px}.mn31-burger .x{display:none}.mn31-more-open .mn31-burger .x{display:block}.mn31-more-open .mn31-burger .b{display:none}',
-    // the column
-    '.mn31-col{position:fixed;right:14px;top:64px;z-index:2147482000;display:flex;flex-flow:column wrap-reverse;align-content:flex-start;gap:8px;pointer-events:none}',   // a short window: a second column to the left
-    '.mn31-col button{pointer-events:auto;position:relative;width:46px;height:46px;border-radius:15px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.22);',
-    'background:rgba(20,26,40,.72);-webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);color:#fff;font-size:18px;cursor:pointer;',
-    'box-shadow:0 10px 26px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.18);opacity:0;transform:translateX(24px) scale(.9);animation:mn31In .32s cubic-bezier(.2,.9,.3,1.15) forwards}',
-    '.mn31-col button svg{width:18px;height:18px}.mn31-col button:hover{background:rgba(40,48,70,.85)}.mn31-col button.on{border-color:rgba(125,211,252,.7);box-shadow:0 0 0 2px rgba(125,211,252,.25),0 10px 26px rgba(0,0,0,.28)}',
-    '.mn31-col button .lbl{position:absolute;right:56px;top:50%;transform:translateY(-50%);white-space:nowrap;padding:5px 10px;border-radius:9px;background:rgba(10,14,24,.85);color:#fff;font:600 12px Inter,system-ui,sans-serif;opacity:0;pointer-events:none;transition:opacity .15s}',
-    '.mn31-col button:hover .lbl{opacity:1}',
-    '.theme-white .mn31-col button{background:rgba(255,255,255,.82);color:#0f172a;border-color:rgba(15,23,42,.12)}',
-    '@keyframes mn31In{to{opacity:1;transform:none}}',
-    '.mn31-scrim{position:fixed;inset:0;z-index:2147481999}',
-    '.mn31-sw{display:inline-flex}.mn31-sw i{display:grid;place-items:center}.mn31-sw i.on{display:none}.mn31-sw svg{width:18px!important;height:18px!important}'   // only the one to switch to (the iPhone)
+    // the bar floats over the board and slides away
+    'header{position:fixed!important;top:0;left:0;right:0;z-index:60!important;display:flex!important;align-items:center!important;gap:4px!important;padding:8px 14px!important;',
+    'background:rgba(14,20,27,.72)!important;-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);border-bottom:1px solid rgba(255,255,255,.08)!important;',
+    'transform:translateY(-110%);opacity:0;transition:transform .38s cubic-bezier(.2,.9,.25,1),opacity .25s ease!important;pointer-events:none}',
+    '.theme-white header{background:rgba(255,255,255,.8)!important;border-bottom-color:rgba(15,23,42,.08)!important}',
+    'html.mn31-chrome header{transform:none;opacity:1;pointer-events:auto}',
+    // one row: the groups dissolve so every button can take its place
+    'header > div:nth-child(2),header > div:nth-child(3),header .mn30-entries{display:contents!important}',
+    'header > div:nth-child(1){order:0;margin-right:auto!important;flex:0 1 auto!important;min-width:0}',
+    ORDER.map(function (o) { return o[0] + '{order:' + o[1] + '!important}'; }).join('\n'),
+    // not in the bar (Octo's menu has the AI tools; Glass is in Appearance)
+
+    // calm, even buttons like the iPhone dock
+    'header > div:nth-child(3) > button,header > div:nth-child(3) > a,header > div:nth-child(3) > div > button,header .mn30-entries button,header > div:nth-child(2) > div > button{height:38px!important;min-width:38px!important;border-radius:12px!important}',
+    'header button[title^="Create new"] > span,header button[title^="Create new"] > svg:last-child:not(:first-child){display:none!important}',
+    'header button[title^="Create new"]{padding:0 11px!important}',
+    'header button[title^="Cloud sync"] > span.hidden{display:none!important}',
+    'header button[title^="Filter by list"] > span.font-mono{display:none!important}',
+    'header > div:nth-child(2) > div.relative.flex.items-center.flex-1{flex:0 0 170px!important}',
+    // every button gets the new look: one glass tile style, icons only (the old pills, labels and colours go)
+    'header > div:nth-child(1) .board-switcher, header > div:nth-child(1) button{border:0!important;background:transparent!important;box-shadow:none!important;padding:4px 2px!important}',
+    'header > div:nth-child(1) button .board-version, header > div:nth-child(1) button > svg{display:none!important}',
+    'header > div:nth-child(1) button > span{font-size:19px!important;font-weight:700!important;letter-spacing:-.3px}',
+    'header > div:nth-child(2) > div > button, header > div:nth-child(3) > button, header > div:nth-child(3) > a, header > div:nth-child(3) > div > button, header .mn30-entries button, header .sf-mode-switch, header .mn31-p{' +
+      'height:38px!important;min-width:38px!important;padding:0 9px!important;border-radius:12px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:0!important;' +
+      'background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important;color:inherit!important;font-size:0!important}',
+    'header > div:nth-child(2) > div > button:hover, header > div:nth-child(3) > button:hover, header > div:nth-child(3) > a:hover, header > div:nth-child(3) > div > button:hover, header .mn30-entries button:hover, header .mn31-p:hover{background:rgba(255,255,255,.14)!important}',
+    '.theme-white header > div:nth-child(2) > div > button, .theme-white header > div:nth-child(3) > button, .theme-white header > div:nth-child(3) > a, .theme-white header > div:nth-child(3) > div > button, .theme-white header .mn30-entries button, .theme-white header .sf-mode-switch, .theme-white header .mn31-p{background:rgba(15,23,42,.04)!important;border-color:rgba(15,23,42,.12)!important}',
+    'header svg{width:17px!important;height:17px!important}',
+    'header .arcade-entry-glyph{font-size:15px!important}header button span[aria-hidden="true"]{font-size:16px!important}',
+    'header button[title^="Cloud sync"] > span:first-child{font-size:16px!important}header button[title^="Cloud sync"] > span:last-child{width:7px!important;height:7px!important;margin-left:3px}',
+    // the list filter: a list icon instead of "All Lists (29) ▾"
+    'header button[title^="Filter by list"] > *{display:none!important}',
+    'header button[title^="Filter by list"]::before{content:"";width:18px;height:18px;background:currentColor;-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27%3E%3Cpath d=%27M9 6h11M9 12h11M9 18h11%27/%3E%3Ccircle cx=%274.5%27 cy=%276%27 r=%271.2%27 fill=%27black%27/%3E%3Ccircle cx=%274.5%27 cy=%2712%27 r=%271.2%27 fill=%27black%27/%3E%3Ccircle cx=%274.5%27 cy=%2718%27 r=%271.2%27 fill=%27black%27/%3E%3C/svg%3E\") center/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27%3E%3Cpath d=%27M9 6h11M9 12h11M9 18h11%27/%3E%3Ccircle cx=%274.5%27 cy=%276%27 r=%271.2%27 fill=%27black%27/%3E%3Ccircle cx=%274.5%27 cy=%2712%27 r=%271.2%27 fill=%27black%27/%3E%3Ccircle cx=%274.5%27 cy=%2718%27 r=%271.2%27 fill=%27black%27/%3E%3C/svg%3E\") center/contain no-repeat}',
+    // the 3D / Board switch: two quiet icons
+    'header .sf-mode-switch{padding:0 3px!important;gap:2px!important}header .sf-mode-switch .sf-mode-thumb{border-radius:9px!important}header .sf-mode-switch button{height:30px!important;min-width:30px!important;border:0!important;background:transparent!important}',
+    // the search: a glass field
+    'header input[type="text"], header input:not([type]){height:38px!important;border-radius:12px!important;background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.14)!important;font-size:13px!important}',
+    '.theme-white header input{background:rgba(15,23,42,.04)!important;border-color:rgba(15,23,42,.12)!important}',
+    // the two floating FX buttons (bottom right) are gone — their stand-ins sit in the bar
+    '.fbfx-btn:not(.mn31-p),.card-mode-btn:not(.mn31-p){display:none!important}',
+    '.mn31-p{display:inline-flex!important;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:inherit;cursor:pointer;font-size:16px;padding:0}',
+    '.mn31-p:hover{background:rgba(255,255,255,.12)}.mn31-p.on{border-color:rgba(125,211,252,.7);box-shadow:0 0 0 2px rgba(125,211,252,.22);color:#7dd3fc}',
+    '.theme-white .mn31-p{border-color:rgba(15,23,42,.12);background:rgba(15,23,42,.04)}.mn31-p svg{width:17px;height:17px}',
+    // not in the bar (Octo's menu has the AI tools; Glass is in Appearance) — last and strongest, so nothing brings them back
+    'html body header .studio-progress-badge,html body header .studio-version,html body header > div:nth-child(1) > .hidden,html body header .mn30-entries button:not([title^="Pet Raising"]),html body header button[title^="Mute"],html body header button[title^="Unmute"],html body header button.fbg-toggle,html body header button[title*="Zen Mode"]{display:none!important}',
+    'header .mn31-p span{font-size:16px!important;line-height:1}',
+    // the top edge: where the pointer calls the bar
+    '.mn31-edge{position:fixed;top:0;left:0;right:0;height:10px;z-index:59}',
+    'html.mn31-chrome .mn31-edge{display:none}',
+    '.mn31-hint{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:61;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.72);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;pointer-events:none;animation:mn31Hint 3.2s ease forwards}',
+    '@keyframes mn31Hint{0%{opacity:0;transform:translate(-50%,-8px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}'
   ].join('\n');
   document.head.appendChild(css);
 
-  // the iPhone ⇄ Desktop switch (the same as the iPhone page's; here the desktop half is lit)
-  var SWITCH = '<span class="mn31-sw"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.5h2"/></svg></i><i class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg></i></span>';
-  var burger = null, col = null, scrim = null;
   function header() { return document.querySelector('header'); }
-  function close() {
-    document.documentElement.classList.remove('mn31-more-open');
-    if (col) { col.remove(); col = null; }
-    if (scrim) { scrim.remove(); scrim = null; }
+
+  // ---------------------------------------------------------------- the two FX buttons, in the bar
+  var proxies = [];
+  function proxy(cls, realSel, glyph) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mn31-p ' + cls; b.innerHTML = glyph;
+    b.onclick = function (e) { e.stopPropagation(); var r = document.querySelector(realSel); if (r) r.click(); setTimeout(sync, 60); };
+    proxies.push({ el: b, sel: realSel });
+    return b;
   }
-  function open() {
-    var h = header(); if (!h) return;
-    close();
-    document.documentElement.classList.add('mn31-more-open');
-    scrim = document.createElement('div'); scrim.className = 'mn31-scrim'; scrim.onclick = close; document.body.appendChild(scrim);
-    col = document.createElement('div'); col.className = 'mn31-col';
-    var r = h.getBoundingClientRect(); col.style.top = Math.round(r.bottom + 10) + 'px'; col.style.maxHeight = Math.max(160, window.innerHeight - r.bottom - 22) + 'px';
-    var i = 0;
-    TUCK.forEach(function (t) {
-      var real = h.querySelector(t.sel); if (!real) return;
-      var b = document.createElement('button'); b.type = 'button';
-      var title = real.title || real.getAttribute('aria-label') || t.label;
-      b.title = title; b.setAttribute('aria-label', title);
-      var glyph = t.sw ? SWITCH : real.querySelector('svg') ? real.querySelector('svg').outerHTML : (real.querySelector('[aria-hidden="true"]') || real).textContent.trim().slice(0, 2);
-      if (t.sw) title = 'iPhone ⇄ Desktop — back to the iPhone version';
-      b.innerHTML = glyph + '<span class="lbl">' + t.label + '</span>';
-      if (/\bon\b/.test(real.className && real.className.baseVal == null ? real.className : '')) b.classList.add('on');
-      b.style.animationDelay = (i++ * 22) + 'ms';
-      b.onclick = function (e) {
-        e.stopPropagation(); close();
-        if (t.sw) { if (/[?&]from=app/.test(location.search) && history.length > 1) history.back(); else location.href = '/iphone'; return; }   // came from the app: back into it
-        if (real.tagName === 'A') { location.href = real.href; return; }
-        real.click();
-      };
-      col.appendChild(b);
+  proxy('mn31-p-fx', '.fbfx-btn:not(.mn31-p)', '<span>✦</span>');
+  proxy('mn31-p-cm', '.card-mode-btn:not(.mn31-p)', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="6" width="13" height="14" rx="2.5"/><path d="M19 3v4M17 5h4"/></svg>');
+  function sync() {
+    proxies.forEach(function (p) {
+      var r = document.querySelector(p.sel); if (!r) return;
+      p.el.title = r.title || '';
+      p.el.classList.toggle('on', /\bon\b/.test(r.className) && !/\bnone\b/.test(r.className));
     });
-    document.body.appendChild(col);
   }
-  // ≡ sits at the end of the right group; the board app re-renders the header, so keep putting it back
   function mount() {
     var h = header(); if (!h) return;
     var right = h.children[2]; if (!right) return;
-    if (!burger) {
-      burger = document.createElement('button'); burger.type = 'button'; burger.className = 'mn31-burger'; burger.title = 'More'; burger.setAttribute('aria-label', 'More');
-      burger.innerHTML = '<svg class="b" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14"/></svg><svg class="x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
-      burger.onclick = function (e) { e.stopPropagation(); if (col) close(); else open(); };
-    }
-    if (burger.parentNode !== right || burger !== right.lastElementChild) right.appendChild(burger);
+    proxies.forEach(function (p) { if (p.el.parentNode !== right) right.appendChild(p.el); });
+    sync();
   }
   setInterval(mount, 700);
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && col) close(); });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
 
-  // 🎓 Teacher / 🎮 Join in the Study Arcade's top bar (not in a student's live game or the play page)
+  // ---------------------------------------------------------------- show / hide
+  var hideT = 0;
+  function busy() {
+    var h = header(); if (!h) return false;
+    if (h.matches(':hover')) return true;
+    var a = document.activeElement;
+    if (a && a !== document.body && h.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return true;
+    return !!h.querySelector('[class*="popover"], [class*="dropdown"], [role="menu"], [role="listbox"], .fbi-menu');
+  }
+  function show(ms) { root.classList.add('mn31-chrome'); hideSoon(ms || 2600); }
+  function hideSoon(ms) {
+    clearTimeout(hideT);
+    hideT = setTimeout(function () { if (busy()) { hideSoon(1200); return; } root.classList.remove('mn31-chrome'); }, ms);
+  }
+  function addEdge() {
+    var edge = document.createElement('div'); edge.className = 'mn31-edge';
+    edge.addEventListener('mouseenter', function () { show(); });
+    edge.addEventListener('click', function () { show(); });
+    document.body.appendChild(edge);
+  }
+  if (document.body) addEdge(); else document.addEventListener('DOMContentLoaded', addEdge);
+  var away = false;
+  document.addEventListener('mousemove', function (e) {
+    if (e.clientY <= 12) { away = false; show(); return; }
+    if (!root.classList.contains('mn31-chrome')) return;
+    var h = header(), b = h ? h.getBoundingClientRect().bottom : 56;
+    if (e.clientY <= b + 24) { away = false; clearTimeout(hideT); }   // on the bar: it stays
+    else if (!away) { away = true; hideSoon(1400); }                   // left it: it goes a moment later
+  }, { passive: true });
+  // a two-finger pinch: on a trackpad it arrives as ctrl + wheel (Safari also sends gesture events)
+  window.addEventListener('wheel', function (e) { if (e.ctrlKey) { e.preventDefault(); show(3200); } }, { passive: false });
+  window.addEventListener('gesturestart', function (e) { e.preventDefault(); show(3200); });
+  var pinch0 = 0;
+  document.addEventListener('touchstart', function (e) { pinch0 = e.touches.length === 2 ? Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) : 0; }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (!pinch0 || e.touches.length !== 2) return;
+    var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    if (Math.abs(d - pinch0) > 28) { pinch0 = 0; show(3500); }
+  }, { passive: true });
+  // at the start the bar shows briefly; the first time, a hint says how it comes back
+  setTimeout(function () {
+    show(2400);
+    try {
+      if (!localStorage.getItem('minest.web31.barHint')) {
+        localStorage.setItem('minest.web31.barHint', '1');
+        var t = document.createElement('div'); t.className = 'mn31-hint'; t.textContent = 'Move to the top, or pinch, for the menu';
+        document.body.appendChild(t); setTimeout(function () { t.remove(); }, 3400);
+      }
+    } catch (e) {}
+  }, 900);
+
+  // ---------------------------------------------------------------- empty space → Appearance
+  var BLOCK = 'article, .kanban-card, .kanban-subcard, button, a, input, textarea, select, label, [contenteditable], [role="button"], header, .mpet-menu, #minest-mini-pet-p0, .arcade, .mlv, .coverflow-card-item, [class*="popover"], [class*="modal"]';
+  function blank(el) { return el && el.closest && !el.closest(BLOCK) && !!el.closest('#root') && !el.closest('.mlv, .mlv-open, .arcade, [role="dialog"]'); }
+  function appearance() {
+    var b = document.querySelector('header button[title^="Board Wallpaper"]'); if (!b) return;
+    show(4000);
+    setTimeout(function () { b.click(); }, 120);   // the studio hangs from the bar, so the bar comes first
+  }
+  document.addEventListener('contextmenu', function (e) {
+    if (!blank(e.target)) return;
+    e.preventDefault(); appearance();
+  });
+  var lp = null;
+  document.addEventListener('touchstart', function (e) {
+    if (lp) clearTimeout(lp.t); lp = null;
+    if (e.touches.length !== 1 || !blank(e.target)) return;
+    var p = e.touches[0];
+    lp = { x: p.clientX, y: p.clientY, t: setTimeout(function () { lp = null; appearance(); }, 560) };
+  }, { passive: true, capture: true });
+  document.addEventListener('touchmove', function (e) {
+    if (!lp) return; var p = e.touches[0];
+    if (Math.hypot(p.clientX - lp.x, p.clientY - lp.y) > 9) { clearTimeout(lp.t); lp = null; }
+  }, { passive: true, capture: true });
+  ['touchend', 'touchcancel'].forEach(function (ev) { document.addEventListener(ev, function () { if (lp) clearTimeout(lp.t); lp = null; }, { passive: true, capture: true }); });
+
+  // ---------------------------------------------------------------- 🎓 Teacher / 🎮 Join in the Study Arcade's top bar
   function arcadeButtons() {
     var chips = document.querySelector('.arcade .ar-chips');
     if (!chips || chips.querySelector('.mn31-ar-te') || window.__MINEST_LIVE_STANDALONE || window.__mnNoVoice || !window.MinestLive) return;
