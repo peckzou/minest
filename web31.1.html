@@ -44370,75 +44370,213 @@ var CoverKiosk = function() {
     host.appendChild(box); paint();
     return { repaint: paint };
   }
-  // Two optional underwater mini-games available while the room is waiting.
+  // Two underwater mini-games for the wait (Octo is the real Mini Pet):
+  //   Octo Dive — swim anywhere (drag / arrow keys), catch coins, pearls and chests in a row for a combo, dodge jellyfish;
+  //   Flappy Octo — tap to swim up through coral gates, grab the pearl in each gap.
+  // A bump never ends a run: it costs points and gives a short shield; only the clock ends it. Best scores are kept.
+  var REEF_BEST = 'minest.live.reefBest.v1';
+  function reefBest(mode, v) {
+    var b = {}; try { b = JSON.parse(localStorage.getItem(REEF_BEST) || '{}') || {}; } catch (e) {}
+    if (v != null && v > (b[mode] || 0)) { b[mode] = v; try { localStorage.setItem(REEF_BEST, JSON.stringify(b)); } catch (e) {} }
+    return b[mode] || 0;
+  }
   function octoReefGame(mode, done) {
     ensureCss();
-    var flap = mode === 'flap', title = flap ? 'Flappy Octo' : 'Octo Dive';
+    var flap = mode === 'flap', title = flap ? 'Flappy Octo' : 'Octo Dive', DUR = flap ? 35 : 30, best0 = reefBest(mode);
     var ov = document.createElement('div'); ov.className = 'mlv-of';
-    ov.innerHTML = '<canvas></canvas><div class="hud"><span data-score>' + (flap ? '⭐ 0' : '🪙 0') + '</span><span data-time>' + (flap ? 'Tap to flap' : '⏱ 25') + '</span><button type="button" data-x>✕</button></div>' +
-      '<div class="panel"><div class="octo-mark">🐙</div><h2>' + title + '</h2><p>' + (flap ? 'Tap or press Space to swim up. Release to drift down through the coral.' : 'Drag Octo through the reef. Collect coins, pearls and chests. Avoid jellyfish and rocks.') + '</p><div class="row"><button class="mlv-btn" data-start>Start ' + (flap ? 'swim' : 'dive') + '</button><button class="mlv-btn alt" data-cancel>Exit</button></div><div class="tiny">' + (flap ? 'Tap, click or Space' : 'Touch and drag, or use ↑ ↓') + '</div></div>';
+    ov.innerHTML = '<canvas></canvas><div class="hud"><span data-score>' + (flap ? '⭐ 0' : '🪙 0') + '</span><span data-time>⏱ ' + DUR + '</span><button type="button" data-x>✕</button></div>' +
+      '<div class="panel"><div class="octo-mark">🐙</div><h2>' + title + '</h2><p>' + (flap
+        ? 'Tap, click or press Space to swim up — let go to sink. Slip through the coral gates and grab the pearls. A bump costs a star, never the run.'
+        : 'Drag Octo (or use the arrow keys) to swim anywhere. Coins +1, pearls +3, chests +5 — catch them in a row for a combo. Jellyfish sting: −2.') +
+      '</p><div class="row"><button class="mlv-btn" data-start>Start ' + (flap ? 'swim' : 'dive') + '</button><button class="mlv-btn alt" data-cancel>Exit</button></div><div class="tiny">' +
+      (flap ? 'Tap, click or Space' : 'Touch and drag, or ← ↑ → ↓') + (best0 ? ' · Best ' + best0 : '') + '</div></div>';
     document.body.appendChild(ov);
-    var cv = ov.querySelector('canvas'), ctx = cv.getContext('2d'), panel = ov.querySelector('.panel'), gamePet = OCTO.el(), W = 0, H = 0, dpr = 1, lastPetAction = 0, lastPetX = 0, lastPetY = 0, petActionAt = 0;
-    var started = false, over = false, raf = 0, score = 0, reward = 0, last = 0, startedAt = 0, next = 0, targetY = 0;
-    var p = { x: 0, y: 0, vy: 0, r: 40 }, things = [];
-    function resize() { dpr = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); p.x = W * .27; if (!started) p.y = targetY = H * .5; }
+    var cv = ov.querySelector('canvas'), ctx = cv.getContext('2d'), panel = ov.querySelector('.panel'), gamePet = OCTO.el(), W = 0, H = 0, dpr = 1;
+    var started = false, armed = !flap, over = false, paused = false, raf = 0, score = 0, reward = 0, last = 0, elapsed = 0, next = 0, combo = 0, shield = 0, shake = 0, petActionAt = 0, lastPetX = 0, lastPetY = 0;
+    var p = { x: 0, y: 0, vy: 0, r: 34 }, target = { x: 0, y: 0 }, things = [], parts = [], pops = [];
+    var TOP = 58, floorY = function () { return H - 70; };
+    // the pet follows the game frame by frame (its own .6 s glide would trail behind)
+    if (gamePet) gamePet.style.transition = 'opacity .2s';
+    function resize() {
+      dpr = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!started) { p.x = target.x = W * .27; p.y = target.y = H * .5; }
+    }
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-    function start() { if (started || over) return; started = true; panel.classList.add('hide'); startedAt = last = performance.now(); next = 0; if (flap) flapUp(); OCTO.act('free_swim', flap ? 'Flap through the reef! 🐙' : 'Dive in! 🐙', 1400); raf = requestAnimationFrame(frame); }
-    function flapUp() { if (!started || over) return; p.vy = -360; beep('good'); }
-    function addDive() { var r = Math.random(), kind = r < .17 ? 'bad' : r < .31 ? 'chest' : r < .52 ? 'pearl' : 'coin'; things.push({ x: W + 40, y: 78 + Math.random() * Math.max(100, H - 210), r: kind === 'bad' ? 24 : 20, kind: kind, hit: false }); }
-    function addPipe() { var gap = Math.max(190, Math.min(250, H * .34)), top = 72 + Math.random() * Math.max(70, H - gap - 185); things.push({ x: W + 25, top: top, gap: gap, w: 60, passed: false, hit: false }); }
-    function hit(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return dx * dx + dy * dy < (a.r + b.r) * (a.r + b.r); }
+    function start() { if (started || over) return; started = true; panel.classList.add('hide'); last = performance.now(); elapsed = 0; next = 0; OCTO.act('free_swim', flap ? 'Tap to swim! 🐙' : 'Dive in! 🐙', 1400); raf = requestAnimationFrame(frame); }
+    function flapUp() { if (!started || over || paused) return; armed = true; p.vy = -330; beep('good'); }
+    function petAct(name, text, cooldown) { var now = performance.now(); if (now - petActionAt < (cooldown || 650)) return; petActionAt = now; OCTO.act(name, text, 900); }
+    function pop(x, y, text, color) { pops.push({ x: x, y: y, t: 0, text: text, color: color || '#fef08a' }); }
+    function burst(x, y, color, n) { for (var i = 0; i < (n || 10); i++) { var a = Math.random() * Math.PI * 2, s = 80 + Math.random() * 170; parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: .45 + Math.random() * .35, color: color }); } }
+    function ouch(lose, text) {
+      if (shield > 0) return false;
+      score = Math.max(0, score - lose); combo = 0; shield = 1.1; shake = .35;
+      pop(p.x, p.y - 40, text, '#fda4af'); burst(p.x, p.y, '#fb7185', 12); beep('bad'); petAct('confused', 'Ouch!', 250);
+      return true;
+    }
+
+    // ---- the reef
     function background(t) {
       var g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#062b52'); g.addColorStop(.36, '#075985'); g.addColorStop(.75, '#0b7180'); g.addColorStop(1, '#123f4a'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       ctx.save(); ctx.globalAlpha = .12; ctx.fillStyle = '#d9f99d'; for (var i = -2; i < 9; i++) { var sx = i * W / 7 + Math.sin(t * .00025 + i) * 28; ctx.beginPath(); ctx.moveTo(sx - 58, 0); ctx.lineTo(sx + 8, 0); ctx.lineTo(sx + 150, H * .72); ctx.lineTo(sx + 72, H * .72); ctx.fill(); } ctx.restore();
-      ctx.globalAlpha = .18; ctx.strokeStyle = '#a5f3fc'; ctx.lineWidth = 2; for (var w = 0; w < 7; w++) { ctx.beginPath(); for (var wx = -20; wx < W + 30; wx += 18) { var wy = 74 + w * 42 + Math.sin(wx * .018 + t * .0012 + w) * 7; if (wx === -20) ctx.moveTo(wx, wy); else ctx.lineTo(wx, wy); } ctx.stroke(); } ctx.globalAlpha = 1;
-      ctx.fillStyle = '#164e63'; ctx.beginPath(); ctx.moveTo(0, H - 62); for (var sx2 = 0; sx2 <= W; sx2 += 90) ctx.quadraticCurveTo(sx2 + 45, H - 82 - (sx2 % 180) / 18, sx2 + 90, H - 62); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
-      ctx.fillStyle = 'rgba(245,202,117,.42)'; for (var j = 0; j < 34; j++) { var sandx = (j * 83 + 23) % W, sandy = H - 25 - (j % 5) * 5; ctx.fillRect(sandx, sandy, 2 + j % 4, 1 + j % 2); }
-      for (var c = 0; c < 10; c++) { var cx = c * 108 + 28, base = H - 55; ctx.strokeStyle = c % 3 === 0 ? '#f472b6' : c % 3 === 1 ? '#fb923c' : '#a78bfa'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(cx, base); ctx.quadraticCurveTo(cx - 20, base - 62, cx + 2, base - 104); ctx.quadraticCurveTo(cx + 18, base - 55, cx + 28, base - 88); ctx.stroke(); }
+      var drift = (t * .03) % 108;   // the reef floor slides by, slower than the play field
+      ctx.fillStyle = '#164e63'; ctx.beginPath(); ctx.moveTo(0, H - 62); for (var sx2 = 0; sx2 <= W + 90; sx2 += 90) ctx.quadraticCurveTo(sx2 + 45, H - 82 - (sx2 % 180) / 18, sx2 + 90, H - 62); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+      ctx.fillStyle = 'rgba(245,202,117,.42)'; for (var j = 0; j < 34; j++) { var sandx = ((j * 83 + 23) - drift + W) % W, sandy = H - 25 - (j % 5) * 5; ctx.fillRect(sandx, sandy, 2 + j % 4, 1 + j % 2); }
+      for (var c = -1; c < W / 108 + 1; c++) { var cx = c * 108 + 28 - drift, base = H - 55; ctx.strokeStyle = (c + 30) % 3 === 0 ? '#f472b6' : (c + 30) % 3 === 1 ? '#fb923c' : '#a78bfa'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, base); ctx.quadraticCurveTo(cx - 20 + Math.sin(t * .0015 + c) * 4, base - 62, cx + 2, base - 104); ctx.quadraticCurveTo(cx + 18, base - 55, cx + 28, base - 88); ctx.stroke(); }
       ctx.fillStyle = 'rgba(255,255,255,.5)'; for (var b = 0; b < 18; b++) { var bx = (b * 137 + t * .018) % (W + 30), by = H - 75 - ((b * 67 + t * .03) % Math.max(150, H - 150)); ctx.beginPath(); ctx.arc(bx, by, 2 + b % 3, 0, Math.PI * 2); ctx.fill(); }
     }
-    function drawThing(o) {
-      if (flap) { ctx.fillStyle = '#ef4444'; ctx.fillRect(o.x, 0, o.w, o.top); ctx.fillRect(o.x, o.top + o.gap, o.w, H - o.top - o.gap - 58); ctx.fillStyle = '#fb7185'; ctx.fillRect(o.x + 7, 0, 12, o.top); ctx.fillRect(o.x + 7, o.top + o.gap, 12, H - o.top - o.gap - 58); return; }
-      ctx.save(); ctx.translate(o.x, o.y);
-      if (o.kind === 'coin') { ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.ellipse(0, 0, 15, 20, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#92400e'; ctx.font = 'bold 16px system-ui'; ctx.textAlign = 'center'; ctx.fillText('¢', 0, 6); }
-      else if (o.kind === 'pearl') { ctx.fillStyle = '#f5d0fe'; ctx.shadowColor = '#f0abfc'; ctx.shadowBlur = 14; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill(); }
-      else if (o.kind === 'chest') { ctx.fillStyle = '#a16207'; ctx.fillRect(-22, -15, 44, 30); ctx.fillStyle = '#fbbf24'; ctx.fillRect(-19, -11, 38, 8); ctx.fillStyle = '#fde68a'; ctx.fillRect(-4, -2, 8, 12); }
-      else { ctx.fillStyle = '#f0abfc'; ctx.shadowColor = '#e879f9'; ctx.shadowBlur = 20; ctx.beginPath(); ctx.arc(0, -7, 20, Math.PI, 0); ctx.lineTo(20, 13); ctx.lineTo(10, 7); ctx.lineTo(0, 16); ctx.lineTo(-10, 7); ctx.lineTo(-20, 13); ctx.closePath(); ctx.fill(); }
+    // a coral pillar from y0 to y1 with its rounded cap at the gap side
+    function coral(x, w, y0, y1, capDown, hot) {
+      if (y1 - y0 < 4) return;
+      var g = ctx.createLinearGradient(x, 0, x + w, 0); g.addColorStop(0, hot ? '#fda4af' : '#f472b6'); g.addColorStop(.55, hot ? '#fb7185' : '#ec4899'); g.addColorStop(1, '#9d174d');
+      ctx.save(); ctx.fillStyle = g; ctx.beginPath();
+      var r = w / 2;
+      if (capDown) { ctx.moveTo(x, y0); ctx.lineTo(x, y1 - r); ctx.arc(x + r, y1 - r, r, Math.PI, 0, true); ctx.lineTo(x + w, y0); }
+      else { ctx.moveTo(x, y1); ctx.lineTo(x, y0 + r); ctx.arc(x + r, y0 + r, r, Math.PI, 0); ctx.lineTo(x + w, y1); }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(x + w * .18, y0 + (capDown ? 0 : r), w * .14, Math.max(0, y1 - y0 - r));
+      ctx.fillStyle = 'rgba(131,24,67,.45)'; for (var yy = y0 + 14; yy < y1 - 10; yy += 26) { ctx.beginPath(); ctx.arc(x + w * .62 + ((yy / 26) % 2) * 6, yy, 4, 0, Math.PI * 2); ctx.fill(); }
       ctx.restore();
     }
-    function petAct(name, text, cooldown) { var now = performance.now(); if (now - petActionAt < (cooldown || 650)) return; petActionAt = now; OCTO.act(name, text, 900); }
-    function drawPlayer() {
+    function drawThing(o, t) {
+      if (o.gate) {
+        coral(o.x, o.w, -10, o.top, true, o.hitAt && t - o.hitAt < 300); coral(o.x, o.w, o.top + o.gap, floorY() + 12, false, o.hitAt && t - o.hitAt < 300);
+        if (!o.pearl) return;
+        o = { x: o.x + o.w / 2, y: o.top + o.gap / 2 + Math.sin(t * .004 + o.x * .01) * 6, kind: 'pearl', inGate: true };
+      }
+      ctx.save(); ctx.translate(o.x, o.y);
+      if (o.kind === 'coin') {
+        var sx = Math.abs(Math.cos(t * .006 + o.ph)); ctx.scale(Math.max(.25, sx), 1);
+        var cg = ctx.createRadialGradient(-5, -6, 2, 0, 0, 18); cg.addColorStop(0, '#fef9c3'); cg.addColorStop(.5, '#facc15'); cg.addColorStop(1, '#a16207');
+        ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, 17, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#854d0e'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#854d0e'; ctx.font = 'bold 16px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('★', 0, 1);
+      } else if (o.kind === 'pearl') {
+        if (!o.inGate) { ctx.fillStyle = '#f9a8d4'; ctx.beginPath(); ctx.moveTo(-22, 8); for (var k = 0; k <= 6; k++) { var a = Math.PI + k * Math.PI / 6; ctx.lineTo(Math.cos(a) * 24, 8 + Math.sin(a) * 20); } ctx.closePath(); ctx.fill(); ctx.strokeStyle = 'rgba(157,23,77,.5)'; ctx.lineWidth = 1.5; for (var k2 = 1; k2 < 6; k2++) { var a2 = Math.PI + k2 * Math.PI / 6; ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(Math.cos(a2) * 22, 8 + Math.sin(a2) * 18); ctx.stroke(); } }
+        var pg = ctx.createRadialGradient(-4, -6, 1, 0, -2, 13); pg.addColorStop(0, '#ffffff'); pg.addColorStop(.6, '#fae8ff'); pg.addColorStop(1, '#d8b4fe');
+        ctx.shadowColor = '#f0abfc'; ctx.shadowBlur = 16; ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(0, -2, 11, 0, Math.PI * 2); ctx.fill();
+      } else if (o.kind === 'chest') {
+        ctx.shadowColor = '#fde047'; ctx.shadowBlur = 18 + Math.sin(t * .008) * 8;
+        ctx.fillStyle = '#92400e'; ctx.fillRect(-23, -6, 46, 24); ctx.fillStyle = '#b45309'; ctx.beginPath(); ctx.moveTo(-23, -6); ctx.quadraticCurveTo(0, -26, 23, -6); ctx.fill();
+        ctx.shadowBlur = 0; ctx.fillStyle = '#fbbf24'; ctx.fillRect(-23, -3, 46, 4); ctx.fillRect(-14, -16, 4, 34); ctx.fillRect(10, -16, 4, 34); ctx.fillStyle = '#fde68a'; ctx.fillRect(-4, 2, 8, 9);
+      } else {   // jellyfish
+        var tg = ctx.createRadialGradient(0, -10, 2, 0, -4, 24); tg.addColorStop(0, 'rgba(250,232,255,.95)'); tg.addColorStop(1, 'rgba(192,132,252,.75)');
+        ctx.shadowColor = '#e879f9'; ctx.shadowBlur = 18; ctx.fillStyle = tg; ctx.beginPath(); ctx.arc(0, -4, 22, Math.PI, 0); ctx.quadraticCurveTo(22, 6, 14, 6); ctx.lineTo(-14, 6); ctx.quadraticCurveTo(-22, 6, -22, -4); ctx.fill();
+        ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(233,213,255,.85)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+        for (var tt = -2; tt <= 2; tt++) { ctx.beginPath(); ctx.moveTo(tt * 7, 6); for (var s = 1; s <= 4; s++) ctx.lineTo(tt * 7 + Math.sin(t * .008 + s + tt) * 4, 6 + s * 7); ctx.stroke(); }
+        ctx.fillStyle = '#581c87'; ctx.beginPath(); ctx.arc(-7, -6, 2.2, 0, Math.PI * 2); ctx.arc(7, -6, 2.2, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+    function drawPlayer(t) {
+      var blink = shield > 0 && Math.floor(t / 90) % 2 === 0;
       if (gamePet) {
         var pw = gamePet.offsetWidth || 112, ph = gamePet.offsetHeight || 112;
         var dx = p.x - lastPetX, dy = p.y - lastPetY; lastPetX = p.x; lastPetY = p.y;
-        gamePet.style.left = Math.max(0, p.x - pw / 2) + 'px'; gamePet.style.top = Math.max(44, p.y - ph / 2) + 'px'; gamePet.style.zIndex = '2147483450'; gamePet.style.pointerEvents = 'none'; gamePet.style.opacity = '1';
-        gamePet.style.setProperty('--game-drift', Math.max(-5, Math.min(5, dx * .035)) + 'deg');
-        if (Math.abs(dx) + Math.abs(dy) > 2 && performance.now() - petActionAt > 1050) petAct(Math.abs(dy) > Math.abs(dx) && dy > 2 ? 'dive_down' : 'free_swim', null, 1050);
+        gamePet.style.left = Math.max(0, p.x - pw / 2) + 'px'; gamePet.style.top = Math.max(44, p.y - ph / 2) + 'px'; gamePet.style.zIndex = '2147483450'; gamePet.style.pointerEvents = 'none'; gamePet.style.opacity = blink ? '.4' : '1';
+        gamePet.style.setProperty('--game-drift', (flap ? clamp(p.vy / 30, -14, 18) : clamp(dx * .5, -8, 8)) + 'deg');
+        if (Math.abs(dx) + Math.abs(dy) > 2 && performance.now() - petActionAt > 1050) petAct(dy > 2 && Math.abs(dy) > Math.abs(dx) ? 'dive_down' : 'free_swim', null, 1050);
         return;
       }
-      ctx.save(); ctx.font = (flap ? 50 : Math.max(38, p.r * 2.2)) + 'px Apple Color Emoji, Segoe UI Emoji, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.translate(p.x, p.y); if (flap) ctx.rotate(clamp(p.vy / 900, -.35, .5)); ctx.fillText('🐙', 0, 0); ctx.restore();
+      if (blink) return;
+      ctx.save(); ctx.font = '52px Apple Color Emoji, Segoe UI Emoji, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.translate(p.x, p.y); if (flap) ctx.rotate(clamp(p.vy / 900, -.35, .5)); ctx.fillText('🐙', 0, 0); ctx.restore();
     }
-    function end(quit) {
-      if (over) return; over = true; cancelAnimationFrame(raf); window.removeEventListener('keydown', key); window.removeEventListener('resize', resize);
-      if (quit) { ov.remove(); OCTO.place('stage'); done(0); return; }
-      reward = Math.max(1, reward); panel.classList.remove('hide'); panel.innerHTML = '<div class="octo-mark">🐙</div><h2>' + (flap ? (score >= 8 ? 'Great swim!' : 'Keep swimming!') : 'Dive complete!') + '</h2><div class="score-big">' + score + '</div><p>You earned ' + reward + ' 💎 from the reef.</p><div class="row"><button class="mlv-btn" data-collect>Collect +' + reward + ' 💎</button><button class="mlv-btn alt" data-close>Exit</button></div>'; OCTO.cheer(score >= 8); panel.querySelector('[data-collect]').onclick = function () { ov.remove(); OCTO.place('stage'); done(reward); }; panel.querySelector('[data-close]').onclick = function () { ov.remove(); OCTO.place('stage'); done(0); };
+    function drawFx(dt) {
+      parts.forEach(function (q) { q.t += dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 240 * dt; ctx.globalAlpha = Math.max(0, 1 - q.t / q.life); ctx.fillStyle = q.color; ctx.beginPath(); ctx.arc(q.x, q.y, 3.2, 0, Math.PI * 2); ctx.fill(); });
+      parts = parts.filter(function (q) { return q.t < q.life; });
+      ctx.textAlign = 'center'; ctx.font = '900 22px system-ui, -apple-system, sans-serif';
+      pops.forEach(function (q) { q.t += dt; ctx.globalAlpha = Math.max(0, 1 - q.t / .9); ctx.fillStyle = q.color; ctx.strokeStyle = 'rgba(2,6,23,.55)'; ctx.lineWidth = 4; var y = q.y - q.t * 60; ctx.strokeText(q.text, q.x, y); ctx.fillText(q.text, q.x, y); });
+      pops = pops.filter(function (q) { return q.t < .9; }); ctx.globalAlpha = 1;
     }
+
+    // ---- Flappy Octo
+    function addGate() {
+      var gap = clamp(H * .38 - elapsed * 1.6, 180, 270), lo = TOP + 40, hi = floorY() - gap - 40;
+      things.push({ gate: true, x: W + 30, w: 66, gap: gap, top: lo + Math.random() * Math.max(10, hi - lo), passed: false, pearl: true, hitAt: 0 });
+    }
+    function stepFlap(dt, now) {
+      if (!armed) { p.y = H * .5 + Math.sin(now * .004) * 10; p.vy = 0; return; }   // hover until the first tap; the reef waits too
+      var speed = 165 + elapsed * 2.4, lastGate = things[things.length - 1];
+      if (!lastGate || lastGate.x < W - clamp(330 - elapsed * 2, 250, 330)) addGate();
+      p.vy = Math.min(460, p.vy + 780 * dt); p.y += p.vy * dt;
+      if (p.y < TOP + p.r) { p.y = TOP + p.r; p.vy = Math.max(p.vy, 40); }                    // the surface: a soft ceiling
+      if (p.y > floorY() - p.r) { p.y = floorY() - p.r; p.vy = -300; ouch(1, '−1'); }          // the reef floor: bounce
+      things.forEach(function (o) {
+        o.x -= speed * dt; drawThing(o, now);
+        if (!o.passed && o.x + o.w < p.x - p.r) { o.passed = true; score++; reward++; combo++; pop(p.x, p.y - 44, '+1', '#fef08a'); beep('good'); petAct('excited', combo >= 5 ? combo + ' in a row!' : null, 400); }
+        var hx = p.x + p.r * .78 > o.x && p.x - p.r * .78 < o.x + o.w, hy = p.y - p.r * .78 < o.top || p.y + p.r * .78 > o.top + o.gap;
+        if (hx && hy && ouch(1, '−1')) { o.hitAt = now; p.vy = p.y < o.top + o.gap / 2 ? 140 : -220; }
+        if (o.pearl && Math.abs(p.x - (o.x + o.w / 2)) < p.r + 10 && Math.abs(p.y - (o.top + o.gap / 2)) < p.r + 10) { o.pearl = false; score++; reward++; pop(p.x, p.y - 44, '🫧 +1', '#f5d0fe'); burst(o.x + o.w / 2, o.top + o.gap / 2, '#f5d0fe', 10); beep('buy'); }
+      });
+      things = things.filter(function (o) { return o.x > -o.w - 20; });
+    }
+
+    // ---- Octo Dive
+    function addDive() {
+      var r = Math.random(), jelly = .2 + Math.min(.12, elapsed * .004), kind = r < jelly ? 'jelly' : r < jelly + .09 ? 'chest' : r < jelly + .31 ? 'pearl' : 'coin';
+      var y = TOP + 30 + Math.random() * Math.max(100, floorY() - TOP - 80);
+      things.push({ x: W + 40, y: y, y0: y, r: kind === 'jelly' ? 24 : kind === 'chest' ? 24 : 20, kind: kind, ph: Math.random() * 6, amp: kind === 'jelly' ? 34 : 10 });
+    }
+    function stepDive(dt, now) {
+      if (now > next) { addDive(); next = now + Math.max(360, 820 - elapsed * 14); }
+      p.x += (target.x - p.x) * Math.min(1, dt * 7); p.y += (target.y - p.y) * Math.min(1, dt * 7);
+      p.x = clamp(p.x, 60, W * .78); p.y = clamp(p.y, TOP + p.r, floorY() - p.r);
+      var speed = 150 + elapsed * 5;
+      things.forEach(function (o) {
+        o.x -= speed * dt * (o.kind === 'jelly' ? .8 : 1); o.y = o.y0 + Math.sin(now * .0024 + o.ph) * o.amp; drawThing(o, now);
+        var dx = p.x - o.x, dy = p.y - o.y; if (o.hit || dx * dx + dy * dy > (p.r + o.r) * (p.r + o.r)) return;
+        if (o.kind === 'jelly') { if (ouch(2, '−2')) o.hit = true; return; }
+        o.hit = true; combo++;
+        var mult = Math.min(3, 1 + Math.floor(combo / 5)), base = o.kind === 'chest' ? 5 : o.kind === 'pearl' ? 3 : 1;
+        score += base * mult; reward += o.kind === 'chest' ? 4 : o.kind === 'pearl' ? 2 : 1;
+        pop(o.x, o.y - 26, '+' + base * mult + (mult > 1 ? ' ×' + mult : ''), o.kind === 'chest' ? '#fde047' : o.kind === 'pearl' ? '#f5d0fe' : '#fef08a');
+        burst(o.x, o.y, o.kind === 'chest' ? '#fde047' : o.kind === 'pearl' ? '#f5d0fe' : '#facc15', o.kind === 'chest' ? 18 : 9);
+        beep(o.kind === 'chest' ? 'win' : 'good');
+        if (o.kind === 'chest') petAct('excited', 'Treasure!', 300); else if (combo % 5 === 0) petAct('excited', 'Combo ×' + mult + '!', 300); else petAct('hop', null, 500);
+      });
+      things = things.filter(function (o) { return !o.hit && o.x > -60; });
+    }
+
     function frame(now) {
-      if (over) return; var dt = Math.min(.04, (now - last) / 1000), elapsed = (now - startedAt) / 1000; last = now; background(now);
-      if (flap) {
-        if (now > next) { addPipe(); next = now + 1450; } p.vy += 930 * dt; p.y += p.vy * dt;
-        things.forEach(function (o) { o.x -= 175 * dt; if (!o.passed && o.x + o.w < p.x) { o.passed = true; score++; reward++; beep('good'); petAct('excited', '+1!', 300); } drawThing(o); var hx = p.x + p.r * .72 > o.x && p.x - p.r * .72 < o.x + o.w, hy = p.y - p.r * .72 < o.top || p.y + p.r * .72 > o.top + o.gap; if (!o.hit && hx && hy) { o.hit = true; score = Math.max(0, score - 1); p.vy = 80; petAct('confused', 'Careful!', 250); beep('bad'); } });
-        things = things.filter(function (o) { return !o.hit && o.x > -90; }); drawPlayer(); ov.querySelector('[data-score]').textContent = '⭐ ' + score; ov.querySelector('[data-time]').textContent = '⏱ ' + Math.max(0, Math.ceil(30 - elapsed)); if (p.y < 45 || p.y > H - 45 || elapsed >= 30) return end(false);
-      } else {
-        if (now > next) { addDive(); next = now + Math.max(420, 900 - elapsed * 12); } p.y += (targetY - p.y) * Math.min(1, dt * 7); p.y = clamp(p.y, 65, H - 100);
-        things.forEach(function (o) { o.x -= (170 + elapsed * 4) * dt; if (!o.hit && hit(p, o)) { o.hit = true; if (o.kind === 'bad') { score = Math.max(0, score - 2); p.y = clamp(p.y + 30, 65, H - 100); petAct('confused', 'Watch out!', 250); beep('bad'); } else { score += o.kind === 'chest' ? 5 : o.kind === 'pearl' ? 3 : 1; reward += o.kind === 'chest' ? 5 : 1; beep('good'); petAct(o.kind === 'chest' ? 'excited' : 'hop', o.kind === 'chest' ? 'Treasure!' : '+' + score, 250); } } drawThing(o); }); things = things.filter(function (o) { return !o.hit && o.x > -60; }); drawPlayer(); ov.querySelector('[data-score]').textContent = '🪙 ' + score; ov.querySelector('[data-time]').textContent = '⏱ ' + Math.max(0, Math.ceil(25 - elapsed)); if (elapsed >= 25) return end(false);
-      }
+      if (over) return;
+      if (paused) { last = now; raf = requestAnimationFrame(frame); return; }
+      var dt = Math.min(.04, (now - last) / 1000); last = now; elapsed += dt; shield = Math.max(0, shield - dt); shake = Math.max(0, shake - dt);
+      ctx.save(); if (shake > 0) ctx.translate((Math.random() - .5) * 12 * shake / .35, (Math.random() - .5) * 12 * shake / .35);
+      background(now);
+      if (flap) stepFlap(dt, now); else stepDive(dt, now);
+      drawFx(dt); ctx.restore(); drawPlayer(now);
+      ov.querySelector('[data-score]').textContent = (flap ? '⭐ ' : '🪙 ') + score + (combo >= 5 && !flap ? ' · ×' + Math.min(3, 1 + Math.floor(combo / 5)) : '');
+      ov.querySelector('[data-time]').textContent = flap && !armed ? 'Tap to swim' : '⏱ ' + Math.max(0, Math.ceil(DUR - elapsed));
+      if (flap && !armed) elapsed = Math.max(0, elapsed - dt);   // the clock waits for the first tap
+      if (elapsed >= DUR) return end(false);
       raf = requestAnimationFrame(frame);
     }
-    function key(e) { if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); if (!started) start(); if (flap) { flapUp(); if (Date.now() - lastPetAction > 260) { lastPetAction = Date.now(); OCTO.act('bounce'); } } else { targetY = clamp(targetY + (e.key === 'ArrowDown' ? 80 : -80), 65, H - 100); if (Date.now() - lastPetAction > 500) { lastPetAction = Date.now(); OCTO.act(e.key === 'ArrowDown' ? 'dive_down' : 'sprint'); } } } }
+    function cleanup() { window.removeEventListener('keydown', key); window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', vis); if (gamePet) gamePet.style.opacity = ''; }
+    function end(quit) {
+      if (over) return; over = true; cancelAnimationFrame(raf); cleanup();
+      if (quit) { ov.remove(); OCTO.place('stage'); done(0); return; }
+      reward = clamp(reward, 1, 30); var isBest = score > best0; reefBest(mode, score);
+      OCTO.place('show');   // Octo glides back from where it swam, below the result
+      panel.classList.remove('hide');
+      panel.innerHTML = '<div class="octo-mark">🐙</div><h2>' + (isBest ? 'New best!' : flap ? (score >= 10 ? 'Great swim!' : 'Keep swimming!') : (score >= 40 ? 'Treasure hunter!' : 'Dive complete!')) + '</h2><div class="score-big">' + score + '</div>' +
+        '<p>' + (best0 && !isBest ? 'Best ' + best0 + ' · ' : '') + 'You earned ' + reward + ' 💎 from the reef.</p><div class="row"><button class="mlv-btn" data-collect>Collect +' + reward + ' 💎</button><button class="mlv-btn alt" data-again>Play again</button><button class="mlv-btn alt" data-close>Exit</button></div>';
+      OCTO.cheer(isBest || score >= (flap ? 10 : 40));
+      panel.querySelector('[data-collect]').onclick = function () { ov.remove(); OCTO.place('stage'); done(reward); };
+      panel.querySelector('[data-again]').onclick = function () { ov.remove(); done(reward); octoReefGame(mode, done); };
+      panel.querySelector('[data-close]').onclick = function () { ov.remove(); OCTO.place('stage'); done(0); };
+    }
+    function key(e) {
+      if (e.key === 'Escape') { e.preventDefault(); end(true); return; }
+      if (e.key !== ' ' && e.key.indexOf('Arrow') !== 0) return;
+      e.preventDefault(); if (!started) start();
+      if (flap) { if (e.key === ' ' || e.key === 'ArrowUp') flapUp(); return; }
+      var s = 80;
+      if (e.key === 'ArrowUp') target.y -= s; else if (e.key === 'ArrowDown') target.y += s; else if (e.key === 'ArrowLeft') target.x -= s; else if (e.key === 'ArrowRight') target.x += s;
+      target.x = clamp(target.x, 60, W * .78); target.y = clamp(target.y, TOP + p.r, floorY() - p.r);
+    }
+    function vis() { paused = document.hidden; }
     ov.querySelector('[data-start]').onclick = start; ov.querySelector('[data-cancel]').onclick = function () { end(true); }; ov.querySelector('[data-x]').onclick = function () { end(true); };
-    cv.addEventListener('pointerdown', function (e) { if (!started) start(); if (flap) { flapUp(); OCTO.act('bounce'); } else { targetY = e.clientY; OCTO.act('sprint'); } }); cv.addEventListener('pointermove', function (e) { if (!flap && (e.buttons || e.pointerType === 'touch')) { targetY = e.clientY; if (Date.now() - lastPetAction > 550) { lastPetAction = Date.now(); OCTO.act('free_swim'); } } });
-    window.addEventListener('keydown', key); window.addEventListener('resize', resize); resize(); OCTO.place('show');
+    cv.addEventListener('pointerdown', function (e) { if (!started) start(); if (flap) { flapUp(); OCTO.act('bounce'); } else { target.x = e.clientX; target.y = e.clientY; } });
+    cv.addEventListener('pointermove', function (e) { if (!flap && (e.buttons || e.pointerType === 'touch')) { target.x = e.clientX; target.y = e.clientY; } });
+    window.addEventListener('keydown', key); window.addEventListener('resize', resize); document.addEventListener('visibilitychange', vis); resize(); OCTO.place('show');
   }
   function octoDive(done) { octoReefGame('dive', done); }
   function octoFlap(done) { octoReefGame('flap', done); }
