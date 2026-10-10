@@ -13,6 +13,7 @@
       '.mlv h2,.mlv h3,.mlv h4,.mlv-brand,.mlv-code,.mlv-cash,.mlv-stat strong,.mlv-res h2,.mlv-of .panel h2,.mlv-of .score-big,.mlv-pop,.mlv-open .tag{font-family:' + TITLE + ';font-weight:400!important;letter-spacing:.02em}',
       '.mlv-top{background:' + DEEP + ';border-bottom:0;box-shadow:0 4px 0 rgba(0,0,0,.18);backdrop-filter:none;-webkit-backdrop-filter:none}',
       '.mlv-brand{font-size:22px;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.25)}.mlv-brand i{background:' + GOLD + ';border-radius:14px;width:40px;height:40px;font-size:22px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2);transform:rotate(-6deg)}',
+      '.mlv-ar-ic .wi{width:104px;height:104px;display:block;margin:0 auto 6px;animation:mlvBob 2.2s ease-in-out infinite;filter:drop-shadow(0 6px 0 rgba(0,0,0,.12))}',
       '.mlv-brand i .wi{width:40px;height:40px;display:block;filter:drop-shadow(0 2px 0 rgba(0,0,0,.18))}.mlv-brand i{overflow:visible;font-size:0}',
       '.mlv-x{background:#fff;color:' + PURP + ';border:0;border-radius:12px;font-family:' + TITLE + ';font-weight:400;box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)}',
       '.mlv h2{font-size:26px}.mlv h3{font-size:19px}',
