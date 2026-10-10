@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 45.7 · Dock</title>
+    <title>Minest iPhone 45.8 · Activity full screen</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -6664,6 +6664,13 @@ html body.clear-mode .clear-active-column .kanban-cards-scroll > .card-gap-activ
   @media (max-width: 680px) { .iphone-topbar { padding-top:8px !important; padding-bottom:8px !important; } .minest-ai-modal { width:100vw; border-radius:0; } }
 </style>
 <script>try { window.__mnHiddenLabels = JSON.parse(localStorage.getItem('minest.hiddenLabels') || '{}') || {}; } catch (e) { window.__mnHiddenLabels = {}; }</script>
+<style id="mn-458-css">
+/* 45.8 The Activity sheet (Apple Fitness black) reaches the top of the phone: the status-bar strip above it is
+   black too, instead of the wallpaper showing through. */
+@media (max-width:768px){
+  .minest-activity-modal-backdrop{background:linear-gradient(#000,#000) top / 100% calc(var(--sat, 0px) + 2px) no-repeat,rgba(0,0,0,.55)!important}
+}
+</style>
 </head>
   <body>
     <div id="root"></div>
@@ -21416,7 +21423,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "45.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "45.8" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -50430,12 +50437,23 @@ var Ve = (function(_Component) {
       try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic('light'); } catch (err) {}
       o.click(); setTimeout(refresh, 120);
       if (window.MinestChrome) MinestChrome.show();
+      // 45.8: it opened a full-screen sheet (Activity, Appearance, Settings, Arcade…): the bars step aside
+      setTimeout(function () { if (fullSheet() && window.MinestChrome) MinestChrome.hide(); }, 260);
     });
     els[it.k] = b; dock.appendChild(b);
   });
   // using the Dock keeps the bars up
   dock.addEventListener('pointerdown', function () { if (window.MinestChrome) MinestChrome.show(); });
 
+  function fullSheet() {
+    var els2 = document.elementsFromPoint ? document.elementsFromPoint(innerWidth / 2, innerHeight / 2) : [];
+    for (var i = 0; i < els2.length; i++) {
+      var e = els2[i]; if (e === document.body || e === root || e.closest('main, .mn-bdock, header')) continue;
+      var r = e.getBoundingClientRect();
+      if (getComputedStyle(e).position === 'fixed' && r.width >= innerWidth * .9 && r.height >= innerHeight * .9) return e;
+    }
+    return null;
+  }
   function glyph(o) {
     var s = o.querySelector('.mn-devswitch i.on svg') || o.querySelector('svg') || o.querySelector('img');   // signed in: the account picture
     if (!s) return '';
