@@ -3838,6 +3838,12 @@ html.fbfx-neon-ignite .board-swimlane-scroll article.kanban-card{ animation: fbf
 .mlk-top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(11,15,28,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08);color:#fff;font:700 15px Inter,system-ui,sans-serif}
 .mlk-top b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mlk-sp{flex:1}
 .mlk-btn{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;border-radius:11px;padding:8px 13px;font:700 13px Inter,system-ui,sans-serif;cursor:pointer}.mlk-btn.on{background:rgba(125,211,252,.22);border-color:rgba(125,211,252,.6)}
+.mlk-bgpanel{position:fixed;top:62px;right:14px;z-index:2147483000;width:min(420px,calc(100vw - 28px));max-height:calc(100vh - 90px);overflow:auto;padding:12px;border-radius:18px;background:rgba(11,15,28,.88);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 44px rgba(0,0,0,.5)}
+.mlk-bgpanel-h{color:#c7cdf5;font:800 12px Inter,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;margin:2px 4px 10px}
+.mlk-bg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.mlk-bg-sw{position:relative;height:72px;border-radius:14px;border:2px solid rgba(255,255,255,.12);cursor:pointer;overflow:hidden;display:flex;align-items:flex-end;padding:0}
+.mlk-bg-sw span{width:100%;padding:4px 7px;background:linear-gradient(transparent,rgba(0,0,0,.6));color:#fff;font:700 11px Inter,system-ui,sans-serif;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mlk-bg-sw.on{border-color:#86efac;box-shadow:0 0 0 2px rgba(134,239,172,.35)}
 .mlk-load{min-height:100vh;display:grid;place-items:center;color:#c7cdf5;font:600 16px Inter,system-ui,sans-serif;background:#0b0f1c}
 /* only flip, read aloud and record — the board's own tools stay closed */
 .mlk .cf-study-open,.mlk [title="Deconstruct & Practice with AI Tutor"],.mlk [title="Mark as Complete"],.mlk [title^="Tap to increase mastery"],.mlk [aria-label="Pronunciation: record each card"],.mlk [title="Create new card"],.mlk .cf-study-speak,.mlk .cf-study-rec,.mlk .coverflow-card-item:has(.border-dashed){display:none!important}
@@ -18831,6 +18837,8 @@ var Oe = function(props) {
     if (!g) return;
     if (g.holdTimer) { clearTimeout(g.holdTimer); g.holdTimer = null; }
     if (g.moved || g.holdFired || g.double) { return; }
+    // 31.6: no read-aloud here (the students' study room) — one tap turns the card over
+    if (window.__mnNoVoice) { g.lastTap = 0; if (g.singleTimer) { clearTimeout(g.singleTimer); g.singleTimer = null; } coverHaptic('light'); toggleCardFlip(card.id, e); return; }
     g.lastTap = Date.now();
     if (g.singleTimer) clearTimeout(g.singleTimer);
     g.singleTimer = setTimeout(function() {
@@ -19070,6 +19078,12 @@ var Oe = function(props) {
     };
     window.addEventListener('minest:fx-reset', reset);
     return function() { window.removeEventListener('minest:fx-reset', reset); };
+  }, []);
+  // 31.6: the study room's Card FX button sets the mode here (liq / smash / none)
+  (0, _.useEffect)(function() {
+    var set = function(e) { var m = e && e.detail; setCardMode(m === 'liq' || m === 'smash' ? m : 'none'); };
+    window.addEventListener('minest:cover-cardfx', set);
+    return function() { window.removeEventListener('minest:cover-cardfx', set); };
   }, []);
   cardModeRef.current = cardMode;
   var liquidBridgeRef = (0, _.useRef)({ activeId: null, tilt: { x: 0, y: 0 } });
@@ -35259,9 +35273,40 @@ var CoverKiosk = function() {
   var bs = (0, _.useState)(null), board = bs[0], setBoard = bs[1];
   var es = (0, _.useState)(''), err = es[0], setErr = es[1];
   var gs = (0, _.useState)(false), glass = gs[0], setGlass = gs[1];
+  var fs = (0, _.useState)('none'), cfx = fs[0], setCfx = fs[1];
+  // 31.6: the student picks the room's background (kept in this browser)
+  var BG_KEY = 'minest.live.coverBg';
+  var bgList = function() {
+    var out = [{ id: 'night', name: 'Night', css: 'radial-gradient(1000px 700px at 20% -10%, rgba(124,92,255,.28), transparent 60%), #0b0f1c' }];
+    if (typeof CURATED_BOARD_GRADIENTS !== 'undefined') CURATED_BOARD_GRADIENTS.forEach(function(g) { out.push({ id: 'g-' + g.id, name: g.name, css: g.value }); });
+    if (typeof CURATED_COVERS !== 'undefined') CURATED_COVERS.forEach(function(c) { out.push({ id: 'p-' + c.id, name: c.name, photo: true, css: 'url("' + c.url + '") center / cover no-repeat' }); });
+    return out;
+  };
+  var bgState = (0, _.useState)(function() { try { return localStorage.getItem(BG_KEY) || 'night'; } catch (e) { return 'night'; } }), bgId = bgState[0], setBgId = bgState[1];
+  var bgOpenState = (0, _.useState)(false), bgOpen = bgOpenState[0], setBgOpen = bgOpenState[1];
+  (0, _.useEffect)(function() {
+    var ch = bgList().filter(function(c) { return c.id === bgId; })[0] || bgList()[0];
+    // photos get a soft dark veil so the cards stay easy to read
+    var css = ch.photo ? 'linear-gradient(rgba(6,10,22,.38), rgba(6,10,22,.38)), ' + ch.css : ch.css;
+    document.body.style.setProperty('background', css + ', #0b0f1c', 'important');
+    document.body.style.setProperty('background-attachment', 'fixed', 'important');
+    try { localStorage.setItem(BG_KEY, bgId); } catch (e) {}
+  }, [bgId]);
   var noop = function() {};
+  var CFX_NEXT = { none: 'liq', liq: 'smash', smash: 'none' }, CFX_LABEL = { none: '✨ Card FX', liq: '💧 Liquid', smash: '💥 Smash' };
+  var cycleCfx = function() {
+    var m = CFX_NEXT[cfx] || 'none'; setCfx(m);
+    document.documentElement.classList.toggle('fb-cardfx-on', m !== 'none');
+    try { window.dispatchEvent(new CustomEvent('minest:cover-cardfx', { detail: m })); } catch (e) {}
+  };
+  (0, _.useEffect)(function() {
+    var off = function() { setCfx('none'); document.documentElement.classList.remove('fb-cardfx-on'); };
+    window.addEventListener('minest:fx-reset', off);
+    return function() { window.removeEventListener('minest:fx-reset', off); };
+  }, []);
   // thick glass is for looking only (no tap-to-read / flip / record), so the study room starts without it
-  (0, _.useEffect)(function() { var t = setTimeout(function() { if (window.FBGlass && window.FBGlass.on) window.FBGlass.setOn(false); }, 60); return function() { clearTimeout(t); }; }, []);
+  // (the glass module may load after this: try again for a few seconds — with glass on a tap only looks)
+  (0, _.useEffect)(function() { var ts = [60, 400, 1200, 2500, 4000].map(function(ms) { return setTimeout(function() { if (window.FBGlass && window.FBGlass.on) { window.FBGlass.setOn(false); setGlass(false); } }, ms); }); return function() { ts.forEach(clearTimeout); }; }, []);
   (0, _.useEffect)(function() {
     fetch('https://minest-33761-default-rtdb.firebaseio.com/minest-live/' + code + '/host.json', { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(h) {
       if (!h || !h.board) throw new Error('no game');
@@ -35283,8 +35328,17 @@ var CoverKiosk = function() {
       (0, P.jsx)('b', { children: '📖 ' + board.title }),
       (0, P.jsx)('span', { className: 'mlk-sp' }),
       (0, P.jsx)('button', { type: 'button', className: 'mlk-btn' + (glass ? ' on' : ''), title: 'Thick glass (for looking — tap, flip and record pause while it is on)', onClick: function() { if (window.FBGlass) { window.FBGlass.toggle(); setGlass(!!window.FBGlass.on); } }, children: '🧊 Glass' }),
+      (0, P.jsx)('button', { type: 'button', className: 'mlk-btn' + (bgOpen ? ' on' : ''), title: 'Change the background', onClick: function() { setBgOpen(!bgOpen); }, children: '🎨 Look' }),
+      (0, P.jsx)('button', { type: 'button', className: 'mlk-btn mlk-cardfx' + (cfx !== 'none' ? ' on' : ''), title: 'Card FX: liquid glass → smash → off (tap the card to play with it)', onClick: cycleCfx, children: CFX_LABEL[cfx] || '✨ Card FX' }),
       (0, P.jsx)('button', { type: 'button', className: 'mlk-btn', title: 'Back to the game', onClick: close, children: '✕' })
     ] }),
+    bgOpen ? (0, P.jsxs)('div', { className: 'mlk-bgpanel', onPointerDown: function(e) { e.stopPropagation(); }, onTouchStart: function(e) { e.stopPropagation(); }, onWheel: function(e) { e.stopPropagation(); }, children: [
+      (0, P.jsx)('div', { className: 'mlk-bgpanel-h', children: 'Background' }),
+      (0, P.jsx)('div', { className: 'mlk-bg-grid', children: bgList().map(function(c) {
+        return (0, P.jsx)('button', { key: c.id, type: 'button', className: 'mlk-bg-sw' + (c.id === bgId ? ' on' : ''), title: c.name, style: { background: c.css }, onClick: function() { setBgId(c.id); },
+          children: (0, P.jsx)('span', { children: c.name }) });
+      }) })
+    ] }) : null,
     (0, P.jsx)('div', { className: 'flex-1 flex flex-col w-full relative', children: (0, P.jsx)(Oe, {
       board: board, themeMode: 'dark', searchTerm: '', selectedColFilter: 'all', onSelectColFilter: noop,
       onOpenCardModal: noop, onToggleCardComplete: noop, onToggleChecklistItem: noop, onUpdateCardMastery: noop, onUpdateCardPriority: noop,
@@ -37949,7 +38003,7 @@ var CoverKiosk = function() {
     if (!t || !t.closest) return;
     var b = t.closest('button, [role="button"], a[href], .ios-tab-item');
     if (!b) return;
-    if (b.closest('.dock-fx-tab, .bar-fx-btn, .fbfx-btn, .fbfx-neon-ctl, .card-mode-btn, [data-card-id], .perspective-stage, .apple-wallet-overlay, .hu-island-header, .fb-composer, .card-gap-active-composer')) return;
+    if (b.closest('.dock-fx-tab, .bar-fx-btn, .fbfx-btn, .fbfx-neon-ctl, .card-mode-btn, .mlk-cardfx, [data-card-id], .perspective-stage, .apple-wallet-overlay, .hu-island-header, .fb-composer, .card-gap-active-composer')) return;
     var root = document.documentElement;
     var cardFxOn = root.classList.contains('fb-cardfx-on') || !!document.querySelector('.board-swimlane-scroll.ripple-active') ||
       !!(window.__HeadsUpController && window.__HeadsUpController.isActive && window.__HeadsUpController.isActive());
