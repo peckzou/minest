@@ -130,13 +130,29 @@
       ['monster-50', 'Stripey Snaggletooth', '#8b5cf6', both(p('M28 32L24 13L38 26Z', '#fde68a')),
         both(s('M20 46q8-2 12 4M22 66q8-2 10 4', '#6d28d9', 4)) + eyes(52, 11) + smile(68, 7) + p('M45 70.5l2 6l2-6Z', '#fff') + cheeks(64, 23)]
     ];
+    // outfits, drawn over any avatar (the head is about 33 across, its top near y 23, the eyes near y 54)
+    var WEAR = [
+      ['party', 'Party Hat', 20, p('M39 27L50 1L61 27Z', '#a78bfa') + s('M44 19l9-4M42 24l14-6M47 12l5-2', '#f9a8d4', 2.4) + c(50, 2, 4.4, '#f9a8d4')],
+      ['bow', 'Bow', 20, '<g transform="translate(16 2)">' + p('M50 22L35 13L35 31Z', '#f472b6') + p('M50 22L65 13L65 31Z', '#f472b6') + c(50, 22, 4.4, '#ec4899') + '</g>'],
+      ['flower', 'Flower', 20, ring(6, 5.4, 4.2, '#fde047', 68, 24) + c(68, 24, 3.6, '#f97316')],
+      ['beanie', 'Beanie', 25, p('M27 31Q27 8 50 8Q73 8 73 31Z', '#38bdf8') + s('M36 14v14M44 10v18M52 10v18M60 12v16', '#7dd3fc', 2) + '<rect x="25" y="26" width="50" height="8" rx="4" fill="#0ea5e9"/>' + c(50, 7, 5.4, '#f0f9ff')],
+      ['glasses', 'Glasses', 25, '<circle cx="39" cy="54" r="8" fill="rgba(255,255,255,.18)" stroke="#1f2937" stroke-width="2.4"/><circle cx="61" cy="54" r="8" fill="rgba(255,255,255,.18)" stroke="#1f2937" stroke-width="2.4"/>' + s('M47 53q3-2 6 0M31 52l-9-3M69 52l9-3', '#1f2937', 2.4)],
+      ['shades', 'Sunglasses', 35, '<rect x="28" y="47" width="20" height="13" rx="5.5" fill="#111827"/><rect x="52" y="47" width="20" height="13" rx="5.5" fill="#111827"/>' + s('M48 51h4M28 50l-7-2M72 50l7-2', '#111827', 2.6) + p('M31 50l6 0-4 6z', 'rgba(255,255,255,.35)') + p('M55 50l6 0-4 6z', 'rgba(255,255,255,.35)')],
+      ['phones', 'Headphones', 40, s('M18 54Q18 15 50 15Q82 15 82 54', '#334155', 5) + '<rect x="11" y="45" width="11" height="19" rx="5.5" fill="#ef4444"/><rect x="78" y="45" width="11" height="19" rx="5.5" fill="#ef4444"/>'],
+      ['tophat', 'Top Hat', 50, '<rect x="37" y="2" width="26" height="22" rx="3" fill="#1f2937"/><rect x="37" y="15" width="26" height="5" fill="#ef4444"/><rect x="27" y="22" width="46" height="6" rx="3" fill="#111827"/>'],
+      ['crown', 'Crown', 60, p('M33 25L36 9L44 18L50 5L56 18L64 9L67 25Z', '#facc15', ' stroke="#f59e0b" stroke-width="1.4" stroke-linejoin="round"') + '<rect x="33" y="22" width="34" height="7" rx="2.5" fill="#f59e0b"/>' + c(50, 25.5, 2.2, '#ef4444') + c(40, 25.5, 1.6, '#38bdf8') + c(60, 25.5, 1.6, '#22c55e')],
+      ['pirate', 'Pirate Hat', 60, p('M22 29Q50 -2 78 29Q50 22 22 29Z', '#1f2937') + c(50, 17, 4.4, '#f8fafc') + s('M45 23l10-3M45 20l10 3', '#f8fafc', 1.6)],
+      ['grad', 'Grad Cap', 80, '<rect x="38" y="20" width="24" height="9" rx="2" fill="#1f2937"/>' + p('M22 19L50 8L78 19L50 30Z', '#111827') + s('M50 19L71 22V34', '#facc15', 1.8) + c(71, 35, 2.6, '#facc15')],
+      ['halo', 'Halo', 100, '<ellipse cx="50" cy="12" rx="18" ry="5" fill="none" stroke="#fef08a" stroke-width="5" opacity=".45"/><ellipse cx="50" cy="12" rx="18" ry="5" fill="none" stroke="#fde047" stroke-width="2.6"/>']
+    ];
+    var WBY = {}; WEAR.forEach(function (w) { WBY[w[0]] = w; });
     var BY = {}; L.forEach(function (a) { BY[a[0]] = a; });
-    function svg(id) {
+    function svg(id, wear) {
       var a = BY[String(id)] || L[0], gid = 'mnav-' + a[0], G = 'url(#' + gid + ')', col = a[2];
       var headSvg = (a[5] || c(50, 56, 33, 'G')).replace(/"G"/g, '"' + G + '"');
       return '<svg class="mlv-monster" viewBox="0 0 100 100" role="img" aria-label="' + a[1] + '"><defs><radialGradient id="' + gid + '" cx=".36" cy=".3" r=".85"><stop offset="0" stop-color="' + shade(col, .28) + '"/><stop offset=".62" stop-color="' + col + '"/><stop offset="1" stop-color="' + shade(col, -.14) + '"/></radialGradient></defs>' +
-        e(50, 95, 24, 3.4, 'rgba(25,18,55,.2)') + a[3].replace(/"G"/g, '"' + G + '"') + headSvg + p('M29 37q9-13 25-11q-15 4-22 16z', 'rgba(255,255,255,.3)') + a[4] + '</svg>';
+        e(50, 95, 24, 3.4, 'rgba(25,18,55,.2)') + a[3].replace(/"G"/g, '"' + G + '"') + headSvg + p('M29 37q9-13 25-11q-15 4-22 16z', 'rgba(255,255,255,.3)') + a[4] + (wear && WBY[wear] ? WBY[wear][3] : '') + '</svg>';
     }
     var names = {}; L.forEach(function (a) { names[a[0]] = a[1]; });
-    return { svg: svg, names: names, ids: L.map(function (a) { return a[0]; }) };
+    return { svg: svg, names: names, ids: L.map(function (a) { return a[0]; }), wear: WEAR.map(function (w) { return { id: w[0], name: w[1], cost: w[2] }; }) };
   })();

@@ -7534,15 +7534,31 @@ var StudyArcade = window.StudyArcade = (function() {
       ['monster-50', 'Stripey Snaggletooth', '#8b5cf6', both(p('M28 32L24 13L38 26Z', '#fde68a')),
         both(s('M20 46q8-2 12 4M22 66q8-2 10 4', '#6d28d9', 4)) + eyes(52, 11) + smile(68, 7) + p('M45 70.5l2 6l2-6Z', '#fff') + cheeks(64, 23)]
     ];
+    // outfits, drawn over any avatar (the head is about 33 across, its top near y 23, the eyes near y 54)
+    var WEAR = [
+      ['party', 'Party Hat', 20, p('M39 27L50 1L61 27Z', '#a78bfa') + s('M44 19l9-4M42 24l14-6M47 12l5-2', '#f9a8d4', 2.4) + c(50, 2, 4.4, '#f9a8d4')],
+      ['bow', 'Bow', 20, '<g transform="translate(16 2)">' + p('M50 22L35 13L35 31Z', '#f472b6') + p('M50 22L65 13L65 31Z', '#f472b6') + c(50, 22, 4.4, '#ec4899') + '</g>'],
+      ['flower', 'Flower', 20, ring(6, 5.4, 4.2, '#fde047', 68, 24) + c(68, 24, 3.6, '#f97316')],
+      ['beanie', 'Beanie', 25, p('M27 31Q27 8 50 8Q73 8 73 31Z', '#38bdf8') + s('M36 14v14M44 10v18M52 10v18M60 12v16', '#7dd3fc', 2) + '<rect x="25" y="26" width="50" height="8" rx="4" fill="#0ea5e9"/>' + c(50, 7, 5.4, '#f0f9ff')],
+      ['glasses', 'Glasses', 25, '<circle cx="39" cy="54" r="8" fill="rgba(255,255,255,.18)" stroke="#1f2937" stroke-width="2.4"/><circle cx="61" cy="54" r="8" fill="rgba(255,255,255,.18)" stroke="#1f2937" stroke-width="2.4"/>' + s('M47 53q3-2 6 0M31 52l-9-3M69 52l9-3', '#1f2937', 2.4)],
+      ['shades', 'Sunglasses', 35, '<rect x="28" y="47" width="20" height="13" rx="5.5" fill="#111827"/><rect x="52" y="47" width="20" height="13" rx="5.5" fill="#111827"/>' + s('M48 51h4M28 50l-7-2M72 50l7-2', '#111827', 2.6) + p('M31 50l6 0-4 6z', 'rgba(255,255,255,.35)') + p('M55 50l6 0-4 6z', 'rgba(255,255,255,.35)')],
+      ['phones', 'Headphones', 40, s('M18 54Q18 15 50 15Q82 15 82 54', '#334155', 5) + '<rect x="11" y="45" width="11" height="19" rx="5.5" fill="#ef4444"/><rect x="78" y="45" width="11" height="19" rx="5.5" fill="#ef4444"/>'],
+      ['tophat', 'Top Hat', 50, '<rect x="37" y="2" width="26" height="22" rx="3" fill="#1f2937"/><rect x="37" y="15" width="26" height="5" fill="#ef4444"/><rect x="27" y="22" width="46" height="6" rx="3" fill="#111827"/>'],
+      ['crown', 'Crown', 60, p('M33 25L36 9L44 18L50 5L56 18L64 9L67 25Z', '#facc15', ' stroke="#f59e0b" stroke-width="1.4" stroke-linejoin="round"') + '<rect x="33" y="22" width="34" height="7" rx="2.5" fill="#f59e0b"/>' + c(50, 25.5, 2.2, '#ef4444') + c(40, 25.5, 1.6, '#38bdf8') + c(60, 25.5, 1.6, '#22c55e')],
+      ['pirate', 'Pirate Hat', 60, p('M22 29Q50 -2 78 29Q50 22 22 29Z', '#1f2937') + c(50, 17, 4.4, '#f8fafc') + s('M45 23l10-3M45 20l10 3', '#f8fafc', 1.6)],
+      ['grad', 'Grad Cap', 80, '<rect x="38" y="20" width="24" height="9" rx="2" fill="#1f2937"/>' + p('M22 19L50 8L78 19L50 30Z', '#111827') + s('M50 19L71 22V34', '#facc15', 1.8) + c(71, 35, 2.6, '#facc15')],
+      ['halo', 'Halo', 100, '<ellipse cx="50" cy="12" rx="18" ry="5" fill="none" stroke="#fef08a" stroke-width="5" opacity=".45"/><ellipse cx="50" cy="12" rx="18" ry="5" fill="none" stroke="#fde047" stroke-width="2.6"/>']
+    ];
+    var WBY = {}; WEAR.forEach(function (w) { WBY[w[0]] = w; });
     var BY = {}; L.forEach(function (a) { BY[a[0]] = a; });
-    function svg(id) {
+    function svg(id, wear) {
       var a = BY[String(id)] || L[0], gid = 'mnav-' + a[0], G = 'url(#' + gid + ')', col = a[2];
       var headSvg = (a[5] || c(50, 56, 33, 'G')).replace(/"G"/g, '"' + G + '"');
       return '<svg class="mlv-monster" viewBox="0 0 100 100" role="img" aria-label="' + a[1] + '"><defs><radialGradient id="' + gid + '" cx=".36" cy=".3" r=".85"><stop offset="0" stop-color="' + shade(col, .28) + '"/><stop offset=".62" stop-color="' + col + '"/><stop offset="1" stop-color="' + shade(col, -.14) + '"/></radialGradient></defs>' +
-        e(50, 95, 24, 3.4, 'rgba(25,18,55,.2)') + a[3].replace(/"G"/g, '"' + G + '"') + headSvg + p('M29 37q9-13 25-11q-15 4-22 16z', 'rgba(255,255,255,.3)') + a[4] + '</svg>';
+        e(50, 95, 24, 3.4, 'rgba(25,18,55,.2)') + a[3].replace(/"G"/g, '"' + G + '"') + headSvg + p('M29 37q9-13 25-11q-15 4-22 16z', 'rgba(255,255,255,.3)') + a[4] + (wear && WBY[wear] ? WBY[wear][3] : '') + '</svg>';
     }
     var names = {}; L.forEach(function (a) { names[a[0]] = a[1]; });
-    return { svg: svg, names: names, ids: L.map(function (a) { return a[0]; }) };
+    return { svg: svg, names: names, ids: L.map(function (a) { return a[0]; }), wear: WEAR.map(function (w) { return { id: w[0], name: w[1], cost: w[2] }; }) };
   })();
   var CARDS = [
     ['monster-sunny', 'Sunny Sea Otter', 'common', 'cash'], ['monster-berry', 'Berry Penguin', 'common', 'guard'], ['monster-mint', 'Mint Turtle', 'common', 'bonus'], ['monster-sky', 'Sky Dolphin', 'common', 'streak'],
@@ -7574,7 +7590,7 @@ var StudyArcade = window.StudyArcade = (function() {
   function monsterSvg(id) { return MNAV.svg(id); }   // tools/web31/avatars.js
   function iconHtml(c, cls) { return c && c.monster ? monsterSvg(c.id) : '<img class="' + (cls || 'mlv-avi') + '" src="' + c.img + '" alt="" loading="lazy">'; }
   // an avatar: a badge/monster id → its image, anything else (an emoji) as text
-  function avHtml(v) { var c = CARDS.filter(function (x) { return x.id === v; })[0]; return c ? iconHtml(c, 'mlv-avi') : esc(v || '🙂'); }
+  function avHtml(v) { var parts = String(v || '').split('~'), c = CARDS.filter(function (x) { return x.id === parts[0]; })[0]; return c ? (c.monster ? MNAV.svg(c.id, parts[1]) : iconHtml(c, 'mlv-avi')) : esc(v || '🙂'); }
   // every badge this player ever opened (any game, and the chests while waiting) — kept in this browser
   var ALBUM_KEY = 'minest.live.album.v1';
   function albumMap() { try { return JSON.parse(localStorage.getItem(ALBUM_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -8434,21 +8450,77 @@ var StudyArcade = window.StudyArcade = (function() {
     return g;
   }
   var CHEST_GEMS = 60;
-  function waitPanel(host, onChange, game) {
+
+  // ------------------------------------------------------------------ the Locker: animals and outfits bought with 💎 (kept in this browser)
+  var LOCKER_KEY = 'minest.live.locker.v1', FREE_AV = 16;
+  function avFree(id) { var i = MNAV.ids.indexOf(id); return i >= 0 && i < FREE_AV; }
+  function locker(L) {
+    if (L) { try { localStorage.setItem(LOCKER_KEY, JSON.stringify(L)); } catch (e) {} return L; }
+    var o = null; try { o = JSON.parse(localStorage.getItem(LOCKER_KEY) || 'null'); } catch (e) {}
+    o = o && typeof o === 'object' ? o : {}; o.av = o.av || []; o.wear = o.wear || []; o.on = o.on || '';
+    var had = String(localAv() || '').split('~')[0];   // an animal picked before the Locker existed stays yours
+    if (/^monster-/.test(had) && !avFree(had) && o.av.indexOf(had) < 0) o.av.push(had);
+    return o;
+  }
+  function ownsAv(id) { return !/^monster-/.test(id) || avFree(id) || locker().av.indexOf(id) >= 0; }
+  function avCost(id) { var c = cardById(id); return !c ? 60 : c.r === 'common' ? 30 : c.r === 'rare' ? 60 : 100; }
+  function wearCost(w) { var x = MNAV.wear.filter(function (q) { return q.id === w; })[0]; return x ? x.cost : 0; }
+  function wearing() { return locker().on || ''; }
+  // the avatar value others see: "monster-12~crown" when an outfit is on
+  function withWear(v) { v = String(v || '').split('~')[0]; return /^monster-/.test(v) && wearing() ? v + '~' + wearing() : v; }
+  function lockerHtml(cur) {
+    var L = locker(), base = String(cur || '').split('~')[0], show = /^monster-/.test(base) ? base : MNAV.ids[0];
+    return '<section class="mlv-card mlv-locker"><h3><span>👕 Locker</span><span class="mlv-lk-g">💎 <b>' + gems() + '</b></span></h3>' +
+      '<div class="mlv-lk-top"><div class="mlv-lk-me">' + MNAV.svg(show, L.on) + '</div><p class="mlv-note" style="margin:0">Unlock new animals and outfits with 💎 — earn them in the waiting games and at the end of every game. Your teacher and class see your look.</p></div>' +
+      '<h4>Animals</h4><div class="mlv-lk-grid">' + MNAV.ids.map(function (id) {
+        var own = ownsAv(id); return '<button type="button" class="mlv-lk' + (own ? '' : ' lock') + (id === base ? ' on' : '') + '" data-lk-av="' + id + '" title="' + esc(MNAV.names[id]) + '">' + MNAV.svg(id) + (own ? '' : '<span class="pr">💎 ' + avCost(id) + '</span>') + '</button>';
+      }).join('') + '</div>' +
+      '<h4>Outfits</h4><div class="mlv-lk-grid"><button type="button" class="mlv-lk' + (!L.on ? ' on' : '') + '" data-lk-wear=""><span class="none">None</span></button>' + MNAV.wear.map(function (w) {
+        var own = L.wear.indexOf(w.id) >= 0; return '<button type="button" class="mlv-lk' + (own ? '' : ' lock') + (L.on === w.id ? ' on' : '') + '" data-lk-wear="' + w.id + '" title="' + esc(w.name) + '">' + MNAV.svg(show, w.id) + (own ? '' : '<span class="pr">💎 ' + w.cost + '</span>') + '</button>';
+      }).join('') + '</div></section>';
+  }
+  // onAv(id) when an animal is chosen (null: only the outfit changed); repaint() after every change
+  function wireLocker(root, onAv, repaint) {
+    function buy(btn, cost, done) {
+      if (gems() < cost) { btn.classList.add('shake'); setTimeout(function () { btn.classList.remove('shake'); }, 500); OCTO.act('thinking', 'Need ' + cost + ' 💎 — play a waiting game!', 1800); return; }
+      if (!btn.classList.contains('sure')) { $$(root, '.mlv-lk.sure').forEach(function (x) { x.classList.remove('sure'); var q = x.querySelector('.pr'); if (q) q.textContent = q.getAttribute('data-p'); }); btn.classList.add('sure'); var pr = btn.querySelector('.pr'); if (pr) { pr.setAttribute('data-p', pr.textContent); pr.textContent = 'Tap to buy'; } return; }
+      gems(-cost); beep('win'); OCTO.cheer(true); done(); repaint();
+    }
+    $$(root, '[data-lk-av]').forEach(function (b) { b.onclick = function () { var id = b.getAttribute('data-lk-av'); if (ownsAv(id)) { onAv(id); beep('buy'); repaint(); return; } buy(b, avCost(id), function () { var L = locker(); L.av.push(id); locker(L); onAv(id); }); }; });
+    $$(root, '[data-lk-wear]').forEach(function (b) { b.onclick = function () { var w = b.getAttribute('data-lk-wear'), L = locker(); if (!w || L.wear.indexOf(w) >= 0) { L.on = w; locker(L); beep('buy'); onAv(null); repaint(); return; } buy(b, wearCost(w), function () { var L2 = locker(); L2.wear.push(w); L2.on = w; locker(L2); onAv(null); }); }; });
+  }
+  (function () {
+    var st = document.createElement('style'); st.id = 'mlv-locker-css';
+    st.textContent = [
+      '.mlv-avatar-choice{position:relative}.mlv-avatar-choice.lock svg,.mlv-lk.lock svg{filter:grayscale(.85) brightness(.72);opacity:.8}',
+      '.mlv-avatar-choice .pr,.mlv-lk .pr{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);padding:1px 6px;border-radius:8px;background:#1e1b4b;color:#fde68a;font:800 10px/1.5 system-ui,sans-serif;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.45);pointer-events:none}',
+      '.mlv-avatar-choice.sure,.mlv-lk.sure{border-color:#fde047!important;box-shadow:0 0 0 2px rgba(253,224,71,.45)!important}',
+      '.mlv-avatar-choice.shake,.mlv-lk.shake{animation:mlvLkShake .4s}@keyframes mlvLkShake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}',
+      '.mlv-locker h3{display:flex;justify-content:space-between;align-items:center;margin-top:0}.mlv-lk-g{font-size:15px;color:#fde68a}',
+      '.mlv-lk-top{display:flex;gap:14px;align-items:center;margin:4px 0 6px}.mlv-lk-me{width:86px;height:86px;flex:none}.mlv-lk-me svg{width:100%;height:100%;display:block}',
+      '.mlv-locker h4{margin:12px 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#c7cdf5}',
+      '.mlv-lk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:10px;max-height:236px;overflow:auto;padding:4px 2px 10px}',
+      '.mlv-lk{position:relative;aspect-ratio:1;padding:3px;border-radius:16px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);cursor:pointer;color:inherit;display:grid;place-items:center}',
+      '.mlv-lk svg{width:100%;height:100%;display:block}.mlv-lk.on{border-color:#86efac;background:rgba(34,197,94,.18);box-shadow:0 0 0 2px rgba(134,239,172,.25)}.mlv-lk .none{font:800 12px system-ui,sans-serif;opacity:.75}',
+      '.mlv-endgem{display:inline-block;margin:2px 0 8px;padding:6px 14px;border-radius:999px;background:rgba(253,224,71,.14);color:#fde68a;font-weight:900}'
+    ].join('\n');
+    (document.head || document.documentElement).appendChild(st);
+  })();
+  function waitPanel(host, onChange, game, ctx) {
     var box = document.createElement('section'); box.className = 'mlv-card mlv-wait';
     function paint() {
       var g = gems();
       box.innerHTML = '<h3>While you wait</h3><div class="mlv-waitg">' +
-        '<button type="button" data-dive><span class="i">🤿</span><b>Octo Dive</b><small>Collect the reef loot</small></button>' +
-        '<button type="button" data-flap><span class="i">🐙</span><b>Flappy Octo</b><small>Swim through coral</small></button>' +
+        '<button type="button" data-dive><span class="i">🤿</span><b>Octo Dive</b><small>Reef loot · ⚡ Gimkit</small></button>' +
+        '<button type="button" data-flap><span class="i">🐙</span><b>Flappy Octo</b><small>Swim through coral · ⚡ Gimkit</small></button>' +
         '<button type="button" data-energy><span class="i">⚡</span><b>Energy Rush</b><small>Energy out = answer</small></button>' +
         '<button type="button" data-bubble><span class="i">🫧</span><b>Bubble Pop</b><small>30 s · pop 💎 for gems</small></button>' +
         '<button type="button" data-chest' + (g >= CHEST_GEMS ? '' : ' class="dim"') + '><canvas class="mlv-tilecv sm" data-tier="wood"></canvas><b>Open a chest</b><small>' + CHEST_GEMS + ' 💎 · win a badge</small></button>' +
         '<button type="button" data-album><span class="i">🏅</span><b>My badges</b><small>' + Object.keys(albumMap()).length + '/' + CARDS.length + ' collected</small></button></div>' +
         '<div class="mlv-gems">💎 <b>' + g + '</b> gems</div>';
       $(box, '[data-bubble]').onclick = function () { bubblePop(function (won) { gems(won); paint(); if (onChange) onChange(); }); };
-      $(box, '[data-dive]').onclick = function () { octoDive(function (won) { gems(won); paint(); if (onChange) onChange(); }); };
-      $(box, '[data-flap]').onclick = function () { octoFlap(function (won) { gems(won); paint(); if (onChange) onChange(); }); };
+      $(box, '[data-dive]').onclick = function () { octoDive(function (won) { gems(won); paint(); if (onChange) onChange(); }, game, ctx); };
+      $(box, '[data-flap]').onclick = function () { octoFlap(function (won) { gems(won); paint(); if (onChange) onChange(); }, game, ctx); };
       $(box, '[data-energy]').onclick = function () { energyRush(game, function (won) { gems(won); paint(); if (onChange) onChange(); }); };
       $(box, '[data-chest]').onclick = function () {
         if (gems() < CHEST_GEMS) { var b = this; b.classList.add('shake'); setTimeout(function () { b.classList.remove('shake'); }, 500); OCTO.act('thinking', 'Play Bubble Pop for 💎', 1800); return; }
@@ -8465,21 +8537,33 @@ var StudyArcade = window.StudyArcade = (function() {
   //   Octo Dive — swim anywhere (drag / arrow keys), catch coins, pearls and chests in a row for a combo, dodge jellyfish;
   //   Flappy Octo — tap to swim up through coral gates, grab the pearl in each gap.
   // A bump never ends a run: it costs points and gives a short shield; only the clock ends it. Best scores are kept.
+  // ⚡ Gimkit mode (when the game has cards): energy drains while you swim and on every bump; at zero a card comes up —
+  // a right answer refills it and pays coins (more on a streak), a wrong one shows the answer and asks another.
+  // In a live game everyone's score is on a live leaderboard (players/<id>/mini_<mode>), and the class sees it.
   var REEF_BEST = 'minest.live.reefBest.v1';
   function reefBest(mode, v) {
     var b = {}; try { b = JSON.parse(localStorage.getItem(REEF_BEST) || '{}') || {}; } catch (e) {}
     if (v != null && v > (b[mode] || 0)) { b[mode] = v; try { localStorage.setItem(REEF_BEST, JSON.stringify(b)); } catch (e) {} }
     return b[mode] || 0;
   }
-  function octoReefGame(mode, done) {
+  function octoReefGame(mode, done, game, room) {   // room: the live game (code, pid, name, av), if any
     ensureCss();
     var flap = mode === 'flap', title = flap ? 'Flappy Octo' : 'Octo Dive', DUR = flap ? 35 : 30, best0 = reefBest(mode);
+    var deck = [];
+    if (game && game.board && game.board.columns) game.board.columns.forEach(function (c) {
+      (c.cards || []).forEach(function (k) {
+        if (k && k.title && (k.desc || k.description)) deck.push({ title: String(k.title), answer: String(k.desc || k.description) });
+        (k.stack || []).forEach(function (x) { if (x && x.title && (x.desc || x.description)) deck.push({ title: String(x.title), answer: String(x.desc || x.description) }); });
+      });
+    });
+    var gk = false, energy = 100, streak = 0, correct = 0, asking = false, field = '', lbEl = null, lbW = null, lbRows = [], prevMine = 0, sentAt = 0, sentV = -1, lbAt = 0;
     var ov = document.createElement('div'); ov.className = 'mlv-of';
-    ov.innerHTML = '<canvas></canvas><div class="hud"><span data-score>' + (flap ? '⭐ 0' : '🪙 0') + '</span><span data-time>⏱ ' + DUR + '</span><button type="button" data-x>✕</button></div>' +
+    ov.innerHTML = '<canvas></canvas><div class="hud"><span data-score>' + (flap ? '⭐ 0' : '🪙 0') + '</span><span data-time>⏱ ' + DUR + '</span><span data-energy hidden>⚡ 100</span><button type="button" data-x>✕</button></div><div class="mlv-of-lb" hidden></div>' +
       '<div class="panel"><div class="octo-mark">🐙</div><h2>' + title + '</h2><p>' + (flap
         ? 'Tap, click or press Space to swim up — let go to sink. Slip through the coral gates and grab the pearls. A bump costs a star, never the run.'
         : 'Drag Octo (or use the arrow keys) to swim anywhere. Coins +1, pearls +3, chests +5 — catch them in a row for a combo. Jellyfish sting: −2.') +
-      '</p><div class="row"><button class="mlv-btn" data-start>Start ' + (flap ? 'swim' : 'dive') + '</button><button class="mlv-btn alt" data-cancel>Exit</button></div><div class="tiny">' +
+      '</p><div class="row"><button class="mlv-btn" data-start>Start ' + (flap ? 'swim' : 'dive') + '</button>' + (deck.length ? '<button class="mlv-btn mlv-gkbtn" data-gk>⚡ Gimkit mode</button>' : '') + '<button class="mlv-btn alt" data-cancel>Exit</button></div>' +
+      (deck.length ? '<div class="tiny">⚡ Gimkit mode: energy runs down — at zero, answer a card to recharge. ' + deck.length + ' cards' + (room && room.code ? ' · live class leaderboard' : '') + '</div>' : '') + '<div class="tiny">' +
       (flap ? 'Tap, click or Space' : 'Touch and drag, or ← ↑ → ↓') + (best0 ? ' · Best ' + best0 : '') + '</div></div>';
     document.body.appendChild(ov);
     var cv = ov.querySelector('canvas'), ctx = cv.getContext('2d'), panel = ov.querySelector('.panel'), gamePet = OCTO.el(), W = 0, H = 0, dpr = 1;
@@ -8493,13 +8577,24 @@ var StudyArcade = window.StudyArcade = (function() {
       if (!started) { p.x = target.x = W * .27; p.y = target.y = H * .5; }
     }
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-    function start() { if (started || over) return; started = true; panel.classList.add('hide'); last = performance.now(); elapsed = 0; next = 0; OCTO.act('free_swim', flap ? 'Tap to swim! 🐙' : 'Dive in! 🐙', 1400); raf = requestAnimationFrame(frame); }
-    function flapUp() { if (!started || over || paused) return; armed = true; p.vy = -330; beep('good'); }
+    function start(gkMode) {
+      if (started || over) return;
+      if (gkMode && deck.length) { gk = true; DUR = 60; energy = 100; ov.classList.add('mlv-er', 'mlv-gk'); ov.querySelector('[data-energy]').hidden = false; }
+      field = 'mini_' + mode + (gk ? 'gk' : '');
+      if (room && room.code && room.pid) startLb();
+      started = true; panel.classList.add('hide'); last = performance.now(); elapsed = 0; next = 0; OCTO.act('free_swim', flap ? 'Tap to swim! 🐙' : 'Dive in! 🐙', 1400); raf = requestAnimationFrame(frame); }
+    function flapUp() { if (!started || over || paused || asking) return; armed = true; p.vy = -330; beep('good'); }
     function petAct(name, text, cooldown) { var now = performance.now(); if (now - petActionAt < (cooldown || 650)) return; petActionAt = now; OCTO.act(name, text, 900); }
+    function sMul() { return gk ? 1 + Math.min(10, streak) * 0.1 : 1; }
     function pop(x, y, text, color) { pops.push({ x: x, y: y, t: 0, text: text, color: color || '#fef08a' }); }
     function burst(x, y, color, n) { for (var i = 0; i < (n || 10); i++) { var a = Math.random() * Math.PI * 2, s = 80 + Math.random() * 170; parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: .45 + Math.random() * .35, color: color }); } }
     function ouch(lose, text) {
       if (shield > 0) return false;
+      if (gk) {   // Gimkit: a bump costs energy, not coins
+        energy = Math.max(0, energy - 18); combo = 0; shield = 1.1; shake = .35;
+        pop(p.x, p.y - 40, '−18 ⚡', '#fda4af'); burst(p.x, p.y, '#fb7185', 12); beep('bad'); petAct('confused', 'Ouch!', 250);
+        return true;
+      }
       score = Math.max(0, score - lose); combo = 0; shield = 1.1; shake = .35;
       pop(p.x, p.y - 40, text, '#fda4af'); burst(p.x, p.y, '#fb7185', 12); beep('bad'); petAct('confused', 'Ouch!', 250);
       return true;
@@ -8592,7 +8687,7 @@ var StudyArcade = window.StudyArcade = (function() {
       if (p.y > floorY() - p.r) { p.y = floorY() - p.r; p.vy = -300; ouch(1, '−1'); }          // the reef floor: bounce
       things.forEach(function (o) {
         o.x -= speed * dt; drawThing(o, now);
-        if (!o.passed && o.x + o.w < p.x - p.r) { o.passed = true; score++; reward++; combo++; pop(p.x, p.y - 44, '+1', '#fef08a'); beep('good'); petAct('excited', combo >= 5 ? combo + ' in a row!' : null, 400); }
+        if (!o.passed && o.x + o.w < p.x - p.r) { o.passed = true; var g1 = gk ? Math.round(2 * sMul()) : 1; score += g1; reward++; combo++; pop(p.x, p.y - 44, '+' + g1, '#fef08a'); beep('good'); petAct('excited', combo >= 5 ? combo + ' in a row!' : null, 400); }
         var hx = p.x + p.r * .78 > o.x && p.x - p.r * .78 < o.x + o.w, hy = p.y - p.r * .78 < o.top || p.y + p.r * .78 > o.top + o.gap;
         if (hx && hy && ouch(1, '−1')) { o.hitAt = now; p.vy = p.y < o.top + o.gap / 2 ? 140 : -220; }
         if (o.pearl && Math.abs(p.x - (o.x + o.w / 2)) < p.r + 10 && Math.abs(p.y - (o.top + o.gap / 2)) < p.r + 10) { o.pearl = false; score++; reward++; pop(p.x, p.y - 44, '🫧 +1', '#f5d0fe'); burst(o.x + o.w / 2, o.top + o.gap / 2, '#f5d0fe', 10); beep('buy'); }
@@ -8617,8 +8712,8 @@ var StudyArcade = window.StudyArcade = (function() {
         if (o.kind === 'jelly') { if (ouch(2, '−2')) o.hit = true; return; }
         o.hit = true; combo++;
         var mult = Math.min(3, 1 + Math.floor(combo / 5)), base = o.kind === 'chest' ? 5 : o.kind === 'pearl' ? 3 : 1;
-        score += base * mult; reward += o.kind === 'chest' ? 4 : o.kind === 'pearl' ? 2 : 1;
-        pop(o.x, o.y - 26, '+' + base * mult + (mult > 1 ? ' ×' + mult : ''), o.kind === 'chest' ? '#fde047' : o.kind === 'pearl' ? '#f5d0fe' : '#fef08a');
+        var got = Math.round(base * mult * sMul()); score += got; reward += o.kind === 'chest' ? 4 : o.kind === 'pearl' ? 2 : 1;
+        pop(o.x, o.y - 26, '+' + got + (mult > 1 ? ' ×' + mult : ''), o.kind === 'chest' ? '#fde047' : o.kind === 'pearl' ? '#f5d0fe' : '#fef08a');
         burst(o.x, o.y, o.kind === 'chest' ? '#fde047' : o.kind === 'pearl' ? '#f5d0fe' : '#facc15', o.kind === 'chest' ? 18 : 9);
         beep(o.kind === 'chest' ? 'win' : 'good');
         if (o.kind === 'chest') petAct('excited', 'Treasure!', 300); else if (combo % 5 === 0) petAct('excited', 'Combo ×' + mult + '!', 300); else petAct('hop', null, 500);
@@ -8629,7 +8724,9 @@ var StudyArcade = window.StudyArcade = (function() {
     function frame(now) {
       if (over) return;
       if (paused) { last = now; raf = requestAnimationFrame(frame); return; }
+      if (asking) return;
       var dt = Math.min(.04, (now - last) / 1000); last = now; elapsed += dt; shield = Math.max(0, shield - dt); shake = Math.max(0, shake - dt);
+      if (gk && armed) { energy -= (flap ? 5 : 6) * dt; if (energy <= 0) { energy = 0; hudGk(); ask(); return; } }
       ctx.save(); if (shake > 0) ctx.translate((Math.random() - .5) * 12 * shake / .35, (Math.random() - .5) * 12 * shake / .35);
       background(now);
       if (flap) stepFlap(dt, now); else stepDive(dt, now);
@@ -8637,25 +8734,90 @@ var StudyArcade = window.StudyArcade = (function() {
       ov.querySelector('[data-score]').textContent = (flap ? '⭐ ' : '🪙 ') + score + (combo >= 5 && !flap ? ' · ×' + Math.min(3, 1 + Math.floor(combo / 5)) : '');
       ov.querySelector('[data-time]').textContent = flap && !armed ? 'Tap to swim' : '⏱ ' + Math.max(0, Math.ceil(DUR - elapsed));
       if (flap && !armed) elapsed = Math.max(0, elapsed - dt);   // the clock waits for the first tap
+      if (gk) hudGk();
+      if (lbEl && now - sentAt > 1200) { sentAt = now; publish(); }
+      if (lbEl && now - lbAt > 500) { lbAt = now; paintLb(); }
       if (elapsed >= DUR) return end(false);
       raf = requestAnimationFrame(frame);
     }
-    function cleanup() { window.removeEventListener('keydown', key); window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', vis); if (gamePet) gamePet.style.opacity = ''; }
+    function hudGk() { var en = ov.querySelector('[data-energy]'); en.textContent = '⚡ ' + Math.ceil(energy) + (streak > 1 ? ' · 🔥' + streak : ''); en.style.color = energy < 25 ? '#fda4af' : ''; }
+    function short(a) { a = String(a || '').replace(/\s+/g, ' ').trim(); return a.length > 90 ? a.slice(0, 88) + '…' : a; }
+    function norm(v) { return String(v == null ? '' : v).toLowerCase().replace(/[\s\u3000\u00a0.,!?;:'"()\[\]{}，。！？；：“”‘’（）【】]/g, ''); }
+    function answerOK(input, expected) { var a = norm(input), b = norm(expected).split(/\n|·|•|\/|;/)[0]; return a.length >= 2 && b.length >= 2 && (a === b || a.indexOf(b) >= 0 || b.indexOf(a) >= 0); }
+    // energy is out: one card, four answers (Gimkit style); typed when the deck is too small for choices
+    function ask() {
+      if (over) return; asking = true; cancelAnimationFrame(raf);
+      // Octo swims to the corner while the card is up (it would sit on the answers)
+      if (gamePet) { gamePet.style.transition = 'left .45s ease, top .45s ease, opacity .2s'; gamePet.style.left = Math.max(0, W - (gamePet.offsetWidth || 112) - 6) + 'px'; gamePet.style.top = Math.max(60, H - (gamePet.offsetHeight || 112) - 6) + 'px'; gamePet.style.opacity = '1'; }
+      var q = deck[Math.floor(Math.random() * deck.length)], pool = [];
+      deck.forEach(function (d) { if (norm(d.answer) !== norm(q.answer) && pool.indexOf(d.answer) < 0) pool.push(d.answer); });
+      var opts = [q.answer]; while (opts.length < 4 && pool.length) opts.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+      opts.sort(function () { return Math.random() - 0.5; });
+      var mc = opts.length >= 2;
+      panel.classList.remove('hide');
+      panel.innerHTML = '<div class="octo-mark">⚡</div><h2>Out of energy!</h2><div class="energybar"><i style="width:0%"></i></div><div class="qbox"><h3>Answer to recharge</h3><p>' + esc(q.title) + '</p></div>' +
+        (mc ? '<div class="mlv-gkopts">' + opts.map(function (a, i) { return '<button type="button" data-o="' + i + '">' + esc(short(a)) + '</button>'; }).join('') + '</div>'
+            : '<input class="answer" data-answer autocomplete="off" placeholder="Type the answer"><div class="row"><button class="mlv-btn" data-submit>Recharge ⚡</button></div>') +
+        '<div class="feedback" data-fb>' + (streak ? '🔥 Streak ' + streak + ' — keep it going!' : 'A right answer refills ⚡ and pays 🪙 (more on a streak)') + '</div>';
+      var fb = panel.querySelector('[data-fb]');
+      function resume() { if (over) return; if (gamePet) gamePet.style.transition = 'opacity .2s'; panel.classList.add('hide'); asking = false; shield = 1; last = performance.now(); raf = requestAnimationFrame(frame); }
+      function right() {
+        correct++; streak++; var bonus = 8 + streak * 4; score += bonus; reward += 2; energy = 100; hudGk();
+        panel.querySelector('.energybar i').style.width = '100%'; fb.textContent = '✓ +' + bonus + ' 🪙 · energy full!'; fb.style.color = '#86efac';
+        beep('win'); OCTO.act('excited', streak >= 3 ? streak + ' in a row! 🔥' : 'Recharged! ⚡', 1400); setTimeout(resume, 750);
+      }
+      function wrong() {
+        streak = 0; score = Math.max(0, score - 5); fb.textContent = 'Answer: ' + short(q.answer) + ' — try another card'; fb.style.color = '#fda4af';
+        beep('bad'); OCTO.act('thinking', 'Next one!', 1200); setTimeout(function () { if (!over) ask(); }, 1600);
+      }
+      if (mc) $$(panel, '[data-o]').forEach(function (b) {
+        b.onclick = function () {
+          if (panel.querySelector('.ok, .no')) return;
+          if (opts[+b.getAttribute('data-o')] === q.answer) { b.classList.add('ok'); right(); }
+          else { b.classList.add('no'); $$(panel, '[data-o]').forEach(function (x) { if (opts[+x.getAttribute('data-o')] === q.answer) x.classList.add('ok'); }); wrong(); }
+        };
+      });
+      else { var inp = panel.querySelector('[data-answer]'), chk = function () { if (answerOK(inp.value, q.answer)) right(); else wrong(); }; panel.querySelector('[data-submit]').onclick = chk; inp.onkeydown = function (e) { e.stopPropagation(); if (e.key === 'Enter') chk(); }; inp.focus(); }
+    }
+    // the live leaderboard: everyone in this game, best score in this mode (players/<id>/mini_<mode>)
+    function startLb() {
+      lbEl = ov.querySelector('.mlv-of-lb'); lbEl.hidden = false;
+      lbW = watch(room.code + '/players', function (ps) {
+        lbRows = Object.keys(ps || {}).map(function (k) { var q = ps[k] || {}; return { id: k, n: q.name || 'Player', av: q.av, v: +q[field] || 0 }; });
+        lbRows.forEach(function (x) { if (x.id === room.pid) prevMine = Math.max(prevMine, x.v); });
+        paintLb();
+      });
+    }
+    function publish() {
+      var v = Math.max(prevMine, score); if (v === sentV || !room) return; sentV = v;
+      var b = {}; b[field] = v; db(room.code + '/players/' + room.pid, 'PATCH', b).catch(function () {});
+    }
+    function paintLb() {
+      if (!lbEl) return;
+      var mine = Math.max(prevMine, score), rows = lbRows.filter(function (x) { return x.v > 0 && x.id !== room.pid; });
+      rows.push({ id: room.pid, n: room.name || 'You', av: room.av, v: mine });
+      rows.sort(function (a, b) { return b.v - a.v; });
+      var mi = 0; rows.forEach(function (x, i) { if (x.id === room.pid) mi = i; });
+      function row(x, i) { return '<div class="r' + (x.id === room.pid ? ' me' : '') + '"><span class="k">' + (i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)) + '</span><i>' + avHtml(x.av) + '</i><span class="n">' + esc(x.n) + (x.id === room.pid ? ' (you)' : '') + '</span><b>' + x.v + '</b></div>'; }
+      lbEl.innerHTML = '<h5>🏆 Live · ' + title + (gk ? ' ⚡' : '') + '</h5>' + rows.slice(0, 5).map(row).join('') + (mi >= 5 ? '<div class="sep">⋯</div>' + row(rows[mi], mi) : '');
+    }
+    function cleanup() { if (lbW) { publish(); lbW.close(); lbW = null; } window.removeEventListener('keydown', key); window.removeEventListener('resize', resize); document.removeEventListener('visibilitychange', vis); if (gamePet) gamePet.style.opacity = ''; }
     function end(quit) {
       if (over) return; over = true; cancelAnimationFrame(raf); cleanup();
       if (quit) { ov.remove(); OCTO.place('stage'); done(0); return; }
-      reward = clamp(reward, 1, 30); var isBest = score > best0; reefBest(mode, score);
+      reward = clamp(gk ? Math.floor(score / 6) + correct * 2 : reward, 1, gk ? 40 : 30); var isBest = score > best0; reefBest(mode + (gk ? 'gk' : ''), score);
       OCTO.place('show');   // Octo glides back from where it swam, below the result
       panel.classList.remove('hide');
       panel.innerHTML = '<div class="octo-mark">🐙</div><h2>' + (isBest ? 'New best!' : flap ? (score >= 10 ? 'Great swim!' : 'Keep swimming!') : (score >= 40 ? 'Treasure hunter!' : 'Dive complete!')) + '</h2><div class="score-big">' + score + '</div>' +
-        '<p>' + (best0 && !isBest ? 'Best ' + best0 + ' · ' : '') + 'You earned ' + reward + ' 💎 from the reef.</p><div class="row"><button class="mlv-btn" data-collect>Collect +' + reward + ' 💎</button><button class="mlv-btn alt" data-again>Play again</button><button class="mlv-btn alt" data-close>Exit</button></div>';
+        '<p>' + (gk ? correct + ' right answers · ' : '') + (best0 && !isBest ? 'Best ' + best0 + ' · ' : '') + 'You earned ' + reward + ' 💎 from the reef.</p><div class="row"><button class="mlv-btn" data-collect>Collect +' + reward + ' 💎</button><button class="mlv-btn alt" data-again>Play again</button><button class="mlv-btn alt" data-close>Exit</button></div>';
       OCTO.cheer(isBest || score >= (flap ? 10 : 40));
       panel.querySelector('[data-collect]').onclick = function () { ov.remove(); OCTO.place('stage'); done(reward); };
-      panel.querySelector('[data-again]').onclick = function () { ov.remove(); done(reward); octoReefGame(mode, done); };
+      panel.querySelector('[data-again]').onclick = function () { ov.remove(); done(reward); octoReefGame(mode, done, game, room); };
       panel.querySelector('[data-close]').onclick = function () { ov.remove(); OCTO.place('stage'); done(0); };
     }
     function key(e) {
       if (e.key === 'Escape') { e.preventDefault(); end(true); return; }
+      if (asking) return;
       if (e.key !== ' ' && e.key.indexOf('Arrow') !== 0) return;
       e.preventDefault(); if (!started) start();
       if (flap) { if (e.key === ' ' || e.key === 'ArrowUp') flapUp(); return; }
@@ -8664,13 +8826,32 @@ var StudyArcade = window.StudyArcade = (function() {
       target.x = clamp(target.x, 60, W * .78); target.y = clamp(target.y, TOP + p.r, floorY() - p.r);
     }
     function vis() { paused = document.hidden; }
-    ov.querySelector('[data-start]').onclick = start; ov.querySelector('[data-cancel]').onclick = function () { end(true); }; ov.querySelector('[data-x]').onclick = function () { end(true); };
-    cv.addEventListener('pointerdown', function (e) { if (!started) start(); if (flap) { flapUp(); OCTO.act('bounce'); } else { target.x = e.clientX; target.y = e.clientY; } });
+    ov.querySelector('[data-start]').onclick = function () { start(false); };
+    var gkb = ov.querySelector('[data-gk]'); if (gkb) gkb.onclick = function () { start(true); }; ov.querySelector('[data-cancel]').onclick = function () { end(true); }; ov.querySelector('[data-x]').onclick = function () { end(true); };
+    cv.addEventListener('pointerdown', function (e) { if (asking) return; if (!started) start(false); if (flap) { flapUp(); OCTO.act('bounce'); } else { target.x = e.clientX; target.y = e.clientY; } });
     cv.addEventListener('pointermove', function (e) { if (!flap && (e.buttons || e.pointerType === 'touch')) { target.x = e.clientX; target.y = e.clientY; } });
     window.addEventListener('keydown', key); window.addEventListener('resize', resize); document.addEventListener('visibilitychange', vis); resize(); OCTO.place('show');
   }
-  function octoDive(done) { octoReefGame('dive', done); }
-  function octoFlap(done) { octoReefGame('flap', done); }
+  function octoDive(done, game, ctx) { octoReefGame('dive', done, game, ctx); }
+  function octoFlap(done, game, ctx) { octoReefGame('flap', done, game, ctx); }
+
+  (function () {
+    var st = document.createElement('style'); st.id = 'mlv-gk-css';
+    st.textContent = [
+      '.mlv-btn.mlv-gkbtn{background:linear-gradient(135deg,#fde047,#f97316);color:#1c1003}',
+      '.mlv-of .hud [data-energy]{min-width:74px}',
+      '.mlv-of-lb{position:absolute;right:12px;top:62px;z-index:3;width:min(220px,46vw);padding:8px 10px;border-radius:14px;background:rgba(2,6,23,.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#e2e8f0;font:600 12px system-ui,-apple-system,sans-serif;pointer-events:none;box-shadow:0 8px 22px rgba(0,0,0,.35)}',
+      '.mlv-of-lb h5{margin:0 0 5px;font-size:12px;color:#fde68a}.mlv-of-lb .r{display:flex;align-items:center;gap:6px;padding:2px 0}.mlv-of-lb .r.me{color:#86efac}',
+      '.mlv-of-lb .k{width:22px;text-align:center}.mlv-of-lb .r i{width:22px;height:22px;flex:none;font-style:normal}.mlv-of-lb .r i svg,.mlv-of-lb .r i img{width:100%;height:100%;display:block}',
+      '.mlv-of-lb .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mlv-of-lb .r b{font-variant-numeric:tabular-nums}.mlv-of-lb .sep{text-align:center;opacity:.5;line-height:1}',
+      '.mlv-gkopts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 8px}',
+      '.mlv-gkopts button{min-height:62px;padding:10px 12px;border-radius:14px;border:0;color:#fff;font:800 14px/1.25 system-ui,-apple-system,sans-serif;text-align:left;cursor:pointer;box-shadow:inset 0 -4px 0 rgba(0,0,0,.22);transition:transform .12s,opacity .2s}',
+      '.mlv-gkopts button:nth-child(1){background:#2563eb}.mlv-gkopts button:nth-child(2){background:#16a34a}.mlv-gkopts button:nth-child(3){background:#ea580c}.mlv-gkopts button:nth-child(4){background:#9333ea}',
+      '.mlv-gkopts button:active{transform:scale(.97)}.mlv-gkopts button.ok{box-shadow:0 0 0 4px #86efac,inset 0 -4px 0 rgba(0,0,0,.22)}.mlv-gkopts button.no{opacity:.4}',
+      '@media (max-width:520px){.mlv-gkopts{grid-template-columns:1fr}.mlv-of-lb{top:auto;bottom:12px}}'
+    ].join('\n');
+    (document.head || document.documentElement).appendChild(st);
+  })();
 
 
   // Bubble Pop: bubbles rise, tap them; 💎 = gems, 🌟 = 5, 💣 = −3; Octo cheers combos
@@ -8812,12 +8993,13 @@ var StudyArcade = window.StudyArcade = (function() {
     setTimeout(function () { OCTO.place('stage'); OCTO.act('wave', 'Hi! Let’s play 🎮', 2200); }, 600);
     var saved = {}; try { saved = JSON.parse(sessionStorage.getItem('minest.live.me') || '{}'); } catch (e) {}
     code = cleanCode(code || '');
-    var selectedAv = STARTER_MONSTERS.indexOf(saved.av) >= 0 ? saved.av : STARTER_MONSTERS[0];
+    var savedAv = String(saved.av || localAv() || '').split('~')[0];
+    var selectedAv = STARTER_MONSTERS.indexOf(savedAv) >= 0 && ownsAv(savedAv) ? savedAv : STARTER_MONSTERS[0];
     o.body.innerHTML = '<section class="mlv-card" style="max-width:440px;margin:6vh auto 0;text-align:center"><div style="font-size:46px">🕹</div><h2>Join the Arcade game</h2><p class="sub">Enter the code on your teacher’s screen.</p>' +
       '<div data-acct class="mlv-acct"></div>' +
       '<input type="text" data-code maxlength="8" placeholder="GAME CODE" style="text-align:center;font-size:24px;font-weight:900;letter-spacing:.15em" value="' + esc(code) + '">' +
       '<input type="text" data-name maxlength="20" placeholder="Your name" style="margin-top:10px;text-align:center;font-size:18px" value="' + esc(saved.name || '') + '">' +
-      '<div class="mlv-avatar-label">Choose your monster</div><div class="mlv-avatar-picker" data-avatar>' + STARTER_MONSTERS.map(function (id) { var c = cardById(id); return '<button type="button" class="mlv-avatar-choice' + (id === selectedAv ? ' on' : '') + '" data-av="' + id + '" title="' + esc(c.name) + '">' + iconHtml(c, 'mlv-card-icon') + '</button>'; }).join('') + '</div>' +
+      '<div class="mlv-avatar-label">Choose your buddy · <span data-gemct style="color:#fde68a">💎 ' + gems() + '</span></div><div class="mlv-avatar-picker" data-avatar>' + STARTER_MONSTERS.map(function (id) { var c = cardById(id); var own = ownsAv(id); return '<button type="button" class="mlv-avatar-choice' + (id === selectedAv ? ' on' : '') + (own ? '' : ' lock') + '" data-av="' + id + '" title="' + esc(c.name) + '">' + iconHtml(c, 'mlv-card-icon') + (own ? '' : '<span class="pr">💎 ' + avCost(id) + '</span>') + '</button>'; }).join('') + '</div>' +
       '<div class="mlv-row" style="justify-content:center"><button class="mlv-btn" data-join>Join</button></div><div class="mlv-err" data-err></div></section>';
     var codeIn = $(o.body, '[data-code]'), nameIn = $(o.body, '[data-name]'), err = $(o.body, '[data-err]'), acct = $(o.body, '[data-acct]'), gUser = GAUTH.user();
     function paintAcct() {
@@ -8836,7 +9018,17 @@ var StudyArcade = window.StudyArcade = (function() {
     }
     paintAcct();
     GAUTH.watch(function (u) { gUser = u || null; paintAcct(); });
-    $$(o.body, '[data-av]').forEach(function (btn) { btn.onclick = function () { selectedAv = btn.getAttribute('data-av'); $$(o.body, '[data-av]').forEach(function (x) { x.classList.toggle('on', x === btn); }); }; });
+    $$(o.body, '[data-av]').forEach(function (btn) { btn.onclick = function () {
+      var id = btn.getAttribute('data-av');
+      if (!ownsAv(id)) {
+        var cost = avCost(id), nm = MNAV.names[id] || 'This buddy';
+        if (gems() < cost) { err.textContent = nm + ' unlocks for 💎 ' + cost + ' (you have ' + gems() + '). Earn 💎 in the waiting games below!'; btn.classList.add('shake'); setTimeout(function () { btn.classList.remove('shake'); }, 500); return; }
+        if (!btn.classList.contains('sure')) { $$(o.body, '[data-av].sure').forEach(function (x) { x.classList.remove('sure'); }); btn.classList.add('sure'); err.textContent = 'Tap ' + nm + ' again to unlock it for 💎 ' + cost + '.'; return; }
+        gems(-cost); var L = locker(); L.av.push(id); locker(L); btn.classList.remove('lock', 'sure'); var pr = btn.querySelector('.pr'); if (pr) pr.remove();
+        var gc = $(o.body, '[data-gemct]'); if (gc) gc.textContent = '💎 ' + gems(); beep('win'); OCTO.cheer(true); err.textContent = nm + ' unlocked! 🎉';
+      } else err.textContent = '';
+      selectedAv = id; $$(o.body, '[data-av]').forEach(function (x) { x.classList.toggle('on', x === btn); });
+    }; });
     nameIn.addEventListener('input', function () { nameIn.removeAttribute('data-auto'); });
     (code ? nameIn : codeIn).focus();
     codeIn.oninput = function () { codeIn.value = cleanCode(codeIn.value); };
@@ -8850,7 +9042,7 @@ var StudyArcade = window.StudyArcade = (function() {
         if (h.state === 'ended') throw new Error('That game has ended.');
         // signed in: the account is the player (same progress on any device); a guest gets a random id
         var pid = gUser ? 'g' + key(gUser.uid) : (saved.code === c && saved.pid ? saved.pid : uid());
-        var who = { name: name, av: selectedAv, joined: { '.sv': 'timestamp' }, now: 'map', google: !!gUser };
+        var who = { name: name, av: withWear(selectedAv), joined: { '.sv': 'timestamp' }, now: 'map', google: !!gUser };
         if (gUser && gUser.photoURL) who.photo = gUser.photoURL;
         return db(c + '/players/' + pid, 'PATCH', who).then(function (r) {
           var me = { code: c, pid: pid, name: name, av: selectedAv, offset: (r.joined || Date.now()) - Date.now() };
@@ -8883,7 +9075,7 @@ var StudyArcade = window.StudyArcade = (function() {
     function save(extra) {
       try { sessionStorage.setItem('minest.live.state.' + path, JSON.stringify(s)); } catch (e) {}
       if (flushT) { clearTimeout(flushT); flushT = 0; }
-      var body = { st: /^g/.test(me.pid) ? JSON.stringify({ money: s.money, streak: s.streak, best: s.best, correct: s.correct, wrong: s.wrong, u: s.u, bonus: s.bonus, shield: s.shield, lv: s.lv, coll: s.coll, av: s.av, sc: s.sc, combo: s.combo, cards: {} }) : null, sc: s.sc, combo: s.combo || 0, money: Math.floor(s.money), correct: s.correct, wrong: s.wrong, streak: s.streak, best: s.best, lv: s.lv, now: run && !run.done ? run.k : screen === 'shop' ? 'shop' : screen === 'cards' ? 'cards' : screen === 'cover' ? 'cover' : 'map', av: avatar(), coll: Object.keys(s.coll).length, last: { '.sv': 'timestamp' } };
+      var body = { st: /^g/.test(me.pid) ? JSON.stringify({ money: s.money, streak: s.streak, best: s.best, correct: s.correct, wrong: s.wrong, u: s.u, bonus: s.bonus, shield: s.shield, lv: s.lv, coll: s.coll, av: s.av, sc: s.sc, combo: s.combo, cards: {} }) : null, sc: s.sc, combo: s.combo || 0, money: Math.floor(s.money), correct: s.correct, wrong: s.wrong, streak: s.streak, best: s.best, lv: s.lv, now: run && !run.done ? run.k : screen === 'shop' ? 'shop' : screen === 'cards' ? 'cards' : screen === 'cover' ? 'cover' : 'map', av: withWear(avatar()), coll: Object.keys(s.coll).length, last: { '.sv': 'timestamp' } };
       Object.keys(pending).forEach(function (k) { body['cards/' + k] = s.cards[k]; }); pending = {};
       if (extra) Object.keys(extra).forEach(function (k) { body[k] = extra[k]; });
       return db(path, 'PATCH', body).catch(function () {});
@@ -8906,13 +9098,14 @@ var StudyArcade = window.StudyArcade = (function() {
     function totalScore() { var t = 0; Object.keys(s.sc || {}).forEach(function (k) { t += s.sc[k] || 0; }); return t; }
     function live() { return host.state === 'live'; }
 
+    var endSeen = host.state === 'ended';
     var w = watch(me.code + '/host', function (h) {
       if (!h) return;
       host = h;
       var rk = myRank(), rkKey = rk ? rk.r + '/' + rk.n + '/' + rk.by + JSON.stringify(h.lb.top) : '';
       if (h.state === 'live' && screen === 'wait') { screen = 'map'; draw(); beep('win'); OCTO.act('excited', 'Go go go! 🚀', 2000); }
       else if (h.state === 'live' && rkKey !== lastRk) { lastRk = rkKey; if (screen === 'map' && !run) draw(); updateFloat(); }
-      else if (h.state === 'ended' && screen !== 'end') { endRun(); screen = 'end'; save(); draw(); OCTO.cheer(true); OCTO.act(null, 'GG! 🏁', 2500); }
+      else if (h.state === 'ended' && !endSeen) { endSeen = true; endRun(); screen = 'end'; save(); draw(); OCTO.cheer(true); OCTO.act(null, 'GG! 🏁', 2500); }
     });
     o.cleanup.push(function () { w.close(); endRun(true); });
     var t = setInterval(function () {
@@ -9042,12 +9235,22 @@ var StudyArcade = window.StudyArcade = (function() {
 
     // ---------------------------------------------------------------- map, shop, end
     function hud() {
-      return '<div class="mlv-card mlv-hud"><span class="mlv-cash"><i class="mlv-av">' + avHtml(avatar()) + '</i>' + money(s.money) + '</span>' + (myRank() ? '<span class="mlv-pill mlv-rank">🏅 #' + myRank().r + ' / ' + myRank().n + '</span>' : '') + '<span class="mlv-pill">⭐ ' + points(totalScore()) + '</span><span class="mlv-pill">🔥 ' + s.streak + '</span>' +
+      return '<div class="mlv-card mlv-hud"><span class="mlv-cash"><i class="mlv-av">' + avHtml(withWear(avatar())) + '</i>' + money(s.money) + '</span>' + (myRank() ? '<span class="mlv-pill mlv-rank">🏅 #' + myRank().r + ' / ' + myRank().n + '</span>' : '') + '<span class="mlv-pill">⭐ ' + points(totalScore()) + '</span><span class="mlv-pill">🔥 ' + s.streak + '</span>' +
         (s.bonus > 1 ? '<span class="mlv-pill">' + (s.bonus === 5 ? '💥' : '⚡') + ' ×' + s.bonus + ' next level</span>' : '') + (s.shield ? '<span class="mlv-pill">🧲 ×' + s.shield + '</span>' : '') +
         '<span class="mlv-sp"></span>' + (host.goal.type === 'time' ? '<span class="mlv-pill" data-left>⏱</span>' : host.goal.type === 'money' ? '<span class="mlv-pill">🏁 ' + money(host.goal.target) + '</span>' : '<span class="mlv-pill">🏰 clear all</span>') +
         '<button class="mlv-btn alt" data-cover style="padding:9px 14px" title="Study the cards one by one">📖 3D Cover</button>' +
         '<button class="mlv-btn alt" data-cards style="padding:9px 14px">' + (screen === 'cards' ? '🗺 Map' : '🏅 Badges ' + Object.keys(s.coll).length + '/' + CARDS.length) + '</button>' +
         '<button class="mlv-btn' + (screen === 'shop' ? ' alt' : '') + '" data-shop style="padding:9px 14px">' + (screen === 'shop' ? '🗺 Map' : '🛒 Shop') + '</button></div>';
+    }
+    function endBonus() {
+      var k = 'minest.live.endgems.' + me.code + '.' + me.pid, got = 0;
+      try { got = +localStorage.getItem(k) || 0; } catch (e) {}
+      if (got) return got;
+      var cl = host.levels.filter(function (x) { return s.lv[x]; }).length, st = 0; Object.keys(s.lv).forEach(function (x) { st += s.lv[x]; });
+      var rk = myRank(), place = rk ? rk.r : 99;
+      got = Math.max(10, Math.min(80, 10 + cl * 4 + st + (place === 1 ? 20 : place === 2 ? 15 : place === 3 ? 10 : 0)));
+      gems(got); try { localStorage.setItem(k, String(got)); } catch (e) {}
+      return got;
     }
     function draw() {
       if (!current || current.el !== o.el) return;
@@ -9056,14 +9259,14 @@ var StudyArcade = window.StudyArcade = (function() {
           '<div class="mlv-trail" style="justify-content:center">' + host.levels.map(function (k) { return '<i style="width:40px;height:40px;font-size:21px;border-radius:12px">' + levelInfo(k).icon + '</i>'; }).join('') + '</div></section>';
         var wp = document.createElement('div'); wp.style.cssText = 'max-width:520px;margin:0 auto'; o.body.appendChild(wp);
         var sb = document.createElement('button'); sb.type = 'button'; sb.className = 'mlv-btn mlv-studybtn'; sb.innerHTML = '📖 Study the cards in 3D Cover'; sb.onclick = function () { openCover(me.code); };
-        wp.appendChild(sb); waitPanel(wp, null, host);
+        wp.appendChild(sb); waitPanel(wp, null, host, { code: me.code, pid: me.pid, name: me.name, av: withWear(avatar()) });
         return;
       }
       if (screen === 'end') {
         var cl = host.levels.filter(function (k) { return s.lv[k]; }).length, st = 0; Object.keys(s.lv).forEach(function (k) { st += s.lv[k]; });
-        o.body.innerHTML = '<section class="mlv-card" style="max-width:520px;margin:8vh auto 0;text-align:center"><div class="mlv-av" style="width:84px;height:84px;font-size:54px;margin:0 auto">' + avHtml(avatar()) + '</div><h2>Game over</h2><p class="sub">Look at your teacher’s screen for the podium.</p>' +
+        o.body.innerHTML = '<section class="mlv-card" style="max-width:520px;margin:8vh auto 0;text-align:center"><div class="mlv-av" style="width:84px;height:84px;font-size:54px;margin:0 auto">' + avHtml(withWear(avatar())) + '</div><h2>Game over</h2><p class="sub">Look at your teacher’s screen for the podium.</p><div class="mlv-endgem">💎 +' + endBonus() + ' for your Locker</div>' +
           '<div class="mlv-stat" style="justify-content:center"><div><small>Place</small><strong>' + (myRank() ? '#' + myRank().r : '—') + '</strong></div><div><small>Coins</small><strong>' + money(s.money) + '</strong></div><div><small>Points</small><strong>' + points(totalScore()) + '</strong></div><div><small>Levels</small><strong>' + cl + '/' + host.levels.length + '</strong></div><div><small>Stars</small><strong>' + st + '★</strong></div><div><small>Right</small><strong>' + pct(s.correct, s.wrong) + '</strong></div><div><small>Cards</small><strong>' + Object.keys(s.coll).length + '</strong></div></div>' +
-          '<div class="mlv-row" style="justify-content:center;margin-top:16px"><button class="mlv-btn" data-end-shop>🛒 Shop & unlock</button><button class="mlv-btn alt" data-end-cards>👾 Monsters & badges</button><button class="mlv-btn alt" data-end-map>🗺 Map</button></div></section>';
+          '<div class="mlv-row" style="justify-content:center;margin-top:16px"><button class="mlv-btn" data-end-shop>👕 Locker & shop</button><button class="mlv-btn alt" data-end-cards>👾 Monsters & badges</button><button class="mlv-btn alt" data-end-map>🗺 Map</button></div></section>';
         $(o.body, '[data-end-shop]').onclick = function () { screen = 'shop'; draw(); save(); };
         $(o.body, '[data-end-cards]').onclick = function () { screen = 'cards'; draw(); save(); };
         $(o.body, '[data-end-map]').onclick = function () { screen = 'map'; draw(); save(); };
@@ -9076,7 +9279,7 @@ var StudyArcade = window.StudyArcade = (function() {
       var top5 = lb && lb.top && lb.top.length ? '<div class="mlv-card mlv-top5"><h3><span>🏆 Top ' + lb.top.length + '</span><span class="mlv-note" style="margin:0">' + (RANK[lb.by] ? RANK[lb.by].name : '') + '</span></h3>' + lb.top.map(function (t, i) {
         var mine = myRank() && myRank().r === i + 1;
         return '<div class="row' + (mine ? ' me' : '') + '"><span>' + (['🥇', '🥈', '🥉'][i] || '#' + (i + 1)) + '</span><i class="mlv-av" style="width:30px;height:30px;margin:0">' + avHtml(t.av) + '</i><span>' + esc(t.n) + (mine ? ' (you)' : '') + '</span><b>' + esc(t.v) + '</b></div>';
-      }).join('') + (myRank() && myRank().r > lb.top.length ? '<div class="row me"><span>#' + myRank().r + '</span><i class="mlv-av" style="width:30px;height:30px;margin:0">' + avHtml(avatar()) + '</i><span>' + esc(me.name) + ' (you)</span><b></b></div>' : '') + '</div>' : '';
+      }).join('') + (myRank() && myRank().r > lb.top.length ? '<div class="row me"><span>#' + myRank().r + '</span><i class="mlv-av" style="width:30px;height:30px;margin:0">' + avHtml(withWear(avatar())) + '</i><span>' + esc(me.name) + ' (you)</span><b></b></div>' : '') + '</div>' : '';
       o.body.innerHTML = hud() + top5 + '<div class="mlv-map">' + host.levels.map(function (k, i) {
         var L = levelInfo(k), done = s.lv[k], open = unlocked(k);
         var head = (i === 0 && ls.length ? '<h4>📖 Learn first</h4>' : '') + (k === firstGame ? '<h4>' + (learned() ? '🎮 Choose any game' : '🔒 Games open after learning') + '</h4>' : '');
@@ -9138,7 +9341,7 @@ var StudyArcade = window.StudyArcade = (function() {
     }
     function shop() {
       var e = earnOf({ u: s.u, streak: 1 });
-      o.body.innerHTML = hud() + packsHtml() + '<h3 style="margin-top:20px">Upgrades</h3><div class="mlv-shop">' + Object.keys(UPG).map(function (k) {
+      o.body.innerHTML = hud() + lockerHtml(avatar()) + packsHtml() + '<h3 style="margin-top:20px">Upgrades</h3><div class="mlv-shop">' + Object.keys(UPG).map(function (k) {
         var u = UPG[k], lv = s.u[k], nx = lv + 1 < u.vals.length ? lv + 1 : -1, can = nx > 0 && s.money >= u.cost[nx];
         return '<div class="mlv-up"><div class="t">' + u.icon + ' ' + u.name + '</div><div class="lv">' + u.vals.map(function (_, i) { return '<i class="' + (i <= lv ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
           '<div class="v">Now ' + u.fmt(u.vals[lv]) + (nx > 0 ? ' → ' + u.fmt(u.vals[nx]) : ' · max') + '</div>' +
@@ -9148,6 +9351,7 @@ var StudyArcade = window.StudyArcade = (function() {
         return '<div class="mlv-up"><div class="t">' + p.icon + ' ' + p.name + '</div><div class="v">' + p.desc + '</div><button class="mlv-btn' + (can ? '' : ' alt') + '" data-pw="' + k + '"' + (can ? '' : ' disabled') + '>' + (owned ? 'Ready ✓' : 'Buy · ' + money(price)) + '</button></div>';
       }).join('') + '</div>';
       wireHud();
+      wireLocker(o.body, function (id) { if (id) { s.av = id; localAv(id); } save(); }, shop);
       $$(o.body, '[data-pack]').forEach(function (b) { b.onclick = function () { openPack(b.getAttribute('data-pack')); }; });
       $$(o.body, '.mlv-tilecv').forEach(function (cv) { chestScene(cv, cv.getAttribute('data-tier'), true); });
       $$(o.body, '[data-up]').forEach(function (b) {
