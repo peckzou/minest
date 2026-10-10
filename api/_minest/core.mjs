@@ -42,7 +42,7 @@ const openRouterBaseUrl = 'https://openrouter.ai/api/v1';
 
 export const headers = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Minest-Token',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Minest-Token, X-Minest-Id-Token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json; charset=utf-8'
 };

@@ -8496,7 +8496,7 @@ var CardGlassShatter = (function() {
   };
 })();
 
-// ---- web30: Study Arcade from iPhone46.2.html ----
+// ---- web30: Study Arcade from iPhone46.3.html ----
 var StudyArcade = window.StudyArcade = (function() {
   var clamp = function(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); };
   var rnd = function(a, b) { return a + Math.random() * (b - a); };
@@ -16383,7 +16383,7 @@ var De = function(props) {
 // =========================================================================
 // 3D Cover Flow View Component (Oe) - Kept 100% Intact
 // =========================================================================
-// ---- web30: from iPhone46.2.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
+// ---- web30: from iPhone46.3.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
 var IconCloud = E('cloud', [
   ['path', { d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z', key: 'cl1' }]
 ]);
@@ -16876,8 +16876,25 @@ var MinestAIBoardBuilder = function(props) {
 var minestAIHeaders = function() {
   var h = { 'Content-Type': 'application/json' };
   try { var t = localStorage.getItem('minest_ai_token'); if (t) h['X-Minest-Token'] = t; } catch (e) {}
+  if (window.__mnIdToken) h['X-Minest-Id-Token'] = window.__mnIdToken;
   return h;
 };
+// 46.3: on the web, a Google sign-in on the allowed list stands in for the token — the page keeps a fresh Firebase
+// ID token and sends it as X-Minest-Id-Token; the server checks it against MINEST_AI_EMAILS (api/_minest/auth.mjs)
+(function keepIdToken() {
+  var hook = function () {
+    try {
+      if (!window.firebase || !firebase.auth || !firebase.apps || !firebase.apps.length) return false;
+      var a = firebase.auth();
+      var take = function (u) { if (!u) { window.__mnIdToken = ''; return; } u.getIdToken().then(function (t) { window.__mnIdToken = t; }).catch(function () {}); };
+      a.onIdTokenChanged(take);
+      setInterval(function () { take(a.currentUser); }, 10 * 60 * 1000);
+      return true;
+    } catch (e) { return false; }
+  };
+  if (!hook()) { var n = 0, iv = setInterval(function () { if (hook() || ++n > 120) clearInterval(iv); }, 1000); }
+})();
+
 var MinestAnalyze = (function() {
   var today = function() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   var esc = function(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
@@ -33063,7 +33080,7 @@ function parseAndNormalizeBoardJson(raw) {
   }
 }
 
-// ---- web30: cloud format from iPhone46.2.html ----
+// ---- web30: cloud format from iPhone46.3.html ----
 var MINEST_CLOUD_GZ_LIMIT = 950000;
 function minestBytesToB64(bytes) {
   var s = '';
@@ -38906,7 +38923,7 @@ var Ve = (function(_Component) {
 
   </script>
   
-<!-- ---- web30: add-ons from iPhone46.2.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
+<!-- ---- web30: add-ons from iPhone46.3.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
 <script>
 /* 41.377 Pet Raising V6: keep the V6 experience isolated from the board while
    making it available from the same menu as the other Minest tools. */
@@ -40767,6 +40784,7 @@ var Ve = (function(_Component) {
       var token = localStorage.getItem('minest_ai_token');
       if (token) headers['X-Minest-Token'] = token;
     } catch (error) {}
+    if (window.__mnIdToken) headers['X-Minest-Id-Token'] = window.__mnIdToken;   // 46.3: or the Google sign-in
     return headers;
   }
 
@@ -41570,7 +41588,7 @@ var Ve = (function(_Component) {
     var w = window.webkit && window.webkit.messageHandlers;
     return !!(w && (w.minestBridge || w.focusboardBridge));
   }
-  function hasToken() { try { return !!localStorage.getItem('minest_ai_token'); } catch (error) { return false; } }
+  function hasToken() { if (window.__mnIdToken) return true; try { return !!localStorage.getItem('minest_ai_token'); } catch (error) { return false; } }
   var NO_TOKEN = 'This browser has no Minest AI token yet, so voice can’t reach the AI. Open Minest in the iOS app, or add the token to this browser once.';
 
   async function startSession() {

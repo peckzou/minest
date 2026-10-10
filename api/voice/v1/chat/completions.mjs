@@ -2,11 +2,12 @@
 // It reuses the existing Vercel server-side OPENAI_* variables and keeps the
 // provider key on Vercel. The local voice server authenticates with the existing
 // MINEST_AI_TOKEN via X-Minest-Token; that token is never forwarded upstream.
+import { authorize } from '../../../_minest/auth.mjs';
 export const config = { runtime: 'nodejs' };
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Minest-Token',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Minest-Token, X-Minest-Id-Token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -34,7 +35,8 @@ export default async function handler(req, res) {
   const authHeader = req.headers['authorization'] || '';
   const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
   const reqToken = req.headers['x-minest-token'] || bearerToken;
-  if (!token || reqToken !== token) {
+  // or a Google sign-in on the allowed list (api/_minest/auth.mjs)
+  if (!(token && reqToken === token) && !(await authorize(req, token)).ok) {
     res.statusCode = 401;
     Object.entries(cors).forEach(([key, value]) => res.setHeader(key, value));
     return res.end(JSON.stringify({ error: 'Voice proxy: unauthorized' }));

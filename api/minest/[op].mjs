@@ -1,8 +1,9 @@
 // Minest AI on Vercel: /api/minest/<op> — ai-chat, ai-chat-stream, ai-plan, ai-expand, ai-analyze,
 // ai-diagnose, ai-board, ai-judge (44.7 voice quiz). Same logic as the Mac server (api/_minest/core.mjs).
-// Every request must carry X-Minest-Token = MINEST_AI_TOKEN (set in the Vercel project), so the
-// API key behind it cannot be used by anyone else. Without a configured token nothing is served.
+// Every request must carry X-Minest-Token = MINEST_AI_TOKEN (the app), or a Google sign-in on the allowed list
+// (X-Minest-Id-Token, see api/_minest/auth.mjs), so the API key behind it cannot be used by anyone else.
 import { headers, handle, streamChat } from '../_minest/core.mjs';
+import { authorize } from '../_minest/auth.mjs';
 
 export const config = { runtime: 'nodejs' };
 
@@ -15,9 +16,8 @@ const send = (res, status, body) => {
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.statusCode = 204; Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v)); return res.end(); }
   if (req.method !== 'POST') return send(res, 405, { error: 'POST required' });
-  const token = process.env.MINEST_AI_TOKEN;
-  if (!token) return send(res, 503, { error: 'Minest AI: MINEST_AI_TOKEN is not configured on the server' });
-  if (req.headers['x-minest-token'] !== token) return send(res, 401, { error: 'Minest AI: 设备未授权（缺少 token）' });
+  const auth = await authorize(req, process.env.MINEST_AI_TOKEN);
+  if (!auth.ok) return send(res, auth.status, { error: auth.error });
   const op = String((req.query && req.query.op) || '').replace(/[^a-z-]/g, '');
   const input = req.body && typeof req.body === 'object' ? req.body : {};
   if (op === 'ai-chat-stream') {

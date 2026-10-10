@@ -2,10 +2,11 @@
 // The browser sends only an SDP offer and the device token. The standard
 // OPENAI_API_KEY stays in Vercel and is never returned to the client.
 import { createHash } from 'node:crypto';
+import { authorize } from '../_minest/auth.mjs';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Minest-Token',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Minest-Token, X-Minest-Id-Token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Cache-Control': 'no-store'
 };
@@ -39,9 +40,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return reply(res, 204, '');
   if (req.method !== 'POST') return reply(res, 405, JSON.stringify({ error: 'POST required' }));
 
-  const deviceToken = process.env.MINEST_AI_TOKEN;
-  if (!deviceToken) return reply(res, 503, JSON.stringify({ error: 'MINEST_AI_TOKEN is not configured on the server' }));
-  if (req.headers['x-minest-token'] !== deviceToken) return reply(res, 401, JSON.stringify({ error: 'Device not authorised (missing Minest AI token)' }));
+  // the app's token, or a Google sign-in on the allowed list (api/_minest/auth.mjs)
+  const auth = await authorize(req, process.env.MINEST_AI_TOKEN);
+  if (!auth.ok) return reply(res, auth.status, JSON.stringify({ error: auth.error }));
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return reply(res, 503, JSON.stringify({ error: 'OPENAI_API_KEY is not configured on the server' }));
