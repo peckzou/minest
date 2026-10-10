@@ -45332,7 +45332,8 @@ var CoverKiosk = function() {
   // ------------------------------------------------------------------ 📖 the 3D Cover study room: the game's cards, one by one, any time
   function openCover(code, onClose) {
     ensureCss();
-    var page = location.pathname.replace(/[^/]*$/, '') + 'web31.1.html?learn=' + encodeURIComponent(code);
+    // in the iOS app the page is a file: — the 3D Cover then comes from the site
+    var page = (/^https?:$/.test(location.protocol) ? location.pathname.replace(/[^/]*$/, '') : 'https://minest1.vercel.app/') + 'web31.1.html?learn=' + encodeURIComponent(code);
     var ov = document.createElement('div'); ov.className = 'mlv-cover';
     ov.innerHTML = '<iframe title="3D Cover" src="' + page + '" allow="microphone; autoplay"></iframe><div class="mlv-cover-load">📖 Opening the 3D Cover…</div>';
     document.body.appendChild(ov);

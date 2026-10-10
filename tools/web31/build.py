@@ -21,8 +21,8 @@ def live_js():
     return open(os.path.join(HERE, 'minest-live.js'), encoding='utf-8').read()
 
 
-def build(iphone_path):
-    out = web30.build(iphone_path)
+def arcade_patches(out):
+    """The Study Arcade / 3D Cover changes Minest Live needs (also for the iPhone / iPad pages: tools/mobile/live_mobile.py)."""
     # Study Arcade: Minest Live opens one game straight away (a level) and hears when the player leaves it
     out = once(out, "window.dispatchEvent(new CustomEvent('minest:arcade-done', { detail: { mode: S.modeKey, cleared: !!cleared, res: outRes } }));",
                 "window.dispatchEvent(new CustomEvent('minest:arcade-done', { detail: { mode: S.modeKey, cleared: !!cleared, res: outRes, score: Math.round(S.score || 0), combo: S.bestCombo || 0 } }));   // web31: score for Minest Live",
@@ -67,6 +67,11 @@ def build(iphone_path):
     out = once(out, """  var coverSpeak = function(card, el) {""", """  var coverSpeak = function(card, el) {
     if (window.__mnNoVoice) return;   // web31: students""", '3D Cover: no tap-to-read for students')
     out = once(out, """        if (window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });""", """        if (!window.__mnNoVoice && window.MinestPron && window.MinestPron.openCard) window.MinestPron.openCard(card, el, { hold: true });""", '3D Cover: no hold-to-record for students')
+    return out
+
+
+def build(iphone_path):
+    out = arcade_patches(web30.build(iphone_path))
     # Student 3D Cover study room: web31.0.html?learn=CODE mounts only the 3D Cover (the iPhone build's Oe) on
     # the live game's cards — the board app (its storage, sync) never starts, so nothing of the student's changes.
     # Only two buttons: Light FX (FBFX's own, it appears by itself on the stage) and the thick-glass switch.
@@ -211,6 +216,8 @@ window.__mnNoVoice = true;   // students: no read-aloud, no recording
 
 def main():
     iphone_path = web30.resolve_iphone(sys.argv[1] if len(sys.argv) > 1 else None)
+    if '<!-- ---- Minest Live' in open(iphone_path, encoding='utf-8').read():
+        raise SystemExit('%s already has Minest Live (tools/mobile/live_mobile.py) — name the page it came from, e.g. iPhone46.3.html' % os.path.basename(iphone_path))
     out = build(iphone_path)
     open(os.path.join(REPO, 'web31.0.html'), 'w', encoding='utf-8').write(out)
     open(os.path.join(REPO, 'web31.play.html'), 'w', encoding='utf-8').write(play_page(out))
