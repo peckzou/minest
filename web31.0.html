@@ -44721,7 +44721,7 @@ var CoverKiosk = function() {
 
 </script>
 <script>
-/* web31 · a macOS-style menu bar on top and a macOS-style Dock at the bottom (📌 on the bar keeps both out; while they are out the board steps back) (built on the iPhone 45.x bar). The old bar is gone from sight (it stays in the page, hidden, so
+/* web31 · a macOS-style menu bar on top and a macOS-style Dock at the bottom (the bar stays up — ⌃ puts it away, the top edge brings it back; while they are out the board steps back) (built on the iPhone 45.x bar). The old bar is gone from sight (it stays in the page, hidden, so
    every tool, menu and popover keeps working); the new bar has the iPhone dock's buttons, laid out across:
      board name · search · + · 3D/Board · theme · stats · iPhone ⇄ Desktop · lists · wallpaper · Arcade · Octo ·
      Light FX · Card FX · ink · settings · Cloud (far right)
@@ -44817,7 +44817,6 @@ var CoverKiosk = function() {
     '.mn31-status button[hidden],.mn31-status .sep{display:none}',
     '.mn31-status svg{width:14px;height:14px}.mn31-status i{width:7px;height:7px;border-radius:50%;background:#94a3b8}',
     '.mn31-status .lbl{display:none}',   // icons only, as on macOS (the words are in the tooltips)
-    '.mn31-s.pin.on{background:rgba(125,211,252,.22);color:#7dd3fc}html:has(.theme-white) .mn31-s.pin.on{background:rgba(14,165,233,.14);color:#0369a1}',
     // while the bar and Dock are out, the board steps back: a little smaller, clear of the bar and the Dock
     'main{transition:padding .32s cubic-bezier(.2,.9,.25,1)}',
     'html:is(.mn31-chrome,.mn31-dockon) main{padding:18px!important}html.mn31-chrome main{padding-top:36px!important}',
@@ -44895,15 +44894,21 @@ var CoverKiosk = function() {
     el.onclick = function (e) { e.stopPropagation(); anchor = el; b.run(); watchPop(); setTimeout(refresh, 80); };
     els[b.k] = el;
   });
-  // pin: keep the bar and the Dock out for good (remembered)
-  var pinned = false; try { pinned = localStorage.getItem('minest.web31.pin') === '1'; } catch (e) {}
-  var pinB = document.createElement('button'); pinB.type = 'button'; pinB.className = 'mn31-s pin'; pinB.innerHTML = ICON.pin;
+  // the menu bar stays up by default; ⌃ puts it away (then the top edge brings it back for a while, and ⌄ keeps it up again)
+  var pinned = true; try { pinned = localStorage.getItem('minest.web31.barKeep') !== '0'; } catch (e) {}
+  var pinB = document.createElement('button'); pinB.type = 'button'; pinB.className = 'mn31-s pin';
+  var UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>';
+  var DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
   function setPin(v) {
-    pinned = v; pinB.classList.toggle('on', v); pinB.title = v ? 'Unpin the menu bar (hide it again)' : 'Pin the menu bar (always show)'; pinB.setAttribute('aria-label', pinB.title); pinB.setAttribute('aria-pressed', String(v));
-    try { localStorage.setItem('minest.web31.pin', v ? '1' : '0'); } catch (e) {}
+    pinned = v; pinB.innerHTML = v ? UP : DOWN;
+    pinB.title = v ? 'Hide the menu bar' : 'Keep the menu bar'; pinB.setAttribute('aria-label', pinB.title);
+    try { localStorage.setItem('minest.web31.barKeep', v ? '1' : '0'); } catch (e) {}
     if (v) root.classList.add('mn31-chrome'); else hideSoon(HIDE);
   }
-  pinB.onclick = function (e) { e.stopPropagation(); setPin(!pinned); };
+  pinB.onclick = function (e) {
+    e.stopPropagation();
+    if (pinned) { setPin(false); hideNow(); } else setPin(true);
+  };
   bar.appendChild(pinB);
   // full screen (the browser's own), far right
   var fullB = document.createElement('button'); fullB.type = 'button'; fullB.className = 'mn31-s full';
@@ -45096,7 +45101,7 @@ var CoverKiosk = function() {
     try {
       if (localStorage.getItem('minest.web31.barHint') !== '4') {
         localStorage.setItem('minest.web31.barHint', '4');
-        var t = document.createElement('div'); t.className = 'mn31-hint'; t.textContent = 'Top edge: menu bar · bottom edge: Dock · right-click the Dock to move it · 📌 keeps the bar out';
+        var t = document.createElement('div'); t.className = 'mn31-hint'; t.textContent = 'Top edge: menu bar · bottom edge: Dock · right-click the Dock to move it · ⌃ hides the menu bar';
         document.body.appendChild(t); setTimeout(function () { t.remove(); }, 3600);
       }
     } catch (e) {}
