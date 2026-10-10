@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 45.9 · Dock: pick, then open</title>
+    <title>Minest iPhone 46.0 · Edge swipe for the Dock</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21423,7 +21423,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "45.9" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "46.0" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -50367,7 +50367,7 @@ var Ve = (function(_Component) {
 <script>
 /* 45.7 A Dock (macOS): one liquid-glass shelf with the icons on it (no frame of their own) — they swell under a
    finger, the name shows beside it; a tap (or a slide) picks an icon, a second tap on it opens it. On the right by default; a long
-   press on the Dock moves it (Left · Bottom · Right). It comes and goes with the top bar, and a tap on empty space
+   press on the Dock moves it (Left · Bottom · Right); a swipe in from that edge brings it out. It comes and goes with the top bar, and a tap on empty space
    puts both away at once. At the bottom the lists make room for it. The ≡ button and its column are gone; every
    icon presses the button it stands for. */
 (function () {
@@ -50427,6 +50427,10 @@ var Ve = (function(_Component) {
     // iPad: while the bar and the Dock are out the lists sit below the bar and stop above the Dock
     'html.mn-bd-tab.mn-immersive.mn-chrome:not(.mn-navmenu) body:not(.clear-mode) .mobile-board-view{padding-top:calc(var(--mn-bd-top, 51px) + 6px)!important}',
     'html.mn-bd-tab.mn-immersive.mn-chrome[data-mn-bd=bottom]:not(.mn-navmenu) body:not(.clear-mode) .kanban-column-wrapper{max-height:calc(100dvh - var(--mn-bd-top, 51px) - 6px - var(--mn-bd-h, 70px) - 14px)!important}',
+    // the edge strip: a swipe in from the Dock's side brings the bars and the Dock out (the right edge also for the bottom Dock)
+    '.mn-bd-edge{position:fixed;top:calc(var(--sat, 0px) + 50px);bottom:40px;width:22px;z-index:58;touch-action:none;-webkit-user-select:none;user-select:none}',
+    'html[data-mn-bd=right] .mn-bd-edge,html[data-mn-bd=bottom] .mn-bd-edge{right:0}html[data-mn-bd=left] .mn-bd-edge{left:0}',
+    'html.mn-chrome .mn-bd-edge,body.clear-mode .mn-bd-edge,html:not(.mn-immersive) .mn-bd-edge,html:has(.hu-island-header) .mn-bd-edge,html:has(.mpron-practice) .mn-bd-edge,html:has(.minest-ai-modal-backdrop) .mn-bd-edge,html:has(.apple-wallet-overlay) .mn-bd-edge{display:none}',
     // long press on the Dock: where it sits
     '.mn-bd-menu{position:fixed;z-index:2147483200;min-width:190px;padding:6px;border-radius:14px;background:rgba(36,38,48,.9);color:#fff;-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);border:1px solid rgba(255,255,255,.14);box-shadow:0 16px 40px rgba(0,0,0,.4);font:500 15px -apple-system,system-ui,sans-serif;animation:mnBdIn .18s ease-out}',
     '.mn-bd-menu h6{margin:4px 10px 6px;font-size:12px;font-weight:600;opacity:.6}',
@@ -50564,6 +50568,20 @@ var Ve = (function(_Component) {
   dock.addEventListener('click', function (e) { if (swallow) { swallow = false; e.stopPropagation(); e.preventDefault(); } }, true);
   dock.addEventListener('contextmenu', function (e) { e.preventDefault(); if (!menu) openMenu(e.clientX, e.clientY); swallow = false; });
   document.addEventListener('pointerdown', function (e) { if (menu && !menu.contains(e.target) && !dock.contains(e.target)) closeMenu(); }, true);
+  // the edge strip (the old ≡ swipe, now for the Dock)
+  var edge = document.createElement('div'); edge.className = 'mn-bd-edge';
+  var ex = 0, ey = 0, eid = null, efired = false;
+  edge.addEventListener('pointerdown', function (e) { eid = e.pointerId; ex = e.clientX; ey = e.clientY; efired = false; try { edge.setPointerCapture(eid); } catch (err) {} e.preventDefault(); });
+  edge.addEventListener('pointermove', function (e) {
+    if (e.pointerId !== eid || efired) return;
+    var dx = e.clientX - ex;
+    if ((pos === 'left' ? dx > 36 : dx < -36) && Math.abs(e.clientY - ey) < 60) {
+      efired = true;
+      try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic('medium'); } catch (err) {}
+      if (window.MinestChrome) MinestChrome.show();
+    }
+  });
+  ['pointerup', 'pointercancel'].forEach(function (t) { edge.addEventListener(t, function () { eid = null; }); });
   // a tap on empty space puts the bar and the Dock away at once
   var BLOCK = 'article, .kanban-card, .kanban-subcard, button, a, input, textarea, select, label, [contenteditable], [role="button"], header, .mn-bdock, .mn-bd-menu, #minest-mini-pet-p0, .mpet-menu, [class*="popover"], [class*="modal"], [class*="overlay"], [class*="dropdown"], [role="dialog"], [role="menu"], .arcade, .coverflow-card-item';
   document.addEventListener('pointerdown', function (e) {
@@ -50577,6 +50595,7 @@ var Ve = (function(_Component) {
   function mount() {
     if (!document.body) return;
     if (!dock.isConnected) document.body.appendChild(dock);
+    if (!edge.isConnected) document.body.appendChild(edge);
     refresh(); base();
     if (!ctl && window.MinestDock) ctl = MinestDock.attach(dock, opts);
   }
