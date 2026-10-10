@@ -6,7 +6,8 @@
        items: '.selector' (inside the container)  — or tiles: function () { return [elements] },
        boxes: [elements that receive the pointer] (default: the container),
        mode: 'size' (tiles really grow; the column reflows) | 'transform' (scale + push apart; the layout
-             is untouched — for docks whose positions are computed elsewhere)
+             is untouched — for docks whose positions are computed elsewhere),
+       contain: true | margin px (transform mode: the swollen row stays on screen)
      })   */
 (function () {
   'use strict';
@@ -30,7 +31,8 @@
     o = o || {};
     var axis = o.axis || 'y', side = o.side || 'right', max = o.max || 1.65, base = 46, reach = 150, mode = o.mode || 'size';
     var boxes = o.boxes || [box];
-    function sizes() { base = typeof o.base === 'function' ? o.base() : (o.base || 46); reach = o.reach || base * 3.2; }
+    // axis / side are read every time, so a dock can move (left · bottom · right) without attaching again
+    function sizes() { axis = o.axis || 'y'; side = o.side || 'right'; base = typeof o.base === 'function' ? o.base() : (o.base || 46); reach = o.reach || base * 3.2; }
     var label = document.createElement('div'); label.className = 'mdk-label'; document.body.appendChild(label);
     var raf = 0, pos = null, scrub = null;
     function tiles() {
@@ -66,6 +68,22 @@
             for (var k = p + dir; k !== i; k += dir) sum += (info[k].s - 1) * base;
             push = dir * sum;
           }
+          x.push = push;
+        });
+        // contain: keep the swollen row on screen — slide it back in, and squeeze it if it is wider than the screen
+        if (o.contain && info.length) {
+          var m = o.contain === true ? 6 : o.contain, lim = axis === 'y' ? innerHeight : innerWidth;
+          var half = function (x) { return (axis === 'y' ? x.t.offsetHeight : x.t.offsetWidth) * x.s / 2; };
+          var a0 = info[0], a1 = info[info.length - 1];
+          var lo = function (k) { return a0.c + a0.push * k - half(a0); }, hi = function (k) { return a1.c + a1.push * k + half(a1); };
+          var k = 1, room = lim - 2 * m;
+          if (hi(1) - lo(1) > room) { var span0 = hi(0) - lo(0), span1 = hi(1) - lo(1); k = span1 > span0 ? Math.max(0, (room - span0) / (span1 - span0)) : 1; }
+          var shift = 0;
+          if (lo(k) < m) shift = m - lo(k); else if (hi(k) > lim - m) shift = lim - m - hi(k);
+          info.forEach(function (x) { x.push = x.push * k + shift; });
+        }
+        info.forEach(function (x) {
+          var push = x.push;
           x.t.__push = push;
           if (!x.t.classList.contains('mdk-t')) x.t.classList.add('mdk-tile', 'mdk-t');
           x.t.style.setProperty('transform-origin', side === 'right' ? 'right center' : side === 'left' ? 'left center' : side === 'bottom' ? 'center bottom' : 'center top', 'important');

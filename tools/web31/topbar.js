@@ -91,29 +91,44 @@
     '.mn31-s.pin.on{background:rgba(125,211,252,.22);color:#7dd3fc}html:has(.theme-white) .mn31-s.pin.on{background:rgba(14,165,233,.14);color:#0369a1}',
     // while the bar and Dock are out, the board steps back: a little smaller, clear of the bar and the Dock
     'main{transition:padding .32s cubic-bezier(.2,.9,.25,1)}',
-    'html.mn31-chrome main{padding:36px 18px var(--mn31-dock-room,84px)!important;box-sizing:border-box!important;height:100vh!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important}',
+    'html:is(.mn31-chrome,.mn31-dockon) main{padding:18px!important}html.mn31-chrome main{padding-top:36px!important}',
+    'html.mn31-dockon[data-mn31-dock=bottom] main{padding-bottom:var(--mn31-dock-room,84px)!important}html.mn31-dockon[data-mn31-dock=right] main{padding-right:var(--mn31-dock-room,70px)!important}html.mn31-dockon[data-mn31-dock=left] main{padding-left:var(--mn31-dock-room,70px)!important}',
+    'html:is(.mn31-chrome,.mn31-dockon) main{box-sizing:border-box!important;height:100vh!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important}',
     '.mn31-search{flex:none;width:0;opacity:0;transition:width .22s ease,opacity .18s;overflow:hidden}',
     '.mn31-search.open{width:min(220px,28vw);opacity:1;margin:0 4px}',
     '.mn31-search input{width:100%;height:22px;border-radius:6px;border:0;background:rgba(255,255,255,.18);color:inherit;padding:0 9px;font:500 12.5px inherit;outline:none}',
     'html:has(.theme-white) .mn31-search input{background:rgba(0,0,0,.07)}',
-    // the Dock (macOS, at the bottom): a liquid-glass shelf of icons that swell under the pointer
-    '.mn31-dock{position:fixed;left:50%;bottom:6px;z-index:60;display:flex;flex-direction:row;align-items:flex-end;gap:6px;padding:6px 10px;border-radius:20px;',
-    'background:linear-gradient(180deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.11) 100%);border:1px solid rgba(255,255,255,.3);',
-    '-webkit-backdrop-filter:blur(24px) saturate(190%);backdrop-filter:blur(24px) saturate(190%);',
-    'box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 1px rgba(255,255,255,.12),0 14px 40px rgba(0,0,0,.26);',
-    'transform:translate(-50%,140%);opacity:0;transition:transform .34s cubic-bezier(.2,.9,.25,1),opacity .22s ease;pointer-events:none}',
-    'html.mn31-chrome .mn31-dock{transform:translate(-50%,0);opacity:1;pointer-events:auto}',
-    'html:has(.theme-white) .mn31-dock{background:linear-gradient(180deg,rgba(255,255,255,.7) 0%,rgba(255,255,255,.44) 50%,rgba(255,255,255,.54) 100%);border-color:rgba(255,255,255,.85);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 14px 40px rgba(15,23,42,.16)}',
-    // the icons: no frame of their own, just the glyph (with a soft shadow) and a dot under the one that is on
+    // the Dock (old macOS): the icons stand on a glass shelf — a long strip in perspective at the bottom, a flat
+    // translucent bar on the left / right. Right-click it to move it (Left · Bottom · Right).
+    '.mn31-dock{position:fixed;z-index:60;display:flex;gap:6px;isolation:isolate;opacity:0;pointer-events:none;transition:transform .34s cubic-bezier(.2,.9,.25,1),opacity .22s ease}',
+    '.mn31-dock::before{content:"";position:absolute;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.62) 0%,rgba(225,232,245,.34) 45%,rgba(200,210,230,.3) 100%);border:1px solid rgba(255,255,255,.75);',
+    '-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 8px 26px rgba(0,0,0,.3)}',
+    'html[data-mn31-dock=bottom] .mn31-dock{left:50%;bottom:0;flex-direction:row;align-items:flex-end;padding:0 22px calc(var(--mn31-b,46px) * .1);transform:translate(-50%,140%)}',
+    'html[data-mn31-dock=bottom] .mn31-dock::before{left:0;right:0;bottom:0;height:calc(var(--mn31-b,46px) * .82);border-radius:6px 6px 2px 2px;transform:perspective(calc(var(--mn31-b,46px) * 6)) rotateX(38deg);transform-origin:50% 100%}',
+    'html[data-mn31-dock=right] .mn31-dock{right:0;top:50%;flex-direction:column;align-items:flex-end;padding:12px 8px;transform:translate(140%,-50%)}',
+    'html[data-mn31-dock=left] .mn31-dock{left:0;top:50%;flex-direction:column;align-items:flex-start;padding:12px 8px;transform:translate(-140%,-50%)}',
+    'html[data-mn31-dock=right] .mn31-dock::before{inset:0;border-radius:10px 0 0 10px;border-right:0}html[data-mn31-dock=left] .mn31-dock::before{inset:0;border-radius:0 10px 10px 0;border-left:0}',
+    'html.mn31-dockon[data-mn31-dock=bottom] .mn31-dock{transform:translate(-50%,0);opacity:1;pointer-events:auto}',
+    'html.mn31-dockon[data-mn31-dock=right] .mn31-dock,html.mn31-dockon[data-mn31-dock=left] .mn31-dock{transform:translate(0,-50%);opacity:1;pointer-events:auto}',
+    'html:has(.theme-white) .mn31-dock::before{background:linear-gradient(180deg,rgba(255,255,255,.85) 0%,rgba(255,255,255,.55) 55%,rgba(255,255,255,.66) 100%);border-color:rgba(255,255,255,.95);box-shadow:inset 0 1px 0 #fff,0 8px 26px rgba(15,23,42,.18)}',
+    // the icons: no frame of their own — the glyph (with a soft shadow) standing on the shelf; a light under the ones that are on
     '.mn31-app{position:relative;flex:none;width:46px;height:46px;padding:0;border:0;border-radius:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:#fff}',
-    '.mn31-app svg{width:66%;height:66%;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}',
-    'html:has(.theme-white) .mn31-app{color:#1f2937}html:has(.theme-white) .mn31-app svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}',
+    '.mn31-app svg{width:70%;height:70%;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}',
+    'html:has(.theme-white) .mn31-app{color:#1f2937}html:has(.theme-white) .mn31-app svg{filter:drop-shadow(0 2px 3px rgba(0,0,0,.2))}',
     '.mn31-app.on{color:#7dd3fc}html:has(.theme-white) .mn31-app.on{color:#0284c7}',
-    '.mn31-app.on::after{content:"";position:absolute;left:50%;bottom:-5px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:currentColor}',
+    '.mn31-app.on::after{content:"";position:absolute;width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px 1px currentColor}',
+    'html[data-mn31-dock=bottom] .mn31-app.on::after{left:50%;bottom:calc(var(--mn31-b,46px) * -.12);margin-left:-2.5px}',
+    'html[data-mn31-dock=right] .mn31-app.on::after{right:-6px;top:50%;margin-top:-2.5px}html[data-mn31-dock=left] .mn31-app.on::after{left:-6px;top:50%;margin-top:-2.5px}',
+    // right-click the Dock: where it sits (like the Dock pane in System Preferences)
+    '.mn31-dmenu{position:fixed;z-index:2147483200;min-width:178px;padding:5px;border-radius:9px;background:rgba(40,42,52,.9);color:#fff;-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.14);box-shadow:0 14px 36px rgba(0,0,0,.36);font:500 13px -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif}',
+    '.mn31-dmenu h6{margin:2px 8px 4px;font-size:11px;font-weight:600;opacity:.6}',
+    '.mn31-dmenu button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:5px 8px;border-radius:5px;cursor:pointer}',
+    '.mn31-dmenu button:hover{background:#2f6fea}.mn31-dmenu button i{width:12px;font-style:normal}',
     '.mn31-app:active{filter:brightness(.85)}',
     // the edges: where the pointer calls the bar (top) and the Dock (right)
-    '.mn31-edge{position:fixed;top:0;left:0;right:0;height:8px;z-index:60}.mn31-edge.r{top:auto;bottom:0}',
-    'html.mn31-chrome .mn31-edge{display:none}',
+    '.mn31-edge{position:fixed;top:0;left:0;right:0;height:8px;z-index:60}html[data-mn31-dock=bottom] .mn31-edge.r{top:auto;bottom:0}',
+    'html[data-mn31-dock=right] .mn31-edge.r{top:40px;bottom:0;left:auto;width:8px;height:auto}html[data-mn31-dock=left] .mn31-edge.r{top:40px;bottom:0;right:auto;width:8px;height:auto}',
+    'html.mn31-chrome .mn31-edge:not(.r),html.mn31-dockon .mn31-edge.r{display:none}',
     '.mn31-hint{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:64;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.72);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;pointer-events:none;animation:mn31Hint 3.4s ease forwards}',
     '@keyframes mn31Hint{0%{opacity:0;transform:translate(-50%,-8px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}'
   ].join('\n');
@@ -157,7 +172,7 @@
   function setPin(v) {
     pinned = v; pinB.classList.toggle('on', v); pinB.title = v ? 'Unpin the menu bar (hide it again)' : 'Pin the menu bar (always show)'; pinB.setAttribute('aria-label', pinB.title); pinB.setAttribute('aria-pressed', String(v));
     try { localStorage.setItem('minest.web31.pin', v ? '1' : '0'); } catch (e) {}
-    if (v) { clearTimeout(hideT); root.classList.add('mn31-chrome'); } else hideSoon(1400);
+    if (v) root.classList.add('mn31-chrome'); else hideSoon(1400);
   }
   pinB.onclick = function (e) { e.stopPropagation(); setPin(!pinned); };
   bar.appendChild(pinB);
@@ -174,11 +189,46 @@
     });
   }
   var dockCtl = null;
+  // where the Dock sits: bottom (default) · left · right — remembered
+  var dockPos = 'bottom'; try { dockPos = localStorage.getItem('minest.web31.dockPos') || 'bottom'; } catch (e) {}
+  if (!/^(bottom|left|right)$/.test(dockPos)) dockPos = 'bottom';
+  var dockOpts = { max: 1.75, items: '.mn31-app',
+    // as big as fits along the Dock: n icons + gaps + the swell (about 2.3 icons more)
+    base: function () {
+      var n = dock.querySelectorAll('.mn31-app').length || 11, side = dockPos !== 'bottom';
+      var room = (side ? innerHeight - 44 - 24 : innerWidth - 40 - 36) - (n - 1) * 6, b = Math.max(26, Math.min(48, Math.floor(room / (n + 2.3))));
+      root.style.setProperty('--mn31-b', b + 'px'); root.style.setProperty('--mn31-dock-room', Math.round(side ? b + 30 : b * 1.22 + 18) + 'px');
+      return b;
+    } };
+  function setDockPos(v) {
+    dockPos = v; root.setAttribute('data-mn31-dock', v);
+    dockOpts.axis = v === 'bottom' ? 'x' : 'y'; dockOpts.side = v;
+    try { localStorage.setItem('minest.web31.dockPos', v); } catch (e) {}
+    if (dockCtl) { dockCtl.leave(); dockCtl.refresh(); }
+  }
+  setDockPos(dockPos);
+  var dmenu = null;
+  function closeDockMenu() { if (dmenu) { dmenu.remove(); dmenu = null; } }
+  dock.addEventListener('contextmenu', function (e) {
+    e.preventDefault(); e.stopPropagation(); closeDockMenu();
+    dmenu = document.createElement('div'); dmenu.className = 'mn31-dmenu'; dmenu.setAttribute('role', 'menu');
+    dmenu.innerHTML = '<h6>Position on Screen</h6>';
+    [['left', 'Left'], ['bottom', 'Bottom'], ['right', 'Right']].forEach(function (o) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitemradio'); b.setAttribute('aria-checked', String(o[0] === dockPos));
+      b.innerHTML = '<i>' + (o[0] === dockPos ? '✓' : '') + '</i>' + o[1];
+      b.onclick = function (ev) { ev.stopPropagation(); closeDockMenu(); setDockPos(o[0]); show(2600); };
+      dmenu.appendChild(b);
+    });
+    document.body.appendChild(dmenu);
+    var w = dmenu.offsetWidth, h = dmenu.offsetHeight;
+    dmenu.style.left = Math.max(8, Math.min(innerWidth - w - 8, e.clientX - (dockPos === 'right' ? w : 0))) + 'px';
+    dmenu.style.top = Math.max(8, Math.min(innerHeight - h - 8, e.clientY - (dockPos === 'bottom' ? h + 6 : 0))) + 'px';
+  });
+  document.addEventListener('mousedown', function (e) { if (dmenu && !dmenu.contains(e.target)) closeDockMenu(); }, true);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDockMenu(); });
   function mountBar() {
     if (document.body && !bar.isConnected) document.body.appendChild(bar);
-    if (document.body && !dock.isConnected) { document.body.appendChild(dock); if (window.MinestDock && !dockCtl) dockCtl = MinestDock.attach(dock, { axis: 'x', side: 'bottom', max: 1.75, items: '.mn31-app',
-      // as big as fits across: n icons + gaps + the swell (about 2.3 icons more)
-      base: function () { var n = dock.querySelectorAll('.mn31-app').length || 11, room = innerWidth - 40 - 20 - (n - 1) * 6, b = Math.max(28, Math.min(48, Math.floor(room / (n + 2.3)))); root.style.setProperty('--mn31-dock-room', (b + 30) + 'px'); return b; } }); }
+    if (document.body && !dock.isConnected) { document.body.appendChild(dock); if (window.MinestDock && !dockCtl) dockCtl = MinestDock.attach(dock, dockOpts); }
     refresh();
   }
   setInterval(mountBar, 600);
@@ -200,16 +250,19 @@
       if (r.height < 30 || r.width < 60) return;
       if (!p.classList.contains('mn31-pop')) p.classList.add('mn31-pop');
       var w = p.offsetWidth, h2 = p.offsetHeight, top, left;
-      if (inDock) {   // above the Dock, centred on the icon
+      if (inDock && dockPos === 'bottom') {   // above the Dock, centred on the icon
         left = Math.min(innerWidth - w - 10, ar.left + ar.width / 2 - w / 2);
         top = Math.max(br.bottom + 8, dr.top - h2 - 12);
+      } else if (inDock) {                    // beside the Dock, level with the icon
+        left = dockPos === 'right' ? dr.left - w - 12 : dr.right + 12;
+        top = Math.max(br.bottom + 8, Math.min(innerHeight - h2 - 10, ar.top + ar.height / 2 - 40));
       } else {        // under the menu bar
         top = br.bottom + 6;
         left = ar.left + ar.width / 2 > innerWidth / 2 ? Math.min(innerWidth - w - 10, ar.right - w) : Math.max(8, ar.left);
       }
       p.style.setProperty('top', Math.round(top) + 'px', 'important'); p.style.setProperty('left', Math.max(8, Math.round(left)) + 'px', 'important');
       p.style.setProperty('right', 'auto', 'important'); p.style.setProperty('bottom', 'auto', 'important');
-      p.style.setProperty('max-height', ((inDock ? dr.top - 12 : innerHeight - 12) - top) + 'px', 'important'); p.style.setProperty('overflow', 'auto', 'important');
+      p.style.setProperty('max-height', ((inDock && dockPos === 'bottom' ? dr.top - 12 : innerHeight - 12) - top) + 'px', 'important'); p.style.setProperty('overflow', 'auto', 'important');
     });
   }
   new MutationObserver(function () { if (anchor) placePops(); }).observe(document.documentElement, { childList: true, subtree: true });
@@ -218,11 +271,11 @@
   var hideT = 0, away = false;
   function popOpen() { var h = oldBar(); return !!h && Array.prototype.some.call(h.querySelectorAll('.mn31-pop'), function (p) { return p.isConnected && p.getBoundingClientRect().height > 30; }); }
   function busy() { return bar.matches(':hover') || dock.matches(':hover') || document.activeElement === sInput || popOpen(); }
-  function show(ms) { root.classList.add('mn31-chrome'); away = false; hideSoon(ms || 2600); }
+  function show(ms) { root.classList.add('mn31-chrome', 'mn31-dockon'); away = false; hideSoon(ms || 2600); }
+  function hideNow() { clearTimeout(hideT); root.classList.remove('mn31-dockon'); if (!pinned) { root.classList.remove('mn31-chrome'); search.classList.remove('open'); } if (dockCtl) dockCtl.leave(); }
   function hideSoon(ms) {
     clearTimeout(hideT);
-    if (pinned) { root.classList.add('mn31-chrome'); return; }
-    hideT = setTimeout(function () { if (busy()) { hideSoon(1200); return; } root.classList.remove('mn31-chrome'); search.classList.remove('open'); if (dockCtl) dockCtl.leave(); }, ms);
+    hideT = setTimeout(function () { if (busy()) { hideSoon(1200); return; } hideNow(); }, ms);
   }
   function addEdges() {
     ['', 'r'].forEach(function (k) {
@@ -236,11 +289,11 @@
   if (document.body) addEdges(); else document.addEventListener('DOMContentLoaded', addEdges);
   function near(e) {
     var b = bar.getBoundingClientRect(), d = dock.getBoundingClientRect();
-    return e.clientY <= b.bottom + 24 || (e.clientY >= d.top - 40 && e.clientX >= d.left - 30 && e.clientX <= d.right + 30);
+    return e.clientY <= b.bottom + 24 || (e.clientX >= d.left - 40 && e.clientX <= d.right + 40 && e.clientY >= d.top - 40 && e.clientY <= d.bottom + 40);
   }
   document.addEventListener('mousemove', function (e) {
-    if (e.clientY <= 10 || e.clientY >= innerHeight - 8) { show(); return; }
-    if (!root.classList.contains('mn31-chrome')) return;
+    if (e.clientY <= 10 || (dockPos === 'bottom' ? e.clientY >= innerHeight - 8 : dockPos === 'right' ? e.clientX >= innerWidth - 8 : e.clientX <= 8)) { show(); return; }
+    if (!root.classList.contains('mn31-chrome') && !root.classList.contains('mn31-dockon')) return;
     if (near(e)) { away = false; clearTimeout(hideT); }
     else if (!away) { away = true; hideSoon(1400); }
   }, { passive: true });
@@ -257,9 +310,9 @@
     setPin(pinned);
     show(2400);
     try {
-      if (localStorage.getItem('minest.web31.barHint') !== '3') {
-        localStorage.setItem('minest.web31.barHint', '3');
-        var t = document.createElement('div'); t.className = 'mn31-hint'; t.textContent = 'Top edge: menu bar · bottom edge: Dock · 📌 keeps them out';
+      if (localStorage.getItem('minest.web31.barHint') !== '4') {
+        localStorage.setItem('minest.web31.barHint', '4');
+        var t = document.createElement('div'); t.className = 'mn31-hint'; t.textContent = 'Top edge: menu bar · bottom edge: Dock · right-click the Dock to move it · 📌 keeps the bar out';
         document.body.appendChild(t); setTimeout(function () { t.remove(); }, 3600);
       }
     } catch (e) {}
@@ -268,6 +321,8 @@
   // ---------------------------------------------------------------- empty space → Appearance
   var BLOCK = 'article, .kanban-card, .kanban-subcard, button, a, input, textarea, select, label, [contenteditable], [role="button"], header, .mn31-bar, .mn31-dock, .mpet-menu, #minest-mini-pet-p0, .arcade, .mlv, .coverflow-card-item, [class*="popover"], [class*="modal"]';
   function blank(el) { return el && el.closest && !el.closest(BLOCK) && !!el.closest('#root') && !el.closest('.mlv, .mlv-open, .arcade, [role="dialog"]'); }
+  // a click / tap on empty space puts the bar (unless pinned) and the Dock away at once
+  document.addEventListener('pointerdown', function (e) { if (e.button === 0 && blank(e.target) && !(dmenu && dmenu.contains(e.target))) hideNow(); }, true);
   function appearance() { show(4000); anchor = els.wall; press('button[title^="Board Wallpaper"]'); watchPop(); }
   document.addEventListener('contextmenu', function (e) { if (!blank(e.target)) return; e.preventDefault(); appearance(); });
   var lp = null;
