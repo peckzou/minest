@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPad 45.4 · Glass Settings</title>
+    <title>Minest iPad 45.5 · No pinned lists</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21451,7 +21451,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "45.4" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "45.5" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -34316,7 +34316,7 @@ var isDark = themeMode === 'dark';
         className: "fb-board-stage " + (layoutMode === 'swimlane' ? "board-swimlane-scroll flex items-start gap-5 pb-2 overflow-x-auto w-full min-w-0 pr-16 select-none flex-1 min-h-0 snap-x snap-proximity" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 pb-4 flex-1 overflow-y-auto min-h-0") + (boardCardMode === 'smash' ? " board-smash-mode" : "") + (boardCardMode === 'liq' ? " board-liquid-mode" : ""),
         children: [
           visibleColumns.map(function(col, cIdx) {
-            var isPinned = isLandscape && !!col.pinned;
+            var isPinned = false;   // 46.2: lists are never pinned on the iPhone / iPad (the lane always scrolls whole)
             var isOccluded = isLandscape && !!occludedCols[col.id];
 
             // Filter & sort cards inside column
@@ -34692,7 +34692,8 @@ var isDark = themeMode === 'dark';
                       className: "column-menu-popover absolute top-10 right-0 z-50 w-[268px] rounded-2xl p-2.5 shadow-2xl border backdrop-blur-2xl animate-fadeIn " + (isDark ? "bg-[#1a2430] border-white/20 text-white" : "bg-white border-slate-200 text-slate-800"),
                       children: [
                         // 18.0: everyday actions first (Pin on top) - only in landscape mode
-                        isLandscape ? (0, P.jsxs)('button', {
+                        // 46.2: no Pin List on the iPhone / iPad
+                        false ? (0, P.jsxs)('button', {
                           type: "button",
                           onClick: function() { setMenuColId(null); togglePinColumn(col.id); },
                           className: "w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl hover:bg-emerald-500/20 hover:text-emerald-400 text-left transition-colors",
@@ -50203,7 +50204,8 @@ var Ve = (function(_Component) {
        boxes: [elements that receive the pointer] (default: the container),
        mode: 'size' (tiles really grow; the column reflows) | 'transform' (scale + push apart; the layout
              is untouched — for docks whose positions are computed elsewhere),
-       contain: true | margin px (transform mode: the swollen row stays on screen)
+       contain: true | margin px (transform mode: the swollen row stays on screen),
+       pickFirst: true (a mouse click also only picks; the second click opens)
      })   */
 (function () {
   'use strict';
@@ -50314,6 +50316,18 @@ var Ve = (function(_Component) {
     document.addEventListener('touchstart', function (e) {
       if (sel && !boxes.some(function (b2) { return b2.contains(e.target); })) leave();
     }, { capture: true, passive: true });
+    // pickFirst: a mouse click picks too — the first click on an icon only selects it, a second click opens it
+    if (o.pickFirst) boxes.forEach(function (bx) {
+      bx.addEventListener('click', function (e) {
+        if (!e.isTrusted || e.detail === 0) return;   // keyboard / scripted clicks open at once
+        var t = tiles().filter(function (x) { return x.contains(e.target); })[0];
+        if (!t) return;
+        if (t === sel) { clearTimeout(selT); sel = null; return; }   // the second click: open
+        e.preventDefault(); e.stopImmediatePropagation();
+        pick(t);
+        if (e.clientX || e.clientY) at(e.clientX, e.clientY);
+      }, true);
+    });
     sizes(); window.addEventListener('resize', function () { sizes(); kick(); });
     boxes.forEach(function (bx) {
       bx.addEventListener('mousemove', function (e) { at(e.clientX, e.clientY); });

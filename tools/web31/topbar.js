@@ -24,6 +24,8 @@
     sun: I('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
     moon: I('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'),
     rings: I('<circle cx="12" cy="12" r="9"/><path d="M12 7a5 5 0 1 1-4.6 3"/>'),
+    full: I('<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>'),
+    unfull: I('<path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/>'),
     pin: I('<path d="M12 17v5"/><path d="M9 10.8V5h6v5.8l2.5 3.2H6.5L9 10.8z"/><path d="M8 5h8"/>'),
     phone: I('<rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.5h2"/>'),
     list: I('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'),
@@ -88,6 +90,17 @@
     '.mn31-s svg{width:46%;height:46%;position:relative}',
     '.mn31-title:active,.mn31-s:active{filter:brightness(.85)}',
     'html:has(.theme-white) .mn31-title,html:has(.theme-white) .mn31-s{background:linear-gradient(180deg,rgba(255,255,255,.72) 0%,rgba(255,255,255,.42) 50%,rgba(255,255,255,.52) 100%);color:#111;border-color:rgba(255,255,255,.85);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 10px 24px rgba(15,23,42,.16)}',
+    // status on the right of the bar: what the board is showing, as one glass pill (each part also a switch)
+    '.mn31-status{flex:none;display:flex;align-items:center;height:42px;padding:0 6px;border-radius:15px;position:relative;overflow:hidden;color:#fff;border:1px solid rgba(255,255,255,.32);',
+    'background:linear-gradient(180deg,rgba(255,255,255,.2) 0%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.1) 100%);-webkit-backdrop-filter:blur(22px) saturate(190%);backdrop-filter:blur(22px) saturate(190%);',
+    'box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 10px 24px rgba(0,0,0,.24)}',
+    '.mn31-status button{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 9px;border:0;border-radius:11px;background:transparent;color:inherit;font:600 12.5px -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer;opacity:.92}',
+    '.mn31-status button:hover{background:rgba(255,255,255,.14);opacity:1}.mn31-status button[hidden]{display:none}',
+    '.mn31-status svg{width:14px;height:14px}.mn31-status i{width:7px;height:7px;border-radius:50%;background:#94a3b8}',
+    '.mn31-status .sep{width:1px;height:16px;background:rgba(255,255,255,.22)}',
+    'html:has(.theme-white) .mn31-status{background:linear-gradient(180deg,rgba(255,255,255,.72) 0%,rgba(255,255,255,.42) 50%,rgba(255,255,255,.52) 100%);color:#111;border-color:rgba(255,255,255,.85);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 10px 24px rgba(15,23,42,.16)}',
+    'html:has(.theme-white) .mn31-status button:hover{background:rgba(15,23,42,.07)}html:has(.theme-white) .mn31-status .sep{background:rgba(15,23,42,.15)}',
+    '@media (max-width:900px){.mn31-status .lbl{display:none}}',
     '.mn31-s.pin.on{border-color:rgba(125,211,252,.9);color:#7dd3fc}html:has(.theme-white) .mn31-s.pin.on{border-color:rgba(14,165,233,.8);color:#0369a1}',
     // while the bar and Dock are out, the board steps back: a little smaller, clear of the bar and the Dock
     'main{transition:padding .32s cubic-bezier(.2,.9,.25,1)}',
@@ -176,7 +189,63 @@
   }
   pinB.onclick = function (e) { e.stopPropagation(); setPin(!pinned); };
   bar.appendChild(pinB);
+  // full screen (the browser's own), far right
+  var fullB = document.createElement('button'); fullB.type = 'button'; fullB.className = 'mn31-s full';
+  function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function syncFull() { var f = isFull(); fullB.innerHTML = f ? ICON.unfull : ICON.full; fullB.title = f ? 'Exit full screen' : 'Full screen'; fullB.setAttribute('aria-label', fullB.title); }
+  fullB.onclick = function (e) {
+    e.stopPropagation();
+    var d = document, el = d.documentElement;
+    if (isFull()) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+    else { var r = el.requestFullscreen || el.webkitRequestFullscreen; if (r) { var pr = r.call(el); if (pr && pr.catch) pr.catch(function () {}); } }
+  };
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (t) { document.addEventListener(t, syncFull); });
+  syncFull(); bar.appendChild(fullB);
+  // status: board / 3D Cover · dark / light · Light FX · Card FX · cloud
+  var status = document.createElement('div'); status.className = 'mn31-status'; status.setAttribute('role', 'group'); status.setAttribute('aria-label', 'Status');
+  var ST = {};
+  [['view', function () { BTNS.filter(function (b) { return b.k === 'view'; })[0].run(); }],
+   ['theme', function () { BTNS.filter(function (b) { return b.k === 'theme'; })[0].run(); }],
+   ['fx', function () { var r = fxBtn(); if (r) r.click(); }],
+   ['card', function () { var r = cmBtn(); if (r) r.click(); }],
+   ['cloud', function () { var c = document.querySelector('.board-settings-modal'); if (!c) press('button[title^="Board settings"]'); }]].forEach(function (x, i) {
+    if (i) { var sp = document.createElement('span'); sp.className = 'sep'; sp.dataset.k = x[0]; status.appendChild(sp); }
+    var b = document.createElement('button'); b.type = 'button'; b.dataset.k = x[0];
+    b.onclick = function (e) { e.stopPropagation(); x[1](); setTimeout(refresh, 120); };
+    ST[x[0]] = b; status.appendChild(b);
+  });
+  bar.insertBefore(status, search.parentNode === bar ? search : null);
+  var SI = {
+    board: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="11" rx="1.5"/><rect x="17" y="4" width="4" height="7" rx="1.5"/></svg>',
+    cover: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>',
+    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    fx: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/></svg>',
+    card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="15" rx="2.6"/><path d="M19 2.5v4M17 4.5h4"/></svg>'
+  };
+  function setSt(k, html, tip, show) {
+    var b = ST[k]; if (!b) return;
+    if (b.__h !== html) { b.innerHTML = html; b.__h = html; }
+    b.title = tip; b.hidden = !show;
+    var sp = status.querySelector('.sep[data-k="' + k + '"]'); if (sp) sp.hidden = !show;
+  }
+  function refreshStatus() {
+    var cover = document.body && document.body.classList.contains('mode-coverflow');
+    setSt('view', (cover ? SI.cover : SI.board) + '<span class="lbl">' + (cover ? '3D Cover' : 'Board') + '</span>', 'View: ' + (cover ? '3D Cover' : 'Board') + ' — click to switch', true);
+    var dark = !!q('button[title^="Switch to light"]');
+    setSt('theme', (dark ? SI.moon : SI.sun) + '<span class="lbl">' + (dark ? 'Dark' : 'Light') + '</span>', (dark ? 'Dark' : 'Light') + ' mode — click to switch', true);
+    var fr = fxBtn(), fxOn = !!(fr && /\bon\b/.test(fr.className));
+    var lv = fr && (fr.getAttribute('data-level') || (fr.title || '').replace(/^.*?:\s*/, ''));
+    setSt('fx', SI.fx + '<span class="lbl">Light FX' + (lv && lv.length < 14 && fxOn ? ' · ' + lv : '') + '</span>', 'Light FX is on — click to change', fxOn);
+    var cr = cmBtn(), cardOn = !!(cr && /\bon\b/.test(cr.className) && !/\bnone\b/.test(cr.className));
+    setSt('card', SI.card + '<span class="lbl">Card FX</span>', 'Card FX is on — click to change', cardOn);
+    var dot = q('button[title^="Cloud sync"] span.rounded-full'), col = dot ? getComputedStyle(dot).backgroundColor : '';
+    if (/^rgba\(.*,\s*0\)$|transparent/.test(col)) col = '';
+    var g = /\(\s*(\d+),\s*(\d+),\s*(\d+)/.exec(col || ''), ok = g && +g[2] > +g[1] + 40;
+    setSt('cloud', '<i style="background:' + (col || '#94a3b8') + '"></i><span class="lbl">' + (ok ? 'Synced' : dot ? 'Sync' : 'Local') + '</span>', ok ? 'Cloud: synced (Settings → Cloud Sync)' : 'Cloud: not synced — Settings → Cloud Sync', true);
+  }
   function refresh() {
+    refreshStatus();
     var sw = q('header > div:first-child button');
     var name = sw ? sw.textContent.replace(/^\s*\d+\.\d+/, '').trim() : 'Minest';
     if (title.textContent !== name) title.textContent = name;
@@ -192,7 +261,7 @@
   // where the Dock sits: bottom (default) · left · right — remembered
   var dockPos = 'bottom'; try { dockPos = localStorage.getItem('minest.web31.dockPos') || 'bottom'; } catch (e) {}
   if (!/^(bottom|left|right)$/.test(dockPos)) dockPos = 'bottom';
-  var dockOpts = { max: 1.75, items: '.mn31-app',
+  var dockOpts = { max: 1.75, items: '.mn31-app', pickFirst: true,
     // as big as fits along the Dock: n icons + gaps + the swell (about 2.3 icons more)
     base: function () {
       var n = dock.querySelectorAll('.mn31-app').length || 11, side = dockPos !== 'bottom';

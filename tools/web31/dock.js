@@ -8,7 +8,8 @@
        boxes: [elements that receive the pointer] (default: the container),
        mode: 'size' (tiles really grow; the column reflows) | 'transform' (scale + push apart; the layout
              is untouched — for docks whose positions are computed elsewhere),
-       contain: true | margin px (transform mode: the swollen row stays on screen)
+       contain: true | margin px (transform mode: the swollen row stays on screen),
+       pickFirst: true (a mouse click also only picks; the second click opens)
      })   */
 (function () {
   'use strict';
@@ -119,6 +120,18 @@
     document.addEventListener('touchstart', function (e) {
       if (sel && !boxes.some(function (b2) { return b2.contains(e.target); })) leave();
     }, { capture: true, passive: true });
+    // pickFirst: a mouse click picks too — the first click on an icon only selects it, a second click opens it
+    if (o.pickFirst) boxes.forEach(function (bx) {
+      bx.addEventListener('click', function (e) {
+        if (!e.isTrusted || e.detail === 0) return;   // keyboard / scripted clicks open at once
+        var t = tiles().filter(function (x) { return x.contains(e.target); })[0];
+        if (!t) return;
+        if (t === sel) { clearTimeout(selT); sel = null; return; }   // the second click: open
+        e.preventDefault(); e.stopImmediatePropagation();
+        pick(t);
+        if (e.clientX || e.clientY) at(e.clientX, e.clientY);
+      }, true);
+    });
     sizes(); window.addEventListener('resize', function () { sizes(); kick(); });
     boxes.forEach(function (bx) {
       bx.addEventListener('mousemove', function (e) { at(e.clientX, e.clientY); });
