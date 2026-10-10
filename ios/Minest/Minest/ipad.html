@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPad 44.8 · Full screen & list swipes</title>
+    <title>Minest iPad 44.9 · Sharp 3D Cover</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -6664,11 +6664,11 @@ html body.clear-mode .clear-active-column .kanban-cards-scroll > .card-gap-activ
   @media (max-width: 680px) { .iphone-topbar { padding-top:8px !important; padding-bottom:8px !important; } .minest-ai-modal { width:100vw; border-radius:0; } }
 </style>
 <script>try { window.__mnHiddenLabels = JSON.parse(localStorage.getItem('minest.hiddenLabels') || '{}') || {}; } catch (e) { window.__mnHiddenLabels = {}; }</script>
-<style id="ipad-cf-zoom">/* 44.5 iPad: the 3D Cover card faces are laid out at phone size and scaled up to the bigger
-   tablet card (individual scale/translate compose with the faces' own rotateY flip) — text, chips and
-   buttons keep the phone's proportions. --cf-k is 1 on a phone. */
+<style id="ipad-cf-zoom">/* iPad 44.9: the 3D Cover card faces are zoomed to the tablet card (laid out and drawn at full size,
+   so text stays sharp — a scale() blow-up of the phone-size face looked soft). WebKit only zooms text when
+   text-size-adjust is none. --cf-k is 1 on a phone. */
+.coverflow-card-item .face-front,.coverflow-card-item .face-back{zoom:var(--cf-k,1);-webkit-text-size-adjust:none;text-size-adjust:none}
 .coverflow-card-item,.coverflow-card-item > .coverflow-flipper{border-radius:calc(32px * var(--cf-k,1))!important}
-.coverflow-card-item .face-front,.coverflow-card-item .face-back{right:auto!important;bottom:auto!important;width:calc(100% / var(--cf-k,1))!important;height:calc(100% / var(--cf-k,1))!important;scale:var(--cf-k,1);translate:calc((var(--cf-k,1) - 1) * 50%) calc((var(--cf-k,1) - 1) * 50%)}
 </style>
 </head>
   <body>
@@ -21422,7 +21422,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "44.8" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "44.9" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -27584,10 +27584,11 @@ var Oe = function(props) {
   var buildRim = function(el) {
     var W = el.offsetWidth, H = el.offsetHeight;
     if (!W || !H) return el.__rim || null;
-    var key = W + 'x' + H;
+    var rk = parseFloat(el.style.getPropertyValue('--cf-k')) || 1;   // iPad 44.9: the tablet card's bigger corners
+    var key = W + 'x' + H + 'k' + rk;
     if (el.__rim && el.__rim.parentNode === el && el.__rimKey === key) return el.__rim;
     if (el.__rim && el.__rim.parentNode) el.__rim.parentNode.removeChild(el.__rim);
-    var R = Math.min(32, W / 2, H / 2), T = SLAB_T, segs = [];
+    var R = Math.min(32 * rk, W / 2, H / 2), T = SLAB_T, segs = [];
     var side = function(px, py, deg, L) { segs.push([px, py, deg, L]); };
     side(W / 2, 0, 0, H - 2 * R); side(-W / 2, 0, 180, H - 2 * R); side(0, -H / 2, -90, W - 2 * R); side(0, H / 2, 90, W - 2 * R);
     [[W / 2 - R, -(H / 2 - R), -90], [W / 2 - R, H / 2 - R, 0], [-(W / 2 - R), H / 2 - R, 90], [-(W / 2 - R), -(H / 2 - R), 180]].forEach(function(cn) {
@@ -27724,10 +27725,8 @@ var Oe = function(props) {
         var ffc = el.__ff && el.contains(el.__ff) ? el.__ff : (el.__ff = el.querySelector('.face-front'));
         var fbc = el.__fb && el.contains(el.__fb) ? el.__fb : (el.__fb = el.querySelector('.face-back'));
         var zf = SLAB_T / 2 * Math.min(1, thK), flippedNow = !!flippedMap[card.id];
-        // 44.5 iPad: keep the faces' tablet scale-up offset (see #ipad-cf-zoom) while adding the slab depth
-        var cfk = parseFloat(el.style.getPropertyValue('--cf-k')) || 1, cfo = ((cfk - 1) * 50).toFixed(3) + '% ';
-        if (ffc) ffc.style.translate = cfo + cfo + (flippedNow ? -zf : zf).toFixed(2) + 'px';
-        if (fbc) fbc.style.translate = cfo + cfo + (flippedNow ? zf : -zf).toFixed(2) + 'px';
+        if (ffc) ffc.style.translate = '0 0 ' + (flippedNow ? -zf : zf).toFixed(2) + 'px';
+        if (fbc) fbc.style.translate = '0 0 ' + (flippedNow ? zf : -zf).toFixed(2) + 'px';
         if (rim) {
           rim.style.opacity = '1'; rim.style.transform = 'scale3d(1,1,' + Math.min(1, thK).toFixed(3) + ')';
           var tY = rotY * Math.PI / 180, tX = rotX * Math.PI / 180;     // 11.3: light the rim from the card's pose
