@@ -8496,7 +8496,7 @@ var CardGlassShatter = (function() {
   };
 })();
 
-// ---- web30: Study Arcade from iPhone44.8.html ----
+// ---- web30: Study Arcade from iPhone44.9.html ----
 var StudyArcade = window.StudyArcade = (function() {
   var clamp = function(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); };
   var rnd = function(a, b) { return a + Math.random() * (b - a); };
@@ -16383,7 +16383,7 @@ var De = function(props) {
 // =========================================================================
 // 3D Cover Flow View Component (Oe) - Kept 100% Intact
 // =========================================================================
-// ---- web30: from iPhone44.8.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
+// ---- web30: from iPhone44.9.html — icons, AI board builder, AI Analyze, pronunciation, 3D Cover, Physical Card, Drill ----
 var IconCloud = E('cloud', [
   ['path', { d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z', key: 'cl1' }]
 ]);
@@ -33063,7 +33063,7 @@ function parseAndNormalizeBoardJson(raw) {
   }
 }
 
-// ---- web30: cloud format from iPhone44.8.html ----
+// ---- web30: cloud format from iPhone44.9.html ----
 var MINEST_CLOUD_GZ_LIMIT = 950000;
 function minestBytesToB64(bytes) {
   var s = '';
@@ -38906,7 +38906,7 @@ var Ve = (function(_Component) {
 
   </script>
   
-<!-- ---- web30: add-ons from iPhone44.8.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
+<!-- ---- web30: add-ons from iPhone44.9.html (Pet Raising, Mini Pet, rewards & tips, voice, Learning Path, desktop pet link) ---- -->
 <script>
 /* 41.377 Pet Raising V6: keep the V6 experience isolated from the board while
    making it available from the same menu as the other Minest tools. */
@@ -39071,10 +39071,12 @@ var Ve = (function(_Component) {
 
   function clamp() {
     if (host) return;
-    var maxX = Math.max(8, window.innerWidth - root.offsetWidth - 8);
-    var maxY = Math.max(76, window.innerHeight - root.offsetHeight - 92);
-    root.style.left = Math.max(8, Math.min(maxX, root.offsetLeft)) + 'px';
-    root.style.top = Math.max(76, Math.min(maxY, root.offsetTop)) + 'px';
+    // 44.9: the octopus fills only the middle of its transparent box, so the box may overhang each screen
+    // edge by a quarter of its size — the pet itself can go right to the edges (and much lower)
+    var w = root.offsetWidth, h = root.offsetHeight, ox = Math.round(w * .24), oy = Math.round(h * .24);
+    var maxX = window.innerWidth - w + ox, maxY = window.innerHeight - h + oy;
+    root.style.left = Math.max(-ox, Math.min(maxX, root.offsetLeft)) + 'px';
+    root.style.top = Math.max(8 - oy, Math.min(maxY, root.offsetTop)) + 'px';
   }
 
   function nextWaypoint() {
@@ -39591,8 +39593,9 @@ var Ve = (function(_Component) {
     drag = null;
     if (wasMoved && host) { if (host.drag) host.drag('end', event && event.screenX, event && event.screenY); return; }
     if (wasMoved) {
-      var left = root.offsetLeft < (window.innerWidth - root.offsetWidth) / 2 ? 10 : window.innerWidth - root.offsetWidth - 10;
-      root.style.left = Math.max(8, left) + 'px';
+      var edge = Math.round(root.offsetWidth * .16);   // 44.9: rests close to the edge (the box overhangs a little)
+      var left = root.offsetLeft < (window.innerWidth - root.offsetWidth) / 2 ? -edge : window.innerWidth - root.offsetWidth + edge;
+      root.style.left = left + 'px';
       try { localStorage.setItem('minest.miniPetP0.position', JSON.stringify({ x: root.offsetLeft, y: root.offsetTop })); } catch (error) {}
     } else {
       handleTap();

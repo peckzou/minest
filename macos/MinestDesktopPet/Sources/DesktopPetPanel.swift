@@ -88,11 +88,14 @@ final class DesktopPetPanel: NSPanel {
         let activeScreen = NSScreen.screens.first { $0.frame.intersects(testRect) } ?? NSScreen.main ?? NSScreen.screens.first
 
         if let screen = activeScreen {
-            let visible = screen.visibleFrame
-            // the pet (not the whole transparent window) has to stay on screen
-            let padX = (windowSize.width - 160) / 2 - 10, padTop = windowSize.height * 0.58 - 90, padBottom = windowSize.height * 0.42 - 90
+            let visible = screen.visibleFrame, full = screen.frame
+            // the pet (not the whole transparent window) stays on screen — but, like the web Mini Pet (44.9),
+            // it may reach the very edges: a quarter of the pet's 160 pt box can overhang, and it can go down
+            // over the Dock to the bottom of the screen
+            let over: CGFloat = 160 * 0.24
+            let padX = (windowSize.width - 160) / 2 + over, padTop = windowSize.height * 0.58 - 90, padBottom = windowSize.height * 0.42 - 90 + over
             let clampedX = min(max(origin.x, visible.minX - padX), visible.maxX - windowSize.width + padX)
-            let clampedY = min(max(origin.y, visible.minY - padBottom), visible.maxY - windowSize.height + padTop)
+            let clampedY = min(max(origin.y, full.minY - padBottom), visible.maxY - windowSize.height + padTop)
             self.setFrameOrigin(NSPoint(x: clampedX, y: clampedY))
         } else {
             self.setFrameOrigin(origin)

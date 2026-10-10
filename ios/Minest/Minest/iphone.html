@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 44.8 · Learning Path 2.0</title>
+    <title>Minest iPhone 44.9 · Mini Pet edges</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21416,7 +21416,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "44.8" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "44.9" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -46032,10 +46032,12 @@ var Ve = (function(_Component) {
 
   function clamp() {
     if (host) return;
-    var maxX = Math.max(8, window.innerWidth - root.offsetWidth - 8);
-    var maxY = Math.max(76, window.innerHeight - root.offsetHeight - 92);
-    root.style.left = Math.max(8, Math.min(maxX, root.offsetLeft)) + 'px';
-    root.style.top = Math.max(76, Math.min(maxY, root.offsetTop)) + 'px';
+    // 44.9: the octopus fills only the middle of its transparent box, so the box may overhang each screen
+    // edge by a quarter of its size — the pet itself can go right to the edges (and much lower)
+    var w = root.offsetWidth, h = root.offsetHeight, ox = Math.round(w * .24), oy = Math.round(h * .24);
+    var maxX = window.innerWidth - w + ox, maxY = window.innerHeight - h + oy;
+    root.style.left = Math.max(-ox, Math.min(maxX, root.offsetLeft)) + 'px';
+    root.style.top = Math.max(8 - oy, Math.min(maxY, root.offsetTop)) + 'px';
   }
 
   function nextWaypoint() {
@@ -46552,8 +46554,9 @@ var Ve = (function(_Component) {
     drag = null;
     if (wasMoved && host) { if (host.drag) host.drag('end', event && event.screenX, event && event.screenY); return; }
     if (wasMoved) {
-      var left = root.offsetLeft < (window.innerWidth - root.offsetWidth) / 2 ? 10 : window.innerWidth - root.offsetWidth - 10;
-      root.style.left = Math.max(8, left) + 'px';
+      var edge = Math.round(root.offsetWidth * .16);   // 44.9: rests close to the edge (the box overhangs a little)
+      var left = root.offsetLeft < (window.innerWidth - root.offsetWidth) / 2 ? -edge : window.innerWidth - root.offsetWidth + edge;
+      root.style.left = left + 'px';
       try { localStorage.setItem('minest.miniPetP0.position', JSON.stringify({ x: root.offsetLeft, y: root.offsetTop })); } catch (error) {}
     } else {
       handleTap();
