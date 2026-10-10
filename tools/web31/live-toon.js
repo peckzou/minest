@@ -13,6 +13,7 @@
       '.mlv h2,.mlv h3,.mlv h4,.mlv-brand,.mlv-code,.mlv-cash,.mlv-stat strong,.mlv-res h2,.mlv-of .panel h2,.mlv-of .score-big,.mlv-pop,.mlv-open .tag{font-family:' + TITLE + ';font-weight:400!important;letter-spacing:.02em}',
       '.mlv-top{background:' + DEEP + ';border-bottom:0;box-shadow:0 4px 0 rgba(0,0,0,.18);backdrop-filter:none;-webkit-backdrop-filter:none}',
       '.mlv-brand{font-size:22px;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.25)}.mlv-brand i{background:' + GOLD + ';border-radius:14px;width:40px;height:40px;font-size:22px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2);transform:rotate(-6deg)}',
+      '.mlv-brand i .wi{width:40px;height:40px;display:block;filter:drop-shadow(0 2px 0 rgba(0,0,0,.18))}.mlv-brand i{overflow:visible;font-size:0}',
       '.mlv-x{background:#fff;color:' + PURP + ';border:0;border-radius:12px;font-family:' + TITLE + ';font-weight:400;box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)}',
       '.mlv h2{font-size:26px}.mlv h3{font-size:19px}',
       '.mlv-body > h3,.mlv-body > h2{text-shadow:0 3px 0 rgba(0,0,0,.2)}.mlv-body > .mlv-note,.mlv-body > p{color:rgba(255,255,255,.88)!important}',
@@ -62,6 +63,7 @@
       '.mlv-waitg button{border:0;color:#fff;border-radius:18px;box-shadow:inset 0 -7px 0 rgba(0,0,0,.2),0 6px 14px rgba(40,0,90,.22);background:' + TEAL + '}',
       '.mlv-waitg button b{font-family:' + TITLE + ';font-weight:400;letter-spacing:.02em;text-shadow:0 2px 0 rgba(0,0,0,.2)}.mlv-waitg button small{color:rgba(255,255,255,.92)!important}',
       '.mlv-waitg button:nth-child(6n+2){background:' + PINK + '}.mlv-waitg button:nth-child(6n+3){background:#ff9d00}.mlv-waitg button:nth-child(6n+4){background:' + GREEN + '}.mlv-waitg button:nth-child(6n+5){background:#9b4dff}.mlv-waitg button:nth-child(6n){background:#3b82f6}',
+      '.mlv-waitg button .i{display:block;line-height:0}.mlv-waitg .wi{width:64px;height:64px;display:block;margin:0 auto;filter:drop-shadow(0 4px 0 rgba(0,0,0,.16))}.mlv-kid .mlv-waitg .wi{width:76px;height:76px}',
       '.mlv-waitg button:active{transform:translateY(3px);box-shadow:inset 0 -3px 0 rgba(0,0,0,.2)}.mlv-gems b{color:#0e7490}',
       // avatars and the Locker
       '.mlv-avatar-choice,.mlv-lk{background:#f7f3ff!important;border:0!important;box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}.mlv-avatar-choice.on,.mlv-lk.on{background:#fff4c2!important;box-shadow:0 0 0 4px ' + GOLD + ',inset 0 -4px 0 rgba(0,0,0,.08)!important}',
