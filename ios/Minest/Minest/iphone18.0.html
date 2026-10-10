@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 45.1 · Full screen & list swipes</title>
+    <title>Minest iPhone 45.2 · Lists like iPad</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21416,7 +21416,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "45.1" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "45.2" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -22095,7 +22095,7 @@ var MinestChrome = (function() {
         'html.mn-immersive body:not(.clear-mode) .mobile-board-view{padding:var(--mn-top) 0 0 0!important}' +
         'html.mn-immersive body:not(.clear-mode) .board-swimlane-scroll{padding:0 10px var(--mn-bot) 10px!important;gap:10px!important;scroll-padding:0 10px}' +
         'html.mn-immersive body:not(.clear-mode) .kanban-column-wrapper{width:calc(100vw - 20px)!important;min-width:calc(100vw - 20px)!important;max-width:none!important;' +
-          'height:calc(100dvh - var(--mn-top) - var(--mn-bot))!important;max-height:calc(100dvh - var(--mn-top) - var(--mn-bot))!important;border-radius:34px!important;padding:18px 14px 10px!important}' +
+          'height:auto!important;max-height:calc(100dvh - var(--mn-top) - var(--mn-bot))!important;border-radius:34px!important;padding:18px 14px 10px!important}' +
         'html.mn-immersive body:not(.clear-mode) .kanban-column-wrapper > .kanban-cards-scroll{flex:1 1 auto!important;padding-bottom:12px}' +
       '}',
       // 41.6 landscape (phone): two full-height lists side by side inside the safe area (clear of
@@ -22292,9 +22292,8 @@ var MinestChrome = (function() {
     '@media (orientation:portrait), (min-height:521px){.mn-rgroup.mn-open:not(.mn-nodock) > button[title^="Board settings"],.mn-rgroup.mn-open:not(.mn-nodock) > :has(> button[title^="Board settings"]){position:absolute!important;top:var(--mn-cloud-top, 0px);right:0;animation-delay:320ms!important}' +
       '.mn-rgroup.mn-open:not(.mn-nodock) > [data-mn=cloud]{top:calc(var(--mn-cloud-top, 0px) + 48px)!important}}',
     // 45.1: the iPhone ⇄ Desktop switch: two small icons, the current one lit
-    '.mn-devswitch{display:inline-flex;align-items:center;gap:1px;padding:2px;border-radius:9px;background:rgba(127,127,127,.18)}',
-    '.mn-devswitch i{display:grid;place-items:center;width:15px;height:17px;border-radius:7px;opacity:.5}.mn-devswitch i.on{opacity:1;background:rgba(255,255,255,.28)}',
-    '.theme-white .mn-devswitch i.on{background:rgba(15,23,42,.12)}.mn-devswitch svg{width:12px;height:12px}',
+    // 45.2: only the one to switch to is shown (here: the desktop)
+    '.mn-devswitch{display:inline-flex;align-items:center}.mn-devswitch i{display:grid;place-items:center}.mn-devswitch i.on{display:none}.mn-devswitch svg{width:16px;height:16px}',
     // 横屏：回到横着顶部第二栏位置 (Landscape Top Second Bar)
     // 44.4: only a short phone in landscape still gets the row; everywhere else the menu is one column on the right
     '@media (orientation:landscape) and (max-height:520px){' +
@@ -50108,6 +50107,19 @@ var Ve = (function(_Component) {
 (function () {
   if (window.__mnBlankGestures) return; window.__mnBlankGestures = true;
   var BLOCK = 'article, .kanban-card, .kanban-subcard, button, a, input, textarea, select, label, [contenteditable], [role="button"], [title^="Swipe horizontally"], .mpet-menu, #minest-mini-pet-p0, .mn-rgroup, .ios-bottom-tab-bar';
+  // 45.2: the lane scrolls sideways itself again (it was up/down only: lists got stuck, "Add another list" out of reach)
+  var st = document.createElement('style'); st.id = 'mn-lane-452';
+  st.textContent = '.mobile-board-view:not(.landscape) .board-swimlane-scroll,.iphone-frame:not(.landscape) .board-swimlane-scroll{touch-action:pan-x pan-y!important}' +
+    '.board-swimlane-scroll > .board-add-list-btn{scroll-snap-align:center!important;flex:none}';
+  document.head.appendChild(st);
+  // can the finger's own spot scroll sideways natively? (a list's card area is up/down only)
+  function sideways(el, L) {
+    for (var n = el; n && n !== L.parentNode; n = n.parentNode) {
+      var ta = n.nodeType === 1 ? getComputedStyle(n).touchAction : 'auto';
+      if (ta && ta !== 'auto' && !/pan-x|manipulation/.test(ta)) return false;
+    }
+    return true;
+  }
   var t = null;
   function haptic(k) { try { if (window.MinestNative && window.MinestNative.haptic) window.MinestNative.haptic(k); else if (navigator.vibrate) navigator.vibrate(k === 'medium' ? 18 : 8); } catch (e) {} }
   function laneOf(el) { return el && el.closest ? el.closest('.board-swimlane-scroll') : null; }
@@ -50118,7 +50130,7 @@ var Ve = (function(_Component) {
     var el = e.target, L = laneOf(el);
     if (!L || (el.closest && el.closest(BLOCK))) return;
     var p = e.touches[0];
-    t = { x: p.clientX, y: p.clientY, L: L, done: false };
+    t = { x: p.clientX, y: p.clientY, L: L, done: false, native: sideways(el, L) };
     t.timer = setTimeout(function () {
       if (!t || t.done) return; t.done = true;
       var b = document.querySelector('button[title*="Wallpaper"]');
@@ -50130,13 +50142,13 @@ var Ve = (function(_Component) {
     var p = e.touches[0], dx = p.clientX - t.x, dy = p.clientY - t.y;
     if (Math.abs(dx) > 9 || Math.abs(dy) > 9) clearTimeout(t.timer);
     // only where the lane itself doesn't scroll sideways (portrait: one list per screen)
-    if (/pan-x|auto|manipulation/.test(getComputedStyle(t.L).touchAction)) return;
+    if (t.native) return;   // the lane scrolls by itself here
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4) { t.done = true; step(t.L, dx < 0 ? 1 : -1); }
   }, { passive: true, capture: true });
   document.addEventListener('touchend', end, { passive: true, capture: true });
   document.addEventListener('touchcancel', end, { passive: true, capture: true });
   function step(L, dir) {
-    var cols = Array.prototype.slice.call(L.querySelectorAll('.kanban-column-wrapper'));
+    var cols = Array.prototype.filter.call(L.children, function (c) { return c.matches('.kanban-column-wrapper, .board-add-list-btn') && c.offsetWidth; });
     if (!cols.length) return;
     var lr = L.getBoundingClientRect(), cur = 0, best = 1e9;
     cols.forEach(function (c, i) { var d = Math.abs(c.getBoundingClientRect().left + c.offsetWidth / 2 - (lr.left + lr.width / 2)); if (d < best) { best = d; cur = i; } });

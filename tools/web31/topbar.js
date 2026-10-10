@@ -50,7 +50,7 @@
     '.theme-white .mn31-col button{background:rgba(255,255,255,.82);color:#0f172a;border-color:rgba(15,23,42,.12)}',
     '@keyframes mn31In{to{opacity:1;transform:none}}',
     '.mn31-scrim{position:fixed;inset:0;z-index:2147481999}',
-    '.mn31-sw{display:inline-flex;gap:1px;padding:2px;border-radius:9px;background:rgba(127,127,127,.2)}.mn31-sw i{display:grid;place-items:center;width:15px;height:17px;border-radius:7px;opacity:.5}.mn31-sw i.on{opacity:1;background:rgba(255,255,255,.28)}.mn31-sw svg{width:12px!important;height:12px!important}'
+    '.mn31-sw{display:inline-flex}.mn31-sw i{display:grid;place-items:center}.mn31-sw i.on{display:none}.mn31-sw svg{width:18px!important;height:18px!important}'   // only the one to switch to (the iPhone)
   ].join('\n');
   document.head.appendChild(css);
 
