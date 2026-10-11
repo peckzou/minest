@@ -41,7 +41,7 @@
   }
   function templates() {
     var built = window.__MINEST_WORLD_TEMPLATES || {}, out = [];
-    ['my-life', 'britannica', 'my-academic-skills', 'my-life-skills'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
+    ['my-life', 'whole-earth', 'my-museum', 'britannica', 'dewey', 'my-academic-skills', 'my-life-skills', 'kant', 'aristotle', 'encyclopedie', 'bacon'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
     (KN() ? KN().keys('lom:tpl:') : []).forEach(function (k) { var t = KN().get(k); if (t && t.domains) out.push(Object.assign({ mine: true }, t)); });
     return out;
   }
@@ -52,14 +52,14 @@
   // sel: { off: {domainId|categoryId: 1} } — what the user switched off in the preview
   function newCard(id, title) { return { id: id, title: title, desc: '', labels: [], complete: false, createdAt: Date.now(), mastery: 1, checklistItems: [] }; }
   function plan(t, bid, sel) {
-    var off = (sel && sel.off) || {}, tid = slug(t.id), out = { lists: [], counts: { lists: 0, sections: 0, cards: 0 } };
+    var off = (sel && sel.off) || {}, codes = !!(sel && sel.codes && t.codes), tid = slug(t.id), out = { lists: [], counts: { lists: 0, sections: 0, cards: 0 } };
     t.domains.forEach(function (d, i) {
       if (off[d.id]) return;
-      var L = { id: bid + '-d-' + tid + '-' + slug(d.id), title: d.title, color: d.color || PAL[i % PAL.length], items: [] };
+      var L = { id: bid + '-d-' + tid + '-' + slug(d.id), title: (codes && d.code ? d.code + ' ' : '') + d.title, color: d.color || PAL[i % PAL.length], items: [] };
       (d.categories || []).forEach(function (c) {
         if (off[c.id]) return;
         var H = { id: bid + '-c-' + tid + '-' + slug(c.id), title: c.title, heading: true, lists: [] };
-        (c.lists || []).forEach(function (l) { H.lists.push({ id: bid + '-l-' + tid + '-' + slug(c.id) + '-' + slug(l.id), title: l.title }); });
+        (c.lists || []).forEach(function (l) { H.lists.push({ id: bid + '-l-' + tid + '-' + slug(c.id) + '-' + slug(l.id), title: (codes && l.code ? l.code + ' ' : '') + l.title }); });
         L.items.push(H);
       });
       out.lists.push(L);
@@ -72,11 +72,14 @@
     p.lists.forEach(function (L) { if (!have[L.id]) n.lists++; L.items.forEach(function (H) { if (!have[H.id]) n.sections++; H.lists.forEach(function (x) { if (!have[x.id]) n.cards++; }); }); });
     return n;
   }
+  var MADE = {};
   function generate(t, sel, intoBid) {
     check(t);
     var ai = A(); if (!ai.addBoard || !ai.updateBoard) throw new Error('The board is still loading — try again in a moment.');
     var old = intoBid ? boardById(intoBid) : null;
-    var bid = old ? old.id : (function () { var base = 'lw-' + slug(t.id), id = base, n = 2; while (boardById(id)) id = base + '-' + (n++); return id; })();
+    if (intoBid && !old) throw new Error('That world is not here any more.');
+    // a new id — also never one handed out moments ago (a new board takes a moment to show up in boards())
+    var bid = old ? old.id : (function () { var base = 'lw-' + slug(t.id), id = base, n = 2; while (boardById(id) || MADE[id]) id = base + '-' + (n++); MADE[id] = 1; return id; })();
     var p = plan(t, bid, sel), orig = {}, heads = [], stage = {};
     var b = old ? JSON.parse(JSON.stringify(old)) : { id: bid, title: t.worldTitle || t.name, columns: [], labelDefinitions: [], archivedCards: [], linkedBoardIds: [], showLabelNames: false };
     var byId = {}; (b.columns || []).forEach(function (c) { byId[c.id] = c; (c.cards || []).forEach(function (k) { byId[k.id] = k; }); });
@@ -112,7 +115,7 @@
     if (old) ai.updateBoard(bid, function () { return b; }); else ai.addBoard(b, true);
     heads.forEach(function (id) { if (!KN().isHeading(id)) KN().setHeading(id, true); });
     var cfg = Object.assign({}, KN().get('lm:cfg:' + bid) || {}); cfg.stageOf = Object.assign({}, cfg.stageOf || {}, stage);   // sections keep their lists (the Kanban may reorder)
-    var w = Object.assign({ created: Date.now(), templates: {} }, KN().get('lom:world:' + bid) || {}); w.templates = Object.assign({}, w.templates); w.templates[t.id] = { version: t.version || 1, name: t.name, at: Date.now(), off: (sel && sel.off) || {} };
+    var w = Object.assign({ created: Date.now(), templates: {} }, KN().get('lom:world:' + bid) || {}); w.templates = Object.assign({}, w.templates); w.templates[t.id] = { version: t.version || 1, name: t.name, at: Date.now(), off: (sel && sel.off) || {}, codes: !!(sel && sel.codes) };
     var m = {}; m['lm:cfg:' + bid] = cfg; m['lom:world:' + bid] = w; Object.keys(orig).forEach(function (k) { m[k] = orig[k]; });
     if (t.kind === 'skills') {   // the Unified Skill record of each skill card: 'sk:<card>' (the learner's status / proficiency survive)
       var tid = slug(t.id), off = (sel && sel.off) || {};
@@ -166,6 +169,13 @@
     'my-life': I('<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>'),
     'my-academic-skills': I('<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/>'),
     'my-life-skills': I('<path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="4"/>'),
+    'whole-earth': I('<circle cx="12" cy="12" r="9"/><path d="M4.5 9.5c3 1 4.5-1 7-.5s2 3 5 2.5M6 17c2-1.5 4-1 5.5 0s3.5 1 6-1"/>'),
+    'my-museum': I('<path d="M3 9.5 12 4l9 5.5M4.5 20h15M6 10.5V18M10 10.5V18M14 10.5V18M18 10.5V18"/>'),
+    dewey: I('<path d="M4 4.5h3v15H4zM8.5 4.5h3v15h-3zM13.2 5.2l2.9-.8 3.9 14.5-2.9.8z"/>'),
+    kant: I('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.6M12 17h.01"/>'),
+    aristotle: I('<path d="M12 3 3 19h18z"/><circle cx="12" cy="13.5" r="2.2"/>'),
+    encyclopedie: I('<path d="M12 21v-8M12 13 7 8M12 13l5-5M12 9V4"/><circle cx="12" cy="4" r="1.6"/><circle cx="6" cy="7" r="1.6"/><circle cx="18" cy="7" r="1.6"/>'),
+    bacon: I('<circle cx="7" cy="9" r="3.2"/><circle cx="17" cy="9" r="3.2"/><circle cx="12" cy="16.5" r="3.2"/>'),
     mine: I('<path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.3 6L12 16.4 6.6 19.4l1.3-6L3.4 9.3l6-.7z"/>'),
     world: I('<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/>'),
     back: I('<path d="m15 6-6 6 6 6"/>'), x: I('<path d="M6 6l12 12M18 6 6 18"/>'), chev: I('<path d="m9 6 6 6-6 6"/>')
@@ -204,6 +214,12 @@
     '.lw-dh .dot{width:12px;height:12px;border-radius:50%;flex:none;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 30%,transparent)}',
     '.lw-dh b{flex:1;min-width:0;font-size:15.5px;font-weight:700}',
     '.lw-dh em{font-style:normal;font-size:12px;opacity:.55}',
+    '.lw-note{display:block;font-size:12px;font-weight:500;opacity:.55;margin-top:1px}',
+    '.lw-code{font-style:normal;font:700 11.5px ui-monospace,SFMono-Regular,Menlo,monospace;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.12);opacity:.85}',
+    '.lw-opt{margin:0 0 4px;padding:10px 12px;border:0;border-radius:16px;background:rgba(255,255,255,.06)}',
+    '.lw-lens{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06)}.lw-lens b{font-size:13.5px}.lw-lens .nt{font-size:12.5px;opacity:.65;margin:2px 0 6px}',
+    '.lw-lens .gr{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:5px}.lw-lens .gr span{font-size:11.5px;font-weight:650;opacity:.6;min-width:76px}.lw-lens .gr i{font-style:normal;font-size:12px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.1)}',
+    'html.kn-light .lw-code,html.kn-light .lw-lens .gr i{background:rgba(0,0,0,.07)}html.kn-light .lw-lens,html.kn-light .lw-opt{background:rgba(0,0,0,.04)}',
     '.lw-dh .cv{width:22px;height:22px;display:grid;place-items:center;opacity:.55;transition:transform .2s}',
     '.lw-dh .cv svg{width:14px;height:14px}',
     '.lw-dom.open .lw-dh .cv{transform:rotate(90deg)}',
@@ -269,8 +285,11 @@
     var ts = templates(), ws = worlds(), size = function (t) { return t.domains.length + ' areas · ' + t.domains.reduce(function (a, d) { return a + (d.categories || []).reduce(function (x, c) { return x + (c.lists || []).length; }, 0); }, 0) + ' lists'; };
     var card = function (t) { return '<button type="button" class="lw-card" data-tpl="' + esc(t.id) + '" style="--c:' + esc(t.color || '#7c8cff') + '"><i>' + iconOf(t) + '</i><b>' + esc(t.name) + '</b>' + (t.description ? '<small>' + esc(t.description) + '</small>' : '') + '<em>' + size(t) + '</em></button>'; };
     var built = ts.filter(function (t) { return !t.mine; }), mine = ts.filter(function (t) { return t.mine; });
+    var FAM = [['everyday', 'Everyday life', ''], ['knowledge', 'Knowledge atlases', ''], ['skills', 'My Skills', ''], ['classical', 'Classical Worldviews', 'Inspired by great thinkers — shown in everyday words.']];
+    var fams = FAM.map(function (f) { var xs = built.filter(function (t) { return (t.family || 'everyday') === f[0]; }); return xs.length ? '<div class="lw-h">' + f[1] + '</div>' + (f[2] ? '<p class="lw-sub" style="margin-top:-4px">' + f[2] + '</p>' : '') + '<div class="lw-grid">' + xs.map(card).join('') + '</div>' : ''; }).join('');
+    var other = built.filter(function (t) { return !FAM.some(function (f) { return f[0] === (t.family || 'everyday'); }); });
     ui.body.innerHTML = '<p class="lw-sub">Pick a template — you will see its world first, and you can switch off anything you don’t want.</p>' +
-      '<div class="lw-grid">' + built.map(card).join('') + '</div>' +
+      fams + (other.length ? '<div class="lw-h">More templates</div><div class="lw-grid">' + other.map(card).join('') + '</div>' : '') +
       (mine.length ? '<div class="lw-h">My templates</div><div class="lw-grid">' + mine.map(card).join('') + '</div>' : '') +
       (ws.length ? '<div class="lw-h">My worlds</div><div class="lw-grid">' + ws.map(function (x) {
         var names = Object.keys(x.w.templates || {}).map(function (k) { return (x.w.templates[k] || {}).name || k; }).join(' + ');
@@ -287,22 +306,23 @@
   function preview(t) {
     ui.view = 'preview'; ui.tpl = t; ui.off = {}; ui.openD = {};
     ui.groups = t.groups ? (t.defaultGroups || t.groups.map(function (g) { return g.id; })).slice() : null;   // e.g. the grades to make
-    var ws = worlds(); ui.into = null;
+    var ws = worlds(); ui.into = null; ui.codes = !!(t.codes && t.codes.default);
     head(t.name, true);
     render();
     function render() {
-      var tgt = ui.into ? boardById(ui.into) : null, n = counts(plan(t, ui.into || ('lw-' + slug(t.id)), { off: offAll() }), tgt);
+      var tgt = ui.into ? boardById(ui.into) : null, n = counts(plan(t, ui.into || ('lw-' + slug(t.id)), { off: offAll(), codes: ui.codes }), tgt);
       var shown = t.domains.filter(function (d) { return !ui.groups || ui.groups.indexOf(d.group) >= 0; });
       ui.body.innerHTML = (t.description ? '<p class="lw-sub">' + esc(t.description) + '</p>' : '') +
         (t.inspiration ? '<details class="lw-about"><summary>About this template</summary><div style="margin-top:6px">' + esc(t.inspiration) + '</div>' +
-          (t.mine ? '<div class="lw-row" style="margin-top:10px"><button type="button" class="lw-pill" data-exp>Export JSON</button><button type="button" class="lw-pill" data-deltpl style="color:#ff6b6b">Delete this template</button></div>' : '') + '</details>' : '') +
+          lensHtml(t) + (t.mine ? '<div class="lw-row" style="margin-top:10px"><button type="button" class="lw-pill" data-exp>Export JSON</button><button type="button" class="lw-pill" data-deltpl style="color:#ff6b6b">Delete this template</button></div>' : '') + '</details>' : '') +
         (ws.length ? '<div class="lw-h">Where</div><div class="lw-target"><button type="button" data-into=""' + (ui.into ? '' : ' class="on"') + '>New world</button>' + ws.map(function (x) { return '<button type="button" data-into="' + esc(x.b.id) + '"' + (ui.into === x.b.id ? ' class="on"' : '') + '>Add to “' + esc(x.b.title) + '”</button>'; }).join('') + '</div>' : '') +
         (t.groups ? '<div class="lw-h">' + esc(t.groupsLabel || 'Groups') + '</div><div class="lw-target">' + t.groups.map(function (g) { return '<button type="button" data-group="' + esc(g.id) + '"' + (ui.groups.indexOf(g.id) >= 0 ? ' class="on"' : '') + '>' + esc(g.title) + '</button>'; }).join('') + '</div>' : '') +
+        (t.codes ? '<div class="lw-cat lw-opt"><div style="flex:1;min-width:0"><b>' + esc(t.codes.label || 'Show numbers') + '</b><span>Adds them to the names, e.g. “' + esc(((t.domains[5] || t.domains[0]).code || '') + ' ' + (t.domains[5] || t.domains[0]).title) + '”</span></div><button type="button" class="lw-sw' + (ui.codes ? ' on' : '') + '" data-codes aria-label="' + esc(t.codes.label || 'Show numbers') + '"></button></div>' : '') +
         '<div class="lw-h">Your world</div>' +
         (shown.length ? '' : '<p class="lw-sub">Pick at least one.</p>') +
         shown.map(function (d, i) {
           var dOff = !!ui.off[d.id];
-          return '<div class="lw-dom' + (dOff ? ' off' : '') + (ui.openD[d.id] ? ' open' : '') + '" style="--c:' + esc(d.color || PAL[i % PAL.length]) + '"><div class="lw-dh" data-dopen="' + esc(d.id) + '"><span class="cv">' + ICON.chev + '</span><span class="dot"></span><b>' + esc(d.title) + '</b><em>' + (d.categories || []).length + '</em><button type="button" class="lw-sw' + (dOff ? '' : ' on') + '" data-toggle="' + esc(d.id) + '" aria-label="Include ' + esc(d.title) + '"></button></div>' +
+          return '<div class="lw-dom' + (dOff ? ' off' : '') + (ui.openD[d.id] ? ' open' : '') + '" style="--c:' + esc(d.color || PAL[i % PAL.length]) + '"><div class="lw-dh" data-dopen="' + esc(d.id) + '"><span class="cv">' + ICON.chev + '</span><span class="dot"></span>' + (d.code ? '<i class="lw-code">' + esc(d.code) + '</i>' : '') + '<b>' + esc(d.title) + (d.note ? '<small class="lw-note">' + esc(d.note) + '</small>' : '') + '</b><em>' + (d.categories || []).length + '</em><button type="button" class="lw-sw' + (dOff ? '' : ' on') + '" data-toggle="' + esc(d.id) + '" aria-label="Include ' + esc(d.title) + '"></button></div>' +
             '<div class="lw-cats">' + (d.categories || []).map(function (c) {
               var cOff = dOff || !!ui.off[c.id];
               return '<div class="lw-cat' + (cOff ? ' off' : '') + '"><div style="flex:1;min-width:0"><b>' + esc(c.title) + '</b><span>' + (c.lists || []).map(function (l) { return esc(l.title); }).join(' · ') + '</span></div><button type="button" class="lw-sw' + (cOff ? '' : ' on') + '" data-toggle="' + esc(c.id) + '"' + (dOff ? ' disabled' : '') + ' aria-label="Include ' + esc(c.title) + '"></button></div>';
@@ -314,6 +334,13 @@
         '<button type="button" class="lw-go" data-go' + (total ? '' : ' disabled') + '>' + (tgt ? 'Add to My World' : 'Create My World') + '</button>';
     }
     ui.renderPreview = render;
+  }
+  // a classical template's advanced lens (e.g. Kant's twelve categories): shown to read, never generated as lists
+  function lensHtml(t) {
+    return (t.lenses || []).map(function (L) {
+      return '<div class="lw-lens"><b>' + esc(L.title) + '</b>' + (L.note ? '<div class="nt">' + esc(L.note) + '</div>' : '') +
+        (L.groups || []).map(function (g) { return '<div class="gr"><span>' + esc(g.title) + '</span>' + (g.items || []).map(function (x) { return '<i>' + esc(x) + '</i>'; }).join('') + '</div>'; }).join('') + '</div>';
+    }).join('');
   }
   // what is left out: switched off by hand, or outside the chosen groups
   function offAll() {
@@ -336,13 +363,14 @@
     if (ui.view !== 'preview') return;
     if (t.closest('[data-exp]')) return download(ui.tpl);
     if (t.closest('[data-deltpl]')) { if (confirm('Delete the template “' + ui.tpl.name + '”? Worlds made from it stay.')) { KN().set('lom:tpl:' + ui.tpl.id, null); choose(); } return; }
+    if (t.closest('[data-codes]')) { ui.codes = !ui.codes; var yc = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = yc; return; }
     var tg = t.closest('[data-toggle]'); if (tg) { e.stopPropagation(); var id = tg.getAttribute('data-toggle'); if (ui.off[id]) delete ui.off[id]; else ui.off[id] = 1; var y = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y; return; }
     var dh = t.closest('[data-dopen]'); if (dh) { var did = dh.getAttribute('data-dopen'); ui.openD[did] = !ui.openD[did]; dh.parentNode.classList.toggle('open', !!ui.openD[did]); return; }
     var gr = t.closest('[data-group]'); if (gr) { var gid = gr.getAttribute('data-group'), at = ui.groups.indexOf(gid); if (at >= 0) ui.groups.splice(at, 1); else ui.groups.push(gid); var y3 = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y3; return; }
-    var into = t.closest('[data-into]'); if (into) { ui.into = into.getAttribute('data-into') || null; var y2 = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y2; return; }
+    var into = t.closest('[data-into]'); if (into) { ui.into = into.getAttribute('data-into') || null; if (ui.tpl.codes) { var wt = ((ui.into && KN().get('lom:world:' + ui.into)) || {}).templates || {}; ui.codes = wt[ui.tpl.id] ? !!wt[ui.tpl.id].codes : !!ui.tpl.codes.default; } var y2 = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y2; return; }
     if (t.closest('[data-go]')) {
       try {
-        var r = generate(ui.tpl, { off: offAll() }, ui.into);
+        var r = generate(ui.tpl, { off: offAll(), codes: ui.codes }, ui.into);
         toast(r.isNew ? 'Created “' + r.title + '”' : 'Added to “' + r.title + '”');
         openWorld(r.bid, true);
       } catch (ex) { toast('✗ ' + ex.message); }
