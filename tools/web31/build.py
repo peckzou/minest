@@ -126,8 +126,8 @@ def knowledge_patches(out):
 
 
 def knowledge_js():
-    # Phase 1 Contents, Phase 2 Endless, Phase 3 Knowledge Map (Contents first: the others use its MinestKnowledge)
-    return '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'endless.js', 'map.js'))
+    # Phase 1 Contents, Phase 2 Endless, Phase 3 Knowledge Map, Phase 4 Timeline (Contents first: the others use its MinestKnowledge)
+    return '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'endless.js', 'map.js', 'timeline.js'))
 
 
 def toon_patches(out):

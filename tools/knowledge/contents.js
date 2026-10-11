@@ -15,7 +15,7 @@
 
   // ================================================================== knowledge metadata (synced)
   var KN_KEY = 'minest.knowledge.v1';
-  var K = (function () { try { var v = JSON.parse(localStorage.getItem(KN_KEY) || 'null'); if (v && typeof v === 'object') return { h: v.h || {}, off: v.off || {}, o: v.o || {}, m: v.m || {} }; } catch (e) {} return { h: {}, off: {}, o: {}, m: {} }; })();
+  var K = (function () { try { var v = JSON.parse(localStorage.getItem(KN_KEY) || 'null'); if (v && typeof v === 'object') return { h: v.h || {}, off: v.off || {}, o: v.o || {}, m: v.m || {}, t: v.t || {} }; } catch (e) {} return { h: {}, off: {}, o: {}, m: {}, t: {} }; })();
   function knSave() { try { localStorage.setItem(KN_KEY, JSON.stringify(K)); } catch (e) {} }
   function knPush() {
     // straight to the cloud doc (merge), so a heading reaches the other devices without waiting for a board edit
@@ -39,12 +39,15 @@
     // Knowledge Map (Phase 3): a node's place, as an offset from its parent node (so a moved list takes its cards along)
     posOf: function (key) { var x = K.m[key]; return x && typeof x.dx === 'number' ? { dx: x.dx, dy: x.dy } : null; },
     setPos: function (key, dx, dy) { K.m[key] = { dx: Math.round(dx), dy: Math.round(dy), t: Date.now() }; knSave(); knPush(); },
+    // Timeline (Phase 4): an event's date — only what was entered: {y (negative = BCE), m?, d?, y2?, m2?, d2?}
+    dateOf: function (id) { var x = K.t[id]; return x && typeof x.y === 'number' ? x : null; },
+    setDate: function (id, dt) { var v = { t: Date.now() }; if (dt) ['y', 'm', 'd', 'y2', 'm2', 'd2'].forEach(function (f) { if (typeof dt[f] === 'number' && isFinite(dt[f])) v[f] = dt[f]; }); K.t[id] = v; knSave(); knPush(); listeners.forEach(function (f) { try { f(); } catch (e) {} }); },
     clearPos: function (keys) { var t = Date.now(); keys.forEach(function (k) { if (K.m[k]) K.m[k] = { t: t }; }); knSave(); knPush(); },
     _cloud: function () { return K; },
     _mergeCloud: function (R) {
       if (!R || typeof R !== 'object') return;
       var changed = false;
-      ['h', 'off', 'o', 'm'].forEach(function (m) {
+      ['h', 'off', 'o', 'm', 't'].forEach(function (m) {
         var src = R[m] || {}; K[m] = K[m] || {};
         Object.keys(src).forEach(function (id) { var a = K[m][id], b = src[id]; if (b && (!a || (b.t || 0) > (a.t || 0))) { K[m][id] = b; changed = true; } });
       });
@@ -322,11 +325,11 @@
     });
   }
   function flash(el) { el.classList.remove('mn-kn-hit'); void el.offsetWidth; el.classList.add('mn-kn-hit'); setTimeout(function () { el.classList.remove('mn-kn-hit'); }, 1900); }
-  function go(n, details) {
+  function go(n, details, back) {
     var to = n.to, A = window.MinestAI;
     if (!A || !A.selectBoard) return toast('The board is still loading — try again in a moment.');
     if (!exists(to)) { toast('This item is no longer on the board.'); return render(); }
-    S.sel = n.id; stSave();
+    if (S && n.id) { S.sel = n.id; stSave(); }
     close(function () {
       try { if (A.viewMode && A.viewMode() !== 'board' && A.setViewMode) A.setViewMode('board'); } catch (e) {}
       var cur = activeId();
@@ -336,7 +339,7 @@
         var parent = null; boardsNow().some(function (b) { return b.id === to.b && (b.columns || []).some(function (c) { return (c.cards || []).some(function (x) { if (x.id === to.p) { parent = x; return true; } return false; }); }); });
         if (parent && !parent.isStackExpanded) A.patchCard(to.p, { isStackExpanded: true });
       }
-      if (details && A.openCard && !to.p) { A.openCard(to.c); showPill(); return; }
+      if (details && A.openCard && !to.p) { A.openCard(to.c); showPill(back); return; }
       var colSel = '.kanban-column-wrapper[data-col-id="' + cssEsc(to.l || '') + '"]';
       var sel = to.c ? colSel + ' article[data-card-id="' + cssEsc(to.c) + '"]' : (to.l ? colSel : '.board-swimlane-scroll, .kanban-column-wrapper');
       setTimeout(function () {
@@ -348,18 +351,19 @@
           if (details && to.p) setTimeout(function () { el.click(); }, 500);
         });
       }, cur !== to.b ? 120 : 30);
-      showPill();
+      showPill(back);
     });
   }
 
   // ---------------------------------------------------------------- ‹ Contents (back to the contents)
   var pill = null, dimT = 0;
-  function showPill() {
+  function showPill(back) {
     ensureCss(); hidePill();
+    var label = back && back.label || 'Contents', reopen = back && back.open || open;
     pill = document.createElement('div'); pill.className = 'kc-back'; pill.setAttribute('role', 'navigation');
-    pill.innerHTML = '<b role="button" tabindex="0" aria-label="Back to Contents">‹ Contents</b><i role="button" aria-label="Hide">✕</i>';
+    pill.innerHTML = '<b role="button" tabindex="0" aria-label="Back to ' + esc(label) + '">‹ ' + esc(label) + '</b><i role="button" aria-label="Hide">✕</i>';
     pill.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
-    pill.addEventListener('click', function (e) { e.stopPropagation(); if (e.target.closest('i')) return hidePill(); open(); });
+    pill.addEventListener('click', function (e) { e.stopPropagation(); if (e.target.closest('i')) return hidePill(); hidePill(); reopen(); });
     document.body.appendChild(pill);
     clearTimeout(dimT); dimT = setTimeout(function () { if (pill) pill.classList.add('dim'); }, 5000);
   }
@@ -375,5 +379,5 @@
   }
   if (document.body) trigger(); else document.addEventListener('DOMContentLoaded', trigger);
 
-  window.MinestContents = { open: open, close: close, toggle: function () { if (ui.open) close(); else open(); }, isOpen: function () { return ui.open; }, icon: BOOK, _tree: tree, _go: function (id) { var n = byId[id]; if (n) go(n); } };
+  window.MinestContents = { goTo: function (to, back) { go({ id: null, to: to }, false, back); }, open: open, close: close, toggle: function () { if (ui.open) close(); else open(); }, isOpen: function () { return ui.open; }, icon: BOOK, _tree: tree, _go: function (id) { var n = byId[id]; if (n) go(n); } };
 })();

@@ -135,6 +135,7 @@ def main():
              "    { k: 'contents', find: function () { return document.getElementById('mn-contents-trigger'); } },   // 46.9 Minest Knowledge\n"
              "    { k: 'endless', find: function () { return document.getElementById('mn-endless-trigger'); } },   // 47.0 Endless outline\n"
              "    { k: 'kmap', find: function () { return document.getElementById('mn-map-trigger'); } },   // 47.1 Knowledge Map\n"
+             "    { k: 'timeline', find: function () { return document.getElementById('mn-timeline-trigger'); } },   // 47.2 Timeline\n"
              "    { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },", 'dock: Contents')
     tail = s.rindex('</body>')
     s = s[:tail] + '<script>\n' + web31.knowledge_js() + '\n</script>\n' + s[tail:]
