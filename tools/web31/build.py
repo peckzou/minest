@@ -171,8 +171,13 @@ def knowledge_js():
     for f in sorted(glob.glob(os.path.join(REPO, 'tools', 'knowledge', 'samples', '*.json'))):
         samples[os.path.splitext(os.path.basename(f))[0]] = json.load(open(f, encoding='utf-8'))
     js = 'window.__MINEST_KN_SAMPLES = ' + json.dumps(samples, ensure_ascii=False) + ';\n'
+    # List of Mine: the built-in worldview templates (tools/knowledge/templates/*.json)
+    worlds = {}
+    for f in sorted(glob.glob(os.path.join(REPO, 'tools', 'knowledge', 'templates', '*.json'))):
+        t = json.load(open(f, encoding='utf-8')); worlds[t['id']] = t
+    js += 'window.__MINEST_WORLD_TEMPLATES = ' + json.dumps(worlds, ensure_ascii=False) + ';\n'
     # Phases 1–4, then JSON import (5–6), the Learning Map, and the one Knowledge Dock icon
-    return js + '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'look.js', 'kedit.js', 'endless.js', 'map.js', 'timeline.js', 'kjson.js', 'learnmap.js', 'wiki.js', 'hub.js'))
+    return js + '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'look.js', 'kedit.js', 'endless.js', 'map.js', 'timeline.js', 'kjson.js', 'learnmap.js', 'wiki.js', 'world.js', 'hub.js'))
 
 
 def toon_patches(out):
