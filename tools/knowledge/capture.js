@@ -370,7 +370,7 @@
       .sort(function (a, b) { return (b.w.since || 0) - (a.w.since || 0); });
     return rows.map(function (r) { return '<button type="button" class="wc-row" data-list="' + esc(r.id) + '" style="--c:' + esc(r.L.color || '#5e5ce6') + '"><span class="wc-dot"></span><div><b>' + esc(r.L.title) + '</b><small>' + esc(r.L.area + ' · ' + r.L.board) + '</small></div>' + (r.w.isNew ? '<span class="wc-n new">NEW</span>' : '') + (r.w.n ? '<span class="wc-n">+' + r.w.n + '</span>' : '') + '</button>'; }).join('');
   }
-  var SRC_T = { typed: 'Typed', paste: 'Pasted', import: 'Imported', photo: 'Photo', you: 'You', ai: 'AI suggestion' };
+  var SRC_T = { typed: 'Typed', paste: 'Pasted', import: 'Imported', photo: 'Photo', you: 'You', ai: 'AI suggestion', discover: 'Discover' };
   function recentHtml(ls) {
     if (!ls.length) return '<div class="wc-empty">Nothing yet — add anything above.</div>';
     return ls.map(function (l) {
@@ -487,7 +487,7 @@
     ui.body.innerHTML = '<p class="wc-sub">' + esc(L.area + ' · ' + L.board) + ' · ' + (C.stack || []).length + ' in this list</p>' +
       st.slice(0, 80).map(function (s) { var k = KN().get('pk:' + s.id), r = k && KN().get(k), fresh = r && r.at >= since && w; return '<button type="button" class="wc-row" ' + (k ? 'data-item="' + esc(k) + '"' : 'data-open="' + esc(cid) + '"') + '><div><b>' + esc(s.title) + '</b><small>' + esc(r ? ago(r.at) + ' · ' + (SRC_T[r.src] || r.src || '') : (s.desc || '').slice(0, 80)) + '</small></div>' + (fresh ? '<span class="wc-n">new</span>' : '') + '</button>'; }).join('') +
       '';
-    ui.foot.hidden = false; ui.foot.innerHTML = '<button type="button" class="wc-go" data-open="' + esc(cid) + '">Open on the board</button>';
+    ui.foot.hidden = false; ui.foot.innerHTML = (window.MinestDiscover && (C.stack || []).length >= 2 ? '<button type="button" class="wc-go sec" data-discover="' + esc(L.bid + '|' + cid) + '">Discover</button>' : '') + '<button type="button" class="wc-go" data-open="' + esc(cid) + '">Open on the board</button>';
     seen(cid);
   }
   // an item: where it is (its relationships) — remove one, add another, move, mark a suggestion wrong
@@ -549,6 +549,7 @@
     // result / recent / lists / items
     if ((g = t.closest('[data-undo]'))) { var lid = g.getAttribute('data-undo'); g.disabled = true; return undoLog(lid).then(function () { toast('↺ Undone — nothing else changed'); home(); }); }
     if (t.closest('[data-done]')) return home();
+    if ((g = t.closest('[data-discover]'))) { var dp = g.getAttribute('data-discover').split('|'); close(); setTimeout(function () { MinestDiscover.open({ bid: dp[0], cardId: dp.slice(1).join('|') }); }, 200); return; }
     if ((g = t.closest('[data-log]'))) { var lg = KN().get('wl:' + g.getAttribute('data-log')); if (lg) result(lg, 'home'); return; }
     if ((g = t.closest('[data-list]'))) return listView(g.getAttribute('data-list'), g.getAttribute('data-fromlog'));
     if ((g = t.closest('[data-item]'))) { var back = ui.view === 'list' ? 'home' : ui.view === 'result' ? 'log:' + ui.log.id : 'home'; return itemView(g.getAttribute('data-item'), back); }

@@ -182,7 +182,7 @@ def knowledge_js():
         c = json.load(open(f, encoding='utf-8')); pickers[c['id']] = c
     js += 'window.__MINEST_PICKERS = ' + json.dumps(pickers, ensure_ascii=False) + ';\n'
     # Phases 1–4, then JSON import (5–6), the Learning Map, and the one Knowledge Dock icon
-    return js + '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'look.js', 'kedit.js', 'endless.js', 'map.js', 'timeline.js', 'kjson.js', 'learnmap.js', 'wiki.js', 'world.js', 'skills.js', 'picker.js', 'capture.js', 'hub.js'))
+    return js + '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'look.js', 'kedit.js', 'endless.js', 'map.js', 'timeline.js', 'kjson.js', 'learnmap.js', 'wiki.js', 'world.js', 'skills.js', 'picker.js', 'capture.js', 'discover.js', 'hub.js'))
 
 
 def toon_patches(out):
