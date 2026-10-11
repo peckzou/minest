@@ -498,7 +498,7 @@
     ui.body.innerHTML = '<div class="wc-item">' + (r.img ? '<img alt="" src="' + esc(r.img) + '" style="width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:8px">' : '') + '<b>' + esc(r.title) + '</b>' + (r.text && r.text !== r.title ? '<div class="tx" style="-webkit-line-clamp:8">' + esc(r.text) + '</div>' : '') + (r.link ? '<div class="tx"><a href="' + esc(r.link) + '" target="_blank" rel="noopener" style="color:#64d2ff">' + esc(r.link) + '</a></div>' : '') +
       '<div class="tx">' + esc(ago(r.at) + ' · ' + (SRC_T[r.src] || r.src || '')) + '</div></div>' +
       '<div class="wc-h">In ' + pl.length + ' list' + (pl.length === 1 ? '' : 's') + '</div>' + pl.map(function (p) { var L = listTitle(p.card); return '<div class="wc-row" style="cursor:default;--c:' + esc(L && L.color || '#5e5ce6') + '"><span class="wc-dot"></span><div><b>' + esc(p.title) + '</b><small>' + esc(L ? L.area + ' · ' + L.board : '') + '</small></div><button type="button" class="wc-tool" data-move="' + esc(p.id) + '">Move</button><button type="button" class="wc-tool" data-wrong="' + esc(p.id) + '" title="Remove from this list — and suggest it less">✕</button></div>'; }).join('') +
-      '<div class="wc-chips" style="margin-top:10px"><button type="button" class="wc-chip" data-addto>' + ICON.plus + 'Add to another list</button></div>' +
+      '<div class="wc-chips" style="margin-top:10px"><button type="button" class="wc-chip" data-addto>' + ICON.plus + 'Add to another list</button>' + (window.MinestPhilo ? '<button type="button" class="wc-chip" data-cxconnect>' + ICON.link + 'Connect to…</button>' : '') + '</div>' +
       (pl.length === 1 ? '<p class="wc-sub" style="margin-top:12px">Removing it from its last list takes it out of My World.</p>' : '');
   }
   function placeOf(sid) { var hit = null; boards().forEach(function (b) { (b.columns || []).forEach(function (col) { (col.cards || []).forEach(function (c) { (c.stack || []).forEach(function (s) { if (s.id === sid) hit = { bid: b.id, card: c.id, title: c.title, id: s.id }; }); }); }); }); return hit; }
@@ -549,6 +549,7 @@
     // result / recent / lists / items
     if ((g = t.closest('[data-undo]'))) { var lid = g.getAttribute('data-undo'); g.disabled = true; return undoLog(lid).then(function () { toast('↺ Undone — nothing else changed'); home(); }); }
     if (t.closest('[data-done]')) return home();
+    if (t.closest('[data-cxconnect]')) { var ck = ui.itemKey; close(); setTimeout(function () { MinestPhilo.connect({ key: ck }); }, 200); return; }
     if ((g = t.closest('[data-discover]'))) { var dp = g.getAttribute('data-discover').split('|'); close(); setTimeout(function () { MinestDiscover.open({ bid: dp[0], cardId: dp.slice(1).join('|') }); }, 200); return; }
     if ((g = t.closest('[data-log]'))) { var lg = KN().get('wl:' + g.getAttribute('data-log')); if (lg) result(lg, 'home'); return; }
     if ((g = t.closest('[data-list]'))) return listView(g.getAttribute('data-list'), g.getAttribute('data-fromlog'));

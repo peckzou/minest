@@ -309,6 +309,7 @@
   var KIND = { board: 'Board', list: 'List', card: 'Card', item: 'Stacked card' };
   function closeBar() { if (barEl) { barEl.remove(); barEl = null; } var t = barT; barT = null; if (t && t.onClose) t.onClose(); }
   // t: {bid, kind, id, title}; o: {extra: [{key, icon, label, run, before}], hide: {key: 1}, onDetails(t), onDone(made), onClose()}
+  var GX = [];   // actions other modules add to every card / stacked-card bar (e.g. Connect to… from philo.js)
   function bar(t, o) {
     css(); closeBar(); o = o || {};
     barT = { t: t, onClose: o.onClose };
@@ -324,6 +325,7 @@
     };
     var label = { edit: 'Edit text', add: t.kind === 'list' ? 'New list after' : 'New ' + (t.kind === 'item' ? 'stacked card' : 'card') + ' after', child: t.kind === 'board' ? 'New list' : t.kind === 'list' ? 'New card in it' : 'New card stacked in it', up: 'Move up', down: 'Move down', head: KN().isHeading(t.id) ? 'Not a section heading' : 'Section heading', info: 'Details', del: 'Delete' };
     var btns = [];
+    o.extra = (o.extra || []).concat(GX.filter(function (x) { return !x.kinds || x.kinds.indexOf(t.kind) >= 0; }));
     (o.extra || []).filter(function (x) { return x.before; }).forEach(function (x) { btns.push('<button type="button" data-x="' + x.key + '" title="' + esc(x.label) + '" aria-label="' + esc(x.label) + '">' + (ICON[x.icon] || x.icon) + '</button>'); });
     ['edit', 'add', 'child', 'up', 'down', 'head', 'info'].forEach(function (k) { if (can[k] && !hide[k]) btns.push('<button type="button" data-op="' + k + '" title="' + esc(label[k]) + '" aria-label="' + esc(label[k]) + '">' + ICON[k] + '</button>'); });
     (o.extra || []).filter(function (x) { return !x.before; }).forEach(function (x) { btns.push('<button type="button" data-x="' + x.key + '" title="' + esc(x.label) + '" aria-label="' + esc(x.label) + '">' + (ICON[x.icon] || x.icon) + '</button>'); });
@@ -454,5 +456,5 @@
   function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
 
   if (document.head) css(); else document.addEventListener('DOMContentLoaded', css);   // the menus' look is needed before any view opens
-  window.MinestKEdit = { switcher: switcher, switchBtnHtml: switchBtnHtml, fullscreen: fullscreen, fullBtnHtml: fullBtnHtml, picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
+  window.MinestKEdit = { globalExtra: GX, switcher: switcher, switchBtnHtml: switchBtnHtml, fullscreen: fullscreen, fullBtnHtml: fullBtnHtml, picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();

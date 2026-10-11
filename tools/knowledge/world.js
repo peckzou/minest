@@ -342,7 +342,7 @@
       (ws.length ? '<div class="lw-h">My worlds</div><div class="lw-grid">' + ws.map(function (x) {
         var names = Object.keys(x.w.templates || {}).map(function (k) { return (x.w.templates[k] || {}).name || k; }).join(' + ');
         return '<div class="lw-card wide" style="--c:#7c8cff;cursor:default"><i>' + ICON.world + '</i><b>' + esc(x.b.title) + '</b><small>' + esc(names) + ' · ' + (x.b.columns || []).length + ' areas</small>' +
-          '<div class="lw-row"><button type="button" class="lw-pill pri" data-openw="' + esc(x.b.id) + '">Open' + (window.MinestCapture && MinestCapture.newCount(x.b.id) ? ' <span style="background:#fff;color:#0a7aff;border-radius:999px;padding:1px 7px;margin-left:4px;font-size:12px">+' + MinestCapture.newCount(x.b.id) + '</span>' : '') + '</button>' + (window.MinestPicker ? '<button type="button" class="lw-pill" data-quick="' + esc(x.b.id) + '">＋ Quick Add</button>' : '') + '<button type="button" class="lw-pill" data-savew="' + esc(x.b.id) + '">Save as my template</button></div></div>';
+          '<div class="lw-row"><button type="button" class="lw-pill pri" data-openw="' + esc(x.b.id) + '">Open' + (window.MinestCapture && MinestCapture.newCount(x.b.id) ? ' <span style="background:#fff;color:#0a7aff;border-radius:999px;padding:1px 7px;margin-left:4px;font-size:12px">+' + MinestCapture.newCount(x.b.id) + '</span>' : '') + '</button>' + (window.MinestPicker ? '<button type="button" class="lw-pill" data-quick="' + esc(x.b.id) + '">＋ Quick Add</button>' : '') + Object.keys(x.w.templates || {}).map(function (k) { var tt = tplById(k), d = tt && tt.discoveryTool; return d && window.MinestPhilo && MinestPhilo.ready(d.id) ? '<button type="button" class="lw-pill" data-ptool="' + esc(d.id) + '">' + esc(d.name) + '</button>' : ''; }).join('') + '<button type="button" class="lw-pill" data-savew="' + esc(x.b.id) + '">Save as my template</button></div></div>';
       }).join('') + '</div>' : '') +
       '<div class="lw-h">More</div><div class="lw-row"><button type="button" class="lw-pill" data-import>Import a template…</button>' +
       (A().board && A().board() ? '<button type="button" class="lw-pill" data-savecur>Make a template from “' + esc(A().board().title) + '”</button>' : '') +
@@ -370,7 +370,7 @@
           ((t.philosophy.coreConcepts || []).length ? '<div class="lw-ab"><b>Core ideas</b><div class="lw-tags">' + t.philosophy.coreConcepts.map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('') + '</div></div>' : '') +
           lensHtml(t) + '<p class="lw-fine">Choosing a template never means you hold its views — it is only a way to sort your own world.</p></details>' : '') +
         ((t.thinkingQuestions || []).length ? '<details class="lw-about"><summary>Thinking questions</summary><ul class="lw-qs">' + t.thinkingQuestions.map(function (q) { return '<li>' + esc(q.text) + '</li>'; }).join('') + '</ul></details>' : '') +
-        (t.discoveryTool ? '<div class="lw-tool"><b>' + esc(t.discoveryTool.name) + '</b><span>' + esc(t.discoveryTool.summary || '') + '</span><em>' + (t.discoveryTool.status === 'ready' ? 'Ready' : 'Coming next') + '</em></div>' : '') +
+        (t.discoveryTool ? (function (d) { var ready = window.MinestPhilo && MinestPhilo.ready(d.id); return '<div class="lw-tool"><b>' + esc(d.name) + '</b><span>' + esc(d.summary || '') + '</span>' + (ready ? '<button type="button" class="lw-pill pri" style="grid-row:1/3;grid-column:2;align-self:center;height:32px" data-ptool="' + esc(d.id) + '">Open</button>' : '<em>Coming next</em>') + '</div>'; })(t.discoveryTool) : '') +
         ((t.recommendedViews || []).length ? '<div class="lw-h">Good views for it</div><div class="lw-tags">' + t.recommendedViews.map(function (v) { return '<i>' + esc(VIEW_T[v] || v) + '</i>'; }).join('') + '</div>' : '') +
         (!t.philosophy && t.inspiration ? '<details class="lw-about"><summary>About this template</summary><div style="margin-top:6px">' + esc(t.inspiration) + '</div>' +
           lensHtml(t) + (t.mine ? '<div class="lw-row" style="margin-top:10px"><button type="button" class="lw-pill" data-exp>Export JSON</button><button type="button" class="lw-pill" data-deltpl style="color:#ff6b6b">Delete this template</button></div>' : '') + '</details>' : '') +
@@ -424,6 +424,7 @@
     if (t.closest('[data-back]')) return choose();
     var tp = t.closest('[data-tpl]'); if (tp) { var tt = tplById(tp.getAttribute('data-tpl')); if (tt) preview(tt); return; }
     if (t.closest('[data-capture]')) { close(); setTimeout(function () { MinestCapture.open(); }, 200); return; }
+    var pt = t.closest('[data-ptool]'); if (pt) { var tid = ui.tpl && ui.tpl.id; close(); setTimeout(function () { MinestPhilo.open(pt.getAttribute('data-ptool'), { template: tid }); }, 200); return; }
     var qa = t.closest('[data-quick]'); if (qa) { if (window.MinestPicker) MinestPicker.open({ bid: qa.getAttribute('data-quick') }); return; }
     var ow = t.closest('[data-openw]'); if (ow) return openWorld(ow.getAttribute('data-openw'));
     var sw = t.closest('[data-savew]'); if (sw) { var b = boardById(sw.getAttribute('data-savew')); if (b) mineFrom(b); return; }

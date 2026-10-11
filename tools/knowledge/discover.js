@@ -316,10 +316,19 @@
     var ss = all(), go = ss.filter(function (s) { return s.status !== 'completed'; }), done = ss.filter(function (s) { return s.status === 'completed'; });
     ui.body.innerHTML = '<p class="dv-sub">Discover what I love. Nothing here is right or wrong — it only keeps what you chose.</p><div class="dv-tools">' + TOOLS.map(function (t) {
       var d = TOOL_D[t];
+      if (EXT[t] && EXT[t].group) return '';
       return '<button type="button" class="dv-tool" data-tool="' + t + '" style="--c1:' + d[2] + ';--c2:' + d[3] + '"' + (READY[t] ? '' : ' disabled') + '><span class="pv">' + PV[t] + '</span><b>' + d[0] + '</b><small>' + d[1] + '</small>' + (READY[t] ? '' : '<span class="soon">Coming next</span>') + '</button>';
     }).join('') + '</div>' +
+      philoHtml() +
       (go.length ? '<div class="dv-h">Continue</div>' + go.map(row).join('') : '') +
       '<div class="dv-h">My Discoveries</div>' + (done.length ? done.slice(0, 30).map(row).join('') : '<div class="dv-empty">Your results will be kept here.</div>');
+  }
+  // Philosophical Exploration: one tool per advanced-philosophy template (ready ones open, the rest say "coming next")
+  function philoHtml() {
+    var ts = (window.MinestWorld && MinestWorld.templates ? MinestWorld.templates() : []).filter(function (t) { return t.family === 'advanced-philosophy' && t.discoveryTool; });
+    if (!ts.length) return '';
+    return '<div class="dv-h">Philosophical Exploration</div>' + ts.map(function (t) { var d = t.discoveryTool, ok = !!EXT[d.id];
+      return '<button type="button" class="dv-row" data-philo="' + esc(d.id) + '"' + (ok ? '' : ' disabled style="opacity:.5;cursor:default"') + '><div><b>' + esc(d.name) + '</b><small>' + esc(t.name + ' · ' + (t.philosopher || '')) + '</small></div>' + (ok ? '<span class="cv">' + ICON.chev + '</span>' : '<em>Coming next</em>') + '</button>'; }).join('');
   }
   function row(s) {
     var n = EXT[s.tool] ? EXT[s.tool].progress(s) : s.tool === 'this-or-that' ? (s.choices || []).filter(function (c) { return c && c.pick !== undefined; }).length + '/' + ((s.pairs || []).length) : s.tool === 'tier-list' && s.rank ? Object.keys(placedIn(s)).length + '/' + s.items.length : s.tool === 'tournament' && s.bracket ? (function () { var c = realMatches(bracket(s)); return c.d + '/' + c.n; })() : '';
@@ -747,7 +756,9 @@
     if (/^tour/.test(ui.view) && tourClick(t)) return;
     for (var xk in EXT) if (EXT[xk].click(t, e)) return;
     if (t.closest('[data-x]')) return close();
+    for (var xk0 in EXT) if (EXT[xk0].group && EXT[xk0].click(t, e)) return;   // philosophy tools have their own pages (and their own Back)
     if ((g = t.closest('[data-back]'))) { var b = g.getAttribute('data-back'); if (b === 'source') return ui.preset ? home() : pickSource(ui.tool); return home(); }
+    if ((g = t.closest('[data-philo]'))) { var pd = EXT[g.getAttribute('data-philo')]; if (pd && pd.start) pd.start(); return; }
     if ((g = t.closest('[data-tool]'))) { var tool = g.getAttribute('data-tool'); if (!READY[tool]) return; if (ui.preset) { ui.tool = tool; var s0 = srcFrom(ui.preset); if (s0) return startConfig(s0, itemsOf(s0)); } return pickSource(tool); }
     if ((g = t.closest('[data-src]')) && g.tagName === 'BUTTON') { var s1 = srcFrom(g.getAttribute('data-src')); if (s1) startConfig(s1, itemsOf(s1)); return; }
     if (t.closest('[data-json]')) return ui.file.click();
