@@ -50,6 +50,7 @@
   // what an item looks like now (picture from the card, else from its knowledge item; gone if deleted)
   function view(it) {
     var o = { title: it.title, img: it.img || '', sub: it.sub || '', gone: false };
+    if (!it.ref && it.key && KN()) { var kr = KN().get(it.key); if (kr && kr.img && !o.img) o.img = kr.img; }
     if (it.ref) {
       var b = boardById(it.ref.bid), L = b && locateCard(b, it.ref.id), c = L && (L.item || L.card);
       if (c) { o.title = c.title || o.title; var cv = c.cover; if (cv && (cv.value || cv.url) && (!cv.type || cv.type === 'image')) o.img = cv.value || cv.url; o.sub = String(c.desc || '').split('\n')[0].slice(0, 60); }
@@ -78,8 +79,8 @@
       if (img && !/^https:\/\//i.test(img) && !(/^data:image\//.test(img) && img.length < 300000)) img = '';   // only https links or small embedded pictures
       return { id: 'json:' + slug(j.discoveryId || j.title) + ':' + id, title: String(x.title).slice(0, 120), img: img, sub: x.category || '', desc: x.description || '' };
     });
-    var tools = (j.enabledTools || TOOLS).filter(function (t) { return TOOLS.indexOf(t) >= 0; });
-    return { title: String(j.title || 'My Discovery').slice(0, 80), id: String(j.discoveryId || ''), items: items, tools: tools.length ? tools : TOOLS, config: j.config || {} };
+    var tools = (j.enabledTools || TOOLS).filter(function (t) { return TOOLS.indexOf(t) >= 0; }); if (!j.enabledTools) tools = TOOLS.slice();
+    return { title: String(j.title || 'My Discovery').slice(0, 80), id: String(j.discoveryId || ''), items: items, tools: tools.length ? tools : TOOLS, config: j.config || {}, limits: j.roundLimits || (j.config || {}).roundLimits || null };
   }
 
   // ================================================================== sessions
@@ -87,7 +88,7 @@
   function get(id) { return KN().get('dv:' + id); }
   function put(s) { s.updatedAt = Date.now(); KN().set('dv:' + s.id, s, true); return s; }
   function create(tool, src, items, config, title) {
-    return { id: rid(), tool: tool, title: title, source: src, items: items.map(function (x) { var o = { id: x.id, title: x.title, ref: x.ref || null }; if (x.img) o.img = x.img; if (x.sub) o.sub = x.sub; return o; }),
+    return { id: rid(), tool: tool, title: title, source: src, items: items.map(function (x) { var o = { id: x.id, title: x.title, ref: x.ref || null }; if (x.img) o.img = x.img; if (x.sub) o.sub = x.sub; if (x.key) o.key = x.key; if (x.own) o.own = true; return o; }),
       config: config || {}, status: 'draft', choices: [], result: null, createdAt: Date.now(), updatedAt: Date.now() };
   }
   function itemById(s, id) { return s.items.filter(function (x) { return x.id === id; })[0] || null; }
@@ -120,11 +121,12 @@
   function locate(b, cardId) { var hit = null; (b.columns || []).forEach(function (col) { (col.cards || []).forEach(function (c) { if (c && c.id === cardId) hit = { col: col, card: c }; }); }); return hit; }
   function targetWorld(s) { var src = s.source || {}; if (src.bid && isWorld(src.bid) && boardById(src.bid)) return src.bid; var ws = worldIds(); if (ws.length) return ws[0]; return src.bid && boardById(src.bid) ? src.bid : null; }
   // ranked: [{item, note}] best first
-  function addToWorld(s, ranked, summary) {
+  function addToWorld(s, ranked, summary, area) {
+    area = area || { id: 'discover', title: 'My Discoveries', color: '#ff9f0a' };
     var wbid = targetWorld(s); if (!wbid) return Promise.reject(new Error('There is no world to add it to yet — make one in List of Mine first.'));
-    var b0 = boardById(wbid), b = JSON.parse(JSON.stringify(b0)), colId = wbid + '-d-mine-discover', cid = wbid + '-l-discover-' + s.id;
+    var b0 = boardById(wbid), b = JSON.parse(JSON.stringify(b0)), colId = wbid + '-d-mine-' + area.id, cid = wbid + '-l-' + area.id + '-' + s.id;
     var col = (b.columns || []).filter(function (c) { return c.id === colId; })[0], created = [];
-    if (!col) { col = { id: colId, title: 'My Discoveries', color: '#ff9f0a', cards: [] }; b.columns = (b.columns || []).concat([col]); }
+    if (!col) { col = { id: colId, title: area.title, color: area.color, cards: [] }; b.columns = (b.columns || []).concat([col]); }
     var L = locate(b, cid), card;
     if (L) { card = L.card; card.stack = []; } else { card = { id: cid, title: s.title, desc: '', labels: [], complete: false, createdAt: Date.now(), mastery: 1, checklistItems: [] }; col.cards = (col.cards || []).concat([card]); created.push({ bid: wbid, id: cid }); }
     card.title = s.title; card.desc = summary;
@@ -133,7 +135,8 @@
       var v = view(r.item), sid = cid + '~' + i + '-' + slug(r.item.id);
       var st = { id: sid, title: v.title, desc: r.note || '', labels: [], complete: false, mastery: 1 };
       if (v.img) st.cover = { type: 'image', value: v.img, url: v.img, title: '', size: 'banner' };
-      if (r.item.ref && r.item.ref.key) side['pk:' + sid] = r.item.ref.key;
+      var key = (r.item.ref && r.item.ref.key) || r.item.key;
+      if (key) { side['pk:' + sid] = key; if (!KN().get(key)) side[key] = { title: v.title, sub: v.sub || '', cat: String(key.split(':')[1] || 'discover'), at: Date.now() }; }
       stacks.push({ bid: wbid, card: cid, id: sid });
       return st;
     });
@@ -276,6 +279,7 @@
     tournament: ['Tournament', 'Find my favorites.', '#30b45a', '#00897b']
   };
   var READY = { 'this-or-that': true, 'tier-list': true, tournament: true };
+  var EXT = {};   // tools registered from other files (scarcity.js): { id, name, sub, pv, c1, c2, minItems, templates(), config(src, items, json), open(s), click(t, e), key(e), progress(s) }
 
   var ui = { open: false };
   function shell() {
@@ -318,7 +322,7 @@
       '<div class="dv-h">My Discoveries</div>' + (done.length ? done.slice(0, 30).map(row).join('') : '<div class="dv-empty">Your results will be kept here.</div>');
   }
   function row(s) {
-    var n = s.tool === 'this-or-that' ? (s.choices || []).filter(function (c) { return c && c.pick !== undefined; }).length + '/' + ((s.pairs || []).length) : s.tool === 'tier-list' && s.rank ? Object.keys(placedIn(s)).length + '/' + s.items.length : s.tool === 'tournament' && s.bracket ? (function () { var c = realMatches(bracket(s)); return c.d + '/' + c.n; })() : '';
+    var n = EXT[s.tool] ? EXT[s.tool].progress(s) : s.tool === 'this-or-that' ? (s.choices || []).filter(function (c) { return c && c.pick !== undefined; }).length + '/' + ((s.pairs || []).length) : s.tool === 'tier-list' && s.rank ? Object.keys(placedIn(s)).length + '/' + s.items.length : s.tool === 'tournament' && s.bracket ? (function () { var c = realMatches(bracket(s)); return c.d + '/' + c.n; })() : '';
     return '<button type="button" class="dv-row" data-session="' + esc(s.id) + '"><div><b>' + esc(s.title) + '</b><small>' + esc(TOOL_T[s.tool] + ' · ' + s.items.length + ' items · ' + day(s.updatedAt)) + '</small></div>' + (n && s.status !== 'completed' ? '<em>' + n + '</em>' : '') + '<span class="dv-pill' + (s.status === 'completed' ? ' done' : '') + '">' + STATUS_T[s.status] + '</span></button>';
   }
 
@@ -326,12 +330,13 @@
   function pickSource(tool) {
     ui.tool = tool; ui.view = 'source'; ui.q = ''; head(TOOL_T[tool], 'home');
     ui.body.innerHTML = '<p class="dv-sub">Pick a list to play with — or import a Discover JSON.</p><label class="dv-find"><input data-find placeholder="Search your lists" autocomplete="off"></label><div data-src></div>' +
+      (EXT[tool] && EXT[tool].templates ? '<div class="dv-h">Start from a template</div>' + EXT[tool].templates().map(function (t) { return '<button type="button" class="dv-row" data-xtpl="' + esc(t.id) + '"><div><b>' + esc(t.title) + '</b><small>' + esc(t.sub || '') + '</small></div><em>' + (t.n || '') + '</em><span class="cv">' + ICON.chev + '</span></button>'; }).join('') : '') +
       '<div class="dv-h">Or</div><button type="button" class="dv-row" data-json><span>' + ICON.json + '</span><div><b>Import JSON…</b><small>format minest.discover/1 — title, items (id, title, image)</small></div></button>';
     drawSources();
   }
   function drawSources() {
     var box = ui.body.querySelector('[data-src]'); if (!box) return;
-    var q = String(ui.q || '').toLowerCase(), min = ui.tool === 'tournament' ? 4 : 2;
+    var q = String(ui.q || '').toLowerCase(), min = EXT[ui.tool] ? EXT[ui.tool].minItems || 2 : ui.tool === 'tournament' ? 4 : 2;
     var ss = sources().filter(function (s) { return s.n >= min && (!q || (s.title + ' ' + s.board + ' ' + (s.area || '')).toLowerCase().indexOf(q) >= 0); })
       .sort(function (a, b) { return (b.world - a.world) || (b.kind === 'card') - (a.kind === 'card') || b.n - a.n; }).slice(0, 80);
     box.innerHTML = ss.map(function (s) { return '<button type="button" class="dv-row" data-src="' + esc(s.kind + '|' + s.bid + '|' + s.id) + '"><div><b>' + esc(s.title) + '</b><small>' + esc((s.area ? s.area + ' · ' : '') + s.board) + '</small></div><em>' + s.n + '</em><span class="cv">' + ICON.chev + '</span></button>'; }).join('') || '<div class="dv-empty">No list with enough cards yet.</div>';
@@ -342,6 +347,7 @@
   function startConfig(src, items, json) {
     var tool = ui.tool;
     if (json && json.tools.indexOf(tool) < 0) return toast('This file does not enable ' + TOOL_T[tool] + '.');
+    if (EXT[tool]) { ui.src = src; ui.items = items; ui.json = json || null; return EXT[tool].config(src, items, json); }
     var conf = (json && json.config) || {}, tt = conf.thisOrThat || {}, tl = conf.tierList || {}, tn = conf.tournament || {};
     ui.src = src; ui.items = items; ui.json = json || null;
     ui.cfg = { title: src.title + ' — ' + TOOL_T[tool], question: tt.question || questionFor(src.title), maxPairs: Math.max(1, Math.min(50, +tt.maxPairs || 10)), mode: tt.pairing === 'sequential' ? 'sequential' : 'random', preset: /skill/i.test(src.title) ? 'skills' : 'favorites', tiers: Array.isArray(tl.tiers) && tl.tiers.length ? tl.tiers.slice(0, 10) : null };
@@ -723,6 +729,7 @@
 
   // ================================================================== input
   function onKey(e) {
+    for (var xk in EXT) if (EXT[xk].key && EXT[xk].key(e)) return;
     if (e.key === 'Escape') { if (ui.menu) closeMenu(); else close(); return; }
     if (ui.view === 'tier' && (e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-ti]')) { e.preventDefault(); itemMenu(e.target.getAttribute('data-ti')); return; }
     if (ui.view === 'tour' && !/INPUT|TEXTAREA/.test(e.target.tagName)) { var wb = ui.body.querySelectorAll('[data-win]'); if (e.key === 'ArrowLeft' && wb[0]) { e.preventDefault(); pickWinner(wb[0].getAttribute('data-win')); } else if (e.key === 'ArrowRight' && wb[1]) { e.preventDefault(); pickWinner(wb[1].getAttribute('data-win')); } else if (e.key === 'Backspace') { e.preventDefault(); undoTour(); } return; }
@@ -738,11 +745,13 @@
     var t = e.target, g;
     if ((ui.view === 'tier' || ui.view === 'tier-result') && tierClick(t, e)) return;
     if (/^tour/.test(ui.view) && tourClick(t)) return;
+    for (var xk in EXT) if (EXT[xk].click(t, e)) return;
     if (t.closest('[data-x]')) return close();
     if ((g = t.closest('[data-back]'))) { var b = g.getAttribute('data-back'); if (b === 'source') return ui.preset ? home() : pickSource(ui.tool); return home(); }
     if ((g = t.closest('[data-tool]'))) { var tool = g.getAttribute('data-tool'); if (!READY[tool]) return; if (ui.preset) { ui.tool = tool; var s0 = srcFrom(ui.preset); if (s0) return startConfig(s0, itemsOf(s0)); } return pickSource(tool); }
     if ((g = t.closest('[data-src]')) && g.tagName === 'BUTTON') { var s1 = srcFrom(g.getAttribute('data-src')); if (s1) startConfig(s1, itemsOf(s1)); return; }
     if (t.closest('[data-json]')) return ui.file.click();
+    if ((g = t.closest('[data-xtpl]')) && EXT[ui.tool]) return EXT[ui.tool].fromTemplate(g.getAttribute('data-xtpl'));
     if ((g = t.closest('[data-qset]'))) { ui.cfg.question = g.getAttribute('data-qset'); return drawConfig(); }
     if ((g = t.closest('[data-max]'))) { ui.cfg.maxPairs = +g.getAttribute('data-max'); return drawConfig(); }
     if ((g = t.closest('[data-mode]'))) { ui.cfg.mode = g.getAttribute('data-mode'); return drawConfig(); }
@@ -755,7 +764,8 @@
     if ((g = t.closest('[data-choose]'))) return chooseTOT(g.getAttribute('data-choose'));
     if (t.closest('[data-skip]')) return chooseTOT(null);
     if (t.closest('[data-tback]')) return backTOT();
-    if ((g = t.closest('[data-session]'))) { var s = get(g.getAttribute('data-session')); if (!s) return; if (s.tool === 'this-or-that') return s.status === 'completed' ? resultTOT(s.id) : playTOT(s.id); if (s.tool === 'tier-list') return s.status === 'completed' ? resultTier(s.id) : playTier(s.id); if (s.tool === 'tournament') { ui.tourView = tourWide() ? 'bracket' : 'battle'; return s.status === 'completed' ? resultTour(s.id) : playTour(s.id); } return; }
+    if ((g = t.closest('[data-session]'))) { var s = get(g.getAttribute('data-session')); if (!s) return; if (s.tool === 'this-or-that') return s.status === 'completed' ? resultTOT(s.id) : playTOT(s.id); if (s.tool === 'tier-list') return s.status === 'completed' ? resultTier(s.id) : playTier(s.id); if (EXT[s.tool]) return EXT[s.tool].open(s);
+      if (s.tool === 'tournament') { ui.tourView = tourWide() ? 'bracket' : 'battle'; return s.status === 'completed' ? resultTour(s.id) : playTour(s.id); } return; }
     if ((g = t.closest('[data-redo]'))) { var s2 = get(ui.sid); s2.at = +g.getAttribute('data-redo'); s2.redo = true; s2.status = 'in-progress'; put(s2); return playTOT(s2.id); }
     if (t.closest('[data-resume]')) return playTOT(ui.sid);
     if (t.closest('[data-save]')) return saveTOT();
@@ -773,5 +783,11 @@
     if (o.bid && (o.listId || o.cardId)) { ui.preset = (o.cardId ? 'card' : 'list') + '|' + o.bid + '|' + (o.cardId || o.listId); if (!srcFrom(ui.preset)) { ui.preset = null; toast('This list needs at least 2 items to play.'); } else ui.body.querySelector('.dv-sub').textContent = 'Using “' + srcFrom(ui.preset).title + '” — pick a way to play.'; }
     if (o.tool && READY[o.tool]) { var e = ui.body.querySelector('[data-tool="' + o.tool + '"]'); if (e) e.click(); }
   }
-  window.MinestDiscover = { open: open, close: close, isOpen: function () { return ui.open; }, sessions: all, get: get, fromJson: fromJson, makePairs: makePairs, sources: sources, itemsOf: itemsOf };
+  function register(def) {
+    EXT[def.id] = def; if (TOOLS.indexOf(def.id) < 0) TOOLS.push(def.id); READY[def.id] = true;
+    TOOL_T[def.id] = def.name; TOOL_D[def.id] = [def.name, def.sub, def.c1, def.c2]; PV[def.id] = def.pv;
+  }
+  var X = { ui: ui, shell: shell, home: home, head: head, foot: foot, close: close, esc: esc, slug: slug, rid: rid, toast: toast, hap: hap, day: day, shuffle: shuffle, view: view, art: art,
+    get: get, put: put, all: all, create: create, itemById: itemById, addToWorld: addToWorld, exportSession: exportSession, srcFrom: srcFrom, itemsOf: itemsOf, locateCard: locateCard, boardById: boardById, worldIds: worldIds, ICON: ICON, reduce: function () { return reduce; }, keep: keepTier, pickSource: pickSource };
+  window.MinestDiscover = { register: register, _x: X, open: open, close: close, isOpen: function () { return ui.open; }, sessions: all, get: get, fromJson: fromJson, makePairs: makePairs, sources: sources, itemsOf: itemsOf };
 })();
