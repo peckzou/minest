@@ -17,7 +17,9 @@
   function slug(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'x'; }
   function str(v, max) { return v == null ? '' : String(v).slice(0, max || 4000); }
   var KNOWN = {
-    root: ['format', 'id', 'subject', 'template', 'route', 'states', 'categories', 'note', 'places', 'journeys', 'description', 'style'],
+    root: ['format', 'id', 'subject', 'template', 'route', 'states', 'categories', 'note', 'places', 'journeys', 'description', 'style', 'portal', 'items'],
+    item: ['id', 'title', 'desc', 'image', 'date'],
+    group: ['id', 'title', 'items', 'subs', 'icon', 'desc'],
     state: ['id', 'title', 'icon', 'color', 'desc', 'stages'],
     stage: ['id', 'title', 'desc', 'blocks', 'requires', 'icon'],
     block: ['id', 'title', 'desc', 'image', 'categories', 'date', 'preview'],
@@ -32,12 +34,43 @@
   function build(J) {
     if (!J || typeof J !== 'object') throw new Error('This is not a JSON object.');
     if (J.format && J.format !== 'minest.knowledge/1') throw new Error('Unknown format "' + J.format + '" (expected minest.knowledge/1).');
-    var warn = [], tpl = J.template === 'route' ? 'route' : 'regions';
+    var warn = [], tpl = J.template === 'route' ? 'route' : J.template === 'wiki' ? 'wiki' : 'regions';
     check(J, 'root', 'root', warn);
     if (!J.subject) throw new Error('"subject" is missing.');
     var bid = 'kb-' + slug(J.id || J.subject);
     var board = { id: bid, title: str(J.subject, 200), columns: [], labelDefinitions: [], archivedCards: [], linkedBoardIds: [], showLabelNames: false }, dates = {}, cats = {}, cfg = { template: tpl, note: J.note ? str(J.note, 400) : '' };
-    if (tpl === 'regions') {
+    var wiki = null;
+    if (tpl === 'wiki') {
+      // template "wiki": items once each (cards), categories that point at them — an item can sit in many categories
+      if (!Array.isArray(J.items) || !J.items.length) throw new Error('"items" is missing or empty.');
+      if (!J.categories || !Array.isArray(J.categories.groups) || !J.categories.groups.length) throw new Error('"categories.groups" is missing or empty.');
+      var items = {}, order = [];
+      J.items.forEach(function (it, i) { check(it, 'item', 'item ' + (it.id || i + 1), warn); var iid = needId(it, 'item', i); items[iid] = it; order.push(iid); });
+      var home = {}, used = {};
+      function walkG(g, gi, path) {
+        check(g, 'group', 'category ' + (g.id || gi + 1), warn);
+        var gid = needId(g, 'category', gi), node = { id: gid, title: str(g.title || g.id, 160), icon: g.icon ? str(g.icon, 8) : '', items: [], subs: [] };
+        (Array.isArray(g.items) ? g.items : []).forEach(function (r) { var iid = slug(r); if (!items[iid]) { warn.push('Category ' + gid + ': unknown item "' + r + '" (skipped)'); return; } node.items.push('kc-' + bid + '-' + iid); used[iid] = 1; if (!home[iid]) home[iid] = path[0]; });
+        (Array.isArray(g.subs) ? g.subs : []).forEach(function (sg, k) { node.subs.push(walkG(sg, k, path.concat([gid]))); });
+        return node;
+      }
+      var groups = J.categories.groups.map(function (g, gi) { var gid = needId(g, 'category', gi); return walkG(g, gi, [gid]); });
+      // the Kanban needs one home list per card: the first top-level category it appears in
+      groups.forEach(function (g, gi) { board.columns.push({ id: 'kl-' + bid + '-' + g.id, title: g.title, color: PAL[gi % PAL.length], cards: [] }); });
+      var other = null;
+      order.forEach(function (iid) {
+        var it = items[iid], c = { id: 'kc-' + bid + '-' + iid, title: str(it.title || it.id, 200), desc: str(it.desc) };
+        if (it.image) c.cover = { type: 'image', url: str(it.image, 2000) };
+        if (it.date && typeof it.date.y === 'number') dates[c.id] = it.date;
+        var col = home[iid] ? board.columns.filter(function (x) { return x.id === 'kl-' + bid + '-' + home[iid]; })[0] : null;
+        if (!col) { if (!other) { other = { id: 'kl-' + bid + '-uncategorised', title: 'Not in a category', color: '#8d99ae', cards: [] }; board.columns.push(other); } col = other; warn.push('Item "' + iid + '" is in no category — it is on the board under "Not in a category".'); }
+        col.cards.push(c);
+      });
+      var portal = J.portal || {};
+      wiki = { title: str(J.categories.title || J.subject, 160), groups: groups,
+        portal: { title: str(portal.title || J.subject, 160), intro: str(portal.intro, 600), areas: (Array.isArray(portal.areas) ? portal.areas : []).map(function (a) { return { group: slug(a.group), icon: str(a.icon, 8), desc: str(a.desc, 200) }; }) } };
+      cfg.template = 'wiki';
+    } else if (tpl === 'regions') {
       if (!Array.isArray(J.states) || !J.states.length) throw new Error('"states" is missing or empty.');
       cfg.mode = J.route && J.route.mode === 'free' ? 'free' : 'guided';
       cfg.order = []; cfg.states = {}; cfg.requires = {}; cfg.stageOf = {};
@@ -105,7 +138,7 @@
       });
     }
     if (J.categories) cfg.categories = J.categories;
-    return { board: board, cfg: cfg, dates: dates, cats: cats, warn: warn };
+    return { board: board, cfg: cfg, dates: dates, cats: cats, warn: warn, wiki: wiki };
   }
   function num(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
 
@@ -151,7 +184,7 @@
     var m = mergeBoard(old, r.board);
     // undo point: the board as it was (or "not there"), and the view settings this import replaces
     var cfgKey = 'lm:cfg:' + r.board.id;
-    var u = loadUndo(); u.unshift({ at: Date.now(), bid: r.board.id, title: r.board.title, board: old, cfg: KN().get(cfgKey) }); saveUndo(u.slice(0, 5));
+    var u = loadUndo(); u.unshift({ at: Date.now(), bid: r.board.id, title: r.board.title, board: old, cfg: KN().get(cfgKey), tree: KN().get('wk:tree:' + r.board.id) }); saveUndo(u.slice(0, 5));
     if (old) ai.updateBoard(r.board.id, function () { return m.board; }); else ai.addBoard(m.board, opts && opts.select !== false);
     headings.forEach(function (id) { if (!KN().isHeading(id)) KN().setHeading(id, true); });
     var prevCfg = KN().get(cfgKey) || {};
@@ -159,6 +192,7 @@
     if (prevCfg.mode && old) r.cfg.mode = prevCfg.mode;
     KN().set(cfgKey, r.cfg, true);
     Object.keys(r.dates).forEach(function (id) { if (!KN().dateOf(id)) KN().setDate(id, r.dates[id]); });
+    if (r.wiki) { var wk = 'wk:tree:' + r.board.id; if (!KN().get(wk) || (opts && opts.replaceCategories)) KN().set(wk, r.wiki, true); else r.warn.push('Kept your edited categories (import with "replace categories" to start over).'); }
     var cm = {}; Object.keys(r.cats).forEach(function (id) { if (KN().get('wk:cat:' + id) == null) cm['wk:cat:' + id] = r.cats[id]; });
     if (Object.keys(cm).length) KN().setMany(cm);
     if (old && opts && opts.select !== false && ai.selectBoard) ai.selectBoard(r.board.id);
@@ -172,6 +206,7 @@
     if (last.board) ai.updateBoard(last.bid, function () { return last.board; });
     else if (ai.removeBoard) ai.removeBoard(last.bid);
     KN().set('lm:cfg:' + last.bid, last.cfg, true);
+    KN().set('wk:tree:' + last.bid, last.tree || null, true);
     saveUndo(u);
     return last;
   }

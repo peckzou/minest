@@ -11,7 +11,7 @@
     ['kmap', 'Knowledge Map', 'Zoom through ideas', '🫧', function () { return window.MinestMap; }],
     ['timeline', 'Timeline', 'Events in time order', '⏳', function () { return window.MinestTimeline; }],
     ['lmap', 'Learning Map', 'Stages, route, progress', '🗺', function () { return window.MinestLearnMap; }],
-    ['wiki', 'Wiki Portal', 'Categories — coming next', '📚', function () { return window.MinestWiki; }]
+    ['wiki', 'Wiki Portal', 'Portal and categories', '📚', function () { return window.MinestWiki; }]
   ];
   var CSS = [
     '.kh{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);z-index:2147482500;width:min(440px,calc(100vw - 20px));max-height:calc(100dvh - 40px);overflow:auto;padding:16px;border-radius:28px;color:#fff;font:15px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;' +
@@ -59,7 +59,7 @@
       try {
         var r = MinestKJ.importJSON(json);
         msg.textContent = report(r);
-        setTimeout(function () { close(); if (window.MinestLearnMap) { if (MinestLearnMap.isOpen()) MinestLearnMap.close(); setTimeout(function () { MinestLearnMap.open(r.boardId); }, 250); } }, r.warnings.length || r.gone.length ? 2600 : 900);
+        setTimeout(function () { close(); var V = r.template === 'wiki' ? window.MinestWiki : window.MinestLearnMap; if (V) { if (V.isOpen()) V.close(); setTimeout(function () { V.open(r.boardId); }, 250); } }, r.warnings.length || r.gone.length ? 2600 : 900);
       } catch (e) { msg.className = 'kh-msg err'; msg.textContent = '✗ ' + e.message; }
     }
     file.addEventListener('change', function () {
