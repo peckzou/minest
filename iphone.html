@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 49.2 · Learning Map trail</title>
+    <title>Minest iPhone 49.3 · Learning Map start</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "49.2" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "49.3" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -57326,6 +57326,18 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.lt-you span{display:inline-block;font:400 8px/1 "Press Start 2P",monospace;color:#0d1222;background:#ffcf3f;border:3px solid #0d1222;border-radius:8px;padding:5px 6px;box-shadow:0 3px 0 #0d1222}',
     '.lt-you:after{content:"";display:block;width:0;height:0;margin:-1px auto 0;border:9px solid transparent;border-top-color:#0d1222}',
     '@keyframes ltBob{from{transform:translateY(0)}to{transform:translateY(-7px)}}',
+    // the stage card's HUD and START
+    '@media (min-width:760px){html .lm .lm-sheet{left:auto;right:14px;top:calc(env(safe-area-inset-top,0px) + 70px);bottom:auto;width:380px;max-height:calc(100% - 150px)}html .lm .lm-banner{right:420px}}',
+    '.lm-hud{display:flex;align-items:center;gap:10px;margin:2px 0 12px}',
+    '.lm-hud .lt-stars{font-size:18px;flex:none}',
+    '.lm-bar{flex:1;height:16px;border:3px solid #0d1222;border-radius:6px;background:#0d1222;overflow:hidden;box-shadow:0 3px 0 #0d1222}',
+    '.lm-bar i{display:block;height:100%;background:repeating-linear-gradient(90deg,#7ed957 0 10px,#5cc23e 10px 12px);min-width:0;transition:width .4s}',
+    '.lm-hud b{flex:none;font:400 9px/1 "Press Start 2P",ui-monospace,monospace;color:#ffcf3f}',
+    '.lm-play{display:block;width:100%;height:50px;margin:0 0 10px;border-radius:14px;border:4px solid #0d1222;background:#ffcf3f;color:#0d1222;box-shadow:0 5px 0 #0d1222;font:400 14px/1 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:transform .08s,box-shadow .08s}',
+    '.lm-play:active{transform:translateY(4px);box-shadow:0 1px 0 #0d1222}',
+    '.lm-play:not(.off){animation:lmBlink 1.2s steps(2) infinite}',
+    '@keyframes lmBlink{50%{background:#ffe48a}}',
+    '.lm-play.off{background:#4a5266;color:#c8cfdc;cursor:default;animation:none}',
     '.lt-end{position:absolute;left:50%;transform:translateX(-50%);font:400 10px/1.6 "Press Start 2P",monospace;color:#ffcf3f;text-shadow:2px 2px 0 #0d1222;white-space:nowrap}'
   ].join('\n');
   function ensureCss() { if (document.getElementById('lm-css')) return; var s = document.createElement('style'); s.id = 'lm-css'; s.textContent = CSS; document.head.appendChild(s); }
@@ -57450,11 +57462,14 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function lod() { if (!ui.world) return; var r = cam.s / (homeS || 1), svg = ui.world.firstChild; if (!svg) return; svg.classList.toggle('lod1', r > 1.7 && r <= 9); svg.classList.toggle('lod2', r > 9); }
   function saveCam() { S.cam[ui.bid] = { x: Math.round(cam.x), y: Math.round(cam.y), s: +cam.s.toFixed(3), f: focus }; stSave(); }
   function boxOf(pts) { var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; pts.forEach(function (p) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }); return [x0, y0, x1, y1]; }
+  function wideSheet() { return innerWidth >= 760; }   // a tablet / computer: the stage card stands on the right
   function camFor(box, pad) {
-    pad = pad || 30; var top = 64, bot = ui.sheet && ui.sheet.style.display !== 'none' ? Math.min(innerHeight * .46, 330) : 60;
+    pad = pad || 30;
+    var open = ui.sheet && ui.sheet.style.display !== 'none', side = open && wideSheet() ? 420 : 0;
+    var top = 64, bot = open && !side ? Math.min(innerHeight * .46, 330) : 60;
     var w = Math.max(30, box[2] - box[0] + pad * 2), h = Math.max(30, box[3] - box[1] + pad * 2);
-    var s = Math.max(.2, Math.min(6, Math.min((innerWidth - 16) / w, (innerHeight - top - bot) / h)));
-    return { x: (box[0] + box[2]) / 2, y: (box[1] + box[3]) / 2 - (top - bot) / 2 / s, s: s };
+    var s = Math.max(.2, Math.min(side ? 4 : 6, Math.min((innerWidth - 16 - side) / w, (innerHeight - top - bot) / h)));
+    return { x: (box[0] + box[2]) / 2 + side / 2 / s, y: (box[1] + box[3]) / 2 - (top - bot) / 2 / s, s: s };
   }
   var anim = 0;
   function fly(to, ms) {
@@ -57494,11 +57509,20 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function closeSheet() { if (ui.sheet) ui.sheet.style.display = 'none'; if (ui.el) ui.el.classList.remove('sheet-on'); sel = null; }
   var COLOR = { mastered: '#ffe066', progress: '#7fb3ff', available: '#e8edf5', unexplored: '#566070', locked: '#3a414e' };
   var WORD = { mastered: 'Mastered', progress: 'Learning', available: 'Next up', unexplored: 'Not started', locked: 'Locked' };
+  // ▶ START: study this region (its list) with the Learning Path, right away
+  function play(listId) {
+    var L = window.MinestLearn; if (!L || !L.start) return toast('Studying is not available here.');
+    var bid = ui.bid; saveCam(); close();
+    setTimeout(function () { try { L.start({ boardId: bid, listId: listId }); } catch (e) { toast('Could not start studying.'); } }, 260);
+  }
   function stageSheet(sg) {
     sel = sg.k;
-    var m = sg.blocks.filter(function (b) { return b.st === 'mastered'; }).length;
-    var h = '<button type="button" class="lm-x" data-close>✕</button><h4>' + (sg.done ? '⭐' : sg.open ? '🏁' : '🔒') + ' ' + esc(sg.title) + '</h4><div class="sub">Stage ' + sg.n + ' · ' + esc(sg.state.title) + ' · ' + m + ' / ' + sg.blocks.length + ' mastered' + (!sg.open ? ' · finish the stages before it to unlock' : '') + '</div>' +
-      sg.blocks.map(function (b) { return '<div class="lm-row" data-open="' + esc(b.k) + '"><i class="d" style="background:' + COLOR[b.vis] + '"></i><span>' + esc(b.title) + '</span><em>' + WORD[b.vis] + (G.here === b ? ' · ◎ here' : '') + '</em></div>'; }).join('') +
+    var m = sg.blocks.filter(function (b) { return b.st === 'mastered'; }).length, n = sg.blocks.length, pct = n ? Math.round(m / n * 100) : 0;
+    // arcade stage card: stars, a pixel progress bar, and START (or LOCKED)
+    var h = '<button type="button" class="lm-x" data-close>✕</button><h4>' + (sg.done ? '⭐' : sg.open ? '🏁' : '🔒') + ' ' + esc(sg.title) + '</h4><div class="sub">Stage ' + sg.n + ' · ' + esc(sg.state.title) + (!sg.open ? ' · finish the stages before it to unlock' : '') + '</div>' +
+      '<div class="lm-hud">' + stars(sg) + '<div class="lm-bar"><i style="width:' + pct + '%"></i></div><b>' + m + '/' + n + '</b></div>' +
+      (sg.open ? (n ? '<button type="button" class="lm-play" data-play="' + esc(sg.state.id) + '">▶ Start</button>' : '') : '<button type="button" class="lm-play off" disabled>🔒 Locked</button>') +
+      sg.blocks.map(function (b) { return '<div class="lm-row" data-open="' + esc(b.k) + '"><i class="d" style="background:' + COLOR[b.vis] + '"></i><span>' + esc(b.title) + '</span><em>' + WORD[b.vis] + (G.here === b ? ' · You' : '') + '</em></div>'; }).join('') +
       (!sg.blocks.length ? '<div class="sub">No cards in this stage yet.</div>' : '');
     if (edit && !sg.virtual) h += '<div class="lm-acts"><button type="button" data-route="-1">◀ Earlier in route</button><button type="button" data-route="1">Later in route ▶</button></div>';
     showSheet(h);
@@ -57586,6 +57610,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function onClick(e) {
     var t = e.target;
     var ts = t.closest('[data-tk]'); if (ts) return trailTap(ts.getAttribute('data-tk'));
+    var pl = t.closest('[data-play]'); if (pl) return play(pl.getAttribute('data-play'));
     var c = t.closest('[data-crumb]'); if (c) { var ck = c.getAttribute('data-crumb'); return ck ? focusOn(ck) : home(); }
     var a = t.closest('[data-act]');
     if (a) {
