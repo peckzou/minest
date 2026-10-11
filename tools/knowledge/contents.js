@@ -415,42 +415,53 @@
   var COL_KEY = 'minest.contents.col.v1';
   var CS = (function () { try { return JSON.parse(localStorage.getItem(COL_KEY) || '{}') || {}; } catch (e) { return {}; } })();
   function colSave() { try { localStorage.setItem(COL_KEY, JSON.stringify(CS)); } catch (e) {} }
-  // the column wears the board's own list look (shell copied from a real list, the same header and glass cards);
-  // lists and sections fold (one open at a time per level), tapping a card brings it into view on the board
+  // the column wears the board's own list look (shell copied from a real list, the same header and glass cards) and
+  // folds the way the board's stacks do: a folded list / section is a card with glass plates under it; tapping it opens
+  // an Apple-notification group (N cards · Show less · ✕) — one open per level; tapping a card brings it into view
   var COL_CSS = [
     '.mn-tocol{flex:none;align-self:flex-start;max-height:calc(100% - 6px);display:flex;flex-direction:column;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;box-sizing:border-box}',
     '.mn-tocol-b{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:2px}',
-    '.mn-tocol .mn-tc{position:relative;display:flex;align-items:center;gap:8px;min-height:40px}',
+    '.mn-tocol .mn-tc{position:relative;display:flex;align-items:center;gap:8px;min-height:40px;width:100%;box-sizing:border-box}',
     '.mn-tocol .mn-tc h4{margin:0;min-width:0}',
     '.mn-tocol .mn-tc .dt{flex:none;width:9px;height:9px;border-radius:50%}',
     '.mn-tocol .mn-tc .n{flex:none;font:500 12px ui-monospace,SFMono-Regular,Menlo,monospace;opacity:.6}',
-    '.mn-tocol .mn-tc .cv{flex:none;width:26px;height:26px;margin-right:-6px;border:0;background:none;color:inherit;opacity:.6;display:grid;place-items:center;padding:0;cursor:pointer}',
-    '.mn-tocol .mn-tc .cv svg{width:12px;height:12px;transition:transform .25s cubic-bezier(.2,.85,.25,1)}',
-    '.mn-tocol .mn-tc.open .cv svg{transform:rotate(90deg)}',
-    '.mn-tocol .mn-tc.list h4{font-weight:650}',
-    '.mn-tocol .mn-tc.section h4{font-weight:650}',
+    '.mn-tocol .mn-tc.list h4,.mn-tocol .mn-tc.section h4{font-weight:650}',
     '.mn-tocol .mn-tc.section:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:2px;background:var(--lc)}',
     '.mn-tocol .mn-tc.done h4{text-decoration:line-through;opacity:.5}',
-    '.mn-tocol .mn-tk{display:flex;flex-direction:column;gap:8px;margin:8px 0 2px 12px;padding-left:10px;border-left:2px solid color-mix(in srgb,var(--lc) 60%,transparent)}',
-    '.mn-tocol .mn-tk.in{animation:mnTkIn .28s cubic-bezier(.2,.85,.25,1)}',
-    '@keyframes mnTkIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}',
-    '.mn-tocol .mn-tc.card{min-height:36px}',
-    '.mn-tocol .mn-tc:active{transform:scale(.985)}'
+    '.mn-tocol .mn-tc:active{transform:scale(.985)}',
+    '.mn-tocol .mn-tst{display:flex;flex-direction:column}',
+    '.mn-tocol .ios-notification-group.in{animation:mnTkIn .3s cubic-bezier(.2,.85,.25,1)}',
+    '@keyframes mnTkIn{from{opacity:.4;transform:translateY(-4px)}to{opacity:1;transform:none}}',
+    // cards inside an open group: the board's own group-card glass
+    ':not(.theme-white) .mn-tocol .ios-notification-group .mn-tc{background:rgba(255,255,255,.065);border:1px solid rgba(255,255,255,.12);border-top:1px solid rgba(255,255,255,.28);box-shadow:0 2px 8px rgba(0,0,0,.22)}',
+    '.theme-white .mn-tocol .ios-notification-group .mn-tc{background:rgba(255,255,255,.85);border:1px solid rgba(0,0,0,.08);border-top:1px solid rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(15,23,42,.04)}'
   ].join('\n');
   function colCss() { if (document.getElementById('mn-tocol-css')) return; var st = document.createElement('style'); st.id = 'mn-tocol-css'; st.textContent = COL_CSS; document.head.appendChild(st); }
   var CARD = 'group relative rounded-xl py-2 px-3 select-none cursor-pointer liquid-glass-card transition-all overflow-hidden mn-tc';
   var H4 = 'font-normal md:font-medium text-sm leading-snug tracking-normal flex-1 break-words whitespace-normal';
+  var LAYERS = '<svg class="w-3 h-3 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>';
   function colRows(nodes, open, color, out, fresh) {
+    var white = !!document.querySelector('.theme-white');
     nodes.forEach(function (n) {
       if (n.kind === 'item') return;   // stacked cards stay in their stack here
       var kids = (n.kids || []).filter(function (k) { return k.kind !== 'item'; }), op = kids.length && open[n.id];
       var lc = n.kind === 'list' ? (n.color || '#8d99ae') : color;
       var cnt = n.kind === 'list' ? n.count : n.kind === 'section' ? kids.length : '';
-      out.push('<article class="' + CARD + ' ' + n.kind + (op ? ' open' : '') + (n.done ? ' done' : '') + '" data-id="' + esc(n.id) + '" style="--lc:' + esc(lc) + '">' +
+      var card = '<article class="' + CARD + ' ' + n.kind + (n.done ? ' done' : '') + '" data-id="' + esc(n.id) + '" style="--lc:' + esc(lc) + '">' +
         (n.kind === 'list' ? '<i class="dt" style="background:' + esc(lc) + '"></i>' : '') +
-        '<h4 class="' + H4 + '">' + esc(n.title) + '</h4>' + (cnt !== '' ? '<span class="n">' + cnt + '</span>' : '') +
-        (kids.length ? '<button type="button" class="cv" data-cv tabindex="-1" aria-label="Fold">' + CHEV + '</button>' : '') + '</article>');
-      if (op) { out.push('<div class="mn-tk' + (fresh === n.id ? ' in' : '') + '" style="--lc:' + esc(lc) + '">'); colRows(kids, open, lc, out, fresh); out.push('</div>'); }
+        '<h4 class="' + H4 + '">' + esc(n.title) + '</h4>' + (cnt !== '' ? '<span class="n">' + cnt + '</span>' : '') + '</article>';
+      if (!kids.length) { out.push(card); return; }
+      if (!op) {   // folded: the card with its glass plates under it
+        out.push('<div class="mn-tst card-stack-base">' + card + '<div class="card-stack-deck" data-unfold="' + esc(n.id) + '" title="Show ' + kids.length + '"><div class="liquid-glass-deck-step1"><div class="liquid-refraction-caustic"></div></div><div class="liquid-glass-deck-step2"><div class="liquid-refraction-caustic"></div></div></div></div>');
+        return;
+      }
+      out.push('<div class="mn-tst card-stack-base ios-notification-group' + (fresh === n.id ? ' in' : '') + '" style="--lc:' + esc(lc) + '">' +
+        '<div class="ios-group-header select-none" data-fold="' + esc(n.id) + '" style="cursor:pointer"><div class="ios-group-header-left flex items-center gap-1.5"><div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ' + (white ? 'bg-black/5 text-slate-700 border border-black/5' : 'bg-white/10 text-white/80 border border-white/10') + '">' + LAYERS + '<span>' + kids.length + (n.kind === 'list' ? ' items' : ' cards') + '</span></div></div>' +
+        '<div class="flex items-center gap-1.5 ml-auto"><button type="button" class="ios-show-less-pill" data-fold="' + esc(n.id) + '" title="Show less"><svg class="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg><span>Show less</span></button>' +
+        '<button type="button" class="ios-close-circle-btn" data-fold="' + esc(n.id) + '" title="Fold"><span class="text-[11px] leading-none font-bold">✕</span></button></div></div>' +
+        card + '<div class="flex flex-col gap-2.5" style="margin-top:10px">');
+      colRows(kids, open, lc, out, fresh);
+      out.push('</div></div>');
     });
   }
   // the shell of a real list (background, rim, radius, blur, padding) so the column matches the board's theme
@@ -461,7 +472,7 @@
     st.borderColor = document.querySelector('.theme-white') ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.16)';
     var w = first.getBoundingClientRect().width; if (w) st.width = Math.round(w) + 'px';
   }
-  var colById = {};
+  var colById = {}, listsNow = [];
   function mountCol() {
     var lane = document.querySelector('.board-swimlane-scroll');
     var old = document.querySelectorAll('.mn-tocol');
@@ -471,7 +482,7 @@
     colCss();
     var col = lane.querySelector(':scope > .mn-tocol');
     if (!col) {
-      col = document.createElement('div'); col.className = 'mn-tocol'; col.setAttribute('aria-label', 'Contents');
+      col = document.createElement('div'); col.className = 'mn-tocol peel-under'; col.setAttribute('aria-label', 'Contents');   // peel-under: not the board's open water (pull-to-add)
       col.addEventListener('click', onColClick);
       lane.insertBefore(col, lane.firstChild);
     } else if (lane.firstElementChild !== col) lane.insertBefore(col, lane.firstChild);
@@ -481,8 +492,8 @@
     var open = CS[bid] = CS[bid] || {};
     var sig = bid + JSON.stringify(lists.map(function (l) { return [l.title, l.color, l.count, l.kids.length, l.kids.map(function (k) { return k.title + (k.kids || []).length + (k.done ? 1 : 0); })]; })) + JSON.stringify(open) + !!document.querySelector('.theme-white');
     if (col.__sig === sig) return;
-    col.__sig = sig; colById = {};
-    (function idx(ns) { ns.forEach(function (n) { colById[n.id] = n; idx(n.kids || []); }); })(lists);
+    col.__sig = sig; colById = {}; listsNow = lists;
+    (function idx(ns, pid) { ns.forEach(function (n) { n.parentId = pid; colById[n.id] = n; idx(n.kids || [], n.id); }); })(lists, null);
     var body = col.querySelector('.mn-tocol-b'), y = body ? body.scrollTop : 0, out = [], fresh = col.__fresh; col.__fresh = null;
     colRows(lists, open, null, out, fresh);
     var cards = (b.columns || []).reduce(function (a, c) { return a + (c.cards || []).length; }, 0);
@@ -490,7 +501,7 @@
     col.innerHTML = '<div class="relative flex items-center justify-between pb-3 mb-1 select-none shrink-0"><div class="flex items-center gap-1.5 min-w-0 pr-2 flex-1"><h2 class="font-bold text-sm md:text-base tracking-tight truncate">Contents</h2></div>' +
       '<div class="flex items-center gap-2 shrink-0"><span class="px-1.5 py-0.5 rounded-md text-xs font-mono font-medium opacity-60">' + cards + '</span>' +
       '<button type="button" class="' + IB + '" data-full title="Open Contents" aria-label="Open Contents"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>' +
-      '<button type="button" class="' + IB + '" data-unpin title="Unpin" aria-label="Unpin"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 10.8V4h6v6.8l3 3.2v2H6v-2z"/></svg></button></div></div>' +
+      '</div></div>' +
       '<div class="mn-tocol-b flex-1 flex flex-col gap-2.5 overflow-y-auto pr-1 min-h-0">' + (out.join('') || '<div style="padding:12px 4px;opacity:.6;font-size:14px">No lists yet.</div>') + '</div>';
     col.querySelector('.mn-tocol-b').scrollTop = y;
   }
@@ -499,17 +510,22 @@
     var bid = activeId();
     if (e.target.closest('[data-unpin]')) { window.MinestKnowledge.set('kc:unpin:' + bid, 1); toast('Contents unpinned — 📌 in Contents puts it back'); mountCol(); return; }
     if (e.target.closest('[data-full]')) return open();
+    var o = CS[bid] = CS[bid] || {};
+    function setOpen(id, on) {
+      if (on) {   // one open per level: fold its open siblings (and what was open inside them)
+        var n0 = colById[id], sib = n0 && n0.parentId ? (colById[n0.parentId] || {}).kids : listsNow;
+        (sib || []).forEach(function (x) { if (x.id !== id && o[x.id]) { delete o[x.id]; (function drop(m) { (m.kids || []).forEach(function (c) { delete o[c.id]; drop(c); }); })(x); } });
+        o[id] = 1;
+      } else delete o[id];
+      colSave(); col0().__fresh = on ? id : null; mountCol();
+    }
+    var f = e.target.closest('[data-fold]'); if (f) return setOpen(f.getAttribute('data-fold'), false);
+    var u = e.target.closest('[data-unfold]'); if (u) return setOpen(u.getAttribute('data-unfold'), true);
     var row = e.target.closest('.mn-tc'); if (!row) return;
     var id = row.getAttribute('data-id'), n = colById[id]; if (!n) return;
     var kids = (n.kids || []).filter(function (k) { return k.kind !== 'item'; });
-    // a list / section: fold or unfold it (the others at its level fold up)
-    if (kids.length) {
-      var o = CS[bid] = CS[bid] || {}, was = !!o[id];
-      if (!was) { var host = row.parentNode; [].forEach.call(host.children, function (x) { var k = x.getAttribute && x.getAttribute('data-id'); if (k && k !== id && o[k]) { delete o[k]; (function drop(m) { (m.kids || []).forEach(function (c) { delete o[c.id]; drop(c); }); })(colById[k] || {}); } }); o[id] = 1; }
-      else delete o[id];
-      colSave(); col0().__fresh = was ? null : id; mountCol();
-      return;
-    }
+    // a folded list / section opens like a stack; an open one's card brings the list (or section) into view
+    if (kids.length && !o[id]) return setOpen(id, true);
     go(n, false, false);   // a card: stay on the board, bring it into view and light it up
   }
   function col0() { return document.querySelector('.mn-tocol') || {}; }
