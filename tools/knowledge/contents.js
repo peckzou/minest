@@ -256,11 +256,11 @@
     if (!S) { S = { open: {}, scroll: 0, sel: null }; var a = activeId(); if (a) S.open['b:' + a] = 1; }
     var el = document.createElement('div'); el.className = 'kc'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Contents');
     el.innerHTML = '<div class="kc-head"><div style="flex:1;min-width:0"><h1>Contents</h1><p class="kc-sub"></p></div>' +
-      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('kc-tool kc-fs') : '') + '</div>' +
+      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.switchBtnHtml('kc-tool kc-fs') : '') + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('kc-tool kc-fs') : '') + '</div>' +
       '<button type="button" class="kc-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="kc-body"></div>';
     ui.el = el; ui.list = el.querySelector('.kc-body'); ui.sub = el.querySelector('.kc-sub'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    if (window.MinestKEdit) MinestKEdit.fullscreen('contents', el, ['.kc-head']);
+    if (window.MinestKEdit) { MinestKEdit.fullscreen('contents', el, ['.kc-head']); MinestKEdit.switcher('contents', el, function () { return activeId(); }); }
     render();
     ui.list.scrollTop = S.scroll || 0;
     if (S.sel) { var sr = ui.list.querySelector('.kc-row[data-id="' + cssEsc(S.sel) + '"]'); if (sr) { var r = sr.getBoundingClientRect(), lr = ui.list.getBoundingClientRect(); if (r.top < lr.top || r.bottom > lr.bottom) ui.list.scrollTop += r.top - lr.top - lr.height / 3; } }

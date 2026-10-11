@@ -6,7 +6,7 @@
    a year alone stays a year; nothing is filled in. A year in a card's title is offered as a suggestion, never applied
    by itself. Tap an event: its notes and picture, ✎ Edit (title, note, picture — right here, no trip to the board),
    Edit date.
-   Jump: the century / decade strip and "Go to year". The place on the line and the open event are kept per board
+   Jump: the century / decade strip and 🔍 (go to a year). The place on the line and the open event are kept per board
    on this device (minest.timeline.v1). */
 (function () {
   if (window.MinestTimeline) return;
@@ -127,7 +127,20 @@
       'background:linear-gradient(180deg,rgba(70,80,96,.96),rgba(34,40,52,.98));border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 24px 60px rgba(0,0,0,.5);color:#fff;font:15px -apple-system,system-ui,sans-serif}',
     '.tl-sheet h4{margin:0 0 2px;font-size:17px}',
     '.tl-sheet p{margin:0 0 12px;font-size:13px;opacity:.6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    '.tl-f{display:grid;grid-template-columns:62px 1fr 1fr 1fr 74px;gap:6px;align-items:center;margin-bottom:8px}',
+    '.tl-f{display:grid;grid-template-columns:52px 1fr 1.3fr 74px;gap:6px;align-items:center;margin-bottom:8px}',
+    '.tl-f[hidden],.tl-addend[hidden]{display:none}',
+    '.tl-addend{display:block;margin:2px 0 10px 58px;height:34px;padding:0 14px;border-radius:999px;border:1px dashed rgba(127,127,127,.45);background:none;color:inherit;opacity:.8;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    // the header's icons: minimal line drawings on small liquid-glass discs
+    '.tl-ic,.tl-goto,.tl-addd{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06))!important;border:1px solid rgba(255,255,255,.24)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 16px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%)}',
+    '.tl-top .tl-seg{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}',
+    '.tl-top .tl-seg button{display:inline-grid;place-items:center;width:34px;padding:0}',
+    '.tl-top .tl-seg button svg{width:17px;height:17px}',
+    '.tl-top .tl-seg button.on{background:rgba(255,255,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}',
+    '.tl-goto{width:34px;padding:0!important;justify-content:center}',
+    '.tl-goto svg,.tl-addd svg{width:16px;height:16px}',
+    '.tl-u .tl-addd{width:34px;height:34px;padding:0;border-radius:50%;display:grid;place-items:center}',
+    'html.kn-light .tl-ic,html.kn-light .tl-goto,html.kn-light .tl-addd,.tl.h .tl-ic,.tl.h .tl-goto{background:rgba(255,255,255,.8)!important;border-color:rgba(0,0,0,.08)!important;color:#1d1f23;box-shadow:inset 0 1px 0 #fff,0 4px 12px rgba(0,0,0,.08)}',
+    'html:not(.kn-light) .tl.h .tl-ic,html:not(.kn-light) .tl.h .tl-goto{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06))!important;border-color:rgba(255,255,255,.24)!important;color:#fff}',
     '.tl-f label{font-size:12px;font-weight:600;opacity:.6}',
     '.tl-f input,.tl-f select{width:100%;min-width:0;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;font:15px -apple-system,system-ui,sans-serif;padding:0 8px;box-sizing:border-box}',
     '.tl-f select option{color:#000}',
@@ -197,7 +210,7 @@
         jumps += '<button type="button" class="tl-chip" data-jump="' + y + '">' + name + '</button>';
       });
     }
-    ui.nav.innerHTML = '<button type="button" class="tl-chip" data-goto>Go to year…</button>' + jumps;
+    ui.nav.innerHTML = '<button type="button" class="tl-chip tl-goto" data-goto title="Go to year" aria-label="Go to year"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button>' + jumps;
     ui.lists.innerHTML = chips;
     // the line: one block per year
     groups = [];
@@ -222,7 +235,7 @@
       var openU = S.und !== false;
       html += '<div class="tl-und"><h3 data-und>' + (openU ? '▾' : '▸') + ' Not on the timeline (' + und.length + ')</h3>' + (openU ? und.map(function (e) {
         var gy = guess(e.title);
-        return '<div class="tl-u" data-id="' + esc(e.id) + '"><span>' + esc(e.title) + '</span>' + (gy != null ? '<button type="button" class="sug" data-sug="' + gy + '">' + esc(yr(gy)) + '?</button>' : '') + '<button type="button" data-a="date">＋ Date</button></div>';
+        return '<div class="tl-u" data-id="' + esc(e.id) + '"><span>' + esc(e.title) + '</span>' + (gy != null ? '<button type="button" class="sug" data-sug="' + gy + '">' + esc(yr(gy)) + '?</button>' : '') + '<button type="button" class="tl-addd" data-a="date" title="Add a date" aria-label="Add a date"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg></button></div>';
       }).join('') : '') + '</div>';
     }
     var H = S.view === 'h';
@@ -352,14 +365,17 @@
     closeSheet();
     var t = preset || e.t || {};
     var era = function (y) { return y != null && y < 0 ? 'BCE' : 'CE'; };
-    var row = function (lbl, p, y, m, d) {
-      return '<div class="tl-f"><label>' + lbl + '</label><input inputmode="numeric" placeholder="Year" data-' + p + 'y value="' + (y != null ? Math.abs(y) : '') + '">' +
+    // a year is enough; the month is optional (a day already set is kept while its month stays)
+    var row = function (lbl, p, y, m, d, hide) {
+      return '<div class="tl-f"' + (hide ? ' hidden' : '') + ' data-row="' + p + '"><label>' + lbl + '</label><input inputmode="numeric" placeholder="Year" data-' + p + 'y value="' + (y != null ? Math.abs(y) : '') + '">' +
         '<select data-' + p + 'm><option value="">Month</option>' + MON.map(function (mn, i) { return '<option value="' + (i + 1) + '"' + (m === i + 1 ? ' selected' : '') + '>' + mn + '</option>'; }).join('') + '</select>' +
-        '<input inputmode="numeric" placeholder="Day" data-' + p + 'd value="' + (d || '') + '">' +
+        '<input type="hidden" data-' + p + 'd value="' + (d || '') + '" data-m0="' + (m || '') + '">' +
         '<select data-' + p + 'e><option' + (era(y) === 'CE' ? ' selected' : '') + '>CE</option><option' + (era(y) === 'BCE' ? ' selected' : '') + '>BCE</option></select></div>';
     };
     sheet = document.createElement('div'); sheet.className = 'tl-sheet';
-    sheet.innerHTML = '<h4>Date</h4><p>' + esc(e.title) + '</p>' + row('Starts', 's', t.y, t.m, t.d) + row('Ends', 'e', t.y2, t.m2, t.d2) +
+    var hasEnd = typeof t.y2 === 'number';
+    sheet.innerHTML = '<h4>Date</h4><p>' + esc(e.title) + '</p>' + row('Year', 's', t.y, t.m, t.d) + row('Ends', 'e', t.y2, t.m2, t.d2, !hasEnd) +
+      '<button type="button" class="tl-addend" data-s="end"' + (hasEnd ? ' hidden' : '') + '>＋ End (optional)</button>' +
       '<div class="tl-err"></div><div class="tl-sb">' + (e.t ? '<button type="button" class="rm" data-s="rm">Remove</button>' : '') + '<button type="button" data-s="no">Cancel</button><button type="button" class="save" data-s="ok">Save</button></div>';
     document.body.appendChild(sheet);
     if (sheet.animate) sheet.animate([{ opacity: 0, translate: '0 30px' }, { opacity: 1, translate: '0 0' }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
@@ -369,11 +385,13 @@
       var b = x.target.closest('[data-s]'); if (!b) return;
       var a = b.getAttribute('data-s');
       if (a === 'no') return closeSheet();
+      if (a === 'end') { sheet.querySelector('[data-row="e"]').hidden = false; b.hidden = true; var ey = sheet.querySelector('[data-ey]'); if (ey) ey.focus(); return; }
       if (a === 'rm') { KN().setDate(e.id, null); closeSheet(); render(); return; }
       var err = sheet.querySelector('.tl-err');
       function part(p) {
-        var Y = v('[data-' + p + 'y]'), M = v('[data-' + p + 'm]'), D = v('[data-' + p + 'd]'), Er = v('[data-' + p + 'e]');
-        if (!Y) { if (M || D) throw new Error('Add the year.'); return null; }
+        if (sheet.querySelector('[data-row="' + p + '"]').hidden) return null;   // no end asked for
+        var Y = v('[data-' + p + 'y]'), M = v('[data-' + p + 'm]'), dEl = sheet.querySelector('[data-' + p + 'd]'), D = dEl.getAttribute('data-m0') === M ? dEl.value.trim() : '', Er = v('[data-' + p + 'e]');
+        if (!Y) { if (M) throw new Error('Add the year.'); return null; }
         if (!/^\d{1,4}$/.test(Y) || +Y < 1) throw new Error('The year must be a number like 1776.');
         if (D && !M) throw new Error('Pick the month for that day.');
         var o = { y: Er === 'BCE' ? -(+Y) : +Y };
@@ -479,13 +497,13 @@
     // a compact header: one row (board · vertical / horizontal · edit · full screen · close), then one strip (years, lists)
     var FS = window.MinestKEdit ? MinestKEdit.fullBtnHtml('tl-ic') : '';
     el.innerHTML = '<div class="tl-head"><div class="tl-top"><button type="button" class="tl-tb" data-boards><b></b></button>' +
-      '<span class="tl-seg"><button type="button" data-view="v" title="Vertical" aria-label="Vertical">↕</button><button type="button" data-view="h" title="Horizontal" aria-label="Horizontal">↔</button></span>' +
-      '<button type="button" class="tl-ic" data-kedit title="Edit" aria-label="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' + FS +
+      '<span class="tl-seg"><button type="button" data-view="v" title="Vertical" aria-label="Vertical"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><circle cx="12" cy="8" r="2.2"/><circle cx="12" cy="16" r="2.2"/><path d="M15 8h5M4 16h5"/></svg></button><button type="button" data-view="h" title="Horizontal" aria-label="Horizontal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><circle cx="8" cy="12" r="2.2"/><circle cx="16" cy="12" r="2.2"/><path d="M8 9V4M16 15v5"/></svg></button></span>' +
+      '<button type="button" class="tl-ic" data-kedit title="Edit" aria-label="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' + (window.MinestKEdit ? MinestKEdit.switchBtnHtml('tl-ic') : '') + FS +
       '<button type="button" class="tl-ic tl-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="tl-row tl-strip"><button type="button" class="tl-chip tl-new" data-newev hidden>＋ New event</button><span class="tl-nav"></span><span class="tl-lists"></span></div></div><div class="tl-body"></div>';
     ui.el = el; ui.list = el.querySelector('.tl-body'); ui.title = el.querySelector('.tl-tb b'); ui.nav = el.querySelector('.tl-nav'); ui.lists = el.querySelector('.tl-lists'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    if (window.MinestKEdit) MinestKEdit.fullscreen('timeline', el, ['.tl-head']);
+    if (window.MinestKEdit) { MinestKEdit.fullscreen('timeline', el, ['.tl-head']); MinestKEdit.switcher('timeline', el, function () { return ui.bid; }); }
     render(); restore();
     if (el.animate) el.animate([{ opacity: 0, scale: '.96' }, { opacity: 1, scale: '1' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1)' });
     wire(el);

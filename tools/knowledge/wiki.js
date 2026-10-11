@@ -280,8 +280,8 @@
     var all = tally(treeIds(T), IDX);
     var crumb = from ? '<div class="wk-crumb"><button type="button" data-crumb>‹ ' + esc(from.title) + '</button><span>›</span><b>' + esc(b.title || '') + '</b></div>' : '';
     var portal = '<div class="wk-portal">' + crumb + ((T.portal || {}).intro ? '<p>' + esc(T.portal.intro) + '</p>' : '') +
-      '<div class="wk-sum"><b>' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div>' + legend() + '<div class="wk-band">Topics</div><div class="wk-tiles">' +
-      T.groups.map(function (g) { var a = areas[g.id] || {}, t = tally(nodeIds(g), IDX); return '<button type="button" class="wk-tile" data-goto="' + esc(g.id) + '"><i>' + esc(a.icon || g.icon || '📂') + '</i><b>' + esc(g.title) + '</b>' + (a.desc ? '<small>' + esc(a.desc) + '</small>' : '') + '<em>' + countItems(g) + ' entries' + ((g.subs || []).length ? ' · ' + g.subs.length + ' subcategories' : '') + '</em>' + frac(t) + bar(t) + '</button>'; }).join('') + '</div></div>';
+      '<div class="wk-sum"><b>' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div><div class="wk-band">Topics</div><div class="wk-tiles">' +
+      T.groups.map(function (g) { var a = areas[g.id] || {}, t = tally(nodeIds(g), IDX); return '<button type="button" class="wk-tile" data-goto="' + esc(g.id) + '"><b>' + esc(g.title) + '</b>' + (a.desc ? '<small>' + esc(a.desc) + '</small>' : '') + '<em>' + countItems(g) + ' entries' + ((g.subs || []).length ? ' · ' + g.subs.length + ' subcategories' : '') + '</em>' + frac(t) + bar(t) + '</button>'; }).join('') + '</div></div>';
     var box = '<div class="wk-box"><div class="wk-boxh"><span style="width:44px"></span><b>' + esc(T.title || 'Categories') + '</b><button type="button" data-hide>' + (s.hide ? '[show]' : '[hide]') + '</button></div>' +
       (s.hide ? '' : T.groups.map(function (g) {
         var fold = s.fold[g.id];
@@ -302,10 +302,10 @@
     var subj = c.boards.map(function (e) { var b = boardById(e.b); if (!b) return null; var t = treeOf(b); IDXB[b.id] = cardIndex(b); return { e: e, b: b, t: t, sum: tally(treeIds(t), IDXB[b.id]) }; }).filter(Boolean);
     var all = subj.reduce(function (a, x) { return add(a, x.sum); }, { n: 0, done: 0, learn: 0, seen: 0, rv: 0 });
     var head = '<div class="wk-portal">' + (c.intro ? '<p>' + esc(c.intro) + '</p>' : '') +
-      '<div class="wk-sum"><b>' + subj.length + ' subjects · ' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div>' + legend() +
+      '<div class="wk-sum"><b>' + subj.length + ' subjects · ' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div>' +
       '<div class="wk-band">Subjects</div><div class="wk-tiles">' + subj.map(function (x) {
         var desc = x.e.desc || (x.t.portal && x.t.portal.intro) || '';
-        return '<button type="button" class="wk-tile" data-enter="' + esc(x.b.id) + '"><i>' + esc(x.e.icon || '📘') + '</i><b>' + esc(x.b.title || 'Board') + '</b>' + (desc ? '<small>' + esc(desc.length > 90 ? desc.slice(0, 88) + '…' : desc) + '</small>' : '') +
+        return '<button type="button" class="wk-tile" data-enter="' + esc(x.b.id) + '"><b>' + esc(x.b.title || 'Board') + '</b>' + (desc ? '<small>' + esc(desc.length > 90 ? desc.slice(0, 88) + '…' : desc) + '</small>' : '') +
           '<em>' + x.t.groups.length + ' skills · ' + x.sum.n + ' entries</em>' + frac(x.sum) + bar(x.sum) + '</button>';
       }).join('') + (subj.length ? '' : '<p>No subjects yet — tap ✎ Edit, then “Subjects…”.</p>') + '</div></div>';
     var boxes = subj.map(function (x) {
@@ -547,10 +547,10 @@
     var el = document.createElement('div'); el.className = 'wk'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Wiki Portal');
     el.innerHTML = '<div class="wk-head"><button type="button" class="wk-tb" data-boards><small></small><b></b></button>' +
       '<button type="button" class="wk-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
-      '<span class="wk-seg"><button type="button" data-layout="wiki">Wiki</button><button type="button" data-layout="compact">Compact</button></span><button type="button" class="wk-hb" data-edit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('wk-hb wk-fs') : '') + '</div><div class="wk-body"></div>';
+      '<span class="wk-seg"><button type="button" data-layout="wiki">Wiki</button><button type="button" data-layout="compact">Compact</button></span><button type="button" class="wk-hb" data-edit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.switchBtnHtml('wk-hb wk-fs') : '') + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('wk-hb wk-fs') : '') + '</div><div class="wk-body"></div>';
     ui.el = el; ui.list = el.querySelector('.wk-body'); ui.title = el.querySelector('.wk-tb b'); ui.kicker = el.querySelector('.wk-tb small'); ui.seg = el.querySelector('.wk-seg'); ui.open = true; edit = false;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    if (window.MinestKEdit) MinestKEdit.fullscreen('portal', el, ['.wk-head']);
+    if (window.MinestKEdit) { MinestKEdit.fullscreen('portal', el, ['.wk-head']); MinestKEdit.switcher('portal', el, function () { return ui.bid; }); }
     render(); ui.list.scrollTop = st().scroll || 0;
     if (el.animate) el.animate([{ opacity: 0, scale: '.97' }, { opacity: 1, scale: '1' }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
     wire(el);

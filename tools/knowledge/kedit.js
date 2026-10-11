@@ -218,7 +218,16 @@
     '.kn-fs-x svg{width:18px;height:18px}',
     '.kn-full .kn-fs-x{display:grid}',
     'html.kn-light .kn-fs-x{background:rgba(255,255,255,.78);border-color:rgba(255,255,255,.95);color:#1d1f23;box-shadow:inset 0 1px 0 #fff,0 8px 22px rgba(30,40,60,.14)}',
-    '[data-knfull] svg{width:16px;height:16px;display:block}',
+    '[data-knfull] svg,[data-knmode] svg{width:16px;height:16px;display:block}',
+    '.kn-modes{min-width:220px;z-index:2147482015;bottom:auto!important;right:auto!important;height:auto!important}',
+    '.en-menu.kn-modes button{display:flex;align-items:center;gap:10px;font-weight:600;min-height:46px}',
+    '.kn-modes button i{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;background:radial-gradient(120% 80% at 30% 15%,rgba(255,255,255,.5),rgba(255,255,255,0) 50%),linear-gradient(160deg,color-mix(in srgb,var(--c) 85%,#fff),color-mix(in srgb,var(--c) 70%,#000));border:1px solid rgba(255,255,255,.4)}',
+    '.kn-modes button i svg{width:15px;height:15px}',
+    '.en-menu.kn-modes button.on{color:inherit;background:rgba(255,255,255,.1)}',
+    '.kn-modes.arcade{border-radius:14px;border:4px solid #0d1222;background:#1b2650;box-shadow:0 6px 0 #0d1222,inset 0 0 0 3px #34488f;-webkit-backdrop-filter:none;backdrop-filter:none}',
+    '.en-menu.kn-modes.arcade button{font:400 9px/1.4 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;border-radius:8px}',
+    '.en-menu.kn-modes.arcade button.on{background:#ffcf3f;color:#0d1222}',
+    '.kn-modes.arcade button i{border:2px solid #0d1222;border-radius:8px;background:var(--c)}',
     // Edit switches in the views' headers
     '.ke-on{background:#0a84ff!important;border-color:#0a84ff!important;color:#fff!important}'
   ].join('\n');
@@ -397,9 +406,53 @@
   }
   function fullBtnHtml(cls) { return '<button type="button" class="' + (cls || '') + '" data-knfull title="Full screen" aria-label="Full screen">' + ICON.full + '</button>'; }
 
+  // ================================================================== switching between the six modes, on the same board
+  var G6 = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
+  var MODES = [
+    ['contents', 'Contents', '#5e9cff', G6('<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'), 'MinestContents'],
+    ['outline', 'Outline', '#a78bfa', G6('<path d="M4 5h16M8 10h12M8 15h12M12 20h8"/>'), 'MinestEndless'],
+    ['map', 'Knowledge Map', '#34c3a0', G6('<circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="20" r="2"/><path d="m6.6 7.3 3.2 2.6M17.4 7.3l-3.2 2.6M12 15v3"/>'), 'MinestMap'],
+    ['timeline', 'Timeline', '#f5a524', G6('<path d="M3 12h18"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="12" r="2"/><path d="M7 10V5M17 14v5"/>'), 'MinestTimeline'],
+    ['lmap', 'Learning Map', '#ff6b8a', G6('<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'), 'MinestLearnMap'],
+    ['portal', 'Portal', '#38bdf8', G6('<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>'), 'MinestWiki']
+  ];
+  var SWITCH = G6('<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="M14 17.5h7M17.5 14v7"/>');
+  function switchBtnHtml(cls) { return '<button type="button" class="' + (cls || '') + '" data-knmode title="Switch mode" aria-label="Switch mode">' + SWITCH + '</button>'; }
+  // view: this view's key; root: its element; bidOf(): the board it shows
+  function switcher(view, root, bidOf) {
+    css();
+    root.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-knmode]'); if (!b || !root.contains(b)) return;
+      e.stopPropagation(); e.preventDefault();
+      var old = document.querySelector('.kn-modes'); if (old) { old.remove(); return; }
+      var m = document.createElement('div'); m.className = 'en-menu kn-modes' + (root.classList.contains('lm') ? ' arcade' : '');   // the Learning Map keeps its arcade look
+      m.innerHTML = MODES.map(function (x) { return '<button type="button" data-to="' + x[0] + '"' + (x[0] === view ? ' class="on"' : '') + ' style="--c:' + x[2] + '"><i>' + x[3] + '</i>' + x[1] + '</button>'; }).join('');
+      document.body.appendChild(m); guard(m);
+      var r = b.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+      m.style.left = Math.max(10, Math.min(innerWidth - w - 10, r.right - w)) + 'px';
+      m.style.top = (r.bottom + h + 8 > innerHeight ? Math.max(10, r.top - h - 8) : r.bottom + 8) + 'px';
+      if (m.animate) { m.style.transformOrigin = (r.left + r.width / 2 - parseFloat(m.style.left)) + 'px 0'; m.animate([{ opacity: 0, scale: '.6', filter: 'blur(4px)' }, { opacity: 1, scale: '1.02', filter: 'blur(0px)', offset: .7 }, { opacity: 1, scale: '1', filter: 'blur(0px)' }], { duration: 320, easing: 'cubic-bezier(.2,.85,.25,1)' }); }
+      var off = function (ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('pointerdown', off, true); } };
+      setTimeout(function () { document.addEventListener('pointerdown', off, true); }, 0);
+      m.addEventListener('click', function (ev) {
+        var t = ev.target.closest('[data-to]'); if (!t) return;
+        m.remove(); document.removeEventListener('pointerdown', off, true);
+        var to = MODES.filter(function (x) { return x[0] === t.getAttribute('data-to'); })[0], from = MODES.filter(function (x) { return x[0] === view; })[0];
+        if (!to || to[0] === view) return;
+        var bid = bidOf && bidOf(), cur = from && window[from[4]], next = window[to[4]];
+        closeBar(); if (cur && cur.close) cur.close();
+        setTimeout(function () {   // the board it showed: switch to it first (Contents opens on the current board)
+          if (!next || !next.open) return;
+          if (to[0] === 'contents') { try { if (bid && A().selectBoard && (A().board() || {}).id !== bid) A().selectBoard(bid); } catch (x) {} next.open(); }
+          else next.open(bid);
+        }, 230);
+      });
+    }, true);
+  }
+
   // an Edit switch for a view's header
   function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
 
   if (document.head) css(); else document.addEventListener('DOMContentLoaded', css);   // the menus' look is needed before any view opens
-  window.MinestKEdit = { fullscreen: fullscreen, fullBtnHtml: fullBtnHtml, picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
+  window.MinestKEdit = { switcher: switcher, switchBtnHtml: switchBtnHtml, fullscreen: fullscreen, fullBtnHtml: fullBtnHtml, picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();
