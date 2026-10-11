@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 47.6 · Timeline axis</title>
+    <title>Minest iPhone 47.7 · Outline highlights</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "47.6" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "47.7" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -54006,7 +54006,15 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
       if (t === (n.title || '').trim()) return null;
       return edit(function (b) { var L = locate(b, n.kind, n.id); if (!L) return false; (n.kind === 'list' ? L.col : n.kind === 'card' ? L.card : L.item).title = t; }, null, { edit: false });
     },
-    highlight: function (n) { if (n.kind === 'list') return toast('Highlights are for rows inside a list.'); var h = (hlOf(n) + 1) % 4; KN().set('en:hl:' + n.id, h || null, true); var r = rowEl(n.k); if (r) { r.classList.remove('hl1', 'hl2', 'hl3'); if (h) r.classList.add('hl' + h); } },
+    highlight: function (n, pick) {
+      if (n.kind === 'list') return toast('Highlights are for rows inside a list.');
+      if (pick.text) {
+        var rs = hlRanges(n).filter(function (r) { return r.t !== pick.text && n.title.indexOf(r.t) >= 0; });
+        if (pick.color !== 'none') rs.push({ t: pick.text, c: pick.color });
+        KN().set('en:hlr:' + n.id, rs.length ? rs : null, true);
+      } else KN().set('en:hl:' + n.id, pick.color === 'none' ? null : pick.color, true);
+      render();
+    },
     heading: function (n) { if (n.kind !== 'card') return toast('Only a card can be a section heading.'); KN().setHeading(n.id, !KN().isHeading(n.id)); render(); select(n.k); },
     details: function (n) {
       if (n.kind === 'list') return;
@@ -54062,7 +54070,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     '.en-zoom{display:inline-flex;align-items:center;height:34px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font:600 13px -apple-system,system-ui,sans-serif;overflow:hidden}',
     '.en-zoom button{width:30px;height:34px;border:0;background:none;color:var(--hfg);font:600 16px -apple-system,system-ui,sans-serif;cursor:pointer}',
     '.en-zoom span{min-width:44px;text-align:center;font-variant-numeric:tabular-nums}',
-    '.en-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 calc(env(safe-area-inset-bottom,0px) + 110px)}',
+    '.en-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 calc(env(safe-area-inset-bottom,0px) + 44px)}',
     '.en-row{position:relative;display:flex;align-items:flex-start;padding:0 10px 0 calc(6px + var(--d) * 22px);min-height:calc(36px * var(--z))}',
     '.en-row.d0{background:var(--b1);border-top:1px solid var(--bg)}',
     '.en-row.d1{background:var(--b2);border-top:1px solid var(--bg)}',
@@ -54079,9 +54087,14 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     '.en-row.d2 .en-num,.en-row.d3 .en-num,.en-row.d4 .en-num,.en-row.d5 .en-num,.en-row.d6 .en-num{min-width:1em;text-align:center;opacity:.75}',
     '.en-t{outline:none;white-space:pre-wrap;overflow-wrap:anywhere;min-height:1.2em;cursor:text;-webkit-user-select:text;user-select:text;flex:1;min-width:0}',
     '.en-t:empty:before{content:attr(data-ph);opacity:.35}',
-    '.en-t .hl{border-radius:2px;-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 1px}',
-    '.en-row.hl1 .en-t,.en-row.hl2 .en-t,.en-row.hl3 .en-t{flex:0 1 auto;width:fit-content;border-radius:3px;padding:0 3px;margin-left:-3px}',
-    '.en-row.hl2 .en-t{background:var(--hl2)}.en-row.hl3 .en-t{background:var(--hl3)}.en-row.hl1 .en-t{background:var(--hl1)}',
+    '.en-t mark.hl{color:inherit;border-radius:3px;padding:0 1px;-webkit-box-decoration-break:clone;box-decoration-break:clone}',
+    '.en-row.hlrow .en-t{background:var(--rh);flex:0 1 auto;width:fit-content;border-radius:3px;padding:0 3px;margin-left:-3px}',
+    // the highlight palette
+    '.en-pal{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:6px 8px 4px}',
+    '.en-pal button{height:40px;min-height:0;border-radius:10px;border:2px solid transparent;cursor:pointer;padding:0;font:600 12px -apple-system,system-ui,sans-serif;color:#fff}',
+    '.en-pal button.on{border-color:#fff}',
+    '.en-pal .none{background:rgba(255,255,255,.08)!important;color:#fff}',
+    '.en-menu .cap{padding:8px 12px 2px;font:600 12px -apple-system,system-ui,sans-serif;opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}',
     '.en-row.d0 .en-line{font-size:calc(27px * var(--z));font-weight:500;letter-spacing:-.2px}',
     '.en-row.d1 .en-line{font-size:calc(21px * var(--z));font-weight:500}',
     '.en-row.d2 .en-line,.en-row.d3 .en-line,.en-row.d4 .en-line,.en-row.d5 .en-line,.en-row.d6 .en-line{font-size:calc(18px * var(--z))}',
@@ -54103,6 +54116,12 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
       'background:linear-gradient(180deg,rgba(70,80,96,.9),rgba(34,40,52,.94));-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 14px 36px rgba(0,0,0,.45);max-width:calc(100vw - 16px);overflow-x:auto;scrollbar-width:none}',
     '.en-bar::-webkit-scrollbar{display:none}',
     '.en-bar[hidden]{display:none}',
+    // the toolbar at the top (the header's last row)
+    '.en-bar.en-top{position:static;transform:none;flex:1 1 100%;order:20;justify-content:space-between;max-width:none;margin-top:2px;padding:3px;border-radius:14px;background:var(--bg);border:1px solid var(--line);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}',
+    '.en-bar.en-top button{width:36px;height:36px;color:var(--hfg)}',
+    '.en-bar.en-top button:active{background:var(--sel)}',
+    '.en-bar.en-top .del{color:#ff453a}',
+    '.en-bar.en-top.off button{opacity:.32;pointer-events:none}',
     '.en-bar button{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:none;color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}',
     '.en-bar button:active{background:rgba(255,255,255,.14)}',
     '.en-bar button svg{width:20px;height:20px}',
@@ -54126,13 +54145,26 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   function letter(n) { var o = ''; while (n > 0) { n--; o = String.fromCharCode(65 + n % 26) + o; n = Math.floor(n / 26); } return o; }
   function numOf(n) { return n.d === 0 ? roman(n.i + 1) + '.' : n.d === 1 ? letter(n.i + 1) + '.' : '•'; }
   var NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M7.5 9h9M7.5 12.5h9M7.5 16h5"/></svg>';
-  function hlOf(n) { return n.kind === 'list' ? 0 : +(KN().get('en:hl:' + n.id) || 0); }
+  var HLC = { yellow: 'rgba(255,214,10,.45)', green: 'rgba(52,199,89,.32)', blue: 'rgba(10,132,255,.26)', pink: 'rgba(255,55,145,.26)', orange: 'rgba(255,149,0,.34)', purple: 'rgba(175,82,222,.3)', red: 'rgba(255,59,48,.3)' };
+  var HL_OLD = { 1: 'green', 2: 'red', 3: 'yellow' };
+  function hlOf(n) { if (n.kind === 'list') return null; var v = KN().get('en:hl:' + n.id); v = HL_OLD[v] || v; return HLC[v] ? v : null; }
+  function hlRanges(n) { var r = n.kind === 'list' ? null : KN().get('en:hlr:' + n.id); return Array.isArray(r) ? r.filter(function (x) { return x && x.t && HLC[x.c]; }) : []; }
+  // the title with its highlighted pieces (kept by their text, so they follow the words when the title is edited)
+  function titleHtml(n) {
+    var t = n.title || '', rs = hlRanges(n); if (!rs.length) return esc(t);
+    var hits = [];
+    rs.forEach(function (r) { var from = 0, i; while ((i = t.indexOf(r.t, from)) >= 0) { if (!hits.some(function (h) { return i < h.e && i + r.t.length > h.s; })) { hits.push({ s: i, e: i + r.t.length, c: r.c }); break; } from = i + 1; } });
+    hits.sort(function (a, b) { return a.s - b.s; });
+    var out = '', at = 0;
+    hits.forEach(function (h) { out += esc(t.slice(at, h.s)) + '<mark class="hl" style="background:' + HLC[h.c] + '">' + esc(t.slice(h.s, h.e)) + '</mark>'; at = h.e; });
+    return out + esc(t.slice(at));
+  }
   function rowHtml(n) {
     var hl = hlOf(n), note = n.note && n.kind !== 'list';
-    var cls = 'en-row ' + n.kind + ' d' + Math.min(n.d, 6) + (n.heading ? ' head' : '') + (n.done ? ' done' : '') + (n.kids.length && folded(n.k) ? ' fold' : '') + (ui.sel === n.k ? ' sel' : '') + (hl ? ' hl' + hl : '') + (note ? ' hasnote' : '');
-    return '<div class="' + cls + '" data-k="' + esc(n.k) + '" style="--d:' + n.d + '">' +
+    var cls = 'en-row ' + n.kind + ' d' + Math.min(n.d, 6) + (n.heading ? ' head' : '') + (n.done ? ' done' : '') + (n.kids.length && folded(n.k) ? ' fold' : '') + (ui.sel === n.k ? ' sel' : '') + (hl ? ' hlrow' : '') + (note ? ' hasnote' : '');
+    return '<div class="' + cls + '" data-k="' + esc(n.k) + '" style="--d:' + n.d + (hl ? ';--rh:' + HLC[hl] : '') + '">' +
       '<button type="button" class="en-chev' + (n.kids.length ? '' : ' none') + '" data-fold tabindex="-1" aria-label="Fold">' + CHEV + '</button>' +
-      '<div class="en-tx"><div class="en-line"><span class="en-num" data-dot>' + numOf(n) + '</span><div class="en-t" data-ph="' + (n.kind === 'list' ? 'List title' : 'Untitled') + '">' + esc(n.title) + '</div></div>' +
+      '<div class="en-tx"><div class="en-line"><span class="en-num" data-dot>' + numOf(n) + '</span><div class="en-t" data-ph="' + (n.kind === 'list' ? 'List title' : 'Untitled') + '">' + titleHtml(n) + '</div></div>' +
       (note ? '<div class="en-n">' + esc(n.note) + '</div>' : '') + '</div>' +
       (n.kind !== 'list' ? '<button type="button" class="en-nt" data-dot tabindex="-1" aria-label="Details">' + NOTE + '</button>' : '') + '</div>';
   }
@@ -54195,7 +54227,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     var r = k && rowEl(k); if (r) { r.classList.add('sel'); var lr = ui.list.getBoundingClientRect(), rr = r.getBoundingClientRect(); if (rr.top < lr.top + 4 || rr.bottom > lr.bottom - 90) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
     bar();
   }
-  function bar() { if (!ui.bar) return; ui.bar.hidden = !ui.sel; }
+  function bar() { if (!ui.bar) return; ui.bar.classList.toggle('off', !ui.sel); }
   function startEdit(k, atEnd) {
     var r = rowEl(k); if (!r) return;
     var t = r.querySelector('.en-t');
@@ -54242,10 +54274,26 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     menuEl.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) onClick(b); });
     menuEl.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
   }
+  function palette(anchor) {
+    var k = ui.sel, n = k && byKey[k]; if (!n) return;
+    if (n.kind === 'list') return toast('Highlights are for rows inside a list.');
+    // selected words in the row being typed in → highlight just those; otherwise the whole row
+    var text = '', sl = window.getSelection && getSelection();
+    if (ui.editing && sl && sl.rangeCount && !sl.isCollapsed && ui.editing.contains(sl.anchorNode)) text = sl.toString().replace(/\s+/g, ' ').trim();
+    var cur = text ? ((hlRanges(n).filter(function (r) { return r.t === text; })[0] || {}).c || '') : (hlOf(n) || '');
+    var names = Object.keys(HLC);
+    menuAt(anchor, '<div class="cap">' + (text ? 'Highlight “' + esc(text.length > 34 ? text.slice(0, 33) + '…' : text) + '”' : 'Highlight the row') + '</div><div class="en-pal">' +
+      names.map(function (c) { return '<button type="button" data-hc="' + c + '" title="' + c + '" style="background:' + HLC[c].replace(/[\d.]+\)$/, '.9)') + '"' + (cur === c ? ' class="on"' : '') + '></button>'; }).join('') +
+      '<button type="button" class="none" data-hc="none">None</button></div>' + (!text ? '<div class="cap" style="font-weight:500">Tip: select words in a row to highlight just them.</div>' : ''), function (b) {
+      var c = b.getAttribute('data-hc'); if (!c) return;
+      closeMenu();
+      run(function () { return commit().then(function () { var m = byKey[k]; if (m) OPS.highlight(m, { color: c, text: text }); }); });
+    });
+  }
   function confirmBox(msg, yes) {
-    var host = ui.bar && !ui.bar.hidden ? ui.bar : ui.title;
+    var host = ui.bar && !ui.bar.classList.contains('off') ? ui.bar : ui.title;
     menuAt(host, '<p>' + esc(msg) + '</p><div class="row"><button type="button" data-a="no">Cancel</button><button type="button" class="red" data-a="yes">Delete</button></div>', function (b) { closeMenu(); if (b.getAttribute('data-a') === 'yes') run(yes); });
-    if (host === ui.bar) { menuEl.style.top = Math.max(10, ui.bar.getBoundingClientRect().top - menuEl.offsetHeight - 10) + 'px'; menuEl.style.left = Math.max(10, (innerWidth - menuEl.offsetWidth) / 2) + 'px'; }
+    if (host === ui.bar) { menuEl.style.top = (ui.bar.getBoundingClientRect().bottom + 8) + 'px'; menuEl.style.left = Math.max(10, (innerWidth - menuEl.offsetWidth) / 2) + 'px'; }
   }
   function boardMenu() {
     var list = boards().filter(function (b) { return !b.archived; });
@@ -54259,7 +54307,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   function away() {
     if (!ui.el) return;
     commit(); keepScroll();
-    ui.el.classList.add('away'); if (ui.bar) ui.bar.hidden = true;
+    ui.el.classList.add('away');
     var t0 = Date.now(), seen = false, gone = 0;
     var modal = function () { return document.querySelector('.mn-dm, .mn-cardsheet, .fixed.inset-0.z-50 .rounded-3xl, [role="dialog"][aria-modal="true"]'); };
     var iv = setInterval(function () {
@@ -54286,11 +54334,12 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
       '<button type="button" class="en-hb" data-theme>◐ Auto</button>' +
       '<button type="button" class="en-hb en-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="en-body"></div><div class="en-stat"></div>';
-    var bar = document.createElement('div'); bar.className = 'en-bar'; bar.hidden = true;
+    var bar = document.createElement('div'); bar.className = 'en-bar en-top off';
     bar.innerHTML = [['outdent', 'out', 'Outdent (⇧⇥)'], ['indent', 'in', 'Indent (⇥)'], ['up', 'up', 'Move up (⌥↑)'], ['down', 'down', 'Move down (⌥↓)'], ['sibling', 'add', 'New row (↩)'], ['child', 'child', 'New row inside'], ['heading', 'head', 'Section heading'], ['highlight', 'mark', 'Highlight'], ['details', 'info', 'Details (⌘↩)'], ['remove', 'del', 'Delete']]
       .map(function (x) { return '<button type="button" data-op="' + x[0] + '" title="' + x[2] + '" aria-label="' + x[2] + '"' + (x[0] === 'remove' ? ' class="del"' : '') + '>' + ICON[x[1]] + '</button>'; }).join('');
     ui.el = el; ui.list = el.querySelector('.en-body'); ui.title = el.querySelector('.en-tb b'); ui.bar = bar; ui.stat = el.querySelector('.en-stat'); ui.zl = el.querySelector('[data-zl]'); ui.th = el.querySelector('[data-theme]'); ui.open = true; ui.sel = null; ui.limit = 300;
-    document.body.appendChild(el); document.body.appendChild(bar); document.documentElement.classList.add('kn-open');
+    el.querySelector('.en-head').appendChild(bar);
+    document.body.appendChild(el); document.documentElement.classList.add('kn-open');
     look(); render();
     ui.list.scrollTop = S.scroll[ui.bid] || 0;
     if (el.animate) { var o = lastTap && Date.now() - lastTap.t < 1500 ? lastTap.r : null; el.style.transformOrigin = o ? (o.left + o.width / 2) + 'px ' + (o.top + o.height / 2) + 'px' : '50% 40%'; el.animate([{ opacity: 0, scale: '.9' }, { opacity: 1, scale: '1' }], { duration: 340, easing: 'cubic-bezier(.2,.85,.25,1)' }); }
@@ -54316,6 +54365,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     bar.addEventListener('click', function (e) {
       var b = e.target.closest('[data-op]'); if (!b) return;
       var op = b.getAttribute('data-op');
+      if (op === 'highlight') return palette(b);
       if (op === 'up' || op === 'down') return act('move', op === 'up' ? -1 : 1);
       act(op);
     });
