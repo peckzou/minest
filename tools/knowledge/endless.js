@@ -308,11 +308,11 @@
     // the toolbar at the top (the header's last row)
     '.en-bar.en-top{position:static;transform:none;flex:1 1 100%;order:20;justify-content:space-between;max-width:none;margin-top:2px;padding:3px;border-radius:14px;background:var(--bg);border:1px solid var(--line);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}',
     '.en-bar.en-top button{width:36px;height:36px;color:var(--hfg)}',
-    // wider screens (iPad, web): the editing buttons move up into the title row, lined up against the right next to ✕;
-    // the view controls take the row below. A phone keeps its own layout (the bar under the view controls).
+    // wider screens (iPad, web): the editing buttons join the view-controls row, to the right of ◐ Auto, lined up against
+    // the right edge. A phone keeps its own layout (the bar under the view controls).
     '@media (min-width:700px){' +
-      '.en-head .en-tb{flex:1 1 auto;padding-right:0}' +
-      '.en-head .en-bar.en-top{order:1;flex:none;justify-content:flex-end;flex-wrap:nowrap;gap:2px;margin:0 46px 0 auto;padding:0;background:none;border:0;border-radius:0;overflow:visible}' +
+      '.en-head .en-tb{flex:1 1 auto}' +
+      '.en-head .en-bar.en-top{order:11;flex:none;justify-content:flex-end;flex-wrap:nowrap;gap:2px;margin:0 0 0 auto;padding:0;background:none;border:0;border-radius:0;overflow:visible}' +
       '.en-head .en-bar.en-top button{width:34px;height:34px;flex:none;border-radius:50%}' +
       '.en-head .en-bar.en-top button svg{width:18px;height:18px}' +
       '.en-head:after{content:"";order:8;flex-basis:100%;height:0}' +
