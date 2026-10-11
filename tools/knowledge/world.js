@@ -41,7 +41,7 @@
   }
   function templates() {
     var built = window.__MINEST_WORLD_TEMPLATES || {}, out = [];
-    ['my-life', 'whole-earth', 'my-museum', 'britannica', 'dewey', 'my-academic-skills', 'my-life-skills', 'kant', 'aristotle', 'encyclopedie', 'bacon'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
+    ['my-life', 'whole-earth', 'my-museum', 'britannica', 'dewey', 'my-academic-skills', 'my-life-skills', 'philosophy-spinoza', 'philosophy-aristotle', 'philosophy-kant', 'philosophy-hegel', 'philosophy-heidegger', 'kant', 'aristotle', 'encyclopedie', 'bacon'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
     (KN() ? KN().keys('lom:tpl:') : []).forEach(function (k) { var t = KN().get(k); if (t && t.domains) out.push(Object.assign({ mine: true }, t)); });
     return out;
   }
@@ -53,13 +53,22 @@
   function newCard(id, title) { return { id: id, title: title, desc: '', labels: [], complete: false, createdAt: Date.now(), mastery: 1, checklistItems: [] }; }
   function plan(t, bid, sel) {
     var off = (sel && sel.off) || {}, codes = !!(sel && sel.codes && t.codes), tid = slug(t.id), out = { lists: [], counts: { lists: 0, sections: 0, cards: 0 } };
+    var depth = (sel && sel.depth) || t.defaultDepth || 'standard', names = (sel && sel.names) || {};
+    function nm(key, title) { return names[key] ? { title: names[key], orig: null } : { title: title, orig: title }; }   // a name typed in the preview is the user's (a later template update never replaces it)
     t.domains.forEach(function (d, i) {
       if (off[d.id]) return;
-      var L = { id: bid + '-d-' + tid + '-' + slug(d.id), title: (codes && d.code ? d.code + ' ' : '') + d.title, color: d.color || PAL[i % PAL.length], items: [] };
+      var dn = nm(d.id, (codes && d.code ? d.code + ' ' : '') + d.title);
+      var L = { id: bid + '-d-' + tid + '-' + slug(d.id), title: dn.title, orig: dn.orig, color: d.color || PAL[i % PAL.length], items: [] };
       (d.categories || []).forEach(function (c) {
         if (off[c.id]) return;
-        var H = { id: bid + '-c-' + tid + '-' + slug(c.id), title: c.title, heading: true, lists: [] };
-        (c.lists || []).forEach(function (l) { H.lists.push({ id: bid + '-l-' + tid + '-' + slug(c.id) + '-' + slug(l.id), title: (codes && l.code ? l.code + ' ' : '') + l.title }); });
+        var cn = nm(c.id, c.title);
+        var H = { id: bid + '-c-' + tid + '-' + slug(c.id), title: cn.title, orig: cn.orig, heading: depth !== 'simple', asCard: depth === 'simple', lists: [] };
+        if (depth !== 'simple') (c.lists || []).forEach(function (l) {
+          var lk = 'l:' + c.id + '/' + l.id; if (off[lk]) return;
+          var lid = bid + '-l-' + tid + '-' + slug(c.id) + '-' + slug(l.id), ln = nm(lk, (codes && l.code ? l.code + ' ' : '') + l.title);
+          H.lists.push({ id: lid, title: ln.title, orig: ln.orig });
+          if (depth === 'complete') (l.lists || []).forEach(function (x) { var xk = lk + '/' + x.id; if (off[xk]) return; var xn = nm(xk, x.title); H.lists.push({ id: lid + '-' + slug(x.id), title: xn.title, orig: xn.orig, parent: lid }); });
+        });
         L.items.push(H);
       });
       out.lists.push(L);
@@ -69,10 +78,10 @@
   function counts(p, b) {
     var have = {}, n = { lists: 0, sections: 0, cards: 0 };
     if (b) (b.columns || []).forEach(function (c) { have[c.id] = 1; (c.cards || []).forEach(function (k) { have[k.id] = 1; }); });
-    p.lists.forEach(function (L) { if (!have[L.id]) n.lists++; L.items.forEach(function (H) { if (!have[H.id]) n.sections++; H.lists.forEach(function (x) { if (!have[x.id]) n.cards++; }); }); });
+    p.lists.forEach(function (L) { if (!have[L.id]) n.lists++; L.items.forEach(function (H) { if (!have[H.id]) { if (H.asCard) n.cards++; else n.sections++; } H.lists.forEach(function (x) { if (!have[x.id]) n.cards++; }); }); });
     return n;
   }
-  var MADE = {};
+  var MADE = {}, USER = '\u0001user';   // lom:orig = USER: named by the user, never replaced by a template update
   function generate(t, sel, intoBid) {
     check(t);
     var ai = A(); if (!ai.addBoard || !ai.updateBoard) throw new Error('The board is still loading — try again in a moment.');
@@ -84,7 +93,9 @@
     var b = old ? JSON.parse(JSON.stringify(old)) : { id: bid, title: t.worldTitle || t.name, columns: [], labelDefinitions: [], archivedCards: [], linkedBoardIds: [], showLabelNames: false };
     var byId = {}; (b.columns || []).forEach(function (c) { byId[c.id] = c; (c.cards || []).forEach(function (k) { byId[k.id] = k; }); });
     // a name from the template is updated only while the user has not renamed it
-    function name(o, title) { var was = KN().get('lom:orig:' + o.id); if (was == null || o.title === was) o.title = title; orig['lom:orig:' + o.id] = title; }
+    function name(o, title, tplTitle) { var was = KN().get('lom:orig:' + o.id); if (tplTitle === null) { o.title = title; orig['lom:orig:' + o.id] = USER; return; } if (was == null || o.title === was) o.title = title; orig['lom:orig:' + o.id] = was === USER && o.title !== title ? USER : title; }
+    function first(id, tplTitle) { orig['lom:orig:' + id] = tplTitle === null ? USER : tplTitle; }
+    var parents = {};
     var prevCol = null;
     p.lists.forEach(function (L) {
       var col = byId[L.id];
@@ -93,19 +104,19 @@
         var at = prevCol ? b.columns.indexOf(prevCol) : -1;
         if (at >= 0) b.columns.splice(at + 1, 0, col); else if (!prevCol && old) b.columns.push(col); else b.columns.push(col);
       }
-      else name(col, L.title);
-      orig['lom:orig:' + L.id] = L.title;
+      else name(col, L.title, L.orig);
+      if (!byId[L.id] || !orig['lom:orig:' + L.id]) first(L.id, L.orig);
       col.cards = col.cards || [];
       L.items.forEach(function (H) {
         var h = byId[H.id];
-        if (!h) { h = newCard(H.id, H.title); col.cards.push(h); } else name(h, H.title);
-        orig['lom:orig:' + H.id] = H.title; heads.push(H.id);
+        if (!h) { h = newCard(H.id, H.title); col.cards.push(h); first(H.id, H.orig); } else name(h, H.title, H.orig);
+        if (H.heading) heads.push(H.id);
         var at = col.cards.indexOf(h);
         H.lists.forEach(function (x) {
           var c = byId[x.id];
-          if (!c) { c = newCard(x.id, x.title); var i = col.cards.indexOf(h); var j = i + 1; while (j < col.cards.length && stage[col.cards[j].id] === H.id) j++; col.cards.splice(at >= 0 ? Math.max(j, at + 1) : col.cards.length, 0, c); }
-          else name(c, x.title);
-          orig['lom:orig:' + x.id] = x.title; stage[x.id] = H.id;
+          if (!c) { c = newCard(x.id, x.title); var i = col.cards.indexOf(h); var j = i + 1; while (j < col.cards.length && stage[col.cards[j].id] === H.id) j++; col.cards.splice(at >= 0 ? Math.max(j, at + 1) : col.cards.length, 0, c); first(x.id, x.orig); }
+          else name(c, x.title, x.orig);
+          stage[x.id] = H.id; if (x.parent) parents['lom:parent:' + x.id] = x.parent;
         });
       });
       prevCol = col;
@@ -115,8 +126,8 @@
     if (old) ai.updateBoard(bid, function () { return b; }); else ai.addBoard(b, true);
     heads.forEach(function (id) { if (!KN().isHeading(id)) KN().setHeading(id, true); });
     var cfg = Object.assign({}, KN().get('lm:cfg:' + bid) || {}); cfg.stageOf = Object.assign({}, cfg.stageOf || {}, stage);   // sections keep their lists (the Kanban may reorder)
-    var w = Object.assign({ created: Date.now(), templates: {} }, KN().get('lom:world:' + bid) || {}); w.templates = Object.assign({}, w.templates); w.templates[t.id] = { version: t.version || 1, name: t.name, at: Date.now(), off: (sel && sel.off) || {}, codes: !!(sel && sel.codes) };
-    var m = {}; m['lm:cfg:' + bid] = cfg; m['lom:world:' + bid] = w; Object.keys(orig).forEach(function (k) { m[k] = orig[k]; });
+    var w = Object.assign({ created: Date.now(), templates: {} }, KN().get('lom:world:' + bid) || {}); w.templates = Object.assign({}, w.templates); w.templates[t.id] = { version: t.version || 1, name: t.name, at: Date.now(), off: (sel && sel.off) || {}, codes: !!(sel && sel.codes), depth: (sel && sel.depth) || t.defaultDepth || 'standard' };
+    var m = {}; m['lm:cfg:' + bid] = cfg; m['lom:world:' + bid] = w; Object.keys(orig).forEach(function (k) { m[k] = orig[k]; }); Object.keys(parents).forEach(function (k) { m[k] = parents[k]; });
     if (t.kind === 'skills') {   // the Unified Skill record of each skill card: 'sk:<card>' (the learner's status / proficiency survive)
       var tid = slug(t.id), off = (sel && sel.off) || {};
       t.domains.forEach(function (d) { if (off[d.id]) return; (d.categories || []).forEach(function (c) { if (off[c.id]) return; (c.lists || []).forEach(function (x) {
@@ -195,6 +206,11 @@
     aristotle: S('<g stroke-width="1.6" opacity=".9"><path d="M80 12 46 70h68z"/></g>' + dots([[80, 12, 6], [46, 70, 6], [114, 70, 6]]) + '<circle cx="80" cy="50" r="7" stroke-width="1.4" opacity=".7"/>'),
     encyclopedie: S('<g stroke-width="1.6" opacity=".9"><path d="M80 80V50M80 50 52 30M80 50l28-20M80 50V24M52 30l-14-6M52 30l-6-14M108 30l14-6M108 30l6-14M80 24l-8-12M80 24l8-12"/></g>' + dots([[38, 24], [46, 16], [122, 24], [114, 16], [72, 12], [88, 12]], 3)),
     bacon: S('<g stroke-width="1.6" opacity=".9"><circle cx="66" cy="36" r="18"/><circle cx="94" cy="36" r="18"/><circle cx="80" cy="58" r="18"/></g>'),
+    'philosophy-spinoza': S('<g stroke-width="1.3" opacity=".75"><path d="M40 22 80 42 122 20M40 22l-8 40M80 42 60 70M80 42l40 26M122 20l10 36M32 62l28 8M120 68l12-12M80 42 80 12"/></g>' + dots([[40, 22, 4], [80, 42, 7], [122, 20, 4], [32, 62, 3.5], [60, 70, 4], [120, 68, 4], [132, 56, 3], [80, 12, 3.5]])),
+    'philosophy-aristotle': S('<g stroke-width="1.6" opacity=".95"><rect x="30" y="16" width="30" height="22" rx="4"/><rect x="65" y="16" width="30" height="22" rx="4"/><rect x="100" y="16" width="30" height="22" rx="4"/><rect x="30" y="46" width="30" height="22" rx="4"/><rect x="65" y="46" width="30" height="22" rx="4"/><rect x="100" y="46" width="30" height="22" rx="4"/></g>' + dots([[45, 27, 3], [80, 57, 3], [115, 27, 3]])),
+    'philosophy-kant': S('<g stroke-width="1.5" opacity=".9"><circle cx="80" cy="44" r="30" opacity=".4"/><path d="M80 14v60M50 44h60" opacity=".55"/><circle cx="80" cy="44" r="16"/></g><path d="M76 40a4 4 0 1 1 5.5 3.7c-1 .5-1.5 1.2-1.5 2.3M80 50.5h.01" stroke-width="2.2"/>' + dots([[80, 14, 3], [110, 44, 3], [80, 74, 3], [50, 44, 3]])),
+    'philosophy-hegel': S('<path d="M20 70c18 0 22-14 36-14s16 10 28 10 14-22 28-22 16-14 28-24" stroke-width="2" opacity=".95"/><g opacity=".5" stroke-width="1"><path d="M20 76h120"/></g>' + dots([[20, 70, 4], [56, 56, 4.5], [84, 66, 5], [112, 44, 5.5], [140, 20, 6.5]])),
+    'philosophy-heidegger': S('<path d="M10 64h140" stroke-width="1.3" opacity=".7"/><path d="M80 64c-10-16-30-26-62-30M80 64c10-16 30-26 62-30M80 64V18" stroke-width="1.6" opacity=".9"/><circle cx="80" cy="64" r="6" fill="#fff" stroke="none"/><path d="M60 78h40" stroke-width="1" opacity=".5"/>' + dots([[18, 34, 3], [142, 34, 3], [80, 18, 3]])),
     mine: S('<path d="M80 14l8 17 19 2-14 13 4 19-17-9-17 9 4-19-14-13 19-2z" stroke-width="1.8"/>')
   };
   function artOf(t) { return t.mine ? ART.mine : ART[t.id] || S('<circle cx="80" cy="42" r="22" stroke-width="1.8"/>'); }
@@ -237,6 +253,16 @@
     '.lw-dh b{flex:1;min-width:0;font-size:15.5px;font-weight:700}',
     '.lw-dh em{font-style:normal;font-size:12px;opacity:.55}',
     '.lw-note{display:block;font-size:12px;font-weight:500;opacity:.55;margin-top:1px}',
+    '.lw-by{display:block;font-size:12px;opacity:.6;font-weight:500}',
+    '.lw-ab{margin-top:10px}.lw-ab b{display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase;opacity:.6;margin-bottom:3px}',
+    '.lw-tags{display:flex;flex-wrap:wrap;gap:5px}.lw-tags i{font-style:normal;font-size:12.5px;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.1)}',
+    '.lw-fine{font-size:12.5px;opacity:.6;margin:10px 0 0}',
+    '.lw-qs{margin:8px 0 0;padding-left:18px}.lw-qs li{margin:4px 0}',
+    '.lw-tool{display:grid;grid-template-columns:1fr auto;gap:2px 8px;margin:0 2px 12px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.2)}.lw-tool b{font-size:14.5px}.lw-tool span{grid-column:1/2;font-size:12.5px;opacity:.65}.lw-tool em{grid-row:1/3;grid-column:2;align-self:center;font-style:normal;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.12)}',
+    '.lw-ls{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}.lw-li{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:inherit;font:500 12.5px -apple-system,system-ui,sans-serif;padding:4px 9px;border-radius:999px;cursor:pointer}',
+    '.lw-li.off{opacity:.4;text-decoration:line-through}.lw-li.sub{font-size:11.5px;opacity:.8;border-style:dashed}.lw-li.sub.off{opacity:.35}',
+    '[data-rn]{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}',
+    'html.kn-light .lw-tags i,html.kn-light .lw-li{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.1)}html.kn-light .lw-tool{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.18)}',
     '.lw-code{font-style:normal;font:700 11.5px ui-monospace,SFMono-Regular,Menlo,monospace;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.12);opacity:.85}',
     '.lw-opt{margin:0 0 4px;padding:10px 12px;border:0;border-radius:16px;background:rgba(255,255,255,.06)}',
     '.lw-lens{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06)}.lw-lens b{font-size:13.5px}.lw-lens .nt{font-size:12.5px;opacity:.65;margin:2px 0 6px}',
@@ -305,9 +331,9 @@
   function choose() {
     ui.view = 'choose'; ui.foot.hidden = true; head('Choose Your World', false);
     var ts = templates(), ws = worlds(), size = function (t) { return t.domains.length + ' areas · ' + t.domains.reduce(function (a, d) { return a + (d.categories || []).reduce(function (x, c) { return x + (c.lists || []).length; }, 0); }, 0) + ' lists'; };
-    var card = function (t) { return '<button type="button" class="lw-card art" data-tpl="' + esc(t.id) + '" style="--c:' + esc(t.color || '#7c8cff') + '"><span class="lw-art" aria-hidden="true">' + artOf(t) + '</span><b>' + esc(t.name) + '</b>' + (t.tagline ? '<p class="lw-tag">' + esc(t.tagline) + '</p>' : t.description ? '<small>' + esc(t.description) + '</small>' : '') + '<em>' + size(t) + '</em></button>'; };
-    var built = ts.filter(function (t) { return !t.mine; }), mine = ts.filter(function (t) { return t.mine; });
-    var FAM = [['everyday', 'Everyday life', ''], ['knowledge', 'Knowledge atlases', ''], ['skills', 'My Skills', ''], ['classical', 'Classical Worldviews', 'Inspired by great thinkers — shown in everyday words.']];
+    var card = function (t) { return '<button type="button" class="lw-card art" data-tpl="' + esc(t.id) + '" style="--c:' + esc(t.color || '#7c8cff') + '"><span class="lw-art" aria-hidden="true">' + artOf(t) + '</span><b>' + esc(t.name) + '</b>' + (t.philosopher ? '<small class="lw-by">Inspired by ' + esc(t.philosopher) + '</small>' : '') + (t.tagline ? '<p class="lw-tag">' + esc(t.tagline) + '</p>' : t.description ? '<small>' + esc(t.description) + '</small>' : '') + '<em>' + size(t) + '</em></button>'; };
+    var built = ts.filter(function (t) { return !t.mine && !t.hidden; }), mine = ts.filter(function (t) { return t.mine; });
+    var FAM = [['everyday', 'Everyday life', ''], ['knowledge', 'Knowledge atlases', ''], ['skills', 'My Skills', ''], ['advanced-philosophy', 'Explore Philosophical Worlds', 'Five ways of seeing one personal world — no philosophy needed to start.'], ['classical', 'Classical Worldviews', 'Inspired by great thinkers — shown in everyday words.']];
     var fams = FAM.map(function (f) { var xs = built.filter(function (t) { return (t.family || 'everyday') === f[0]; }); return xs.length ? '<div class="lw-h">' + f[1] + '</div>' + (f[2] ? '<p class="lw-sub" style="margin-top:-4px">' + f[2] + '</p>' : '') + '<div class="lw-grid">' + xs.map(card).join('') + '</div>' : ''; }).join('');
     var other = built.filter(function (t) { return !FAM.some(function (f) { return f[0] === (t.family || 'everyday'); }); });
     ui.body.innerHTML = (window.MinestCapture && ws.length ? '<button type="button" class="lw-go" style="margin:2px 0 14px" data-capture>＋ Add to My World</button>' : '') + '<p class="lw-sub">Pick a template — you will see its world first, and you can switch off anything you don’t want.</p>' +
@@ -326,38 +352,59 @@
 
   // ---------------------------------------------------------------- Preview
   function preview(t) {
-    ui.view = 'preview'; ui.tpl = t; ui.off = {}; ui.openD = {};
+    ui.view = 'preview'; ui.tpl = t; ui.off = {}; ui.openD = {}; ui.names = {}; ui.depth = t.defaultDepth || 'standard'; ui.renaming = false;
     ui.groups = t.groups ? (t.defaultGroups || t.groups.map(function (g) { return g.id; })).slice() : null;   // e.g. the grades to make
     var ws = worlds(); ui.into = null; ui.codes = !!(t.codes && t.codes.default);
     head(t.name, true);
-    render();
+    render(); ui.body.scrollTop = 0;
     function render() {
-      var tgt = ui.into ? boardById(ui.into) : null, n = counts(plan(t, ui.into || ('lw-' + slug(t.id)), { off: offAll(), codes: ui.codes }), tgt);
+      var tgt = ui.into ? boardById(ui.into) : null, n = counts(plan(t, ui.into || ('lw-' + slug(t.id)), { off: offAll(), codes: ui.codes, depth: ui.depth, names: ui.names }), tgt);
+      var NM = function (key, title) { return esc(ui.names[key] || title); }, RN = function (key, title) { return ui.renaming ? ' data-rn="' + esc(key) + '" data-rt="' + esc(title) + '"' : ''; };
       var shown = t.domains.filter(function (d) { return !ui.groups || ui.groups.indexOf(d.group) >= 0; });
       ui.body.innerHTML = (t.description ? '<p class="lw-sub">' + esc(t.description) + '</p>' : '') +
-        (t.inspiration ? '<details class="lw-about"><summary>About this template</summary><div style="margin-top:6px">' + esc(t.inspiration) + '</div>' +
+        (t.philosopher ? '<p class="lw-by" style="margin:-8px 2px 12px">Inspired by ' + esc(t.philosopher) + ' · version ' + esc(t.versionString || t.version || 1) + '</p>' : '') +
+        (t.philosophy ? '<details class="lw-about"><summary>About this template</summary>' +
+          '<div class="lw-ab"><b>The original ideas</b><div>' + esc(String(t.philosophy.original || '').replace(/^Original:\s*/, '')) + '</div></div>' +
+          '<div class="lw-ab"><b>How Minest adapts them</b><div>' + esc(String(t.philosophy.adaptation || '').replace(/^Minest adaptation:\s*/, '')) + '</div></div>' +
+          ((t.philosophy.primaryWorks || []).length ? '<div class="lw-ab"><b>Main works</b><div>' + t.philosophy.primaryWorks.map(esc).join(' · ') + '</div></div>' : '') +
+          ((t.philosophy.coreConcepts || []).length ? '<div class="lw-ab"><b>Core ideas</b><div class="lw-tags">' + t.philosophy.coreConcepts.map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('') + '</div></div>' : '') +
+          lensHtml(t) + '<p class="lw-fine">Choosing a template never means you hold its views — it is only a way to sort your own world.</p></details>' : '') +
+        ((t.thinkingQuestions || []).length ? '<details class="lw-about"><summary>Thinking questions</summary><ul class="lw-qs">' + t.thinkingQuestions.map(function (q) { return '<li>' + esc(q.text) + '</li>'; }).join('') + '</ul></details>' : '') +
+        (t.discoveryTool ? '<div class="lw-tool"><b>' + esc(t.discoveryTool.name) + '</b><span>' + esc(t.discoveryTool.summary || '') + '</span><em>' + (t.discoveryTool.status === 'ready' ? 'Ready' : 'Coming next') + '</em></div>' : '') +
+        ((t.recommendedViews || []).length ? '<div class="lw-h">Good views for it</div><div class="lw-tags">' + t.recommendedViews.map(function (v) { return '<i>' + esc(VIEW_T[v] || v) + '</i>'; }).join('') + '</div>' : '') +
+        (!t.philosophy && t.inspiration ? '<details class="lw-about"><summary>About this template</summary><div style="margin-top:6px">' + esc(t.inspiration) + '</div>' +
           lensHtml(t) + (t.mine ? '<div class="lw-row" style="margin-top:10px"><button type="button" class="lw-pill" data-exp>Export JSON</button><button type="button" class="lw-pill" data-deltpl style="color:#ff6b6b">Delete this template</button></div>' : '') + '</details>' : '') +
+        ((t.depths || []).length ? '<div class="lw-h">How much to make</div><div class="lw-target">' + t.depths.map(function (k) { return '<button type="button" data-depth="' + k + '"' + (ui.depth === k ? ' class="on"' : '') + '>' + DEPTH_T[k] + '</button>'; }).join('') + '</div><p class="lw-fine" style="margin:6px 2px 0">' + DEPTH_D[ui.depth] + '</p>' : '') +
         (ws.length ? '<div class="lw-h">Where</div><div class="lw-target"><button type="button" data-into=""' + (ui.into ? '' : ' class="on"') + '>New world</button>' + ws.map(function (x) { return '<button type="button" data-into="' + esc(x.b.id) + '"' + (ui.into === x.b.id ? ' class="on"' : '') + '>Add to “' + esc(x.b.title) + '”</button>'; }).join('') + '</div>' : '') +
         (t.groups ? '<div class="lw-h">' + esc(t.groupsLabel || 'Groups') + '</div><div class="lw-target">' + t.groups.map(function (g) { return '<button type="button" data-group="' + esc(g.id) + '"' + (ui.groups.indexOf(g.id) >= 0 ? ' class="on"' : '') + '>' + esc(g.title) + '</button>'; }).join('') + '</div>' : '') +
         (t.codes ? '<div class="lw-cat lw-opt"><div style="flex:1;min-width:0"><b>' + esc(t.codes.label || 'Show numbers') + '</b><span>Adds them to the names, e.g. “' + esc(((t.domains[5] || t.domains[0]).code || '') + ' ' + (t.domains[5] || t.domains[0]).title) + '”</span></div><button type="button" class="lw-sw' + (ui.codes ? ' on' : '') + '" data-codes aria-label="' + esc(t.codes.label || 'Show numbers') + '"></button></div>' : '') +
-        '<div class="lw-h">Your world</div>' +
+        (function () { if (!tgt) return ''; var have = {}; (tgt.columns || []).forEach(function (c) { have[String(c.title).toLowerCase()] = 1; }); var mineIds = {}; plan(t, tgt.id, { off: {} }).lists.forEach(function (L) { mineIds[L.id] = 1; });
+          var dup = shown.filter(function (d) { var nm = String(ui.names[d.id] || d.title).toLowerCase(); return have[nm] && !(tgt.columns || []).some(function (c) { return mineIds[c.id] && String(c.title).toLowerCase() === nm; }); }).map(function (d) { return ui.names[d.id] || d.title; });
+          return dup.length ? '<p class="lw-fine" style="margin:0 2px 10px;opacity:.8">“' + dup.map(esc).join('”, “') + '” already exist' + (dup.length === 1 ? 's' : '') + ' in this world. They are added as separate areas — nothing is merged by name. Use ✎ Rename if you want to tell them apart.</p>' : ''; })() +
+        '<div class="lw-h" style="display:flex;align-items:center">Your world<button type="button" class="lw-pill' + (ui.renaming ? ' pri' : '') + '" style="margin-left:auto;height:30px;font-size:12.5px;text-transform:none;letter-spacing:0" data-renaming>' + (ui.renaming ? 'Done renaming' : '✎ Rename') + '</button></div>' + (ui.renaming ? '<p class="lw-fine" style="margin:-2px 2px 8px">Tap any name to change it.</p>' : '') +
         (shown.length ? '' : '<p class="lw-sub">Pick at least one.</p>') +
         shown.map(function (d, i) {
           var dOff = !!ui.off[d.id];
-          return '<div class="lw-dom' + (dOff ? ' off' : '') + (ui.openD[d.id] ? ' open' : '') + '" style="--c:' + esc(d.color || PAL[i % PAL.length]) + '"><div class="lw-dh" data-dopen="' + esc(d.id) + '"><span class="cv">' + ICON.chev + '</span><span class="dot"></span>' + (d.code ? '<i class="lw-code">' + esc(d.code) + '</i>' : '') + '<b>' + esc(d.title) + (d.note ? '<small class="lw-note">' + esc(d.note) + '</small>' : '') + '</b><em>' + (d.categories || []).length + '</em><button type="button" class="lw-sw' + (dOff ? '' : ' on') + '" data-toggle="' + esc(d.id) + '" aria-label="Include ' + esc(d.title) + '"></button></div>' +
+          return '<div class="lw-dom' + (dOff ? ' off' : '') + (ui.openD[d.id] ? ' open' : '') + '" style="--c:' + esc(d.color || PAL[i % PAL.length]) + '"><div class="lw-dh" data-dopen="' + esc(d.id) + '"><span class="cv">' + ICON.chev + '</span><span class="dot"></span>' + (d.code ? '<i class="lw-code">' + esc(d.code) + '</i>' : '') + '<b' + RN(d.id, d.title) + '>' + NM(d.id, d.title) + (d.note ? '<small class="lw-note">' + esc(d.note) + '</small>' : '') + '</b><em>' + (d.categories || []).length + '</em><button type="button" class="lw-sw' + (dOff ? '' : ' on') + '" data-toggle="' + esc(d.id) + '" aria-label="Include ' + esc(d.title) + '"></button></div>' +
             '<div class="lw-cats">' + (d.categories || []).map(function (c) {
               var cOff = dOff || !!ui.off[c.id];
-              return '<div class="lw-cat' + (cOff ? ' off' : '') + '"><div style="flex:1;min-width:0"><b>' + esc(c.title) + '</b><span>' + (c.lists || []).map(function (l) { return esc(l.title); }).join(' · ') + '</span></div><button type="button" class="lw-sw' + (cOff ? '' : ' on') + '" data-toggle="' + esc(c.id) + '"' + (dOff ? ' disabled' : '') + ' aria-label="Include ' + esc(c.title) + '"></button></div>';
+              var lsH = ui.depth === 'simple' ? '' : '<div class="lw-ls">' + (c.lists || []).map(function (l) { var lk = 'l:' + c.id + '/' + l.id, lOff = cOff || !!ui.off[lk];
+                  return '<button type="button" class="lw-li' + (lOff ? ' off' : '') + '"' + (ui.renaming ? RN(lk, l.title) : ' data-ltog="' + esc(lk) + '"') + (cOff ? ' disabled' : '') + '>' + NM(lk, l.title) + '</button>' +
+                    (ui.depth === 'complete' ? (l.lists || []).map(function (x) { var xk = lk + '/' + x.id, xOff = lOff || !!ui.off[xk]; return '<button type="button" class="lw-li sub' + (xOff ? ' off' : '') + '"' + (ui.renaming ? RN(xk, x.title) : ' data-ltog="' + esc(xk) + '"') + (lOff ? ' disabled' : '') + '>↳ ' + NM(xk, x.title) + '</button>'; }).join('') : ''); }).join('') + '</div>';
+              return '<div class="lw-cat' + (cOff ? ' off' : '') + '"><div style="flex:1;min-width:0"><b' + RN(c.id, c.title) + '>' + NM(c.id, c.title) + '</b>' + lsH + '</div><button type="button" class="lw-sw' + (cOff ? '' : ' on') + '" data-toggle="' + esc(c.id) + '"' + (dOff ? ' disabled' : '') + ' aria-label="Include ' + esc(c.title) + '"></button></div>';
             }).join('') + '</div></div>';
         }).join('');
       var total = n.lists + n.sections + n.cards;
       ui.foot.hidden = false;
-      ui.foot.innerHTML = '<div class="lw-sum">' + (tgt ? (total ? 'Adds ' : 'Nothing new to add — ') : 'Creates ') + (total || tgt ? n.lists + ' areas · ' + n.sections + ' categories · ' + n.cards + ' lists' : '') + (tgt ? ' · nothing you have is changed or removed' : '') + '</div>' +
+      ui.foot.innerHTML = '<div class="lw-sum">' + (tgt ? (total ? 'Adds ' : 'Nothing new to add — ') : 'Creates ') + (total || tgt ? n.lists + ' areas · ' + (n.sections ? n.sections + ' categories · ' : '') + n.cards + ' lists' : '') + (tgt ? ' · nothing you have is changed or removed' : '') + '</div>' +
         '<button type="button" class="lw-go" data-go' + (total ? '' : ' disabled') + '>' + (tgt ? 'Add to My World' : 'Create My World') + '</button>';
     }
     ui.renderPreview = render;
   }
   // a classical template's advanced lens (e.g. Kant's twelve categories): shown to read, never generated as lists
+  var DEPTH_T = { simple: 'Simple', standard: 'Standard', complete: 'Complete' };
+  var DEPTH_D = { simple: 'Areas and categories only — fewest lists to start with.', standard: 'Areas, categories and their lists.', complete: 'Everything, including the more detailed sub-lists.' };
+  var VIEW_T = { list: 'List', contents: 'Contents', 'knowledge-map': 'Knowledge Map', timeline: 'Timeline', portal: 'Portal', kanban: 'Kanban', map: 'Knowledge Map' };
   function lensHtml(t) {
     return (t.lenses || []).map(function (L) {
       return '<div class="lw-lens"><b>' + esc(L.title) + '</b>' + (L.note ? '<div class="nt">' + esc(L.note) + '</div>' : '') +
@@ -387,13 +434,18 @@
     if (t.closest('[data-exp]')) return download(ui.tpl);
     if (t.closest('[data-deltpl]')) { if (confirm('Delete the template “' + ui.tpl.name + '”? Worlds made from it stay.')) { KN().set('lom:tpl:' + ui.tpl.id, null); choose(); } return; }
     if (t.closest('[data-codes]')) { ui.codes = !ui.codes; var yc = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = yc; return; }
+    var dp = t.closest('[data-depth]'); if (dp) { ui.depth = dp.getAttribute('data-depth'); var yd = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = yd; return; }
+    if (t.closest('[data-renaming]')) { ui.renaming = !ui.renaming; var yr = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = yr; return; }
+    var rn = ui.renaming && t.closest('[data-rn]'); if (rn) { e.stopPropagation(); var key = rn.getAttribute('data-rn'), was = rn.getAttribute('data-rt'); if (!window.MinestKEdit) return;
+      MinestKEdit.sheet({ title: 'Rename', text: 'Template name: ' + was, fields: [{ key: 'title', label: 'Name', value: ui.names[key] || was }], ok: 'Save' }).then(function (v) { if (!v) return; var nv = String(v.title || '').replace(/\s+/g, ' ').trim(); if (!nv || nv === was) delete ui.names[key]; else ui.names[key] = nv.slice(0, 80); var y4 = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y4; }); return; }
+    var lt = t.closest('[data-ltog]'); if (lt) { e.stopPropagation(); var lk = lt.getAttribute('data-ltog'); if (ui.off[lk]) delete ui.off[lk]; else ui.off[lk] = 1; var y5 = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y5; return; }
     var tg = t.closest('[data-toggle]'); if (tg) { e.stopPropagation(); var id = tg.getAttribute('data-toggle'); if (ui.off[id]) delete ui.off[id]; else ui.off[id] = 1; var y = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y; return; }
     var dh = t.closest('[data-dopen]'); if (dh) { var did = dh.getAttribute('data-dopen'); ui.openD[did] = !ui.openD[did]; dh.parentNode.classList.toggle('open', !!ui.openD[did]); return; }
     var gr = t.closest('[data-group]'); if (gr) { var gid = gr.getAttribute('data-group'), at = ui.groups.indexOf(gid); if (at >= 0) ui.groups.splice(at, 1); else ui.groups.push(gid); var y3 = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y3; return; }
     var into = t.closest('[data-into]'); if (into) { ui.into = into.getAttribute('data-into') || null; if (ui.tpl.codes) { var wt = ((ui.into && KN().get('lom:world:' + ui.into)) || {}).templates || {}; ui.codes = wt[ui.tpl.id] ? !!wt[ui.tpl.id].codes : !!ui.tpl.codes.default; } var y2 = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y2; return; }
     if (t.closest('[data-go]')) {
       try {
-        var r = generate(ui.tpl, { off: offAll(), codes: ui.codes }, ui.into);
+        var r = generate(ui.tpl, { off: offAll(), codes: ui.codes, depth: ui.depth, names: ui.names }, ui.into);
         toast(r.isNew ? 'Created “' + r.title + '”' : 'Added to “' + r.title + '”');
         openWorld(r.bid, true);
       } catch (ex) { toast('✗ ' + ex.message); }

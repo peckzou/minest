@@ -1,0 +1,332 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "$id": "minest.world/1",
+ "title": "Minest Worldview Template (minest.world/1)",
+ "description": "One schema for every List of Mine template (everyday, knowledge, skills, classical, advanced philosophy). A template is a definition only: generating it creates ordinary boards, lists and cards; user content never lives in the template. Mapping: domain → board list; category → section heading (or a card with depth 'simple'); list → card; sub-list → card after its parent (depth 'complete'); user items → stacked cards.",
+ "type": "object",
+ "required": [
+  "id",
+  "name",
+  "domains"
+ ],
+ "properties": {
+  "format": {
+   "const": "minest.world/1"
+  },
+  "id": {
+   "type": "string",
+   "description": "Template id (the spec's templateId), e.g. philosophy-spinoza"
+  },
+  "version": {
+   "type": "integer",
+   "minimum": 1,
+   "description": "Structure version; a higher version adds what is missing and never overwrites user names"
+  },
+  "versionString": {
+   "type": "string",
+   "description": "Human version, e.g. 1.0.0"
+  },
+  "family": {
+   "enum": [
+    "everyday",
+    "knowledge",
+    "skills",
+    "classical",
+    "advanced-philosophy"
+   ],
+   "description": "Where it appears in the template library"
+  },
+  "name": {
+   "type": "string",
+   "description": "Everyday My-first name shown first, e.g. My Connected World"
+  },
+  "philosopher": {
+   "type": "string",
+   "description": "Attribution, shown small (advanced-philosophy)"
+  },
+  "tagline": {
+   "type": "string"
+  },
+  "description": {
+   "type": "string"
+  },
+  "color": {
+   "type": "string"
+  },
+  "inspiration": {
+   "type": "string",
+   "description": "About This Template text (hidden until opened)"
+  },
+  "philosophy": {
+   "type": "object",
+   "description": "Philosophical foundation — metadata, not shown on the main page",
+   "properties": {
+    "primaryWorks": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "coreConcepts": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "original": {
+     "type": "string",
+     "description": "What the philosopher actually held"
+    },
+    "adaptation": {
+     "type": "string",
+     "description": "How Minest adapts it — must be clearly separate from 'original'"
+    }
+   }
+  },
+  "thinkingQuestions": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "text"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "discoveryTool": {
+   "type": "object",
+   "required": [
+    "id",
+    "name"
+   ],
+   "properties": {
+    "id": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "summary": {
+     "type": "string"
+    },
+    "status": {
+     "enum": [
+      "planned",
+      "ready"
+     ]
+    }
+   }
+  },
+  "views": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "recommendedViews": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "depths": {
+   "type": "array",
+   "items": {
+    "enum": [
+     "simple",
+     "standard",
+     "complete"
+    ]
+   }
+  },
+  "defaultDepth": {
+   "enum": [
+    "simple",
+    "standard",
+    "complete"
+   ]
+  },
+  "lenses": {
+   "type": "array",
+   "description": "Advanced concept lenses (e.g. Kant's twelve categories) — read-only, never generated as lists",
+   "items": {
+    "type": "object",
+    "properties": {
+     "title": {
+      "type": "string"
+     },
+     "note": {
+      "type": "string"
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "title": {
+         "type": "string"
+        },
+        "items": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "hidden": {
+   "type": "boolean",
+   "description": "Kept for worlds made from it, not shown in the library"
+  },
+  "kind": {
+   "enum": [
+    "skills"
+   ]
+  },
+  "skillKind": {
+   "enum": [
+    "academic",
+    "life"
+   ]
+  },
+  "groups": {
+   "type": "array"
+  },
+  "groupsLabel": {
+   "type": "string"
+  },
+  "defaultGroups": {
+   "type": "array"
+  },
+  "codes": {
+   "type": "object"
+  },
+  "levels": {
+   "type": "object"
+  },
+  "domains": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "title"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "color": {
+      "type": "string"
+     },
+     "note": {
+      "type": "string"
+     },
+     "code": {
+      "type": "string"
+     },
+     "group": {
+      "type": "string"
+     },
+     "subject": {
+      "type": "string"
+     },
+     "grade": {
+      "type": "string"
+     },
+     "categories": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "required": [
+        "id",
+        "title"
+       ],
+       "properties": {
+        "id": {
+         "type": "string",
+         "description": "Unique in the template"
+        },
+        "title": {
+         "type": "string"
+        },
+        "lists": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "id",
+           "title"
+          ],
+          "properties": {
+           "id": {
+            "type": "string",
+            "description": "Stable id inside its category; used in the generated card id — never change it once published"
+           },
+           "title": {
+            "type": "string"
+           },
+           "code": {
+            "type": "string",
+            "description": "Optional navigation number (e.g. Dewey class)"
+           },
+           "standards": {
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "framework": {
+               "type": "string"
+              },
+              "id": {
+               "type": "string"
+              }
+             }
+            }
+           },
+           "lists": {
+            "type": "array",
+            "description": "Level 4 (sub-lists) — generated only with depth 'complete'",
+            "items": {
+             "type": "object",
+             "required": [
+              "id",
+              "title"
+             ],
+             "properties": {
+              "id": {
+               "type": "string"
+              },
+              "title": {
+               "type": "string"
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}
