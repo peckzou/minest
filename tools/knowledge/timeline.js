@@ -46,7 +46,7 @@
         (Array.isArray(c.stack) ? c.stack : []).forEach(function (s) { if (s && s.id) push(s, c); });
         function push(x, parent) {
           var t = KN().dateOf(x.id);
-          var ev = { id: x.id, title: x.title || 'Untitled', note: x.desc || '', done: !!x.complete, col: col, parent: parent, t: t };
+          var ev = { id: x.id, title: x.title || 'Untitled', note: x.desc || '', done: !!x.complete, col: col, parent: parent, t: t, img: x.cover && x.cover.type === 'image' && x.cover.url ? x.cover.url : '' };
           if (t) dated.push(ev); else if (!parent) undated.push(ev);   // undated stacked cards stay out of the list below (too many)
         }
       });
@@ -118,7 +118,39 @@
     '.tl-sb .save{background:#0a84ff}',
     '.tl-sb .rm{color:#ff6b6b;flex:.7}',
     '.tl-err{color:#ff8a80;font-size:13px;min-height:16px}',
-    'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}'
+    'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}',
+    '.tl-seg{display:inline-flex;padding:3px;border-radius:999px;background:rgba(127,127,127,.14);gap:2px}',
+    '.tl-seg button{height:28px;padding:0 12px;border-radius:999px;border:0;background:none;color:inherit;opacity:.7;font:600 12.5px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    '.tl-seg button.on{background:rgba(127,127,127,.28);opacity:1}',
+    // horizontal: a light, editorial page
+    '.tl.h{background:#f3f3f1;color:#1d1d1d}',
+    '.tl.h .tl-head{border-color:#e2e2df}',
+    '.tl.h .tl-chip{background:#fff;border-color:#ddd;color:#222}',
+    '.tl.h .tl-chip.on{background:#1d1d1d;color:#fff;border-color:#1d1d1d}',
+    '.tl.h .tl-x{background:#fff;border-color:#ddd;color:#222}',
+    '.tl.h .tl-body{overflow:auto;padding:0}',
+    '.tl-canvas{position:relative}',
+    '.tl-ax{position:absolute;left:0;height:1px;background:#8d8d8d}',
+    '.tl-tick{position:absolute;width:1px;height:10px;background:#8d8d8d}',
+    '.tl-dec{position:absolute;font:400 46px/1 "Didot","Bodoni 72","Iowan Old Style",Georgia,serif;color:#1d1d1d;letter-spacing:-.5px;white-space:nowrap}',
+    '.tl-dec small{font-size:18px}',
+    '.tl-brk{position:absolute;width:18px;height:18px;line-height:18px;text-align:center;background:#f3f3f1;color:#8d8d8d;font:600 16px -apple-system,system-ui,sans-serif}',
+    '.tl-brkt{position:absolute;width:120px;text-align:center;font:italic 12px "Iowan Old Style",Georgia,serif;color:#8d8d8d}',
+    '.tl-hl{position:absolute;width:1px;background:#9a9a9a}',
+    '.tl-hd{position:absolute;width:16px;height:16px;border-radius:50%;border:0;padding:0;cursor:pointer;box-shadow:0 0 0 3px #f3f3f1}',
+    '.tl-hb{position:absolute;display:flex;gap:14px;cursor:pointer;overflow:hidden;border-radius:2px}',
+    '.tl-hb.u{align-items:flex-end}',
+    '.tl-hb img{flex:none;width:130px;height:96px;object-fit:cover;filter:grayscale(.15) contrast(1.05);box-shadow:0 1px 3px rgba(0,0,0,.18)}',
+    '.tl-hb.u img{align-self:flex-end}.tl-hb.d img{align-self:flex-start}',
+    '.tl-hb .tx{min-width:0;flex:1}',
+    '.tl-hb .d{font:400 17px/1.2 "Didot","Bodoni 72","Iowan Old Style",Georgia,serif;color:#1d1d1d;margin-bottom:6px}',
+    '.tl-hb .n{font:500 12.5px/1.4 -apple-system,"Helvetica Neue",system-ui,sans-serif;color:#222}',
+    '.tl-hb .m{font:400 12px/1.4 -apple-system,"Helvetica Neue",system-ui,sans-serif;color:#555;margin-top:4px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}',
+    '.tl-hb.done .n{text-decoration:line-through;opacity:.6}',
+    '.tl-hb.hit{animation:tlHit 1.6s ease-out}',
+    '.tl-leg{position:absolute;left:24px;top:22px;display:flex;flex-direction:column;gap:8px;font:400 12px/1.25 -apple-system,"Helvetica Neue",system-ui,sans-serif;color:#333;max-width:190px}',
+    '.tl-leg div{display:flex;gap:9px;align-items:flex-start}',
+    '.tl-leg i{flex:none;width:13px;height:13px;border-radius:50%;margin-top:1px}'
   ].join('\n');
   function ensureCss() { if (document.getElementById('tl-css')) return; var s = document.createElement('style'); s.id = 'tl-css'; s.textContent = CSS; document.head.appendChild(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -174,7 +206,97 @@
         return '<div class="tl-u" data-id="' + esc(e.id) + '"><span>' + esc(e.title) + '</span>' + (gy != null ? '<button type="button" class="sug" data-sug="' + gy + '">' + esc(yr(gy)) + '?</button>' : '') + '<button type="button" data-a="date">＋ Date</button></div>';
       }).join('') : '') + '</div>';
     }
-    ui.list.innerHTML = '<div class="tl-line">' + html + '</div>';
+    var H = S.view === 'h';
+    ui.el.classList.toggle('h', H);
+    ui.el.querySelectorAll('[data-view]').forEach(function (x) { x.classList.toggle('on', (x.getAttribute('data-view') === 'h') === H); });
+    ui.list.innerHTML = H ? renderH(ev, und ? und.length : 0) : '<div class="tl-line">' + html + '</div>';
+  }
+
+  // ---------------------------------------------------------------- the horizontal axis (an editorial timeline)
+  // dots on one line, each event joined by a thin line to its block above or below (two tiers a side, placed so
+  // nothing overlaps); big serif decade / century marks under the line; long empty stretches drawn shorter, marked.
+  var HL = { PX: 46, MAXGAP: 240, MIN: 34, TIER: 160, BOX: 145 };
+  function pos(t) { var v = t.y + ((t.m || 1) - 1) / 12 + ((t.d || 1) - 1) / 365; return v < 0 ? v + 1 : v; }   // no year 0
+  function renderH(ev, undCount) {
+    if (!ev.length) return '<div class="tl-empty" style="padding-top:80px">No dated events yet' + (undCount ? ' — switch to ↕ Vertical to give cards a date.' : '.') + '</div>';
+    // scale from the typical gap between events: ~140 px for it; only stretches far longer than that are drawn shorter
+    var ds = []; for (var q0 = 1; q0 < ev.length; q0++) { var dd = pos(ev[q0].t) - pos(ev[q0 - 1].t); if (dd > 0) ds.push(dd); }
+    ds.sort(function (a, b) { return a - b; });
+    var med = ds.length ? ds[Math.floor(ds.length / 2)] : 1, PX = Math.max(3, Math.min(160, 140 / Math.max(med, .2))), MAXGAP = 420;
+    var xs = [], gaps = [], x = 150;
+    ev.forEach(function (e, i) {
+      if (i) { var dy = pos(e.t) - pos(ev[i - 1].t), raw = dy * PX; if (raw > MAXGAP) { gaps.push({ a: x, b: x + MAXGAP, years: Math.round(dy) }); raw = MAXGAP; } x += Math.max(raw, HL.MIN); }
+      xs.push(x);
+    });
+    // blocks: up / down, two tiers each; a block that would overlap moves its dot (and the ones after) along
+    // an outer block's line must not cross an inner block on its side, and an inner block must not cover an outer line
+    var right = { u0: -1e9, u1: -1e9, d0: -1e9, d1: -1e9 }, inner = { u: [], d: [] }, lines = { u: [], d: [] }, place = [];
+    function fits(slot, x0, w) {
+      var sd = slot[0], t = +slot[1], L = x0 - 16, R = L + w;
+      if (right[slot] >= L - 18) return false;
+      if (t === 1) return !inner[sd].some(function (iv) { return x0 >= iv[0] - 6 && x0 <= iv[1] + 6; });
+      return !lines[sd].some(function (lx) { return lx >= L - 6 && lx <= R + 6; });
+    }
+    ev.forEach(function (e, i) {
+      var w = e.img ? 300 : 186, pref = i % 2 ? ['d', 'u'] : ['u', 'd'], got = null, guard = 0;
+      while (!got && guard++ < 60) {
+        for (var t = 0; t < 2 && !got; t++) pref.forEach(function (sd) { if (!got && fits(sd + t, xs[i], w)) got = sd + t; });
+        if (!got) for (var j = i; j < xs.length; j++) xs[j] += 24;   // no room yet: move this dot (and the rest) along
+      }
+      right[got] = xs[i] - 16 + w;
+      if (got[1] === '0') inner[got[0]].push([xs[i] - 16, xs[i] - 16 + w]); else lines[got[0]].push(xs[i]);
+      place.push({ side: got[0], tier: +got[1], w: w });
+    });
+    var upT = Math.max(0, Math.max.apply(0, place.map(function (p) { return p.side === 'u' ? p.tier : -1; }))), dnT = Math.max(0, Math.max.apply(0, place.map(function (p) { return p.side === 'd' ? p.tier : -1; })));
+    var A = 96 + HL.BOX + upT * HL.TIER + 46;
+    var width = xs[xs.length - 1] + 360, height = A + 108 + (dnT + 1) * HL.TIER + 10, out = '';
+    // the line, the breaks, the marks
+    out += '<div class="tl-ax" style="top:' + A + 'px;width:' + width + 'px"></div>';
+    gaps.forEach(function (g) { var m = (g.a + g.b) / 2; out += '<div class="tl-brk" style="left:' + (m - 9) + 'px;top:' + (A - 9) + 'px">≈</div><div class="tl-brkt" style="left:' + (m - 60) + 'px;top:' + (A + 10) + 'px">' + g.years + ' years</div>'; });
+    var y0 = ev[0].t.y, y1 = ev[ev.length - 1].t.y, span = Math.max(1, y1 - y0), step = span <= 12 ? 1 : span <= 150 ? 10 : span <= 600 ? 50 : span <= 1500 ? 100 : 1000, lastX = -1e9;
+    var pts = ev.map(function (e, i) { return [pos(e.t), xs[i]]; });
+    for (var T = Math.ceil(y0 / step) * step; T <= y1; T += step) {
+      if (T === 0) continue;
+      var p = T < 0 ? T + 1 : T, xi = null;
+      // inside a shortened stretch the spacing is not to scale: no mark there
+      for (var q = 1; q < pts.length; q++) if (p >= pts[q - 1][0] && p <= pts[q][0]) { var d = pts[q][0] - pts[q - 1][0]; if (d * PX > MAXGAP && p > pts[q - 1][0] && p < pts[q][0]) break; xi = pts[q - 1][1] + (d ? (p - pts[q - 1][0]) / d : 0) * (pts[q][1] - pts[q - 1][1]); break; }
+      if (xi == null && p === pts[0][0]) xi = pts[0][1];
+      if (xi == null || xi - lastX < 150) continue;   // marks never crowd
+      lastX = xi;
+      out += '<div class="tl-tick" style="left:' + xi + 'px;top:' + (A - 5) + 'px"></div><div class="tl-dec" style="left:' + (xi - 6) + 'px;top:' + (A + 22) + 'px">' + (T < 0 ? (-T) + '<small> BCE</small>' : T) + '</div>';
+    }
+    // the legend
+    var cols = []; ev.forEach(function (e) { if (cols.indexOf(e.col) < 0) cols.push(e.col); });
+    out += '<div class="tl-leg">' + cols.map(function (c) { return '<div><i style="background:' + esc(c.color || '#d6336c') + '"></i>' + esc(c.title || 'List') + '</div>'; }).join('') + '</div>';
+    // dots, lines, blocks
+    ev.forEach(function (e, i) {
+      var pl = place[i], c = esc(e.col.color || '#d6336c'), bx = xs[i] - 16, top, lineTop, lineH;
+      if (pl.side === 'u') { var bottom = A - 46 - pl.tier * HL.TIER; top = bottom - HL.BOX; lineTop = bottom; lineH = A - bottom; }
+      else { top = A + 108 + pl.tier * HL.TIER; lineTop = A; lineH = top - A; }
+      out += '<div class="tl-hl" style="left:' + (xs[i] - .5) + 'px;top:' + lineTop + 'px;height:' + lineH + 'px"></div>';
+      out += '<button type="button" class="tl-hd" data-id="' + esc(e.id) + '" style="left:' + (xs[i] - 8) + 'px;top:' + (A - 8) + 'px;background:' + c + '" aria-label="' + esc(e.title) + '"></button>';
+      out += '<div class="tl-hb ' + pl.side + (e.done ? ' done' : '') + '" data-id="' + esc(e.id) + '" style="left:' + bx + 'px;top:' + top + 'px;width:' + pl.w + 'px;height:' + HL.BOX + 'px">' +
+        (e.img ? '<img alt="" src="' + esc(e.img) + '">' : '') + '<div class="tx"><div class="d">' + esc(label(e.t)) + '</div><div class="n">' + esc(e.title) + '</div>' + (e.note ? '<div class="m">' + esc(e.note) + '</div>' : '') + '</div></div>';
+    });
+    return '<div class="tl-canvas" style="width:' + width + 'px;height:' + height + 'px">' + out + '</div>';
+  }
+  // the event's actions, from the horizontal axis
+  function evSheet(n) {
+    closeSheet();
+    sheet = document.createElement('div'); sheet.className = 'tl-sheet';
+    sheet.innerHTML = '<h4>' + esc(n.title) + '</h4><p style="white-space:normal">' + esc(label(n.t)) + ' · ' + esc(n.col.title || '') + '</p>' + (n.note ? '<div style="font-size:14px;opacity:.85;line-height:1.45;max-height:30vh;overflow:auto;margin-bottom:6px">' + esc(n.note) + '</div>' : '') +
+      '<div class="tl-sb"><button type="button" data-ha="details">ⓘ Details</button><button type="button" data-ha="date">Edit date</button><button type="button" class="save" data-ha="board">On the board</button></div>';
+    document.body.appendChild(sheet);
+    if (sheet.animate) sheet.animate([{ opacity: 0, translate: '0 30px' }, { opacity: 1, translate: '0 0' }], { duration: 240, easing: 'cubic-bezier(.2,.85,.25,1)' });
+    ['pointerdown', 'touchstart'].forEach(function (ev) { sheet.addEventListener(ev, function (x) { x.stopPropagation(); }, { passive: true }); });
+    sheet.addEventListener('click', function (x) {
+      var b = x.target.closest('[data-ha]'); if (!b) return;
+      var a = b.getAttribute('data-ha'); closeSheet();
+      if (a === 'details') return away(n);
+      if (a === 'date') return dateSheet(n);
+      keep(); var to = { b: ui.bid, l: n.col.id, c: n.id, p: n.parent ? n.parent.id : null }; close();
+      if (window.MinestContents && MinestContents.goTo) MinestContents.goTo(to, { label: 'Timeline', open: function () { open(to.b); setTimeout(function () { hit(n.id); }, 120); } });
+    });
   }
   // smooth, and certain: if the smooth scroll did not happen (a hidden tab, an interrupted gesture), land there anyway
   function glide(top) {
@@ -184,12 +306,18 @@
   }
   function evById(id) { return E ? E.dated.concat(E.undated).filter(function (e) { return e.id === id; })[0] : null; }
   function scrollToYear(y) {
+    if (S.view === 'h') {
+      var hb = [].slice.call(ui.list.querySelectorAll('.tl-hd')).filter(function (d) { var n = evById(d.getAttribute('data-id')); return n && n.t.y >= y; })[0] || ui.list.querySelector('.tl-hd:last-of-type');
+      if (hb) { var L = ui.list, left = Math.max(0, hb.offsetLeft - 60); L.scrollTo({ left: left, behavior: 'smooth' }); setTimeout(function () { if (Math.abs(L.scrollLeft - left) > 4) L.scrollLeft = left; }, 650); }
+      return;
+    }
     var best = null;
     ui.list.querySelectorAll('.tl-year').forEach(function (g) { if (best == null && +g.getAttribute('data-y') >= y) best = g; });
     if (!best) { var all = ui.list.querySelectorAll('.tl-year'); best = all[all.length - 1]; }
     if (best) glide(best.offsetTop - 8);
   }
   function hit(id) {
+    if (S.view === 'h') { var hb = ui.list.querySelector('.tl-hb[data-id="' + cssEsc(id) + '"]'); if (!hb) return; ui.list.scrollLeft = Math.max(0, hb.offsetLeft - 60); ui.list.scrollTop = Math.max(0, hb.offsetTop - 120); hb.classList.remove('hit'); void hb.offsetWidth; hb.classList.add('hit'); return; }
     var el = ui.list.querySelector('.tl-ev[data-id="' + cssEsc(id) + '"]'); if (!el) return;
     var lr = ui.list.getBoundingClientRect(), r = el.getBoundingClientRect();
     if (r.top < lr.top || r.bottom > lr.bottom) glide(ui.list.scrollTop + r.top - lr.top - lr.height / 3);
@@ -264,10 +392,11 @@
     var iv = setInterval(function () {
       if (modal()) { seen = true; gone = 0; return; }
       if (seen) gone++;
-      if ((seen && gone >= 2) || (!seen && Date.now() - t0 > 2500)) { clearInterval(iv); if (!ui.el) return; ui.el.classList.remove('away'); render(); ui.list.scrollTop = S.scroll[ui.bid] || 0; }
+      if ((seen && gone >= 2) || (!seen && Date.now() - t0 > 2500)) { clearInterval(iv); if (!ui.el) return; ui.el.classList.remove('away'); render(); restore(); }
     }, 250);
   }
-  function keep() { if (ui.list && ui.bid) { S.scroll[ui.bid] = ui.list.scrollTop; stSave(); } }
+  function keep() { if (ui.list && ui.bid) { S.scroll[ui.bid] = ui.list.scrollTop; S.scrollX = S.scrollX || {}; S.scrollX[ui.bid] = ui.list.scrollLeft; stSave(); } }
+  function restore() { ui.list.scrollTop = S.scroll[ui.bid] || 0; ui.list.scrollLeft = (S.scrollX || {})[ui.bid] || 0; }
 
   // ---------------------------------------------------------------- open / close
   function open(boardId) {
@@ -279,10 +408,11 @@
     var el = document.createElement('div'); el.className = 'tl'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Timeline');
     el.innerHTML = '<div class="tl-head"><button type="button" class="tl-tb" data-boards><small>Timeline</small><b></b></button>' +
       '<button type="button" class="tl-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
+      '<div class="tl-row"><span class="tl-seg"><button type="button" data-view="v" title="Vertical">↕ Vertical</button><button type="button" data-view="h" title="Horizontal">↔ Horizontal</button></span></div>' +
       '<div class="tl-row tl-nav"></div><div class="tl-row tl-lists"></div></div><div class="tl-body"></div>';
     ui.el = el; ui.list = el.querySelector('.tl-body'); ui.title = el.querySelector('.tl-tb b'); ui.nav = el.querySelector('.tl-nav'); ui.lists = el.querySelector('.tl-lists'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    render(); ui.list.scrollTop = S.scroll[ui.bid] || 0;
+    render(); restore();
     if (el.animate) el.animate([{ opacity: 0, scale: '.96' }, { opacity: 1, scale: '1' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1)' });
     wire(el);
   }
@@ -300,7 +430,7 @@
     document.body.appendChild(m);
     var r = anchor.getBoundingClientRect(); m.style.left = Math.max(10, r.left) + 'px'; m.style.top = (r.bottom + 8) + 'px';
     m.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
-    m.addEventListener('click', function (e) { var b = e.target.closest('[data-b]'); if (!b) return; m.remove(); keep(); ui.bid = b.getAttribute('data-b'); render(); ui.list.scrollTop = S.scroll[ui.bid] || 0; });
+    m.addEventListener('click', function (e) { var b = e.target.closest('[data-b]'); if (!b) return; m.remove(); keep(); ui.bid = b.getAttribute('data-b'); render(); restore(); });
   }
   function wire(el) {
     ['pointerdown', 'touchstart', 'touchmove', 'wheel'].forEach(function (ev) { el.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
@@ -308,6 +438,8 @@
     el.addEventListener('click', function (e) {
       if (e.target.closest('[data-x]')) return close();
       if (e.target.closest('[data-boards]')) return boardMenu(e.target.closest('[data-boards]'));
+      var vw = e.target.closest('[data-view]'); if (vw) { keep(); S.view = vw.getAttribute('data-view'); stSave(); render(); restore(); return; }
+      var hb = e.target.closest('.tl-hb, .tl-hd'); if (hb) { var hn = evById(hb.getAttribute('data-id')); if (hn) evSheet(hn); return; }
       if (e.target.closest('[data-goto]')) return yearSheet();
       var j = e.target.closest('[data-jump]'); if (j) return scrollToYear(+j.getAttribute('data-jump'));
       var l = e.target.closest('[data-list]'); if (l) { S.list[ui.bid] = l.getAttribute('data-list') || null; stSave(); render(); return; }
