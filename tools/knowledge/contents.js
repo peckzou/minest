@@ -15,7 +15,7 @@
 
   // ================================================================== knowledge metadata (synced)
   var KN_KEY = 'minest.knowledge.v1';
-  var K = (function () { try { var v = JSON.parse(localStorage.getItem(KN_KEY) || 'null'); if (v && typeof v === 'object') return { h: v.h || {}, off: v.off || {}, o: v.o || {} }; } catch (e) {} return { h: {}, off: {}, o: {} }; })();
+  var K = (function () { try { var v = JSON.parse(localStorage.getItem(KN_KEY) || 'null'); if (v && typeof v === 'object') return { h: v.h || {}, off: v.off || {}, o: v.o || {}, m: v.m || {} }; } catch (e) {} return { h: {}, off: {}, o: {}, m: {} }; })();
   function knSave() { try { localStorage.setItem(KN_KEY, JSON.stringify(K)); } catch (e) {} }
   function knPush() {
     // straight to the cloud doc (merge), so a heading reaches the other devices without waiting for a board edit
@@ -36,11 +36,15 @@
     parentOf: function (itemId) { var x = K.o[itemId]; return x && x.p ? x.p : null; },
     setParents: function (map) { var t = Date.now(); Object.keys(map).forEach(function (id) { K.o[id] = { p: map[id] || null, t: t }; }); knSave(); knPush(); },
     onChange: function (fn) { listeners.push(fn); },
+    // Knowledge Map (Phase 3): a node's place, as an offset from its parent node (so a moved list takes its cards along)
+    posOf: function (key) { var x = K.m[key]; return x && typeof x.dx === 'number' ? { dx: x.dx, dy: x.dy } : null; },
+    setPos: function (key, dx, dy) { K.m[key] = { dx: Math.round(dx), dy: Math.round(dy), t: Date.now() }; knSave(); knPush(); },
+    clearPos: function (keys) { var t = Date.now(); keys.forEach(function (k) { if (K.m[k]) K.m[k] = { t: t }; }); knSave(); knPush(); },
     _cloud: function () { return K; },
     _mergeCloud: function (R) {
       if (!R || typeof R !== 'object') return;
       var changed = false;
-      ['h', 'off', 'o'].forEach(function (m) {
+      ['h', 'off', 'o', 'm'].forEach(function (m) {
         var src = R[m] || {}; K[m] = K[m] || {};
         Object.keys(src).forEach(function (id) { var a = K[m][id], b = src[id]; if (b && (!a || (b.t || 0) > (a.t || 0))) { K[m][id] = b; changed = true; } });
       });
