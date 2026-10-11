@@ -275,7 +275,7 @@
       (ws.length ? '<div class="lw-h">My worlds</div><div class="lw-grid">' + ws.map(function (x) {
         var names = Object.keys(x.w.templates || {}).map(function (k) { return (x.w.templates[k] || {}).name || k; }).join(' + ');
         return '<div class="lw-card wide" style="--c:#7c8cff;cursor:default"><i>' + ICON.world + '</i><b>' + esc(x.b.title) + '</b><small>' + esc(names) + ' · ' + (x.b.columns || []).length + ' areas</small>' +
-          '<div class="lw-row"><button type="button" class="lw-pill pri" data-openw="' + esc(x.b.id) + '">Open</button><button type="button" class="lw-pill" data-savew="' + esc(x.b.id) + '">Save as my template</button></div></div>';
+          '<div class="lw-row"><button type="button" class="lw-pill pri" data-openw="' + esc(x.b.id) + '">Open</button>' + (window.MinestPicker ? '<button type="button" class="lw-pill" data-quick="' + esc(x.b.id) + '">＋ Quick Add</button>' : '') + '<button type="button" class="lw-pill" data-savew="' + esc(x.b.id) + '">Save as my template</button></div></div>';
       }).join('') + '</div>' : '') +
       '<div class="lw-h">More</div><div class="lw-row"><button type="button" class="lw-pill" data-import>Import a template…</button>' +
       (A().board && A().board() ? '<button type="button" class="lw-pill" data-savecur>Make a template from “' + esc(A().board().title) + '”</button>' : '') +
@@ -327,6 +327,7 @@
     if (t.closest('[data-x]')) return close();
     if (t.closest('[data-back]')) return choose();
     var tp = t.closest('[data-tpl]'); if (tp) { var tt = tplById(tp.getAttribute('data-tpl')); if (tt) preview(tt); return; }
+    var qa = t.closest('[data-quick]'); if (qa) { if (window.MinestPicker) MinestPicker.open({ bid: qa.getAttribute('data-quick') }); return; }
     var ow = t.closest('[data-openw]'); if (ow) return openWorld(ow.getAttribute('data-openw'));
     var sw = t.closest('[data-savew]'); if (sw) { var b = boardById(sw.getAttribute('data-savew')); if (b) mineFrom(b); return; }
     if (t.closest('[data-savecur]')) { var cb = A().board && A().board(); if (cb) mineFrom(cb); return; }

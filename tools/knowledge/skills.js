@@ -164,7 +164,7 @@
     css(); if (KN() && KN().applyLook) KN().applyLook();
     var a = A().board && A().board(); ui.bid = bid || (a && a.id); if (!ui.bid) return;
     var el = document.createElement('div'); el.className = 'sk'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'My Skills');
-    el.innerHTML = '<div class="sk-head"><div class="sk-top"><h2></h2>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('sk-b') : '') + '<button type="button" class="sk-b" data-x aria-label="Close">' + X + '</button></div>' +
+    el.innerHTML = '<div class="sk-head"><div class="sk-top"><h2></h2>' + (window.MinestPicker ? '<button type="button" class="sk-b" data-quick aria-label="Quick Add" title="Quick Add — step by step"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>' : '') + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('sk-b') : '') + '<button type="button" class="sk-b" data-x aria-label="Close">' + X + '</button></div>' +
       '<div class="sk-strip sk-f"></div><div class="sk-strip sk-gr"></div></div><div class="sk-body"></div>';
     ['pointerdown', 'touchstart', 'touchmove', 'wheel'].forEach(function (ev) { el.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
     ui.el = el; ui.title = el.querySelector('h2'); ui.strip = el.querySelector('.sk-f'); ui.grades = el.querySelector('.sk-gr'); ui.body = el.querySelector('.sk-body'); ui.open = true;
@@ -175,6 +175,7 @@
     el.addEventListener('click', function (e) {
       var t = e.target;
       if (t.closest('[data-x]')) return close();
+      if (t.closest('[data-quick]')) { var kinds = {}; (ui.model || []).forEach(function (a) { a.groups.forEach(function (g) { g.skills.forEach(function (x) { kinds[x.rec.kind || 'life'] = 1; }); }); }); return MinestPicker.open({ bid: ui.bid, skills: Object.keys(kinds).length === 1 ? Object.keys(kinds)[0] : true }); }
       var f = t.closest('[data-f]'); if (f) { st().filter = f.getAttribute('data-f'); stSave(); ui.body.scrollTop = 0; return render(); }
       var g = t.closest('[data-g]'); if (g) { st().grade = g.getAttribute('data-g'); stSave(); ui.body.scrollTop = 0; return render(); }
       var sd = t.closest('[data-study]'); if (sd) { e.stopPropagation(); return study(sd.getAttribute('data-study')); }
