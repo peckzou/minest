@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 47.4 · Wiki Portal</title>
+    <title>Minest iPhone 47.5 · Outline</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "47.4" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "47.5" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -53847,20 +53847,28 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     return build('');
   }
   function outline(b) {
+    // a card belongs to the section recorded for it (boards made from JSON: the Kanban sinks mastered cards to the
+    // bottom of a list), else to the heading above it
+    var stageOf = ((KN().get('lm:cfg:' + b.id) || {}).stageOf) || {};
     return (b.columns || []).map(function (col) {
-      var top = [], sec = null;
+      var top = [], sec = null, secs = {};
       (col.cards || []).forEach(function (c) {
         if (!c || !c.id) return;
         var n = { k: 'C:' + c.id, kind: 'card', title: c.title || '', note: c.desc || '', done: !!c.complete, id: c.id, col: col, kids: itemTree(c), heading: KN().isHeading(c.id) };
-        if (n.heading) { sec = n; top.push(n); } else if (sec) { n.inSec = sec.id; sec.kids.push(n); } else top.push(n);
+        if (n.heading) { sec = n; secs[c.id] = n; top.push(n); return; }
+        var home = stageOf[c.id] && secs[stageOf[c.id]];
+        if (stageOf[c.id] && !home) { (secs.__later = secs.__later || []).push(n); return; }   // its section comes further down
+        var into = home || sec;
+        if (into) { n.inSec = into.id; into.kids.push(n); } else top.push(n);
       });
+      (secs.__later || []).forEach(function (n) { var h = secs[stageOf[n.id]]; if (h) { n.inSec = h.id; h.kids.push(n); } else top.push(n); });
       return { k: 'L:' + col.id, kind: 'list', title: col.title || 'List', color: col.color, id: col.id, kids: top };
     });
   }
   var rows = [], byKey = {};
   function flatten(nodes, d) {
-    nodes.forEach(function (n) {
-      n.d = d; rows.push(n); byKey[n.k] = n;
+    nodes.forEach(function (n, i) {
+      n.d = d; n.i = i; rows.push(n); byKey[n.k] = n;
       if (n.kids.length && !folded(n.k)) flatten(n.kids, d + 1);
     });
   }
@@ -53998,6 +54006,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
       if (t === (n.title || '').trim()) return null;
       return edit(function (b) { var L = locate(b, n.kind, n.id); if (!L) return false; (n.kind === 'list' ? L.col : n.kind === 'card' ? L.card : L.item).title = t; }, null, { edit: false });
     },
+    highlight: function (n) { if (n.kind === 'list') return toast('Highlights are for rows inside a list.'); var h = (hlOf(n) + 1) % 4; KN().set('en:hl:' + n.id, h || null, true); var r = rowEl(n.k); if (r) { r.classList.remove('hl1', 'hl2', 'hl3'); if (h) r.classList.add('hl' + h); } },
     heading: function (n) { if (n.kind !== 'card') return toast('Only a card can be a section heading.'); KN().setHeading(n.id, !KN().isHeading(n.id)); render(); select(n.k); },
     details: function (n) {
       if (n.kind === 'list') return;
@@ -54028,51 +54037,69 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     add: I('<path d="M12 5v14M5 12h14"/>'), child: I('<path d="M6 4v8a3 3 0 0 0 3 3h9"/><path d="m14 11 4 4-4 4"/>'),
     info: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/>'), head: I('<path d="M6 4v16M18 4v16M6 12h12"/>'),
     del: I('<path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/>'),
-    outline: I('<path d="M4 5h16"/><path d="M8 10h12"/><path d="M12 15h8"/><path d="M8 20h12"/>')
+    outline: I('<path d="M4 5h16"/><path d="M8 10h12"/><path d="M12 15h8"/><path d="M8 20h12"/>'),
+    mark: I('<path d="m15 5 4 4-9 9H6v-4z"/><path d="M4 21h16"/>')
   };
   var CSS = [
-    '.en{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:#eef1f6;font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;' +
-      'background:linear-gradient(180deg,#1e2430,#0e1118)}',
+    // the OmniOutliner look: serif rows, full-width bands for levels 1–2, roman / letter numbering, bullets below,
+    // quiet notes under a row, highlights, light and dark appearance, a status line at the bottom
+    '.en{--bg:#fff;--fg:#1d1f23;--b1:#c6d4e2;--b2:#dce5ee;--note:#61779a;--line:#e6ebf0;--chev:#76839a;--head:#f5f6f8;--hfg:#1d1f23;--sel:rgba(10,132,255,.13);--hl1:#dff2c0;--hl2:#fbd9d6;--hl3:#fbefaa;--z:1;' +
+      'position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:var(--fg);background:var(--bg);font:16px/1.35 "Iowan Old Style","Charter","Georgia",serif;-webkit-font-smoothing:antialiased}',
+    '.en.dark{--bg:#1d1d1f;--fg:#ececee;--b1:#2b3c4f;--b2:#223140;--note:#8fa5c2;--line:#2c2d30;--chev:#8d9aab;--head:#262628;--hfg:#ececee;--sel:rgba(10,132,255,.24);--hl1:#3a4d1f;--hl2:#5a2a28;--hl3:#5a4f12}',
     '.en.away{visibility:hidden}',
     'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}',
-    '.en-head{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 10px;border-bottom:1px solid rgba(255,255,255,.07)}',
-    '.en-tb{flex:1 1 100%;min-width:0;border:0;background:none;color:inherit;text-align:left;padding:0 48px 2px 0;cursor:pointer;font:inherit}',
-    '.en-head .en-x{position:absolute;right:16px;top:calc(env(safe-area-inset-top,0px) + 20px);margin:0}',
-    '.en-tb small{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.5}',
-    '.en-tb b{display:block;font-size:28px;line-height:1.15;font-weight:750;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    '.en-tb b:after{content:" ⌄";font-size:18px;opacity:.45}',
-    '.en-hb{flex:none;height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer;margin-bottom:3px}',
-    '.en-hb.on{background:rgba(10,132,255,.35);border-color:rgba(10,132,255,.6)}',
-    '.en-x{width:34px;padding:0;display:grid;place-items:center}',
-    '.en-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 8px calc(env(safe-area-inset-bottom,0px) + 90px);scrollbar-width:thin}',
-    '.en-row{position:relative;display:flex;align-items:flex-start;padding-left:calc(var(--d) * 22px);border-radius:10px;min-height:34px}',
-    '.en-row.sel{background:rgba(10,132,255,.16)}',
-    '.en-chev{flex:none;width:26px;height:34px;display:grid;place-items:center;border:0;background:none;color:rgba(255,255,255,.45);cursor:pointer;padding:0}',
-    '.en-chev svg{width:13px;height:13px;transition:transform .2s cubic-bezier(.2,.8,.25,1);transform:rotate(90deg)}',
+    '.en-head{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 10px;background:var(--head);color:var(--hfg);border-bottom:1px solid var(--line);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}',
+    '.en-tb{flex:1 1 100%;min-width:0;border:0;background:none;color:inherit;text-align:left;padding:0 48px 2px 0;cursor:pointer;font:inherit;display:flex;align-items:center;gap:10px}',
+    '.en-tb .doc{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);background:var(--bg)}',
+    '.en-tb .doc svg{width:17px;height:17px}',
+    '.en-tb b{display:block;font-size:19px;font-weight:650;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.en-tb b:after{content:".ooutline";font-weight:400;opacity:.45}',
+    '.en-head .en-x{position:absolute;right:14px;top:calc(env(safe-area-inset-top,0px) + 12px);margin:0}',
+    '.en-hb{flex:none;height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--hfg);font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px}',
+    '.en-hb.on{background:#0a84ff;border-color:#0a84ff;color:#fff}',
+    '.en-x{width:34px;padding:0;justify-content:center}',
+    '.en-ic{width:34px;padding:0;justify-content:center}',
+    '.en-zoom{display:inline-flex;align-items:center;height:34px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font:600 13px -apple-system,system-ui,sans-serif;overflow:hidden}',
+    '.en-zoom button{width:30px;height:34px;border:0;background:none;color:var(--hfg);font:600 16px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    '.en-zoom span{min-width:44px;text-align:center;font-variant-numeric:tabular-nums}',
+    '.en-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 calc(env(safe-area-inset-bottom,0px) + 110px)}',
+    '.en-row{position:relative;display:flex;align-items:flex-start;padding:0 10px 0 calc(6px + var(--d) * 22px);min-height:calc(36px * var(--z))}',
+    '.en-row.d0{background:var(--b1);border-top:1px solid var(--bg)}',
+    '.en-row.d1{background:var(--b2);border-top:1px solid var(--bg)}',
+    '.en-row.d2 + .en-row.d2,.en-row.d3 + .en-row,.en-row.d4 + .en-row{box-shadow:inset 0 1px 0 var(--line)}',
+    '.en-row.sel{box-shadow:inset 3px 0 0 #0a84ff;background-image:linear-gradient(var(--sel),var(--sel))}',
+    '.en-chev{flex:none;width:28px;align-self:stretch;min-height:calc(36px * var(--z));display:grid;place-items:center;border:0;background:none;color:var(--chev);cursor:pointer;padding:0}',
+    '.en-chev svg{width:calc(15px * var(--z));height:calc(15px * var(--z));transition:transform .2s cubic-bezier(.2,.8,.25,1);transform:rotate(90deg)}',
     '.en-row.fold > .en-chev svg{transform:none}',
     '.en-chev.none{visibility:hidden}',
-    '.en-dot{flex:none;width:22px;height:34px;display:grid;place-items:center;cursor:pointer}',
-    '.en-dot i{display:block;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55)}',
-    '.en-row.fold > .en-dot i{box-shadow:0 0 0 4px rgba(255,255,255,.14)}',
-    '.en-row.list > .en-dot i{width:9px;height:9px;background:var(--c,#9aa4b2)}',
-    '.en-row.head > .en-dot i{border-radius:2px;background:#ffd60a}',
-    '.en-tx{flex:1;min-width:0;padding:6px 10px 6px 2px}',
-    '.en-t{outline:none;white-space:pre-wrap;overflow-wrap:anywhere;min-height:22px;cursor:text;-webkit-user-select:text;user-select:text}',
+    '.en-tx{flex:1;min-width:0;padding:calc(7px * var(--z)) 6px calc(7px * var(--z)) 0}',
+    '.en-line{display:flex;align-items:baseline;gap:.45em}',
+    '.en-num{flex:none;min-width:1.6em;text-align:right;font-variant-numeric:lining-nums}',
+    '.en-row.d0 .en-num{min-width:1.5em}',
+    '.en-row.d2 .en-num,.en-row.d3 .en-num,.en-row.d4 .en-num,.en-row.d5 .en-num,.en-row.d6 .en-num{min-width:1em;text-align:center;opacity:.75}',
+    '.en-t{outline:none;white-space:pre-wrap;overflow-wrap:anywhere;min-height:1.2em;cursor:text;-webkit-user-select:text;user-select:text;flex:1;min-width:0}',
     '.en-t:empty:before{content:attr(data-ph);opacity:.35}',
-    '.en-row.list > .en-tx .en-t{font-size:20px;font-weight:700;letter-spacing:-.2px}',
-    '.en-row.list{margin-top:14px}',
-    '.en-row.list:first-child{margin-top:0}',
-    '.en-row.head > .en-tx .en-t{font-weight:700;color:#ffd60a}',
-    '.en-row.item > .en-tx .en-t{font-size:15px;opacity:.88}',
-    '.en-row.done > .en-tx .en-t{text-decoration:line-through;opacity:.45}',
-    '.en-n{font-size:13px;line-height:1.4;opacity:.45;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+    '.en-t .hl{border-radius:2px;-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 1px}',
+    '.en-row.hl1 .en-t,.en-row.hl2 .en-t,.en-row.hl3 .en-t{flex:0 1 auto;width:fit-content;border-radius:3px;padding:0 3px;margin-left:-3px}',
+    '.en-row.hl2 .en-t{background:var(--hl2)}.en-row.hl3 .en-t{background:var(--hl3)}.en-row.hl1 .en-t{background:var(--hl1)}',
+    '.en-row.d0 .en-line{font-size:calc(27px * var(--z));font-weight:500;letter-spacing:-.2px}',
+    '.en-row.d1 .en-line{font-size:calc(21px * var(--z));font-weight:500}',
+    '.en-row.d2 .en-line,.en-row.d3 .en-line,.en-row.d4 .en-line,.en-row.d5 .en-line,.en-row.d6 .en-line{font-size:calc(18px * var(--z))}',
+    '.en-row.head .en-t{font-weight:700}',
+    '.en-row.done .en-t{text-decoration:line-through;opacity:.5}',
+    '.en-n{font-size:calc(15px * var(--z));line-height:1.35;color:var(--note);margin:3px 0 0 calc(1em + .45em);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
+    '.en-row.d0 .en-n,.en-row.d1 .en-n{margin-left:calc(2.1em + .45em)}',
     '.en.nonotes .en-n{display:none}',
+    '.en-nt{flex:none;width:30px;align-self:flex-start;height:calc(36px * var(--z));display:grid;place-items:center;border:0;background:none;color:var(--chev);cursor:pointer;opacity:0;padding:0}',
+    '.en-nt svg{width:18px;height:18px}',
+    '.en-row.hasnote .en-nt,.en-row.sel .en-nt{opacity:.85}',
     '.en-row.in{animation:enIn .2s cubic-bezier(.2,.8,.25,1) both}',
     '@keyframes enIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}',
     '.en-more{height:40px}',
     '.en-empty{padding:40px 16px;text-align:center;opacity:.55}',
+    '.en-stat{position:absolute;left:0;right:0;bottom:0;padding:7px 12px calc(env(safe-area-inset-bottom,0px) + 7px);text-align:center;font:500 13px -apple-system,system-ui,sans-serif;color:var(--chev);background:var(--bg);border-top:1px solid var(--line);font-variant-numeric:tabular-nums;pointer-events:none}',
     // the editing bar
-    '.en-bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);z-index:2147482002;display:flex;gap:2px;padding:5px;border-radius:999px;' +
+    '.en-bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 44px);transform:translateX(-50%);z-index:2147482002;display:flex;gap:2px;padding:5px;border-radius:999px;' +
       'background:linear-gradient(180deg,rgba(70,80,96,.9),rgba(34,40,52,.94));-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 14px 36px rgba(0,0,0,.45);max-width:calc(100vw - 16px);overflow-x:auto;scrollbar-width:none}',
     '.en-bar::-webkit-scrollbar{display:none}',
     '.en-bar[hidden]{display:none}',
@@ -54094,19 +54121,27 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   function toast(m) { try { if (window.GlassUI && GlassUI.toast) return GlassUI.toast(m); } catch (e) {} }
   function cssEsc(s) { return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"'); }
 
+  var ROMAN = [['M', 1000], ['CM', 900], ['D', 500], ['CD', 400], ['C', 100], ['XC', 90], ['L', 50], ['XL', 40], ['X', 10], ['IX', 9], ['V', 5], ['IV', 4], ['I', 1]];
+  function roman(n) { var o = ''; ROMAN.forEach(function (r) { while (n >= r[1]) { o += r[0]; n -= r[1]; } }); return o; }
+  function letter(n) { var o = ''; while (n > 0) { n--; o = String.fromCharCode(65 + n % 26) + o; n = Math.floor(n / 26); } return o; }
+  function numOf(n) { return n.d === 0 ? roman(n.i + 1) + '.' : n.d === 1 ? letter(n.i + 1) + '.' : '•'; }
+  var NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M7.5 9h9M7.5 12.5h9M7.5 16h5"/></svg>';
+  function hlOf(n) { return n.kind === 'list' ? 0 : +(KN().get('en:hl:' + n.id) || 0); }
   function rowHtml(n) {
-    var cls = 'en-row ' + n.kind + (n.heading ? ' head' : '') + (n.done ? ' done' : '') + (n.kids.length && folded(n.k) ? ' fold' : '') + (ui.sel === n.k ? ' sel' : '');
-    return '<div class="' + cls + '" data-k="' + esc(n.k) + '" style="--d:' + n.d + (n.color ? ';--c:' + esc(n.color) : '') + '">' +
+    var hl = hlOf(n), note = n.note && n.kind !== 'list';
+    var cls = 'en-row ' + n.kind + ' d' + Math.min(n.d, 6) + (n.heading ? ' head' : '') + (n.done ? ' done' : '') + (n.kids.length && folded(n.k) ? ' fold' : '') + (ui.sel === n.k ? ' sel' : '') + (hl ? ' hl' + hl : '') + (note ? ' hasnote' : '');
+    return '<div class="' + cls + '" data-k="' + esc(n.k) + '" style="--d:' + n.d + '">' +
       '<button type="button" class="en-chev' + (n.kids.length ? '' : ' none') + '" data-fold tabindex="-1" aria-label="Fold">' + CHEV + '</button>' +
-      '<span class="en-dot" data-dot title="' + (n.kind === 'list' ? 'Fold' : 'Details') + '"><i></i></span>' +
-      '<div class="en-tx"><div class="en-t" data-ph="' + (n.kind === 'list' ? 'List title' : 'Untitled') + '">' + esc(n.title) + '</div>' +
-      (n.note && n.kind !== 'list' ? '<div class="en-n">' + esc(n.note) + '</div>' : '') + '</div></div>';
+      '<div class="en-tx"><div class="en-line"><span class="en-num" data-dot>' + numOf(n) + '</span><div class="en-t" data-ph="' + (n.kind === 'list' ? 'List title' : 'Untitled') + '">' + esc(n.title) + '</div></div>' +
+      (note ? '<div class="en-n">' + esc(n.note) + '</div>' : '') + '</div>' +
+      (n.kind !== 'list' ? '<button type="button" class="en-nt" data-dot tabindex="-1" aria-label="Details">' + NOTE + '</button>' : '') + '</div>';
   }
   function render() {
     if (!ui.el) return;
     var b = boardById(ui.bid);
     if (!b) { var a = A().board && A().board(); ui.bid = a ? a.id : (boards()[0] || {}).id; b = boardById(ui.bid); }
     ui.title.textContent = b ? (b.title || 'Board') : 'No board';
+    stat(b);
     rows = []; byKey = {};
     if (b) flatten(outline(b), 0);
     var focusKey = pending && pending.key;
@@ -54137,6 +54172,21 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
       if (rows.length > ui.limit) watchMore(); else more.remove();
     }, { root: ui.list, rootMargin: '800px' });
     io.observe(more);
+  }
+  // 57 rows · 560 words · 3,661 characters (the whole outline, folded rows included)
+  function stat(b) {
+    if (!ui.stat) return;
+    var n = 0, w = 0, c = 0;
+    (function walk(ns) { ns.forEach(function (x) { n++; var t = (x.title || '') + ' ' + (x.kind !== 'list' ? x.note || '' : ''); c += t.trim().length; w += (t.match(/\S+/g) || []).length; walk(x.kids); }); })(b ? outline(b) : []);
+    ui.stat.textContent = n.toLocaleString() + ' rows • ' + w.toLocaleString() + ' words • ' + c.toLocaleString() + ' characters';
+  }
+  function look() {
+    if (!ui.el) return;
+    var t = S.theme || 'auto', dark = t === 'dark' || (t === 'auto' && !document.querySelector('.theme-white') && !(window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches && document.querySelector('.theme-white')));
+    if (t === 'auto') dark = !document.querySelector('.theme-white, [class*="theme-white"]');
+    ui.el.classList.toggle('dark', dark);
+    var z = S.zoom || 1; ui.el.style.setProperty('--z', z); if (ui.zl) ui.zl.textContent = Math.round(z * 100) + '%';
+    if (ui.th) ui.th.textContent = t === 'auto' ? '◐ Auto' : t === 'dark' ? '☾ Dark' : '☀︎ Light';
   }
   function rowEl(k) { return ui.list.querySelector('.en-row[data-k="' + cssEsc(k) + '"]'); }
   function select(k) {
@@ -54229,17 +54279,19 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     var a = A().board && A().board();
     ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
     var el = document.createElement('div'); el.className = 'en' + (S.notes ? '' : ' nonotes'); el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Outline');
-    el.innerHTML = '<div class="en-head"><button type="button" class="en-tb" data-boards><small>Outline</small><b></b></button>' +
+    el.innerHTML = '<div class="en-head"><button type="button" class="en-tb" data-boards><span class="doc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></span><b></b></button>' +
+      '<span class="en-zoom"><button type="button" data-zoom="-1" aria-label="Smaller">−</button><span data-zl>100%</span><button type="button" data-zoom="1" aria-label="Larger">+</button></span>' +
       '<button type="button" class="en-hb' + (S.notes ? ' on' : '') + '" data-notes>Notes</button>' +
-      '<button type="button" class="en-hb" data-all="1">Expand</button><button type="button" class="en-hb" data-all="0">Collapse</button>' +
+      '<button type="button" class="en-hb en-ic" data-all="1" title="Expand all" aria-label="Expand all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 9 5 5 5-5"/></svg></button><button type="button" class="en-hb en-ic" data-all="0" title="Collapse all" aria-label="Collapse all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 7 5 5-5 5"/></svg></button>' +
+      '<button type="button" class="en-hb" data-theme>◐ Auto</button>' +
       '<button type="button" class="en-hb en-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
-      '<div class="en-body"></div>';
+      '<div class="en-body"></div><div class="en-stat"></div>';
     var bar = document.createElement('div'); bar.className = 'en-bar'; bar.hidden = true;
-    bar.innerHTML = [['outdent', 'out', 'Outdent (⇧⇥)'], ['indent', 'in', 'Indent (⇥)'], ['up', 'up', 'Move up (⌥↑)'], ['down', 'down', 'Move down (⌥↓)'], ['sibling', 'add', 'New row (↩)'], ['child', 'child', 'New row inside'], ['heading', 'head', 'Section heading'], ['details', 'info', 'Details (⌘↩)'], ['remove', 'del', 'Delete']]
+    bar.innerHTML = [['outdent', 'out', 'Outdent (⇧⇥)'], ['indent', 'in', 'Indent (⇥)'], ['up', 'up', 'Move up (⌥↑)'], ['down', 'down', 'Move down (⌥↓)'], ['sibling', 'add', 'New row (↩)'], ['child', 'child', 'New row inside'], ['heading', 'head', 'Section heading'], ['highlight', 'mark', 'Highlight'], ['details', 'info', 'Details (⌘↩)'], ['remove', 'del', 'Delete']]
       .map(function (x) { return '<button type="button" data-op="' + x[0] + '" title="' + x[2] + '" aria-label="' + x[2] + '"' + (x[0] === 'remove' ? ' class="del"' : '') + '>' + ICON[x[1]] + '</button>'; }).join('');
-    ui.el = el; ui.list = el.querySelector('.en-body'); ui.title = el.querySelector('.en-tb b'); ui.bar = bar; ui.open = true; ui.sel = null; ui.limit = 300;
+    ui.el = el; ui.list = el.querySelector('.en-body'); ui.title = el.querySelector('.en-tb b'); ui.bar = bar; ui.stat = el.querySelector('.en-stat'); ui.zl = el.querySelector('[data-zl]'); ui.th = el.querySelector('[data-theme]'); ui.open = true; ui.sel = null; ui.limit = 300;
     document.body.appendChild(el); document.body.appendChild(bar); document.documentElement.classList.add('kn-open');
-    render();
+    look(); render();
     ui.list.scrollTop = S.scroll[ui.bid] || 0;
     if (el.animate) { var o = lastTap && Date.now() - lastTap.t < 1500 ? lastTap.r : null; el.style.transformOrigin = o ? (o.left + o.width / 2) + 'px ' + (o.top + o.height / 2) + 'px' : '50% 40%'; el.animate([{ opacity: 0, scale: '.9' }, { opacity: 1, scale: '1' }], { duration: 340, easing: 'cubic-bezier(.2,.85,.25,1)' }); }
     wire(el, bar);
@@ -54270,6 +54322,8 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     el.addEventListener('click', function (e) {
       if (e.target.closest('[data-x]')) return close();
       if (e.target.closest('[data-boards]')) return boardMenu();
+      var zb = e.target.closest('[data-zoom]'); if (zb) { var Z = [.8, .9, 1, 1.1, 1.25, 1.4, 1.6], zi = Z.indexOf(S.zoom || 1); if (zi < 0) zi = 2; zi = Math.max(0, Math.min(Z.length - 1, zi + (+zb.getAttribute('data-zoom')))); S.zoom = Z[zi]; stSave(); look(); return; }
+      if (e.target.closest('[data-theme]')) { S.theme = S.theme === 'auto' || !S.theme ? 'light' : S.theme === 'light' ? 'dark' : 'auto'; stSave(); look(); return; }
       if (e.target.closest('[data-notes]')) { S.notes = !S.notes; stSave(); el.classList.toggle('nonotes', !S.notes); e.target.closest('[data-notes]').classList.toggle('on', S.notes); return; }
       var all = e.target.closest('[data-all]');
       if (all) {
