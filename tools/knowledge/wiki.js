@@ -364,7 +364,7 @@
     closePv();
     var id = a.getAttribute('data-item'), bid = a.getAttribute('data-b'), x = lookup(id, bid); if (!x) return;
     var ls = stateOf(x.card, x.col);
-    var o = KN().get('wk:pv:' + id) || {}, img = o.image || (x.card.cover && x.card.cover.type === 'image' && x.card.cover.url) || '';
+    var o = KN().get('wk:pv:' + id) || {}, img = o.image || (x.card.cover && x.card.cover.type === 'image' && (x.card.cover.value || x.card.cover.url)) || '';
     var desc = o.desc || x.card.desc || '';
     var cats = []; if (!bid && T) walk(T, function (n) { if ((n.items || []).indexOf(id) >= 0) cats.push(n.title); });
     pv = document.createElement('div'); pv.className = 'wk-pv'; pv.setAttribute('role', 'dialog');

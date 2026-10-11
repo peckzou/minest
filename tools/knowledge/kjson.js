@@ -65,7 +65,7 @@
       var other = null;
       order.forEach(function (iid) {
         var it = items[iid], c = { id: 'kc-' + bid + '-' + iid, title: str(it.title || it.id, 200), desc: str(it.desc) };
-        if (it.image) c.cover = { type: 'image', url: str(it.image, 2000) };
+        if (it.image) c.cover = { type: 'image', value: str(it.image, 2000), url: str(it.image, 2000), size: 'banner' };   // value: the Kanban's field
         if (it.date && typeof it.date.y === 'number') dates[c.id] = it.date;
         var col = home[iid] ? board.columns.filter(function (x) { return x.id === 'kl-' + bid + '-' + home[iid]; })[0] : null;
         if (!col) { if (!other) { other = { id: 'kl-' + bid + '-uncategorised', title: 'Not in a category', color: '#8d99ae', cards: [] }; board.columns.push(other); } col = other; warn.push('Item "' + iid + '" is in no category — it is on the board under "Not in a category".'); }
@@ -95,7 +95,7 @@
             check(bk, 'block', 'block ' + (bk.id || k + 1), warn);
             var kid = 'kc-' + bid + '-' + needId(bk, 'block', k);
             var c = { id: kid, title: str(bk.title || bk.id, 200), desc: str(bk.desc) };
-            if (bk.image) c.cover = { type: 'image', url: str(bk.image, 2000) };
+            if (bk.image) c.cover = { type: 'image', value: str(bk.image, 2000), url: str(bk.image, 2000), size: 'banner' };
             col.cards.push(c);
             cfg.stageOf[kid] = cid;   // the Kanban may reorder cards (mastered ones sink): the stage is kept by id
             if (bk.date && typeof bk.date.y === 'number') dates[kid] = bk.date;

@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 48.6 · Edit in every view</title>
+    <title>Minest iPhone 48.7 · Edit in place</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "48.6" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "48.7" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -54523,6 +54523,10 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
         var L = locate(b, t.kind, t.id); if (!L) return false; var o = thing(L, t.kind);
         if (v.title != null) o.title = String(v.title).replace(/\s+/g, ' ').trim();
         if (v.desc != null && t.kind !== 'list' && t.kind !== 'board') o.desc = String(v.desc);
+        if (v.img != null && t.kind !== 'list' && t.kind !== 'board') {   // the card's picture = its cover (the Kanban's own field: value)
+          var u = String(v.img).trim();
+          if (!u) delete o.cover; else o.cover = { type: 'image', value: u, title: (o.cover && o.cover.title) || '', size: (o.cover && o.cover.size) || 'banner' };
+        }
       }, t);
     },
     // a new one after it (same level)
@@ -54632,6 +54636,12 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.ke-sheet .row .pri{background:linear-gradient(180deg,#3d9bff,#0a7aff);border-color:rgba(255,255,255,.25);color:#fff}',
     '.ke-sheet .row .danger{background:#e5484d;border-color:#e5484d;color:#fff}',
     '.ke-sheet p{margin:0 2px 12px;opacity:.8;line-height:1.45}',
+    '.ke-img .th{border-radius:16px;overflow:hidden;margin-bottom:8px;background:rgba(127,127,127,.15)}',
+    '.ke-img .th img{display:block;width:100%;max-height:180px;object-fit:cover}',
+    '.ke-img .th[hidden],.ke-img [hidden]{display:none!important}',
+    '.ke-img .bt{display:flex;gap:8px;margin-bottom:8px}',
+    '.ke-img .bt button{height:38px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:inherit;font:600 14px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    'html.kn-light .ke-img .bt button{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08)}',
     '.ke-sheet .two{display:flex;gap:8px}.ke-sheet .two label{flex:1}',
     'html.kn-light .ke-sheet{background:rgba(255,255,255,.94);color:#1d1f23;border-color:rgba(255,255,255,.95);box-shadow:0 24px 60px rgba(30,40,60,.2)}',
     'html.kn-light .ke-sheet input,html.kn-light .ke-sheet textarea,html.kn-light .ke-sheet select{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}',
@@ -54659,6 +54669,9 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       sh.innerHTML = '<h4>' + esc(o.title || 'Edit') + '</h4>' + (o.text ? '<p>' + esc(o.text) + '</p>' : '') +
         f.map(function (x) {
           var v = x.value == null ? '' : x.value;
+          if (x.type === 'image') return '<label><span>' + esc(x.label || 'Picture') + '</span><div class="ke-img"><div class="th"' + (v ? '' : ' hidden') + '><img alt="" src="' + esc(v) + '"></div>' +
+            '<div class="bt"><button type="button" data-pick>Choose photo</button><button type="button" data-clear' + (v ? '' : ' hidden') + '>Remove</button></div>' +
+            '<input data-k="' + x.key + '" value="' + esc(/^data:/.test(v) ? '' : v) + '" placeholder="or paste a picture link" autocomplete="off"' + (/^data:/.test(v) ? ' data-keep="' + esc(v) + '"' : '') + '><input type="file" accept="image/*" hidden data-file></div></label>';
           var inp = x.type === 'note' ? '<textarea data-k="' + x.key + '" placeholder="' + esc(x.placeholder || '') + '">' + esc(v) + '</textarea>'
             : x.type === 'select' ? '<select data-k="' + x.key + '">' + (x.options || []).map(function (op) { return '<option value="' + esc(op[0]) + '"' + (String(op[0]) === String(v) ? ' selected' : '') + '>' + esc(op[1]) + '</option>'; }).join('') + '</select>'
             : '<input data-k="' + x.key + '" ' + (x.type === 'num' ? 'inputmode="numeric" ' : '') + 'value="' + esc(v) + '" placeholder="' + esc(x.placeholder || '') + '" autocomplete="off">';
@@ -54668,9 +54681,22 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       document.body.appendChild(bd); document.body.appendChild(sh);
       if (sh.animate) sh.animate([{ opacity: 0, translate: '0 30px', scale: '.97' }, { opacity: 1, translate: '0 0', scale: '1' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1.05)' });
       var first = sh.querySelector('input,textarea'); if (first) setTimeout(function () { try { first.focus(); var L = first.value.length; first.setSelectionRange && first.setSelectionRange(L, L); } catch (e) {} }, 60);
+      // a picture field: choose a photo (made smaller first) or paste a link
+      var img = sh.querySelector('.ke-img');
+      if (img) {
+        var urlIn = img.querySelector('[data-k]'), th = img.querySelector('.th'), im = th.querySelector('img'), clr = img.querySelector('[data-clear]'), file = img.querySelector('[data-file]');
+        var show = function (src) { th.hidden = !src; clr.hidden = !src; if (src) im.src = src; };
+        img.querySelector('[data-pick]').addEventListener('click', function (e) { e.preventDefault(); file.click(); });
+        clr.addEventListener('click', function (e) { e.preventDefault(); urlIn.value = ''; urlIn.removeAttribute('data-keep'); show(''); });
+        urlIn.addEventListener('input', function () { urlIn.removeAttribute('data-keep'); show(urlIn.value.trim()); });
+        file.addEventListener('change', function () {
+          var f = file.files && file.files[0]; if (!f) return;
+          shrink(f, 1280, function (data) { if (!data) return toast('This picture could not be read.'); urlIn.value = ''; urlIn.setAttribute('data-keep', data); show(data); });
+        });
+      }
       function finish(ok) {
         var out = null;
-        if (ok) { out = {}; sh.querySelectorAll('[data-k]').forEach(function (e) { out[e.getAttribute('data-k')] = e.value; }); }
+        if (ok) { out = {}; sh.querySelectorAll('[data-k]').forEach(function (e) { out[e.getAttribute('data-k')] = e.getAttribute('data-keep') || e.value; }); }
         closeSheet(); done(out);
       }
       bd.addEventListener('click', function () { finish(false); });
@@ -54682,6 +54708,21 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
         e.stopPropagation();
       });
     });
+  }
+  // a photo made smaller (longest side ≤ max, JPEG) so the board stays light to sync
+  function shrink(f, max, cb) {
+    var rd = new FileReader();
+    rd.onload = function () {
+      var im = new Image();
+      im.onload = function () {
+        var k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
+        try { var c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h); cb(c.toDataURL('image/jpeg', .82)); } catch (e) { cb(rd.result); }
+      };
+      im.onerror = function () { cb(null); };
+      im.src = rd.result;
+    };
+    rd.onerror = function () { cb(null); };
+    rd.readAsDataURL(f);
   }
   function confirmBox(text, ok) { return sheet({ title: 'Delete?', text: text, ok: ok || 'Delete', danger: true }).then(function (r) { return !!r; }); }
 
@@ -54722,7 +54763,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       var b = e.target.closest('[data-op]'); if (!b) return;
       var op = b.getAttribute('data-op');
       if (op === 'x') return closeBar();
-      if (op === 'edit') return editText(t).then(function (r) { if (r) { t.title = r.title; var w = barEl && barEl.querySelector('.ke-what'); if (w) w.innerHTML = '<small>' + KIND[t.kind] + '</small>' + esc(t.title || 'Untitled'); done(t); } });
+      if (op === 'edit') return editText(t, { image: o.image }).then(function (r) { if (r) { t.title = r.title; var w = barEl && barEl.querySelector('.ke-what'); if (w) w.innerHTML = '<small>' + KIND[t.kind] + '</small>' + esc(t.title || 'Untitled'); done(t); } });
       if (op === 'add' || op === 'child') {
         var kindNew = op === 'add' ? (t.kind === 'board' ? 'list' : t.kind) : (t.kind === 'board' ? 'list' : t.kind === 'list' ? 'card' : 'item');
         return sheet({ title: kindNew === 'list' ? 'New list' : kindNew === 'item' ? 'New stacked card' : 'New card', fields: kindNew === 'list' ? [{ key: 'title', label: 'Title' }] : [{ key: 'title', label: 'Title' }, { key: 'desc', label: 'Note', type: 'note' }], ok: 'Add' })
@@ -54740,16 +54781,17 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     return { close: closeBar };
   }
   // the text of one thing: title, and the note (description) for cards
-  function editText(t) {
+  function picOf(o) { return o && o.cover && o.cover.type === 'image' ? (o.cover.value || o.cover.url || '') : ''; }
+  function editText(t, opt) {
     var L = find(t); if (!L) { toast('It is no longer on the board.'); return Promise.resolve(null); }
-    var o = thing(L, t.kind), note = t.kind === 'card' || t.kind === 'item';
-    return sheet({ title: 'Edit ' + KIND[t.kind].toLowerCase(), fields: [{ key: 'title', label: 'Title', value: o.title || '' }].concat(note ? [{ key: 'desc', label: 'Note', type: 'note', value: o.desc || '' }] : []) })
+    var o = thing(L, t.kind), note = t.kind === 'card' || t.kind === 'item', pic = note && opt && opt.image;
+    return sheet({ title: 'Edit ' + KIND[t.kind].toLowerCase(), fields: [{ key: 'title', label: 'Title', value: o.title || '' }].concat(note ? [{ key: 'desc', label: 'Note', type: 'note', value: o.desc || '' }] : []).concat(pic ? [{ key: 'img', label: 'Picture', type: 'image', value: picOf(o) }] : []) })
       .then(function (v) { if (!v) return null; return ops.update(t, v).then(function () { return { title: v.title.replace(/\s+/g, ' ').trim(), desc: v.desc }; }); });
   }
   // an Edit switch for a view's header
   function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
 
-  window.MinestKEdit = { ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
+  window.MinestKEdit = { picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();
 
 /* Minest Knowledge · Phase 2 — Endless (a vertical knowledge outline, after OmniOutliner)
@@ -55795,7 +55837,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     if (arrange) return;
     if (editing) { if (focusKey !== k && n.kind !== 'board') focusOn(k); return editNode(n); }   // Edit: select, then the edit bar
     if (n.kind === 'board') return home();
-    if (focusKey === k && (n.kind === 'card' || n.kind === 'item')) return details(n);
+    if (focusKey === k && (n.kind === 'card' || n.kind === 'item')) return editHere(n);   // tapped again: its text and picture, right here
+    if (focusKey === k && n.kind === 'list') return toList(n);   // a list tapped again: that list on the board
     if (n.kind === 'item' && focusKey !== k) { focusOn(k); return; }
     focusOn(k);
   }
@@ -55807,11 +55850,21 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     if (editing) { if (arrange) { arrange = false; ui.el.classList.remove('arr'); var ab = ui.el.querySelector('[data-act="arr"]'); if (ab) ab.classList.remove('on'); } hint('Tap a bubble to edit it'); }
     else if (window.MinestKEdit) MinestKEdit.closeBar();
   }
+  function editHere(n) {
+    if (!window.MinestKEdit) return;
+    MinestKEdit.editText({ bid: ui.bid, kind: n.kind, id: n.id, title: n.title }, { image: true }).then(function (r) { if (r && ui.el) { var fk = focusKey; build(); focusKey = fk && G.byKey[fk] ? fk : null; markFocus(); crumbs(); } });
+  }
+  function toList(n) {
+    var bid = ui.bid; saveCam(); close();
+    if (window.MinestContents && MinestContents.goTo) MinestContents.goTo({ b: bid, l: n.id }, { label: 'Map', open: function () { open(bid); } });
+  }
   function editNode(n) {
     if (!window.MinestKEdit) return;
     var t = { bid: ui.bid, kind: n.kind, id: n.kind === 'board' ? ui.bid : n.id, title: n.title };
     MinestKEdit.bar(t, {
-      onDetails: function () { details(n); },
+      hide: { info: 1 },   // no trip to a card's details from the map
+      image: true,
+      extra: n.kind === 'list' ? [{ key: 'tolist', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg>', label: 'Open the list on the board', run: function () { MinestKEdit.closeBar(); toList(n); } }] : [],
       onDone: function (m) {
         var keyOf = function (x) { return x.kind === 'list' ? 'L:' + x.id : x.kind === 'card' ? 'C:' + x.id : x.kind === 'item' ? 'I:' + x.id : 'B:' + ui.bid; };
         build();
@@ -55894,7 +55947,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
     ui.oneSide = innerWidth < 600 && innerHeight > innerWidth;
     build(); wire(); restore();
-    if (!S.seen) { S.seen = 1; stSave(); hint('Tap a bubble to zoom in · tap again for details'); }
+    if (!S.seen) { S.seen = 1; stSave(); hint('Tap a bubble to zoom in · tap a card again to edit it · a list again opens it on the board'); }
     if (el.animate) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
     window.addEventListener('resize', onResize);
   }
@@ -55929,7 +55982,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
      a "· 87 years later ·" note across long gaps (readable rather than to scale).
    Dates are knowledge metadata (MinestKnowledge.setDate, synced in `knowledge.t`): only what was entered —
    a year alone stays a year; nothing is filled in. A year in a card's title is offered as a suggestion, never applied
-   by itself. Tap an event: its notes, ⓘ details (the Kanban's sheet), Edit date, On the board (and back here).
+   by itself. Tap an event: its notes and picture, ✎ Edit (title, note, picture — right here, no trip to the board),
+   Edit date.
    Jump: the century / decade strip and "Go to year". The place on the line and the open event are kept per board
    on this device (minest.timeline.v1). */
 (function () {
@@ -55971,7 +56025,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
         (Array.isArray(c.stack) ? c.stack : []).forEach(function (s) { if (s && s.id) push(s, c); });
         function push(x, parent) {
           var t = KN().dateOf(x.id);
-          var ev = { id: x.id, title: x.title || 'Untitled', note: x.desc || '', done: !!x.complete, col: col, parent: parent, t: t, img: x.cover && x.cover.type === 'image' && x.cover.url ? x.cover.url : '' };
+          var ev = { id: x.id, title: x.title || 'Untitled', note: x.desc || '', done: !!x.complete, col: col, parent: parent, t: t, img: x.cover && x.cover.type === 'image' ? (x.cover.value || x.cover.url || '') : '' };
           if (t) dated.push(ev); else if (!parent) undated.push(ev);   // undated stacked cards stay out of the list below (too many)
         }
       });
@@ -55996,6 +56050,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.tl-x{position:absolute;right:16px;top:calc(env(safe-area-inset-top,0px) + 18px);width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer}',
     '.tl-row{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}',
     '.tl-row::-webkit-scrollbar{display:none}',
+    '.tl-ev .tl-img{display:none;width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin:8px 0 2px}',
+    '.tl-ev.open .tl-img{display:block}',
     '.tl .kesel{outline:2.5px solid #0a84ff;outline-offset:2px;border-radius:12px}',
     '.tl-chip[hidden]{display:none}',
     '.tl-chip{flex:none;height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font:600 12.5px -apple-system,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
@@ -56120,8 +56176,9 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
           return '<div class="tl-ev' + (span ? ' span' : '') + (e.done ? ' done' : '') + (S.open[ui.bid] === e.id ? ' open' : '') + '" data-id="' + esc(e.id) + '" style="--c:' + esc(e.col.color || '#9aa4b2') + '">' +
             '<div class="tl-d">' + esc(label(e.t)) + '</div><div class="tl-t">' + esc(e.title) + '</div>' +
             '<div class="tl-c">' + esc(e.col.title || '') + (e.parent ? ' · ' + esc(e.parent.title) : '') + '</div>' +
+            (e.img ? '<img class="tl-img" alt="" loading="lazy" src="' + esc(e.img) + '">' : '') +
             (e.note ? '<div class="tl-n">' + esc(e.note) + '</div>' : '') +
-            '<div class="tl-acts"><button type="button" data-a="details">ⓘ Details</button><button type="button" data-a="date">Edit date</button><button type="button" data-a="board">On the board</button></div></div>';
+            '<div class="tl-acts"><button type="button" data-a="edit">✎ Edit</button><button type="button" data-a="date">Edit date</button></div></div>';
         }).join('') + '</div>';
     });
     if (!ev.length) html = '<div class="tl-empty">' + (E.dated.length ? 'No events in this list.' : 'No dated events yet.<br><span style="font-size:13px;opacity:.8">Give a card a date below — a year is enough.</span>') + '</div>';
@@ -56212,15 +56269,16 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     closeSheet();
     sheet = document.createElement('div'); sheet.className = 'tl-sheet';
     sheet.innerHTML = '<h4>' + esc(n.title) + '</h4><p style="white-space:normal">' + esc(label(n.t)) + ' · ' + esc(n.col.title || '') + '</p>' + (n.note ? '<div style="font-size:14px;opacity:.85;line-height:1.45;max-height:30vh;overflow:auto;margin-bottom:6px">' + esc(n.note) + '</div>' : '') +
-      '<div class="tl-sb"><button type="button" data-ha="details">ⓘ Details</button><button type="button" data-ha="date">Edit date</button><button type="button" class="save" data-ha="board">On the board</button></div>';
+      '<div class="tl-sb"><button type="button" data-ha="date">Edit date</button><button type="button" class="save" data-ha="edit">✎ Edit</button></div>';
     document.body.appendChild(sheet);
     if (sheet.animate) sheet.animate([{ opacity: 0, translate: '0 30px' }, { opacity: 1, translate: '0 0' }], { duration: 240, easing: 'cubic-bezier(.2,.85,.25,1)' });
     ['pointerdown', 'touchstart'].forEach(function (ev) { sheet.addEventListener(ev, function (x) { x.stopPropagation(); }, { passive: true }); });
     sheet.addEventListener('click', function (x) {
       var b = x.target.closest('[data-ha]'); if (!b) return;
       var a = b.getAttribute('data-ha'); closeSheet();
-      if (a === 'details') return away(n);
+      if (a === 'edit') return editInPlace(n);
       if (a === 'date') return dateSheet(n);
+      return;
       keep(); var to = { b: ui.bid, l: n.col.id, c: n.id, p: n.parent ? n.parent.id : null }; close();
       if (window.MinestContents && MinestContents.goTo) MinestContents.goTo(to, { label: 'Timeline', open: function () { open(to.b); setTimeout(function () { hit(n.id); }, 120); } });
     });
@@ -56335,13 +56393,20 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     ui.el.classList.toggle('editing', editing);
     if (!editing && window.MinestKEdit) MinestKEdit.closeBar(); else if (editing) toast('Tap an event to edit it');
   }
+  // the event's text and picture, edited right here (no trip to the board)
+  function editInPlace(n) {
+    if (!window.MinestKEdit) return;
+    closeSheet();
+    MinestKEdit.editText({ bid: ui.bid, kind: n.parent ? 'item' : 'card', id: n.id, title: n.title }, { image: true }).then(function (r) { if (r) { var y = ui.list.scrollTop, x = ui.list.scrollLeft; render(); ui.list.scrollTop = y; ui.list.scrollLeft = x; } });
+  }
   function editEv(n) {
     if (!window.MinestKEdit) return;
     closeSheet();
     ui.list.querySelectorAll('.kesel').forEach(function (x) { x.classList.remove('kesel'); });
     ui.list.querySelectorAll('[data-id="' + (window.CSS && CSS.escape ? CSS.escape(n.id) : n.id) + '"]').forEach(function (x) { x.classList.add('kesel'); });
     MinestKEdit.bar({ bid: ui.bid, kind: n.parent ? 'item' : 'card', id: n.id, title: n.title }, {
-      hide: { up: 1, down: 1, head: 1 },   // time decides the order here
+      hide: { up: 1, down: 1, head: 1, info: 1 },   // time decides the order here; editing stays on this page
+      image: true,
       extra: [{ key: 'date', icon: 'date', label: 'Date', before: true, run: function () { MinestKEdit.closeBar(); dateSheet(n); } }],
       onDetails: function () { away(n); },
       onDone: function (m) {
@@ -56425,7 +56490,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       if (act) {
         var a = act.getAttribute('data-a');
         if (a === 'date') return dateSheet(n);
-        if (a === 'details') return away(n);
+        if (a === 'edit') return editInPlace(n);
         if (a === 'board') { keep(); var to = { b: ui.bid, l: n.col.id, c: n.id, p: n.parent ? n.parent.id : null }; close(); if (window.MinestContents && MinestContents.goTo) MinestContents.goTo(to, { label: 'Timeline', open: function () { open(to.b); setTimeout(function () { hit(n.id); }, 120); } }); return; }
         return;
       }
@@ -56519,7 +56584,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       var other = null;
       order.forEach(function (iid) {
         var it = items[iid], c = { id: 'kc-' + bid + '-' + iid, title: str(it.title || it.id, 200), desc: str(it.desc) };
-        if (it.image) c.cover = { type: 'image', url: str(it.image, 2000) };
+        if (it.image) c.cover = { type: 'image', value: str(it.image, 2000), url: str(it.image, 2000), size: 'banner' };   // value: the Kanban's field
         if (it.date && typeof it.date.y === 'number') dates[c.id] = it.date;
         var col = home[iid] ? board.columns.filter(function (x) { return x.id === 'kl-' + bid + '-' + home[iid]; })[0] : null;
         if (!col) { if (!other) { other = { id: 'kl-' + bid + '-uncategorised', title: 'Not in a category', color: '#8d99ae', cards: [] }; board.columns.push(other); } col = other; warn.push('Item "' + iid + '" is in no category — it is on the board under "Not in a category".'); }
@@ -56549,7 +56614,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
             check(bk, 'block', 'block ' + (bk.id || k + 1), warn);
             var kid = 'kc-' + bid + '-' + needId(bk, 'block', k);
             var c = { id: kid, title: str(bk.title || bk.id, 200), desc: str(bk.desc) };
-            if (bk.image) c.cover = { type: 'image', url: str(bk.image, 2000) };
+            if (bk.image) c.cover = { type: 'image', value: str(bk.image, 2000), url: str(bk.image, 2000), size: 'banner' };
             col.cards.push(c);
             cfg.stageOf[kid] = cid;   // the Kanban may reorder cards (mastered ones sink): the stage is kept by id
             if (bk.date && typeof bk.date.y === 'number') dates[kid] = bk.date;
@@ -57222,7 +57287,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function tap(k) {
     if (!k) { if (!edit) closeSheet(); return; }
     var n = G.byKey[k]; if (!n) return;
-    if (n.kind === 'block') { if (edit) return; return details(n.card, n.col); }
+    if (n.kind === 'block') { if (edit) return; return editCard(n.card); }   // a card is edited right here (no trip to the board)
     if (n.kind === 'state') { if (edit) { stateSheet(n); return; } return focusOn(k); }
     focusOn(k);
   }
@@ -57237,14 +57302,15 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       if (act === 'back') { var n = focus && G.byKey[focus]; if (!n) return; return n.kind === 'stage' ? focusOn(n.state.k) : home(); }
       if (act === 'here') { var h = G.here; if (!h) return toast('Everything here is mastered ⭐'); if (G.tpl === 'route') return focusOn(h.place.k); return focusOn(h.stage.k); }
       if (act === 'fit') return focus ? focusOn(focus) : home();
+      if (act === 'tolist') { var fn = focus && G.byKey[focus], lid = fn ? (fn.kind === 'state' ? fn.id : fn.kind === 'stage' ? fn.state.id : fn.kind === 'block' ? fn.col.id : fn.col ? fn.col.id : null) : null; if (!lid) return toast('Zoom into a region first — then this opens its list'); return toList(lid); }
       if (act === 'mode') { setCfg(ui.bid, { mode: G.mode === 'guided' ? 'free' : 'guided' }); render(); toast(G.mode === 'guided' ? 'Guided Path: stages open one after another' : 'Free Exploration: every stage is open'); return; }
       if (act === 'edit') { edit = !edit; a.classList.toggle('on', edit); ui.el.classList.toggle('edit', edit); if (edit) editSheet(); else closeSheet(); return; }
     }
     if (t.closest('[data-close]')) return closeSheet();
     if (t.closest('[data-done]')) { edit = false; ui.el.classList.remove('edit'); ui.el.querySelector('[data-act="edit"]').classList.remove('on'); return closeSheet(); }
     var j = t.closest('[data-j]'); if (j) { S.jfilter = S.jfilter || {}; var id = j.getAttribute('data-j'); S.jfilter[ui.bid] = S.jfilter[ui.bid] === id ? null : id; stSave(); render(); return; }
-    var o = t.closest('[data-open]'); if (o) { var bn = G.byKey[o.getAttribute('data-open')]; if (bn) details(bn.card, bn.col); return; }
-    var sp = t.closest('[data-stop]'); if (sp) { var col = (boardById(ui.bid).columns || []).filter(function (x) { return x.id === sp.getAttribute('data-col'); })[0]; var card = col && col.cards.filter(function (x) { return x.id === sp.getAttribute('data-stop'); })[0]; if (card) details(card, col); return; }
+    var o = t.closest('[data-open]'); if (o) { var bn = G.byKey[o.getAttribute('data-open')]; if (bn) editCard(bn.card); return; }
+    var sp = t.closest('[data-stop]'); if (sp) { var col = (boardById(ui.bid).columns || []).filter(function (x) { return x.id === sp.getAttribute('data-col'); })[0]; var card = col && col.cards.filter(function (x) { return x.id === sp.getAttribute('data-stop'); })[0]; if (card) editCard(card); return; }
     var rt = t.closest('[data-route]'); if (rt && sel) { var sg = G.byKey[sel], ord = G.route.map(function (s) { return s.id; }), i = ord.indexOf(sg.id), jx = i + (+rt.getAttribute('data-route')); if (jx < 0 || jx >= ord.length) return; ord.splice(jx, 0, ord.splice(i, 1)[0]); setCfg(ui.bid, { order: ord }); render(); stageSheet(G.byKey[sel]); return; }
     var st = t.closest('[data-style]'); if (st) { KN().set('lm:style:' + ui.bid, st.getAttribute('data-style')); render(); editSheet(); return; }
     var col2 = t.closest('[data-color]'); if (col2 && sel) { var n2 = G.byKey[sel]; KN().set('lm:color:' + n2.id, col2.getAttribute('data-color')); render(); stateSheet(G.byKey[sel]); return; }
@@ -57263,6 +57329,15 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     KN().setMany(m); render(); home();
   }
 
+  // ---------------------------------------------------------------- a card's text and picture, edited here; a region's list on the board
+  function editCard(card) {
+    if (!window.MinestKEdit) return;
+    MinestKEdit.editText({ bid: ui.bid, kind: 'card', id: card.id, title: card.title }, { image: true }).then(function (r) { if (r && ui.el) render(); });
+  }
+  function toList(colId) {
+    var bid = ui.bid; saveCam(); close();
+    if (window.MinestContents && MinestContents.goTo) MinestContents.goTo({ b: bid, l: colId }, { label: 'Learning Map', open: function () { open(bid); } });
+  }
   // ---------------------------------------------------------------- details (the Kanban's sheet sits under this view)
   function details(card, col) {
     if (!A().openCardIn) return;
@@ -57293,7 +57368,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       '<button type="button" class="lm-b2" data-act="edit" aria-label="Arrange">' + ICON.edit + '</button>' +
       '<button type="button" class="lm-b2" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="lm-note" style="display:none"></div>' +
-      '<div class="lm-side"><button type="button" class="lm-b2" data-act="here" aria-label="You are here">' + ICON.here + '</button><button type="button" class="lm-b2" data-act="fit" aria-label="Fit">' + ICON.fit + '</button><button type="button" class="lm-b2" data-act="home" aria-label="Whole map">' + ICON.home + '</button></div>' +
+      '<div class="lm-side"><button type="button" class="lm-b2" data-act="tolist" aria-label="Open this region\'s list on the board" title="Open the list on the board"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg></button><button type="button" class="lm-b2" data-act="here" aria-label="You are here">' + ICON.here + '</button><button type="button" class="lm-b2" data-act="fit" aria-label="Fit">' + ICON.fit + '</button><button type="button" class="lm-b2" data-act="home" aria-label="Whole map">' + ICON.home + '</button></div>' +
       '<div class="lm-legend"></div><div class="lm-banner"></div><div class="lm-sheet" style="display:none"></div>';
     if (!document.getElementById('lm-font')) { var lf = document.createElement('link'); lf.id = 'lm-font'; lf.rel = 'stylesheet'; lf.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'; document.head.appendChild(lf); }
     ui.el = el; ui.banner = el.querySelector('.lm-banner'); ui.stage = el.querySelector('.lm-stage'); ui.world = el.querySelector('.lm-world'); ui.path = el.querySelector('.lm-path'); ui.mode = el.querySelector('[data-act="mode"]'); ui.sheet = el.querySelector('.lm-sheet'); ui.legend = el.querySelector('.lm-legend'); ui.note = el.querySelector('.lm-note');
@@ -57685,7 +57760,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     closePv();
     var id = a.getAttribute('data-item'), bid = a.getAttribute('data-b'), x = lookup(id, bid); if (!x) return;
     var ls = stateOf(x.card, x.col);
-    var o = KN().get('wk:pv:' + id) || {}, img = o.image || (x.card.cover && x.card.cover.type === 'image' && x.card.cover.url) || '';
+    var o = KN().get('wk:pv:' + id) || {}, img = o.image || (x.card.cover && x.card.cover.type === 'image' && (x.card.cover.value || x.card.cover.url)) || '';
     var desc = o.desc || x.card.desc || '';
     var cats = []; if (!bid && T) walk(T, function (n) { if ((n.items || []).indexOf(id) >= 0) cats.push(n.title); });
     pv = document.createElement('div'); pv.className = 'wk-pv'; pv.setAttribute('role', 'dialog');

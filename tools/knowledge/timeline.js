@@ -4,7 +4,8 @@
      a "· 87 years later ·" note across long gaps (readable rather than to scale).
    Dates are knowledge metadata (MinestKnowledge.setDate, synced in `knowledge.t`): only what was entered —
    a year alone stays a year; nothing is filled in. A year in a card's title is offered as a suggestion, never applied
-   by itself. Tap an event: its notes, ⓘ details (the Kanban's sheet), Edit date, On the board (and back here).
+   by itself. Tap an event: its notes and picture, ✎ Edit (title, note, picture — right here, no trip to the board),
+   Edit date.
    Jump: the century / decade strip and "Go to year". The place on the line and the open event are kept per board
    on this device (minest.timeline.v1). */
 (function () {
@@ -46,7 +47,7 @@
         (Array.isArray(c.stack) ? c.stack : []).forEach(function (s) { if (s && s.id) push(s, c); });
         function push(x, parent) {
           var t = KN().dateOf(x.id);
-          var ev = { id: x.id, title: x.title || 'Untitled', note: x.desc || '', done: !!x.complete, col: col, parent: parent, t: t, img: x.cover && x.cover.type === 'image' && x.cover.url ? x.cover.url : '' };
+          var ev = { id: x.id, title: x.title || 'Untitled', note: x.desc || '', done: !!x.complete, col: col, parent: parent, t: t, img: x.cover && x.cover.type === 'image' ? (x.cover.value || x.cover.url || '') : '' };
           if (t) dated.push(ev); else if (!parent) undated.push(ev);   // undated stacked cards stay out of the list below (too many)
         }
       });
@@ -71,6 +72,8 @@
     '.tl-x{position:absolute;right:16px;top:calc(env(safe-area-inset-top,0px) + 18px);width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer}',
     '.tl-row{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}',
     '.tl-row::-webkit-scrollbar{display:none}',
+    '.tl-ev .tl-img{display:none;width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin:8px 0 2px}',
+    '.tl-ev.open .tl-img{display:block}',
     '.tl .kesel{outline:2.5px solid #0a84ff;outline-offset:2px;border-radius:12px}',
     '.tl-chip[hidden]{display:none}',
     '.tl-chip{flex:none;height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font:600 12.5px -apple-system,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
@@ -195,8 +198,9 @@
           return '<div class="tl-ev' + (span ? ' span' : '') + (e.done ? ' done' : '') + (S.open[ui.bid] === e.id ? ' open' : '') + '" data-id="' + esc(e.id) + '" style="--c:' + esc(e.col.color || '#9aa4b2') + '">' +
             '<div class="tl-d">' + esc(label(e.t)) + '</div><div class="tl-t">' + esc(e.title) + '</div>' +
             '<div class="tl-c">' + esc(e.col.title || '') + (e.parent ? ' · ' + esc(e.parent.title) : '') + '</div>' +
+            (e.img ? '<img class="tl-img" alt="" loading="lazy" src="' + esc(e.img) + '">' : '') +
             (e.note ? '<div class="tl-n">' + esc(e.note) + '</div>' : '') +
-            '<div class="tl-acts"><button type="button" data-a="details">ⓘ Details</button><button type="button" data-a="date">Edit date</button><button type="button" data-a="board">On the board</button></div></div>';
+            '<div class="tl-acts"><button type="button" data-a="edit">✎ Edit</button><button type="button" data-a="date">Edit date</button></div></div>';
         }).join('') + '</div>';
     });
     if (!ev.length) html = '<div class="tl-empty">' + (E.dated.length ? 'No events in this list.' : 'No dated events yet.<br><span style="font-size:13px;opacity:.8">Give a card a date below — a year is enough.</span>') + '</div>';
@@ -287,15 +291,16 @@
     closeSheet();
     sheet = document.createElement('div'); sheet.className = 'tl-sheet';
     sheet.innerHTML = '<h4>' + esc(n.title) + '</h4><p style="white-space:normal">' + esc(label(n.t)) + ' · ' + esc(n.col.title || '') + '</p>' + (n.note ? '<div style="font-size:14px;opacity:.85;line-height:1.45;max-height:30vh;overflow:auto;margin-bottom:6px">' + esc(n.note) + '</div>' : '') +
-      '<div class="tl-sb"><button type="button" data-ha="details">ⓘ Details</button><button type="button" data-ha="date">Edit date</button><button type="button" class="save" data-ha="board">On the board</button></div>';
+      '<div class="tl-sb"><button type="button" data-ha="date">Edit date</button><button type="button" class="save" data-ha="edit">✎ Edit</button></div>';
     document.body.appendChild(sheet);
     if (sheet.animate) sheet.animate([{ opacity: 0, translate: '0 30px' }, { opacity: 1, translate: '0 0' }], { duration: 240, easing: 'cubic-bezier(.2,.85,.25,1)' });
     ['pointerdown', 'touchstart'].forEach(function (ev) { sheet.addEventListener(ev, function (x) { x.stopPropagation(); }, { passive: true }); });
     sheet.addEventListener('click', function (x) {
       var b = x.target.closest('[data-ha]'); if (!b) return;
       var a = b.getAttribute('data-ha'); closeSheet();
-      if (a === 'details') return away(n);
+      if (a === 'edit') return editInPlace(n);
       if (a === 'date') return dateSheet(n);
+      return;
       keep(); var to = { b: ui.bid, l: n.col.id, c: n.id, p: n.parent ? n.parent.id : null }; close();
       if (window.MinestContents && MinestContents.goTo) MinestContents.goTo(to, { label: 'Timeline', open: function () { open(to.b); setTimeout(function () { hit(n.id); }, 120); } });
     });
@@ -410,13 +415,20 @@
     ui.el.classList.toggle('editing', editing);
     if (!editing && window.MinestKEdit) MinestKEdit.closeBar(); else if (editing) toast('Tap an event to edit it');
   }
+  // the event's text and picture, edited right here (no trip to the board)
+  function editInPlace(n) {
+    if (!window.MinestKEdit) return;
+    closeSheet();
+    MinestKEdit.editText({ bid: ui.bid, kind: n.parent ? 'item' : 'card', id: n.id, title: n.title }, { image: true }).then(function (r) { if (r) { var y = ui.list.scrollTop, x = ui.list.scrollLeft; render(); ui.list.scrollTop = y; ui.list.scrollLeft = x; } });
+  }
   function editEv(n) {
     if (!window.MinestKEdit) return;
     closeSheet();
     ui.list.querySelectorAll('.kesel').forEach(function (x) { x.classList.remove('kesel'); });
     ui.list.querySelectorAll('[data-id="' + (window.CSS && CSS.escape ? CSS.escape(n.id) : n.id) + '"]').forEach(function (x) { x.classList.add('kesel'); });
     MinestKEdit.bar({ bid: ui.bid, kind: n.parent ? 'item' : 'card', id: n.id, title: n.title }, {
-      hide: { up: 1, down: 1, head: 1 },   // time decides the order here
+      hide: { up: 1, down: 1, head: 1, info: 1 },   // time decides the order here; editing stays on this page
+      image: true,
       extra: [{ key: 'date', icon: 'date', label: 'Date', before: true, run: function () { MinestKEdit.closeBar(); dateSheet(n); } }],
       onDetails: function () { away(n); },
       onDone: function (m) {
@@ -500,7 +512,7 @@
       if (act) {
         var a = act.getAttribute('data-a');
         if (a === 'date') return dateSheet(n);
-        if (a === 'details') return away(n);
+        if (a === 'edit') return editInPlace(n);
         if (a === 'board') { keep(); var to = { b: ui.bid, l: n.col.id, c: n.id, p: n.parent ? n.parent.id : null }; close(); if (window.MinestContents && MinestContents.goTo) MinestContents.goTo(to, { label: 'Timeline', open: function () { open(to.b); setTimeout(function () { hit(n.id); }, 120); } }); return; }
         return;
       }

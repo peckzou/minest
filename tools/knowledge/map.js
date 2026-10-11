@@ -419,7 +419,8 @@
     if (arrange) return;
     if (editing) { if (focusKey !== k && n.kind !== 'board') focusOn(k); return editNode(n); }   // Edit: select, then the edit bar
     if (n.kind === 'board') return home();
-    if (focusKey === k && (n.kind === 'card' || n.kind === 'item')) return details(n);
+    if (focusKey === k && (n.kind === 'card' || n.kind === 'item')) return editHere(n);   // tapped again: its text and picture, right here
+    if (focusKey === k && n.kind === 'list') return toList(n);   // a list tapped again: that list on the board
     if (n.kind === 'item' && focusKey !== k) { focusOn(k); return; }
     focusOn(k);
   }
@@ -431,11 +432,21 @@
     if (editing) { if (arrange) { arrange = false; ui.el.classList.remove('arr'); var ab = ui.el.querySelector('[data-act="arr"]'); if (ab) ab.classList.remove('on'); } hint('Tap a bubble to edit it'); }
     else if (window.MinestKEdit) MinestKEdit.closeBar();
   }
+  function editHere(n) {
+    if (!window.MinestKEdit) return;
+    MinestKEdit.editText({ bid: ui.bid, kind: n.kind, id: n.id, title: n.title }, { image: true }).then(function (r) { if (r && ui.el) { var fk = focusKey; build(); focusKey = fk && G.byKey[fk] ? fk : null; markFocus(); crumbs(); } });
+  }
+  function toList(n) {
+    var bid = ui.bid; saveCam(); close();
+    if (window.MinestContents && MinestContents.goTo) MinestContents.goTo({ b: bid, l: n.id }, { label: 'Map', open: function () { open(bid); } });
+  }
   function editNode(n) {
     if (!window.MinestKEdit) return;
     var t = { bid: ui.bid, kind: n.kind, id: n.kind === 'board' ? ui.bid : n.id, title: n.title };
     MinestKEdit.bar(t, {
-      onDetails: function () { details(n); },
+      hide: { info: 1 },   // no trip to a card's details from the map
+      image: true,
+      extra: n.kind === 'list' ? [{ key: 'tolist', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg>', label: 'Open the list on the board', run: function () { MinestKEdit.closeBar(); toList(n); } }] : [],
       onDone: function (m) {
         var keyOf = function (x) { return x.kind === 'list' ? 'L:' + x.id : x.kind === 'card' ? 'C:' + x.id : x.kind === 'item' ? 'I:' + x.id : 'B:' + ui.bid; };
         build();
@@ -518,7 +529,7 @@
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
     ui.oneSide = innerWidth < 600 && innerHeight > innerWidth;
     build(); wire(); restore();
-    if (!S.seen) { S.seen = 1; stSave(); hint('Tap a bubble to zoom in · tap again for details'); }
+    if (!S.seen) { S.seen = 1; stSave(); hint('Tap a bubble to zoom in · tap a card again to edit it · a list again opens it on the board'); }
     if (el.animate) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
     window.addEventListener('resize', onResize);
   }

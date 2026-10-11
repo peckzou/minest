@@ -71,6 +71,10 @@
         var L = locate(b, t.kind, t.id); if (!L) return false; var o = thing(L, t.kind);
         if (v.title != null) o.title = String(v.title).replace(/\s+/g, ' ').trim();
         if (v.desc != null && t.kind !== 'list' && t.kind !== 'board') o.desc = String(v.desc);
+        if (v.img != null && t.kind !== 'list' && t.kind !== 'board') {   // the card's picture = its cover (the Kanban's own field: value)
+          var u = String(v.img).trim();
+          if (!u) delete o.cover; else o.cover = { type: 'image', value: u, title: (o.cover && o.cover.title) || '', size: (o.cover && o.cover.size) || 'banner' };
+        }
       }, t);
     },
     // a new one after it (same level)
@@ -180,6 +184,12 @@
     '.ke-sheet .row .pri{background:linear-gradient(180deg,#3d9bff,#0a7aff);border-color:rgba(255,255,255,.25);color:#fff}',
     '.ke-sheet .row .danger{background:#e5484d;border-color:#e5484d;color:#fff}',
     '.ke-sheet p{margin:0 2px 12px;opacity:.8;line-height:1.45}',
+    '.ke-img .th{border-radius:16px;overflow:hidden;margin-bottom:8px;background:rgba(127,127,127,.15)}',
+    '.ke-img .th img{display:block;width:100%;max-height:180px;object-fit:cover}',
+    '.ke-img .th[hidden],.ke-img [hidden]{display:none!important}',
+    '.ke-img .bt{display:flex;gap:8px;margin-bottom:8px}',
+    '.ke-img .bt button{height:38px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:inherit;font:600 14px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    'html.kn-light .ke-img .bt button{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08)}',
     '.ke-sheet .two{display:flex;gap:8px}.ke-sheet .two label{flex:1}',
     'html.kn-light .ke-sheet{background:rgba(255,255,255,.94);color:#1d1f23;border-color:rgba(255,255,255,.95);box-shadow:0 24px 60px rgba(30,40,60,.2)}',
     'html.kn-light .ke-sheet input,html.kn-light .ke-sheet textarea,html.kn-light .ke-sheet select{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}',
@@ -207,6 +217,9 @@
       sh.innerHTML = '<h4>' + esc(o.title || 'Edit') + '</h4>' + (o.text ? '<p>' + esc(o.text) + '</p>' : '') +
         f.map(function (x) {
           var v = x.value == null ? '' : x.value;
+          if (x.type === 'image') return '<label><span>' + esc(x.label || 'Picture') + '</span><div class="ke-img"><div class="th"' + (v ? '' : ' hidden') + '><img alt="" src="' + esc(v) + '"></div>' +
+            '<div class="bt"><button type="button" data-pick>Choose photo</button><button type="button" data-clear' + (v ? '' : ' hidden') + '>Remove</button></div>' +
+            '<input data-k="' + x.key + '" value="' + esc(/^data:/.test(v) ? '' : v) + '" placeholder="or paste a picture link" autocomplete="off"' + (/^data:/.test(v) ? ' data-keep="' + esc(v) + '"' : '') + '><input type="file" accept="image/*" hidden data-file></div></label>';
           var inp = x.type === 'note' ? '<textarea data-k="' + x.key + '" placeholder="' + esc(x.placeholder || '') + '">' + esc(v) + '</textarea>'
             : x.type === 'select' ? '<select data-k="' + x.key + '">' + (x.options || []).map(function (op) { return '<option value="' + esc(op[0]) + '"' + (String(op[0]) === String(v) ? ' selected' : '') + '>' + esc(op[1]) + '</option>'; }).join('') + '</select>'
             : '<input data-k="' + x.key + '" ' + (x.type === 'num' ? 'inputmode="numeric" ' : '') + 'value="' + esc(v) + '" placeholder="' + esc(x.placeholder || '') + '" autocomplete="off">';
@@ -216,9 +229,22 @@
       document.body.appendChild(bd); document.body.appendChild(sh);
       if (sh.animate) sh.animate([{ opacity: 0, translate: '0 30px', scale: '.97' }, { opacity: 1, translate: '0 0', scale: '1' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1.05)' });
       var first = sh.querySelector('input,textarea'); if (first) setTimeout(function () { try { first.focus(); var L = first.value.length; first.setSelectionRange && first.setSelectionRange(L, L); } catch (e) {} }, 60);
+      // a picture field: choose a photo (made smaller first) or paste a link
+      var img = sh.querySelector('.ke-img');
+      if (img) {
+        var urlIn = img.querySelector('[data-k]'), th = img.querySelector('.th'), im = th.querySelector('img'), clr = img.querySelector('[data-clear]'), file = img.querySelector('[data-file]');
+        var show = function (src) { th.hidden = !src; clr.hidden = !src; if (src) im.src = src; };
+        img.querySelector('[data-pick]').addEventListener('click', function (e) { e.preventDefault(); file.click(); });
+        clr.addEventListener('click', function (e) { e.preventDefault(); urlIn.value = ''; urlIn.removeAttribute('data-keep'); show(''); });
+        urlIn.addEventListener('input', function () { urlIn.removeAttribute('data-keep'); show(urlIn.value.trim()); });
+        file.addEventListener('change', function () {
+          var f = file.files && file.files[0]; if (!f) return;
+          shrink(f, 1280, function (data) { if (!data) return toast('This picture could not be read.'); urlIn.value = ''; urlIn.setAttribute('data-keep', data); show(data); });
+        });
+      }
       function finish(ok) {
         var out = null;
-        if (ok) { out = {}; sh.querySelectorAll('[data-k]').forEach(function (e) { out[e.getAttribute('data-k')] = e.value; }); }
+        if (ok) { out = {}; sh.querySelectorAll('[data-k]').forEach(function (e) { out[e.getAttribute('data-k')] = e.getAttribute('data-keep') || e.value; }); }
         closeSheet(); done(out);
       }
       bd.addEventListener('click', function () { finish(false); });
@@ -230,6 +256,21 @@
         e.stopPropagation();
       });
     });
+  }
+  // a photo made smaller (longest side ≤ max, JPEG) so the board stays light to sync
+  function shrink(f, max, cb) {
+    var rd = new FileReader();
+    rd.onload = function () {
+      var im = new Image();
+      im.onload = function () {
+        var k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
+        try { var c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h); cb(c.toDataURL('image/jpeg', .82)); } catch (e) { cb(rd.result); }
+      };
+      im.onerror = function () { cb(null); };
+      im.src = rd.result;
+    };
+    rd.onerror = function () { cb(null); };
+    rd.readAsDataURL(f);
   }
   function confirmBox(text, ok) { return sheet({ title: 'Delete?', text: text, ok: ok || 'Delete', danger: true }).then(function (r) { return !!r; }); }
 
@@ -270,7 +311,7 @@
       var b = e.target.closest('[data-op]'); if (!b) return;
       var op = b.getAttribute('data-op');
       if (op === 'x') return closeBar();
-      if (op === 'edit') return editText(t).then(function (r) { if (r) { t.title = r.title; var w = barEl && barEl.querySelector('.ke-what'); if (w) w.innerHTML = '<small>' + KIND[t.kind] + '</small>' + esc(t.title || 'Untitled'); done(t); } });
+      if (op === 'edit') return editText(t, { image: o.image }).then(function (r) { if (r) { t.title = r.title; var w = barEl && barEl.querySelector('.ke-what'); if (w) w.innerHTML = '<small>' + KIND[t.kind] + '</small>' + esc(t.title || 'Untitled'); done(t); } });
       if (op === 'add' || op === 'child') {
         var kindNew = op === 'add' ? (t.kind === 'board' ? 'list' : t.kind) : (t.kind === 'board' ? 'list' : t.kind === 'list' ? 'card' : 'item');
         return sheet({ title: kindNew === 'list' ? 'New list' : kindNew === 'item' ? 'New stacked card' : 'New card', fields: kindNew === 'list' ? [{ key: 'title', label: 'Title' }] : [{ key: 'title', label: 'Title' }, { key: 'desc', label: 'Note', type: 'note' }], ok: 'Add' })
@@ -288,14 +329,15 @@
     return { close: closeBar };
   }
   // the text of one thing: title, and the note (description) for cards
-  function editText(t) {
+  function picOf(o) { return o && o.cover && o.cover.type === 'image' ? (o.cover.value || o.cover.url || '') : ''; }
+  function editText(t, opt) {
     var L = find(t); if (!L) { toast('It is no longer on the board.'); return Promise.resolve(null); }
-    var o = thing(L, t.kind), note = t.kind === 'card' || t.kind === 'item';
-    return sheet({ title: 'Edit ' + KIND[t.kind].toLowerCase(), fields: [{ key: 'title', label: 'Title', value: o.title || '' }].concat(note ? [{ key: 'desc', label: 'Note', type: 'note', value: o.desc || '' }] : []) })
+    var o = thing(L, t.kind), note = t.kind === 'card' || t.kind === 'item', pic = note && opt && opt.image;
+    return sheet({ title: 'Edit ' + KIND[t.kind].toLowerCase(), fields: [{ key: 'title', label: 'Title', value: o.title || '' }].concat(note ? [{ key: 'desc', label: 'Note', type: 'note', value: o.desc || '' }] : []).concat(pic ? [{ key: 'img', label: 'Picture', type: 'image', value: picOf(o) }] : []) })
       .then(function (v) { if (!v) return null; return ops.update(t, v).then(function () { return { title: v.title.replace(/\s+/g, ' ').trim(), desc: v.desc }; }); });
   }
   // an Edit switch for a view's header
   function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
 
-  window.MinestKEdit = { ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
+  window.MinestKEdit = { picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();

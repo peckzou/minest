@@ -507,7 +507,7 @@
   function tap(k) {
     if (!k) { if (!edit) closeSheet(); return; }
     var n = G.byKey[k]; if (!n) return;
-    if (n.kind === 'block') { if (edit) return; return details(n.card, n.col); }
+    if (n.kind === 'block') { if (edit) return; return editCard(n.card); }   // a card is edited right here (no trip to the board)
     if (n.kind === 'state') { if (edit) { stateSheet(n); return; } return focusOn(k); }
     focusOn(k);
   }
@@ -522,14 +522,15 @@
       if (act === 'back') { var n = focus && G.byKey[focus]; if (!n) return; return n.kind === 'stage' ? focusOn(n.state.k) : home(); }
       if (act === 'here') { var h = G.here; if (!h) return toast('Everything here is mastered ⭐'); if (G.tpl === 'route') return focusOn(h.place.k); return focusOn(h.stage.k); }
       if (act === 'fit') return focus ? focusOn(focus) : home();
+      if (act === 'tolist') { var fn = focus && G.byKey[focus], lid = fn ? (fn.kind === 'state' ? fn.id : fn.kind === 'stage' ? fn.state.id : fn.kind === 'block' ? fn.col.id : fn.col ? fn.col.id : null) : null; if (!lid) return toast('Zoom into a region first — then this opens its list'); return toList(lid); }
       if (act === 'mode') { setCfg(ui.bid, { mode: G.mode === 'guided' ? 'free' : 'guided' }); render(); toast(G.mode === 'guided' ? 'Guided Path: stages open one after another' : 'Free Exploration: every stage is open'); return; }
       if (act === 'edit') { edit = !edit; a.classList.toggle('on', edit); ui.el.classList.toggle('edit', edit); if (edit) editSheet(); else closeSheet(); return; }
     }
     if (t.closest('[data-close]')) return closeSheet();
     if (t.closest('[data-done]')) { edit = false; ui.el.classList.remove('edit'); ui.el.querySelector('[data-act="edit"]').classList.remove('on'); return closeSheet(); }
     var j = t.closest('[data-j]'); if (j) { S.jfilter = S.jfilter || {}; var id = j.getAttribute('data-j'); S.jfilter[ui.bid] = S.jfilter[ui.bid] === id ? null : id; stSave(); render(); return; }
-    var o = t.closest('[data-open]'); if (o) { var bn = G.byKey[o.getAttribute('data-open')]; if (bn) details(bn.card, bn.col); return; }
-    var sp = t.closest('[data-stop]'); if (sp) { var col = (boardById(ui.bid).columns || []).filter(function (x) { return x.id === sp.getAttribute('data-col'); })[0]; var card = col && col.cards.filter(function (x) { return x.id === sp.getAttribute('data-stop'); })[0]; if (card) details(card, col); return; }
+    var o = t.closest('[data-open]'); if (o) { var bn = G.byKey[o.getAttribute('data-open')]; if (bn) editCard(bn.card); return; }
+    var sp = t.closest('[data-stop]'); if (sp) { var col = (boardById(ui.bid).columns || []).filter(function (x) { return x.id === sp.getAttribute('data-col'); })[0]; var card = col && col.cards.filter(function (x) { return x.id === sp.getAttribute('data-stop'); })[0]; if (card) editCard(card); return; }
     var rt = t.closest('[data-route]'); if (rt && sel) { var sg = G.byKey[sel], ord = G.route.map(function (s) { return s.id; }), i = ord.indexOf(sg.id), jx = i + (+rt.getAttribute('data-route')); if (jx < 0 || jx >= ord.length) return; ord.splice(jx, 0, ord.splice(i, 1)[0]); setCfg(ui.bid, { order: ord }); render(); stageSheet(G.byKey[sel]); return; }
     var st = t.closest('[data-style]'); if (st) { KN().set('lm:style:' + ui.bid, st.getAttribute('data-style')); render(); editSheet(); return; }
     var col2 = t.closest('[data-color]'); if (col2 && sel) { var n2 = G.byKey[sel]; KN().set('lm:color:' + n2.id, col2.getAttribute('data-color')); render(); stateSheet(G.byKey[sel]); return; }
@@ -548,6 +549,15 @@
     KN().setMany(m); render(); home();
   }
 
+  // ---------------------------------------------------------------- a card's text and picture, edited here; a region's list on the board
+  function editCard(card) {
+    if (!window.MinestKEdit) return;
+    MinestKEdit.editText({ bid: ui.bid, kind: 'card', id: card.id, title: card.title }, { image: true }).then(function (r) { if (r && ui.el) render(); });
+  }
+  function toList(colId) {
+    var bid = ui.bid; saveCam(); close();
+    if (window.MinestContents && MinestContents.goTo) MinestContents.goTo({ b: bid, l: colId }, { label: 'Learning Map', open: function () { open(bid); } });
+  }
   // ---------------------------------------------------------------- details (the Kanban's sheet sits under this view)
   function details(card, col) {
     if (!A().openCardIn) return;
@@ -578,7 +588,7 @@
       '<button type="button" class="lm-b2" data-act="edit" aria-label="Arrange">' + ICON.edit + '</button>' +
       '<button type="button" class="lm-b2" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="lm-note" style="display:none"></div>' +
-      '<div class="lm-side"><button type="button" class="lm-b2" data-act="here" aria-label="You are here">' + ICON.here + '</button><button type="button" class="lm-b2" data-act="fit" aria-label="Fit">' + ICON.fit + '</button><button type="button" class="lm-b2" data-act="home" aria-label="Whole map">' + ICON.home + '</button></div>' +
+      '<div class="lm-side"><button type="button" class="lm-b2" data-act="tolist" aria-label="Open this region\'s list on the board" title="Open the list on the board"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg></button><button type="button" class="lm-b2" data-act="here" aria-label="You are here">' + ICON.here + '</button><button type="button" class="lm-b2" data-act="fit" aria-label="Fit">' + ICON.fit + '</button><button type="button" class="lm-b2" data-act="home" aria-label="Whole map">' + ICON.home + '</button></div>' +
       '<div class="lm-legend"></div><div class="lm-banner"></div><div class="lm-sheet" style="display:none"></div>';
     if (!document.getElementById('lm-font')) { var lf = document.createElement('link'); lf.id = 'lm-font'; lf.rel = 'stylesheet'; lf.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'; document.head.appendChild(lf); }
     ui.el = el; ui.banner = el.querySelector('.lm-banner'); ui.stage = el.querySelector('.lm-stage'); ui.world = el.querySelector('.lm-world'); ui.path = el.querySelector('.lm-path'); ui.mode = el.querySelector('[data-act="mode"]'); ui.sheet = el.querySelector('.lm-sheet'); ui.legend = el.querySelector('.lm-legend'); ui.note = el.querySelector('.lm-note');
