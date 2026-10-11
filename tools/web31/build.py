@@ -153,6 +153,10 @@ def knowledge_patches(out):
       }
     } catch (e) {}
     setExpandedStacks(function(prev) {""", 'stacks: fold a kept-open stack')
+    # the pinned Contents column is a resting place for the lane like any list: the snap-back after a swipe and both
+    # swipe pagers count it (they listed only real lists and "Add list", so a swipe onto Contents was pulled back)
+    out = out.replace("'.kanban-column-wrapper, .board-add-list-btn, .mn-addlist'", "'.mn-tocol, .kanban-column-wrapper, .board-add-list-btn, .mn-addlist'")
+    out = out.replace("'.kanban-column-wrapper[data-col-id], .board-add-list-btn, .mn-addlist'", "'.mn-tocol, .kanban-column-wrapper[data-col-id], .board-add-list-btn, .mn-addlist'")
     # Portal: tell the knowledge views when a card's details open (marks it "viewed" — never mastered)
     out = once(out, "  var setCardModal = cardModalState[1];\n",
                "  var setCardModal = cardModalState[1];\n"
