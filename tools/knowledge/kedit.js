@@ -185,7 +185,7 @@
     '.ke-sheet .row button{flex:1;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:inherit;font:600 15px -apple-system,system-ui,sans-serif;cursor:pointer}',
     '.ke-sheet .row .pri{background:linear-gradient(180deg,#3d9bff,#0a7aff);border-color:rgba(255,255,255,.25);color:#fff}',
     '.ke-sheet .row .danger{background:#e5484d;border-color:#e5484d;color:#fff}',
-    '.ke-sheet p{margin:0 2px 12px;opacity:.8;line-height:1.45}',
+    '.ke-sheet p{margin:0 2px 12px;opacity:.8;line-height:1.45;white-space:pre-line}',
     '.ke-img .th{border-radius:16px;overflow:hidden;margin-bottom:8px;background:rgba(127,127,127,.15)}',
     '.ke-img .th img{display:block;width:100%;max-height:180px;object-fit:cover}',
     '.ke-img .th[hidden],.ke-img [hidden]{display:none!important}',

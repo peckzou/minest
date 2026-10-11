@@ -41,7 +41,7 @@
   }
   function templates() {
     var built = window.__MINEST_WORLD_TEMPLATES || {}, out = [];
-    ['my-life', 'britannica'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
+    ['my-life', 'britannica', 'my-academic-skills', 'my-life-skills'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
     (KN() ? KN().keys('lom:tpl:') : []).forEach(function (k) { var t = KN().get(k); if (t && t.domains) out.push(Object.assign({ mine: true }, t)); });
     return out;
   }
@@ -114,6 +114,13 @@
     var cfg = Object.assign({}, KN().get('lm:cfg:' + bid) || {}); cfg.stageOf = Object.assign({}, cfg.stageOf || {}, stage);   // sections keep their lists (the Kanban may reorder)
     var w = Object.assign({ created: Date.now(), templates: {} }, KN().get('lom:world:' + bid) || {}); w.templates = Object.assign({}, w.templates); w.templates[t.id] = { version: t.version || 1, name: t.name, at: Date.now(), off: (sel && sel.off) || {} };
     var m = {}; m['lm:cfg:' + bid] = cfg; m['lom:world:' + bid] = w; Object.keys(orig).forEach(function (k) { m[k] = orig[k]; });
+    if (t.kind === 'skills') {   // the Unified Skill record of each skill card: 'sk:<card>' (the learner's status / proficiency survive)
+      var tid = slug(t.id), off = (sel && sel.off) || {};
+      t.domains.forEach(function (d) { if (off[d.id]) return; (d.categories || []).forEach(function (c) { if (off[c.id]) return; (c.lists || []).forEach(function (x) {
+        var cid = bid + '-l-' + tid + '-' + slug(c.id) + '-' + slug(x.id), prev = KN().get('sk:' + cid) || {};
+        m['sk:' + cid] = Object.assign({}, prev, { tpl: t.id, sid: x.id, kind: t.skillKind || 'life', subject: d.subject || null, grades: d.grade ? [d.grade] : [], group: c.title, area: d.title, std: x.standards || [], src: t.sources || [] });
+      }); }); });
+    }
     KN().setMany(m);
     return { bid: bid, isNew: !old, title: b.title };
   }
@@ -157,6 +164,8 @@
   var ICON = {
     britannica: I('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/>'),
     'my-life': I('<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>'),
+    'my-academic-skills': I('<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/>'),
+    'my-life-skills': I('<path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="4"/>'),
     mine: I('<path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.3 6L12 16.4 6.6 19.4l1.3-6L3.4 9.3l6-.7z"/>'),
     world: I('<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/>'),
     back: I('<path d="m15 6-6 6 6 6"/>'), x: I('<path d="M6 6l12 12M18 6 6 18"/>'), chev: I('<path d="m9 6 6 6-6 6"/>')
@@ -277,17 +286,21 @@
   // ---------------------------------------------------------------- Preview
   function preview(t) {
     ui.view = 'preview'; ui.tpl = t; ui.off = {}; ui.openD = {};
+    ui.groups = t.groups ? (t.defaultGroups || t.groups.map(function (g) { return g.id; })).slice() : null;   // e.g. the grades to make
     var ws = worlds(); ui.into = null;
     head(t.name, true);
     render();
     function render() {
-      var tgt = ui.into ? boardById(ui.into) : null, p = plan(t, ui.into || 'x', { off: ui.off }), n = counts(plan(t, ui.into || ('lw-' + slug(t.id)), { off: ui.off }), tgt);
+      var tgt = ui.into ? boardById(ui.into) : null, n = counts(plan(t, ui.into || ('lw-' + slug(t.id)), { off: offAll() }), tgt);
+      var shown = t.domains.filter(function (d) { return !ui.groups || ui.groups.indexOf(d.group) >= 0; });
       ui.body.innerHTML = (t.description ? '<p class="lw-sub">' + esc(t.description) + '</p>' : '') +
         (t.inspiration ? '<details class="lw-about"><summary>About this template</summary><div style="margin-top:6px">' + esc(t.inspiration) + '</div>' +
           (t.mine ? '<div class="lw-row" style="margin-top:10px"><button type="button" class="lw-pill" data-exp>Export JSON</button><button type="button" class="lw-pill" data-deltpl style="color:#ff6b6b">Delete this template</button></div>' : '') + '</details>' : '') +
         (ws.length ? '<div class="lw-h">Where</div><div class="lw-target"><button type="button" data-into=""' + (ui.into ? '' : ' class="on"') + '>New world</button>' + ws.map(function (x) { return '<button type="button" data-into="' + esc(x.b.id) + '"' + (ui.into === x.b.id ? ' class="on"' : '') + '>Add to “' + esc(x.b.title) + '”</button>'; }).join('') + '</div>' : '') +
+        (t.groups ? '<div class="lw-h">' + esc(t.groupsLabel || 'Groups') + '</div><div class="lw-target">' + t.groups.map(function (g) { return '<button type="button" data-group="' + esc(g.id) + '"' + (ui.groups.indexOf(g.id) >= 0 ? ' class="on"' : '') + '>' + esc(g.title) + '</button>'; }).join('') + '</div>' : '') +
         '<div class="lw-h">Your world</div>' +
-        t.domains.map(function (d, i) {
+        (shown.length ? '' : '<p class="lw-sub">Pick at least one.</p>') +
+        shown.map(function (d, i) {
           var dOff = !!ui.off[d.id];
           return '<div class="lw-dom' + (dOff ? ' off' : '') + (ui.openD[d.id] ? ' open' : '') + '" style="--c:' + esc(d.color || PAL[i % PAL.length]) + '"><div class="lw-dh" data-dopen="' + esc(d.id) + '"><span class="cv">' + ICON.chev + '</span><span class="dot"></span><b>' + esc(d.title) + '</b><em>' + (d.categories || []).length + '</em><button type="button" class="lw-sw' + (dOff ? '' : ' on') + '" data-toggle="' + esc(d.id) + '" aria-label="Include ' + esc(d.title) + '"></button></div>' +
             '<div class="lw-cats">' + (d.categories || []).map(function (c) {
@@ -301,6 +314,12 @@
         '<button type="button" class="lw-go" data-go' + (total ? '' : ' disabled') + '>' + (tgt ? 'Add to My World' : 'Create My World') + '</button>';
     }
     ui.renderPreview = render;
+  }
+  // what is left out: switched off by hand, or outside the chosen groups
+  function offAll() {
+    var off = Object.assign({}, ui.off);
+    if (ui.groups && ui.tpl) ui.tpl.domains.forEach(function (d) { if (ui.groups.indexOf(d.group) < 0) off[d.id] = 1; });
+    return off;
   }
 
   function onClick(e) {
@@ -318,10 +337,11 @@
     if (t.closest('[data-deltpl]')) { if (confirm('Delete the template “' + ui.tpl.name + '”? Worlds made from it stay.')) { KN().set('lom:tpl:' + ui.tpl.id, null); choose(); } return; }
     var tg = t.closest('[data-toggle]'); if (tg) { e.stopPropagation(); var id = tg.getAttribute('data-toggle'); if (ui.off[id]) delete ui.off[id]; else ui.off[id] = 1; var y = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y; return; }
     var dh = t.closest('[data-dopen]'); if (dh) { var did = dh.getAttribute('data-dopen'); ui.openD[did] = !ui.openD[did]; dh.parentNode.classList.toggle('open', !!ui.openD[did]); return; }
+    var gr = t.closest('[data-group]'); if (gr) { var gid = gr.getAttribute('data-group'), at = ui.groups.indexOf(gid); if (at >= 0) ui.groups.splice(at, 1); else ui.groups.push(gid); var y3 = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y3; return; }
     var into = t.closest('[data-into]'); if (into) { ui.into = into.getAttribute('data-into') || null; var y2 = ui.body.scrollTop; ui.renderPreview(); ui.body.scrollTop = y2; return; }
     if (t.closest('[data-go]')) {
       try {
-        var r = generate(ui.tpl, { off: ui.off }, ui.into);
+        var r = generate(ui.tpl, { off: offAll() }, ui.into);
         toast(r.isNew ? 'Created “' + r.title + '”' : 'Added to “' + r.title + '”');
         openWorld(r.bid, true);
       } catch (ex) { toast('✗ ' + ex.message); }
@@ -340,7 +360,8 @@
     (function go() {
       if (!boardById(bid) && tries++ < 40) return setTimeout(go, 60);
       try { if (A().selectBoard && (A().board() || {}).id !== bid) A().selectBoard(bid); } catch (e) {}
-      setTimeout(function () { if (window.MinestWiki && MinestWiki.open) MinestWiki.open(bid); }, fresh ? 400 : 250);
+      var w = KN().get('lom:world:' + bid) || {}, skills = Object.keys(w.templates || {}).some(function (k) { var tt = tplById(k); return tt && tt.kind === 'skills'; });
+      setTimeout(function () { if (skills && window.MinestSkills) MinestSkills.open(bid); else if (window.MinestWiki && MinestWiki.open) MinestWiki.open(bid); }, fresh ? 400 : 250);
     })();
   }
 
