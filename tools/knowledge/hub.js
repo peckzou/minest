@@ -60,6 +60,7 @@
     bd = document.createElement('div'); bd.className = 'kh-bd'; bd.addEventListener('pointerdown', function (e) { e.stopPropagation(); close(); });
     el = document.createElement('div'); el.className = 'kh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Knowledge');
     el.innerHTML = '<h3>Knowledge</h3><div class="kh-grid">' + MODES.map(function (m) { var ok = !!m[4](); return '<button type="button" class="kh-m" data-mode="' + m[0] + '" style="--c:' + m[2] + '"' + (ok ? '' : ' disabled') + '><i>' + m[3] + '</i><b>' + m[1] + '</b></button>'; }).join('') + '</div>' +
+      (window.MinestCapture ? '<button type="button" class="kh-m kh-lom" data-cap style="--c:#0a84ff"><i>' + G('<path d="M12 5v14M5 12h14"/>') + '</i><b>Add to My World</b><small>Type, paste, photo, import</small></button>' : '') +
       (window.MinestWorld ? '<button type="button" class="kh-m kh-lom" data-lom style="--c:#7c8cff"><i>' + G('<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/><path d="M14 18h7"/>') + '</i><b>List of Mine</b><small>My world, my lists</small></button>' : '') +
       '<h4>Appearance</h4><div class="kh-row">' + [['auto', '◐ Auto'], ['light', '☀︎ Light'], ['dark', '☾ Dark']].map(function (x) { var cur = window.MinestKnowledge ? MinestKnowledge.look() : 'auto'; return '<button type="button" data-look="' + x[0] + '"' + (cur === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>'; }).join('') + '</div>' +
       '<h4>Import</h4><div class="kh-row"><button type="button" class="pri" data-file>Import JSON…</button>' + (undo.length ? '<button type="button" data-undo>Undo “' + esc(undo[0].title) + '”</button>' : '') + '</div>' +
@@ -101,6 +102,7 @@
     el.addEventListener('click', function (e) {
       var m = e.target.closest('[data-mode]');
       if (m) { var mod = MODES.filter(function (x) { return x[0] === m.getAttribute('data-mode'); })[0], api = mod && mod[4](); close(); if (api && api.open) setTimeout(function () { api.open(); }, 120); return; }
+      if (e.target.closest('[data-cap]')) { close(); setTimeout(function () { MinestCapture.open(); }, 160); return; }
       if (e.target.closest('[data-lom]')) { close(); setTimeout(function () { MinestWorld.open(); }, 160); return; }
       var lk = e.target.closest('[data-look]'); if (lk) { MinestKnowledge.setLook(lk.getAttribute('data-look')); el.querySelectorAll('[data-look]').forEach(function (x) { x.classList.toggle('on', x === lk); }); return; }
       if (e.target.closest('[data-file]')) return file.click();
