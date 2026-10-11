@@ -529,7 +529,7 @@
       '<span class="en-zoom"><button type="button" data-zoom="-1" aria-label="Smaller">−</button><span data-zl>100%</span><button type="button" data-zoom="1" aria-label="Larger">+</button></span>' +
       '<button type="button" class="en-hb' + (S.notes ? ' on' : '') + '" data-notes>Notes</button>' +
       '<button type="button" class="en-hb en-ic" data-all="1" title="Expand all" aria-label="Expand all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 9 5 5 5-5"/></svg></button><button type="button" class="en-hb en-ic" data-all="0" title="Collapse all" aria-label="Collapse all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 7 5 5-5 5"/></svg></button>' +
-      '<button type="button" class="en-hb" data-theme>◐ Auto</button>' +
+      '<button type="button" class="en-hb" data-theme>◐ Auto</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('en-hb en-ic') : '') +
       '<button type="button" class="en-hb en-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="en-body"></div><div class="en-stat"></div>';
     var bar = document.createElement('div'); bar.className = 'en-bar en-top off';
@@ -538,6 +538,7 @@
     ui.el = el; ui.list = el.querySelector('.en-body'); ui.title = el.querySelector('.en-tb b'); ui.bar = bar; ui.stat = el.querySelector('.en-stat'); ui.zl = el.querySelector('[data-zl]'); ui.th = el.querySelector('[data-theme]'); ui.open = true; ui.sel = null; ui.limit = 300;
     el.querySelector('.en-head').appendChild(bar);
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('outline', el, ['.en-head', '.en-stat']);
     look(); render();
     ui.list.scrollTop = S.scroll[ui.bid] || 0;
     if (el.animate) { var o = lastTap && Date.now() - lastTap.t < 1500 ? lastTap.r : null; el.style.transformOrigin = o ? (o.left + o.width / 2) + 'px ' + (o.top + o.height / 2) + 'px' : '50% 40%'; el.animate([{ opacity: 0, scale: '.9' }, { opacity: 1, scale: '1' }], { duration: 340, easing: 'cubic-bezier(.2,.85,.25,1)' }); }

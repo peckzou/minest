@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 48.9 · MindNode default</title>
+    <title>Minest iPhone 49.0 · Full screen</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "48.9" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "49.0" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -53896,6 +53896,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.kc-x{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.2);margin-bottom:4px}',
     '.kc-x svg{width:15px;height:15px}',
     '.kc-tools{display:flex;gap:8px;margin-bottom:4px}',
+    '.kc-fs{width:34px;padding:0!important;display:grid;place-items:center}',
     '@media (max-width:600px){.kc-head{flex-wrap:wrap;position:relative}.kc-head > div:first-child{flex:1 1 100%!important;padding-right:48px}.kc-tools{flex-wrap:wrap}.kc-head .kc-x{position:absolute;right:18px;top:calc(env(safe-area-inset-top,0px) + 18px)}}',
     '.kc-tool{height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer}',
     '.kc-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 28px);scrollbar-width:none}',
@@ -54027,10 +54028,11 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     if (!S) { S = { open: {}, scroll: 0, sel: null }; var a = activeId(); if (a) S.open['b:' + a] = 1; }
     var el = document.createElement('div'); el.className = 'kc'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Contents');
     el.innerHTML = '<div class="kc-head"><div style="flex:1;min-width:0"><h1>Contents</h1><p class="kc-sub"></p></div>' +
-      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button></div>' +
+      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('kc-tool kc-fs') : '') + '</div>' +
       '<button type="button" class="kc-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="kc-body"></div>';
     ui.el = el; ui.list = el.querySelector('.kc-body'); ui.sub = el.querySelector('.kc-sub'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('contents', el, ['.kc-head']);
     render();
     ui.list.scrollTop = S.scroll || 0;
     if (S.sel) { var sr = ui.list.querySelector('.kc-row[data-id="' + cssEsc(S.sel) + '"]'); if (sr) { var r = sr.getBoundingClientRect(), lr = ui.list.getBoundingClientRect(); if (r.top < lr.top || r.bottom > lr.bottom) ui.list.scrollTop += r.top - lr.top - lr.height / 3; } }
@@ -54602,7 +54604,9 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     info: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'),
     del: I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
     date: I('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
-    x: I('<path d="M6 6l12 12M18 6 6 18"/>')
+    x: I('<path d="M6 6l12 12M18 6 6 18"/>'),
+    full: I('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+    unfull: I('<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>')
   };
   var CSS = [
     '.ke-bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:2147482010;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:calc(100vw - 16px);font:600 13px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:#fff}',
@@ -54661,6 +54665,14 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     // a view's own bottom-corner buttons step up while the bar is there
     'body:has(.ke-bar) .km-bot{bottom:calc(env(safe-area-inset-bottom,0px) + 112px)!important}',
     '.km-bot{transition:bottom .25s cubic-bezier(.2,.85,.25,1)}',
+    // full screen: the way back
+    '.kn-fs-x{display:none;position:absolute;z-index:30;right:calc(env(safe-area-inset-right,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 10px);width:38px;height:38px;border-radius:50%;padding:0;place-items:center;cursor:pointer;color:#fff;' +
+      'background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 26px rgba(0,0,0,.3);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);opacity:.75;transition:opacity .2s}',
+    '.kn-fs-x:hover,.kn-fs-x:active{opacity:1}',
+    '.kn-fs-x svg{width:18px;height:18px}',
+    '.kn-full .kn-fs-x{display:grid}',
+    'html.kn-light .kn-fs-x{background:rgba(255,255,255,.78);border-color:rgba(255,255,255,.95);color:#1d1f23;box-shadow:inset 0 1px 0 #fff,0 8px 22px rgba(30,40,60,.14)}',
+    '[data-knfull] svg{width:16px;height:16px;display:block}',
     // Edit switches in the views' headers
     '.ke-on{background:#0a84ff!important;border-color:#0a84ff!important;color:#fff!important}'
   ].join('\n');
@@ -54799,11 +54811,51 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     return sheet({ title: 'Edit ' + KIND[t.kind].toLowerCase(), fields: [{ key: 'title', label: 'Title', value: o.title || '' }].concat(note ? [{ key: 'desc', label: 'Note', type: 'note', value: o.desc || '' }] : []).concat(pic ? [{ key: 'img', label: 'Picture', type: 'image', value: picOf(o) }] : []) })
       .then(function (v) { if (!v) return null; return ops.update(t, v).then(function () { return { title: v.title.replace(/\s+/g, ' ').trim(), desc: v.desc }; }); });
   }
+  // ================================================================== full screen for any knowledge view
+  // the view's own bars go away (only the content is left) with one small glass ⤡ to come back; Esc too. Where the
+  // browser allows it (iPad, a computer) the page also goes full screen. Kept per view on this device.
+  var FS_KEY = 'minest.kn.full';
+  function fsLoad() { try { return JSON.parse(localStorage.getItem(FS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function fsSave(o) { try { localStorage.setItem(FS_KEY, JSON.stringify(o)); } catch (e) {} }
+  var fsCss = {};
+  // view: a name; root: the view's element; hide: selectors of its bars (inside root)
+  function fullscreen(view, root, hide) {
+    css();
+    if (!fsCss[view]) {
+      fsCss[view] = 1;
+      var st = document.createElement('style'); st.textContent = hide.map(function (h) { return '.kn-full[data-knv="' + view + '"] ' + h; }).join(',') + '{display:none!important}';
+      document.head.appendChild(st);
+    }
+    root.setAttribute('data-knv', view);
+    var exit = document.createElement('button'); exit.type = 'button'; exit.className = 'kn-fs-x'; exit.setAttribute('aria-label', 'Leave full screen'); exit.title = 'Leave full screen'; exit.innerHTML = ICON.unfull;
+    root.appendChild(exit);
+    function set(on, quiet) {
+      root.classList.toggle('kn-full', !!on);
+      root.querySelectorAll('[data-knfull]').forEach(function (b) { b.classList.toggle('ke-on', !!on); b.setAttribute('aria-pressed', !!on); });
+      var o = fsLoad(); if (on) o[view] = 1; else delete o[view]; fsSave(o);
+      if (quiet) return;
+      try {
+        var d = document, de = d.documentElement, cur = d.fullscreenElement || d.webkitFullscreenElement;
+        if (on && !cur) { var rq = de.requestFullscreen || de.webkitRequestFullscreen; if (rq) { var pr = rq.call(de); if (pr && pr.catch) pr.catch(function () {}); } }
+        else if (!on && cur) { var ex = d.exitFullscreen || d.webkitExitFullscreen; if (ex) { var p2 = ex.call(d); if (p2 && p2.catch) p2.catch(function () {}); } }
+      } catch (e) {}
+      try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+    }
+    exit.addEventListener('click', function (e) { e.stopPropagation(); set(false); });
+    ['pointerdown', 'touchstart'].forEach(function (ev) { exit.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
+    root.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-knfull]'); if (b && root.contains(b)) { e.stopPropagation(); set(!root.classList.contains('kn-full')); } }, true);
+    var key = function (e) { if (e.key === 'Escape' && root.classList.contains('kn-full') && document.body.contains(root)) set(false); };
+    document.addEventListener('keydown', key);
+    if (fsLoad()[view]) set(true, true);
+    return { set: set, on: function () { return root.classList.contains('kn-full'); } };
+  }
+  function fullBtnHtml(cls) { return '<button type="button" class="' + (cls || '') + '" data-knfull title="Full screen" aria-label="Full screen">' + ICON.full + '</button>'; }
+
   // an Edit switch for a view's header
   function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
 
   if (document.head) css(); else document.addEventListener('DOMContentLoaded', css);   // the menus' look is needed before any view opens
-  window.MinestKEdit = { picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
+  window.MinestKEdit = { fullscreen: fullscreen, fullBtnHtml: fullBtnHtml, picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();
 
 /* Minest Knowledge · Phase 2 — Endless (a vertical knowledge outline, after OmniOutliner)
@@ -55337,7 +55389,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       '<span class="en-zoom"><button type="button" data-zoom="-1" aria-label="Smaller">−</button><span data-zl>100%</span><button type="button" data-zoom="1" aria-label="Larger">+</button></span>' +
       '<button type="button" class="en-hb' + (S.notes ? ' on' : '') + '" data-notes>Notes</button>' +
       '<button type="button" class="en-hb en-ic" data-all="1" title="Expand all" aria-label="Expand all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 9 5 5 5-5"/></svg></button><button type="button" class="en-hb en-ic" data-all="0" title="Collapse all" aria-label="Collapse all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 7 5 5-5 5"/></svg></button>' +
-      '<button type="button" class="en-hb" data-theme>◐ Auto</button>' +
+      '<button type="button" class="en-hb" data-theme>◐ Auto</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('en-hb en-ic') : '') +
       '<button type="button" class="en-hb en-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="en-body"></div><div class="en-stat"></div>';
     var bar = document.createElement('div'); bar.className = 'en-bar en-top off';
@@ -55346,6 +55398,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     ui.el = el; ui.list = el.querySelector('.en-body'); ui.title = el.querySelector('.en-tb b'); ui.bar = bar; ui.stat = el.querySelector('.en-stat'); ui.zl = el.querySelector('[data-zl]'); ui.th = el.querySelector('[data-theme]'); ui.open = true; ui.sel = null; ui.limit = 300;
     el.querySelector('.en-head').appendChild(bar);
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('outline', el, ['.en-head', '.en-stat']);
     look(); render();
     ui.list.scrollTop = S.scroll[ui.bid] || 0;
     if (el.animate) { var o = lastTap && Date.now() - lastTap.t < 1500 ? lastTap.r : null; el.style.transformOrigin = o ? (o.left + o.width / 2) + 'px ' + (o.top + o.height / 2) + 'px' : '50% 40%'; el.animate([{ opacity: 0, scale: '.9' }, { opacity: 1, scale: '1' }], { duration: 340, easing: 'cubic-bezier(.2,.85,.25,1)' }); }
@@ -55977,7 +56030,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       '<button type="button" class="km-b" data-act="style" aria-label="Map style">' + ICON.style + '</button>' +
       '<button type="button" class="km-b" data-act="boards" aria-label="Boards">' + ICON.map + '</button>' +
       '<button type="button" class="km-b" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
-      '<div class="km-bot"><button type="button" class="km-b" data-act="home" aria-label="Whole map">' + ICON.home + '</button>' +
+      '<div class="km-bot">' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('km-b') : '') + '<button type="button" class="km-b" data-act="home" aria-label="Whole map">' + ICON.home + '</button>' +
       '<button type="button" class="km-b" data-act="fit" aria-label="Fit to screen">' + ICON.fit + '</button>' +
       '<button type="button" class="km-b" data-act="kedit" aria-label="Edit" title="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' +
       '<button type="button" class="km-b" data-act="arr" aria-label="Arrange">' + ICON.move + '</button>' +
@@ -55986,6 +56039,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     ui.el = el; ui.stage = el.querySelector('.km-stage'); ui.world = el.querySelector('.km-world'); ui.path = el.querySelector('.km-path'); ui.backBtn = el.querySelector('[data-act="back"]'); ui.hint = el.querySelector('.km-hint');
     ui.open = true; arrange = false;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('map', el, ['.km-top', '.km-bot', '.km-hint']);
     ui.oneSide = innerWidth < 600 && innerHeight > innerWidth;
     build(); wire(); restore();
     if (!S.seen) { S.seen = 1; stSave(); hint('Tap a bubble to zoom in · tap a card again to edit it · a list again opens it on the board'); }
@@ -56083,7 +56137,20 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.tl{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:#eef1f6;font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;' +
       'background:linear-gradient(180deg,#1c202c,#0c0e14)}',
     '.tl.away{visibility:hidden}',
-    '.tl-head{position:relative;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 8px;border-bottom:1px solid rgba(255,255,255,.07)}',
+    '.tl-head{position:relative;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 6px;border-bottom:1px solid rgba(255,255,255,.07)}',
+    '.tl-top{display:flex;align-items:center;gap:6px;min-height:36px}',
+    '.tl-top .tl-tb{flex:1;min-width:0;padding:0 4px 0 2px}',
+    '.tl-top .tl-tb b{font-size:20px;line-height:1.2;letter-spacing:-.3px}',
+    '.tl-top .tl-tb b:after{font-size:14px}',
+    '.tl-top .tl-seg button{height:28px;min-width:32px;padding:0 9px;font-size:15px}',
+    '.tl-ic{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:inherit;display:grid;place-items:center;cursor:pointer;padding:0}',
+    '.tl-ic svg{width:16px;height:16px}',
+    '.tl-top .tl-x{position:static}',
+    '.tl-strip{margin-top:6px;align-items:center}',
+    '.tl-strip > span{display:flex;gap:6px;flex:none}',
+    '.tl-strip .tl-lists:not(:empty){padding-left:8px;margin-left:2px;border-left:1px solid rgba(127,127,127,.25)}',
+    '.tl.h .tl-ic{background:#fff;border-color:#ddd;color:#222}',
+    'html:not(.kn-light) .tl.h .tl-ic{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}',
     '.tl-tb{display:block;border:0;background:none;color:inherit;text-align:left;padding:0 48px 0 0;cursor:pointer;font:inherit;max-width:100%}',
     '.tl-tb small{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.5}',
     '.tl-tb b{display:block;font-size:28px;line-height:1.15;font-weight:750;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
@@ -56204,7 +56271,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       });
     }
     ui.nav.innerHTML = '<button type="button" class="tl-chip" data-goto>Go to year…</button>' + jumps;
-    ui.lists.innerHTML = chips; ui.lists.style.display = chips ? '' : 'none';
+    ui.lists.innerHTML = chips;
     // the line: one block per year
     groups = [];
     ev.forEach(function (e) { var g = groups[groups.length - 1]; if (!g || g.y !== e.t.y) groups.push(g = { y: e.t.y, evs: [] }); g.evs.push(e); });
@@ -56429,7 +56496,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   var editing = false;
   function setEdit(on) {
     editing = !!on; if (!ui.el) return;
-    var b = ui.el.querySelector('[data-kedit]'); if (b) b.classList.toggle('ke-on', editing);
+    var b = ui.el.querySelector('[data-kedit]'); if (b) b.classList.toggle('ke-on', editing);   // (an icon button now)
     var nb = ui.el.querySelector('[data-newev]'); if (nb) nb.hidden = !editing;
     ui.el.classList.toggle('editing', editing);
     if (!editing && window.MinestKEdit) MinestKEdit.closeBar(); else if (editing) toast('Tap an event to edit it');
@@ -56482,12 +56549,16 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
     if (!ui.bid) return toast('No board yet.');
     var el = document.createElement('div'); el.className = 'tl'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Timeline');
-    el.innerHTML = '<div class="tl-head"><button type="button" class="tl-tb" data-boards><small>Timeline</small><b></b></button>' +
-      '<button type="button" class="tl-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
-      '<div class="tl-row"><span class="tl-seg"><button type="button" data-view="v" title="Vertical">↕ Vertical</button><button type="button" data-view="h" title="Horizontal">↔ Horizontal</button></span><button type="button" class="tl-chip" data-kedit>✎ Edit</button><button type="button" class="tl-chip" data-newev hidden>＋ New event</button></div>' +
-      '<div class="tl-row tl-nav"></div><div class="tl-row tl-lists"></div></div><div class="tl-body"></div>';
+    // a compact header: one row (board · vertical / horizontal · edit · full screen · close), then one strip (years, lists)
+    var FS = window.MinestKEdit ? MinestKEdit.fullBtnHtml('tl-ic') : '';
+    el.innerHTML = '<div class="tl-head"><div class="tl-top"><button type="button" class="tl-tb" data-boards><b></b></button>' +
+      '<span class="tl-seg"><button type="button" data-view="v" title="Vertical" aria-label="Vertical">↕</button><button type="button" data-view="h" title="Horizontal" aria-label="Horizontal">↔</button></span>' +
+      '<button type="button" class="tl-ic" data-kedit title="Edit" aria-label="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' + FS +
+      '<button type="button" class="tl-ic tl-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
+      '<div class="tl-row tl-strip"><button type="button" class="tl-chip tl-new" data-newev hidden>＋ New event</button><span class="tl-nav"></span><span class="tl-lists"></span></div></div><div class="tl-body"></div>';
     ui.el = el; ui.list = el.querySelector('.tl-body'); ui.title = el.querySelector('.tl-tb b'); ui.nav = el.querySelector('.tl-nav'); ui.lists = el.querySelector('.tl-lists'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('timeline', el, ['.tl-head']);
     render(); restore();
     if (el.animate) el.animate([{ opacity: 0, scale: '.96' }, { opacity: 1, scale: '1' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1)' });
     wire(el);
@@ -57409,12 +57480,13 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       '<button type="button" class="lm-b2" data-act="edit" aria-label="Arrange">' + ICON.edit + '</button>' +
       '<button type="button" class="lm-b2" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="lm-note" style="display:none"></div>' +
-      '<div class="lm-side"><button type="button" class="lm-b2" data-act="tolist" aria-label="Open this region\'s list on the board" title="Open the list on the board"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg></button><button type="button" class="lm-b2" data-act="here" aria-label="You are here">' + ICON.here + '</button><button type="button" class="lm-b2" data-act="fit" aria-label="Fit">' + ICON.fit + '</button><button type="button" class="lm-b2" data-act="home" aria-label="Whole map">' + ICON.home + '</button></div>' +
+      '<div class="lm-side">' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('lm-b2') : '') + '<button type="button" class="lm-b2" data-act="tolist" aria-label="Open this region\'s list on the board" title="Open the list on the board"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg></button><button type="button" class="lm-b2" data-act="here" aria-label="You are here">' + ICON.here + '</button><button type="button" class="lm-b2" data-act="fit" aria-label="Fit">' + ICON.fit + '</button><button type="button" class="lm-b2" data-act="home" aria-label="Whole map">' + ICON.home + '</button></div>' +
       '<div class="lm-legend"></div><div class="lm-banner"></div><div class="lm-sheet" style="display:none"></div>';
     if (!document.getElementById('lm-font')) { var lf = document.createElement('link'); lf.id = 'lm-font'; lf.rel = 'stylesheet'; lf.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'; document.head.appendChild(lf); }
     ui.el = el; ui.banner = el.querySelector('.lm-banner'); ui.stage = el.querySelector('.lm-stage'); ui.world = el.querySelector('.lm-world'); ui.path = el.querySelector('.lm-path'); ui.mode = el.querySelector('[data-act="mode"]'); ui.sheet = el.querySelector('.lm-sheet'); ui.legend = el.querySelector('.lm-legend'); ui.note = el.querySelector('.lm-note');
     ui.open = true; edit = false; focus = null;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('lmap', el, ['.lm-top', '.lm-side', '.lm-legend']);
     render(); wire();
     var hc = camFor(allBox(), 10); homeS = hc.s;
     var c = S.cam[ui.bid];
@@ -57533,6 +57605,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.wk-seg button.on{background:rgba(255,255,255,.16);color:#fff}',
     '.wk-hb{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff}',
     '.wk-hb.on{background:#0a84ff;border-color:#0a84ff}',
+    '.wk-fs{width:36px;padding:0!important;display:inline-grid;place-items:center}',
     '.wk-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px calc(env(safe-area-inset-bottom,0px) + 40px)}',
     // portal
     '.wk-portal h2{margin:0 2px 2px;font-size:20px;font-weight:750}',
@@ -57983,9 +58056,10 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     var el = document.createElement('div'); el.className = 'wk'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Wiki Portal');
     el.innerHTML = '<div class="wk-head"><button type="button" class="wk-tb" data-boards><small></small><b></b></button>' +
       '<button type="button" class="wk-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
-      '<span class="wk-seg"><button type="button" data-layout="wiki">Wiki</button><button type="button" data-layout="compact">Compact</button></span><button type="button" class="wk-hb" data-edit>✎ Edit</button></div><div class="wk-body"></div>';
+      '<span class="wk-seg"><button type="button" data-layout="wiki">Wiki</button><button type="button" data-layout="compact">Compact</button></span><button type="button" class="wk-hb" data-edit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('wk-hb wk-fs') : '') + '</div><div class="wk-body"></div>';
     ui.el = el; ui.list = el.querySelector('.wk-body'); ui.title = el.querySelector('.wk-tb b'); ui.kicker = el.querySelector('.wk-tb small'); ui.seg = el.querySelector('.wk-seg'); ui.open = true; edit = false;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('portal', el, ['.wk-head']);
     render(); ui.list.scrollTop = st().scroll || 0;
     if (el.animate) el.animate([{ opacity: 0, scale: '.97' }, { opacity: 1, scale: '1' }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
     wire(el);

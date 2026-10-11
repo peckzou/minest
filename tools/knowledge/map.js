@@ -547,7 +547,7 @@
       '<button type="button" class="km-b" data-act="style" aria-label="Map style">' + ICON.style + '</button>' +
       '<button type="button" class="km-b" data-act="boards" aria-label="Boards">' + ICON.map + '</button>' +
       '<button type="button" class="km-b" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
-      '<div class="km-bot"><button type="button" class="km-b" data-act="home" aria-label="Whole map">' + ICON.home + '</button>' +
+      '<div class="km-bot">' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('km-b') : '') + '<button type="button" class="km-b" data-act="home" aria-label="Whole map">' + ICON.home + '</button>' +
       '<button type="button" class="km-b" data-act="fit" aria-label="Fit to screen">' + ICON.fit + '</button>' +
       '<button type="button" class="km-b" data-act="kedit" aria-label="Edit" title="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' +
       '<button type="button" class="km-b" data-act="arr" aria-label="Arrange">' + ICON.move + '</button>' +
@@ -556,6 +556,7 @@
     ui.el = el; ui.stage = el.querySelector('.km-stage'); ui.world = el.querySelector('.km-world'); ui.path = el.querySelector('.km-path'); ui.backBtn = el.querySelector('[data-act="back"]'); ui.hint = el.querySelector('.km-hint');
     ui.open = true; arrange = false;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('map', el, ['.km-top', '.km-bot', '.km-hint']);
     ui.oneSide = innerWidth < 600 && innerHeight > innerWidth;
     build(); wire(); restore();
     if (!S.seen) { S.seen = 1; stSave(); hint('Tap a bubble to zoom in · tap a card again to edit it · a list again opens it on the board'); }

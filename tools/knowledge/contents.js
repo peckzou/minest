@@ -124,6 +124,7 @@
     '.kc-x{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.2);margin-bottom:4px}',
     '.kc-x svg{width:15px;height:15px}',
     '.kc-tools{display:flex;gap:8px;margin-bottom:4px}',
+    '.kc-fs{width:34px;padding:0!important;display:grid;place-items:center}',
     '@media (max-width:600px){.kc-head{flex-wrap:wrap;position:relative}.kc-head > div:first-child{flex:1 1 100%!important;padding-right:48px}.kc-tools{flex-wrap:wrap}.kc-head .kc-x{position:absolute;right:18px;top:calc(env(safe-area-inset-top,0px) + 18px)}}',
     '.kc-tool{height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer}',
     '.kc-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 28px);scrollbar-width:none}',
@@ -255,10 +256,11 @@
     if (!S) { S = { open: {}, scroll: 0, sel: null }; var a = activeId(); if (a) S.open['b:' + a] = 1; }
     var el = document.createElement('div'); el.className = 'kc'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Contents');
     el.innerHTML = '<div class="kc-head"><div style="flex:1;min-width:0"><h1>Contents</h1><p class="kc-sub"></p></div>' +
-      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button></div>' +
+      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('kc-tool kc-fs') : '') + '</div>' +
       '<button type="button" class="kc-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="kc-body"></div>';
     ui.el = el; ui.list = el.querySelector('.kc-body'); ui.sub = el.querySelector('.kc-sub'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('contents', el, ['.kc-head']);
     render();
     ui.list.scrollTop = S.scroll || 0;
     if (S.sel) { var sr = ui.list.querySelector('.kc-row[data-id="' + cssEsc(S.sel) + '"]'); if (sr) { var r = sr.getBoundingClientRect(), lr = ui.list.getBoundingClientRect(); if (r.top < lr.top || r.bottom > lr.bottom) ui.list.scrollTop += r.top - lr.top - lr.height / 3; } }

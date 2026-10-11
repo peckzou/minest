@@ -64,7 +64,20 @@
     '.tl{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:#eef1f6;font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;' +
       'background:linear-gradient(180deg,#1c202c,#0c0e14)}',
     '.tl.away{visibility:hidden}',
-    '.tl-head{position:relative;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 8px;border-bottom:1px solid rgba(255,255,255,.07)}',
+    '.tl-head{position:relative;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 6px;border-bottom:1px solid rgba(255,255,255,.07)}',
+    '.tl-top{display:flex;align-items:center;gap:6px;min-height:36px}',
+    '.tl-top .tl-tb{flex:1;min-width:0;padding:0 4px 0 2px}',
+    '.tl-top .tl-tb b{font-size:20px;line-height:1.2;letter-spacing:-.3px}',
+    '.tl-top .tl-tb b:after{font-size:14px}',
+    '.tl-top .tl-seg button{height:28px;min-width:32px;padding:0 9px;font-size:15px}',
+    '.tl-ic{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:inherit;display:grid;place-items:center;cursor:pointer;padding:0}',
+    '.tl-ic svg{width:16px;height:16px}',
+    '.tl-top .tl-x{position:static}',
+    '.tl-strip{margin-top:6px;align-items:center}',
+    '.tl-strip > span{display:flex;gap:6px;flex:none}',
+    '.tl-strip .tl-lists:not(:empty){padding-left:8px;margin-left:2px;border-left:1px solid rgba(127,127,127,.25)}',
+    '.tl.h .tl-ic{background:#fff;border-color:#ddd;color:#222}',
+    'html:not(.kn-light) .tl.h .tl-ic{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}',
     '.tl-tb{display:block;border:0;background:none;color:inherit;text-align:left;padding:0 48px 0 0;cursor:pointer;font:inherit;max-width:100%}',
     '.tl-tb small{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.5}',
     '.tl-tb b{display:block;font-size:28px;line-height:1.15;font-weight:750;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
@@ -185,7 +198,7 @@
       });
     }
     ui.nav.innerHTML = '<button type="button" class="tl-chip" data-goto>Go to year…</button>' + jumps;
-    ui.lists.innerHTML = chips; ui.lists.style.display = chips ? '' : 'none';
+    ui.lists.innerHTML = chips;
     // the line: one block per year
     groups = [];
     ev.forEach(function (e) { var g = groups[groups.length - 1]; if (!g || g.y !== e.t.y) groups.push(g = { y: e.t.y, evs: [] }); g.evs.push(e); });
@@ -410,7 +423,7 @@
   var editing = false;
   function setEdit(on) {
     editing = !!on; if (!ui.el) return;
-    var b = ui.el.querySelector('[data-kedit]'); if (b) b.classList.toggle('ke-on', editing);
+    var b = ui.el.querySelector('[data-kedit]'); if (b) b.classList.toggle('ke-on', editing);   // (an icon button now)
     var nb = ui.el.querySelector('[data-newev]'); if (nb) nb.hidden = !editing;
     ui.el.classList.toggle('editing', editing);
     if (!editing && window.MinestKEdit) MinestKEdit.closeBar(); else if (editing) toast('Tap an event to edit it');
@@ -463,12 +476,16 @@
     ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
     if (!ui.bid) return toast('No board yet.');
     var el = document.createElement('div'); el.className = 'tl'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Timeline');
-    el.innerHTML = '<div class="tl-head"><button type="button" class="tl-tb" data-boards><small>Timeline</small><b></b></button>' +
-      '<button type="button" class="tl-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
-      '<div class="tl-row"><span class="tl-seg"><button type="button" data-view="v" title="Vertical">↕ Vertical</button><button type="button" data-view="h" title="Horizontal">↔ Horizontal</button></span><button type="button" class="tl-chip" data-kedit>✎ Edit</button><button type="button" class="tl-chip" data-newev hidden>＋ New event</button></div>' +
-      '<div class="tl-row tl-nav"></div><div class="tl-row tl-lists"></div></div><div class="tl-body"></div>';
+    // a compact header: one row (board · vertical / horizontal · edit · full screen · close), then one strip (years, lists)
+    var FS = window.MinestKEdit ? MinestKEdit.fullBtnHtml('tl-ic') : '';
+    el.innerHTML = '<div class="tl-head"><div class="tl-top"><button type="button" class="tl-tb" data-boards><b></b></button>' +
+      '<span class="tl-seg"><button type="button" data-view="v" title="Vertical" aria-label="Vertical">↕</button><button type="button" data-view="h" title="Horizontal" aria-label="Horizontal">↔</button></span>' +
+      '<button type="button" class="tl-ic" data-kedit title="Edit" aria-label="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' + FS +
+      '<button type="button" class="tl-ic tl-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
+      '<div class="tl-row tl-strip"><button type="button" class="tl-chip tl-new" data-newev hidden>＋ New event</button><span class="tl-nav"></span><span class="tl-lists"></span></div></div><div class="tl-body"></div>';
     ui.el = el; ui.list = el.querySelector('.tl-body'); ui.title = el.querySelector('.tl-tb b'); ui.nav = el.querySelector('.tl-nav'); ui.lists = el.querySelector('.tl-lists'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('timeline', el, ['.tl-head']);
     render(); restore();
     if (el.animate) el.animate([{ opacity: 0, scale: '.96' }, { opacity: 1, scale: '1' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1)' });
     wire(el);

@@ -96,6 +96,7 @@
     '.wk-seg button.on{background:rgba(255,255,255,.16);color:#fff}',
     '.wk-hb{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff}',
     '.wk-hb.on{background:#0a84ff;border-color:#0a84ff}',
+    '.wk-fs{width:36px;padding:0!important;display:inline-grid;place-items:center}',
     '.wk-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px calc(env(safe-area-inset-bottom,0px) + 40px)}',
     // portal
     '.wk-portal h2{margin:0 2px 2px;font-size:20px;font-weight:750}',
@@ -546,9 +547,10 @@
     var el = document.createElement('div'); el.className = 'wk'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Wiki Portal');
     el.innerHTML = '<div class="wk-head"><button type="button" class="wk-tb" data-boards><small></small><b></b></button>' +
       '<button type="button" class="wk-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
-      '<span class="wk-seg"><button type="button" data-layout="wiki">Wiki</button><button type="button" data-layout="compact">Compact</button></span><button type="button" class="wk-hb" data-edit>✎ Edit</button></div><div class="wk-body"></div>';
+      '<span class="wk-seg"><button type="button" data-layout="wiki">Wiki</button><button type="button" data-layout="compact">Compact</button></span><button type="button" class="wk-hb" data-edit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('wk-hb wk-fs') : '') + '</div><div class="wk-body"></div>';
     ui.el = el; ui.list = el.querySelector('.wk-body'); ui.title = el.querySelector('.wk-tb b'); ui.kicker = el.querySelector('.wk-tb small'); ui.seg = el.querySelector('.wk-seg'); ui.open = true; edit = false;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (window.MinestKEdit) MinestKEdit.fullscreen('portal', el, ['.wk-head']);
     render(); ui.list.scrollTop = st().scroll || 0;
     if (el.animate) el.animate([{ opacity: 0, scale: '.97' }, { opacity: 1, scale: '1' }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
     wire(el);

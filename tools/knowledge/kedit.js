@@ -150,7 +150,9 @@
     info: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'),
     del: I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
     date: I('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
-    x: I('<path d="M6 6l12 12M18 6 6 18"/>')
+    x: I('<path d="M6 6l12 12M18 6 6 18"/>'),
+    full: I('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+    unfull: I('<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>')
   };
   var CSS = [
     '.ke-bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:2147482010;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:calc(100vw - 16px);font:600 13px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:#fff}',
@@ -209,6 +211,14 @@
     // a view's own bottom-corner buttons step up while the bar is there
     'body:has(.ke-bar) .km-bot{bottom:calc(env(safe-area-inset-bottom,0px) + 112px)!important}',
     '.km-bot{transition:bottom .25s cubic-bezier(.2,.85,.25,1)}',
+    // full screen: the way back
+    '.kn-fs-x{display:none;position:absolute;z-index:30;right:calc(env(safe-area-inset-right,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 10px);width:38px;height:38px;border-radius:50%;padding:0;place-items:center;cursor:pointer;color:#fff;' +
+      'background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 26px rgba(0,0,0,.3);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);opacity:.75;transition:opacity .2s}',
+    '.kn-fs-x:hover,.kn-fs-x:active{opacity:1}',
+    '.kn-fs-x svg{width:18px;height:18px}',
+    '.kn-full .kn-fs-x{display:grid}',
+    'html.kn-light .kn-fs-x{background:rgba(255,255,255,.78);border-color:rgba(255,255,255,.95);color:#1d1f23;box-shadow:inset 0 1px 0 #fff,0 8px 22px rgba(30,40,60,.14)}',
+    '[data-knfull] svg{width:16px;height:16px;display:block}',
     // Edit switches in the views' headers
     '.ke-on{background:#0a84ff!important;border-color:#0a84ff!important;color:#fff!important}'
   ].join('\n');
@@ -347,9 +357,49 @@
     return sheet({ title: 'Edit ' + KIND[t.kind].toLowerCase(), fields: [{ key: 'title', label: 'Title', value: o.title || '' }].concat(note ? [{ key: 'desc', label: 'Note', type: 'note', value: o.desc || '' }] : []).concat(pic ? [{ key: 'img', label: 'Picture', type: 'image', value: picOf(o) }] : []) })
       .then(function (v) { if (!v) return null; return ops.update(t, v).then(function () { return { title: v.title.replace(/\s+/g, ' ').trim(), desc: v.desc }; }); });
   }
+  // ================================================================== full screen for any knowledge view
+  // the view's own bars go away (only the content is left) with one small glass ⤡ to come back; Esc too. Where the
+  // browser allows it (iPad, a computer) the page also goes full screen. Kept per view on this device.
+  var FS_KEY = 'minest.kn.full';
+  function fsLoad() { try { return JSON.parse(localStorage.getItem(FS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function fsSave(o) { try { localStorage.setItem(FS_KEY, JSON.stringify(o)); } catch (e) {} }
+  var fsCss = {};
+  // view: a name; root: the view's element; hide: selectors of its bars (inside root)
+  function fullscreen(view, root, hide) {
+    css();
+    if (!fsCss[view]) {
+      fsCss[view] = 1;
+      var st = document.createElement('style'); st.textContent = hide.map(function (h) { return '.kn-full[data-knv="' + view + '"] ' + h; }).join(',') + '{display:none!important}';
+      document.head.appendChild(st);
+    }
+    root.setAttribute('data-knv', view);
+    var exit = document.createElement('button'); exit.type = 'button'; exit.className = 'kn-fs-x'; exit.setAttribute('aria-label', 'Leave full screen'); exit.title = 'Leave full screen'; exit.innerHTML = ICON.unfull;
+    root.appendChild(exit);
+    function set(on, quiet) {
+      root.classList.toggle('kn-full', !!on);
+      root.querySelectorAll('[data-knfull]').forEach(function (b) { b.classList.toggle('ke-on', !!on); b.setAttribute('aria-pressed', !!on); });
+      var o = fsLoad(); if (on) o[view] = 1; else delete o[view]; fsSave(o);
+      if (quiet) return;
+      try {
+        var d = document, de = d.documentElement, cur = d.fullscreenElement || d.webkitFullscreenElement;
+        if (on && !cur) { var rq = de.requestFullscreen || de.webkitRequestFullscreen; if (rq) { var pr = rq.call(de); if (pr && pr.catch) pr.catch(function () {}); } }
+        else if (!on && cur) { var ex = d.exitFullscreen || d.webkitExitFullscreen; if (ex) { var p2 = ex.call(d); if (p2 && p2.catch) p2.catch(function () {}); } }
+      } catch (e) {}
+      try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+    }
+    exit.addEventListener('click', function (e) { e.stopPropagation(); set(false); });
+    ['pointerdown', 'touchstart'].forEach(function (ev) { exit.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
+    root.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-knfull]'); if (b && root.contains(b)) { e.stopPropagation(); set(!root.classList.contains('kn-full')); } }, true);
+    var key = function (e) { if (e.key === 'Escape' && root.classList.contains('kn-full') && document.body.contains(root)) set(false); };
+    document.addEventListener('keydown', key);
+    if (fsLoad()[view]) set(true, true);
+    return { set: set, on: function () { return root.classList.contains('kn-full'); } };
+  }
+  function fullBtnHtml(cls) { return '<button type="button" class="' + (cls || '') + '" data-knfull title="Full screen" aria-label="Full screen">' + ICON.full + '</button>'; }
+
   // an Edit switch for a view's header
   function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
 
   if (document.head) css(); else document.addEventListener('DOMContentLoaded', css);   // the menus' look is needed before any view opens
-  window.MinestKEdit = { picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
+  window.MinestKEdit = { fullscreen: fullscreen, fullBtnHtml: fullBtnHtml, picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();
