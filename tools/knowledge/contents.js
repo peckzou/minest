@@ -15,7 +15,7 @@
 
   // ================================================================== knowledge metadata (synced)
   var KN_KEY = 'minest.knowledge.v1';
-  var K = (function () { try { var v = JSON.parse(localStorage.getItem(KN_KEY) || 'null'); if (v && typeof v === 'object') return { h: v.h || {}, off: v.off || {}, o: v.o || {}, m: v.m || {}, t: v.t || {} }; } catch (e) {} return { h: {}, off: {}, o: {}, m: {}, t: {} }; })();
+  var K = (function () { try { var v = JSON.parse(localStorage.getItem(KN_KEY) || 'null'); if (v && typeof v === 'object') return { h: v.h || {}, off: v.off || {}, o: v.o || {}, m: v.m || {}, t: v.t || {}, x: v.x || {} }; } catch (e) {} return { h: {}, off: {}, o: {}, m: {}, t: {}, x: {} }; })();
   function knSave() { try { localStorage.setItem(KN_KEY, JSON.stringify(K)); } catch (e) {} }
   function knPush() {
     // straight to the cloud doc (merge), so a heading reaches the other devices without waiting for a board edit
@@ -42,12 +42,17 @@
     // Timeline (Phase 4): an event's date — only what was entered: {y (negative = BCE), m?, d?, y2?, m2?, d2?}
     dateOf: function (id) { var x = K.t[id]; return x && typeof x.y === 'number' ? x : null; },
     setDate: function (id, dt) { var v = { t: Date.now() }; if (dt) ['y', 'm', 'd', 'y2', 'm2', 'd2'].forEach(function (f) { if (typeof dt[f] === 'number' && isFinite(dt[f])) v[f] = dt[f]; }); K.t[id] = v; knSave(); knPush(); listeners.forEach(function (f) { try { f(); } catch (e) {} }); },
+    // Learning Map / Wiki (Phases 5–6): any view setting by key ({v, t}; v null = removed), merged per key by time
+    get: function (key) { var x = K.x[key]; return x && x.v != null ? x.v : null; },
+    set: function (key, v, quiet) { K.x[key] = { v: v == null ? null : v, t: Date.now() }; knSave(); knPush(); if (!quiet) listeners.forEach(function (f) { try { f(); } catch (e) {} }); },
+    setMany: function (map) { var t = Date.now(); Object.keys(map).forEach(function (k) { K.x[k] = { v: map[k] == null ? null : map[k], t: t }; }); knSave(); knPush(); listeners.forEach(function (f) { try { f(); } catch (e) {} }); },
+    keys: function (prefix) { return Object.keys(K.x).filter(function (k) { return k.indexOf(prefix) === 0 && K.x[k].v != null; }); },
     clearPos: function (keys) { var t = Date.now(); keys.forEach(function (k) { if (K.m[k]) K.m[k] = { t: t }; }); knSave(); knPush(); },
     _cloud: function () { return K; },
     _mergeCloud: function (R) {
       if (!R || typeof R !== 'object') return;
       var changed = false;
-      ['h', 'off', 'o', 'm', 't'].forEach(function (m) {
+      ['h', 'off', 'o', 'm', 't', 'x'].forEach(function (m) {
         var src = R[m] || {}; K[m] = K[m] || {};
         Object.keys(src).forEach(function (id) { var a = K[m][id], b = src[id]; if (b && (!a || (b.t || 0) > (a.t || 0))) { K[m][id] = b; changed = true; } });
       });

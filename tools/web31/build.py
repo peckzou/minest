@@ -120,6 +120,8 @@ def knowledge_patches(out):
     out = once(out, "      rateCard: function(cardId, level) {",
                "      // Minest Knowledge · Endless: change one board; open a card's (or a stacked card's) details on its board\n"
                "      updateBoard: function(boardId, fn) { setBoards(function(list) { return list.map(function(b) { return b.id === boardId ? fn(b) : b; }); }); },\n"
+               "      removeBoard: function(boardId) { setBoards(function(list) { var left = list.filter(function(b) { return b.id !== boardId; }); return left.length ? left : list; }); },\n"
+               "      addBoard: function(board, select) { setBoards(function(list) { return list.concat([board]); }); if (select) setTimeout(function() { setActiveBoardId(board.id); }, 30); },\n"
                "      openCardIn: function(boardId, colId, cardId) { if (boardId) setActiveBoardId(boardId); setTimeout(function() { setCardModal({ isOpen: true, columnId: colId, cardId: cardId }); }, 60); },\n"
                "      rateCard: function(cardId, level) {", 'knowledge: updateBoard / openCardIn')
     return out
@@ -127,7 +129,13 @@ def knowledge_patches(out):
 
 def knowledge_js():
     # Phase 1 Contents, Phase 2 Endless, Phase 3 Knowledge Map, Phase 4 Timeline (Contents first: the others use its MinestKnowledge)
-    return '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'endless.js', 'map.js', 'timeline.js'))
+    import json, glob
+    samples = {}
+    for f in sorted(glob.glob(os.path.join(REPO, 'tools', 'knowledge', 'samples', '*.json'))):
+        samples[os.path.splitext(os.path.basename(f))[0]] = json.load(open(f, encoding='utf-8'))
+    js = 'window.__MINEST_KN_SAMPLES = ' + json.dumps(samples, ensure_ascii=False) + ';\n'
+    # Phases 1–4, then JSON import (5–6), the Learning Map, and the one Knowledge Dock icon
+    return js + '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'endless.js', 'map.js', 'timeline.js', 'kjson.js', 'learnmap.js', 'hub.js'))
 
 
 def toon_patches(out):

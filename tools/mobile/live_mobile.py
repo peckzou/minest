@@ -132,10 +132,7 @@ def main():
     # 46.9: Minest Knowledge · Contents (tools/knowledge/contents.js) + its Dock icon, first in the Dock
     s = web31.knowledge_patches(s)
     s = once(s, "    { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },",
-             "    { k: 'contents', find: function () { return document.getElementById('mn-contents-trigger'); } },   // 46.9 Minest Knowledge\n"
-             "    { k: 'endless', find: function () { return document.getElementById('mn-endless-trigger'); } },   // 47.0 Endless outline\n"
-             "    { k: 'kmap', find: function () { return document.getElementById('mn-map-trigger'); } },   // 47.1 Knowledge Map\n"
-             "    { k: 'timeline', find: function () { return document.getElementById('mn-timeline-trigger'); } },   // 47.2 Timeline\n"
+             "    { k: 'knowledge', find: function () { return document.getElementById('mn-knowledge-trigger'); } },   // 47.3 Knowledge: Contents · Outline · Map · Timeline · Learning Map · Wiki\n"
              "    { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },", 'dock: Contents')
     tail = s.rindex('</body>')
     s = s[:tail] + '<script>\n' + web31.knowledge_js() + '\n</script>\n' + s[tail:]
