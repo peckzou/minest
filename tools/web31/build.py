@@ -103,6 +103,26 @@ def card_back(out):
     return out
 
 
+def knowledge_patches(out):
+    """Minest Knowledge (Contents): the synced `knowledge` field rides in the cloud doc beside `learning`
+    (tools/knowledge/contents.js keeps it outside the boards, so the boards' field lists never drop it)."""
+    if 'window.MinestKnowledge._cloud' in out:
+        return out
+    out = once(out, "try { if (window.MinestLearn && window.MinestLearn._cloud) base.learning = JSON.parse(JSON.stringify(window.MinestLearn._cloud())); } catch (e) {}",
+               "try { if (window.MinestLearn && window.MinestLearn._cloud) base.learning = JSON.parse(JSON.stringify(window.MinestLearn._cloud())); } catch (e) {}\n"
+               "  try { if (window.MinestKnowledge && window.MinestKnowledge._cloud) base.knowledge = JSON.parse(JSON.stringify(window.MinestKnowledge._cloud())); } catch (e) {}   // Minest Knowledge", 'knowledge: payload')
+    tail = "window.MinestLearn._mergeCloud(data.learning); } catch (e) {}"
+    n = out.count(tail)
+    if n < 1:
+        raise SystemExit('knowledge: no learning merge found')
+    out = out.replace(tail, tail + " try { if (data && data.knowledge && window.MinestKnowledge) window.MinestKnowledge._mergeCloud(data.knowledge); } catch (e) {}")
+    return out
+
+
+def knowledge_js():
+    return open(os.path.join(REPO, 'tools', 'knowledge', 'contents.js'), encoding='utf-8').read()
+
+
 def toon_patches(out):
     """The Arcade's canvas games in Minest Live (a live game, Solo play): Blooket-style when window.__arToon is on —
     a cartoon background from window.__arToonBg (tools/web31/minest-live.js), solid fruit and rocks with a dark outline,
@@ -258,6 +278,10 @@ var CoverKiosk = function() {
 """, 'top bar: Teacher + Join')
     tail = out.rindex('</body>')
     out = out[:tail] + '\n<!-- ---- web31: Minest Live (tools/web31/minest-live.js) ---- -->\n<script>\n' + live_js() + '\n</script>\n' + out[tail:]
+    # Minest Knowledge · Contents (tools/knowledge/contents.js)
+    out = knowledge_patches(out)
+    tail = out.rindex('</body>')
+    out = out[:tail] + '<script>\n' + knowledge_js() + '\n</script>\n' + out[tail:]
     # the top bar, laid out like iPhone 45.0 (switcher left, the rest right, ≡ column) + Teacher / Join in the Arcade bar
     tail = out.rindex('</body>')
     out = out[:tail] + ''.join('<script>\n' + open(os.path.join(HERE, f), encoding='utf-8').read() + '\n</script>\n' for f in ('dock.js', 'topbar.js', 'settings.js')) + out[tail:]

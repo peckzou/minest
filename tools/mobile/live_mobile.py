@@ -129,6 +129,13 @@ def main():
     s = once(s, '</head>', CSS + '</head>', 'css')
     tail = s.rindex('</body>')
     s = s[:tail] + '\n<!-- ---- Minest Live (tools/web31/minest-live.js) ---- -->\n<script>\n' + web31.live_js() + '\n</script>\n<script>' + BUTTONS + '</script>\n' + s[tail:]
+    # 46.9: Minest Knowledge · Contents (tools/knowledge/contents.js) + its Dock icon, first in the Dock
+    s = web31.knowledge_patches(s)
+    s = once(s, "    { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },",
+             "    { k: 'contents', find: function () { return document.getElementById('mn-contents-trigger'); } },   // 46.9 Minest Knowledge\n"
+             "    { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },", 'dock: Contents')
+    tail = s.rindex('</body>')
+    s = s[:tail] + '<script>\n' + web31.knowledge_js() + '\n</script>\n' + s[tail:]
     # 46.8: every pop-up in the card details' glass, opening out of the button tapped (tools/mobile/sheets.js)
     tail = s.rindex('</body>')
     s = s[:tail] + '<script>\n' + open(os.path.join(HERE, 'sheets.js'), encoding='utf-8').read() + '\n</script>\n' + s[tail:]
