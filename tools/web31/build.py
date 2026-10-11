@@ -135,7 +135,7 @@ def knowledge_js():
         samples[os.path.splitext(os.path.basename(f))[0]] = json.load(open(f, encoding='utf-8'))
     js = 'window.__MINEST_KN_SAMPLES = ' + json.dumps(samples, ensure_ascii=False) + ';\n'
     # Phases 1–4, then JSON import (5–6), the Learning Map, and the one Knowledge Dock icon
-    return js + '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'endless.js', 'map.js', 'timeline.js', 'kjson.js', 'learnmap.js', 'wiki.js', 'hub.js'))
+    return js + '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'look.js', 'endless.js', 'map.js', 'timeline.js', 'kjson.js', 'learnmap.js', 'wiki.js', 'hub.js'))
 
 
 def toon_patches(out):

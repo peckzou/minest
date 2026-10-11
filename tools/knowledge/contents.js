@@ -27,7 +27,14 @@
   }
   function setKey(map, id, on) { K[map][id] = { on: on ? 1 : 0, t: Date.now() }; knSave(); knPush(); }
   var listeners = [];
+  // one appearance for every knowledge view: auto (the board's own light / dark theme), light or dark — html.kn-light
+  var LOOK_KEY = 'minest.kn.look';
+  function lookPref() { try { return localStorage.getItem(LOOK_KEY) || 'auto'; } catch (e) { return 'auto'; } }
+  function isDark() { var v = lookPref(); if (v === 'dark') return true; if (v === 'light') return false; return !document.querySelector('.theme-white'); }
+  function applyLook() { document.documentElement.classList.toggle('kn-light', !isDark()); }
   window.MinestKnowledge = {
+    look: lookPref, isDark: isDark, applyLook: applyLook,
+    setLook: function (v) { try { localStorage.setItem(LOOK_KEY, v); } catch (e) {} applyLook(); listeners.forEach(function (f) { try { f(); } catch (e) {} }); },
     isHeading: function (cardId) { var x = K.h[cardId]; return !!(x && x.on); },
     setHeading: function (cardId, on) { setKey('h', cardId, on); },
     isOff: function (boardId) { var x = K.off[boardId]; return !!(x && x.on); },
@@ -75,14 +82,19 @@
     return { id: 'c:' + b.id + ':' + c.id, kind: 'card', title: c.title, done: !!c.complete, to: { b: b.id, l: col.id, c: c.id }, kids: kids, cardId: c.id };
   }
   function listNode(b, col) {
-    var top = [], sec = null;
+    // a card's section: the one recorded for it (boards made from JSON — the Kanban sinks mastered cards), else the heading above it
+    var top = [], sec = null, secs = {}, later = [], stageOf = ((window.MinestKnowledge.get('lm:cfg:' + b.id) || {}).stageOf) || {};
     (col.cards || []).forEach(function (c) {
       if (!c || !c.title) return;
       if (window.MinestKnowledge.isHeading(c.id)) {
         sec = { id: 's:' + b.id + ':' + c.id, kind: 'section', title: c.title, to: { b: b.id, l: col.id, c: c.id }, kids: [], cardId: c.id };
-        top.push(sec);
-      } else (sec ? sec.kids : top).push(cardNode(b, col, c));
+        secs[c.id] = sec; top.push(sec); return;
+      }
+      var n = cardNode(b, col, c), want = stageOf[c.id];
+      if (want && !secs[want]) { later.push([want, n]); return; }
+      ((want && secs[want]) || sec || { kids: top }).kids.push(n);
     });
+    later.forEach(function (x) { (secs[x[0]] ? secs[x[0]].kids : top).push(x[1]); });
     return { id: 'l:' + b.id + ':' + col.id, kind: 'list', title: col.title || 'List', color: col.color, to: { b: b.id, l: col.id }, kids: top, count: (col.cards || []).length };
   }
   function tree() {
@@ -235,11 +247,11 @@
   document.addEventListener('pointerdown', function (e) { var b = e.target && e.target.closest && e.target.closest('button,[role="button"]'); if (b && !(ui.el && ui.el.contains(b))) lastTap = { r: b.getBoundingClientRect(), t: Date.now() }; }, true);
   function open() {
     if (ui.open) return;
-    ensureCss(); hidePill();
+    ensureCss(); hidePill(); applyLook();
     if (!S) { S = { open: {}, scroll: 0, sel: null }; var a = activeId(); if (a) S.open['b:' + a] = 1; }
     var el = document.createElement('div'); el.className = 'kc'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Contents');
     el.innerHTML = '<div class="kc-head"><div style="flex:1;min-width:0"><h1>Contents</h1><p class="kc-sub"></p></div>' +
-      '<div class="kc-tools"><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button></div>' +
+      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button></div>' +
       '<button type="button" class="kc-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="kc-body"></div>';
     ui.el = el; ui.list = el.querySelector('.kc-body'); ui.sub = el.querySelector('.kc-sub'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
@@ -280,6 +292,7 @@
       press = null;
       if (e.target.closest('.kc-x')) return close();
       var all = e.target.closest('[data-all]'); if (all) return setAll(all.getAttribute('data-all') === '1');
+      if (e.target.closest('[data-pin]')) { var ab = activeId(); if (!ab) return; var off = !window.MinestKnowledge.get('kc:unpin:' + ab); window.MinestKnowledge.set('kc:unpin:' + ab, off ? 1 : null); toast(off ? 'Contents removed from the board' : 'Contents pinned as the first list'); mountCol(); return; }
       var row = e.target.closest('.kc-row'); if (!row) return;
       if (e.target.closest('[data-chev]')) return toggle(row);
       if (e.target.closest('[data-go]')) { var n = byId[row.getAttribute('data-id')]; if (n) go(n); }
@@ -344,7 +357,7 @@
         var parent = null; boardsNow().some(function (b) { return b.id === to.b && (b.columns || []).some(function (c) { return (c.cards || []).some(function (x) { if (x.id === to.p) { parent = x; return true; } return false; }); }); });
         if (parent && !parent.isStackExpanded) A.patchCard(to.p, { isStackExpanded: true });
       }
-      if (details && A.openCard && !to.p) { A.openCard(to.c); showPill(back); return; }
+      if (details && A.openCard && !to.p) { A.openCard(to.c); if (back !== false) showPill(back); return; }
       var colSel = '.kanban-column-wrapper[data-col-id="' + cssEsc(to.l || '') + '"]';
       var sel = to.c ? colSel + ' article[data-card-id="' + cssEsc(to.c) + '"]' : (to.l ? colSel : '.board-swimlane-scroll, .kanban-column-wrapper');
       setTimeout(function () {
@@ -356,7 +369,7 @@
           if (details && to.p) setTimeout(function () { el.click(); }, 500);
         });
       }, cur !== to.b ? 120 : 30);
-      showPill(back);
+      if (back !== false) showPill(back);
     });
   }
 
@@ -384,5 +397,97 @@
   }
   if (document.body) trigger(); else document.addEventListener('DOMContentLoaded', trigger);
 
-  window.MinestContents = { goTo: function (to, back) { go({ id: null, to: to }, false, back); }, open: open, close: close, toggle: function () { if (ui.open) close(); else open(); }, isOpen: function () { return ui.open; }, icon: BOOK, _tree: tree, _go: function (id) { var n = byId[id]; if (n) go(n); } };
+  // ================================================================== Contents as the board's first list (pinned)
+  var COL_KEY = 'minest.contents.col.v1';
+  var CS = (function () { try { return JSON.parse(localStorage.getItem(COL_KEY) || '{}') || {}; } catch (e) { return {}; } })();
+  function colSave() { try { localStorage.setItem(COL_KEY, JSON.stringify(CS)); } catch (e) {} }
+  var COL_CSS = [
+    '.mn-tocol{flex:none;align-self:flex-start;max-height:calc(100% - 6px);display:flex;flex-direction:column;border-radius:22px;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;' +
+      'background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 10px 28px rgba(0,0,0,.22);color:#f3f5f8;' +
+      '-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);font:15px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif}',
+    '.theme-white .mn-tocol{background:rgba(255,255,255,.78);color:#1d1f23;border-color:rgba(0,0,0,.08);box-shadow:0 8px 24px rgba(0,0,0,.08)}',
+    '.mn-tocol-h{display:flex;align-items:center;gap:8px;padding:12px 10px 10px 14px;border-bottom:1px solid rgba(127,127,127,.18)}',
+    '.mn-tocol-h b{flex:1;font-size:16px;font-weight:700;letter-spacing:-.2px}',
+    '.mn-tocol-h em{font-style:normal;font-size:12px;opacity:.55;font-variant-numeric:tabular-nums}',
+    '.mn-tocol-h button{width:30px;height:30px;border-radius:50%;border:0;background:rgba(127,127,127,.16);color:inherit;cursor:pointer;font-size:14px;display:grid;place-items:center;padding:0}',
+    '.mn-tocol-b{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 6px 10px;overscroll-behavior:contain}',
+    '.mn-tocol-r{display:flex;align-items:center;min-height:38px;border-radius:10px;padding-left:calc(var(--d) * 16px)}',
+    '.mn-tocol-r:active{background:rgba(127,127,127,.16)}',
+    '.mn-tocol-r .cv{flex:none;width:28px;height:36px;border:0;background:none;color:inherit;opacity:.5;cursor:pointer;display:grid;place-items:center;padding:0}',
+    '.mn-tocol-r .cv svg{width:12px;height:12px;transition:transform .2s}',
+    '.mn-tocol-r.open .cv svg{transform:rotate(90deg)}',
+    '.mn-tocol-r .cv.none{visibility:hidden}',
+    '.mn-tocol-r .dt{flex:none;width:8px;height:8px;border-radius:50%;margin-right:8px}',
+    '.mn-tocol-r .t{flex:1;min-width:0;padding:8px 6px 8px 0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.mn-tocol-r.list .t{font-weight:650}',
+    '.mn-tocol-r.section .t{font-weight:700;color:#d9a400}',
+    '.theme-white .mn-tocol-r.section .t{color:#a87400}',
+    '.mn-tocol-r.card .t{font-size:14px;opacity:.88}',
+    '.mn-tocol-r.done .t{text-decoration:line-through;opacity:.45}',
+    '.mn-tocol-r .n{flex:none;font-size:12px;opacity:.45;padding-right:8px;font-variant-numeric:tabular-nums}'
+  ].join('\n');
+  function colCss() { if (document.getElementById('mn-tocol-css')) return; var st = document.createElement('style'); st.id = 'mn-tocol-css'; st.textContent = COL_CSS; document.head.appendChild(st); }
+  function colRows(nodes, d, open, out) {
+    nodes.forEach(function (n) {
+      if (n.kind === 'item') return;   // stacked cards stay in their stack here
+      var kids = (n.kids || []).filter(function (k) { return k.kind !== 'item'; }), op = kids.length && open[n.id];
+      var cnt = n.kind === 'list' ? n.count : n.kind === 'section' ? kids.length : '';
+      out.push('<div class="mn-tocol-r ' + n.kind + (op ? ' open' : '') + (n.done ? ' done' : '') + '" data-id="' + esc(n.id) + '" style="--d:' + d + '">' +
+        '<button type="button" class="cv' + (kids.length ? '' : ' none') + '" data-cv tabindex="-1">' + CHEV + '</button>' +
+        (n.kind === 'list' ? '<i class="dt" style="background:' + esc(n.color || '#8d99ae') + '"></i>' : '') +
+        '<span class="t" data-go>' + esc(n.title) + '</span>' + (cnt !== '' ? '<span class="n">' + cnt + '</span>' : '') + '</div>');
+      if (op) colRows(kids, d + 1, open, out);
+    });
+  }
+  var colById = {};
+  function mountCol() {
+    var lane = document.querySelector('.board-swimlane-scroll');
+    var old = document.querySelectorAll('.mn-tocol');
+    var bid = activeId(), b = bid && boardsNow().filter(function (x) { return x.id === bid; })[0];
+    if (!lane || !b || window.MinestKnowledge.get('kc:unpin:' + bid)) { old.forEach(function (x) { x.remove(); }); return; }
+    old.forEach(function (x) { if (x.parentNode !== lane) x.remove(); });
+    colCss();
+    var col = lane.querySelector(':scope > .mn-tocol');
+    if (!col) {
+      col = document.createElement('div'); col.className = 'mn-tocol'; col.setAttribute('aria-label', 'Contents');
+      col.addEventListener('click', onColClick);
+      lane.insertBefore(col, lane.firstChild);
+    } else if (lane.firstElementChild !== col) lane.insertBefore(col, lane.firstChild);
+    var first = lane.querySelector(':scope > .kanban-column-wrapper');
+    if (first) { var w = first.getBoundingClientRect().width; if (w) col.style.width = Math.round(w) + 'px'; var cs = getComputedStyle(first); col.style.marginTop = cs.marginTop; }
+    var lists = (b.columns || []).map(function (c) { return listNode(b, c); });
+    var open = CS[bid] = CS[bid] || {};
+    var sig = bid + JSON.stringify(lists.map(function (l) { return [l.title, l.count, l.kids.length, l.kids.map(function (k) { return k.title + (k.kids || []).length + (k.done ? 1 : 0); })]; })) + JSON.stringify(open) + document.documentElement.className.indexOf('kn-light');
+    if (col.__sig === sig) return;
+    col.__sig = sig; colById = {};
+    (function idx(ns) { ns.forEach(function (n) { colById[n.id] = n; idx(n.kids || []); }); })(lists);
+    var body = col.querySelector('.mn-tocol-b'), y = body ? body.scrollTop : 0, out = [];
+    colRows(lists, 0, open, out);
+    var cards = (b.columns || []).reduce(function (a, c) { return a + (c.cards || []).length; }, 0);
+    col.innerHTML = '<div class="mn-tocol-h"><b>📑 Contents</b><em>' + cards + '</em><button type="button" data-full title="Open Contents">⤢</button><button type="button" data-unpin title="Unpin">📌</button></div><div class="mn-tocol-b">' + (out.join('') || '<div style="padding:16px;opacity:.6">No lists yet.</div>') + '</div>';
+    col.querySelector('.mn-tocol-b').scrollTop = y;
+  }
+  function onColClick(e) {
+    e.stopPropagation();
+    var bid = activeId();
+    if (e.target.closest('[data-unpin]')) { window.MinestKnowledge.set('kc:unpin:' + bid, 1); toast('Contents unpinned — 📌 in Contents puts it back'); mountCol(); return; }
+    if (e.target.closest('[data-full]')) return open();
+    var row = e.target.closest('.mn-tocol-r'); if (!row) return;
+    var id = row.getAttribute('data-id'), n = colById[id]; if (!n) return;
+    if (e.target.closest('[data-cv]')) { var o = CS[bid] = CS[bid] || {}; if (o[id]) delete o[id]; else o[id] = 1; colSave(); mountCol(); return; }
+    go(n, false, false);   // stay on the board: bring the list / card into view
+  }
+  var mT = 0;
+  function watchBoard() {
+    if (!document.body) return setTimeout(watchBoard, 200);
+    new MutationObserver(function (ms) {
+      if (ms.every(function (m) { var t = m.target.nodeType === 1 ? m.target : m.target.parentNode; return t && t.closest && t.closest('.mn-tocol'); })) return;   // our own changes
+      clearTimeout(mT); mT = setTimeout(mountCol, 180);
+    }).observe(document.body, { childList: true, subtree: true });
+    mountCol();
+  }
+  watchBoard();
+  if (window.MinestKnowledge.onChange) window.MinestKnowledge.onChange(function () { clearTimeout(mT); mT = setTimeout(mountCol, 60); });
+
+  window.MinestContents = { mountCol: mountCol, goTo: function (to, back) { go({ id: null, to: to }, false, back); }, open: open, close: close, toggle: function () { if (ui.open) close(); else open(); }, isOpen: function () { return ui.open; }, icon: BOOK, _tree: tree, _go: function (id) { var n = byId[id]; if (n) go(n); } };
 })();

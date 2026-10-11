@@ -401,7 +401,7 @@
   // ---------------------------------------------------------------- open / close
   function open(boardId) {
     if (ui.open) return;
-    ensureCss();
+    ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
     var a = A().board && A().board();
     ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
     if (!ui.bid) return toast('No board yet.');

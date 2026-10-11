@@ -403,8 +403,7 @@
   }
   function look() {
     if (!ui.el) return;
-    var t = S.theme || 'auto', dark = t === 'dark' || (t === 'auto' && !document.querySelector('.theme-white') && !(window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches && document.querySelector('.theme-white')));
-    if (t === 'auto') dark = !document.querySelector('.theme-white, [class*="theme-white"]');
+    var t = KN().look(), dark = KN().isDark(); KN().applyLook();
     ui.el.classList.toggle('dark', dark);
     var z = S.zoom || 1; ui.el.style.setProperty('--z', z); if (ui.zl) ui.zl.textContent = Math.round(z * 100) + '%';
     if (ui.th) ui.th.textContent = t === 'auto' ? '◐ Auto' : t === 'dark' ? '☾ Dark' : '☀︎ Light';
@@ -562,7 +561,7 @@
       if (e.target.closest('[data-x]')) return close();
       if (e.target.closest('[data-boards]')) return boardMenu();
       var zb = e.target.closest('[data-zoom]'); if (zb) { var Z = [.8, .9, 1, 1.1, 1.25, 1.4, 1.6], zi = Z.indexOf(S.zoom || 1); if (zi < 0) zi = 2; zi = Math.max(0, Math.min(Z.length - 1, zi + (+zb.getAttribute('data-zoom')))); S.zoom = Z[zi]; stSave(); look(); return; }
-      if (e.target.closest('[data-theme]')) { S.theme = S.theme === 'auto' || !S.theme ? 'light' : S.theme === 'light' ? 'dark' : 'auto'; stSave(); look(); return; }
+      if (e.target.closest('[data-theme]')) { var lk = KN().look(); KN().setLook(lk === 'auto' ? 'light' : lk === 'light' ? 'dark' : 'auto'); look(); return; }
       if (e.target.closest('[data-notes]')) { S.notes = !S.notes; stSave(); el.classList.toggle('nonotes', !S.notes); e.target.closest('[data-notes]').classList.toggle('on', S.notes); return; }
       var all = e.target.closest('[data-all]');
       if (all) {

@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 47.7 · Outline highlights</title>
+    <title>Minest iPhone 47.8 · Contents list</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "47.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "47.8" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -53449,7 +53449,14 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   }
   function setKey(map, id, on) { K[map][id] = { on: on ? 1 : 0, t: Date.now() }; knSave(); knPush(); }
   var listeners = [];
+  // one appearance for every knowledge view: auto (the board's own light / dark theme), light or dark — html.kn-light
+  var LOOK_KEY = 'minest.kn.look';
+  function lookPref() { try { return localStorage.getItem(LOOK_KEY) || 'auto'; } catch (e) { return 'auto'; } }
+  function isDark() { var v = lookPref(); if (v === 'dark') return true; if (v === 'light') return false; return !document.querySelector('.theme-white'); }
+  function applyLook() { document.documentElement.classList.toggle('kn-light', !isDark()); }
   window.MinestKnowledge = {
+    look: lookPref, isDark: isDark, applyLook: applyLook,
+    setLook: function (v) { try { localStorage.setItem(LOOK_KEY, v); } catch (e) {} applyLook(); listeners.forEach(function (f) { try { f(); } catch (e) {} }); },
     isHeading: function (cardId) { var x = K.h[cardId]; return !!(x && x.on); },
     setHeading: function (cardId, on) { setKey('h', cardId, on); },
     isOff: function (boardId) { var x = K.off[boardId]; return !!(x && x.on); },
@@ -53497,14 +53504,19 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     return { id: 'c:' + b.id + ':' + c.id, kind: 'card', title: c.title, done: !!c.complete, to: { b: b.id, l: col.id, c: c.id }, kids: kids, cardId: c.id };
   }
   function listNode(b, col) {
-    var top = [], sec = null;
+    // a card's section: the one recorded for it (boards made from JSON — the Kanban sinks mastered cards), else the heading above it
+    var top = [], sec = null, secs = {}, later = [], stageOf = ((window.MinestKnowledge.get('lm:cfg:' + b.id) || {}).stageOf) || {};
     (col.cards || []).forEach(function (c) {
       if (!c || !c.title) return;
       if (window.MinestKnowledge.isHeading(c.id)) {
         sec = { id: 's:' + b.id + ':' + c.id, kind: 'section', title: c.title, to: { b: b.id, l: col.id, c: c.id }, kids: [], cardId: c.id };
-        top.push(sec);
-      } else (sec ? sec.kids : top).push(cardNode(b, col, c));
+        secs[c.id] = sec; top.push(sec); return;
+      }
+      var n = cardNode(b, col, c), want = stageOf[c.id];
+      if (want && !secs[want]) { later.push([want, n]); return; }
+      ((want && secs[want]) || sec || { kids: top }).kids.push(n);
     });
+    later.forEach(function (x) { (secs[x[0]] ? secs[x[0]].kids : top).push(x[1]); });
     return { id: 'l:' + b.id + ':' + col.id, kind: 'list', title: col.title || 'List', color: col.color, to: { b: b.id, l: col.id }, kids: top, count: (col.cards || []).length };
   }
   function tree() {
@@ -53657,11 +53669,11 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   document.addEventListener('pointerdown', function (e) { var b = e.target && e.target.closest && e.target.closest('button,[role="button"]'); if (b && !(ui.el && ui.el.contains(b))) lastTap = { r: b.getBoundingClientRect(), t: Date.now() }; }, true);
   function open() {
     if (ui.open) return;
-    ensureCss(); hidePill();
+    ensureCss(); hidePill(); applyLook();
     if (!S) { S = { open: {}, scroll: 0, sel: null }; var a = activeId(); if (a) S.open['b:' + a] = 1; }
     var el = document.createElement('div'); el.className = 'kc'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Contents');
     el.innerHTML = '<div class="kc-head"><div style="flex:1;min-width:0"><h1>Contents</h1><p class="kc-sub"></p></div>' +
-      '<div class="kc-tools"><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button></div>' +
+      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button></div>' +
       '<button type="button" class="kc-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="kc-body"></div>';
     ui.el = el; ui.list = el.querySelector('.kc-body'); ui.sub = el.querySelector('.kc-sub'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
@@ -53702,6 +53714,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
       press = null;
       if (e.target.closest('.kc-x')) return close();
       var all = e.target.closest('[data-all]'); if (all) return setAll(all.getAttribute('data-all') === '1');
+      if (e.target.closest('[data-pin]')) { var ab = activeId(); if (!ab) return; var off = !window.MinestKnowledge.get('kc:unpin:' + ab); window.MinestKnowledge.set('kc:unpin:' + ab, off ? 1 : null); toast(off ? 'Contents removed from the board' : 'Contents pinned as the first list'); mountCol(); return; }
       var row = e.target.closest('.kc-row'); if (!row) return;
       if (e.target.closest('[data-chev]')) return toggle(row);
       if (e.target.closest('[data-go]')) { var n = byId[row.getAttribute('data-id')]; if (n) go(n); }
@@ -53766,7 +53779,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
         var parent = null; boardsNow().some(function (b) { return b.id === to.b && (b.columns || []).some(function (c) { return (c.cards || []).some(function (x) { if (x.id === to.p) { parent = x; return true; } return false; }); }); });
         if (parent && !parent.isStackExpanded) A.patchCard(to.p, { isStackExpanded: true });
       }
-      if (details && A.openCard && !to.p) { A.openCard(to.c); showPill(back); return; }
+      if (details && A.openCard && !to.p) { A.openCard(to.c); if (back !== false) showPill(back); return; }
       var colSel = '.kanban-column-wrapper[data-col-id="' + cssEsc(to.l || '') + '"]';
       var sel = to.c ? colSel + ' article[data-card-id="' + cssEsc(to.c) + '"]' : (to.l ? colSel : '.board-swimlane-scroll, .kanban-column-wrapper');
       setTimeout(function () {
@@ -53778,7 +53791,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
           if (details && to.p) setTimeout(function () { el.click(); }, 500);
         });
       }, cur !== to.b ? 120 : 30);
-      showPill(back);
+      if (back !== false) showPill(back);
     });
   }
 
@@ -53806,7 +53819,200 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   }
   if (document.body) trigger(); else document.addEventListener('DOMContentLoaded', trigger);
 
-  window.MinestContents = { goTo: function (to, back) { go({ id: null, to: to }, false, back); }, open: open, close: close, toggle: function () { if (ui.open) close(); else open(); }, isOpen: function () { return ui.open; }, icon: BOOK, _tree: tree, _go: function (id) { var n = byId[id]; if (n) go(n); } };
+  // ================================================================== Contents as the board's first list (pinned)
+  var COL_KEY = 'minest.contents.col.v1';
+  var CS = (function () { try { return JSON.parse(localStorage.getItem(COL_KEY) || '{}') || {}; } catch (e) { return {}; } })();
+  function colSave() { try { localStorage.setItem(COL_KEY, JSON.stringify(CS)); } catch (e) {} }
+  var COL_CSS = [
+    '.mn-tocol{flex:none;align-self:flex-start;max-height:calc(100% - 6px);display:flex;flex-direction:column;border-radius:22px;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;' +
+      'background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 10px 28px rgba(0,0,0,.22);color:#f3f5f8;' +
+      '-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);font:15px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif}',
+    '.theme-white .mn-tocol{background:rgba(255,255,255,.78);color:#1d1f23;border-color:rgba(0,0,0,.08);box-shadow:0 8px 24px rgba(0,0,0,.08)}',
+    '.mn-tocol-h{display:flex;align-items:center;gap:8px;padding:12px 10px 10px 14px;border-bottom:1px solid rgba(127,127,127,.18)}',
+    '.mn-tocol-h b{flex:1;font-size:16px;font-weight:700;letter-spacing:-.2px}',
+    '.mn-tocol-h em{font-style:normal;font-size:12px;opacity:.55;font-variant-numeric:tabular-nums}',
+    '.mn-tocol-h button{width:30px;height:30px;border-radius:50%;border:0;background:rgba(127,127,127,.16);color:inherit;cursor:pointer;font-size:14px;display:grid;place-items:center;padding:0}',
+    '.mn-tocol-b{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 6px 10px;overscroll-behavior:contain}',
+    '.mn-tocol-r{display:flex;align-items:center;min-height:38px;border-radius:10px;padding-left:calc(var(--d) * 16px)}',
+    '.mn-tocol-r:active{background:rgba(127,127,127,.16)}',
+    '.mn-tocol-r .cv{flex:none;width:28px;height:36px;border:0;background:none;color:inherit;opacity:.5;cursor:pointer;display:grid;place-items:center;padding:0}',
+    '.mn-tocol-r .cv svg{width:12px;height:12px;transition:transform .2s}',
+    '.mn-tocol-r.open .cv svg{transform:rotate(90deg)}',
+    '.mn-tocol-r .cv.none{visibility:hidden}',
+    '.mn-tocol-r .dt{flex:none;width:8px;height:8px;border-radius:50%;margin-right:8px}',
+    '.mn-tocol-r .t{flex:1;min-width:0;padding:8px 6px 8px 0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.mn-tocol-r.list .t{font-weight:650}',
+    '.mn-tocol-r.section .t{font-weight:700;color:#d9a400}',
+    '.theme-white .mn-tocol-r.section .t{color:#a87400}',
+    '.mn-tocol-r.card .t{font-size:14px;opacity:.88}',
+    '.mn-tocol-r.done .t{text-decoration:line-through;opacity:.45}',
+    '.mn-tocol-r .n{flex:none;font-size:12px;opacity:.45;padding-right:8px;font-variant-numeric:tabular-nums}'
+  ].join('\n');
+  function colCss() { if (document.getElementById('mn-tocol-css')) return; var st = document.createElement('style'); st.id = 'mn-tocol-css'; st.textContent = COL_CSS; document.head.appendChild(st); }
+  function colRows(nodes, d, open, out) {
+    nodes.forEach(function (n) {
+      if (n.kind === 'item') return;   // stacked cards stay in their stack here
+      var kids = (n.kids || []).filter(function (k) { return k.kind !== 'item'; }), op = kids.length && open[n.id];
+      var cnt = n.kind === 'list' ? n.count : n.kind === 'section' ? kids.length : '';
+      out.push('<div class="mn-tocol-r ' + n.kind + (op ? ' open' : '') + (n.done ? ' done' : '') + '" data-id="' + esc(n.id) + '" style="--d:' + d + '">' +
+        '<button type="button" class="cv' + (kids.length ? '' : ' none') + '" data-cv tabindex="-1">' + CHEV + '</button>' +
+        (n.kind === 'list' ? '<i class="dt" style="background:' + esc(n.color || '#8d99ae') + '"></i>' : '') +
+        '<span class="t" data-go>' + esc(n.title) + '</span>' + (cnt !== '' ? '<span class="n">' + cnt + '</span>' : '') + '</div>');
+      if (op) colRows(kids, d + 1, open, out);
+    });
+  }
+  var colById = {};
+  function mountCol() {
+    var lane = document.querySelector('.board-swimlane-scroll');
+    var old = document.querySelectorAll('.mn-tocol');
+    var bid = activeId(), b = bid && boardsNow().filter(function (x) { return x.id === bid; })[0];
+    if (!lane || !b || window.MinestKnowledge.get('kc:unpin:' + bid)) { old.forEach(function (x) { x.remove(); }); return; }
+    old.forEach(function (x) { if (x.parentNode !== lane) x.remove(); });
+    colCss();
+    var col = lane.querySelector(':scope > .mn-tocol');
+    if (!col) {
+      col = document.createElement('div'); col.className = 'mn-tocol'; col.setAttribute('aria-label', 'Contents');
+      col.addEventListener('click', onColClick);
+      lane.insertBefore(col, lane.firstChild);
+    } else if (lane.firstElementChild !== col) lane.insertBefore(col, lane.firstChild);
+    var first = lane.querySelector(':scope > .kanban-column-wrapper');
+    if (first) { var w = first.getBoundingClientRect().width; if (w) col.style.width = Math.round(w) + 'px'; var cs = getComputedStyle(first); col.style.marginTop = cs.marginTop; }
+    var lists = (b.columns || []).map(function (c) { return listNode(b, c); });
+    var open = CS[bid] = CS[bid] || {};
+    var sig = bid + JSON.stringify(lists.map(function (l) { return [l.title, l.count, l.kids.length, l.kids.map(function (k) { return k.title + (k.kids || []).length + (k.done ? 1 : 0); })]; })) + JSON.stringify(open) + document.documentElement.className.indexOf('kn-light');
+    if (col.__sig === sig) return;
+    col.__sig = sig; colById = {};
+    (function idx(ns) { ns.forEach(function (n) { colById[n.id] = n; idx(n.kids || []); }); })(lists);
+    var body = col.querySelector('.mn-tocol-b'), y = body ? body.scrollTop : 0, out = [];
+    colRows(lists, 0, open, out);
+    var cards = (b.columns || []).reduce(function (a, c) { return a + (c.cards || []).length; }, 0);
+    col.innerHTML = '<div class="mn-tocol-h"><b>📑 Contents</b><em>' + cards + '</em><button type="button" data-full title="Open Contents">⤢</button><button type="button" data-unpin title="Unpin">📌</button></div><div class="mn-tocol-b">' + (out.join('') || '<div style="padding:16px;opacity:.6">No lists yet.</div>') + '</div>';
+    col.querySelector('.mn-tocol-b').scrollTop = y;
+  }
+  function onColClick(e) {
+    e.stopPropagation();
+    var bid = activeId();
+    if (e.target.closest('[data-unpin]')) { window.MinestKnowledge.set('kc:unpin:' + bid, 1); toast('Contents unpinned — 📌 in Contents puts it back'); mountCol(); return; }
+    if (e.target.closest('[data-full]')) return open();
+    var row = e.target.closest('.mn-tocol-r'); if (!row) return;
+    var id = row.getAttribute('data-id'), n = colById[id]; if (!n) return;
+    if (e.target.closest('[data-cv]')) { var o = CS[bid] = CS[bid] || {}; if (o[id]) delete o[id]; else o[id] = 1; colSave(); mountCol(); return; }
+    go(n, false, false);   // stay on the board: bring the list / card into view
+  }
+  var mT = 0;
+  function watchBoard() {
+    if (!document.body) return setTimeout(watchBoard, 200);
+    new MutationObserver(function (ms) {
+      if (ms.every(function (m) { var t = m.target.nodeType === 1 ? m.target : m.target.parentNode; return t && t.closest && t.closest('.mn-tocol'); })) return;   // our own changes
+      clearTimeout(mT); mT = setTimeout(mountCol, 180);
+    }).observe(document.body, { childList: true, subtree: true });
+    mountCol();
+  }
+  watchBoard();
+  if (window.MinestKnowledge.onChange) window.MinestKnowledge.onChange(function () { clearTimeout(mT); mT = setTimeout(mountCol, 60); });
+
+  window.MinestContents = { mountCol: mountCol, goTo: function (to, back) { go({ id: null, to: to }, false, back); }, open: open, close: close, toggle: function () { if (ui.open) close(); else open(); }, isOpen: function () { return ui.open; }, icon: BOOK, _tree: tree, _go: function (id) { var n = byId[id]; if (n) go(n); } };
+})();
+
+/* Minest Knowledge · light and dark for every knowledge view (html.kn-light — set by MinestKnowledge.applyLook from
+   the one Auto / Light / Dark setting; Auto follows the board's own theme). The views are dark by default; these
+   rules give each its light look. The horizontal timeline is the other way round: light by default, dark here. */
+(function () {
+  if (document.getElementById('kn-look-css')) return;
+  var L = 'html.kn-light ', D = 'html:not(.kn-light) ';
+  var INK = '#1d1f23', LINE = 'rgba(0,0,0,.08)', CHIP = 'background:#fff;border-color:rgba(0,0,0,.1);color:' + INK;
+  var css = [
+    // shared menus and sheets
+    L + '.en-menu,' + L + '.kc-menu{background:#fff;color:' + INK + ';border-color:' + LINE + ';box-shadow:0 18px 50px rgba(0,0,0,.18);-webkit-backdrop-filter:none;backdrop-filter:none}',
+    L + '.en-menu button,' + L + '.kc-menu button{color:' + INK + '}',
+    L + '.en-menu button:active,' + L + '.kc-menu button:active{background:rgba(0,0,0,.06)}',
+    L + '.en-menu button.on{color:#0a84ff}',
+    L + '.en-menu .row button{background:rgba(0,0,0,.05)}',
+    L + '.en-pal .none{background:rgba(0,0,0,.06)!important;color:#333}',
+    L + '.en-pal button.on{border-color:#1d1f23}',
+    // Contents
+    L + '.kc{background:linear-gradient(180deg,#f7f8fa,#eef1f5);color:' + INK + '}',
+    L + '.kc-head{border-color:' + LINE + '}',
+    L + '.kc-x,' + L + '.kc-tool{' + CHIP + ';box-shadow:none}',
+    L + '.kc-row + .kc-row:not(.d0)::before{background:rgba(0,0,0,.07)}',
+    L + '.kc-chev{color:rgba(0,0,0,.4)}',
+    L + '.kc-row.section .kc-t{color:#a87400}',
+    L + '.kc-row.sel{background:rgba(10,132,255,.12)}',
+    L + '.kc-back{background:rgba(255,255,255,.94);color:' + INK + ';border-color:' + LINE + ';box-shadow:0 10px 26px rgba(0,0,0,.15)}',
+    // Knowledge Map
+    L + '.km{background:radial-gradient(1200px 900px at 50% 40%,#ffffff,#e6ebf3 70%);color:' + INK + '}',
+    L + '.km-lines path{stroke:rgba(30,40,60,.22)}',
+    L + '.km-lines path.on{stroke:rgba(30,40,60,.6)}',
+    L + '.km-b{background:rgba(255,255,255,.94);color:' + INK + ';border-color:' + LINE + ';box-shadow:0 6px 16px rgba(0,0,0,.12)}',
+    L + '.km-path{background:rgba(255,255,255,.9)}',
+    L + '.km-path button{color:rgba(0,0,0,.5)}' + L + '.km-path button:last-child{color:' + INK + '}',
+    L + '.km-hint{background:rgba(255,255,255,.92);color:#333}',
+    L + '.km-n.focus{box-shadow:0 0 0 4px rgba(10,132,255,.9),0 14px 32px rgba(0,0,0,.25)}',
+    // Timeline (vertical)
+    L + '.tl:not(.h){background:#f6f6f4;color:' + INK + '}',
+    L + '.tl-head{border-color:' + LINE + '}',
+    L + '.tl-x,' + L + '.tl-chip{' + CHIP + '}',
+    L + '.tl-chip.on{background:rgba(10,132,255,.14);border-color:#0a84ff;color:#0a5bd6}',
+    L + '.tl-seg{background:rgba(0,0,0,.06)}' + L + '.tl-seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}',
+    L + '.tl-line:before{background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.16) 40px,rgba(0,0,0,.16) calc(100% - 40px),rgba(0,0,0,.04))}',
+    L + '.tl-ev{background:#fff;border-color:rgba(0,0,0,.06);box-shadow:0 1px 3px rgba(0,0,0,.06)}',
+    L + '.tl-ev:before{box-shadow:0 0 0 3px #f6f6f4}',
+    L + '.tl-ev.open{background:#fff;border-color:rgba(0,0,0,.14)}',
+    L + '.tl-d{filter:brightness(.78) saturate(1.2)}',
+    L + '.tl-acts button,' + L + '.tl-u button{background:rgba(0,0,0,.05);border-color:' + LINE + ';color:' + INK + '}',
+    L + '.tl-u button.sug{color:#a87400;border-color:rgba(168,116,0,.4)}',
+    L + '.tl-und{border-color:' + LINE + '}' + L + '.tl-u{border-color:rgba(0,0,0,.05)}',
+    L + '.tl-sheet{background:#fff;color:' + INK + ';border-color:' + LINE + ';box-shadow:0 24px 60px rgba(0,0,0,.2)}',
+    L + '.tl-f input,' + L + '.tl-f select{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.12);color:' + INK + '}',
+    L + '.tl-sb button{background:rgba(0,0,0,.06);color:' + INK + '}' + L + '.tl-sb .save{background:#0a84ff;color:#fff}',
+    // Timeline (horizontal) in the dark
+    D + '.tl.h{background:#161618;color:#ececee}',
+    D + '.tl.h .tl-head{border-color:rgba(255,255,255,.08)}',
+    D + '.tl.h .tl-chip,' + D + '.tl.h .tl-x{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#fff}',
+    D + '.tl.h .tl-chip.on{background:#fff;color:#161618;border-color:#fff}',
+    D + '.tl-ax,' + D + '.tl-tick{background:#6b6b70}' + D + '.tl-hl{background:#77777c}',
+    D + '.tl-dec{color:#ececee}' + D + '.tl-brk{background:#161618;color:#77777c}' + D + '.tl-brkt{color:#77777c}',
+    D + '.tl-hd{box-shadow:0 0 0 3px #161618}',
+    D + '.tl-hb .d{color:#f2f2f2}' + D + '.tl-hb .n{color:#e6e6e6}' + D + '.tl-hb .m{color:#a7a7ac}',
+    D + '.tl-leg{color:#cfcfd4}',
+    // Learning Map (its controls; the map keeps its own background style)
+    L + '.lm-b2{background:rgba(255,255,255,.95);color:' + INK + ';border-color:' + LINE + ';box-shadow:0 6px 16px rgba(0,0,0,.14)}',
+    L + '.lm-path{background:rgba(255,255,255,.92)}' + L + '.lm-path button{color:rgba(0,0,0,.5)}' + L + '.lm-path button:last-child{color:' + INK + '}',
+    L + '.lm-legend,' + L + '.lm-note{background:rgba(255,255,255,.92);color:#333}',
+    L + '.lm-sheet{background:#fff;color:' + INK + ';border-color:' + LINE + ';box-shadow:0 20px 50px rgba(0,0,0,.2)}',
+    L + '.lm-row{border-color:rgba(0,0,0,.07)}' + L + '.lm-x{background:rgba(0,0,0,.06);color:' + INK + '}',
+    L + '.lm-acts button{background:rgba(0,0,0,.05);border-color:' + LINE + ';color:' + INK + '}' + L + '.lm-acts button.on{background:#0a84ff;color:#fff}',
+    // Wiki: Wikipedia's own colours
+    L + '.wk{background:#fff;color:#202122}',
+    L + '.wk-head{border-color:#eaecf0}',
+    L + '.wk-x,' + L + '.wk-hb{background:#f8f9fa;border-color:#c8ccd1;color:#202122}',
+    L + '.wk-hb.on{background:#36c;border-color:#36c;color:#fff}',
+    L + '.wk-seg{background:#eaecf0}' + L + '.wk-seg button{color:#54595d}' + L + '.wk-seg button.on{background:#fff;color:#202122}',
+    L + '.wk-tile{background:#f8f9fa;border-color:#eaecf0}' + L + '.wk-tile:active{background:#eaecf0}',
+    L + '.wk-box{border-color:#a2a9b1;background:#fff}',
+    L + '.wk-boxh{background:#ccf}' + L + '.wk-boxh button{color:#36c}',
+    L + '.wk-g{border-color:#fdfdfd}' + L + '.wk-gt{background:#ddf;color:#202122}',
+    L + '.wk-r{border-color:#fdfdfd}' + L + '.wk-st{background:#e6e6ff;color:#202122}',
+    L + '.wk-it .wk-r{border-color:#eaecf0}',
+    L + '.wk-gb > .wk-r:nth-child(even) > .wk-it{background:#f8f9fa}',
+    L + '.wk-a{color:#36c}' + L + '.wk-a.hit{background:#36c;color:#fff}',
+    L + '.wk-pv{background:#fff;color:#202122;border-color:#a2a9b1;box-shadow:0 30px 90px -20px rgba(0,0,0,.2),0 0 1px #a2a9b1}',
+    L + '.wk-pv img{background:#eaecf0}',
+    L + '.wk-pv .acts button{background:#f8f9fa;border-color:#c8ccd1;color:#202122}' + L + '.wk-pv .acts button.pri{background:#36c;border-color:#36c;color:#fff}',
+    L + '.wk-sheet{background:#fff;color:#202122;border-color:#c8ccd1;box-shadow:0 24px 60px rgba(0,0,0,.2)}',
+    L + '.wk-sheet input{background:#fff;border-color:#a2a9b1;color:#202122}' + L + '.wk-sheet label{border-color:#eaecf0}',
+    L + '.wk-sheet .row button{background:#f8f9fa;color:#202122}' + L + '.wk-sheet .row button.pri{background:#36c;color:#fff}',
+    L + '.wk-ed button,' + L + '.wk-tools button{background:#f8f9fa;border-color:#c8ccd1;color:#202122}',
+    L + '.wk-band{background:linear-gradient(90deg,#f6b73c,#f59e0b)}',
+    // the Knowledge sheet
+    L + '.kh{background:rgba(255,255,255,.97);color:' + INK + ';border-color:' + LINE + ';box-shadow:0 30px 80px rgba(0,0,0,.2)}',
+    L + '.kh-m{background:rgba(0,0,0,.04)}' + L + '.kh-m:active{background:rgba(0,0,0,.08)}',
+    L + '.kh-row button{background:rgba(0,0,0,.05);border-color:' + LINE + ';color:' + INK + '}' + L + '.kh-row button.pri,' + L + '.kh-row button.on{background:#0a84ff;border-color:#0a84ff;color:#fff}',
+    D + '.kh-row button.on{background:#0a84ff;border-color:#0a84ff;color:#fff}'
+  ].join('\n');
+  var st = document.createElement('style'); st.id = 'kn-look-css'; st.textContent = css;
+  (document.head || document.documentElement).appendChild(st);
+  if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
 })();
 
 /* Minest Knowledge · Phase 2 — Endless (a vertical knowledge outline, after OmniOutliner)
@@ -54214,8 +54420,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   }
   function look() {
     if (!ui.el) return;
-    var t = S.theme || 'auto', dark = t === 'dark' || (t === 'auto' && !document.querySelector('.theme-white') && !(window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches && document.querySelector('.theme-white')));
-    if (t === 'auto') dark = !document.querySelector('.theme-white, [class*="theme-white"]');
+    var t = KN().look(), dark = KN().isDark(); KN().applyLook();
     ui.el.classList.toggle('dark', dark);
     var z = S.zoom || 1; ui.el.style.setProperty('--z', z); if (ui.zl) ui.zl.textContent = Math.round(z * 100) + '%';
     if (ui.th) ui.th.textContent = t === 'auto' ? '◐ Auto' : t === 'dark' ? '☾ Dark' : '☀︎ Light';
@@ -54373,7 +54578,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
       if (e.target.closest('[data-x]')) return close();
       if (e.target.closest('[data-boards]')) return boardMenu();
       var zb = e.target.closest('[data-zoom]'); if (zb) { var Z = [.8, .9, 1, 1.1, 1.25, 1.4, 1.6], zi = Z.indexOf(S.zoom || 1); if (zi < 0) zi = 2; zi = Math.max(0, Math.min(Z.length - 1, zi + (+zb.getAttribute('data-zoom')))); S.zoom = Z[zi]; stSave(); look(); return; }
-      if (e.target.closest('[data-theme]')) { S.theme = S.theme === 'auto' || !S.theme ? 'light' : S.theme === 'light' ? 'dark' : 'auto'; stSave(); look(); return; }
+      if (e.target.closest('[data-theme]')) { var lk = KN().look(); KN().setLook(lk === 'auto' ? 'light' : lk === 'light' ? 'dark' : 'auto'); look(); return; }
       if (e.target.closest('[data-notes]')) { S.notes = !S.notes; stSave(); el.classList.toggle('nonotes', !S.notes); e.target.closest('[data-notes]').classList.toggle('on', S.notes); return; }
       var all = e.target.closest('[data-all]');
       if (all) {
@@ -54761,7 +54966,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   // ---------------------------------------------------------------- open / close
   function open(boardId) {
     if (ui.open) return;
-    ensureCss();
+    ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
     var a = A().board && A().board();
     ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
     if (!ui.bid) return toast('No board yet.');
@@ -55211,7 +55416,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   // ---------------------------------------------------------------- open / close
   function open(boardId) {
     if (ui.open) return;
-    ensureCss();
+    ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
     var a = A().board && A().board();
     ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
     if (!ui.bid) return toast('No board yet.');
@@ -56073,7 +56278,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   function open(boardId, tries) {
     if (ui.open) return;
     if (boardId && !boardById(boardId) && (tries || 0) < 40) return setTimeout(function () { open(boardId, (tries || 0) + 1); }, 50);
-    ensureCss();
+    ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
     var a = A().board && A().board();
     ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
     if (!ui.bid) return toast('No board yet.');
@@ -56413,7 +56618,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   function open(boardId, tries) {
     if (ui.open) return;
     if (boardId && !boardById(boardId) && (tries || 0) < 40) return setTimeout(function () { open(boardId, (tries || 0) + 1); }, 50);
-    ensureCss();
+    ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
     var a = A().board && A().board();
     ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
     if (!ui.bid) return toast('No board yet.');
@@ -56514,11 +56719,12 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
   function close() { if (el) { el.remove(); el = null; } if (bd) { bd.remove(); bd = null; } }
   function open() {
     if (el) return close();
-    css();
+    css(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
     var samples = (window.MinestKJ && MinestKJ.samples()) || {}, undo = window.MinestKJ ? MinestKJ.undoList() : [];
     bd = document.createElement('div'); bd.className = 'kh-bd'; bd.addEventListener('pointerdown', function (e) { e.stopPropagation(); close(); });
     el = document.createElement('div'); el.className = 'kh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Knowledge');
     el.innerHTML = '<h3>Knowledge</h3><div class="kh-grid">' + MODES.map(function (m) { var ok = !!m[4](); return '<button type="button" class="kh-m" data-mode="' + m[0] + '"' + (ok ? '' : ' disabled') + '><i>' + m[3] + '</i><b>' + m[1] + '</b><small>' + m[2] + '</small></button>'; }).join('') + '</div>' +
+      '<h4>Appearance</h4><div class="kh-row">' + [['auto', '◐ Auto'], ['light', '☀︎ Light'], ['dark', '☾ Dark']].map(function (x) { var cur = window.MinestKnowledge ? MinestKnowledge.look() : 'auto'; return '<button type="button" data-look="' + x[0] + '"' + (cur === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>'; }).join('') + '</div>' +
       '<h4>Import</h4><div class="kh-row"><button type="button" class="pri" data-file>Import JSON…</button>' + (undo.length ? '<button type="button" data-undo>Undo “' + esc(undo[0].title) + '”</button>' : '') + '</div>' +
       (Object.keys(samples).length ? '<h4>Samples</h4><div class="kh-row">' + Object.keys(samples).map(function (k) { return '<button type="button" data-sample="' + esc(k) + '">' + esc(samples[k].subject || k) + '</button>'; }).join('') + '</div>' : '') +
       '<div class="kh-msg"></div><input type="file" accept=".json,application/json" hidden>';
@@ -56549,6 +56755,7 @@ window.__MINEST_KN_SAMPLES = {"paul-journeys": {"format": "minest.knowledge/1", 
     el.addEventListener('click', function (e) {
       var m = e.target.closest('[data-mode]');
       if (m) { var mod = MODES.filter(function (x) { return x[0] === m.getAttribute('data-mode'); })[0], api = mod && mod[4](); close(); if (api && api.open) setTimeout(function () { api.open(); }, 120); return; }
+      var lk = e.target.closest('[data-look]'); if (lk) { MinestKnowledge.setLook(lk.getAttribute('data-look')); el.querySelectorAll('[data-look]').forEach(function (x) { x.classList.toggle('on', x === lk); }); return; }
       if (e.target.closest('[data-file]')) return file.click();
       var s = e.target.closest('[data-sample]'); if (s) return run(JSON.parse(JSON.stringify(samples[s.getAttribute('data-sample')])));
       if (e.target.closest('[data-undo]')) { var u = MinestKJ.undo(); msg.className = 'kh-msg'; msg.textContent = u ? '↺ Undid the import of “' + u.title + '”.' : 'Nothing to undo.'; e.target.closest('[data-undo]').remove(); return; }

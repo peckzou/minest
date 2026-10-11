@@ -301,7 +301,7 @@
   function open(boardId, tries) {
     if (ui.open) return;
     if (boardId && !boardById(boardId) && (tries || 0) < 40) return setTimeout(function () { open(boardId, (tries || 0) + 1); }, 50);
-    ensureCss();
+    ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
     var a = A().board && A().board();
     ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
     if (!ui.bid) return toast('No board yet.');
