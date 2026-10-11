@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 48.7 · Edit in place</title>
+    <title>Minest iPhone 48.8 · Glass map</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "48.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "48.8" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -54647,6 +54647,17 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     'html.kn-light .ke-sheet input,html.kn-light .ke-sheet textarea,html.kn-light .ke-sheet select{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}',
     'html.kn-light .ke-sheet .row button{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08)}',
     'html.kn-light .ke-sheet .row .pri{color:#fff;background:linear-gradient(180deg,#3d9bff,#0a7aff)}html.kn-light .ke-sheet .row .danger{color:#fff;background:#e5484d}',
+    // the views' pop-up menus (boards, map style …): liquid glass, always loaded
+    '.en-menu{position:fixed;z-index:2147482003;min-width:240px;max-height:60vh;overflow:auto;padding:6px;border-radius:20px;background:linear-gradient(180deg,rgba(70,80,96,.86),rgba(34,40,52,.92));-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 24px 60px rgba(0,0,0,.5);color:#fff}',
+    '.en-menu button{display:block;width:100%;text-align:left;min-height:44px;padding:0 14px;border:0;border-radius:13px;background:none;color:inherit;font:15px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    '.en-menu button.on{color:#64d2ff;font-weight:600}',
+    '.en-menu button:active{background:rgba(255,255,255,.1)}',
+    '.en-menu p{margin:0;padding:12px 14px;font:15px/1.4 -apple-system,system-ui,sans-serif}',
+    '.en-menu .row{display:flex;gap:6px;padding:4px}',
+    '.en-menu .row button{flex:1;text-align:center;background:rgba(255,255,255,.08)}',
+    '.en-menu .row button.red{color:#ff6b6b}',
+    '.en-menu .cap{padding:8px 12px 2px;font:600 12px -apple-system,system-ui,sans-serif;opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}',
+    '.en-menu h6{margin:8px 12px 2px;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;opacity:.5}',
     // a view's own bottom-corner buttons step up while the bar is there
     'body:has(.ke-bar) .km-bot{bottom:calc(env(safe-area-inset-bottom,0px) + 112px)!important}',
     '.km-bot{transition:bottom .25s cubic-bezier(.2,.85,.25,1)}',
@@ -54791,6 +54802,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   // an Edit switch for a view's header
   function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
 
+  if (document.head) css(); else document.addEventListener('DOMContentLoaded', css);   // the menus' look is needed before any view opens
   window.MinestKEdit = { picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();
 
@@ -55621,6 +55633,29 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.km-bot{position:absolute;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;flex-direction:column;gap:8px}',
     '.km-hint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(20,26,38,.7);font-size:13px;opacity:.85;pointer-events:none;white-space:nowrap;transition:opacity .4s}',
     'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}',
+    // ---- liquid glass (Bubbles): a deep canvas with soft colour glows; every bubble is tinted glass with a specular top,
+    // a bright rim and its list's colour pooling at the bottom; the bars are glass capsules
+    'html .km.s-bubble{background:radial-gradient(900px 700px at 12% 8%,rgba(94,92,230,.38),transparent 60%),radial-gradient(800px 700px at 88% 92%,rgba(48,176,199,.30),transparent 60%),radial-gradient(700px 600px at 85% 15%,rgba(255,105,180,.16),transparent 60%),radial-gradient(1300px 950px at 50% 45%,#17213a,#090d18 75%)}',
+    'html .km.s-bubble .km-n{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.42);' +
+      'background:radial-gradient(110% 70% at 32% 10%,rgba(255,255,255,.58),rgba(255,255,255,0) 44%),radial-gradient(95% 80% at 50% 108%,color-mix(in srgb,var(--c) 70%,transparent),transparent 72%),linear-gradient(160deg,color-mix(in srgb,var(--c) 42%,rgba(255,255,255,.12)),color-mix(in srgb,var(--c) 24%,rgba(8,12,22,.42)));' +
+      'box-shadow:inset 0 1.5px 0 rgba(255,255,255,.6),0 10px 24px rgba(0,0,0,.32)}',   // light on paint: many bubbles fly at once
+    'html .km.s-bubble .km-n.board{border-width:1.5px;box-shadow:inset 0 2px 0 rgba(255,255,255,.65),inset 0 -16px 34px color-mix(in srgb,var(--c) 40%,transparent),0 22px 50px rgba(0,0,0,.42),0 0 46px color-mix(in srgb,var(--c) 45%,transparent)}',
+    'html .km.s-bubble .km-n.head{border-color:rgba(255,214,10,.9);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.6),0 0 0 2px rgba(255,214,10,.35),0 16px 36px rgba(0,0,0,.38)}',
+    'html .km.s-bubble .km-n.focus{box-shadow:inset 0 1.5px 0 rgba(255,255,255,.7),0 0 0 3px rgba(255,255,255,.85),0 0 44px 10px color-mix(in srgb,var(--c) 55%,transparent),0 18px 40px rgba(0,0,0,.42)}',
+    'html .km.s-bubble .km-lines path{stroke:rgba(255,255,255,.26)}html .km.s-bubble .km-lines path.on{stroke:rgba(255,255,255,.7)}',
+    'html .km .km-b{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.24);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 26px rgba(0,0,0,.3);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}',
+    'html .km .km-b.on{background:linear-gradient(180deg,#3d9bff,#0a7aff);border-color:rgba(255,255,255,.3)}',
+    'html .km .km-path{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 10px 26px rgba(0,0,0,.26);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}',
+    'html .km .km-hint{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.2);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}',
+    // light: white frosted glass
+    'html.kn-light .km.s-bubble{background:radial-gradient(900px 700px at 12% 8%,rgba(150,140,255,.28),transparent 60%),radial-gradient(800px 700px at 88% 92%,rgba(90,200,220,.25),transparent 60%),radial-gradient(700px 600px at 85% 15%,rgba(255,150,200,.18),transparent 60%),radial-gradient(1300px 950px at 50% 45%,#f7f9fd,#e6ebf4 75%)}',
+    'html.kn-light .km.s-bubble .km-n{color:#1d1f23;text-shadow:none;border-color:rgba(255,255,255,.95);' +
+      'background:radial-gradient(110% 70% at 32% 10%,rgba(255,255,255,.95),rgba(255,255,255,0) 50%),radial-gradient(95% 80% at 50% 108%,color-mix(in srgb,var(--c) 38%,transparent),transparent 72%),linear-gradient(160deg,rgba(255,255,255,.82),color-mix(in srgb,var(--c) 20%,rgba(255,255,255,.62)));' +
+      'box-shadow:inset 0 1.5px 0 #fff,0 8px 20px rgba(30,40,60,.13)}',
+    'html.kn-light .km.s-bubble .km-n.focus{box-shadow:inset 0 1.5px 0 #fff,0 0 0 3px rgba(10,132,255,.7),0 0 36px 6px color-mix(in srgb,var(--c) 35%,transparent)}',
+    'html.kn-light .km.s-bubble .km-lines path{stroke:rgba(30,40,60,.2)}html.kn-light .km.s-bubble .km-lines path.on{stroke:rgba(30,40,60,.55)}',
+    'html.kn-light .km .km-b,html.kn-light .km .km-path,html.kn-light .km .km-hint{background:rgba(255,255,255,.72);border-color:rgba(255,255,255,.95);box-shadow:inset 0 1px 0 #fff,0 8px 22px rgba(30,40,60,.12);color:#1d1f23}',
+    'html.kn-light .km .km-b.on{background:linear-gradient(180deg,#3d9bff,#0a7aff);color:#fff}',
     // ---- MindNode / XMind (tree styles)
     'html .km.tree{--ink:#ececef;--card:#2a2b31;--sub:#202126}',
     'html.kn-light .km.tree{--ink:#2b2d31;--card:#ffffff;--sub:#ffffff}',
@@ -55762,6 +55797,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     function s2w(x, y) { return { x: (x - innerWidth / 2) / cam.s + cam.x, y: (y - innerHeight / 2) / cam.s + cam.y }; }
     st.addEventListener('pointerdown', function (e) {
       e.stopPropagation(); cancelAnimationFrame(anim);
+      var om = document.querySelector('.km-menu'); if (om) om.remove();   // a tap on the map closes an open menu
       try { st.setPointerCapture(e.pointerId); } catch (x) {}
       pts[e.pointerId] = { x: e.clientX, y: e.clientY };
       var ids = Object.keys(pts);
@@ -55892,9 +55928,11 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       if ((seen && gone >= 2) || (!seen && Date.now() - t0 > 2500)) { clearInterval(iv); if (!ui.el) return; ui.el.classList.remove('away'); var fk = focusKey; build(); if (fk && G.byKey[fk]) { focusKey = fk; markFocus(); crumbs(); } }
     }, 250);
   }
+  // one menu at a time: the same button closes it, the other button swaps it
+  function menuToggle(kind) { var old = document.querySelector('.km-menu'); if (!old) return false; var same = old.getAttribute('data-kind') === kind; old.remove(); return same; }
   function boardMenu(anchor) {
-    var old = document.querySelector('.km-menu'); if (old) { old.remove(); return; }
-    var m = document.createElement('div'); m.className = 'en-menu km-menu';
+    if (menuToggle('boards')) return;
+    var m = document.createElement('div'); m.className = 'en-menu km-menu'; m.setAttribute('data-kind', 'boards');
     m.innerHTML = boards().filter(function (b) { return !b.archived; }).map(function (b) { return '<button type="button" data-b="' + esc(b.id) + '"' + (b.id === ui.bid ? ' class="on"' : '') + '>' + esc(b.title || 'Board') + '</button>'; }).join('');
     document.body.appendChild(m);
     var r = anchor.getBoundingClientRect(); m.style.left = Math.max(10, Math.min(innerWidth - m.offsetWidth - 10, r.left)) + 'px'; m.style.top = (r.bottom + 8) + 'px';
@@ -55903,8 +55941,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   }
   var STYLES = [['bubble', '🫧 Bubbles', 'Prezi — zoom through ideas'], ['mind', '🌿 MindNode', 'Calm branches, text on the line'], ['xmind', '🧩 XMind', 'Topic blocks, balanced left and right']];
   function styleMenu(anchor) {
-    var old = document.querySelector('.km-menu'); if (old) { old.remove(); return; }
-    var cur = styleOf(ui.bid), m = document.createElement('div'); m.className = 'en-menu km-menu';
+    if (menuToggle('style')) return;
+    var cur = styleOf(ui.bid), m = document.createElement('div'); m.className = 'en-menu km-menu'; m.setAttribute('data-kind', 'style');
     m.innerHTML = STYLES.map(function (x) { return '<button type="button" class="km-sty' + (x[0] === cur ? ' on' : '') + '" data-sty="' + x[0] + '"><b>' + x[1] + '</b><small>' + x[2] + '</small></button>'; }).join('');
     document.body.appendChild(m);
     var r = anchor.getBoundingClientRect(); m.style.left = Math.max(10, Math.min(innerWidth - m.offsetWidth - 10, r.left)) + 'px'; m.style.top = (r.bottom + 8) + 'px';

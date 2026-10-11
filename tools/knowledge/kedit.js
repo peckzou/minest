@@ -195,6 +195,17 @@
     'html.kn-light .ke-sheet input,html.kn-light .ke-sheet textarea,html.kn-light .ke-sheet select{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}',
     'html.kn-light .ke-sheet .row button{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08)}',
     'html.kn-light .ke-sheet .row .pri{color:#fff;background:linear-gradient(180deg,#3d9bff,#0a7aff)}html.kn-light .ke-sheet .row .danger{color:#fff;background:#e5484d}',
+    // the views' pop-up menus (boards, map style …): liquid glass, always loaded
+    '.en-menu{position:fixed;z-index:2147482003;min-width:240px;max-height:60vh;overflow:auto;padding:6px;border-radius:20px;background:linear-gradient(180deg,rgba(70,80,96,.86),rgba(34,40,52,.92));-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 24px 60px rgba(0,0,0,.5);color:#fff}',
+    '.en-menu button{display:block;width:100%;text-align:left;min-height:44px;padding:0 14px;border:0;border-radius:13px;background:none;color:inherit;font:15px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    '.en-menu button.on{color:#64d2ff;font-weight:600}',
+    '.en-menu button:active{background:rgba(255,255,255,.1)}',
+    '.en-menu p{margin:0;padding:12px 14px;font:15px/1.4 -apple-system,system-ui,sans-serif}',
+    '.en-menu .row{display:flex;gap:6px;padding:4px}',
+    '.en-menu .row button{flex:1;text-align:center;background:rgba(255,255,255,.08)}',
+    '.en-menu .row button.red{color:#ff6b6b}',
+    '.en-menu .cap{padding:8px 12px 2px;font:600 12px -apple-system,system-ui,sans-serif;opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}',
+    '.en-menu h6{margin:8px 12px 2px;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;opacity:.5}',
     // a view's own bottom-corner buttons step up while the bar is there
     'body:has(.ke-bar) .km-bot{bottom:calc(env(safe-area-inset-bottom,0px) + 112px)!important}',
     '.km-bot{transition:bottom .25s cubic-bezier(.2,.85,.25,1)}',
@@ -339,5 +350,6 @@
   // an Edit switch for a view's header
   function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
 
+  if (document.head) css(); else document.addEventListener('DOMContentLoaded', css);   // the menus' look is needed before any view opens
   window.MinestKEdit = { picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();
