@@ -124,6 +124,10 @@ def knowledge_patches(out):
                "      addBoard: function(board, select) { setBoards(function(list) { return list.concat([board]); }); if (select) setTimeout(function() { setActiveBoardId(board.id); }, 30); },\n"
                "      openCardIn: function(boardId, colId, cardId) { if (boardId) setActiveBoardId(boardId); setTimeout(function() { setCardModal({ isOpen: true, columnId: colId, cardId: cardId }); }, 60); },\n"
                "      rateCard: function(cardId, level) {", 'knowledge: updateBoard / openCardIn')
+    # Portal: tell the knowledge views when a card's details open (marks it "viewed" — never mastered)
+    out = once(out, "  var setCardModal = cardModalState[1];\n",
+               "  var setCardModal = cardModalState[1];\n"
+               "  (0, _.useEffect)(function() { if (cardModal.isOpen && cardModal.cardId) { try { window.dispatchEvent(new CustomEvent('minest:card-open', { detail: { cardId: cardModal.cardId, columnId: cardModal.columnId } })); } catch (e) {} } }, [cardModal.isOpen, cardModal.cardId]);   // Minest Knowledge\n", 'knowledge: card-open event')
     return out
 
 

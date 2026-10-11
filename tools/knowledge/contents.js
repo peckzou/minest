@@ -53,6 +53,9 @@
     get: function (key) { var x = K.x[key]; return x && x.v != null ? x.v : null; },
     set: function (key, v, quiet) { K.x[key] = { v: v == null ? null : v, t: Date.now() }; knSave(); knPush(); if (!quiet) listeners.forEach(function (f) { try { f(); } catch (e) {} }); },
     setMany: function (map) { var t = Date.now(); Object.keys(map).forEach(function (k) { K.x[k] = { v: map[k] == null ? null : map[k], t: t }; }); knSave(); knPush(); listeners.forEach(function (f) { try { f(); } catch (e) {} }); },
+    // Portal: a card was opened (its details) — "viewed" only; mastery stays with the Learning Path (card.learn)
+    seenAt: function (id) { var x = K.x['sn:' + id]; return x && x.v ? x.v : 0; },
+    markSeen: function (id) { if (!id || (K.x['sn:' + id] && K.x['sn:' + id].v)) return; var t = Date.now(); K.x['sn:' + id] = { v: t, t: t }; knSave(); knPush(); listeners.forEach(function (f) { try { f(); } catch (e) {} }); },
     keys: function (prefix) { return Object.keys(K.x).filter(function (k) { return k.indexOf(prefix) === 0 && K.x[k].v != null; }); },
     clearPos: function (keys) { var t = Date.now(); keys.forEach(function (k) { if (K.m[k]) K.m[k] = { t: t }; }); knSave(); knPush(); },
     _cloud: function () { return K; },
@@ -489,5 +492,7 @@
   watchBoard();
   if (window.MinestKnowledge.onChange) window.MinestKnowledge.onChange(function () { clearTimeout(mT); mT = setTimeout(mountCol, 60); });
 
+  // any card's details opening (the board's own tap, Contents, the views) counts as "viewed"
+  window.addEventListener('minest:card-open', function (e) { var d = e.detail || {}; if (d.cardId && window.MinestKnowledge) window.MinestKnowledge.markSeen(d.cardId); });
   window.MinestContents = { mountCol: mountCol, goTo: function (to, back) { go({ id: null, to: to }, false, back); }, open: open, close: close, toggle: function () { if (ui.open) close(); else open(); }, isOpen: function () { return ui.open; }, icon: BOOK, _tree: tree, _go: function (id) { var n = byId[id]; if (n) go(n); } };
 })();

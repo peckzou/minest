@@ -10,14 +10,19 @@
    Edit: rename / add / delete / reorder groups and subcategories, add entries (any card, so an entry can be in many
    categories), remove an entry from one category, edit an entry's preview, save the structure as a template.
    Data: MinestKnowledge 'wk:tree:<board>' (synced), 'wk:pv:<card>' (preview), 'wk:tpl:<name>'; without a tree a
-   board's own lists / section headings / cards make the first one. View state on this device: minest.wiki.v1. */
+   board's own lists / section headings / cards make the first one. View state on this device: minest.wiki.v1.
+   Course portal (the learning atlas): a course = several boards, one per subject ('wk:course:<id>' = {title, intro,
+   boards: [{b, icon, desc}]}) — made from existing boards, or by a "course" JSON. Course → subject → skills / categories
+   → topics → entries. Every entry shows its learning state, read from the one Learning Path record (card.learn via
+   MinestLearn.cardStatus): not started (plain ink) · viewed (opened — grey) · learning (blue) · mastered (green ✓) ·
+   needs review (a red dot). Opening a card only ever makes it "viewed" ('sn:<card>'); nothing here sets mastery. */
 (function () {
   if (window.MinestWiki) return;
   var KN = function () { return window.MinestKnowledge; };
   var A = function () { return window.MinestAI || {}; };
   var ST_KEY = 'minest.wiki.v1';
   var S = (function () { try { var v = JSON.parse(localStorage.getItem(ST_KEY) || 'null'); if (v && v.b) return v; } catch (e) {} return { b: {} }; })();
-  function st() { return S.b[ui.bid] = S.b[ui.bid] || { scroll: 0, fold: {}, hide: false, layout: 'wiki' }; }
+  function st() { var k = ui.course ? 'c:' + ui.course : ui.bid; return S.b[k] = S.b[k] || { scroll: 0, fold: {}, hide: false, layout: 'wiki' }; }
   function stSave() { try { localStorage.setItem(ST_KEY, JSON.stringify(S)); } catch (e) {} }
   function boards() { try { return (A().boards && A().boards()) || []; } catch (e) { return []; } }
   function boardById(id) { return boards().filter(function (b) { return b.id === id; })[0] || null; }
@@ -48,12 +53,36 @@
   function saveTree(t) { delete t.auto; KN().set('wk:tree:' + ui.bid, t); }
   function walk(t, fn) { (function w(list, depth, parent) { list.forEach(function (n, i) { fn(n, depth, parent, i, list); w(n.subs || [], depth + 1, n); }); })(t.groups, 0, null); }
   function findNode(t, id) { var hit = null; walk(t, function (n, d, p, i, list) { if (n.id === id) hit = { node: n, parent: p, list: list, i: i, depth: d }; }); return hit; }
+  function nodeIds(n) { var ids = {}, out = []; (function c(x) { (x.items || []).forEach(function (i) { if (!ids[i]) { ids[i] = 1; out.push(i); } }); (x.subs || []).forEach(c); })(n); return out; }
+  function treeIds(t) { var ids = {}, out = []; t.groups.forEach(function (g) { nodeIds(g).forEach(function (i) { if (!ids[i]) { ids[i] = 1; out.push(i); } }); }); return out; }
+  function courses() { return KN().keys('wk:course:').map(function (k) { return KN().get(k); }).filter(function (c) { return c && c.id && Array.isArray(c.boards); }); }
+  function courseById(id) { var c = id && KN().get('wk:course:' + id); return c && Array.isArray(c.boards) ? c : null; }
+
+  // ================================================================== learning state (read only)
+  // from the Learning Path's record (card.learn → MinestLearn.cardStatus); "viewed" = its details were opened
+  var SC = {};
+  function stateOf(card, col) {
+    if (SC[card.id]) return SC[card.id];
+    var s = null; try { if (window.MinestLearn && MinestLearn.cardStatus) s = MinestLearn.cardStatus(card, col); } catch (e) {}
+    var k = s && s.mastered ? 'done' : s && s.studied ? 'learn' : (KN().seenAt && KN().seenAt(card.id)) ? 'seen' : 'new';
+    return (SC[card.id] = { k: k, rv: !!(s && s.due), m: s ? s.mastery || 0 : 0 });
+  }
+  var SNAME = { 'new': 'Not started', seen: 'Viewed', learn: 'Learning', done: 'Mastered' };
+  function tally(ids, idx) {
+    var t = { n: 0, done: 0, learn: 0, seen: 0, rv: 0 };
+    ids.forEach(function (id) { var x = idx[id]; if (!x) return; var s = stateOf(x.card, x.col); t.n++; if (s.k !== 'new') t[s.k]++; if (s.rv) t.rv++; });
+    return t;
+  }
+  function add(a, b) { ['n', 'done', 'learn', 'seen', 'rv'].forEach(function (k) { a[k] += b[k]; }); return a; }
+  function bar(t) { if (!t.n) return ''; var p = function (v) { return (v / t.n * 100).toFixed(2) + '%'; }; return '<span class="wk-bar"><i class="ok" style="width:' + p(t.done) + '"></i><i class="ln" style="width:' + p(t.learn) + '"></i><i class="sn" style="width:' + p(t.seen) + '"></i></span>'; }
+  function frac(t) { return '<span class="wk-fr">✓ ' + t.done + '/' + t.n + (t.rv ? ' · <span class="rv">' + t.rv + ' to review</span>' : '') + '</span>'; }
+  function legend() { return '<div class="wk-leg"><span>Not started</span><span class="s-seen">Viewed</span><span class="s-learn">Learning</span><span class="s-done">Mastered</span><span>Needs review<i class="wk-rv"></i></span></div>'; }
   function countItems(n) { var ids = {}; (function c(x) { (x.items || []).forEach(function (i) { ids[i] = 1; }); (x.subs || []).forEach(c); })(n); return Object.keys(ids).length; }
 
   // ================================================================== UI
   var ui = { open: false }, T = null, IDX = {}, edit = false;
   var CSS = [
-    '.wk{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:#e9edf4;font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:linear-gradient(180deg,#161b26,#0d1017)}',
+    '.wk{--ink:#eef1f6;--seen:rgba(233,237,244,.46);--acc:#7fb0ff;--ok:#4ade80;--bad:#ff6b6b;--trk:rgba(255,255,255,.1);position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:#e9edf4;font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:linear-gradient(180deg,#161b26,#0d1017)}',
     '.wk.away{visibility:hidden}',
     '.wk-head{position:relative;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 10px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}',
     '.wk-tb{flex:1 1 100%;border:0;background:none;color:inherit;text-align:left;padding:0 48px 0 0;cursor:pointer;font:inherit;min-width:0}',
@@ -93,11 +122,38 @@
     '.wk-st{padding:8px 10px;background:rgba(150,160,255,.07);font-weight:650;font-size:13.5px;color:#b9c3ff;text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:4px}',
     '.wk-it{padding:8px 10px;min-width:0;font-size:14px;line-height:1.75}',
     '.wk-it .wk-r{border:1px solid rgba(160,170,255,.1);border-radius:8px;margin-top:6px}',
-    '.wk-a{color:#8fb4ff;cursor:pointer;text-decoration:none;border-radius:4px;-webkit-tap-highlight-color:transparent;display:inline-block;max-width:100%;overflow-wrap:normal;word-break:normal;line-height:1.45}',
+    '.wk-a{color:var(--ink);cursor:pointer;text-decoration:none;border-radius:4px;-webkit-tap-highlight-color:transparent;display:inline-block;max-width:100%;overflow-wrap:normal;word-break:normal;line-height:1.45}',
     '.wk-a:hover{text-decoration:underline}',
     '.wk-a.multi:after{content:"⁺";opacity:.55;font-size:11px;margin-left:1px}',
     '.wk-a.hit{background:rgba(10,132,255,.35);color:#fff}',
     '.wk-dot{opacity:.45;margin:0 5px}',
+    // learning state: not started = plain ink · viewed = grey · learning = blue · mastered = green ✓ · review = red dot
+    '.wk .s-seen{color:var(--seen)}',
+    '.wk .s-learn{color:var(--acc)}',
+    '.wk .s-done{color:var(--ok);font-weight:600}',
+    '.wk .s-done:before{content:"✓";font-weight:800;margin-right:3px}',
+    '.wk-rv{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--bad);margin:0 0 0 3px;vertical-align:.45em}',
+    '.wk-leg{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 2px 12px;font-size:12.5px}',
+    '.wk-leg span{white-space:nowrap}',
+    '.wk-bar{display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--trk);margin-top:6px;width:100%}',
+    '.wk-bar i{display:block;height:100%}.wk-bar .ok{background:var(--ok)}.wk-bar .ln{background:var(--acc)}.wk-bar .sn{background:var(--seen);opacity:.6}',
+    '.wk-fr{font-size:11.5px;font-weight:650;font-variant-numeric:tabular-nums;opacity:.8;white-space:nowrap}',
+    '.wk-fr .rv{color:var(--bad);font-weight:650}',
+    '.wk-gt .wk-gp{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;min-width:64px;font-weight:600}',
+    '.wk-gt .wk-gp .wk-bar{margin-top:3px;width:64px}',
+    '.wk-st small,.wk-tp small{font-size:11px;font-weight:600;opacity:.6;margin-left:4px;font-variant-numeric:tabular-nums}',
+    '.wk-sum{margin:0 2px 14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06)}',
+    '.wk-sum b{font-size:14px}.wk-sum .wk-fr{margin-left:8px}',
+    '.wk-tp{color:var(--ink);cursor:pointer;display:inline-block;font-weight:600}',
+    '.wk-tp:hover{text-decoration:underline}',
+    '.wk-boxh .wk-en{cursor:pointer}',
+    '.wk-flash{animation:wkflash 1.4s ease-out}@keyframes wkflash{0%,40%{box-shadow:inset 0 0 0 2px #0a84ff}100%{box-shadow:inset 0 0 0 2px transparent}}',
+    '.wk-crumb{display:flex;align-items:center;gap:6px;margin:0 2px 12px;font-size:13.5px;opacity:.85}',
+    '.wk-crumb button{border:0;background:rgba(255,255,255,.08);color:inherit;font:600 13px -apple-system,system-ui,sans-serif;height:30px;padding:0 12px;border-radius:999px;cursor:pointer}',
+    '.wk-cbox{margin-bottom:12px}',
+    '.wk-st[data-enter]{cursor:pointer}',
+    '.wk-pv .st{margin-top:8px;font-size:12.5px;font-weight:650}',
+    '.wk-menu h6{margin:8px 12px 2px;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;opacity:.5}',
     '.wk-empty{opacity:.4;font-style:italic;font-size:13px}',
     // a phone: the group becomes a header row above its subcategories (three columns do not fit)
     '@media (max-width:600px){.wk-g{grid-template-columns:1fr}.wk-gt{justify-content:flex-start;text-align:left;padding:9px 12px;background:rgba(150,160,255,.16);position:sticky;top:0;z-index:1}.wk-r{grid-template-columns:minmax(76px,32%) minmax(0,1fr)}.wk-it .wk-r{grid-template-columns:minmax(58px,30%) minmax(0,1fr)}}',
@@ -138,12 +194,15 @@
   ].join('\n');
   function ensureCss() { if (document.getElementById('wk-css')) return; var s = document.createElement('style'); s.id = 'wk-css'; s.textContent = CSS; document.head.appendChild(s); }
 
-  var usage = {};
-  function itemHtml(id, nodeId) {
-    var x = IDX[id];
+  var usage = {}, IDXB = {};
+  function lookup(id, bid) { var idx = bid ? IDXB[bid] : IDX; return idx ? idx[id] : null; }
+  function itemHtml(id, nodeId, bid) {
+    var x = lookup(id, bid);
     if (!x) return '';
-    return '<a class="wk-a' + (usage[id] > 1 ? ' multi' : '') + '" data-item="' + esc(id) + '" data-node="' + esc(nodeId) + '" title="' + (usage[id] > 1 ? 'In ' + usage[id] + ' categories' : '') + '">' + esc(x.card.title || 'Untitled') + '</a>';
+    var s = stateOf(x.card, x.col), tip = SNAME[s.k] + (s.rv ? ' · needs review' : '') + (usage[id] > 1 ? ' · in ' + usage[id] + ' categories' : '');
+    return '<a class="wk-a s-' + s.k + (usage[id] > 1 ? ' multi' : '') + '" data-item="' + esc(id) + '" data-node="' + esc(nodeId) + '"' + (bid ? ' data-b="' + esc(bid) + '"' : '') + ' title="' + esc(tip) + '">' + esc(x.card.title || 'Untitled') + (s.rv ? '<i class="wk-rv"></i>' : '') + '</a>';
   }
+  function stFrac(n) { var t = tally(nodeIds(n), IDX); return t.n ? '<small>' + t.done + '/' + t.n + '</small>' : ''; }
   function itemsHtml(n) {
     var parts = (n.items || []).filter(function (id) { return IDX[id]; }).map(function (id) { return itemHtml(id, n.id); });
     return (parts.length ? parts.join('<span class="wk-dot">·</span>') : (edit ? '<span class="wk-empty">No entries yet</span>' : '')) +
@@ -156,32 +215,108 @@
     var h = '';
     if ((n.items || []).length || edit || !(n.subs || []).length) h += '<div class="wk-r full"><div class="wk-it">' + itemsHtml(n) + '</div></div>';
     (n.subs || []).forEach(function (s) {
-      h += '<div class="wk-r" data-sub-id="' + esc(s.id) + '"><div class="wk-st">' + esc(s.title) + ctl(s) + '</div><div class="wk-it">' +
+      h += '<div class="wk-r" data-sub-id="' + esc(s.id) + '"><div class="wk-st">' + esc(s.title) + stFrac(s) + ctl(s) + '</div><div class="wk-it">' +
         ((s.items || []).length || edit || !(s.subs || []).length ? itemsHtml(s) : '') +
-        (s.subs || []).map(function (ss) { return '<div class="wk-r"><div class="wk-st">' + esc(ss.title) + ctl(ss) + '</div><div class="wk-it">' + itemsHtml(ss) + subDeep(ss) + '</div></div>'; }).join('') + '</div></div>';
+        (s.subs || []).map(function (ss) { return '<div class="wk-r" data-sub-id="' + esc(ss.id) + '"><div class="wk-st">' + esc(ss.title) + stFrac(ss) + ctl(ss) + '</div><div class="wk-it">' + itemsHtml(ss) + subDeep(ss) + '</div></div>'; }).join('') + '</div></div>';
     });
     return h;
   }
-  function subDeep(n) { return (n.subs || []).map(function (s) { return '<div class="wk-r"><div class="wk-st">' + esc(s.title) + ctl(s) + '</div><div class="wk-it">' + itemsHtml(s) + subDeep(s) + '</div></div>'; }).join(''); }
+  function subDeep(n) { return (n.subs || []).map(function (s) { return '<div class="wk-r" data-sub-id="' + esc(s.id) + '"><div class="wk-st">' + esc(s.title) + stFrac(s) + ctl(s) + '</div><div class="wk-it">' + itemsHtml(s) + subDeep(s) + '</div></div>'; }).join(''); }
   function render() {
     if (!ui.el) return;
+    SC = {};
+    S.last = { course: ui.course || null, bid: ui.bid, from: ui.from || null }; stSave();
+    ui.el.classList.toggle('course', !!ui.course);
+    if (ui.course) return renderCourse();
     var b = boardById(ui.bid); if (!b) return;
     T = treeOf(b); IDX = cardIndex(b); usage = {};
     walk(T, function (n) { (n.items || []).forEach(function (id) { usage[id] = (usage[id] || 0) + 1; }); });
     var s = st();
     ui.el.classList.toggle('compact', s.layout === 'compact');
+    var from = ui.from && courseById(ui.from);
     ui.title.textContent = (T.portal && T.portal.title) || b.title || 'Portal';
+    ui.kicker.textContent = from ? from.title : 'Portal';
     ui.seg.querySelectorAll('[data-layout]').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-layout') === s.layout); });
     var areas = {}; ((T.portal || {}).areas || []).forEach(function (a) { areas[a.group] = a; });
-    var portal = '<div class="wk-portal">' + ((T.portal || {}).intro ? '<p>' + esc(T.portal.intro) + '</p>' : '') + '<div class="wk-band">Topics</div><div class="wk-tiles">' +
-      T.groups.map(function (g) { var a = areas[g.id] || {}; return '<button type="button" class="wk-tile" data-goto="' + esc(g.id) + '"><i>' + esc(a.icon || g.icon || '📂') + '</i><b>' + esc(g.title) + '</b>' + (a.desc ? '<small>' + esc(a.desc) + '</small>' : '') + '<em>' + countItems(g) + ' entries' + ((g.subs || []).length ? ' · ' + g.subs.length + ' subcategories' : '') + '</em></button>'; }).join('') + '</div></div>';
+    var all = tally(treeIds(T), IDX);
+    var crumb = from ? '<div class="wk-crumb"><button type="button" data-crumb>‹ ' + esc(from.title) + '</button><span>›</span><b>' + esc(b.title || '') + '</b></div>' : '';
+    var portal = '<div class="wk-portal">' + crumb + ((T.portal || {}).intro ? '<p>' + esc(T.portal.intro) + '</p>' : '') +
+      '<div class="wk-sum"><b>' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div>' + legend() + '<div class="wk-band">Topics</div><div class="wk-tiles">' +
+      T.groups.map(function (g) { var a = areas[g.id] || {}, t = tally(nodeIds(g), IDX); return '<button type="button" class="wk-tile" data-goto="' + esc(g.id) + '"><i>' + esc(a.icon || g.icon || '📂') + '</i><b>' + esc(g.title) + '</b>' + (a.desc ? '<small>' + esc(a.desc) + '</small>' : '') + '<em>' + countItems(g) + ' entries' + ((g.subs || []).length ? ' · ' + g.subs.length + ' subcategories' : '') + '</em>' + frac(t) + bar(t) + '</button>'; }).join('') + '</div></div>';
     var box = '<div class="wk-box"><div class="wk-boxh"><span style="width:44px"></span><b>' + esc(T.title || 'Categories') + '</b><button type="button" data-hide>' + (s.hide ? '[show]' : '[hide]') + '</button></div>' +
       (s.hide ? '' : T.groups.map(function (g) {
         var fold = s.fold[g.id];
-        return '<div class="wk-g' + (fold ? ' fold' : '') + '" data-g="' + esc(g.id) + '"><div class="wk-gt" data-fold="' + esc(g.id) + '" data-n="(' + countItems(g) + ')"><span class="tw">▼</span>' + esc(g.title) + ctl(g, true) + '</div><div class="wk-gb">' + subRows(g) + '</div></div>';
+        var gt = tally(nodeIds(g), IDX);
+        return '<div class="wk-g' + (fold ? ' fold' : '') + '" data-g="' + esc(g.id) + '"><div class="wk-gt" data-fold="' + esc(g.id) + '" data-n="(' + countItems(g) + ')"><span class="tw">▼</span>' + esc(g.title) + ctl(g, true) + (gt.n ? '<span class="wk-gp">' + frac(gt) + bar(gt) + '</span>' : '') + '</div><div class="wk-gb">' + subRows(g) + '</div></div>';
       }).join('')) + '</div>';
     var tools = '<div class="wk-tools"><button type="button" data-addgroup>＋ Category group</button><button type="button" data-savetpl>Save as template</button>' + (KN().keys('wk:tpl:').length ? '<button type="button" data-usetpl>Use a template…</button>' : '') + (T.auto ? '' : '<button type="button" data-rebuild>↺ Rebuild from the board</button>') + '</div>';
-    ui.list.innerHTML = portal + box + tools;
+    ui.list.innerHTML = (s.layout === 'compact' ? crumb : '') + portal + box + tools;
+  }
+
+  // ---------------------------------------------------------------- the course page: every subject at a glance
+  function renderCourse() {
+    var c = courseById(ui.course); if (!c) { ui.course = null; return render(); }
+    var s = st(); IDXB = {}; usage = {};
+    ui.el.classList.toggle('compact', s.layout === 'compact');
+    ui.title.textContent = c.title || 'Portal'; ui.kicker.textContent = 'Portal';
+    ui.seg.querySelectorAll('[data-layout]').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-layout') === s.layout); });
+    var subj = c.boards.map(function (e) { var b = boardById(e.b); if (!b) return null; var t = treeOf(b); IDXB[b.id] = cardIndex(b); return { e: e, b: b, t: t, sum: tally(treeIds(t), IDXB[b.id]) }; }).filter(Boolean);
+    var all = subj.reduce(function (a, x) { return add(a, x.sum); }, { n: 0, done: 0, learn: 0, seen: 0, rv: 0 });
+    var head = '<div class="wk-portal">' + (c.intro ? '<p>' + esc(c.intro) + '</p>' : '') +
+      '<div class="wk-sum"><b>' + subj.length + ' subjects · ' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div>' + legend() +
+      '<div class="wk-band">Subjects</div><div class="wk-tiles">' + subj.map(function (x) {
+        var desc = x.e.desc || (x.t.portal && x.t.portal.intro) || '';
+        return '<button type="button" class="wk-tile" data-enter="' + esc(x.b.id) + '"><i>' + esc(x.e.icon || '📘') + '</i><b>' + esc(x.b.title || 'Board') + '</b>' + (desc ? '<small>' + esc(desc.length > 90 ? desc.slice(0, 88) + '…' : desc) + '</small>' : '') +
+          '<em>' + x.t.groups.length + ' skills · ' + x.sum.n + ' entries</em>' + frac(x.sum) + bar(x.sum) + '</button>';
+      }).join('') + (subj.length ? '' : '<p>No subjects yet — tap ✎ Edit, then “Subjects…”.</p>') + '</div></div>';
+    var boxes = subj.map(function (x) {
+      var idx = IDXB[x.b.id], fold = s.fold[x.b.id];
+      return '<div class="wk-box wk-cbox"><div class="wk-boxh"><span style="width:44px"></span><b class="wk-en" data-enter="' + esc(x.b.id) + '">' + esc(x.e.icon ? x.e.icon + ' ' : '') + esc(x.b.title || '') + '</b><button type="button" data-cfold="' + esc(x.b.id) + '">' + (fold ? '[show]' : '[hide]') + '</button></div>' +
+        (fold ? '' : x.t.groups.map(function (g) {
+          var t = tally(nodeIds(g), idx);
+          var inner = (g.subs || []).map(function (sb) { var st2 = tally(nodeIds(sb), idx); return '<a class="wk-tp" data-enter="' + esc(x.b.id) + '" data-to="' + esc(sb.id) + '">' + esc(sb.title) + '<small>' + st2.done + '/' + st2.n + '</small></a>'; });
+          inner = inner.concat((g.items || []).map(function (id) { return itemHtml(id, g.id, x.b.id); }).filter(Boolean));
+          return '<div class="wk-r"><div class="wk-st" data-enter="' + esc(x.b.id) + '" data-to="' + esc(g.id) + '">' + esc(g.title) + '<small>' + t.done + '/' + t.n + '</small></div><div class="wk-it">' + inner.join('<span class="wk-dot">·</span>') + '</div></div>';
+        }).join('')) + '</div>';
+    }).join('');
+    var tools = '<div class="wk-tools"><button type="button" data-csubj>Subjects…</button><button type="button" data-cren>Rename</button><button type="button" data-cdel>Delete this portal</button></div>';
+    ui.list.innerHTML = head + boxes + tools;
+  }
+  function enter(bid, to) {
+    keep(); ui.from = ui.course; ui.course = null; ui.bid = bid;
+    var s = st(); s.hide = false;
+    var b = boardById(bid), t = b && treeOf(b), root = null;
+    if (t && to) root = t.groups.filter(function (g) { return g.id === to || findNode({ groups: [g] }, to); })[0] || null;
+    if (root) s.fold[root.id] = false;
+    stSave(); render();
+    var el = to && (ui.list.querySelector('[data-sub-id="' + cssEsc(to) + '"]') || ui.list.querySelector('.wk-g[data-g="' + cssEsc(to) + '"]') || (root && ui.list.querySelector('.wk-g[data-g="' + cssEsc(root.id) + '"]')));
+    if (el) { var lr = ui.list.getBoundingClientRect(); ui.list.scrollTop += el.getBoundingClientRect().top - lr.top - 8; el.classList.add('wk-flash'); setTimeout(function () { el.classList.remove('wk-flash'); }, 1400); }
+    else ui.list.scrollTop = 0;
+  }
+  function backToCourse() { keep(); ui.course = ui.from; ui.from = null; render(); ui.list.scrollTop = st().scroll || 0; }
+  function courseSheet(c) {
+    var cur = {}; (c ? c.boards : []).forEach(function (e) { cur[e.b] = e; });
+    var bs = boards().filter(function (b) { return !b.archived; });
+    var sh = mkSheet('<h4>' + (c ? 'Subjects in “' + esc(c.title) + '”' : 'New portal from boards') + '</h4>' + (c ? '' : '<input data-title placeholder="Portal name (e.g. EC-6)">') +
+      '<div class="list">' + bs.map(function (b) { return '<label><input type="checkbox" value="' + esc(b.id) + '"' + (cur[b.id] ? ' checked' : '') + '>' + esc(b.title || 'Board') + '</label>'; }).join('') + '</div>' +
+      '<div class="row"><button type="button" data-no>Cancel</button><button type="button" class="pri" data-ok>' + (c ? 'Done' : 'Create') + '</button></div>');
+    sh.addEventListener('click', function (e) {
+      if (e.target.closest('[data-no]')) return closeSheet();
+      if (!e.target.closest('[data-ok]')) return;
+      var chosen = [].slice.call(sh.querySelectorAll('input[type=checkbox]')).filter(function (x) { return x.checked; }).map(function (x) { return x.value; });
+      if (!chosen.length) return toast('Pick at least one board');
+      var keepOrder = (c ? c.boards.map(function (e) { return e.b; }) : []).filter(function (id) { return chosen.indexOf(id) >= 0; }).concat(chosen.filter(function (id) { return !cur[id]; }));
+      var nc = c ? JSON.parse(JSON.stringify(c)) : { id: rid('c-'), title: ((sh.querySelector('[data-title]') || {}).value || '').trim() || 'My portal', intro: '' };
+      nc.boards = keepOrder.map(function (id) { return cur[id] || { b: id }; });
+      closeSheet(); keep(); ui.course = nc.id; ui.from = null; KN().set('wk:course:' + nc.id, nc);
+    });
+  }
+  function onCourseEdit(t) {
+    var c = courseById(ui.course); if (!c) return false;
+    if (t.closest('[data-csubj]')) { courseSheet(c); return true; }
+    if (t.closest('[data-cren]')) { var nm = prompt('Portal name', c.title); if (nm && nm.trim()) { c.title = nm.trim(); KN().set('wk:course:' + c.id, c); } return true; }
+    if (t.closest('[data-cdel]')) { if (confirm('Delete the portal “' + c.title + '”? Its boards and cards stay.')) { ui.course = null; KN().set('wk:course:' + c.id, null); } return true; }
+    return false;
   }
 
   // ---------------------------------------------------------------- preview
@@ -189,15 +324,17 @@
   function closePv() { clearTimeout(pvTimer); if (pv) { pv.remove(); pv = null; } }
   function preview(a, sticky) {
     closePv();
-    var id = a.getAttribute('data-item'), x = IDX[id]; if (!x) return;
+    var id = a.getAttribute('data-item'), bid = a.getAttribute('data-b'), x = lookup(id, bid); if (!x) return;
+    var ls = stateOf(x.card, x.col);
     var o = KN().get('wk:pv:' + id) || {}, img = o.image || (x.card.cover && x.card.cover.type === 'image' && x.card.cover.url) || '';
     var desc = o.desc || x.card.desc || '';
-    var cats = []; walk(T, function (n) { if ((n.items || []).indexOf(id) >= 0) cats.push(n.title); });
+    var cats = []; if (!bid && T) walk(T, function (n) { if ((n.items || []).indexOf(id) >= 0) cats.push(n.title); });
     pv = document.createElement('div'); pv.className = 'wk-pv'; pv.setAttribute('role', 'dialog');
     pv.innerHTML = (img ? '<img alt="" src="' + esc(img) + '">' : '') + '<div class="in"><b>' + esc(x.card.title) + '</b>' + (desc ? '<p>' + esc(desc) + '</p>' : '<p style="opacity:.5">No summary yet.</p>') +
+      '<div class="st s-' + ls.k + '">' + SNAME[ls.k] + (ls.k === 'learn' || ls.k === 'done' ? ' · Lv ' + ls.m + '/5' : '') + (ls.rv ? '<span style="color:var(--bad)"> · needs review</span>' : '') + '</div>' +
       (cats.length > 1 ? '<div class="cats">In: ' + esc(cats.join(' · ')) + '</div>' : '') +
       (sticky ? '<div class="acts"><button type="button" class="pri" data-pvopen>Open</button><button type="button" data-pvboard>On the board</button>' + (edit ? '<button type="button" data-pvedit>Edit preview</button>' : '') + '</div>' : '') + '</div>';
-    pv.__id = id;
+    pv.__id = id; pv.__b = bid; pv.classList.add('wk-pvs');
     document.body.appendChild(pv);
     var r = a.getBoundingClientRect(), w = pv.offsetWidth, h = pv.offsetHeight;
     var left = Math.max(10, Math.min(innerWidth - w - 10, r.left + r.width / 2 - w / 2)), top = r.bottom + 8;
@@ -206,31 +343,32 @@
     if (pv.animate) pv.animate([{ opacity: 0, translate: '0 6px' }, { opacity: 1, translate: '0 0' }], { duration: 160, easing: 'ease-out' });
     ['pointerdown', 'touchstart'].forEach(function (ev) { pv.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
     pv.addEventListener('click', function (e) {
-      if (e.target.closest('[data-pvopen]')) { closePv(); return details(id); }
-      if (e.target.closest('[data-pvboard]')) { closePv(); return onBoard(id); }
+      if (e.target.closest('[data-pvopen]')) { closePv(); return details(id, bid); }
+      if (e.target.closest('[data-pvboard]')) { closePv(); return onBoard(id, bid); }
       if (e.target.closest('[data-pvedit]')) { closePv(); return editPreview(id); }
     });
   }
 
   // ---------------------------------------------------------------- details / board, and back to the same place
   function keep() { if (ui.list) { st().scroll = ui.list.scrollTop; stSave(); } }
-  function details(id) {
-    var x = IDX[id]; if (!x || !A().openCardIn) return;
+  function details(id, bid) {
+    var x = lookup(id, bid); if (!x || !A().openCardIn) return;
     keep(); ui.el.classList.add('away'); ui.lastItem = id;
-    A().openCardIn(ui.bid, x.col.id, id);
+    if (KN().markSeen) KN().markSeen(id);
+    A().openCardIn(bid || ui.bid, x.col.id, id);
     var t0 = Date.now(), seen = false, gone = 0;
     var modal = function () { return document.querySelector('.mn-dm, .mn-cardsheet, .fixed.inset-0.z-50 .rounded-3xl'); };
     var iv = setInterval(function () {
       if (modal()) { seen = true; gone = 0; return; }
       if (seen) gone++;
-      if ((seen && gone >= 2) || (!seen && Date.now() - t0 > 2500)) { clearInterval(iv); if (!ui.el) return; ui.el.classList.remove('away'); render(); ui.list.scrollTop = st().scroll || 0; lit(id); }
+      if ((seen && gone >= 2) || (!seen && Date.now() - t0 > 2500)) { clearInterval(iv); if (!ui.el) return; ui.el.classList.remove('away'); render(); ui.list.scrollTop = st().scroll || 0; lit(id, bid); }
     }, 250);
   }
-  function lit(id) { var a = ui.list.querySelector('.wk-a[data-item="' + cssEsc(id) + '"]'); if (a) { a.classList.add('hit'); setTimeout(function () { a.classList.remove('hit'); }, 1600); } }
-  function onBoard(id) {
-    var x = IDX[id]; if (!x) return;
-    keep(); var bid = ui.bid; close();
-    if (window.MinestContents && MinestContents.goTo) MinestContents.goTo({ b: bid, l: x.col.id, c: id, p: x.parent ? x.parent.id : null }, { label: 'Wiki', open: function () { open(bid); setTimeout(function () { lit(id); }, 150); } });
+  function lit(id, bid) { var a = ui.list.querySelector('.wk-a[data-item="' + cssEsc(id) + '"]' + (bid ? '[data-b="' + cssEsc(bid) + '"]' : '')); if (a) { a.classList.add('hit'); setTimeout(function () { a.classList.remove('hit'); }, 1600); } }
+  function onBoard(id, ib) {
+    var x = lookup(id, ib); if (!x) return;
+    keep(); var bid = ib || ui.bid, back = { course: ui.course, bid: ui.bid, from: ui.from }; close();
+    if (window.MinestContents && MinestContents.goTo) MinestContents.goTo({ b: bid, l: x.col.id, c: id, p: x.parent ? x.parent.id : null }, { label: 'Portal', open: function () { restore(back); setTimeout(function () { lit(id, ib); }, 150); } });
   }
 
   // ---------------------------------------------------------------- editing
@@ -298,18 +436,33 @@
   function attr(t, a) { var e = t.closest('[' + a + ']'); return e ? e.getAttribute(a) : null; }
 
   // ---------------------------------------------------------------- open / close
+  // open(board) = that subject; open() = where you were last (a course portal), else the current board
   function open(boardId, tries) {
     if (ui.open) return;
     if (boardId && !boardById(boardId) && (tries || 0) < 40) return setTimeout(function () { open(boardId, (tries || 0) + 1); }, 50);
-    ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
+    var last = S.last || {};
+    if (!boardId && last.course && courseById(last.course)) return restore(last);
+    if (!boardId && last.from && courseById(last.from) && last.bid && boardById(last.bid)) return restore(last);
     var a = A().board && A().board();
-    ui.bid = boardId || (a && a.id) || (boards()[0] || {}).id;
-    if (!ui.bid) return toast('No board yet.');
+    ui.course = null; ui.from = null;
+    mount(boardId || (a && a.id) || (boards()[0] || {}).id);
+  }
+  function openCourse(id, tries) {
+    if (ui.open) close();
+    var c = courseById(id);
+    if (!c || c.boards.some(function (e) { return !boardById(e.b); })) { if ((tries || 0) < 40) return setTimeout(function () { openCourse(id, (tries || 0) + 1); }, 60); if (!c) return toast('No such portal.'); }
+    ui.course = id; ui.from = null; mount((c.boards[0] || {}).b || ui.bid);
+  }
+  function restore(p) { if (ui.open) close(); ui.course = p.course && courseById(p.course) ? p.course : null; ui.from = !ui.course && p.from && courseById(p.from) ? p.from : null; mount(p.bid && boardById(p.bid) ? p.bid : (A().board && A().board() || {}).id); }
+  function mount(bid) {
+    ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
+    ui.bid = bid || (boards()[0] || {}).id;
+    if (!ui.bid && !ui.course) return toast('No board yet.');
     var el = document.createElement('div'); el.className = 'wk'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Wiki Portal');
-    el.innerHTML = '<div class="wk-head"><button type="button" class="wk-tb" data-boards><small>Portal</small><b></b></button>' +
+    el.innerHTML = '<div class="wk-head"><button type="button" class="wk-tb" data-boards><small></small><b></b></button>' +
       '<button type="button" class="wk-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
       '<span class="wk-seg"><button type="button" data-layout="wiki">Wiki</button><button type="button" data-layout="compact">Compact</button></span><button type="button" class="wk-hb" data-edit>✎ Edit</button></div><div class="wk-body"></div>';
-    ui.el = el; ui.list = el.querySelector('.wk-body'); ui.title = el.querySelector('.wk-tb b'); ui.seg = el.querySelector('.wk-seg'); ui.open = true; edit = false;
+    ui.el = el; ui.list = el.querySelector('.wk-body'); ui.title = el.querySelector('.wk-tb b'); ui.kicker = el.querySelector('.wk-tb small'); ui.seg = el.querySelector('.wk-seg'); ui.open = true; edit = false;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
     render(); ui.list.scrollTop = st().scroll || 0;
     if (el.animate) el.animate([{ opacity: 0, scale: '.97' }, { opacity: 1, scale: '1' }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
@@ -325,11 +478,19 @@
   function boardMenu(anchor) {
     var old = document.querySelector('.wk-menu'); if (old) { old.remove(); return; }
     var m = document.createElement('div'); m.className = 'en-menu wk-menu';
-    m.innerHTML = boards().filter(function (b) { return !b.archived; }).map(function (b) { return '<button type="button" data-b="' + esc(b.id) + '"' + (b.id === ui.bid ? ' class="on"' : '') + '>' + esc(b.title || 'Board') + '</button>'; }).join('');
+    var cs = courses();
+    m.innerHTML = '<h6>Portals</h6>' + cs.map(function (c) { return '<button type="button" data-c="' + esc(c.id) + '"' + (c.id === ui.course ? ' class="on"' : '') + '>📚 ' + esc(c.title) + '</button>'; }).join('') +
+      '<button type="button" data-cnew>＋ New portal from boards…</button><h6>Boards</h6>' +
+      boards().filter(function (b) { return !b.archived; }).map(function (b) { return '<button type="button" data-b="' + esc(b.id) + '"' + (!ui.course && b.id === ui.bid ? ' class="on"' : '') + '>' + esc(b.title || 'Board') + '</button>'; }).join('');
+    m.style.maxHeight = '70dvh'; m.style.overflow = 'auto';
     document.body.appendChild(m);
     var r = anchor.getBoundingClientRect(); m.style.left = Math.max(10, r.left) + 'px'; m.style.top = (r.bottom + 8) + 'px';
     m.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
-    m.addEventListener('click', function (e) { var b = e.target.closest('[data-b]'); if (!b) return; m.remove(); keep(); ui.bid = b.getAttribute('data-b'); render(); ui.list.scrollTop = st().scroll || 0; });
+    m.addEventListener('click', function (e) {
+      if (e.target.closest('[data-cnew]')) { m.remove(); return courseSheet(null); }
+      var c = e.target.closest('[data-c]'); if (c) { m.remove(); keep(); ui.course = c.getAttribute('data-c'); ui.from = null; render(); ui.list.scrollTop = st().scroll || 0; return; }
+      var b = e.target.closest('[data-b]'); if (!b) return; m.remove(); keep(); ui.course = null; ui.from = null; ui.bid = b.getAttribute('data-b'); render(); ui.list.scrollTop = st().scroll || 0;
+    });
   }
   function wire(el) {
     ['pointerdown', 'touchstart', 'touchmove', 'wheel'].forEach(function (ev) { el.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
@@ -345,13 +506,17 @@
       var ly = attr(t, 'data-layout'); if (ly) { st().layout = ly; stSave(); return render(); }
       if (t.closest('[data-edit]')) { edit = !edit; t.closest('[data-edit]').classList.toggle('on', edit); el.classList.toggle('edit', edit); closePv(); return render(); }
       if (t.closest('[data-hide]')) { st().hide = !st().hide; stSave(); return render(); }
-      if (edit && onEditClick(t)) return;
+      if (t.closest('[data-crumb]')) return backToCourse();
+      var cf = attr(t, 'data-cfold'); if (cf) { st().fold[cf] = !st().fold[cf]; stSave(); var y0 = ui.list.scrollTop; render(); ui.list.scrollTop = y0; return; }
+      if (edit && ui.course && onCourseEdit(t)) return;
+      if (edit && !ui.course && onEditClick(t)) return;
+      var en = t.closest('[data-enter]'); if (en && !t.closest('.wk-a')) return enter(en.getAttribute('data-enter'), en.getAttribute('data-to'));
       var a = t.closest('.wk-a');
       if (a) {
         e.preventDefault();
-        if (edit) { var h = findNode(T, a.getAttribute('data-node')); if (h) { h.node.items = h.node.items.filter(function (x) { return x !== a.getAttribute('data-item'); }); saveTree(T); render(); } return; }
-        if (fine) { closePv(); return details(a.getAttribute('data-item')); }
-        if (pv && pv.__id === a.getAttribute('data-item')) return closePv();
+        if (edit && !ui.course) { var h = findNode(T, a.getAttribute('data-node')); if (h) { h.node.items = h.node.items.filter(function (x) { return x !== a.getAttribute('data-item'); }); saveTree(T); render(); } return; }
+        if (fine) { closePv(); return details(a.getAttribute('data-item'), a.getAttribute('data-b')); }
+        if (pv && pv.__id === a.getAttribute('data-item') && pv.__b === a.getAttribute('data-b')) return closePv();
         return preview(a, true);
       }
       var go = attr(t, 'data-goto'); if (go) { st().fold[go] = false; st().hide = false; stSave(); render(); var g = ui.list.querySelector('.wk-g[data-g="' + cssEsc(go) + '"]'); if (g) { var lr = ui.list.getBoundingClientRect(), gr = g.getBoundingClientRect(); ui.list.scrollTo({ top: ui.list.scrollTop + gr.top - lr.top - 8, behavior: 'smooth' }); setTimeout(function () { if (Math.abs(g.getBoundingClientRect().top - lr.top - 8) > 6) ui.list.scrollTop += g.getBoundingClientRect().top - lr.top - 8; }, 650); } return; }
@@ -359,7 +524,12 @@
     });
   }
   if (KN() && KN().onChange) KN().onChange(function () { if (ui.open && !ui.el.classList.contains('away') && !sheet) { var y = ui.list.scrollTop; render(); ui.list.scrollTop = y; } });
+  // learning anywhere (Learning Path, Drill, Arcade, stars by hand) shows up here when you come back
+  var rt = 0;
+  function soon() { clearTimeout(rt); rt = setTimeout(function () { if (ui.open && ui.el && !ui.el.classList.contains('away') && !sheet && !pv) { var y = ui.list.scrollTop; render(); ui.list.scrollTop = y; } }, 400); }
+  ['minest:learn', 'minest:study-activity', 'minest:mastery-manual', 'minest:drill-done', 'minest:arcade-done', 'focus'].forEach(function (ev) { window.addEventListener(ev, soon); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) soon(); });
 
-  window.MinestWiki = { open: open, close: close, toggle: function () { if (ui.open) close(); else open(); }, isOpen: function () { return ui.open; },
+  window.MinestWiki = { open: open, openCourse: openCourse, close: close, _courses: courses, _state: function (id, bid) { var x = lookup(id, bid); return x ? stateOf(x.card, x.col) : null; }, toggle: function () { if (ui.open) close(); else open(); }, isOpen: function () { return ui.open; },
     _tree: function () { return T; }, _preview: function (id, sticky) { var a = ui.list.querySelector('.wk-a[data-item="' + cssEsc(id) + '"]'); if (a) preview(a, sticky); return !!a; } };
 })();

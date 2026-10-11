@@ -3,6 +3,9 @@
    games, Contents, Outline, Map and Timeline all see it. View settings go to MinestKnowledge (synced side tables).
      template "regions":  subject → board · state → list · stage → section-heading card · block → card
      template "route":    subject → board · journey → list · stop → card (its place: places[] — lon/lat or x/y)
+     template "wiki":     subject → board · items → cards (home list = first category) · categories → the Portal's tree
+     template "course":   course → a Portal ('wk:course:<id>') · each subject → a "wiki" board (id <course>-<subject>);
+                          a subject gives categories.groups, or skills [{id, title, items, topics: [{id, title, items}]}]
    Stable ids: board kb-<id>, list kl-<board>-<state>, stage ks-<board>-<stage>, block kc-<board>-<block>.
    Importing again merges: JSON items are updated in place, new ones added, cards you added yourself stay where they
    were (after the card they followed); items no longer in the JSON are only reported, never deleted.
@@ -17,7 +20,9 @@
   function slug(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'x'; }
   function str(v, max) { return v == null ? '' : String(v).slice(0, max || 4000); }
   var KNOWN = {
-    root: ['format', 'id', 'subject', 'template', 'route', 'states', 'categories', 'note', 'places', 'journeys', 'description', 'style', 'portal', 'items'],
+    root: ['format', 'id', 'subject', 'template', 'route', 'states', 'categories', 'note', 'places', 'journeys', 'description', 'style', 'portal', 'items', 'subjects'],
+    subject: ['id', 'title', 'icon', 'desc', 'items', 'categories', 'skills', 'portal'],
+    skill: ['id', 'title', 'icon', 'desc', 'items', 'topics', 'subs'],
     item: ['id', 'title', 'desc', 'image', 'date'],
     group: ['id', 'title', 'items', 'subs', 'icon', 'desc'],
     state: ['id', 'title', 'icon', 'color', 'desc', 'stages'],
@@ -177,14 +182,51 @@
   function count(b) { return b.columns.reduce(function (a, c) { return a + c.cards.length; }, 0); }
 
   function importJSON(J, opts) {
-    var r = build(typeof J === 'string' ? JSON.parse(J) : J);
+    J = typeof J === 'string' ? JSON.parse(J) : J;
+    if (J && J.template === 'course') return importCourse(J, opts);
+    var parts = [], r = importOne(J, opts, parts);
+    var u = loadUndo(); u.unshift(parts[0]); saveUndo(u.slice(0, 5));
+    return r;
+  }
+  // a whole course: one wiki board per subject, and the Portal that lists them (one undo step for all of it)
+  function importCourse(J, opts) {
+    if (J.format && J.format !== 'minest.knowledge/1') throw new Error('Unknown format "' + J.format + '" (expected minest.knowledge/1).');
+    if (!J.subject) throw new Error('"subject" (the course name) is missing.');
+    if (!Array.isArray(J.subjects) || !J.subjects.length) throw new Error('"subjects" is missing or empty.');
+    var warn = []; check(J, 'root', 'root', warn);
+    var cid = 'c-' + slug(J.id || J.subject), ckey = 'wk:course:' + cid, prev = KN().get(ckey);
+    var subJ = J.subjects.map(function (sj, i) {
+      check(sj, 'subject', 'subject ' + (sj.id || i + 1), warn);
+      var sid = needId(sj, 'subject', i);
+      if (!sj.title) throw new Error('Subject "' + sid + '" has no "title".');
+      var groups = sj.categories && Array.isArray(sj.categories.groups) ? sj.categories.groups : Array.isArray(sj.skills) ? sj.skills.map(function (k, j) {
+        check(k, 'skill', sj.title + ' · skill ' + (k.id || j + 1), warn);
+        return { id: k.id, title: k.title, icon: k.icon, items: k.items || [], subs: (k.topics || k.subs || []).map(function (t) { return { id: t.id, title: t.title, items: t.items || [], subs: t.subs || [] }; }) };
+      }) : null;
+      if (!groups) throw new Error('Subject "' + sj.title + '" needs "skills" or "categories.groups".');
+      return { sid: sid, icon: sj.icon, desc: sj.desc, J: { format: 'minest.knowledge/1', id: slug(J.id || J.subject) + '-' + sid, subject: sj.title, template: 'wiki', items: sj.items,
+        categories: { title: (sj.categories && sj.categories.title) || sj.title, groups: groups }, portal: sj.portal || { title: sj.title, intro: sj.desc || '' } } };
+    });
+    subJ.forEach(function (x) { build(x.J); });   // every subject checks out before anything changes
+    var parts = [], res = subJ.map(function (x) { var r = importOne(x.J, { select: false, replaceCategories: opts && opts.replaceCategories }, parts); r.warnings.forEach(function (w) { warn.push(x.J.subject + ': ' + w); }); return r; });
+    var mine = {}; res.forEach(function (r) { mine[r.boardId] = 1; });
+    var extra = prev && Array.isArray(prev.boards) ? prev.boards.filter(function (e) { return !mine[e.b]; }) : [];
+    var course = { id: cid, title: str((J.portal && J.portal.title) || J.subject, 160), intro: str((J.portal && J.portal.intro) || J.description, 600),
+      boards: res.map(function (r, i) { return { b: r.boardId, icon: str(subJ[i].icon, 8), desc: str(subJ[i].desc, 200) }; }).concat(extra) };
+    KN().set(ckey, course, true);
+    var u = loadUndo(); u.unshift({ at: Date.now(), title: course.title, course: cid, prevCourse: prev || null, parts: parts }); saveUndo(u.slice(0, 5));
+    return { boardId: res[0].boardId, courseId: cid, title: course.title, template: 'course', isNew: !prev, added: res.reduce(function (a, r) { return a + r.added; }, 0), updated: res.reduce(function (a, r) { return a + r.updated; }, 0),
+      gone: [].concat.apply([], res.map(function (r) { return r.gone; })), warnings: warn };
+  }
+  function importOne(J, opts, parts) {
+    var r = build(J);
     var ai = A(); if (!ai.boards || !ai.updateBoard || !ai.addBoard) throw new Error('The board is still loading — try again in a moment.');
     var old = ai.boards().filter(function (b) { return b.id === r.board.id; })[0] || null;
     var headings = []; r.board.columns.forEach(function (c) { c.cards.forEach(function (k) { if (k.__heading) headings.push(k.id); }); });
     var m = mergeBoard(old, r.board);
     // undo point: the board as it was (or "not there"), and the view settings this import replaces
     var cfgKey = 'lm:cfg:' + r.board.id;
-    var u = loadUndo(); u.unshift({ at: Date.now(), bid: r.board.id, title: r.board.title, board: old, cfg: KN().get(cfgKey), tree: KN().get('wk:tree:' + r.board.id) }); saveUndo(u.slice(0, 5));
+    parts.push({ at: Date.now(), bid: r.board.id, title: r.board.title, board: old, cfg: KN().get(cfgKey), tree: KN().get('wk:tree:' + r.board.id) });
     if (old) ai.updateBoard(r.board.id, function () { return m.board; }); else ai.addBoard(m.board, opts && opts.select !== false);
     headings.forEach(function (id) { if (!KN().isHeading(id)) KN().setHeading(id, true); });
     var prevCfg = KN().get(cfgKey) || {};
@@ -203,10 +245,13 @@
   function undo() {
     var u = loadUndo(), last = u.shift(); if (!last) return null;
     var ai = A();
-    if (last.board) ai.updateBoard(last.bid, function () { return last.board; });
-    else if (ai.removeBoard) ai.removeBoard(last.bid);
-    KN().set('lm:cfg:' + last.bid, last.cfg, true);
-    KN().set('wk:tree:' + last.bid, last.tree || null, true);
+    (last.parts || [last]).forEach(function (p) {
+      if (p.board) ai.updateBoard(p.bid, function () { return p.board; });
+      else if (ai.removeBoard) ai.removeBoard(p.bid);
+      KN().set('lm:cfg:' + p.bid, p.cfg, true);
+      KN().set('wk:tree:' + p.bid, p.tree || null, true);
+    });
+    if (last.course) KN().set('wk:course:' + last.course, last.prevCourse || null);
     saveUndo(u);
     return last;
   }
