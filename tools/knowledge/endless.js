@@ -204,6 +204,10 @@
       } else KN().set('en:hl:' + n.id, pick.color === 'none' ? null : pick.color, true);
       render();
     },
+    note: function (n, t) {
+      if (n.kind === 'list') return null;
+      return edit(function (b) { var L = locate(b, n.kind, n.id); if (!L) return false; (n.kind === 'card' ? L.card : L.item).desc = String(t || ''); }, null, { edit: false });
+    },
     heading: function (n) { if (n.kind !== 'card') return toast('Only a card can be a section heading.'); KN().setHeading(n.id, !KN().isHeading(n.id)); render(); select(n.k); },
     details: function (n) {
       if (n.kind === 'list') return;
@@ -292,6 +296,18 @@
     '.en-n{font-size:calc(15px * var(--z));line-height:1.35;color:var(--note);margin:3px 0 0 calc(1em + .45em);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
     '.en-row.d0 .en-n,.en-row.d1 .en-n{margin-left:calc(2.1em + .45em)}',
     '.en.nonotes .en-n{display:none}',
+    '.en-n.typing{-webkit-line-clamp:unset;display:block;overflow:visible;outline:none;background:rgba(127,127,127,.14);border-radius:6px;padding:2px 6px;margin-left:calc(1em + .45em - 6px);cursor:text;white-space:pre-wrap}',
+    '.en-n[data-note]{cursor:text}',
+    '.en-nadd{opacity:.45;font-style:italic}',
+    '.en-row:not(.sel) .en-nadd{display:none}',
+    '@media (max-width:699px){' +
+      '.en-head .en-tb{padding-right:132px}' +
+      '.en-head > [data-knmode],.en-head > [data-knfull]{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);margin:0}' +
+      '.en-head > [data-knfull]{right:56px}.en-head > [data-knmode]{right:98px}' +
+      '.en-head .en-bar.en-top{overflow:visible;justify-content:space-between;gap:0}' +
+      '.en-head .en-bar.en-top button{flex:1 1 0;width:auto;min-width:0;max-width:44px;height:38px}' +
+      '.en-head .en-bar.en-top button svg{width:19px;height:19px}' +
+    '}',
     '.en-nt{flex:none;width:30px;align-self:flex-start;height:calc(36px * var(--z));display:grid;place-items:center;border:0;background:none;color:var(--chev);cursor:pointer;opacity:0;padding:0}',
     '.en-nt svg{width:18px;height:18px}',
     '.en-row.hasnote .en-nt,.en-row.sel .en-nt{opacity:.85}',
@@ -364,7 +380,7 @@
     return '<div class="' + cls + '" data-k="' + esc(n.k) + '" style="--d:' + n.d + (hl ? ';--rh:' + HLC[hl] : '') + '">' +
       '<button type="button" class="en-chev' + (n.kids.length ? '' : ' none') + '" data-fold tabindex="-1" aria-label="Fold">' + CHEV + '</button>' +
       '<div class="en-tx"><div class="en-line"><span class="en-num" data-dot>' + numOf(n) + '</span><div class="en-t" data-ph="' + (n.kind === 'list' ? 'List title' : 'Untitled') + '">' + titleHtml(n) + '</div></div>' +
-      (note ? '<div class="en-n">' + esc(n.note) + '</div>' : '') + '</div>' +
+      (note ? '<div class="en-n" data-note>' + esc(n.note) + '</div>' : n.kind !== 'list' ? '<div class="en-n en-nadd" data-note>Add a note</div>' : '') + '</div>' +
       '</div>';   // no per-row button: the Outline stays put (details: ⓘ in the toolbar)
   }
   function render() {
@@ -433,12 +449,29 @@
     try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); }
     if (atEnd !== false) { var rg = document.createRange(); rg.selectNodeContents(t); rg.collapse(false); var s = getSelection(); s.removeAllRanges(); s.addRange(rg); }
   }
+  // the note under a row (the card's description), typed right there
+  function startNote(k) {
+    var r = rowEl(k); if (!r) return;
+    var t = r.querySelector('.en-n'); if (!t) return;
+    if (t.classList.contains('en-nadd')) { t.textContent = ''; t.classList.remove('en-nadd'); }
+    try { t.setAttribute('contenteditable', 'plaintext-only'); if (t.contentEditable !== 'plaintext-only') t.setAttribute('contenteditable', 'true'); } catch (e) { t.setAttribute('contenteditable', 'true'); }
+    t.setAttribute('spellcheck', 'true'); t.classList.add('typing');
+    ui.editing = t; ui.editKey = k; ui.editNote = true;
+    try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); }
+    var rg = document.createRange(); rg.selectNodeContents(t); rg.collapse(false); var sl = getSelection(); sl.removeAllRanges(); sl.addRange(rg);
+  }
   // finish typing in a row; a new row left empty goes away
   function commit() {
     var t = ui.editing, k = ui.editKey; if (!t) return Promise.resolve(false);
     ui.editing = null; ui.editKey = null;
     t.removeAttribute('contenteditable');
     var n = byKey[k]; if (!n) return Promise.resolve(false);
+    if (ui.editNote) {
+      ui.editNote = false; t.classList.remove('typing');
+      var nt = (t.innerText || '').replace(/\u00a0/g, ' ').replace(/\s+$/, '');
+      if (nt === (n.note || '')) { if (!nt) render(); return Promise.resolve(false); }
+      return Promise.resolve(OPS.note(n, nt)).then(function () { return true; });
+    }
     var txt = t.textContent;
     if (!txt.trim() && !n.kids.length && !(n.note || '').trim()) return Promise.resolve(OPS.remove(n, true)).then(function () { return true; });
     var p = OPS.rename(n, txt);
@@ -585,10 +618,15 @@
       if (e.target.closest('[data-fold]')) { commit(); if (n && n.kids.length) { setFold(k, !folded(k)); select(k); render(); } return; }
       if (e.target.closest('[data-dot]')) { if (!n) return; select(k); if (n.kind === 'list') { commit(); setFold(k, !folded(k)); render(); } return; }   // a bullet only selects (no jump out of the Outline)
       if (ui.editKey === k) return;
+      if (e.target.closest('[data-note]') && n && n.kind !== 'list') { run(function () { return commit().then(function () { if (rowEl(k)) { select(k); startNote(k); } }); }); return; }
       run(function () { return commit().then(function () { if (rowEl(k)) { select(k); startEdit(k, true); } }); });
     });
     el.addEventListener('keydown', function (e) {
       if (!ui.editing) return;
+      if (ui.editNote) {   // a note: Enter keeps it, Shift-Enter starts a new line
+        if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Escape') { e.preventDefault(); run(commit); }
+        return;
+      }
       var k = ui.editKey, n = byKey[k], mod = e.metaKey || e.ctrlKey;
       if (e.key === 'Enter' && !e.shiftKey && !mod) { e.preventDefault(); act('sibling'); return; }
       if (e.key === 'Enter' && mod) { e.preventDefault(); act('details'); return; }
