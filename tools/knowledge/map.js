@@ -7,7 +7,11 @@
    you are and is tappable. Drag to pan, pinch / wheel to zoom.
    Arrange: drag nodes to new places; a node takes its children along. Places are offsets from the parent node,
    kept in MinestKnowledge (synced, `knowledge.m`); Reset puts the board back to the automatic layout.
-   The camera of each board is kept on this device (minest.map.v1). */
+   The camera of each board is kept on this device (minest.map.v1).
+   Styles (per board, synced 'km:style:<board>'): Bubbles (the Prezi map above) · MindNode (a calm light canvas, the
+   board as a white card, coloured branch curves with the text sitting on its line, ✓ on mastered cards) · XMind
+   (a navy central topic, filled topic blocks, tinted subtopics). MindNode / XMind are tidy trees balanced left and
+   right — sections (heading cards) nest their cards; dragging in Arrange keeps an offset under 'T:<node>'. */
 (function () {
   if (window.MinestMap) return;
   var KN = function () { return window.MinestKnowledge; };
@@ -20,28 +24,100 @@
 
   // ================================================================== the graph and its automatic layout
   var SIZE = { board: 168, list: 116, card: 86, item: 70 };
-  function graph(b) {
-    var nodes = [], byKey = {};
+  var PAL = ['#5bb5c8', '#f0965a', '#e0605a', '#f2c84b', '#9b6fd0', '#5a9cf0', '#5cbf7f', '#e57bb0'];
+  function styleOf(bid) { var v = KN() && KN().get('km:style:' + bid); return v === 'mind' || v === 'xmind' ? v : 'bubble'; }
+  function graph(b, style) {
+    var nodes = [], byKey = {}, tree = style !== 'bubble';
+    var stageOf = tree && KN() ? ((KN().get('lm:cfg:' + b.id) || {}).stageOf || {}) : {};
     function add(n, parent) { n.parent = parent || null; n.kids = []; if (parent) parent.kids.push(n); nodes.push(n); byKey[n.k] = n; return n; }
     var root = add({ k: 'B:' + b.id, kind: 'board', title: b.title || 'Board', color: '#7c8cff' });
-    (b.columns || []).forEach(function (col) {
-      var L = add({ k: 'L:' + col.id, kind: 'list', title: col.title || 'List', color: col.color || '#5097f4', id: col.id }, root);
+    (b.columns || []).forEach(function (col, li) {
+      var L = add({ k: 'L:' + col.id, kind: 'list', title: col.title || 'List', color: col.color || PAL[li % PAL.length], id: col.id }, root);
+      var secs = {}, cur = null, later = [];
+      function card(c, parent) {
+        var ms = false;
+        if (tree) { try { var st = window.MinestLearn && MinestLearn.cardStatus ? MinestLearn.cardStatus(c, col) : null; ms = !!(st && st.mastered); } catch (e) {} }
+        var C = add({ k: 'C:' + c.id, kind: 'card', title: c.title || '', color: L.color, id: c.id, col: col.id, done: !!c.complete, ms: ms, heading: KN() && KN().isHeading(c.id) }, parent);
+        (Array.isArray(c.stack) ? c.stack : []).forEach(function (s) { if (s && s.id) add({ k: 'I:' + s.id, kind: 'item', title: s.title || '', color: L.color, id: s.id, col: col.id, done: !!s.complete }, C); });
+        return C;
+      }
       (col.cards || []).forEach(function (c) {
         if (!c || !c.id) return;
-        var C = add({ k: 'C:' + c.id, kind: 'card', title: c.title || '', color: L.color, id: c.id, col: col.id, done: !!c.complete, heading: KN() && KN().isHeading(c.id) }, L);
-        (Array.isArray(c.stack) ? c.stack : []).forEach(function (s) { if (s && s.id) add({ k: 'I:' + s.id, kind: 'item', title: s.title || '', color: L.color, id: s.id, col: col.id, done: !!s.complete }, C); });
+        if (!tree) return card(c, L);
+        if (KN() && KN().isHeading(c.id)) { cur = secs[c.id] = card(c, L); return; }
+        var want = stageOf[c.id];
+        if (want && !secs[want]) { later.push([want, c]); return; }   // its section comes further down (the Kanban sinks mastered cards)
+        card(c, (want && secs[want]) || cur || L);
       });
+      later.forEach(function (x) { card(x[1], secs[x[0]] || L); });
     });
-    layout(root);
-    return { root: root, nodes: nodes, byKey: byKey };
+    if (tree) treeLayout(root, style); else { nodes.forEach(function (n) { n.w = n.h = SIZE[n.kind]; }); layout(root); }
+    return { root: root, nodes: nodes, byKey: byKey, style: style };
   }
+
+  // ---------------------------------------------------------------- MindNode / XMind: a tidy tree, balanced left and right
+  var FONT = ' -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif';
+  // [font, pad x, pad y, max text width, line height]
+  var TS = {
+    mind: { root: ['700 21px', 22, 18, 230, 26], list: ['650 16px', 4, 5, 230, 21], sec: ['600 14.5px', 4, 4, 230, 19], card: ['400 14px', 4, 4, 240, 18], item: ['400 12.5px', 4, 3, 220, 16] },
+    xmind: { root: ['700 21px', 28, 15, 260, 26], list: ['650 15.5px', 16, 9, 230, 20], sec: ['600 14px', 13, 7, 230, 18], card: ['500 13.5px', 12, 7, 240, 18], item: ['500 12.5px', 10, 5, 220, 16] }
+  };
+  var c2d = null;
+  function treeLayout(root, style) {
+    var T = TS[style];
+    c2d = c2d || document.createElement('canvas').getContext('2d');
+    (function meas(n, depth) {
+      var m = T[n.kind === 'board' ? 'root' : n.heading ? 'sec' : n.kind];
+      n.depth = depth; n.font = m[0] + FONT; n.px = m[1]; n.py = m[2]; n.lh = m[4];
+      c2d.font = n.font;
+      var tw = c2d.measureText(n.title || '·').width + (n.ms ? 21 : 0), lines = Math.min(3, Math.max(1, Math.ceil(tw / m[3])));
+      n.w = Math.ceil(Math.min(tw, m[3])) + 2 * m[1] + 4; n.h = lines * m[4] + 2 * m[2];
+      if (n.kind === 'board' && style === 'mind') { n.w = Math.max(n.w, 176); n.h = Math.max(n.h, 100); }
+      n.kids.forEach(function (k) { meas(k, depth + 1); });
+    })(root, 0);
+    var GX = style === 'xmind' ? 54 : 60, GY = style === 'xmind' ? 12 : 6, GL = style === 'xmind' ? 26 : 22, G0 = style === 'xmind' ? 86 : 104;
+    function sh(n) { var s = 0; n.kids.forEach(function (k) { s += sh(k); }); s += GY * Math.max(0, n.kids.length - 1); return (n.sh = Math.max(n.h, s)); }
+    root.kids.forEach(sh);
+    var total = root.kids.reduce(function (a, l) { return a + l.sh; }, 0), right = [], left = [], acc = 0;
+    // a portrait phone: every branch to the right (tall and narrow fits the screen); wider screens balance both sides
+    var oneSide = innerWidth < 600 && innerHeight > innerWidth;
+    root.kids.forEach(function (l) { if (oneSide || !right.length || acc + l.sh / 2 <= total / 2) { right.push(l); acc += l.sh; } else left.push(l); });
+    root.x = 0; root.y = 0; root.side = 0;
+    function put(n, edge, top, dir) {
+      n.side = dir; n.x = edge + dir * n.w / 2; n.y = top + n.sh / 2;
+      var kt = n.kids.reduce(function (a, k) { return a + k.sh; }, 0) + GY * Math.max(0, n.kids.length - 1), y = top + (n.sh - kt) / 2;
+      n.kids.forEach(function (k) { put(k, edge + dir * (n.w + GX), y, dir); y += k.sh + GY; });
+    }
+    [[right, 1], [left, -1]].forEach(function (sd) {
+      var list = sd[0], tot = list.reduce(function (a, l) { return a + l.sh; }, 0) + GL * Math.max(0, list.length - 1), y = -tot / 2;
+      list.forEach(function (l) { put(l, sd[1] * (root.w / 2 + G0), y, sd[1]); y += l.sh + GL; });
+    });
+    // what you moved in Arrange: an offset from the parent, applied top-down (a moved branch takes its children along)
+    (function adj(n) { n.kids.forEach(function (k) { var sv = KN() && KN().posOf('T:' + k.k); if (sv) moveTree(k, n.x + sv.dx - k.x, n.y + sv.dy - k.y); k.dx = k.x - n.x; k.dy = k.y - n.y; adj(k); }); })(root);
+  }
+  function treePath(p, n, style) {
+    var dir = n.side || 1, x1, y1, x2, y2;
+    if (style === 'mind') {
+      if (p.kind === 'board') { x1 = p.x + dir * (p.w / 2 - 6); y1 = p.y; } else { x1 = p.x + dir * p.w / 2; y1 = p.y + p.h / 2 - 1; }
+      x2 = n.x - dir * n.w / 2; y2 = n.y + n.h / 2 - 1;
+    } else { x1 = p.x + dir * p.w / 2; y1 = p.y; x2 = n.x - dir * n.w / 2; y2 = n.y; }
+    var mx = (x2 - x1) * .55;
+    return 'M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' C' + (x1 + mx).toFixed(1) + ' ' + y1.toFixed(1) + ' ' + (x2 - mx).toFixed(1) + ' ' + y2.toFixed(1) + ' ' + x2.toFixed(1) + ' ' + y2.toFixed(1);
+  }
+  function lineW(n, style) { return style === 'mind' ? (n.depth === 1 ? 5 : n.depth === 2 ? 3 : 2) : (n.depth === 1 ? 3 : n.depth === 2 ? 2 : 1.5); }
+  function onColor(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '')); if (!m) return '#fff';
+    var v = parseInt(m[1], 16), r = v >> 16 & 255, g = v >> 8 & 255, b = v & 255;
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 170 ? '#1d1f23' : '#fff';
+  }
+  function posKey(n) { return G && G.style !== 'bubble' ? 'T:' + n.k : n.k; }
   // each list gets a slice of the circle in proportion to its cards; its cards fill that slice ring by ring,
   // so lists never run into each other; stacked cards sit around their card (shown when the card is in focus)
   function layout(root) {
     root.x = 0; root.y = 0; root.a = 0;
     var L = root.kids, W = 0;
-    L.forEach(function (l) { l.w = 1.4 + l.kids.length; W += l.w; });
-    var MIN = .42, slices = L.map(function (l) { return Math.max(MIN, Math.PI * 2 * l.w / Math.max(1, W)); });
+    L.forEach(function (l) { l.wt = 1.4 + l.kids.length; W += l.wt; });
+    var MIN = .42, slices = L.map(function (l) { return Math.max(MIN, Math.PI * 2 * l.wt / Math.max(1, W)); });
     var sum = slices.reduce(function (a, b) { return a + b; }, 0); slices = slices.map(function (x) { return x * Math.PI * 2 / sum; });
     var R1 = Math.max(420, L.length * 70);
     var a0 = -Math.PI / 2 - slices[0] / 2;
@@ -75,7 +151,7 @@
   var ICON = {
     map: I('<circle cx="12" cy="12" r="3"/><circle cx="4.5" cy="6" r="2"/><circle cx="19.5" cy="6" r="2"/><circle cx="5" cy="18.5" r="2"/><circle cx="19" cy="18.5" r="2"/><path d="m6.3 7 3.3 3M17.7 7l-3.3 3M6.6 17.2l3.2-3M17.4 17.2l-3.2-3"/>'),
     home: I('<path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/>'), back: I('<path d="m15 6-6 6 6 6"/>'),
-    fit: I('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'), move: I('<path d="M12 3v18M3 12h18"/><path d="m9 6 3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>')
+    fit: I('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'), style: I('<rect x="9" y="10" width="6" height="4" rx="1.5"/><path d="M9 12H6.5c-1.5 0-1.5-5-3.5-5M9 12H6.5c-1.5 0-1.5 5-3.5 5M15 12h2.5c1.5 0 1.5-5 3.5-5M15 12h2.5c1.5 0 1.5 5 3.5 5"/>'), move: I('<path d="M12 3v18M3 12h18"/><path d="m9 6 3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>')
   };
   var CSS = [
     '.km{position:fixed;inset:0;z-index:2147482000;overflow:hidden;color:#fff;font:15px/1.25 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;' +
@@ -126,7 +202,40 @@
     '.km-path i{opacity:.35;font-style:normal}',
     '.km-bot{position:absolute;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;flex-direction:column;gap:8px}',
     '.km-hint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(20,26,38,.7);font-size:13px;opacity:.85;pointer-events:none;white-space:nowrap;transition:opacity .4s}',
-    'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}'
+    'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}',
+    // ---- MindNode / XMind (tree styles)
+    'html .km.tree{--ink:#ececef;--card:#2a2b31;--sub:#202126}',
+    'html.kn-light .km.tree{--ink:#2b2d31;--card:#ffffff;--sub:#ffffff}',
+    'html .km.s-mind{background:#1c1d21}html.kn-light .km.s-mind{background:#f3f3f5}',
+    'html .km.s-xmind{background:#15161a}html.kn-light .km.s-xmind{background:#ffffff}',
+    'html .km.tree .km-n{border-radius:0;background:none;border:0;box-shadow:none;justify-content:flex-start;text-align:left;color:var(--ink);transition:opacity .3s,box-shadow .25s}',
+    'html .km.tree .km-n span{-webkit-line-clamp:3;overflow-wrap:break-word;-webkit-hyphens:auto;hyphens:auto}',
+    'html .km.tree .km-n.item,html .km.tree .km-lines path.it{opacity:1;pointer-events:auto;scale:1}',
+    'html .km.tree .km-n.dim,html .km.tree .km-n.item.dim{opacity:.22}',
+    'html .km.tree.has-f .km-lines path:not(.on){opacity:.18}',
+    'html .km.tree .km-lines path{transition:opacity .3s}',
+    'html .km.tree .km-n.done{opacity:.55}',
+    'html .km.tree .km-n.ms span:before{content:"✓";display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--c);color:#fff;font:800 10px/16px -apple-system,system-ui,sans-serif;margin-right:5px;vertical-align:1px}',
+    'html .km.tree.arr .km-n{animation:none}',
+    'html .km.tree.arr .km-n:not(.board){outline:1.5px dashed color-mix(in srgb,var(--c) 70%,transparent);outline-offset:3px}',
+    // MindNode: the board is a white card; every other topic sits on its branch line
+    'html .km.s-mind .km-n.board{background:var(--card);border-radius:18px;justify-content:center;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.12),0 1px 3px rgba(0,0,0,.08)}',
+    'html .km.s-mind .km-n.list{border-bottom:5px solid var(--c);border-radius:0 0 2px 2px}',
+    'html .km.s-mind .km-n.card,html .km.s-mind .km-n.item{border-bottom:3px solid var(--c)}',
+    'html .km.s-mind .km-n.item{border-bottom-width:2px;opacity:.92}',
+    'html .km.s-mind .km-n.focus{box-shadow:0 0 0 3px rgba(10,132,255,.55);border-radius:6px 6px 2px 2px}',
+    'html .km.s-mind .km-n.board.focus{border-radius:18px}',
+    // XMind: a navy central topic, filled main topics, tinted subtopics
+    'html .km.s-xmind .km-n{justify-content:center;text-align:center}',
+    'html .km.s-xmind .km-n.board{background:#0f1136;color:#fff;border-radius:13px;box-shadow:0 8px 22px rgba(15,17,54,.3)}',
+    'html:not(.kn-light) .km.s-xmind .km-n.board{background:#2d3170;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 22px rgba(0,0,0,.4)}',
+    'html .km.s-xmind .km-n.list,html .km.s-xmind .km-n.card.head{background:var(--c);color:var(--tc);border-radius:10px;box-shadow:0 3px 10px color-mix(in srgb,var(--c) 30%,transparent)}',
+    'html .km.s-xmind .km-n.card.head{background:color-mix(in srgb,var(--c) 78%,var(--sub))}',
+    'html .km.s-xmind .km-n.card:not(.head){background:color-mix(in srgb,var(--c) 14%,var(--sub));border:1.5px solid color-mix(in srgb,var(--c) 55%,var(--sub));border-radius:9px}',
+    'html .km.s-xmind .km-n.item{background:color-mix(in srgb,var(--c) 7%,var(--sub));border:1px solid color-mix(in srgb,var(--c) 35%,var(--sub));border-radius:7px}',
+    'html .km.s-xmind .km-n.focus{box-shadow:0 0 0 3px rgba(10,132,255,.6),0 8px 20px rgba(0,0,0,.18)}',
+    'html .km.s-xmind .km-n.ms span:before{background:#16a34a}',
+    '.km-menu .km-sty{display:flex;flex-direction:column;align-items:flex-start;gap:1px}.km-menu .km-sty small{font-size:11.5px;opacity:.55;font-weight:500}'
   ].join('\n');
   function ensureCss() { if (document.getElementById('km-css')) return; var s = document.createElement('style'); s.id = 'km-css'; s.textContent = CSS; document.head.appendChild(s); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -134,11 +243,13 @@
 
   function build() {
     var b = boardById(ui.bid); if (!b) return;
-    G = graph(b);
+    var style = styleOf(ui.bid), tree = style !== 'bubble';
+    G = graph(b, style);
+    ui.el.classList.remove('s-bubble', 's-mind', 's-xmind'); ui.el.classList.add('s-' + style); ui.el.classList.toggle('tree', tree);
     var html = '';
     G.nodes.forEach(function (n) {
-      var d = SIZE[n.kind];
-      html += '<div class="km-n ' + n.kind + (n.heading ? ' head' : '') + (n.done ? ' done' : '') + '" data-k="' + esc(n.k) + '" style="--c:' + esc(n.color) + ';width:' + d + 'px;height:' + d + 'px"><span>' + esc(n.title || '·') + '</span></div>';
+      var box = tree ? 'width:' + n.w + 'px;height:' + n.h + 'px;padding:' + n.py + 'px ' + n.px + 'px;font:' + n.font + ';line-height:' + n.lh + 'px;--tc:' + onColor(n.color) : 'width:' + n.w + 'px;height:' + n.h + 'px';
+      html += '<div class="km-n ' + n.kind + (n.heading ? ' head' : '') + (n.done ? ' done' : '') + (n.ms ? ' ms' : '') + '" data-k="' + esc(n.k) + '" style="--c:' + esc(n.color) + ';' + box + '"><span>' + esc(n.title || '·') + '</span></div>';
     });
     ui.world.innerHTML = '<svg class="km-lines" width="1" height="1"></svg>' + html;
     ui.svg = ui.world.querySelector('.km-lines');
@@ -147,9 +258,11 @@
   }
   function positions() {
     var paths = '';
+    var tree = G.style !== 'bubble';
     G.nodes.forEach(function (n) {
-      var d = SIZE[n.kind], e = ui.els[n.k];
-      e.style.transform = 'translate(' + (n.x - d / 2) + 'px,' + (n.y - d / 2) + 'px)';
+      var e = ui.els[n.k];
+      e.style.transform = 'translate(' + (n.x - n.w / 2) + 'px,' + (n.y - n.h / 2) + 'px)';
+      if (n.parent && tree) { paths += '<path data-k="' + esc(n.k) + '"' + (n.kind === 'item' ? ' class="it"' : '') + ' style="stroke:' + esc(n.color) + ';stroke-width:' + lineW(n, G.style) + 'px;stroke-linecap:round" d="' + treePath(n.parent, n, G.style) + '"/>'; return; }
       if (n.parent) {
         var p = n.parent, mx = (p.x + n.x) / 2, my = (p.y + n.y) / 2, nx = -(n.y - p.y) * .12, ny = (n.x - p.x) * .12;
         paths += '<path data-k="' + esc(n.k) + '"' + (n.kind === 'item' ? ' class="it"' : '') + ' d="M' + p.x + ' ' + p.y + ' Q' + (mx + nx) + ' ' + (my + ny) + ' ' + n.x + ' ' + n.y + '"/>';
@@ -158,13 +271,15 @@
     ui.svg.innerHTML = paths;
   }
   function applyCam() { ui.world.style.transform = 'translate(' + (innerWidth / 2 - cam.x * cam.s) + 'px,' + (innerHeight / 2 - cam.y * cam.s) + 'px) scale(' + cam.s + ')'; }
-  function saveCam() { S.cam[ui.bid] = { x: Math.round(cam.x), y: Math.round(cam.y), s: +cam.s.toFixed(3) }; S.focus[ui.bid] = focusKey; stSave(); }
+  // the camera is kept per board and per look (a tree style lays out differently, one-sided on a portrait phone)
+  function camKey() { return ui.bid + (G && G.style !== 'bubble' ? '|' + G.style + (ui.oneSide ? '1' : '2') : ''); }
+  function saveCam() { S.cam[camKey()] = { x: Math.round(cam.x), y: Math.round(cam.y), s: +cam.s.toFixed(3) }; S.focus[camKey()] = focusKey; stSave(); }
 
   // ---------------------------------------------------------------- camera
   var anim = 0;
   function bbox(list) {
     var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    list.forEach(function (n) { var r = SIZE[n.kind] / 2; x0 = Math.min(x0, n.x - r); y0 = Math.min(y0, n.y - r); x1 = Math.max(x1, n.x + r); y1 = Math.max(y1, n.y + r); });
+    list.forEach(function (n) { var rw = n.w / 2, rh = n.h / 2; x0 = Math.min(x0, n.x - rw); y0 = Math.min(y0, n.y - rh); x1 = Math.max(x1, n.x + rw); y1 = Math.max(y1, n.y + rh); });
     return { x0: x0, y0: y0, x1: x1, y1: y1 };
   }
   function camFor(list) {
@@ -192,15 +307,17 @@
     focusKey = n.kind === 'board' ? null : k;
     var set = [n].concat(n.kids);
     if (n.kind === 'item') set = [n, n.parent];
+    if (G.style !== 'bubble' && n.kind !== 'board') { set = []; (function all(x) { set.push(x); x.kids.forEach(all); })(n); }
     fly(camFor(set), ms);
     markFocus(); crumbs();
   }
-  function home(ms) { focusKey = null; fly(camFor(G.nodes.filter(function (n) { return n.kind !== 'item'; })), ms); markFocus(); crumbs(); }
+  function homeSet() { return G.style !== 'bubble' ? G.nodes : G.nodes.filter(function (n) { return n.kind !== 'item'; }); }
+  function home(ms) { focusKey = null; fly(camFor(homeSet()), ms); markFocus(); crumbs(); }
   function markFocus() {
     var f = focusKey && G.byKey[focusKey], keep = {};
-    if (f) { keep[f.k] = 1; f.kids.forEach(function (k) { keep[k.k] = 1; }); for (var p = f.parent; p; p = p.parent) keep[p.k] = 1; if (f.kind === 'item') f.parent.kids.forEach(function (k) { keep[k.k] = 1; }); }
+    if (f) { keep[f.k] = 1; f.kids.forEach(function (k) { keep[k.k] = 1; }); if (G.style !== 'bubble') (function all(x) { keep[x.k] = 1; x.kids.forEach(all); })(f); for (var p = f.parent; p; p = p.parent) keep[p.k] = 1; if (f.kind === 'item') f.parent.kids.forEach(function (k) { keep[k.k] = 1; }); }
     var card = f && (f.kind === 'card' ? f : f.kind === 'item' ? f.parent : null);
-    ui.el.classList.toggle('deep', !!card);
+    ui.el.classList.toggle('deep', !!card); ui.el.classList.toggle('has-f', !!f);
     G.nodes.forEach(function (n) {
       var e = ui.els[n.k]; e.classList.toggle('focus', !!f && n.k === f.k); e.classList.toggle('dim', !!f && !keep[n.k]);
       if (n.kind === 'item') e.classList.toggle('show', !!card && n.parent === card);
@@ -265,7 +382,7 @@
       if (!g) return;
       var was = g; if (Object.keys(pts).length === 0) g = null; else if (was.kind === 'pinch') { g = null; }
       if (was.kind === 'pinch') { saveCam(); return; }
-      if (was.kind === 'node' && was.moved) { var n = G.byKey[was.node]; KN().setPos(n.k, n.x - n.parent.x, n.y - n.parent.y); return; }
+      if (was.kind === 'node' && was.moved) { var n = G.byKey[was.node]; KN().setPos(posKey(n), n.x - n.parent.x, n.y - n.parent.y); return; }
       if (was.moved) { saveCam(); return; }
       if (e.type === 'pointercancel') return;
       tap(was.node);
@@ -290,8 +407,9 @@
       if (a === 'back') { var f = focusKey && G.byKey[focusKey]; if (!f) return; return f.parent && f.parent.kind !== 'board' ? focusOn(f.parent.k) : home(); }
       if (a === 'fit') return focusKey ? focusOn(focusKey) : home();
       if (a === 'arr') { arrange = !arrange; b.classList.toggle('on', arrange); ui.el.classList.toggle('arr', arrange); hint(arrange ? 'Drag the bubbles to arrange your map' : ''); return; }
-      if (a === 'reset') { KN().clearPos(G.nodes.map(function (n) { return n.k; })); build(); home(); return; }
+      if (a === 'reset') { KN().clearPos(G.nodes.map(posKey)); build(); home(); return; }
       if (a === 'boards') return boardMenu(b);
+      if (a === 'style') return styleMenu(b);
     });
   }
   function tap(k) {
@@ -328,10 +446,25 @@
     m.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
     m.addEventListener('click', function (e) { var b = e.target.closest('[data-b]'); if (!b) return; m.remove(); saveCam(); ui.bid = b.getAttribute('data-b'); focusKey = null; build(); restore(); });
   }
+  var STYLES = [['bubble', '🫧 Bubbles', 'Prezi — zoom through ideas'], ['mind', '🌿 MindNode', 'Calm branches, text on the line'], ['xmind', '🧩 XMind', 'Topic blocks, balanced left and right']];
+  function styleMenu(anchor) {
+    var old = document.querySelector('.km-menu'); if (old) { old.remove(); return; }
+    var cur = styleOf(ui.bid), m = document.createElement('div'); m.className = 'en-menu km-menu';
+    m.innerHTML = STYLES.map(function (x) { return '<button type="button" class="km-sty' + (x[0] === cur ? ' on' : '') + '" data-sty="' + x[0] + '"><b>' + x[1] + '</b><small>' + x[2] + '</small></button>'; }).join('');
+    document.body.appendChild(m);
+    var r = anchor.getBoundingClientRect(); m.style.left = Math.max(10, Math.min(innerWidth - m.offsetWidth - 10, r.left)) + 'px'; m.style.top = (r.bottom + 8) + 'px';
+    m.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+    m.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-sty]'); if (!b) return; m.remove();
+      var v = b.getAttribute('data-sty'); if (v === cur) return;
+      KN().set('km:style:' + ui.bid, v === 'bubble' ? null : v, true);
+      focusKey = null; build(); delete S.cam[camKey()]; stSave(); restore();
+    });
+  }
   function restore() {
-    var c = S.cam[ui.bid];
-    if (c) { cam = { x: c.x, y: c.y, s: c.s }; applyCam(); var f = S.focus[ui.bid]; focusKey = f && G.byKey[f] ? f : null; markFocus(); crumbs(); }
-    else { var hc = camFor(G.nodes.filter(function (n) { return n.kind !== 'item'; })); cam = { x: hc.x, y: hc.y, s: hc.s * .7 }; applyCam(); home(700); }
+    var c = S.cam[camKey()];
+    if (c) { cam = { x: c.x, y: c.y, s: c.s }; applyCam(); var f = S.focus[camKey()]; focusKey = f && G.byKey[f] ? f : null; markFocus(); crumbs(); }
+    else { var hc = camFor(homeSet()); cam = { x: hc.x, y: hc.y, s: hc.s * .7 }; applyCam(); home(700); }
   }
 
   // ---------------------------------------------------------------- open / close
@@ -345,6 +478,7 @@
     el.innerHTML = '<div class="km-stage"><div class="km-world"></div></div>' +
       '<div class="km-top"><button type="button" class="km-b" data-act="back" aria-label="Up one level">' + ICON.back + '</button>' +
       '<div class="km-path"></div>' +
+      '<button type="button" class="km-b" data-act="style" aria-label="Map style">' + ICON.style + '</button>' +
       '<button type="button" class="km-b" data-act="boards" aria-label="Boards">' + ICON.map + '</button>' +
       '<button type="button" class="km-b" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="km-bot"><button type="button" class="km-b" data-act="home" aria-label="Whole map">' + ICON.home + '</button>' +
@@ -355,12 +489,13 @@
     ui.el = el; ui.stage = el.querySelector('.km-stage'); ui.world = el.querySelector('.km-world'); ui.path = el.querySelector('.km-path'); ui.backBtn = el.querySelector('[data-act="back"]'); ui.hint = el.querySelector('.km-hint');
     ui.open = true; arrange = false;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    ui.oneSide = innerWidth < 600 && innerHeight > innerWidth;
     build(); wire(); restore();
     if (!S.seen) { S.seen = 1; stSave(); hint('Tap a bubble to zoom in · tap again for details'); }
     if (el.animate) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
     window.addEventListener('resize', onResize);
   }
-  function onResize() { if (ui.open) applyCam(); }
+  function onResize() { if (!ui.open) return; var side = innerWidth < 600 && innerHeight > innerWidth; if (G && G.style !== 'bubble' && side !== ui.oneSide) { ui.oneSide = side; var fk = focusKey; build(); focusKey = fk && G.byKey[fk] ? fk : null; if (focusKey) focusOn(focusKey, 1); else home(1); return; } applyCam(); }
   function close() {
     if (!ui.open) return;
     saveCam(); cancelAnimationFrame(anim);

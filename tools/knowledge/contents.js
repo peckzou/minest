@@ -345,6 +345,17 @@
       })();
     });
   }
+  // a stack opened only to show one of its cards folds back (the board keeps its notification-style stacks):
+  // once the highlight is over and no card details are open
+  function refold(id) {
+    var t0 = Date.now(), iv = setInterval(function () {
+      var A = window.MinestAI, modal = document.querySelector('.mn-dm, .mn-cardsheet, .fixed.inset-0.z-50 .rounded-3xl');
+      if (Date.now() - t0 < 3200 || (modal && Date.now() - t0 < 600000)) return;
+      clearInterval(iv);
+      var c = null; boardsNow().some(function (b) { return (b.columns || []).some(function (col) { return (col.cards || []).some(function (x) { if (x.id === id) { c = x; return true; } return false; }); }); });
+      if (c && c.isStackExpanded && A && A.patchCard) A.patchCard(id, { isStackExpanded: false });
+    }, 400);
+  }
   function flash(el) { el.classList.remove('mn-kn-hit'); void el.offsetWidth; el.classList.add('mn-kn-hit'); setTimeout(function () { el.classList.remove('mn-kn-hit'); }, 1900); }
   function go(n, details, back) {
     var to = n.to, A = window.MinestAI;
@@ -358,7 +369,7 @@
       else if (A.listFilter && A.listFilter() !== 'all' && A.selectList) A.selectList('all');
       if (to.p && A.patchCard) {   // a stacked card: open its stack first
         var parent = null; boardsNow().some(function (b) { return b.id === to.b && (b.columns || []).some(function (c) { return (c.cards || []).some(function (x) { if (x.id === to.p) { parent = x; return true; } return false; }); }); });
-        if (parent && !parent.isStackExpanded) A.patchCard(to.p, { isStackExpanded: true });
+        if (parent && !parent.isStackExpanded) { A.patchCard(to.p, { isStackExpanded: true }); refold(to.p); }
       }
       if (details && A.openCard && !to.p) { A.openCard(to.c); if (back !== false) showPill(back); return; }
       var colSel = '.kanban-column-wrapper[data-col-id="' + cssEsc(to.l || '') + '"]';
@@ -404,43 +415,51 @@
   var COL_KEY = 'minest.contents.col.v1';
   var CS = (function () { try { return JSON.parse(localStorage.getItem(COL_KEY) || '{}') || {}; } catch (e) { return {}; } })();
   function colSave() { try { localStorage.setItem(COL_KEY, JSON.stringify(CS)); } catch (e) {} }
+  // the column wears the board's own list look (shell copied from a real list, the same header and glass cards);
+  // lists and sections fold (one open at a time per level), tapping a card brings it into view on the board
   var COL_CSS = [
-    '.mn-tocol{flex:none;align-self:flex-start;max-height:calc(100% - 6px);display:flex;flex-direction:column;border-radius:22px;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;' +
-      'background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 10px 28px rgba(0,0,0,.22);color:#f3f5f8;' +
-      '-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);font:15px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif}',
-    '.theme-white .mn-tocol{background:rgba(255,255,255,.78);color:#1d1f23;border-color:rgba(0,0,0,.08);box-shadow:0 8px 24px rgba(0,0,0,.08)}',
-    '.mn-tocol-h{display:flex;align-items:center;gap:8px;padding:12px 10px 10px 14px;border-bottom:1px solid rgba(127,127,127,.18)}',
-    '.mn-tocol-h b{flex:1;font-size:16px;font-weight:700;letter-spacing:-.2px}',
-    '.mn-tocol-h em{font-style:normal;font-size:12px;opacity:.55;font-variant-numeric:tabular-nums}',
-    '.mn-tocol-h button{width:30px;height:30px;border-radius:50%;border:0;background:rgba(127,127,127,.16);color:inherit;cursor:pointer;font-size:14px;display:grid;place-items:center;padding:0}',
-    '.mn-tocol-b{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 6px 10px;overscroll-behavior:contain}',
-    '.mn-tocol-r{display:flex;align-items:center;min-height:38px;border-radius:10px;padding-left:calc(var(--d) * 16px)}',
-    '.mn-tocol-r:active{background:rgba(127,127,127,.16)}',
-    '.mn-tocol-r .cv{flex:none;width:28px;height:36px;border:0;background:none;color:inherit;opacity:.5;cursor:pointer;display:grid;place-items:center;padding:0}',
-    '.mn-tocol-r .cv svg{width:12px;height:12px;transition:transform .2s}',
-    '.mn-tocol-r.open .cv svg{transform:rotate(90deg)}',
-    '.mn-tocol-r .cv.none{visibility:hidden}',
-    '.mn-tocol-r .dt{flex:none;width:8px;height:8px;border-radius:50%;margin-right:8px}',
-    '.mn-tocol-r .t{flex:1;min-width:0;padding:8px 6px 8px 0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    '.mn-tocol-r.list .t{font-weight:650}',
-    '.mn-tocol-r.section .t{font-weight:700;color:#d9a400}',
-    '.theme-white .mn-tocol-r.section .t{color:#a87400}',
-    '.mn-tocol-r.card .t{font-size:14px;opacity:.88}',
-    '.mn-tocol-r.done .t{text-decoration:line-through;opacity:.45}',
-    '.mn-tocol-r .n{flex:none;font-size:12px;opacity:.45;padding-right:8px;font-variant-numeric:tabular-nums}'
+    '.mn-tocol{flex:none;align-self:flex-start;max-height:calc(100% - 6px);display:flex;flex-direction:column;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;box-sizing:border-box}',
+    '.mn-tocol-b{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:2px}',
+    '.mn-tocol .mn-tc{position:relative;display:flex;align-items:center;gap:8px;min-height:40px}',
+    '.mn-tocol .mn-tc h4{margin:0;min-width:0}',
+    '.mn-tocol .mn-tc .dt{flex:none;width:9px;height:9px;border-radius:50%}',
+    '.mn-tocol .mn-tc .n{flex:none;font:500 12px ui-monospace,SFMono-Regular,Menlo,monospace;opacity:.6}',
+    '.mn-tocol .mn-tc .cv{flex:none;width:26px;height:26px;margin-right:-6px;border:0;background:none;color:inherit;opacity:.6;display:grid;place-items:center;padding:0;cursor:pointer}',
+    '.mn-tocol .mn-tc .cv svg{width:12px;height:12px;transition:transform .25s cubic-bezier(.2,.85,.25,1)}',
+    '.mn-tocol .mn-tc.open .cv svg{transform:rotate(90deg)}',
+    '.mn-tocol .mn-tc.list h4{font-weight:650}',
+    '.mn-tocol .mn-tc.section h4{font-weight:650}',
+    '.mn-tocol .mn-tc.section:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:2px;background:var(--lc)}',
+    '.mn-tocol .mn-tc.done h4{text-decoration:line-through;opacity:.5}',
+    '.mn-tocol .mn-tk{display:flex;flex-direction:column;gap:8px;margin:8px 0 2px 12px;padding-left:10px;border-left:2px solid color-mix(in srgb,var(--lc) 60%,transparent)}',
+    '.mn-tocol .mn-tk.in{animation:mnTkIn .28s cubic-bezier(.2,.85,.25,1)}',
+    '@keyframes mnTkIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}',
+    '.mn-tocol .mn-tc.card{min-height:36px}',
+    '.mn-tocol .mn-tc:active{transform:scale(.985)}'
   ].join('\n');
   function colCss() { if (document.getElementById('mn-tocol-css')) return; var st = document.createElement('style'); st.id = 'mn-tocol-css'; st.textContent = COL_CSS; document.head.appendChild(st); }
-  function colRows(nodes, d, open, out) {
+  var CARD = 'group relative rounded-xl py-2 px-3 select-none cursor-pointer liquid-glass-card transition-all overflow-hidden mn-tc';
+  var H4 = 'font-normal md:font-medium text-sm leading-snug tracking-normal flex-1 break-words whitespace-normal';
+  function colRows(nodes, open, color, out, fresh) {
     nodes.forEach(function (n) {
       if (n.kind === 'item') return;   // stacked cards stay in their stack here
       var kids = (n.kids || []).filter(function (k) { return k.kind !== 'item'; }), op = kids.length && open[n.id];
+      var lc = n.kind === 'list' ? (n.color || '#8d99ae') : color;
       var cnt = n.kind === 'list' ? n.count : n.kind === 'section' ? kids.length : '';
-      out.push('<div class="mn-tocol-r ' + n.kind + (op ? ' open' : '') + (n.done ? ' done' : '') + '" data-id="' + esc(n.id) + '" style="--d:' + d + '">' +
-        '<button type="button" class="cv' + (kids.length ? '' : ' none') + '" data-cv tabindex="-1">' + CHEV + '</button>' +
-        (n.kind === 'list' ? '<i class="dt" style="background:' + esc(n.color || '#8d99ae') + '"></i>' : '') +
-        '<span class="t" data-go>' + esc(n.title) + '</span>' + (cnt !== '' ? '<span class="n">' + cnt + '</span>' : '') + '</div>');
-      if (op) colRows(kids, d + 1, open, out);
+      out.push('<article class="' + CARD + ' ' + n.kind + (op ? ' open' : '') + (n.done ? ' done' : '') + '" data-id="' + esc(n.id) + '" style="--lc:' + esc(lc) + '">' +
+        (n.kind === 'list' ? '<i class="dt" style="background:' + esc(lc) + '"></i>' : '') +
+        '<h4 class="' + H4 + '">' + esc(n.title) + '</h4>' + (cnt !== '' ? '<span class="n">' + cnt + '</span>' : '') +
+        (kids.length ? '<button type="button" class="cv" data-cv tabindex="-1" aria-label="Fold">' + CHEV + '</button>' : '') + '</article>');
+      if (op) { out.push('<div class="mn-tk' + (fresh === n.id ? ' in' : '') + '" style="--lc:' + esc(lc) + '">'); colRows(kids, open, lc, out, fresh); out.push('</div>'); }
     });
+  }
+  // the shell of a real list (background, rim, radius, blur, padding) so the column matches the board's theme
+  function shellFrom(first, col) {
+    var cs = getComputedStyle(first), st = col.style;
+    ['backgroundColor', 'backgroundImage', 'borderRadius', 'boxShadow', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'color', 'marginTop', 'borderWidth', 'borderStyle'].forEach(function (k) { st[k] = cs[k]; });
+    st.webkitBackdropFilter = cs.webkitBackdropFilter || cs.backdropFilter; st.backdropFilter = cs.backdropFilter;
+    st.borderColor = document.querySelector('.theme-white') ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.16)';
+    var w = first.getBoundingClientRect().width; if (w) st.width = Math.round(w) + 'px';
   }
   var colById = {};
   function mountCol() {
@@ -457,17 +476,22 @@
       lane.insertBefore(col, lane.firstChild);
     } else if (lane.firstElementChild !== col) lane.insertBefore(col, lane.firstChild);
     var first = lane.querySelector(':scope > .kanban-column-wrapper');
-    if (first) { var w = first.getBoundingClientRect().width; if (w) col.style.width = Math.round(w) + 'px'; var cs = getComputedStyle(first); col.style.marginTop = cs.marginTop; }
+    if (first) shellFrom(first, col);
     var lists = (b.columns || []).map(function (c) { return listNode(b, c); });
     var open = CS[bid] = CS[bid] || {};
-    var sig = bid + JSON.stringify(lists.map(function (l) { return [l.title, l.count, l.kids.length, l.kids.map(function (k) { return k.title + (k.kids || []).length + (k.done ? 1 : 0); })]; })) + JSON.stringify(open) + document.documentElement.className.indexOf('kn-light');
+    var sig = bid + JSON.stringify(lists.map(function (l) { return [l.title, l.color, l.count, l.kids.length, l.kids.map(function (k) { return k.title + (k.kids || []).length + (k.done ? 1 : 0); })]; })) + JSON.stringify(open) + !!document.querySelector('.theme-white');
     if (col.__sig === sig) return;
     col.__sig = sig; colById = {};
     (function idx(ns) { ns.forEach(function (n) { colById[n.id] = n; idx(n.kids || []); }); })(lists);
-    var body = col.querySelector('.mn-tocol-b'), y = body ? body.scrollTop : 0, out = [];
-    colRows(lists, 0, open, out);
+    var body = col.querySelector('.mn-tocol-b'), y = body ? body.scrollTop : 0, out = [], fresh = col.__fresh; col.__fresh = null;
+    colRows(lists, open, null, out, fresh);
     var cards = (b.columns || []).reduce(function (a, c) { return a + (c.cards || []).length; }, 0);
-    col.innerHTML = '<div class="mn-tocol-h"><b>📑 Contents</b><em>' + cards + '</em><button type="button" data-full title="Open Contents">⤢</button><button type="button" data-unpin title="Unpin">📌</button></div><div class="mn-tocol-b">' + (out.join('') || '<div style="padding:16px;opacity:.6">No lists yet.</div>') + '</div>';
+    var IB = 'p-1.5 rounded-lg transition-colors hover:bg-white/12 opacity-70 hover:opacity-100';
+    col.innerHTML = '<div class="relative flex items-center justify-between pb-3 mb-1 select-none shrink-0"><div class="flex items-center gap-1.5 min-w-0 pr-2 flex-1"><h2 class="font-bold text-sm md:text-base tracking-tight truncate">Contents</h2></div>' +
+      '<div class="flex items-center gap-2 shrink-0"><span class="px-1.5 py-0.5 rounded-md text-xs font-mono font-medium opacity-60">' + cards + '</span>' +
+      '<button type="button" class="' + IB + '" data-full title="Open Contents" aria-label="Open Contents"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>' +
+      '<button type="button" class="' + IB + '" data-unpin title="Unpin" aria-label="Unpin"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 10.8V4h6v6.8l3 3.2v2H6v-2z"/></svg></button></div></div>' +
+      '<div class="mn-tocol-b flex-1 flex flex-col gap-2.5 overflow-y-auto pr-1 min-h-0">' + (out.join('') || '<div style="padding:12px 4px;opacity:.6;font-size:14px">No lists yet.</div>') + '</div>';
     col.querySelector('.mn-tocol-b').scrollTop = y;
   }
   function onColClick(e) {
@@ -475,11 +499,20 @@
     var bid = activeId();
     if (e.target.closest('[data-unpin]')) { window.MinestKnowledge.set('kc:unpin:' + bid, 1); toast('Contents unpinned — 📌 in Contents puts it back'); mountCol(); return; }
     if (e.target.closest('[data-full]')) return open();
-    var row = e.target.closest('.mn-tocol-r'); if (!row) return;
+    var row = e.target.closest('.mn-tc'); if (!row) return;
     var id = row.getAttribute('data-id'), n = colById[id]; if (!n) return;
-    if (e.target.closest('[data-cv]')) { var o = CS[bid] = CS[bid] || {}; if (o[id]) delete o[id]; else o[id] = 1; colSave(); mountCol(); return; }
-    go(n, false, false);   // stay on the board: bring the list / card into view
+    var kids = (n.kids || []).filter(function (k) { return k.kind !== 'item'; });
+    // a list / section: fold or unfold it (the others at its level fold up)
+    if (kids.length) {
+      var o = CS[bid] = CS[bid] || {}, was = !!o[id];
+      if (!was) { var host = row.parentNode; [].forEach.call(host.children, function (x) { var k = x.getAttribute && x.getAttribute('data-id'); if (k && k !== id && o[k]) { delete o[k]; (function drop(m) { (m.kids || []).forEach(function (c) { delete o[c.id]; drop(c); }); })(colById[k] || {}); } }); o[id] = 1; }
+      else delete o[id];
+      colSave(); col0().__fresh = was ? null : id; mountCol();
+      return;
+    }
+    go(n, false, false);   // a card: stay on the board, bring it into view and light it up
   }
+  function col0() { return document.querySelector('.mn-tocol') || {}; }
   var mT = 0;
   function watchBoard() {
     if (!document.body) return setTimeout(watchBoard, 200);
