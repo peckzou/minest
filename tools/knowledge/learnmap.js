@@ -368,6 +368,8 @@
     'html .lm .lm-b2[data-act="x"]{background:#ff4d6d}',
     'html .lm .lm-b2[data-act="view"]{background:#22b573}',
     'html .lm .lm-b2 svg{width:17px;height:17px;stroke-width:2.6}',
+    // a phone: the bar has to hold back, title, view, order, modes and close — arranging the map waits for a bigger screen
+    '@media (max-width:440px){html .lm .lm-top{gap:6px;padding-left:10px;padding-right:10px}html .lm .lm-top [data-act="edit"]{display:none!important}html .lm .lm-b2{padding:0 8px;min-width:38px;height:38px;font-size:9px}html .lm .lm-path{height:38px}}',
     'html .lm .lm-path{height:40px;border-radius:12px;border:3px solid #0d1222;background:#16204a;box-shadow:0 4px 0 #0d1222;-webkit-backdrop-filter:none;backdrop-filter:none;box-sizing:border-box}',
     'html .lm .lm-path button{font:400 8.5px/1.4 "Press Start 2P",ui-monospace,monospace;color:#9fb3ff;text-transform:uppercase}',
     'html .lm .lm-path button:last-child{color:#ffcf3f}html .lm .lm-path i{color:#9fb3ff}',

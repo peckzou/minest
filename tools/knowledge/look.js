@@ -67,7 +67,7 @@
     L + '.lm-row{border-color:rgba(0,0,0,.07)}' + L + '.lm-x{background:rgba(0,0,0,.06);color:' + INK + '}',
     L + '.lm-acts button{background:rgba(0,0,0,.05);border-color:' + LINE + ';color:' + INK + '}' + L + '.lm-acts button.on{background:#0a84ff;color:#fff}',
     // Wiki / Portal: light liquid glass
-    L + '.wk,' + L + '.wk-pv,' + L + '.wk-sheet{--ink:#1d1f23;--seen:#8c9096;--acc:#0a6cdf;--ok:#16a34a;--bad:#e5484d;--trk:rgba(0,0,0,.07);--g1:rgba(255,255,255,.82);--g2:rgba(255,255,255,.58);--gb:rgba(255,255,255,.9);--rim:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(0,0,0,.03);--hair:rgba(0,0,0,.07);--tint:rgba(0,0,0,.03);--lab:rgba(29,31,35,.62);}',
+    L + '.wk,' + L + '.wk-pv,' + L + '.wk-sheet{--link:#36c;--ink:#1d1f23;--seen:#8c9096;--acc:#0a6cdf;--ok:#16a34a;--bad:#e5484d;--trk:rgba(0,0,0,.07);--g1:rgba(255,255,255,.82);--g2:rgba(255,255,255,.58);--gb:rgba(255,255,255,.9);--rim:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(0,0,0,.03);--hair:rgba(0,0,0,.07);--tint:rgba(0,0,0,.03);--lab:rgba(29,31,35,.62);}',
     L + '.wk{color:#1d1f23;background:linear-gradient(180deg,rgba(242,244,248,.84),rgba(232,236,243,.9))}',
     L + '.wk-head{background:linear-gradient(180deg,rgba(255,255,255,.35),transparent)}',
     L + '.wk-x,' + L + '.wk-hb,' + L + '.wk-seg,' + L + '.wk-crumb button,' + L + '.wk-boxh button,' + L + '.wk-tools button,' + L + '.wk-pv .acts button,' + L + '.wk-sheet .row button,' + L + '.wk-ed button{box-shadow:var(--rim),0 4px 14px rgba(0,0,0,.07)}',

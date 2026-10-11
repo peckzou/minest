@@ -224,10 +224,10 @@
     '.kn-modes button i{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;background:radial-gradient(120% 80% at 30% 15%,rgba(255,255,255,.5),rgba(255,255,255,0) 50%),linear-gradient(160deg,color-mix(in srgb,var(--c) 85%,#fff),color-mix(in srgb,var(--c) 70%,#000));border:1px solid rgba(255,255,255,.4)}',
     '.kn-modes button i svg{width:15px;height:15px}',
     '.en-menu.kn-modes button.on{color:inherit;background:rgba(255,255,255,.1)}',
-    '.kn-modes.arcade{border-radius:14px;border:4px solid #0d1222;background:#1b2650;box-shadow:0 6px 0 #0d1222,inset 0 0 0 3px #34488f;-webkit-backdrop-filter:none;backdrop-filter:none}',
-    '.en-menu.kn-modes.arcade button{font:400 9px/1.4 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;border-radius:8px}',
-    '.en-menu.kn-modes.arcade button.on{background:#ffcf3f;color:#0d1222}',
-    '.kn-modes.arcade button i{border:2px solid #0d1222;border-radius:8px;background:var(--c)}',
+    '.kn-modes.kn-arcade{border-radius:14px;border:4px solid #0d1222;background:#1b2650;box-shadow:0 6px 0 #0d1222,inset 0 0 0 3px #34488f;-webkit-backdrop-filter:none;backdrop-filter:none}',
+    '.en-menu.kn-modes.kn-arcade button{font:400 9px/1.4 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;border-radius:8px}',
+    '.en-menu.kn-modes.kn-arcade button.on{background:#ffcf3f;color:#0d1222}',
+    '.kn-modes.kn-arcade button i{border:2px solid #0d1222;border-radius:8px;background:var(--c)}',
     // Edit switches in the views' headers
     '.ke-on{background:#0a84ff!important;border-color:#0a84ff!important;color:#fff!important}'
   ].join('\n');
@@ -425,7 +425,7 @@
       var b = e.target.closest && e.target.closest('[data-knmode]'); if (!b || !root.contains(b)) return;
       e.stopPropagation(); e.preventDefault();
       var old = document.querySelector('.kn-modes'); if (old) { old.remove(); return; }
-      var m = document.createElement('div'); m.className = 'en-menu kn-modes' + (root.classList.contains('lm') ? ' arcade' : '');   // the Learning Map keeps its arcade look
+      var m = document.createElement('div'); m.className = 'en-menu kn-modes' + (root.classList.contains('lm') ? ' kn-arcade' : '')   /* not 'arcade': that is the Arcade games' own full-screen layer */;   // the Learning Map keeps its arcade look
       m.innerHTML = MODES.map(function (x) { return '<button type="button" data-to="' + x[0] + '"' + (x[0] === view ? ' class="on"' : '') + ' style="--c:' + x[2] + '"><i>' + x[3] + '</i>' + x[1] + '</button>'; }).join('');
       document.body.appendChild(m); guard(m);
       var r = b.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;

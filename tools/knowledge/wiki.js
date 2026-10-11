@@ -82,7 +82,7 @@
   // ================================================================== UI
   var ui = { open: false }, T = null, IDX = {}, edit = false;
   var CSS = [
-    '.wk,.wk-pv,.wk-sheet{--ink:#eef1f6;--seen:rgba(233,237,244,.46);--acc:#7fb0ff;--ok:#4ade80;--bad:#ff6b6b;--trk:rgba(255,255,255,.1);--g1:rgba(255,255,255,.13);--g2:rgba(255,255,255,.05);--gb:rgba(255,255,255,.16);--rim:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(255,255,255,.04);--hair:rgba(255,255,255,.08);--tint:rgba(255,255,255,.06);--lab:rgba(238,241,246,.72)}',
+    '.wk,.wk-pv,.wk-sheet{--link:#8fb4ff;--ink:#eef1f6;--seen:rgba(233,237,244,.46);--acc:#7fb0ff;--ok:#4ade80;--bad:#ff6b6b;--trk:rgba(255,255,255,.1);--g1:rgba(255,255,255,.13);--g2:rgba(255,255,255,.05);--gb:rgba(255,255,255,.16);--rim:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(255,255,255,.04);--hair:rgba(255,255,255,.08);--tint:rgba(255,255,255,.06);--lab:rgba(238,241,246,.72)}',
     '.wk{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:#e9edf4;font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:linear-gradient(180deg,#161b26,#0d1017)}',
     '.wk.away{visibility:hidden}',
     '.wk-head{position:relative;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 10px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}',
@@ -130,6 +130,7 @@
     '.wk-a.hit{background:rgba(10,132,255,.35);color:#fff}',
     '.wk-dot{opacity:.45;margin:0 5px}',
     // learning state: not started = plain ink · viewed = grey · learning = blue · mastered = green ✓ · review = red dot
+    '.wk .wk-a.s-new,.wk .wk-a.s-learn{color:var(--link)}',
     '.wk .s-seen,.wk-pv .s-seen{color:var(--seen)}',
     '.wk .s-learn,.wk-pv .s-learn{color:var(--acc)}',
     '.wk .s-done,.wk-pv .s-done{color:var(--ok);font-weight:600}',
@@ -239,7 +240,7 @@
     var x = lookup(id, bid);
     if (!x) return '';
     var s = stateOf(x.card, x.col), tip = SNAME[s.k] + (s.rv ? ' · needs review' : '') + (usage[id] > 1 ? ' · in ' + usage[id] + ' categories' : '');
-    return '<a class="wk-a s-' + s.k + (usage[id] > 1 ? ' multi' : '') + '" data-item="' + esc(id) + '" data-node="' + esc(nodeId) + '"' + (bid ? ' data-b="' + esc(bid) + '"' : '') + ' title="' + esc(tip) + '">' + esc(x.card.title || 'Untitled') + (s.rv ? '<i class="wk-rv"></i>' : '') + '</a>';
+    return '<a class="wk-a s-' + s.k + (usage[id] > 1 ? ' multi' : '') + '" data-item="' + esc(id) + '" data-node="' + esc(nodeId) + '"' + (bid ? ' data-b="' + esc(bid) + '"' : '') + ' title="' + esc(tip) + '">' + esc(x.card.title || 'Untitled') + '</a>';   // (no review dot after the words)
   }
   function stFrac(n) { var t = tally(nodeIds(n), IDX); return t.n ? '<small>' + t.done + '/' + t.n + '</small>' : ''; }
   function itemsHtml(n) {
