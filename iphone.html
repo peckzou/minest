@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 48.0 · Map styles</title>
+    <title>Minest iPhone 48.1 · Stacks as on the web</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -4782,15 +4782,15 @@ body.theme-white .board-swimlane-scroll.list-wallet-active > .kanban-column-wrap
   pointer-events: none !important;
 }
 
-/* Global removal of card folding / stacking / collapsing controls */
-.card-stack-deck,
-.stack-chevron-pill,
-.ios-show-less-pill,
-.ios-close-circle-btn,
-.ios-group-header,
-.ios-folded-stack-badge,
-.liquid-glass-deck-step1,
-.liquid-glass-deck-step2 {
+/* Card folding / stacking controls: hidden in Clear mode only (Minest web31: stacks as on the web) */
+.clear-mode .card-stack-deck,
+.clear-mode .stack-chevron-pill,
+.clear-mode .ios-show-less-pill,
+.clear-mode .ios-close-circle-btn,
+.clear-mode .ios-group-header,
+.clear-mode .ios-folded-stack-badge,
+.clear-mode .liquid-glass-deck-step1,
+.clear-mode .liquid-glass-deck-step2 {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "48.0" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "48.1" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -33399,6 +33399,16 @@ var isDark = themeMode === 'dark';
   };
 
   var toggleStackExpand = function(colId, cardId) {
+    try {
+      var kept = null, ab = window.MinestAI && window.MinestAI.board && window.MinestAI.board();
+      ((ab && ab.columns) || []).some(function(cl) { return (cl.cards || []).some(function(x) { if (x.id === cardId) { kept = x; return true; } return false; }); });
+      if (kept && kept.isStackExpanded && window.MinestAI.patchCard) {
+        window.MinestAI.patchCard(cardId, { isStackExpanded: false });
+        setExpandedStacks(function(prev) { var n = Object.assign({}, prev); delete n[cardId]; return n; });
+        SoundEngine.play('click');
+        return;
+      }
+    } catch (e) {}
     setExpandedStacks(function(prev) {
       var next = Object.assign({}, prev);
       if (next[cardId]) delete next[cardId];
@@ -35214,44 +35224,78 @@ var isDark = themeMode === 'dark';
 
                           // iOS Notification Center Group Header (Expanded Stack)
                           hasStack && isStackExpanded ? (
-                            (0, P.jsx)('div', {
-                              className: "ios-group-header",
-                              children: (0, P.jsxs)('div', {
-                                className: "flex items-center gap-1.5 ml-auto",
-                                children: [
-                                  (0, P.jsxs)('button', {
-                                    type: "button",
-                                    onClick: function(e) {
-                                      e.stopPropagation();
-                                      toggleStackExpand(col.id, card.id);
-                                      SoundEngine.play('slide');
-                                    },
-                                    className: "ios-show-less-pill",
-                                    title: "Show less",
-                                    children: [
-                                      (0, P.jsx)('svg', {
-                                        className: "w-3 h-3 stroke-[2.5]",
-                                        viewBox: "0 0 24 24",
-                                        fill: "none",
-                                        stroke: "currentColor",
-                                        children: (0, P.jsx)('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 9l-7 7-7-7" })
-                                      }),
-                                      (0, P.jsx)('span', { children: "Show less" })
-                                    ]
-                                  }),
-                                  (0, P.jsx)('button', {
-                                    type: "button",
-                                    onClick: function(e) {
-                                      e.stopPropagation();
-                                      toggleStackExpand(col.id, card.id);
-                                      SoundEngine.play('slide');
-                                    },
-                                    className: "ios-close-circle-btn",
-                                    title: "Collapse stack",
-                                    children: (0, P.jsx)('span', { className: "text-[11px] leading-none font-bold", children: "✕" })
-                                  })
-                                ]
-                              })
+                            (0, P.jsxs)('div', {
+                              onClick: function(e) {
+                                e.stopPropagation();
+                                toggleStackExpand(col.id, card.id);
+                                SoundEngine.play('slide');
+                              },
+                              style: { cursor: 'pointer' },
+                              className: "ios-group-header select-none hover:opacity-90 transition-opacity",
+                              children: [
+                                (0, P.jsxs)('div', {
+                                  className: "ios-group-header-left flex items-center gap-1.5",
+                                  children: [
+                                    (0, P.jsxs)('div', {
+                                      className: "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium " +
+                                        (isDark ? "bg-white/10 text-white/80 border border-white/10" : "bg-black/5 text-slate-700 border border-black/5"),
+                                      children: [
+                                        (0, P.jsxs)('svg', {
+                                          className: "w-3 h-3 opacity-70",
+                                          viewBox: "0 0 24 24",
+                                          fill: "none",
+                                          stroke: "currentColor",
+                                          strokeWidth: "2",
+                                          strokeLinecap: "round",
+                                          strokeLinejoin: "round",
+                                          children: [
+                                            (0, P.jsx)('polygon', { points: "12 2 2 7 12 12 22 7 12 2" }),
+                                            (0, P.jsx)('polyline', { points: "2 17 12 22 22 17" }),
+                                            (0, P.jsx)('polyline', { points: "2 12 12 17 22 12" })
+                                          ]
+                                        }),
+                                        (0, P.jsxs)('span', { children: [1 + stackCards.length, " cards"] })
+                                      ]
+                                    })
+                                  ]
+                                }),
+                                (0, P.jsxs)('div', {
+                                  className: "flex items-center gap-1.5 ml-auto",
+                                  children: [
+                                    (0, P.jsxs)('button', {
+                                      type: "button",
+                                      onClick: function(e) {
+                                        e.stopPropagation();
+                                        toggleStackExpand(col.id, card.id);
+                                        SoundEngine.play('slide');
+                                      },
+                                      className: "ios-show-less-pill",
+                                      title: "Show less",
+                                      children: [
+                                        (0, P.jsx)('svg', {
+                                          className: "w-3 h-3 stroke-[2.5]",
+                                          viewBox: "0 0 24 24",
+                                          fill: "none",
+                                          stroke: "currentColor",
+                                          children: (0, P.jsx)('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 9l-7 7-7-7" })
+                                        }),
+                                        (0, P.jsx)('span', { children: "Show less" })
+                                      ]
+                                    }),
+                                    (0, P.jsx)('button', {
+                                      type: "button",
+                                      onClick: function(e) {
+                                        e.stopPropagation();
+                                        toggleStackExpand(col.id, card.id);
+                                        SoundEngine.play('slide');
+                                      },
+                                      className: "ios-close-circle-btn",
+                                      title: "Collapse stack",
+                                      children: (0, P.jsx)('span', { className: "text-[11px] leading-none font-bold", children: "✕" })
+                                    })
+                                  ]
+                                })
+                              ]
                             })
                           ) : null,
 
@@ -53419,6 +53463,311 @@ var Ve = (function(_Component) {
   new MutationObserver(function () { if (document.querySelector('.arcade .ar-chips')) add(); }).observe(document.body, { childList: true });
 })();
 </script>
+<style id="mn-stacks-web31">
+/* Stacks as on web31.0 (the Apple notification look) — extracted from web31.0.html, injected into the iPhone pages */
+.card-stack-base {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.ios-notification-group {
+  position: relative;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px 12px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+:not(.theme-white) .ios-notification-group {
+  background: linear-gradient(155deg, rgba(28, 40, 56, 0.78) 0%, rgba(16, 24, 36, 0.90) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.40);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.48), 0 4px 12px -2px rgba(0, 0, 0, 0.32), inset 0 1px 1.5px rgba(255, 255, 255, 0.22);
+}
+.theme-white .ios-notification-group {
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.88) 0%, rgba(240, 245, 252, 0.94) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-top: 1.5px solid #ffffff;
+  box-shadow: 0 10px 28px -4px rgba(15, 23, 42, 0.08), 0 2px 8px -1px rgba(15, 23, 42, 0.04), inset 0 1.5px 2px #ffffff;
+}
+.ios-notification-group .kanban-card,
+.ios-notification-group .kanban-subcard {
+  width: 100%;
+  box-sizing: border-box;
+}
+:not(.theme-white) .ios-notification-group .kanban-card,
+:not(.theme-white) .ios-notification-group .kanban-subcard {
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+:not(.theme-white) .ios-notification-group .kanban-card:hover,
+:not(.theme-white) .ios-notification-group .kanban-subcard:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.22);
+  border-top-color: rgba(255, 255, 255, 0.42);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+}
+.theme-white .ios-notification-group .kanban-card,
+.theme-white .ios-notification-group .kanban-subcard {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+.theme-white .ios-notification-group .kanban-card:hover,
+.theme-white .ios-notification-group .kanban-subcard:hover {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+.ios-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 9px 2px;
+  user-select: none;
+}
+.ios-group-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ios-show-less-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: all 0.15s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+:not(.theme-white) .ios-show-less-pill {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 0.5px 0 rgba(255, 255, 255, 0.35);
+}
+:not(.theme-white) .ios-show-less-pill:hover {
+  background: rgba(255, 255, 255, 0.26);
+  border-color: rgba(255, 255, 255, 0.45);
+  transform: scale(1.02);
+}
+:not(.theme-white) .ios-show-less-pill:active {
+  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.12);
+}
+.theme-white .ios-show-less-pill {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), inset 0 0.5px 0 rgba(255, 255, 255, 0.9);
+}
+.theme-white .ios-show-less-pill:hover {
+  background: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.18);
+  transform: scale(1.02);
+}
+.theme-white .ios-show-less-pill:active {
+  transform: scale(0.97);
+  background: rgba(0, 0, 0, 0.03);
+}
+.ios-close-circle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.2, 0.9, 0.3, 1);
+  margin-left: 2px;
+}
+:not(.theme-white) .ios-close-circle-btn {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 0.5px 0 rgba(255, 255, 255, 0.35);
+}
+:not(.theme-white) .ios-close-circle-btn:hover {
+  background: rgba(255, 255, 255, 0.26);
+  transform: scale(1.04);
+}
+.theme-white .ios-close-circle-btn {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+}
+.theme-white .ios-close-circle-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(1.04);
+}
+.ios-folded-stack-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.15s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+:not(.theme-white) .ios-folded-stack-badge {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+  border: 0.5px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+:not(.theme-white) .ios-folded-stack-badge:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: scale(1.04);
+}
+.theme-white .ios-folded-stack-badge {
+  background: rgba(0, 0, 0, 0.05);
+  color: #334155;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.theme-white .ios-folded-stack-badge:hover {
+  background: rgba(0, 0, 0, 0.09);
+  border-color: rgba(0, 0, 0, 0.16);
+  transform: scale(1.04);
+}
+.card-stack-deck {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -2px;
+  margin-bottom: 0px;
+  padding: 0px;
+  pointer-events: auto;
+  cursor: pointer;
+  position: relative;
+  z-index: 5;
+  transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.card-stack-deck:hover {
+  transform: translateY(1.5px);
+}
+.liquid-glass-deck-step1 {
+  width: 95%;
+  height: 8px;
+  border-radius: 0 0 16px 16px;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
+  transition: all 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(22, 32, 44, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-top: none;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3), inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+}
+.theme-white .liquid-glass-deck-step1 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(240, 246, 243, 0.7) 100%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-top: none !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+.liquid-glass-deck-step2 {
+  width: 89%;
+  height: 8px;
+  border-radius: 0 0 14px 14px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  position: relative;
+  overflow: hidden;
+  margin: -1px auto 0 auto;
+  transition: all 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(16, 24, 34, 0.88) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+}
+.theme-white .liquid-glass-deck-step2 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(235, 242, 238, 0.55) 100%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-top: none !important;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+.theme-white .liquid-glass-deck-step2 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(235, 242, 238, 0.45) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-top: none !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+}
+:not(.theme-white) .liquid-glass-deck-step2 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(16, 24, 34, 0.88) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+.card-stack-base:hover .liquid-refraction-caustic {
+  opacity: 1;
+  filter: brightness(1.25);
+}
+.stack-chevron-pill {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: 34px;
+  height: 18px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+  background: #eef2ed;
+  border: 1px solid rgba(0,0,0,0.08);
+  color: #475569;
+}
+.theme-white .stack-chevron-pill {
+  background: #f1f4f0;
+  border: 1px solid rgba(255,255,255,0.7);
+  color: #334155;
+}
+:not(.theme-white) .stack-chevron-pill {
+  background: rgba(30, 42, 56, 0.92);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.85);
+}
+.stack-chevron-pill:hover {
+  transform: translateX(-50%) scale(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.theme-white .liquid-glass-deck-step1,
+.theme-white .liquid-glass-deck-step2 {
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+}
+</style>
 <script>
 window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6", "subject": "CC6 (all subjects)", "template": "course", "portal": {"title": "CC6", "intro": "Every subject in one place — what there is to learn, and how far you have come."}, "subjects": [{"id": "math", "title": "Math", "icon": "🔢", "desc": "Number sense, operations, geometry and data", "items": [{"id": "place-value", "title": "Place value", "desc": "The value of a digit depends on its position: ones, tens, hundreds, tenths, hundredths."}, {"id": "compare-numbers", "title": "Comparing and ordering numbers", "desc": "Use place value and number lines to compare whole numbers and decimals."}, {"id": "fraction-meaning", "title": "Meaning of a fraction", "desc": "A fraction names equal parts of a whole or a set: numerator over denominator."}, {"id": "equivalent-fractions", "title": "Equivalent fractions", "desc": "Different fractions that name the same amount, such as 1/2 = 2/4 = 3/6."}, {"id": "add-fractions", "title": "Adding and subtracting fractions", "desc": "With like denominators add the numerators; with unlike denominators find a common one first."}, {"id": "multiplication", "title": "Multiplication strategies", "desc": "Arrays, area models, partial products and the standard algorithm."}, {"id": "division", "title": "Division and remainders", "desc": "Equal sharing and equal grouping; interpreting what a remainder means."}, {"id": "order-of-operations", "title": "Order of operations", "desc": "Parentheses, then multiplication and division, then addition and subtraction, left to right."}, {"id": "perimeter-area", "title": "Perimeter and area", "desc": "Perimeter is the distance around a shape; area is the space it covers, in square units."}, {"id": "angles", "title": "Angles", "desc": "Acute, right, obtuse and straight angles, measured in degrees with a protractor."}, {"id": "2d-shapes", "title": "Classifying 2-D shapes", "desc": "Sort polygons by sides, angles, parallel and perpendicular lines."}, {"id": "graphs", "title": "Bar graphs and dot plots", "desc": "Organise data and read it to answer questions."}, {"id": "mean-median", "title": "Mean, median and mode", "desc": "Three ways to describe the centre of a data set."}], "skills": [{"id": "number", "title": "Number & operations", "topics": [{"id": "whole-numbers", "title": "Whole numbers & decimals", "items": ["place-value", "compare-numbers"]}, {"id": "fractions", "title": "Fractions", "items": ["fraction-meaning", "equivalent-fractions", "add-fractions"]}, {"id": "operations", "title": "Operations", "items": ["multiplication", "division", "order-of-operations"]}]}, {"id": "geometry", "title": "Geometry & measurement", "topics": [{"id": "measure", "title": "Measurement", "items": ["perimeter-area", "angles"]}, {"id": "shapes", "title": "Shapes", "items": ["2d-shapes", "angles"]}]}, {"id": "data", "title": "Data analysis", "items": ["graphs", "mean-median"]}]}, {"id": "ela", "title": "ELA", "icon": "📖", "desc": "Reading, phonics, writing and language", "items": [{"id": "phonemic-awareness", "title": "Phonemic awareness", "desc": "Hearing and working with the individual sounds in spoken words."}, {"id": "phonics", "title": "Phonics and decoding", "desc": "Connecting letters and letter patterns to sounds to read words."}, {"id": "fluency", "title": "Reading fluency", "desc": "Reading with accuracy, a good rate and expression."}, {"id": "main-idea", "title": "Main idea and details", "desc": "What a text is mostly about, and the details that support it."}, {"id": "inference", "title": "Making inferences", "desc": "Using clues in the text plus what you know to reach a conclusion."}, {"id": "text-structure", "title": "Text structure", "desc": "Sequence, compare and contrast, cause and effect, problem and solution."}, {"id": "story-elements", "title": "Story elements", "desc": "Characters, setting, plot, conflict and resolution."}, {"id": "writing-process", "title": "The writing process", "desc": "Plan, draft, revise, edit and publish."}, {"id": "opinion-writing", "title": "Opinion and argument writing", "desc": "State a claim and support it with reasons and evidence."}, {"id": "parts-of-speech", "title": "Parts of speech", "desc": "Nouns, verbs, adjectives, adverbs, pronouns and more."}, {"id": "prefix-suffix", "title": "Prefixes and suffixes", "desc": "Word parts that change a word's meaning, such as un-, re-, -ful, -less."}], "skills": [{"id": "foundational", "title": "Foundational skills", "items": ["phonemic-awareness", "phonics", "fluency"]}, {"id": "comprehension", "title": "Comprehension", "topics": [{"id": "informational", "title": "Informational text", "items": ["main-idea", "text-structure", "inference"]}, {"id": "literary", "title": "Literary text", "items": ["story-elements", "inference"]}]}, {"id": "writing", "title": "Writing", "items": ["writing-process", "opinion-writing"]}, {"id": "language", "title": "Language & vocabulary", "items": ["parts-of-speech", "prefix-suffix"]}]}, {"id": "science", "title": "Science", "icon": "🔬", "desc": "Matter, forces, Earth and living things", "items": [{"id": "states-of-matter", "title": "States of matter", "desc": "Solids, liquids and gases, and how heating and cooling change them."}, {"id": "mixtures", "title": "Mixtures and solutions", "desc": "Substances combined without a chemical change; some can be separated."}, {"id": "forces", "title": "Forces and motion", "desc": "Pushes and pulls change an object's speed or direction."}, {"id": "energy", "title": "Forms of energy", "desc": "Light, heat, sound, electrical and mechanical energy."}, {"id": "water-cycle", "title": "The water cycle", "desc": "Evaporation, condensation, precipitation and collection."}, {"id": "weathering", "title": "Weathering and erosion", "desc": "Wind, water and ice break down rock and move it."}, {"id": "sun-earth-moon", "title": "Sun, Earth and Moon", "desc": "Rotation causes day and night; revolution causes the year; the Moon's phases."}, {"id": "food-chains", "title": "Food chains and webs", "desc": "How energy moves from producers to consumers and decomposers."}, {"id": "adaptations", "title": "Adaptations", "desc": "Body parts and behaviours that help living things survive."}, {"id": "life-cycles", "title": "Life cycles", "desc": "The stages of life of plants and animals, such as metamorphosis."}], "skills": [{"id": "physical", "title": "Physical science", "topics": [{"id": "matter", "title": "Matter", "items": ["states-of-matter", "mixtures"]}, {"id": "force-energy", "title": "Force & energy", "items": ["forces", "energy"]}]}, {"id": "earth-space", "title": "Earth & space", "items": ["water-cycle", "weathering", "sun-earth-moon"]}, {"id": "life", "title": "Life science", "items": ["food-chains", "adaptations", "life-cycles"]}]}, {"id": "social-studies", "title": "Social Studies", "icon": "🏛", "desc": "History, geography, government and economics", "items": [{"id": "thirteen-colonies", "title": "The thirteen colonies", "desc": "New England, Middle and Southern colonies, each shaped by geography and economy."}, {"id": "revolution", "title": "The American Revolution", "desc": "From taxation without representation to independence in 1776 and victory in 1781."}, {"id": "constitution", "title": "The Constitution", "desc": "Written in 1787; the Bill of Rights followed in 1791."}, {"id": "texas-history", "title": "Texas history", "desc": "Native peoples, Spanish missions, the Texas Revolution and statehood."}, {"id": "map-skills", "title": "Map skills", "desc": "Compass rose, scale, legend, latitude and longitude."}, {"id": "regions-texas", "title": "Regions of Texas", "desc": "Coastal Plains, North Central Plains, Great Plains, Mountains and Basins."}, {"id": "branches", "title": "Three branches of government", "desc": "Legislative makes laws, executive enforces them, judicial interprets them."}, {"id": "citizenship", "title": "Rights and responsibilities", "desc": "Freedoms citizens have and duties such as voting and obeying laws."}, {"id": "supply-demand", "title": "Supply and demand", "desc": "How the amount available and how much people want it affect price."}, {"id": "needs-wants", "title": "Needs, wants and scarcity", "desc": "Limited resources mean making choices."}], "skills": [{"id": "history", "title": "History", "topics": [{"id": "us-history", "title": "U.S. history", "items": ["thirteen-colonies", "revolution", "constitution"]}, {"id": "tx-history", "title": "Texas history", "items": ["texas-history"]}]}, {"id": "geography", "title": "Geography", "items": ["map-skills", "regions-texas"]}, {"id": "government", "title": "Government & citizenship", "items": ["branches", "citizenship", "constitution"]}, {"id": "economics", "title": "Economics", "items": ["needs-wants", "supply-demand"]}]}]}, "paul-journeys": {"format": "minest.knowledge/1", "id": "paul-journeys", "subject": "Paul's Missionary Journeys", "template": "route", "note": "Positions are approximate (longitude / latitude of the ancient sites).", "places": [{"id": "antioch", "title": "Antioch (Syria)", "lon": 36.16, "lat": 36.2}, {"id": "seleucia", "title": "Seleucia", "lon": 35.93, "lat": 36.12}, {"id": "salamis", "title": "Salamis", "lon": 33.9, "lat": 35.18}, {"id": "paphos", "title": "Paphos", "lon": 32.41, "lat": 34.76}, {"id": "perga", "title": "Perga", "lon": 30.85, "lat": 36.96}, {"id": "pisidian-antioch", "title": "Pisidian Antioch", "lon": 31.19, "lat": 38.31}, {"id": "iconium", "title": "Iconium", "lon": 32.49, "lat": 37.87}, {"id": "lystra", "title": "Lystra", "lon": 32.36, "lat": 37.58}, {"id": "derbe", "title": "Derbe", "lon": 33.36, "lat": 37.35}, {"id": "attalia", "title": "Attalia", "lon": 30.71, "lat": 36.89}, {"id": "troas", "title": "Troas", "lon": 26.16, "lat": 39.75}, {"id": "neapolis", "title": "Neapolis", "lon": 24.41, "lat": 40.94}, {"id": "philippi", "title": "Philippi", "lon": 24.29, "lat": 41.01}, {"id": "thessalonica", "title": "Thessalonica", "lon": 22.94, "lat": 40.64}, {"id": "berea", "title": "Berea", "lon": 22.2, "lat": 40.52}, {"id": "athens", "title": "Athens", "lon": 23.73, "lat": 37.98}, {"id": "corinth", "title": "Corinth", "lon": 22.88, "lat": 37.91}, {"id": "ephesus", "title": "Ephesus", "lon": 27.34, "lat": 37.94}, {"id": "caesarea", "title": "Caesarea", "lon": 34.89, "lat": 32.5}, {"id": "jerusalem", "title": "Jerusalem", "lon": 35.23, "lat": 31.78}], "journeys": [{"id": "first", "title": "First Journey (Acts 13–14)", "color": "#eb5e55", "stops": [{"place": "antioch", "desc": "Paul and Barnabas are sent out by the church in Antioch."}, {"place": "seleucia", "desc": "They sail from the port of Seleucia."}, {"place": "salamis", "desc": "They preach in the synagogues of Salamis on Cyprus."}, {"place": "paphos", "desc": "The proconsul Sergius Paulus believes."}, {"place": "perga", "desc": "John Mark leaves them and returns to Jerusalem."}, {"place": "pisidian-antioch", "desc": "Paul's sermon in the synagogue; they turn to the Gentiles."}, {"place": "iconium", "desc": "Many believe; opponents plan to stone them."}, {"place": "lystra", "desc": "A lame man is healed; Paul is stoned."}, {"place": "derbe", "desc": "Many disciples are made."}, {"place": "lystra", "desc": "On the way back they strengthen the disciples."}, {"place": "iconium", "desc": "They encourage the believers to continue in the faith."}, {"place": "pisidian-antioch", "desc": "Elders are appointed in each church."}, {"place": "perga", "desc": "They preach the word in Perga."}, {"place": "attalia", "desc": "They sail from Attalia back toward Antioch."}, {"place": "antioch", "desc": "They report how God opened a door of faith to the Gentiles."}]}, {"id": "second", "title": "Second Journey (Acts 15:36–18:22)", "color": "#5097f4", "stops": [{"place": "antioch", "desc": "Paul sets out with Silas."}, {"place": "derbe", "desc": "They revisit the churches."}, {"place": "lystra", "desc": "Timothy joins them."}, {"place": "troas", "desc": "Paul's vision of a man of Macedonia."}, {"place": "neapolis", "desc": "First landing in Europe."}, {"place": "philippi", "desc": "Lydia believes; Paul and Silas are jailed."}, {"place": "thessalonica", "desc": "Paul reasons in the synagogue for three Sabbaths."}, {"place": "berea", "desc": "The Bereans examine the Scriptures daily."}, {"place": "athens", "desc": "Paul speaks at the Areopagus."}, {"place": "corinth", "desc": "Paul stays about a year and a half, with Aquila and Priscilla."}, {"place": "ephesus", "desc": "A short visit; he promises to return."}, {"place": "caesarea", "desc": "Paul lands at Caesarea."}, {"place": "jerusalem", "desc": "He greets the church."}, {"place": "antioch", "desc": "He returns to Antioch."}]}]}, "school-types": {"format": "minest.knowledge/1", "id": "school-types", "subject": "Schools", "template": "wiki", "portal": {"title": "Schools Portal", "intro": "Kinds of schools, organised several ways at once — by stage, by funding, by style, by location and by scope.", "areas": [{"group": "stage", "icon": "🎒", "desc": "From preschool to university"}, {"group": "funding", "icon": "🏛", "desc": "Who pays and who may attend"}, {"group": "style", "icon": "🎨", "desc": "Teaching philosophy and purpose"}, {"group": "location", "icon": "📍", "desc": "Where the learning happens"}, {"group": "scope", "icon": "🧩", "desc": "Whom the program is designed for"}]}, "items": [{"id": "preschool", "title": "Preschool", "desc": "Early-childhood education before compulsory school, usually for ages 3–5, built around play and early social skills."}, {"id": "pre-k", "title": "Pre-kindergarten", "desc": "A program in the year before kindergarten that prepares four-year-olds for school routines and early literacy."}, {"id": "kindergarten", "title": "Kindergarten", "desc": "The first year of formal schooling in many systems, usually for five- and six-year-olds."}, {"id": "infant", "title": "Infant school", "desc": "A school for the youngest primary pupils, typically ages 4–7."}, {"id": "junior", "title": "Junior school", "desc": "A school for the older primary years, typically ages 7–11."}, {"id": "primary", "title": "Primary school / Elementary school", "desc": "The first stage of compulsory education, teaching reading, writing, mathematics and other core subjects."}, {"id": "middle", "title": "Middle school", "desc": "A school between elementary and high school, often grades 6–8."}, {"id": "secondary", "title": "Secondary school / High school", "desc": "The stage after primary education, usually for teenagers, leading to a diploma or qualifications."}, {"id": "grammar", "title": "Grammar school", "desc": "In several countries, an academically focused secondary school; some select pupils by examination."}, {"id": "comprehensive", "title": "Comprehensive school", "desc": "A secondary school that admits pupils of all abilities without academic selection."}, {"id": "selective", "title": "Selective school", "desc": "A school that admits pupils based on academic ability, often through an entrance test."}, {"id": "college-prep", "title": "College-preparatory school", "desc": "A secondary school focused on preparing students for university entrance."}, {"id": "sixth-form", "title": "Sixth form college", "desc": "A college for 16–19-year-olds studying for advanced qualifications before university or work."}, {"id": "professional", "title": "Professional school", "desc": "Post-secondary education that prepares students for a specific profession, such as law or medicine."}, {"id": "technical", "title": "Technical school", "desc": "A school that teaches applied skills in technology, trades and engineering."}, {"id": "vocational", "title": "Vocational school", "desc": "A school that trains students for a particular trade or career."}, {"id": "community-college", "title": "Community college", "desc": "A two-year public college offering associate degrees, certificates and transfer programs."}, {"id": "liberal-arts", "title": "Liberal arts college", "desc": "An undergraduate college emphasizing broad study across the arts, humanities and sciences."}, {"id": "university", "title": "University", "desc": "A higher-education institution that grants undergraduate and graduate degrees and carries out research."}, {"id": "graduate", "title": "Graduate school", "desc": "A school within a university that awards master's and doctoral degrees."}, {"id": "research-university", "title": "Research university", "desc": "A university where research is a central part of its mission."}, {"id": "seminary", "title": "Seminary", "desc": "An institution that trains students in theology, often for religious ministry."}, {"id": "all-through", "title": "All-through school", "desc": "A single school that teaches pupils from the primary years through the end of secondary education."}, {"id": "one-room", "title": "One-room school", "desc": "A school where students of several grades learn together in one room with one teacher."}, {"id": "public", "title": "State or public school", "desc": "A school funded and run by the government, usually free to attend."}, {"id": "private", "title": "Private school", "desc": "A school funded by tuition and private sources rather than mainly by the government."}, {"id": "charter", "title": "Charter school", "desc": "A publicly funded school that operates independently under a charter with its own rules."}, {"id": "academy", "title": "Academy", "desc": "A term used for various schools; in England, a state-funded school run independently of the local authority."}, {"id": "specialist", "title": "Specialist school", "desc": "A school that emphasizes a particular subject area, such as music, science or the arts."}, {"id": "magnet", "title": "Magnet school", "desc": "A public school with a special focus or program that draws students from across a district."}, {"id": "international", "title": "International school", "desc": "A school that follows an international curriculum, often serving families from many countries."}, {"id": "alternative", "title": "Alternative school", "desc": "A school with a nontraditional curriculum or approach, often serving students not well served elsewhere."}, {"id": "single-sex", "title": "Single-sex education", "desc": "Education in which boys and girls attend separate classes or schools."}, {"id": "music", "title": "Music school", "desc": "A school devoted to the study and performance of music."}, {"id": "montessori", "title": "Montessori school", "desc": "A child-centered approach with mixed-age classrooms, hands-on materials and self-directed activity."}, {"id": "waldorf", "title": "Waldorf school", "desc": "An approach founded by Rudolf Steiner that emphasizes imagination, arts and practical work."}, {"id": "lab-school", "title": "Laboratory school", "desc": "A school run by a university to train teachers and test new teaching methods."}, {"id": "free-school-movement", "title": "Free school movement", "desc": "A movement for schools in which students take a large share in deciding how and what they learn."}, {"id": "catholic", "title": "Catholic school", "desc": "A school run by the Catholic Church or a Catholic organization."}, {"id": "christian", "title": "Christian school", "desc": "A school whose teaching and community life are based on Christian faith."}, {"id": "madrasa", "title": "Madrasa", "desc": "An educational institution, often associated with Islamic learning."}, {"id": "yeshiva", "title": "Yeshiva", "desc": "A Jewish educational institution focused on the study of religious texts."}, {"id": "parochial", "title": "Parochial school", "desc": "A private school affiliated with a religious congregation."}, {"id": "boarding", "title": "Boarding school", "desc": "A school where students live on campus during the school term."}, {"id": "day", "title": "Day school", "desc": "A school where students attend during the day and return home each evening."}, {"id": "distance", "title": "Distance education", "desc": "Learning delivered to students who are not physically present at a school."}, {"id": "homeschool", "title": "Homeschooling", "desc": "Education provided at home, usually by parents or tutors."}, {"id": "virtual", "title": "Virtual school", "desc": "A school that teaches mainly or entirely online."}, {"id": "compulsory", "title": "Compulsory education", "desc": "The period of education that children are required by law to attend."}, {"id": "continuing", "title": "Continuing education", "desc": "Education for adults after their formal schooling has ended."}, {"id": "gifted", "title": "Gifted education", "desc": "Programs designed for students identified as gifted or talented."}, {"id": "inclusive", "title": "Inclusive education", "desc": "Students with and without disabilities learning together in the same classrooms."}, {"id": "special", "title": "Special education", "desc": "Instruction designed to meet the individual needs of students with disabilities."}], "categories": {"title": "School types", "groups": [{"id": "stage", "title": "By educational stage", "subs": [{"id": "early", "title": "Early childhood", "items": ["preschool", "pre-k", "kindergarten"]}, {"id": "primary-stage", "title": "Primary", "items": ["infant", "junior", "primary"]}, {"id": "secondary-stage", "title": "Secondary", "items": ["secondary", "grammar", "comprehensive", "selective", "college-prep", "sixth-form"]}, {"id": "tertiary", "title": "Tertiary", "items": ["professional", "technical", "vocational"], "subs": [{"id": "higher", "title": "Higher", "items": ["academy", "community-college", "liberal-arts", "university", "graduate", "research-university", "seminary"]}]}, {"id": "combined", "title": "Combined", "items": ["all-through", "middle", "one-room"]}]}, {"id": "funding", "title": "By funding / eligibility", "items": ["public", "private", "charter", "academy", "comprehensive", "selective", "specialist"]}, {"id": "style", "title": "By style / purpose", "items": ["alternative", "international", "magnet", "music", "single-sex", "specialist"], "subs": [{"id": "progressive", "title": "Progressive", "items": ["free-school-movement", "lab-school", "montessori", "waldorf"]}, {"id": "religious", "title": "Religious", "items": ["catholic", "christian", "madrasa", "parochial", "seminary", "yeshiva"]}]}, {"id": "location", "title": "By location", "items": ["boarding", "day", "distance", "homeschool", "virtual"]}, {"id": "scope", "title": "By scope", "items": ["college-prep", "compulsory", "continuing", "gifted", "inclusive", "special"]}]}}, "social-studies": {"format": "minest.knowledge/1", "id": "ss-ec6", "subject": "Social Studies (EC-6)", "template": "regions", "route": {"mode": "guided"}, "states": [{"id": "history", "title": "History", "icon": "🏛", "color": "#f18c4f", "stages": [{"id": "colonial", "title": "Colonial America", "blocks": [{"id": "jamestown", "title": "Jamestown (1607)", "desc": "First permanent English settlement in North America, in Virginia.", "date": {"y": 1607}}, {"id": "plymouth", "title": "Plymouth & the Mayflower Compact (1620)", "desc": "Pilgrims agree to govern themselves — an early example of self-government.", "date": {"y": 1620}}, {"id": "13-colonies", "title": "The Thirteen Colonies", "desc": "New England, Middle and Southern colonies, each shaped by geography and economy."}], "icon": "⛵"}, {"id": "revolution", "title": "American Revolution", "blocks": [{"id": "taxation", "title": "No taxation without representation", "desc": "Colonists protest taxes such as the Stamp Act (1765) passed without their vote.", "date": {"y": 1765}}, {"id": "declaration", "title": "Declaration of Independence (1776)", "desc": "Adopted July 4, 1776; written mainly by Thomas Jefferson.", "date": {"y": 1776, "m": 7, "d": 4}}, {"id": "yorktown", "title": "Victory at Yorktown (1781)", "desc": "The British surrender at Yorktown ends major fighting.", "date": {"y": 1781}}], "icon": "🔔"}, {"id": "constitution", "title": "Constitution", "blocks": [{"id": "articles", "title": "Articles of Confederation", "desc": "First U.S. government; a weak central government without the power to tax.", "date": {"y": 1781, "m": 3, "d": 1}}, {"id": "convention", "title": "Constitutional Convention (1787)", "desc": "Delegates in Philadelphia write the Constitution, signed September 17, 1787.", "date": {"y": 1787, "m": 9, "d": 17}}, {"id": "bill-of-rights", "title": "Bill of Rights (1791)", "desc": "The first ten amendments protect individual rights.", "date": {"y": 1791, "m": 12, "d": 15}}], "icon": "📜"}, {"id": "civil-war", "title": "Civil War", "blocks": [{"id": "causes", "title": "Causes of the Civil War", "desc": "Disagreements over slavery and states' rights divide North and South."}, {"id": "emancipation", "title": "Emancipation Proclamation (1863)", "desc": "Lincoln declares enslaved people in Confederate states free.", "date": {"y": 1863, "m": 1, "d": 1}}, {"id": "juneteenth", "title": "Juneteenth (1865)", "desc": "June 19, 1865: freedom announced to enslaved people in Galveston, Texas.", "date": {"y": 1865, "m": 6, "d": 19}}], "icon": "⚔️"}, {"id": "modern", "title": "Modern America", "blocks": [{"id": "suffrage", "title": "19th Amendment (1920)", "desc": "Women gain the right to vote.", "date": {"y": 1920, "m": 8, "d": 18}}, {"id": "civil-rights", "title": "Civil Rights Movement", "desc": "Brown v. Board (1954) and the Civil Rights Act (1964) fight segregation and discrimination.", "date": {"y": 1954, "y2": 1968}}, {"id": "moon", "title": "Moon landing (1969)", "desc": "Apollo 11 astronauts walk on the Moon on July 20, 1969.", "date": {"y": 1969, "m": 7, "d": 20}}], "icon": "🚀"}]}, {"id": "government", "title": "Government", "icon": "⚖️", "color": "#5097f4", "stages": [{"id": "branches", "title": "Three Branches", "blocks": [{"id": "legislative", "title": "Legislative branch", "desc": "Congress (Senate and House of Representatives) makes laws."}, {"id": "executive", "title": "Executive branch", "desc": "The President carries out and enforces laws."}, {"id": "judicial", "title": "Judicial branch", "desc": "The courts, led by the Supreme Court, interpret laws."}], "icon": "🏛"}, {"id": "principles", "title": "Principles", "blocks": [{"id": "checks", "title": "Checks and balances", "desc": "Each branch can limit the power of the others."}, {"id": "federalism", "title": "Federalism", "desc": "Power is shared between the national and state governments."}, {"id": "popular-sovereignty", "title": "Popular sovereignty", "desc": "The government's power comes from the people."}], "icon": "⚖️"}, {"id": "levels", "title": "Levels of Government", "blocks": [{"id": "local", "title": "Local government", "desc": "Cities and counties: mayors, city councils, school boards."}, {"id": "state", "title": "State government", "desc": "Texas: the Governor, the Legislature and state courts in Austin."}, {"id": "national", "title": "National government", "desc": "The federal government in Washington, D.C."}], "icon": "🏙"}]}, {"id": "geography", "title": "Geography", "icon": "🗺", "color": "#49b07a", "stages": [{"id": "map-skills", "title": "Map Skills", "blocks": [{"id": "directions", "title": "Cardinal & intermediate directions", "desc": "N, S, E, W and NE, NW, SE, SW on a compass rose."}, {"id": "grid", "title": "Latitude & longitude", "desc": "Imaginary lines used to find absolute location."}, {"id": "map-parts", "title": "Parts of a map", "desc": "Title, legend (key), scale and compass rose."}], "icon": "🧭"}, {"id": "regions", "title": "Regions of Texas", "blocks": [{"id": "coastal", "title": "Coastal Plains", "desc": "Largest region; Houston, farmland and the Gulf coast."}, {"id": "plains", "title": "North Central Plains", "desc": "Rolling hills and prairies; Dallas–Fort Worth area."}, {"id": "great-plains", "title": "Great Plains", "desc": "High, flat land; the Panhandle and Edwards Plateau."}, {"id": "mountains", "title": "Mountains and Basins", "desc": "Driest region; El Paso and Big Bend."}], "icon": "🌵"}, {"id": "human-env", "title": "People & Environment", "blocks": [{"id": "adapt", "title": "Adapting to the environment", "desc": "People change how they live to fit climate and land."}, {"id": "modify", "title": "Modifying the environment", "desc": "Dams, irrigation and roads change the land."}, {"id": "resources", "title": "Natural resources", "desc": "Renewable and nonrenewable resources such as water, soil and oil."}], "icon": "🌾"}]}, {"id": "economics", "title": "Economics", "icon": "💰", "color": "#eabf3b", "stages": [{"id": "basics", "title": "Economic Basics", "blocks": [{"id": "needs-wants", "title": "Needs and wants", "desc": "Needs are required to live; wants are things people would like to have."}, {"id": "goods-services", "title": "Goods and services", "desc": "Goods are things you can touch; services are work done for others."}, {"id": "scarcity", "title": "Scarcity and choice", "desc": "Resources are limited, so people must make choices (opportunity cost)."}], "icon": "🛒"}, {"id": "free-enterprise", "title": "Free Enterprise", "blocks": [{"id": "supply-demand", "title": "Supply and demand", "desc": "Prices rise when demand is greater than supply."}, {"id": "producers", "title": "Producers and consumers", "desc": "Producers make goods and services; consumers buy and use them."}, {"id": "entrepreneurs", "title": "Entrepreneurs", "desc": "People who start businesses and take risks."}], "icon": "🏪"}]}, {"id": "civics", "title": "Civics", "icon": "🗳", "color": "#a381f2", "stages": [{"id": "citizenship", "title": "Citizenship", "blocks": [{"id": "rights", "title": "Rights of citizens", "desc": "Freedoms such as speech, religion and voting."}, {"id": "responsibilities", "title": "Responsibilities of citizens", "desc": "Obeying laws, voting, serving on juries."}, {"id": "voting", "title": "Voting and elections", "desc": "Citizens choose leaders through elections."}], "icon": "🗳"}, {"id": "symbols", "title": "Symbols & Celebrations", "blocks": [{"id": "flags", "title": "U.S. and Texas flags", "desc": "Flags, pledges and their meanings."}, {"id": "anthem", "title": "The Star-Spangled Banner", "desc": "The national anthem, written by Francis Scott Key in 1814.", "date": {"y": 1814}}, {"id": "holidays", "title": "National holidays", "desc": "Independence Day, Constitution Day, Veterans Day and more."}], "icon": "🇺🇸"}]}, {"id": "culture", "title": "Culture", "icon": "🎭", "color": "#eb5e55", "stages": [{"id": "communities", "title": "Communities", "blocks": [{"id": "traditions", "title": "Customs and traditions", "desc": "Food, music, celebrations and language passed between generations."}, {"id": "diversity", "title": "Cultural diversity in Texas", "desc": "Native American, Mexican, African American, European and Asian heritage."}, {"id": "contributions", "title": "Contributions of groups", "desc": "How different groups have shaped Texas and the nation."}], "icon": "🎪"}, {"id": "science-tech", "title": "Science & Technology", "blocks": [{"id": "inventions", "title": "Inventions that changed life", "desc": "The telephone, the light bulb, the airplane and the computer."}, {"id": "transport", "title": "Transportation and communication", "desc": "From horses and railroads to cars, planes and the internet."}], "icon": "💡"}]}]}};
 /* Minest Knowledge · Phase 1 — Contents (an interactive table of contents for knowledge Kanbans)

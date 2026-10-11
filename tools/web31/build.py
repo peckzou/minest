@@ -124,6 +124,35 @@ def knowledge_patches(out):
                "      addBoard: function(board, select) { setBoards(function(list) { return list.concat([board]); }); if (select) setTimeout(function() { setActiveBoardId(board.id); }, 30); },\n"
                "      openCardIn: function(boardId, colId, cardId) { if (boardId) setActiveBoardId(boardId); setTimeout(function() { setCardModal({ isOpen: true, columnId: colId, cardId: cardId }); }, 60); },\n"
                "      rateCard: function(cardId, level) {", 'knowledge: updateBoard / openCardIn')
+    # Stacks as on web31.0 (the Apple notification look): an old iPhone portrait rule hid the folded deck plates and the
+    # open group's "N cards · Show less · ✕" header everywhere — keep it only for Clear mode
+    if '/* Global removal of card folding / stacking / collapsing controls */\n.card-stack-deck,' in out:
+        out = out.replace('/* Global removal of card folding / stacking / collapsing controls */\n.card-stack-deck,\n.stack-chevron-pill,\n.ios-show-less-pill,\n.ios-close-circle-btn,\n.ios-group-header,\n.ios-folded-stack-badge,\n.liquid-glass-deck-step1,\n.liquid-glass-deck-step2 {',
+                          '/* Card folding / stacking controls: hidden in Clear mode only (Minest web31: stacks as on the web) */\n.clear-mode .card-stack-deck,\n.clear-mode .stack-chevron-pill,\n.clear-mode .ios-show-less-pill,\n.clear-mode .ios-close-circle-btn,\n.clear-mode .ios-group-header,\n.clear-mode .ios-folded-stack-badge,\n.clear-mode .liquid-glass-deck-step1,\n.clear-mode .liquid-glass-deck-step2 {', 1)
+    # … and the stacks themselves as on web31.0: its group header (a "N cards" chip, Show less, ✕; tap to fold) and its
+    # stack styles (tools/mobile/stacks-web31*, taken from web31.0.html), placed last so they win
+    hdr_old_a = out.find('                          // iOS Notification Center Group Header (Expanded Stack)')
+    if hdr_old_a >= 0 and 'ios-group-header-left' not in out[hdr_old_a:hdr_old_a + 6000]:
+        hdr_old_b = out.index('                          // Base Card Front', hdr_old_a)
+        out = out[:hdr_old_a] + open(os.path.join(REPO, 'tools', 'mobile', 'stacks-web31-header.jsx'), encoding='utf-8').read() + out[hdr_old_b:]
+    if 'id="mn-stacks-web31"' not in out:
+        css = open(os.path.join(REPO, 'tools', 'mobile', 'stacks-web31.css'), encoding='utf-8').read()
+        k = out.rfind('</body>')
+        out = out[:k] + '<style id="mn-stacks-web31">\n' + css + '</style>\n' + out[k:]
+    # Show less / ✕ also fold a stack kept open in the card itself (isStackExpanded, e.g. left by an older jump)
+    out = once(out, """  var toggleStackExpand = function(colId, cardId) {
+    setExpandedStacks(function(prev) {""", """  var toggleStackExpand = function(colId, cardId) {
+    try {
+      var kept = null, ab = window.MinestAI && window.MinestAI.board && window.MinestAI.board();
+      ((ab && ab.columns) || []).some(function(cl) { return (cl.cards || []).some(function(x) { if (x.id === cardId) { kept = x; return true; } return false; }); });
+      if (kept && kept.isStackExpanded && window.MinestAI.patchCard) {
+        window.MinestAI.patchCard(cardId, { isStackExpanded: false });
+        setExpandedStacks(function(prev) { var n = Object.assign({}, prev); delete n[cardId]; return n; });
+        SoundEngine.play('click');
+        return;
+      }
+    } catch (e) {}
+    setExpandedStacks(function(prev) {""", 'stacks: fold a kept-open stack')
     # Portal: tell the knowledge views when a card's details open (marks it "viewed" — never mastered)
     out = once(out, "  var setCardModal = cardModalState[1];\n",
                "  var setCardModal = cardModalState[1];\n"
