@@ -210,6 +210,32 @@
     '.dv-tally div{flex:1;min-width:0}.dv-tally b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dv-tally i{display:block;height:5px;border-radius:5px;background:#ff9f0a;margin-top:5px}',
     '.dv-tally em{font-style:normal;font-size:12.5px;opacity:.6;flex:none}',
     '.dv-note{font-size:12.5px;opacity:.55;margin:10px 2px}',
+    '.dv-tiers{display:flex;flex-direction:column;gap:6px}',
+    '.dv-tier{display:flex;align-items:stretch;min-height:78px;border-radius:14px;overflow:hidden;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}',
+    '.dv-tier .lab{flex:none;width:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 4px;border:0;color:#1c1f29;font:inherit;cursor:pointer;text-align:center}',
+    '.dv-tier .lab b{font-size:17px;font-weight:900;line-height:1.05;overflow-wrap:break-word;hyphens:auto;max-width:100%}.dv-tier .lab b.long{font-size:12.5px;font-weight:800}.dv-tier .lab small{font-size:10px;font-weight:650;opacity:.75;line-height:1.15}',
+    '.dv-tiers.ro .lab{cursor:default}',
+    '.zone{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;padding:6px}',
+    '.zone.pool{min-height:90px;border-radius:14px;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.18)}',
+    '.dv-ti{width:56px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}',
+    '.dv-ti .dv-art{width:56px;height:72px;border-radius:9px;box-shadow:0 4px 12px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.14)}.dv-ti .dv-art.drawn{padding:4px}.dv-ti .dv-art.drawn b{font-size:9.5px;-webkit-line-clamp:4}',
+    '.dv-ti span{font-size:10.5px;line-height:1.15;text-align:center;max-width:56px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;opacity:.85}',
+    '.dv-ti:focus-visible{outline:2px solid #ff9f0a;outline-offset:2px;border-radius:10px}',
+    '.dv-ti.lift{opacity:.25}',
+    '.dv-ghost{position:fixed;z-index:20;pointer-events:none;transform:scale(1.08) rotate(-2deg);filter:drop-shadow(0 14px 24px rgba(0,0,0,.5))}',
+    '.dv-ph{width:56px;height:72px;border-radius:9px;border:2px dashed #ff9f0a;box-sizing:border-box;background:rgba(255,159,10,.12)}',
+    '.dv-done{font-size:12.5px;opacity:.5;padding:6px}',
+    '.dv-menu{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:15;padding:14px;border-radius:24px;background:rgba(30,33,44,.96);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,.16);box-shadow:0 20px 50px rgba(0,0,0,.5)}',
+    '.dv-menu .mh{display:flex;align-items:center;gap:12px}.dv-menu .mh div{flex:1;min-width:0}.dv-menu .mh b{display:block;font-size:16px}.dv-menu .mh small{display:block;font-size:12.5px;opacity:.6}',
+    '.dv-menu .mh .dv-art{width:44px;height:58px;border-radius:8px;flex:none}.dv-menu .mh .dv-art.drawn{padding:3px}.dv-menu .mh .dv-art.drawn b{font-size:8px}',
+    '.dv-menu .tl{flex:none;min-width:44px;height:44px;padding:0 8px;border-radius:10px;display:grid;place-items:center;font-weight:900;color:#1c1f29}',
+    '.dv-menu .mt{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}',
+    '.dv-menu .mt button{min-height:46px;padding:4px 6px;border-radius:12px;border:2px solid transparent;background:var(--tc,rgba(255,255,255,.12));color:#1c1f29;font:800 14px -apple-system,system-ui,sans-serif;cursor:pointer;word-break:break-word}',
+    '.dv-menu .mt button{word-break:normal}.dv-menu .mt button.un{grid-column:span 2;background:rgba(255,255,255,.12);color:inherit;font-weight:650}.dv-menu .mt button.on{border-color:#fff;box-shadow:0 0 0 2px #ff9f0a}',
+    '.dv-chip:disabled{opacity:.35}',
+    'html.kn-light .dv-menu{background:rgba(250,251,253,.97);border-color:rgba(0,0,0,.08)}html.kn-light .dv-menu .mt button.un{background:rgba(0,0,0,.06)}',
+    'html.kn-light .dv-tier{background:rgba(255,255,255,.7);border-color:rgba(0,0,0,.06)}html.kn-light .zone.pool{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.18)}',
+    '@media (min-width:700px){.dv-ti,.dv-ph{width:72px}.dv-ti .dv-art,.dv-ph{width:72px;height:94px}.dv-ti span{max-width:72px;font-size:11.5px}.dv-tier .lab{width:96px}.dv-menu{left:50%;right:auto;width:420px;transform:translateX(-50%)}}',
     '.dv-empty{padding:16px;text-align:center;opacity:.55;font-size:14px}',
     'html.kn-light .dv{color:#1d1f23;background:linear-gradient(180deg,rgba(244,246,250,.94),rgba(232,236,243,.98))}',
     'html.kn-light .dv-b,html.kn-light .dv-tool,html.kn-light .dv-row,html.kn-light .dv-chip,html.kn-light .dv-find,html.kn-light .dv-q,html.kn-light .dv-ctl button,html.kn-light .dv-res,html.kn-light .dv-tally{background:rgba(255,255,255,.82);border-color:rgba(0,0,0,.08);box-shadow:inset 0 1px 0 #fff,0 6px 18px rgba(30,40,60,.06)}',
@@ -232,7 +258,7 @@
     'tier-list': ['Tier List', 'Rank what matters to me.', '#5e5ce6', '#1e88e5'],
     tournament: ['Tournament', 'Find my favorites.', '#30b45a', '#00897b']
   };
-  var READY = { 'this-or-that': true };   // Tier List and Tournament join next
+  var READY = { 'this-or-that': true, 'tier-list': true };   // Tournament joins next
 
   var ui = { open: false };
   function shell() {
@@ -247,6 +273,9 @@
     el.addEventListener('click', onClick);
     el.addEventListener('input', function (e) { if (e.target.matches('[data-find]')) { ui.q = e.target.value; drawSources(); } if (e.target.matches('[data-qtext]')) ui.cfg.question = e.target.value; if (e.target.matches('[data-title]')) ui.cfg.title = e.target.value; });
     el.addEventListener('keydown', onKey);
+    el.addEventListener('pointerdown', tierDown);
+    el.addEventListener('touchmove', function (e) { if (ui.drag && ui.drag.on) e.preventDefault(); }, { passive: false });
+    el.addEventListener('contextmenu', function (e) { if (e.target.closest('[data-ti]')) e.preventDefault(); });
     ui.file.addEventListener('change', function () {
       var f = ui.file.files && ui.file.files[0]; ui.file.value = ''; if (!f) return;
       var rd = new FileReader(); rd.onload = function () { try { var j = fromJson(JSON.parse(String(rd.result).replace(/^﻿/, ''))); startConfig({ kind: 'json', id: j.id, title: j.title }, j.items, j); } catch (ex) { toast('✗ ' + ex.message); } }; rd.readAsText(f);
@@ -272,7 +301,7 @@
       '<div class="dv-h">My Discoveries</div>' + (done.length ? done.slice(0, 30).map(row).join('') : '<div class="dv-empty">Your results will be kept here.</div>');
   }
   function row(s) {
-    var n = s.tool === 'this-or-that' ? (s.choices || []).filter(function (c) { return c && c.pick !== undefined; }).length + '/' + ((s.pairs || []).length) : '';
+    var n = s.tool === 'this-or-that' ? (s.choices || []).filter(function (c) { return c && c.pick !== undefined; }).length + '/' + ((s.pairs || []).length) : s.tool === 'tier-list' && s.rank ? Object.keys(placedIn(s)).length + '/' + s.items.length : '';
     return '<button type="button" class="dv-row" data-session="' + esc(s.id) + '"><div><b>' + esc(s.title) + '</b><small>' + esc(TOOL_T[s.tool] + ' · ' + s.items.length + ' items · ' + day(s.updatedAt)) + '</small></div>' + (n && s.status !== 'completed' ? '<em>' + n + '</em>' : '') + '<span class="dv-pill' + (s.status === 'completed' ? ' done' : '') + '">' + STATUS_T[s.status] + '</span></button>';
   }
 
@@ -296,14 +325,26 @@
   function startConfig(src, items, json) {
     var tool = ui.tool;
     if (json && json.tools.indexOf(tool) < 0) return toast('This file does not enable ' + TOOL_T[tool] + '.');
-    var conf = (json && json.config) || {}, tt = conf.thisOrThat || {};
+    var conf = (json && json.config) || {}, tt = conf.thisOrThat || {}, tl = conf.tierList || {};
     ui.src = src; ui.items = items; ui.json = json || null;
-    ui.cfg = { title: src.title + ' — ' + TOOL_T[tool], question: tt.question || questionFor(src.title), maxPairs: Math.max(1, Math.min(50, +tt.maxPairs || 10)), mode: tt.pairing === 'sequential' ? 'sequential' : 'random' };
+    ui.cfg = { title: src.title + ' — ' + TOOL_T[tool], question: tt.question || questionFor(src.title), maxPairs: Math.max(1, Math.min(50, +tt.maxPairs || 10)), mode: tt.pairing === 'sequential' ? 'sequential' : 'random', preset: /skill/i.test(src.title) ? 'skills' : 'favorites', tiers: Array.isArray(tl.tiers) && tl.tiers.length ? tl.tiers.slice(0, 10) : null };
+    if (ui.cfg.tiers) ui.cfg.preset = 'json';
     if (tool === 'this-or-that' && items.length < 2) return toast('This needs at least 2 items.');
     drawConfig();
   }
   function drawConfig() {
     var c = ui.cfg, n = ui.items.length, maxP = n * (n - 1) / 2; ui.view = 'config'; head(TOOL_T[ui.tool], 'source');
+    if (ui.tool === 'tier-list') {
+      var sets = Object.keys(TIER_SETS).map(function (k) { return [k, TIER_SETS[k].t, TIER_SETS[k].tiers]; }); if (c.tiers) sets.unshift(['json', 'From the file', c.tiers]);
+      var curSet = (sets.filter(function (x) { return x[0] === c.preset; })[0] || sets[0]);
+      ui.body.innerHTML = '<div class="dv-h">' + n + ' items</div><div class="dv-chips" style="max-height:90px;overflow:hidden">' + ui.items.slice(0, 24).map(function (x) { return '<span class="dv-chip" style="cursor:default">' + esc(x.title) + '</span>'; }).join('') + (n > 24 ? '<span class="dv-chip" style="cursor:default">+' + (n - 24) + '</span>' : '') + '</div>' +
+        '<div class="dv-h">Tiers</div><div class="dv-chips">' + sets.map(function (x) { return '<button type="button" class="dv-chip' + (c.preset === x[0] ? ' on' : '') + '" data-preset="' + x[0] + '">' + esc(x[1]) + '</button>'; }).join('') + '</div>' +
+        '<div class="dv-tiers ro" style="margin-top:10px">' + tiersFrom(curSet[2]).map(function (t) { return '<div class="dv-tier"><div class="lab" style="background:' + t.color + '"><b' + (t.name.length > 6 ? ' class="long"' : '') + '>' + esc(t.name) + '</b>' + (t.note ? '<small>' + esc(t.note) + '</small>' : '') + '</div><div class="zone"></div></div>'; }).join('') + '</div>' +
+        (c.preset === 'skills' ? '<p class="dv-note">How I rank my skills here is my own view — it does not change any skill status or proficiency.</p>' : '<p class="dv-note">You can rename, add or remove tiers while ranking.</p>') +
+        '<div class="dv-h">Save as</div><input class="dv-q" data-title value="' + esc(c.title) + '" maxlength="90">';
+      c.tiers = c.preset === 'json' ? c.tiers : null; if (c.preset === 'json') c.tiers = curSet[2];
+      return foot('<button type="button" class="dv-go" data-start>Start ranking</button>');
+    }
     ui.body.innerHTML = '<div class="dv-h">' + n + ' items</div><div class="dv-chips" style="max-height:90px;overflow:hidden">' + ui.items.slice(0, 24).map(function (x) { return '<span class="dv-chip" style="cursor:default">' + esc(x.title) + '</span>'; }).join('') + (n > 24 ? '<span class="dv-chip" style="cursor:default">+' + (n - 24) + '</span>' : '') + '</div>' +
       '<div class="dv-h">Question</div><div class="dv-chips">' + QUESTIONS.map(function (q) { return '<button type="button" class="dv-chip' + (c.question === q ? ' on' : '') + '" data-qset="' + esc(q) + '">' + esc(q) + '</button>'; }).join('') + '</div>' +
       '<input class="dv-q" style="margin-top:8px" data-qtext value="' + esc(c.question) + '" maxlength="80">' +
@@ -374,16 +415,156 @@
   }
   function exportSession(s) {
     var out = { format: 'minest.discover.result/1', id: s.id, tool: s.tool, title: s.title, at: new Date(s.updatedAt).toISOString(), config: s.config,
-      items: s.items.map(function (x) { return { id: x.id, title: view(x).title }; }), choices: s.choices, result: s.result };
+      items: s.items.map(function (x) { return { id: x.id, title: view(x).title }; }), choices: s.choices, result: s.result, ranking: s.rank ? { tiers: s.rank.tiers.map(function (t) { return { name: t.name, note: t.note, items: s.rank.rows[t.id] || [] }; }) } : undefined };
     var txt = JSON.stringify(out, null, 1);
     try { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = slug(s.title) + '.json'; document.body.appendChild(a); a.click(); a.remove(); } catch (e) {}
     try { navigator.clipboard && navigator.clipboard.writeText(txt); } catch (e) {}
     toast('Exported (also copied)');
   }
 
+  // ---------------------------------------------------------------- 4 · Tier List
+  var TIER_SETS = {
+    favorites: { t: 'Favorites', tiers: [['S', 'All-time Favorites'], ['A', 'Love It'], ['B', 'Like It'], ['C', 'It’s Okay'], ['D', 'Not for Me']] },
+    skills: { t: 'Skills', tiers: [['Expert', ''], ['Advanced', ''], ['Intermediate', ''], ['Beginner', ''], ['Want to Learn', '']] },
+    simple: { t: 'Simple', tiers: [['Love', ''], ['Like', ''], ['Not for me', '']] }
+  };
+  var TIER_C = ['#ff6b6b', '#ffa94d', '#ffd43b', '#8ce99a', '#74c0fc', '#b197fc', '#f783ac', '#adb5bd'];
+  function tiersFrom(list) { return list.map(function (t, i) { t = typeof t === 'string' ? [t, ''] : t; return { id: 't' + i + rid().slice(-4), name: String(t[0]).slice(0, 24), note: String(t[1] || '').slice(0, 40), color: TIER_C[i % TIER_C.length] }; }); }
+  function startTier() {
+    var c = ui.cfg, set = c.tiers || (TIER_SETS[c.preset] || TIER_SETS.favorites).tiers;
+    var s = create('tier-list', ui.src, ui.items, { preset: c.preset || 'custom' }, (c.title || '').trim() || ui.src.title);
+    s.rank = { tiers: tiersFrom(set), rows: {} }; s.status = 'in-progress';
+    put(s); playTier(s.id);
+  }
+  function placedIn(s) { var m = {}; (s.rank.tiers || []).forEach(function (t) { (s.rank.rows[t.id] || []).forEach(function (id) { m[id] = t.id; }); }); return m; }
+  function moveItem(s, id, tierId, at) {
+    Object.keys(s.rank.rows).forEach(function (k) { s.rank.rows[k] = (s.rank.rows[k] || []).filter(function (x) { return x !== id; }); });
+    if (tierId) { var r = s.rank.rows[tierId] = s.rank.rows[tierId] || []; r.splice(at == null || at < 0 || at > r.length ? r.length : at, 0, id); }
+    if (s.status === 'completed') s.status = 'in-progress';
+  }
+  function tile(it, extra) { var v = view(it); return '<div class="dv-ti' + (extra || '') + '" data-ti="' + esc(it.id) + '" tabindex="0" role="button" aria-label="' + esc(v.title) + '">' + art(it, 'sm') + '<span>' + esc(v.title) + '</span></div>'; }
+  function playTier(id) {
+    var s = get(id); if (!s) return home(); ui.sid = id; ui.view = 'tier'; closeMenu();
+    head(s.title, 'home');
+    var pl = placedIn(s), pool = s.items.filter(function (x) { return !pl[x.id]; });
+    ui.body.innerHTML = '<div class="dv-tiers">' + s.rank.tiers.map(function (t) {
+      return '<div class="dv-tier"><button type="button" class="lab" data-tlab="' + esc(t.id) + '" style="background:' + esc(t.color) + '"><b' + (t.name.length > 6 ? ' class="long"' : '') + '>' + esc(t.name) + '</b>' + (t.note ? '<small>' + esc(t.note) + '</small>' : '') + '</button><div class="zone" data-zone="' + esc(t.id) + '">' +
+        (s.rank.rows[t.id] || []).map(function (iid) { var it = itemById(s, iid); return it ? tile(it) : ''; }).join('') + '</div></div>';
+    }).join('') + '</div>' +
+      '<div class="dv-chips" style="margin-top:10px"><button type="button" class="dv-chip" data-addtier>＋ Tier</button><button type="button" class="dv-chip" data-reset>Reset ranking</button></div>' +
+      '<div class="dv-h">Unranked · ' + pool.length + '</div><div class="zone pool" data-zone="">' + pool.map(function (it) { return tile(it); }).join('') + (pool.length ? '' : '<span class="dv-done">Everything is ranked ✓</span>') + '</div>' +
+      '<p class="dv-note">Tap an item to move it' + (matchMedia('(pointer:fine)').matches ? ', or drag it' : ' · press and hold to drag') + '. Ranking never changes the cards themselves.</p>';
+    foot('<button type="button" class="dv-go" data-tsave>' + (s.status === 'completed' ? 'Done' : 'Save Ranking') + '</button>');
+  }
+  // the tap menu (no fine dragging needed): Move to S / A / B / C / D / Unranked, earlier / later, preview
+  function closeMenu() { if (ui.menu) { ui.menu.remove(); ui.menu = null; } }
+  function menu(html) { closeMenu(); var m = document.createElement('div'); m.className = 'dv-menu'; m.innerHTML = html; ui.el.appendChild(m); ui.menu = m; if (m.animate && !reduce) m.animate([{ translate: '0 30px', opacity: 0 }, { translate: '0 0', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(.2,.85,.25,1)' }); }
+  function itemMenu(iid) {
+    var s = get(ui.sid), it = itemById(s, iid); if (!it) return; var pl = placedIn(s), cur = pl[iid] || '', v = view(it), row = cur ? s.rank.rows[cur] : null, k = row ? row.indexOf(iid) : -1;
+    hap('selection');
+    menu('<div class="mh">' + art(it, 'sm') + '<div><b>' + esc(v.title) + '</b>' + (v.sub ? '<small>' + esc(v.sub) + '</small>' : '') + '</div><button type="button" class="dv-b" data-mx aria-label="Close">' + ICON.x + '</button></div>' +
+      '<div class="dv-h" style="margin-top:6px">Move to</div><div class="mt">' + s.rank.tiers.map(function (t) { return '<button type="button" data-mv="' + esc(iid + '|' + t.id) + '" style="--tc:' + esc(t.color) + '"' + (cur === t.id ? ' class="on"' : '') + '>' + esc(t.name) + '</button>'; }).join('') +
+      '<button type="button" data-mv="' + esc(iid + '|') + '" class="un' + (cur ? '' : ' on') + '">Unranked</button></div>' +
+      (row ? '<div class="dv-chips" style="margin-top:10px"><button type="button" class="dv-chip" data-nudge="' + esc(iid) + '|-1"' + (k > 0 ? '' : ' disabled') + '>← Earlier</button><button type="button" class="dv-chip" data-nudge="' + esc(iid) + '|1"' + (k < row.length - 1 ? '' : ' disabled') + '>Later →</button></div>' : ''));
+  }
+  function tierMenu(tid) {
+    var s = get(ui.sid), t = s.rank.tiers.filter(function (x) { return x.id === tid; })[0]; if (!t) return; var i = s.rank.tiers.indexOf(t);
+    menu('<div class="mh"><span class="tl" style="background:' + esc(t.color) + '">' + esc(t.name) + '</span><div><b>Tier “' + esc(t.name) + '”</b><small>' + (s.rank.rows[tid] || []).length + ' items</small></div><button type="button" class="dv-b" data-mx aria-label="Close">' + ICON.x + '</button></div>' +
+      '<div class="dv-chips" style="margin-top:12px"><button type="button" class="dv-chip" data-trename="' + esc(tid) + '">Rename</button><button type="button" class="dv-chip" data-tmove="' + esc(tid) + '|-1"' + (i ? '' : ' disabled') + '>Move up</button><button type="button" class="dv-chip" data-tmove="' + esc(tid) + '|1"' + (i < s.rank.tiers.length - 1 ? '' : ' disabled') + '>Move down</button>' +
+      '<button type="button" class="dv-chip" data-tdel="' + esc(tid) + '" style="color:#ff6b6b"' + (s.rank.tiers.length > 1 ? '' : ' disabled') + '>Remove tier</button></div><p class="dv-note">Removing a tier puts its items back in Unranked.</p>');
+  }
+  function renameTier(tid, isNew) {
+    var s = get(ui.sid), t = s.rank.tiers.filter(function (x) { return x.id === tid; })[0]; if (!t || !window.MinestKEdit) return;
+    closeMenu();
+    MinestKEdit.sheet({ title: isNew ? 'New tier' : 'Rename tier', fields: [{ key: 'name', label: 'Name', value: t.name }, { key: 'note', label: 'Meaning (optional)', value: t.note }], ok: 'Save' }).then(function (v) {
+      var s2 = get(ui.sid), t2 = s2.rank.tiers.filter(function (x) { return x.id === tid; })[0]; if (!t2) return;
+      if (!v) { if (isNew) { s2.rank.tiers = s2.rank.tiers.filter(function (x) { return x.id !== tid; }); put(s2); } return playTier(s2.id); }
+      t2.name = String(v.name || '').trim().slice(0, 24) || t2.name; t2.note = String(v.note || '').trim().slice(0, 40); put(s2); playTier(s2.id);
+    });
+  }
+  function keepTier(fn) { var y = ui.body.scrollTop; fn(); ui.body.scrollTop = y; }
+  // drag & drop (mouse: drag at once; touch: press and hold, so scrolling still works)
+  function tierDown(e) {
+    if (ui.view !== 'tier' || e.button > 0) return;
+    var ti = e.target.closest('[data-ti]'); if (!ti) return;
+    var d = ui.drag = { el: ti, id: ti.getAttribute('data-ti'), x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, touch: e.pointerType !== 'mouse', on: false };
+    if (d.touch) d.timer = setTimeout(function () { if (ui.drag === d) dragStart(d); }, 300);
+    window.addEventListener('pointermove', tierMove, { passive: false }); window.addEventListener('pointerup', tierUp); window.addEventListener('pointercancel', tierUp);
+  }
+  function dragStart(d) {
+    d.on = true; closeMenu(); hap('light');
+    var r = d.el.getBoundingClientRect(); d.dx = d.x - r.left; d.dy = d.y - r.top;
+    var g = d.ghost = d.el.cloneNode(true); g.className = 'dv-ti dv-ghost'; g.style.width = r.width + 'px'; g.style.left = (d.x - d.dx) + 'px'; g.style.top = (d.y - d.dy) + 'px';
+    ui.el.appendChild(g); d.el.classList.add('lift');
+    d.ph = document.createElement('div'); d.ph.className = 'dv-ph';
+    (function scroll() { if (!ui.drag || !ui.drag.on) return; var br = ui.body.getBoundingClientRect(); if (Math.abs(d.y - d.y0) < 40) {} else if (d.y < br.top + 60) ui.body.scrollTop -= 10; else if (d.y > br.bottom - 120) ui.body.scrollTop += 10; requestAnimationFrame(scroll); })();
+  }
+  function tierMove(e) {
+    var d = ui.drag; if (!d) return; d.x = e.clientX; d.y = e.clientY;
+    if (!d.on) { var m = Math.abs(d.x - d.x0) + Math.abs(d.y - d.y0); if (d.touch) { if (m > 10) { clearTimeout(d.timer); cleanupDrag(); } return; } if (m > 6) dragStart(d); else return; }
+    e.preventDefault();
+    d.ghost.style.left = (d.x - d.dx) + 'px'; d.ghost.style.top = (d.y - d.dy) + 'px';
+    var under = document.elementFromPoint(d.x, d.y), zone = under && under.closest && under.closest('[data-zone]');
+    if (!zone || !ui.el.contains(zone)) { if (d.ph.parentNode) d.ph.remove(); d.zone = null; return; }
+    var kids = [].slice.call(zone.querySelectorAll('[data-ti]')).filter(function (k) { return k !== d.el; }), at = kids.length;
+    for (var i = 0; i < kids.length; i++) { var r = kids[i].getBoundingClientRect(); if (d.y < r.top || (d.y < r.bottom && d.x < r.left + r.width / 2)) { at = i; break; } }
+    d.zone = zone.getAttribute('data-zone'); d.at = at;
+    if (at < kids.length) zone.insertBefore(d.ph, kids[at]); else { var done = zone.querySelector('.dv-done'); if (done) zone.insertBefore(d.ph, done); else zone.appendChild(d.ph); }
+  }
+  function tierUp() {
+    var d = ui.drag; if (!d) return; clearTimeout(d.timer);
+    if (d.on) {
+      ui.noClick = true; setTimeout(function () { ui.noClick = false; }, 60);
+      if (d.zone != null) { var s = get(ui.sid); moveItem(s, d.id, d.zone, d.at); put(s); hap('selection'); }
+      cleanupDrag(); keepTier(function () { playTier(ui.sid); });
+    } else cleanupDrag();
+  }
+  function cleanupDrag() {
+    var d = ui.drag; ui.drag = null; if (!d) return;
+    if (d.ghost) d.ghost.remove(); if (d.ph && d.ph.parentNode) d.ph.remove(); if (d.el) d.el.classList.remove('lift');
+    window.removeEventListener('pointermove', tierMove); window.removeEventListener('pointerup', tierUp); window.removeEventListener('pointercancel', tierUp);
+  }
+  function resultTier(id) {
+    var s = get(id); if (!s) return home(); ui.sid = id; ui.view = 'tier-result'; closeMenu(); head(s.title, 'home');
+    var pl = placedIn(s), un = s.items.filter(function (x) { return !pl[x.id]; });
+    ui.body.innerHTML = '<p class="dv-sub">Tier List · ' + esc(day(s.updatedAt)) + '</p><div class="dv-tiers ro">' + s.rank.tiers.map(function (t) {
+      return '<div class="dv-tier"><div class="lab" style="background:' + esc(t.color) + '"><b' + (t.name.length > 6 ? ' class="long"' : '') + '>' + esc(t.name) + '</b>' + (t.note ? '<small>' + esc(t.note) + '</small>' : '') + '</div><div class="zone">' + ((s.rank.rows[t.id] || []).map(function (iid) { var it = itemById(s, iid); return it ? tile(it) : ''; }).join('') || '<span class="dv-done">—</span>') + '</div></div>';
+    }).join('') + '</div>' + (un.length ? '<p class="dv-note">' + un.length + ' left unranked.</p>' : '') +
+      (s.saved ? '<p class="dv-note">Saved to My World ✓ (' + esc(day(s.saved.at)) + ')</p>' : '') +
+      '<div class="dv-chips" style="margin-top:8px"><button type="button" class="dv-chip" data-tedit>Edit ranking</button><button type="button" class="dv-chip" data-export>Export JSON</button><button type="button" class="dv-chip" data-del style="color:#ff6b6b">Delete this result</button></div>';
+    foot('<button type="button" class="dv-go" data-tworld>' + (s.saved ? 'Update in My World' : 'Add to My World') + '</button>');
+  }
+  function saveTierWorld() {
+    var s = get(ui.sid), ranked = [];
+    s.rank.tiers.forEach(function (t) { (s.rank.rows[t.id] || []).forEach(function (iid) { var it = itemById(s, iid); if (it) ranked.push({ item: it, note: t.name + (t.note ? ' — ' + t.note : '') }); }); });
+    if (!ranked.length) return toast('Rank at least one item first.');
+    var sum = 'Tier List · ' + day(s.updatedAt) + '\n' + s.rank.tiers.map(function (t) { var n = (s.rank.rows[t.id] || []).map(function (iid) { var it = itemById(s, iid); return it ? view(it).title : ''; }).filter(Boolean); return t.name + ': ' + (n.join(', ') || '—'); }).join('\n');
+    return addToWorld(s, ranked, sum).then(function () { toast('Added to My World · My Discoveries'); resultTier(s.id); }).catch(function (e) { toast('✗ ' + e.message); });
+  }
+  function tierClick(t, e) {
+    var g;
+    if (ui.noClick) return true;
+    if (ui.menu && !t.closest('.dv-menu') && !t.closest('[data-ti]') && !t.closest('[data-tlab]')) { closeMenu(); return true; }
+    if (t.closest('[data-mx]')) { closeMenu(); return true; }
+    if ((g = t.closest('[data-mv]'))) { var p = g.getAttribute('data-mv').split('|'), s = get(ui.sid); moveItem(s, p[0], p[1] || '', null); put(s); hap('selection'); keepTier(function () { playTier(s.id); }); return true; }
+    if ((g = t.closest('[data-nudge]'))) { var q = g.getAttribute('data-nudge').split('|'), s1 = get(ui.sid), cur = placedIn(s1)[q[0]]; if (!cur) return true; var r = s1.rank.rows[cur], k = r.indexOf(q[0]), j = k + (+q[1]); if (j < 0 || j >= r.length) return true; r.splice(k, 1); r.splice(j, 0, q[0]); put(s1); keepTier(function () { playTier(s1.id); }); itemMenu(q[0]); return true; }
+    if ((g = t.closest('[data-tlab]'))) { tierMenu(g.getAttribute('data-tlab')); return true; }
+    if ((g = t.closest('[data-trename]'))) { renameTier(g.getAttribute('data-trename')); return true; }
+    if ((g = t.closest('[data-tmove]'))) { var mv = g.getAttribute('data-tmove').split('|'), s2 = get(ui.sid), ts = s2.rank.tiers, i = ts.findIndex(function (x) { return x.id === mv[0]; }), j2 = i + (+mv[1]); if (j2 < 0 || j2 >= ts.length) return true; var x = ts[i]; ts[i] = ts[j2]; ts[j2] = x; put(s2); keepTier(function () { playTier(s2.id); }); tierMenu(mv[0]); return true; }
+    if ((g = t.closest('[data-tdel]'))) { var s3 = get(ui.sid), tid = g.getAttribute('data-tdel'); if (s3.rank.tiers.length < 2) return true; s3.rank.tiers = s3.rank.tiers.filter(function (x) { return x.id !== tid; }); delete s3.rank.rows[tid]; put(s3); keepTier(function () { playTier(s3.id); }); return true; }
+    if (t.closest('[data-addtier]')) { var s4 = get(ui.sid); if (s4.rank.tiers.length >= 10) { toast('Up to 10 tiers.'); return true; } var nt = tiersFrom([['New tier', '']])[0]; nt.color = TIER_C[s4.rank.tiers.length % TIER_C.length]; s4.rank.tiers.push(nt); put(s4); playTier(s4.id); renameTier(nt.id, true); return true; }
+    if (t.closest('[data-reset]')) { var ask = window.MinestKEdit ? MinestKEdit.confirm('Move every item back to Unranked? Your tiers stay.', 'Reset') : Promise.resolve(confirm('Reset the ranking?')); ask.then(function (ok) { if (!ok) return; var s5 = get(ui.sid); s5.rank.rows = {}; s5.status = 'in-progress'; put(s5); playTier(s5.id); }); return true; }
+    if ((g = t.closest('[data-ti]')) && ui.view === 'tier') { itemMenu(g.getAttribute('data-ti')); return true; }
+    if (t.closest('[data-tsave]')) { var s6 = get(ui.sid); s6.status = 'completed'; put(s6); hap('success'); resultTier(s6.id); return true; }
+    if (t.closest('[data-tedit]')) { playTier(ui.sid); return true; }
+    if (t.closest('[data-tworld]')) { saveTierWorld(); return true; }
+    return false;
+  }
+
   // ================================================================== input
   function onKey(e) {
-    if (e.key === 'Escape') { close(); return; }
+    if (e.key === 'Escape') { if (ui.menu) closeMenu(); else close(); return; }
+    if (ui.view === 'tier' && (e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-ti]')) { e.preventDefault(); itemMenu(e.target.getAttribute('data-ti')); return; }
     if (ui.view !== 'tot' || /INPUT|TEXTAREA/.test(e.target.tagName)) return;
     var bs = ui.body.querySelectorAll('[data-choose]');
     if (e.key === 'ArrowLeft' && bs[0]) { e.preventDefault(); chooseTOT(bs[0].getAttribute('data-choose')); }
@@ -393,6 +574,7 @@
   }
   function onClick(e) {
     var t = e.target, g;
+    if ((ui.view === 'tier' || ui.view === 'tier-result') && tierClick(t, e)) return;
     if (t.closest('[data-x]')) return close();
     if ((g = t.closest('[data-back]'))) { var b = g.getAttribute('data-back'); if (b === 'source') return ui.preset ? home() : pickSource(ui.tool); return home(); }
     if ((g = t.closest('[data-tool]'))) { var tool = g.getAttribute('data-tool'); if (!READY[tool]) return; if (ui.preset) { ui.tool = tool; var s0 = srcFrom(ui.preset); if (s0) return startConfig(s0, itemsOf(s0)); } return pickSource(tool); }
@@ -401,11 +583,12 @@
     if ((g = t.closest('[data-qset]'))) { ui.cfg.question = g.getAttribute('data-qset'); return drawConfig(); }
     if ((g = t.closest('[data-max]'))) { ui.cfg.maxPairs = +g.getAttribute('data-max'); return drawConfig(); }
     if ((g = t.closest('[data-mode]'))) { ui.cfg.mode = g.getAttribute('data-mode'); return drawConfig(); }
-    if (t.closest('[data-start]')) { if (ui.tool === 'this-or-that') return startTOT(); return; }
+    if ((g = t.closest('[data-preset]'))) { ui.cfg.preset = g.getAttribute('data-preset'); if (ui.cfg.preset !== 'json') ui.cfg.tiers = null; else ui.cfg.tiers = (ui.json && ui.json.config.tierList && ui.json.config.tierList.tiers) || null; return drawConfig(); }
+    if (t.closest('[data-start]')) { if (ui.tool === 'this-or-that') return startTOT(); if (ui.tool === 'tier-list') return startTier(); return; }
     if ((g = t.closest('[data-choose]'))) return chooseTOT(g.getAttribute('data-choose'));
     if (t.closest('[data-skip]')) return chooseTOT(null);
     if (t.closest('[data-tback]')) return backTOT();
-    if ((g = t.closest('[data-session]'))) { var s = get(g.getAttribute('data-session')); if (!s) return; if (s.tool === 'this-or-that') return s.status === 'completed' ? resultTOT(s.id) : playTOT(s.id); return; }
+    if ((g = t.closest('[data-session]'))) { var s = get(g.getAttribute('data-session')); if (!s) return; if (s.tool === 'this-or-that') return s.status === 'completed' ? resultTOT(s.id) : playTOT(s.id); if (s.tool === 'tier-list') return s.status === 'completed' ? resultTier(s.id) : playTier(s.id); return; }
     if ((g = t.closest('[data-redo]'))) { var s2 = get(ui.sid); s2.at = +g.getAttribute('data-redo'); s2.redo = true; s2.status = 'in-progress'; put(s2); return playTOT(s2.id); }
     if (t.closest('[data-resume]')) return playTOT(ui.sid);
     if (t.closest('[data-save]')) return saveTOT();
