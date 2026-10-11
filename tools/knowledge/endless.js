@@ -365,7 +365,7 @@
       '<button type="button" class="en-chev' + (n.kids.length ? '' : ' none') + '" data-fold tabindex="-1" aria-label="Fold">' + CHEV + '</button>' +
       '<div class="en-tx"><div class="en-line"><span class="en-num" data-dot>' + numOf(n) + '</span><div class="en-t" data-ph="' + (n.kind === 'list' ? 'List title' : 'Untitled') + '">' + titleHtml(n) + '</div></div>' +
       (note ? '<div class="en-n">' + esc(n.note) + '</div>' : '') + '</div>' +
-      (n.kind !== 'list' ? '<button type="button" class="en-nt" data-dot tabindex="-1" aria-label="Details">' + NOTE + '</button>' : '') + '</div>';
+      '</div>';   // no per-row button: the Outline stays put (details: ⓘ in the toolbar)
   }
   function render() {
     if (!ui.el) return;
@@ -582,7 +582,7 @@
       var row = e.target.closest('.en-row'); if (!row) { if (!e.target.closest('.en-head')) { commit(); select(null); } return; }
       var k = row.getAttribute('data-k'), n = byKey[k];
       if (e.target.closest('[data-fold]')) { commit(); if (n && n.kids.length) { setFold(k, !folded(k)); select(k); render(); } return; }
-      if (e.target.closest('[data-dot]')) { if (!n) return; select(k); if (n.kind === 'list') { commit(); setFold(k, !folded(k)); render(); } else { commit(); OPS.details(n); } return; }
+      if (e.target.closest('[data-dot]')) { if (!n) return; select(k); if (n.kind === 'list') { commit(); setFold(k, !folded(k)); render(); } return; }   // a bullet only selects (no jump out of the Outline)
       if (ui.editKey === k) return;
       run(function () { return commit().then(function () { if (rowEl(k)) { select(k); startEdit(k, true); } }); });
     });
