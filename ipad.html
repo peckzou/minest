@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPad 49.2 · Knowledge</title>
+    <title>Minest iPad 49.7 · Knowledge</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21504,7 +21504,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "49.2" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "49.7" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -54027,11 +54027,11 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     if (!S) { S = { open: {}, scroll: 0, sel: null }; var a = activeId(); if (a) S.open['b:' + a] = 1; }
     var el = document.createElement('div'); el.className = 'kc'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Contents');
     el.innerHTML = '<div class="kc-head"><div style="flex:1;min-width:0"><h1>Contents</h1><p class="kc-sub"></p></div>' +
-      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('kc-tool kc-fs') : '') + '</div>' +
+      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.switchBtnHtml('kc-tool kc-fs') : '') + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('kc-tool kc-fs') : '') + '</div>' +
       '<button type="button" class="kc-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="kc-body"></div>';
     ui.el = el; ui.list = el.querySelector('.kc-body'); ui.sub = el.querySelector('.kc-sub'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    if (window.MinestKEdit) MinestKEdit.fullscreen('contents', el, ['.kc-head']);
+    if (window.MinestKEdit) { MinestKEdit.fullscreen('contents', el, ['.kc-head']); MinestKEdit.switcher('contents', el, function () { return activeId(); }); }
     render();
     ui.list.scrollTop = S.scroll || 0;
     if (S.sel) { var sr = ui.list.querySelector('.kc-row[data-id="' + cssEsc(S.sel) + '"]'); if (sr) { var r = sr.getBoundingClientRect(), lr = ui.list.getBoundingClientRect(); if (r.top < lr.top || r.bottom > lr.bottom) ui.list.scrollTop += r.top - lr.top - lr.height / 3; } }
@@ -54671,7 +54671,16 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.kn-fs-x svg{width:18px;height:18px}',
     '.kn-full .kn-fs-x{display:grid}',
     'html.kn-light .kn-fs-x{background:rgba(255,255,255,.78);border-color:rgba(255,255,255,.95);color:#1d1f23;box-shadow:inset 0 1px 0 #fff,0 8px 22px rgba(30,40,60,.14)}',
-    '[data-knfull] svg{width:16px;height:16px;display:block}',
+    '[data-knfull] svg,[data-knmode] svg{width:16px;height:16px;display:block}',
+    '.kn-modes{min-width:220px;z-index:2147482015;bottom:auto!important;right:auto!important;height:auto!important}',
+    '.en-menu.kn-modes button{display:flex;align-items:center;gap:10px;font-weight:600;min-height:46px}',
+    '.kn-modes button i{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;background:radial-gradient(120% 80% at 30% 15%,rgba(255,255,255,.5),rgba(255,255,255,0) 50%),linear-gradient(160deg,color-mix(in srgb,var(--c) 85%,#fff),color-mix(in srgb,var(--c) 70%,#000));border:1px solid rgba(255,255,255,.4)}',
+    '.kn-modes button i svg{width:15px;height:15px}',
+    '.en-menu.kn-modes button.on{color:inherit;background:rgba(255,255,255,.1)}',
+    '.kn-modes.arcade{border-radius:14px;border:4px solid #0d1222;background:#1b2650;box-shadow:0 6px 0 #0d1222,inset 0 0 0 3px #34488f;-webkit-backdrop-filter:none;backdrop-filter:none}',
+    '.en-menu.kn-modes.arcade button{font:400 9px/1.4 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;border-radius:8px}',
+    '.en-menu.kn-modes.arcade button.on{background:#ffcf3f;color:#0d1222}',
+    '.kn-modes.arcade button i{border:2px solid #0d1222;border-radius:8px;background:var(--c)}',
     // Edit switches in the views' headers
     '.ke-on{background:#0a84ff!important;border-color:#0a84ff!important;color:#fff!important}'
   ].join('\n');
@@ -54850,11 +54859,55 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   }
   function fullBtnHtml(cls) { return '<button type="button" class="' + (cls || '') + '" data-knfull title="Full screen" aria-label="Full screen">' + ICON.full + '</button>'; }
 
+  // ================================================================== switching between the six modes, on the same board
+  var G6 = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
+  var MODES = [
+    ['contents', 'Contents', '#5e9cff', G6('<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'), 'MinestContents'],
+    ['outline', 'Outline', '#a78bfa', G6('<path d="M4 5h16M8 10h12M8 15h12M12 20h8"/>'), 'MinestEndless'],
+    ['map', 'Knowledge Map', '#34c3a0', G6('<circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="20" r="2"/><path d="m6.6 7.3 3.2 2.6M17.4 7.3l-3.2 2.6M12 15v3"/>'), 'MinestMap'],
+    ['timeline', 'Timeline', '#f5a524', G6('<path d="M3 12h18"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="12" r="2"/><path d="M7 10V5M17 14v5"/>'), 'MinestTimeline'],
+    ['lmap', 'Learning Map', '#ff6b8a', G6('<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'), 'MinestLearnMap'],
+    ['portal', 'Portal', '#38bdf8', G6('<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>'), 'MinestWiki']
+  ];
+  var SWITCH = G6('<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="M14 17.5h7M17.5 14v7"/>');
+  function switchBtnHtml(cls) { return '<button type="button" class="' + (cls || '') + '" data-knmode title="Switch mode" aria-label="Switch mode">' + SWITCH + '</button>'; }
+  // view: this view's key; root: its element; bidOf(): the board it shows
+  function switcher(view, root, bidOf) {
+    css();
+    root.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-knmode]'); if (!b || !root.contains(b)) return;
+      e.stopPropagation(); e.preventDefault();
+      var old = document.querySelector('.kn-modes'); if (old) { old.remove(); return; }
+      var m = document.createElement('div'); m.className = 'en-menu kn-modes' + (root.classList.contains('lm') ? ' arcade' : '');   // the Learning Map keeps its arcade look
+      m.innerHTML = MODES.map(function (x) { return '<button type="button" data-to="' + x[0] + '"' + (x[0] === view ? ' class="on"' : '') + ' style="--c:' + x[2] + '"><i>' + x[3] + '</i>' + x[1] + '</button>'; }).join('');
+      document.body.appendChild(m); guard(m);
+      var r = b.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+      m.style.left = Math.max(10, Math.min(innerWidth - w - 10, r.right - w)) + 'px';
+      m.style.top = (r.bottom + h + 8 > innerHeight ? Math.max(10, r.top - h - 8) : r.bottom + 8) + 'px';
+      if (m.animate) { m.style.transformOrigin = (r.left + r.width / 2 - parseFloat(m.style.left)) + 'px 0'; m.animate([{ opacity: 0, scale: '.6', filter: 'blur(4px)' }, { opacity: 1, scale: '1.02', filter: 'blur(0px)', offset: .7 }, { opacity: 1, scale: '1', filter: 'blur(0px)' }], { duration: 320, easing: 'cubic-bezier(.2,.85,.25,1)' }); }
+      var off = function (ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('pointerdown', off, true); } };
+      setTimeout(function () { document.addEventListener('pointerdown', off, true); }, 0);
+      m.addEventListener('click', function (ev) {
+        var t = ev.target.closest('[data-to]'); if (!t) return;
+        m.remove(); document.removeEventListener('pointerdown', off, true);
+        var to = MODES.filter(function (x) { return x[0] === t.getAttribute('data-to'); })[0], from = MODES.filter(function (x) { return x[0] === view; })[0];
+        if (!to || to[0] === view) return;
+        var bid = bidOf && bidOf(), cur = from && window[from[4]], next = window[to[4]];
+        closeBar(); if (cur && cur.close) cur.close();
+        setTimeout(function () {   // the board it showed: switch to it first (Contents opens on the current board)
+          if (!next || !next.open) return;
+          if (to[0] === 'contents') { try { if (bid && A().selectBoard && (A().board() || {}).id !== bid) A().selectBoard(bid); } catch (x) {} next.open(); }
+          else next.open(bid);
+        }, 230);
+      });
+    }, true);
+  }
+
   // an Edit switch for a view's header
   function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
 
   if (document.head) css(); else document.addEventListener('DOMContentLoaded', css);   // the menus' look is needed before any view opens
-  window.MinestKEdit = { fullscreen: fullscreen, fullBtnHtml: fullBtnHtml, picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
+  window.MinestKEdit = { switcher: switcher, switchBtnHtml: switchBtnHtml, fullscreen: fullscreen, fullBtnHtml: fullBtnHtml, picOf: picOf, ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();
 
 /* Minest Knowledge · Phase 2 — Endless (a vertical knowledge outline, after OmniOutliner)
@@ -55063,6 +55116,10 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       } else KN().set('en:hl:' + n.id, pick.color === 'none' ? null : pick.color, true);
       render();
     },
+    note: function (n, t) {
+      if (n.kind === 'list') return null;
+      return edit(function (b) { var L = locate(b, n.kind, n.id); if (!L) return false; (n.kind === 'card' ? L.card : L.item).desc = String(t || ''); }, null, { edit: false });
+    },
     heading: function (n) { if (n.kind !== 'card') return toast('Only a card can be a section heading.'); KN().setHeading(n.id, !KN().isHeading(n.id)); render(); select(n.k); },
     details: function (n) {
       if (n.kind === 'list') return;
@@ -55151,6 +55208,18 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.en-n{font-size:calc(15px * var(--z));line-height:1.35;color:var(--note);margin:3px 0 0 calc(1em + .45em);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
     '.en-row.d0 .en-n,.en-row.d1 .en-n{margin-left:calc(2.1em + .45em)}',
     '.en.nonotes .en-n{display:none}',
+    '.en-n.typing{-webkit-line-clamp:unset;display:block;overflow:visible;outline:none;background:rgba(127,127,127,.14);border-radius:6px;padding:2px 6px;margin-left:calc(1em + .45em - 6px);cursor:text;white-space:pre-wrap}',
+    '.en-n[data-note]{cursor:text}',
+    '.en-nadd{opacity:.45;font-style:italic}',
+    '.en-row:not(.sel) .en-nadd{display:none}',
+    '@media (max-width:699px){' +
+      '.en-head .en-tb{padding-right:132px}' +
+      '.en-head > [data-knmode],.en-head > [data-knfull]{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);margin:0}' +
+      '.en-head > [data-knfull]{right:56px}.en-head > [data-knmode]{right:98px}' +
+      '.en-head .en-bar.en-top{overflow:visible;justify-content:space-between;gap:0}' +
+      '.en-head .en-bar.en-top button{flex:1 1 0;width:auto;min-width:0;max-width:44px;height:38px}' +
+      '.en-head .en-bar.en-top button svg{width:19px;height:19px}' +
+    '}',
     '.en-nt{flex:none;width:30px;align-self:flex-start;height:calc(36px * var(--z));display:grid;place-items:center;border:0;background:none;color:var(--chev);cursor:pointer;opacity:0;padding:0}',
     '.en-nt svg{width:18px;height:18px}',
     '.en-row.hasnote .en-nt,.en-row.sel .en-nt{opacity:.85}',
@@ -55223,7 +55292,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     return '<div class="' + cls + '" data-k="' + esc(n.k) + '" style="--d:' + n.d + (hl ? ';--rh:' + HLC[hl] : '') + '">' +
       '<button type="button" class="en-chev' + (n.kids.length ? '' : ' none') + '" data-fold tabindex="-1" aria-label="Fold">' + CHEV + '</button>' +
       '<div class="en-tx"><div class="en-line"><span class="en-num" data-dot>' + numOf(n) + '</span><div class="en-t" data-ph="' + (n.kind === 'list' ? 'List title' : 'Untitled') + '">' + titleHtml(n) + '</div></div>' +
-      (note ? '<div class="en-n">' + esc(n.note) + '</div>' : '') + '</div>' +
+      (note ? '<div class="en-n" data-note>' + esc(n.note) + '</div>' : n.kind !== 'list' ? '<div class="en-n en-nadd" data-note>Add a note</div>' : '') + '</div>' +
       '</div>';   // no per-row button: the Outline stays put (details: ⓘ in the toolbar)
   }
   function render() {
@@ -55292,12 +55361,29 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); }
     if (atEnd !== false) { var rg = document.createRange(); rg.selectNodeContents(t); rg.collapse(false); var s = getSelection(); s.removeAllRanges(); s.addRange(rg); }
   }
+  // the note under a row (the card's description), typed right there
+  function startNote(k) {
+    var r = rowEl(k); if (!r) return;
+    var t = r.querySelector('.en-n'); if (!t) return;
+    if (t.classList.contains('en-nadd')) { t.textContent = ''; t.classList.remove('en-nadd'); }
+    try { t.setAttribute('contenteditable', 'plaintext-only'); if (t.contentEditable !== 'plaintext-only') t.setAttribute('contenteditable', 'true'); } catch (e) { t.setAttribute('contenteditable', 'true'); }
+    t.setAttribute('spellcheck', 'true'); t.classList.add('typing');
+    ui.editing = t; ui.editKey = k; ui.editNote = true;
+    try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); }
+    var rg = document.createRange(); rg.selectNodeContents(t); rg.collapse(false); var sl = getSelection(); sl.removeAllRanges(); sl.addRange(rg);
+  }
   // finish typing in a row; a new row left empty goes away
   function commit() {
     var t = ui.editing, k = ui.editKey; if (!t) return Promise.resolve(false);
     ui.editing = null; ui.editKey = null;
     t.removeAttribute('contenteditable');
     var n = byKey[k]; if (!n) return Promise.resolve(false);
+    if (ui.editNote) {
+      ui.editNote = false; t.classList.remove('typing');
+      var nt = (t.innerText || '').replace(/\u00a0/g, ' ').replace(/\s+$/, '');
+      if (nt === (n.note || '')) { if (!nt) render(); return Promise.resolve(false); }
+      return Promise.resolve(OPS.note(n, nt)).then(function () { return true; });
+    }
     var txt = t.textContent;
     if (!txt.trim() && !n.kids.length && !(n.note || '').trim()) return Promise.resolve(OPS.remove(n, true)).then(function () { return true; });
     var p = OPS.rename(n, txt);
@@ -55388,7 +55474,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       '<span class="en-zoom"><button type="button" data-zoom="-1" aria-label="Smaller">−</button><span data-zl>100%</span><button type="button" data-zoom="1" aria-label="Larger">+</button></span>' +
       '<button type="button" class="en-hb' + (S.notes ? ' on' : '') + '" data-notes>Notes</button>' +
       '<button type="button" class="en-hb en-ic" data-all="1" title="Expand all" aria-label="Expand all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 9 5 5 5-5"/></svg></button><button type="button" class="en-hb en-ic" data-all="0" title="Collapse all" aria-label="Collapse all"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 7 5 5-5 5"/></svg></button>' +
-      '<button type="button" class="en-hb" data-theme>◐ Auto</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('en-hb en-ic') : '') +
+      '<button type="button" class="en-hb" data-theme>◐ Auto</button>' + (window.MinestKEdit ? MinestKEdit.switchBtnHtml('en-hb en-ic') : '') + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('en-hb en-ic') : '') +
       '<button type="button" class="en-hb en-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="en-body"></div><div class="en-stat"></div>';
     var bar = document.createElement('div'); bar.className = 'en-bar en-top off';
@@ -55397,7 +55483,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     ui.el = el; ui.list = el.querySelector('.en-body'); ui.title = el.querySelector('.en-tb b'); ui.bar = bar; ui.stat = el.querySelector('.en-stat'); ui.zl = el.querySelector('[data-zl]'); ui.th = el.querySelector('[data-theme]'); ui.open = true; ui.sel = null; ui.limit = 300;
     el.querySelector('.en-head').appendChild(bar);
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    if (window.MinestKEdit) MinestKEdit.fullscreen('outline', el, ['.en-head', '.en-stat']);
+    if (window.MinestKEdit) { MinestKEdit.fullscreen('outline', el, ['.en-head', '.en-stat']); MinestKEdit.switcher('outline', el, function () { return ui.bid; }); }
     look(); render();
     ui.list.scrollTop = S.scroll[ui.bid] || 0;
     if (el.animate) { var o = lastTap && Date.now() - lastTap.t < 1500 ? lastTap.r : null; el.style.transformOrigin = o ? (o.left + o.width / 2) + 'px ' + (o.top + o.height / 2) + 'px' : '50% 40%'; el.animate([{ opacity: 0, scale: '.9' }, { opacity: 1, scale: '1' }], { duration: 340, easing: 'cubic-bezier(.2,.85,.25,1)' }); }
@@ -55444,10 +55530,15 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       if (e.target.closest('[data-fold]')) { commit(); if (n && n.kids.length) { setFold(k, !folded(k)); select(k); render(); } return; }
       if (e.target.closest('[data-dot]')) { if (!n) return; select(k); if (n.kind === 'list') { commit(); setFold(k, !folded(k)); render(); } return; }   // a bullet only selects (no jump out of the Outline)
       if (ui.editKey === k) return;
+      if (e.target.closest('[data-note]') && n && n.kind !== 'list') { run(function () { return commit().then(function () { if (rowEl(k)) { select(k); startNote(k); } }); }); return; }
       run(function () { return commit().then(function () { if (rowEl(k)) { select(k); startEdit(k, true); } }); });
     });
     el.addEventListener('keydown', function (e) {
       if (!ui.editing) return;
+      if (ui.editNote) {   // a note: Enter keeps it, Shift-Enter starts a new line
+        if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Escape') { e.preventDefault(); run(commit); }
+        return;
+      }
       var k = ui.editKey, n = byKey[k], mod = e.metaKey || e.ctrlKey;
       if (e.key === 'Enter' && !e.shiftKey && !mod) { e.preventDefault(); act('sibling'); return; }
       if (e.key === 'Enter' && mod) { e.preventDefault(); act('details'); return; }
@@ -56026,6 +56117,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     el.innerHTML = '<div class="km-stage"><div class="km-world"></div></div>' +
       '<div class="km-top"><button type="button" class="km-b" data-act="back" aria-label="Up one level">' + ICON.back + '</button>' +
       '<div class="km-path"></div>' +
+      (window.MinestKEdit ? MinestKEdit.switchBtnHtml('km-b') : '') +
       '<button type="button" class="km-b" data-act="style" aria-label="Map style">' + ICON.style + '</button>' +
       '<button type="button" class="km-b" data-act="boards" aria-label="Boards">' + ICON.map + '</button>' +
       '<button type="button" class="km-b" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
@@ -56038,7 +56130,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     ui.el = el; ui.stage = el.querySelector('.km-stage'); ui.world = el.querySelector('.km-world'); ui.path = el.querySelector('.km-path'); ui.backBtn = el.querySelector('[data-act="back"]'); ui.hint = el.querySelector('.km-hint');
     ui.open = true; arrange = false;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    if (window.MinestKEdit) MinestKEdit.fullscreen('map', el, ['.km-top', '.km-bot', '.km-hint']);
+    if (window.MinestKEdit) { MinestKEdit.fullscreen('map', el, ['.km-top', '.km-bot', '.km-hint']); MinestKEdit.switcher('map', el, function () { return ui.bid; }); }
     ui.oneSide = innerWidth < 600 && innerHeight > innerWidth;
     build(); wire(); restore();
     if (!S.seen) { S.seen = 1; stSave(); hint('Tap a bubble to zoom in · tap a card again to edit it · a list again opens it on the board'); }
@@ -56078,7 +56170,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
    a year alone stays a year; nothing is filled in. A year in a card's title is offered as a suggestion, never applied
    by itself. Tap an event: its notes and picture, ✎ Edit (title, note, picture — right here, no trip to the board),
    Edit date.
-   Jump: the century / decade strip and "Go to year". The place on the line and the open event are kept per board
+   Jump: the century / decade strip and 🔍 (go to a year). The place on the line and the open event are kept per board
    on this device (minest.timeline.v1). */
 (function () {
   if (window.MinestTimeline) return;
@@ -56199,7 +56291,20 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       'background:linear-gradient(180deg,rgba(70,80,96,.96),rgba(34,40,52,.98));border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 24px 60px rgba(0,0,0,.5);color:#fff;font:15px -apple-system,system-ui,sans-serif}',
     '.tl-sheet h4{margin:0 0 2px;font-size:17px}',
     '.tl-sheet p{margin:0 0 12px;font-size:13px;opacity:.6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    '.tl-f{display:grid;grid-template-columns:62px 1fr 1fr 1fr 74px;gap:6px;align-items:center;margin-bottom:8px}',
+    '.tl-f{display:grid;grid-template-columns:52px 1fr 1.3fr 74px;gap:6px;align-items:center;margin-bottom:8px}',
+    '.tl-f[hidden],.tl-addend[hidden]{display:none}',
+    '.tl-addend{display:block;margin:2px 0 10px 58px;height:34px;padding:0 14px;border-radius:999px;border:1px dashed rgba(127,127,127,.45);background:none;color:inherit;opacity:.8;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    // the header's icons: minimal line drawings on small liquid-glass discs
+    '.tl-ic,.tl-goto,.tl-addd{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06))!important;border:1px solid rgba(255,255,255,.24)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 16px rgba(0,0,0,.25);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%)}',
+    '.tl-top .tl-seg{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}',
+    '.tl-top .tl-seg button{display:inline-grid;place-items:center;width:34px;padding:0}',
+    '.tl-top .tl-seg button svg{width:17px;height:17px}',
+    '.tl-top .tl-seg button.on{background:rgba(255,255,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}',
+    '.tl-goto{width:34px;padding:0!important;justify-content:center}',
+    '.tl-goto svg,.tl-addd svg{width:16px;height:16px}',
+    '.tl-u .tl-addd{width:34px;height:34px;padding:0;border-radius:50%;display:grid;place-items:center}',
+    'html.kn-light .tl-ic,html.kn-light .tl-goto,html.kn-light .tl-addd,.tl.h .tl-ic,.tl.h .tl-goto{background:rgba(255,255,255,.8)!important;border-color:rgba(0,0,0,.08)!important;color:#1d1f23;box-shadow:inset 0 1px 0 #fff,0 4px 12px rgba(0,0,0,.08)}',
+    'html:not(.kn-light) .tl.h .tl-ic,html:not(.kn-light) .tl.h .tl-goto{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06))!important;border-color:rgba(255,255,255,.24)!important;color:#fff}',
     '.tl-f label{font-size:12px;font-weight:600;opacity:.6}',
     '.tl-f input,.tl-f select{width:100%;min-width:0;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;font:15px -apple-system,system-ui,sans-serif;padding:0 8px;box-sizing:border-box}',
     '.tl-f select option{color:#000}',
@@ -56269,7 +56374,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
         jumps += '<button type="button" class="tl-chip" data-jump="' + y + '">' + name + '</button>';
       });
     }
-    ui.nav.innerHTML = '<button type="button" class="tl-chip" data-goto>Go to year…</button>' + jumps;
+    ui.nav.innerHTML = '<button type="button" class="tl-chip tl-goto" data-goto title="Go to year" aria-label="Go to year"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button>' + jumps;
     ui.lists.innerHTML = chips;
     // the line: one block per year
     groups = [];
@@ -56294,7 +56399,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       var openU = S.und !== false;
       html += '<div class="tl-und"><h3 data-und>' + (openU ? '▾' : '▸') + ' Not on the timeline (' + und.length + ')</h3>' + (openU ? und.map(function (e) {
         var gy = guess(e.title);
-        return '<div class="tl-u" data-id="' + esc(e.id) + '"><span>' + esc(e.title) + '</span>' + (gy != null ? '<button type="button" class="sug" data-sug="' + gy + '">' + esc(yr(gy)) + '?</button>' : '') + '<button type="button" data-a="date">＋ Date</button></div>';
+        return '<div class="tl-u" data-id="' + esc(e.id) + '"><span>' + esc(e.title) + '</span>' + (gy != null ? '<button type="button" class="sug" data-sug="' + gy + '">' + esc(yr(gy)) + '?</button>' : '') + '<button type="button" class="tl-addd" data-a="date" title="Add a date" aria-label="Add a date"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg></button></div>';
       }).join('') : '') + '</div>';
     }
     var H = S.view === 'h';
@@ -56424,14 +56529,17 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     closeSheet();
     var t = preset || e.t || {};
     var era = function (y) { return y != null && y < 0 ? 'BCE' : 'CE'; };
-    var row = function (lbl, p, y, m, d) {
-      return '<div class="tl-f"><label>' + lbl + '</label><input inputmode="numeric" placeholder="Year" data-' + p + 'y value="' + (y != null ? Math.abs(y) : '') + '">' +
+    // a year is enough; the month is optional (a day already set is kept while its month stays)
+    var row = function (lbl, p, y, m, d, hide) {
+      return '<div class="tl-f"' + (hide ? ' hidden' : '') + ' data-row="' + p + '"><label>' + lbl + '</label><input inputmode="numeric" placeholder="Year" data-' + p + 'y value="' + (y != null ? Math.abs(y) : '') + '">' +
         '<select data-' + p + 'm><option value="">Month</option>' + MON.map(function (mn, i) { return '<option value="' + (i + 1) + '"' + (m === i + 1 ? ' selected' : '') + '>' + mn + '</option>'; }).join('') + '</select>' +
-        '<input inputmode="numeric" placeholder="Day" data-' + p + 'd value="' + (d || '') + '">' +
+        '<input type="hidden" data-' + p + 'd value="' + (d || '') + '" data-m0="' + (m || '') + '">' +
         '<select data-' + p + 'e><option' + (era(y) === 'CE' ? ' selected' : '') + '>CE</option><option' + (era(y) === 'BCE' ? ' selected' : '') + '>BCE</option></select></div>';
     };
     sheet = document.createElement('div'); sheet.className = 'tl-sheet';
-    sheet.innerHTML = '<h4>Date</h4><p>' + esc(e.title) + '</p>' + row('Starts', 's', t.y, t.m, t.d) + row('Ends', 'e', t.y2, t.m2, t.d2) +
+    var hasEnd = typeof t.y2 === 'number';
+    sheet.innerHTML = '<h4>Date</h4><p>' + esc(e.title) + '</p>' + row('Year', 's', t.y, t.m, t.d) + row('Ends', 'e', t.y2, t.m2, t.d2, !hasEnd) +
+      '<button type="button" class="tl-addend" data-s="end"' + (hasEnd ? ' hidden' : '') + '>＋ End (optional)</button>' +
       '<div class="tl-err"></div><div class="tl-sb">' + (e.t ? '<button type="button" class="rm" data-s="rm">Remove</button>' : '') + '<button type="button" data-s="no">Cancel</button><button type="button" class="save" data-s="ok">Save</button></div>';
     document.body.appendChild(sheet);
     if (sheet.animate) sheet.animate([{ opacity: 0, translate: '0 30px' }, { opacity: 1, translate: '0 0' }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
@@ -56441,11 +56549,13 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       var b = x.target.closest('[data-s]'); if (!b) return;
       var a = b.getAttribute('data-s');
       if (a === 'no') return closeSheet();
+      if (a === 'end') { sheet.querySelector('[data-row="e"]').hidden = false; b.hidden = true; var ey = sheet.querySelector('[data-ey]'); if (ey) ey.focus(); return; }
       if (a === 'rm') { KN().setDate(e.id, null); closeSheet(); render(); return; }
       var err = sheet.querySelector('.tl-err');
       function part(p) {
-        var Y = v('[data-' + p + 'y]'), M = v('[data-' + p + 'm]'), D = v('[data-' + p + 'd]'), Er = v('[data-' + p + 'e]');
-        if (!Y) { if (M || D) throw new Error('Add the year.'); return null; }
+        if (sheet.querySelector('[data-row="' + p + '"]').hidden) return null;   // no end asked for
+        var Y = v('[data-' + p + 'y]'), M = v('[data-' + p + 'm]'), dEl = sheet.querySelector('[data-' + p + 'd]'), D = dEl.getAttribute('data-m0') === M ? dEl.value.trim() : '', Er = v('[data-' + p + 'e]');
+        if (!Y) { if (M) throw new Error('Add the year.'); return null; }
         if (!/^\d{1,4}$/.test(Y) || +Y < 1) throw new Error('The year must be a number like 1776.');
         if (D && !M) throw new Error('Pick the month for that day.');
         var o = { y: Er === 'BCE' ? -(+Y) : +Y };
@@ -56551,13 +56661,13 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     // a compact header: one row (board · vertical / horizontal · edit · full screen · close), then one strip (years, lists)
     var FS = window.MinestKEdit ? MinestKEdit.fullBtnHtml('tl-ic') : '';
     el.innerHTML = '<div class="tl-head"><div class="tl-top"><button type="button" class="tl-tb" data-boards><b></b></button>' +
-      '<span class="tl-seg"><button type="button" data-view="v" title="Vertical" aria-label="Vertical">↕</button><button type="button" data-view="h" title="Horizontal" aria-label="Horizontal">↔</button></span>' +
-      '<button type="button" class="tl-ic" data-kedit title="Edit" aria-label="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' + FS +
+      '<span class="tl-seg"><button type="button" data-view="v" title="Vertical" aria-label="Vertical"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><circle cx="12" cy="8" r="2.2"/><circle cx="12" cy="16" r="2.2"/><path d="M15 8h5M4 16h5"/></svg></button><button type="button" data-view="h" title="Horizontal" aria-label="Horizontal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><circle cx="8" cy="12" r="2.2"/><circle cx="16" cy="12" r="2.2"/><path d="M8 9V4M16 15v5"/></svg></button></span>' +
+      '<button type="button" class="tl-ic" data-kedit title="Edit" aria-label="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' + (window.MinestKEdit ? MinestKEdit.switchBtnHtml('tl-ic') : '') + FS +
       '<button type="button" class="tl-ic tl-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="tl-row tl-strip"><button type="button" class="tl-chip tl-new" data-newev hidden>＋ New event</button><span class="tl-nav"></span><span class="tl-lists"></span></div></div><div class="tl-body"></div>';
     ui.el = el; ui.list = el.querySelector('.tl-body'); ui.title = el.querySelector('.tl-tb b'); ui.nav = el.querySelector('.tl-nav'); ui.lists = el.querySelector('.tl-lists'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    if (window.MinestKEdit) MinestKEdit.fullscreen('timeline', el, ['.tl-head']);
+    if (window.MinestKEdit) { MinestKEdit.fullscreen('timeline', el, ['.tl-head']); MinestKEdit.switcher('timeline', el, function () { return ui.bid; }); }
     render(); restore();
     if (el.animate) el.animate([{ opacity: 0, scale: '.96' }, { opacity: 1, scale: '1' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1)' });
     wire(el);
@@ -56899,7 +57009,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
    Template "route": places joined by journeys (numbered stops, arrows); tap a place for its stops.
    Progress comes from the Learning Path (MinestLearn.cardStatus: studied / mastered — opening a card is not
    mastering it): mastered blocks light up gold, blocks in progress glow, the next ones are available, the rest dim.
-   ◎ You Are Here = the first block not yet mastered along the route (Guided: stages unlock in order; Free: all open).
+   ◎ You Are Here = the first block not yet mastered along the route — a suggestion: by default every stage is open
+   (play them in any order); Guided (stages unlock in order) is the learner's choice per board ('lm:mode:<board>').
    Trail (a phone held upright, or by choice): the same stages as one winding road down the screen — a numbered platform
    per stage (gold ★ when mastered, the current one pulsing under a YOU pin, 🔒 while locked in Guided mode), a sign
    for each region with its progress. Map ⇄ Trail in the top bar (kept per board on this device).
@@ -56994,7 +57105,9 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     var route = order.map(function (id) { return byKey['G:' + id]; }).filter(Boolean);
     stages.forEach(function (s) { if (route.indexOf(s) < 0) route.push(s); });
     route.forEach(function (s, i) { s.n = i + 1; s.done = s.blocks.length > 0 && s.blocks.every(function (x) { return x.st === 'mastered'; }); s.started = s.blocks.some(function (x) { return x.st !== 'new'; }); });
-    var mode = cfg.mode === 'free' ? 'free' : 'guided', req = cfg.requires || {};
+    // any order by default: every stage is open, the route and YOU only suggest; Guided (stages unlock in order) is
+    // the learner's own choice for this board
+    var mode = (KN() && KN().get('lm:mode:' + b.id)) === 'guided' ? 'guided' : 'free', req = cfg.requires || {};
     var firstOpen = route.filter(function (s) { return !s.done; })[0] || null;
     route.forEach(function (s) {
       var r = req[s.id];
@@ -57325,6 +57438,18 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.lt-you span{display:inline-block;font:400 8px/1 "Press Start 2P",monospace;color:#0d1222;background:#ffcf3f;border:3px solid #0d1222;border-radius:8px;padding:5px 6px;box-shadow:0 3px 0 #0d1222}',
     '.lt-you:after{content:"";display:block;width:0;height:0;margin:-1px auto 0;border:9px solid transparent;border-top-color:#0d1222}',
     '@keyframes ltBob{from{transform:translateY(0)}to{transform:translateY(-7px)}}',
+    // the stage card's HUD and START
+    '@media (min-width:760px){html .lm .lm-sheet{left:auto;right:14px;top:calc(env(safe-area-inset-top,0px) + 70px);bottom:auto;width:380px;max-height:calc(100% - 150px)}html .lm .lm-banner{right:420px}}',
+    '.lm-hud{display:flex;align-items:center;gap:10px;margin:2px 0 12px}',
+    '.lm-hud .lt-stars{font-size:18px;flex:none}',
+    '.lm-bar{flex:1;height:16px;border:3px solid #0d1222;border-radius:6px;background:#0d1222;overflow:hidden;box-shadow:0 3px 0 #0d1222}',
+    '.lm-bar i{display:block;height:100%;background:repeating-linear-gradient(90deg,#7ed957 0 10px,#5cc23e 10px 12px);min-width:0;transition:width .4s}',
+    '.lm-hud b{flex:none;font:400 9px/1 "Press Start 2P",ui-monospace,monospace;color:#ffcf3f}',
+    '.lm-play{display:block;width:100%;height:50px;margin:0 0 10px;border-radius:14px;border:4px solid #0d1222;background:#ffcf3f;color:#0d1222;box-shadow:0 5px 0 #0d1222;font:400 14px/1 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:transform .08s,box-shadow .08s}',
+    '.lm-play:active{transform:translateY(4px);box-shadow:0 1px 0 #0d1222}',
+    '.lm-play:not(.off){animation:lmBlink 1.2s steps(2) infinite}',
+    '@keyframes lmBlink{50%{background:#ffe48a}}',
+    '.lm-play.off{background:#4a5266;color:#c8cfdc;cursor:default;animation:none}',
     '.lt-end{position:absolute;left:50%;transform:translateX(-50%);font:400 10px/1.6 "Press Start 2P",monospace;color:#ffcf3f;text-shadow:2px 2px 0 #0d1222;white-space:nowrap}'
   ].join('\n');
   function ensureCss() { if (document.getElementById('lm-css')) return; var s = document.createElement('style'); s.id = 'lm-css'; s.textContent = CSS; document.head.appendChild(s); }
@@ -57449,11 +57574,14 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function lod() { if (!ui.world) return; var r = cam.s / (homeS || 1), svg = ui.world.firstChild; if (!svg) return; svg.classList.toggle('lod1', r > 1.7 && r <= 9); svg.classList.toggle('lod2', r > 9); }
   function saveCam() { S.cam[ui.bid] = { x: Math.round(cam.x), y: Math.round(cam.y), s: +cam.s.toFixed(3), f: focus }; stSave(); }
   function boxOf(pts) { var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; pts.forEach(function (p) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }); return [x0, y0, x1, y1]; }
+  function wideSheet() { return innerWidth >= 760; }   // a tablet / computer: the stage card stands on the right
   function camFor(box, pad) {
-    pad = pad || 30; var top = 64, bot = ui.sheet && ui.sheet.style.display !== 'none' ? Math.min(innerHeight * .46, 330) : 60;
+    pad = pad || 30;
+    var open = ui.sheet && ui.sheet.style.display !== 'none', side = open && wideSheet() ? 420 : 0;
+    var top = 64, bot = open && !side ? Math.min(innerHeight * .46, 330) : 60;
     var w = Math.max(30, box[2] - box[0] + pad * 2), h = Math.max(30, box[3] - box[1] + pad * 2);
-    var s = Math.max(.2, Math.min(6, Math.min((innerWidth - 16) / w, (innerHeight - top - bot) / h)));
-    return { x: (box[0] + box[2]) / 2, y: (box[1] + box[3]) / 2 - (top - bot) / 2 / s, s: s };
+    var s = Math.max(.2, Math.min(side ? 4 : 6, Math.min((innerWidth - 16 - side) / w, (innerHeight - top - bot) / h)));
+    return { x: (box[0] + box[2]) / 2 + side / 2 / s, y: (box[1] + box[3]) / 2 - (top - bot) / 2 / s, s: s };
   }
   var anim = 0;
   function fly(to, ms) {
@@ -57493,11 +57621,20 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function closeSheet() { if (ui.sheet) ui.sheet.style.display = 'none'; if (ui.el) ui.el.classList.remove('sheet-on'); sel = null; }
   var COLOR = { mastered: '#ffe066', progress: '#7fb3ff', available: '#e8edf5', unexplored: '#566070', locked: '#3a414e' };
   var WORD = { mastered: 'Mastered', progress: 'Learning', available: 'Next up', unexplored: 'Not started', locked: 'Locked' };
+  // ▶ START: study this region (its list) with the Learning Path, right away
+  function play(listId) {
+    var L = window.MinestLearn; if (!L || !L.start) return toast('Studying is not available here.');
+    var bid = ui.bid; saveCam(); close();
+    setTimeout(function () { try { L.start({ boardId: bid, listId: listId }); } catch (e) { toast('Could not start studying.'); } }, 260);
+  }
   function stageSheet(sg) {
     sel = sg.k;
-    var m = sg.blocks.filter(function (b) { return b.st === 'mastered'; }).length;
-    var h = '<button type="button" class="lm-x" data-close>✕</button><h4>' + (sg.done ? '⭐' : sg.open ? '🏁' : '🔒') + ' ' + esc(sg.title) + '</h4><div class="sub">Stage ' + sg.n + ' · ' + esc(sg.state.title) + ' · ' + m + ' / ' + sg.blocks.length + ' mastered' + (!sg.open ? ' · finish the stages before it to unlock' : '') + '</div>' +
-      sg.blocks.map(function (b) { return '<div class="lm-row" data-open="' + esc(b.k) + '"><i class="d" style="background:' + COLOR[b.vis] + '"></i><span>' + esc(b.title) + '</span><em>' + WORD[b.vis] + (G.here === b ? ' · ◎ here' : '') + '</em></div>'; }).join('') +
+    var m = sg.blocks.filter(function (b) { return b.st === 'mastered'; }).length, n = sg.blocks.length, pct = n ? Math.round(m / n * 100) : 0;
+    // arcade stage card: stars, a pixel progress bar, and START (or LOCKED)
+    var h = '<button type="button" class="lm-x" data-close>✕</button><h4>' + (sg.done ? '⭐' : sg.open ? '🏁' : '🔒') + ' ' + esc(sg.title) + '</h4><div class="sub">Stage ' + sg.n + ' · ' + esc(sg.state.title) + (!sg.open ? ' · finish the stages before it to unlock' : '') + '</div>' +
+      '<div class="lm-hud">' + stars(sg) + '<div class="lm-bar"><i style="width:' + pct + '%"></i></div><b>' + m + '/' + n + '</b></div>' +
+      (sg.open ? (n ? '<button type="button" class="lm-play" data-play="' + esc(sg.state.id) + '">▶ Start</button>' : '') : '<button type="button" class="lm-play off" disabled>🔒 Locked</button>') +
+      sg.blocks.map(function (b) { return '<div class="lm-row" data-open="' + esc(b.k) + '"><i class="d" style="background:' + COLOR[b.vis] + '"></i><span>' + esc(b.title) + '</span><em>' + WORD[b.vis] + (G.here === b ? ' · You' : '') + '</em></div>'; }).join('') +
       (!sg.blocks.length ? '<div class="sub">No cards in this stage yet.</div>' : '');
     if (edit && !sg.virtual) h += '<div class="lm-acts"><button type="button" data-route="-1">◀ Earlier in route</button><button type="button" data-route="1">Later in route ▶</button></div>';
     showSheet(h);
@@ -57585,6 +57722,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function onClick(e) {
     var t = e.target;
     var ts = t.closest('[data-tk]'); if (ts) return trailTap(ts.getAttribute('data-tk'));
+    var pl = t.closest('[data-play]'); if (pl) return play(pl.getAttribute('data-play'));
     var c = t.closest('[data-crumb]'); if (c) { var ck = c.getAttribute('data-crumb'); return ck ? focusOn(ck) : home(); }
     var a = t.closest('[data-act]');
     if (a) {
@@ -57597,7 +57735,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       if (act === 'here') { var h = G.here; if (!h) return toast('Everything here is mastered ⭐'); if (G.tpl === 'route') return focusOn(h.place.k); return focusOn(h.stage.k); }
       if (act === 'fit') return focus ? focusOn(focus) : home();
       if (act === 'tolist') { var fn = focus && G.byKey[focus], lid = fn ? (fn.kind === 'state' ? fn.id : fn.kind === 'stage' ? fn.state.id : fn.kind === 'block' ? fn.col.id : fn.col ? fn.col.id : null) : null; if (!lid) return toast('Zoom into a region first — then this opens its list'); return toList(lid); }
-      if (act === 'mode') { setCfg(ui.bid, { mode: G.mode === 'guided' ? 'free' : 'guided' }); render(); toast(G.mode === 'guided' ? 'Guided Path: stages open one after another' : 'Free Exploration: every stage is open'); return; }
+      if (act === 'mode') { KN().set('lm:mode:' + ui.bid, G.mode === 'guided' ? 'free' : 'guided', true); render(); toast(G.mode === 'guided' ? 'Guided Path: stages open one after another' : 'Free Exploration: every stage is open'); return; }
       if (act === 'edit') { edit = !edit; a.classList.toggle('on', edit); ui.el.classList.toggle('edit', edit); if (edit) editSheet(); else closeSheet(); return; }
     }
     if (t.closest('[data-close]')) return closeSheet();
@@ -57660,7 +57798,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       '<div class="lm-top"><button type="button" class="lm-b2" data-act="back" aria-label="Back">' + ICON.back + '</button><div class="lm-path"></div>' +
       '<button type="button" class="lm-b2" data-act="view" title="Map / Trail">Trail</button>' +
       '<button type="button" class="lm-b2" data-act="mode" title="Guided Path / Free Exploration">Guided</button>' +
-      '<button type="button" class="lm-b2" data-act="edit" aria-label="Arrange">' + ICON.edit + '</button>' +
+      '<button type="button" class="lm-b2" data-act="edit" aria-label="Arrange">' + ICON.edit + '</button>' + (window.MinestKEdit ? MinestKEdit.switchBtnHtml('lm-b2') : '') +
       '<button type="button" class="lm-b2" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="lm-note" style="display:none"></div>' +
       '<div class="lm-side">' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('lm-b2') : '') + '<button type="button" class="lm-b2" data-act="tolist" aria-label="Open this region\'s list on the board" title="Open the list on the board"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg></button><button type="button" class="lm-b2" data-act="here" aria-label="You are here">' + ICON.here + '</button><button type="button" class="lm-b2" data-act="fit" aria-label="Fit">' + ICON.fit + '</button><button type="button" class="lm-b2" data-act="home" aria-label="Whole map">' + ICON.home + '</button></div>' +
@@ -57671,7 +57809,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     ui.trail.addEventListener('scroll', plaque, { passive: true }); ui.banner = el.querySelector('.lm-banner'); ui.stage = el.querySelector('.lm-stage'); ui.world = el.querySelector('.lm-world'); ui.path = el.querySelector('.lm-path'); ui.mode = el.querySelector('[data-act="mode"]'); ui.sheet = el.querySelector('.lm-sheet'); ui.legend = el.querySelector('.lm-legend'); ui.note = el.querySelector('.lm-note');
     ui.open = true; edit = false; focus = null;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    if (window.MinestKEdit) MinestKEdit.fullscreen('lmap', el, ['.lm-top', '.lm-side', '.lm-legend']);
+    if (window.MinestKEdit) { MinestKEdit.fullscreen('lmap', el, ['.lm-top', '.lm-side', '.lm-legend']); MinestKEdit.switcher('lmap', el, function () { return ui.bid; }); }
     render(); wire();
     var hc = camFor(allBox(), 10); homeS = hc.s;
     var c = S.cam[ui.bid];
@@ -57979,8 +58117,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     var all = tally(treeIds(T), IDX);
     var crumb = from ? '<div class="wk-crumb"><button type="button" data-crumb>‹ ' + esc(from.title) + '</button><span>›</span><b>' + esc(b.title || '') + '</b></div>' : '';
     var portal = '<div class="wk-portal">' + crumb + ((T.portal || {}).intro ? '<p>' + esc(T.portal.intro) + '</p>' : '') +
-      '<div class="wk-sum"><b>' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div>' + legend() + '<div class="wk-band">Topics</div><div class="wk-tiles">' +
-      T.groups.map(function (g) { var a = areas[g.id] || {}, t = tally(nodeIds(g), IDX); return '<button type="button" class="wk-tile" data-goto="' + esc(g.id) + '"><i>' + esc(a.icon || g.icon || '📂') + '</i><b>' + esc(g.title) + '</b>' + (a.desc ? '<small>' + esc(a.desc) + '</small>' : '') + '<em>' + countItems(g) + ' entries' + ((g.subs || []).length ? ' · ' + g.subs.length + ' subcategories' : '') + '</em>' + frac(t) + bar(t) + '</button>'; }).join('') + '</div></div>';
+      '<div class="wk-sum"><b>' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div><div class="wk-band">Topics</div><div class="wk-tiles">' +
+      T.groups.map(function (g) { var a = areas[g.id] || {}, t = tally(nodeIds(g), IDX); return '<button type="button" class="wk-tile" data-goto="' + esc(g.id) + '"><b>' + esc(g.title) + '</b>' + (a.desc ? '<small>' + esc(a.desc) + '</small>' : '') + '<em>' + countItems(g) + ' entries' + ((g.subs || []).length ? ' · ' + g.subs.length + ' subcategories' : '') + '</em>' + frac(t) + bar(t) + '</button>'; }).join('') + '</div></div>';
     var box = '<div class="wk-box"><div class="wk-boxh"><span style="width:44px"></span><b>' + esc(T.title || 'Categories') + '</b><button type="button" data-hide>' + (s.hide ? '[show]' : '[hide]') + '</button></div>' +
       (s.hide ? '' : T.groups.map(function (g) {
         var fold = s.fold[g.id];
@@ -58001,10 +58139,10 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     var subj = c.boards.map(function (e) { var b = boardById(e.b); if (!b) return null; var t = treeOf(b); IDXB[b.id] = cardIndex(b); return { e: e, b: b, t: t, sum: tally(treeIds(t), IDXB[b.id]) }; }).filter(Boolean);
     var all = subj.reduce(function (a, x) { return add(a, x.sum); }, { n: 0, done: 0, learn: 0, seen: 0, rv: 0 });
     var head = '<div class="wk-portal">' + (c.intro ? '<p>' + esc(c.intro) + '</p>' : '') +
-      '<div class="wk-sum"><b>' + subj.length + ' subjects · ' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div>' + legend() +
+      '<div class="wk-sum"><b>' + subj.length + ' subjects · ' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div>' +
       '<div class="wk-band">Subjects</div><div class="wk-tiles">' + subj.map(function (x) {
         var desc = x.e.desc || (x.t.portal && x.t.portal.intro) || '';
-        return '<button type="button" class="wk-tile" data-enter="' + esc(x.b.id) + '"><i>' + esc(x.e.icon || '📘') + '</i><b>' + esc(x.b.title || 'Board') + '</b>' + (desc ? '<small>' + esc(desc.length > 90 ? desc.slice(0, 88) + '…' : desc) + '</small>' : '') +
+        return '<button type="button" class="wk-tile" data-enter="' + esc(x.b.id) + '"><b>' + esc(x.b.title || 'Board') + '</b>' + (desc ? '<small>' + esc(desc.length > 90 ? desc.slice(0, 88) + '…' : desc) + '</small>' : '') +
           '<em>' + x.t.groups.length + ' skills · ' + x.sum.n + ' entries</em>' + frac(x.sum) + bar(x.sum) + '</button>';
       }).join('') + (subj.length ? '' : '<p>No subjects yet — tap ✎ Edit, then “Subjects…”.</p>') + '</div></div>';
     var boxes = subj.map(function (x) {
@@ -58246,10 +58384,10 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     var el = document.createElement('div'); el.className = 'wk'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Wiki Portal');
     el.innerHTML = '<div class="wk-head"><button type="button" class="wk-tb" data-boards><small></small><b></b></button>' +
       '<button type="button" class="wk-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
-      '<span class="wk-seg"><button type="button" data-layout="wiki">Wiki</button><button type="button" data-layout="compact">Compact</button></span><button type="button" class="wk-hb" data-edit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('wk-hb wk-fs') : '') + '</div><div class="wk-body"></div>';
+      '<span class="wk-seg"><button type="button" data-layout="wiki">Wiki</button><button type="button" data-layout="compact">Compact</button></span><button type="button" class="wk-hb" data-edit>✎ Edit</button>' + (window.MinestKEdit ? MinestKEdit.switchBtnHtml('wk-hb wk-fs') : '') + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('wk-hb wk-fs') : '') + '</div><div class="wk-body"></div>';
     ui.el = el; ui.list = el.querySelector('.wk-body'); ui.title = el.querySelector('.wk-tb b'); ui.kicker = el.querySelector('.wk-tb small'); ui.seg = el.querySelector('.wk-seg'); ui.open = true; edit = false;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
-    if (window.MinestKEdit) MinestKEdit.fullscreen('portal', el, ['.wk-head']);
+    if (window.MinestKEdit) { MinestKEdit.fullscreen('portal', el, ['.wk-head']); MinestKEdit.switcher('portal', el, function () { return ui.bid; }); }
     render(); ui.list.scrollTop = st().scroll || 0;
     if (el.animate) el.animate([{ opacity: 0, scale: '.97' }, { opacity: 1, scale: '1' }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
     wire(el);
