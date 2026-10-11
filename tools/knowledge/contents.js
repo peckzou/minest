@@ -124,6 +124,7 @@
     '.kc-x{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.2);margin-bottom:4px}',
     '.kc-x svg{width:15px;height:15px}',
     '.kc-tools{display:flex;gap:8px;margin-bottom:4px}',
+    '@media (max-width:600px){.kc-head{flex-wrap:wrap;position:relative}.kc-head > div:first-child{flex:1 1 100%!important;padding-right:48px}.kc-tools{flex-wrap:wrap}.kc-head .kc-x{position:absolute;right:18px;top:calc(env(safe-area-inset-top,0px) + 18px)}}',
     '.kc-tool{height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer}',
     '.kc-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 28px);scrollbar-width:none}',
     '.kc-body::-webkit-scrollbar{display:none}',
@@ -254,7 +255,7 @@
     if (!S) { S = { open: {}, scroll: 0, sel: null }; var a = activeId(); if (a) S.open['b:' + a] = 1; }
     var el = document.createElement('div'); el.className = 'kc'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Contents');
     el.innerHTML = '<div class="kc-head"><div style="flex:1;min-width:0"><h1>Contents</h1><p class="kc-sub"></p></div>' +
-      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button></div>' +
+      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button></div>' +
       '<button type="button" class="kc-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="kc-body"></div>';
     ui.el = el; ui.list = el.querySelector('.kc-body'); ui.sub = el.querySelector('.kc-sub'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
@@ -270,6 +271,7 @@
   }
   function close(cb) {
     if (!ui.open) return cb && cb();
+    if (window.MinestKEdit) MinestKEdit.closeBar(); ui.edit = false;
     S.scroll = ui.list.scrollTop; stSave(); closeMenu();
     var el = ui.el; ui.open = false; ui.el = null; document.documentElement.classList.remove('kn-open');
     var done = function () { el.remove(); if (cb) cb(); };
@@ -294,13 +296,49 @@
       if (press && press.fired) { press = null; return; }
       press = null;
       if (e.target.closest('.kc-x')) return close();
+      if (e.target.closest('[data-kedit]')) return setEdit(!ui.edit);
       var all = e.target.closest('[data-all]'); if (all) return setAll(all.getAttribute('data-all') === '1');
       if (e.target.closest('[data-pin]')) { var ab = activeId(); if (!ab) return; var off = !window.MinestKnowledge.get('kc:unpin:' + ab); window.MinestKnowledge.set('kc:unpin:' + ab, off ? 1 : null); toast(off ? 'Contents removed from the board' : 'Contents pinned as the first list'); mountCol(); return; }
       var row = e.target.closest('.kc-row'); if (!row) return;
       if (e.target.closest('[data-chev]')) return toggle(row);
+      if (ui.edit) return editRow(row);   // Edit: a tap selects (the edit bar comes up) instead of going to the board
       if (e.target.closest('[data-go]')) { var n = byId[row.getAttribute('data-id')]; if (n) go(n); }
     });
   }
+
+  // ---------------------------------------------------------------- editing (MinestKEdit: the Outline's basics)
+  function kTarget(n) {
+    var to = n.to;
+    if (n.kind === 'board') return { bid: to.b, kind: 'board', id: to.b, title: n.title };
+    if (n.kind === 'list') return { bid: to.b, kind: 'list', id: to.l, title: n.title };
+    if (n.kind === 'item') return { bid: to.b, kind: 'item', id: to.c, title: n.title };
+    return { bid: to.b, kind: 'card', id: n.cardId || to.c, title: n.title };
+  }
+  function nodeIdOf(m) { return m.kind === 'list' ? 'l:' + m.bid + ':' + m.id : m.kind === 'item' ? 'i:' + m.bid + ':' + m.id : KN0().isHeading(m.id) ? 's:' + m.bid + ':' + m.id : 'c:' + m.bid + ':' + m.id; }
+  function KN0() { return window.MinestKnowledge; }
+  function setEdit(on) {
+    ui.edit = !!on; if (!ui.el) return;
+    ui.el.classList.toggle('editing', ui.edit);
+    var b = ui.el.querySelector('[data-kedit]'); if (b) b.classList.toggle('ke-on', ui.edit);
+    if (!ui.edit && window.MinestKEdit) MinestKEdit.closeBar();
+    else if (ui.edit) toast('Tap a row to edit it');
+  }
+  function editRow(row) {
+    var n = byId[row.getAttribute('data-id')]; if (!n || !window.MinestKEdit) return;
+    S.sel = n.id; stSave();
+    ui.list.querySelectorAll('.kc-row.sel').forEach(function (r) { r.classList.remove('sel'); }); row.classList.add('sel');
+    MinestKEdit.bar(kTarget(n), {
+      onDetails: function () { go(n, true); },
+      onDone: function (m) {
+        S.open[n.id] = 1;   // what was added inside shows
+        if (m && m.id) { S.sel = nodeIdOf(m); var t0 = byId[S.sel]; }
+        stSave(); render(true);
+        var r2 = S.sel && ui.list.querySelector('.kc-row[data-id="' + cssEsc(S.sel) + '"]');
+        if (r2) { r2.scrollIntoView({ block: 'nearest' }); if (m && m.id && m.id !== kTarget(n).id) editRow(r2); }
+      }
+    });
+  }
+  window.addEventListener('minest:kedit', function () { if (ui.open && ui.el) { var y = ui.list.scrollTop; render(); ui.list.scrollTop = y; } });
 
   // ================================================================== jumping to the board
   function exists(to) {

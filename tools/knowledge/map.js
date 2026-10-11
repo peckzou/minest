@@ -406,7 +406,8 @@
       if (a === 'home') return home();
       if (a === 'back') { var f = focusKey && G.byKey[focusKey]; if (!f) return; return f.parent && f.parent.kind !== 'board' ? focusOn(f.parent.k) : home(); }
       if (a === 'fit') return focusKey ? focusOn(focusKey) : home();
-      if (a === 'arr') { arrange = !arrange; b.classList.toggle('on', arrange); ui.el.classList.toggle('arr', arrange); hint(arrange ? 'Drag the bubbles to arrange your map' : ''); return; }
+      if (a === 'kedit') { setEdit(!editing); return; }
+      if (a === 'arr') { if (editing) setEdit(false); arrange = !arrange; b.classList.toggle('on', arrange); ui.el.classList.toggle('arr', arrange); hint(arrange ? 'Drag the bubbles to arrange your map' : ''); return; }
       if (a === 'reset') { KN().clearPos(G.nodes.map(posKey)); build(); home(); return; }
       if (a === 'boards') return boardMenu(b);
       if (a === 'style') return styleMenu(b);
@@ -416,11 +417,36 @@
     if (!k) return;
     var n = G.byKey[k]; if (!n) return;
     if (arrange) return;
+    if (editing) { if (focusKey !== k && n.kind !== 'board') focusOn(k); return editNode(n); }   // Edit: select, then the edit bar
     if (n.kind === 'board') return home();
     if (focusKey === k && (n.kind === 'card' || n.kind === 'item')) return details(n);
     if (n.kind === 'item' && focusKey !== k) { focusOn(k); return; }
     focusOn(k);
   }
+  // ---------------------------------------------------------------- editing (MinestKEdit: the Outline's basics)
+  var editing = false;
+  function setEdit(on) {
+    editing = !!on; if (!ui.el) return;
+    var b = ui.el.querySelector('[data-act="kedit"]'); if (b) b.classList.toggle('on', editing);
+    if (editing) { if (arrange) { arrange = false; ui.el.classList.remove('arr'); var ab = ui.el.querySelector('[data-act="arr"]'); if (ab) ab.classList.remove('on'); } hint('Tap a bubble to edit it'); }
+    else if (window.MinestKEdit) MinestKEdit.closeBar();
+  }
+  function editNode(n) {
+    if (!window.MinestKEdit) return;
+    var t = { bid: ui.bid, kind: n.kind, id: n.kind === 'board' ? ui.bid : n.id, title: n.title };
+    MinestKEdit.bar(t, {
+      onDetails: function () { details(n); },
+      onDone: function (m) {
+        var keyOf = function (x) { return x.kind === 'list' ? 'L:' + x.id : x.kind === 'card' ? 'C:' + x.id : x.kind === 'item' ? 'I:' + x.id : 'B:' + ui.bid; };
+        build();
+        var nk = m && m.id ? keyOf(m) : n.k;
+        if (G.byKey[nk]) { if (G.byKey[nk].kind !== 'board') focusOn(nk); else home(); if (m && m.id && nk !== n.k) editNode(G.byKey[nk]); }
+        else if (G.byKey[n.k]) { focusKey = n.k; markFocus(); crumbs(); }
+        else home();
+      }
+    });
+  }
+  window.addEventListener('minest:kedit', function () { if (ui.open && ui.el && !ui.el.classList.contains('away')) { var fk = focusKey; build(); focusKey = fk && G.byKey[fk] ? fk : null; markFocus(); crumbs(); } });
   var hintT = 0;
   function hint(t) { ui.hint.textContent = t; ui.hint.style.opacity = t ? '.85' : '0'; clearTimeout(hintT); if (t) hintT = setTimeout(function () { ui.hint.style.opacity = '0'; }, 3500); }
 
@@ -483,6 +509,7 @@
       '<button type="button" class="km-b" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="km-bot"><button type="button" class="km-b" data-act="home" aria-label="Whole map">' + ICON.home + '</button>' +
       '<button type="button" class="km-b" data-act="fit" aria-label="Fit to screen">' + ICON.fit + '</button>' +
+      '<button type="button" class="km-b" data-act="kedit" aria-label="Edit" title="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' +
       '<button type="button" class="km-b" data-act="arr" aria-label="Arrange">' + ICON.move + '</button>' +
       '<button type="button" class="km-b" data-act="reset" aria-label="Reset layout" title="Reset layout">↺</button></div>' +
       '<div class="km-hint" style="opacity:0"></div>';
@@ -498,6 +525,7 @@
   function onResize() { if (!ui.open) return; var side = innerWidth < 600 && innerHeight > innerWidth; if (G && G.style !== 'bubble' && side !== ui.oneSide) { ui.oneSide = side; var fk = focusKey; build(); focusKey = fk && G.byKey[fk] ? fk : null; if (focusKey) focusOn(focusKey, 1); else home(1); return; } applyCam(); }
   function close() {
     if (!ui.open) return;
+    if (editing) setEdit(false);
     saveCam(); cancelAnimationFrame(anim);
     var el = ui.el; ui.open = false; ui.el = null;
     document.documentElement.classList.remove('kn-open'); window.removeEventListener('resize', onResize);

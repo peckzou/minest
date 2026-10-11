@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 48.5 · Outline toolbar beside Auto</title>
+    <title>Minest iPhone 48.6 · Edit in every view</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "48.5" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "48.6" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -53896,6 +53896,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.kc-x{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.2);margin-bottom:4px}',
     '.kc-x svg{width:15px;height:15px}',
     '.kc-tools{display:flex;gap:8px;margin-bottom:4px}',
+    '@media (max-width:600px){.kc-head{flex-wrap:wrap;position:relative}.kc-head > div:first-child{flex:1 1 100%!important;padding-right:48px}.kc-tools{flex-wrap:wrap}.kc-head .kc-x{position:absolute;right:18px;top:calc(env(safe-area-inset-top,0px) + 18px)}}',
     '.kc-tool{height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:#fff;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer}',
     '.kc-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 28px);scrollbar-width:none}',
     '.kc-body::-webkit-scrollbar{display:none}',
@@ -54026,7 +54027,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     if (!S) { S = { open: {}, scroll: 0, sel: null }; var a = activeId(); if (a) S.open['b:' + a] = 1; }
     var el = document.createElement('div'); el.className = 'kc'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Contents');
     el.innerHTML = '<div class="kc-head"><div style="flex:1;min-width:0"><h1>Contents</h1><p class="kc-sub"></p></div>' +
-      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button></div>' +
+      '<div class="kc-tools"><button type="button" class="kc-tool" data-pin title="Show the contents as the first list of this board">📌</button><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button><button type="button" class="kc-tool" data-kedit>✎ Edit</button></div>' +
       '<button type="button" class="kc-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="kc-body"></div>';
     ui.el = el; ui.list = el.querySelector('.kc-body'); ui.sub = el.querySelector('.kc-sub'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
@@ -54042,6 +54043,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   }
   function close(cb) {
     if (!ui.open) return cb && cb();
+    if (window.MinestKEdit) MinestKEdit.closeBar(); ui.edit = false;
     S.scroll = ui.list.scrollTop; stSave(); closeMenu();
     var el = ui.el; ui.open = false; ui.el = null; document.documentElement.classList.remove('kn-open');
     var done = function () { el.remove(); if (cb) cb(); };
@@ -54066,13 +54068,49 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       if (press && press.fired) { press = null; return; }
       press = null;
       if (e.target.closest('.kc-x')) return close();
+      if (e.target.closest('[data-kedit]')) return setEdit(!ui.edit);
       var all = e.target.closest('[data-all]'); if (all) return setAll(all.getAttribute('data-all') === '1');
       if (e.target.closest('[data-pin]')) { var ab = activeId(); if (!ab) return; var off = !window.MinestKnowledge.get('kc:unpin:' + ab); window.MinestKnowledge.set('kc:unpin:' + ab, off ? 1 : null); toast(off ? 'Contents removed from the board' : 'Contents pinned as the first list'); mountCol(); return; }
       var row = e.target.closest('.kc-row'); if (!row) return;
       if (e.target.closest('[data-chev]')) return toggle(row);
+      if (ui.edit) return editRow(row);   // Edit: a tap selects (the edit bar comes up) instead of going to the board
       if (e.target.closest('[data-go]')) { var n = byId[row.getAttribute('data-id')]; if (n) go(n); }
     });
   }
+
+  // ---------------------------------------------------------------- editing (MinestKEdit: the Outline's basics)
+  function kTarget(n) {
+    var to = n.to;
+    if (n.kind === 'board') return { bid: to.b, kind: 'board', id: to.b, title: n.title };
+    if (n.kind === 'list') return { bid: to.b, kind: 'list', id: to.l, title: n.title };
+    if (n.kind === 'item') return { bid: to.b, kind: 'item', id: to.c, title: n.title };
+    return { bid: to.b, kind: 'card', id: n.cardId || to.c, title: n.title };
+  }
+  function nodeIdOf(m) { return m.kind === 'list' ? 'l:' + m.bid + ':' + m.id : m.kind === 'item' ? 'i:' + m.bid + ':' + m.id : KN0().isHeading(m.id) ? 's:' + m.bid + ':' + m.id : 'c:' + m.bid + ':' + m.id; }
+  function KN0() { return window.MinestKnowledge; }
+  function setEdit(on) {
+    ui.edit = !!on; if (!ui.el) return;
+    ui.el.classList.toggle('editing', ui.edit);
+    var b = ui.el.querySelector('[data-kedit]'); if (b) b.classList.toggle('ke-on', ui.edit);
+    if (!ui.edit && window.MinestKEdit) MinestKEdit.closeBar();
+    else if (ui.edit) toast('Tap a row to edit it');
+  }
+  function editRow(row) {
+    var n = byId[row.getAttribute('data-id')]; if (!n || !window.MinestKEdit) return;
+    S.sel = n.id; stSave();
+    ui.list.querySelectorAll('.kc-row.sel').forEach(function (r) { r.classList.remove('sel'); }); row.classList.add('sel');
+    MinestKEdit.bar(kTarget(n), {
+      onDetails: function () { go(n, true); },
+      onDone: function (m) {
+        S.open[n.id] = 1;   // what was added inside shows
+        if (m && m.id) { S.sel = nodeIdOf(m); var t0 = byId[S.sel]; }
+        stSave(); render(true);
+        var r2 = S.sel && ui.list.querySelector('.kc-row[data-id="' + cssEsc(S.sel) + '"]');
+        if (r2) { r2.scrollIntoView({ block: 'nearest' }); if (m && m.id && m.id !== kTarget(n).id) editRow(r2); }
+      }
+    });
+  }
+  window.addEventListener('minest:kedit', function () { if (ui.open && ui.el) { var y = ui.list.scrollTop; render(); ui.list.scrollTop = y; } });
 
   // ================================================================== jumping to the board
   function exists(to) {
@@ -54410,6 +54448,308 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   var st = document.createElement('style'); st.id = 'kn-look-css'; st.textContent = css;
   (document.head || document.documentElement).appendChild(st);
   if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
+})();
+
+/* Minest Knowledge · editing in every view (Contents, Knowledge Map, Timeline, Portal) — the Outline's basics, shared.
+   One target {bid, kind: board | list | card | item, id} (item = a stacked card); every change is an ordinary edit of
+   the board through MinestAI.updateBoard (one queue, each edit starts from the board the last one left), so the Kanban,
+   the Outline and all the views see it. After an edit settles, window 'minest:kedit' {bid, kind, id, made} fires and
+   each view redraws.
+   UI: bar(target, opts) — a liquid-glass bar of the Outline's buttons for the selected thing (edit text, new after,
+   new inside, move up / down, section heading, details, delete, plus the view's own); sheet(...) — a small form
+   (title + note, and whatever a view adds, e.g. a date); confirm(...). */
+(function () {
+  if (window.MinestKEdit) return;
+  var A = function () { return window.MinestAI || {}; };
+  var KN = function () { return window.MinestKnowledge; };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function toast(m) { try { if (window.GlassUI && GlassUI.toast) GlassUI.toast(m); } catch (e) {} }
+  function rid(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function boards() { try { return (A().boards && A().boards()) || []; } catch (e) { return []; } }
+  function boardById(id) { return boards().filter(function (b) { return b.id === id; })[0] || null; }
+  var PAL = ['#49b07a', '#5097f4', '#f18c4f', '#a381f2', '#eb5e55', '#61bd4f'];
+  function newCard(t, d) { return { id: rid('c-'), title: t || '', desc: d || '', labels: [], complete: false, createdAt: Date.now(), mastery: 1, checklistItems: [] }; }
+  function newItem(t, d) { return { id: rid('s-'), title: t || '', desc: d || '', labels: [], complete: false, mastery: 1 }; }
+  function setStack(card, stack) { card.stack = stack; card.hasStack = stack.length > 0; }
+
+  // ================================================================== finding things on a board
+  function locate(b, kind, id) {
+    if (kind === 'board') return b && b.id === id ? { board: b } : null;
+    var cols = b.columns || [];
+    for (var ci = 0; ci < cols.length; ci++) {
+      var col = cols[ci];
+      if (kind === 'list' && col.id === id) return { ci: ci, col: col };
+      var cards = col.cards || [];
+      for (var i = 0; i < cards.length; i++) {
+        var c = cards[i];
+        if (kind === 'card' && c.id === id) return { ci: ci, col: col, i: i, card: c };
+        if (kind === 'item' && Array.isArray(c.stack)) for (var j = 0; j < c.stack.length; j++) if (c.stack[j].id === id) return { ci: ci, col: col, i: i, card: c, j: j, item: c.stack[j] };
+      }
+    }
+    return null;
+  }
+  function find(t) { var b = boardById(t.bid); return b ? locate(b, t.kind, t.id) : null; }
+  function thing(L, kind) { return kind === 'board' ? L.board : kind === 'list' ? L.col : kind === 'card' ? L.card : L.item; }
+  function descendants(card, itemId) {   // stacked cards nested (outline-only) under itemId
+    var out = [], ids = {}, changed = true; ids[itemId] = 1;
+    while (changed) { changed = false; (card.stack || []).forEach(function (s) { if (!ids[s.id] && ids[KN().parentOf(s.id)]) { ids[s.id] = 1; out.push(s); changed = true; } }); }
+    return out;
+  }
+
+  // ================================================================== the edit queue
+  var chain = Promise.resolve();
+  function apply(bid, fn, made) {
+    chain = chain.then(function () {
+      var b0 = boardById(bid); if (!b0 || !A().updateBoard) { toast('Editing is not available here.'); return; }
+      var b = JSON.parse(JSON.stringify(b0)), res = fn(b);
+      if (res === false) return;
+      var before = A().boards(), t0 = Date.now();
+      A().updateBoard(bid, function () { return b; });
+      return new Promise(function (done) {
+        (function wait() {
+          if (A().boards() !== before || Date.now() - t0 > 900) { try { window.dispatchEvent(new CustomEvent('minest:kedit', { detail: { bid: bid, made: made || null } })); } catch (e) {} done(made || true); }
+          else requestAnimationFrame(wait);
+        })();
+      });
+    }).catch(function (e) { try { console.warn('KEdit', e); } catch (x) {} });
+    return chain;
+  }
+
+  // ================================================================== operations (the Outline's rules)
+  var ops = {
+    // text: title (+ note = the card's description)
+    update: function (t, v) {
+      return apply(t.bid, function (b) {
+        var L = locate(b, t.kind, t.id); if (!L) return false; var o = thing(L, t.kind);
+        if (v.title != null) o.title = String(v.title).replace(/\s+/g, ' ').trim();
+        if (v.desc != null && t.kind !== 'list' && t.kind !== 'board') o.desc = String(v.desc);
+      }, t);
+    },
+    // a new one after it (same level)
+    addAfter: function (t, v) {
+      v = v || {};
+      if (t.kind === 'board') return ops.addInside(t, v);
+      if (t.kind === 'list') { var nl = { id: rid('col-'), title: v.title || 'New list', color: PAL[((boardById(t.bid) || {}).columns || []).length % PAL.length], cards: [] }; return apply(t.bid, function (b) { var L = locate(b, 'list', t.id); if (!L) return false; b.columns.splice(L.ci + 1, 0, nl); }, { bid: t.bid, kind: 'list', id: nl.id }); }
+      if (t.kind === 'card') { var nc = newCard(v.title, v.desc); return apply(t.bid, function (b) { var L = locate(b, 'card', t.id); if (!L) return false; L.col.cards.splice(L.i + 1, 0, nc); }, { bid: t.bid, kind: 'card', id: nc.id }); }
+      var ni = newItem(v.title, v.desc), p = KN().parentOf(t.id);
+      if (p) { var m = {}; m[ni.id] = p; KN().setParents(m); }
+      return apply(t.bid, function (b) { var L = locate(b, 'item', t.id); if (!L) return false; var st = L.card.stack.slice(); st.splice(L.j + 1 + descendants(L.card, t.id).length, 0, ni); setStack(L.card, st); }, { bid: t.bid, kind: 'item', id: ni.id });
+    },
+    // a new one inside it (board → list, list → card, card → stacked card, stacked card → nested stacked card)
+    addInside: function (t, v) {
+      v = v || {};
+      if (t.kind === 'board') { var nl = { id: rid('col-'), title: v.title || 'New list', color: PAL[((boardById(t.bid) || {}).columns || []).length % PAL.length], cards: [] }; return apply(t.bid, function (b) { b.columns = (b.columns || []).concat([nl]); }, { bid: t.bid, kind: 'list', id: nl.id }); }
+      if (t.kind === 'list') { var nc = newCard(v.title, v.desc); return apply(t.bid, function (b) { var L = locate(b, 'list', t.id); if (!L) return false; L.col.cards = (L.col.cards || []).concat([nc]); }, { bid: t.bid, kind: 'card', id: nc.id }); }
+      var ni = newItem(v.title, v.desc);
+      if (t.kind === 'card') return apply(t.bid, function (b) { var L = locate(b, 'card', t.id); if (!L) return false; setStack(L.card, (L.card.stack || []).concat([ni])); }, { bid: t.bid, kind: 'item', id: ni.id });
+      var m = {}; m[ni.id] = t.id; KN().setParents(m);
+      return apply(t.bid, function (b) { var L = locate(b, 'item', t.id); if (!L) return false; var st = L.card.stack.slice(); st.splice(L.j + 1 + descendants(L.card, t.id).length, 0, ni); setStack(L.card, st); }, { bid: t.bid, kind: 'item', id: ni.id });
+    },
+    // a card into a list / section of the user's choosing (Timeline, Portal)
+    addCardTo: function (bid, listId, afterCardId, v) {
+      var nc = newCard(v.title, v.desc);
+      return apply(bid, function (b) { var L = locate(b, 'list', listId); if (!L) return false; var cs = L.col.cards = (L.col.cards || []).slice(), at = afterCardId ? cs.findIndex(function (c) { return c.id === afterCardId; }) : -1; if (at >= 0) cs.splice(at + 1, 0, nc); else cs.push(nc); L.col.cards = cs; }, { bid: bid, kind: 'card', id: nc.id });
+    },
+    move: function (t, dir) {
+      if (t.kind === 'board') return Promise.resolve();
+      if (t.kind === 'list') return apply(t.bid, function (b) { var L = locate(b, 'list', t.id), j = L.ci + dir; if (j < 0 || j >= b.columns.length) return false; var x = b.columns[j]; b.columns[j] = b.columns[L.ci]; b.columns[L.ci] = x; }, t);
+      if (t.kind === 'card') return apply(t.bid, function (b) {
+        var L = locate(b, 'card', t.id), cards = L.col.cards, j = L.i + dir;
+        if (j >= 0 && j < cards.length) { var x = cards[j]; cards[j] = cards[L.i]; cards[L.i] = x; return; }
+        var nci = L.ci + dir; if (nci < 0 || nci >= b.columns.length) return false;   // past the end: into the next / previous list
+        cards.splice(L.i, 1); var to = b.columns[nci]; to.cards = to.cards || [];
+        if (dir < 0) to.cards.push(L.card); else to.cards.unshift(L.card);
+      }, t);
+      return apply(t.bid, function (b) {
+        var L = locate(b, 'item', t.id); if (!L) return false; var p = KN().parentOf(t.id) || null;
+        var sibs = L.card.stack.filter(function (s) { return (KN().parentOf(s.id) || null) === p; }), k = sibs.findIndex(function (s) { return s.id === t.id; }), o = sibs[k + dir];
+        if (!o) return false;
+        var st = L.card.stack.slice(), a = st.findIndex(function (s) { return s.id === t.id; }), c = st.findIndex(function (s) { return s.id === o.id; });
+        st[a] = o; st[c] = L.item; setStack(L.card, st);
+      }, t);
+    },
+    remove: function (t) {
+      return apply(t.bid, function (b) {
+        if (t.kind === 'list') { var L = locate(b, 'list', t.id); if (!L) return false; b.columns.splice(L.ci, 1); return; }
+        if (t.kind === 'card') { var C = locate(b, 'card', t.id); if (!C) return false; C.col.cards.splice(C.i, 1); return; }
+        var I = locate(b, 'item', t.id); if (!I) return false;
+        var p = KN().parentOf(t.id), map = {};
+        (I.card.stack || []).forEach(function (s) { if (KN().parentOf(s.id) === t.id) map[s.id] = p; });
+        if (Object.keys(map).length) KN().setParents(map);
+        setStack(I.card, I.card.stack.filter(function (s) { return s.id !== t.id; }));
+      }, null);
+    },
+    heading: function (t) {
+      if (t.kind !== 'card') { toast('Only a card can be a section heading.'); return Promise.resolve(); }
+      KN().setHeading(t.id, !KN().isHeading(t.id));
+      try { window.dispatchEvent(new CustomEvent('minest:kedit', { detail: { bid: t.bid, made: t } })); } catch (e) {}
+      return Promise.resolve(t);
+    }
+  };
+
+  // ================================================================== UI: bar, sheet, confirm
+  var I = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
+  var ICON = {
+    edit: I('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>'),
+    add: I('<path d="M12 5v14M5 12h14"/>'),
+    child: I('<path d="M6 4v9a3 3 0 0 0 3 3h10"/><path d="m15 12 4 4-4 4"/>'),
+    up: I('<path d="M12 19V5M6 11l6-6 6 6"/>'), down: I('<path d="M12 5v14M6 13l6 6 6-6"/>'),
+    head: I('<path d="M6 4v16M18 4v16M6 12h12"/>'),
+    info: I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'),
+    del: I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
+    date: I('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+    x: I('<path d="M6 6l12 12M18 6 6 18"/>')
+  };
+  var CSS = [
+    '.ke-bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:2147482010;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:calc(100vw - 16px);font:600 13px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:#fff}',
+    '.ke-what{max-width:min(420px,calc(100vw - 32px));padding:5px 12px;border-radius:999px;background:rgba(30,36,48,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.14);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}',
+    '.ke-what small{opacity:.6;font-weight:600;margin-right:6px;text-transform:uppercase;letter-spacing:.05em;font-size:10.5px}',
+    '.ke-row{display:flex;gap:2px;padding:5px;border-radius:999px;overflow-x:auto;scrollbar-width:none;max-width:calc(100vw - 16px);' +
+      'background:linear-gradient(180deg,rgba(66,76,92,.8),rgba(30,36,48,.9));-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 18px 44px rgba(0,0,0,.42)}',
+    '.ke-row::-webkit-scrollbar{display:none}',
+    '.ke-row button{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:none;color:inherit;display:grid;place-items:center;cursor:pointer;padding:0}',
+    '.ke-row button:active{background:rgba(255,255,255,.16)}',
+    '.ke-row button[disabled]{opacity:.3;pointer-events:none}',
+    '.ke-row button svg{width:20px;height:20px}',
+    '.ke-row .del{color:#ff6b6b}',
+    '.ke-row .sep{flex:none;width:1px;margin:8px 3px;background:rgba(255,255,255,.16)}',
+    '@media (max-width:440px){.ke-row{gap:0;padding:4px}.ke-row button{width:34px;height:38px}.ke-row button svg{width:18px;height:18px}.ke-row .sep{margin:8px 2px}}',
+    'html.kn-light .ke-row{background:rgba(255,255,255,.86);border-color:rgba(255,255,255,.95);box-shadow:inset 0 1px 0 #fff,0 14px 36px rgba(30,40,60,.18);color:#1d1f23}',
+    'html.kn-light .ke-row button:active{background:rgba(0,0,0,.06)}',
+    'html.kn-light .ke-row .sep{background:rgba(0,0,0,.1)}html.kn-light .ke-row .del{color:#e5484d}',
+    'html.kn-light .ke-what{background:rgba(255,255,255,.88);color:#1d1f23;border-color:rgba(0,0,0,.06)}',
+    '.ke-bd{position:fixed;inset:0;z-index:2147482019;background:rgba(0,0,0,.28)}',
+    '.ke-sheet{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);transform:translateX(-50%);z-index:2147482020;width:min(460px,calc(100vw - 20px));max-height:80dvh;overflow:auto;padding:16px;border-radius:28px;box-sizing:border-box;' +
+      'background:linear-gradient(180deg,rgba(66,76,92,.86),rgba(30,36,48,.94));-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 28px 70px rgba(0,0,0,.45);color:#f5f7fa;font:15px -apple-system,BlinkMacSystemFont,system-ui,sans-serif}',
+    '.ke-sheet h4{margin:0 2px 12px;font-size:18px;font-weight:700}',
+    '.ke-sheet label{display:block;margin:0 0 10px}',
+    '.ke-sheet label span{display:block;margin:0 4px 5px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.6}',
+    '.ke-sheet input,.ke-sheet textarea,.ke-sheet select{width:100%;box-sizing:border-box;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:inherit;font:16px -apple-system,system-ui,sans-serif;padding:11px 13px;outline:none}',
+    '.ke-sheet textarea{min-height:84px;resize:vertical;line-height:1.4}',
+    '.ke-sheet input:focus,.ke-sheet textarea:focus,.ke-sheet select:focus{border-color:#0a84ff;box-shadow:0 0 0 3px rgba(10,132,255,.25)}',
+    '.ke-sheet .row{display:flex;gap:8px;margin-top:6px}',
+    '.ke-sheet .row button{flex:1;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:inherit;font:600 15px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    '.ke-sheet .row .pri{background:linear-gradient(180deg,#3d9bff,#0a7aff);border-color:rgba(255,255,255,.25);color:#fff}',
+    '.ke-sheet .row .danger{background:#e5484d;border-color:#e5484d;color:#fff}',
+    '.ke-sheet p{margin:0 2px 12px;opacity:.8;line-height:1.45}',
+    '.ke-sheet .two{display:flex;gap:8px}.ke-sheet .two label{flex:1}',
+    'html.kn-light .ke-sheet{background:rgba(255,255,255,.94);color:#1d1f23;border-color:rgba(255,255,255,.95);box-shadow:0 24px 60px rgba(30,40,60,.2)}',
+    'html.kn-light .ke-sheet input,html.kn-light .ke-sheet textarea,html.kn-light .ke-sheet select{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}',
+    'html.kn-light .ke-sheet .row button{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08)}',
+    'html.kn-light .ke-sheet .row .pri{color:#fff;background:linear-gradient(180deg,#3d9bff,#0a7aff)}html.kn-light .ke-sheet .row .danger{color:#fff;background:#e5484d}',
+    // a view's own bottom-corner buttons step up while the bar is there
+    'body:has(.ke-bar) .km-bot{bottom:calc(env(safe-area-inset-bottom,0px) + 112px)!important}',
+    '.km-bot{transition:bottom .25s cubic-bezier(.2,.85,.25,1)}',
+    // Edit switches in the views' headers
+    '.ke-on{background:#0a84ff!important;border-color:#0a84ff!important;color:#fff!important}'
+  ].join('\n');
+  function css() { if (document.getElementById('ke-css')) return; var s = document.createElement('style'); s.id = 'ke-css'; s.textContent = CSS; document.head.appendChild(s); }
+  function guard(el) { ['pointerdown', 'touchstart', 'touchmove', 'wheel', 'mousedown'].forEach(function (ev) { el.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); }); }
+
+  // ---------------------------------------------------------------- a small form
+  var sh = null, bd = null;
+  function closeSheet() { if (sh) { sh.remove(); sh = null; } if (bd) { bd.remove(); bd = null; } }
+  // fields: [{key, label, value, type: text | note | date-y | select, options: [[v, label]], placeholder}]
+  function sheet(o) {
+    css(); closeSheet();
+    return new Promise(function (done) {
+      bd = document.createElement('div'); bd.className = 'ke-bd'; guard(bd);
+      sh = document.createElement('div'); sh.className = 'ke-sheet'; sh.setAttribute('role', 'dialog'); guard(sh);
+      var f = o.fields || [];
+      sh.innerHTML = '<h4>' + esc(o.title || 'Edit') + '</h4>' + (o.text ? '<p>' + esc(o.text) + '</p>' : '') +
+        f.map(function (x) {
+          var v = x.value == null ? '' : x.value;
+          var inp = x.type === 'note' ? '<textarea data-k="' + x.key + '" placeholder="' + esc(x.placeholder || '') + '">' + esc(v) + '</textarea>'
+            : x.type === 'select' ? '<select data-k="' + x.key + '">' + (x.options || []).map(function (op) { return '<option value="' + esc(op[0]) + '"' + (String(op[0]) === String(v) ? ' selected' : '') + '>' + esc(op[1]) + '</option>'; }).join('') + '</select>'
+            : '<input data-k="' + x.key + '" ' + (x.type === 'num' ? 'inputmode="numeric" ' : '') + 'value="' + esc(v) + '" placeholder="' + esc(x.placeholder || '') + '" autocomplete="off">';
+          return (x.half ? '' : '') + '<label' + (x.half ? ' style="display:inline-block;width:calc(33.3% - 6px);margin-right:6px;vertical-align:top"' : '') + '><span>' + esc(x.label || '') + '</span>' + inp + '</label>';
+        }).join('') +
+        '<div class="row"><button type="button" data-no>' + esc(o.cancel || 'Cancel') + '</button><button type="button" class="' + (o.danger ? 'danger' : 'pri') + '" data-ok>' + esc(o.ok || 'Save') + '</button></div>';
+      document.body.appendChild(bd); document.body.appendChild(sh);
+      if (sh.animate) sh.animate([{ opacity: 0, translate: '0 30px', scale: '.97' }, { opacity: 1, translate: '0 0', scale: '1' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1.05)' });
+      var first = sh.querySelector('input,textarea'); if (first) setTimeout(function () { try { first.focus(); var L = first.value.length; first.setSelectionRange && first.setSelectionRange(L, L); } catch (e) {} }, 60);
+      function finish(ok) {
+        var out = null;
+        if (ok) { out = {}; sh.querySelectorAll('[data-k]').forEach(function (e) { out[e.getAttribute('data-k')] = e.value; }); }
+        closeSheet(); done(out);
+      }
+      bd.addEventListener('click', function () { finish(false); });
+      sh.addEventListener('click', function (e) { if (e.target.closest('[data-no]')) finish(false); else if (e.target.closest('[data-ok]')) finish(true); });
+      sh.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        else if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); finish(true); }
+        else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); finish(true); }
+        e.stopPropagation();
+      });
+    });
+  }
+  function confirmBox(text, ok) { return sheet({ title: 'Delete?', text: text, ok: ok || 'Delete', danger: true }).then(function (r) { return !!r; }); }
+
+  // ---------------------------------------------------------------- the bar for the selected thing
+  var barEl = null, barT = null;
+  var KIND = { board: 'Board', list: 'List', card: 'Card', item: 'Stacked card' };
+  function closeBar() { if (barEl) { barEl.remove(); barEl = null; } var t = barT; barT = null; if (t && t.onClose) t.onClose(); }
+  // t: {bid, kind, id, title}; o: {extra: [{key, icon, label, run, before}], hide: {key: 1}, onDetails(t), onDone(made), onClose()}
+  function bar(t, o) {
+    css(); closeBar(); o = o || {};
+    barT = { t: t, onClose: o.onClose };
+    var hide = o.hide || {};
+    var can = {
+      edit: t.kind !== 'board' || true,
+      add: t.kind !== 'board',
+      child: true,
+      up: t.kind !== 'board', down: t.kind !== 'board',
+      head: t.kind === 'card',
+      info: (t.kind === 'card' || t.kind === 'item') && !!o.onDetails,
+      del: t.kind !== 'board'
+    };
+    var label = { edit: 'Edit text', add: t.kind === 'list' ? 'New list after' : 'New ' + (t.kind === 'item' ? 'stacked card' : 'card') + ' after', child: t.kind === 'board' ? 'New list' : t.kind === 'list' ? 'New card in it' : 'New card stacked in it', up: 'Move up', down: 'Move down', head: KN().isHeading(t.id) ? 'Not a section heading' : 'Section heading', info: 'Details', del: 'Delete' };
+    var btns = [];
+    (o.extra || []).filter(function (x) { return x.before; }).forEach(function (x) { btns.push('<button type="button" data-x="' + x.key + '" title="' + esc(x.label) + '" aria-label="' + esc(x.label) + '">' + (ICON[x.icon] || x.icon) + '</button>'); });
+    ['edit', 'add', 'child', 'up', 'down', 'head', 'info'].forEach(function (k) { if (can[k] && !hide[k]) btns.push('<button type="button" data-op="' + k + '" title="' + esc(label[k]) + '" aria-label="' + esc(label[k]) + '">' + ICON[k] + '</button>'); });
+    (o.extra || []).filter(function (x) { return !x.before; }).forEach(function (x) { btns.push('<button type="button" data-x="' + x.key + '" title="' + esc(x.label) + '" aria-label="' + esc(x.label) + '">' + (ICON[x.icon] || x.icon) + '</button>'); });
+    if (can.del && !hide.del) btns.push('<button type="button" class="del" data-op="del" title="Delete" aria-label="Delete">' + ICON.del + '</button>');
+    btns.push('<i class="sep"></i><button type="button" data-op="x" title="Done" aria-label="Done">' + ICON.x + '</button>');
+    barEl = document.createElement('div'); barEl.className = 'ke-bar';
+    barEl.innerHTML = '<div class="ke-what"><small>' + KIND[t.kind] + '</small>' + esc(t.title || 'Untitled') + '</div><div class="ke-row" role="toolbar">' + btns.join('') + '</div>';
+    guard(barEl);
+    document.body.appendChild(barEl);
+    if (barEl.animate) barEl.animate([{ opacity: 0, translate: '0 16px' }, { opacity: 1, translate: '0 0' }], { duration: 240, easing: 'cubic-bezier(.2,.85,.25,1)' });
+    var done = function (p) { return Promise.resolve(p).then(function (m) { if (o.onDone) o.onDone(m); return m; }); };
+    barEl.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var x = e.target.closest('[data-x]'); if (x) { var ex = (o.extra || []).filter(function (q) { return q.key === x.getAttribute('data-x'); })[0]; if (ex) ex.run(t); return; }
+      var b = e.target.closest('[data-op]'); if (!b) return;
+      var op = b.getAttribute('data-op');
+      if (op === 'x') return closeBar();
+      if (op === 'edit') return editText(t).then(function (r) { if (r) { t.title = r.title; var w = barEl && barEl.querySelector('.ke-what'); if (w) w.innerHTML = '<small>' + KIND[t.kind] + '</small>' + esc(t.title || 'Untitled'); done(t); } });
+      if (op === 'add' || op === 'child') {
+        var kindNew = op === 'add' ? (t.kind === 'board' ? 'list' : t.kind) : (t.kind === 'board' ? 'list' : t.kind === 'list' ? 'card' : 'item');
+        return sheet({ title: kindNew === 'list' ? 'New list' : kindNew === 'item' ? 'New stacked card' : 'New card', fields: kindNew === 'list' ? [{ key: 'title', label: 'Title' }] : [{ key: 'title', label: 'Title' }, { key: 'desc', label: 'Note', type: 'note' }], ok: 'Add' })
+          .then(function (v) { if (!v || !v.title.trim()) return; return done((op === 'add' ? ops.addAfter : ops.addInside)(t, v)); });
+      }
+      if (op === 'up' || op === 'down') return done(ops.move(t, op === 'up' ? -1 : 1));
+      if (op === 'head') { var r = ops.heading(t); b.setAttribute('title', KN().isHeading(t.id) ? 'Not a section heading' : 'Section heading'); return done(r); }
+      if (op === 'info') { var tt = t; closeBar(); return o.onDetails(tt); }
+      if (op === 'del') {
+        var L = find(t), n = L && thing(L, t.kind), more = t.kind === 'list' ? ((n && n.cards) || []).length : t.kind === 'card' ? ((n && n.stack) || []).length : 0;
+        return confirmBox('Delete “' + (t.title || 'Untitled') + '”' + (more ? (t.kind === 'list' ? ' and its ' + more + ' cards' : ' and its ' + more + ' stacked cards') : '') + '? It goes from the board too.')
+          .then(function (yes) { if (!yes) return; closeBar(); return done(ops.remove(t)); });
+      }
+    });
+    return { close: closeBar };
+  }
+  // the text of one thing: title, and the note (description) for cards
+  function editText(t) {
+    var L = find(t); if (!L) { toast('It is no longer on the board.'); return Promise.resolve(null); }
+    var o = thing(L, t.kind), note = t.kind === 'card' || t.kind === 'item';
+    return sheet({ title: 'Edit ' + KIND[t.kind].toLowerCase(), fields: [{ key: 'title', label: 'Title', value: o.title || '' }].concat(note ? [{ key: 'desc', label: 'Note', type: 'note', value: o.desc || '' }] : []) })
+      .then(function (v) { if (!v) return null; return ops.update(t, v).then(function () { return { title: v.title.replace(/\s+/g, ' ').trim(), desc: v.desc }; }); });
+  }
+  // an Edit switch for a view's header
+  function switchHtml(cls, on) { return '<button type="button" class="' + cls + (on ? ' ke-on' : '') + '" data-kedit aria-pressed="' + !!on + '">✎ Edit</button>'; }
+
+  window.MinestKEdit = { ops: ops, bar: bar, closeBar: closeBar, sheet: sheet, confirm: confirmBox, editText: editText, find: find, locate: locate, switchHtml: switchHtml, icons: ICON, isOpen: function () { return !!barEl; }, current: function () { return barT && barT.t; } };
 })();
 
 /* Minest Knowledge · Phase 2 — Endless (a vertical knowledge outline, after OmniOutliner)
@@ -55442,7 +55782,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       if (a === 'home') return home();
       if (a === 'back') { var f = focusKey && G.byKey[focusKey]; if (!f) return; return f.parent && f.parent.kind !== 'board' ? focusOn(f.parent.k) : home(); }
       if (a === 'fit') return focusKey ? focusOn(focusKey) : home();
-      if (a === 'arr') { arrange = !arrange; b.classList.toggle('on', arrange); ui.el.classList.toggle('arr', arrange); hint(arrange ? 'Drag the bubbles to arrange your map' : ''); return; }
+      if (a === 'kedit') { setEdit(!editing); return; }
+      if (a === 'arr') { if (editing) setEdit(false); arrange = !arrange; b.classList.toggle('on', arrange); ui.el.classList.toggle('arr', arrange); hint(arrange ? 'Drag the bubbles to arrange your map' : ''); return; }
       if (a === 'reset') { KN().clearPos(G.nodes.map(posKey)); build(); home(); return; }
       if (a === 'boards') return boardMenu(b);
       if (a === 'style') return styleMenu(b);
@@ -55452,11 +55793,36 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     if (!k) return;
     var n = G.byKey[k]; if (!n) return;
     if (arrange) return;
+    if (editing) { if (focusKey !== k && n.kind !== 'board') focusOn(k); return editNode(n); }   // Edit: select, then the edit bar
     if (n.kind === 'board') return home();
     if (focusKey === k && (n.kind === 'card' || n.kind === 'item')) return details(n);
     if (n.kind === 'item' && focusKey !== k) { focusOn(k); return; }
     focusOn(k);
   }
+  // ---------------------------------------------------------------- editing (MinestKEdit: the Outline's basics)
+  var editing = false;
+  function setEdit(on) {
+    editing = !!on; if (!ui.el) return;
+    var b = ui.el.querySelector('[data-act="kedit"]'); if (b) b.classList.toggle('on', editing);
+    if (editing) { if (arrange) { arrange = false; ui.el.classList.remove('arr'); var ab = ui.el.querySelector('[data-act="arr"]'); if (ab) ab.classList.remove('on'); } hint('Tap a bubble to edit it'); }
+    else if (window.MinestKEdit) MinestKEdit.closeBar();
+  }
+  function editNode(n) {
+    if (!window.MinestKEdit) return;
+    var t = { bid: ui.bid, kind: n.kind, id: n.kind === 'board' ? ui.bid : n.id, title: n.title };
+    MinestKEdit.bar(t, {
+      onDetails: function () { details(n); },
+      onDone: function (m) {
+        var keyOf = function (x) { return x.kind === 'list' ? 'L:' + x.id : x.kind === 'card' ? 'C:' + x.id : x.kind === 'item' ? 'I:' + x.id : 'B:' + ui.bid; };
+        build();
+        var nk = m && m.id ? keyOf(m) : n.k;
+        if (G.byKey[nk]) { if (G.byKey[nk].kind !== 'board') focusOn(nk); else home(); if (m && m.id && nk !== n.k) editNode(G.byKey[nk]); }
+        else if (G.byKey[n.k]) { focusKey = n.k; markFocus(); crumbs(); }
+        else home();
+      }
+    });
+  }
+  window.addEventListener('minest:kedit', function () { if (ui.open && ui.el && !ui.el.classList.contains('away')) { var fk = focusKey; build(); focusKey = fk && G.byKey[fk] ? fk : null; markFocus(); crumbs(); } });
   var hintT = 0;
   function hint(t) { ui.hint.textContent = t; ui.hint.style.opacity = t ? '.85' : '0'; clearTimeout(hintT); if (t) hintT = setTimeout(function () { ui.hint.style.opacity = '0'; }, 3500); }
 
@@ -55519,6 +55885,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       '<button type="button" class="km-b" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="km-bot"><button type="button" class="km-b" data-act="home" aria-label="Whole map">' + ICON.home + '</button>' +
       '<button type="button" class="km-b" data-act="fit" aria-label="Fit to screen">' + ICON.fit + '</button>' +
+      '<button type="button" class="km-b" data-act="kedit" aria-label="Edit" title="Edit">' + (window.MinestKEdit ? MinestKEdit.icons.edit : '✎') + '</button>' +
       '<button type="button" class="km-b" data-act="arr" aria-label="Arrange">' + ICON.move + '</button>' +
       '<button type="button" class="km-b" data-act="reset" aria-label="Reset layout" title="Reset layout">↺</button></div>' +
       '<div class="km-hint" style="opacity:0"></div>';
@@ -55534,6 +55901,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function onResize() { if (!ui.open) return; var side = innerWidth < 600 && innerHeight > innerWidth; if (G && G.style !== 'bubble' && side !== ui.oneSide) { ui.oneSide = side; var fk = focusKey; build(); focusKey = fk && G.byKey[fk] ? fk : null; if (focusKey) focusOn(focusKey, 1); else home(1); return; } applyCam(); }
   function close() {
     if (!ui.open) return;
+    if (editing) setEdit(false);
     saveCam(); cancelAnimationFrame(anim);
     var el = ui.el; ui.open = false; ui.el = null;
     document.documentElement.classList.remove('kn-open'); window.removeEventListener('resize', onResize);
@@ -55628,6 +55996,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.tl-x{position:absolute;right:16px;top:calc(env(safe-area-inset-top,0px) + 18px);width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer}',
     '.tl-row{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}',
     '.tl-row::-webkit-scrollbar{display:none}',
+    '.tl .kesel{outline:2.5px solid #0a84ff;outline-offset:2px;border-radius:12px}',
+    '.tl-chip[hidden]{display:none}',
     '.tl-chip{flex:none;height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font:600 12.5px -apple-system,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
     '.tl-chip.on{background:rgba(10,132,255,.32);border-color:rgba(10,132,255,.65)}',
     '.tl-chip i{width:8px;height:8px;border-radius:50%;background:var(--c)}',
@@ -55956,6 +56326,49 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function restore() { ui.list.scrollTop = S.scroll[ui.bid] || 0; ui.list.scrollLeft = (S.scrollX || {})[ui.bid] || 0; }
 
   // ---------------------------------------------------------------- open / close
+  // ---------------------------------------------------------------- editing (MinestKEdit: the Outline's basics, plus the date)
+  var editing = false;
+  function setEdit(on) {
+    editing = !!on; if (!ui.el) return;
+    var b = ui.el.querySelector('[data-kedit]'); if (b) b.classList.toggle('ke-on', editing);
+    var nb = ui.el.querySelector('[data-newev]'); if (nb) nb.hidden = !editing;
+    ui.el.classList.toggle('editing', editing);
+    if (!editing && window.MinestKEdit) MinestKEdit.closeBar(); else if (editing) toast('Tap an event to edit it');
+  }
+  function editEv(n) {
+    if (!window.MinestKEdit) return;
+    closeSheet();
+    ui.list.querySelectorAll('.kesel').forEach(function (x) { x.classList.remove('kesel'); });
+    ui.list.querySelectorAll('[data-id="' + (window.CSS && CSS.escape ? CSS.escape(n.id) : n.id) + '"]').forEach(function (x) { x.classList.add('kesel'); });
+    MinestKEdit.bar({ bid: ui.bid, kind: n.parent ? 'item' : 'card', id: n.id, title: n.title }, {
+      hide: { up: 1, down: 1, head: 1 },   // time decides the order here
+      extra: [{ key: 'date', icon: 'date', label: 'Date', before: true, run: function () { MinestKEdit.closeBar(); dateSheet(n); } }],
+      onDetails: function () { away(n); },
+      onDone: function (m) {
+        var y = ui.list.scrollTop; render(); ui.list.scrollTop = y;
+        if (m && m.id && m.id !== n.id) { MinestKEdit.closeBar(); dateSheet({ id: m.id, title: (evById(m.id) || {}).title || 'New card', t: null }); }   // a new one: give it its date so it shows on the line
+      }
+    });
+  }
+  function newEvent() {
+    var b = boardById(ui.bid); if (!b || !window.MinestKEdit) return;
+    var lists = (b.columns || []).map(function (c) { return [c.id, c.title || 'List']; });
+    if (!lists.length) return toast('Add a list to this board first.');
+    MinestKEdit.sheet({ title: 'New event', ok: 'Add', fields: [
+      { key: 'title', label: 'Title' }, { key: 'desc', label: 'Note', type: 'note' },
+      { key: 'y', label: 'Year (− for BCE)', type: 'num', half: true }, { key: 'm', label: 'Month', type: 'num', half: true }, { key: 'd', label: 'Day', type: 'num', half: true },
+      { key: 'list', label: 'List', type: 'select', options: lists, value: S.list[ui.bid] || lists[0][0] }
+    ] }).then(function (v) {
+      if (!v || !v.title.trim()) return;
+      var y = parseInt(v.y, 10), mo = parseInt(v.m, 10), d = parseInt(v.d, 10);
+      return MinestKEdit.ops.addCardTo(ui.bid, v.list, null, { title: v.title, desc: v.desc }).then(function (m) {
+        if (m && m.id && isFinite(y)) { var dt = { y: y }; if (mo >= 1 && mo <= 12) { dt.m = mo; if (d >= 1 && d <= 31) dt.d = d; } KN().setDate(m.id, dt); }
+        render(); if (m && m.id) setTimeout(function () { hit(m.id); }, 120);
+      });
+    });
+  }
+  window.addEventListener('minest:kedit', function () { if (ui.open && ui.el && !ui.el.classList.contains('away') && !sheet) { var st = ui.list.scrollTop; render(); ui.list.scrollTop = st; } });
+
   function open(boardId) {
     if (ui.open) return;
     ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
@@ -55965,7 +56378,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     var el = document.createElement('div'); el.className = 'tl'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Timeline');
     el.innerHTML = '<div class="tl-head"><button type="button" class="tl-tb" data-boards><small>Timeline</small><b></b></button>' +
       '<button type="button" class="tl-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
-      '<div class="tl-row"><span class="tl-seg"><button type="button" data-view="v" title="Vertical">↕ Vertical</button><button type="button" data-view="h" title="Horizontal">↔ Horizontal</button></span></div>' +
+      '<div class="tl-row"><span class="tl-seg"><button type="button" data-view="v" title="Vertical">↕ Vertical</button><button type="button" data-view="h" title="Horizontal">↔ Horizontal</button></span><button type="button" class="tl-chip" data-kedit>✎ Edit</button><button type="button" class="tl-chip" data-newev hidden>＋ New event</button></div>' +
       '<div class="tl-row tl-nav"></div><div class="tl-row tl-lists"></div></div><div class="tl-body"></div>';
     ui.el = el; ui.list = el.querySelector('.tl-body'); ui.title = el.querySelector('.tl-tb b'); ui.nav = el.querySelector('.tl-nav'); ui.lists = el.querySelector('.tl-lists'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
@@ -55975,6 +56388,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   }
   function close() {
     if (!ui.open) return;
+    if (editing) setEdit(false);
     keep(); closeSheet();
     var el = ui.el; ui.open = false; ui.el = null; document.documentElement.classList.remove('kn-open');
     var m = document.querySelector('.tl-menu'); if (m) m.remove();
@@ -55995,8 +56409,10 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     el.addEventListener('click', function (e) {
       if (e.target.closest('[data-x]')) return close();
       if (e.target.closest('[data-boards]')) return boardMenu(e.target.closest('[data-boards]'));
+      if (e.target.closest('[data-kedit]')) return setEdit(!editing);
+      if (e.target.closest('[data-newev]')) return newEvent();
       var vw = e.target.closest('[data-view]'); if (vw) { keep(); S.view = vw.getAttribute('data-view'); stSave(); render(); restore(); return; }
-      var hb = e.target.closest('.tl-hb, .tl-hd'); if (hb) { var hn = evById(hb.getAttribute('data-id')); if (hn) evSheet(hn); return; }
+      var hb = e.target.closest('.tl-hb, .tl-hd'); if (hb) { var hn = evById(hb.getAttribute('data-id')); if (hn) { if (editing) editEv(hn); else evSheet(hn); } return; }
       if (e.target.closest('[data-goto]')) return yearSheet();
       var j = e.target.closest('[data-jump]'); if (j) return scrollToYear(+j.getAttribute('data-jump'));
       var l = e.target.closest('[data-list]'); if (l) { S.list[ui.bid] = l.getAttribute('data-list') || null; stSave(); render(); return; }
@@ -56004,6 +56420,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       var row = e.target.closest('[data-id]'); if (!row) return;
       var n = evById(row.getAttribute('data-id')); if (!n) return;
       var sug = e.target.closest('[data-sug]'); if (sug) return dateSheet(n, { y: +sug.getAttribute('data-sug') });
+      if (editing && !e.target.closest('[data-a]')) return editEv(n);   // Edit: a tap selects the event (the edit bar comes up)
       var act = e.target.closest('[data-a]');
       if (act) {
         var a = act.getAttribute('data-a');
@@ -57070,7 +57487,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.wk.edit .wk-ed{display:inline-flex}',
     '.wk-ed button{height:24px;min-width:24px;padding:0 6px;border-radius:7px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;font:600 11.5px -apple-system,system-ui,sans-serif;cursor:pointer}',
     '.wk.edit .wk-a{padding:1px 3px;background:rgba(255,255,255,.06)}',
-    '.wk.edit .wk-a:after{content:" ✕";color:#ff8a80;font-size:11px}',
+    '.wk.edit .wk-a.kesel{outline:2px solid #0a84ff;outline-offset:1px}',
     '.wk-add{display:none;margin-left:6px}',
     '.wk.edit .wk-add{display:inline}',
     '.wk-tools{display:none;gap:6px;flex-wrap:wrap;margin:12px 0 0}',
@@ -57148,7 +57565,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   function itemsHtml(n) {
     var parts = (n.items || []).filter(function (id) { return IDX[id]; }).map(function (id) { return itemHtml(id, n.id); });
     return (parts.length ? parts.join('<span class="wk-dot">·</span>') : (edit ? '<span class="wk-empty">No entries yet</span>' : '')) +
-      '<span class="wk-add"><span class="wk-ed"><button type="button" data-addto="' + esc(n.id) + '">＋ Entries</button></span></span>';
+      '<span class="wk-add"><span class="wk-ed"><button type="button" data-newin="' + esc(n.id) + '">＋ New</button><button type="button" data-addto="' + esc(n.id) + '">＋ Existing</button></span></span>';
   }
   function ctl(n, isGroup) {
     return '<span class="wk-ed"><button type="button" data-ren="' + esc(n.id) + '" title="Rename">✎</button><button type="button" data-up="' + esc(n.id) + '" title="Move up">↑</button><button type="button" data-down="' + esc(n.id) + '" title="Move down">↓</button><button type="button" data-sub="' + esc(n.id) + '" title="Add a subcategory">＋</button><button type="button" data-del="' + esc(n.id) + '" title="Delete">✕</button></span>';
@@ -57349,8 +57766,55 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       KN().set('wk:pv:' + id, d || im ? { desc: d, image: im } : null); closeSheet(); toast('Preview saved');
     });
   }
+  // ---------------------------------------------------------------- editing entries (MinestKEdit: the Outline's basics)
+  function editEntry(a) {
+    if (!window.MinestKEdit) return;
+    var id = a.getAttribute('data-item'), bid = a.getAttribute('data-b') || ui.bid, nodeId = a.getAttribute('data-node'), x = lookup(id, a.getAttribute('data-b'));
+    if (!x) return;
+    closePv();
+    ui.list.querySelectorAll('.wk-a.kesel').forEach(function (e) { e.classList.remove('kesel'); }); a.classList.add('kesel');
+    var tree = a.getAttribute('data-b') ? treeOf(boardById(bid)) : T;
+    MinestKEdit.bar({ bid: bid, kind: x.parent ? 'item' : 'card', id: id, title: x.card.title }, {
+      hide: { up: 1, down: 1 },
+      extra: [
+        { key: 'uncat', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h10M3 17h7"/><path d="m16 15 5 5M21 15l-5 5"/></svg>', label: 'Out of this category (the card stays)', run: function () {
+          var h = findNode(tree, nodeId); if (!h) return; h.node.items = h.node.items.filter(function (q) { return q !== id; });
+          delete tree.auto; KN().set('wk:tree:' + bid, tree); MinestKEdit.closeBar(); render();
+        } },
+        { key: 'pv', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg>', label: 'Preview (summary, picture)', run: function () { MinestKEdit.closeBar(); if (a.getAttribute('data-b')) { IDX = IDXB[bid]; } editPreview(id); } }
+      ],
+      onDetails: function () { details(id, a.getAttribute('data-b')); },
+      onDone: function (m) {
+        // a new card made from here joins the same category, right after this entry
+        if (m && m.id && m.id !== id && m.kind === 'card') { var h = findNode(tree, nodeId); if (h) { var at = h.node.items.indexOf(id); h.node.items.splice(at + 1, 0, m.id); delete tree.auto; KN().set('wk:tree:' + bid, tree); } }
+        else if (!m && !MinestKEdit.find({ bid: bid, kind: x.parent ? 'item' : 'card', id: id }) && !tree.auto) {   // deleted: out of every category too
+          walk(tree, function (q) { q.items = (q.items || []).filter(function (z) { return z !== id; }); }); KN().set('wk:tree:' + bid, tree, true);
+        }
+        var y = ui.list.scrollTop; render(); ui.list.scrollTop = y;
+      }
+    });
+  }
+  // ＋ New in a category: a new card on the board (in the category's own list when it has one) that joins the category
+  function newIn(nodeId) {
+    var b = boardById(ui.bid), h = findNode(T, nodeId); if (!b || !h || !window.MinestKEdit) return;
+    var cols = b.columns || []; if (!cols.length) return toast('Add a list to this board first.');
+    var root = T.groups.filter(function (g) { return g.id === nodeId || findNode({ groups: [g] }, nodeId); })[0] || h.node;
+    var col = cols.filter(function (c) { return 'g-' + c.id === root.id || c.id === 'kl-' + ui.bid + '-' + root.id; })[0];
+    if (!col) { var first = nodeIds(h.node).map(function (q) { return IDX[q]; }).filter(Boolean)[0]; col = first ? first.col : cols[0]; }
+    MinestKEdit.sheet({ title: 'New entry in “' + h.node.title + '”', ok: 'Add', fields: [{ key: 'title', label: 'Title' }, { key: 'desc', label: 'Summary', type: 'note' }, { key: 'list', label: 'On the board in', type: 'select', options: cols.map(function (c) { return [c.id, c.title || 'List']; }), value: col.id }] })
+      .then(function (v) {
+        if (!v || !v.title.trim()) return;
+        return MinestKEdit.ops.addCardTo(ui.bid, v.list, null, { title: v.title, desc: v.desc }).then(function (m) {
+          if (!m || !m.id) return;
+          var t2 = treeOf(boardById(ui.bid)), h2 = findNode(t2, nodeId); if (h2) { h2.node.items = (h2.node.items || []).concat([m.id]); delete t2.auto; KN().set('wk:tree:' + ui.bid, t2); }
+          render(); setTimeout(function () { lit(m.id); }, 60);
+        });
+      });
+  }
+  window.addEventListener('minest:kedit', function () { if (ui.open && ui.el && !ui.el.classList.contains('away') && !sheet) { var y = ui.list.scrollTop; render(); ui.list.scrollTop = y; } });
   function onEditClick(t) {
     var id;
+    if ((id = attr(t, 'data-newin'))) return newIn(id), true;
     if ((id = attr(t, 'data-addto'))) return pickEntries(id), true;
     if ((id = attr(t, 'data-ren'))) { var h = findNode(T, id), nm = prompt('Name', h.node.title); if (nm && nm.trim()) { h.node.title = nm.trim(); saveTree(T); render(); } return true; }
     if ((id = attr(t, 'data-del'))) { var h2 = findNode(T, id); if (confirm('Delete the category “' + h2.node.title + '”? (Its entries stay on the board.)')) { h2.list.splice(h2.i, 1); saveTree(T); render(); } return true; }
@@ -57412,6 +57876,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   }
   function close() {
     if (!ui.open) return;
+    if (window.MinestKEdit) MinestKEdit.closeBar();
     keep(); closePv(); closeSheet();
     var el = ui.el; ui.open = false; ui.el = null; document.documentElement.classList.remove('kn-open');
     var m = document.querySelector('.wk-menu'); if (m) m.remove();
@@ -57446,7 +57911,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       if (t.closest('[data-x]')) return close();
       if (t.closest('[data-boards]')) return boardMenu(t.closest('[data-boards]'));
       var ly = attr(t, 'data-layout'); if (ly) { st().layout = ly; stSave(); return render(); }
-      if (t.closest('[data-edit]')) { edit = !edit; t.closest('[data-edit]').classList.toggle('on', edit); el.classList.toggle('edit', edit); closePv(); return render(); }
+      if (t.closest('[data-edit]')) { edit = !edit; t.closest('[data-edit]').classList.toggle('on', edit); el.classList.toggle('edit', edit); closePv(); if (!edit && window.MinestKEdit) MinestKEdit.closeBar(); else toast('Tap an entry to edit it'); return render(); }
       if (t.closest('[data-hide]')) { st().hide = !st().hide; stSave(); return render(); }
       if (t.closest('[data-crumb]')) return backToCourse();
       var cf = attr(t, 'data-cfold'); if (cf) { st().fold[cf] = !st().fold[cf]; stSave(); var y0 = ui.list.scrollTop; render(); ui.list.scrollTop = y0; return; }
@@ -57456,7 +57921,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       var a = t.closest('.wk-a');
       if (a) {
         e.preventDefault();
-        if (edit && !ui.course) { var h = findNode(T, a.getAttribute('data-node')); if (h) { h.node.items = h.node.items.filter(function (x) { return x !== a.getAttribute('data-item'); }); saveTree(T); render(); } return; }
+        if (edit) return editEntry(a);   // Edit: the entry's edit bar (text, details, delete, out of this category, preview)
         if (fine) { closePv(); return details(a.getAttribute('data-item'), a.getAttribute('data-b')); }
         if (pv && pv.__id === a.getAttribute('data-item') && pv.__b === a.getAttribute('data-b')) return closePv();
         return preview(a, true);

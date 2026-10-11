@@ -71,6 +71,8 @@
     '.tl-x{position:absolute;right:16px;top:calc(env(safe-area-inset-top,0px) + 18px);width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer}',
     '.tl-row{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}',
     '.tl-row::-webkit-scrollbar{display:none}',
+    '.tl .kesel{outline:2.5px solid #0a84ff;outline-offset:2px;border-radius:12px}',
+    '.tl-chip[hidden]{display:none}',
     '.tl-chip{flex:none;height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font:600 12.5px -apple-system,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}',
     '.tl-chip.on{background:rgba(10,132,255,.32);border-color:rgba(10,132,255,.65)}',
     '.tl-chip i{width:8px;height:8px;border-radius:50%;background:var(--c)}',
@@ -399,6 +401,49 @@
   function restore() { ui.list.scrollTop = S.scroll[ui.bid] || 0; ui.list.scrollLeft = (S.scrollX || {})[ui.bid] || 0; }
 
   // ---------------------------------------------------------------- open / close
+  // ---------------------------------------------------------------- editing (MinestKEdit: the Outline's basics, plus the date)
+  var editing = false;
+  function setEdit(on) {
+    editing = !!on; if (!ui.el) return;
+    var b = ui.el.querySelector('[data-kedit]'); if (b) b.classList.toggle('ke-on', editing);
+    var nb = ui.el.querySelector('[data-newev]'); if (nb) nb.hidden = !editing;
+    ui.el.classList.toggle('editing', editing);
+    if (!editing && window.MinestKEdit) MinestKEdit.closeBar(); else if (editing) toast('Tap an event to edit it');
+  }
+  function editEv(n) {
+    if (!window.MinestKEdit) return;
+    closeSheet();
+    ui.list.querySelectorAll('.kesel').forEach(function (x) { x.classList.remove('kesel'); });
+    ui.list.querySelectorAll('[data-id="' + (window.CSS && CSS.escape ? CSS.escape(n.id) : n.id) + '"]').forEach(function (x) { x.classList.add('kesel'); });
+    MinestKEdit.bar({ bid: ui.bid, kind: n.parent ? 'item' : 'card', id: n.id, title: n.title }, {
+      hide: { up: 1, down: 1, head: 1 },   // time decides the order here
+      extra: [{ key: 'date', icon: 'date', label: 'Date', before: true, run: function () { MinestKEdit.closeBar(); dateSheet(n); } }],
+      onDetails: function () { away(n); },
+      onDone: function (m) {
+        var y = ui.list.scrollTop; render(); ui.list.scrollTop = y;
+        if (m && m.id && m.id !== n.id) { MinestKEdit.closeBar(); dateSheet({ id: m.id, title: (evById(m.id) || {}).title || 'New card', t: null }); }   // a new one: give it its date so it shows on the line
+      }
+    });
+  }
+  function newEvent() {
+    var b = boardById(ui.bid); if (!b || !window.MinestKEdit) return;
+    var lists = (b.columns || []).map(function (c) { return [c.id, c.title || 'List']; });
+    if (!lists.length) return toast('Add a list to this board first.');
+    MinestKEdit.sheet({ title: 'New event', ok: 'Add', fields: [
+      { key: 'title', label: 'Title' }, { key: 'desc', label: 'Note', type: 'note' },
+      { key: 'y', label: 'Year (− for BCE)', type: 'num', half: true }, { key: 'm', label: 'Month', type: 'num', half: true }, { key: 'd', label: 'Day', type: 'num', half: true },
+      { key: 'list', label: 'List', type: 'select', options: lists, value: S.list[ui.bid] || lists[0][0] }
+    ] }).then(function (v) {
+      if (!v || !v.title.trim()) return;
+      var y = parseInt(v.y, 10), mo = parseInt(v.m, 10), d = parseInt(v.d, 10);
+      return MinestKEdit.ops.addCardTo(ui.bid, v.list, null, { title: v.title, desc: v.desc }).then(function (m) {
+        if (m && m.id && isFinite(y)) { var dt = { y: y }; if (mo >= 1 && mo <= 12) { dt.m = mo; if (d >= 1 && d <= 31) dt.d = d; } KN().setDate(m.id, dt); }
+        render(); if (m && m.id) setTimeout(function () { hit(m.id); }, 120);
+      });
+    });
+  }
+  window.addEventListener('minest:kedit', function () { if (ui.open && ui.el && !ui.el.classList.contains('away') && !sheet) { var st = ui.list.scrollTop; render(); ui.list.scrollTop = st; } });
+
   function open(boardId) {
     if (ui.open) return;
     ensureCss(); if (window.MinestKnowledge && MinestKnowledge.applyLook) MinestKnowledge.applyLook();
@@ -408,7 +453,7 @@
     var el = document.createElement('div'); el.className = 'tl'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Timeline');
     el.innerHTML = '<div class="tl-head"><button type="button" class="tl-tb" data-boards><small>Timeline</small><b></b></button>' +
       '<button type="button" class="tl-x" data-x aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
-      '<div class="tl-row"><span class="tl-seg"><button type="button" data-view="v" title="Vertical">↕ Vertical</button><button type="button" data-view="h" title="Horizontal">↔ Horizontal</button></span></div>' +
+      '<div class="tl-row"><span class="tl-seg"><button type="button" data-view="v" title="Vertical">↕ Vertical</button><button type="button" data-view="h" title="Horizontal">↔ Horizontal</button></span><button type="button" class="tl-chip" data-kedit>✎ Edit</button><button type="button" class="tl-chip" data-newev hidden>＋ New event</button></div>' +
       '<div class="tl-row tl-nav"></div><div class="tl-row tl-lists"></div></div><div class="tl-body"></div>';
     ui.el = el; ui.list = el.querySelector('.tl-body'); ui.title = el.querySelector('.tl-tb b'); ui.nav = el.querySelector('.tl-nav'); ui.lists = el.querySelector('.tl-lists'); ui.open = true;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
@@ -418,6 +463,7 @@
   }
   function close() {
     if (!ui.open) return;
+    if (editing) setEdit(false);
     keep(); closeSheet();
     var el = ui.el; ui.open = false; ui.el = null; document.documentElement.classList.remove('kn-open');
     var m = document.querySelector('.tl-menu'); if (m) m.remove();
@@ -438,8 +484,10 @@
     el.addEventListener('click', function (e) {
       if (e.target.closest('[data-x]')) return close();
       if (e.target.closest('[data-boards]')) return boardMenu(e.target.closest('[data-boards]'));
+      if (e.target.closest('[data-kedit]')) return setEdit(!editing);
+      if (e.target.closest('[data-newev]')) return newEvent();
       var vw = e.target.closest('[data-view]'); if (vw) { keep(); S.view = vw.getAttribute('data-view'); stSave(); render(); restore(); return; }
-      var hb = e.target.closest('.tl-hb, .tl-hd'); if (hb) { var hn = evById(hb.getAttribute('data-id')); if (hn) evSheet(hn); return; }
+      var hb = e.target.closest('.tl-hb, .tl-hd'); if (hb) { var hn = evById(hb.getAttribute('data-id')); if (hn) { if (editing) editEv(hn); else evSheet(hn); } return; }
       if (e.target.closest('[data-goto]')) return yearSheet();
       var j = e.target.closest('[data-jump]'); if (j) return scrollToYear(+j.getAttribute('data-jump'));
       var l = e.target.closest('[data-list]'); if (l) { S.list[ui.bid] = l.getAttribute('data-list') || null; stSave(); render(); return; }
@@ -447,6 +495,7 @@
       var row = e.target.closest('[data-id]'); if (!row) return;
       var n = evById(row.getAttribute('data-id')); if (!n) return;
       var sug = e.target.closest('[data-sug]'); if (sug) return dateSheet(n, { y: +sug.getAttribute('data-sug') });
+      if (editing && !e.target.closest('[data-a]')) return editEv(n);   // Edit: a tap selects the event (the edit bar comes up)
       var act = e.target.closest('[data-a]');
       if (act) {
         var a = act.getAttribute('data-a');

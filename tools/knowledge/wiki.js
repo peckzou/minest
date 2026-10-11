@@ -166,7 +166,7 @@
     '.wk.edit .wk-ed{display:inline-flex}',
     '.wk-ed button{height:24px;min-width:24px;padding:0 6px;border-radius:7px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;font:600 11.5px -apple-system,system-ui,sans-serif;cursor:pointer}',
     '.wk.edit .wk-a{padding:1px 3px;background:rgba(255,255,255,.06)}',
-    '.wk.edit .wk-a:after{content:" ✕";color:#ff8a80;font-size:11px}',
+    '.wk.edit .wk-a.kesel{outline:2px solid #0a84ff;outline-offset:1px}',
     '.wk-add{display:none;margin-left:6px}',
     '.wk.edit .wk-add{display:inline}',
     '.wk-tools{display:none;gap:6px;flex-wrap:wrap;margin:12px 0 0}',
@@ -244,7 +244,7 @@
   function itemsHtml(n) {
     var parts = (n.items || []).filter(function (id) { return IDX[id]; }).map(function (id) { return itemHtml(id, n.id); });
     return (parts.length ? parts.join('<span class="wk-dot">·</span>') : (edit ? '<span class="wk-empty">No entries yet</span>' : '')) +
-      '<span class="wk-add"><span class="wk-ed"><button type="button" data-addto="' + esc(n.id) + '">＋ Entries</button></span></span>';
+      '<span class="wk-add"><span class="wk-ed"><button type="button" data-newin="' + esc(n.id) + '">＋ New</button><button type="button" data-addto="' + esc(n.id) + '">＋ Existing</button></span></span>';
   }
   function ctl(n, isGroup) {
     return '<span class="wk-ed"><button type="button" data-ren="' + esc(n.id) + '" title="Rename">✎</button><button type="button" data-up="' + esc(n.id) + '" title="Move up">↑</button><button type="button" data-down="' + esc(n.id) + '" title="Move down">↓</button><button type="button" data-sub="' + esc(n.id) + '" title="Add a subcategory">＋</button><button type="button" data-del="' + esc(n.id) + '" title="Delete">✕</button></span>';
@@ -445,8 +445,55 @@
       KN().set('wk:pv:' + id, d || im ? { desc: d, image: im } : null); closeSheet(); toast('Preview saved');
     });
   }
+  // ---------------------------------------------------------------- editing entries (MinestKEdit: the Outline's basics)
+  function editEntry(a) {
+    if (!window.MinestKEdit) return;
+    var id = a.getAttribute('data-item'), bid = a.getAttribute('data-b') || ui.bid, nodeId = a.getAttribute('data-node'), x = lookup(id, a.getAttribute('data-b'));
+    if (!x) return;
+    closePv();
+    ui.list.querySelectorAll('.wk-a.kesel').forEach(function (e) { e.classList.remove('kesel'); }); a.classList.add('kesel');
+    var tree = a.getAttribute('data-b') ? treeOf(boardById(bid)) : T;
+    MinestKEdit.bar({ bid: bid, kind: x.parent ? 'item' : 'card', id: id, title: x.card.title }, {
+      hide: { up: 1, down: 1 },
+      extra: [
+        { key: 'uncat', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h10M3 17h7"/><path d="m16 15 5 5M21 15l-5 5"/></svg>', label: 'Out of this category (the card stays)', run: function () {
+          var h = findNode(tree, nodeId); if (!h) return; h.node.items = h.node.items.filter(function (q) { return q !== id; });
+          delete tree.auto; KN().set('wk:tree:' + bid, tree); MinestKEdit.closeBar(); render();
+        } },
+        { key: 'pv', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg>', label: 'Preview (summary, picture)', run: function () { MinestKEdit.closeBar(); if (a.getAttribute('data-b')) { IDX = IDXB[bid]; } editPreview(id); } }
+      ],
+      onDetails: function () { details(id, a.getAttribute('data-b')); },
+      onDone: function (m) {
+        // a new card made from here joins the same category, right after this entry
+        if (m && m.id && m.id !== id && m.kind === 'card') { var h = findNode(tree, nodeId); if (h) { var at = h.node.items.indexOf(id); h.node.items.splice(at + 1, 0, m.id); delete tree.auto; KN().set('wk:tree:' + bid, tree); } }
+        else if (!m && !MinestKEdit.find({ bid: bid, kind: x.parent ? 'item' : 'card', id: id }) && !tree.auto) {   // deleted: out of every category too
+          walk(tree, function (q) { q.items = (q.items || []).filter(function (z) { return z !== id; }); }); KN().set('wk:tree:' + bid, tree, true);
+        }
+        var y = ui.list.scrollTop; render(); ui.list.scrollTop = y;
+      }
+    });
+  }
+  // ＋ New in a category: a new card on the board (in the category's own list when it has one) that joins the category
+  function newIn(nodeId) {
+    var b = boardById(ui.bid), h = findNode(T, nodeId); if (!b || !h || !window.MinestKEdit) return;
+    var cols = b.columns || []; if (!cols.length) return toast('Add a list to this board first.');
+    var root = T.groups.filter(function (g) { return g.id === nodeId || findNode({ groups: [g] }, nodeId); })[0] || h.node;
+    var col = cols.filter(function (c) { return 'g-' + c.id === root.id || c.id === 'kl-' + ui.bid + '-' + root.id; })[0];
+    if (!col) { var first = nodeIds(h.node).map(function (q) { return IDX[q]; }).filter(Boolean)[0]; col = first ? first.col : cols[0]; }
+    MinestKEdit.sheet({ title: 'New entry in “' + h.node.title + '”', ok: 'Add', fields: [{ key: 'title', label: 'Title' }, { key: 'desc', label: 'Summary', type: 'note' }, { key: 'list', label: 'On the board in', type: 'select', options: cols.map(function (c) { return [c.id, c.title || 'List']; }), value: col.id }] })
+      .then(function (v) {
+        if (!v || !v.title.trim()) return;
+        return MinestKEdit.ops.addCardTo(ui.bid, v.list, null, { title: v.title, desc: v.desc }).then(function (m) {
+          if (!m || !m.id) return;
+          var t2 = treeOf(boardById(ui.bid)), h2 = findNode(t2, nodeId); if (h2) { h2.node.items = (h2.node.items || []).concat([m.id]); delete t2.auto; KN().set('wk:tree:' + ui.bid, t2); }
+          render(); setTimeout(function () { lit(m.id); }, 60);
+        });
+      });
+  }
+  window.addEventListener('minest:kedit', function () { if (ui.open && ui.el && !ui.el.classList.contains('away') && !sheet) { var y = ui.list.scrollTop; render(); ui.list.scrollTop = y; } });
   function onEditClick(t) {
     var id;
+    if ((id = attr(t, 'data-newin'))) return newIn(id), true;
     if ((id = attr(t, 'data-addto'))) return pickEntries(id), true;
     if ((id = attr(t, 'data-ren'))) { var h = findNode(T, id), nm = prompt('Name', h.node.title); if (nm && nm.trim()) { h.node.title = nm.trim(); saveTree(T); render(); } return true; }
     if ((id = attr(t, 'data-del'))) { var h2 = findNode(T, id); if (confirm('Delete the category “' + h2.node.title + '”? (Its entries stay on the board.)')) { h2.list.splice(h2.i, 1); saveTree(T); render(); } return true; }
@@ -508,6 +555,7 @@
   }
   function close() {
     if (!ui.open) return;
+    if (window.MinestKEdit) MinestKEdit.closeBar();
     keep(); closePv(); closeSheet();
     var el = ui.el; ui.open = false; ui.el = null; document.documentElement.classList.remove('kn-open');
     var m = document.querySelector('.wk-menu'); if (m) m.remove();
@@ -542,7 +590,7 @@
       if (t.closest('[data-x]')) return close();
       if (t.closest('[data-boards]')) return boardMenu(t.closest('[data-boards]'));
       var ly = attr(t, 'data-layout'); if (ly) { st().layout = ly; stSave(); return render(); }
-      if (t.closest('[data-edit]')) { edit = !edit; t.closest('[data-edit]').classList.toggle('on', edit); el.classList.toggle('edit', edit); closePv(); return render(); }
+      if (t.closest('[data-edit]')) { edit = !edit; t.closest('[data-edit]').classList.toggle('on', edit); el.classList.toggle('edit', edit); closePv(); if (!edit && window.MinestKEdit) MinestKEdit.closeBar(); else toast('Tap an entry to edit it'); return render(); }
       if (t.closest('[data-hide]')) { st().hide = !st().hide; stSave(); return render(); }
       if (t.closest('[data-crumb]')) return backToCourse();
       var cf = attr(t, 'data-cfold'); if (cf) { st().fold[cf] = !st().fold[cf]; stSave(); var y0 = ui.list.scrollTop; render(); ui.list.scrollTop = y0; return; }
@@ -552,7 +600,7 @@
       var a = t.closest('.wk-a');
       if (a) {
         e.preventDefault();
-        if (edit && !ui.course) { var h = findNode(T, a.getAttribute('data-node')); if (h) { h.node.items = h.node.items.filter(function (x) { return x !== a.getAttribute('data-item'); }); saveTree(T); render(); } return; }
+        if (edit) return editEntry(a);   // Edit: the entry's edit bar (text, details, delete, out of this category, preview)
         if (fine) { closePv(); return details(a.getAttribute('data-item'), a.getAttribute('data-b')); }
         if (pv && pv.__id === a.getAttribute('data-item') && pv.__b === a.getAttribute('data-b')) return closePv();
         return preview(a, true);
