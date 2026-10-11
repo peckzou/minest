@@ -25,7 +25,7 @@
   // ================================================================== the graph and its automatic layout
   var SIZE = { board: 168, list: 116, card: 86, item: 70 };
   var PAL = ['#5bb5c8', '#f0965a', '#e0605a', '#f2c84b', '#9b6fd0', '#5a9cf0', '#5cbf7f', '#e57bb0'];
-  function styleOf(bid) { var v = KN() && KN().get('km:style:' + bid); return v === 'mind' || v === 'xmind' ? v : 'bubble'; }
+  function styleOf(bid) { var v = KN() && KN().get('km:style:' + bid); return v === 'bubble' || v === 'xmind' ? v : 'mind'; }   // MindNode unless chosen otherwise
   function graph(b, style) {
     var nodes = [], byKey = {}, tree = style !== 'bubble';
     var stageOf = tree && KN() ? ((KN().get('lm:cfg:' + b.id) || {}).stageOf || {}) : {};
@@ -207,7 +207,7 @@
     // a bright rim and its list's colour pooling at the bottom; the bars are glass capsules
     'html .km.s-bubble{background:radial-gradient(900px 700px at 12% 8%,rgba(94,92,230,.38),transparent 60%),radial-gradient(800px 700px at 88% 92%,rgba(48,176,199,.30),transparent 60%),radial-gradient(700px 600px at 85% 15%,rgba(255,105,180,.16),transparent 60%),radial-gradient(1300px 950px at 50% 45%,#17213a,#090d18 75%)}',
     'html .km.s-bubble .km-n{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.42);' +
-      'background:radial-gradient(110% 70% at 32% 10%,rgba(255,255,255,.58),rgba(255,255,255,0) 44%),radial-gradient(95% 80% at 50% 108%,color-mix(in srgb,var(--c) 70%,transparent),transparent 72%),linear-gradient(160deg,color-mix(in srgb,var(--c) 42%,rgba(255,255,255,.12)),color-mix(in srgb,var(--c) 24%,rgba(8,12,22,.42)));' +
+      'background:radial-gradient(110% 70% at 32% 10%,rgba(255,255,255,.58),rgba(255,255,255,0) 44%),radial-gradient(95% 80% at 50% 108%,color-mix(in srgb,var(--c) 70%,transparent),transparent 72%),linear-gradient(160deg,color-mix(in srgb,var(--c) 42%,rgba(255,255,255,.12)),color-mix(in srgb,var(--c) 24%,rgba(8,12,22,.42))),#141c2e;' +   // a solid base: lines behind never show through the text
       'box-shadow:inset 0 1.5px 0 rgba(255,255,255,.6),0 10px 24px rgba(0,0,0,.32)}',   // light on paint: many bubbles fly at once
     'html .km.s-bubble .km-n.board{border-width:1.5px;box-shadow:inset 0 2px 0 rgba(255,255,255,.65),inset 0 -16px 34px color-mix(in srgb,var(--c) 40%,transparent),0 22px 50px rgba(0,0,0,.42),0 0 46px color-mix(in srgb,var(--c) 45%,transparent)}',
     'html .km.s-bubble .km-n.head{border-color:rgba(255,214,10,.9);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.6),0 0 0 2px rgba(255,214,10,.35),0 16px 36px rgba(0,0,0,.38)}',
@@ -220,7 +220,7 @@
     // light: white frosted glass
     'html.kn-light .km.s-bubble{background:radial-gradient(900px 700px at 12% 8%,rgba(150,140,255,.28),transparent 60%),radial-gradient(800px 700px at 88% 92%,rgba(90,200,220,.25),transparent 60%),radial-gradient(700px 600px at 85% 15%,rgba(255,150,200,.18),transparent 60%),radial-gradient(1300px 950px at 50% 45%,#f7f9fd,#e6ebf4 75%)}',
     'html.kn-light .km.s-bubble .km-n{color:#1d1f23;text-shadow:none;border-color:rgba(255,255,255,.95);' +
-      'background:radial-gradient(110% 70% at 32% 10%,rgba(255,255,255,.95),rgba(255,255,255,0) 50%),radial-gradient(95% 80% at 50% 108%,color-mix(in srgb,var(--c) 38%,transparent),transparent 72%),linear-gradient(160deg,rgba(255,255,255,.82),color-mix(in srgb,var(--c) 20%,rgba(255,255,255,.62)));' +
+      'background:radial-gradient(110% 70% at 32% 10%,rgba(255,255,255,.95),rgba(255,255,255,0) 50%),radial-gradient(95% 80% at 50% 108%,color-mix(in srgb,var(--c) 38%,transparent),transparent 72%),linear-gradient(160deg,rgba(255,255,255,.82),color-mix(in srgb,var(--c) 20%,rgba(255,255,255,.62))),#f4f6fb;' +
       'box-shadow:inset 0 1.5px 0 #fff,0 8px 20px rgba(30,40,60,.13)}',
     'html.kn-light .km.s-bubble .km-n.focus{box-shadow:inset 0 1.5px 0 #fff,0 0 0 3px rgba(10,132,255,.7),0 0 36px 6px color-mix(in srgb,var(--c) 35%,transparent)}',
     'html.kn-light .km.s-bubble .km-lines path{stroke:rgba(30,40,60,.2)}html.kn-light .km.s-bubble .km-lines path.on{stroke:rgba(30,40,60,.55)}',
@@ -287,8 +287,11 @@
       e.style.transform = 'translate(' + (n.x - n.w / 2) + 'px,' + (n.y - n.h / 2) + 'px)';
       if (n.parent && tree) { paths += '<path data-k="' + esc(n.k) + '"' + (n.kind === 'item' ? ' class="it"' : '') + ' style="stroke:' + esc(n.color) + ';stroke-width:' + lineW(n, G.style) + 'px;stroke-linecap:round" d="' + treePath(n.parent, n, G.style) + '"/>'; return; }
       if (n.parent) {
-        var p = n.parent, mx = (p.x + n.x) / 2, my = (p.y + n.y) / 2, nx = -(n.y - p.y) * .12, ny = (n.x - p.x) * .12;
-        paths += '<path data-k="' + esc(n.k) + '"' + (n.kind === 'item' ? ' class="it"' : '') + ' d="M' + p.x + ' ' + p.y + ' Q' + (mx + nx) + ' ' + (my + ny) + ' ' + n.x + ' ' + n.y + '"/>';
+        // edge to edge: the curve leaves the parent's rim and stops at the child's (it never runs under the glass and its text)
+        var p = n.parent, mx = (p.x + n.x) / 2, my = (p.y + n.y) / 2, cx = mx - (n.y - p.y) * .12, cy = my + (n.x - p.x) * .12;
+        var rim = function (o, r) { var dx = cx - o.x, dy = cy - o.y, L = Math.hypot(dx, dy) || 1; return [o.x + dx / L * r, o.y + dy / L * r]; };
+        var a = rim(p, p.w / 2 + 1), z = rim(n, n.w / 2 + 3);
+        paths += '<path data-k="' + esc(n.k) + '"' + (n.kind === 'item' ? ' class="it"' : '') + ' d="M' + a[0].toFixed(1) + ' ' + a[1].toFixed(1) + ' Q' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ' ' + z[0].toFixed(1) + ' ' + z[1].toFixed(1) + '"/>';
       }
     });
     ui.svg.innerHTML = paths;
@@ -520,7 +523,7 @@
     m.addEventListener('click', function (e) {
       var b = e.target.closest('[data-sty]'); if (!b) return; m.remove();
       var v = b.getAttribute('data-sty'); if (v === cur) return;
-      KN().set('km:style:' + ui.bid, v === 'bubble' ? null : v, true);
+      KN().set('km:style:' + ui.bid, v === 'mind' ? null : v, true);
       focusKey = null; build(); delete S.cam[camKey()]; stSave(); restore();
     });
   }
