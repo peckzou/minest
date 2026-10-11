@@ -221,7 +221,7 @@
   };
   var CSS = [
     '.en{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:#eef1f6;font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;' +
-      'background:linear-gradient(180deg,rgba(30,36,48,.96),rgba(14,17,24,.98));-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px)}',
+      'background:linear-gradient(180deg,#1e2430,#0e1118)}',
     '.en.away{visibility:hidden}',
     'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}',
     '.en-head{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 10px;border-bottom:1px solid rgba(255,255,255,.07)}',

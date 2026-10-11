@@ -61,7 +61,7 @@
   var ICON = { tl: I('<path d="M12 3v18"/><circle cx="12" cy="7" r="2"/><circle cx="12" cy="17" r="2"/><path d="M14 7h6M4 17h6"/>') };
   var CSS = [
     '.tl{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:#eef1f6;font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;' +
-      'background:linear-gradient(180deg,rgba(28,32,44,.97),rgba(12,14,20,.99))}',
+      'background:linear-gradient(180deg,#1c202c,#0c0e14)}',
     '.tl.away{visibility:hidden}',
     '.tl-head{position:relative;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 8px;border-bottom:1px solid rgba(255,255,255,.07)}',
     '.tl-tb{display:block;border:0;background:none;color:inherit;text-align:left;padding:0 48px 0 0;cursor:pointer;font:inherit;max-width:100%}',
