@@ -133,6 +133,7 @@ def main():
     s = web31.knowledge_patches(s)
     s = once(s, "    { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },",
              "    { k: 'contents', find: function () { return document.getElementById('mn-contents-trigger'); } },   // 46.9 Minest Knowledge\n"
+             "    { k: 'endless', find: function () { return document.getElementById('mn-endless-trigger'); } },   // 47.0 Endless outline\n"
              "    { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },", 'dock: Contents')
     tail = s.rindex('</body>')
     s = s[:tail] + '<script>\n' + web31.knowledge_js() + '\n</script>\n' + s[tail:]

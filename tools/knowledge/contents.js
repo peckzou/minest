@@ -15,7 +15,7 @@
 
   // ================================================================== knowledge metadata (synced)
   var KN_KEY = 'minest.knowledge.v1';
-  var K = (function () { try { var v = JSON.parse(localStorage.getItem(KN_KEY) || 'null'); if (v && typeof v === 'object') return { h: v.h || {}, off: v.off || {} }; } catch (e) {} return { h: {}, off: {} }; })();
+  var K = (function () { try { var v = JSON.parse(localStorage.getItem(KN_KEY) || 'null'); if (v && typeof v === 'object') return { h: v.h || {}, off: v.off || {}, o: v.o || {} }; } catch (e) {} return { h: {}, off: {}, o: {} }; })();
   function knSave() { try { localStorage.setItem(KN_KEY, JSON.stringify(K)); } catch (e) {} }
   function knPush() {
     // straight to the cloud doc (merge), so a heading reaches the other devices without waiting for a board edit
@@ -26,20 +26,25 @@
     } catch (e) {}
   }
   function setKey(map, id, on) { K[map][id] = { on: on ? 1 : 0, t: Date.now() }; knSave(); knPush(); }
+  var listeners = [];
   window.MinestKnowledge = {
     isHeading: function (cardId) { var x = K.h[cardId]; return !!(x && x.on); },
     setHeading: function (cardId, on) { setKey('h', cardId, on); },
     isOff: function (boardId) { var x = K.off[boardId]; return !!(x && x.on); },
     setOff: function (boardId, on) { setKey('off', boardId, on); },
+    // Endless (Phase 2): an outline parent for a stacked card under another stacked card of the same stack (the Kanban keeps one flat stack)
+    parentOf: function (itemId) { var x = K.o[itemId]; return x && x.p ? x.p : null; },
+    setParents: function (map) { var t = Date.now(); Object.keys(map).forEach(function (id) { K.o[id] = { p: map[id] || null, t: t }; }); knSave(); knPush(); },
+    onChange: function (fn) { listeners.push(fn); },
     _cloud: function () { return K; },
     _mergeCloud: function (R) {
       if (!R || typeof R !== 'object') return;
       var changed = false;
-      ['h', 'off'].forEach(function (m) {
-        var src = R[m] || {};
+      ['h', 'off', 'o'].forEach(function (m) {
+        var src = R[m] || {}; K[m] = K[m] || {};
         Object.keys(src).forEach(function (id) { var a = K[m][id], b = src[id]; if (b && (!a || (b.t || 0) > (a.t || 0))) { K[m][id] = b; changed = true; } });
       });
-      if (changed) { knSave(); if (ui.open) render(); }
+      if (changed) { knSave(); if (ui.open) render(); listeners.forEach(function (f) { try { f(); } catch (e) {} }); }
     }
   };
 
@@ -85,6 +90,7 @@
   var CSS = [
     '.kc{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;color:#f5f7fa;font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;' +
       'background:linear-gradient(180deg,rgba(40,48,62,.9),rgba(16,20,28,.95));-webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);touch-action:pan-y;-webkit-user-select:none;user-select:none}',
+    'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}',
     '.kc-head{display:flex;align-items:flex-end;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 18px) 18px 12px;border-bottom:1px solid rgba(255,255,255,.07)}',
     '.kc-head h1{margin:0;flex:1;font-size:32px;line-height:1.1;font-weight:750;letter-spacing:-.6px}',
     '.kc-head p{margin:4px 0 0;font-size:13px;opacity:.55;font-weight:500}',
@@ -224,7 +230,7 @@
       '<div class="kc-tools"><button type="button" class="kc-tool" data-all="1">Expand</button><button type="button" class="kc-tool" data-all="0">Collapse</button></div>' +
       '<button type="button" class="kc-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="kc-body"></div>';
     ui.el = el; ui.list = el.querySelector('.kc-body'); ui.sub = el.querySelector('.kc-sub'); ui.open = true;
-    document.body.appendChild(el);
+    document.body.appendChild(el); document.documentElement.classList.add('kn-open');
     render();
     ui.list.scrollTop = S.scroll || 0;
     if (S.sel) { var sr = ui.list.querySelector('.kc-row[data-id="' + cssEsc(S.sel) + '"]'); if (sr) { var r = sr.getBoundingClientRect(), lr = ui.list.getBoundingClientRect(); if (r.top < lr.top || r.bottom > lr.bottom) ui.list.scrollTop += r.top - lr.top - lr.height / 3; } }
@@ -238,7 +244,7 @@
   function close(cb) {
     if (!ui.open) return cb && cb();
     S.scroll = ui.list.scrollTop; stSave(); closeMenu();
-    var el = ui.el; ui.open = false; ui.el = null;
+    var el = ui.el; ui.open = false; ui.el = null; document.documentElement.classList.remove('kn-open');
     var done = function () { el.remove(); if (cb) cb(); };
     if (el.animate) { var a = el.animate([{ opacity: 1, scale: '1' }, { opacity: 0, scale: '.96' }], { duration: 200, easing: 'ease-in', fill: 'forwards' }); a.onfinish = done; } else done();
   }

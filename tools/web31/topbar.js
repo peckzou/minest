@@ -18,6 +18,7 @@
   var I = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
   var ICON = {
     search: I('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+    outline: I('<path d="M4 5h16"/><path d="M8 10h12"/><path d="M12 15h8"/><path d="M8 20h12"/>'),
     contents: I('<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 8h8M8 12h5"/>'),
     plus: I('<path d="M12 5v14M5 12h14"/>'),
     cover: I('<path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>'),
@@ -50,6 +51,7 @@
     { k: 'theme', at: 'bar', title: 'Light / dark', icon: function () { return q('button[title^="Switch to light"]') ? ICON.sun : ICON.moon; }, run: function () { press('button[title^="Switch to light"], button[title^="Switch to dark"]'); } },
 
     { k: 'contents', at: 'dock', title: 'Contents', bg: 'linear-gradient(160deg,#34d399,#0f766e)', icon: function () { return ICON.contents; }, run: function () { if (window.MinestContents) MinestContents.toggle(); } },
+    { k: 'endless', at: 'dock', title: 'Outline', bg: 'linear-gradient(160deg,#fbbf24,#b45309)', icon: function () { return ICON.outline; }, run: function () { if (window.MinestEndless) MinestEndless.toggle(); } },
     { k: 'view', at: 'dock', title: function () { return document.body.classList.contains('mode-coverflow') ? 'Board' : '3D Cover'; }, bg: 'linear-gradient(160deg,#6366f1,#312e81)',
       icon: function () { return document.body.classList.contains('mode-coverflow') ? ICON.board : ICON.cover; },
       run: function () { var on = document.body.classList.contains('mode-coverflow'); press(on ? '.sf-mode-switch button[title^="Kanban"]' : '.sf-mode-switch button[title^="3D"]'); } },

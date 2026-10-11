@@ -116,11 +116,18 @@ def knowledge_patches(out):
     if n < 1:
         raise SystemExit('knowledge: no learning merge found')
     out = out.replace(tail, tail + " try { if (data && data.knowledge && window.MinestKnowledge) window.MinestKnowledge._mergeCloud(data.knowledge); } catch (e) {}")
+    # Endless (Phase 2) edits a board in place and opens a stacked card's details on its own board
+    out = once(out, "      rateCard: function(cardId, level) {",
+               "      // Minest Knowledge · Endless: change one board; open a card's (or a stacked card's) details on its board\n"
+               "      updateBoard: function(boardId, fn) { setBoards(function(list) { return list.map(function(b) { return b.id === boardId ? fn(b) : b; }); }); },\n"
+               "      openCardIn: function(boardId, colId, cardId) { if (boardId) setActiveBoardId(boardId); setTimeout(function() { setCardModal({ isOpen: true, columnId: colId, cardId: cardId }); }, 60); },\n"
+               "      rateCard: function(cardId, level) {", 'knowledge: updateBoard / openCardIn')
     return out
 
 
 def knowledge_js():
-    return open(os.path.join(REPO, 'tools', 'knowledge', 'contents.js'), encoding='utf-8').read()
+    # Phase 1 Contents, Phase 2 Endless (in this order: Endless uses Contents' MinestKnowledge)
+    return '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'endless.js'))
 
 
 def toon_patches(out):
