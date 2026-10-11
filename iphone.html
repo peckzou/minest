@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 49.1 · Knowledge sheet</title>
+    <title>Minest iPhone 49.2 · Learning Map trail</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "49.1" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "49.2" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -54605,8 +54605,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     del: I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
     date: I('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
     x: I('<path d="M6 6l12 12M18 6 6 18"/>'),
-    full: I('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
-    unfull: I('<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>')
+    full: I('<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>'),   // diagonal arrows: not the views' own "fit" corners
+    unfull: I('<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/>')
   };
   var CSS = [
     '.ke-bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:2147482010;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:calc(100vw - 16px);font:600 13px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:#fff}',
@@ -56901,6 +56901,10 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
    Progress comes from the Learning Path (MinestLearn.cardStatus: studied / mastered — opening a card is not
    mastering it): mastered blocks light up gold, blocks in progress glow, the next ones are available, the rest dim.
    ◎ You Are Here = the first block not yet mastered along the route (Guided: stages unlock in order; Free: all open).
+   Trail (a phone held upright, or by choice): the same stages as one winding road down the screen — a numbered platform
+   per stage (gold ★ when mastered, the current one pulsing under a YOU pin, 🔒 while locked in Guided mode), a sign
+   for each region with its progress. Map ⇄ Trail in the top bar (kept per board on this device).
+   Look: arcade throughout — chunky outlined buttons with hard shadows, pixel lettering, bright flat colours.
    Edit: drag regions (their size follows), stages and blocks; region colour / icon / name; background; route order;
    Reset to Template. Edits and the camera are view settings (MinestKnowledge, synced / this device) — the knowledge
    itself is never copied. */
@@ -57098,10 +57102,10 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     G.states.forEach(function (st) {
       if (st.poly.length < 3) return;
       var p = P(st.c[0], st.c[1] - 28);
-      out += '<g class="lm-sl" data-k="' + esc(st.k) + '"><text x="' + p[0] + '" y="' + p[1] + '" class="lm-t0">' + (st.icon ? esc(st.icon) + ' ' : '') + esc(st.title) + '</text></g>';
+      out += '<g class="lm-sl" data-k="' + esc(st.k) + '"><text x="' + p[0] + '" y="' + p[1] + '" class="lm-t0">' + (st.icon ? esc(st.icon) + ' ' : '') + esc(trunc(st.title, 16)) + '</text></g>';
     });
     G.stages.forEach(function (sg) { if (sg.x == null) return; var p = P(sg.x, sg.y); out += '<text x="' + p[0] + '" y="' + (p[1] - 20) + '" class="lm-t1">' + sg.n + '. ' + esc(sg.title) + '</text>'; });
-    G.stages.forEach(function (sg) { sg.blocks.forEach(function (b) { var p = P(b.x, b.y); out += '<text x="' + p[0] + '" y="' + (p[1] + 9.5) + '" class="lm-t2">' + esc(trunc(b.title, 14)) + '</text>'; }); });
+    G.stages.forEach(function (sg) { sg.blocks.forEach(function (b, bi) { var p = P(b.x, b.y); out += '<text x="' + p[0] + '" y="' + (p[1] + 9.5) + '" class="lm-t2">' + (bi + 1) + '</text>'; }); });   // a number (the names are in the stage's list) — no overlap
     out += hereSvg(G);
     return out;
   }
@@ -57192,9 +57196,9 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.lm-world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}',
     '.lm-world svg{overflow:visible;display:block}',
     '.lm text{font-family:-apple-system,system-ui,sans-serif;text-anchor:middle;paint-order:stroke;stroke-linejoin:round;pointer-events:none}',
-    '.lm-t0{font-size:24px;font-weight:800;fill:#fff;stroke:rgba(0,0,0,.55);stroke-width:3px;letter-spacing:.2px}',
+    '.lm-t0{font-size:20px;font-weight:800;fill:#fff;stroke:rgba(0,0,0,.55);stroke-width:3px;letter-spacing:.2px}',
     '.lm-t1{font-size:6.2px;font-weight:700;fill:#fff;stroke:rgba(0,0,0,.6);stroke-width:1.6px;opacity:0;transition:opacity .25s}',
-    '.lm-t2{font-size:3.2px;font-weight:600;fill:#fff;stroke:rgba(0,0,0,.65);stroke-width:.9px;opacity:0;transition:opacity .25s}',
+    '.lm-t2{font-size:3.6px;font-weight:800;fill:#fff;stroke:#0d1222;stroke-width:1px;opacity:0;transition:opacity .25s;font-family:"Press Start 2P",ui-monospace,monospace}',
     '.lm-n{font-size:5px;font-weight:800;stroke:none}',
     '.lm-ic{font-size:13px;stroke:none;dominant-baseline:auto}',
     // STAGE 3 · IN COLONIAL AMERICA — the arcade stage banner
@@ -57245,7 +57249,84 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     '.lm-sw{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.4);cursor:pointer;padding:0}',
     '.lm-x{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;cursor:pointer}',
     '.lm-note{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 60px);transform:translateX(-50%);padding:6px 12px;border-radius:999px;background:rgba(14,20,32,.72);font-size:12px;opacity:.85;white-space:nowrap;max-width:calc(100vw - 30px);overflow:hidden;text-overflow:ellipsis}',
-    'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}'
+    'html.kn-open #minest-mini-pet-p0,html.kn-open .mpet-menu,html.kn-open .mpet-say,html.kn-open .mpet-tip{display:none!important}',
+    // ---- arcade: chunky outlined controls with hard shadows, pixel lettering (no glass here)
+    'html .lm .lm-b2{font:400 10px/1 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;letter-spacing:.5px;height:40px;min-width:40px;padding:0 10px;border-radius:12px;border:3px solid #0d1222;background:#2c3c72;color:#fff;box-shadow:0 4px 0 #0d1222;-webkit-backdrop-filter:none;backdrop-filter:none;transition:transform .08s,box-shadow .08s}',
+    'html .lm .lm-b2:active{transform:translateY(3px);box-shadow:0 1px 0 #0d1222}',
+    'html .lm .lm-b2.on,html .lm .lm-b2.ke-on{background:#ffcf3f;color:#0d1222}',
+    'html .lm .lm-b2[data-act="x"]{background:#ff4d6d}',
+    'html .lm .lm-b2[data-act="view"]{background:#22b573}',
+    'html .lm .lm-b2 svg{width:17px;height:17px;stroke-width:2.6}',
+    'html .lm .lm-path{height:40px;border-radius:12px;border:3px solid #0d1222;background:#16204a;box-shadow:0 4px 0 #0d1222;-webkit-backdrop-filter:none;backdrop-filter:none;box-sizing:border-box}',
+    'html .lm .lm-path button{font:400 8.5px/1.4 "Press Start 2P",ui-monospace,monospace;color:#9fb3ff;text-transform:uppercase}',
+    'html .lm .lm-path button:last-child{color:#ffcf3f}html .lm .lm-path i{color:#9fb3ff}',
+    'html .lm .lm-legend{border-radius:12px!important;border:3px solid #0d1222;background:#16204a;box-shadow:0 4px 0 #0d1222;font:400 7.5px/1.6 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;color:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}',
+    'html .lm .lm-legend i{border:2px solid #0d1222;width:10px;height:10px}',
+    'html .lm .lm-sheet{border-radius:18px;border:4px solid #0d1222;background:#1b2650;box-shadow:0 6px 0 #0d1222,inset 0 0 0 3px #34488f;-webkit-backdrop-filter:none;backdrop-filter:none;color:#fff}',
+    'html .lm .lm-sheet h4{font:400 12px/1.6 "Press Start 2P",ui-monospace,monospace;color:#ffcf3f;text-shadow:2px 2px 0 #0d1222;padding-right:40px}',
+    'html .lm .lm-sheet .sub{font:400 7.5px/1.8 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;opacity:.85;color:#9fb3ff}',
+    'html .lm .lm-row{border-top:2px dashed rgba(159,179,255,.22);min-height:48px}',
+    'html .lm .lm-row span{font-weight:700}',
+    'html .lm .lm-row .d{width:14px;height:14px;border-radius:3px;border:2px solid #0d1222}',
+    'html .lm .lm-row em{font:400 7px/1.5 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;opacity:.8}',
+    'html .lm .lm-acts button{font:400 8px/1 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;height:36px;border-radius:10px;border:3px solid #0d1222;background:#2c3c72;color:#fff;box-shadow:0 3px 0 #0d1222}',
+    'html .lm .lm-acts button.on{background:#ffcf3f;color:#0d1222}',
+    'html .lm .lm-x{border-radius:10px;border:3px solid #0d1222;background:#ff4d6d;color:#fff;box-shadow:0 3px 0 #0d1222;font:400 10px "Press Start 2P",monospace;width:34px;height:34px}',
+    'html .lm .lm-note{border-radius:10px;border:3px solid #0d1222;background:#16204a;font:400 8px/1.6 "Press Start 2P",monospace}',
+    'html .lm .kn-fs-x{border-radius:12px;border:3px solid #0d1222;background:#2c3c72;color:#fff;box-shadow:0 4px 0 #0d1222;-webkit-backdrop-filter:none;backdrop-filter:none;opacity:1}',
+    // ---- Trail: one winding road of stages down the screen
+    '.lm-trail{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;' +
+      'background:radial-gradient(rgba(255,255,255,.07) 1.5px,transparent 1.6px) 0 0/22px 22px,linear-gradient(180deg,#0e1f4a,#081230)}',
+    '.lm.trail .lm-stage{display:none}',
+    '.lm.trail{touch-action:pan-y}',
+    '.lm:not(.trail) .lm-trail{display:none}',
+    '.lm.trail [data-act="fit"],.lm.trail [data-act="home"],.lm.trail [data-act="edit"]{display:none!important}',
+    '.lt-w{position:relative;margin:calc(env(safe-area-inset-top,0px) + 68px) auto calc(env(safe-area-inset-bottom,0px) + 40px)}',
+    '.lm.trail .lm-legend{display:none}',
+    '.lm.trail .lm-top{background:linear-gradient(180deg,#081230 55%,rgba(8,18,48,0));padding-bottom:18px}',
+    '.lt-w > svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}',
+    '.lt-band{position:absolute;left:10px;right:10px;border-radius:22px;border:4px solid #0d1222;box-shadow:0 6px 0 #0d1222;' +
+      'background:radial-gradient(rgba(255,255,255,.16) 2px,transparent 2.2px) 0 0/18px 18px,radial-gradient(rgba(0,0,0,.08) 3px,transparent 3.2px) 9px 9px/18px 18px,linear-gradient(180deg,var(--g1),var(--g2))}',
+    '.lt-band.b-beach{background:radial-gradient(rgba(255,255,255,.18) 2px,transparent 2.2px) 0 0/18px 18px,linear-gradient(100deg,#f2d68f 0 58%,#fff3c4 58% 61%,#4fb3d9 61%)}',
+    '.lt-d{position:absolute;font-style:normal;line-height:1;transform:translate(-50%,-50%);filter:drop-shadow(2px 3px 0 rgba(13,18,34,.45));pointer-events:none;user-select:none}',
+    // the place-name plaque at the bottom (THE SWAMP FOREST)
+    '.lt-plaque{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:2;pointer-events:none;max-width:calc(100% - 130px);padding:10px 16px;border-radius:8px;border:4px solid #5b3a12;' +
+      'background:linear-gradient(180deg,#f7e6b5,#e2c27f);box-shadow:inset 0 0 0 2px #fff3cf,0 5px 0 #2a1806;font:400 10px/1.4 "Press Start 2P",ui-monospace,monospace;color:#4a2c0a;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .25s}',
+    '.lm:not(.trail) .lt-plaque,.lm.sheet-on .lt-plaque{opacity:0}',
+    '.lt-sign{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;max-width:calc(100% - 40px);padding:9px 14px;border-radius:14px;border:4px solid #0d1222;background:var(--c);box-shadow:0 5px 0 #0d1222;white-space:nowrap}',
+    '.lt-sign b{font:400 11px/1.4 "Press Start 2P",ui-monospace,monospace;text-transform:uppercase;color:#fff;text-shadow:2px 2px 0 #0d1222;overflow:hidden;text-overflow:ellipsis;min-width:0}',
+    '.lt-sign em{flex:none;font:400 8px/1 "Press Start 2P",monospace;font-style:normal;color:#0d1222;background:#ffcf3f;border:2px solid #0d1222;border-radius:8px;padding:5px 6px}',
+    '.lt-sign i{font-style:normal;font-size:18px}',
+    '.lt-s{font:900 12px/1 -apple-system,system-ui,sans-serif;margin-right:4px;vertical-align:-1px}',   // the pixel font has no ★
+    '.lt-st{position:absolute;width:130px;margin-left:-65px;display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:none;padding:0;cursor:pointer;color:#fff;font:inherit;-webkit-tap-highlight-color:transparent}',
+    // a little island: grass (or the land's own colour) on top, earth down the side, a landmark standing on it
+    '.lt-pl{position:relative;width:96px;height:54px;border-radius:50%;border:4px solid #0d1222;background:radial-gradient(70% 55% at 40% 32%,rgba(255,255,255,.5),transparent 60%),var(--top);box-shadow:0 11px 0 var(--side),0 11px 0 4px #0d1222;display:grid;place-items:center;transition:transform .12s}',
+    '.lt-lmk{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);font-style:normal;font-size:36px;line-height:1;filter:drop-shadow(2px 3px 0 rgba(13,18,34,.55));pointer-events:none}',
+    '.lt-no{position:absolute;right:-12px;top:-12px;min-width:28px;height:28px;padding:0 4px;box-sizing:border-box;border-radius:14px;border:3px solid #0d1222;background:#1b2650;display:grid;place-items:center;font:400 10px/1 "Press Start 2P",ui-monospace,monospace;color:#fff;box-shadow:0 3px 0 #0d1222}',
+    '.lt-st.v-done .lt-no{background:#ffcf3f;color:#0d1222;font:900 14px/1 -apple-system,system-ui,sans-serif}',
+    '.lt-st.v-cur .lt-no{background:#ff4d6d}',
+    '.lt-st.v-lock .lt-no{background:#363d4e;font:12px/1 -apple-system,system-ui,sans-serif}',
+    '.lt-st.v-lock .lt-lmk{filter:grayscale(1) brightness(.75) drop-shadow(2px 3px 0 rgba(13,18,34,.55))}',
+    '.lt-st:active .lt-pl{transform:translateY(4px)}',
+
+    '.lt-nm{margin-top:8px;max-width:118px;font:800 12.5px/1.25 -apple-system,system-ui,sans-serif;text-align:center;color:#fff;text-shadow:0 2px 0 #0d1222,0 0 3px #0d1222;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+    '.lt-stars{font-size:14px;letter-spacing:1px;line-height:1;color:#ffcf3f;text-shadow:0 2px 0 #0d1222,0 0 2px #0d1222}',
+    '.lt-stars .o{color:rgba(255,255,255,.28)}',
+    '.lt-st.v-done{--top:#ffd23f;--side:#b98a00}',
+    '.lt-st.v-done .lt-pl{box-shadow:0 11px 0 var(--side),0 11px 0 4px #0d1222,0 0 24px 6px rgba(255,207,63,.55)}',
+    '.lt-st.v-open{--top:color-mix(in srgb,var(--g1) 75%,#fff);--side:#8a6a43}',
+
+    '.lt-st.v-cur{--top:var(--g1);--side:#8a6a43}',
+    '.lt-st.v-lock{--top:#5a6378;--side:#363d4e}',
+    '.lt-st.v-lock .lt-nm{opacity:.65}',
+    '.lt-st.v-cur .lt-pl:after{content:"";position:absolute;inset:-12px;border-radius:50%;border:3px solid #ffcf3f;animation:ltPulse 1.4s ease-out infinite}',
+    '@keyframes ltPulse{from{opacity:1;transform:scale(.8)}to{opacity:0;transform:scale(1.35)}}',
+    '.lt-st.sel .lt-pl{outline:4px solid #ffcf3f;outline-offset:6px}',
+    '.lt-you{position:absolute;margin-left:-26px;width:52px;text-align:center;pointer-events:none;animation:ltBob 1s ease-in-out infinite alternate;z-index:2}',
+    '.lt-you span{display:inline-block;font:400 8px/1 "Press Start 2P",monospace;color:#0d1222;background:#ffcf3f;border:3px solid #0d1222;border-radius:8px;padding:5px 6px;box-shadow:0 3px 0 #0d1222}',
+    '.lt-you:after{content:"";display:block;width:0;height:0;margin:-1px auto 0;border:9px solid transparent;border-top-color:#0d1222}',
+    '@keyframes ltBob{from{transform:translateY(0)}to{transform:translateY(-7px)}}',
+    '.lt-end{position:absolute;left:50%;transform:translateX(-50%);font:400 10px/1.6 "Press Start 2P",monospace;color:#ffcf3f;text-shadow:2px 2px 0 #0d1222;white-space:nowrap}'
   ].join('\n');
   function ensureCss() { if (document.getElementById('lm-css')) return; var s = document.createElement('style'); s.id = 'lm-css'; s.textContent = CSS; document.head.appendChild(s); }
 
@@ -57264,6 +57345,105 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     ui.legend.innerHTML = tpl === 'route' ? G.journeys.map(function (j) { return '<span data-j="' + esc(j.id) + '" style="cursor:pointer;opacity:' + (j.on ? 1 : .4) + '"><i style="background:' + j.color + '"></i>' + esc(j.title) + '</span>'; }).join('') :
       '<span><i style="background:#ffe066"></i>Mastered</span><span><i style="background:#7fb3ff"></i>Learning</span><span><i style="background:#e8edf5"></i>Next</span><span><i style="background:#566070"></i>Unexplored</span>';
     crumbs(); lod();
+    if (ui.trail && trailOn()) renderTrail();
+  }
+  // ================================================================== Trail
+  function trailOn() { if (!G || G.tpl === 'route') return false; var v = S.view && S.view[ui.bid]; if (v) return v === 'trail'; return innerWidth < 600 && innerHeight > innerWidth; }
+  var trailNodes = [], trailBands = [];
+  // each region is a land of its own, after the 16-bit world maps: ground colour and what grows by the road
+  var BIOMES = [
+    { k: 'forest', g: ['#4aa24f', '#2f7a3a'], d: ['🌲', '🌳', '🌲', '🍄', '🌿'] },
+    { k: 'desert', g: ['#e6b85e', '#c58b3b'], d: ['🌵', '🪨', '🌵', '🏜️', '🦂'] },
+    { k: 'snow', g: ['#dfe9f6', '#a9bdd8'], d: ['🏔️', '🌲', '⛄', '❄️', '🏔️'] },
+    { k: 'beach', g: ['#f2d68f', '#4fb3d9'], d: ['🌴', '🐚', '🌴', '⛵', '🦀'] },
+    { k: 'city', g: ['#8a96a8', '#5d6878'], d: ['🏢', '🏙️', '🏬', '🗼', '🏢'] },
+    { k: 'canyon', g: ['#d07a45', '#9a4b28'], d: ['🪨', '🌵', '⛰️', '🪨', '🦅'] },
+    { k: 'swamp', g: ['#6b8f3e', '#3f5f2a'], d: ['🌿', '🍄', '🐸', '🌾', '🪵'] },
+    { k: 'volcano', g: ['#7a4136', '#4a2420'], d: ['🌋', '🪨', '🔥', '🪨', '🌋'] }
+  ];
+  function biomeOf(st) { var o = ov('biome:' + st.id); var b = BIOMES.filter(function (x) { return x.k === o; })[0]; return b || BIOMES[st.i % BIOMES.length]; }
+  function stars(sg) {
+    var n = sg.blocks.length, m = sg.blocks.filter(function (b) { return b.st === 'mastered'; }).length, k = !n ? 0 : m === n ? 3 : m / n >= 2 / 3 ? 2 : m / n >= 1 / 3 ? 1 : 0;
+    return '<span class="lt-stars">' + [0, 1, 2].map(function (i) { return i < k ? '★' : '<span class="o">★</span>'; }).join('') + '</span>';
+  }
+  function renderTrail() {
+    var box = ui.trail; if (!box) return;
+    var W = Math.min(innerWidth, 560), X = [0.26, 0.5, 0.74, 0.5], ROW = 150, y = 24, html = '', nodes = [], bands = '', signs = '';
+    // runs of stages by region, in route order (in a reordered route a region can come back — each run gets its own sign)
+    trailBands = [];
+    var runs = []; G.route.forEach(function (sg) { var last = runs[runs.length - 1]; if (!last || last.st !== sg.state) runs.push({ st: sg.state, stages: [sg] }); else last.stages.push(sg); });
+    var i = 0, hereSg = G.here ? G.here.stage : null;
+    runs.forEach(function (r) {
+      var y0 = y, all = [], m = 0;
+      r.stages.forEach(function (sg) { sg.blocks.forEach(function (b) { all.push(b); if (b.st === 'mastered') m++; }); });
+      y += 172;   // the region's sign, then room for the YOU pin above the first platform
+      r.stages.forEach(function (sg) { nodes.push({ sg: sg, x: Math.round(X[i % 4] * W), y: y }); i++; y += ROW; });
+      y += 6;
+      var bm = biomeOf(r.st), rn = rnd(hash(r.st.id + ':' + y0)), deco = '';
+      // scenery by the road: down both edges, and in the bend away from each platform
+      for (var yy = y0 + 96; yy < y - 30; yy += 46) {
+        // the outer edges only — clear of the platforms and their names
+        [[.035, .085], [.915, .965]].forEach(function (side) { if (rn() < .78) deco += '<i class="lt-d" style="left:' + Math.round((side[0] + rn() * (side[1] - side[0])) * W) + 'px;top:' + Math.round(yy + rn() * 20) + 'px;font-size:' + Math.round(18 + rn() * 8) + 'px">' + bm.d[Math.floor(rn() * bm.d.length)] + '</i>'; });
+      }
+      bands += '<div class="lt-band b-' + bm.k + '" style="--c:' + esc(r.st.color) + ';--g1:' + bm.g[0] + ';--g2:' + bm.g[1] + ';top:' + y0 + 'px;height:' + (y - y0) + 'px"></div>' + deco;
+      signs += '<div class="lt-sign" style="--c:' + esc(r.st.color) + ';top:' + (y0 + 18) + 'px">' + (r.st.icon ? '<i>' + esc(r.st.icon) + '</i>' : '') + '<b>' + esc(r.st.title) + '</b><em><span class="lt-s">★</span>' + m + '/' + all.length + '</em></div>';
+      trailBands.push({ st: r.st, y0: y0, y1: y });
+      y += 26;
+    });
+    var H = y + 70;
+    // the road: dark edge, sand, dashed centre; the part already travelled in gold
+    var path = function (ns) { var d = ''; ns.forEach(function (n, k) { var cy = n.y + 12; if (!k) { d = 'M' + n.x + ' ' + cy; return; } var p = ns[k - 1], py = p.y + 12, my = (py + cy) / 2; d += ' C' + p.x + ' ' + my + ' ' + n.x + ' ' + my + ' ' + n.x + ' ' + cy; }); return d; };
+    var d = path(nodes), hi = hereSg ? nodes.findIndex(function (n) { return n.sg === hereSg; }) : nodes.length - 1, dDone = hi > 0 ? path(nodes.slice(0, hi + 1)) : '';
+    var svg = '<svg width="' + W + '" height="' + H + '"><path d="' + d + '" fill="none" stroke="#0d1222" stroke-width="26" stroke-linecap="round"/><path d="' + d + '" fill="none" stroke="#f1d49b" stroke-width="18" stroke-linecap="round"/>' +
+      (dDone ? '<path d="' + dDone + '" fill="none" stroke="#ffcf3f" stroke-width="18" stroke-linecap="round"/>' : '') +
+      '<path d="' + d + '" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="8 11" stroke-linecap="round" opacity=".8"/></svg>';
+    nodes.forEach(function (n) {
+      var sg = n.sg, v = sg.done ? 'done' : !sg.open ? 'lock' : sg === hereSg ? 'cur' : 'open';
+      var bm = biomeOf(sg.state), lmk = (G.cfg.icons || {})[sg.id] || sg.state.icon || bm.d[0];
+      html += '<button type="button" class="lt-st v-' + v + (sel === sg.k ? ' sel' : '') + '" data-tk="' + esc(sg.k) + '" style="--c:' + esc(sg.state.color) + ';--g1:' + bm.g[0] + ';left:' + n.x + 'px;top:' + (n.y - 26) + 'px">' +
+        '<span class="lt-pl"><i class="lt-lmk">' + esc(lmk) + '</i><b class="lt-no">' + (v === 'lock' ? '🔒' : v === 'done' ? '★' : sg.n) + '</b></span><span class="lt-nm">' + esc(sg.title) + '</span>' + stars(sg) + '</button>';
+      if (v === 'cur') html += '<div class="lt-you" style="left:' + n.x + 'px;top:' + (n.y - 96) + 'px"><span>YOU</span></div>';
+    });
+    if (nodes.length) html += '<div class="lt-end" style="top:' + (H - 52) + 'px">' + (G.route.every(function (s) { return s.done; }) ? '<span class="lt-s">★</span> ALL CLEAR <span class="lt-s">★</span>' : 'GOAL') + '</div>';
+    else html = '<div class="lt-end" style="top:80px">NO STAGES YET</div>';
+    var y0s = box.scrollTop;
+    box.innerHTML = '<div class="lt-w" style="width:' + W + 'px;height:' + H + 'px">' + bands + svg + signs + html + '</div>';   // the signs stand above the road
+    box.scrollTop = y0s;
+    trailNodes = nodes; plaque();
+  }
+  // the land in the middle of the screen, named on the plaque
+  function plaque() {
+    if (!ui.plaque || !ui.trail) return;
+    var off = (ui.trail.firstChild && ui.trail.firstChild.offsetTop) || 0, mid = ui.trail.scrollTop + ui.trail.clientHeight * .45 - off;
+    var b = trailBands.filter(function (x) { return mid >= x.y0 && mid < x.y1 + 26; })[0] || trailBands[0];
+    var t = b ? biomeOf(b.st).d[0] + ' ' + b.st.title : '';
+    if (ui.plaque.textContent !== t) ui.plaque.textContent = t;
+    ui.plaque.style.display = t ? '' : 'none';
+  }
+  function trailTo(sg, smooth) {
+    var n = trailNodes.filter(function (x) { return x.sg === sg; })[0]; if (!n || !ui.trail) return;
+    var room = ui.sheet && ui.sheet.style.display !== 'none' ? Math.min(innerHeight * .46, 330) : 0;
+    var off = (ui.trail.firstChild && ui.trail.firstChild.offsetTop) || 0, to = Math.max(0, off + n.y - (innerHeight - room) / 2 + 20);
+    if (smooth && ui.trail.scrollTo) ui.trail.scrollTo({ top: to, behavior: 'smooth' }); else ui.trail.scrollTop = to;
+  }
+  function trailTap(k) {
+    var sg = G.byKey[k]; if (!sg) return;
+    focus = k; banner('STAGE ' + sg.n, 'IN ' + sg.title.toUpperCase()); stageSheet(sg);
+    clearTimeout(ui.banT); ui.banT = setTimeout(function () { if (trailOn()) banner(''); }, 1800);   // on the trail it flashes, then gets out of the way
+    ui.trail.querySelectorAll('.lt-st.sel').forEach(function (x) { x.classList.remove('sel'); });
+    var el = ui.trail.querySelector('[data-tk="' + cssEsc(k) + '"]'); if (el) el.classList.add('sel');
+    trailTo(sg, true); crumbs();
+  }
+  function setView(v) {
+    S.view = S.view || {}; S.view[ui.bid] = v; stSave();
+    applyView(true);
+  }
+  function applyView(fresh) {
+    var on = trailOn();
+    ui.el.classList.toggle('trail', on);
+    var vb = ui.el.querySelector('[data-act="view"]'); if (vb) { vb.textContent = on ? 'Map' : 'Trail'; vb.style.display = G && G.tpl === 'route' ? 'none' : ''; }
+    if (on) { renderTrail(); if (fresh) { closeSheet(); banner(''); if (G.here) trailTo(G.here.stage, false); } }
+    else if (fresh) home(400);
   }
   function applyCam() { ui.world.style.transform = 'translate(' + (innerWidth / 2 - cam.x * cam.s) + 'px,' + (innerHeight / 2 - cam.y * cam.s) + 'px) scale(' + cam.s + ')'; ui.world.style.setProperty('--z', cam.s.toFixed(3)); lod(); }
   var homeS = 1;
@@ -57311,7 +57491,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   }
 
   // ---------------------------------------------------------------- sheets
-  function closeSheet() { if (ui.sheet) ui.sheet.style.display = 'none'; sel = null; }
+  function closeSheet() { if (ui.sheet) ui.sheet.style.display = 'none'; if (ui.el) ui.el.classList.remove('sheet-on'); sel = null; }
   var COLOR = { mastered: '#ffe066', progress: '#7fb3ff', available: '#e8edf5', unexplored: '#566070', locked: '#3a414e' };
   var WORD = { mastered: 'Mastered', progress: 'Learning', available: 'Next up', unexplored: 'Not started', locked: 'Locked' };
   function stageSheet(sg) {
@@ -57345,7 +57525,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       '<div class="lm-acts"><button type="button" data-reset>↺ Reset to Template</button><button type="button" data-done>Done</button></div>';
     showSheet(h); sel = null;
   }
-  function showSheet(h) { ui.sheet.innerHTML = h; ui.sheet.style.display = ''; }
+  function showSheet(h) { ui.sheet.innerHTML = h; ui.sheet.style.display = ''; ui.el.classList.add('sheet-on'); }
 
   // ---------------------------------------------------------------- gestures
   function wire() {
@@ -57405,13 +57585,16 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
   }
   function onClick(e) {
     var t = e.target;
+    var ts = t.closest('[data-tk]'); if (ts) return trailTap(ts.getAttribute('data-tk'));
     var c = t.closest('[data-crumb]'); if (c) { var ck = c.getAttribute('data-crumb'); return ck ? focusOn(ck) : home(); }
     var a = t.closest('[data-act]');
     if (a) {
       var act = a.getAttribute('data-act');
       if (act === 'x') return close();
+      if (act === 'view') return setView(trailOn() ? 'map' : 'trail');
       if (act === 'home') return home();
       if (act === 'back') { var n = focus && G.byKey[focus]; if (!n) return; return n.kind === 'stage' ? focusOn(n.state.k) : home(); }
+      if (act === 'here' && trailOn()) { if (!G.here) return toast('Everything here is mastered ⭐'); return trailTap(G.here.stage.k); }
       if (act === 'here') { var h = G.here; if (!h) return toast('Everything here is mastered ⭐'); if (G.tpl === 'route') return focusOn(h.place.k); return focusOn(h.stage.k); }
       if (act === 'fit') return focus ? focusOn(focus) : home();
       if (act === 'tolist') { var fn = focus && G.byKey[focus], lid = fn ? (fn.kind === 'state' ? fn.id : fn.kind === 'stage' ? fn.state.id : fn.kind === 'block' ? fn.col.id : fn.col ? fn.col.id : null) : null; if (!lid) return toast('Zoom into a region first — then this opens its list'); return toList(lid); }
@@ -57476,6 +57659,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     var el = document.createElement('div'); el.className = 'lm'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Learning Map');
     el.innerHTML = '<div class="lm-stage"><div class="lm-world"></div></div>' +
       '<div class="lm-top"><button type="button" class="lm-b2" data-act="back" aria-label="Back">' + ICON.back + '</button><div class="lm-path"></div>' +
+      '<button type="button" class="lm-b2" data-act="view" title="Map / Trail">Trail</button>' +
       '<button type="button" class="lm-b2" data-act="mode" title="Guided Path / Free Exploration">Guided</button>' +
       '<button type="button" class="lm-b2" data-act="edit" aria-label="Arrange">' + ICON.edit + '</button>' +
       '<button type="button" class="lm-b2" data-act="x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
@@ -57483,7 +57667,9 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       '<div class="lm-side">' + (window.MinestKEdit ? MinestKEdit.fullBtnHtml('lm-b2') : '') + '<button type="button" class="lm-b2" data-act="tolist" aria-label="Open this region\'s list on the board" title="Open the list on the board"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg></button><button type="button" class="lm-b2" data-act="here" aria-label="You are here">' + ICON.here + '</button><button type="button" class="lm-b2" data-act="fit" aria-label="Fit">' + ICON.fit + '</button><button type="button" class="lm-b2" data-act="home" aria-label="Whole map">' + ICON.home + '</button></div>' +
       '<div class="lm-legend"></div><div class="lm-banner"></div><div class="lm-sheet" style="display:none"></div>';
     if (!document.getElementById('lm-font')) { var lf = document.createElement('link'); lf.id = 'lm-font'; lf.rel = 'stylesheet'; lf.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'; document.head.appendChild(lf); }
-    ui.el = el; ui.banner = el.querySelector('.lm-banner'); ui.stage = el.querySelector('.lm-stage'); ui.world = el.querySelector('.lm-world'); ui.path = el.querySelector('.lm-path'); ui.mode = el.querySelector('[data-act="mode"]'); ui.sheet = el.querySelector('.lm-sheet'); ui.legend = el.querySelector('.lm-legend'); ui.note = el.querySelector('.lm-note');
+    el.insertAdjacentHTML('afterbegin', '<div class="lm-trail"></div><div class="lt-plaque"></div>');
+    ui.el = el; ui.trail = el.querySelector('.lm-trail'); ui.plaque = el.querySelector('.lt-plaque');
+    ui.trail.addEventListener('scroll', plaque, { passive: true }); ui.banner = el.querySelector('.lm-banner'); ui.stage = el.querySelector('.lm-stage'); ui.world = el.querySelector('.lm-world'); ui.path = el.querySelector('.lm-path'); ui.mode = el.querySelector('[data-act="mode"]'); ui.sheet = el.querySelector('.lm-sheet'); ui.legend = el.querySelector('.lm-legend'); ui.note = el.querySelector('.lm-note');
     ui.open = true; edit = false; focus = null;
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
     if (window.MinestKEdit) MinestKEdit.fullscreen('lmap', el, ['.lm-top', '.lm-side', '.lm-legend']);
@@ -57492,13 +57678,18 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     var c = S.cam[ui.bid];
     if (c) { cam = { x: c.x, y: c.y, s: c.s }; applyCam(); if (c.f && G.byKey[c.f]) { focus = c.f; var n = G.byKey[c.f]; if (n.kind === 'stage') stageSheet(n); else if (n.kind === 'place') placeSheet(n); crumbs(); } }
     else { cam = { x: hc.x, y: hc.y, s: hc.s * .8 }; applyCam(); home(650); }
+    applyView(trailOn());   // the Trail starts at the stage you are on
     if (el.animate) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260 });
     window.addEventListener('resize', applyCam);
+    window.addEventListener('resize', onTurn);
   }
+  // turning the phone: Trail upright, the map sideways (unless this board's view was picked by hand)
+  var turnT = 0;
+  function onTurn() { clearTimeout(turnT); turnT = setTimeout(function () { if (!ui.open || !G || (S.view && S.view[ui.bid])) return; if (ui.el.classList.contains('trail') !== trailOn()) applyView(true); }, 200); }
   function close() {
     if (!ui.open) return;
     saveCam(); cancelAnimationFrame(anim);
-    var el = ui.el; ui.open = false; ui.el = null; document.documentElement.classList.remove('kn-open'); window.removeEventListener('resize', applyCam);
+    var el = ui.el; ui.open = false; ui.el = null; document.documentElement.classList.remove('kn-open'); window.removeEventListener('resize', applyCam); window.removeEventListener('resize', onTurn);
     if (el.animate) { var an = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' }); an.onfinish = function () { el.remove(); }; } else el.remove();
   }
   if (KN() && KN().onChange) KN().onChange(function () { if (ui.open && !ui.el.classList.contains('away')) { var s = sel; render(); if (s && G.byKey[s] && ui.sheet.style.display !== 'none') { var n = G.byKey[s]; if (n.kind === 'stage') stageSheet(n); else if (n.kind === 'state' && edit) stateSheet(n); else if (n.kind === 'place') placeSheet(n); } } });

@@ -151,8 +151,8 @@
     del: I('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
     date: I('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
     x: I('<path d="M6 6l12 12M18 6 6 18"/>'),
-    full: I('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
-    unfull: I('<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>')
+    full: I('<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>'),   // diagonal arrows: not the views' own "fit" corners
+    unfull: I('<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/>')
   };
   var CSS = [
     '.ke-bar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:2147482010;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:calc(100vw - 16px);font:600 13px -apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:#fff}',
