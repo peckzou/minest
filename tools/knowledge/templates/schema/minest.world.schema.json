@@ -324,7 +324,199 @@
         }
        }
       }
+     },
+     "lists": {
+      "type": "array",
+      "description": "A domain may list its lists directly (no categories): domain → board list, list → card",
+      "items": {
+       "type": "object",
+       "required": [
+        "id",
+        "title"
+       ],
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "title": {
+         "type": "string"
+        },
+        "lists": {
+         "type": "array"
+        }
+       }
+      }
      }
+    }
+   }
+  },
+  "starterPack": {
+   "type": "object",
+   "description": "Everyday Worlds: what makes a template useful at once. Field definitions are kept per world ('fd:<board>'); values per item ('fv:<stacked card>') — never inside the template.",
+   "properties": {
+    "cover": {
+     "type": "object",
+     "properties": {
+      "art": {
+       "type": "string"
+      },
+      "image": {
+       "type": "string"
+      }
+     }
+    },
+    "private": {
+     "type": "boolean",
+     "description": "Memories, family and people: never exported with items unless the user confirms"
+    },
+    "fields": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "label",
+       "type"
+      ],
+      "properties": {
+       "id": {
+        "type": "string"
+       },
+       "label": {
+        "type": "string"
+       },
+       "type": {
+        "enum": [
+         "text",
+         "number",
+         "date",
+         "boolean",
+         "select",
+         "multiselect",
+         "image",
+         "url",
+         "ref"
+        ]
+       },
+       "multiline": {
+        "type": "boolean"
+       },
+       "options": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "yearOnly": {
+        "type": "boolean"
+       },
+       "timeline": {
+        "type": "boolean",
+        "description": "date also shown on the Timeline"
+       },
+       "refLists": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "newIn": {
+        "type": "string"
+       },
+       "hint": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "listFields": {
+     "type": "object",
+     "description": "'<domain or category id>/<list id>' (or '/*') → field ids",
+     "additionalProperties": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    },
+    "quickAdd": {
+     "type": "object",
+     "required": [
+      "label"
+     ],
+     "properties": {
+      "label": {
+       "type": "string"
+      },
+      "mode": {
+       "enum": [
+        "form",
+        "gallery",
+        "bubble",
+        "profile"
+       ]
+      },
+      "targets": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "titleLabel": {
+       "type": "string"
+      },
+      "importText": {
+       "type": "boolean"
+      }
+     }
+    },
+    "more": {
+     "type": "array",
+     "description": "More quick adds",
+     "items": {
+      "type": "object"
+     }
+    },
+    "pickers": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "label": {
+        "type": "string"
+       },
+       "catalog": {
+        "type": "string"
+       },
+       "target": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "gallery": {
+     "type": "object",
+     "properties": {
+      "label": {
+       "type": "string"
+      },
+      "lists": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "discoveryTools": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "explore": {
+     "type": "string",
+     "description": "The view 'Explore My World' opens: portal | timeline | contents | map"
     }
    }
   }

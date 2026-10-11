@@ -41,7 +41,7 @@
   }
   function templates() {
     var built = window.__MINEST_WORLD_TEMPLATES || {}, out = [];
-    ['my-life', 'whole-earth', 'my-museum', 'britannica', 'dewey', 'my-academic-skills', 'my-life-skills', 'philosophy-spinoza', 'philosophy-aristotle', 'philosophy-kant', 'philosophy-hegel', 'philosophy-heidegger', 'kant', 'aristotle', 'encyclopedie', 'bacon'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
+    ['my-life', 'everyday-food', 'everyday-memory', 'whole-earth', 'my-museum', 'britannica', 'dewey', 'my-academic-skills', 'my-life-skills', 'philosophy-spinoza', 'philosophy-aristotle', 'philosophy-kant', 'philosophy-hegel', 'philosophy-heidegger', 'kant', 'aristotle', 'encyclopedie', 'bacon'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
     (KN() ? KN().keys('lom:tpl:') : []).forEach(function (k) { var t = KN().get(k); if (t && t.domains) out.push(Object.assign({ mine: true }, t)); });
     return out;
   }
@@ -59,6 +59,16 @@
       if (off[d.id]) return;
       var dn = nm(d.id, (codes && d.code ? d.code + ' ' : '') + d.title);
       var L = { id: bid + '-d-' + tid + '-' + slug(d.id), title: dn.title, orig: dn.orig, color: d.color || PAL[i % PAL.length], items: [] };
+      if (d.lists && !d.categories) {   // two levels: the area's lists go straight in (no section heading)
+        var F = { id: null, flat: true, lists: [] };
+        d.lists.forEach(function (l) {
+          var lk = 'l:' + d.id + '/' + l.id; if (off[lk]) return;
+          var lid = bid + '-l-' + tid + '-' + slug(d.id) + '-' + slug(l.id), ln = nm(lk, l.title);
+          F.lists.push({ id: lid, title: ln.title, orig: ln.orig });
+          if (depth === 'complete') (l.lists || []).forEach(function (x) { var xk = lk + '/' + x.id; if (off[xk]) return; var xn = nm(xk, x.title); F.lists.push({ id: lid + '-' + slug(x.id), title: xn.title, orig: xn.orig, parent: lid }); });
+        });
+        L.items.push(F);
+      }
       (d.categories || []).forEach(function (c) {
         if (off[c.id]) return;
         var cn = nm(c.id, c.title);
@@ -78,7 +88,7 @@
   function counts(p, b) {
     var have = {}, n = { lists: 0, sections: 0, cards: 0 };
     if (b) (b.columns || []).forEach(function (c) { have[c.id] = 1; (c.cards || []).forEach(function (k) { have[k.id] = 1; }); });
-    p.lists.forEach(function (L) { if (!have[L.id]) n.lists++; L.items.forEach(function (H) { if (!have[H.id]) { if (H.asCard) n.cards++; else n.sections++; } H.lists.forEach(function (x) { if (!have[x.id]) n.cards++; }); }); });
+    p.lists.forEach(function (L) { if (!have[L.id]) n.lists++; L.items.forEach(function (H) { if (!H.flat && !have[H.id]) { if (H.asCard) n.cards++; else n.sections++; } H.lists.forEach(function (x) { if (!have[x.id]) n.cards++; }); }); });
     return n;
   }
   var MADE = {}, USER = '\u0001user';   // lom:orig = USER: named by the user, never replaced by a template update
@@ -108,6 +118,16 @@
       if (!byId[L.id] || !orig['lom:orig:' + L.id]) first(L.id, L.orig);
       col.cards = col.cards || [];
       L.items.forEach(function (H) {
+        if (H.flat) {
+          var lastC = null;
+          H.lists.forEach(function (x) {
+            var c = byId[x.id];
+            if (!c) { c = newCard(x.id, x.title); var at2 = lastC ? col.cards.indexOf(lastC) + 1 : col.cards.length; col.cards.splice(at2 > 0 ? at2 : col.cards.length, 0, c); first(x.id, x.orig); }
+            else name(c, x.title, x.orig);
+            lastC = c; if (x.parent) parents['lom:parent:' + x.id] = x.parent;
+          });
+          return;
+        }
         var h = byId[H.id];
         if (!h) { h = newCard(H.id, H.title); col.cards.push(h); first(H.id, H.orig); } else name(h, H.title, H.orig);
         if (H.heading) heads.push(H.id);
@@ -206,6 +226,8 @@
     aristotle: S('<g stroke-width="1.6" opacity=".9"><path d="M80 12 46 70h68z"/></g>' + dots([[80, 12, 6], [46, 70, 6], [114, 70, 6]]) + '<circle cx="80" cy="50" r="7" stroke-width="1.4" opacity=".7"/>'),
     encyclopedie: S('<g stroke-width="1.6" opacity=".9"><path d="M80 80V50M80 50 52 30M80 50l28-20M80 50V24M52 30l-14-6M52 30l-6-14M108 30l14-6M108 30l6-14M80 24l-8-12M80 24l8-12"/></g>' + dots([[38, 24], [46, 16], [122, 24], [114, 16], [72, 12], [88, 12]], 3)),
     bacon: S('<g stroke-width="1.6" opacity=".9"><circle cx="66" cy="36" r="18"/><circle cx="94" cy="36" r="18"/><circle cx="80" cy="58" r="18"/></g>'),
+    'everyday-food': S('<g stroke-width="1.8" opacity=".95"><ellipse cx="80" cy="56" rx="38" ry="12"/><path d="M42 56c0 14 17 22 38 22s38-8 38-22"/><path d="M60 40c0-8 6-10 6-18M80 40c0-8 6-10 6-18M100 40c0-8 6-10 6-18" opacity=".8"/><path d="M128 18v52M124 18v14a4 4 0 0 0 8 0V18"/></g>'),
+    'everyday-memory': S('<g stroke-width="1.6" opacity=".95"><rect x="36" y="20" width="44" height="40" rx="3" transform="rotate(-8 58 40)"/><rect x="74" y="16" width="48" height="44" rx="3" transform="rotate(6 98 38)"/><circle cx="96" cy="32" r="5"/><path d="M78 56l12-12 10 8 8-6 12 10" transform="rotate(6 98 38)"/></g>'),
     'philosophy-spinoza': S('<g stroke-width="1.3" opacity=".75"><path d="M40 22 80 42 122 20M40 22l-8 40M80 42 60 70M80 42l40 26M122 20l10 36M32 62l28 8M120 68l12-12M80 42 80 12"/></g>' + dots([[40, 22, 4], [80, 42, 7], [122, 20, 4], [32, 62, 3.5], [60, 70, 4], [120, 68, 4], [132, 56, 3], [80, 12, 3.5]])),
     'philosophy-aristotle': S('<g stroke-width="1.6" opacity=".95"><rect x="30" y="16" width="30" height="22" rx="4"/><rect x="65" y="16" width="30" height="22" rx="4"/><rect x="100" y="16" width="30" height="22" rx="4"/><rect x="30" y="46" width="30" height="22" rx="4"/><rect x="65" y="46" width="30" height="22" rx="4"/><rect x="100" y="46" width="30" height="22" rx="4"/></g>' + dots([[45, 27, 3], [80, 57, 3], [115, 27, 3]])),
     'philosophy-kant': S('<g stroke-width="1.5" opacity=".9"><circle cx="80" cy="44" r="30" opacity=".4"/><path d="M80 14v60M50 44h60" opacity=".55"/><circle cx="80" cy="44" r="16"/></g><path d="M76 40a4 4 0 1 1 5.5 3.7c-1 .5-1.5 1.2-1.5 2.3M80 50.5h.01" stroke-width="2.2"/>' + dots([[80, 14, 3], [110, 44, 3], [80, 74, 3], [50, 44, 3]])),
@@ -330,7 +352,7 @@
   // ---------------------------------------------------------------- Choose Your World
   function choose() {
     ui.view = 'choose'; ui.foot.hidden = true; head('Choose Your World', false);
-    var ts = templates(), ws = worlds(), size = function (t) { return t.domains.length + ' areas · ' + t.domains.reduce(function (a, d) { return a + (d.categories || []).reduce(function (x, c) { return x + (c.lists || []).length; }, 0); }, 0) + ' lists'; };
+    var ts = templates(), ws = worlds(), size = function (t) { return t.domains.length + ' areas · ' + t.domains.reduce(function (a, d) { return a + (d.lists && !d.categories ? d.lists.length : 0) + (d.categories || []).reduce(function (x, c) { return x + (c.lists || []).length; }, 0); }, 0) + ' lists'; };
     var card = function (t) { return '<button type="button" class="lw-card art" data-tpl="' + esc(t.id) + '" style="--c:' + esc(t.color || '#7c8cff') + '"><span class="lw-art" aria-hidden="true">' + artOf(t) + '</span><b>' + esc(t.name) + '</b>' + (t.philosopher ? '<small class="lw-by">Inspired by ' + esc(t.philosopher) + '</small>' : '') + (t.tagline ? '<p class="lw-tag">' + esc(t.tagline) + '</p>' : t.description ? '<small>' + esc(t.description) + '</small>' : '') + '<em>' + size(t) + '</em></button>'; };
     var built = ts.filter(function (t) { return !t.mine && !t.hidden; }), mine = ts.filter(function (t) { return t.mine; });
     var FAM = [['everyday', 'Everyday life', ''], ['knowledge', 'Knowledge atlases', ''], ['skills', 'My Skills', ''], ['advanced-philosophy', 'Explore Philosophical Worlds', 'Five ways of seeing one personal world — no philosophy needed to start.'], ['classical', 'Classical Worldviews', 'Inspired by great thinkers — shown in everyday words.']];
@@ -371,10 +393,11 @@
           lensHtml(t) + '<p class="lw-fine">Choosing a template never means you hold its views — it is only a way to sort your own world.</p></details>' : '') +
         ((t.thinkingQuestions || []).length ? '<details class="lw-about"><summary>Thinking questions</summary><ul class="lw-qs">' + t.thinkingQuestions.map(function (q) { return '<li>' + esc(q.text) + '</li>'; }).join('') + '</ul></details>' : '') +
         (t.discoveryTool ? (function (d) { var ready = window.MinestPhilo && MinestPhilo.ready(d.id); return '<div class="lw-tool"><b>' + esc(d.name) + '</b><span>' + esc(d.summary || '') + '</span>' + (ready ? '<button type="button" class="lw-pill pri" style="grid-row:1/3;grid-column:2;align-self:center;height:32px" data-ptool="' + esc(d.id) + '">Open</button>' : '<em>Coming next</em>') + '</div>'; })(t.discoveryTool) : '') +
+        (t.starterPack ? starterHtml(t) : '') +
         ((t.recommendedViews || []).length ? '<div class="lw-h">Good views for it</div><div class="lw-tags">' + t.recommendedViews.map(function (v) { return '<i>' + esc(VIEW_T[v] || v) + '</i>'; }).join('') + '</div>' : '') +
         (!t.philosophy && t.inspiration ? '<details class="lw-about"><summary>About this template</summary><div style="margin-top:6px">' + esc(t.inspiration) + '</div>' +
           lensHtml(t) + (t.mine ? '<div class="lw-row" style="margin-top:10px"><button type="button" class="lw-pill" data-exp>Export JSON</button><button type="button" class="lw-pill" data-deltpl style="color:#ff6b6b">Delete this template</button></div>' : '') + '</details>' : '') +
-        ((t.depths || []).length ? '<div class="lw-h">How much to make</div><div class="lw-target">' + t.depths.map(function (k) { return '<button type="button" data-depth="' + k + '"' + (ui.depth === k ? ' class="on"' : '') + '>' + DEPTH_T[k] + '</button>'; }).join('') + '</div><p class="lw-fine" style="margin:6px 2px 0">' + DEPTH_D[ui.depth] + '</p>' : '') +
+        ((t.depths || []).length > 1 ? '<div class="lw-h">How much to make</div><div class="lw-target">' + t.depths.map(function (k) { return '<button type="button" data-depth="' + k + '"' + (ui.depth === k ? ' class="on"' : '') + '>' + DEPTH_T[k] + '</button>'; }).join('') + '</div><p class="lw-fine" style="margin:6px 2px 0">' + DEPTH_D[ui.depth] + '</p>' : '') +
         (ws.length ? '<div class="lw-h">Where</div><div class="lw-target"><button type="button" data-into=""' + (ui.into ? '' : ' class="on"') + '>New world</button>' + ws.map(function (x) { return '<button type="button" data-into="' + esc(x.b.id) + '"' + (ui.into === x.b.id ? ' class="on"' : '') + '>Add to “' + esc(x.b.title) + '”</button>'; }).join('') + '</div>' : '') +
         (t.groups ? '<div class="lw-h">' + esc(t.groupsLabel || 'Groups') + '</div><div class="lw-target">' + t.groups.map(function (g) { return '<button type="button" data-group="' + esc(g.id) + '"' + (ui.groups.indexOf(g.id) >= 0 ? ' class="on"' : '') + '>' + esc(g.title) + '</button>'; }).join('') + '</div>' : '') +
         (t.codes ? '<div class="lw-cat lw-opt"><div style="flex:1;min-width:0"><b>' + esc(t.codes.label || 'Show numbers') + '</b><span>Adds them to the names, e.g. “' + esc(((t.domains[5] || t.domains[0]).code || '') + ' ' + (t.domains[5] || t.domains[0]).title) + '”</span></div><button type="button" class="lw-sw' + (ui.codes ? ' on' : '') + '" data-codes aria-label="' + esc(t.codes.label || 'Show numbers') + '"></button></div>' : '') +
@@ -385,8 +408,10 @@
         (shown.length ? '' : '<p class="lw-sub">Pick at least one.</p>') +
         shown.map(function (d, i) {
           var dOff = !!ui.off[d.id];
-          return '<div class="lw-dom' + (dOff ? ' off' : '') + (ui.openD[d.id] ? ' open' : '') + '" style="--c:' + esc(d.color || PAL[i % PAL.length]) + '"><div class="lw-dh" data-dopen="' + esc(d.id) + '"><span class="cv">' + ICON.chev + '</span><span class="dot"></span>' + (d.code ? '<i class="lw-code">' + esc(d.code) + '</i>' : '') + '<b' + RN(d.id, d.title) + '>' + NM(d.id, d.title) + (d.note ? '<small class="lw-note">' + esc(d.note) + '</small>' : '') + '</b><em>' + (d.categories || []).length + '</em><button type="button" class="lw-sw' + (dOff ? '' : ' on') + '" data-toggle="' + esc(d.id) + '" aria-label="Include ' + esc(d.title) + '"></button></div>' +
-            '<div class="lw-cats">' + (d.categories || []).map(function (c) {
+          return '<div class="lw-dom' + (dOff ? ' off' : '') + (ui.openD[d.id] ? ' open' : '') + '" style="--c:' + esc(d.color || PAL[i % PAL.length]) + '"><div class="lw-dh" data-dopen="' + esc(d.id) + '"><span class="cv">' + ICON.chev + '</span><span class="dot"></span>' + (d.code ? '<i class="lw-code">' + esc(d.code) + '</i>' : '') + '<b' + RN(d.id, d.title) + '>' + NM(d.id, d.title) + (d.note ? '<small class="lw-note">' + esc(d.note) + '</small>' : '') + '</b><em>' + (d.categories || d.lists || []).length + '</em><button type="button" class="lw-sw' + (dOff ? '' : ' on') + '" data-toggle="' + esc(d.id) + '" aria-label="Include ' + esc(d.title) + '"></button></div>' +
+            '<div class="lw-cats">' + (d.lists && !d.categories ? '<div class="lw-cat"><div style="flex:1;min-width:0"><div class="lw-ls">' + d.lists.map(function (l) { var lk = 'l:' + d.id + '/' + l.id, lOff = dOff || !!ui.off[lk];
+                return '<button type="button" class="lw-li' + (lOff ? ' off' : '') + '"' + (ui.renaming ? RN(lk, l.title) : ' data-ltog="' + esc(lk) + '"') + (dOff ? ' disabled' : '') + '>' + NM(lk, l.title) + '</button>'; }).join('') + '</div>' +
+                (t.starterPack && t.starterPack.listFields ? '<span>' + esc(fieldsLine(t, d.id)) + '</span>' : '') + '</div></div>' : '') + (d.categories || []).map(function (c) {
               var cOff = dOff || !!ui.off[c.id];
               var lsH = ui.depth === 'simple' ? '' : '<div class="lw-ls">' + (c.lists || []).map(function (l) { var lk = 'l:' + c.id + '/' + l.id, lOff = cOff || !!ui.off[lk];
                   return '<button type="button" class="lw-li' + (lOff ? ' off' : '') + '"' + (ui.renaming ? RN(lk, l.title) : ' data-ltog="' + esc(lk) + '"') + (cOff ? ' disabled' : '') + '>' + NM(lk, l.title) + '</button>' +
@@ -402,9 +427,22 @@
     ui.renderPreview = render;
   }
   // a classical template's advanced lens (e.g. Kant's twelve categories): shown to read, never generated as lists
+  // Starter Pack preview: quick add, fields, pickers, gallery and suggested Discover tools
+  function fieldsLine(t, did) {
+    var sp = t.starterPack, F = {}; (sp.fields || []).forEach(function (f) { F[f.id] = f.label; });
+    var ids = []; Object.keys(sp.listFields || {}).forEach(function (k) { if (k.split('/')[0] === did) (sp.listFields[k] || []).forEach(function (x) { if (ids.indexOf(x) < 0) ids.push(x); }); });
+    return ids.length ? 'Fields: ' + ids.map(function (x) { return F[x] || x; }).join(' · ') : '';
+  }
+  function starterHtml(t) {
+    var sp = t.starterPack, tools = (sp.discoveryTools || []).map(function (id) { return { 'this-or-that': 'This or That', 'tier-list': 'Tier List', tournament: 'Tournament', 'desert-island': 'My Desert Island', 'connect-my-world': 'Connect My World' }[id] || null; }).filter(Boolean);
+    return '<div class="lw-h">Starter pack</div><div class="lw-tool" style="display:block"><b>' + esc(sp.quickAdd ? sp.quickAdd.label : 'Quick Add') + '</b>' +
+      '<span style="display:block;margin-top:3px">' + esc([(sp.more || []).map(function (m) { return m.label; }).join(' · '), (sp.pickers || []).map(function (p) { return p.label; }).join(' · '), sp.gallery ? sp.gallery.label : '', sp.quickAdd && sp.quickAdd.importText ? 'Paste a recipe as text' : ''].filter(Boolean).join(' · ')) + '</span>' +
+      (tools.length ? '<span style="display:block;margin-top:6px">Try with it: ' + esc(tools.join(' · ')) + '</span>' : '') +
+      (sp.private ? '<span style="display:block;margin-top:6px">Private by default — never shared or exported with your items unless you say so.</span>' : '') + '</div>';
+  }
   var DEPTH_T = { simple: 'Simple', standard: 'Standard', complete: 'Complete' };
   var DEPTH_D = { simple: 'Areas and categories only — fewest lists to start with.', standard: 'Areas, categories and their lists.', complete: 'Everything, including the more detailed sub-lists.' };
-  var VIEW_T = { list: 'List', contents: 'Contents', 'knowledge-map': 'Knowledge Map', timeline: 'Timeline', portal: 'Portal', kanban: 'Kanban', map: 'Knowledge Map' };
+  var VIEW_T = { gallery: 'Gallery', list: 'List', contents: 'Contents', 'knowledge-map': 'Knowledge Map', timeline: 'Timeline', portal: 'Portal', kanban: 'Kanban', map: 'Knowledge Map' };
   function lensHtml(t) {
     return (t.lenses || []).map(function (L) {
       return '<div class="lw-lens"><b>' + esc(L.title) + '</b>' + (L.note ? '<div class="nt">' + esc(L.note) + '</div>' : '') +
@@ -426,7 +464,7 @@
     if (t.closest('[data-capture]')) { close(); setTimeout(function () { MinestCapture.open(); }, 200); return; }
     var pt = t.closest('[data-ptool]'); if (pt) { var tid = ui.tpl && ui.tpl.id; close(); setTimeout(function () { MinestPhilo.open(pt.getAttribute('data-ptool'), { template: tid }); }, 200); return; }
     var qa = t.closest('[data-quick]'); if (qa) { if (window.MinestPicker) MinestPicker.open({ bid: qa.getAttribute('data-quick') }); return; }
-    var ow = t.closest('[data-openw]'); if (ow) return openWorld(ow.getAttribute('data-openw'));
+    var ow = t.closest('[data-openw]'); if (ow) { var obid = ow.getAttribute('data-openw'); if (window.MinestStarter && MinestStarter.has(obid)) { close(); setTimeout(function () { MinestStarter.home(obid); }, 220); return; } return openWorld(obid); }
     var sw = t.closest('[data-savew]'); if (sw) { var b = boardById(sw.getAttribute('data-savew')); if (b) mineFrom(b); return; }
     if (t.closest('[data-savecur]')) { var cb = A().board && A().board(); if (cb) mineFrom(cb); return; }
     if (t.closest('[data-import]')) return ui.file.click();
@@ -448,6 +486,7 @@
       try {
         var r = generate(ui.tpl, { off: offAll(), codes: ui.codes, depth: ui.depth, names: ui.names }, ui.into);
         toast(r.isNew ? 'Created “' + r.title + '”' : 'Added to “' + r.title + '”');
+        if (ui.tpl.starterPack && window.MinestStarter) { var tpl0 = ui.tpl; close(); MinestStarter.install(r.bid, tpl0).then(function () { MinestStarter.welcome(r.bid, tpl0.id); }); return; }
         openWorld(r.bid, true);
       } catch (ex) { toast('✗ ' + ex.message); }
     }
@@ -470,5 +509,5 @@
     })();
   }
 
-  window.MinestWorld = { open: open, close: close, isOpen: function () { return ui.open; }, templates: templates, generate: generate, undo: undo, fromBoard: fromBoard, saveTemplate: saveTemplate, check: check, worlds: worlds, _plan: plan };
+  window.MinestWorld = { _art: artOf, open: open, close: close, isOpen: function () { return ui.open; }, templates: templates, generate: generate, undo: undo, fromBoard: fromBoard, saveTemplate: saveTemplate, check: check, worlds: worlds, _plan: plan };
 })();
