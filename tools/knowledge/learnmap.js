@@ -8,7 +8,8 @@
    Template "route": places joined by journeys (numbered stops, arrows); tap a place for its stops.
    Progress comes from the Learning Path (MinestLearn.cardStatus: studied / mastered — opening a card is not
    mastering it): mastered blocks light up gold, blocks in progress glow, the next ones are available, the rest dim.
-   ◎ You Are Here = the first block not yet mastered along the route (Guided: stages unlock in order; Free: all open).
+   ◎ You Are Here = the first block not yet mastered along the route — a suggestion: by default every stage is open
+   (play them in any order); Guided (stages unlock in order) is the learner's choice per board ('lm:mode:<board>').
    Trail (a phone held upright, or by choice): the same stages as one winding road down the screen — a numbered platform
    per stage (gold ★ when mastered, the current one pulsing under a YOU pin, 🔒 while locked in Guided mode), a sign
    for each region with its progress. Map ⇄ Trail in the top bar (kept per board on this device).
@@ -103,7 +104,9 @@
     var route = order.map(function (id) { return byKey['G:' + id]; }).filter(Boolean);
     stages.forEach(function (s) { if (route.indexOf(s) < 0) route.push(s); });
     route.forEach(function (s, i) { s.n = i + 1; s.done = s.blocks.length > 0 && s.blocks.every(function (x) { return x.st === 'mastered'; }); s.started = s.blocks.some(function (x) { return x.st !== 'new'; }); });
-    var mode = cfg.mode === 'free' ? 'free' : 'guided', req = cfg.requires || {};
+    // any order by default: every stage is open, the route and YOU only suggest; Guided (stages unlock in order) is
+    // the learner's own choice for this board
+    var mode = (KN() && KN().get('lm:mode:' + b.id)) === 'guided' ? 'guided' : 'free', req = cfg.requires || {};
     var firstOpen = route.filter(function (s) { return !s.done; })[0] || null;
     route.forEach(function (s) {
       var r = req[s.id];
@@ -731,7 +734,7 @@
       if (act === 'here') { var h = G.here; if (!h) return toast('Everything here is mastered ⭐'); if (G.tpl === 'route') return focusOn(h.place.k); return focusOn(h.stage.k); }
       if (act === 'fit') return focus ? focusOn(focus) : home();
       if (act === 'tolist') { var fn = focus && G.byKey[focus], lid = fn ? (fn.kind === 'state' ? fn.id : fn.kind === 'stage' ? fn.state.id : fn.kind === 'block' ? fn.col.id : fn.col ? fn.col.id : null) : null; if (!lid) return toast('Zoom into a region first — then this opens its list'); return toList(lid); }
-      if (act === 'mode') { setCfg(ui.bid, { mode: G.mode === 'guided' ? 'free' : 'guided' }); render(); toast(G.mode === 'guided' ? 'Guided Path: stages open one after another' : 'Free Exploration: every stage is open'); return; }
+      if (act === 'mode') { KN().set('lm:mode:' + ui.bid, G.mode === 'guided' ? 'free' : 'guided', true); render(); toast(G.mode === 'guided' ? 'Guided Path: stages open one after another' : 'Free Exploration: every stage is open'); return; }
       if (act === 'edit') { edit = !edit; a.classList.toggle('on', edit); ui.el.classList.toggle('edit', edit); if (edit) editSheet(); else closeSheet(); return; }
     }
     if (t.closest('[data-close]')) return closeSheet();

@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 49.3 · Learning Map start</title>
+    <title>Minest iPhone 49.4 · Any order</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "49.3" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "49.4" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -56900,7 +56900,8 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
    Template "route": places joined by journeys (numbered stops, arrows); tap a place for its stops.
    Progress comes from the Learning Path (MinestLearn.cardStatus: studied / mastered — opening a card is not
    mastering it): mastered blocks light up gold, blocks in progress glow, the next ones are available, the rest dim.
-   ◎ You Are Here = the first block not yet mastered along the route (Guided: stages unlock in order; Free: all open).
+   ◎ You Are Here = the first block not yet mastered along the route — a suggestion: by default every stage is open
+   (play them in any order); Guided (stages unlock in order) is the learner's choice per board ('lm:mode:<board>').
    Trail (a phone held upright, or by choice): the same stages as one winding road down the screen — a numbered platform
    per stage (gold ★ when mastered, the current one pulsing under a YOU pin, 🔒 while locked in Guided mode), a sign
    for each region with its progress. Map ⇄ Trail in the top bar (kept per board on this device).
@@ -56995,7 +56996,9 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
     var route = order.map(function (id) { return byKey['G:' + id]; }).filter(Boolean);
     stages.forEach(function (s) { if (route.indexOf(s) < 0) route.push(s); });
     route.forEach(function (s, i) { s.n = i + 1; s.done = s.blocks.length > 0 && s.blocks.every(function (x) { return x.st === 'mastered'; }); s.started = s.blocks.some(function (x) { return x.st !== 'new'; }); });
-    var mode = cfg.mode === 'free' ? 'free' : 'guided', req = cfg.requires || {};
+    // any order by default: every stage is open, the route and YOU only suggest; Guided (stages unlock in order) is
+    // the learner's own choice for this board
+    var mode = (KN() && KN().get('lm:mode:' + b.id)) === 'guided' ? 'guided' : 'free', req = cfg.requires || {};
     var firstOpen = route.filter(function (s) { return !s.done; })[0] || null;
     route.forEach(function (s) {
       var r = req[s.id];
@@ -57623,7 +57626,7 @@ window.__MINEST_KN_SAMPLES = {"cc6": {"format": "minest.knowledge/1", "id": "cc6
       if (act === 'here') { var h = G.here; if (!h) return toast('Everything here is mastered ⭐'); if (G.tpl === 'route') return focusOn(h.place.k); return focusOn(h.stage.k); }
       if (act === 'fit') return focus ? focusOn(focus) : home();
       if (act === 'tolist') { var fn = focus && G.byKey[focus], lid = fn ? (fn.kind === 'state' ? fn.id : fn.kind === 'stage' ? fn.state.id : fn.kind === 'block' ? fn.col.id : fn.col ? fn.col.id : null) : null; if (!lid) return toast('Zoom into a region first — then this opens its list'); return toList(lid); }
-      if (act === 'mode') { setCfg(ui.bid, { mode: G.mode === 'guided' ? 'free' : 'guided' }); render(); toast(G.mode === 'guided' ? 'Guided Path: stages open one after another' : 'Free Exploration: every stage is open'); return; }
+      if (act === 'mode') { KN().set('lm:mode:' + ui.bid, G.mode === 'guided' ? 'free' : 'guided', true); render(); toast(G.mode === 'guided' ? 'Guided Path: stages open one after another' : 'Free Exploration: every stage is open'); return; }
       if (act === 'edit') { edit = !edit; a.classList.toggle('on', edit); ui.el.classList.toggle('edit', edit); if (edit) editSheet(); else closeSheet(); return; }
     }
     if (t.closest('[data-close]')) return closeSheet();
