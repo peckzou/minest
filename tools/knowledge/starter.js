@@ -276,7 +276,8 @@
   }
   // ---------------------------------------------------------------- one item
   function detail(bid, sid, back) {
-    shell(); ui.bid = bid; ui.view = 'detail'; ui.sid = sid; ui.detBack = back || 'home';
+    shell(); if (ui.rootSid === sid && (back === 'home' || back === 'item:' + sid)) back = '@close';   // opened from My World: back goes back there
+    ui.bid = bid; ui.view = 'detail'; ui.sid = sid; ui.detBack = back || 'home';
     var b = boardById(bid), L = b && locate(b, sid); if (!L) return home(bid);
     var s = L.item, v = valuesOf(bid, sid), defs = fieldsFor(bid, L.card.id), pic = v[imageField(defs) || 'photo'] || v.photo; head(s.title, ui.detBack);
     var h = '<div class="st-det">' + (pic ? '<img alt="" src="' + esc(pic) + '">' : '') + '<h3>' + esc(s.title) + '</h3><p class="st-sub">' + esc(L.card.title + ' · ' + L.col.title) + '</p>';
@@ -302,7 +303,7 @@
   function onClick(e) {
     var t = e.target, g, F = ui.form;
     if (t.closest('[data-x]')) return close();
-    if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === 'home') return home(ui.bid); if (bk === 'gallery') return gallery(ui.bid); if (bk === 'form') return drawForm(); if (/^list:/.test(bk)) return listView(ui.bid, bk.slice(5)); if (/^item:/.test(bk)) return detail(ui.bid, bk.slice(5), 'home'); return home(ui.bid); }
+    if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === '@close') { ui.rootSid = null; return close(); } if (bk === 'home') return home(ui.bid); if (bk === 'gallery') return gallery(ui.bid); if (bk === 'form') return drawForm(); if (/^list:/.test(bk)) return listView(ui.bid, bk.slice(5)); if (/^item:/.test(bk)) return detail(ui.bid, bk.slice(5), 'home'); return home(ui.bid); }
     if (t.closest('[data-explore]')) { var bid = ui.bid, p = packOf(bid); close(); setTimeout(function () { try { if (A().selectBoard) A().selectBoard(bid); } catch (x) {} setTimeout(function () { var ex = p && p.explore; if (ex === 'timeline' && window.MinestTimeline) MinestTimeline.open(bid); else if (ex === 'contents' && window.MinestContents) MinestContents.open(); else if (ex === 'map' && window.MinestMap) MinestMap.open(bid); else if (ex === 'kanban') {} else if (window.MinestWiki) MinestWiki.open(bid); }, 250); }, 200); return; }
     if (t.closest('[data-customize]')) { var bid2 = ui.bid; close(); setTimeout(function () { if (window.MinestBuilder && MinestBuilder.open) MinestBuilder.open(bid2); else { try { if (A().selectBoard) A().selectBoard(bid2); } catch (x) {} setTimeout(function () { if (window.MinestEndless) MinestEndless.open(bid2); }, 250); } }, 200); return; }
     if (t.closest('[data-add]')) { var p1 = packOf(ui.bid); return openForm({ bid: ui.bid, pats: p1.quickAdd.targets, label: p1.quickAdd.label, titleLabel: p1.quickAdd.titleLabel, back: ui.view === 'gallery' ? 'gallery' : 'home' }); }
@@ -357,5 +358,5 @@
 
   // open a starter world at its home when a world with a pack is opened
   window.MinestStarter = { install: install, has: has, home: function (bid) { home(bid); }, welcome: function (bid) { welcome(bid); }, open: function (o) { o = o || {}; if (o.add) openForm({ bid: o.bid, pats: packOf(o.bid).quickAdd.targets, label: packOf(o.bid).quickAdd.label, titleLabel: packOf(o.bid).quickAdd.titleLabel }); else home(o.bid); }, close: close, isOpen: function () { return ui.open; },
-    fieldsFor: fieldsFor, valuesOf: valuesOf, saveItem: saveItem, parseRecipe: parseRecipe, mentions: mentions, listCards: listCards, _detail: detail, _gallery: gallery };
+    fieldsFor: fieldsFor, valuesOf: valuesOf, saveItem: saveItem, parseRecipe: parseRecipe, mentions: mentions, listCards: listCards, _detail: detail, _gallery: gallery, openItem: function (bid, sid) { ui.rootSid = sid; detail(bid, sid, '@close'); }, addTo: function (bid, cid) { openForm({ bid: bid, cid: cid, label: 'Add', back: 'home' }); ui.form.back = '@close'; drawForm(); } };
 })();

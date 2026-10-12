@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 51.5 · My World UI</title>
+    <title>Minest iPhone 51.6 · My World Views</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "51.5" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "51.6" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -62071,7 +62071,8 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   }
   // ---------------------------------------------------------------- one item
   function detail(bid, sid, back) {
-    shell(); ui.bid = bid; ui.view = 'detail'; ui.sid = sid; ui.detBack = back || 'home';
+    shell(); if (ui.rootSid === sid && (back === 'home' || back === 'item:' + sid)) back = '@close';   // opened from My World: back goes back there
+    ui.bid = bid; ui.view = 'detail'; ui.sid = sid; ui.detBack = back || 'home';
     var b = boardById(bid), L = b && locate(b, sid); if (!L) return home(bid);
     var s = L.item, v = valuesOf(bid, sid), defs = fieldsFor(bid, L.card.id), pic = v[imageField(defs) || 'photo'] || v.photo; head(s.title, ui.detBack);
     var h = '<div class="st-det">' + (pic ? '<img alt="" src="' + esc(pic) + '">' : '') + '<h3>' + esc(s.title) + '</h3><p class="st-sub">' + esc(L.card.title + ' · ' + L.col.title) + '</p>';
@@ -62097,7 +62098,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   function onClick(e) {
     var t = e.target, g, F = ui.form;
     if (t.closest('[data-x]')) return close();
-    if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === 'home') return home(ui.bid); if (bk === 'gallery') return gallery(ui.bid); if (bk === 'form') return drawForm(); if (/^list:/.test(bk)) return listView(ui.bid, bk.slice(5)); if (/^item:/.test(bk)) return detail(ui.bid, bk.slice(5), 'home'); return home(ui.bid); }
+    if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === '@close') { ui.rootSid = null; return close(); } if (bk === 'home') return home(ui.bid); if (bk === 'gallery') return gallery(ui.bid); if (bk === 'form') return drawForm(); if (/^list:/.test(bk)) return listView(ui.bid, bk.slice(5)); if (/^item:/.test(bk)) return detail(ui.bid, bk.slice(5), 'home'); return home(ui.bid); }
     if (t.closest('[data-explore]')) { var bid = ui.bid, p = packOf(bid); close(); setTimeout(function () { try { if (A().selectBoard) A().selectBoard(bid); } catch (x) {} setTimeout(function () { var ex = p && p.explore; if (ex === 'timeline' && window.MinestTimeline) MinestTimeline.open(bid); else if (ex === 'contents' && window.MinestContents) MinestContents.open(); else if (ex === 'map' && window.MinestMap) MinestMap.open(bid); else if (ex === 'kanban') {} else if (window.MinestWiki) MinestWiki.open(bid); }, 250); }, 200); return; }
     if (t.closest('[data-customize]')) { var bid2 = ui.bid; close(); setTimeout(function () { if (window.MinestBuilder && MinestBuilder.open) MinestBuilder.open(bid2); else { try { if (A().selectBoard) A().selectBoard(bid2); } catch (x) {} setTimeout(function () { if (window.MinestEndless) MinestEndless.open(bid2); }, 250); } }, 200); return; }
     if (t.closest('[data-add]')) { var p1 = packOf(ui.bid); return openForm({ bid: ui.bid, pats: p1.quickAdd.targets, label: p1.quickAdd.label, titleLabel: p1.quickAdd.titleLabel, back: ui.view === 'gallery' ? 'gallery' : 'home' }); }
@@ -62152,7 +62153,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
 
   // open a starter world at its home when a world with a pack is opened
   window.MinestStarter = { install: install, has: has, home: function (bid) { home(bid); }, welcome: function (bid) { welcome(bid); }, open: function (o) { o = o || {}; if (o.add) openForm({ bid: o.bid, pats: packOf(o.bid).quickAdd.targets, label: packOf(o.bid).quickAdd.label, titleLabel: packOf(o.bid).quickAdd.titleLabel }); else home(o.bid); }, close: close, isOpen: function () { return ui.open; },
-    fieldsFor: fieldsFor, valuesOf: valuesOf, saveItem: saveItem, parseRecipe: parseRecipe, mentions: mentions, listCards: listCards, _detail: detail, _gallery: gallery };
+    fieldsFor: fieldsFor, valuesOf: valuesOf, saveItem: saveItem, parseRecipe: parseRecipe, mentions: mentions, listCards: listCards, _detail: detail, _gallery: gallery, openItem: function (bid, sid) { ui.rootSid = sid; detail(bid, sid, '@close'); }, addTo: function (bid, cid) { openForm({ bid: bid, cid: cid, label: 'Add', back: 'home' }); ui.form.back = '@close'; drawForm(); } };
 })();
 
 /* Minest Knowledge · Custom World Builder — window.MinestBuilder
@@ -62732,6 +62733,20 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     '.mw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.mw-stats div{padding:14px 8px;border-radius:16px;background:var(--mw-card);box-shadow:inset 0 0 0 1px var(--mw-line);text-align:center}.mw-stats b{display:block;font-size:26px;font-weight:800}.mw-stats span{font-size:12.5px;color:var(--mw-sub)}',
     '.mw-menu{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:9;padding:8px;border-radius:20px;background:var(--mw-card);box-shadow:0 20px 50px rgba(0,0,0,.4),inset 0 0 0 1px var(--mw-line)}.mw-menu h4{margin:8px 10px;font-size:15px}.mw-menu button{display:block;width:100%;text-align:left;padding:13px 12px;border:0;border-radius:12px;background:none;color:inherit;font:inherit;cursor:pointer}.mw-menu button:hover{background:var(--mw-fill)}',
     '@media (min-width:700px){.mw-menu{left:50%;right:auto;width:400px;transform:translateX(-50%)}}',
+    '.mw-seg button[data-wmoreviews]{flex:0 0 44px;display:grid;place-items:center}',
+    '.mw-lh{margin:10px 8px 4px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mw-sub)}',
+    '.mw-l{border-radius:12px}.mw-l.in{margin-left:6px}.mw-lr{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:8px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}',
+    '.mw-lr .cv{color:var(--mw-sub);transition:transform .2s;flex:none}.mw-l.open .mw-lr .cv{transform:rotate(90deg)}.mw-lr b{flex:1;min-width:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mw-lr em{font-style:normal;font-size:13px;color:var(--mw-sub)}',
+    '.mw-dot{width:8px;height:8px;border-radius:50%;background:var(--mw-blue);flex:none}',
+    '.mw-items{padding:0 6px 8px 30px}.mw-it{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:4px 6px;border:0;border-radius:10px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}.mw-it:hover{background:var(--mw-fill)}',
+    '.mw-it img,.mw-it .nb{width:32px;height:32px;border-radius:7px;object-fit:cover;flex:none;background:var(--mw-fill)}.mw-it span:last-child{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.mw-la{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.mw-la button{height:32px;padding:0 12px;border-radius:999px;border:0;background:var(--mw-fill);color:inherit;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:4px}.mw-la svg{width:15px;height:15px}',
+    '.mw-gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px}@media (min-width:700px){.mw-gal{grid-template-columns:repeat(4,minmax(0,1fr))}}@media (min-width:1050px){.mw-gal{grid-template-columns:repeat(6,minmax(0,1fr))}}',
+    '.mw-gi{position:relative;display:flex;flex-direction:column;gap:3px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}',
+    '.mw-gi img,.mw-gi .ph{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:var(--mw-fill)}.mw-gi .ph{display:flex;align-items:flex-end;padding:7px;box-sizing:border-box;color:#fff;font:700 12px/1.15 -apple-system,system-ui,sans-serif;background:linear-gradient(155deg,hsl(var(--h,220) 50% 50%),hsl(calc(var(--h,220) + 50) 55% 28%));overflow:hidden}',
+    '.mw-gi b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mw-gi small{font-size:11.5px;color:var(--mw-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-2px}',
+    '.mw-gi .ok{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#30d158;color:#fff}.mw-gi .ok svg{width:13px;height:13px}',
+    '.fl img,.fl .ph,.mw-it.fl{box-shadow:0 0 0 2px var(--mw-blue)}.mw-it.fl{background:color-mix(in srgb,var(--mw-blue) 12%,transparent)}',
     '@media (prefers-reduced-motion: reduce){.mw-act,.mw-wc,.mw-tc,.mw-sw:after{transition:none}}'
   ].join('\n');
   function css() { if (document.getElementById('mw-css')) return; var s = document.createElement('style'); s.id = 'mw-css'; s.textContent = CSS; document.head.appendChild(s); }
@@ -62746,13 +62761,13 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
     if (el.animate && !reduce) el.animate([{ opacity: 0, transform: 'scale(.985)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
     el.addEventListener('click', onClick);
-    el.addEventListener('input', function (e) { if (e.target.matches('[data-q]')) { ui.q = e.target.value; drawResults(); } });
+    el.addEventListener('input', function (e) { if (e.target.matches('[data-q]')) { ui.q = e.target.value; drawResults(); } if (e.target.matches('[data-wq]')) { ui.ws.q = e.target.value; stSave(ui.wb, ui.ws); var pos = e.target.selectionStart; drawWorld(true); var f = ui.body.querySelector('[data-wq]'); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch (x) {} } } });
     el.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (ui.menu) closeMenu(); else if (ui.view === 'home') close(); else home(); } });
     ui.file.addEventListener('change', function () { var f = ui.file.files && ui.file.files[0]; ui.file.value = ''; if (!f || !ui.coverFor) return; var bid = ui.coverFor; shrink(f, 1200, function (d) { if (!d) return toast('This picture could not be read.'); KN().set('wa:' + bid, Object.assign({}, KN().get('wa:' + bid) || {}, { cover: d, at: Date.now() })); toast('Cover changed'); home(); }); });
   }
   function shrink(f, max, cb) { var rd = new FileReader(); rd.onload = function () { var im = new Image(); im.onload = function () { var k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)); try { var c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); cb(c.toDataURL('image/jpeg', .82)); } catch (e) { cb(null); } }; im.onerror = function () { cb(null); }; im.src = rd.result; }; rd.readAsDataURL(f); }
   function close() { if (!ui.open) return; keepScroll(); var el = ui.el; ui.open = false; ui.el = null; ui.menu = null; if (!document.querySelector('.lw,.sk,.wk,.pk,.wc,.dv,.st,.bd')) document.documentElement.classList.remove('kn-open'); if (el.animate && !reduce) { var an = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' }); an.onfinish = function () { el.remove(); }; } else el.remove(); }
-  function keepScroll() { if (ui.view && ui.body) ui.scroll[ui.view] = ui.body.scrollTop; }
+  function keepScroll() { if (ui.view && ui.body) ui.scroll[ui.view] = ui.body.scrollTop; if (ui.view === 'world') saveWorldState(); }
   function go(view, fn) { keepScroll(); closeMenu(); ui.view = view; ui.foot.hidden = true; ui.foot.innerHTML = ''; fn(); }
   function headSmall(title, back) { ui.head.innerHTML = (back ? '<button type="button" class="mw-b" data-back="' + esc(back) + '" aria-label="Back">' + ICON.back + '</button>' : '') + '<h2>' + esc(title) + '</h2><button type="button" class="mw-b" data-x aria-label="Close">' + ICON.x + '</button>'; }
   function foot(h) { ui.foot.hidden = !h; ui.foot.innerHTML = h || ''; }
@@ -62773,7 +62788,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
         }).join('') + '</div>';
       }
       var logs = window.MinestCapture && MinestCapture.logs ? MinestCapture.logs().filter(function (l) { return !l.undone; }).slice(0, 4) : [];
-      if (logs.length) h += '<div class="mw-h"><b>Recent Changes</b><button type="button" data-recent>See all</button></div>' + logs.map(function (l) { var n = (l.items || []).length, to = Object.keys(l.lists || {}).length; return '<button type="button" class="mw-row" data-recent><div><b>' + esc(l.kind === 'organize' ? l.note : n === 1 ? l.items[0].title : n + ' items added') + '</b><small>' + esc(ago(l.at) + (to ? ' · into ' + to + ' list' + (to === 1 ? '' : 's') : '')) + '</small></div>' + ICON.chev + '</button>'; }).join('');
+      if (logs.length) h += '<div class="mw-h"><b>Recent Changes</b><button type="button" data-recent>See all</button></div>' + logs.map(function (l) { var n = (l.items || []).length, to = Object.keys(l.lists || {}).length; return '<button type="button" class="mw-row" data-log="' + esc(l.id) + '"><div><b>' + esc(l.kind === 'organize' ? l.note : n === 1 ? l.items[0].title : n + ' items added') + '</b><small>' + esc(ago(l.at) + (to ? ' · into ' + to + ' list' + (to === 1 ? '' : 's') : '')) + '</small></div>' + ICON.chev + '</button>'; }).join('');
       ui.body.innerHTML = h; ui.body.scrollTop = (o && o.top) ? 0 : (ui.scroll.home || 0);
       if (o && o.highlight) setTimeout(function () { var c = ui.body.querySelector('[data-world="' + o.highlight + '"]'); if (c) c.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' }); }, 60);
     });
@@ -62878,12 +62893,73 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     });
   }
 
+  // ---------------------------------------------------------------- 5 · inside a world: List ↔ Gallery ↔ Kanban (one set of items)
+  // per world, kept on this device: the view, open lists, the area filter, the search and each view's scroll
+  var SKEY = 'minest.myworld.v1';
+  function stAll() { try { return JSON.parse(localStorage.getItem(SKEY) || '{}'); } catch (e) { return {}; } }
+  function st(bid) { var a = stAll(); return Object.assign({ view: 'list', open: {}, area: '', q: '', scroll: {} }, a[bid] || {}); }
+  function stSave(bid, s) { try { var a = stAll(); a[bid] = s; localStorage.setItem(SKEY, JSON.stringify(a)); } catch (e) {} }
+  function itemsOfList(k) { return (k.stack || []); }
+  function picOf(s) { return s && s.cover && (s.cover.value || s.cover.url) || ''; }
+  function isNewList(cid) { var w = KN() && KN().get('wn:' + cid); return w ? (w.n || 0) + (w.isNew && !w.n ? 1 : 0) : 0; }
+  function worldView(bid, o) {
+    o = o || {}; var b = boardById(bid); if (!b) return home();
+    shell(); var S = st(bid); if (o.view) S.view = o.view; if (o.open) o.open.forEach(function (c) { S.open[c] = 1; }); if (o.area != null) S.area = o.area;
+    ui.wb = bid; ui.ws = S; ui.flash = o.flash || {};
+    if (o.open && KN()) { var seen = {}; o.open.forEach(function (c) { if (KN().get('wn:' + c)) seen['wn:' + c] = null; }); if (Object.keys(seen).length) KN().setMany(seen); }   // landing on new items = they are seen
+    go('world', function () { drawWorld(o.keepScroll === false); });
+  }
+  function drawWorld(top) {
+    var bid = ui.wb, S = ui.ws, b = boardById(bid); if (!b) return home();
+    var info = worldInfo({ b: b, w: KN().get('lom:world:' + bid) });
+    ui.head.innerHTML = '<button type="button" class="mw-b" data-back="home" aria-label="My World">' + ICON.back + '</button><h2>' + esc(b.title) + '</h2><button type="button" class="mw-b" data-wadd aria-label="Add">' + ICON.plus + '</button><button type="button" class="mw-b" data-x aria-label="Close">' + ICON.x + '</button>';
+    var more = [['contents', 'Contents', window.MinestContents], ['portal', 'Portal', window.MinestWiki], ['timeline', 'Timeline', window.MinestTimeline], ['map', 'Map', window.MinestMap], ['learnmap', 'Learning Map', window.MinestLearnMap]].filter(function (x) { return x[2]; });
+    var q = String(S.q || '').toLowerCase(), area = S.area;
+    var h = '<div class="mw-seg" style="margin:2px 0 10px">' + [['list', 'List'], ['gallery', 'Gallery'], ['kanban', 'Kanban']].map(function (v) { return '<button type="button" data-wview="' + v[0] + '"' + (S.view === v[0] ? ' class="on"' : '') + '>' + v[1] + '</button>'; }).join('') + (more.length ? '<button type="button" data-wmoreviews aria-label="More views">' + ICON.more + '</button>' : '') + '</div>' +
+      '<label class="mw-search" style="margin-top:0">' + ICON.search + '<input data-wq placeholder="Search in ' + esc(b.title) + '" autocomplete="off" value="' + esc(S.q || '') + '"></label>' +
+      '<div class="mw-where" style="margin-bottom:10px"><button type="button" data-warea=""' + (!area ? ' class="on"' : '') + '>All</button>' + (b.columns || []).map(function (c) { return '<button type="button" data-warea="' + esc(c.id) + '"' + (area === c.id ? ' class="on"' : '') + '>' + esc(c.title) + '</button>'; }).join('') + '</div>';
+    var cols = (b.columns || []).filter(function (c) { return !area || c.id === area; });
+    var match = function (s) { return !q || String(s.title + ' ' + (s.desc || '')).toLowerCase().indexOf(q) >= 0; };
+    if (S.view === 'gallery') {
+      var all = []; cols.forEach(function (c) { (c.cards || []).forEach(function (k) { if (KN().isHeading(k.id)) return; itemsOfList(k).forEach(function (s) { if (match(s) || (q && k.title.toLowerCase().indexOf(q) >= 0)) all.push({ s: s, k: k, c: c }); }); }); });
+      h += all.length ? '<div class="mw-gal">' + all.map(function (x) { var p = picOf(x.s), done = (x.s.mastery || 0) >= 4 || x.s.complete;
+        return '<button type="button" class="mw-gi' + (ui.flash[x.s.id] ? ' fl' : '') + '" data-witem="' + esc(x.s.id) + '">' + (p ? '<img loading="lazy" alt="" src="' + esc(p) + '" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'ph\',textContent:\'' + esc(x.s.title).replace(/'/g, '') + '\'}))">' : '<span class="ph" style="--h:' + (hashOf(x.s.title) % 360) + '">' + esc(x.s.title) + '</span>') + (done ? '<i class="ok" title="Done">' + ICON.check + '</i>' : '') + '<b>' + esc(x.s.title) + '</b><small>' + esc(x.k.title) + '</small></button>'; }).join('') + '</div>'
+        : '<div class="mw-empty" style="padding:20px 0"><p>' + (q ? 'Nothing matches “' + esc(S.q) + '”.' : 'No items yet — they will show here as pictures.') + '</p></div>';
+    } else {
+      h += cols.map(function (c) {
+        var rows = '', inHead = false, any = false;
+        (c.cards || []).forEach(function (k) {
+          if (KN().isHeading(k.id)) { rows += '<div class="mw-lh">' + esc(k.title) + '</div>'; inHead = true; return; }
+          var its = itemsOfList(k).filter(match); if (q && !its.length && k.title.toLowerCase().indexOf(q) < 0) return; any = true;
+          var open = !!S.open[k.id] || (q && its.length), nw = isNewList(k.id);
+          rows += '<div class="mw-l' + (open ? ' open' : '') + (inHead ? ' in' : '') + '"><button type="button" class="mw-lr" data-wlist="' + esc(k.id) + '"><span class="cv">' + ICON.chev + '</span><b>' + esc(k.title) + '</b>' + (nw ? '<i class="mw-dot" title="New"></i>' : '') + '<em>' + itemsOfList(k).length + '</em></button>' +
+            (open ? '<div class="mw-items">' + (its.length ? its.map(function (s) { var p = picOf(s); return '<button type="button" class="mw-it' + (ui.flash[s.id] ? ' fl' : '') + '" data-witem="' + esc(s.id) + '">' + (p ? '<img loading="lazy" alt="" src="' + esc(p) + '">' : '<span class="nb"></span>') + '<span>' + esc(s.title) + '</span></button>'; }).join('') : '<p class="mw-note" style="margin:4px 4px 8px">Empty for now.</p>') +
+              '<div class="mw-la"><button type="button" data-waddto="' + esc(k.id) + '">' + ICON.plus + 'Add</button>' + (window.MinestPicker && MinestPicker.catalogFor && MinestPicker.catalogFor(k.title) ? '<button type="button" data-wpick="' + esc(k.id) + '">Pick</button>' : '') + (window.MinestDiscover && itemsOfList(k).length >= 2 ? '<button type="button" data-wplay="' + esc(k.id) + '">' + ICON.spark + 'Discover</button>' : '') + '</div></div>' : '') + '</div>';
+        });
+        return any || !q ? '<div class="mw-area" style="--c:' + esc(c.color || '#888') + '"><div class="mw-ar" style="cursor:default"><span class="dot"></span><b>' + esc(c.title) + '</b></div><div style="padding:0 6px 6px">' + (rows || '<p class="mw-note" style="margin:0 8px 8px">No lists yet.</p>') + '</div></div>' : '';
+      }).join('') || '<div class="mw-empty" style="padding:20px 0"><p>Nothing matches “' + esc(S.q) + '”.</p></div>';
+    }
+    ui.body.innerHTML = h;
+    ui.body.scrollTop = top ? 0 : ((S.scroll || {})[S.view] || 0);
+    var f = Object.keys(ui.flash || {})[0]; if (f) setTimeout(function () { var el = ui.body.querySelector('[data-witem="' + f + '"]'); if (el) el.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' }); ui.flash = {}; }, 80);
+  }
+  function hashOf(s) { var h = 0; s = String(s); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+  function saveWorldState() { if (!ui.wb || !ui.ws) return; ui.ws.scroll = ui.ws.scroll || {}; if (ui.view === 'world') ui.ws.scroll[ui.ws.view] = ui.body.scrollTop; stSave(ui.wb, ui.ws); }
+  function locateItem(b, sid) { var hit = null; (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { (k.stack || []).forEach(function (s) { if (s.id === sid) hit = { c: c, k: k, s: s }; }); }); }); return hit; }
+  // a Recent Changes entry: go to the world and the lists it touched, with the new items lit
+  function openLog(l) {
+    var lists = Object.keys(l.lists || {}), b = null; boards().forEach(function (x) { (x.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (lists.indexOf(k.id) >= 0 && !b) b = x; }); }); });
+    if (!b) { close(); setTimeout(function () { if (window.MinestCapture) MinestCapture.open(); }, 180); return; }
+    var flash = {}; (l.stacks || []).forEach(function (s) { flash[s.id] = 1; });
+    worldView(b.id, { view: 'list', open: lists, area: '', flash: flash, keepScroll: false });
+  }
+
   // ================================================================== clicks
   function onClick(e) {
     var t = e.target, g;
     if (ui.menu) { var mi = t.closest('[data-mi]'); if (mi) { var it = ui.menuItems[+mi.getAttribute('data-mi')]; closeMenu(); it[1](); return; } closeMenu(); return; }
     if (t.closest('[data-x]')) return close();
-    if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === 'gallery') return gallery(); return home(); }
+    if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === 'gallery') return gallery(); if (bk === 'world' && ui.wb) return worldView(ui.wb); return home(); }
     if (t.closest('[data-search]')) return search();
     if (t.closest('[data-settings]')) return settings();
     if (t.closest('[data-gallery]')) return gallery();
@@ -62894,10 +62970,23 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     if (t.closest('[data-classic]')) { close(); setTimeout(function () { W().open(); }, 180); return; }
     if (t.closest('[data-add]')) { close(); setTimeout(function () { if (window.MinestCapture) MinestCapture.open(); }, 180); return; }
     if (t.closest('[data-discover]')) { close(); setTimeout(function () { if (window.MinestDiscover) MinestDiscover.open(); }, 180); return; }
+    if ((g = t.closest('[data-log]'))) { var lg = KN().get('wl:' + g.getAttribute('data-log')); if (lg) return openLog(lg); }
     if (t.closest('[data-recent]')) { close(); setTimeout(function () { if (window.MinestCapture) MinestCapture.open(); }, 180); return; }
     if ((g = t.closest('[data-wmore]'))) { e.stopPropagation(); var bid = g.getAttribute('data-wmore'), b = boardById(bid);
-      return menu(b ? b.title : 'World', [['Open', function () { openWorldCard(bid); }], ['Change cover', function () { ui.coverFor = bid; ui.file.click(); }], ['Use the default cover', function () { KN().set('wa:' + bid, Object.assign({}, KN().get('wa:' + bid) || {}, { cover: '' })); home(); }]].concat(window.MinestBuilder ? [['Customize', function () { close(); setTimeout(function () { MinestBuilder.open(bid); }, 180); }]] : []).concat(window.MinestCapture ? [['Add to this world', function () { close(); setTimeout(function () { MinestCapture.open({ wbid: bid }); }, 180); }]] : [])); }
-    if ((g = t.closest('[data-world]'))) return openWorldCard(g.getAttribute('data-world'));
+      return menu(b ? b.title : 'World', [['Open', function () { worldView(bid); }], ['Open in its home view', function () { openWorldCard(bid); }], ['Change cover', function () { ui.coverFor = bid; ui.file.click(); }], ['Use the default cover', function () { KN().set('wa:' + bid, Object.assign({}, KN().get('wa:' + bid) || {}, { cover: '' })); home(); }]].concat(window.MinestBuilder ? [['Customize', function () { close(); setTimeout(function () { MinestBuilder.open(bid); }, 180); }]] : []).concat(window.MinestCapture ? [['Add to this world', function () { close(); setTimeout(function () { MinestCapture.open({ wbid: bid }); }, 180); }]] : [])); }
+    if ((g = t.closest('[data-world]'))) { hap('selection'); return worldView(g.getAttribute('data-world')); }
+    if (ui.view === 'world') {
+      var S = ui.ws, wb = ui.wb, keep = function (fn) { var y0 = ui.body.scrollTop; fn(); ui.body.scrollTop = y0; };
+      if ((g = t.closest('[data-wview]'))) { var v = g.getAttribute('data-wview'); saveWorldState(); if (v === 'kanban') { S.view = S.view === 'kanban' ? 'list' : S.view; stSave(wb, S); close(); setTimeout(function () { try { if (A().selectBoard) A().selectBoard(wb); } catch (x) {} }, 180); return; } S.view = v; stSave(wb, S); hap('selection'); return drawWorld(); }
+      if (t.closest('[data-wmoreviews]')) { var mv = [['Contents', function () { close(); setTimeout(function () { try { A().selectBoard(wb); } catch (x) {} setTimeout(function () { MinestContents.open(); }, 250); }, 180); }], ['Portal', function () { close(); setTimeout(function () { try { A().selectBoard(wb); } catch (x) {} setTimeout(function () { MinestWiki.open(wb); }, 250); }, 180); }], ['Timeline', function () { close(); setTimeout(function () { try { A().selectBoard(wb); } catch (x) {} setTimeout(function () { MinestTimeline.open(wb); }, 250); }, 180); }]].concat(window.MinestMap ? [['Map', function () { close(); setTimeout(function () { try { A().selectBoard(wb); } catch (x) {} setTimeout(function () { MinestMap.open(wb); }, 250); }, 180); }]] : []); saveWorldState(); return menu('More views', mv); }
+      if ((g = t.closest('[data-warea]'))) { S.area = g.getAttribute('data-warea'); stSave(wb, S); return drawWorld(true); }
+      if ((g = t.closest('[data-wlist]'))) { var lid = g.getAttribute('data-wlist'); if (S.open[lid]) delete S.open[lid]; else { S.open[lid] = 1; if (KN().get('wn:' + lid)) KN().set('wn:' + lid, null, true); } stSave(wb, S); return keep(drawWorld); }
+      if ((g = t.closest('[data-witem]'))) { saveWorldState(); var sid = g.getAttribute('data-witem'); if (window.MinestStarter && MinestStarter.openItem) { MinestStarter.openItem(wb, sid); watchBack(); } return; }
+      if ((g = t.closest('[data-waddto]'))) { saveWorldState(); var cid = g.getAttribute('data-waddto'); if (window.MinestStarter && MinestStarter.addTo) { MinestStarter.addTo(wb, cid); watchBack(); } return; }
+      if ((g = t.closest('[data-wpick]'))) { saveWorldState(); var pc = g.getAttribute('data-wpick'); close(); setTimeout(function () { MinestPicker.open({ bid: wb, cardId: pc }); }, 180); return; }
+      if ((g = t.closest('[data-wplay]'))) { saveWorldState(); var pl = g.getAttribute('data-wplay'); close(); setTimeout(function () { MinestDiscover.open({ bid: wb, cardId: pl }); }, 180); return; }
+      if (t.closest('[data-wadd]')) { saveWorldState(); close(); setTimeout(function () { if (window.MinestStarter && MinestStarter.has(wb) && (KN().get('fd:' + wb) || {}).packs && Object.keys(KN().get('fd:' + wb).packs).some(function (k) { return KN().get('fd:' + wb).packs[k].quickAdd; })) MinestStarter.open({ bid: wb, add: true }); else if (window.MinestCapture) MinestCapture.open({ wbid: wb }); }, 180); return; }
+    }
     if ((g = t.closest('[data-tpl]'))) { var tp = tplById(g.getAttribute('data-tpl')); if (tp) preview(tp); return; }
     // preview
     if (ui.view === 'preview') {
@@ -62913,7 +63002,8 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     if (t.closest('[data-explore]')) return home({ highlight: ui.newBid, top: true });
   }
 
-  window.MinestMyWorld = { open: function () { home(); }, gallery: function () { shell(); gallery(); }, close: close, isOpen: function () { return ui.open; }, _welcome: welcome };
+  function watchBack() { var t0 = Date.now(); (function w() { if (!ui.open || ui.view !== 'world') return; if (window.MinestStarter && MinestStarter.isOpen()) { setTimeout(w, 250); return; } if (Date.now() - t0 > 400) { var y = ui.body.scrollTop; drawWorld(); ui.body.scrollTop = y; } })(); setTimeout(function w2() { if (window.MinestStarter && MinestStarter.isOpen()) return setTimeout(w2, 250); if (ui.open && ui.view === 'world') { var y = ui.body.scrollTop; drawWorld(); ui.body.scrollTop = y; } }, 300); }
+  window.MinestMyWorld = { world: function (bid, o) { worldView(bid, o); }, open: function () { home(); }, gallery: function () { shell(); gallery(); }, close: close, isOpen: function () { return ui.open; }, _welcome: welcome };
 })();
 
 /* Minest Knowledge · the one Dock icon for every knowledge view, plus JSON import.
@@ -62981,7 +63071,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
       (window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-myworld style="--c:#5e5ce6"><i>' + G('<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 3 2.5 13 0 16M12 4c-2.5 3-2.5 13 0 16"/>') + '</i><b>My World</b><small>A little universe of mine</small></button>' : '') +
       (window.MinestCapture ? '<button type="button" class="kh-m kh-lom" data-cap style="--c:#0a84ff"><i>' + G('<path d="M12 5v14M5 12h14"/>') + '</i><b>Add to My World</b><small>Type, paste, photo, import</small></button>' : '') +
       (window.MinestDiscover ? '<button type="button" class="kh-m kh-lom" data-disc style="--c:#ff9f0a"><i>' + G('<rect x="3" y="6" width="7" height="12" rx="2"/><rect x="14" y="6" width="7" height="12" rx="2"/><path d="M12 9v6"/>') + '</i><b>Discover My World</b><small>This or That · Tier List · Tournament</small></button>' : '') +
-      (window.MinestWorld ? '<button type="button" class="kh-m kh-lom" data-lom style="--c:#7c8cff"><i>' + G('<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/><path d="M14 18h7"/>') + '</i><b>List of Mine</b><small>My world, my lists</small></button>' : '') +
+      (window.MinestWorld && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-lom style="--c:#7c8cff"><i>' + G('<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/><path d="M14 18h7"/>') + '</i><b>List of Mine</b><small>My world, my lists</small></button>' : '') +
       '<h4>Appearance</h4><div class="kh-row">' + [['auto', '◐ Auto'], ['light', '☀︎ Light'], ['dark', '☾ Dark']].map(function (x) { var cur = window.MinestKnowledge ? MinestKnowledge.look() : 'auto'; return '<button type="button" data-look="' + x[0] + '"' + (cur === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>'; }).join('') + '</div>' +
       '<h4>Import</h4><div class="kh-row"><button type="button" class="pri" data-file>Import JSON…</button>' + (undo.length ? '<button type="button" data-undo>Undo “' + esc(undo[0].title) + '”</button>' : '') + '</div>' +
       // (the samples stay in MinestKJ.samples(); the sheet no longer lists them)
