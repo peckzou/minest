@@ -509,14 +509,14 @@
   }
 
   // ================================================================== entry points
-  function openList(bid, cardId, back) {
+  function openList(bid, cardId, back, catalog) {
     var b = boardById(bid), L = b && locate(b, cardId); if (!L) return toast('The list is not here any more.');
-    var c = catFor(L.card.title) || cat('hobbies');
+    var c = (catalog && cat(catalog)) || catFor(L.card.title) || cat('hobbies');   // a starter pack may name its catalog
     (c.kind === 'gallery' ? gallery : c.kind === 'bubble' ? bubbles : profile)(bid, cardId, c, back || null);
   }
   function open(o) {
     o = o || {}; var a = A().board && A().board(), bid = o.bid || (a && a.id); if (!bid) return;
-    if (o.cardId) return openList(bid, o.cardId, o.back || null);
+    if (o.cardId) return openList(bid, o.cardId, o.back || null, o.catalog || null);
     if (o.skills) return skills(bid, o.skills === true ? null : o.skills, o.back || null);
     home(bid);
   }

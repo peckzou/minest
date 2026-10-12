@@ -79,19 +79,20 @@
   // create (no sid) or update an item; returns its id
   function saveItem(bid, cardId, sid, title, v) {
     var b0 = boardById(bid); if (!b0) return Promise.reject(new Error('This world is not here any more.'));
-    var b = JSON.parse(JSON.stringify(b0)), defs = fieldsFor(bid, cardId), photo = v.photo || '';
+    var b = JSON.parse(JSON.stringify(b0)), defs = fieldsFor(bid, cardId), imgF = imageField(defs), photo = (imgF && v[imgF]) || v.photo || '';
     var target = sid ? locate(b, sid) : locate(b, cardId); if (!target) return Promise.reject(new Error('The list is not here any more.'));
     var desc = summary(bid, defs, v);
     if (sid) { var it = target.item; it.title = title; it.desc = desc; if (photo) it.cover = { type: 'image', value: photo, url: photo, title: '', size: 'banner' }; else delete it.cover; }
     else { sid = cardId + '~' + slug(title) + '-' + rid().slice(-5); var st = { id: sid, title: title, desc: desc, labels: [], complete: false, mastery: 1 }; if (photo) st.cover = { type: 'image', value: photo, url: photo, title: '', size: 'banner' }; target.card.stack = (target.card.stack || []).concat([st]); target.card.hasStack = true; }
     var before = A().boards(); A().updateBoard(bid, function () { return b; });
-    var keep = Object.assign({}, v); delete keep.photo;   // the photo lives once, on the card's cover
+    var keep = Object.assign({}, v); delete keep.photo; if (imgF) delete keep[imgF];   // the picture lives once, on the card's cover
     KN().set('fv:' + sid, keep, true);
     defs.forEach(function (f) { if (f.type === 'date' && f.timeline) KN().setDate(sid, v[f.id] && v[f.id].y ? v[f.id] : null); });
     var ws = KN().get('wn:' + cardId); KN().set('wn:' + cardId, Object.assign({ n: 0, since: Date.now() }, ws || {}, { n: ((ws && ws.n) || 0) + (sid ? 0 : 1) }), true);
     return written(before).then(function () { try { window.dispatchEvent(new CustomEvent('minest:kedit', { detail: { bid: bid } })); } catch (e) {} return sid; });
   }
-  function valuesOf(bid, sid) { var v = Object.assign({}, KN().get('fv:' + sid) || {}), b = boardById(bid), L = b && locate(b, sid); if (L && L.item && L.item.cover && (L.item.cover.value || L.item.cover.url)) v.photo = L.item.cover.value || L.item.cover.url; return v; }
+  function imageField(defs) { var f = (defs || []).filter(function (x) { return x.type === 'image'; })[0]; return f ? f.id : null; }
+  function valuesOf(bid, sid) { var v = Object.assign({}, KN().get('fv:' + sid) || {}), b = boardById(bid), L = b && locate(b, sid); if (L && L.item && L.item.cover && (L.item.cover.value || L.item.cover.url)) { var src = L.item.cover.value || L.item.cover.url, f = imageField(fieldsFor(bid, L.card.id)); v[f || 'photo'] = src; if (!f) v.photo = src; } return v; }
   // which items point at this one (e.g. the memories a person or a place is in)
   function mentions(bid, sid) {
     var out = [], b = boardById(bid); if (!b) return out;
@@ -163,7 +164,7 @@
     if (el.animate) el.animate([{ opacity: 0, translate: '0 24px' }, { opacity: 1, translate: '0 0' }], { duration: 280, easing: 'cubic-bezier(.2,.85,.25,1)' });
     el.addEventListener('click', onClick);
     el.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
-    ui.file.addEventListener('change', function () { var f = ui.file.files && ui.file.files[0]; ui.file.value = ''; if (!f) return; shrink(f, 1000, function (d) { if (!d) return toast('This picture could not be read.'); ui.form.v.photo = d; keepForm(); drawForm(); }); });
+    ui.file.addEventListener('change', function () { var f = ui.file.files && ui.file.files[0]; ui.file.value = ''; if (!f) return; shrink(f, 1000, function (d) { if (!d) return toast('This picture could not be read.'); keepForm(); ui.form.v[ui.form.imgKey || 'photo'] = d; drawForm(); }); });
   }
   function close() { if (!ui.open) return; var el = ui.el; ui.open = false; ui.el = null; if (!document.querySelector('.lw,.sk,.wk,.pk,.wc,.dv')) document.documentElement.classList.remove('kn-open'); if (el.animate) { var an = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' }); an.onfinish = function () { el.remove(); }; } else el.remove(); }
   function head(title, back) { ui.head.innerHTML = (back ? '<button type="button" class="st-b" data-back="' + esc(back) + '" aria-label="Back">' + ICON.back + '</button>' : '') + '<h2>' + esc(title) + '</h2><button type="button" class="st-b" data-x aria-label="Close">' + ICON.x + '</button>'; ui.foot.hidden = true; ui.foot.innerHTML = ''; ui.body.scrollTop = 0; }
@@ -186,8 +187,8 @@
     ui.el.style.setProperty('--c', colorOf(bid)); head(b.title, null);
     var lists = []; (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (k && k.id && !KN().isHeading(k.id)) lists.push(k.id); }); });
     var gal = p.gallery ? galleryItems(bid).length : 0;
-    var tools = (p.discovery || []).filter(function (id) { return window.MinestDiscover && (['this-or-that', 'tier-list', 'tournament'].indexOf(id) >= 0 || (MinestDiscover._x && id === 'desert-island')); });
-    var TN = { 'this-or-that': 'This or That', 'tier-list': 'Tier List', tournament: 'Tournament', 'desert-island': 'My Desert Island' };
+    var tools = (p.discovery || []).filter(function (id) { return window.MinestDiscover && (['this-or-that', 'tier-list', 'tournament'].indexOf(id) >= 0 || (MinestDiscover._x && id === 'desert-island') || (id === 'connect-my-world' && window.MinestPhilo)); });
+    var TN = { 'this-or-that': 'This or That', 'tier-list': 'Tier List', tournament: 'Tournament', 'desert-island': 'My Desert Island', 'connect-my-world': 'Connect My World' };
     ui.body.innerHTML = cover(bid) +
       (p.quickAdd ? '<button type="button" class="st-go" style="width:100%;margin-bottom:8px" data-add>' + ICON.plus + esc(p.quickAdd.label) + '</button>' : '') +
       '<div class="st-chips">' + (p.more || []).map(function (m, i) { return '<button type="button" class="st-chip" data-more="' + i + '">' + ICON.plus + esc(m.label) + '</button>'; }).join('') +
@@ -237,7 +238,7 @@
   function fieldHtml(f, v) {
     var lab = '<label>' + esc(f.label) + (f.hint ? ' <small>· ' + esc(f.hint) + '</small>' : '') + '</label>', k = esc(f.id);
     switch (f.type) {
-      case 'image': return '<div class="st-f">' + lab + '<div class="st-photo">' + (v ? '<img alt="" src="' + esc(v) + '">' : '') + '<button type="button" class="st-chip" data-fphoto>' + ICON.photo + (v ? 'Change' : 'Add a photo') + '</button>' + (v ? '<button type="button" class="st-chip" data-fnophoto>Remove</button>' : '') + '</div></div>';
+      case 'image': return '<div class="st-f">' + lab + '<div class="st-photo">' + (v ? '<img alt="" src="' + esc(v) + '">' : '') + '<button type="button" class="st-chip" data-fphoto="' + k + '">' + ICON.photo + (v ? 'Change' : 'Add a picture') + '</button>' + (v ? '<button type="button" class="st-chip" data-fnophoto="' + k + '">Remove</button>' : '') + '</div></div>';
       case 'number': return '<div class="st-f">' + lab + '<input class="st-in" data-fv="' + k + '" inputmode="decimal" value="' + esc(v == null ? '' : v) + '"></div>';
       case 'url': return '<div class="st-f">' + lab + '<input class="st-in" data-fv="' + k + '" type="url" placeholder="https://…" value="' + esc(v || '') + '"></div>';
       case 'date': v = v || {}; return '<div class="st-f">' + lab + '<div class="st-date"><input class="st-in y" data-fdy="' + k + '" inputmode="numeric" placeholder="Year" value="' + esc(v.y || '') + '"><input class="st-in" data-fdm="' + k + '" inputmode="numeric" placeholder="Month" value="' + esc(v.m || '') + '"><input class="st-in" data-fdd="' + k + '" inputmode="numeric" placeholder="Day" value="' + esc(v.d || '') + '"></div></div>';
@@ -262,9 +263,10 @@
   }
   // a reference field: pick from its lists, or add a new one there
   function refPicker(fid) {
-    keepForm(); var F = ui.form, def = fieldsFor(F.bid, F.cid).filter(function (f) { return f.id === fid; })[0], p = packOf(F.bid), t = tplById(p.id);
-    var cids = []; (def.refLists || []).forEach(function (pat) { listCards(F.bid, t, pat).forEach(function (c) { if (cids.indexOf(c) < 0) cids.push(c); }); });
-    var newIn = def.newIn ? listCards(F.bid, t, def.newIn)[0] : cids[0];
+    keepForm(); var F = ui.form, def = fieldsFor(F.bid, F.cid).filter(function (f) { return f.id === fid; })[0], f0 = fdOf(F.bid), L0 = f0 && f0.lists[F.cid], t = tplById((L0 && L0.tpl) || (packOf(F.bid) || {}).id);
+    var cids = []; if (t) (def.refLists || []).forEach(function (pat) { listCards(F.bid, t, pat).forEach(function (c) { if (cids.indexOf(c) < 0) cids.push(c); }); });
+    if (!cids.length) { var bb = boardById(F.bid); (bb.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (!KN().isHeading(k.id) && k.id !== F.cid) cids.push(k.id); }); }); }
+    var newIn = def.newIn && t ? listCards(F.bid, t, def.newIn)[0] || cids[0] : cids[0];
     ui.ref = { fid: fid, cids: cids, newIn: newIn }; ui.view = 'ref'; head(def.label, 'form');
     var cur = (F.v[fid] || []).map(function (r) { return r.id; });
     ui.body.innerHTML = '<div class="st-f"><label>New</label><div style="display:flex;gap:8px"><input class="st-in" data-rnew placeholder="A name…" maxlength="80"><button type="button" class="st-chip on" data-rmake>Add</button></div>' +
@@ -276,8 +278,8 @@
   function detail(bid, sid, back) {
     shell(); ui.bid = bid; ui.view = 'detail'; ui.sid = sid; ui.detBack = back || 'home';
     var b = boardById(bid), L = b && locate(b, sid); if (!L) return home(bid);
-    var s = L.item, v = valuesOf(bid, sid), defs = fieldsFor(bid, L.card.id); head(s.title, ui.detBack);
-    var h = '<div class="st-det">' + (v.photo ? '<img alt="" src="' + esc(v.photo) + '">' : '') + '<h3>' + esc(s.title) + '</h3><p class="st-sub">' + esc(L.card.title + ' · ' + L.col.title) + '</p>';
+    var s = L.item, v = valuesOf(bid, sid), defs = fieldsFor(bid, L.card.id), pic = v[imageField(defs) || 'photo'] || v.photo; head(s.title, ui.detBack);
+    var h = '<div class="st-det">' + (pic ? '<img alt="" src="' + esc(pic) + '">' : '') + '<h3>' + esc(s.title) + '</h3><p class="st-sub">' + esc(L.card.title + ' · ' + L.col.title) + '</p>';
     defs.forEach(function (f) {
       var x = v[f.id]; if (f.type === 'image' || x == null || x === '' || (Array.isArray(x) && !x.length)) return;
       var body;
@@ -301,15 +303,16 @@
     var t = e.target, g, F = ui.form;
     if (t.closest('[data-x]')) return close();
     if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === 'home') return home(ui.bid); if (bk === 'gallery') return gallery(ui.bid); if (bk === 'form') return drawForm(); if (/^list:/.test(bk)) return listView(ui.bid, bk.slice(5)); if (/^item:/.test(bk)) return detail(ui.bid, bk.slice(5), 'home'); return home(ui.bid); }
-    if (t.closest('[data-explore]')) { var bid = ui.bid, p = packOf(bid); close(); setTimeout(function () { try { if (A().selectBoard) A().selectBoard(bid); } catch (x) {} setTimeout(function () { var ex = p && p.explore; if (ex === 'timeline' && window.MinestTimeline) MinestTimeline.open(bid); else if (ex === 'contents' && window.MinestContents) MinestContents.open(); else if (ex === 'map' && window.MinestMap) MinestMap.open(bid); else if (window.MinestWiki) MinestWiki.open(bid); }, 250); }, 200); return; }
+    if (t.closest('[data-explore]')) { var bid = ui.bid, p = packOf(bid); close(); setTimeout(function () { try { if (A().selectBoard) A().selectBoard(bid); } catch (x) {} setTimeout(function () { var ex = p && p.explore; if (ex === 'timeline' && window.MinestTimeline) MinestTimeline.open(bid); else if (ex === 'contents' && window.MinestContents) MinestContents.open(); else if (ex === 'map' && window.MinestMap) MinestMap.open(bid); else if (ex === 'kanban') {} else if (window.MinestWiki) MinestWiki.open(bid); }, 250); }, 200); return; }
     if (t.closest('[data-customize]')) { var bid2 = ui.bid; close(); setTimeout(function () { if (window.MinestBuilder && MinestBuilder.open) MinestBuilder.open(bid2); else { try { if (A().selectBoard) A().selectBoard(bid2); } catch (x) {} setTimeout(function () { if (window.MinestEndless) MinestEndless.open(bid2); }, 250); } }, 200); return; }
     if (t.closest('[data-add]')) { var p1 = packOf(ui.bid); return openForm({ bid: ui.bid, pats: p1.quickAdd.targets, label: p1.quickAdd.label, titleLabel: p1.quickAdd.titleLabel, back: ui.view === 'gallery' ? 'gallery' : 'home' }); }
     if ((g = t.closest('[data-more]'))) { var m = packOf(ui.bid).more[+g.getAttribute('data-more')]; return openForm({ bid: ui.bid, pats: m.targets, label: m.label, titleLabel: m.titleLabel }); }
     if ((g = t.closest('[data-addto]'))) return openForm({ bid: ui.bid, cid: g.getAttribute('data-addto'), label: 'Add to ' + cardTitle(ui.bid, g.getAttribute('data-addto')), back: 'list:' + g.getAttribute('data-addto') });
     if (t.closest('[data-paste]')) return pasteRecipe();
-    if ((g = t.closest('[data-pick]'))) { var k = packOf(ui.bid).pickers[+g.getAttribute('data-pick')], tp = tplById(packOf(ui.bid).id), cid = tp && listCards(ui.bid, tp, k.target)[0]; if (!cid || !window.MinestPicker) return; var bb = ui.bid; close(); setTimeout(function () { MinestPicker.open({ bid: bb, cardId: cid }); }, 200); return; }
+    if ((g = t.closest('[data-pick]'))) { var k = packOf(ui.bid).pickers[+g.getAttribute('data-pick')], tp = tplById(packOf(ui.bid).id), cid = tp && listCards(ui.bid, tp, k.target)[0]; if (!cid || !window.MinestPicker) return; var bb = ui.bid; close(); setTimeout(function () { MinestPicker.open({ bid: bb, cardId: cid, catalog: k.catalog }); }, 200); return; }
     if (t.closest('[data-gallery]')) return gallery(ui.bid);
     if ((g = t.closest('[data-list]'))) return listView(ui.bid, g.getAttribute('data-list'));
+    if ((g = t.closest('[data-tool]')) && g.getAttribute('data-tool') === 'connect-my-world') { close(); setTimeout(function () { MinestPhilo.open('connect-my-world'); }, 200); return; }
     if ((g = t.closest('[data-tool]'))) { var tool = g.getAttribute('data-tool'), b3 = ui.bid, gi = galleryItems(b3), first = gi[0]; close(); setTimeout(function () { if (window.MinestDiscover) MinestDiscover.open(first ? { bid: b3, cardId: first.cid, tool: tool } : {}); }, 200); return; }
     if ((g = t.closest('[data-item]'))) return detail(ui.bid, g.getAttribute('data-item'), ui.view === 'gallery' ? 'gallery' : ui.view === 'list' ? 'list:' + ui.cid : 'home');
     if ((g = t.closest('[data-goitem]'))) return detail(ui.bid, g.getAttribute('data-goitem'), 'item:' + ui.sid);
@@ -318,8 +321,8 @@
     // the form
     if (ui.view === 'form') {
       if ((g = t.closest('[data-fcid]'))) { keepForm(); F.cid = g.getAttribute('data-fcid'); return drawForm(); }
-      if (t.closest('[data-fphoto]')) return ui.file.click();
-      if (t.closest('[data-fnophoto]')) { keepForm(); delete F.v.photo; return drawForm(); }
+      if ((g = t.closest('[data-fphoto]'))) { F.imgKey = g.getAttribute('data-fphoto') || 'photo'; return ui.file.click(); }
+      if ((g = t.closest('[data-fnophoto]'))) { keepForm(); delete F.v[g.getAttribute('data-fnophoto') || 'photo']; return drawForm(); }
       if ((g = t.closest('[data-fbool]'))) { keepForm(); var id = g.getAttribute('data-fbool'); F.v[id] = !F.v[id]; return keepScroll(drawForm); }
       if ((g = t.closest('[data-fsel]'))) { keepForm(); var id2 = g.getAttribute('data-fsel'), o = g.getAttribute('data-o'); F.v[id2] = F.v[id2] === o ? null : o; return keepScroll(drawForm); }
       if ((g = t.closest('[data-fmul]'))) { keepForm(); var id3 = g.getAttribute('data-fmul'), o3 = g.getAttribute('data-o'), arr = (F.v[id3] || []).slice(), at = arr.indexOf(o3); if (at >= 0) arr.splice(at, 1); else arr.push(o3); F.v[id3] = arr; return keepScroll(drawForm); }
