@@ -82,7 +82,7 @@
     var kids = (Array.isArray(c.stack) ? c.stack : []).filter(function (s) { return s && s.title; }).map(function (s) {
       return { id: 'i:' + b.id + ':' + s.id, kind: 'item', title: s.title, done: !!s.complete, to: { b: b.id, l: col.id, c: s.id, p: c.id }, kids: [] };
     });
-    return { id: 'c:' + b.id + ':' + c.id, kind: 'card', title: c.title, done: !!c.complete, to: { b: b.id, l: col.id, c: c.id }, kids: kids, cardId: c.id };
+    return { id: 'c:' + b.id + ':' + c.id, kind: 'card', title: c.title, done: !!c.complete, to: { b: b.id, l: col.id, c: c.id }, kids: kids, cardId: c.id, cover: c.cover || null };
   }
   function listNode(b, col) {
     // a card's section: the one recorded for it (boards made from JSON — the Kanban sinks mastered cards), else the heading above it
@@ -463,9 +463,10 @@
     '.mn-tocol-b{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:2px}',
     '.mn-tocol .mn-tc{position:relative;display:flex;align-items:center;gap:8px;min-height:40px;width:100%;box-sizing:border-box}',
     '.mn-tocol .mn-tc h4{margin:0;min-width:0}',
+    '.mn-tocol .mn-tlb{flex:0 0 100%;display:flex;margin:0 0 6px}.mn-tocol .mn-tlb i{display:block;width:34px;height:6px;border-radius:3px}',
+    '.mn-tocol .mn-tc.cv{flex-wrap:wrap;align-items:flex-start}.mn-tocol .mn-tc .mn-tcv{flex:0 0 calc(100% + 24px)}.mn-tocol .mn-tc .card-front-cover-color{height:32px}',
     '.mn-tocol .mn-tc .dt{flex:none;width:9px;height:9px;border-radius:50%}',
     '.mn-tocol .mn-tc .n{flex:none;font:500 12px ui-monospace,SFMono-Regular,Menlo,monospace;opacity:.6}',
-    '.mn-tocol .mn-tc.list h4,.mn-tocol .mn-tc.section h4{font-weight:650}',
     '.mn-tocol .mn-tc.section:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:2px;background:var(--lc)}',
     '.mn-tocol .mn-tc.done h4{text-decoration:line-through;opacity:.5}',
     '.mn-tocol .mn-tc:active{transform:scale(.985)}',
@@ -480,6 +481,12 @@
   var CARD = 'group relative rounded-xl py-2 px-3 select-none cursor-pointer liquid-glass-card transition-all overflow-hidden mn-tc';
   var H4 = 'font-normal md:font-medium text-sm leading-snug tracking-normal flex-1 break-words whitespace-normal';
   var LAYERS = '<svg class="w-3 h-3 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>';
+  var SW = [['#4bce97', 'stripes'], ['#f5cd47', 'arch'], ['#fea362', 'bars'], ['#f87168', 'dots'], ['#9f8fef', 'zigzag'], ['#579dff', 'ladder'], ['#6cc3e0', 'slash'], ['#94c748', 'brackets'], ['#e774bb', 'column-dots'], ['#8590a2', 'dashed']];
+  var LOOK = {};   // { cv: {mode: 'all'|'top', seed}, lb: {mode, seed} } for the board being drawn
+  function hashOf(x) { var h = 0; x = String(x); for (var i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) >>> 0; return h; }
+  function lookOf(bid) { return (window.MinestKnowledge && window.MinestKnowledge.get('kc:look:' + bid)) || {}; }
+  function looks(kind, n) { var L = LOOK[kind]; return !!L && (L.mode === 'all' || n.kind === 'list'); }
+  function pickOf(arr, n, seed) { var i = LOOK.idx && LOOK.idx[n.id]; return arr[((i != null ? i : hashOf(n.id)) + (seed || 0)) % arr.length]; }   // lists in turn (no repeats), the rest by name
   function colRows(nodes, open, color, out, fresh) {
     var white = !!document.querySelector('.theme-white');
     nodes.forEach(function (n) {
@@ -487,7 +494,11 @@
       var kids = (n.kids || []).filter(function (k) { return k.kind !== 'item'; }), op = kids.length && open[n.id];
       var lc = n.kind === 'list' ? (n.color || '#8d99ae') : color;
       var cnt = n.kind === 'list' ? n.count : n.kind === 'section' ? kids.length : '';
-      var card = '<article class="' + CARD + ' ' + n.kind + (n.done ? ' done' : '') + '" data-id="' + esc(n.id) + '" style="--lc:' + esc(lc) + '">' +
+      var cv = n.kind === 'card' && n.cover && n.cover.value ? (n.cover.type === 'color' ? '<div class="card-front-cover-color relative overflow-hidden -mx-3 -mt-2 mb-2 mn-tcv" style="background-color:' + esc(n.cover.value) + '"></div>'
+        : n.cover.type === 'image' ? '<div class="card-front-cover-container relative overflow-hidden -mx-3 -mt-2 mb-2 mn-tcv"><img alt="" class="card-front-cover-img" loading="lazy" src="' + esc(n.cover.value) + '"></div>' : '') : '';
+      if (!cv && looks('cv', n)) cv = '<div class="card-front-cover-color relative overflow-hidden -mx-3 -mt-2 mb-2 mn-tcv" style="background-color:' + pickOf(SW, n, LOOK.cv.seed)[0] + '"></div>';
+      var lb = looks('lb', n) && LOOK.lb.colors && LOOK.lb.colors.length ? '<span class="mn-tlb"><i style="background:' + esc(pickOf(LOOK.lb.colors, n, LOOK.lb.seed)) + '"></i></span>' : '';
+      var card = '<article class="' + CARD + ' ' + n.kind + (n.done ? ' done' : '') + (cv || lb ? ' cv' : '') + (cv ? ' card-has-cover' : '') + '" data-id="' + esc(n.id) + '" style="--lc:' + esc(lc) + '">' + cv + lb +
         (n.kind === 'list' ? '<i class="dt" style="background:' + esc(lc) + '"></i>' : '') +
         '<h4 class="' + H4 + '">' + esc(n.title) + '</h4>' + (cnt !== '' ? '<span class="n">' + cnt + '</span>' : '') + '</article>';
       if (!kids.length) { out.push(card); return; }
@@ -512,7 +523,7 @@
     st.borderColor = document.querySelector('.theme-white') ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.16)';
     var w = first.getBoundingClientRect().width; if (w) st.width = Math.round(w) + 'px';
   }
-  var colById = {}, listsNow = [];
+  var colById = {}, listsNow = [], CC = '#8590a2';   // Contents' own list colour (the board's slate swatch)
   function mountCol() {
     var lane = document.querySelector('.board-swimlane-scroll');
     var old = document.querySelectorAll('.mn-tocol');
@@ -527,20 +538,29 @@
       lane.insertBefore(col, lane.firstChild);
     } else if (lane.firstElementChild !== col) lane.insertBefore(col, lane.firstChild);
     var first = lane.querySelector(':scope > .kanban-column-wrapper');
-    if (first) shellFrom(first, col);
+    // the frame of a real list: the board's own list classes (glass, rim, radius, padding, theme), a neutral top edge
+    if (first) {
+      var cls = first.className.split(/\s+/).filter(function (c) { return c && c !== 'kanban-column-wrapper' && !/^(dragging|drag-|is-|ring|opacity-)/.test(c); }).join(' ');
+      if (col.__cls !== cls) { col.className = 'mn-tocol peel-under ' + cls; col.__cls = cls; ['backgroundImage', 'borderRadius', 'boxShadow', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'color', 'borderWidth', 'borderStyle', 'borderColor', 'webkitBackdropFilter', 'backdropFilter'].forEach(function (k) { col.style[k] = ''; }); }
+      var fw = first.getBoundingClientRect().width; if (fw) col.style.width = Math.round(fw) + 'px';
+      col.style.borderTop = '2.5px solid ' + CC; col.style.backgroundColor = CC + '22'; col.style.marginTop = getComputedStyle(first).marginTop;
+    }
     var lists = (b.columns || []).map(function (c) { return listNode(b, c); });
+    LOOK = JSON.parse(JSON.stringify(lookOf(bid))); LOOK.idx = {}; lists.forEach(function (n, i) { LOOK.idx[n.id] = i; });
+    if (LOOK.lb) { var lc0 = (b.labelDefinitions || []).map(function (d) { return d && d.color; }).filter(Boolean); LOOK.lb.colors = lc0.length ? lc0 : SW.map(function (w) { return w[0]; }); }
     var open = CS[bid] = CS[bid] || {};
-    var sig = bid + JSON.stringify(lists.map(function (l) { return [l.title, l.color, l.count, l.kids.length, l.kids.map(function (k) { return k.title + (k.kids || []).length + (k.done ? 1 : 0); })]; })) + JSON.stringify(open) + !!document.querySelector('.theme-white');
+    var sig = bid + JSON.stringify(LOOK) + JSON.stringify((b.columns || []).map(function (c) { return (c.cards || []).map(function (k) { var v = k.cover; return v ? v.type + String(v.value || '').length + String(v.value || '').slice(-24) : ''; }); })) + JSON.stringify(lists.map(function (l) { return [l.title, l.color, l.count, l.kids.length, l.kids.map(function (k) { return k.title + (k.kids || []).length + (k.done ? 1 : 0); })]; })) + JSON.stringify(open) + !!document.querySelector('.theme-white');
     if (col.__sig === sig) return;
     col.__sig = sig; colById = {}; listsNow = lists;
     (function idx(ns, pid) { ns.forEach(function (n) { n.parentId = pid; colById[n.id] = n; idx(n.kids || [], n.id); }); })(lists, null);
     var body = col.querySelector('.mn-tocol-b'), y = body ? body.scrollTop : 0, out = [], fresh = col.__fresh; col.__fresh = null;
     colRows(lists, open, null, out, fresh);
     var cards = (b.columns || []).reduce(function (a, c) { return a + (c.cards || []).length; }, 0);
-    var IB = 'p-1.5 rounded-lg transition-colors hover:bg-white/12 opacity-70 hover:opacity-100';
-    col.innerHTML = '<div class="relative flex items-center justify-between pb-3 mb-1 select-none shrink-0"><div class="flex items-center gap-1.5 min-w-0 pr-2 flex-1"><h2 class="font-bold text-sm md:text-base tracking-tight truncate">Contents</h2></div>' +
-      '<div class="flex items-center gap-2 shrink-0"><span class="px-1.5 py-0.5 rounded-md text-xs font-mono font-medium opacity-60">' + cards + '</span>' +
-      '<button type="button" class="' + IB + '" data-full title="Open Contents" aria-label="Open Contents"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>' +
+    // the header of a real list: title · card count · ⋯ (the board's list header classes)
+    var white = !!document.querySelector('.theme-white'), dim = white ? 'text-slate-500 hover:text-slate-900 hover:bg-black/5' : 'text-white/60 hover:text-white hover:bg-white/10';
+    col.innerHTML = '<div class="mn-tocol-h relative flex items-center justify-between pb-3 mb-1 select-none shrink-0"><div class="flex items-center gap-1.5 min-w-0 pr-2 flex-1"><h2 class="font-bold text-sm md:text-base tracking-tight truncate" data-full style="cursor:pointer">Contents</h2></div>' +
+      '<div class="flex items-center gap-2 shrink-0">' + (open._nocount ? '' : '<button type="button" class="px-1.5 py-0.5 rounded-md text-xs font-mono font-medium transition-all cursor-pointer ' + dim + '" data-count title="Click to hide card count (' + cards + ')">' + cards + '</button>') +
+      '<button type="button" class="mn-tocol-more p-1.5 rounded-lg transition-colors ' + dim + '" data-more title="List options" aria-label="Contents options"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>' +
       '</div></div>' +
       '<div class="mn-tocol-b flex-1 flex flex-col gap-2.5 overflow-y-auto pr-1 min-h-0">' + (out.join('') || '<div style="padding:12px 4px;opacity:.6;font-size:14px">No lists yet.</div>') + '</div>';
     col.querySelector('.mn-tocol-b').scrollTop = y;
@@ -551,11 +571,13 @@
     if (e.target.closest('[data-unpin]')) { window.MinestKnowledge.set('kc:unpin:' + bid, 1); toast('Contents unpinned — 📌 in Contents puts it back'); mountCol(); return; }
     if (e.target.closest('[data-full]')) return open();
     var o = CS[bid] = CS[bid] || {};
+    if (e.target.closest('[data-count]')) { o._nocount = 1; colSave(); return mountCol(); }
+    var more = e.target.closest('[data-more]'); if (more) return colMenu(more, bid, o);
     function setOpen(id, on) {
       if (on) {   // one open per level: fold its open siblings (and what was open inside them)
         var n0 = colById[id], sib = n0 && n0.parentId ? (colById[n0.parentId] || {}).kids : listsNow;
         (sib || []).forEach(function (x) { if (x.id !== id && o[x.id]) { delete o[x.id]; (function drop(m) { (m.kids || []).forEach(function (c) { delete o[c.id]; drop(c); }); })(x); } });
-        o[id] = 1;
+        o[id] = 1; if (/^l:/.test(id)) o._last = id;
       } else delete o[id];
       colSave(); col0().__fresh = on ? id : null; mountCol();
     }
@@ -567,6 +589,37 @@
     // a folded list / section opens like a stack; an open one's card brings the list (or section) into view
     if (kids.length && !o[id]) return setOpen(id, true);
     go(n, false, false);   // a card: stay on the board, bring it into view and light it up
+  }
+  // ⋯ on the Contents list: the board's list-menu look. Its settings act on the current list only — the list open in
+  // Contents (or, with none open, the one you pick) — never on the whole board.
+  function colMenu(btn, bid, o) {
+    if (!window.MinestListMenu) return open();
+    function every(on) {
+      Object.keys(o).forEach(function (k) { if (k.charAt(0) !== '_') delete o[k]; });
+      if (on) (function walk(ns) { ns.forEach(function (n) { if ((n.kids || []).some(function (k) { return k.kind !== 'item'; })) { o[n.id] = 1; walk(n.kids); } }); })(listsNow);
+      colSave(); mountCol();
+    }
+    // Contents' own settings: they dress Contents' own rows (lists = the stack tops, or every row) — never the real cards
+    var L = lookOf(bid);
+    function tog(kind, mode) {
+      var x = Object.assign({}, lookOf(bid)), was = x[kind];
+      if (was && was.mode === mode) delete x[kind]; else x[kind] = { mode: mode, seed: Math.floor(Math.random() * 997) };
+      window.MinestKnowledge.set('kc:look:' + bid, Object.keys(x).length ? x : null);
+      toast(x[kind] ? '✓ ' + (kind === 'cv' ? 'Color covers' : 'Labels') + ' on in Contents — tap again to turn off' : (kind === 'cv' ? 'Color covers' : 'Labels') + ' off in Contents');
+      mountCol();
+    }
+    function chips(kind) { var c = L[kind]; return [{ t: 'All cards', on: !!(c && c.mode === 'all'), fn: function () { tog(kind, 'all'); } }, { t: 'Stack tops', on: !!(c && c.mode === 'top'), fn: function () { tog(kind, 'top'); } }]; }
+    MinestListMenu.menu(btn, [
+      ['⤢', 'Open Contents', function () { open(); }],
+      ['▾', 'Expand All', function () { every(true); }],
+      ['▴', 'Collapse All', function () { every(false); }],
+      ['#', 'Show Card Count', function () { if (o._nocount) delete o._nocount; else o._nocount = 1; colSave(); mountCol(); }, '', !o._nocount],
+      '-',
+      ['🎲', 'Random Labels', undefined, '', false, 'keep', chips('lb')],
+      ['🎨', 'Random Color Covers', undefined, '', false, 'keep', chips('cv')],
+      '-',
+      ['📌', 'Unpin from Board', function () { window.MinestKnowledge.set('kc:unpin:' + bid, 1); toast('Contents unpinned — 📌 in Contents puts it back'); mountCol(); }]
+    ]);
   }
   function col0() { return document.querySelector('.mn-tocol') || {}; }
   var mT = 0;

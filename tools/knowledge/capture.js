@@ -152,6 +152,7 @@
   // plan: [{item, to:[cardId...], newLists:[topic...]}] ; target world for new lists / the inbox: wbid
   function organize(plan, wbid, src, kind) {
     var byBoard = {}, log = { id: rid(), at: Date.now(), src: src || 'typed', kind: kind || 'add', items: [], lists: {}, created: [], stacks: [] }, side = {}, news = {};
+    if (src === 'visual-library') log.skipped = 0;
     function B(bid) { if (!byBoard[bid]) { var b0 = boardById(bid); if (!b0) return null; byBoard[bid] = { b0: b0, b: JSON.parse(JSON.stringify(b0)) }; } return byBoard[bid].b; }
     function ensureList(bid, colId, colTitle, cardId, title) {
       var b = B(bid); if (!b) return null; var L = locate(b, cardId); if (L) return L.card;
@@ -163,16 +164,17 @@
     }
     var bidOf = {}; candidates().forEach(function (c) { bidOf[c.id] = c.bid; });
     plan.forEach(function (p) {
-      var it = p.item, key = p.key || 'ki:cap:' + it.id, to = (p.to || []).slice();
+      var it = p.item, key = p.key || 'ki:cap:' + it.id, to = (p.to || []).slice(), visual = src === 'visual-library' && !!p.key, beforeStacks = log.stacks.length;
       (p.newLists || []).forEach(function (n) { var cid = wbid + '-l-mine-' + slug(n); ensureList(wbid, wbid + '-d-mine', 'My Own Lists', cid, 'My ' + n); bidOf[cid] = wbid; if (to.indexOf(cid) < 0) to.push(cid); });
       if (!to.length) { var ib = wbid + '-l-mine-inbox'; ensureList(wbid, wbid + '-d-mine', 'My Own Lists', ib, 'My Inbox'); bidOf[ib] = wbid; to.push(ib); }
       var rec = Object.assign({}, KN().get(key) || {}, { title: it.title, text: it.text || '', link: it.link || '', type: it.type || 'text', src: it.src || src, cat: 'cap', at: it.at || Date.now() });
+      if (visual && KN().get(key)) rec = Object.assign({}, KN().get(key));
       if (it.img) rec.img = it.img;
       var went = [];
       to.forEach(function (cid) {
         var bid = bidOf[cid] || wbid, b = B(bid); if (!b) return; var L = locate(b, cid); if (!L) return;
-        var h = (L.card.stack || []).some(function (s) { return KN().get('pk:' + s.id) === key || (norm(s.title) === norm(it.title) && norm(s.desc || '') === norm(descOf(it))); });
-        if (h) return;   // already there: one relationship per list
+        var h = (L.card.stack || []).some(function (s) { return KN().get('pk:' + s.id) === key || (!visual && norm(s.title) === norm(it.title) && norm(s.desc || '') === norm(descOf(it))); });
+        if (h) { if (visual) { went.push(cid); log.skipped = (log.skipped || 0) + 1; } return; }   // explicit IDs keep their existing list destination in the receipt
         var sid = cid + '~cap-' + slug(it.id);
         var s = { id: sid, title: it.title, desc: descOf(it), labels: [], complete: false, mastery: 1 };
         if (rec.img) s.cover = { type: 'image', value: rec.img, url: rec.img, title: '', size: 'banner' };
@@ -182,9 +184,9 @@
         var w = news[cid] || (news[cid] = {}); w.n = (w.n || 0) + 1;
       });
       side[key] = rec;
-      log.items.push({ key: key, title: it.title, to: went });
+      var entry = { key: key, title: it.title, to: went }; if (visual) entry.added = log.stacks.length > beforeStacks; log.items.push(entry);
     });
-    if (!log.stacks.length && !log.created.length) return Promise.resolve(log);
+    if (!log.stacks.length && !log.created.length) { if (src === 'visual-library') KN().setMany(side); return Promise.resolve(log); }
     var before = A().boards();
     Object.keys(byBoard).forEach(function (bid) { var x = byBoard[bid]; A().updateBoard(bid, function () { return x.b; }); });
     // +N / NEW until looked at
@@ -586,5 +588,5 @@
 
   function open(o) { o = o || {}; shell(); if (o.wbid) ui.wbid = o.wbid; if (o.text) { ui.draft = o.text; home(true); return; } if (o.import) { home(); return importView(); } home(); }
   window.MinestCapture = { open: open, close: close, isOpen: function () { return ui.open; },
-    suggest: function (text) { return suggest(makeItem(text, 'typed'), candidates()); }, organize: organize, undo: undoLog, graph: graph, logs: logs, splitBatch: splitBatch, makeItem: makeItem, newCount: function (bid) { var n = 0; (KN() ? KN().keys('wn:') : []).forEach(function (k) { var L = listTitle(k.slice(3)); if (L && (!bid || L.bid === bid)) { var w = KN().get(k); n += (w.n || 0) + (w.isNew && !w.n ? 1 : 0); } }); return n; } };
+    suggest: function (text) { return suggest(makeItem(text, 'typed'), candidates()); }, learnFrom: function (text, cardId) { try { learn(stems(text), cardId, 1); } catch (e) {} }, organize: organize, undo: undoLog, graph: graph, logs: logs, splitBatch: splitBatch, makeItem: makeItem, newCount: function (bid) { var n = 0; (KN() ? KN().keys('wn:') : []).forEach(function (k) { var L = listTitle(k.slice(3)); if (L && (!bid || L.bid === bid)) { var w = KN().get(k); n += (w.n || 0) + (w.isNew && !w.n ? 1 : 0); } }); return n; } };
 })();

@@ -60,9 +60,9 @@
     bd = document.createElement('div'); bd.className = 'kh-bd'; bd.addEventListener('pointerdown', function (e) { e.stopPropagation(); close(); });
     el = document.createElement('div'); el.className = 'kh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Knowledge');
     el.innerHTML = '<h3>Knowledge</h3><div class="kh-grid">' + MODES.map(function (m) { var ok = !!m[4](); return '<button type="button" class="kh-m" data-mode="' + m[0] + '" style="--c:' + m[2] + '"' + (ok ? '' : ' disabled') + '><i>' + m[3] + '</i><b>' + m[1] + '</b></button>'; }).join('') + '</div>' +
-      (window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-myworld style="--c:#5e5ce6"><i>' + G('<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 3 2.5 13 0 16M12 4c-2.5 3-2.5 13 0 16"/>') + '</i><b>My World</b><small>A little universe of mine</small></button>' : '') +
-      (window.MinestCapture ? '<button type="button" class="kh-m kh-lom" data-cap style="--c:#0a84ff"><i>' + G('<path d="M12 5v14M5 12h14"/>') + '</i><b>Add to My World</b><small>Type, paste, photo, import</small></button>' : '') +
-      (window.MinestDiscover ? '<button type="button" class="kh-m kh-lom" data-disc style="--c:#ff9f0a"><i>' + G('<rect x="3" y="6" width="7" height="12" rx="2"/><rect x="14" y="6" width="7" height="12" rx="2"/><path d="M12 9v6"/>') + '</i><b>Discover My World</b><small>This or That · Tier List · Tournament</small></button>' : '') +
+      (false && window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-myworld style="--c:#5e5ce6"><i>' + G('<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 3 2.5 13 0 16M12 4c-2.5 3-2.5 13 0 16"/>') + '</i><b>My World</b><small>A little universe of mine</small></button>' : '') +
+      (window.MinestCapture && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-cap style="--c:#0a84ff"><i>' + G('<path d="M12 5v14M5 12h14"/>') + '</i><b>Add to My World</b><small>Type, paste, photo, import</small></button>' : '') +
+      (window.MinestDiscover && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-disc style="--c:#ff9f0a"><i>' + G('<rect x="3" y="6" width="7" height="12" rx="2"/><rect x="14" y="6" width="7" height="12" rx="2"/><path d="M12 9v6"/>') + '</i><b>Discover My World</b><small>This or That · Tier List · Tournament</small></button>' : '') +
       (window.MinestWorld && !window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-lom style="--c:#7c8cff"><i>' + G('<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/><path d="M14 18h7"/>') + '</i><b>List of Mine</b><small>My world, my lists</small></button>' : '') +
       '<h4>Appearance</h4><div class="kh-row">' + [['auto', '◐ Auto'], ['light', '☀︎ Light'], ['dark', '☾ Dark']].map(function (x) { var cur = window.MinestKnowledge ? MinestKnowledge.look() : 'auto'; return '<button type="button" data-look="' + x[0] + '"' + (cur === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>'; }).join('') + '</div>' +
       '<h4>Import</h4><div class="kh-row"><button type="button" class="pri" data-file>Import JSON…</button>' + (undo.length ? '<button type="button" data-undo>Undo “' + esc(undo[0].title) + '”</button>' : '') + '</div>' +
@@ -121,6 +121,15 @@
     b.addEventListener('click', open);
     document.body.appendChild(b);
   }
-  if (document.body) trigger(); else document.addEventListener('DOMContentLoaded', trigger);
+  // My World: its own Dock icon (a hidden button the Dock presses, like Knowledge's)
+  var WORLD = I('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.8 3.2 2.8 13.8 0 17M12 3.5c-2.8 3.2-2.8 13.8 0 17"/>');
+  function worldTrigger() {
+    if (document.getElementById('mn-myworld-trigger') || !document.body || !window.MinestMyWorld) return;
+    var b = document.createElement('button'); b.type = 'button'; b.id = 'mn-myworld-trigger'; b.title = 'My World'; b.setAttribute('aria-label', 'My World');
+    b.style.display = 'none'; b.innerHTML = WORLD;
+    b.addEventListener('click', function () { if (MinestMyWorld.isOpen()) MinestMyWorld.close(); else MinestMyWorld.open(); });
+    document.body.appendChild(b);
+  }
+  if (document.body) { trigger(); worldTrigger(); } else document.addEventListener('DOMContentLoaded', function () { trigger(); worldTrigger(); });
   window.MinestKnowledgeHub = { open: open, close: close, icon: ICON };
 })();

@@ -132,6 +132,7 @@ def main():
     # 46.9: Minest Knowledge · Contents (tools/knowledge/contents.js) + its Dock icon, first in the Dock
     s = web31.knowledge_patches(s)
     s = once(s, "    { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },",
+             "    { k: 'myworld', find: function () { return document.getElementById('mn-myworld-trigger'); } },   // 52.1 My World: its own icon, first in the Dock\n"
              "    { k: 'knowledge', find: function () { return document.getElementById('mn-knowledge-trigger'); } },   // 47.3 Knowledge: Contents · Outline · Map · Timeline · Learning Map · Wiki\n"
              "    { k: 'view', find: function () { return document.querySelector('.sf-mode-toggle-btn'); } },", 'dock: Contents')
     tail = s.rindex('</body>')

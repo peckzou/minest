@@ -1,0 +1,7 @@
+/* Music adapter only; retains MusicBrainz unchanged for later metadata supplementation. */
+(function(){'use strict';var old=MinestVisualLibrary.providers.music,cacheKey='',cache=null;
+ async function request(params,signal){var h=typeof minestAIHeaders==='function'?minestAIHeaders():{};delete h['Content-Type'];var r=await fetch('/api/library/music?'+new URLSearchParams(params),{headers:h,credentials:'same-origin',signal:signal}),d=await r.json();if(!r.ok||d.error)throw new Error(d.error||'Music search unavailable.');return d;}
+ MinestVisualLibrary.musicSources={itunes:{status:'Primary'},musicbrainz:{status:'Retained for metadata',provider:old},deezer:{status:'Pending Terms / Approval',enabled:false}};
+ MinestVisualLibrary.registerProvider('music',{name:'iTunes Store · Music',search:async function(q,page,signal,options){var kind=options&&options.musicKind||'all',key=kind+'\n'+q;if(!cache||cacheKey!==key){var d=await request({provider:'itunes',q:q,kind:kind},signal);if(signal&&signal.aborted)throw new DOMException('Cancelled','AbortError');cache=d.items||[];cacheKey=key;}return {items:cache.slice((page-1)*20,page*20),more:page*20<cache.length};},getDetails:async function(x,signal){if(x.source.provider==='musicbrainz')return old.getDetails(x,signal);return x;}});
+ if(new URLSearchParams(location.search).get('library')==='music')setTimeout(function(){if(!MinestVisualLibrary.isOpen())MinestVisualLibrary.open({category:'music'});},1200);
+})();

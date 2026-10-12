@@ -41,7 +41,7 @@
   }
   function templates() {
     var built = window.__MINEST_WORLD_TEMPLATES || {}, out = [];
-    ['my-life', 'everyday-food', 'everyday-memory', 'everyday-nature', 'everyday-cultural', 'everyday-places', 'everyday-creative', 'everyday-maker', 'everyday-family', 'whole-earth', 'my-museum', 'britannica', 'dewey', 'my-academic-skills', 'my-life-skills', 'philosophy-spinoza', 'philosophy-aristotle', 'philosophy-kant', 'philosophy-hegel', 'philosophy-heidegger', 'kant', 'aristotle', 'encyclopedie', 'bacon'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
+    ['my-life', 'everyday-food', 'everyday-memory', 'everyday-nature', 'everyday-cultural', 'everyday-places', 'everyday-creative', 'everyday-maker', 'everyday-family', 'whole-earth', 'my-museum', 'britannica', 'dewey', 'my-academic-skills', 'my-life-skills', 'philosophy-spinoza', 'philosophy-aristotle', 'philosophy-kant', 'philosophy-hegel', 'philosophy-heidegger', 'kant', 'aristotle', 'encyclopedie', 'bacon', 'society-culture-leisure', 'society-industries', 'society-activities', 'society-wellbeing'].concat(Object.keys(built)).forEach(function (k) { if (built[k] && out.indexOf(built[k]) < 0) out.push(built[k]); });
     (KN() ? KN().keys('lom:tpl:') : []).forEach(function (k) { var t = KN().get(k); if (t && t.domains) out.push(Object.assign({ mine: true }, t)); });
     return out;
   }
@@ -59,28 +59,28 @@
     t.domains.forEach(function (d, i) {
       if (off[d.id]) return;
       var dn = nm(d.id, (codes && d.code ? d.code + ' ' : '') + d.title);
-      var L = { id: reuseCols[d.id] || bid + '-d-' + tid + '-' + slug(d.id), title: dn.title, orig: dn.orig, color: d.color || PAL[i % PAL.length], items: [], reused: !!reuseCols[d.id] };
+      var L = { id: reuseCols[d.id] || bid + '-d-' + tid + '-' + slug(d.id), key: d.id, title: dn.title, orig: dn.orig, color: d.color || PAL[i % PAL.length], items: [], reused: !!reuseCols[d.id] };
       if (d.lists && !d.categories) {   // two levels: the area's lists go straight in (no section heading)
         var F = { id: null, flat: true, lists: [] };
         d.lists.forEach(function (l) {
           var lk = 'l:' + d.id + '/' + l.id; if (off[lk]) return;
           var lid = bid + '-l-' + tid + '-' + slug(d.id) + '-' + slug(l.id), ln = nm(lk, l.title);
           if (reuseLists[lk]) { out.alias[lid] = reuseLists[lk]; return; }
-          F.lists.push({ id: lid, title: ln.title, orig: ln.orig });
-          if (depth === 'complete') (l.lists || []).forEach(function (x) { var xk = lk + '/' + x.id; if (off[xk]) return; var xn = nm(xk, x.title); F.lists.push({ id: lid + '-' + slug(x.id), title: xn.title, orig: xn.orig, parent: lid }); });
+          F.lists.push({ id: lid, key: lk, title: ln.title, orig: ln.orig });
+          if (depth === 'complete') (l.lists || []).forEach(function (x) { var xk = lk + '/' + x.id; if (off[xk]) return; var xn = nm(xk, x.title); F.lists.push({ id: lid + '-' + slug(x.id), key: xk, title: xn.title, orig: xn.orig, parent: lid }); });
         });
         L.items.push(F);
       }
       (d.categories || []).forEach(function (c) {
         if (off[c.id]) return;
         var cn = nm(c.id, c.title);
-        var H = { id: bid + '-c-' + tid + '-' + slug(c.id), title: cn.title, orig: cn.orig, heading: depth !== 'simple', asCard: depth === 'simple', lists: [] };
+        var H = { id: bid + '-c-' + tid + '-' + slug(c.id), key: c.id, title: cn.title, orig: cn.orig, heading: depth !== 'simple', asCard: depth === 'simple', lists: [] };
         if (depth !== 'simple') (c.lists || []).forEach(function (l) {
           var lk = 'l:' + c.id + '/' + l.id; if (off[lk]) return;
           var lid = bid + '-l-' + tid + '-' + slug(c.id) + '-' + slug(l.id), ln = nm(lk, (codes && l.code ? l.code + ' ' : '') + l.title);
           if (reuseLists[lk]) { out.alias[lid] = reuseLists[lk]; return; }
-          H.lists.push({ id: lid, title: ln.title, orig: ln.orig });
-          if (depth === 'complete') (l.lists || []).forEach(function (x) { var xk = lk + '/' + x.id; if (off[xk]) return; var xn = nm(xk, x.title); H.lists.push({ id: lid + '-' + slug(x.id), title: xn.title, orig: xn.orig, parent: lid }); });
+          H.lists.push({ id: lid, key: lk, title: ln.title, orig: ln.orig });
+          if (depth === 'complete') (l.lists || []).forEach(function (x) { var xk = lk + '/' + x.id; if (off[xk]) return; var xn = nm(xk, x.title); H.lists.push({ id: lid + '-' + slug(x.id), key: xk, title: xn.title, orig: xn.orig, parent: lid }); });
         });
         L.items.push(H);
       });
@@ -94,6 +94,60 @@
     p.lists.forEach(function (L) { if (!have[L.id]) n.lists++; L.items.forEach(function (H) { if (!H.flat && !have[H.id]) { if (H.asCard) n.cards++; else n.sections++; } H.lists.forEach(function (x) { if (!have[x.id]) n.cards++; }); }); });
     return n;
   }
+  // ---------------------------------------------------------------- Grow ↔ Whole World (the Portal's two ways to look)
+  // ghosts: what a world's templates hold that the world doesn't have (yet) — never made until the user says so
+  function ghosts(bid) {
+    var b = boardById(bid), w = KN() && KN().get('lom:world:' + bid); if (!b || !w || !w.templates) return [];
+    var have = {}; (b.columns || []).forEach(function (c) { have[c.id] = 1; (c.cards || []).forEach(function (k) { have[k.id] = 1; }); });
+    (b.archivedCards || []).forEach(function (a) { if (a && a.id) have[a.id] = 1; });   // a list the user put away is not suggested again
+    var out = [];
+    Object.keys(w.templates).forEach(function (tid) {
+      var t = templates().filter(function (x) { return x.id === tid; })[0], rec = w.templates[tid] || {}; if (!t) return;
+      var p = plan(t, bid, { depth: rec.depth === 'simple' ? 'simple' : 'complete', codes: rec.codes });
+      p.lists.forEach(function (L) {
+        if (L.reused) return;
+        if (!have[L.id]) { out.push({ kind: 'area', tid: tid, key: L.key, id: L.id, title: L.title, color: L.color }); return; }
+        L.items.forEach(function (H) {
+          if (!H.flat && !have[H.id]) { out.push({ kind: 'category', tid: tid, key: H.key, id: H.id, title: H.title, col: L.id }); return; }
+          H.lists.forEach(function (x) {
+            if (have[x.id] || KN().get('lom:alias:' + x.id) || (x.parent && !have[x.parent])) return;
+            out.push({ kind: x.parent ? 'sub' : 'list', tid: tid, key: x.key, id: x.id, title: x.title, col: L.id, section: H.flat ? null : H.id, parent: x.parent || null });
+          });
+        });
+      });
+    });
+    return out;
+  }
+  // grow one ghost into the world: the area / category with its first list each (a small start), or the one list
+  function grow(bid, tid, key) {
+    var t = templates().filter(function (x) { return x.id === tid; })[0], w = KN().get('lom:world:' + bid); if (!t || !w || !w.templates || !w.templates[tid]) return Promise.reject(new Error('That template is not here any more.'));
+    var rec = w.templates[tid], depth = rec.depth === 'simple' ? 'simple' : 'complete', off = {}, path = {};
+    function on(k) { return k === key || key.indexOf(k + '/') === 0; }
+    t.domains.forEach(function (d) {
+      var flat = d.lists && !d.categories, whole = key === d.id;
+      var inD = whole || (d.categories || []).some(function (c) { return key === c.id || key.indexOf('l:' + c.id + '/') === 0; }) || (flat && key.indexOf('l:' + d.id + '/') === 0);
+      if (!inD) { off[d.id] = 1; return; }
+      path[d.id] = 1;
+      function lists(ls, ck, starter) {
+        (ls || []).forEach(function (l, i) {
+          var lk = 'l:' + ck + '/' + l.id, keep = starter ? i === 0 : on(lk); if (keep) path[lk] = 1; else off[lk] = 1;
+          (l.lists || []).forEach(function (x) { var xk = lk + '/' + x.id; if (key === xk) path[xk] = 1; else off[xk] = 1; });
+        });
+      }
+      if (flat) lists(d.lists, d.id, whole);
+      (d.categories || []).forEach(function (c) {
+        if (!(whole || key === c.id || key.indexOf('l:' + c.id + '/') === 0)) { off[c.id] = 1; return; }
+        path[c.id] = 1; lists(c.lists, c.id, whole || key === c.id);
+      });
+    });
+    var r = generate(t, { depth: depth, codes: rec.codes, off: off }, bid);
+    // the world keeps its own record (depth, what is off) — only what just grew is no longer "off"
+    var w2 = KN().get('lom:world:' + bid) || {}, keepOff = Object.assign({}, rec.off || {}); Object.keys(path).forEach(function (k) { delete keepOff[k]; });
+    w2 = Object.assign({}, w2, { templates: Object.assign({}, w2.templates) }); w2.templates[tid] = Object.assign({}, rec, { off: keepOff, grown: Date.now() });
+    KN().set('lom:world:' + bid, w2, true);
+    return Promise.resolve(r);
+  }
+
   var MADE = {}, USER = '\u0001user';   // lom:orig = USER: named by the user, never replaced by a template update
   function generate(t, sel, intoBid) {
     check(t);
@@ -523,5 +577,5 @@
     })();
   }
 
-  window.MinestWorld = { _art: artOf, _icons: ICON, _openWorld: function (bid) { openWorld(bid); }, plan: plan, open: open, close: close, isOpen: function () { return ui.open; }, templates: templates, generate: generate, undo: undo, fromBoard: fromBoard, saveTemplate: saveTemplate, check: check, worlds: worlds, _plan: plan };
+  window.MinestWorld = { _art: artOf, _icons: ICON, _openWorld: function (bid) { openWorld(bid); }, plan: plan, ghosts: ghosts, grow: grow, open: open, close: close, isOpen: function () { return ui.open; }, templates: templates, generate: generate, undo: undo, fromBoard: fromBoard, saveTemplate: saveTemplate, check: check, worlds: worlds, _plan: plan };
 })();

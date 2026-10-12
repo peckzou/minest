@@ -30,12 +30,13 @@
     dewey: ['My Library Shelves', 'the Dewey Decimal Classification'], encyclopedie: ['My Tree of Knowledge', 'Diderot & d’Alembert’s Encyclopédie'], bacon: ['My Three Faculties', 'Francis Bacon'],
     'my-museum': ['My Museum', 'the halls of a museum'], 'my-academic-skills': ['My Academic Skills', 'IXL-style skill lists · CCSS · NGSS'], 'my-life-skills': ['My Life & Future Skills', 'P21 · OECD Learning Compass'] };
   function nameOf(t) { return (NAMES[t.id] || [])[0] || t.name; }
-  function sourceOf(t) { return t.philosopher ? 'Inspired by ' + t.philosopher : (NAMES[t.id] || [])[1] ? 'Inspired by ' + NAMES[t.id][1] : t.family === 'everyday' ? 'Everyday starter world' : t.mine ? 'My template' : ''; }
+  function sourceOf(t) { return t.philosopher ? 'Inspired by ' + t.philosopher : (NAMES[t.id] || [])[1] ? 'Inspired by ' + NAMES[t.id][1] : t.family === 'everyday' ? 'Everyday starter world' : t.family === 'society' && t.framework && window.__MINEST_FRAMEWORK_NAMES && __MINEST_FRAMEWORK_NAMES[t.framework] ? 'Built on ' + __MINEST_FRAMEWORK_NAMES[t.framework] : t.mine ? 'My template' : ''; }
   var GROUPS = [
     ['Featured', function (t) { return ['my-life', 'britannica', 'whole-earth', 'my-academic-skills', 'my-museum'].indexOf(t.id) >= 0; }],
     ['Everyday Worlds', function (t) { return t.family === 'everyday' && ['my-life', 'whole-earth', 'my-museum'].indexOf(t.id) < 0; }],
     ['Skills', function (t) { return t.id === 'my-life-skills'; }],
     ['Knowledge & Ideas', function (t) { return ['dewey', 'encyclopedie', 'bacon'].indexOf(t.id) >= 0; }],
+    ['Life & Society', function (t) { return t.family === 'society'; }],
     ['Philosophical Worlds', function (t) { return t.family === 'advanced-philosophy'; }],
     ['My Templates', function (t) { return !!t.mine; }]
   ];
@@ -94,6 +95,19 @@
     '.mw-tc .mw-cv{aspect-ratio:4/3}.mw-tc b{font-size:15.5px;font-weight:700;letter-spacing:-.2px}.mw-tc span{font-size:13px;line-height:1.3;color:var(--mw-sub)}.mw-tc em{font-style:normal;font-size:11.5px;color:var(--mw-sub);opacity:.85}',
     // preview
     '.mw-hero{margin:0 -16px 14px;height:150px}.mw-hero .mw-cv{height:100%;aspect-ratio:auto;border-radius:0}',
+    '.mw-ib{margin:0 0 16px;border-radius:18px;background:var(--mw-card);border:1px solid var(--mw-line,rgba(255,255,255,.1));overflow:hidden}',
+    '.mw-ibh{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px 6px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}.mw-ibh .ic{font-size:20px}.mw-ibh b{font-size:16px}.mw-ibh em{margin-left:auto;font-style:normal;font-size:13px;opacity:.6}.mw-ibh svg{opacity:.45;width:16px;height:16px}',
+    '.mw-ibf{display:flex;gap:6px;padding:6px 10px 10px}.mw-ibf input{flex:1;min-width:0;height:40px;padding:0 12px;border-radius:12px;border:1px solid var(--mw-line,rgba(255,255,255,.12));background:var(--mw-fill);color:inherit;font:15px -apple-system,system-ui,sans-serif;outline:none}',
+    '.mw-ibf button{height:40px;padding:0 12px;border-radius:12px;border:0;cursor:pointer;font:600 14px -apple-system,system-ui,sans-serif;color:inherit;background:var(--mw-fill)}.mw-ibf button.go{background:var(--mw-blue,#0a84ff);color:#fff}',
+    '.mw-ibi{margin:10px 0;padding:10px 12px;border-radius:16px;background:var(--mw-card);border:1px solid var(--mw-line,rgba(255,255,255,.1))}',
+    '.mw-ibi .r{display:flex;align-items:center;gap:10px}.mw-ibi img,.mw-ibi .nb{flex:none;width:44px;height:44px;border-radius:10px;object-fit:cover;display:grid;place-items:center;background:var(--mw-fill);font-size:18px}',
+    '.mw-ibi .tx{flex:1;min-width:0}.mw-ibi b{display:block;font-size:15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.mw-ibi small{display:block;font-size:12px;opacity:.55;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.mw-ibi .sg{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.mw-ibi .sg button{height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--mw-line,rgba(255,255,255,.14));background:none;color:inherit;font:500 13px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    '.mw-ibi .sg button.top{background:var(--mw-blue,#0a84ff);border-color:transparent;color:#fff;font-weight:650}.mw-ibi .sg button small{opacity:.7;margin-left:5px;font-weight:500}.mw-ibi .sg button.pick{border-style:dashed;opacity:.8}',
+    '.mw-ibi .sg button.gh,.mw-row.gh{border-style:dashed}.mw-row.gh{border:1px dashed var(--mw-line,rgba(255,255,255,.2));background:none}',
+    '.mw-iball{display:flex;align-items:center;gap:12px;padding:11px 12px;margin-bottom:6px;border-radius:14px;background:var(--mw-card);cursor:pointer}.mw-iball input{width:20px;height:20px;flex:none}.mw-iball b{display:block;font-size:14.5px}.mw-iball small{display:block;font-size:12.5px;opacity:.6}',
+    '.mw-portal{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 14px;margin:0 0 10px;border-radius:16px;border:1px solid var(--mw-line,rgba(255,255,255,.1));background:var(--mw-card);color:inherit;font:inherit;cursor:pointer}',
+    '.mw-portal>span{font-size:22px}.mw-portal div{flex:1;min-width:0}.mw-portal b{display:block;font-size:15px}.mw-portal small{display:block;font-size:12.5px;opacity:.6;margin-top:1px}.mw-portal svg{opacity:.45;width:16px;height:16px}',
     '.mw-seg{display:flex;padding:3px;border-radius:12px;background:var(--mw-fill);margin:6px 0 4px}.mw-seg button{flex:1;height:34px;border:0;border-radius:9px;background:none;color:inherit;font:600 14px -apple-system,system-ui,sans-serif;cursor:pointer}.mw-seg button.on{background:var(--mw-card);box-shadow:0 1px 4px rgba(0,0,0,.15)}',
     '.mw-note{font-size:13px;color:var(--mw-sub);margin:6px 2px}',
     '.mw-area{border-radius:16px;background:var(--mw-card);box-shadow:inset 0 0 0 1px var(--mw-line);margin-bottom:10px;overflow:hidden}',
@@ -158,6 +172,9 @@
       ui.head.innerHTML = '<div class="ti"><h1>My World</h1><p>A little universe of mine.</p></div><button type="button" class="mw-b" data-search aria-label="Search">' + ICON.search + '</button><button type="button" class="mw-b" data-settings aria-label="Settings">' + ICON.gear + '</button><button type="button" class="mw-b" data-x aria-label="Close">' + ICON.x + '</button>';
       var ws = (W() ? W().worlds() : []).map(worldInfo);
       var h = '<div class="mw-actions"><button type="button" class="mw-act" data-add>' + ICON.plus + 'Add</button><button type="button" class="mw-act d" data-discover>' + ICON.spark + 'Discover</button></div>';
+      if (ws.length && window.MinestCapture) { var ibn = inboxItems().length;
+        h += '<div class="mw-ib"><button type="button" class="mw-ibh" data-inbox><span class="ic">📥</span><b>Inbox</b><em>' + (ibn ? ibn + ' to sort' : 'all sorted') + '</em>' + ICON.chev + '</button>' + dropHtml() + '</div>'; }
+      if (window.MinestFrameworks) h += '<button type="button" class="mw-portal" data-frameworks><span>🧭</span><div><b>Frameworks</b><small>How I understand · ' + MinestFrameworks.list().length + ' ways of seeing the world' + (MinestFrameworks.saved().length ? ' · ' + MinestFrameworks.saved().length + ' saved' : '') + '</small></div>' + ICON.chev + '</button>';
       if (!ws.length) h += '<div class="mw-empty"><svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg><b>Build your world</b><p>Start from a template — you can change everything later.</p><button type="button" class="mw-go" style="width:100%" data-gallery>Choose My World</button></div>';
       else {
         h += '<div class="mw-h"><b>My Worlds</b><button type="button" data-gallery>＋ New World</button></div><div class="mw-grid">' + ws.map(function (x) {
@@ -218,31 +235,40 @@
     return flat ? (hasSub ? ['standard', 'complete'] : ['standard']) : (hasSub ? ['simple', 'standard', 'complete'] : ['simple', 'standard']);
   }
   function preview(t) {
-    ui.pv = { t: t, off: {}, open: {}, depth: t.defaultDepth && depthsOf(t).indexOf(t.defaultDepth) >= 0 ? t.defaultDepth : (depthsOf(t).indexOf('standard') >= 0 ? 'standard' : depthsOf(t)[0]), into: null };
+    ui.pv = { t: t, off: {}, keep: {}, start: 'grow', open: {}, depth: t.defaultDepth && depthsOf(t).indexOf(t.defaultDepth) >= 0 ? t.defaultDepth : (depthsOf(t).indexOf('standard') >= 0 ? 'standard' : depthsOf(t)[0]), into: null };
     if (t.groups) (t.domains || []).forEach(function (d) { if ((t.defaultGroups || []).length && t.defaultGroups.indexOf(d.group) < 0) ui.pv.off[d.id] = 1; });   // e.g. skills: only the default grade on
     go('preview', drawPreview);
   }
+  function autoOff(t) {   // Start small: every list after the first in each part (and all sub-lists) waits
+    var o = {};
+    t.domains.forEach(function (d) { (d.lists && !d.categories ? [{ id: d.id, lists: d.lists }] : (d.categories || [])).forEach(function (g) { (g.lists || []).forEach(function (l, i) { var lk = 'l:' + g.id + '/' + l.id; if (i) o[lk] = 1; (l.lists || []).forEach(function (x) { o[lk + '/' + x.id] = 1; }); }); }); });
+    return o;
+  }
+  function effOff() { var P = ui.pv; if (P.start !== 'grow') return P.off; var o = autoOff(P.t); Object.keys(P.keep).forEach(function (k) { delete o[k]; }); return Object.assign(o, P.off); }
+  function effDepth() { var P = ui.pv, ds = depthsOf(P.t); return P.start === 'grow' ? (ds.indexOf('standard') >= 0 ? 'standard' : ds[0]) : P.depth; }
   function counts() {
-    var P = ui.pv, t = P.t, bid = P.into || 'preview', p = W().plan(t, bid, { off: P.off, depth: P.depth }), have = {}, n = { areas: 0, cats: 0, lists: 0 };
+    var P = ui.pv, t = P.t, bid = P.into || 'preview', p = W().plan(t, bid, { off: effOff(), depth: effDepth() }), have = {}, n = { areas: 0, cats: 0, lists: 0 };
     var b = P.into ? boardById(P.into) : null; if (b) (b.columns || []).forEach(function (c) { have[c.id] = 1; (c.cards || []).forEach(function (k) { have[k.id] = 1; }); });
     p.lists.forEach(function (L) { if (!have[L.id]) n.areas++; L.items.forEach(function (H) { if (!H.flat && !have[H.id]) { if (H.asCard) n.lists++; else n.cats++; } H.lists.forEach(function (x) { if (!have[x.id]) n.lists++; }); }); });
     return n;
   }
   function drawPreview() {
-    var P = ui.pv, t = P.t, ds = depthsOf(t), DT = { simple: ['Simple', 'Main categories only.'], standard: ['Standard', 'The everyday lists of each category.'], complete: ['Complete', 'The full tree, with the detailed sub-lists.'] };
+    var P = ui.pv, t = P.t, ds = depthsOf(t), OFF = effOff(), DEP = effDepth(), DT = { simple: ['Simple', 'Main categories only.'], standard: ['Standard', 'The everyday lists of each category.'], complete: ['Complete', 'The full tree, with the detailed sub-lists.'] };
     headSmall(nameOf(t), 'gallery');
     var ws = W().worlds(), n = counts(), total = n.areas + n.cats + n.lists;
     ui.body.innerHTML = '<div class="mw-hero">' + coverHtml({ t: t, color: t.color || '#5e5ce6', cover: '' }, 'mw-cv') + '</div>' +
       '<p style="margin:0 2px 4px;font-size:16px">' + esc(t.description || t.tagline || '') + '</p>' + (sourceOf(t) ? '<p class="mw-note" style="margin-top:0">' + esc(sourceOf(t)) + '</p>' : '') +
       (t.inspiration || (t.philosophy && t.philosophy.original) ? '<details class="mw-about"><summary>About this template</summary><p>' + esc(t.philosophy ? t.philosophy.original + '\n\n' + t.philosophy.adaptation : t.inspiration) + '</p></details>' : '') +
-      (ds.length > 1 ? '<div class="mw-h"><b>How much</b></div><div class="mw-seg">' + ds.map(function (d) { return '<button type="button" data-depth="' + d + '"' + (P.depth === d ? ' class="on"' : '') + '>' + DT[d][0] + '</button>'; }).join('') + '</div><p class="mw-note">' + DT[P.depth][1] + ' You can always add more later.</p>' : '') +
+      '<div class="mw-h"><b>How to start</b></div><div class="mw-seg"><button type="button" data-startmode="grow"' + (P.start === 'grow' ? ' class="on"' : '') + '>🌱 Start small</button><button type="button" data-startmode="whole"' + (P.start === 'grow' ? '' : ' class="on"') + '>🌍 The whole world</button></div>' +
+      '<p class="mw-note">' + (P.start === 'grow' ? 'A first list in each part. The rest waits in the Portal’s “Grow next” — add it when you need it.' : 'Everything at once — see the whole map and switch off what you don’t need.') + '</p>' +
+      (ds.length > 1 && P.start !== 'grow' ? '<div class="mw-h"><b>How much</b></div><div class="mw-seg">' + ds.map(function (d) { return '<button type="button" data-depth="' + d + '"' + (P.depth === d ? ' class="on"' : '') + '>' + DT[d][0] + '</button>'; }).join('') + '</div><p class="mw-note">' + DT[P.depth][1] + ' You can always add more later.</p>' : '') +
       (ws.length ? '<div class="mw-h"><b>Where</b></div><div class="mw-where"><button type="button" data-into=""' + (P.into ? '' : ' class="on"') + '>A new world</button>' + ws.map(function (x) { return '<button type="button" data-into="' + esc(x.b.id) + '"' + (P.into === x.b.id ? ' class="on"' : '') + '>Add to ' + esc(x.b.title) + '</button>'; }).join('') + '</div>' + (P.into ? '<p class="mw-note">Only what is missing is added. Areas with a name you already have are kept separate — nothing you made is changed or merged.</p>' : '') : '') +
       '<div class="mw-h"><b>Inside</b></div>' + t.domains.map(function (d, i) {
-        var dOff = !!P.off[d.id], groups = d.lists && !d.categories ? [{ id: d.id, title: null, lists: d.lists }] : (d.categories || []);
+        var dOff = !!OFF[d.id], groups = d.lists && !d.categories ? [{ id: d.id, title: null, lists: d.lists }] : (d.categories || []);
         var nl = groups.reduce(function (a, g) { return a + (g.lists || []).length; }, 0);
         return '<div class="mw-area' + (dOff ? ' off' : '') + (P.open[d.id] ? ' open' : '') + '" style="--c:' + esc(d.color || '#888') + '"><div class="mw-ar" data-open="' + esc(d.id) + '"><span class="cv">' + ICON.chev + '</span><span class="dot"></span><b>' + esc(d.title) + '</b><em>' + nl + ' list' + (nl === 1 ? '' : 's') + '</em><button type="button" class="mw-sw' + (dOff ? '' : ' on') + '" data-off="' + esc(d.id) + '" aria-label="Include ' + esc(d.title) + '"></button></div><div class="mw-in">' +
-          groups.map(function (g) { var cOff = dOff || (g.title && !!P.off[g.id]);
-            var ls = P.depth === 'simple' && g.title ? '' : '<div class="mw-ls">' + (g.lists || []).map(function (l) { var lk = 'l:' + g.id + '/' + l.id, lOff = cOff || !!P.off[lk]; return '<button type="button" class="mw-li' + (lOff ? ' off' : '') + '" data-off="' + esc(lk) + '"' + (cOff ? ' disabled' : '') + '>' + esc(l.title) + '</button>' + (P.depth === 'complete' ? (l.lists || []).map(function (x) { return '<button type="button" class="mw-li sub' + (lOff || P.off[lk + '/' + x.id] ? ' off' : '') + '" data-off="' + esc(lk + '/' + x.id) + '"' + (lOff ? ' disabled' : '') + '>↳ ' + esc(x.title) + '</button>'; }).join('') : ''); }).join('') + '</div>';
+          groups.map(function (g) { var cOff = dOff || (g.title && !!OFF[g.id]);
+            var ls = DEP === 'simple' && g.title ? '' : '<div class="mw-ls">' + (g.lists || []).map(function (l) { var lk = 'l:' + g.id + '/' + l.id, lOff = cOff || !!OFF[lk]; return '<button type="button" class="mw-li' + (lOff ? ' off' : '') + '" data-off="' + esc(lk) + '"' + (cOff ? ' disabled' : '') + '>' + esc(l.title) + '</button>' + (DEP === 'complete' ? (l.lists || []).map(function (x) { return '<button type="button" class="mw-li sub' + (lOff || OFF[lk + '/' + x.id] ? ' off' : '') + '" data-off="' + esc(lk + '/' + x.id) + '"' + (lOff ? ' disabled' : '') + '>↳ ' + esc(x.title) + '</button>'; }).join('') : ''); }).join('') + '</div>';
             return '<div class="mw-cat' + (cOff ? ' off' : '') + '"><div class="c">' + (g.title ? '<b>' + esc(g.title) + '</b>' : '') + ls + '</div>' + (g.title ? '<button type="button" class="mw-sw' + (cOff ? '' : ' on') + '" data-off="' + esc(g.id) + '"' + (dOff ? ' disabled' : '') + ' aria-label="Include ' + esc(g.title) + '"></button>' : '') + '</div>';
           }).join('') + '</div></div>';
       }).join('');
@@ -252,7 +278,7 @@
   function use() {
     var P = ui.pv, t = P.t, btn = ui.foot.querySelector('[data-use]'); if (btn) btn.disabled = true;
     var n = counts(), r;
-    try { r = W().generate(t, { off: P.off, depth: P.depth }, P.into || undefined); } catch (e) { toast('✗ ' + e.message); if (btn) btn.disabled = false; return; }
+    try { r = W().generate(t, { off: effOff(), depth: effDepth() }, P.into || undefined); if (!P.into && KN()) KN().set('wa:' + r.bid, Object.assign({}, KN().get('wa:' + r.bid) || {}, { portal: P.start === 'grow' ? 'grow' : 'whole' }), true); } catch (e) { toast('✗ ' + e.message); if (btn) btn.disabled = false; return; }
     var t0 = Date.now();
     (function wait() { if (boardById(r.bid) || Date.now() - t0 > 3000) { var done = t.starterPack && window.MinestStarter ? MinestStarter.install(r.bid, t) : Promise.resolve(); done.then(function () { hap('success'); welcome(r.bid, n, !r.isNew); }); } else setTimeout(wait, 80); })();
   }
@@ -267,7 +293,7 @@
         '<div class="mw-ready"><b>' + (added ? 'Added to Your World.' : 'Your World Is Ready.') + '</b><span>' + esc(b.title) + '</span></div>' +
         '<div class="mw-stats"><div><b>' + ws + '</b><span>World' + (ws === 1 ? '' : 's') + '</span></div><div><b>' + info.lists + '</b><span>Lists</span></div><div><b>' + info.items + '</b><span>Items</span></div></div>' +
         '<p class="mw-note" style="text-align:center">Your lists are empty until you add your own things — that’s where it starts.</p></div>';
-      foot('<button type="button" class="mw-go sec" data-explore>Explore My World</button><button type="button" class="mw-go" data-start>Start Adding</button>');
+      foot('<button type="button" class="mw-go sec" data-explore>' + (window.MinestWiki ? 'Open the Portal' : 'Explore My World') + '</button><button type="button" class="mw-go" data-start>Start Adding</button>');
     });
   }
 
@@ -293,7 +319,9 @@
     ui.head.innerHTML = '<button type="button" class="mw-b" data-back="home" aria-label="My World">' + ICON.back + '</button><h2>' + esc(b.title) + '</h2><button type="button" class="mw-b" data-wadd aria-label="Add">' + ICON.plus + '</button><button type="button" class="mw-b" data-x aria-label="Close">' + ICON.x + '</button>';
     var more = [['contents', 'Contents', window.MinestContents], ['portal', 'Portal', window.MinestWiki], ['timeline', 'Timeline', window.MinestTimeline], ['map', 'Map', window.MinestMap], ['learnmap', 'Learning Map', window.MinestLearnMap]].filter(function (x) { return x[2]; });
     var q = String(S.q || '').toLowerCase(), area = S.area;
-    var h = '<div class="mw-seg" style="margin:2px 0 10px">' + [['list', 'List'], ['gallery', 'Gallery'], ['kanban', 'Kanban']].map(function (v) { return '<button type="button" data-wview="' + v[0] + '"' + (S.view === v[0] ? ' class="on"' : '') + '>' + v[1] + '</button>'; }).join('') + (more.length ? '<button type="button" data-wmoreviews aria-label="More views">' + ICON.more + '</button>' : '') + '</div>' +
+    var gm = ((KN().get('wa:' + bid) || {}).portal) || 'grow', gn = 0; try { gn = W().ghosts ? W().ghosts(bid).length : 0; } catch (x) {}
+    var h = (window.MinestWiki ? '<button type="button" class="mw-portal" data-wportal><span>' + (gm === 'grow' ? '🌱' : '🌍') + '</span><div><b>Portal</b><small>The guide to this world · ' + (gm === 'grow' ? 'Grow' : 'Whole World') + (gn ? ' · ' + gn + ' more to grow' : '') + '</small></div>' + ICON.chev + '</button>' : '') +
+      '<div class="mw-seg" style="margin:2px 0 10px">' + [['list', 'List'], ['gallery', 'Gallery'], ['kanban', 'Kanban']].map(function (v) { return '<button type="button" data-wview="' + v[0] + '"' + (S.view === v[0] ? ' class="on"' : '') + '>' + v[1] + '</button>'; }).join('') + (more.length ? '<button type="button" data-wmoreviews aria-label="More views">' + ICON.more + '</button>' : '') + '</div>' +
       '<label class="mw-search" style="margin-top:0">' + ICON.search + '<input data-wq placeholder="Search in ' + esc(b.title) + '" autocomplete="off" value="' + esc(S.q || '') + '"></label>' +
       '<div class="mw-where" style="margin-bottom:10px"><button type="button" data-warea=""' + (!area ? ' class="on"' : '') + '>All</button>' + (b.columns || []).map(function (c) { return '<button type="button" data-warea="' + esc(c.id) + '"' + (area === c.id ? ' class="on"' : '') + '>' + esc(c.title) + '</button>'; }).join('') + '</div>';
     var cols = (b.columns || []).filter(function (c) { return !area || c.id === area; });
@@ -333,12 +361,168 @@
   }
 
   // ================================================================== clicks
+  // ================================================================== My World Inbox — collect first, sort later
+  // The Inbox is every world's "My Inbox" list (Quick Capture puts anything without a list there). Things wait there
+  // until the user files them: a suggestion is only a suggestion; filing = one tap on it (with Undo). The item is not
+  // copied — a captured item keeps its one record ('ki:cap:…'), only its link moves; a plain card moves as it is.
+  function isInbox(b, k) { return k.id === b.id + '-l-mine-inbox' || /^my inbox$/i.test(String(k.title || '').trim()); }
+  function inboxItems() {
+    var out = [];
+    (W() ? W().worlds() : []).forEach(function (x) { (x.b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (isInbox(x.b, k)) (k.stack || []).forEach(function (s) { var key = KN().get('pk:' + s.id), rec = key ? KN().get(key) || {} : {}; out.push({ s: s, k: k, c: c, b: x.b, key: key, rec: rec, at: rec.at || 0 }); }); }); }); });
+    return out.sort(function (a, b) { return b.at - a.at; });
+  }
+  function dropHtml() { return '<div class="mw-ibf"><input data-ibq placeholder="Drop anything — sort it later" autocomplete="off" enterkeyhint="done"><button type="button" class="ph" data-ibphoto aria-label="Add a photo">📷</button><button type="button" class="go" data-ibsave>Save</button></div>'; }
+  function dropWorld() { var ws = W().worlds(); if (ui.wb && boardById(ui.wb)) return ui.wb; var a = A().board && A().board(); return a && ws.some(function (x) { return x.b.id === a.id; }) ? a.id : ws[0] && ws[0].b.id; }
+  function drop(text, img) {
+    var wb = dropWorld(); if (!wb || !window.MinestCapture) return;
+    var t = String(text || '').trim(), it = t ? MinestCapture.makeItem(t, 'inbox') : { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text: '', title: 'Photo', type: 'image', src: 'inbox', at: Date.now() };
+    if (!it) return; if (img) { it.img = img; if (!t) it.type = 'image'; }
+    MinestCapture.organize([{ item: it, to: [] }], wb, 'inbox', 'add').then(function () { hap('success'); toast('In your Inbox — sort it any time'); if (ui.view === 'home') home(); else if (ui.view === 'inbox') inbox(); });
+  }
+  function photo() {
+    var f = document.createElement('input'); f.type = 'file'; f.accept = 'image/*';
+    f.onchange = function () { var file = f.files && f.files[0]; if (!file) return; var rd = new FileReader(); rd.onload = function () { var im = new Image(); im.onload = function () { var k = Math.min(1, 900 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); var q = ui.body.querySelector('[data-ibq]'); drop(q ? q.value : '', c.toDataURL('image/jpeg', .82)); if (q) q.value = ''; }; im.src = rd.result; }; rd.readAsDataURL(file); };
+    f.click();
+  }
+  // lists the world's template still holds (the Portal's "Grow next"): a thing can grow one and go straight in
+  function wstem(w) { w = w.toLowerCase(); return w.length > 4 ? w.replace(/(ings?|es|ed|s)$/, '').replace(/e$/, '') : w; }
+  var GSTOP = { my: 1, the: 1, and: 1, of: 1, for: 1, with: 1, near: 1, want: 1, try: 1, ideas: 1, things: 1, list: 1, lists: 1 };
+  function allGhosts() { var out = []; (W() && W().ghosts ? W().worlds() : []).forEach(function (w) { try { W().ghosts(w.b.id).forEach(function (g) { if (g.kind === 'list' || g.kind === 'sub') out.push(Object.assign({ bid: w.b.id, board: w.b.title }, g)); }); } catch (e) {} }); return out; }
+  function ghostSug(text, gs) {
+    var ws = {}; (String(text).match(/[a-z]{3,}/gi) || []).forEach(function (w) { if (!GSTOP[w.toLowerCase()]) ws[wstem(w)] = 1; });
+    return gs.filter(function (g) { return (String(g.title).match(/[a-z]{3,}/gi) || []).some(function (w) { return !GSTOP[w.toLowerCase()] && ws[wstem(w)]; }); }).slice(0, 2);
+  }
+  function textOf(x) { return x.s.title + ' ' + (x.rec.text || x.s.desc || '') + ' ' + (x.rec.link || ''); }
+  function sugOf(x) { try { var r = MinestCapture.suggest(textOf(x)); return { top: r.top.slice(0, 3), rel: r.rel.slice(0, 2) }; } catch (e) { return { top: [], rel: [] }; } }
+  function inbox() {
+    shell(); go('inbox', function () {
+      headSmall('Inbox', 'home');
+      var xs = inboxItems(), many = W().worlds().length > 1, sure = 0, GS = allGhosts();
+      var h = '<p class="mw-note" style="margin:0 2px 10px">Collect first, sort later. Tap a suggestion to file a thing — or leave it here.</p>' + dropHtml();
+      h += xs.length ? xs.map(function (x) {
+        var sg = sugOf(x), gsg = sg.top.length ? [] : ghostSug(textOf(x), GS), pic = x.rec.img || (x.s.cover && (x.s.cover.value || x.s.cover.url)) || '', sub = String(x.rec.text && x.rec.text !== x.s.title ? x.rec.text : x.rec.link || x.s.desc || '').split('\n')[0];
+        if (sg.top.length) sure++;
+        return '<div class="mw-ibi"><div class="r">' + (pic ? '<img alt="" src="' + esc(pic) + '">' : '<span class="nb">' + (x.rec.type === 'link' ? '🔗' : '✎') + '</span>') + '<div class="tx"><b>' + esc(x.s.title) + '</b><small>' + esc([sub && sub !== x.s.title ? sub.slice(0, 80) : '', x.at ? ago(x.at) : '', many ? x.b.title : ''].filter(Boolean).join(' · ')) + '</small></div>' +
+          '<button type="button" class="mw-b" data-ibmore="' + esc(x.s.id) + '" aria-label="More">' + ICON.more + '</button></div>' +
+          '<div class="sg">' + sg.top.map(function (c) { return '<button type="button" class="top" data-ibto="' + esc(x.s.id) + '|' + esc(c.id) + '">→ ' + esc(c.title) + (many ? '<small>' + esc(c.board) + '</small>' : '') + '</button>'; }).join('') +
+            sg.rel.map(function (c) { return '<button type="button" data-ibto="' + esc(x.s.id) + '|' + esc(c.id) + '">' + esc(c.title) + '</button>'; }).join('') +
+            gsg.map(function (g) { return '<button type="button" class="gh" data-ibgrow="' + esc(x.s.id) + '|' + esc(g.bid) + '|' + esc(g.id) + '" title="Grow this list from the template and file it there">＋ ' + esc(g.title) + '</button>'; }).join('') +
+            '<button type="button" class="pick" data-ibpick="' + esc(x.s.id) + '">Choose a list…</button></div></div>';
+      }).join('') : '<div class="mw-empty" style="padding:26px 0"><b>All sorted</b><p>Anything you drop here waits until you’re ready.</p></div>';
+      ui.body.innerHTML = h;
+      if (sure > 1) foot('<button type="button" class="mw-go" data-iball>Sort ' + sure + ' with their first suggestion…</button>');
+    });
+  }
+  function findIb(sid) { return inboxItems().filter(function (x) { return x.s.id === sid; })[0] || null; }
+  function listInfo(cid) { var hit = null; boards().forEach(function (b) { (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (k.id === cid) hit = { b: b, c: c, k: k }; }); }); }); return hit; }
+  function settle(ms) { return new Promise(function (r) { setTimeout(r, ms || 260); }); }
+  // file one thing: its link moves from the Inbox to the list (one item, never a copy)
+  function file(x, cid) {
+    var L = listInfo(cid); if (!L) return Promise.reject(new Error('That list is not there any more.'));
+    try { MinestCapture.learnFrom(textOf(x), cid); } catch (e) {}
+    function takeOut() { A().updateBoard(x.b.id, function (b) { return Object.assign({}, b, { columns: (b.columns || []).map(function (c) { return Object.assign({}, c, { cards: (c.cards || []).map(function (k) { if (k.id !== x.k.id) return k; var st = (k.stack || []).filter(function (s) { return s.id !== x.s.id; }); return Object.assign({}, k, { stack: st, hasStack: st.length > 0 }); }) }); }) }); }); }
+    if (x.key && /^ki:/.test(x.key)) {
+      var it = { id: String(x.key).replace(/^ki:[^:]+:/, ''), title: x.s.title, text: x.rec.text || '', link: x.rec.link || '', type: x.rec.type || 'text', src: x.rec.src || 'inbox', at: x.rec.at || Date.now() }; if (x.rec.img) it.img = x.rec.img;
+      return MinestCapture.organize([{ item: it, key: x.key, to: [cid] }], L.b.id, 'inbox', 'organize').then(function (log) { takeOut(); var m = {}; m['pk:' + x.s.id] = null; KN().setMany(m); return settle().then(function () { return { log: log, x: x, cid: cid }; }); });
+    }
+    // a plain card in the Inbox: it moves itself (same card, same id)
+    takeOut(); A().updateBoard(L.b.id, function (b) { return Object.assign({}, b, { columns: (b.columns || []).map(function (c) { return Object.assign({}, c, { cards: (c.cards || []).map(function (k) { return k.id === cid ? Object.assign({}, k, { stack: (k.stack || []).concat([x.s]), hasStack: true }) : k; }) }); }) }); });
+    return settle().then(function () { return { x: x, cid: cid, plain: true }; });
+  }
+  function unfile(r) {
+    var L = listInfo(r.cid);
+    if (r.plain) {
+      if (L) A().updateBoard(L.b.id, function (b) { return Object.assign({}, b, { columns: (b.columns || []).map(function (c) { return Object.assign({}, c, { cards: (c.cards || []).map(function (k) { if (k.id !== r.cid) return k; var st = (k.stack || []).filter(function (s) { return s.id !== r.x.s.id; }); return Object.assign({}, k, { stack: st, hasStack: st.length > 0 }); }) }); }) }); });
+    } else if (r.log) MinestCapture.undo(r.log.id);
+    // back into its Inbox, as it was
+    A().updateBoard(r.x.b.id, function (b) { return Object.assign({}, b, { columns: (b.columns || []).map(function (c) { return Object.assign({}, c, { cards: (c.cards || []).map(function (k) { return k.id === r.x.k.id && !(k.stack || []).some(function (s) { return s.id === r.x.s.id; }) ? Object.assign({}, k, { stack: (k.stack || []).concat([r.x.s]), hasStack: true }) : k; }) }); }) }); });
+    if (r.x.key) KN().set('pk:' + r.x.s.id, r.x.key, true);
+    return settle();
+  }
+  function undoToast(msg, rs) {
+    var el = null; try { el = GlassUI.toast(msg, { duration: 6000 }); } catch (e) {}
+    if (!el || !el.appendChild) return;
+    var u = document.createElement('button'); u.type = 'button'; u.textContent = 'Undo'; u.style.cssText = 'margin-left:10px;font-weight:700;color:#5ac8fa;background:none;border:0;padding:0 2px;cursor:pointer;white-space:nowrap;flex:none';
+    u.addEventListener('click', function (e) { e.stopPropagation(); el.click(); rs.reduce(function (p, r) { return p.then(function () { return unfile(r); }); }, Promise.resolve()).then(function () { toast('Back in your Inbox'); if (ui.open && (ui.view === 'inbox' || ui.view === 'home')) (ui.view === 'inbox' ? inbox : home)(); }); });
+    el.appendChild(u);
+  }
+  function fileOne(sid, cid) {
+    var x = findIb(sid); if (!x) return; var L = listInfo(cid);
+    file(x, cid).then(function (r) { hap('success'); undoToast('Filed in ' + (L ? L.k.title : 'the list'), [r]); var y = ui.body.scrollTop; inbox(); ui.body.scrollTop = y; }).catch(function (e) { toast('✗ ' + e.message); });
+  }
+  function growAndFile(sid, bid, gid) {
+    var gh = allGhosts().filter(function (z) { return z.bid === bid && z.id === gid; })[0]; if (!gh) return toast('That list is not in the template any more.');
+    W().grow(bid, gh.tid, gh.key).then(function () {
+      var t0 = Date.now(); (function wait() { if (listInfo(gid)) fileOne(sid, gid); else if (Date.now() - t0 < 2000) setTimeout(wait, 80); else toast('✗ The new list did not appear — try again.'); })();
+    }).catch(function (e) { toast('✗ ' + e.message); });
+  }
+  // every list in every world, to file by hand
+  function pickFor(sid) {
+    var x = findIb(sid); if (!x) return inbox(); ui.ibSid = sid;
+    go('inbox-pick', function () {
+      headSmall('File “' + (x.s.title.length > 24 ? x.s.title.slice(0, 22) + '…' : x.s.title) + '”', 'inbox');
+      var q = String(ui.ibq || '').toLowerCase(), h = '<label class="mw-search" style="margin-top:0">' + ICON.search + '<input data-ibpq placeholder="Find a list" autocomplete="off" value="' + esc(ui.ibq || '') + '"></label>';
+      W().worlds().forEach(function (w) {
+        var rows = ''; (w.b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (KN().isHeading(k.id) || isInbox(w.b, k)) return; if (q && String(k.title + ' ' + c.title).toLowerCase().indexOf(q) < 0) return; rows += '<button type="button" class="mw-row" data-ibto="' + esc(sid) + '|' + esc(k.id) + '"><div><b>' + esc(k.title) + '</b><small>' + esc(c.title) + ' · ' + (k.stack || []).length + '</small></div>' + ICON.chev + '</button>'; }); });
+        if (rows) h += '<div class="mw-h"><b>' + esc(w.b.title) + '</b></div>' + rows;
+      });
+      var gs = allGhosts().filter(function (g) { return !q || String(g.title).toLowerCase().indexOf(q) >= 0; });
+      if (gs.length) h += '<div class="mw-h"><b>Grow a new list</b></div><p class="mw-note" style="margin:-4px 2px 6px">Waiting in your world’s template — it is added when you file something in it.</p>' +
+        gs.slice(0, q ? 40 : 12).map(function (g) { return '<button type="button" class="mw-row gh" data-ibgrow="' + esc(sid) + '|' + esc(g.bid) + '|' + esc(g.id) + '"><div><b>＋ ' + esc(g.title) + '</b><small>' + esc(g.board) + '</small></div>' + ICON.chev + '</button>'; }).join('');
+      if (!h.match(/data-ibto|data-ibgrow/)) h += '<p class="mw-note">No list matches “' + esc(ui.ibq || '') + '”.</p>';
+      ui.body.innerHTML = h;
+    });
+  }
+  // sort many at once: each with its first suggestion, checked; the user unchecks what is wrong
+  function sortAll() {
+    var xs = inboxItems().map(function (x) { return { x: x, c: sugOf(x).top[0] }; }).filter(function (r) { return r.c; });
+    ui.ibAll = xs.map(function (r) { return { sid: r.x.s.id, cid: r.c.id, on: true }; });
+    go('inbox-all', function () {
+      headSmall('Sort with suggestions', 'inbox');
+      ui.body.innerHTML = '<p class="mw-note" style="margin:0 2px 10px">Uncheck anything that should stay in the Inbox.</p>' + xs.map(function (r, i) { return '<label class="mw-iball"><input type="checkbox" data-ibchk="' + i + '" checked><div><b>' + esc(r.x.s.title) + '</b><small>→ ' + esc(r.c.title) + ' · ' + esc(r.c.board) + '</small></div></label>'; }).join('');
+      foot('<button type="button" class="mw-go" data-ibapply>File ' + xs.length + '</button>');
+    });
+  }
+  function applyAll() {
+    var go2 = (ui.ibAll || []).filter(function (r) { return r.on; }), done = [];
+    go2.reduce(function (p, r) { return p.then(function () { var x = findIb(r.sid); return x ? file(x, r.cid).then(function (res) { done.push(res); }) : null; }); }, Promise.resolve())
+      .then(function () { hap('success'); undoToast('Filed ' + done.length + ' thing' + (done.length === 1 ? '' : 's'), done.slice().reverse()); inbox(); }).catch(function (e) { toast('✗ ' + e.message); inbox(); });
+  }
+  function inboxClick(t) {
+    var g;
+    if (t.closest('[data-inbox]')) { inbox(); return true; }
+    if (t.closest('[data-ibsave]')) { var q = ui.body.querySelector('[data-ibq]'); if (q && q.value.trim()) { drop(q.value); q.value = ''; } else if (q) q.focus(); return true; }
+    if (t.closest('[data-ibphoto]')) { photo(); return true; }
+    if ((g = t.closest('[data-ibto]'))) { var pr = g.getAttribute('data-ibto').split('|'); fileOne(pr[0], pr[1]); return true; }
+    if ((g = t.closest('[data-ibgrow]'))) { var gp = g.getAttribute('data-ibgrow').split('|'); growAndFile(gp[0], gp[1], gp[2]); return true; }
+    if ((g = t.closest('[data-ibpick]'))) { ui.ibq = ''; pickFor(g.getAttribute('data-ibpick')); return true; }
+    if (t.closest('[data-iball]')) { sortAll(); return true; }
+    if ((g = t.closest('[data-ibchk]'))) { var r = (ui.ibAll || [])[+g.getAttribute('data-ibchk')]; if (r) { r.on = g.checked; var n = ui.ibAll.filter(function (z) { return z.on; }).length, b = ui.foot.querySelector('[data-ibapply]'); if (b) { b.textContent = 'File ' + n; b.disabled = !n; } } return false; }
+    if (t.closest('[data-ibapply]')) { applyAll(); return true; }
+    if ((g = t.closest('[data-ibmore]'))) {
+      var x = findIb(g.getAttribute('data-ibmore')); if (!x) return true;
+      menu(x.s.title, [['Choose a list…', function () { ui.ibq = ''; pickFor(x.s.id); }], ['Open details', function () { close(); setTimeout(function () { try { if (window.MinestStarter && MinestStarter.openItem) MinestStarter.openItem(x.b.id, x.s.id); else A().openCardIn(x.b.id, x.c.id, x.k.id); } catch (e) {} }, 180); }],
+        ['Remove from Inbox…', function () { var ask = window.MinestKEdit ? MinestKEdit.confirm('Remove “' + x.s.title + '” from your Inbox? It is not kept anywhere else.', 'Remove') : Promise.resolve(confirm('Remove it?')); ask.then(function (ok) { if (!ok) return;
+          A().updateBoard(x.b.id, function (b) { return Object.assign({}, b, { columns: (b.columns || []).map(function (c) { return Object.assign({}, c, { cards: (c.cards || []).map(function (k) { if (k.id !== x.k.id) return k; var st = (k.stack || []).filter(function (s) { return s.id !== x.s.id; }); return Object.assign({}, k, { stack: st, hasStack: st.length > 0 }); }) }); }) }); });
+          var m = {}; m['pk:' + x.s.id] = null; if (x.key && /^ki:cap:/.test(x.key) && !KN().keys('pk:').some(function (k) { return k !== 'pk:' + x.s.id && KN().get(k) === x.key; })) m[x.key] = null; KN().setMany(m);
+          toast('Removed'); setTimeout(inbox, 260); }); }]]);
+      return true;
+    }
+    return false;
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target && e.target.matches && e.target.matches('.mw [data-ibq]') && !e.isComposing) { e.preventDefault(); var v = e.target.value; if (v.trim()) { drop(v); e.target.value = ''; } } }, true);
+  document.addEventListener('input', function (e) { if (e.target && e.target.matches && e.target.matches('.mw [data-ibpq]') && ui.ibSid) { ui.ibq = e.target.value; var pos = e.target.selectionStart; pickFor(ui.ibSid); var n = ui.body.querySelector('[data-ibpq]'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (er) {} } } }, true);
+
+  // the Portal (Wiki) is each world's guide: Grow or Whole World
+  function openPortal(bid) { close(); setTimeout(function () { try { A().selectBoard(bid); } catch (x) {} setTimeout(function () { if (window.MinestWiki) MinestWiki.open(bid); }, 250); }, 180); }
   function onClick(e) {
     var t = e.target, g;
     if (ui.menu) { var mi = t.closest('[data-mi]'); if (mi) { var it = ui.menuItems[+mi.getAttribute('data-mi')]; closeMenu(); it[1](); return; } closeMenu(); return; }
     if (t.closest('[data-x]')) return close();
-    if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === 'gallery') return gallery(); if (bk === 'world' && ui.wb) return worldView(ui.wb); return home(); }
+    if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === 'gallery') return gallery(); if (bk === 'inbox') return inbox(); if (bk === 'world' && ui.wb) return worldView(ui.wb); return home(); }
     if (t.closest('[data-search]')) return search();
+    if (inboxClick(t)) return;
+    if (t.closest('[data-frameworks]')) return launch(function () { MinestFrameworks.open(); }, function () { return MinestFrameworks.isOpen(); });
     if (t.closest('[data-settings]')) return settings();
     if (t.closest('[data-gallery]')) return gallery();
     if ((g = t.closest('[data-res]'))) { var r = ui.res[+g.getAttribute('data-res')]; if (!r) return; if (r.k === 'w') return openWorldCard(r.b.id); close(); setTimeout(function () { try { A().openCardIn(r.b.id, r.c.id, r.card.id); } catch (x) {} }, 200); return; }
@@ -369,7 +553,11 @@
     // preview
     if (ui.view === 'preview') {
       var y = function (fn) { var s = ui.body.scrollTop; fn(); ui.body.scrollTop = s; };
-      if ((g = t.closest('[data-off]'))) { e.stopPropagation(); var k = g.getAttribute('data-off'); if (ui.pv.off[k]) delete ui.pv.off[k]; else ui.pv.off[k] = 1; hap('selection'); return y(drawPreview); }
+      if ((g = t.closest('[data-startmode]'))) { ui.pv.start = g.getAttribute('data-startmode'); hap('selection'); return y(drawPreview); }
+      if ((g = t.closest('[data-off]'))) { e.stopPropagation(); var k = g.getAttribute('data-off');
+        if (ui.pv.start === 'grow' && autoOff(ui.pv.t)[k] && !ui.pv.off[k]) { if (ui.pv.keep[k]) delete ui.pv.keep[k]; else ui.pv.keep[k] = 1; }   // a list that waits: take it now (or let it wait again)
+        else if (ui.pv.off[k]) delete ui.pv.off[k]; else ui.pv.off[k] = 1;
+        hap('selection'); return y(drawPreview); }
       if ((g = t.closest('[data-open]'))) { var d = g.getAttribute('data-open'); ui.pv.open[d] = !ui.pv.open[d]; g.parentNode.classList.toggle('open', !!ui.pv.open[d]); return; }
       if ((g = t.closest('[data-depth]'))) { ui.pv.depth = g.getAttribute('data-depth'); return y(drawPreview); }
       if ((g = t.closest('[data-into]'))) { ui.pv.into = g.getAttribute('data-into') || null; return y(drawPreview); }
@@ -377,12 +565,13 @@
     }
     // welcome
     if (t.closest('[data-start]')) { var nb = ui.newBid; close(); setTimeout(function () { if (window.MinestStarter && MinestStarter.has(nb)) MinestStarter.open({ bid: nb, add: true }); else if (window.MinestCapture) MinestCapture.open({ wbid: nb }); }, 180); return; }
-    if (t.closest('[data-explore]')) return home({ highlight: ui.newBid, top: true });
+    if (t.closest('[data-explore]')) { if (window.MinestWiki) return openPortal(ui.newBid); return home({ highlight: ui.newBid, top: true }); }
+    if ((g = t.closest('[data-wportal]'))) { saveWorldState(); return openPortal(ui.wb); }
   }
 
   function watchBack() { var t0 = Date.now(); (function w() { if (!ui.open || ui.view !== 'world') return; if (window.MinestStarter && MinestStarter.isOpen()) { setTimeout(w, 250); return; } if (Date.now() - t0 > 400) { var y = ui.body.scrollTop; drawWorld(); ui.body.scrollTop = y; } })(); setTimeout(function w2() { if (window.MinestStarter && MinestStarter.isOpen()) return setTimeout(w2, 250); if (ui.open && ui.view === 'world') { var y = ui.body.scrollTop; drawWorld(); ui.body.scrollTop = y; } }, 300); }
   // ---------------------------------------------------------------- tools opened from My World come back to the same place
-  function anyOverlay() { return !!document.querySelector('.lw,.sk,.wk,.pk,.wc,.dv,.st,.bd,.mw,.tl,.en,.km,.lm'); }
+  function anyOverlay() { return !!document.querySelector('.lw,.sk,.wk,.pk,.wc,.dv,.st,.bd,.mw,.tl,.en,.km,.lm,.fw'); }
   function launch(fn, isOpen) {
     var ret = { view: ui.view, wb: ui.wb }; close();
     setTimeout(function () {
@@ -398,8 +587,9 @@
     var items = [['Add anything — type, paste, a link or a photo', function () { launch(function () { MinestCapture.open(wb ? { wbid: wb } : {}); }, function () { return MinestCapture.isOpen(); }); }]];
     if (wb && window.MinestStarter) { var fd = KN().get('fd:' + wb); var qa = fd && Object.keys(fd.packs || {}).map(function (k) { return fd.packs[k].quickAdd; }).filter(Boolean)[0]; if (qa) items.unshift([qa.label, function () { launch(function () { MinestStarter.open({ bid: wb, add: true }); }, function () { return MinestStarter.isOpen(); }); }]); }
     if (window.MinestPicker) items.push(['Pick favourites — pictures, bubbles, step by step', function () { chooseWorld(wb, function (bid) { launch(function () { MinestPicker.home(bid); }, function () { return MinestPicker.isOpen(); }); }); }]);
+    if (window.MinestVisualLibrary) items.push(['Visual Library — search & collect', function () { var start = function (bid) { launch(function () { MinestVisualLibrary.open(bid ? { bid: bid } : {}); }, function () { return MinestVisualLibrary.isOpen(); }); }; if (!wb && !W().worlds().length) start(); else chooseWorld(wb, start); }]);
     if (window.MinestCapture) items.push(['Import text or JSON', function () { launch(function () { MinestCapture.open(wb ? { wbid: wb, import: true } : { import: true }); }, function () { return MinestCapture.isOpen(); }); }]);
     menu(wb ? 'Add to ' + (boardById(wb) || {}).title : 'Add to My World', items);
   }
-  window.MinestMyWorld = { world: function (bid, o) { worldView(bid, o); }, open: function () { home(); }, gallery: function () { shell(); gallery(); }, close: close, isOpen: function () { return ui.open; }, _welcome: welcome };
+  window.MinestMyWorld = { world: function (bid, o) { worldView(bid, o); }, template: function (id) { var t = W() && W().templates().filter(function (x) { return x.id === id; })[0]; if (!t) return home(); shell(); preview(t); }, open: function () { home(); }, gallery: function () { shell(); gallery(); }, close: close, isOpen: function () { return ui.open; }, _welcome: welcome };
 })();

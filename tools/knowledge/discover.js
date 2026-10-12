@@ -123,7 +123,7 @@
   // ranked: [{item, note}] best first
   function addToWorld(s, ranked, summary, area) {
     area = area || { id: 'discover', title: 'My Discoveries', color: '#ff9f0a' };
-    var wbid = targetWorld(s); if (!wbid) return Promise.reject(new Error('There is no world to add it to yet — make one in List of Mine first.'));
+    var wbid = targetWorld(s); if (!wbid) return Promise.reject(new Error('There is no world to add it to yet — make one in My World first.'));
     var b0 = boardById(wbid), b = JSON.parse(JSON.stringify(b0)), colId = wbid + '-d-mine-' + area.id, cid = wbid + '-l-' + area.id + '-' + s.id;
     var col = (b.columns || []).filter(function (c) { return c.id === colId; })[0], created = [];
     if (!col) { col = { id: colId, title: area.title, color: area.color, cards: [] }; b.columns = (b.columns || []).concat([col]); }
@@ -169,12 +169,18 @@
     '.dv-h{margin:18px 2px 8px;font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;opacity:.55}',
     '.dv-sub{margin:0 2px 12px;font-size:14px;opacity:.62}',
     // home tool cards
-    '.dv-tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}',
-    '.dv-tool{display:flex;flex-direction:column;gap:4px;text-align:left;padding:0 0 12px;border-radius:22px;overflow:hidden;cursor:pointer;color:inherit;font:inherit;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 10px 30px rgba(0,0,0,.2);transition:transform .15s}',
-    '.dv-tool:active{transform:scale(.97)}.dv-tool:disabled{opacity:.45;cursor:default}',
-    '.dv-tool .pv{height:96px;margin-bottom:6px;background:linear-gradient(150deg,var(--c1),var(--c2));display:grid;place-items:center}',
-    '.dv-tool b{padding:0 12px;font-size:16px}.dv-tool small{padding:0 12px;font-size:13px;opacity:.7}',
-    '.dv-tool .soon{padding:0 12px;font-size:11.5px;opacity:.55}',
+    // one card for every way to play: a cover of its own (same size, same corner, same light), a title, one line, a status
+    '.dv-tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px 10px}',
+    '.dv-tool{position:relative;display:flex;flex-direction:column;text-align:left;padding:0 0 12px;border-radius:22px;overflow:hidden;cursor:pointer;color:inherit;font:inherit;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 10px 30px rgba(0,0,0,.2);transition:transform .15s}',
+    '.dv-tool:active{transform:scale(.97)}.dv-tool:disabled{cursor:default}.dv-tool:disabled .pv{filter:saturate(.35) brightness(.8)}.dv-tool:disabled b,.dv-tool:disabled small{opacity:.55}',
+    '.dv-tool .pv{position:relative;height:100px;margin-bottom:10px;background:linear-gradient(150deg,var(--c1),var(--c2));display:grid;place-items:center;overflow:hidden}',
+    '.dv-tool .pv:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0) 45%,rgba(0,0,0,.12));pointer-events:none}',
+    '.dv-tool .pv svg{position:relative;max-width:100%}',
+    '.dv-tool b{padding:0 12px;font-size:16px;font-weight:750;letter-spacing:-.2px;line-height:1.25}',
+    '.dv-tool small{padding:0 12px;margin-top:3px;font-size:13px;line-height:1.3;opacity:.7;min-height:2.6em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+    '.dv-tool .st{margin:8px 12px 0;align-self:flex-start;font-size:11.5px;font-weight:650;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.1);opacity:.85}',
+    '.dv-tool .st.go{background:color-mix(in srgb,var(--c1) 30%,transparent)}',
+    '.dv-tool .soon{margin:8px 12px 0;font-size:11.5px;opacity:.55}',
     '.dv-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 12px;margin-bottom:6px;border-radius:16px;cursor:pointer;color:inherit;font:inherit;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}',
     '.dv-row div{flex:1;min-width:0}.dv-row b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dv-row small{display:block;font-size:12px;opacity:.58;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.dv-row .cv{opacity:.4;flex:none}.dv-row em{flex:none;font-style:normal;font-size:12px;opacity:.55}',
@@ -279,6 +285,23 @@
     tournament: ['Tournament', 'Find my favorites.', '#30b45a', '#00897b']
   };
   var READY = { 'this-or-that': true, 'tier-list': true, tournament: true };
+  // Philosophical Exploration covers: a symbol each (no faces, no quotations), in the same card as the games
+  var S0 = '<svg viewBox="0 0 120 70" width="120" height="70" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+  var PHILO_D = {
+    'connect-my-world': ['#2f9e8f', '#1d6f66', S0 + '<path d="M30 46 54 22l30 10 8 22-36 4zM54 22l2 36M30 46l54-14" stroke-opacity=".75"/>' + [[30, 46], [54, 22], [84, 32], [92, 54], [56, 58]].map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="5.5" fill="#fff" stroke="none"/>'; }).join('') + '</svg>'],
+    'understand-this-thing': ['#c58b3a', '#7d5119', S0 + '<circle cx="60" cy="35" r="24"/><path d="M60 11v48M36 35h48" stroke-opacity=".7"/><circle cx="60" cy="35" r="6" fill="#fff" stroke="none"/><circle cx="48" cy="23" r="2.5" fill="#fff" stroke="none"/><circle cx="72" cy="23" r="2.5" fill="#fff" stroke="none"/><circle cx="48" cy="47" r="2.5" fill="#fff" stroke="none"/><circle cx="72" cy="47" r="2.5" fill="#fff" stroke="none"/></svg>'],
+    'what-can-i-know': ['#5468c9', '#29357f', S0 + '<rect x="18" y="10" width="84" height="50" rx="10" stroke-dasharray="4 5" stroke-opacity=".7"/><path d="M34 35c8-12 18-17 26-17s18 5 26 17c-8 12-18 17-26 17s-18-5-26-17z"/><circle cx="60" cy="35" r="7" fill="#fff" stroke="none"/></svg>'],
+    'my-changing-views': ['#b0548a', '#62294f', S0 + '<circle cx="40" cy="46" r="13" stroke-opacity=".8"/><circle cx="80" cy="46" r="13" stroke-opacity=".8"/><circle cx="60" cy="20" r="11" fill="#fff" fill-opacity=".9" stroke="none"/><path d="M46 36l8-8M74 36l-8-8"/></svg>'],
+    'my-life-possibilities': ['#4f7a68', '#263d34', S0 + '<path d="M8 22h104" stroke-opacity=".45"/><circle cx="60" cy="22" r="7" fill="#fff6dc" stroke="none"/><path d="M60 66c0-14 0-24 0-34M60 50c-10-6-22-12-36-16M60 50c10-6 22-12 36-16M60 40c-6-4-12-6-18-7M60 40c6-4 12-6 18-7" stroke-opacity=".85"/></svg>']
+  };
+  function toolCard(attr, name, sub, c1, c2, pv, status, enabled) {
+    return '<button type="button" class="dv-tool" ' + attr + ' style="--c1:' + c1 + ';--c2:' + c2 + '"' + (enabled ? '' : ' disabled') + '><span class="pv">' + (pv || '') + '</span><b>' + esc(name) + '</b><small>' + esc(sub || '') + '</small>' +
+      (enabled ? (status ? '<span class="st' + (status.go ? ' go' : '') + '">' + esc(status.t) + '</span>' : '') : '<span class="soon">Coming next</span>') + '</button>';
+  }
+  function statusOf(tool, ss) {
+    var mine = ss.filter(function (s) { return s.tool === tool; }), go = mine.filter(function (s) { return s.status !== 'completed'; }).length, done = mine.length - go;
+    return go ? { t: go + ' in progress', go: true } : done ? { t: done + ' result' + (done === 1 ? '' : 's') } : null;
+  }
   var EXT = {};   // tools registered from other files (scarcity.js): { id, name, sub, pv, c1, c2, minItems, templates(), config(src, items, json), open(s), click(t, e), key(e), progress(s) }
 
   var ui = { open: false };
@@ -312,23 +335,24 @@
 
   // ---------------------------------------------------------------- home
   function home() {
-    shell(); ui.view = 'home'; ui.preset = null; head('Discover My World', null);
+    shell(); ui.view = 'home'; ui.preset = null; head('Discover My World', null); ui.el.classList.remove('quiet');
     var ss = all(), go = ss.filter(function (s) { return s.status !== 'completed'; }), done = ss.filter(function (s) { return s.status === 'completed'; });
     ui.body.innerHTML = '<p class="dv-sub">Discover what I love. Nothing here is right or wrong — it only keeps what you chose.</p><div class="dv-tools">' + TOOLS.map(function (t) {
       var d = TOOL_D[t];
       if (EXT[t] && EXT[t].group) return '';
-      return '<button type="button" class="dv-tool" data-tool="' + t + '" style="--c1:' + d[2] + ';--c2:' + d[3] + '"' + (READY[t] ? '' : ' disabled') + '><span class="pv">' + PV[t] + '</span><b>' + d[0] + '</b><small>' + d[1] + '</small>' + (READY[t] ? '' : '<span class="soon">Coming next</span>') + '</button>';
+      return toolCard('data-tool="' + t + '"', d[0], d[1], d[2], d[3], PV[t], statusOf(t, ss), READY[t]);
     }).join('') + '</div>' +
-      philoHtml() +
+      philoHtml(ss) +
       (go.length ? '<div class="dv-h">Continue</div>' + go.map(row).join('') : '') +
       '<div class="dv-h">My Discoveries</div>' + (done.length ? done.slice(0, 30).map(row).join('') : '<div class="dv-empty">Your results will be kept here.</div>');
   }
   // Philosophical Exploration: one tool per advanced-philosophy template (ready ones open, the rest say "coming next")
-  function philoHtml() {
+  function philoHtml(ss) {
     var ts = (window.MinestWorld && MinestWorld.templates ? MinestWorld.templates() : []).filter(function (t) { return t.family === 'advanced-philosophy' && t.discoveryTool; });
     if (!ts.length) return '';
-    return '<div class="dv-h">Philosophical Exploration</div>' + ts.map(function (t) { var d = t.discoveryTool, ok = !!EXT[d.id];
-      return '<button type="button" class="dv-row" data-philo="' + esc(d.id) + '"' + (ok ? '' : ' disabled style="opacity:.5;cursor:default"') + '><div><b>' + esc(d.name) + '</b><small>' + esc(t.name + ' · ' + (t.philosopher || '')) + '</small></div>' + (ok ? '<span class="cv">' + ICON.chev + '</span>' : '<em>Coming next</em>') + '</button>'; }).join('');
+    return '<div class="dv-h">Philosophical Exploration</div><div class="dv-tools">' + ts.map(function (t) { var d = t.discoveryTool, ok = !!EXT[d.id], c = PHILO_D[d.id] || ['#2f9e8f', '#1d6f66', ''];
+      var n = 0; try { n = d.id === 'connect-my-world' ? KN().keys('rel:').length : KN().keys('px:').filter(function (k) { var r = KN().get(k); return r && r.tool === d.id && !r.deleted; }).length; } catch (e) {}
+      return toolCard('data-philo="' + esc(d.id) + '"', d.name, t.philosopher ? 'Inspired by ' + t.philosopher : t.name, c[0], c[1], c[2], n ? { t: n + (d.id === 'connect-my-world' ? ' connection' : ' entr') + (d.id === 'connect-my-world' ? (n === 1 ? '' : 's') : (n === 1 ? 'y' : 'ies')) } : null, ok); }).join('') + '</div>';
   }
   function row(s) {
     var n = EXT[s.tool] ? EXT[s.tool].progress(s) : s.tool === 'this-or-that' ? (s.choices || []).filter(function (c) { return c && c.pick !== undefined; }).length + '/' + ((s.pairs || []).length) : s.tool === 'tier-list' && s.rank ? Object.keys(placedIn(s)).length + '/' + s.items.length : s.tool === 'tournament' && s.bracket ? (function () { var c = realMatches(bracket(s)); return c.d + '/' + c.n; })() : '';

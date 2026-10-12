@@ -182,9 +182,17 @@ def knowledge_js():
         c = json.load(open(f, encoding='utf-8')); pickers[c['id']] = c
     js += 'window.__MINEST_PICKERS = ' + json.dumps(pickers, ensure_ascii=False) + ';\n'
     # Discover My World V2: Desert Island / What Truly Matters templates
+    # Golden Framework Library: read-only framework definitions (tools/knowledge/frameworks/<collection>.json)
+    fws = []
+    for f in sorted(glob.glob(os.path.join(REPO, 'tools', 'knowledge', 'frameworks', '*.json'))):
+        col = json.load(open(f, encoding='utf-8'))
+        for fw in col['frameworks']:
+            fw['collectionTitle'] = col['title']; fws.append(fw)
+    js += 'window.__MINEST_FRAMEWORKS = ' + json.dumps(fws, ensure_ascii=False, separators=(',', ':')) + ';\n'
+    js += 'window.__MINEST_FRAMEWORK_NAMES = ' + json.dumps({fw['id']: fw['name'] for fw in fws}, ensure_ascii=False) + ';\n'
     js += 'window.__MINEST_DISCOVER = ' + json.dumps(json.load(open(os.path.join(REPO, 'tools', 'knowledge', 'discover', 'templates.json'), encoding='utf-8')), ensure_ascii=False) + ';\n'
     # Phases 1–4, then JSON import (5–6), the Learning Map, and the one Knowledge Dock icon
-    return js + '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('contents.js', 'look.js', 'kedit.js', 'endless.js', 'map.js', 'timeline.js', 'kjson.js', 'learnmap.js', 'wiki.js', 'world.js', 'skills.js', 'picker.js', 'capture.js', 'discover.js', 'scarcity.js', 'philo.js', 'starter.js', 'builder.js', 'myworld.js', 'hub.js'))
+    return js + '\n'.join(open(os.path.join(REPO, 'tools', 'knowledge', f), encoding='utf-8').read() for f in ('listmenu.js', 'contents.js', 'look.js', 'kedit.js', 'endless.js', 'map.js', 'timeline.js', 'kjson.js', 'learnmap.js', 'wiki.js', 'world.js', 'skills.js', 'picker.js', 'capture.js', 'discover.js', 'scarcity.js', 'philo.js', 'starter.js', 'builder.js', 'myworld.js', 'frameworks.js', 'hub.js', 'edgeback.js'))
 
 
 def toon_patches(out):

@@ -22,7 +22,7 @@
   function hash(s) { var h = 2166136261; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
   // ================================================================== catalogs
-  var ORDER = ['movies', 'books', 'artists', 'hobbies', 'goals', 'values', 'habits', 'experiences'];
+  var ORDER = ['movies', 'books', 'artists', 'foods', 'hobbies', 'goals', 'values', 'habits', 'experiences'];
   function cats() { var C = window.__MINEST_PICKERS || {}; return ORDER.filter(function (k) { return C[k]; }).map(function (k) { return C[k]; }).concat(Object.keys(C).filter(function (k) { return ORDER.indexOf(k) < 0; }).map(function (k) { return C[k]; })); }
   function cat(id) { return (window.__MINEST_PICKERS || {})[id] || null; }
   function catFor(title) { var t = String(title || ''); return cats().filter(function (c) { try { return new RegExp('\\b(' + c.match + ')', 'i').test(t); } catch (e) { return false; } })[0] || null; }
@@ -122,10 +122,17 @@
 
   // ================================================================== pictures (the catalog's own, the user's own, else a drawn poster)
   function look(it) { var h = hash(it.title), a = h % 360, b2 = (a + 40 + (h >> 9) % 80) % 360; return 'linear-gradient(155deg,hsl(' + a + ' 62% 46%),hsl(' + b2 + ' 70% 24%))'; }
-  function imgOf(c, it) { if (it.img) return it.img; var r = KN().get(kiKey(c.id, it.id)); return (r && r.img) || ''; }
+  function imgOf(c, it) {
+    if (it.img) return it.img;
+    var r = KN() && KN().get(kiKey(c.id, it.id));
+    if (r && r.img) return r.img;
+    var ent = KN() && (KN().get('lom:entity:' + c.id + ':' + it.id) || KN().get('lom:entity:' + it.id));
+    if (ent && ent.image && ent.image.url) return ent.image.url;
+    return '';
+  }
   function poster(c, it) {
     var im = imgOf(c, it);
-    if (im) return '<span class="pk-art" style="background-image:url(&quot;' + esc(im) + '&quot;)"></span>';
+    if (im) return '<span class="pk-art" style="background:' + look(it) + ';background-image:url(&quot;' + esc(im) + '&quot;)"></span>';
     return '<span class="pk-art drawn" style="background:' + look(it) + '"><b>' + esc(it.title) + '</b>' + (it.sub ? '<small>' + esc(it.sub) + '</small>' : '') + '</span>';
   }
   function initials(t) { var w = String(t).replace(/[^A-Za-z0-9À-ɏ一-鿿 ]/g, ' ').trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w[w.length - 1][0] : String(t).slice(0, 2)).toUpperCase(); }
@@ -269,7 +276,10 @@
     (b.columns || []).forEach(function (col) { (col.cards || []).forEach(function (c) {
       if (!c || KN().isHeading(c.id) || KN().get('sk:' + c.id)) return;
       var k = catFor(c.title); if (!k) return; seen[k.id] = 1;
-      rows.push('<button type="button" class="pk-row" data-fill="' + esc(c.id) + '" data-cat="' + esc(k.id) + '" style="--c:' + esc(col.color || '#5e5ce6') + '"><i>' + ICON[k.kind] + '</i><div><b>' + esc(c.title) + '</b><small>' + esc(col.title) + ' · ' + KIND_T[k.kind] + '</small></div><em>' + ((c.stack || []).length || '') + '</em></button>');
+      var thumb = (c.cover && c.cover.url) || (c.stack && c.stack.find(function (s) { return s.cover && s.cover.url; })) || (k.items && k.items[0] && k.items[0].img);
+      var thumbUrl = typeof thumb === 'string' ? thumb : (thumb && thumb.cover && thumb.cover.url) || '';
+      var iconMarkup = thumbUrl ? '<i style="background-image:url(&quot;' + esc(thumbUrl) + '&quot;);background-size:cover;background-position:center;border-radius:12px"></i>' : '<i>' + ICON[k.kind] + '</i>';
+      rows.push('<button type="button" class="pk-row" data-fill="' + esc(c.id) + '" data-cat="' + esc(k.id) + '" style="--c:' + esc(col.color || '#5e5ce6') + '">' + iconMarkup + '<div><b>' + esc(c.title) + '</b><small>' + esc(col.title) + ' · ' + KIND_T[k.kind] + '</small></div><em>' + ((c.stack || []).length || '') + '</em></button>');
     }); });
     var sk = skillAreas(b), kinds = {}; sk.forEach(function (a) { kinds[a.kind] = (kinds[a.kind] || 0) + a.skills.length; });
     var skr = Object.keys(kinds).map(function (k) { return '<button type="button" class="pk-row" data-skills="' + k + '" style="--c:' + (k === 'academic' ? '#0a84ff' : '#30d158') + '"><i>' + ICON.profile + '</i><div><b>' + (k === 'academic' ? 'My Academic Skills' : 'My Life Skills') + '</b><small>Step by step · what you can do, what you want to learn</small></div><em>' + kinds[k] + '</em></button>'; }).join('');
@@ -530,5 +540,5 @@
   }
 
   window.MinestPicker = { open: open, home: home, skills: function (bid, kind) { return skills(bid, kind || null, null); }, close: close, isOpen: function () { return ui.open; },
-    save: save, saveSkills: saveSkills, ensureList: ensureList, catalogs: cats, catalogFor: catFor, placesOf: placesOf };
+    mountStyles: css, save: save, saveSkills: saveSkills, ensureList: ensureList, catalogs: cats, catalogFor: catFor, placesOf: placesOf };
 })();

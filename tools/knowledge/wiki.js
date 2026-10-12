@@ -230,21 +230,61 @@
     '.wk-sheet{background:linear-gradient(180deg,rgba(66,76,92,.78),rgba(30,36,48,.88));-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);border-radius:28px;box-shadow:var(--rim),0 28px 70px rgba(0,0,0,.45)}',
     '.wk-sheet input:not([type=checkbox]):not([type=radio]){border-radius:14px;height:44px}',
     '.wk-sheet .row button{height:44px}',
-    '.wk-sheet label{border-color:var(--hair)}'
+    '.wk-sheet label{border-color:var(--hair)}',
+    // a world's Portal: Grow (what has started + what could grow next) ↔ Whole World (everything, the template's rest dashed)
+    '.wk-mode{display:flex;gap:4px;padding:4px;margin:0 0 6px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--hair,rgba(255,255,255,.1))}',
+    '.wk-mode button{flex:1;height:36px;border:0;border-radius:999px;background:none;color:inherit;font:600 14px -apple-system,system-ui,sans-serif;cursor:pointer;opacity:.7}',
+    '.wk-mode button.on{background:rgba(255,255,255,.16);opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.18)}',
+    '.wk-mhint{margin:0 6px 12px;font-size:12.5px;opacity:.6}',
+    '.wk-next{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}',
+    '.wk-next button{height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--hair,rgba(255,255,255,.14));background:rgba(255,255,255,.06);color:inherit;font:500 13.5px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    '.wk-next button.gh{border-style:dashed;opacity:.85}.wk-next button.more{border:0;background:none;text-decoration:underline;opacity:.7}',
+    '.wk-next small{opacity:.55;margin-left:4px}',
+    '.wk-a .wk-n{font-size:.78em;opacity:.5;margin-left:3px;font-weight:500}.wk-a.mt{opacity:.55}',
+    '.wk-gh{display:inline-block;padding:0 6px;border:1px dashed currentColor;border-radius:6px;opacity:.5;cursor:pointer;line-height:1.45;font-size:.95em}',
+    '.wk-gh:hover{opacity:.85}',
+    '.wk-tile.gh{border-style:dashed;opacity:.6;background:none}.wk-tile.gh b:before{content:"＋ "}',
+    '.wk-g.gh .wk-gt,.wk-r.gh .wk-st{opacity:.55;font-style:italic}',
+    '.wk-g.gh .wk-gt button,.wk-r.gh .wk-st button{margin-left:8px;font:600 12px -apple-system,system-ui,sans-serif;font-style:normal;padding:2px 8px;border-radius:999px;border:1px dashed currentColor;background:none;color:inherit;cursor:pointer}',
+    'html.kn-light .wk-mode{background:rgba(0,0,0,.05)}html.kn-light .wk-mode button.on{background:#fff}html.kn-light .wk-next button{background:rgba(255,255,255,.8)}'
   ].join('\n');
   function ensureCss() { if (document.getElementById('wk-css')) return; var s = document.createElement('style'); s.id = 'wk-css'; s.textContent = CSS; document.head.appendChild(s); }
 
-  var usage = {}, IDXB = {};
+  var usage = {}, IDXB = {}, WD = null, GH = {};
+  // a world board (My World): the Portal is its guide — Grow or Whole World ('wa:<board>'.portal)
+  function worldData(b) {
+    var w = KN().get('lom:world:' + b.id); if (!w) return null;
+    var g = []; try { g = window.MinestWorld && MinestWorld.ghosts ? MinestWorld.ghosts(b.id) : []; } catch (e) {}
+    return { mode: ((KN().get('wa:' + b.id) || {}).portal) || 'grow', ghosts: g };
+  }
+  function started(id) { var x = IDX[id]; if (!x) return false; return x.parent ? true : (x.card.stack || []).length > 0; }
+  function growTree(t) {
+    t = JSON.parse(JSON.stringify(t));
+    (function prune(list) { for (var i = list.length - 1; i >= 0; i--) { var n = list[i]; n.items = (n.items || []).filter(started); prune(n.subs = n.subs || []); if (!n.items.length && !n.subs.length) list.splice(i, 1); } })(t.groups);
+    return t;
+  }
+  function addGhosts(t, gs) {
+    GH = {};
+    function node(id) { var hit = null; walk(t, function (n) { if (n.id === id) hit = n; }); return hit; }
+    gs.forEach(function (g) {
+      GH[g.id] = g;
+      if (g.kind === 'area') { t.groups.push({ id: 'gh:' + g.id, title: g.title, items: [], subs: [], ghost: g }); return; }
+      if (g.kind === 'category') { var gr = node('g-' + g.col); if (gr) gr.subs.push({ id: 'gh:' + g.id, title: g.title, items: [], subs: [], ghost: g }); return; }
+      var n = (g.section && node('s-' + g.section)) || node('g-' + g.col); if (n) (n.ghostItems = n.ghostItems || []).push(g);
+    });
+  }
+  function ghostA(g) { return '<a class="wk-gh" data-ghost="' + esc(g.id) + '" title="Not in this world yet — tap to add">＋ ' + esc(g.title) + '</a>'; }
   function lookup(id, bid) { var idx = bid ? IDXB[bid] : IDX; return idx ? idx[id] : null; }
   function itemHtml(id, nodeId, bid) {
     var x = lookup(id, bid);
     if (!x) return '';
     var s = stateOf(x.card, x.col), tip = SNAME[s.k] + (s.rv ? ' · needs review' : '') + (usage[id] > 1 ? ' · in ' + usage[id] + ' categories' : '');
-    return '<a class="wk-a s-' + s.k + (usage[id] > 1 ? ' multi' : '') + '" data-item="' + esc(id) + '" data-node="' + esc(nodeId) + '"' + (bid ? ' data-b="' + esc(bid) + '"' : '') + ' title="' + esc(tip) + '">' + esc(x.card.title || 'Untitled') + '</a>';   // (no review dot after the words)
+    var cnt = WD && !bid && !x.parent ? (x.card.stack || []).length : null;
+    return '<a class="wk-a s-' + s.k + (usage[id] > 1 ? ' multi' : '') + (cnt === 0 ? ' mt' : '') + '" data-item="' + esc(id) + '" data-node="' + esc(nodeId) + '"' + (bid ? ' data-b="' + esc(bid) + '"' : '') + ' title="' + esc(tip) + '">' + esc(x.card.title || 'Untitled') + (cnt != null ? '<span class="wk-n">' + cnt + '</span>' : '') + '</a>';   // (no review dot after the words)
   }
-  function stFrac(n) { var t = tally(nodeIds(n), IDX); return t.n ? '<small>' + t.done + '/' + t.n + '</small>' : ''; }
+  function stFrac(n) { if (WD) return ''; var t = tally(nodeIds(n), IDX); return t.n ? '<small>' + t.done + '/' + t.n + '</small>' : ''; }
   function itemsHtml(n) {
-    var parts = (n.items || []).filter(function (id) { return IDX[id]; }).map(function (id) { return itemHtml(id, n.id); });
+    var parts = (n.items || []).filter(function (id) { return IDX[id]; }).map(function (id) { return itemHtml(id, n.id); }).concat((n.ghostItems || []).map(ghostA));
     return (parts.length ? parts.join('<span class="wk-dot">·</span>') : (edit ? '<span class="wk-empty">No entries yet</span>' : '')) +
       '<span class="wk-add"><span class="wk-ed"><button type="button" data-newin="' + esc(n.id) + '">＋ New</button><button type="button" data-addto="' + esc(n.id) + '">＋ Existing</button></span></span>';
   }
@@ -255,7 +295,8 @@
     var h = '';
     if ((n.items || []).length || edit || !(n.subs || []).length) h += '<div class="wk-r full"><div class="wk-it">' + itemsHtml(n) + '</div></div>';
     (n.subs || []).forEach(function (s) {
-      h += '<div class="wk-r" data-sub-id="' + esc(s.id) + '"><div class="wk-st">' + esc(s.title) + stFrac(s) + ctl(s) + '</div><div class="wk-it">' +
+      if (s.ghost) { h += '<div class="wk-r gh"><div class="wk-st">' + esc(s.title) + '<button type="button" data-ghost="' + esc(s.ghost.id) + '">＋ Add</button></div><div class="wk-it"></div></div>'; return; }
+      h += '<div class="wk-r" data-sub-id=""' + esc(s.id) + '"><div class="wk-st">' + esc(s.title) + stFrac(s) + ctl(s) + '</div><div class="wk-it">' +
         ((s.items || []).length || edit || !(s.subs || []).length ? itemsHtml(s) : '') +
         (s.subs || []).map(function (ss) { return '<div class="wk-r" data-sub-id="' + esc(ss.id) + '"><div class="wk-st">' + esc(ss.title) + stFrac(ss) + ctl(ss) + '</div><div class="wk-it">' + itemsHtml(ss) + subDeep(ss) + '</div></div>'; }).join('') + '</div></div>';
     });
@@ -270,6 +311,10 @@
     if (ui.course) return renderCourse();
     var b = boardById(ui.bid); if (!b) return;
     T = treeOf(b); IDX = cardIndex(b); usage = {};
+    WD = edit ? null : worldData(b); GH = {};
+    var fullT = T;
+    if (WD && WD.mode === 'grow') T = growTree(T);
+    if (WD && WD.mode === 'whole') { T = JSON.parse(JSON.stringify(T)); addGhosts(T, WD.ghosts); }
     walk(T, function (n) { (n.items || []).forEach(function (id) { usage[id] = (usage[id] || 0) + 1; }); });
     var s = st();
     ui.el.classList.toggle('compact', s.layout === 'compact');
@@ -280,14 +325,37 @@
     var areas = {}; ((T.portal || {}).areas || []).forEach(function (a) { areas[a.group] = a; });
     var all = tally(treeIds(T), IDX);
     var crumb = from ? '<div class="wk-crumb"><button type="button" data-crumb>‹ ' + esc(from.title) + '</button><span>›</span><b>' + esc(b.title || '') + '</b></div>' : '';
-    var portal = '<div class="wk-portal">' + crumb + ((T.portal || {}).intro ? '<p>' + esc(T.portal.intro) + '</p>' : '') +
-      '<div class="wk-sum"><b>' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div><div class="wk-band">Topics</div><div class="wk-tiles">' +
-      T.groups.map(function (g) { var a = areas[g.id] || {}, t = tally(nodeIds(g), IDX); return '<button type="button" class="wk-tile" data-goto="' + esc(g.id) + '"><b>' + esc(g.title) + '</b>' + (a.desc ? '<small>' + esc(a.desc) + '</small>' : '') + '<em>' + countItems(g) + ' entries' + ((g.subs || []).length ? ' · ' + g.subs.length + ' subcategories' : '') + '</em>' + frac(t) + bar(t) + '</button>'; }).join('') + '</div></div>';
+    var wsum = '', wtop = '';
+    if (WD) {
+      var lists = treeIds(fullT).filter(function (id) { return IDX[id] && !IDX[id].parent; }), on = lists.filter(started), things = lists.reduce(function (a, id) { return a + (IDX[id].card.stack || []).length; }, 0), grow = WD.mode === 'grow';
+      wtop = '<div class="wk-mode" role="tablist"><button type="button" data-pmode="grow"' + (grow ? ' class="on"' : '') + '>🌱 Grow</button><button type="button" data-pmode="whole"' + (grow ? '' : ' class="on"') + '>🌍 Whole World</button></div>' +
+        '<p class="wk-mhint">' + (grow ? 'Only what you’ve started — and what could grow next.' : 'The whole map: every list, even empty ones' + (WD.ghosts.length ? ', and what its template still holds (dashed — tap to add)' : '') + '.') + '</p>';
+      wsum = '<div class="wk-sum"><b>' + things + ' thing' + (things === 1 ? '' : 's') + '</b><span class="wk-fr">in ' + on.length + ' of ' + lists.length + ' lists' + (WD.ghosts.length ? ' · ' + WD.ghosts.length + ' more in the template' : '') + '</span></div>';
+      if (grow) {
+        var empty = lists.filter(function (id) { return !started(id); }), near = {};
+        lists.forEach(function (id) { if (started(id)) near[IDX[id].col.id] = 1; });
+        var gs = WD.ghosts.filter(function (g) { return g.kind === 'list' || g.kind === 'sub'; }).sort(function (a, b) { return (near[b.col] ? 1 : 0) - (near[a.col] ? 1 : 0); });
+        gs = gs.concat(WD.ghosts.filter(function (g) { return g.kind === 'category' || g.kind === 'area'; }));
+        WD.ghosts.forEach(function (g) { GH[g.id] = g; });
+        wsum += '<div class="wk-band">Grow next</div><div class="wk-next">' +
+          empty.slice(0, 6).map(function (id) { return '<button type="button" data-startlist="' + esc(id) + '">' + esc(IDX[id].card.title) + '<small>start</small></button>'; }).join('') +
+          gs.slice(0, 6).map(function (g) { return '<button type="button" class="gh" data-ghost="' + esc(g.id) + '">＋ ' + esc(g.title) + '</button>'; }).join('') +
+          (!empty.length && !gs.length ? '<span class="wk-mhint" style="margin:0 4px">Every list here has something in it.</span>' : '') +
+          '<button type="button" class="more" data-pmode="whole">See the whole world →</button></div>';
+      }
+    }
+    var portal = '<div class="wk-portal">' + crumb + wtop + ((T.portal || {}).intro ? '<p>' + esc(T.portal.intro) + '</p>' : '') +
+      (WD ? wsum : '<div class="wk-sum"><b>' + all.n + ' entries</b>' + frac(all) + bar(all) + '</div>') + '<div class="wk-band">' + (WD && WD.mode === 'grow' ? 'Started' : 'Topics') + '</div><div class="wk-tiles">' +
+      (WD && WD.mode === 'grow' && !T.groups.length ? '<p class="wk-mhint" style="grid-column:1/-1">Nothing started yet — add your first things to any list in Grow next.</p>' : '') +
+      T.groups.map(function (g) { if (g.ghost) return '<button type="button" class="wk-tile gh" data-ghost="' + esc(g.ghost.id) + '"><b>' + esc(g.title) + '</b><em>not in this world yet</em></button>'; var a = areas[g.id] || {}, t = tally(nodeIds(g), IDX);
+        if (WD) { var ls = nodeIds(g).filter(function (id) { return IDX[id] && !IDX[id].parent; }), th = ls.reduce(function (z, id) { return z + (IDX[id].card.stack || []).length; }, 0); return '<button type="button" class="wk-tile" data-goto="' + esc(g.id) + '"><b>' + esc(g.title) + '</b>' + (a.desc ? '<small>' + esc(a.desc) + '</small>' : '') + '<em>' + ls.length + ' list' + (ls.length === 1 ? '' : 's') + ' · ' + th + ' thing' + (th === 1 ? '' : 's') + '</em></button>'; }
+        return '<button type="button" class="wk-tile" data-goto=""' + esc(g.id) + '"><b>' + esc(g.title) + '</b>' + (a.desc ? '<small>' + esc(a.desc) + '</small>' : '') + '<em>' + countItems(g) + ' entries' + ((g.subs || []).length ? ' · ' + g.subs.length + ' subcategories' : '') + '</em>' + frac(t) + bar(t) + '</button>'; }).join('') + '</div></div>';
     var box = '<div class="wk-box"><div class="wk-boxh"><span style="width:44px"></span><b>' + esc(T.title || 'Categories') + '</b><button type="button" data-hide>' + (s.hide ? '[show]' : '[hide]') + '</button></div>' +
       (s.hide ? '' : T.groups.map(function (g) {
+        if (g.ghost) return '<div class="wk-g gh"><div class="wk-gt"><span class="tw">＋</span>' + esc(g.title) + '<button type="button" data-ghost="' + esc(g.ghost.id) + '">Add</button></div></div>';
         var fold = s.fold[g.id];
         var gt = tally(nodeIds(g), IDX);
-        return '<div class="wk-g' + (fold ? ' fold' : '') + '" data-g="' + esc(g.id) + '"><div class="wk-gt" data-fold="' + esc(g.id) + '" data-n="(' + countItems(g) + ')"><span class="tw">▼</span>' + esc(g.title) + ctl(g, true) + (gt.n ? '<span class="wk-gp">' + frac(gt) + bar(gt) + '</span>' : '') + '</div><div class="wk-gb">' + subRows(g) + '</div></div>';
+        return '<div class="wk-g' + (fold ? ' fold' : '') + '" data-g="' + esc(g.id) + '"><div class="wk-gt" data-fold="' + esc(g.id) + '" data-n="(' + countItems(g) + ')"><span class="tw">▼</span>' + esc(g.title) + ctl(g, true) + (gt.n && !WD ? '<span class="wk-gp">' + frac(gt) + bar(gt) + '</span>' : '') + '</div><div class="wk-gb">' + subRows(g) + '</div></div>';
       }).join('')) + '</div>';
     var tools = '<div class="wk-tools"><button type="button" data-addgroup>＋ Category group</button><button type="button" data-savetpl>Save as template</button>' + (KN().keys('wk:tpl:').length ? '<button type="button" data-usetpl>Use a template…</button>' : '') + (T.auto ? '' : '<button type="button" data-rebuild>↺ Rebuild from the board</button>') + '</div>';
     ui.list.innerHTML = (s.layout === 'compact' ? crumb : '') + portal + box + tools;
@@ -581,6 +649,24 @@
       var b = e.target.closest('[data-b]'); if (!b) return; m.remove(); keep(); ui.course = null; ui.from = null; ui.bid = b.getAttribute('data-b'); render(); ui.list.scrollTop = st().scroll || 0;
     });
   }
+  // add a template's list / category / area to this world (only now — a ghost is never made on its own)
+  function growGhost(g) {
+    var what = g.kind === 'area' ? 'the area “' + g.title + '” (with a first list in each part)' : g.kind === 'category' ? '“' + g.title + '” (with its first list)' : '“' + g.title + '”';
+    var ask = window.MinestKEdit && MinestKEdit.sheet ? MinestKEdit.sheet({ title: 'Grow this world', text: 'Add ' + what + '? It starts empty — nothing else changes.', ok: 'Add' }).then(function (r) { return !!r; }) : Promise.resolve(confirm('Add ' + what + ' to this world?'));
+    ask.then(function (ok) {
+      if (!ok) return; var bid = ui.bid;
+      MinestWorld.grow(bid, g.tid, g.key).then(function () {
+        toast('Added “' + g.title + '”');
+        var t0 = Date.now(); (function wait() { var b = boardById(bid), there = b && (b.columns || []).some(function (c) { return c.id === g.id || (c.cards || []).some(function (k) { return k.id === g.id; }); }); if (there || Date.now() - t0 > 1500) { if (ui.open) { var y = ui.list.scrollTop; render(); ui.list.scrollTop = y; } } else setTimeout(wait, 80); })();
+      }).catch(function (e) { toast('✗ ' + e.message); });
+    });
+  }
+  // an empty list in Grow next: add its first thing
+  function startList(cid) {
+    var bid = ui.bid; keep();
+    if (window.MinestStarter && MinestStarter.addTo) { close(); setTimeout(function () { MinestStarter.addTo(bid, cid); }, 200); return; }
+    details(cid);
+  }
   function wire(el) {
     ['pointerdown', 'touchstart', 'touchmove', 'wheel'].forEach(function (ev) { el.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
     el.addEventListener('pointerdown', function (e) { if (pv && !pv.contains(e.target) && !e.target.closest('.wk-a')) closePv(); if (sheet && !sheet.contains(e.target)) closeSheet(); });
@@ -596,6 +682,9 @@
       if (t.closest('[data-edit]')) { edit = !edit; t.closest('[data-edit]').classList.toggle('on', edit); el.classList.toggle('edit', edit); closePv(); if (!edit && window.MinestKEdit) MinestKEdit.closeBar(); else toast('Tap an entry to edit it'); return render(); }
       if (t.closest('[data-hide]')) { st().hide = !st().hide; stSave(); return render(); }
       if (t.closest('[data-crumb]')) return backToCourse();
+      var pm = attr(t, 'data-pmode'); if (pm) { KN().set('wa:' + ui.bid, Object.assign({}, KN().get('wa:' + ui.bid) || {}, { portal: pm }), true); ui.list.scrollTop = 0; return render(); }
+      var gk = attr(t, 'data-ghost'); if (gk && GH[gk]) return growGhost(GH[gk]);
+      var sl = attr(t, 'data-startlist'); if (sl) return startList(sl);
       var cf = attr(t, 'data-cfold'); if (cf) { st().fold[cf] = !st().fold[cf]; stSave(); var y0 = ui.list.scrollTop; render(); ui.list.scrollTop = y0; return; }
       if (edit && ui.course && onCourseEdit(t)) return;
       if (edit && !ui.course && onEditClick(t)) return;

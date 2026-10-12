@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "minest.framework/1",
+  "title": "Minest Golden Framework",
+  "description": "A read-only Original Framework. The user's layer (notes, examples, questions, links, sessions, saved, derived copies) lives in MinestKnowledge side tables under 'fx:' and never edits this definition.",
+  "type": "object",
+  "required": ["format", "id", "version", "name", "collection", "structureType", "concepts"],
+  "properties": {
+    "format": { "const": "minest.framework/1" },
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "Stable id — never reused or renamed." },
+    "version": { "type": "string", "description": "Semantic version of this definition (1.0.0)." },
+    "name": { "type": "string", "description": "The original name of the framework." },
+    "myName": { "type": "string", "description": "The My-first everyday name shown first (e.g. My Life Ecosystem)." },
+    "collection": { "enum": ["philosophy", "knowledge", "nature", "psychology", "society", "systems", "life"] },
+    "structureType": { "enum": ["hierarchy", "network", "matrix", "nested", "cycle", "timeline", "levels", "dimensions"] },
+    "author": { "type": "string", "description": "Author(s) or organization." },
+    "source": {
+      "type": "object",
+      "properties": { "work": { "type": "string" }, "organization": { "type": "string" }, "year": { "type": ["string", "integer", "null"] }, "edition": { "type": ["string", "null"] }, "url": { "type": ["string", "null"] } }
+    },
+    "summary": { "type": "string", "description": "One plain sentence (Minest's own words)." },
+    "about": { "type": "string", "description": "A short original explanation." },
+    "scope": { "type": "string", "description": "What it is good for." },
+    "limits": { "type": "string", "description": "Where it stops applying — always present for psychology / society models." },
+    "featured": { "type": "boolean" },
+    "reference": { "type": "boolean", "description": "Has a dedicated interactive view (first six)." },
+    "concepts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string", "description": "Original term." },
+          "myName": { "type": "string" },
+          "summary": { "type": "string" },
+          "parent": { "type": ["string", "null"], "description": "hierarchy / nested: the concept it sits under" },
+          "group": { "type": "string", "description": "network / matrix: a family for colour" },
+          "order": { "type": "number" },
+          "row": { "type": "integer" }, "col": { "type": "integer" },
+          "when": { "type": "string", "description": "timeline: a span (e.g. 541–252 Ma, Ages 0–1)" },
+          "data": { "type": "object", "description": "Structure-specific facts (e.g. element symbol, number, category)." }
+        }
+      }
+    },
+    "relationships": { "type": "array", "items": { "type": "object", "required": ["from", "to"], "properties": { "from": { "type": "string" }, "to": { "type": "string" }, "type": { "type": "string" } } } },
+    "relatedTemplates": { "type": "array", "items": { "type": "string" }, "description": "Worldview Template ids (minest.world/1)." },
+    "discoveryTool": { "type": ["string", "null"], "description": "A Discover tool id that explores it (philosophy)." },
+    "recommendedViews": { "type": "array", "items": { "type": "string" } },
+    "customizable": { "type": "boolean" },
+    "notice": { "type": "string", "description": "Licence / use note (summaries are Minest's own; protected indexes are not copied)." }
+  }
+}
