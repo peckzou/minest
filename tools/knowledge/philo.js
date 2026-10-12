@@ -181,6 +181,7 @@
       if (b === 'cx-home') { home(); return true; } if (b === 'cx-new') { draft(); return true; } if (/^cx-item:/.test(b)) { item(b.slice(8)); return true; }
       return false;
     }
+    if ((g = t.closest('[data-cxtool]'))) { var tl = g.getAttribute('data-cxtool'), ex = ui.cxExplore; if (tl === 'connect-my-world') { ui.cx = { a: ex, b: null, type: null, note: '' }; ui.cxEdit = null; ui.cxBack = 'cx-home'; draft(); } else { ui.pxTool = tl; pxStart(tl, { item: ex }); } return true; }
     if (t.closest('[data-cxnew]')) { ui.cx = { a: null, b: null, type: null, note: '' }; ui.cxEdit = null; ui.cxBack = 'cx-home'; draft(); return true; }
     if ((g = t.closest('[data-cxpick]'))) { keepNote(); pick(g.getAttribute('data-cxpick')); return true; }
     if ((g = t.closest('[data-cxchoose]'))) { var x = ui.cxCands[+g.getAttribute('data-cxchoose')]; if (x) ui.cx[ui.cxSlot] = { id: x.id, ref: x.ref, title: x.title }; draft(); return true; }
@@ -231,9 +232,199 @@
     if (window.MinestDiscover) D.open(); ui.cxTpl = o.template || null;
     setTimeout(function () { X.shell(); css(); ui.cxBack = 'cx-home'; ui.cxEdit = null; ui.cx = { a: e, b: null, type: null, note: '' }; if (e) draft(); else home(); }, 30);
   }
-  if (window.MinestKEdit && MinestKEdit.globalExtra) MinestKEdit.globalExtra.push({ key: 'cx-connect', icon: LINK, label: 'Connect to…', kinds: ['card', 'item'], run: function (t) { try { MinestKEdit.closeBar(); } catch (x) {} connect({ bid: t.bid, id: t.id }); } });
+  // ================================================================== tools 2–5: one config-driven reflection engine
+  // A record 'px:<id>' = { id, tool, template, subject: { title, item (stable id + ref) | null, url }, answers: { <section>: { text, na, links: [items], year } },
+  //   evidence: [{ text, url }] (Kant), versions: [{ at, answers, edited }] (Hegel — never overwritten), createdAt, updatedAt }.
+  var PX = {
+    'understand-this-thing': { name: 'Understand This Thing', template: 'philosophy-aristotle', subject: 'item', subjectQ: 'Which thing?', subjectHint: 'Pick a card — or just type the name of a thing.',
+      intro: 'Look at one thing in up to four ways. Skip any that don’t fit — not every question applies to every thing.',
+      sections: [{ id: 'material', q: 'What is it made of?', sub: 'Material cause', na: true, links: true }, { id: 'formal', q: 'What makes it this kind of thing?', sub: 'Formal cause', na: true, links: true },
+        { id: 'efficient', q: 'What produced it?', sub: 'Efficient cause', na: true, links: true }, { id: 'final', q: 'What is it for?', sub: 'Final cause', na: true, links: true }],
+      about: 'Inspired by Aristotle’s four causes (Physics II, Metaphysics V): four kinds of answer to “why is this the way it is?”. Aristotle meant them for natural things and things people make; here they are a modern way to look closely at anything — and it is fine when one does not apply.' },
+    'what-can-i-know': { name: 'What Can I Really Know?', template: 'philosophy-kant', subject: 'claim', subjectQ: 'Which claim, fact or piece of information?', subjectHint: 'Write it in a sentence — and add the card or the source if there is one.',
+      intro: 'Sort what you know about one claim: what you saw, what you were told, what you concluded — and what you still don’t know.',
+      sections: [{ id: 'observed', q: 'What I observed', sub: 'Seen, heard or measured myself' }, { id: 'learned', q: 'What I learned', sub: 'From books, people or sources' }, { id: 'concluded', q: 'What I concluded', sub: 'What I worked out from it' }, { id: 'unknown', q: 'What I still don’t know', sub: 'Open questions — and what would settle them' }],
+      evidence: true,
+      about: 'A modern tool inspired by Kant’s question “What can I know?” and his care about the limits of knowledge (Critique of Pure Reason). It does not carry out Kant’s transcendental philosophy; it simply helps you tell experience, what you learned, your conclusions and the open questions apart.' },
+    'my-changing-views': { name: 'My Changing Views', template: 'philosophy-hegel', subject: 'view', subjectQ: 'What is the view about?', subjectHint: 'A topic or a question, e.g. “homework”, “what makes a good friend”.',
+      intro: 'Keep one view over time. Each update is a new version — earlier ones are never overwritten.',
+      sections: [{ id: 'used', q: 'What I used to think' }, { id: 'why', q: 'What made me question it', links: true, linksLabel: 'Experiences or cards behind it' }, { id: 'now', q: 'What I think now', links: true, linksLabel: 'Related cards' }, { id: 'exploring', q: 'What I’m still exploring' }],
+      versions: true,
+      about: 'Inspired by Hegel’s Phenomenology of Spirit, where understanding grows through experience: a way of seeing meets its limits and is taken up into a fuller one. This is a Minest adaptation — not a fixed “thesis, antithesis, synthesis” formula, which Hegel did not use as his method.' },
+    'my-life-possibilities': { name: 'My Life Possibilities', template: 'philosophy-heidegger', subject: 'none',
+      intro: 'Four doors into your life. Write as much or as little as you like, and link lists, people, experiences and goals you already have.',
+      sections: [{ id: 'past', q: 'My Past — What has shaped me?', links: true, year: true }, { id: 'present', q: 'My Present — Where am I now?', links: true }, { id: 'concerns', q: 'My Concerns — What do I care about?', links: true }, { id: 'possibilities', q: 'My Possibilities — What could I pursue?', links: true, year: true }],
+      about: 'Inspired by Heidegger’s Being and Time: we live in an everyday world among people and things, caring about what matters to us, shaped by our past and open to possibilities. This is a Minest adaptation about everyday life and possibility — it is not about death.' }
+  };
+  function pxAll(tool) { return (KN() ? KN().keys('px:') : []).map(function (k) { return KN().get(k); }).filter(function (r) { return r && (!tool || r.tool === tool); }).sort(function (a, b) { return b.updatedAt - a.updatedAt; }); }
+  function pxSave(r) { r.updatedAt = Date.now(); KN().set('px:' + r.id, r, true); return r; }
+  function pxTitle(r) { var s = r.subject || {}; return s.title || (s.item ? look(s.item).title : '') || PX[r.tool].name; }
+  function cur(r) { return r.versions ? (r.versions[r.versions.length - 1] || {}).answers || {} : r.answers || {}; }
+  var PCSS = [
+    '.px-q{font-size:20px;font-weight:800;letter-spacing:-.3px;margin:4px 2px 2px}.px-qs{font-size:13px;opacity:.6;margin:0 2px 10px}',
+    '.px-steps{display:flex;gap:4px;margin:2px 2px 14px}.px-steps span{flex:1;height:4px;border-radius:4px;background:rgba(255,255,255,.14)}.px-steps span.on{background:#2f9e8f}',
+    '.px-ta{width:100%;box-sizing:border-box;min-height:120px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:inherit;font:inherit;line-height:1.45;resize:vertical;outline:none}',
+    '.px-in{width:100%;box-sizing:border-box;height:44px;padding:0 12px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:inherit;font:inherit;outline:none;margin-top:8px}',
+    '.px-na{display:inline-flex;align-items:center;gap:8px;margin:10px 2px;font-size:14px;cursor:pointer}',
+    '.px-sec{margin:12px 0;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}.px-sec b{display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase;opacity:.6;margin-bottom:4px}.px-sec div{white-space:pre-line;line-height:1.45}.px-sec em{font-style:normal;opacity:.5}',
+    '.px-ver{position:relative;padding:0 0 14px 18px;border-left:2px solid rgba(47,158,143,.5);margin-left:6px}.px-ver:before{content:"";position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:#2f9e8f}.px-ver small{opacity:.6;font-size:12px}.px-ver p{margin:4px 0 0;line-height:1.4}',
+    '.px-cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}.px-cmp>div{padding:10px;border-radius:12px;background:rgba(255,255,255,.06);font-size:13.5px;white-space:pre-line}.px-cmp h5{margin:0 0 4px;font-size:11.5px;opacity:.6;text-transform:uppercase;letter-spacing:.04em}',
+    'html.kn-light .px-ta,html.kn-light .px-in,html.kn-light .px-sec,html.kn-light .px-cmp>div{background:rgba(255,255,255,.85);border-color:rgba(0,0,0,.1)}'
+  ].join('\n');
+  function pcss() { css(); if (document.getElementById('px-css')) return; var s = document.createElement('style'); s.id = 'px-css'; s.textContent = PCSS; document.head.appendChild(s); }
+  function chipLinks(list) { return (list || []).map(function (e) { return '<button type="button" class="dv-chip" data-pxopen="' + esc(JSON.stringify({ id: e.id, ref: e.ref, title: e.title })) + '">' + esc(look(e).title) + '</button>'; }).join(''); }
 
-  window.MinestPhilo = { ready: function (toolId) { return toolId === 'connect-my-world'; }, open: function (toolId, o) { if (toolId === 'connect-my-world') { if (window.MinestDiscover) D.open(); setTimeout(function () { ui.cxTpl = (o && o.template) || null; start(); }, 30); } },
+  // ---------------------------------------------------------------- a tool's home: its records
+  function pxHome(tool) {
+    pcss(); var T = PX[tool]; ui.pxTool = tool; ui.view = 'px-home'; X.head(T.name, 'home');
+    var rs = pxAll(tool);
+    X.ui.body.innerHTML = '<p class="cx-sub">' + esc(T.intro) + '</p><button type="button" class="dv-go cx-new" data-pxnew>＋ ' + (tool === 'my-life-possibilities' && rs.length ? 'Start a new one' : tool === 'my-changing-views' ? 'A view to follow' : 'Start') + '</button>' +
+      (rs.length ? '<div class="dv-h">Saved</div>' + rs.map(function (r) { var a = cur(r), first = T.sections.map(function (s) { return a[s.id] && a[s.id].text; }).filter(Boolean)[0] || '';
+        return '<button type="button" class="dv-row" data-pxrec="' + esc(r.id) + '"><div><b>' + esc(pxTitle(r)) + '</b><small>' + esc((r.versions ? r.versions.length + ' version' + (r.versions.length === 1 ? '' : 's') + ' · ' : '') + X.day(r.updatedAt) + (first ? ' · ' + first.slice(0, 60) : '')) + '</small></div><span class="cv">' + X.ICON.chev + '</span></button>'; }).join('') : '') +
+      '<details class="wm-about" style="margin:16px 2px;font-size:13px;opacity:.75"><summary style="cursor:pointer">About ' + esc(T.name) + '</summary><p>' + esc(T.about) + '</p><p>Your answers are private, and you can edit or delete them any time. Nothing here changes your cards.</p></details>';
+    X.foot('');
+  }
+  // ---------------------------------------------------------------- the step-by-step form (new record, a new Hegel version, or an edit)
+  function pxStart(tool, o) {
+    o = o || {}; var T = PX[tool]; ui.pxTool = tool;
+    var prev = o.rec ? JSON.parse(JSON.stringify(o.rec)) : null;
+    ui.px = { tool: tool, rec: prev, newVersion: !!o.newVersion, editVersion: o.editVersion != null ? o.editVersion : null, subject: prev ? JSON.parse(JSON.stringify(prev.subject || {})) : { title: '', item: o.item || null, url: '' }, answers: {}, evidence: prev && prev.evidence ? prev.evidence.slice() : [], step: 0 };
+    if (prev && !o.newVersion) ui.px.answers = JSON.parse(JSON.stringify(o.editVersion != null ? prev.versions[o.editVersion].answers : (prev.versions ? cur(prev) : prev.answers || {})));
+    if (prev && o.newVersion) { var last = cur(prev); ui.px.answers = { used: { text: (last.now && last.now.text) || '' } }; }
+    if (o.item && !prev) { ui.px.subject.item = o.item; ui.px.subject.title = look(o.item).title; }
+    ui.px.steps = (T.subject !== 'none' && !(prev && (o.newVersion || o.editVersion != null)) ? ['subject'] : []).concat(T.sections.map(function (s) { return s.id; })).concat(T.evidence ? ['evidence'] : []).concat(['review']);
+    pxStep();
+  }
+  function pxKeep() {
+    var P = ui.px; if (!P) return; var b = X.ui.body;
+    var st = b.querySelector('[data-pxsub]'); if (st) P.subject.title = st.value;
+    var su = b.querySelector('[data-pxurl]'); if (su) P.subject.url = su.value.trim();
+    var ta = b.querySelector('[data-pxtext]'); if (ta) { var id = ta.getAttribute('data-pxtext'); P.answers[id] = Object.assign({}, P.answers[id] || {}, { text: ta.value }); }
+    var yr = b.querySelector('[data-pxyear]'); if (yr) { var id2 = yr.getAttribute('data-pxyear'), y = parseInt(yr.value, 10); P.answers[id2] = Object.assign({}, P.answers[id2] || {}, { year: isFinite(y) && y > 0 ? y : null }); }
+    b.querySelectorAll('[data-pxev]').forEach(function (e) { var i = +e.getAttribute('data-pxev'), k = e.getAttribute('data-k'); if (P.evidence[i]) P.evidence[i][k] = e.value; });
+  }
+  function pxStep() {
+    pcss(); var P = ui.px, T = PX[P.tool], s = P.steps[P.step]; ui.view = 'px-form'; X.head(P.rec && !P.newVersion ? 'Edit' : P.newVersion ? 'Update my view' : T.name, P.rec ? 'px-detail' : 'px-home');
+    var h = '<div class="px-steps">' + P.steps.map(function (x, i) { return '<span' + (i <= P.step ? ' class="on"' : '') + '></span>'; }).join('') + '</div>';
+    if (s === 'subject') {
+      h += '<div class="px-q">' + esc(T.subjectQ) + '</div><p class="px-qs">' + esc(T.subjectHint) + '</p>' +
+        (P.subject.item ? '<button type="button" class="cx-slot set" data-pxpickitem>' + X.art({ title: P.subject.item.title, ref: P.subject.item.ref }) + '<div><b>' + esc(look(P.subject.item).title) + '</b><small>' + esc(where(P.subject.item) || '') + ' · tap to change</small></div></button><div class="dv-chips" style="margin-top:8px"><button type="button" class="dv-chip" data-pxnoitem>Remove the card</button></div>'
+          : '<button type="button" class="cx-slot" data-pxpickitem><div><b>Choose a card</b><small>Optional — any card or item from your lists</small></div></button>') +
+        (T.subject === 'item' && P.subject.item ? '' : '<input class="px-in" data-pxsub maxlength="200" placeholder="' + (T.subject === 'item' ? 'Or type the name of a thing' : T.subject === 'claim' ? 'e.g. Bats are blind' : 'e.g. Homework') + '" value="' + esc(P.subject.title || '') + '">') +
+        (T.subject === 'claim' ? '<input class="px-in" data-pxurl type="url" placeholder="Source link (optional)" value="' + esc(P.subject.url || '') + '">' : '');
+    } else if (s === 'evidence') {
+      h += '<div class="px-q">Evidence</div><p class="px-qs">Optional — notes or links that support or question the claim.</p>' + P.evidence.map(function (e, i) { return '<div class="px-sec"><input class="px-in" style="margin-top:0" data-pxev="' + i + '" data-k="text" placeholder="What it shows" value="' + esc(e.text || '') + '"><input class="px-in" data-pxev="' + i + '" data-k="url" type="url" placeholder="Link (optional)" value="' + esc(e.url || '') + '"><div class="dv-chips" style="margin-top:8px"><button type="button" class="dv-chip" data-pxevdel="' + i + '">Remove</button></div></div>'; }).join('') +
+        '<button type="button" class="dv-chip" data-pxevadd>＋ Add evidence</button>';
+    } else if (s === 'review') {
+      h += '<div class="px-q">' + esc(P.subject.title || (P.subject.item && look(P.subject.item).title) || T.name) + '</div><p class="px-qs">Check it over — you can go back to any step.</p>' + reviewHtml(T, P.answers, P.evidence);
+    } else {
+      var sec = T.sections.filter(function (x) { return x.id === s; })[0], a = P.answers[s] || {};
+      h += '<div class="px-q">' + esc(sec.q) + '</div>' + (sec.sub ? '<p class="px-qs">' + esc(sec.sub) + '</p>' : '<p class="px-qs">Optional — skip if you like.</p>') +
+        (sec.na ? '<label class="px-na"><input type="checkbox" data-pxna="' + s + '"' + (a.na ? ' checked' : '') + '> This doesn’t apply here</label>' : '') +
+        (a.na ? '' : '<textarea class="px-ta" data-pxtext="' + s + '" placeholder="A word, a sentence, or more">' + esc(a.text || '') + '</textarea>') +
+        (sec.year && !a.na ? '<input class="px-in" data-pxyear="' + s + '" inputmode="numeric" placeholder="A year (optional) — puts it in time" value="' + esc(a.year || '') + '">' : '') +
+        (sec.links && !a.na ? '<div class="dv-h">' + esc(sec.linksLabel || 'Linked cards') + '</div><div class="dv-chips">' + (a.links || []).map(function (e, i) { return '<button type="button" class="dv-chip on" data-pxunlink="' + s + '|' + i + '">' + esc(look(e).title) + ' ×</button>'; }).join('') + '<button type="button" class="dv-chip" data-pxlink="' + s + '">＋ Link a card</button></div>' : '');
+    }
+    X.ui.body.innerHTML = h;
+    var last = P.step === P.steps.length - 1;
+    X.foot((P.step ? '<button type="button" class="dv-go sec" data-pxprev>Back</button>' : '') + (last ? '<button type="button" class="dv-go" data-pxsave>Save</button>' : '<button type="button" class="dv-go" data-pxnext>' + (s !== 'subject' && s !== 'evidence' && !((P.answers[s] || {}).text || (P.answers[s] || {}).na || ((P.answers[s] || {}).links || []).length) ? 'Skip' : 'Next') + '</button>'));
+  }
+  function reviewHtml(T, ans, ev) {
+    return T.sections.map(function (s) { var a = ans[s.id] || {}; return '<div class="px-sec"><b>' + esc(s.q) + '</b>' + (a.na ? '<em>Doesn’t apply</em>' : a.text ? '<div>' + esc(a.text) + '</div>' : '<em>Skipped</em>') + (a.year ? '<div style="opacity:.7;margin-top:4px">' + esc(a.year) + '</div>' : '') + ((a.links || []).length ? '<div class="dv-chips" style="margin-top:8px">' + chipLinks(a.links) + '</div>' : '') + '</div>'; }).join('') +
+      ((ev || []).filter(function (e) { return e.text || e.url; }).length ? '<div class="px-sec"><b>Evidence</b>' + ev.filter(function (e) { return e.text || e.url; }).map(function (e) { return '<div>• ' + esc(e.text || '') + (e.url ? ' <a href="' + esc(e.url) + '" target="_blank" rel="noopener" style="color:#64d2ff;word-break:break-all">' + esc(e.url) + '</a>' : '') + '</div>'; }).join('') + '</div>' : '');
+  }
+  function pxCommit() {
+    pxKeep(); var P = ui.px, T = PX[P.tool];
+    if (T.subject !== 'none' && !P.subject.item && !String(P.subject.title || '').trim() && !(P.rec && (P.newVersion || P.editVersion != null))) { P.step = 0; pxStep(); return X.toast('Name it first — or pick a card.'); }
+    var answers = {}; Object.keys(P.answers).forEach(function (k) { var a = P.answers[k] || {}; var o = {}; if (a.na) o.na = true; if (String(a.text || '').trim()) o.text = String(a.text).trim().slice(0, 6000); if ((a.links || []).length) o.links = a.links; if (a.year) o.year = a.year; if (Object.keys(o).length) answers[k] = o; });
+    var ev = (P.evidence || []).filter(function (e) { return String(e.text || '').trim() || String(e.url || '').trim(); }).map(function (e) { return { text: String(e.text || '').trim(), url: String(e.url || '').trim() }; });
+    var subject = { title: String(P.subject.title || '').trim() || (P.subject.item ? look(P.subject.item).title : ''), item: P.subject.item ? snap(P.subject.item) : null, url: String(P.subject.url || '').trim() };
+    var r;
+    if (T.versions) {
+      if (P.rec && P.editVersion != null) { r = KN().get('px:' + P.rec.id); var v = r.versions[P.editVersion]; v.history = (v.history || []).concat([{ at: Date.now(), answers: v.answers }]); v.answers = answers; v.edited = Date.now(); }   // an edit keeps the earlier wording too
+      else if (P.rec && P.newVersion) { r = KN().get('px:' + P.rec.id); r.versions.push({ at: Date.now(), answers: answers }); }
+      else r = { id: X.rid(), tool: P.tool, template: T.template, subject: subject, versions: [{ at: Date.now(), answers: answers }], createdAt: Date.now() };
+    } else {
+      r = P.rec ? Object.assign(KN().get('px:' + P.rec.id) || {}, { subject: subject, answers: answers, evidence: ev }) : { id: X.rid(), tool: P.tool, template: T.template, subject: subject, answers: answers, evidence: ev, createdAt: Date.now() };
+    }
+    if (P.rec && !T.versions) r.subject = subject;
+    pxSave(r); X.hap('selection'); X.toast(P.newVersion ? 'New version saved — the earlier ones are kept' : 'Saved'); ui.px = null; pxDetail(r.id);
+  }
+  // ---------------------------------------------------------------- one record
+  function pxDetail(id) {
+    pcss(); var r = KN().get('px:' + id); if (!r) return pxHome(ui.pxTool); var T = PX[r.tool]; ui.pxTool = r.tool; ui.pxRec = id; ui.view = 'px-detail'; X.head(pxTitle(r), 'px-home');
+    var h = (r.subject && r.subject.item ? '<div class="cx-item">' + X.art({ title: r.subject.item.title, ref: r.subject.item.ref }) + '<div><b>' + esc(look(r.subject.item).title) + '</b><small>' + esc(where(r.subject.item) || 'This card is no longer in your lists') + '</small></div></div>' : '') +
+      (r.subject && r.subject.url ? '<p class="cx-sub">Source: <a href="' + esc(r.subject.url) + '" target="_blank" rel="noopener" style="color:#64d2ff;word-break:break-all">' + esc(r.subject.url) + '</a></p>' : '');
+    if (T.versions) {
+      var vs = r.versions || [];
+      h += '<div class="dv-h">Now</div>' + reviewHtml(T, cur(r)) +
+        '<div class="dv-h">How it changed · ' + vs.length + ' version' + (vs.length === 1 ? '' : 's') + '</div>' + vs.slice().reverse().map(function (v, ri) { var i = vs.length - 1 - ri, a = v.answers || {}; return '<div class="px-ver"><small>' + esc(X.day(v.at)) + (v.edited ? ' · edited' : '') + (i === vs.length - 1 ? ' · current' : '') + '</small>' + (a.now && a.now.text ? '<p><b>Thought:</b> ' + esc(a.now.text) + '</p>' : '') + (a.why && a.why.text ? '<p style="opacity:.75">Because: ' + esc(a.why.text) + '</p>' : '') + '<div class="dv-chips" style="margin-top:6px"><button type="button" class="dv-chip" data-pxeditv="' + i + '">Edit</button>' + (vs.length > 1 ? '<button type="button" class="dv-chip" data-pxcmp="' + i + '">Compare</button>' : '') + '</div></div>'; }).join('') +
+        (ui.pxCmp ? cmpHtml(T, r) : '');
+    } else h += reviewHtml(T, r.answers || {}, r.evidence);
+    h += '<p class="dv-note">Private · only you can see this · ' + esc(X.day(r.updatedAt)) + '</p>';
+    X.ui.body.innerHTML = h;
+    X.foot('<button type="button" class="dv-go sec" data-pxdel style="color:#ff6b6b">Delete</button>' + (r.subject && r.subject.item && where(r.subject.item) ? '<button type="button" class="dv-go sec" data-pxcard>Card</button>' : '') + (T.versions ? '<button type="button" class="dv-go" data-pxupdate>Update my view</button>' : '<button type="button" class="dv-go" data-pxedit>Edit</button>'));
+  }
+  function cmpHtml(T, r) {
+    var vs = r.versions, i = ui.pxCmp.a, j = ui.pxCmp.b; if (!vs[i] || !vs[j]) return '';
+    var when = function (t) { var sameDay = X.day(vs[i].at) === X.day(vs[j].at); return X.day(t) + (sameDay ? ' ' + new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''); };
+    return '<div class="dv-h">Comparing ' + esc(when(vs[i].at)) + ' and ' + esc(when(vs[j].at)) + '</div>' + T.sections.map(function (s) { var x = (vs[i].answers[s.id] || {}).text || '—', y = (vs[j].answers[s.id] || {}).text || '—'; return '<div class="px-cmp" style="margin-bottom:8px"><div><h5>' + esc(s.q) + ' · then</h5>' + esc(x) + '</div><div><h5>' + esc(s.q) + ' · later</h5>' + esc(y) + '</div></div>'; }).join('');
+  }
+  // a card picker shared by the four tools
+  function pxPick(cb, title) {
+    pcss(); ui.view = 'px-pick'; ui.pxPickCb = cb; ui.pxpq = ''; X.head(title || 'Choose a card', 'px-form');
+    X.ui.body.innerHTML = '<label class="cx-find"><input data-pxpq placeholder="Search your cards and items" autocomplete="off"></label><div data-pxplist></div>';
+    pxDrawPick(); setTimeout(function () { var f = X.ui.body.querySelector('[data-pxpq]'); if (f) f.focus(); }, 80);
+  }
+  function pxDrawPick() { var box = X.ui.body.querySelector('[data-pxplist]'); if (!box) return; var cs = candidates(ui.pxpq); ui.pxCands = cs; box.innerHTML = cs.map(function (x, i) { return '<button type="button" class="cx-slot set" style="margin-bottom:6px;border-style:solid;border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.05)" data-pxchoose="' + i + '">' + X.art({ title: x.title, ref: x.ref }) + '<div><b>' + esc(x.title) + '</b><small>' + esc(x.ctx) + '</small></div></button>'; }).join('') || '<div class="dv-empty">Nothing matches.</div>'; }
+
+  function pxClick(t) {
+    if (!/^px-/.test(ui.view || '')) return false;
+    var g, P = ui.px;
+    if ((g = t.closest('[data-back]'))) { var b = g.getAttribute('data-back'); if (b === 'px-home') { pxHome(ui.pxTool); return true; } if (b === 'px-detail') { pxDetail(ui.pxRec); return true; } if (b === 'px-form') { pxStep(); return true; } return false; }
+    if (t.closest('[data-pxnew]')) { pxStart(ui.pxTool); return true; }
+    if ((g = t.closest('[data-pxrec]'))) { ui.pxCmp = null; pxDetail(g.getAttribute('data-pxrec')); return true; }
+    if (t.closest('[data-pxnext]')) { pxKeep(); P.step = Math.min(P.steps.length - 1, P.step + 1); X.ui.body.scrollTop = 0; pxStep(); return true; }
+    if (t.closest('[data-pxprev]')) { pxKeep(); P.step = Math.max(0, P.step - 1); X.ui.body.scrollTop = 0; pxStep(); return true; }
+    if (t.closest('[data-pxsave]')) { pxCommit(); return true; }
+    if ((g = t.closest('[data-pxna]'))) { pxKeep(); var id = g.getAttribute('data-pxna'); P.answers[id] = Object.assign({}, P.answers[id] || {}, { na: g.checked }); setTimeout(pxStep, 0); return false; }
+    if (t.closest('[data-pxpickitem]')) { pxKeep(); pxPick(function (x) { P.subject.item = { id: x.id, ref: x.ref, title: x.title }; if (!P.subject.title || PX[P.tool].subject === 'item') P.subject.title = x.title; pxStep(); }, 'Choose a card'); return true; }
+    if (t.closest('[data-pxnoitem]')) { pxKeep(); P.subject.item = null; pxStep(); return true; }
+    if ((g = t.closest('[data-pxlink]'))) { pxKeep(); var sid = g.getAttribute('data-pxlink'); pxPick(function (x) { var a = P.answers[sid] = Object.assign({}, P.answers[sid] || {}); a.links = (a.links || []).filter(function (e) { return e.id !== x.id; }).concat([{ id: x.id, ref: x.ref, title: x.title }]); pxStep(); }, 'Link a card'); return true; }
+    if ((g = t.closest('[data-pxunlink]'))) { pxKeep(); var p = g.getAttribute('data-pxunlink').split('|'); P.answers[p[0]].links.splice(+p[1], 1); pxStep(); return true; }
+    if (t.closest('[data-pxevadd]')) { pxKeep(); P.evidence.push({ text: '', url: '' }); pxStep(); return true; }
+    if ((g = t.closest('[data-pxevdel]'))) { pxKeep(); P.evidence.splice(+g.getAttribute('data-pxevdel'), 1); pxStep(); return true; }
+    if ((g = t.closest('[data-pxchoose]'))) { var x = ui.pxCands[+g.getAttribute('data-pxchoose')]; if (x && ui.pxPickCb) ui.pxPickCb(x); return true; }
+    if ((g = t.closest('[data-pxopen]'))) { openCard(JSON.parse(g.getAttribute('data-pxopen'))); return true; }
+    if (t.closest('[data-pxcard]')) { openCard(KN().get('px:' + ui.pxRec).subject.item); return true; }
+    if (t.closest('[data-pxedit]')) { pxStart(ui.pxTool, { rec: KN().get('px:' + ui.pxRec) }); return true; }
+    if (t.closest('[data-pxupdate]')) { pxStart(ui.pxTool, { rec: KN().get('px:' + ui.pxRec), newVersion: true }); return true; }
+    if ((g = t.closest('[data-pxeditv]'))) { pxStart(ui.pxTool, { rec: KN().get('px:' + ui.pxRec), editVersion: +g.getAttribute('data-pxeditv') }); return true; }
+    if ((g = t.closest('[data-pxcmp]'))) { var r = KN().get('px:' + ui.pxRec), i = +g.getAttribute('data-pxcmp'); ui.pxCmp = { a: i === r.versions.length - 1 ? i - 1 : i, b: i === r.versions.length - 1 ? i : r.versions.length - 1 }; pxDetail(ui.pxRec); setTimeout(function () { X.ui.body.scrollTop = X.ui.body.scrollHeight; }, 30); return true; }
+    if (t.closest('[data-pxdel]')) { var rid0 = ui.pxRec; confirmBox('Delete “' + pxTitle(KN().get('px:' + rid0)) + '”' + (PX[ui.pxTool].versions ? ' and all its versions' : '') + '? Your cards stay as they are.').then(function (ok) { if (!ok) return; KN().set('px:' + rid0, null, true); X.toast('Deleted'); pxHome(ui.pxTool); }); return true; }
+    return false;
+  }
+  function confirmBox(text) { return window.MinestKEdit ? MinestKEdit.confirm(text, 'Delete') : Promise.resolve(confirm(text)); }
+  document.addEventListener('input', function (e) { if (ui.view === 'px-pick' && e.target && e.target.matches && e.target.matches('[data-pxpq]')) { ui.pxpq = e.target.value; pxDrawPick(); } });
+  Object.keys(PX).forEach(function (id) {
+    D.register({ id: id, group: 'philosophy', name: PX[id].name, sub: '', c1: '#2f9e8f', c2: '#1d6f66', pv: '', minItems: 0,
+      start: function () { X.shell(); pxHome(id); }, config: function () { X.shell(); pxHome(id); }, open: function () { X.shell(); pxHome(id); }, progress: function () { return ''; },
+      click: function (t) { return ui.pxTool === id ? pxClick(t) : false; },
+      key: function (e) { if (e.key === 'Escape' && ui.pxTool === id && /^px-(form|pick)/.test(ui.view || '')) { e.stopPropagation(); if (ui.view === 'px-pick') pxStep(); else if (ui.px && ui.px.rec) pxDetail(ui.px.rec.id); else pxHome(id); return true; } return false; } });
+  });
+  function pxOpen(tool, o) { o = o || {}; if (window.MinestDiscover) D.open(); setTimeout(function () { X.shell(); pcss(); if (o.item) pxStart(tool, { item: o.item }); else pxHome(tool); }, 30); }
+  // a card's edit bar: one "Explore…" button → choose a tool for this card
+  function exploreMenu(e) {
+    if (window.MinestDiscover) D.open();
+    setTimeout(function () { X.shell(); css(); ui.view = 'cx-explore'; ui.cxExplore = e; X.head('Explore “' + look(e).title + '”', 'home');
+      X.ui.body.innerHTML = '<p class="cx-sub">Pick a way to look at this card. Nothing changes the card itself.</p>' +
+        [['connect-my-world', 'Connect My World', 'Link it to other things and say how they relate'], ['understand-this-thing', 'Understand This Thing', 'What it is made of, what makes it what it is, what produced it, what it is for'], ['what-can-i-know', 'What Can I Really Know?', 'Sort what you observed, learned and concluded about it'], ['my-changing-views', 'My Changing Views', 'Follow how your view of it changes over time']].map(function (x) { return '<button type="button" class="dv-row" data-cxtool="' + x[0] + '"><div><b>' + x[1] + '</b><small>' + x[2] + '</small></div><span class="cv">' + X.ICON.chev + '</span></button>'; }).join('');
+      X.foot(''); }, 30);
+  }
+
+  if (window.MinestKEdit && MinestKEdit.globalExtra) MinestKEdit.globalExtra.push({ key: 'cx-explore', icon: LINK, label: 'Explore…', kinds: ['card', 'item'], run: function (t) { try { MinestKEdit.closeBar(); } catch (x) {} var e = itemFor(t.bid, t.id); if (e) exploreMenu(e); } });
+
+  window.MinestPhilo = { ready: function (toolId) { return toolId === 'connect-my-world' || !!PX[toolId]; }, open: function (toolId, o) { if (toolId === 'connect-my-world') { if (window.MinestDiscover) D.open(); setTimeout(function () { ui.cxTpl = (o && o.template) || null; start(); }, 30); } else if (PX[toolId]) pxOpen(toolId, o); }, explore: function (o) { var e = o && o.bid ? itemFor(o.bid, o.id) : null; if (e) exploreMenu(e); }, records: pxAll,
     connect: connect, relations: all, of: of, graph: graph, types: TYPES, _undo: undo };
   window.MinestRelations = { all: all, of: of, graph: graph, types: TYPES };
 })();
