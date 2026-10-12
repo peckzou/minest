@@ -53,17 +53,19 @@
   function newCard(id, title) { return { id: id, title: title, desc: '', labels: [], complete: false, createdAt: Date.now(), mastery: 1, checklistItems: [] }; }
   function plan(t, bid, sel) {
     var off = (sel && sel.off) || {}, codes = !!(sel && sel.codes && t.codes), tid = slug(t.id), out = { lists: [], counts: { lists: 0, sections: 0, cards: 0 } };
-    var depth = (sel && sel.depth) || t.defaultDepth || 'standard', names = (sel && sel.names) || {};
+    var depth = (sel && sel.depth) || t.defaultDepth || 'standard', names = (sel && sel.names) || {}, reuseCols = (sel && sel.reuseCols) || {}, reuseLists = (sel && sel.reuseLists) || {};
+    out.alias = {};
     function nm(key, title) { return names[key] ? { title: names[key], orig: null } : { title: title, orig: title }; }   // a name typed in the preview is the user's (a later template update never replaces it)
     t.domains.forEach(function (d, i) {
       if (off[d.id]) return;
       var dn = nm(d.id, (codes && d.code ? d.code + ' ' : '') + d.title);
-      var L = { id: bid + '-d-' + tid + '-' + slug(d.id), title: dn.title, orig: dn.orig, color: d.color || PAL[i % PAL.length], items: [] };
+      var L = { id: reuseCols[d.id] || bid + '-d-' + tid + '-' + slug(d.id), title: dn.title, orig: dn.orig, color: d.color || PAL[i % PAL.length], items: [], reused: !!reuseCols[d.id] };
       if (d.lists && !d.categories) {   // two levels: the area's lists go straight in (no section heading)
         var F = { id: null, flat: true, lists: [] };
         d.lists.forEach(function (l) {
           var lk = 'l:' + d.id + '/' + l.id; if (off[lk]) return;
           var lid = bid + '-l-' + tid + '-' + slug(d.id) + '-' + slug(l.id), ln = nm(lk, l.title);
+          if (reuseLists[lk]) { out.alias[lid] = reuseLists[lk]; return; }
           F.lists.push({ id: lid, title: ln.title, orig: ln.orig });
           if (depth === 'complete') (l.lists || []).forEach(function (x) { var xk = lk + '/' + x.id; if (off[xk]) return; var xn = nm(xk, x.title); F.lists.push({ id: lid + '-' + slug(x.id), title: xn.title, orig: xn.orig, parent: lid }); });
         });
@@ -76,6 +78,7 @@
         if (depth !== 'simple') (c.lists || []).forEach(function (l) {
           var lk = 'l:' + c.id + '/' + l.id; if (off[lk]) return;
           var lid = bid + '-l-' + tid + '-' + slug(c.id) + '-' + slug(l.id), ln = nm(lk, (codes && l.code ? l.code + ' ' : '') + l.title);
+          if (reuseLists[lk]) { out.alias[lid] = reuseLists[lk]; return; }
           H.lists.push({ id: lid, title: ln.title, orig: ln.orig });
           if (depth === 'complete') (l.lists || []).forEach(function (x) { var xk = lk + '/' + x.id; if (off[xk]) return; var xn = nm(xk, x.title); H.lists.push({ id: lid + '-' + slug(x.id), title: xn.title, orig: xn.orig, parent: lid }); });
         });
@@ -114,8 +117,8 @@
         var at = prevCol ? b.columns.indexOf(prevCol) : -1;
         if (at >= 0) b.columns.splice(at + 1, 0, col); else if (!prevCol && old) b.columns.push(col); else b.columns.push(col);
       }
-      else name(col, L.title, L.orig);
-      if (!byId[L.id] || !orig['lom:orig:' + L.id]) first(L.id, L.orig);
+      else if (!L.reused) name(col, L.title, L.orig);
+      if (!L.reused && (!byId[L.id] || !orig['lom:orig:' + L.id])) first(L.id, L.orig);
       col.cards = col.cards || [];
       L.items.forEach(function (H) {
         if (H.flat) {
@@ -147,7 +150,7 @@
     heads.forEach(function (id) { if (!KN().isHeading(id)) KN().setHeading(id, true); });
     var cfg = Object.assign({}, KN().get('lm:cfg:' + bid) || {}); cfg.stageOf = Object.assign({}, cfg.stageOf || {}, stage);   // sections keep their lists (the Kanban may reorder)
     var w = Object.assign({ created: Date.now(), templates: {} }, KN().get('lom:world:' + bid) || {}); w.templates = Object.assign({}, w.templates); w.templates[t.id] = { version: t.version || 1, name: t.name, at: Date.now(), off: (sel && sel.off) || {}, codes: !!(sel && sel.codes), depth: (sel && sel.depth) || t.defaultDepth || 'standard' };
-    var m = {}; m['lm:cfg:' + bid] = cfg; m['lom:world:' + bid] = w; Object.keys(orig).forEach(function (k) { m[k] = orig[k]; }); Object.keys(parents).forEach(function (k) { m[k] = parents[k]; });
+    var m = {}; m['lm:cfg:' + bid] = cfg; m['lom:world:' + bid] = w; Object.keys(orig).forEach(function (k) { m[k] = orig[k]; }); Object.keys(parents).forEach(function (k) { m[k] = parents[k]; }); Object.keys(p.alias || {}).forEach(function (k) { m['lom:alias:' + k] = p.alias[k]; });   // a template list that is one of yours: remembered, not copied
     if (t.kind === 'skills') {   // the Unified Skill record of each skill card: 'sk:<card>' (the learner's status / proficiency survive)
       var tid = slug(t.id), off = (sel && sel.off) || {};
       t.domains.forEach(function (d) { if (off[d.id]) return; (d.categories || []).forEach(function (c) { if (off[c.id]) return; (c.lists || []).forEach(function (x) {
@@ -358,13 +361,14 @@
     var FAM = [['everyday', 'Everyday life', ''], ['knowledge', 'Knowledge atlases', ''], ['skills', 'My Skills', ''], ['advanced-philosophy', 'Explore Philosophical Worlds', 'Five ways of seeing one personal world — no philosophy needed to start.'], ['classical', 'Classical Worldviews', 'Inspired by great thinkers — shown in everyday words.']];
     var fams = FAM.map(function (f) { var xs = built.filter(function (t) { return (t.family || 'everyday') === f[0]; }); return xs.length ? '<div class="lw-h">' + f[1] + '</div>' + (f[2] ? '<p class="lw-sub" style="margin-top:-4px">' + f[2] + '</p>' : '') + '<div class="lw-grid">' + xs.map(card).join('') + '</div>' : ''; }).join('');
     var other = built.filter(function (t) { return !FAM.some(function (f) { return f[0] === (t.family || 'everyday'); }); });
-    ui.body.innerHTML = (window.MinestCapture && ws.length ? '<button type="button" class="lw-go" style="margin:2px 0 14px" data-capture>＋ Add to My World</button>' : '') + '<p class="lw-sub">Pick a template — you will see its world first, and you can switch off anything you don’t want.</p>' +
+    ui.body.innerHTML = (window.MinestCapture && ws.length ? '<button type="button" class="lw-go" style="margin:2px 0 14px" data-capture>＋ Add to My World</button>' : '') +
+      (window.MinestBuilder ? '<div class="lw-row" style="margin:0 0 6px"><button type="button" class="lw-pill" data-bmix>Mix &amp; Match</button><button type="button" class="lw-pill" data-bscratch>Start from Scratch</button></div>' : '') + '<p class="lw-sub">Pick a template — you will see its world first, and you can switch off anything you don’t want.</p>' +
       fams + (other.length ? '<div class="lw-h">More templates</div><div class="lw-grid">' + other.map(card).join('') + '</div>' : '') +
       (mine.length ? '<div class="lw-h">My templates</div><div class="lw-grid">' + mine.map(card).join('') + '</div>' : '') +
       (ws.length ? '<div class="lw-h">My worlds</div><div class="lw-grid">' + ws.map(function (x) {
         var names = Object.keys(x.w.templates || {}).map(function (k) { return (x.w.templates[k] || {}).name || k; }).join(' + ');
         return '<div class="lw-card wide" style="--c:#7c8cff;cursor:default"><i>' + ICON.world + '</i><b>' + esc(x.b.title) + '</b><small>' + esc(names) + ' · ' + (x.b.columns || []).length + ' areas</small>' +
-          '<div class="lw-row"><button type="button" class="lw-pill pri" data-openw="' + esc(x.b.id) + '">Open' + (window.MinestCapture && MinestCapture.newCount(x.b.id) ? ' <span style="background:#fff;color:#0a7aff;border-radius:999px;padding:1px 7px;margin-left:4px;font-size:12px">+' + MinestCapture.newCount(x.b.id) + '</span>' : '') + '</button>' + (window.MinestPicker ? '<button type="button" class="lw-pill" data-quick="' + esc(x.b.id) + '">＋ Quick Add</button>' : '') + Object.keys(x.w.templates || {}).map(function (k) { var tt = tplById(k), d = tt && tt.discoveryTool; return d && window.MinestPhilo && MinestPhilo.ready(d.id) ? '<button type="button" class="lw-pill" data-ptool="' + esc(d.id) + '">' + esc(d.name) + '</button>' : ''; }).join('') + '<button type="button" class="lw-pill" data-savew="' + esc(x.b.id) + '">Save as my template</button></div></div>';
+          '<div class="lw-row"><button type="button" class="lw-pill pri" data-openw="' + esc(x.b.id) + '">Open' + (window.MinestCapture && MinestCapture.newCount(x.b.id) ? ' <span style="background:#fff;color:#0a7aff;border-radius:999px;padding:1px 7px;margin-left:4px;font-size:12px">+' + MinestCapture.newCount(x.b.id) + '</span>' : '') + '</button>' + (window.MinestPicker ? '<button type="button" class="lw-pill" data-quick="' + esc(x.b.id) + '">＋ Quick Add</button>' : '') + (window.MinestBuilder ? '<button type="button" class="lw-pill" data-bcustom="' + esc(x.b.id) + '">Customize</button>' : '') + Object.keys(x.w.templates || {}).map(function (k) { var tt = tplById(k), d = tt && tt.discoveryTool; return d && window.MinestPhilo && MinestPhilo.ready(d.id) ? '<button type="button" class="lw-pill" data-ptool="' + esc(d.id) + '">' + esc(d.name) + '</button>' : ''; }).join('') + '<button type="button" class="lw-pill" data-savew="' + esc(x.b.id) + '">Save as my template</button></div></div>';
       }).join('') + '</div>' : '') +
       '<div class="lw-h">More</div><div class="lw-row"><button type="button" class="lw-pill" data-import>Import a template…</button>' +
       (A().board && A().board() ? '<button type="button" class="lw-pill" data-savecur>Make a template from “' + esc(A().board().title) + '”</button>' : '') +
@@ -396,7 +400,7 @@
         (t.starterPack ? starterHtml(t) : '') +
         ((t.recommendedViews || []).length ? '<div class="lw-h">Good views for it</div><div class="lw-tags">' + t.recommendedViews.map(function (v) { return '<i>' + esc(VIEW_T[v] || v) + '</i>'; }).join('') + '</div>' : '') +
         (!t.philosophy && t.inspiration ? '<details class="lw-about"><summary>About this template</summary><div style="margin-top:6px">' + esc(t.inspiration) + '</div>' +
-          lensHtml(t) + (t.mine ? '<div class="lw-row" style="margin-top:10px"><button type="button" class="lw-pill" data-exp>Export JSON</button><button type="button" class="lw-pill" data-deltpl style="color:#ff6b6b">Delete this template</button></div>' : '') + '</details>' : '') +
+          lensHtml(t) + (t.mine ? '<div class="lw-row" style="margin-top:10px"><button type="button" class="lw-pill" data-exp>Export JSON</button><button type="button" class="lw-pill" data-duptpl>Duplicate</button><button type="button" class="lw-pill" data-deltpl style="color:#ff6b6b">Delete this template</button></div>' : '') + '</details>' : '') +
         ((t.depths || []).length > 1 ? '<div class="lw-h">How much to make</div><div class="lw-target">' + t.depths.map(function (k) { return '<button type="button" data-depth="' + k + '"' + (ui.depth === k ? ' class="on"' : '') + '>' + DEPTH_T[k] + '</button>'; }).join('') + '</div><p class="lw-fine" style="margin:6px 2px 0">' + DEPTH_D[ui.depth] + '</p>' : '') +
         (ws.length ? '<div class="lw-h">Where</div><div class="lw-target"><button type="button" data-into=""' + (ui.into ? '' : ' class="on"') + '>New world</button>' + ws.map(function (x) { return '<button type="button" data-into="' + esc(x.b.id) + '"' + (ui.into === x.b.id ? ' class="on"' : '') + '>Add to “' + esc(x.b.title) + '”</button>'; }).join('') + '</div>' : '') +
         (t.groups ? '<div class="lw-h">' + esc(t.groupsLabel || 'Groups') + '</div><div class="lw-target">' + t.groups.map(function (g) { return '<button type="button" data-group="' + esc(g.id) + '"' + (ui.groups.indexOf(g.id) >= 0 ? ' class="on"' : '') + '>' + esc(g.title) + '</button>'; }).join('') + '</div>' : '') +
@@ -462,9 +466,13 @@
     if (t.closest('[data-back]')) return choose();
     var tp = t.closest('[data-tpl]'); if (tp) { var tt = tplById(tp.getAttribute('data-tpl')); if (tt) preview(tt); return; }
     if (t.closest('[data-capture]')) { close(); setTimeout(function () { MinestCapture.open(); }, 200); return; }
+    if (t.closest('[data-bmix]')) { close(); setTimeout(function () { MinestBuilder.mix(); }, 200); return; }
+    if (t.closest('[data-bscratch]')) { close(); setTimeout(function () { MinestBuilder.scratch(); }, 200); return; }
+    var bc = t.closest('[data-bcustom]'); if (bc) { var cb = bc.getAttribute('data-bcustom'); close(); setTimeout(function () { MinestBuilder.open(cb); }, 200); return; }
+    if (t.closest('[data-duptpl]')) { var cp = JSON.parse(JSON.stringify(ui.tpl)); delete cp.mine; cp.id = 'my-' + slug(cp.name) + '-' + Date.now().toString(36); cp.name = cp.name + ' (copy)'; saveTemplate(cp); toast('Duplicated'); choose(); return; }
     var pt = t.closest('[data-ptool]'); if (pt) { var tid = ui.tpl && ui.tpl.id; close(); setTimeout(function () { MinestPhilo.open(pt.getAttribute('data-ptool'), { template: tid }); }, 200); return; }
     var qa = t.closest('[data-quick]'); if (qa) { if (window.MinestPicker) MinestPicker.open({ bid: qa.getAttribute('data-quick') }); return; }
-    var ow = t.closest('[data-openw]'); if (ow) { var obid = ow.getAttribute('data-openw'); if (window.MinestStarter && MinestStarter.has(obid)) { close(); setTimeout(function () { MinestStarter.home(obid); }, 220); return; } return openWorld(obid); }
+    var ow = t.closest('[data-openw]'); if (ow) { var obid = ow.getAttribute('data-openw'); if (window.MinestBuilder && KN().get('wa:' + obid) && KN().get('wa:' + obid).view && KN().get('wa:' + obid).view !== 'home') { close(); setTimeout(function () { MinestBuilder.openIn(obid); }, 220); return; } if (window.MinestStarter && MinestStarter.has(obid)) { close(); setTimeout(function () { MinestStarter.home(obid); }, 220); return; } return openWorld(obid); }
     var sw = t.closest('[data-savew]'); if (sw) { var b = boardById(sw.getAttribute('data-savew')); if (b) mineFrom(b); return; }
     if (t.closest('[data-savecur]')) { var cb = A().board && A().board(); if (cb) mineFrom(cb); return; }
     if (t.closest('[data-import]')) return ui.file.click();
@@ -509,5 +517,5 @@
     })();
   }
 
-  window.MinestWorld = { _art: artOf, open: open, close: close, isOpen: function () { return ui.open; }, templates: templates, generate: generate, undo: undo, fromBoard: fromBoard, saveTemplate: saveTemplate, check: check, worlds: worlds, _plan: plan };
+  window.MinestWorld = { _art: artOf, _icons: ICON, _openWorld: function (bid) { openWorld(bid); }, plan: plan, open: open, close: close, isOpen: function () { return ui.open; }, templates: templates, generate: generate, undo: undo, fromBoard: fromBoard, saveTemplate: saveTemplate, check: check, worlds: worlds, _plan: plan };
 })();

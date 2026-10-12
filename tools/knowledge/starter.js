@@ -32,7 +32,7 @@
       var groups = d.lists && !d.categories ? [{ id: d.id, lists: d.lists }] : (d.categories || []);
       groups.forEach(function (g) { if (p[0] !== '*' && p[0] !== g.id && p[0] !== d.id) return; (g.lists || []).forEach(function (l) {
         if (p[1] && p[1] !== '*' && p[1] !== l.id) return; if (!p[1] && p[0] !== '*' && p[0] === d.id && g.id !== d.id) {}
-        var cid = bid + '-l-' + tid + '-' + slug(g.id) + '-' + slug(l.id); if (have[cid]) out.push(cid);
+        var cid = bid + '-l-' + tid + '-' + slug(g.id) + '-' + slug(l.id), al = KN().get('lom:alias:' + cid); if (have[cid]) out.push(cid); else if (al && have[al] && out.indexOf(al) < 0) out.push(al);
       }); });
     });
     return out;
@@ -44,14 +44,16 @@
     var fd = Object.assign({ packs: {}, lists: {} }, KN().get('fd:' + bid) || {}); fd.packs = Object.assign({}, fd.packs); fd.lists = Object.assign({}, fd.lists);
     var F = {}; (sp.fields || []).forEach(function (f) { F[f.id] = f; });
     fd.packs[t.id] = { fields: F, quickAdd: sp.quickAdd || null, more: sp.more || [], pickers: sp.pickers || [], gallery: sp.gallery || null, discovery: sp.discoveryTools || [], explore: sp.explore || 'portal', private: !!sp.private, name: t.name, cover: sp.cover || {}, at: Date.now() };
-    Object.keys(sp.listFields || {}).forEach(function (pat) { listCards(bid, t, pat).forEach(function (cid) { var was = fd.lists[cid]; fd.lists[cid] = { tpl: t.id, fields: (was && was.tpl === t.id && was.custom) ? was.fields : sp.listFields[pat].slice() }; }); });
+    // (a list you already had keeps its fields and gains the new ones)
+    Object.keys(sp.listFields || {}).forEach(function (pat) { listCards(bid, t, pat).forEach(function (cid) { var was = fd.lists[cid]; if (was && (was.custom || was.tpl !== t.id)) { var u = was.fields.slice(); sp.listFields[pat].forEach(function (x) { if (u.indexOf(x) < 0) u.push(x); }); fd.lists[cid] = Object.assign({}, was, { fields: u }); return; } fd.lists[cid] = { tpl: t.id, fields: sp.listFields[pat].slice() }; }); });
     KN().set('fd:' + bid, fd);
     return Promise.resolve();
   }
   function fdOf(bid) { return KN() && KN().get('fd:' + bid); }
   function has(bid) { var f = fdOf(bid); return !!(f && f.packs && Object.keys(f.packs).length && boardById(bid)); }
   function packOf(bid) { var f = fdOf(bid); if (!f) return null; var k = Object.keys(f.packs || {})[0]; return k ? Object.assign({ id: k }, f.packs[k]) : null; }
-  function fieldsFor(bid, cardId) { var f = fdOf(bid), L = f && f.lists[cardId]; if (!L) return []; var P = f.packs[L.tpl] || {}; return L.fields.map(function (id) { return (P.fields || {})[id]; }).filter(Boolean); }
+  function fieldDef(f, tpl, id) { var P = (f.packs || {})[tpl] || {}; if (P.fields && P.fields[id]) return P.fields[id]; var hit = null; Object.keys(f.packs || {}).forEach(function (k) { if (!hit && f.packs[k].fields && f.packs[k].fields[id]) hit = f.packs[k].fields[id]; }); return hit; }
+  function fieldsFor(bid, cardId) { var f = fdOf(bid), L = f && f.lists[cardId]; if (!L) return []; return L.fields.map(function (id) { return fieldDef(f, L.tpl, id); }).filter(Boolean); }
   function targets(bid, pack, pats) { var t = tplById(pack.id); if (!t) return []; var out = []; (pats || []).forEach(function (p) { listCards(bid, t, p).forEach(function (c) { if (out.indexOf(c) < 0) out.push(c); }); }); return out; }
 
   // ================================================================== items
@@ -167,8 +169,8 @@
   function head(title, back) { ui.head.innerHTML = (back ? '<button type="button" class="st-b" data-back="' + esc(back) + '" aria-label="Back">' + ICON.back + '</button>' : '') + '<h2>' + esc(title) + '</h2><button type="button" class="st-b" data-x aria-label="Close">' + ICON.x + '</button>'; ui.foot.hidden = true; ui.foot.innerHTML = ''; ui.body.scrollTop = 0; }
   function foot(h) { ui.foot.hidden = !h; ui.foot.innerHTML = h || ''; }
   function shrink(f, max, cb) { var rd = new FileReader(); rd.onload = function () { var im = new Image(); im.onload = function () { var k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k); try { var c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h); cb(c.toDataURL('image/jpeg', .8)); } catch (e) { cb(null); } }; im.onerror = function () { cb(null); }; im.src = rd.result; }; rd.readAsDataURL(f); }
-  function colorOf(bid) { var p = packOf(bid), t = p && tplById(p.id); return (t && t.color) || '#0a7aff'; }
-  function cover(bid) { var p = packOf(bid), t = p && tplById(p.id); var art = ''; try { art = (window.MinestWorld && MinestWorld._art && t) ? MinestWorld._art(t) : ''; } catch (e) {} return '<div class="st-cover" style="--c:' + esc(colorOf(bid)) + '">' + art + '</div>'; }
+  function colorOf(bid) { var wa = KN().get('wa:' + bid), p = packOf(bid), t = p && tplById(p.id); return (wa && wa.color) || (t && t.color) || '#0a7aff'; }
+  function cover(bid) { var p = packOf(bid), t = p && tplById(p.id); var art = ''; try { art = (window.MinestWorld && MinestWorld._art && t) ? MinestWorld._art(t) : ''; } catch (e) {} var wa = KN().get('wa:' + bid) || {}; if (wa.cover) return '<div class="st-cover" style="--c:' + esc(colorOf(bid)) + ';background:url(&quot;' + esc(wa.cover) + '&quot;) center/cover"></div>' + (wa.subtitle ? '<p class="st-sub">' + esc(wa.subtitle) + '</p>' : ''); return '<div class="st-cover" style="--c:' + esc(colorOf(bid)) + '">' + art + '</div>' + (wa.subtitle ? '<p class="st-sub">' + esc(wa.subtitle) + '</p>' : ''); }
   function cardTitle(bid, cid) { var b = boardById(bid), L = b && locate(b, cid); return L ? L.card.title : ''; }
 
   // ---------------------------------------------------------------- Your World Is Ready
@@ -182,7 +184,7 @@
   function home(bid) {
     shell(); ui.bid = bid; ui.view = 'home'; var p = packOf(bid), b = boardById(bid); if (!b || !p) { close(); return toast('This world is not here any more.'); }
     ui.el.style.setProperty('--c', colorOf(bid)); head(b.title, null);
-    var f = fdOf(bid), lists = Object.keys(f.lists || {}).filter(function (cid) { return locate(b, cid); });
+    var lists = []; (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (k && k.id && !KN().isHeading(k.id)) lists.push(k.id); }); });
     var gal = p.gallery ? galleryItems(bid).length : 0;
     var tools = (p.discovery || []).filter(function (id) { return window.MinestDiscover && (['this-or-that', 'tier-list', 'tournament'].indexOf(id) >= 0 || (MinestDiscover._x && id === 'desert-island')); });
     var TN = { 'this-or-that': 'This or That', 'tier-list': 'Tier List', tournament: 'Tournament', 'desert-island': 'My Desert Island' };
