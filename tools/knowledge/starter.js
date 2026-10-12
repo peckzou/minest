@@ -80,7 +80,7 @@
   function saveItem(bid, cardId, sid, title, v) {
     var b0 = boardById(bid); if (!b0) return Promise.reject(new Error('This world is not here any more.'));
     var b = JSON.parse(JSON.stringify(b0)), defs = fieldsFor(bid, cardId), imgF = imageField(defs), photo = (imgF && v[imgF]) || v.photo || '';
-    var target = sid ? locate(b, sid) : locate(b, cardId); if (!target) return Promise.reject(new Error('The list is not here any more.'));
+    var isNew = !sid, target = sid ? locate(b, sid) : locate(b, cardId); if (!target) return Promise.reject(new Error('The list is not here any more.'));
     var desc = summary(bid, defs, v);
     if (sid) { var it = target.item; it.title = title; it.desc = desc; if (photo) it.cover = { type: 'image', value: photo, url: photo, title: '', size: 'banner' }; else delete it.cover; }
     else { sid = cardId + '~' + slug(title) + '-' + rid().slice(-5); var st = { id: sid, title: title, desc: desc, labels: [], complete: false, mastery: 1 }; if (photo) st.cover = { type: 'image', value: photo, url: photo, title: '', size: 'banner' }; target.card.stack = (target.card.stack || []).concat([st]); target.card.hasStack = true; }
@@ -88,7 +88,7 @@
     var keep = Object.assign({}, v); delete keep.photo; if (imgF) delete keep[imgF];   // the picture lives once, on the card's cover
     KN().set('fv:' + sid, keep, true);
     defs.forEach(function (f) { if (f.type === 'date' && f.timeline) KN().setDate(sid, v[f.id] && v[f.id].y ? v[f.id] : null); });
-    var ws = KN().get('wn:' + cardId); KN().set('wn:' + cardId, Object.assign({ n: 0, since: Date.now() }, ws || {}, { n: ((ws && ws.n) || 0) + (sid ? 0 : 1) }), true);
+    var ws = KN().get('wn:' + cardId); KN().set('wn:' + cardId, Object.assign({ n: 0, since: Date.now() }, ws || {}, { n: ((ws && ws.n) || 0) + (isNew ? 1 : 0) }), true);
     return written(before).then(function () { try { window.dispatchEvent(new CustomEvent('minest:kedit', { detail: { bid: bid } })); } catch (e) {} return sid; });
   }
   function imageField(defs) { var f = (defs || []).filter(function (x) { return x.type === 'image'; })[0]; return f ? f.id : null; }

@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 51.4 · Philosophy Tools</title>
+    <title>Minest iPhone 51.5 · My World UI</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "51.4" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "51.5" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -61875,7 +61875,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   function saveItem(bid, cardId, sid, title, v) {
     var b0 = boardById(bid); if (!b0) return Promise.reject(new Error('This world is not here any more.'));
     var b = JSON.parse(JSON.stringify(b0)), defs = fieldsFor(bid, cardId), imgF = imageField(defs), photo = (imgF && v[imgF]) || v.photo || '';
-    var target = sid ? locate(b, sid) : locate(b, cardId); if (!target) return Promise.reject(new Error('The list is not here any more.'));
+    var isNew = !sid, target = sid ? locate(b, sid) : locate(b, cardId); if (!target) return Promise.reject(new Error('The list is not here any more.'));
     var desc = summary(bid, defs, v);
     if (sid) { var it = target.item; it.title = title; it.desc = desc; if (photo) it.cover = { type: 'image', value: photo, url: photo, title: '', size: 'banner' }; else delete it.cover; }
     else { sid = cardId + '~' + slug(title) + '-' + rid().slice(-5); var st = { id: sid, title: title, desc: desc, labels: [], complete: false, mastery: 1 }; if (photo) st.cover = { type: 'image', value: photo, url: photo, title: '', size: 'banner' }; target.card.stack = (target.card.stack || []).concat([st]); target.card.hasStack = true; }
@@ -61883,7 +61883,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     var keep = Object.assign({}, v); delete keep.photo; if (imgF) delete keep[imgF];   // the picture lives once, on the card's cover
     KN().set('fv:' + sid, keep, true);
     defs.forEach(function (f) { if (f.type === 'date' && f.timeline) KN().setDate(sid, v[f.id] && v[f.id].y ? v[f.id] : null); });
-    var ws = KN().get('wn:' + cardId); KN().set('wn:' + cardId, Object.assign({ n: 0, since: Date.now() }, ws || {}, { n: ((ws && ws.n) || 0) + (sid ? 0 : 1) }), true);
+    var ws = KN().get('wn:' + cardId); KN().set('wn:' + cardId, Object.assign({ n: 0, since: Date.now() }, ws || {}, { n: ((ws && ws.n) || 0) + (isNew ? 1 : 0) }), true);
     return written(before).then(function () { try { window.dispatchEvent(new CustomEvent('minest:kedit', { detail: { bid: bid } })); } catch (e) {} return sid; });
   }
   function imageField(defs) { var f = (defs || []).filter(function (x) { return x.type === 'image'; })[0]; return f ? f.id : null; }
@@ -62620,6 +62620,302 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   window.MinestBuilder = { start: function () { start(); }, open: function (bid, tab) { editor(bid, tab); }, mix: function (into) { ui.mx = null; mix(into || null); }, scratch: function () { ui.sc = null; scratch(); }, close: close, isOpen: function () { return ui.open; }, openIn: openIn, toTemplate: toTemplate, _undo: undo };
 })();
 
+/* Minest Knowledge · My World — UI V2 prototype (window.MinestMyWorld)
+   Visual First, List Always Available. Four pages on top of what already works — nothing here owns data:
+     My World home      — header (search, settings), + Add and Discover, Apple Photos-style world cards (cover, title,
+                          a few keywords, real item count, +N new), Recent Changes below
+     Template gallery   — visual cards with My-first names, one line, "inspired by", grouped
+     Structure preview  — cover, depth (Simple / Standard / Complete), areas → categories → lists to switch off, where
+                          (new world or an existing one), real counts, Use This Template
+     Welcome            — Your World Is Ready: real counts, Start Adding, Explore My World
+   Reuses: MinestWorld (templates, plan, generate, art), MinestStarter (home, quick add, install), MinestBuilder
+   (customize, open in the chosen view), MinestCapture (Add, recent changes, +N), MinestDiscover. Covers: the user's own
+   upload ('wa:<board>'), else a picture from the world's own items, else the template's drawn cover — never third-party images. */
+(function () {
+  if (window.MinestMyWorld) return;
+  var A = function () { return window.MinestAI || {}; };
+  var KN = function () { return window.MinestKnowledge; };
+  var W = function () { return window.MinestWorld; };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function toast(m) { try { if (window.GlassUI && GlassUI.toast) GlassUI.toast(m); } catch (e) {} }
+  function hap(t) { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic(t || 'selection'); } catch (e) {} }
+  function boards() { try { return (A().boards && A().boards()) || []; } catch (e) { return []; } }
+  function boardById(id) { return boards().filter(function (b) { return b.id === id; })[0] || null; }
+  function tpls() { return W() ? W().templates() : []; }
+  function tplById(id) { return tpls().filter(function (t) { return t.id === id; })[0] || null; }
+  var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  function ago(t) { var s = (Date.now() - t) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; }
+
+  // ================================================================== what the pages show (all read from the real data)
+  // the My-first names and sources shown in the gallery (the template files keep their own names)
+  var NAMES = { 'my-life': ['My Modern Life', 'modern everyday life'], britannica: ['My Knowledge Atlas', 'Encyclopaedia Britannica’s Propædia'], 'whole-earth': ['My Whole Earth', 'the Whole Earth Catalog'],
+    dewey: ['My Library Shelves', 'the Dewey Decimal Classification'], encyclopedie: ['My Tree of Knowledge', 'Diderot & d’Alembert’s Encyclopédie'], bacon: ['My Three Faculties', 'Francis Bacon'],
+    'my-museum': ['My Museum', 'the halls of a museum'], 'my-academic-skills': ['My Academic Skills', 'IXL-style skill lists · CCSS · NGSS'], 'my-life-skills': ['My Life & Future Skills', 'P21 · OECD Learning Compass'] };
+  function nameOf(t) { return (NAMES[t.id] || [])[0] || t.name; }
+  function sourceOf(t) { return t.philosopher ? 'Inspired by ' + t.philosopher : (NAMES[t.id] || [])[1] ? 'Inspired by ' + NAMES[t.id][1] : t.family === 'everyday' ? 'Everyday starter world' : t.mine ? 'My template' : ''; }
+  var GROUPS = [
+    ['Featured', function (t) { return ['my-life', 'britannica', 'whole-earth', 'my-academic-skills', 'my-museum'].indexOf(t.id) >= 0; }],
+    ['Everyday Worlds', function (t) { return t.family === 'everyday' && ['my-life', 'whole-earth', 'my-museum'].indexOf(t.id) < 0; }],
+    ['Skills', function (t) { return t.id === 'my-life-skills'; }],
+    ['Knowledge & Ideas', function (t) { return ['dewey', 'encyclopedie', 'bacon'].indexOf(t.id) >= 0; }],
+    ['Philosophical Worlds', function (t) { return t.family === 'advanced-philosophy'; }],
+    ['My Templates', function (t) { return !!t.mine; }]
+  ];
+  function worldInfo(x) {
+    var b = x.b, w = x.w || {}, wa = (KN() && KN().get('wa:' + b.id)) || {}, tk = Object.keys(w.templates || {})[0], t = tk ? tplById(tk) : null;
+    var lists = 0, items = 0, pic = '';
+    (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (!k || KN().isHeading(k.id)) return; lists++; items += (k.stack || []).length; if (!pic) { var hit = (k.stack || []).filter(function (s) { return s.cover && (s.cover.value || s.cover.url); })[0]; if (hit) pic = hit.cover.value || hit.cover.url; } }); });
+    var words = (b.columns || []).slice(0, 3).map(function (c) { return String(c.title).replace(/^My\s+/i, ''); }).join(' · ');
+    var fresh = window.MinestCapture && MinestCapture.newCount ? MinestCapture.newCount(b.id) : 0;
+    return { b: b, t: t, title: b.title, sub: wa.subtitle || words, lists: lists, items: items, cover: wa.cover || pic, color: wa.color || (t && t.color) || '#5e5ce6', fresh: fresh };
+  }
+  function coverHtml(info, cls) {
+    if (info.cover) return '<span class="' + cls + '" style="background-image:url(&quot;' + esc(info.cover) + '&quot;)"></span>';
+    var art = ''; try { art = info.t && W()._art ? W()._art(info.t) : ''; } catch (e) {}
+    return '<span class="' + cls + ' drawn" style="--c:' + esc(info.color) + '">' + (art || '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 3 2.5 13 0 16M12 4c-2.5 3-2.5 13 0 16"/></svg>') + '</span>';
+  }
+
+  // ================================================================== UI
+  var I = function (d) { return '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
+  var ICON = { x: I('<path d="M6 6l12 12M18 6 6 18"/>'), back: I('<path d="m15 6-6 6 6 6"/>'), search: I('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>'), gear: I('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+    plus: I('<path d="M12 5v14M5 12h14"/>'), spark: I('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'), more: I('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'), chev: I('<path d="m9 6 6 6-6 6"/>'), check: I('<path d="M5 12.5l4.5 4.5L19 7.5"/>') };
+  var CSS = [
+    '.mw{position:fixed;inset:0;z-index:2147482004;display:flex;flex-direction:column;color:var(--mw-ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:var(--mw-bg);--mw-ink:#f4f5f8;--mw-sub:rgba(244,245,248,.62);--mw-bg:linear-gradient(180deg,#141821,#0b0d13);--mw-card:rgba(255,255,255,.06);--mw-line:rgba(255,255,255,.1);--mw-fill:rgba(255,255,255,.08);--mw-blue:#0a84ff}',
+    'html.kn-light .mw{--mw-ink:#15171c;--mw-sub:rgba(21,23,28,.6);--mw-bg:linear-gradient(180deg,#f6f7fa,#eceef3);--mw-card:#fff;--mw-line:rgba(0,0,0,.08);--mw-fill:rgba(0,0,0,.05);--mw-blue:#007aff}',
+    '.mw-head{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 4px}',
+    '.mw-head .ti{flex:1;min-width:0}.mw-head h1{margin:0;font-size:32px;font-weight:800;letter-spacing:-.8px;line-height:1.05}.mw-head p{margin:3px 0 0;font-size:14px;color:var(--mw-sub)}',
+    '.mw-head h2{flex:1;min-width:0;margin:0;font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.mw-b{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;padding:0;cursor:pointer;color:inherit;background:var(--mw-fill);border:0}',
+    '.mw-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 16px calc(env(safe-area-inset-bottom,0px) + 110px)}',
+    '.mw-foot{position:absolute;left:0;right:0;bottom:0;padding:24px 16px calc(env(safe-area-inset-bottom,0px) + 14px);background:linear-gradient(180deg,transparent,var(--mw-fade,rgba(11,13,19,.97)) 22px);display:flex;gap:10px}',
+    'html.kn-light .mw-foot{--mw-fade:rgba(236,238,243,.97)}',
+    '.mw-foot{flex-wrap:wrap}.mw-sum{width:100%;text-align:center;font-size:12.5px;color:var(--mw-sub);margin-bottom:-2px}',
+    '.mw-go{flex:1;height:52px;border-radius:16px;border:0;background:var(--mw-blue);color:#fff;font:700 16px -apple-system,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}.mw-go.sec{background:var(--mw-fill);color:inherit;flex:0 0 auto;padding:0 18px}.mw-go:disabled{opacity:.4}',
+    '.mw-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 18px}',
+    '.mw-act{height:54px;border-radius:16px;border:0;cursor:pointer;font:700 16px -apple-system,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;color:#fff;background:var(--mw-blue)}.mw-act.d{background:var(--mw-card);color:inherit;box-shadow:inset 0 0 0 1px var(--mw-line)}',
+    '.mw-act:active,.mw-wc:active,.mw-tc:active{transform:scale(.98)}',
+    '.mw-h{display:flex;align-items:baseline;gap:8px;margin:22px 2px 10px}.mw-h b{font-size:20px;font-weight:800;letter-spacing:-.3px}.mw-h button{margin-left:auto;border:0;background:none;color:var(--mw-blue);font:600 14px -apple-system,system-ui,sans-serif;cursor:pointer}',
+    // Apple Photos-style world cards: one cover ratio, title + a few words, real counts
+    '.mw-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}',
+    '@media (min-width:700px){.mw-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:1050px){.mw-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}',
+    '.mw-wc{position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;transition:transform .15s}',
+    '.mw-cv{display:block;aspect-ratio:1/1;border-radius:14px;background-size:cover;background-position:center;background-color:var(--mw-fill);box-shadow:0 1px 0 var(--mw-line) inset}',
+    '.mw-cv.drawn{background:radial-gradient(120% 90% at 20% 0%,rgba(255,255,255,.3),rgba(255,255,255,0) 55%),linear-gradient(150deg,color-mix(in srgb,var(--c) 92%,#fff),color-mix(in srgb,var(--c) 55%,#000));display:grid;place-items:center;overflow:hidden}.mw-cv.drawn svg{width:100%;height:100%}',
+    '.mw-wc .t{display:flex;align-items:center;gap:6px}.mw-wc .t b{flex:1;min-width:0;font-size:16px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.mw-wc small{display:block;font-size:13px;color:var(--mw-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-4px}',
+    '.mw-new{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--mw-blue);color:#fff;font:700 11.5px -apple-system,system-ui,sans-serif;display:inline-grid;place-items:center}',
+    '.mw-more{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:0;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);cursor:pointer}',
+    '.mw-wc.hi .mw-cv{box-shadow:0 0 0 3px var(--mw-blue)}',
+    '.mw-empty{text-align:center;padding:30px 10px}.mw-empty svg{display:block;margin:0 auto}.mw-empty b{display:block;font-size:22px;font-weight:800;margin:14px 0 6px}.mw-empty p{color:var(--mw-sub);margin:0 0 18px}',
+    '.mw-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 12px;border-radius:14px;border:0;background:var(--mw-card);color:inherit;font:inherit;cursor:pointer;margin-bottom:6px;box-shadow:inset 0 0 0 1px var(--mw-line)}',
+    '.mw-row div{flex:1;min-width:0}.mw-row b{display:block;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mw-row small{display:block;font-size:12.5px;color:var(--mw-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.mw-search{display:flex;align-items:center;gap:8px;height:42px;padding:0 12px;border-radius:12px;background:var(--mw-fill);margin:6px 0 10px}.mw-search input{flex:1;min-width:0;border:0;background:none;color:inherit;font:inherit;outline:none}',
+    // template gallery
+    '.mw-tg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}@media (min-width:700px){.mw-tg{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:1050px){.mw-tg{grid-template-columns:repeat(4,minmax(0,1fr))}}',
+    '.mw-tc{display:flex;flex-direction:column;gap:5px;text-align:left;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;transition:transform .15s}',
+    '.mw-tc .mw-cv{aspect-ratio:4/3}.mw-tc b{font-size:15.5px;font-weight:700;letter-spacing:-.2px}.mw-tc span{font-size:13px;line-height:1.3;color:var(--mw-sub)}.mw-tc em{font-style:normal;font-size:11.5px;color:var(--mw-sub);opacity:.85}',
+    // preview
+    '.mw-hero{margin:0 -16px 14px;height:150px}.mw-hero .mw-cv{height:100%;aspect-ratio:auto;border-radius:0}',
+    '.mw-seg{display:flex;padding:3px;border-radius:12px;background:var(--mw-fill);margin:6px 0 4px}.mw-seg button{flex:1;height:34px;border:0;border-radius:9px;background:none;color:inherit;font:600 14px -apple-system,system-ui,sans-serif;cursor:pointer}.mw-seg button.on{background:var(--mw-card);box-shadow:0 1px 4px rgba(0,0,0,.15)}',
+    '.mw-note{font-size:13px;color:var(--mw-sub);margin:6px 2px}',
+    '.mw-area{border-radius:16px;background:var(--mw-card);box-shadow:inset 0 0 0 1px var(--mw-line);margin-bottom:10px;overflow:hidden}',
+    '.mw-ar{display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer}.mw-ar .dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none}.mw-ar b{flex:1;min-width:0;font-size:16px;font-weight:700}.mw-ar em{font-style:normal;font-size:12.5px;color:var(--mw-sub)}',
+    '.mw-ar .cv{color:var(--mw-sub);transition:transform .2s}.mw-area.open .mw-ar .cv{transform:rotate(90deg)}.mw-area.off{opacity:.5}',
+    '.mw-in{display:none;padding:0 12px 12px 34px}.mw-area.open .mw-in{display:block}',
+    '.mw-cat{padding:8px 0;border-top:1px solid var(--mw-line);display:flex;align-items:flex-start;gap:10px}.mw-cat.off{opacity:.45}.mw-cat .c{flex:1;min-width:0}.mw-cat .c b{font-size:14px;font-weight:650}',
+    '.mw-ls{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.mw-li{border:0;border-radius:999px;padding:5px 10px;background:var(--mw-fill);color:inherit;font:500 12.5px -apple-system,system-ui,sans-serif;cursor:pointer}.mw-li.off{opacity:.45;text-decoration:line-through}.mw-li.sub{font-size:11.5px;opacity:.8}',
+    '.mw-sw{flex:none;width:46px;height:28px;border-radius:999px;border:0;padding:0;cursor:pointer;background:var(--mw-fill);position:relative}.mw-sw:after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}.mw-sw.on{background:#30d158}.mw-sw.on:after{transform:translateX(18px)}',
+    '.mw-where{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.mw-where button{flex:none;height:34px;padding:0 12px;border-radius:999px;border:0;background:var(--mw-fill);color:inherit;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer}.mw-where button.on{background:var(--mw-blue);color:#fff}',
+    '.mw-about{margin:10px 0;padding:12px 14px;border-radius:14px;background:var(--mw-card);box-shadow:inset 0 0 0 1px var(--mw-line);font-size:14px}.mw-about summary{cursor:pointer;font-weight:650}.mw-about p{margin:8px 0 0;color:var(--mw-sub);white-space:pre-line}',
+    // welcome
+    '.mw-ready{text-align:center;padding:16px 0 4px}.mw-ready b{display:block;font-size:30px;font-weight:850;letter-spacing:-.6px}.mw-ready span{color:var(--mw-sub)}',
+    '.mw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.mw-stats div{padding:14px 8px;border-radius:16px;background:var(--mw-card);box-shadow:inset 0 0 0 1px var(--mw-line);text-align:center}.mw-stats b{display:block;font-size:26px;font-weight:800}.mw-stats span{font-size:12.5px;color:var(--mw-sub)}',
+    '.mw-menu{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:9;padding:8px;border-radius:20px;background:var(--mw-card);box-shadow:0 20px 50px rgba(0,0,0,.4),inset 0 0 0 1px var(--mw-line)}.mw-menu h4{margin:8px 10px;font-size:15px}.mw-menu button{display:block;width:100%;text-align:left;padding:13px 12px;border:0;border-radius:12px;background:none;color:inherit;font:inherit;cursor:pointer}.mw-menu button:hover{background:var(--mw-fill)}',
+    '@media (min-width:700px){.mw-menu{left:50%;right:auto;width:400px;transform:translateX(-50%)}}',
+    '@media (prefers-reduced-motion: reduce){.mw-act,.mw-wc,.mw-tc,.mw-sw:after{transition:none}}'
+  ].join('\n');
+  function css() { if (document.getElementById('mw-css')) return; var s = document.createElement('style'); s.id = 'mw-css'; s.textContent = CSS; document.head.appendChild(s); }
+
+  var ui = { open: false, scroll: {} };
+  function shell() {
+    if (ui.open) return; css(); if (KN() && KN().applyLook) KN().applyLook();
+    var el = document.createElement('div'); el.className = 'mw'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'My World');
+    el.innerHTML = '<div class="mw-head"></div><div class="mw-body"></div><div class="mw-foot" hidden></div><input type="file" accept="image/*" hidden>';
+    ['pointerdown', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (ev) { el.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: ev !== 'keydown' }); });
+    ui.el = el; ui.head = el.querySelector('.mw-head'); ui.body = el.querySelector('.mw-body'); ui.foot = el.querySelector('.mw-foot'); ui.file = el.querySelector('input[type=file]'); ui.open = true;
+    document.body.appendChild(el); document.documentElement.classList.add('kn-open');
+    if (el.animate && !reduce) el.animate([{ opacity: 0, transform: 'scale(.985)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.85,.25,1)' });
+    el.addEventListener('click', onClick);
+    el.addEventListener('input', function (e) { if (e.target.matches('[data-q]')) { ui.q = e.target.value; drawResults(); } });
+    el.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (ui.menu) closeMenu(); else if (ui.view === 'home') close(); else home(); } });
+    ui.file.addEventListener('change', function () { var f = ui.file.files && ui.file.files[0]; ui.file.value = ''; if (!f || !ui.coverFor) return; var bid = ui.coverFor; shrink(f, 1200, function (d) { if (!d) return toast('This picture could not be read.'); KN().set('wa:' + bid, Object.assign({}, KN().get('wa:' + bid) || {}, { cover: d, at: Date.now() })); toast('Cover changed'); home(); }); });
+  }
+  function shrink(f, max, cb) { var rd = new FileReader(); rd.onload = function () { var im = new Image(); im.onload = function () { var k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)); try { var c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); cb(c.toDataURL('image/jpeg', .82)); } catch (e) { cb(null); } }; im.onerror = function () { cb(null); }; im.src = rd.result; }; rd.readAsDataURL(f); }
+  function close() { if (!ui.open) return; keepScroll(); var el = ui.el; ui.open = false; ui.el = null; ui.menu = null; if (!document.querySelector('.lw,.sk,.wk,.pk,.wc,.dv,.st,.bd')) document.documentElement.classList.remove('kn-open'); if (el.animate && !reduce) { var an = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' }); an.onfinish = function () { el.remove(); }; } else el.remove(); }
+  function keepScroll() { if (ui.view && ui.body) ui.scroll[ui.view] = ui.body.scrollTop; }
+  function go(view, fn) { keepScroll(); closeMenu(); ui.view = view; ui.foot.hidden = true; ui.foot.innerHTML = ''; fn(); }
+  function headSmall(title, back) { ui.head.innerHTML = (back ? '<button type="button" class="mw-b" data-back="' + esc(back) + '" aria-label="Back">' + ICON.back + '</button>' : '') + '<h2>' + esc(title) + '</h2><button type="button" class="mw-b" data-x aria-label="Close">' + ICON.x + '</button>'; }
+  function foot(h) { ui.foot.hidden = !h; ui.foot.innerHTML = h || ''; }
+  function closeMenu() { if (ui.menu) { ui.menu.remove(); ui.menu = null; } }
+  function menu(title, items) { closeMenu(); var m = document.createElement('div'); m.className = 'mw-menu'; m.innerHTML = '<h4>' + esc(title) + '</h4>' + items.map(function (x, i) { return '<button type="button" data-mi="' + i + '">' + esc(x[0]) + '</button>'; }).join('') + '<button type="button" data-mx>Cancel</button>'; ui.el.appendChild(m); ui.menu = m; ui.menuItems = items; }
+
+  // ---------------------------------------------------------------- 1 · My World home
+  function home(o) {
+    shell(); go('home', function () {
+      ui.head.innerHTML = '<div class="ti"><h1>My World</h1><p>A little universe of mine.</p></div><button type="button" class="mw-b" data-search aria-label="Search">' + ICON.search + '</button><button type="button" class="mw-b" data-settings aria-label="Settings">' + ICON.gear + '</button><button type="button" class="mw-b" data-x aria-label="Close">' + ICON.x + '</button>';
+      var ws = (W() ? W().worlds() : []).map(worldInfo);
+      var h = '<div class="mw-actions"><button type="button" class="mw-act" data-add>' + ICON.plus + 'Add</button><button type="button" class="mw-act d" data-discover>' + ICON.spark + 'Discover</button></div>';
+      if (!ws.length) h += '<div class="mw-empty"><svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg><b>Build your world</b><p>Start from a template — you can change everything later.</p><button type="button" class="mw-go" style="width:100%" data-gallery>Choose My World</button></div>';
+      else {
+        h += '<div class="mw-h"><b>My Worlds</b><button type="button" data-gallery>＋ New World</button></div><div class="mw-grid">' + ws.map(function (x) {
+          return '<div class="mw-wc' + (o && o.highlight === x.b.id ? ' hi' : '') + '" role="button" tabindex="0" data-world="' + esc(x.b.id) + '">' + coverHtml(x, 'mw-cv') + '<button type="button" class="mw-more" data-wmore="' + esc(x.b.id) + '" aria-label="World options">' + ICON.more + '</button>' +
+            '<span class="t"><b>' + esc(x.title) + '</b>' + (x.fresh ? '<i class="mw-new">+' + x.fresh + '</i>' : '') + '</span><small>' + esc(x.sub) + '</small><small>' + x.items + ' item' + (x.items === 1 ? '' : 's') + ' · ' + x.lists + ' list' + (x.lists === 1 ? '' : 's') + '</small></div>';
+        }).join('') + '</div>';
+      }
+      var logs = window.MinestCapture && MinestCapture.logs ? MinestCapture.logs().filter(function (l) { return !l.undone; }).slice(0, 4) : [];
+      if (logs.length) h += '<div class="mw-h"><b>Recent Changes</b><button type="button" data-recent>See all</button></div>' + logs.map(function (l) { var n = (l.items || []).length, to = Object.keys(l.lists || {}).length; return '<button type="button" class="mw-row" data-recent><div><b>' + esc(l.kind === 'organize' ? l.note : n === 1 ? l.items[0].title : n + ' items added') + '</b><small>' + esc(ago(l.at) + (to ? ' · into ' + to + ' list' + (to === 1 ? '' : 's') : '')) + '</small></div>' + ICON.chev + '</button>'; }).join('');
+      ui.body.innerHTML = h; ui.body.scrollTop = (o && o.top) ? 0 : (ui.scroll.home || 0);
+      if (o && o.highlight) setTimeout(function () { var c = ui.body.querySelector('[data-world="' + o.highlight + '"]'); if (c) c.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' }); }, 60);
+    });
+  }
+  function openWorldCard(bid) {
+    hap('selection'); close();
+    setTimeout(function () { if (window.MinestBuilder && MinestBuilder.openIn) MinestBuilder.openIn(bid); else if (window.MinestStarter && MinestStarter.has(bid)) MinestStarter.home(bid); else if (W()._openWorld) W()._openWorld(bid); }, 180);
+  }
+  // search across worlds: worlds, lists and items
+  function search() {
+    go('search', function () { headSmall('Search', 'home'); ui.body.innerHTML = '<label class="mw-search">' + ICON.search + '<input data-q placeholder="Worlds, lists, things…" autocomplete="off" value="' + esc(ui.q || '') + '"></label><div data-resbox></div>'; drawResults(); setTimeout(function () { var f = ui.body.querySelector('[data-q]'); if (f) f.focus(); }, 60); });
+  }
+  function drawResults() {
+    var box = ui.body.querySelector('[data-resbox]'); if (!box) return; var q = String(ui.q || '').toLowerCase().trim(); if (!q) { box.innerHTML = '<p class="mw-note">Type to search everything in your worlds.</p>'; return; }
+    var out = []; (W() ? W().worlds() : []).forEach(function (x) { var b = x.b; if (b.title.toLowerCase().indexOf(q) >= 0) out.push({ k: 'w', b: b, t: b.title, s: 'World' }); (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (KN().isHeading(k.id)) return; if (k.title.toLowerCase().indexOf(q) >= 0) out.push({ k: 'l', b: b, c: c, card: k, t: k.title, s: 'List · ' + c.title + ' · ' + b.title }); (k.stack || []).forEach(function (s) { if (String(s.title + ' ' + (s.desc || '')).toLowerCase().indexOf(q) >= 0) out.push({ k: 'i', b: b, c: c, card: k, t: s.title, s: k.title + ' · ' + b.title }); }); }); }); });
+    ui.res = out.slice(0, 60);
+    box.innerHTML = ui.res.map(function (r, i) { return '<button type="button" class="mw-row" data-res="' + i + '"><div><b>' + esc(r.t) + '</b><small>' + esc(r.s) + '</small></div>' + ICON.chev + '</button>'; }).join('') || '<p class="mw-note">Nothing found.</p>';
+  }
+  function settings() {
+    var cur = KN() && KN().look ? KN().look() : 'auto';
+    go('settings', function () {
+      headSmall('Settings', 'home');
+      ui.body.innerHTML = '<div class="mw-h"><b>Appearance</b></div><div class="mw-seg">' + [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(function (x) { return '<button type="button" data-look="' + x[0] + '"' + (cur === x[0] ? ' class="on"' : '') + '>' + x[1] + '</button>'; }).join('') + '</div>' +
+        '<div class="mw-h"><b>Build</b></div>' +
+        '<button type="button" class="mw-row" data-gallery><div><b>Choose My World</b><small>Template gallery</small></div>' + ICON.chev + '</button>' +
+        (window.MinestBuilder ? '<button type="button" class="mw-row" data-mix><div><b>Mix &amp; Match</b><small>Areas and lists from several templates</small></div>' + ICON.chev + '</button><button type="button" class="mw-row" data-scratch><div><b>Start from Scratch</b><small>A blank world</small></div>' + ICON.chev + '</button>' : '') +
+        '<button type="button" class="mw-row" data-classic><div><b>Classic template list</b><small>The earlier List of Mine screen</small></div>' + ICON.chev + '</button>';
+    });
+  }
+
+  // ---------------------------------------------------------------- 2 · template gallery
+  function gallery() {
+    shell(); go('gallery', function () {
+      headSmall('Choose My World', 'home');
+      var ts = tpls().filter(function (t) { return !t.hidden && t.domains; }), used = {};
+      ui.body.innerHTML = '<p class="mw-note" style="margin:0 2px 6px">Each world is a starting point. Look inside first — you can switch off anything and change it all later.</p>' +
+        GROUPS.map(function (g) { var xs = ts.filter(function (t) { return !used[t.id] && g[1](t); }); xs.forEach(function (t) { used[t.id] = 1; }); if (!xs.length) return '';
+          return '<div class="mw-h"><b>' + esc(g[0]) + '</b></div><div class="mw-tg">' + xs.map(function (t) { var info = { t: t, color: t.color || '#5e5ce6', cover: '' };
+            return '<button type="button" class="mw-tc" data-tpl="' + esc(t.id) + '">' + coverHtml(info, 'mw-cv') + '<b>' + esc(nameOf(t)) + '</b><span>' + esc(t.tagline || t.description || '') + '</span>' + (sourceOf(t) ? '<em>' + esc(sourceOf(t)) + '</em>' : '') + '</button>'; }).join('') + '</div>'; }).join('');
+      ui.body.scrollTop = ui.scroll.gallery || 0;
+    });
+  }
+
+  // ---------------------------------------------------------------- 3 · structure preview
+  function depthsOf(t) {
+    var flat = t.domains.every(function (d) { return d.lists && !d.categories; });
+    var hasSub = t.domains.some(function (d) { return (d.categories || [{ lists: d.lists || [] }]).some(function (c) { return (c.lists || []).some(function (l) { return (l.lists || []).length; }); }); });
+    if (t.depths && t.depths.length) return t.depths.slice();
+    return flat ? (hasSub ? ['standard', 'complete'] : ['standard']) : (hasSub ? ['simple', 'standard', 'complete'] : ['simple', 'standard']);
+  }
+  function preview(t) {
+    ui.pv = { t: t, off: {}, open: {}, depth: t.defaultDepth && depthsOf(t).indexOf(t.defaultDepth) >= 0 ? t.defaultDepth : (depthsOf(t).indexOf('standard') >= 0 ? 'standard' : depthsOf(t)[0]), into: null };
+    if (t.groups) (t.domains || []).forEach(function (d) { if ((t.defaultGroups || []).length && t.defaultGroups.indexOf(d.group) < 0) ui.pv.off[d.id] = 1; });   // e.g. skills: only the default grade on
+    go('preview', drawPreview);
+  }
+  function counts() {
+    var P = ui.pv, t = P.t, bid = P.into || 'preview', p = W().plan(t, bid, { off: P.off, depth: P.depth }), have = {}, n = { areas: 0, cats: 0, lists: 0 };
+    var b = P.into ? boardById(P.into) : null; if (b) (b.columns || []).forEach(function (c) { have[c.id] = 1; (c.cards || []).forEach(function (k) { have[k.id] = 1; }); });
+    p.lists.forEach(function (L) { if (!have[L.id]) n.areas++; L.items.forEach(function (H) { if (!H.flat && !have[H.id]) { if (H.asCard) n.lists++; else n.cats++; } H.lists.forEach(function (x) { if (!have[x.id]) n.lists++; }); }); });
+    return n;
+  }
+  function drawPreview() {
+    var P = ui.pv, t = P.t, ds = depthsOf(t), DT = { simple: ['Simple', 'Main categories only.'], standard: ['Standard', 'The everyday lists of each category.'], complete: ['Complete', 'The full tree, with the detailed sub-lists.'] };
+    headSmall(nameOf(t), 'gallery');
+    var ws = W().worlds(), n = counts(), total = n.areas + n.cats + n.lists;
+    ui.body.innerHTML = '<div class="mw-hero">' + coverHtml({ t: t, color: t.color || '#5e5ce6', cover: '' }, 'mw-cv') + '</div>' +
+      '<p style="margin:0 2px 4px;font-size:16px">' + esc(t.description || t.tagline || '') + '</p>' + (sourceOf(t) ? '<p class="mw-note" style="margin-top:0">' + esc(sourceOf(t)) + '</p>' : '') +
+      (t.inspiration || (t.philosophy && t.philosophy.original) ? '<details class="mw-about"><summary>About this template</summary><p>' + esc(t.philosophy ? t.philosophy.original + '\n\n' + t.philosophy.adaptation : t.inspiration) + '</p></details>' : '') +
+      (ds.length > 1 ? '<div class="mw-h"><b>How much</b></div><div class="mw-seg">' + ds.map(function (d) { return '<button type="button" data-depth="' + d + '"' + (P.depth === d ? ' class="on"' : '') + '>' + DT[d][0] + '</button>'; }).join('') + '</div><p class="mw-note">' + DT[P.depth][1] + ' You can always add more later.</p>' : '') +
+      (ws.length ? '<div class="mw-h"><b>Where</b></div><div class="mw-where"><button type="button" data-into=""' + (P.into ? '' : ' class="on"') + '>A new world</button>' + ws.map(function (x) { return '<button type="button" data-into="' + esc(x.b.id) + '"' + (P.into === x.b.id ? ' class="on"' : '') + '>Add to ' + esc(x.b.title) + '</button>'; }).join('') + '</div>' + (P.into ? '<p class="mw-note">Only what is missing is added. Areas with a name you already have are kept separate — nothing you made is changed or merged.</p>' : '') : '') +
+      '<div class="mw-h"><b>Inside</b></div>' + t.domains.map(function (d, i) {
+        var dOff = !!P.off[d.id], groups = d.lists && !d.categories ? [{ id: d.id, title: null, lists: d.lists }] : (d.categories || []);
+        var nl = groups.reduce(function (a, g) { return a + (g.lists || []).length; }, 0);
+        return '<div class="mw-area' + (dOff ? ' off' : '') + (P.open[d.id] ? ' open' : '') + '" style="--c:' + esc(d.color || '#888') + '"><div class="mw-ar" data-open="' + esc(d.id) + '"><span class="cv">' + ICON.chev + '</span><span class="dot"></span><b>' + esc(d.title) + '</b><em>' + nl + ' list' + (nl === 1 ? '' : 's') + '</em><button type="button" class="mw-sw' + (dOff ? '' : ' on') + '" data-off="' + esc(d.id) + '" aria-label="Include ' + esc(d.title) + '"></button></div><div class="mw-in">' +
+          groups.map(function (g) { var cOff = dOff || (g.title && !!P.off[g.id]);
+            var ls = P.depth === 'simple' && g.title ? '' : '<div class="mw-ls">' + (g.lists || []).map(function (l) { var lk = 'l:' + g.id + '/' + l.id, lOff = cOff || !!P.off[lk]; return '<button type="button" class="mw-li' + (lOff ? ' off' : '') + '" data-off="' + esc(lk) + '"' + (cOff ? ' disabled' : '') + '>' + esc(l.title) + '</button>' + (P.depth === 'complete' ? (l.lists || []).map(function (x) { return '<button type="button" class="mw-li sub' + (lOff || P.off[lk + '/' + x.id] ? ' off' : '') + '" data-off="' + esc(lk + '/' + x.id) + '"' + (lOff ? ' disabled' : '') + '>↳ ' + esc(x.title) + '</button>'; }).join('') : ''); }).join('') + '</div>';
+            return '<div class="mw-cat' + (cOff ? ' off' : '') + '"><div class="c">' + (g.title ? '<b>' + esc(g.title) + '</b>' : '') + ls + '</div>' + (g.title ? '<button type="button" class="mw-sw' + (cOff ? '' : ' on') + '" data-off="' + esc(g.id) + '"' + (dOff ? ' disabled' : '') + ' aria-label="Include ' + esc(g.title) + '"></button>' : '') + '</div>';
+          }).join('') + '</div></div>';
+      }).join('');
+    foot('<div class="mw-sum">' + (total ? (P.into ? 'Adds ' : 'Creates ') + n.areas + ' area' + (n.areas === 1 ? '' : 's') + (n.cats ? ' · ' + n.cats + ' categor' + (n.cats === 1 ? 'y' : 'ies') : '') + ' · ' + n.lists + ' list' + (n.lists === 1 ? '' : 's') + ' — empty until you add your things' : 'Everything here is already in that world') + '</div><button type="button" class="mw-go" data-use' + (total ? '' : ' disabled') + '>' + (P.into ? (total ? 'Add ' + total + ' to my world' : 'Nothing new to add') : 'Use This Template') + '</button>');
+    ui.foot.insertAdjacentHTML('afterbegin', '');
+  }
+  function use() {
+    var P = ui.pv, t = P.t, btn = ui.foot.querySelector('[data-use]'); if (btn) btn.disabled = true;
+    var n = counts(), r;
+    try { r = W().generate(t, { off: P.off, depth: P.depth }, P.into || undefined); } catch (e) { toast('✗ ' + e.message); if (btn) btn.disabled = false; return; }
+    var t0 = Date.now();
+    (function wait() { if (boardById(r.bid) || Date.now() - t0 > 3000) { var done = t.starterPack && window.MinestStarter ? MinestStarter.install(r.bid, t) : Promise.resolve(); done.then(function () { hap('success'); welcome(r.bid, n, !r.isNew); }); } else setTimeout(wait, 80); })();
+  }
+
+  // ---------------------------------------------------------------- 4 · welcome
+  function welcome(bid, made, added) {
+    shell(); ui.newBid = bid;
+    go('welcome', function () {
+      var b = boardById(bid), info = worldInfo({ b: b, w: KN().get('lom:world:' + bid) }), ws = W().worlds().length;
+      ui.head.innerHTML = '<div class="ti"></div><button type="button" class="mw-b" data-x aria-label="Close">' + ICON.x + '</button>';
+      ui.body.innerHTML = '<div style="max-width:420px;margin:0 auto"><div class="mw-wc" style="pointer-events:none;width:min(62vw,240px);margin:6px auto 0">' + coverHtml(info, 'mw-cv') + '</div>' +
+        '<div class="mw-ready"><b>' + (added ? 'Added to Your World.' : 'Your World Is Ready.') + '</b><span>' + esc(b.title) + '</span></div>' +
+        '<div class="mw-stats"><div><b>' + ws + '</b><span>World' + (ws === 1 ? '' : 's') + '</span></div><div><b>' + info.lists + '</b><span>Lists</span></div><div><b>' + info.items + '</b><span>Items</span></div></div>' +
+        '<p class="mw-note" style="text-align:center">Your lists are empty until you add your own things — that’s where it starts.</p></div>';
+      foot('<button type="button" class="mw-go sec" data-explore>Explore My World</button><button type="button" class="mw-go" data-start>Start Adding</button>');
+    });
+  }
+
+  // ================================================================== clicks
+  function onClick(e) {
+    var t = e.target, g;
+    if (ui.menu) { var mi = t.closest('[data-mi]'); if (mi) { var it = ui.menuItems[+mi.getAttribute('data-mi')]; closeMenu(); it[1](); return; } closeMenu(); return; }
+    if (t.closest('[data-x]')) return close();
+    if ((g = t.closest('[data-back]'))) { var bk = g.getAttribute('data-back'); if (bk === 'gallery') return gallery(); return home(); }
+    if (t.closest('[data-search]')) return search();
+    if (t.closest('[data-settings]')) return settings();
+    if (t.closest('[data-gallery]')) return gallery();
+    if ((g = t.closest('[data-res]'))) { var r = ui.res[+g.getAttribute('data-res')]; if (!r) return; if (r.k === 'w') return openWorldCard(r.b.id); close(); setTimeout(function () { try { A().openCardIn(r.b.id, r.c.id, r.card.id); } catch (x) {} }, 200); return; }
+    if ((g = t.closest('[data-look]'))) { KN().setLook(g.getAttribute('data-look')); return settings(); }
+    if (t.closest('[data-mix]')) { close(); setTimeout(function () { MinestBuilder.mix(); }, 180); return; }
+    if (t.closest('[data-scratch]')) { close(); setTimeout(function () { MinestBuilder.scratch(); }, 180); return; }
+    if (t.closest('[data-classic]')) { close(); setTimeout(function () { W().open(); }, 180); return; }
+    if (t.closest('[data-add]')) { close(); setTimeout(function () { if (window.MinestCapture) MinestCapture.open(); }, 180); return; }
+    if (t.closest('[data-discover]')) { close(); setTimeout(function () { if (window.MinestDiscover) MinestDiscover.open(); }, 180); return; }
+    if (t.closest('[data-recent]')) { close(); setTimeout(function () { if (window.MinestCapture) MinestCapture.open(); }, 180); return; }
+    if ((g = t.closest('[data-wmore]'))) { e.stopPropagation(); var bid = g.getAttribute('data-wmore'), b = boardById(bid);
+      return menu(b ? b.title : 'World', [['Open', function () { openWorldCard(bid); }], ['Change cover', function () { ui.coverFor = bid; ui.file.click(); }], ['Use the default cover', function () { KN().set('wa:' + bid, Object.assign({}, KN().get('wa:' + bid) || {}, { cover: '' })); home(); }]].concat(window.MinestBuilder ? [['Customize', function () { close(); setTimeout(function () { MinestBuilder.open(bid); }, 180); }]] : []).concat(window.MinestCapture ? [['Add to this world', function () { close(); setTimeout(function () { MinestCapture.open({ wbid: bid }); }, 180); }]] : [])); }
+    if ((g = t.closest('[data-world]'))) return openWorldCard(g.getAttribute('data-world'));
+    if ((g = t.closest('[data-tpl]'))) { var tp = tplById(g.getAttribute('data-tpl')); if (tp) preview(tp); return; }
+    // preview
+    if (ui.view === 'preview') {
+      var y = function (fn) { var s = ui.body.scrollTop; fn(); ui.body.scrollTop = s; };
+      if ((g = t.closest('[data-off]'))) { e.stopPropagation(); var k = g.getAttribute('data-off'); if (ui.pv.off[k]) delete ui.pv.off[k]; else ui.pv.off[k] = 1; hap('selection'); return y(drawPreview); }
+      if ((g = t.closest('[data-open]'))) { var d = g.getAttribute('data-open'); ui.pv.open[d] = !ui.pv.open[d]; g.parentNode.classList.toggle('open', !!ui.pv.open[d]); return; }
+      if ((g = t.closest('[data-depth]'))) { ui.pv.depth = g.getAttribute('data-depth'); return y(drawPreview); }
+      if ((g = t.closest('[data-into]'))) { ui.pv.into = g.getAttribute('data-into') || null; return y(drawPreview); }
+      if (t.closest('[data-use]')) return use();
+    }
+    // welcome
+    if (t.closest('[data-start]')) { var nb = ui.newBid; close(); setTimeout(function () { if (window.MinestStarter && MinestStarter.has(nb)) MinestStarter.open({ bid: nb, add: true }); else if (window.MinestCapture) MinestCapture.open({ wbid: nb }); }, 180); return; }
+    if (t.closest('[data-explore]')) return home({ highlight: ui.newBid, top: true });
+  }
+
+  window.MinestMyWorld = { open: function () { home(); }, gallery: function () { shell(); gallery(); }, close: close, isOpen: function () { return ui.open; }, _welcome: welcome };
+})();
+
 /* Minest Knowledge · the one Dock icon for every knowledge view, plus JSON import.
    Contents · Outline · Knowledge Map · Timeline · Learning Map · Wiki (next), Import JSON…, the samples, Undo import.
    The sheet opens out of the Dock icon; picking a view opens it on the current board. */
@@ -62682,6 +62978,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     bd = document.createElement('div'); bd.className = 'kh-bd'; bd.addEventListener('pointerdown', function (e) { e.stopPropagation(); close(); });
     el = document.createElement('div'); el.className = 'kh'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Knowledge');
     el.innerHTML = '<h3>Knowledge</h3><div class="kh-grid">' + MODES.map(function (m) { var ok = !!m[4](); return '<button type="button" class="kh-m" data-mode="' + m[0] + '" style="--c:' + m[2] + '"' + (ok ? '' : ' disabled') + '><i>' + m[3] + '</i><b>' + m[1] + '</b></button>'; }).join('') + '</div>' +
+      (window.MinestMyWorld ? '<button type="button" class="kh-m kh-lom" data-myworld style="--c:#5e5ce6"><i>' + G('<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 3 2.5 13 0 16M12 4c-2.5 3-2.5 13 0 16"/>') + '</i><b>My World</b><small>A little universe of mine</small></button>' : '') +
       (window.MinestCapture ? '<button type="button" class="kh-m kh-lom" data-cap style="--c:#0a84ff"><i>' + G('<path d="M12 5v14M5 12h14"/>') + '</i><b>Add to My World</b><small>Type, paste, photo, import</small></button>' : '') +
       (window.MinestDiscover ? '<button type="button" class="kh-m kh-lom" data-disc style="--c:#ff9f0a"><i>' + G('<rect x="3" y="6" width="7" height="12" rx="2"/><rect x="14" y="6" width="7" height="12" rx="2"/><path d="M12 9v6"/>') + '</i><b>Discover My World</b><small>This or That · Tier List · Tournament</small></button>' : '') +
       (window.MinestWorld ? '<button type="button" class="kh-m kh-lom" data-lom style="--c:#7c8cff"><i>' + G('<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/><path d="M14 18h7"/>') + '</i><b>List of Mine</b><small>My world, my lists</small></button>' : '') +
@@ -62725,6 +63022,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     el.addEventListener('click', function (e) {
       var m = e.target.closest('[data-mode]');
       if (m) { var mod = MODES.filter(function (x) { return x[0] === m.getAttribute('data-mode'); })[0], api = mod && mod[4](); close(); if (api && api.open) setTimeout(function () { api.open(); }, 120); return; }
+      if (e.target.closest('[data-myworld]')) { close(); setTimeout(function () { MinestMyWorld.open(); }, 160); return; }
       if (e.target.closest('[data-cap]')) { close(); setTimeout(function () { MinestCapture.open(); }, 160); return; }
       if (e.target.closest('[data-disc]')) { close(); setTimeout(function () { MinestDiscover.open(); }, 160); return; }
       if (e.target.closest('[data-lom]')) { close(); setTimeout(function () { MinestWorld.open(); }, 160); return; }
