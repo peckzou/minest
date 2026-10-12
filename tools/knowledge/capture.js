@@ -24,7 +24,7 @@
   // ================================================================== words
   var STOP = ' a an the and or but if of to in on at for with from by about into over after before this that these those it its is are was were be been am i me my we our you your he she they them his her their what which who how why when where can could would should will just so very really also some any more most not no do does did have has had get got make made let lot lots there here than then as up out new one two all ';
   function stem(w) { w = w.toLowerCase(); if (w.length > 4 && /ies$/.test(w)) return w.slice(0, -3) + 'y'; if (w.length > 6 && /ing$/.test(w)) return w.slice(0, -3); if (w.length > 5 && /oes$/.test(w)) return w.slice(0, -2); if (w.length > 4 && /ed$/.test(w)) return w.slice(0, -2); if (w.length > 4 && /(ch|sh|x|z|ss)es$/.test(w)) return w.slice(0, -2); if (w.length > 3 && /s$/.test(w) && !/(ss|us|is)$/.test(w)) return w.slice(0, -1); return w; }
-  function words(s) { return (String(s || '').toLowerCase().match(/[a-z0-9一-鿿][a-z0-9'一-鿿-]*/g) || []).map(function (w) { return w.replace(/'s$/, '').replace(/'/g, ''); }).filter(function (w) { return w.length > 1 && STOP.indexOf(' ' + w + ' ') < 0; }); }
+  function words(s) { return (String(s || '').toLowerCase().match(/[a-z0-9一-鿿][a-z0-9'一-鿿-]*/g) || []).map(function (w) { return w.replace(/'s$/, '').replace(/'/g, ''); }).reduce(function (out, w) { out.push(w); if (w.indexOf('-') > 0) w.split('-').forEach(function (p) { out.push(p); }); return out; }, []).filter(function (w) { return w.length > 1 && STOP.indexOf(' ' + w + ' ') < 0; }); }   // re-read → also read
   function stems(s) { var o = {}; words(s).forEach(function (w) { o[stem(w)] = 1; }); return o; }
 
   // ---------------------------------------------------------------- topics (local rules — content topics only, never personal traits)
@@ -325,7 +325,7 @@
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
     if (el.animate) el.animate([{ opacity: 0, translate: '0 24px' }, { opacity: 1, translate: '0 0' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1)' });
     el.addEventListener('click', onClick);
-    el.addEventListener('input', function (e) { if (e.target.matches('[data-cap]')) { ui.draft = e.target.value; syncCap(); } if (e.target.matches('[data-batch]')) { ui.batchText = e.target.value; var n = splitBatch(ui.batchText).length; var g = ui.foot.querySelector('[data-review]'); if (g) { g.disabled = !n; g.textContent = n ? 'Review ' + n + ' item' + (n === 1 ? '' : 's') : 'Review'; } } if (e.target.matches('[data-find]')) { ui.q = e.target.value; drawPick(); } });
+    el.addEventListener('input', function (e) { if (e.target.matches('[data-cap]')) { ui.draft = e.target.value; syncCap(); } if (e.target.matches('[data-batch]')) { ui.batchText = e.target.value; var Jn = jsonItems(ui.batchText), n = Jn ? Jn.length : splitBatch(ui.batchText).length; var g = ui.foot.querySelector('[data-review]'); if (g) { g.disabled = !n; g.textContent = n ? 'Review ' + n + ' item' + (n === 1 ? '' : 's') : 'Review'; } } if (e.target.matches('[data-find]')) { ui.q = e.target.value; drawPick(); } });
     el.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.matches('[data-cap]')) { e.preventDefault(); goOrganize(); } });
     ui.file.addEventListener('change', function () { var f = ui.file.files && ui.file.files[0]; ui.file.value = ''; if (!f) return; shrink(f, 720, function (d) { if (!d) return toast('This picture could not be read.'); ui.img = d; home(true); }); });
   }
@@ -393,10 +393,11 @@
   }
   function drawOne() {
     var o = ui.one, it = o.item; ui.view = 'one'; head('Where should this go?', 'home');
-    var chip = function (c, cls) { return '<button type="button" class="wc-chip' + (o.on[c.id] ? ' on' : '') + '" data-on="' + esc(c.id) + '">' + (o.on[c.id] ? '✓ ' : '') + esc(c.title) + (cls ? '' : '') + '</button>'; };
+    var many = worldIds().length > 1;
+    var chip = function (c) { return '<button type="button" class="wc-chip' + (o.on[c.id] ? ' on' : '') + '" data-on="' + esc(c.id) + '">' + (o.on[c.id] ? '✓ ' : '') + esc(c.title) + (many ? ' <small>' + esc(c.board) + '</small>' : '') + '</button>'; };
     var extra = o.extra.filter(function (c) { return o.sg.top.indexOf(c) < 0 && o.sg.rel.indexOf(c) < 0; });
     ui.body.innerHTML = '<div class="wc-item">' + (it.img ? '<img alt="" src="' + esc(it.img) + '" style="width:100%;max-height:180px;object-fit:cover;border-radius:12px;margin-bottom:8px">' : '') + '<b>' + esc(it.title) + '</b>' + (it.text && it.text !== it.title ? '<div class="tx">' + esc(it.text) + '</div>' : '') + '</div>' +
-      '<div class="wc-h">Suggested</div>' + (o.sg.top.length ? '<div class="wc-chips">' + o.sg.top.map(function (c) { return chip(c); }).join('') + '</div>' : '<div class="wc-sub">No clear match yet' + (o.sg.fresh.length ? ' — maybe a new list?' : ' — it can wait in My Inbox, or pick a list below.') + '</div>') +
+      '<div class="wc-h">Suggested' + (o.sg.top.length && many ? ' · in ' + esc(o.sg.top[0].board) : '') + '</div>' + (o.sg.top.length ? '<div class="wc-chips">' + o.sg.top.map(function (c) { return chip(c); }).join('') + '</div>' : '<div class="wc-sub">No clear match yet' + (o.sg.fresh.length ? ' — maybe a new list?' : ' — it can wait in My Inbox, or pick a list below.') + '</div>') +
       (o.sg.rel.length || extra.length ? '<div class="wc-h">Also related</div><div class="wc-chips">' + o.sg.rel.concat(extra).map(function (c) { return chip(c); }).join('') + '</div>' : '') +
       (o.sg.fresh.length || o.ownNew ? '<div class="wc-h">New list</div><div class="wc-chips">' + o.sg.fresh.concat(o.ownNew ? [o.ownNew] : []).filter(function (v, i, a) { return a.indexOf(v) === i; }).map(function (n) { return '<button type="button" class="wc-chip new' + (o.fresh[n] ? ' on' : '') + '" data-fresh="' + esc(n) + '">' + (o.fresh[n] ? '✓ ' : '＋ ') + 'Create My ' + esc(n) + '</button>'; }).join('') + '</div>' : '') +
       '<div class="wc-h">More</div><div class="wc-chips"><button type="button" class="wc-chip" data-pick>' + ICON.plus + 'Another list…</button><button type="button" class="wc-chip" data-ownnew>' + ICON.plus + 'New list…</button>' +
@@ -430,15 +431,30 @@
   function importView() {
     ui.view = 'import'; head('Import', 'home');
     ui.body.innerHTML = '<p class="wc-sub">Paste notes, saved posts, a reading list or links — one per line (or separated by blank lines). Nothing is sent anywhere.</p><div class="wc-cap"><textarea data-batch style="min-height:46vh" placeholder="Paste here…">' + esc(ui.batchText || '') + '</textarea></div>' +
-      '<div class="wc-tools" style="margin-top:10px"><button type="button" class="wc-tool" data-txtfile>' + ICON.text + 'Open a .txt / .md file</button></div><input type="file" accept=".txt,.md,.csv,text/plain,text/markdown" hidden data-tf>';
-    var n = splitBatch(ui.batchText).length;
+      '<div class="wc-tools" style="margin-top:10px"><button type="button" class="wc-tool" data-txtfile>' + ICON.text + 'Open a file (.txt, .md, .json)</button></div><input type="file" accept=".txt,.md,.csv,.json,text/plain,text/markdown,application/json" hidden data-tf>';
+    var J0 = jsonItems(ui.batchText), n = J0 ? J0.length : splitBatch(ui.batchText).length;
+    if (J0) ui.body.insertAdjacentHTML('beforeend', '<p class="wc-sub" style="margin-top:8px">Read as JSON: ' + J0.length + ' item' + (J0.length === 1 ? '' : 's') + (J0.some(function (x) { return x.img; }) ? ', with pictures' : '') + '.</p>');
     ui.foot.hidden = false; ui.foot.innerHTML = '<button type="button" class="wc-go" data-review' + (n ? '' : ' disabled') + '>' + (n ? 'Review ' + n + ' item' + (n === 1 ? '' : 's') : 'Review') + '</button>';
     var tf = ui.body.querySelector('[data-tf]');
     tf.addEventListener('change', function () { var f = tf.files && tf.files[0]; if (!f) return; var rd = new FileReader(); rd.onload = function () { ui.batchText = String(rd.result || ''); importView(); }; rd.readAsText(f); });
   }
+  function jsonItems(text) {
+    var t = String(text || '').trim(); if (!/^[\[{]/.test(t)) return null; var j; try { j = JSON.parse(t); } catch (e) { return null; }
+    var arr = Array.isArray(j) ? j : Array.isArray(j.items) ? j.items : Array.isArray(j.cards) ? j.cards : null; if (!arr) return null;
+    return arr.slice(0, 300).map(function (o) {
+      if (typeof o === 'string') return makeItem(o, 'import');
+      if (!o || typeof o !== 'object') return null;
+      var title = String(o.title || o.name || o.text || '').trim(); if (!title) return null;
+      var it = makeItem(title, 'import'); if (!it) return null;
+      var note = String(o.note || o.description || o.desc || (o.title && o.text) || '').trim(); it.text = note || title;
+      var link = o.link || o.url; if (link && /^https?:\/\//i.test(link)) { it.link = link; if (!note) it.type = 'link'; }
+      var img = o.image || o.img; if (img && (/^https:\/\//i.test(img) || (/^data:image\//.test(img) && img.length < 400000))) { it.img = img; if (it.type === 'text') it.type = 'image'; }
+      it.title = title.slice(0, 120); return it;
+    }).filter(Boolean);
+  }
   function review() {
-    var parts = splitBatch(ui.batchText); if (!parts.length) return;
-    var cands = candidates(), rows = parts.map(function (p) { var it = makeItem(p, 'import'); var sg = suggest(it, cands); var on = {}; sg.top.slice(0, 3).forEach(function (c) { on[c.id] = 1; }); return { item: it, sg: sg, on: on }; });
+    var J = jsonItems(ui.batchText), parts = J ? J : splitBatch(ui.batchText); if (!parts.length) return;
+    var cands = candidates(), rows = parts.map(function (p) { var it = typeof p === 'string' ? makeItem(p, 'import') : p; var sg = suggest(it, cands); var on = {}; sg.top.slice(0, 3).forEach(function (c) { on[c.id] = 1; }); return { item: it, sg: sg, on: on }; });
     // recurring themes in the batch: topics many items share
     var count = {}; rows.forEach(function (r) { Object.keys(r.sg.topics).forEach(function (t) { count[t] = (count[t] || 0) + 1; }); });
     var themes = Object.keys(count).filter(function (t) { return count[t] >= 3 && GENERAL.indexOf(t) < 0; }).sort(function (a, b) { return count[b] - count[a]; }).slice(0, 5);
@@ -452,7 +468,7 @@
     ui.body.innerHTML = (th.length ? '<div class="wc-h">Recurring themes</div>' + th.map(function (t) { return '<div class="wc-theme"><div>You have <b>' + t.n + ' items</b> related to <b>' + esc(t.name) + '</b>. Create <b>My ' + esc(t.name) + '</b>?</div><button type="button" class="wc-sw' + (t.make ? ' on' : '') + '" data-theme="' + esc(t.name) + '" aria-label="Create My ' + esc(t.name) + '"></button></div>'; }).join('') : '') +
       '<div class="wc-h">Items</div>' + B.rows.map(function (r, i) {
         var opts = r.sg.top.concat(r.sg.rel).slice(0, 5), mk = th.filter(function (t) { return t.make && r.sg.topics[t.name]; });
-        return '<div class="wc-item"><b>' + esc(r.item.title) + '</b><div class="wc-chips">' + opts.map(function (c) { return '<button type="button" class="wc-chip' + (r.on[c.id] ? ' on' : '') + '" data-ron="' + i + ':' + esc(c.id) + '">' + (r.on[c.id] ? '✓ ' : '') + esc(c.title) + '</button>'; }).join('') +
+        return '<div class="wc-item"><b>' + esc(r.item.title) + '</b><div class="wc-chips">' + opts.map(function (c) { return '<button type="button" class="wc-chip' + (r.on[c.id] ? ' on' : '') + '" data-ron="' + i + ':' + esc(c.id) + '">' + (r.on[c.id] ? '✓ ' : '') + esc(c.title) + (worldIds().length > 1 ? ' <small>' + esc(c.board) + '</small>' : '') + '</button>'; }).join('') +
           mk.map(function (t) { return '<span class="wc-chip new on">✓ My ' + esc(t.name) + '</span>'; }).join('') +
           (!opts.length && !mk.length ? '<span class="wc-chip" style="opacity:.6;cursor:default">→ My Inbox</span>' : '') + '<button type="button" class="wc-chip" data-rpick="' + i + '">' + ICON.plus + '</button></div></div>';
       }).join('');

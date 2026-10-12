@@ -58,8 +58,8 @@
   var ICON = { x: I('<path d="M6 6l12 12M18 6 6 18"/>'), back: I('<path d="m15 6-6 6 6 6"/>'), search: I('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>'), gear: I('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
     plus: I('<path d="M12 5v14M5 12h14"/>'), spark: I('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'), more: I('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'), chev: I('<path d="m9 6 6 6-6 6"/>'), check: I('<path d="M5 12.5l4.5 4.5L19 7.5"/>') };
   var CSS = [
-    '.mw{position:fixed;inset:0;z-index:2147482004;display:flex;flex-direction:column;color:var(--mw-ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:var(--mw-bg);--mw-ink:#f4f5f8;--mw-sub:rgba(244,245,248,.62);--mw-bg:linear-gradient(180deg,#141821,#0b0d13);--mw-card:rgba(255,255,255,.06);--mw-line:rgba(255,255,255,.1);--mw-fill:rgba(255,255,255,.08);--mw-blue:#0a84ff}',
-    'html.kn-light .mw{--mw-ink:#15171c;--mw-sub:rgba(21,23,28,.6);--mw-bg:linear-gradient(180deg,#f6f7fa,#eceef3);--mw-card:#fff;--mw-line:rgba(0,0,0,.08);--mw-fill:rgba(0,0,0,.05);--mw-blue:#007aff}',
+    '.mw{position:fixed;inset:0;z-index:2147482004;display:flex;flex-direction:column;color:var(--mw-ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:var(--mw-bg);--mw-ink:#f4f5f8;--mw-sub:rgba(244,245,248,.62);--mw-bg:linear-gradient(180deg,#141821,#0b0d13);--mw-card:rgba(255,255,255,.06);--mw-line:rgba(255,255,255,.1);--mw-fill:rgba(255,255,255,.08);--mw-blue:#0a84ff;--mw-sheet:#1d212c}',
+    'html.kn-light .mw{--mw-ink:#15171c;--mw-sub:rgba(21,23,28,.6);--mw-bg:linear-gradient(180deg,#f6f7fa,#eceef3);--mw-card:#fff;--mw-line:rgba(0,0,0,.08);--mw-fill:rgba(0,0,0,.05);--mw-blue:#007aff;--mw-sheet:#fff}',
     '.mw-head{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 4px}',
     '.mw-head .ti{flex:1;min-width:0}.mw-head h1{margin:0;font-size:32px;font-weight:800;letter-spacing:-.8px;line-height:1.05}.mw-head p{margin:3px 0 0;font-size:14px;color:var(--mw-sub)}',
     '.mw-head h2{flex:1;min-width:0;margin:0;font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
@@ -108,7 +108,8 @@
     // welcome
     '.mw-ready{text-align:center;padding:16px 0 4px}.mw-ready b{display:block;font-size:30px;font-weight:850;letter-spacing:-.6px}.mw-ready span{color:var(--mw-sub)}',
     '.mw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.mw-stats div{padding:14px 8px;border-radius:16px;background:var(--mw-card);box-shadow:inset 0 0 0 1px var(--mw-line);text-align:center}.mw-stats b{display:block;font-size:26px;font-weight:800}.mw-stats span{font-size:12.5px;color:var(--mw-sub)}',
-    '.mw-menu{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:9;padding:8px;border-radius:20px;background:var(--mw-card);box-shadow:0 20px 50px rgba(0,0,0,.4),inset 0 0 0 1px var(--mw-line)}.mw-menu h4{margin:8px 10px;font-size:15px}.mw-menu button{display:block;width:100%;text-align:left;padding:13px 12px;border:0;border-radius:12px;background:none;color:inherit;font:inherit;cursor:pointer}.mw-menu button:hover{background:var(--mw-fill)}',
+    '.mw-dim{position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.35)}',
+    '.mw-menu{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:9;padding:8px;border-radius:20px;background:var(--mw-sheet);box-shadow:0 20px 50px rgba(0,0,0,.4),inset 0 0 0 1px var(--mw-line)}.mw-menu h4{margin:8px 12px 4px;font-size:13px;font-weight:600;color:var(--mw-sub)}.mw-menu button{display:block;width:100%;text-align:left;padding:13px 12px;border:0;border-radius:12px;background:none;color:inherit;font:inherit;cursor:pointer}.mw-menu button:hover{background:var(--mw-fill)}',
     '@media (min-width:700px){.mw-menu{left:50%;right:auto;width:400px;transform:translateX(-50%)}}',
     '.mw-seg button[data-wmoreviews]{flex:0 0 44px;display:grid;place-items:center}',
     '.mw-lh{margin:10px 8px 4px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mw-sub)}',
@@ -148,8 +149,8 @@
   function go(view, fn) { keepScroll(); closeMenu(); ui.view = view; ui.foot.hidden = true; ui.foot.innerHTML = ''; fn(); }
   function headSmall(title, back) { ui.head.innerHTML = (back ? '<button type="button" class="mw-b" data-back="' + esc(back) + '" aria-label="Back">' + ICON.back + '</button>' : '') + '<h2>' + esc(title) + '</h2><button type="button" class="mw-b" data-x aria-label="Close">' + ICON.x + '</button>'; }
   function foot(h) { ui.foot.hidden = !h; ui.foot.innerHTML = h || ''; }
-  function closeMenu() { if (ui.menu) { ui.menu.remove(); ui.menu = null; } }
-  function menu(title, items) { closeMenu(); var m = document.createElement('div'); m.className = 'mw-menu'; m.innerHTML = '<h4>' + esc(title) + '</h4>' + items.map(function (x, i) { return '<button type="button" data-mi="' + i + '">' + esc(x[0]) + '</button>'; }).join('') + '<button type="button" data-mx>Cancel</button>'; ui.el.appendChild(m); ui.menu = m; ui.menuItems = items; }
+  function closeMenu() { if (ui.menu) { ui.menu.remove(); ui.menu = null; } if (ui.dim) { ui.dim.remove(); ui.dim = null; } }
+  function menu(title, items) { closeMenu(); var m = document.createElement('div'); m.className = 'mw-menu'; m.innerHTML = '<h4>' + esc(title) + '</h4>' + items.map(function (x, i) { return '<button type="button" data-mi="' + i + '">' + esc(x[0]) + '</button>'; }).join('') + '<button type="button" data-mx>Cancel</button>'; var d = document.createElement('div'); d.className = 'mw-dim'; ui.el.appendChild(d); ui.dim = d; ui.el.appendChild(m); ui.menu = m; ui.menuItems = items; if (m.animate && !reduce) m.animate([{ opacity: 0, translate: '0 16px' }, { opacity: 1, translate: '0 0' }], { duration: 200, easing: 'cubic-bezier(.2,.85,.25,1)' }); }
 
   // ---------------------------------------------------------------- 1 · My World home
   function home(o) {
@@ -345,12 +346,12 @@
     if (t.closest('[data-mix]')) { close(); setTimeout(function () { MinestBuilder.mix(); }, 180); return; }
     if (t.closest('[data-scratch]')) { close(); setTimeout(function () { MinestBuilder.scratch(); }, 180); return; }
     if (t.closest('[data-classic]')) { close(); setTimeout(function () { W().open(); }, 180); return; }
-    if (t.closest('[data-add]')) { close(); setTimeout(function () { if (window.MinestCapture) MinestCapture.open(); }, 180); return; }
-    if (t.closest('[data-discover]')) { close(); setTimeout(function () { if (window.MinestDiscover) MinestDiscover.open(); }, 180); return; }
+    if (t.closest('[data-add]')) return addMenu(null);
+    if (t.closest('[data-discover]')) return launch(function () { MinestDiscover.open(); }, function () { return MinestDiscover.isOpen(); });
     if ((g = t.closest('[data-log]'))) { var lg = KN().get('wl:' + g.getAttribute('data-log')); if (lg) return openLog(lg); }
-    if (t.closest('[data-recent]')) { close(); setTimeout(function () { if (window.MinestCapture) MinestCapture.open(); }, 180); return; }
+    if (t.closest('[data-recent]')) return launch(function () { MinestCapture.open(); }, function () { return MinestCapture.isOpen(); });
     if ((g = t.closest('[data-wmore]'))) { e.stopPropagation(); var bid = g.getAttribute('data-wmore'), b = boardById(bid);
-      return menu(b ? b.title : 'World', [['Open', function () { worldView(bid); }], ['Open in its home view', function () { openWorldCard(bid); }], ['Change cover', function () { ui.coverFor = bid; ui.file.click(); }], ['Use the default cover', function () { KN().set('wa:' + bid, Object.assign({}, KN().get('wa:' + bid) || {}, { cover: '' })); home(); }]].concat(window.MinestBuilder ? [['Customize', function () { close(); setTimeout(function () { MinestBuilder.open(bid); }, 180); }]] : []).concat(window.MinestCapture ? [['Add to this world', function () { close(); setTimeout(function () { MinestCapture.open({ wbid: bid }); }, 180); }]] : [])); }
+      return menu(b ? b.title : 'World', [['Open', function () { worldView(bid); }], ['Open in its home view', function () { openWorldCard(bid); }], ['Change cover', function () { ui.coverFor = bid; ui.file.click(); }], ['Use the default cover', function () { KN().set('wa:' + bid, Object.assign({}, KN().get('wa:' + bid) || {}, { cover: '' })); home(); }]].concat(window.MinestBuilder ? [['Customize', function () { close(); setTimeout(function () { MinestBuilder.open(bid); }, 180); }]] : []).concat(window.MinestCapture ? [['Add to this world', function () { addMenu(bid); }]] : [])); }
     if ((g = t.closest('[data-world]'))) { hap('selection'); return worldView(g.getAttribute('data-world')); }
     if (ui.view === 'world') {
       var S = ui.ws, wb = ui.wb, keep = function (fn) { var y0 = ui.body.scrollTop; fn(); ui.body.scrollTop = y0; };
@@ -360,9 +361,9 @@
       if ((g = t.closest('[data-wlist]'))) { var lid = g.getAttribute('data-wlist'); if (S.open[lid]) delete S.open[lid]; else { S.open[lid] = 1; if (KN().get('wn:' + lid)) KN().set('wn:' + lid, null, true); } stSave(wb, S); return keep(drawWorld); }
       if ((g = t.closest('[data-witem]'))) { saveWorldState(); var sid = g.getAttribute('data-witem'); if (window.MinestStarter && MinestStarter.openItem) { MinestStarter.openItem(wb, sid); watchBack(); } return; }
       if ((g = t.closest('[data-waddto]'))) { saveWorldState(); var cid = g.getAttribute('data-waddto'); if (window.MinestStarter && MinestStarter.addTo) { MinestStarter.addTo(wb, cid); watchBack(); } return; }
-      if ((g = t.closest('[data-wpick]'))) { saveWorldState(); var pc = g.getAttribute('data-wpick'); close(); setTimeout(function () { MinestPicker.open({ bid: wb, cardId: pc }); }, 180); return; }
-      if ((g = t.closest('[data-wplay]'))) { saveWorldState(); var pl = g.getAttribute('data-wplay'); close(); setTimeout(function () { MinestDiscover.open({ bid: wb, cardId: pl }); }, 180); return; }
-      if (t.closest('[data-wadd]')) { saveWorldState(); close(); setTimeout(function () { if (window.MinestStarter && MinestStarter.has(wb) && (KN().get('fd:' + wb) || {}).packs && Object.keys(KN().get('fd:' + wb).packs).some(function (k) { return KN().get('fd:' + wb).packs[k].quickAdd; })) MinestStarter.open({ bid: wb, add: true }); else if (window.MinestCapture) MinestCapture.open({ wbid: wb }); }, 180); return; }
+      if ((g = t.closest('[data-wpick]'))) { saveWorldState(); var pc = g.getAttribute('data-wpick'); return launch(function () { MinestPicker.open({ bid: wb, cardId: pc }); }, function () { return MinestPicker.isOpen(); }); }
+      if ((g = t.closest('[data-wplay]'))) { saveWorldState(); var pl = g.getAttribute('data-wplay'); return launch(function () { MinestDiscover.open({ bid: wb, cardId: pl }); }, function () { return MinestDiscover.isOpen(); }); }
+      if (t.closest('[data-wadd]')) { saveWorldState(); return addMenu(wb); }
     }
     if ((g = t.closest('[data-tpl]'))) { var tp = tplById(g.getAttribute('data-tpl')); if (tp) preview(tp); return; }
     // preview
@@ -380,5 +381,25 @@
   }
 
   function watchBack() { var t0 = Date.now(); (function w() { if (!ui.open || ui.view !== 'world') return; if (window.MinestStarter && MinestStarter.isOpen()) { setTimeout(w, 250); return; } if (Date.now() - t0 > 400) { var y = ui.body.scrollTop; drawWorld(); ui.body.scrollTop = y; } })(); setTimeout(function w2() { if (window.MinestStarter && MinestStarter.isOpen()) return setTimeout(w2, 250); if (ui.open && ui.view === 'world') { var y = ui.body.scrollTop; drawWorld(); ui.body.scrollTop = y; } }, 300); }
+  // ---------------------------------------------------------------- tools opened from My World come back to the same place
+  function anyOverlay() { return !!document.querySelector('.lw,.sk,.wk,.pk,.wc,.dv,.st,.bd,.mw,.tl,.en,.km,.lm'); }
+  function launch(fn, isOpen) {
+    var ret = { view: ui.view, wb: ui.wb }; close();
+    setTimeout(function () {
+      try { fn(); } catch (e) { return; }
+      var t0 = Date.now(), seen = false;
+      (function poll() { var o = false; try { o = isOpen(); } catch (e) {} if (o) seen = true;
+        if (seen && !o) { setTimeout(function () { if (!anyOverlay()) { if (ret.view === 'world' && ret.wb && boardById(ret.wb)) worldView(ret.wb); else home(); } }, 120); return; }
+        if (!seen && Date.now() - t0 > 4000) return; setTimeout(poll, 300); })();
+    }, 180);
+  }
+  function chooseWorld(wb, cb) { if (wb) return cb(wb); var ws = W() ? W().worlds() : []; if (!ws.length) return gallery(); if (ws.length === 1) return cb(ws[0].b.id); menu('Which world?', ws.map(function (x) { return [x.b.title, function () { cb(x.b.id); }]; })); }
+  function addMenu(wb) {
+    var items = [['Add anything — type, paste, a link or a photo', function () { launch(function () { MinestCapture.open(wb ? { wbid: wb } : {}); }, function () { return MinestCapture.isOpen(); }); }]];
+    if (wb && window.MinestStarter) { var fd = KN().get('fd:' + wb); var qa = fd && Object.keys(fd.packs || {}).map(function (k) { return fd.packs[k].quickAdd; }).filter(Boolean)[0]; if (qa) items.unshift([qa.label, function () { launch(function () { MinestStarter.open({ bid: wb, add: true }); }, function () { return MinestStarter.isOpen(); }); }]); }
+    if (window.MinestPicker) items.push(['Pick favourites — pictures, bubbles, step by step', function () { chooseWorld(wb, function (bid) { launch(function () { MinestPicker.home(bid); }, function () { return MinestPicker.isOpen(); }); }); }]);
+    if (window.MinestCapture) items.push(['Import text or JSON', function () { launch(function () { MinestCapture.open(wb ? { wbid: wb, import: true } : { import: true }); }, function () { return MinestCapture.isOpen(); }); }]);
+    menu(wb ? 'Add to ' + (boardById(wb) || {}).title : 'Add to My World', items);
+  }
   window.MinestMyWorld = { world: function (bid, o) { worldView(bid, o); }, open: function () { home(); }, gallery: function () { shell(); gallery(); }, close: close, isOpen: function () { return ui.open; }, _welcome: welcome };
 })();

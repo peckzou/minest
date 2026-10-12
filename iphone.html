@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 51.6 · My World Views</title>
+    <title>Minest iPhone 51.7 · Quick Add & Pick</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21476,7 +21476,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "51.6" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "51.7" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -59405,6 +59405,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     '.pk-own button{height:40px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);color:inherit;font:650 14px -apple-system,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:4px}',
     '.pk-sum{margin:0 0 8px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)}.pk-sum b{display:block;font-size:13px;opacity:.6;margin-bottom:6px}',
     '.pk-empty{padding:40px 16px;text-align:center;opacity:.6}',
+    '.pk-facets{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 14px 8px}.pk-facets::-webkit-scrollbar{display:none}.pk-facets .pk-chip{flex:none;min-height:30px;padding:4px 12px;font-size:13px}',
     // light
     'html.kn-light .pk{color:#1d1f23;background:linear-gradient(180deg,rgba(244,246,250,.93),rgba(232,236,243,.97))}',
     'html.kn-light .pk-b,html.kn-light .pk-row,html.kn-light .pk-chip,html.kn-light .pk-find,html.kn-light .pk-own input,html.kn-light .pk-own button,html.kn-light .pk-sum{background:rgba(255,255,255,.82);border-color:rgba(0,0,0,.08);box-shadow:inset 0 1px 0 #fff,0 6px 18px rgba(30,40,60,.07)}',
@@ -59447,7 +59448,13 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     ui.back = back || null; ui.draw = null; ui.q = ''; ui.foot.hidden = true; ui.foot.innerHTML = ''; ui.body.scrollTop = 0;
   }
   function findBox(ph) { ui.top.insertAdjacentHTML('beforeend', '<label class="pk-find">' + ICON.search + '<input data-find type="search" placeholder="' + esc(ph) + '" autocomplete="off"></label>'); }
-  function match(it) { var q = norm(ui.q || ''); return !q || norm(it.title + ' ' + (it.sub || '') + ' ' + (it.tag || '')).indexOf(q) >= 0; }
+  function facetOf(it) { return it.tag || (ui.cat && ui.cat.kind === 'bubble' && it.sub ? String(it.sub).split(' · ')[0] : ''); }
+  function match(it) { var q = norm(ui.q || ''); if (ui.facet && facetOf(it) !== ui.facet) return false; return !q || norm(it.title + ' ' + (it.sub || '') + ' ' + (it.tag || '')).indexOf(q) >= 0; }
+  function facetRow() {
+    var seen = {}, list = []; itemsNow().forEach(function (it) { var f = facetOf(it); if (f && !seen[f]) { seen[f] = 1; list.push(f); } });
+    if (list.length < 2 || list.length > 12) return '';
+    return '<div class="pk-facets">' + ['All'].concat(list).map(function (f) { var on = (f === 'All' && !ui.facet) || ui.facet === f; return '<button type="button" class="pk-chip' + (on ? ' on' : '') + '" data-facet="' + esc(f === 'All' ? '' : f) + '">' + esc(f) + '</button>'; }).join('') + '</div>';
+  }
 
   // ---------------------------------------------------------------- Quick Add home: the lists of a world you can fill
   function home(bid) {
@@ -59512,9 +59519,9 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   // ---------------------------------------------------------------- 16 · Gallery (IMDb-style)
   function gallery(bid, cardId, c, back) {
     if (!startPick(bid, cardId, c, back)) return;
-    ui.view = 'gallery'; ui.top.innerHTML = '<p class="pk-sub">Tap ○ to pick · tap the poster to see it</p>'; findBox('Search ' + c.title.toLowerCase());
+    ui.view = 'gallery'; ui.facet = ''; ui.top.innerHTML = '<p class="pk-sub">Tap ○ to pick · tap the poster to see it</p>'; findBox('Search ' + c.title.toLowerCase()); ui.top.insertAdjacentHTML('beforeend', '<div data-facets></div>');
     ui.draw = function () {
-      var list = itemsNow().filter(match);
+      var list = itemsNow().filter(match), fb = ui.top.querySelector('[data-facets]'); if (fb) fb.innerHTML = facetRow();
       ui.body.innerHTML = '<div class="pk-grid">' + list.map(function (it) {
         var inn = isIn(it), on = !!ui.sel[it.id];
         return '<div class="pk-tile' + (on ? ' on' : '') + (inn ? ' in' : '') + '" data-open="' + esc(it.id) + '">' + poster(c, ui.sel[it.id] || it) +
@@ -59556,9 +59563,9 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   // ---------------------------------------------------------------- 17 · Bubbles (Apple Music-style) — plain CSS, no physics
   function bubbles(bid, cardId, c, back) {
     if (!startPick(bid, cardId, c, back)) return;
-    ui.view = 'bubble'; ui.top.innerHTML = '<p class="pk-sub">Tap the ones you love · tap again to drop</p>'; findBox('Search ' + c.title.toLowerCase());
+    ui.view = 'bubble'; ui.facet = ''; ui.top.innerHTML = '<p class="pk-sub">Tap the ones you love · tap again to drop</p>'; findBox('Search ' + c.title.toLowerCase()); ui.top.insertAdjacentHTML('beforeend', '<div data-facets></div>');
     ui.draw = function () {
-      var list = itemsNow().filter(match);
+      var list = itemsNow().filter(match), fb = ui.top.querySelector('[data-facets]'); if (fb) fb.innerHTML = facetRow();
       ui.body.innerHTML = '<div class="pk-bub">' + list.map(function (it) {
         var h = hash(it.title), s = 74 + h % 34, inn = isIn(it), on = !!ui.sel[it.id], im = imgOf(c, ui.sel[it.id] || it);
         return '<button type="button" class="pk-bb' + (on ? ' on' : '') + (inn ? ' in' : '') + '" data-bub="' + esc(it.id) + '" style="--s:' + s + 'px" aria-pressed="' + on + '">' +
@@ -59681,6 +59688,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     var fl = t.closest('[data-fill]'); if (fl) return openList(ui.bid, fl.getAttribute('data-fill'), 'home');
     var sk = t.closest('[data-skills]'); if (sk) return skills(ui.bid, sk.getAttribute('data-skills'), 'home');
     var nl = t.closest('[data-newlist]'); if (nl) { var c = cat(nl.getAttribute('data-newlist')); if (c) ensureList(ui.bid, c).then(function (cid) { openList(ui.bid, cid, 'home'); }).catch(function (ex) { toast('✗ ' + ex.message); }); return; }
+    var fg = t.closest('[data-facet]'); if (fg) { ui.facet = fg.getAttribute('data-facet'); ui.draw(); ui.body.scrollTop = 0; return; }
     if (t.closest('[data-commit]')) return commit();
     if (t.closest('[data-own]')) return ownSheet();
     if (t.closest('[data-ownadd]')) return addOwn(ui.body.querySelector('[data-ownin]'));
@@ -59747,7 +59755,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   // ================================================================== words
   var STOP = ' a an the and or but if of to in on at for with from by about into over after before this that these those it its is are was were be been am i me my we our you your he she they them his her their what which who how why when where can could would should will just so very really also some any more most not no do does did have has had get got make made let lot lots there here than then as up out new one two all ';
   function stem(w) { w = w.toLowerCase(); if (w.length > 4 && /ies$/.test(w)) return w.slice(0, -3) + 'y'; if (w.length > 6 && /ing$/.test(w)) return w.slice(0, -3); if (w.length > 5 && /oes$/.test(w)) return w.slice(0, -2); if (w.length > 4 && /ed$/.test(w)) return w.slice(0, -2); if (w.length > 4 && /(ch|sh|x|z|ss)es$/.test(w)) return w.slice(0, -2); if (w.length > 3 && /s$/.test(w) && !/(ss|us|is)$/.test(w)) return w.slice(0, -1); return w; }
-  function words(s) { return (String(s || '').toLowerCase().match(/[a-z0-9一-鿿][a-z0-9'一-鿿-]*/g) || []).map(function (w) { return w.replace(/'s$/, '').replace(/'/g, ''); }).filter(function (w) { return w.length > 1 && STOP.indexOf(' ' + w + ' ') < 0; }); }
+  function words(s) { return (String(s || '').toLowerCase().match(/[a-z0-9一-鿿][a-z0-9'一-鿿-]*/g) || []).map(function (w) { return w.replace(/'s$/, '').replace(/'/g, ''); }).reduce(function (out, w) { out.push(w); if (w.indexOf('-') > 0) w.split('-').forEach(function (p) { out.push(p); }); return out; }, []).filter(function (w) { return w.length > 1 && STOP.indexOf(' ' + w + ' ') < 0; }); }   // re-read → also read
   function stems(s) { var o = {}; words(s).forEach(function (w) { o[stem(w)] = 1; }); return o; }
 
   // ---------------------------------------------------------------- topics (local rules — content topics only, never personal traits)
@@ -60048,7 +60056,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     document.body.appendChild(el); document.documentElement.classList.add('kn-open');
     if (el.animate) el.animate([{ opacity: 0, translate: '0 24px' }, { opacity: 1, translate: '0 0' }], { duration: 300, easing: 'cubic-bezier(.2,.85,.25,1)' });
     el.addEventListener('click', onClick);
-    el.addEventListener('input', function (e) { if (e.target.matches('[data-cap]')) { ui.draft = e.target.value; syncCap(); } if (e.target.matches('[data-batch]')) { ui.batchText = e.target.value; var n = splitBatch(ui.batchText).length; var g = ui.foot.querySelector('[data-review]'); if (g) { g.disabled = !n; g.textContent = n ? 'Review ' + n + ' item' + (n === 1 ? '' : 's') : 'Review'; } } if (e.target.matches('[data-find]')) { ui.q = e.target.value; drawPick(); } });
+    el.addEventListener('input', function (e) { if (e.target.matches('[data-cap]')) { ui.draft = e.target.value; syncCap(); } if (e.target.matches('[data-batch]')) { ui.batchText = e.target.value; var Jn = jsonItems(ui.batchText), n = Jn ? Jn.length : splitBatch(ui.batchText).length; var g = ui.foot.querySelector('[data-review]'); if (g) { g.disabled = !n; g.textContent = n ? 'Review ' + n + ' item' + (n === 1 ? '' : 's') : 'Review'; } } if (e.target.matches('[data-find]')) { ui.q = e.target.value; drawPick(); } });
     el.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.target.matches('[data-cap]')) { e.preventDefault(); goOrganize(); } });
     ui.file.addEventListener('change', function () { var f = ui.file.files && ui.file.files[0]; ui.file.value = ''; if (!f) return; shrink(f, 720, function (d) { if (!d) return toast('This picture could not be read.'); ui.img = d; home(true); }); });
   }
@@ -60116,10 +60124,11 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   }
   function drawOne() {
     var o = ui.one, it = o.item; ui.view = 'one'; head('Where should this go?', 'home');
-    var chip = function (c, cls) { return '<button type="button" class="wc-chip' + (o.on[c.id] ? ' on' : '') + '" data-on="' + esc(c.id) + '">' + (o.on[c.id] ? '✓ ' : '') + esc(c.title) + (cls ? '' : '') + '</button>'; };
+    var many = worldIds().length > 1;
+    var chip = function (c) { return '<button type="button" class="wc-chip' + (o.on[c.id] ? ' on' : '') + '" data-on="' + esc(c.id) + '">' + (o.on[c.id] ? '✓ ' : '') + esc(c.title) + (many ? ' <small>' + esc(c.board) + '</small>' : '') + '</button>'; };
     var extra = o.extra.filter(function (c) { return o.sg.top.indexOf(c) < 0 && o.sg.rel.indexOf(c) < 0; });
     ui.body.innerHTML = '<div class="wc-item">' + (it.img ? '<img alt="" src="' + esc(it.img) + '" style="width:100%;max-height:180px;object-fit:cover;border-radius:12px;margin-bottom:8px">' : '') + '<b>' + esc(it.title) + '</b>' + (it.text && it.text !== it.title ? '<div class="tx">' + esc(it.text) + '</div>' : '') + '</div>' +
-      '<div class="wc-h">Suggested</div>' + (o.sg.top.length ? '<div class="wc-chips">' + o.sg.top.map(function (c) { return chip(c); }).join('') + '</div>' : '<div class="wc-sub">No clear match yet' + (o.sg.fresh.length ? ' — maybe a new list?' : ' — it can wait in My Inbox, or pick a list below.') + '</div>') +
+      '<div class="wc-h">Suggested' + (o.sg.top.length && many ? ' · in ' + esc(o.sg.top[0].board) : '') + '</div>' + (o.sg.top.length ? '<div class="wc-chips">' + o.sg.top.map(function (c) { return chip(c); }).join('') + '</div>' : '<div class="wc-sub">No clear match yet' + (o.sg.fresh.length ? ' — maybe a new list?' : ' — it can wait in My Inbox, or pick a list below.') + '</div>') +
       (o.sg.rel.length || extra.length ? '<div class="wc-h">Also related</div><div class="wc-chips">' + o.sg.rel.concat(extra).map(function (c) { return chip(c); }).join('') + '</div>' : '') +
       (o.sg.fresh.length || o.ownNew ? '<div class="wc-h">New list</div><div class="wc-chips">' + o.sg.fresh.concat(o.ownNew ? [o.ownNew] : []).filter(function (v, i, a) { return a.indexOf(v) === i; }).map(function (n) { return '<button type="button" class="wc-chip new' + (o.fresh[n] ? ' on' : '') + '" data-fresh="' + esc(n) + '">' + (o.fresh[n] ? '✓ ' : '＋ ') + 'Create My ' + esc(n) + '</button>'; }).join('') + '</div>' : '') +
       '<div class="wc-h">More</div><div class="wc-chips"><button type="button" class="wc-chip" data-pick>' + ICON.plus + 'Another list…</button><button type="button" class="wc-chip" data-ownnew>' + ICON.plus + 'New list…</button>' +
@@ -60153,15 +60162,30 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   function importView() {
     ui.view = 'import'; head('Import', 'home');
     ui.body.innerHTML = '<p class="wc-sub">Paste notes, saved posts, a reading list or links — one per line (or separated by blank lines). Nothing is sent anywhere.</p><div class="wc-cap"><textarea data-batch style="min-height:46vh" placeholder="Paste here…">' + esc(ui.batchText || '') + '</textarea></div>' +
-      '<div class="wc-tools" style="margin-top:10px"><button type="button" class="wc-tool" data-txtfile>' + ICON.text + 'Open a .txt / .md file</button></div><input type="file" accept=".txt,.md,.csv,text/plain,text/markdown" hidden data-tf>';
-    var n = splitBatch(ui.batchText).length;
+      '<div class="wc-tools" style="margin-top:10px"><button type="button" class="wc-tool" data-txtfile>' + ICON.text + 'Open a file (.txt, .md, .json)</button></div><input type="file" accept=".txt,.md,.csv,.json,text/plain,text/markdown,application/json" hidden data-tf>';
+    var J0 = jsonItems(ui.batchText), n = J0 ? J0.length : splitBatch(ui.batchText).length;
+    if (J0) ui.body.insertAdjacentHTML('beforeend', '<p class="wc-sub" style="margin-top:8px">Read as JSON: ' + J0.length + ' item' + (J0.length === 1 ? '' : 's') + (J0.some(function (x) { return x.img; }) ? ', with pictures' : '') + '.</p>');
     ui.foot.hidden = false; ui.foot.innerHTML = '<button type="button" class="wc-go" data-review' + (n ? '' : ' disabled') + '>' + (n ? 'Review ' + n + ' item' + (n === 1 ? '' : 's') : 'Review') + '</button>';
     var tf = ui.body.querySelector('[data-tf]');
     tf.addEventListener('change', function () { var f = tf.files && tf.files[0]; if (!f) return; var rd = new FileReader(); rd.onload = function () { ui.batchText = String(rd.result || ''); importView(); }; rd.readAsText(f); });
   }
+  function jsonItems(text) {
+    var t = String(text || '').trim(); if (!/^[\[{]/.test(t)) return null; var j; try { j = JSON.parse(t); } catch (e) { return null; }
+    var arr = Array.isArray(j) ? j : Array.isArray(j.items) ? j.items : Array.isArray(j.cards) ? j.cards : null; if (!arr) return null;
+    return arr.slice(0, 300).map(function (o) {
+      if (typeof o === 'string') return makeItem(o, 'import');
+      if (!o || typeof o !== 'object') return null;
+      var title = String(o.title || o.name || o.text || '').trim(); if (!title) return null;
+      var it = makeItem(title, 'import'); if (!it) return null;
+      var note = String(o.note || o.description || o.desc || (o.title && o.text) || '').trim(); it.text = note || title;
+      var link = o.link || o.url; if (link && /^https?:\/\//i.test(link)) { it.link = link; if (!note) it.type = 'link'; }
+      var img = o.image || o.img; if (img && (/^https:\/\//i.test(img) || (/^data:image\//.test(img) && img.length < 400000))) { it.img = img; if (it.type === 'text') it.type = 'image'; }
+      it.title = title.slice(0, 120); return it;
+    }).filter(Boolean);
+  }
   function review() {
-    var parts = splitBatch(ui.batchText); if (!parts.length) return;
-    var cands = candidates(), rows = parts.map(function (p) { var it = makeItem(p, 'import'); var sg = suggest(it, cands); var on = {}; sg.top.slice(0, 3).forEach(function (c) { on[c.id] = 1; }); return { item: it, sg: sg, on: on }; });
+    var J = jsonItems(ui.batchText), parts = J ? J : splitBatch(ui.batchText); if (!parts.length) return;
+    var cands = candidates(), rows = parts.map(function (p) { var it = typeof p === 'string' ? makeItem(p, 'import') : p; var sg = suggest(it, cands); var on = {}; sg.top.slice(0, 3).forEach(function (c) { on[c.id] = 1; }); return { item: it, sg: sg, on: on }; });
     // recurring themes in the batch: topics many items share
     var count = {}; rows.forEach(function (r) { Object.keys(r.sg.topics).forEach(function (t) { count[t] = (count[t] || 0) + 1; }); });
     var themes = Object.keys(count).filter(function (t) { return count[t] >= 3 && GENERAL.indexOf(t) < 0; }).sort(function (a, b) { return count[b] - count[a]; }).slice(0, 5);
@@ -60175,7 +60199,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     ui.body.innerHTML = (th.length ? '<div class="wc-h">Recurring themes</div>' + th.map(function (t) { return '<div class="wc-theme"><div>You have <b>' + t.n + ' items</b> related to <b>' + esc(t.name) + '</b>. Create <b>My ' + esc(t.name) + '</b>?</div><button type="button" class="wc-sw' + (t.make ? ' on' : '') + '" data-theme="' + esc(t.name) + '" aria-label="Create My ' + esc(t.name) + '"></button></div>'; }).join('') : '') +
       '<div class="wc-h">Items</div>' + B.rows.map(function (r, i) {
         var opts = r.sg.top.concat(r.sg.rel).slice(0, 5), mk = th.filter(function (t) { return t.make && r.sg.topics[t.name]; });
-        return '<div class="wc-item"><b>' + esc(r.item.title) + '</b><div class="wc-chips">' + opts.map(function (c) { return '<button type="button" class="wc-chip' + (r.on[c.id] ? ' on' : '') + '" data-ron="' + i + ':' + esc(c.id) + '">' + (r.on[c.id] ? '✓ ' : '') + esc(c.title) + '</button>'; }).join('') +
+        return '<div class="wc-item"><b>' + esc(r.item.title) + '</b><div class="wc-chips">' + opts.map(function (c) { return '<button type="button" class="wc-chip' + (r.on[c.id] ? ' on' : '') + '" data-ron="' + i + ':' + esc(c.id) + '">' + (r.on[c.id] ? '✓ ' : '') + esc(c.title) + (worldIds().length > 1 ? ' <small>' + esc(c.board) + '</small>' : '') + '</button>'; }).join('') +
           mk.map(function (t) { return '<span class="wc-chip new on">✓ My ' + esc(t.name) + '</span>'; }).join('') +
           (!opts.length && !mk.length ? '<span class="wc-chip" style="opacity:.6;cursor:default">→ My Inbox</span>' : '') + '<button type="button" class="wc-chip" data-rpick="' + i + '">' + ICON.plus + '</button></div></div>';
       }).join('');
@@ -62681,8 +62705,8 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   var ICON = { x: I('<path d="M6 6l12 12M18 6 6 18"/>'), back: I('<path d="m15 6-6 6 6 6"/>'), search: I('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>'), gear: I('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
     plus: I('<path d="M12 5v14M5 12h14"/>'), spark: I('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'), more: I('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'), chev: I('<path d="m9 6 6 6-6 6"/>'), check: I('<path d="M5 12.5l4.5 4.5L19 7.5"/>') };
   var CSS = [
-    '.mw{position:fixed;inset:0;z-index:2147482004;display:flex;flex-direction:column;color:var(--mw-ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:var(--mw-bg);--mw-ink:#f4f5f8;--mw-sub:rgba(244,245,248,.62);--mw-bg:linear-gradient(180deg,#141821,#0b0d13);--mw-card:rgba(255,255,255,.06);--mw-line:rgba(255,255,255,.1);--mw-fill:rgba(255,255,255,.08);--mw-blue:#0a84ff}',
-    'html.kn-light .mw{--mw-ink:#15171c;--mw-sub:rgba(21,23,28,.6);--mw-bg:linear-gradient(180deg,#f6f7fa,#eceef3);--mw-card:#fff;--mw-line:rgba(0,0,0,.08);--mw-fill:rgba(0,0,0,.05);--mw-blue:#007aff}',
+    '.mw{position:fixed;inset:0;z-index:2147482004;display:flex;flex-direction:column;color:var(--mw-ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:var(--mw-bg);--mw-ink:#f4f5f8;--mw-sub:rgba(244,245,248,.62);--mw-bg:linear-gradient(180deg,#141821,#0b0d13);--mw-card:rgba(255,255,255,.06);--mw-line:rgba(255,255,255,.1);--mw-fill:rgba(255,255,255,.08);--mw-blue:#0a84ff;--mw-sheet:#1d212c}',
+    'html.kn-light .mw{--mw-ink:#15171c;--mw-sub:rgba(21,23,28,.6);--mw-bg:linear-gradient(180deg,#f6f7fa,#eceef3);--mw-card:#fff;--mw-line:rgba(0,0,0,.08);--mw-fill:rgba(0,0,0,.05);--mw-blue:#007aff;--mw-sheet:#fff}',
     '.mw-head{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 4px}',
     '.mw-head .ti{flex:1;min-width:0}.mw-head h1{margin:0;font-size:32px;font-weight:800;letter-spacing:-.8px;line-height:1.05}.mw-head p{margin:3px 0 0;font-size:14px;color:var(--mw-sub)}',
     '.mw-head h2{flex:1;min-width:0;margin:0;font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
@@ -62731,7 +62755,8 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     // welcome
     '.mw-ready{text-align:center;padding:16px 0 4px}.mw-ready b{display:block;font-size:30px;font-weight:850;letter-spacing:-.6px}.mw-ready span{color:var(--mw-sub)}',
     '.mw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.mw-stats div{padding:14px 8px;border-radius:16px;background:var(--mw-card);box-shadow:inset 0 0 0 1px var(--mw-line);text-align:center}.mw-stats b{display:block;font-size:26px;font-weight:800}.mw-stats span{font-size:12.5px;color:var(--mw-sub)}',
-    '.mw-menu{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:9;padding:8px;border-radius:20px;background:var(--mw-card);box-shadow:0 20px 50px rgba(0,0,0,.4),inset 0 0 0 1px var(--mw-line)}.mw-menu h4{margin:8px 10px;font-size:15px}.mw-menu button{display:block;width:100%;text-align:left;padding:13px 12px;border:0;border-radius:12px;background:none;color:inherit;font:inherit;cursor:pointer}.mw-menu button:hover{background:var(--mw-fill)}',
+    '.mw-dim{position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.35)}',
+    '.mw-menu{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:9;padding:8px;border-radius:20px;background:var(--mw-sheet);box-shadow:0 20px 50px rgba(0,0,0,.4),inset 0 0 0 1px var(--mw-line)}.mw-menu h4{margin:8px 12px 4px;font-size:13px;font-weight:600;color:var(--mw-sub)}.mw-menu button{display:block;width:100%;text-align:left;padding:13px 12px;border:0;border-radius:12px;background:none;color:inherit;font:inherit;cursor:pointer}.mw-menu button:hover{background:var(--mw-fill)}',
     '@media (min-width:700px){.mw-menu{left:50%;right:auto;width:400px;transform:translateX(-50%)}}',
     '.mw-seg button[data-wmoreviews]{flex:0 0 44px;display:grid;place-items:center}',
     '.mw-lh{margin:10px 8px 4px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mw-sub)}',
@@ -62771,8 +62796,8 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   function go(view, fn) { keepScroll(); closeMenu(); ui.view = view; ui.foot.hidden = true; ui.foot.innerHTML = ''; fn(); }
   function headSmall(title, back) { ui.head.innerHTML = (back ? '<button type="button" class="mw-b" data-back="' + esc(back) + '" aria-label="Back">' + ICON.back + '</button>' : '') + '<h2>' + esc(title) + '</h2><button type="button" class="mw-b" data-x aria-label="Close">' + ICON.x + '</button>'; }
   function foot(h) { ui.foot.hidden = !h; ui.foot.innerHTML = h || ''; }
-  function closeMenu() { if (ui.menu) { ui.menu.remove(); ui.menu = null; } }
-  function menu(title, items) { closeMenu(); var m = document.createElement('div'); m.className = 'mw-menu'; m.innerHTML = '<h4>' + esc(title) + '</h4>' + items.map(function (x, i) { return '<button type="button" data-mi="' + i + '">' + esc(x[0]) + '</button>'; }).join('') + '<button type="button" data-mx>Cancel</button>'; ui.el.appendChild(m); ui.menu = m; ui.menuItems = items; }
+  function closeMenu() { if (ui.menu) { ui.menu.remove(); ui.menu = null; } if (ui.dim) { ui.dim.remove(); ui.dim = null; } }
+  function menu(title, items) { closeMenu(); var m = document.createElement('div'); m.className = 'mw-menu'; m.innerHTML = '<h4>' + esc(title) + '</h4>' + items.map(function (x, i) { return '<button type="button" data-mi="' + i + '">' + esc(x[0]) + '</button>'; }).join('') + '<button type="button" data-mx>Cancel</button>'; var d = document.createElement('div'); d.className = 'mw-dim'; ui.el.appendChild(d); ui.dim = d; ui.el.appendChild(m); ui.menu = m; ui.menuItems = items; if (m.animate && !reduce) m.animate([{ opacity: 0, translate: '0 16px' }, { opacity: 1, translate: '0 0' }], { duration: 200, easing: 'cubic-bezier(.2,.85,.25,1)' }); }
 
   // ---------------------------------------------------------------- 1 · My World home
   function home(o) {
@@ -62968,12 +62993,12 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     if (t.closest('[data-mix]')) { close(); setTimeout(function () { MinestBuilder.mix(); }, 180); return; }
     if (t.closest('[data-scratch]')) { close(); setTimeout(function () { MinestBuilder.scratch(); }, 180); return; }
     if (t.closest('[data-classic]')) { close(); setTimeout(function () { W().open(); }, 180); return; }
-    if (t.closest('[data-add]')) { close(); setTimeout(function () { if (window.MinestCapture) MinestCapture.open(); }, 180); return; }
-    if (t.closest('[data-discover]')) { close(); setTimeout(function () { if (window.MinestDiscover) MinestDiscover.open(); }, 180); return; }
+    if (t.closest('[data-add]')) return addMenu(null);
+    if (t.closest('[data-discover]')) return launch(function () { MinestDiscover.open(); }, function () { return MinestDiscover.isOpen(); });
     if ((g = t.closest('[data-log]'))) { var lg = KN().get('wl:' + g.getAttribute('data-log')); if (lg) return openLog(lg); }
-    if (t.closest('[data-recent]')) { close(); setTimeout(function () { if (window.MinestCapture) MinestCapture.open(); }, 180); return; }
+    if (t.closest('[data-recent]')) return launch(function () { MinestCapture.open(); }, function () { return MinestCapture.isOpen(); });
     if ((g = t.closest('[data-wmore]'))) { e.stopPropagation(); var bid = g.getAttribute('data-wmore'), b = boardById(bid);
-      return menu(b ? b.title : 'World', [['Open', function () { worldView(bid); }], ['Open in its home view', function () { openWorldCard(bid); }], ['Change cover', function () { ui.coverFor = bid; ui.file.click(); }], ['Use the default cover', function () { KN().set('wa:' + bid, Object.assign({}, KN().get('wa:' + bid) || {}, { cover: '' })); home(); }]].concat(window.MinestBuilder ? [['Customize', function () { close(); setTimeout(function () { MinestBuilder.open(bid); }, 180); }]] : []).concat(window.MinestCapture ? [['Add to this world', function () { close(); setTimeout(function () { MinestCapture.open({ wbid: bid }); }, 180); }]] : [])); }
+      return menu(b ? b.title : 'World', [['Open', function () { worldView(bid); }], ['Open in its home view', function () { openWorldCard(bid); }], ['Change cover', function () { ui.coverFor = bid; ui.file.click(); }], ['Use the default cover', function () { KN().set('wa:' + bid, Object.assign({}, KN().get('wa:' + bid) || {}, { cover: '' })); home(); }]].concat(window.MinestBuilder ? [['Customize', function () { close(); setTimeout(function () { MinestBuilder.open(bid); }, 180); }]] : []).concat(window.MinestCapture ? [['Add to this world', function () { addMenu(bid); }]] : [])); }
     if ((g = t.closest('[data-world]'))) { hap('selection'); return worldView(g.getAttribute('data-world')); }
     if (ui.view === 'world') {
       var S = ui.ws, wb = ui.wb, keep = function (fn) { var y0 = ui.body.scrollTop; fn(); ui.body.scrollTop = y0; };
@@ -62983,9 +63008,9 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
       if ((g = t.closest('[data-wlist]'))) { var lid = g.getAttribute('data-wlist'); if (S.open[lid]) delete S.open[lid]; else { S.open[lid] = 1; if (KN().get('wn:' + lid)) KN().set('wn:' + lid, null, true); } stSave(wb, S); return keep(drawWorld); }
       if ((g = t.closest('[data-witem]'))) { saveWorldState(); var sid = g.getAttribute('data-witem'); if (window.MinestStarter && MinestStarter.openItem) { MinestStarter.openItem(wb, sid); watchBack(); } return; }
       if ((g = t.closest('[data-waddto]'))) { saveWorldState(); var cid = g.getAttribute('data-waddto'); if (window.MinestStarter && MinestStarter.addTo) { MinestStarter.addTo(wb, cid); watchBack(); } return; }
-      if ((g = t.closest('[data-wpick]'))) { saveWorldState(); var pc = g.getAttribute('data-wpick'); close(); setTimeout(function () { MinestPicker.open({ bid: wb, cardId: pc }); }, 180); return; }
-      if ((g = t.closest('[data-wplay]'))) { saveWorldState(); var pl = g.getAttribute('data-wplay'); close(); setTimeout(function () { MinestDiscover.open({ bid: wb, cardId: pl }); }, 180); return; }
-      if (t.closest('[data-wadd]')) { saveWorldState(); close(); setTimeout(function () { if (window.MinestStarter && MinestStarter.has(wb) && (KN().get('fd:' + wb) || {}).packs && Object.keys(KN().get('fd:' + wb).packs).some(function (k) { return KN().get('fd:' + wb).packs[k].quickAdd; })) MinestStarter.open({ bid: wb, add: true }); else if (window.MinestCapture) MinestCapture.open({ wbid: wb }); }, 180); return; }
+      if ((g = t.closest('[data-wpick]'))) { saveWorldState(); var pc = g.getAttribute('data-wpick'); return launch(function () { MinestPicker.open({ bid: wb, cardId: pc }); }, function () { return MinestPicker.isOpen(); }); }
+      if ((g = t.closest('[data-wplay]'))) { saveWorldState(); var pl = g.getAttribute('data-wplay'); return launch(function () { MinestDiscover.open({ bid: wb, cardId: pl }); }, function () { return MinestDiscover.isOpen(); }); }
+      if (t.closest('[data-wadd]')) { saveWorldState(); return addMenu(wb); }
     }
     if ((g = t.closest('[data-tpl]'))) { var tp = tplById(g.getAttribute('data-tpl')); if (tp) preview(tp); return; }
     // preview
@@ -63003,6 +63028,26 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   }
 
   function watchBack() { var t0 = Date.now(); (function w() { if (!ui.open || ui.view !== 'world') return; if (window.MinestStarter && MinestStarter.isOpen()) { setTimeout(w, 250); return; } if (Date.now() - t0 > 400) { var y = ui.body.scrollTop; drawWorld(); ui.body.scrollTop = y; } })(); setTimeout(function w2() { if (window.MinestStarter && MinestStarter.isOpen()) return setTimeout(w2, 250); if (ui.open && ui.view === 'world') { var y = ui.body.scrollTop; drawWorld(); ui.body.scrollTop = y; } }, 300); }
+  // ---------------------------------------------------------------- tools opened from My World come back to the same place
+  function anyOverlay() { return !!document.querySelector('.lw,.sk,.wk,.pk,.wc,.dv,.st,.bd,.mw,.tl,.en,.km,.lm'); }
+  function launch(fn, isOpen) {
+    var ret = { view: ui.view, wb: ui.wb }; close();
+    setTimeout(function () {
+      try { fn(); } catch (e) { return; }
+      var t0 = Date.now(), seen = false;
+      (function poll() { var o = false; try { o = isOpen(); } catch (e) {} if (o) seen = true;
+        if (seen && !o) { setTimeout(function () { if (!anyOverlay()) { if (ret.view === 'world' && ret.wb && boardById(ret.wb)) worldView(ret.wb); else home(); } }, 120); return; }
+        if (!seen && Date.now() - t0 > 4000) return; setTimeout(poll, 300); })();
+    }, 180);
+  }
+  function chooseWorld(wb, cb) { if (wb) return cb(wb); var ws = W() ? W().worlds() : []; if (!ws.length) return gallery(); if (ws.length === 1) return cb(ws[0].b.id); menu('Which world?', ws.map(function (x) { return [x.b.title, function () { cb(x.b.id); }]; })); }
+  function addMenu(wb) {
+    var items = [['Add anything — type, paste, a link or a photo', function () { launch(function () { MinestCapture.open(wb ? { wbid: wb } : {}); }, function () { return MinestCapture.isOpen(); }); }]];
+    if (wb && window.MinestStarter) { var fd = KN().get('fd:' + wb); var qa = fd && Object.keys(fd.packs || {}).map(function (k) { return fd.packs[k].quickAdd; }).filter(Boolean)[0]; if (qa) items.unshift([qa.label, function () { launch(function () { MinestStarter.open({ bid: wb, add: true }); }, function () { return MinestStarter.isOpen(); }); }]); }
+    if (window.MinestPicker) items.push(['Pick favourites — pictures, bubbles, step by step', function () { chooseWorld(wb, function (bid) { launch(function () { MinestPicker.home(bid); }, function () { return MinestPicker.isOpen(); }); }); }]);
+    if (window.MinestCapture) items.push(['Import text or JSON', function () { launch(function () { MinestCapture.open(wb ? { wbid: wb, import: true } : { import: true }); }, function () { return MinestCapture.isOpen(); }); }]);
+    menu(wb ? 'Add to ' + (boardById(wb) || {}).title : 'Add to My World', items);
+  }
   window.MinestMyWorld = { world: function (bid, o) { worldView(bid, o); }, open: function () { home(); }, gallery: function () { shell(); gallery(); }, close: close, isOpen: function () { return ui.open; }, _welcome: welcome };
 })();
 

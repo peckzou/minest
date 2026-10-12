@@ -209,6 +209,7 @@
     '.pk-own button{height:40px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);color:inherit;font:650 14px -apple-system,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:4px}',
     '.pk-sum{margin:0 0 8px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)}.pk-sum b{display:block;font-size:13px;opacity:.6;margin-bottom:6px}',
     '.pk-empty{padding:40px 16px;text-align:center;opacity:.6}',
+    '.pk-facets{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 14px 8px}.pk-facets::-webkit-scrollbar{display:none}.pk-facets .pk-chip{flex:none;min-height:30px;padding:4px 12px;font-size:13px}',
     // light
     'html.kn-light .pk{color:#1d1f23;background:linear-gradient(180deg,rgba(244,246,250,.93),rgba(232,236,243,.97))}',
     'html.kn-light .pk-b,html.kn-light .pk-row,html.kn-light .pk-chip,html.kn-light .pk-find,html.kn-light .pk-own input,html.kn-light .pk-own button,html.kn-light .pk-sum{background:rgba(255,255,255,.82);border-color:rgba(0,0,0,.08);box-shadow:inset 0 1px 0 #fff,0 6px 18px rgba(30,40,60,.07)}',
@@ -251,7 +252,13 @@
     ui.back = back || null; ui.draw = null; ui.q = ''; ui.foot.hidden = true; ui.foot.innerHTML = ''; ui.body.scrollTop = 0;
   }
   function findBox(ph) { ui.top.insertAdjacentHTML('beforeend', '<label class="pk-find">' + ICON.search + '<input data-find type="search" placeholder="' + esc(ph) + '" autocomplete="off"></label>'); }
-  function match(it) { var q = norm(ui.q || ''); return !q || norm(it.title + ' ' + (it.sub || '') + ' ' + (it.tag || '')).indexOf(q) >= 0; }
+  function facetOf(it) { return it.tag || (ui.cat && ui.cat.kind === 'bubble' && it.sub ? String(it.sub).split(' · ')[0] : ''); }
+  function match(it) { var q = norm(ui.q || ''); if (ui.facet && facetOf(it) !== ui.facet) return false; return !q || norm(it.title + ' ' + (it.sub || '') + ' ' + (it.tag || '')).indexOf(q) >= 0; }
+  function facetRow() {
+    var seen = {}, list = []; itemsNow().forEach(function (it) { var f = facetOf(it); if (f && !seen[f]) { seen[f] = 1; list.push(f); } });
+    if (list.length < 2 || list.length > 12) return '';
+    return '<div class="pk-facets">' + ['All'].concat(list).map(function (f) { var on = (f === 'All' && !ui.facet) || ui.facet === f; return '<button type="button" class="pk-chip' + (on ? ' on' : '') + '" data-facet="' + esc(f === 'All' ? '' : f) + '">' + esc(f) + '</button>'; }).join('') + '</div>';
+  }
 
   // ---------------------------------------------------------------- Quick Add home: the lists of a world you can fill
   function home(bid) {
@@ -316,9 +323,9 @@
   // ---------------------------------------------------------------- 16 · Gallery (IMDb-style)
   function gallery(bid, cardId, c, back) {
     if (!startPick(bid, cardId, c, back)) return;
-    ui.view = 'gallery'; ui.top.innerHTML = '<p class="pk-sub">Tap ○ to pick · tap the poster to see it</p>'; findBox('Search ' + c.title.toLowerCase());
+    ui.view = 'gallery'; ui.facet = ''; ui.top.innerHTML = '<p class="pk-sub">Tap ○ to pick · tap the poster to see it</p>'; findBox('Search ' + c.title.toLowerCase()); ui.top.insertAdjacentHTML('beforeend', '<div data-facets></div>');
     ui.draw = function () {
-      var list = itemsNow().filter(match);
+      var list = itemsNow().filter(match), fb = ui.top.querySelector('[data-facets]'); if (fb) fb.innerHTML = facetRow();
       ui.body.innerHTML = '<div class="pk-grid">' + list.map(function (it) {
         var inn = isIn(it), on = !!ui.sel[it.id];
         return '<div class="pk-tile' + (on ? ' on' : '') + (inn ? ' in' : '') + '" data-open="' + esc(it.id) + '">' + poster(c, ui.sel[it.id] || it) +
@@ -360,9 +367,9 @@
   // ---------------------------------------------------------------- 17 · Bubbles (Apple Music-style) — plain CSS, no physics
   function bubbles(bid, cardId, c, back) {
     if (!startPick(bid, cardId, c, back)) return;
-    ui.view = 'bubble'; ui.top.innerHTML = '<p class="pk-sub">Tap the ones you love · tap again to drop</p>'; findBox('Search ' + c.title.toLowerCase());
+    ui.view = 'bubble'; ui.facet = ''; ui.top.innerHTML = '<p class="pk-sub">Tap the ones you love · tap again to drop</p>'; findBox('Search ' + c.title.toLowerCase()); ui.top.insertAdjacentHTML('beforeend', '<div data-facets></div>');
     ui.draw = function () {
-      var list = itemsNow().filter(match);
+      var list = itemsNow().filter(match), fb = ui.top.querySelector('[data-facets]'); if (fb) fb.innerHTML = facetRow();
       ui.body.innerHTML = '<div class="pk-bub">' + list.map(function (it) {
         var h = hash(it.title), s = 74 + h % 34, inn = isIn(it), on = !!ui.sel[it.id], im = imgOf(c, ui.sel[it.id] || it);
         return '<button type="button" class="pk-bb' + (on ? ' on' : '') + (inn ? ' in' : '') + '" data-bub="' + esc(it.id) + '" style="--s:' + s + 'px" aria-pressed="' + on + '">' +
@@ -485,6 +492,7 @@
     var fl = t.closest('[data-fill]'); if (fl) return openList(ui.bid, fl.getAttribute('data-fill'), 'home');
     var sk = t.closest('[data-skills]'); if (sk) return skills(ui.bid, sk.getAttribute('data-skills'), 'home');
     var nl = t.closest('[data-newlist]'); if (nl) { var c = cat(nl.getAttribute('data-newlist')); if (c) ensureList(ui.bid, c).then(function (cid) { openList(ui.bid, cid, 'home'); }).catch(function (ex) { toast('✗ ' + ex.message); }); return; }
+    var fg = t.closest('[data-facet]'); if (fg) { ui.facet = fg.getAttribute('data-facet'); ui.draw(); ui.body.scrollTop = 0; return; }
     if (t.closest('[data-commit]')) return commit();
     if (t.closest('[data-own]')) return ownSheet();
     if (t.closest('[data-ownadd]')) return addOwn(ui.body.querySelector('[data-ownin]'));
