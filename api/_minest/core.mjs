@@ -1,6 +1,6 @@
 // Minest AI core — the board-building / analysing logic shared by the Mac server
 // (minest-ai-server.mjs) and the Vercel function (api/minest/[op].mjs).
-// Environment: OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL, OPENROUTER_API_KEY, MINEST_AI_* tuning.
+// Environment: OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL, OPENAI_IMAGE_MODEL (ai-image), OPENROUTER_API_KEY, MINEST_AI_* tuning.
 import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { createHash, randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
@@ -265,6 +265,31 @@ export async function handle(path, input) {
   const history = (Array.isArray(input.history) ? input.history : []).slice(-20)
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.text === 'string' && m.text.trim())
     .map(m => ({ role: m.role, content: m.text.slice(0, 8000) }));
+  // 53.4: a cartoon picture for one thing (My World covers) — Minecraft-style voxel, low-poly or flat cartoon.
+  // Only a short subject goes in; the style words are fixed here. Returns a PNG data URL (the app shrinks it).
+  if (path.endsWith('/ai-image')) {
+    const subject = String(input.subject || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 80);
+    if (!subject) throw new Error('A subject is required');
+    const STYLE = {
+      minecraft: 'Minecraft-style voxel art made of chunky cubes, bright cartoon colours, simple clean light background, centred, game item icon, no text',
+      lowpoly: 'low-poly 3D cartoon with flat faceted shading, bright friendly colours, simple clean light background, centred, game asset, no text',
+      cartoon: 'cute flat cartoon illustration, bold outlines, bright colours, simple clean light background, centred, sticker style, no text'
+    };
+    const style = STYLE[input.style] ? input.style : 'minecraft';
+    if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
+    const imageModel = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
+    const response = await fetch(baseUrl + '/images/generations', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: imageModel, prompt: subject + ' — ' + STYLE[style], size: '1024x1024', n: 1 })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.error?.message || ('Image request failed (' + response.status + ')'));
+    const d = (data.data || [])[0] || {};
+    if (d.b64_json) return { image: 'data:image/png;base64,' + d.b64_json, style, model: imageModel };
+    if (d.url) return { url: d.url, style, model: imageModel };
+    throw new Error('No image came back');
+  }
   if (path.endsWith('/ai-diagnose')) {
     // Is this a real, capable GPT? Probes with fixed answers + what the API itself reports.
     const probes = [

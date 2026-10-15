@@ -1,11 +1,12 @@
 // Minest AI on Vercel: /api/minest/<op> — ai-chat, ai-chat-stream, ai-plan, ai-expand, ai-analyze,
-// ai-diagnose, ai-board, ai-judge (44.7 voice quiz). Same logic as the Mac server (api/_minest/core.mjs).
+// ai-diagnose, ai-board, ai-judge (44.7 voice quiz), ai-image (53.4: cartoon pictures, limited per instance). Same logic as the Mac server (api/_minest/core.mjs).
 // Every request must carry X-Minest-Token = MINEST_AI_TOKEN (the app), or a Google sign-in on the allowed list
 // (X-Minest-Id-Token, see api/_minest/auth.mjs), so the API key behind it cannot be used by anyone else.
 import { headers, handle, streamChat } from '../_minest/core.mjs';
 import { authorize } from '../_minest/auth.mjs';
 
 export const config = { runtime: 'nodejs' };
+const imageLimits = new Map();
 
 const send = (res, status, body) => {
   res.statusCode = status;
@@ -19,6 +20,12 @@ export default async function handler(req, res) {
   const auth = await authorize(req, process.env.MINEST_AI_TOKEN);
   if (!auth.ok) return send(res, auth.status, { error: auth.error });
   const op = String((req.query && req.query.op) || '').replace(/[^a-z-]/g, '');
+  if (op === 'ai-image') {   // pictures cost more than text: a small per-instance limit per caller
+    const who = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'x').split(',')[0].trim(), now = Date.now();
+    const b = imageLimits.get(who) || { at: now, n: 0 }; if (now - b.at > 60000) { b.at = now; b.n = 0; }
+    if (b.n >= 12) { res.setHeader('Retry-After', '60'); return send(res, 429, { error: 'Too many pictures at once — please wait a minute.' }); }
+    b.n++; imageLimits.set(who, b); if (imageLimits.size > 500) imageLimits.clear();
+  }
   const input = req.body && typeof req.body === 'object' ? req.body : {};
   if (op === 'ai-chat-stream') {
     try { const r = await handle('/' + op, input); return await streamChat(res, input, r.__stream); }
