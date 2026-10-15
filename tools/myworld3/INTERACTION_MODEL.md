@@ -438,3 +438,60 @@ Stored covers keep the short link.
   - One card per area, with its lists as plank chips.
   - Tap an area or a list to go there in My World.
   - It changes nothing. Inside a world, area or list, the button opens that world's Kanban as before.
+
+## Display — Box things set out on the island (53.4, `build/5333/myworld/` — see its README)
+
+My World is a personal visual world to arrange, show and explore — not a building game. Each world gets a display
+scene, opened by the island button next to ••• on a world's, area's or list's card.
+
+- **Item ≠ display.** A display only points at things (`<list id>/<thing id>`); the Box (lists and their things) is never
+  changed. One thing is out in one place at a time — putting it somewhere else moves it. Saved per world in the synced
+  side data `dsp:<board id>` = `{scene, rot, pc:[{id, k, x, y, f, s, it:[refs], label}]}`.
+- **Scene (Sims-like):** Island / Room / Museum, fixed isometric corner view; ⟲ ⟳ quarter turns (Q / E); drag the ground
+  to look around, pinch / wheel / − + to zoom, ⤢ to see it all. Room and Museum draw the two far walls (cut-away).
+- **Minecraft blocks:** every piece is built from blocks with 16×16 pixel textures generated at runtime (oak / spruce /
+  dark oak planks, bookshelf, glass, quartz, blackstone, wool, concrete, lanterns with a glow, grass and dirt), drawn as
+  SVG patterns on each block face; parts are depth-sorted by the isometric rule only where they overlap on screen.
+- **The eight displays:** Display wall (item frames on a warm wall, lanterns), Grid display (oak cubbies, one thing a
+  cell), Shelf (open spruce shelves, things standing), Bookshelf (bookshelf blocks, things face-out), Museum display
+  (blackstone pedestal, gold rim, glass case, the thing floats in light), Gallery (white wall, big paintings, hanging
+  lanterns, a bench), Desktop (oak desk on fence legs, lantern lamp), Themed area (wool walls with frames, carpet,
+  flowers). Plus Memory timeline (gravel path, posts with frames and years), Item stand, Oak tree. Bigger (+) adds
+  width (more slots). Furniture facing away shows "⟲ n facing away"; name tags show up close (🔍 / double tap).
+- **Moving things:** drag from the Box drawer (or tap, then tap the spot) onto a piece or the ground; drag a thing
+  between pieces, or back onto the drawer; drag furniture from the Furniture tab; drag pieces to move (half-cell snap,
+  red when it does not fit — it settles in the nearest free place).
+- **Selected piece:** Turn (R), − / +, Change ▾ (another kind, its things stay), Fill (from a list), Remove (Undo; its
+  things go back to the box). **Selected thing:** Edit (quick edit), − / + on a standee, Back to box.
+- **Arrange for me:** each list on the furniture that suits its name (then its area's): books / films / music →
+  Bookshelf, photos / art → Gallery, achievements → Display wall, treasures → Museum stands, memories / growth →
+  Memory timeline, personal → Desk, hobbies → Theme area, countries / places → Grid wall, otherwise Shelf.
+- Next (phase 2): abstract content — knowledge tree, memory hall, thought star map, concept network.
+
+## Visit & Clone — serverless prototype (53.4, `build/5333/myworld/90-sharing.js`)
+
+- **Share** (top bar of your own island): Private / View only / View & Clone, saved with the layout (`dsp:<bid>.share`).
+  Not private → a link `…/iphone#isle=<code>`: the snapshot `{o owner, t world, perm, sc, r, pc:[{k,x,y,f,s,l,i}], it:[{t,l,p}]}`
+  deflate-raw + base64url. Only things on display go in (name, list name, https picture); notes, drawings (data: URLs)
+  and everything still in the box stay out. Copy / native Share.
+- **Visit**: opening the link shows the island read-only over any page, no account — turn, zoom, pan, tap for names;
+  nothing can be moved; the address is tidied when you close it.
+- **Clone** (View & Clone only): pick one of your worlds → its furniture, places, scene and view come over empty
+  (Undo restores the old layout); then your lists fill them — a list whose name matches the piece's name, else one that
+  suits the piece, else the next unused list. Other people's things never come along.
+- **Limits until there is a server:** a link is a copy, so a link already sent keeps working after you switch to
+  Private, and permissions are not enforced beyond the UI; no short access codes. Next: store snapshots server-side
+  (short code + revocable permission), then the module split (Island / Scene / Display / Renderer / Drag & Drop /
+  Layout Storage / Sharing).
+
+### Island service (server-backed codes)
+
+- `api/islands/[code].mjs` on the private Vercel Blob store **minest-islands** (`BLOB_READ_WRITE_TOKEN`, all environments).
+  `POST /api/islands/new` {snap, perm} → {code}; `PUT /api/islands/<code>` (owner only) {perm, snap?};
+  `GET /api/islands/<code>` → {perm, snap, mine} or 403 private / 404. Records `islands/<code>.json = {code, owner, perm, snap, at}`;
+  Private stores no snapshot, so the code and links stop at once. Codes: 6 of `23456789ABCDEFGHJKMNPQRSTUVWXYZ`, shown `ISL 7K2-Q9M`.
+- Owner: the app token or a Google account on MINEST_AI_EMAILS = the site owner (same on every device); other Google
+  sign-ins = their uid (hashed). 30 writes / min / IP, 96 KB per island, snapshots validated (https pictures only).
+- Client: Share publishes and shows the code + short link `…#isle=@CODE`; layout changes re-publish after 4 s;
+  signed out / offline → the long self-contained link as before. Visit with a code: Share panel, or Settings → Islands.
+  `localStorage['minest.islands.api'] = 'http://localhost:<port>'` points a local build at a local test server.

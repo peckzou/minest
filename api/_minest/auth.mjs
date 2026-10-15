@@ -23,27 +23,33 @@ const b64url = (s) => Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base
 
 // the verified email of a Firebase ID token, or '' (any problem → '')
 export async function firebaseEmail(idToken) {
+  const u = await firebaseUser(idToken);
+  return u ? u.email : '';
+}
+
+// { uid, email } of a valid Firebase ID token with a verified email, or null
+export async function firebaseUser(idToken) {
   try {
     const parts = String(idToken || '').split('.');
-    if (parts.length !== 3) return '';
+    if (parts.length !== 3) return null;
     const head = JSON.parse(b64url(parts[0]).toString('utf8'));
     const body = JSON.parse(b64url(parts[1]).toString('utf8'));
-    if (head.alg !== 'RS256' || !head.kid) return '';
+    if (head.alg !== 'RS256' || !head.kid) return null;
     const pem = (await googleCerts())[head.kid];
-    if (!pem) return '';
+    if (!pem) return null;
     const ok = verify('RSA-SHA256', Buffer.from(parts[0] + '.' + parts[1]), createPublicKey(pem), b64url(parts[2]));
-    if (!ok) return '';
+    if (!ok) return null;
     const now = Math.floor(Date.now() / 1000);
-    if (body.aud !== PROJECT || body.iss !== 'https://securetoken.google.com/' + PROJECT) return '';
-    if (!(body.exp > now) || !(body.iat <= now + 60) || !body.sub) return '';
-    if (!body.email || body.email_verified !== true) return '';
-    return String(body.email).toLowerCase();
+    if (body.aud !== PROJECT || body.iss !== 'https://securetoken.google.com/' + PROJECT) return null;
+    if (!(body.exp > now) || !(body.iat <= now + 60) || !body.sub) return null;
+    if (!body.email || body.email_verified !== true) return null;
+    return { uid: String(body.sub), email: String(body.email).toLowerCase() };
   } catch (e) {
-    return '';
+    return null;
   }
 }
 
-function allowedEmails() {
+export function allowedEmails() {
   return String(process.env.MINEST_AI_EMAILS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 }
 
