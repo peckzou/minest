@@ -495,3 +495,49 @@ scene, opened by the island button next to ••• on a world's, area's or lis
 - Client: Share publishes and shows the code + short link `…#isle=@CODE`; layout changes re-publish after 4 s;
   signed out / offline → the long self-contained link as before. Visit with a code: Share panel, or Settings → Islands.
   `localStorage['minest.islands.api'] = 'http://localhost:<port>'` points a local build at a local test server.
+
+## Public page — @name (myworld/95-people.js, api/people/[handle].mjs)
+
+- Settings → Islands → My public page: pick a name (3–20, first come), switch the page on / off. The page shows your
+  name, your character and every island you share (View / View & Clone); private ones never show. It updates itself
+  whenever you publish or change an island. Off keeps the name but shows nothing. One name per owner.
+- `…/iphone#@peck` (or typing `@peck` where you enter a code): a sky of floating Minecraft islands with their names
+  and a few things on each; tap one to visit it; closing the visit goes back to the page. Visits from a code show
+  "@peck’s islands" to reach the page.
+- Blob records: `people/<name>.json = {handle, owner, public, name, avatar, islands:[{code,title,perm,n,pics,scene}]}`,
+  `owners/<owner>.json = {handle}`; owner ids shared with islands (`api/_minest/owner.mjs`).
+
+## The inner world — thoughts, memories, knowledge (display kinds, Furniture tab → "Thoughts, memories & knowledge")
+
+- **Knowledge tree** (notes, learning): a big oak; each note hangs around the crown as glowing fruit, sub-notes
+  (outline parents) next to their note. **Memory hall** (memories, moments): quartz hall, red runner, frames in date
+  order with years, arched beam with hanging lanterns. **Thought constellation** (thoughts, ideas, beliefs, values):
+  pixel stars on a golden-angle spiral over a blackstone stage, joined by dashed starlight. **Concept network**
+  (concepts, frameworks): a beacon at the heart, concepts around it, each joined to its parent concept or to the
+  heart; names up close. **Growth stairs** (goals, habits, skills): each step higher, oldest first, with years.
+- "Arrange for me" picks them from list names (memories → hall, goals → stairs, thoughts → constellation,
+  concepts → network, notes / learning → tree).
+
+## Decorate — make each island your own (drawer → Decorate tab)
+
+- Ground: Grass · Snow · Sand · Moss (saved with the layout, shared with visitors and clones).
+- 18 decorations in blocks: oak, birch, cherry and spruce trees, bush, flower bed, big mushroom, boulder, pond,
+  fountain, lamp post, bench, fence, path, cottage, well, pumpkins & hay, campfire. Drag on, turn, + / − size, remove.
+
+## Bigger islands — land in 3 × 3 plots (myworld/35-land.js)
+
+- An island is a set of 3 × 3-block plots (`land: ["i,j", …]`, first island = 3 × 3 plots = 9 × 9 blocks, up to 64 plots).
+  Decorate → Land → "＋ Expand the island": dashed + squares on every empty plot next to the land (tap to add),
+  − on empty edge plots (tap to take away). Any shape; pieces only stand on land.
+- The view turns about the middle of the land; the camera fits the land; Room / Museum walls follow its far edges.
+  Saved with the layout, shared with visitors (`ld`) and carried by a clone.
+
+## The home is the public page (myworld/95-people.js)
+
+- The home sky (name, centre castle, world islands on their rings) is each person's main screen and their page.
+  A Share button on the home (next to ⋯) opens "Share Peck's World": the page name, on / off, its link, and every
+  world with Private / View / View & Clone. Sharing a world from here publishes its island (setting one out first if
+  it has none) — no need to open it.
+- Visitors (`#@peck`) see the same sky: the same 3D island pictures (Studio assets, same rings), the owner's name on
+  the centre, only the shared worlds — tap one to visit; closing returns to the page. Block islands if the 3D art
+  cannot load. The page record now carries `center` and per island `skin`, `slot`, `lists`.

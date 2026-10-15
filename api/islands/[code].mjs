@@ -6,29 +6,18 @@
 // A private island keeps no snapshot at all, so old links and the code stop working at once.
 // Owner ids are hashes: the site owner (the app token, or a Google account on MINEST_AI_EMAILS) is one owner on
 // every device; anyone else is their Firebase uid.
-import { createHash, randomInt } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 import { put, get } from '@vercel/blob';
-import { firebaseUser, allowedEmails } from '../_minest/auth.mjs';
+import { ownerOf } from '../_minest/owner.mjs';
+export { ownerOf };
 
 export const config = { runtime: 'nodejs' };
 const ALPHA = '23456789ABCDEFGHJKMNPQRSTUVWXYZ', MAX = 96 * 1024, PERMS = ['private', 'view', 'clone'];
 const writes = new Map();
 
-const hash = (s) => createHash('sha256').update(String(s)).digest('hex').slice(0, 24);
 const send = (res, status, body) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(body)); };
 export const newCode = () => Array.from({ length: 6 }, () => ALPHA[randomInt(ALPHA.length)]).join('');
 export const cleanCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^ISL/, '').slice(0, 12);
-
-export async function ownerOf(req, env = process.env) {
-  const token = req.headers['x-minest-token'];
-  if (token && env.MINEST_AI_TOKEN && token === env.MINEST_AI_TOKEN) return 'p:' + hash('site-owner');
-  const id = req.headers['x-minest-id-token'];
-  if (!id) return null;
-  const u = await firebaseUser(id);
-  if (!u) return null;
-  if (allowedEmails().includes(u.email)) return 'p:' + hash('site-owner');
-  return 'u:' + hash(u.uid);
-}
 
 // a snapshot as the app makes it; anything else is refused
 export function validSnap(s) {
