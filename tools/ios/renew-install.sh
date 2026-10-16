@@ -7,6 +7,7 @@
 #   2. builds the app with Xcode, which fetches new 7-day profiles for all targets (app, widget, share, Watch)
 #   3. checks the new expiry date
 #   4. installs the build on every connected iPhone / iPad (USB or the same Wi-Fi) and opens Minest
+#   5. builds the Watch app for every paired Apple Watch (registering the watch in its profile) and installs it
 #
 # Needs: Xcode signed in to the Apple account (Xcode → Settings → Apple Accounts), the devices paired once,
 # and preferably unlocked. Usage:  tools/ios/renew-install.sh  [--no-install]
@@ -103,6 +104,36 @@ while IFS=$'\t' read -r UDID NAME; do
     fail="$fail $NAME"
   fi
 done <<< "$DEVICES"
+
+# 5 ── Apple Watch: build the Watch app for each paired watch (so Xcode puts that watch in its profile), install, open
+WATCHES="$(python3 - <<'EOF'
+import json
+try: d = json.load(open('/tmp/minest-devices.json'))
+except Exception: d = {}
+for x in d.get('result', {}).get('devices', []):
+    hw = x.get('hardwareProperties', {})
+    if hw.get('reality') == 'physical' and hw.get('platform') == 'watchOS':
+        print(hw.get('udid', '') + '\t' + x.get('deviceProperties', {}).get('name', '?'))
+EOF
+)"
+WAPP="$DD/Build/Products/Debug-watchos/MinestWatch.app"
+while IFS=$'\t' read -r UDID NAME; do
+  [ -n "$UDID" ] || continue
+  say "Building and installing the Watch app on $NAME"
+  if xcodebuild -project "$PROJ" -scheme MinestWatch -configuration Debug -destination "platform=watchOS,id=$UDID" \
+       -allowProvisioningUpdates -allowProvisioningDeviceRegistration -derivedDataPath "$DD" build > "$LOG.watch" 2>&1 && grep -q '\*\* BUILD SUCCEEDED \*\*' "$LOG.watch"; then
+    okw=0
+    for try in 1 2 3 4 5 6; do
+      if xcrun devicectl device install app --device "$UDID" "$WAPP" 2>&1 | grep -q "App installed"; then okw=1; break; fi
+      sleep 15
+    done
+    if [ $okw = 1 ]; then
+      xcrun devicectl device process launch --device "$UDID" "$BUNDLE.watchkitapp" >/dev/null 2>&1; ok "$NAME: Watch app installed"; done_n=$((done_n + 1))
+    else warn "$NAME: not reachable — wake the watch (and keep the iPhone near), then run this again"; fail="$fail $NAME"; fi
+  else
+    warn "$NAME: Watch build failed — see ${LOG/#$HOME/~}.watch"; fail="$fail $NAME"
+  fi
+done <<< "$WATCHES"
 
 MSG="签名有效期至 $EXP · 已安装 $done_n 台设备"; [ -n "$fail" ] && MSG="$MSG · 未连上:$fail"
 osascript -e "display notification \"$MSG\" with title \"Minest 续签完成\"" >/dev/null 2>&1

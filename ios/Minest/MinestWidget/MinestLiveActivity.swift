@@ -75,11 +75,11 @@ public struct MinestLiveActivityWidget: Widget {
                 }
             } compactTrailing: {
                 // Live Three Rings with Strike days in the centre
-                LiveThreeRings(rings: context.state.rings, lineWidth: 2.1, strikeFontSize: 8.5)
+                LiveThreeRings(rings: context.state.rings, lineWidth: 1.8, strikeFontSize: 7.5)
                     .frame(width: 24, height: 24)
                     .padding(.trailing, 2)
             } minimal: {
-                LiveThreeRings(rings: context.state.rings, lineWidth: 1.8, strikeFontSize: 7)
+                LiveThreeRings(rings: context.state.rings, lineWidth: 1.45, strikeFontSize: 6.5)
                     .frame(width: 21, height: 21)
             }
         }
@@ -189,6 +189,8 @@ struct LiveThreeRings: View {
                     .monospacedDigit()
                     .foregroundColor(.white)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.35)   // 2–3 digits shrink to fit the hole instead of turning into "…"
+                    .allowsTightening(true)
                     .frame(width: max(size - 2 * (3 * lineWidth + 2 * gap) - 1, 1))
             }
             .frame(width: size, height: size)

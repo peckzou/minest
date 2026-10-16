@@ -579,3 +579,66 @@ scene, opened by the island button next to ••• on a world's, area's or lis
   pieces keep a block of air between them when there is room.
 - 14 more decorations: palm tree, bamboo, cactus, amethyst, tent, windmill, beehive, scarecrow, snowman, torii gate,
   boat, beach umbrella, rocket, portal (32 in all, plus 16 landmarks).
+
+## The home: add from the centre island, blank islands (build/5333/blankisle.js, island.js)
+
+- The long "Add to Peck's World" bar is now a block "+" in the bottom-right corner (on every My World page).
+- The centre island keeps its ring of quick actions (Overview · New world · Add · Generate); **New world** there makes
+  a blank island at once. Add (or the "+") opens the Add sheet; at home it has, besides Capture and New list:
+  **Assistant** (the guided New world: step by step / generated / empty), **New blank island**, and **Overview**.
+- New blank island: an empty world ("New Island", "New Island 2"…) appears on the sky at once, greyed, with a
+  dashed sign and "✦ Tap to set up". Tapping it opens "Set up this island": its name, its theme (19 themes, each a
+  home island look — Travel → pyramid, Music → stage…, previewed), and Start: Empty (keeps the island, names it,
+  sets its look, goes in) or From a template (templates that fit the theme first, or all 50; the template's world
+  takes the blank island's place on the sky and its look; the empty blank island is removed).
+- Flags: `uv:blank:<board id>` (KN). Looks: `uv:skin:w:<board id>` = the Studio asset of the chosen theme.
+
+## A Kanban board becomes an island (build/5333/blankisle.js)
+
+- Any board can join the islands as it is — nothing is copied: its lists are the island's areas, its cards the
+  lists, the cards stacked in them the things; edits in the Kanban and on the island are the same edits.
+- From the Kanban: Board settings opens with a "🏝 My World island" card on top — "Make it an island", or for a board
+  that is one: "Open its island" and (if it was made from this board) "Take it off the sky". From My World:
+  + → "From a board" lists the boards that are not islands.
+- Both open "An island from your board": its name (renaming renames the board), its theme (guessed from the name,
+  sets its look on the sky). "Add to my islands" registers it (`lom:world:<board id>` = { created, templates: {}, from: 'board' })
+  and shows it on the sky. To take it off the sky: Hide (the island's own menu) — the board stays a board.
+
+## Main islands and their islands (hubs.js, island.js layout)
+
+- Only castle-like islands are main islands: the one in the middle of the home, plus any made with + → **New main
+  island**. Every world is an island beside one of them — beside the middle one unless docked elsewhere
+  (`uv:parent:<board id>` = a hub id). A world's ring has **Dock into…** (pick a main island).
+- **Gather in / Spread out** — one tap (the block button above "+", or the middle island's ring): gathered, every
+  island sits close round its main island on a small even ring, small (about 38% of a world island) and without its sign (no bridges), lower ones in front of it; the main island grows, and the
+  other main islands move to the outer edge with their groups; spread, the worlds of the middle one go back to the
+  big ring (`uv:tight`). Main island titles are set into the island: just the words (white, dark outline), no sign, always shown.
+- **Customize** a main island (the middle one's ring → Customize; tap any other main island): its title (shown on a
+  yellow sign), style (8 centre islands + 24 world islands = 32), colour (Natural, Warm, Sunset, Rose, Violet, Ocean,
+  Mint, Night, Gold, Snow — a tint on its picture) and elements (up to six block decorations round its edge: trees,
+  windmill, lighthouse, rocket, torii, balloons…). Other main islands also have "＋ Island beside it" and Remove
+  (their islands go back to the middle one).
+- Data: `uv:main:center` = { title, hue, deco } (its style stays `uv:center`), `uv:hubs` = [{ id, title, skin, hue, deco }].
+- **Double-tap a main island** (the middle one or any other) → its group up close: the main island big in the middle
+  with its title set into it, its islands round it bigger and with their names; tap one to go in (a blank one opens
+  its set-up); Customize and "＋ Island beside" on top; ‹ or Esc goes back to the sky. One tap stays as it was (the
+  middle one's ring, another main island's sheet) — a tap waits 0.3 s to tell the two apart.
+- **Rename in place**: tap an island's title — a world's sign on the sky, a main island's title set into it, or
+  either one up close — and it becomes a text box right there (Enter or tapping away saves, Esc cancels; an empty
+  main-island title goes back to the default). Tapping the island's picture still goes in / opens its ring.
+  Hidden signs (gathered satellites) are not editable; the tap goes to the island.
+- **Names for a main island**: under its title (the inline box and the Customize sheet) a few literary, mythical,
+  dreamlike names to pick — City of God, Castle in the Sky, Laputa, Avalon, Shangri-La, Xanadu, The Library of Babel,
+  Invisible Cities, Peach Blossom Land, Penglai, Cloud Cuckoo Land… (48 in all; ↻ shows others). One tap uses it.
+- **The title's own look** (Customize → Title): font (Rounded, Storybook, Fairy tale, Handwritten, Chalk, Medieval,
+  Classic, Pixel — system fonts with fallbacks), size (S M L XL), colour (white, gold, sky, rose, mint, lavender,
+  ember, ink) and style (Outline, Glow, Shadow, Engraved, Rainbow, Ribbon). Shown live on the sheet's preview, on the
+  sky and up close. Data: `tt` = { font, size, color, fx } in the main island's record.
+- **On the horizon** (island.js `horizon()`): gathered islands sit round their main island on a flat ellipse round its
+  base (not round the old hexagon, which is gone) — the back ones behind it and a little smaller, the front ones in
+  front, low enough to leave its title clear. Up close the same, taller and roomier for the names.
+
+### Titles stuck on the islands (group view)
+- Up close (double-tap a main island), every name sits on its island as text. Drag a name to move it; the white corner square (or the mouse wheel) sizes it. A plain tap still renames it in place.
+- Saved as a share of the island's box: main islands in `tt.x / tt.y / tt.sc` (the home sky uses them too), worlds in `uv:tpos:<bid>` = {x, y, sc}.
+- Gather in / Spread out lives on the middle island's ring; the gather button above the + is gone. Every main island stays on the home sky either way.
