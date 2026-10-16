@@ -74815,6 +74815,12 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     c.del.forEach(function (k) { o += sq(k, 'del', '−', 'data-unland'); });
     return o;
   }
+  function growLand() {   // one more row of plots along the front (then the side), for "Arrange for me" when it runs out of room
+    var land = landOf(); if (land.length >= MAX_PLOTS) return false; var mi = 1e9, ma = -1e9, mj = 1e9, mx = -1e9;
+    land.forEach(function (k) { var c = k.split(','); mi = Math.min(mi, +c[0]); ma = Math.max(ma, +c[0]); mj = Math.min(mj, +c[1]); mx = Math.max(mx, +c[1]); });
+    var add = [], frontRow = (mx - mj) <= (ma - mi); for (var t = frontRow ? mi : mj; t <= (frontRow ? ma : mx); t++) add.push(frontRow ? t + ',' + (mx + 1) : (ma + 1) + ',' + t);
+    V.d.land = land.concat(add.filter(function (k) { return land.indexOf(k) < 0; })).slice(0, MAX_PLOTS); refreshLand(); return true;
+  }
   function landClick(e) {
     var g;
     if (e.target.closest('[data-expand]')) { V.expand = !V.expand; V.sel = null; render(); fit(); if (V.expand) toast('Tap + to add land, − to take an empty plot away'); return true; }
@@ -75536,7 +75542,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   }
   function change(fn) { fn(); save(); render(); }
   function arrange(all) {   // every list on the furniture that suits it
-    var b = board(V.bid), on = placed(), made = 0;
+    var b = board(V.bid), on = placed(), made = 0, grew = false;
     lists(b).forEach(function (L) {
       var refs = (L.k.stack || []).filter(function (s) { return s && s.id; }).map(function (s) { return L.k.id + '/' + s.id; }).filter(function (r) { return all || !on[r]; }); if (!refs.length) return;
       var kind = suitFor(L.k.title, L.col && L.col.title, V.bid);
@@ -75544,11 +75550,13 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
         var p = { id: uid(), k: kind, x: 0, y: 0, f: V.d.rot, s: 1, it: [], label: String(L.k.title).replace(/^my\s+/i, '') };
         while (capOf(p) < refs.length && (p.s || 1) < 2.5) p.s = Math.round(((p.s || 1) + .25) * 100) / 100;   // a bigger piece rather than many
         while (p.s > 1 && !freeSpot(p)) p.s = Math.round((p.s - .25) * 100) / 100;
+        for (var gtry = 0; gtry < 3 && !freeSpot(p, 1) && !freeSpot(p); gtry++) { if (!growLand()) break; grew = true; }   // no room: the island grows
         if (!freeSpot(p, 1) && !freeSpot(p)) { toast('The island is full — some things stayed in the box'); return; }
         p.it = refs.splice(0, capOf(p)); p.it.forEach(unplace);
         V.d.pc.push(p); made++;
       }
     });
+    if (grew) toast('The island grew to make room — ' + landOf().length + ' plots');
     return made;
   }
 
