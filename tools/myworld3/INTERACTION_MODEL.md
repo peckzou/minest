@@ -541,3 +541,24 @@ scene, opened by the island button next to ••• on a world's, area's or lis
 - Visitors (`#@peck`) see the same sky: the same 3D island pictures (Studio assets, same rings), the owner's name on
   the centre, only the shared worlds — tap one to visit; closing returns to the page. Block islands if the 3D art
   cannot load. The page record now carries `center` and per island `skin`, `slot`, `lists`.
+
+## Open a display — flat and big, with each thing's details (myworld/85-piece-view.js)
+
+- "⤢ Open" on a selected piece, a double tap on it, or (for visitors) a single tap opens the piece flat and big, in
+  its own blocks: the memory hall as a long hall to scroll along (beam, quartz pillars, lanterns, frames in date
+  order with years, stone base, red runner); the timeline as posts over a gravel path; display walls / themed areas
+  as a wall of item frames; the gallery with big paintings and a bench; shelves, bookshelves and grid displays as
+  readable shelves; the desk; the museum as glass cases on pedestals; growth stairs rising; the knowledge tree as a
+  crown with each note and its sub-notes; the constellation and the concept network as skies with their lines.
+- Tap a thing (or "Details" on a selected thing): picture, list, date, note (owners only), its outline parent and
+  sub-notes, ‹ › (arrow keys) through the piece, Edit (quick edit) and "Show in its list". Esc closes.
+- Snapshots now carry each thing's year, so visitors see the years too (notes still stay private).
+
+## A new island starts as the world looks on the home (myworld/10-display-catalog.js WORLD_LOOK)
+
+- Each home island (Studio asset `world_01…24`, recorded from the home as `uv:artmap`, else guessed from the world's
+  name) maps to a landmark built in blocks — pyramid, domed hall, red barn, cottage, bell-tower school, temple,
+  ancient ruins, observatory, dream castle, lighthouse, log cabin, studio, pagoda, stage, library, market stall —
+  set in the middle of a new island, with its trees / things around and its ground (sand for history and oceans,
+  moss for inner and technology, snow for cosmos). Travel World (leisure & play) → the pyramid in the centre.
+- The 16 landmarks are also in Decorate → Landmarks, for islands that already exist.
