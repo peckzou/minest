@@ -562,3 +562,20 @@ scene, opened by the island button next to ••• on a world's, area's or lis
   set in the middle of a new island, with its trees / things around and its ground (sand for history and oceans,
   moss for inner and technology, snow for cosmos). Travel World (leisure & play) → the pyramid in the centre.
 - The 16 landmarks are also in Decorate → Landmarks, for islands that already exist.
+
+## Displays for every theme, and more decorations
+
+- 18 themed displays (Furniture → "For every theme"; "For this world" shows the ones that suit the world first):
+  Kitchen counter (fridge, furnace stove) · Dining table (things on plates, chairs) · Market crates · Easels · Cinema
+  (a screen showing the first, posters under it, red seats) · Record wall (+ jukebox) · World map (things pinned on a
+  map) · Signpost (a place on each arrow) · Garden beds · Aquarium (things float in a tank) · Winners' podium
+  (gold / silver / copper) · Clothes rack · Arcade (things on the screens) · Cork board (pinned cards, red string) ·
+  Planet orbit (a sun, two rings) · Dream balloons (things in the baskets) · Lab bench (glass domes, flasks) ·
+  Stone tablets (things carved, in grey). Each has its own flat view when opened.
+- "Arrange for me": the list's name decides first (films → cinema, albums → record wall, recipes → kitchen, fruit →
+  crates, countries → world map, plants → garden, fish → aquarium, sports → podium, clothes → rack, games → arcade,
+  friends → cork board, planets → orbit, wishes → balloons, experiments → lab bench, quotes → stone tablets,
+  paintings → easels…); a name it cannot read falls back to the world's theme (THEME_FOR by the home island), and
+  pieces keep a block of air between them when there is room.
+- 14 more decorations: palm tree, bamboo, cactus, amethyst, tent, windmill, beehive, scarecrow, snowman, torii gate,
+  boat, beach umbrella, rocket, portal (32 in all, plus 16 landmarks).
