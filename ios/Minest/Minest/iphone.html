@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 53.4 · My World Poly Craft</title>
+    <title>Minest iPhone 53.5 · Spatial Display</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21734,7 +21734,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "53.4" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "53.5" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -75550,7 +75550,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   function lookId(bid, title) { var am = (KN() && KN().get('uv:artmap')) || {}, id = am[bid]; if (!id || !WORLD_LOOK[id]) { var t = String(title || ''); id = 'world_03_everyday'; for (var i = 0; i < LOOK_BY_NAME.length; i++) if (LOOK_BY_NAME[i][0].test(t)) { id = LOOK_BY_NAME[i][1]; break; } } return id; }
   function lookOf(bid, title) { return WORLD_LOOK[lookId(bid, title)]; }
   var GROUNDS = [['grass', 'Grass'], ['snow', 'Snow'], ['sand', 'Sand'], ['moss', 'Moss']];   // the inner world: knowledge, memories, thoughts, concepts, growth
-  function capOf(p) { return build(p, []).slots; }
+  function capOf(p) { return p && p.k === 'item' ? 1 : build(p, []).slots; }   // a display instance holds its one card, whatever its look (61-spatial.js)
   // what suits a list, from its name
   var SUIT = [[/movie|film|cinema|show|series|anime|\btv\b|documentar/i, 'cinema'],
     [/music|album|song|record|vinyl|playlist|band|artist|concert/i, 'records'],
@@ -75588,11 +75588,13 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   function load(bid) { var d = KN() && KN().get('dsp:' + bid); return d && d.pc ? JSON.parse(JSON.stringify(d)) : null; }
   var saveT = 0;
   var pendingSave = null;
-  function flush() { clearTimeout(saveT); var p = pendingSave; pendingSave = null; if (!p) return; try { KN().set('dsp:' + p.bid, p.d, true); } catch (e) {} }
+  function flush(retry) { clearTimeout(saveT); var p = pendingSave; pendingSave = null; if (!p) return; try { KN().set('dsp:' + p.bid, p.d, true); } catch (e) {   // a failed write: once more, then say so (what is on screen stays)
+      if (!retry) { pendingSave = pendingSave || p; saveT = setTimeout(function () { flush(true); }, 1200); } else toast('Could not save this island just now — your changes are still here; they save with the next change'); } }
   function save(now) {   // what is open now, written shortly after (or at once) — closing never loses a change
     if (!V || V.visit) return; clearTimeout(saveT);
     var R = V.root || V.d;   // in a room: the island it is part of (rooms are saved inside their building)
-    pendingSave = { bid: V.bid, d: { v: 1, scene: R.scene, rot: R.rot, pc: JSON.parse(JSON.stringify(R.pc)), ground: R.ground || 'grass', land: landOf(R).slice(), share: R.share || 'private', code: R.code || null } };
+    var d = JSON.parse(JSON.stringify(R)); d.v = 1; d.ground = R.ground || 'grass'; d.land = landOf(R).slice(); d.share = R.share || 'private'; d.code = R.code || null;   // every field of the record (cat, sortMode, gname… were dropped before)
+    pendingSave = { bid: V.bid, d: d }; histNote(V.bid, d);   // a step for undo (61-spatial.js)
     if (now) { flush(); autoPublish(); return; }
     saveT = setTimeout(function () { flush(); autoPublish(); }, 350);
   }
@@ -76095,13 +76097,15 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       flower: function (u, t, kind) { B.box(u - .14, u + .14, t - .14, t + .14, 0, .24, 'pot', 'pot'); B.box(u - .1, u + .1, t - .1, t + .1, .24, .5, 'leaves', 'leaves'); B.box(u - .13, u + .13, t - .13, t + .13, .5, .7, kind, kind); },
       bush: function (u, t) { B.box(u - .35, u + .35, t - .35, t + .35, 0, .7, 'leaves', 'leaves'); },
       img: function (u0, u1, t0, t1, z0, z1, id) { parts.push({ t: 'img', u0: u0, u1: u1, t0: t0, t1: t1, z0: z0, z1: z1, id: id, o: {} }); },   // a 3D picture standing in this box (Studio buildings)
-      line: function (a, b, o) { parts.push({ t: 'ln', a: a, b: b, o: o || {} }); }   // a beam of light between two points (u, t, z)
+      line: function (a, b, o) { parts.push({ t: 'ln', a: a, b: b, o: o || {} }); },   // a beam of light between two points (u, t, z)
+      pic: function (u0, u1, t0, t1, z0, z1, url) { parts.push({ t: 'pic', u0: u0, u1: u1, t0: t0, t1: t1, z0: z0, z1: z1, url: url, o: {} }); },   // a picture on a panel's face (61-spatial.js)
+      txt: function (u0, u1, t0, t1, z0, z1, title, note) { parts.push({ t: 'txt', u0: u0, u1: u1, t0: t0, t1: t1, z0: z0, z1: z1, title: title, note: note, o: {} }); }   // words on a sign's face
     };
     var dim = BUILD[p.k](p, its || [], B), W = dim.W, D = dim.D, f = p.f || 0;
     function w2(u, t) { var x = p.x, y = p.y; var q = f === 0 ? [x - W / 2 + u, y - D / 2 + t] : f === 1 ? [x - D / 2 + t, y + W / 2 - u] : f === 2 ? [x + W / 2 - u, y + D / 2 - t] : [x + D / 2 - t, y - W / 2 + u]; return rot(q[0], q[1], r); }
     var vf = (f + 3 * r) % 4;
     parts.forEach(function (q) {
-      if (q.t === 'box' || q.t === 'img') { var a = w2(q.u0, q.t0), b = w2(q.u1, q.t1); q.x0 = Math.min(a[0], b[0]); q.x1 = Math.max(a[0], b[0]); q.y0 = Math.min(a[1], b[1]); q.y1 = Math.max(a[1], b[1]); }
+      if (q.t === 'box' || q.t === 'img' || q.t === 'pic' || q.t === 'txt') { var a = w2(q.u0, q.t0), b = w2(q.u1, q.t1); q.x0 = Math.min(a[0], b[0]); q.x1 = Math.max(a[0], b[0]); q.y0 = Math.min(a[1], b[1]); q.y1 = Math.max(a[1], b[1]); }
       else if (q.t === 'ln') { var la = w2(q.a[0], q.a[1]), lb = w2(q.b[0], q.b[1]); q.pa = [la[0], la[1], q.a[2]]; q.pb = [lb[0], lb[1], q.b[2]]; q.x0 = Math.min(la[0], lb[0]) - .01; q.x1 = Math.max(la[0], lb[0]) + .01; q.y0 = Math.min(la[1], lb[1]) - .01; q.y1 = Math.max(la[1], lb[1]) + .01; q.z0 = Math.min(q.a[2], q.b[2]); q.z1 = Math.max(q.a[2], q.b[2]) + .01; }
       else { var c = w2(q.u, q.tt); q.x0 = q.x1 = c[0]; q.y0 = q.y1 = c[1]; q.z0 = q.z; q.z1 = q.z + q.sz * BB / ZU; q.x0 -= .01; q.x1 += .01; q.y0 -= .01; q.y1 += .01; q.h = q.sz * BB / (4 * CW); }
       q.vf = vf; q.pc = p.id;
@@ -76115,7 +76119,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   function byParent(its) { var out = [], set = {}; its.forEach(function (r) { set[r] = 1; }); var kids = {}; its.forEach(function (r) { var pr = parentRef(r); if (pr && set[pr]) (kids[pr] = kids[pr] || []).push(r); });
     function add(r) { if (out.indexOf(r) >= 0) return; out.push(r); (kids[r] || []).forEach(add); } its.forEach(function (r) { var pr = parentRef(r); if (!pr || !set[pr]) add(r); }); its.forEach(add); return out; }
   var DIMS = {};
-  function dims(p) { var k = p.k + ':' + (p.s || 1); if (!DIMS[k]) { var b = build(Object.assign({}, p, { x: 0, y: 0, f: 0 }), [], 0); DIMS[k] = { W: b.W, D: b.D, slots: b.slots }; } return DIMS[k]; }
+  function dims(p) { var k = p.k + ':' + (p.s || 1) + (p.k === 'item' ? ':' + sdKey(p) : '');   /* a display's size follows its look */ if (!DIMS[k]) { var b = build(Object.assign({}, p, { x: 0, y: 0, f: 0 }), [], 0); DIMS[k] = { W: b.W, D: b.D, slots: b.slots }; } return DIMS[k]; }
   function foot(p) {   // the piece's footprint in world blocks
     var d = dims(p), w = d.W, dd = d.D; if ((p.f || 0) % 2) { var t = w; w = dd; dd = t; }
     return { x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y - dd / 2, y1: p.y + dd / 2 };
@@ -76129,7 +76133,8 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     var s = p.s || 1; if (s === 1) return fn(B);
     var m = function (a) { return a.map(function (x) { return x * s; }); };
     var d = fn({ box: function (u0, u1, t0, t1, z0, z1, a, b, o) { B.box(u0 * s, u1 * s, t0 * s, t1 * s, z0 * s, z1 * s, a, b, o); }, img: function (u0, u1, t0, t1, z0, z1, id) { B.img(u0 * s, u1 * s, t0 * s, t1 * s, z0 * s, z1 * s, id); },
-      line: function (a, b, o) { B.line(m(a), m(b), o); }, bb: function (u, t, z, ref, sz, o) { B.bb(u * s, t * s, z * s, ref, sz * s, o); }, lantern: function (u, t, z, k) { B.lantern(u * s, t * s, z * s, (k || 1) * s); } });
+      line: function (a, b, o) { B.line(m(a), m(b), o); }, bb: function (u, t, z, ref, sz, o) { B.bb(u * s, t * s, z * s, ref, sz * s, o); }, lantern: function (u, t, z, k) { B.lantern(u * s, t * s, z * s, (k || 1) * s); },
+      pic: function (u0, u1, t0, t1, z0, z1, url) { B.pic(u0 * s, u1 * s, t0 * s, t1 * s, z0 * s, z1 * s, url); }, txt: function (u0, u1, t0, t1, z0, z1, a, b) { B.txt(u0 * s, u1 * s, t0 * s, t1 * s, z0 * s, z1 * s, a, b); } });
     return { W: d.W * s, D: d.D * s };
   }
   function wheels(B, us, D, r) { us.forEach(function (u) { B.box(u - r, u + r, -.03, .17, 0, r * 2, 'blackstone', 'blackstone'); B.box(u - r, u + r, D - .17, D + .03, 0, r * 2, 'blackstone', 'blackstone'); B.box(u - r * .45, u + r * .45, -.05, -.02, r * .55, r * 1.45, 'iron', 'iron'); B.box(u - r * .45, u + r * .45, D + .02, D + .05, r * .55, r * 1.45, 'iron', 'iron'); }); }
@@ -76293,7 +76298,8 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     c.forEach(function (v) { mn = Math.min(mn, v[0]); mx = Math.max(mx, v[0]); bot = Math.max(bot, v[1]); });
     var w = (mx - mn) * 1.28, x = (mn + mx) / 2 - w / 2, y = bot - w * .9, u = a3Url(q.id, ((q.vf || 0) % 4 + 4) % 4);
     if (!u) return '<polygon points="' + pts(c) + '" fill="#ffffff22" stroke="#ffffff66" stroke-dasharray="4 3"/>';
-    return '<image href="' + esc(u) + '" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + w.toFixed(1) + '" preserveAspectRatio="xMidYMax meet" style="image-rendering:auto"/>';
+    var hull = [P(q.x0, q.y0, q.z1), P(q.x1, q.y0, q.z1), P(q.x1, q.y0, q.z0), P(q.x1, q.y1, q.z0), P(q.x0, q.y1, q.z0), P(q.x0, q.y1, q.z1)];   // taps land on the model's block outline, not on the picture's transparent corners
+    return '<image href="' + esc(u) + '" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + w.toFixed(1) + '" preserveAspectRatio="xMidYMax meet" style="image-rendering:auto" pointer-events="none"/><polygon class="hit" points="' + pts(hull) + '" fill="transparent" pointer-events="all"/>';
   }
   function bldIcon(k, sz) { var id = a3Id(k), u = a3Url(id, 0); return u ? '<img class="ic" alt="" src="' + esc(u) + '" width="' + sz + '" height="' + sz + '" style="object-fit:contain">' : '<span class="ic mn-a3wait" style="width:' + sz + 'px;height:' + sz + 'px"></span>'; }
   // ---------------------------------------------------------------- the whole island, rooms included
@@ -76823,7 +76829,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       if (/^(time|mhall|stairs)$/.test(p.k)) b.parts.forEach(function (q) { var yref = q.o.ref || q.ref; if (q.o.year && yref && dateOf(yref) != null) tags.push(tag((q.x0 + q.x1) / 2, (q.y0 + q.y1) / 2, q.z1 + .28, dateOf(yref), 'yr')); });
     });
     var sel = V && V.sel && !V.sel.ref ? V.sel.pc : null;
-    return order(all).map(function (q) { return '<g class="pc' + (q.pc === sel ? ' sel' : '') + (V && V.hot === q.pc ? ' hot' : '') + '" data-pc="' + q.pc + '">' + (q.t === 'box' ? drawBox(q) : q.t === 'ln' ? drawLine(q) : q.t === 'img' ? drawImg(q) : drawBB(q)) + '</g>'; }).join('') + tags.join('');
+    return order(all).map(function (q) { return '<g class="pc' + (q.pc === sel ? ' sel' : '') + (V && V.hot === q.pc ? ' hot' : '') + '" data-pc="' + q.pc + '">' + (q.t === 'box' ? drawBox(q) : q.t === 'ln' ? drawLine(q) : q.t === 'img' ? drawImg(q) : q.t === 'pic' ? drawPic(q) : q.t === 'txt' ? drawTxt(q) : drawBB(q)) + '</g>'; }).join('') + tags.join('');
   }
   function byDate(its) { return its.map(function (r, i) { return { r: r, i: i, d: dateOf(r) }; }).sort(function (a, b) { return (a.d == null ? 1e9 + a.i : a.d) - (b.d == null ? 1e9 + b.i : b.d); }).map(function (x) { return x.r; }); }
 
@@ -76845,7 +76851,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   function mUrl(k, rot) {   // the model's picture from the piece's side (drawn once, then from the device's cache)
     var m = mMeta(k); rot = rot || 0; if (!m) return ''; var key = k + '|' + rot; if (A3.url[key]) return A3.url[key]; if (A3.want[key]) return A3.url[k + '|0'] || ''; A3.want[key] = 1;
     var files = m.ph ? phFiles(m.ph) : Promise.resolve({ url: mGlb(m) });
-    Promise.all([a3(), files]).then(function (x) { var AS = x[0], f = x[1]; if (!AS || !AS.glbThumb || !f || !f.url) return; AS.glbThumb(k.slice(4), f.url, rot, f.map).then(function (u) { if (u) { A3.url[key] = u; if (el) render(); } }); });
+    Promise.all([a3(), files]).then(function (x) { var AS = x[0], f = x[1]; if (!AS || !AS.glbThumb || !f || !f.url) return; AS.glbThumb(k.slice(4), f.url, rot, f.map).then(function (u) { if (u) { A3.url[key] = u; if (el) render(); } else { MFAIL[k] = 1; DIMS = {}; if (el) render(); } }, function () { MFAIL[k] = 1; DIMS = {}; if (el) render(); }); });   // a model that cannot be drawn: its display falls back (61-spatial.js)
     return A3.url[k + '|0'] || '';
   }
   // ---- Poly Haven (free CC0 models, open to the browser): the library used until /api/models (Poly Pizza) answers
@@ -77183,6 +77189,139 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     return o;
   }
 
+  /* ── My World · Universal Spatial Display Engine V1 — every Item can stand in a scene
+     Content is the source (the Card, by ref "<listId>/<stackId>"), visuals are the representation, space is the
+     organisation. A display instance is a piece { id, k: 'item', it: [ref], x, y, z, f, s, vis?, surf: 'ground' }:
+     the Card is never copied, one Card may have many instances (island, rooms), removing one leaves the Card alone.
+     Visual Resolver — in order: the user's choice (vis) → an asset named on the Card → an exact model for its name
+     (Studio objects, the octopus glb, block pieces: landmarks, animals, trees…) → its picture as a voxel-style
+     framed panel → a readable wooden sign. Films, books, art, people… show their picture, never a generic model;
+     a symbolic model (a film reel for a film list) is only offered, labelled "symbol", never chosen on its own.
+     A model that fails to load falls back to the picture, then the sign; the instance is never dropped.
+     Undo / redo: every finished change of a scene (place, move, turn, size, remove, look) is a step (HIST). */
+  // ---- assets the resolver knows
+  MODELS.octopus = MODELS.octopus || { title: 'Octopus', glb: (/^https?:$/.test(location.protocol) ? '' : 'https://minest-app.vercel.app/') + 'octopus-pet-raising-v6/models/avatar_web_rigged_v23j.glb', creator: 'Minest Pet Raising', licence: 'Minest' };   // the app's page is a bundle file: the model comes from the web (served with CORS)
+  var MFAIL = {}, OBJ_NAMES = { object_01_open_book: 'Open book', object_02_globe: 'Globe', object_03_microscope: 'Microscope', object_04_hourglass: 'Hourglass', object_05_film_reel: 'Film reel', object_06_vinyl_record: 'Vinyl record',
+    object_07_artist_palette: 'Artist palette', object_08_game_controller: 'Game controller', object_09_trophy: 'Trophy', object_10_treasure_chest: 'Treasure chest', object_11_house: 'House', object_12_shopping_bag: 'Shopping bag', object_13_cooking_pot: 'Cooking pot',
+    object_14_tree: 'Tree', object_15_seashell: 'Seashell', object_16_compass: 'Compass', object_17_camera: 'Camera', object_18_heart: 'Heart', object_19_lightbulb: 'Lightbulb', object_20_crystal: 'Crystal' };
+  var SYMBOL = [[/film|movie|cinema|tv|series/i, 'object_05_film_reel'], [/book|read|novel|librar/i, 'object_01_open_book'], [/music|song|album|record|vinyl/i, 'object_06_vinyl_record'], [/art|paint|draw|gallery/i, 'object_07_artist_palette'],
+    [/game|play/i, 'object_08_game_controller'], [/travel|trip|place|map|world/i, 'object_16_compass'], [/food|recipe|cook|eat|meal/i, 'object_13_cooking_pot'], [/photo|picture|camera/i, 'object_17_camera'], [/idea|thought|insight/i, 'object_19_lightbulb'],
+    [/love|friend|people|family|heart/i, 'object_18_heart'], [/win|achiev|award|trophy|goal/i, 'object_09_trophy'], [/treasure|keepsake|collect/i, 'object_10_treasure_chest'], [/plant|garden|tree|nature/i, 'object_14_tree'], [/science|lab|experiment/i, 'object_03_microscope'],
+    [/history|time|past/i, 'object_04_hourglass'], [/ocean|sea|beach|shell/i, 'object_15_seashell'], [/shop|buy|wish/i, 'object_12_shopping_bag'], [/dream|crystal|magic/i, 'object_20_crystal']];
+  var IMAGE_FIRST = { movie: 1, tv: 1, book: 1, album: 1, track: 1, music: 1, artwork: 1, painting: 1, art: 1, person: 1, people: 1, game: 1, podcast: 1, image: 1, photo: 1, character: 1 };
+  function ensureObj(k) { if (!/^obj:/.test(k) || BUILD[k]) return; var id = k.slice(4); K[k] = { n: OBJ_NAMES[id] || id.replace(/^object_\d+_/, '').replace(/_/g, ' '), decor: 1, model: 1, studio: 1 };
+    BUILD[k] = function (p, its, B) { var W = 1.2 * (p.s || 1); B.img(0, W, 0, W, 0, W * .95, id); return { W: W, D: W }; }; }
+  function sdNorm(s) { return String(s || '').toLowerCase().replace(/[“”"'’.!?,:;()]/g, '').replace(/^(my|the|a|an|our)\s+/, '').replace(/\s+/g, ' ').trim(); }
+  var SD_NAMES = null;
+  function sdNames() {   // every model a name can match exactly: block pieces, Studio objects, the octopus
+    if (SD_NAMES) return SD_NAMES; SD_NAMES = {};
+    Object.keys(K).forEach(function (k) { var d = K[k]; if (!d || !d.decor || /^(item|bld:|m3d:|obj:|h_|k_|y_|g_|r_|t_rail|t_corner|t_station|w_)/.test(k) || d.flat) return; var n = sdNorm(d.n); if (n && !SD_NAMES[n]) SD_NAMES[n] = k; });
+    Object.keys(OBJ_NAMES).forEach(function (id) { var n = sdNorm(OBJ_NAMES[id]); SD_NAMES[n] = 'obj:' + id; SD_NAMES[n + 's'] = 'obj:' + id; });
+    ['octopus', 'octopuses', 'octopi', 'an octopus'].forEach(function (n) { SD_NAMES[n] = 'm3d:octopus'; });
+    return SD_NAMES;
+  }
+  function sdExact(title) { var n = sdNorm(title), N = sdNames(); return N[n] || N[n.replace(/s$/, '')] || null; }
+  function sdModelOk(k) { if (!k) return false; ensureModel(k); ensureObj(k); if (/^bld:/.test(k)) ensureBld(k); return !!BUILD[k] && !MFAIL[k]; }
+  function sdMeta(s) { try { var key = KN() && KN().get('pk:' + s.id), m = key && KN().get(key); return m && typeof m === 'object' ? m : null; } catch (e) { return null; } }
+  function sdImage(s, m) { return picOf(s) || (m && ((m.userImage && (m.userImage.url || m.userImage.value)) || (m.image && m.image.url) || m.img)) || ''; }
+  // ---- the resolver
+  function sdOptions(ref) {
+    var t = thing(ref); if (!t) return { t: null, title: 'Missing card', note: 'Its card is no longer in a list', options: [{ type: 'text', label: 'Text sign', why: 'the card is missing' }] };
+    var s = t.s, m = sdMeta(s), title = String(s.title || 'Untitled'), et = m && String(m.entityType || '').toLowerCase(), img = sdImage(s, m), o = [];
+    var own = s.asset3d || s.model || (m && m.asset3d); if (own && sdModelOk(own)) o.push({ type: 'model', asset: own, label: K[own].n + ' (3D)', why: 'the model chosen for this item', exact: 1 });
+    if (!IMAGE_FIRST[et]) { var ex = sdExact(title); if (ex && sdModelOk(ex) && ex !== own) o.push({ type: 'model', asset: ex, label: K[ex].n + ' (3D)', why: 'a model of “' + title + '”', exact: 1 }); }
+    if (img) o.push({ type: 'image', url: img, label: 'Voxel picture', why: et ? 'its ' + et + ' picture' : 'its picture' });
+    o.push({ type: 'text', label: 'Text sign', why: 'its title' + (s.desc ? ' and note' : '') });
+    var ctxs = [title, t.k && t.k.title || '', t.col && t.col.title || ''], sym = null; ctxs.some(function (c) { SYMBOL.some(function (r) { if (r[0].test(c)) { sym = r; return true; } return false; }); return !!sym; });   // its own name first, then its list, then its area
+    [sym].filter(Boolean).some(function (r) { var k = 'obj:' + r[1]; if (sdModelOk(k) && !o.some(function (x) { return x.asset === k; })) o.push({ type: 'model', asset: k, label: K[k].n + ' (symbol)', why: 'a symbol for the list — not a model of this item', exact: 0 }); return true; });
+    return { t: t, title: title, note: String(s.desc || '').replace(/\s+/g, ' ').trim().slice(0, 90), et: et, img: img, options: o };
+  }
+  function resolveVisual(ref, vis) {
+    var o = sdOptions(ref), O = o.options, pick = null;
+    if (vis && vis.type) pick = O.filter(function (x) { return x.type === vis.type && (x.type !== 'model' || x.asset === vis.asset); })[0] || null;
+    if (!pick) pick = O.filter(function (x) { return x.type === 'model' && x.exact; })[0] || O.filter(function (x) { return x.type === 'image'; })[0] || O.filter(function (x) { return x.type === 'text'; })[0];
+    if (pick.type === 'model' && MFAIL[pick.asset]) pick = Object.assign({}, O.filter(function (x) { return x.type === 'image'; })[0] || O.filter(function (x) { return x.type === 'text'; })[0], { fallback: 'model' });   // missing model: picture, then sign
+    if (pick.type === 'image' && PIX[pick.url] && PIX[pick.url].state === 'fail') pick = Object.assign({}, O.filter(function (x) { return x.type === 'text'; })[0], { fallback: 'image' });
+    return Object.assign({ title: o.title, note: o.note, options: O, et: o.et, missing: !o.t }, pick);
+  }
+  // ---- voxel-style pictures: the image drawn small and blown up in blocks (where its server allows), its real shape
+  var PIX = {};
+  function sdPix(url) {
+    if (!url) return null; var c = PIX[url]; if (c) return c; c = PIX[url] = { state: 'loading', u: '', w: 0, h: 0 };
+    var done = function () { if (el && V) { DIMS = {}; render(); } };
+    var tryLoad = function (cors) { var im = new Image(); if (cors) im.crossOrigin = 'anonymous';
+      im.onload = function () { c.w = im.naturalWidth || 1; c.h = im.naturalHeight || 1; c.state = 'ok';
+        if (cors) try { var cw = 30, ch = Math.max(8, Math.min(60, Math.round(cw * c.h / c.w))), cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; var x = cv.getContext('2d'); x.imageSmoothingEnabled = true; x.drawImage(im, 0, 0, cw, ch); c.u = cv.toDataURL('image/png'); } catch (e) { c.u = ''; }
+        done(); };
+      im.onerror = function () { if (cors) return tryLoad(false); c.state = 'fail'; done(); }; im.src = url; };
+    tryLoad(!/^data:/.test(url)); return c;
+  }
+  function sdKey(p) { var r = (p.it || [])[0] || '', v = p.vis ? (p.vis.type || '') + (p.vis.asset || '') : '', t = thing(r), u = t && sdImage(t.s, sdMeta(t.s)), px = u && PIX[u]; return r + '|' + v + '|' + (px && px.w ? Math.round(px.w / px.h * 10) : 0) + '|' + Object.keys(MFAIL).length; }
+  // ---- the display object: one builder, three looks, the same moves for all
+  function sdPanel(B, v) {   // a picture on a block easel
+    var px = sdPix(v.url), ar = px && px.w ? px.w / px.h : 1, H = 1.25, W = H * ar; if (W > 2.4) { W = 2.4; H = Math.max(.7, W / ar); } if (W < .8) { W = .8; H = Math.min(2, W / ar); }
+    B.box(0, W, .25, .75, 0, .12, 'stone', 'stone'); B.box(.04, .16, .44, .56, .12, H + .42, 'dark', 'dark'); B.box(W - .16, W - .04, .44, .56, .12, H + .42, 'dark', 'dark');
+    B.box(0, W, .45, .55, .3, H + .46, 'dark', 'dark'); B.pic(.09, W - .09, .41, .59, .38, H + .38, v.url); return { W: W, D: 1 };
+  }
+  function sdSign(B, v) {   // a wooden sign with the title (and a line of its note)
+    var W = 1.9, H = v.note ? 1.25 : 1; B.box(W / 2 - .08, W / 2 + .08, .44, .56, 0, .8, 'log', 'log'); B.box(0, W, .4, .6, .78, .78 + H, 'oak', 'oak');
+    B.txt(.08, W - .08, .37, .63, .84, .72 + H, v.missing ? '⚠ ' + v.title : v.title, v.note); return { W: W, D: 1 };
+  }
+  var SD_ITEM0 = BUILD.item;
+  BUILD.item = function (p, its, B) {
+    var ref = its[0] || (p.it || [])[0]; if (!ref) return SD_ITEM0(p, its, B);
+    var v = resolveVisual(ref, p.vis);
+    if (v.type === 'model' && sdModelOk(v.asset)) return BUILD[v.asset](Object.assign({}, p, { k: v.asset }), [], B);
+    if (v.type === 'image') return sized(p, B, function (SB) { return sdPanel(SB, v); });
+    return sized(p, B, function (SB) { return sdSign(SB, v); });
+  };
+  // the face a flat part (picture, sign text) is drawn on: its thin side tells which way it stands
+  function sdFace(q) { var thinX = (q.x1 - q.x0) < (q.y1 - q.y0); return thinX ? { m: mtx(CW, -CH, 0, ZU, P(q.x1, q.y1, q.z1)), w: q.y1 - q.y0, h: q.z1 - q.z0 } : { m: mtx(CW, CH, 0, ZU, P(q.x0, q.y1, q.z1)), w: q.x1 - q.x0, h: q.z1 - q.z0 }; }
+  function drawPic(q) {
+    var f = sdFace(q), px = sdPix(q.url), u = px && px.u ? px.u : q.url, w = +f.w.toFixed(3), h = +f.h.toFixed(3), g = '';
+    if (!(px && px.u)) for (var i = 1; i < 10; i++) g += '<path d="M' + (w * i / 10).toFixed(3) + ' 0V' + h + 'M0 ' + (h * i / 10).toFixed(3) + 'H' + w + '" stroke="#0004" stroke-width=".012"/>';   // no pixels from this server: a block grid over it
+    return '<g transform="' + f.m + '"><rect width="' + w + '" height="' + h + '" fill="#1b2140"/>' + (px && px.state === 'fail' ? '' : '<image href="' + esc(u) + '" width="' + w + '" height="' + h + '" preserveAspectRatio="xMidYMid slice" style="image-rendering:pixelated;image-rendering:crisp-edges"/>') + g + '<rect width="' + w + '" height="' + h + '" fill="none" stroke="#000a" stroke-width=".03"/></g>';
+  }
+  function sdWrap(s, n) { var out = [], line = ''; String(s || '').split(/\s+/).forEach(function (w) { while (w.length > n) { if (line) { out.push(line); line = ''; } out.push(w.slice(0, n - 1) + '-'); w = w.slice(n - 1); } if ((line + ' ' + w).trim().length > n) { out.push(line); line = w; } else line = (line + ' ' + w).trim(); }); if (line) out.push(line); return out; }
+  function drawTxt(q) {
+    var f = sdFace(q), w = f.w, h = f.h, fs = Math.min(.24, h / (q.note ? 5.2 : 3.6)), per = Math.max(6, Math.floor(w / (fs * .55))), L = sdWrap(q.title, per).slice(0, q.note ? 2 : 3), fs2 = fs * .66, N = q.note ? sdWrap(q.note, Math.floor(w / (fs2 * .55))).slice(0, 2) : [];
+    var y = fs * 1.15, t = '<g transform="' + f.m + '"><text text-anchor="middle" font-family="ui-rounded,SF Pro Rounded,Arial Rounded MT Bold,system-ui,sans-serif" fill="#2b1a08">';
+    L.forEach(function (l, i) { t += '<tspan x="' + (w / 2).toFixed(3) + '" y="' + (y + i * fs * 1.12).toFixed(3) + '" font-size="' + fs.toFixed(3) + '" font-weight="900">' + esc(l) + '</tspan>'; });
+    var y2 = y + L.length * fs * 1.12 + fs2 * .4; N.forEach(function (l, i) { t += '<tspan x="' + (w / 2).toFixed(3) + '" y="' + (y2 + i * fs2 * 1.15).toFixed(3) + '" font-size="' + fs2.toFixed(3) + '" font-weight="700" fill="#4a3216">' + esc(l) + '</tspan>'; });
+    return t + '</text></g>';
+  }
+  // ---- undo / redo: a step for every finished change of the scene (snapshots of the island record)
+  var HIST = { bid: null, cur: null, u: [], r: [], busy: 0 };
+  function histSnap(R) { return JSON.stringify({ pc: R.pc || [], land: R.land || null, ground: R.ground || null, scene: R.scene || null }); }
+  function histStart() { if (!V || V.visit) return; HIST = { bid: V.bid, cur: histSnap(V.root || V.d), u: [], r: [], busy: 0 }; }
+  function histNote(bid, d) { if (HIST.busy || !V || V.visit) return; var j = histSnap(d); if (HIST.bid !== bid || HIST.cur == null) { HIST = { bid: bid, cur: j, u: [], r: [], busy: 0 }; return; } if (j === HIST.cur) return; HIST.u.push(HIST.cur); if (HIST.u.length > 60) HIST.u.shift(); HIST.cur = j; HIST.r = []; }
+  function histGo(back) {
+    if (!V || V.visit || HIST.bid !== V.bid) return false; var from = back ? HIST.u : HIST.r, to = back ? HIST.r : HIST.u; if (!from.length) { toast(back ? 'Nothing to undo' : 'Nothing to redo'); return false; }
+    to.push(HIST.cur); HIST.cur = from.pop(); var s = JSON.parse(HIST.cur), R = V.root || V.d; R.pc = s.pc; if (s.land) R.land = s.land; if (s.ground) R.ground = s.ground; if (s.scene) R.scene = s.scene;
+    if (V.at) { var b = (R.pc || []).filter(function (p) { return p.id === V.at.pc; })[0], r = b && V.at.room && (b.rooms || []).filter(function (x) { return x.id === V.at.room; })[0];
+      if (!b) { bvClose(); V.d = R; V.root = null; V.at = null; } else if (V.at.room) { if (r) { roomD(r); V.d = r.d; } else { V.d = R; V.at = null; V.root = null; bldOpen(b.id); } } }
+    V.sel = null; V.menu = null; HUD.moving = null; refreshLand(); HIST.busy = 1; save(); HIST.busy = 0; render(); if (typeof BV !== 'undefined' && BV) bvDraw(); hap('light'); toast(back ? '↶ Undone' : '↷ Redone'); return true;
+  }
+  function histCan() { return { undo: HIST.bid === (V && V.bid) && HIST.u.length > 0, redo: HIST.bid === (V && V.bid) && HIST.r.length > 0 }; }
+  // ---- the look picker (selection bar ▸ 🎨 Look)
+  function sdLookHtml(p) {
+    var ref = (p.it || [])[0], v = resolveVisual(ref, p.vis), cur = v.type + (v.asset || ''), hasModel = v.options.some(function (o) { return o.type === 'model' && o.exact; });
+    return '<div class="menu mn-sd-look"><b class="h">Display “' + esc(v.title) + '” as</b>' + v.options.map(function (o, i) { var on = o.type + (o.asset || '') === cur; return '<button type="button" data-sdlook="' + i + '"' + (on ? ' class="on"' : '') + '><i>' + (o.type === 'model' ? '🧊' : o.type === 'image' ? '🖼' : '🪧') + '</i><span><b>' + esc(o.label) + '</b><small>' + esc(o.why) + '</small></span></button>'; }).join('') +
+      (hasModel ? '' : '<p class="why">No 3D model matches “' + esc(v.title) + '” — it shows as its ' + (v.img ? 'picture' : 'sign') + '. Give it a model from 🔍 3D models, or keep this.</p>') + (v.fallback ? '<p class="why">Its ' + v.fallback + ' could not be loaded — shown as ' + (v.type === 'image' ? 'its picture' : 'a sign') + ' for now; the choice is kept.</p>' : '') + '</div>';
+  }
+  function sdLookSet(p, i) { var v = resolveVisual((p.it || [])[0], p.vis), o = v.options[i]; if (!o) return; change(function () { p.vis = { type: o.type, asset: o.asset || null, by: 'user' }; if (!fits(p)) settle(p, p.x, p.y); V.menu = null; }); toast('Now shown as ' + o.label.toLowerCase() + ' — the card is unchanged'); }
+  function sdRef(p) { return p && p.k === 'item' ? (p.it || [])[0] || null : null; }
+  // keyboard (desktop): arrows move the picked piece, R turns, + / − size, Delete removes, ⌘/Ctrl+Z undo, ⇧ redo
+  document.addEventListener('keydown', function (e) {
+    if (!el || !V || V.visit || e.defaultPrevented) return; var tg = e.target; if (tg && (tg.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName))) return;
+    if ((e.metaKey || e.ctrlKey) && /^z$/i.test(e.key)) { e.preventDefault(); histGo(!e.shiftKey); return; }
+    if ((e.metaKey || e.ctrlKey) && /^y$/i.test(e.key)) { e.preventDefault(); histGo(false); return; }
+    var p = V.sel && !V.sel.ref && pieceOf(V.sel.pc); if (!p || V.explore) return;
+    var mv = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (mv) { e.preventDefault(); var g = HUD.snap || .5; change(function () { var ox = p.x, oy = p.y; p.x += mv[0] * g; p.y += mv[1] * g; if (!fits(p)) { p.x = ox; p.y = oy; } }); return; }
+    var act = /^r$/i.test(e.key) ? 'turn' : (e.key === '+' || e.key === '=') ? 'bigger' : e.key === '-' ? 'smaller' : (e.key === 'Delete' || e.key === 'Backspace') ? 'remove' : null;
+    if (act) { e.preventDefault(); var b = el.querySelector('.mn-dsp-sel [data-act="' + act + '"]'); if (b) b.click(); }
+  }, true);
   /* ── My World · Island System · sets: a house with its yard, a piece of land, a community building with its street
      🛠 Build → 🎁 Sets (and the top of Decorate) opens three shelves: 🏡 Homes (10 styles — a pool villa, a family home
      with a tree house, a farmhouse, a beach house on stilts, a mountain chalet, a Victorian, a Japanese house,
@@ -77608,7 +77747,8 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     var svg = el.querySelector('.mn-dsp-scene g.cam'); if (!svg) return;
     var hi = '', s = V.sel && !V.sel.ref && pieceOf(V.sel.pc); if (s) { var f = vfoot(s); hi = '<polygon class="foot' + (fits(s) ? '' : ' bad') + '" points="' + pts([P(f.x0, f.y0, 0), P(f.x1, f.y0, 0), P(f.x1, f.y1, 0), P(f.x0, f.y1, 0)]) + '"/>'; }
     svg.innerHTML = '<g class="gw">' + ground() + landMarks() + '</g>' + hi + scene(V.d.pc.filter(function (p) { return BUILD[p.k] && !(K[p.k] && K[p.k].mob) && !moving(p); })) + '<g class="movers">' + moversLayer(0) + '</g><g class="mobs">' + mobsLayer() + '</g><g class="movers air">' + moversLayer(1) + '</g>';   // people and pets walk on their own layer (59-mobs.js)
-    camera(); bar(); drawer(); guide();
+    if (V.ghost && V.hold && hudOn()) svg.insertAdjacentHTML('beforeend', hudGhostSvg()); else if (!V.hold) V.ghost = null;   // where it would go (86-hud.js)
+    camera(); bar(); drawer(); guide(); hudSetup();
   }
   function camera() { var g = el && el.querySelector('g.cam'); if (g) g.classList.toggle('far', V.cam.z < 1.05); if (g) g.setAttribute('transform', 'translate(' + V.cam.x.toFixed(1) + ',' + V.cam.y.toFixed(1) + ') scale(' + V.cam.z.toFixed(3) + ')'); }
   function fit() {
@@ -77668,7 +77808,9 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       if (V.menu === 'kind') h += '<div class="menu">' + SHELF_KINDS.map(function (kk) { return '<button type="button" data-tokind="' + kk + '"' + (kk === q.k ? ' class="on"' : '') + '>' + icon(kk, 34) + '<span>' + K[kk].n + '</span></button>'; }).join('') + '</div>';
       if (V.menu === 'fill') h += '<div class="menu">' + lists(board(V.bid)).filter(function (L) { return (L.k.stack || []).length; }).map(function (L) { return '<button type="button" data-fill="' + esc(L.k.id) + '"><span>' + esc(L.k.title) + ' · ' + L.k.stack.length + '</span></button>'; }).join('') + '</div>';
     }
-    tb.innerHTML = h; tb.hidden = !h; crumb();
+    var ip = s && s.pc && pieceOf(s.pc); if (hudOn() && ip && sdRef(ip)) h = hudItemHtml(ip) + (V.menu === 'look' ? sdLookHtml(ip) : '');   // a display of a card: one bar for every look (86-hud.js)
+    else if (hudOn() && h) { if (s.ref && thing(s.ref)) h = hudThingHtml(t, p, solo); else { var mm = h.indexOf('<div class="menu">'); h = hudSelHtml(q, k, n) + (mm >= 0 ? h.slice(mm) : ''); } }   // big buttons (86-hud.js)
+    tb.innerHTML = h; tb.hidden = !h; crumb(); hudSync();
   }
   function icon(kind, sz) {   // a small picture of a piece, for the Furniture tab and the Change menu
     if (/^bld:/.test(kind)) { ensureBld(kind); return bldIcon(kind, sz); }
@@ -77688,7 +77830,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       '<button type="button" class="mn-tab furn' + (V.tab === 'furn' ? ' on' : '') + '" data-dtab="furn" data-tip="Furniture">' + icon('shelf', 30) + '</button>' +
       '<button type="button" class="mn-tab furn' + (V.tab === 'decor' ? ' on' : '') + '" data-dtab="decor" data-tip="Decorate">' + icon('cherry', 30) + '</button>';
     var head = el.querySelector('.mn-dsp-dh');
-    if (V.tab === 'bld') { if (V.at) V.tab = null; else { bldTab(grid, head); return; } }
+    if (V.tab === 'bld') { if (V.at) V.tab = null; else { bldTab(grid, head); hudSections(grid, head); return; } }
     if (V.tab === 'decor') {   // make the island your own: more land, its ground, and trees, flowers, water, a cottage…
       head.innerHTML = '<b>Decorate</b><small>Drag onto the island — + and − make them bigger or smaller</small>';
       var qi = grid.querySelector('[data-m3dq]'), qv = qi && qi.value, qf = qi && document.activeElement === qi, qs = qf ? qi.selectionStart : 0;   // the redraw keeps what you are typing
@@ -77706,7 +77848,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
         LM.map(function (grp) { return '<p class="mn-dsp-subh">World landmarks · ' + grp[0] + '</p>' + grp[1].map(function (v) { var kk = v[0]; return '<button type="button" class="mn-dsp-fu dec' + (V.hold && V.hold.kind === kk ? ' held' : '') + '" data-kind="' + kk + '">' + icon(kk, 46) + '<b>' + K[kk].n + '</b></button>'; }).join(''); }).join('') +   // 100 world landmarks (53-landmarks.js)
         VEHICLES.map(function (grp) { return '<p class="mn-dsp-subh">' + grp[0] + ' · on the move</p>' + grp[1].map(function (v) { var kk = v[0]; return '<button type="button" class="mn-dsp-fu dec' + (V.hold && V.hold.kind === kk ? ' held' : '') + '" data-kind="' + kk + '">' + icon(kk, 46) + '<b>' + K[kk].n + '</b></button>'; }).join(''); }).join('');   // cars, planes, balloons, airships (51-vehicles.js)
       if (qi) { var ni = grid.querySelector('[data-m3dq]'); if (ni) { if (qv != null) ni.value = qv; if (qf) { ni.focus(); try { ni.setSelectionRange(qs, qs); } catch (x) {} } } }
-      return;
+      hudSections(grid, head); return;
     }
     if (V.tab === 'furn') {
       head.innerHTML = '<b>Furniture</b><small>Drag onto the island — or tap, then tap the ground</small>';
@@ -77723,6 +77865,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
         return '<button type="button" class="mn-slot mn-dsp-it' + (out ? ' out' : '') + (V.hold && V.hold.ref === ref ? ' held' : '') + '" data-ref="' + esc(ref) + '" data-tip="' + esc(s.title) + (out ? ' · on display' : '') + '" aria-label="' + esc(s.title) + '">' + (u ? '<img alt="" draggable="false" src="' + esc(S(u)) + '">' : '<span class="mn-letter" style="--h:' + (hash(s.title) % 360) + '">' + esc(String(s.title).charAt(0).toUpperCase()) + '</span>') + (out ? '<i class="ok">✓</i>' : '') + '</button>'; }).join('')
         : '<p class="mn-dsp-empty">Nothing in this list yet — add things in its Box first.</p>';
     }
+    if (V.tab === 'furn') hudSections(grid, head); else hudChipsOff();   // one category at a time (86-hud.js)
   }
 
   // ---------------------------------------------------------------- changes
@@ -77738,11 +77881,11 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if (have.length >= capOf(p)) { toast((p.label || K[p.k].n) + ' is full — make it bigger (+) or use another piece'); return false; }
     unplace(ref); p.it = have.concat([ref]); return true;
   }
-  function placeAt(ref, cx, cy) {   // a thing dropped on the screen: on a piece, or standing on the ground
+  function placeAt(ref, cx, cy, keep) {   // keep: another display of a card already out (a card may stand in many places)   // a thing dropped on the screen: on a piece, or standing on the ground
     var hit = document.elementFromPoint(cx, cy), pg = hit && hit.closest && hit.closest('.mn-dsp [data-pc]');
     if (pg) { var p = pieceOf(pg.getAttribute('data-pc')); if (p && p.k !== 'item' && putOn(ref, p)) { V.sel = { pc: p.id, ref: ref }; return true; } if (p && p.k !== 'item') return false; }
     var w = toFloor(cx, cy); if (!V.ls[plotAt(w[0], w[1])]) return false;
-    unplace(ref); var q = add('item', w[0], w[1], { it: [ref] }); if (q) V.sel = { pc: q.id, ref: ref }; return !!q;
+    if (!keep) unplace(ref); var q = add('item', w[0], w[1], { it: [ref], surf: 'ground' }); if (q) V.sel = { pc: q.id, ref: ref }; return !!q;
   }
   function change(fn) { fn(); save(); render(); }
   function arrange(all) {   // every list on the furniture that suits it
@@ -77775,10 +77918,11 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     V = { bid: n.bid, d: d || { v: 1, scene: 'island', rot: 0, pc: [] }, cam: { x: 0, y: 0, z: 1 }, sel: null, tab: tab || (n.card || null), hold: null, menu: null };
     refreshLand();
     if (fresh) seedIsland(n.bid);
+    histStart();   // undo starts from the island as it opened (61-spatial.js)
     el = document.createElement('div'); el.className = 'mn-dsp'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Display');
     el.innerHTML = '<div class="mn-dsp-top"><button type="button" class="mn-dsp-x" data-dx aria-label="Close">✕</button><div class="mn-dsp-title"><b></b><small></small></div>' +
       '<div class="mn-dsp-scn" role="group" aria-label="Scene">' + SCN.map(function (s) { return '<button type="button" data-scene="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div>' +
-      '<button type="button" class="mn-dsp-sh mn-dsp-boxb" data-bmenu>🛠 Build</button><button type="button" class="mn-dsp-sh mn-dsp-boxb" data-dbox>🎒 Box</button><button type="button" class="mn-dsp-auto" data-auto title="Arrange for me">✦ Arrange</button><button type="button" class="mn-dsp-sh" data-share>Share</button></div>' +
+      '<button type="button" class="mn-dsp-sh mn-dsp-boxb" data-bmenu>🛠 Build</button><button type="button" class="mn-dsp-sh mn-dsp-boxb" data-dbox>🎒 Box</button><button type="button" class="mn-dsp-auto" data-auto title="Arrange for me">✦ Arrange</button><button type="button" class="mn-dsp-sh" data-share>Share</button><button type="button" class="mn-dsp-sh mn-hud-only" data-hudclassic>Classic layout</button><button type="button" class="mn-dsp-sh mn-hud-not" data-hudisland>🏝 Island view</button><button type="button" class="mn-dsp-sh mn-dsp-bulb" data-bulb aria-label="Guide and inspiration" title="Guide · Inspiration">💡</button></div>' +
       '<div class="mn-dsp-stage"><svg class="mn-dsp-scene" xmlns="http://www.w3.org/2000/svg">' + defs() + '<g class="cam"></g></svg>' +
       '<div class="mn-dsp-sel" hidden></div>' +
       '<div class="mn-dsp-cam"><button type="button" data-cam="left" aria-label="Turn left">⟲</button><button type="button" data-cam="right" aria-label="Turn right">⟳</button><button type="button" data-cam="out" aria-label="Zoom out">−</button><button type="button" data-cam="in" aria-label="Zoom in">+</button><button type="button" data-cam="fit" aria-label="See it all">⤢</button></div>' +
@@ -78033,8 +78177,8 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if (!el || !el.contains(e.target)) return; if (e.isPrimary) ptrs = {};   /* a first finger: no pointer left over from a lost pointerup turns taps into pinches */ ptrs[e.pointerId] = [e.clientX, e.clientY]; swallow = false;   // a drag's click may never come (its element was redrawn)
     var ids = Object.keys(ptrs); if (ids.length === 2 && e.target.closest('.mn-dsp-scene')) { var a = ptrs[ids[0]], b = ptrs[ids[1]]; drag = { t: 'pinch', d0: Math.hypot(a[0] - b[0], a[1] - b[1]), z0: V.cam.z }; return; }
     var it = e.target.closest('.mn-dsp-scene [data-it]'), pg = e.target.closest('.mn-dsp-scene [data-pc]'), dit = e.target.closest('.mn-dsp-grid [data-ref]'), dk = e.target.closest('.mn-dsp-grid [data-kind]');
-    if (e.target.closest('.mn-dsp-sel, .mn-dsp-cam, .mn-dsp-top, .mn-dsp-start, .mn-dsp-share, .mn-sa, .mn-bv, .mn-guide, .mn-bmenu')) return;
-    if (V.visit) { if (e.target.closest('.mn-dsp-scene')) drag = { t: 'pan', x: e.clientX, y: e.clientY, cx: V.cam.x, cy: V.cam.y, vit: it && it.getAttribute('data-it'), vpc: pg && pg.getAttribute('data-pc'), moved: false }; return; }
+    if (e.target.closest('.mn-dsp-sel, .mn-dsp-cam, .mn-dsp-top, .mn-dsp-start, .mn-dsp-share, .mn-sa, .mn-bv, .mn-guide, .mn-bmenu, .mn-bulb')) return;
+    if (V.visit || V.explore) { if (e.target.closest('.mn-dsp-scene')) drag = { t: 'pan', x: e.clientX, y: e.clientY, cx: V.cam.x, cy: V.cam.y, vit: it && it.getAttribute('data-it'), vpc: pg && pg.getAttribute('data-pc'), moved: false }; return; }
     if (dit) drag = { t: 'new-it', ref: dit.getAttribute('data-ref'), x: e.clientX, y: e.clientY };
     else if (dk) drag = { t: 'new-pc', kind: dk.getAttribute('data-kind'), x: e.clientX, y: e.clientY };
     else if (it) drag = { t: 'it', ref: it.getAttribute('data-it'), pc: pg && pg.getAttribute('data-pc'), x: e.clientX, y: e.clientY };
@@ -78055,7 +78199,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     e.preventDefault();
     if (drag.t === 'pan') { V.cam.x = drag.cx + e.clientX - drag.x; V.cam.y = drag.cy + e.clientY - drag.y; camera(); return; }
     if (drag.t === 'pc') { var p = pieceOf(drag.pc); if (!p) return; var w = toFloor(e.clientX, e.clientY), f = foot(Object.assign({}, p, { x: 0, y: 0 })), hw = (f.x1 - f.x0) / 2, hd = (f.y1 - f.y0) / 2;
-      var lb = lbox(), nx = clamp(Math.round((w[0] + drag.ox) * 2) / 2, lb.x0 + hw, lb.x1 - hw), ny = clamp(Math.round((w[1] + drag.oy) * 2) / 2, lb.y0 + hd, lb.y1 - hd); if (nx !== p.x || ny !== p.y) { p.x = nx; p.y = ny; (drag.set || []).forEach(function (m) { m[0].x = m[1] + nx - drag.px; m[0].y = m[2] + ny - drag.py; }); render(); } return; }
+      var lb = lbox(), nx = clamp(snapR(w[0] + drag.ox), lb.x0 + hw, lb.x1 - hw), ny = clamp(snapR(w[1] + drag.oy), lb.y0 + hd, lb.y1 - hd); /* the grid: ½ or 1 block (86-hud.js) */ if (nx !== p.x || ny !== p.y) { p.x = nx; p.y = ny; (drag.set || []).forEach(function (m) { m[0].x = m[1] + nx - drag.px; m[0].y = m[2] + ny - drag.py; }); render(); } return; }
     ghostAt(e.clientX, e.clientY);
     var hit = document.elementFromPoint(e.clientX, e.clientY), pg = hit && hit.closest && hit.closest('.mn-dsp-scene [data-pc]'), hot = pg && drag.t !== 'new-pc' ? pg.getAttribute('data-pc') : null;
     if (hot !== V.hot) { el.querySelectorAll('.mn-dsp-scene .pc.hot').forEach(function (x) { x.classList.remove('hot'); }); V.hot = hot; if (hot) el.querySelectorAll('.mn-dsp-scene [data-pc="' + hot + '"]').forEach(function (x) { x.classList.add('hot'); }); }
@@ -78079,27 +78223,31 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   function tap(e, d) {   // a tap that did not move
     var now = Date.now(); if (lastTap && now - lastTap.t < 320 && Math.abs(e.clientX - lastTap.x) + Math.abs(e.clientY - lastTap.y) < 24 && /pan|pc|it/.test(d.t) && !V.hold) { lastTap = null; var dp = d.pc || d.vpc, dpp = dp && pieceOf(dp); if (dpp && isBld(dpp) && !V.visit) { bldOpen(dp); return; } if (dpp && !K[dpp.k].decor) { openPiece(dp, d.ref || d.vit); return; } zoomAt(e.clientX, e.clientY, 1.8); return; }   // double tap: open that piece (or come closer)
     lastTap = { t: now, x: e.clientX, y: e.clientY };
+    if (hudTap(e, d)) return;   // Move, then tap the spot (86-hud.js)
     if (d.t === 'new-it') { V.hold = V.hold && V.hold.ref === d.ref ? null : { ref: d.ref, name: (thing(d.ref) || { s: { title: '' } }).s.title }; bar(); drawer(); return; }
     if (d.t === 'new-pc') { V.hold = V.hold && V.hold.kind === d.kind ? null : { kind: d.kind, name: K[d.kind].n }; bar(); drawer(); return; }
+    if (V.hold && hudOn() && hudPreview(e, d)) return;   // the island view shows where it goes first (86-hud.js)
     if (V.hold) {   // put down what the drawer gave you
       var h = V.hold; V.hold = null;
-      if (h.ref) change(function () { placeAt(h.ref, e.clientX, e.clientY); });
-      else change(function () { var w = toFloor(e.clientX, e.clientY), q = add(h.kind, w[0], w[1]); if (q) V.sel = { pc: q.id }; });
+      if (h.ref) change(function () { placeAt(h.ref, e.clientX, e.clientY, h.keep); if (hudOn() && !h.keep) V.hold = hudNextRef(h.ref); });   // the island view keeps going: the list's next thing
+      else change(function () { var w = toFloor(e.clientX, e.clientY), q = add(h.kind, w[0], w[1]); if (q) V.sel = { pc: q.id }; if (hudOn()) { V.hold = h; V.sel = null; } });   // …or another of the same
       hap('light'); return;
     }
     V.menu = null;
-    if (V.visit) { var vp = d.vpc && pieceOf(d.vpc); if (vp && !K[vp.k].decor) { V.sel = null; openPiece(d.vpc, d.vit); return; } V.sel = d.vit ? { ref: d.vit, pc: d.vpc } : d.vpc ? { pc: d.vpc } : null; render(); return; }   // visitors: a tap opens it
+    if (V.visit || V.explore) { var vp = d.vpc && pieceOf(d.vpc);   /* Explore: a tap opens, nothing moves */ if (vp && !K[vp.k].decor) { V.sel = null; openPiece(d.vpc, d.vit || sdRef(vp)); return; } V.sel = d.vit ? { ref: d.vit, pc: d.vpc } : d.vpc ? { pc: d.vpc } : null; render(); return; }   // visitors: a tap opens it
     if (d.t === 'it') { V.sel = { ref: d.ref, pc: d.pc }; render(); return; }
     if (d.t === 'pc') { V.sel = { pc: d.pc }; render(); return; }
     if (V.sel) { V.sel = null; render(); }
   }
   document.addEventListener('click', function (e) {
-    if (!el || !el.contains(e.target) || e.target.closest('.mn-sa, .mn-bv, .mn-guide, .mn-bmenu')) return; e.stopPropagation(); if (swallow) { swallow = false; e.preventDefault(); return; }
+    if (!el || !el.contains(e.target) || e.target.closest('.mn-sa, .mn-bv, .mn-guide, .mn-bmenu, .mn-bulb')) return; e.stopPropagation(); if (swallow) { swallow = false; e.preventDefault(); return; }
     var g, s = V.sel, p = s && pieceOf(s.pc);
+    if (hudClick(e)) return;   // the island view's own buttons (86-hud.js)
     if (ieClick(e)) return;   // new lists and things (87-island-edit.js)
     if (mClick(e)) return;   // 3D model search (56-models.js)
     if (e.target.closest('[data-bmenu]')) { buildMenu(); return; }
-    if (e.target.closest('[data-kitsopen]')) { kitsOpen(); return; }   // 🎁 Sets (62-kits.js)   // 🛠 Build (58-city.js)
+    if (e.target.closest('[data-kitsopen]')) { kitsOpen(); return; }   // 🎁 Sets (62-kits.js)
+    if ((g = e.target.closest('[data-bulb]'))) { if (window.MinestBulb) MinestBulb.toggle(g); return; }   // 💡 guide · inspiration (bulb.js)   // 🛠 Build (58-city.js)
     var bm = el.querySelector('.mn-bmenu'); if (bm && !e.target.closest('.mn-bmenu')) bm.remove();
     if (e.target.closest('[data-up]')) { leaveRoom(); return; }
     if (e.target.closest('[data-gobld]')) { var st3 = el.querySelector('.mn-dsp-start'); if (st3) st3.remove(); V.tab = 'bld'; save(); drawer(); return; }
@@ -78114,26 +78262,31 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       while (refs.length) { var q = { id: uid(), k: kind === 'museum' ? 'shelf' : kind, x: 0, y: 0, f: V.d.rot, s: 1, it: [], label: String(L.k.title).replace(/^my\s+/i, '') }; q.it = refs.splice(0, capOf(q)); if (!freeSpot(q)) { V.d.pc = keep; toast('No room left on the island'); return; } V.d.pc.push(q); kn = q; } if (kn) V.sel = { pc: kn.id }; }); return; }
     if ((g = e.target.closest('[data-tokind]')) && p) { var nk = g.getAttribute('data-tokind'); return change(function () { var old = p.k, ox = p.x, oy = p.y; p.k = nk; V.menu = null; if (!fits(p) && !settle(p, ox, oy)) { p.k = old; p.x = ox; p.y = oy; toast('No room for a ' + K[nk].n + ' here'); return; } var c2 = capOf(p), its = (p.it || []).filter(thing); if (its.length > c2) { p.it = its.slice(0, c2); toast((its.length - c2) + ' went back to the box (it holds ' + c2 + ')'); } }); }
     if ((g = e.target.closest('[data-fill]')) && p) { var fid = g.getAttribute('data-fill'); return change(function () { V.menu = null; var b = board(V.bid), L = lists(b).filter(function (x) { return x.k.id === fid; })[0], on = placed(), n = 0; if (!L) return; (L.k.stack || []).forEach(function (s2) { var r = fid + '/' + s2.id; if (!on[r] && (p.it || []).filter(thing).length < capOf(p)) { p.it = (p.it || []).filter(thing).concat([r]); n++; } }); if (!p.label) p.label = String(L.k.title).replace(/^my\s+/i, ''); toast(n ? n + ' put on' : 'Nothing left to put on — or it is full'); }); }
+    if ((g = e.target.closest('[data-sdlook]')) && p) { sdLookSet(p, +g.getAttribute('data-sdlook')); return; }
     if ((g = e.target.closest('[data-act]'))) { var a = g.getAttribute('data-act');
-      if (a === 'detail' && s && s.ref) { openPiece(s.pc, s.ref); return; }
+      if (a === 'detail' && s && (s.ref || sdRef(p))) { openPiece(s.pc, s.ref || sdRef(p)); return; }
       if (a === 'open' && p) { openPiece(p.id); return; }
       if (a === 'rooms' && p) { bldOpen(p.id); return; }
       if (a === 'zoom' && s && s.ref && !p) return;
-      if (a === 'edit' && s && s.ref) { var t = thing(s.ref); if (t && window.MinestQuickEdit) { MinestQuickEdit.open({ t: 'list', bid: realBid(t.k.id), col: t.col.id, card: t.k.id }, t.s.id, null); var t0 = Date.now(); (function w() { if (!el) return; if (!document.querySelector('.mn-qe')) return render(); if (Date.now() - t0 < 600000) setTimeout(w, 400); })(); } return; }
+      if (a === 'edit' && s && (s.ref || sdRef(p))) { var t = thing(s.ref || sdRef(p)); if (t && window.MinestQuickEdit) { MinestQuickEdit.open({ t: 'list', bid: realBid(t.k.id), col: t.col.id, card: t.k.id }, t.s.id, null); var t0 = Date.now(); (function w() { if (!el) return; if (!document.querySelector('.mn-qe')) return render(); if (Date.now() - t0 < 600000) setTimeout(w, 400); })(); } return; }
       if (a === 'off' && s && s.ref) return change(function () { unplace(s.ref); V.sel = null; toast('Back in the box — it is still in its list'); });
       if (!p) return;
       if (a === 'up' || a === 'down') return change(function () { var z0 = +p.z || 0; p.z = Math.max(0, Math.min(3.5, Math.round((z0 + (a === 'up' ? .25 : -.25)) * 100) / 100)); if (!p.z) { delete p.z; if (!fits(p) && !settle(p, p.x, p.y)) p.z = z0; } });
-      if (a === 'dup') return change(function () { var c = JSON.parse(JSON.stringify(p)); c.id = uid(); c.it = []; delete c.rooms; delete c.auto; delete c.city; delete c.grp; delete c.label; if (settle(c, p.x + 1, p.y + 1)) { V.d.pc.push(c); V.sel = { pc: c.id }; } else toast('No room for another one here'); });
+      if (a === 'dup') return change(function () { var c = JSON.parse(JSON.stringify(p)); c.id = uid(); c.it = c.k === 'item' ? (p.it || []).slice() : [];   /* a display's copy shows the same card */ delete c.rooms; delete c.auto; delete c.city; delete c.grp; delete c.label; if (settle(c, p.x + 1, p.y + 1)) { V.d.pc.push(c); V.sel = { pc: c.id }; } else toast('No room for another one here'); });
       if (a === 'wall') return change(function () { var b = lbox(), f = foot(p), hw = (f.x1 - f.x0) / 2, hd = (f.y1 - f.y0) / 2, ox = p.x, oy = p.y; if (p.x - b.x0 < p.y - b.y0) p.x = b.x0 + hw; else p.y = b.y0 + hd; if (!fits(p) && !settle(p, p.x, p.y)) { p.x = ox; p.y = oy; toast('That wall is full here'); } });   // the back or the left wall, whichever is nearer
       if (a === 'turn') return change(function () { var f0 = p.f; p.f = ((p.f || 0) + 1) % 4; if (!fits(p) && !settle(p, p.x, p.y)) p.f = f0; });
-      if (a === 'bigger' || a === 'smaller') return change(function () { var s0 = p.s || 1, d0 = JSON.stringify(dims(p)), ns = s0; do { ns = Math.round((ns + (a === 'bigger' ? .05 : -.05)) * 100) / 100; p.s = ns; } while (JSON.stringify(dims(p)) === d0 && ns > .3 && ns < 3 && p.k !== 'item' && !K[p.k].decor); if (K[p.k].decor && /^(fence|pathway)$/.test(p.k)) { while (JSON.stringify(dims(p)) === d0 && ns > .3 && ns < 3) { ns = Math.round((ns + (a === 'bigger' ? .05 : -.05)) * 100) / 100; p.s = ns; } } else if (K[p.k].decor) { ns = clamp(Math.round((s0 + (a === 'bigger' ? .2 : -.2)) * 100) / 100, .4, 3); p.s = ns; if (ns === s0) return; } if (ns <= .3 || ns >= 3) { p.s = s0; return; } if (!fits(p) && !settle(p, p.x, p.y)) { p.s = s0; toast('No room to grow here'); return; } var c3 = capOf(p), its2 = (p.it || []).filter(thing); if (its2.length > c3) { p.it = its2.slice(0, c3); toast((its2.length - c3) + ' went back to the box'); } });
+      if (a === 'bigger' || a === 'smaller') return change(function () { var s0 = p.s || 1, d0 = JSON.stringify(dims(p)), ns = s0; do { ns = Math.round((ns + (a === 'bigger' ? .05 : -.05)) * 100) / 100; p.s = ns; } while (JSON.stringify(dims(p)) === d0 && ns > .3 && ns < 3 && p.k !== 'item' && !K[p.k].decor); if (K[p.k].decor && /^(fence|pathway)$/.test(p.k)) { while (JSON.stringify(dims(p)) === d0 && ns > .3 && ns < 3) { ns = Math.round((ns + (a === 'bigger' ? .05 : -.05)) * 100) / 100; p.s = ns; } } else if (K[p.k].decor || p.k === 'item') { ns = clamp(Math.round((s0 + (a === 'bigger' ? .2 : -.2)) * 100) / 100, .4, 3); p.s = ns; if (ns === s0) return; } if (ns <= .3 || ns >= 3) { p.s = s0; return; } if (!fits(p) && !settle(p, p.x, p.y)) { p.s = s0; toast('No room to grow here'); return; } var c3 = capOf(p), its2 = (p.it || []).filter(thing); if (its2.length > c3) { p.it = its2.slice(0, c3); toast((its2.length - c3) + ' went back to the box'); } });
+      if (a === 'look') { V.menu = V.menu === 'look' ? null : 'look'; bar(); return; }   // 🎨 how a card is shown (61-spatial.js)
+      if (a === 'again' && sdRef(p)) { var tr = thing(sdRef(p)); V.sel = null; V.hold = { ref: sdRef(p), name: tr ? tr.s.title : '', keep: 1 }; render(); return; }   // another display of the same card
+      if (a === 'more') { V.menu = V.menu === 'more' ? null : 'more'; bar(); return; }
+      if (a === 'move') { HUD.moving = p.id; V.menu = null; hudSync(); toast('Drag it — or tap the spot where it should go'); return; }
       if (a === 'kind' || a === 'fill') { V.menu = V.menu === a ? null : a; bar(); return; }
       if (a === 'zoom') { closer(p); return; }
       if (a === 'still') return change(function () { if (p.still) delete p.still; else p.still = 1; });   // ⏸ Stop / ▶ Go (63-movers.js)
       if (a === 'kitrm') { var set = kitMembers(p), cp = JSON.parse(JSON.stringify(set)); change(function () { V.d.pc = V.d.pc.filter(function (q) { return set.indexOf(q) < 0; }); V.sel = null; });
         var t3 = toast('Took away the set — ' + set.length + ' pieces', { duration: 6000 }); if (t3 && t3.appendChild) { var u3 = document.createElement('button'); u3.type = 'button'; u3.textContent = 'Undo'; u3.style.cssText = 'margin-left:10px;font-weight:700;color:#5ac8fa;background:none;border:0;padding:0 2px;cursor:pointer'; u3.addEventListener('click', function (ev) { ev.stopPropagation(); t3.click(); if (!V) return; change(function () { cp.forEach(function (c) { (c.it || []).forEach(unplace); V.d.pc.push(c); }); }); }); t3.appendChild(u3); } return; }
       if (a === 'remove') { var copy = JSON.parse(JSON.stringify(p)); change(function () { V.d.pc = V.d.pc.filter(function (q) { return q.id !== p.id; }); V.sel = null; });
-        var tt = toast('Removed ' + (copy.label || K[copy.k].n) + ((copy.it || []).length ? ' — its things are back in the box' : ''), { duration: 6000 });
+        var tt = toast(sdRef(copy) ? 'Removed this display — “' + ((thing(sdRef(copy)) || { s: { title: 'the card' } }).s.title) + '” stays in its list' : 'Removed ' + (copy.label || K[copy.k].n) + ((copy.it || []).length ? ' — its things are back in the box' : ''), { duration: 6000 });
         if (tt && tt.appendChild) { var u = document.createElement('button'); u.type = 'button'; u.textContent = 'Undo'; u.style.cssText = 'margin-left:10px;font-weight:700;color:#5ac8fa;background:none;border:0;padding:0 2px;cursor:pointer'; u.addEventListener('click', function (ev) { ev.stopPropagation(); tt.click(); if (!V) return; change(function () { (copy.it || []).forEach(unplace); V.d.pc.push(copy); }); }); tt.appendChild(u); }
         return; }
     }
@@ -78252,6 +78405,142 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if (pv.at >= 0 && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); e.stopPropagation(); pvDetail(Math.max(0, Math.min(pv.refs.length - 1, pv.at + (e.key === 'ArrowRight' ? 1 : -1)))); }
   }, true);
 
+  /* ── My World · Island System · the island on its own, the Minecraft way (HUD), and Clash-of-Clans-style editing
+     Landed on an island you see only the island: ✕ / ⬅ top left, 💡 and ≡ (the full menu, for a moment) top right,
+     and a hotbar at the bottom — 🛠 Build, 🎒 Box, ✦ Arrange, 🎁 Sets. Touch the island and open menus fold away.
+     🛠 Build / 🎒 Box slide up a half sheet: the tabs, then one category at a time (chips) with its pieces in two
+     rows that scroll sideways, and a search over all of them — no long scrolling. Tap a piece and the sheet steps
+     aside: tap the island to put it there, again for another, ✓ Done when finished (things from a list come one
+     after another). A picked piece gets a row of big buttons at the bottom like a village builder: Move (drag it, or
+     tap Move then tap the spot), Turn, Bigger, Smaller, Copy, Rooms / Open, Stop / Go, Remove, and ⋯ for the rest.
+     The old full layout is one tap away: ≡ → “Classic layout” (minest.hud = 0). */
+  var HUD = { on: true, sec: {}, q: '', moving: null, snap: .5 };
+  try { HUD.on = localStorage.getItem('minest.hud') !== '0'; } catch (e) {}
+  function hudOn() { return HUD.on && el && V && !V.visit; }
+  function hudSetup() {
+    if (!el || !V) return; el.classList.toggle('mn-hud', hudOn()); if (!hudOn()) return;
+    var st = el.querySelector('.mn-dsp-stage'); if (!st || st.querySelector('.mn-hud-tl')) return hudSync();
+    st.insertAdjacentHTML('beforeend', '<div class="mn-hud-tl"><button type="button" class="mn-hud-b" data-hudback aria-label="Back">✕</button><span class="mn-hud-ti"><b></b><small></small></span></div>' +
+      '<div class="mn-hud-tr"><button type="button" class="mn-hud-b mode" data-hudmode aria-label="Explore or arrange">👁</button><button type="button" class="mn-hud-b" data-bulb aria-label="Guide and inspiration">💡</button><button type="button" class="mn-hud-b" data-hudmenu aria-label="Menu">≡</button></div>' +
+      '<div class="mn-hud-bar" role="toolbar" aria-label="Build"><button type="button" data-hudsheet="build"><i>🛠</i><span>Build</span></button><button type="button" data-hudsheet="box"><i>🎒</i><span>Box</span></button>' +
+      '<button type="button" class="go" data-auto><i>✦</i><span>Arrange</span></button><button type="button" data-kitsopen><i>🎁</i><span>Sets</span></button></div>' +
+      '<div class="mn-hud-place" hidden></div><div class="mn-hud-ur"><button type="button" class="mn-hud-b" data-hudundo aria-label="Undo">↶</button><button type="button" class="mn-hud-b" data-hudredo aria-label="Redo">↷</button><button type="button" class="mn-hud-b sn" data-hudsnap aria-label="Grid">½</button></div>');
+    [40, 320].forEach(function (t) { setTimeout(function () { if (el && V) fit(); }, t); });   // the island fills the screen now
+    var box = el.querySelector('.mn-dsp-box'); if (box && !box.querySelector('.mn-hud-grab')) box.insertAdjacentHTML('afterbegin', '<div class="mn-hud-grab"><span></span><button type="button" class="mn-hud-b sm" data-hudclose aria-label="Close">✕</button></div>');
+    hudSync();
+  }
+  function hudSync() {   // after every render / bar: the title, the placing banner, what shows
+    if (!hudOn()) { if (el) el.classList.remove('mn-hud'); return; } el.classList.add('mn-hud'); if (el.scrollTop) el.scrollTop = 0; if (el.scrollLeft) el.scrollLeft = 0;
+    var ti = el.querySelector('.mn-hud-ti'), r = roomOf(), bp = bldOf(), b = board(V.bid);
+    if (ti) { ti.querySelector('b').textContent = r ? (r.n || (ROOMS[r.k] || ROOMS.hall)[0]) : bp ? bldName(bp) : String((b || {}).title || 'Island').replace(/^my\s+/i, ''); ti.querySelector('small').textContent = r ? 'room · ' + bldName(bp) : bp ? 'building · ' + (bp.rooms || []).length + ' rooms' : 'island'; }
+    var bk = el.querySelector('[data-hudback]'); if (bk) bk.textContent = V.at ? '⬅' : '✕';
+    var hc = histCan(), ub = el.querySelector('[data-hudundo]'), rb = el.querySelector('[data-hudredo]'), md = el.querySelector('[data-hudmode]'), sb = el.querySelector('[data-hudsnap]'); if (ub) ub.disabled = !hc.undo; if (rb) rb.disabled = !hc.redo; if (sb) sb.textContent = HUD.snap === 1 ? '1' : '½';
+    if (md) { md.textContent = V.explore ? '✋' : '👁'; md.title = V.explore ? 'Arrange: pick, move, turn, size' : 'Explore: tap to open, nothing moves'; } el.classList.toggle('mn-explore', !!V.explore);
+    var pl = el.querySelector('.mn-hud-place'), mv = HUD.moving && pieceOf(HUD.moving);
+    if (pl) { var h = V.hold, hn = h && esc(h.name || (h.kind && K[h.kind] ? K[h.kind].n : 'it')), txt = mv ? 'Tap where the <b>' + esc(mv.label || K[mv.k].n) + '</b> should go' : h && V.ghost ? 'Put <b>' + hn + '</b> here? Tap it again, or tap somewhere else' : h ? 'Tap the island where <b>' + hn + '</b> should go' : '';
+      pl.hidden = !txt; if (txt) { var html = '<span>' + txt + '</span>' + (h && V.ghost ? '<button type="button" class="ok" data-hudplace' + (V.ghost.ok ? '' : ' disabled') + '>✓ Place</button>' : '') + '<button type="button" data-huddone>' + (mv ? 'Cancel' : h && V.ghost ? '✕' : '✓ Done') + '</button>'; if (pl.dataset.h !== html) { pl.innerHTML = html; pl.dataset.h = html; } } }
+    el.classList.toggle('mn-hud-inroom', !!(V.at && V.at.room));
+    el.classList.toggle('mn-hud-placing', !!(V.hold || mv)); el.classList.toggle('mn-hud-picked', !!(V.sel && !V.hold && !mv));
+    if (V.hold || mv) el.classList.remove('mn-hud-sheet');
+  }
+  function hudSheet(what) {   // 🛠 Build → the build tabs; 🎒 Box → your lists
+    if (!V) return; editOn(); V.sel = null; V.menu = null; HUD.moving = null;
+    if (what === 'build') { if (!/^(decor|furn|bld)$/.test(V.tab || '')) V.tab = V.at ? (V.at.room ? 'furn' : 'decor') : (HUD.lastBuild || 'decor'); }
+    else if (/^(decor|furn|bld)$/.test(V.tab || '')) { var L = lists(board(V.bid)); V.tab = (L.filter(function (x) { return (x.k.stack || []).length; })[0] || L[0] || { k: { id: V.tab } }).k.id; }
+    el.classList.add('mn-hud-sheet'); el.classList.remove('mn-hud-menu'); bar(); drawer(); render();
+  }
+  // one category at a time: the drawer's sections become chips; a search looks through all of them
+  function hudSections(grid, head) {
+    if (!hudOn() || !grid || !/^(decor|furn|bld)$/.test(V.tab)) { if (grid) grid.classList.remove('hsec'); return; }
+    if (/^(decor|furn)$/.test(V.tab)) HUD.lastBuild = V.tab; else if (V.tab === 'bld') HUD.lastBuild = 'bld';
+    var kids = Array.prototype.slice.call(grid.children), groups = [], cur = null;
+    kids.forEach(function (n) { if (n.classList && n.classList.contains('mn-dsp-subh')) { cur = { t: n.textContent, nodes: [] }; groups.push(cur); n.remove(); return; } if (!cur) { cur = { t: V.tab === 'decor' ? '🏝 Land & 3D models' : 'Start', nodes: [], top: 1 }; groups.push(cur); } cur.nodes.push(n); });
+    if (groups.length < 2) return;
+    groups.forEach(function (g) { g.top = g.top || g.nodes.some(function (n) { return !(n.classList && n.classList.contains('mn-dsp-fu')); }); });   // rows and search boxes, not pieces: shown as a page
+    var key = V.tab + (V.at ? (V.at.room ? ':room' : ':bld') : ''), sel = HUD.sec[key]; if (sel == null || sel >= groups.length) { sel = 0; groups.some(function (g, i) { if (/^(Houses|Furniture|Things|For this world)/.test(g.t) || (V.at && V.at.room && /furniture/i.test(g.t))) { sel = i; return true; } return false; }); HUD.sec[key] = sel; }
+    var q = HUD.q.trim().toLowerCase();
+    groups.forEach(function (g, i) { g.nodes.forEach(function (n) { var fu = n.classList && n.classList.contains('mn-dsp-fu'); n.hidden = q ? !(fu && !g.top && n.textContent.toLowerCase().indexOf(q) >= 0) : i !== sel; }); });
+    grid.classList.add('hsec'); grid.classList.toggle('htop', !q && !!groups[sel].top);
+    var chips = el.querySelector('.mn-hud-chips'); if (!chips) { chips = document.createElement('div'); chips.className = 'mn-hud-chips'; grid.parentNode.insertBefore(chips, grid); }
+    chips.innerHTML = '<label class="mn-hud-find"><span>🔍</span><input type="search" data-hudq placeholder="Find" value="' + esc(HUD.q) + '"></label>' + groups.map(function (g, i) { return '<button type="button" data-hudsec="' + i + '"' + (!q && i === sel ? ' class="on"' : '') + '>' + esc(hudLabel(g.t)) + '</button>'; }).join('');
+    var on = chips.querySelector('.on'); if (on && !HUD.noScroll) chips.scrollLeft = Math.max(0, on.offsetLeft - (chips.clientWidth - on.offsetWidth) / 2);   // only the chips scroll, never the page
+  }
+  function hudLabel(t) { var a = t.split(' · '); if (/^Build the world/.test(a[0]) && a[1]) return a[1]; if (/^World landmarks/.test(a[0]) && a[1]) return '🗽 ' + a[1]; if (/3D models/.test(a[0])) return '🏝 Land & 3D'; return a[0]; }
+  function hudChipsOff() { var c = el && el.querySelector('.mn-hud-chips'); if (c && !/^(decor|furn|bld)$/.test(V.tab || '')) c.remove(); }
+  // Clash-of-Clans-style editing: a name tag and a row of big buttons
+  function hudSelHtml(q, k, n) {
+    var t = function (act, ic, lab, cls) { return '<button type="button" data-act="' + act + '"' + (cls ? ' class="' + cls + '"' : '') + '><i>' + ic + '</i><span>' + lab + '</span></button>'; };
+    var main = t('move', '✥', 'Move') + t('turn', '⟳', 'Turn') + t('bigger', '＋', 'Bigger') + t('smaller', '－', 'Smaller') + (isBld(q) ? t('rooms', '🚪', 'Rooms') : k.decor ? '' : t('open', '⤢', 'Open')) + (k.move ? t('still', q.still ? '▶' : '⏸', q.still ? 'Go' : 'Stop') : '') + t('dup', '⧉', 'Copy') + t('remove', '🗑', 'Remove', 'rm') + t('more', '⋯', 'More', V.menu === 'more' ? 'on' : '');
+    var more = V.menu === 'more' ? '<div class="mn-hud-more">' + (k.decor || k.model ? t('up', '⬆', 'Raise') + t('down', '⬇', 'Lower') : '') + (V.at && V.at.room ? t('wall', '⇱', 'To wall') : '') + t('zoom', '🔍', 'Closer') + (k.decor ? '' : t('kind', '🔁', 'Change') + t('fill', '📥', 'Fill')) + (q.kit && kitMembers(q).length > 1 ? t('kitrm', '🎁', 'Remove set', 'rm') : '') + '</div>' : '';
+    var info = k.model ? '3D model' + (k.by ? ' · by ' + esc(k.by) : '') : isBld(q) ? 'Building · ' + (q.rooms || []).length + ' room' + ((q.rooms || []).length === 1 ? '' : 's') : k.decor ? (q.kit ? 'Part of a set' : 'Decoration') : k.n + ' · ' + n + ' / ' + capOf(q);
+    return '<div class="mn-hud-tag"><b>' + esc(q.label || k.n) + '</b><small>' + info + '</small><button type="button" class="x" data-hudunsel aria-label="Done">✓</button></div>' + more + '<div class="mn-hud-acts">' + main + '</div>';
+  }
+  function hudThingHtml(t, p, solo) {
+    var b = function (act, ic, lab) { return '<button type="button" data-act="' + act + '"><i>' + ic + '</i><span>' + lab + '</span></button>'; };
+    return '<div class="mn-hud-tag"><b>' + esc(t.s.title) + '</b><small>' + esc(t.k.title) + (p ? ' · on ' + esc(solo ? 'the ground' : K[p.k].n) : '') + '</small><button type="button" class="x" data-hudunsel aria-label="Done">✓</button></div>' +
+      '<div class="mn-hud-acts">' + b('detail', 'ℹ', 'Details') + b('zoom', '🔍', 'Closer') + b('edit', '✏', 'Edit') + (solo ? b('bigger', '＋', 'Bigger') + b('smaller', '－', 'Smaller') : '') + b('off', '🎒', 'To box') + '</div>';
+  }
+  function hudMoveTo(p, x, y) {   // Move, then a tap: there (a set's main piece brings its set)
+    var set = p.kitHead ? kitMembers(p).filter(function (q) { return q !== p; }) : [], ox = p.x, oy = p.y, keep = set.map(function (q) { return [q, q.x, q.y]; });
+    if (!settle(p, x, y)) { toast('No room there'); return false; }
+    keep.forEach(function (m) { m[0].x = m[1] + p.x - ox; m[0].y = m[2] + p.y - oy; });
+    if (set.length && set.some(function (q) { return !fits(q); })) { p.x = ox; p.y = oy; keep.forEach(function (m) { m[0].x = m[1]; m[0].y = m[2]; }); toast('The whole set does not fit there'); return false; }
+    delete p.auto; delete p.city; return true;
+  }
+  function hudTap(e, d) {   // from tap(): a Move waiting for its spot
+    if (!HUD.moving) return false; var p = pieceOf(HUD.moving); HUD.moving = null; if (!p) return false;
+    if (d.t === 'pc' && d.pc === p.id) { hudSync(); return true; }
+    var w = toFloor(e.clientX, e.clientY); change(function () { hudMoveTo(p, w[0], w[1]); V.sel = { pc: p.id }; }); hap('light'); return true;
+  }
+  function snapR(v) { var g = HUD.snap || .5; return Math.round(v / g) * g; }
+  // placing: the first tap shows where it would go (a see-through copy), the second puts it there
+  function hudGhostPiece() { var h = V.hold, g = V.ghost; if (!h || !g) return null; var p = { id: 'ghost', k: h.ref ? 'item' : h.kind, it: h.ref ? [h.ref] : [], x: g.x, y: g.y, f: V.d.rot || 0, s: 1 }; if (/^m3d:/.test(p.k) && V.at && V.at.room) p.s = .5; if (!K[p.k] || !BUILD[p.k]) return null; return p; }
+  function hudPreview(e, d) {
+    var w = toFloor(e.clientX, e.clientY), g = V.ghost;
+    if (g && ((Math.abs(w[0] - g.x) < 1 && Math.abs(w[1] - g.y) < 1) || (Math.abs(w[0] - g.tx) < .8 && Math.abs(w[1] - g.ty) < .8))) {   /* on the ghost, or where you tapped before (it may have been nudged to the nearest free spot) */ if (g.ok) hudCommit(); else toast('No room there — tap somewhere else'); return true; }
+    if (!V.ls[plotAt(w[0], w[1])]) { toast('That is off the island — tap the ground'); return true; }
+    V.ghost = { x: snapR(w[0]), y: snapR(w[1]), tx: w[0], ty: w[1] }; var gp = hudGhostPiece(); if (gp) { V.ghost.ok = settle(gp, gp.x, gp.y); V.ghost.x = gp.x; V.ghost.y = gp.y; } render(); hap('selection'); return true;
+  }
+  function hudCommit() {
+    var h = V.hold, g = V.ghost; if (!h || !g) return; V.ghost = null;
+    change(function () { if (h.ref) { if (!h.keep) unplace(h.ref); var q = add('item', g.x, g.y, { it: [h.ref], surf: 'ground' }); V.hold = q && !h.keep ? hudNextRef(h.ref) : (q ? null : h); if (q && h.keep) V.sel = { pc: q.id }; } else { var q2 = add(h.kind, g.x, g.y); V.hold = h; if (!q2) toast('No room there'); } });
+    hap('light');
+  }
+  function hudGhostSvg() { var gp = hudGhostPiece(); if (!gp) return ''; var f = vfoot(gp); return '<g class="mn-ghost" pointer-events="none" opacity=".62"><polygon class="foot' + (V.ghost.ok ? '' : ' bad') + '" points="' + pts([P(f.x0, f.y0, 0), P(f.x1, f.y0, 0), P(f.x1, f.y1, 0), P(f.x0, f.y1, 0)]) + '"/>' + scene([gp]) + '</g>'; }
+  function hudItemHtml(p) {   // a display of a card: the same moves for a model, a picture and a sign
+    var ref = sdRef(p), v = resolveVisual(ref, p.vis), t = function (act, ic, lab, cls) { return '<button type="button" data-act="' + act + '"' + (cls ? ' class="' + cls + '"' : '') + '><i>' + ic + '</i><span>' + lab + '</span></button>'; };
+    var main = t('move', '✥', 'Move') + t('turn', '⟳', 'Turn') + t('bigger', '＋', 'Bigger') + t('smaller', '－', 'Smaller') + t('look', '🎨', 'Look', V.menu === 'look' ? 'on' : '') + t('edit', '📄', 'Card') + t('again', '➕', 'Again') + t('remove', '🗑', 'Remove', 'rm') + t('more', '⋯', 'More', V.menu === 'more' ? 'on' : '');
+    var more = V.menu === 'more' ? '<div class="mn-hud-more">' + t('up', '⬆', 'Raise') + t('down', '⬇', 'Lower') + (V.at && V.at.room ? t('wall', '⇱', 'To wall') : '') + t('zoom', '🔍', 'Closer') + t('detail', 'ℹ', 'Details') + t('dup', '⧉', 'Copy here') + '</div>' : '';
+    var kind = v.type === 'model' ? '3D model' + (K[v.asset] && K[v.asset].studio ? ' · Studio' : '') : v.type === 'image' ? 'voxel picture' : 'text sign';
+    return '<div class="mn-hud-tag"><b>' + esc(v.title) + '</b><small>' + kind + (v.fallback ? ' (its ' + v.fallback + ' did not load)' : '') + '</small><button type="button" class="x" data-hudunsel aria-label="Done">✓</button></div>' + more + '<div class="mn-hud-acts">' + main + '</div>';
+  }
+  function hudNextRef(ref) {   // after putting a thing out: the next one of its list still in the Box
+    var k = ref.split('/')[0], X = lists(board(V.bid)).filter(function (x) { return x.k.id === k; })[0], on = placed(); if (!X) return null;
+    var s = (X.k.stack || []).filter(function (s) { return s && s.id && !on[k + '/' + s.id]; })[0]; return s ? { ref: k + '/' + s.id, name: s.title } : null;
+  }
+  function hudClick(e) {   // from the display's click handler
+    var g;
+    if (e.target.closest('[data-hudback]')) { if (V.at) leaveRoom(); else close(); return true; }
+    if (e.target.closest('[data-hudmenu]')) { el.classList.toggle('mn-hud-menu'); return true; }
+    if ((g = e.target.closest('[data-hudsheet]'))) { var w = g.getAttribute('data-hudsheet'); if (el.classList.contains('mn-hud-sheet') && HUD.lastSheet === w) { el.classList.remove('mn-hud-sheet'); return true; } HUD.lastSheet = w; hudSheet(w); return true; }
+    if (e.target.closest('[data-hudclose]')) { el.classList.remove('mn-hud-sheet'); V.hold = null; hudSync(); return true; }
+    if ((g = e.target.closest('[data-hudsec]'))) { HUD.sec[V.tab + (V.at ? (V.at.room ? ':room' : ':bld') : '')] = +g.getAttribute('data-hudsec'); HUD.q = ''; drawer(); var gr = el.querySelector('.mn-dsp-grid'); if (gr) gr.scrollLeft = 0; return true; }
+    if (e.target.closest('[data-hudplace]')) { hudCommit(); return true; }
+    if (e.target.closest('[data-hudmode]')) { V.explore = !V.explore; V.sel = null; V.hold = null; V.ghost = null; HUD.moving = null; el.classList.remove('mn-hud-sheet'); render(); toast(V.explore ? '👁 Explore — tap something to open it; drag to look around' : '✋ Arrange — tap to pick, drag to move'); return true; }
+    if (e.target.closest('[data-hudundo]')) { histGo(true); return true; }
+    if (e.target.closest('[data-hudredo]')) { histGo(false); return true; }
+    if (e.target.closest('[data-hudsnap]')) { HUD.snap = HUD.snap === 1 ? .5 : 1; hudSync(); toast(HUD.snap === 1 ? 'Snap to whole blocks' : 'Snap to half blocks'); return true; }
+    if (e.target.closest('[data-huddone]')) { if (V.ghost && V.hold) { V.ghost = null; render(); return true; } var was = !!V.hold; V.hold = null; HUD.moving = null; V.ghost = null; if (was) el.classList.add('mn-hud-sheet'); bar(); drawer(); hudSync(); return true; }
+    if (e.target.closest('[data-hudunsel]')) { V.sel = null; V.menu = null; render(); return true; }
+    if (e.target.closest('[data-hudclassic]')) { HUD.on = false; try { localStorage.setItem('minest.hud', '0'); } catch (x) {} el.classList.remove('mn-hud', 'mn-hud-menu', 'mn-hud-sheet'); bar(); drawer(); render(); fit(); toast('Classic layout — ≡ Island view brings the island view back'); return true; }
+    if (e.target.closest('[data-hudisland]')) { HUD.on = true; try { localStorage.setItem('minest.hud', '1'); } catch (x) {} hudSetup(); bar(); drawer(); render(); fit(); return true; }
+    return false;
+  }
+  document.addEventListener('input', function (e) { if (!el || !e.target.matches || !e.target.matches('[data-hudq]')) return; HUD.q = e.target.value; HUD.noScroll = 1; var pos = e.target.selectionStart; drawer(); HUD.noScroll = 0; var i = el.querySelector('[data-hudq]'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (x) {} } }, true);
+  document.addEventListener('pointerdown', function (e) {   // touching the island folds the menus away
+    if (!el || !hudOn() || !e.target.closest) return; if (!e.target.closest('.mn-dsp-scene')) return;
+    el.classList.remove('mn-hud-menu'); if (!V.hold && !HUD.moving) el.classList.remove('mn-hud-sheet');
+  }, true);
   /* ── My World · Island System · make things on the island: new lists and new things without leaving it
      · the Box drawer: ＋ tab = a new list (in an area you pick); ＋ New thing in a list's tab (it is then held,
        so one tap on the island sets it down);
@@ -78339,6 +78628,55 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if ((g = e.target.closest('[data-pvput]'))) { var r = g.getAttribute('data-pvput'); if (putOnPiece(p, r)) { save(); render(); var pc2 = pv.pc; openPiece(pc2); pvAdd(); hap('light'); } return true; }
     if (e.target.closest('[data-pvoff]') && pv.at >= 0) { var r2 = pv.refs[pv.at], nm = (thing(r2) || { s: { title: '' } }).s.title; p.it = (p.it || []).filter(function (x) { return x !== r2; }); save(); render(); var pc3 = pv.pc; openPiece(pc3); toast('“' + nm + '” is back in the box'); return true; }
     return false;
+  }
+  /* ── My World · Island System · the 💡 guide inside the island: where you are, what to do next, and the buttons
+     that do it — ✦ for me (automatic) or by hand (the tool to do it yourself). The bulb (bulb.js) shows it, with the
+     day's inspiration in its other tab. Three levels: the island, a building, a room; a visit only says how to look. */
+  function bulbGuide() {
+    if (!V) return null; index(); var b = board(V.bid), name = String((b || {}).title || 'This island').replace(/^my\s+/i, '');
+    if (V.visit) return { ic: '👀', t: 'Visiting ' + name, where: 'Someone’s island', p: 'Look around: drag to move, pinch or + / − to zoom, tap a thing to read about it.', steps: [], auto: [], manual: [] };
+    var r = roomOf(), bp = bldOf();
+    if (r) {
+      var T = ROOMS[r.k] || ROOMS.hall, furn = (V.d.pc || []).filter(function (q) { return K[q.k] && (K[q.k].furn || K[q.k].model); }).length, n = 0; (V.d.pc || []).forEach(function (q) { n += (q.it || []).filter(thing).length; });
+      return { ic: T[1], t: r.n || T[0], where: 'A room in ' + bldName(bp), p: 'A ' + T[0].toLowerCase() + ' has its furniture, and your things on its shelves, walls and stands.',
+        steps: [['Furnish it — beds, sofas, tables, or 3D models from the library', furn > 0], ['Set your things out on its displays', n > 0], ['Make it yours: drag to move, ⟳ to turn, + / − to size, ⬆ to put a thing on a table', false]],
+        auto: [['rfurnish', '✦ Furnish this room', 'the furniture a ' + T[0].toLowerCase() + ' has'], ['arrange', '✦ Set out my things that fit', 'from the lists that belong here']],
+        manual: [['furn', '🛋 Furniture'], ['models', '🔍 3D models'], ['box', '🎒 Box'], ['up', '⬅ The building']] };
+    }
+    if (bp) {
+      var R = bp.rooms || [], fl = bp.floors || 1, inR = 0; R.forEach(function (x) { (x.d && x.d.pc || []).forEach(function (q) { inR += (q.it || []).filter(thing).length; }); });
+      return { ic: '🏠', t: bldName(bp), where: 'Building · ' + R.length + ' room' + (R.length === 1 ? '' : 's') + ' on ' + fl + ' floor' + (fl === 1 ? '' : 's'), p: 'A building is its rooms: put them on up to three floors, then go into each one.',
+        steps: [['Give it rooms — the ones a building like this has, on 1–3 floors', R.length > 0], ['Fill them: your things go into the rooms they belong in', inR > 0], ['Double-tap a room to go in and furnish it', false]],
+        auto: [['bsuggest', '✦ Suggest its rooms', 'the rooms a ' + bldName(bp).toLowerCase() + ' has'], ['bfill', '✦ Fill it with my things', 'rooms and displays for what you keep']],
+        manual: [['bsection', '🛠 Section tool'], ['bplan', '▦ Floor plan'], ['bdoll', '🏠 Dollhouse'], ['up', '⬅ The island']] };
+    }
+    var pcs = V.d.pc || [], blds = pcs.filter(isBld), rooms = 0, all = Object.keys(IX).length, on = Object.keys(placed()).filter(thing).length, deco = pcs.filter(function (q) { return K[q.k] && K[q.k].decor && !isBld(q); }).length;
+    blds.forEach(function (q) { rooms += (q.rooms || []).length; });
+    return { ic: '🏝', t: name, where: 'The island · ' + blds.length + ' building' + (blds.length === 1 ? '' : 's') + ' · ' + on + ' of ' + all + ' things out',
+      p: all - on > 0 ? (all - on) + ' thing' + (all - on === 1 ? ' is' : 's are') + ' waiting in your Box. Buildings first, then their rooms, then your things in them.' : 'Buildings first, then their rooms, then your things in them — and the world around them.',
+      steps: [['Put down buildings — Studio’s, or a whole set with its yard', blds.length > 0], ['Give each building its rooms (double-tap a building)', rooms > 0], ['Set your things out in the rooms', on > 0], ['Build the world round them: land, roads, water, nature, people and pets', deco > 0]],
+      auto: [['arrange', '✦ Arrange for me', 'buildings, rooms and your things, all at once'], ['kits', '🎁 Add a set', 'a house and its yard, land, a school…'], ['city', '🏙 Build a town', 'roads, blocks and districts']],
+      manual: [['bld', '🏠 Buildings'], ['menu', '🛠 Build menu'], ['decor', '🌳 Decorate'], ['box', '🎒 Box']] };
+  }
+  function bulbDo(id) {
+    if (!V || V.visit) return; editOn(); var r = roomOf();
+    switch (id) {
+      case 'arrange': if (V.at && !V.at.room) return fillBuilding(); return smartOpen();
+      case 'kits': return kitsOpen();
+      case 'city': return cityOpen();
+      case 'menu': return buildMenu();
+      case 'bld': V.tab = 'bld'; V.hold = null; return drawer();
+      case 'decor': case 'models': V.tab = 'decor'; V.hold = null; drawer(); if (id === 'models') { var q = el.querySelector('[data-m3dq]'); if (q) { q.scrollIntoView({ block: 'center' }); q.focus(); } } return;
+      case 'furn': V.tab = 'furn'; V.hold = null; return drawer();
+      case 'box': return openBox(null);
+      case 'up': return leaveRoom();
+      case 'rfurnish': if (!r) return; var want = (FURNISH[r.k] || []).concat((ROOMS[r.k] || ROOMS.hall)[2] || []), got = 0, lb = lbox();
+        change(function () { want.forEach(function (k) { if (!K[k] || V.d.pc.some(function (q) { return q.k === k; })) return; if (add(k, (lb.x0 + lb.x1) / 2, (lb.y0 + lb.y1) / 2)) got++; }); });
+        toast(got ? 'Furnished — ' + got + ' piece' + (got === 1 ? '' : 's') + ' added. Drag, turn or size any of them' : 'It already has what a ' + (ROOMS[r.k] || ROOMS.hall)[0].toLowerCase() + ' has — add more from Furniture or 3D models'); return;
+      case 'bsuggest': return bvFloors.suggest();
+      case 'bfill': return fillBuilding();
+      case 'bsection': case 'bplan': case 'bdoll': if (window.MinestFloorPlan) MinestFloorPlan.setMode({ bsection: 'build', bplan: 'plan', bdoll: 'doll' }[id]); return;
+    }
   }
   /* ── My World · Island System · never an empty level: what could go here, and one tap to start
      When the island (or a room) has nothing set out yet, a small card says what fits it and starts it for you:
@@ -78726,7 +79064,12 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   function ensureDefs() {   // the block textures, once, for block pictures drawn outside the island view (the home's main islands)
     if (document.getElementById('mn-tex-defs')) return; var h = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); h.id = 'mn-tex-defs'; h.setAttribute('width', '0'); h.setAttribute('height', '0'); h.setAttribute('aria-hidden', 'true'); h.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden'; h.innerHTML = defs(); document.body.appendChild(h);
   }
-  window.MinestDisplay = { movers: function () { var o = {}; Object.keys(MV).forEach(function (k) { var m = MV[k]; o[k] = { k: m.k, mode: m.mode, x: +m.x.toFixed(2), y: +m.y.toFixed(2), d: m.d, box: m.box || null, tile: m.a ? [m.a.x, m.a.y] : null, wait: m.wait }; }); return o; }, kitTest: function () { return kitTest(); }, kitPlace: function (id) { var g = null; if (V) change(function () { g = kitPlace(id); }); return g ? g.length : 0; }, kitIds: function () { var o = []; Object.keys(KITS).forEach(function (g) { KITS[g].forEach(function (k) { o.push(g + ':' + k[0]); }); }); return o; }, dollhouse: function (id, rects, sel) { return V ? dollSVG(id, rects, sel) : ''; }, building: bvFloors, swapRooms: function (a, b) { if (V && BV) bvSwap(a, b); }, refresh: function () { if (V && el) render(); }, tex: function (n, sh) { return texURL(n, sh || 0); }, open: open, close: close, focus: function (id) { if (V) closer(pieceOf(id)); }, fit: function () { if (V) fit(); }, isOpen: function () { return !!el; }, state: function () { return V && JSON.parse(JSON.stringify(V.d)); }, visit: openVisit, visitCode: visitCode, person: visitPerson, people: openPeople, piece: function (id, ref) { if (V) openPiece(id, ref); }, decoIcon: function (kind, sz) { if (!BUILD[kind]) return ''; ensureDefs(); return icon(kind, sz || 40); }, decoKinds: function () { return DECOR_KINDS.concat(LANDMARKS, VEHICLE_KINDS, LANDMARK_KINDS, WORLD_KINDS, FURN_KINDS, MOB_KINDS, KIT_KINDS, CRITTER_KINDS, FLOWER_KINDS); }, link: function () { return V && !V.visit ? pack(snapshot()).then(function (c) { return linkBase() + '#isle=' + c; }) : Promise.resolve(null); }, kinds: function () { return Object.keys(K); }, arrange: function () { if (!V) return 0; var n; change(function () { n = arrange(false); }); return n; } };
+  window.MinestDisplay = { resolve: function (ref, vis) { return V ? resolveVisual(ref, vis) : null; }, undo: function () { return histGo(true); }, redo: function () { return histGo(false); }, explore: function (on) { if (!V) return; V.explore = !!on; render(); },
+    display: function (ref) {   // Universal Add: show a saved card in its world's scene, ready to place (Save first, display later)
+      var lid = String(ref || '').split('/')[0], b = (A().boards() || []).filter(function (x) { return (x.columns || []).some(function (c) { return (c.cards || []).some(function (k) { return k.id === lid; }); }); })[0]; if (!b) return false;
+      if (!V || V.bid !== b.id) { try { if (window.MinestUniverse && !document.querySelector('.uv')) MinestUniverse.open({ path: [{ t: 'home' }, { t: 'world', bid: b.id }] }); } catch (e) {} open({ t: 'world', bid: b.id }); }
+      if (!V) return false; index(); var t = thing(ref); if (!t) return false; editOn(); V.explore = false; V.sel = null; V.hold = { ref: ref, name: t.s.title, keep: !!placed()[ref] }; render(); toast('Tap the island where “' + t.s.title + '” should go'); return true; },
+    guide: function () { return bulbGuide(); }, guideDo: function (id) { bulbDo(id); }, movers: function () { var o = {}; Object.keys(MV).forEach(function (k) { var m = MV[k]; o[k] = { k: m.k, mode: m.mode, x: +m.x.toFixed(2), y: +m.y.toFixed(2), d: m.d, box: m.box || null, tile: m.a ? [m.a.x, m.a.y] : null, wait: m.wait }; }); return o; }, kitTest: function () { return kitTest(); }, kitPlace: function (id) { var g = null; if (V) change(function () { g = kitPlace(id); }); return g ? g.length : 0; }, kitIds: function () { var o = []; Object.keys(KITS).forEach(function (g) { KITS[g].forEach(function (k) { o.push(g + ':' + k[0]); }); }); return o; }, dollhouse: function (id, rects, sel) { return V ? dollSVG(id, rects, sel) : ''; }, building: bvFloors, swapRooms: function (a, b) { if (V && BV) bvSwap(a, b); }, refresh: function () { if (V && el) render(); }, tex: function (n, sh) { return texURL(n, sh || 0); }, open: open, close: close, focus: function (id) { if (V) closer(pieceOf(id)); }, fit: function () { if (V) fit(); }, isOpen: function () { return !!el; }, state: function () { return V && JSON.parse(JSON.stringify(V.d)); }, visit: openVisit, visitCode: visitCode, person: visitPerson, people: openPeople, piece: function (id, ref) { if (V) openPiece(id, ref); }, decoIcon: function (kind, sz) { if (!BUILD[kind]) return ''; ensureDefs(); return icon(kind, sz || 40); }, decoKinds: function () { return DECOR_KINDS.concat(LANDMARKS, VEHICLE_KINDS, LANDMARK_KINDS, WORLD_KINDS, FURN_KINDS, MOB_KINDS, KIT_KINDS, CRITTER_KINDS, FLOWER_KINDS); }, link: function () { return V && !V.visit ? pack(snapshot()).then(function (c) { return linkBase() + '#isle=' + c; }) : Promise.resolve(null); }, kinds: function () { return Object.keys(K); }, arrange: function () { if (!V) return 0; var n; change(function () { n = arrange(false); }); return n; } };
 })();
 
 </script>
@@ -79190,6 +79533,240 @@ html body .mn-kits .mn-sa-seg { flex-wrap:wrap; }
     if (r && r !== d.el) { try { D().swapRooms(d.id, r.getAttribute('data-fproom')); } catch (x) {} } }, true);
   window.addEventListener('resize', function () { if (document.querySelector('.mn-dsp .mn-bv')) paint(); });
   window.MinestFloorPlan = { openIsle: openIsle, paint: paint, mode: mode, setMode: function (m) { setMode(m); paint(); } };
+})();
+</script>
+<style id="mn-hud-style">/* 53.41 · the island on its own (86-hud.js): HUD corners, a hotbar, a half sheet, Clash-of-Clans-style edit buttons */
+html body .mn-dsp .mn-hud-tl, html body .mn-dsp .mn-hud-tr, html body .mn-dsp .mn-hud-bar, html body .mn-dsp .mn-hud-place, html body .mn-dsp .mn-hud-grab { display:none; }
+html body .mn-dsp:not(.mn-hud) .mn-hud-only, html body .mn-dsp.mn-hud .mn-hud-not { display:none!important; }
+html body .mn-dsp.mn-hud .mn-dsp-top { display:none; }
+html body .mn-dsp.mn-hud.mn-hud-menu .mn-dsp-top { display:flex;position:absolute;left:0;right:0;top:0;z-index:40;background:var(--pcsh-f,#333e6e) var(--pc-facet,none);border-bottom:4px solid var(--pcs-sh,#262e56);box-shadow:0 6px 18px #0006;animation:mn-hud-down .14s ease-out; }
+@keyframes mn-hud-down { from { transform:translateY(-12px);opacity:0 } to { transform:none;opacity:1 } }
+html body .mn-dsp.mn-hud .mn-dsp-stage { flex:1 1 auto!important;height:auto!important;width:100%; }
+html body .mn-dsp.mn-hud .mn-hud-tl { display:flex;gap:8px;align-items:center;position:absolute;left:10px;top:calc(10px + env(safe-area-inset-top));z-index:25;max-width:calc(100% - 140px); }
+html body .mn-dsp.mn-hud .mn-hud-tr { display:flex;gap:8px;position:absolute;right:10px;top:calc(10px + env(safe-area-inset-top));z-index:25; }
+html body .mn-hud-b { width:44px;height:44px;flex:none;display:grid;place-items:center;cursor:pointer;font:900 19px/1 var(--pc-font);color:var(--pc-ink,#fff);background:var(--pct-f,#232b55);border:3px solid;border-color:var(--pct-hi) var(--pct-lt) var(--pct-sh) var(--pct-dk);border-radius:3px;box-shadow:0 3px 0 #0007; }
+html body .mn-hud-b.sm { width:34px;height:34px;font-size:14px; }
+html body .mn-hud-b:active, html body .mn-hud-bar button:active, html body .mn-hud-acts button:active { transform:translateY(2px);box-shadow:0 1px 0 #0007; }
+html body .mn-hud-ti { min-width:0;padding:5px 10px;background:#0b10304d;border-radius:3px;text-shadow:0 1.5px 0 #000a; }
+html body .mn-hud-ti b { display:block;font:900 15px/1.15 var(--pc-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; } html body .mn-hud-ti small { display:block;font:750 10.5px/1.2 var(--pc-font);opacity:.85;text-transform:uppercase;letter-spacing:.06em; }
+/* the hotbar */
+html body .mn-dsp.mn-hud .mn-hud-bar { display:flex;gap:6px;position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:25;padding:5px;background:#0b103080;border:3px solid #0b1030b0;border-radius:4px; }
+html body .mn-hud-bar button { width:64px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--pc-ink,#fff);font-family:var(--pc-font);background:var(--pct-f,#232b55);border:3px solid;border-color:var(--pct-hi) var(--pct-lt) var(--pct-sh) var(--pct-dk);border-radius:3px;box-shadow:0 3px 0 #0007; }
+html body .mn-hud-bar button i { font-style:normal;font-size:22px;line-height:1; } html body .mn-hud-bar button span { font:900 11px/1 var(--pc-font);text-shadow:0 1px 0 #0009; }
+html body .mn-hud-bar button.go { color:var(--pcg-ink,#fff);background:var(--pcg-f,#57b843);border-color:var(--pcg-hi) var(--pcg-lt) var(--pcg-sh) var(--pcg-dk); }
+html body .mn-dsp.mn-hud.mn-hud-sheet .mn-hud-bar, html body .mn-dsp.mn-hud.mn-hud-placing .mn-hud-bar, html body .mn-dsp.mn-hud.mn-hud-picked .mn-hud-bar { display:none; }
+/* the camera, small, on the right */
+html body .mn-dsp.mn-hud .mn-dsp-cam { flex-direction:column;right:10px;bottom:calc(92px + env(safe-area-inset-bottom));gap:4px;z-index:24; }
+html body .mn-dsp.mn-hud .mn-dsp-cam button { width:38px;height:38px; }
+html body .mn-dsp.mn-hud.mn-hud-sheet .mn-dsp-cam { display:none; }
+html body .mn-dsp.mn-hud.mn-hud-picked .mn-dsp-cam { display:none; }
+html body .mn-dsp.mn-hud { overflow:hidden!important; }
+/* placing / moving */
+html body .mn-dsp.mn-hud .mn-hud-place:not([hidden]) { display:flex;align-items:center;gap:10px;position:absolute;left:12px;right:12px;margin:0 auto;width:fit-content;top:calc(64px + env(safe-area-inset-top));z-index:26;max-width:calc(100% - 24px);box-sizing:border-box;padding:8px 8px 8px 14px;color:var(--pcy-ink,#3b2700);font:800 13px/1.3 var(--pc-font);background:var(--pcy-f,#f2c13d);border:3px solid;border-color:var(--pcy-hi) var(--pcy-lt) var(--pcy-sh) var(--pcy-dk);border-radius:3px;box-shadow:0 4px 0 #0006; }
+html body .mn-hud-place button { flex:none;padding:8px 12px;cursor:pointer;font:900 13px/1 var(--pc-font);color:var(--pcg-ink,#fff);background:var(--pcg-f,#57b843);border:3px solid;border-color:var(--pcg-hi) var(--pcg-lt) var(--pcg-sh) var(--pcg-dk);border-radius:2px; }
+/* the half sheet */
+html body .mn-dsp.mn-hud .mn-dsp-box { position:absolute!important;left:0!important;right:0!important;bottom:0!important;width:auto!important;height:min(50vh,400px)!important;z-index:30;padding:0 10px calc(10px + env(safe-area-inset-bottom))!important;background:var(--pcsh-f,#333e6e) var(--pc-facet,none);border-top:4px solid var(--pcs-hi,#6070ad);box-shadow:0 -8px 24px #0007;transform:translateY(105%);transition:transform .2s ease;visibility:hidden; }
+html body .mn-dsp.mn-hud.mn-hud-sheet .mn-dsp-box { transform:none;visibility:visible; }
+html body .mn-dsp.mn-hud .mn-hud-grab { display:flex;align-items:center;justify-content:center;position:relative;height:30px;flex:none; }
+html body .mn-hud-grab span { width:46px;height:5px;border-radius:3px;background:var(--pcs-sh,#262e56); } html body .mn-hud-grab .mn-hud-b { position:absolute;right:0;top:4px; }
+html body .mn-dsp.mn-hud .mn-dsp-tabs { flex:none;overflow-x:auto;flex-wrap:nowrap!important;padding-right:40px; }
+html body .mn-dsp.mn-hud .mn-dsp-panel { flex:1;min-height:0;display:flex;flex-direction:column; }
+html body .mn-dsp.mn-hud .mn-dsp-dh small { display:none; }
+html body .mn-hud-chips { flex:none;display:flex;gap:6px;overflow-x:auto;padding:6px 0 8px;scrollbar-width:none; } html body .mn-hud-chips::-webkit-scrollbar { display:none; }
+html body .mn-hud-chips button { flex:none;padding:7px 11px;cursor:pointer;white-space:nowrap;font:850 12.5px/1 var(--pc-font);color:var(--pc-ink,#fff);background:var(--pct-f,#232b55);border:3px solid;border-color:var(--pct-hi) var(--pct-lt) var(--pct-sh) var(--pct-dk);border-radius:2px; }
+html body .mn-hud-chips button.on { color:var(--pcy-ink,#3b2700);background:var(--pcy-f,#f2c13d);border-color:var(--pcy-hi) var(--pcy-lt) var(--pcy-sh) var(--pcy-dk); }
+html body .mn-hud-find { flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#0b103060;border:3px solid var(--pct-sh,#4a5892);border-radius:2px; }
+html body .mn-hud-find input { width:78px;border:0;outline:0;background:transparent;color:inherit;font:800 13px/1 var(--pc-font);padding:6px 0; } html body .mn-hud-find:focus-within input { width:130px; }
+html body .mn-dsp.mn-hud .mn-dsp-grid.hsec:not(.htop) { flex:1;min-height:0;display:grid!important;grid-auto-flow:column;grid-template-rows:repeat(2,1fr);grid-auto-columns:96px;gap:6px;overflow-x:auto;overflow-y:hidden;align-content:stretch; }
+html body .mn-dsp.mn-hud .mn-dsp-grid.hsec:not(.htop) .mn-dsp-fu { width:auto!important;height:auto!important;margin:0!important;min-height:0; }
+html body .mn-dsp.mn-hud .mn-dsp-grid.htop { flex:1;min-height:0;overflow-y:auto; }
+html body .mn-dsp.mn-hud .mn-dsp-grid [hidden] { display:none!important; }
+/* picked: a name tag and a row of big buttons */
+html body .mn-dsp.mn-hud .mn-dsp-sel:not([hidden]) { left:8px!important;right:8px!important;top:auto!important;bottom:calc(10px + env(safe-area-inset-bottom))!important;transform:none!important;max-width:none!important;display:flex!important;flex-direction:column;align-items:stretch;gap:6px;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;z-index:27; }
+html body .mn-hud-tag { align-self:center;display:flex;align-items:center;gap:10px;max-width:100%;padding:6px 6px 6px 14px;background:var(--pcsh-f,#333e6e);border:3px solid;border-color:var(--pcs-hi) var(--pcs-lt) var(--pcs-sh) var(--pcs-dk);border-radius:3px;box-shadow:0 3px 0 #0007; }
+html body .mn-hud-tag b { font:900 15px/1.15 var(--pc-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; } html body .mn-hud-tag small { font:750 11px/1.2 var(--pc-font);color:var(--pc-sub);white-space:nowrap; }
+html body .mn-hud-tag .x { width:34px;height:34px;flex:none;cursor:pointer;font:900 15px/1 var(--pc-font);color:var(--pcg-ink,#fff);background:var(--pcg-f,#57b843);border:3px solid;border-color:var(--pcg-hi) var(--pcg-lt) var(--pcg-sh) var(--pcg-dk);border-radius:2px; }
+html body .mn-hud-acts, html body .mn-hud-more { display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:2px 2px 4px; } html body .mn-hud-acts::-webkit-scrollbar, html body .mn-hud-more::-webkit-scrollbar { display:none; }
+html body .mn-hud-acts button, html body .mn-hud-more button { flex:none;width:58px;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--pc-ink,#fff);font-family:var(--pc-font);background:var(--pct-f,#232b55);border:3px solid;border-color:var(--pct-hi) var(--pct-lt) var(--pct-sh) var(--pct-dk);border-radius:4px;box-shadow:0 3px 0 #0007; }
+html body .mn-hud-acts button i, html body .mn-hud-more button i { font-style:normal;font-size:22px;line-height:1; } html body .mn-hud-acts button span, html body .mn-hud-more button span { font:900 10.5px/1 var(--pc-font);white-space:nowrap; }
+html body .mn-hud-acts button.rm, html body .mn-hud-more button.rm { background:#b8433a;border-color:#e0786f #c95a51 #7e2a24 #973128; }
+html body .mn-hud-acts button.on { color:var(--pcy-ink,#3b2700);background:var(--pcy-f,#f2c13d);border-color:var(--pcy-hi) var(--pcy-lt) var(--pcy-sh) var(--pcy-dk); }
+html body .mn-dsp.mn-hud .mn-dsp-sel .menu { max-height:30vh;overflow:auto;background:var(--pcsh-f,#333e6e);border:3px solid var(--pcs-sh,#262e56);border-radius:3px; }
+html body .mn-dsp.mn-hud .mn-guide { top:calc(62px + env(safe-area-inset-top))!important;bottom:auto!important;left:10px!important;right:10px!important;max-height:42vh;overflow:auto;transform:none!important; }
+html body .mn-dsp.mn-hud.mn-hud-sheet .mn-guide, html body .mn-dsp.mn-hud.mn-hud-placing .mn-guide, html body .mn-dsp.mn-hud.mn-hud-picked .mn-guide, html body .mn-dsp.mn-hud.mn-hud-menu .mn-guide { display:none!important; }
+html body .mn-dsp.mn-hud .mn-dsp-grid.hsec:not(.htop) .mn-dsp-fu { display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 4px!important;text-align:center; }
+html body .mn-dsp.mn-hud .mn-dsp-grid.hsec:not(.htop) .mn-dsp-fu svg, html body .mn-dsp.mn-hud .mn-dsp-grid.hsec:not(.htop) .mn-dsp-fu img { width:52px!important;height:52px!important;flex:none; }
+html body .mn-dsp.mn-hud .mn-dsp-grid.hsec:not(.htop) .mn-dsp-fu b { display:block;font:850 11px/1.15 var(--pc-font)!important;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; }
+html body .mn-dsp.mn-hud .mn-dsp-grid.hsec:not(.htop) .mn-dsp-fu small { display:none; }
+html body .mn-dsp.mn-hud .mn-dsp-fu.held { outline:3px solid var(--pcy-f,#f2c13d);outline-offset:-3px; }
+/* a building's sheet (rooms, dollhouse, plan) sits between the HUD corners and the hotbar */
+html body .mn-dsp.mn-hud .mn-bv { padding-top:calc(64px + env(safe-area-inset-top))!important;padding-bottom:calc(92px + env(safe-area-inset-bottom))!important; }
+html body .mn-dsp.mn-hud.mn-at-bld .mn-hud-bar [data-kitsopen], html body .mn-dsp.mn-hud.mn-hud-inroom .mn-hud-bar [data-kitsopen] { display:none; }
+/* 53.5 · Spatial Display Engine: undo / redo / grid, Explore vs Arrange, the placement ghost, the Look picker */
+html body .mn-dsp .mn-hud-ur { display:none; }
+html body .mn-dsp.mn-hud .mn-hud-ur { display:flex;flex-direction:column;gap:6px;position:absolute;left:10px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:24; }
+html body .mn-hud-ur .mn-hud-b { width:40px;height:40px;font-size:18px; } html body .mn-hud-ur .mn-hud-b.sn { font-size:13px; }
+html body .mn-hud-b:disabled { opacity:.38;cursor:default; }
+html body .mn-dsp.mn-hud.mn-hud-sheet .mn-hud-ur, html body .mn-dsp.mn-hud.mn-hud-picked .mn-hud-ur { display:none; }
+html body .mn-dsp.mn-hud.mn-explore .mn-hud-bar, html body .mn-dsp.mn-hud.mn-explore .mn-hud-ur, html body .mn-dsp.mn-hud.mn-explore .mn-dsp-sel { display:none!important; }
+html body .mn-hud-b.mode { color:var(--pcy-ink,#3b2700);background:var(--pcy-f,#f2c13d);border-color:var(--pcy-hi) var(--pcy-lt) var(--pcy-sh) var(--pcy-dk); }
+html body .mn-dsp.mn-explore .mn-hud-b.mode { color:var(--pcg-ink,#fff);background:var(--pcg-f,#57b843);border-color:var(--pcg-hi) var(--pcg-lt) var(--pcg-sh) var(--pcg-dk); }
+html body .mn-hud-place button.ok { color:var(--pcg-ink,#fff);background:var(--pcg-f,#57b843); } html body .mn-hud-place button:disabled { opacity:.45; }
+html body .mn-hud-place button[data-huddone] { color:var(--pc-ink,#fff);background:var(--pct-f,#232b55);border-color:var(--pct-hi) var(--pct-lt) var(--pct-sh) var(--pct-dk); }
+html body .mn-dsp .mn-ghost .foot { fill:#57b84355;stroke:#8fe36c;stroke-width:2; } html body .mn-dsp .mn-ghost .foot.bad { fill:#e0504055;stroke:#ff8a7a; }
+html body .mn-dsp-sel .mn-sd-look { display:flex;flex-direction:column;gap:5px;padding:8px;max-height:44vh;overflow:auto; }
+html body .mn-sd-look .h { font:900 13px/1.2 var(--pc-font);margin:0 0 2px; }
+html body .mn-sd-look button { display:flex;gap:8px;align-items:center;text-align:left;padding:7px 9px;cursor:pointer;color:var(--pc-ink,#fff);background:var(--pct-f,#232b55);border:3px solid;border-color:var(--pct-hi) var(--pct-lt) var(--pct-sh) var(--pct-dk);border-radius:3px;font-family:var(--pc-font); }
+html body .mn-sd-look button.on { color:var(--pcy-ink,#3b2700);background:var(--pcy-f,#f2c13d);border-color:var(--pcy-hi) var(--pcy-lt) var(--pcy-sh) var(--pcy-dk); }
+html body .mn-sd-look button i { font-style:normal;font-size:20px; } html body .mn-sd-look button b { display:block;font:900 13px/1.2 var(--pc-font); } html body .mn-sd-look button small { display:block;font:700 11px/1.3 var(--pc-font);opacity:.85; }
+html body .mn-sd-look .why { margin:2px 0 0;font:700 11.5px/1.4 var(--pc-font);color:var(--pc-sub); }
+</style>
+<style id="mn-bulb-style">/* 53.41 · 💡 guide + inspiration panel (bulb.js) — the Poly Craft panel look */
+html body .mn-bulb { position:fixed;z-index:2147483200;box-sizing:border-box;max-height:min(72vh,620px);overflow:auto;padding:10px 12px 12px;color:var(--pc-ink,#fff);font-family:var(--pc-font);background:var(--pcsh-f,#333e6e) var(--pc-facet,none);border:4px solid;border-color:var(--pcs-hi,#6070ad) var(--pcs-lt,#4f5c95) var(--pcs-sh,#262e56) var(--pcs-dk,#323c69);border-radius:3px;box-shadow:0 5px 0 #0006,0 18px 44px #0007;text-align:left; }
+html body .mn-bulb:before { content:'';position:fixed;margin:-21px 0 0 calc(var(--bulb-arrow,40px) - 9px);width:12px;height:12px;background:var(--pcsh-f,#333e6e);border-left:4px solid var(--pcs-hi,#6070ad);border-top:4px solid var(--pcs-hi,#6070ad);transform:rotate(45deg); }
+@media(prefers-reduced-motion:no-preference) { html body .mn-bulb { animation:mn-bulb-in .14s ease-out; } @keyframes mn-bulb-in { from { opacity:0;transform:translateY(-6px) } to { opacity:1;transform:none } } }
+html body .mn-bulb-tabs { display:flex;gap:6px;align-items:center;margin:0 0 10px; }
+html body .mn-bulb-tabs [data-bulbtab] { flex:1;min-height:36px;cursor:pointer;font:900 13.5px/1 var(--pc-font);color:var(--pc-ink);background:var(--pct-f);border:3px solid;border-color:var(--pct-hi) var(--pct-lt) var(--pct-sh) var(--pct-dk);border-radius:2px; }
+html body .mn-bulb-tabs [data-bulbtab][aria-selected=true] { color:var(--pcy-ink,#3b2700);background:var(--pcy-f,#f2c13d);border-color:var(--pcy-hi) var(--pcy-lt) var(--pcy-sh) var(--pcy-dk);box-shadow:0 2px 0 #0005; }
+html body .mn-bulb-x { width:36px;height:36px;flex:none;cursor:pointer;font:900 14px/1 var(--pc-font);color:var(--pc-ink);background:var(--pct-f);border:3px solid var(--pct-sh);border-radius:2px; }
+html body .mn-bulb-where { display:flex;gap:10px;align-items:center;margin:2px 0 6px; } html body .mn-bulb-where i { font-style:normal;font-size:28px;line-height:1; }
+html body .mn-bulb-where b { display:block;font:900 17px/1.2 var(--pc-font);text-shadow:0 1.5px 0 var(--pc-tsh); } html body .mn-bulb-where small { display:block;margin-top:2px;font:750 11.5px/1.3 var(--pc-font);color:var(--pc-sub); }
+html body .mn-bulb-p { margin:0 0 8px;font:700 13px/1.45 var(--pc-font);color:var(--pc-sub); }
+html body .mn-bulb-steps { list-style:none;margin:0 0 6px;padding:0; }
+html body .mn-bulb-steps li { display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:2px solid var(--pcs-sh,#262e56);font:750 12.5px/1.35 var(--pc-font); }
+html body .mn-bulb-steps li i { flex:none;width:22px;height:22px;display:grid;place-items:center;font:900 12px/1 var(--pc-font);font-style:normal;background:var(--pct-f);border:2px solid var(--pct-sh);border-radius:2px; }
+html body .mn-bulb-steps li.done { color:var(--pc-sub); } html body .mn-bulb-steps li.done span { text-decoration:line-through;text-decoration-thickness:1px; }
+html body .mn-bulb-steps li.done i { color:var(--pcg-ink,#fff);background:var(--pcg-f,#57b843);border-color:var(--pcg-sh,#2d7323); }
+html body .mn-bulb-steps li.next i { color:var(--pcy-ink,#3b2700);background:var(--pcy-f,#f2c13d);border-color:var(--pcy-sh,#a7750e); } html body .mn-bulb-steps li.next span { font-weight:900; }
+html body .mn-bulb-sub { margin:10px 0 6px;font:900 10.5px/1 var(--pc-font);letter-spacing:.12em;text-transform:uppercase;color:var(--pc-sub); }
+html body .mn-bulb-auto { display:grid;gap:6px; }
+html body .mn-bulb-auto button { display:block;width:100%;padding:9px 11px;cursor:pointer;text-align:left;color:var(--pcg-ink,#fff);font-family:var(--pc-font);background:var(--pcg-f,#57b843);border:3px solid;border-color:var(--pcg-hi,#8fe36c) var(--pcg-lt,#71cf55) var(--pcg-sh,#2d7323) var(--pcg-dk,#3f9631);border-radius:2px;box-shadow:0 3px 0 #0005; }
+html body .mn-bulb-auto button b { display:block;font:900 14px/1.2 var(--pc-font);text-shadow:0 1.5px 0 var(--pcg-tsh,#235c1b); } html body .mn-bulb-auto button small { display:block;margin-top:2px;font:750 11.5px/1.3 var(--pc-font);opacity:.92; }
+html body .mn-bulb-man { display:flex;flex-wrap:wrap;gap:6px; }
+html body .mn-bulb-man button { padding:8px 10px;cursor:pointer;font:850 12.5px/1 var(--pc-font);color:var(--pc-ink);background:var(--pct-f);border:3px solid;border-color:var(--pct-hi) var(--pct-lt) var(--pct-sh) var(--pct-dk);border-radius:2px; }
+html body .mn-bulb button:active { transform:translateY(2px); }
+html body .mn-bulb-ins .ins-card { margin:0;padding:0;border:0;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;color:inherit; }
+html body .mn-bulb-ins .ins-card .q { font:850 18px/1.4 var(--pc-font);margin-top:8px; }
+html body .mn-bulb-ins .ins-acts { display:flex;flex-wrap:wrap;gap:8px;margin-top:12px; }
+html body .mn-bulb-ins .ins-x { display:none; }
+html body .mn-bulb-lib { display:block;width:100%;margin-top:12px;padding:10px;cursor:pointer;font:900 14px/1.2 var(--pc-font);color:var(--pcy-ink,#3b2700);background:var(--pcy-f,#f2c13d);border:3px solid;border-color:var(--pcy-hi,#ffe58d) var(--pcy-lt,#f9d467) var(--pcy-sh,#a7750e) var(--pcy-dk,#d19a1e);border-radius:2px;box-shadow:0 3px 0 #0005; }
+html body .mn-dsp-bulb { font-size:17px!important; }
+</style>
+<script id="mn-bulb-script">/* 53.41 · 💡 the bulb, top right: two things in one place
+     🧭 Guide — wherever you are (the sky of worlds, a world, an area, a list, an island, a building, a room) it says
+       what this level is for and what comes next (done steps ticked), with ✦ buttons that build it for you and
+       ✋ buttons that open the tool to build it yourself. On the island the guide comes from MinestDisplay.guide().
+     💡 Inspiration — the day's prompt (MinestInspire.cardHtml) and the way into the Inspiration Library.
+   It takes over the header bulb of the Daily Inspiration bubble (the old bubble stays unused) and adds one to the
+   island's top bar. The tab you used last opens next time. */
+(function () {
+  if (window.MinestBulb) return;
+  var pop = null, anchor = null, tab = 'guide';
+  try { tab = localStorage.getItem('minest.bulb.tab') || 'guide'; } catch (e) {}
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function toast(m) { try { GlassUI.toast(m); } catch (e) {} }
+  function dsp() { return window.MinestDisplay && MinestDisplay.isOpen && MinestDisplay.isOpen() && document.querySelector('.mn-dsp'); }
+  function boards() { try { return (window.MinestAI && MinestAI.boards && MinestAI.boards()) || []; } catch (e) { return []; } }
+  function here() { var p = (window.MinestUniverse && MinestUniverse.path && MinestUniverse.path()) || []; return p[p.length - 1] || { t: 'home' }; }
+  function uvBtn(sel) { var r = document.querySelector('.uv'); return r && r.querySelector(sel); }
+  // ---- the guide outside the island: the levels of My World
+  function uvGuide() {
+    var n = here(), b = n.bid ? boards().filter(function (x) { return x.id === n.bid; })[0] : null, nm = function (s) { return String(s || '').replace(/^my\s+/i, ''); };
+    if (n.t === 'home' || !b) {
+      var ws = boards().filter(function (x) { return /^lw-/.test(x.id); });
+      return { ic: '🌌', t: 'Your sky of worlds', where: ws.length + ' world' + (ws.length === 1 ? '' : 's') + ' · My World home', p: 'Every island is a world. Tap one to look at it; double-tap to land on it and build. Drag an island’s title to tidy the sky.',
+        steps: [['Make a world — or a blank island to build on', ws.length > 0], ['Fill it: areas → lists → the things you keep', ws.some(function (w) { return (w.columns || []).some(function (c) { return (c.cards || []).some(function (k) { return (k.stack || []).length; }); }); })], ['Land on its island and build: buildings, rooms, your things on display', false]],
+        auto: [['newgen', '✦ Make a world for me', 'say what it is about — areas and lists made for you']],
+        manual: [['newstep', '🧭 Step by step'], ['newempty', '＋ Start empty']] };
+    }
+    var cols = b.columns || [], lists = 0, things = 0; cols.forEach(function (c) { (c.cards || []).forEach(function (k) { lists++; things += (k.stack || []).length; }); });
+    if (n.t === 'world') return { ic: '🌍', t: nm(b.title), where: 'A world · ' + cols.length + ' areas · ' + lists + ' lists · ' + things + ' things', p: 'A world holds areas, an area holds lists, a list holds your things. Its island shows them in buildings and rooms.',
+      steps: [['Areas — the big parts of this world', cols.length > 0], ['Lists in each area', lists > 0], ['Things in the lists', things > 0], ['Set them out on its island', false]],
+      auto: [['island', '✦ Build its island for me', 'buildings, rooms, and your things in them'], ['grow', '✦ Grow it from a template', 'areas and lists from frameworks']],
+      manual: [['area', '＋ Add an area'], ['list', '＋ Add a list'], ['open', '🏝 Open the island'], ['box', '🎒 Box']] };
+    var col = cols.filter(function (c) { return c.id === n.col; })[0] || {}, cl = (col.cards || []).length, ct = 0; (col.cards || []).forEach(function (k) { ct += (k.stack || []).length; });
+    if (n.t === 'cat') return { ic: '🗂', t: nm(col.title), where: 'An area of ' + nm(b.title) + ' · ' + cl + ' lists · ' + ct + ' things', p: 'An area gathers lists on one subject. Add lists, fill them, then see them on the island.',
+      steps: [['Lists for this area', cl > 0], ['Things in them', ct > 0], ['On the island, in a building of their own', false]],
+      auto: [['island', '✦ Set it out on the island', 'Smart arrange builds the rooms they need']], manual: [['list', '＋ Add a list'], ['open', '🏝 Open the island'], ['box', '🎒 Box']] };
+    var card = (col.cards || []).filter(function (k) { return k.id === n.card; })[0] || {}, kn = (card.stack || []).length;
+    return { ic: '📋', t: nm(card.title), where: 'A list in ' + nm(col.title) + ' · ' + kn + ' things', p: 'Add things — a title is enough; a picture, a note or a link makes them richer. Then put them on display.',
+      steps: [['Add things to it', kn > 0], ['Give them pictures and notes', (card.stack || []).some(function (s) { return s.cover || s.image || s.img; })], ['Put them on the island', false]],
+      auto: [['island', '✦ Put these on the island', 'shelves, walls and stands in the right room']], manual: [['thing', '＋ Add a thing'], ['note', '📝 Add a note or link'], ['open', '🏝 Open the island'], ['box', '🎒 Box']] };
+  }
+  function uvDo(id) {
+    var n = here(), b;
+    if (id === 'newgen' || id === 'newstep' || id === 'newempty') { if (window.MinestNewWorld) MinestNewWorld.open({ newgen: 'gen', newstep: 'about', newempty: 'empty' }[id]); return; }
+    if (id === 'grow') { var g = uvBtn('[data-hint=fw]'); if (g) g.click(); else if (window.MinestInspire) MinestInspire.grow(); return; }
+    if (id === 'area' || id === 'list' || id === 'thing') { var k = uvBtn('[data-bbk=' + (id === 'area' ? 'area' : 'list') + ']'); if (k && id !== 'thing') k.click(); var i = uvBtn('[data-bbin]'); if (i) { i.scrollIntoView({ block: 'center' }); setTimeout(function () { (i.matches('input,textarea') ? i : (i.querySelector('input,textarea') || i)).focus(); if (!i.matches('input,textarea')) i.click(); }, 60); } return; }
+    if (id === 'note') { var c = uvBtn('[data-collect=capture]'); if (c) c.click(); return; }
+    if (id === 'box') { var x = uvBtn('[data-mninv]'); if (x) x.click(); return; }
+    if (id === 'open' || id === 'island') {
+      var o = uvBtn('[data-mndsp]'); if (o) o.click(); else if (n.bid && window.MinestDisplay) MinestDisplay.open({ t: 'world', bid: n.bid });
+      if (id === 'island') { var t0 = Date.now(); (function w() { if (dsp()) { setTimeout(function () { var made = MinestDisplay.arrange(); toast(made ? 'Built it for you — drag, turn or size anything; 💡 says what comes next' : 'Everything is already out — 💡 says what comes next'); }, 250); return; } if (Date.now() - t0 < 4000) setTimeout(w, 120); })(); }
+    }
+  }
+  // ---- the panel
+  function close() { if (pop) pop.remove(); pop = null; if (anchor) anchor.setAttribute('aria-expanded', 'false'); anchor = null; }
+  function place() {
+    if (!pop || !anchor || !anchor.isConnected) return close(); var r = anchor.getBoundingClientRect(), w = Math.min(380, innerWidth - 24);
+    pop.style.width = w + 'px'; pop.style.top = Math.round(r.bottom + 10) + 'px'; pop.style.left = Math.round(Math.max(12, Math.min(innerWidth - w - 12, r.right - w + 8))) + 'px';
+    pop.style.setProperty('--bulb-arrow', Math.round(Math.max(18, Math.min(w - 18, r.left + r.width / 2 - parseFloat(pop.style.left)))) + 'px');
+  }
+  function guideHtml() {
+    var g = dsp() ? MinestDisplay.guide() : uvGuide(); if (!g) return '<p class="mn-bulb-p">Nothing to guide here yet.</p>';
+    var next = -1; (g.steps || []).some(function (s, i) { if (!s[1]) { next = i; return true; } return false; });
+    return '<div class="mn-bulb-where"><i>' + g.ic + '</i><span><b>' + esc(g.t) + '</b><small>' + esc(g.where || '') + '</small></span></div><p class="mn-bulb-p">' + esc(g.p) + '</p>' +
+      ((g.steps || []).length ? '<ol class="mn-bulb-steps">' + g.steps.map(function (s, i) { return '<li class="' + (s[1] ? 'done' : i === next ? 'next' : '') + '"><i>' + (s[1] ? '✓' : i + 1) + '</i><span>' + esc(s[0]) + '</span></li>'; }).join('') + '</ol>' : '') +
+      ((g.auto || []).length ? '<p class="mn-bulb-sub">✦ Build it for me</p><div class="mn-bulb-auto">' + g.auto.map(function (a) { return '<button type="button" data-bulbdo="' + a[0] + '"><b>' + esc(a[1]) + '</b>' + (a[2] ? '<small>' + esc(a[2]) + '</small>' : '') + '</button>'; }).join('') + '</div>' : '') +
+      ((g.manual || []).length ? '<p class="mn-bulb-sub">✋ Build it myself</p><div class="mn-bulb-man">' + g.manual.map(function (a) { return '<button type="button" data-bulbdo="' + a[0] + '">' + esc(a[1]) + '</button>'; }).join('') + '</div>' : '');
+  }
+  function inspHtml() {
+    var c = ''; try { c = window.MinestInspire ? MinestInspire.cardHtml() : ''; } catch (e) {}
+    return '<div class="mn-bulb-ins">' + (c && c.indexOf('ins-card') >= 0 ? c : '<p class="mn-bulb-p">No prompt today — browse the library whenever you like.</p>') + '</div><button type="button" class="mn-bulb-lib" data-bulblib>📚 Open the Inspiration Library</button>';
+  }
+  function paint() {
+    if (!pop) return;
+    pop.innerHTML = '<div class="mn-bulb-tabs" role="tablist"><button type="button" role="tab" data-bulbtab="guide" aria-selected="' + (tab === 'guide') + '">🧭 Guide</button><button type="button" role="tab" data-bulbtab="insp" aria-selected="' + (tab === 'insp') + '">💡 Inspiration</button><button type="button" class="mn-bulb-x" data-bulbx aria-label="Close">✕</button></div>' +
+      '<div class="mn-bulb-body">' + (tab === 'guide' ? guideHtml() : inspHtml()) + '</div>';
+    var x = pop.querySelector('.ins-x'); if (x) { x.removeAttribute('data-ins'); x.setAttribute('data-bulbx', ''); }
+    place();
+  }
+  function open(btn) {
+    close(); anchor = btn; btn.setAttribute('aria-expanded', 'true');
+    var root = dsp() || document.querySelector('.uv') || document.body; pop = document.createElement('div'); pop.className = 'mn-bulb'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Guide and inspiration');
+    ['pointerdown', 'touchstart', 'wheel'].forEach(function (ev) { pop.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
+    pop.addEventListener('click', onClick); root.appendChild(pop); paint();
+  }
+  function toggle(btn) { if (pop && anchor === btn) close(); else open(btn); }
+  function onClick(e) {
+    e.stopPropagation(); var g;
+    if (e.target.closest('[data-bulbx]')) return close();
+    if ((g = e.target.closest('[data-bulbtab]'))) { tab = g.getAttribute('data-bulbtab'); try { localStorage.setItem('minest.bulb.tab', tab); } catch (x) {} return paint(); }
+    if (e.target.closest('[data-bulblib]')) { close(); if (window.MinestInspire) MinestInspire.library(); return; }
+    if ((g = e.target.closest('[data-bulbdo]'))) { var id = g.getAttribute('data-bulbdo'), inD = dsp(); close(); if (inD) MinestDisplay.guideDo(id); else uvDo(id); return; }
+    if ((g = e.target.closest('[data-ins]'))) { var a = g.getAttribute('data-ins'); if (/^(library|explore)$/.test(a)) { close(); return; } setTimeout(function () { if (pop && tab === 'insp') paint(); }, 80); }   // Inspire itself answers / skips; the card shows the next prompt
+  }
+  // the header bulb: ours now (taken before the old bubble sees the tap)
+  document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('.mn-daily-trigger'); if (!t) return; e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); toggle(t); }, true);
+  document.addEventListener('pointerdown', function (e) { if (pop && !pop.contains(e.target) && !(anchor && anchor.contains(e.target))) close(); }, true);
+  document.addEventListener('keydown', function (e) { if (pop && e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } }, true);
+  addEventListener('resize', place);
+  var q = false; new MutationObserver(function () { if (q) return; q = true; setTimeout(function () { q = false;
+    document.querySelectorAll('.mn-daily-trigger:not([data-bulbt])').forEach(function (t) { t.setAttribute('data-bulbt', ''); t.setAttribute('aria-label', 'Guide and daily inspiration'); t.setAttribute('title', 'Guide · Daily Inspiration'); t.setAttribute('aria-controls', ''); });
+    if (pop && anchor && !anchor.isConnected) close(); }, 30); }).observe(document.body, { childList: true, subtree: true });
+  window.MinestBulb = { open: open, close: close, toggle: toggle, guide: function () { return dsp() ? MinestDisplay.guide() : uvGuide(); } };
+})();
+/* 53.5 · Universal Add → Display in scene: a card's quick-edit sheet gets "🏝 Display in scene". Saving and
+   displaying stay separate: nothing is placed until you tap the island (MinestDisplay.display → tap-to-place). */
+(function () {
+  if (window.__mnQeDisplay) return; window.__mnQeDisplay = 1;
+  var cur = null;
+  function hook() { var Q = window.MinestQuickEdit; if (!Q || Q.__mnHooked) return; var open0 = Q.open; Q.open = function (target, itemId) { cur = target && target.card && itemId ? { ref: target.card + '/' + itemId } : null; return open0.apply(this, arguments); }; Q.__mnHooked = 1; }   // the sheet's script may arrive after this one
+  hook(); var q = false; new MutationObserver(function () { hook(); if (q) return; q = true; setTimeout(function () { q = false;
+    var s = document.querySelector('.mn-qe'); if (!s || !cur || !window.MinestDisplay || s.querySelector('[data-qdisplay]')) return; var at = s.querySelector('[data-qdetails]'); if (!at) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = at.className; b.setAttribute('data-qdisplay', ''); b.textContent = '🏝 Display in scene';
+    b.addEventListener('click', function (e) { e.stopPropagation(); var ref = cur && cur.ref, x = s.querySelector('[data-qx]'); if (x) x.click(); setTimeout(function () { if (!MinestDisplay.display(ref)) { try { GlassUI.toast('This card is not in a world yet — save it to a list first'); } catch (er) {} } }, 120); });
+    at.parentNode.insertBefore(b, at); }, 30); }).observe(document.body, { childList: true, subtree: true });
 })();
 </script>
 </body>
