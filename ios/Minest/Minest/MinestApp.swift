@@ -23,7 +23,27 @@ final class MinestQuickActionRouter: ObservableObject {
     }
 }
 
+/// The page can ask for an orientation (bridge action "setOrientation": landscape / portrait / auto).
+enum MinestOrientation {
+    static var mask: UIInterfaceOrientationMask = .allButUpsideDown
+    static func set(_ want: String) {
+        let next: UIInterfaceOrientationMask = want == "landscape" ? .landscape : want == "portrait" ? .portrait : .allButUpsideDown
+        mask = next
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else { return }
+        scene.windows.forEach { $0.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations() }
+        let geometry: UIInterfaceOrientationMask = want == "landscape" ? .landscape : .portrait
+        scene.requestGeometryUpdate(.iOS(interfaceOrientations: geometry)) { error in
+            print("⚠️ [MinestOrientation] \(error.localizedDescription)")
+        }
+        if want == "auto" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { mask = .allButUpsideDown; scene.windows.forEach { $0.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations() } } }
+    }
+}
+
 final class MinestAppDelegate: NSObject, UIApplicationDelegate {
+    // 53.6: the island view asks for landscape (MinestOrientation); everything else keeps the usual turns
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        MinestOrientation.mask
+    }
     func application(_ application: UIApplication,
                      configurationForConnecting connectingSceneSession: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
