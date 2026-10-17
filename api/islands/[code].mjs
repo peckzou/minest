@@ -23,7 +23,7 @@ export const cleanCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]
 export function validSnap(s) {
   if (!s || typeof s !== 'object' || !Array.isArray(s.pc) || !Array.isArray(s.it)) return false;
   if (s.pc.length > 300 || s.it.length > 600) return false;
-  return s.pc.every((p) => p && typeof p.k === 'string' && p.k.length < 20 && isFinite(p.x) && isFinite(p.y) && (!p.i || Array.isArray(p.i)))
+  return s.pc.every((p) => p && typeof p.k === 'string' && p.k.length < 64 && isFinite(p.x) && isFinite(p.y) && (!p.i || Array.isArray(p.i)))
     && s.it.every((x) => x && typeof x.t === 'string' && x.t.length <= 120 && (!x.p || (typeof x.p === 'string' && /^https:\/\//.test(x.p) && x.p.length < 500)));
 }
 

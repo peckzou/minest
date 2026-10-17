@@ -3,27 +3,53 @@
    + three.js, bundled once. Static first: every asset becomes a cached 2.5D thumbnail (offscreen render → Blob in
    IndexedDB); a live model is built only for Inspect 3D. Assets are skins, never data. */
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ISLANDS_DATA } from './studio/data/islandsData';
 import { DIORAMAS_DATA } from './studio/data/dioramasData';
 import { OBJECTS_DATA } from './studio/data/objectsData';
 import { CENTER_STYLES } from './studio/data/centerStylesData';
 import { buildIslandScene } from './studio/components/island3d/islandMeshBuilders';
 import { buildCenterStyleScene } from './studio/components/island3d/centerStyleBuilders';
+// Minest World 4.0 expansion (Studio, library 2): 10 major worlds, 30 sub-islands, 50 buildings, 100 objects
+import { EXPANSION_MAJOR_WORLDS } from './studio/data/expansionMajorWorldsData';
+import { EXPANSION_SUB_ISLANDS } from './studio/data/expansionSubIslandsData';
+import { EXPANSION_BUILDINGS } from './studio/data/expansionBuildingsData';
+import { EXPANSION_OBJECTS } from './studio/data/expansionObjectsData';
+import { buildExpansionMajorWorldScene, buildThematicSubIslandScene } from './studio/components/island3d/expansionIslandMeshBuilders';
+import { buildExpansionObjectScene } from './studio/components/island3d/expansionObjectMeshBuilders';
+import { buildModularBuildingScene } from './studio/components/island3d/buildingMeshBuilders';
+// library 3 (World 4.3): 30 more major worlds (MW-11…40) and 30 more sub-islands (SI-31…60)
+import { EXPANSION_43_MAJOR_WORLDS } from './studio/data/expansionMajorWorlds43Data';
+import { EXPANSION_43_SUB_ISLANDS } from './studio/data/expansionSubIslands43Data';
+import { build43MajorWorldScene, build43SubIslandScene } from './studio/components/island3d/expansion43MeshBuilders';
+const W43 = [...EXPANSION_43_MAJOR_WORLDS], S43 = [...EXPANSION_43_SUB_ISLANDS];
 
 const VERSION = 'mn3d-v1';
-type Kind = 'world' | 'diorama' | 'object' | 'center';
+type Kind = 'world' | 'diorama' | 'object' | 'center' | 'subisland' | 'building';
 const pick = (a: any) => ({ id: a.id, name: a.name, subtitle: a.subtitle || '', category: a.categoryName || a.category || '', subcategories: a.subcategories || [], theme: a.theme || '', accent: a.accentColor || (a.variants && a.variants.classic && a.variants.classic.accentColor) || (a.palette && a.palette[0] && a.palette[0].hex) || '#7aa2ff', description: a.description || '' });
 const CATALOG = {
-  world: ISLANDS_DATA.map(pick), diorama: DIORAMAS_DATA.map(pick), object: OBJECTS_DATA.map(pick),
+  world: [...ISLANDS_DATA, ...EXPANSION_MAJOR_WORLDS, ...W43].map(pick), diorama: DIORAMAS_DATA.map(pick), object: [...OBJECTS_DATA, ...EXPANSION_OBJECTS].map(pick),
+  subisland: [...EXPANSION_SUB_ISLANDS, ...S43].map(pick), building: EXPANSION_BUILDINGS.map(pick),
   center: CENTER_STYLES.map((c: any) => ({ id: c.id, name: c.name, subtitle: c.subtitle, theme: c.theme, accent: c.accentColor, description: c.description, palette: c.palette })),
 };
 const BY: Record<string, any> = {};
-[...ISLANDS_DATA, ...DIORAMAS_DATA, ...OBJECTS_DATA].forEach((a: any) => { BY[a.id] = a; });
+[...ISLANDS_DATA, ...DIORAMAS_DATA, ...OBJECTS_DATA, ...EXPANSION_MAJOR_WORLDS, ...EXPANSION_SUB_ISLANDS, ...EXPANSION_BUILDINGS, ...EXPANSION_OBJECTS, ...W43, ...S43].forEach((a: any) => { BY[a.id] = a; });
+const EXP = new Set<string>([...EXPANSION_MAJOR_WORLDS, ...EXPANSION_SUB_ISLANDS, ...EXPANSION_BUILDINGS, ...EXPANSION_OBJECTS, ...W43, ...S43].map((a: any) => a.id));
 
-function kindOf(id: string): Kind { return id.startsWith('center_') ? 'center' : id.startsWith('diorama_') ? 'diorama' : id.startsWith('object_') ? 'object' : 'world'; }
+function kindOf(id: string): Kind { return id.startsWith('center_') ? 'center' : id.startsWith('subisland_') || id.startsWith('SI-') ? 'subisland' : id.startsWith('building_') ? 'building' : id.startsWith('diorama_') ? 'diorama' : id.startsWith('object_') ? 'object' : 'world'; }
 function build(id: string, variant = 'classic'): THREE.Object3D {
   if (kindOf(id) === 'center') return buildCenterStyleScene(id as any);
   const a = BY[id]; if (!a) throw new Error('Unknown asset ' + id);
+  if (EXP.has(id)) {   // the expansion's own detailed builders; Studio's dispatcher as the fallback
+    try {
+      if (id.startsWith('MW-')) return build43MajorWorldScene(a, variant as any);
+      if (id.startsWith('SI-')) return build43SubIslandScene(a, variant as any);
+      if (a.worldLevel === 'level1_major') return buildExpansionMajorWorldScene(a, variant as any);
+      if (a.worldLevel === 'level2_subisland') return buildThematicSubIslandScene(a, variant as any);
+      if (a.worldLevel === 'level2_building') return buildModularBuildingScene(a, variant as any);
+      if (a.worldLevel === 'level3_object') return buildExpansionObjectScene(a, variant as any);
+    } catch (e) { console.warn('[MinestAssets3D] expansion builder failed, using the default', id, e); }
+  }
   return buildIslandScene(a, variant as any);
 }
 function dispose(o: THREE.Object3D) {
@@ -83,8 +109,8 @@ function pump() {
 }
 const inflight = new Map<string, Promise<string>>();
 // thumb(id) → a URL for <img> ('' when this device cannot draw it: the UI falls back to a plain tile)
-function thumb(id: string, variant = 'classic'): Promise<string> {
-  const key = VERSION + ':' + id + ':' + variant;
+function thumb(id: string, variant = 'classic', rot = 0): Promise<string> {   // rot: quarter turns, so a turned piece shows its other side
+  const key = VERSION + ':' + id + ':' + variant + (rot ? ':r' + rot : '');
   if (mem.has(key)) return Promise.resolve(mem.get(key)!);
   if (inflight.has(key)) return inflight.get(key)!;
   const p = (async () => {
@@ -95,7 +121,7 @@ function thumb(id: string, variant = 'classic'): Promise<string> {
         const r = renderer(); if (!r) return res('');
         let obj: THREE.Object3D | null = null;
         try {
-          obj = build(id, variant); r.scene.add(obj); fit(r.cam, obj);
+          obj = build(id, variant); if (rot) obj.rotation.y = -rot * Math.PI / 2; r.scene.add(obj); fit(r.cam, obj);
           r.renderer.render(r.scene, r.cam);
           const b = await toBlob(r.renderer.domElement as HTMLCanvasElement);
           r.scene.remove(obj); dispose(obj); obj = null;
@@ -109,7 +135,7 @@ function thumb(id: string, variant = 'classic'): Promise<string> {
   inflight.set(key, p); p.finally(() => inflight.delete(key));
   return p;
 }
-function cached(id: string, variant = 'classic'): string { return mem.get(VERSION + ':' + id + ':' + variant) || ''; }
+function cached(id: string, variant = 'classic', rot = 0): string { return mem.get(VERSION + ':' + id + ':' + variant + (rot ? ':r' + rot : '')) || ''; }
 
 // ---------------------------------------------------------------- Inspect 3D: one live model, drag to turn, paused when hidden
 function mount(el: HTMLElement, id: string, variant = 'classic') {
@@ -189,4 +215,33 @@ function archipelago(el: HTMLElement, spec: any, onPick: (key: string) => void) 
   return { dispose() { stop = true; cancelAnimationFrame(raf); if (io) io.disconnect(); built.forEach(dispose); labels.forEach((l) => l.el.remove()); renderer.dispose(); cv.remove(); } };
 }
 
-(window as any).MinestAssets3D = { version: VERSION, catalog: CATALOG, info: (id: string) => BY[id] || CATALOG.center.find((c: any) => c.id === id) || null, kindOf, thumb, cached, mount, archipelago, webgl: () => !!renderer() };
+// ---------------------------------------------------------------- 3D models from a library (GLB): the same cached isometric picture
+const gltf = new GLTFLoader();
+function glbThumb(key: string, url: string, rot = 0, files?: Record<string, string>): Promise<string> {   // files: a model's textures and buffers where they really are (Poly Haven)
+  const k = VERSION + ':glb:' + key + (rot ? ':r' + rot : '');
+  if (mem.has(k)) return Promise.resolve(mem.get(k)!);
+  if (inflight.has(k)) return inflight.get(k)!;
+  const p = (async () => {
+    const hit = await getBlob(k); if (hit) { const u = URL.createObjectURL(hit); mem.set(k, u); return u; }
+    const loader = files ? new GLTFLoader(new THREE.LoadingManager()) : gltf;
+    if (files) loader.manager.setURLModifier((u: string) => { for (const f in files) if (u.endsWith(f) || u.endsWith(encodeURI(f))) return files[f]; return u; });
+    const scene: THREE.Object3D | null = await new Promise((res) => { try { loader.load(url, (g: any) => res(g.scene || (g.scenes && g.scenes[0]) || null), undefined, () => res(null)); } catch (e) { res(null); } });
+    if (!scene) return '';
+    return new Promise<string>((res) => {
+      queue.push(async () => {
+        const r = renderer(); if (!r) return res('');
+        try {
+          const box = new THREE.Box3().setFromObject(scene), size = box.getSize(new THREE.Vector3()), s = 8 / Math.max(size.x, size.y, size.z, 1e-3);
+          if (rot) scene.rotation.y = -rot * Math.PI / 2; scene.scale.setScalar(s); const b2 = new THREE.Box3().setFromObject(scene), c = b2.getCenter(new THREE.Vector3()); scene.position.sub(new THREE.Vector3(c.x, b2.min.y, c.z));   // standing on the ground, any size it came in
+          r.scene.add(scene); fit(r.cam, scene); r.renderer.render(r.scene, r.cam);
+          const b = await toBlob(r.renderer.domElement as HTMLCanvasElement); r.scene.remove(scene); dispose(scene);
+          if (!b) return res(''); putBlob(k, b); const u = URL.createObjectURL(b); mem.set(k, u); res(u);
+        } catch (e) { r.scene.remove(scene); console.warn('[MinestAssets3D] model failed', key, e); res(''); }
+      });
+      pump();
+    });
+  })();
+  inflight.set(k, p); p.finally(() => inflight.delete(k));
+  return p;
+}
+(window as any).MinestAssets3D = { glbThumb, version: VERSION, catalog: CATALOG, expansion: (id: string) => EXP.has(id), info: (id: string) => BY[id] || CATALOG.center.find((c: any) => c.id === id) || null, kindOf, thumb, cached, mount, archipelago, webgl: () => !!renderer() };

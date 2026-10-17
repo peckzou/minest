@@ -68,3 +68,16 @@ On this device: `minest.uv.v1` holds the path, the Spatial / Outline mode and, p
   - iPhone: Add stays at the bottom.
 
 Phase 6 (full validation) was dropped at the user's request; each phase got a basic build-and-function check.
+
+## Library 2 (Minest World 4.0 expansion, 2026-10-16)
+
+- Vendored into `studio/` unchanged: 10 major worlds (`world_25…34`), 30 sub-islands (`subisland_01…30`), 50 buildings (`building_01…50`), 100 objects (`object_21…120`).
+- `assets3d.ts` builds them with the expansion's own detailed builders (`expansionIslandMeshBuilders`, `buildingMeshBuilders`, `expansionObjectMeshBuilders`); Studio's dispatcher is only the fallback (it draws every new object as the same book). Catalogue gains `subisland` and `building`.
+- `build/5333/make.py` now re-embeds `dist/assets3d.js` into `#mn-assets3d-src` (run `node tools/myworld3/bundle.mjs` first).
+- Used in 53.4: world skin picker also offers the sub-islands; Visual Assets has Small islands and Buildings tabs; main-island Style has the 10 new worlds; main-island Elements adds the 50 buildings and 120 objects (3D thumbnails, cached in IndexedDB).
+
+## Library 3 (World 4.3, 2026-10-16)
+
+- Vendored: `expansionMajorWorlds43Data.ts` (MW-11…40), `expansionSubIslands43Data.ts` (SI-31…60), `expansion43MeshBuilders.ts`, and the updated `allAssetsData.ts` / `expansionMeshBuilders.ts`.
+- `assets3d.ts` routes `MW-*` → `build43MajorWorldScene`, `SI-*` → `build43SubIslandScene`; `kindOf('SI-…')` = subisland. Catalogue: 64 worlds, 60 sub-islands, 50 buildings, 120 objects, 20 dioramas, 8 centres.
+- Main-island Style shows the 30 new worlds too (72 styles, tiles titled with the asset's name).
