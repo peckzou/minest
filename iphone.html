@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 53.7 · Exhibitions</title>
+    <title>Minest iPhone 53.8 · Archipelago</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -21734,7 +21734,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "53.7" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "53.8" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -75414,7 +75414,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function toast(m, o) { try { return GlassUI.toast(m, o); } catch (e) { return null; } }
   function hap(t) { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic(t || 'selection'); } catch (e) {} }
-  function board(bid) { if (/^hub:/.test(bid)) return hubBoard(bid); try { return (A().boards() || []).filter(function (b) { return b.id === bid; })[0] || null; } catch (e) { return null; } }
+  function board(bid) { if (bid === 'tile:home') return { id: 'tile:home', title: 'My World · Tile mode', columns: [] }; if (/^hub:/.test(bid)) return hubBoard(bid); try { return (A().boards() || []).filter(function (b) { return b.id === bid; })[0] || null; } catch (e) { return null; } }
   // a main island ('hub:<id>') has no board of its own: its Box is every list of the worlds in its group, read in place
   var HUBB = { key: null, src: null, val: null };
   function hubBoard(bid) {
@@ -75599,12 +75599,12 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if (now) { flush(); autoPublish(); return; }
     saveT = setTimeout(function () { flush(); autoPublish(); }, 350);
   }
-  function placed() { var m = {}; walkAll(function (p) { (p.it || []).forEach(function (r) { m[r] = p.id; }); }); return m; }   // the whole island, its rooms too
+  function placed() { var m = {}; walkAll(function (p) { if (archOff(p)) return; (p.it || []).forEach(function (r) { m[r] = p.id; }); }); return m; }   // the whole island, its rooms too
   function pieceOf(id) { return V.d.pc.filter(function (p) { return p.id === id; })[0] || null; }
   function unplace(ref) { walkAll(function (p) { if (p.it && p.it.indexOf(ref) >= 0 && V.d.pc.indexOf(p) < 0) p.it = p.it.filter(function (r) { return r !== ref; }); }); V.d.pc.forEach(function (p) { if (p.it) p.it = p.it.filter(function (r) { return r !== ref; }); }); V.d.pc = V.d.pc.filter(function (p) { return !(p.k === 'item' && !(p.it || []).length); }); }
 
   /* ── My World · Island System · land: an island is made of 3 × 3-block plots — add plots to make it bigger, any shape */
-  var PLOT = 3, MAX_PLOTS = 100, DEF_LAND = (function () { var o = []; for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) o.push(i + ',' + j); return o; })();
+  var PLOT = 3, MAX_PLOTS = 400, DEF_LAND = (function () { var o = []; for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) o.push(i + ',' + j); return o; })();
   function landOf(d) { d = d || (V && V.d); if (!d) return DEF_LAND; if (!Array.isArray(d.land) || !d.land.length) d.land = DEF_LAND.slice(); return d.land; }
   function boxOf(land) { var b = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }; land.forEach(function (k) { var c = k.split(','), i = +c[0], j = +c[1]; b.x0 = Math.min(b.x0, i * PLOT); b.y0 = Math.min(b.y0, j * PLOT); b.x1 = Math.max(b.x1, (i + 1) * PLOT); b.y1 = Math.max(b.y1, (j + 1) * PLOT); }); return b; }
   var DEF_BOX = boxOf(DEF_LAND);
@@ -76828,7 +76828,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     idx.forEach(visit); return out;
   }
   function dateOf(ref) { var t = thing(ref); if (t && t.y != null) return t.y; var d = t && !V.visit && KN() && KN().dateOf && KN().dateOf(t.s.id); return d ? d.y : null; }   // visitors get the year from the snapshot
-  function tag(x, y, z, text, cls) { var c = P(x, y, z), w = Math.min(170, 12 + String(text).length * 6.4); return '<g class="tag ' + (cls || '') + '"><rect x="' + (c[0] - w / 2).toFixed(1) + '" y="' + (c[1] - 18).toFixed(1) + '" width="' + w.toFixed(1) + '" height="16"/><text x="' + c[0].toFixed(1) + '" y="' + (c[1] - 6).toFixed(1) + '" text-anchor="middle">' + esc(text) + '</text></g>'; }
+  function tag(x, y, z, text, cls) { var c = P(x, y, z), w = Math.min(170, 12 + String(text).length * 6.4); return ('<g class="tag ' + (cls || '') + '"><rect x="' + (c[0] - w / 2).toFixed(1) + '" y="' + (c[1] - 18).toFixed(1) + '" width="' + w.toFixed(1) + '" height="16"/><text x="' + c[0].toFixed(1) + '" y="' + (c[1] - 6).toFixed(1) + '" text-anchor="middle">' + esc(text) + '</text></g>').replace(/^<g class="tag ([^"]*)">/, function (m0, k) { return /\bbig\b/.test(k) ? '<g class="tag ' + k + '" transform="translate(' + c[0].toFixed(1) + ',' + c[1].toFixed(1) + ') scale(1.9) translate(' + (-c[0]).toFixed(1) + ',' + (-c[1]).toFixed(1) + ')">' : m0; }); }   /* big: an archipelago's area names, readable from afar */
   // the pieces as drawable parts, with their name tags floating above (like Minecraft name tags)
   function scene(pcs, rotv) {
     var all = [], tags = [];
@@ -76836,7 +76836,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       if (!BUILD[p.k]) return; var its = (p.it || []).filter(thing), b = build(p, /^(time|mhall|stairs|path)$/.test(p.k) ? byDate(its) : its, rotv), top = 0, cx = 0, cy = 0, n = 0;
       b.parts.forEach(function (q) { all.push(q); top = Math.max(top, q.z1); cx += q.x0 + q.x1; cy += q.y0 + q.y1; n += 2; });
       if (!n) return; cx /= n; cy /= n;
-      if (p.label && !K[p.k].solo) tags.push(tag(cx, cy, top + .12, p.label, V && V.sel && V.sel.pc === p.id ? 'keep' : ''));
+      if (p.label && !K[p.k].solo) { if (/^(dom:|hub)/.test(p.arch || '')) { tags.push(tag(cx, cy, top + .12, p.label, 'keep big arch')); tags.push(tag(cx, cy, top + .12, p.label, 'keep near arch')); } else tags.push(tag(cx, cy, top + .12, p.label, V && V.sel && V.sel.pc === p.id ? 'keep' : '')); }   /* an area's name: big from afar, normal close up */
       if (b.vf >= 2 && its.length && !/museum|desk|item|zone/.test(p.k)) tags.push(tag(cx, cy, top * .55, '⟲ ' + its.length + ' facing away', 'back'));
       b.parts.forEach(function (q) { if (q.o.label && q.ref && thing(q.ref)) tags.push(tag((q.x0 + q.x1) / 2, (q.y0 + q.y1) / 2, q.z1 + .12, String(thing(q.ref).s.title).slice(0, 24), V && V.sel && V.sel.pc === p.id ? 'keep' : '')); });   // concept names: up close, or when the network is chosen
       if (/^(time|mhall|stairs|path)$/.test(p.k)) b.parts.forEach(function (q) { var yref = q.o.ref || q.ref; if (q.o.year && yref && dateOf(yref) != null) tags.push(tag((q.x0 + q.x1) / 2, (q.y0 + q.y1) / 2, q.z1 + .28, dateOf(yref), 'yr')); });
@@ -77190,7 +77190,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       return { k: k, x0: Math.min(a[0], b[0]), x1: Math.max(a[0], b[0]), y0: Math.min(a[1], b[1]), y1: Math.max(a[1], b[1]) }; }).sort(function (a, b) { return (a.x0 + a.y0) - (b.x0 + b.y0) || a.x0 - b.x0; });
     if (sc === 'island') {   // stepped layers underneath, like a sky island
       plots.forEach(function (q) { var h = hash(q.k), deep = 2 + (h % 3) * .45;
-        o += slab(q.x0 + 1, q.y0 + 1, q.x1 - 1, q.y1 - 1, -deep - .6, -2, 'dirt', 'dirt') + slab(q.x0 + .4, q.y0 + .4, q.x1 - .4, q.y1 - .4, -2, -1, 'dirt', 'dirt') + slab(q.x0, q.y0, q.x1, q.y1, -1, 0, gTop, gSide); });
+        o += slab(q.x0 + 1, q.y0 + 1, q.x1 - 1, q.y1 - 1, -deep - .6, -2, 'dirt', 'dirt') + slab(q.x0 + .4, q.y0 + .4, q.x1 - .4, q.y1 - .4, -2, -1, 'dirt', 'dirt') + slab(q.x0, q.y0, q.x1, q.y1, -1, 0, (V.d.pg && V.d.pg[q.k] || [gTop])[0], (V.d.pg && V.d.pg[q.k] || [0, gSide])[1]); });   /* an archipelago's islands each have their own ground (68-archipelago.js) */
     } else {
       var fl = sc === 'room' ? (V.d.floor || 'oak') : 'andesite', wl = sc === 'room' ? (V.d.wall || 'plaster') : 'blackstone', tr = sc === 'room' ? 'spruce' : 'stone_bricks', vb = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
       plots.forEach(function (q) { vb.x0 = Math.min(vb.x0, q.x0); vb.y0 = Math.min(vb.y0, q.y0); vb.x1 = Math.max(vb.x1, q.x1); vb.y1 = Math.max(vb.y1, q.y1); });
@@ -77307,12 +77307,12 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   }
   // ---- undo / redo: a step for every finished change of the scene (snapshots of the island record)
   var HIST = { bid: null, cur: null, u: [], r: [], busy: 0 };
-  function histSnap(R) { return JSON.stringify({ pc: R.pc || [], land: R.land || null, ground: R.ground || null, scene: R.scene || null, ex: R.ex || null }); }   // exhibitions too (64-exhibit.js)
+  function histSnap(R) { return JSON.stringify({ pc: R.pc || [], land: R.land || null, ground: R.ground || null, scene: R.scene || null, ex: R.ex || null, pg: R.pg || null, arch: R.arch || null, archLand: R.archLand || null, view: R.view || null }); }   // exhibitions too (64-exhibit.js)
   function histStart() { if (!V || V.visit) return; HIST = { bid: V.bid, cur: histSnap(V.root || V.d), u: [], r: [], busy: 0 }; }
   function histNote(bid, d) { if (HIST.busy || !V || V.visit) return; var j = histSnap(d); if (HIST.bid !== bid || HIST.cur == null) { HIST = { bid: bid, cur: j, u: [], r: [], busy: 0 }; return; } if (j === HIST.cur) return; HIST.u.push(HIST.cur); if (HIST.u.length > 60) HIST.u.shift(); HIST.cur = j; HIST.r = []; }
   function histGo(back) {
     if (!V || V.visit || HIST.bid !== V.bid) return false; var from = back ? HIST.u : HIST.r, to = back ? HIST.r : HIST.u; if (!from.length) { toast(back ? 'Nothing to undo' : 'Nothing to redo'); return false; }
-    to.push(HIST.cur); HIST.cur = from.pop(); var s = JSON.parse(HIST.cur), R = V.root || V.d; R.pc = s.pc; if (s.land) R.land = s.land; if (s.ground) R.ground = s.ground; if (s.scene) R.scene = s.scene; if (s.ex) R.ex = s.ex; else delete R.ex;
+    to.push(HIST.cur); HIST.cur = from.pop(); var s = JSON.parse(HIST.cur), R = V.root || V.d; R.pc = s.pc; if (s.land) R.land = s.land; if (s.ground) R.ground = s.ground; if (s.scene) R.scene = s.scene; if (s.ex) R.ex = s.ex; else delete R.ex; ['pg', 'arch', 'archLand', 'view'].forEach(function (k) { if (s[k]) R[k] = s[k]; else delete R[k]; });
     if (V.at) { var b = (R.pc || []).filter(function (p) { return p.id === V.at.pc; })[0], r = b && V.at.room && (b.rooms || []).filter(function (x) { return x.id === V.at.room; })[0];
       if (!b) { bvClose(); V.d = R; V.root = null; V.at = null; } else if (V.at.room) { if (r) { roomD(r); V.d = r.d; } else { V.d = R; V.at = null; V.root = null; bldOpen(b.id); } } }
     V.sel = null; V.menu = null; HUD.moving = null; refreshLand(); HIST.busy = 1; save(); HIST.busy = 0; render(); if (typeof BV !== 'undefined' && BV) bvDraw(); hap('light'); toast(back ? '↶ Undone' : '↷ Redone'); return true;
@@ -78011,7 +78011,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   // ---------------------------------------------------------------- the screen
   var V = null, el = null;
   function render() {
-    if (!el) return; index(); V.d.pc.forEach(function (p) { ensureBld(p.k); ensureModel(p.k, p.m); });
+    if (!el) return; tileSync(); index(); V.d.pc.forEach(function (p) { ensureBld(p.k); ensureModel(p.k, p.m); });
     var svg = el.querySelector('.mn-dsp-scene g.cam'); if (!svg) return;
     var hi = '', s = V.sel && !V.sel.ref && pieceOf(V.sel.pc); if (s) { var f = vfoot(s); hi = '<polygon class="foot' + (fits(s) ? '' : ' bad') + '" points="' + pts([P(f.x0, f.y0, 0), P(f.x1, f.y0, 0), P(f.x1, f.y1, 0), P(f.x0, f.y1, 0)]) + '"/>'; }
     svg.innerHTML = '<g class="gw">' + ground() + landMarks() + '</g>' + hi + scene(V.d.pc.filter(function (p) { return BUILD[p.k] && !(K[p.k] && K[p.k].mob) && !moving(p) && shownHere(p); })) + '<g class="movers">' + moversLayer(0) + '</g><g class="mobs">' + mobsLayer() + '</g><g class="movers air">' + moversLayer(1) + '</g>';   // people and pets walk on their own layer (59-mobs.js)
@@ -78067,7 +78067,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     return false;
   }
   function indoor() { return !!(V && ((V.at && V.at.room) || /^(room|museum)$/.test((V.d && V.d.scene) || ''))); }
-  function shownHere(p) { return !(p && indoor() && isOutdoor(p.k)); }
+  function shownHere(p) { return !(p && ((indoor() && isOutdoor(p.k)) || archOff(p))); }   /* and the archipelago waits in Tile mode (68-archipelago.js) */
   function hiddenHere() { return indoor() ? (V.d.pc || []).filter(function (p) { return isOutdoor(p.k); }).length : 0; }
   /* ── My World · Museum showrooms (53.7)
      Rooms designed like a museum's own: the fixtures stand where a curator would put them (walls hung, cases along
@@ -78132,6 +78132,226 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     placeIn(p, r, fl, idx); BV.sel = r.id; BV.adding = false; save(); hap('success'); bar(); bvDraw();
     toast(srOf(id).ic + ' ' + r.n + (r.got.filled ? ' — ' + r.got.filled + ' exhibition' + (r.got.filled === 1 ? '' : 's') + ' filled from your lists' : ' — ready for your things') + (r.got.empty && r.got.filled ? ' · ' + r.got.empty + ' waiting for a list' : ''));
   }
+  /* ── My World · Archipelago (53.8): a world's template seen as a group of islands
+     The world's own island stays in the middle (the hub, with the world's name). Each area (a board column — a domain of
+     the template) becomes its own floating island around it, with its own ground; its sections stand in rows, each with a
+     signpost, and each list is a display named after it that already holds the list's things (those not out elsewhere).
+     Wooden bridges join islands that lie next to each other. Built from the board itself, so it works for every template
+     (philosophy, library, life …) and for worlds made by hand. Pieces it makes carry p.arch; building again replaces
+     only those (and their land), so what you placed yourself stays. One undo step. */
+  var ARCH_GROUNDS = [['grass_top', 'grass_side'], ['sand', 'sand'], ['snow', 'snow_side'], ['moss', 'moss_side'], ['quartz', 'quartz'], ['andesite', 'andesite']];
+  var ARCH_ROW = 3;   // lists in a row on an island
+  K.isl_bridge = { n: 'Bridge', decor: 1 };
+  BUILD.isl_bridge = function (p, its, B) {   // planks across the gap between two islands (3 blocks), rope posts at the ends
+    var L = 3.6; B.box(0, L, .2, 1.4, -.25, -.1, 'oak', 'spruce');
+    for (var u = .15; u < L; u += .6) B.box(u, u + .45, .15, 1.45, -.1, -.04, 'spruce', 'spruce');
+    [[0, .1], [0, 1.4], [L - .2, .1], [L - .2, 1.4]].forEach(function (c) { B.box(c[0], c[0] + .2, c[1] - .1, c[1] + .1, -.1, .9, 'log', 'log'); });
+    B.box(0, L, .12, .18, .75, .8, 'spruce', 'spruce'); B.box(0, L, 1.42, 1.48, .75, .8, 'spruce', 'spruce');
+    return { W: L, D: 1.6 };
+  };
+  function archTree(b) {   // the board as areas → sections → lists
+    return (b && b.columns || []).map(function (c) {
+      var secs = [], cur = null;
+      (c.cards || []).forEach(function (k) {
+        if (!k || !k.id) return;
+        if (isHead(k.id)) { cur = { head: k, lists: [] }; secs.push(cur); return; }
+        if (!cur) { cur = { head: null, lists: [] }; secs.push(cur); }
+        cur.lists.push(k);
+      });
+      return { col: c, secs: secs.filter(function (s) { return s.head || s.lists.length; }) };
+    });
+  }
+  var ARCH_SHOWS = ['shelf', 'books', 'board', 'gallery', 'grid', 'tablets', 'wall', 'crates'];   // for lists whose name says nothing: one kind per section, so sections look apart
+  function archFits(k) { if (!BUILD[k]) return false; var d = dims({ k: k, s: 1, x: 0, y: 0, f: 0 }); return d.W <= 3.01 && d.D <= 3.01; }
+  function archShow(title, si) {   // the display that suits a list, by its name (Smart arrange's groups); small enough for one plot
+    for (var i = 0; i < CATS.length; i++) if (CATS[i][5] && CATS[i][5].test(title || '') && archFits(CATS[i][3])) return CATS[i][3];
+    var ok = ARCH_SHOWS.filter(archFits); return ok.length ? ok[(si || 0) % ok.length] : 'shelf';
+  }
+  function archSize(A) {   // an area's island in plots: a sign column + up to ARCH_ROW lists a row; one row in front for its name
+    var w = 1, h = 0; A.secs.forEach(function (s) { w = Math.max(w, 1 + Math.min(ARCH_ROW, Math.max(1, s.lists.length))); h += Math.max(1, Math.ceil(s.lists.length / ARCH_ROW)); });
+    return { w: Math.max(2, w), h: h + 1 };
+  }
+  function archBuild() {   // (re)builds the archipelago of the open world; returns what it made
+    var b = board(V.bid); if (!b) return null; var R = V.d, T = archTree(b); if (!T.length) { toast('This world has no areas yet'); return null; }
+    // out with the last archipelago (its pieces and land); the hub is what is left
+    var oldLand = {}; (R.archLand || []).forEach(function (k) { oldLand[k] = 1; });
+    R.pc = (R.pc || []).filter(function (p) { return !p.arch; }); R.land = landOf().filter(function (k) { return !oldLand[k]; }); if (!R.land.length) R.land = DEF_LAND.slice();
+    R.pg = {}; refreshLand();
+    var out = placed(), rect = function (x, y, w, h) { return { x: x, y: y, w: w, h: h }; };
+    var hb = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }; landOf().forEach(function (k) { var c = k.split(','); hb.x0 = Math.min(hb.x0, +c[0]); hb.y0 = Math.min(hb.y0, +c[1]); hb.x1 = Math.max(hb.x1, +c[0] + 1); hb.y1 = Math.max(hb.y1, +c[1] + 1); });
+    var placedR = [rect(hb.x0, hb.y0, hb.x1 - hb.x0, hb.y1 - hb.y0)], hcx = (hb.x0 + hb.x1) / 2, hcy = (hb.y0 + hb.y1) / 2, made = [], land = [], bridges = [];
+    var hit = function (a, c) { return a.x < c.x + c.w + 1 && c.x < a.x + a.w + 1 && a.y < c.y + c.h + 1 && c.y < a.y + a.h + 1; };   // closer than one plot of sky
+    var touch = function (a, c) {   // one plot of sky between them, side by side: where a bridge goes
+      if (a.x === c.x + c.w + 1 || c.x === a.x + a.w + 1) { var y0 = Math.max(a.y, c.y), y1 = Math.min(a.y + a.h, c.y + c.h); if (y1 - y0 >= 1) return { dir: 'x', at: Math.min(a.x, c.x) === a.x ? a.x + a.w : c.x + c.w, mid: Math.floor((y0 + y1) / 2) }; }
+      if (a.y === c.y + c.h + 1 || c.y === a.y + a.h + 1) { var x0 = Math.max(a.x, c.x), x1 = Math.min(a.x + a.w, c.x + c.w); if (x1 - x0 >= 1) return { dir: 'y', at: Math.min(a.y, c.y) === a.y ? a.y + a.h : c.y + c.h, mid: Math.floor((x0 + x1) / 2) }; }
+      return null;
+    };
+    T.forEach(function (A, ai) {
+      var sz = archSize(A), best = null;
+      for (var px = Math.floor(hcx) - 30; px <= Math.floor(hcx) + 30; px++) for (var py = Math.floor(hcy) - 30; py <= Math.floor(hcy) + 30; py++) {
+        var r = rect(px, py, sz.w, sz.h); if (placedR.some(function (c) { return hit(r, c); })) continue;
+        var link = null; for (var j = 0; j < placedR.length && !link; j++) link = touch(r, placedR[j]); if (!link) continue;
+        var dx = px + sz.w / 2 - hcx, dy = py + sz.h / 2 - hcy, dd = dx * dx + dy * dy; if (!best || dd < best.dd - 1e-6) best = { r: r, dd: dd, link: link };
+      }
+      if (!best) return; placedR.push(best.r); bridges.push(best.link);
+      var r0 = best.r, gr = ARCH_GROUNDS[ai % ARCH_GROUNDS.length];
+      for (var i = 0; i < r0.w; i++) for (var j2 = 0; j2 < r0.h; j2++) { var k = (r0.x + i) + ',' + (r0.y + j2); land.push(k); R.pg[k] = gr; }
+      var X = function (i) { return (r0.x + i) * PLOT + PLOT / 2; }, Y = function (j) { return (r0.y + j) * PLOT + PLOT / 2; }, row = 0, secN = ai;
+      A.secs.forEach(function (s) {
+        secN++; var rows = Math.max(1, Math.ceil(s.lists.length / ARCH_ROW));
+        made.push({ id: uid(), k: 'signpost', x: X(0), y: Y(row), f: 0, s: 1, it: [], label: s.head ? s.head.title : A.col.title, arch: 'sec:' + (s.head ? s.head.id : A.col.id) });
+        s.lists.forEach(function (L, n) {
+          var kk = archShow(L.title, secN), p = { id: uid(), k: kk, x: X(1 + n % ARCH_ROW), y: Y(row + Math.floor(n / ARCH_ROW)), f: 0, s: 1, it: [], label: L.title, arch: L.id };
+          var refs = (L.stack || []).filter(function (x) { return x && x.id; }).map(function (x) { return L.id + '/' + x.id; }).filter(function (r) { return thing(r) && !out[r]; });
+          p.it = refs.slice(0, capOf(p)); p.it.forEach(function (r) { out[r] = 1; }); made.push(p);
+        });
+        row += rows;
+      });
+      made.push({ id: uid(), k: 'y_flag', x: X(0), y: Y(sz.h - 1), f: 0, s: 1, it: [], label: A.col.title, arch: 'dom:' + A.col.id });   // the area's name, in front
+      if (sz.w > 2) made.push({ id: uid(), k: ai % 2 ? 'fountain' : 'lamp', x: X(Math.floor(sz.w / 2)), y: Y(sz.h - 1), f: 0, s: 1, it: [], label: '', arch: 'deco' });
+    });
+    bridges.forEach(function (g) {   // across the plot of sky: planks along x, or turned for y
+      var c = g.dir === 'x' ? { x: g.at * PLOT + PLOT / 2, y: g.mid * PLOT + PLOT / 2, f: 0 } : { x: g.mid * PLOT + PLOT / 2, y: g.at * PLOT + PLOT / 2, f: 1 };
+      made.push({ id: uid(), k: 'isl_bridge', x: c.x, y: c.y, f: c.f, s: 1, it: [], label: '', arch: 'bridge' });
+    });
+    // the hub: the world's name on a flag (where there is room), unless the island already has one
+    var hubFlag = { id: uid(), k: 'y_flag', x: 0, y: 0, f: 0, s: 1, it: [], label: b.title, arch: 'hub' }; if (freeSpot(hubFlag, 1) || freeSpot(hubFlag)) made.push(hubFlag);
+    R.land = landOf().concat(land.filter(function (k) { return landOf().indexOf(k) < 0; })); R.archLand = land; R.arch = { v: 1, at: Date.now(), areas: T.length }; delete R.view;
+    made.forEach(function (p) { R.pc.push(p); });
+    var mi = 0, mj = 0; R.land.forEach(function (k) { var c = k.split(','); mi = Math.min(mi, +c[0]); mj = Math.min(mj, +c[1]); });
+    if (mi < 0 || mj < 0) {   // islands went left of / behind the hub: move the whole scene so every plot is at 0 or more
+      var sh = function (k) { var c = k.split(','); return (+c[0] - mi) + ',' + (+c[1] - mj); }, pg = {};
+      R.land = R.land.map(sh); R.archLand = R.archLand.map(sh); Object.keys(R.pg).forEach(function (k) { pg[sh(k)] = R.pg[k]; }); R.pg = pg;
+      R.pc.forEach(function (p) { p.x += -mi * PLOT; p.y += -mj * PLOT; });
+    }
+    refreshLand();
+    return { areas: T.length, islands: placedR.length - 1, lists: made.filter(function (p) { return p.arch && !/^(sec|dom|hub|deco|bridge)/.test(p.arch); }).length, things: made.reduce(function (n, p) { return n + (p.it || []).length; }, 0) };
+  }
+  function archGo() {   // the button: build it (one undo step), show it whole
+    if (!V || V.visit || V.at) return; if ((V.d.scene || 'island') !== 'island') return toast('🏝 Islands are for the Island view — switch this world’s scene to Island first'); var res = null; change(function () { res = archBuild(); }); if (!res) return;
+    fit(); hap('success'); toast('🏝 ' + res.islands + ' island' + (res.islands === 1 ? '' : 's') + ' for ' + res.areas + ' area' + (res.areas === 1 ? '' : 's') + ' · ' + res.lists + ' lists on display' + (res.things ? ' · ' + res.things + ' things in place' : '') + ' — ↶ to undo');
+  }
+  function archTemplate(tid) {   // from the template gallery: the world (made now, or the one already made from it) → its islands
+    var W0 = window.MinestWorld; if (!W0) return; var t = W0.templates().filter(function (x) { return x.id === tid; })[0]; if (!t) return toast('That template is not here');
+    var have = null; try { have = W0.worlds().filter(function (w) { return w.w && w.w.templates && w.w.templates[tid]; })[0]; } catch (e) {}
+    var bid = have ? have.b.id : null, made = false;
+    if (!bid) { try { var r = W0.generate(t); bid = r && r.bid; made = true; } catch (e) { return toast(String(e && e.message || e)); } }
+    if (!bid) return; try { window.MinestMyWorld && MinestMyWorld.close(); } catch (e) {}
+    var t0 = Date.now();
+    (function wait() {
+      if (!board(bid)) { if (Date.now() - t0 < 8000) return setTimeout(wait, 200); return toast('The world is still being made — try again in a moment'); }
+      var p = [{ t: 'home' }, { t: 'world', bid: bid }]; try { if (MinestUniverse.isOpen()) MinestUniverse.go(p); else MinestUniverse.open({ path: p }); } catch (e) {}
+      setTimeout(function () { open({ t: 'world', bid: bid }); setTimeout(function () { if (V && V.bid === bid) { archGo(); toast((made ? 'Made “' : 'Your “') + board(bid).title + '” as islands — each area is an island, each list a display named after it'); } }, 500); }, 600);
+    })();
+  }
+  // the template gallery (My World → Choose My World): a 🏝 Islands chip on every template
+  function archChips(root) {
+    [].forEach.call((root || document).querySelectorAll('.mw .mw-tc[data-tpl]'), function (c) {
+      if (c.querySelector('.mn-arch-go')) return; var s = document.createElement('span'); s.className = 'mn-arch-go'; s.setAttribute('role', 'button'); s.setAttribute('tabindex', '0');
+      s.setAttribute('data-archtpl', c.getAttribute('data-tpl')); s.setAttribute('aria-label', 'Make it as islands'); s.textContent = '🏝 Islands'; c.appendChild(s);
+    });
+  }
+  try { var archT = 0; new MutationObserver(function () { if (archT) return; archT = setTimeout(function () { archT = 0; if (document.querySelector('.mw .mw-tc[data-tpl]')) archChips(); }, 120); }).observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+  document.addEventListener('click', function (e) { var g = e.target.closest && e.target.closest('.mn-arch-go[data-archtpl]'); if (!g) return; e.preventDefault(); e.stopImmediatePropagation(); hap('light'); archTemplate(g.getAttribute('data-archtpl')); }, true);
+
+  /* ── Tile mode ⇄ Main view (53.8)
+     A world has two views of one layout: Main view (its own island, as it always was) and Tile mode (the archipelago).
+     Switching hides or shows the archipelago's pieces and land — nothing is removed, and each view keeps what you do in it.
+     My World's home (the City of God and its main islands) has a Tile mode too: every main island and world laid out flat
+     as islands; tap one to go there, ◉ to go back to the home as it was. */
+  function archView(R) { R = R || (V && (V.root || V.d)); return R && R.arch ? (R.view === 'main' ? 'main' : 'tile') : 'main'; }
+  function archOff(p) { return !!(p && p.arch && V && !V.at && V.d === (V.root || V.d) && archView(V.d) === 'main'); }
+  function archSetView(v) {   // switch, one undo step, the whole of it in sight
+    if (!V || V.visit || V.at) return; var R = V.d;
+    if (v === 'tile' && !R.arch) return archGo();
+    if (archView(R) === v) return;
+    change(function () {
+      var al = R.archLand || [], has = {}; landOf().forEach(function (k) { has[k] = 1; });
+      if (v === 'main') { var off = {}; al.forEach(function (k) { off[k] = 1; }); R.land = landOf().filter(function (k) { return !off[k]; }); if (!R.land.length) R.land = DEF_LAND.slice(); }
+      else R.land = landOf().concat(al.filter(function (k) { return !has[k]; }));
+      R.view = v; refreshLand(); V.sel = null;
+    });
+    fit(); hap('selection'); tileSync(); toast(v === 'tile' ? '▦ Tile mode — every area is an island · ◉ back to the main view' : '◉ Main view — the islands wait in Tile mode');
+  }
+  function tileSync() { if (!el || !V) return; if (V.bid === 'tile:home' && V.sel && V.sel.pc && !V.tileGo) { var gp = pieceOf(V.sel.pc); if (gp && gp.go) { V.tileGo = 1; var go = gp.go; setTimeout(function () { homeGo(go); }, 0); } }   /* a tap picks a piece: in the home's Tile mode that means go there */ var t = !V.at && (V.bid === 'tile:home' || archView(V.d) === 'tile'); el.classList.toggle('mn-tile', !!t); el.classList.toggle('mn-tile-home', V.bid === 'tile:home'); }
+
+  // the home in Tile mode: a scene of its own ('tile:home'), made fresh from the home each time it opens
+  var HUB_LOOK = { science: 'lighthouse', cozy: 'house', zen: 'y_gazebo', modern: 'c_hotel', city: 'c_hotel', castle: 'fcastle' };
+  function hubKind(h) { var s = String(h && h.skin || ''), L = (typeof WORLD_LOOK !== 'undefined' && WORLD_LOOK[s]) || null; if (L && BUILD[L[0]]) return L[0]; for (var k in HUB_LOOK) if (s.indexOf(k) >= 0 && BUILD[HUB_LOOK[k]]) return HUB_LOOK[k]; return 'fcastle'; }
+  function homeTree() {   // [{ kind: 'center' | 'hub', id, title, look, worlds: [{ bid, title }] }]
+    var H = window.MinestHubs, bs = []; try { bs = (A().boards() || []).filter(function (b) { return b && b.id && !b.archived && !/^hub:|^tile:/.test(b.id); }); } catch (e) {}
+    var shown = {}; [].forEach.call(document.querySelectorAll('.uv-isle[data-world]'), function (e) { shown[e.getAttribute('data-world')] = 1; });   // the worlds the home shows (when it is on screen)
+    if (Object.keys(shown).length) bs = bs.filter(function (b) { return shown[b.id] || (H && H.parentOf && H.parentOf(b.id) && H.parentOf(b.id) !== 'center'); });
+    var ctr = document.querySelector('.uv-isle[data-center] b'), out = [{ kind: 'center', id: 'center', title: (ctr && ctr.textContent.trim()) || 'My World', look: 'fcastle', worlds: [] }];
+    (H && H.hubs ? H.hubs() : []).forEach(function (h) { out.push({ kind: 'hub', id: h.id, title: h.title || 'Main island', look: hubKind(h), worlds: [] }); });
+    bs.forEach(function (b) { var pid = (H && H.parentOf && H.parentOf(b.id)) || 'center', g = out.filter(function (x) { return x.id === pid; })[0] || out[0]; g.worlds.push({ bid: b.id, title: b.title || 'World' }); });
+    return out;
+  }
+  function homeTileBuild() {   // main islands 3 × 3 plots (their worlds 2 × 2 round them), the City of God in the middle; bridges between
+    var R = V.d, T = homeTree(), rects = [], made = [], land = [], pg = {};
+    var hit = function (a, c) { return a.x < c.x + c.w + 1 && c.x < a.x + a.w + 1 && a.y < c.y + c.h + 1 && c.y < a.y + a.h + 1; };
+    var touch = function (a, c) { if (a.x === c.x + c.w + 1 || c.x === a.x + a.w + 1) { var y0 = Math.max(a.y, c.y), y1 = Math.min(a.y + a.h, c.y + c.h); if (y1 - y0 >= 1) return { dir: 'x', at: Math.min(a.x, c.x) === a.x ? a.x + a.w : c.x + c.w, mid: Math.floor((y0 + y1) / 2) }; }
+      if (a.y === c.y + c.h + 1 || c.y === a.y + a.h + 1) { var x0 = Math.max(a.x, c.x), x1 = Math.min(a.x + a.w, c.x + c.w); if (x1 - x0 >= 1) return { dir: 'y', at: Math.min(a.y, c.y) === a.y ? a.y + a.h : c.y + c.h, mid: Math.floor((x0 + x1) / 2) }; } return null; };
+    var put = function (w, h, ax, ay, near, far) {   // the free spot nearest (ax, ay), one plot of sky from the rest, by a bridge to `near` (or anything)
+      var best = null; for (var px = Math.floor(ax) - 40; px <= Math.floor(ax) + 40; px++) for (var py = Math.floor(ay) - 40; py <= Math.floor(ay) + 40; py++) {
+        var r = { x: px, y: py, w: w, h: h }; if (rects.some(function (c) { return hit(r, c.r); })) continue; var link = null;
+        if (rects.length) { var pool = near ? [near] : rects.map(function (c) { return c.r; }); for (var j = 0; j < pool.length && !link; j++) link = touch(r, pool[j]); if (!link && !far) continue; }
+        var dx = px + w / 2 - ax, dy = py + h / 2 - ay, dd = dx * dx + dy * dy; if (!best || dd < best.dd - 1e-6) best = { r: r, dd: dd, link: link };
+      }
+      return best;
+    };
+    var GR = [['grass_top', 'grass_side'], ['moss', 'moss_side'], ['sand', 'sand'], ['snow', 'snow_side'], ['quartz', 'quartz']];
+    var lay = function (r, gr) { for (var i = 0; i < r.w; i++) for (var j = 0; j < r.h; j++) { var k = (r.x + i) + ',' + (r.y + j); land.push(k); pg[k] = gr; } };
+    var mid = function (r) { return { x: (r.x + r.w / 2) * PLOT, y: (r.y + r.h / 2) * PLOT }; };
+    var bridge = function (g) { if (!g) return; var c = g.dir === 'x' ? { x: g.at * PLOT + PLOT / 2, y: g.mid * PLOT + PLOT / 2, f: 0 } : { x: g.mid * PLOT + PLOT / 2, y: g.at * PLOT + PLOT / 2, f: 1 }; made.push({ id: uid(), k: 'isl_bridge', x: c.x, y: c.y, f: c.f, s: 1, it: [], label: '', arch: 'bridge' }); };
+    T.forEach(function (g, gi) {
+      var b0 = gi ? put(3, 3, 1.5, 1.5, null, false) : put(3, 3, 1.5, 1.5, null, true); if (!b0) return; rects.push({ r: b0.r }); bridge(b0.link);   /* each main island joins the group where it is nearest the middle */ lay(b0.r, gi ? GR[gi % GR.length] : ['quartz', 'stone_bricks']);
+      var m = mid(b0.r); made.push({ id: uid(), k: BUILD[g.look] ? g.look : 'fcastle', x: m.x, y: m.y - 1, f: 0, s: 1, it: [], label: '', arch: 'deco', go: g.kind === 'center' ? 'center' : 'hub:' + g.id });
+      made.push({ id: uid(), k: 'y_flag', x: m.x - 3, y: m.y + 3, f: 0, s: 1, it: [], label: g.title, arch: 'dom:' + g.id, go: g.kind === 'center' ? 'center' : 'hub:' + g.id });
+      g.worlds.forEach(function (w, wi) {
+        var c = put(2, 2, b0.r.x + 1.5, b0.r.y + 1.5, b0.r, false) || put(2, 2, b0.r.x + 1.5, b0.r.y + 1.5, null, true); if (!c) return; rects.push({ r: c.r }); bridge(c.link);
+        var L = lookOf(w.bid, w.title) || ['house', [], 'grass'], wm = mid(c.r), gk = { snow: ['snow', 'snow_side'], sand: ['sand', 'sand'], moss: ['moss', 'moss_side'] }[L[2]] || ['grass_top', 'grass_side']; lay(c.r, gk);
+        made.push({ id: uid(), k: BUILD[L[0]] ? L[0] : 'house', x: wm.x - .5, y: wm.y - .5, f: 0, s: 1, it: [], label: '', arch: 'deco', go: w.bid });
+        made.push({ id: uid(), k: 'y_flag', x: wm.x + 2, y: wm.y + 2, f: 0, s: 1, it: [], label: w.title, arch: 'dom:' + w.bid, go: w.bid });
+        var dk = (L[1] || []).filter(function (k) { return BUILD[k]; })[0]; if (dk) made.push({ id: uid(), k: dk, x: wm.x - 2, y: wm.y + 2, f: 0, s: 1, it: [], label: '', arch: 'deco', go: w.bid });
+      });
+    });
+    var mi = 0, mj = 0; land.forEach(function (k) { var c = k.split(','); mi = Math.min(mi, +c[0]); mj = Math.min(mj, +c[1]); });
+    var sh = function (k) { var c = k.split(','); return (+c[0] - mi) + ',' + (+c[1] - mj); }, pg2 = {}; Object.keys(pg).forEach(function (k) { pg2[sh(k)] = pg[k]; });
+    made.forEach(function (p) { p.x -= mi * PLOT; p.y -= mj * PLOT; });
+    R.scene = 'island'; R.land = land.map(sh); R.pg = pg2; R.pc = made; R.arch = { v: 1, at: Date.now(), home: 1 }; R.archLand = R.land.slice(); delete R.view; refreshLand();
+    return { mains: T.length, worlds: T.reduce(function (n, g) { return n + g.worlds.length; }, 0) };
+  }
+  function homeTileOpen() {   // from the home: the same home, flat
+    var t0 = Date.now(); open({ t: 'world', bid: 'tile:home' }); if (!V || V.bid !== 'tile:home') return;
+    var res = homeTileBuild(); V.sel = null; save(); render(); fit(); tileSync(); histStart();
+    toast('▦ Tile mode — ' + res.mains + ' main islands and ' + res.worlds + ' worlds, flat · tap one to go in · ◉ back to the home');
+  }
+  function homeGo(go) {   // a tapped island in the home's Tile mode: that main island or world, in the home's own way
+    close(); var U = window.MinestUniverse; if (!U) return;
+    try { if (!U.isOpen()) U.open({ path: [{ t: 'home' }] }); else U.go([{ t: 'home' }]); } catch (e) {}
+    setTimeout(function () { var sel = go === 'center' ? '.uv-isle[data-center]' : /^hub:/.test(go) ? '.uv-isle[data-hub="' + go.slice(4) + '"]' : '.uv-isle[data-world="' + go + '"]', e = document.querySelector(sel); if (e) e.click(); }, 450);
+  }
+  function homeMain() { close(); try { var U = window.MinestUniverse; if (!U.isOpen()) U.open({ path: [{ t: 'home' }] }); else U.go([{ t: 'home' }]); } catch (e) {} }
+  // a ▦ Tile button in the home's (and a world's) top bar, beside Reading mode
+  function tileBtn() {
+    var rd = document.querySelector('[data-mnread]'); if (!rd || !rd.offsetParent) return; var U = window.MinestUniverse, path = []; try { path = U.path() || []; } catch (e) {}
+    var last = path[path.length - 1] || {}, want = last.t === 'home' || (last.t === 'world' && last.bid); var b = rd.parentNode.querySelector('[data-tilemode]');
+    if (!want) { if (b) b.remove(); return; } if (b) return;
+    b = rd.cloneNode(false); b.removeAttribute('data-mnread'); b.setAttribute('data-tilemode', ''); b.setAttribute('aria-label', 'Tile mode — lay it out flat as islands'); b.title = 'Tile mode'; b.textContent = '▦'; b.classList.add('mn-tile-b'); rd.parentNode.insertBefore(b, rd);
+  }
+  try { var tileT = 0; new MutationObserver(function () { if (tileT) return; tileT = setTimeout(function () { tileT = 0; tileBtn(); }, 150); }).observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-tilemode]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); hap('light');
+    var path = []; try { path = MinestUniverse.path() || []; } catch (x) {} var last = path[path.length - 1] || {};
+    if (last.t === 'world' && last.bid) { open({ t: 'world', bid: last.bid }); if (V && V.bid === last.bid) { if (V.d.arch) archSetView('tile'); else archGo(); tileSync(); } }
+    else homeTileOpen();
+  }, true);
+  // a tap on an island in the home's Tile mode goes there
+  document.addEventListener('click', function (e) {
+    if (!V || V.bid !== 'tile:home' || !el || !el.contains(e.target)) return; var g = e.target.closest && e.target.closest('[data-pc]'); if (!g) return;
+    var p = pieceOf(g.getAttribute('data-pc')); if (!p || !p.go) return; e.preventDefault(); e.stopImmediatePropagation(); hap('light'); homeGo(p.go);
+  }, true);
   /* ── My World · Island System · top bar, selection bar, the Box drawer, edits, open / close */
   // ---------------------------------------------------------------- top bar, selection bar, the Box drawer
   var SCN = [['island', 'Island'], ['room', 'Room'], ['museum', 'Museum']];
@@ -78604,7 +78824,10 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if (e.target.closest('[data-bmenu]')) { buildMenu(); return; }
     if (e.target.closest('[data-kitsopen]')) { kitsOpen(); return; }
     if (e.target.closest('[data-picker]')) { pkOpen(); return; }
-    if (e.target.closest('[data-exh]')) { exOpen(); return; }   // 🏛 Exhibitions (64-exhibit.js)
+    if (e.target.closest('[data-exh]')) { exOpen(); return; }
+    if (e.target.closest('[data-arch]')) { if (V.d.arch) archSetView('tile'); else archGo(); return; }   // ▦ Tile mode: the world's areas as islands (68-archipelago.js)
+    if (e.target.closest('[data-archmain]')) { if (V.bid === 'tile:home') homeMain(); else archSetView('main'); return; }   // ◉ back to the main view
+    if (e.target.closest('[data-archre]')) { if (V.bid === 'tile:home') homeTileOpen(); else archGo(); return; }   // ↻ lay the islands out again   // 🏛 Exhibitions (64-exhibit.js)
     if ((g = e.target.closest('[data-exhfor]'))) { exOpen(g.getAttribute('data-exhfor')); return; }   // 🔨 Build: the full-screen picker (92-picker.js)
     if (e.target.closest('[data-fpv]')) { wkOpen(); return; }   // 🚶 Walk in (93-walk.js)   // 🎁 Sets (62-kits.js)
     if ((g = e.target.closest('[data-bulb]'))) { if (window.MinestBulb) MinestBulb.toggle(g); return; }   // 💡 guide · inspiration (bulb.js)   // 🛠 Build (58-city.js)
@@ -78785,8 +79008,8 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     var st = el.querySelector('.mn-dsp-stage'); if (!st || st.querySelector('.mn-hud-tl')) return hudSync();
     st.insertAdjacentHTML('beforeend', '<div class="mn-hud-tl"><button type="button" class="mn-hud-b" data-hudback aria-label="Back">✕</button><div class="mn-coc-prof"><i class="lv" data-hudlv>0</i><span class="mn-hud-ti"><b></b><small></small></span></div></div>' +   // 53.6: laid out like a village builder
       '<div class="mn-hud-tr"><div class="mn-coc-res" data-hudres></div></div>' +
-      '<div class="mn-hud-left"><button type="button" class="mn-hud-b" data-bulb aria-label="Guide and inspiration">💡</button><button type="button" class="mn-hud-b mode" data-hudmode aria-label="Explore or arrange">👁</button><button type="button" class="mn-hud-b" data-exh aria-label="Exhibitions">🏛</button><button type="button" class="mn-hud-b go" data-auto aria-label="Arrange for me">✦</button><button type="button" class="mn-hud-b" data-hudsheet="box" aria-label="Box">🎒</button><button type="button" class="mn-hud-b" data-hudmenu aria-label="More">⋯</button></div>' +
-      '<div class="mn-hud-fix"><button type="button" class="mn-hud-b" data-hudtoggle aria-label="Show the tools">≡</button></div>' +   // only ✕ and ≡ stay; ≡ shows every toolbar (53.7)
+      '<div class="mn-hud-left"><button type="button" class="mn-hud-b" data-bulb aria-label="Guide and inspiration">💡</button><button type="button" class="mn-hud-b mode" data-hudmode aria-label="Explore or arrange">👁</button><button type="button" class="mn-hud-b" data-exh aria-label="Exhibitions">🏛</button><button type="button" class="mn-hud-b" data-arch aria-label="Tile mode: the world\u2019s areas as islands">▦</button><button type="button" class="mn-hud-b" data-archre aria-label="Lay the islands out again from the areas">↻</button><button type="button" class="mn-hud-b go" data-auto aria-label="Arrange for me">✦</button><button type="button" class="mn-hud-b" data-hudsheet="box" aria-label="Box">🎒</button><button type="button" class="mn-hud-b" data-hudmenu aria-label="More">⋯</button></div>' +
+      '<div class="mn-hud-fix"><button type="button" class="mn-hud-b mn-tile-main" data-archmain aria-label="Back to the main view">◉</button><button type="button" class="mn-hud-b mn-tile-go" data-arch aria-label="Tile mode">▦</button><button type="button" class="mn-hud-b" data-hudtoggle aria-label="Show the tools">≡</button></div>' +   // only ✕ and ≡ stay; ≡ shows every toolbar (53.7)
       '<div class="mn-hud-bar"><button type="button" class="mn-coc-big walk" data-fpv><i>🚶</i><span>Walk in</span></button><button type="button" class="mn-coc-big build" data-picker><i>🔨</i><span>Build</span></button></div>' +
       '<div class="mn-hud-place" hidden></div><div class="mn-hud-ur"><button type="button" class="mn-hud-b" data-hudundo aria-label="Undo">↶</button><button type="button" class="mn-hud-b" data-hudredo aria-label="Redo">↷</button><button type="button" class="mn-hud-b sn" data-hudsnap aria-label="Grid">½</button></div>');
     try { if (window.MinestNative) MinestNative.send('setOrientation', { orientation: 'landscape' }); } catch (e) {}   // on the island the phone turns sideways (53.6)
@@ -80461,6 +80684,20 @@ html body .mn-fp-doll .dh-lab:not(.add) text { font:700 16px var(--pc-font,monos
 html body .mn-bv .mn-dh-ask { display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 8px;color:#fff;font:700 12px/1.2 var(--pc-font);text-shadow:2px 2px 0 #3f3f3f;background:#000000a0;box-shadow:0 0 0 2px #000; } html body .mn-bv .mn-dh-ask .ok { background-color:var(--pcg-f)!important;border-color:var(--pcg-hi) var(--pcg-lt) var(--pcg-sh) var(--pcg-dk)!important; }
 html body .mn-fp-doll .dh-lab, html body .mn-fp-doll .dh-lab * { pointer-events:none!important; }
 html body .mn-bv .mn-dh-pal .lb { flex:none;align-self:center;padding:0 4px;color:#f7d27a;font:700 10px/1.2 var(--pc-font);text-align:center;text-shadow:2px 2px 0 #3f3f3f; } html body .mn-bv .mn-dh-pal button.sr:not(.on) { background-color:#6b4f2a;border-color:#b98a4e #4a361c #3a2a14 #a87c45; }
+/* ===== 53.8 · Archipelago: the 🏝 Islands chip on each template ===== */
+html body .mw .mw-tc { position:relative; }
+html body .mw .mw-tc .mn-arch-go { position:absolute;top:8px;right:8px;z-index:2;padding:6px 9px;cursor:pointer;color:#fff;font:700 12px/1 var(--pc-font,monospace);background:#3c8527 var(--mc-noise);background-size:16px 16px;border:3px solid;border-color:#7fd35f #5aa83d #24521a #2f6b21;box-shadow:0 0 0 2px #000;text-shadow:2px 2px 0 #1f3d14; }
+html body .mw .mw-tc .mn-arch-go:active { transform:translateY(1px); }
+html body .mn-dsp-scene .tag.arch rect { fill:#000000c0;stroke:#f7d27a;stroke-width:1; } html body .mn-dsp-scene .tag.arch text { fill:#f7d27a; }
+html body .mn-dsp-scene .cam:not(.far) .tag.big, html body .mn-dsp-scene .cam.far .tag.near { display:none; }
+/* ===== 53.8 · Tile mode ⇄ Main view ===== */
+html body .mn-dsp:not(.mn-tile) [data-archmain], html body .mn-dsp:not(.mn-tile) [data-archre], html body .mn-dsp.mn-tile [data-arch] { display:none!important; }
+html body .mn-dsp .mn-hud-fix { display:flex;gap:8px; }
+html body .mn-dsp.mn-tile .mn-tile-main { background-color:var(--pcy-f)!important;border-color:var(--pcy-hi) var(--pcy-lt) var(--pcy-sh) var(--pcy-dk)!important; }
+html body .mn-dsp.mn-tile-home :is([data-dbox],[data-bmenu],[data-exh],[data-picker],[data-fpv],.mn-coc-res) { display:none!important; }
+html body .mn-tile-b { font-size:18px!important;line-height:1!important; }
+html body .mn-dsp.mn-tile-home .mn-guide, html body .mn-dsp.mn-tile-home .mn-dsp-start { display:none!important; }
+html body .mn-dsp.mn-tile-home .mn-tile-go, html body .mn-dsp.mn-at-bld .mn-hud-fix .mn-tile-go { display:none!important; }
 </style>
 <style id="mn-bulb-style">/* 53.41 · 💡 guide + inspiration panel (bulb.js) — the Poly Craft panel look */
 html body .mn-bulb { position:fixed;z-index:2147483200;box-sizing:border-box;max-height:min(72vh,620px);overflow:auto;padding:10px 12px 12px;color:var(--pc-ink,#fff);font-family:var(--pc-font);background:var(--pcsh-f,#333e6e) var(--pc-facet,none);border:4px solid;border-color:var(--pcs-hi,#6070ad) var(--pcs-lt,#4f5c95) var(--pcs-sh,#262e56) var(--pcs-dk,#323c69);border-radius:3px;box-shadow:0 5px 0 #0006,0 18px 44px #0007;text-align:left; }
