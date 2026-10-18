@@ -78273,7 +78273,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     });
     fit(); hap('selection'); tileSync(); toast(v === 'tile' ? '▦ Tile mode — every area is an island · ◉ back to the main view' : '◉ Main view — the islands wait in Tile mode');
   }
-  function tileSync() { if (!el || !V) return; if (V.bid === 'tile:home' && V.sel && V.sel.pc && !V.tileGo) { var gp = pieceOf(V.sel.pc); if (gp && gp.go) { V.tileGo = 1; var go = gp.go; setTimeout(function () { homeGo(go); }, 0); } }   /* a tap picks a piece: in the home's Tile mode that means go there */ var t = !V.at && (V.bid === 'tile:home' || archView(V.d) === 'tile'); el.classList.toggle('mn-tile', !!t); el.classList.toggle('mn-tile-home', V.bid === 'tile:home'); }
+  function tileSync() { if (!el || !V) return; if (V.bid === 'tile:home' && V.sel && V.sel.pc) { var gp = pieceOf(V.sel.pc); V.sel = null; if (gp && gp.go) { var nm = gp.label || ((V.d.pc || []).filter(function (q) { return q.go === gp.go && q.label; })[0] || {}).label || ''; setTimeout(function () { toast((nm ? nm + ' · ' : '') + 'double-tap to land on it'); }, 0); } }   /* one tap names it; two taps land on it */ var t = !V.at && (V.bid === 'tile:home' || archView(V.d) === 'tile'); el.classList.toggle('mn-tile', !!t); el.classList.toggle('mn-tile-home', V.bid === 'tile:home'); el.classList.toggle('mn-tile-in', !!V.at); }
 
   // the home in Tile mode: a scene of its own ('tile:home'), made fresh from the home each time it opens
   var HUB_LOOK = { science: 'lighthouse', cozy: 'house', zen: 'y_gazebo', modern: 'c_hotel', city: 'c_hotel', castle: 'fcastle' };
@@ -78347,11 +78347,77 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if (last.t === 'world' && last.bid) { open({ t: 'world', bid: last.bid }); if (V && V.bid === last.bid) { if (V.d.arch) archSetView('tile'); else archGo(); tileSync(); } }
     else homeTileOpen();
   }, true);
-  // a tap on an island in the home's Tile mode goes there
-  document.addEventListener('click', function (e) {
-    if (!V || V.bid !== 'tile:home' || !el || !el.contains(e.target)) return; var g = e.target.closest && e.target.closest('[data-pc]'); if (!g) return;
-    var p = pieceOf(g.getAttribute('data-pc')); if (!p || !p.go) return; e.preventDefault(); e.stopImmediatePropagation(); hap('light'); homeGo(p.go);
-  }, true);
+
+  /* ── Main-island view of a world (53.8): the world as the home shows worlds — its own island big in the middle, its
+     areas as small islands floating round it (the home's low-poly island art). One tap from Tile mode (◉), and back (▦).
+     Tap the middle: the world's own island. Tap an area: Tile mode, at that area's island. */
+  var MV_SKINS = ['world_13_science_exploration', 'world_15_philosophy_wisdom', 'world_20_language_literature', 'world_18_arts_aesthetics', 'world_09_life_story', 'world_01_natural', 'world_08_inner', 'world_12_future_dreams', 'world_04_social', 'world_14_history_civilizations', 'world_07_work_creation', 'world_23_cosmos_space'];
+  function mvSkin(title, i) { var t = String(title || ''); for (var k = 0; k < LOOK_BY_NAME.length; k++) if (LOOK_BY_NAME[k][0].test(t)) return LOOK_BY_NAME[k][1]; return MV_SKINS[i % MV_SKINS.length]; }
+  function mvArt(box, id) { try { MinestUniverse.assets().then(function (AS) { if (!AS || !box.isConnected) return; var put = function (u) { if (u && box.isConnected) box.innerHTML = '<img alt="" src="' + u + '">'; }; var c = AS.cached && AS.cached(id); if (c) put(c); else Promise.resolve(AS.thumb(id)).then(put, function () {}); }); } catch (e) {} }
+  var MVEL = null;
+  function mvClose() { if (MVEL) { MVEL.remove(); MVEL = null; } }
+  function mvOpen() {   // over the island screen
+    if (!V || V.visit || V.at || V.bid === 'tile:home') return; var b = board(V.bid); if (!b) return; mvClose();
+    var areas = archTree(b), n = areas.length, W = Math.min(window.innerWidth, 1400), H = window.innerHeight, land = W > H;
+    var rx = land ? .36 : .38, ry = land ? .33 : .27, cs = Math.min(W * (land ? .30 : .52), H * .42), ss = Math.max(64, Math.min(cs * .46, (Math.min(W, H) * 2.1) / Math.max(6, n)));
+    var h = '<div class="mn-mv-sky"></div><div class="mn-mv-top"><button type="button" class="mn-hud-b" data-mvx aria-label="Close">✕</button><b>' + esc(b.title) + '</b><span><button type="button" class="mn-hud-b" data-mvtile aria-label="Tile mode">▦</button></span></div>' +
+      '<p class="mn-mv-hint">Double-tap an island to land on it</p><button type="button" class="mn-mv-isle main" data-mvmain style="left:50%;top:52%;width:' + cs.toFixed(0) + 'px"><span class="art" data-mvart="' + esc(lookId(V.bid, b.title)) + '"></span><b>' + esc(b.title) + '</b></button>';
+    areas.forEach(function (A, i) {
+      var a = -Math.PI / 2 + (i + .5) * 2 * Math.PI / n, ring = n > 12 && i % 2 ? 1.18 : 1, x = 50 + Math.cos(a) * rx * 100 * ring, y = 52 + Math.sin(a) * ry * 100 * ring;
+      var lists = A.secs.reduce(function (m, s) { return m + s.lists.length; }, 0);
+      h += '<button type="button" class="mn-mv-isle" data-mvarea="' + esc(A.col.id) + '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;width:' + ss.toFixed(0) + 'px;animation-delay:-' + (i * .7).toFixed(1) + 's"><span class="art" data-mvart="' + esc(mvSkin(A.col.title, i)) + '"></span><b>' + esc(A.col.title) + '</b><small>' + lists + ' list' + (lists === 1 ? '' : 's') + '</small></button>';
+    });
+    MVEL = document.createElement('div'); MVEL.className = 'mn-mv'; MVEL.setAttribute('role', 'dialog'); MVEL.setAttribute('aria-label', b.title + ' — main island and its areas'); MVEL.innerHTML = h; document.body.appendChild(MVEL);
+    [].forEach.call(MVEL.querySelectorAll('[data-mvart]'), function (x) { mvArt(x, x.getAttribute('data-mvart')); });
+    ['pointerdown', 'touchstart', 'wheel'].forEach(function (ev) { MVEL.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
+    MVEL.addEventListener('click', function (e) {
+      var t = e.target.closest('button'); if (!t) return; e.stopPropagation(); hap('light');
+      if (t.hasAttribute('data-mvx')) { mvClose(); close(); return; }
+      if (t.classList.contains('mn-mv-isle') && !(MVEL.last && MVEL.last.el === t && Date.now() - MVEL.last.t < 500)) {   // one tap picks it (and names what two taps do)
+        MVEL.last = { el: t, t: Date.now() }; [].forEach.call(MVEL.querySelectorAll('.mn-mv-isle.on'), function (x) { x.classList.remove('on'); }); t.classList.add('on');
+        var hint = MVEL.querySelector('.mn-mv-hint'); if (hint) hint.textContent = t.hasAttribute('data-mvmain') ? 'Double-tap to land on the main island' : 'Double-tap to land on ' + (t.querySelector('b') || {}).textContent; return; }
+      MVEL.last = null;
+      if (t.hasAttribute('data-mvmain')) { mvClose(); if (V && V.d.arch) archSetView('main'); return; }
+      if (t.hasAttribute('data-mvtile')) { mvClose(); if (V) archSetView('tile'); return; }
+      var col = t.getAttribute('data-mvarea'); if (col) { mvClose(); if (!V) return; if (!V.d.arch) archGo(); else archSetView('tile'); var f = (V.d.pc || []).filter(function (p) { return p.arch === 'dom:' + col; })[0]; if (f) setTimeout(function () { if (!V) return; var ks = archIsle(f.x, f.y); if (ks) { V.landed = ks.slice().sort().join(';'); fitPlots(ks); } else closer(f); }, 80); }
+    });
+  }
+
+  /* ── Double-tap opens, all the way down (53.8): an island (land on it) → a building (its dollhouse) → a room (go in) →
+     a display (its things) → a thing (its details). In Tile mode, in the home's Tile mode and in the main-island view. */
+  function archIsle(x, y) {   // the plots of the island under this ground point (joined side by side)
+    var S = (V && V.ls) || {}, k0 = plotAt(x, y); if (!S[k0]) return null; var seen = {}, q = [k0]; seen[k0] = 1;
+    while (q.length) { var c = q.pop().split(','), i = +c[0], j = +c[1]; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) { var n = (i + d[0]) + ',' + (j + d[1]); if (S[n] && !seen[n]) { seen[n] = 1; q.push(n); } }); }
+    return Object.keys(seen);
+  }
+  function fitPlots(keys) {   // the camera on these plots, filling the screen
+    var b = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }; keys.forEach(function (k) { var c = k.split(','); b.x0 = Math.min(b.x0, c[0] * PLOT); b.y0 = Math.min(b.y0, c[1] * PLOT); b.x1 = Math.max(b.x1, (+c[0] + 1) * PLOT); b.y1 = Math.max(b.y1, (+c[1] + 1) * PLOT); });
+    var r = el.querySelector('.mn-dsp-scene').getBoundingClientRect(), span = (b.x1 - b.x0) + (b.y1 - b.y0), w = span * CW + 24, h = span * CH + 160, m = rot((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, V.d.rot), c2 = P(m[0], m[1], 0);
+    V.cam.z = clamp(Math.min(r.width / w, r.height / h), .4, 2.4); V.cam.x = r.width / 2 - c2[0] * V.cam.z; V.cam.y = r.height / 2 - c2[1] * V.cam.z + 50 * V.cam.z; camera();
+  }
+  function isleTitle(keys) {   // the name on the island: its area's (or world's) flag
+    var on = {}; keys.forEach(function (k) { on[k] = 1; }); var f = (V.d.pc || []).filter(function (p) { return p.k === 'y_flag' && p.label && on[plotAt(p.x, p.y)]; })[0]; return f ? f.label : '';
+  }
+  function homeLand(go) {   // the home's Tile mode: land on that world (or main island)
+    var bid = go === 'center' ? 'hub:center' : go; close(); open({ t: 'world', bid: bid }); if (!V || V.bid !== bid) { homeGo(go); return; }
+    hap('light'); toast('Landed on ' + ((board(bid) || {}).title || 'the island') + ' · double-tap a building for its rooms, a display for its things');
+  }
+  function archDbl(e, d) {   // called by a double-tap on the island (80-drag-drop.js); true when it did something
+    if (!V || V.visit || V.at) return false; var p = pieceOf(d.pc || d.vpc), w = toFloor(e.clientX, e.clientY);
+    if (V.bid === 'tile:home') {
+      var go = p && p.go; if (!go) { var ks = archIsle(w[0], w[1]); if (ks) { var on = {}; ks.forEach(function (k) { on[k] = 1; }); var g = (V.d.pc || []).filter(function (q) { return q.go && on[plotAt(q.x, q.y)]; })[0]; go = g && g.go; } }
+      if (go) { homeLand(go); return true; } return false;
+    }
+    if (archView(V.d) !== 'tile') return false;
+    if (p && (isBld(p) || !K[p.k].decor)) return false;   // a building or a display: open it, as always
+    var ks2 = archIsle(w[0], w[1]); if (!ks2) return false; var key = ks2.slice().sort().join(';'); if (V.landed === key && V.cam.z > (V.fitZ || 1) * 1.2) return false;   // already on it: the usual zoom
+    V.landed = key; V.sel = null; render(); bar(); fitPlots(ks2); hap('light'); var t = isleTitle(ks2); if (t) toast('🏝 ' + t + ' · double-tap a building for its rooms, a display for its things'); return true;
+  }
+  function dblBehind(e, p) {   // a double-tap on a tree or lamp in front of a building (or a display): the building it hides
+    if (p && (isBld(p) || !K[p.k].decor)) return null; var hit = null;
+    try { document.elementsFromPoint(e.clientX, e.clientY).some(function (x) { var g = x.closest && x.closest('.mn-dsp [data-pc]'); if (!g) return false; var q = pieceOf(g.getAttribute('data-pc')); if (q && q !== p && (isBld(q) || !K[q.k].decor) && shownHere(q)) { hit = q; return true; } return false; }); } catch (x) {}
+    return hit;
+  }
   /* ── My World · Island System · top bar, selection bar, the Box drawer, edits, open / close */
   // ---------------------------------------------------------------- top bar, selection bar, the Box drawer
   var SCN = [['island', 'Island'], ['room', 'Room'], ['museum', 'Museum']];
@@ -78797,7 +78863,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   document.addEventListener('pointerup', up, true); document.addEventListener('pointercancel', up, true);
   var swallow = false;
   function tap(e, d) {   // a tap that did not move
-    var now = Date.now(); if (lastTap && now - lastTap.t < 320 && Math.abs(e.clientX - lastTap.x) + Math.abs(e.clientY - lastTap.y) < 24 && /pan|pc|it/.test(d.t) && !V.hold) { lastTap = null; var dp = d.pc || d.vpc, dpp = dp && pieceOf(dp); if (dpp && isBld(dpp) && !V.visit) { bldOpen(dp); return; } if (dpp && !K[dpp.k].decor) { openPiece(dp, d.ref || d.vit); return; } if (V.cam.z > (V.fitZ || 1) * 1.6) fit(); else zoomAt(e.clientX, e.clientY, 1.8); return; }   /* double-tap: closer, or back to the whole island */   // double tap: open that piece (or come closer)
+    var now = e.timeStamp || Date.now(); if (lastTap && now - lastTap.t >= 0 && now - lastTap.t < 400 && Math.abs(e.clientX - lastTap.x) + Math.abs(e.clientY - lastTap.y) < 24 && /pan|pc|it/.test(d.t) && !V.hold) { lastTap = null; var dp = d.pc || d.vpc, dpp = dp && pieceOf(dp); var dpb = dblBehind(e, dpp); if (dpb) { dpp = dpb; dp = dpb.id; d = Object.assign({}, d, { pc: dp, vpc: null }); } if (archDbl(e, d)) return; if (dpp && isBld(dpp) && !V.visit) { bldOpen(dp); return; } if (dpp && !K[dpp.k].decor) { openPiece(dp, d.ref || d.vit); return; } if (V.cam.z > (V.fitZ || 1) * 1.6) fit(); else zoomAt(e.clientX, e.clientY, 1.8); return; }   /* double-tap: closer, or back to the whole island */   // double tap: open that piece (or come closer)
     lastTap = { t: now, x: e.clientX, y: e.clientY };
     if (hudTap(e, d)) return;   // Move, then tap the spot (86-hud.js)
     if (d.t === 'new-it') { V.hold = V.hold && V.hold.ref === d.ref ? null : { ref: d.ref, name: (thing(d.ref) || { s: { title: '' } }).s.title }; bar(); drawer(); return; }
@@ -78826,7 +78892,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if (e.target.closest('[data-picker]')) { pkOpen(); return; }
     if (e.target.closest('[data-exh]')) { exOpen(); return; }
     if (e.target.closest('[data-arch]')) { if (V.d.arch) archSetView('tile'); else archGo(); return; }   // ▦ Tile mode: the world's areas as islands (68-archipelago.js)
-    if (e.target.closest('[data-archmain]')) { if (V.bid === 'tile:home') homeMain(); else archSetView('main'); return; }   // ◉ back to the main view
+    if (e.target.closest('[data-archmain]')) { if (V.bid === 'tile:home') homeMain(); else mvOpen(); return; }   /* ◉ the main island and its areas, as the home shows worlds */   // ◉ back to the main view
     if (e.target.closest('[data-archre]')) { if (V.bid === 'tile:home') homeTileOpen(); else archGo(); return; }   // ↻ lay the islands out again   // 🏛 Exhibitions (64-exhibit.js)
     if ((g = e.target.closest('[data-exhfor]'))) { exOpen(g.getAttribute('data-exhfor')); return; }   // 🔨 Build: the full-screen picker (92-picker.js)
     if (e.target.closest('[data-fpv]')) { wkOpen(); return; }   // 🚶 Walk in (93-walk.js)   // 🎁 Sets (62-kits.js)
@@ -78977,9 +79043,9 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     e.stopPropagation(); var g;
     if (e.target.closest('[data-pvx]')) return closePiece();
     if (!V.visit && pvMore(e)) return;   // add to it / take off it (87-island-edit.js)
-    if (e.target.closest('[data-pvdx]') || e.target === pv.el.querySelector('.pv-detail')) return pvDetail(-1);
+    if (e.target.closest('[data-pvdx]') || e.target === pv.el.querySelector('.pv-detail')) { if (pv.openAt && Date.now() - pv.openAt < 450) return; return pvDetail(-1); }
     if ((g = e.target.closest('[data-pvgo]'))) return pvDetail(+g.getAttribute('data-pvgo'));
-    if ((g = e.target.closest('[data-pvi]'))) return pvDetail(+g.getAttribute('data-pvi'));
+    if ((g = e.target.closest('[data-pvi]'))) { if (pv.at === +g.getAttribute('data-pvi') && pv.openAt && Date.now() - pv.openAt < 450) return; pv.openAt = Date.now(); return pvDetail(+g.getAttribute('data-pvi')); }   /* one tap or two: its details */
     if (e.target.closest('[data-pvedit]')) { var t = thing(pv.refs[pv.at]); if (!t || !window.MinestQuickEdit) return; var keep = { pc: pv.pc, ref: pv.refs[pv.at] };
       MinestQuickEdit.open({ t: 'list', bid: realBid(t.k.id), col: t.col.id, card: t.k.id }, t.s.id, null); var t0 = Date.now();
       (function w() { if (!document.querySelector('.mn-qe')) { render(); openPiece(keep.pc, keep.ref); return; } if (Date.now() - t0 < 600000) setTimeout(w, 400); })(); return; }
@@ -80310,8 +80376,12 @@ html body .mn-kits .mn-sa-seg { flex-wrap:wrap; }
     var t = e.target.closest && e.target.closest('.mn-bv .mn-fp [data-fpmode], .mn-bv .mn-fp [data-fproom]'); if (!t) return;
     if (t.hasAttribute('data-fpmode')) { e.stopPropagation(); setMode(t.getAttribute('data-fpmode')); hap('selection'); return paint(); }
     var c = t.closest('.mn-bv').querySelector('.mn-bv-room[data-bvroom="' + t.getAttribute('data-fproom') + '"]'); if (!c) return;
-    e.stopPropagation(); c.click(); sync();   // the 53.4 room logic: one tap picks it, a second one goes in
+    e.stopPropagation(); var rid = t.getAttribute('data-fproom'), ts = e.timeStamp || Date.now(), dbl = fpLast && fpLast.id === rid && ts - fpLast.ts >= 0 && ts - fpLast.ts < 450;
+    fpLast = dbl ? null : { id: rid, ts: ts }; c.click();   // the 53.4 room logic: one tap picks it, a second one goes in
+    if (dbl) { var c2 = document.querySelector('.mn-dsp .mn-bv .mn-bv-room[data-bvroom="' + rid + '"]'); if (c2) c2.click(); }   /* a double-tap by the finger's own clock (a slow redraw between the taps must not split it) */
+    sync();
   }, true);
+  var fpLast = null;
   var q = false; new MutationObserver(function () { if (busy || q) return; var bv = document.querySelector('.mn-dsp .mn-bv'); if (!bv) return; var house = bv.querySelector('.mn-bv-house'); if (house && house.dataset.fp41 && bv.querySelector(':scope > .mn-fp')) return sync();
     q = true; requestAnimationFrame(function () { q = false; var h2 = bv.querySelector('.mn-bv-house'); if (h2) h2.dataset.fp41 = '1'; paint(); }); }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
   document.addEventListener('change', function (e) { var t = e.target; if (t && t.hasAttribute && t.hasAttribute('data-secout') && t.closest('.mn-bv')) { var B = D().building; if (B && t.value) B.outside(t.value); } if (t && t.hasAttribute && t.hasAttribute('data-dhhome')) { DH.home = t.value || null; paint(); } }, true);   /* a template replaces the empty rooms: it waits for ✓ */   // the home's outside
@@ -80698,6 +80768,24 @@ html body .mn-dsp.mn-tile-home :is([data-dbox],[data-bmenu],[data-exh],[data-pic
 html body .mn-tile-b { font-size:18px!important;line-height:1!important; }
 html body .mn-dsp.mn-tile-home .mn-guide, html body .mn-dsp.mn-tile-home .mn-dsp-start { display:none!important; }
 html body .mn-dsp.mn-tile-home .mn-tile-go, html body .mn-dsp.mn-at-bld .mn-hud-fix .mn-tile-go { display:none!important; }
+/* ===== 53.8 · a world's main-island view (main island + its areas) ===== */
+.mn-mv { position:fixed;inset:0;z-index:2147483400;overflow:hidden;font-family:var(--pc-font,monospace); }
+.mn-mv-sky { position:absolute;inset:0;background:linear-gradient(#6f9cf2 0%,#9cc0fb 55%,#c9dcfb 100%); }
+.mn-mv-sky::after { content:"";position:absolute;left:-5%;right:-5%;bottom:0;height:26%;background:linear-gradient(160deg,#3f8f3a 0%,#2f7a33 40%,#25662c 100%);clip-path:polygon(0 60%,8% 35%,18% 52%,30% 20%,42% 48%,55% 25%,66% 50%,78% 22%,90% 45%,100% 30%,100% 100%,0 100%);opacity:.9; }
+.mn-mv-top { position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 0;z-index:3; }
+.mn-mv-top b { flex:1;color:#fff;font:700 20px/1.1 var(--pc-font,monospace);text-shadow:2px 2px 0 #3f3f3f; }
+.mn-mv-top .mn-hud-b { width:48px;height:48px;font-size:20px;color:#fff;cursor:pointer;background:var(--pct-f,#7a7a7a) var(--mc-noise);background-size:16px 16px;border:3px solid;border-color:#bdbdbd #8b8b8b #454545 #aeaeae;box-shadow:0 0 0 2px #000;text-shadow:2px 2px 0 #3f3f3f; }
+.mn-mv-isle { position:absolute;transform:translate(-50%,-50%);background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;z-index:2;animation:mnMvBob 6s ease-in-out infinite; }
+.mn-mv-isle.main { z-index:1;animation-duration:8s; }
+.mn-mv-isle .art { display:block;width:100%;aspect-ratio:1/1; } .mn-mv-isle .art img { width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 16px 12px #0a0f2a55); }
+.mn-mv-isle .art:empty { background:radial-gradient(ellipse at 50% 60%,#5aa83d 0 38%,#6b4a2b 39% 46%,transparent 47%); }
+.mn-mv-isle b { margin-top:-10%;padding:3px 8px;color:#fff;font:700 12px/1.15 var(--pc-font,monospace);background:#000000a8;box-shadow:0 0 0 2px #000;text-shadow:1px 1px 0 #3f3f3f;max-width:150%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.mn-mv-isle.main b { font-size:16px;color:#f7d27a; } .mn-mv-isle small { margin-top:3px;color:#fff;font:700 10px var(--pc-font,monospace);text-shadow:1px 1px 0 #333; }
+.mn-mv-isle:active { transform:translate(-50%,-50%) scale(.96); }
+@keyframes mnMvBob { 0%,100% { margin-top:0 } 50% { margin-top:-8px } }
+.mn-mv-hint { position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);z-index:3;margin:0;padding:6px 12px;color:#fff;font:700 12px/1.2 var(--pc-font,monospace);background:#000000a8;box-shadow:0 0 0 2px #000;text-shadow:1px 1px 0 #333;white-space:nowrap; }
+.mn-mv-isle.on b { color:#f7d27a;box-shadow:0 0 0 2px #f7d27a; } .mn-mv-isle.on .art img { filter:drop-shadow(0 0 10px #fff8) drop-shadow(0 16px 12px #0a0f2a55); }
+html body .mn-dsp:is(.mn-tile-in,.mn-at-bld) .mn-hud-fix :is([data-archmain],.mn-tile-go) { display:none!important; }
 </style>
 <style id="mn-bulb-style">/* 53.41 · 💡 guide + inspiration panel (bulb.js) — the Poly Craft panel look */
 html body .mn-bulb { position:fixed;z-index:2147483200;box-sizing:border-box;max-height:min(72vh,620px);overflow:auto;padding:10px 12px 12px;color:var(--pc-ink,#fff);font-family:var(--pc-font);background:var(--pcsh-f,#333e6e) var(--pc-facet,none);border:4px solid;border-color:var(--pcs-hi,#6070ad) var(--pcs-lt,#4f5c95) var(--pcs-sh,#262e56) var(--pcs-dk,#323c69);border-radius:3px;box-shadow:0 5px 0 #0006,0 18px 44px #0007;text-align:left; }
