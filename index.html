@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Focusboard" />
     <meta name="theme-color" content="#0b1117" />
-    <title>Minest iPhone 53.822 · 学中文 · Archipelago</title>
+    <title>Minest iPhone 53.8241 · Teaching Games (Solo & Blooket)</title>
     <script>
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
@@ -20787,7 +20787,7 @@ window.openCardWalletForCol = function(colId, colData) {
             '<span class="apple-wallet-card-title apple-wallet-back-desc-peek">' + cleanDesc + '</span>' +
           '</div>' +
           '<div class="apple-wallet-card-detail-body">' +
-            '<div class="apple-wallet-card-detail-text">' + cleanDesc + '</div>' +
+            '<div class="apple-wallet-card-detail-text">' + cleanDesc + '</div>' + (window.MinestEC6 ? window.MinestEC6.html(card.id) : '') +
             '<div class="apple-wallet-card-detail-actions">' +
               '<button type="button" class="apple-wallet-speak-chip" data-card-idx="' + i + '">🔊 Read</button>' +
               '<button type="button" class="apple-wallet-rec-chip" data-card-idx="' + i + '">🎤 Repeat</button>' +
@@ -21781,7 +21781,7 @@ var De = function(props) {
                 className: "board-switcher group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-200 " + (isDark ? "border-white/15 bg-white/5 hover:bg-white/12 text-white" : "border-slate-300/80 bg-slate-100/70 hover:bg-slate-200/70 text-slate-800"),
                 title: "Switch or manage boards",
                 children: [
-                  (0, P.jsx)('div', { className: "board-version", children: "53.822" }),
+                  (0, P.jsx)('div', { className: "board-version", children: "53.8241" }),
                   (0, P.jsx)('span', { className: "font-semibold text-xs md:text-sm tracking-tight max-w-[140px] sm:max-w-[200px] truncate", children: activeBoard.title }),
                   (0, P.jsx)(ie, { className: "w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200 " + (isBoardPickerOpen ? "rotate-180" : "") })
                 ]
@@ -28830,6 +28830,7 @@ var Oe = function(props) {
                                 className: "p-2 text-center text-[10px] opacity-40 italic border border-dashed border-white/10 rounded-xl my-0.5",
                                 children: "No description yet."
                               }),
+                              window.MinestEC6 && window.MinestEC6.meta(card.id) ? (0, P.jsx)('div', {dangerouslySetInnerHTML:{__html:window.MinestEC6.html(card.id)}}) : null,
 
                               hasCheck ? (0, P.jsxs)('div', {
                                 className: "space-y-1 pt-0.5",
@@ -35713,7 +35714,8 @@ var isDark = themeMode === 'dark';
                                       (0, P.jsx)('div', {
                                         className: "text-xs leading-relaxed font-normal line-clamp-3 select-text " + (isDark ? "text-white/90" : "text-slate-800"),
                                         children: card.desc || card.title
-                                      })
+                                      }),
+                                      window.MinestEC6 && window.MinestEC6.meta(card.id) ? (0, P.jsx)('div', {dangerouslySetInnerHTML:{__html:window.MinestEC6.html(card.id)}}) : null
                                     ]
                                   }),
                                   (0, P.jsxs)('div', {
@@ -55934,7 +55936,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     return '<div class="' + cls + '" data-k="' + esc(n.k) + '" style="--d:' + n.d + (hl ? ';--rh:' + HLC[hl] : '') + '">' +
       '<button type="button" class="en-chev' + (n.kids.length ? '' : ' none') + '" data-fold tabindex="-1" aria-label="Fold">' + CHEV + '</button>' +
       '<div class="en-tx"><div class="en-line"><span class="en-num" data-dot>' + numOf(n) + '</span><div class="en-t" data-ph="' + (n.kind === 'list' ? 'List title' : 'Untitled') + '">' + titleHtml(n) + '</div></div>' +
-      (note ? '<div class="en-n" data-note>' + esc(n.note) + '</div>' : n.kind !== 'list' ? '<div class="en-n en-nadd" data-note>Add a note</div>' : '') + '</div>' +
+      (note ? '<div class="en-n" data-note>' + esc(n.note) + '</div>' : n.kind !== 'list' ? '<div class="en-n en-nadd" data-note>Add a note</div>' : '') + (window.MinestEC6 ? window.MinestEC6.html(n.id) : '') + '</div>' +
       '</div>';   // no per-row button: the Outline stays put (details: ⓘ in the toolbar)
   }
   function render() {
@@ -57405,7 +57407,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     root: ['format', 'id', 'subject', 'template', 'route', 'states', 'categories', 'note', 'places', 'journeys', 'description', 'style', 'portal', 'items', 'subjects'],
     subject: ['id', 'title', 'icon', 'desc', 'items', 'categories', 'skills', 'portal'],
     skill: ['id', 'title', 'icon', 'desc', 'items', 'topics', 'subs'],
-    item: ['id', 'title', 'desc', 'image', 'date'],
+    item: ['id', 'title', 'desc', 'image', 'date', 'ec6'],
     group: ['id', 'title', 'items', 'subs', 'icon', 'desc'],
     state: ['id', 'title', 'icon', 'color', 'desc', 'stages'],
     stage: ['id', 'title', 'desc', 'blocks', 'requires', 'icon'],
@@ -57425,7 +57427,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     check(J, 'root', 'root', warn);
     if (!J.subject) throw new Error('"subject" is missing.');
     var bid = 'kb-' + slug(J.id || J.subject);
-    var board = { id: bid, title: str(J.subject, 200), columns: [], labelDefinitions: [], archivedCards: [], linkedBoardIds: [], showLabelNames: false }, dates = {}, cats = {}, cfg = { template: tpl, note: J.note ? str(J.note, 400) : '' };
+    var board = { id: bid, title: str(J.subject, 200), columns: [], labelDefinitions: [], archivedCards: [], linkedBoardIds: [], showLabelNames: false }, dates = {}, cats = {}, ec6 = {}, cfg = { template: tpl, note: J.note ? str(J.note, 400) : '' };
     var wiki = null;
     if (tpl === 'wiki') {
       // template "wiki": items once each (cards), categories that point at them — an item can sit in many categories
@@ -57447,6 +57449,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
       var other = null;
       order.forEach(function (iid) {
         var it = items[iid], c = { id: 'kc-' + bid + '-' + iid, title: str(it.title || it.id, 200), desc: str(it.desc) };
+        if (it.ec6 && /^kc-kb-ec6-/.test(c.id) && it.ec6.type === 'concept' && c.id.endsWith('-' + String(it.ec6.id).toLowerCase())) ec6['ec6:meta:' + c.id] = it.ec6;
         if (it.image) c.cover = { type: 'image', value: str(it.image, 2000), url: str(it.image, 2000), size: 'banner' };   // value: the Kanban's field
         if (it.date && typeof it.date.y === 'number') dates[c.id] = it.date;
         var col = home[iid] ? board.columns.filter(function (x) { return x.id === 'kl-' + bid + '-' + home[iid]; })[0] : null;
@@ -57525,7 +57528,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
       });
     }
     if (J.categories) cfg.categories = J.categories;
-    return { board: board, cfg: cfg, dates: dates, cats: cats, warn: warn, wiki: wiki };
+    return { board: board, cfg: cfg, dates: dates, cats: cats, ec6: ec6, warn: warn, wiki: wiki };
   }
   function num(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
 
@@ -57606,6 +57609,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     var old = ai.boards().filter(function (b) { return b.id === r.board.id; })[0] || null;
     var headings = []; r.board.columns.forEach(function (c) { c.cards.forEach(function (k) { if (k.__heading) headings.push(k.id); }); });
     var m = mergeBoard(old, r.board);
+    if (r.ec6 && Object.keys(r.ec6).length) { KN().setMany(r.ec6); }
     // undo point: the board as it was (or "not there"), and the view settings this import replaces
     var cfgKey = 'lm:cfg:' + r.board.id;
     parts.push({ at: Date.now(), bid: r.board.id, title: r.board.title, board: old, cfg: KN().get(cfgKey), tree: KN().get('wk:tree:' + r.board.id) });
@@ -82276,7 +82280,7 @@ function targetId(e){return opt.targetId?opt.targetId(e):e.dataset.ilTarget;}
 function clearPick(){if(selected&&selected.isConnected){selected.classList.remove('il-selected');selected.setAttribute('aria-pressed','false');}selected=null;}
 function pick(e){clearPick();selected=e;e.classList.add('il-selected');e.setAttribute('aria-pressed','true');live.textContent='已拿起 '+(e.getAttribute('aria-label')||e.textContent)+ '。方向键选择目标，Enter放置，Escape取消；也可以点目标。';}
 function hover(node){targets().forEach(function(t){t.classList.toggle('il-over',t===node);});}
-function hit(x,y){var all=targets().map(function(t){var r=t.getBoundingClientRect(),dx=x-(r.left+r.width/2),dy=y-(r.top+r.height/2);return {el:t,r:r,d:dx*dx+dy*dy};});var inside=all.filter(function(t){return x>=t.r.left&&x<=t.r.right&&y>=t.r.top&&y<=t.r.bottom;});if(!inside.length)inside=all.filter(function(t){return x>=t.r.left-14&&x<=t.r.right+14&&y>=t.r.top-14&&y<=t.r.bottom+14;});inside.sort(function(a,b){return a.d-b.d;});return inside[0]&&inside[0].el;}
+function hit(x,y){var magnet=(host.classList.contains('tt-quest824')||host.classList.contains('tt-quest8241'))?22:14;var all=targets().map(function(t){var r=t.getBoundingClientRect(),dx=x-(r.left+r.width/2),dy=y-(r.top+r.height/2);return {el:t,r:r,d:dx*dx+dy*dy};});var inside=all.filter(function(t){return x>=t.r.left&&x<=t.r.right&&y>=t.r.top&&y<=t.r.bottom;});if(!inside.length)inside=all.filter(function(t){return x>=t.r.left-magnet&&x<=t.r.right+magnet&&y>=t.r.top-magnet&&y<=t.r.bottom+magnet;});inside.sort(function(a,b){return a.d-b.d;});return inside[0]&&inside[0].el;}
 function float(source){var r=source.getBoundingClientRect(),ghost=document.createElement('div');ghost.className=source.className;ghost.innerHTML=source.innerHTML;ghost.inert=true;ghost.removeAttribute('id');ghost.removeAttribute('data-il-source');ghost.setAttribute('aria-hidden','true');ghost.classList.add('il-ghost');ghost.style.cssText+=';position:fixed;left:0;top:0;width:'+Math.min(r.width,260)+'px;height:'+Math.min(r.height,140)+'px;pointer-events:none;z-index:2147483646;margin:0;';host.appendChild(ghost);return {node:ghost,rect:r};}
 function cancel(){var a=active;if(a&&a.moved)suppress=performance.now()+350;active=null;if(a){cancelAnimationFrame(a.raf);a.source.classList.remove('il-origin');if(a.ghost)a.ghost.remove();try{a.source.releasePointerCapture(a.pid);}catch(e){}}hover(null);clearPick();}
 function finish(source,target,ghost,origin){var sid=id(source),tid=targetId(target),r=target.getBoundingClientRect(),good=false;try{good=opt.drop(sid,tid,source,target)!==false;}catch(e){live.textContent='无法放置：'+e.message;}
@@ -82624,7 +82628,7 @@ window.MinestTemplates = {
     }
     var root = document.createElement('section');
     root.id = 'mn-templates';
-    root.className = (options.chinese ? 'tt-chinese ' : '') + 'tt-' + audience;
+    root.className = (options.chinese ? 'tt-chinese ' : '') + 'tt-' + audience + (options.quest824 || options.quest8241 ? ' tt-quest824 tt-quest8241' : '');
     root.dataset.audience = audience;
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-modal', 'true');
@@ -83122,6 +83126,7 @@ window.MinestTemplates = {
       q('[data-done]').onchange = function(e){ withDone = e.target.checked; rememberSetting(); library(); };
       q('[data-py]').onchange = function(e){ py = e.target.checked; rememberSetting(); library(); };
       qa('[data-template]').forEach(function(b){ b.onclick = function(){ start(b.dataset.template); }; });
+      if(options.quest824 || options.quest8241)window.MinestTeachingTen.home(root);
     }
 
     /* ========================================================================
@@ -83942,7 +83947,7 @@ window.MinestTemplates = {
         + '<button data-return>返回模板</button>'
         + '</div></section>');
 
-      root.dataset.activity=mode;xFrame();
+      root.dataset.activity=mode;xFrame();if(options.quest824 || options.quest8241)window.MinestTeachingTen.frame(root);
       if(['quick','missing','reveal','picture'].indexOf(mode)>=0){qa('.tt-options').forEach(function(options){if(!options.querySelector('[data-choice]'))return;options.hidden=true;var b=document.createElement('button');b.type='button';b.className='tt-pill';b.setAttribute('data-recall-choices','');b.textContent='需要候选词提示';options.before(b);b.onclick=function(){if(session.counted)return;hintUsed('使用候选词提示');options.hidden=false;b.disabled=true;};});}
       qa('[data-qf-what="image"],[data-spy-clue="visual"],[data-reveal-image]').forEach(function(b){if(session.current&&!session.current.hasCustomImage){b.disabled=true;b.title='需要真实配图，避免视觉卡直接显示答案';}});
       bind('[data-restart]', function(){ start(mode); });
@@ -84048,6 +84053,7 @@ window.MinestTemplates = {
       if (b) {
         b.disabled = false;
         b.textContent = session.round + 1 === session.total ? '完成练习 ✓' : '下一轮 →';
+        if(options.quest824 || options.quest8241)window.MinestTeachingTen.frame(root);
       }
     }
 
@@ -84119,6 +84125,7 @@ window.MinestTemplates = {
         + '<button data-return>返回模板</button>'
         + '</div></section>');
 
+      if(options.quest824 || options.quest8241)window.MinestTeachingTen.result(root);
       bind('[data-again]', function(){ start(mode); });
       bind('[data-return]', library);
       bind('[data-retry-needs]', function(){
@@ -85917,7 +85924,7 @@ window.MinestTemplates = {
       function target(sid,title,content,style){return '<button type="button" class="il-target" data-il-target="'+esc(sid)+'" '+(style?'style="'+style+'"':'')+' aria-label="'+esc(title)+'">'+content+'</button>';}
       function paint(){if(ended)return;var stage=q('[data-il-stage]');
         if(isSort){stage.innerHTML=Object.keys(pool.groups).map(function(g){return target(g,'分类：'+(pool.groups[g][0].labelName||g),'<b>'+esc(pool.groups[g][0].labelName||g)+'</b><span class="il-placed">'+cards.filter(function(c){return c.label===g&&placed.has(c.id);}).map(function(c){return '<span>'+esc(c.front)+'</span>';}).join('')+'</span>');}).join('');}
-        else if(mode==='dragmatching'){stage.innerHTML=mixOnce().map(function(c){return target(c.id,'释义：'+c.back,'<small>拖到对应释义</small><span>'+esc(c.back)+'</span>'+(placed.has(c.id)?'<b class="tt-good">✓ '+esc(c.front)+'</b>':''));}).join('');qa('[data-il-target]').forEach(function(b){b.disabled=placed.has(b.dataset.ilTarget);});}
+        else if(mode==='dragmatching'){stage.innerHTML=mixOnce().map(function(c){return target(c.id,((options.quest824||options.quest8241)?'对应内容：':'释义：')+c.back,'<small>'+((options.quest824||options.quest8241)?'拖到对应内容':'拖到对应释义')+'</small><span>'+esc(c.back)+'</span>'+(placed.has(c.id)?'<b class="tt-good">✓ '+esc(c.front)+'</b>':''));}).join('');qa('[data-il-target]').forEach(function(b){b.disabled=placed.has(b.dataset.ilTarget);});}
         else if(isDiagram){stage.innerHTML=parts.map(function(c,i){var a=c.annotation;return target(c.id,'图片位置 '+(i+1),practicing?(placed.has(c.id)?'✓':String(i+1)):esc(c.front),'left:'+(a.x*100)+'%;top:'+(a.y*100)+'%');}).join('');qa('[data-il-target]').forEach(function(b){b.disabled=!practicing||placed.has(b.dataset.ilTarget);});}
         else{stage.innerHTML=order.map(function(c,i){var masked=hidden.has(c.id)&&!placed.has(c.id),classes=mode==='reconstruction'?'il-layout-'+(i%3):'';return masked?target(c.id,'位置 '+(i+1),'<small>位置 '+(i+1)+'</small><span>'+(task==='content'?esc(c.back):'?')+'</span>'):'<article class="il-slot '+classes+'"><small>'+(i+1)+'</small>'+render(c)+(placed.has(c.id)?'<span class="tt-good">✓</span>':'')+'</article>';}).join('');}
         var choices=isSort||mode==='dragmatching'?parts:practicing?parts:[];
@@ -85931,7 +85938,7 @@ window.MinestTemplates = {
       function countTime(){if(timerStarted||practiceMode!=='challenge'||!challengeSeconds)return;timerStarted=true;var remaining=challengeSeconds*1000,last=performance.now();function tick(){if(ended)return;var now=performance.now();if(!document.hidden)remaining-=Math.min(1200,now-last);last=now;q('[data-il-clock]').textContent='剩余 '+Math.max(0,Math.ceil(remaining/1000))+' 秒（切到后台暂停）';if(remaining<=0){ended=true;auto=false;parts.filter(function(c){return !placed.has(c.id);}).forEach(function(c){needPractice(owner(c),'挑战时间结束，尚未完成');ilRecord(owner(c),'timeout',true);});session.missed=true;qa('[data-il-source],[data-il-target],[data-il-hide],[data-il-peek],[data-il-auto],[data-il-hint],[data-memory-audio-hint],[data-recall-input],[data-recall-check]').forEach(function(b){b.disabled=true;});info('本轮时间结束。未完成内容已加入巩固清单，可查看结果后再练。',false);session.attempts++;manualDone();return;}later(250,tick);}tick();}
       function required(){return isMemory?hidden.size:parts.length;}
       function finish(){if(ended)return;ended=true;auto=false;qa('[data-il-hide],[data-il-auto],[data-il-peek],[data-il-hint],[data-memory-audio-hint],[data-recall-input],[data-recall-check]').forEach(function(b){b.disabled=true;});info('✓ 本轮放置完成。对照正确内容，说说你是怎么判断的。',true);q('[data-il-meaning]').innerHTML='<div class="il-review">'+cards.map(function(c){return '<p><b>'+esc(c.front)+'</b> '+esc(c.back||'')+'</p>';}).join('')+'</div><button class="tt-primary" data-il-confirm>我已核对并复述'+(isSort?'分类依据':'内容')+'</button>';bind('[data-il-confirm]',function(){this.disabled=true;feedback(session.missed?'✓ 已纠正，完成本轮核对。':'✓ 独立答对，本轮核对完成。',true);if(!session.missed)session.correct++;else session.corrected=(session.corrected||0)+1;manualDone();if(autoAdvance||xRotation)later(1600,function(){if(session&&session.counted)next();});});}
-      function drop(sid,tid){var c=byId.get(sid);if(!c||placed.has(sid)||!practicing||ended)return false;var good=isSort?c.label===tid:sid===tid;session.attempts++;if(!good){faults.add(sid);var expected=byId.get(tid)||c;faults.add(expected.id);session.missed=true;needPractice(owner(c),'拖放对应需要巩固');needPractice(owner(expected),'对应关系需要巩固');ilRecord(owner(expected),'error',false);info('还不对应，卡片已返回。再观察目标，或点提示。',false);if(mode==='missing')q('[data-il-peek]').click();return false;}placed.add(sid);ilRecord(owner(c),'correct',hinted.has(sid)||faults.has(sid));paint();if(placed.size===required())finish();else info('✓ 放置正确，继续还原下一张。',true);return true;}
+      function drop(sid,tid){var c=byId.get(sid);if(!c||placed.has(sid)||!practicing||ended)return false;var good=isSort?c.label===tid:sid===tid;session.attempts++;if(!good){faults.add(sid);var expected=byId.get(tid)||c;faults.add(expected.id);session.missed=true;needPractice(owner(c),'拖放对应需要巩固');needPractice(owner(expected),'对应关系需要巩固');ilRecord(owner(expected),'error',false);info('还不对应，卡片已返回。再观察目标，或点提示。',false);if(mode==='missing'&&!options.quest824&&!options.quest8241)q('[data-il-peek]').click();return false;}placed.add(sid);ilRecord(owner(c),'correct',hinted.has(sid)||faults.has(sid));paint();if(placed.size===required())finish();else info('✓ 放置正确，继续还原下一张。',true);return true;}
       function begin(){practicing=true;qa('[data-il-view],[data-il-task]').forEach(function(e){e.disabled=true;});paint();countTime();if(mode!=='disappear')q('[data-il-hide]').disabled=true;}
       var imageFailed=false;function checkDiagram(){if(!isDiagram||practicing||imageFailed)return;var image=q('[data-il-diagram-image]');if(!image.complete||!image.naturalWidth){q('[data-il-hide]').disabled=true;return;}var boxes=qa('[data-il-target]').map(function(e){return e.getBoundingClientRect();});var crowded=boxes.some(function(a,i){return boxes.some(function(b,j){return i!==j&&Math.hypot(a.left+a.width/2-b.left-b.width/2,a.top+a.height/2-b.top-b.height/2)<46;});});q('[data-il-hide]').disabled=crowded;if(crowded)info('标注在当前屏幕上过近。请横屏后重新开始，或调整标注位置，避免拖放误判。',false);}
       if(isDiagram){var img=q('[data-il-diagram-image]');img.onerror=function(){imageFailed=true;practicing=false;qa('[data-il-hide],[data-il-hint],[data-il-peek]').forEach(function(e){e.disabled=true;});q('[data-il-stage]').innerHTML='';info('图片未能加载，请返回配图后重试。本轮不生成无图题，也不记录答错。',false);};img.onload=checkDiagram;q('[data-il-hide]').disabled=!img.complete||!img.naturalWidth;}
@@ -85941,7 +85948,7 @@ window.MinestTemplates = {
       bind('[data-il-peek]',function(){if(ended)return;parts.filter(function(c){return !placed.has(c.id)&&(!isMemory||hidden.has(c.id));}).forEach(function(c){recordHint(c,'回看原布局');});this.disabled=true;var savedHidden=new Set(hidden),was=practicing;hidden.clear();practicing=false;paint();later(1400,function(){if(ended)return;hidden=savedHidden;practicing=was;paint();info('回看结束，请从记忆中还原。',true);});});
       bind('[data-il-hint]',function(){var c=parts.find(function(c){return !placed.has(c.id)&&(isSort||mode==='dragmatching'||isDiagram||hidden.has(c.id));});if(!c)return;recordHint(c,'查看目标提示');var t=isSort?'类别「'+c.labelName+'」':isDiagram?'图片上的第 '+(parts.indexOf(c)+1)+' 个位置':mode==='dragmatching'?'释义「'+c.back+'」':'第 '+(order.indexOf(c)+1)+' 格';info('提示：「'+c.front+'」对应'+t+'。',true);});
       bind('[data-memory-audio-hint]',function(){var c=parts.find(function(c){return !placed.has(c.id)&&(!isMemory||hidden.has(c.id));});if(!c||ended)return;recordHint(c,'使用听音提示');info('已请求朗读一个待还原词语，听后继续寻找对应位置。',true);sayText(c.front,q('[data-feedback]'));});
-      bind('[data-recall-check]',function(){if(ended||!practicing)return;var input=q('[data-recall-input]'),value=key(input.value);if(!value){info('先输入你回忆的词语。',false);return;}var answer=cards.find(function(c){return hidden.has(c.id)&&!placed.has(c.id)&&key(c.front)===value;});if(answer){MinestDrag.cancel(root);drop(answer.id,answer.id);input.value='';}else{var expected=cards.find(function(c){return hidden.has(c.id)&&!placed.has(c.id);});session.missed=true;session.attempts++;if(expected){faults.add(expected.id);needPractice(expected,'输入回忆需巩固');ilRecord(expected,'error',false);}info('还不匹配消失的词语，短暂回看后再试。',false);q('[data-il-peek]').click();}});
+      bind('[data-recall-check]',function(){if(ended||!practicing)return;var input=q('[data-recall-input]'),value=key(input.value);if(!value){info('先输入你回忆的词语。',false);return;}var answer=cards.find(function(c){return hidden.has(c.id)&&!placed.has(c.id)&&key(c.front)===value;});if(answer){MinestDrag.cancel(root);drop(answer.id,answer.id);input.value='';}else{var expected=cards.find(function(c){return hidden.has(c.id)&&!placed.has(c.id);});session.missed=true;session.attempts++;if(expected){faults.add(expected.id);needPractice(expected,'输入回忆需巩固');ilRecord(expected,'error',false);}info((options.quest824||options.quest8241)?'还不匹配。再回忆一次，也可以主动点提示。':'还不匹配消失的词语，短暂回看后再试。',false);if(!options.quest824&&!options.quest8241)q('[data-il-peek]').click();}});
       bind('[data-il-view]',function(){view=this.value;paint();});bind('[data-il-task]',function(){task=this.value;paint();});paint();ilConnect({drop:drop});if(isDiagram)checkDiagram();if(practicing)countTime();
     }
 
@@ -86655,6 +86662,16 @@ function compact(url,signal){return new Promise(function(resolve,reject){var img
     bind('[data-data]', function(){ teachingEditor(); });
     bind('[data-library]', library);
     bind('[data-exit]', close);
+    if(options.quest824 || options.quest8241){
+      practiceMode='teaching';autoAdvance=false;count=Math.min(count,6);gridSize=9;
+      root.__teaching824={
+        start:function(k){if(window.MinestTeachingTen.modes.includes(k))start(k);},
+        select:function(id){if(!columns.some(function(c){return c.id===id;}))return;col=id;library();},
+        home:library,
+        availability:function(){reload();return reasons();},
+        info:function(){return {boardId:board.id,col:col,mode:mode,items:items.length,lists:columns.map(function(c){return {id:c.id,title:c.title};}),completed:session?session.completed||0:0,total:session?session.total||0:0,correct:session?session.correct||0:0,streak:session?session.streak||0:0};}
+      };
+    }
     library();
   }
 };
@@ -87005,7 +87022,7 @@ T.open=function(board,options){
   options=Object.assign({},options||{});try{board=Sets.read();}catch(e){alert(e.message);return;}if(!(board.columns||[]).some(function(c){return c.id===options.col;}))options.col=board.selected||((board.columns[0]||{}).id)||'';
   var ret=origOpen.call(this,board,options);
   var root=document.getElementById('mn-templates');
-  if(root&&!root.__u72)try{enhance(root,board,options||{});}catch(e){console.warn('53.8072 enhance failed',e);}
+  if(root&&!root.__u72&&!options.quest824&&!options.quest8241)try{enhance(root,board,options||{});}catch(e){console.warn('53.8072 enhance failed',e);}
   return ret;
 };
 
@@ -87589,6 +87606,50 @@ var newSet=mk('button','','＋ 新词表'),importSet=mk('button','','↓ 从看�
 
 #mn-set-editor .se819-add>summary{font-weight:800;color:#6d28d9;cursor:pointer}#mn-set-editor .se819-add[open]>label{margin-top:14px}
 </style>
+
+<style id="ec6-readable-style">.ec6-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:9px 0 3px;font:500 11px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none}.ec6-chip{display:inline-flex;padding:2px 8px;border:1px solid #879db333;border-radius:20px;color:#afc3d9;background:#839ab315;white-space:nowrap}.ec6-chip.verified{color:#94d6bd;background:#49ad8017;border-color:#49ad8040}.ec6-info{font:inherit!important;color:#9fc4ec!important;background:none!important;border:0!important;padding:3px 5px!important;border-radius:6px;cursor:pointer;min-height:28px}.ec6-info:hover{background:#8bb4e51c!important}.ec6-info:focus-visible{outline:2px solid #5d9fe9;outline-offset:2px}.en-row .ec6-meta{margin-top:5px;padding-left:36px;font-size:10px}.en.nonotes .ec6-meta{display:none}.ec6-notes{position:fixed;inset:0;z-index:2147483647;background:#07101a88;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e5edf6}.ec6-sheet{width:min(580px,100%);max-height:85vh;overflow-y:auto;padding:26px;border-radius:22px;background:#182330;border:1px solid #a9c1dd33;box-shadow:0 24px 80px #0005}.ec6-sheet header{display:flex;justify-content:space-between;align-items:start;gap:20px}.ec6-sheet header small,.ec6-muted{color:#98adc3}.ec6-sheet h2{margin:5px 0 0;font-size:22px;line-height:1.4}.ec6-sheet h3{font-size:13px;margin:0 0 10px}.ec6-sheet header button{border:0;background:transparent;color:inherit;font-size:28px;cursor:pointer}.ec6-definition{font:400 20px/1.65 Georgia,serif;margin:24px 0 18px}.ec6-sheet section,.ec6-sheet details{padding-top:18px;margin-top:18px;border-top:1px solid #a9c1dd22}.ec6-sheet ul{padding:0;list-style:none}.ec6-sheet li{padding:10px 0}.ec6-sheet li small{display:block;color:#98adc3}.ec6-sheet a{display:inline-block;color:#9fc4ec;margin-top:4px;text-decoration:none}.ec6-sheet summary{cursor:pointer;color:#b5c9df}.ec6-sheet footer{margin-top:20px}.ec6-sheet footer button{padding:8px 14px;border-radius:10px;border:1px solid #9bb8d833;background:#7a9ec518;color:inherit;cursor:pointer}.kn-light .ec6-chip,.theme-white .ec6-chip{color:#486079;background:#698bb512}.kn-light .ec6-info,.theme-white .ec6-info{color:#376b9e!important}.kn-light .ec6-sheet{background:#f7f9fc;color:#23364c}.kn-light .ec6-sheet summary{color:#47647e}@media(max-width:600px){.ec6-notes{padding:10px;align-items:end}.ec6-sheet{padding:20px;border-radius:20px;max-height:90vh}.ec6-definition{font-size:19px}}
+</style>
+<script id="ec6-readable-cards">/* EC–6 readable cards: source metadata stays outside learning text. */
+(function(){'use strict';
+if(window.MinestEC6)return;
+var cache={},busy=false,done=false,dbp=null,lastFocus=null;
+var statusNames={VERIFIED:'TEKS 已核验',SECTION_ONLY:'TEKS 章节关联',UNMAPPED:'TEKS 待映射'};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function eligible(id){return /^kc-kb-ec6-(sci|ss|elar|mat|art|mus|hlt|pe|thr)-/.test(id||'');}
+function parse(c){if(!c||!eligible(c.id))return null;var p=String(c.desc||'').indexOf('Source metadata:\n');if(p<0)return null;try{var m=JSON.parse(c.desc.slice(p+17));if(m.type!=='concept'||!m.id||typeof m.simple_definition!=='string'||!c.id.endsWith('-'+m.id.toLowerCase()))return null;return m;}catch(e){return null;}}
+function meta(id){if(cache[id])return cache[id];var k=window.MinestKnowledge,m=k&&k.get('ec6:meta:'+id);return m?(cache[id]=m):null;}
+function grades(m){return (m.grade_tags||[]).map(function(g){return {K5:'K–5',G6:'G6',EXAM_EXTENSION:'拓展'}[g]||g;}).join(' / ');}
+function html(id,inPanel){var m=meta(id);if(!m)return '';return '<div class="ec6-meta" data-interactive="true"><span class="ec6-chip '+(m.teks_mapping_status==='VERIFIED'?'verified':'')+'">'+esc(statusNames[m.teks_mapping_status]||m.teks_mapping_status)+'</span>'+(grades(m)?'<span class="ec6-chip">'+esc(grades(m))+'</span>':'')+(inPanel?'':'<button type="button" class="ec6-info" data-ec6-note="'+esc(id)+'" aria-label="查看资料备注">资料备注 ↗</button>')+'</div>';}
+function urls(url){try{var u=new URL(url);return /^https?:$/.test(u.protocol)?'<a href="'+esc(u.href)+'" target="_blank" rel="noopener noreferrer">查看来源 ↗</a>':'';}catch(e){return '';}}
+function close(){var d=document.getElementById('ec6-notes');if(d)d.remove();if(lastFocus&&lastFocus.isConnected)lastFocus.focus();}
+function open(id){var m=meta(id);if(!m)return;close();lastFocus=document.activeElement;var d=document.createElement('div');d.id='ec6-notes';d.className='ec6-notes';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-labelledby','ec6-note-title');
+var mappings=(m.teks_mappings||[]).map(function(x){return '<li><b>'+esc(x.code||'')+'</b><small>'+esc(statusNames[x.status]||x.status||'')+(x.relationship?' · '+esc({related_section:'章节关联',direct_topic:'主题关联',direct:'直接对应',direct_requirement:'直接要求'}[x.relationship]||x.relationship):'')+'</small>'+urls(x.source_url)+(x.verification_note?'<p>'+esc(x.verification_note)+'</p>':'')+'</li>';}).join('');
+var exam=(m.exam_mappings||[]).map(function(x){return '<li>'+esc([x.exam,x.subject,x.competency].filter(Boolean).join(' · '))+' <small>'+esc(x.status||'')+'</small>'+urls(x.source_url)+'</li>';}).join('');
+d.innerHTML='<div class="ec6-sheet"><header><div><small>资料备注</small><h2 id="ec6-note-title">'+esc(m.title)+(m.title_zh?' · '+esc(m.title_zh):'')+'</h2></div><button type="button" data-ec6-close aria-label="关闭资料备注">×</button></header><p class="ec6-definition">'+esc(m.simple_definition)+'</p>'+html(id,true)+'<section><h3>TEKS 映射</h3>'+(mappings?'<ul>'+mappings+'</ul>':'<p>尚无已保存的映射。</p>')+'<p class="ec6-muted">章节关联表示内容与该章节有关，仍需进一步核对具体要求。</p></section>'+(exam?'<details><summary>考试框架参考</summary><ul>'+exam+'</ul></details>':'')+'<details><summary>定义与数据来源</summary><p>定义状态：'+esc(m.definition_status==='EDITORIAL_DRAFT'?'编辑草稿':m.definition_status)+'</p><p>'+esc(m.definition_source||'')+'</p><small>来源 ID：'+esc(m.id)+'</small></details><footer><button type="button" data-ec6-export>导出完整资料</button> <button type="button" data-ec6-backup>导出恢复备份</button></footer></div>';
+document.body.appendChild(d);d.querySelector('[data-ec6-close]').focus();}
+function download(v,name){var u=URL.createObjectURL(new Blob([JSON.stringify(v,null,2)],{type:'application/json'}));var a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(u);},2000);}
+function db(){if(!dbp)dbp=new Promise(function(ok,no){var r=indexedDB.open('minest-ec6-readable-cards',1);r.onupgradeneeded=function(){r.result.createObjectStore('snapshots');};r.onsuccess=function(){ok(r.result);};r.onerror=function(){no(r.error);};});return dbp;}
+async function backup(v){var d=await db();return new Promise(function(ok,no){var tx=d.transaction('snapshots','readwrite');tx.objectStore('snapshots').put(v,'before-readable-v1');tx.oncomplete=ok;tx.onerror=function(){no(tx.error);};});}
+function applyChanges(a,changes){changes.forEach(function(x){a.updateBoard(x.id,function(current){var next=JSON.parse(JSON.stringify(current));var edits={};x.board.columns.forEach(function(col){col.cards.forEach(function(c){edits[c.id]=c;});});next.columns.forEach(function(col){col.cards.forEach(function(c){var clean=edits[c.id];if(!clean||!parse(c))return;var m=parse(c),cut=c.desc.indexOf('\n\nTEKS: ');c.desc=(cut>=0?c.desc.slice(0,cut):c.desc.slice(0,c.desc.indexOf('Source metadata:\n')).trim());if(clean.cover===null&&automaticCover(c,m))c.cover=null;});});return next;});});}
+function automaticCover(c,m){var cover=c.cover;if(!cover)return false;var original=cover.originalUrl||'';return /s0\.wp\.com\/mshots\//.test(cover.value||cover.url||'')&&!!original&&([].concat(m.exam_mappings||[],m.teks_mappings||[])).some(function(x){return x.source_url===original;});}
+async function migrate(){if(busy||done)return;var a=window.MinestAI,k=window.MinestKnowledge;if(!a||!a.boards||!a.updateBoard||!k)return;var boards=a.boards();if(!boards.length)return;busy=true;
+try{var changes=[],map={};boards.forEach(function(b){if(!/^kb-ec6-(sci|ss|elar|mat|art|mus|hlt|pe|thr)$/.test(b.id))return;var next=JSON.parse(JSON.stringify(b)),n=0;next.columns.forEach(function(col){col.cards.forEach(function(c){var m=parse(c);if(!m)return;cache[c.id]=m;map['ec6:meta:'+c.id]=m;var cut=c.desc.indexOf('\n\nTEKS: ');c.desc=(cut>=0?c.desc.slice(0,cut):c.desc.slice(0,c.desc.indexOf('Source metadata:\n')).trim());if(automaticCover(c,m))c.cover=null;n++;});});if(n)changes.push({id:b.id,board:next,n:n});});
+if(changes.length){await backup({at:Date.now(),boards:JSON.parse(JSON.stringify(boards)),knowledge:k._cloud?k._cloud():null,metadata:map}); // durable backup before any board edit
+// Persist full metadata first. Abort before changing text if storage cannot keep it.
+k.setMany(map);var persisted=JSON.parse(localStorage.getItem('minest.knowledge.v1')||'{}');var missing=Object.keys(map).some(function(key){return !persisted.x||!persisted.x[key]||!persisted.x[key].v;});
+if(missing){ // clean text frees the space formerly used by inline metadata; snapshot remains in IndexedDB
+ applyChanges(a,changes);await new Promise(function(ok){setTimeout(ok,800);});k.setMany(map);persisted=JSON.parse(localStorage.getItem('minest.knowledge.v1')||'{}');if(Object.keys(map).some(function(key){return !persisted.x||!persisted.x[key]||!persisted.x[key].v;}))throw Error('资料仍保存在本机备份，知识资料空间不足，请导出备份。');
+}else applyChanges(a,changes);
+window.dispatchEvent(new CustomEvent('minest:ec6-readable',{detail:{boards:changes.length,concepts:changes.reduce(function(n,x){return n+x.n;},0)}}));
+}
+done=true;
+}catch(e){console.error('EC6 readable cards',e);window.MinestEC6.error=e.message;}finally{busy=false;}}
+window.MinestEC6={html:html,meta:meta,open:open,migrate:migrate,parse:parse,automaticCover:automaticCover,applyChanges:applyChanges,statusNames:statusNames,backup:async function(){var d=await db();return new Promise(function(ok,no){var r=d.transaction('snapshots').objectStore('snapshots').get('before-readable-v1');r.onsuccess=function(){ok(r.result);};r.onerror=function(){no(r.error);};});}};
+document.addEventListener('click',function(e){var b=e.target.closest('[data-ec6-note],[data-ec6-close],[data-ec6-export],[data-ec6-backup]');if(!b)return;e.preventDefault();e.stopPropagation();if(b.hasAttribute('data-ec6-note'))open(b.getAttribute('data-ec6-note'));else if(b.hasAttribute('data-ec6-close'))close();else if(b.hasAttribute('data-ec6-backup'))window.MinestEC6.backup().then(function(v){if(v)download(v,'Minest-before-readable-cards.json');});else {var all={};var k=window.MinestKnowledge;if(k)k.keys('ec6:meta:').forEach(function(key){all[key.slice(9)]=k.get(key);});download(all,'Minest-EC6-complete-metadata.json');}},true);
+document.addEventListener('keydown',function(e){var d=document.getElementById('ec6-notes');if(!d)return;if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close();}if(e.key==='Tab'){var els=d.querySelectorAll('button,a[href],summary'),first=els[0],last=els[els.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}},true);
+var timer=setInterval(function(){migrate();if(done)clearInterval(timer);},600);migrate();
+})();
+</script>
 <style id="minest-wiki822">/* 53.822 Wiki: narrower category column, optional left rail, readable entry details. */
 html body .wk .wk-g{grid-template-columns:minmax(110px,180px) minmax(0,1fr)}
 html body .wk .wk-r:not(.full){grid-template-columns:minmax(110px,190px) minmax(0,1fr)}
@@ -87616,5 +87677,1517 @@ html body .wk-pv .wk822-checks li{display:flex;gap:8px;margin:6px 0;overflow-wra
 html body .wk-pv .wk822-path{font-size:11px;opacity:.65;margin-top:12px}
 @media(max-width:600px){html body .wk:not(.categories-collapsed) .wk-g{grid-template-columns:minmax(0,1fr)}html body .wk:not(.categories-collapsed) .wk-gt{padding:9px 12px}html body .wk .wk-r:not(.full){grid-template-columns:minmax(80px,28%) minmax(0,1fr)}html body .wk .wk-it .wk-r:not(.full){grid-template-columns:minmax(65px,26%) minmax(0,1fr)}}
 </style>
+<style id="teaching-ten8241-style">/* 53.8241 · Solo Mode & Blooket Arcade Style for Ten Classroom Games */
+
+/* --- Galactic Canvas & Theme Variables --- */
+html body #mn-templates.tt-quest824,
+html body #mn-templates.tt-quest8241 {
+  --ten-bg: #0d0a1a;
+  --ten-surface: #19142e;
+  --ten-card: #231b40;
+  --ten-border: #3b2c68;
+  --ten-text: #ffffff;
+  --ten-sub: #b7a9db;
+  --ten-gold: #ffbe2e;
+  --ten-gold-shadow: #c7880b;
+  --ten-red: #ef4444;
+  --ten-red-shadow: #b91c1c;
+  --ten-blue: #3b82f6;
+  --ten-blue-shadow: #1d4ed8;
+  --ten-green: #10b981;
+  --ten-green-shadow: #047857;
+  --ten-yellow: #f59e0b;
+  --ten-yellow-shadow: #b45309;
+  --ten-purple: #8b5cf6;
+  --ten-purple-shadow: #6d28d9;
+  --ten-pink: #ec4899;
+  --ten-pink-shadow: #be185d;
+  --ten-cyan: #06b6d4;
+  --ten-cyan-shadow: #0e7490;
+
+  background: radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.25), transparent 45%),
+              radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.2), transparent 45%),
+              radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.1), transparent 60%),
+              #0c081d;
+  color: #ffffff;
+  font-family: Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
+  font-weight: 800;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header */
+html body #mn-templates.tt-quest824 header,
+html body #mn-templates.tt-quest8241 header {
+  background: rgba(18, 13, 38, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 20px;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+html body #mn-templates.tt-quest824 header strong,
+html body #mn-templates.tt-quest8241 header strong {
+  font-size: 20px;
+  color: #fff;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+html body #mn-templates.tt-quest824 header strong small,
+html body #mn-templates.tt-quest8241 header strong small {
+  background: linear-gradient(135deg, #a78bfa, #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+html body #mn-templates.tt-quest824 header button,
+html body #mn-templates.tt-quest8241 header button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-weight: 850;
+  min-height: 40px;
+}
+
+/* Hide legacy redundant buttons in header */
+html body #mn-templates.tt-quest824 header [data-visual-wall],
+html body #mn-templates.tt-quest824 [data-inline-quick-img],
+html body #mn-templates.tt-quest8241 header [data-visual-wall],
+html body #mn-templates.tt-quest8241 [data-inline-quick-img] {
+  display: none !important;
+}
+
+/* Main Area */
+html body #mn-templates.tt-quest824 main,
+html body #mn-templates.tt-quest8241 main {
+  padding: 20px max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom));
+}
+html body #mn-templates.tt-quest824 .tt-wrap,
+html body #mn-templates.tt-quest8241 .tt-wrap {
+  max-width: 1120px;
+  margin: auto;
+}
+
+/* 3D Chunky Pushable Button Universal Style */
+html body #mn-templates.tt-quest824 button,
+html body #mn-templates.tt-quest8241 button {
+  font-family: inherit;
+  font-weight: 850;
+  border-radius: 16px;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+html body #mn-templates.tt-quest824 button:not(:disabled):active,
+html body #mn-templates.tt-quest8241 button:not(:disabled):active {
+  transform: translateY(4px) !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4) !important;
+}
+html body #mn-templates.tt-quest824 button:disabled,
+html body #mn-templates.tt-quest8241 button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+/* Central Arcade Game Arena Container */
+html body #mn-templates.tt-quest824 .tt-panel,
+html body #mn-templates.tt-quest8241 .tt-panel {
+  background: rgba(26, 20, 50, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 3px solid rgba(139, 92, 246, 0.35);
+  border-radius: 26px;
+  color: #ffffff;
+  padding: 24px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  margin: 14px 0 24px;
+}
+
+/* Solo / Blooket Mascot HUD Bar */
+.ten-hud-blooket {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 18px;
+  background: rgba(22, 16, 44, 0.9);
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.ten-mascot-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ten-mascot-blook {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ff76ac, #ff5757);
+  box-shadow: 0 4px 12px rgba(255, 87, 87, 0.35);
+  animation: tenBlookBob 2.4s ease-in-out infinite;
+  font-size: 26px;
+}
+@keyframes tenBlookBob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(-3deg); }
+}
+.ten-mascot-meta {
+  display: flex;
+  flex-direction: column;
+}
+.ten-mascot-title {
+  font-size: 17px;
+  font-weight: 900;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ten-mascot-sub {
+  font-size: 11px;
+  color: #a78bfa;
+  font-weight: 750;
+}
+.ten-hud-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ten-pill-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 13px;
+  font-weight: 850;
+  color: #f1f3ff;
+}
+.ten-pill-stat.ten-xp-stat {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(251, 191, 36, 0.15));
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fde68a;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.2);
+}
+.ten-pill-stat.ten-streak-stat {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(249, 115, 22, 0.15));
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+  animation: tenPulseFire 1.6s ease-in-out infinite;
+}
+@keyframes tenPulseFire {
+  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.2); }
+  50% { box-shadow: 0 0 18px rgba(249, 115, 22, 0.5); }
+}
+.ten-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ten-icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  padding: 0;
+}
+.ten-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Progress Candy-Bar */
+.ten-progress-wrap {
+  width: 100%;
+  margin-top: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 99px;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.ten-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b);
+  border-radius: 99px;
+  transition: width 0.35s ease;
+  position: relative;
+}
+.ten-progress-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: tenShine 2s infinite linear;
+}
+@keyframes tenShine {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+/* Floating XP Particle */
+.ten-float-xp {
+  position: fixed;
+  z-index: 99999;
+  font-size: 22px;
+  font-weight: 950;
+  color: #fde047;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 14px rgba(250, 204, 21, 0.6);
+  pointer-events: none;
+  animation: tenFloatUp 1.1s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+@keyframes tenFloatUp {
+  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  25% { transform: translate(-50%, -15px) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -65px) scale(0.9); opacity: 0; }
+}
+
+/* Bottom Controls */
+html body #mn-templates.tt-quest824 .tt-control,
+html body #mn-templates.tt-quest8241 .tt-control {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 12px 12px;
+  background: rgba(18, 14, 34, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  margin-top: 24px;
+  border-radius: 18px 18px 0 0;
+}
+html body #mn-templates.tt-quest824 .tt-control button,
+html body #mn-templates.tt-quest8241 .tt-control button {
+  min-height: 46px;
+  padding: 10px 20px;
+  font-size: 15px;
+  border-radius: 14px;
+}
+html body #mn-templates.tt-quest824 [data-next]:not(:disabled),
+html body #mn-templates.tt-quest8241 [data-next]:not(:disabled) {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  box-shadow: 0 5px 0 #15803d;
+}
+html body #mn-templates.tt-quest824 [data-return],
+html body #mn-templates.tt-quest8241 [data-return] {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f3ff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* =========================================================================
+   10 CLASSROOM GAMES · BLOOKET & SOLO ENHANCEMENTS
+   ========================================================================= */
+
+/* --- 1. DRAG MATCHING (🧲 拖拽配对) --- */
+html body #mn-templates.tt-quest824 .ten-workbench,
+html body #mn-templates.tt-quest8241 .ten-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+html body #mn-templates.tt-quest824 .il-target,
+html body #mn-templates.tt-quest8241 .il-target {
+  min-height: 110px;
+  border-radius: 20px;
+  padding: 16px;
+  background: rgba(35, 27, 64, 0.7);
+  border: 2px dashed rgba(167, 139, 250, 0.4);
+  color: #fff;
+  font-size: clamp(17px, 2.2vw, 24px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 5px 0 rgba(18, 12, 34, 0.6);
+  transition: all 0.2s ease;
+}
+html body #mn-templates.tt-quest824 .il-target:not(:disabled):hover,
+html body #mn-templates.tt-quest8241 .il-target:not(:disabled):hover {
+  background: rgba(45, 34, 82, 0.9);
+  border-color: #a78bfa;
+  transform: translateY(-2px);
+}
+html body #mn-templates.tt-quest824 .il-target:disabled,
+html body #mn-templates.tt-quest8241 .il-target:disabled {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.15));
+  border: 2px solid #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+html body #mn-templates.tt-quest824 .il-bank,
+html body #mn-templates.tt-quest8241 .il-bank {
+  background: rgba(28, 22, 54, 0.85);
+  border: 2px solid rgba(139, 92, 246, 0.35);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+html body #mn-templates.tt-quest824 .il-source,
+html body #mn-templates.tt-quest8241 .il-source {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #fff;
+  border: 0;
+  box-shadow: 0 5px 0 #4c1d95;
+  border-radius: 16px;
+  padding: 14px 18px;
+  font-size: 20px;
+  font-weight: 900;
+  min-width: 90px;
+  letter-spacing: -0.01em;
+}
+html body #mn-templates.tt-quest824 .il-source:hover,
+html body #mn-templates.tt-quest8241 .il-source:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 #4c1d95;
+}
+
+/* --- 2. MISSING (🫥 哪张消失了？) --- */
+.ten-mystery-slot {
+  position: relative;
+  border: 3px dashed #f59e0b !important;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.25), rgba(20, 15, 38, 0.8)) !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.35) !important;
+  animation: tenMysteryPulse 1.8s ease-in-out infinite;
+}
+@keyframes tenMysteryPulse {
+  0%, 100% { transform: scale(1); border-color: #f59e0b; }
+  50% { transform: scale(1.02); border-color: #fbbf24; box-shadow: 0 0 28px rgba(245, 158, 11, 0.55); }
+}
+.ten-mystery-badge {
+  font-size: 38px;
+  display: block;
+  animation: tenBlookBob 1.6s ease-in-out infinite;
+}
+
+/* --- 3. DISAPPEAR (🌙 逐张消失) --- */
+.ten-starry-slot {
+  background: rgba(20, 15, 42, 0.6) !important;
+  border: 2px dashed rgba(167, 139, 250, 0.35) !important;
+  color: #a78bfa !important;
+}
+
+/* --- 4. MEMORY GRID (🧠 记忆网格) --- */
+html body #mn-templates.tt-quest824 .il-grid,
+html body #mn-templates.tt-quest8241 .il-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--il-cols, 3), minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(20, 15, 38, 0.7);
+  border: 2px solid rgba(139, 92, 246, 0.25);
+}
+html body #mn-templates.tt-quest824 .il-slot,
+html body #mn-templates.tt-quest8241 .il-slot {
+  background: rgba(35, 27, 64, 0.85);
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  border-radius: 18px;
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+  color: #fff;
+  box-shadow: 0 5px 0 rgba(15, 10, 30, 0.5);
+}
+
+/* --- 5. MATCH (🧩 翻牌配对 · Blooket Memory Cards) --- */
+html body #mn-templates.tt-quest824 .t809-match,
+html body #mn-templates.tt-quest8241 .t809-match {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  perspective: 900px;
+}
+html body #mn-templates.tt-quest824 [data-tile],
+html body #mn-templates.tt-quest8241 [data-tile] {
+  min-height: 106px;
+  border-radius: 20px;
+  font-size: 19px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #4f46e5, #3730a3);
+  color: #fff;
+  border: 2px solid #818cf8;
+  box-shadow: 0 6px 0 #312e81;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 8px;
+  transition: transform 0.25s cubic-bezier(0.2, 0.85, 0.32, 1.2), box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+html body #mn-templates.tt-quest824 [data-tile]:hover:not(:disabled),
+html body #mn-templates.tt-quest8241 [data-tile]:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 9px 0 #312e81;
+}
+html body #mn-templates.tt-quest824 [data-tile].tt-correct,
+html body #mn-templates.tt-quest8241 [data-tile].tt-correct {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border-color: #34d399 !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+  color: #fff !important;
+  opacity: 0.95 !important;
+}
+
+/* --- 6. FIND IT (🔎 寻词 · Blooket Quest Scroll) --- */
+html body #mn-templates.tt-quest824 .pl-spy-clue,
+html body #mn-templates.tt-quest8241 .pl-spy-clue {
+  background: linear-gradient(135deg, rgba(30, 22, 60, 0.95), rgba(45, 30, 85, 0.95));
+  border: 3px solid #ffbe2e;
+  border-radius: 24px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 30px rgba(255, 190, 46, 0.2);
+  text-align: center;
+}
+html body #mn-templates.tt-quest824 .pl-spy-clue [data-find-clue],
+html body #mn-templates.tt-quest8241 .pl-spy-clue [data-find-clue] {
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 950;
+  color: #fef08a;
+  letter-spacing: -0.01em;
+  margin: 10px 0;
+}
+html body #mn-templates.tt-quest824 .pl-spy-field,
+html body #mn-templates.tt-quest8241 .pl-spy-field {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  background: rgba(18, 14, 34, 0.65);
+  border-radius: 22px;
+}
+html body #mn-templates.tt-quest824 .pl-spy-card,
+html body #mn-templates.tt-quest8241 .pl-spy-card {
+  min-height: 86px;
+  border-radius: 18px;
+  background: rgba(40, 30, 75, 0.9);
+  border: 2px solid rgba(167, 139, 250, 0.3);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 rgba(15, 10, 30, 0.5);
+  transform: rotate(var(--spy-angle, 0deg));
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+html body #mn-templates.tt-quest824 .pl-spy-card:hover:not(:disabled),
+html body #mn-templates.tt-quest8241 .pl-spy-card:hover:not(:disabled) {
+  transform: scale(1.06) rotate(0deg);
+  background: #5b21b6;
+  border-color: #a78bfa;
+  box-shadow: 0 8px 0 rgba(15, 10, 30, 0.6);
+  z-index: 2;
+}
+html body #mn-templates.tt-quest824 .pl-spy-card.pl-found,
+html body #mn-templates.tt-quest8241 .pl-spy-card.pl-found {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-color: #fde68a;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+  color: #fff;
+}
+
+/* --- 7. TRUE / FALSE (⚡ 真假判断 · Blooket Speed Duel) --- */
+.ten-tf-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.ten-tf-card {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(32, 24, 64, 0.95), rgba(46, 32, 88, 0.95));
+  border: 3px solid rgba(139, 92, 246, 0.4);
+  border-radius: 26px;
+  padding: 28px 20px;
+  text-align: center;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+}
+.ten-tf-word {
+  font-size: clamp(34px, 5.5vw, 54px);
+  font-weight: 950;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+.ten-tf-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #a78bfa;
+  font-size: 13px;
+  font-weight: 850;
+  margin: 16px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.ten-tf-divider::before,
+.ten-tf-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(167, 139, 250, 0.25);
+}
+.ten-tf-claim {
+  font-size: clamp(20px, 3.2vw, 28px);
+  color: #fef08a;
+  font-weight: 900;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+}
+/* Two Massive Tactile 3D Buttons */
+html body #mn-templates.tt-quest824 [data-choice="true"],
+html body #mn-templates.tt-quest8241 [data-choice="true"] {
+  flex: 1;
+  min-height: 72px;
+  font-size: 22px;
+  font-weight: 950;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border-radius: 20px;
+  box-shadow: 0 6px 0 #047857;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+html body #mn-templates.tt-quest824 [data-choice="true"]:hover:not(:disabled),
+html body #mn-templates.tt-quest8241 [data-choice="true"]:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 #047857;
+}
+html body #mn-templates.tt-quest824 [data-choice="false"],
+html body #mn-templates.tt-quest8241 [data-choice="false"] {
+  flex: 1;
+  min-height: 72px;
+  font-size: 22px;
+  font-weight: 950;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  border-radius: 20px;
+  box-shadow: 0 6px 0 #b91c1c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+html body #mn-templates.tt-quest824 [data-choice="false"]:hover:not(:disabled),
+html body #mn-templates.tt-quest8241 [data-choice="false"]:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 #b91c1c;
+}
+
+/* --- 8. SCRAMBLE (🔤 拼词工坊 · Word Forge) --- */
+html body #mn-templates.tt-quest824 .tt-letters,
+html body #mn-templates.tt-quest8241 .tt-letters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+html body #mn-templates.tt-quest824 .tt-letter,
+html body #mn-templates.tt-quest8241 .tt-letter {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: #fff;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 5px 0 #5b21b6;
+  font-size: 24px;
+  font-weight: 950;
+  min-width: 60px;
+  height: 64px;
+}
+html body #mn-templates.tt-quest824 .tt-letter-slot,
+html body #mn-templates.tt-quest8241 .tt-letter-slot {
+  background: rgba(30, 22, 55, 0.75);
+  border: 2px dashed rgba(167, 139, 250, 0.45);
+  border-radius: 16px;
+  color: #fef08a;
+  font-size: 24px;
+  font-weight: 950;
+  min-width: 60px;
+  height: 64px;
+  display: inline-grid;
+  place-items: center;
+}
+
+/* --- 9. BINGO (🎯 词义 Bingo · Arcade Bingo) --- */
+html body #mn-templates.tt-quest824 .t809-bingo,
+html body #mn-templates.tt-quest8241 .t809-bingo {
+  display: grid;
+  grid-template-columns: repeat(var(--bingo-side, 3), minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+html body #mn-templates.tt-quest824 [data-bingo],
+html body #mn-templates.tt-quest8241 [data-bingo] {
+  min-height: 94px;
+  background: rgba(34, 26, 62, 0.85);
+  border: 2px solid rgba(139, 92, 246, 0.35);
+  border-radius: 18px;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 rgba(15, 10, 30, 0.5);
+  position: relative;
+}
+html body #mn-templates.tt-quest824 [data-bingo].tt-correct,
+html body #mn-templates.tt-quest8241 [data-bingo].tt-correct {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border-color: #34d399 !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4) !important;
+  color: #fff !important;
+}
+
+/* --- 10. REVEAL (🎁 揭格猜词 · Mystery Gift Tiles) --- */
+html body #mn-templates.tt-quest824 .tt-cover,
+html body #mn-templates.tt-quest8241 .tt-cover {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+html body #mn-templates.tt-quest824 .tt-cover.tt-cover-16,
+html body #mn-templates.tt-quest8241 .tt-cover.tt-cover-16 {
+  grid-template-columns: repeat(4, 1fr);
+}
+html body #mn-templates.tt-quest824 [data-cover],
+html body #mn-templates.tt-quest8241 [data-cover] {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: 2px solid #fbbf24;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 950;
+  box-shadow: 0 4px 0 #b45309;
+}
+html body #mn-templates.tt-quest824 [data-cover].tt-open,
+html body #mn-templates.tt-quest8241 [data-cover].tt-open {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+}
+
+/* Universal 4-Color Options in Reveal / Missing / Choices */
+html body #mn-templates.tt-quest824 .tt-options,
+html body #mn-templates.tt-quest8241 .tt-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+html body #mn-templates.tt-quest824 .tt-options button:nth-child(1),
+html body #mn-templates.tt-quest8241 .tt-options button:nth-child(1) {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 5px 0 #b91c1c;
+}
+html body #mn-templates.tt-quest824 .tt-options button:nth-child(2),
+html body #mn-templates.tt-quest8241 .tt-options button:nth-child(2) {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  box-shadow: 0 5px 0 #1d4ed8;
+}
+html body #mn-templates.tt-quest824 .tt-options button:nth-child(3),
+html body #mn-templates.tt-quest8241 .tt-options button:nth-child(3) {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  box-shadow: 0 5px 0 #047857;
+}
+html body #mn-templates.tt-quest824 .tt-options button:nth-child(4),
+html body #mn-templates.tt-quest8241 .tt-options button:nth-child(4) {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  box-shadow: 0 5px 0 #b45309;
+}
+html body #mn-templates.tt-quest824 .tt-options button,
+html body #mn-templates.tt-quest8241 .tt-options button {
+  min-height: 60px;
+  font-size: 19px;
+  font-weight: 900;
+  border-radius: 18px;
+  padding: 12px 14px;
+}
+
+/* Shake Animation on Wrong Answer */
+@keyframes tenShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+.ten-shake {
+  animation: tenShake 0.4s ease-in-out;
+}
+
+/* =========================================================================
+   SOLO ADVENTURE MAP (🏝 游戏地图 · 10 Levels)
+   ========================================================================= */
+.ten-map {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 24px;
+}
+.ten-level {
+  position: relative;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #2b1f52, #1d1538);
+  border: 2px solid rgba(167, 139, 250, 0.4);
+  border-radius: 24px;
+  box-shadow: 0 8px 0 rgba(15, 10, 30, 0.6);
+  padding: 22px 18px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ten-level:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 11px 0 rgba(15, 10, 30, 0.6);
+  border-color: #a78bfa;
+}
+.ten-level-num {
+  position: absolute;
+  top: -12px;
+  left: 18px;
+  background: #ffbe2e;
+  border: 2px solid #55380c;
+  color: #452b04;
+  border-radius: 10px;
+  padding: 1px 10px;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+}
+.ten-icon {
+  font-size: 38px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 10px 0;
+  display: grid;
+  place-items: center;
+}
+.ten-level h2 {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  margin: 0 0 6px;
+}
+.ten-level p {
+  font-size: 13px;
+  font-weight: 700;
+  color: #d1c5e8;
+  margin: 0 0 6px;
+}
+.ten-level small {
+  font-size: 11px;
+  color: #a78bfa;
+  display: block;
+}
+.ten-stars {
+  display: block;
+  color: #ffbe2e;
+  font-size: 24px;
+  letter-spacing: 4px;
+  margin-top: 8px;
+}
+html body #mn-templates.tt-quest824 [data-ten-start],
+html body #mn-templates.tt-quest8241 [data-ten-start] {
+  background: linear-gradient(135deg, #ffbe2e, #f59e0b);
+  color: #452b04;
+  border-radius: 16px;
+  box-shadow: 0 5px 0 #b45309;
+  font-size: 14px;
+  padding: 12px 18px;
+}
+html body #mn-templates.tt-quest824 [data-ten-start]:hover:not(:disabled),
+html body #mn-templates.tt-quest8241 [data-ten-start]:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 #b45309;
+}
+
+/* =========================================================================
+   VICTORY CELEBRATION & SOLO MYSTERY CHEST UNLOCK
+   ========================================================================= */
+.ten-celebrate {
+  text-align: center;
+  padding: 24px 16px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+.ten-celebrate-mascot {
+  font-size: 64px;
+  display: inline-block;
+  animation: tenBlookBob 1.8s ease-in-out infinite;
+}
+.ten-celebrate h2 {
+  font-size: 32px;
+  font-weight: 950;
+  color: #fef08a;
+  margin: 10px 0 6px;
+  text-shadow: 0 0 20px rgba(250, 204, 21, 0.4);
+}
+.ten-celebrate .ten-stars {
+  font-size: 52px;
+  letter-spacing: 8px;
+  margin: 12px 0;
+}
+.ten-celebrate p {
+  font-size: 19px;
+  color: #e2d9f3;
+  margin: 8px 0;
+}
+
+/* Mystery Chest Bonus */
+.ten-chest-card {
+  margin: 20px auto;
+  max-width: 420px;
+  background: rgba(22, 16, 44, 0.85);
+  border: 2px solid rgba(245, 158, 11, 0.4);
+  border-radius: 22px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.ten-chest-btn {
+  background: none;
+  border: 0;
+  font-size: 72px;
+  cursor: pointer;
+  display: block;
+  margin: 10px auto;
+  animation: tenChestShake 2.2s infinite ease-in-out;
+  transition: transform 0.2s ease;
+}
+@keyframes tenChestShake {
+  0%, 80%, 100% { transform: rotate(0deg) scale(1); }
+  85% { transform: rotate(-8deg) scale(1.08); }
+  90% { transform: rotate(8deg) scale(1.08); }
+  95% { transform: rotate(-6deg) scale(1.05); }
+}
+.ten-chest-btn:hover {
+  transform: scale(1.12);
+}
+.ten-chest-revealed {
+  animation: tenPopIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+@keyframes tenPopIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Mobile Responsive */
+@media (max-width: 760px) {
+  .ten-map {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  html body #mn-templates.tt-quest824 .ten-workbench,
+  html body #mn-templates.tt-quest8241 .ten-workbench {
+    grid-template-columns: 1fr;
+  }
+  html body #mn-templates.tt-quest824 .t809-match,
+  html body #mn-templates.tt-quest8241 .t809-match {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  html body #mn-templates.tt-quest824 .tt-options,
+  html body #mn-templates.tt-quest8241 .tt-options {
+    grid-template-columns: 1fr;
+  }
+  .ten-hud-blooket {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ten-hud-stats {
+    justify-content: space-between;
+  }
+}
+</style>
+<script id="teaching-ten8241">/* 53.8241 · Ten Real Teaching Activities with Solo & Blooket Arcade Style */
+(function(){'use strict';
+
+var MODES=[
+  ['dragmatching','🧲','拖拽配对','把词卡送到对应释义或读音','拖动 / 点选 / 键盘'],
+  ['missing','🫥','哪张消失了？','记住位置，解开神秘问号宝箱','观察 → 隐藏 → 回忆'],
+  ['disappear','🌙','逐张消失','整组词卡逐张消失，再重新搭好','手动 / 可暂停自动隐藏'],
+  ['memorygrid','🧠','记忆网格','把词卡放回原来的格子','记位置 / 按释义还原'],
+  ['match','🧩','翻牌配对','翻开词语和释义，找到一对','翻牌 → 核对 → 继续'],
+  ['find','🔎','Find It · 寻词','根据金色线索，在卡片墙中找答案','点选 / 音频线索'],
+  ['tf','⚡','真假判断','双色大按钮急速判断，冲击连胜加成','判断 → 纠错 → 连胜'],
+  ['scramble','🔤','拼词工坊','把字母或词块重新拼好','拖动 / 点选重排'],
+  ['bingo','🎯','词义 Bingo','根据线索点选盖章，完成整盘连线','找到 → 连线 → 清盘'],
+  ['reveal','🎁','揭格猜词','逐格拆开神秘礼盒，尽早猜出答案','揭格 → 回忆 → 核对']
+];
+
+var KEY='minest.teaching.ten824.best';
+var MUTED_KEY='minest.teaching.ten.muted';
+
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+function readBest(){
+  try{ return JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }
+  catch(e){ return {}; }
+}
+
+function isMuted(){
+  try{ return localStorage.getItem(MUTED_KEY)==='1'; }
+  catch(e){ return false; }
+}
+
+function setMuted(val){
+  try{ localStorage.setItem(MUTED_KEY, val?'1':'0'); }
+  catch(e){}
+}
+
+/* --- Web Audio Synthesizer (Zero Dependencies) --- */
+var audioCtx = null;
+function getAudioContext(){
+  if (!audioCtx && typeof window !== 'undefined') {
+    var AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) audioCtx = new AudioContext();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function playSfx(type){
+  if (isMuted()) return;
+  try {
+    var ctx = getAudioContext();
+    if (!ctx) return;
+    var now = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'click') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } else if (type === 'correct') {
+      // Ascending happy arpeggio C5 -> E5 -> G5
+      [523.25, 659.25, 783.99].forEach(function(freq, i){
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'triangle';
+        o.connect(g);
+        g.connect(ctx.destination);
+        var t = now + i * 0.07;
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0.2, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        o.start(t);
+        o.stop(t + 0.24);
+      });
+    } else if (type === 'streak') {
+      // Fanfare powerup
+      [587.33, 739.99, 880, 1174.66].forEach(function(freq, i){
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'triangle';
+        o.connect(g);
+        g.connect(ctx.destination);
+        var t = now + i * 0.06;
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0.22, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        o.start(t);
+        o.stop(t + 0.3);
+      });
+    } else if (type === 'wrong') {
+      // Friendly low boing
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.2);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else if (type === 'win') {
+      // Victory fanfare
+      [523.25, 659.25, 783.99, 1046.5].forEach(function(freq, i){
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'triangle';
+        o.connect(g);
+        g.connect(ctx.destination);
+        var t = now + i * 0.09;
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0.25, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        o.start(t);
+        o.stop(t + 0.42);
+      });
+    }
+  } catch (e) {}
+}
+
+/* Floating XP Particle on correct answers */
+function floatXp(text, x, y){
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.className = 'ten-float-xp';
+  el.textContent = text || '+10 XP';
+  el.style.left = (x || (window.innerWidth / 2)) + 'px';
+  el.style.top = (y || (window.innerHeight / 2)) + 'px';
+  document.body.appendChild(el);
+  setTimeout(function(){
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }, 1100);
+}
+
+function score(s){
+  var done = Math.max(0, +s.completed || 0);
+  var total = Math.max(0, +s.total || 0);
+  var correct = Math.min(done, Math.max(0, +s.correct || 0));
+  var streak = Math.max(0, +s.streak || 0);
+  var streakBonus = Math.min(50, streak * 5);
+  return {
+    completed: done,
+    total: total,
+    correct: correct,
+    stars: done && done === total ? (correct / done >= 0.85 ? 3 : correct / done >= 0.6 ? 2 : 1) : 0,
+    xp: correct * 10 + Math.max(0, done - correct) * 5 + streakBonus
+  };
+}
+
+function api(root){ return root.__teaching824; }
+function current(root){ return api(root).info(); }
+function bestKey(s){ return JSON.stringify([s.boardId, s.col, s.mode]); }
+
+function open(col){
+  var S = window.MinestTeachingSets;
+  if (!S || !window.MinestTemplates) throw Error('Teaching 模块仍在加载。');
+  var b = S.read();
+  S.open({ board: b, listId: col || b.selected }, { quest824: true, quest8241: true, chinese: true, audience: 'student' });
+}
+
+function classic(root){
+  var s = current(root);
+  MinestTemplates.close();
+  MinestTeachingSets.open({ board: MinestTeachingSets.read(), listId: s.col }, { chinese: true, audience: 'student' });
+}
+
+function header(root){
+  root.classList.add('tt-quest824');
+  root.classList.add('tt-quest8241');
+  root.setAttribute('aria-label', 'Teaching Games · 10 个课堂游戏 · Solo & Blooket 风格');
+  var title = root.querySelector('header strong');
+  if (title) title.innerHTML = '🎮 Teaching Games<small>Solo & Blooket · 53.8241</small>';
+  var lib = root.querySelector('[data-library]');
+  if (lib) lib.textContent = '🏝 游戏地图';
+  var wall = root.querySelector('[data-visual-wall]');
+  if (wall) wall.hidden = true;
+}
+
+/* --- Solo Adventure Map (🏝 游戏地图) --- */
+function home(root){
+  header(root);
+  root.dataset.tenView = 'home';
+  var a = api(root), s = current(root), why = a.availability(), best = readBest();
+  var body = root.querySelector('.tt-wrap');
+
+  var totalStars = 0;
+  MODES.forEach(function(m){
+    var r = best[bestKey(Object.assign({}, s, { mode: m[0] }))] || {};
+    totalStars += (r.stars || 0);
+  });
+
+  body.innerHTML = '<section class="ten-home">'
+    + '<div class="ten-hero" style="background:rgba(22,16,44,0.9);border:2px solid rgba(139,92,246,0.3);border-radius:24px;padding:24px;box-shadow:0 12px 32px rgba(0,0,0,0.4);margin-bottom:24px">'
+    + '  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">'
+    + '    <div style="display:flex;align-items:center;gap:14px">'
+    + '      <div class="ten-mascot-blook" style="width:52px;height:52px;font-size:32px">👑</div>'
+    + '      <div>'
+    + '        <small style="font-size:11px;letter-spacing:0.12em;color:#ffbe2e;font-weight:950">SOLO MODE & BLOOKET ARCADE</small>'
+    + '        <h1 style="font-size:24px;margin:2px 0 4px;color:#fff">十款课堂闯关游戏</h1>'
+    + '        <p style="color:#b7a9db;font-size:13px;margin:0">原生教学活动 · 爽快街机手感 · 连胜与宝箱奖赏</p>'
+    + '      </div>'
+    + '    </div>'
+    + '    <div style="display:flex;align-items:center;gap:10px">'
+    + '      <div class="ten-pill-stat ten-xp-stat" style="font-size:15px;padding:8px 14px">⭐⭐ ' + totalStars + ' / 30 课堂星</div>'
+    + '    </div>'
+    + '  </div>'
+    + '  <div class="ten-source" style="display:flex;flex-wrap:wrap;align-items:end;gap:14px;margin-top:18px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px">'
+    + '    <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:#a78bfa">选择教学词表'
+    + '      <select data-ten-list style="color:#fff;background:#35255a;border:2px solid #8b5cf6;border-radius:12px;min-height:44px;min-width:200px;padding:8px 14px;font-size:15px;font-weight:800">'
+    +          s.lists.map(function(l){ return '<option value="' + esc(l.id) + '"' + (l.id === s.col ? ' selected' : '') + '>' + esc(l.title) + '</option>'; }).join('')
+    + '      </select>'
+    + '    </label>'
+    + '    <b style="color:#f1f3ff;align-self:center;font-size:14px">' + s.items + ' 张词卡</b>'
+    + '    <button data-ten-edit style="background:rgba(255,255,255,0.08);color:#f1f3ff;border:1px solid rgba(255,255,255,0.2);padding:10px 16px;border-radius:12px">✎ 管理词表与备课</button>'
+    + '  </div>'
+    + '</div>'
+    + '<div class="ten-map">'
+    +    MODES.map(function(m, i){
+           var issue = why[m[0]] || '';
+           var r = best[bestKey(Object.assign({}, s, { mode: m[0] }))] || {};
+           var starsNum = r.stars || 0;
+           return '<article class="ten-level' + (issue ? ' needs-data' : '') + '">'
+             + '<span class="ten-level-num">LEVEL ' + String(i + 1).padStart(2, '0') + '</span>'
+             + '<span class="ten-icon">' + m[1] + '</span>'
+             + '<div>'
+             + '  <h2>' + esc(m[2]) + '</h2>'
+             + '  <p>' + esc(m[3]) + '</p>'
+             + '  <small>' + esc(issue || m[4]) + '</small>'
+             + '  <span class="ten-stars" aria-label="本关最佳 ' + starsNum + ' 星">'
+             +      [1, 2, 3].map(function(n){ return n <= starsNum ? '★' : '☆'; }).join('')
+             + '  </span>'
+             + '</div>'
+             + '<button data-ten-start="' + m[0] + '"' + (issue ? ' disabled' : '') + '>' + (issue ? '待补齐' : '开始闯关 ▶') + '</button>'
+             + (issue ? '<button class="ten-repair" data-ten-edit>补齐词表 →</button>' : '')
+             + '</article>';
+         }).join('')
+    + '</div>'
+    + '<p class="ten-note" style="text-align:center;color:#8a79a8;font-size:12px;margin-top:24px">课堂星记录当前词表的练习完成度；不修改看板掌握度，不创建多人房间。</p>'
+    + '</section>';
+
+  body.querySelectorAll('[data-ten-start]').forEach(function(b){
+    b.onclick = function(){
+      playSfx('click');
+      a.start(b.dataset.tenStart);
+    };
+  });
+  body.querySelector('[data-ten-list]').onchange = function(){
+    a.select(this.value);
+  };
+  body.querySelectorAll('[data-ten-edit]').forEach(function(b){
+    b.onclick = function(){ classic(root); };
+  });
+}
+
+/* --- In-Game Blooket / Solo HUD & Active Styling --- */
+function frame(root){
+  header(root);
+  root.dataset.tenView = 'game';
+  var s = current(root);
+  var m = MODES.find(function(x){ return x[0] === s.mode; });
+  if (!m) return;
+  var body = root.querySelector('.tt-wrap');
+
+  var v = score(s);
+  var pct = s.total > 0 ? Math.min(100, Math.round((s.completed / s.total) * 100)) : 0;
+  var muted = isMuted();
+
+  // Render or Update Blooket HUD
+  var hud = body.querySelector('.ten-hud-blooket');
+  if (!hud) {
+    hud = document.createElement('div');
+    hud.className = 'ten-hud-blooket';
+    body.prepend(hud);
+  }
+
+  hud.innerHTML = '<div class="ten-mascot-box">'
+    + '  <div class="ten-mascot-blook">' + m[1] + '</div>'
+    + '  <div class="ten-mascot-meta">'
+    + '    <div class="ten-mascot-title">' + esc(m[2]) + '</div>'
+    + '    <div class="ten-mascot-sub">第 ' + (s.completed + 1 > s.total ? s.total : s.completed + 1) + ' / ' + s.total + ' 轮</div>'
+    + '  </div>'
+    + '</div>'
+    + '<div class="ten-hud-stats">'
+    + '  <span class="ten-pill-stat ten-xp-stat">✨ ' + v.xp + ' XP</span>'
+    + '  <span class="ten-pill-stat ' + (s.streak >= 2 ? 'ten-streak-stat' : '') + '">🔥 ' + (s.streak || 0) + ' 连胜</span>'
+    + '  <button class="ten-icon-btn" data-ten-sound title="切换音效">' + (muted ? '🔇' : '🔊') + '</button>'
+    + '</div>'
+    + '<div class="ten-progress-wrap">'
+    + '  <div class="ten-progress-bar" style="width:' + pct + '%"></div>'
+    + '</div>';
+
+  var soundBtn = hud.querySelector('[data-ten-sound]');
+  if (soundBtn) {
+    soundBtn.onclick = function(){
+      var next = !isMuted();
+      setMuted(next);
+      soundBtn.textContent = next ? '🔇' : '🔊';
+      if (!next) playSfx('click');
+    };
+  }
+
+  // Hide legacy raw header & raw title if present
+  var panel = body.querySelector('.tt-panel');
+  if (panel) {
+    var h = panel.querySelector('h2');
+    if (h && h.closest('.tt-row')) h.closest('.tt-row').hidden = true;
+    var note = panel.querySelector(':scope > .tt-muted');
+    if (note) note.hidden = true;
+  }
+
+  // Return to Map text
+  body.querySelectorAll('[data-return]').forEach(function(b){
+    b.textContent = '🏝 返回游戏地图';
+  });
+
+  // Next round button styling
+  var next = body.querySelector('[data-next]');
+  if (next) next.classList.toggle('ten-ready', !next.disabled);
+
+  // --- Specific Mode Enhancements ---
+  if (s.mode === 'dragmatching') {
+    if (!body.querySelector('.ten-workbench')) {
+      var stage = body.querySelector('[data-il-stage]'), bank = body.querySelector('[data-il-bank]');
+      if (stage && bank) {
+        var work = document.createElement('div');
+        work.className = 'ten-workbench';
+        stage.before(work);
+        work.append(stage, bank);
+      }
+    }
+  } else if (s.mode === 'missing') {
+    // Missing question mark slot highlight
+    body.querySelectorAll('[data-il-target]').forEach(function(t){
+      if (t.textContent.includes('?')) {
+        t.classList.add('ten-mystery-slot');
+        if (!t.querySelector('.ten-mystery-badge')) {
+          var b = document.createElement('span');
+          b.className = 'ten-mystery-badge';
+          b.textContent = '❓';
+          t.prepend(b);
+        }
+      }
+    });
+  } else if (s.mode === 'disappear') {
+    body.querySelectorAll('[data-il-target]').forEach(function(t){
+      if (t.textContent.includes('?')) {
+        t.classList.add('ten-starry-slot');
+      }
+    });
+  } else if (s.mode === 'tf') {
+    // Style True / False container into Blooket 1v1 duel
+    var opt = body.querySelector('.tt-options');
+    var tfFront = body.querySelector('[data-front]');
+    var tfBack = body.querySelector('[data-back]');
+    if (tfFront && tfBack && !body.querySelector('.ten-tf-card')) {
+      var wrap = document.createElement('div');
+      wrap.className = 'ten-tf-container';
+      var card = document.createElement('div');
+      card.className = 'ten-tf-card';
+      card.innerHTML = '<div class="ten-tf-word">' + tfFront.innerHTML + '</div>'
+        + '<div class="ten-tf-divider">VS 释义判定</div>'
+        + '<div class="ten-tf-claim">' + tfBack.innerHTML + '</div>';
+      var big = body.querySelector('.tt-big');
+      if (big) big.replaceWith(wrap);
+      wrap.appendChild(card);
+      if (opt) wrap.appendChild(opt);
+    }
+    // Add hotkeys for True / False
+    var btnTrue = body.querySelector('[data-choice="true"]');
+    var btnFalse = body.querySelector('[data-choice="false"]');
+    if (btnTrue && !btnTrue.textContent.includes('TRUE')) {
+      btnTrue.innerHTML = '<span>✓</span> 正确 TRUE <small style="opacity:0.7;font-size:12px">[1]</small>';
+    }
+    if (btnFalse && !btnFalse.textContent.includes('FALSE')) {
+      btnFalse.innerHTML = '<span>✕</span> 错误 FALSE <small style="opacity:0.7;font-size:12px">[2]</small>';
+    }
+  }
+
+  // Sound & floating feedback listeners on click
+  body.querySelectorAll('[data-choice], [data-tile], [data-find-card], [data-bingo], [data-cover]').forEach(function(btn){
+    if (btn.__tenHooked) return;
+    btn.__tenHooked = true;
+    btn.addEventListener('click', function(ev){
+      var rect = btn.getBoundingClientRect();
+      var x = rect.left + rect.width / 2;
+      var y = rect.top + rect.height / 2;
+
+      // Slight delay to check if answer was correct
+      setTimeout(function(){
+        if (btn.classList.contains('tt-correct') || btn.classList.contains('pl-found') || btn.classList.contains('is-matched') || btn.disabled) {
+          playSfx('correct');
+          floatXp('+10 XP', x, y);
+        } else if (btn.classList.contains('tt-incorrect') || btn.classList.contains('pl-miss')) {
+          playSfx('wrong');
+          btn.classList.add('ten-shake');
+          setTimeout(function(){ btn.classList.remove('ten-shake'); }, 500);
+        } else {
+          playSfx('click');
+        }
+      }, 60);
+    });
+  });
+}
+
+/* --- Victory Celebration & Solo Mystery Chest Unlock --- */
+function result(root){
+  if (root.querySelector('.ten-celebrate')) return;
+  root.dataset.tenView = 'result';
+  header(root);
+  var s = current(root), v = score(s), m = MODES.find(function(x){ return x[0] === s.mode; });
+  if (!m) return;
+  var all = readBest(), k = bestKey(s), old = all[k] || {};
+
+  if (v.completed === v.total && v.total > 0) {
+    all[k] = { stars: Math.max(old.stars || 0, v.stars), xp: Math.max(old.xp || 0, v.xp), at: Date.now() };
+    try { localStorage.setItem(KEY, JSON.stringify(all)); } catch(e){}
+  }
+
+  playSfx('win');
+
+  var panel = root.querySelector('.tt-wrap > .tt-panel');
+  if (panel) {
+    var celebration = document.createElement('div');
+    celebration.className = 'ten-celebrate';
+    celebration.innerHTML = '<div class="ten-celebrate-mascot">' + m[1] + '</div>'
+      + '<h2>LEVEL CLEARED · 通关！</h2>'
+      + '<div class="ten-stars">' + [1, 2, 3].map(function(n){ return n <= v.stars ? '★' : '☆'; }).join('') + '</div>'
+      + '<p style="font-size:20px;font-weight:900;color:#fef08a">✨ +' + v.xp + ' 课堂经验 · 独立答对 ' + v.correct + ' / ' + v.total + ' 轮</p>'
+      + '<small style="color:#b7a9db">独立正确率 ≥85% 三星，≥60% 两星；提示或纠错完成也能斩获一星！</small>'
+      + '<div class="ten-chest-card">'
+      + '  <div style="font-size:14px;color:#fef08a;font-weight:850">🎁 点击开启关卡通关宝箱</div>'
+      + '  <button class="ten-chest-btn" data-ten-chest aria-label="开启宝箱">🎁</button>'
+      + '  <div class="ten-chest-reward" data-ten-reward hidden></div>'
+      + '</div>';
+
+    panel.prepend(celebration);
+
+    var chestBtn = celebration.querySelector('[data-ten-chest]');
+    var rewardBox = celebration.querySelector('[data-ten-reward]');
+    if (chestBtn && rewardBox) {
+      chestBtn.onclick = function(){
+        playSfx('streak');
+        chestBtn.disabled = true;
+        chestBtn.style.animation = 'none';
+        chestBtn.textContent = '✨';
+
+        var REWARDS = [
+          ['👑', '词霸大师', '本关词汇掌握极速！'],
+          ['⚡', '闪电记忆', '瞬时反应令人惊叹！'],
+          ['🔎', '火眼金睛', '任何线索都逃不过你的眼睛！'],
+          ['🌟', '满星新星', '继续保持，向全通进发！'],
+          ['🛡️', '无懈可击', '稳扎稳打，零失误达人！']
+        ];
+        var pick = REWARDS[Math.floor(Math.random() * REWARDS.length)];
+        rewardBox.hidden = false;
+        rewardBox.className = 'ten-chest-revealed';
+        rewardBox.innerHTML = '<div style="font-size:42px;margin:8px 0">' + pick[0] + '</div>'
+          + '<b style="font-size:18px;color:#fde047">' + pick[1] + '</b>'
+          + '<p style="font-size:12px;color:#cbd5e1;margin:4px 0 0">' + pick[2] + '</p>';
+      };
+    }
+  }
+
+  root.querySelectorAll('[data-return]').forEach(function(b){
+    b.textContent = '🏝 返回游戏地图';
+  });
+}
+
+window.MinestTeachingTen = {
+  open: open,
+  home: home,
+  frame: frame,
+  result: result,
+  score: score,
+  modes: MODES.map(function(x){ return x[0]; }),
+  playSfx: playSfx,
+  version: '53.8241'
+};
+
+/* --- Global Entry Injection & Observer --- */
+var queued = false;
+function entries(){
+  var r = document.getElementById('mn-templates');
+  if (r && !r.classList.contains('tt-quest824') && !r.querySelector('[data-ten-entry]')) {
+    var h = r.querySelector('header');
+    if (h) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.tenEntry = '';
+      b.textContent = '🎮 10 个课堂游戏';
+      b.onclick = function(){ open(); };
+      h.insertBefore(b, h.querySelector('[data-exit]'));
+    }
+  }
+  var live = document.querySelector('.mlv');
+  if (live && !live.querySelector('[data-ten-entry]') && live.querySelector('[data-host],[data-teaching-templates]')) {
+    var top = live.querySelector('.mlv-top');
+    var bLive = document.createElement('button');
+    bLive.type = 'button';
+    bLive.className = 'mlv-btn alt';
+    bLive.dataset.tenEntry = '';
+    bLive.textContent = '🎮 Teaching · 10 个课堂游戏';
+    bLive.onclick = function(){ open(); };
+    if (top) top.appendChild(bLive);
+  }
+}
+
+new MutationObserver(function(){
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(function(){
+    queued = false;
+    entries();
+  });
+}).observe(document.documentElement, { childList: true, subtree: true });
+
+entries();
+
+try {
+  var q = new URLSearchParams(location.search);
+  if (['games', 'quest'].includes(q.get('teaching'))) {
+    var tries = 0;
+    (function go(){
+      if (window.MinestTeachingSets && window.MinestTemplates) open();
+      else if (tries++ < 50) setTimeout(go, 100);
+    })();
+  }
+} catch(e){}
+
+})();
+</script>
 </body>
 </html>
