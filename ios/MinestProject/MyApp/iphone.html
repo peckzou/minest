@@ -52067,14 +52067,25 @@ var Ve = (function(_Component) {
     var c = current; current = null;
     c.cleanup.forEach(function (f) { try { f(); } catch (e) {} });
     c.el.remove();
+    try {
+      var u = new URL(location.href);
+      if (u.searchParams.has('play') || u.searchParams.has('join') || u.searchParams.has('code')) {
+        u.searchParams.delete('play');
+        u.searchParams.delete('join');
+        u.searchParams.delete('code');
+        var qs = u.searchParams.toString();
+        history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + (u.hash ? u.hash : ''));
+      }
+    } catch (e) {}
   }
 
   // ================================================================== TEACHER
   function boardsList() { try { return (window.MinestAI && MinestAI.boards && MinestAI.boards()) || []; } catch (e) { return []; } }
   function activeBoard() { try { return window.MinestAI && MinestAI.board && MinestAI.board(); } catch (e) { return null; } }
   function playUrl(code) {
-    var local = /^localhost$|^127\./.test(location.hostname);
-    return (local ? location.origin + location.pathname.replace(/[^/]*$/, '') + PLAY_PAGE : (/vercel\.app$/.test(location.hostname) ? location.origin : 'https://minest-app.vercel.app') + '/play') + '?code=' + code;
+    var origin = (/vercel\.app$/.test(location.hostname) ? location.origin : (location.origin && location.origin !== 'null' ? location.origin : 'https://minest-app.vercel.app'));
+    var path = location.pathname.includes('iPhone') ? location.pathname : '/iphone';
+    return origin + path + '?play=' + encodeURIComponent(code);
   }
 
   // ------------------------------------------------------------------ question sets (uploaded / edited), kept in this browser
@@ -53195,16 +53206,41 @@ var Ve = (function(_Component) {
   }
 
   // ================================================================== STUDENT
+  function computeStudentUrl(c) {
+    try {
+      var base = (/vercel\.app$/.test(location.hostname) ? location.origin : (location.origin && location.origin !== 'null' ? location.origin : 'https://minest-app.vercel.app'));
+      var path = location.pathname.includes('iPhone') ? location.pathname : '/iphone';
+      return base + path + '?play' + (c ? '=' + encodeURIComponent(c) : '');
+    } catch (e) {
+      return 'https://minest-app.vercel.app/iphone?play' + (c ? '=' + encodeURIComponent(c) : '');
+    }
+  }
+  function syncStudentUrl(c) {
+    try {
+      var u = new URL(location.href);
+      u.searchParams.delete('join');
+      u.searchParams.delete('code');
+      if (c) u.searchParams.set('play', c); else u.searchParams.set('play', '');
+      var clean = u.pathname + (c ? '?play=' + encodeURIComponent(c) : '?play') + (u.hash ? u.hash : '');
+      history.replaceState({ modal: 'join', code: c }, '', clean);
+    } catch (e) {}
+  }
   function openJoin(code, standalone) {
     var o = overlay('Minest Live', standalone);
     o.el.classList.add('mlv-kid');   // the students' side: made for children
     setTimeout(function () { OCTO.place('stage'); OCTO.act('wave', 'Hi! Let’s play 🎮', 2200); }, 600);
     var saved = {}; try { saved = JSON.parse(sessionStorage.getItem('minest.live.me') || '{}'); } catch (e) {}
     code = cleanCode(code || '');
+    syncStudentUrl(code);
     var savedAv = String(saved.av || localAv() || '').split('~')[0];
     var selectedAv = STARTER_MONSTERS.indexOf(savedAv) >= 0 && ownsAv(savedAv) ? savedAv : STARTER_MONSTERS[0];
-    o.body.innerHTML = '<section class="mlv-card" style="max-width:440px;margin:6vh auto 0;text-align:center"><div style="font-size:46px">🕹</div><h2>Join the Arcade game</h2><p class="sub">Enter the code on your teacher’s screen.</p>' +
+    o.body.innerHTML = '<section class="mlv-card" style="max-width:440px;margin:4vh auto 0;text-align:center"><div style="font-size:46px">🕹</div><h2>Join the Arcade game</h2><p class="sub">Enter the code on your teacher’s screen.</p>' +
       '<div data-acct class="mlv-acct"></div>' +
+      '<div class="mlv-share-strip" style="margin:10px auto 14px;padding:10px 14px;background:rgba(255,255,255,0.08);border:1.5px dashed rgba(255,255,255,0.25);border-radius:16px;text-align:center">' +
+        '<div style="font-size:11px;font-weight:900;letter-spacing:.08em;color:#fde047;text-transform:uppercase;margin-bottom:4px">📢 Classwize 学生端推送网址</div>' +
+        '<div data-share-url style="font-family:monospace;font-size:12px;font-weight:700;color:#fff;word-break:break-all;user-select:all;-webkit-user-select:all;padding:4px 8px;background:rgba(0,0,0,0.3);border-radius:8px;margin-bottom:6px">' + esc(computeStudentUrl(code)) + '</div>' +
+        '<button type="button" class="mlv-btn alt" data-share-copy style="padding:6px 18px;font-size:12px;font-weight:900;border-radius:999px;background:#38bdf8;color:#0f172a;border:0;box-shadow:0 3px 0 #0284c7;cursor:pointer">📋 一键复制学生直达链接 (Classwize)</button>' +
+      '</div>' +
       '<input type="text" data-code maxlength="8" placeholder="GAME CODE" style="text-align:center;font-size:24px;font-weight:900;letter-spacing:.15em" value="' + esc(code) + '">' +
       '<input type="text" data-name maxlength="20" placeholder="Your name" style="margin-top:10px;text-align:center;font-size:18px" value="' + esc(saved.name || '') + '">' +
       '<div class="mlv-avatar-label">Choose your buddy · <span data-gemct style="color:#fde68a">💎 ' + gems() + '</span></div><div class="mlv-avatar-picker" data-avatar>' + STARTER_MONSTERS.map(function (id) { var c = cardById(id); var own = ownsAv(id); return '<button type="button" class="mlv-avatar-choice' + (id === selectedAv ? ' on' : '') + (own ? '' : ' lock') + '" data-av="' + id + '" title="' + esc(c.name) + '">' + iconHtml(c, 'mlv-card-icon') + (own ? '' : '<span class="pr">💎 ' + avCost(id) + '</span>') + '</button>'; }).join('') + '</div>' +
@@ -53239,7 +53275,30 @@ var Ve = (function(_Component) {
     }; });
     nameIn.addEventListener('input', function () { nameIn.removeAttribute('data-auto'); });
     (code ? nameIn : codeIn).focus();
-    codeIn.oninput = function () { codeIn.value = cleanCode(codeIn.value); };
+    codeIn.oninput = function () {
+      codeIn.value = cleanCode(codeIn.value);
+      var c = codeIn.value;
+      syncStudentUrl(c);
+      var su = $(o.body, '[data-share-url]');
+      if (su) su.textContent = computeStudentUrl(c);
+    };
+    var copyShare = $(o.body, '[data-share-copy]');
+    if (copyShare) {
+      copyShare.onclick = function () {
+        var currentUrl = computeStudentUrl(cleanCode(codeIn.value));
+        try {
+          navigator.clipboard.writeText(currentUrl);
+          copyShare.textContent = '✓ 已复制！直接粘贴到 Classwize';
+          copyShare.style.background = '#4ade80';
+          setTimeout(function () {
+            copyShare.textContent = '📋 一键复制学生直达链接 (Classwize)';
+            copyShare.style.background = '#38bdf8';
+          }, 2400);
+        } catch (err) {
+          prompt('请复制学生端直达链接：', currentUrl);
+        }
+      };
+    }
     function go() {
       var c = cleanCode(codeIn.value), name = nameIn.value.trim().slice(0, 20);
       if (!c) { err.textContent = 'Enter the game code.'; return; }
@@ -53580,13 +53639,18 @@ var Ve = (function(_Component) {
 
   window.MinestLive = { openSet:function(board,options){if(!board||!Array.isArray(board.columns)||!board.columns.length)throw Error('请选择有效的教学词表。');return openTeacher({board:JSON.parse(JSON.stringify(board)),teachingReturn:options||{}});}, openTeacher: openTeacher, openJoin: openJoin, close: close, levels: LEVELS, version: '31.5', badges: CARDS, album: albumMap, showAlbum: showAlbum, openLocker: openLocker, gems: function () { return gems(); } };
 
-  // web31.1.html?play=CODE (or the play page) opens the join screen straight away
+  // web31.1.html?play=CODE (or ?play / ?join / #play / #join) opens the student join screen straight away
   try {
-    var qp = new URLSearchParams(location.search), pc = qp.get('play') || qp.get('code');
-    if (window.__MINEST_LIVE_STANDALONE || qp.get('play') != null) {
+    var qp = new URLSearchParams(location.search);
+    var pc = qp.get('play') || qp.get('code') || qp.get('join') || qp.get('student');
+    var isJoin = window.__MINEST_LIVE_STANDALONE || qp.get('play') != null || qp.get('join') != null || qp.get('student') != null || location.hash === '#play' || location.hash === '#join';
+    if (isJoin) {
       var start = function () { openJoin(pc || '', !!window.__MINEST_LIVE_STANDALONE); };
       if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
     }
+    window.addEventListener('hashchange', function () {
+      if (location.hash === '#play' || location.hash === '#join') openJoin('', false);
+    });
   } catch (e) {}
 })();
 
