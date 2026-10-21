@@ -35102,6 +35102,44 @@ var isDark = themeMode === 'dark';
                           className: "w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl hover:bg-emerald-500/20 hover:text-emerald-400 text-left transition-colors",
                           children: window.MinestCovers821.visible(board.id, col.id) ? "▧ Hide Covers" : "▧ Show Covers"
                         }),
+                        (0, P.jsxs)('button', {
+                          type: "button",
+                          onClick: function(e) {
+                            e.stopPropagation(); setMenuColId(null);
+                            if (onUpdateBoard) {
+                              var nextCols = (board.columns || []).map(function(c) {
+                                if (c.id === col.id) {
+                                  var cur = c.showLabels !== undefined ? c.showLabels : (!board.hideLabels && !board.pureMode);
+                                  return Object.assign({}, c, { showLabels: !cur, hideLabels: cur });
+                                }
+                                return c;
+                              });
+                              onUpdateBoard(Object.assign({}, board, { columns: nextCols }));
+                              SoundEngine.play('click');
+                            }
+                          },
+                          className: "w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl hover:bg-emerald-500/20 hover:text-emerald-400 text-left transition-colors",
+                          children: [(0, P.jsx)('span', { className: "w-3.5 text-center", children: "🏷️" }), (0, P.jsx)('span', { children: ((col.showLabels !== undefined ? col.showLabels : (!board.hideLabels && !board.pureMode)) ? "Hide Labels" : "Show Labels") })]
+                        }),
+                        (0, P.jsxs)('button', {
+                          type: "button",
+                          onClick: function(e) {
+                            e.stopPropagation(); setMenuColId(null);
+                            if (onUpdateBoard) {
+                              var nextCols = (board.columns || []).map(function(c) {
+                                if (c.id === col.id) {
+                                  var cur = c.showChecklists !== undefined ? c.showChecklists : (!board.hideChecklists && !board.pureMode);
+                                  return Object.assign({}, c, { showChecklists: !cur, hideChecklists: cur });
+                                }
+                                return c;
+                              });
+                              onUpdateBoard(Object.assign({}, board, { columns: nextCols }));
+                              SoundEngine.play('click');
+                            }
+                          },
+                          className: "w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl hover:bg-emerald-500/20 hover:text-emerald-400 text-left transition-colors",
+                          children: [(0, P.jsx)('span', { className: "w-3.5 text-center", children: "📋" }), (0, P.jsx)('span', { children: ((col.showChecklists !== undefined ? col.showChecklists : (!board.hideChecklists && !board.pureMode)) ? "Hide Checklists" : "Show Checklists") })]
+                        }),
                         // 41.4: pronunciation practice over the whole list (folded sets included)
                         (0, P.jsxs)('button', {
                           type: "button",
@@ -35417,12 +35455,18 @@ var isDark = themeMode === 'dark';
                       var stackCards = card.stack || [];
                       var isDraggingThis = dragItem && dragItem.cardId === card.id;
                       var isHoverTarget = dropTarget && dropTarget.type === 'stack' && dropTarget.targetCardId === card.id;
-                      var coversVisible821 = window.MinestCovers821.visible(board.id, col.id);
+                      var isPure = !!board.pureMode;
+                      var listCoverPref = window.MinestCovers821 ? window.MinestCovers821.visible(board.id, col.id) : true;
+                      var coversVisible821 = listCoverPref && !board.hideCovers && (!isPure || col.showCovers);
                       var isFullCover = coversVisible821 && card.cover && card.cover.size === 'full';
-                      var hasLabels = validLabels.length > 0;
-                      var hasChecklist = tCheck > 0;
+                      var labelsVisible = !board.hideLabels && !col.hideLabels && (!isPure || col.showLabels);
+                      var hasLabels = labelsVisible && validLabels.length > 0;
+                      var badgesVisible = !board.hideBadges && !col.hideBadges && (!isPure || col.showBadges);
+                      var checklistsVisible = !board.hideChecklists && !col.hideChecklists && (!isPure || col.showChecklists);
+                      var linksVisible = !board.hideLinks && !col.hideLinks && (!isPure || col.showLinks);
+                      var hasChecklist = checklistsVisible && tCheck > 0;
                       var hasCover = coversVisible821 && !!card.cover;
-                      var hasTargetBoard = !!card.targetBoardId;
+                      var hasTargetBoard = linksVisible && !!card.targetBoardId;
                       var tgtBoard = hasTargetBoard ? allBoards.find(function(b) { return b.id === card.targetBoardId; }) : null;
                       var isBoardFlipped = !!boardFlipped[card.id];
 
@@ -35491,6 +35535,12 @@ var isDark = themeMode === 'dark';
                             cachedCard.isStackExpanded === isStackExpanded &&
                             cachedCard.labelDefinitions === board.labelDefinitions &&
                             cachedCard.showLabelNames === board.showLabelNames &&
+                            cachedCard.pureMode === board.pureMode &&
+                            cachedCard.hideCovers === board.hideCovers &&
+                            cachedCard.hideLabels === board.hideLabels &&
+                            cachedCard.hideChecklists === board.hideChecklists &&
+                            cachedCard.hideLinks === board.hideLinks &&
+                            cachedCard.hideBadges === board.hideBadges &&
                             cachedCard.allBoards === allBoards &&
                             cachedCard.hoverCover === (hoverCoverCardId === card.id) &&
                             cachedCard.actionMenu === (cardActionMenuId === card.id)) {
@@ -35978,7 +36028,7 @@ var isDark = themeMode === 'dark';
                                 className: "relative flex items-center gap-1.5 z-10 card-content-flow " + (card.complete ? "has-completed " : "") + ((card.complete && card.priority) ? "has-priority-completed " : "") + (coversVisible821 && card.cover ? "has-cover" : ""),
                                 style: { minHeight: "20px" },
                                 children: [
-                                  (!card.complete && card.priority) ? (
+                                  (!card.complete && card.priority && badgesVisible) ? (
                                     (0, P.jsx)('span', {
                                       className: "card-title-priority-dot " + (card.priority === 'high' ? 'priority-dot-red' : card.priority === 'medium' ? 'priority-dot-yellow' : 'priority-dot-green'),
                                       title: card.priority + " priority"
@@ -36264,7 +36314,7 @@ var isDark = themeMode === 'dark';
                                          className: "relative flex items-center gap-1.5 z-10 subcard-content-flow " + (sub.complete ? "has-completed " : "") + ((sub.complete && sub.priority) ? "has-priority-completed " : ""),
                                          style: { minHeight: "20px" },
                                          children: [
-                                           (!sub.complete && sub.priority) ? (
+                                           (!sub.complete && sub.priority && badgesVisible) ? (
                                              (0, P.jsx)('span', {
                                                className: "card-title-priority-dot " + (sub.priority === 'high' ? 'priority-dot-red' : sub.priority === 'medium' ? 'priority-dot-yellow' : 'priority-dot-green'),
                                                title: sub.priority + " priority"
@@ -36337,7 +36387,10 @@ var isDark = themeMode === 'dark';
                         cardElementCacheRef.current.set(card.id, {
                           element: cardElement, card: card, colId: col.id, colColor: col.color,
                           isStackExpanded: isStackExpanded, labelDefinitions: board.labelDefinitions,
-                          showLabelNames: board.showLabelNames, allBoards: allBoards,
+                          showLabelNames: board.showLabelNames,
+                          pureMode: board.pureMode, hideCovers: board.hideCovers, hideLabels: board.hideLabels,
+                          hideChecklists: board.hideChecklists, hideLinks: board.hideLinks, hideBadges: board.hideBadges,
+                          allBoards: allBoards,
                           hoverCover: (hoverCoverCardId === card.id), actionMenu: (cardActionMenuId === card.id)
                         });
                       }
@@ -37947,9 +38000,76 @@ var Ne = function(props) {
   var activeLabelFilter = activeLabelFilterState[0];
   var setActiveLabelFilter = activeLabelFilterState[1];
 
-  var showLabelNamesState = (0, _.useState)(!!board.showLabelNames);
+  var showLabelNamesState = (0, _.useState)(board.showLabelNames !== false);
   var showLabelNames = showLabelNamesState[0];
   var setShowLabelNames = showLabelNamesState[1];
+
+  var pureModeState = (0, _.useState)(!!board.pureMode);
+  var pureMode = pureModeState[0];
+  var setPureMode = pureModeState[1];
+
+  var hideCoversState = (0, _.useState)(board.hideCovers !== undefined ? !!board.hideCovers : (window.MinestCovers821 && !window.MinestCovers821.anyVisible(board)));
+  var hideCovers = hideCoversState[0];
+  var setHideCovers = hideCoversState[1];
+
+  var hideLabelsState = (0, _.useState)(!!board.hideLabels);
+  var hideLabels = hideLabelsState[0];
+  var setHideLabels = hideLabelsState[1];
+
+  var hideChecklistsState = (0, _.useState)(!!board.hideChecklists);
+  var hideChecklists = hideChecklistsState[0];
+  var setHideChecklists = hideChecklistsState[1];
+
+  var hideLinksState = (0, _.useState)(!!board.hideLinks);
+  var hideLinks = hideLinksState[0];
+  var setHideLinks = hideLinksState[1];
+
+  var hideBadgesState = (0, _.useState)(!!board.hideBadges);
+  var hideBadges = hideBadgesState[0];
+  var setHideBadges = hideBadgesState[1];
+
+  var applyBoardDisplayUpdate = function(patch) {
+    if (onUpdateBoard) {
+      onUpdateBoard(Object.assign({}, board, patch));
+    }
+  };
+
+  var togglePureMode = function() {
+    var nextVal = !pureMode;
+    setPureMode(nextVal);
+    var patch = { pureMode: nextVal };
+    if (nextVal) {
+      setHideCovers(true);
+      setHideLabels(true);
+      setHideChecklists(true);
+      setHideLinks(true);
+      setHideBadges(true);
+      patch.hideCovers = true;
+      patch.hideLabels = true;
+      patch.hideChecklists = true;
+      patch.hideLinks = true;
+      patch.hideBadges = true;
+      if (window.MinestCovers821 && window.MinestCovers821.anyVisible(board)) {
+        window.MinestCovers821.toggleBoard(board);
+      }
+    } else {
+      setHideCovers(false);
+      setHideLabels(false);
+      setHideChecklists(false);
+      setHideLinks(false);
+      setHideBadges(false);
+      patch.hideCovers = false;
+      patch.hideLabels = false;
+      patch.hideChecklists = false;
+      patch.hideLinks = false;
+      patch.hideBadges = false;
+      if (window.MinestCovers821 && !window.MinestCovers821.anyVisible(board)) {
+        window.MinestCovers821.toggleBoard(board);
+      }
+    }
+    applyBoardDisplayUpdate(patch);
+    SoundEngine.play('click');
+  };
 
   var sortAllColumnsByPriority = function() {
     if (onUpdateBoard) {
@@ -38072,7 +38192,13 @@ var Ne = function(props) {
         sortBy: sortBy,
         activeLabelFilter: activeLabelFilter,
         showLabelNames: showLabelNames,
-        expandStacks: expandStacks
+        expandStacks: expandStacks,
+        pureMode: pureMode,
+        hideCovers: hideCovers,
+        hideLabels: hideLabels,
+        hideChecklists: hideChecklists,
+        hideLinks: hideLinks,
+        hideBadges: hideBadges
       }));
     } else if (onSaveTitle) {
       onSaveTitle(title.trim());
@@ -38114,11 +38240,23 @@ var Ne = function(props) {
               ]
             }),
             (0, P.jsx)('button', {
+              type: "button",
+              onClick: togglePureMode,
+              className: "px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all shrink-0 " + (pureMode ? "bg-emerald-500 text-white font-bold shadow-sm" : "hover:bg-emerald-500/20 hover:text-emerald-400 opacity-80 hover:opacity-100"),
+              title: "Toggle Pure Mode (hide all covers, labels, checklists, links & badges)",
+              children: pureMode ? "✨ 纯净模式 (ON)" : "✨ 纯净模式"
+            }),
+            (0, P.jsx)('button', {
               type: "button", 'data-cover821': 'board-settings',
-              onClick: function() { window.MinestCovers821.toggleBoard(board); },
+              onClick: function() {
+                var nextHide = !hideCovers;
+                setHideCovers(nextHide);
+                applyBoardDisplayUpdate({ hideCovers: nextHide });
+                window.MinestCovers821.toggleBoard(board);
+              },
               className: "px-2 py-1.5 rounded-lg text-[11px] font-semibold hover:bg-emerald-500/20 transition-colors shrink-0",
               title: "Show or hide all card covers; original covers are kept",
-              children: window.MinestCovers821.anyVisible(board) ? "Hide Covers" : "Show Covers"
+              children: (hideCovers || !window.MinestCovers821.anyVisible(board)) ? "Show Covers" : "Hide Covers"
             }),
             (0, P.jsx)('button', {
               type: "button",
@@ -38460,20 +38598,47 @@ var Ne = function(props) {
                     ]
                   }),
 
-                  // Section 4: Display & Stacking Preferences
+                  // Section 4: Pure Mode & Display Preferences
                   (0, P.jsxs)('div', {
-                    className: "space-y-3 p-4 rounded-2xl border " + (isDark ? "bg-white/[0.02] border-white/10" : "bg-slate-50/60 border-slate-200"),
+                    className: "space-y-4 p-4 rounded-2xl border " + (isDark ? "bg-white/[0.02] border-white/10" : "bg-slate-50/60 border-slate-200"),
                     children: [
-                      (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider opacity-70", children: "Display & Stacking Preferences" }),
+                      // Header
+                      (0, P.jsxs)('div', {
+                        className: "flex items-center justify-between pb-1 border-b " + (isDark ? "border-white/10" : "border-slate-200/80"),
+                        children: [
+                          (0, P.jsxs)('div', {
+                            className: "flex items-center gap-2",
+                            children: [
+                              (0, P.jsx)('span', { className: "text-base leading-none", children: "✨" }),
+                              (0, P.jsx)('label', { className: "text-xs font-bold uppercase tracking-wider opacity-80", children: "Pure Mode & Display Controls" })
+                            ]
+                          }),
+                          (0, P.jsx)('button', {
+                            type: "button",
+                            onClick: togglePureMode,
+                            className: "px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm " +
+                              (pureMode
+                                ? "bg-emerald-500 text-white hover:bg-emerald-400 scale-105"
+                                : (isDark ? "bg-white/10 hover:bg-white/15 text-white/80" : "bg-slate-200 hover:bg-slate-300 text-slate-700")),
+                            children: [
+                              (0, P.jsx)('span', { children: pureMode ? "✓ 纯净模式已开启" : "一键纯净模式 (Pure Mode)" })
+                            ]
+                          })
+                        ]
+                      }),
+                      (0, P.jsx)('p', {
+                        className: "text-[11px] opacity-60 leading-relaxed -mt-1",
+                        children: "纯净模式将一键隐藏所有卡片封面、标签、清单进度、外链与优先级指示灯，让看板极简专注。后续仍可在各个列表菜单或打开卡片查看全部细节。"
+                      }),
 
-                      // Label Presentation
+                      // Row 1: Card Covers
                       (0, P.jsxs)('div', {
                         className: "flex items-center justify-between flex-wrap gap-2 pt-1 border-b pb-3 " + (isDark ? "border-white/10" : "border-slate-200/80"),
                         children: [
                           (0, P.jsxs)('div', {
                             children: [
-                              (0, P.jsx)('div', { className: "text-xs font-bold", children: "Label Display Mode" }),
-                              (0, P.jsx)('div', { className: "text-[11px] opacity-60", children: "Choose between full text badges and minimal color bars on cards." })
+                              (0, P.jsxs)('div', { className: "text-xs font-bold flex items-center gap-1.5", children: [(0, P.jsx)('span', { children: "🖼️" }), "卡片封面 · Card Covers"] }),
+                              (0, P.jsx)('div', { className: "text-[11px] opacity-60", children: "一键全部显示或隐藏看板卡片封面图。" })
                             ]
                           }),
                           (0, P.jsxs)('div', {
@@ -38481,35 +38646,45 @@ var Ne = function(props) {
                             children: [
                               (0, P.jsx)('button', {
                                 type: "button",
-                                onClick: function() { setShowLabelNames(true); SoundEngine.play('click'); },
+                                onClick: function() {
+                                  setHideCovers(false);
+                                  applyBoardDisplayUpdate({ hideCovers: false });
+                                  if (window.MinestCovers821 && !window.MinestCovers821.anyVisible(board)) window.MinestCovers821.toggleBoard(board);
+                                  SoundEngine.play('click');
+                                },
                                 className: "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all " +
-                                  (showLabelNames
+                                  (!hideCovers
                                     ? (isDark ? "bg-white/20 text-white font-bold shadow-sm border border-white/20" : "bg-white text-slate-900 font-bold shadow-sm border border-slate-200/80")
                                     : "opacity-60 hover:opacity-100"),
-                                children: "Text Badges"
+                                children: "显示封面"
                               }),
                               (0, P.jsx)('button', {
                                 type: "button",
-                                onClick: function() { setShowLabelNames(false); SoundEngine.play('click'); },
+                                onClick: function() {
+                                  setHideCovers(true);
+                                  applyBoardDisplayUpdate({ hideCovers: true });
+                                  if (window.MinestCovers821 && window.MinestCovers821.anyVisible(board)) window.MinestCovers821.toggleBoard(board);
+                                  SoundEngine.play('click');
+                                },
                                 className: "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all " +
-                                  (!showLabelNames
+                                  (hideCovers
                                     ? (isDark ? "bg-white/20 text-white font-bold shadow-sm border border-white/20" : "bg-white text-slate-900 font-bold shadow-sm border border-slate-200/80")
                                     : "opacity-60 hover:opacity-100"),
-                                children: "Color Stripes"
+                                children: "隐藏封面"
                               })
                             ]
                           })
                         ]
                       }),
 
-                      // Card Stacks Default State
+                      // Row 2: Card Labels (3-way: Text Badges / Color Stripes / Hide)
                       (0, P.jsxs)('div', {
-                        className: "flex items-center justify-between flex-wrap gap-2 pt-1",
+                        className: "flex items-center justify-between flex-wrap gap-2 pt-1 border-b pb-3 " + (isDark ? "border-white/10" : "border-slate-200/80"),
                         children: [
                           (0, P.jsxs)('div', {
                             children: [
-                              (0, P.jsx)('div', { className: "text-xs font-bold", children: "Card Stacks Default State" }),
-                              (0, P.jsx)('div', { className: "text-[11px] opacity-60", children: "Control whether multi-card stacks appear expanded or collapsed." })
+                              (0, P.jsxs)('div', { className: "text-xs font-bold flex items-center gap-1.5", children: [(0, P.jsx)('span', { children: "🏷️" }), "卡片标签 · Card Labels"] }),
+                              (0, P.jsx)('div', { className: "text-[11px] opacity-60", children: "一键切换文字徽章、彩色条，或完全隐藏标签。" })
                             ]
                           }),
                           (0, P.jsxs)('div', {
@@ -38517,21 +38692,176 @@ var Ne = function(props) {
                             children: [
                               (0, P.jsx)('button', {
                                 type: "button",
-                                onClick: function() { setExpandStacks(false); SoundEngine.play('click'); },
+                                onClick: function() {
+                                  setHideLabels(false);
+                                  setShowLabelNames(true);
+                                  applyBoardDisplayUpdate({ hideLabels: false, showLabelNames: true });
+                                  SoundEngine.play('click');
+                                },
+                                className: "px-2 py-1 rounded-lg text-xs font-semibold transition-all " +
+                                  (!hideLabels && showLabelNames
+                                    ? (isDark ? "bg-white/20 text-white font-bold shadow-sm border border-white/20" : "bg-white text-slate-900 font-bold shadow-sm border border-slate-200/80")
+                                    : "opacity-60 hover:opacity-100"),
+                                children: "文字徽章"
+                              }),
+                              (0, P.jsx)('button', {
+                                type: "button",
+                                onClick: function() {
+                                  setHideLabels(false);
+                                  setShowLabelNames(false);
+                                  applyBoardDisplayUpdate({ hideLabels: false, showLabelNames: false });
+                                  SoundEngine.play('click');
+                                },
+                                className: "px-2 py-1 rounded-lg text-xs font-semibold transition-all " +
+                                  (!hideLabels && !showLabelNames
+                                    ? (isDark ? "bg-white/20 text-white font-bold shadow-sm border border-white/20" : "bg-white text-slate-900 font-bold shadow-sm border border-slate-200/80")
+                                    : "opacity-60 hover:opacity-100"),
+                                children: "彩色条"
+                              }),
+                              (0, P.jsx)('button', {
+                                type: "button",
+                                onClick: function() {
+                                  setHideLabels(true);
+                                  applyBoardDisplayUpdate({ hideLabels: true });
+                                  SoundEngine.play('click');
+                                },
+                                className: "px-2 py-1 rounded-lg text-xs font-semibold transition-all " +
+                                  (hideLabels
+                                    ? (isDark ? "bg-white/20 text-white font-bold shadow-sm border border-white/20" : "bg-white text-slate-900 font-bold shadow-sm border border-slate-200/80")
+                                    : "opacity-60 hover:opacity-100"),
+                                children: "隐藏标签"
+                              })
+                            ]
+                          })
+                        ]
+                      }),
+
+                      // Row 3: Checklists & Links & Priority Lights in a 3-column micro grid
+                      (0, P.jsxs)('div', {
+                        className: "grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-b pb-3 " + (isDark ? "border-white/10" : "border-slate-200/80"),
+                        children: [
+                          // Checklists
+                          (0, P.jsxs)('div', {
+                            className: "p-2.5 rounded-xl border flex flex-col justify-between gap-2 " + (isDark ? "bg-white/[0.02] border-white/10" : "bg-white/70 border-slate-200"),
+                            children: [
+                              (0, P.jsxs)('div', {
+                                children: [
+                                  (0, P.jsxs)('div', { className: "text-xs font-bold flex items-center gap-1", children: [(0, P.jsx)('span', { children: "📋" }), "清单进度"] }),
+                                  (0, P.jsx)('div', { className: "text-[10px] opacity-60 leading-tight", children: "卡片底部进度徽章" })
+                                ]
+                              }),
+                              (0, P.jsxs)('div', {
+                                className: "flex items-center gap-1 p-0.5 rounded-lg border " + (isDark ? "bg-black/30 border-white/10" : "bg-slate-200/60 border-slate-300/60"),
+                                children: [
+                                  (0, P.jsx)('button', {
+                                    type: "button",
+                                    onClick: function() { setHideChecklists(false); applyBoardDisplayUpdate({ hideChecklists: false }); SoundEngine.play('click'); },
+                                    className: "flex-1 py-1 text-[11px] font-semibold rounded transition-all text-center " + (!hideChecklists ? (isDark ? "bg-white/20 text-white font-bold" : "bg-white text-slate-900 font-bold shadow-xs") : "opacity-60 hover:opacity-100"),
+                                    children: "显示"
+                                  }),
+                                  (0, P.jsx)('button', {
+                                    type: "button",
+                                    onClick: function() { setHideChecklists(true); applyBoardDisplayUpdate({ hideChecklists: true }); SoundEngine.play('click'); },
+                                    className: "flex-1 py-1 text-[11px] font-semibold rounded transition-all text-center " + (hideChecklists ? (isDark ? "bg-white/20 text-white font-bold" : "bg-white text-slate-900 font-bold shadow-xs") : "opacity-60 hover:opacity-100"),
+                                    children: "隐藏"
+                                  })
+                                ]
+                              })
+                            ]
+                          }),
+
+                          // Links / Jump Buttons
+                          (0, P.jsxs)('div', {
+                            className: "p-2.5 rounded-xl border flex flex-col justify-between gap-2 " + (isDark ? "bg-white/[0.02] border-white/10" : "bg-white/70 border-slate-200"),
+                            children: [
+                              (0, P.jsxs)('div', {
+                                children: [
+                                  (0, P.jsxs)('div', { className: "text-xs font-bold flex items-center gap-1", children: [(0, P.jsx)('span', { children: "🔗" }), "关联外链"] }),
+                                  (0, P.jsx)('div', { className: "text-[10px] opacity-60 leading-tight", children: "卡片跳转链接 (↗)" })
+                                ]
+                              }),
+                              (0, P.jsxs)('div', {
+                                className: "flex items-center gap-1 p-0.5 rounded-lg border " + (isDark ? "bg-black/30 border-white/10" : "bg-slate-200/60 border-slate-300/60"),
+                                children: [
+                                  (0, P.jsx)('button', {
+                                    type: "button",
+                                    onClick: function() { setHideLinks(false); applyBoardDisplayUpdate({ hideLinks: false }); SoundEngine.play('click'); },
+                                    className: "flex-1 py-1 text-[11px] font-semibold rounded transition-all text-center " + (!hideLinks ? (isDark ? "bg-white/20 text-white font-bold" : "bg-white text-slate-900 font-bold shadow-xs") : "opacity-60 hover:opacity-100"),
+                                    children: "显示"
+                                  }),
+                                  (0, P.jsx)('button', {
+                                    type: "button",
+                                    onClick: function() { setHideLinks(true); applyBoardDisplayUpdate({ hideLinks: true }); SoundEngine.play('click'); },
+                                    className: "flex-1 py-1 text-[11px] font-semibold rounded transition-all text-center " + (hideLinks ? (isDark ? "bg-white/20 text-white font-bold" : "bg-white text-slate-900 font-bold shadow-xs") : "opacity-60 hover:opacity-100"),
+                                    children: "隐藏"
+                                  })
+                                ]
+                              })
+                            ]
+                          }),
+
+                          // Priority Lights / Indicators
+                          (0, P.jsxs)('div', {
+                            className: "p-2.5 rounded-xl border flex flex-col justify-between gap-2 " + (isDark ? "bg-white/[0.02] border-white/10" : "bg-white/70 border-slate-200"),
+                            children: [
+                              (0, P.jsxs)('div', {
+                                children: [
+                                  (0, P.jsxs)('div', { className: "text-xs font-bold flex items-center gap-1", children: [(0, P.jsx)('span', { children: "💡" }), "指示灯与圆点"] }),
+                                  (0, P.jsx)('div', { className: "text-[10px] opacity-60 leading-tight", children: "红黄绿优先级标记" })
+                                ]
+                              }),
+                              (0, P.jsxs)('div', {
+                                className: "flex items-center gap-1 p-0.5 rounded-lg border " + (isDark ? "bg-black/30 border-white/10" : "bg-slate-200/60 border-slate-300/60"),
+                                children: [
+                                  (0, P.jsx)('button', {
+                                    type: "button",
+                                    onClick: function() { setHideBadges(false); applyBoardDisplayUpdate({ hideBadges: false }); SoundEngine.play('click'); },
+                                    className: "flex-1 py-1 text-[11px] font-semibold rounded transition-all text-center " + (!hideBadges ? (isDark ? "bg-white/20 text-white font-bold" : "bg-white text-slate-900 font-bold shadow-xs") : "opacity-60 hover:opacity-100"),
+                                    children: "显示"
+                                  }),
+                                  (0, P.jsx)('button', {
+                                    type: "button",
+                                    onClick: function() { setHideBadges(true); applyBoardDisplayUpdate({ hideBadges: true }); SoundEngine.play('click'); },
+                                    className: "flex-1 py-1 text-[11px] font-semibold rounded transition-all text-center " + (hideBadges ? (isDark ? "bg-white/20 text-white font-bold" : "bg-white text-slate-900 font-bold shadow-xs") : "opacity-60 hover:opacity-100"),
+                                    children: "隐藏"
+                                  })
+                                ]
+                              })
+                            ]
+                          })
+                        ]
+                      }),
+
+                      // Row 4: Card Stacks Default State
+                      (0, P.jsxs)('div', {
+                        className: "flex items-center justify-between flex-wrap gap-2 pt-0.5",
+                        children: [
+                          (0, P.jsxs)('div', {
+                            children: [
+                              (0, P.jsx)('div', { className: "text-xs font-bold", children: "卡片折叠堆叠 · Stacks Default" }),
+                              (0, P.jsx)('div', { className: "text-[11px] opacity-60", children: "控制多卡片堆叠默认展开或折叠展示。" })
+                            ]
+                          }),
+                          (0, P.jsxs)('div', {
+                            className: "flex items-center gap-1 p-1 rounded-xl border " + (isDark ? "bg-black/30 border-white/10" : "bg-slate-200/60 border-slate-300/60"),
+                            children: [
+                              (0, P.jsx)('button', {
+                                type: "button",
+                                onClick: function() { setExpandStacks(false); applyBoardDisplayUpdate({ expandStacks: false }); SoundEngine.play('click'); },
                                 className: "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all " +
                                   (!expandStacks
                                     ? (isDark ? "bg-white/20 text-white font-bold shadow-sm border border-white/20" : "bg-white text-slate-900 font-bold shadow-sm border border-slate-200/80")
                                     : "opacity-60 hover:opacity-100"),
-                                children: "Collapse All"
+                                children: "折叠堆叠"
                               }),
                               (0, P.jsx)('button', {
                                 type: "button",
-                                onClick: function() { setExpandStacks(true); SoundEngine.play('click'); },
+                                onClick: function() { setExpandStacks(true); applyBoardDisplayUpdate({ expandStacks: true }); SoundEngine.play('click'); },
                                 className: "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all " +
                                   (expandStacks
                                     ? (isDark ? "bg-white/20 text-white font-bold shadow-sm border border-white/20" : "bg-white text-slate-900 font-bold shadow-sm border border-slate-200/80")
                                     : "opacity-60 hover:opacity-100"),
-                                children: "Expand All"
+                                children: "全部展开"
                               })
                             ]
                           })
