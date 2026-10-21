@@ -52107,8 +52107,8 @@ var Ve = (function(_Component) {
     function card(x, i) {
       if (typeof x === 'string') { var m = x.split(/\s*(?:\t| - | – | — |=|:|：)\s*/); return { id: kid('k'), title: txt(m[0]), desc: txt(m.slice(1).join(' · ')) }; }
       if (!x || typeof x !== 'object') return null;
-      var t = txt(x.title || x.term || x.word || x.front || x.q || x.question || x.prompt || x.name || x.zh || x.en);
-      var d = txt(x.desc || x.description || x.meaning || x.definition || x.back || x.a || x.answer || x.translation || x.def);
+      var t = txt(x.title_zh ? (x.title_zh + (x.title ? ' (' + x.title + ')' : '')) : (x.title || x.term || x.word || x.front || x.q || x.question || x.prompt || x.name || x.zh || x.en));
+      var d = txt(x.desc || x.description || x.meaning || x.definition || x.back || x.a || x.answer || x.translation || x.def || x.search_query || x.notes_zh);
       if (x.pinyin && d.indexOf(x.pinyin) < 0) d = txt(x.pinyin) + (d ? ' · ' + d : '');
       if (x.example) d += (d ? '\n' : '') + '例句 Example: ' + txt(x.example);
       return t ? { id: String(x.id || kid('k')), title: t, desc: d } : null;
@@ -52118,6 +52118,29 @@ var Ve = (function(_Component) {
     if (data && Array.isArray(data.boards) && data.boards[0]) data = data.boards[0];
     var cols = [];
     if (data && Array.isArray(data.columns)) cols = data.columns.map(function (c) { return { id: String(c.id || kid('c')), title: txt(c.title || c.name) || 'List', cards: cards(c.cards) }; });
+    else if (data && Array.isArray(data.outline) && data.outline.length) {
+      function walkOutline(node) {
+        if (!node) return;
+        if (node.children && node.children.length && (node.type === 'subject' || node.type === 'category' || node.level === 1)) {
+          var subCards = [];
+          function collectLeaves(n) {
+            if (!n) return;
+            if (n.type === 'anchor_chart' || n.type === 'card' || n.type === 'item' || (!n.children || !n.children.length)) {
+              if (n.title || n.title_zh || n.term || n.word) subCards.push(n);
+            } else if (Array.isArray(n.children)) {
+              n.children.forEach(collectLeaves);
+            }
+          }
+          collectLeaves(node);
+          if (subCards.length) {
+            cols.push({ id: String(node.id || kid('c')), title: txt(node.title_zh ? (node.title_zh + ' (' + (node.title || '') + ')') : node.title) || 'List', cards: cards(subCards) });
+          }
+        } else if (Array.isArray(node.children)) {
+          node.children.forEach(walkOutline);
+        }
+      }
+      data.outline.forEach(walkOutline);
+    }
     else if (data && Array.isArray(data.lists) && Array.isArray(data.cards) && data.lists[0] && data.lists[0].id) {   // Trello
       cols = data.lists.filter(function (l) { return !l.closed; }).map(function (l) { return { id: String(l.id), title: l.name || 'List', cards: cards(data.cards.filter(function (c) { return c.idList === l.id && !c.closed; }).map(function (c) { return { title: c.name, desc: c.desc }; })) }; });
     }
@@ -57599,6 +57622,23 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
   function importJSON(J, opts) {
     J = typeof J === 'string' ? JSON.parse(J) : J;
     if (J && J.template === 'course') return importCourse(J, opts);
+    if (J && (Array.isArray(J.columns) || Array.isArray(J.outline))) {
+      var b = J;
+      if (!Array.isArray(b.columns) && Array.isArray(b.outline)) {
+        var k = parseKit(b, b.title || 'Imported Board');
+        b = { id: 'board-' + slug(k.title), title: k.title, columns: k.columns, labelDefinitions: [] };
+      }
+      var ai = A();
+      if (!ai.boards || !ai.addBoard) throw new Error('The board is still loading — try again in a moment.');
+      var bid = b.id || ('board-' + slug(b.title || 'imported'));
+      b.id = bid;
+      var old = ai.boards().filter(function (x) { return x.id === bid; })[0] || null;
+      var m = mergeBoard(old, b);
+      if (old) ai.updateBoard(bid, function () { return m.board; }); else ai.addBoard(m.board, opts && opts.select !== false);
+      var parts = [{ at: Date.now(), bid: bid, title: b.title, board: old }];
+      var u = loadUndo(); u.unshift(parts[0]); saveUndo(u.slice(0, 5));
+      return { boardId: bid, title: b.title, isNew: !old, added: m.added, updated: m.updated, gone: m.gone, warnings: [] };
+    }
     var parts = [], r = importOne(J, opts, parts);
     var u = loadUndo(); u.unshift(parts[0]); saveUndo(u.slice(0, 5));
     return r;
