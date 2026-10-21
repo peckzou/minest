@@ -86669,7 +86669,7 @@ function compact(url,signal){return new Promise(function(resolve,reject){var img
         select:function(id){if(!columns.some(function(c){return c.id===id;}))return;col=id;library();},
         home:library,
         availability:function(){reload();return reasons();},
-        info:function(){return {boardId:board.id,col:col,mode:mode,items:items.length,lists:columns.map(function(c){return {id:c.id,title:c.title};}),completed:session?session.completed||0:0,total:session?session.total||0:0,correct:session?session.correct||0:0,streak:session?session.streak||0:0};}
+        info:function(){return {boardId:board.id,col:col,mode:mode,items:items.length,lists:columns.map(function(c){return {id:c.id,title:c.title};}),completed:session?session.completed||0:0,total:session?session.total||0:0,correct:session?session.correct||0:0,streak:session?session.streak||0:0,current:session?session.current:null,allItems:items};}
       };
     }
     library();
@@ -88683,6 +88683,329 @@ html body #mn-templates.tt-quest8241 [data-return] {
   html body #mn-templates.tt-quest8241 .tt-options {
     grid-template-columns: 1fr;
   }
+  .teacher-manager-modal {
+    max-height: 96vh;
+    border-radius: 20px;
+  }
+}
+
+/* =========================================================================
+   PINYIN & ENGLISH BILINGUAL PRESENTATION (拼音在汉字上 · 英文在汉字下)
+   ========================================================================= */
+.solo-word-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  line-height: 1.15;
+}
+.solo-ruby-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.solo-ruby {
+  display: inline-flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  text-align: center;
+}
+.solo-ruby rt,
+.solo-py {
+  font-family: "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  color: #7c3aed;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  display: block;
+}
+.tt-options button .solo-py,
+.blook-sorting-crate .solo-py {
+  color: #fde047;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.solo-hz {
+  font-size: 22px;
+  font-weight: 900;
+  display: block;
+  letter-spacing: 0.04em;
+}
+.solo-en {
+  font-family: "Nunito", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.88);
+  display: block;
+  text-align: center;
+  max-width: 160px;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+.il-source .solo-en {
+  color: #6b7280;
+}
+.tt-options button .solo-en {
+  color: #ffffff;
+  opacity: 0.92;
+  font-size: 13px;
+}
+
+/* Hide English Toggle */
+#mn-templates.hide-english [data-solo-en],
+#mn-templates.hide-english .solo-en {
+  display: none !important;
+}
+.solo-en-toggle {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+.solo-en-toggle:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.03);
+}
+
+/* Question Capsule Picture Priority (Requirement 4) */
+.toon-q-media {
+  margin: 10px auto 4px;
+  max-width: 280px;
+  display: flex;
+  justify-content: center;
+}
+.toon-q-image {
+  max-height: 140px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 3px solid #8b5cf6;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+.toon-q-bilingual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0;
+}
+.toon-q-bilingual .solo-py {
+  font-size: 18px;
+  color: #7c3aed;
+  font-weight: 900;
+}
+.toon-q-bilingual .solo-hz {
+  font-size: clamp(34px, 5vw, 46px);
+  color: #2e1065;
+  font-weight: 900;
+}
+.toon-q-en {
+  font-size: 18px !important;
+  color: #4b5563 !important;
+  font-weight: 800 !important;
+  margin-top: 4px;
+}
+
+/* =========================================================================
+   TEACHER WORD LIST & MINEST CLOUD SYNC MANAGER (教师端 · 词表管理中心)
+   ========================================================================= */
+.teacher-manager-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 7, 34, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+.teacher-manager-modal {
+  background: #ffffff;
+  color: #2e1065;
+  width: 100%;
+  max-width: 820px;
+  max-height: 90vh;
+  border-radius: 28px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "Nunito", -apple-system, sans-serif;
+  animation: slideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.teacher-manager-header {
+  background: #3c1682;
+  color: #ffffff;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.teacher-manager-header h2 {
+  font-family: "Titan One", "Nunito", sans-serif;
+  font-size: 20px;
+  margin: 0;
+  color: #ffffff;
+}
+.teacher-manager-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.teacher-sync-card {
+  background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%);
+  border: 2px solid #c4b5fd;
+  border-radius: 20px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.teacher-sync-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.teacher-sync-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 20px;
+}
+.teacher-sync-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.teacher-btn {
+  border: 0;
+  border-radius: 14px;
+  padding: 8px 16px;
+  font-family: "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.1s ease;
+}
+.teacher-btn:active {
+  transform: translateY(2px);
+}
+.teacher-btn-primary {
+  background: #22c55e;
+  color: #ffffff;
+  box-shadow: 0 3px 0 #15803d;
+}
+.teacher-btn-cloud {
+  background: #06b6d4;
+  color: #ffffff;
+  box-shadow: 0 3px 0 #0891b2;
+}
+.teacher-btn-purple {
+  background: #7c3aed;
+  color: #ffffff;
+  box-shadow: 0 3px 0 #5b21b6;
+}
+.teacher-btn-alt {
+  background: #ffffff;
+  color: #2e1065;
+  border: 1px solid #dcd3f5;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
+}
+.teacher-lists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.teacher-list-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+.teacher-list-card.is-active {
+  border-color: #8b5cf6;
+  background: #faf5ff;
+}
+.teacher-list-card h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: #2e1065;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.teacher-preview-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 72px;
+  overflow: hidden;
+}
+.teacher-chip {
+  background: #ede9fe;
+  color: #6d28d9;
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.teacher-create-box {
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 20px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.teacher-create-box input,
+.teacher-create-box textarea {
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  color: #2e1065;
+  width: 100%;
+  box-sizing: border-box;
 }
 </style>
 <script id="teaching-ten8241">/* 53.8241 · Authentic Minest Live Solo & Blooket Experience with Rich Drag Gameplay */
@@ -88703,6 +89026,22 @@ var MODES=[
 
 var KEY='minest.teaching.ten824.best';
 var MUTED_KEY='minest.teaching.ten.muted';
+var SHOW_EN_KEY='minest.teaching.show_en.v1';
+
+var DICT = {
+  '跑步':'run','看书':'read books','画画':'draw','听音乐':'listen to music','唱歌':'sing','游泳':'swim','跳舞':'dance','骑车':'ride a bike',
+  '睡觉':'sleep','吃早饭':'eat breakfast','吃午饭':'eat lunch','吃晚饭':'eat dinner','上学':'go to school','回家':'go home','做作业':'do homework',
+  '打篮球':'play basketball','踢足球':'play soccer','玩游戏':'play games','看电视':'watch TV','喝水':'drink water',
+  '苹果':'apple','香蕉':'banana','西瓜':'watermelon','葡萄':'grape','草莓':'strawberry','橙子':'orange','桃子':'peach','柠檬':'lemon',
+  '面包':'bread','牛奶':'milk','米饭':'rice','面条':'noodles','鸡蛋':'egg','水':'water','茶':'tea','果汁':'juice',
+  '猫':'cat','狗':'dog','鸟':'bird','鱼':'fish','兔子':'rabbit','熊猫':'panda','猴子':'monkey','大象':'elephant','狮子':'lion','老虎':'tiger',
+  '红色':'red','黄色':'yellow','蓝色':'blue','绿色':'green','白色':'white','黑色':'black','橙色':'orange','紫色':'purple','粉色':'pink',
+  '爸爸':'father','妈妈':'mother','哥哥':'older brother','姐姐':'older sister','弟弟':'younger brother','妹妹':'younger sister',
+  '老师':'teacher','学生':'student','学校':'school','教室':'classroom','朋友':'friend','医生':'doctor',
+  '太阳':'sun','月亮':'moon','星星':'star','云':'cloud','雨':'rain','雪':'snow','风':'wind','树':'tree','花':'flower',
+  '书包':'backpack','铅笔':'pencil','尺子':'ruler','橡皮':'eraser','书':'book','笔':'pen',
+  '一':'one','二':'two','三':'three','四':'four','五':'five','六':'six','七':'seven','八':'eight','九':'nine','十':'ten'
+};
 
 function esc(s){
   return String(s==null?'':s).replace(/[&<>"']/g,function(c){
@@ -88723,6 +89062,414 @@ function isMuted(){
 function setMuted(val){
   try{ localStorage.setItem(MUTED_KEY, val?'1':'0'); }
   catch(e){}
+}
+
+function isShowEnglish(){
+  try {
+    var v = localStorage.getItem(SHOW_EN_KEY);
+    return v === null ? true : v === '1';
+  } catch(e) { return true; }
+}
+
+function setShowEnglish(show, root){
+  try { localStorage.setItem(SHOW_EN_KEY, show ? '1' : '0'); } catch(e){}
+  if (root) {
+    root.classList.toggle('hide-english', !show);
+    root.querySelectorAll('[data-toggle-en]').forEach(function(b){
+      b.textContent = show ? '👁 英文: 显示' : '👁‍🗨 英文: 隐藏';
+      b.setAttribute('aria-pressed', show ? 'true' : 'false');
+    });
+  }
+}
+
+function getCardPinyin(word, card){
+  if (card && card.py && String(card.py).trim()) return String(card.py).trim();
+  if (typeof window !== 'undefined' && window.MinestTeachingAssets && window.MinestTeachingAssets.pinyin) {
+    try {
+      var py = window.MinestTeachingAssets.pinyin(word);
+      if (py && !/[\u3400-\u9fff]/.test(py)) return py;
+    } catch(e){}
+  }
+  return '';
+}
+
+function getCardEnglish(word, card){
+  if (card && (card.back || card.desc)) {
+    var b = String(card.back || card.desc).trim();
+    if (b && !/[\u3400-\u9fff]/.test(b)) return b;
+  }
+  if (DICT[word]) return DICT[word];
+  if (card && card.back) return card.back;
+  return '';
+}
+
+function formatRuby(hz, py){
+  if (!hz) return '';
+  py = String(py || '').trim();
+  if (!py && typeof window !== 'undefined' && window.MinestTeachingAssets) {
+    try { py = window.MinestTeachingAssets.pinyin(hz) || ''; } catch(e){}
+  }
+  var pySyllables = py ? py.split(/\s+/) : [];
+  var chars = Array.from(hz);
+  if (py && pySyllables.length === chars.length) {
+    return '<ruby class="solo-ruby">' + chars.map(function(c, i){
+      return '<span class="solo-hz">' + esc(c) + '</span><rt class="solo-py">' + esc(pySyllables[i]) + '</rt>';
+    }).join('') + '</ruby>';
+  } else if (py) {
+    return '<div class="solo-ruby-wrap"><span class="solo-py">' + esc(py) + '</span><span class="solo-hz">' + esc(hz) + '</span></div>';
+  }
+  return '<span class="solo-hz">' + esc(hz) + '</span>';
+}
+
+function formatBilingual(word, card){
+  if (!word) return '';
+  var hz = String(word).trim();
+  var py = getCardPinyin(hz, card);
+  var en = getCardEnglish(hz, card);
+  return '<div class="solo-word-tile">'
+    + '  <div class="solo-ruby-wrap">' + formatRuby(hz, py) + '</div>'
+    +    (en ? '  <span class="solo-en" data-solo-en>' + esc(en) + '</span>' : '')
+    + '</div>';
+}
+
+/* --- Minest Account Cloud Sync Service --- */
+var MinestTeachingSync = {
+  getUser: function(){
+    try {
+      if (typeof window !== 'undefined' && window.firebase && window.firebase.auth && window.firebase.apps && window.firebase.apps.length) {
+        return window.firebase.auth().currentUser;
+      }
+    } catch(e){}
+    return null;
+  },
+  signIn: function(onSuccess, onError){
+    if (typeof window === 'undefined' || typeof window.firebase === 'undefined' || !window.firebase.auth) {
+      if (onError) onError(new Error('Firebase 组件未就绪，请检查网络连接。'));
+      return;
+    }
+    try {
+      if (!window.firebase.apps.length && window.__FIREBASE_CONFIG__) {
+        window.firebase.initializeApp(window.__FIREBASE_CONFIG__);
+      }
+      var provider = new window.firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      window.firebase.auth().signInWithPopup(provider)
+        .then(function(result){
+          if (onSuccess) onSuccess(result.user);
+        })
+        .catch(function(err){
+          if (onError) onError(err);
+        });
+    } catch(e){
+      if (onError) onError(e);
+    }
+  },
+  signOut: function(callback){
+    try {
+      if (typeof window !== 'undefined' && window.firebase && window.firebase.auth) {
+        window.firebase.auth().signOut().then(function(){ if (callback) callback(); });
+        return;
+      }
+    } catch(e){}
+    if (callback) callback();
+  },
+  push: function(callback){
+    var user = this.getUser();
+    if (!user) {
+      if (callback) callback(new Error('未登录 Minest 账号，无法同步到云端。'));
+      return;
+    }
+    try {
+      var db = window.firebase.firestore();
+      var b = window.MinestTeachingSets ? window.MinestTeachingSets.read() : null;
+      if (!b) throw new Error('词表数据为空。');
+      var assets = (window.MinestTeachingAssets && window.MinestTeachingAssets.forBoard) ? window.MinestTeachingAssets.forBoard(b.id) : {};
+      var payload = {
+        teachingWordsets: b,
+        teachingAssets: assets,
+        clientUpdatedAt: Date.now(),
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      };
+      db.collection('users').doc(user.uid).collection('focusboard').doc('teaching').set(payload, { merge: true })
+        .then(function(){
+          try { localStorage.setItem('minest.teaching.last_cloud_sync', String(Date.now())); } catch(e){}
+          if (callback) callback(null, { time: Date.now() });
+        })
+        .catch(function(err){
+          if (callback) callback(err);
+        });
+    } catch(err){
+      if (callback) callback(err);
+    }
+  },
+  pull: function(callback){
+    var user = this.getUser();
+    if (!user) {
+      if (callback) callback(new Error('未登录 Minest 账号，无法从云端恢复。'));
+      return;
+    }
+    try {
+      var db = window.firebase.firestore();
+      db.collection('users').doc(user.uid).collection('focusboard').doc('teaching').get()
+        .then(function(doc){
+          if (!doc.exists) {
+            if (callback) callback(null, { empty: true });
+            return;
+          }
+          var data = doc.data();
+          if (data && data.teachingWordsets && Array.isArray(data.teachingWordsets.columns)) {
+            if (window.MinestTeachingSets) window.MinestTeachingSets.save(data.teachingWordsets);
+            if (data.teachingAssets && window.MinestTeachingAssets) {
+              var entries = Object.keys(data.teachingAssets).map(function(k){
+                return { id: k, value: data.teachingAssets[k] };
+              });
+              if (entries.length) MinestTeachingAssets.saveMany(data.teachingWordsets.id, entries);
+            }
+            try { localStorage.setItem('minest.teaching.last_cloud_sync', String(Date.now())); } catch(e){}
+            if (callback) callback(null, { sets: data.teachingWordsets, time: data.clientUpdatedAt || Date.now() });
+          } else {
+            if (callback) callback(null, { empty: true });
+          }
+        })
+        .catch(function(err){
+          if (callback) callback(err);
+        });
+    } catch(err){
+      if (callback) callback(err);
+    }
+  }
+};
+
+/* --- Teacher Word List & Cloud Sync Modal --- */
+function openTeacherManager(root){
+  if (typeof document === 'undefined') return;
+  var existing = document.getElementById('mn-teacher-manager');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'mn-teacher-manager';
+  overlay.className = 'teacher-manager-overlay';
+
+  function render(){
+    var b = window.MinestTeachingSets ? MinestTeachingSets.read() : { columns: [] };
+    var user = MinestTeachingSync.getUser();
+    var lastSync = null;
+    try { lastSync = localStorage.getItem('minest.teaching.last_cloud_sync'); } catch(e){}
+    var lastSyncText = lastSync ? new Date(+lastSync).toLocaleTimeString() : '尚未同步';
+    var cur = current(root);
+
+    overlay.innerHTML = '<div class="teacher-manager-modal">'
+      + '<div class="teacher-manager-header">'
+      + '  <h2>📖 教师端 · 词表管理与账号同步</h2>'
+      + '  <button type="button" class="solo-btn-close" data-tm-close>✕ 关闭</button>'
+      + '</div>'
+      + '<div class="teacher-manager-body">'
+      // 1. Minest 账号同步卡片
+      + '  <div class="teacher-sync-card">'
+      + '    <div class="teacher-sync-info">'
+      + '      <div class="teacher-sync-avatar">' + (user ? (user.displayName || user.email || 'U')[0].toUpperCase() : '☁️') + '</div>'
+      + '      <div>'
+      + '        <b style="font-size:15px;display:block">' + (user ? ('🟢 ' + esc(user.displayName || 'Minest 用户')) : '⚪ 未连接 Minest 账号') + '</b>'
+      + '        <small style="color:#6b7280;font-weight:800;font-size:12px">' + (user ? (esc(user.email) + ' · 上次同步: ' + lastSyncText) : '登录 Minest 账号，词表自动与云端双向同步，手机/iPad/电脑无缝漫游') + '</small>'
+      + '      </div>'
+      + '    </div>'
+      + '    <div class="teacher-sync-actions">'
+      + (user
+          ? '<button type="button" class="teacher-btn teacher-btn-cloud" data-tm-push>☁️ 同步到云端</button>'
+          + '<button type="button" class="teacher-btn teacher-btn-purple" data-tm-pull>📥 从云端恢复</button>'
+          + '<button type="button" class="teacher-btn teacher-btn-alt" data-tm-logout>退出登录</button>'
+          : '<button type="button" class="teacher-btn teacher-btn-primary" data-tm-login>🔑 登录 Minest 账号同步</button>')
+      + '    </div>'
+      + '  </div>'
+      + '  <div id="tm-sync-msg" style="font-size:13px;font-weight:900;color:#15803d;display:none"></div>'
+
+      // 2. 词表列表
+      + '  <div style="display:flex;align-items:center;justify-content:space-between">'
+      + '    <h3 style="margin:0;font-size:17px;font-weight:900">📚 我的教学词表 (' + b.columns.length + ')</h3>'
+      + '    <button type="button" class="teacher-btn teacher-btn-alt" data-tm-legacy-prep>✎ 深入备课资料 (原版)</button>'
+      + '  </div>'
+      + '  <div class="teacher-lists-grid">'
+      +      b.columns.map(function(col){
+               var isActive = col.id === cur.col;
+               var validCards = (col.cards || []).filter(function(c){ return !c.teachingArchived; });
+               return '<div class="teacher-list-card' + (isActive ? ' is-active' : '') + '">'
+                 + '  <div>'
+                 + '    <h3>' + esc(col.title) + (isActive ? '<span style="font-size:11px;background:#8b5cf6;color:#fff;border-radius:99px;padding:2px 8px">当前闯关中</span>' : '') + '</h3>'
+                 + '    <small style="color:#6b7280;font-weight:800;font-size:12px">' + validCards.length + ' 张词卡</small>'
+                 + '    <div class="teacher-preview-chips" style="margin-top:8px">'
+                 +        validCards.slice(0, 6).map(function(c){
+                            var py = getCardPinyin(c.title, c);
+                            var en = getCardEnglish(c.title, c);
+                            return '<span class="teacher-chip" title="' + esc(c.title + ' ' + py + ' ' + en) + '">' + esc(c.title) + (py ? ' <small style="opacity:0.8">' + esc(py) + '</small>' : '') + '</span>';
+                          }).join('')
+                 + '    </div>'
+                 + '  </div>'
+                 + '  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
+                 + '    <button type="button" class="teacher-btn teacher-btn-primary" style="flex:1" data-tm-select="' + esc(col.id) + '">▶ 选此闯关</button>'
+                 + '    <button type="button" class="teacher-btn teacher-btn-purple" data-tm-edit="' + esc(col.id) + '">✎ 编辑词卡</button>'
+                 + '    <button type="button" class="teacher-btn teacher-btn-alt" style="color:#dc2626" data-tm-del="' + esc(col.id) + '">🗑</button>'
+                 + '  </div>'
+                 + '</div>';
+             }).join('')
+      + '  </div>'
+
+      // 3. 快速新建词表卡片
+      + '  <div class="teacher-create-box">'
+      + '    <h3 style="margin:0;font-size:16px;font-weight:900">＋ 快速新建教学词表</h3>'
+      + '    <input type="text" data-tm-new-title placeholder="词表标题（例如：水果美食 / 日常活动 / 交通工具）">'
+      + '    <textarea data-tm-new-words rows="2" placeholder="批量输入中文词汇（逗号、顿号或换行分隔），自动生成声调拼音与英文释义。例如：苹果，香蕉，西瓜，葡萄，草莓"></textarea>'
+      + '    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+      + '      <button type="button" class="teacher-btn teacher-btn-primary" data-tm-create>✨ 一键生成词表 (含声调拼音 & 英文)</button>'
+      + '      <span style="font-size:12px;color:#6b7280;font-weight:800">词卡正面自动生成汉字，背面精准本地拼音与内置释义</span>'
+      + '    </div>'
+      + '  </div>'
+      + '</div>'
+      + '</div>';
+
+    overlay.querySelector('[data-tm-close]').onclick = function(){ overlay.remove(); };
+    overlay.onclick = function(e){ if (e.target === overlay) overlay.remove(); };
+
+    var msgBox = overlay.querySelector('#tm-sync-msg');
+    function showMsg(txt, isErr){
+      if (!msgBox) return;
+      msgBox.textContent = txt;
+      msgBox.style.color = isErr ? '#dc2626' : '#15803d';
+      msgBox.style.display = 'block';
+      setTimeout(function(){ if (msgBox) msgBox.style.display = 'none'; }, 4000);
+    }
+
+    var loginBtn = overlay.querySelector('[data-tm-login]');
+    if (loginBtn) {
+      loginBtn.onclick = function(){
+        loginBtn.disabled = true;
+        MinestTeachingSync.signIn(function(u){
+          showMsg('✓ 登录成功！已连接 Minest 账号 ' + (u.displayName || u.email));
+          MinestTeachingSync.pull(function(){ render(); });
+        }, function(err){
+          loginBtn.disabled = false;
+          showMsg('登录失败：' + (err.message || '未知错误'), true);
+        });
+      };
+    }
+    var logoutBtn = overlay.querySelector('[data-tm-logout]');
+    if (logoutBtn) {
+      logoutBtn.onclick = function(){
+        MinestTeachingSync.signOut(function(){
+          showMsg('已退出登录。');
+          render();
+        });
+      };
+    }
+    var pushBtn = overlay.querySelector('[data-tm-push]');
+    if (pushBtn) {
+      pushBtn.onclick = function(){
+        pushBtn.disabled = true;
+        MinestTeachingSync.push(function(err){
+          pushBtn.disabled = false;
+          if (err) showMsg('同步失败：' + err.message, true);
+          else { showMsg('✓ 已成功将所有词表同步至 Minest 云端！'); render(); }
+        });
+      };
+    }
+    var pullBtn = overlay.querySelector('[data-tm-pull]');
+    if (pullBtn) {
+      pullBtn.onclick = function(){
+        pullBtn.disabled = true;
+        MinestTeachingSync.pull(function(err, res){
+          pullBtn.disabled = false;
+          if (err) showMsg('拉取失败：' + err.message, true);
+          else if (res && res.empty) showMsg('云端暂无同步记录，请先在当前设备点击“同步到云端”。');
+          else {
+            showMsg('✓ 已成功从 Minest 云端同步最新词表！');
+            home(root);
+            render();
+          }
+        });
+      };
+    }
+
+    overlay.querySelectorAll('[data-tm-select]').forEach(function(btn){
+      btn.onclick = function(){
+        var colId = btn.dataset.tmSelect;
+        api(root).select(colId);
+        overlay.remove();
+        home(root);
+      };
+    });
+
+    overlay.querySelectorAll('[data-tm-edit]').forEach(function(btn){
+      btn.onclick = function(){
+        var colId = btn.dataset.tmEdit;
+        overlay.remove();
+        if (window.MinestTeachingSets) {
+          MinestTeachingSets.edit(colId, { onSave: function(){ home(root); openTeacherManager(root); } });
+        }
+      };
+    });
+
+    overlay.querySelectorAll('[data-tm-del]').forEach(function(btn){
+      btn.onclick = function(){
+        var colId = btn.dataset.tmDel;
+        var sets = MinestTeachingSets.read();
+        if (sets.columns.length <= 1) {
+          alert('至少需要保留一个词表。');
+          return;
+        }
+        if (!confirm('确定要删除此词表吗？')) return;
+        sets.columns = sets.columns.filter(function(c){ return c.id !== colId; });
+        if (sets.selected === colId) sets.selected = sets.columns[0].id;
+        MinestTeachingSets.save(sets);
+        if (MinestTeachingSync.getUser()) MinestTeachingSync.push();
+        render();
+        home(root);
+      };
+    });
+
+    var createBtn = overlay.querySelector('[data-tm-create]');
+    if (createBtn) {
+      createBtn.onclick = function(){
+        var tInput = overlay.querySelector('[data-tm-new-title]');
+        var wInput = overlay.querySelector('[data-tm-new-words]');
+        var title = (tInput.value || '').trim();
+        var wordsText = (wInput.value || '').trim();
+        if (!title) { alert('请输入词表标题。'); tInput.focus(); return; }
+        if (!wordsText) { alert('请输入词汇。'); wInput.focus(); return; }
+        try {
+          var res = window.MinestTeachingSets.create(title, wordsText);
+          var currentSets = MinestTeachingSets.read();
+          var newCol = currentSets.columns.find(function(c){ return c.id === res.listId; });
+          if (newCol) {
+            newCol.cards.forEach(function(c){
+              var py = getCardPinyin(c.title, c);
+              var en = getCardEnglish(c.title, c);
+              if (py) c.pinyin = py;
+              if (en) c.desc = en;
+            });
+            MinestTeachingSets.save(currentSets);
+          }
+          if (MinestTeachingSync.getUser()) MinestTeachingSync.push();
+          showMsg('✓ 词表「' + title + '」创建成功！已自动生成声调拼音与英文释义。');
+          tInput.value = '';
+          wInput.value = '';
+          home(root);
+          render();
+        } catch(e) {
+          alert(e.message);
+        }
+      };
+    }
+
+    var legacyBtn = overlay.querySelector('[data-tm-legacy-prep]');
+    if (legacyBtn) {
+      legacyBtn.onclick = function(){
+        overlay.remove();
+        classic(root);
+      };
+    }
+  }
+
+  render();
+  document.body.appendChild(overlay);
 }
 
 /* --- Web Audio Synthesizer --- */
@@ -88886,18 +89633,23 @@ var OCTOPUS_SVG = '<div class="toon-corner-octopus" id="toon-octopus" title="可
 function header(root){
   root.classList.add('tt-quest824');
   root.classList.add('tt-quest8241');
+  root.classList.toggle('hide-english', !isShowEnglish());
   root.setAttribute('aria-label', 'Minest Live · Solo play · 课堂游戏');
   var h = root.querySelector('header');
   if (h) {
     h.innerHTML = '<div class="solo-top-brand"><span class="solo-top-brand-icon">👑</span> Minest Live · Solo play</div>'
       + '<div class="solo-top-actions">'
+      + '  <button type="button" class="solo-en-toggle" data-toggle-en>' + (isShowEnglish() ? '👁 英文: 显示' : '👁‍🗨 英文: 隐藏') + '</button>'
+      + '  <button type="button" class="solo-btn-teaching" data-teaching>📖 教师端 · 词表管理</button>'
       + '  <button type="button" class="solo-btn-close" data-exit>✕ Close</button>'
-      + '  <button type="button" class="solo-btn-teaching" data-teaching>🎮 Teaching · 课堂游戏</button>'
       + '</div>';
     var cBtn = h.querySelector('[data-exit]');
     if (cBtn) cBtn.onclick = function(){ MinestTemplates.close(); };
     var tBtn = h.querySelector('[data-teaching]');
-    if (tBtn) tBtn.onclick = function(){ classic(root); };
+    if (tBtn) tBtn.onclick = function(){ openTeacherManager(root); };
+    h.querySelectorAll('[data-toggle-en]').forEach(function(btn){
+      btn.onclick = function(){ setShowEnglish(!isShowEnglish(), root); };
+    });
   }
 }
 
@@ -88928,13 +89680,14 @@ function home(root){
     + '    <span class="solo-dash-pill fire">🔥 ' + (s.streak || 0) + '</span>'
     + '  </div>'
     + '  <div class="solo-dash-right">'
+    + '    <button type="button" class="solo-en-toggle" data-toggle-en style="background:#ede9fe;color:#6d28d9;border:0">' + (isShowEnglish() ? '👁 英文: 显示' : '👁‍🗨 英文: 隐藏') + '</button>'
     + '    <label class="solo-pill-btn" style="cursor:pointer">📖 词表'
     + '      <select data-ten-list style="border:0;background:transparent;font-family:inherit;font-weight:900;color:#2e1065;cursor:pointer">'
     +          s.lists.map(function(l){ return '<option value="' + esc(l.id) + '"' + (l.id === s.col ? ' selected' : '') + '>' + esc(l.title) + '</option>'; }).join('')
     + '      </select>'
     + '    </label>'
     + '    <span class="solo-pill-btn">🏅 Badges ' + totalStars + '/' + (MODES.length * 3) + '</span>'
-    + '    <button type="button" class="solo-pill-btn shop" data-ten-edit>🛒 备课管理</button>'
+    + '    <button type="button" class="solo-pill-btn shop" data-ten-edit>🛒 词表与备课同步</button>'
     + '  </div>'
     + '</div>'
 
@@ -88985,7 +89738,10 @@ function home(root){
     a.select(this.value);
   };
   body.querySelectorAll('[data-ten-edit]').forEach(function(b){
-    b.onclick = function(){ classic(root); };
+    b.onclick = function(){ openTeacherManager(root); };
+  });
+  body.querySelectorAll('[data-toggle-en]').forEach(function(b){
+    b.onclick = function(){ setShowEnglish(!isShowEnglish(), root); };
   });
 }
 
@@ -89000,6 +89756,19 @@ function frame(root){
   if (!m) return;
   var body = root.querySelector('.tt-wrap');
   var v = score(s);
+
+  var allItems = s.allItems || [];
+  if (!allItems.length && typeof window !== 'undefined' && window.MinestTeachingSets) {
+    try {
+      var setsObj = MinestTeachingSets.read();
+      var cObj = (setsObj.columns || []).find(function(x){ return x.id === s.col; });
+      if (cObj && cObj.cards) {
+        allItems = cObj.cards.map(function(k){
+          return { id: k.id, front: k.title, py: k.pinyin, back: k.desc, image: (k.cover && k.cover.type === 'image') ? k.cover.value : '' };
+        });
+      }
+    } catch(e){}
+  }
 
   // Extract primary prompt word
   var wordText = '词语练习';
@@ -89021,6 +89790,7 @@ function frame(root){
     topBar.innerHTML = '<div class="toon-top-left"><span class="toon-mode-icon">' + m[1] + '</span> · ' + esc(m[2].split('·')[0].trim()) + '</div>'
       + '<div class="toon-run-count" data-toon-run>Run ' + (s.completed + 1 > s.total ? s.total : s.completed + 1) + ' / ' + s.total + '</div>'
       + '<div class="toon-status-capsule">'
+      + '  <button type="button" class="solo-en-toggle" data-toggle-en>' + (isShowEnglish() ? '👁 英文: 显示' : '👁‍🗨 英文: 隐藏') + '</button>'
       + '  <span>' + m[1] + ' ' + (s.completed) + '</span>'
       + '  <span>🔥 ' + (s.streak || 0) + '</span>'
       + '  <span>⭐ ' + v.xp + '</span>'
@@ -89036,7 +89806,7 @@ function frame(root){
       + '<div class="toon-cloud c2"></div>'
       + OCTOPUS_SVG
       + '<div class="toon-question-capsule">'
-      + '  <div class="toon-q-direction">CHINESE ➔ DEFINITION</div>'
+      + '  <div class="toon-q-direction">CHINESE ➔ PINYIN & DEFINITION</div>'
       + '  <h2 class="toon-q-word" data-toon-word>' + esc(wordText) + '</h2>'
       + '  <div class="toon-q-underline"></div>'
       + '</div>'
@@ -89053,18 +89823,75 @@ function frame(root){
     }
   }
 
-  // Update real-time word & progress in Screenshot 2 header
-  var qWord = body.querySelector('[data-toon-word]');
-  if (qWord && wordText && wordText !== '词语练习') qWord.textContent = wordText;
+  // Hook English toggle in top bar
+  body.querySelectorAll('[data-toggle-en]').forEach(function(b){
+    b.onclick = function(){ setShowEnglish(!isShowEnglish(), root); };
+  });
+
+  // Requirement 4: 题目优先显示图片，没有图片显示汉字加英文
+  var currentCard = s.current;
+  if (!currentCard && allItems.length && wordText) {
+    currentCard = allItems.find(function(c){ return c.front === wordText || (c.front && wordText.includes(c.front)); });
+  }
+
+  var imgUrl = '';
+  if (currentCard && (currentCard.image || (currentCard.cover && currentCard.cover.type === 'image'))) {
+    imgUrl = currentCard.image || currentCard.cover.value;
+  }
+  if (!imgUrl) {
+    var domImg = body.querySelector('.tt-panel img:not(.solo-top-brand-icon), [data-front] img, [data-il-diagram-image]');
+    if (domImg && domImg.src && !domImg.hidden && domImg.naturalWidth !== 0) imgUrl = domImg.src;
+  }
+
+  var qCapsule = body.querySelector('.toon-question-capsule');
+  if (qCapsule) {
+    if (imgUrl) {
+      // 题目优先显示图片
+      qCapsule.innerHTML = '<div class="toon-q-direction">🖼️ LOOK AT THE PICTURE · 看图识词</div>'
+        + '<div class="toon-q-media"><img src="' + esc(imgUrl) + '" class="toon-q-image" alt="题目配图"></div>'
+        + '<h2 class="toon-q-word" data-toon-word style="display:none">' + esc(wordText) + '</h2>'
+        + '<div class="toon-q-underline"></div>';
+    } else {
+      // 没有图片显示汉字加英文
+      var hz = currentCard ? currentCard.front : wordText;
+      var py = getCardPinyin(hz, currentCard);
+      var en = getCardEnglish(hz, currentCard);
+      qCapsule.innerHTML = '<div class="toon-q-direction">CHINESE ➔ PINYIN & DEFINITION</div>'
+        + '<div class="toon-q-bilingual">'
+        +   formatRuby(hz, py)
+        +   (en ? '<div class="solo-en toon-q-en" data-solo-en>' + esc(en) + '</div>' : '')
+        + '</div>'
+        + '<h2 class="toon-q-word" data-toon-word style="display:none">' + esc(wordText) + '</h2>'
+        + '<div class="toon-q-underline"></div>';
+    }
+  }
+
+  // Update run count
   var runCount = body.querySelector('[data-toon-run]');
   if (runCount) runCount.textContent = 'Run ' + (s.completed + 1 > s.total ? s.total : s.completed + 1) + ' / ' + s.total;
 
-  // Add Blooket shape badges (▲, ◆, ●, ■) to options
+  // Requirements 2 & 3: 学生闯关模式默认显示拼音，汉字下方显示英文
   var shapes = ['▲', '◆', '●', '■'];
-  body.querySelectorAll('.tt-options button').forEach(function(b, idx){
-    if (!b.getAttribute('data-blook-shape')) {
+  function formatTileElement(btn){
+    if (btn.__soloFormatted) return;
+    var rawText = (btn.getAttribute('data-choice') || btn.textContent || '').trim();
+    if (!rawText || rawText.includes('TRUE') || rawText.includes('FALSE') || rawText === '?' || rawText.length > 25) return;
+    if (!/[\u3400-\u9fff]/.test(rawText)) return;
+    btn.__soloFormatted = true;
+
+    var card = allItems.find(function(c){ return c.front === rawText || rawText.includes(c.front); });
+    var py = getCardPinyin(rawText, card);
+    var en = getCardEnglish(rawText, card);
+
+    btn.innerHTML = formatBilingual(rawText, { py: py, back: en });
+  }
+
+  body.querySelectorAll('.tt-options button, .il-source, [data-choice], [data-find-card]').forEach(function(b, idx){
+    if (b.classList.contains('tt-options') || b.matches('[data-return],[data-next],[data-restart]')) return;
+    if (!b.getAttribute('data-blook-shape') && b.closest('.tt-options')) {
       b.setAttribute('data-blook-shape', shapes[idx % 4]);
     }
+    formatTileElement(b);
   });
 
   // --- Drag Gameplay Enhancements ---
@@ -89399,8 +90226,14 @@ window.MinestTeachingTen = {
   score: score,
   modes: MODES.map(function(x){ return x[0]; }),
   playSfx: playSfx,
+  sync: MinestTeachingSync,
+  openTeacherManager: openTeacherManager,
+  setShowEnglish: setShowEnglish,
+  isShowEnglish: isShowEnglish,
+  formatBilingual: formatBilingual,
   version: '53.8241'
 };
+window.MinestTeachingSync = MinestTeachingSync;
 
 /* --- Global Entry Injection & Observer --- */
 var queued = false;
