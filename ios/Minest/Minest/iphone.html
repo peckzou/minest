@@ -35455,15 +35455,21 @@ var isDark = themeMode === 'dark';
                       var stackCards = card.stack || [];
                       var isDraggingThis = dragItem && dragItem.cardId === card.id;
                       var isHoverTarget = dropTarget && dropTarget.type === 'stack' && dropTarget.targetCardId === card.id;
-                      var isPure = !!board.pureMode;
+                      var lp = (typeof getBoardDisplayPrefs === 'function') ? getBoardDisplayPrefs(board.id) : {};
+                      var isPure = board.pureMode !== undefined ? !!board.pureMode : !!lp.pureMode;
                       var listCoverPref = window.MinestCovers821 ? window.MinestCovers821.visible(board.id, col.id) : true;
-                      var coversVisible821 = listCoverPref && !board.hideCovers && (!isPure || col.showCovers);
+                      var boardHideCovers = board.hideCovers !== undefined ? !!board.hideCovers : (lp.hideCovers !== undefined ? !!lp.hideCovers : false);
+                      var coversVisible821 = listCoverPref && !boardHideCovers && (!isPure || col.showCovers);
                       var isFullCover = coversVisible821 && card.cover && card.cover.size === 'full';
-                      var labelsVisible = !board.hideLabels && !col.hideLabels && (!isPure || col.showLabels);
+                      var boardHideLabels = board.hideLabels !== undefined ? !!board.hideLabels : (lp.hideLabels !== undefined ? !!lp.hideLabels : false);
+                      var labelsVisible = !boardHideLabels && !col.hideLabels && (!isPure || col.showLabels);
                       var hasLabels = labelsVisible && validLabels.length > 0;
-                      var badgesVisible = !board.hideBadges && !col.hideBadges && (!isPure || col.showBadges);
-                      var checklistsVisible = !board.hideChecklists && !col.hideChecklists && (!isPure || col.showChecklists);
-                      var linksVisible = !board.hideLinks && !col.hideLinks && (!isPure || col.showLinks);
+                      var boardHideBadges = board.hideBadges !== undefined ? !!board.hideBadges : (lp.hideBadges !== undefined ? !!lp.hideBadges : false);
+                      var badgesVisible = !boardHideBadges && !col.hideBadges && (!isPure || col.showBadges);
+                      var boardHideChecklists = board.hideChecklists !== undefined ? !!board.hideChecklists : (lp.hideChecklists !== undefined ? !!lp.hideChecklists : false);
+                      var checklistsVisible = !boardHideChecklists && !col.hideChecklists && (!isPure || col.showChecklists);
+                      var boardHideLinks = board.hideLinks !== undefined ? !!board.hideLinks : (lp.hideLinks !== undefined ? !!lp.hideLinks : false);
+                      var linksVisible = !boardHideLinks && !col.hideLinks && (!isPure || col.showLinks);
                       var hasChecklist = checklistsVisible && tCheck > 0;
                       var hasCover = coversVisible821 && !!card.cover;
                       var hasTargetBoard = linksVisible && !!card.targetBoardId;
@@ -38182,6 +38188,17 @@ var Ne = function(props) {
     if (e && e.preventDefault) e.preventDefault();
     if (!title.trim()) return;
     if (onUpdateBoard) {
+      if (typeof setBoardDisplayPrefs === 'function') {
+        setBoardDisplayPrefs(board.id, {
+          pureMode: pureMode,
+          hideCovers: hideCovers,
+          hideLabels: hideLabels,
+          showLabelNames: showLabelNames,
+          hideChecklists: hideChecklists,
+          hideLinks: hideLinks,
+          hideBadges: hideBadges
+        });
+      }
       onUpdateBoard(Object.assign({}, board, {
         title: title.trim(),
         deadline: deadline.trim(),
@@ -39977,10 +39994,29 @@ function trelloExportToBoard(raw) {
   return { id: 'trello-' + (raw.id || Date.now()), title: raw.name || 'Trello Board', columns: columns };
 }
 
+var PREFS_KEY_PREFIX = 'minest.displayPrefs.v1.';
+function getBoardDisplayPrefs(bid) {
+  if (!bid) return {};
+  try {
+    var s = localStorage.getItem(PREFS_KEY_PREFIX + bid);
+    if (s) return JSON.parse(s) || {};
+  } catch(e) {}
+  return {};
+}
+function setBoardDisplayPrefs(bid, patch) {
+  if (!bid) return;
+  try {
+    var cur = getBoardDisplayPrefs(bid);
+    var next = Object.assign({}, cur, patch);
+    localStorage.setItem(PREFS_KEY_PREFIX + bid, JSON.stringify(next));
+  } catch(e) {}
+}
+
 function sanitizeLoadedBoards(list) {
   if (!Array.isArray(list) || list.length === 0) return y;
   try {
     return list.map(function(b, bIdx) {
+      var lp = getBoardDisplayPrefs(b.id);
       return {
         id: typeof b.id === 'string' && b.id ? b.id : ("board-" + bIdx),
         title: typeof b.title === 'string' && b.title ? b.title : "Board",
@@ -39993,7 +40029,18 @@ function sanitizeLoadedBoards(list) {
         deadline: b.deadline || "",
         wallpaper: b.wallpaper || "",
         linkedBoardIds: Array.isArray(b.linkedBoardIds) ? b.linkedBoardIds : [],
-        showLabelNames: b.showLabelNames !== false,
+        showLabelNames: lp.showLabelNames !== undefined ? !!lp.showLabelNames : (b.showLabelNames !== false),
+        pureMode: lp.pureMode !== undefined ? !!lp.pureMode : !!b.pureMode,
+        hideCovers: lp.hideCovers !== undefined ? !!lp.hideCovers : (b.hideCovers !== undefined ? !!b.hideCovers : false),
+        hideLabels: lp.hideLabels !== undefined ? !!lp.hideLabels : !!b.hideLabels,
+        hideChecklists: lp.hideChecklists !== undefined ? !!lp.hideChecklists : !!b.hideChecklists,
+        hideLinks: lp.hideLinks !== undefined ? !!lp.hideLinks : !!b.hideLinks,
+        hideBadges: lp.hideBadges !== undefined ? !!lp.hideBadges : !!b.hideBadges,
+        layoutMode: b.layoutMode || 'swimlane',
+        statusFilter: b.statusFilter || 'all',
+        priorityFilter: b.priorityFilter || 'all',
+        sortBy: b.sortBy || 'default',
+        expandStacks: b.expandStacks !== undefined ? !!b.expandStacks : false,
         labelDefinitions: Array.isArray(b.labelDefinitions) ? b.labelDefinitions : [],
         archivedCards: Array.isArray(b.archivedCards) ? b.archivedCards : [],
         inkEnabled: !!b.inkEnabled,   // 11.9: Invisible Ink scope (shared with the web build)
@@ -40005,6 +40052,12 @@ function sanitizeLoadedBoards(list) {
             color: col.color || "#49b07a",
             showCardCount: col.showCardCount !== false,
             pinned: !!col.pinned,
+            showLabels: col.showLabels !== undefined ? !!col.showLabels : undefined,
+            hideLabels: col.hideLabels !== undefined ? !!col.hideLabels : undefined,
+            showChecklists: col.showChecklists !== undefined ? !!col.showChecklists : undefined,
+            hideChecklists: col.hideChecklists !== undefined ? !!col.hideChecklists : undefined,
+            showCovers: col.showCovers !== undefined ? !!col.showCovers : undefined,
+            hideCovers: col.hideCovers !== undefined ? !!col.hideCovers : undefined,
             inkMode: col.inkMode === 'on' || col.inkMode === 'off' ? col.inkMode : 'inherit',
             cards: Array.isArray(col.cards) ? col.cards.map(function(card, kIdx) {
               return {
