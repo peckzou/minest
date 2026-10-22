@@ -1,0 +1,52 @@
+/* 阶段四 · 拖拽造句 — the three drag games, in the map's Blooket look */
+#mn-templates .d3-stage { max-width: 760px; margin: 0 auto; padding: 8px 12px 40px; display: flex; flex-direction: column; gap: 16px; font-family: "Nunito", "PingFang SC", system-ui, sans-serif; }
+#mn-templates .d3-hud { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: rgba(46,16,101,.55); border-radius: 18px; padding: 10px 12px; color: #fff; }
+#mn-templates .d3-hud b { font-family: "Titan One", "Nunito", sans-serif; font-weight: 400; font-size: 16px; }
+#mn-templates .d3-back { border: 0; border-radius: 12px; padding: 8px 12px; background: #fff; color: #2e1065; font-weight: 900; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+#mn-templates .d3-prog { flex: 1 1 120px; height: 12px; border-radius: 99px; background: rgba(255,255,255,.2); overflow: hidden; }
+#mn-templates .d3-prog i { display: block; height: 100%; background: linear-gradient(90deg, #fde047, #22c55e); border-radius: 99px; transition: width .4s; }
+#mn-templates .d3-n, #mn-templates .d3-xp { font-weight: 900; font-size: 14px; }
+#mn-templates .d3-card { position: relative; background: #fff; border-radius: 26px; padding: 18px 18px 22px; text-align: center; box-shadow: 0 7px 0 rgba(46,16,101,.35), 0 18px 34px rgba(0,0,0,.18); }
+#mn-templates .d3-card.done { box-shadow: 0 7px 0 #15803d, 0 0 0 4px #22c55e, 0 18px 34px rgba(0,0,0,.18); }
+#mn-templates .d3-dir { font-size: 11px; font-weight: 900; letter-spacing: .12em; color: #7c3aed; margin-bottom: 8px; }
+#mn-templates .d3-word { margin: 0 0 6px; font-size: clamp(26px, 5vw, 38px); font-weight: 900; color: #2e1065; }
+#mn-templates .d3-word small { display: block; font-size: 15px; color: #7c3aed; }
+#mn-templates .d3-en { margin: 4px 0 10px; font-size: 17px; font-weight: 800; color: #4b5563; }
+#mn-templates .d3-slots { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; }
+#mn-templates .d3-end { font-size: 28px; font-weight: 900; color: #2e1065; }
+#mn-templates .d3-slot { min-width: 70px; min-height: 58px; padding: 4px; border-radius: 16px; border: 3px dashed #c4b5fd; background: #f5f3ff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+#mn-templates .d3-slot.hover { border-color: #8b5cf6; background: #ede9fe; transform: scale(1.06); }
+#mn-templates .d3-slot.ok { border-style: solid; border-color: #22c55e; background: #dcfce7; }
+#mn-templates .d3-slot.bad { border-style: solid; border-color: #ef4444; background: #fee2e2; animation: d3shake .4s; }
+#mn-templates .d3-slot.gap { min-width: 96px; vertical-align: middle; margin: 0 6px; }
+#mn-templates .d3-slot.py { min-width: 64px; min-height: 46px; }
+#mn-templates .d3-sent { margin: 6px 0; font-size: clamp(24px, 4.6vw, 34px); font-weight: 900; color: #2e1065; line-height: 1.9; }
+#mn-templates .d3-chars { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+#mn-templates .d3-char { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#mn-templates .d3-char b { font-size: clamp(40px, 8vw, 58px); color: #2e1065; line-height: 1; }
+#mn-templates .d3-tray { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; min-height: 70px; padding: 14px; border-radius: 22px; background: rgba(255,255,255,.14); border: 3px dashed rgba(255,255,255,.35); transition: opacity .3s; }
+#mn-templates .d3-tray.off { opacity: .35; pointer-events: none; }
+#mn-templates .d3-tile { min-height: 52px; padding: 8px 16px; border: 0; border-radius: 16px; background: #fff; color: #2e1065; font: 900 22px/1.1 "Nunito", "PingFang SC", system-ui, sans-serif; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; box-shadow: 0 5px 0 #a78bfa; transition: transform .12s; }
+#mn-templates .d3-tile:hover { transform: translateY(-2px); }
+#mn-templates .d3-tile.key { background: #fef9c3; box-shadow: 0 5px 0 #eab308; }
+#mn-templates .d3-tile.py { font-size: 20px; color: #7c2d12; background: #ffedd5; box-shadow: 0 5px 0 #fb923c; }
+#mn-templates .d3-tray.big .d3-tile { font-size: 26px; padding: 12px 22px; }
+#mn-templates .d3-tile.sel { outline: 4px solid #fde047; transform: translateY(-4px) scale(1.05); }
+#mn-templates .d3-tile.lift { opacity: .35; }
+#mn-templates .d3-tile.in { box-shadow: none; padding: 6px 10px; font-size: 20px; background: transparent; }
+#mn-templates .d3-tile.shake { animation: d3shake .4s; }
+.d3-ghost { position: fixed; z-index: 2147483646; pointer-events: none; margin: 0; transform: rotate(-3deg) scale(1.08); box-shadow: 0 14px 28px rgba(0,0,0,.3) !important; min-height: 52px; padding: 8px 16px; border: 0; border-radius: 16px; background: #fff; color: #2e1065; font: 900 22px/1.1 "Nunito", "PingFang SC", system-ui, sans-serif; }
+#mn-templates .d3-hint { margin: 2px 0 0; color: #7c3aed; font-weight: 900; font-size: 15px; }
+#mn-templates .d3-tip { text-align: center; color: #e9d5ff; font-weight: 800; font-size: 13px; margin: 0; }
+#mn-templates .d3-yay { position: absolute; left: 50%; bottom: -18px; transform: translateX(-50%); padding: 6px 14px; border-radius: 99px; background: #22c55e; color: #fff; font-weight: 900; white-space: nowrap; box-shadow: 0 4px 0 #15803d; animation: d3pop .35s; }
+#mn-templates .d3-end-card h2 { margin: 6px 0; font-family: "Titan One", "Nunito", sans-serif; font-weight: 400; color: #2e1065; }
+#mn-templates .d3-big { font-size: 58px; }
+#mn-templates .d3-stars { font-size: 44px; color: #f59e0b; letter-spacing: 6px; }
+#mn-templates .d3-end-card p { font-size: 20px; font-weight: 900; color: #2e1065; }
+#mn-templates .d3-endb { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+#mn-templates .d3-btn { border: 0; border-radius: 16px; padding: 12px 18px; font-weight: 900; font-size: 16px; background: #ede9fe; color: #2e1065; cursor: pointer; box-shadow: 0 4px 0 #a78bfa; }
+#mn-templates .d3-btn.pri { background: #22c55e; color: #fff; box-shadow: 0 4px 0 #15803d; }
+@keyframes d3shake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
+@keyframes d3pop { from { transform: translateX(-50%) scale(.6); opacity: 0 } to { transform: translateX(-50%) scale(1); opacity: 1 } }
+@media (max-width: 560px) { #mn-templates .d3-tile { font-size: 19px; padding: 8px 12px; } #mn-templates .d3-slot { min-width: 56px; min-height: 50px; } }
+@media (prefers-reduced-motion: reduce) { #mn-templates .d3-stage * { animation: none !important; transition: none !important; } }
