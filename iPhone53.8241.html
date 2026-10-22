@@ -133179,7 +133179,9 @@ window.MinestDrag3 = { games: GAMES.map(function(g){ return g[0]; }), start: sta
     if (!raw) throw Error('请先粘贴 JSON 或选择 .json 文件。');
     var data;
     try { data = JSON.parse(raw); } catch (e) { throw Error('JSON 格式有误：' + e.message); }
-    var lists = Array.isArray(data) ? data : Array.isArray(data.lists) ? data.lists : [data];
+    // also takes a Minest board export ({title, columns:[{title, cards:[…]}]}, or an array of boards): each column is a list
+    var lists = Array.isArray(data) ? data : Array.isArray(data.lists) ? data.lists : Array.isArray(data.columns) ? data.columns : [data];
+    lists = [].concat.apply([], lists.map(function(l){ return l && Array.isArray(l.columns) ? l.columns : [l]; }));
     lists = lists.filter(function(l){ return l && typeof l === 'object'; });
     if (!lists.length) throw Error('没有找到词表。');
     if (lists.length > 20) throw Error('一次最多导入 20 个词表。');
@@ -133199,8 +133201,8 @@ window.MinestDrag3 = { games: GAMES.map(function(g){ return g[0]; }), start: sta
       var front = str(w.word || w.front || w.title || w.zh, 120);
       if (!front || seen.has(norm(front))) { skipped++; return; }
       seen.add(norm(front));
-      var id = uid('tj'), py = str(w.pinyin || w.py, 200) || (/[\u3400-\u9fff]/.test(front) && A.pinyin ? str(A.pinyin(front), 200) : ''), en = str(w.en || w.english, 160), back = str(w.meaning || w.back || w.desc || w.definition, 500) || en;
-      var image = str(w.image || w.img || w.imageUrl || w.picture, 3000000);
+      var id = uid('tj'), py = str(w.pinyin || w.py, 200) || (/[\u3400-\u9fff]/.test(front) && A.pinyin ? str(A.pinyin(front), 200) : ''), en = str(w.en || w.english, 160) || (/[\u3400-\u9fff]/.test(str(w.meaning)) ? '' : str(w.meaning, 160)), back = str(w.meaning || w.back || w.desc || w.definition, 500) || en;
+      var image = str(w.image || w.img || w.imageUrl || w.picture || (w.cover && w.cover.type === 'image' && w.cover.value), 3000000);
       if (image && !imageOK(image)) { report.badImages++; image = ''; }
       var card = { id: id, title: front, desc: back || py, pinyin: py, teachingBack: back ? 'text' : (py ? 'pinyin' : 'text'), labels: [], complete: false };
       if (en) card.en = en;
@@ -133212,7 +133214,9 @@ window.MinestDrag3 = { games: GAMES.map(function(g){ return g[0]; }), start: sta
       byWord[norm(front)] = id;
       var m = {};
       if (py) m.pinyin = py;
-      if (image) m.image = { url: image, provider: 'JSON 导入', title: en || front, license: str(w.license, 200) || '' };
+      // a picture lives on the card cover; only web addresses also go to the material (a data: picture stored twice
+      // would double its share of the ~5 MB browser storage)
+      if (image && !/^data:/i.test(image)) m.image = { url: image, provider: 'JSON 导入', title: en || front, license: str(w.license, 200) || '' };
       var cat = str(w.category || w.group, 60);
       if (cat) m.category = cat;
       var hint = str(w.hint, 300);
@@ -133303,7 +133307,8 @@ window.MinestDrag3 = { games: GAMES.map(function(g){ return g[0]; }), start: sta
       if (report.current && ids.indexOf(report.current) < 0) {
         try { var b = S.read(); b.columns = b.columns.filter(function(c){ return c.id !== report.current; }); if (ids.length) b.selected = ids[ids.length - 1]; S.save(b); } catch (x) {}
       }
-      throw Error((ids.length ? '已导入前 ' + ids.length + ' 个词表，之后出错：' : '') + e.message);
+      var why = e && (e.name === 'QuotaExceededError' || /quota/i.test(e.message)) ? '浏览器存储空间不够（图片太大或太多）。可以改用图片网址，或先删掉不用的词表再导入。' : e.message;
+      throw Error((ids.length ? '已导入前 ' + ids.length + ' 个词表，之后出错：' : '') + why);
     }
     return { listIds: ids, report: report };
   }

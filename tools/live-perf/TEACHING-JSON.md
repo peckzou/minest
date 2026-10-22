@@ -38,6 +38,10 @@
 
 一次导入多个词表：`{ "lists": [ {…}, {…} ] }` 或直接一个数组。
 
+也可以直接导入 Minest 看板导出的 JSON（`{ "title", "columns": [ { "title", "cards": [ { "title", "pinyin", "meaning", "desc", "cover": { "type": "image", "value": "…" } } ] } ] }`）：每个 column 变成一个词表，`title` 是词语，`meaning` 是英文释义，`cover` 是图片。
+
+图片用网址最省空间；`data:` 内嵌图片只存在卡片上，浏览器总共约 5 MB，空间不够时会提示。
+
 ## 规则（不符合的条目会被跳过并计数，不会让整个导入失败）
 
 | 字段 | 要求 | 点亮的游戏 |
