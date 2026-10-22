@@ -9,6 +9,29 @@
     <meta name="theme-color" content="#0b1117" />
     <title>Minest iPhone 53.8241 · Teaching Games (Solo & Blooket)</title>
     <script>
+      /* Student Mode Detection & State Lock */
+      window.__isStudentSession = (function () {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          if (p.has('play') || p.has('student') || p.has('join') || p.has('code') || p.get('role') === 'student') return true;
+          if (window.location.hash === '#play' || window.location.hash === '#join') return true;
+        } catch (e) {}
+        return false;
+      })();
+      window.isStudentMode = function () {
+        if (window.__isStudentSession) return true;
+        try {
+          var p = new URLSearchParams(window.location.search);
+          if (p.has('play') || p.has('student') || p.has('join') || p.has('code') || p.get('role') === 'student') return true;
+          if (window.location.hash === '#play' || window.location.hash === '#join') return true;
+        } catch (e) {}
+        return false;
+      };
+      if (window.isStudentMode()) {
+        try {
+          document.documentElement.classList.add('student-mode');
+        } catch (e) {}
+      }
       /* 27.3 preview fixture: today's closed rings complete a Strike milestone. */
       (function () {
         try {
@@ -12256,7 +12279,7 @@ var StudyArcade = window.StudyArcade = (function() {
       if (weak.length) btn('Play Again — Review Missed Cards (' + weak.length + ')', 'primary', function() { play(S.modeKey, weak, S.opts); });
       btn('Play again', weak.length ? '' : 'primary', function() { play(S.modeKey, items, S.opts); });
       btn('Other games', '', function() { lobby(); });
-      btn('Back to board', '', function() { close(); });
+      btn((window.isStudentMode && window.isStudentMode()) ? 'Back to 3D Cards' : 'Back to board', '', function() { close(); });
       tween(420, function(e) { p.style.opacity = e.toFixed(3); p.style.transform = 'translate(-50%,' + ((1 - e) * 18).toFixed(1) + 'px)'; }, null, ease.out);
     };
     if (!show.length || reduce) { panel(); return; }
@@ -22200,18 +22223,27 @@ var De = function(props) {
             children: (0, P.jsx)(IconSettings, { className: "w-4 h-4" })
           }),
 
-          // 看板 ↔ 3D 模式可切换按钮 (Single Toggle Button for Kanban / 3D Flow)
+          // 看板 ↔ 3D 模式可切换按钮 (In Student mode: toggles Game / 3D Cover)
           (0, P.jsx)('button', {
             type: "button",
             onClick: function() {
+              if (window.isStudentMode && window.isStudentMode()) {
+                if (SoundEngine && SoundEngine.play) { try { SoundEngine.play('click'); } catch(e){} }
+                if (window.MinestLive && window.MinestLive.openJoin) {
+                  window.MinestLive.openJoin();
+                } else if (window.StudyArcade && window.StudyArcade.open) {
+                  StudyArcade.open(activeBoard);
+                }
+                return;
+              }
               var nextMode = viewMode === 'coverflow' ? 'board' : 'coverflow';
               if (onViewModeChange) onViewModeChange(nextMode);
               if (SoundEngine && SoundEngine.play) { try { SoundEngine.play('click'); } catch(e){} }
             },
             className: "sf-mode-toggle-btn p-2 rounded-xl border transition-all duration-200 " + (isDark ? "bg-white/8 border-white/15 text-white/80 hover:text-white hover:bg-white/15" : "bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200"),
-            title: viewMode === 'coverflow' ? "Board view (Kanban)" : "3D view (3D Cover)",
-            'aria-label': viewMode === 'coverflow' ? "Board view" : "3D view",
-            children: viewMode === 'coverflow' ? (0, P.jsx)(ue, { className: "w-4 h-4 block" }) : (0, P.jsx)(de, { className: "w-4 h-4 block" })
+            title: (window.isStudentMode && window.isStudentMode()) ? "Play Game (Arcade)" : (viewMode === 'coverflow' ? "Board view (Kanban)" : "3D view (3D Cover)"),
+            'aria-label': (window.isStudentMode && window.isStudentMode()) ? "Play Game" : (viewMode === 'coverflow' ? "Board view" : "3D view"),
+            children: (window.isStudentMode && window.isStudentMode()) ? (0, P.jsx)('span', { className: "text-base block leading-none select-none", children: "🎮" }) : (viewMode === 'coverflow' ? (0, P.jsx)(ue, { className: "w-4 h-4 block" }) : (0, P.jsx)(de, { className: "w-4 h-4 block" }))
           }),
 
           // 27.7: header Ink button removed from the top bar (Card FX keeps the ink mode)
@@ -22483,7 +22515,14 @@ var De = function(props) {
 // 8.5 Study Arcade
           (0, P.jsxs)('button', {
             type: "button",
-            onClick: function() { if (SoundEngine && SoundEngine.play) { try { SoundEngine.play('click'); } catch (e) {} } StudyArcade.open(activeBoard); },
+            onClick: function() {
+              if (SoundEngine && SoundEngine.play) { try { SoundEngine.play('click'); } catch (e) {} }
+              if (window.isStudentMode && window.isStudentMode() && window.MinestLive && window.MinestLive.openJoin) {
+                window.MinestLive.openJoin();
+              } else {
+                StudyArcade.open(activeBoard);
+              }
+            },
             className: "ios-tab-item",
             title: "Study Arcade — learning games",
             children: [
@@ -81492,6 +81531,7 @@ var Be = function() {
 
   var viewModeState = (0, _.useState)(function() {
     try {
+      if (window.isStudentMode && window.isStudentMode()) return 'coverflow';
       var params = new URLSearchParams(window.location.search);
       var urlMode = params.get("mode");
       if (['coverflow', 'board', 'drill'].includes(urlMode)) return urlMode;
@@ -81501,8 +81541,12 @@ var Be = function() {
     } catch (e) {}
     return "board";
   });
-  var viewMode = viewModeState[0];
-  var setViewMode = viewModeState[1];
+  var viewMode = (window.isStudentMode && window.isStudentMode() && viewModeState[0] === 'board') ? 'coverflow' : viewModeState[0];
+  var rawSetViewMode = viewModeState[1];
+  var setViewMode = function(next) {
+    if (window.isStudentMode && window.isStudentMode() && next === 'board') next = 'coverflow';
+    rawSetViewMode(next);
+  };
   window.__setViewMode = setViewMode;
 
   var themeModeState = (0, _.useState)(function() {
@@ -82207,14 +82251,14 @@ var Be = function() {
   sfBoardIdRef.current = activeBoardId;
   (0, _.useEffect)(function() {
     SpatialFold.bind({
-      commitMode: setViewMode,
+      commitMode: function(m) { if (window.isStudentMode && window.isStudentMode() && m === 'board') m = 'coverflow'; setViewMode(m); },
       setSlots: setFoldSlots,
       getBoardId: function() { return sfBoardIdRef.current; }
     });
   }, []);
   (0, _.useEffect)(function() { SpatialFold.modeChanged(viewMode); }, [viewMode]);
   (0, _.useLayoutEffect)(function() { SpatialFold.afterCommit(); }, [foldSlots, viewMode]);
-  var requestViewMode = function(m) { SpatialFold.request(m); };
+  var requestViewMode = function(m) { if (window.isStudentMode && window.isStudentMode() && m === 'board') m = 'coverflow'; SpatialFold.request(m); };
 
   // Firebase Auth & Firestore Listener
   (0, _.useEffect)(function() {
@@ -83629,7 +83673,7 @@ var Be = function() {
       (0, P.jsx)('main', {
         className: "flex-1 flex flex-col w-full relative z-10",
         children: (viewMode === 'board' || viewMode === 'coverflow') ? [
-          (viewMode === 'board' || (foldSlots && foldSlots.board)) ? (0, P.jsx)('div', { key: 'sf-board', className: "sf-slot", 'data-sf-view': "board", children: (0, P.jsx)(ke, {
+          ((viewMode === 'board' || (foldSlots && foldSlots.board)) && !(window.isStudentMode && window.isStudentMode())) ? (0, P.jsx)('div', { key: 'sf-board', className: "sf-slot", 'data-sf-view': "board", children: (0, P.jsx)(ke, {
             board: activeBoard,
             isLandscape: isLandscape,
             themeMode: themeMode,
@@ -88058,6 +88102,7 @@ var Ve = (function(_Component) {
   });
   window.MinestPetRaising = {
     open: function () {
+      if (window.isStudentMode && window.isStudentMode()) return;
       if (document.getElementById(overlayId)) return;
       var overlay = document.createElement('div');
       overlay.id = overlayId;
@@ -88368,10 +88413,10 @@ var Ve = (function(_Component) {
   function handleTap() {
     var now = Date.now();
     if (now - lastTapAt < 360) {
-      // Double tap -> Open Pet Raising V6
+      // Double tap -> Open Pet Raising V6 (BLOCKED in student mode)
       lastTapAt = 0;
       petEvent('minest:minipet-tap', { double: true });
-      if (window.MinestPetRaising && typeof window.MinestPetRaising.open === 'function') {
+      if (!(window.isStudentMode && window.isStudentMode()) && window.MinestPetRaising && typeof window.MinestPetRaising.open === 'function') {
         window.MinestPetRaising.open();
       }
       return;
@@ -93722,7 +93767,7 @@ var Ve = (function(_Component) {
   function overlay(title, standalone) {
     ensureCss(); close();
     var el = document.createElement('div'); el.className = 'mlv'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', title);
-    el.innerHTML = '<div class="mlv-top"><div class="mlv-brand"><i>🎮</i><span></span></div><div class="mlv-sp"></div>' + (standalone ? '' : '<button class="mlv-x" type="button" data-x>✕ Close</button>') + '</div><div class="mlv-body"></div>';
+    el.innerHTML = '<div class="mlv-top"><div class="mlv-brand"><i>🎮</i><span></span></div><div class="mlv-sp"></div>' + (standalone ? '' : '<button class="mlv-x" type="button" data-x>' + ((window.isStudentMode && window.isStudentMode()) ? '✕ 3D Cover' : '✕ Close') + '</button>') + '</div><div class="mlv-body"></div>';
     $(el, '.mlv-brand span').textContent = title;
     $(el, '.mlv-brand i').innerHTML = WAIT_ICONS.octo;   // Octo in the logo
     document.body.appendChild(el);
@@ -93736,13 +93781,21 @@ var Ve = (function(_Component) {
     c.cleanup.forEach(function (f) { try { f(); } catch (e) {} });
     c.el.remove();
     try {
-      var u = new URL(location.href);
-      if (u.searchParams.has('play') || u.searchParams.has('join') || u.searchParams.has('code')) {
-        u.searchParams.delete('play');
-        u.searchParams.delete('join');
-        u.searchParams.delete('code');
-        var qs = u.searchParams.toString();
-        history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + (u.hash ? u.hash : ''));
+      if (window.isStudentMode && window.isStudentMode()) {
+        var u = new URL(location.href);
+        if (!u.searchParams.has('play')) u.searchParams.set('play', '');
+        history.replaceState(null, '', u.pathname + '?play' + (u.hash ? u.hash : ''));
+        if (window.__setViewMode) window.__setViewMode('coverflow');
+        else if (window.SpatialFold && window.SpatialFold.request) window.SpatialFold.request('coverflow');
+      } else {
+        var u = new URL(location.href);
+        if (u.searchParams.has('play') || u.searchParams.has('join') || u.searchParams.has('code')) {
+          u.searchParams.delete('play');
+          u.searchParams.delete('join');
+          u.searchParams.delete('code');
+          var qs = u.searchParams.toString();
+          history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + (u.hash ? u.hash : ''));
+        }
       }
     } catch (e) {}
   }
@@ -130834,6 +130887,43 @@ html body #mn-templates.tt-quest8241 [data-return] {
   background: radial-gradient(circle at 35% 25%, #ffdc52 0%, #ffbd2e 55%, #d89617 100%) !important;
   box-shadow: 0 0 6px rgba(245, 158, 11, 0.45) !important;
 }
+
+/* Student Mode Restrictions: Strictly Game or 3D Cover Flow, No Kanban, No Pet Mode */
+html.student-mode .sf-slot[data-sf-view="board"],
+body.student-mode .sf-slot[data-sf-view="board"] {
+  display: none !important;
+}
+
+html.student-mode .sf-slot[data-sf-view="coverflow"],
+body.student-mode .sf-slot[data-sf-view="coverflow"] {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Prohibit Pet Raising and Octo menu in student mode */
+html.student-mode .pet-raising-tab,
+body.student-mode .pet-raising-tab,
+html.student-mode .mpet-menu,
+body.student-mode .mpet-menu {
+  display: none !important;
+}
+
+/* Hide board settings button and cloud sync in topbar for student mode */
+html.student-mode button[title^="Board settings"],
+html.student-mode button[aria-label="Board settings"],
+html.student-mode button[data-mn="cloud"],
+html.student-mode button[title^="Cloud Sync"] {
+  display: none !important;
+}
+
+/* In board picker, hide workspace creation and board editing actions for students */
+html.student-mode .board-picker-popover button[title^="创建分组"],
+html.student-mode .board-picker-popover .board-manage-btn,
+html.student-mode .board-picker-popover [data-board-action] {
+  display: none !important;
+}
+
 </style>
 <script id="teaching-ten8241">/* 53.8241 · Authentic Minest Live Solo & Blooket Experience with Rich Drag Gameplay */
 (function(){'use strict';
