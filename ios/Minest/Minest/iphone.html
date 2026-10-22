@@ -11941,6 +11941,15 @@ var StudyArcade = window.StudyArcade = (function() {
     var S = A && A.S; if (!S || S.ended) return;
     // a run-style game (Smash It) is one continuous session: its end is the finale
     if (A.mode && A.mode.run) { finale(true, 'Run Complete'); return; }
+    if (S.modeKey === 'flinger') {
+      S.deck.forEach(function(it) {
+        var r = S.res[it.id];
+        if (r) { r.mastered = true; r.needed = false; }
+        S.roundRes[it.id] = 'mastered';
+      });
+      finale(true, 'Deck Cleared ✓');
+      return;
+    }
     var weak = S.roundItems.filter(function(it) { return S.roundRes[it.id] !== 'mastered'; });
     if (!weak.length) { finale(true); return; }
     var wait = A.mode && A.mode.roundOut ? A.mode.roundOut(weak) : 0;
@@ -12392,7 +12401,7 @@ var StudyArcade = window.StudyArcade = (function() {
       if (cur && cur.phase === 'front' && flipOn) flip();
       else if (cur && (!flipOn || cur.phase === 'back')) decide('mastered');
     }, flipOn ? 'Flip (Space)' : 'Seen (Space)');
-    mk('Know ✓', 'know', function() { decide('mastered'); }, 'Know it (→)');
+
     arRead.button(ctrls, function() { return cur && cur.item && cur.item.front; });
     var hint = el('div', 'ar-fl-hint', root, flipOn ? 'Fling up-right = Mastered · down-left = Again · Space flips' : 'Scan: ← keeps a card for another pass');
     var cur = null, flying = 0;
@@ -12636,6 +12645,7 @@ var StudyArcade = window.StudyArcade = (function() {
       if (!item) { timer.style.opacity = '0'; api.maybeEnd(); return; }
 
       var c = makeCard(item);
+      if (flipBtn && flipOn) flipBtn.textContent = 'Flip';
       slot.appendChild(c.el);
       arRead.say(item.front);
 
@@ -12666,6 +12676,7 @@ var StudyArcade = window.StudyArcade = (function() {
       var c = cur;
       if (!c || c.phase !== 'front' || !flipOn) return;
       c.phase = 'back';
+      if (flipBtn) flipBtn.textContent = 'Next →';
       c.flippedAt = performance.now();
       api.sfx('flip');
       api.tween(reduce ? 1 : 360, function(p) {
@@ -131122,6 +131133,12 @@ html.student-mode .mlv-top .mlv-x,
 html.student-mode .mlv-x {
   display: none !important;
 }
+
+/* Card Flinger: Hide Know button */
+.ar-fl .ar-btn.know {
+  display: none !important;
+}
+
 
 
 
