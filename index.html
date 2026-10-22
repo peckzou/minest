@@ -2,6 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <script id="mn-three-preload">(function(){try{var web=/^https?:$/.test(location.protocol);['three.min.js','GLTFLoader.js'].forEach(function(f){var l=document.createElement('link');l.rel='preload';l.as='script';l.href=(web?'vendor/':'')+f;document.head.appendChild(l);});}catch(e){}})();</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -91,7 +92,7 @@
     <meta name="description" content="Minest — a learning board with liquid-glass cards." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <style>
 /* Unified Card Gaps */
 /* Independent card layers prevent Safari intersecting neighboring 3D faces. */
@@ -7018,6 +7019,86 @@ window.MinestCovers821={visible:visible,anyVisible:anyVisible,toggleList:toggleL
 window.addEventListener('storage',function(e){if(e.key!==KEY)return;try{prefs=JSON.parse(e.newValue||'{}')||{};}catch(err){prefs={};}window.dispatchEvent(new Event(EVENT));});
 })();
 </script>
+<style id="mn-board-glass-lite">
+/* board: every list is a snap point at every width (the ≤640px "center" rule and the landscape "start" rule still win
+   where they apply). Without this, wide screens had only two snap points — the contents column and the "Add another list"
+   button — so the board opened at the far right and swiping left snapped back or jumped to the start. */
+.board-swimlane-scroll > .kanban-column-wrapper { scroll-snap-align: start; scroll-snap-stop: normal; }
+/* board: one layer of glass (the column), not one per card inside it */
+html body .kanban-column-wrapper.kanban-column-wrapper .kanban-card.kanban-card:not(.mn-never),
+html body .kanban-column-wrapper.kanban-column-wrapper .kanban-subcard.kanban-subcard:not(.mn-never),
+html body .kanban-column-wrapper.kanban-column-wrapper .liquid-glass-card.liquid-glass-card:not(.mn-never),
+html body .kanban-column-wrapper.kanban-column-wrapper .liquid-glass-deck-step1.liquid-glass-deck-step1:not(.mn-never),
+html body .kanban-column-wrapper.kanban-column-wrapper .liquid-glass-deck-step2.liquid-glass-deck-step2:not(.mn-never),
+html body .kanban-column-wrapper.kanban-column-wrapper .card-edit-btn.card-edit-btn:not(.mn-never),
+html body .kanban-column-wrapper.kanban-column-wrapper .mn-tc.mn-tc:not(.mn-never),
+html body .mn-tocol.mn-tocol .kanban-card.kanban-card:not(.mn-never),
+html body .mn-tocol.mn-tocol .kanban-subcard.kanban-subcard:not(.mn-never),
+html body .mn-tocol.mn-tocol .liquid-glass-card.liquid-glass-card:not(.mn-never),
+html body .mn-tocol.mn-tocol .liquid-glass-deck-step1.liquid-glass-deck-step1:not(.mn-never),
+html body .mn-tocol.mn-tocol .liquid-glass-deck-step2.liquid-glass-deck-step2:not(.mn-never),
+html body .mn-tocol.mn-tocol .card-edit-btn.card-edit-btn:not(.mn-never),
+html body .mn-tocol.mn-tocol .mn-tc.mn-tc:not(.mn-never) {   /* (0,5,2): above the .fbg-on card glass rule (0,3,1) */ -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+</style>
+<style id="mn-workspace-glass">
+/* Workspace · liquid glass (the board switcher) */
+/* the panel sits inside the top bar; a blurred ancestor is a backdrop root, so while the panel is open the bar drops its
+   own blur (a near-solid tint instead) and the panel's glass can blur the board behind it. :has() here only watches the bar. */
+html body header.iphone-topbar:has(.mn-ws-panel) { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: rgba(14,20,27,.94) !important; }
+html body .theme-white header.iphone-topbar:has(.mn-ws-panel), html body header.iphone-topbar:has(.mn-ws-light) { background: rgba(246,248,251,.96) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel { width: min(94vw, 700px) !important; max-width: calc(100vw - 16px) !important; padding: 16px !important; border-radius: 30px !important; color: #f5f7fb !important;
+  background: radial-gradient(120% 80% at 0% 0%, rgba(255,255,255,.16), transparent 55%), radial-gradient(90% 70% at 100% 100%, rgba(120,170,255,.12), transparent 60%), rgba(16,22,32,.80) !important;
+  -webkit-backdrop-filter: blur(42px) saturate(190%) !important; backdrop-filter: blur(42px) saturate(190%) !important;
+  border: 1px solid rgba(255,255,255,.2) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.38), inset 0 -1px 0 rgba(255,255,255,.05), 0 30px 80px rgba(0,0,0,.55), 0 6px 18px rgba(0,0,0,.25) !important; gap: 12px; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel > * + * { margin-top: 0 !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel > :first-child { border-bottom: 0 !important; padding-bottom: 2px !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-title { display: flex; align-items: baseline; gap: 8px; font-size: 19px !important; font-weight: 800 !important; letter-spacing: -.3px; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-sub { font-size: 12px; font-weight: 600; opacity: .55; letter-spacing: 0; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel > :first-child svg { color: rgba(255,255,255,.85) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-tabs { padding: 4px !important; gap: 4px !important; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); scrollbar-width: none; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-tabs::-webkit-scrollbar { display: none; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-tab { background: transparent !important; border-color: transparent !important; color: rgba(255,255,255,.68) !important; border-radius: 12px !important; padding: 7px 12px !important; font-size: 13px !important; transform: none !important; box-shadow: none !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-tab:hover { background: rgba(255,255,255,.07) !important; color: #fff !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-tab.mn-ws-tab-on { background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.14)) !important; color: #fff !important; font-weight: 700 !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 4px 12px rgba(0,0,0,.25) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-newfolder { border: 1px dashed rgba(255,255,255,.28) !important; color: rgba(255,255,255,.75) !important; background: transparent !important; border-radius: 12px !important; padding: 7px 12px !important; font-size: 13px !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-folderbar { background: rgba(255,255,255,.05) !important; border-color: rgba(255,255,255,.1) !important; border-radius: 14px !important; padding: 8px 12px !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-grid { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(min(232px, 100%), 1fr)); width: 100%; min-width: 0; gap: 10px !important; padding: 2px 4px 2px 2px !important; align-content: start; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-grid > * { margin: 0 !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card { display: flex !important; align-items: center !important; gap: 12px; padding: 12px !important; border-radius: 20px !important; color: #f5f7fb !important; font-weight: 500 !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04)) !important; border: 1px solid rgba(255,255,255,.12) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.1) !important; transition: transform .18s ease, background .18s ease, box-shadow .18s ease !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card:hover { background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)) !important; transform: translateY(-1px); }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card.mn-ws-card-on { background: linear-gradient(180deg, rgba(10,132,255,.24), rgba(10,132,255,.1)) !important; border-color: rgba(140,195,255,.6) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 0 0 1px rgba(140,195,255,.3), 0 10px 26px rgba(10,132,255,.2) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card.mn-ws-card-open { flex-wrap: wrap; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-avatar { flex: none; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-weight: 800; font-size: 18px; color: #fff;
+  background: linear-gradient(135deg, var(--c, #64748b), color-mix(in srgb, var(--c, #64748b) 55%, #000)); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 4px 10px rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.3); }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-info { flex: 1 1 auto; gap: 3px; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-info .truncate { font-size: 14.5px !important; font-weight: 700 !important; color: #fff !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-meta { font-size: 11.5px !important; opacity: .62 !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-dots { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-dots i { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.18); }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card .text-emerald-400 { color: #8ecbff !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card button { color: rgba(255,255,255,.75) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-form { border-top: 0 !important; padding-top: 4px !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-form input { min-height: 42px; border-radius: 14px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.14) !important; font-size: 14px !important; color: #fff !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-form button[type=submit] { min-height: 42px; border-radius: 14px !important; padding: 0 16px !important; background: linear-gradient(180deg, #3a9bff, #0a84ff) !important; color: #fff !important; font-size: 14px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px rgba(10,132,255,.35) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-foot { border-top: 1px solid rgba(255,255,255,.08) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-foot .text-emerald-400, html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-folderbar .text-emerald-400 { color: #8ecbff !important; }
+/* light theme */
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light { color: #0f172a !important; background: radial-gradient(120% 80% at 0% 0%, rgba(255,255,255,.9), transparent 55%), rgba(244,246,250,.78) !important; border-color: rgba(255,255,255,.75) !important; box-shadow: inset 0 1px 0 #fff, 0 30px 70px rgba(15,23,42,.18), 0 4px 14px rgba(15,23,42,.08) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-tabs { background: rgba(15,23,42,.05); border-color: rgba(15,23,42,.06); }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-tab { color: rgba(15,23,42,.6) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-tab.mn-ws-tab-on { background: #fff !important; color: #0f172a !important; box-shadow: 0 2px 8px rgba(15,23,42,.12) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-newfolder { color: rgba(15,23,42,.6) !important; border-color: rgba(15,23,42,.2) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-card { background: rgba(255,255,255,.66) !important; border-color: rgba(15,23,42,.07) !important; color: #0f172a !important; box-shadow: 0 1px 2px rgba(15,23,42,.05) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-card.mn-ws-card-on { background: rgba(10,132,255,.1) !important; border-color: rgba(10,132,255,.45) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-info .truncate { color: #0f172a !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-card button { color: rgba(15,23,42,.6) !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-card .text-emerald-400, html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-foot .text-emerald-400 { color: #0a6fd6 !important; }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-form input { background: rgba(255,255,255,.8) !important; border-color: rgba(15,23,42,.1) !important; color: #0f172a !important; }
+@media (max-width: 520px) { html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-grid { grid-template-columns: minmax(0, 1fr); } }
+html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card, html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-info { min-width: 0 !important; }
+@media (prefers-reduced-motion: reduce) { html body .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card { transition: none !important; } }
+</style>
 </head>
   <body>
     <div id="root"></div>
@@ -20020,7 +20101,7 @@ var Me = function(props) {
 
   return (0, P.jsxs)('div', {
     onClick: function(e) { e.stopPropagation(); },
-    className: "board-picker-popover absolute left-0 top-full mt-2 w-80 sm:w-96 rounded-3xl p-4 sm:p-5 border shadow-2xl z-50 backdrop-blur-3xl animate-fadeIn space-y-3.5 transition-all max-h-[85vh] flex flex-col overflow-hidden " +
+    className: "board-picker-popover mn-ws-panel" + (isDark ? "" : " mn-ws-light") + " absolute left-0 top-full mt-2 w-80 sm:w-96 rounded-3xl p-4 sm:p-5 border shadow-2xl z-50 backdrop-blur-3xl animate-fadeIn space-y-3.5 transition-all max-h-[85vh] flex flex-col overflow-hidden " +
       (isDark ? "bg-[#141d26]/95 border-white/15 text-white shadow-[0_16px_36px_rgba(0,0,0,0.6)]" : "bg-white/95 border-slate-200 text-slate-900 shadow-[0_12px_28px_rgba(0,0,0,0.12)]"),
     children: [
       (0, P.jsxs)('div', {
@@ -20030,7 +20111,7 @@ var Me = function(props) {
             className: "flex items-center gap-2",
             children: [
               (0, P.jsx)(fe, { className: "w-4 h-4 text-emerald-400" }),
-              (0, P.jsx)('h3', { className: "font-bold text-sm", children: "Switch or Manage Boards" })
+              (0, P.jsxs)('h3', { className: "mn-ws-title font-bold text-sm", children: ["Workspace", (0, P.jsx)('small', { className: "mn-ws-sub", children: visibleBoards.length + " boards" })] })
             ]
           }),
           (0, P.jsx)('button', {
@@ -20044,7 +20125,7 @@ var Me = function(props) {
 
       // Workspace Filter Tabs & New Folder Button
       (0, P.jsxs)('div', {
-        className: "flex items-center gap-1.5 overflow-x-auto pb-1 custom-scroll shrink-0",
+        className: "mn-ws-tabs flex items-center gap-1.5 overflow-x-auto pb-1 custom-scroll shrink-0",
         children: [
           workspaces.map(function(ws) {
             var isSel = activeWorkspace === ws.id;
@@ -20052,7 +20133,7 @@ var Me = function(props) {
               key: ws.id,
               type: "button",
               onClick: function() { setActiveWorkspace(ws.id); SoundEngine.play('click'); },
-              className: "px-2.5 py-1 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 border " +
+              className: "mn-ws-tab" + (isSel ? " mn-ws-tab-on" : "") + " px-2.5 py-1 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 border " +
                 (isSel
                   ? "bg-emerald-500 text-white border-emerald-400 shadow-sm font-bold scale-[1.02]"
                   : (isDark ? "bg-white/5 border-white/10 hover:bg-white/15 text-white/70" : "bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-700")),
@@ -20079,7 +20160,7 @@ var Me = function(props) {
                 if (window.GlassUI) GlassUI.toast("✅ 已新建分组: " + name);
               }
             },
-            className: "px-2 py-1 rounded-xl text-xs font-semibold shrink-0 flex items-center gap-1 border border-dashed border-emerald-500/50 hover:bg-emerald-500/15 text-emerald-400 transition-all cursor-pointer",
+            className: "mn-ws-newfolder px-2 py-1 rounded-xl text-xs font-semibold shrink-0 flex items-center gap-1 border border-dashed border-emerald-500/50 hover:bg-emerald-500/15 text-emerald-400 transition-all cursor-pointer",
             title: "新建工作区分组 / Create New Folder",
             children: [(0, P.jsx)('span', { className: "font-bold", children: "+" }), (0, P.jsx)('span', { children: "新建分组" })]
           })
@@ -20089,7 +20170,7 @@ var Me = function(props) {
       // Folder Action Toolbar (Rename / Delete Folder)
       (activeWorkspace !== 'all') ? (
         (0, P.jsxs)('div', {
-          className: "flex items-center justify-between px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs shrink-0",
+          className: "mn-ws-folderbar flex items-center justify-between px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs shrink-0",
           children: [
             (0, P.jsxs)('div', {
               className: "flex items-center gap-1.5 font-medium opacity-80",
@@ -20151,41 +20232,31 @@ var Me = function(props) {
 
       // Boards List (Scrollable up to 58vh with custom scrollbar)
       (0, P.jsx)('div', {
-        className: "space-y-2 max-h-[58vh] flex-1 overflow-y-auto pr-1.5 custom-scroll",
+        className: "mn-ws-grid space-y-2 max-h-[58vh] flex-1 overflow-y-auto pr-1.5 custom-scroll",
         children: filteredBoards.map(function(b) {
           var isCurrent = b.id === activeBoardId;
           var totalC = (b.columns || []).reduce(function(acc, c) { return acc + (c.cards ? c.cards.length : 0); }, 0);
           var isActionsExpanded = expandedActionsBoardId === b.id;
           return (0, P.jsxs)('div', {
             key: b.id,
+            style: { '--c': ((b.columns || [])[0] || {}).color || '#64748b' },
             onClick: function() { if (isActionsExpanded) return; onSelectBoard(b.id); SoundEngine.play('click'); onClose(); },
-            className: "group w-full flex items-center justify-between p-2.5 rounded-2xl border transition-all " +
+            className: "mn-ws-card" + (isCurrent ? " mn-ws-card-on" : "") + (isActionsExpanded ? " mn-ws-card-open" : "") + " group w-full flex items-center justify-between p-2.5 rounded-2xl border transition-all " +
               (isActionsExpanded ? "cursor-default " : "cursor-pointer ") +
               (isCurrent ? "bg-emerald-600/20 border-emerald-500/50 text-emerald-400 font-semibold shadow-sm" : (isDark ? "bg-white/5 border-white/10 hover:bg-white/10" : "bg-slate-50 border-slate-200 hover:bg-slate-100")),
             children: [
+              (0, P.jsx)('div', { className: "mn-ws-avatar", 'aria-hidden': "true", children: String(b.title || '?').trim().charAt(0).toUpperCase() }),
               (0, P.jsxs)('div', {
-                className: "flex flex-col min-w-0 pr-2",
+                className: "mn-ws-info flex flex-col min-w-0 pr-2",
                 children: [
                   (0, P.jsxs)('div', {
                   className: "flex items-center gap-1.5 flex-wrap",
                   children: [
-                    (0, P.jsx)('span', { className: "truncate text-xs font-bold", children: b.title }),
-                    (0, P.jsxs)('button', {
-                      type: "button",
-                      onClick: function(e) {
-                        e.stopPropagation();
-                        handleMoveBoard(b.id, b.workspace);
-                      },
-                      className: "px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/25 shrink-0 flex items-center gap-1 transition-colors cursor-pointer",
-                      title: "点击移动至其他分组 / Click to change folder",
-                      children: [
-                        (0, P.jsx)('span', { children: "📁" }),
-                        (0, P.jsx)('span', { children: b.workspace || 'General' })
-                      ]
-                    })
+                    (0, P.jsx)('span', { className: "truncate text-xs font-bold", children: b.title })   /* the group tag is gone: ⋯ → 移动分组 moves a board */
                   ]
                 }),
-                  (0, P.jsxs)('span', { className: "text-[10px] opacity-60", children: [(b.columns || []).length, " lists · ", totalC, " cards"] })
+                  (0, P.jsxs)('span', { className: "mn-ws-meta text-[10px] opacity-60", children: [(b.columns || []).length, " lists · ", totalC, " cards"] }),
+                  (0, P.jsx)('span', { className: "mn-ws-dots", 'aria-hidden': "true", children: (b.columns || []).slice(0, 10).map(function(c, i) { return (0, P.jsx)('i', { style: { background: c.color || '#94a3b8' } }, c.id || i); }) })
                 ]
               }),
               isActionsExpanded ? (0, P.jsxs)('div', {
@@ -20342,7 +20413,7 @@ var Me = function(props) {
             onClose();
           }
         },
-        className: "flex items-center gap-2 pt-2 border-t border-white/10",
+        className: "mn-ws-form flex items-center gap-2 pt-2 border-t border-white/10",
         children: [
           (0, P.jsx)('input', {
             type: "text",
@@ -20364,7 +20435,7 @@ var Me = function(props) {
 
       // Export / Import / Reset Presets
       (0, P.jsxs)('div', {
-        className: "flex items-center justify-between gap-2 pt-2.5 border-t border-white/10 text-[11px] flex-wrap",
+        className: "mn-ws-foot flex items-center justify-between gap-2 pt-2.5 border-t border-white/10 text-[11px] flex-wrap",
         children: [
           (0, P.jsxs)('div', {
             className: "flex items-center gap-2.5",
@@ -88299,12 +88370,12 @@ var Ve = (function(_Component) {
   if (document.readyState === 'complete') schedulePrefetch(); else window.addEventListener('load', schedulePrefetch, { once: true });
 })();
 </script>
-<script src="three.min.js"></script>
+<script>document.write('<script src="' + (/^https?:$/.test(location.protocol) ? 'vendor/three.min.js' : 'three.min.js') + '"><\/script>');</script>
 <script>if (!window.THREE) document.write('<script src="vendor/three.min.js"><\/script>');</script>
 <script>if (!window.THREE) document.write('<script src="ios/Minest/Minest/vendor/three.min.js"><\/script>');</script>
 <script>if (!window.THREE) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
 
-<script src="GLTFLoader.js"></script>
+<script>document.write('<script src="' + (/^https?:$/.test(location.protocol) ? 'vendor/GLTFLoader.js' : 'GLTFLoader.js') + '"><\/script>');</script>
 <script>if (!window.THREE || !window.THREE.GLTFLoader) document.write('<script src="vendor/GLTFLoader.js"><\/script>');</script>
 <script>if (!window.THREE || !window.THREE.GLTFLoader) document.write('<script src="ios/Minest/Minest/vendor/GLTFLoader.js"><\/script>');</script>
 <script>if (!window.THREE || !window.THREE.GLTFLoader) document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script>');</script>
@@ -131226,13 +131297,9 @@ html.student-mode .board-picker-popover [data-board-action] {
 
 /* Disable top bar and bottom dock in 3D Cover mode and student mode */
 body.mode-coverflow header.iphone-topbar,
-html.mn-immersive header.iphone-topbar,
-body:has(.perspective-stage) header.iphone-topbar,
 html.student-mode header.iphone-topbar,
 html.student-mode .ios-bottom-tab-bar,
-body.mode-coverflow .ios-bottom-tab-bar,
-html.mn-immersive .ios-bottom-tab-bar,
-body:has(.perspective-stage) .ios-bottom-tab-bar {
+body.mode-coverflow .ios-bottom-tab-bar {   /* only the 3D Cover and student mode — the board keeps its bars */
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
