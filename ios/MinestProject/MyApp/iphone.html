@@ -88728,6 +88728,7 @@ var Ve = (function(_Component) {
   }
 
   root.addEventListener('pointerdown', function (event) {
+    if (window.isStudentMode && window.isStudentMode()) return;
     window.__minestMiniPetTouch = performance.now();
     downAt = Date.now();
     drag = { x: event.clientX, y: event.clientY };
@@ -89138,6 +89139,7 @@ var Ve = (function(_Component) {
     }
   }, true);
   document.addEventListener('click', function (e) {
+    if (window.isStudentMode && window.isStudentMode()) return;
     var t = e.target; if (!t || !t.closest) return;
     if (t.closest('#minest-mini-pet-p0')) return;
     if (t.closest('[title^="Quick edit card"]')) { act('look', 1200, '✏️', t.closest('[data-card-id]') || t); return; }
@@ -89250,6 +89252,7 @@ var Ve = (function(_Component) {
     if (menu && !(e.target.closest && (e.target.closest('.mpet-menu button') || e.target.closest('#minest-mini-pet-p0')))) closeMenu();
   }, true);
   window.addEventListener('minest:minipet-hold', function (e) {
+    if (window.isStudentMode && window.isStudentMode()) return;
     var V = window.MinestRealtimeVoice43, ph = e.detail && e.detail.phase;
     closeMenu();
     if (!V || !V.ptt) return;
@@ -89832,6 +89835,7 @@ var Ve = (function(_Component) {
     try { if (window.speechSynthesis && !speechVoices.length) speechVoices = window.speechSynthesis.getVoices() || []; } catch (error) {}
   }
   function openPanel() {
+    if (window.isStudentMode && window.isStudentMode()) return;
     warmUp(); clearInterval(warmTimer); warmTimer = setInterval(warmUp, 120000);
     panel.classList.add('is-open');
     panel.setAttribute('aria-hidden', 'false');
@@ -93747,6 +93751,15 @@ var Ve = (function(_Component) {
     place: function (where) {
       var el = OCTO.el(); if (!el) return;
       var w = el.offsetWidth || 152, h = el.offsetHeight || 152, W = innerWidth, H = innerHeight;
+      if (window.isStudentMode && window.isStudentMode()) {
+        el.style.left = '14px';
+        el.style.top = Math.max(0, H - h - 14) + 'px';
+        el.style.right = 'auto';
+        el.style.bottom = '14px';
+        el.style.zIndex = '2147483150';
+        el.style.pointerEvents = 'none';
+        return;
+      }
       el.style.transition = 'left .6s cubic-bezier(.2,.9,.3,1.1), top .6s cubic-bezier(.2,.9,.3,1.1), opacity .3s';
       el.style.zIndex = where === 'corner' ? '2147483150' : '2147483450';
       el.style.pointerEvents = where === 'corner' ? 'none' : '';
@@ -130901,12 +130914,41 @@ body.student-mode .sf-slot[data-sf-view="coverflow"] {
   height: 100% !important;
 }
 
-/* Prohibit Pet Raising and Octo menu in student mode */
+/* Station Octo permanently at bottom-left corner with pointer-events: none so it NEVER blocks buttons */
+html.student-mode #minest-mini-pet-p0,
+body.student-mode #minest-mini-pet-p0 {
+  position: fixed !important;
+  left: 14px !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 14px !important;
+  transform: none !important;
+  pointer-events: none !important;
+  z-index: 9999 !important;
+}
+html.student-mode #minest-mini-pet-p0 canvas {
+  pointer-events: none !important;
+}
+
+/* Prohibit Pet Raising, Voice/Chat Dialogue, Speech tips, and Octo menu in student mode */
 html.student-mode .pet-raising-tab,
 body.student-mode .pet-raising-tab,
 html.student-mode .mpet-menu,
-body.student-mode .mpet-menu {
+body.student-mode .mpet-menu,
+html.student-mode .mpet-tip,
+body.student-mode .mpet-tip,
+html.student-mode .mpet-say,
+body.student-mode .mpet-say,
+html.student-mode .mpet-inbox,
+body.student-mode .mpet-inbox,
+html.student-mode #voice43-backdrop,
+body.student-mode #voice43-backdrop,
+html.student-mode #voice43-launch,
+body.student-mode #voice43-launch,
+html.student-mode #voice43-token,
+body.student-mode #voice43-token {
   display: none !important;
+  pointer-events: none !important;
 }
 
 /* Hide board settings button and cloud sync in topbar for student mode */
