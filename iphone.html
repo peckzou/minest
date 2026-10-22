@@ -27,6 +27,28 @@
         } catch (e) {}
         return false;
       };
+      window.returnToStudentGame = function () {
+        try { if (window.SoundEngine && window.SoundEngine.play) window.SoundEngine.play('click'); } catch (e) {}
+        try {
+          var p = new URLSearchParams(window.location.search);
+          var code = p.get('play') || p.get('code') || p.get('join') || '';
+          if (!code) {
+            try {
+              var saved = JSON.parse(sessionStorage.getItem('minest.live.me') || '{}');
+              if (saved && saved.code) code = saved.code;
+            } catch (e) {}
+          }
+          if (window.MinestLive && typeof window.MinestLive.openJoin === 'function') {
+            window.MinestLive.openJoin(code);
+            return;
+          }
+          if (window.StudyArcade && typeof window.StudyArcade.open === 'function') {
+            var b = (window.MinestAI && window.MinestAI.board) ? window.MinestAI.board() : null;
+            window.StudyArcade.open(b);
+            return;
+          }
+        } catch (err) { console.error('Error returning to student game:', err); }
+      };
       if (window.isStudentMode()) {
         try {
           document.documentElement.classList.add('student-mode');
@@ -21703,22 +21725,28 @@ var De = function(props) {
   var fxTabState = (0, _.useState)('none|Card FX'), fxTab = fxTabState[0], setFxTab = fxTabState[1];
   (0, _.useEffect)(function() {
     var read = function() {
-      var lm = window.FBFX && window.FBFX.active ? window.FBFX.mode : 'off';
-      var isCoverflow = !!document.querySelector('.perspective-stage') || (window.__HeadsUpController && window.__HeadsUpController.isActive());
-      var cm = 'off';
+      var lm = (window.FBFX && (window.FBFX.active || window.FBFX.mode)) ? (window.FBFX.mode || 'none') : 'none';
+      var isCoverflow = !!document.querySelector('.perspective-stage');
+      var cm = 'Card FX';
       if (isCoverflow) {
-        var isHu = window.__HeadsUpController && window.__HeadsUpController.isActive();
-        cm = isHu ? 'Heads Up' : 'Card FX';
+        if (typeof window.__getCoverCardMode === 'function') {
+          var ccm = window.__getCoverCardMode();
+          cm = (ccm && ccm !== 'none') ? ccm : 'Card FX';
+        } else {
+          var isHu = window.__HeadsUpController && window.__HeadsUpController.isActive();
+          cm = isHu ? 'Heads Up' : 'Card FX';
+        }
       } else {
         var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.perspective-stage ~ .card-mode-btn, section .card-mode-btn');
-        cm = cb ? cb.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX' : 'off';
+        cm = cb ? cb.textContent.replace(/^[^A-Za-z]*/, '').trim() || 'Card FX' : 'Card FX';
       }
       var key = lm + '|' + cm;
       setFxTab(function(prev) { return prev === key ? prev : key; });
     };
+    window.__syncFxTab = read;
     read();
     var id = setInterval(read, 400);
-    return function() { clearInterval(id); };
+    return function() { clearInterval(id); window.__syncFxTab = null; };
   }, [isLandscape]);
   // 17.9 Invisible Ink menu (header)
   var inkMenuState = (0, _.useState)(false), inkMenuOpen = inkMenuState[0], setInkMenuOpen = inkMenuState[1];
@@ -22228,8 +22256,9 @@ var De = function(props) {
             type: "button",
             onClick: function() {
               if (window.isStudentMode && window.isStudentMode()) {
-                if (SoundEngine && SoundEngine.play) { try { SoundEngine.play('click'); } catch(e){} }
-                if (window.MinestLive && window.MinestLive.openJoin) {
+                if (window.returnToStudentGame) {
+                  window.returnToStudentGame();
+                } else if (window.MinestLive && window.MinestLive.openJoin) {
                   window.MinestLive.openJoin();
                 } else if (window.StudyArcade && window.StudyArcade.open) {
                   StudyArcade.open(activeBoard);
@@ -22517,11 +22546,11 @@ var De = function(props) {
             type: "button",
             onClick: function() {
               if (SoundEngine && SoundEngine.play) { try { SoundEngine.play('click'); } catch (e) {} }
-              if (window.isStudentMode && window.isStudentMode() && window.MinestLive && window.MinestLive.openJoin) {
-                window.MinestLive.openJoin();
-              } else {
-                StudyArcade.open(activeBoard);
+              if (window.isStudentMode && window.isStudentMode()) {
+                if (window.returnToStudentGame) { window.returnToStudentGame(); return; }
+                if (window.MinestLive && window.MinestLive.openJoin) { window.MinestLive.openJoin(); return; }
               }
+              StudyArcade.open(activeBoard);
             },
             className: "ios-tab-item",
             title: "Study Arcade — learning games",
@@ -22552,17 +22581,20 @@ var De = function(props) {
             ]
           }),
 
-// 12.3 Light FX (lasers / firework / spotlight) — the same switch as the floating one
+// 12.3 Light FX (lasers / firework / spotlight / neon)
           (function() {
             var lm = fxTab.split('|')[0], on = lm !== 'none' && lm !== 'off';
             return (0, P.jsxs)('button', {
               type: "button",
-              disabled: lm === 'off',
+              disabled: false,
               onClick: function() {
-                if (!window.FBFX || !window.FBFX.active) return;
+                if (!window.FBFX) return;
                 var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
-                window.FBFX.setMode(M[(M.indexOf(window.FBFX.mode) + 1) % M.length]);
-                setFxTab(window.FBFX.mode + '|' + fxTab.split('|')[1]);
+                var cur = window.FBFX.mode || 'none';
+                var next = M[(M.indexOf(cur) + 1) % M.length];
+                window.FBFX.setMode(next);
+                setFxTab(next + '|' + fxTab.split('|')[1]);
+                try { if (SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch(e){}
               },
               className: "ios-tab-item dock-fx-tab " + (on ? "active " + lm : ""),
               title: "Light FX — tap to cycle (off → lasers → firework → spotlight → neon)",
@@ -22580,15 +22612,13 @@ var De = function(props) {
             var cmClass = cm.toLowerCase().replace(/[^a-z0-9]/g, '');
             return (0, P.jsxs)('button', {
               type: "button",
-              disabled: cm === 'off',
+              disabled: false,
               onClick: function() {
-                var isCoverflow = !!document.querySelector('.perspective-stage') || (window.__HeadsUpController && window.__HeadsUpController.isActive());
-                if (isCoverflow && window.__HeadsUpController) {
-                  if (window.__HeadsUpController.isActive()) {
-                    window.__HeadsUpController.exit();
-                  } else {
-                    window.__HeadsUpController.enter();
-                  }
+                var isCoverflow = !!document.querySelector('.perspective-stage');
+                if (isCoverflow && typeof window.__cycleCoverCardMode === 'function') {
+                  var nextM = window.__cycleCoverCardMode();
+                  var label = (nextM && nextM !== 'none') ? nextM : 'Card FX';
+                  setFxTab(fxTab.split('|')[0] + '|' + label);
                   return;
                 }
                 var cb = document.querySelector('.card-mode-btn.board-mode-btn') || document.querySelector('.card-mode-btn');
@@ -24997,6 +25027,27 @@ var Oe = function(props) {
     return function() { window.removeEventListener('minest:fx-reset', reset); };
   }, []);
   cardModeRef.current = cardMode;
+  window.__setCoverCardMode = setCardMode;
+  window.__getCoverCardMode = function() { return cardModeRef.current; };
+  window.__cycleCoverCardMode = function() {
+    var cur = cardModeRef.current || 'none';
+    var next = cur === 'none' ? 'liq' : (cur === 'liq' ? 'smash' : 'none');
+    setCardMode(next);
+    try {
+      if (next === 'smash') SoundEngine.play('glass_crack');
+      else if (next === 'liq') SoundEngine.play('slide');
+      else SoundEngine.play('click');
+    } catch (e) {}
+    if (typeof window.__syncFxTab === 'function') setTimeout(window.__syncFxTab, 30);
+    return next;
+  };
+  (0, _.useEffect)(function() {
+    return function() {
+      window.__setCoverCardMode = null;
+      window.__getCoverCardMode = null;
+      window.__cycleCoverCardMode = null;
+    };
+  }, []);
   var liquidBridgeRef = (0, _.useRef)({ activeId: null, tilt: { x: 0, y: 0 } });
   liquidBridgeRef.current.tilt = tilt;
   var glassBridgeRef = (0, _.useRef)({ activeId: null, tilt: { x: 0, y: 0 } });
@@ -28404,6 +28455,56 @@ var Oe = function(props) {
     // handlers below, never by this declarative touch-action.
     style: { paddingBottom: headsUpState.active ? "0" : (isLandscape ? "14px" : "68px"), overscrollBehavior: "contain", touchAction: headsUpState.active ? "none" : (isLandscape ? "none" : "pan-y") },
     children: [
+      // Floating Student & Coverflow Controls (Return to Game, Card FX, Light FX)
+      (0, P.jsxs)('div', {
+        className: "student-cover-float-bar",
+        children: [
+          (window.isStudentMode && window.isStudentMode()) ? (0, P.jsxs)('button', {
+            type: "button",
+            onClick: function() {
+              if (window.returnToStudentGame) window.returnToStudentGame();
+            },
+            className: "student-game-float-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-600/90 hover:bg-indigo-600 text-white text-xs font-semibold shadow-lg transition-all",
+            title: "Return to Arcade Game",
+            children: [
+              (0, P.jsx)('span', { className: "text-sm", children: "🎮" }),
+              (0, P.jsx)('span', { children: "Game" })
+            ]
+          }) : null,
+          (0, P.jsxs)('button', {
+            type: "button",
+            onClick: function() {
+              if (window.__cycleCoverCardMode) window.__cycleCoverCardMode();
+            },
+            className: "student-game-float-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white text-xs font-semibold border border-white/20 shadow-lg transition-all",
+            title: "Card FX: " + cardMode,
+            children: [
+              (0, P.jsx)('span', { className: "text-sm", children: "✨" }),
+              (0, P.jsx)('span', { children: cardMode === 'none' ? 'Card FX' : cardMode })
+            ]
+          }),
+          (0, P.jsxs)('button', {
+            type: "button",
+            onClick: function() {
+              if (window.FBFX) {
+                var M = ['none', 'lasers', 'firework', 'spotlight', 'neon'];
+                var cur = (window.FBFX.mode) || 'none';
+                var next = M[(M.indexOf(cur) + 1) % M.length];
+                window.FBFX.setMode(next);
+                try { if (SoundEngine && SoundEngine.play) SoundEngine.play('click'); } catch(e){}
+                if (typeof window.__syncFxTab === 'function') setTimeout(window.__syncFxTab, 30);
+              }
+            },
+            className: "student-game-float-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white text-xs font-semibold border border-white/20 shadow-lg transition-all",
+            title: "Light FX: " + ((window.FBFX && window.FBFX.mode) || 'none'),
+            children: [
+              (0, P.jsx)('span', { className: "text-sm", children: "💡" }),
+              (0, P.jsx)('span', { children: (window.FBFX && window.FBFX.mode && window.FBFX.mode !== 'none') ? window.FBFX.mode : 'Light FX' })
+            ]
+          })
+        ]
+      }),
+
       // Zen mode exit button
       isZenMode ? (0, P.jsxs)('button', {
         type: "button",
@@ -130965,6 +131066,67 @@ html.student-mode .board-picker-popover .board-manage-btn,
 html.student-mode .board-picker-popover [data-board-action] {
   display: none !important;
 }
+
+/* Student Mode: Keep Top Bar & Bottom Dock always visible and interactive */
+html.student-mode.mn-immersive body:not(.clear-mode) header.iphone-topbar,
+html.student-mode header.iphone-topbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 60 !important;
+  transform: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  display: flex !important;
+}
+
+html.student-mode.mn-immersive .ios-bottom-tab-bar,
+html.student-mode .ios-bottom-tab-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 60 !important;
+  transform: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  display: flex !important;
+}
+
+/* Floating Return to Game Button in 3D Cover */
+.student-cover-float-bar {
+  position: fixed !important;
+  top: calc(var(--sat, 0px) + 58px) !important;
+  left: 12px !important;
+  z-index: 65 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  pointer-events: auto !important;
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .student-cover-float-bar {
+    top: calc(var(--sat, 0px) + 12px) !important;
+    left: calc(var(--sal, 0px) + 12px) !important;
+  }
+}
+
+.student-game-float-btn {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  cursor: pointer !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+}
+.student-game-float-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+.student-game-float-btn:active {
+  transform: scale(0.95) !important;
+}
+
+
 
 </style>
 <script id="teaching-ten8241">/* 53.8241 · Authentic Minest Live Solo & Blooket Experience with Rich Drag Gameplay */
