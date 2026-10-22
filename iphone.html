@@ -12301,7 +12301,7 @@ var StudyArcade = window.StudyArcade = (function() {
       if (weak.length) btn('Play Again — Review Missed Cards (' + weak.length + ')', 'primary', function() { play(S.modeKey, weak, S.opts); });
       btn('Play again', weak.length ? '' : 'primary', function() { play(S.modeKey, items, S.opts); });
       btn('Other games', '', function() { lobby(); });
-      btn((window.isStudentMode && window.isStudentMode()) ? 'Back to 3D Cards' : 'Back to board', '', function() { close(); });
+      if (!(window.isStudentMode && window.isStudentMode())) btn('Back to board', '', function() { close(); });
       tween(420, function(e) { p.style.opacity = e.toFixed(3); p.style.transform = 'translate(-50%,' + ((1 - e) * 18).toFixed(1) + 'px)'; }, null, ease.out);
     };
     if (!show.length || reduce) { panel(); return; }
@@ -93881,7 +93881,7 @@ var Ve = (function(_Component) {
   function overlay(title, standalone) {
     ensureCss(); close();
     var el = document.createElement('div'); el.className = 'mlv'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', title);
-    el.innerHTML = '<div class="mlv-top"><div class="mlv-brand"><i>🎮</i><span></span></div><div class="mlv-sp"></div>' + (standalone ? '' : '<button class="mlv-x" type="button" data-x>' + ((window.isStudentMode && window.isStudentMode()) ? '✕ 3D Cover' : '✕ Close') + '</button>') + '</div><div class="mlv-body"></div>';
+    el.innerHTML = '<div class="mlv-top"><div class="mlv-brand"><i>🎮</i><span></span></div><div class="mlv-sp"></div>' + ((standalone || (window.isStudentMode && window.isStudentMode())) ? '' : '<button class="mlv-x" type="button" data-x>✕ Close</button>') + '</div><div class="mlv-body"></div>';
     $(el, '.mlv-brand span').textContent = title;
     $(el, '.mlv-brand i').innerHTML = WAIT_ICONS.octo;   // Octo in the logo
     document.body.appendChild(el);
@@ -95332,7 +95332,7 @@ var Ve = (function(_Component) {
       return '<div class="mlv-card mlv-hud"><span class="mlv-cash"><i class="mlv-av">' + avHtml(withWear(avatar())) + '</i>' + money(s.money) + '</span>' + (myRank() ? '<span class="mlv-pill mlv-rank">🏅 #' + myRank().r + ' / ' + myRank().n + '</span>' : '') + '<span class="mlv-pill">⭐ ' + points(totalScore()) + '</span><span class="mlv-pill">🔥 ' + s.streak + '</span>' +
         (s.bonus > 1 ? '<span class="mlv-pill">' + (s.bonus === 5 ? '💥' : '⚡') + ' ×' + s.bonus + ' next level</span>' : '') + (s.shield ? '<span class="mlv-pill">🧲 ×' + s.shield + '</span>' : '') +
         '<span class="mlv-sp"></span>' + (host.goal.type === 'time' ? '<span class="mlv-pill" data-left>⏱</span>' : host.goal.type === 'money' ? '<span class="mlv-pill">🏁 ' + money(host.goal.target) + '</span>' : '<span class="mlv-pill">🏰 clear all</span>') +
-        '<button class="mlv-btn alt" data-cover style="padding:9px 14px" title="Study the cards one by one">📖 3D Cover</button>' +
+        ((window.isStudentMode && window.isStudentMode()) ? '' : '<button class="mlv-btn alt" data-cover style="padding:9px 14px" title="Study the cards one by one">📖 3D Cover</button>') +
         '<button class="mlv-btn alt" data-cards style="padding:9px 14px">' + (screen === 'cards' ? '🗺 Map' : '🏅 Badges ' + Object.keys(s.coll).length + '/' + CARDS.length) + '</button>' +
         '<button class="mlv-btn' + (screen === 'shop' ? ' alt' : '') + '" data-shop style="padding:9px 14px">' + (screen === 'shop' ? '🗺 Map' : '🛒 Shop') + '</button></div>';
     }
@@ -95352,8 +95352,10 @@ var Ve = (function(_Component) {
         o.body.innerHTML = '<section class="mlv-card" style="max-width:520px;margin:8vh auto 0;text-align:center"><div style="font-size:54px">🕹</div><h2>You’re in, ' + esc(me.name) + '!</h2><p class="sub">' + esc(host.title || '') + ' · ' + host.levels.length + ' Arcade levels. Waiting for your teacher to start…</p>' +
           '<div class="mlv-trail" style="justify-content:center">' + host.levels.map(function (k) { return '<i style="width:40px;height:40px;font-size:21px;border-radius:12px">' + levelInfo(k).icon + '</i>'; }).join('') + '</div></section>';
         var wp = document.createElement('div'); wp.style.cssText = 'max-width:520px;margin:0 auto'; o.body.appendChild(wp);
-        var sb = document.createElement('button'); sb.type = 'button'; sb.className = 'mlv-btn mlv-studybtn'; sb.innerHTML = '📖 Study the cards in 3D Cover'; sb.onclick = function () { openCover(me.code); };
-        wp.appendChild(sb); waitPanel(wp, null, host, { code: me.code, pid: me.pid, name: me.name, av: withWear(avatar()) });
+        if (!(window.isStudentMode && window.isStudentMode())) {
+          var sb = document.createElement('button'); sb.type = 'button'; sb.className = 'mlv-btn mlv-studybtn'; sb.innerHTML = '📖 Study the cards in 3D Cover'; sb.onclick = function () { openCover(me.code); };
+          wp.appendChild(sb);
+        } waitPanel(wp, null, host, { code: me.code, pid: me.pid, name: me.name, av: withWear(avatar()) });
         return;
       }
       if (screen === 'end') {
@@ -131067,38 +131069,26 @@ html.student-mode .board-picker-popover [data-board-action] {
   display: none !important;
 }
 
-/* Student Mode: Keep Top Bar & Bottom Dock always visible and interactive */
-html.student-mode.mn-immersive body:not(.clear-mode) header.iphone-topbar,
-html.student-mode header.iphone-topbar {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 60 !important;
-  transform: none !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  display: flex !important;
+/* Disable top bar and bottom dock in 3D Cover mode and student mode */
+body.mode-coverflow header.iphone-topbar,
+html.mn-immersive header.iphone-topbar,
+body:has(.perspective-stage) header.iphone-topbar,
+html.student-mode header.iphone-topbar,
+html.student-mode .ios-bottom-tab-bar,
+body.mode-coverflow .ios-bottom-tab-bar,
+html.mn-immersive .ios-bottom-tab-bar,
+body:has(.perspective-stage) .ios-bottom-tab-bar {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
-html.student-mode.mn-immersive .ios-bottom-tab-bar,
-html.student-mode .ios-bottom-tab-bar {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 60 !important;
-  transform: none !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  display: flex !important;
-}
-
-/* Floating Return to Game Button in 3D Cover */
+/* Floating Return to Game & FX Bar in 3D Cover */
 .student-cover-float-bar {
   position: fixed !important;
-  top: calc(var(--sat, 0px) + 58px) !important;
-  left: 12px !important;
+  top: calc(var(--sat, 0px) + 14px) !important;
+  left: calc(var(--sal, 0px) + 14px) !important;
   z-index: 65 !important;
   display: flex !important;
   align-items: center !important;
@@ -131125,6 +131115,15 @@ html.student-mode .ios-bottom-tab-bar {
 .student-game-float-btn:active {
   transform: scale(0.95) !important;
 }
+
+/* Student Mode: Remove 3D Cover buttons from student game screens */
+html.student-mode [data-cover],
+html.student-mode .mlv-studybtn,
+html.student-mode .mlv-top .mlv-x,
+html.student-mode .mlv-x {
+  display: none !important;
+}
+
 
 
 
