@@ -2,6 +2,9 @@
    11 🧱 连词成句 Sentence Builder — drag the shuffled word blocks into the sentence slots, in order
    12 🔤 拼音拼拼 Pinyin Builder   — drag a syllable onto each character (tone look-alikes are among the tiles)
    13 🕳 句子填空 Fill the Blank    — drag the right word card into the gap of a sentence
+   14 ☁️ 云朵排序 Listen & Order   — (阶段五 · 听力) tap the question to hear the whole sentence (🐢 slower); its word
+      blocks float below as clouds, shuffled. Tap a cloud to hear it, drag clouds left / right to put the sentence back in
+      order. It checks itself after every move; the sentence shows (with pinyin and English) once it is right.
    Sentences: the card's own example (card.sent / card.sentEn, written in the word-list editor or by its ✍ 一键造句),
    else a bilingual classroom frame (我喜欢数学。· I like math.), so every list can play.
    Every game: drag, or tap a tile then tap a slot; Esc / ↩ to put a tile back. Stars and XP like the other ten levels
@@ -12,8 +15,12 @@ var KEY = 'minest.teaching.ten824.best';
 var GAMES = [
   ['sentence3','🧱','连词成句 · Sentence Builder','把词块拖进句子槽，拼出完整的句子','#0ea5e9'],
   ['pinyin3','🔤','拼音拼拼 · Pinyin Builder','把音节拖到每个汉字上方，注意声调','#f97316'],
-  ['cloze3','🕳','句子填空 · Fill the Blank','把正确的词卡拖进句子的空格','#10b981']
+  ['cloze3','🕳','句子填空 · Fill the Blank','把正确的词卡拖进句子的空格','#10b981'],
+  ['cloud3','☁️','云朵排序 · Listen & Order','点题目听整句，点云朵听词语，拖动云朵排出句子','#38bdf8']
 ];
+function canSpeak(){ return !!(window.speechSynthesis && window.SpeechSynthesisUtterance && !window.__mnNoVoice); }
+function say(t, rate){ try { if (!canSpeak() || !t) return; var u = new SpeechSynthesisUtterance(t); u.lang = 'zh-CN'; u.rate = rate || 0.85; var v = (speechSynthesis.getVoices() || []).filter(function(x){ return /^(zh|cmn)/i.test(x.lang || ''); }); if (v.length) u.voice = v.filter(function(x){ return /CN|Hans/i.test(x.lang); })[0] || v[0]; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch(e){} }
+function pyOf(t){ try { return (window.MinestTeachingAssets && MinestTeachingAssets.pinyin && MinestTeachingAssets.pinyin(t)) || ''; } catch(e){ return ''; } }
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
 function mix(a){ a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 function T(){ return window.MinestTeachingTen || {}; }
@@ -64,6 +71,7 @@ function why(g, cx){
   if (g === 'sentence3') return cx.cards.length >= 2 ? '' : '至少需要 2 张词卡';
   if (g === 'cloze3') return cx.cards.length >= 3 ? '' : '至少需要 3 张不同词卡';
   if (g === 'pinyin3') return pinyinCards(cx).length >= 2 ? '' : '需要至少 2 张中文词卡（带拼音）';
+  if (g === 'cloud3') return !canSpeak() ? '这台设备不能朗读中文' : zhCards.length >= 1 ? '' : '需要中文词卡';
   return '';
 }
 function pinyinCards(cx){ return cx.cards.filter(function(c){ var ch = Array.from(c.zh).filter(han), sy = c.py.split(/\s+/).filter(Boolean); return ch.length && ch.length === Array.from(c.zh).length && ch.length === sy.length && ch.length <= 6; }); }
@@ -76,7 +84,7 @@ function paintMap(){
   var cx = context(); if (!cx) return;
   var html = '<div class="solo-stage-pill" data-d3-pill>🧱 阶段四 · 拖拽造句与拼音拼装</div>' + GAMES.map(function(g, i){
     var w = why(g[0], cx), b = bestOf(cx, g[0]), st = b ? b.stars || 0 : 0;
-    return '<button type="button" class="solo-level-card' + (w ? ' needs-data' : '') + '" data-d3="' + g[0] + '"' + (w ? ' disabled' : '') + '><div class="solo-card-icon" style="background:' + g[4] + '">' + g[1] + '</div><div class="solo-card-info"><b>' + (11 + i) + '. ' + esc(g[2]) + '</b><small>' + esc(w || g[3]) + '</small><span class="solo-card-stars">' + [1,2,3].map(function(n){ return n <= st ? '★' : '☆'; }).join('') + '</span></div><div class="solo-card-play">' + (w ? '🔒' : '▶') + '</div></button>';
+    return (g[0] === 'cloud3' ? '<div class="solo-stage-pill" data-d3-pill>🎧 阶段五 · 听力排序</div>' : '') + '<button type="button" class="solo-level-card' + (w ? ' needs-data' : '') + '" data-d3="' + g[0] + '"' + (w ? ' disabled' : '') + '><div class="solo-card-icon" style="background:' + g[4] + '">' + g[1] + '</div><div class="solo-card-info"><b>' + (11 + i) + '. ' + esc(g[2]) + '</b><small>' + esc(w || g[3]) + '</small><span class="solo-card-stars">' + [1,2,3].map(function(n){ return n <= st ? '★' : '☆'; }).join('') + '</span></div><div class="solo-card-play">' + (w ? '🔒' : '▶') + '</div></button>';
   }).join('');
   map.insertAdjacentHTML('beforeend', html);
 }
@@ -89,7 +97,7 @@ var q3 = false; new MutationObserver(function(){ if (q3) return; q3 = true; requ
 var G = null;
 function start(g){
   var cx = context(), r = root(); if (!cx || !r) return; if (why(g, cx)) return;
-  var pool = g === 'pinyin3' ? pinyinCards(cx) : cx.cards, rounds = mix(pool).slice(0, Math.min(6, pool.length));
+  var pool = g === 'pinyin3' ? pinyinCards(cx) : g === 'cloud3' ? cx.cards.filter(function(c){ return han(c.zh); }) : cx.cards, rounds = mix(pool).slice(0, Math.min(6, pool.length));
   G = { g: g, meta: GAMES.filter(function(x){ return x[0] === g; })[0], cx: cx, rounds: rounds, i: 0, first: 0, miss: 0, xp: 0, sel: null };
   r.dataset.tenView = 'd3'; next();
 }
@@ -100,8 +108,8 @@ function hud(){
 }
 function next(){
   var w = wrap(); if (!w) return; if (G.i >= G.rounds.length) return finish();
-  var c = G.rounds[G.i]; G.miss = 0; G.sel = null; G.c = c;
-  if (G.g === 'sentence3') sentenceRound(w, c); else if (G.g === 'pinyin3') pinyinRound(w, c); else clozeRound(w, c);
+  var c = G.rounds[G.i]; G.miss = 0; G.sel = null; G.c = c; G.won = false;
+  if (G.g === 'sentence3') sentenceRound(w, c); else if (G.g === 'pinyin3') pinyinRound(w, c); else if (G.g === 'cloud3') cloudRound(w, c); else clozeRound(w, c);
 }
 function tile(text, id, extra){ return '<button type="button" class="d3-tile' + (extra || '') + '" data-d3-tile="' + esc(id) + '">' + esc(text) + '</button>'; }
 function enLine(t){ return t && showEn() ? '<p class="d3-en">' + esc(t) + '</p>' : ''; }
@@ -139,6 +147,29 @@ function clozeRound(w, c){
     '<div class="d3-tray big">' + opts.map(function(o){ return tile(o.zh, 'w:' + o.zh, ''); }).join('') + '</div><p class="d3-tip">把正确的词卡拖进空格</p></section>';
 }
 
+function cloudRound(w, c){
+  var S = sentenceOf(c, G.i); G.S = S; G.moves = 0;
+  var ids = S.chunks.map(function(x, i){ return { t: x, k: i }; }), order = mix(ids), tries = 0;
+  while (ids.length > 1 && order.every(function(x, i){ return x.k === i; }) && tries++ < 8) order = mix(ids);
+  w.innerHTML = '<section class="d3-stage d3-sky">' + hud() + '<div class="d3-card d3-listen"><div class="d3-dir">云朵排序 · LISTEN &amp; ORDER</div>' +
+    '<button type="button" class="d3-q" data-d3-say aria-label="听整句"><span class="d3-q-ico">🔊</span><span>点我听整句</span></button><button type="button" class="d3-slow" data-d3-slow aria-label="慢速再听">🐢 慢一点</button>' +
+    '<div class="d3-answer" hidden></div></div>' +
+    '<div class="d3-clouds" role="list">' + order.map(function(x){ var py = pyOf(x.t); return '<button type="button" role="listitem" class="d3-cloud' + (x.t === c.zh ? ' key' : '') + '" data-d3-cloud="' + x.k + '" aria-label="云朵：' + esc(x.t) + '"><b>' + esc(x.t) + '</b>' + (py ? '<small>' + esc(py) + '</small>' : '') + '</button>'; }).join('') + '</div>' +
+    '<p class="d3-tip">点云朵听读音 · 按住云朵左右拖动换位置 · 排对了会自动通过</p></section>';
+  setTimeout(function(){ if (G && G.c === c && !G.done) say(S.zh); }, 450);
+}
+function cloudOrder(){ var w = wrap(); return w ? [].map.call(w.querySelectorAll('.d3-cloud'), function(b){ return +b.getAttribute('data-d3-cloud'); }) : []; }
+function cloudCheck(){
+  if (!G || G.g !== 'cloud3' || G.won) return; G.moves++;
+  var o = cloudOrder(), right = o.every(function(k, i){ return k === i; }) || o.map(function(k){ return G.S.chunks[k]; }).join('') === G.S.chunks.join('');
+  if (!right) return;
+  G.won = true; G.miss = Math.max(0, G.moves - G.S.chunks.length);   // a clean run: no more moves than clouds
+  var w = wrap(), ans = w && w.querySelector('.d3-answer');
+  [].forEach.call(w.querySelectorAll('.d3-cloud'), function(b, i){ b.classList.add('ok'); b.style.animationDelay = (i * 0.06) + 's'; });
+  if (ans) { var py = G.S.chunks.map(pyOf).filter(Boolean).join(' '); ans.hidden = false; ans.innerHTML = '<p class="d3-sent">' + esc(G.S.zh) + '</p>' + (py ? '<p class="d3-hint">' + esc(py) + '</p>' : '') + enLine(G.S.en); }
+  win(G.S.zh);
+}
+
 /* ---- drop rules ------------------------------------------------------------------------------------------------------------ */
 function place(tileEl, slotEl){
   if (!tileEl || !slotEl || slotEl.classList.contains('ok')) return;
@@ -167,7 +198,7 @@ function win(said){
   var clean = G.miss === 0; if (clean) G.first++; G.xp += clean ? 10 : 5; sfx(clean ? 'correct' : 'click'); speak(said);
   var w = wrap(), card = w && w.querySelector('.d3-card'); if (card) { card.classList.add('done'); card.insertAdjacentHTML('beforeend', '<div class="d3-yay">' + (clean ? '✨ 一次就对！+10' : '👍 完成 +5') + '</div>'); }
   var tray = w && w.querySelector('.d3-tray'); if (tray) tray.classList.add('off');
-  setTimeout(function(){ if (!G || G.done) return; G.i++; next(); }, 1300);
+  setTimeout(function(){ if (!G || G.done) return; G.i++; next(); }, G.g === 'cloud3' ? 2600 : 1300);
 }
 function finish(){
   var n = G.rounds.length, ratio = n ? G.first / n : 0, stars = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1, cx = G.cx, k = JSON.stringify([cx.boardId, cx.col, G.g]), all = bestAll(), old = all[k] || {};
@@ -177,6 +208,38 @@ function finish(){
   w.innerHTML = '<section class="d3-stage"><div class="d3-card d3-end-card"><div class="d3-big">' + G.meta[1] + '</div><h2>LEVEL CLEARED · 关卡通关！</h2><div class="d3-stars">' + [1,2,3].map(function(i){ return i <= stars ? '★' : '☆'; }).join('') + '</div>' +
     '<p>✨ +' + G.xp + ' 积分 · 一次答对 ' + G.first + ' / ' + n + ' 轮</p><div class="d3-endb"><button type="button" class="d3-btn" data-d3-again>↻ 再玩一次</button><button type="button" class="d3-btn pri" data-d3-home>🏝 返回游戏地图</button></div></div></section>';
 }
+
+/* ---- clouds: tap = hear it; drag = move it left / right (live reorder); ←/→ on a focused cloud moves it too ---- */
+var cd = null;
+document.addEventListener('pointerdown', function(e){
+  var t = e.target.closest && e.target.closest('#mn-templates .d3-cloud'); if (!t || !G || G.done || G.won) return;
+  cd = { t: t, x: e.clientX, y: e.clientY, moved: false, id: e.pointerId, from: cloudOrder().join() };
+}, true);
+document.addEventListener('pointermove', function(e){
+  if (!cd || e.pointerId !== cd.id) return; var dx = e.clientX - cd.x, dy = e.clientY - cd.y;
+  if (!cd.moved && Math.abs(dx) + Math.abs(dy) < 8) return;
+  if (!cd.moved) { cd.moved = true; var r = cd.t.getBoundingClientRect(); cd.ox = cd.x - r.left; cd.oy = cd.y - r.top; cd.ghost = cd.t.cloneNode(true); cd.ghost.classList.add('d3-cloud-ghost'); cd.ghost.style.width = r.width + 'px'; document.body.appendChild(cd.ghost); cd.t.classList.add('lift'); sfx('whoosh'); }
+  e.preventDefault(); cd.ghost.style.left = (e.clientX - cd.ox) + 'px'; cd.ghost.style.top = (e.clientY - cd.oy) + 'px';
+  var row = cd.t.parentNode, best = null, bd = 1e9, after = false;
+  [].forEach.call(row.querySelectorAll('.d3-cloud'), function(b){ if (b === cd.t) return; var r = b.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, d = Math.hypot(e.clientX - cx, (e.clientY - cy) * 1.6); if (d < bd) { bd = d; best = b; after = e.clientX > cx; } });
+  if (best && bd < 140) { var ref = after ? best.nextSibling : best; if (ref !== cd.t && ref !== cd.t.nextSibling) row.insertBefore(cd.t, ref); }
+}, { capture: true, passive: false });
+document.addEventListener('pointerup', function(e){
+  var d = cd; cd = null; if (!d || e.pointerId !== d.id) return;
+  if (d.moved) { if (d.ghost) d.ghost.remove(); d.t.classList.remove('lift'); swallow(); if (cloudOrder().join() !== d.from) { sfx('snap'); cloudCheck(); } return; }
+}, true);
+document.addEventListener('pointercancel', function(){ if (cd) { if (cd.ghost) cd.ghost.remove(); cd.t.classList.remove('lift'); cd = null; } }, true);
+document.addEventListener('click', function(e){
+  var r = root(); if (!r || !G || G.g !== 'cloud3' || !r.contains(e.target)) return; var t;
+  if ((t = e.target.closest('[data-d3-say]'))) { e.stopPropagation(); t.classList.remove('play'); void t.offsetWidth; t.classList.add('play'); say(G.S.zh); return; }
+  if ((t = e.target.closest('[data-d3-slow]'))) { e.stopPropagation(); say(G.S.zh, 0.55); return; }
+  if ((t = e.target.closest('.d3-cloud'))) { e.stopPropagation(); t.classList.remove('hop'); void t.offsetWidth; t.classList.add('hop'); say(t.querySelector('b').textContent, 0.8); return; }
+}, true);
+window.addEventListener('keydown', function(e){   /* on window, ahead of the Teaching shell's own arrow keys */
+  var t = e.target.closest && e.target.closest('#mn-templates .d3-cloud'); if (!t || !G || G.won || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+  e.preventDefault(); var row = t.parentNode; if (e.key === 'ArrowLeft' && t.previousElementSibling) row.insertBefore(t, t.previousElementSibling); else if (e.key === 'ArrowRight' && t.nextElementSibling) row.insertBefore(t.nextElementSibling, t); else return;
+  e.stopPropagation(); t.focus(); sfx('snap'); cloudCheck();
+}, true);
 
 /* ---- dragging (pointer) + tap-tap + keyboard ------------------------------------------------------------------------------------- */
 var drag = null;
