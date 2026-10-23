@@ -95246,7 +95246,7 @@ var Ve = (function(_Component) {
   // ================================================================== MINEST STUDENT PIN & CLOUD ACCOUNT (Chromebook Support)
   var MinestStudentAccount = (function() {
     var RTDB_BASE = 'https://minest-33761-default-rtdb.firebaseio.com/minest-rooms/';
-    var DEFAULT_CLASS = 'CHINESE';
+    var DEFAULT_CLASS = '1AB';
 
     function safeKey(str) {
       return encodeURIComponent(String(str || '').trim().toLowerCase().replace(/[\.\#\$\[\]\/]/g, '_'));
@@ -95299,7 +95299,7 @@ var Ve = (function(_Component) {
       if (!cur || !cur.classCode || !cur.name) return Promise.resolve(null);
       var key = safeKey(cur.name);
       var payload = collectLocalData();
-      payload.name = cur.name;
+      payload.name = String(cur.name).toUpperCase();
       payload.pinHash = cur.pinHash;
       var url = RTDB_BASE + encodeURIComponent(cur.classCode) + '/students/' + key + '.json';
       return fetch(url, {
@@ -95311,11 +95311,11 @@ var Ve = (function(_Component) {
 
     function login(classCode, name, pin) {
       classCode = (classCode || DEFAULT_CLASS).trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || DEFAULT_CLASS;
-      name = (name || '').trim();
+      name = (name || '').trim().toUpperCase();
       pin = String(pin || '').trim();
 
-      if (!name) return Promise.reject(new Error('请填写你的名字'));
-      if (!/^\d{4}$/.test(pin)) return Promise.reject(new Error('请输入 4 位纯数字密码 (PIN)'));
+      if (!name) return Promise.reject(new Error('Please enter your First & Last Name.'));
+      if (!/^\d{4}$/.test(pin)) return Promise.reject(new Error('Please enter a 4-digit PIN (e.g. 1234).'));
 
       var key = safeKey(name);
       var pHash = hashPin(pin);
@@ -95344,7 +95344,7 @@ var Ve = (function(_Component) {
             });
           } else {
             if (cloudUser.pinHash !== pHash) {
-              throw new Error('4 位数字密码不正确。如果忘记密码，请老师在后台重置。');
+              throw new Error('Incorrect 4-digit PIN. Ask your teacher if forgotten.');
             }
             restoreLocalData(cloudUser);
             var cur = { classCode: classCode, name: name, pinHash: pHash, isNew: false };
@@ -95386,35 +95386,33 @@ var Ve = (function(_Component) {
   }
   function openJoin(code, standalone) {
     var o = overlay('Minest Live', standalone);
-    o.el.classList.add('mlv-kid');   // the students' side: made for children
+    o.el.classList.add('mlv-kid');   // the students\' side: made for children
     setTimeout(function () { OCTO.place('stage'); OCTO.act('wave', 'Hi! Let’s play 🎮', 2200); }, 600);
     var saved = {}; try { saved = JSON.parse(sessionStorage.getItem('minest.live.me') || '{}'); } catch (e) {}
     code = cleanCode(code || '');
     syncStudentUrl(code);
     var savedAv = String(saved.av || localAv() || '').split('~')[0];
     var selectedAv = STARTER_MONSTERS.indexOf(savedAv) >= 0 && ownsAv(savedAv) ? savedAv : STARTER_MONSTERS[0];
-    o.body.innerHTML = '<section class="mlv-card" style="max-width:440px;margin:6vh auto 0;text-align:center"><div style="font-size:46px">🕹</div><h2>Join the Arcade game</h2><p class="sub">Enter the code on your teacher’s screen.</p>' +
+    o.body.innerHTML = '<section class="mlv-card" style="max-width:440px;margin:5vh auto 0;text-align:center"><div style="font-size:42px">🕹</div><h2 style="margin:4px 0 2px">Join Arcade Game</h2><p class="sub" style="margin-bottom:12px">Enter the code on your teacher’s screen.</p>' +
       '<div data-acct class="mlv-acct"></div>' +
       '<input type="text" data-code maxlength="8" placeholder="GAME CODE" style="text-align:center;font-size:24px;font-weight:900;letter-spacing:.15em" value="' + esc(code) + '">' +
-      '<input type="text" data-name maxlength="20" placeholder="Your name" style="margin-top:10px;text-align:center;font-size:18px" value="' + esc(saved.name || '') + '">' +
+      '<input type="text" data-name maxlength="24" placeholder="FIRST & LAST NAME" style="margin-top:10px;text-align:center;font-size:17px;font-weight:800;letter-spacing:.05em;text-transform:uppercase" value="' + esc((saved.name || '').toUpperCase()) + '">' +
       '<div class="mlv-avatar-label">Choose your buddy · <span data-gemct style="color:#fde68a">💎 ' + gems() + '</span></div><div class="mlv-avatar-picker" data-avatar>' + STARTER_MONSTERS.map(function (id) { var c = cardById(id); var own = ownsAv(id); return '<button type="button" class="mlv-avatar-choice' + (id === selectedAv ? ' on' : '') + (own ? '' : ' lock') + '" data-av="' + id + '" title="' + esc(c.name) + '">' + iconHtml(c, 'mlv-card-icon') + (own ? '' : '<span class="pr">💎 ' + avCost(id) + '</span>') + '</button>'; }).join('') + '</div>' +
       '<div class="mlv-row" style="justify-content:center"><button class="mlv-btn" data-join>Join</button></div><div class="mlv-err" data-err></div>' +
-      '<div style="margin-top:14px;border-top:1px dashed rgba(255,255,255,0.12);padding-top:12px">' +
-      '<button type="button" class="mlv-btn alt" data-solo-start style="font-size:13px;padding:8px 18px;background:rgba(255,255,255,0.08);color:#cbd5e1;border:1px solid rgba(255,255,255,0.15)">🎮 没有房间码？直接单人练习闯关</button>' +
-      '</div></section>';
+      '</section>';
     var codeIn = $(o.body, '[data-code]'), nameIn = $(o.body, '[data-name]'), err = $(o.body, '[data-err]'), acct = $(o.body, '[data-acct]'), gUser = GAUTH.user();
     function paintAcct() {
       if (!acct || !acct.isConnected) return;
       var curStudent = window.MinestStudentAccount ? window.MinestStudentAccount.getCurrent() : null;
       if (curStudent) {
-        acct.innerHTML = '<div style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:18px;padding:8px 14px;margin:0 auto 10px;max-width:360px;display:flex;align-items:center;justify-content:space-between">' +
-          '<div style="display:flex;align-items:center;gap:8px">' +
-          '<span style="font-size:18px">🎒</span>' +
-          '<div style="text-align:left">' +
-          '<div style="font-size:13px;font-weight:800;color:#4ade80">学生档案 · <b>' + esc(curStudent.name) + '</b></div>' +
-          '<div style="font-size:11px;color:#94a3b8">班级: ' + esc(curStudent.classCode) + ' · 💎 进度已与云端同步</div>' +
+        acct.innerHTML = '<div style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(14,165,233,0.08));border:1px solid rgba(52,211,153,0.3);border-radius:16px;padding:9px 14px;margin:0 auto 12px;max-width:370px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(0,0,0,0.25)">' +
+          '<div style="display:flex;align-items:center;gap:10px;text-align:left">' +
+          '<div style="width:34px;height:34px;border-radius:10px;background:rgba(52,211,153,0.2);display:flex;align-items:center;justify-content:center;font-size:18px">🎒</div>' +
+          '<div>' +
+          '<div style="font-size:13px;font-weight:800;color:#f8fafc;letter-spacing:.03em"><span style="color:#34d399;font-size:10px;margin-right:4px">●</span>' + esc((curStudent.name || '').toUpperCase()) + '</div>' +
+          '<div style="font-size:11px;color:#94a3b8;font-weight:600">Class ' + esc(curStudent.classCode) + ' · Cloud Synced</div>' +
           '</div></div>' +
-          '<button type="button" class="mlv-link-btn" data-pin-out style="font-size:11px;color:#f87171;text-decoration:underline">切换账号</button>' +
+          '<button type="button" class="mlv-link-btn" data-pin-out style="font-size:11px;font-weight:700;color:#cbd5e1;border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:5px 10px;background:rgba(255,255,255,0.06);cursor:pointer">Switch</button>' +
           '</div>';
         var outBtn = $(acct, '[data-pin-out]');
         if (outBtn) outBtn.onclick = function() {
@@ -95422,38 +95420,48 @@ var Ve = (function(_Component) {
           paintAcct();
         };
         if (!nameIn.value.trim() || nameIn.getAttribute('data-auto')) {
-          nameIn.value = curStudent.name;
+          nameIn.value = (curStudent.name || '').toUpperCase();
           nameIn.setAttribute('data-auto', '1');
         }
       } else if (gUser) {
         acct.innerHTML = (gUser.photoURL ? '<img src="' + esc(gUser.photoURL) + '" alt="" referrerpolicy="no-referrer">' : '<i class="mlv-av">🙂</i>') + '<span>Signed in as <b>' + esc(gUser.displayName || 'you') + '</b></span><button type="button" class="mlv-link-btn" data-out>Sign out</button>';
         $(acct, '[data-out]').onclick = function () { GAUTH.signOut().then(function () { gUser = null; paintAcct(); }); };
-        if (!nameIn.value.trim() || nameIn.getAttribute('data-auto')) { nameIn.value = String(gUser.displayName || '').split(' ')[0].slice(0, 20); nameIn.setAttribute('data-auto', '1'); }
+        if (!nameIn.value.trim() || nameIn.getAttribute('data-auto')) { nameIn.value = String(gUser.displayName || '').split(' ')[0].slice(0, 24).toUpperCase(); nameIn.setAttribute('data-auto', '1'); }
       } else {
-        var savedName = esc(saved.name || nameIn.value || '');
-        var savedClass = esc(window.MinestStudentAccount ? window.MinestStudentAccount.DEFAULT_CLASS : 'CHINESE');
-        acct.innerHTML = '<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:18px;padding:12px 14px;margin:0 auto 12px;max-width:360px;text-align:left">' +
+        var savedName = esc((saved.name || nameIn.value || '').toUpperCase());
+        var lastClass = localStorage.getItem('minest.student.lastClass') || '1AB';
+        var CLASSES = ['1AB', '1CB', '2AB', '2CB', '3AB', '3CB', '4AB', '4CB', '5AB', '5CB'];
+        var optsHtml = CLASSES.map(function(cls) {
+          return '<option value="' + cls + '"' + (cls === lastClass ? ' selected' : '') + '>' + cls + '</option>';
+        }).join('');
+
+        acct.innerHTML = '<div style="background:rgba(15,23,42,0.65);border:1px solid rgba(255,255,255,0.14);border-radius:18px;padding:12px 14px;margin:0 auto 12px;max-width:370px;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,0.3)">' +
           '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-          '<span style="font-size:13px;font-weight:800;color:#60a5fa">🔑 班级云端存档 (换电脑不丢金币/装扮)</span>' +
-          '<span style="font-size:10px;color:#94a3b8;background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:6px">免邮箱</span>' +
+          '<div style="display:flex;align-items:center;gap:6px">' +
+          '<span style="font-size:13px">☁️</span>' +
+          '<span style="font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#38bdf8">Cloud Profile & Save</span>' +
           '</div>' +
-          '<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:8px">' +
+          '<span style="font-size:10px;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.08);padding:2px 7px;border-radius:99px">Sync Gems</span>' +
+          '</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 80px;gap:8px;margin-bottom:8px">' +
           '<div>' +
-          '<label style="font-size:10px;color:#94a3b8;font-weight:700">你的名字</label>' +
-          '<input type="text" data-pin-name placeholder="姓名 (如 Leo)" style="width:100%;box-sizing:border-box;margin-top:2px;padding:6px 8px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:#fff;font-size:13px;font-weight:700" value="' + savedName + '">' +
+          '<label style="display:block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#94a3b8;margin-bottom:3px">First & Last Name</label>' +
+          '<input type="text" data-pin-name placeholder="First & Last Name" maxlength="24" style="width:100%;box-sizing:border-box;padding:7px 9px;border-radius:10px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.4);color:#fff;font-size:13px;font-weight:800;text-transform:uppercase" value="' + savedName + '">' +
           '</div>' +
           '<div>' +
-          '<label style="font-size:10px;color:#94a3b8;font-weight:700">4位数字密码 (PIN)</label>' +
-          '<input type="password" data-pin-code maxlength="4" placeholder="4位数字" style="width:100%;box-sizing:border-box;margin-top:2px;padding:6px 8px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:#fff;font-size:13px;letter-spacing:0.2em;text-align:center;font-weight:700">' +
+          '<label style="display:block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#94a3b8;margin-bottom:3px">Class</label>' +
+          '<select data-pin-class style="width:100%;box-sizing:border-box;padding:7px 4px;border-radius:10px;border:1px solid rgba(255,255,255,0.18);background:rgba(15,23,42,0.95);color:#38bdf8;font-size:12px;font-weight:800;text-align:center;cursor:pointer">' +
+          optsHtml +
+          '</select>' +
           '</div></div>' +
-          '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">' +
-          '<div style="font-size:10px;color:#64748b;display:flex;align-items:center;gap:4px">' +
-          '<span>班级:</span>' +
-          '<input type="text" data-pin-class value="' + savedClass + '" maxlength="10" style="width:65px;background:transparent;border:none;border-bottom:1px dashed #64748b;color:#93c5fd;font-size:11px;font-weight:700;text-align:center;text-transform:uppercase">' +
+          '<div style="display:grid;grid-template-columns:105px 1fr;gap:8px;align-items:flex-end">' +
+          '<div>' +
+          '<label style="display:block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#94a3b8;margin-bottom:3px">4-Digit PIN</label>' +
+          '<input type="text" data-pin-code maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="1234" style="width:100%;box-sizing:border-box;padding:7px 6px;border-radius:10px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.4);color:#fde047;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;font-weight:900;letter-spacing:3px;text-align:center">' +
           '</div>' +
-          '<button type="button" class="mlv-btn" data-pin-submit style="padding:5px 14px;font-size:12px;height:auto;border-radius:99px;background:#3b82f6;color:#fff;border:none;cursor:pointer">☁️ 登录 / 恢复存档</button>' +
+          '<button type="button" class="mlv-btn" data-pin-submit style="height:35px;border-radius:10px;background:linear-gradient(135deg,#38bdf8,#3b82f6);color:#fff;font-size:12px;font-weight:800;border:none;cursor:pointer;padding:0 12px;letter-spacing:.02em;box-shadow:0 4px 12px rgba(56,189,248,0.25)">Sync & Load</button>' +
           '</div>' +
-          '<div data-pin-msg style="font-size:11px;margin-top:6px;display:none"></div>' +
+          '<div data-pin-msg style="font-size:11px;font-weight:700;margin-top:7px;display:none;line-height:1.4"></div>' +
           '</div>';
 
         var pSubmit = $(acct, '[data-pin-submit]');
@@ -95462,18 +95470,35 @@ var Ve = (function(_Component) {
         var pClass = $(acct, '[data-pin-class]');
         var pMsg = $(acct, '[data-pin-msg]');
 
+        if (pName) {
+          pName.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+          });
+        }
+        if (pCode) {
+          pCode.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 4);
+          });
+        }
+        if (pClass) {
+          pClass.addEventListener('change', function() {
+            try { localStorage.setItem('minest.student.lastClass', this.value); } catch(e){}
+          });
+        }
+
         function doPinLogin() {
           if (!window.MinestStudentAccount) return;
-          var sName = (pName.value || '').trim();
+          var sName = (pName.value || '').trim().toUpperCase();
           var sPin = (pCode.value || '').trim();
-          var sClass = (pClass.value || '').trim();
-          if (!sName) { showMsg('请填写你的名字', true); pName.focus(); return; }
-          if (!sPin || sPin.length !== 4) { showMsg('请输入 4 位数字密码 (如 1234)', true); pCode.focus(); return; }
+          var sClass = (pClass.value || '1AB').trim().toUpperCase();
+          if (!sName) { showMsg('Please enter your First & Last Name.', true); pName.focus(); return; }
+          if (!sPin || sPin.length !== 4) { showMsg('Please enter a 4-digit PIN (e.g. 1234).', true); pCode.focus(); return; }
+          try { localStorage.setItem('minest.student.lastClass', sClass); } catch(e){}
           pSubmit.disabled = true;
-          showMsg('正在连接云端存档…', false);
+          showMsg('Connecting to cloud...', false);
 
           window.MinestStudentAccount.login(sClass, sName, sPin).then(function(res) {
-            showMsg((res.isNew ? '🎉 欢迎新同学 ' : '🟢 欢迎回来 ') + sName + '！云端数据已恢复', false);
+            showMsg((res.isNew ? 'Welcome ' : 'Welcome back ') + sName + '! Cloud profile loaded.', false);
             nameIn.value = sName;
             var gc = $(o.body, '[data-gemct]');
             if (gc) gc.textContent = '💎 ' + gems();
@@ -95488,7 +95513,7 @@ var Ve = (function(_Component) {
             });
             setTimeout(function() { paintAcct(); }, 600);
           }).catch(function(err) {
-            showMsg('⚠️ ' + (err.message || '登录失败'), true);
+            showMsg(err.message || 'Login failed', true);
             pSubmit.disabled = false;
           });
         }
@@ -95496,12 +95521,13 @@ var Ve = (function(_Component) {
         function showMsg(text, isErr) {
           if (!pMsg) return;
           pMsg.style.display = 'block';
-          pMsg.style.color = isErr ? '#f87171' : '#4ade80';
+          pMsg.style.color = isErr ? '#f87171' : '#34d399';
           pMsg.textContent = text;
         }
 
         if (pSubmit) pSubmit.onclick = doPinLogin;
         if (pCode) pCode.onkeydown = function(e) { if (e.key === 'Enter') doPinLogin(); };
+        if (pName) pName.onkeydown = function(e) { if (e.key === 'Enter') pCode.focus(); };
       }
     }
     paintAcct();
@@ -95517,16 +95543,19 @@ var Ve = (function(_Component) {
       } else err.textContent = '';
       selectedAv = id; $$(o.body, '[data-av]').forEach(function (x) { x.classList.toggle('on', x === btn); });
     }; });
-    nameIn.addEventListener('input', function () { nameIn.removeAttribute('data-auto'); });
+    nameIn.addEventListener('input', function () {
+      this.value = this.value.toUpperCase();
+      nameIn.removeAttribute('data-auto');
+    });
     (code ? nameIn : codeIn).focus();
     codeIn.oninput = function () {
       codeIn.value = cleanCode(codeIn.value);
       syncStudentUrl(codeIn.value);
     };
     function go() {
-      var c = cleanCode(codeIn.value), name = nameIn.value.trim().slice(0, 20);
+      var c = cleanCode(codeIn.value), name = nameIn.value.trim().toUpperCase().slice(0, 24);
       if (!c) { err.textContent = 'Enter the game code.'; return; }
-      if (!name) { err.textContent = 'Enter your name.'; nameIn.focus(); return; }
+      if (!name) { err.textContent = 'Enter your First & Last Name.'; nameIn.focus(); return; }
       err.textContent = 'Joining…'; $(o.body, '[data-join]').disabled = true;
       db(c + '/host').then(function (h) {
         if (!h || !h.board) throw new Error('No game with code ' + c + '.');
@@ -95545,18 +95574,6 @@ var Ve = (function(_Component) {
     $(o.body, '[data-join]').onclick = go;
     waitPanel(o.body, null, null);
     nameIn.onkeydown = codeIn.onkeydown = function (e) { if (e.key === 'Enter') go(); };
-    var soloBtn = $(o.body, '[data-solo-start]');
-    if (soloBtn) {
-      soloBtn.onclick = function () {
-        o.close();
-        if (window.StudyArcade && typeof window.StudyArcade.open === 'function') {
-          var b = (window.MinestAI && window.MinestAI.board) ? window.MinestAI.board() : null;
-          window.StudyArcade.open(b);
-        } else if (window.returnToStudentGame) {
-          window.returnToStudentGame();
-        }
-      };
-    }
   }
 
   function play(o, host, me) {
@@ -133769,15 +133786,198 @@ window.MinestDrag3 = { games: GAMES.map(function(g){ return g[0]; }), start: sta
 .cf-word { margin: 18px 0 8px; font-weight: 900; letter-spacing: .01em; line-height: 1.05; word-break: normal; overflow-wrap: normal; hyphens: none; color: #fff; min-height: 1.1em; }
 .cf-pos { margin: 0 0 18px; color: #94a3b8; font-size: 14px; font-variant-numeric: tabular-nums; }
 .cf-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; }
+/* 53.830 · GPT Study */
+.cf-prog { margin: 0 0 12px; padding: 12px 14px; border-radius: 16px; background: #111a2e; border: 1px solid rgba(255,255,255,.12); }
+.cf-prog > b { display: block; font-size: 16px; margin-bottom: 8px; }
+.cf-prog small { display: block; margin-top: 8px; color: #94a3b8; font-size: 12px; line-height: 1.5; }
+.cf-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cf-stats span { display: grid; gap: 2px; padding: 8px 4px; border-radius: 12px; background: rgba(255,255,255,.06); text-align: center; font-size: 11px; font-weight: 700; color: #94a3b8; }
+.cf-stats b { font-size: 20px; color: #fff; font-variant-numeric: tabular-nums; }
+.cf-done { margin: 10px 0 0; color: #fde68a; font-weight: 700; font-size: 14px; }
+.cf-row2, .cf-row3 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.cf-row3 { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+.cf-wide { width: 100%; margin-top: 10px; }
+.cf-stop.on { background: #22c55e; color: #04121a; }
+.cf-stop:disabled { opacity: .4; }
+.cf-share .cf-preview { width: 100%; box-sizing: border-box; margin: 4px 0 6px; border-radius: 14px; border: 1px solid rgba(255,255,255,.18); background: #111a2e; color: #e2e8f0; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 10px 12px; resize: vertical; }
+.cf-batch { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 8px; color: #cbd5e1; font-weight: 700; font-size: 14px; }
+.cf-batch .cf-stop { min-height: 40px; padding: 6px 16px; }
+
+.cf-play .cf-row2 .cf-stop, .cf-play .cf-row3 .cf-stop, .cf-play .cf-row3 .cf-go, .cf-play .cf-wide { font-size: 16px; padding: 10px 8px; white-space: nowrap; }
+.cf-word { overflow-wrap: normal; max-width: 100%; }
+.cf-setup .cf-row2 .cf-stop, .cf-setup .cf-wide { font-size: 16px; padding: 10px 8px; white-space: nowrap; }
 </style>
-<script id="minest-carflash">/* 53.829 · 🚗 车载闪卡 (CarPlay flashcards) — the iPhone side.
-   Pick a list (any board list, or a Teaching word list), an interval and the order, then Start. The iOS app
-   (CarFlashController) writes the current word into Minest's Live Activity; CarPlay's Dashboard shows its small layout:
-   one big English word and one ⏸ Pause / ▶ Resume button. The phone shows the same word here.
-   Bridge: carFlashStart {words, listName, interval, shuffle} · carFlashToggle · carFlashStop · carFlashState;
-   the app answers with the native event "carFlash" {playing, paused, word, index, total, listName, interval, error}.
-   Keep Minest open on the phone while it plays (iOS pauses a backgrounded app; a voice app keeps talking behind it).
-   In a browser there is no Live Activity: the panel plays the words itself, so the flow can be tried. */
+<script id="minest-gptstudy">/* 53.830 · Minest GPT Study — study progress for the car flashcard panel (carflash.js uses it).
+   GPT teaches in the official ChatGPT app; Minest shows the card (phone, Lock Screen, CarPlay widget) and keeps the record.
+   The learner moves on: a card stays until Next — no timer.
+
+   Progress lives in this page's localStorage ('minest.gptstudy.v1', where all Minest data lives), one record per list,
+   keyed by the list ('b:<board>:<list>' or 't:<list>') and by stable card IDs, never by position:
+     cards[cardId]  = { seen, seenAt, seenCount, learned, learnedAt }
+       seen    — Minest made it the current card (phone / Live Activity / widget asked to show it). That is what the
+                 system can confirm; whether anyone actually looked at it cannot be known, and is not claimed.
+       learned — only when the learner says so (✓ Mark Learned). Explaining a word does not make it learned.
+     rounds[]       = { n, start, passed: { cardId: time } } — a card is "passed" in a round when Next moves on from it.
+                      Restart Round adds a round; earlier rounds and all history stay.
+     current        = the card on show; history[] = the last 400 events (start / next / prev / widget / learned …).
+   Resume: the current card again if it was not passed yet, else the first card after it (in today's list order, wrapping)
+   that this round has not passed — so added cards are reached, deleted ones are ignored, reordering skips nothing.
+   Next taps made on the CarPlay widget / Siri while the page is asleep come back as numbered events (native seq) and are
+   applied once each. */
+(function(){'use strict';
+if (window.MinestGPTStudy) return;
+var KEY = 'minest.gptstudy.v1', HMAX = 400;
+
+function load(){ try { var d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.lists) return d; } catch(e){} return { version: 1, lists: {} }; }
+function save(d){ try { localStorage.setItem(KEY, JSON.stringify(d)); return true; } catch(e){ return false; } }
+function now(){ return Date.now(); }
+
+/* one list's record; created on first use */
+function rec(d, key, name){
+  var L = d.lists[key];
+  if (!L) L = d.lists[key] = { name: name || '', round: 1, rounds: [{ n: 1, start: now(), passed: {} }], cards: {}, current: null, last: 0, history: [], nativeSeq: 0, mode: 'continue' };
+  if (name) L.name = name;
+  return L;
+}
+function round(L){ var r = L.rounds[L.rounds.length - 1]; if (!r) { r = { n: 1, start: now(), passed: {} }; L.rounds.push(r); } return r; }
+function log(L, ev, id){ L.history.push({ at: now(), ev: ev, id: id, round: L.round }); if (L.history.length > HMAX) L.history.splice(0, L.history.length - HMAX); L.last = now(); }
+
+/* make `id` the current card; a card that is already current is not counted again */
+function present(L, id, ev){
+  if (!id) return;
+  if (L.current === id) return;
+  var c = L.cards[id] || (L.cards[id] = {});
+  c.seen = 1; c.seenAt = now(); c.seenCount = (c.seenCount || 0) + 1;
+  L.current = id;
+  log(L, ev || 'show', id);
+}
+
+/* items = [{id, word}] in today's list order */
+function posOf(items, id){ for (var i = 0; i < items.length; i++) if (items[i].id === id) return i; return -1; }
+function nextUnpassed(L, items, fromId){
+  var r = round(L), n = items.length, i0 = posOf(items, fromId);
+  for (var k = 1; k <= n; k++) {   /* after the card, wrapping; from the top when the card is gone from the list */
+    var it = items[i0 < 0 ? k - 1 : (i0 + k) % n];
+    if (it.id !== fromId && !r.passed[it.id]) return it.id;
+  }
+  return null;
+}
+function nextSeen(L, items, fromId){
+  var i0 = posOf(items, fromId);
+  for (var i = i0 + 1; i < items.length; i++) { var c = L.cards[items[i].id]; if (c && c.seen) return items[i].id; }
+  return null;
+}
+/* where Continue Study starts */
+function resumeId(L, items){
+  var r = round(L);
+  if (L.current && posOf(items, L.current) >= 0 && !r.passed[L.current]) return L.current;
+  return nextUnpassed(L, items, L.current);
+}
+/* the queue the native side (widget / Siri Next) walks: the current card, then what comes after it in this mode */
+function queue(L, items, max){
+  var out = [], id = L.current, r = round(L), guard = 0;
+  if (!id) return out;
+  out.push(id);
+  if (L.mode === 'review') { while (out.length < max && (id = nextSeen(L, items, id))) out.push(id); return out; }
+  var seen = {}; seen[id] = 1;
+  var i0 = posOf(items, id), n = items.length;
+  for (var k = 1; k < n && out.length < max; k++) { var it = items[(i0 + k) % n]; if (!r.passed[it.id] && !seen[it.id]) { out.push(it.id); seen[it.id] = 1; } }
+  return out;
+}
+
+function stats(L, items){
+  var r = round(L), seen = 0, learned = 0, remaining = 0;
+  items.forEach(function(it){ var c = L.cards[it.id]; if (c && c.seen) seen++; if (c && c.learned) learned++; if (!r.passed[it.id]) remaining++; });
+  return { total: items.length, seen: seen, learned: learned, remaining: remaining, round: L.round, last: L.last, position: L.current ? posOf(items, L.current) + 1 : 0 };
+}
+
+/* ---- actions (each returns the new current id, or null when the round / review is finished) ---- */
+function act(key, name, items, what){
+  var d = load(), L = rec(d, key, name), r = round(L), out = L.current;
+  if (what === 'continue') { L.mode = 'continue'; out = resumeId(L, items); if (out) present(L, out, 'continue'); }
+  else if (what === 'review') {
+    L.mode = 'review';
+    var first = null; for (var i = 0; i < items.length; i++) { var c = L.cards[items[i].id]; if (c && c.seen) { first = items[i].id; break; } }
+    out = first; if (out) { L.current = null; present(L, out, 'review'); }
+  }
+  else if (what === 'restart') { L.round += 1; L.rounds.push({ n: L.round, start: now(), passed: {} }); L.mode = 'continue'; log(L, 'restart', null); L.current = null; out = resumeId(L, items); if (out) present(L, out, 'continue'); }
+  else if (what === 'next') {
+    if (L.mode === 'review') { out = nextSeen(L, items, L.current); if (out) present(L, out, 'next'); }
+    else { if (L.current) r.passed[L.current] = now(); out = nextUnpassed(L, items, L.current); if (out) present(L, out, 'next'); }
+  }
+  else if (what === 'prev') { var p = posOf(items, L.current); if (p > 0) { out = items[p - 1].id; present(L, out, 'prev'); } }
+  else if (what === 'learned') { var cc = L.cards[L.current]; if (cc) { cc.learned = cc.learned ? 0 : 1; cc.learnedAt = cc.learned ? now() : null; log(L, cc.learned ? 'learned' : 'unlearned', L.current); } }
+  save(d);
+  return { id: out, L: L };
+}
+
+/* Next taps made on the widget / Siri (native seq) — applied once each, in order */
+function applyNative(key, name, items, events, seq, startSeq){
+  var d = load(), L = d.lists[key]; if (!L) return false;
+  var done = false, from = L.nativeSeq || 0;
+  (events || []).forEach(function(e){
+    var n = +e[0], id = String(e[1]); if (!(n > from)) return;
+    if (L.mode !== 'review' && L.current) round(L).passed[L.current] = now();
+    if (posOf(items, id) >= 0) present(L, id, 'widget');
+    from = n; done = true;
+  });
+  if (from !== L.nativeSeq) { L.nativeSeq = from; save(d); }
+  return done;
+}
+function resetNativeSeq(key){ var d = load(); if (d.lists[key]) { d.lists[key].nativeSeq = 0; save(d); } }
+function get(key){ return load().lists[key] || null; }
+
+/* ---- Share Study Session (plain text for the official ChatGPT app) ---- */
+function shareText(key, name, items, scope, batch, size){
+  var L = get(key) || rec(load(), key, name), r = round(L), s = stats(L, items);
+  var cur = L.current && posOf(items, L.current) >= 0 ? L.current : resumeId(L, items);
+  var pool = scope === 'all' ? items.slice() : items.filter(function(it, i){ return !r.passed[it.id] && (posOf(items, cur) < 0 || i >= posOf(items, cur)); });
+  if (scope !== 'all' && cur) { /* cards this round has not passed that sit before the current one come after it (wrapping) */
+    var before = items.filter(function(it, i){ return !r.passed[it.id] && i < posOf(items, cur); }); pool = pool.concat(before);
+  }
+  size = size || 25; var pages = Math.max(1, Math.ceil(pool.length / size)); batch = Math.min(Math.max(1, batch || 1), pages);
+  var part = pool.slice((batch - 1) * size, batch * size);
+  var curItem = items[posOf(items, cur)];
+  var lines = [
+    'Minest GPT Study Session',
+    'List: ' + (name || L.name),
+    'Current Position: ' + (curItem ? posOf(items, cur) + 1 : 0) + ' / ' + items.length,
+    'Current Word: ' + (curItem ? curItem.word : '—'),
+    'Study Progress: Seen ' + s.seen + ' · Learned ' + s.learned + ' · Remaining this round ' + s.remaining + ' (round ' + L.round + ')',
+    '',
+    (scope === 'all' ? 'Word List' : 'Remaining Words') + (pages > 1 ? ' (part ' + batch + ' of ' + pages + ')' : '') + ':'
+  ].concat(part.map(function(it){ return (posOf(items, it.id) + 1) + '. ' + it.word; })).concat([
+    '',
+    'Teaching Instructions:',
+    'Please help me study these vocabulary words one at a time.',
+    'Explain each word in simple English and Chinese.',
+    'Help me practice pronunciation, spelling, meaning, and examples.',
+    'Correct my mistakes when necessary.',
+    'Do not rush to the next word.',
+    'Wait until I explicitly say "Next" before teaching the next word.',
+    'Follow the original word order.',
+    'Start with: ' + (curItem ? curItem.word : (part[0] ? part[0].word : '')) + '.'
+  ]);
+  if (pages > 1 && batch < pages) lines.push('(When we finish these, I will share the next part from Minest.)');
+  return { text: lines.join('\n'), batch: batch, pages: pages, count: part.length };
+}
+
+window.MinestGPTStudy = { act: act, stats: function(key, name, items){ var L = get(key) || rec(load(), key, name); return stats(L, items); }, get: get, queue: function(key, items, max){ var L = get(key); return L ? queue(L, items, max || 300) : []; },
+  applyNative: applyNative, resetNativeSeq: resetNativeSeq, shareText: shareText, posOf: posOf, version: '53.830' };
+})();
+</script>
+<script id="minest-carflash">/* 53.829 · 🚗 车载闪卡 (CarPlay flashcards) — the iPhone side.  53.830: + 🎓 GPT 学习 (GPT Study) mode.
+   Two modes, one list, one progress record:
+   · 自动播放 (Auto Play) — as before: pick a list, an interval and the order, then Start; words change by time.
+   · GPT 学习 (GPT Study) — for studying with the official ChatGPT app's voice: the card stays until you press Next.
+     Progress (seen / learned / rounds / where you are) is kept per list by gptstudy.js, so Continue Study resumes at the
+     right card the next day and no card is skipped. 📤 shares the study session (plain text) to ChatGPT via the iOS share
+     sheet — sharing does not connect ChatGPT to Minest.
+   The iOS app (CarFlashController) writes the current word into the App Group playlist: the CarPlay widget, the Live
+   Activity and Siri all show / use it. Bridge: carFlashStart {words, listName, interval, shuffle | mode:'gpt', cardIds,
+   listKey} · carFlashToggle · carFlashNext · carFlashStop · carFlashState · share {text}; the app answers with the native
+   event "carFlash" {playing, paused, word, index, total, listName, interval, mode, listKey, cardId, seq, events, error}.
+   In a browser there is no Live Activity: the panel plays / steps by itself, so the flow can be tried. */
 (function(){'use strict';
 if (window.MinestCarFlash) return;
 var KEY = 'minest.carflash.v1';
@@ -133787,6 +133987,7 @@ function post(action, extra){ var h = native(); if (!h) return false; try { h.po
 function prefs(){ try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ return {}; } }
 function savePrefs(p){ try { localStorage.setItem(KEY, JSON.stringify(p)); } catch(e){} }
 function plain(s){ var d = document.createElement('div'); d.innerHTML = String(s || ''); return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
+function G(){ return window.MinestGPTStudy; }
 
 /* every list that can play: board lists, then Teaching word lists */
 function sources(){
@@ -133801,75 +134002,198 @@ function sources(){
   }); } catch(e){}
   return out;
 }
+function wordOf(c, side){
+  var front = plain(c.title || c.front), back = plain(c.en || c.desc || c.description || c.back);
+  var w = side === 'back' ? back : side === 'auto' ? (/[A-Za-z]/.test(front) && !/[㐀-鿿]/.test(front) ? front : (c.en ? plain(c.en) : back) || front) : front;
+  return w.slice(0, 60);
+}
 function wordsOf(src, side){
   var seen = {};
-  return src.cards.map(function(c){
-    var front = plain(c.title || c.front), back = plain(c.en || c.desc || c.description || c.back);
-    var w = side === 'back' ? back : side === 'auto' ? (/[A-Za-z]/.test(front) && !/[㐀-鿿]/.test(front) ? front : (c.en ? plain(c.en) : back) || front) : front;
-    return w.slice(0, 60);
-  }).filter(function(w){ if (!w || seen[w]) return false; seen[w] = 1; return true; });
+  return src.cards.map(function(c){ return wordOf(c, side); }).filter(function(w){ if (!w || seen[w]) return false; seen[w] = 1; return true; });
 }
+/* GPT Study: every card keeps its own stable ID (no de-duplication by word) */
+function itemsOf(src, side){
+  var ids = {};
+  return src.cards.map(function(c, i){ var id = String(c.id != null ? c.id : 'i' + i); if (ids[id]) id += '#' + i; ids[id] = 1; return { id: id, word: wordOf(c, side) }; }).filter(function(it){ return it.word; });
+}
+function findSource(key){ return sources().filter(function(s){ return s.id === key; })[0] || null; }
 
 var ov = null, st = { playing: false, paused: false, word: '', index: 0, total: 0, listName: '' }, webTimer = 0, webWords = [];
+var gs = null;   /* GPT Study on show: { key, name, items } */
+function mode(){ return prefs().mode === 'gpt' ? 'gpt' : 'auto'; }
+
 function open(){
   if (ov) { ov.remove(); }
-  var p = prefs(), list = sources();
+  var p = prefs(), list = sources(), gpt = mode() === 'gpt';
   ov = document.createElement('div'); ov.className = 'cf-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', '车载闪卡');
   ov.innerHTML = '<div class="cf-box"><header class="cf-top"><b>🚗 车载闪卡 · CarPlay</b><button type="button" class="cf-x" data-cf-close aria-label="关闭">✕</button></header>' +
     '<section class="cf-setup" data-cf-setup>' +
+      '<div class="cf-f">模式<div class="cf-chips" data-cf-mode><button type="button" data-v="auto"' + (!gpt ? ' class="on"' : '') + '>⏱ 自动播放</button><button type="button" data-v="gpt"' + (gpt ? ' class="on"' : '') + '>🎓 GPT 学习</button></div></div>' +
       (list.length ? '<label class="cf-f">词表<select data-cf-list>' + groups(list, p.list) + '</select></label>' : '<p class="cf-warn">还没有可用的词表。先在看板或 Teaching 词表里加词。</p>') +
-      '<div class="cf-f">每个词停留<div class="cf-chips" data-cf-int>' + [5, 8, 10, 15, 20, 30].map(function(n){ return '<button type="button" data-v="' + n + '"' + ((p.interval || 10) === n ? ' class="on"' : '') + '>' + n + ' 秒</button>'; }).join('') + '</div></div>' +
-      '<div class="cf-f">顺序<div class="cf-chips" data-cf-order><button type="button" data-v="seq"' + (!p.shuffle ? ' class="on"' : '') + '>按顺序</button><button type="button" data-v="mix"' + (p.shuffle ? ' class="on"' : '') + '>随机</button></div></div>' +
       '<div class="cf-f">显示<div class="cf-chips" data-cf-side>' + [['auto', '英文优先'], ['front', '正面'], ['back', '背面']].map(function(o){ return '<button type="button" data-v="' + o[0] + '"' + ((p.side || 'auto') === o[0] ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('') + '</div></div>' +
-      '<p class="cf-count" data-cf-count></p>' +
-      '<button type="button" class="cf-go" data-cf-start' + (list.length ? '' : ' disabled') + '>▶ 开始播放</button>' +
-      '<p class="cf-note">' + (native() ? '车上：CarPlay 仪表盘会显示 Minest 实时活动里的单词和 ⏸ 按钮。播放时请让 Minest 保持在手机前台（ChatGPT 语音可在后台继续）。' : '浏览器预览：这里只在本页播放；CarPlay 同步需要 Minest iOS App。') + '</p>' +
+      '<div data-cf-auto' + (gpt ? ' hidden' : '') + '>' +
+        '<div class="cf-f">每个词停留<div class="cf-chips" data-cf-int>' + [5, 8, 10, 15, 20, 30].map(function(n){ return '<button type="button" data-v="' + n + '"' + ((p.interval || 10) === n ? ' class="on"' : '') + '>' + n + ' 秒</button>'; }).join('') + '</div></div>' +
+        '<div class="cf-f">顺序<div class="cf-chips" data-cf-order><button type="button" data-v="seq"' + (!p.shuffle ? ' class="on"' : '') + '>按顺序</button><button type="button" data-v="mix"' + (p.shuffle ? ' class="on"' : '') + '>随机</button></div></div>' +
+        '<p class="cf-count" data-cf-count></p>' +
+        '<button type="button" class="cf-go" data-cf-start' + (list.length ? '' : ' disabled') + '>▶ 开始播放</button>' +
+      '</div>' +
+      '<div data-cf-gpt' + (gpt ? '' : ' hidden') + '>' +
+        '<div class="cf-prog" data-cf-prog></div>' +
+        '<button type="button" class="cf-go" data-cf-continue>▶ Continue Study · 继续学习</button>' +
+        '<div class="cf-row2"><button type="button" class="cf-stop" data-cf-review>↺ Review Seen</button><button type="button" class="cf-stop" data-cf-restart>⟳ Restart Round</button></div>' +
+        '<button type="button" class="cf-stop cf-wide" data-cf-share-open>📤 Share to ChatGPT</button>' +
+      '</div>' +
+      '<p class="cf-note" data-cf-note></p>' +
     '</section>' +
     '<section class="cf-play" data-cf-play hidden><p class="cf-list" data-cf-name></p><div class="cf-word" data-cf-word></div><p class="cf-pos" data-cf-pos></p>' +
-      '<div class="cf-row"><button type="button" class="cf-go" data-cf-toggle>⏸ Pause</button><button type="button" class="cf-stop" data-cf-next aria-label="下一个">⏭</button><button type="button" class="cf-stop" data-cf-stop>■ 结束</button></div>' +
-      '<p class="cf-err" data-cf-err role="status"></p></section></div>';
+      '<div class="cf-row" data-cf-autorow><button type="button" class="cf-go" data-cf-toggle>⏸ Pause</button><button type="button" class="cf-stop" data-cf-next aria-label="下一个">⏭</button><button type="button" class="cf-stop" data-cf-stop>■ 结束</button></div>' +
+      '<div data-cf-gptrow hidden>' +
+        '<div class="cf-row3"><button type="button" class="cf-stop" data-cf-prev>◀ Previous</button><button type="button" class="cf-go" data-cf-gnext>Next Card ▶</button></div>' +
+        '<button type="button" class="cf-stop cf-wide" data-cf-learned>✓ Mark Learned</button>' +
+        '<div class="cf-row2"><button type="button" class="cf-stop" data-cf-share-open2>📤 分享给 ChatGPT</button><button type="button" class="cf-stop" data-cf-gstop>■ 结束</button></div>' +
+      '</div>' +
+      '<p class="cf-err" data-cf-err role="status"></p></section>' +
+    '<section class="cf-share" data-cf-share hidden>' +
+      '<div class="cf-f">分享范围<div class="cf-chips" data-cf-scope><button type="button" data-v="remaining" class="on">接下来未完成的</button><button type="button" data-v="all">整个 List</button></div></div>' +
+      '<div class="cf-f">每批<div class="cf-chips" data-cf-size>' + [20, 25, 30].map(function(n){ return '<button type="button" data-v="' + n + '"' + (n === 25 ? ' class="on"' : '') + '>' + n + ' 个</button>'; }).join('') + '</div></div>' +
+      '<div class="cf-batch"><button type="button" class="cf-stop" data-cf-bprev>◀</button><span data-cf-bnum></span><button type="button" class="cf-stop" data-cf-bnext>▶</button></div>' +
+      '<textarea class="cf-preview" data-cf-preview readonly rows="9"></textarea>' +
+      '<div class="cf-row3"><button type="button" class="cf-stop" data-cf-share-back>← 返回</button><button type="button" class="cf-go" data-cf-share-go>📤 分享</button></div>' +
+      '<p class="cf-note">分享只是把学习内容发给 ChatGPT，并没有让 ChatGPT 和 Minest 实时连接。学到哪里，回 Minest 点 Next Card。</p>' +
+    '</section></div>';
   document.body.appendChild(ov);
   var q = function(s){ return ov.querySelector(s); };
-  function chips(sel, key, conv){ [].forEach.call(ov.querySelectorAll(sel + ' button'), function(b){ b.onclick = function(){ [].forEach.call(ov.querySelectorAll(sel + ' button'), function(x){ x.classList.toggle('on', x === b); }); var pp = prefs(); pp[key] = conv(b.dataset.v); savePrefs(pp); count(); }; }); }
+  function chips(sel, key, conv, after){ [].forEach.call(ov.querySelectorAll(sel + ' button'), function(b){ b.onclick = function(){ [].forEach.call(ov.querySelectorAll(sel + ' button'), function(x){ x.classList.toggle('on', x === b); }); if (key) { var pp = prefs(); pp[key] = conv(b.dataset.v); savePrefs(pp); } if (after) after(b.dataset.v); count(); }; }); }
   chips('[data-cf-int]', 'interval', function(v){ return +v; });
   chips('[data-cf-order]', 'shuffle', function(v){ return v === 'mix'; });
   chips('[data-cf-side]', 'side', function(v){ return v; });
+  chips('[data-cf-mode]', 'mode', function(v){ return v; }, function(v){ q('[data-cf-auto]').hidden = v === 'gpt'; q('[data-cf-gpt]').hidden = v !== 'gpt'; note(); });
   function current(){ var sel = q('[data-cf-list]'); return sel ? list.filter(function(s){ return s.id === sel.value; })[0] : null; }
-  function count(){ var s = current(), el = q('[data-cf-count]'); if (!el) return; var w = s ? wordsOf(s, prefs().side || 'auto') : []; el.textContent = s ? w.length + ' 个词 · 例如：' + w.slice(0, 4).join(' · ') : ''; }
+  function count(){
+    var s = current(), el = q('[data-cf-count]'); if (el) { var w = s ? wordsOf(s, prefs().side || 'auto') : []; el.textContent = s ? w.length + ' 个词 · 例如：' + w.slice(0, 4).join(' · ') : ''; }
+    progress();
+  }
+  function progress(){
+    var box = q('[data-cf-prog]'), s = current(); if (!box) return; if (!s || !G()) { box.innerHTML = ''; return; }
+    var items = itemsOf(s, prefs().side || 'auto'), x = G().stats(s.id, s.title, items), L = G().get(s.id);
+    var cur = L && L.current ? items[G().posOf(items, L.current)] : null;
+    box.innerHTML = '<b>' + esc(s.title) + '</b>' +
+      '<div class="cf-stats"><span>Total<b>' + x.total + '</b></span><span>Seen<b>' + x.seen + '</b></span><span>Learned<b>' + x.learned + '</b></span><span>Remaining<b>' + x.remaining + '</b></span></div>' +
+      '<small>第 ' + x.round + ' 轮 · Last Studied: ' + lastText(x.last) + (cur ? ' · 上次停在 ' + esc(cur.word) + '（' + x.position + '/' + x.total + '）' : '') + '</small>';
+    q('[data-cf-review]').disabled = !x.seen;
+  }
+  function note(){ q('[data-cf-note]').textContent = mode() === 'gpt'
+    ? 'GPT 学习：单词不会自动切换，学完一个点 Next Card。进度按词表分别保存，明天点「继续学习」从正确位置接着学。' + (native() ? '' : '（浏览器预览：CarPlay 同步需要 Minest iOS App。）')
+    : (native() ? '车上：CarPlay 仪表盘会显示 Minest 的单词。播放时请让 Minest 保持在手机前台（ChatGPT 语音可在后台继续）。' : '浏览器预览：这里只在本页播放；CarPlay 同步需要 Minest iOS App。'); }
+  note();
   if (q('[data-cf-list]')) q('[data-cf-list]').onchange = function(){ var pp = prefs(); pp.list = this.value; savePrefs(pp); count(); };
   count();
   q('[data-cf-close]').onclick = close;
   q('[data-cf-start]').onclick = function(){
     var s = current(); if (!s) return; var pp = prefs(), words = wordsOf(s, pp.side || 'auto'); if (!words.length) { err('这个词表没有可以显示的词。'); return; }
+    gs = null;
     var msg = { words: words, listName: s.title, interval: pp.interval || 10, shuffle: !!pp.shuffle };
     if (!post('carFlashStart', msg)) webStart(msg);
   };
   q('[data-cf-toggle]').onclick = function(){ if (!post('carFlashToggle')) webToggle(); };
   q('[data-cf-next]').onclick = function(){ if (!post('carFlashNext')) webNext(); };
   q('[data-cf-stop]').onclick = function(){ if (!post('carFlashStop')) webStop(); };
+  /* GPT Study */
+  function gptGo(what){
+    var s = current(); if (!s) return; var items = itemsOf(s, prefs().side || 'auto'); if (!items.length) { err('这个词表没有可以显示的词。'); return; }
+    gs = { key: s.id, name: s.title, items: items };
+    var r = G().act(s.id, s.title, items, what);
+    if (!r.id) { progress(); q('[data-cf-prog]').insertAdjacentHTML('beforeend', '<p class="cf-done">' + (what === 'review' ? '还没有已看过的卡片可以复习。' : '🎉 这一轮已经全部完成！可以点「新一轮」再学一遍，或「复习」。') + '</p>'); gs = null; return; }
+    showGPT();
+  }
+  q('[data-cf-continue]').onclick = function(){ gptGo('continue'); };
+  q('[data-cf-review]').onclick = function(){ gptGo('review'); };
+  q('[data-cf-restart]').onclick = function(){ if (window.confirm('开始新一轮？之前的学习记录都会保留，只是从头再走一遍。')) gptGo('restart'); };
+  q('[data-cf-gnext]').onclick = function(){ step('next'); };
+  q('[data-cf-prev]').onclick = function(){ step('prev'); };
+  q('[data-cf-learned]').onclick = function(){ step('learned'); };
+  q('[data-cf-gstop]').onclick = function(){ post('carFlashStop'); gs = null; st = { playing: false }; paint(); count(); };
+  /* share */
+  var share = { scope: 'remaining', size: 25, batch: 1 };
+  function shareOpen(){ var s = gs ? findSource(gs.key) : current(); if (!s) return; share.src = s; share.batch = 1; q('[data-cf-setup]').hidden = true; q('[data-cf-play]').hidden = true; q('[data-cf-share]').hidden = false; sharePaint(); }
+  function sharePaint(){ var s = share.src, items = itemsOf(s, prefs().side || 'auto'), t = G().shareText(s.id, s.title, items, share.scope, share.batch, share.size); share.batch = t.batch; share.text = t.text; q('[data-cf-preview]').value = t.text; q('[data-cf-bnum]').textContent = '第 ' + t.batch + ' / ' + t.pages + ' 批 · ' + t.count + ' 个词'; q('[data-cf-bprev]').disabled = t.batch <= 1; q('[data-cf-bnext]').disabled = t.batch >= t.pages; }
+  chips('[data-cf-scope]', null, null, function(v){ share.scope = v; share.batch = 1; sharePaint(); });
+  chips('[data-cf-size]', null, null, function(v){ share.size = +v; share.batch = 1; sharePaint(); });
+  q('[data-cf-bprev]').onclick = function(){ share.batch--; sharePaint(); };
+  q('[data-cf-bnext]').onclick = function(){ share.batch++; sharePaint(); };
+  q('[data-cf-share-open]').onclick = shareOpen;
+  q('[data-cf-share-open2]').onclick = shareOpen;
+  q('[data-cf-share-back]').onclick = function(){ q('[data-cf-share]').hidden = true; paint(); };
+  q('[data-cf-share-go]').onclick = function(){
+    var text = share.text; if (!text) return;
+    if (post('share', { text: text })) return;
+    if (navigator.share) { navigator.share({ text: text }).catch(function(){}); return; }
+    try { navigator.clipboard.writeText(text).then(function(){ alert('已复制学习内容，粘贴到 ChatGPT 即可。'); }); } catch(e){ q('[data-cf-preview]').select(); }
+  };
   post('carFlashState');
   paint();
 }
+function lastText(t){ if (!t) return '—'; var d = new Date(t), n = new Date(); var days = Math.round((new Date(n.toDateString()) - new Date(d.toDateString())) / 864e5); return days === 0 ? 'Today' : days === 1 ? 'Yesterday' : d.toLocaleDateString(); }
 function groups(list, sel){
   var g = {}, order = []; list.forEach(function(s){ if (!g[s.group]) { g[s.group] = []; order.push(s.group); } g[s.group].push(s); });
   var has = list.some(function(s){ return s.id === sel; });
   return order.map(function(k){ return '<optgroup label="' + esc(k) + '">' + g[k].map(function(s, i){ return '<option value="' + esc(s.id) + '"' + ((has ? s.id === sel : (k === order[0] && i === 0)) ? ' selected' : '') + '>' + esc(s.title) + ' · ' + s.cards.length + '</option>'; }).join('') + '</optgroup>'; }).join('');
 }
+
+/* GPT Study: show the current card here and send the study queue to the app (CarPlay widget / Live Activity / Siri) */
+function showGPT(){
+  if (!gs) return; var L = G().get(gs.key); if (!L || !L.current) return;
+  var ids = G().queue(gs.key, gs.items, 300), byId = {}; gs.items.forEach(function(it){ byId[it.id] = it.word; });
+  ids = ids.filter(function(id){ return byId[id]; });
+  G().resetNativeSeq(gs.key);
+  post('carFlashStart', { mode: 'gpt', words: ids.map(function(id){ return byId[id]; }), cardIds: ids, listName: gs.name, listKey: gs.key });
+  paint();
+}
+function step(what){
+  if (!gs) return;
+  var r = G().act(gs.key, gs.name, gs.items, what);
+  if (what === 'learned') { paint(); return; }
+  if (!r.id) { err(what === 'prev' ? '已经是第一张了。' : (r.L.mode === 'review' ? '复习完了 ✓' : '🎉 这一轮全部完成！回到设置可以开始新一轮。')); return; }
+  err(''); showGPT();
+}
 function close(){ if (ov) { ov.remove(); ov = null; } }
-function err(t){ var e = ov && ov.querySelector('[data-cf-err]'); if (e) e.textContent = t || ''; if (t && ov && !st.playing) { var n = ov.querySelector('[data-cf-count]'); if (n) n.textContent = t; } }
+function err(t){ var e = ov && ov.querySelector('[data-cf-err]'); if (e) e.textContent = t || ''; if (t && ov && !st.playing && !gs) { var n = ov.querySelector('[data-cf-count]'); if (n) n.textContent = t; } }
+/* the longest single word fits on one line (heavy capitals are ~0.84 em wide); lines break only between words */
+function fit(w, text){ var longest = Math.max.apply(null, text.split(/\s+/).map(function(x){ return x.length; }).concat([4])); w.textContent = text; w.style.fontSize = Math.max(20, Math.min(92, Math.floor((w.clientWidth || 300) / (longest * 0.84)), text.length > 28 ? 44 : 92)) + 'px'; }
 function paint(){
   if (!ov) return; var q = function(s){ return ov.querySelector(s); };
-  q('[data-cf-setup]').hidden = st.playing; q('[data-cf-play]').hidden = !st.playing;
-  if (!st.playing) return;
-  var w = q('[data-cf-word]'), text = String(st.word || '').toUpperCase(), longest = Math.max.apply(null, text.split(/\s+/).map(function(x){ return x.length; }).concat([4]));
-  w.textContent = text;   /* sized so the longest single word fits on one line; lines break only between words */
-  w.style.fontSize = Math.max(24, Math.min(92, Math.floor((w.clientWidth || 320) / (longest * 0.72)), text.length > 28 ? 44 : 92)) + 'px';
+  if (!q('[data-cf-share]').hidden) return;
+  var gptOn = !!(gs && G() && G().get(gs.key) && G().get(gs.key).current);
+  var playing = gptOn || st.playing;
+  q('[data-cf-setup]').hidden = playing; q('[data-cf-play]').hidden = !playing;
+  q('[data-cf-autorow]').hidden = gptOn; q('[data-cf-gptrow]').hidden = !gptOn;
+  if (!playing) return;
+  if (gptOn) {
+    var L = G().get(gs.key), x = G().stats(gs.key, gs.name, gs.items), c = L.cards[L.current] || {}, it = gs.items[G().posOf(gs.items, L.current)];
+    fit(q('[data-cf-word]'), String(it ? it.word : '').toUpperCase());
+    q('[data-cf-name]').textContent = gs.name + (L.mode === 'review' ? ' · 复习' : ' · GPT 学习');
+    q('[data-cf-pos]').textContent = x.position + ' / ' + x.total + ' · Seen ' + x.seen + ' · Learned ' + x.learned + ' · 本轮剩 ' + x.remaining + (c.learned ? ' · ✓ 已掌握' : '');
+    var lb = q('[data-cf-learned]'); lb.textContent = c.learned ? '✓ 已掌握（点按取消）' : '✓ Mark Learned'; lb.classList.toggle('on', !!c.learned);
+    return;
+  }
+  fit(q('[data-cf-word]'), String(st.word || '').toUpperCase());
   q('[data-cf-name]').textContent = st.listName || ''; q('[data-cf-pos]').textContent = (st.index + 1) + ' / ' + st.total + (st.paused ? ' · 已暂停' : '');
   var t = q('[data-cf-toggle]'); t.textContent = st.paused ? '▶ Resume' : '⏸ Pause'; t.classList.toggle('paused', !!st.paused);
 }
 window.addEventListener('minestNativeEvent', function(e){
   var d = e.detail || {}; if (d.event !== 'carFlash') return; var p = d.payload || {};
+  if (p.mode === 'gpt' && p.listKey && G()) {
+    /* Next taps made on the CarPlay widget / Siri while this page slept: record them in the study progress */
+    var src = findSource(p.listKey);
+    if (src) {
+      var items = itemsOf(src, prefs().side || 'auto');
+      G().applyNative(p.listKey, src.title, items, p.events || [], p.seq || 0);
+      if (p.playing) gs = { key: p.listKey, name: src.title, items: items }; else if (gs && gs.key === p.listKey) gs = null;
+    }
+    st = { playing: false }; paint(); err(p.error || ''); return;
+  }
   st = { playing: !!p.playing, paused: !!p.paused, word: p.word || '', index: p.index || 0, total: p.total || 0, listName: p.listName || '' };
+  if (p.playing) gs = null;
   paint(); err(p.error || '');
 });
 
@@ -133903,8 +134227,11 @@ function entries(){
 var queued = false;
 new MutationObserver(function(){ if (queued) return; queued = true; requestAnimationFrame(function(){ queued = false; entries(); }); }).observe(document.documentElement, { childList: true, subtree: true });
 entries();
+/* the app came back from the background: catch up with Next taps made on the widget / Siri */
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) post('carFlashState'); });
+setTimeout(function(){ post('carFlashState'); }, 2500);
 
-window.MinestCarFlash = { open: open, close: close, sources: sources, version: '53.829' };
+window.MinestCarFlash = { open: open, close: close, sources: sources, itemsOf: itemsOf, version: '53.830' };
 })();
 </script>
 </body>
