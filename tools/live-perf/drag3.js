@@ -2,6 +2,8 @@
    11 🧱 连词成句 Sentence Builder — drag the shuffled word blocks into the sentence slots, in order
    12 🔤 拼音拼拼 Pinyin Builder   — drag a syllable onto each character (tone look-alikes are among the tiles)
    13 🕳 句子填空 Fill the Blank    — drag the right word card into the gap of a sentence
+   🔑 配对开锁 Unlock (阶段四) — three locks show a word (or its picture); drag each pinyin key (one tone look-alike is a
+      decoy) onto its lock — the lock opens and the word is read in Chinese.
    14 ☁️ 云朵排序 Listen & Order   — (阶段五 · 听力) tap the question to hear the whole sentence (🐢 slower); its word
       blocks float below as clouds, shuffled. Tap a cloud to hear it, drag clouds left / right to put the sentence back in
       order. It checks itself after every move; the sentence shows (with pinyin and English) once it is right.
@@ -13,10 +15,13 @@
 if (window.MinestDrag3) return;
 var KEY = 'minest.teaching.ten824.best';
 var GAMES = [
-  ['sentence3','🧱','连词成句 · Sentence Builder','把词块拖进句子槽，拼出完整的句子','#0ea5e9'],
+  ['sentence3','🚂','拼火车 · Train Builder','把词语车厢按顺序挂上火车，拼出句子','#0ea5e9'],
   ['pinyin3','🔤','拼音拼拼 · Pinyin Builder','把音节拖到每个汉字上方，注意声调','#f97316'],
-  ['cloze3','🕳','句子填空 · Fill the Blank','把正确的词卡拖进句子的空格','#10b981'],
-  ['cloud3','☁️','云朵排序 · Listen & Order','点题目听整句，点云朵听词语，拖动云朵排出句子','#38bdf8']
+  ['lock3','🔑','配对开锁 · Unlock','把拼音钥匙拖到对应的字或图片锁上，打开它','#eab308'],
+  ['cloze3','🌉','搭桥 · Build a Bridge','把缺的木板放进桥里，帮小熊过河','#10b981'],
+  ['cloud3','☁️','云朵排序 · Listen & Order','点题目听整句，点云朵听词语，拖动云朵排出句子','#38bdf8'],
+  ['ttt3','⭕','井字棋 · Tic-Tac-Toe','答对才能落子，三个 ✕ 连成一线就赢','#f43f5e'],
+  ['snake3','🐍','蛇形棋 · Snakes & Ladders','答对才能掷骰子，爬梯子、躲蛇，先到终点','#22c55e']
 ];
 function canSpeak(){ return !!(window.speechSynthesis && window.SpeechSynthesisUtterance && !window.__mnNoVoice); }
 function say(t, rate){ try { if (!canSpeak() || !t) return; var u = new SpeechSynthesisUtterance(t); u.lang = 'zh-CN'; u.rate = rate || 0.85; var v = (speechSynthesis.getVoices() || []).filter(function(x){ return /^(zh|cmn)/i.test(x.lang || ''); }); if (v.length) u.voice = v.filter(function(x){ return /CN|Hans/i.test(x.lang); })[0] || v[0]; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch(e){} }
@@ -61,7 +66,7 @@ function context(){
   var seen = {}, cards = (col.cards || []).filter(function(c){ var t = String(c.title || '').trim(); if (!t || c.teachingArchived || seen[t]) return false; seen[t] = 1; return true; }).map(function(c){
     var it = byId[c.id] || {}, py = String(c.pinyin || it.py || '').trim(); if (!py) { try { py = MinestTeachingAssets.pinyin(c.title) || ''; } catch(e){} }
     var back = String(it.back || c.desc || '').trim(), en = String(c.en || it.en || '').trim() || (back && !han(back) && !pyLike(back) ? back : '');
-    return { id: c.id, zh: String(c.title).trim(), py: py, en: en, sent: String(c.sent || '').trim(), sentEn: String(c.sentEn || '').trim() };
+    return { id: c.id, zh: String(c.title).trim(), py: py, en: en, sent: String(c.sent || '').trim(), sentEn: String(c.sentEn || '').trim(), img: it.hasCustomImage && it.image ? it.image : '' };
   });
   return { boardId: info.boardId, col: info.col, title: col.title, cards: cards };
 }
@@ -71,10 +76,14 @@ function why(g, cx){
   if (g === 'sentence3') return cx.cards.length >= 2 ? '' : '至少需要 2 张词卡';
   if (g === 'cloze3') return cx.cards.length >= 3 ? '' : '至少需要 3 张不同词卡';
   if (g === 'pinyin3') return pinyinCards(cx).length >= 2 ? '' : '需要至少 2 张中文词卡（带拼音）';
+  if (g === 'ttt3') return cx.cards.filter(function(c){ return han(c.zh); }).length >= 5 ? '' : '需要至少 5 张中文词卡';
+  if (g === 'snake3') return cx.cards.filter(function(c){ return han(c.zh); }).length >= 4 ? '' : '需要至少 4 张中文词卡';
+  if (g === 'lock3') return lockCards(cx).length >= 3 ? '' : '需要至少 3 张带拼音的中文词卡';
   if (g === 'cloud3') return !canSpeak() ? '这台设备不能朗读中文' : zhCards.length >= 1 ? '' : '需要中文词卡';
   return '';
 }
 function pinyinCards(cx){ return cx.cards.filter(function(c){ var ch = Array.from(c.zh).filter(han), sy = c.py.split(/\s+/).filter(Boolean); return ch.length && ch.length === Array.from(c.zh).length && ch.length === sy.length && ch.length <= 6; }); }
+function lockCards(cx){ return cx.cards.filter(function(c){ return han(c.zh) && c.py; }); }
 function bestAll(){ try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ return {}; } }
 function bestOf(cx, g){ return bestAll()[JSON.stringify([cx.boardId, cx.col, g])] || null; }
 
@@ -84,7 +93,7 @@ function paintMap(){
   var cx = context(); if (!cx) return;
   var html = '<div class="solo-stage-pill" data-d3-pill>🧱 阶段四 · 拖拽造句与拼音拼装</div>' + GAMES.map(function(g, i){
     var w = why(g[0], cx), b = bestOf(cx, g[0]), st = b ? b.stars || 0 : 0;
-    return (g[0] === 'cloud3' ? '<div class="solo-stage-pill" data-d3-pill>🎧 阶段五 · 听力排序</div>' : '') + '<button type="button" class="solo-level-card' + (w ? ' needs-data' : '') + '" data-d3="' + g[0] + '"' + (w ? ' disabled' : '') + '><div class="solo-card-icon" style="background:' + g[4] + '">' + g[1] + '</div><div class="solo-card-info"><b>' + (11 + i) + '. ' + esc(g[2]) + '</b><small>' + esc(w || g[3]) + '</small><span class="solo-card-stars">' + [1,2,3].map(function(n){ return n <= st ? '★' : '☆'; }).join('') + '</span></div><div class="solo-card-play">' + (w ? '🔒' : '▶') + '</div></button>';
+    return (g[0] === 'cloud3' ? '<div class="solo-stage-pill" data-d3-pill>🎧 阶段五 · 听力排序</div>' : g[0] === 'ttt3' ? '<div class="solo-stage-pill" data-d3-pill>🎲 阶段六 · 棋盘对战</div>' : '') + '<button type="button" class="solo-level-card' + (w ? ' needs-data' : '') + '" data-d3="' + g[0] + '"' + (w ? ' disabled' : '') + '><div class="solo-card-icon" style="background:' + g[4] + '">' + g[1] + '</div><div class="solo-card-info"><b>' + ((T().modes ? T().modes.length : 11) + 1 + i) + '. ' + esc(g[2]) + '</b><small>' + esc(w || g[3]) + '</small><span class="solo-card-stars">' + [1,2,3].map(function(n){ return n <= st ? '★' : '☆'; }).join('') + '</span></div><div class="solo-card-play">' + (w ? '🔒' : '▶') + '</div></button>';
   }).join('');
   map.insertAdjacentHTML('beforeend', html);
 }
@@ -97,7 +106,9 @@ var q3 = false; new MutationObserver(function(){ if (q3) return; q3 = true; requ
 var G = null;
 function start(g){
   var cx = context(), r = root(); if (!cx || !r) return; if (why(g, cx)) return;
-  var pool = g === 'pinyin3' ? pinyinCards(cx) : g === 'cloud3' ? cx.cards.filter(function(c){ return han(c.zh); }) : cx.cards, rounds = mix(pool).slice(0, Math.min(6, pool.length));
+  var pool = g === 'pinyin3' ? pinyinCards(cx) : g === 'cloud3' ? cx.cards.filter(function(c){ return han(c.zh); }) : g === 'lock3' ? lockCards(cx) : cx.cards, rounds = mix(pool).slice(0, Math.min(6, pool.length));
+  if (g === 'ttt3' || g === 'snake3') rounds = [1];   /* one match; the board game runs its own turns */
+  if (g === 'lock3') { var sets = [], all = mix(pool); for (var k = 0; k + 3 <= all.length && sets.length < 4; k += 3) sets.push(all.slice(k, k + 3)); rounds = sets; }   /* three locks a round, up to four rounds */
   G = { g: g, meta: GAMES.filter(function(x){ return x[0] === g; })[0], cx: cx, rounds: rounds, i: 0, first: 0, miss: 0, xp: 0, sel: null };
   r.dataset.tenView = 'd3'; next();
 }
@@ -107,9 +118,12 @@ function hud(){
   return '<div class="d3-hud"><button type="button" class="d3-back" data-d3-home>🏝 返回地图</button><b>' + m[1] + ' ' + esc(m[2]) + '</b><span class="d3-prog"><i style="width:' + pct + '%"></i></span><span class="d3-n">' + Math.min(G.i + 1, G.rounds.length) + ' / ' + G.rounds.length + '</span><span class="d3-xp">⭐ ' + G.xp + '</span></div>';
 }
 function next(){
-  var w = wrap(); if (!w) return; if (G.i >= G.rounds.length) return finish();
+  var w = wrap(); if (!w) return;
+  if (G.g === 'ttt3') return tttStart(w);
+  if (G.g === 'snake3') return snakeStart(w);
+  if (G.i >= G.rounds.length) return finish();
   var c = G.rounds[G.i]; G.miss = 0; G.sel = null; G.c = c; G.won = false;
-  if (G.g === 'sentence3') sentenceRound(w, c); else if (G.g === 'pinyin3') pinyinRound(w, c); else if (G.g === 'cloud3') cloudRound(w, c); else clozeRound(w, c);
+  if (G.g === 'sentence3') sentenceRound(w, c); else if (G.g === 'pinyin3') pinyinRound(w, c); else if (G.g === 'cloud3') cloudRound(w, c); else if (G.g === 'lock3') lockRound(w, c); else clozeRound(w, c);
 }
 function tile(text, id, extra){ return '<button type="button" class="d3-tile' + (extra || '') + '" data-d3-tile="' + esc(id) + '">' + esc(text) + '</button>'; }
 function enLine(t){ return t && showEn() ? '<p class="d3-en">' + esc(t) + '</p>' : ''; }
@@ -117,9 +131,10 @@ function enLine(t){ return t && showEn() ? '<p class="d3-en">' + esc(t) + '</p>'
 function sentenceRound(w, c){
   var S = sentenceOf(c, G.i); G.S = S;
   var ids = S.chunks.map(function(x, i){ return { t: x, k: 'c' + i }; }), order = mix(ids); if (order.map(function(x){ return x.k; }).join() === ids.map(function(x){ return x.k; }).join() && ids.length > 1) order.reverse();
-  w.innerHTML = '<section class="d3-stage">' + hud() + '<div class="d3-card"><div class="d3-dir">连词成句 · BUILD THE SENTENCE</div><p class="d3-word">' + esc(c.zh) + (c.py ? '<small>' + esc(c.py) + '</small>' : '') + '</p>' + enLine(S.en) +
-    '<div class="d3-slots">' + S.chunks.map(function(x, i){ return '<button type="button" class="d3-slot" data-d3-slot="' + i + '" aria-label="第 ' + (i + 1) + ' 个位置"></button>'; }).join('') + '<span class="d3-end">' + esc(S.end) + '</span></div></div>' +
-    '<div class="d3-tray">' + order.map(function(x){ return tile(x.t, x.k, x.t === c.zh ? ' key' : ''); }).join('') + '</div><p class="d3-tip">拖动词块到上面的格子里，或先点词块再点格子；点已放好的词块可以拿回来</p></section>';
+  /* 53.833 · 拼火车: the slots are a track behind an engine, the word blocks are wagons; in order, the train toots and leaves */
+  w.innerHTML = '<section class="d3-stage">' + hud() + '<div class="d3-card"><div class="d3-dir">拼火车 · TRAIN BUILDER</div><p class="d3-word">' + esc(c.zh) + (c.py ? '<small>' + esc(c.py) + '</small>' : '') + '</p>' + enLine(S.en) +
+    '<div class="tr-scene"><div class="d3-slots tr-track" data-tr-track><span class="tr-engine" aria-hidden="true">🚂</span>' + S.chunks.map(function(x, i){ return '<button type="button" class="d3-slot tr-car" data-d3-slot="' + i + '" aria-label="第 ' + (i + 1) + ' 节车厢"></button>'; }).join('') + '<span class="d3-end tr-end">' + esc(S.end) + '</span></div><div class="tr-rail" aria-hidden="true"></div></div></div>' +
+    '<div class="d3-tray tr-yard">' + order.map(function(x){ return tile(x.t, x.k, ' tr-wagon' + (x.t === c.zh ? ' key' : '')); }).join('') + '</div><p class="d3-tip">把车厢按句子顺序挂到火车头后面；点已挂好的车厢可以取下</p></section>';
 }
 function pinyinRound(w, c){
   var ch = Array.from(c.zh), sy = c.py.split(/\s+/).filter(Boolean), others = [];
@@ -142,9 +157,12 @@ function clozeRound(w, c){
   var before = S.chunks.slice(0, S.target).join(''), after = S.chunks.slice(S.target + 1).join('');
   var own = function(o, i){ var x = sentenceOf(o, G.cx.cards.indexOf(o)); return x.zh.replace(/[。！？!?.]+$/, ''); }, fits = before + '\u0000' + after;   /* no distractor that makes another card's own sentence */
   var opts = mix([c].concat(mix(G.cx.cards.filter(function(o){ return o.zh !== c.zh && own(o) !== before + o.zh + after; })).slice(0, 3)));
-  w.innerHTML = '<section class="d3-stage">' + hud() + '<div class="d3-card"><div class="d3-dir">句子填空 · FILL THE BLANK</div>' +
-    '<p class="d3-sent">' + esc(before) + '<button type="button" class="d3-slot gap" data-d3-slot="0" aria-label="空格"></button>' + esc(after) + esc(S.end) + '</p>' + (S.en ? '<p class="d3-en">' + esc(S.en) + '</p>' : '') + (c.py ? '<p class="d3-hint">提示 · ' + esc(c.py) + '</p>' : '') + '</div>' +
-    '<div class="d3-tray big">' + opts.map(function(o){ return tile(o.zh, 'w:' + o.zh, ''); }).join('') + '</div><p class="d3-tip">把正确的词卡拖进空格</p></section>';
+  /* 53.833 · 搭桥: every word of the sentence is a plank; the missing word is the missing plank; when it fits the bear crosses */
+  var planks = S.chunks.map(function(x, i){ return i === S.target ? '<button type="button" class="d3-slot gap br-gap" data-d3-slot="0" aria-label="缺的木板"></button>' : '<span class="br-plank">' + esc(x) + '</span>'; }).join('');
+  w.innerHTML = '<section class="d3-stage">' + hud() + '<div class="d3-card"><div class="d3-dir">搭桥 · BUILD A BRIDGE</div>' +
+    '<div class="br-scene" data-br-scene><span class="br-walker" aria-hidden="true">🐻</span><span class="br-flag" aria-hidden="true">🏁</span><div class="br-bridge">' + planks + '<span class="br-plank br-end">' + esc(S.end) + '</span></div><div class="br-river" aria-hidden="true"></div></div>' +
+    (S.en ? '<p class="d3-en">' + esc(S.en) + '</p>' : '') + (c.py ? '<p class="d3-hint">提示 · ' + esc(c.py) + '</p>' : '') + '</div>' +
+    '<div class="d3-tray big br-yard">' + opts.map(function(o){ return tile(o.zh, 'w:' + o.zh, ' br-board'); }).join('') + '</div><p class="d3-tip">把对的木板放进桥的缺口，小熊就能过河</p></section>';
 }
 
 function cloudRound(w, c){
@@ -158,6 +176,18 @@ function cloudRound(w, c){
     '<p class="d3-tip">点云朵听读音 · 按住云朵左右拖动换位置 · 排对了会自动通过</p></section>';
   setTimeout(function(){ if (G && G.c === c && !G.done) say(S.zh); }, 450);
 }
+/* 🔑 配对开锁: three locks (the word, or its picture when the card has one), pinyin keys + one tone look-alike */
+function lockRound(w, set){
+  var keys = set.map(function(c){ return { t: c.py, k: 'k:' + c.id }; }), decoy = null;
+  set.some(function(c){ var sy = c.py.split(/\s+/), i = sy.length - 1, t = tone(sy[i]); if (!t) return false; sy[i] = t; var d = sy.join(' '); if (set.some(function(o){ return o.py === d; })) return false; decoy = d; return true; });
+  if (decoy) keys.push({ t: decoy, k: 'x:decoy' });
+  keys = mix(keys);
+  w.innerHTML = '<section class="d3-stage lk-stage">' + hud() + '<div class="d3-card lk-card"><div class="d3-dir">配对开锁 · UNLOCK</div><p class="lk-tip">把拼音钥匙拖到对应的锁上 · 也可以先点钥匙再点锁</p>' +
+    '<div class="lk-locks">' + set.map(function(c, i){ var pic = c.img && i % 2 === 1;
+      return '<button type="button" class="d3-slot lk-lock" data-d3-slot="' + i + '" data-lock="' + esc(c.id) + '" aria-label="锁：' + esc(pic ? '图片' : c.zh) + '"><span class="lk-shackle" aria-hidden="true"></span><span class="lk-body">' + (pic ? '<img src="' + esc(c.img) + '" alt="" draggable="false">' : '<b>' + esc(c.zh) + '</b>') + '<i class="lk-hole" aria-hidden="true"></i></span></button>'; }).join('') + '</div></div>' +
+    '<div class="d3-tray lk-keys">' + keys.map(function(x){ return tile(x.t, x.k, ' lk-key'); }).join('') + '</div><p class="d3-tip">钥匙上是拼音：先自己读一读，再插进对应的锁</p></section>';
+  G.lockSet = set;
+}
 function cloudOrder(){ var w = wrap(); return w ? [].map.call(w.querySelectorAll('.d3-cloud'), function(b){ return +b.getAttribute('data-d3-cloud'); }) : []; }
 function cloudCheck(){
   if (!G || G.g !== 'cloud3' || G.won) return; G.moves++;
@@ -170,6 +200,145 @@ function cloudCheck(){
   win(G.S.zh);
 }
 
+/* ---- 🎲 棋盘对战 (阶段六): every move is earned by a question — the Chinese word (read aloud) → its meaning (picture /
+   English), or its pinyin when the list has neither. Tic-Tac-Toe and Snakes & Ladders, against the computer. ---- */
+function hudBoard(title){ return '<div class="d3-hud"><button type="button" class="d3-back" data-d3-home>🏝 返回地图</button><b>' + title + '</b><span class="d3-xp">✓ ' + (G.right || 0) + ' / ' + (G.asked || 0) + '</span></div>'; }
+function boardCards(){ return G.cx.cards.filter(function(c){ return han(c.zh); }); }
+function cueKind(){ var cs = boardCards(), n = cs.filter(function(c){ return c.en || c.img; }).length; return n >= Math.min(3, cs.length) ? 'mean' : 'py'; }
+function ask(card, done){
+  var kind = G.qkind, key = function(c){ return kind === 'py' ? c.py : (c.en || (c.img ? 'img:' + c.img : '')); };
+  var opts = [card], seen = {}; seen[key(card)] = 1;
+  mix(boardCards().filter(function(o){ return o.id !== card.id && key(o); })).forEach(function(o){ if (opts.length < 3 && !seen[key(o)]) { seen[key(o)] = 1; opts.push(o); } });
+  opts = mix(opts);
+  var box = wrap().querySelector('[data-q4]');
+  box.innerHTML = '<div class="q4-prompt"><b>' + esc(card.zh) + '</b><button type="button" class="q4-say" data-q4-say aria-label="再听一遍">🔊</button></div><p class="q4-ask">' + (kind === 'py' ? '它怎么读？' : '它是什么意思？') + '</p>' +
+    '<div class="q4-opts">' + opts.map(function(o){ return '<button type="button" class="q4-opt" data-q4-opt="' + esc(o.id) + '">' + (kind === 'py' ? esc(o.py) : o.img && !o.en ? '<img src="' + esc(o.img) + '" alt="">' : esc(o.en)) + '</button>'; }).join('') + '</div>';
+  box.hidden = false; say(card.zh, .8);
+  box.querySelector('[data-q4-say]').onclick = function(){ say(card.zh, .8); };
+  [].forEach.call(box.querySelectorAll('[data-q4-opt]'), function(b){ b.onclick = function(){
+    var good = b.getAttribute('data-q4-opt') === card.id;
+    [].forEach.call(box.querySelectorAll('[data-q4-opt]'), function(x){ x.disabled = true; if (x.getAttribute('data-q4-opt') === card.id) x.classList.add('ok'); });
+    if (!good) b.classList.add('bad');
+    sfx(good ? 'correct' : 'wrong'); G.asked = (G.asked || 0) + 1; if (good) G.right = (G.right || 0) + 1;
+    setTimeout(function(){ box.hidden = true; done(good); }, good ? 650 : 1400);
+  }; });
+}
+function boardFinish(title, stars){
+  var cx = G.cx, k = JSON.stringify([cx.boardId, cx.col, G.g]), all = bestAll(), old = all[k] || {};
+  G.xp = (G.right || 0) * 10 + stars * 10; G.done = true;
+  all[k] = { stars: Math.max(old.stars || 0, stars), xp: Math.max(old.xp || 0, G.xp), at: Date.now() }; try { localStorage.setItem(KEY, JSON.stringify(all)); } catch(e){}
+  sfx(stars > 1 ? 'win' : 'click');
+  setTimeout(function(){ var w = wrap(); if (!w || !G || G.g === undefined) return;
+    w.innerHTML = '<section class="d3-stage"><div class="d3-card d3-end-card"><div class="d3-big">' + G.meta[1] + '</div><h2>' + esc(title) + '</h2><div class="d3-stars">' + [1,2,3].map(function(i){ return i <= stars ? '★' : '☆'; }).join('') + '</div>' +
+      '<p>✨ +' + G.xp + ' 积分 · 答对 ' + (G.right || 0) + ' / ' + (G.asked || 0) + ' 题</p><div class="d3-endb"><button type="button" class="d3-btn" data-d3-again>↻ 再玩一次</button><button type="button" class="d3-btn pri" data-d3-home>🏝 返回游戏地图</button></div></div></section>'; }, 1400);
+}
+function accStars(win){ var a = G.asked ? G.right / G.asked : 0; return win ? (a >= .85 ? 3 : a >= .6 ? 2 : 1) : 1; }
+
+/* ⭕ 井字棋 */
+var LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function tttStart(w){
+  var cs = mix(boardCards()), cells = cs.slice(); while (cells.length < 9) cells = cells.concat(mix(cs)); cells = cells.slice(0, 9);
+  G.board = cells.map(function(c){ return { c: c, who: '' }; }); G.qkind = cueKind(); G.turn = 'me'; G.asked = 0; G.right = 0; G.busy = false;
+  tttPaint('轮到你：点一个格子答题，答对就放上 ✕');
+}
+function lineOf(who){ for (var k = 0; k < LINES.length; k++) if (LINES[k].every(function(i){ return G.board[i].who === who; })) return LINES[k]; return null; }
+function tttPaint(msg, hot){
+  var w = wrap(); if (!w) return;
+  w.innerHTML = '<section class="d3-stage">' + hudBoard('⭕ 井字棋 · Tic-Tac-Toe') + '<div class="d3-card ttt-card"><p class="ttt-msg">' + esc(msg) + '</p><div class="ttt-grid">' + G.board.map(function(x, i){
+      return '<button type="button" class="ttt-cell' + (x.who ? ' ' + x.who : '') + (hot && hot.indexOf(i) >= 0 ? ' hot' : '') + '" data-ttt="' + i + '"' + (x.who || G.turn !== 'me' ? ' disabled' : '') + '>' +
+        (x.who ? '<span class="ttt-mark">' + (x.who === 'me' ? '✕' : '◯') + '</span><small>' + esc(x.c.zh) + '</small>' : '<b>' + esc(x.c.zh) + '</b>') + '</button>'; }).join('') +
+    '</div><p class="ttt-legend">你 ✕ · 电脑 ◯</p><div class="q4" data-q4 hidden></div></div></section>';
+}
+function cpuCell(){
+  var b = G.board, free = b.map(function(x, i){ return x.who ? -1 : i; }).filter(function(i){ return i >= 0; });
+  function two(who){ for (var k = 0; k < LINES.length; k++) { var l = LINES[k], f = l.filter(function(i){ return !b[i].who; }); if (f.length === 1 && l.filter(function(i){ return b[i].who === who; }).length === 2) return f[0]; } return -1; }
+  var m = two('cpu'); if (m >= 0) return m;
+  if (Math.random() < .7) { m = two('me'); if (m >= 0) return m; }   /* it blocks most of the time, not always */
+  if (!b[4].who && Math.random() < .5) return 4;
+  return free[Math.floor(Math.random() * free.length)];
+}
+function tttAfter(msg){
+  var l = lineOf('me'); if (l) { tttPaint('三个 ✕ 连成一线！', l); return boardFinish('🎉 你赢了！', accStars(true)); }
+  if (G.board.every(function(x){ return x.who; })) { tttPaint('九格下满了'); return boardFinish('🤝 平局！', Math.max(1, accStars(true) - 1)); }
+  G.turn = 'cpu'; tttPaint(msg + ' · 电脑思考中…');
+  setTimeout(function(){ if (!G || G.done || G.g !== 'ttt3') return;
+    G.board[cpuCell()].who = 'cpu'; sfx('click');
+    var l2 = lineOf('cpu'); if (l2) { G.turn = 'cpu'; tttPaint('电脑三连了', l2); return boardFinish('电脑赢了，再来一局！', accStars(false)); }
+    if (G.board.every(function(x){ return x.who; })) { tttPaint('九格下满了'); return boardFinish('🤝 平局！', Math.max(1, accStars(true) - 1)); }
+    G.turn = 'me'; tttPaint('电脑下了 ◯ · 轮到你：点一个格子答题');
+  }, 900);
+}
+document.addEventListener('click', function(e){
+  var c = e.target.closest && e.target.closest('#mn-templates [data-ttt]'); if (!c || !G || G.g !== 'ttt3' || G.done || G.turn !== 'me' || G.busy) return;
+  e.stopPropagation(); var cell = G.board[+c.getAttribute('data-ttt')]; if (cell.who) return;
+  G.busy = true; c.classList.add('pick'); sfx('click');
+  ask(cell.c, function(good){ G.busy = false; if (good) cell.who = 'me'; tttAfter(good ? '答对了，✕ 放上去' : '没答对，这一格先空着'); });
+}, true);
+
+/* 🐍 蛇形棋: 30 squares, 4 ladders, 4 snakes; a right answer earns the dice */
+var SK = { ladders: { 3: 11, 8: 16, 14: 25, 19: 28 }, snakes: { 17: 6, 22: 12, 27: 15, 29: 20 }, end: 30 };
+var DICE = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+function sq(n){ var r = Math.floor((n - 1) / 6), c = (n - 1) % 6; if (r % 2) c = 5 - c; return { x: c * 100 + 50, y: (4 - r) * 100 + 50, col: c + 1, row: 5 - r }; }
+function snakeStart(w){
+  G.qkind = cueKind(); G.pos = { me: 1, cpu: 1 }; G.asked = 0; G.right = 0; G.turn = 'me'; G.busy = false; G.deck = mix(boardCards()); G.dk = 0;
+  snakePaint('轮到你：答对就能掷骰子 🎲');
+}
+function tokenAt(who, n){ var p = sq(Math.min(SK.end, n)); return 'left:' + (p.x / 6) + '%;top:' + (p.y / 5) + '%'; }
+function snakePaint(msg){
+  var w = wrap(); if (!w) return; var cells = '', n;
+  for (n = 1; n <= SK.end; n++) { var p = sq(n); cells += '<div class="sk-sq' + ((p.col + p.row) % 2 ? ' alt' : '') + '" style="grid-column:' + p.col + ';grid-row:' + p.row + '"><i>' + n + '</i>' + (n === SK.end ? '<em>🏆</em>' : n === 1 ? '<em>🚩</em>' : '') + '</div>'; }
+  var svg = '<svg class="sk-lines" viewBox="0 0 600 500" preserveAspectRatio="none" aria-hidden="true">';
+  Object.keys(SK.ladders).forEach(function(a){ var A = sq(+a), B = sq(SK.ladders[a]), dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy), nx = -dy / L * 13, ny = dx / L * 13;
+    svg += '<g class="sk-ladder"><line x1="' + (A.x + nx) + '" y1="' + (A.y + ny) + '" x2="' + (B.x + nx) + '" y2="' + (B.y + ny) + '"/><line x1="' + (A.x - nx) + '" y1="' + (A.y - ny) + '" x2="' + (B.x - nx) + '" y2="' + (B.y - ny) + '"/>';
+    for (var t = .1; t < .95; t += .13) svg += '<line class="rung" x1="' + (A.x + dx * t + nx) + '" y1="' + (A.y + dy * t + ny) + '" x2="' + (A.x + dx * t - nx) + '" y2="' + (A.y + dy * t - ny) + '"/>';
+    svg += '</g>'; });
+  Object.keys(SK.snakes).forEach(function(a, i){ var A = sq(+a), B = sq(SK.snakes[a]), mx = (A.x + B.x) / 2 + (i % 2 ? 70 : -70), my = (A.y + B.y) / 2;
+    svg += '<path class="sk-snake" d="M' + A.x + ' ' + A.y + ' Q' + mx + ' ' + my + ' ' + B.x + ' ' + B.y + '"/><path class="sk-snake-in" d="M' + A.x + ' ' + A.y + ' Q' + mx + ' ' + my + ' ' + B.x + ' ' + B.y + '"/><circle class="sk-head" cx="' + A.x + '" cy="' + A.y + '" r="15"/><circle cx="' + (A.x - 5) + '" cy="' + (A.y - 4) + '" r="3" fill="#fff"/><circle cx="' + (A.x + 5) + '" cy="' + (A.y - 4) + '" r="3" fill="#fff"/>'; });
+  svg += '</svg>';
+  w.innerHTML = '<section class="d3-stage">' + hudBoard('🐍 蛇形棋 · Snakes & Ladders') + '<div class="d3-card sk-card"><p class="ttt-msg" data-sk-msg>' + esc(msg) + '</p>' +
+    '<div class="sk-board">' + cells + svg + '<span class="sk-token me" data-sk-tok="me" style="' + tokenAt('me', G.pos.me) + '">🐻</span><span class="sk-token cpu" data-sk-tok="cpu" style="' + tokenAt('cpu', G.pos.cpu) + '">🤖</span></div>' +
+    '<div class="sk-bar"><span class="sk-who me">🐻 你 · ' + Math.min(SK.end, G.pos.me) + '</span><span class="sk-dice" data-sk-dice>🎲</span><span class="sk-who cpu">🤖 电脑 · ' + Math.min(SK.end, G.pos.cpu) + '</span></div>' +
+    '<button type="button" class="sk-go" data-sk-go' + (G.turn === 'me' && !G.busy ? '' : ' disabled') + '>' + (G.turn === 'me' ? '📖 答题 → 🎲 掷骰子' : '🤖 电脑回合…') + '</button><div class="q4" data-q4 hidden></div></div></section>';
+}
+function skMsg(t){ var m = wrap() && wrap().querySelector('[data-sk-msg]'); if (m) m.textContent = t; }
+function roll(who, done){
+  var d = wrap().querySelector('[data-sk-dice]'), k = 0, v = 1 + Math.floor(Math.random() * 6);
+  var t = setInterval(function(){ if (d) d.textContent = DICE[Math.floor(Math.random() * 6)]; if (++k >= 8) { clearInterval(t); if (d) { d.textContent = DICE[v - 1]; d.classList.add('rolled'); } sfx('click'); setTimeout(function(){ done(v); }, 350); } }, 70);
+}
+function walk(who, steps, done){
+  var tok = wrap().querySelector('[data-sk-tok="' + who + '"]'), left = steps;
+  var t = setInterval(function(){
+    if (left <= 0 || G.pos[who] >= SK.end) { clearInterval(t);
+      var n = G.pos[who], to = SK.ladders[n] || SK.snakes[n];
+      if (to) { var up = !!SK.ladders[n]; setTimeout(function(){ G.pos[who] = to; if (tok) { tok.classList.add('slide'); tok.setAttribute('style', tokenAt(who, to)); } sfx(up ? 'streak' : 'wrong'); setTimeout(function(){ done(up ? 'ladder' : 'snake', n, to); }, 650); }, 250); }
+      else done('', n, n);
+      return; }
+    G.pos[who] += 1; left--; if (tok) { tok.classList.remove('slide'); tok.setAttribute('style', tokenAt(who, G.pos[who])); } sfx('snap');
+  }, 260);
+}
+function afterMove(who, how, from, to){
+  var name = who === 'me' ? '你' : '电脑';
+  if (G.pos[who] >= SK.end) { snakePaint(name + '到达终点 🏆'); return boardFinish(who === 'me' ? '🎉 你先到终点，赢了！' : '电脑先到终点，再来一局！', accStars(who === 'me')); }
+  return how === 'ladder' ? name + '踩到梯子，从 ' + from + ' 爬到 ' + to + '！🪜' : how === 'snake' ? name + '碰到蛇，从 ' + from + ' 滑到 ' + to + ' 🐍' : '';
+}
+function cpuTurn(lead){
+  G.turn = 'cpu'; snakePaint((lead ? lead + ' · ' : '') + '电脑掷骰子…');
+  setTimeout(function(){ if (!G || G.done || G.g !== 'snake3') return;
+    roll('cpu', function(v){ walk('cpu', v, function(how, from, to){ if (G.done) return; var note = afterMove('cpu', how, from, to); if (G.done) return;
+      G.turn = 'me'; G.busy = false; snakePaint('电脑掷了 ' + v + (note ? ' · ' + note : '') + ' · 轮到你：答题掷骰子'); }); });
+  }, 800);
+}
+document.addEventListener('click', function(e){
+  var b = e.target.closest && e.target.closest('#mn-templates [data-sk-go]'); if (!b || !G || G.g !== 'snake3' || G.done || G.turn !== 'me' || G.busy) return;
+  e.stopPropagation(); G.busy = true; b.disabled = true;
+  var card = G.deck[G.dk++ % G.deck.length];
+  ask(card, function(good){
+    if (!good) { skMsg('没答对，这回合原地不动'); return setTimeout(function(){ cpuTurn('你没答对，原地不动'); }, 700); }
+    skMsg('答对了！掷骰子…');
+    roll('me', function(v){ walk('me', v, function(how, from, to){ if (G.done) return; var note = afterMove('me', how, from, to); if (G.done) return; cpuTurn('你掷了 ' + v + (note ? ' · ' + note : '')); }); });
+  });
+}, true);
+
 /* ---- drop rules ------------------------------------------------------------------------------------------------------------ */
 function place(tileEl, slotEl){
   if (!tileEl || !slotEl || slotEl.classList.contains('ok')) return;
@@ -180,25 +349,35 @@ function place(tileEl, slotEl){
     var slots = w.querySelectorAll('.d3-slot'), full = [].every.call(slots, function(s){ return s.firstChild; });
     if (!full) return;
     var wrongs = [].filter.call(slots, function(s, i){ return s.firstChild.textContent !== G.S.chunks[i]; });
-    if (!wrongs.length) { [].forEach.call(slots, function(s){ s.classList.add('ok'); }); return win(G.S.zh); }
+    if (!wrongs.length) { [].forEach.call(slots, function(s){ s.classList.add('ok'); }); var tr = w.querySelector('[data-tr-track]'); if (tr) { sfx('streak'); setTimeout(function(){ tr.classList.add('go'); sfx('whoosh'); }, 450); } return win(G.S.zh); }
     G.miss++; sfx('wrong'); wrongs.forEach(function(s){ s.classList.add('bad'); var t = s.firstChild; setTimeout(function(){ s.classList.remove('bad'); if (t && t.parentNode === s) back(t); }, 650); });
     return;
+  }
+  if (G.g === 'lock3') {
+    var want = slotEl.getAttribute('data-lock');
+    if (k === 'k:' + want) {
+      slotEl.classList.add('ok', 'open'); tileEl.classList.add('in'); slotEl.querySelector('.lk-body').appendChild(tileEl); sfx('correct');
+      var card = G.lockSet.filter(function(c){ return c.id === want; })[0]; if (card) speak(card.zh);
+      if ([].every.call(w.querySelectorAll('.lk-lock'), function(s){ return s.classList.contains('ok'); })) setTimeout(function(){ win(''); }, 500);
+      return;
+    }
+    G.miss++; sfx('wrong'); bounce(tileEl, slotEl); return;
   }
   if (G.g === 'pinyin3') {
     if (tileEl.textContent === G.sy[idx]) { slotEl.appendChild(tileEl); tileEl.classList.add('in'); slotEl.classList.add('ok'); sfx('correct');
       if ([].every.call(w.querySelectorAll('.d3-slot'), function(s){ return s.classList.contains('ok'); })) win(G.c.zh); return; }
     G.miss++; sfx('wrong'); bounce(tileEl, slotEl); return;
   }
-  if (tileEl.getAttribute('data-d3-tile') === 'w:' + G.c.zh) { slotEl.appendChild(tileEl); tileEl.classList.add('in'); slotEl.classList.add('ok'); return win(G.S.zh); }
+  if (tileEl.getAttribute('data-d3-tile') === 'w:' + G.c.zh) { slotEl.appendChild(tileEl); tileEl.classList.add('in'); slotEl.classList.add('ok'); var sc = w.querySelector('[data-br-scene]'); if (sc) setTimeout(function(){ sc.classList.add('cross'); sfx('streak'); }, 300); return win(G.S.zh); }
   G.miss++; sfx('wrong'); bounce(tileEl, slotEl);
 }
 function back(t){ var tray = wrap() && wrap().querySelector('.d3-tray'); if (tray && t) { t.classList.remove('in', 'sel'); tray.appendChild(t); } }
 function bounce(t, s){ s.classList.add('bad'); t.classList.add('shake'); setTimeout(function(){ s.classList.remove('bad'); t.classList.remove('shake'); }, 500); }
 function win(said){
-  var clean = G.miss === 0; if (clean) G.first++; G.xp += clean ? 10 : 5; sfx(clean ? 'correct' : 'click'); speak(said);
+  var clean = G.miss === 0; if (clean) G.first++; G.xp += clean ? 10 : 5; sfx(clean ? 'correct' : 'click'); if (said) speak(said);
   var w = wrap(), card = w && w.querySelector('.d3-card'); if (card) { card.classList.add('done'); card.insertAdjacentHTML('beforeend', '<div class="d3-yay">' + (clean ? '✨ 一次就对！+10' : '👍 完成 +5') + '</div>'); }
   var tray = w && w.querySelector('.d3-tray'); if (tray) tray.classList.add('off');
-  setTimeout(function(){ if (!G || G.done) return; G.i++; next(); }, G.g === 'cloud3' ? 2600 : 1300);
+  setTimeout(function(){ if (!G || G.done) return; G.i++; next(); }, G.g === 'cloud3' ? 2600 : (G.g === 'cloze3' || G.g === 'sentence3') ? 2400 : 1300);
 }
 function finish(){
   var n = G.rounds.length, ratio = n ? G.first / n : 0, stars = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1, cx = G.cx, k = JSON.stringify([cx.boardId, cx.col, G.g]), all = bestAll(), old = all[k] || {};
@@ -245,6 +424,7 @@ window.addEventListener('keydown', function(e){   /* on window, ahead of the Tea
 var drag = null;
 document.addEventListener('pointerdown', function(e){
   var t = e.target.closest && e.target.closest('#mn-templates .d3-tile'); if (!t || !G || G.done) return;
+  if (t.closest('.d3-slot.ok')) return;   /* a key already in an open lock stays there */
   if (t.parentNode && t.parentNode.classList.contains('d3-slot')) { if (t.parentNode.classList.contains('ok')) return; }
   drag = { t: t, x: e.clientX, y: e.clientY, moved: false, ghost: null, id: e.pointerId };
 }, true);
@@ -271,6 +451,7 @@ document.addEventListener('click', function(e){
   if ((t = e.target.closest('[data-d3-again]'))) { var g = G.g; start(g); return; }
   if (G.done) return;
   if ((t = e.target.closest('.d3-tile'))) {
+    if (t.closest('.d3-slot.ok')) return;
     if (t.parentNode && t.parentNode.classList.contains('d3-slot')) { if (!t.parentNode.classList.contains('ok')) { back(t); sfx('click'); } return; }   // tap a placed block: it comes back
     [].forEach.call(r.querySelectorAll('.d3-tile.sel'), function(x){ if (x !== t) x.classList.remove('sel'); }); t.classList.toggle('sel'); G.sel = t.classList.contains('sel') ? t : null; sfx('click'); return;
   }

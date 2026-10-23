@@ -1,4 +1,4 @@
-"""🚗 车载闪卡 (CarPlay flashcards) · the iPhone page side of Phase 2, plan A.
+"""🚗 车载闪卡 (CarPlay flashcards) + 🎓 GPT Study (tools/live-perf/gptstudy.js) · the iPhone page side.
 Applied in place to iPhone53.8241.html, then copied to iphone.html, index.html and the two iOS copies.
 tools/live-perf/carflash.js + carflash.css: pick a list, an interval and the order, then Start. The iOS app
 (ios/Minest/Minest/CarFlashController.swift) puts the current word into Minest's Live Activity; CarPlay's Dashboard
