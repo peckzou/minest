@@ -1,0 +1,132 @@
+--- musev3/minest-my-world-v3/iphone.html	2026-10-24 02:27:03
++++ teach/minest-teaching-v1/iphone.html	2026-10-24 10:31:28
+@@ -124569,8 +124569,11 @@
+ document.addEventListener('keydown',keys);bind('[data-close]',close);bind('[data-home]',function(){stop();home();});
+ function show(html){main.innerHTML=html;root.scrollTop=0;main.setAttribute('tabindex','-1');main.focus({preventScroll:true});root.scrollTop=0;}
+ function say(w){var status=q('[data-voice]');if(!window.speechSynthesis||!window.SpeechSynthesisUtterance){if(status)status.textContent='此浏览器不支持朗读，请看拼音跟老师读。';return;}stop();var u=new SpeechSynthesisUtterance(w.zh);u.lang='zh-CN';u.rate=.72;var voice=window.speechSynthesis.getVoices().filter(function(v){return /^zh[-_](CN|Hans)/i.test(v.lang);})[0]||window.speechSynthesis.getVoices().filter(function(v){return /^zh/i.test(v.lang);})[0];if(voice)u.voice=voice;u.onerror=function(){if(status&&status.isConnected)status.textContent='中文语音暂不可用，请看拼音跟老师读。';};if(status)status.textContent='跟着读：'+w.py+'（语音取决于设备中文语音包）';window.speechSynthesis.speak(u);}
+-function home(){cancelGeneration();screen='home';show('<span class="cn-badge">TEACHER · 中文课堂</span><h1 style="margin-top:14px">今天，你上什么课？</h1><p class="cn-sub">School subjects · 先看拼音，再读汉字，然后闯关。</p><div class="cn-row cn-actions"><button class="cn-gold" data-learn>▶ 开始学习 / Learn</button><button class="cn-teal" data-teaching>▦ 学生课堂 V1</button><button class="cn-teal" data-teaching-ec6>📖 我的自学 V2</button><button class="cn-teal" data-generate>✨ 长文本自动生成</button><button class="cn-teal" data-edit>✎ 编辑词汇</button><button data-arcade>🎮 载入 Arcade</button></div><section class="cn-card"><div class="cn-row" style="justify-content:space-between"><h2>📚 我的课程 · '+deck.length+' 个词</h2><label class="cn-switch"><input type="checkbox" data-pinyin '+(pinyin?'checked':'')+'>拼音辅助</label></div><p>每个汉字上方都有声调拼音。点词卡，听中文。</p><div class="cn-grid">'+deck.map(function(w,i){return '<button class="cn-word" data-word="'+i+'"><span class="cn-icon">'+esc(w.icon||'📚')+'</span>'+ruby(w,pinyin)+'<span class="cn-english">'+esc(w.en)+'</span></button>';}).join('')+'</div><p class="cn-note" data-voice role="status">朗读需要设备支持中文语音。</p></section><section class="cn-card"><h2>🧭 学习小地图</h2><p>① 看词跟读 → ② 翻卡记忆 → ③ 选英文意思 → ④ 找声调拼音</p><div class="cn-row"><button data-meaning>🎯 词义闯关</button><button class="cn-teal" data-sound>🎵 拼音闯关</button></div><p class="cn-note">“课”读 kè · 第四声 ↘。英文课：yīng wén kè。</p><div class="cn-error" data-error role="status"></div></section>');
++function home(){cancelGeneration();screen='home';show('<span class="cn-badge">TEACHER · 中文课堂</span><h1 style="margin-top:14px">今天，你上什么课？</h1><p class="cn-sub">School subjects · 先看拼音，再读汉字，然后闯关。</p><div class="cn-row cn-actions"><button class="cn-gold" data-start-class style="min-height:56px;font-size:18px">▶ 开始上课</button></div><div class="cn-row cn-actions"><button class="cn-teal" data-learn>▶ 开始学习 / Learn</button><button class="cn-teal" data-teaching>▦ 学生课堂</button><button class="cn-teal" data-teaching-ec6>📖 我的自学</button><button class="cn-teal" data-generate>✨ 长文本自动生成</button><button class="cn-teal" data-edit>✎ 编辑词汇</button><button data-arcade>🎮 载入 Arcade</button></div><section class="cn-card"><div class="cn-row" style="justify-content:space-between"><h2>📚 我的课程 · '+deck.length+' 个词</h2><label class="cn-switch"><input type="checkbox" data-pinyin '+(pinyin?'checked':'')+'>拼音辅助</label></div><p>每个汉字上方都有声调拼音。点词卡，听中文。</p><div class="cn-grid">'+deck.map(function(w,i){return '<button class="cn-word" data-word="'+i+'"><span class="cn-icon">'+esc(w.icon||'📚')+'</span>'+ruby(w,pinyin)+'<span class="cn-english">'+esc(w.en)+'</span></button>';}).join('')+'</div><p class="cn-note" data-voice role="status">朗读需要设备支持中文语音。</p></section><section class="cn-card"><h2>🧭 学习小地图</h2><p>① 看词跟读 → ② 翻卡记忆 → ③ 选英文意思 → ④ 找声调拼音</p><div class="cn-row"><button data-meaning>🎯 词义闯关</button><button class="cn-teal" data-sound>🎵 拼音闯关</button></div><p class="cn-note">“课”读 kè · 第四声 ↘。英文课：yīng wén kè。</p><div class="cn-error" data-error role="status"></div></section>');
+ bind('[data-learn]',function(){index=0;flipped=false;seen=new Set();learn();});bind('[data-edit]',function(){edit();});bind('[data-generate]',generate);bind('[data-teaching]',function(){
++  var b={id:'chinese-view',title:'学中文 · 我的课程',columns:[{id:'chinese-list',title:'我的课程',cards:deck.map(function(w,i){return {id:'chinese-'+encodeURIComponent(w.zh),title:w.zh,desc:w.en,pinyin:w.py};})}]};
++  MinestTemplates.open(b,{audience:'student',chinese:true,col:'chinese-list',withDone:true,flash:function(){index=0;flipped=false;seen=new Set();learn();}});
++});bind('[data-start-class]',function(){
+   var b={id:'chinese-view',title:'学中文 · 我的课程',columns:[{id:'chinese-list',title:'我的课程',cards:deck.map(function(w,i){return {id:'chinese-'+encodeURIComponent(w.zh),title:w.zh,desc:w.en,pinyin:w.py};})}]};
+   MinestTemplates.open(b,{audience:'student',chinese:true,col:'chinese-list',withDone:true,flash:function(){index=0;flipped=false;seen=new Set();learn();}});
+ });bind('[data-teaching-ec6]',function(){var b={id:'chinese-view',title:'学中文 · 我的课程',columns:[{id:'chinese-list',title:'我的课程',cards:deck.map(function(w){return {id:'chinese-'+encodeURIComponent(w.zh),title:w.zh,desc:w.en,pinyin:w.py};})}]};MinestTemplates.open(b,{audience:'ec6',chinese:true,col:'chinese-list',withDone:true,flash:function(){index=0;flipped=false;seen=new Set();learn();}});});bind('[data-meaning]',function(){start('meaning');});bind('[data-sound]',function(){start('pinyin');});bind('[data-arcade]',function(){try{useDeck({title:'学中文 · 我的课程',items:deck.map(function(w){return {term:w.zh,pinyin:w.py,meaning:w.en};})});close();}catch(e){q('[data-error]').textContent='载入失败：'+e.message;}});q('[data-pinyin]').onchange=function(e){pinyin=e.target.checked;home();};root.querySelectorAll('[data-word]').forEach(function(b){b.onclick=function(){say(deck[+b.dataset.word]);};});}
+@@ -124834,13 +124837,13 @@
+ }
+ 
+ function batchPreparation(){
+-cancel();mode='batch';var source=read(board,col,true),rows=[],running=false,stopped=false,checking=false,kind='image',missing=true,style='cartoon',ctx=epoch,controller=null;
++cancel();mode='batch';var source=read(board,col,true),rows=[],running=false,stopped=false,checking=false,kind='image',missing=true,style='cartoon',ctx=epoch,controller=null;try{var _pm=localStorage.getItem('minest.prep.missing');if(_pm!==null)missing=JSON.parse(_pm);}catch(e){}
+ var names={image:'整组 AI 生图',en:'英英释义',zh:'中文释义',hint:'Hint 提示',related:'关联词'};
+ function valueOf(a,k){return k==='en'||k==='zh'?(a.definitions||{})[k]:k==='related'?a.relatedWords:a[k];}
+ function present(a,w,k){var v=valueOf(a,k);return k==='image'?!!(v||w.image):Array.isArray(v)?v.length>0:!!v;}
+ function status(){var done=rows.filter(function(r){return r.state==='ready'||r.state==='applied';}).length,fail=rows.filter(function(r){return r.state==='error';}).length;return done+' / '+rows.length+' 张完成'+(fail?' · '+fail+' 张失败':'')+(running?' · 正在处理…':stopped?' · 已停止，已完成草稿保留':'');}
+ function paint(){show('<h1>整组 List · 一键备课</h1><p class="tt-lead">'+esc((columns.find(function(c){return String(c.id)===col;})||{}).title||'List')+' · '+source.length+' 张（包含已完成）</p><section class="tt-panel"><div class="tp-fields"><label>补充内容<select data-batch-kind>'+Object.keys(names).map(function(k){return '<option value="'+k+'"'+(k===kind?' selected':'')+'>'+names[k]+'</option>';}).join('')+'</select></label><label>生图风格<select data-batch-style><option value="cartoon">卡通插画</option><option value="lowpoly"'+(style==='lowpoly'?' selected':'')+'>Low poly</option><option value="minecraft"'+(style==='minecraft'?' selected':'')+'>Minecraft</option></select></label></div><label class="tt-row" style="margin:16px 0"><input type="checkbox" data-batch-missing '+(missing?'checked':'')+'>只补缺失项（保护已有配图与教学资料）</label><p class="tt-muted">调用已配置的 Minest AI 服务。生图逐张执行；文字生成同样逐张核对 ID。结果先进入可编辑草稿，勾选后应用。释义会成为教学模式背面；可随时恢复原释义。原 Card 正文保持不变。</p><div class="tt-row"><button class="tt-primary" data-batch-start '+(!source.length?'disabled':'')+'>一键生成整组</button><button data-ai-check>检查登录与 AI 权限</button><button data-batch-stop disabled>停止生成</button><button data-batch-retry disabled>重试失败 / 未完成</button></div><p data-batch-status role="status" aria-live="polite"></p><progress data-batch-progress max="1" value="0" style="width:100%"></progress></section><section class="tt-panel"><div class="tt-row"><button data-batch-select>全选成功项</button><button data-batch-deselect>取消全选</button><button class="tt-primary" data-batch-apply disabled>应用勾选结果</button><button data-batch-discard>放弃未应用草稿，开始另一项</button><button data-batch-export>导出备课资料备份</button></div><p data-batch-message role="status"></p><div data-batch-rows></div></section><button data-batch-back>返回备课</button>');
+-q('[data-batch-kind]').onchange=function(e){kind=e.target.value;};q('[data-batch-style]').onchange=function(e){style=e.target.value;};q('[data-batch-missing]').onchange=function(e){missing=e.target.checked;};
++q('[data-batch-kind]').onchange=function(e){kind=e.target.value;};q('[data-batch-style]').onchange=function(e){style=e.target.value;};q('[data-batch-missing]').onchange=function(e){missing=e.target.checked;try{localStorage.setItem('minest.prep.missing',JSON.stringify(missing));}catch(err){}};
+ bind('[data-batch-start]',function(){if(running||checking)return;try{var stored=MinestTeachingAssets.forBoard(board.id);rows=source.filter(function(w){return !missing||!present(stored[w.id]||{},w,kind);}).map(function(w){return {w:w,kind:kind,state:'pending',checked:true,value:null,error:''};});run();}catch(e){message(e.message,true);}});
+ bind('[data-ai-check]',async function(){if(running||checking)return;checking=true;renderRows();var btn=q('[data-ai-check]'),ctl=new AbortController(),timer=setTimeout(function(){ctl.abort();},20000);metadataAbort=ctl;btn.disabled=true;message('正在刷新登录凭证并检查 AI 权限（不会生成内容）…',false);try{await MinestTeachingAuth.check(ctl.signal);if(epoch===ctx)message('登录凭证有效，当前账号已获 AI 权限。可以生成或重试。',false);}catch(e){if(epoch===ctx)message(e.name==='AbortError'?'检查超时，请重试。':e.message,true);}finally{clearTimeout(timer);if(metadataAbort===ctl)metadataAbort=null;checking=false;if(epoch===ctx){btn.disabled=false;renderRows();}}});bind('[data-batch-stop]',function(){stopped=true;if(controller)controller.abort();});bind('[data-batch-retry]',function(){if(running||checking)return;rows.forEach(function(r){if(r.state==='error'||r.state==='pending'){r.state='pending';r.error='';}});run();});bind('[data-batch-select]',function(){rows.forEach(function(r){if(r.state==='ready')r.checked=true;});renderRows();});bind('[data-batch-deselect]',function(){rows.forEach(function(r){r.checked=false;});renderRows();});bind('[data-batch-back]',preparation);
+ bind('[data-batch-discard]',function(){if(running)return;rows=[];paint();});bind('[data-batch-export]',function(){try{var data={version:1,boardId:board.id,listId:col,cards:MinestTeachingAssets.forBoard(board.id)},blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='Minest-Teaching-'+Date.now()+'.json';a.click();setTimeout(function(){URL.revokeObjectURL(u);},1000);}catch(e){message(e.message,true);}});
+@@ -129480,7 +129483,7 @@
+     function batchPreparation(){
+       cancel();
+       mode = 'batch';
+-      var source = read(board, col, true), rows = [], running = false, stopped = false, checking = false, kind = 'image', missing = true, style = 'cartoon', ctx = epoch, controller = null;
++      var source = read(board, col, true), rows = [], running = false, stopped = false, checking = false, kind = 'image', missing = true, style = 'cartoon', ctx = epoch, controller = null;try{var _pm2=localStorage.getItem('minest.prep.missing');if(_pm2!==null)missing=JSON.parse(_pm2);}catch(e){}
+       var names = {image: '整组 AI 生图', en: '英英释义', zh: '中文释义', hint: 'Hint 提示', related: '关联词'};
+       function valueOf(a, k){ return k === 'en' || k === 'zh' ? (a.definitions || {})[k] : k === 'related' ? a.relatedWords : a[k]; }
+       function present(a, w, k){ var v = valueOf(a, k); return k === 'image' ? !!(v || w.hasCustomImage) : Array.isArray(v) ? v.length > 0 : !!v; }
+@@ -129492,7 +129495,7 @@
+       function paint(){
+         show('<h1>整组 List · 一键备课</h1><p class="tt-lead">' + esc((columns.find(function(c){ return String(c.id) === col; }) || {}).title || 'List') + ' · ' + source.length + ' 张（包含已完成）</p>'
+           + '<section class="tt-panel">'
+-          + '<div class="tt-row" style="margin-bottom:12px"><button type="button" class="tt-primary" data-go-visual-wall>🖼️ 切换到免登录“多图源搜图配图墙”（极速推荐）</button></div>'
++          + '<div class="tt-row" style="margin-bottom:12px"><button type="button" data-go-visual-wall style="background:none;border:0;box-shadow:none;color:#0ba5b2;text-decoration:underline;padding:6px 2px">🖼️ 切换到免登录“多图源搜图配图墙”（极速推荐）</button></div>'
+           + '<div class="tp-fields"><label>补充内容<select data-batch-kind>' + Object.keys(names).map(function(k){ return '<option value="' + k + '"' + (k === kind ? ' selected' : '') + '>' + names[k] + '</option>'; }).join('') + '</select></label>'
+           + '<label>生图风格<select data-batch-style><option value="cartoon">卡通插画</option><option value="lowpoly"' + (style === 'lowpoly' ? ' selected' : '') + '>Low poly</option><option value="minecraft"' + (style === 'minecraft' ? ' selected' : '') + '>Minecraft</option></select></label></div>'
+           + '<label class="tt-row" style="margin:16px 0"><input type="checkbox" data-batch-missing ' + (missing ? 'checked' : '') + '>只补缺失项（保护已有配图与教学资料）</label>'
+@@ -129504,7 +129507,7 @@
+         bind('[data-go-visual-wall]', visualWall);
+         q('[data-batch-kind]').onchange = function(e){ kind = e.target.value; };
+         q('[data-batch-style]').onchange = function(e){ style = e.target.value; };
+-        q('[data-batch-missing]').onchange = function(e){ missing = e.target.checked; };
++        q('[data-batch-missing]').onchange = function(e){ missing = e.target.checked; try{ localStorage.setItem('minest.prep.missing', JSON.stringify(missing)); }catch(err){} };
+         bind('[data-batch-start]', function(){
+           if (running || checking) return;
+           try {
+@@ -130125,7 +130128,7 @@
+ #mn-templates.tt-v72 .u-chip.ok{background:var(--u-good-bg);color:var(--u-good)}
+ #mn-templates.tt-v72 .u-chip.warn{background:#fff7ed;color:var(--u-warn)}
+ #mn-templates.tt-v72 .u-dock{flex:none;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;background:#fff;border-bottom:1px solid var(--tt-line);font-size:14px}
+-#mn-templates.tt-v72 .u-dock button{min-height:34px;padding:4px 10px;border-radius:999px;font-size:13px}
++#mn-templates.tt-v72 .u-dock button{min-height:44px;padding:4px 10px;border-radius:999px;font-size:13px}
+ #mn-templates.tt-v72 .u-dock .u-sep{width:1px;height:24px;background:var(--tt-line);margin:0 4px}
+ #mn-templates.tt-v72 .u-team{border:2px solid var(--tt-line)!important}
+ #mn-templates.tt-v72 .u-team.is-on{border-color:var(--u-accent)!important;background:var(--u-soft)!important;color:var(--u-accent)!important}
+@@ -130713,11 +130716,12 @@
+       ['💬 合作表达','整组复习 → 同伴描述 → 随机表达',['bingo','hotseat','wheel']],
+       ['⏱️ 5 分钟热身','课前快速激活',['quick','tf','find']]
+     ];
+-    var m=modal('<div class="u-sheet-head"><h2>🧭 课堂流程 · 一键串联多个模板</h2><button data-u-close>关闭 ✕</button></div>'
+-      +'<p class="tt-muted">选择流程后自动依次进入每个活动；每个活动完成时出现“进入下一环节”。可同时开启小组计分，全程自动统计。</p>'
+-      +presets.map(function(p,i){return '<div class="u-preset"><div><b>'+esc(p[0])+'</b> <small class="tt-muted">'+esc(p[1])+'</small><div class="u-flowlist">'+p[2].map(function(k,j){return (j?'→ ':'')+'<span>'+esc(M.NAMES[k]||k)+'</span>';}).join(' ')+'</div></div><button class="tt-primary" data-u-preset="'+i+'">开始</button></div>';}).join('')
++    var avail=T.availability(list),readR=M.readiness(list),misN=Object.keys(misGet()).length;
++    var m=modal('<div class="u-sheet-head"><h2>🧭 课堂流程 · 一键串联多个模板</h2><button data-u-close>关闭 ✕</button></div>'
++      +'<p class="tt-muted">选择流程后自动依次进入每个活动；活动中点“完成，去下一环节”，总结页出现“进入下一环节”。可同时开启小组计分，全程自动统计。</p>'
++      +presets.map(function(p,i){var sk=p[2].filter(function(k){return !!avail[k];}).length;return '<div class="u-preset"><div><b>'+esc(p[0])+'</b> <small class="tt-muted">'+esc(p[1])+'</small><div class="u-flowlist">'+p[2].map(function(k,j){return (j?'→ ':'')+'<span>'+esc(M.NAMES[k]||k)+'</span>';}).join(' ')+'</div><div class="tt-muted">'+p[2].length+' 环节 · 会跳过 '+sk+' 个'+(i===0?'（已按资料自动筛选）':'')+'</div>'+(i===0?'<div class="tt-muted">依据：配图 '+readR.img+'/'+readR.total+' · 有分类 '+readR.cat+' 张 · 错词 '+misN+' 个</div>':'')+'</div><button class="tt-primary" data-u-preset="'+i+'">开始</button></div>';}).join('')
+       +'<div class="u-preset"><div style="flex:1"><b>✏️ 自定义流程</b> <small class="tt-muted">勾选顺序即环节顺序</small><div class="u-flowlist" data-u-custom>'+Object.keys(M.GUIDE).map(function(k){return '<label style="flex-direction:row;min-width:0;flex:none;align-items:center;gap:4px"><input type="checkbox" value="'+k+'">'+esc(M.NAMES[k])+'</label>';}).join('')+'</div><p class="tt-muted" data-u-order style="margin:4px 0 0">已选：无</p></div><button class="tt-primary" data-u-startcustom>开始</button></div>'
+-      +'<div class="u-preset"><div><b>👥 小组计分</b> <small class="tt-muted">独立答对 +2 · 纠正后答对 +1 · 自动轮换答题队伍</small></div><div class="tt-row">'+[0,2,3,4].map(function(n){return '<button type="button" class="tt-pill'+(cfg.teams===n?' is-active':'')+'" data-u-teams="'+n+'">'+(n?n+' 队':'关闭')+'</button>';}).join('')+'</div></div>');
++      +'<div class="u-preset"><div><b>👥 小组计分</b> <small class="tt-muted">独立答对 +2 · 纠正后答对 +1 · 自动轮换答题队伍</small></div><div class="tt-row">'+[0,2,3,4].map(function(n){return '<button type="button" class="tt-pill'+(cfg.teams===n?' is-active':'')+'" data-u-teams="'+n+'">'+(n?n+' 队':'关')+'</button>';}).join('')+'</div></div>');
+     var order=[];
+     $$('[data-u-custom] input',m).forEach(function(c){c.onchange=function(){if(c.checked)order.push(c.value);else order=order.filter(function(x){return x!==c.value;});$('[data-u-order]',m).textContent='已选：'+(order.map(function(k){return M.NAMES[k];}).join(' → ')||'无');};});
+     $$('[data-u-preset]',m).forEach(function(b){b.onclick=function(){startFlow(presets[+b.dataset.uPreset][2]);};});
+@@ -130730,6 +130734,7 @@
+     finishFlow();
+   }
+   function flowNext(){if(!S.flow)return;if(S.view==='summary')S.flowDone.push(S.flow[S.flowIdx]);else S.flowSkipped.push(S.flow[S.flowIdx]);S.flowIdx++;if(S.flowIdx>=S.flow.length)finishFlow();else launchFlowStep();}
++  function flowComplete(){if(!S.flow)return;S.flowDone.push(S.flow[S.flowIdx]);S.flowIdx++;if(S.flowIdx>=S.flow.length)finishFlow();else launchFlowStep();}
+   function finishFlow(){
+     var f=S.flow;S.flow=null;S.flowIdx=0;lib.click();
+     modal('<div class="u-sheet-head"><h2>🎉 课堂流程完成</h2><button data-u-close>关闭 ✕</button></div>'
+@@ -130746,9 +130751,10 @@
+   function renderDock(){
+     var show=root.dataset.audience!=='ec6'&&(S.view==='activity'||S.view==='summary');dock.hidden=!show;classroomTools.hidden=!show;if(!show)return;
+     var h='';
+-    if(S.flow)h+='<button type="button" class="u-flowchip" data-u-fnext title="进入下一环节">🧭 '+(S.flowIdx+1)+'/'+S.flow.length+' · '+(S.view==='activity'?'跳过本环节':'下一环节')+' ⏭</button><span class="u-sep"></span>';
++    if(S.flow&&S.view==='activity')h+='<button type="button" class="u-flowchip" data-u-fdone title="完成本环节，进入下一环节">🧭 '+(S.flowIdx+1)+'/'+S.flow.length+' ✓ 完成，去下一环节</button><button type="button" data-u-fnext title="跳过本环节">跳过本环节 ⏭</button><span class="u-sep"></span>';
++    h+='<button type="button" data-u-fend title="结束课堂，查看总结">⏹ 结束课堂</button><span class="u-sep"></span>';
+     if(cfg.teams){
+-      for(var i=0;i<cfg.teams;i++)h+='<button type="button" class="u-team'+(S.active===i?' is-on':'')+'" data-u-team="'+i+'">'+TEAM_NAMES[i]+'<b>'+S.scores[i]+'</b></button>';
++      for(var i=0;i<cfg.teams;i++)h+='<button type="button" class="u-team'+(S.active===i?' is-on':'')+'" data-u-team="'+i+'">'+TEAM_NAMES[i]+(S.active===i?' · 轮到':'')+'<b>'+S.scores[i]+'</b></button>';
+       h+='<button type="button" data-u-plus>+1</button><button type="button" data-u-minus>−1</button><span class="u-sep"></span>';
+     }else h+='<button type="button" data-u-teamson>👥 小组计分</button><span class="u-sep"></span>';
+     h+='<span>⏱</span><span class="u-timer'+(S.timerLeft&&S.timerLeft<=5?' is-low':'')+'" data-u-time>'+(S.timerLeft?fmt(S.timerLeft):'--:--')+'</span>'
+@@ -130757,7 +130763,7 @@
+       +'<span class="u-sep"></span><button type="button" data-u-pick>🎲 随机点名</button><button type="button" data-u-big>'+(root.classList.contains('u-big')?'🔍 退出大屏':'🔍 大屏模式')+'</button>';
+     dock.innerHTML=h;
+     var on=function(s,f){var e=$(s,dock);if(e)e.onclick=f;};
+-    on('[data-u-fnext]',flowNext);
++    on('[data-u-fdone]',flowComplete);on('[data-u-fnext]',flowNext);on('[data-u-fend]',finishFlow);
+     on('[data-u-teamson]',function(){cfg.teams=2;saveCfg();renderDock();});
+     $$('[data-u-team]',dock).forEach(function(b){b.onclick=function(){S.active=+b.dataset.uTeam;renderDock();};});
+     on('[data-u-plus]',function(){S.scores[S.active]++;renderDock();});
+@@ -130783,7 +130789,7 @@
+   function award(){
+     if(S.scored||!cfg.teams||!cfg.autoScore)return;S.scored=true;
+     var pts=S.flag==='ind'?2:S.flag==='fix'?1:0,i=S.active;
+-    if(pts){S.scores[i]+=pts;toast(TEAM_NAMES[i]+' +'+pts);}
++    if(pts){S.scores[i]+=pts;toast(TEAM_NAMES[i]+' +'+pts+'（'+(pts===2?'独立答对':'纠正后答对')+'）');}
+     if(cfg.autoRotate)S.active=(S.active+1)%cfg.teams;
+     renderDock();
+   }
+@@ -130899,7 +130905,7 @@
+ #mn-templates.tt-v808 .u-guide-body{gap:18px;font-size:13px;line-height:1.7}
+ #mn-templates.tt-v808 .u-dock{background:#5721b3;color:#fff;border:0;padding:10px 22px;gap:8px}
+ #mn-templates.tt-v808 .u-dock[hidden]{display:none!important}
+-#mn-templates.tt-v808 .u-dock button{min-height:32px;font-size:12px;padding:5px 9px;background:#ffffff1f;border:1px solid #ffffff55;color:#fff;box-shadow:none}
++#mn-templates.tt-v808 .u-dock button{min-height:44px;font-size:12px;padding:5px 9px;background:#ffffff1f;border:1px solid #ffffff55;color:#fff;box-shadow:none}
+ #mn-templates.tt-v808 .u-dock .u-team.is-on{background:#fff;color:#6223c9}
+ #mn-templates.tt-v808 .u-modal{background:#271047bd;backdrop-filter:blur(5px);padding:22px;align-items:center}
+ #mn-templates.tt-v808 .u-sheet{width:min(100%,1040px);max-height:90dvh;border-radius:22px;border:0;box-shadow:0 9px 0 #2d0e6755;padding:24px;background:#fff;overflow:auto}

@@ -1,5 +1,6 @@
   /* ── 53.84 · Studio library 4 on the island: 🔨 Build gets the new buildings (signature · museums) and a ✨ Studio tab —
-     outdoor decor, expo sets, indoor decor, museum stands & vitrines, expo facilities, museum decor, museum interiors.
+     outdoor decor, expo sets, indoor decor, museum stands & vitrines, expo facilities, museum decor, museum interiors,
+     and the earlier library's 120 objects and 20 scenes (Classic objects · Classic scenes).
      Objects are obj:<id> pieces (a picture, no plinth), expo sets and museum interiors dio:<id> (a big picture on its
      own base); indoors only what belongs inside is offered. Saved islands find their Studio pieces again on load. */
   function ensureDio(k) { if (!/^dio:/.test(k) || BUILD[k]) return; var id = k.slice(4), AS = window.MinestAssets3D, info = AS && AS.info(id);
@@ -24,8 +25,11 @@
           out.push({ n: 'Signature buildings', kinds: keep(L.buildings.filter(function (id) { return !/^BD-1(0[1-9]|1\d|20)$/.test(id); }).map(function (id) { return 'bld:' + id; })) });
           out.push({ n: 'Museums', kinds: keep(L.buildings.filter(function (id) { return /^BD-1(0[1-9]|1\d|20)$/.test(id); }).map(function (id) { return 'bld:' + id; })) }); });
         t.groups = out.filter(function (g) { return g.kinds.length; }); });
+      var l4 = {}; [L.buildings, L.expoSets, L.museumRooms].concat(Object.keys(L.objects).map(function (k) { return L.objects[k]; })).forEach(function (a) { a.forEach(function (id) { l4[id] = 1; }); });
+      var classicObj = AS.catalog.object.map(function (a) { return a.id; }).filter(function (id) { return !l4[id]; }), classicDio = AS.catalog.diorama.map(function (a) { return a.id; }).filter(function (id) { return !l4[id]; });
       var G = [['Outdoor decor', L.objects.outdoor, 'obj:'], ['Expo sets', L.expoSets, 'dio:'], ['Indoor decor', L.objects.indoor, 'obj:'], ['Museum stands & vitrines', L.objects.museum, 'obj:'],
-        ['Expo facilities & racks', L.objects.expo, 'obj:'], ['Museum decor & artifacts', L.objects.decor, 'obj:'], ['Museum interiors', L.museumRooms, 'dio:']]
+        ['Expo facilities & racks', L.objects.expo, 'obj:'], ['Museum decor & artifacts', L.objects.decor, 'obj:'], ['Museum interiors', L.museumRooms, 'dio:'],
+        ['Classic objects', classicObj, 'obj:'], ['Classic scenes', classicDio, 'dio:']]
         .map(function (g) { return { n: g[0], kinds: keep(g[1].map(function (id) { return g[2] + id; })) }; }).filter(function (g) { return g.kinds.length; });
       if (G.length) { if (ins) G.sort(function (a, b) { return /Indoor|Museum/.test(b.n) - /Indoor|Museum/.test(a.n); }); T.splice(Math.min(T.length, ins ? 1 : 2), 0, { id: 'studio', ic: '✨', n: 'Studio', groups: G }); }
       return T;

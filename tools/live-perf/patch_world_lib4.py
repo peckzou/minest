@@ -14,10 +14,11 @@ COPIES = ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/Min
 s = SRC.read_text(encoding='utf-8')
 lib = (ROOT / 'tools/myworld3/dist/assets3d-lib4.js').read_text(encoding='utf-8'); assert '</script' not in lib and 'lib4:' in lib
 o = '<script type="text/plain" id="mn-assets3d-src">'; a = s.index(o) + len(o); b = s.index('</script>', a); s = s[:a] + lib + s[b:]
-JS = (HERE / 'world_lib4.js').read_text(encoding='utf-8')
-A, B = '  /* ── 53.84 · Studio library 4 on the island', '  window.MinestDisplay = {'
-if A in s: i = s.index(A); j = s.index(B, i); s = s[:i] + JS + s[j:]
-else: assert s.count(B) == 1; s = s.replace(B, JS + B)
+import sys as _sys; _sys.path.insert(0, str(HERE)); from world_blocks import assemble
+s = assemble(s)   # all the My World blocks again, in order (tools/live-perf/world_blocks.py)
+# main islands (MinestHubs): the main-island styles reach library 4's worlds too (MW-41…70 and the Avatar islands MW-71…90)
+a = "for (var w43 = 11; w43 <= 40; w43++) EXPW.push('MW-' + w43);"
+if a in s: s = s.replace(a, "for (var w43 = 11; w43 <= 90; w43++) EXPW.push('MW-' + w43);   // libraries 3 + 4: MW-11…90 (Avatar islands MW-71…90)")
 SRC.write_text(s, encoding='utf-8')
 for c in COPIES: shutil.copyfile(SRC, ROOT / c)
 print('patched Studio library 4')

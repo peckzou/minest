@@ -10,15 +10,11 @@ ROOT = Path('/Users/cece/Documents/minest'); HERE = ROOT / 'tools/live-perf'
 SRC = ROOT / 'iPhone53.8241.html'
 COPIES = ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/MinestProject/MyApp/iphone.html', 'ios/Minest/Minest/iphone18.0.html']
 s = SRC.read_text(encoding='utf-8')
-JS = (HERE / 'world_reorg.js').read_text(encoding='utf-8')
-A, B = '  /* ── 53.83 · Reorganize (step', '  window.MinestDisplay = {'
-if A in s:
-    i = s.index(A); j = s.index(B, i); s = s[:i] + JS + s[j:]
-else:
-    assert s.count(B) == 1; s = s.replace(B, JS + B)
+import sys as _sys; _sys.path.insert(0, str(HERE)); from world_blocks import assemble
+s = assemble(s)   # all the My World blocks again, in order (tools/live-perf/world_blocks.py)
 
 BTN = '<button type="button" class="mn-hud-b go" data-auto aria-label="Arrange for me">✦</button>'
-if 'data-reorg' not in s.split(A)[0] and s.count(BTN) == 1:
+if 'data-reorg aria-label' not in s and s.count(BTN) == 1:
     s = s.replace(BTN, BTN + '<button type="button" class="mn-hud-b" data-reorg aria-label="Reorganize — another layout for this level">🔀</button>')
 
 CSS = """<style id="mn-reorg-style">
