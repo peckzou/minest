@@ -81850,16 +81850,104 @@ function minestCloudPayload(boards, extra) {
   var base = Object.assign({}, extra, { clientUpdatedAt: now, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
   // 44.6 Learning Path: the study log (per device, merged on every device) rides along
   try { if (window.MinestLearn && window.MinestLearn._cloud) base.learning = JSON.parse(JSON.stringify(window.MinestLearn._cloud())); } catch (e) {}
-  try { if (window.MinestKnowledge && window.MinestKnowledge._cloud) base.knowledge = JSON.parse(JSON.stringify(window.MinestKnowledge._cloud())); } catch (e) {}   // Minest Knowledge
-  if (!minestCanGzip()) return Promise.resolve(Object.assign(base, { boards: boards }));
-  return minestGzipText(JSON.stringify(boards)).then(function(gz) {
-    if (gz.length > MINEST_CLOUD_GZ_LIMIT) {
-      var err = new Error('Boards are too large for cloud sync even when compressed (' + Math.round(gz.length / 1024) + ' KB).');
+  var know = null, gpt = null;
+  try { if (window.MinestKnowledge && window.MinestKnowledge._cloud) know = JSON.stringify(window.MinestKnowledge._cloud()); } catch (e) {}   // Minest Knowledge
+  try { if (window.MinestGPTStudy && window.MinestGPTStudy._cloud) gpt = JSON.stringify(window.MinestGPTStudy._cloud()); } catch (e) {}   // 53.84: CarPlay study record
+  if (!minestCanGzip()) { if (know) base.knowledge = JSON.parse(know); return Promise.resolve(Object.assign(base, { boards: boards })); }
+  return Promise.all([minestGzipText(JSON.stringify(boards)), know ? minestGzipText(know) : null, gpt ? minestGzipText(gpt) : null]).then(function(g) {
+    // 53.84: the whole document counts against Firestore's 1 MB, not just the boards
+    var total = g[0].length + (g[1] || '').length + (g[2] || '').length + JSON.stringify(base.learning || null).length;
+    if (total > MINEST_CLOUD_GZ_LIMIT) {
+      var err = new Error('Boards are too large for cloud sync even when compressed (' + Math.round(total / 1024) + ' KB).');
       err.tooLarge = true;
       throw err;
     }
-    return Object.assign(base, { boardsGz: gz, gzUpdatedAt: now, boardsSchema: 2, boards: firebase.firestore.FieldValue.delete() });
+    if (g[1]) { base.knowledgeGz = g[1]; base.knowledge = firebase.firestore.FieldValue.delete(); }
+    if (g[2]) base.gptstudyGz = g[2];
+    return Object.assign(base, { boardsGz: g[0], gzUpdatedAt: now, boardsSchema: 2, boards: firebase.firestore.FieldValue.delete() });
   });
+}
+/* 53.84 · what else the cloud doc carries: Knowledge (compressed now, plain from older clients) and the CarPlay record */
+function minestCloudExtras(data) {
+  if (!data) return;
+  try { if (data.knowledge && window.MinestKnowledge) window.MinestKnowledge._mergeCloud(data.knowledge); } catch (e) {}
+  if (!minestCanGzip()) return;
+  if (data.knowledgeGz && window.MinestKnowledge) minestGunzipText(data.knowledgeGz).then(function(t) { window.MinestKnowledge._mergeCloud(JSON.parse(t)); }).catch(function() {});
+  if (data.gptstudyGz && window.MinestGPTStudy && window.MinestGPTStudy._mergeCloud) minestGunzipText(data.gptstudyGz).then(function(t) { window.MinestGPTStudy._mergeCloud(JSON.parse(t)); }).catch(function() {});
+}
+/* 53.84 · edits the cloud has not got yet. dirtyAt = the boards last changed here; ackAt = clientUpdatedAt of the last
+   save the cloud took (or of the cloud copy taken in). dirtyAt > ackAt: the cloud copy must be merged, not swapped in. */
+var MINEST_CLOUD_DIRTY = 'minest.cloud.dirtyAt', MINEST_CLOUD_ACK = 'minest.cloud.ackAt';
+function minestCloudMark(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+function minestCloudNum(k) { try { return Number(localStorage.getItem(k)) || 0; } catch (e) { return 0; } }
+function minestCloudUnsynced() { return minestCloudNum(MINEST_CLOUD_DIRTY) > minestCloudNum(MINEST_CLOUD_ACK); }
+/* primary's boards, lists and cards stay as they are; what only `extra` has is added in its place (a card already
+   somewhere else on the board — moved — is not added again) */
+function minestMergeBoards(primary, extra) {
+  var out = JSON.parse(JSON.stringify(primary || [])), byId = {};
+  out.forEach(function(b) { if (b && b.id) byId[b.id] = b; });
+  (extra || []).forEach(function(eb) {
+    if (!eb || !eb.id) return;
+    var b = byId[eb.id];
+    if (!b) { out.push(JSON.parse(JSON.stringify(eb))); return; }
+    b.columns = b.columns || [];
+    var cols = {}, cards = {};
+    b.columns.forEach(function(c) { cols[c.id] = c; (c.cards || []).forEach(function(k) { if (k) cards[k.id] = 1; }); });
+    (eb.columns || []).forEach(function(ec, ci) {
+      if (!ec) return;
+      var c = cols[ec.id];
+      if (!c) { b.columns.splice(Math.min(ci, b.columns.length), 0, JSON.parse(JSON.stringify(ec))); (ec.cards || []).forEach(function(k) { if (k) cards[k.id] = 1; }); return; }
+      c.cards = c.cards || [];
+      (ec.cards || []).forEach(function(k, ki) { if (k && !cards[k.id]) { c.cards.splice(Math.min(ki, c.cards.length), 0, JSON.parse(JSON.stringify(k))); cards[k.id] = 1; } });
+    });
+  });
+  return out;
+}
+/* 53.84 · the boards as the cloud last had them (IndexedDB 'cloudBase'): with it a merge can tell who changed what */
+function minestCloudBaseSet(boards) {
+  return openBoardsIdb().then(function(db) { return new Promise(function(res) {
+    try { var tx = db.transaction(IDB_STORE_NAME, 'readwrite'); tx.objectStore(IDB_STORE_NAME).put(JSON.stringify(boards || []), 'cloudBase'); tx.oncomplete = res; tx.onerror = res; } catch (e) { res(); }
+  }); }).catch(function() {});
+}
+function minestCloudBaseGet() {
+  return openBoardsIdb().then(function(db) { return new Promise(function(res) {
+    try { var q = db.transaction(IDB_STORE_NAME, 'readonly').objectStore(IDB_STORE_NAME).get('cloudBase'); q.onsuccess = function() { try { res(q.result ? JSON.parse(q.result) : null); } catch (e) { res(null); } }; q.onerror = function() { res(null); }; } catch (e) { res(null); }
+  }); }).catch(function() { return null; });
+}
+function minestSame(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+/* three-way merge of boards → lists → cards against `base`: a thing only one side changed takes that side; a thing both
+   changed takes the newer side (mineNewer); added on either side is kept, deleted on one side is dropped only if the
+   other side left it untouched; a card moved to another list follows the move */
+function minestMerge3(base, local, remote, mineNewer) {
+  var LEVELS = ['columns', 'cards'];
+  function idx(a) { var m = {}; (a || []).forEach(function(x) { if (x && x.id != null) m[x.id] = x; }); return m; }
+  function strip(x, key) { if (!key || !x) return x; var o = {}; Object.keys(x).forEach(function(k) { if (k !== key) o[k] = x[k]; }); return o; }
+  function one(b, l, r, depth) {
+    if (!l && !r) return null;
+    if (!l) return b && minestSame(b, r) ? null : r;
+    if (!r) return b && minestSame(b, l) ? null : l;
+    if (minestSame(l, r)) return l;
+    var key = LEVELS[depth];
+    var lc = !b || !minestSame(strip(b, key), strip(l, key)), rc = !b || !minestSame(strip(b, key), strip(r, key));
+    var own = (lc && !rc) ? l : (rc && !lc) ? r : (mineNewer ? l : r);
+    if (!key) return own;
+    var o = strip(own, key); o[key] = list(b && b[key], l[key], r[key], depth + 1); return o;
+  }
+  function list(bA, lA, rA, depth) {
+    var B = idx(bA), L = idx(lA), out = [], have = {};
+    (rA || []).forEach(function(r) { if (!r || r.id == null || have[r.id]) return; have[r.id] = 1; var v = one(B[r.id], L[r.id], r, depth); if (v) out.push(v); });
+    (lA || []).forEach(function(l, i) {
+      if (!l || l.id == null || have[l.id]) return; have[l.id] = 1;
+      var v = one(B[l.id], l, null, depth); if (!v) return;
+      var prev = i > 0 && lA[i - 1] ? lA[i - 1].id : null, at = prev == null ? 0 : out.length;
+      for (var j = 0; prev != null && j < out.length; j++) if (out[j].id === prev) { at = j + 1; break; }
+      out.splice(at, 0, v);
+    });
+    return out;
+  }
+  var res = list(base, local, remote, 0);
+  res.forEach(function(bd) { var seen = {}; (bd.columns || []).forEach(function(c) { if (c && c.cards) c.cards = c.cards.filter(function(k) { if (!k || seen[k.id]) return false; seen[k.id] = 1; return true; }); }); });
+  return res;
 }
 
 // 31.7: Trello "Export as JSON" → a Minest board. Open lists and cards only, in
@@ -82450,6 +82538,8 @@ var Be = function() {
 
   var isRemoteUpdateRef = (0, _.useRef)(false);
   var saveDebounceRef = (0, _.useRef)(null);
+  var cloudFlushRef = (0, _.useRef)(null), cloudSeenRef = (0, _.useRef)(null), cloudLatestRef = (0, _.useRef)(null), cloudReadyRef = (0, _.useRef)(false);
+  var cloudKickState = (0, _.useState)(0), cloudKick = cloudKickState[0], setCloudKick = cloudKickState[1];
   var idbSaveTokenRef = (0, _.useRef)(0);
   var storageQuotaWarnedRef = (0, _.useRef)(false);
 
@@ -82944,12 +83034,29 @@ var Be = function() {
         setSyncStatus("connecting");
 
         var docRef = fb.db.collection("users").doc(user.uid).collection("focusboard").doc("data");
+        cloudReadyRef.current = false;
         var unsubDoc = docRef.onSnapshot(function(doc) {
+          if (doc.metadata && doc.metadata.hasPendingWrites) return;   // 53.84: our own save on its way up
           if (doc.exists) {
             var data = doc.data();
-            try { if (data.learning && window.MinestLearn && window.MinestLearn._mergeCloud) window.MinestLearn._mergeCloud(data.learning); } catch (e) {} try { if (data && data.knowledge && window.MinestKnowledge) window.MinestKnowledge._mergeCloud(data.knowledge); } catch (e) {}
+            try { if (data.learning && window.MinestLearn && window.MinestLearn._mergeCloud) window.MinestLearn._mergeCloud(data.learning); } catch (e) {} minestCloudExtras(data);
             minestCloudBoards(data).then(function(remoteBoards) {
+              var rAt = Math.max(Number(data.clientUpdatedAt) || 0, Number(data.gzUpdatedAt) || 0);
+              if (remoteBoards && remoteBoards.length > 0 && minestCloudUnsynced()) {
+                // 53.84: this device has edits the cloud has not got — merge (the newer side wins where both have a thing,
+                // nothing only one side has is dropped); the merged boards are a local change, so they are saved up
+                var remote = sanitizeLoadedBoards(remoteBoards), mineNewer = minestCloudNum(MINEST_CLOUD_DIRTY) >= rAt;
+                setSyncStatus("saving");
+                minestCloudBaseGet().then(function(base) {
+                  setBoards(function(local) { return base ? minestMerge3(base, local, remote, mineNewer) : mineNewer ? minestMergeBoards(local, remote) : minestMergeBoards(remote, local); });
+                  cloudReadyRef.current = true;
+                  setCloudKick(function(k) { return k + 1; });
+                });
+                return;
+              }
               if (remoteBoards && remoteBoards.length > 0) {
+                if (rAt > minestCloudNum(MINEST_CLOUD_ACK)) minestCloudMark(MINEST_CLOUD_ACK, rAt);
+                minestCloudBaseSet(sanitizeLoadedBoards(remoteBoards));
                 isRemoteUpdateRef.current = true;
                 setBoards(sanitizeLoadedBoards(remoteBoards));
                 if (data.activeBoardId) setActiveBoardId(data.activeBoardId);
@@ -82957,12 +83064,14 @@ var Be = function() {
                 if (['dark', 'white'].includes(data.themeMode)) setThemeMode(data.themeMode);
                 setTimeout(function() { isRemoteUpdateRef.current = false; }, 300);
               }
+              cloudReadyRef.current = true;
               setLastSyncTime(new Date());
               setSyncStatus("synced");
             });
           } else {
+            cloudReadyRef.current = true;
             setSyncStatus("saving");
-            minestCloudPayload(boards, {
+            minestCloudPayload((cloudLatestRef.current && cloudLatestRef.current.boards) || boards, {
               activeBoardId: activeBoardId,
               viewMode: viewMode,
               themeMode: themeMode,
@@ -82990,37 +83099,72 @@ var Be = function() {
     });
   }, [firebaseConfig]);
 
-  // Firestore Debounced Save
+  // Firestore Debounced Save. 53.84: a local change of the boards is marked (dirtyAt) until the cloud has it (ackAt);
+  // nothing goes up before the first cloud copy was looked at, or when there is nothing unsynced; going to the background
+  // sends the waiting save at once; a failed save is said once and tried again.
   (0, _.useEffect)(function() {
-    if (!isRemoteUpdateRef.current && firebaseUser && typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
-      setSyncStatus("saving");
+    cloudLatestRef.current = { boards: boards, activeBoardId: activeBoardId, viewMode: viewMode, themeMode: themeMode };
+    var edited = cloudSeenRef.current !== null && cloudSeenRef.current !== boards && !isRemoteUpdateRef.current;
+    cloudSeenRef.current = boards;
+    if (edited) minestCloudMark(MINEST_CLOUD_DIRTY, Date.now());
+    if (isRemoteUpdateRef.current || !firebaseUser || typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    if (!cloudReadyRef.current || !minestCloudUnsynced()) return;
+    setSyncStatus("saving");
+    if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+    var user = firebaseUser;
+    var fail = function(err) {
+      setSyncStatus("error");
+      if (err && err.tooLarge) {
+        if (!window.__minestCloudTooLargeWarned) { window.__minestCloudTooLargeWarned = true; GlassUI.toast("⚠️ " + err.message + " Changes are kept on this device."); }
+        return;
+      }
+      if (!window.__minestCloudFailWarned) { window.__minestCloudFailWarned = true; GlassUI.toast("☁️ Cloud sync did not go through (" + ((err && (err.code || err.message)) || 'offline') + "). Your changes are kept on this device and will be sent again."); }
+      setTimeout(function() { setCloudKick(function(k) { return k + 1; }); }, 30000);
+    };
+    var run = function() {
       if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
-      saveDebounceRef.current = setTimeout(function() {
-        try {
-          var db = firebase.firestore();
-          minestCloudPayload(boards, {
-            activeBoardId: activeBoardId,
-            viewMode: viewMode,
-            themeMode: themeMode,
-            userEmail: firebaseUser.email
-          }).then(function(payload) {
-            return db.collection("users").doc(firebaseUser.uid).collection("focusboard").doc("data").set(payload, { merge: true });
-          }).then(function() {
-            setSyncStatus("synced");
-            setLastSyncTime(new Date());
-          }).catch(function(err) {
-            setSyncStatus("error");
-            if (err && err.tooLarge && !window.__minestCloudTooLargeWarned) {
-              window.__minestCloudTooLargeWarned = true;
-              GlassUI.toast("⚠️ " + err.message + " Changes are kept on this device.");
-            }
-          });
-        } catch (e) {
-          setSyncStatus("error");
-        }
-      }, 500);
-    }
-  }, [boards, activeBoardId, viewMode, themeMode, firebaseUser]);
+      saveDebounceRef.current = null; cloudFlushRef.current = null;
+      var L = cloudLatestRef.current, sentAt = 0;
+      try {
+        var db = firebase.firestore();
+        minestCloudPayload(L.boards, {
+          activeBoardId: L.activeBoardId,
+          viewMode: L.viewMode,
+          themeMode: L.themeMode,
+          userEmail: user.email
+        }).then(function(payload) {
+          sentAt = payload.clientUpdatedAt;
+          return db.collection("users").doc(user.uid).collection("focusboard").doc("data").set(payload, { merge: true });
+        }).then(function() {
+          if (sentAt > minestCloudNum(MINEST_CLOUD_ACK)) minestCloudMark(MINEST_CLOUD_ACK, sentAt);
+          minestCloudBaseSet(L.boards);
+          window.__minestCloudFailWarned = false;
+          setLastSyncTime(new Date());
+          if (minestCloudUnsynced()) setCloudKick(function(k) { return k + 1; }); else setSyncStatus("synced");
+        }).catch(fail);
+      } catch (e) { fail(e); }
+    };
+    cloudFlushRef.current = run;
+    saveDebounceRef.current = setTimeout(run, 500);
+  }, [boards, activeBoardId, viewMode, themeMode, firebaseUser, cloudKick]);
+  // 53.84: the app going to the background sends a waiting save now; back online tries again; the CarPlay study record
+  // (MinestGPTStudy) changing asks for a save too, at most every 20 s
+  (0, _.useEffect)(function() {
+    var gptT = null;
+    var kick = function() { setCloudKick(function(k) { return k + 1; }); };
+    var gptNow = function() { if (!gptT) return; clearTimeout(gptT); gptT = null; minestCloudMark(MINEST_CLOUD_DIRTY, Date.now()); kick(); };
+    var hide = function() { gptNow(); if (cloudFlushRef.current) cloudFlushRef.current(); };
+    var vis = function() { if (document.visibilityState === 'hidden') hide(); };
+    var gpt = function() { if (!gptT) gptT = setTimeout(gptNow, 20000); };
+    document.addEventListener('visibilitychange', vis);
+    window.addEventListener('pagehide', hide);
+    window.addEventListener('online', kick);
+    window.addEventListener('minest:cloud-dirty', gpt);
+    return function() {
+      document.removeEventListener('visibilitychange', vis); window.removeEventListener('pagehide', hide);
+      window.removeEventListener('online', kick); window.removeEventListener('minest:cloud-dirty', gpt); if (gptT) clearTimeout(gptT);
+    };
+  }, []);
 
   // Cloud sync handlers
   var handleGoogleSignIn = async function(useRedirect) {
@@ -83099,6 +83243,7 @@ var Be = function() {
         userEmail: firebaseUser.email
       });
       await db.collection("users").doc(firebaseUser.uid).collection("focusboard").doc("data").set(pushPayload, { merge: true });
+      minestCloudMark(MINEST_CLOUD_ACK, pushPayload.clientUpdatedAt); minestCloudBaseSet(boards);
       setSyncStatus("synced");
       setLastSyncTime(new Date());
       GlassUI.toast("All boards, cards, and settings successfully synced to cloud!");
@@ -83116,9 +83261,10 @@ var Be = function() {
       var doc = await db.collection("users").doc(firebaseUser.uid).collection("focusboard").doc("data").get();
       if (doc.exists) {
         var data = doc.data();
-        try { if (data.learning && window.MinestLearn && window.MinestLearn._mergeCloud) window.MinestLearn._mergeCloud(data.learning); } catch (e) {} try { if (data && data.knowledge && window.MinestKnowledge) window.MinestKnowledge._mergeCloud(data.knowledge); } catch (e) {}
+        try { if (data.learning && window.MinestLearn && window.MinestLearn._mergeCloud) window.MinestLearn._mergeCloud(data.learning); } catch (e) {} minestCloudExtras(data);
         var pulledBoards = await minestCloudBoards(data);
         if (pulledBoards && pulledBoards.length > 0) {
+          minestCloudMark(MINEST_CLOUD_ACK, Math.max(Date.now(), minestCloudNum(MINEST_CLOUD_DIRTY))); minestCloudBaseSet(sanitizeLoadedBoards(pulledBoards));
           isRemoteUpdateRef.current = true;
           setBoards(sanitizeLoadedBoards(pulledBoards));
           if (data.activeBoardId) setActiveBoardId(data.activeBoardId);
@@ -135372,7 +135518,7 @@ if (window.MinestGPTStudy) return;
 var KEY = 'minest.gptstudy.v1', HMAX = 400;
 
 function load(){ try { var d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.lists) return d; } catch(e){} return { version: 1, lists: {} }; }
-function save(d){ try { localStorage.setItem(KEY, JSON.stringify(d)); return true; } catch(e){ return false; } }
+function save(d, quiet){ try { localStorage.setItem(KEY, JSON.stringify(d)); if (!quiet) try { window.dispatchEvent(new Event('minest:cloud-dirty')); } catch(e){} return true; } catch(e){ return false; } }   /* 53.84: a change tells the cloud sync */
 function now(){ return Date.now(); }
 
 /* one list's record; created on first use */
@@ -135551,8 +135697,28 @@ function duration(word, adj){
 function tags(key, items){ var L = get(key); return items.map(function(it){ var c = L && L.cards[it.id]; return c ? [c.need && c.need.pron && !c.learned ? 'pron' : '', c.need && c.need.meaning && !c.learned ? 'meaning' : ''].filter(Boolean).join(' ') : ''; }); }
 function starred(key){ var L = get(key); return L ? Object.keys(L.cards).filter(function(id){ return L.cards[id].star; }) : []; }
 
-window.MinestGPTStudy = { importReport: importReport, duration: duration, tags: tags, starred: starred, act: act, stats: function(key, name, items){ var L = get(key) || rec(load(), key, name); return stats(L, items); }, get: get, queue: function(key, items, max){ var L = get(key); return L ? queue(L, items, max || 300) : []; },
-  applyNative: applyNative, resetNativeSeq: resetNativeSeq, shareText: shareText, posOf: posOf, version: '53.831' };
+/* 53.84 · the record rides along with the cloud save (gptstudyGz) and comes back on every device: a card keeps whichever
+   side touched it last (seen / learned / ★ / GPT report), a list keeps the newer round and current card, histories are joined.
+   nativeSeq is this phone's own widget counter and never comes from the cloud. */
+function stamp(c){ return c ? Math.max(c.seenAt || 0, c.learnedAt || 0, c.gptAt || 0, c.starAt || 0) : 0; }
+function mergeCloud(r){
+  if (!r || !r.lists) return false;
+  var d = load(), ch = false;
+  Object.keys(r.lists).forEach(function(k){
+    var R = r.lists[k], L = d.lists[k]; if (!R) return;
+    if (!L) { L = d.lists[k] = JSON.parse(JSON.stringify(R)); L.nativeSeq = 0; ch = true; return; }
+    L.cards = L.cards || {};
+    Object.keys(R.cards || {}).forEach(function(id){ var a = L.cards[id], b = R.cards[id]; if (!a || stamp(b) > stamp(a)) { L.cards[id] = Object.assign({}, a || {}, b); ch = true; } });
+    if ((R.last || 0) > (L.last || 0)) { L.round = R.round; L.rounds = R.rounds; L.current = R.current; L.mode = R.mode || L.mode; L.last = R.last; if (R.name) L.name = R.name; ch = true; }
+    var seen = {}, hist = (L.history || []).concat(R.history || []).filter(function(h){ var q = h.at + '/' + h.ev + '/' + h.id; if (seen[q]) return false; seen[q] = 1; return true; }).sort(function(x, y){ return x.at - y.at; }).slice(-HMAX);
+    if (hist.length !== (L.history || []).length) { L.history = hist; ch = true; }
+  });
+  if (ch) save(d, true);
+  return ch;
+}
+
+window.MinestGPTStudy = { _cloud: load, _mergeCloud: mergeCloud, importReport: importReport, duration: duration, tags: tags, starred: starred, act: act, stats: function(key, name, items){ var L = get(key) || rec(load(), key, name); return stats(L, items); }, get: get, queue: function(key, items, max){ var L = get(key); return L ? queue(L, items, max || 300) : []; },
+  applyNative: applyNative, resetNativeSeq: resetNativeSeq, shareText: shareText, posOf: posOf, version: '53.84' };
 })();
 </script>
 <script id="minest-carflash">/* 53.829 · 🚗 车载闪卡 (CarPlay flashcards) — the iPhone side.  53.830: + 🎓 GPT 学习 (GPT Study) mode.

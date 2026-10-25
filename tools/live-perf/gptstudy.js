@@ -23,7 +23,7 @@ if (window.MinestGPTStudy) return;
 var KEY = 'minest.gptstudy.v1', HMAX = 400;
 
 function load(){ try { var d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.lists) return d; } catch(e){} return { version: 1, lists: {} }; }
-function save(d){ try { localStorage.setItem(KEY, JSON.stringify(d)); return true; } catch(e){ return false; } }
+function save(d, quiet){ try { localStorage.setItem(KEY, JSON.stringify(d)); if (!quiet) try { window.dispatchEvent(new Event('minest:cloud-dirty')); } catch(e){} return true; } catch(e){ return false; } }   /* 53.84: a change tells the cloud sync */
 function now(){ return Date.now(); }
 
 /* one list's record; created on first use */
@@ -202,6 +202,26 @@ function duration(word, adj){
 function tags(key, items){ var L = get(key); return items.map(function(it){ var c = L && L.cards[it.id]; return c ? [c.need && c.need.pron && !c.learned ? 'pron' : '', c.need && c.need.meaning && !c.learned ? 'meaning' : ''].filter(Boolean).join(' ') : ''; }); }
 function starred(key){ var L = get(key); return L ? Object.keys(L.cards).filter(function(id){ return L.cards[id].star; }) : []; }
 
-window.MinestGPTStudy = { importReport: importReport, duration: duration, tags: tags, starred: starred, act: act, stats: function(key, name, items){ var L = get(key) || rec(load(), key, name); return stats(L, items); }, get: get, queue: function(key, items, max){ var L = get(key); return L ? queue(L, items, max || 300) : []; },
-  applyNative: applyNative, resetNativeSeq: resetNativeSeq, shareText: shareText, posOf: posOf, version: '53.831' };
+/* 53.84 · the record rides along with the cloud save (gptstudyGz) and comes back on every device: a card keeps whichever
+   side touched it last (seen / learned / ★ / GPT report), a list keeps the newer round and current card, histories are joined.
+   nativeSeq is this phone's own widget counter and never comes from the cloud. */
+function stamp(c){ return c ? Math.max(c.seenAt || 0, c.learnedAt || 0, c.gptAt || 0, c.starAt || 0) : 0; }
+function mergeCloud(r){
+  if (!r || !r.lists) return false;
+  var d = load(), ch = false;
+  Object.keys(r.lists).forEach(function(k){
+    var R = r.lists[k], L = d.lists[k]; if (!R) return;
+    if (!L) { L = d.lists[k] = JSON.parse(JSON.stringify(R)); L.nativeSeq = 0; ch = true; return; }
+    L.cards = L.cards || {};
+    Object.keys(R.cards || {}).forEach(function(id){ var a = L.cards[id], b = R.cards[id]; if (!a || stamp(b) > stamp(a)) { L.cards[id] = Object.assign({}, a || {}, b); ch = true; } });
+    if ((R.last || 0) > (L.last || 0)) { L.round = R.round; L.rounds = R.rounds; L.current = R.current; L.mode = R.mode || L.mode; L.last = R.last; if (R.name) L.name = R.name; ch = true; }
+    var seen = {}, hist = (L.history || []).concat(R.history || []).filter(function(h){ var q = h.at + '/' + h.ev + '/' + h.id; if (seen[q]) return false; seen[q] = 1; return true; }).sort(function(x, y){ return x.at - y.at; }).slice(-HMAX);
+    if (hist.length !== (L.history || []).length) { L.history = hist; ch = true; }
+  });
+  if (ch) save(d, true);
+  return ch;
+}
+
+window.MinestGPTStudy = { _cloud: load, _mergeCloud: mergeCloud, importReport: importReport, duration: duration, tags: tags, starred: starred, act: act, stats: function(key, name, items){ var L = get(key) || rec(load(), key, name); return stats(L, items); }, get: get, queue: function(key, items, max){ var L = get(key); return L ? queue(L, items, max || 300) : []; },
+  applyNative: applyNative, resetNativeSeq: resetNativeSeq, shareText: shareText, posOf: posOf, version: '53.84' };
 })();
