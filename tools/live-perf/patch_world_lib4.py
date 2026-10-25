@@ -10,7 +10,7 @@ import shutil
 
 ROOT = Path('/Users/cece/Documents/minest'); HERE = ROOT / 'tools/live-perf'
 SRC = ROOT / 'iPhone53.8241.html'
-COPIES = ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/MinestProject/MyApp/iphone.html', 'ios/Minest/Minest/iphone18.0.html']
+COPIES = ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/MinestProject/MyApp/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ipad.html', 'ios/Minest/Minest/ipad.html']
 s = SRC.read_text(encoding='utf-8')
 lib = (ROOT / 'tools/myworld3/dist/assets3d-lib4.js').read_text(encoding='utf-8'); assert '</script' not in lib and 'lib4:' in lib
 o = '<script type="text/plain" id="mn-assets3d-src">'; a = s.index(o) + len(o); b = s.index('</script>', a); s = s[:a] + lib + s[b:]

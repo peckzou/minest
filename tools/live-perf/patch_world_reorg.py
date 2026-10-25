@@ -8,7 +8,7 @@ import shutil
 
 ROOT = Path('/Users/cece/Documents/minest'); HERE = ROOT / 'tools/live-perf'
 SRC = ROOT / 'iPhone53.8241.html'
-COPIES = ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/MinestProject/MyApp/iphone.html', 'ios/Minest/Minest/iphone18.0.html']
+COPIES = ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/MinestProject/MyApp/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ipad.html', 'ios/Minest/Minest/ipad.html']
 s = SRC.read_text(encoding='utf-8')
 import sys as _sys; _sys.path.insert(0, str(HERE)); from world_blocks import assemble
 s = assemble(s)   # all the My World blocks again, in order (tools/live-perf/world_blocks.py)

@@ -16,7 +16,7 @@ import shutil, sys
 
 ROOT = Path('/Users/cece/Documents/minest'); HERE = ROOT / 'tools/live-perf'
 SRC = ROOT / 'iPhone53.8241.html'
-COPIES = ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/MinestProject/MyApp/iphone.html', 'ios/Minest/Minest/iphone18.0.html']
+COPIES = ['iphone.html', 'index.html', 'ios/Minest/Minest/iphone.html', 'ios/MinestProject/MyApp/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ipad.html', 'ios/Minest/Minest/ipad.html']
 s = SRC.read_text(encoding='utf-8')
 if 'function sxMonster(' in s:
     sys.exit('already patched')
