@@ -17,15 +17,24 @@ function today(){ var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.g
 function boards(){ try { return (window.MinestAI && MinestAI.boards && MinestAI.boards()) || []; } catch(e){ return []; } }
 function hap(){ try { if (navigator.vibrate) navigator.vibrate(8); } catch(e){} }
 
-var kind = null, gl = null, dismissed = false, back = false;
-function screenKind(){ var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 600 && mx / mn < 1.5 ? 'inner' : 'outer'; }
+var kind = null, gl = null, dismissed = false, back = false, booted = false;
+/* fold-aware when the browser can tell (Viewport Segments: two segments = open across the hinge; Device Posture
+   'folded' = half-open), responsive otherwise: the shorter side ≥ 600 pt and a near-square shape = the inner screen */
+function segments(){ try { if (matchMedia('(horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)').matches) return 2; } catch(e){} try { var v = window.viewport && window.viewport.segments; if (v && v.length > 1) return v.length; } catch(e){} return 1; }
+function posture(){ try { return navigator.devicePosture && navigator.devicePosture.type || ''; } catch(e){ return ''; } }
+function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 600 && mx / mn < 1.5 ? 'inner' : 'outer'; }
 function apply(){
   var k = screenKind(); if (k === kind) return;
   kind = k; var r = document.documentElement;
   r.classList.toggle('duo-outer', k === 'outer'); r.classList.toggle('duo-inner', k === 'inner');
+  var was = r.classList.contains('duo-split');
   r.classList.toggle('duo-split', k === 'inner' && !!prefs().split);
-  if (k === 'outer') { if (!dismissed) glance(); } else { dismissed = false; closeGlance(); }
-  splitBtn(); pill();
+  if (was !== r.classList.contains('duo-split')) relayout();
+  var first = !booted; booted = true;
+  if (k === 'outer') { if (first && !dismissed) glance(); else { dismissed = true; } }   /* folding keeps what you were doing; Glance is one tap away (⌂) */
+  else { closeGlance(); if (prefs().split) openWorld(); }
+  document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
+  splitBtn(); pill(); rightPane();
 }
 
 /* ---------- the flashcard on show: the list studied last (GPT Study), else the first list that can play */
@@ -123,16 +132,73 @@ function pill(){
     p.addEventListener('click', function(){ dismissed = false; p.remove(); glance(); }); }
 }
 
+/* the panes changed size without the window doing so: let everything that sizes itself on resize (the island camera
+   keeps its focus, see world_duo.js) measure again, on the next frame */
+function relayout(){ requestAnimationFrame(function(){ try { window.dispatchEvent(new Event('resize')); } catch(e){} }); }
+
 /* ---------- inner screen: ▥ split — My World on the right half, the board on the left */
 function splitBtn(){
   var b = document.querySelector('.duo-split-b');
   if (kind !== 'inner') { if (b) b.remove(); return; }
   if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'duo-split-b'; document.body.appendChild(b);
-    b.addEventListener('click', function(){ var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); splitBtn(); hap();
-      if (on && !(window.MinestUniverse && MinestUniverse.isOpen && MinestUniverse.isOpen())) try { MinestUniverse.open(); } catch(x){} }); }
+    b.addEventListener('click', function(){ var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); relayout(); splitBtn(); hap(); setTimeout(rightPane, 600);
+      if (on) openWorld(); }); }
   var on = !!prefs().split; b.textContent = on ? '▣ 全屏' : '▥ 分栏'; b.setAttribute('aria-label', on ? '取消分栏' : '分栏：左边看板，右边 My World');
   b.classList.toggle('on', on);
 }
+
+/* the right half when My World is closed: a way back to it instead of an empty half */
+function rightPane(){
+  var ph = document.querySelector('.duo-rp'), need = splitOn() && !worldOpen();
+  if (!need) { if (ph) ph.remove(); return; }
+  if (!ph) { ph = document.createElement('button'); ph.type = 'button'; ph.className = 'duo-rp'; ph.innerHTML = '<span>🏝</span><b>打开 My World</b><small>左边点卡片，这里就找到它在岛上的位置</small>'; document.body.appendChild(ph);
+    ph.addEventListener('click', function(){ openWorld(); setTimeout(rightPane, 600); }); }
+}
+var rpQ = false; new MutationObserver(function(){ if (rpQ || !on) return; rpQ = true; requestAnimationFrame(function(){ rpQ = false; rightPane(); }); }).observe(document.body, { childList: true });
+
+/* ---------- Kanban × Island (split): a card tap shows where it lives on the island (a second tap opens it as always);
+   a selection on the island scrolls the board to its card. Only references travel between the panes — nothing moves. */
+function worldOpen(){ return !!document.querySelector('.uv'); }
+function splitOn(){ return on && kind === 'inner' && document.documentElement.classList.contains('duo-split'); }
+function openWorld(){
+  if (worldOpen()) return;
+  var bid = null; try { var ab = MinestAI.board(); bid = ab && ab.id; } catch(e){}
+  try { MinestUniverse.open(bid ? { path: [{ t: 'home' }, { t: 'world', bid: bid }] } : undefined); } catch(e){}
+}
+function boardOfCard(id){
+  var hit = null;
+  boards().some(function(b){ return (b.columns || []).some(function(c){ return (c.cards || []).some(function k(x){ return !!x && (x.id === id || (x.stack || []).some(k)); }); }) && (hit = b); });
+  return hit;
+}
+var selCard = null;
+function cssId(id){ return window.CSS && CSS.escape ? CSS.escape(id) : String(id).replace(/"/g, '\\"'); }
+function markCard(id){
+  [].forEach.call(document.querySelectorAll('.duo-sel'), function(x){ x.classList.remove('duo-sel'); });
+  selCard = id || null; if (!id) return null;
+  var e = document.querySelector('#root [data-card-id="' + cssId(id) + '"]'); if (e) e.classList.add('duo-sel'); return e;
+}
+function flash(x){ x.classList.remove('duo-flash'); void x.offsetWidth; x.classList.add('duo-flash'); setTimeout(function(){ x.classList.remove('duo-flash'); }, 1600); }
+document.addEventListener('click', function(e){
+  if (!splitOn() || !worldOpen()) return;
+  var t = e.target; if (!t.closest) return;
+  var c = t.closest('#root [data-card-id]'); if (!c) return;
+  var ctl = t.closest('button, input, select, textarea, a, label, [role=checkbox], [contenteditable=true]'); if (ctl && c.contains(ctl) && ctl !== c) return;   /* the card's own controls work as always */
+  var id = c.getAttribute('data-card-id'); if (!id || selCard === id) return;   /* the second tap opens the card */
+  e.preventDefault(); e.stopPropagation();
+  markCard(id); hap();
+  var b = boardOfCard(id); try { if (window.MinestDuoWorld) MinestDuoWorld.locate(id, b && b.id); } catch(x){}
+}, true);
+window.addEventListener('minest:duo-world-sel', function(e){
+  if (!splitOn()) return; var d = e.detail || {}, wait = 30;
+  try { var ab = MinestAI.board(); if (d.bid && (!ab || ab.id !== d.bid)) { MinestAI.selectBoard(d.bid); wait = 300; } if (MinestAI.viewMode && MinestAI.viewMode() !== 'board') { MinestAI.setViewMode('board'); wait = 300; } } catch(x){}
+  setTimeout(function(){
+    var id = d.cardId || d.listId, el = id && document.querySelector('#root [data-card-id="' + cssId(id) + '"]');
+    if (!el && d.cardId && d.listId) el = document.querySelector('#root [data-card-id="' + cssId(d.listId) + '"]');   /* inside a closed stack: the stack */
+    if (el) { markCard(el.getAttribute('data-card-id')); el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }); flash(el); return; }
+    var col = d.colId && document.querySelector('#root .kanban-column-wrapper[data-col-id="' + cssId(d.colId) + '"]');
+    if (col) { markCard(null); col.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); flash(col); }
+  }, wait);
+});
 
 /* keep Glance fresh: coming back to the app, a change of the boards (cloud, CarPlay) */
 document.addEventListener('visibilitychange', function(){ if (!document.hidden && gl && !gl.hidden) paint(); });

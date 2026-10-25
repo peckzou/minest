@@ -38,3 +38,24 @@ html.duo-split body .uv { left:50% !important;right:0 !important;width:50% !impo
 html.duo-split body .mn-dsp { left:50% !important;width:50% !important; }
 /* fixed bars / buttons inside My World and the island (✨ Smart build, selection bars) stay within the right half */
 html.duo-split body .uv, html.duo-split body .mn-dsp { transform:translateZ(0); }
+/* the board keeps the left half (its own bars and sheets stay there too); My World the right half */
+html.duo-split body #root { width:50vw !important;height:100vh;overflow:hidden;transform:translateZ(0); }
+html.duo-split body .uv { top:0 !important;bottom:0 !important; }
+/* Kanban × Island: the card picked on the left / found from the island */
+html.duo body #root .duo-sel { outline:3px solid #f2c13d !important;outline-offset:2px;border-radius:12px; }
+html.duo body #root .duo-flash { animation:duoFlash 1.5s ease; }
+@keyframes duoFlash { 0%,100% { box-shadow:none; } 25%,60% { box-shadow:0 0 0 5px #f2c13dcc,0 0 24px #f2c13d88; } }
+html body .mn-dsp-scene.duo-pulse g.cam { animation:duoPulse 1.4s ease; }
+@keyframes duoPulse { 0%,100% { filter:none; } 30%,65% { filter:drop-shadow(0 0 10px #f2c13d); } }
+html body .duo-wbar { position:absolute;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:calc(100% - 24px);
+  padding:8px 10px;background:#2b2b2bf2;color:#fff;border:2px solid #000;box-shadow:0 4px 0 #000;font:700 13px/1.2 var(--pc-font,system-ui); }
+html body .duo-wbar button { min-height:36px;padding:0 10px;border:2px solid #000;background:#4a4a4a;color:#fff;font:800 12.5px/1 var(--pc-font,system-ui); }
+html body .duo-wbar button.on, html body .duo-wbar button.go { background:#3c8527; }
+html body .duo-wbar .x { background:none;border:0;font-size:16px; }
+/* half-open (Device Posture "folded", where supported): study cards keep the top, their buttons the bottom */
+html.duo-halfopen body .duo-gl .duo-fc { min-height:50vh; }
+html body .duo-rp { position:fixed;left:50%;top:0;right:0;bottom:0;z-index:2147481000;border:0;border-left:2px solid #000;background:radial-gradient(circle at 50% 40%,#1f3a52,#0d1117 70%);
+  color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font:600 14px/1.4 -apple-system,system-ui,sans-serif;padding:24px;text-align:center; }
+html body .duo-rp span { font-size:54px; }
+html body .duo-rp b { font-size:18px; }
+html body .duo-rp small { color:#9fb3c8;max-width:260px; }
