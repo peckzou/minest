@@ -59,10 +59,30 @@ lives in its Kanban column's list; a card with sub-cards is a list of its own). 
 - **Right pane with My World closed.** It shows "🏝 打开 My World" instead of an empty half.
 - **Outer screen Glance** (from 53.84): the flashcard on show, today's cards and Quick add.
 
+## Phase 4 — Build & Arrange (done)
+
+- **The library docks on the left.** In the split, 🔨 (from the HUD, the long-press menu or `MinestDuoWorld.build()`)
+  docks the build library in the left half (`.duo-lib`). The scene stays on the right. Out of the split, 🔨 opens
+  the usual full-screen picker.
+- **It follows the level.**
+  - Island: Buildings, Decorations, ✨ Studio, Land & water, Landmarks, Vehicles, Life.
+  - Room: Furniture first (incl. "Displays for your things"), no outdoor tabs.
+  - On every level: 🎒 Saved items (your things not on the island yet; they go to a display through Universal Add)
+    and 🔭 Visual Library.
+- **One tap places it.** A tap on any piece puts it in the scene at once:
+  - where: the 📍 spot (the last tap on empty ground while the library is out), else the first free place
+    (`settle` / `freeSpot`);
+  - it is selected, ready to drag or turn, and kept in view;
+  - the 53.81 ✓ / ✕ chip sits at its bottom-right corner. ✓ keeps it; ✕ takes it straight back off.
+  - Measured: the tap at (539, 550) put the tree at (542, 556).
+- **Folding keeps the build tool.** Folding puts the library away. Unfolding brings it back on the same tab and group,
+  with the piece being placed still selected and its ✓ / ✕ chip still open — nothing is confirmed or cancelled.
+- **A list that is not on show yet.** A card with sub-cards that is not placed gets "🎒 Put it on show" (opens the
+  Box on it), not "no place".
+- **✨ Smart build stays out of the way.** The button hides while a HUD sheet (Box, Build tabs) is open.
+
 ## Next phases (not started)
 
-4. Build & Arrange: library on the left, one-tap placement with ✓ near the object on the right (reuse
-   `MinestDisplay.display` / hold + ghost; ✓ chip exists as BQ81).
 5. Study Desk: two-pane / top-bottom layout around `MinestGPTStudy` (needs meaning / example fields from the card).
 6. Discover: `.dv` dual-page CSS for This or That / Tournament (`.dv-pick` pairs side by side) and Tier List / Desert
    Island (pool left, tiers / slots right).

@@ -167,7 +167,7 @@
   }
   function atKey() { return V && V.at ? (V.at.pc || '') + '/' + (V.at.room || '') : ''; }
   function sbPill() {   // the ✨ button: on the island, in a room, or for the display you selected
-    var p = el && el.querySelector('.mn-sbgo'), L = el && !SB && !RO && V && !V.expand && !el.querySelector('.mn-pick, .mn-sa') ? sbLevel() : null;
+    var p = el && el.querySelector('.mn-sbgo'), L = el && !SB && !RO && V && !V.expand && !el.querySelector('.mn-pick, .mn-sa') && !el.classList.contains('mn-hud-sheet') ? sbLevel() : null;   // not over a sheet (Box, Build tabs)
     if (L && V.sel && L.lv !== 'fixture') L = null;   // a thing is selected: its own bar is the tool, the ✨ waits
     if (!L) { if (p) p.remove(); return; }
     if (!p) { p = document.createElement('button'); p.type = 'button'; p.className = 'mn-sbgo'; el.appendChild(p); }
