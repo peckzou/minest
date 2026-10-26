@@ -81,11 +81,47 @@ lives in its Kanban column's list; a card with sub-cards is a list of its own). 
   Box on it), not "no place".
 - **✨ Smart build stays out of the way.** The button hides while a HUD sheet (Box, Build tabs) is open.
 
-## Next phases (not started)
+## Phase 5 — Study Desk (done)
 
-5. Study Desk: two-pane / top-bottom layout around `MinestGPTStudy` (needs meaning / example fields from the card).
-6. Discover: `.dv` dual-page CSS for This or That / Tournament (`.dv-pick` pairs side by side) and Tier List / Desert
-   Island (pool left, tiers / slots right).
-7. Visual Library: `.pk.vl` on the left, island on the right; a "to display" path from `selected()` into
-   `MinestDisplay.display` (needs entity → card first via `saveEntities`).
+- **Entry.** `MinestDuo.desk()`, 📚 书桌 at the bottom left of the inner screen, or 📚 in the Glance flashcard.
+  Unfolding opens the desk by itself if a card was studied on the outer screen in the last 2 minutes.
+- **Layout follows the screen.** One component, three layouts by CSS:
+  - folded: one column — word, 🔊 and pronunciation, meaning, buttons;
+  - unfolded: the card on the left (word, pronunciation, example), meaning, notes, progress and
+    ◀ / 🔁 再来 / ✓ 学会了 / 下一张 ▶ on the right;
+  - half-open (Device Posture "folded"): content up, buttons down.
+- **Fields.** Card fields with fallbacks: meaning / en / back / desc; titleZh; pron / pinyin; example / sentence(s);
+  notes / desc.
+- **One record.** Every step goes through `MinestGPTStudy.act`, the same record CarPlay and Glance use.
+  - Learned is set only when not set yet, never toggled off by accident.
+  - Again stars the card (focus review), then moves on.
+- **Measured.** The word stayed "Six Syllable Types" across fold and unfold; seen 3, learned 1, round 1 unchanged.
+  Learned on an already-learned card kept it learned; Again starred the card and moved on.
+
+## Phase 6 — Discover dual-page (done)
+
+- **How.** `duo.js` tags `.dv` with `data-duo` = vs / tier / sc from what the game drew. CSS lays it out on the inner
+  screen. No game code, data or rule changed.
+- **This or That and Tournament:** one choice per half, VS on the hinge. Measured: two 375 px halves; a pick advanced
+  1 → 2 of 10.
+- **Tier List:** the unranked pool on the left, S/A/B/C/D on the right. Tap-to-move and drag work as before; a book
+  moved from the pool to S (pool 12 → 11).
+- **Desert Island:** the candidates on the left; the island, places left and a "留在岛上的" list on the right
+  (`.duo-kept`). ✕ on that list taps the game's own keep toggle.
+- **Floating buttons.** The Duo corner buttons hide while a full-screen tool is open (`html.kn-open`).
+
+## Phase 7 — Visual Library × island (done)
+
+- **Layout.** In the split, `.pk.vl` keeps the left half (search, categories, multi-select, suggestions unchanged) and
+  the island the right half.
+- **Saving.** Saving works as always (`saveEntities` → `MinestCapture.organize`). `duo.js` diffs the board's card ids
+  around the save. The receipt then gets "🧱 摆到右边的岛上（N）".
+- **The queue.** Each new card goes through `MinestDisplay.display(ref)`: tap a spot on the right, then ✓ Place, and
+  the next one follows. The island's own Visual Resolver draws it. The bar at the bottom of the right pane has 跳过 /
+  结束.
+- **Measured.** Two Hobbit books were saved into "Schema Synthesis Engine" and both placed on the island as item
+  displays ("✓ 都摆好了").
+
+## Next
+
 8. Device validation on a real iPhone Fold. Preview widths are not proof.

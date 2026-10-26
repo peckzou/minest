@@ -34,7 +34,8 @@ function apply(){
   if (k === 'outer') { if (first && !dismissed) glance(); else { dismissed = true; } }   /* folding keeps what you were doing; Glance is one tap away (⌂) */
   else { closeGlance(); if (prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
-  splitBtn(); pill(); rightPane();
+  splitBtn(); pill(); rightPane(); deskBtn(); dvTag();
+  if (k === 'inner' && !first && Date.now() - flashAt < 120000 && !desk) deskOpen();   /* studying folded → the desk on the open screen */
 }
 
 /* ---------- the flashcard on show: the list studied last (GPT Study), else the first list that can play */
@@ -61,7 +62,7 @@ function studyHtml(){
       '<div class="duo-row"><button type="button" data-duo-act="prev" aria-label="上一张">◀</button><button type="button" data-duo-act="star" class="' + (rc.star ? 'on' : '') + '" aria-label="收藏">★</button>' +
       '<button type="button" data-duo-act="learned" class="' + (rc.learned ? 'on' : '') + '" aria-label="学会了">✓</button><button type="button" data-duo-act="next" class="go" aria-label="下一张">▶</button></div>'
       : '<button type="button" class="duo-go" data-duo-act="continue">▶ 开始学「' + esc(t.s.title) + '」</button>') +
-    '<button type="button" class="duo-link" data-duo-car>🚗 车载闪卡 / 换词表</button></section>';
+    '<div class="duo-row2"><button type="button" class="duo-link" data-duo-desk>📚 学习书桌</button><button type="button" class="duo-link" data-duo-car>🚗 车载闪卡</button></div></section>';
 }
 /* ---------- Today: cards with a date of today or earlier that are not done */
 function dueCards(){
@@ -110,8 +111,9 @@ function onClick(e){
   if ((b = t.closest('[data-duo-turn]'))) { b.classList.toggle('show'); return; }
   if ((b = t.closest('[data-duo-act]'))) {
     var s = studyList(), G = window.MinestGPTStudy; if (!s || !G) return;
-    G.act(s.s.id, s.s.title, s.items, b.getAttribute('data-duo-act')); hap(); paint(); return;
+    G.act(s.s.id, s.s.title, s.items, b.getAttribute('data-duo-act')); flashAt = Date.now(); hap(); paint(); if (desk) deskDraw(); return;
   }
+  if (t.closest('[data-duo-desk]')) { var sl = studyList(); deskOpen(sl && sl.s.id); return; }
   if (t.closest('[data-duo-car]')) { dismissed = true; closeGlance(); pill(); try { MinestCarFlash.open(); } catch(x){} return; }
   if ((b = t.closest('[data-duo-done]'))) { var id = b.getAttribute('data-duo-done'); b.textContent = '✓'; hap(); try { MinestAI.patchCard(id, { complete: true }); } catch(x){} setTimeout(paint, 350); return; }
   if ((b = t.closest('[data-duo-open]'))) { dismissed = true; closeGlance(); pill(); try { MinestAI.setViewMode('board'); MinestAI.openCard(b.getAttribute('data-duo-open')); } catch(x){} return; }
@@ -200,6 +202,118 @@ window.addEventListener('minest:duo-world-sel', function(e){
   }, wait);
 });
 
+/* ---------- 5 · Study Desk: the flashcard of the list you study (GPT Study record, MinestGPTStudy), laid out for the
+   screen you have — folded: one column (word, sound, meaning, the buttons under your thumb); unfolded: the card on the
+   left (word, pronunciation, example), meaning / notes / Again · Learned · Next on the right; half-open (Device Posture
+   "folded"): content up, buttons down. Every step goes through MinestGPTStudy.act, so the word on show, the round and
+   what is learned are the same record CarPlay and Glance use; folding only changes the layout. Learned is never
+   toggled off by accident (it is set only when not set yet), Again stars the card for the focus review and moves on. */
+var desk = null, deskKey = null, flashAt = 0;
+function studySource(key){ var CF = window.MinestCarFlash; if (!CF) return null; var src = CF.sources(); var s = (key && src.filter(function(x){ return x.id === key; })[0]) || (studyList() || {}).s; if (!s) return null; return { s: s, items: CF.itemsOf(s, 'auto'), all: src }; }
+function fieldText(v){ if (v == null) return ''; if (typeof v === 'string') return plain(v); if (Array.isArray(v)) return v.map(fieldText).filter(Boolean)[0] || ''; if (typeof v === 'object') return fieldText(v.ipa || v.text || v.us || v.uk || v.pinyin || v.value || ''); return String(v); }
+function cardFacts(c, word){
+  if (!c) return { word: word };
+  var meaning = fieldText(c.meaning) || fieldText(c.en) || fieldText(c.back) || fieldText(c.desc) || fieldText(c.description);
+  var zh = fieldText(c.titleZh), notes = fieldText(c.notes || c.note);
+  if (!notes) { var d = fieldText(c.desc || c.description); if (d && d !== meaning) notes = d; }
+  return { word: word, pron: fieldText(c.pron) || fieldText(c.pinyin) || fieldText(c.phonetic), example: fieldText(c.example || c.sentence || c.sentences || c.examples), meaning: meaning, zh: zh && zh !== word ? zh : '', notes: notes };
+}
+function say(w){ try { if (window.MinestNative && MinestNative.isNative && MinestNative.isNative()) { MinestNative.send('speakText', { text: w }); return; } } catch(e){} try { var u = new SpeechSynthesisUtterance(w); u.lang = /[㐀-鿿]/.test(w) ? 'zh-CN' : 'en-US'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch(e){} }
+function deskDraw(){
+  if (!desk) return; var G = window.MinestGPTStudy, t = studySource(deskKey); if (!t || !G) { desk.querySelector('.dd-body').innerHTML = '<p class="duo-m">还没有词表。在看板里加一个 list 就能在这里学。</p>'; return; }
+  deskKey = t.s.id; setPref('desk', deskKey);
+  var L = G.get(deskKey); if (!L || !L.current) { G.act(t.s.id, t.s.title, t.items, 'continue'); L = G.get(deskKey); }
+  var id = L && L.current, it = null; t.items.some(function(x){ if (x.id === id) { it = x; return true; } return false; });
+  var c = it ? cardOf(t.s, it.id) : null, f = cardFacts(c, it ? it.word : ''), rc = L && it ? (L.cards || {})[it.id] || {} : {}, st = G.stats(t.s.id, t.s.title, t.items) || {};
+  desk.querySelector('.dd-list').innerHTML = t.all.map(function(x){ return '<option value="' + esc(x.id) + '"' + (x.id === deskKey ? ' selected' : '') + '>' + esc(x.group + ' › ' + x.title) + '</option>'; }).join('');
+  desk.querySelector('.dd-body').innerHTML = !it ? '<div class="dd-done">🎉 这一轮全部学完了<button type="button" class="duo-go" data-dd="restart">再来一轮</button></div>' :
+    '<section class="dd-card"><div class="dd-pos">' + (t.items.indexOf(it) + 1) + ' / ' + t.items.length + (rc.star ? ' · ★' : '') + (rc.learned ? ' · ✓ 已学会' : '') + '</div>' +
+      '<h2 class="dd-word">' + esc(f.word) + '</h2>' +
+      '<div class="dd-pron"><button type="button" data-dd="say" aria-label="朗读">🔊</button>' + (f.pron ? '<span>' + esc(f.pron) + '</span>' : '<span class="dim">点 🔊 听发音</span>') + '</div>' +
+      (f.example ? '<p class="dd-ex">“' + esc(f.example) + '”</p>' : '') + '</section>' +
+    '<section class="dd-side"><div class="dd-mean"><h3>释义</h3>' + (f.meaning || f.zh ? (f.zh ? '<p class="zh">' + esc(f.zh) + '</p>' : '') + (f.meaning ? '<p>' + esc(f.meaning) + '</p>' : '') : '<p class="dim">这张卡还没有释义</p>') + '</div>' +
+      (f.notes ? '<div class="dd-notes"><h3>笔记</h3><p>' + esc(f.notes.slice(0, 400)) + '</p></div>' : '') +
+      '<div class="dd-stat">已看 ' + (st.seen || 0) + ' · 学会 ' + (st.learned || 0) + ' · 本轮还剩 ' + (st.remaining != null ? st.remaining : '—') + '</div>' +
+      '<div class="dd-acts"><button type="button" data-dd="prev" aria-label="上一张">◀</button><button type="button" data-dd="again" class="ag">🔁 再来</button>' +
+      '<button type="button" data-dd="learned" class="ok' + (rc.learned ? ' on' : '') + '">✓ 学会了</button><button type="button" data-dd="next" class="go">下一张 ▶</button></div></section>';
+}
+function deskOpen(key){
+  if (!desk) {
+    desk = document.createElement('div'); desk.className = 'duo-desk'; desk.setAttribute('role', 'dialog'); desk.setAttribute('aria-label', '学习书桌');
+    desk.innerHTML = '<header class="dd-top"><b>📚 学习书桌</b><select class="dd-list" aria-label="词表"></select><button type="button" class="duo-full" data-dd="close">✕</button></header><div class="dd-body"></div>';
+    document.body.appendChild(desk); document.documentElement.classList.add('duo-desk-on');
+    desk.addEventListener('change', function(e){ if (e.target.matches('.dd-list')) { deskKey = e.target.value; deskDraw(); } });
+    desk.addEventListener('click', function(e){
+      var b = e.target.closest('[data-dd]'); if (!b) return; var w = b.getAttribute('data-dd'), G = window.MinestGPTStudy, t = studySource(deskKey);
+      if (w === 'close') { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); return; }
+      if (w === 'say') { var h = desk.querySelector('.dd-word'); if (h) say(h.textContent); return; }
+      if (!G || !t) return; var L = G.get(t.s.id), rc = L && L.current ? (L.cards || {})[L.current] || {} : {};
+      if (w === 'again') { if (!rc.star) G.act(t.s.id, t.s.title, t.items, 'star'); G.act(t.s.id, t.s.title, t.items, 'next'); }
+      else if (w === 'learned') { if (!rc.learned) G.act(t.s.id, t.s.title, t.items, 'learned'); G.act(t.s.id, t.s.title, t.items, 'next'); }
+      else G.act(t.s.id, t.s.title, t.items, w);
+      flashAt = Date.now(); hap(); deskDraw(); if (gl && !gl.hidden) paint();
+    });
+  }
+  if (key) deskKey = key; else if (!deskKey) deskKey = prefs().desk || null;
+  deskDraw();
+}
+function deskBtn(){
+  var b = document.querySelector('.duo-desk-b');
+  if (!on || kind !== 'inner') { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'duo-desk-b'; b.textContent = '📚 书桌'; b.setAttribute('aria-label', '学习书桌'); document.body.appendChild(b); b.addEventListener('click', function(){ deskOpen(); hap(); }); }
+}
+
+/* ---------- 6 · Discover on the open screen: the game views are tagged (vs / tier / sc) and laid out as two pages by CSS —
+   This or That and Tournament: one choice per half; Tier List: the unranked pool on the left, the tiers on the right;
+   Desert Island: the candidates on the left, your limited places on the right (the kept ones listed there, tap to let
+   go). The games' own data, rules, taps and drags are untouched. */
+function dvTag(){
+  var dv = document.querySelector('.dv'); if (!dv) return; var body = dv.querySelector('.dv-body'); if (!body) return;
+  var t = body.querySelector('.dv-vs') ? 'vs' : body.querySelector(':scope > .dv-tiers') ? 'tier' : body.querySelector(':scope > .sc-grid') ? 'sc' : '';
+  if (dv.getAttribute('data-duo') !== t) dv.setAttribute('data-duo', t);
+  var k = body.querySelector(':scope > .duo-kept');
+  if (t !== 'sc' || kind !== 'inner') { if (k) k.remove(); return; }
+  var kept = [].slice.call(body.querySelectorAll(':scope > .sc-grid .sc-t.on')), html = '<h3>留在岛上的 · ' + kept.length + '</h3>' + (kept.length ? kept.map(function(x){ var id = x.getAttribute('data-scpv'), nm = (x.querySelector('p') || {}).textContent || (x.querySelector('.sc-sel') || {}).getAttribute && x.querySelector('.sc-sel').getAttribute('aria-label').replace(/^Let go of /, '') || ''; return '<button type="button" data-duokeep="' + esc(id) + '">' + esc(nm) + '<i>✕</i></button>'; }).join('') : '<p>在左边点 ○ 选要留下的</p>');
+  if (!k) { k = document.createElement('div'); k.className = 'duo-kept'; body.appendChild(k); }
+  if (k.innerHTML !== html) k.innerHTML = html;
+}
+document.addEventListener('click', function(e){ var b = e.target.closest && e.target.closest('.duo-kept [data-duokeep]'); if (!b) return; e.preventDefault(); e.stopPropagation(); var t = document.querySelector('.dv .sc-grid [data-scpv="' + cssId(b.getAttribute('data-duokeep')) + '"] [data-sck]'); if (t) t.click(); }, true);
+var dvQ = false; new MutationObserver(function(){ if (dvQ || !on) return; dvQ = true; requestAnimationFrame(function(){ dvQ = false; dvTag(); vlTag(); }); }).observe(document.body, { childList: true, subtree: true });
+
+/* ---------- 7 · Visual Library next to the island: in the split the library keeps the left half (search, filters,
+   multi-select and suggestions as they are), My World the right. Saving works as always (to your lists, through
+   MinestCapture); the receipt then offers "🧱 Put them on the island": the new cards queue up and each one is placed
+   with one tap on the right (Universal Add — the island's Visual Resolver picks a 3D model, a voxel picture or a text
+   display). Selection survives fold / unfold because nothing is re-rendered. */
+var vlBefore = null, vlQueue = null;
+function cardIndex(){ var m = {}; boards().forEach(function(b){ (b.columns || []).forEach(function(col){ (col.cards || []).forEach(function(c){ if (!c) return; m[c.id] = { b: b.id, ref: col.id + '/' + c.id }; (c.stack || []).forEach(function(s){ if (s) m[s.id] = { b: b.id, ref: c.id + '/' + s.id }; }); }); }); }); return m; }
+document.addEventListener('click', function(e){ if (e.target.closest && e.target.closest('.pk.vl [data-save]')) vlBefore = cardIndex(); }, true);
+function vlTag(){
+  var vl = document.querySelector('.pk.vl'); if (!vl) { vlBefore = vlBefore && document.querySelector('.pk.vl') ? vlBefore : vlBefore; return; }
+  var rc = vl.querySelector('.vl-stat'), btn = vl.querySelector('[data-duovlq]');
+  if (!rc || !vlBefore || btn || kind !== 'inner') return;
+  var now = cardIndex(), fresh = Object.keys(now).filter(function(id){ return !vlBefore[id]; }).map(function(id){ return now[id]; });
+  if (!fresh.length) return;
+  rc.insertAdjacentHTML('afterend', '<button type="button" class="pk-go duo-vlq" data-duovlq>🧱 摆到右边的岛上（' + fresh.length + '）</button>');
+  vl.querySelector('[data-duovlq]').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); vlQueue = { list: fresh, i: 0 }; vlBefore = null; if (!splitOn()) { setPref('split', true); document.documentElement.classList.add('duo-split'); relayout(); splitBtn(); } queueNext(); });
+}
+function queueBar(html){
+  var q = document.querySelector('.duo-queue');
+  if (!html) { if (q) q.remove(); return; }
+  if (!q) { q = document.createElement('div'); q.className = 'duo-queue'; document.body.appendChild(q);
+    q.addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; if (b.hasAttribute('data-qskip')) { vlQueue.i++; queueNext(); } else if (b.hasAttribute('data-qend')) { vlQueue = null; queueBar(null); } }); }
+  q.innerHTML = html;
+}
+var qT = 0;
+function queueNext(){
+  clearTimeout(qT); if (!vlQueue) return;
+  var it = vlQueue.list[vlQueue.i]; if (!it) { queueBar('<b>✓ 都摆好了</b><button type="button" data-qend>完成</button>'); vlQueue = null; setTimeout(function(){ queueBar(null); }, 2500); return; }
+  var ok = false; try { ok = MinestDisplay.display(it.ref); } catch(e){}
+  if (!ok) { vlQueue.i++; return queueNext(); }
+  queueBar('<b>待陈列 ' + (vlQueue.i + 1) + ' / ' + vlQueue.list.length + '</b><span>在右边岛上点一个位置，再点 ✓ Place</span><button type="button" data-qskip>跳过</button><button type="button" data-qend>结束</button>');
+  (function wait(){ qT = setTimeout(function(){ if (!vlQueue) return; var W = window.MinestDuoWorld; if (W && W.placed && W.placed(it.ref)) { vlQueue.i++; hap(); queueNext(); } else if (W && W.holding && !W.holding()) { vlQueue.i++; queueNext(); } else wait(); }, 500); })();
+}
+
 /* keep Glance fresh: coming back to the app, a change of the boards (cloud, CarPlay) */
 document.addEventListener('visibilitychange', function(){ if (!document.hidden && gl && !gl.hidden) paint(); });
 window.addEventListener('minest:cloud-dirty', function(){ if (gl && !gl.hidden) later(); });
@@ -223,5 +337,5 @@ function boot(){
 window.addEventListener('resize', function(){ if (!on && enabled()) { on = true; document.documentElement.classList.add('duo'); } });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 600); }); else setTimeout(boot, 600);
 
-window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dismissed = false; glance(); }, refresh: paint, version: '53.84' };
+window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dismissed = false; glance(); }, refresh: paint, desk: deskOpen, version: '53.85' };
 })();

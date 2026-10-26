@@ -196,5 +196,5 @@
     // folding puts the library away and unfolding brings it back, the piece you are placing still selected with its ✓
     window.addEventListener('resize', function () { if (LIB.on && !split()) { LIB.resume = true; libClose(); } else if (!LIB.on && LIB.resume && split() && el && V) libOpen(LIB.tab, true); });
 
-    window.MinestDuoWorld = { locate: locate, build: function (tab) { return libOpen(tab); }, place: function (k) { return placeKind(k); }, libOn: function () { return LIB.on; }, open: function () { return !!V; }, board: function () { return V ? V.bid : null; } };
+    window.MinestDuoWorld = { placed: function (ref) { return !!(V && placed()[ref]); }, holding: function () { return !!(V && V.hold); }, locate: locate, build: function (tab) { return libOpen(tab); }, place: function (k) { return placeKind(k); }, libOn: function () { return LIB.on; }, open: function () { return !!V; }, board: function () { return V ? V.bid : null; } };
   })();
