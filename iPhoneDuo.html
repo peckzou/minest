@@ -94242,10 +94242,30 @@ var Ve = (function(_Component) {
   var RANK = {
     money: { name: '🪙 Coins', cmp: function (a, b) { return b.m - a.m || b.cleared - a.cleared || b.c - a.c; }, show: function (p) { return money(p.m); } },
     score: { name: '⭐ Score', cmp: function (a, b) { return b.sc - a.sc || b.m - a.m; }, show: function (p) { return p.sc.toLocaleString() + ' pts'; } },
-    stars: { name: '★ Stars', cmp: function (a, b) { return b.stars - a.stars || b.cleared - a.cleared || b.sc - a.sc; }, show: function (p) { return p.stars + '★'; } },
+    stars: { name: '★ Stars', cmp: function (a, b) { return b.stars - a.stars || b.cleared - a.cleared || b.sc - a.sc || b.m - a.m; }, show: function (p) { return p.stars + '★'; } },
     acc: { name: '🎯 Accuracy', cmp: function (a, b) { return b.acc - a.acc || (b.c + b.w) - (a.c + a.w); }, show: function (p) { return p.acc < 0 ? '—' : Math.round(p.acc * 100) + '%'; } }
   };
   function starsOf(c, w) { var a = c + w ? c / (c + w) : 1; return a >= 0.9 ? 3 : a >= 0.75 ? 2 : 1; }
+  // ★ stars rank the class, pay the rewards and open the privileges. A NEW star on a checked level pays coins and 💎;
+  // tiers by the share of the game's stars open chests, how far upgrades go and power-ups.
+  var STAR_GEMS = 5;
+  function starCoins(s) { return Math.max(15, Math.round(earnOf({ u: s.u, streak: 1, coll: s.coll }) * 5)); }
+  var TIERS = [
+    { f: 0, n: 'Rookie', ic: '🌱', up: 2, pw: [], pk: ['wood'] },
+    { f: .2, n: 'Bronze', ic: '🥉', up: 4, pw: ['mini'], pk: ['wood'] },
+    { f: .4, n: 'Silver', ic: '🥈', up: 6, pw: ['mini', 'shield'], pk: ['wood', 'silver'] },
+    { f: .6, n: 'Gold', ic: '🥇', up: 8, pw: ['mini', 'shield', 'mega'], pk: ['wood', 'silver', 'gold'] },
+    { f: .85, n: 'Diamond', ic: '💎', up: 9, pw: ['mini', 'shield', 'mega'], pk: ['wood', 'silver', 'gold'] }
+  ];
+  function tierNeed(i, max) { return Math.ceil(TIERS[i].f * max); }
+  function tierAt(stars, max) { var t = 0; TIERS.forEach(function (x, i) { if (stars >= tierNeed(i, max)) t = i; }); return t; }
+  function tierNews(i) {   // what tier i opens that the one before did not
+    var a = TIERS[i], b = TIERS[i - 1] || { up: 0, pw: [], pk: [] }, out = [];
+    a.pk.forEach(function (k) { if (b.pk.indexOf(k) < 0) out.push(PACKS[k].name); });
+    a.pw.forEach(function (k) { if (b.pw.indexOf(k) < 0) out.push(POWER[k].name); });
+    if (a.up > b.up) out.push(a.up >= 9 ? 'every upgrade level' : 'upgrades to Lv ' + a.up);
+    return out.join(' · ');
+  }
 
   // ------------------------------------------------------------------ styles
   var CSS = [
@@ -94916,7 +94936,7 @@ var Ve = (function(_Component) {
       o.cleanup.push(function () { clearTimeout(drawT); });
       var lbAt = 0;
       o.cleanup.push(function () { w.close(); });
-      var rankBy = 'money', lbSent = '';
+      var rankBy = 'stars', lbSent = '';   // ★ stars rank the class
       var timer = setInterval(function () { if (stateNow === 'live') { draw(); checkEnd(); if (Date.now() - lbAt > 3000) { lbAt = Date.now(); publishLb(); } }   /* the ranking every student receives: at most every 3 s */ }, 1000);
       o.cleanup.push(function () { clearInterval(timer); });
 
@@ -96213,8 +96233,11 @@ var Ve = (function(_Component) {
       var passed = !!d.cleared && (L.self ? run.seen > 0 : run.c + run.w > 0 && run.c / (run.c + run.w) >= 0.6);
       var stars = passed ? (L.self ? 3 : starsOf(run.c, run.w)) : 0, first = passed && !s.lv[k], prize = 0;
       if (passed) {
-        s.lv[k] = Math.max(s.lv[k] || 0, stars);
-        prize = 0;   // a cleared level gives stars, not coins: replaying a level must not farm coins
+        var had = s.lv[k] || 0, fresh = Math.max(0, stars - had);
+        s.lv[k] = Math.max(had, stars);
+        // only NEW stars pay (coins and 💎): the same stars again pay nothing, so replaying cannot farm
+        run.newStars = L.self ? 0 : fresh; prize = run.newStars * starCoins(s);
+        if (prize) { s.money += prize; gems(run.newStars * STAR_GEMS); }
       }
       if (passed && first) {
         var allDone = host.levels.every(function (x) { return s.lv[x]; });
@@ -96274,7 +96297,7 @@ var Ve = (function(_Component) {
       var box = document.createElement('div'); box.className = 'mlv-res';
       box.innerHTML = '<div class="box"><div style="font-size:40px">' + (passed ? L.icon : '💫') + '</div><h2>' + (passed ? (first ? 'Level cleared!' : 'Cleared again!') : 'Not yet!') + '</h2>' +
         '<div class="stars">' + [1, 2, 3].map(function (i) { return '<i class="' + (i <= stars ? 'on' : '') + '" style="animation-delay:' + (i * 0.15) + 's">★</i>'; }).join('') + '</div>' +
-        '<p>' + esc(L.name) + (L.self ? '' : ' · ' + r.c + ' right · ' + r.w + ' missed') + '<br>⭐ ' + points(r.score) + (r.score && r.score >= (s.sc[r.k] || 0) ? ' · best!' : '') + (r.combo > 1 ? ' · combo ×' + r.combo : '') + '<br>Earned ' + money(r.earned) + (prize ? ' + level bonus ' + money(prize) : '') + '</p>' +
+        '<p>' + esc(L.name) + (L.self ? '' : ' · ' + r.c + ' right · ' + r.w + ' missed') + '<br>⭐ ' + points(r.score) + (r.score && r.score >= (s.sc[r.k] || 0) ? ' · best!' : '') + (r.combo > 1 ? ' · combo ×' + r.combo : '') + '<br>Earned ' + money(r.earned) + (prize ? '<br>⭐ ' + r.newStars + ' new star' + (r.newStars > 1 ? 's' : '') + ': +' + money(prize) + ' · 💎 +' + r.newStars * STAR_GEMS : '') + '</p>' +
         (passed && L.self && learned() ? '<p style="color:#86efac;font-weight:850">📖 Learning done — every game is open now!</p>' : '') +
         (passed ? '' : '<p style="margin-top:-8px">Get 60% right to clear it.</p>') +
         '<div class="mlv-row" style="justify-content:center"><button class="mlv-btn" data-go>' + (passed ? (nx && levelInfo(nx).self ? 'Next: ' + esc(levelInfo(nx).name) : '🎮 Choose a game') : 'Try again') + '</button><button class="mlv-btn alt" data-map>🛒 Map & shop</button></div></div>';
@@ -96287,7 +96310,7 @@ var Ve = (function(_Component) {
 
     // ---------------------------------------------------------------- map, shop, end
     function hud() {
-      return '<div class="mlv-card mlv-hud"><span class="mlv-cash"><i class="mlv-av">' + avHtml(withWear(avatar())) + '</i>' + money(s.money) + '</span>' + (myRank() ? '<span class="mlv-pill mlv-rank">🏅 #' + myRank().r + ' / ' + myRank().n + '</span>' : '') + '<span class="mlv-pill">⭐ ' + points(totalScore()) + '</span><span class="mlv-pill">🔥 ' + s.streak + '</span>' +
+      return '<div class="mlv-card mlv-hud"><span class="mlv-cash"><i class="mlv-av">' + avHtml(withWear(avatar())) + '</i>' + money(s.money) + '</span><span class="mlv-pill">' + TIERS[myTier()].ic + ' ★ ' + myStars() + '</span>' + (myRank() ? '<span class="mlv-pill mlv-rank">🏅 #' + myRank().r + ' / ' + myRank().n + '</span>' : '') + '<span class="mlv-pill">⭐ ' + points(totalScore()) + '</span><span class="mlv-pill">🔥 ' + s.streak + '</span>' +
         (s.bonus > 1 ? '<span class="mlv-pill">' + (s.bonus === 5 ? '💥' : '⚡') + ' ×' + s.bonus + ' next level</span>' : '') + (s.shield ? '<span class="mlv-pill">🧲 ×' + s.shield + '</span>' : '') +
         '<span class="mlv-sp"></span>' + (host.goal.type === 'time' ? '<span class="mlv-pill" data-left>⏱</span>' : host.goal.type === 'money' ? '<span class="mlv-pill">🏁 ' + money(host.goal.target) + '</span>' : '') +
         '<button class="mlv-btn alt" data-cover style="padding:9px 14px" title="Study the cards one by one">📖 3D Cover</button>' +
@@ -96351,14 +96374,28 @@ var Ve = (function(_Component) {
       if (b) b.onclick = function () { screen = screen === 'cards' ? 'map' : 'cards'; draw(); save(); };
     }
     function packPrice(k) { return Math.round(PACKS[k].price(earnOf({ u: s.u, streak: 1 }))); }
+    // ★ privileges: the more stars, the more of the shop
+    function myStars() { var n = 0; Object.keys(s.lv).forEach(function (x) { n += s.lv[x] || 0; }); return n; }
+    function maxStars() { return Math.max(3, host.levels.length * 3); }
+    function myTier() { return tierAt(myStars(), maxStars()); }
+    function needFor(test) { for (var i = 0; i < TIERS.length; i++) if (test(TIERS[i])) return i <= myTier() ? 0 : tierNeed(i, maxStars()); return 0; }
+    function packLock(k) { return needFor(function (t) { return t.pk.indexOf(k) >= 0; }); }
+    function upLock(lv) { return needFor(function (t) { return t.up >= lv; }); }
+    function pwLock(k) { return needFor(function (t) { return t.pw.indexOf(k) >= 0; }); }
+    function tierHtml() {
+      var st = myStars(), mx = maxStars(), ti = myTier(), T = TIERS[ti], nx = TIERS[ti + 1];
+      return '<section class="mlv-card" style="display:flex;flex-direction:column;gap:4px"><div style="font-size:20px;font-weight:900">' + T.ic + ' ' + T.n + ' · ★ ' + st + ' / ' + mx + '</div>' +
+        '<small>' + (nx ? 'Next: ' + nx.ic + ' ' + nx.n + ' at ★ ' + tierNeed(ti + 1, mx) + ' — opens ' + tierNews(ti + 1) : 'Every privilege is open ✓') + '</small>' +
+        '<small style="opacity:.75">Each new star: +' + money(starCoins(s)) + ' and 💎 ' + STAR_GEMS + ' · the same stars again pay nothing</small></section>';
+    }
     function packsHtml() {
       var cols = ['#94a3b8', '#38bdf8', '#a855f7', '#f59e0b', '#f43f5e'];
       return '<h3>🎁 Treasure chests</h3><div class="mlv-pk-grid">' + Object.keys(PACKS).map(function (k) {
-        var P = PACKS[k], price = packPrice(k), can = s.money >= price;
+        var P = PACKS[k], price = packPrice(k), lock = packLock(k), can = !lock && s.money >= price;
         return '<div class="mlv-pkbtn" style="background:' + P.bg + '"><canvas class="mlv-tilecv" data-tier="' + k + '"></canvas><b>' + P.name + '</b>' +
           '<div class="odds">' + P.odds.map(function (x, i) { return x ? '<i style="width:' + x + '%;background:' + cols[i] + '"></i>' : ''; }).join('') + '</div>' +
           '<div class="ol">' + P.odds.map(function (x, i) { return x ? RAR[RORDER[i]].name[0] + ' ' + x + '%' : ''; }).filter(Boolean).join(' · ') + '</div>' +
-          '<button class="mlv-btn' + (can ? '' : ' alt') + '" data-pack="' + k + '"' + (can ? '' : ' disabled') + '>Open · ' + money(price) + '</button></div>';
+          '<button class="mlv-btn' + (can ? '' : ' alt') + '" data-pack="' + k + '"' + (can ? '' : ' disabled') + '>' + (lock ? '🔒 ' + lock + '★' : 'Open · ' + money(price)) + '</button></div>';
       }).join('') + '</div>';
     }
     function miniCard(c, lv, eq) {
@@ -96378,7 +96415,7 @@ var Ve = (function(_Component) {
       $$(o.body, '[data-card]').forEach(function (b) { b.onclick = function () { var c = cardById(b.getAttribute('data-card')); if (!c || !s.coll[c.id]) return; s.av = c.id; localAv(c.id); beep('buy'); save(); collection(); }; });
     }
     function openPack(k) {
-      var price = packPrice(k); if (s.money < price) return;
+      var price = packPrice(k); if (s.money < price || packLock(k)) return;
       s.money -= price; s.packs = (s.packs || 0) + 1;
       var c = pull(k), R = RAR[c.r], had = s.coll[c.id] || 0;
       s.coll[c.id] = had + 1; albumAdd(c.id);
@@ -96395,24 +96432,24 @@ var Ve = (function(_Component) {
     }
     function shop() {
       var e = earnOf({ u: s.u, streak: 1 });
-      o.body.innerHTML = hud() + lockerHtml(avatar()) + packsHtml() + '<h3 style="margin-top:20px">Upgrades</h3><div class="mlv-shop">' + Object.keys(UPG).map(function (k) {
-        var u = UPG[k], lv = s.u[k], nx = lv + 1 < u.vals.length ? lv + 1 : -1, can = nx > 0 && s.money >= u.cost[nx];
+      o.body.innerHTML = hud() + tierHtml() + lockerHtml(avatar()) + packsHtml() + '<h3 style="margin-top:20px">Upgrades</h3><div class="mlv-shop">' + Object.keys(UPG).map(function (k) {
+        var u = UPG[k], lv = s.u[k], nx = lv + 1 < u.vals.length ? lv + 1 : -1, lock = nx > 0 ? upLock(nx) : 0, can = nx > 0 && !lock && s.money >= u.cost[nx];
         return '<div class="mlv-up"><div class="t">' + u.icon + ' ' + u.name + '</div><div class="lv">' + u.vals.map(function (_, i) { return '<i class="' + (i <= lv ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
           '<div class="v">Now ' + u.fmt(u.vals[lv]) + (nx > 0 ? ' → ' + u.fmt(u.vals[nx]) : ' · max') + '</div>' +
-          (nx > 0 ? '<button class="mlv-btn' + (can ? '' : ' alt') + '" data-up="' + k + '"' + (can ? '' : ' disabled') + '>Buy · ' + money(u.cost[nx]) + '</button>' : '') + '</div>';
+          (nx > 0 ? '<button class="mlv-btn' + (can ? '' : ' alt') + '" data-up="' + k + '"' + (can ? '' : ' disabled') + '>' + (lock ? '🔒 ' + lock + '★' : 'Buy · ' + money(u.cost[nx])) + '</button>' : '') + '</div>';
       }).join('') + '</div><h3 style="margin-top:18px">Power-ups</h3><div class="mlv-shop">' + Object.keys(POWER).map(function (k) {
-        var p = POWER[k], price = Math.round(p.price(e)), owned = (k === 'shield' && s.shield > 0) || (k !== 'shield' && s.bonus > 1), can = s.money >= price && !owned;
-        return '<div class="mlv-up"><div class="t">' + p.icon + ' ' + p.name + '</div><div class="v">' + p.desc + '</div><button class="mlv-btn' + (can ? '' : ' alt') + '" data-pw="' + k + '"' + (can ? '' : ' disabled') + '>' + (owned ? 'Ready ✓' : 'Buy · ' + money(price)) + '</button></div>';
+        var p = POWER[k], price = Math.round(p.price(e)), owned = (k === 'shield' && s.shield > 0) || (k !== 'shield' && s.bonus > 1), lock = pwLock(k), can = !lock && s.money >= price && !owned;
+        return '<div class="mlv-up"><div class="t">' + p.icon + ' ' + p.name + '</div><div class="v">' + p.desc + '</div><button class="mlv-btn' + (can ? '' : ' alt') + '" data-pw="' + k + '"' + (can ? '' : ' disabled') + '>' + (owned ? 'Ready ✓' : lock ? '🔒 ' + lock + '★' : 'Buy · ' + money(price)) + '</button></div>';
       }).join('') + '</div>';
       wireHud();
       wireLocker(o.body, function (id) { if (id) { s.av = id; localAv(id); } save(); }, shop);
       $$(o.body, '[data-pack]').forEach(function (b) { b.onclick = function () { openPack(b.getAttribute('data-pack')); }; });
       $$(o.body, '.mlv-tilecv').forEach(function (cv) { chestScene(cv, cv.getAttribute('data-tier'), true); });
       $$(o.body, '[data-up]').forEach(function (b) {
-        b.onclick = function () { var k = b.getAttribute('data-up'), u = UPG[k], nx = s.u[k] + 1; if (s.money < u.cost[nx]) return; s.money -= u.cost[nx]; s.u[k] = nx; beep('buy'); save(); shop(); };
+        b.onclick = function () { var k = b.getAttribute('data-up'), u = UPG[k], nx = s.u[k] + 1; if (s.money < u.cost[nx] || upLock(nx)) return; s.money -= u.cost[nx]; s.u[k] = nx; beep('buy'); save(); shop(); };
       });
       $$(o.body, '[data-pw]').forEach(function (b) {
-        b.onclick = function () { var k = b.getAttribute('data-pw'), price = Math.round(POWER[k].price(earnOf({ u: s.u, streak: 1 }))); if (s.money < price) return; s.money -= price; if (k === 'shield') s.shield = 3; else s.bonus = k === 'mega' ? 5 : 2; beep('buy'); save(); shop(); };
+        b.onclick = function () { var k = b.getAttribute('data-pw'), price = Math.round(POWER[k].price(earnOf({ u: s.u, streak: 1 }))); if (s.money < price || pwLock(k)) return; s.money -= price; if (k === 'shield') s.shield = 3; else s.bonus = k === 'mega' ? 5 : 2; beep('buy'); save(); shop(); };
       });
     }
     if (host.state === 'live') screen = 'map';
