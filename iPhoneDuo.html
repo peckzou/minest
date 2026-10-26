@@ -96188,9 +96188,8 @@ var Ve = (function(_Component) {
       var L = levelInfo(run.k), k = key(d.cardId), rec = s.cards[k] || (s.cards[k] = { c: 0, w: 0 }), gain = 0;
       run.seen++;
       if (L.self) {
-        // warm-ups are self-judged: a flat pay per card, an honest "again" costs nothing
-        gain = UPG.mpq.vals[s.u.mpq] * UPG.mult.vals[s.u.mult] * (d.result === 'mastered' ? 1 : 0.5) * run.bonus * (1 + perksOf(s).cash / 100);
-        s.money += gain; run.earned += gain; pop('+' + money(gain), true);
+        // warm-ups are self-judged: nobody checks them, so they pay nothing (coins are for right answers only)
+        pop(d.result === 'mastered' ? '✓' : '↺', true);
       } else if (d.result === 'mastered') {
         s.streak++; s.best = Math.max(s.best, s.streak); s.correct++; rec.c++; run.c++;
         gain = earnOf(s) * run.bonus; s.money += gain; run.earned += gain; pop('+' + money(gain) + (s.streak > 1 ? '  🔥' + s.streak : ''), true); beep('good');
@@ -96215,8 +96214,7 @@ var Ve = (function(_Component) {
       var stars = passed ? (L.self ? 3 : starsOf(run.c, run.w)) : 0, first = passed && !s.lv[k], prize = 0;
       if (passed) {
         s.lv[k] = Math.max(s.lv[k] || 0, stars);
-        prize = Math.round(earnOf({ u: s.u, streak: 1, coll: s.coll }) * (first ? 10 : 3) * stars * (1 + perksOf(s).bonus / 100));
-        s.money += prize;
+        prize = 0;   // a cleared level gives stars, not coins: replaying a level must not farm coins
       }
       if (passed && first) {
         var allDone = host.levels.every(function (x) { return s.lv[x]; });
