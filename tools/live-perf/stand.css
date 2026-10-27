@@ -1,0 +1,162 @@
+/* Stand Mode V1.0 — Octo Clock + My Collection Showcase (stand.js). A desk display over the whole page:
+   calm low-poly miniature scenes, large readable type, controls that fade away, dark and light. */
+.mst { --mst-bg:#0c1018; --mst-ink:#f3efe6; --mst-sub:rgba(243,239,230,.62); --mst-line:rgba(255,255,255,.12); --mst-card:rgba(255,255,255,.06); --mst-acc:#f2c46d;
+  position:fixed; inset:0; z-index:2147483300; background:var(--mst-bg); color:var(--mst-ink); overflow:hidden;
+  font:500 15px/1.35 -apple-system, "SF Pro Display", system-ui, sans-serif; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing:border-box; }
+.mst[data-theme="light"] { --mst-bg:#f3efe7; --mst-ink:#23201b; --mst-sub:rgba(35,32,27,.58); --mst-line:rgba(0,0,0,.1); --mst-card:rgba(255,255,255,.6); --mst-acc:#b7832a; }
+.mst *, .mst *::before, .mst *::after { box-sizing:border-box; }
+.mst button { font:inherit; color:inherit; }
+.mst-dim { position:absolute; inset:0; background:#000; pointer-events:none; z-index:5; transition:opacity .4s ease; }
+
+/* the stage: clock | collection side by side when there is room, stacked otherwise; on an iPhone Duo held open like a laptop
+   (upright, half-folded) the hinge splits it top | bottom */
+.mst-stage { position:relative; height:100%; display:grid; gap:0; }
+.mst-stage[data-mode="both"] { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+.mst-stage[data-mode="clock"], .mst-stage[data-mode="show"] { grid-template-columns:minmax(0,1fr); }
+@media (orientation:portrait) { .mst-stage[data-mode="both"] { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr) minmax(0,1fr); } }
+.mst-stage[data-mode="both"] > .mst-clock { border-right:1px solid var(--mst-line); }
+@media (orientation:portrait) { .mst-stage[data-mode="both"] > .mst-clock { border-right:0; border-bottom:1px solid var(--mst-line); } }
+.mst-pane { position:relative; min-width:0; min-height:0; overflow:hidden; }
+
+/* ---------- Octo Clock ---------- */
+.mst-clock { display:flex; align-items:center; justify-content:center; container-type:size; }
+.mst-time { font-weight:250; letter-spacing:-.04em; font-variant-numeric:tabular-nums; line-height:.9; white-space:nowrap; }
+.mst-time .ap { font-size:.26em; font-weight:500; letter-spacing:.02em; margin-left:.18em; color:var(--mst-sub); vertical-align:.9em; }
+.mst-date { color:var(--mst-sub); font-weight:500; letter-spacing:.01em; }
+.mst-greet { color:var(--mst-sub); font-size:14px; }
+.mst-word { display:inline-flex; align-items:baseline; gap:8px; padding:6px 12px; border-radius:999px; background:var(--mst-card); border:1px solid var(--mst-line); font-size:14px; max-width:100%; }
+.mst-word small { color:var(--mst-sub); font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
+.mst-word b { font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mst-octo { position:relative; display:block; aspect-ratio:1; }
+.mst-octo img { width:100%; height:100%; object-fit:contain; display:block; filter:drop-shadow(0 10px 18px rgba(0,0,0,.28)); }
+.mst-octo .ph { position:absolute; inset:0; display:grid; place-items:center; font-size:min(42cqmin, 120px); opacity:.85; }
+.mst-octo[data-pose="sleeping"] img { transform:rotate(-8deg) translateY(4%); filter:drop-shadow(0 10px 18px rgba(0,0,0,.28)) saturate(.85) brightness(.92); }
+.mst-zz { position:absolute; right:4%; top:2%; font-weight:700; color:var(--mst-sub); font-size:clamp(12px, 5cqmin, 22px); letter-spacing:.1em; }
+
+/* A · Minimal: the time is the picture; a small Octo keeps it company */
+.mst-cl-min { display:grid; grid-template-rows:auto auto auto; justify-items:center; gap:clamp(6px, 2cqh, 18px); text-align:center; padding:6%; }
+.mst-cl-min .mst-time { font-size:clamp(56px, min(26cqw, 34cqh), 220px); }
+.mst-cl-min .mst-date { font-size:clamp(14px, 4.4cqmin, 26px); }
+.mst-cl-min .mst-octo { position:absolute; right:5%; bottom:5%; width:clamp(64px, 22cqmin, 150px); }
+.mst-cl-min .mst-meta { display:flex; flex-direction:column; align-items:center; gap:8px; }
+
+/* B · Aquarium: Octo in a miniature low-poly tank, the time on the glass */
+.mst-cl-aq { width:100%; height:100%; display:grid; place-items:center; padding:5%; }
+.mst-tank { position:relative; width:100%; height:100%; max-height:min(100%, 125cqw); border-radius:22px; overflow:hidden;
+  background:linear-gradient(180deg, #2c6f8f 0%, #1b4d6b 46%, #10304a 100%); box-shadow:inset 0 0 0 1px rgba(255,255,255,.18), inset 0 18px 40px rgba(255,255,255,.08), 0 24px 50px rgba(0,0,0,.35); container-type:size; }
+.mst[data-theme="light"] .mst-tank { background:linear-gradient(180deg, #8fd0e6 0%, #4f9fc2 50%, #2f7298 100%); }
+.mst-tank svg.floor { position:absolute; left:0; right:0; bottom:0; width:100%; height:34%; }
+.mst-tank .rays { position:absolute; inset:0; background:repeating-linear-gradient(100deg, rgba(255,255,255,.07) 0 7%, transparent 7% 16%); mask-image:linear-gradient(180deg, #000, transparent 70%); -webkit-mask-image:linear-gradient(180deg, #000, transparent 70%); }
+.mst-tank .glass { position:absolute; inset:0; background:linear-gradient(115deg, rgba(255,255,255,.16) 0 12%, transparent 12% 30%, rgba(255,255,255,.06) 30% 33%, transparent 33%); pointer-events:none; }
+.mst-tank .mst-octo { position:absolute; left:8%; bottom:12%; width:40cqh; }
+.mst-tank .bub { position:absolute; border-radius:50%; border:1.5px solid rgba(255,255,255,.45); }
+.mst-tank .face { position:absolute; right:6%; top:10%; text-align:right; color:#f4fbff; text-shadow:0 2px 12px rgba(0,30,50,.4); }
+.mst-tank .face .mst-time { font-size:clamp(34px, min(24cqh, 19cqw), 170px); }
+.mst-tank .face .mst-date { color:rgba(244,251,255,.78); font-size:clamp(12px, 5.4cqh, 26px); margin-top:6px; }
+.mst-tank .face .mst-greet { color:rgba(244,251,255,.7); margin-top:4px; }
+.mst-tank .face .mst-word { margin-top:10px; background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.22); color:#f4fbff; }
+.mst-tank .face .mst-word small { color:rgba(244,251,255,.7); }
+
+/* C · Cozy Desk: a warm miniature desk — lamp, a little clock, Octo beside it */
+.mst-cl-cozy { position:absolute; inset:0; background:radial-gradient(ellipse 70% 60% at 30% 22%, rgba(255,196,120,.32), transparent 60%), linear-gradient(180deg, #3a2a22 0%, #2a1e19 62%, #1c1411 100%); container-type:size; }
+.mst[data-theme="light"] .mst-cl-cozy { background:radial-gradient(ellipse 70% 60% at 30% 22%, rgba(255,214,150,.55), transparent 60%), linear-gradient(180deg, #efe2cf 0%, #e3cfb3 62%, #c9ad8a 100%); }
+.mst-cl-cozy svg.desk { position:absolute; left:0; right:0; bottom:0; width:100%; height:42%; }
+.mst-cl-cozy svg.lamp { position:absolute; left:5%; bottom:36%; height:min(34%, 40cqw); }
+.mst-cl-cozy .mst-octo { position:absolute; left:min(26%, 22cqh); bottom:31%; width:min(30cqh, 26cqw); z-index:1; }
+.mst-clockface { position:absolute; right:6%; bottom:34%; padding:min(4.5cqh, 4cqw) min(5cqh, 4.5cqw) min(4cqh, 3.6cqw); border-radius:5cqh; background:linear-gradient(180deg, #2b2f38, #1d2028); color:#fbefd9;
+  box-shadow:0 2.4cqh 4cqh rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.12); text-align:center; }
+.mst-clockface .mst-time { font-size:clamp(30px, min(18cqh, 12cqw), 150px); font-weight:300; }
+.mst-clockface .mst-date { color:rgba(251,239,217,.7); font-size:clamp(11px, min(4.4cqh, 3.4cqw), 22px); margin-top:1.4cqh; }
+.mst-cl-cozy .notes { position:absolute; left:6%; top:7%; right:42%; display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+.mst-cl-cozy .notes .mst-greet { color:rgba(251,239,217,.78); }
+.mst[data-theme="light"] .mst-cl-cozy .notes .mst-greet { color:rgba(60,40,20,.7); }
+
+/* ---------- My Collection Showcase ---------- */
+.mst-show { container-type:size; cursor:default; }
+.mst-item { position:relative; display:block; border:0; padding:0; background:none; cursor:pointer; }
+.mst-art { position:relative; width:100%; height:100%; overflow:hidden; background:#22262f; }
+.mst-art img { width:100%; height:100%; object-fit:cover; display:block; }
+.mst-art .txt { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:12%; background:linear-gradient(160deg, #f6f0e2, #e7dcc4); color:#2a241a; text-align:left; font-family:"New York", ui-serif, Georgia, serif; }
+.mst-art .txt b { font-size:clamp(12px, 7cqmin, 30px); line-height:1.1; font-weight:600; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+.mst-art .txt i { font-style:normal; font-family:-apple-system, system-ui, sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#8a7a5c; margin-bottom:6px; }
+.mst-empty { position:absolute; inset:0; display:grid; place-items:center; text-align:center; color:var(--mst-sub); padding:10%; }
+.mst-empty b { display:block; color:var(--mst-ink); font-size:18px; margin-bottom:6px; }
+.mst-plaque { color:var(--mst-ink); }
+.mst-plaque b { display:block; font-weight:650; font-size:clamp(13px, 3.6cqmin, 20px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mst-plaque span { display:block; color:var(--mst-sub); font-size:clamp(11px, 2.6cqmin, 14px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* A · Museum: one piece, a matted frame under a soft spotlight, a plaque below */
+.mst-sh-museum { position:absolute; inset:0; display:grid; grid-template-rows:1fr auto; justify-items:center; align-items:center; padding:7% 8% 6%;
+  background:radial-gradient(ellipse 46% 60% at 50% 30%, rgba(255,240,210,.12), transparent 70%); }
+.mst[data-theme="light"] .mst-sh-museum { background:radial-gradient(ellipse 46% 60% at 50% 30%, rgba(255,255,255,.8), transparent 70%); }
+.mst-sh-museum .mst-item { height:100%; max-height:100%; aspect-ratio:var(--ar, 3/4); max-width:100%; padding:4.5%; background:linear-gradient(180deg, #f7f3ea, #e9e2d3); border-radius:4px;
+  box-shadow:0 0 0 7px #3b2f26, 0 0 0 8px rgba(0,0,0,.4), 0 26px 50px rgba(0,0,0,.45); }
+.mst-sh-museum .mst-plaque { margin-top:5cqh; padding:8px 16px; border-radius:4px; background:var(--mst-card); border:1px solid var(--mst-line); text-align:center; max-width:80%; }
+
+/* B · Collectible Shelf: three to five pieces standing on a low-poly shelf */
+.mst-sh-shelf { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:4% 5%; }
+.mst-shelf-row { position:relative; display:flex; align-items:flex-end; justify-content:center; gap:4cqw; height:58%; padding:0 3%; z-index:1; }
+.mst-shelf-row .mst-item { flex:0 0 auto; width:min(calc(84cqw / var(--n, 4)), calc(52cqh * var(--hf, .9) * var(--arw, .75))); aspect-ratio:var(--ar, 3/4); border-radius:6px; overflow:hidden; box-shadow:0 14px 22px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.1); }
+.mst-sh-shelf svg.board { width:100%; height:12%; display:block; margin-top:-1px; }
+.mst-sh-shelf .mst-plaque { text-align:center; margin-top:4cqh; }
+
+/* C · Gallery Wall: a small hung composition of frames */
+.mst-sh-wall { position:absolute; inset:0; padding:6% 6%; background:linear-gradient(180deg, rgba(255,255,255,.03), transparent 40%), var(--mst-bg); }
+.mst-wall { position:relative; width:100%; height:100%; display:grid; gap:3.5cqmin; }
+.mst-wall[data-n="1"] { grid-template:1fr / 1fr; }
+.mst-wall[data-n="2"] { grid-template:1fr / 1fr 1fr; }
+.mst-wall[data-n="3"] { grid-template:1fr 1fr / 1.3fr 1fr; }
+.mst-wall[data-n="3"] > :first-child { grid-row:1 / span 2; }
+.mst-wall[data-n="4"] { grid-template:1fr 1fr / 1.2fr 1fr 1fr; }
+.mst-wall[data-n="4"] > :first-child { grid-row:1 / span 2; }
+.mst-wall[data-n="4"] > :nth-child(4) { grid-column:2 / span 2; }
+.mst-wall[data-n="5"] { grid-template:1fr 1fr / 1.2fr 1fr 1fr; }
+.mst-wall[data-n="5"] > :first-child { grid-row:1 / span 2; }
+.mst-wall .mst-item { min-height:0; padding:3.2%; background:#f4efe4; border-radius:2px; box-shadow:0 0 0 4px #2c241d, 0 12px 24px rgba(0,0,0,.4); }
+.mst-wall .mst-item:nth-child(2n) { box-shadow:0 0 0 4px #c9a96b, 0 12px 24px rgba(0,0,0,.4); }
+
+/* D · Miniature Display: one piece on a low-poly plinth under a glass dome */
+.mst-sh-mini { position:absolute; inset:0; display:grid; grid-template-rows:1fr auto; justify-items:center; align-items:end; padding:5% 8% 5%;
+  background:radial-gradient(ellipse 50% 46% at 50% 44%, rgba(160,200,255,.14), transparent 70%); }
+.mst-diorama { position:relative; width:min(92%, 68cqh); aspect-ratio:1/1.05; max-height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
+.mst-dome { position:relative; width:70%; aspect-ratio:1/1.08; border-radius:50% 50% 8% 8% / 46% 46% 6% 6%; background:radial-gradient(ellipse 70% 60% at 34% 26%, rgba(255,255,255,.28), rgba(255,255,255,.04) 46%, rgba(255,255,255,.02));
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3), inset -10px -20px 40px rgba(255,255,255,.05); display:grid; place-items:center; overflow:hidden; }
+.mst-dome .mst-item { width:62%; aspect-ratio:var(--ar, 1); border-radius:8px; overflow:hidden; box-shadow:0 14px 22px rgba(0,0,0,.4); transform:perspective(500px) rotateY(-14deg) rotateX(4deg); }
+.mst-diorama svg.plinth { width:86%; display:block; margin-top:-2%; }
+.mst-sh-mini .mst-plaque { text-align:center; margin-top:2.4cqh; }
+
+/* ---------- controls: they fade away; a tap brings them back ---------- */
+.mst-ui { position:absolute; top:calc(env(safe-area-inset-top) + 12px); right:calc(env(safe-area-inset-right) + 12px); display:flex; gap:8px; z-index:8; transition:opacity .35s ease; }
+.mst.idle .mst-ui { opacity:0; pointer-events:none; }
+.mst-ui button { width:40px; height:40px; border-radius:50%; border:1px solid var(--mst-line); background:rgba(20,22,28,.5); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); color:#fff; font-size:17px; display:grid; place-items:center; }
+.mst[data-theme="light"] .mst-ui button { background:rgba(255,255,255,.7); color:#222; }
+.mst-dots { position:absolute; left:50%; bottom:calc(env(safe-area-inset-bottom) + 10px); transform:translateX(-50%); display:flex; gap:6px; z-index:6; transition:opacity .35s; }
+.mst.idle .mst-dots { opacity:.35; }
+.mst-dots i { width:6px; height:6px; border-radius:50%; background:var(--mst-sub); opacity:.4; }
+.mst-dots i.on { opacity:1; }
+
+/* settings sheet */
+.mst-set { position:absolute; top:0; right:0; bottom:0; width:min(380px, 100%); z-index:9; background:rgba(22,24,30,.94); color:#eee; -webkit-backdrop-filter:blur(26px); backdrop-filter:blur(26px);
+  border-left:1px solid rgba(255,255,255,.1); overflow-y:auto; padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 20px); transform:translateX(102%); transition:transform .32s cubic-bezier(.2,.9,.25,1); }
+.mst-set.on { transform:none; }
+.mst-set h3 { margin:0 0 6px; font-size:19px; display:flex; justify-content:space-between; align-items:center; }
+.mst-set h3 button { border:0; background:rgba(255,255,255,.1); width:32px; height:32px; border-radius:50%; color:#fff; }
+.mst-set h4 { margin:18px 0 8px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.5); font-weight:600; }
+.mst-seg { display:flex; flex-wrap:wrap; gap:6px; }
+.mst-seg button { flex:1 1 auto; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05); color:#eee; font-size:13px; font-weight:600; }
+.mst-seg button.on { background:#f2c46d; border-color:#f2c46d; color:#1d1606; }
+.mst-set select, .mst-set input[type="range"] { width:100%; }
+.mst-set select { padding:9px 10px; border-radius:10px; background:rgba(255,255,255,.08); color:#eee; border:1px solid rgba(255,255,255,.14); font:inherit; font-size:14px; margin-top:6px; }
+.mst-set label.tog { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); font-size:13px; line-height:1.4; }
+.mst-set label.tog input { margin-top:2px; width:18px; height:18px; flex:none; accent-color:#f2c46d; }
+.mst-set .note { font-size:12px; color:rgba(255,255,255,.5); margin-top:6px; line-height:1.45; }
+.mst-pick { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-top:8px; max-height:280px; overflow-y:auto; }
+.mst-pick button { position:relative; aspect-ratio:3/4; padding:0; border-radius:8px; overflow:hidden; border:2px solid transparent; background:#2a2d35; }
+.mst-pick button.on { border-color:#f2c46d; }
+.mst-pick button .mst-art .txt b { font-size:10px; }
+.mst-pick button.on::after { content:"✓"; position:absolute; right:4px; top:3px; width:18px; height:18px; border-radius:50%; background:#f2c46d; color:#1d1606; font-size:12px; font-weight:800; display:grid; place-items:center; }
+
+@media (prefers-reduced-motion: reduce) { .mst *, .mst *::before, .mst *::after { transition:none !important; animation:none !important; } }
+.mst-fade { animation:mstFade .9s ease both; }
+@keyframes mstFade { from { opacity:0; } to { opacity:1; } }
