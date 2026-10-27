@@ -136862,13 +136862,12 @@ window.MinestTeam5 = { open: open, close: close, games: GAMES.map(function(g){ r
 })();
 </script>
 <style id="mn-duo-style">
-/* the split line: the board keeps about one Kanban column (≥ 280 pt, 42 %), My World the rest — on the iPhone Fold's
-   turned inner screen (678 pt) that is 285 | 393, a phone-wide My World; wider screens go up to half and half */
+/* the split line: half and half (the iPhone Fold's inner screen is 951 pt wide sideways: 475 | 475) */
 :root { --duo-l:50vw; }
-html.duo-split { --duo-l:clamp(280px, 42vw, 50vw); }
+html.duo-split { --duo-l:50vw; }
 /* 53.84 Duo · iPhone Fold: outer-screen Glance + inner-screen split (tools/live-perf/duo.js) */
 html body .duo-gl { position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;background:#0d1117;color:#f3f5f8;font:15px/1.4 -apple-system,system-ui,sans-serif;
-  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);overflow:hidden; }
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overflow:hidden; }
 html body .duo-gl[hidden] { display:none; }
 html body .duo-top { flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 8px; }
 html body .duo-top b { font-size:18px; }
@@ -136952,7 +136951,7 @@ html body .duo-lib-go { min-height:46px;border:2px solid #000;background:#3c8527
 html body .duo-spot { position:absolute;z-index:5;transform:translate(-50%,-100%);font-size:26px;font-style:normal;pointer-events:none;filter:drop-shadow(0 2px 2px #0008);animation:duoDrop .35s ease; }
 @keyframes duoDrop { from { transform:translate(-50%,-160%);opacity:0; } }
 /* 5 · Study Desk */
-html body .duo-desk { position:fixed;inset:0;z-index:2147483010;display:flex;flex-direction:column;background:#0d1117;color:#f3f5f8;font:15px/1.45 -apple-system,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+html body .duo-desk { position:fixed;inset:0;z-index:2147483010;display:flex;flex-direction:column;background:#0d1117;color:#f3f5f8;font:15px/1.45 -apple-system,system-ui,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 html body .dd-top { flex:none;display:flex;align-items:center;gap:10px;padding:12px 16px; }
 html body .dd-top b { font-size:18px;white-space:nowrap; }
 html body .dd-list { flex:1;min-width:0;min-height:40px;border:1px solid #2c394c;border-radius:12px;background:#0f151e;color:#fff;padding:0 10px;font:14px/1 inherit; }
@@ -137017,6 +137016,11 @@ html:not(.duo-split) body .duo-queue { left:12px; }
 html.duo-desk-on body .duo-split-b, html.duo-desk-on body .duo-desk-b, html.duo-desk-on body .duo-back { display:none; }
 /* full-screen tools (Discover, Knowledge views) keep the corner free */
 html.duo.kn-open body .duo-split-b, html.duo.kn-open body .duo-desk-b, html.duo.kn-open body .duo-back { display:none; }
+/* the right safe area (iOS puts the status bar in a column on the right when the phone is turned): in the split the
+   board does not touch that edge, so it keeps no gap for it; full screen, the board runs under it instead of leaving a
+   black strip (only the clock sits there) */
+html.duo-split body #root { --sar:0px; }
+html.duo-inner body .landscape main { margin-right:0 !important; }
 
 </style>
 <script id="mn-duo-script">
@@ -137044,9 +137048,9 @@ var kind = null, gl = null, dismissed = false, back = false, booted = false;
    'folded' = half-open), responsive otherwise: the shorter side ≥ 600 pt and a near-square shape = the inner screen */
 function segments(){ try { if (matchMedia('(horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)').matches) return 2; } catch(e){} try { var v = window.viewport && window.viewport.segments; if (v && v.length > 1) return v.length; } catch(e){} return 1; }
 function posture(){ try { return navigator.devicePosture && navigator.devicePosture.type || ''; } catch(e){ return ''; } }
-/* measured on the real iPhone Fold (2026-10-26): the inner screen is 466 × 678 pt (1 : 1.45), turned 678 × 466; the app
-   can also report it scaled (951 × 669). A phone-shaped screen is about 1 : 2. So the shape decides, not the size. */
-function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 420 && mx / mn < 1.6 ? 'inner' : 'outer'; }
+/* measured on the real iPhone Fold (2026-10-26): the inner screen is 951 × 669 pt held sideways (1 : 1.42); the outer
+   screen is 466 × 678 — almost as square, so the size decides: the inner one is the only one with a short side ≥ 600 */
+function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 600 && mx / mn < 1.6 ? 'inner' : 'outer'; }
 /* two panes need room: the inner screen held upright (466 wide) stays one pane, turned (678+) it can split */
 function splitFits(){ return kind === 'inner' && innerWidth >= 640; }
 var lastFit = null;
@@ -137060,7 +137064,11 @@ function apply(){
   r.classList.toggle('duo-split', fit && !!prefs().split);
   if (was !== r.classList.contains('duo-split')) relayout();
   var first = !booted; booted = true;
-  if (k === 'outer') { if (first && !dismissed) glance(); else { dismissed = true; } }   /* folding keeps what you were doing; Glance is one tap away (⌂) */
+  if (k === 'outer') {   /* folded: the quick Glance page comes up (what you were doing stays under it — 完整 App › goes back), unless you are in
+                           the middle of something: placing a piece, the build library or the study desk */
+    var busy = !!(desk || document.querySelector('.mn-bq, .duo-lib') || (window.MinestDuoWorld && MinestDuoWorld.holding && MinestDuoWorld.holding()));
+    if (!busy) { dismissed = false; glance(); } else dismissed = true;
+  }
   else { closeGlance(); if (fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
   splitBtn(); pill(); rightPane(); deskBtn(); dvTag();
@@ -137269,7 +137277,7 @@ function deskDraw(){
 function deskOpen(key){
   if (!desk) {
     desk = document.createElement('div'); desk.className = 'duo-desk'; desk.setAttribute('role', 'dialog'); desk.setAttribute('aria-label', '学习书桌');
-    desk.innerHTML = '<header class="dd-top"><b>📚 学习书桌</b><select class="dd-list" aria-label="词表"></select><button type="button" class="duo-full" data-dd="close">✕</button></header><div class="dd-body"></div>';
+    desk.innerHTML = '<header class="dd-top"><b>📚 学习书桌</b><select class="dd-list" aria-label="词表"></select><button type="button" class="duo-full" data-dd="close" aria-label="关闭书桌">✕ 关闭</button></header><div class="dd-body"></div>';
     document.body.appendChild(desk); document.documentElement.classList.add('duo-desk-on');
     desk.addEventListener('change', function(e){ if (e.target.matches('.dd-list')) { deskKey = e.target.value; deskDraw(); } });
     desk.addEventListener('click', function(e){
@@ -137359,7 +137367,7 @@ function enabled(){
   if (window.__MINEST_DUO__) return true;
   try { if (localStorage.getItem('minest.duo.fold') === '1') return true; } catch(e){}
   var mn = Math.min(innerWidth, innerHeight), mx = Math.max(innerWidth, innerHeight);
-  if (phone() && mn >= 420 && mx / mn < 1.6) { try { localStorage.setItem('minest.duo.fold', '1'); } catch(e){} return true; }   /* no other iPhone has a screen this square */
+  if (phone() && mn >= 600 && mx / mn < 1.6) { try { localStorage.setItem('minest.duo.fold', '1'); } catch(e){} return true; }   /* no other iPhone has a screen this big */
   return false;
 }
 var on = false;

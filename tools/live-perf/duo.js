@@ -22,9 +22,9 @@ var kind = null, gl = null, dismissed = false, back = false, booted = false;
    'folded' = half-open), responsive otherwise: the shorter side ≥ 600 pt and a near-square shape = the inner screen */
 function segments(){ try { if (matchMedia('(horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)').matches) return 2; } catch(e){} try { var v = window.viewport && window.viewport.segments; if (v && v.length > 1) return v.length; } catch(e){} return 1; }
 function posture(){ try { return navigator.devicePosture && navigator.devicePosture.type || ''; } catch(e){ return ''; } }
-/* measured on the real iPhone Fold (2026-10-26): the inner screen is 466 × 678 pt (1 : 1.45), turned 678 × 466; the app
-   can also report it scaled (951 × 669). A phone-shaped screen is about 1 : 2. So the shape decides, not the size. */
-function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 420 && mx / mn < 1.6 ? 'inner' : 'outer'; }
+/* measured on the real iPhone Fold (2026-10-26): the inner screen is 951 × 669 pt held sideways (1 : 1.42); the outer
+   screen is 466 × 678 — almost as square, so the size decides: the inner one is the only one with a short side ≥ 600 */
+function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 600 && mx / mn < 1.6 ? 'inner' : 'outer'; }
 /* two panes need room: the inner screen held upright (466 wide) stays one pane, turned (678+) it can split */
 function splitFits(){ return kind === 'inner' && innerWidth >= 640; }
 var lastFit = null;
@@ -38,7 +38,11 @@ function apply(){
   r.classList.toggle('duo-split', fit && !!prefs().split);
   if (was !== r.classList.contains('duo-split')) relayout();
   var first = !booted; booted = true;
-  if (k === 'outer') { if (first && !dismissed) glance(); else { dismissed = true; } }   /* folding keeps what you were doing; Glance is one tap away (⌂) */
+  if (k === 'outer') {   /* folded: the quick Glance page comes up (what you were doing stays under it — 完整 App › goes back), unless you are in
+                           the middle of something: placing a piece, the build library or the study desk */
+    var busy = !!(desk || document.querySelector('.mn-bq, .duo-lib') || (window.MinestDuoWorld && MinestDuoWorld.holding && MinestDuoWorld.holding()));
+    if (!busy) { dismissed = false; glance(); } else dismissed = true;
+  }
   else { closeGlance(); if (fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
   splitBtn(); pill(); rightPane(); deskBtn(); dvTag();
@@ -247,7 +251,7 @@ function deskDraw(){
 function deskOpen(key){
   if (!desk) {
     desk = document.createElement('div'); desk.className = 'duo-desk'; desk.setAttribute('role', 'dialog'); desk.setAttribute('aria-label', '学习书桌');
-    desk.innerHTML = '<header class="dd-top"><b>📚 学习书桌</b><select class="dd-list" aria-label="词表"></select><button type="button" class="duo-full" data-dd="close">✕</button></header><div class="dd-body"></div>';
+    desk.innerHTML = '<header class="dd-top"><b>📚 学习书桌</b><select class="dd-list" aria-label="词表"></select><button type="button" class="duo-full" data-dd="close" aria-label="关闭书桌">✕ 关闭</button></header><div class="dd-body"></div>';
     document.body.appendChild(desk); document.documentElement.classList.add('duo-desk-on');
     desk.addEventListener('change', function(e){ if (e.target.matches('.dd-list')) { deskKey = e.target.value; deskDraw(); } });
     desk.addEventListener('click', function(e){
@@ -337,7 +341,7 @@ function enabled(){
   if (window.__MINEST_DUO__) return true;
   try { if (localStorage.getItem('minest.duo.fold') === '1') return true; } catch(e){}
   var mn = Math.min(innerWidth, innerHeight), mx = Math.max(innerWidth, innerHeight);
-  if (phone() && mn >= 420 && mx / mn < 1.6) { try { localStorage.setItem('minest.duo.fold', '1'); } catch(e){} return true; }   /* no other iPhone has a screen this square */
+  if (phone() && mn >= 600 && mx / mn < 1.6) { try { localStorage.setItem('minest.duo.fold', '1'); } catch(e){} return true; }   /* no other iPhone has a screen this big */
   return false;
 }
 var on = false;

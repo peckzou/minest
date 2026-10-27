@@ -1,10 +1,9 @@
-/* the split line: the board keeps about one Kanban column (≥ 280 pt, 42 %), My World the rest — on the iPhone Fold's
-   turned inner screen (678 pt) that is 285 | 393, a phone-wide My World; wider screens go up to half and half */
+/* the split line: half and half (the iPhone Fold's inner screen is 951 pt wide sideways: 475 | 475) */
 :root { --duo-l:50vw; }
-html.duo-split { --duo-l:clamp(280px, 42vw, 50vw); }
+html.duo-split { --duo-l:50vw; }
 /* 53.84 Duo · iPhone Fold: outer-screen Glance + inner-screen split (tools/live-perf/duo.js) */
 html body .duo-gl { position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;background:#0d1117;color:#f3f5f8;font:15px/1.4 -apple-system,system-ui,sans-serif;
-  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);overflow:hidden; }
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overflow:hidden; }
 html body .duo-gl[hidden] { display:none; }
 html body .duo-top { flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 8px; }
 html body .duo-top b { font-size:18px; }
@@ -88,7 +87,7 @@ html body .duo-lib-go { min-height:46px;border:2px solid #000;background:#3c8527
 html body .duo-spot { position:absolute;z-index:5;transform:translate(-50%,-100%);font-size:26px;font-style:normal;pointer-events:none;filter:drop-shadow(0 2px 2px #0008);animation:duoDrop .35s ease; }
 @keyframes duoDrop { from { transform:translate(-50%,-160%);opacity:0; } }
 /* 5 · Study Desk */
-html body .duo-desk { position:fixed;inset:0;z-index:2147483010;display:flex;flex-direction:column;background:#0d1117;color:#f3f5f8;font:15px/1.45 -apple-system,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+html body .duo-desk { position:fixed;inset:0;z-index:2147483010;display:flex;flex-direction:column;background:#0d1117;color:#f3f5f8;font:15px/1.45 -apple-system,system-ui,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 html body .dd-top { flex:none;display:flex;align-items:center;gap:10px;padding:12px 16px; }
 html body .dd-top b { font-size:18px;white-space:nowrap; }
 html body .dd-list { flex:1;min-width:0;min-height:40px;border:1px solid #2c394c;border-radius:12px;background:#0f151e;color:#fff;padding:0 10px;font:14px/1 inherit; }
@@ -153,3 +152,8 @@ html:not(.duo-split) body .duo-queue { left:12px; }
 html.duo-desk-on body .duo-split-b, html.duo-desk-on body .duo-desk-b, html.duo-desk-on body .duo-back { display:none; }
 /* full-screen tools (Discover, Knowledge views) keep the corner free */
 html.duo.kn-open body .duo-split-b, html.duo.kn-open body .duo-desk-b, html.duo.kn-open body .duo-back { display:none; }
+/* the right safe area (iOS puts the status bar in a column on the right when the phone is turned): in the split the
+   board does not touch that edge, so it keeps no gap for it; full screen, the board runs under it instead of leaving a
+   black strip (only the clock sits there) */
+html.duo-split body #root { --sar:0px; }
+html.duo-inner body .landscape main { margin-right:0 !important; }
