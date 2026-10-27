@@ -45,7 +45,7 @@ function apply(){
   }
   else { closeGlance(); if (fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
-  splitBtn(); pill(); rightPane(); deskBtn(); dvTag();
+  splitBtn(); pill(); rightPane(); deskBtn(); dvTag(); rail();
   if (k === 'inner' && !first && Date.now() - flashAt < 120000 && !desk) deskOpen();   /* studying folded → the desk on the open screen */
 }
 
@@ -154,10 +154,34 @@ function splitBtn(){
   var b = document.querySelector('.duo-split-b');
   if (!splitFits()) { if (b) b.remove(); return; }   /* upright inner screen: one pane, no split button */
   if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'duo-split-b'; document.body.appendChild(b);
-    b.addEventListener('click', function(){ var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); relayout(); splitBtn(); hap(); setTimeout(rightPane, 600);
-      if (on) openWorld(); }); }
+    b.addEventListener('click', toggleSplit); }
   var on = !!prefs().split; b.textContent = on ? '▣ 全屏' : '▥ 分栏'; b.setAttribute('aria-label', on ? '取消分栏' : '分栏：左边看板，右边 My World');
   b.classList.toggle('on', on);
+}
+
+function toggleSplit(){ var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); relayout(); splitBtn(); rail(); hap(); setTimeout(rightPane, 600); if (on) openWorld(); }
+
+/* the tool rail: held sideways, iOS keeps a column on the right for the clock — the tools live there, under it, instead
+   of floating over the content (▥ split, 📚 desk, 🏝 My World, ⌂ Glance). Without that column (upright), the floating
+   buttons at the bottom left stay. */
+function sarPx(){ var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sar')); if (!(v > 0)) { try { var t = document.createElement('div'); t.style.cssText = 'position:fixed;width:env(safe-area-inset-right);height:0'; document.body.appendChild(t); v = t.getBoundingClientRect().width; t.remove(); } catch(e){ v = 0; } } return v || 0; }
+function rail(){
+  var r = document.querySelector('.duo-rail'), want = on && kind === 'inner' && sarPx() >= 44;
+  document.documentElement.classList.toggle('duo-rail-on', !!want);
+  if (!want) { if (r) r.remove(); return; }
+  if (!r) { r = document.createElement('nav'); r.className = 'duo-rail'; r.setAttribute('aria-label', 'Duo 工具'); document.body.appendChild(r);
+    r.addEventListener('click', function(e){ var b = e.target.closest('[data-rail]'); if (!b) return; var w = b.getAttribute('data-rail'); hap();
+      if (w === 'split') return toggleSplit();
+      if (w === 'desk') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } else deskOpen(); return rail(); }
+      if (w === 'world') { if (desk) { desk.remove(); desk = null; document.documentElement.classList.remove('duo-desk-on'); } if (worldOpen()) { try { MinestUniverse.close(); } catch(x){} } else openWorld(); return setTimeout(rail, 400); }
+      if (w === 'glance') { if (gl && !gl.hidden) closeGlance(); else { dismissed = false; glance(); } return rail(); }
+    }); }
+  var sp = !!prefs().split, html = (splitFits() ? '<button type="button" data-rail="split" class="' + (sp ? 'on' : '') + '" aria-label="' + (sp ? '取消分栏' : '分栏') + '"><i>' + (sp ? '▣' : '▥') + '</i><small>' + (sp ? '全屏' : '分栏') + '</small></button>' : '') +
+    '<button type="button" data-rail="desk" class="' + (desk ? 'on' : '') + '" aria-label="学习书桌"><i>📚</i><small>书桌</small></button>' +
+    '<button type="button" data-rail="world" class="' + (worldOpen() ? 'on' : '') + '" aria-label="My World"><i>🏝</i><small>岛屿</small></button>' +
+    '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="速览"><i>⌂</i><small>速览</small></button>';
+  if (r.innerHTML !== html) r.innerHTML = html;
+  r.style.width = Math.round(sarPx()) + 'px';
 }
 
 /* the right half when My World is closed: a way back to it instead of an empty half */
@@ -333,7 +357,7 @@ window.addEventListener('resize', function(){ if (on) apply(); });
 /* a fold, unfold or turn inside the app does not always fire resize in the web view: look again on every viewport change and once a second */
 if (window.visualViewport) visualViewport.addEventListener('resize', function(){ if (on) apply(); });
 try { matchMedia('(orientation: portrait)').addEventListener('change', function(){ if (on) apply(); }); } catch(e){}
-setInterval(function(){ if (on && !document.hidden) apply(); }, 1000);
+setInterval(function(){ if (on && !document.hidden) { apply(); rail(); } }, 1000);
 /* only on a folding iPhone: iPhoneDuo.html (window.__MINEST_DUO__), or an iPhone that has once shown a screen no other
    iPhone has (near square: unfolded) — remembered, so the folded outer screen gets Glance from then on */
 function phone(){ var ua = navigator.userAgent || ''; return /iPhone/.test(ua) && !/iPad/.test(ua); }
