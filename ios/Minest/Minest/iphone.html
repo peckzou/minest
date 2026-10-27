@@ -137185,7 +137185,7 @@ html.duo-dockpin body .landscape main, html.duo-dockpin body #root main { margin
 html.duo-dockpin.duo-inner body .landscape main, html.duo-dockpin.duo-inner body #root main { padding-right:calc(var(--duo-dock, 84px) - 16px) !important; }
 /* the top bar's buttons (search, +) step out of the column too */
 html.duo-dockpin body header.iphone-topbar { padding-right:calc(var(--duo-dock, 84px) + 2px) !important;box-sizing:border-box !important; }
-html.duo-dockpin[data-mn-bd] body .mn-bdock { left:auto !important;right:calc((var(--duo-dock, 84px) - 52px) / 2) !important;top:calc(var(--sat, 0px) + 118px) !important;bottom:auto !important;max-height:calc(100% - var(--sat, 0px) - 118px - 10px) !important;width:52px !important;
+html.duo-dockpin[data-mn-bd] body .mn-bdock { left:auto !important;right:calc((var(--duo-dock, 84px) - 52px) / 2) !important;top:calc(var(--sat, 0px) + var(--duo-dock-top, 118px)) !important;bottom:auto !important;max-height:min(calc(100% - var(--sat, 0px) - var(--duo-dock-top, 118px) - 10px), var(--duo-dock-h, 9999px)) !important;width:52px !important;
   transform:none !important;opacity:1 !important;pointer-events:auto !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;flex-wrap:nowrap !important;gap:4px !important;
   overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y !important;scrollbar-width:none;padding:7px 0 !important;box-sizing:border-box;border-radius:25px !important;
   background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08)) !important;border:1px solid rgba(255,255,255,.26) !important;-webkit-backdrop-filter:blur(22px) saturate(180%) !important;backdrop-filter:blur(22px) saturate(180%) !important;
@@ -137207,6 +137207,16 @@ html.duo body .mn-bdock .mn-bapp[aria-label^="Filter by list"], html.duo body .m
 .duo-set-tools { display:flex;gap:8px;padding:8px 16px 10px;border-bottom:1px solid rgba(255,255,255,.1); }
 .duo-set-tools button { flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:inherit;font:600 13px -apple-system,system-ui,sans-serif; }
 .duo-set-tools button:active { background:rgba(255,255,255,.16); }
+/* outer screen: the clock's bubble is taller there, the Dock starts below it */
+html.duo-dockpin.duo-outer { --duo-dock-top:172px; }
+/* the Dock ends Settings · CarPlay · Light FX · Card FX; it is cut after CarPlay (duo.js), the two FX icons are a scroll away */
+html.duo-dockpin body .mn-bdock .mn-bapp[aria-label^="Board settings"] { order:10; }
+html.duo-dockpin body .mn-bdock .mn-bapp[aria-label*="CarPlay"] { order:11; }
+html.duo-dockpin body .mn-bdock .mn-bapp[aria-label^="Light FX"] { order:12; }
+html.duo-dockpin body .mn-bdock .mn-bapp[aria-label^="Card FX"] { order:13; }
+/* the ⌂ 速览 pill stays out of sight until a two-finger pinch brings it up for a few seconds */
+html.duo body .duo-back { transition:opacity .25s ease, transform .25s ease; }
+html.duo:not(.duo-pinch) body .duo-back { opacity:0 !important;pointer-events:none !important;transform:translateY(14px); }
 
 </style>
 <script id="mn-duo-script">
@@ -137465,7 +137475,18 @@ function dockPin(){
   var R0 = document.documentElement, sar = sarPx(), want = on && (kind === 'outer' || !tall()) && sar >= 44 && !['duo-split', 'duo-cover', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
   R0.classList.toggle('duo-dockpin', !!want);
   if (want) R0.style.setProperty('--duo-dock', Math.round(sar) + 'px');
+  /* show the Dock down to CarPlay (else Settings): the two FX icons below it are reached by scrolling */
+  var d = want && document.querySelector('.mn-bdock'), cut = d && (d.querySelector('.mn-bapp[aria-label*="CarPlay"]') || d.querySelector('.mn-bapp[aria-label^="Board settings"]'));
+  if (cut && cut.offsetHeight) R0.style.setProperty('--duo-dock-h', (cut.offsetTop + cut.offsetHeight + 8) + 'px'); else R0.style.removeProperty('--duo-dock-h');
 }
+/* a two-finger pinch anywhere brings up the ⌂ 速览 pill for a few seconds */
+var pinch0 = 0, pinchT = null;
+function pinchDist(t){ return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+document.addEventListener('touchstart', function(e){ pinch0 = on && e.touches.length === 2 ? pinchDist(e.touches) : 0; }, { passive: true, capture: true });
+document.addEventListener('touchmove', function(e){
+  if (!pinch0 || e.touches.length !== 2 || Math.abs(pinchDist(e.touches) - pinch0) < 28) return; pinch0 = 0;
+  var R0 = document.documentElement; R0.classList.add('duo-pinch'); clearTimeout(pinchT); pinchT = setTimeout(function(){ R0.classList.remove('duo-pinch'); }, 5000);
+}, { passive: true, capture: true });
 /* the Dock's list filter (≡) and wallpaper (🎨) move into Settings Studio: the two icons are hidden (duo.css), two buttons under its tabs */
 var DOCK_MOVED = [['lists', /^Filter by list/, '☰', 'Lists'], ['wall', /^Board Wallpaper/, '🎨', 'Wallpaper']];
 function appBtn(re){ var all = document.querySelectorAll('.mn-rgroup button, .mn-dockrow button, header.iphone-topbar button'); for (var i = 0; i < all.length; i++) if (re.test(all[i].getAttribute('aria-label') || all[i].title || '')) return all[i]; return null; }

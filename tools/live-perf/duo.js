@@ -253,7 +253,18 @@ function dockPin(){
   var R0 = document.documentElement, sar = sarPx(), want = on && (kind === 'outer' || !tall()) && sar >= 44 && !['duo-split', 'duo-cover', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
   R0.classList.toggle('duo-dockpin', !!want);
   if (want) R0.style.setProperty('--duo-dock', Math.round(sar) + 'px');
+  /* show the Dock down to CarPlay (else Settings): the two FX icons below it are reached by scrolling */
+  var d = want && document.querySelector('.mn-bdock'), cut = d && (d.querySelector('.mn-bapp[aria-label*="CarPlay"]') || d.querySelector('.mn-bapp[aria-label^="Board settings"]'));
+  if (cut && cut.offsetHeight) R0.style.setProperty('--duo-dock-h', (cut.offsetTop + cut.offsetHeight + 8) + 'px'); else R0.style.removeProperty('--duo-dock-h');
 }
+/* a two-finger pinch anywhere brings up the ⌂ 速览 pill for a few seconds */
+var pinch0 = 0, pinchT = null;
+function pinchDist(t){ return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+document.addEventListener('touchstart', function(e){ pinch0 = on && e.touches.length === 2 ? pinchDist(e.touches) : 0; }, { passive: true, capture: true });
+document.addEventListener('touchmove', function(e){
+  if (!pinch0 || e.touches.length !== 2 || Math.abs(pinchDist(e.touches) - pinch0) < 28) return; pinch0 = 0;
+  var R0 = document.documentElement; R0.classList.add('duo-pinch'); clearTimeout(pinchT); pinchT = setTimeout(function(){ R0.classList.remove('duo-pinch'); }, 5000);
+}, { passive: true, capture: true });
 /* the Dock's list filter (≡) and wallpaper (🎨) move into Settings Studio: the two icons are hidden (duo.css), two buttons under its tabs */
 var DOCK_MOVED = [['lists', /^Filter by list/, '☰', 'Lists'], ['wall', /^Board Wallpaper/, '🎨', 'Wallpaper']];
 function appBtn(re){ var all = document.querySelectorAll('.mn-rgroup button, .mn-dockrow button, header.iphone-topbar button'); for (var i = 0; i < all.length; i++) if (re.test(all[i].getAttribute('aria-label') || all[i].title || '')) return all[i]; return null; }
