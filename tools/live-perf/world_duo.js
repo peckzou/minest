@@ -147,8 +147,8 @@
       d.querySelectorAll('.mn-pk-card').forEach(function (c) { var pic = c.querySelector('.pic'); if (!pic || !pic.querySelector('.mn-a3wait')) return; var h = bldIcon(c.getAttribute('data-pkkind'), 132); if (h.indexOf('mn-a3wait') < 0) pic.innerHTML = h; else left++; });
       if (left) LIB.fillT = setTimeout(libFill, 700);
     }
-    function libOpen(tab, keep) { if (!V || V.visit) return; editOn(); if (!keep) { V.sel = null; V.menu = null; V.hold = null; V.ghost = null; } LIB.on = true; LIB.resume = false; if (tab) LIB.tab = tab; else if (!LIB.tab) LIB.tab = V.at && V.at.room ? 'furn' : 'bld'; libDraw(); render(); }
-    function libClose() { LIB.on = false; LIB.spot = null; spotMark(); var d = document.querySelector('.duo-lib'); if (d) d.remove(); }
+    function libOpen(tab, keep) { if (!V || V.visit) return; editOn(); if (!keep) { V.sel = null; V.menu = null; V.hold = null; V.ghost = null; } LIB.on = true; LIB.resume = false; document.documentElement.classList.add('duo-build'); if (tab) LIB.tab = tab; else if (!LIB.tab) LIB.tab = V.at && V.at.room ? 'furn' : 'bld'; libDraw(); render(); }
+    function libClose() { LIB.on = false; LIB.spot = null; spotMark(); document.documentElement.classList.remove('duo-build'); var d = document.querySelector('.duo-lib'); if (d) d.remove(); }
     function placeKind(k) {
       if (!V || !K[k]) return;
       var probe = { id: 'duo-probe', k: k, x: 0, y: 0, f: V.d.rot, s: 1, it: [] }, ok = LIB.spot ? settle(probe, LIB.spot[0], LIB.spot[1]) : (freeSpot(probe, 1) || freeSpot(probe));
@@ -196,5 +196,13 @@
     // folding puts the library away and unfolding brings it back, the piece you are placing still selected with its ✓
     window.addEventListener('resize', function () { if (LIB.on && !split()) { LIB.resume = true; libClose(); } else if (!LIB.on && LIB.resume && split() && el && V) libOpen(LIB.tab, true); });
 
-    window.MinestDuoWorld = { placed: function (ref) { return !!(V && placed()[ref]); }, holding: function () { return !!(V && V.hold); }, locate: locate, build: function (tab) { return libOpen(tab); }, place: function (k) { return placeKind(k); }, libOn: function () { return LIB.on; }, open: function () { return !!V; }, board: function () { return V ? V.bid : null; } };
+    function buildHere(bid) {   // the island of a board on screen, then its build library (unfolding the phone)
+      if (bid && (!V || V.bid !== bid)) {
+        try { if (window.MinestUniverse && !document.querySelector('.uv')) MinestUniverse.open({ path: [{ t: 'home' }, { t: 'world', bid: bid }] }); } catch (e) {}
+        open({ t: 'world', bid: bid });
+      }
+      if (!V) return false; if (V.at) { var g = 4; while (V.at && g--) leaveRoom(); }
+      libOpen(); fit(); return true;
+    }
+    window.MinestDuoWorld = { buildHere: buildHere, placed: function (ref) { return !!(V && placed()[ref]); }, holding: function () { return !!(V && V.hold); }, locate: locate, build: function (tab) { return libOpen(tab); }, place: function (k) { return placeKind(k); }, libOn: function () { return LIB.on; }, open: function () { return !!V; }, board: function () { return V ? V.bid : null; } };
   })();

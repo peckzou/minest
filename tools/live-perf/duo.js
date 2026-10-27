@@ -46,7 +46,10 @@ function apply(){
   else { closeGlance(); if (fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
   splitBtn(); pill(); rightPane(); deskBtn(); dvTag(); rail();
-  if (k === 'inner' && !first && Date.now() - flashAt < 120000 && !desk) deskOpen();   /* studying folded → the desk on the open screen */
+  if (k === 'inner' && !first) {   /* unfolding: studying folded → the desk; otherwise straight into building — the island on the left, its Builder on the right */
+    if (Date.now() - flashAt < 120000 && !desk) deskOpen();
+    else if (!desk && !document.querySelector('.dv, .pk.vl')) autoBuild();
+  }
 }
 
 /* ---------- the flashcard on show: the list studied last (GPT Study), else the first list that can play */
@@ -152,7 +155,7 @@ function relayout(){ requestAnimationFrame(function(){ try { window.dispatchEven
 /* ---------- inner screen: ▥ split — My World on the right half, the board on the left */
 function splitBtn(){
   var b = document.querySelector('.duo-split-b');
-  if (!splitFits()) { if (b) b.remove(); return; }   /* upright inner screen: one pane, no split button */
+  if (true) { if (b) b.remove(); return; }   /* no floating button any more: split from the rail, or by unfolding */
   if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'duo-split-b'; document.body.appendChild(b);
     b.addEventListener('click', toggleSplit); }
   var on = !!prefs().split; b.textContent = on ? '▣ 全屏' : '▥ 分栏'; b.setAttribute('aria-label', on ? '取消分栏' : '分栏：左边看板，右边 My World');
@@ -181,6 +184,13 @@ function rail(){
     '<button type="button" data-rail="world" class="' + (worldOpen() ? 'on' : '') + '" aria-label="My World"><i>🏝</i><small>岛屿</small></button>' +
     '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="速览"><i>⌂</i><small>速览</small></button>';
   if (r.innerHTML !== html) r.innerHTML = html;
+}
+
+function autoBuild(){
+  if (!splitFits()) return;
+  if (!prefs().split) { setPref('split', true); document.documentElement.classList.add('duo-split'); relayout(); }
+  var bid = null; try { var ab = MinestAI.board(); bid = ab && ab.id; } catch(e){}
+  setTimeout(function(){ try { if (window.MinestDuoWorld && MinestDuoWorld.buildHere) MinestDuoWorld.buildHere(bid); } catch(e){} rail(); rightPane(); }, 350);
 }
 
 /* the right half when My World is closed: a way back to it instead of an empty half */
@@ -293,7 +303,7 @@ function deskOpen(key){
 }
 function deskBtn(){
   var b = document.querySelector('.duo-desk-b');
-  if (!on || kind !== 'inner') { if (b) b.remove(); return; }
+  if (true) { if (b) b.remove(); return; }   /* no floating button any more: the desk is on the rail and in Glance */
   if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'duo-desk-b'; b.textContent = '📚 书桌'; b.setAttribute('aria-label', '学习书桌'); document.body.appendChild(b); b.addEventListener('click', function(){ deskOpen(); hap(); }); }
 }
 
