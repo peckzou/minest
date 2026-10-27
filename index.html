@@ -138708,11 +138708,11 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     var c1 = makeClown(1), c2 = makeClown(.82); [c1, c2].forEach(function (f, i) { var sd = i ? 1 : -1; f.position.set(an.x + sd * 1.2, 2.4, an.z); f.userData.home = { c: new T.Vector3(an.x + sd * 1.1, 2.3, an.z + sd * .3), r: .9 }; f.userData.mate = i ? c1 : c2; fish.push(f); tank.add(f); });   // each keeps to its own side
     [[-6, 6, -4, .6], [6, 8, -6, .55]].forEach(function (p) { var f = makeFish('tang', p[3]); f.position.set(p[0], p[1], p[2]); f.userData.zone = [1.6, 7]; f.userData.front = true; fish.push(f); tank.add(f); });
     var li = makeFish('lion', .6); li.position.set(7.8, 4.6, -5); li.userData.home = { c: new T.Vector3(7.5, 4.6, -5.5), r: 2.4 }; fish.push(li); tank.add(li);
-    school('anthias', 9, new T.Vector3(-3, 7, -4), 2.2, 1);
-    school('anthias', 6, new T.Vector3(3, 2.8, 5.5), 1.6, .85).front = true;   // a small school that stays low, in front
+    school('anthias', 5, new T.Vector3(-3, 7, -4), 2.2, 1);
+    school('anthias', 3, new T.Vector3(3, 2.8, 5.5), 1.6, .85).front = true;   // a small school that stays low, in front
     school('bait', 26, new T.Vector3(3, 11.5, -10), 2.6, 1);
     var j1 = jelly('moon', -6, 9, -2, 1.1), j2 = jelly('nettle', 4.5, 10, -6.5, .95), j3 = jelly('moon', 0, 13, -11, .7); [j1, j2, j3].forEach(function (j) { movers.push(j); tank.add(j); });
-    [turtle(), eagleRay(), puffer(), crab(), hermit(), angler()].forEach(function (m) { movers.push(m); tank.add(m); });
+    [turtle(), eagleRay(), puffer(), crab(), hermit(), angler(), gardenEel(-2.6, 7.6, 0), gardenEel(-1.4, 8.1, 2.1), upsideJelly(-5.2, 6.6), seaDragon(), littleOcto()].forEach(function (m) { movers.push(m); tank.add(m); });
     // marine snow: slow specks at every depth, the strongest depth cue there is
     var n = 420, pos = new Float32Array(n * 3); for (var i = 0; i < n; i++) { pos[i * 3] = R(-13, 13); pos[i * 3 + 1] = R(0, 18); pos[i * 3 + 2] = R(-12, 10); }
     var snowG = new T.BufferGeometry(); snowG.setAttribute('position', new T.BufferAttribute(pos, 3));
@@ -138724,6 +138724,71 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     var bub = new T.InstancedMesh(new T.SphereGeometry(.1, 8, 6), new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: .5, roughness: .05, metalness: .2 }), 45);
     bub.userData = { kind: 'bubbles', p: [] }; for (var b = 0; b < 45; b++) bub.userData.p.push({ v: [[-3.6, -2.2], [5.8, -6.5], [-8, 2]][b % 3], y: R(0, 18), s: R(.6, 1.4), sp: R(1, 1.8) });
     movers.push(bub); tank.add(bub);
+  }
+  /* a jointed chain: n segments, each a short tube from its joint to the next (eels, a sea dragon's body, tentacles) */
+  function chain(n, seg, r0, r1, mat, axis) {
+    var root = new T.Group(), joints = [], par = root;
+    for (var i = 0; i < n; i++) { var j = new T.Group(); if (i) j.position.y = seg; par.add(j); var r = lerp(r0, r1, i / Math.max(1, n - 1));
+      var c = new T.Mesh(new T.CylinderGeometry(lerp(r0, r1, (i + 1) / n), r, seg * 1.04, 8), mat); c.position.y = seg / 2; j.add(c); joints.push(j); par = j; }
+    var tipJ = new T.Group(); tipJ.position.y = seg; par.add(tipJ);
+    return { root: root, joints: joints, tip: tipJ };
+  }
+  /* garden eels: a body rising out of a burrow in the sand, swaying in the current; a tap and it slips back down */
+  function gardenEel(x, z, ph) {
+    var spots = canvasTex(64, 128, function (c, w, h) { c.fillStyle = '#f4efe2'; c.fillRect(0, 0, w, h); c.fillStyle = '#1e1a16'; for (var i = 0; i < 40; i++) { c.beginPath(); c.arc(Math.random() * w, Math.random() * h, R(1.5, 3.2), 0, TAU); c.fill(); } });
+    var mat = new T.MeshStandardMaterial({ map: spots, roughness: .5 }), g = new T.Group(); g.position.set(x, 0, z);
+    var hole = new T.Mesh(new T.CircleGeometry(.24, 16), new T.MeshBasicMaterial({ color: 0x2a2014 })); hole.rotation.x = -Math.PI / 2; hole.position.y = .06; g.add(hole);
+    var rim = new T.Mesh(new T.TorusGeometry(.3, .07, 6, 18), std('#b89a66')); rim.rotation.x = Math.PI / 2; rim.position.y = .04; g.add(rim);
+    var ch = chain(5, .24, .15, .13, mat), body = ch.root; g.add(body);   // a short peek out of the sand
+    var head = new T.Mesh(new T.SphereGeometry(.19, 16, 12), mat); head.scale.set(1.05, 1.1, 1); head.position.y = .1; ch.tip.add(head);
+    [-1, 1].forEach(function (sd) { var e = new T.Mesh(new T.SphereGeometry(.085, 12, 10), std('#0a0a0a', { roughness: .08 })); e.position.set(.11, .16, sd * .11); ch.tip.add(e); var hl = new T.Mesh(new T.SphereGeometry(.03, 8, 6), new T.MeshBasicMaterial({ color: 0xffffff })); hl.position.set(.17, .21, sd * .13); ch.tip.add(hl); });   // big shiny eyes
+    var mouth = new T.Mesh(new T.TorusGeometry(.05, .012, 4, 10, Math.PI), std('#3a2a20')); mouth.position.set(.18, .04, 0); mouth.rotation.set(0, Math.PI / 2, Math.PI); ch.tip.add(mouth);   // a little smile
+    g.userData = { kind: 'eel', ch: ch, ph: ph, out: 1, hide: 0 }; shadows(g, true, false); return g;
+  }
+  /* an upside-down jelly (Cassiopea): lies bell-down on the sand, frilly arms up, pulsing slowly */
+  function upsideJelly(x, z) {
+    var tex = canvasTex(128, 128, function (c, w, h) { c.fillStyle = '#8a7a52'; c.fillRect(0, 0, w, h); c.fillStyle = 'rgba(255,255,240,.85)'; for (var i = 0; i < 70; i++) { c.beginPath(); c.arc(Math.random() * w, Math.random() * h, R(1, 3), 0, TAU); c.fill(); } c.strokeStyle = 'rgba(60,50,30,.6)'; c.lineWidth = 2; for (var k = 0; k < 16; k++) { c.beginPath(); c.moveTo(w / 2, h / 2); c.lineTo(w / 2 + Math.cos(k / 16 * TAU) * w, h / 2 + Math.sin(k / 16 * TAU) * h); c.stroke(); } });
+    var g = new T.Group(); g.position.set(x, 0, z);
+    var bell = new T.Mesh(new T.SphereGeometry(.85, 28, 10, 0, TAU, Math.PI / 2, Math.PI / 2), new T.MeshStandardMaterial({ map: tex, roughness: .5 })); bell.scale.y = .28; bell.position.y = .26; g.add(bell);
+    var arms = new T.Group(); arms.position.y = .3; g.add(arms);
+    var lobeM = new T.MeshStandardMaterial({ map: tex, color: '#9fae7a', roughness: .6 }), tuftCols = ['#bfe6ff', '#8fd0e8', '#f2f6ff', '#6fb7c8'];
+    for (var a = 0; a < 8; a++) { var arm = new T.Group(), ang = a / 8 * TAU; arm.rotation.y = ang; arms.add(arm);
+      var lobe = new T.Mesh(new T.SphereGeometry(.22, 12, 8), lobeM); lobe.scale.set(1.9, .35, .8); lobe.position.set(.42, .12, 0); lobe.rotation.z = .35; arm.add(lobe);
+      for (var f = 0; f < 4; f++) { var tf = new T.Mesh(new T.SphereGeometry(R(.06, .09), 8, 6), std(tuftCols[(a + f) % 4], { roughness: .4, emissive: '#3a6a80', emissiveIntensity: .12 })); tf.position.set(.55 + R(-.12, .2), .26 + R(0, .08), R(-.12, .12)); arm.add(tf); } }
+    var center = new T.Mesh(new T.SphereGeometry(.2, 12, 8), std('#c9b37a')); center.scale.y = .5; center.position.y = .34; g.add(center);
+    g.userData = { kind: 'cassiopea', bell: bell, arms: arms, ph: R(0, 6) }; g.scale.setScalar(1.15); shadows(g, true, true); return g;
+  }
+  /* a leafy sea dragon: a slender body with leafy fronds and a long snout, hovering upright-ish near the kelp */
+  function seaDragon() {
+    var stripes = canvasTex(32, 64, function (c, w, h) { c.fillStyle = '#d99a3a'; c.fillRect(0, 0, w, h); c.fillStyle = '#f6dc9a'; for (var y = 0; y < h; y += 10) c.fillRect(0, y, w, 3); }), body = new T.MeshStandardMaterial({ map: stripes, roughness: .55 }), leaf = new T.MeshStandardMaterial({ color: '#c9b44a', side: T.DoubleSide, roughness: .7 });
+    var g = new T.Group(), ch = chain(12, .26, .14, .035, body); ch.root.rotation.z = Math.PI * .55; g.add(ch.root);   // the body runs from the head back to the tail
+    var head = new T.Group(); head.position.set(.15, .05, 0); g.add(head);
+    var skull = new T.Mesh(new T.SphereGeometry(.22, 14, 10), body); skull.scale.set(1.3, 1, .8); head.add(skull);
+    var snout = new T.Mesh(new T.CylinderGeometry(.035, .05, .55, 6), body); snout.rotation.z = Math.PI / 2; snout.position.x = .42; head.add(snout);
+    [-1, 1].forEach(function (sd) { var e = new T.Mesh(new T.SphereGeometry(.05, 8, 6), std('#1a120a', { roughness: .1 })); e.position.set(.08, .06, sd * .12); head.add(e); });
+    function frond(par, y, sz, rot) { var sh = new T.Shape(); sh.moveTo(0, 0); sh.quadraticCurveTo(sz * .5, sz * .25, sz, 0); sh.quadraticCurveTo(sz * .5, -sz * .25, 0, 0); var m = new T.Mesh(new T.ShapeGeometry(sh, 6), leaf); m.position.y = y; m.rotation.set(rot[0], rot[1], rot[2]); par.add(m); return m; }
+    var leaves = [];
+    ch.joints.forEach(function (j, i) { j.userData.bend = i < 3 ? .12 : i < 8 ? -.1 : .22; if (i > 10) return; var sz = (i % 2 ? .6 : .9) - i * .04; leaves.push(frond(j, .1, sz, [0, 0, .8 + (i % 3) * .2]), frond(j, .1, sz * .85, [0, Math.PI, .8]), frond(j, .14, sz * .7, [Math.PI / 2, 0, -.7]), frond(j, .14, sz * .6, [-Math.PI / 2, 0, -.7])); });   // an S-curve: neck, belly, a curled tail
+    frond(head, .12, .3, [0, 0, 1.6]); frond(head, .12, .3, [0, Math.PI, 1.6]);
+    g.position.set(-6.2, 4, 3); g.scale.setScalar(1.35);
+    g.userData = { kind: 'dragon', ch: ch, leaves: leaves, a: R(0, 6), home: g.position.clone() }; shadows(g, true, false); return g;
+  }
+  /* a small, real octopus (not Octo): a bumpy mantle, big eyes, eight curling arms; it creeps over the sand, and a tap
+     makes it blush, puff a little ink and jet away before settling again */
+  function littleOcto() {
+    var skin = std('#d0663a', { roughness: .55 }), g = new T.Group();
+    var mantle = new T.Mesh(noisy(new T.SphereGeometry(.42, 22, 16), .03, 9), skin); mantle.scale.set(.95, 1.2, .95); mantle.position.set(-.12, .62, 0); mantle.rotation.z = .45; g.add(mantle);
+    var headM = new T.Mesh(new T.SphereGeometry(.3, 18, 14), skin); headM.position.set(.12, .32, 0); g.add(headM);
+    [-1, 1].forEach(function (sd) {
+      var eb = new T.Mesh(new T.SphereGeometry(.13, 14, 10), std('#f6e6c8', { roughness: .3 })); eb.position.set(.22, .42, sd * .2); g.add(eb);
+      var pu = new T.Mesh(new T.BoxGeometry(.04, .05, .14), std('#111', { roughness: .1 })); pu.position.set(.33, .42, sd * .21); pu.rotation.y = sd * .5; g.add(pu);
+      var hl = new T.Mesh(new T.SphereGeometry(.03, 6, 5), new T.MeshBasicMaterial({ color: 0xffffff })); hl.position.set(.34, .48, sd * .18); g.add(hl);
+    });
+    var arms = [];
+    for (var i = 0; i < 8; i++) { var piv = new T.Group(), ang = i / 8 * TAU + .2; piv.position.set(.1 + Math.cos(ang) * .18, .2, Math.sin(ang) * .18); piv.rotation.y = -ang; piv.rotation.z = -1.85; g.add(piv);   // out and a little down, onto the sand
+      var ch = chain(7, .16, .07, .018, skin); piv.add(ch.root); arms.push({ ch: ch, ph: i * .8 }); }
+    g.position.set(4.2, 0, 6.6); g.scale.setScalar(.95);
+    g.userData = { kind: 'littleocto', arms: arms, skin: skin, a: R(0, 6), x: 4.2, z: 6.6, jet: 0, blush: 0, target: null }; shadows(g, true, false); return g;
   }
   function loadOcto() {
     if (!T.GLTFLoader) return;
@@ -138864,6 +138929,32 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
       u.claws.forEach(function (c, i) { var wave = !moving && i === 0 ? Math.sin(t * 3) * .35 : 0; c.arm.rotation.z = .15 + wave; c.jaw.rotation.z = -Math.abs(Math.sin(t * (moving ? 2 : 6) + i)) * .5; });
       return;
     }
+    if (u.kind === 'eel') {   // sways out of its burrow; slips down when startled, peeks back up after a while
+      if (u.hide > 0) { u.hide -= dt; u.out = Math.max(0, u.out - dt * 3); } else u.out = Math.min(1, u.out + dt * .35);
+      u.ch.root.position.y = -1.4 * (1 - u.out); u.ch.tip.rotation.z = .25 + Math.sin(t * .7 + u.ph) * .2;   // the head tilts, curious
+      u.ch.joints.forEach(function (j, i) { var k = i / u.ch.joints.length; j.rotation.z = Math.sin(t * 1.1 + u.ph + i * .45) * .1 * (.4 + k); j.rotation.x = Math.cos(t * .8 + u.ph + i * .3) * .06 * k + (i > 2 ? -.22 : 0); });
+      return;
+    }
+    if (u.kind === 'cassiopea') { var pz = 1 + Math.sin(t * 1.4 + u.ph) * .06; u.bell.scale.set(pz, .28 / pz, pz); u.arms.rotation.y = Math.sin(t * .3 + u.ph) * .2; u.arms.children.forEach(function (a, i) { a.rotation.z = Math.sin(t * 1.4 + u.ph + i) * .08; }); return; }
+    if (u.kind === 'dragon') {   // drifts slowly near the kelp, the body gently undulating, fronds trembling
+      u.a += dt * .12; m.position.set(u.home.x + Math.sin(u.a) * 1.6, u.home.y + Math.sin(u.a * 1.7) * .6, u.home.z + Math.cos(u.a * .8) * 1.2); m.rotation.y = Math.cos(u.a) > 0 ? 0 : Math.PI;
+      u.ch.joints.forEach(function (j, i) { j.rotation.z = (j.userData.bend || 0) + Math.sin(t * .9 - i * .5) * .06; });
+      u.leaves.forEach(function (l, i) { l.rotation.x += Math.sin(t * 2.2 + i) * .004; });
+      return;
+    }
+    if (u.kind === 'littleocto') {
+      if (u.jet > 0) {   // jetting away, arms trailing, then sinking back to the sand
+        u.jet -= dt; var k = u.jet / 1.6; m.position.y = Math.sin((1 - k) * Math.PI) * 2.2; u.x += u.dir * dt * 2.4; m.rotation.z = .5 * k;
+        u.arms.forEach(function (a) { a.ch.joints.forEach(function (j) { j.rotation.z = .05; j.rotation.x = 0; }); });
+      } else {   // creeps: arms curl and reach in turn
+        m.position.y = 0; m.rotation.z = 0; if (!u.target || Math.abs(u.target - u.x) < .1) u.target = R(1.5, 5.6);
+        u.dir = u.target > u.x ? 1 : -1; u.x += u.dir * dt * .3; m.rotation.y = u.dir > 0 ? 0 : Math.PI;
+        u.arms.forEach(function (a) { a.ch.joints.forEach(function (j, i) { j.rotation.z = (i < 2 ? .1 : i < 4 ? .02 : .35) + Math.sin(t * 2.4 + a.ph - i * .6) * .12; j.rotation.x = Math.sin(t * 1.3 + a.ph + i) * .1; }); });   // lying on the sand, the tips curl up
+      }
+      u.x = clamp(u.x, 1, 6); m.position.x = u.x; m.position.z = u.z;
+      u.blush = Math.max(0, u.blush - dt * .4); u.skin.color.setHex(0xe0521f).lerp(new T.Color(0x9a1c0c), u.blush).lerp(new T.Color(0xf07a3a), Math.max(0, Math.sin(t * .4)) * .2);
+      return;
+    }
     if (u.kind === 'hermit') { u.a += dt * .06; m.position.x = -1 + Math.sin(u.a) * 2.5; m.rotation.y = Math.cos(u.a) > 0 ? 0 : Math.PI; return; }
     if (u.kind === 'angler') { u.a += dt; u.light.intensity = .7 + Math.sin(u.a * 2.3) * .3; m.position.y = 1.2 + Math.sin(u.a * .5) * .2; return; }
   }
@@ -138976,6 +139067,10 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     return best || { x: innerWidth / 2, y: innerHeight / 2 };
   }
   function hearts(p, n) { for (var i = 0; i < n; i++) { var e = document.createElement('span'); e.className = 'maq-fx'; e.textContent = ['💗', '💕', '💖'][i % 3]; e.style.left = (p.x + R(-30, 30)) + 'px'; e.style.top = (p.y + R(-20, 10)) + 'px'; e.style.animationDelay = (i * .12) + 's'; root.appendChild(e); setTimeout(function (x) { return function () { x.remove(); }; }(e), 1800); } }
+  function ink(at) {   // a little puff of ink that spreads and fades
+    var m = new T.Mesh(new T.SphereGeometry(.3, 12, 10), new T.MeshBasicMaterial({ color: 0x1a1420, transparent: true, opacity: .6, depthWrite: false })); m.position.copy(at); tank.add(m); var t0 = performance.now();
+    (function grow() { var k = (performance.now() - t0) / 1800; if (k >= 1 || !m.parent) { if (m.parent) m.parent.remove(m); return; } m.scale.setScalar(1 + k * 4); m.material.opacity = .6 * (1 - k); requestAnimationFrame(grow); })();
+  }
   function zzz(top) { var p = toScreen(top), e = document.createElement('span'); e.className = 'maq-fx z'; e.textContent = 'z'; e.style.left = p.x + 'px'; e.style.top = p.y + 'px'; root.appendChild(e); setTimeout(function () { e.remove(); }, 2200); }
   var toastT = 0;
   function toast(msg) { var el = root.querySelector('.maq-toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { el.classList.remove('on'); }, 2600); }
@@ -139029,6 +139124,8 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     showBar(); if (petMode) return onMove(e);
     // things that are small on the glass are found by their place on screen, not only by the ray
     var pf = tappable[0]; if (pf && near(pf, 60, e)) { pf.userData.puffT = 2.4; buzz(); return; }
+    var eel = movers.find(function (m) { return m.userData.kind === 'eel' && near(m, 60, e); }); if (eel) { eel.userData.hide = R(3, 5); buzz(); return; }
+    var lo = movers.find(function (m) { return m.userData.kind === 'littleocto' && near(m, 60, e); }); if (lo && !(lo.userData.jet > 0)) { var lu = lo.userData; lu.jet = 1.6; lu.blush = 1; lu.dir = lu.x > 3.5 ? -1 : 1; ink(lo.position.clone().add(new T.Vector3(0, .5, 0))); buzz(); return; }
     var toy = toys.find(function (b) { return near(b, 44, e); }); if (toy) { tank.remove(toy); var n = toy.userData.gold ? 3 : 1; careAdd({ fun: 4 * n, bond: .3 * n }); hearts(toScreen(toy.position), n); buzz(); return; }
     if (OC.mode === 'home' && near(tank.userData.house.g, 90, e)) { wake(); drawBar(); return; }
     if (near(tank.userData.house.g, 70, e)) { goHome(); drawBar(); return; }
@@ -139095,7 +139192,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
   addEventListener('hashchange', function () { if (location.hash === '#aquarium') open(); });
   if (location.hash === '#aquarium') setTimeout(open, 1200);
   window.MinestAquarium = { open: open, close: close, isOpen: function () { return !!root; }, layout: layout,
-    _look: function (from, at) { var c = cams[0] && cams[0].cam; if (!c) return; c.position.set(from[0], from[1], from[2]); c.lookAt(at[0], at[1], at[2]); eyeW = c.position.clone(); } };   // a close look while tuning
+    _look: function (from, at) { var c = cams[0] && cams[0].cam; if (!c) return; if (typeof from === 'string') { var m = movers.find(function (x) { return x.userData.kind === from; }); if (!m) return; var w = m.getWorldPosition(new T.Vector3()); at = [w.x, w.y + .3, w.z]; from = [w.x, w.y + 1.6, w.z + 3.4]; } c.position.set(from[0], from[1], from[2]); c.lookAt(at[0], at[1], at[2]); eyeW = c.position.clone(); } };   // a close look while tuning
 })();
 
 </script>
