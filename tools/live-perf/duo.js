@@ -26,10 +26,17 @@ function posture(){ var h = window.__minestHinge; if (h && h.status === 'partial
    screen is 466 × 678 — almost as square, so the size decides: the inner one is the only one with a short side ≥ 600 */
 function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 600 && mx / mn < 1.6 ? 'inner' : 'outer'; }
 /* two panes need room: the inner screen held upright (466 wide) stays one pane, turned (678+) it can split */
-function splitFits(){ return kind === 'inner' && innerWidth >= 640; }
+function tall(){ return innerHeight > innerWidth; }
+/* held upright the hinge runs across: the two panes go top | bottom (each needs 640 pt along the long side) */
+function splitFits(){ return kind === 'inner' && (tall() ? innerHeight >= 640 : innerWidth >= 640); }
+function markTall(){
+  var R = document.documentElement, v = kind === 'inner' && tall();
+  if (R.classList.contains('duo-tall') !== v) { R.classList.toggle('duo-tall', v); relayout(); }
+  var m = document.querySelector('#root main'); if (m) R.style.setProperty('--duo-mt', Math.round(m.getBoundingClientRect().top) + 'px');
+}
 var lastFit = null;
 function apply(){
-  var k = screenKind(), changed = k !== kind; kind = k; var fit = splitFits();
+  var k = screenKind(), changed = k !== kind; kind = k; var fit = splitFits(); markTall();
   if (!changed && fit === lastFit) return; lastFit = fit;
   var r = document.documentElement;
   if (!changed) { var w0 = r.classList.contains('duo-split'); r.classList.toggle('duo-split', fit && !!prefs().split); if (w0 !== r.classList.contains('duo-split')) relayout(); splitBtn(); rightPane(); if (fit && prefs().split) openWorld(); return; }
@@ -62,6 +69,7 @@ function onUnfold(){
   twoPane();
 }
 function twoPane(){
+  dlog('twoPane desk=' + !!desk + ' dv=' + !!document.querySelector('.dv') + ' vl=' + !!document.querySelector('.pk.vl') + ' world=' + worldOpen() + ' dsp=' + !!document.querySelector('.mn-dsp'));
   if (desk || document.querySelector('.dv, .pk.vl')) return;
   if (worldOpen() || document.querySelector('.mn-dsp')) return autoBuild();
   try { if (MinestAI.viewMode && MinestAI.viewMode() !== 'board') MinestAI.setViewMode('board'); } catch(e){}
@@ -183,10 +191,13 @@ function splitBtn(){
    panes for what you are in — My World: island | Builder, the board: board | 3D Cover; opening it flat again goes back to
    full screen if the fold had made the panes */
 var byHinge = false, hingeStatus = '';
+/* a short log of what Duo saw and did (localStorage 'minest.duo.log', last 40) — read on the device to see why a fold did nothing */
+function dlog(m){ try { var L = JSON.parse(localStorage.getItem('minest.duo.log') || '[]'); L.push(new Date().toTimeString().slice(0, 8) + ' ' + m); localStorage.setItem('minest.duo.log', JSON.stringify(L.slice(-40))); } catch(e){} }
 function hingeKnown(){ try { return localStorage.getItem('minest.duo.hinge') === '1'; } catch(e){ return false; } }
 function onHinge(h){
   try { localStorage.setItem('minest.duo.hinge', '1'); } catch(e){}
   var st = h && h.status || ''; if (st === hingeStatus) return; var was = hingeStatus; hingeStatus = st;
+  dlog('hinge ' + (was || '-') + '→' + (st || 'none') + ' kind=' + kind + ' ' + innerWidth + 'x' + innerHeight + ' world=' + worldOpen() + ' dsp=' + !!document.querySelector('.mn-dsp'));
   document.documentElement.classList.toggle('duo-halfopen', st === 'partial');
   if (!on) return;
   apply();
@@ -255,11 +266,11 @@ function rail(){
 }
 
 function autoBuild(){
-  if (!splitFits()) return;
+  if (!splitFits()) { dlog('autoBuild: no room ' + innerWidth); return; }
   coverOn(false);
   if (!prefs().split) { setPref('split', true); document.documentElement.classList.add('duo-split'); relayout(); }
   var bid = null; try { bid = (window.MinestDuoWorld && MinestDuoWorld.board && MinestDuoWorld.board()) || (MinestAI.board() || {}).id; } catch(e){}
-  setTimeout(function(){ try { if (window.MinestDuoWorld && MinestDuoWorld.buildHere) MinestDuoWorld.buildHere(bid); } catch(e){} rail(); rightPane(); }, 350);
+  setTimeout(function(){ var ok = 'n/a'; try { if (window.MinestDuoWorld && MinestDuoWorld.buildHere) ok = MinestDuoWorld.buildHere(bid); } catch(e){ ok = 'error ' + e.message; } dlog('autoBuild bid=' + bid + ' → ' + ok + ' lib=' + !!document.querySelector('.duo-lib')); rail(); rightPane(); }, 350);
 }
 
 /* the right half when My World is closed: a way back to it instead of an empty half */
