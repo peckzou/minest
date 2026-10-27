@@ -59,6 +59,26 @@ public struct StudyActivityAttributes: ActivityAttributes {
         }
     }
 
+    /// Car flashcard (CarPlay Dashboard / Lock Screen): one English word at a time.
+    /// The Minest app advances it while it is open; the Pause / Resume button runs CarFlashToggleIntent.
+    public struct CarFlashState: Codable, Hashable {
+        public var word: String
+        public var index: Int        // 0-based position in the list
+        public var total: Int
+        public var paused: Bool
+        public var listName: String
+        public var interval: Int     // seconds per word
+
+        public init(word: String, index: Int, total: Int, paused: Bool, listName: String, interval: Int) {
+            self.word = word
+            self.index = index
+            self.total = total
+            self.paused = paused
+            self.listName = listName
+            self.interval = interval
+        }
+    }
+
     public struct ContentState: Codable, Hashable {
         public var completedCount: Int       // e.g. 3 (checklist) or 7 (flashcard)
         public var totalCount: Int           // e.g. 5 (checklist) or 20 (flashcard)
@@ -70,6 +90,7 @@ public struct StudyActivityAttributes: ActivityAttributes {
         public var items: [ChecklistItemState] // Interactive checklist items
         public var rings: RingsSnapshot?     // Optional so older activity payloads still decode
         public var timer: FocusTimerState?
+        public var carFlash: CarFlashState?  // set while the car flashcard plays (mode "carflash"); nil = rings as usual
         
         public var progress: Double {
             guard totalCount > 0 else { return 0 }

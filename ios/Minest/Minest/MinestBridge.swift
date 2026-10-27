@@ -3,6 +3,7 @@ import WebKit
 import UIKit
 import WidgetKit
 import AuthenticationServices
+import AVFoundation
 
 /// Enhanced Swift Bridge connecting WKWebView JS to native iOS capabilities
 public final class MinestBridge: NSObject, WKScriptMessageHandler {
@@ -13,6 +14,9 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
     public override init() {
         super.init()
         NativeMotionManager.shared.bridge = self
+        NativeARFaceTrackingManager.shared.bridge = self
+        NativeSpeechRecognitionManager.shared.bridge = self
+        NativeSpeechSynthesisManager.shared.bridge = self
     }
     
     public func userContentController(
@@ -44,6 +48,8 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
     }
     
     private func handleAction(_ action: String, data: [String: Any]) {
+        if CarFlashController.shared.handle(action, data: data, bridge: self) { return }   // car flashcard (CarPlay)
+        if StandController.handle(action, data: data) { return }   // Stand Mode snapshot for the StandBy widgets
         let boardTitle = data["boardTitle"] as? String ?? "Minest"
         let totalCards = data["totalCards"] as? Int ?? (data["totalCount"] as? Int ?? 20)
         let completedCards = data["completedCards"] as? Int ?? (data["completedCount"] as? Int ?? 0)
@@ -98,6 +104,15 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
                 } else {
                     NativeSoundAndHaptics.shared.playChecklistTick(isDone: isDone)
                 }
+                // Share the existing completion event with the single app-wide
+                // Mini Pet runtime. No second reward or progression state is kept.
+                if isDone {
+                    NotificationCenter.default.post(
+                        name: .minestPetRewardEvent,
+                        object: nil,
+                        userInfo: ["kind": isAllDone ? "goal" : "task"]
+                    )
+                }
             }
             iPhoneWatchSyncManager.shared.syncToWatch()
             
@@ -123,6 +138,7 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
         case "studyFinished":
             LiveActivityManager.shared.endStudySession(dismissImmediately: false)
             NativeSoundAndHaptics.shared.playCelebration()
+            NotificationCenter.default.post(name: .minestPetRewardEvent, object: nil, userInfo: ["kind": "goal"])
             
         case "studyPaused":
             LiveActivityManager.shared.updateProgress(
@@ -138,6 +154,9 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
         // =====================================================================
         // Audio & Haptic Feedback Engine
         // =====================================================================
+        case "setOrientation":   // 53.6: the island view is landscape
+            MinestOrientation.set(data["orientation"] as? String ?? "auto")
+
         case "triggerHaptic", "haptic":
             let style = data["style"] as? String ?? "light"
             let sound = (data["sound"] as? Bool) ?? false
@@ -304,6 +323,9 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
         case "updateBadgeWall":
             if let ids = data["unlockedIds"] as? [String] {
                 iPhoneWatchSyncManager.shared.pushBadgeWallToWatch(unlockedIds: ids)
+                if !ids.isEmpty {
+                    NotificationCenter.default.post(name: .minestPetRewardEvent, object: nil, userInfo: ["kind": "goal"])
+                }
             }
 
         case "selectBoard":
@@ -315,7 +337,59 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
             if let listId = data["listId"] as? String {
                 iPhoneWatchSyncManager.shared.setSelectedList(listId)
             }
+
+        // =====================================================================
+        // Octopus Copy Cat / ARKit Face Tracking
+        // =====================================================================
+        case "startARFaceTracking":
+            NativeARFaceTrackingManager.shared.startTracking()
+
+        case "stopARFaceTracking":
+            NativeARFaceTrackingManager.shared.stopTracking()
             
+        case "requestMicrophonePermission":
+            let session = AVAudioSession.sharedInstance()
+            do {
+                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])   // 44.4: same mode as native TTS (switching modes clicked)
+                try session.setActive(true)
+            } catch {
+                print("⚠️ [MinestBridge] AVAudioSession category configuration error: \(error)")
+            }
+            if #available(iOS 17.0, *) {
+                AVAudioApplication.requestRecordPermission { [weak self] granted in
+                    DispatchQueue.main.async {
+                        self?.sendEventToWeb(event: "microphonePermissionResponse", payload: ["granted": granted])
+                    }
+                }
+            } else {
+                session.requestRecordPermission { [weak self] granted in
+                    DispatchQueue.main.async {
+                        self?.sendEventToWeb(event: "microphonePermissionResponse", payload: ["granted": granted])
+                    }
+                }
+            }
+
+        case "startSpeechRecognition":
+            NativeSpeechRecognitionManager.shared.startRecognition()
+
+        case "stopSpeechRecognition":
+            NativeSpeechRecognitionManager.shared.stopRecognition()
+
+        // 44.4: native text-to-speech for the voice orb (the web view's speechSynthesis can be silent)
+        case "speakText":
+            let text = data["text"] as? String ?? ""
+            if !text.isEmpty {
+                NativeSpeechSynthesisManager.shared.speak(
+                    text: text,
+                    lang: data["lang"] as? String ?? "zh-CN",
+                    rate: (data["rate"] as? NSNumber)?.doubleValue ?? 1.0,
+                    id: data["id"] as? String ?? ""
+                )
+            }
+
+        case "stopSpeaking":
+            NativeSpeechSynthesisManager.shared.stop()
+
         default:
             print("ℹ️ [MinestBridge] Unhandled action: \(action)")
         }
@@ -496,6 +570,21 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
         """
         webView?.evaluateJavaScript(js, completionHandler: nil)
     }
+
+    /// Dispatch real-time ARKit blendshapes & head pose to WebKit window.__onARKitFaceData
+    public func dispatchARKitFaceFrame(_ payload: [String: Any]) {
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+              let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+        
+        let js = """
+        (function() {
+            if (typeof window.__onARKitFaceData === 'function') {
+                window.__onARKitFaceData(\(jsonString));
+            }
+        })();
+        """
+        webView?.evaluateJavaScript(js, completionHandler: nil)
+    }
 }
 
 extension MinestBridge: ASWebAuthenticationPresentationContextProviding {
@@ -504,5 +593,9 @@ extension MinestBridge: ASWebAuthenticationPresentationContextProviding {
             .compactMap { ($0 as? UIWindowScene)?.keyWindow }
             .first ?? ASPresentationAnchor()
     }
+}
+
+extension Notification.Name {
+    static let minestPetRewardEvent = Notification.Name("MinestPetRewardEventP0")
 }
 

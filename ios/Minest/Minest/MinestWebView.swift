@@ -50,6 +50,11 @@ public struct MinestWebView: UIViewRepresentable {
         window.__isMinestNative = true;
         window.__isFocusboardNative = true;
         window.__minestAppVersion = '18.0';
+        try {
+            if (!localStorage.getItem('minest_ai_token')) {
+                localStorage.setItem('minest_ai_token', '20RhO5zgYapOWCyaL2pm_o1z');
+            }
+        } catch(e) {}
         
         // Disable viewport pinch zoom for native app feel
         document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
@@ -64,6 +69,9 @@ public struct MinestWebView: UIViewRepresentable {
             },
             haptic: function(style, sound) {
                 this.send('triggerHaptic', { style: style || 'light', sound: !!sound });
+            },
+            requestMicrophonePermission: function() {
+                this.send('requestMicrophonePermission');
             },
             cardAction: function(subAction, data) {
                 this.send('cardAction', Object.assign({ subAction: subAction }, data || {}));
@@ -199,6 +207,12 @@ public struct MinestWebView: UIViewRepresentable {
                         banner.style.transform = 'translateX(-50%) translateY(-16px) scale(0.92)';
                     }, 2200);
                 });
+            },
+            startSpeechRecognition: function() {
+                callBridge('startSpeechRecognition');
+            },
+            stopSpeechRecognition: function() {
+                callBridge('stopSpeechRecognition');
             }
         };
 
@@ -382,8 +396,6 @@ public struct MinestWebView: UIViewRepresentable {
             decisionHandler(.grant)
         }
 
-        // 41.4: pronunciation scoring records while the mic button is held. iOS still asks the
-        // user once (NSMicrophoneUsageDescription); this only skips WebKit's second prompt.
         @available(iOS 15.0, *)
         public func webView(
             _ webView: WKWebView,
@@ -392,7 +404,8 @@ public struct MinestWebView: UIViewRepresentable {
             type: WKMediaCaptureType,
             decisionHandler: @escaping (WKPermissionDecision) -> Void
         ) {
-            decisionHandler(type == .microphone ? .grant : .prompt)
+            print("🎙️ [MinestWebView] WebKit requested media capture permission for: \(type.rawValue)")
+            decisionHandler(.grant)
         }
 
         public func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
@@ -414,6 +427,41 @@ public struct MinestWebView: UIViewRepresentable {
 
 // MARK: - Custom WKWebView with Safe Area Injection
 public final class CustomWKWebView: WKWebView {
+    // 53.85 Duo: the hinge of a folding iPhone (iOS 27.1 UIHingeInteraction) → the page, as
+    // window.__minestHinge = {status, angle} and a 'minest:hinge' event. "partial" = opened flat, then folded a little.
+    private var hingeObserved = false
+    private var hingeState = "null"   // the last state as a JS literal, replayed so a page that loads later still gets it
+    public override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard !hingeObserved, window != nil else { return }
+        if #available(iOS 27.1, *) {
+            hingeObserved = true
+            let interaction = UIHingeInteraction { [weak self] _, update in
+                guard let self else { return }
+                var lit = "null"
+                if let hinge = update.hinge {
+                    let st: String
+                    switch hinge.status {
+                    case .closed: st = "closed"
+                    case .partiallyOpen: st = "partial"
+                    case .fullyOpen: st = "open"
+                    default: st = "unknown"
+                    }
+                    lit = "{status:'\(st)',angle:\(Double(hinge.angle))}"
+                }
+                self.hingeState = lit
+                self.sendHinge()
+            }
+            addInteraction(interaction)
+        }
+    }
+
+    /// Hands the hinge state to the page; only fires the event when the page does not have this state yet.
+    private func sendHinge() {
+        let js = "(function(){var h=\(hingeState),o=window.__minestHinge;if(JSON.stringify(o||null)===JSON.stringify(h))return;window.__minestHinge=h;window.dispatchEvent(new CustomEvent('minest:hinge',{detail:h}));})();"
+        evaluateJavaScript(js, completionHandler: nil)
+    }
+
     public override func safeAreaInsetsDidChange() {
         super.safeAreaInsetsDidChange()
         injectSafeAreaInsets()
@@ -425,6 +473,7 @@ public final class CustomWKWebView: WKWebView {
     }
     
     public func injectSafeAreaInsets() {
+        if hingeObserved { sendHinge() }   // a page that loaded after the first hinge update gets it now
         let insets = self.safeAreaInsets
         let js = """
         (function() {

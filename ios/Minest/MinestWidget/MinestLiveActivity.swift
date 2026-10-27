@@ -8,11 +8,24 @@ public struct MinestLiveActivityWidget: Widget {
     public init() {}
     
     public var body: some WidgetConfiguration {
+        // .small: CarPlay Dashboard (iOS 26+) and the Apple Watch Smart Stack draw the small layout
+        Self.withSmallFamily(configuration)
+    }
+
+    private static func withSmallFamily<C: WidgetConfiguration>(_ c: C) -> some WidgetConfiguration {
+        if #available(iOS 18.0, *) {
+            return c.supplementalActivityFamilies([.small])
+        } else {
+            return c
+        }
+    }
+
+    private var configuration: some WidgetConfiguration {
         ActivityConfiguration(for: StudyActivityAttributes.self) { context in
             // =================================================================
-            // Lock Screen / Notification Center Banner
+            // Lock Screen / Notification Center Banner (medium) · CarPlay / Smart Stack (small)
             // =================================================================
-            StudyLockScreenBannerView(context: context)
+            LiveActivityRootView(context: context)
                 .activityBackgroundTint(Color.black.opacity(0.85))
                 .activitySystemActionForegroundColor(Color.white)
         } dynamicIsland: { context in
@@ -22,18 +35,26 @@ public struct MinestLiveActivityWidget: Widget {
             DynamicIsland {
                 // Expanded (pull-down): rings + detail · full list name · focus timer
                 DynamicIslandExpandedRegion(.leading) {
-                    LiveThreeRings(rings: context.state.rings, lineWidth: 4.4, strikeFontSize: 15)
-                        .frame(width: 50, height: 50)
-                        .padding(.leading, 6)
+                    if context.state.carFlash == nil {
+                        LiveThreeRings(rings: context.state.rings, lineWidth: 4.4, strikeFontSize: 15)
+                            .frame(width: 50, height: 50)
+                            .padding(.leading, 6)
+                    }
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    IslandRingsDetail(rings: context.state.rings)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing, 6)
+                    if context.state.carFlash == nil {
+                        IslandRingsDetail(rings: context.state.rings)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(.trailing, 6)
+                    }
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
+                    if let flash = context.state.carFlash {
+                        CarFlashCardView(flash: flash, wordSize: 34, buttonSize: 15)
+                            .padding(.horizontal, 8)
+                    } else {
                     VStack(alignment: .leading, spacing: 4) {
                         // Full list name lives here (the compact island only shows ≤5 letters)
                         Text(context.state.cardTitle.isEmpty ? context.attributes.boardTitle : context.state.cardTitle)
@@ -46,10 +67,20 @@ public struct MinestLiveActivityWidget: Widget {
                     }
                     .padding(.horizontal, 8)
                     .padding(.bottom, 2)
+                    }
                 }
             } compactLeading: {
+                if let flash = context.state.carFlash {
+                    // the current word, shrunk to fit the island's left side
+                    Text(flash.word)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .frame(maxWidth: 64, alignment: .leading)
+                        .padding(.leading, 4)
                 // While a focus timer is running/paused the time replaces the short title
-                if let timer = context.state.timer, timer.stoppedSeconds == nil {
+                } else if let timer = context.state.timer, timer.stoppedSeconds == nil {
                     Group {
                         if let since = timer.runningSince {
                             Text(since.addingTimeInterval(-timer.accumulated), style: .timer)
@@ -74,15 +105,141 @@ public struct MinestLiveActivityWidget: Widget {
                         .padding(.leading, 4)
                 }
             } compactTrailing: {
+                if let flash = context.state.carFlash {
+                    Image(systemName: flash.paused ? "pause.fill" : "play.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(flash.paused ? .orange : Color(red: 93/255, green: 220/255, blue: 229/255))
+                        .padding(.trailing, 4)
+                } else {
                 // Live Three Rings with Strike days in the centre
                 LiveThreeRings(rings: context.state.rings, lineWidth: 1.8, strikeFontSize: 7.5)
                     .frame(width: 24, height: 24)
                     .padding(.trailing, 2)
+                }
             } minimal: {
                 LiveThreeRings(rings: context.state.rings, lineWidth: 1.45, strikeFontSize: 6.5)
                     .frame(width: 21, height: 21)
             }
         }
+    }
+}
+
+// =============================================================================
+// Which layout: medium = Lock Screen banner · small = CarPlay Dashboard / Smart Stack
+// =============================================================================
+private struct LiveActivityRootView: View {
+    let context: ActivityViewContext<StudyActivityAttributes>
+
+    var body: some View {
+        if #available(iOS 18.0, *) {
+            FamilyRootView(context: context)
+        } else {
+            MediumRootView(context: context)
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct FamilyRootView: View {
+    let context: ActivityViewContext<StudyActivityAttributes>
+    @Environment(\.activityFamily) private var family
+
+    var body: some View {
+        switch family {
+        case .small:
+            if let flash = context.state.carFlash {
+                CarFlashSmallView(flash: flash)
+            } else {
+                SmallRingsView(context: context)
+            }
+        default:
+            MediumRootView(context: context)
+        }
+    }
+}
+
+private struct MediumRootView: View {
+    let context: ActivityViewContext<StudyActivityAttributes>
+
+    var body: some View {
+        if let flash = context.state.carFlash {
+            CarFlashCardView(flash: flash, wordSize: 44, buttonSize: 17)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+        } else {
+            StudyLockScreenBannerView(context: context)
+        }
+    }
+}
+
+// =============================================================================
+// Car flashcard: one big English word, nothing else (no buttons on the Live Activity; Pause / Next live on the
+// CarPlay widget, the phone panel and Siri). A small "PAUSED" tag shows while it is paused.
+// =============================================================================
+struct CarFlashCardView: View {
+    let flash: StudyActivityAttributes.CarFlashState
+    let wordSize: CGFloat
+    let buttonSize: CGFloat
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(flash.word.uppercased())
+                .font(.system(size: wordSize, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.25)      // long words shrink instead of being cut off
+                .allowsTightening(true)
+                .frame(maxWidth: .infinity)
+                .contentTransition(.opacity)
+            if flash.paused {
+                Text("⏸ PAUSED")
+                    .font(.system(size: buttonSize * 0.75, weight: .bold, design: .rounded))
+                    .foregroundColor(.orange)
+            }
+        }
+    }
+}
+
+/// CarPlay Dashboard / Smart Stack: the word takes the whole card (two lines at most, shrinks, never cut off).
+private struct CarFlashSmallView: View {
+    let flash: StudyActivityAttributes.CarFlashState
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(flash.word.uppercased())
+                .font(.system(size: 34, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.3)
+                .allowsTightening(true)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .contentTransition(.opacity)
+            if flash.paused {
+                Image(systemName: "pause.fill").font(.system(size: 12, weight: .bold)).foregroundColor(.orange)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+}
+
+/// The Three Rings in the small layout (CarPlay / Smart Stack) when no flashcard plays
+private struct SmallRingsView: View {
+    let context: ActivityViewContext<StudyActivityAttributes>
+
+    var body: some View {
+        HStack(spacing: 10) {
+            LiveThreeRings(rings: context.state.rings, lineWidth: 4.2, strikeFontSize: 14)
+                .frame(width: 48, height: 48)
+            Text(context.state.cardTitle.isEmpty ? context.attributes.boardTitle : context.state.cardTitle)
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+            Spacer(minLength: 0)
+        }
+        .padding(10)
     }
 }
 
