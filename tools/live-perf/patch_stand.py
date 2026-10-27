@@ -1,4 +1,4 @@
-"""Stand Mode V1.0 (Octo Clock + My Collection Showcase): stand.css + stand.js go into the live page and its copies.
+"""Stand Mode V1.0 (Octo Clock + My Collection Showcase) and the Duo Aquarium: stand.css/aquarium.css + stand.js/aquarium.js go into the live page and its copies.
 Re-running replaces the blocks with the current files. Run after patch_duo.py (which rewrites the copies too)."""
 from pathlib import Path
 import shutil
@@ -17,7 +17,9 @@ def block(s, tag, body):
     k = s.rindex('</body>')
     return s[:k] + new + s[k:]
 
-css, js = (HERE / 'stand.css').read_text(encoding='utf-8'), (HERE / 'stand.js').read_text(encoding='utf-8')
+# Duo Aquarium (aquarium.js / aquarium.css) rides along in the same two blocks
+css = (HERE / 'stand.css').read_text(encoding='utf-8') + '\n' + (HERE / 'aquarium.css').read_text(encoding='utf-8')
+js = (HERE / 'stand.js').read_text(encoding='utf-8') + '\n' + (HERE / 'aquarium.js').read_text(encoding='utf-8')
 s = block(block(s, 'style', css), 'script', js)
 SRC.write_text(s, encoding='utf-8')
 for c in COPIES[:-1]: shutil.copyfile(SRC, ROOT / c)
