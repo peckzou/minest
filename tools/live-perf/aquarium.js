@@ -208,7 +208,7 @@
     house.position.set(7.2, 0, 3.6); house.rotation.y = -.55; shadows(house, true, true); g.add(house);
     house.updateMatrix(); g.userData.house = { g: house, win: win, glow: glow, door: new T.Vector3(0, .75, 2.14).applyMatrix4(house.matrix), front: new T.Vector3(0, 1.4, 4.2).applyMatrix4(house.matrix), top: new T.Vector3(0, 2.4, 0).applyMatrix4(house.matrix) };
     // the anemone the clownfish live in: a column and a crown of tentacles that wave
-    var anem = new T.Group(); anem.position.set(2.2, 0, 2); var col = new T.Mesh(new T.CylinderGeometry(.75, .95, .9, 18), std('#b9476a')); col.position.y = .45; anem.add(col);
+    var anem = new T.Group(); anem.position.set(1.2, 0, 5.4); /* front and low: the lower screen has life too */ var col = new T.Mesh(new T.CylinderGeometry(.75, .95, .9, 18), std('#b9476a')); col.position.y = .45; anem.add(col);
     for (var a = 0; a < 34; a++) { var ang = a / 34 * TAU * 3.1, rr = .2 + (a / 34) * .62, tent = new T.Group(); tent.position.set(Math.cos(ang) * rr, .9, Math.sin(ang) * rr);
       var tg = new T.Mesh(new T.CylinderGeometry(.045, .075, 1.1, 5), std('#f6a7c1', { roughness: .5 })); tg.position.y = .55; tent.add(tg);
       tent.rotation.x = Math.sin(ang) * rr * .9; tent.rotation.z = -Math.cos(ang) * rr * .9; tent.userData.sway = { a: .22, f: 1.3, ph: ang, base: tent.rotation.clone() }; swayers.push(tent); anem.add(tent); }
@@ -264,7 +264,7 @@
     var spines = new T.Group(); for (var i = 0; i < 46; i++) { var v = new T.Vector3(R(-1, 1), R(-1, 1), R(-1, 1)).normalize(), sp = new T.Mesh(new T.ConeGeometry(.05, .35, 4), std('#efe4c0')); sp.position.copy(v); sp.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), v); spines.add(sp); } spines.scale.setScalar(.001); pf.add(spines);
     [-1, 1].forEach(function (sd) { var e = new T.Mesh(new T.SphereGeometry(.16, 10, 8), std('#0a0a0a', { roughness: .15 })); e.position.set(.95, .3, sd * .42); pf.add(e); });
     var tail = new T.Mesh(finShape([[0, 0], [-.6, .35], [-.6, -.35]]), new T.MeshStandardMaterial({ color: '#d9c27a', side: T.DoubleSide, transparent: true, opacity: .85 })); tail.position.x = -1.2; pf.add(tail);
-    pf.position.set(5.5, 3.6, -1); pf.scale.setScalar(.9);
+    pf.position.set(-3.6, 2.4, 5.2); pf.scale.setScalar(.9);
     pf.userData = { kind: 'puffer', body: body, spines: spines, inflate: 0, tail: tail, home: pf.position.clone(), a: 0 }; shadows(pf, true, false); tappable.push(pf); return pf;
   }
   function crab() {
@@ -300,9 +300,10 @@
   function populate() {
     var an = tank.userData.anemone;
     var c1 = makeClown(1), c2 = makeClown(.82); [c1, c2].forEach(function (f, i) { var sd = i ? 1 : -1; f.position.set(an.x + sd * 1.2, 2.4, an.z); f.userData.home = { c: new T.Vector3(an.x + sd * 1.1, 2.3, an.z + sd * .3), r: .9 }; f.userData.mate = i ? c1 : c2; fish.push(f); tank.add(f); });   // each keeps to its own side
-    [[-6, 6, -4, .6], [6, 8, -6, .55]].forEach(function (p) { var f = makeFish('tang', p[3]); f.position.set(p[0], p[1], p[2]); f.userData.zone = [3.5, 11]; fish.push(f); tank.add(f); });
+    [[-6, 6, -4, .6], [6, 8, -6, .55]].forEach(function (p) { var f = makeFish('tang', p[3]); f.position.set(p[0], p[1], p[2]); f.userData.zone = [1.6, 7]; f.userData.front = true; fish.push(f); tank.add(f); });
     var li = makeFish('lion', .6); li.position.set(7.8, 4.6, -5); li.userData.home = { c: new T.Vector3(7.5, 4.6, -5.5), r: 2.4 }; fish.push(li); tank.add(li);
     school('anthias', 9, new T.Vector3(-3, 7, -4), 2.2, 1);
+    school('anthias', 6, new T.Vector3(3, 2.8, 5.5), 1.6, .85).front = true;   // a small school that stays low, in front
     school('bait', 26, new T.Vector3(3, 11.5, -10), 2.6, 1);
     var j1 = jelly('moon', -6, 9, -2, 1.1), j2 = jelly('nettle', 4.5, 10, -6.5, .95), j3 = jelly('moon', 0, 13, -11, .7); [j1, j2, j3].forEach(function (j) { movers.push(j); tank.add(j); });
     [turtle(), eagleRay(), puffer(), crab(), hermit(), angler()].forEach(function (m) { movers.push(m); tank.add(m); });
@@ -351,7 +352,7 @@
     var L = layout(), w = innerWidth, h = innerHeight;
     cams = [];
     if (L.kind === 'single' || !SPLIT_WINDOWS) {
-      var c = new T.PerspectiveCamera(w > h ? 46 : 60, w / h, .5, 200); c.position.set(0, w > h ? 8 : 10.5, w > h ? 24 : 25); c.lookAt(0, w > h ? 5 : 4.6, -2);   // a slanted look into the tank, not from above
+      var c = new T.PerspectiveCamera(w > h ? 46 : 60, w / h, .5, 200); c.position.set(0, w > h ? 8 : 9.5, w > h ? 24 : 24); c.lookAt(0, w > h ? 5 : 5.4, -1);   // a slanted look into the tank, not from above
       cams.push({ cam: c, vp: [0, 0, w, h] }); eyeW = c.position.clone();
       tank.position.set(0, 0, 0); tank.scale.setScalar(1);
     } else if (L.kind === 'tall') {
@@ -397,7 +398,7 @@
       u.food = null; u.retarget -= dt;
       if (!u.target || u.retarget <= 0 || f.position.distanceTo(u.target) < u.L * 1.2) {
         if (u.home) { var a = R(0, TAU), r = R(.3, 1) * u.home.r; u.target = u.home.c.clone().add(new T.Vector3(Math.cos(a) * r, R(-.4, .6) * u.home.r * .5, Math.sin(a) * r)); u.retarget = R(2, 4.5); }
-        else { var z = u.zone || [3, 12]; u.target = new T.Vector3(R(-10, 10), R(z[0], z[1]), R(-9, 6)); u.retarget = R(5, 10); }
+        else { var z = u.zone || [3, 12]; u.target = new T.Vector3(R(-9, 9), R(z[0], z[1]), u.front ? R(0, 7.5) : R(-9, 6)); u.retarget = R(5, 10); }
       }
       goal = u.target;
     }
@@ -407,7 +408,7 @@
   }
   function lifeSchool(sc, dt, t) {   // boids-lite: follow a moving goal, keep together, keep apart, all turn as one
     sc.retarget -= dt;
-    if (sc.retarget <= 0 || sc.center.distanceTo(sc.goal) < 1.5) { sc.goal.set(R(-9, 9), sc.name === 'bait' ? R(9, 14) : R(4, 10), sc.name === 'bait' ? R(-11, -7) : R(-8, 3)); sc.retarget = R(6, 12); }
+    if (sc.retarget <= 0 || sc.center.distanceTo(sc.goal) < 1.5) { sc.low = !sc.low; sc.goal.set(R(-8, 8), sc.name === 'bait' ? R(9, 14) : sc.front ? R(1.6, 4) : sc.low ? R(2, 5) : R(5, 10), sc.name === 'bait' ? R(-11, -7) : sc.front ? R(3, 7.5) : sc.low ? R(1, 6.5) : R(-8, 1)); sc.retarget = R(6, 12); }   // the anthias take turns low and front
     var cen = new T.Vector3(); sc.members.forEach(function (m) { cen.add(m.position); }); cen.divideScalar(sc.members.length); sc.center.copy(cen);
     sc.members.forEach(function (m, i) {
       var u = m.userData, g = sc.goal.clone().add(new T.Vector3(Math.sin(i * 2.1 + t * .4) * sc.spread * .6, Math.cos(i * 1.7 + t * .5) * sc.spread * .3, Math.cos(i * 1.3) * sc.spread * .6));
@@ -449,7 +450,7 @@
       u.tail.rotation.y = Math.sin(t * (u.inflate > .1 ? 16 : 8)) * .5; m.position.y += Math.sin(t * 3) * e * .15; return;
     }
     if (u.kind === 'crab') {   // walks sideways along the sand, legs alternating
-      u.a += dt * .25; var cx = -.8 + Math.sin(u.a) * 3.6, dir = Math.cos(u.a);   // between the chest and the house m.position.set(cx, 0, 5.5 + Math.sin(u.a * .5) * .8); m.rotation.y = Math.PI / 2;
+      u.a += dt * .25; var cx = -.8 + Math.sin(u.a) * 3.6, dir = Math.cos(u.a);   // between the chest and the house m.position.set(cx, 0, 7.4 + Math.sin(u.a * .5) * .5); m.rotation.y = Math.PI / 2;
       u.legs.forEach(function (l) { var st = Math.sin(t * 8 + l.ph) * Math.min(1, Math.abs(dir) * 1.5); l.p.rotation.y = st * .3; l.p.rotation.x = Math.max(0, Math.cos(t * 8 + l.ph)) * .25 * (l.ph < Math.PI ? 1 : -1) * Math.abs(dir); }); m.position.y = Math.abs(Math.sin(t * 16)) * .03; return;
     }
     if (u.kind === 'hermit') { u.a += dt * .06; m.position.x = -1 + Math.sin(u.a) * 2.5; m.rotation.y = Math.cos(u.a) > 0 ? 0 : Math.PI; return; }
