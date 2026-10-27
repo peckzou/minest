@@ -138155,7 +138155,10 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     else if (s.type === 'board') list = all.filter(function (x) { return x.bid === s.bid; });
     else if (s.type === 'fav') list = all.filter(function (x) { return x.fav; });
     else if (s.type === 'manual') { var ids = s.ids || []; list = ids.map(function (id) { return all.find(function (x) { return x.id === id; }); }).filter(Boolean); }
-    else list = all.filter(function (x) { return x.img; }).sort(function (a, b) { return (b.at || 0) - (a.at || 0); }).slice(0, 18);
+    else {   // pictures first; when there are few, the newest cards fill in as typeset pieces
+      var byNew = function (a, b) { return (b.at || 0) - (a.at || 0); }, pics = all.filter(function (x) { return x.img; }).sort(byNew).slice(0, 18);
+      list = pics.length >= 12 ? pics : pics.concat(all.filter(function (x) { return !x.img && x.title && !x.parent; }).sort(byNew).slice(0, 12 - pics.length));
+    }
     // list cards that only hold others (a stack's own top card) stay out when their pieces are shown
     var parents = {}; list.forEach(function (x) { if (x.parent) parents[x.parent] = 1; });
     list = list.filter(function (x) { return !parents[x.id]; });
