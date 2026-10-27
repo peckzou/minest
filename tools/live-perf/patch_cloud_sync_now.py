@@ -78,6 +78,50 @@ if 'mn-ws-sync' not in s:
     css = "<style id=\"mn-ws-sync-css\">.mn-ws-sync-on svg{animation:mnWsSpin .8s linear infinite}@keyframes mnWsSpin{to{transform:rotate(360deg)}}</style>\n"
     k = s.rindex('</body>'); s = s[:k] + css + s[k:]
 
+# who wrote the cloud copy last (app / browser), and a status line in the Workspace header
+if 'function minestCloudWriter' not in s:
+    a = "function minestCloudPayload(boards, extra) {\n  var now = Date.now();\n  var base = Object.assign({}, extra, { clientUpdatedAt: now, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });"
+    assert s.count(a) == 1
+    s = s.replace(a, """/* 2026-10-27: which device wrote the cloud copy (shown in the Workspace header) */
+function minestCloudWriter() {
+  var ua = navigator.userAgent || '', app = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.minestBridge);
+  var dev = /iPad/.test(ua) ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' : /Macintosh/.test(ua) ? (navigator.maxTouchPoints > 1 ? 'iPad' : 'Mac') : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : 'Web';
+  var br = app ? 'app' : /Edg\\//.test(ua) ? 'Edge' : /Chrome\\//.test(ua) ? 'Chrome' : /Firefox\\//.test(ua) ? 'Firefox' : /Safari\\//.test(ua) ? 'Safari' : 'browser';
+  if (window.__MINEST_DUO__ || document.documentElement.classList.contains('duo')) dev = 'iPhone Duo';
+  return dev + ' ' + br;
+}
+function minestCloudPayload(boards, extra) {
+  var now = Date.now();
+  var base = Object.assign({}, extra, { clientUpdatedAt: now, writer: minestCloudWriter(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });""")
+    # remember the cloud's writer and time whenever a cloud copy comes in
+    a = "        var takeDoc = function(doc) {\n"
+    assert s.count(a) == 1
+    s = s.replace(a, a + "          try { if (doc.exists) { var w = doc.data(); window.__minestCloudInfo = { writer: w.writer || '', at: Math.max(Number(w.clientUpdatedAt) || 0, Number(w.gzUpdatedAt) || 0) }; } } catch (e) {}\n")
+    # status line under the Workspace title
+    a = """              (0, P.jsxs)('h3', { className: "mn-ws-title font-bold text-sm", children: ["Workspace", (0, P.jsx)('small', { className: "mn-ws-sub", children: visibleBoards.length + " boards" })] })"""
+    assert s.count(a) == 1
+    s = s.replace(a, a + """,
+              (0, P.jsx)('span', { className: "mn-ws-cloud", ref: function(el) { if (el && window.minestCloudLine) window.minestCloudLine(el); } })""")
+    css = "<style id=\"mn-ws-cloud-css\">.mn-ws-cloud{display:block;font-size:11px;font-weight:500;opacity:.6;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}</style>\n"
+    s = s.replace("<style id=\"mn-ws-sync-css\">", css + "<style id=\"mn-ws-sync-css\">", 1)
+    js = """<script id="mn-ws-cloud-js">
+/* the Workspace header says how cloud sync stands: this device's state, and who wrote the cloud copy last, when */
+window.minestCloudLine = function (el) {
+  function hm(t) { if (!t) return '—'; var d = new Date(t), now = new Date(); return (d.toDateString() === now.toDateString() ? '' : (d.getMonth() + 1) + '/' + d.getDate() + ' ') + d.toTimeString().slice(0, 5); }
+  function draw() {
+    if (!el.isConnected) return;
+    var signed = typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length && firebase.auth().currentUser, info = window.__minestCloudInfo, dirty = 0, ack = 0;
+    try { dirty = +localStorage.getItem('minest.cloud.dirtyAt') || 0; ack = +localStorage.getItem('minest.cloud.ackAt') || 0; } catch (e) {}
+    el.textContent = !signed ? '☁️ Not signed in to Cloud Sync — changes stay on this device'
+      : '☁️ ' + (dirty > ack ? 'Not sent yet (' + hm(dirty) + ')' : 'Up to date') + (info ? ' · cloud: ' + (info.writer || 'unknown device') + ', ' + hm(info.at) : '');
+    setTimeout(draw, 2000);
+  }
+  draw();
+};
+</script>
+"""
+    k = s.rindex('</body>'); s = s[:k] + js + s[k:]
+
 SRC.write_text(s, encoding='utf-8')
 for c in COPIES: shutil.copyfile(SRC, ROOT / c)
 print('patched cloud sync now')

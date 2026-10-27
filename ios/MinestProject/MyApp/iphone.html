@@ -20552,7 +20552,8 @@ var Me = function(props) {
             className: "flex items-center gap-2",
             children: [
               (0, P.jsx)(fe, { className: "w-4 h-4 text-emerald-400" }),
-              (0, P.jsxs)('h3', { className: "mn-ws-title font-bold text-sm", children: ["Workspace", (0, P.jsx)('small', { className: "mn-ws-sub", children: visibleBoards.length + " boards" })] })
+              (0, P.jsxs)('h3', { className: "mn-ws-title font-bold text-sm", children: ["Workspace", (0, P.jsx)('small', { className: "mn-ws-sub", children: visibleBoards.length + " boards" })] }),
+              (0, P.jsx)('span', { className: "mn-ws-cloud", ref: function(el) { if (el && window.minestCloudLine) window.minestCloudLine(el); } })
             ]
           }),
           (0, P.jsxs)('div', { className: "flex items-center gap-1", children: [
@@ -81886,9 +81887,17 @@ function minestCloudBoards(data) {
   return Promise.resolve(plain);
 }
 /* The fields to write for a save. Rejects (with .tooLarge) if even compressed it won't fit. */
+/* 2026-10-27: which device wrote the cloud copy (shown in the Workspace header) */
+function minestCloudWriter() {
+  var ua = navigator.userAgent || '', app = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.minestBridge);
+  var dev = /iPad/.test(ua) ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' : /Macintosh/.test(ua) ? (navigator.maxTouchPoints > 1 ? 'iPad' : 'Mac') : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : 'Web';
+  var br = app ? 'app' : /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'browser';
+  if (window.__MINEST_DUO__ || document.documentElement.classList.contains('duo')) dev = 'iPhone Duo';
+  return dev + ' ' + br;
+}
 function minestCloudPayload(boards, extra) {
   var now = Date.now();
-  var base = Object.assign({}, extra, { clientUpdatedAt: now, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  var base = Object.assign({}, extra, { clientUpdatedAt: now, writer: minestCloudWriter(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
   // 44.6 Learning Path: the study log (per device, merged on every device) rides along
   try { if (window.MinestLearn && window.MinestLearn._cloud) base.learning = JSON.parse(JSON.stringify(window.MinestLearn._cloud())); } catch (e) {}
   var know = null, gpt = null;
@@ -83078,6 +83087,7 @@ var Be = function() {
         cloudReadyRef.current = false;
         // 2026-10-27: one handler for the live listener and for ☁️ Sync now (a server read on demand)
         var takeDoc = function(doc) {
+          try { if (doc.exists) { var w = doc.data(); window.__minestCloudInfo = { writer: w.writer || '', at: Math.max(Number(w.clientUpdatedAt) || 0, Number(w.gzUpdatedAt) || 0) }; } } catch (e) {}
           if (doc.metadata && doc.metadata.hasPendingWrites) return;   // 53.84: our own save on its way up
           if (doc.exists) {
             var data = doc.data();
@@ -139216,6 +139226,22 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
 })();
 
 </script>
+<style id="mn-ws-cloud-css">.mn-ws-cloud{display:block;font-size:11px;font-weight:500;opacity:.6;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}</style>
 <style id="mn-ws-sync-css">.mn-ws-sync-on svg{animation:mnWsSpin .8s linear infinite}@keyframes mnWsSpin{to{transform:rotate(360deg)}}</style>
+<script id="mn-ws-cloud-js">
+/* the Workspace header says how cloud sync stands: this device's state, and who wrote the cloud copy last, when */
+window.minestCloudLine = function (el) {
+  function hm(t) { if (!t) return '—'; var d = new Date(t), now = new Date(); return (d.toDateString() === now.toDateString() ? '' : (d.getMonth() + 1) + '/' + d.getDate() + ' ') + d.toTimeString().slice(0, 5); }
+  function draw() {
+    if (!el.isConnected) return;
+    var signed = typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length && firebase.auth().currentUser, info = window.__minestCloudInfo, dirty = 0, ack = 0;
+    try { dirty = +localStorage.getItem('minest.cloud.dirtyAt') || 0; ack = +localStorage.getItem('minest.cloud.ackAt') || 0; } catch (e) {}
+    el.textContent = !signed ? '☁️ Not signed in to Cloud Sync — changes stay on this device'
+      : '☁️ ' + (dirty > ack ? 'Not sent yet (' + hm(dirty) + ')' : 'Up to date') + (info ? ' · cloud: ' + (info.writer || 'unknown device') + ', ' + hm(info.at) : '');
+    setTimeout(draw, 2000);
+  }
+  draw();
+};
+</script>
 </body>
 </html>
