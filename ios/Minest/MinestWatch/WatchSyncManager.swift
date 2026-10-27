@@ -912,6 +912,7 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
             self.isReachable = session.isReachable
             if activationState == .activated {
                 self.requestSyncFromPhone()
+                WatchPlaybackModel.shared.requestState(force: true)
             }
         }
     }
@@ -919,6 +920,7 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
     public func sessionReachabilityDidChange(_ session: WCSession) {
         DispatchQueue.main.async {
             self.isReachable = session.isReachable
+            if session.isReachable { WatchPlaybackModel.shared.requestState(force: true) }
         }
     }
     
@@ -936,6 +938,8 @@ public final class WatchSyncManager: NSObject, ObservableObject, WCSessionDelega
     
     private func handleIncomingData(_ dict: [String: Any]) {
         DispatchQueue.main.async {
+            if let playback = dict["playback"] as? Data { WatchPlaybackModel.shared.apply(playback) }
+
             // Watch 4.2: shared focus timer from the iPhone / Dynamic Island
             if let timer = dict["focusTimer"] as? [String: Any] {
                 FocusWorkoutModel.shared.applyRemote(timer)

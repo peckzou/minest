@@ -1,0 +1,96 @@
+Minest Duo — Watch 4.5 card playback remote
+2026-10-27
+
+BASELINE AND ISOLATION
+Machine: Cece's MacBook Neo.
+Repository: git@github.com:peckzou/minest.git.
+Latest origin/main and local main at audit: b835b58.
+iPhoneDuo.html title: Minest Duo 53.85 · iPhone Fold.
+Branch: codex/watch-duo-playback.
+Original checkout /Users/cece/Documents/minest was not edited.
+
+The latest local native CarPlay implementation was not fully committed on main.
+Commit 3a06a97 snapshots 18 local native files before this feature, with their
+original hashes in watch-duo-local-baseline.json. No unrelated local API changes
+were copied. Review the feature against 3a06a97; review the native baseline
+separately against b835b58. iPhoneDuo.html and bundled HTML remain unchanged.
+The bundled phone page has the same application code as iPhoneDuo.html; its title
+and Duo opt-in bootstrap differ, as in the existing build. No web UI was rebuilt.
+
+WHAT WAS ADDED
+- Watch rings page: top-right playback icon; also a playback page in the Crown
+  page sequence. Existing ring goals, focus, lists and badges remain available.
+- Shows list, current card, position, playing/paused state. Tap card text for a
+  larger reading sheet; the compact preview keeps Next within reach.
+- Next and explicit Pause/Resume operate the phone's existing CarFlashStore.
+  Phone web panel, Live Activity and CarPlay widget use that same store.
+- Existing normal auto-play supports variable per-card durations and looping.
+  GPT Study uses the persisted queue and existing progress events, never wraps.
+- watchOS 11+: Next is the official handGestureShortcut(.primaryAction).
+  On supported hardware with double tap enabled, open this playback page, raise
+  the wrist, then double tap thumb and index finger. This is not a screen double
+  tap or an always-on/background gesture. Older watches retain touch buttons.
+- Cached timeline, refresh, reconnection refresh, bounded payloads and timeouts.
+- Commands require a live request/reply connection. They carry a playlist session
+  ID, unique command ID and short freshness window. No delayed/offline Next queue.
+  Retransmitting the same ID does not advance twice; rejected commands do not
+  alter playback. Pause/Resume is a desired state, not a blind toggle.
+
+IMPLEMENTATION
+Phone: WatchPlaybackCoordinator.swift and WatchPlaybackProtocol.swift.
+Watch: WatchPlaybackModel.swift, WatchPlaybackView.swift, protocol copy.
+Small hooks in CarFlashController, both Watch sync managers and Watch rings view.
+CarFlashPlaylist's optional playbackSessionID is backwards compatible.
+Keep phone/widget CarFlashStore.swift copies identical; keep phone/watch
+WatchPlaybackProtocol.swift copies identical (the test runner checks both).
+Application context merges existing board/ring fields; if playback would exceed
+its message budget, it is omitted there and remains available via live requests.
+No Firebase, AI, cloud API, production environment or deployment changes.
+
+BUILD / INSTALL
+Open ios/Minest/Minest.xcodeproj in this worktree, not the original checkout.
+Use the existing signing team. Run scheme Minest on the paired iPhone and
+MinestWatch on its Apple Watch. Both sides must be updated for this protocol.
+Start a card playlist with the existing iPhone Duo card-playback / CarPlay panel.
+Open Watch's playback icon, then use Next, Pause/Resume or system double tap.
+Connection unavailable: controls disable; the watch labels its cached progress.
+No new API key, server or environment variable is required.
+
+VALIDATION
+PASS: original 18 local native source hashes unchanged after implementation.
+PASS: iPhoneDuo.html identical to original.
+PASS: final Xcode build for scheme Minest, including MinestWatch and widgets,
+      Debug, arm64 simulator, signing disabled, Xcode 27.1.
+Command:
+  xcodebuild -project ios/Minest/Minest.xcodeproj -scheme Minest \
+    -sdk iphonesimulator -configuration Debug -jobs 1 ARCHS=arm64 \
+    ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build
+PASS: python3 tests/watch-playback/run.py — 2765 assertions.
+Tests compile the production protocol and coordinator and execute the production
+store transitions in an isolated preferences domain. Only widget reload / Darwin
+notifications and native UI/transport endpoints are stubbed. No real user data
+is accessed. Tests cover legacy decoding, timeline equivalence, pause/resume,
+looping, GPT progress, deduplication, expiry, session mismatch, stopping and size.
+
+NOT YET VERIFIED ON HARDWARE
+Actual paired WatchConnectivity delivery, wake/background behavior, real double
+tap recognition, locked-phone/CarPlay-screen behavior and on-watch visual layout
+still require the user's paired iPhone, supported Watch and car connection.
+Simulator UI/paired connectivity testing was stopped when simultaneous simulator
+startup caused resource pressure; no simulator UI result is claimed. Final build
+was rerun successfully with one job and simulators shut down.
+The existing GPT auto mode advances only while the phone's timer can run; this
+feature deliberately does not invent a second Watch progression engine.
+No device-signed archive, TestFlight upload or App Store release was performed.
+
+PHYSICAL ACCEPTANCE CHECKLIST
+1. Start 3+ cards on phone: confirm watch list/card/position matches phone/CarPlay.
+2. Next on watch advances once everywhere; repeat using real system double tap.
+3. Pause/resume from either side; verify the other side catches up on reconnect.
+4. Start another list and stop playback; old-session commands must not affect it.
+5. Disconnect the phone: no delayed Next should execute after reconnecting.
+6. GPT final card does not wrap; study progress records one event per accepted Next.
+
+APPLE REFERENCE
+https://developer.apple.com/documentation/watchos-apps/enabling-double-tap
+https://developer.apple.com/documentation/swiftui/handgestureshortcut/primaryaction

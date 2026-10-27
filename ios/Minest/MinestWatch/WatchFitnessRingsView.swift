@@ -10,7 +10,7 @@ import Combine
 // Finished focus time is committed to Ring 1 and pushed to the phone.
 
 public enum MinestWatchVersion {
-    public static let label = "Watch 4.4"
+    public static let label = "Watch 4.5"
 }
 
 // MARK: - Ring palette (Minest colors, Apple Fitness gradients)
@@ -152,6 +152,8 @@ public struct WatchFitnessRootView: View {
         TabView(selection: $page) {
             WatchFitnessRingsView()
                 .tag(0)
+            NavigationStack { WatchPlaybackView() }
+                .tag(4)
             // Crown down: change goals (Focus minutes → Complete count → Goal %)
             WatchRingGoalPage(kind: .focus)
                 .tag(1)
@@ -189,6 +191,10 @@ public struct WatchFitnessRingsView: View {
                 .navigationTitle("活动")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink { WatchPlaybackView() } label: { Image(systemName: "play.rectangle") }
+                            .accessibilityLabel("卡片播放遥控器")
+                    }
                     // Apple Watch style corner buttons: List (left) · Badge Wall (right)
                     ToolbarItemGroup(placement: .bottomBar) {
                         Button {

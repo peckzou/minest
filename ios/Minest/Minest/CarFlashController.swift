@@ -105,6 +105,7 @@ public final class CarFlashController {
                                  start: Date(), paused: false, pausedIndex: 0)
         p.cardIds = fit(cardIds, n); p.listId = listId; p.seq = 0; p.events = []
         p.durations = fit(extra?.durations, n)?.map { min(max($0, 1), 120) }; p.tags = fit(extra?.tags, n); p.starred = extra?.starred
+        p.playbackSessionID = UUID().uuidString
         CarFlashStore.save(p)
         playlist = p
         lastIndex = -1
@@ -122,6 +123,7 @@ public final class CarFlashController {
                                  mode: "gpt", listId: listId, cardIds: Array(cardIds.prefix(500)), position: 0, seq: 0, events: [])
         p.auto = extra?.auto ?? false; p.shownAt = Date()
         p.durations = fit(extra?.durations, n)?.map { min(max($0, 1), 120) }; p.tags = fit(extra?.tags, n); p.starred = extra?.starred
+        p.playbackSessionID = UUID().uuidString
         CarFlashStore.save(p)
         playlist = p
         lastIndex = -1
@@ -132,6 +134,8 @@ public final class CarFlashController {
     }
 
     /// Re-read the stored playlist (after a toggle from the widget, the Live Activity, Siri or the page).
+    public func refreshFromWatch() { sync() }
+
     private func sync() {
         playlist = CarFlashStore.load()
         guard playing else { notifyWeb(); return }
@@ -237,6 +241,7 @@ public final class CarFlashController {
     // MARK: web page
 
     private func notifyWeb(error: String? = nil) {
+        WatchPlaybackCoordinator.shared.publish()
         let f = flashState
         var payload: [String: Any] = [
             "playing": playing,

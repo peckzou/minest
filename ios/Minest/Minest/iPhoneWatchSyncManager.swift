@@ -10,6 +10,8 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
     public static let shared = iPhoneWatchSyncManager()
     public weak var bridge: MinestBridge?
     
+    private var playbackData: Data?
+
     private let watchListsKey = "minest_iphone_watch_lists_v2"
     private let watchBoardsKey = "minest_iphone_watch_boards_v3"
     private let watchRingsKey = "minest_iphone_watch_rings_v1"
@@ -98,12 +100,14 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
             payload["selectedListId"] = selectedListId
         }
         
+        if let playbackData { payload["playback"] = playbackData }
+
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(payload, replyHandler: nil) { _ in
-                try? WCSession.default.updateApplicationContext(payload)
+                self.updateWatchContext(payload)
             }
         } else {
-            try? WCSession.default.updateApplicationContext(payload)
+            self.updateWatchContext(payload)
         }
     }
     
@@ -133,10 +137,10 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
         guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(payload, replyHandler: nil) { _ in
-                try? WCSession.default.updateApplicationContext(payload)
+                self.updateWatchContext(payload)
             }
         } else {
-            try? WCSession.default.updateApplicationContext(payload)
+            self.updateWatchContext(payload)
         }
     }
     
@@ -274,13 +278,56 @@ public final class iPhoneWatchSyncManager: NSObject, WCSessionDelegate {
         }
     }
     
+    /// Preserve boards/rings when the independently updated player context changes.
+    private func updateWatchContext(_ payload: [String: Any]) {
+        var merged = WCSession.default.applicationContext
+        merged.merge(payload) { _, new in new }
+        if let playbackData { merged["playback"] = playbackData }
+        // Existing board data can already be large. Never let playback make it exceed
+        // WCSession's message budget; the player also has a live request/reply path.
+        if let size = try? PropertyListSerialization.data(fromPropertyList: merged, format: .binary, options: 0).count,
+           size > 60_000 {
+            merged.removeValue(forKey: "playback")
+        }
+        try? WCSession.default.updateApplicationContext(merged)
+    }
+
+    public func sendPlaybackToWatch(_ data: Data) {
+        playbackData = data
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
+        let payload: [String: Any] = ["playback": data]
+        updateWatchContext(payload)
+        if WCSession.default.isReachable { WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: nil) }
+    }
+
+    public func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        if message["action"] as? String == "playbackCommand" {
+            let data = message["payload"] as? Data
+            Task { @MainActor in replyHandler(["playbackReply": WatchPlaybackCoordinator.shared.reply(to: data) ?? Data()]) }
+        } else if message["action"] as? String == "requestPlayback" {
+            Task { @MainActor in
+                WatchPlaybackCoordinator.shared.publish(force: true)
+                let state = WatchPlaybackCoordinator.shared.state()
+                replyHandler(["playback": (try? JSONEncoder().encode(state)) ?? Data()])
+            }
+        } else {
+            handleWatchMessage(message)
+            replyHandler([:])
+        }
+    }
+
     // MARK: - WCSessionDelegate
     public func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if activationState == .activated {
+            Task { @MainActor in WatchPlaybackCoordinator.shared.publish(force: true) }
             syncToWatch()
         }
     }
     
+    public func sessionReachabilityDidChange(_ session: WCSession) {
+        if session.isReachable { Task { @MainActor in WatchPlaybackCoordinator.shared.publish(force: true) } }
+    }
+
     public func sessionDidBecomeInactive(_ session: WCSession) {}
     
     public func sessionDidDeactivate(_ session: WCSession) {

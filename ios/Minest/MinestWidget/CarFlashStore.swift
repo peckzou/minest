@@ -38,6 +38,8 @@ public struct CarFlashPlaylist: Codable, Equatable {
     public var starred: [String]?         // ★ card IDs
     public var tags: [String]?            // "pron" / "meaning" per card
 
+    public var playbackSessionID: String?  // Stable identity across widget writes, pause and Next.
+
     public var isGPT: Bool { mode == "gpt" }
     public var isTimed: Bool { !isGPT || auto == true }
 
