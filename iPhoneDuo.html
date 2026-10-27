@@ -136863,6 +136863,10 @@ window.MinestTeam5 = { open: open, close: close, games: GAMES.map(function(g){ r
 })();
 </script>
 <style id="mn-duo-style">
+/* the split line: the board keeps about one Kanban column (≥ 280 pt, 42 %), My World the rest — on the iPhone Fold's
+   turned inner screen (678 pt) that is 285 | 393, a phone-wide My World; wider screens go up to half and half */
+:root { --duo-l:50vw; }
+html.duo-split { --duo-l:clamp(280px, 42vw, 50vw); }
 /* 53.84 Duo · iPhone Fold: outer-screen Glance + inner-screen split (tools/live-perf/duo.js) */
 html body .duo-gl { position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;background:#0d1117;color:#f3f5f8;font:15px/1.4 -apple-system,system-ui,sans-serif;
   padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);overflow:hidden; }
@@ -136899,12 +136903,12 @@ html body .duo-back { position:fixed;left:12px;bottom:calc(12px + env(safe-area-
 html body .duo-split-b { position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:2147483300;min-height:40px;padding:0 14px;border:0;border-radius:999px;
   background:#25303fe6;color:#fff;font:700 13px/1 -apple-system,system-ui,sans-serif;box-shadow:0 4px 14px #0007; }
 html body .duo-split-b.on { background:#2f7d4f; }
-html.duo-split body .uv { left:50% !important;right:0 !important;width:50% !important;border-left:2px solid #000;box-shadow:-6px 0 18px #0006; }
-html.duo-split body .mn-dsp { left:50% !important;width:50% !important; }
+html.duo-split body .uv { left:var(--duo-l) !important;right:0 !important;width:calc(100% - var(--duo-l)) !important;border-left:2px solid #000;box-shadow:-6px 0 18px #0006; }
+html.duo-split body .mn-dsp { left:var(--duo-l) !important;width:calc(100% - var(--duo-l)) !important; }
 /* fixed bars / buttons inside My World and the island (✨ Smart build, selection bars) stay within the right half */
 html.duo-split body .uv, html.duo-split body .mn-dsp { transform:translateZ(0); }
 /* the board keeps the left half (its own bars and sheets stay there too); My World the right half */
-html.duo-split body #root { width:50vw !important;height:100vh;overflow:hidden;transform:translateZ(0); }
+html.duo-split body #root { width:var(--duo-l) !important;height:100vh;overflow:hidden;transform:translateZ(0); }
 html.duo-split body .uv { top:0 !important;bottom:0 !important; }
 /* Kanban × Island: the card picked on the left / found from the island */
 html.duo body #root .duo-sel { outline:3px solid #f2c13d !important;outline-offset:2px;border-radius:12px; }
@@ -136919,13 +136923,13 @@ html body .duo-wbar button.on, html body .duo-wbar button.go { background:#3c852
 html body .duo-wbar .x { background:none;border:0;font-size:16px; }
 /* half-open (Device Posture "folded", where supported): study cards keep the top, their buttons the bottom */
 html.duo-halfopen body .duo-gl .duo-fc { min-height:50vh; }
-html body .duo-rp { position:fixed;left:50%;top:0;right:0;bottom:0;z-index:2147481000;border:0;border-left:2px solid #000;background:radial-gradient(circle at 50% 40%,#1f3a52,#0d1117 70%);
+html body .duo-rp { position:fixed;left:var(--duo-l);top:0;right:0;bottom:0;z-index:2147481000;border:0;border-left:2px solid #000;background:radial-gradient(circle at 50% 40%,#1f3a52,#0d1117 70%);
   color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font:600 14px/1.4 -apple-system,system-ui,sans-serif;padding:24px;text-align:center; }
 html body .duo-rp span { font-size:54px; }
 html body .duo-rp b { font-size:18px; }
 html body .duo-rp small { color:#9fb3c8;max-width:260px; }
 /* Build & Arrange: the library in the left half (world_duo.js §4) */
-html body .duo-lib { position:fixed;left:0;top:0;bottom:0;width:50%;z-index:2147483150;display:flex;flex-direction:column;gap:8px;overflow:auto;-webkit-overflow-scrolling:touch;
+html body .duo-lib { position:fixed;left:0;top:0;bottom:0;width:var(--duo-l);z-index:2147483150;display:flex;flex-direction:column;gap:8px;overflow:auto;-webkit-overflow-scrolling:touch;
   padding:calc(10px + env(safe-area-inset-top)) 12px calc(70px + env(safe-area-inset-bottom));box-sizing:border-box;background:#3b3b3b;color:#fff;border-right:3px solid #000;font-family:var(--pc-font,system-ui); }
 html body .duo-lib header { display:flex;align-items:center;justify-content:space-between;gap:8px; }
 html body .duo-lib header b { font:900 16px/1.2 var(--pc-font,system-ui); }
@@ -137004,9 +137008,9 @@ html body .duo-kept p { margin:0;opacity:.7;font-size:13px; }
 html body .duo-kept button { min-height:40px;padding:0 12px;border:0;border-radius:999px;background:rgba(127,211,95,.18);color:inherit;font:700 13px/1 inherit;display:flex;align-items:center;gap:8px; }
 html body .duo-kept button i { font-style:normal;opacity:.6; }
 /* 7 · Visual Library in the left half, the island on the right */
-html.duo-split body .pk.vl { right:50% !important;left:0 !important;width:50% !important;border-right:2px solid #000; }
+html.duo-split body .pk.vl { right:auto !important;left:0 !important;width:var(--duo-l) !important;border-right:2px solid #000; }
 html body .duo-vlq { width:100%;margin:10px 0; }
-html body .duo-queue { position:fixed;left:calc(50% + 12px);right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:2147483400;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;
+html body .duo-queue { position:fixed;left:calc(var(--duo-l) + 12px);right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:2147483400;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;
   background:#2b2b2bf2;color:#fff;border:2px solid #000;box-shadow:0 4px 0 #000;font:700 13px/1.25 var(--pc-font,system-ui); }
 html body .duo-queue span { flex:1;min-width:120px;opacity:.85; }
 html body .duo-queue button { min-height:36px;padding:0 12px;border:2px solid #000;background:#4a4a4a;color:#fff;font:800 12.5px/1 var(--pc-font,system-ui); }
@@ -137041,17 +137045,24 @@ var kind = null, gl = null, dismissed = false, back = false, booted = false;
    'folded' = half-open), responsive otherwise: the shorter side ≥ 600 pt and a near-square shape = the inner screen */
 function segments(){ try { if (matchMedia('(horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)').matches) return 2; } catch(e){} try { var v = window.viewport && window.viewport.segments; if (v && v.length > 1) return v.length; } catch(e){} return 1; }
 function posture(){ try { return navigator.devicePosture && navigator.devicePosture.type || ''; } catch(e){ return ''; } }
-function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 600 && mx / mn < 1.5 ? 'inner' : 'outer'; }
+/* measured on the real iPhone Fold (2026-10-26): the inner screen is 466 × 678 pt (1 : 1.45), turned 678 × 466; the app
+   can also report it scaled (951 × 669). A phone-shaped screen is about 1 : 2. So the shape decides, not the size. */
+function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 420 && mx / mn < 1.6 ? 'inner' : 'outer'; }
+/* two panes need room: the inner screen held upright (466 wide) stays one pane, turned (678+) it can split */
+function splitFits(){ return kind === 'inner' && innerWidth >= 640; }
+var lastFit = null;
 function apply(){
-  var k = screenKind(); if (k === kind) return;
-  kind = k; var r = document.documentElement;
+  var k = screenKind(), changed = k !== kind; kind = k; var fit = splitFits();
+  if (!changed && fit === lastFit) return; lastFit = fit;
+  var r = document.documentElement;
+  if (!changed) { var w0 = r.classList.contains('duo-split'); r.classList.toggle('duo-split', fit && !!prefs().split); if (w0 !== r.classList.contains('duo-split')) relayout(); splitBtn(); rightPane(); if (fit && prefs().split) openWorld(); return; }
   r.classList.toggle('duo-outer', k === 'outer'); r.classList.toggle('duo-inner', k === 'inner');
   var was = r.classList.contains('duo-split');
-  r.classList.toggle('duo-split', k === 'inner' && !!prefs().split);
+  r.classList.toggle('duo-split', fit && !!prefs().split);
   if (was !== r.classList.contains('duo-split')) relayout();
   var first = !booted; booted = true;
   if (k === 'outer') { if (first && !dismissed) glance(); else { dismissed = true; } }   /* folding keeps what you were doing; Glance is one tap away (⌂) */
-  else { closeGlance(); if (prefs().split) openWorld(); }
+  else { closeGlance(); if (fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
   splitBtn(); pill(); rightPane(); deskBtn(); dvTag();
   if (k === 'inner' && !first && Date.now() - flashAt < 120000 && !desk) deskOpen();   /* studying folded → the desk on the open screen */
@@ -137160,7 +137171,7 @@ function relayout(){ requestAnimationFrame(function(){ try { window.dispatchEven
 /* ---------- inner screen: ▥ split — My World on the right half, the board on the left */
 function splitBtn(){
   var b = document.querySelector('.duo-split-b');
-  if (kind !== 'inner') { if (b) b.remove(); return; }
+  if (!splitFits()) { if (b) b.remove(); return; }   /* upright inner screen: one pane, no split button */
   if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'duo-split-b'; document.body.appendChild(b);
     b.addEventListener('click', function(){ var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); relayout(); splitBtn(); hap(); setTimeout(rightPane, 600);
       if (on) openWorld(); }); }
@@ -137180,7 +137191,7 @@ var rpQ = false; new MutationObserver(function(){ if (rpQ || !on) return; rpQ = 
 /* ---------- Kanban × Island (split): a card tap shows where it lives on the island (a second tap opens it as always);
    a selection on the island scrolls the board to its card. Only references travel between the panes — nothing moves. */
 function worldOpen(){ return !!document.querySelector('.uv'); }
-function splitOn(){ return on && kind === 'inner' && document.documentElement.classList.contains('duo-split'); }
+function splitOn(){ return on && splitFits() && document.documentElement.classList.contains('duo-split'); }
 function openWorld(){
   if (worldOpen()) return;
   var bid = null; try { var ab = MinestAI.board(); bid = ab && ab.id; } catch(e){}
@@ -137338,13 +137349,18 @@ document.addEventListener('visibilitychange', function(){ if (!document.hidden &
 window.addEventListener('minest:cloud-dirty', function(){ if (gl && !gl.hidden) later(); });
 window.addEventListener('minestNativeEvent', function(e){ var d = e.detail || {}; if (d.event === 'carFlash' && gl && !gl.hidden) later(); });
 window.addEventListener('resize', function(){ if (on) apply(); });
+/* a fold, unfold or turn inside the app does not always fire resize in the web view: look again on every viewport change and once a second */
+if (window.visualViewport) visualViewport.addEventListener('resize', function(){ if (on) apply(); });
+try { matchMedia('(orientation: portrait)').addEventListener('change', function(){ if (on) apply(); }); } catch(e){}
+setInterval(function(){ if (on && !document.hidden) apply(); }, 1000);
 /* only on a folding iPhone: iPhoneDuo.html (window.__MINEST_DUO__), or an iPhone that has once shown a screen no other
-   iPhone has (shorter side ≥ 600 pt = unfolded) — remembered, so the folded outer screen gets Glance from then on */
+   iPhone has (near square: unfolded) — remembered, so the folded outer screen gets Glance from then on */
 function phone(){ var ua = navigator.userAgent || ''; return /iPhone/.test(ua) && !/iPad/.test(ua); }
 function enabled(){
   if (window.__MINEST_DUO__) return true;
   try { if (localStorage.getItem('minest.duo.fold') === '1') return true; } catch(e){}
-  if (phone() && Math.min(innerWidth, innerHeight) >= 600) { try { localStorage.setItem('minest.duo.fold', '1'); } catch(e){} return true; }
+  var mn = Math.min(innerWidth, innerHeight), mx = Math.max(innerWidth, innerHeight);
+  if (phone() && mn >= 420 && mx / mn < 1.6) { try { localStorage.setItem('minest.duo.fold', '1'); } catch(e){} return true; }   /* no other iPhone has a screen this square */
   return false;
 }
 var on = false;

@@ -22,17 +22,24 @@ var kind = null, gl = null, dismissed = false, back = false, booted = false;
    'folded' = half-open), responsive otherwise: the shorter side ≥ 600 pt and a near-square shape = the inner screen */
 function segments(){ try { if (matchMedia('(horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)').matches) return 2; } catch(e){} try { var v = window.viewport && window.viewport.segments; if (v && v.length > 1) return v.length; } catch(e){} return 1; }
 function posture(){ try { return navigator.devicePosture && navigator.devicePosture.type || ''; } catch(e){ return ''; } }
-function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 600 && mx / mn < 1.5 ? 'inner' : 'outer'; }
+/* measured on the real iPhone Fold (2026-10-26): the inner screen is 466 × 678 pt (1 : 1.45), turned 678 × 466; the app
+   can also report it scaled (951 × 669). A phone-shaped screen is about 1 : 2. So the shape decides, not the size. */
+function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 420 && mx / mn < 1.6 ? 'inner' : 'outer'; }
+/* two panes need room: the inner screen held upright (466 wide) stays one pane, turned (678+) it can split */
+function splitFits(){ return kind === 'inner' && innerWidth >= 640; }
+var lastFit = null;
 function apply(){
-  var k = screenKind(); if (k === kind) return;
-  kind = k; var r = document.documentElement;
+  var k = screenKind(), changed = k !== kind; kind = k; var fit = splitFits();
+  if (!changed && fit === lastFit) return; lastFit = fit;
+  var r = document.documentElement;
+  if (!changed) { var w0 = r.classList.contains('duo-split'); r.classList.toggle('duo-split', fit && !!prefs().split); if (w0 !== r.classList.contains('duo-split')) relayout(); splitBtn(); rightPane(); if (fit && prefs().split) openWorld(); return; }
   r.classList.toggle('duo-outer', k === 'outer'); r.classList.toggle('duo-inner', k === 'inner');
   var was = r.classList.contains('duo-split');
-  r.classList.toggle('duo-split', k === 'inner' && !!prefs().split);
+  r.classList.toggle('duo-split', fit && !!prefs().split);
   if (was !== r.classList.contains('duo-split')) relayout();
   var first = !booted; booted = true;
   if (k === 'outer') { if (first && !dismissed) glance(); else { dismissed = true; } }   /* folding keeps what you were doing; Glance is one tap away (⌂) */
-  else { closeGlance(); if (prefs().split) openWorld(); }
+  else { closeGlance(); if (fit && prefs().split) openWorld(); }
   document.documentElement.classList.toggle('duo-halfopen', posture() === 'folded');
   splitBtn(); pill(); rightPane(); deskBtn(); dvTag();
   if (k === 'inner' && !first && Date.now() - flashAt < 120000 && !desk) deskOpen();   /* studying folded → the desk on the open screen */
@@ -141,7 +148,7 @@ function relayout(){ requestAnimationFrame(function(){ try { window.dispatchEven
 /* ---------- inner screen: ▥ split — My World on the right half, the board on the left */
 function splitBtn(){
   var b = document.querySelector('.duo-split-b');
-  if (kind !== 'inner') { if (b) b.remove(); return; }
+  if (!splitFits()) { if (b) b.remove(); return; }   /* upright inner screen: one pane, no split button */
   if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'duo-split-b'; document.body.appendChild(b);
     b.addEventListener('click', function(){ var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); relayout(); splitBtn(); hap(); setTimeout(rightPane, 600);
       if (on) openWorld(); }); }
@@ -161,7 +168,7 @@ var rpQ = false; new MutationObserver(function(){ if (rpQ || !on) return; rpQ = 
 /* ---------- Kanban × Island (split): a card tap shows where it lives on the island (a second tap opens it as always);
    a selection on the island scrolls the board to its card. Only references travel between the panes — nothing moves. */
 function worldOpen(){ return !!document.querySelector('.uv'); }
-function splitOn(){ return on && kind === 'inner' && document.documentElement.classList.contains('duo-split'); }
+function splitOn(){ return on && splitFits() && document.documentElement.classList.contains('duo-split'); }
 function openWorld(){
   if (worldOpen()) return;
   var bid = null; try { var ab = MinestAI.board(); bid = ab && ab.id; } catch(e){}
@@ -319,13 +326,18 @@ document.addEventListener('visibilitychange', function(){ if (!document.hidden &
 window.addEventListener('minest:cloud-dirty', function(){ if (gl && !gl.hidden) later(); });
 window.addEventListener('minestNativeEvent', function(e){ var d = e.detail || {}; if (d.event === 'carFlash' && gl && !gl.hidden) later(); });
 window.addEventListener('resize', function(){ if (on) apply(); });
+/* a fold, unfold or turn inside the app does not always fire resize in the web view: look again on every viewport change and once a second */
+if (window.visualViewport) visualViewport.addEventListener('resize', function(){ if (on) apply(); });
+try { matchMedia('(orientation: portrait)').addEventListener('change', function(){ if (on) apply(); }); } catch(e){}
+setInterval(function(){ if (on && !document.hidden) apply(); }, 1000);
 /* only on a folding iPhone: iPhoneDuo.html (window.__MINEST_DUO__), or an iPhone that has once shown a screen no other
-   iPhone has (shorter side ≥ 600 pt = unfolded) — remembered, so the folded outer screen gets Glance from then on */
+   iPhone has (near square: unfolded) — remembered, so the folded outer screen gets Glance from then on */
 function phone(){ var ua = navigator.userAgent || ''; return /iPhone/.test(ua) && !/iPad/.test(ua); }
 function enabled(){
   if (window.__MINEST_DUO__) return true;
   try { if (localStorage.getItem('minest.duo.fold') === '1') return true; } catch(e){}
-  if (phone() && Math.min(innerWidth, innerHeight) >= 600) { try { localStorage.setItem('minest.duo.fold', '1'); } catch(e){} return true; }
+  var mn = Math.min(innerWidth, innerHeight), mx = Math.max(innerWidth, innerHeight);
+  if (phone() && mn >= 420 && mx / mn < 1.6) { try { localStorage.setItem('minest.duo.fold', '1'); } catch(e){} return true; }   /* no other iPhone has a screen this square */
   return false;
 }
 var on = false;
