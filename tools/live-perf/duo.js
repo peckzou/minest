@@ -161,12 +161,12 @@ function splitBtn(){
 
 function toggleSplit(){ var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); relayout(); splitBtn(); rail(); hap(); setTimeout(rightPane, 600); if (on) openWorld(); }
 
-/* the tool rail: held sideways, iOS keeps a column on the right for the clock — the tools live there, under it, instead
-   of floating over the content (▥ split, 📚 desk, 🏝 My World, ⌂ Glance). Without that column (upright), the floating
+/* the tool rail (split view only): held sideways, iOS keeps a column on the right for the clock — the tools live there,
+   under it, in a liquid-glass capsule, instead of floating over the content (▥ split, 📚 desk, 🏝 My World, ⌂ Glance). Without that column (upright), the floating
    buttons at the bottom left stay. */
 function sarPx(){ var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sar')); if (!(v > 0)) { try { var t = document.createElement('div'); t.style.cssText = 'position:fixed;width:env(safe-area-inset-right);height:0'; document.body.appendChild(t); v = t.getBoundingClientRect().width; t.remove(); } catch(e){ v = 0; } } return v || 0; }
 function rail(){
-  var r = document.querySelector('.duo-rail'), want = on && kind === 'inner' && sarPx() >= 44;
+  var r = document.querySelector('.duo-rail'), want = on && kind === 'inner' && document.documentElement.classList.contains('duo-split') && sarPx() >= 44;   /* split only: full screen keeps the column clear */
   document.documentElement.classList.toggle('duo-rail-on', !!want);
   if (!want) { if (r) r.remove(); return; }
   if (!r) { r = document.createElement('nav'); r.className = 'duo-rail'; r.setAttribute('aria-label', 'Duo 工具'); document.body.appendChild(r);
@@ -181,7 +181,6 @@ function rail(){
     '<button type="button" data-rail="world" class="' + (worldOpen() ? 'on' : '') + '" aria-label="My World"><i>🏝</i><small>岛屿</small></button>' +
     '<button type="button" data-rail="glance" class="' + (gl && !gl.hidden ? 'on' : '') + '" aria-label="速览"><i>⌂</i><small>速览</small></button>';
   if (r.innerHTML !== html) r.innerHTML = html;
-  r.style.width = Math.round(sarPx()) + 'px';
 }
 
 /* the right half when My World is closed: a way back to it instead of an empty half */
