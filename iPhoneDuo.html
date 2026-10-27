@@ -20556,12 +20556,33 @@ var Me = function(props) {
               (0, P.jsxs)('h3', { className: "mn-ws-title font-bold text-sm", children: ["Workspace", (0, P.jsx)('small', { className: "mn-ws-sub", children: visibleBoards.length + " boards" })] })
             ]
           }),
+          (0, P.jsxs)('div', { className: "flex items-center gap-1", children: [
+          // ☁️ Sync now: read the cloud copy from the server and merge it (and send up what this device has)
+          (0, P.jsx)('button', {
+            type: "button",
+            title: "Sync with the cloud now",
+            "aria-label": "Sync with the cloud now",
+            onClick: function(e) {
+              var btn = e.currentTarget;
+              if (!window.minestCloudSyncNow) { GlassUI.toast("☁️ Sign in to Cloud Sync first"); return; }
+              if (btn.classList.contains('mn-ws-sync-on')) return;
+              btn.classList.add('mn-ws-sync-on'); SoundEngine.play('click');
+              window.minestCloudSyncNow().then(function() { GlassUI.toast("☁️ Synced with the cloud"); })
+                .catch(function(err) { GlassUI.toast("☁️ Sync did not go through (" + ((err && (err.code || err.message)) || 'offline') + ")"); })
+                .then(function() { setTimeout(function() { btn.classList.remove('mn-ws-sync-on'); }, 400); });
+            },
+            className: "mn-ws-sync p-1 rounded-full opacity-70 hover:opacity-100 hover:bg-white/10 transition-colors",
+            children: (0, P.jsx)('svg', { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", children: [
+              (0, P.jsx)('path', { d: "M21 12a9 9 0 0 1-15.5 6.3L3 16" }), (0, P.jsx)('path', { d: "M3 12a9 9 0 0 1 15.5-6.3L21 8" }), (0, P.jsx)('path', { d: "M21 3v5h-5" }), (0, P.jsx)('path', { d: "M3 21v-5h5" })
+            ] })
+          }),
           (0, P.jsx)('button', {
             type: "button",
             onClick: onClose,
             className: "p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-colors",
             children: (0, P.jsx)(Te, { className: "w-4 h-4" })
           })
+          ] })
         ]
       }),
 
@@ -83056,7 +83077,8 @@ var Be = function() {
 
         var docRef = fb.db.collection("users").doc(user.uid).collection("focusboard").doc("data");
         cloudReadyRef.current = false;
-        var unsubDoc = docRef.onSnapshot(function(doc) {
+        // 2026-10-27: one handler for the live listener and for ☁️ Sync now (a server read on demand)
+        var takeDoc = function(doc) {
           if (doc.metadata && doc.metadata.hasPendingWrites) return;   // 53.84: our own save on its way up
           if (doc.exists) {
             var data = doc.data();
@@ -83104,11 +83126,21 @@ var Be = function() {
               setSyncStatus("error");
             });
           }
-        }, function(err) {
+        };
+        var unsubDoc = docRef.onSnapshot(takeDoc, function(err) {
           setSyncStatus("error");
         });
+        window.minestCloudSyncNow = function() {
+          setSyncStatus("saving");
+          if (cloudFlushRef.current) cloudFlushRef.current();   // a save that was waiting goes first
+          return docRef.get({ source: 'server' }).then(function(doc) {
+            takeDoc(doc);
+            setCloudKick(function(k) { return k + 1; });   // anything still unsynced here goes up
+            return true;
+          }).catch(function(err) { setSyncStatus("error"); throw err; });
+        };
 
-        return function() { unsubDoc(); };
+        return function() { unsubDoc(); if (window.minestCloudSyncNow) window.minestCloudSyncNow = null; };
       } else {
         setFirebaseUser(null);
         setSyncStatus("logged_out");
@@ -139181,5 +139213,6 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
 })();
 
 </script>
+<style id="mn-ws-sync-css">.mn-ws-sync-on svg{animation:mnWsSpin .8s linear infinite}@keyframes mnWsSpin{to{transform:rotate(360deg)}}</style>
 </body>
 </html>
