@@ -309,11 +309,14 @@
     cam.projectionMatrix.makePerspective(l, r, t, b, n, f); cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
     cam.position.copy(pe); cam.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(vr, vu, vn)); cam.updateMatrixWorld(true);
   }
+  // Folded or not, one camera draws one continuous picture over both screens: the per-screen windows (offAxis, kept
+  // below) were only right for one assumed eye position, so anything crossing the hinge looked broken, like refraction.
+  var SPLIT_WINDOWS = false;
   function setupCams() {
     var L = layout(), w = innerWidth, h = innerHeight;
     cams = [];
-    if (L.kind === 'single') {
-      var c = new T.PerspectiveCamera(w > h ? 46 : 62, w / h, .5, 200); c.position.set(0, 8, 24); c.lookAt(0, 5, -2);
+    if (L.kind === 'single' || !SPLIT_WINDOWS) {
+      var c = new T.PerspectiveCamera(w > h ? 46 : 60, w / h, .5, 200); c.position.set(0, w > h ? 8 : 10.5, w > h ? 24 : 25); c.lookAt(0, w > h ? 5 : 4.6, -2);   // a slanted look into the tank, not from above
       cams.push({ cam: c, vp: [0, 0, w, h] }); eyeW = c.position.clone();
       tank.position.set(0, 0, 0); tank.scale.setScalar(1);
     } else if (L.kind === 'tall') {
@@ -335,6 +338,7 @@
       tank.position.set(0, .4, -9); tank.scale.setScalar(.55);
     }
     hint.hidden = L.kind !== 'single' || (!window.__MINEST_DUO__ && !document.documentElement.classList.contains('duo'));
+    if (!SPLIT_WINDOWS) hint.hidden = true;
   }
 
   /* ---------- life ---------- */
@@ -569,7 +573,7 @@
     lifeToys(dt, t);
     if (mixer) mixer.update(dt);
     renderer.setScissorTest(cams.length > 1); renderer.shadowMap.needsUpdate = true;
-    cams.forEach(function (c) { var v = c.vp; renderer.toneMappingExposure = c.ex || .82; scene.background.setHex(c.water || 0x134a62); scene.fog.color.setHex(c.water ? 0x2f84a2 : 0x175470); renderer.setViewport(v[0], v[1], v[2], v[3]); renderer.setScissor(v[0], v[1], v[2], v[3]); renderer.render(scene, c.cam); });
+    cams.forEach(function (c) { var v = c.vp; renderer.toneMappingExposure = c.ex || .82; if (cams.length > 1) { scene.background.setHex(c.water || 0x134a62); scene.fog.color.setHex(c.water ? 0x2f84a2 : 0x175470); } renderer.setViewport(v[0], v[1], v[2], v[3]); renderer.setScissor(v[0], v[1], v[2], v[3]); renderer.render(scene, c.cam); });
   }
   function near(obj, px, e) { if (!obj) return false; var p = toScreen(obj.position); return Math.hypot(p.x - e.clientX, p.y - e.clientY) < px; }
   function onTap(e) {
