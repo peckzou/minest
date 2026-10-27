@@ -137178,6 +137178,18 @@ html.duo-tall.duo-split.duo-build body .duo-wk-pad { grid-column:1;grid-row:2 / 
 /* with the console out, the scene is only the scene: its own selection bar and the ✓ / ✕ chip stay hidden (the console does both) */
 html.duo-split.duo-build body .mn-dsp .mn-dsp-sel, html.duo-split.duo-build body .mn-bq { display:none !important; }
 
+/* full screen, unfolded: the Dock is pinned in the right column (below the clock), scrolling when the icons do not fit */
+html.duo-dockpin body .landscape main, html.duo-dockpin body #root main { margin-right:var(--duo-dock, 84px) !important; }
+html.duo-dockpin[data-mn-bd] body .mn-bdock { left:auto !important;right:0 !important;top:calc(var(--sat, 0px) + 122px) !important;bottom:6px !important;width:var(--duo-dock, 84px) !important;
+  transform:none !important;opacity:1 !important;pointer-events:auto !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;flex-wrap:nowrap !important;
+  overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y !important;scrollbar-width:none;padding:6px 0 14px !important;box-sizing:border-box;
+  -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 16px), transparent 100%);mask-image:linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 16px), transparent 100%); }
+html.duo-dockpin body .mn-bdock::-webkit-scrollbar { display:none; }
+html.duo-dockpin body .mn-bdock::before { display:none !important; }
+html.duo-dockpin body .mn-bdock > * { flex:none; }
+html.duo-dockpin body.clear-mode .mn-bdock { display:none !important; }
+html.duo-dockpin body .mn-bd-edge { display:none !important; }
+
 </style>
 <script id="mn-duo-script">
 /* 53.84 Duo · Minest on iPhone Fold: the outer screen is light, the inner screen is the whole app.
@@ -137429,7 +137441,15 @@ function toggleSplit(){ if (document.documentElement.classList.contains('duo-cov
    under it, in a liquid-glass capsule, instead of floating over the content (▥ split, 📚 desk, 🏝 My World, ⌂ Glance). Without that column (upright), the floating
    buttons at the bottom left stay. */
 function sarPx(){ var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sar')); if (!(v > 0)) { try { var t = document.createElement('div'); t.style.cssText = 'position:fixed;width:env(safe-area-inset-right);height:0'; document.body.appendChild(t); v = t.getBoundingClientRect().width; t.remove(); } catch(e){ v = 0; } } return v || 0; }
+/* full screen on the inner screen: the Dock lives in the right column under the clock (scrolls when it does not fit),
+   and the board stops short of it */
+function dockPin(){
+  var R0 = document.documentElement, sar = sarPx(), want = on && kind === 'inner' && !tall() && sar >= 44 && !['duo-split', 'duo-cover', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
+  R0.classList.toggle('duo-dockpin', !!want);
+  if (want) R0.style.setProperty('--duo-dock', Math.round(sar) + 'px');
+}
 function rail(){
+  dockPin();
   var R0 = document.documentElement, r = document.querySelector('.duo-rail'), want = on && kind === 'inner' && (R0.classList.contains('duo-split') || R0.classList.contains('duo-cover')) && sarPx() >= 44;   /* two panes only: full screen keeps the column clear */
   document.documentElement.classList.toggle('duo-rail-on', !!want);
   if (!want) { if (r) r.remove(); return; }
