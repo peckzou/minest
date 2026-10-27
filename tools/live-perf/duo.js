@@ -254,13 +254,11 @@ function dockPin(){
   R0.classList.toggle('duo-dockpin', !!want);
   if (want) R0.style.setProperty('--duo-dock', Math.round(sar) + 'px');
 }
-/* the Dock's list filter (≡) and wallpaper (🎨) move into Settings Studio: the two icons are hidden, two buttons under its tabs */
+/* the Dock's list filter (≡) and wallpaper (🎨) move into Settings Studio: the two icons are hidden (duo.css), two buttons under its tabs */
 var DOCK_MOVED = [['lists', /^Filter by list/, '☰', 'Lists'], ['wall', /^Board Wallpaper/, '🎨', 'Wallpaper']];
 function appBtn(re){ var all = document.querySelectorAll('.mn-rgroup button, .mn-dockrow button, header.iphone-topbar button'); for (var i = 0; i < all.length; i++) if (re.test(all[i].getAttribute('aria-label') || all[i].title || '')) return all[i]; return null; }
 function dockMove(sheet){
   if (!on) return;
-  var d = document.querySelector('.mn-bdock');
-  if (d && d.children.length === 13 && !d.children[3].hasAttribute('data-duo-k')) { d.children[3].setAttribute('data-duo-k', 'lists'); d.children[4].setAttribute('data-duo-k', 'wall'); }
   if (!sheet) return;
   var tab = [].find.call(document.querySelectorAll('button'), function(b){ return b.textContent.trim() === 'Labels & Filters'; }), bar = tab && tab.parentElement && tab.parentElement.parentElement;
   if (!bar || (bar.nextElementSibling && bar.nextElementSibling.classList.contains('duo-set-tools'))) return;
@@ -272,7 +270,7 @@ function dockMove(sheet){
   bar.parentNode.insertBefore(row, bar.nextSibling);
 }
 /* Settings opens from the Dock's gear or the board's own settings button: add the two buttons once it is up */
-document.addEventListener('click', function(e){ if (!on || !e.target.closest) return; var b = e.target.closest('.mn-bdock .mn-bapp:last-child, button[aria-label^="Board settings"]'); if (!b) return; [250, 600, 1200].forEach(function(t){ setTimeout(function(){ dockMove(true); }, t); }); }, true);
+document.addEventListener('click', function(e){ if (!on || !e.target.closest) return; var b = e.target.closest('button[aria-label^="Board settings"]'); if (!b) return; [250, 600, 1200].forEach(function(t){ setTimeout(function(){ dockMove(true); }, t); }); }, true);
 /* a full-screen sheet (Settings, Activity, Arcade…) is up: the pinned Dock steps aside, as the Dock does elsewhere */
 function sheetUp(){
   var R0 = document.documentElement; if (!R0.classList.contains('duo-dockpin')) { R0.classList.remove('duo-sheet'); return; }
@@ -283,7 +281,7 @@ function sheetUp(){
 }
 document.addEventListener('click', function(){ if (on) [300, 900].forEach(function(t){ setTimeout(sheetUp, t); }); }, true);
 function rail(){
-  dockPin(); dockMove(); sheetUp();
+  dockPin(); sheetUp();
   var R0 = document.documentElement, r = document.querySelector('.duo-rail'), want = on && kind === 'inner' && (R0.classList.contains('duo-split') || R0.classList.contains('duo-cover')) && sarPx() >= 44;   /* two panes only: full screen keeps the column clear */
   document.documentElement.classList.toggle('duo-rail-on', !!want);
   if (!want) { if (r) r.remove(); return; }
