@@ -138524,10 +138524,9 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     }
     geo.setAttribute('color', new T.Float32BufferAttribute(cols, 3)); geo.computeVertexNormals(); geo.userData.base = base;
     var body = new T.Mesh(geo, new T.MeshStandardMaterial({ vertexColors: true, roughness: .35, metalness: .05 })); body.castShadow = true; g.add(body);
-    var finM = new T.MeshStandardMaterial({ color: '#ff6a08', side: T.DoubleSide, roughness: .45, transparent: true, opacity: .95 }), edgeM = new T.MeshBasicMaterial({ color: '#1d0f06', side: T.DoubleSide });
+    var finM = new T.MeshStandardMaterial({ color: '#ff6a08', side: T.DoubleSide, roughness: .45 });   // opaque: no see-through fins doubling up
     var tailPivot = new T.Group(); tailPivot.position.x = -L * .47; g.add(tailPivot);
     var tail = new T.Mesh(roundFin(L * .34, L * .26, 'tail'), finM); tailPivot.add(tail);
-    var tailEdge = new T.Mesh(roundFin(L * .36, L * .28, 'tail'), edgeM); tailEdge.position.z = -.002; tailPivot.add(tailEdge);
     var dors = new T.Mesh(roundFin(L * .5, L * .16, 'dorsal'), finM); dors.position.set(-L * .02, L * .28, 0); g.add(dors);
     var anal = new T.Mesh(roundFin(L * .22, L * .1, 'dorsal'), finM); anal.rotation.z = Math.PI; anal.position.set(-L * .18, -L * .27, 0); g.add(anal);
     var pecs = [-1, 1].map(function (sd) { var pf = new T.Mesh(roundFin(L * .2, L * .12, 'pec'), finM); pf.position.set(L * .12, -L * .06, sd * L * .17); g.add(pf); return pf; });
@@ -138692,7 +138691,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
   }
   function populate() {
     var an = tank.userData.anemone;
-    var c1 = makeClown(1), c2 = makeClown(.82); [c1, c2].forEach(function (f, i) { f.position.set(an.x + (i ? .8 : -.8), 2.4, an.z); f.userData.home = { c: new T.Vector3(an.x, 2.2, an.z), r: 1.6 }; fish.push(f); tank.add(f); });
+    var c1 = makeClown(1), c2 = makeClown(.82); [c1, c2].forEach(function (f, i) { var sd = i ? 1 : -1; f.position.set(an.x + sd * 1.2, 2.4, an.z); f.userData.home = { c: new T.Vector3(an.x + sd * 1.1, 2.3, an.z + sd * .3), r: .9 }; f.userData.mate = i ? c1 : c2; fish.push(f); tank.add(f); });   // each keeps to its own side
     [[-6, 6, -4, .6], [6, 8, -6, .55]].forEach(function (p) { var f = makeFish('tang', p[3]); f.position.set(p[0], p[1], p[2]); f.userData.zone = [3.5, 11]; fish.push(f); tank.add(f); });
     var li = makeFish('lion', .6); li.position.set(7.8, 4.6, -5); li.userData.home = { c: new T.Vector3(7.5, 4.6, -5.5), r: 2.4 }; fish.push(li); tank.add(li);
     school('anthias', 9, new T.Vector3(-3, 7, -4), 2.2, 1);
@@ -138794,6 +138793,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
       }
       goal = u.target;
     }
+    if (u.mate) { var gap = f.position.distanceTo(u.mate.position), need = (u.L + u.mate.userData.L) * .9; if (gap < need) { goal = goal.clone().add(new T.Vector3().subVectors(f.position, u.mate.position).normalize().multiplyScalar((need - gap) * 4 + .5)); } }   // never on top of each other
     steer(f, goal, dt, sp, u.flee > 0 ? 4 : u.home ? 2 : 1.2);
     bendFish(f, dt, t);
   }
