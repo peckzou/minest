@@ -137180,15 +137180,17 @@ html.duo-split.duo-build body .mn-dsp .mn-dsp-sel, html.duo-split.duo-build body
 
 /* full screen (inner sideways / outer): the Dock is pinned in the right status column as one narrow glass capsule under
    the clock (like Xiaohongshu's tab pill), scrolling when the icons do not fit; the board's background runs on under it */
-html.duo-dockpin body .landscape main, html.duo-dockpin body #root main { margin-right:0 !important;padding-right:var(--duo-dock, 84px) !important;box-sizing:border-box !important; }
-html.duo-dockpin[data-mn-bd] body .mn-bdock { left:auto !important;right:calc((var(--duo-dock, 84px) - 50px) / 2) !important;top:calc(var(--sat, 0px) + 118px) !important;bottom:auto !important;max-height:calc(100% - var(--sat, 0px) - 118px - 10px) !important;width:50px !important;
+html.duo-dockpin body .landscape main, html.duo-dockpin body #root main { margin-right:0 !important;padding-right:calc(var(--duo-dock, 84px) - 10px) !important;box-sizing:border-box !important; }
+/* the top bar's buttons (search, +) step out of the column too */
+html.duo-dockpin body header.iphone-topbar { padding-right:calc(var(--duo-dock, 84px) + 2px) !important;box-sizing:border-box !important; }
+html.duo-dockpin[data-mn-bd] body .mn-bdock { left:auto !important;right:calc((var(--duo-dock, 84px) - 48px) / 2) !important;top:calc(var(--sat, 0px) + 118px) !important;bottom:auto !important;max-height:calc(100% - var(--sat, 0px) - 118px - 10px) !important;width:48px !important;
   transform:none !important;opacity:1 !important;pointer-events:auto !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;flex-wrap:nowrap !important;gap:4px !important;
   overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y !important;scrollbar-width:none;padding:7px 0 !important;box-sizing:border-box;border-radius:25px !important;
   background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08)) !important;border:1px solid rgba(255,255,255,.26) !important;-webkit-backdrop-filter:blur(22px) saturate(180%) !important;backdrop-filter:blur(22px) saturate(180%) !important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 22px rgba(0,0,0,.25) !important; }
 html.duo-dockpin.mnh-tw[data-mn-bd] body .mn-bdock { background:rgba(255,255,255,.82) !important;border-color:rgba(255,255,255,.95) !important;box-shadow:0 6px 18px rgba(15,23,42,.14) !important; }
 /* the outer screen shows one list at a time: it is as wide as what is left beside the Dock, not the whole screen */
-html.duo-dockpin.duo-outer body .mobile-board-view .kanban-column-wrapper { width:calc(100vw - var(--duo-dock, 84px) - 20px) !important;min-width:0 !important;max-width:none !important; }
+html.duo-dockpin.duo-outer body .mobile-board-view .kanban-column-wrapper { width:calc(100vw - var(--duo-dock, 84px) - 10px) !important;min-width:0 !important;max-width:none !important; }
 html.duo-dockpin body .mn-bdock::-webkit-scrollbar { display:none; }
 html.duo-dockpin body .mn-bdock::before { display:none !important; }
 html.duo-dockpin body .mn-bdock > * { flex:none; }
@@ -137196,8 +137198,13 @@ html.duo-dockpin body .mn-bdock .mn-bapp { width:38px !important;height:38px !im
 html.duo-dockpin body .mn-bdock .mn-bapp::before { display:none !important; }
 html.duo-dockpin body .mn-bdock .mn-bapp.on { background:rgba(125,211,252,.18) !important; }
 html.duo-dockpin body .mn-bdock .mn-bapp svg { width:58% !important; }
-html.duo-dockpin body.clear-mode .mn-bdock { display:none !important; }
+html.duo-dockpin body.clear-mode .mn-bdock, html.duo-dockpin.duo-sheet body .mn-bdock { display:none !important; }
 html.duo-dockpin body .mn-bd-edge { display:none !important; }
+/* Duo: the list filter and the wallpaper live in Settings, not in the Dock */
+html.duo body .mn-bdock .mn-bapp[data-duo-k="lists"], html.duo body .mn-bdock .mn-bapp[data-duo-k="wall"] { display:none !important; }
+.duo-set-tools { display:flex;gap:8px;padding:8px 16px 10px;border-bottom:1px solid rgba(255,255,255,.1); }
+.duo-set-tools button { flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:inherit;font:600 13px -apple-system,system-ui,sans-serif; }
+.duo-set-tools button:active { background:rgba(255,255,255,.16); }
 
 </style>
 <script id="mn-duo-script">
@@ -137457,8 +137464,36 @@ function dockPin(){
   R0.classList.toggle('duo-dockpin', !!want);
   if (want) R0.style.setProperty('--duo-dock', Math.round(sar) + 'px');
 }
+/* the Dock's list filter (≡) and wallpaper (🎨) move into Settings Studio: the two icons are hidden, two buttons under its tabs */
+var DOCK_MOVED = [['lists', /^Filter by list/, '☰', 'Lists'], ['wall', /^Board Wallpaper/, '🎨', 'Wallpaper']];
+function appBtn(re){ var all = document.querySelectorAll('.mn-rgroup button, .mn-dockrow button, header.iphone-topbar button'); for (var i = 0; i < all.length; i++) if (re.test(all[i].getAttribute('aria-label') || all[i].title || '')) return all[i]; return null; }
+function dockMove(sheet){
+  if (!on) return;
+  var d = document.querySelector('.mn-bdock');
+  if (d && d.children.length === 13 && !d.children[3].hasAttribute('data-duo-k')) { d.children[3].setAttribute('data-duo-k', 'lists'); d.children[4].setAttribute('data-duo-k', 'wall'); }
+  if (!sheet) return;
+  var tab = [].find.call(document.querySelectorAll('button'), function(b){ return b.textContent.trim() === 'Labels & Filters'; }), bar = tab && tab.parentElement && tab.parentElement.parentElement;
+  if (!bar || (bar.nextElementSibling && bar.nextElementSibling.classList.contains('duo-set-tools'))) return;
+  var row = document.createElement('div'); row.className = 'duo-set-tools';
+  row.innerHTML = DOCK_MOVED.map(function(m, i){ return '<button type="button" data-duo-st="' + i + '"><span>' + m[2] + '</span>' + m[3] + '</button>'; }).join('');
+  row.addEventListener('click', function(e){ var b = e.target.closest('[data-duo-st]'); if (!b) return; var m = DOCK_MOVED[+b.getAttribute('data-duo-st')]; hap();
+    var x = [].find.call(document.querySelectorAll('button'), function(y){ return y.textContent.trim() === 'Cancel'; }); if (x) x.click();
+    setTimeout(function(){ var o = appBtn(m[1]); if (o) o.click(); }, 260); });
+  bar.parentNode.insertBefore(row, bar.nextSibling);
+}
+/* Settings opens from the Dock's gear or the board's own settings button: add the two buttons once it is up */
+document.addEventListener('click', function(e){ if (!on || !e.target.closest) return; var b = e.target.closest('.mn-bdock .mn-bapp:last-child, button[aria-label^="Board settings"]'); if (!b) return; [250, 600, 1200].forEach(function(t){ setTimeout(function(){ dockMove(true); }, t); }); }, true);
+/* a full-screen sheet (Settings, Activity, Arcade…) is up: the pinned Dock steps aside, as the Dock does elsewhere */
+function sheetUp(){
+  var R0 = document.documentElement; if (!R0.classList.contains('duo-dockpin')) { R0.classList.remove('duo-sheet'); return; }
+  var hit = false, els = document.elementsFromPoint ? document.elementsFromPoint(innerWidth * .35, innerHeight / 2) : [];
+  for (var i = 0; i < els.length && !hit; i++) { var e = els[i]; if (e === document.body || e === R0 || e.closest('main, .mn-bdock, header, .duo-rail')) continue;
+    var r = e.getBoundingClientRect(); if (getComputedStyle(e).position === 'fixed' && r.width >= innerWidth * .8 && r.height >= innerHeight * .8) hit = true; }
+  R0.classList.toggle('duo-sheet', hit);
+}
+document.addEventListener('click', function(){ if (on) [300, 900].forEach(function(t){ setTimeout(sheetUp, t); }); }, true);
 function rail(){
-  dockPin();
+  dockPin(); dockMove(); sheetUp();
   var R0 = document.documentElement, r = document.querySelector('.duo-rail'), want = on && kind === 'inner' && (R0.classList.contains('duo-split') || R0.classList.contains('duo-cover')) && sarPx() >= 44;   /* two panes only: full screen keeps the column clear */
   document.documentElement.classList.toggle('duo-rail-on', !!want);
   if (!want) { if (r) r.remove(); return; }
