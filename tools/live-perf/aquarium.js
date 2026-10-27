@@ -267,15 +267,30 @@
     pf.position.set(-3.6, 2.4, 5.2); pf.scale.setScalar(.9);
     pf.userData = { kind: 'puffer', body: body, spines: spines, inflate: 0, tail: tail, home: pf.position.clone(), a: 0 }; shadows(pf, true, false); tappable.push(pf); return pf;
   }
-  function crab() {
-    var cr = new T.Group(), red = std('#d2512e', { roughness: .5 }), body = new T.Mesh(new T.SphereGeometry(.7, 18, 10), red); body.scale.set(1.3, .5, 1); body.position.y = .5; cr.add(body);
-    // legs: a thigh up and out to the knee, a shin down to the sand — each pair steps in turn
-    function limb(par, a, b, r) { var d = b.clone().sub(a), m = new T.Mesh(new T.CylinderGeometry(r * .8, r, d.length(), 6), red); m.position.copy(a).addScaledVector(d, .5); m.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); par.add(m); var j = new T.Mesh(new T.SphereGeometry(r * 1.1, 6, 5), red); j.position.copy(b); par.add(j); }
-    var legs = []; for (var i = 0; i < 8; i++) { var sd = i < 4 ? 1 : -1, k = i % 4, piv = new T.Group(); piv.position.set(-.5 + k * .33, .5, sd * .5);
-      var knee = new T.Vector3(.05, .32, sd * .55), foot = new T.Vector3(.1 + (k - 1.5) * .12, -.48, sd * .95);
-      limb(piv, new T.Vector3(0, 0, 0), knee, .055); limb(piv, knee, foot, .045); cr.add(piv); legs.push({ p: piv, ph: k * 1.6 + (sd > 0 ? 0 : Math.PI) }); }
-    [-1, 1].forEach(function (sd) { var cl = new T.Mesh(new T.SphereGeometry(.28, 10, 8), red); cl.scale.set(1.3, .8, .8); cl.position.set(.95, .55, sd * .45); cr.add(cl); var e = new T.Mesh(new T.SphereGeometry(.07, 6, 6), std('#111')); e.position.set(.65, .85, sd * .18); cr.add(e); });
-    cr.position.set(4, 0, 5.5); cr.userData = { kind: 'crab', legs: legs, a: 0 }; shadows(cr, true, false); return cr;
+  function crab() {   // a wide flat shell, eyes on stalks, two big claws in front, short thick legs tucked under the shell
+    var cr = new T.Group(), red = std('#c8381a', { roughness: .45 }), dark = std('#8e2a12', { roughness: .5 }), tip = std('#2a140c', { roughness: .4 });
+    var shell = new T.Mesh(new T.SphereGeometry(.7, 24, 14), red); shell.scale.set(1.0, .42, 1.35); shell.position.y = .55; cr.add(shell);
+    var under = new T.Mesh(new T.SphereGeometry(.66, 18, 10, 0, TAU, Math.PI / 2, Math.PI / 2), std('#f2c6a4')); under.scale.set(1, .3, 1.3); under.position.y = .52; cr.add(under);
+    function limb(par, a, b, r, m) { var d = b.clone().sub(a), mesh = new T.Mesh(new T.CylinderGeometry(r * .85, r, d.length(), 7), m || red); mesh.position.copy(a).addScaledVector(d, .5); mesh.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); mesh.scale.z = .75; par.add(mesh); var j = new T.Mesh(new T.SphereGeometry(r * 1.05, 7, 6), m || red); j.position.copy(b); par.add(j); }
+    // eyes on short stalks
+    [-1, 1].forEach(function (sd) { limb(cr, new T.Vector3(.55, .7, sd * .2), new T.Vector3(.68, .95, sd * .24), .04); var e = new T.Mesh(new T.SphereGeometry(.08, 10, 8), std('#111', { roughness: .15 })); e.position.set(.7, 1.0, sd * .25); cr.add(e); });
+    // claws: an arm forward, a big pincer of two halves (the lower one opens and snaps)
+    var claws = [-1, 1].map(function (sd) {
+      var arm = new T.Group(); arm.position.set(.55, .55, sd * .55); cr.add(arm);
+      limb(arm, new T.Vector3(0, 0, 0), new T.Vector3(.38, .08, sd * .22), .12, dark);
+      var hand = new T.Group(); hand.position.set(.38, .08, sd * .22); arm.add(hand);
+      var palm = new T.Mesh(new T.SphereGeometry(.3, 16, 12), red); palm.scale.set(1.4, .9, .75); palm.position.x = .2; hand.add(palm);
+      var top = new T.Mesh(new T.ConeGeometry(.12, .45, 8), tip); top.rotation.z = -Math.PI / 2; top.position.set(.62, .07, 0); hand.add(top);
+      var jaw = new T.Group(); jaw.position.set(.42, -.1, 0); hand.add(jaw); var low = new T.Mesh(new T.ConeGeometry(.09, .36, 8), tip); low.rotation.z = -Math.PI / 2; low.position.x = .17; jaw.add(low);
+      return { arm: arm, jaw: jaw, sd: sd };
+    });
+    // four walking legs a side: short, thick, from the shell's edge down to the sand, each set a little further back
+    var legs = [];
+    for (var i = 0; i < 8; i++) { var sd = i < 4 ? 1 : -1, k = i % 4, piv = new T.Group(), bx = .25 - k * .24; piv.position.set(bx, .48, sd * .8); cr.add(piv);
+      var knee = new T.Vector3(-.06 * k, .1, sd * .2), foot = new T.Vector3(-.14 - .06 * k, -.45, sd * .3);   // short and stout, bent back: a crab, not a spider
+      limb(piv, new T.Vector3(0, 0, 0), knee, .11); limb(piv, knee, foot, .09, dark); legs.push({ p: piv, ph: k * 1.6 + (sd > 0 ? 0 : Math.PI) }); }
+    cr.position.set(-.8, 0, 7.4); cr.rotation.y = Math.PI / 2; cr.scale.setScalar(.9);
+    cr.userData = { kind: 'crab', legs: legs, claws: claws, x: -.8, dir: 1, walk: R(1, 2.5), rest: 0, snap: 0 }; shadows(cr, true, false); return cr;
   }
   function hermit() {
     var h = new T.Group(), shell = new T.Mesh(new T.ConeGeometry(.55, 1.4, 14, 6), std('#e7d2b0', { roughness: .5 })); var sp = shell.geometry.attributes.position; for (var i = 0; i < sp.count; i++) { var y = sp.getY(i), a = y * 4; sp.setX(i, sp.getX(i) + Math.cos(a) * .08); sp.setZ(i, sp.getZ(i) + Math.sin(a) * .08); } shell.geometry.computeVertexNormals();
@@ -449,9 +464,14 @@
       var e = u.inflate * u.inflate * (3 - 2 * u.inflate), k = 1 + e * .95; u.body.scale.set(lerp(1.25, 1, e) * k, lerp(.95, 1, e) * k, lerp(.95, 1, e) * k); u.spines.scale.setScalar(Math.max(.001, e) * k * 1.04);
       u.tail.rotation.y = Math.sin(t * (u.inflate > .1 ? 16 : 8)) * .5; m.position.y += Math.sin(t * 3) * e * .15; return;
     }
-    if (u.kind === 'crab') {   // walks sideways along the sand, legs alternating
-      u.a += dt * .25; var cx = -.8 + Math.sin(u.a) * 3.6, dir = Math.cos(u.a);   // between the chest and the house m.position.set(cx, 0, 7.4 + Math.sin(u.a * .5) * .5); m.rotation.y = Math.PI / 2;
-      u.legs.forEach(function (l) { var st = Math.sin(t * 8 + l.ph) * Math.min(1, Math.abs(dir) * 1.5); l.p.rotation.y = st * .3; l.p.rotation.x = Math.max(0, Math.cos(t * 8 + l.ph)) * .25 * (l.ph < Math.PI ? 1 : -1) * Math.abs(dir); }); m.position.y = Math.abs(Math.sin(t * 16)) * .03; return;
+    if (u.kind === 'crab') {   // scuttles sideways in short bursts between the chest and the house, pauses, waves a claw
+      var moving = u.walk > 0;
+      if (moving) { u.walk -= dt; u.x += u.dir * dt * 1.6; if (u.x > 3 || u.x < -4.6) { u.dir *= -1; u.x = clamp(u.x, -4.6, 3); } if (u.walk <= 0) u.rest = R(.8, 2.2); }
+      else { u.rest -= dt; if (u.rest <= 0) { u.walk = R(.8, 2.4); if (Math.random() < .45) u.dir *= -1; } }
+      m.position.set(u.x, moving ? Math.abs(Math.sin(t * 18)) * .04 : 0, 7.4);
+      u.legs.forEach(function (l) { var ph = t * 14 + l.ph; l.p.rotation.x = moving ? Math.sin(ph) * .32 : 0; l.p.rotation.y = moving ? Math.cos(ph) * .18 : 0; });
+      u.claws.forEach(function (c, i) { var wave = !moving && i === 0 ? Math.sin(t * 3) * .35 : 0; c.arm.rotation.z = .15 + wave; c.jaw.rotation.z = -Math.abs(Math.sin(t * (moving ? 2 : 6) + i)) * .5; });
+      return;
     }
     if (u.kind === 'hermit') { u.a += dt * .06; m.position.x = -1 + Math.sin(u.a) * 2.5; m.rotation.y = Math.cos(u.a) > 0 ? 0 : Math.PI; return; }
     if (u.kind === 'angler') { u.a += dt; u.light.intensity = .7 + Math.sin(u.a * 2.3) * .3; m.position.y = 1.2 + Math.sin(u.a * .5) * .2; return; }
