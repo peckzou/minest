@@ -124095,6 +124095,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     function libTabs() {
       var T = pkTabs().filter(function (t) { return t.groups && t.groups.length; });
       var bx = boxRefs(); T.push({ id: 'box', ic: '🎒', n: 'Saved items (' + bx.length + ')', refs: bx }); T.push({ id: 'vl', ic: '🔭', n: 'Visual Library' });
+      T.unshift({ id: 'ctl', ic: '🎛', n: 'Controls' });   // Miniature Workshop: the console for the piece you are placing
       return T;
     }
     function libDraw() {
@@ -124102,14 +124103,15 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       if (!d) { d = document.createElement('aside'); d.className = 'duo-lib'; d.setAttribute('aria-label', 'Build library'); document.body.appendChild(d); d.addEventListener('click', libClick); }
       var T = libTabs(), t = T.filter(function (x) { return x.id === LIB.tab; })[0] || T[0]; LIB.tab = t.id; LIB.key = V.bid + '|' + lvl();
       var count = {}, body = ''; (V.d.pc || []).forEach(function (q) { count[q.k] = (count[q.k] || 0) + 1; });
-      if (t.id === 'box') body = t.refs.length ? '<div class="duo-lib-list">' + t.refs.slice(0, 120).map(function (r) { var x = IX[r]; return '<button type="button" data-dlref="' + esc(r) + '"><b>' + esc(x.s.title || 'Thing') + '</b><small>' + esc((x.k && x.k.title) || '') + '</small></button>'; }).join('') + '</div>' : '<p class="duo-lib-m">Everything you saved is on the island already.</p>';
+      if (t.id === 'ctl') body = ctlHtml();
+      else if (t.id === 'box') body = t.refs.length ? '<div class="duo-lib-list">' + t.refs.slice(0, 120).map(function (r) { var x = IX[r]; return '<button type="button" data-dlref="' + esc(r) + '"><b>' + esc(x.s.title || 'Thing') + '</b><small>' + esc((x.k && x.k.title) || '') + '</small></button>'; }).join('') + '</div>' : '<p class="duo-lib-m">Everything you saved is on the island already.</p>';
       else if (t.id === 'vl') body = '<p class="duo-lib-m">Find films, books, music, people and places, save them to a list, then put them on show here.</p><button type="button" class="duo-lib-go" data-dlvl>🔭 Open the Visual Library</button>';
       else { var gi = Math.min(LIB.grp[t.id] || 0, t.groups.length - 1);
         body = '<div class="duo-lib-chips">' + t.groups.map(function (g, i) { return '<button type="button" data-dlg="' + i + '"' + (i === gi ? ' class="on"' : '') + '>' + esc(g.n) + '</button>'; }).join('') + '</div>' +
           '<div class="duo-lib-grid">' + t.groups[gi].kinds.map(function (k) { return pkCard(k, count[k] || 0); }).join('') + '</div>'; }
       var where = { island: 'the island', building: 'this building', room: 'this room' }[lvl()];
       d.innerHTML = '<header><b>🔨 Build · ' + esc(where) + '</b><button type="button" class="x" data-dlx aria-label="Close the library">✕</button></header>' +
-        '<p class="duo-lib-hint">' + (LIB.spot ? '📍 Next one goes where you tapped' : 'Tap a piece — it appears on the right, ready to drag · tap empty ground first to choose the spot') + '</p>' +
+        '<p class="duo-lib-hint">' + (LIB.spot ? '📍 Next one goes where you tapped' : 'Tap a piece — it appears in the scene, ready to move from 🎛 · tap empty ground first to choose the spot') + '</p>' +
         '<nav class="duo-lib-tabs">' + T.map(function (x) { return '<button type="button" data-dlt="' + x.id + '"' + (x.id === t.id ? ' class="on"' : '') + ' title="' + esc(x.n) + '">' + x.ic + '</button>'; }).join('') + '</nav>' +
         '<h3>' + esc(t.n) + '</h3>' + body;
       clearTimeout(LIB.fillT); LIB.fillT = setTimeout(libFill, 500);
@@ -124131,16 +124133,71 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       var r = sceneR(), f = foot(q), c = P((f.x0 + f.x1) / 2, (f.y0 + f.y1) / 2, 0);   // keep it in view
       if (r) { var sx = V.cam.x + c[0] * V.cam.z, sy = V.cam.y + c[1] * V.cam.z; if (sx < 40 || sx > r.width - 40 || sy < 60 || sy > r.height - 120) centreOn(q); }
       bqChipShow(q.id);
+      LIB.back = LIB.tab === 'ctl' ? LIB.back : LIB.tab; LIB.tab = 'ctl'; libDraw();   // straight to the console for it
     }
     function libClick(e) {
       var g = e.target.closest('button'); if (!g) return; e.preventDefault(); e.stopPropagation();
       if (g.hasAttribute('data-dlx')) { LIB.resume = false; return libClose(); }
       if (g.hasAttribute('data-dlt')) { LIB.tab = g.getAttribute('data-dlt'); return libDraw(); }
       if (g.hasAttribute('data-dlg')) { LIB.grp[LIB.tab] = +g.getAttribute('data-dlg'); return libDraw(); }
+      if (g.hasAttribute('data-wk')) return wkAct(g.getAttribute('data-wk'));
       if (g.hasAttribute('data-pkkind')) return placeKind(g.getAttribute('data-pkkind'));
       if (g.hasAttribute('data-dlref')) { try { MinestDisplay.display(g.getAttribute('data-dlref')); } catch (x) {} return; }
       if (g.hasAttribute('data-dlvl')) { try { MinestVisualLibrary.open({ bid: V.bid }); } catch (x) {} return; }
     }
+    // ── Miniature Workshop: the console under the scene (Desk posture) or beside it (Book) — a touchpad that moves the
+    //    selected piece, nudges, turn, size, undo, ✓ done and remove, so the hand never has to reach into the scene
+    function selPiece() { return V && V.sel && V.sel.pc && !V.sel.ref ? pieceOf(V.sel.pc) : null; }
+    function ctlHtml() {
+      var p = selPiece();
+      if (!p) return '<p class="duo-lib-m">Tap a piece in the scene, or place one from 🏠 / 🌳 — its controls appear here.</p>';
+      var nm = p.label || (K[p.k] && K[p.k].n) || 'Piece', sz = p.s || 1;
+      return '<div class="duo-wk"><div class="duo-wk-t"><b>' + esc(nm) + '</b><small>drag on the pad to move it · it stays where it fits</small></div>' +
+        '<div class="duo-wk-pad" data-wkpad><span>✥</span></div>' +
+        '<div class="duo-wk-row"><button type="button" data-wk="rotl" aria-label="Turn left">⟲</button><button type="button" data-wk="up" aria-label="Up">▲</button><button type="button" data-wk="rotr" aria-label="Turn right">⟳</button>' +
+        '<button type="button" data-wk="left" aria-label="Left">◀</button><button type="button" data-wk="down" aria-label="Down">▼</button><button type="button" data-wk="right" aria-label="Right">▶</button></div>' +
+        '<label class="duo-wk-size">Size <input type="range" min="0.5" max="2.5" step="0.05" value="' + sz + '" data-wksize><em>' + Math.round(sz * 100) + '%</em></label>' +
+        '<div class="duo-wk-row act"><button type="button" data-wk="undo">↶ Undo</button><button type="button" data-wk="rm" class="rm">🗑 Remove</button><button type="button" data-wk="ok" class="ok">✓ Done</button></div></div>';
+    }
+    function scrDelta(dx, dy) { var r = sceneR(); if (!r) return [0, 0]; var cx = r.left + r.width / 2, cy = r.top + r.height / 2, a = toFloor(cx, cy), b = toFloor(cx + dx, cy + dy); return [b[0] - a[0], b[1] - a[1]]; }
+    function tryAt(p, x, y) {   // the spot, or slide along an edge: x alone, then y alone
+      var ox = p.x, oy = p.y, nx = Math.round(x * 2) / 2, ny = Math.round(y * 2) / 2;
+      var tries = [[nx, ny], [nx, oy], [ox, ny]];
+      for (var i = 0; i < tries.length; i++) { if (tries[i][0] === ox && tries[i][1] === oy) continue; p.x = tries[i][0]; p.y = tries[i][1]; if (fits(p)) return true; }
+      p.x = ox; p.y = oy; return false;
+    }
+    function wkAct(a) {
+      var p = selPiece(); if (!p && a !== 'undo') return libDraw();
+      if (a === 'undo') { var keep = p && p.id; histGo(true); if (keep && pieceOf(keep)) { V.sel = { pc: keep }; render(); } libDraw(); return; }
+      if (a === 'ok') { var ok = document.querySelector('.mn-bq [data-bqok]'); if (ok) ok.click(); else { V.sel = null; render(); } LIB.tab = LIB.back || (V.at && V.at.room ? 'furn' : 'bld'); libDraw(); hap('success'); return; }
+      if (a === 'rm') { var no = document.querySelector('.mn-bq [data-bqno]'); if (no) no.click(); else change(function () { V.d.pc = V.d.pc.filter(function (q) { return q.id !== p.id; }); V.sel = null; }); LIB.tab = LIB.back || 'bld'; libDraw(); return; }
+      if (a === 'rotl' || a === 'rotr') { change(function () { var f0 = p.f; p.f = ((p.f || 0) + (a === 'rotr' ? 1 : 3)) % 4; if (!fits(p) && !settle(p, p.x, p.y)) p.f = f0; }); hap('light'); return; }
+      var v = { up: [0, -34], down: [0, 34], left: [-34, 0], right: [34, 0] }[a]; if (!v) return;
+      var d = scrDelta(v[0], v[1]), sx = Math.round(d[0] * 2) / 2, sy = Math.round(d[1] * 2) / 2;
+      if (!sx && !sy) { if (Math.abs(d[0]) > Math.abs(d[1])) sx = d[0] > 0 ? .5 : -.5; else sy = d[1] > 0 ? .5 : -.5; }
+      change(function () { if (!tryAt(p, p.x + sx, p.y + sy)) toast('No room there'); }); hap('light');
+    }
+    document.addEventListener('change', function (e) {
+      var t = e.target; if (!t.matches || !t.matches('.duo-lib [data-wksize]')) return; var p = selPiece(); if (!p) return; var v = +t.value;
+      change(function () { var s0 = p.s || 1; p.s = v; if (!fits(p) && !settle(p, p.x, p.y)) { p.s = s0; toast('No room for it that big here'); } }); libDraw();
+    }, true);
+    document.addEventListener('input', function (e) { var t = e.target; if (t.matches && t.matches('.duo-lib [data-wksize]')) { var em = t.parentNode.querySelector('em'); if (em) em.textContent = Math.round(t.value * 100) + '%'; } }, true);
+    var PAD = null;   // the touchpad: the finger's travel moves the piece the same way on screen
+    document.addEventListener('pointerdown', function (e) {
+      var pad = e.target.closest && e.target.closest('.duo-lib [data-wkpad]'); if (!pad) return; var p = selPiece(); if (!p) return;
+      e.preventDefault(); try { pad.setPointerCapture(e.pointerId); } catch (x) {} pad.classList.add('on');
+      PAD = { id: e.pointerId, x: e.clientX, y: e.clientY, px: p.x, py: p.y, p: p, q: false };
+    }, true);
+    document.addEventListener('pointermove', function (e) {
+      if (!PAD || e.pointerId !== PAD.id) return; e.preventDefault();
+      var d = scrDelta((e.clientX - PAD.x) * 1.5, (e.clientY - PAD.y) * 1.5);
+      if (tryAt(PAD.p, PAD.px + d[0], PAD.py + d[1]) && !PAD.q) { PAD.q = true; requestAnimationFrame(function () { if (PAD) PAD.q = false; render(); }); }
+    }, true);
+    document.addEventListener('pointerup', function (e) {
+      if (!PAD || e.pointerId !== PAD.id) return; var pad = document.querySelector('.duo-lib [data-wkpad]'); if (pad) pad.classList.remove('on');
+      PAD = null; change(function () {}); hap('light');   // saved, and one step for ↶ Undo
+    }, true);
+
     // the spot: a tap on empty ground while the library is out
     function spotMark() {
       var m = el && el.querySelector('.duo-spot');
@@ -124162,6 +124219,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     var r1 = render;
     render = function () {
       var out = r1.apply(null, arguments);
+      if (LIB.on && V && el) { var sk = V.sel && V.sel.pc && !V.sel.ref ? V.sel.pc : ''; if (sk && sk !== LIB.selKey && LIB.tab !== 'ctl') { LIB.back = LIB.tab; LIB.tab = 'ctl'; LIB.selKey = sk; setTimeout(libDraw, 0); } else if (sk !== LIB.selKey) { LIB.selKey = sk; if (LIB.tab === 'ctl') setTimeout(libDraw, 0); } }
       if (LIB.on) { if (!el || !V) libClose(); else if (!split()) { LIB.resume = true; libClose(); } else if (LIB.key !== V.bid + '|' + lvl()) { LIB.spot = null; LIB.tab = null; LIB.tab = V.at && V.at.room ? 'furn' : 'bld'; libDraw(); } }
       return out;
     };
@@ -124176,7 +124234,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       if (!V) return false; if (V.at) { var g = 4; while (V.at && g--) leaveRoom(); }
       libOpen(); fit(); return true;
     }
-    window.MinestDuoWorld = { buildHere: buildHere, placed: function (ref) { return !!(V && placed()[ref]); }, holding: function () { return !!(V && V.hold); }, locate: locate, build: function (tab) { return libOpen(tab); }, place: function (k) { return placeKind(k); }, libOn: function () { return LIB.on; }, open: function () { return !!V; }, board: function () { return V ? V.bid : null; } };
+    window.MinestDuoWorld = { buildHere: buildHere, sel: function () { var p = selPiece(); return p ? { id: p.id, k: p.k, x: p.x, y: p.y, f: p.f || 0, s: p.s || 1 } : null; }, placed: function (ref) { return !!(V && placed()[ref]); }, holding: function () { return !!(V && V.hold); }, locate: locate, build: function (tab) { return libOpen(tab); }, place: function (k) { return placeKind(k); }, libOn: function () { return LIB.on; }, open: function () { return !!V; }, board: function () { return V ? V.bid : null; } };
   })();
   window.MinestDisplay = { resolve: function (ref, vis) { return V ? resolveVisual(ref, vis) : null; }, undo: function () { return histGo(true); }, redo: function () { return histGo(false); }, explore: function (on) { if (!V) return; V.explore = !!on; render(); },
     display: function (ref) {   // Universal Add: show a saved card in its world's scene, ready to place (Save first, display later)
@@ -137095,6 +137153,31 @@ html.duo-tall.duo-split body .duo-queue { left:12px;bottom:auto;top:calc(50vh + 
 html.duo-tall.duo-cover body #root main { flex-direction:column !important; }
 html.duo-tall.duo-cover body #root main > .sf-slot[data-sf-view="board"] { flex:0 0 calc(50vh - var(--duo-mt, 0px)) !important;width:100% !important;height:calc(50vh - var(--duo-mt, 0px)) !important; }
 html.duo-tall.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { flex:1 1 auto !important;width:100% !important;padding-right:0;border-left:0 !important;border-top:2px solid rgba(255,255,255,.12); }
+/* Miniature Workshop: the console */
+html body .duo-wk { display:flex;flex-direction:column;gap:10px; }
+html body .duo-wk-t { display:flex;flex-direction:column;gap:2px; }
+html body .duo-wk-t b { font:900 15px/1.2 var(--pc-font,system-ui); }
+html body .duo-wk-t small { color:#cfcfcf;font:600 11.5px/1.3 var(--pc-font,system-ui); }
+html body .duo-wk-pad { position:relative;min-height:150px;flex:1 1 150px;border:3px solid #000;border-radius:14px;touch-action:none;display:grid;place-items:center;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 24px),#2a2a2a;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.1); }
+html body .duo-wk-pad span { font-size:34px;opacity:.35;pointer-events:none; }
+html body .duo-wk-pad.on { background-color:#33402f;border-color:#7fd35f; }
+html body .duo-wk-row { display:grid;grid-template-columns:repeat(3,1fr);gap:8px; }
+html body .duo-wk-row button { min-height:48px;border:2px solid #000;background:#4a4a4a;color:#fff;font:900 18px/1 var(--pc-font,system-ui);box-shadow:0 3px 0 #000; }
+html body .duo-wk-row button:active { transform:translateY(2px);box-shadow:0 1px 0 #000; }
+html body .duo-wk-row.act button { font-size:14px; }
+html body .duo-wk-row .ok { background:#3c8527; }
+html body .duo-wk-row .rm { background:#8a2c2c; }
+html body .duo-wk-size { display:flex;align-items:center;gap:10px;font:800 13px/1 var(--pc-font,system-ui); }
+html body .duo-wk-size input { flex:1;accent-color:#7fd35f;height:28px; }
+html body .duo-wk-size em { font-style:normal;min-width:44px;text-align:right; }
+/* Desk posture (held upright, half open): the console fills the lower half — pad beside the buttons */
+html.duo-tall.duo-split.duo-build body .duo-wk { display:grid;grid-template-columns:1.2fr 1fr;grid-template-rows:auto 1fr auto auto;column-gap:12px; }
+html.duo-tall.duo-split.duo-build body .duo-wk-t { grid-column:1 / span 2; }
+html.duo-tall.duo-split.duo-build body .duo-wk-pad { grid-column:1;grid-row:2 / span 3;min-height:0; }
+/* with the console out, the scene is only the scene: its own selection bar and the ✓ / ✕ chip stay hidden (the console does both) */
+html.duo-split.duo-build body .mn-dsp .mn-dsp-sel, html.duo-split.duo-build body .mn-bq { display:none !important; }
 
 </style>
 <script id="mn-duo-script">
