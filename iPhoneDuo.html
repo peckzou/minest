@@ -138432,7 +138432,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
   function C(h) { return new T.Color(h); }
   function canvasTex(w, h, draw, repeat) {
     var cv = document.createElement('canvas'); cv.width = w; cv.height = h; draw(cv.getContext('2d'), w, h);
-    var t = new T.CanvasTexture(cv); t.encoding = T.sRGBEncoding; t.anisotropy = 4; if (repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(repeat, repeat); } return t;
+    var t = new T.CanvasTexture(cv); t.anisotropy = 4; if (repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(repeat, repeat); } return t;
   }
   function noisy(geo, amt, freq) {   // smooth lumpy displacement along the normal (rocks, brain coral)
     var p = geo.attributes.position, n = new T.Vector3(), seed = R(0, 100);
@@ -138500,6 +138500,42 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     });
     if (!lite) body.castShadow = true;   // only the body throws a shadow
     g.userData = { sp: s, name: name, L: L, body: body, tail: tailPivot, pecs: pecs, phase: R(0, TAU), amp: .4, vel: new T.Vector3(R(-1, 1), 0, R(-1, 1)), target: null, retarget: 0, flee: 0, food: null, speed: { clown: 2.2, tang: 2.6, lion: 1.1, anthias: 3, bait: 3.4 }[name] * sc };
+    return g;
+  }
+  /* the clownfish get their own little model: a short chubby body, round fins, big eyes (the general fish body made
+     their bands read as a second head) */
+  function roundFin(w, h, kind) {
+    var sh = new T.Shape();
+    if (kind === 'tail') { sh.moveTo(0, 0); sh.quadraticCurveTo(-w * .45, h * 1.05, -w, h * .7); sh.quadraticCurveTo(-w * 1.18, 0, -w, -h * .7); sh.quadraticCurveTo(-w * .45, -h * 1.05, 0, 0); }
+    else if (kind === 'dorsal') { sh.moveTo(w * .5, 0); sh.quadraticCurveTo(w * .35, h * 1.3, -w * .1, h * .9); sh.quadraticCurveTo(-w * .55, h * .7, -w * .5, 0); sh.lineTo(w * .5, 0); }
+    else { sh.moveTo(0, 0); sh.quadraticCurveTo(-w * .3, h, -w, h * .45); sh.quadraticCurveTo(-w * 1.05, -h * .2, 0, 0); }
+    return new T.ShapeGeometry(sh, 10);
+  }
+  function makeClown(size) {
+    var L = 1.8 * (size || 1), g = new T.Group();
+    var geo = new T.SphereGeometry(1, 26, 16); geo.rotateZ(-Math.PI / 2);
+    var p = geo.attributes.position, base = [], cols = [], O = C('#ff5e00'), OB = C('#e64a00'), W = C('#ffffff'), K = C('#1d0f06');
+    for (var i = 0; i < p.count; i++) {
+      var x = p.getX(i), y = p.getY(i), z = p.getZ(i), u = (1 - x) / 2, k = x < 0 ? 1 - Math.pow(-x, 1.6) * .55 : 1 - Math.pow(x, 3) * .12;
+      var X = x * L / 2, Y = y * L * .28 * k, Z = z * L * .17 * k; p.setXYZ(i, X, Y, Z); base.push(X, Y, Z);
+      var c = O.clone().lerp(OB, clamp(y, 0, 1) * .6), bands = [[.24, .05], [.52, .058], [.84, .034]];
+      for (var b = 0; b < 3; b++) { var d = Math.abs(u - bands[b][0]); if (d < bands[b][1]) { c = W; break; } if (d < bands[b][1] + .016) { c = K; break; } }
+      cols.push(c.r, c.g, c.b);
+    }
+    geo.setAttribute('color', new T.Float32BufferAttribute(cols, 3)); geo.computeVertexNormals(); geo.userData.base = base;
+    var body = new T.Mesh(geo, new T.MeshStandardMaterial({ vertexColors: true, roughness: .35, metalness: .05 })); body.castShadow = true; g.add(body);
+    var finM = new T.MeshStandardMaterial({ color: '#ff6a08', side: T.DoubleSide, roughness: .45, transparent: true, opacity: .95 }), edgeM = new T.MeshBasicMaterial({ color: '#1d0f06', side: T.DoubleSide });
+    var tailPivot = new T.Group(); tailPivot.position.x = -L * .47; g.add(tailPivot);
+    var tail = new T.Mesh(roundFin(L * .34, L * .26, 'tail'), finM); tailPivot.add(tail);
+    var tailEdge = new T.Mesh(roundFin(L * .36, L * .28, 'tail'), edgeM); tailEdge.position.z = -.002; tailPivot.add(tailEdge);
+    var dors = new T.Mesh(roundFin(L * .5, L * .16, 'dorsal'), finM); dors.position.set(-L * .02, L * .28, 0); g.add(dors);
+    var anal = new T.Mesh(roundFin(L * .22, L * .1, 'dorsal'), finM); anal.rotation.z = Math.PI; anal.position.set(-L * .18, -L * .27, 0); g.add(anal);
+    var pecs = [-1, 1].map(function (sd) { var pf = new T.Mesh(roundFin(L * .2, L * .12, 'pec'), finM); pf.position.set(L * .12, -L * .06, sd * L * .17); g.add(pf); return pf; });
+    [-1, 1].forEach(function (sd) {
+      var er = L * .1, eye = new T.Mesh(new T.SphereGeometry(er, 14, 10), new T.MeshStandardMaterial({ color: 0x0b0b10, roughness: .1, metalness: .2 })); eye.position.set(L * .3, L * .07, sd * L * .15); g.add(eye);
+      var hl = new T.Mesh(new T.SphereGeometry(er * .34, 8, 6), new T.MeshBasicMaterial({ color: 0xffffff })); hl.position.copy(eye.position).add(new T.Vector3(er * .45, er * .45, sd * er * .7)); g.add(hl);
+    });
+    g.userData = { name: 'clown', L: L, body: body, tail: tailPivot, pecs: pecs, phase: R(0, TAU), amp: .4, vel: new T.Vector3(R(-1, 1), 0, R(-1, 1)), target: null, retarget: 0, flee: 0, food: null, speed: 1.8 * (size || 1) };
     return g;
   }
   function bendFish(f, dt, t) {   // the spine bends as a travelling wave, stronger towards the tail; the tail fin follows
@@ -138656,7 +138692,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
   }
   function populate() {
     var an = tank.userData.anemone;
-    var c1 = makeFish('clown', 1), c2 = makeFish('clown', .8); [c1, c2].forEach(function (f, i) { f.position.set(an.x + (i ? .8 : -.8), 2.4, an.z); f.userData.home = { c: new T.Vector3(an.x, 2.2, an.z), r: 1.6 }; fish.push(f); tank.add(f); });
+    var c1 = makeClown(1), c2 = makeClown(.82); [c1, c2].forEach(function (f, i) { f.position.set(an.x + (i ? .8 : -.8), 2.4, an.z); f.userData.home = { c: new T.Vector3(an.x, 2.2, an.z), r: 1.6 }; fish.push(f); tank.add(f); });
     [[-6, 6, -4, 1], [6, 8, -6, .9]].forEach(function (p) { var f = makeFish('tang', p[3]); f.position.set(p[0], p[1], p[2]); f.userData.zone = [3.5, 11]; fish.push(f); tank.add(f); });
     var li = makeFish('lion', 1); li.position.set(7.8, 4.6, -5); li.userData.home = { c: new T.Vector3(7.5, 4.6, -5.5), r: 2.4 }; fish.push(li); tank.add(li);
     school('anthias', 9, new T.Vector3(-3, 7, -4), 2.2, 1);
@@ -139010,7 +139046,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     document.body.appendChild(root); document.documentElement.classList.add('maq-on'); hint = root.querySelector('.maq-hint');
     renderer = new T.WebGLRenderer({ canvas: root.querySelector('canvas'), antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.25)); renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = .82;
-    renderer.outputEncoding = T.sRGBEncoding; renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // once a frame, not once per screen
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // once a frame, not once per screen
     scene = new T.Scene(); scene.background = new T.Color(0x134a62); scene.fog = new T.FogExp2(0x175470, .026);
     scene.add(new T.HemisphereLight(0xbfe8ff, 0x3a4a3a, .5));
     var sun = new T.DirectionalLight(0xfff1d6, 1.35); sun.position.set(5, 26, 9); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
@@ -139038,7 +139074,8 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
   addEventListener('message', function (e) { var d = e.data; if (d && d.type === 'minest-pet' && d.action === 'aquarium') { try { var o = document.getElementById('minest-pet-raising-overlay'); if (o) o.remove(); document.documentElement.classList.remove('pet-raising-open'); } catch (x) {} open(); } });
   addEventListener('hashchange', function () { if (location.hash === '#aquarium') open(); });
   if (location.hash === '#aquarium') setTimeout(open, 1200);
-  window.MinestAquarium = { open: open, close: close, isOpen: function () { return !!root; }, layout: layout };
+  window.MinestAquarium = { open: open, close: close, isOpen: function () { return !!root; }, layout: layout,
+    _look: function (from, at) { var c = cams[0] && cams[0].cam; if (!c) return; c.position.set(from[0], from[1], from[2]); c.lookAt(at[0], at[1], at[2]); eyeW = c.position.clone(); } };   // a close look while tuning
 })();
 
 </script>
