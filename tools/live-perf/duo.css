@@ -179,10 +179,19 @@ html.duo-split.duo-build body .duo-lib { left:auto;right:0;width:calc(100% - var
 html.duo-cover body #root main { flex-direction:row !important; }
 html.duo-cover body #root main > .sf-slot { flex:1 1 50% !important;width:50% !important;min-width:0;position:relative !important;inset:auto !important; }
 html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { border-left:2px solid rgba(255,255,255,.12);overflow:hidden; }
-html.duo-cover body #root main { margin-right:var(--sar, 0px) !important; }
+/* the dividing line sits on the hinge — the middle of the whole screen, not of the screen minus the clock column;
+   the right pane keeps the clock column inside itself */
+html.duo-cover body #root main { margin-right:0 !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="board"] { flex:0 0 calc(50vw - var(--sal, 0px)) !important;width:calc(50vw - var(--sal, 0px)) !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { flex:1 1 auto !important;width:auto !important;padding-right:var(--sar, 0px);box-sizing:border-box; }
 /* board | 3D Cover: the board pane shows one list at a time, as wide as the pane (swipe for the next list) */
 html.duo-cover body #root main > .sf-slot[data-sf-view="board"] { container-type:inline-size; }
 html.duo-cover body #root .sf-slot[data-sf-view="board"] .kanban-column-wrapper { width:calc(100cqw - 40px) !important;min-width:calc(100cqw - 40px) !important;max-width:none !important;flex:0 0 auto !important;scroll-snap-align:start; }
 html.duo-cover body #root .sf-slot[data-sf-view="board"] .board-swimlane-scroll { scroll-snap-type:x mandatory; }
 /* the 3D Cover's floating Card FX / Light FX pair stays off the Duo's open screen (it sat over the board's first list) */
 html.duo-inner body .fbfx-btn, html.duo-inner body .card-mode-btn, html.duo-inner body .student-cover-float-bar { display:none !important; }
+/* the Cover keeps to the right pane's height (on the Fold its stage grew to the page height and the cards fell below) */
+html.duo-cover body #root main { height:calc(100dvh - var(--duo-top, 0px)); }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { height:100% !important;max-height:100% !important;align-self:stretch;overflow:hidden !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] > *, html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] section { top:0 !important;bottom:0 !important;height:100% !important;max-height:100% !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="board"] { height:100% !important;overflow:hidden; }

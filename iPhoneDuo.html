@@ -25246,8 +25246,10 @@ var Oe = function(props) {
   var onUpdateCardMastery = props.onUpdateCardMastery;
   var onOpenAIAssistant = props.onOpenAIAssistant;
   var isZenMode = props.isZenMode;
+  // 53.85 Duo: beside the board (board | 3D Cover) the Cover's pane is taller than wide — lay it out as the upright
+  // Cover Flow (big cards, two neighbours each side, easy to swipe), whatever way the phone is held
   var onToggleZenMode = props.onToggleZenMode;
-  var isLandscape = props.isLandscape;
+  var isLandscape = props.isLandscape && !(typeof document !== 'undefined' && document.documentElement.classList.contains('duo-cover'));
   var onMoveCard = props.onMoveCard;   // 7.5: carrying the front card past a neighbour reorders
 
   var isDark = themeMode === 'dark';
@@ -25502,10 +25504,17 @@ var Oe = function(props) {
     setTilt({ x: 0, y: 0 });
   }, [activeIdx]);
 
+  // 53.85 Duo: the board beside it says which list is on screen; the Cover shows that list's cards
+  var duoColState = (0, _.useState)(null), duoCol = duoColState[0], setDuoCol = duoColState[1];
+  (0, _.useEffect)(function() {
+    var on = function(e) { setDuoCol((e.detail && e.detail.colId) || null); setActiveIdx(0); };
+    window.addEventListener('minest:cf-list', on);
+    return function() { window.removeEventListener('minest:cf-list', on); };
+  }, []);
   var cards = (0, _.useMemo)(function() {
-    var list = [];
+    var list = [], flt = duoCol || selectedColFilter;
     (board.columns || []).forEach(function(col) {
-      if (selectedColFilter === 'all' || selectedColFilter === col.id) {
+      if (flt === 'all' || flt === col.id) {
         (col.cards || []).forEach(function(card) {
           var matchesSearch = !searchTerm || (
             (card.title || "") + " " + (card.desc || "") + " " + ((card.labels || []).join(" "))
@@ -25521,7 +25530,7 @@ var Oe = function(props) {
       }
     });
     return list;
-  }, [board, selectedColFilter, searchTerm]);
+  }, [board, selectedColFilter, searchTerm, duoCol]);
 
   // 40.8: 3D Cover is for reading (front / back) only — no "add card" slot at the end
   var totalSlots = Math.max(1, cards.length);
@@ -137060,13 +137069,22 @@ html.duo-split.duo-build body .duo-lib { left:auto;right:0;width:calc(100% - var
 html.duo-cover body #root main { flex-direction:row !important; }
 html.duo-cover body #root main > .sf-slot { flex:1 1 50% !important;width:50% !important;min-width:0;position:relative !important;inset:auto !important; }
 html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { border-left:2px solid rgba(255,255,255,.12);overflow:hidden; }
-html.duo-cover body #root main { margin-right:var(--sar, 0px) !important; }
+/* the dividing line sits on the hinge — the middle of the whole screen, not of the screen minus the clock column;
+   the right pane keeps the clock column inside itself */
+html.duo-cover body #root main { margin-right:0 !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="board"] { flex:0 0 calc(50vw - var(--sal, 0px)) !important;width:calc(50vw - var(--sal, 0px)) !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { flex:1 1 auto !important;width:auto !important;padding-right:var(--sar, 0px);box-sizing:border-box; }
 /* board | 3D Cover: the board pane shows one list at a time, as wide as the pane (swipe for the next list) */
 html.duo-cover body #root main > .sf-slot[data-sf-view="board"] { container-type:inline-size; }
 html.duo-cover body #root .sf-slot[data-sf-view="board"] .kanban-column-wrapper { width:calc(100cqw - 40px) !important;min-width:calc(100cqw - 40px) !important;max-width:none !important;flex:0 0 auto !important;scroll-snap-align:start; }
 html.duo-cover body #root .sf-slot[data-sf-view="board"] .board-swimlane-scroll { scroll-snap-type:x mandatory; }
 /* the 3D Cover's floating Card FX / Light FX pair stays off the Duo's open screen (it sat over the board's first list) */
 html.duo-inner body .fbfx-btn, html.duo-inner body .card-mode-btn, html.duo-inner body .student-cover-float-bar { display:none !important; }
+/* the Cover keeps to the right pane's height (on the Fold its stage grew to the page height and the cards fell below) */
+html.duo-cover body #root main { height:calc(100dvh - var(--duo-top, 0px)); }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { height:100% !important;max-height:100% !important;align-self:stretch;overflow:hidden !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] > *, html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] section { top:0 !important;bottom:0 !important;height:100% !important;max-height:100% !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="board"] { height:100% !important;overflow:hidden; }
 
 </style>
 <script id="mn-duo-script">
@@ -137093,7 +137111,7 @@ var kind = null, gl = null, dismissed = false, back = false, booted = false;
 /* fold-aware when the browser can tell (Viewport Segments: two segments = open across the hinge; Device Posture
    'folded' = half-open), responsive otherwise: the shorter side ≥ 600 pt and a near-square shape = the inner screen */
 function segments(){ try { if (matchMedia('(horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)').matches) return 2; } catch(e){} try { var v = window.viewport && window.viewport.segments; if (v && v.length > 1) return v.length; } catch(e){} return 1; }
-function posture(){ try { return navigator.devicePosture && navigator.devicePosture.type || ''; } catch(e){ return ''; } }
+function posture(){ var h = window.__minestHinge; if (h && h.status === 'partial') return 'folded'; try { return navigator.devicePosture && navigator.devicePosture.type || ''; } catch(e){ return ''; } }
 /* measured on the real iPhone Fold (2026-10-26): the inner screen is 951 × 669 pt held sideways (1 : 1.42); the outer
    screen is 466 × 678 — almost as square, so the size decides: the inner one is the only one with a short side ≥ 600 */
 function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 600 && mx / mn < 1.6 ? 'inner' : 'outer'; }
@@ -137130,6 +137148,10 @@ function apply(){
    right; the board → the board on the left, its 3D Cover on the right (a card picked on the board turns the Cover to it) */
 function onUnfold(){
   if (Date.now() - flashAt < 120000 && !desk) return deskOpen();
+  if (hingeKnown()) return;   /* with a hinge to read, opening flat stays full screen; the two panes come with a slight fold (onHinge) */
+  twoPane();
+}
+function twoPane(){
   if (desk || document.querySelector('.dv, .pk.vl')) return;
   if (worldOpen() || document.querySelector('.mn-dsp')) return autoBuild();
   try { if (MinestAI.viewMode && MinestAI.viewMode() !== 'board') MinestAI.setViewMode('board'); } catch(e){}
@@ -137247,18 +137269,56 @@ function splitBtn(){
   b.classList.toggle('on', on);
 }
 
+/* the hinge (native UIHingeInteraction → 'minest:hinge'): opened flat and then folded a little ("partial") brings the two
+   panes for what you are in — My World: island | Builder, the board: board | 3D Cover; opening it flat again goes back to
+   full screen if the fold had made the panes */
+var byHinge = false, hingeStatus = '';
+function hingeKnown(){ try { return localStorage.getItem('minest.duo.hinge') === '1'; } catch(e){ return false; } }
+function onHinge(h){
+  try { localStorage.setItem('minest.duo.hinge', '1'); } catch(e){}
+  var st = h && h.status || ''; if (st === hingeStatus) return; var was = hingeStatus; hingeStatus = st;
+  document.documentElement.classList.toggle('duo-halfopen', st === 'partial');
+  if (!on) return;
+  apply();
+  if (kind !== 'inner') return;
+  if (st === 'partial' && was !== 'partial') {
+    var R = document.documentElement; if (R.classList.contains('duo-cover') || R.classList.contains('duo-build')) return;
+    byHinge = true; twoPane();
+  } else if (st === 'open' && was === 'partial' && byHinge) {
+    byHinge = false; coverOn(false);
+    try { if (window.MinestDuoWorld && MinestDuoWorld.libOn && MinestDuoWorld.libOn()) document.querySelector('.duo-lib [data-dlx]').click(); } catch(e){}
+    if (prefs().split) { setPref('split', false); document.documentElement.classList.remove('duo-split'); relayout(); }
+    rail(); rightPane();
+  }
+}
+window.addEventListener('minest:hinge', function(e){ onHinge(e.detail); });
+
 /* board | 3D Cover: both of the app's own views stay mounted side by side (SpatialFold's two slots) */
 function coverOn(v){
   var r = document.documentElement; v = !!v && kind === 'inner';
   if (v === r.classList.contains('duo-cover')) { if (v) try { if (!document.querySelector('.sf-slot[data-sf-view="coverflow"]')) SpatialFold.dual(true); } catch(e){} return; }
   r.classList.toggle('duo-cover', v); try { SpatialFold.dual(v); } catch(e){} relayout(); rail();
+  if (v) setTimeout(function(){ sentCol = null; var id = visibleList(); if (id) sendList(id); }, 500); else { sentCol = null; window.dispatchEvent(new CustomEvent('minest:cf-list', { detail: { colId: null } })); }
 }
 document.addEventListener('click', function(e){
   if (!document.documentElement.classList.contains('duo-cover') || !e.target.closest) return;
   var a = e.target.closest('.sf-slot[data-sf-view="board"] article[data-card-id]'); if (!a) return;
-  var base = a.closest('.card-stack-base'), top = base && base.querySelector('article.kanban-card');
-  window.dispatchEvent(new CustomEvent('minest:cf-goto', { detail: { cardId: (top || a).getAttribute('data-card-id') } }));
+  var base = a.closest('.card-stack-base'), top = base && base.querySelector('article.kanban-card'), col = a.closest('[data-col-id]');
+  if (col) sendList(col.getAttribute('data-col-id'));
+  var id = (top || a).getAttribute('data-card-id');
+  setTimeout(function(){ window.dispatchEvent(new CustomEvent('minest:cf-goto', { detail: { cardId: id } })); }, 90);
 }, true);
+/* the list on screen in the board pane → the Cover shows that list */
+var sentCol = null;
+function sendList(id){ if (id === sentCol) return; sentCol = id; window.dispatchEvent(new CustomEvent('minest:cf-list', { detail: { colId: id } })); }
+function visibleList(){
+  var pane = document.querySelector('.sf-slot[data-sf-view="board"]'); if (!pane) return null;
+  var pr = pane.getBoundingClientRect(), best = null, bd = 1e9;
+  [].forEach.call(pane.querySelectorAll('.kanban-column-wrapper[data-col-id]'), function(c){ var r = c.getBoundingClientRect(); if (r.width < 40) return; var d = Math.abs(r.left - pr.left - 16); if (r.right > pr.left + 40 && r.left < pr.right - 40 && d < bd) { bd = d; best = c; } });
+  return best && best.getAttribute('data-col-id');
+}
+var lsQ = false;
+document.addEventListener('scroll', function(){ if (lsQ || !document.documentElement.classList.contains('duo-cover')) return; lsQ = true; setTimeout(function(){ lsQ = false; var id = visibleList(); if (id) sendList(id); }, 160); }, true);
 document.addEventListener('visibilitychange', function(){ if (on && !document.hidden) { apply(); rail(); } });
 function toggleSplit(){ if (document.documentElement.classList.contains('duo-cover')) { coverOn(false); return rail(); } var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); relayout(); splitBtn(); rail(); hap(); setTimeout(rightPane, 600); if (on) openWorld(); }
 
@@ -137481,6 +137541,7 @@ function boot(){
   if (!window.MinestAI || !window.MinestAI.boards) { setTimeout(boot, 300); return; }
   if (!enabled()) return;
   on = true; document.documentElement.classList.add('duo'); apply();
+  if (window.__minestHinge) onHinge(window.__minestHinge);
 }
 window.addEventListener('resize', function(){ if (!on && enabled()) { on = true; document.documentElement.classList.add('duo'); } });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 600); }); else setTimeout(boot, 600);

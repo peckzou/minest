@@ -21,7 +21,7 @@ var kind = null, gl = null, dismissed = false, back = false, booted = false;
 /* fold-aware when the browser can tell (Viewport Segments: two segments = open across the hinge; Device Posture
    'folded' = half-open), responsive otherwise: the shorter side ≥ 600 pt and a near-square shape = the inner screen */
 function segments(){ try { if (matchMedia('(horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)').matches) return 2; } catch(e){} try { var v = window.viewport && window.viewport.segments; if (v && v.length > 1) return v.length; } catch(e){} return 1; }
-function posture(){ try { return navigator.devicePosture && navigator.devicePosture.type || ''; } catch(e){ return ''; } }
+function posture(){ var h = window.__minestHinge; if (h && h.status === 'partial') return 'folded'; try { return navigator.devicePosture && navigator.devicePosture.type || ''; } catch(e){ return ''; } }
 /* measured on the real iPhone Fold (2026-10-26): the inner screen is 951 × 669 pt held sideways (1 : 1.42); the outer
    screen is 466 × 678 — almost as square, so the size decides: the inner one is the only one with a short side ≥ 600 */
 function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h = innerHeight, mn = Math.min(w, h), mx = Math.max(w, h); return mn >= 600 && mx / mn < 1.6 ? 'inner' : 'outer'; }
@@ -58,6 +58,10 @@ function apply(){
    right; the board → the board on the left, its 3D Cover on the right (a card picked on the board turns the Cover to it) */
 function onUnfold(){
   if (Date.now() - flashAt < 120000 && !desk) return deskOpen();
+  if (hingeKnown()) return;   /* with a hinge to read, opening flat stays full screen; the two panes come with a slight fold (onHinge) */
+  twoPane();
+}
+function twoPane(){
   if (desk || document.querySelector('.dv, .pk.vl')) return;
   if (worldOpen() || document.querySelector('.mn-dsp')) return autoBuild();
   try { if (MinestAI.viewMode && MinestAI.viewMode() !== 'board') MinestAI.setViewMode('board'); } catch(e){}
@@ -175,18 +179,56 @@ function splitBtn(){
   b.classList.toggle('on', on);
 }
 
+/* the hinge (native UIHingeInteraction → 'minest:hinge'): opened flat and then folded a little ("partial") brings the two
+   panes for what you are in — My World: island | Builder, the board: board | 3D Cover; opening it flat again goes back to
+   full screen if the fold had made the panes */
+var byHinge = false, hingeStatus = '';
+function hingeKnown(){ try { return localStorage.getItem('minest.duo.hinge') === '1'; } catch(e){ return false; } }
+function onHinge(h){
+  try { localStorage.setItem('minest.duo.hinge', '1'); } catch(e){}
+  var st = h && h.status || ''; if (st === hingeStatus) return; var was = hingeStatus; hingeStatus = st;
+  document.documentElement.classList.toggle('duo-halfopen', st === 'partial');
+  if (!on) return;
+  apply();
+  if (kind !== 'inner') return;
+  if (st === 'partial' && was !== 'partial') {
+    var R = document.documentElement; if (R.classList.contains('duo-cover') || R.classList.contains('duo-build')) return;
+    byHinge = true; twoPane();
+  } else if (st === 'open' && was === 'partial' && byHinge) {
+    byHinge = false; coverOn(false);
+    try { if (window.MinestDuoWorld && MinestDuoWorld.libOn && MinestDuoWorld.libOn()) document.querySelector('.duo-lib [data-dlx]').click(); } catch(e){}
+    if (prefs().split) { setPref('split', false); document.documentElement.classList.remove('duo-split'); relayout(); }
+    rail(); rightPane();
+  }
+}
+window.addEventListener('minest:hinge', function(e){ onHinge(e.detail); });
+
 /* board | 3D Cover: both of the app's own views stay mounted side by side (SpatialFold's two slots) */
 function coverOn(v){
   var r = document.documentElement; v = !!v && kind === 'inner';
   if (v === r.classList.contains('duo-cover')) { if (v) try { if (!document.querySelector('.sf-slot[data-sf-view="coverflow"]')) SpatialFold.dual(true); } catch(e){} return; }
   r.classList.toggle('duo-cover', v); try { SpatialFold.dual(v); } catch(e){} relayout(); rail();
+  if (v) setTimeout(function(){ sentCol = null; var id = visibleList(); if (id) sendList(id); }, 500); else { sentCol = null; window.dispatchEvent(new CustomEvent('minest:cf-list', { detail: { colId: null } })); }
 }
 document.addEventListener('click', function(e){
   if (!document.documentElement.classList.contains('duo-cover') || !e.target.closest) return;
   var a = e.target.closest('.sf-slot[data-sf-view="board"] article[data-card-id]'); if (!a) return;
-  var base = a.closest('.card-stack-base'), top = base && base.querySelector('article.kanban-card');
-  window.dispatchEvent(new CustomEvent('minest:cf-goto', { detail: { cardId: (top || a).getAttribute('data-card-id') } }));
+  var base = a.closest('.card-stack-base'), top = base && base.querySelector('article.kanban-card'), col = a.closest('[data-col-id]');
+  if (col) sendList(col.getAttribute('data-col-id'));
+  var id = (top || a).getAttribute('data-card-id');
+  setTimeout(function(){ window.dispatchEvent(new CustomEvent('minest:cf-goto', { detail: { cardId: id } })); }, 90);
 }, true);
+/* the list on screen in the board pane → the Cover shows that list */
+var sentCol = null;
+function sendList(id){ if (id === sentCol) return; sentCol = id; window.dispatchEvent(new CustomEvent('minest:cf-list', { detail: { colId: id } })); }
+function visibleList(){
+  var pane = document.querySelector('.sf-slot[data-sf-view="board"]'); if (!pane) return null;
+  var pr = pane.getBoundingClientRect(), best = null, bd = 1e9;
+  [].forEach.call(pane.querySelectorAll('.kanban-column-wrapper[data-col-id]'), function(c){ var r = c.getBoundingClientRect(); if (r.width < 40) return; var d = Math.abs(r.left - pr.left - 16); if (r.right > pr.left + 40 && r.left < pr.right - 40 && d < bd) { bd = d; best = c; } });
+  return best && best.getAttribute('data-col-id');
+}
+var lsQ = false;
+document.addEventListener('scroll', function(){ if (lsQ || !document.documentElement.classList.contains('duo-cover')) return; lsQ = true; setTimeout(function(){ lsQ = false; var id = visibleList(); if (id) sendList(id); }, 160); }, true);
 document.addEventListener('visibilitychange', function(){ if (on && !document.hidden) { apply(); rail(); } });
 function toggleSplit(){ if (document.documentElement.classList.contains('duo-cover')) { coverOn(false); return rail(); } var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); relayout(); splitBtn(); rail(); hap(); setTimeout(rightPane, 600); if (on) openWorld(); }
 
@@ -409,6 +451,7 @@ function boot(){
   if (!window.MinestAI || !window.MinestAI.boards) { setTimeout(boot, 300); return; }
   if (!enabled()) return;
   on = true; document.documentElement.classList.add('duo'); apply();
+  if (window.__minestHinge) onHinge(window.__minestHinge);
 }
 window.addEventListener('resize', function(){ if (!on && enabled()) { on = true; document.documentElement.classList.add('duo'); } });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 600); }); else setTimeout(boot, 600);
