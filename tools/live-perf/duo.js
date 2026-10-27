@@ -250,13 +250,31 @@ function sarPx(){ var v = parseFloat(getComputedStyle(document.documentElement).
 /* full screen (inner sideways, or the outer screen): the Dock lives in the right column under the clock (scrolls when it does not fit),
    and the board stops short of it */
 function dockPin(){
-  var R0 = document.documentElement, sar = sarPx(), want = on && (kind === 'outer' || !tall()) && sar >= 44 && !['duo-split', 'duo-cover', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
+  var R0 = document.documentElement, sar = sarPx(), want = on && (kind === 'outer' || !tall()) && sar >= 44 && !['duo-split', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
   R0.classList.toggle('duo-dockpin', !!want);
   if (want) R0.style.setProperty('--duo-dock', Math.round(sar) + 'px');
+  /* board | 3D Cover keeps the pinned Dock; its first icon goes back to full screen */
+  var dk = document.querySelector('.mn-bdock'), bx = dk && dk.querySelector('.duo-bx'), cov = want && R0.classList.contains('duo-cover');
+  if (cov && dk && !bx) { bx = document.createElement('button'); bx.type = 'button'; bx.className = 'mn-bapp duo-bx'; bx.setAttribute('aria-label', '全屏');
+    bx.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>';
+    bx.addEventListener('click', function(e){ e.stopPropagation(); hap(); byHinge = false; coverOn(false); rail(); }); dk.insertBefore(bx, dk.firstChild); }
+  else if (!cov && bx) bx.remove();
   /* show the Dock down to CarPlay (else Settings): the two FX icons below it are reached by scrolling */
   var d = want && document.querySelector('.mn-bdock'), cut = d && (d.querySelector('.mn-bapp[aria-label*="CarPlay"]') || d.querySelector('.mn-bapp[aria-label^="Board settings"]'));
   if (cut && cut.offsetHeight) R0.style.setProperty('--duo-dock-h', (cut.offsetTop + cut.offsetHeight + 8) + 'px'); else R0.style.removeProperty('--duo-dock-h');
 }
+/* board | 3D Cover: a sideways swipe on the empty part of the Cover's pane turns the cards (the cards keep their own gestures) */
+var cfSw = null;
+document.addEventListener('touchstart', function(e){
+  cfSw = null; if (!on || e.touches.length !== 1 || !document.documentElement.classList.contains('duo-cover') || !e.target.closest) return;
+  if (!e.target.closest('.sf-slot[data-sf-view="coverflow"]') || e.target.closest('[data-card-id], button, a, input, textarea, select, [role="button"]')) return;
+  cfSw = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+}, { passive: true, capture: true });
+document.addEventListener('touchend', function(e){
+  if (!cfSw) return; var t = e.changedTouches[0], dx = t.clientX - cfSw.x, dy = t.clientY - cfSw.y; cfSw = null;
+  if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+  hap(); window.dispatchEvent(new CustomEvent('minest:cf-step', { detail: { dir: dx < 0 ? 1 : -1 } }));
+}, { passive: true, capture: true });
 /* a two-finger pinch anywhere brings up the ⌂ 速览 pill for a few seconds */
 var pinch0 = 0, pinchT = null;
 function pinchDist(t){ return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
@@ -293,7 +311,7 @@ function sheetUp(){
 document.addEventListener('click', function(){ if (on) [300, 900].forEach(function(t){ setTimeout(sheetUp, t); }); }, true);
 function rail(){
   dockPin(); sheetUp();
-  var R0 = document.documentElement, r = document.querySelector('.duo-rail'), want = on && kind === 'inner' && (R0.classList.contains('duo-split') || R0.classList.contains('duo-cover')) && sarPx() >= 44;   /* two panes only: full screen keeps the column clear */
+  var R0 = document.documentElement, r = document.querySelector('.duo-rail'), want = on && kind === 'inner' && R0.classList.contains('duo-split') && sarPx() >= 44;   /* two panes only: full screen keeps the column clear */
   document.documentElement.classList.toggle('duo-rail-on', !!want);
   if (!want) { if (r) r.remove(); return; }
   if (!r) { r = document.createElement('nav'); r.className = 'duo-rail'; r.setAttribute('aria-label', 'Duo 工具'); document.body.appendChild(r);

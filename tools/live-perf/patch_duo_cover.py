@@ -2,7 +2,8 @@
 - SpatialFold.dual(on): keep the Board and Cover Flow slots mounted together (the same two slots a fold animation uses),
   so duo.js can lay them out side by side on the iPhone Fold's inner screen; a running fold is left alone.
 - Cover Flow listens for 'minest:cf-goto' {cardId} and turns to that card (a card picked on the board beside it), and
-  for 'minest:cf-list' {colId}: it then shows only that list (the one on screen in the board pane).
+  for 'minest:cf-list' {colId}: it then shows only that list (the one on screen in the board pane);
+  'minest:cf-step' {dir}: one card on / back (a swipe on the empty part of its pane).
 Run before patch_duo.py (which copies the page to every copy)."""
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]; SRC = ROOT / 'iPhone53.8241.html'
@@ -55,4 +56,12 @@ rep("""  var onToggleZenMode = props.onToggleZenMode;
   var onToggleZenMode = props.onToggleZenMode;
   var isLandscape = props.isLandscape && !(typeof document !== 'undefined' && document.documentElement.classList.contains('duo-cover'));
   var onMoveCard = props.onMoveCard;""")
+rep("""    window.addEventListener('minest:cf-goto', go);
+    return function() { window.removeEventListener('minest:cf-goto', go); };
+  }, [cards]);""", """    window.addEventListener('minest:cf-goto', go);
+    // a swipe on the empty part of the Cover's pane turns one card on (dir 1) or back (dir -1)
+    var step = function(e) { var d = e.detail && e.detail.dir; if (!d) return; setActiveIdx(function(i) { return Math.max(0, Math.min(cards.length - 1, i + d)); }); };
+    window.addEventListener('minest:cf-step', step);
+    return function() { window.removeEventListener('minest:cf-goto', go); window.removeEventListener('minest:cf-step', step); };
+  }, [cards]);""")
 SRC.write_text(s, encoding='utf-8'); print('patched Duo cover hooks')
