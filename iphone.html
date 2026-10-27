@@ -137178,15 +137178,24 @@ html.duo-tall.duo-split.duo-build body .duo-wk-pad { grid-column:1;grid-row:2 / 
 /* with the console out, the scene is only the scene: its own selection bar and the ✓ / ✕ chip stay hidden (the console does both) */
 html.duo-split.duo-build body .mn-dsp .mn-dsp-sel, html.duo-split.duo-build body .mn-bq { display:none !important; }
 
-/* full screen, unfolded: the Dock is pinned in the right column (below the clock), scrolling when the icons do not fit */
-html.duo-dockpin body .landscape main, html.duo-dockpin body #root main { margin-right:var(--duo-dock, 84px) !important; }
-html.duo-dockpin[data-mn-bd] body .mn-bdock { left:auto !important;right:0 !important;top:calc(var(--sat, 0px) + 122px) !important;bottom:6px !important;width:var(--duo-dock, 84px) !important;
-  transform:none !important;opacity:1 !important;pointer-events:auto !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;flex-wrap:nowrap !important;
-  overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y !important;scrollbar-width:none;padding:6px 0 14px !important;box-sizing:border-box;
-  -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 16px), transparent 100%);mask-image:linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 16px), transparent 100%); }
+/* full screen (inner sideways / outer): the Dock is pinned in the right status column as one narrow glass capsule under
+   the clock (like Xiaohongshu's tab pill), scrolling when the icons do not fit; the board's background runs on under it */
+html.duo-dockpin body .landscape main, html.duo-dockpin body #root main { margin-right:0 !important;padding-right:var(--duo-dock, 84px) !important;box-sizing:border-box !important; }
+html.duo-dockpin[data-mn-bd] body .mn-bdock { left:auto !important;right:calc((var(--duo-dock, 84px) - 50px) / 2) !important;top:calc(var(--sat, 0px) + 118px) !important;bottom:auto !important;max-height:calc(100% - var(--sat, 0px) - 118px - 10px) !important;width:50px !important;
+  transform:none !important;opacity:1 !important;pointer-events:auto !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;flex-wrap:nowrap !important;gap:4px !important;
+  overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y !important;scrollbar-width:none;padding:7px 0 !important;box-sizing:border-box;border-radius:25px !important;
+  background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08)) !important;border:1px solid rgba(255,255,255,.26) !important;-webkit-backdrop-filter:blur(22px) saturate(180%) !important;backdrop-filter:blur(22px) saturate(180%) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 22px rgba(0,0,0,.25) !important; }
+html.duo-dockpin.mnh-tw[data-mn-bd] body .mn-bdock { background:rgba(255,255,255,.82) !important;border-color:rgba(255,255,255,.95) !important;box-shadow:0 6px 18px rgba(15,23,42,.14) !important; }
+/* the outer screen shows one list at a time: it is as wide as what is left beside the Dock, not the whole screen */
+html.duo-dockpin.duo-outer body .mobile-board-view .kanban-column-wrapper { width:calc(100vw - var(--duo-dock, 84px) - 20px) !important;min-width:0 !important;max-width:none !important; }
 html.duo-dockpin body .mn-bdock::-webkit-scrollbar { display:none; }
 html.duo-dockpin body .mn-bdock::before { display:none !important; }
 html.duo-dockpin body .mn-bdock > * { flex:none; }
+html.duo-dockpin body .mn-bdock .mn-bapp { width:38px !important;height:38px !important;border-radius:50% !important;background:transparent !important;border:0 !important;box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important; }
+html.duo-dockpin body .mn-bdock .mn-bapp::before { display:none !important; }
+html.duo-dockpin body .mn-bdock .mn-bapp.on { background:rgba(125,211,252,.18) !important; }
+html.duo-dockpin body .mn-bdock .mn-bapp svg { width:58% !important; }
 html.duo-dockpin body.clear-mode .mn-bdock { display:none !important; }
 html.duo-dockpin body .mn-bd-edge { display:none !important; }
 
@@ -137441,10 +137450,10 @@ function toggleSplit(){ if (document.documentElement.classList.contains('duo-cov
    under it, in a liquid-glass capsule, instead of floating over the content (▥ split, 📚 desk, 🏝 My World, ⌂ Glance). Without that column (upright), the floating
    buttons at the bottom left stay. */
 function sarPx(){ var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sar')); if (!(v > 0)) { try { var t = document.createElement('div'); t.style.cssText = 'position:fixed;width:env(safe-area-inset-right);height:0'; document.body.appendChild(t); v = t.getBoundingClientRect().width; t.remove(); } catch(e){ v = 0; } } return v || 0; }
-/* full screen on the inner screen: the Dock lives in the right column under the clock (scrolls when it does not fit),
+/* full screen (inner sideways, or the outer screen): the Dock lives in the right column under the clock (scrolls when it does not fit),
    and the board stops short of it */
 function dockPin(){
-  var R0 = document.documentElement, sar = sarPx(), want = on && kind === 'inner' && !tall() && sar >= 44 && !['duo-split', 'duo-cover', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
+  var R0 = document.documentElement, sar = sarPx(), want = on && (kind === 'outer' || !tall()) && sar >= 44 && !['duo-split', 'duo-cover', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
   R0.classList.toggle('duo-dockpin', !!want);
   if (want) R0.style.setProperty('--duo-dock', Math.round(sar) + 'px');
 }

@@ -247,10 +247,10 @@ function toggleSplit(){ if (document.documentElement.classList.contains('duo-cov
    under it, in a liquid-glass capsule, instead of floating over the content (▥ split, 📚 desk, 🏝 My World, ⌂ Glance). Without that column (upright), the floating
    buttons at the bottom left stay. */
 function sarPx(){ var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sar')); if (!(v > 0)) { try { var t = document.createElement('div'); t.style.cssText = 'position:fixed;width:env(safe-area-inset-right);height:0'; document.body.appendChild(t); v = t.getBoundingClientRect().width; t.remove(); } catch(e){ v = 0; } } return v || 0; }
-/* full screen on the inner screen: the Dock lives in the right column under the clock (scrolls when it does not fit),
+/* full screen (inner sideways, or the outer screen): the Dock lives in the right column under the clock (scrolls when it does not fit),
    and the board stops short of it */
 function dockPin(){
-  var R0 = document.documentElement, sar = sarPx(), want = on && kind === 'inner' && !tall() && sar >= 44 && !['duo-split', 'duo-cover', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
+  var R0 = document.documentElement, sar = sarPx(), want = on && (kind === 'outer' || !tall()) && sar >= 44 && !['duo-split', 'duo-cover', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
   R0.classList.toggle('duo-dockpin', !!want);
   if (want) R0.style.setProperty('--duo-dock', Math.round(sar) + 'px');
 }
