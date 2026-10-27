@@ -138515,7 +138515,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
   function buildTank() {
     var g = new T.Group();
     // sand: dunes, fine grain, ripples
-    var grain = canvasTex(256, 256, function (c, w, h) { c.fillStyle = '#b9955e'; c.fillRect(0, 0, w, h); for (var i = 0; i < 9000; i++) { var v = Math.random(); c.fillStyle = v < .5 ? 'rgba(120,90,50,' + R(.05, .18) + ')' : 'rgba(255,245,220,' + R(.05, .2) + ')'; c.fillRect(Math.random() * w, Math.random() * h, 1.2, 1.2); }
+    var grain = canvasTex(256, 256, function (c, w, h) { c.fillStyle = '#a6875a'; c.fillRect(0, 0, w, h); for (var i = 0; i < 9000; i++) { var v = Math.random(); c.fillStyle = v < .5 ? 'rgba(120,90,50,' + R(.05, .18) + ')' : 'rgba(255,245,220,' + R(.05, .2) + ')'; c.fillRect(Math.random() * w, Math.random() * h, 1.2, 1.2); }
       c.strokeStyle = 'rgba(150,115,70,.12)'; c.lineWidth = 3; for (var y = 0; y < h; y += 18) { c.beginPath(); for (var x = 0; x <= w; x += 8) c.lineTo(x, y + Math.sin(x * .05 + y) * 4); c.stroke(); } }, 5);
     var sand = new T.PlaneGeometry(34, 30, 48, 42); sand.rotateX(-Math.PI / 2);
     var sp = sand.attributes.position; for (var i = 0; i < sp.count; i++) { var x = sp.getX(i), z = sp.getZ(i); sp.setY(i, Math.sin(x * .32) * .45 + Math.cos(z * .3 + x * .15) * .35 + Math.max(0, -z - 6) * .12); }
@@ -138526,10 +138526,10 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
       for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) { var a = x / w * TAU, b = y / h * TAU, v = Math.sin(a * 3 + Math.sin(b * 2) * 1.6) + Math.sin(b * 3 + Math.sin(a * 2.4) * 1.7) + Math.sin((a + b) * 2.2);
         var k = Math.pow(1 - Math.min(1, Math.abs(v) / 1.15), 4) * 255, j = (y * w + x) * 4; d[j] = d[j + 1] = d[j + 2] = k; d[j + 3] = 255; }
       c.putImageData(img, 0, 0); }, 3);
-    [0, 1].forEach(function (k) { var cg = sand.clone(); cg.translate(0, .03 + k * .01, 0); var m = new T.Mesh(cg, new T.MeshBasicMaterial({ map: k ? caus.clone() : caus, transparent: true, opacity: .11, blending: T.AdditiveBlending, depthWrite: false })); if (k) { m.material.map.needsUpdate = true; m.material.map.repeat.set(2.3, 2.3); } m.userData.caus = k; movers.push(m); g.add(m); });
+    [0, 1].forEach(function (k) { var cg = sand.clone(); cg.translate(0, .03 + k * .01, 0); var m = new T.Mesh(cg, new T.MeshBasicMaterial({ map: k ? caus.clone() : caus, transparent: true, opacity: .08, blending: T.AdditiveBlending, depthWrite: false })); if (k) { m.material.map.needsUpdate = true; m.material.map.repeat.set(2.3, 2.3); } m.userData.caus = k; movers.push(m); g.add(m); });
     // back wall: a dark reef wall fading into the deep
     var wall = noisy(new T.PlaneGeometry(36, 24, 36, 24), 0, 1), wp = wall.attributes.position; for (var w = 0; w < wp.count; w++) wp.setZ(w, Math.sin(wp.getX(w) * .7) * .6 + Math.cos(wp.getY(w) * .9 + wp.getX(w) * .3) * .7 + R(-.15, .15));
-    wall.computeVertexNormals(); var wm = new T.Mesh(wall, std('#22536a', { roughness: 1 })); wm.position.set(0, 10, -13); wm.receiveShadow = true; g.add(wm);
+    wall.computeVertexNormals(); var wm = new T.Mesh(wall, std('#2d6a84', { roughness: 1 })); wm.position.set(0, 10, -13); wm.receiveShadow = true; g.add(wm);
     // rocks
     [[-7.5, -8, 2.8, '#7a7266'], [-4.5, -10, 2, '#6b655b'], [7, -7.5, 2.4, '#827a6c'], [9.5, -2.5, 1.4, '#6f685e'], [-9.6, 3, 1.2, '#7d7568'], [2.4, -10.5, 1.7, '#6a645a']].forEach(function (r) {
       var m = new T.Mesh(noisy(new T.IcosahedronGeometry(r[2], 3), r[2] * .22, 2.4), std(r[3], { roughness: .95 })); m.position.set(r[0], r[2] * .35, r[1]); m.scale.y = .72; shadows(m, true, true); g.add(m);
@@ -138714,7 +138714,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
       var top = new T.PerspectiveCamera(), bot = new T.PerspectiveCamera();
       offAxis(top, V(-W / 2, 0, 0), V(W / 2, 0, 0), up.clone().multiplyScalar(Hh).add(V(-W / 2, 0, 0)), pe);
       offAxis(bot, V(-W / 2, 0, Hh), V(W / 2, 0, Hh), V(-W / 2, 0, 0), pe);
-      cams.push({ cam: top, vp: [0, h / 2, w, h / 2] }, { cam: bot, vp: [0, 0, w, h / 2] }); eyeW = pe.clone();
+      cams.push({ cam: top, vp: [0, h / 2, w, h / 2], ex: 1.1, water: 0x2a7a98 }, { cam: bot, vp: [0, 0, w, h / 2], ex: .4 }); eyeW = pe.clone();   // the floor glass looks at sunlit sand: less exposure there, so both screens match
       // the tank sits under the floor glass and behind the front glass: its sand a few cm down, its back wall behind the hinge
       tank.position.set(0, -3, -3); tank.scale.setScalar(.45);   // sand ~3 cm under the floor glass, the back wall behind the hinge: the slanted view sees front to back
     } else {
@@ -138961,7 +138961,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     lifeToys(dt, t);
     if (mixer) mixer.update(dt);
     renderer.setScissorTest(cams.length > 1); renderer.shadowMap.needsUpdate = true;
-    cams.forEach(function (c) { var v = c.vp; renderer.setViewport(v[0], v[1], v[2], v[3]); renderer.setScissor(v[0], v[1], v[2], v[3]); renderer.render(scene, c.cam); });
+    cams.forEach(function (c) { var v = c.vp; renderer.toneMappingExposure = c.ex || .82; scene.background.setHex(c.water || 0x134a62); scene.fog.color.setHex(c.water ? 0x2f84a2 : 0x175470); renderer.setViewport(v[0], v[1], v[2], v[3]); renderer.setScissor(v[0], v[1], v[2], v[3]); renderer.render(scene, c.cam); });
   }
   function near(obj, px, e) { if (!obj) return false; var p = toScreen(obj.position); return Math.hypot(p.x - e.clientX, p.y - e.clientY) < px; }
   function onTap(e) {
@@ -139007,7 +139007,7 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     renderer = new T.WebGLRenderer({ canvas: root.querySelector('canvas'), antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.25)); renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = .82;
     renderer.outputEncoding = T.sRGBEncoding; renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // once a frame, not once per screen
-    scene = new T.Scene(); scene.background = new T.Color(0x0b3446); scene.fog = new T.FogExp2(0x0e3f55, .028);
+    scene = new T.Scene(); scene.background = new T.Color(0x134a62); scene.fog = new T.FogExp2(0x175470, .026);
     scene.add(new T.HemisphereLight(0xbfe8ff, 0x3a4a3a, .5));
     var sun = new T.DirectionalLight(0xfff1d6, 1.35); sun.position.set(5, 26, 9); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
     var sc = sun.shadow.camera; sc.left = -16; sc.right = 16; sc.top = 16; sc.bottom = -16; sc.near = 1; sc.far = 60; sun.shadow.bias = -.0008; sun.shadow.radius = 4;
