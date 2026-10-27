@@ -282,6 +282,11 @@ struct ContentView: View {
             if let cardId = components?.queryItems?.first(where: { $0.name == "id" })?.value {
                 bridge.openCard(cardId: cardId)
             }
+        } else if host == "stand" {
+            // a Stand Mode widget (StandBy) was tapped: open the desk display in the page
+            let js = "window.MinestStand && !MinestStand.isOpen() && window.dispatchEvent(new CustomEvent('minest:stand'))"
+            bridge.webView?.evaluateJavaScript(js, completionHandler: nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { bridge.webView?.evaluateJavaScript(js, completionHandler: nil) }   // a cold start: once the page is up
         } else if host == "create-card" || host == "new-card" {
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             let title = components?.queryItems?.first(where: { $0.name == "title" })?.value ?? "新建卡片"
