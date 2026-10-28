@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EC-6 Anchor Charts · Gallery Board</title>
+<style>
+  /* ── Reset & Base ────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card-bg: #0f3460;
+    --accent: #e94560;
+    --accent2: #533483;
+    --text: #eaeaea;
+    --text-dim: #8892a4;
+    --radius: 12px;
+    --toolbar-h: 60px;
+    --col-w: 280px;
+    --gap: 12px;
+    --thumb-ratio: 0.75; /* 3:4 portrait default */
+    --card-fixed-w: 220px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Toolbar ─────────────────────────────────────────────── */
+  #toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    height: var(--toolbar-h);
+    background: rgba(15,20,50,0.95);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    z-index: 100;
+  }
+
+  #toolbar h1 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.02em;
+    margin-right: 4px;
+    white-space: nowrap;
+  }
+  #toolbar h1 span { color: var(--accent); }
+
+  .sep { width: 1px; height: 28px; background: rgba(255,255,255,0.12); margin: 0 4px; }
+
+  /* Mode toggle group */
+  .mode-group {
+    display: flex;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .mode-btn {
+    border: none;
+    background: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(233,69,96,0.4);
+  }
+  .mode-btn:hover:not(.active) { background: rgba(255,255,255,0.1); color: var(--text); }
+
+  /* Tool buttons */
+  .tool-btn {
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 5px 11px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .tool-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); border-color: rgba(255,255,255,0.3); }
+  .tool-btn.active { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+
+  /* Slider controls */
+  .ctrl-group { display: flex; align-items: center; gap: 6px; }
+  .ctrl-group label { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  .ctrl-group input[type=range] {
+    width: 80px; accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .ctrl-group .val { font-size: 11px; color: var(--text); width: 32px; text-align: right; }
+
+  /* Search */
+  #search {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text);
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 12px;
+    outline: none;
+    width: 140px;
+    transition: border-color .15s;
+  }
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--text-dim); }
+
+  /* ── Board (horizontal scroll) ───────────────────────────── */
+  #board {
+    flex: 1;
+    display: flex;
+    gap: var(--gap);
+    padding: var(--gap);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    align-items: flex-start;
+  }
+  #board::-webkit-scrollbar { height: 6px; }
+  #board::-webkit-scrollbar-track { background: transparent; }
+  #board::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+  /* ── Column ──────────────────────────────────────────────── */
+  .col {
+    flex-shrink: 0;
+    width: var(--col-w);
+    background: rgba(255,255,255,0.04);
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--toolbar-h) - var(--gap)*2);
+    scroll-snap-align: start;
+  }
+  .col-header {
+    padding: 10px 12px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .col-title { font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: 0.02em; }
+  .col-count {
+    font-size: 11px; color: var(--text-dim);
+    background: rgba(255,255,255,0.08);
+    padding: 1px 6px; border-radius: 10px;
+  }
+  .col-cards {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .col-cards::-webkit-scrollbar { width: 4px; }
+  .col-cards::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  /* ── Card – Standard Mode ────────────────────────────────── */
+  .card {
+    background: var(--card-bg);
+    border-radius: 9px;
+    cursor: pointer;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.07);
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+    position: relative;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    border-color: rgba(233,69,96,0.5);
+  }
+  .card-thumb {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+    background: #0a1020;
+  }
+  .card-body { padding: 8px 10px 9px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.35; }
+  .card-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+  /* ── Card – Image-Only Mode ─────────────────────────────── */
+  body.mode-image .card-body { display: none; }
+  body.mode-image .card-thumb {
+    object-fit: contain;
+    background: #000;
+  }
+  /* In image mode: auto aspect from natural image size */
+  body.mode-image .card {
+    background: #000;
+  }
+
+  /* ── Fixed Size Mode ─────────────────────────────────────── */
+  body.mode-fixed .card-thumb {
+    height: calc(var(--card-fixed-w) * 1.333);
+    object-fit: cover;
+  }
+  body.mode-fixed.mode-image .card-thumb {
+    object-fit: contain;
+    background: #111;
+  }
+
+  /* ── Auto-Crop Tool overlay ──────────────────────────────── */
+  body.crop-active .card-thumb { object-fit: cover !important; }
+
+  /* ── Gallery (masonry) Mode ──────────────────────────────── */
+  #board.mode-gallery {
+    flex-wrap: wrap;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: flex-start;
+  }
+  #board.mode-gallery .col {
+    width: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: none;
+  }
+  #board.mode-gallery .col-cards {
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow: visible;
+    padding: 8px 4px;
+  }
+  #board.mode-gallery .card {
+    width: var(--card-fixed-w);
+  }
+
+  /* ── Lightbox ────────────────────────────────────────────── */
+  #lightbox {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img {
+    max-width: min(90vw, 900px);
+    max-height: 82vh;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    object-fit: contain;
+  }
+  #lb-title {
+    font-size: 15px; font-weight: 700; color: #fff;
+    text-align: center; max-width: 700px;
+  }
+  #lb-sub { font-size: 12px; color: rgba(255,255,255,0.5); text-align: center; }
+  #lb-close {
+    position: fixed; top: 16px; right: 20px;
+    background: rgba(255,255,255,0.12);
+    border: none; color: #fff; cursor: pointer;
+    width: 36px; height: 36px; border-radius: 50%;
+    font-size: 20px; display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  #lb-close:hover { background: var(--accent); }
+  #lb-nav {
+    display: flex; gap: 12px;
+  }
+  .lb-nav-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; cursor: pointer;
+    padding: 7px 18px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    transition: background .15s;
+  }
+  .lb-nav-btn:hover { background: var(--accent); border-color: var(--accent); }
+
+  /* ── Crop Overlay ────────────────────────────────────────── */
+  #crop-panel {
+    display: none;
+    position: fixed; top: var(--toolbar-h); right: 0;
+    width: 280px; height: calc(100dvh - var(--toolbar-h));
+    background: rgba(10,16,40,0.97);
+    border-left: 1px solid rgba(255,255,255,0.1);
+    z-index: 500;
+    flex-direction: column;
+    gap: 0;
+    backdrop-filter: blur(10px);
+  }
+  #crop-panel.open { display: flex; }
+  .panel-header {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 13px; font-weight: 700;
+  }
+  .panel-section { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .panel-section h4 { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .panel-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .panel-row label { font-size: 12px; color: var(--text); }
+  .panel-row input[type=range] { width: 110px; accent-color: var(--accent); }
+  .panel-row .val { font-size: 11px; color: var(--accent); width: 36px; text-align: right; font-weight: 700; }
+
+  .panel-preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
+  .preset-btn {
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    cursor: pointer; padding: 7px 6px;
+    border-radius: 7px; font-size: 11px;
+    font-weight: 600; text-align: center;
+    transition: all .15s;
+  }
+  .preset-btn:hover, .preset-btn.active {
+    background: var(--accent2); border-color: var(--accent2); color: #fff;
+  }
+
+  /* ── Empty / loading ─────────────────────────────────────── */
+  .empty { text-align: center; padding: 32px 12px; color: var(--text-dim); font-size: 12px; }
+
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    :root { --col-w: 200px; --card-fixed-w: 150px; }
+    #search { width: 100px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <h1>EC-6 <span>Anchor Charts</span></h1>
+  <div class="sep"></div>
+
+  <!-- View mode -->
+  <div class="mode-group">
+    <button class="mode-btn active" data-mode="standard" title="Standard kanban with title">
+      ☰ Standard
+    </button>
+    <button class="mode-btn" data-mode="image" title="Pure image cards — auto-fit full image">
+      🖼 Image
+    </button>
+    <button class="mode-btn" data-mode="gallery" title="Wrap gallery view">
+      ⊞ Gallery
+    </button>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- Fixed size toggle -->
+  <button class="tool-btn" id="btn-fixed" title="Toggle fixed card size">
+    ⊡ Fixed Size
+  </button>
+
+  <!-- Card width slider (visible in fixed mode) -->
+  <div class="ctrl-group" id="width-ctrl" style="display:none">
+    <label>W</label>
+    <input type="range" id="card-w-slider" min="120" max="420" value="220" step="10">
+    <span class="val" id="card-w-val">220</span>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- Crop tool -->
+  <button class="tool-btn" id="btn-crop" title="Auto-crop & fit tools">
+    ✂ Crop Tool
+  </button>
+
+  <div class="sep"></div>
+
+  <!-- Search -->
+  <input id="search" type="search" placeholder="🔍 Search…" autocomplete="off">
+
+  <!-- Stats -->
+  <div style="margin-left:auto;font-size:11px;color:var(--text-dim)" id="stats"></div>
+</div>
+
+<!-- Board -->
+<div id="board"></div>
+
+<!-- Crop / Fit Panel -->
+<div id="crop-panel">
+  <div class="panel-header">✂ Crop &amp; Fit Tool</div>
+
+  <div class="panel-section">
+    <h4>Fit Mode</h4>
+    <div class="panel-preset-grid">
+      <button class="preset-btn active" data-fit="contain">Contain<br><small style="opacity:.6">Full image</small></button>
+      <button class="preset-btn" data-fit="cover">Cover<br><small style="opacity:.6">Fill card</small></button>
+      <button class="preset-btn" data-fit="scale-down">Scale Down<br><small style="opacity:.6">Shrink only</small></button>
+      <button class="preset-btn" data-fit="fill">Stretch<br><small style="opacity:.6">Distort fit</small></button>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <h4>Aspect Ratio Preset</h4>
+    <div class="panel-preset-grid">
+      <button class="preset-btn" data-aspect="auto">Auto<br><small style="opacity:.6">Natural</small></button>
+      <button class="preset-btn active" data-aspect="0.75">3:4<br><small style="opacity:.6">Portrait</small></button>
+      <button class="preset-btn" data-aspect="1">1:1<br><small style="opacity:.6">Square</small></button>
+      <button class="preset-btn" data-aspect="1.333">4:3<br><small style="opacity:.6">Landscape</small></button>
+      <button class="preset-btn" data-aspect="0.5625">9:16<br><small style="opacity:.6">Tall</small></button>
+      <button class="preset-btn" data-aspect="1.777">16:9<br><small style="opacity:.6">Wide</small></button>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <h4>Object Position</h4>
+    <div class="panel-row">
+      <label>Horizontal</label>
+      <input type="range" id="pos-x" min="0" max="100" value="50">
+      <span class="val" id="pos-x-val">50%</span>
+    </div>
+    <div class="panel-row">
+      <label>Vertical</label>
+      <input type="range" id="pos-y" min="0" max="100" value="0">
+      <span class="val" id="pos-y-val">0%</span>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <h4>Image Scale</h4>
+    <div class="panel-row">
+      <label>Zoom</label>
+      <input type="range" id="img-scale" min="50" max="200" value="100">
+      <span class="val" id="img-scale-val">100%</span>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <h4>Border Radius</h4>
+    <div class="panel-row">
+      <label>Radius</label>
+      <input type="range" id="img-radius" min="0" max="24" value="9">
+      <span class="val" id="img-radius-val">9px</span>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <button id="lb-close">✕</button>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-title"></div>
+  <div id="lb-sub"></div>
+  <div id="lb-nav">
+    <button class="lb-nav-btn" id="lb-prev">← Prev</button>
+    <button class="lb-nav-btn" id="lb-next">Next →</button>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────
+const BOARD_URL = './ec6_anchor_charts_143_board.json';
+
+// ── State ─────────────────────────────────────────────────────
+let boardData = null;
+let allCards = [];       // flat list {card, colTitle}
+let visibleCards = [];   // after search filter
+let currentMode = 'standard';
+let fixedMode = false;
+let cropOpen = false;
+let currentFit = 'contain';
+let currentAspect = 0.75; // default 3:4 portrait
+let posX = 50, posY = 0, imgScale = 100, imgRadius = 9;
+let lbIndex = 0;
+
+// ── Init ──────────────────────────────────────────────────────
+async function init() {
+  try {
+    const resp = await fetch(BOARD_URL);
+    boardData = await resp.json();
+    buildFlatList();
+    render();
+    updateStats();
+  } catch (e) {
+    document.getElementById('board').innerHTML =
+      `<div class="empty">⚠️ Failed to load board JSON: ${e.message}</div>`;
+  }
+}
+
+function buildFlatList() {
+  allCards = [];
+  const cols = boardData.columns || boardData.lists || [];
+  cols.forEach(col => {
+    const cards = col.cards || col.items || [];
+    cards.forEach(card => allCards.push({ card, colTitle: col.title, col }));
+  });
+}
+
+// ── Render ────────────────────────────────────────────────────
+function render() {
+  const q = (document.getElementById('search').value || '').toLowerCase().trim();
+  const cols = boardData.columns || boardData.lists || [];
+  const board = document.getElementById('board');
+
+  // Gallery mode: different layout
+  board.className = currentMode === 'gallery' ? 'mode-gallery' : '';
+
+  board.innerHTML = '';
+
+  let totalVisible = 0;
+
+  cols.forEach(col => {
+    const cards = (col.cards || col.items || []).filter(c => {
+      if (!q) return true;
+      const hay = [c.title, c.titleZh, c.titleBilingual].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+    if (cards.length === 0) return;
+    totalVisible += cards.length;
+
+    const colEl = document.createElement('div');
+    colEl.className = 'col';
+    colEl.innerHTML = `
+      <div class="col-header">
+        <span class="col-title">${col.title || 'Untitled'}</span>
+        <span class="col-count">${cards.length}</span>
+      </div>
+    `;
+
+    const cardsEl = document.createElement('div');
+    cardsEl.className = 'col-cards';
+
+    cards.forEach(card => {
+      const thumb = card.image || card.cover?.value || card.cover?.url || '';
+      const full  = card.cover?.originalUrl || thumb;
+      const title = card.title || card.name || '';
+      const sub   = card.titleZh || '';
+
+      const cardEl = document.createElement('div');
+      cardEl.className = 'card';
+
+      // Image element
+      const img = document.createElement('img');
+      img.className = 'card-thumb';
+      img.alt = title;
+      img.loading = 'lazy';
+      img.src = thumb;
+      applyImageStyle(img);
+
+      // In "auto" (non-fixed) image mode: reveal true aspect after load
+      if (currentMode === 'image' && !fixedMode && currentAspect === 'auto') {
+        img.style.height = 'auto';
+        img.style.aspectRatio = '';
+      }
+
+      cardEl.appendChild(img);
+
+      if (currentMode !== 'image') {
+        const body = document.createElement('div');
+        body.className = 'card-body';
+        body.innerHTML = `
+          <div class="card-title">${title}</div>
+          ${sub ? `<div class="card-sub">${sub}</div>` : ''}
+        `;
+        cardEl.appendChild(body);
+      }
+
+      // Click → lightbox
+      cardEl.addEventListener('click', () => {
+        const flatIdx = allCards.findIndex(x => x.card.id === card.id);
+        openLightbox(flatIdx >= 0 ? flatIdx : 0, full, title, sub, col.title);
+      });
+
+      cardsEl.appendChild(cardEl);
+    });
+
+    colEl.appendChild(cardsEl);
+    board.appendChild(colEl);
+  });
+
+  visibleCards = allCards.filter(({ card }) => {
+    if (!q) return true;
+    const hay = [card.title, card.titleZh].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+
+  updateStats(totalVisible);
+}
+
+// ── Image Styling ─────────────────────────────────────────────
+function applyImageStyle(img) {
+  // Aspect ratio
+  if (currentAspect === 'auto') {
+    img.style.aspectRatio = '3/4'; // fallback while loading
+    img.style.height = '';
+    img.onload = function() {
+      const r = img.naturalWidth / img.naturalHeight;
+      img.style.aspectRatio = `${img.naturalWidth}/${img.naturalHeight}`;
+    };
+  } else {
+    img.style.aspectRatio = `1/${currentAspect}`;
+    img.onload = null;
+  }
+
+  img.style.objectFit = currentFit;
+  img.style.objectPosition = `${posX}% ${posY}%`;
+  img.style.transform = `scale(${imgScale / 100})`;
+  img.style.transformOrigin = 'center top';
+  img.style.borderRadius = `${imgRadius}px`;
+
+  // Fixed width card
+  if (fixedMode) {
+    const w = parseInt(document.getElementById('card-w-slider').value);
+    img.closest ? null : null; // parent handled via CSS var
+  }
+}
+
+function reapplyAllImages() {
+  document.querySelectorAll('.card-thumb').forEach(img => applyImageStyle(img));
+}
+
+// ── Mode Switcher ─────────────────────────────────────────────
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    document.body.className = `mode-${currentMode}${fixedMode ? ' mode-fixed' : ''}${cropOpen ? ' crop-active' : ''}`;
+    render();
+  });
+});
+
+// ── Fixed Size Toggle ─────────────────────────────────────────
+document.getElementById('btn-fixed').addEventListener('click', () => {
+  fixedMode = !fixedMode;
+  document.getElementById('btn-fixed').classList.toggle('active', fixedMode);
+  document.getElementById('width-ctrl').style.display = fixedMode ? 'flex' : 'none';
+  document.body.className = `mode-${currentMode}${fixedMode ? ' mode-fixed' : ''}${cropOpen ? ' crop-active' : ''}`;
+  reapplyAllImages();
+});
+
+document.getElementById('card-w-slider').addEventListener('input', function() {
+  const w = parseInt(this.value);
+  document.getElementById('card-w-val').textContent = w;
+  document.documentElement.style.setProperty('--card-fixed-w', w + 'px');
+});
+
+// ── Crop Panel ────────────────────────────────────────────────
+document.getElementById('btn-crop').addEventListener('click', () => {
+  cropOpen = !cropOpen;
+  document.getElementById('btn-crop').classList.toggle('active', cropOpen);
+  document.getElementById('crop-panel').classList.toggle('open', cropOpen);
+  document.body.className = `mode-${currentMode}${fixedMode ? ' mode-fixed' : ''}${cropOpen ? ' crop-active' : ''}`;
+});
+
+// Fit mode presets
+document.querySelectorAll('[data-fit]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-fit]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFit = btn.dataset.fit;
+    reapplyAllImages();
+  });
+});
+
+// Aspect ratio presets
+document.querySelectorAll('[data-aspect]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-aspect]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentAspect = btn.dataset.aspect === 'auto' ? 'auto' : parseFloat(btn.dataset.aspect);
+    reapplyAllImages();
+    // Re-render needed for "auto" to trigger onload
+    if (currentAspect === 'auto') render();
+  });
+});
+
+// Sliders
+function bindSlider(id, valId, suffix, onChange) {
+  const slider = document.getElementById(id);
+  const valEl  = document.getElementById(valId);
+  slider.addEventListener('input', () => {
+    valEl.textContent = slider.value + suffix;
+    onChange(parseInt(slider.value));
+  });
+}
+
+bindSlider('pos-x', 'pos-x-val', '%', v => { posX = v; reapplyAllImages(); });
+bindSlider('pos-y', 'pos-y-val', '%', v => { posY = v; reapplyAllImages(); });
+bindSlider('img-scale', 'img-scale-val', '%', v => { imgScale = v; reapplyAllImages(); });
+bindSlider('img-radius', 'img-radius-val', 'px', v => { imgRadius = v; reapplyAllImages(); });
+
+// ── Search ────────────────────────────────────────────────────
+let searchTimer;
+document.getElementById('search').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(render, 200);
+});
+
+// ── Lightbox ──────────────────────────────────────────────────
+function openLightbox(idx, fullUrl, title, sub, colTitle) {
+  lbIndex = idx;
+  showLightboxCard(idx);
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function showLightboxCard(idx) {
+  if (idx < 0 || idx >= allCards.length) return;
+  lbIndex = idx;
+  const { card, colTitle } = allCards[idx];
+  const full = card.cover?.originalUrl || card.image || '';
+  const thumb = card.image || card.cover?.value || '';
+  document.getElementById('lb-img').src = full || thumb;
+  document.getElementById('lb-title').textContent = card.title || '';
+  document.getElementById('lb-sub').textContent =
+    `${colTitle}  ·  ${card.titleZh || ''}  ·  ${idx + 1} / ${allCards.length}`;
+}
+
+document.getElementById('lb-close').addEventListener('click', closeLightbox);
+document.getElementById('lightbox').addEventListener('click', e => {
+  if (e.target === document.getElementById('lightbox')) closeLightbox();
+});
+document.getElementById('lb-prev').addEventListener('click', () => showLightboxCard(lbIndex - 1));
+document.getElementById('lb-next').addEventListener('click', () => showLightboxCard(lbIndex + 1));
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowRight') showLightboxCard(lbIndex + 1);
+  if (e.key === 'ArrowLeft')  showLightboxCard(lbIndex - 1);
+});
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+// ── Stats ─────────────────────────────────────────────────────
+function updateStats(n) {
+  document.getElementById('stats').textContent =
+    n !== undefined
+      ? `${n} / ${allCards.length} cards`
+      : `${allCards.length} cards`;
+}
+
+// ── Start ─────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
