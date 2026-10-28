@@ -82055,6 +82055,50 @@ function minestCloudExtras(data) {
 var MINEST_CLOUD_DIRTY = 'minest.cloud.dirtyAt', MINEST_CLOUD_ACK = 'minest.cloud.ackAt';
 function minestCloudMark(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
 function minestCloudNum(k) { try { return Number(localStorage.getItem(k)) || 0; } catch (e) { return 0; } }
+/* Read-only fallback for a Firestore server read masked by local pending writes.
+   Uses the current Firebase user and the same security rules; never writes via REST. */
+function minestCloudServerRead(docRef, user, projectId) {
+  function decode(v) {
+    if ('nullValue' in v) return null;
+    if ('booleanValue' in v) return v.booleanValue;
+    if ('integerValue' in v) return Number(v.integerValue);
+    if ('doubleValue' in v) return v.doubleValue;
+    if ('stringValue' in v) return v.stringValue;
+    if ('timestampValue' in v) return v.timestampValue;
+    if ('bytesValue' in v) return v.bytesValue;
+    if ('referenceValue' in v) return v.referenceValue;
+    if ('geoPointValue' in v) return v.geoPointValue;
+    if ('arrayValue' in v) return (v.arrayValue.values || []).map(decode);
+    if ('mapValue' in v) return fields(v.mapValue.fields || {});
+    throw new Error('Unsupported cloud field type');
+  }
+  function fields(values) {
+    var out = {}; Object.keys(values).forEach(function(k) { Object.defineProperty(out, k, {value:decode(values[k]), enumerable:true, configurable:true, writable:true}); }); return out;
+  }
+  function direct() {
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function() { controller.abort(); }, 12000) : null;
+    return minestCloudWait(user.getIdToken().then(function(token) {
+      var url = 'https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(projectId) + '/databases/(default)/documents/users/' + encodeURIComponent(user.uid) + '/focusboard/data';
+      return fetch(url, {method:'GET', headers:{Authorization:'Bearer ' + token}, cache:'no-store', signal:controller ? controller.signal : undefined});
+    }).then(function(response) {
+      if (response.status === 404) { var missing = new Error('Cloud document not found. Local data is retained.'); missing.code='sync/server-document-missing'; throw missing; }
+      if (!response.ok) { var err = new Error('Cloud server returned HTTP ' + response.status + '. Local changes are retained.'); err.code='sync/http-' + response.status; throw err; }
+      return response.json();
+    }).then(function(body) {
+      var data = fields(body.fields || {});
+      return {exists:true, metadata:{fromCache:false, hasPendingWrites:false}, data:function() { return data; }};
+    }), 14000).finally(function() { if (timer) clearTimeout(timer); });
+  }
+  return minestCloudWait(docRef.get({source:'server'}), 8000).then(function(doc) {
+    if (doc.metadata && (doc.metadata.fromCache || doc.metadata.hasPendingWrites)) return direct();
+    return doc;
+  }, function(error) {
+    if (error && /permission-denied|unauthenticated/.test(error.code || '')) throw error;
+    return direct();
+  });
+}
+
 function minestCloudWait(promise, ms) {
   return new Promise(function(resolve, reject) {
     var timer = setTimeout(function() { var e = new Error('Server connection timed out. Changes are kept on this device.'); e.code = 'sync/timeout'; reject(e); }, ms || 15000);
@@ -83233,7 +83277,7 @@ var Be = function() {
             var data = doc.data();
             try { if (data.learning && window.MinestLearn && window.MinestLearn._mergeCloud) window.MinestLearn._mergeCloud(data.learning); } catch (e) {} minestCloudExtras(data);
             try { window.MinestWorkspaceCloud.merge(data.workspaceGroups, !(doc.metadata && doc.metadata.fromCache)); } catch (e) { setSyncStatus('error'); return Promise.reject(e); }
-            if (doc.metadata && doc.metadata.fromCache) { setSyncStatus("connecting"); return Promise.resolve(); }
+            if (doc.metadata && doc.metadata.fromCache) { if (!cloudReadyRef.current) setSyncStatus("connecting"); return Promise.resolve(); }
             return minestCloudBoards(data).then(function(remoteBoards) {
               if (stopped) return;
               var rAt = Math.max(Number(data.clientUpdatedAt) || 0, Number(data.gzUpdatedAt) || 0);
@@ -83292,7 +83336,7 @@ var Be = function() {
           if (refreshPromise) return refreshPromise;
           setCloudReadError('');
           if (!cloudReadyRef.current) setSyncStatus('connecting');
-          refreshPromise = minestCloudWait(docRef.get({ source: 'server' })).then(acceptDoc).then(function() {
+          refreshPromise = minestCloudServerRead(docRef, user, firebaseConfig.projectId).then(acceptDoc).then(function() {
             if (stopped) return false;
             setCloudReadError('');
             setCloudKick(function(k) { return k + 1; });

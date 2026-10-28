@@ -1,0 +1,10 @@
+Cloud server read follow-up — 2026-10-28
+
+Production Safari still showed 15 cached boards and immediately returned "queued" from Sync Now, while the signed-in Duo server diagnostic confirmed 16 boards including both Glossaries. The exact browser transport cause is not yet established. The existing takeDoc guard deliberately ignores snapshots containing pending local writes. A server-sourced SDK get can still include pending writes, so refreshing through that same cache alone is insufficient.
+
+cloud_server_read.js adds a read-only authenticated Firestore REST GET only when the SDK result is cached, contains pending writes, or times out. Normal clean server reads use the SDK unchanged. REST results enter the same serialized takeDoc / three-way merge path; no REST writes, no new cloud collection, no credential/config/rule changes. Missing documents and authorization/HTTP errors fail closed without writing an empty board array. Cached notifications no longer revert a confirmed ready state to connecting.
+
+Official authentication reference: https://firebase.google.com/docs/firestore/use-rest-api
+Current Firebase user ID tokens are used only in the Authorization header sent to firestore.googleapis.com, never in URLs/logs. Existing security rules remain authoritative.
+
+Validation: server-read.test.cjs covers clean SDK reuse, cached/pending/timeout fallback, user path, GET-only calls, nested Firestore values, authorization and HTTP failures. Existing upload/reconnect/Board Center tests pass. Real Safari verification remains required after deployment.

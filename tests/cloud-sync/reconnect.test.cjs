@@ -7,7 +7,7 @@ async function main(){
  assert.equal(await w.minestCloudWait(Promise.resolve(42)),42);assert.equal(cleared,1);
  const timeout=w.minestCloudWait(new Promise(()=>{}));timer();await assert.rejects(timeout,e=>e.code==='sync/timeout');
  let resolveRead,rejectRead,reads=0,applied=0,kicks=0;const status=[],errors=[];
- const c={Promise,stopped:false,cloudReadyRef:{current:false},setCloudReadError:s=>errors.push(s),setSyncStatus:s=>status.push(s),setCloudKick:()=>kicks++,minestCloudUnsynced:()=>false,minestCloudWait:p=>p,docRef:{get:opts=>{assert.equal(opts.source,'server');reads++;return new Promise((r,j)=>{resolveRead=r;rejectRead=j})}},acceptDoc:doc=>{assert.equal(doc.tag,'server');applied++;c.cloudReadyRef.current=true;return Promise.resolve()}};
+ const c={Promise,stopped:false,cloudReadyRef:{current:false},setCloudReadError:s=>errors.push(s),setSyncStatus:s=>status.push(s),setCloudKick:()=>kicks++,minestCloudUnsynced:()=>false,minestCloudWait:p=>p,user:{uid:'test'},firebaseConfig:{projectId:'test'},minestCloudServerRead:ref=>ref.get({source:'server'}),docRef:{get:opts=>{assert.equal(opts.source,'server');reads++;return new Promise((r,j)=>{resolveRead=r;rejectRead=j})}},acceptDoc:doc=>{assert.equal(doc.tag,'server');applied++;c.cloudReadyRef.current=true;return Promise.resolve()}};
  vm.createContext(c);vm.runInContext(refreshSrc,c);
  let p=c.refreshServer();assert.equal(c.refreshServer(),p);assert.equal(reads,1);assert.equal(applied,0);
  resolveRead({tag:'server'});assert.equal(await p,true);assert.equal(applied,1);assert.equal(kicks,1);
