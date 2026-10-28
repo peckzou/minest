@@ -1,0 +1,25 @@
+2026-10-28 — Server refresh and settings-header follow-up
+
+Confirmed by read-only diagnostic in the updated Duo app:
+- Current bundled fix loaded; Firebase signed in (same email as Mac).
+- Direct server read (fromCache:false) contains 16 boards, including:
+  into reading glossary: 7 lists, 315 cards; SS Glossary: 6 lists, 340 cards.
+- Those boards currently have workspace General. No standalone glossary group in
+  customWorkspaces or workspaceGroups. Do not invent/move a group without user input.
+- Mac displayed a cached board and the Cloud dialog said Not signed in despite
+  showing the signed-in account; no completed initial cloud connection was shown.
+
+Changes:
+- Add a bounded initial server read alongside the existing realtime listener, and
+  refresh on foreground/pageshow/online. Share concurrent refresh requests.
+- Server refresh always uses existing safe takeDoc merge; no force replacement,
+  authentication/config changes, new Firestore paths or new account data model.
+- Expose safe Sync now in the Cloud dialog, with timeout/error messaging. Signed-in
+  clients waiting for a server no longer display Not signed in or Up to date.
+- Remove the duplicate Pure Mode/Hide Covers controls from the settings HEADER.
+  Body controls remain. Grid layout gives title, Cloud/avatar and Close their own
+  columns; Cloud/avatar no longer absolutely overlaps the other buttons.
+
+Tests: workspaces.test.cjs, upload.test.cjs, reconnect.test.cjs; 93 inline scripts
+parse; generator compared against the exact baseline and tested for idempotence.
+Real Mac reconnect and rendered header verification pending release.
