@@ -10,7 +10,7 @@ import Combine
 // Finished focus time is committed to Ring 1 and pushed to the phone.
 
 public enum MinestWatchVersion {
-    public static let label = "Watch 4.5.1"
+    public static let label = "Watch 4.5.2"
 }
 
 // MARK: - Ring palette (Minest colors, Apple Fitness gradients)
@@ -154,9 +154,9 @@ public struct WatchFitnessRootView: View {
         // aborts during the first layout on Series 6.
         NavigationStack {
             TabView(selection: $page) {
-                WatchFitnessRingsView()
+                WatchFitnessRingsView(isActive: page == 0, onOpenPlayback: { page = 4 })
                     .tag(0)
-                WatchPlaybackView()
+                WatchPlaybackView(onBack: { page = 0 })
                     .tag(4)
                 // Crown down: change goals (Focus minutes → Complete count → Goal %)
                 WatchRingGoalPage(kind: .focus)
@@ -167,6 +167,10 @@ public struct WatchFitnessRootView: View {
                     .tag(3)
             }
             .tabViewStyle(.verticalPage)
+            // Playback owns its visible controls; no native back/toolbar item
+            // should precede Next in AssistiveTouch scanning.
+            .navigationBarBackButtonHidden(page == 4)
+            .toolbar(page == 4 ? .hidden : .automatic, for: .navigationBar)
         }
         // 31.6: three-ring close and badge claim ceremonies, mirrored from the iPhone
         .minestCeremonyCover()
@@ -186,7 +190,13 @@ public struct WatchFitnessRingsView: View {
     // Rings alone by default; tap the rings to reveal the numbers
     @State private var showStats = false
 
-    public init() {}
+    private let isActive: Bool
+    private let onOpenPlayback: () -> Void
+
+    public init(isActive: Bool = true, onOpenPlayback: @escaping () -> Void = {}) {
+        self.isActive = isActive
+        self.onOpenPlayback = onOpenPlayback
+    }
 
     private var rings: ActivityRingsState { syncManager.ringsState }
 
@@ -195,25 +205,27 @@ public struct WatchFitnessRingsView: View {
             .navigationTitle("活动")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink { WatchPlaybackView() } label: { Image(systemName: "play.rectangle") }
-                        .accessibilityLabel("卡片播放遥控器")
-                }
-                // Apple Watch style corner buttons: List (left) · Badge Wall (right)
-                ToolbarItemGroup(placement: .bottomBar) {
-                    Button {
-                        showList = true
-                    } label: {
-                        Image(systemName: "list.bullet")
+                if isActive {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: onOpenPlayback) { Image(systemName: "play.rectangle") }
+                            .accessibilityLabel("卡片播放遥控器")
                     }
-                    .accessibilityLabel("List")
-                    Spacer()
-                    Button {
-                        showBadges = true
-                    } label: {
-                        Image(systemName: "medal.fill")
+                    // Apple Watch style corner buttons: List (left) · Badge Wall (right)
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        Button {
+                            showList = true
+                        } label: {
+                            Image(systemName: "list.bullet")
+                        }
+                        .accessibilityLabel("List")
+                        Spacer()
+                        Button {
+                            showBadges = true
+                        } label: {
+                            Image(systemName: "medal.fill")
+                        }
+                        .accessibilityLabel("Badge Wall")
                     }
-                    .accessibilityLabel("Badge Wall")
                 }
             }
         // Original Watch List UI, untouched (boards → lists → checklist)
