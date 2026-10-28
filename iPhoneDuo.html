@@ -18280,6 +18280,16 @@ function initFirebaseClient(cfg) {
     }
     var auth = firebase.auth();
     var db = firebase.firestore();
+    // WebKit 26.4+ may buffer Firestore stream completion frames indefinitely.
+    // Configure before persistence/listeners; other browsers retain their transport.
+    if (!db.__minestTransportChecked) {
+      db.__minestTransportChecked = true;
+      var ua = navigator.userAgent || '';
+      var webkit = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || (/Safari/.test(ua) && !/Chrome|Chromium|Edg|Android/.test(ua));
+      if (webkit) try {
+        db.settings({merge:true, experimentalAutoDetectLongPolling:false, experimentalForceLongPolling:true, useFetchStreams:false});
+      } catch (transportError) { console.warn('Firestore compatibility transport unavailable:', transportError.code || 'already-started'); }
+    }
     try {
       db.enablePersistence({ synchronizeTabs: true }).catch(function(err) {
         if (err.code !== 'failed-precondition' && err.code !== 'unimplemented') {

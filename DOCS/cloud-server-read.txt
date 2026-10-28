@@ -10,3 +10,5 @@ Current Firebase user ID tokens are used only in the Authorization header sent t
 Validation: server-read.test.cjs covers clean SDK reuse, cached/pending/timeout fallback, user path, GET-only calls, nested Firestore values, authorization and HTTP failures. Existing upload/reconnect/Board Center tests pass. Real Safari verification remains required after deployment.
 
 Follow-up: a successful SDK write now acknowledges the exact Workspace records included in that payload. Previously only incoming snapshot metadata acknowledged groups; pending groups could repeatedly schedule the same write and leave a misleading Not sent yet status. Edits made during upload remain pending, since the acknowledged array is the captured payload, not the latest local snapshot.
+
+Safari transport compatibility: Firebase upstream issue #9789 documents WebKit 26.4+ buffering Firestore completion frames. initFirebaseClient now configures WebKit-only forced long polling and disables fetch streams before persistence/listeners. Chrome keeps its existing defaults. No host/SSL/security/auth/project settings are changed. Ref: https://github.com/firebase/firebase-js-sdk/issues/9789
