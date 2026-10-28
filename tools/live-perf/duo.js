@@ -200,6 +200,8 @@ function onHinge(h){
   dlog('hinge ' + (was || '-') + '→' + (st || 'none') + ' kind=' + kind + ' ' + innerWidth + 'x' + innerHeight + ' world=' + worldOpen() + ' dsp=' + !!document.querySelector('.mn-dsp'));
   document.documentElement.classList.toggle('duo-halfopen', st === 'partial');
   if (!on) return;
+  // Pet's fold belongs to its aquarium, not the board's split layout.
+  if (document.getElementById('minest-pet-raising-overlay') || (window.MinestAquarium && MinestAquarium.isOpen())) return;
   apply();
   if (kind !== 'inner') return;
   if (st === 'partial' && was !== 'partial') {

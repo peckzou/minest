@@ -137484,6 +137484,8 @@ function onHinge(h){
   dlog('hinge ' + (was || '-') + '→' + (st || 'none') + ' kind=' + kind + ' ' + innerWidth + 'x' + innerHeight + ' world=' + worldOpen() + ' dsp=' + !!document.querySelector('.mn-dsp'));
   document.documentElement.classList.toggle('duo-halfopen', st === 'partial');
   if (!on) return;
+  // Pet's fold belongs to its aquarium, not the board's split layout.
+  if (document.getElementById('minest-pet-raising-overlay') || (window.MinestAquarium && MinestAquarium.isOpen())) return;
   apply();
   if (kind !== 'inner') return;
   if (st === 'partial' && was !== 'partial') {
@@ -139214,11 +139216,12 @@ window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dis
     try { scene.traverse(function (o) { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(function (m) { if (m.map) m.map.dispose(); m.dispose(); }); }); renderer.dispose(); } catch (e) {}
     root.remove(); root = renderer = scene = tank = octo = mixer = null; fish = []; schools = []; food = []; movers = []; swayers = []; tappable = []; toys = []; clips = {}; petMode = false; OC.mode = 'roam'; OC.target = null; OC.scale = 2.1;
     document.documentElement.classList.remove('maq-on');
+    window.dispatchEvent(new CustomEvent('minest:aquarium-closed'));
     if (location.hash === '#aquarium') try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
   }
 
   // Pet Raising (in its frame) asks for the aquarium; it closes itself first
-  addEventListener('message', function (e) { var d = e.data; if (d && d.type === 'minest-pet' && d.action === 'aquarium') { try { var o = document.getElementById('minest-pet-raising-overlay'); if (o) o.remove(); document.documentElement.classList.remove('pet-raising-open'); } catch (x) {} open(); } });
+  addEventListener('message', function (e) { var d = e.data, f = document.querySelector('#minest-pet-raising-overlay iframe'); if (d && d.type === 'minest-pet' && d.action === 'aquarium' && f && e.source === f.contentWindow) { if (window.MinestPetAquarium) { window.MinestPetAquarium.open(); return; } try { var o = document.getElementById('minest-pet-raising-overlay'); if (o) o.remove(); document.documentElement.classList.remove('pet-raising-open'); } catch (x) {} open(); } });
   addEventListener('hashchange', function () { if (location.hash === '#aquarium') open(); });
   if (location.hash === '#aquarium') setTimeout(open, 1200);
   window.MinestAquarium = { open: open, close: close, isOpen: function () { return !!root; }, layout: layout,
@@ -139242,6 +139245,72 @@ window.minestCloudLine = function (el) {
   }
   draw();
 };
+</script>
+<script id="mn-pet-aquarium-hinge">
+/* Pet Raising → Aquarium: native hinge entry, independent of board split navigation. */
+(function () {
+  'use strict';
+  if (window.MinestPetAquarium) return;
+  var timer = 0, pending = false, active = null, blocked = false;
+  var overlayID = 'minest-pet-raising-overlay';
+  function pet() { return document.getElementById(overlayID); }
+  function folded(h) {
+    return h && h.status === 'partial' && Number.isFinite(h.angle) && h.angle >= 0.9 && h.angle <= 3.04;
+  }
+  function open(automatic) {
+    if (pending || active || !pet() || document.hidden) return;
+    var aquarium = window.MinestAquarium;
+    if (!aquarium || !window.THREE) {
+      // Keep Pet Raising visible if its parent's 3D scripts are still loading.
+      if (!automatic) window.dispatchEvent(new CustomEvent('minest:aquarium-unavailable'));
+      return;
+    }
+    pending = true;
+    try {
+      aquarium.open();
+      if (!aquarium.isOpen()) return;
+      active = { automatic: !!automatic };
+      // Reuse the existing transition: release Pet Raising's WebGL iframe.
+      // Its care/outfit data stays in the existing shared stores.
+      var overlay = pet(); if (overlay) overlay.remove();
+      document.documentElement.classList.remove('pet-raising-open');
+    } catch (error) {
+      try { aquarium.close(); } catch (_) {}
+      console.warn('[Pet Aquarium] Could not open:', error && error.message);
+    } finally { pending = false; }
+  }
+  function consider() {
+    clearTimeout(timer);
+    if (!blocked && !active && pet() && !document.hidden && folded(window.__minestHinge)) {
+      timer = setTimeout(function () {
+        if (!blocked && pet() && folded(window.__minestHinge)) open(true);
+      }, 450);
+    }
+  }
+  addEventListener('minest:hinge', function (event) {
+    var h = event.detail;
+    if (h && h.status === 'open') {
+      blocked = false;
+      clearTimeout(timer);
+      if (active && active.automatic) window.MinestAquarium.close();
+    } else { consider(); }
+  });
+  addEventListener('minest:aquarium-closed', function () {
+    if (!active) return;
+    active = null; blocked = folded(window.__minestHinge); clearTimeout(timer);
+    if (window.MinestPetRaising) window.MinestPetRaising.open();
+  });
+  // Opening Pet Raising while already partially folded also works.
+  var observer = new MutationObserver(consider);
+  function watch() {
+    observer.observe(document.body, { childList: true });
+    consider();
+  }
+  if (document.body) watch(); else addEventListener('DOMContentLoaded', watch, { once: true });
+  document.addEventListener('visibilitychange', consider);
+  window.MinestPetAquarium = { open: function () { open(false); }, version: '53.85.1' };
+})();
+
 </script>
 </body>
 </html>

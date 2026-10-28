@@ -1,0 +1,33 @@
+Duo Pet Raising → 3D Aquarium fold entry · 53.85.1 controller
+Baseline: 6cfc071, including the wearer-confirmed Watch 4.5.3.
+Branch: codex/duo-pet-aquarium; original checkout and Watch branch preserved.
+
+Existing manual entry: open Pet Raising, then its 🐠 utility button.
+Existing aquarium: tools/live-perf/aquarium.js, a shared Three.js scene with
+fold-dependent cameras, Octo, ocean life and the existing care/outfit records.
+
+New: while Pet Raising is open, a native partial-fold angle between 0.9 and
+3.04 radians held for 450ms opens that same aquarium. It also works if Pet
+Raising is opened while the device is already partially folded. Only Pet Raising
+activates this route; board/world fold-to-split behavior remains outside it.
+Opening fully returns an automatically entered aquarium to Pet Raising. A manually
+entered aquarium stays open until closed. Closing restores Pet Raising and suppresses
+immediate re-entry until the phone is fully opened again.
+
+Pet Raising's iframe is released on a successful transition to avoid keeping two
+WebGL scenes running. Care/outfit data uses existing shared storage; the iframe's
+transient camera position is not preserved. If the renderer is unavailable, the
+Pet page stays present. No new native hinge sensor, renderer or Card system.
+
+Changed: tiny native-phone/web HTML injections, existing Duo fold-handler guard,
+aquarium close notification and validated iframe message source, plus a separate
+small controller. sync_pet_aquarium.py updates its generated phone-page copies.
+The existing aquarium has a single-camera fallback near-flat; deeper folding uses
+its original two-window projection. This change does not rewrite its 3D camera.
+
+Validation: node syntax checks passed for controller / aquarium / Duo; deterministic
+controller tests cover Pet-only scope, debounce, duplicates, unfold/restore, close
+suppression, manual entry, hidden page, cancelled fold and missing renderer.
+Signed full native build passed; packaged iphone18.0.html matches source.
+Real physical angle response / aquarium visual quality still require wearer testing.
+No production deployment, Firebase/AI changes or Watch source changes.

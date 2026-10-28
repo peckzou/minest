@@ -774,11 +774,12 @@
     try { scene.traverse(function (o) { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(function (m) { if (m.map) m.map.dispose(); m.dispose(); }); }); renderer.dispose(); } catch (e) {}
     root.remove(); root = renderer = scene = tank = octo = mixer = null; fish = []; schools = []; food = []; movers = []; swayers = []; tappable = []; toys = []; clips = {}; petMode = false; OC.mode = 'roam'; OC.target = null; OC.scale = 2.1;
     document.documentElement.classList.remove('maq-on');
+    window.dispatchEvent(new CustomEvent('minest:aquarium-closed'));
     if (location.hash === '#aquarium') try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
   }
 
   // Pet Raising (in its frame) asks for the aquarium; it closes itself first
-  addEventListener('message', function (e) { var d = e.data; if (d && d.type === 'minest-pet' && d.action === 'aquarium') { try { var o = document.getElementById('minest-pet-raising-overlay'); if (o) o.remove(); document.documentElement.classList.remove('pet-raising-open'); } catch (x) {} open(); } });
+  addEventListener('message', function (e) { var d = e.data, f = document.querySelector('#minest-pet-raising-overlay iframe'); if (d && d.type === 'minest-pet' && d.action === 'aquarium' && f && e.source === f.contentWindow) { if (window.MinestPetAquarium) { window.MinestPetAquarium.open(); return; } try { var o = document.getElementById('minest-pet-raising-overlay'); if (o) o.remove(); document.documentElement.classList.remove('pet-raising-open'); } catch (x) {} open(); } });
   addEventListener('hashchange', function () { if (location.hash === '#aquarium') open(); });
   if (location.hash === '#aquarium') setTimeout(open, 1200);
   window.MinestAquarium = { open: open, close: close, isOpen: function () { return !!root; }, layout: layout,
