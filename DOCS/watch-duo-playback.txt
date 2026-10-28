@@ -94,3 +94,22 @@ PHYSICAL ACCEPTANCE CHECKLIST
 APPLE REFERENCE
 https://developer.apple.com/documentation/watchos-apps/enabling-double-tap
 https://developer.apple.com/documentation/swiftui/handgestureshortcut/primaryaction
+
+WATCH 4.5.1 — REAL-DEVICE STARTUP FIX (2026-10-27)
+The signed 4.5 build installed and accepted launch requests, but then aborted
+in the first navigation-bar layout on Watch Series 6 / watchOS 26.6. Therefore
+the original installation receipt alone did not establish startup stability.
+The device console identified NSInternalInconsistencyException: the visible
+PUICStackedNavigationBar's top UINavigationItem belonged to another bar,
+possibly from nested wrapped navigation controllers.
+
+Fix: one NavigationStack owns the complete vertical TabView. Individual rings
+and playback pages do not create their own stacks. Modal screens keep their
+independent stacks. Playback commands, phone code and user data are unchanged.
+
+Validation: signed device build passed, 2765 playback logic assertions passed,
+Watch app upgraded in place, two real-device cold launches observed. Both
+remained running past their original startup crash point, with no new crash
+report after the fixed installation. No debugger was attached to suppress an
+exception. On-device tapping through every screen and CarPlay remains a separate
+acceptance check; only startup stability is claimed by this fix.

@@ -10,7 +10,7 @@ import Combine
 // Finished focus time is committed to Ring 1 and pushed to the phone.
 
 public enum MinestWatchVersion {
-    public static let label = "Watch 4.5"
+    public static let label = "Watch 4.5.1"
 }
 
 // MARK: - Ring palette (Minest colors, Apple Fitness gradients)
@@ -149,20 +149,25 @@ public struct WatchFitnessRootView: View {
     public init() {}
 
     public var body: some View {
-        TabView(selection: $page) {
-            WatchFitnessRingsView()
-                .tag(0)
-            NavigationStack { WatchPlaybackView() }
-                .tag(4)
-            // Crown down: change goals (Focus minutes → Complete count → Goal %)
-            WatchRingGoalPage(kind: .focus)
-                .tag(1)
-            WatchRingGoalPage(kind: .complete)
-                .tag(2)
-            WatchRingGoalPage(kind: .goal)
-                .tag(3)
+        // A single navigation owner for all vertical pages. Nesting page-level
+        // NavigationStacks reuses a UINavigationItem across watchOS 26 bars and
+        // aborts during the first layout on Series 6.
+        NavigationStack {
+            TabView(selection: $page) {
+                WatchFitnessRingsView()
+                    .tag(0)
+                WatchPlaybackView()
+                    .tag(4)
+                // Crown down: change goals (Focus minutes → Complete count → Goal %)
+                WatchRingGoalPage(kind: .focus)
+                    .tag(1)
+                WatchRingGoalPage(kind: .complete)
+                    .tag(2)
+                WatchRingGoalPage(kind: .goal)
+                    .tag(3)
+            }
+            .tabViewStyle(.verticalPage)
         }
-        .tabViewStyle(.verticalPage)
         // 31.6: three-ring close and badge claim ceremonies, mirrored from the iPhone
         .minestCeremonyCover()
     }
@@ -186,33 +191,31 @@ public struct WatchFitnessRingsView: View {
     private var rings: ActivityRingsState { syncManager.ringsState }
 
     public var body: some View {
-        NavigationStack {
-            ringsContent
-                .navigationTitle("活动")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        NavigationLink { WatchPlaybackView() } label: { Image(systemName: "play.rectangle") }
-                            .accessibilityLabel("卡片播放遥控器")
-                    }
-                    // Apple Watch style corner buttons: List (left) · Badge Wall (right)
-                    ToolbarItemGroup(placement: .bottomBar) {
-                        Button {
-                            showList = true
-                        } label: {
-                            Image(systemName: "list.bullet")
-                        }
-                        .accessibilityLabel("List")
-                        Spacer()
-                        Button {
-                            showBadges = true
-                        } label: {
-                            Image(systemName: "medal.fill")
-                        }
-                        .accessibilityLabel("Badge Wall")
-                    }
+        ringsContent
+            .navigationTitle("活动")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink { WatchPlaybackView() } label: { Image(systemName: "play.rectangle") }
+                        .accessibilityLabel("卡片播放遥控器")
                 }
-        }
+                // Apple Watch style corner buttons: List (left) · Badge Wall (right)
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Button {
+                        showList = true
+                    } label: {
+                        Image(systemName: "list.bullet")
+                    }
+                    .accessibilityLabel("List")
+                    Spacer()
+                    Button {
+                        showBadges = true
+                    } label: {
+                        Image(systemName: "medal.fill")
+                    }
+                    .accessibilityLabel("Badge Wall")
+                }
+            }
         // Original Watch List UI, untouched (boards → lists → checklist)
         .fullScreenCover(isPresented: $showList) {
             WatchChecklistView()
