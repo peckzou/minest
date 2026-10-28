@@ -1,0 +1,46 @@
+Cloud Workspace sync fix — 2026-10-28
+Branch: codex/cloud-workspace-sync (based on Duo aquarium dd3c821)
+
+Confirmed production defect at https://minest-app.vercel.app/iphone:
+customWorkspaces only wrote minest.customWorkspaces.v1 in localStorage. Empty
+folders never changed boards, entered no payload and triggered no cloud save.
+
+Implementation:
+- Keep the original names key. Add versioned name/deletion records to a sidecar
+  and the existing focusboard/data document as workspaceGroups. No separate
+  Card system, new Firestore path, security-rule or environment changes.
+- Recover legacy local names. Merge concurrent additions and retain tombstones.
+  Confirmed server snapshots acknowledge group records; cache snapshots do not.
+- Notify the mounted picker and cloud save effect immediately on group changes.
+- Replace the 300ms remote edit suppression window with exact array identity.
+- Serialize automatic saves; acknowledge only the dirty revision captured before
+  compression. Edits during compression/upload remain pending. Sync Now awaits
+  the current write and server snapshot and distinguishes queued changes.
+- Wait for a server snapshot before enabling automatic uploads, preserving offline
+  edits until merge. Report local-storage quota failures when saving a group.
+
+Source helper: tools/live-perf/cloud_workspace_sync.js
+Reproducible generated-HTML patch: tools/live-perf/patch_workspace_cloud.py
+Scope: current iPhone source, Web aliases, Duo and bundled native/iPad copies.
+No original checkout modifications, cloud data reset, or forced migration.
+
+Validation:
+node tests/cloud-sync/workspaces.test.cjs
+node tests/cloud-sync/upload.test.cjs
+node tests/pet-aquarium/hinge.test.cjs
+python3 tests/watch-playback/run.py (2776 assertions)
+Generator fresh-baseline and idempotence comparison; git diff --check.
+Safari local HTTP page renders existing boards/cards.
+
+Not yet verified: authenticated two-device Firestore round trip, offline reconnection
+in real Safari, production rollout and updated iPhone app installation.
+Older clients preserve the new field with merge writes but cannot show empty cloud
+folders until upgraded. Legacy web31 pages were deliberately not rewritten.
+Existing name-based group identity is retained; concurrent rename/add of the same
+name uses timestamp order and deletion wins ties. Device clock skew remains an
+existing constraint of the board conflict algorithm.
+
+Recovery/rollout: never clear Safari website data to fix this bug; unsent legacy
+names are recovered on the SAME origin after deploying the patch. A preview host
+has its own browser storage and cannot read minest-app.vercel.app's local groups.
+Release this commit on the desired baseline (cherry-pick if aquarium is not desired).

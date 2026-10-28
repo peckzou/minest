@@ -1,6 +1,88 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
+<script id="mn-workspace-cloud-v2">
+/* Workspace names remain compatible with v1. Cloud records also retain deletion
+   timestamps, so an older/offline device cannot resurrect a removed empty folder. */
+(function () {
+  'use strict';
+  var namesKey = 'minest.customWorkspaces.v1';
+  var recordsKey = 'minest.workspaceGroups.v2';
+  var server = null;
+  var memory = [];
+  function read(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (_) { return fallback; }
+  }
+  function valid(rows) {
+    return Array.isArray(rows) ? rows.filter(function (r) {
+      return r && typeof r.name === 'string' && r.name.trim() && Number.isSafeInteger(r.at) && r.at > 0;
+    }).map(function (r) { return { name: r.name, at: r.at, deleted: !!r.deleted }; }) : [];
+  }
+  function combine(a, b) {
+    var map = new Map();
+    valid(a).concat(valid(b)).forEach(function (r) {
+      var old = map.get(r.name);
+      if (!old || r.at > old.at || (r.at === old.at && r.deleted)) map.set(r.name, r);
+    });
+    return Array.from(map.values()).sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; });
+  }
+  function snapshot() {
+    memory = combine(memory, read(recordsKey, []));
+    // Recover legacy folders without overriding any versioned deletion.
+    var legacy = read(namesKey, []);
+    if (Array.isArray(legacy)) memory = combine(memory, legacy.filter(function (n) {
+      return typeof n === 'string' && n.trim();
+    }).map(function (name) { return { name: name, at: 1, deleted: false }; }));
+    return memory.map(function (r) { return Object.assign({}, r); });
+  }
+  function names(rows) { return rows.filter(function (r) { return !r.deleted; }).map(function (r) { return r.name; }); }
+  function persist(rows) {
+    // Do not silently swallow Safari quota/private-storage failures on user edits.
+    localStorage.setItem(recordsKey, JSON.stringify(rows));
+    localStorage.setItem(namesKey, JSON.stringify(names(rows)));
+    memory = rows;
+  }
+  function notify() { window.dispatchEvent(new Event('minest:workspaces-changed')); }
+  function pending() {
+    var rows = snapshot();
+    if (!server) return rows.length > 0;
+    var remote = new Map(server.map(function (r) { return [r.name, r]; }));
+    return rows.some(function (r) { var s = remote.get(r.name); return !s || r.at > s.at || (r.at === s.at && r.deleted !== s.deleted); });
+  }
+  window.MinestWorkspaceCloud = {
+    snapshot: snapshot,
+    names: function () { return names(snapshot()); },
+    pending: pending,
+    resetServer: function () { server = null; },
+    save: function (list) {
+      var rows = snapshot(), wanted = new Set(list.filter(function (n) { return typeof n === 'string' && n.trim(); }));
+      var at = Math.max(Date.now(), rows.reduce(function (n, r) { return Math.max(n, r.at + 1); }, 1));
+      var known = new Set();
+      rows = rows.map(function (r) {
+        known.add(r.name);
+        var deleted = !wanted.has(r.name);
+        return r.deleted === deleted ? r : { name: r.name, at: at, deleted: deleted };
+      });
+      wanted.forEach(function (name) { if (!known.has(name)) rows.push({ name: name, at: at, deleted: false }); });
+      persist(combine([], rows));
+      notify();
+    },
+    merge: function (remote, confirmed) {
+      var before = snapshot();
+      if (confirmed) server = valid(remote); // cache snapshots never acknowledge uploads
+      var merged = combine(before, remote);
+      if (JSON.stringify(before) !== JSON.stringify(merged)) {
+        persist(merged);
+        notify();
+      }
+    }
+  };
+  window.addEventListener('storage', function (event) {
+    if (event.key === namesKey || event.key === recordsKey) notify();
+  });
+}());
+
+</script>
     <meta charset="UTF-8" />
     <script id="mn-three-preload">(function(){try{var web=/^https?:$/.test(location.protocol);['three.min.js','GLTFLoader.js'].forEach(function(f){var l=document.createElement('link');l.rel='preload';l.as='script';l.href=(web?'vendor/':'')+f;document.head.appendChild(l);});}catch(e){}})();</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -20487,9 +20569,15 @@ var Me = function(props) {
   var setCustomWorkspaces = customWorkspacesState[1];
 
   var saveCustomWorkspaces = function(list) {
-    setCustomWorkspaces(list);
-    try { localStorage.setItem('minest.customWorkspaces.v1', JSON.stringify(list)); } catch (e) {}
+    try { window.MinestWorkspaceCloud.save(list); setCustomWorkspaces(window.MinestWorkspaceCloud.names()); }
+    catch (e) { GlassUI.toast('Cannot save this group on this device. Check available storage; existing groups are kept.'); }
   };
+
+  (0, _.useEffect)(function() {
+    var reload = function() { setCustomWorkspaces(window.MinestWorkspaceCloud.names()); };
+    reload(); window.addEventListener('minest:workspaces-changed', reload);
+    return function() { window.removeEventListener('minest:workspaces-changed', reload); };
+  }, []);
 
   var activeWorkspaceState = (0, _.useState)('all');
   var activeWorkspace = activeWorkspaceState[0];
@@ -20567,7 +20655,7 @@ var Me = function(props) {
               if (!window.minestCloudSyncNow) { GlassUI.toast("☁️ Sign in to Cloud Sync first"); return; }
               if (btn.classList.contains('mn-ws-sync-on')) return;
               btn.classList.add('mn-ws-sync-on'); SoundEngine.play('click');
-              window.minestCloudSyncNow().then(function() { GlassUI.toast("☁️ Synced with the cloud"); })
+              window.minestCloudSyncNow().then(function(done) { GlassUI.toast(done ? "☁️ Synced with the cloud" : "☁️ Changes queued — syncing with the cloud"); })
                 .catch(function(err) { GlassUI.toast("☁️ Sync did not go through (" + ((err && (err.code || err.message)) || 'offline') + ")"); })
                 .then(function() { setTimeout(function() { btn.classList.remove('mn-ws-sync-on'); }, 400); });
             },
@@ -81898,6 +81986,7 @@ function minestCloudWriter() {
 function minestCloudPayload(boards, extra) {
   var now = Date.now();
   var base = Object.assign({}, extra, { clientUpdatedAt: now, writer: minestCloudWriter(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  base.workspaceGroups = window.MinestWorkspaceCloud.snapshot();
   // 44.6 Learning Path: the study log (per device, merged on every device) rides along
   try { if (window.MinestLearn && window.MinestLearn._cloud) base.learning = JSON.parse(JSON.stringify(window.MinestLearn._cloud())); } catch (e) {}
   var know = null, gpt = null;
@@ -81906,7 +81995,7 @@ function minestCloudPayload(boards, extra) {
   if (!minestCanGzip()) { if (know) base.knowledge = JSON.parse(know); return Promise.resolve(Object.assign(base, { boards: boards })); }
   return Promise.all([minestGzipText(JSON.stringify(boards)), know ? minestGzipText(know) : null, gpt ? minestGzipText(gpt) : null]).then(function(g) {
     // 53.84: the whole document counts against Firestore's 1 MB, not just the boards
-    var total = g[0].length + (g[1] || '').length + (g[2] || '').length + JSON.stringify(base.learning || null).length;
+    var total = g[0].length + (g[1] || '').length + (g[2] || '').length + JSON.stringify(base.learning || null).length + JSON.stringify(base.workspaceGroups).length;
     if (total > MINEST_CLOUD_GZ_LIMIT) {
       var err = new Error('Boards are too large for cloud sync even when compressed (' + Math.round(total / 1024) + ' KB).');
       err.tooLarge = true;
@@ -81930,7 +82019,9 @@ function minestCloudExtras(data) {
 var MINEST_CLOUD_DIRTY = 'minest.cloud.dirtyAt', MINEST_CLOUD_ACK = 'minest.cloud.ackAt';
 function minestCloudMark(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
 function minestCloudNum(k) { try { return Number(localStorage.getItem(k)) || 0; } catch (e) { return 0; } }
-function minestCloudUnsynced() { return minestCloudNum(MINEST_CLOUD_DIRTY) > minestCloudNum(MINEST_CLOUD_ACK); }
+function minestCloudBoardsDirty() { return minestCloudNum(MINEST_CLOUD_DIRTY) > minestCloudNum(MINEST_CLOUD_ACK); }
+function minestCloudUnsynced() { return minestCloudBoardsDirty() || window.MinestWorkspaceCloud.pending(); }
+function minestCloudDirty() { minestCloudMark(MINEST_CLOUD_DIRTY, Math.max(Date.now(), minestCloudNum(MINEST_CLOUD_DIRTY) + 1, minestCloudNum(MINEST_CLOUD_ACK) + 1)); }
 /* primary's boards, lists and cards stay as they are; what only `extra` has is added in its place (a card already
    somewhere else on the board — moved — is not added again) */
 function minestMergeBoards(primary, extra) {
@@ -82312,7 +82403,7 @@ var Be = function() {
           }
         }
       });
-      isRemoteUpdateRef.current = true;
+      isRemoteUpdateRef.current = sanitized;
       setBoards(sanitized);
       setActiveBoardId(function(prevActiveId) {
         if (prevActiveId && sanitized.some(function(b) { return b.id === prevActiveId; })) {
@@ -82320,7 +82411,7 @@ var Be = function() {
         }
         return sanitized[0].id;
       });
-      setTimeout(function() { isRemoteUpdateRef.current = false; }, 300);
+      /* Remote updates are identified by their exact array, never by a timed edit lock. */
     }).catch(function() {});
     return function() { cancelled = true; };
   }, []);
@@ -82588,6 +82679,7 @@ var Be = function() {
 
   var isRemoteUpdateRef = (0, _.useRef)(false);
   var saveDebounceRef = (0, _.useRef)(null);
+  var cloudInFlightRef = (0, _.useRef)(null);
   var cloudFlushRef = (0, _.useRef)(null), cloudSeenRef = (0, _.useRef)(null), cloudLatestRef = (0, _.useRef)(null), cloudReadyRef = (0, _.useRef)(false);
   var cloudKickState = (0, _.useState)(0), cloudKick = cloudKickState[0], setCloudKick = cloudKickState[1];
   var idbSaveTokenRef = (0, _.useRef)(0);
@@ -83085,45 +83177,53 @@ var Be = function() {
 
         var docRef = fb.db.collection("users").doc(user.uid).collection("focusboard").doc("data");
         cloudReadyRef.current = false;
+        window.MinestWorkspaceCloud.resetServer();
+        var stopped = false;
         // 2026-10-27: one handler for the live listener and for ☁️ Sync now (a server read on demand)
         var takeDoc = function(doc) {
+          if (stopped || !fb.auth.currentUser || fb.auth.currentUser.uid !== user.uid) return Promise.resolve();
           try { if (doc.exists) { var w = doc.data(); window.__minestCloudInfo = { writer: w.writer || '', at: Math.max(Number(w.clientUpdatedAt) || 0, Number(w.gzUpdatedAt) || 0) }; } } catch (e) {}
           if (doc.metadata && doc.metadata.hasPendingWrites) return;   // 53.84: our own save on its way up
           if (doc.exists) {
             var data = doc.data();
             try { if (data.learning && window.MinestLearn && window.MinestLearn._mergeCloud) window.MinestLearn._mergeCloud(data.learning); } catch (e) {} minestCloudExtras(data);
-            minestCloudBoards(data).then(function(remoteBoards) {
+            try { window.MinestWorkspaceCloud.merge(data.workspaceGroups, !(doc.metadata && doc.metadata.fromCache)); } catch (e) { setSyncStatus('error'); return Promise.reject(e); }
+            if (doc.metadata && doc.metadata.fromCache) { setSyncStatus("connecting"); return Promise.resolve(); }
+            return minestCloudBoards(data).then(function(remoteBoards) {
+              if (stopped) return;
               var rAt = Math.max(Number(data.clientUpdatedAt) || 0, Number(data.gzUpdatedAt) || 0);
-              if (remoteBoards && remoteBoards.length > 0 && minestCloudUnsynced()) {
+              if (remoteBoards && remoteBoards.length > 0 && minestCloudBoardsDirty()) {
                 // 53.84: this device has edits the cloud has not got — merge (the newer side wins where both have a thing,
                 // nothing only one side has is dropped); the merged boards are a local change, so they are saved up
                 var remote = sanitizeLoadedBoards(remoteBoards), mineNewer = minestCloudNum(MINEST_CLOUD_DIRTY) >= rAt;
                 setSyncStatus("saving");
-                minestCloudBaseGet().then(function(base) {
+                return minestCloudBaseGet().then(function(base) {
+                  if (stopped) return;
                   setBoards(function(local) { return base ? minestMerge3(base, local, remote, mineNewer) : mineNewer ? minestMergeBoards(local, remote) : minestMergeBoards(remote, local); });
                   cloudReadyRef.current = true;
                   setCloudKick(function(k) { return k + 1; });
                 });
-                return;
               }
               if (remoteBoards && remoteBoards.length > 0) {
                 if (rAt > minestCloudNum(MINEST_CLOUD_ACK)) minestCloudMark(MINEST_CLOUD_ACK, rAt);
                 minestCloudBaseSet(sanitizeLoadedBoards(remoteBoards));
-                isRemoteUpdateRef.current = true;
-                setBoards(sanitizeLoadedBoards(remoteBoards));
+                var incoming = sanitizeLoadedBoards(remoteBoards);
+                isRemoteUpdateRef.current = incoming;
+                setBoards(incoming);
                 if (data.activeBoardId) setActiveBoardId(data.activeBoardId);
                 if (['coverflow', 'board', 'drill'].includes(data.viewMode)) setViewMode(data.viewMode);
                 if (['dark', 'white'].includes(data.themeMode)) setThemeMode(data.themeMode);
-                setTimeout(function() { isRemoteUpdateRef.current = false; }, 300);
+                /* Remote updates are identified by their exact array, never by a timed edit lock. */
               }
               cloudReadyRef.current = true;
               setLastSyncTime(new Date());
-              setSyncStatus("synced");
-            });
+              setSyncStatus(minestCloudUnsynced() ? "saving" : "synced");
+              if (minestCloudUnsynced()) setCloudKick(function(k) { return k + 1; });
+            }).catch(function(err) { setSyncStatus("error"); throw err; });
           } else {
             cloudReadyRef.current = true;
             setSyncStatus("saving");
-            minestCloudPayload((cloudLatestRef.current && cloudLatestRef.current.boards) || boards, {
+            return minestCloudPayload((cloudLatestRef.current && cloudLatestRef.current.boards) || boards, {
               activeBoardId: activeBoardId,
               viewMode: viewMode,
               themeMode: themeMode,
@@ -83136,20 +83236,23 @@ var Be = function() {
             });
           }
         };
-        var unsubDoc = docRef.onSnapshot(takeDoc, function(err) {
+        var queue = Promise.resolve();
+        var acceptDoc = function(doc) { queue = queue.catch(function() {}).then(function() { return takeDoc(doc); }); return queue; };
+        var unsubDoc = docRef.onSnapshot({ includeMetadataChanges: true }, function(doc) { acceptDoc(doc).catch(function() { setSyncStatus("error"); }); }, function(err) {
           setSyncStatus("error");
         });
         window.minestCloudSyncNow = function() {
           setSyncStatus("saving");
-          if (cloudFlushRef.current) cloudFlushRef.current();   // a save that was waiting goes first
-          return docRef.get({ source: 'server' }).then(function(doc) {
-            takeDoc(doc);
-            setCloudKick(function(k) { return k + 1; });   // anything still unsynced here goes up
-            return true;
+          var flush = cloudFlushRef.current;
+          return Promise.resolve(flush ? flush() : cloudInFlightRef.current).then(function() {
+            return docRef.get({ source: 'server' });
+          }).then(acceptDoc).then(function() {
+            setCloudKick(function(k) { return k + 1; });
+            return !minestCloudUnsynced();
           }).catch(function(err) { setSyncStatus("error"); throw err; });
         };
 
-        return function() { unsubDoc(); if (window.minestCloudSyncNow) window.minestCloudSyncNow = null; };
+        return function() { stopped = true; cloudReadyRef.current = false; unsubDoc(); if (window.minestCloudSyncNow) window.minestCloudSyncNow = null; };
       } else {
         setFirebaseUser(null);
         setSyncStatus("logged_out");
@@ -83166,10 +83269,12 @@ var Be = function() {
   // sends the waiting save at once; a failed save is said once and tried again.
   (0, _.useEffect)(function() {
     cloudLatestRef.current = { boards: boards, activeBoardId: activeBoardId, viewMode: viewMode, themeMode: themeMode };
-    var edited = cloudSeenRef.current !== null && cloudSeenRef.current !== boards && !isRemoteUpdateRef.current;
+    var remoteApplied = isRemoteUpdateRef.current === boards;
+    var edited = cloudSeenRef.current !== null && cloudSeenRef.current !== boards && !remoteApplied;
+    if (remoteApplied) isRemoteUpdateRef.current = null;
     cloudSeenRef.current = boards;
-    if (edited) minestCloudMark(MINEST_CLOUD_DIRTY, Date.now());
-    if (isRemoteUpdateRef.current || !firebaseUser || typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    if (edited) minestCloudDirty();
+    if (!firebaseUser || typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     if (!cloudReadyRef.current || !minestCloudUnsynced()) return;
     setSyncStatus("saving");
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
@@ -83186,16 +83291,18 @@ var Be = function() {
     var run = function() {
       if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
       saveDebounceRef.current = null; cloudFlushRef.current = null;
-      var L = cloudLatestRef.current, sentAt = 0;
+      if (cloudInFlightRef.current) return cloudInFlightRef.current;
+      if (!firebase.auth().currentUser || firebase.auth().currentUser.uid !== user.uid) return Promise.resolve();
+      var L = cloudLatestRef.current, sentAt = minestCloudNum(MINEST_CLOUD_DIRTY);
       try {
         var db = firebase.firestore();
-        minestCloudPayload(L.boards, {
+        cloudInFlightRef.current = minestCloudPayload(L.boards, {
           activeBoardId: L.activeBoardId,
           viewMode: L.viewMode,
           themeMode: L.themeMode,
           userEmail: user.email
         }).then(function(payload) {
-          sentAt = payload.clientUpdatedAt;
+          if (sentAt) { payload.clientUpdatedAt = sentAt; if (payload.boardsGz) payload.gzUpdatedAt = sentAt; }
           return db.collection("users").doc(user.uid).collection("focusboard").doc("data").set(payload, { merge: true });
         }).then(function() {
           if (sentAt > minestCloudNum(MINEST_CLOUD_ACK)) minestCloudMark(MINEST_CLOUD_ACK, sentAt);
@@ -83203,28 +83310,32 @@ var Be = function() {
           window.__minestCloudFailWarned = false;
           setLastSyncTime(new Date());
           if (minestCloudUnsynced()) setCloudKick(function(k) { return k + 1; }); else setSyncStatus("synced");
-        }).catch(fail);
-      } catch (e) { fail(e); }
+        }).catch(function(err) { fail(err); throw err; }).finally(function() {
+          cloudInFlightRef.current = null;
+        });
+        return cloudInFlightRef.current;
+      } catch (e) { fail(e); return Promise.reject(e); }
     };
     cloudFlushRef.current = run;
-    saveDebounceRef.current = setTimeout(run, 500);
+    saveDebounceRef.current = setTimeout(function() { run().catch(function() {}); }, 500);
   }, [boards, activeBoardId, viewMode, themeMode, firebaseUser, cloudKick]);
   // 53.84: the app going to the background sends a waiting save now; back online tries again; the CarPlay study record
   // (MinestGPTStudy) changing asks for a save too, at most every 20 s
   (0, _.useEffect)(function() {
     var gptT = null;
     var kick = function() { setCloudKick(function(k) { return k + 1; }); };
-    var gptNow = function() { if (!gptT) return; clearTimeout(gptT); gptT = null; minestCloudMark(MINEST_CLOUD_DIRTY, Date.now()); kick(); };
-    var hide = function() { gptNow(); if (cloudFlushRef.current) cloudFlushRef.current(); };
+    var gptNow = function() { if (!gptT) return; clearTimeout(gptT); gptT = null; minestCloudDirty(); kick(); };
+    var hide = function() { gptNow(); if (cloudFlushRef.current) { var p = cloudFlushRef.current(); if (p) p.catch(function() {}); } };
     var vis = function() { if (document.visibilityState === 'hidden') hide(); };
     var gpt = function() { if (!gptT) gptT = setTimeout(gptNow, 20000); };
     document.addEventListener('visibilitychange', vis);
     window.addEventListener('pagehide', hide);
     window.addEventListener('online', kick);
+    window.addEventListener('minest:workspaces-changed', kick);
     window.addEventListener('minest:cloud-dirty', gpt);
     return function() {
       document.removeEventListener('visibilitychange', vis); window.removeEventListener('pagehide', hide);
-      window.removeEventListener('online', kick); window.removeEventListener('minest:cloud-dirty', gpt); if (gptT) clearTimeout(gptT);
+      window.removeEventListener('online', kick); window.removeEventListener('minest:workspaces-changed', kick); window.removeEventListener('minest:cloud-dirty', gpt); if (gptT) clearTimeout(gptT);
     };
   }, []);
 
@@ -83298,14 +83409,16 @@ var Be = function() {
     try {
       setSyncStatus("saving");
       var db = firebase.firestore();
+      var pushedDirty = minestCloudNum(MINEST_CLOUD_DIRTY);
       var pushPayload = await minestCloudPayload(boards, {
         activeBoardId: activeBoardId,
         viewMode: viewMode,
         themeMode: themeMode,
         userEmail: firebaseUser.email
       });
+      if (pushedDirty) { pushPayload.clientUpdatedAt = pushedDirty; if (pushPayload.boardsGz) pushPayload.gzUpdatedAt = pushedDirty; }
       await db.collection("users").doc(firebaseUser.uid).collection("focusboard").doc("data").set(pushPayload, { merge: true });
-      minestCloudMark(MINEST_CLOUD_ACK, pushPayload.clientUpdatedAt); minestCloudBaseSet(boards);
+      minestCloudMark(MINEST_CLOUD_ACK, Math.max(pushedDirty, minestCloudNum(MINEST_CLOUD_ACK))); minestCloudBaseSet(boards);
       setSyncStatus("synced");
       setLastSyncTime(new Date());
       GlassUI.toast("All boards, cards, and settings successfully synced to cloud!");
@@ -83324,15 +83437,17 @@ var Be = function() {
       if (doc.exists) {
         var data = doc.data();
         try { if (data.learning && window.MinestLearn && window.MinestLearn._mergeCloud) window.MinestLearn._mergeCloud(data.learning); } catch (e) {} minestCloudExtras(data);
+        window.MinestWorkspaceCloud.merge(data.workspaceGroups, !(doc.metadata && doc.metadata.fromCache));
         var pulledBoards = await minestCloudBoards(data);
         if (pulledBoards && pulledBoards.length > 0) {
           minestCloudMark(MINEST_CLOUD_ACK, Math.max(Date.now(), minestCloudNum(MINEST_CLOUD_DIRTY))); minestCloudBaseSet(sanitizeLoadedBoards(pulledBoards));
-          isRemoteUpdateRef.current = true;
-          setBoards(sanitizeLoadedBoards(pulledBoards));
+          var pulled = sanitizeLoadedBoards(pulledBoards);
+          isRemoteUpdateRef.current = pulled;
+          setBoards(pulled);
           if (data.activeBoardId) setActiveBoardId(data.activeBoardId);
           if (data.viewMode) setViewMode(data.viewMode);
           if (data.themeMode) setThemeMode(data.themeMode);
-          setTimeout(function() { isRemoteUpdateRef.current = false; }, 300);
+          /* Remote updates are identified by their exact array, never by a timed edit lock. */
           setSyncStatus("synced");
           setLastSyncTime(new Date());
           GlassUI.toast("Successfully pulled latest data from cloud!");
@@ -139240,7 +139355,7 @@ window.minestCloudLine = function (el) {
     var signed = typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length && firebase.auth().currentUser, info = window.__minestCloudInfo, dirty = 0, ack = 0;
     try { dirty = +localStorage.getItem('minest.cloud.dirtyAt') || 0; ack = +localStorage.getItem('minest.cloud.ackAt') || 0; } catch (e) {}
     el.textContent = !signed ? '☁️ Not signed in to Cloud Sync — changes stay on this device'
-      : '☁️ ' + (dirty > ack ? 'Not sent yet (' + hm(dirty) + ')' : 'Up to date') + (info ? ' · cloud: ' + (info.writer || 'unknown device') + ', ' + hm(info.at) : '');
+      : '☁️ ' + ((dirty > ack || (window.MinestWorkspaceCloud && window.MinestWorkspaceCloud.pending())) ? 'Not sent yet (' + hm(dirty) + ')' : 'Up to date') + (info ? ' · cloud: ' + (info.writer || 'unknown device') + ', ' + hm(info.at) : '');
     setTimeout(draw, 2000);
   }
   draw();
