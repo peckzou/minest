@@ -1,0 +1,31 @@
+2026-10-28 — Board Center (Trello-inspired navigation)
+
+Reuse the existing Me Board Picker, callbacks and canonical boards array. Render
+it with the already bundled React DOM createPortal so immersive/transforming
+headers cannot clip the modal. No new dependencies, providers or Card store.
+
+- Centered modal and fullscreen toggle; narrow screens use horizontal Workspace
+  tabs and two-column cards. Desktop sidebar and three/four-column cover grid.
+- Search title/Workspace, All/Starred/Recent. Star is board.starred and follows
+  normal persistence/cloud sync. Recents store only Board IDs on this device.
+- Board wallpaper thumbnails lazy-load, otherwise a color cover/initial is used.
+- Existing move/copy/cover/archive/delete/import/export/create paths retained.
+  Destructive confirmations retained. New Board uses the selected Workspace.
+- Dialog keyboard focus trap, Escape, backdrop close and focus restoration.
+- Desktop bottom-left Boards launcher supplements the existing title trigger.
+
+Found and fixed a pre-existing relation bug: Me referenced onUpdateBoard without
+receiving/declaring it; move/rename/dissolve directly mutated Board objects.
+New onManageBoard callback updates matching ID, never the active Board by accident.
+All three operations now use immutable Board updates and normal dirty/save effects.
+
+Validation: actual rendered local UI checked for search, star persistence, filtered
+view, fullscreen toggle, opening Board and Recent view. Component regression test
+covers non-active Board updates, move without source mutation and create in chosen
+Workspace. Existing sync regression tests continue to pass. Generated patch tested
+against baseline and for idempotence. Settings-header DOM rectangles confirm title,
+Cloud and Close occupy separate columns; no duplicated Pure/Hide Covers controls.
+
+Files: tools/live-perf/board_center.css, patch_board_center.py;
+tests/board-center/relations.test.cjs; the nine existing HTML copies.
+No changes to API configuration, keys, Firebase rules or native Swift modules.

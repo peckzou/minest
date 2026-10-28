@@ -20543,6 +20543,7 @@ var Me = function(props) {
   var themeMode = props.themeMode;
   var onSelectBoard = props.onSelectBoard;
   var onCreateBoard = props.onCreateBoard;
+  var onUpdateBoard = props.onUpdateBoard;
   var onCopyBoard = props.onCopyBoard;
   var onPasteBoard = props.onPasteBoard;
   var onClearBoardClipboard = props.onClearBoardClipboard;
@@ -20555,6 +20556,30 @@ var Me = function(props) {
   var onClose = props.onClose;
 
   var isDark = themeMode === 'dark';
+  var hubRef = (0, _.useRef)(null);
+  var hubFullState = (0, _.useState)(false), hubFull = hubFullState[0], setHubFull = hubFullState[1];
+  var hubSearchState = (0, _.useState)(''), hubSearch = hubSearchState[0], setHubSearch = hubSearchState[1];
+  var hubScopeState = (0, _.useState)('all'), hubScope = hubScopeState[0], setHubScope = hubScopeState[1];
+  var hubRecentsState = (0, _.useState)(function() { try { var r = JSON.parse(localStorage.getItem('minest.boardRecents.v1') || '[]'); return Array.isArray(r) ? r : []; } catch(e) { return []; } }), hubRecents = hubRecentsState[0];
+  var openHubBoard = function(b) {
+    try { localStorage.setItem('minest.boardRecents.v1', JSON.stringify([b.id].concat(hubRecents.filter(function(id) { return id !== b.id; })).slice(0,24))); } catch(e) {}
+    onSelectBoard(b.id); SoundEngine.play('click'); onClose();
+  };
+  (0, _.useEffect)(function() {
+    var previous = document.activeElement, overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    var input = hubRef.current && hubRef.current.querySelector('[data-hub-search]'); if(input) input.focus();
+    var keys = function(e) {
+      if(e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); return; }
+      if(e.key !== 'Tab' || !hubRef.current) return;
+      var nodes = Array.from(hubRef.current.querySelectorAll('button:not([disabled]),input:not([disabled]),select,a[href]')).filter(function(n) {return n.getClientRects().length && n.type !== 'hidden';});
+      var first = nodes[0], last = nodes[nodes.length-1];
+      if(e.shiftKey && (document.activeElement === first || !hubRef.current.contains(document.activeElement))) {e.preventDefault();if(last)last.focus();}
+      else if(!e.shiftKey && (document.activeElement === last || !hubRef.current.contains(document.activeElement))) {e.preventDefault();if(first)first.focus();}
+    };
+    document.addEventListener('keydown', keys, true);
+    return function() {document.body.style.overflow = overflow;document.removeEventListener('keydown',keys,true);if(previous && previous.isConnected)previous.focus({preventScroll:true});};
+  }, []);
   var newTitleState = (0, _.useState)("");
   var newTitle = newTitleState[0];
   var setNewTitle = newTitleState[1];
@@ -20631,7 +20656,6 @@ var Me = function(props) {
       }
       var bFound = boards.find(function(b) { return b.id === boardId; });
       if (bFound) {
-        bFound.workspace = ren;
         if (onUpdateBoard) onUpdateBoard(Object.assign({}, bFound, { workspace: ren }));
       }
       setActiveWorkspace(ren);
@@ -20640,9 +20664,14 @@ var Me = function(props) {
     }
   };
 
+  var displayedBoards = filteredBoards.filter(function(b) {
+    return (!hubSearch.trim() || ((b.title || '') + ' ' + (b.workspace || 'General')).toLowerCase().includes(hubSearch.trim().toLowerCase())) && (hubScope !== 'starred' || !!b.starred) && (hubScope !== 'recent' || b.id === activeBoardId || hubRecents.includes(b.id));
+  });
+  if(hubScope === 'recent') displayedBoards.sort(function(a,b) {var order=[activeBoardId].concat(hubRecents);return order.indexOf(a.id)-order.indexOf(b.id);});
   var activeBoard = boards.find(function(b) { return b.id === activeBoardId; }) || boards[0];
 
-  return (0, P.jsxs)('div', {
+  var hub = (0, P.jsxs)('div', {
+    ref: hubRef, role: 'dialog', 'aria-modal': true, 'aria-label': 'Board Center',
     onClick: function(e) { e.stopPropagation(); },
     className: "board-picker-popover mn-ws-panel" + (isDark ? "" : " mn-ws-light") + " absolute left-0 top-full mt-2 w-80 sm:w-96 rounded-3xl p-4 sm:p-5 border shadow-2xl z-50 backdrop-blur-3xl animate-fadeIn space-y-3.5 transition-all max-h-[85vh] flex flex-col overflow-hidden " +
       (isDark ? "bg-[#141d26]/95 border-white/15 text-white shadow-[0_16px_36px_rgba(0,0,0,0.6)]" : "bg-white/95 border-slate-200 text-slate-900 shadow-[0_12px_28px_rgba(0,0,0,0.12)]"),
@@ -20654,11 +20683,12 @@ var Me = function(props) {
             className: "flex items-center gap-2",
             children: [
               (0, P.jsx)(fe, { className: "w-4 h-4 text-emerald-400" }),
-              (0, P.jsxs)('h3', { className: "mn-ws-title font-bold text-sm", children: ["Workspace", (0, P.jsx)('small', { className: "mn-ws-sub", children: visibleBoards.length + " boards" })] }),
+              (0, P.jsxs)('h3', { className: "mn-ws-title font-bold text-sm", children: ["Boards", (0, P.jsx)('small', { className: "mn-ws-sub", children: visibleBoards.length + " boards" })] }),
               (0, P.jsx)('span', { className: "mn-ws-cloud", ref: function(el) { if (el && window.minestCloudLine) window.minestCloudLine(el); } })
             ]
           }),
           (0, P.jsxs)('div', { className: "flex items-center gap-1", children: [
+          (0, P.jsx)('button', {type:'button',className:'mn-hub-full',title:hubFull?'Exit fullscreen':'Expand to fullscreen','aria-label':hubFull?'Exit fullscreen':'Expand to fullscreen',onClick:function(){setHubFull(!hubFull);},children:hubFull?'↙':'⛶'}),
           // ☁️ Sync now: read the cloud copy from the server and merge it (and send up what this device has)
           (0, P.jsx)('button', {
             type: "button",
@@ -20680,7 +20710,7 @@ var Me = function(props) {
           }),
           (0, P.jsx)('button', {
             type: "button",
-            onClick: onClose,
+            onClick: onClose, 'aria-label': 'Close Board Center',
             className: "p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-white/10 transition-colors",
             children: (0, P.jsx)(Te, { className: "w-4 h-4" })
           })
@@ -20688,6 +20718,10 @@ var Me = function(props) {
         ]
       }),
 
+      (0, P.jsxs)('div', {className:'mn-hub-tools',children:[
+        (0, P.jsx)('input', {'data-hub-search':true,type:'search',value:hubSearch,'aria-label':'Search boards',placeholder:'Search boards or workspaces...',onChange:function(e){setHubSearch(e.target.value);}}),
+        (0, P.jsx)('div', {className:'mn-hub-scopes',children:[['all','All boards'],['starred','★ Starred'],['recent','◷ Recent']].map(function(s){return (0,P.jsx)('button',{type:'button','aria-pressed':hubScope===s[0],onClick:function(){setHubScope(s[0]);},children:s[1]},s[0]);})})
+      ]}),
       // Workspace Filter Tabs & New Folder Button
       (0, P.jsxs)('div', {
         className: "mn-ws-tabs flex items-center gap-1.5 overflow-x-auto pb-1 custom-scroll shrink-0",
@@ -20757,7 +20791,6 @@ var Me = function(props) {
                       var ren = newName.trim();
                       visibleBoards.forEach(function(b) {
                         if ((b.workspace || 'General') === activeWorkspace) {
-                          b.workspace = ren;
                           if (onUpdateBoard) onUpdateBoard(Object.assign({}, b, { workspace: ren }));
                         }
                       });
@@ -20777,7 +20810,6 @@ var Me = function(props) {
                     if (confirm("确定解散分组 \"" + activeWorkspace + "\" 吗？\n看板将移入默认 General 分组，不会删除看板内容。")) {
                       visibleBoards.forEach(function(b) {
                         if ((b.workspace || 'General') === activeWorkspace) {
-                          b.workspace = 'General';
                           if (onUpdateBoard) onUpdateBoard(Object.assign({}, b, { workspace: 'General' }));
                         }
                       });
@@ -20798,19 +20830,23 @@ var Me = function(props) {
       // Boards List (Scrollable up to 58vh with custom scrollbar)
       (0, P.jsx)('div', {
         className: "mn-ws-grid space-y-2 max-h-[58vh] flex-1 overflow-y-auto pr-1.5 custom-scroll",
-        children: filteredBoards.map(function(b) {
+        children: displayedBoards.length ? displayedBoards.map(function(b) {
           var isCurrent = b.id === activeBoardId;
           var totalC = (b.columns || []).reduce(function(acc, c) { return acc + (c.cards ? c.cards.length : 0); }, 0);
           var isActionsExpanded = expandedActionsBoardId === b.id;
           return (0, P.jsxs)('div', {
             key: b.id,
             style: { '--c': ((b.columns || [])[0] || {}).color || '#64748b' },
-            onClick: function() { if (isActionsExpanded) return; onSelectBoard(b.id); SoundEngine.play('click'); onClose(); },
+            onClick: function() { if (isActionsExpanded) return; openHubBoard(b); },
             className: "mn-ws-card" + (isCurrent ? " mn-ws-card-on" : "") + (isActionsExpanded ? " mn-ws-card-open" : "") + " group w-full flex items-center justify-between p-2.5 rounded-2xl border transition-all " +
               (isActionsExpanded ? "cursor-default " : "cursor-pointer ") +
               (isCurrent ? "bg-emerald-600/20 border-emerald-500/50 text-emerald-400 font-semibold shadow-sm" : (isDark ? "bg-white/5 border-white/10 hover:bg-white/10" : "bg-slate-50 border-slate-200 hover:bg-slate-100")),
             children: [
-              (0, P.jsx)('div', { className: "mn-ws-avatar", 'aria-hidden': "true", children: String(b.title || '?').trim().charAt(0).toUpperCase() }),
+              (0, P.jsxs)('button', {type:'button',className:'mn-ws-avatar mn-hub-cover','aria-label':'Open '+b.title,'aria-current':isCurrent?'page':undefined,onClick:function(e){e.stopPropagation();openHubBoard(b);},children:[
+                String(b.title || '?').trim().charAt(0).toUpperCase(),
+                typeof b.wallpaper === 'string' && /^(https?:|data:image\/|blob:)/i.test(b.wallpaper) ? (0,P.jsx)('img',{src:b.wallpaper,alt:'',loading:'lazy',decoding:'async',onError:function(e){e.currentTarget.style.display='none';}}) : null
+              ]}),
+              (0,P.jsx)('button',{type:'button',className:'mn-hub-star','aria-label':(b.starred?'Unstar ':'Star ')+b.title,'aria-pressed':!!b.starred,onClick:function(e){e.stopPropagation();if(onUpdateBoard)onUpdateBoard(Object.assign({},b,{starred:!b.starred}));},children:b.starred?'★':'☆'}),
               (0, P.jsxs)('div', {
                 className: "mn-ws-info flex flex-col min-w-0 pr-2",
                 children: [
@@ -20900,13 +20936,13 @@ var Me = function(props) {
               })
             ]
           });
-        })
+        }) : (0,P.jsx)('div',{className:'mn-hub-empty',role:'status',children:hubSearch?'No boards match this search.':hubScope==='starred'?'Star a board to keep it here.':hubScope==='recent'?'Boards you open appear here.':'No boards in this workspace yet. Create one below.'})
       }),
 
       // Archived Boards — collapsed by default; boards here are hidden from
       // the main list/switcher but can be restored at any time.
       archivedBoards.length > 0 ? (0, P.jsxs)('div', {
-        className: "space-y-2",
+        className: "mn-hub-archive space-y-2",
         children: [
           (0, P.jsxs)('button', {
             type: "button",
@@ -20945,7 +20981,7 @@ var Me = function(props) {
       // here calls onClearBoardClipboard to actually clear that stored value.
       hasBoardClipboard ? (
         (0, P.jsxs)('div', {
-          className: "w-full flex items-center gap-1.5",
+          className: "mn-hub-clipboard w-full flex items-center gap-1.5",
           children: [
             (0, P.jsxs)('button', {
               type: "button",
@@ -20972,7 +21008,7 @@ var Me = function(props) {
         onSubmit: function(e) {
           e.preventDefault();
           if (newTitle.trim()) {
-            onCreateBoard(newTitle.trim());
+            onCreateBoard(newTitle.trim(), activeWorkspace === 'all' ? 'General' : activeWorkspace);
             SoundEngine.play('slide');
             setNewTitle("");
             onClose();
@@ -21095,6 +21131,7 @@ var Me = function(props) {
       })
     ]
   });
+  return m().createPortal((0,P.jsx)('div',{className:'mn-board-hub'+(hubFull?' is-full':''),onClick:function(e){if(e.target===e.currentTarget)onClose();},children:hub}),document.body);
 };
 
 // =========================================================================
@@ -22376,6 +22413,7 @@ var De = function(props) {
   var onViewModeChange = props.onViewModeChange;
   var onThemeModeChange = props.onThemeModeChange;
   var onOpenBoardPicker = props.onOpenBoardPicker;
+  var onManageBoard = props.onManageBoard;
   var onOpenBoardSettings = props.onOpenBoardSettings;
   var onOpenNewList = props.onOpenNewList;
   var firebaseUser = props.firebaseUser;
@@ -22551,6 +22589,7 @@ var De = function(props) {
     return function() { document.removeEventListener('click', openSearch, true); };
   }, []);
 
+  (0, _.useEffect)(function() { var open=function(){setIsBoardPickerOpen(true);};window.addEventListener('minest:open-boards',open);return function(){window.removeEventListener('minest:open-boards',open);};}, []);
   var boardColorOpenState = (0, _.useState)(false);
   var isBoardColorOpen = boardColorOpenState[0];
   var setIsBoardColorOpen = boardColorOpenState[1];
@@ -22579,7 +22618,7 @@ var De = function(props) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsDropdownOpen(false);
       }
-      if (boardPickerRef.current && !boardPickerRef.current.contains(e.target)) {
+      if (boardPickerRef.current && !boardPickerRef.current.contains(e.target) && !(e.target.closest && e.target.closest('.mn-board-hub'))) {
         setIsBoardPickerOpen(false);
       }
       if (createMenuRef.current && !createMenuRef.current.contains(e.target)) {
@@ -22720,6 +22759,7 @@ var De = function(props) {
                 themeMode: themeMode,
                 onSelectBoard: onSelectBoard,
                 onCreateBoard: onCreateBoard,
+                onUpdateBoard: onManageBoard,
                 onCopyBoard: onCopyBoard,
                 onPasteBoard: onPasteBoard,
                 onClearBoardClipboard: onClearBoardClipboard,
@@ -84097,10 +84137,11 @@ var Be = function() {
     logActivity("New List", "Created list: " + name.trim());
   }, [activeBoard.columns.length, updateActiveBoard, logActivity]);
 
-  var createNewBoard = (0, _.useCallback)(function(title) {
+  var createNewBoard = (0, _.useCallback)(function(title, workspace) {
     var newB = {
       id: "board-" + Date.now(),
       title: title,
+      workspace: workspace || 'General',
       columns: [
         { id: "col-" + Date.now() + "-1", title: "To Do", cards: [], color: "#49b07a" },
         { id: "col-" + Date.now() + "-2", title: "In Progress", cards: [], color: "#5097f4" },
@@ -84591,6 +84632,7 @@ var Be = function() {
         boards: boards,
         onSelectBoard: setActiveBoardId,
         onCreateBoard: createNewBoard,
+        onManageBoard: function(updatedBoard) { setBoards(function(list) { var next = list.map(function(b) { return b.id === updatedBoard.id ? Object.assign({}, b, updatedBoard) : b; }); pushHistory(next); return next; }); },
         onCopyBoard: copyBoard,
         onPasteBoard: pasteBoard,
         onClearBoardClipboard: clearBoardClipboard,
@@ -139452,5 +139494,28 @@ window.minestCloudLine = function (el) {
 })();
 
 </script>
+<style id="mn-board-center-css">
+/* Board Center — existing Board/Workspace data and callbacks, a modal shell. */
+.mn-board-hub{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:28px;background:#050a146e;backdrop-filter:blur(12px);font:14px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel{position:relative!important;inset:auto!important;transform:none!important;margin:0!important;width:min(1140px,100%)!important;height:min(820px,calc(100dvh - 56px))!important;max-height:none!important;padding:0!important;display:grid!important;grid-template-columns:210px minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr) auto auto auto auto;gap:0!important;border-radius:24px!important;overflow:hidden!important;background:#141d2b!important;border:1px solid #ffffff26!important;color:#eef3fa!important;box-shadow:0 35px 100px #0006!important;text-align:left;font-weight:400}
+.mn-board-hub.is-full{padding:0}.mn-board-hub.is-full .board-picker-popover.mn-ws-panel.mn-ws-panel{width:100%!important;height:100dvh!important;border-radius:0!important;border:0!important}
+.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel>:first-child{grid-column:1/-1;padding:20px 24px!important;border-bottom:1px solid #8da1bb26!important;min-width:0;gap:16px}.mn-board-hub .mn-ws-title{display:block!important}.mn-board-hub .mn-ws-title small{display:block;font-size:12px!important;margin-top:2px}.mn-board-hub .mn-ws-cloud{max-width:45vw;font-size:11px;white-space:normal}
+.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-tabs{grid-column:1;grid-row:2/9;display:flex;flex-direction:column;align-items:stretch!important;overflow-y:auto;overflow-x:hidden;gap:5px!important;padding:20px 12px!important;border:0!important;border-radius:0!important;background:#0d152380!important;box-shadow:none!important}.mn-board-hub .mn-ws-tabs:before{content:'WORKSPACES';font-size:10px;font-weight:700;letter-spacing:.12em;opacity:.5;padding:0 12px 10px}.mn-board-hub .mn-ws-tab{justify-content:flex-start;min-height:42px;white-space:normal;text-align:left}.mn-board-hub .mn-ws-tab>:last-child{margin-left:auto}.mn-board-hub .mn-ws-newfolder{margin-top:14px;min-height:40px}
+.mn-hub-tools{grid-column:2;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:20px 24px 12px}.mn-hub-tools input{flex:1 1 220px;min-width:0;background:#ffffff0a;border:1px solid #8da1bb40;border-radius:12px;padding:10px 13px;color:inherit;font:inherit;outline:none}.mn-hub-tools input:focus-visible{outline:2px solid #71c5b6;outline-offset:2px}.mn-hub-scopes{display:flex;gap:4px}.mn-hub-scopes button{padding:8px 10px;border:0;border-radius:9px;color:inherit;background:transparent;font:600 12px/1.4 inherit;cursor:pointer}.mn-hub-scopes button[aria-pressed=true]{background:#73c4b825;color:#8be0d1}
+.mn-board-hub .mn-ws-folderbar{grid-column:2;grid-row:3;margin:0 24px 12px!important}.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-grid{grid-column:2;grid-row:4;padding:6px 24px 20px!important;max-height:none!important;overflow:auto;grid-template-columns:repeat(auto-fill,minmax(min(210px,100%),1fr));gap:16px!important;align-content:start;min-height:0}
+.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card{position:relative;display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:110px auto auto;padding:0!important;gap:0!important;border-radius:14px!important;align-items:center!important;overflow:hidden;background:#202c3f!important;border:1px solid #8395b32a!important;box-shadow:0 2px 4px #0002!important;cursor:pointer;min-width:0}
+.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card:hover{background:#29364c!important;transform:translateY(-2px)}.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card-on{border-color:#66c6b7!important;box-shadow:0 0 0 1px #66c6b766!important}
+.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-hub-cover{grid-column:1/-1;grid-row:1;width:100%!important;height:110px!important;display:flex!important;align-items:center;justify-content:center;border:0;border-radius:0!important;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--c),#182943)!important;box-shadow:none!important;cursor:pointer;font-size:44px!important;color:#ffffff70!important}.mn-hub-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.mn-hub-cover:before{content:'';position:absolute;width:170px;height:170px;border:24px solid #ffffff12;transform:rotate(25deg);right:-28px;top:-40px;border-radius:28px}.mn-hub-cover:focus-visible{outline:3px solid #b8f0e4;outline-offset:-4px}
+.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-info{grid-column:1;grid-row:2;padding:14px!important;gap:4px!important}.mn-board-hub .mn-ws-info .truncate{font-size:14px!important;line-height:1.35;white-space:normal;overflow-wrap:anywhere}.mn-board-hub .mn-ws-dots{display:none!important}.mn-board-hub .mn-ws-card>:last-child{grid-column:2;grid-row:2;margin-right:10px}.mn-board-hub .mn-ws-card.mn-ws-card-open>:last-child{grid-column:1/-1;grid-row:3;justify-content:flex-start;padding:10px;border-top:1px solid #8da1bb30;margin:0}.mn-board-hub .mn-hub-star{position:absolute;right:10px;top:9px;z-index:2;width:30px;height:30px;border:0;border-radius:8px;background:#0a172b99;color:#fff;font-size:21px;line-height:1;cursor:pointer}.mn-board-hub .mn-hub-star[aria-pressed=true]{color:#ffd881}.mn-hub-empty{grid-column:1/-1;padding:50px 20px;text-align:center;color:#a8b8cc}
+.mn-board-hub .mn-hub-archive{grid-column:2;grid-row:5;margin:0 24px 10px!important}.mn-board-hub .mn-hub-clipboard{grid-column:2;grid-row:6;padding:8px 24px!important}.mn-board-hub .mn-ws-form{grid-column:2;grid-row:7;margin:0!important;padding:14px 24px!important;min-width:0;border-top:1px solid #8395b326!important}.mn-board-hub .mn-ws-form input{min-width:0;min-height:38px;font-size:13px!important}.mn-board-hub .mn-ws-foot{grid-column:2;grid-row:8;padding:12px 24px!important;border-top:1px solid #8395b326!important;margin:0!important;font-size:11px!important}.mn-hub-full,.mn-hub-close{border:1px solid #8395b333;border-radius:9px;width:34px;height:34px;background:transparent;color:inherit;cursor:pointer;font-size:18px}
+.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light{background:#f7f9fc!important;color:#172b4d!important}.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-tabs{background:#edf1f7!important}.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel.mn-ws-light .mn-ws-card{background:#fff!important;color:#172b4d!important}.mn-board-hub .mn-ws-light .mn-hub-tools input{background:#fff;color:#172b4d}.mn-board-hub .mn-ws-light .mn-hub-scopes button[aria-pressed=true]{background:#dcece9;color:#116556}
+.mn-board-launcher{position:fixed;left:124px;bottom:max(12px,env(safe-area-inset-bottom));z-index:65;border:1px solid #ffffff30;border-radius:11px;background:#182337d9;color:#e7edf7;padding:8px 13px;font:600 12px/1.3 -apple-system,system-ui;backdrop-filter:blur(14px);cursor:pointer}html.mn-in-app .mn-board-launcher{display:none}
+@media(max-width:700px){.mn-board-hub{padding:10px}.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel{height:calc(100dvh - 20px)!important;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto auto minmax(0,1fr) auto auto auto auto;border-radius:20px!important}.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel>:first-child{padding:15px!important;gap:8px}.mn-board-hub .mn-ws-cloud{max-width:70vw}.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-tabs{grid-column:1;grid-row:2;flex-direction:row;overflow-x:auto;max-height:70px;padding:8px 12px!important;white-space:nowrap}.mn-board-hub .mn-ws-tabs:before{display:none}.mn-board-hub .mn-ws-newfolder{margin:0}.mn-board-hub .mn-ws-tab{white-space:nowrap;min-height:36px}.mn-hub-tools{grid-column:1;grid-row:3;padding:12px}.mn-hub-tools input{flex-basis:100%}.mn-board-hub .mn-ws-folderbar{grid-column:1;grid-row:4;margin:0 12px 8px!important}.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-grid{grid-column:1;grid-row:5;padding:4px 12px 12px!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important}.mn-board-hub .mn-hub-archive{grid-column:1;grid-row:6;margin:0 12px!important}.mn-board-hub .mn-hub-clipboard{grid-column:1;grid-row:7}.mn-board-hub .mn-ws-form{grid-column:1;grid-row:8;padding:10px 12px!important}.mn-board-hub .mn-ws-foot{grid-column:1;grid-row:9;padding:10px 12px!important}.mn-board-hub .mn-ws-info .truncate{font-size:12px!important}.mn-board-hub .mn-ws-sub{display:none!important}.mn-board-hub .mn-hub-scopes button{font-size:11px}.mn-board-hub.is-full .board-picker-popover.mn-ws-panel.mn-ws-panel{height:100dvh!important}}
+@media(prefers-reduced-motion:reduce){.mn-board-hub *{animation:none!important;transition:none!important}}
+
+.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-grid{grid-auto-rows:max-content!important}.mn-board-hub .board-picker-popover.mn-ws-panel.mn-ws-panel .mn-ws-card{height:auto!important;min-height:178px!important;align-self:start!important}body:has(.mn-board-hub) #minest-mini-pet-p0{visibility:hidden!important;pointer-events:none!important}
+
+</style>
+<script id="mn-board-center-launcher">(function(){function ready(){var b=document.createElement('button');b.type='button';b.className='mn-board-launcher';b.textContent='▦ Boards';b.title='Manage boards and workspaces';b.addEventListener('click',function(){window.dispatchEvent(new Event('minest:open-boards'));});document.body.appendChild(b);}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();})();</script>
 </body>
 </html>
