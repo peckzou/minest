@@ -83412,7 +83412,10 @@ var Be = function() {
           userEmail: user.email
         }).then(function(payload) {
           if (sentAt) { payload.clientUpdatedAt = sentAt; if (payload.boardsGz) payload.gzUpdatedAt = sentAt; }
-          return db.collection("users").doc(user.uid).collection("focusboard").doc("data").set(payload, { merge: true });
+          return db.collection("users").doc(user.uid).collection("focusboard").doc("data").set(payload, { merge: true }).then(function() {
+            // Acknowledge only the exact groups in this successful write; newer local edits stay pending.
+            window.MinestWorkspaceCloud.merge(payload.workspaceGroups, true);
+          });
         }).then(function() {
           if (sentAt > minestCloudNum(MINEST_CLOUD_ACK)) minestCloudMark(MINEST_CLOUD_ACK, sentAt);
           minestCloudBaseSet(L.boards);

@@ -11,5 +11,9 @@ for name in files:
  assert s.count(old)==1
  s=s.replace(old,"minestCloudServerRead(docRef, user, firebaseConfig.projectId).then(acceptDoc)")
  s=s.replace('if (doc.metadata && doc.metadata.fromCache) { setSyncStatus("connecting"); return Promise.resolve(); }','if (doc.metadata && doc.metadata.fromCache) { if (!cloudReadyRef.current) setSyncStatus("connecting"); return Promise.resolve(); }')
+ oldWrite='return db.collection("users").doc(user.uid).collection("focusboard").doc("data").set(payload, { merge: true });'
+ newWrite=oldWrite[:-1]+'.then(function() {\n            // Acknowledge only the exact groups in this successful write; newer local edits stay pending.\n            window.MinestWorkspaceCloud.merge(payload.workspaceGroups, true);\n          });'
+ assert s.count(oldWrite)==1
+ s=s.replace(oldWrite,newWrite)
  p.write_text(s)
  print(name)

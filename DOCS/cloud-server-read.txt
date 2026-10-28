@@ -8,3 +8,5 @@ Official authentication reference: https://firebase.google.com/docs/firestore/us
 Current Firebase user ID tokens are used only in the Authorization header sent to firestore.googleapis.com, never in URLs/logs. Existing security rules remain authoritative.
 
 Validation: server-read.test.cjs covers clean SDK reuse, cached/pending/timeout fallback, user path, GET-only calls, nested Firestore values, authorization and HTTP failures. Existing upload/reconnect/Board Center tests pass. Real Safari verification remains required after deployment.
+
+Follow-up: a successful SDK write now acknowledges the exact Workspace records included in that payload. Previously only incoming snapshot metadata acknowledged groups; pending groups could repeatedly schedule the same write and leave a misleading Not sent yet status. Edits made during upload remain pending, since the acknowledged array is the captured payload, not the latest local snapshot.
