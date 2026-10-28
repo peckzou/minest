@@ -144,6 +144,23 @@ public enum CarFlashStore {
         return on
     }
 
+    /// Explicit, idempotent favorite of the referenced card, even if auto-play advances.
+    @discardableResult
+    public static func setStarred(cardID: String, desired: Bool) -> Bool? {
+        guard var p = load(), let ids = p.cardIds, ids.count == p.words.count,
+              ids.contains(cardID) else { return nil }
+        var starred = p.starred ?? []
+        guard starred.contains(cardID) != desired else { return desired }
+        if desired { starred.append(cardID) } else { starred.removeAll { $0 == cardID } }
+        p.starred = starred
+        let n = (p.seq ?? 0) + 1
+        p.seq = n
+        p.events = Array(((p.events ?? []) + [CarFlashEvent(seq: n, cardId: cardID, kind: desired ? "star" : "unstar")]).suffix(200))
+        save(p)
+        CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName(darwinName as CFString), nil, nil, true)
+        return desired
+    }
+
     /// Pause ↔ Resume on the stored playlist; returns the new paused state (nil when nothing plays).
     @discardableResult
     public static func toggle(at date: Date = Date()) -> Bool? {

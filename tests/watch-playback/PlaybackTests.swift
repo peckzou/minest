@@ -94,6 +94,28 @@ import Foundation
         check(!coordinator.state().canAdvance(), "GPT final card disables next")
         check(!(try reply(command())).accepted && CarFlashStore.load()!.position == 2, "GPT does not wrap")
         check(coordinator.state().index(at: Date().addingTimeInterval(900)) == 2, "GPT never extrapolates phone-only progress")
+        // Favorite the stable ID seen on Watch, not whichever card auto-play reaches later.
+        let beforeFavorite = CarFlashStore.load()!
+        var favorite = command(.setStarred)
+        favorite.cardID = "c1"; favorite.starred = true
+        check((try reply(favorite)).accepted, "favorite referenced card accepted")
+        check(CarFlashStore.load()!.starred?.contains("c1") == true, "favorite in canonical store")
+        check(CarFlashStore.load()!.position == beforeFavorite.position, "favorite does not advance")
+        check(CarFlashStore.load()!.events?.last?.cardId == "c1" && CarFlashStore.load()!.events?.last?.kind == "star", "existing star event synchronized")
+        let favorited = CarFlashStore.load()!
+        _ = try reply(favorite)
+        check(CarFlashStore.load() == favorited, "replayed favorite has no side effect")
+        favorite.id = UUID().uuidString
+        _ = try reply(favorite)
+        check(CarFlashStore.load() == favorited, "new favorite request is also idempotent")
+        favorite.id = UUID().uuidString; favorite.cardID = "missing-card"
+        check(!(try reply(favorite)).accepted, "unknown card rejected")
+        check(CarFlashStore.load() == favorited, "unknown favorite changes nothing")
+        favorite.id = UUID().uuidString; favorite.cardID = "c1"; favorite.starred = false
+        check((try reply(favorite)).accepted, "explicit unfavorite supported")
+        check(CarFlashStore.load()!.starred?.contains("c1") == false, "unfavorite canonical store")
+        favorite.id = UUID().uuidString; favorite.starred = true; favorite.sessionID = "old-session"
+        check(!(try reply(favorite)).accepted, "favorite from old playlist rejected")
         let oldCommand = command()
         CarFlashStore.save(nil)
         check(!(try reply(oldCommand)).accepted && !coordinator.state().active, "stop invalidates controls")

@@ -21,6 +21,7 @@ public final class WatchPlaybackCoordinator {
         state.sessionID = p.playbackSessionID
         state.listName = String(p.listName.prefix(160))
         state.total = p.words.count
+        state.starred = p.starred
         state.durations = p.words.indices.map { p.duration($0) }
         state.start = p.start
         state.paused = p.paused
@@ -83,6 +84,12 @@ public final class WatchPlaybackCoordinator {
                 if current.canAdvance() {
                     accepted = CarFlashStore.next() != nil
                 } else { message = "已经是最后一张" }
+            case .setStarred:
+                if let id = command.cardID, let desired = command.starred,
+                   CarFlashStore.setStarred(cardID: id, desired: desired) != nil {
+                    accepted = true
+                    message = desired ? "已收藏 ★" : "已取消收藏"
+                } else { message = "这张卡片没有可用的收藏标识" }
             case .setPaused:
                 if let desired = command.paused {
                     if current.paused != desired { _ = CarFlashStore.toggle() }

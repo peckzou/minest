@@ -10,7 +10,7 @@ import Combine
 // Finished focus time is committed to Ring 1 and pushed to the phone.
 
 public enum MinestWatchVersion {
-    public static let label = "Watch 4.5.2"
+    public static let label = "Watch 4.5.3"
 }
 
 // MARK: - Ring palette (Minest colors, Apple Fitness gradients)

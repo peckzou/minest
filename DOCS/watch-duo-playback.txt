@@ -124,3 +124,31 @@ at bottom-left with priority -100 and selects the rings page. The single navigat
 owner from the startup crash fix is retained. Backend and playback logic unchanged.
 Build passed. The user's physical gesture/AssistiveTouch selection still needs an
 on-device check after the installation; the code does not remap global gestures.
+
+WATCH 4.5.3 — ONE-BUTTON REMOTE + FAVORITES (2026-10-27)
+Replaces the 4.5.2 multi-control playback page with the supplied single-button
+layout: static title, one large Next Card control and static swipe-back hint.
+No scrolling controls, card-detail sheet, pause/sync buttons or Back button.
+Swipe from the left edge toward the right to select the previous rings page;
+a recognized drag takes priority over the tap action. Accessibility Escape
+performs the same return without adding a focusable control.
+
+A direct touch uses an exclusive long-press-or-tap recognizer: tap advances,
+a 0.7-second hold favorites the referenced card. The button also exposes the
+named accessibility action 收藏当前卡片 for AssistiveTouch's action menu.
+No raw Double Pinch/Double Clench recognition or global gesture override is
+claimed. System gesture-to-menu mappings require user testing on their Watch.
+Apple reference: https://developer.apple.com/videos/play/wwdc2021/10223/
+
+Favorites reuse the existing CarFlashPlaylist starred IDs and star/unstar events
+consumed by the phone's study favorite records. They do not create another Card
+or List. Commands carry a stable card ID and explicit desired favorite state,
+so a later auto-play position cannot favorite a different card, and repeating a
+favorite cannot toggle it off. Unknown IDs / expired playlist sessions reject.
+A missing cached ID requests a refresh and asks the wearer to retry.
+
+Validation: signed iPhone+Watch+widget build passed; 2776 production logic
+assertions passed, including favorite idempotence, stable target, progress event,
+unknown-ID and old-session rejection. Phone/widget store copies and phone/watch
+protocol copies match. Physical tap/hold/swipe and AssistiveTouch custom-action
+selection still need wearer confirmation after installation.

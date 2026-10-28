@@ -62,17 +62,27 @@ final class WatchPlaybackModel: ObservableObject {
         self.message = message
     }
 
+    func favoriteCurrent() {
+        guard let state, state.active,
+              let id = state.cards[state.index()]?.cardID else {
+            message = "正在同步卡片，请稍后重试"
+            requestState(force: true)
+            return
+        }
+        send(.setStarred, cardID: id, starred: true)
+    }
+
     func next() { send(.next) }
     func setPaused(_ paused: Bool) { send(.setPaused, paused: paused) }
 
-    private func send(_ operation: WatchPlaybackCommand.Operation, paused: Bool? = nil) {
+    private func send(_ operation: WatchPlaybackCommand.Operation, paused: Bool? = nil, cardID: String? = nil, starred: Bool? = nil) {
         guard let state, let sessionID = state.sessionID, state.active, !pending else { return }
         guard WCSession.default.activationState == .activated, WCSession.default.isReachable else {
             message = "iPhone 暂不可达；指令未发送"
             return
         }
         let command = WatchPlaybackCommand(id: UUID().uuidString, sessionID: sessionID,
-                                           operation: operation, paused: paused, sentAt: Date())
+                                           operation: operation, paused: paused, sentAt: Date(), cardID: cardID, starred: starred)
         guard let data = try? JSONEncoder().encode(command) else { return }
         pending = true; pendingID = command.id; message = nil
         timeout?.cancel()

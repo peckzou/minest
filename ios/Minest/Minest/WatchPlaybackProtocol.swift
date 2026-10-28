@@ -19,6 +19,7 @@ public struct WatchPlaybackState: Codable, Equatable, Sendable {
     public var pausedIndex = 0
     public var isGPT = false
     public var position = 0
+    public var starred: [String]?
 
     public var active: Bool { sessionID != nil && total > 0 }
     public func index(at date: Date = Date()) -> Int {
@@ -41,13 +42,15 @@ public struct WatchPlaybackState: Codable, Equatable, Sendable {
 }
 
 public struct WatchPlaybackCommand: Codable, Equatable, Sendable {
-    public enum Operation: String, Codable, Sendable { case next, setPaused }
+    public enum Operation: String, Codable, Sendable { case next, setPaused, setStarred }
     public var version = 1
     public var id: String
     public var sessionID: String
     public var operation: Operation
     public var paused: Bool?
     public var sentAt: Date
+    public var cardID: String? = nil
+    public var starred: Bool? = nil
     public func isFresh(at now: Date) -> Bool {
         let age = now.timeIntervalSince(sentAt)
         return age >= -30 && age <= 5
