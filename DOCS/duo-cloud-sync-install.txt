@@ -1,0 +1,32 @@
+2026-10-28 — Duo cloud fix installation follow-up
+
+User reports Workspace/Board group “glossary” created on Duo is missing on Mac.
+Previous release updated Vercel Production only; the previously installed native
+13.2 app still bundled the old HTML (no MinestWorkspaceCloud helper). ContentView
+loads iphone18.0.html from Bundle.main before trying the live Web URL.
+
+Read-only app diagnostic before update confirmed patched:false, signedIn:true,
+Firebase project minest-33761. No force pull, force push or user-data clearing.
+
+Installed signed native resource update on Duo 00008160-000C250A21C0000A:
+- Existing Minest 13.2 native binary and nested extensions retained byte-for-byte.
+- iphone.html, iphone18.0.html and ipad.html copied from cloud fix commit 920360b.
+- Outer bundle re-signed with existing development identity and original entitlements.
+- codesign --verify --deep --strict passed; device install succeeded.
+- No uninstall; existing app data container retained.
+- App WebKit storage backed up locally outside Git. A whole-Library backup attempt
+  stopped on an OS-protected SplashBoard screenshot; the separate WebKit backup
+  succeeded. Do not describe the partial whole-Library copy as a complete backup.
+
+Reproduction: tools/live-perf/package_native_cloud_fix.py accepts a valid signed
+baseline app, a fresh output app path and the signing identity. The previous /tmp
+Xcode derived-data cache was removed after saving the new signed app in outputs.
+
+Current artifact and receipts (outside Git):
+outputs/duo-cloud-sync-920360b/Minest.app
+outputs/duo-cloud-sync-920360b/cloud-resources-receipt.json
+outputs/private-duo-sync-backup-20261028/WebKit (private, never commit/upload)
+
+Launch after install was denied by iOS because the phone was locked. User was
+asked to unlock Duo, open Minest and keep it foreground for a read-only server
+round-trip diagnostic. Actual glossary arrival on cloud/Mac is NOT yet verified.
