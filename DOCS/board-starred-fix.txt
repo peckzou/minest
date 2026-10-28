@@ -1,0 +1,7 @@
+Board star regression — 2026-10-28
+
+Duo user reported that Board stars disappeared immediately. Root cause: sanitizeLoadedBoards reconstructs Board objects from an explicit allowlist, and the new starred property was missing. Any IndexedDB hydration or cloud echo therefore removed it, even if the canonical cloud payload originally contained starred:true.
+
+Fix: retain starred:!!b.starred in the existing sanitizer for all standalone and bundled HTML copies. Legacy boards without the property remain unstarred. No separate favorites store, no board/card duplication, no data migration.
+
+Regression tests execute the actual sanitizer and merge functions: true/false round trip through JSON, repeated cloud hydration, old-board default and stale remote echo against a locally starred board. Existing non-active Board-ID routing tests also pass.

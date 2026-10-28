@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const s=fs.readFileSync('iphone.html','utf8');
+const sanitize=s.slice(s.indexOf('function sanitizeLoadedBoards('),s.indexOf('var Be = function()',s.indexOf('function sanitizeLoadedBoards(')));
+const merge=s.slice(s.indexOf('function minestSame('),s.indexOf('// 31.7: Trello',s.indexOf('function minestSame(')));
+const c={console,y:[],getBoardDisplayPrefs:()=>({}),splitBilingualTitle:title=>({title}),DEFAULT_PRESET_LABELS:[]};vm.createContext(c);vm.runInContext(sanitize+'\n'+merge,c);
+const read=rows=>c.sanitizeLoadedBoards(JSON.parse(JSON.stringify(rows)));
+const input=[{id:'active',title:'Active',columns:[]},{id:'other',title:'Other',starred:true,columns:[]}];
+const stored=read(input);assert.equal(stored[1].starred,true);assert.equal(stored[0].starred,false);
+assert.equal(read(stored)[1].starred,true,'cloud echo must retain true');
+stored[1].starred=false;assert.equal(read(stored)[1].starred,false,'unstar must survive reload');
+const base=read(input);base[1].starred=false;const local=read(base);local[1].starred=true;
+const result=c.minestMerge3(base,local,read(base),false);assert.equal(result.find(b=>b.id==='other').starred,true,'stale server echo must not erase the local star');
+assert.equal(input[1].starred,true);console.log('PASS: actual sanitizer retains stars/un-stars across JSON and cloud reload, legacy defaults stay unstarred, stale echo merge keeps local star');
