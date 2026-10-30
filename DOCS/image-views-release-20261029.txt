@@ -1,0 +1,62 @@
+Minest Photos & Cloud Image Management — 2026-10-29
+
+Open: https://minest-app.vercel.app/iphone.html?mode=photos
+Local: http://127.0.0.1:8765/iphone.html?mode=photos
+Runnable HTML copy: Minest-Photos-Cloud-iPhone.html (serve alongside the existing Minest assets).
+
+Implemented
+- Restored Octo dragging by removing the Photos-only forced position override.
+- One compact Photos header, bottom Library / Albums / Search / Import navigation.
+- Single-tap opening; double-tap and two-finger image zoom; pan, swipe next/previous,
+  swipe down to dismiss, thumbnail strip click/drag browsing and keyboard navigation.
+- Grid density controls in the options sheet. Existing Views button retained.
+- Multi-select and drag selection, persistent albums stored on the original Board.
+- Import destination shows account library, Board and target List.
+- Rename, replace image, move to List, add/remove album references, remove image while
+  retaining the Card and its other data. Management uses the selected Card.
+- Uploads use the existing authenticated owner-scoped Firestore client and existing
+  Board cloud transport, without new server APIs. Two image documents per upload,
+  bounded full image plus thumbnail, tiny preview on the Card; originals fetched only
+  when viewing, thumbnails observed near the viewport. Uploaded images are optimized
+  JPEG copies; keep camera originals separately if lossless archival is required.
+- Sign in to the same Minest Cloud Sync account on Mac and iPhone. Upload is disabled
+  until signed in. Cloud failures do not create a false successful Card.
+
+Validation
+PASS: 28 state/data assertions.
+PASS: 751 inline scripts parse across all 8 web/native entries.
+PASS: 143-chart iPhone touch tests including real two-contact touch input, zoom/pan,
+  swipe navigation/dismissal, filmstrip, Octo mouse/touch drag, selection, albums and
+  hydration persistence.
+PASS: isolated cloud SDK contract tests for bounded upload documents, destination,
+  permission failure, selected-photo rename/replace/move/removal retaining the Card.
+PASS: 200-image desktop integration, shared selected Card, unchanged scroll offset
+  (997 px before/after switching), existing Cover Flow rendering 7 cards, HD viewer,
+  phone width and Duo horizontal/vertical layouts, rapid switching and reduced motion.
+Live account-to-account/device transport has NOT been verified with a signed-in user.
+The upload contract tests use an isolated SDK double, not the production account.
+
+Modified implementation files (repository /Users/cece/Documents/minest)
+tools/image-views/source/image-views.js
+tools/image-views/source/image-views.css
+tools/image-views/source/sync-entries.py
+tools/image-views/tests/ios-photos.cjs
+tools/image-views/tests/browser.cjs
+iphone.html, index.html, ipad.html, iPhoneDuo.html, iPhone53.8241.html
+ios/Minest/Minest/iphone.html, iphone18.0.html, ipad.html
+
+Refresh integrated entries with tools/image-views/source/sync-entries.py after editing
+module sources. The older build.py is for raw/unintegrated source; follow it with this
+incremental sync when creating new entries.
+
+Deployment uses an isolated clean 29630bb baseline plus only the five web HTML entries.
+Unrelated uncommitted API, native and other module edits were not published.
+The installed app preserves the existing native executable and app data; only HTML
+resources were replaced and the existing development package was re-signed.
+
+Release status
+Production READY: dpl_JC5PAWojBVTnpuTvCDpvR761T94m. All five public HTMLs match.
+PeckiPhone Duo: final update installed and launched successfully after unlocking.
+Active-display screenshot confirms Anchor Charts, 143 cards / 143 images, in Pins mode.
+Photos touch gestures were covered by browser touch tests; physical two-finger use
+has not been manually exercised on the device. No app data reset was performed.
