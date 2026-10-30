@@ -52,7 +52,7 @@ public struct MinestWebView: UIViewRepresentable {
         window.__minestAppVersion = '18.0';
         try {
             if (!localStorage.getItem('minest_ai_token')) {
-                localStorage.setItem('minest_ai_token', '20RhO5zgYapOWCyaL2pm_o1z');
+                /* the AI token is set only in local builds and is never committed */
             }
         } catch(e) {}
         
