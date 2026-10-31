@@ -269,10 +269,11 @@
         c.innerHTML = head + '<div class="wf-main">' +
           // left column: the five steps fold into one button (it pops the others), then the hands-on build tools
           '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>🛠</i><span>Tools ▾</span></button></nav>' +
+          (V && V.expand ? '<div class="wf-center">' + landPanel() + '</div>' :
           '<div class="wf-center">' +
           (lv === 4 ? '<div class="wf-seg" role="tablist" aria-label="Which tools"><button type="button" data-wfset="roomd"' + (sk === 'roomd' ? ' class="on"' : '') + '>🛋 Room tools · 建房</button><button type="button" data-wfset="disp"' + (sk === 'disp' ? ' class="on"' : '') + '>🗄 Display tools · 陈列</button></div>' : '') +
           (S ? pendHtml(S) : '') +
-          '<div class="wf-body">' + panelHtml(lv, sk, pn) + '</div>' + (pn === 'smart' ? '<section class="wf-gal"><h4>🖼 ' + esc(D.menu[1]) + '</h4>' + D.gallery() + '</section>' : '') + '<p class="wf-hint">' + esc(HINT[lv]) + '</p></div>' +
+          '<div class="wf-body">' + panelHtml(lv, sk, pn) + '</div>' + (pn === 'smart' ? '<section class="wf-gal"><h4>🖼 ' + esc(D.menu[1]) + '</h4>' + D.gallery() + '</section>' : '') + '<p class="wf-hint">' + esc(HINT[lv]) + '</p></div>') +
           '<nav class="wf-menu" aria-label="' + esc(D.name) + '">' + menu.map(function (a) { return '<button type="button" data-wfpanel="' + a[0] + '"' + (a[0] === pn ? ' class="on"' : '') + '><i>' + a[1] + '</i><span>' + esc(String(a[2]).replace(/ ▾$/, '')) + '</span></button>'; }).join('') + '</nav></div>';
         emoji(c);
         if (W.pop) popOpen(c, acts, pn, S);
@@ -302,6 +303,20 @@
       var pop = document.createElement('div'); pop.className = 'wf-pop ' + W.pop; pop.setAttribute('role', 'menu'); pop.innerHTML = html;
       var main = c.querySelector('.wf-main'); main.appendChild(pop);
       var b = c.querySelector('[data-wfpop="' + W.pop + '"]'); if (b) pop.style.top = Math.max(0, Math.min(b.offsetTop - 4, main.clientHeight - pop.offsetHeight)) + 'px';   // beside its button, never off the screen
+    }
+    // first person on the folded Duo: the view stays above, the joystick and the fly / run / up / down pad move to the lower screen
+    setInterval(function () { var w = !!document.querySelector('.mn-dsp .mn-walk'); if (w !== R.classList.contains('wf-walk')) R.classList.toggle('wf-walk', w); }, 300);
+    // ⛰ More land on: the middle of the lower screen becomes the land tools (the island above shows ＋ / − plots)
+    function landPanel() {
+      var n = landOf().length, b = lbox(), room = V.at && V.at.room, g0 = V.d.ground || 'grass';
+      return '<section class="wf-land"><div class="wf-land-h"><i>⛰</i><div><b>' + (room ? 'Room space' : 'More land') + '</b><small>' + n + ' plots · ' + (b.x1 - b.x0) + ' × ' + (b.y1 - b.y0) + ' blocks</small></div></div>' +
+        '<p class="duo-lib-m">Tap <b>＋</b> on the ' + (room ? 'room' : 'island') + ' above to add a plot, <b>−</b> to take an empty one away. Or grow it at once:</p>' +
+        '<div class="wf-land-q"><button type="button" data-wfland="ring"><i>◯</i><b>A ring all round</b><small>one plot wide on every side</small></button><button type="button" data-wfland="double"><i>×2</i><b>Double the land</b><small>twice as many plots</small></button></div>' +
+        (room ? '' : '<h4>Ground</h4><div class="wf-chips">' + GROUNDS.map(function (g) { return '<button type="button" data-wfgr="' + g[0] + '"' + (g0 === g[0] ? ' class="on"' : '') + '>' + ({ grass: '🌿', snow: '❄️', sand: '🏖', moss: '🍀' }[g[0]] || '') + ' ' + esc(g[1]) + '</button>'; }).join('') + '</div>') +
+        '<button type="button" class="wf-land-ok" data-wfhud="[data-expand]">✓ Done</button></section>';
+    }
+    function dspPress(attr, val) {   // press a land / ground control through the island's own handler (undo, toasts, limits)
+      var host = document.querySelector('.mn-dsp'); if (!host) return; var b = document.createElement('button'); b.type = 'button'; b.hidden = true; b.setAttribute(attr, val); host.appendChild(b); try { b.click(); } finally { b.remove(); }
     }
     function emoji(c) {   // the console reads by pictures: a leading emoji in a card or chip becomes its big icon
       var RE = /^\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[✦✧✓✎＋⋯▦◩▤🀄])(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*/u;
@@ -414,6 +429,8 @@
       if (g.hasAttribute('data-wfx')) { setPref(false); return sync(); }
       if ((v = g.getAttribute('data-wfgo'))) return goTo(+v);
       // the unified tools
+      if ((v = g.getAttribute('data-wfland'))) { dspPress('data-landfast', v); return setTimeout(draw, 60); }
+      if ((v = g.getAttribute('data-wfgr'))) { dspPress('data-gr', v); return setTimeout(draw, 60); }
       if ((v = g.getAttribute('data-wfpop'))) { W.pop = W.pop === v ? null : v; return draw(); }
       if ((v = g.getAttribute('data-wfhud'))) { W.pop = null; var hb = hudEl(v); if (hb) hb.click(); setTimeout(draw, 60); return; }
       if (W.pop && g.closest('.wf-pop')) W.pop = null;
