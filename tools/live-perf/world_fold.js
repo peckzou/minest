@@ -257,21 +257,34 @@
         var fs = W.fs && W.fs.lv === 6 ? W.fs : null;
         var smart = fs ? '<div class="wf-fs' + (fs.busy ? ' busy' : '') + '"><div><b>✨ ' + esc(fs.n) + '</b><small>' + esc(fs.note || '') + '</small></div><div class="wf-fsb"><button type="button" class="no" data-fsx>↶ Undo</button><button type="button" class="ok" data-fsok>✓ Keep</button></div></div>'
           : '<button type="button" class="wf-smart" data-wfsmart><b>✨ Smart Edit</b><small>a picture, a tidy name and a short note for this thing</small></button>';
-        c.innerHTML = head + smart + tabsNav(T, tab) + '<div class="wf-body">' + bodyFor(lv, tab) + '</div><p class="wf-hint">' + esc(HINT[lv]) + '</p>';
+        c.classList.add('wf3'); var half = Math.ceil(T.length / 2), side = function (L) { return L.map(function (x) { return '<button type="button" role="tab" data-wftab="' + x[0] + '"' + (x[0] === tab ? ' class="on" aria-selected="true"' : '') + '><i>' + ico(x[1]) + '</i><span>' + esc(x[2]) + '</span></button>'; }).join(''); };
+        c.innerHTML = head + '<div class="wf-main"><nav class="wf-acts" role="tablist" aria-label="This thing">' + side(T.slice(0, half)) + '</nav><div class="wf-center">' + smart + '<div class="wf-body">' + bodyFor(lv, tab) + '</div><p class="wf-hint">' + esc(HINT[lv]) + '</p></div>' +
+          '<nav class="wf-menu" role="tablist" aria-label="More for this thing">' + side(T.slice(half)) + '</nav></div>';
+        emoji(c);
       } else {
         var sk = setKey(), D = SETS[sk], pn = W.panel[sk] || 'smart', S = W.S && W.S.set === sk ? W.S : null, nl = Object.keys(locks(sk)).length;
         var acts = [['smart', '✨', 'Smart'], ['suggest', '💡', 'Suggest'], ['lock', nl ? '🔒' : '🔓', 'Lock' + (nl ? ' ' + nl : '')], ['confirm', '✓', 'Confirm'], ['edit', '✎', 'Edit']];
         var menu = [['new', '＋', D.menu[0]], ['gallery', '🖼', D.menu[1]], ['group', '🧩', D.menu[2]], ['smart', '✨', D.smart], ['more', '⋯', 'More tools ▾']];
-        c.innerHTML = head +
-          (lv === 4 ? '<div class="wf-seg" role="tablist" aria-label="Which tools"><button type="button" data-wfset="roomd"' + (sk === 'roomd' ? ' class="on"' : '') + '>🛋 Room tools · 建房</button><button type="button" data-wfset="disp"' + (sk === 'disp' ? ' class="on"' : '') + '>🗄 Display tools · 陈列</button></div>' : '') +
+        c.classList.add('wf3');   // 53.89 · tools down both sides, the console and a gallery in the middle
+        c.innerHTML = head + '<div class="wf-main">' +
           '<nav class="wf-acts" aria-label="Actions">' + acts.map(function (a) { var on = a[0] === pn || (a[0] === 'confirm' && S && S.i >= 0); return '<button type="button" data-wfact="' + a[0] + '"' + (on ? ' class="on"' : '') + (a[0] === 'confirm' && !(S && S.i >= 0) ? ' disabled' : '') + '><i>' + a[1] + '</i><span>' + esc(a[2]) + '</span></button>'; }).join('') + '</nav>' +
-          '<nav class="wf-menu" aria-label="' + esc(D.name) + '">' + menu.map(function (a) { return '<button type="button" data-wfpanel="' + a[0] + '"' + (a[0] === pn ? ' class="on"' : '') + '>' + a[1] + ' ' + esc(a[2]) + '</button>'; }).join('') + '</nav>' +
+          '<div class="wf-center">' +
+          (lv === 4 ? '<div class="wf-seg" role="tablist" aria-label="Which tools"><button type="button" data-wfset="roomd"' + (sk === 'roomd' ? ' class="on"' : '') + '>🛋 Room tools · 建房</button><button type="button" data-wfset="disp"' + (sk === 'disp' ? ' class="on"' : '') + '>🗄 Display tools · 陈列</button></div>' : '') +
           (S ? pendHtml(S) : '') +
-          '<div class="wf-body">' + panelHtml(lv, sk, pn) + '</div><p class="wf-hint">' + esc(HINT[lv]) + '</p>';
+          '<div class="wf-body">' + panelHtml(lv, sk, pn) + '</div>' + (pn === 'smart' ? '<section class="wf-gal"><h4>🖼 ' + esc(D.menu[1]) + '</h4>' + D.gallery() + '</section>' : '') + '<p class="wf-hint">' + esc(HINT[lv]) + '</p></div>' +
+          '<nav class="wf-menu" aria-label="' + esc(D.name) + '">' + menu.map(function (a) { return '<button type="button" data-wfpanel="' + a[0] + '"' + (a[0] === pn ? ' class="on"' : '') + '><i>' + a[1] + '</i><span>' + esc(String(a[2]).replace(/ ▾$/, '')) + '</span></button>'; }).join('') + '</nav></div>';
+        emoji(c);
       }
       var nav = c.querySelector('.wf-crumbs'); if (nav) nav.scrollLeft = nav.scrollWidth;   // where you are stays in sight
       clearTimeout(W.fill); W.fill = setTimeout(libFill, 400);
       placePanels(); okChip(); backBtn();
+    }
+    function emoji(c) {   // the console reads by pictures: a leading emoji in a card or chip becomes its big icon
+      var RE = /^\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[✦✧✓✎＋⋯▦◩▤🀄])(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*/u;
+      c.querySelectorAll('.wf-center .wf-list > button > b, .wf-center .wf-list .wf-item > button > b, .wf-center .wf-chips > button, .wf-center .wf-row > button, .wf-center .wf-smart > b, .wf-center .wf-fill > b').forEach(function (b) {
+        if (b.querySelector('i.em')) return; var t = b.firstChild; if (!t || t.nodeType !== 3) return; var m = t.nodeValue.match(RE); if (!m) return;
+        t.nodeValue = t.nodeValue.slice(m[0].length); var i = document.createElement('i'); i.className = 'em'; i.textContent = m[1]; b.insertBefore(i, b.firstChild); (b.tagName === 'B' ? b.parentNode : b).classList.add('has-em');
+      });
     }
     function tabsNav(T, tab) { return '<nav class="wf-tabs" role="tablist">' + T.map(function (x) { return '<button type="button" role="tab" data-wftab="' + x[0] + '"' + (x[0] === tab ? ' class="on" aria-selected="true"' : '') + '>' + ico(x[1]) + '<span>' + esc(x[2]) + '</span></button>'; }).join('') + '</nav>'; }
     function pendHtml(S) {
@@ -309,6 +322,7 @@
       if (!want) { if (b) b.remove(); return; }
       if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'wf-tog'; b.innerHTML = '🎛 <b>Levels</b>'; b.setAttribute('aria-label', 'Open the levels console'); document.body.appendChild(b);
         b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); setPref(true); sync(); }); }
+      b.classList.toggle('in-pv', !!pv);   // a display open: its title bar has Box / ＋ Add top right, so Levels goes bottom right
     }
     // ‹ Back: top left of the scene on every level — one tap to the parent (the island's parent: out of My World)
     function backBtn() {
@@ -1002,7 +1016,7 @@
         gallery: function () { var p = V.sel && V.sel.pc && pieceOf(V.sel.pc), G = libGroups('disp'), ks = []; G.forEach(function (g) { g.kinds.forEach(function (k) { if (ks.indexOf(k) < 0) ks.push(k); }); });
           return '<p class="duo-lib-m">' + (p && cDisp(p) ? 'Restyling “' + esc(nm(p)) + '” — its things stay on it.' : 'Pick a style to place a new display — or select one in the room to restyle it.') + '</p>' +
             '<h4>📚 Vocabulary & concept displays</h4><div class="wf-list two">' + VOCAB.displays.map(function (d) { return '<button type="button" data-wfdk="' + d[0] + '"><b>' + d[1] + '</b><small>' + esc(d[2]) + '</small></button>'; }).join('') + '</div><h4>All displays</h4><div class="duo-lib-grid">' + ks.map(function (k) { return pkCard(k, 0).replace('data-pkkind=', 'data-wfdk='); }).join('') + '</div>'; },
-        group: function () { var g = VOCAB.bigList(true) || VOCAB.bigList(false), R0 = g ? VOCAB.recommend(g.refs.length) : [];
+        group: function () { var g = VOCAB.bigList(true) || VOCAB.bigList(false), R0 = g ? VOCAB.recommend(g.refs.length, g.refs) : [];
           return (g ? '<h4>📚 Word displays for “' + esc(g.L.k.title || '') + '” · ' + g.refs.length + ' words (' + (g.refs.length <= 10 ? 'a few: standalone pieces' : g.refs.length <= 40 ? 'some: shelves, a wall, a table' : 'many: a library, a cabinet, zones') + ')</h4><div class="wf-list two">' +
             R0.map(function (x, i) { var d = VOCAB.displays.filter(function (y) { return y[0] === x[0]; })[0], f = VOCAB.forms.filter(function (y) { return y[0] === x[1]; })[0]; return pickBtn('vgroup', i, R0.length, d[1], (f ? f[1] + ' · ' : '') + d[2], d[1]); }).join('') + '</div>' : '') +
             '<h4>Display groups</h4><div class="wf-list two">' + DTRIOS.map(function (t, i) { return pickBtn('group', i, DTRIOS.length, t[0], t[1].map(function (k) { return K[k] ? K[k].n : k; }).join(' · '), '🧩 ' + t[0]); }).join('') + '</div>'; } },
@@ -1097,6 +1111,104 @@
       if (e.key !== 'Escape' || !mode() || SB || RO || pv || W.fs || !V || V.hold || V.menu || V.sel) return;   // a selection / a piece in hand: Esc lets go of it first (the island's own key)
       if (level() > 1 && !document.querySelector('.mn-pick, .mn-sa, .mn-invx, .mn-qe')) { e.preventDefault(); e.stopPropagation(); up(); }
     }, true);
+
+    // ---------------------------------------------------------------- 🎒 Box / ＋ Add on a display: one sheet with everything that can go on it
+    // The Box button used to open a list's inventory (which cannot put anything on the display), and "From your Box" only
+    // offered things not out yet — once Smart build had placed everything, nothing could be added. Now Box opens the add
+    // sheet at its Box part, which also lists what stands on other displays (tap to move it here; its list never changes).
+    var PVM = 'add';
+    var pva0 = pvAdd; pvAdd = function () {
+      pva0(); if (!pv) return; var d = pv.el.querySelector('.pv-detail'), p = pieceOf(pv.pc), sh = d && d.querySelector('.pv-add .txt'); if (!sh || !p) return;
+      var sel = d.querySelector('[data-pvnl]'); if (sel && !sel.options.length) { sel.innerHTML = '<option value="">＋ New list · ' + esc(pvListName(p)) + '</option>'; sel.classList.add('wf-newlist'); }   // no lists yet: say where the thing will go
+      var on = placed(), names = {}, here = {}, groups = {}, order = [];
+      walkAll(function (q) { names[q.id] = q.label || (K[q.k] ? K[q.k].n : 'Display'); });
+      (p.it || []).forEach(function (r) { here[r] = 1; });
+      Object.keys(on).forEach(function (r) { if (here[r] || on[r] === p.id || !thing(r)) return; var g = on[r]; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(r); });
+      var n = 0; order.forEach(function (g) { n += groups[g].length; });
+      var it = function (r) { var t = thing(r), u = t && picOf(t.s); return '<button type="button" class="mn-sa-it" data-pvput="' + esc(r) + '" data-q="' + esc((t.s.title + ' ' + (t.s.titleZh || '') + ' ' + t.k.title).toLowerCase()) + '" title="' + esc(t.s.title + ' · on ' + names[on[r]]) + '">' + (u ? '<img alt="" loading="lazy" src="' + esc(S(u)) + '">' : '<i>' + esc(String(t.s.title).charAt(0).toUpperCase()) + '</i>') + '<span>' + esc(t.s.title) + '</span></button>'; };
+      sh.insertAdjacentHTML('beforeend', '<div class="wf-pvbox"><label class="mn-nw-lab">On other displays · ' + n + ' — tap one to move it here</label>' +
+        (n ? '<input class="mn-ie-in" data-pvq type="search" placeholder="Find a thing…" aria-label="Find a thing" enterkeyhint="search">' + order.map(function (g) { return '<div class="wf-pvgrp"><small>from ' + esc(names[g]) + ' · ' + groups[g].length + '</small><div class="pv-free">' + groups[g].map(it).join('') + '</div></div>'; }).join('') : '<p class="dim">Nothing stands anywhere else yet.</p>') + '</div>');
+      var q = sh.querySelector('[data-pvq]');
+      if (q) { q.addEventListener('keydown', function (e) { e.stopPropagation(); }); q.addEventListener('input', function () { var v = q.value.trim().toLowerCase(); sh.querySelectorAll('.wf-pvbox [data-q]').forEach(function (b) { b.hidden = !!v && b.getAttribute('data-q').indexOf(v) < 0; }); sh.querySelectorAll('.wf-pvgrp').forEach(function (g) { g.hidden = !g.querySelector('[data-q]:not([hidden])'); }); }); }
+      if (PVM === 'box') setTimeout(function () { var inp = d.querySelector('[data-pvnt]'); try { if (inp) inp.blur(); } catch (x) {} var lab = [].slice.call(d.querySelectorAll('.mn-nw-lab')).filter(function (l) { return /From your Box/.test(l.textContent); })[0]; if (lab) lab.scrollIntoView({ block: 'start' }); }, 60);
+    };
+    // on a phone the keyboard is up while you type the name: the first touch on Add used to blur the field, the keyboard dropped,
+    // the sheet jumped and the click landed beside the button. Holding the focus on touch-down keeps Add where the finger is.
+    window.addEventListener('pointerdown', function (e) { var b = e.target && e.target.closest && e.target.closest('.mn-pv .pv-add [data-pvnew], .mn-pv .pv-add [data-pvput]'); if (b) e.preventDefault(); }, true);
+    var HUB_SIG = {}, hb0 = hubBoard; hubBoard = function (bid) {   // a main island's Box is cached; drop it when any of its worlds' lists or things change
+      try { var H = window.MinestHubs, ws = H && H.groupWorlds ? H.groupWorlds(bid.slice(4)) : [], all = A().boards() || [], sig = ws.length + ':';
+        ws.forEach(function (w) { var b = all.filter(function (x) { return x.id === w.id; })[0]; ((b && b.columns) || []).forEach(function (c) { sig += (c.cards || []).length + '.'; (c.cards || []).forEach(function (k) { sig += (k && k.stack ? k.stack.length : 0) + ','; }); }); });
+        if (sig !== HUB_SIG[bid]) { HUB_SIG[bid] = sig; HUBB.key = null; } } catch (e) {}
+      return hb0(bid);
+    };
+    function anyPiece(pc) { var hit = pieceOf(pc); if (!hit) walkAll(function (q) { if (!hit && q.id === pc) hit = q; }); return hit; }   // the display wherever it stands (a room's, if the view moved on)
+    function pvRefresh(p) { if (!pv || pv.pc !== p.id) return; pv.refs = pvOrder(p); var b = pv.el.querySelector('.pv-body'), sm = pv.el.querySelector('.mn-dsp-title small'); if (b) b.innerHTML = pvBody(p, pv.refs); if (sm) sm.textContent = (K[p.k] ? K[p.k].n : '') + ' · ' + pv.refs.length + ' thing' + (pv.refs.length === 1 ? '' : 's'); var d = pv.el.querySelector('.pv-detail'); if (d) d.hidden = true; }
+    function pvListName(p) { return String((p && (p.label || (K[p.k] && K[p.k].n))) || 'My things').trim(); }
+    var pm0 = pvMore; pvMore = function (e) {
+      if (pv && e.target.closest('[data-pvadd]')) { PVM = 'add'; pvAdd(); return true; }
+      // a world with no lists yet: the new thing still goes on — into a new list named after the display, made first
+      var d0 = pv && e.target.closest('[data-pvnew]') && pv.el.querySelector('.pv-detail'), sel0 = d0 && d0.querySelector('[data-pvnl]'), in0 = d0 && d0.querySelector('[data-pvnt]');
+      if (sel0 && sel0.value && in0) {   // a list is chosen: add it there and put it on this display (wherever the display stands)
+        var t1 = String(in0.value || '').trim(), pc1 = pv.pc; if (!t1) { in0.focus(); return true; }
+        newThing(sel0.value, t1, function (ref) { var p3 = anyPiece(pc1); if (!ref || !p3) { toast('✗ “' + t1 + '” could not be added'); return; } var ok = putOnPiece(p3, ref); save(); render(); if (pieceOf(pc1)) openPiece(pc1, ok ? ref : null); else pvRefresh(p3); hap('success');
+          if (ok) toast('“' + t1 + '” is on this display — tap Edit to add a picture or a note'); });
+        return true;
+      }
+      if (sel0 && !sel0.value && in0) {
+        var title = String(in0.value || '').trim(); if (!title) { in0.focus(); return true; }
+        var pc0 = pv.pc, p0 = anyPiece(pc0);
+        var b = board(V.bid), firstCol = function () { return ((board(V.bid) || {}).columns || []).filter(function (c) { return c && c.id && !isHead(c.id); })[0] || null; }, col = firstCol(), pc = pc0, name = pvListName(p0);
+        if (!buildBar()) { toast('✗ That could not be saved'); return true; }
+        if (!col && /^hub:/.test(V.bid)) {   // a main island whose group has no world yet: make its Box world first, beside it
+          var hid = V.bid.slice(4), hb = window.MinestHubs && MinestHubs.hub(hid), wt = String((hb && hb.title) || (b && b.title) || 'Main island').trim() + ' Box';
+          var nb = 'lw-' + wt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36).slice(-4), cid = nb + '-d-things';
+          try {
+            A().addBoard({ id: nb, title: wt, columns: [{ id: cid, title: 'Things', color: '#5e9c2e', cards: [] }], labelDefinitions: [], archivedCards: [], linkedBoardIds: [], showLabelNames: false }, false);
+            var m = {}; m['lom:world:' + nb] = { created: Date.now(), templates: {}, scratch: true }; KN().setMany(m); KN().set('uv:parent:' + nb, hid, true);
+          } catch (x) { toast('✗ That could not be saved'); return true; }
+          toast('Making “' + wt + '” for this island…');
+          when(function () { var c = firstCol(); return c && c.__bid === nb ? c : null; }, function (c) { if (!c) { toast('✗ The new world did not appear — try again'); return; } addInto(c); });
+          return true;
+        }
+        if (!col) { toast('This world has no area yet — add one first'); return true; }
+        addInto(col); return true;
+        function addInto(col) {
+        // a new list is an empty card until its first thing is in it (lists() only counts cards with things), so look for the card itself
+        var want = myName(name).toLowerCase(), had = {}; (col.cards || []).forEach(function (k) { if (k && k.id) had[k.id] = 1; });
+        var findCard = function () { var c2 = ((board(V.bid) || {}).columns || []).filter(function (c) { return c.id === col.id; })[0], hit = null; ((c2 && c2.cards) || []).forEach(function (k) { if (k && k.id && !had[k.id] && String(k.title || '').toLowerCase() === want) hit = k.id; }); return hit; };
+        try { buildBar().addList(realBid(col.id), col.id, name); } catch (x) { toast('✗ That could not be saved'); return true; }
+        toast('Making the list “' + myName(name) + '”…');
+        when(findCard, function (id) {
+          if (!id) { toast('✗ The new list did not appear — try again'); return; }
+          newThing(id, title, function (ref) { var p2 = anyPiece(pc); if (!ref || !p2) { toast('✗ “' + title + '” could not be added'); return; } var ok = putOnPiece(p2, ref); save(); render(); if (pieceOf(pc)) openPiece(pc, ok ? ref : null); else pvRefresh(p2); hap('success');
+            if (ok) toast('“' + title + '” is on this display — in your new list “' + myName(name) + '”'); });
+        });
+        }
+      }
+      return pm0.apply(null, arguments);   // 🎒 Box: the list inventory (below it gains a row for this display)
+    };
+    // 🎒 the Minecraft-style inventory opened from a display: under its hotbar, a row for the display — pick a thing up in the
+    // inventory, tap ＋ and it stands on the display (its list stays the same); tap a thing in that row to put it back in the box
+    var ob0 = openBox; openBox = function () {
+      var pc = pv && pv.pc; ob0.apply(null, arguments); var inv = document.querySelector('.mn-invx'), panel = inv && inv.querySelector('.mn-inv-panel'); if (!pc || !panel || panel.querySelector('.wf-invpv')) return;
+      var row = document.createElement('div'); row.className = 'wf-invpv';
+      function slot(r) { var t = thing(r), u = t && picOf(t.s), w = t ? String(t.s.title || '') : ''; return '<button type="button" class="mn-slot wf-invon" data-invoff="' + esc(r) + '" data-tip="' + esc(w) + '" title="' + esc(w + ' — tap to put it back in the box') + '">' + (u ? '<img alt="" src="' + esc(S(u)) + '">' : '<b>' + esc(w.charAt(0).toUpperCase()) + '</b>') + '</button>'; }
+      function draw() { var p = pieceOf(pc); if (!p) return; var its = (p.it || []).filter(thing);
+        row.innerHTML = '<div class="mn-inv-sub">🗄 On “' + esc(nm(p)) + '” · ' + its.length + ' — pick a thing up above, then tap ＋</div><div class="wf-invpv-row"><button type="button" class="mn-slot wf-invput" data-invput aria-label="Put the thing you hold on this display">＋</button>' + its.map(slot).join('') + '</div>'; }
+      draw(); panel.appendChild(row);
+      row.__wfAct = function (e) {
+        var p = pieceOf(pc), g; if (!p) return;
+        if (e.target.closest('[data-invput]')) {
+          var h = window.MinestInventory && MinestInventory.held(); if (!h) { toast('Tap a thing in the box to pick it up, then tap ＋'); return; }
+          var ref = h.card + '/' + h.sid; if (!thing(ref)) { index(); }
+          if (putOnPiece(p, ref)) { save(); render(); MinestInventory.release(); draw(); hap('success'); toast('“' + h.title + '” is on ' + nm(p)); }
+          return;
+        }
+        if ((g = e.target.closest('[data-invoff]'))) { var r = g.getAttribute('data-invoff'), t = thing(r); p.it = (p.it || []).filter(function (x) { return x !== r; }); save(); render(); draw(); hap('light'); toast('“' + (t ? t.s.title : '') + '” is back in the box'); }
+      };
+    };
+    // the inventory takes every click inside it at document capture; this row answers first (window capture runs before it)
+    window.addEventListener('click', function (e) { var row = e.target && e.target.closest && e.target.closest('.mn-invx .wf-invpv'); if (!row || !row.__wfAct) return; e.preventDefault(); e.stopImmediatePropagation(); row.__wfAct(e); }, true);
 
     // ---------------------------------------------------------------- keep it in step with the scene
     var op0 = openPiece; openPiece = function (pcId, ref) { if (V && !V.at) W.near = true; var o = op0.call(null, pcId, mode() && !pv ? null : ref); soon(); return o; };   // one level at a time: a display opens on itself, a thing on it is the next step

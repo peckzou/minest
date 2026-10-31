@@ -11,7 +11,7 @@ HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE)); from world_blocks import assemble
 FILES = ['iPhone53.8241.html', 'iPhoneDuo.html', 'iphone.html', 'index.html', 'ipad.html', 'ios/Minest/Minest/iphone.html',
          'ios/Minest/Minest/iphone18.0.html', 'ios/Minest/Minest/ipad.html', 'ios/MinestProject/MyApp/iphone.html']
-CSS = '<style id="mn-world-fold-css">\n' + '\n'.join((HERE / f).read_text(encoding='utf-8').strip() for f in ('world_fold.css', 'world_vocab.css') if (HERE / f).exists()) + '\n</style>'   # 53.88: + the vocabulary displays
+CSS = '<style id="mn-world-fold-css">\n' + '\n'.join((HERE / f).read_text(encoding='utf-8').strip() for f in ('world_fold.css', 'world_items.css', 'world_vocab.css') if (HERE / f).exists()) + '\n</style>'   # 53.88: + the vocabulary displays
 assert '</style' not in CSS[:-8]
 for name in FILES:
     p = ROOT / name

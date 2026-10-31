@@ -33,7 +33,14 @@
       key: function (src) { return D.plan(src).key; }, resumeOf: function (sv) { return sv && sv.z != null && sv.z < 1 ? 'shelf ' + Math.max(1, Math.round(-sv.z / 1.2)) : null; } },
     museum: { icon: '🏛', name: 'Museum Walkthrough', tag: 'Walk · Discover · Read', desc: 'Halls of pictures, sculptures and glass cases. Take the Guided Tour or walk freely; tap an exhibit to step up, tap again to read it.', store: 'minest.museum.v1', unit: ['hall', 'halls'], stop: 'exhibits',
       api: function () { return window.MinestMuseum; }, styles: function () { return []; }, styleLabel: '',
-      key: function (src) { return D.plan(src).key; }, resumeOf: function (sv) { return sv && sv.z != null ? 'exhibit ' + ((sv.idx || 0) + 1) : null; } }
+      key: function (src) { return D.plan(src).key; }, resumeOf: function (sv) { return sv && sv.z != null ? 'exhibit ' + ((sv.idx || 0) + 1) : null; } },
+    // Dynamic Presentation Phase 3: a downtown avenue of shops, and a flight between planets
+    city: { icon: '🌆', name: 'Knowledge City', tag: 'Stroll · Shop · Read', desc: 'Run down a downtown avenue by day or night. Every list is a shop between real neighbours; its cards sit in the shop window. Tap a window to step up, tap a card to read it.', store: 'minest.city.v2', unit: ['shop', 'shops'], stop: 'cards',
+      api: function () { return window.MinestCity; }, styles: function () { return (window.MinestCity && MinestCity.styles || []).map(function (s) { return { id: s.id, name: s.name.replace(/^\S+\s/, ''), icon: s.icon }; }); }, styleLabel: 'District',
+      key: function (src) { return D.plan(src).key; }, resumeOf: function (sv) { return sv && sv.z != null ? (sv.night ? 'Night' : 'Day') + ' · ' + Math.round(-sv.z) + ' m' : null; } },
+    galaxy: { icon: '🌌', name: 'Knowledge Galaxy', tag: 'Fly · Land · Explore', desc: 'Fly a freighter down a route of planets — each board a world. Tap a planet as it passes to land, walk the trail of card monuments, or jump to hyperspace.', store: 'minest-galaxy-v2', unit: ['planet', 'planets'], stop: 'cards',
+      api: function () { return window.MinestGalaxy; }, styles: function () { return []; }, styleLabel: '',
+      key: function () { return 'galaxy'; }, resumeOf: function (sv) { return sv && sv.pi != null ? 'planet ' + (sv.pi + 1) : null; } }
   };
   var mode = 'drive'; try { var m0 = localStorage.getItem('minest.dynamic.mode'); if (MODES[m0]) mode = m0; } catch (e) {}
   function hap() { try { webkit.messageHandlers.minest.postMessage({ action: 'haptic', data: { style: 'selection' } }); } catch (e) {} }

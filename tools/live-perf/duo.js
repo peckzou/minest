@@ -28,7 +28,8 @@ function screenKind(){ if (segments() > 1) return 'inner'; var w = innerWidth, h
 /* two panes need room: the inner screen held upright (466 wide) stays one pane, turned (678+) it can split */
 function tall(){ return innerHeight > innerWidth; }
 /* held upright the hinge runs across: the two panes go top | bottom (each needs 640 pt along the long side) */
-function splitFits(){ return kind === 'inner' && (tall() ? innerHeight >= 640 : innerWidth >= 640); }
+function splitFits(){ return false; }   /* 2026-10-31: no more board | My World side by side (the user's call) — the board and My World each take the whole screen */
+function splitFits0(){ return kind === 'inner' && (tall() ? innerHeight >= 640 : innerWidth >= 640); }
 function markTall(){
   var R = document.documentElement, v = kind === 'inner' && tall();
   if (R.classList.contains('duo-tall') !== v) { R.classList.toggle('duo-tall', v); relayout(); }
@@ -267,6 +268,10 @@ function dockPin(){
   var R0 = document.documentElement, sar = sarPx(), want = on && (kind === 'outer' || !tall()) && sar >= 44 && !['duo-split', 'duo-build'].some(function(c){ return R0.classList.contains(c); });
   R0.classList.toggle('duo-dockpin', !!want);
   if (want) R0.style.setProperty('--duo-dock', Math.round(sar) + 'px');
+  /* upright and open flat (inner screen): the same pinned Dock, laid along the black band at the top (the status bar's height) */
+  var sat = 0; try { var t0 = document.createElement('div'); t0.style.cssText = 'position:fixed;height:env(safe-area-inset-top);width:0'; document.body.appendChild(t0); sat = t0.getBoundingClientRect().height; t0.remove(); } catch (e) {}
+  var top = on && !want && kind === 'inner' && tall() && !R0.classList.contains('duo-halfopen') && sat >= 44 && !R0.classList.contains('duo-build');
+  R0.classList.toggle('duo-docktop', !!top); if (top) R0.style.setProperty('--duo-band', Math.round(sat) + 'px');
   /* board | 3D Cover keeps the pinned Dock; its first icon goes back to full screen */
   var dk = document.querySelector('.mn-bdock'), bx = dk && dk.querySelector('.duo-bx'), cov = want && R0.classList.contains('duo-cover');
   if (cov && dk && !bx) { bx = document.createElement('button'); bx.type = 'button'; bx.className = 'mn-bapp duo-bx'; bx.setAttribute('aria-label', '全屏');
@@ -505,7 +510,7 @@ function vlTag(){
   var now = cardIndex(), fresh = Object.keys(now).filter(function(id){ return !vlBefore[id]; }).map(function(id){ return now[id]; });
   if (!fresh.length) return;
   rc.insertAdjacentHTML('afterend', '<button type="button" class="pk-go duo-vlq" data-duovlq>🧱 摆到右边的岛上（' + fresh.length + '）</button>');
-  vl.querySelector('[data-duovlq]').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); vlQueue = { list: fresh, i: 0 }; vlBefore = null; if (!splitOn()) { setPref('split', true); document.documentElement.classList.add('duo-split'); relayout(); splitBtn(); } queueNext(); });
+  vl.querySelector('[data-duovlq]').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); vlQueue = { list: fresh, i: 0 }; vlBefore = null; if (!splitOn() && splitFits()) { setPref('split', true); document.documentElement.classList.add('duo-split'); relayout(); splitBtn(); } queueNext(); });
 }
 function queueBar(html){
   var q = document.querySelector('.duo-queue');
@@ -554,4 +559,28 @@ window.addEventListener('resize', function(){ if (!on && enabled()) { on = true;
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 600); }); else setTimeout(boot, 600);
 
 window.MinestDuo = { screen: function(){ return kind; }, glance: function(){ dismissed = false; glance(); }, refresh: paint, desk: deskOpen, version: '53.85' };
+})();
+/* the pinned Dock: one finger only taps (a drag no longer scrolls it away under the finger); two fingers up / down scroll it */
+(function(){
+  var T = null;
+  function mid(e, k){ var s = 0; for (var i = 0; i < 2; i++) s += e.touches[i][k]; return s / 2; }
+  document.addEventListener('touchstart', function(e){ var d = e.target.closest && e.target.closest('html.duo-dockpin .mn-bdock, html.duo-docktop .mn-bdock'), h = document.documentElement.classList.contains('duo-docktop'); T = d && e.touches.length >= 2 ? { d: d, h: h, y: mid(e, h ? 'clientX' : 'clientY'), top: h ? d.scrollLeft : d.scrollTop } : null; }, { capture: true, passive: true });
+  document.addEventListener('touchmove', function(e){ if (!T || e.touches.length < 2) return; e.preventDefault(); var v = T.top - (mid(e, T.h ? 'clientX' : 'clientY') - T.y); if (T.h) T.d.scrollLeft = v; else T.d.scrollTop = v; }, { capture: true, passive: false });
+  document.addEventListener('touchend', function(e){ if (T && e.touches.length < 2) { T = null; last = Date.now(); } }, { capture: true, passive: true });
+  /* the top band (upright, open flat): the Dock's own drag gestures (drag it away / move it) must not run there — a sideways swipe
+     hid it. So its touches are taken first, at the window: one finger only taps, two fingers scroll it sideways */
+  var TT = null;
+  function inTop(e){ return document.documentElement.classList.contains('duo-docktop') && e.target && e.target.closest && e.target.closest('.mn-bdock'); }
+  ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(function(ev){ window.addEventListener(ev, function(e){
+    var d = inTop(e); if (!d) { if (ev !== 'touchmove') TT = null; return; } e.stopPropagation();
+    if (ev === 'touchstart') TT = e.touches.length >= 2 ? { d: d, x: mid(e, 'clientX'), left: d.scrollLeft } : null;
+    else if (ev === 'touchmove') { if (TT && e.touches.length >= 2) { e.preventDefault(); TT.d.scrollLeft = TT.left - (mid(e, 'clientX') - TT.x); } else if (e.cancelable) e.preventDefault(); }
+    else { if (TT) last = Date.now(); TT = null; }
+  }, { capture: true, passive: false }); });
+  ['pointerdown', 'pointermove', 'pointerup'].forEach(function(ev){ window.addEventListener(ev, function(e){ if (inTop(e)) e.stopPropagation(); }, true); });
+  /* …and it comes back to the top a few seconds after, so My World (its first icon) is always there to tap */
+  var last = 0;
+  document.addEventListener('wheel', function(e){ if (e.target.closest && e.target.closest('html.duo-dockpin .mn-bdock, html.duo-docktop .mn-bdock')) last = Date.now(); }, { capture: true, passive: true });
+  setInterval(function(){ var R = document.documentElement, d = (R.classList.contains('duo-dockpin') || R.classList.contains('duo-docktop')) && document.querySelector('.mn-bdock'); if (!d || T || (d.scrollTop < 2 && d.scrollLeft < 2) || Date.now() - last < 4000) return;
+    try { d.scrollTo({ top: 0, left: 0, behavior: 'smooth' }); } catch (x) { d.scrollTop = 0; d.scrollLeft = 0; } }, 1200);
 })();

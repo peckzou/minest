@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minest Items · prototype</title><link rel="stylesheet" href="world_items.css"><!-- the files live in tools/live-perf; copy them next to this page to preview -->
+<style>
+body{margin:0;background:#1b1b1f;color:#eee;font:14px -apple-system,"PingFang SC",sans-serif;padding:16px}
+h2{margin:26px 0 10px;font-size:18px} h3{margin:18px 0 6px;font-size:14px;opacity:.8}
+.row{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;padding:18px;border-radius:10px;background:#2a2a30}
+.row.light{background:#ece9e2;color:#222} .cell{display:flex;flex-direction:column;align-items:center;gap:8px} .cell small{font-size:11px;opacity:.7}
+.mxs{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px}
+.wv-head{display:flex;gap:8px;align-items:baseline;margin:0 0 10px} .wv-head b{font-size:16px} .wv-head small{opacity:.8}
+</style></head><body>
+<h1>Minest · Item 实体化 prototype</h1>
+<div id="out"></div>
+<script src="world_items.js"></script>
+<script>
+function art(e,a,b){var c=document.createElement('canvas');c.width=300;c.height=300;var x=c.getContext('2d'),g=x.createLinearGradient(0,0,300,300);g.addColorStop(0,a);g.addColorStop(1,b);x.fillStyle=g;x.fillRect(0,0,300,300);x.font='170px "Apple Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(e,150,160);return c.toDataURL('image/jpeg',.8)}
+var W=['Dream','Love','Happiness','Courage','Curiosity','Kindness','Gravity','Photosynthesis','Brave','Win','Strong minds discuss ideas','Ecosystem'];
+var info=function(t,i,o){return Object.assign({id:'c'+i+t,title:t,zh:['梦想','爱','幸福','勇气','好奇','善良','重力','光合作用','勇敢','赢','',''][i]||'',mean:'A short meaning for '+t+'.',list:'Vocabulary'},o||{})};
+var M=MinestItems,out=document.getElementById('out'),H='',Q=location.search,ONLY=/d=([\w,]+)/.test(Q)?RegExp.$1.split(','):null;
+if(!ONLY){
+H+='<h2>9 universal carriers</h2><div class="row">';
+M.carriers.slice(0,9).forEach(function(c,i){var w=c[0]==='plaque'?'Strong minds discuss ideas':W[i];H+='<div class="cell">'+M.html(info(w,i),c[0])+'<small>'+c[1]+'</small></div>'});H+='</div>';
+H+='<h3>Orb · Crystal on dark</h3><div class="row" style="background:#0d1220">'+['Dream','Love','Hope'].map(function(w,i){return M.html(info(w,i),'orb')}).join('')+['Architect of the Year','Courage'].map(function(w,i){return M.html(info(w,i+3,{zh:'awarded to Sally'}),'crystal')}).join('')+'</div>';
+H+='<h3>Cardstock · 6 stocks</h3><div class="row light">'+M.variants.card.map(function(v,i){return '<div class="cell">'+M.html(info(W[i],i,i%2?{img:art(['🌿','🌸','🦋'][i%3],'#f6efe0','#e6d6b8')}:{}),'card',{v:v})+'<small>'+v+'</small></div>'}).join('')+'</div>';
+H+='<h3>Sculpture · Print</h3><div class="row">'+M.variants.sculpt.map(function(v,i){return '<div class="cell">'+M.html(info(W[i+4],i),'sculpt',{v:v})+'<small>'+v+'</small></div>'}).join('')+M.variants.print.map(function(v,i){return '<div class="cell">'+M.html(info(W[i+6],i),'print',{v:v})+'<small>'+v+'</small></div>'}).join('')+'</div>';
+H+='<h2>5 content carriers</h2><div class="row">'+[['vinyl','Blue Train','🎷'],['poster','Spirited Away','🐉'],['book','Charlotte’s Web','🕷'],['game','Super Star Quest','⭐'],['doll','Marie Curie','👩‍🔬']].map(function(x,i){return '<div class="cell">'+M.html(info(x[1],i,{img:i===3?'':art(x[2],'#3a5ba0','#c86a8a')}),x[0])+'<small>'+x[0]+'</small></div>'}).join('')+M.html(info('Albert Einstein',9),'doll')+'</div>';
+}
+H+='<h2>16 displays</h2><div class="mxs">';
+M.kinds.forEach(function(k,ki){if(ONLY&&ONLY.indexOf(k[0])<0&&ONLY.indexOf(String(ki))<0)return;var car=k[3],n=k[0]==='xpodium'?6:k[0]==='xplaques'?4:8;var cells=[];for(var i=0;i<n;i++){var w=car==='plaque'?['Strong minds discuss ideas','Be kind','Keep going','Know thyself'][i%4]:W[(i+ki)%W.length];var o={};if(/vinyl|poster|book|game|doll/.test(car)||car==='card'&&i%2)o.img=art(['🎷','🐉','🕷','⭐','👩‍🔬','🌿','🌋','🪐'][(i+ki)%8],'hsl('+(i*47)+',60%,45%)','hsl('+(i*47+60)+',60%,25%)');var I=info(w,i,o);cells.push({info:I,html:M.html(I,car)})}
+H+='<div>'+M.display(k[0],cells,{head:'<div class="wv-head"><b>'+k[1]+'</b><small>'+k[2]+' · '+M.use[k[0]]+'</small></div>'})+'</div>'});
+H+='</div>';out.innerHTML=H;
+</script></body></html>
