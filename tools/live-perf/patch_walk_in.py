@@ -25,6 +25,9 @@ EDITS = [
     ("if (p) lab.textContent = (t ? t.s.title", "if (p) lab.textContent = WKX.label(p) || (t ? t.s.title"),
     ("      R.render(S, cam);\n    }\n    size(); addEventListener('resize', size);", "      WKX.tick(dt, now);\n      R.render(S, cam);\n    }\n    size(); addEventListener('resize', size);"),
     ("WK = { ov: ov, stop: function () { cancelAnimationFrame(raf);", "WK = { ov: ov, stop: function () { cancelAnimationFrame(raf); WKX.stop();"),
+    ("  function wkClose() {", "  var WKVIEW = false;   // 阅览 View: the walk's 3D island as a slow orbit, full screen, no tools (patch_walk_in.py)\n  function wkView() { if (WK || !V) return; WKVIEW = true; document.documentElement.classList.add('mn-wview'); wkOpen(); setTimeout(function () { if (!WK && WKVIEW) { WKVIEW = false; document.documentElement.classList.remove('mn-wview'); } }, 9000); }\n  function wkClose() {"),
+    ("w.stop(); if (WKIN && V) {", "w.stop(); WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) {"),
+    ("ov.className = 'mn-walk'; el.appendChild(ov);", "ov.className = 'mn-walk' + (WKVIEW ? ' wk-view' : ''); el.appendChild(ov);"),
     ("function wkClose() { if (!WK) return; var w = WK; WK = null; w.stop();", "function wkClose() { if (!WK) return; var w = WK; WK = null; w.stop(); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; }"),
 ]
 ANCHOR = "    // ---- the ground: the island's plots"

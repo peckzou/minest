@@ -34,12 +34,12 @@
     }
     function looks() { var gr = (V && V.d.ground) || 'grass'; return { top: { grass: 'grass_top', snow: 'snow', sand: 'sand', moss: 'moss', cherry: 'grass_top' }[gr] || 'grass_top', side: { snow: 'snow_side', sand: 'sand', moss: 'moss_side' }[gr] || 'grass_side' }; }
     function boxes(rotv) {   // the terrain as box parts in world blocks (turned by rotv for the island view)
-      var t = T(); if (!t) return []; var out = [], L = looks(), maxL = 0, hs = t.h || {}, ws = t.w || {};
+      var t = T(); if (!t) return []; var out = [], L = looks(), maxL = 0, hs = t.h || {}, ws = t.w || {}, LVS = t.lv || { stone: 5, snow: 7 };   // where rock and snow begin (an alpine scape sets its own)
       Object.keys(hs).forEach(function (k) { maxL = Math.max(maxL, hs[k]); });
       function add(x0, y0, x1, y1, z0, z1, top, side) { if (rotv) { var a = rot(x0, y0, rotv), b = rot(x1, y1, rotv); x0 = Math.min(a[0], b[0]); x1 = Math.max(a[0], b[0]); y0 = Math.min(a[1], b[1]); y1 = Math.max(a[1], b[1]); }
         out.push({ t: 'box', x0: x0, x1: x1, y0: y0, y1: y1, z0: z0, z1: z1, top: top, side: side, o: {}, vf: -1, ter: 1 }); }
       for (var lv = 1; lv <= maxL; lv++) { var S = {}; Object.keys(hs).forEach(function (k) { if (hs[k] >= lv) S[k] = 1; });
-        rects(S).forEach(function (r) { var top = lv >= 7 ? 'snow' : lv >= 5 ? 'stone' : L.top, side = lv >= 5 ? 'stone' : lv >= 2 ? 'dirt' : L.side; add(r[0], r[1], r[2], r[3], (lv - 1) * H, lv * H, top, side); }); }
+        rects(S).forEach(function (r) { var top = lv >= LVS.snow ? 'snow' : lv >= LVS.stone ? 'stone' : L.top, side = lv >= LVS.stone ? 'stone' : lv >= 2 ? 'dirt' : L.side; add(r[0], r[1], r[2], r[3], (lv - 1) * H, lv * H, top, side); }); }
       var W = {}; Object.keys(ws).forEach(function (k) { if (!hs[k]) W[k] = 1; });
       rects(W).forEach(function (r) { add(r[0], r[1], r[2], r[3], 0, .04, 'water', 'water'); });
       var shore = {}; Object.keys(ws).forEach(function (k) { if (ws[k] !== 2) return; var c = k.split(','), x = +c[0], y = +c[1];

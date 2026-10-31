@@ -174,6 +174,10 @@
           var s = seats.filter(function (x) { return x.p.id === p.id; })[0]; if (s) return K[p.k].n + (s.bed ? ' · tap to sleep' : ' · tap to sit'); var b = bld.filter(function (x) { return x.p.id === p.id; })[0]; if (b && nearB === b) return bldName(p) + ' · tap to go in'; return ''; },
         tick: function (dt, now) {
           ui(); wxTick(dt); mobs.forEach(function (m) { mobTick(m, dt); });
+          if (WKVIEW && !room) {   // 阅览: a slow drone orbit round the whole island (drag: round and up / down)
+            var cxv = (lb.x0 + lb.x1) / 2, czv = (lb.y0 + lb.y1) / 2, Rv = Math.max(lb.x1 - lb.x0, lb.y1 - lb.y0) * .8, ev = Math.max(.14, Math.min(1.15, .42 - (me.pitch + .12) * .7));
+            me.yaw += dt * .045; cam.position.set(cxv + Math.sin(me.yaw) * Rv * Math.cos(ev), Rv * Math.sin(ev) + 2, czv + Math.cos(me.yaw) * Rv * Math.cos(ev)); cam.lookAt(cxv, 1.2, czv);
+            if (S.fog) { S.fog.near = Rv * 1.6; S.fog.far = Rv * 4; } if (steps) steps.set(0); return; }
           var moving = Math.hypot(me.mx, me.mz) > .15 || ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].some(function (k) { return me.keys[k]; });
           if (sit) { if (moving && Math.hypot(me.mx, me.mz) > .6) standUp(); else { me.x = sit.x; me.z = sit.z; me.y = sit.y - EYE + .95; me.vy = 0; cam.position.set(sit.x, sit.y + .95, sit.z); } }
           if (steps) steps.set(!sit && moving && me.grounded && !me.fly ? (me.run ? .95 : .55) : 0);

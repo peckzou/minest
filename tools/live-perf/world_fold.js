@@ -268,7 +268,7 @@
         c.classList.add('wf3');   // 53.89 · tools down both sides, the console and a gallery in the middle
         c.innerHTML = head + '<div class="wf-main">' +
           // left column: the five steps fold into one button (it pops the others), then the hands-on build tools
-          '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + (lv === 1 ? '<button type="button" data-wfter="toggle"' + (W.terr ? ' class="on"' : '') + '><i>' + px('hill') + '</i><span>' + (W.terr ? '✓ Done' : 'Terrain') + '</span></button>' : '') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>' + px('tools') + '</i><span>Tools ▾</span></button></nav>' +
+          '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + (lv === 1 ? '<button type="button" data-wfter="toggle"' + (W.terr ? ' class="on"' : '') + '><i>' + px('hill') + '</i><span>' + (W.terr ? '✓ Done' : 'Terrain') + '</span></button><button type="button" data-wfview><i>' + px('eye') + '</i><span>阅览 View</span></button>' : '') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>' + px('tools') + '</i><span>Tools ▾</span></button></nav>' +
           (V && V.expand ? '<div class="wf-center">' + landPanel() + '</div>' : W.terr && lv === 1 ? '<div class="wf-center">' + terrPanel() + '</div>' :
           '<div class="wf-center">' + (lv === 1 && V ? megaRow() : '') +
           (lv === 4 ? '<div class="wf-seg" role="tablist" aria-label="Which tools"><button type="button" data-wfset="roomd"' + (sk === 'roomd' ? ' class="on"' : '') + '>🛋 Room tools · 建房</button><button type="button" data-wfset="disp"' + (sk === 'disp' ? ' class="on"' : '') + '>🗄 Display tools · 陈列</button></div>' : '') +
@@ -325,6 +325,9 @@
       snow: ['mmmmmmmmmm', 'mwmmmwmmwm', 'bmbbbmbbmb', 'bbbBbbbbbb', 'bbbbbbBbbb', 'bBbbbbbbbb', 'bbbbbBbbbb'],
       sand: ['nnnnnnnnnn', 'nNnnnnNnnn', 'nnnnNnnnnN', 'nNnnnnnnnn', 'nnnnnNnnNn', 'Nnnnnnnnnn', 'nnnNnnnnnn'],
       moss: ['GgGGgGgGGg', 'gGGgGGgGgG', 'sGssGsSsGs', 'ssSsssssSs', 'sssssSssss', 'sSssssssss', 'ssssSsssSs'],
+      eye: ['............', '....kkkk....', '..kkwwwwkk..', '.kwwwLLwwwk.', 'kwwwLkkLwwwk', 'kwwwLkkLwwwk', '.kwwwLLwwwk.', '..kkwwwwkk..', '....kkkk....'],
+      shire: ['............', '....rrr.....', '...rrrrr....', '....wkw.....', '....wbw.....', '.gggggggg...', 'gggGgggggggg', 'GgggggGggggG', 'gggGgggggGgg'],
+      alps: ['.....w......', '....www..w..', '...wwSw.www.', '..wSsssswSw.', '.sSsssSsssS.', 'sssSssssSsss', 'gGgggGgggGgg', 'gggggggggggg', 'bbbbbbbbbbbb'],
       hill: ['.....ww.....', '....wwws....', '...wwsssS...', '..ssssssSS..', '.gsssSssssg.', 'ggggSgssgggg', 'gGgggggGgggg', 'bbbbbbbbbbbb', 'bBbbbBbbbBbb'],
       river: ['gggLLggggggg', 'ggggLLgggggg', 'gggggLLggggg', 'ggggLLlggggg', 'gggLLlgggggg', 'ggggLLgggggg', 'gggggLLggggg', 'ggggggLLgggg', 'gggggLLggggg'],
       lake: ['gggggggggggg', 'gggnLLLLnggg', 'ggnLLlLLLngg', 'gnLLLLLlLLng', 'gnLLlLLLLLng', 'ggnLLLLLLngg', 'gggnnLLnnggg', 'gggggnnggggg', 'gggggggggggg'],
@@ -997,10 +1000,93 @@
 
       d.pc = pcs; refreshLand();
     }
+    // ---------------------------------------------------------------- one-tap landscapes: terrain (world_terrain.js) + pieces
+    // 🇬🇧 English countryside: rolling hills, a creek winding past a village (church, pub, shop, cottages), a farm with
+    // fields and hedges, sheep on the hills, a pond with ducks, Stonehenge on a far hill.
+    // 🇨🇭 Swiss alpine basin: snowy mountains all round, a lake in the bowl fed by a stream from the peaks, a chalet town
+    // (church, Gemeindehaus, Grand Hotel, Konditorei), a railway and station, pines on the slopes, cows in the meadows.
+    // Your own pieces (the ones holding things) stay; ↶ Undo puts the island back.
+    function scapeBuild(kind, seed) {
+      var d = V.d, a = (seed * 2654435761) >>> 0, r = function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      var N = 42, land = []; for (var i = 0; i < 14; i++) for (var j = 0; j < 14; j++) land.push(i + ',' + j);
+      var had = landOf(); d.land = had.concat(land.filter(function (k) { return had.indexOf(k) < 0; })).slice(0, MAX_PLOTS); d.v = 1; d.ground = 'grass';
+      d.pc = (d.pc || []).filter(function (p) { return !p.city || (p.it && p.it.length); }); refreshLand();
+      var G = {}; for (var gx = 0; gx <= 8; gx++) for (var gy = 0; gy <= 8; gy++) G[gx + ',' + gy] = r();   // value noise on a coarse grid
+      function vn(x, y, s) { x /= s; y /= s; var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, g = function (i, j) { return G[((i % 9) + 9) % 9 + ',' + ((j % 9) + 9) % 9]; }, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+        return (g(x0, y0) * (1 - sx) + g(x0 + 1, y0) * sx) * (1 - sy) + (g(x0, y0 + 1) * (1 - sx) + g(x0 + 1, y0 + 1) * sx) * sy; }
+      var h = {}, w = {}, alp = kind === 'alpine', cx = 21 + (r() - .5) * 4, cy = 21 + (r() - .5) * 4, flatR = alp ? 10.5 + r() * 2 : 8;
+      for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) { var dd = Math.hypot(x + .5 - cx, y + .5 - cy), v;
+        if (alp) { var back = -((x + .5 - cx) + (y + .5 - cy)) / 1.414, t = back - (5 + vn(x, y, 6) * 3);   // the snowy range only behind the basin (far from the viewer); in front, the open valley
+          v = t <= 0 ? 0 : Math.round(t * (1.5 + vn(x + 50, y, 5) * .8) + vn(x, y + 30, 3) * 3 * Math.min(1, t / 3)); v = Math.min(16, v); }
+        else { var n = vn(x, y, 8) * .7 + vn(x + 20, y + 9, 4) * .3; v = Math.round(Math.max(0, n - .38) * 7); if (dd < flatR) v = 0; else v = Math.min(v, Math.floor((dd - flatR) / 1.5)); }
+        if (v > 0) h[x + ',' + y] = v; }
+      // water: the creek (or the mountain stream) by the cheapest way over low ground; a pond / the lake
+      function path(from, goal, cost) { var best = {}, prev = {}, open = [[0, from[0], from[1]]]; best[from[0] + ',' + from[1]] = 0;
+        while (open.length) { var mi = 0; for (var q = 1; q < open.length; q++) if (open[q][0] < open[mi][0]) mi = q; var c = open.splice(mi, 1)[0], k = c[1] + ',' + c[2]; if (c[0] > best[k]) continue;
+          if (goal(c[1], c[2])) { var out = []; while (k) { out.unshift(k); k = prev[k]; } return out; }
+          [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (s) { var X = c[1] + s[0], Y = c[2] + s[1], n2 = X + ',' + Y; if (X < 0 || Y < 0 || X >= N || Y >= N) return; var c2 = c[0] + cost(X, Y); if (best[n2] == null || c2 < best[n2]) { best[n2] = c2; prev[n2] = k; open.push([c2, X, Y]); } }); }
+        return null; }
+      var lake = alp ? [cx + (r() < .5 ? -1 : 1) * 5 + 2, cy + (r() < .5 ? 1 : -1) * 5 + 2] : null;   // the lake in the valley, in front of the range
+      if (alp) { for (var lx = -6; lx <= 6; lx++) for (var ly = -6; ly <= 6; ly++) { var X = Math.floor(lake[0] + lx), Y = Math.floor(lake[1] + ly); if (Math.pow(lx / 4.2, 2) + Math.pow(ly / 3.2, 2) <= 1 + (r() - .5) * .3 && !h[X + ',' + Y]) w[X + ',' + Y] = 2; }
+        var ang = 3.927 + (r() - .5) * 1.2, src = [Math.round(cx + Math.cos(ang) * 19), Math.round(cy + Math.sin(ang) * 19)].map(function (v2) { return Math.max(1, Math.min(N - 2, v2)); });
+        var P = path(src, function (x2, y2) { return w[x2 + ',' + y2] === 2; }, function (x2, y2) { return 1 + (h[x2 + ',' + y2] || 0) * .15 + r() * 1.5; });
+        (P || []).forEach(function (k) { if (w[k] !== 2) { w[k] = 1; if (h[k]) h[k] = Math.max(0, h[k] - 3) || undefined; if (!h[k]) delete h[k]; } }); }
+      else { var e0 = r() < .5, P2 = path(e0 ? [0, Math.floor(r() * N)] : [Math.floor(r() * N), 0], function (x2, y2) { return e0 ? x2 === N - 1 : y2 === N - 1; },
+          function (x2, y2) { var dc = Math.hypot(x2 + .5 - cx, y2 + .5 - cy); return 1 + (h[x2 + ',' + y2] || 0) * 3 + r() * 1.6 + (dc < 4 ? 6 : dc < flatR + 2 ? -.4 : 0); });
+        (P2 || []).forEach(function (k) { w[k] = 1; delete h[k]; var c = k.split(','); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (s) { var nk = (+c[0] + s[0]) + ',' + (+c[1] + s[1]); if (h[nk] > 1) h[nk] = 1; }); });
+        var mid = P2 && P2.filter(function (k) { var c = k.split(','); var dc = Math.hypot(+c[0] + .5 - cx, +c[1] + .5 - cy); return dc > flatR - 1 && dc < flatR + 5; })[0];   // the village pond, beside the creek
+        if (mid) { var mc = mid.split(','); for (var px2 = -2; px2 <= 2; px2++) for (var py2 = -2; py2 <= 2; py2++) if (px2 * px2 + py2 * py2 <= 4.5) { var pk = (+mc[0] + px2) + ',' + (+mc[1] + py2); if (!h[pk]) w[pk] = 2; } lake = [+mc[0] + .5, +mc[1] + .5]; } }
+      d.terr = { h: h, w: w, scape: kind, lv: alp ? { stone: 6, snow: 11 } : { stone: 5, snow: 7 } };
+      // ---- the pieces
+      var lists = megaLists(), li = 0;
+      function lab(name, big) { var l = lists[li++]; return { label: l ? name + ' · ' + l.title : name, arch: big ? 'dom:city' : undefined }; }
+      function cells(p, fn) { var f = foot(p); for (var x3 = Math.floor(f.x0 + .02); x3 < f.x1 - .02; x3++) for (var y3 = Math.floor(f.y0 + .02); y3 < f.y1 - .02; y3++) fn(x3 + ',' + y3); }
+      function put(k, x4, y4, f, ex, opt) {   // place it if it fits: on land, not on another piece, dry (boats: wet), level ground for buildings
+        if (!K[k] || !BUILD[k]) return null; opt = opt || {};
+        var p = { id: uid(), k: k, x: Math.round(x4 * 2) / 2, y: Math.round(y4 * 2) / 2, f: f || 0, s: 1, it: [], city: 1 }; if (ex && ex.label) p.label = ex.label; if (ex && ex.arch) p.arch = ex.arch;
+        var wet = 0, dry = 0, hs = {}; cells(p, function (c) { if (w[c]) wet++; else dry++; hs[h[c] || 0] = 1; });
+        if (opt.boat ? dry : wet) return null; if (opt.level && Object.keys(hs).length > 1) return null; if (opt.minH != null && !(+Object.keys(hs)[0] >= opt.minH)) return null; if (opt.maxH != null && Object.keys(hs).some(function (v3) { return +v3 > opt.maxH; })) return null;
+        d.pc.push(p); if (!fits(p)) { d.pc.pop(); return null; } return p;
+      }
+      function near(k, x5, y5, f, ex, opt, rad) { for (var s = 0; s <= (rad || 4); s += .5) for (var tr = 0; tr < 8; tr++) { var an = tr / 8 * 6.283 + s, p = put(k, x5 + (s ? Math.cos(an) * s : 0), y5 + (s ? Math.sin(an) * s : 0), f, ex, opt); if (p) return p; if (!s) break; } return null; }
+      function scatter(k, n, opt, ex) { for (var tries = 0, got = 0; tries < n * 12 && got < n; tries++) if (put(k, 1 + r() * (N - 2), 1 + r() * (N - 2), (r() * 4) | 0, ex, opt)) got++; }
+      var LV = { level: true, maxH: 0 };
+      if (!alp) {
+        for (var rx = -7; rx <= 7; rx += 2) put('r_road', cx + rx, cy, 0, null, { maxH: 0 });   // the village lane
+        var north = [['c_church', lab('⛪ St Mary’s Church', true)], ['c_cafe', lab('🍺 The Red Lion · pub', true)], ['k_post', lab('📮 Village Post Office')], ['cottage', lab('🏡 Rose Cottage')]];
+        var south = [['k_store', lab('🧺 Village Shop', true)], ['cottage', lab('🏡 Ivy Cottage')], ['cottage', lab('🏡 Thatch End')], ['h_family', lab('🏠 The Old Rectory')]];
+        north.forEach(function (b, i) { near(b[0], cx - 6 + i * 4, cy - 3.5, 0, b[1], LV, 3); });
+        south.forEach(function (b, i) { near(b[0], cx - 6 + i * 4, cy + 3.5, 0, b[1], LV, 3); });
+        near('tree', cx - 2, cy + 7, 0, { label: '🌳 The village green' }, LV); near('bench', cx, cy + 7, 0, null, LV); near('y_picnic', cx + 2, cy + 7, 0, null, LV); near('well', cx + 4, cy + 7, 0, { label: '🪣 The old well' }, LV);
+        var fx = cx + (cx < 21 ? 12 : -12), fy = cy + (cy < 21 ? 10 : -10);   // the farm
+        near('h_farm', fx, fy, 0, lab('🚜 Meadow Farm', true), LV, 6); near('barn', fx + 4, fy, 0, { label: '🐄 The red barn' }, LV, 6);
+        for (var fi = 0; fi < 3; fi++) near(fi === 1 ? 'n_meadow' : 'n_wheat', fx - 5 + fi * 4, fy + (fy > cy ? 5 : -5), 0, null, { maxH: 1 }, 6);
+        for (var hi = 0; hi < 6; hi++) near('y_hedge', fx - 7 + hi * 2.5, fy + (fy > cy ? 8 : -8), 0, null, { maxH: 1 }, 3);
+        scatter('mob_sheep', 6, { minH: 1 }); scatter('mob_cow', 2, { maxH: 1 }); near('mob_chicken', fx + 2, fy + 2, 0, null, {}, 4); near('mob_dog', cx + 3, cy + 1.5, 0, null, {}, 3);
+        scatter('n_oak', 4, { minH: 2 }); scatter('oak', 6, {}); scatter('tree', 6, {}); scatter('fl_poppies', 3, { maxH: 1 }); scatter('fl_daisies', 3, {}); scatter('n_meadow', 2, { minH: 1 });
+        var top = Object.keys(h).sort(function (a2, b2) { return h[b2] - h[a2]; })[0]; if (top) { var tc = top.split(','); near('lm_stonehenge', +tc[0], +tc[1], 0, { label: '🗿 Stonehenge on the hill' }, {}, 4); }
+        if (lake) { near('a_ducks', lake[0], lake[1], 0, null, { boat: true }, 2); near('b_row', lake[0] + 1, lake[1], 0, null, { boat: true }, 2); }
+        scatter('a_birds', 2, {});
+      } else {
+        var side = lake && lake[0] < cx + 2 ? 1 : -1, tx = cx + 2 + side * 6, ty = cy + 2 - side * 6;   // the town: the side of the bowl away from the lake
+        var core = [['c_church', lab('⛪ Dorfkirche', true)], ['k_townhall', lab('🏛 Gemeindehaus', true)], ['c_hotel', lab('🏨 Grand Hotel Alpenblick', true)], ['c_cafe', lab('🍫 Konditorei', true)], ['k_store', lab('🧀 Käserei & Laden')], ['k_post', lab('📯 Post')]];
+        core.forEach(function (b, i) { near(b[0], tx + (i % 3 - 1) * 4.5, ty + (i < 3 ? -3 : 3), 0, b[1], LV, 4); });
+        near('fountain', tx, ty, 0, { label: '⛲ Dorfplatz' }, LV, 2);
+        for (var ci = 0; ci < 8; ci++) { var an2 = ci / 8 * 6.283, rr = flatR * (.55 + r() * .3); near(ci % 3 ? 'h_chalet' : 'chalet', cx + Math.cos(an2) * rr, cy + Math.sin(an2) * rr, (ci % 4), ci < 3 ? lab('🏠 Chalet ' + ['Edelweiss', 'Enzian', 'Bergblick'][ci]) : null, { level: true, maxH: 2 }, 3); }
+        scatter('cabin', 3, { level: true, minH: 1, maxH: 5 });
+        var ry = cy + (flatR - 2.5) * (r() < .5 ? 1 : -1); for (var rx2 = -8; rx2 <= 8; rx2 += 2) put('t_rail', cx + rx2, ry, 0, null, { maxH: 0 }); near('t_station', cx, ry + (ry > cy ? -2 : 2), 0, lab('🚉 Bahnhof', true), LV, 3);
+        if (lake) { near('y_dock', lake[0] + side * 3.5, lake[1], side > 0 ? 1 : 3, { label: '⚓ Schiffsteg' }, {}, 3); near('b_sail', lake[0], lake[1], 0, null, { boat: true }, 3); near('b_row', lake[0] - 1.5, lake[1] + 1, 0, null, { boat: true }, 3); near('a_ducks', lake[0] + 1, lake[1] - 1, 0, null, { boat: true }, 3); }
+        scatter('n_pine', 9, { minH: 1, maxH: 7 }); scatter('spruce', 8, { minH: 1, maxH: 6 }); scatter('mob_cow', 5, { maxH: 2 }); scatter('mob_sheep', 2, { maxH: 3 }); scatter('n_meadow', 3, { maxH: 1 }); scatter('fl_daisies', 3, { maxH: 1 }); near('mob_dog', tx + 2, ty + 1, 0, null, {}, 3);
+        scatter('a_birds', 2, {});
+      }
+      refreshLand();
+    }
     function megaRow() {   // island level: the one-click buttons, then reroll / clear once a city stands
       var has = (V.d.pc || []).some(function (p) { return p.city; });
       return '<div class="wf-mega"><button type="button" data-wfmega="city"><i>' + px('city') + '</i><b>一键变 City</b><small>2× island · 21 districts · flagship avenue</small></button>' +
         '<button type="button" data-wfmega="town"><i>' + px('town') + '</i><b>一键变 Town</b><small>2× island · market town, green, school</small></button>' +
+        '<button type="button" data-wfmega="countryside"><i>' + px('shire') + '</i><b>一键英国乡村</b><small>rolling hills, a creek, a village & farm</small></button>' +
+        '<button type="button" data-wfmega="alpine"><i>' + px('alps') + '</i><b>一键瑞士雪山小镇</b><small>snowy peaks, a lake, chalets & a railway</small></button>' +
         (has ? '<button type="button" class="sm" data-wfmega="again"><i>' + px('dice') + '</i><b>Another layout</b></button><button type="button" class="sm rm" data-wfmega="clear"><i>' + px('clear') + '</i><b>Clear the city</b></button>' : '') + '</div>';
     }
     function emoji(c) {   // the console reads by pictures: a leading emoji in a card or chip becomes its big icon
@@ -1115,14 +1201,16 @@
       if ((v = g.getAttribute('data-wfgo'))) return goTo(+v);
       // the unified tools
       if ((v = g.getAttribute('data-wfmega'))) {
-        if (v === 'clear') change(function () { V.d.pc = V.d.pc.filter(function (p) { return !p.city || (p.it && p.it.length); }); });
+        if (v === 'clear') change(function () { V.d.pc = V.d.pc.filter(function (p) { return !p.city || (p.it && p.it.length); }); if (V.d.terr && V.d.terr.scape) delete V.d.terr; });
         else {
           var mk = v === 'again' ? (W.mega && W.mega.kind) || 'city' : v, sd = v === 'again' ? ((W.mega && W.mega.seed) || 1) + 1 : 1;
-          W.mega = { kind: mk, seed: sd }; change(function () { megaBuild(mk, sd); });
-          toast((mk === 'town' ? '🏘 Town' : '🏙 City') + ' built · ↶ Undo puts the island back');
+          var scape = mk === 'countryside' || mk === 'alpine'; if (scape && v !== 'again') sd = (Date.now() % 9973) + 1;
+          W.mega = { kind: mk, seed: sd }; change(function () { if (V.d.terr && V.d.terr.scape) delete V.d.terr; if (scape) scapeBuild(mk, sd); else megaBuild(mk, sd); });
+          toast((mk === 'town' ? '🏘 Town' : mk === 'countryside' ? '🌿 English countryside' : mk === 'alpine' ? '🏔 Swiss alpine town' : '🏙 City') + ' built · ↶ Undo puts the island back'); if (scape && window.MinestSfx) MinestSfx.play('whoosh');
         }
         hap(); try { fit(); } catch (x) {} return setTimeout(draw, 60);
       }
+      if (g.hasAttribute('data-wfview')) { W.pop = null; hap(); return wkView(); }   // 阅览: the whole island in 3D, full screen
       if ((v = g.getAttribute('data-wfter'))) return terrAct(v);
       if ((v = g.getAttribute('data-wfbrush'))) { W.brush = W.brush === v ? null : v; hap(); return draw(); }
       if ((v = g.getAttribute('data-wfland'))) { dspPress('data-landfast', v); return setTimeout(draw, 60); }
