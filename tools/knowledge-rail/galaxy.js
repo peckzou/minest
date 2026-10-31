@@ -21,7 +21,7 @@
 (function () {
   'use strict';
   var K = window.KRail, X = window.KShow, T = window.THREE;
-  if (!K || !X || !T || window.MinestGalaxy) return;
+  if (!K || !X || !T) return;
 
   var DB = X.store('minest-galaxy-v2');
   var clamp = K.clamp, lerp = K.lerp, ease = K.ease;
@@ -574,6 +574,7 @@
 
     var S = X.stage({
       cls: 'kg-root',
+      maxDpr: 1.5,
       container: opts.container,
       onExit: opts.onExit,
       hFov: 74,

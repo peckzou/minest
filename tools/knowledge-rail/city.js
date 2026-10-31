@@ -8,7 +8,7 @@
 (function () {
   'use strict';
   var X = window.KShow, K = window.KRail, T = window.THREE;
-  if (!X || !K || !T || window.MinestCity) return;
+  if (!X || !K || !T) return;
 
   var clamp = K.clamp, lerp = K.lerp, ease = K.ease, esc = K.esc;
   var DB = X.store('minest.city.v2');
@@ -45,7 +45,7 @@
     }
   ];
 
-  // 9 Distinct Flagship Storefront Archetypes with unique architecture, palette & vitrine design
+  // 14 Distinct Flagship Storefront Archetypes with unique architecture, palette & vitrine design
   var SHOP_TYPES = [
     {
       kind: 'book', icon: '📚', tag: 'Flagship Bookstore', blade: 'BOOKS & FOLIOS',
@@ -100,10 +100,40 @@
       neon: '#eab543', carrier: 'badge', arch: 'neoclassical',
       wall: '#d6c7b2', trim: '#4a3f35', gold: '#d97706', interior: '#1e2d24',
       awning: ['#3f2e21', '#e7dac6']
+    },
+    {
+      kind: 'dept', icon: '🛍', tag: 'Grand Department Store', blade: 'FLAGSHIP EMPORIUM',
+      neon: '#f43f5e', carrier: 'frame', arch: 'art_deco',
+      wall: '#f5efe6', trim: '#881337', gold: '#fbbf24', interior: '#2e1020',
+      awning: ['#881337', '#fef3c7']
+    },
+    {
+      kind: 'market', icon: '🏪', tag: 'Organic Fresh Supermarket', blade: 'FRESH MARKET',
+      neon: '#22c55e', carrier: 'orb', arch: 'brick_classic',
+      wall: '#7c2d12', trim: '#14532d', gold: '#86efac', interior: '#14291d',
+      awning: ['#15803d', '#f0fdf4']
+    },
+    {
+      kind: 'bank', icon: '🏦', tag: 'Metropolitan Reserve Bank', blade: 'METRO BANK',
+      neon: '#60a5fa', carrier: 'badge', arch: 'neoclassical',
+      wall: '#e2dcd3', trim: '#1e3a8a', gold: '#eab308', interior: '#172554',
+      awning: ['#1e3a8a', '#f8fafc']
+    },
+    {
+      kind: 'bakery', icon: '🥐', tag: 'Artisan Boulangerie & Salon', blade: 'PATISSERIE',
+      neon: '#fbbf24', carrier: 'book', arch: 'parisian_bistro',
+      wall: '#efe6d5', trim: '#78350f', gold: '#f59e0b', interior: '#3b2110',
+      awning: ['#78350f', '#fef3c7']
+    },
+    {
+      kind: 'pharm', icon: '✚', tag: 'Apothecary & Botanical Lab', blade: 'APOTHECARY',
+      neon: '#34d399', carrier: 'orb', arch: 'townhouse',
+      wall: '#f8fafc', trim: '#065f46', gold: '#10b981', interior: '#064e3b',
+      awning: ['#065f46', '#ecfdf5']
     }
   ];
 
-  // Curated Demo Shops & Cards (ensures >= 10 distinct flagship stores along the avenue)
+  // Curated Demo Shops & Cards (18 distinct flagship stores & facilities along the 2× expanded avenue)
   var DEMO_SHOPS = [
     { title: 'Strand & Co. Booksellers', kind: 0, color: '#b45309', items: [
       { title: 'The Odyssey', zh: '奥德赛 · 荷马史诗', back: 'Ancient Greek epic poem attributed to Homer, following Odysseus on his ten-year journey home.' },
@@ -149,13 +179,57 @@
       { title: 'Rosetta Inscription', zh: '罗塞塔石碑铭文', back: 'Granodiorite stele inscribed with three versions of a decree issued in Memphis, Egypt in 196 BC.' },
       { title: 'Vitruvian Triad', zh: '维特鲁威建筑三原则', back: 'Firmitas (strength), Utilitas (utility), and Venustas (beauty) — the foundation of classical urban architecture.' },
       { title: 'Astrolabe & Celestial Sphere', zh: '星盘与天球仪', back: 'Ancient astronomical inclinometer used by navigators and philosophers to measure altitude of stars.' }
+    ]},
+    { title: 'Bergdorf & Selfridges Emporium', kind: 9, color: '#be123c', items: [
+      { title: 'The Window Dressers of Fifth Ave', zh: '第五大道橱窗叙事艺术', back: 'Pioneered theatrical street-level storytelling with spotlights, layered backdrops, and kinetic props.' },
+      { title: 'Cast-Iron Department Palaces', zh: '铸铁百货宫殿建筑', back: '19th-century cast-iron facades enabled expansive plate-glass vitrines flooded with natural light.' },
+      { title: 'Haute Couture Draping', zh: '立体裁剪与结构美学', back: 'Sculpting fabric directly on the form to create architectural silhouettes and fluid movement.' }
+    ]},
+    { title: 'Dean & DeLuca Fresh Market', kind: 10, color: '#15803d', items: [
+      { title: 'Mediterranean Botanicals', zh: '地中海风味植物志', back: 'Cold-pressed olive oils, saffron threads, sun-ripened heirloom tomatoes, and aromatic basil.' },
+      { title: 'Fermentation & Sourdough', zh: '天然酵母与慢发酵科学', back: 'Wild lactobacilli and yeast symbiosis producing complex organic acids and airy crumb structure.' },
+      { title: 'Seasonal Harvest Almanac', zh: '四季风物与旬味日历', back: 'Aligning culinary craft with peak agricultural harvests from spring shoots to autumn orchards.' }
+    ]},
+    { title: 'First Metropolis Reserve Bank', kind: 11, color: '#1e40af', items: [
+      { title: 'Compound Knowledge Interest', zh: '知识复利效应', back: 'Small daily reviews accumulate exponentially over time, turning fleeting notes into lifelong mastery.' },
+      { title: 'Bretton Woods & Gold Standard', zh: '货币史与金本位体系', back: 'The evolution of global exchange systems from bullion coinage to modern central banking.' },
+      { title: 'Double-Entry Ledger', zh: '复式记账法 · 卢卡·帕乔利', back: 'Renaissance accounting breakthrough that laid the mathematical foundation for modern commerce.' }
+    ]},
+    { title: 'Maison Ladurée Boulangerie', kind: 12, color: '#b45309', items: [
+      { title: 'Laminated Viennoiserie', zh: '法式千层起酥工艺', back: 'Alternating butter and dough folds create 729 delicate, honeycomb-crisp layers in a classic croissant.' },
+      { title: 'Proust’s Madeleine Moment', zh: '普鲁斯特玛德琳蛋糕效应', back: 'Involuntary sensory memory triggered by aroma, taste, and spatial atmosphere.' },
+      { title: 'Choux & Crème Pâtissière', zh: '泡芙与香草卡仕达酱', back: 'High-moisture pâte à choux expands by steam in the oven into hollow golden spheres.' }
+    ]},
+    { title: 'Kiehl’s & Officina Apothecary', kind: 13, color: '#047857', items: [
+      { title: 'Botanical Distillation', zh: '植物精油蒸汽蒸馏法', back: 'Extracting volatile aromatic compounds from lavender, rosemary, and bergamot blossoms.' },
+      { title: 'Renaissance Herbal Compendium', zh: '文艺复兴本草图谱', back: 'Illustrated manuscripts cataloging medicinal plants, minerals, and restorative elixirs.' },
+      { title: 'Circadian Rhythm & Recovery', zh: '昼夜节律与深度修复', back: 'Synchronizing cognitive focus and rest cycles with natural daylight and nocturnal melatonin.' }
+    ]},
+    { title: 'Daikanyama T-Site Book Lounge', kind: 0, color: '#9a3412', items: [
+      { title: 'Interdisciplinary Curating', zh: '跨学科主题策展', back: 'Organizing books not by Dewey code but by lifestyle clusters: Architecture, Travel, Cinema, and Gastronomy.' },
+      { title: 'Tactile Paper & Typography', zh: '纸张肌理与活字排版', back: 'Cotton rag paper, letterpress indentation, and harmonious page margins.' },
+      { title: 'Quiet Urban Sanctuary', zh: '都市中的静谧阅读绿洲', back: 'Creating warm timber-lined interiors buffered from street traffic by lush foliage.' }
+    ]},
+    { title: 'Blue Note Jazz & Vinyl Club', kind: 1, color: '#be185d', items: [
+      { title: 'Syncopation & Swing', zh: '切分音与摇摆律动', back: 'Shifting rhythmic accents off the main beat to create forward momentum and expressive groove.' },
+      { title: 'Reid Miles Album Sleeves', zh: '蓝调之音经典黑胶封套', back: 'Bold two-tone typography and candid studio photography that defined mid-century jazz aesthetics.' },
+      { title: 'Warm Tube Amplification', zh: '真空管胆机声学质感', back: 'Even-order harmonic saturation that lends warmth and three-dimensional presence to analog audio.' }
+    ]},
+    { title: 'MoMA Design & Architecture Store', kind: 4, color: '#7e22ce', items: [
+      { title: 'Eames Lounge Proportion', zh: '伊姆斯躺椅曲木工艺', back: 'Molded plywood shells and supple leather engineered for enduring ergonomic comfort.' },
+      { title: 'Dieter Rams: Ten Principles', zh: '迪特·拉姆斯好设计十原则', back: 'Good design is innovative, useful, aesthetic, understandable, unobtrusive, and long-lasting.' },
+      { title: 'Modular Grid Systems', zh: '瑞士国际主义网格系统', back: 'Josef Müller-Brockmann’s mathematical framework for visual hierarchy and clarity.' }
+    ]},
+    { title: 'Ginza Sony & Cyber Robotics Lab', kind: 7, color: '#0d9488', items: [
+      { title: 'Spatial Computing & Optics', zh: '空间计算与光学波导', back: 'Blending digital knowledge layers seamlessly into physical architectural spaces.' },
+      { title: 'Inverse Kinematics', zh: '逆运动学与机械臂控制', back: 'Calculating joint angles to position an end-effector smoothly along a target trajectory.' },
+      { title: 'Neural Radiance Fields', zh: '神经辐射场与3D重建', back: 'Synthesizing novel 3D views of complex scenes from sparse multi-angle observations.' }
     ]}
   ];
 
   // Ensure every shop along the street gets a DISTINCT archetype first so adjacent stores never look identical
   function assignShopType(title, idx) {
     var s = String(title || '').toLowerCase();
-    // Use idx to guarantee variety across the street, while honoring strong keyword matches if not colliding
     var preferred = -1;
     if (/book|read|lit|novel|elar|书|阅读|文学/.test(s)) preferred = 0;
     else if (/music|song|album|audio|音|歌|唱/.test(s)) preferred = 1;
@@ -167,7 +241,6 @@
     else if (/sci|math|phys|chem|科|理|数/.test(s)) preferred = 7;
     else if (/hist|social|ss|古|史|社/.test(s)) preferred = 8;
 
-    // Cycle through all 9 archetypes so every shop has a distinct architectural facade & vitrine
     var chosen = (preferred >= 0 && idx < 2) ? preferred : (idx % SHOP_TYPES.length);
     return SHOP_TYPES[chosen];
   }
@@ -179,7 +252,7 @@
     var usedKinds = {};
 
     (C.groups || []).forEach(function (g) {
-      if (!g.items || !g.items.length || shops.length >= 6) return;
+      if (!g.items || !g.items.length || shops.length >= 10) return;
       var stype = assignShopType(g.title, shops.length);
       if (usedKinds[stype.kind]) {
         for (var m = 0; m < SHOP_TYPES.length; m++) {
@@ -199,11 +272,9 @@
     });
 
     var dIdx = 0;
-    while (shops.length < 10 && dIdx < DEMO_SHOPS.length) {
+    while (shops.length < 18 && dIdx < DEMO_SHOPS.length) {
       var ds = DEMO_SHOPS[dIdx++];
       var stype = SHOP_TYPES[ds.kind % SHOP_TYPES.length];
-      if (usedKinds[stype.kind] && shops.length < SHOP_TYPES.length) continue;
-      usedKinds[stype.kind] = true;
       var demoGroup = { id: 'demo-shop-' + dIdx, title: ds.title, color: ds.color };
       var items = ds.items.map(function (c, ci) {
         var ref = { bid: 'demo', col: demoGroup.id, id: demoGroup.id + '-c' + ci };
@@ -614,7 +685,7 @@
   // ======================================================================
   var FRONT_X = 9.3, BLOCK_LEN = 46, CROSS_W = 11, START_Z = 6, GH = 4.4, SHOP_W = 12;
 
-  // Everyday neighbours (no cards — they make the avenue feel lived-in)
+  // Everyday neighbours & urban facilities (20 diverse stores & civic services)
   var FILLERS = [
     { name: 'Bloom & Stem', tag: 'FLORIST', kind: 'florist', front: 'cafe', frame: '#1f4d3a', accent: '#f9a8d4', font: 'script' },
     { name: 'Corner Pharmacy', tag: 'PHARMACY · OPEN LATE', kind: 'pharmacy', front: 'boutique', frame: '#f8fafc', accent: '#16a34a', font: 'sans' },
@@ -627,10 +698,22 @@
     { name: 'Clockwork', tag: 'WATCHMAKER', kind: 'watch', front: 'timber', frame: '#1c1917', accent: '#d6b46a', font: 'serif' },
     { name: 'Tea & Tins', tag: 'TEA MERCHANT', kind: 'tea', front: 'timber', frame: '#14532d', accent: '#fcd34d', font: 'serif' },
     { name: 'Atelier Chapeau', tag: 'MILLINER', kind: 'hats', front: 'boutique', frame: '#3f3f46', accent: '#fbcfe8', font: 'didone' },
-    { name: 'Paper & Ink', tag: 'STATIONERY', kind: 'paper', front: 'timber', frame: '#1e3a5f', accent: '#bae6fd', font: 'serif' }
+    { name: 'Paper & Ink', tag: 'STATIONERY', kind: 'paper', front: 'timber', frame: '#1e3a5f', accent: '#bae6fd', font: 'serif' },
+    { name: 'Central Post Office', tag: 'POST & TELEGRAPH', kind: 'post', front: 'bank', frame: '#1e3a8a', accent: '#fde047', font: 'serif' },
+    { name: 'Dolce Vita Gelato', tag: 'GELATERIA & ESPRESSO', kind: 'gelato', front: 'cafe', frame: '#be185d', accent: '#fef08a', font: 'script' },
+    { name: 'Savile Row Bespoke', tag: 'TAILORS · EST. 1904', kind: 'tailor', front: 'timber', frame: '#1c1917', accent: '#e7e5e4', font: 'didone' },
+    { name: 'Leica & Silver Halide', tag: 'CAMERA & FILM LAB', kind: 'camera', front: 'boutique', frame: '#18181b', accent: '#ef4444', font: 'geo' },
+    { name: 'Bordeaux & Brie', tag: 'WINE & FROMAGERIE', kind: 'wine', front: 'timber', frame: '#4c0519', accent: '#fde68a', font: 'serif' },
+    { name: 'Tabac & Newsstand', tag: 'MAGAZINES & PRESS', kind: 'news', front: 'cafe', frame: '#0f766e', accent: '#fef3c7', font: 'sans' },
+    { name: 'Orchard & Basket', tag: 'ORGANIC GREENGROCER', kind: 'deli', front: 'cafe', frame: '#15803d', accent: '#fde047', font: 'sans' },
+    { name: 'Metropolis Clinic', tag: 'MEDICAL & DENTAL', kind: 'pharmacy', front: 'boutique', frame: '#eff6ff', accent: '#2563eb', font: 'sans' }
   ];
   // knowledge shop kind -> shopfront design
-  var FRONT_FOR = { book: 'timber', vocab: 'timber', hist: 'bay', art: 'boutique', movie: 'cinema', cafe: 'cafe', music: 'neon', game: 'neon', sci: 'flagship' };
+  var FRONT_FOR = {
+    book: 'timber', vocab: 'timber', hist: 'bay', art: 'boutique', movie: 'cinema',
+    cafe: 'cafe', music: 'neon', game: 'neon', sci: 'flagship',
+    dept: 'flagship', market: 'cafe', bank: 'bank', bakery: 'timber', pharm: 'boutique'
+  };
   var FONTS = {
     serif: '"Baskerville", "Georgia", serif',
     didone: '"Didot", "Bodoni 72", "Georgia", serif',
@@ -868,11 +951,12 @@
 
     var S = X.stage({
       cls: 'kc-root' + (st.night ? ' night' : ''),
+      maxDpr: 1.5,   // phones render at 1.5× — far fewer pixels, same look
       container: opts.container,
       onExit: opts.onExit,
       hFov: 70,
       maxFov: 84,
-      far: 320,
+      far: 480,
       hint: 'Tap card to flip · tap outside to return to the street',
       html:
         '<div class="kx-top">' +
@@ -904,13 +988,15 @@
     });
 
     var scene = S.scene, cam = S.cam, RD = X.reader(S);
+    var MCACHE = {};   // look-alike materials are shared, so static meshes merge into a few draws
+    function XM(c, o) { var k = c + JSON.stringify(o || {}); return MCACHE[k] || (MCACHE[k] = X.M(c, o)); }
 
     // ---------------- Sky, Lights & Metropolitan Avenue Environment ----------------
-    var skyGeo = new T.SphereGeometry(260, 22, 14);
+    var skyGeo = new T.SphereGeometry(420, 22, 14);
     var sky = new T.Mesh(skyGeo, new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide, fog: false, depthWrite: false }));
     sky.renderOrder = -10;
     scene.add(sky);
-    scene.fog = new T.Fog('#dce8f5', 42, 210);
+    scene.fog = new T.Fog('#dce8f5', 55, 360);
 
     var hemi = new T.HemisphereLight('#ffffff', '#6b5a48', 0.9);
     var sun = new T.DirectionalLight('#fff5dc', 1.12);
@@ -923,7 +1009,7 @@
     var mCurb = X.M('#94a3b8', { roughness: 0.82 });
     var mStripe = new T.MeshBasicMaterial({ color: '#f8fafc' });
     var mYellowLine = new T.MeshBasicMaterial({ color: '#facc15' });
-    var mLampPost = X.M('#1e293b', { metalness: 0.6, roughness: 0.35 });
+    var mLampPost = XM('#1e293b', { metalness: 0.6, roughness: 0.35 });
     var mBulb = new T.MeshBasicMaterial({ color: '#fffbeb' });
     var mCone = new T.MeshBasicMaterial({ color: '#fde68a', transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide });
 
@@ -934,13 +1020,15 @@
     scene.add(road);
 
     var skylineMats = [];
+    var skyMat0 = X.M('#8fa6c2', { roughness: 0.75, metalness: 0.18 }); skylineMats.push(skyMat0);
+    var crossCars = [];
     // Centre promenade (the running path) split by the cross streets; one traffic lane each side
-    var mProm = X.M('#cfc8bb', { roughness: 0.9 }), mHedge = X.M('#3f6b3a', { roughness: 0.9 });
+    var mProm = XM('#cfc8bb', { roughness: 0.9 }), mHedge = XM('#3f6b3a', { roughness: 0.9 });
     var segs = [[START_Z + 30, START_Z]].concat(PLAN.cross.map(function (c, i) { return [c.z1, (PLAN.cross[i + 1] ? PLAN.cross[i + 1].z0 : ZEND - 40)]; }));
     segs.forEach(function (sg) {
       var len = sg[0] - sg[1]; if (len <= 0) return;
       var pm = new T.Mesh(new T.BoxGeometry(3.0, 0.14, len), mProm); pm.position.set(0, 0.07, sg[1] + len / 2); scene.add(pm);
-      [-1.55, 1.55].forEach(function (ex) { var cb2 = new T.Mesh(new T.BoxGeometry(0.12, 0.18, len), X.M('#94a3b8')); cb2.position.set(ex, 0.09, sg[1] + len / 2); scene.add(cb2); });
+      [-1.55, 1.55].forEach(function (ex) { var cb2 = new T.Mesh(new T.BoxGeometry(0.12, 0.18, len), XM('#94a3b8')); cb2.position.set(ex, 0.09, sg[1] + len / 2); scene.add(cb2); });
       for (var hz = sg[0] - 4; hz > sg[1] + 3; hz -= 7.5) [-1.12, 1.12].forEach(function (hx) {
         var hb = new T.Mesh(new T.BoxGeometry(0.5, 0.42, 2.2), mHedge); hb.position.set(hx, 0.35, hz); scene.add(hb);
       });
@@ -949,27 +1037,83 @@
       var edge = new T.Mesh(new T.PlaneGeometry(0.1, 2.6), mStripe); edge.rotation.x = -Math.PI / 2; edge.position.set(lx, 0.012, dz); scene.add(edge);
     });
 
-    // Cross streets: zebras on both sides of the junction, side roads, corner signals, buildings down the block
-    PLAN.cross.forEach(function (c) {
+    // Cross streets: zebras on both sides of the junction, side avenues with storefronts, metro entrances, bus shelters & civic plazas
+    var sideShopPalette = ['#7c2d12', '#1e3a8a', '#14532d', '#701a75', '#312e81', '#881337', '#0f766e', '#92400e'];
+    PLAN.cross.forEach(function (c, cIdx) {
       [c.z0 - 1.6, c.z1 + 1.6].forEach(function (zz) {
         for (var sx = -4.4; sx <= 4.4; sx += 0.7) { var zb = new T.Mesh(new T.PlaneGeometry(0.4, 2.4), mStripe); zb.rotation.x = -Math.PI / 2; zb.position.set(sx, 0.015, zz); scene.add(zb); }
       });
+
+      // Central Civic Fountain Monument in the middle intersection!
+      if (cIdx === Math.floor(PLAN.cross.length / 2)) {
+        var ftn = new T.Group(); ftn.position.set(0, 0.05, c.mid);
+        var fBase = new T.Mesh(new T.CylinderGeometry(2.2, 2.4, 0.45, 20), XM('#94a3b8')); fBase.position.y = 0.22;
+        var fWater = new T.Mesh(new T.CylinderGeometry(1.9, 1.9, 0.32, 20), new T.MeshBasicMaterial({ color: '#38bdf8' })); fWater.position.y = 0.35;
+        var fPillar = new T.Mesh(new T.CylinderGeometry(0.35, 0.5, 2.4, 12), XM('#cbd5e1')); fPillar.position.y = 1.3;
+        var fBowl = new T.Mesh(new T.CylinderGeometry(1.1, 0.35, 0.4, 16), XM('#e2e8f0')); fBowl.position.y = 2.3;
+        var fOrb = new T.Mesh(new T.TorusKnotGeometry(0.42, 0.12, 48, 10), XM('#fbbf24', { metalness: 0.7, roughness: 0.25 })); fOrb.position.y = 3.2;
+        ftn.add(fBase, fWater, fPillar, fBowl, fOrb);
+        scene.add(ftn);
+      }
+
       [-1, 1].forEach(function (sd) {
-        var side = new T.Mesh(new T.PlaneGeometry(70, CROSS_W - 3.2), mRoad); side.rotation.x = -Math.PI / 2; side.position.set(sd * (FRONT_X + 35 - 4.4), 0.004, c.mid); scene.add(side);
-        [c.z0 - 0.8, c.z1 + 0.8].forEach(function (pz) { var pv = new T.Mesh(new T.BoxGeometry(62, 0.18, 1.6), mWalk); pv.position.set(sd * (FRONT_X + 31), 0.09, pz); scene.add(pv); });
-        [[c.z0 + 4.6, 0], [c.z1 - 4.6, 1]].forEach(function (bz, bi) {
-          for (var bk = 0; bk < 3; bk++) {
-            var hgt = 14 + ((bk * 7 + bi * 5 + Math.round(c.mid)) % 5) * 6, bm = X.M('#8fa6c2', { roughness: 0.8 }); skylineMats.push(bm);
-            var bb = new T.Mesh(new T.BoxGeometry(11, hgt, 9), bm); bb.position.set(sd * (FRONT_X + 13 + bk * 12), hgt / 2, bz[0]); scene.add(bb);
+        var side = new T.Mesh(new T.PlaneGeometry(90, CROSS_W - 3.2), mRoad); side.rotation.x = -Math.PI / 2; side.position.set(sd * (FRONT_X + 45 - 4.4), 0.004, c.mid); scene.add(side);
+        // Side-street dashed center yellow line
+        for (var slx = 12; slx < 80; slx += 5) {
+          var sl = new T.Mesh(new T.PlaneGeometry(2.2, 0.12), mYellowLine); sl.rotation.x = -Math.PI / 2; sl.position.set(sd * slx, 0.012, c.mid); scene.add(sl);
+        }
+        [c.z0 - 0.8, c.z1 + 0.8].forEach(function (pz) { var pv = new T.Mesh(new T.BoxGeometry(82, 0.18, 1.8), mWalk); pv.position.set(sd * (FRONT_X + 41), 0.09, pz); scene.add(pv); });
+
+        // Side-avenue buildings with lit ground-floor shopfronts & awnings!
+        [[c.z0 + 4.8, -1], [c.z1 - 4.8, 1]].forEach(function (bz, bi) {
+          for (var bk = 0; bk < 5; bk++) {
+            var bxPos = sd * (FRONT_X + 13 + bk * 13);
+            var hgt = 14 + ((bk * 7 + bi * 5 + Math.abs(Math.round(c.mid))) % 5) * 5.5;
+            var bm = skyMat0;
+            var bb = new T.Mesh(new T.BoxGeometry(11.5, hgt, 9), bm); bb.position.set(bxPos, hgt / 2, bz[0]); scene.add(bb);
+
+            // Ground-floor storefront fascia, awning & glowing vitrine facing the cross street!
+            var sfCol = sideShopPalette[(bk + bi + cIdx) % sideShopPalette.length];
+            var zFace = bz[0] + bz[1] * 4.55;
+            var sFascia = new T.Mesh(new T.BoxGeometry(11.2, 0.85, 0.25), XM(sfCol));
+            sFascia.position.set(bxPos, 3.8, zFace);
+            var sGlass = new T.Mesh(new T.PlaneGeometry(10.2, 2.8), new T.MeshBasicMaterial({ color: (bk + cIdx) % 2 === 0 ? '#fde68a' : '#bae6fd' }));
+            sGlass.position.set(bxPos, 1.9, zFace + bz[1] * 0.08);
+            if (bz[1] < 0) sGlass.rotation.y = Math.PI;
+            var sAwning = new T.Mesh(new T.BoxGeometry(10.6, 0.12, 1.4), XM(sfCol));
+            sAwning.position.set(bxPos, 3.25, zFace + bz[1] * 0.65);
+            scene.add(sFascia, sGlass, sAwning);
           }
         });
+
+        // Metro Station Entrance Pavilion or Bus Shelter on intersection corners
+        var metroG = new T.Group();
+        metroG.position.set(sd * 6.8, 0, c.z0 + 1.8);
+        var mCanopy = new T.Mesh(new T.BoxGeometry(1.9, 0.16, 3.2), XM('#0f172a', { metalness: 0.5 })); mCanopy.position.y = 2.65;
+        var mGlassWall = new T.Mesh(new T.BoxGeometry(0.08, 2.5, 3.0), new T.MeshBasicMaterial({ color: '#38bdf8', transparent: true, opacity: 0.35 }));
+        mGlassWall.position.set(sd * 0.85, 1.3, 0);
+        var mSign = new T.Mesh(new T.BoxGeometry(1.8, 0.45, 0.12), new T.MeshBasicMaterial({ color: cIdx % 2 === 0 ? '#0284c7' : '#16a34a' }));
+        mSign.position.set(0, 2.95, 1.55);
+        metroG.add(mCanopy, mGlassWall, mSign);
+        scene.add(metroG);
+
+        // Cross-street moving car
+        var ccG = new T.Group();
+        var ccCol = ['#facc15', '#38bdf8', '#f43f5e', '#f8fafc'][(cIdx + (sd > 0 ? 1 : 0)) % 4];
+        var ccBody = new T.Mesh(new T.BoxGeometry(3.2, 0.52, 1.5), XM(ccCol, { roughness: 0.35, metalness: 0.3 })); ccBody.position.y = 0.42;
+        var ccCab = new T.Mesh(new T.BoxGeometry(1.7, 0.42, 1.3), XM('#1e293b')); ccCab.position.y = 0.85;
+        ccG.add(ccBody, ccCab);
+        ccG.position.set(sd * (18 + cIdx * 7), 0, c.mid + (sd > 0 ? 1.6 : -1.6));
+        scene.add(ccG);
+        crossCars.push({ mesh: ccG, dir: -sd, spd: 6.0 + (cIdx % 3) * 1.5 });
+
         var tl = new T.Group(); tl.position.set(sd * 5.0, 0, c.z1 + 0.6);
         var pole = new T.Mesh(new T.CylinderGeometry(0.07, 0.09, 5.0, 8), mLampPost); pole.position.y = 2.5;
         var mast = new T.Mesh(new T.BoxGeometry(2.4, 0.08, 0.08), mLampPost); mast.position.set(-sd * 1.15, 4.85, 0);
         var hd = new T.Mesh(new T.BoxGeometry(0.28, 0.78, 0.22), mLampPost); hd.position.set(-sd * 2.1, 4.55, 0);
         tl.add(pole, mast, hd);
         ['#ef4444', '#f59e0b', '#22c55e'].forEach(function (lc, li) { var lb = new T.Mesh(new T.SphereGeometry(0.075, 8, 8), new T.MeshBasicMaterial({ color: lc })); lb.position.set(-sd * 2.1, 4.78 - li * 0.23, 0.11); tl.add(lb); });
-        var sgn = new T.Mesh(new T.BoxGeometry(1.4, 0.3, 0.04), X.M('#166534')); sgn.position.set(0, 3.4, 0); tl.add(sgn);
+        var sgn = new T.Mesh(new T.BoxGeometry(1.4, 0.3, 0.04), XM('#166534')); sgn.position.set(0, 3.4, 0); tl.add(sgn);
         scene.add(tl);
       });
     });
@@ -1005,7 +1149,7 @@
 
         // Street tree in granite planter box
         if (inCross(lz - 7.5, 1.5)) return;
-        var planter = new T.Mesh(new T.BoxGeometry(0.95, 0.36, 0.95), X.M('#64748b'));
+        var planter = new T.Mesh(new T.BoxGeometry(0.95, 0.36, 0.95), XM('#64748b'));
         planter.position.set(sd * 5.45, 0.32, lz - 7.5);
         var tree = new T.Mesh(KT.round.geo, KT.round.mat);
         tree.position.set(sd * 5.45, 0.36, lz - 7.5);
@@ -1013,10 +1157,10 @@
         scene.add(planter, tree);
 
         // Cast-iron & slatted wood boulevard bench
-        var hyd = new T.Mesh(new T.CylinderGeometry(0.13, 0.15, 0.62, 10), X.M('#b91c1c')); hyd.position.set(sd * 5.35, 0.49, lz - 11.5); if (!inCross(lz - 11.5, 1)) scene.add(hyd);
-        var nb = new T.Mesh(new T.BoxGeometry(0.45, 1.0, 0.45), X.M(sIdx ? '#1d4ed8' : '#ca8a04')); nb.position.set(sd * 5.4, 0.68, lz - 5.6); if (!inCross(lz - 5.6, 1)) scene.add(nb);
+        var hyd = new T.Mesh(new T.CylinderGeometry(0.13, 0.15, 0.62, 10), XM('#b91c1c')); hyd.position.set(sd * 5.35, 0.49, lz - 11.5); if (!inCross(lz - 11.5, 1)) scene.add(hyd);
+        var nb = new T.Mesh(new T.BoxGeometry(0.45, 1.0, 0.45), XM(sIdx ? '#1d4ed8' : '#ca8a04')); nb.position.set(sd * 5.4, 0.68, lz - 5.6); if (!inCross(lz - 5.6, 1)) scene.add(nb);
         if (inCross(lz - 3.8, 1.5)) return;
-        var bench = new T.Mesh(new T.BoxGeometry(0.55, 0.45, 1.45), X.M('#5c3a21'));
+        var bench = new T.Mesh(new T.BoxGeometry(0.55, 0.45, 1.45), XM('#5c3a21'));
         bench.position.set(sd * 5.5, 0.38, lz - 3.8);
         scene.add(bench);
       });
@@ -1024,6 +1168,7 @@
 
     // 3. Towering Metropolis Skyline Backdrop (Skyscrapers, Stepped Art-Deco Towers, Spires & Rooftop Billboards)
     var skyWinMats = [];
+    var skyWinB = new T.MeshBasicMaterial({ color: '#38bdf8', transparent: true, opacity: 0.25 }), skyWinY = new T.MeshBasicMaterial({ color: '#fde68a', transparent: true, opacity: 0.25 }); skyWinMats.push(skyWinB, skyWinY);
     for (var sz = 12; sz > ZEND - 45; sz -= 18) {
       [-1, 1].forEach(function (sd) {
         if (inCross(sz, 7)) return;
@@ -1033,8 +1178,7 @@
         var th = 24 + (seed % 6) * 7.5;
         var tx = sd * (21 + (seed % 3) * 4.5);
 
-        var sMat = X.M('#8fa6c2', { roughness: 0.75, metalness: 0.18 });
-        skylineMats.push(sMat);
+        var sMat = skyMat0;
 
         var tower = new T.Mesh(new T.BoxGeometry(tw, th, td), sMat);
         tower.position.set(tx, th / 2, sz);
@@ -1054,8 +1198,7 @@
         }
 
         // Illuminated skyscraper window strips facing the street
-        var swMat = new T.MeshBasicMaterial({ color: seed % 3 === 0 ? '#38bdf8' : '#fde68a', transparent: true, opacity: 0.25 });
-        skyWinMats.push(swMat);
+        var swMat = seed % 3 === 0 ? skyWinB : skyWinY;
         for (var wy = 8; wy < th - 3; wy += 3.2) {
           var strip = new T.Mesh(new T.PlaneGeometry(tw * 0.76, 1.3), swMat);
           strip.position.set(tx - sd * (td / 2 + 0.08), wy, sz);
@@ -1068,7 +1211,7 @@
     // Distant Iconic Metropolis Horizon Tower at the end of the avenue (`ZEND - 38`)
     var spireTowerGroup = new T.Group();
     spireTowerGroup.position.set(0, 0, ZEND - 38);
-    var stBaseMat = X.M('#64748b', { roughness: 0.5, metalness: 0.35 });
+    var stBaseMat = XM('#64748b', { roughness: 0.5, metalness: 0.35 });
     skylineMats.push(stBaseMat);
     var stTier1 = new T.Mesh(new T.BoxGeometry(16, 42, 16), stBaseMat);
     stTier1.position.y = 21;
@@ -1082,22 +1225,23 @@
     spireTowerGroup.add(stTier1, stTier2, stTier3, stRing);
     scene.add(spireTowerGroup);
 
-    // 4. Moving Metropolitan Vehicles (Yellow Cabs, Cyber Coupes & City Trams gliding along the 2 lanes!)
+    // 4. Moving Metropolitan Vehicles (12 Yellow Cabs, City Buses & Cyber Coupes gliding along the 2 lanes!)
     var cars = [];
-    var carColors = ['#facc15', '#ef4444', '#38bdf8', '#f8fafc', '#facc15', '#a855f7'];
-    for (var ci = 0; ci < 6; ci++) {
-      var laneDir = ci % 2 === 0 ? -1 : 1; // -1 drives toward ZEND (right lane +2.1), +1 drives toward 0 (left lane -2.1)
+    var carColors = ['#facc15', '#ef4444', '#38bdf8', '#f8fafc', '#facc15', '#a855f7', '#10b981', '#facc15'];
+    for (var ci = 0; ci < 12; ci++) {
+      var laneDir = ci % 2 === 0 ? -1 : 1; // -1 drives toward ZEND (right lane +3.15), +1 drives toward 0 (left lane -3.15)
       var laneX = laneDir < 0 ? 3.15 : -3.15;
       var cg = new T.Group();
       var cCol = carColors[ci % carColors.length];
-      var cBody = new T.Mesh(new T.BoxGeometry(1.55, 0.52, 3.3), X.M(cCol, { roughness: 0.35, metalness: 0.3 }));
-      cBody.position.y = 0.42;
-      var cCab = new T.Mesh(new T.BoxGeometry(1.32, 0.44, 1.75), X.M('#1e293b', { roughness: 0.2, metalness: 0.5 }));
-      cCab.position.set(0, 0.86, -0.15 * laneDir);
+      var isBus = (ci % 5 === 4);
+      var cBody = new T.Mesh(new T.BoxGeometry(isBus ? 1.85 : 1.55, isBus ? 1.45 : 0.52, isBus ? 5.2 : 3.3), XM(cCol, { roughness: 0.35, metalness: 0.3 }));
+      cBody.position.y = isBus ? 0.92 : 0.42;
+      var cCab = new T.Mesh(new T.BoxGeometry(isBus ? 1.78 : 1.32, 0.44, isBus ? 4.8 : 1.75), XM('#1e293b', { roughness: 0.2, metalness: 0.5 }));
+      cCab.position.set(0, isBus ? 1.35 : 0.86, isBus ? 0 : -0.15 * laneDir);
       cg.add(cBody, cCab);
 
       // Taxi roof sign on yellow cabs
-      if (cCol === '#facc15') {
+      if (cCol === '#facc15' && !isBus) {
         var taxiSign = new T.Mesh(new T.BoxGeometry(0.55, 0.18, 0.24), new T.MeshBasicMaterial({ color: '#fef08a' }));
         taxiSign.position.set(0, 1.15, -0.15 * laneDir);
         cg.add(taxiSign);
@@ -1105,15 +1249,16 @@
       // Headlights & Taillights
       var hlMat = new T.MeshBasicMaterial({ color: '#fef9c3' });
       var tlMat = new T.MeshBasicMaterial({ color: '#ef4444' });
+      var hzOff = isBus ? 2.61 : 1.66;
       [-0.52, 0.52].forEach(function (wx) {
         var hl = new T.Mesh(new T.BoxGeometry(0.24, 0.14, 0.06), hlMat);
-        hl.position.set(wx, 0.44, 1.66 * laneDir);
+        hl.position.set(wx, 0.44, hzOff * laneDir);
         var tl = new T.Mesh(new T.BoxGeometry(0.28, 0.14, 0.06), tlMat);
-        tl.position.set(wx, 0.44, -1.66 * laneDir);
+        tl.position.set(wx, 0.44, -hzOff * laneDir);
         cg.add(hl, tl);
       });
 
-      var startZ = -8 - ci * (STREET_LEN / 6);
+      var startZ = -8 - ci * (STREET_LEN / 12);
       cg.position.set(laneX, 0, startZ);
       scene.add(cg);
       cars.push({ mesh: cg, dir: laneDir, spd: 5.5 + (ci % 3) * 1.4 });
@@ -1126,7 +1271,7 @@
     var reflMat = new T.MeshBasicMaterial({ map: glassReflTex(), transparent: true, opacity: 0.5, depthWrite: false });
     glassReflMats.push(reflMat);
     var MAT = {};
-    function MM(c, o) { var k = c + JSON.stringify(o || {}); return MAT[k] || (MAT[k] = X.M(c, o)); }
+    function MM(c, o) { var k = c + JSON.stringify(o || {}); return MAT[k] || (MAT[k] = XM(c, o)); }
     function box(g, w, h, d, x, y, z, m) { var b = new T.Mesh(new T.BoxGeometry(w, h, d), m); b.position.set(x, y, z); g.add(b); return b; }
     function plane(g, w, h, x, y, z, m) { var p = new T.Mesh(new T.PlaneGeometry(w, h), m); p.position.set(x, y, z); g.add(p); return p; }
     function uvPlane(w, h, ru, rv) {
@@ -1138,7 +1283,10 @@
       var gr = g.createRadialGradient(w / 2, 0, 4, w / 2, 0, h); gr.addColorStop(0, 'rgba(255,214,150,.9)'); gr.addColorStop(1, 'rgba(255,190,110,0)');
       g.fillStyle = gr; g.fillRect(0, 0, w, h);
     });
-    var facMats = {};
+    var facMats = {}, intMats = {}, awnTexs = {};
+    var spotMat = new T.MeshBasicMaterial({ color: '#fff4dc', transparent: true, opacity: 0.1, depthWrite: false, side: T.DoubleSide }); vitrineSpotMats.push(spotMat);
+    var spillMat = new T.MeshBasicMaterial({ map: spillTex, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending }); nightGlowMats.push(spillMat);
+    function awnTex(a, b) { var k = a + b; return awnTexs[k] || (awnTexs[k] = makeAwningTex(a, b)); }
 
     // ---- one storefront on the ground floor of a building (local: front at z=0, x across the width)
     function storefront(g, W, gh, style, o, b) {
@@ -1154,7 +1302,7 @@
 
       // the shop room behind the glass
       var roomD = 1.55, intCol = o.interiorCol || '#efe7da';
-      var intM = new T.MeshBasicMaterial({ map: o.interiorTex, color: '#bdb7ad' }); interiorMats.push(intM);
+      var intM = intMats[o.interiorTex.uuid] || (intMats[o.interiorTex.uuid] = new T.MeshBasicMaterial({ map: o.interiorTex, color: '#bdb7ad' })); if (interiorMats.indexOf(intM) < 0) interiorMats.push(intM);
       plane(g, W - 0.1, topY - riser + 0.4, 0, riser + (topY - riser + 0.4) / 2 - 0.2, -roomD, intM);
       var wallInM = MM(intCol, { roughness: 0.9 });
       [-1, 1].forEach(function (sx) { var sw = plane(g, roomD, gh, sx * (W / 2 - 0.05), gh / 2, -roomD / 2, wallInM); sw.rotation.y = -sx * Math.PI / 2; });
@@ -1229,7 +1377,7 @@
         if (style === 'timber' || style === 'bay') [-1, 1].forEach(function (sx) { box(g, 0.28, fasciaH + 0.3, 0.55, sx * (W / 2 - 0.2), gh - fasciaH / 2 - 0.1, 0.2, frameM); });   // console brackets
       }
       // a warm light spill on the pavement at night
-      var spM = new T.MeshBasicMaterial({ map: spillTex, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending }); nightGlowMats.push(spM);
+      var spM = spillMat;
       var spill = plane(g, W * 0.9, 2.4, 0, 0.2, 1.3, spM); spill.rotation.x = -Math.PI / 2;
       return { wins: wins, picks: picks, riser: riser, topY: topY };
     }
@@ -1256,9 +1404,9 @@
         box(g, W - 0.8, 0.05, 0.9, 0, gh - 0.95, 0.5, MM('#141414')).rotation.x = 0.28;                       // slim awning
       }
       if (style === 'cafe') {                                                     // striped awning + terrace
-        var aw = new T.Mesh(new T.BoxGeometry(W - 0.6, 0.05, 1.9), new T.MeshStandardMaterial({ map: makeAwningTex(o.frame, '#f8f5ec'), roughness: 0.8 }));
+        var aw = new T.Mesh(new T.BoxGeometry(W - 0.6, 0.05, 1.9), new T.MeshStandardMaterial({ map: awnTex(o.frame, '#f8f5ec'), roughness: 0.8 }));
         aw.position.set(0, gh - 1.25, 0.95); aw.rotation.x = 0.36; g.add(aw);
-        plane(g, W - 0.6, 0.28, 0, gh - 1.72, 1.82, new T.MeshStandardMaterial({ map: makeAwningTex(o.frame, '#f8f5ec'), side: T.DoubleSide }));
+        plane(g, W - 0.6, 0.28, 0, gh - 1.72, 1.82, new T.MeshStandardMaterial({ map: awnTex(o.frame, '#f8f5ec'), side: T.DoubleSide }));
         if (o.kind === 'florist') for (var fb = 0; fb < 7; fb++) {
           var bucket = new T.Mesh(new T.CylinderGeometry(0.18, 0.14, 0.4, 10), MM('#9ca3af')); bucket.position.set(-W / 2 + 1 + fb * 0.62, 0.38, 1.15); g.add(bucket);
           var bunch = new T.Mesh(new T.IcosahedronGeometry(0.24, 0), MM(GOODS.florist[fb % 5])); bunch.position.set(bucket.position.x, 0.75, 1.15); g.add(bunch);
@@ -1327,8 +1475,7 @@
         car.traverse(function (m) { if (m.isMesh) { m.userData.shop = k; m.userData.winIdx = j; } });
         g.add(car); itemPicks.push(car);
         wc.push({ it: it, obj: car, localX: px });
-        var sp = new T.MeshBasicMaterial({ color: '#fff4dc', transparent: true, opacity: 0.1, depthWrite: false, side: T.DoubleSide });
-        vitrineSpotMats.push(sp);
+        var sp = spotMat;
         var cone = new T.Mesh(new T.ConeGeometry(0.55, sf.topY - baseY - h, 14, 1, true), sp); cone.position.set(px, (sf.topY + baseY + h) / 2, main.z); g.add(cone);
       });
       var cxAvg = wc.reduce(function (s, w) { return s + w.localX; }, 0) / Math.max(1, wc.length);
@@ -1401,7 +1548,7 @@
           flagship: { bg: '#111', fg: '#fff', font: 'geo' }
         }[style] || { bg: tt.trim, fg: '#fff', font: 'sans' };
       } else {
-        o = { title: f.name, sub: f.tag, frame: f.frame, accent: f.accent, icon: { florist: '💐', pharmacy: '✚', bakery: '🥐', shoes: '👞', ramen: '🍜', bank: '🏦', optic: '👓', deli: '🥪', watch: '⌚', tea: '🍵', hats: '🎩', paper: '✒️' }[f.kind], kind: f.kind, interiorTex: interiorTex(f.kind) };
+        o = { title: f.name, sub: f.tag, frame: f.frame, accent: f.accent, icon: { florist: '💐', pharmacy: '✚', bakery: '🥐', shoes: '👞', ramen: '🍜', bank: '🏦', optic: '👓', deli: '🥪', watch: '⌚', tea: '🍵', hats: '🎩', paper: '✒️', post: '📮', gelato: '🍨', tailor: '🧵', camera: '📷', wine: '🍷', news: '🗞' }[f.kind] || '🏪', kind: f.kind, interiorTex: interiorTex(f.kind) };
         o.sign = f.front === 'bank' ? { bg: '#d6cfc2', fg: '#3a3226', font: 'serif' }
           : f.front === 'noren' ? { bg: '#3b1d14', fg: '#fde68a', font: 'sans' }
           : f.kind === 'pharmacy' ? { bg: '#ffffff', fg: '#15803d', font: 'sans' }
@@ -1421,10 +1568,10 @@
       }
     });
 
-    // ---- pedestrians on both pavements
+    // ---- pedestrians on both pavements (48 citizens strolling the 2× expanded avenue)
     var people = [], skin = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac'], coats = ['#1f2937', '#7f1d1d', '#1e3a8a', '#d6d3d1', '#065f46', '#92400e', '#4c1d95', '#111827', '#b45309', '#475569'];
     var pr = K.rng(77);
-    for (var pi2 = 0; pi2 < 26; pi2++) {
+    for (var pi2 = 0; pi2 < 16; pi2++) {   // enough life on the pavement; each walker costs ~5 draws
       var pg = new T.Group(), sd2 = pi2 % 2 ? 1 : -1, dir = pr() < 0.5 ? -1 : 1;
       var bodyM = MM(coats[pi2 % coats.length]), legM = MM('#1f2023');
       var torso = new T.Mesh(new T.CylinderGeometry(0.19, 0.23, 0.78, 8), bodyM); torso.position.y = 1.2; pg.add(torso);
@@ -1471,7 +1618,7 @@
       var d2 = new T.Color(ST.daySky[2]).lerp(new T.Color(ST.nightSky[2]), m);
       var pa = skyGeo.attributes.position, cols = [];
       for (var i = 0; i < pa.count; i++) {
-        var y = pa.getY(i) / 260, c = new T.Color();
+        var y = pa.getY(i) / 420, c = new T.Color();
         if (y < 0) c.copy(d2);
         else if (y < 0.28) c.copy(d2).lerp(d1, y / 0.28);
         else c.copy(d1).lerp(d0, Math.min(1, (y - 0.28) / 0.52));
@@ -1745,11 +1892,16 @@
         applyVisuals(false);
       }
 
-      // Animate moving city cabs & coupes along the boulevard lanes
+      // Animate moving city cabs, buses & coupes along the main & cross boulevards
       cars.forEach(function (c) {
         c.mesh.position.z += c.dir * c.spd * dt;
         if (c.dir < 0 && c.mesh.position.z < ZEND - 18) c.mesh.position.z = 12;
         if (c.dir > 0 && c.mesh.position.z > 12) c.mesh.position.z = ZEND - 18;
+      });
+      crossCars.forEach(function (cc) {
+        cc.mesh.position.x += cc.dir * cc.spd * dt;
+        if (cc.dir < 0 && cc.mesh.position.x < -75) cc.mesh.position.x = 75;
+        if (cc.dir > 0 && cc.mesh.position.x > 75) cc.mesh.position.x = -75;
       });
 
       // Animate rotating storefront sculptures (Vinyl disc, Gallery sculpture, Quantum Atom)
@@ -1796,6 +1948,51 @@
       saveT += dt;
       if (saveT > 2.5) { saveT = 0; persist(); }
     });
+
+    // ---- performance: every static box shares a few materials, so merge them per material into one mesh each
+    // (≈2,900 draw calls → a few dozen). What moves, what you tap, and the sky that follows the camera stay apart.
+    (function mergeStatic() {
+      var keep = new Set();
+      function mark(o) { if (o) o.traverse(function (c) { keep.add(c); }); }
+      signPicks.forEach(mark); itemPicks.forEach(mark); mark(sky);
+      cars.forEach(function (c) { mark(c.mesh); }); people.forEach(function (p) { mark(p.g); });
+      dynamicProps.forEach(function (d) { mark(d.mesh); }); swingers.forEach(function (w) { mark(w.obj); });
+      RD.meshes.forEach(function (m) { var r = m; while (r.parent && r.parent !== scene) r = r.parent; mark(r); });
+      scene.updateMatrixWorld(true);
+      var buckets = new Map();
+      // materials the day/night blend or the style change edit stay on their own; any other look-alikes share one
+      var live = new Set([mRoad, mWalk, mBulb, mCone, reflMat].concat(skylineMats, skyWinMats, vitrineSpotMats, glassReflMats, interiorMats, nightGlowMats,
+        Object.keys(nightOverlayMats).map(function (kk) { return nightOverlayMats[kk]; }), signBoardMeshes.map(function (x) { return x.mat; }), bladeBoardMeshes.map(function (x) { return x.mat; })));
+      function sig(m) {
+        if (live.has(m) || m.map) return m.uuid;
+        return [m.type, m.color && m.color.getHexString(), m.emissive && m.emissive.getHexString(), m.transparent ? 't' + m.opacity : 'o', m.side, m.vertexColors ? 'vc' : '', m.flatShading ? 'f' : '', m.roughness, m.metalness, m.depthWrite, m.blending, m.toneMapped].join('/');
+      }
+      function shown(o) { for (var q = o; q; q = q.parent) if (q.visible === false) return false; return true; }
+      scene.traverse(function (o) {
+        if (!o.isMesh || o.isInstancedMesh || keep.has(o) || Array.isArray(o.material) || !shown(o)) return;
+        var g = o.geometry; if (!g || !g.attributes.position || !g.attributes.normal || !g.attributes.uv || g.morphAttributes && Object.keys(g.morphAttributes).length) return;
+        var k = sig(o.material) + '|' + (o.renderOrder || 0); if (!buckets.has(k)) buckets.set(k, { m: o.material, ro: o.renderOrder || 0, list: [] });
+        buckets.get(k).list.push(o);
+      });
+      var v = new T.Vector3(), nm = new T.Matrix3();
+      buckets.forEach(function (b) {
+        if (b.list.length < 2) return;
+        var pos = [], nor = [], uv = [];
+        b.list.forEach(function (o) {
+          var g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry, P = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv;
+          nm.getNormalMatrix(o.matrixWorld);
+          for (var i = 0; i < P.count; i++) {
+            v.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); pos.push(v.x, v.y, v.z);
+            v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor.push(v.x, v.y, v.z); uv.push(U.getX(i), U.getY(i));
+          }
+          if (g !== o.geometry) g.dispose();
+        });
+        var geo = new T.BufferGeometry();
+        geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+        var mesh = new T.Mesh(geo, b.m); mesh.renderOrder = b.ro; mesh.matrixAutoUpdate = false; scene.add(mesh);
+        b.list.forEach(function (o) { if (o.parent) o.parent.remove(o); });   // geometries may be shared (kit), so not disposed here
+      });
+    })();
 
     applyVisuals(true);
     ui();

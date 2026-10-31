@@ -268,13 +268,13 @@
         c.classList.add('wf3');   // 53.89 · tools down both sides, the console and a gallery in the middle
         c.innerHTML = head + '<div class="wf-main">' +
           // left column: the five steps fold into one button (it pops the others), then the hands-on build tools
-          '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>🛠</i><span>Tools ▾</span></button></nav>' +
+          '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>' + px('tools') + '</i><span>Tools ▾</span></button></nav>' +
           (V && V.expand ? '<div class="wf-center">' + landPanel() + '</div>' :
-          '<div class="wf-center">' +
+          '<div class="wf-center">' + (lv === 1 && V ? megaRow() : '') +
           (lv === 4 ? '<div class="wf-seg" role="tablist" aria-label="Which tools"><button type="button" data-wfset="roomd"' + (sk === 'roomd' ? ' class="on"' : '') + '>🛋 Room tools · 建房</button><button type="button" data-wfset="disp"' + (sk === 'disp' ? ' class="on"' : '') + '>🗄 Display tools · 陈列</button></div>' : '') +
           (S ? pendHtml(S) : '') +
           '<div class="wf-body">' + panelHtml(lv, sk, pn) + '</div>' + (pn === 'smart' ? '<section class="wf-gal"><h4>🖼 ' + esc(D.menu[1]) + '</h4>' + D.gallery() + '</section>' : '') + '<p class="wf-hint">' + esc(HINT[lv]) + '</p></div>') +
-          '<nav class="wf-menu" aria-label="' + esc(D.name) + '">' + menu.map(function (a) { return '<button type="button" data-wfpanel="' + a[0] + '"' + (a[0] === pn ? ' class="on"' : '') + '><i>' + a[1] + '</i><span>' + esc(String(a[2]).replace(/ ▾$/, '')) + '</span></button>'; }).join('') + '</nav></div>';
+          '<nav class="wf-menu" aria-label="' + esc(D.name) + '">' + menu.map(function (a) { return '<button type="button" data-wfpanel="' + a[0] + '"' + (a[0] === pn ? ' class="on"' : '') + '><i>' + pxi(a[1]) + '</i><span>' + esc(String(a[2]).replace(/ ▾$/, '')) + '</span></button>'; }).join('') + '</nav></div>';
         emoji(c);
         if (W.pop) popOpen(c, acts, pn, S);
       }
@@ -282,41 +282,687 @@
       clearTimeout(W.fill); W.fill = setTimeout(libFill, 400);
       placePanels(); okChip(); backBtn();
     }
+    // ---------------------------------------------------------------- pixel icons (Minecraft style, no emoji)
+    // Each icon is a little grid; letters pick from one shared palette, '.' is empty. Drawn as crisp SVG rects
+    // (one rect per run of a colour), so they scale cleanly on any screen.
+    var PXPAL = { k: '#1b1b1b', w: '#ffffff', y: '#f2c13d', o: '#e08a2e', g: '#5aa834', G: '#3c7a22', b: '#8a5a2b', B: '#5c3a1e', s: '#a8a8a8', S: '#5f5f5f',
+      r: '#d0312d', l: '#7fc8ff', L: '#3a6fd8', p: '#a66be0', c: '#4fd1c5', n: '#e8d49a', N: '#c9a96a', m: '#f0f6ff', h: '#e7b48f' };
+    var PX = {
+      smart: ['.....y......', '.....y......', '....yyy.....', '.yyyywyyyy..', '....yyy.....', '.....y....y.', '.....y...yyy', '..........y.', '..y.........', '.yyy........', '..y.........'],
+      suggest: ['....kkkk....', '...kyyyyk...', '..kyywyyyk..', '..kywyyyyk..', '..kyyyyyyk..', '...kyyyyk...', '....kook....', '....ksSk....', '....kSsk....', '.....kk.....'],
+      lock: ['....kkkk....', '...ksSSsk...', '...kS..Sk...', '...kS..Sk...', '..kkkkkkkk..', '..kyyyyyyk..', '..kyyBByyk..', '..kyyByyyk..', '..kyyyyyyk..', '..kkkkkkkk..'],
+      unlock: ['....kkkk....', '...ksSSsk...', '...kS..Sk...', '......kSk...', '..kkkkkkkk..', '..kyyyyyyk..', '..kyyBByyk..', '..kyyByyyk..', '..kyyyyyyk..', '..kkkkkkkk..'],
+      confirm: ['..........gk', '.........gGk', '........gGk.', '.k.....gGk..', 'kgk...gGk...', 'kGgk.gGk....', '.kGggGk.....', '..kGGk......', '...kk.......'],
+      edit: ['.........kk.', '........krrk', '.......kyykk', '......kyyk..', '.....kyyk...', '....kyyk....', '...kyyk.....', '..kbbk......', '..knk.......', '..kk........'],
+      walk: ['....BBBB....', '....hhhh....', '....hkhk....', '....hhhh....', '...cccccc...', '..hccccccy..', '..hccccccy..', '....LLLL....', '....LL.LL...', '...LL...LL..', '...SS...SS..'],
+      land: ['.....sw.....', '....sssw....', '...sssssw...', '..ssSssss...', '.gggSsssgg..', 'gggggggggggg', 'bbbbbbbbbbbb', 'bBbbbBbbbBbb', 'bbbbbbbbbbbb'],
+      undo: ['...k........', '..kgk.......', '.kgggkkkk...', 'kggggggggk..', '.kgggkkkggk.', '..kgk...kgk.', '...k....kgk.', '........kgk.', '.....kkkggk.', '.....kgggk..', '.....kkkk...'],
+      tools: ['...ccccc....', '..cc...cc...', '.c...B...c..', '.....B......', '....B.......', '....B.......', '...B........', '...B........', '..B.........', '..B.........', '.B..........'],
+      grid: ['kkkkkkkkkkkk', 'kgggkgggkggk', 'kgggkgggkggk', 'kkkkkkkkkkkk', 'kgggkgggkggk', 'kgggkgggkggk', 'kkkkkkkkkkkk', 'kbbbkbbbkbbk', 'kbbbkbbbkbbk', 'kkkkkkkkkkkk'],
+      auto: ['.....y......', '.....y......', '....yyy.....', 'yyyyyyyyyyy.', '.yyyyyyyyy..', '..yyyyyyy...', '..yyyyyyy...', '.yyy...yyy..', '.yy.....yy..'],
+      reorg: ['.........L..', 'LLL.....LLL.', '..LL...LL.L.', '...LL.LL....', '....LLL.....', '...LL.LL....', '..LL...LL.L.', 'LLL.....LLL.', '.........L..'],
+      map: ['.nnnnnnnnnn.', '.nggnnlLLnn.', '.ngggnlLLln.', '.nnggnnlnnn.', '.nnnrrnnnnn.', '.nnnrnnggnn.', '.nlnnnnggnn.', '.nllnnnngnn.', '.nnnnnnnnnn.'],
+      box: ['.kkkkkkkkkk.', '.kbbbbbbbbk.', '.kbBBBBBBbk.', '.kbbbbbbbbk.', '.kkkkssskkk.', '.kbbbsksbbk.', '.kbbbbbbbbk.', '.kbBBBBBBbk.', '.kbbbbbbbbk.', '.kkkkkkkkkk.'],
+      zin: ['..kkkk......', '.kllllk.....', 'kllwlllk....', 'klwwwllk....', 'kllwlllk....', 'klllllk.....', '.kkkkkk.....', '.....kBk....', '......kBk...', '.......kBk..', '........kk..'],
+      zout: ['..kkkk......', '.kllllk.....', 'kllllllk....', 'klwwwllk....', 'kllllllk....', 'klllllk.....', '.kkkkkk.....', '.....kBk....', '......kBk...', '.......kBk..', '........kk..'],
+      tleft: ['....LLLL....', '..LL....LL..', '.L........L.', 'L..........L', 'L..........L', 'L...........', 'LL..........', 'LLL.........', 'LLLL........'],
+      fit: ['wwww....wwww', 'w..........w', 'w..........w', 'w..........w', '............', '............', 'w..........w', 'w..........w', 'w..........w', 'wwww....wwww'],
+      new: ['....gggg....', '....gGGg....', '....gGGg....', 'gggggGGggggg', 'gGGGGGGGGGGg', 'gggggGGggggg', '....gGGg....', '....gGGg....', '....gggg....'],
+      gallery: ['bbbbbbbbbbbb', 'bllllllllllb', 'bllllllyyllb', 'blllllllyllb', 'blgglllllllb', 'bggggllggllb', 'bgggggggGggb', 'bggGgggggggb', 'bbbbbbbbbbbb'],
+      group: ['....gggg....', '....gGGg....', '....bbbb....', '....bBbb....', '............', 'gggg....gggg', 'gGGg....gGGg', 'bbbb....bbbb', 'bBbb....bbBb'],
+      wand: ['..........y.', '.........yyy', '..........y.', '........kk..', '.......kpk..', '......kpk...', '.....kpk....', '....kpk.....', '...kpk......', '..kpk.......', '..kk........'],
+      more: ['............', '.ww..ww..ww.', '.ww..ww..ww.', '............'],
+      fly: ['.....kk.....', '...kkllk....', '..kllllk....', '.kllllllk...', '.kllllllk...', 'kllllLllk...', 'klllLlllk...', 'kllLllllk...', '.kLllllk....', '..kkkkk.....'],
+      run: ['www.........', '....BBBB....', 'ww..BbbB....', '....BbbB....', 'www.BbbBBBB.', '....BbbbbbbB', '.ww.BBBBBBBB'],
+      up: ['.....kk.....', '....kwwk....', '...kwwwwk...', '..kwwwwwwk..', '.kkkwwwwkkk.', '...kwwwwk...', '...kwwwwk...', '...kwwwwk...', '...kkkkkk...'],
+      city: ['....kkk.....', '....klk.....', '...kkkkk....', '...klklk.kkk', '...kkkkk.klk', '...klklk.kkk', 'kkkkkkkkkklk', 'klklklklkkkk', 'kkkkkkkkkklk', 'klklklklkkkk', 'kkkkkkkkkkkk'],
+      town: ['.....rr.....', '....rrrr....', '...rrrrrr...', '..rrrrrrrr..', '.rrrrrrrrrr.', '..nnnnnnnn..', '..nlnnnnln..', '..nnnBBnnn..', '..nnnBBnnn..', '..nnnBBnnn..'],
+      dice: ['kkkkkkkkkk', 'kwwwwwwwwk', 'kwkwwwwwwk', 'kwwwwwwwwk', 'kwwwwkwwwk', 'kwwwwwwwwk', 'kwwwwwwkwk', 'kwwwwwwwwk', 'kkkkkkkkkk'],
+      clear: ['rr......rr', 'rrr....rrr', '.rrr..rrr.', '..rrrrrr..', '...rrrr...', '..rrrrrr..', '.rrr..rrr.', 'rrr....rrr', 'rr......rr'],
+      ring: ['...gggggg...', '..gG....Gg..', '.gG......Gg.', '.g........g.', '.g........g.', '.gG......Gg.', '..gG....Gg..', '...gggggg...'],
+      double: ['gggg..gggg..', 'bbbb..bbbb..', 'bBbb..bBbb..', 'bbbb..bbbb..', '............', '..ww..ww....', '...ww.ww....', '....www.....', '...ww.ww....', '..ww...ww...'],
+      grass: ['gggggggggg', 'gGggGgggGg', 'bgbbbgbbgb', 'bbbBbbbbbb', 'bbbbbbBbbb', 'bBbbbbbbbb', 'bbbbbBbbbb'],
+      snow: ['mmmmmmmmmm', 'mwmmmwmmwm', 'bmbbbmbbmb', 'bbbBbbbbbb', 'bbbbbbBbbb', 'bBbbbbbbbb', 'bbbbbBbbbb'],
+      sand: ['nnnnnnnnnn', 'nNnnnnNnnn', 'nnnnNnnnnN', 'nNnnnnnnnn', 'nnnnnNnnNn', 'Nnnnnnnnnn', 'nnnNnnnnnn'],
+      moss: ['GgGGgGgGGg', 'gGGgGGgGgG', 'sGssGsSsGs', 'ssSsssssSs', 'sssssSssss', 'sSssssssss', 'ssssSsssSs'],
+      door: ['.kkkkkkkk.', '.kbbbbbbk.', '.kbBbbBbk.', '.kbbbbbbk.', '.kbBbbBbk.', '.kbbbbbyk.', '.kbBbbBbk.', '.kbbbbbbk.', '.kkkkkkkk.']
+    };
+    // derived: mirrored / flipped versions
+    PX.redo = PX.undo.map(function (r) { return r.split('').reverse().join(''); });
+    PX.tright = PX.tleft.map(function (r) { return r.split('').reverse().join(''); });
+    PX.down = PX.up.slice().reverse();
+    var PXC = {};
+    function px(name) {
+      if (PXC[name]) return PXC[name];
+      var rows = PX[name]; if (!rows) return '';
+      var w = Math.max.apply(null, rows.map(function (r) { return r.length; })), h = rows.length, out = '';
+      rows.forEach(function (r, y) {
+        for (var x = 0; x < r.length;) {
+          var c = r[x], e = x; while (e < r.length && r[e] === c) e++;
+          if (c !== '.' && PXPAL[c]) out += '<rect x="' + x + '" y="' + y + '" width="' + (e - x) + '" height="1" fill="' + PXPAL[c] + '"/>';
+          x = e;
+        }
+      });
+      return (PXC[name] = '<svg class="pxi" viewBox="0 0 ' + w + ' ' + h + '" shape-rendering="crispEdges" aria-hidden="true">' + out + '</svg>');
+    }
+    // emoji / symbols the console used → pixel icon names
+    var PXMAP = { '✨': 'smart', '💡': 'suggest', '🔒': 'lock', '🔓': 'unlock', '✓': 'confirm', '✎': 'edit', '＋': 'new', '🖼': 'gallery', '🧩': 'group', '⋯': 'more',
+      '🚶': 'walk', '⛰': 'land', '↶': 'undo', '↷': 'redo', '🛠': 'tools', '▦': 'grid', '✦': 'auto', '🔀': 'reorg', '🗺': 'map', '🎒': 'box', '−': 'zout', '⟲': 'tleft', '⟳': 'tright', '⤢': 'fit',
+      '✈': 'fly', '⏩': 'run', '⬆': 'up', '⬇': 'down', '🏙': 'city', '🏘': 'town', '🎲': 'dice', '✕': 'clear', '◯': 'ring', '×2': 'double' };
+    function pxi(sym, fallback) { var n = PXMAP[sym] || sym; return PX[n] ? px(n) : (fallback != null ? fallback : sym); }
+
     // ---- hands-on build tools: each presses the island HUD's own button, so they behave exactly as before
     var HUD_MAIN = [['fpv', '🚶', 'Walk in', '[data-fpv]'], ['expand', '⛰', 'More land', '[data-expand]'], ['undo', '↶', 'Undo', '[data-hudundo]']];
     var HUD_MORE = [['redo', '↷', 'Redo', '[data-hudredo]'], ['snap', '▦', 'Grid', '[data-hudsnap]'], ['auto', '✦', 'Arrange for me', '[data-auto]'], ['reorg', '🔀', 'Reorganize', '[data-reorg]'],
-      ['arch', '🗺', 'Tile mode', '[data-arch]'], ['box', '🎒', 'Box', '[data-hudsheet="box"]'], ['in', '＋', 'Zoom in', '[data-cam="in"]'], ['out', '−', 'Zoom out', '[data-cam="out"]'],
-      ['left', '⟲', 'Turn left', '[data-cam="left"]'], ['right', '⟳', 'Turn right', '[data-cam="right"]'], ['fit', '⤢', 'See it all', '[data-cam="fit"]']];
+      ['arch', 'map', 'Tile mode', '[data-arch]'], ['box', 'box', 'Box', '[data-hudsheet="box"]'], ['in', 'zin', 'Zoom in', '[data-cam="in"]'], ['out', 'zout', 'Zoom out', '[data-cam="out"]'],
+      ['left', 'tleft', 'Turn left', '[data-cam="left"]'], ['right', 'tright', 'Turn right', '[data-cam="right"]'], ['fit', 'fit', 'See it all', '[data-cam="fit"]']];
     function hudEl(sel) { return document.querySelector('.mn-dsp ' + sel) || document.querySelector(sel); }
     function hudBtn(t) {   // mirrors the HUD button's state: ⛰ while adding land reads ✓ Done
       var h = hudEl(t[3]), on = !!(h && h.classList.contains('on')), lab = on && t[0] === 'expand' ? '✓ Done' : t[2];
-      return '<button type="button" data-wfhud="' + esc(t[3]) + '"' + (on ? ' class="on"' : '') + (h ? '' : ' disabled') + '><i>' + t[1] + '</i><span>' + esc(lab) + '</span></button>';
+      return '<button type="button" data-wfhud="' + esc(t[3]) + '"' + (on ? ' class="on"' : '') + (h ? '' : ' disabled') + '><i>' + pxi(t[1]) + '</i><span>' + esc(lab) + '</span></button>';
     }
     function stepBtn(acts, pn, S) {
       var cur = S && S.i >= 0 ? acts[3] : acts.filter(function (a) { return a[0] === pn; })[0] || acts[0];
-      return '<button type="button" class="wf-popb wf-step on' + (W.pop === 'steps' ? ' open' : '') + '" data-wfpop="steps" aria-expanded="' + (W.pop === 'steps') + '"><i>' + cur[1] + '</i><span>' + esc(cur[2]) + ' ▾</span></button>';
+      return '<button type="button" class="wf-popb wf-step on' + (W.pop === 'steps' ? ' open' : '') + '" data-wfpop="steps" aria-expanded="' + (W.pop === 'steps') + '"><i>' + pxi(cur[1]) + '</i><span>' + esc(cur[2]) + ' ▾</span></button>';
     }
     function popOpen(c, acts, pn, S) {   // the pop-out beside the left column
       var html = W.pop === 'steps'
-        ? acts.map(function (a) { var on = a[0] === pn || (a[0] === 'confirm' && S && S.i >= 0); return '<button type="button" data-wfact="' + a[0] + '"' + (on ? ' class="on"' : '') + (a[0] === 'confirm' && !(S && S.i >= 0) ? ' disabled' : '') + '><i>' + a[1] + '</i><span>' + esc(a[2]) + '</span></button>'; }).join('')
+        ? acts.map(function (a) { var on = a[0] === pn || (a[0] === 'confirm' && S && S.i >= 0); return '<button type="button" data-wfact="' + a[0] + '"' + (on ? ' class="on"' : '') + (a[0] === 'confirm' && !(S && S.i >= 0) ? ' disabled' : '') + '><i>' + pxi(a[1]) + '</i><span>' + esc(a[2]) + '</span></button>'; }).join('')
         : HUD_MORE.map(hudBtn).join('');
       var pop = document.createElement('div'); pop.className = 'wf-pop ' + W.pop; pop.setAttribute('role', 'menu'); pop.innerHTML = html;
       var main = c.querySelector('.wf-main'); main.appendChild(pop);
       var b = c.querySelector('[data-wfpop="' + W.pop + '"]'); if (b) pop.style.top = Math.max(0, Math.min(b.offsetTop - 4, main.clientHeight - pop.offsetHeight)) + 'px';   // beside its button, never off the screen
     }
     // first person on the folded Duo: the view stays above, the joystick and the fly / run / up / down pad move to the lower screen
-    setInterval(function () { var w = !!document.querySelector('.mn-dsp .mn-walk'); if (w !== R.classList.contains('wf-walk')) R.classList.toggle('wf-walk', w); }, 300);
+    // The walk view's own joystick / pad stay in place (hidden); a stand-in set lives at the top of the page in the middle
+    // of the lower screen and replays every touch onto the originals (mapped onto the original stick), so walking works
+    // exactly as before and nothing can stack above it.
+    setInterval(function () { var ov = document.querySelector('.mn-dsp .mn-walk'), w = !!ov && R.classList.contains('wf-fold'); if (w !== R.classList.contains('wf-walk')) R.classList.toggle('wf-walk', w); walkPad(w ? ov : null); }, 300);
+    function walkPad(ov) {
+      if (!ov) { if (W.wp) { W.wp.remove(); W.wp = null; } return; }
+      if (W.wp && W.wp._ov === ov) return; if (W.wp) W.wp.remove();
+      var joy = ov.querySelector('.joy'), pad = ov.querySelector('.pad'); if (!joy || !pad) return;
+      var box = document.createElement('div'); box.className = 'wf-walkpad'; box._ov = ov;
+      box.innerHTML = '<div class="wj" aria-label="Walk"><span class="wk"></span></div><div class="wp">' + [].map.call(pad.querySelectorAll('[data-wk]'), function (b) { return '<button type="button" data-wk2="' + b.getAttribute('data-wk') + '" aria-label="' + esc(b.getAttribute('aria-label') || '') + '">' + (px({ fly: 'fly', run: 'run', up: 'up', down: 'down' }[b.getAttribute('data-wk')]) || b.innerHTML) + '</button>'; }).join('') + '</div>';
+      document.body.appendChild(box); W.wp = box;
+      function fire(t, type, e, x, y) { t.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: e.pointerId, pointerType: e.pointerType, isPrimary: e.isPrimary, clientX: x, clientY: y })); }
+      var wj = box.querySelector('.wj'), wk = box.querySelector('.wk'), jid = null;
+      function map(e) { var a = wj.getBoundingClientRect(), b = joy.getBoundingClientRect(), k = b.width / a.width; return [b.left + b.width / 2 + (e.clientX - a.left - a.width / 2) * k, b.top + b.height / 2 + (e.clientY - a.top - a.height / 2) * k]; }
+      function knob() { var kn = joy.querySelector('.knob'), m = kn && (kn.style.transform || '').match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/), k = wj.offsetWidth / (joy.offsetWidth || 1); wk.style.transform = m ? 'translate(' + (m[1] * k) + 'px,' + (m[2] * k) + 'px)' : ''; }
+      wj.addEventListener('pointerdown', function (e) { e.preventDefault(); jid = e.pointerId; try { wj.setPointerCapture(e.pointerId); } catch (x) {} var q = map(e); fire(ov, 'pointerdown', e, q[0], q[1]); knob(); });
+      wj.addEventListener('pointermove', function (e) { if (e.pointerId !== jid) return; var q = map(e); fire(ov, 'pointermove', e, q[0], q[1]); knob(); });
+      ['pointerup', 'pointercancel'].forEach(function (t) { wj.addEventListener(t, function (e) { if (e.pointerId !== jid) return; jid = null; var q = map(e); fire(ov, t, e, q[0], q[1]); wk.style.transform = ''; }); });
+      box.querySelectorAll('[data-wk2]').forEach(function (cb) {
+        var orig = pad.querySelector('[data-wk="' + cb.getAttribute('data-wk2') + '"]'); if (!orig) return;
+        cb.addEventListener('pointerdown', function (e) { e.preventDefault(); var r = orig.getBoundingClientRect(); fire(orig, 'pointerdown', e, r.left + 4, r.top + 4); cb.classList.toggle('on', orig.classList.contains('on')); hap(); });
+        ['pointerup', 'pointercancel'].forEach(function (t) { cb.addEventListener(t, function (e) { var r = orig.getBoundingClientRect(); fire(ov, t, e, r.left + 4, r.top + 4); }); });
+      });
+    }
     // ⛰ More land on: the middle of the lower screen becomes the land tools (the island above shows ＋ / − plots)
     function landPanel() {
       var n = landOf().length, b = lbox(), room = V.at && V.at.room, g0 = V.d.ground || 'grass';
-      return '<section class="wf-land"><div class="wf-land-h"><i>⛰</i><div><b>' + (room ? 'Room space' : 'More land') + '</b><small>' + n + ' plots · ' + (b.x1 - b.x0) + ' × ' + (b.y1 - b.y0) + ' blocks</small></div></div>' +
+      return '<section class="wf-land"><div class="wf-land-h"><i>' + px('land') + '</i><div><b>' + (room ? 'Room space' : 'More land') + '</b><small>' + n + ' plots · ' + (b.x1 - b.x0) + ' × ' + (b.y1 - b.y0) + ' blocks</small></div></div>' +
         '<p class="duo-lib-m">Tap <b>＋</b> on the ' + (room ? 'room' : 'island') + ' above to add a plot, <b>−</b> to take an empty one away. Or grow it at once:</p>' +
-        '<div class="wf-land-q"><button type="button" data-wfland="ring"><i>◯</i><b>A ring all round</b><small>one plot wide on every side</small></button><button type="button" data-wfland="double"><i>×2</i><b>Double the land</b><small>twice as many plots</small></button></div>' +
-        (room ? '' : '<h4>Ground</h4><div class="wf-chips">' + GROUNDS.map(function (g) { return '<button type="button" data-wfgr="' + g[0] + '"' + (g0 === g[0] ? ' class="on"' : '') + '>' + ({ grass: '🌿', snow: '❄️', sand: '🏖', moss: '🍀' }[g[0]] || '') + ' ' + esc(g[1]) + '</button>'; }).join('') + '</div>') +
+        '<div class="wf-land-q"><button type="button" data-wfland="ring"><i>' + px('ring') + '</i><b>A ring all round</b><small>one plot wide on every side</small></button><button type="button" data-wfland="double"><i>' + px('double') + '</i><b>Double the land</b><small>twice as many plots</small></button></div>' +
+        (room ? '' : '<h4>Ground</h4><div class="wf-chips">' + GROUNDS.map(function (g) { return '<button type="button" data-wfgr="' + g[0] + '"' + (g0 === g[0] ? ' class="on"' : '') + '>' + px(g[0]) + ' ' + esc(g[1]) + '</button>'; }).join('') + '</div>') +
         '<button type="button" class="wf-land-ok" data-wfhud="[data-expand]">✓ Done</button></section>';
     }
     function dspPress(attr, val) {   // press a land / ground control through the island's own handler (undo, toasts, limits)
       var host = document.querySelector('.mn-dsp'); if (!host) return; var b = document.createElement('button'); b.type = 'button'; b.hidden = true; b.setAttribute(attr, val); host.appendChild(b); try { b.click(); } finally { b.remove(); }
+    }
+    // ---- 🏙 One-click 2× Mega City / Town (layouts ported from Gemini's phase3-entry.js): 14 × 14 plots,
+    //      a 5 × 5 avenue grid of districts — flagship stores, markets, banks, landmarks, harbour, rail.
+    //      Runs inside change(): one undo puts the island back. What you placed or filled stays.
+    function megaLists() {
+      var b = (A().boards() || []).filter(function (x) { return x.id === V.bid; })[0];
+      return ((b && b.columns) || []).filter(function (c) { return c && !c.archived; }).map(function (c) { return { id: c.id, title: c.title || 'List', cards: [] }; });
+    }
+    function megaBuild(kind, seed0) {
+      var d = V.d;
+    var seed = seed0 || 1;
+    var rngState = (seed * 9301 + 49297) % 233280;
+    function rnd() {
+      rngState = (rngState * 9301 + 49297) % 233280;
+      return rngState / 233280;
+    }
+
+    var pcs = d.pc.filter(function (p) { return !p.city || (p.it && p.it.length); });   // what you placed or filled stays
+
+
+    function add(k, x, y, f, extra) {
+      if (!K[k] || !BUILD[k]) return null;
+      var p = { id: uid(), k: k, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, f: f || 0, s: 1, it: [], city: 1 };
+      if (extra && extra.label) p.label = extra.label;
+      if (extra && extra.s) p.s = extra.s;
+      pcs.push(p); return p;
+    }
+
+    // Expand Island Land to 14×14 plots = 196 plots = 42×42 = 1,764 sq blocks (2× area!)
+    // Note: MinestDisplay expects d.land to be an Array of "i,j" strings!
+    var plotsW = kind === 'village' ? 12 : 14;
+    var plotsH = kind === 'village' ? 12 : 14;
+    var land = [];
+    for (var li = 0; li < plotsW; li++) {
+      for (var lj = 0; lj < plotsH; lj++) {
+        land.push(li + ',' + lj);
+      }
+    }
+    var had = landOf(); land = had.concat(land.filter(function (k) { return had.indexOf(k) < 0; })).slice(0, MAX_PLOTS); d.land = land;
+    d.v = 1;
+    d.ground = d.ground || 'grass';
+
+    var lists = megaLists();
+    var listCursor = 0;
+    function nextListExtra(fallbackLabel, keepBig) {
+      if (listCursor < lists.length) {
+        var l = lists[listCursor++];
+        return {
+          label: fallbackLabel ? (fallbackLabel + ' · ' + l.title) : l.title,
+          arch: keepBig !== false ? 'dom:city' : undefined,
+        };
+      }
+      return fallbackLabel ? { label: fallbackLabel, arch: keepBig !== false ? 'dom:city' : undefined } : null;
+    }
+
+    // =====================================================================
+    // LAYOUT 1: 2× MEGA-METROPOLIS CITY (42×42 blocks = 1,764 sq blocks)
+    // Note: In MinestDisplay, (p.x, p.y) is the CENTER of the piece!
+    // Roads sit at centers R = [1, 9, 17, 25, 33] (spanning [0..2], [8..10], etc.).
+    // Each 6×6 urban block starts at (bx, by) = (a*8 + 2, b*8 + 2) and has
+    // 4 quadrant centers at (bx+1.5, by+1.5), (bx+4.5, by+1.5), (bx+1.5, by+4.5), (bx+4.5, by+4.5).
+    // =====================================================================
+    if (kind === 'city') {
+      // 1. 5×5 Major Avenue Network at R = [1, 9, 17, 25, 33]
+      var R = [1, 9, 17, 25, 33];
+
+      // Intersections (25 major junctions)
+      R.forEach(function (rx, xi) {
+        R.forEach(function (ry, yi) {
+          var isInner = xi > 0 && xi < 4 && yi > 0 && yi < 4;
+          var isRound = isInner && ((xi + yi + seed) % 2 === 0);
+          add(isRound ? 'r_round' : 'r_cross', rx, ry, 0);
+          // Traffic lights & street lamps on sidewalk corners outside roads
+          if (xi < 4 && yi < 4) {
+            add('s_light', rx + 1.35, ry + 1.35, 0);
+            add('lamp', rx + 6.65, ry + 1.35, 0);
+          }
+        });
+      });
+
+      // Road segments & zebra crosswalks between intersections (centers at s0, s0+2, s0+4)
+      for (var bi = 0; bi < 4; bi++) {
+        var s0 = R[bi] + 2;
+        var segs = [s0, s0 + 2, s0 + 4];
+        R.forEach(function (ry) {
+          segs.forEach(function (sx, si) {
+            add(si === 0 ? 'r_zebra' : 'r_road', sx, ry, 0);
+          });
+        });
+        R.forEach(function (rx) {
+          segs.forEach(function (sy, si) {
+            add(si === 2 ? 'r_zebra' : 'r_road', rx, sy, 1);
+          });
+        });
+      }
+
+      // Eastern Waterfront Connector Boulevards (centers x = 35, 37, 39 along y in R)
+      R.forEach(function (ry) {
+        add('r_zebra', 35, ry, 0);
+        add('r_road', 37, ry, 0);
+        add('r_road', 39, ry, 0);
+      });
+
+      // Bus stops along major avenues (on sidewalk edge)
+      [5, 13, 21, 29].forEach(function (pos) {
+        add('s_bus', pos, 10.35, 0);
+        add('s_bus', pos, 26.35, 0);
+        add('s_bus', 18.35, pos, 1);
+        add('s_bus', 34.35, pos, 1);
+      });
+
+      // 2. 16 Urban Blocks (4×4 grid of 6×6 blocks, top-left at bx = a*8 + 2, by = b*8 + 2)
+      //    Quadrant centers: Q0=(bx+1.5, by+1.5), Q1=(bx+4.5, by+1.5), Q2=(bx+1.5, by+4.5), Q3=(bx+4.5, by+4.5)
+      var blockBuilders = [
+        // Block (0,0): Grand Civic & Financial Core
+        function (bx, by) {
+          add('k_townhall', bx + 1.5, by + 1.5, 0, nextListExtra('🏛 市政厅 Town Hall', true));
+          add('k_bank', bx + 4.5, by + 1.5, 0, nextListExtra('🏦 中央银行 Grand Bank', true));
+          add('k_post', bx + 1.5, by + 4.5, 0, nextListExtra('📮 邮政总局 Post HQ', false));
+          add('fountain', bx + 4.5, by + 4.5, 0, { label: '⛲ 市政广场喷泉' });
+          add('mob_villager', bx + 3.0, by + 3.2, 0, { still: 1 });
+        },
+        // Block (1,0): Manhattan Skyscraper & World Trade Plaza
+        function (bx, by) {
+          add('lm_empire', bx + 1.5, by + 1.5, 0, nextListExtra('🗽 帝国大厦 Empire State', true));
+          add('lm_chrysler', bx + 4.5, by + 1.5, 0, nextListExtra('🏙 克莱斯勒大厦', false));
+          add('c_glass', bx + 1.5, by + 4.5, 0, nextListExtra('💎 摩天金融中心', true));
+          add('c_office', bx + 4.5, by + 4.5, 0, { label: '🏢 环球贸易大厦' });
+          add('s_billboard', bx + 3.0, by + 5.5, 0);
+        },
+        // Block (2,0): Asian Supertall Towers & Luxury Hotel
+        function (bx, by) {
+          add('lm_shanghai', bx + 1.5, by + 1.5, 0, nextListExtra('🏙 上海中心大厦', true));
+          add('lm_taipei101', bx + 4.5, by + 1.5, 0, nextListExtra('🎋 台北 101 大厦', true));
+          add('c_hotel', bx + 1.5, by + 4.5, 0, nextListExtra('🏨 大都会丽兹酒店', false));
+          add('c_glass', bx + 4.5, by + 4.5, 0, { label: '🏢 科技总部大楼' });
+        },
+        // Block (3,0): Louvre Art Galleria & Luxury Flagship Stores
+        function (bx, by) {
+          add('lm_louvre', bx + 1.5, by + 1.5, 0, nextListExtra('🔺 卢浮玻璃金字塔展馆', true));
+          add('c_cafe', bx + 4.5, by + 1.5, 0, { label: '☕ 艺术馆咖啡厅', arch: 'dom:city' });
+          add('c_shops', bx + 1.5, by + 4.5, 0, nextListExtra('🛍 第五大道名品店', true));
+          add('rack', bx + 4.5, by + 4.5, 0, { label: '👗 高定买手橱窗' });
+        },
+        // Block (0,1): Grand Supermarket & Fresh Market Street
+        function (bx, by) {
+          add('c_market', bx + 1.5, by + 1.5, 0, nextListExtra('🏪 大都会生鲜超市', true));
+          add('c_cafe', bx + 4.5, by + 1.5, 0, { label: '☕ 街角烘焙坊', arch: 'dom:city' });
+          add('c_shops', bx + 1.5, by + 4.5, 0, nextListExtra('🛍 时代百货商场', true));
+          add('k_store', bx + 4.5, by + 4.5, 0, { label: '🏪 24H 便利百货', arch: 'dom:city' });
+          add('crates', bx + 3.0, by + 5.2, 0, { label: '🍎 鲜果市集摊' });
+          add('mob_chef', bx + 3.2, by + 3.0, 0, { still: 1 });
+        },
+        // Block (1,1): Flagship Shopping Avenue & Vinyl / Fashion Vitrines
+        function (bx, by) {
+          add('c_shops', bx + 1.5, by + 1.5, 0, nextListExtra('🏬 银座旗舰百货街', true));
+          add('c_cafe', bx + 4.5, by + 1.5, 0, { label: '☕ 蓝瓶精品咖啡', arch: 'dom:city' });
+          add('k_store', bx + 1.5, by + 4.5, 0, nextListExtra('🛍 买手百货杂货铺', true));
+          add('records', bx + 4.5, by + 3.8, 0, { label: '💿 黑胶唱片行 Vinyl' });
+          add('table', bx + 4.5, by + 5.2, 0, { label: '🍽 露天法式餐吧' });
+        },
+        // Block (2,1): Central Botanical Park, Fountain & Playground
+        function (bx, by) {
+          add('fountain', bx + 3.0, by + 3.0, 0, { label: '⛲ 中央公园喷泉', arch: 'dom:city' });
+          add('w_pond', bx + 1.5, by + 1.5, 0);
+          add('y_gazebo', bx + 4.5, by + 1.5, 0, { label: '亭 湖畔凉亭' });
+          add('s_play', bx + 1.5, by + 4.5, 0, { label: '🎠 儿童游乐园' });
+          add('fl_arch', bx + 4.5, by + 4.5, 0);
+          add('cherry', bx + 3.0, by + 1.2, 0);
+          add('mob_kid', bx + 3.0, by + 4.8, 0, { still: 1 });
+        },
+        // Block (3,1): Akihabara Neon Arcade & Boutique Hotel Block
+        function (bx, by) {
+          add('c_hotel', bx + 1.5, by + 1.5, 0, nextListExtra('🏨 霓虹精品酒店', true));
+          add('c_office', bx + 4.5, by + 1.5, 0, { label: '🏢 数码动漫中心' });
+          add('c_shops', bx + 1.5, by + 4.5, 0, nextListExtra('🎮 电玩数码商业街', true));
+          add('arcade', bx + 3.8, by + 4.5, 0, { label: '🕹 街机游戏厅' });
+          add('c_cafe', bx + 5.0, by + 4.5, 0, { label: '🍨 甜品冰淇淋店' });
+        },
+        // Block (0,2): Medical Center, Police HQ & Fire Station
+        function (bx, by) {
+          add('c_hospital', bx + 1.5, by + 1.5, 0, nextListExtra('🏥 市立综合医院', true));
+          add('c_police', bx + 4.5, by + 1.5, 0, { label: '🚓 警察总局', arch: 'dom:city' });
+          add('c_fire', bx + 1.5, by + 4.5, 0, { label: '🚒 消防救援中心' });
+          add('r_parking', bx + 4.5, by + 4.5, 0, { label: '🅿️ 应急停车场' });
+        },
+        // Block (1,2): Cultural, Library & Science Academy Quad
+        function (bx, by) {
+          add('library', bx + 1.5, by + 1.5, 0, nextListExtra('📚 市立中心图书馆', true));
+          add('domehall', bx + 4.5, by + 1.5, 0, nextListExtra('🏛 万神殿音乐厅', true));
+          add('observatory', bx + 1.5, by + 4.5, 0, { label: '🔭 天文与科学馆' });
+          add('c_school', bx + 4.5, by + 4.5, 0, { label: '🎓 大都会学院' });
+        },
+        // Block (2,2): Twin Towers, Open-Air Farmer's Market & General Store
+        function (bx, by) {
+          add('lm_petronas', bx + 1.5, by + 1.5, 0, nextListExtra('🗼 双子塔商业中心', true));
+          add('market', bx + 4.5, by + 1.5, 0, { label: '🎪 露天农夫集市', arch: 'dom:city' });
+          add('k_store', bx + 1.5, by + 4.5, 0, { label: '🥖 鲜食百货店', arch: 'dom:city' });
+          add('c_office', bx + 4.5, by + 4.5, 0, { label: '🏢 创意设计大厦' });
+        },
+        // Block (3,2): Champs-Élysées Landmark & Bistro Terrace Block
+        function (bx, by) {
+          add('lm_eiffel', bx + 1.5, by + 1.5, 0, { label: '🗼 埃菲尔铁塔广场', arch: 'dom:city' });
+          add('lm_arc', bx + 4.5, by + 1.5, 0, { label: '🏛 凯旋门大道' });
+          add('lm_bigben', bx + 1.5, by + 4.5, 0, { label: '🕰 皇家钟楼' });
+          add('c_cafe', bx + 4.5, by + 4.5, 0, { label: '☕ 左岸花神咖啡馆', arch: 'dom:city' });
+        },
+        // Block (0,3): Uptown Apartments, Townhouses & Community Store
+        function (bx, by) {
+          add('c_apartment', bx + 1.5, by + 1.5, 0, { label: '🏢 都会高级公寓' });
+          add('c_town', bx + 4.5, by + 1.5, 0, { label: '🏘 褐石联排别墅' });
+          add('h_modern', bx + 1.5, by + 4.5, 0, { label: '🏡 现代阳光住宅' });
+          add('k_store', bx + 4.5, by + 4.5, 0, { label: '🏪 社区生活超市', arch: 'dom:city' });
+        },
+        // Block (1,3): Grand Supermarket, Open-Air IMAX Cinema & Night Market
+        function (bx, by) {
+          add('c_market', bx + 1.5, by + 1.5, 0, { label: '🛒 仓储会员大超市', arch: 'dom:city' });
+          add('c_cafe', bx + 4.5, by + 1.5, 0, { label: '🍿 影院咖啡吧' });
+          add('cinema', bx + 1.5, by + 4.5, 0, { label: '🎬 巨幕露天电影院 IMAX', arch: 'dom:city' });
+          add('c_shops', bx + 4.5, by + 4.5, 0, { label: '🛍 夜市步行街铺', arch: 'dom:city' });
+        },
+        // Block (2,3): Auto Service Station, Parking Plaza & Sports Arena
+        function (bx, by) {
+          add('c_gas', bx + 1.5, by + 1.5, 0, { label: '⛽ 24H 加油服务站', arch: 'dom:city' });
+          add('r_parking', bx + 4.5, by + 1.5, 0, { label: '🅿️ 城市立体停车场' });
+          add('trophy', bx + 1.5, by + 4.5, 0, { label: '🏅 都会体育馆广场' });
+          add('c_shops', bx + 4.5, by + 4.5, 0, { label: '🛍 运动生活街铺' });
+        },
+        // Block (3,3): Beverly Pool Villa & Kyoto Zen Courtyard
+        function (bx, by) {
+          add('h_villa', bx + 1.5, by + 1.5, 0, { label: '🏊 比弗利泳池别墅', arch: 'dom:city' });
+          add('y_pool', bx + 4.5, by + 1.5, 0);
+          add('h_japan', bx + 1.5, by + 4.5, 0, { label: '⛩ 京都和风庭院' });
+          add('y_koi', bx + 4.5, by + 4.5, 0);
+        }
+      ];
+
+      // Shuffle block order slightly on reroll while keeping core downtown blocks prominent
+      for (var ba = 0; ba < 4; ba++) {
+        for (var bb = 0; bb < 4; bb++) {
+          var bIdx = (bb * 4 + ba + (seed > 1 ? (seed - 1) : 0)) % blockBuilders.length;
+          blockBuilders[bIdx](ba * 8 + 2, bb * 8 + 2);
+        }
+      }
+
+      // 3. Eastern Waterfront Marina, Opera Pier & Golden Beach (x = 34..42, y = 2..32)
+      // Block E0 (y = 2..8): Sydney Opera House & Waterfront Café
+      add('lm_opera', 37.0, 3.8, 0, { label: '🎭 海湾歌剧院 Opera House', arch: 'dom:city' });
+      add('c_cafe', 37.0, 6.8, 0, { label: '☕ 海景露天咖啡' });
+      add('palm', 40.4, 5.2, 0);
+
+      // Block E1 (y = 10..16): Bay Ferris Wheel, Concert Stage & Pier Market
+      add('lm_londoneye', 37.0, 11.8, 0, { label: '🎡 海湾摩天轮 London Eye', arch: 'dom:city' });
+      add('stage', 36.5, 14.8, 0, { label: '🎸 海滨音乐节舞台' });
+      add('market', 39.8, 14.8, 0, { label: '🎪 海滨文创集市' });
+
+      // Block E2 (y = 18..24): Yacht Marina Harbor & Ferry Terminal
+      add('w_lake', 38.2, 21.0, 0, { label: '⚓ 游艇海湾码头 Marina', arch: 'dom:city' });
+      add('y_dock', 35.6, 20.5, 0);
+      add('b_yacht', 37.8, 20.2, 0, { still: 1 });
+      add('b_ferry', 39.6, 21.8, 0, { still: 1 });
+      add('b_sail', 36.8, 22.4, 0, { still: 1 });
+
+      // Block E3 (y = 26..32): Golden Beach, Lighthouse & Surf Lounge
+      add('w_beach', 37.2, 28.5, 0, { label: '🏖 黄金海岸沙滩' });
+      add('lighthouse', 40.2, 30.5, 0, { label: '🗼 海角灯塔 Lighthouse', arch: 'dom:city' });
+      add('umbrella', 36.2, 30.8, 0);
+      add('y_lounger', 37.8, 30.8, 0);
+      add('palm', 40.4, 27.2, 0);
+
+      // 4. Southern High-Speed Rail & Commercial Transit Boulevard (x = 1..41, y = 35..41)
+      for (var tx = 1; tx <= 41; tx += 2) {
+        add('t_rail', tx, 35.5, 0);
+      }
+      add('t_bullet', 14, 35.5, 0, { s: 0.9 }); // Moving Shinkansen bullet train along southern rail!
+      add('t_tram', 30, 35.5, 0, { s: 0.9 });   // Moving city streetcar!
+
+      // Two Railway Stations + Forecourt Commercial Strip (centers at y = 39.0)
+      add('c_shops', 2.5, 39.0, 0, { label: '🛍 站前商业街', arch: 'dom:city' });
+      add('c_cafe', 6.5, 39.0, 0, { label: '☕ 站前咖啡馆' });
+      add('t_station', 11.0, 38.8, 0, { label: '🚄 中央高铁总站 Central Station', arch: 'dom:city' });
+      add('c_market', 16.0, 39.0, 0, { label: '🏪 站前百货超市', arch: 'dom:city' });
+      add('k_bank', 20.5, 39.0, 0, { label: '🏦 交通银行' });
+      add('k_store', 24.5, 39.0, 0, { label: '🏪 旅途便利店' });
+      add('t_station', 29.0, 38.8, 0, { label: '🚉 海湾列车站 Harbor Station', arch: 'dom:city' });
+      add('c_shops', 34.0, 39.0, 0, { label: '🛍 海湾免税店', arch: 'dom:city' });
+      add('c_gas', 38.8, 39.0, 0, { label: '⛽ 港湾加油站' });
+
+      // 5. Vehicles: Valid MinestDisplay car keys (`car_super`, `car_stripe`, `ev_sedan`, etc.) with `s: 0.55`!
+      //    Outer avenue (`y = 33`, `x = 33`) vehicles move smoothly; interior vehicles use `still: 1` for depth-sorting!
+      add('car_stripe', 5, 33, 0, { s: 0.55 });
+      add('car_super', 19, 33, 0, { s: 0.55 });
+      add('ev_sedan', 29, 33, 0, { s: 0.55 });
+      add('car_cabrio', 33, 13, 1, { s: 0.55 });
+      add('ev_suv', 33, 27, 1, { s: 0.55 });
+      // Interior depth-sorted street vehicles (still: 1 so they never float over skyscraper roofs)
+      add('car_stripe', 5, 9, 0, { s: 0.55, still: 1 });
+      add('car_gt', 13, 9, 0, { s: 0.55, still: 1 });
+      add('ev_sedan', 21, 9, 0, { s: 0.55, still: 1 });
+      add('car_super', 29, 9, 0, { s: 0.55, still: 1 });
+      add('car_cabrio', 5, 17, 0, { s: 0.55, still: 1 });
+      add('car_model', 13, 17, 0, { s: 0.55, still: 1 });
+      add('ev_suv', 21, 17, 0, { s: 0.55, still: 1 });
+      add('car_fins', 29, 17, 0, { s: 0.55, still: 1 });
+      add('car_roadster', 5, 25, 0, { s: 0.55, still: 1 });
+      add('car_track', 13, 25, 0, { s: 0.55, still: 1 });
+      add('ev_pickup', 21, 25, 0, { s: 0.55, still: 1 });
+      add('car_woody', 29, 25, 0, { s: 0.55, still: 1 });
+      add('car_stripe', 9, 5, 1, { s: 0.55, still: 1 });
+      add('ev_sedan', 17, 13, 1, { s: 0.55, still: 1 });
+      add('car_super', 25, 21, 1, { s: 0.55, still: 1 });
+
+      // 6. Sky & Harbor Life
+      add('ship_gold', 20, 0.8, 0);
+      add('balloon_rainbow', 39, 3, 0);
+      add('a_birds', 12, 12, 0);
+      add('a_gulls', 38, 20, 0);
+
+    // =====================================================================
+    // LAYOUT 2: 2× MEGA-TOWN (42×42 blocks = 1,764 sq blocks)
+    // =====================================================================
+    } else if (kind === 'town') {
+      var RT = [1, 9, 17, 25, 33];
+      RT.forEach(function (rx, xi) {
+        RT.forEach(function (ry, yi) {
+          var isRound = (xi === 2 && yi === 2) || (xi === 1 && yi === 1);
+          add(isRound ? 'r_round' : 'r_cross', rx, ry, 0);
+          if (xi < 4 && yi < 4) add('lamp', rx + 1.35, ry + 1.35, 0);
+        });
+      });
+      for (var tbi = 0; tbi < 4; tbi++) {
+        var ts0 = RT[tbi] + 2;
+        [ts0, ts0 + 2, ts0 + 4].forEach(function (s, si) {
+          RT.forEach(function (ry) { add(si === 1 ? 'r_zebra' : 'r_road', s, ry, 0); });
+          RT.forEach(function (rx) { add(si === 1 ? 'r_zebra' : 'r_road', rx, s, 1); });
+        });
+      }
+      RT.forEach(function (ry) {
+        add('r_road', 35, ry, 0);
+        add('r_road', 37, ry, 0);
+      });
+
+      var townBlocks = [
+        // (0,0) Town Hall & Clock Square
+        function (bx, by) {
+          add('k_townhall', bx + 1.5, by + 1.5, 0, nextListExtra('🏛 小镇市政厅 Town Hall', true));
+          add('k_post', bx + 1.5, by + 4.5, 0, nextListExtra('📮 小镇邮局 Post Office', false));
+          add('fountain', bx + 4.5, by + 4.5, 0, { label: '⛲ 钟楼广场喷泉' });
+          add('fl_arch', bx + 4.5, by + 1.5, 0);
+        },
+        // (1,0) Old Main Street Shops & Bakery Café
+        function (bx, by) {
+          add('c_shops', bx + 1.5, by + 1.5, 0, nextListExtra('🛍 小镇百货主街 Main St.', true));
+          add('c_cafe', bx + 4.5, by + 1.5, 0, { label: '☕ 街角阳光咖啡馆', arch: 'dom:city' });
+          add('k_store', bx + 1.5, by + 4.5, 0, nextListExtra('🥖 手工烘焙杂货铺', true));
+          add('table', bx + 4.5, by + 4.5, 0, { label: '🍰 露天下午茶座' });
+        },
+        // (2,0) Grand Town Market & Bank
+        function (bx, by) {
+          add('c_market', bx + 1.5, by + 1.5, 0, nextListExtra('🏪 小镇生活大超市', true));
+          add('k_bank', bx + 4.5, by + 4.5, 0, nextListExtra('🏦 社区储蓄银行', true));
+          add('market', bx + 1.5, by + 4.5, 0, { label: '🎪 周末农夫市集', arch: 'dom:city' });
+          add('y_bikes', bx + 4.5, by + 1.5, 0);
+        },
+        // (3,0) Historic Steeple Church & Rose Garden
+        function (bx, by) {
+          add('c_church', bx + 1.5, by + 1.5, 0, nextListExtra('⛪ 圣玛丽尖顶教堂', true));
+          add('y_gazebo', bx + 4.5, by + 1.5, 0, { label: '亭 玫瑰花亭' });
+          add('fl_arch', bx + 4.5, by + 4.5, 0);
+          add('cherry', bx + 1.5, by + 4.5, 0);
+        },
+        // (0,1) Victorian Mansion & Turret Neighborhood
+        function (bx, by) {
+          add('h_victorian', bx + 1.5, by + 1.5, 0, nextListExtra('🏰 维多利亚塔楼洋房', true));
+          add('c_town', bx + 1.5, by + 4.5, 0, { label: '🏘 彩绘联排小屋' });
+          add('fl_bed', bx + 4.5, by + 1.5, 0);
+          add('tree', bx + 4.5, by + 4.5, 0);
+        },
+        // (1,1) Town Central Green & Playground
+        function (bx, by) {
+          add('fountain', bx + 3.0, by + 3.0, 0, { label: '⛲ 绿茵中心公园', arch: 'dom:city' });
+          add('s_play', bx + 1.5, by + 1.5, 0, { label: '🎠 小镇儿童乐园' });
+          add('y_gazebo', bx + 4.5, by + 1.5, 0);
+          add('w_pond', bx + 1.5, by + 4.5, 0);
+          add('stage', bx + 4.5, by + 4.5, 0, { label: '🎻 露天音乐台' });
+        },
+        // (2,1) Bell-Tower Academy, School & Town Library
+        function (bx, by) {
+          add('school', bx + 1.5, by + 1.5, 0, nextListExtra('🔔 钟楼书院 Academy', true));
+          add('library', bx + 4.5, by + 1.5, 0, nextListExtra('📚 小镇公共图书馆', true));
+          add('c_school', bx + 1.5, by + 4.5, 0, { label: '🏫 小镇中心小学' });
+          add('s_bus', bx + 4.5, by + 4.5, 0);
+        },
+        // (3,1) Mediterranean & Pool Villa Quarter
+        function (bx, by) {
+          add('h_villa', bx + 1.5, by + 1.5, 0, { label: '🏊 阳光泳池别墅', arch: 'dom:city' });
+          add('y_pool', bx + 4.5, by + 1.5, 0);
+          add('h_med', bx + 1.5, by + 4.5, 0, { label: '🍊 地中海红瓦别墅' });
+          add('palm', bx + 4.5, by + 4.5, 0);
+        },
+        // (0,2) Family Homes & Treehouse Yard
+        function (bx, by) {
+          add('h_family', bx + 1.5, by + 1.5, 0, { label: '🏡 温馨家庭木屋' });
+          add('y_treehouse', bx + 4.5, by + 1.5, 0, { label: '🌲 秘密树屋' });
+          add('h_modern', bx + 1.5, by + 4.5, 0, { label: '☀️ 生态阳光屋' });
+          add('y_swing', bx + 4.5, by + 4.5, 0);
+        },
+        // (1,2) Artisan Craft & Book/Music Corner
+        function (bx, by) {
+          add('c_shops', bx + 1.5, by + 1.5, 0, { label: '🛍 文创手作街铺', arch: 'dom:city' });
+          add('records', bx + 4.5, by + 1.5, 0, { label: '💿 复古唱片店' });
+          add('cinema', bx + 1.5, by + 4.5, 0, { label: '🎬 星空露天电影' });
+          add('c_cafe', bx + 4.5, by + 4.5, 0, { label: '☕ 书香咖啡屋', arch: 'dom:city' });
+        },
+        // (2,2) Town Clinic, Fire & Service Corner
+        function (bx, by) {
+          add('c_hospital', bx + 1.5, by + 1.5, 0, { label: '🏥 小镇社区医院', arch: 'dom:city' });
+          add('c_fire', bx + 4.5, by + 1.5, 0, { label: '🚒 志愿消防站' });
+          add('c_gas', bx + 1.5, by + 4.5, 0, { label: '⛽ 小镇加油站' });
+          add('r_parking', bx + 4.5, by + 4.5, 0);
+        },
+        // (3,2) Japanese Courtyard & Koi Tea House
+        function (bx, by) {
+          add('h_japan', bx + 1.5, by + 1.5, 0, { label: '🍵 和风茶庭居', arch: 'dom:city' });
+          add('y_koi', bx + 4.5, by + 1.5, 0);
+          add('torii', bx + 4.5, by + 4.5, 0);
+          add('cherry', bx + 1.5, by + 4.5, 0);
+        },
+        // (0,3) Countryside Windmill & Golden Wheat Farm
+        function (bx, by) {
+          add('windmill', bx + 1.5, by + 1.5, 0, { label: '🌾 荷兰风车磨坊', arch: 'dom:city' });
+          add('n_wheat', bx + 4.5, by + 1.5, 0);
+          add('n_wheat', bx + 4.5, by + 4.5, 0);
+          add('farm', bx + 1.5, by + 4.5, 0, { label: '🎃 南瓜菜园' });
+        },
+        // (1,3) Red Barn, Orchard & Country Market
+        function (bx, by) {
+          add('barn', bx + 1.5, by + 1.5, 0, { label: '🏚 红谷仓农庄 Barn', arch: 'dom:city' });
+          add('n_orchard', bx + 4.5, by + 1.5, 0, { label: '🍎 苹果果园' });
+          add('market', bx + 1.5, by + 4.5, 0, { label: '🧺 农庄直营市集' });
+          add('well', bx + 4.5, by + 4.5, 0);
+        },
+        // (2,3) Cozy Cottages & Sunflower Garden
+        function (bx, by) {
+          add('cottage', bx + 1.5, by + 1.5, 0, { label: '🏠 林间童话小屋' });
+          add('house', bx + 4.5, by + 1.5, 0, { label: '🏡 花园洋房' });
+          add('y_veg', bx + 1.5, by + 4.5, 0, { label: '🌿 田园果蔬圃' });
+          add('fl_sunflowers', bx + 4.5, by + 4.5, 0);
+        },
+        // (3,3) Lakeside Camping & Chalet Inn
+        function (bx, by) {
+          add('h_chalet', bx + 1.5, by + 1.5, 0, { label: '🍺 旅人木屋客栈 Inn', arch: 'dom:city' });
+          add('tent', bx + 4.5, by + 1.5, 0);
+          add('campfire', bx + 4.5, by + 4.5, 0);
+          add('spruce', bx + 1.5, by + 4.5, 0);
+        }
+      ];
+
+      for (var ta = 0; ta < 4; ta++) {
+        for (var tb = 0; tb < 4; tb++) {
+          var tIdx = (tb * 4 + ta + (seed > 1 ? (seed - 1) : 0)) % townBlocks.length;
+          townBlocks[tIdx](ta * 8 + 2, tb * 8 + 2);
+        }
+      }
+
+      // Eastern Harbor, Beach & Lighthouse (x = 35..41)
+      add('w_lake', 38.0, 5.0, 0, { label: '🦢 翠湖泛舟', arch: 'dom:city' });
+      add('y_dock', 35.6, 4.5, 0);
+      add('b_sail', 38.2, 5.2, 0, { still: 1 });
+      add('w_beach', 37.5, 13.0, 0, { label: '🏖 海湾浅滩' });
+      add('lighthouse', 38.5, 21.0, 0, { label: '🗼 古老灯塔', arch: 'dom:city' });
+      add('c_cafe', 37.5, 29.0, 0, { label: '☕ 海风咖啡屋', arch: 'dom:city' });
+      add('palm', 40.2, 29.0, 0);
+
+      // Southern Country Railway & Steam Train (y = 35..41)
+      for (var trx = 1; trx <= 41; trx += 2) {
+        add('t_rail', trx, 35.5, 0);
+      }
+      add('t_steam', 12, 35.5, 0, { s: 0.9 });
+      add('t_tram', 28, 35.5, 0, { s: 0.9 });
+      add('k_store', 8.0, 39.0, 0, { label: '🏪 站前杂货铺', arch: 'dom:city' });
+      add('t_station', 17.0, 38.8, 0, { label: '🚂 小镇蒸汽火车站 Town Station', arch: 'dom:city' });
+      add('c_cafe', 25.0, 39.0, 0, { label: '☕ 站前茶点屋', arch: 'dom:city' });
+
+      // Moving cars on front road (y=33), still cars inside
+      add('car_woody', 9, 33, 0, { s: 0.55 });
+      add('car_roadster', 23, 33, 0, { s: 0.55 });
+      add('car_pickup_old', 5, 17, 0, { s: 0.55, still: 1 });
+      add('ev_sedan', 17, 13, 1, { s: 0.55, still: 1 });
+      add('balloon_rainbow', 38, 3, 0);
+
+    // =====================================================================
+    // LAYOUT 3: 2× MEGA-CAMPUS (42×42 blocks) & VILLAGE (36×36 blocks)
+    // =====================================================================
+    } else if (kind === 'campus') {
+      var RC = [1, 9, 17, 25, 33];
+      RC.forEach(function (rx) {
+        RC.forEach(function (ry) {
+          add((rx === 17 && ry === 17) ? 'r_round' : 'r_cross', rx, ry, 0);
+        });
+      });
+      for (var cbi = 0; cbi < 4; cbi++) {
+        var cs0 = RC[cbi] + 2;
+        [cs0, cs0 + 2, cs0 + 4].forEach(function (s, si) {
+          RC.forEach(function (ry) { add(si === 1 ? 'r_zebra' : 'r_road', s, ry, 0); });
+          RC.forEach(function (rx) { add(si === 1 ? 'r_zebra' : 'r_road', rx, s, 1); });
+        });
+      }
+      var campusPool = ['library', 'school', 'c_school', 'domehall', 'observatory', 'trophy', 'lab', 'c_apartment', 'c_cafe', 'c_shops', 'k_store', 'stage', 'cinema', 'k_townhall', 'c_hospital', 'fountain'];
+      for (var ca = 0; ca < 4; ca++) {
+        for (var cb = 0; cb < 4; cb++) {
+          var cbx = ca * 8 + 2, cby = cb * 8 + 2;
+          var ck1 = campusPool[(ca * 4 + cb + seed) % campusPool.length];
+          add(ck1, cbx + 1.5, cby + 1.5, 0, nextListExtra('🎓 学院楼 #' + (ca * 4 + cb + 1), true));
+          add((ca + cb) % 2 === 0 ? 'c_cafe' : 'k_store', cbx + 4.5, cby + 4.5, 0, { label: (ca + cb) % 2 === 0 ? '☕ 校园咖啡吧' : '📚 校园书店超市' });
+          add('cherry', cbx + 1.5, cby + 4.5, 0);
+        }
+      }
+      add('w_lake', 38.0, 13.0, 0, { label: '🦢 未名湖 Campus Lake', arch: 'dom:city' });
+      for (var crx = 1; crx <= 41; crx += 2) add('t_rail', crx, 35.5, 0);
+      add('t_tram', 14, 35.5, 0, { s: 0.9 });
+      add('t_station', 17, 38.8, 0, { label: '🚉 大学城轻轨站', arch: 'dom:city' });
+
+    } else {
+      // Countryside Village (36×36 blocks)
+      var RV = [1, 9, 17, 25];
+      RV.forEach(function (rx) { RV.forEach(function (ry) { add('r_cross', rx, ry, 0); }); });
+      for (var vbi = 0; vbi < 3; vbi++) {
+        var vs0 = RV[vbi] + 2;
+        [vs0, vs0 + 2, vs0 + 4].forEach(function (s) {
+          RV.forEach(function (ry) { add('r_road', s, ry, 0); });
+          RV.forEach(function (rx) { add('r_road', rx, s, 1); });
+        });
+      }
+      var vilPool = ['windmill', 'barn', 'cottage', 'house', 'h_family', 'market', 'k_store', 'c_cafe', 'cabin'];
+      for (var va = 0; va < 3; va++) {
+        for (var vb = 0; vb < 3; vb++) {
+          var vbx = va * 8 + 2, vby = vb * 8 + 2;
+          var vk = vilPool[(va * 3 + vb + seed) % vilPool.length];
+          add(vk, vbx + 1.5, vby + 1.5, 0, nextListExtra('🌾 田园村舍 #' + (va * 3 + vb + 1), true));
+          add((va + vb) % 2 === 0 ? 'n_wheat' : 'n_orchard', vbx + 4.5, vby + 4.5, 0);
+          add('spruce', vbx + 1.5, vby + 4.5, 0);
+        }
+      }
+      add('w_lake', 30.0, 12.0, 0, { label: '🎣 村口鱼塘', arch: 'dom:city' });
+    }
+
+      d.pc = pcs; refreshLand();
+    }
+    function megaRow() {   // island level: the one-click buttons, then reroll / clear once a city stands
+      var has = (V.d.pc || []).some(function (p) { return p.city; });
+      return '<div class="wf-mega"><button type="button" data-wfmega="city"><i>' + px('city') + '</i><b>一键变 City</b><small>2× island · 21 districts · flagship avenue</small></button>' +
+        '<button type="button" data-wfmega="town"><i>' + px('town') + '</i><b>一键变 Town</b><small>2× island · market town, green, school</small></button>' +
+        (has ? '<button type="button" class="sm" data-wfmega="again"><i>' + px('dice') + '</i><b>Another layout</b></button><button type="button" class="sm rm" data-wfmega="clear"><i>' + px('clear') + '</i><b>Clear the city</b></button>' : '') + '</div>';
     }
     function emoji(c) {   // the console reads by pictures: a leading emoji in a card or chip becomes its big icon
       var RE = /^\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[✦✧✓✎＋⋯▦◩▤🀄])(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*/u;
@@ -429,6 +1075,15 @@
       if (g.hasAttribute('data-wfx')) { setPref(false); return sync(); }
       if ((v = g.getAttribute('data-wfgo'))) return goTo(+v);
       // the unified tools
+      if ((v = g.getAttribute('data-wfmega'))) {
+        if (v === 'clear') change(function () { V.d.pc = V.d.pc.filter(function (p) { return !p.city || (p.it && p.it.length); }); });
+        else {
+          var mk = v === 'again' ? (W.mega && W.mega.kind) || 'city' : v, sd = v === 'again' ? ((W.mega && W.mega.seed) || 1) + 1 : 1;
+          W.mega = { kind: mk, seed: sd }; change(function () { megaBuild(mk, sd); });
+          toast((mk === 'town' ? '🏘 Town' : '🏙 City') + ' built · ↶ Undo puts the island back');
+        }
+        hap(); try { fit(); } catch (x) {} return setTimeout(draw, 60);
+      }
       if ((v = g.getAttribute('data-wfland'))) { dspPress('data-landfast', v); return setTimeout(draw, 60); }
       if ((v = g.getAttribute('data-wfgr'))) { dspPress('data-gr', v); return setTimeout(draw, 60); }
       if ((v = g.getAttribute('data-wfpop'))) { W.pop = W.pop === v ? null : v; return draw(); }
