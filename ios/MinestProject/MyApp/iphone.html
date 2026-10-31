@@ -7632,6 +7632,11 @@ html.mn-wview body .mn-dsp .mn-walk { position:fixed !important; inset:0 !import
 html.mn-wview body .wf-walkpad, html.mn-wview body aside.wf, html.mn-wview body .wf-back, html.mn-wview body .mn-wx-chip { display:none !important; }
 html.mn-wview body .mn-dsp { top:0 !important; bottom:0 !important; height:auto !important; }
 html body .mn-walk.wk-view .ti::after { content:' · 阅览 View · drag to look round'; font-weight:700; opacity:.8; }
+html body .mn-walk .wk-vbar { display:none; }
+html body .mn-walk.wk-view .wk-vbar { position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:7;display:flex;gap:8px; }
+html body .mn-walk.wk-view .wk-vbar button { width:46px;height:46px;font:900 20px/1 ui-monospace,monospace;color:#fff;background:#4a4a4acc;border:3px solid;border-color:#bdbdbd #3a3a3a #3a3a3a #bdbdbd;cursor:pointer; }
+html body .mn-walk.wk-view .wk-vbar button.on { background:#3f8f3fd9;border-color:#9fe39f #2a5e2a #2a5e2a #9fe39f; }
+html body .mn-walk.wk-view .ti::after { content:' · 阅览 View · drag to turn · pinch to zoom · two fingers to move · double-tap to reset' !important; }
 /* Minest Weather on the island (2D): a tint for the time of day and the clouds, rain and snow falling, a lightning flash.
    Pure overlays (pointer-events: none) — the island SVG itself is never restyled. */
 html body .mn-dsp-stage > .mn-wx { position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden; }
@@ -122179,7 +122184,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       function add(x0, y0, x1, y1, z0, z1, top, side) { if (rotv) { var a = rot(x0, y0, rotv), b = rot(x1, y1, rotv); x0 = Math.min(a[0], b[0]); x1 = Math.max(a[0], b[0]); y0 = Math.min(a[1], b[1]); y1 = Math.max(a[1], b[1]); }
         out.push({ t: 'box', x0: x0, x1: x1, y0: y0, y1: y1, z0: z0, z1: z1, top: top, side: side, o: {}, vf: -1, ter: 1 }); }
       for (var lv = 1; lv <= maxL; lv++) { var S = {}; Object.keys(hs).forEach(function (k) { if (hs[k] >= lv) S[k] = 1; });
-        rects(S).forEach(function (r) { var top = lv >= LVS.snow ? 'snow' : lv >= LVS.stone ? 'stone' : L.top, side = lv >= LVS.stone ? 'stone' : lv >= 2 ? 'dirt' : L.side; add(r[0], r[1], r[2], r[3], (lv - 1) * H, lv * H, top, side); }); }
+        rects(S).forEach(function (r) { var top = lv >= LVS.snow ? 'snow' : lv >= LVS.stone ? 'stone' : L.top, side = lv >= LVS.snow + 1 ? 'snow' : lv >= LVS.stone ? 'stone' : lv >= 2 ? 'dirt' : L.side; /* snow caps the peaks and coats their faces */ add(r[0], r[1], r[2], r[3], (lv - 1) * H, lv * H, top, side); }); }
       var W = {}; Object.keys(ws).forEach(function (k) { if (!hs[k]) W[k] = 1; });
       rects(W).forEach(function (r) { add(r[0], r[1], r[2], r[3], 0, .04, 'water', 'water'); });
       var shore = {}; Object.keys(ws).forEach(function (k) { if (ws[k] !== 2) return; var c = k.split(','), x = +c[0], y = +c[1];
@@ -124111,9 +124116,46 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
         if (st.phase === 'night' && st.cloud < .7) { if (!stars) { var n = 700, pos = new Float32Array(n * 3); for (var i = 0; i < n; i++) { var a = Math.random() * 6.283, e = .15 + Math.random() * 1.3, r = 160; pos[i * 3] = Math.cos(a) * Math.cos(e) * r; pos[i * 3 + 1] = Math.sin(e) * r; pos[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r; }
           var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); var m = new T.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: .9 }); stars = new T.Points(g, m); S.add(stars); disp.push(g, m); } stars.visible = true; }
         else if (stars) stars.visible = false;
-        if (!clouds) { clouds = []; S.children.forEach(function (o) { if (o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.transparent && o.position.y > 18) clouds.push(o); }); }
-        clouds.forEach(function (o) { o.material.color.set(st.phase === 'night' ? 0x3a4058 : st.rain > .1 || st.cond === 'storm' ? 0x8a9099 : st.phase === 'dusk' ? 0xffc0a0 : 0xffffff); o.material.opacity = .55 + st.cloud * .4; });
+        makeClouds(); cloudMat.color.set(st.phase === 'night' ? 0x3a4058 : st.rain > .1 || st.cond === 'storm' ? 0x8a9099 : st.phase === 'dusk' ? 0xffc8a8 : st.phase === 'dawn' ? 0xffe0cc : 0xffffff); cloudMat.opacity = .7 + st.cloud * .25;
+        clouds.forEach(function (g, i) { g.visible = i < 4 + Math.round(st.cloud * 8); });
         rainFx = particles(rainFx, st.rain > .05, 1400 * Math.max(.4, st.rain), true); snowFx = particles(snowFx, st.snow > .05, 900, false);
+      }
+      var VW = null;
+      function vwInit() {   // 阅览 gestures: one finger turns and tilts, two fingers pinch to zoom and drag to move the subject, a double tap resets, the wheel zooms
+        if (VW) return; var span = Math.max(lb.x1 - lb.x0, lb.y1 - lb.y0);
+        VW = { cx: (lb.x0 + lb.x1) / 2, cz: (lb.y0 + lb.y1) / 2, r: span * .8, yaw: .8, el: .42, k: 1, tx: 0, tz: 0, auto: true, ptr: {}, lastTap: 0 };
+        ov.insertAdjacentHTML('beforeend', '<div class="wk-x wk-vbar"><button type="button" data-vw="auto" class="on" aria-label="Orbit on its own">⟳</button><button type="button" data-vw="reset" aria-label="Reset the view">⤢</button></div>');
+        var bar = ov.querySelector('.wk-vbar'); bar.addEventListener('click', function (e) { e.stopPropagation(); var g = e.target.closest('[data-vw]'); if (!g) return; if (g.getAttribute('data-vw') === 'auto') VW.auto = !VW.auto; else reset(); paintBar(); });
+        function paintBar() { bar.querySelector('[data-vw="auto"]').classList.toggle('on', VW.auto); }
+        function reset() { VW.k = 1; VW.tx = VW.tz = 0; VW.el = .42; VW.auto = true; paintBar(); }
+        function on(e) {
+          if (!WKVIEW || !ov.isConnected || !ov.contains(e.target) || e.target.closest('.wk-x, [data-wkx]')) return; e.stopPropagation(); if (e.type !== 'pointerdown') e.preventDefault(); var P = VW.ptr, p = P[e.pointerId];
+          if (e.type === 'pointerdown') { P[e.pointerId] = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: Date.now() }; return; }
+          if (!p) return;
+          if (e.type === 'pointermove') { var ids = Object.keys(P), dx = e.clientX - p.x, dy = e.clientY - p.y;
+            if (ids.length === 1) { if (Math.abs(e.clientX - p.sx) + Math.abs(e.clientY - p.sy) > 6) { VW.auto = false; paintBar(); } VW.yaw -= dx * .006; VW.el = Math.max(.08, Math.min(1.35, VW.el + dy * .004)); }
+            else { var o = P[ids[0] === String(e.pointerId) ? ids[1] : ids[0]], d0 = Math.hypot(p.x - o.x, p.y - o.y), d1 = Math.hypot(e.clientX - o.x, e.clientY - o.y); VW.auto = false; paintBar();
+              if (d0 > 8 && d1 > 8) VW.k = Math.max(.2, Math.min(2.6, VW.k * d0 / d1));
+              var sc = VW.r * VW.k / Math.max(320, ov.clientWidth) * 1.4, mx = dx / 2, my = dy / 2, sy = Math.sin(VW.yaw), cyw = Math.cos(VW.yaw), lim = span * .6;
+              VW.tx = Math.max(-lim, Math.min(lim, VW.tx + (-cyw * mx - sy * my) * sc)); VW.tz = Math.max(-lim, Math.min(lim, VW.tz + (sy * mx - cyw * my) * sc)); }
+            p.x = e.clientX; p.y = e.clientY; return; }
+          var tap = Object.keys(P).length === 1 && Math.hypot(e.clientX - p.sx, e.clientY - p.sy) < 8 && Date.now() - p.t < 350; delete P[e.pointerId];
+          if (tap) { if (Date.now() - VW.lastTap < 320) { reset(); VW.lastTap = 0; } else { VW.lastTap = Date.now(); var cx2 = e.clientX, cy2 = e.clientY; setTimeout(function () { if (VW.lastTap && Date.now() - VW.lastTap >= 300) tapPick(cx2, cy2); }, 330); } }
+        }
+        ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(function (t) { window.addEventListener(t, on, true); });
+        function wh(e) { if (!WKVIEW) return; e.preventDefault(); VW.k = Math.max(.2, Math.min(2.6, VW.k * Math.exp(e.deltaY * .0015))); VW.auto = false; paintBar(); }
+        ov.addEventListener('wheel', wh, { passive: false });
+        VW.off = function () { ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(function (t) { window.removeEventListener(t, on, true); }); };
+      }
+      var cloudMat = null;
+      function makeClouds() {   // flat blocky clouds (Minecraft): each a blob of 2 × 2 cells, a block thick, high above the island
+        if (clouds) return; clouds = []; cloudMat = new T.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: .9, fog: false }); disp.push(cloudMat);
+        var span = Math.max(lb.x1 - lb.x0, lb.y1 - lb.y0), cxc = (lb.x0 + lb.x1) / 2, czc = (lb.y0 + lb.y1) / 2;
+        for (var c = 0; c < 12; c++) { var g = new T.Group(), n = 6 + ((c * 7) % 9), seen = {}, x = 0, z = 0;
+          for (var b = 0; b < n; b++) { var k = x + ',' + z; if (!seen[k]) { seen[k] = 1; var bg = new T.BoxGeometry(2, 1.1, 2), me3 = new T.Mesh(bg, cloudMat); me3.position.set(x * 2, 0, z * 2); g.add(me3); disp.push(bg); }
+            var dir = (c * 13 + b * 5) % 4; if (dir === 0) x++; else if (dir === 1) z++; else if (dir === 2) x--; else z += (b % 2 ? 1 : -1); }
+          var ca = c / 12 * 6.283 + (c % 3) * .4, cr = span * (.45 + ((c * 37) % 100) / 100 * .7); g.position.set(cxc + Math.cos(ca) * cr, span * .3 + (c % 4) * 1.8, czc + Math.sin(ca) * cr);   /* round the island's sky, in sight of the 阅览 orbit */ S.add(g); clouds.push(g); }
+        S.children.slice().forEach(function (o) { if (o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.transparent && o.position.y > 18 && o.position.y < 40) S.remove(o); });   // the old flat slabs
       }
       function particles(fx, on, n, isRain) {   // rain streaks / snowflakes in a box that travels with you
         if (!on) { if (fx) fx.o.visible = false; return fx; } if (fx) { fx.o.visible = true; return fx; }
@@ -124132,7 +124174,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       function flash() { if (room || !lights) return; flashT = .5; }
       function wxTick(dt) {
         if (room || !W) return; stepFx(rainFx, dt); stepFx(snowFx, dt); if (stars) stars.position.set(me.x, 0, me.z);
-        if (clouds) clouds.forEach(function (o) { o.position.x += (0.4 + W.wind * 3) * dt; if (o.position.x > lb.x1 + 60) o.position.x = lb.x0 - 60; });
+        if (clouds) { var spn = Math.max(lb.x1 - lb.x0, lb.y1 - lb.y0); clouds.forEach(function (o) { o.position.x += (0.35 + W.wind * 2.5) * dt; if (o.position.x > lb.x1 + spn * 1.2) o.position.x = lb.x0 - spn * 1.2; }); }
         if (flashT > 0) { flashT -= dt; var k = flashT > .38 || (flashT < .25 && flashT > .15) ? 1 : 0; if (lights.amb) lights.amb.intensity = lights.amb.base * (.4 + .6 * W.light) + k * 2.2; }
       }
       // ---- sitting and sleeping
@@ -124191,10 +124233,11 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
           var s = seats.filter(function (x) { return x.p.id === p.id; })[0]; if (s) return K[p.k].n + (s.bed ? ' · tap to sleep' : ' · tap to sit'); var b = bld.filter(function (x) { return x.p.id === p.id; })[0]; if (b && nearB === b) return bldName(p) + ' · tap to go in'; return ''; },
         tick: function (dt, now) {
           ui(); wxTick(dt); mobs.forEach(function (m) { mobTick(m, dt); });
-          if (WKVIEW && !room) {   // 阅览: a slow drone orbit round the whole island (drag: round and up / down)
-            var cxv = (lb.x0 + lb.x1) / 2, czv = (lb.y0 + lb.y1) / 2, Rv = Math.max(lb.x1 - lb.x0, lb.y1 - lb.y0) * .8, ev = Math.max(.14, Math.min(1.15, .42 - (me.pitch + .12) * .7));
-            me.yaw += dt * .045; cam.position.set(cxv + Math.sin(me.yaw) * Rv * Math.cos(ev), Rv * Math.sin(ev) + 2, czv + Math.cos(me.yaw) * Rv * Math.cos(ev)); cam.lookAt(cxv, 1.2, czv);
-            if (S.fog) { S.fog.near = Rv * 1.6; S.fog.far = Rv * 4; } if (steps) steps.set(0); return; }
+          if (WKVIEW && !room) {   // 阅览: a drone orbit round the island — on its own, or by hand (see vwInit)
+            vwInit(); if (VW.auto && !Object.keys(VW.ptr).length) VW.yaw += dt * .045;
+            var Rv = VW.r * VW.k, tx0 = VW.cx + VW.tx, tz0 = VW.cz + VW.tz;
+            cam.position.set(tx0 + Math.sin(VW.yaw) * Rv * Math.cos(VW.el), Rv * Math.sin(VW.el) + 1.5, tz0 + Math.cos(VW.yaw) * Rv * Math.cos(VW.el)); cam.lookAt(tx0, 1.2, tz0);
+            if (S.fog) { S.fog.near = Rv * 1.6; S.fog.far = Rv * 4 + 40; } if (steps) steps.set(0); return; }
           var moving = Math.hypot(me.mx, me.mz) > .15 || ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].some(function (k) { return me.keys[k]; });
           if (sit) { if (moving && Math.hypot(me.mx, me.mz) > .6) standUp(); else { me.x = sit.x; me.z = sit.z; me.y = sit.y - EYE + .95; me.vy = 0; cam.position.set(sit.x, sit.y + .95, sit.z); } }
           if (steps) steps.set(!sit && moving && me.grounded && !me.fly ? (me.run ? .95 : .55) : 0);
@@ -124204,7 +124247,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
             if (nearB) setAct('in', '🚪 Go into ' + bldName(nearB.p)); else if (nearP) { setAct('portal', nearP.label); if (bp < .45 && moving && now - spawnT > 900) goPortal(nearP); } else setAct(null); }   // walk into a door to go through
         },
         dbg: function () { return { mobs: mobs, seats: seats, bld: bld, sit: sit, me: me, near: nearB }; },
-        stop: function () { if (wxOff) wxOff(); if (flOff) flOff(); if (rainIn) { rainIn.stop(); rainIn = null; } if (amb) { amb.stop(); amb = null; } if (steps) { steps.stop(); steps = null; } }
+        stop: function () { if (VW && VW.off) VW.off(); if (wxOff) wxOff(); if (flOff) flOff(); if (rainIn) { rainIn.stop(); rainIn = null; } if (amb) { amb.stop(); amb = null; } if (steps) { steps.stop(); steps = null; } }
       };
     })();
     // ---- the ground: the island's plots (or the room's floor and walls)
@@ -124237,7 +124280,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
     S.add(picks);
     Object.keys(BUF).forEach(function (n) { var B = BUF[n], g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(B.nm, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(B.u, 2)); g.setIndex(B.i);
       var tx = tex(n), m = new T.MeshLambertMaterial({ map: tx, side: T.DoubleSide, transparent: n === 'glass' || n === 'water', opacity: n === 'glass' ? .45 : n === 'water' ? .85 : 1 }); S.add(new T.Mesh(g, m)); disp.push(g, m); });
-    if (!room) for (var ci = 0; ci < 9; ci++) { var cg = new T.BoxGeometry(6 + (ci % 3) * 3, 1, 3 + (ci % 2) * 2), cm = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .85 }), cl = new T.Mesh(cg, cm); cl.position.set(lb.x0 - 30 + (ci * 37) % 90, 22 + (ci % 3) * 3, lb.y0 - 30 + (ci * 53) % 90); S.add(cl); disp.push(cg, cm); }   // a few blocky clouds
+    /* the clouds: walk_in.js makeClouds() (blocky clusters, high, tinted by the weather) */
     // ---- the walker
     var me = { x: (lb.x0 + lb.x1) / 2, z: Math.max(lb.y0 + 1, lb.y1 - 1.2), y: 0, vy: 0, yaw: 0, pitch: -.12, fly: false, run: false, up: 0, down: 0, mx: 0, mz: 0, keys: {} };
     var EYE = room ? 1.55 : 1.7, RAD = .28, STEP = .6;
@@ -124294,7 +124337,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
   }
   var WKVIEW = false;   // 阅览 View: the walk's 3D island as a slow orbit, full screen, no tools (patch_walk_in.py)
   function wkView() { if (WK || !V) return; WKVIEW = true; document.documentElement.classList.add('mn-wview'); wkOpen(); setTimeout(function () { if (!WK && WKVIEW) { WKVIEW = false; document.documentElement.classList.remove('mn-wview'); } }, 9000); }
-  function wkClose() { if (!WK) return; var w = WK; WK = null; w.stop(); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } if (el && V) render(); }
+  function wkClose() { if (!WK) return; var w = WK; WK = null; w.stop(); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } if (el && V) render(); }
   /* ── My World · Sharing System · people: your public page — your name, your character and your shared islands */
   // Settings → Islands: pick a name (@peck) and switch the page on. It lists every island you share (View / View & Clone);
   // private islands never show. Anyone can open …/iphone#@peck: a sky of floating islands — tap one to visit it.
@@ -127151,10 +127194,14 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       var G = {}; for (var gx = 0; gx <= 8; gx++) for (var gy = 0; gy <= 8; gy++) G[gx + ',' + gy] = r();   // value noise on a coarse grid
       function vn(x, y, s) { x /= s; y /= s; var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, g = function (i, j) { return G[((i % 9) + 9) % 9 + ',' + ((j % 9) + 9) % 9]; }, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
         return (g(x0, y0) * (1 - sx) + g(x0 + 1, y0) * sx) * (1 - sy) + (g(x0, y0 + 1) * (1 - sx) + g(x0 + 1, y0 + 1) * sx) * sy; }
-      var h = {}, w = {}, alp = kind === 'alpine', cx = 21 + (r() - .5) * 4, cy = 21 + (r() - .5) * 4, flatR = alp ? 10.5 + r() * 2 : 8;
+      var h = {}, w = {}, alp = kind === 'alpine', cx = 21 + (r() - .5) * 4, cy = 21 + (r() - .5) * 4, flatR = alp ? 10.5 + r() * 2 : 8, PEAKS = [];
+      if (alp) for (var pi = 0; pi < 5; pi++) { var along = -17 + pi * 8.5 + (r() - .5) * 3, bk = 13 + r() * 5, big = pi === 1 + ((r() * 3) | 0);   // [x, y, height (levels), radius]
+        PEAKS.push([cx + along * .707 - bk * .707, cy - along * .707 - bk * .707, big ? 22 : 13 + r() * 6, big ? 8.5 : 6 + r() * 2.5]); }
       for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) { var dd = Math.hypot(x + .5 - cx, y + .5 - cy), v;
-        if (alp) { var back = -((x + .5 - cx) + (y + .5 - cy)) / 1.414, t = back - (5 + vn(x, y, 6) * 3);   // the snowy range only behind the basin (far from the viewer); in front, the open valley
-          v = t <= 0 ? 0 : Math.round(t * (1.5 + vn(x + 50, y, 5) * .8) + vn(x, y + 30, 3) * 3 * Math.min(1, t / 3)); v = Math.min(16, v); }
+        if (alp) { var back = -((x + .5 - cx) + (y + .5 - cy)) / 1.414, v2 = 0;   // the range behind the valley: separate sharp peaks (a Matterhorn among them) on a rising foothill band
+          if (back > 3) { PEAKS.forEach(function (pk) { var dpk = Math.hypot(x + .5 - pk[0], y + .5 - pk[1]) * (1 + (vn(x * 3, y * 3, 2) - .5) * .35); if (dpk < pk[3]) v2 = Math.max(v2, pk[2] * Math.pow(1 - dpk / pk[3], 1.35)); });
+            v2 = Math.max(v2, (back - 3) * .55 + vn(x, y, 4) * 1.5); }
+          v = Math.min(22, Math.round(v2)); }
         else { var n = vn(x, y, 8) * .7 + vn(x + 20, y + 9, 4) * .3; v = Math.round(Math.max(0, n - .38) * 7); if (dd < flatR) v = 0; else v = Math.min(v, Math.floor((dd - flatR) / 1.5)); }
         if (v > 0) h[x + ',' + y] = v; }
       // water: the creek (or the mountain stream) by the cheapest way over low ground; a pond / the lake
@@ -127173,7 +127220,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
         (P2 || []).forEach(function (k) { w[k] = 1; delete h[k]; var c = k.split(','); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (s) { var nk = (+c[0] + s[0]) + ',' + (+c[1] + s[1]); if (h[nk] > 1) h[nk] = 1; }); });
         var mid = P2 && P2.filter(function (k) { var c = k.split(','); var dc = Math.hypot(+c[0] + .5 - cx, +c[1] + .5 - cy); return dc > flatR - 1 && dc < flatR + 5; })[0];   // the village pond, beside the creek
         if (mid) { var mc = mid.split(','); for (var px2 = -2; px2 <= 2; px2++) for (var py2 = -2; py2 <= 2; py2++) if (px2 * px2 + py2 * py2 <= 4.5) { var pk = (+mc[0] + px2) + ',' + (+mc[1] + py2); if (!h[pk]) w[pk] = 2; } lake = [+mc[0] + .5, +mc[1] + .5]; } }
-      d.terr = { h: h, w: w, scape: kind, lv: alp ? { stone: 6, snow: 11 } : { stone: 5, snow: 7 } };
+      d.terr = { h: h, w: w, scape: kind, lv: alp ? { stone: 5, snow: 12 } : { stone: 5, snow: 7 } };
       // ---- the pieces
       var lists = megaLists(), li = 0;
       function lab(name, big) { var l = lists[li++]; return { label: l ? name + ' · ' + l.title : name, arch: big ? 'dom:city' : undefined }; }

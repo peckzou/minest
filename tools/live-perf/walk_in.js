@@ -94,9 +94,46 @@
         if (st.phase === 'night' && st.cloud < .7) { if (!stars) { var n = 700, pos = new Float32Array(n * 3); for (var i = 0; i < n; i++) { var a = Math.random() * 6.283, e = .15 + Math.random() * 1.3, r = 160; pos[i * 3] = Math.cos(a) * Math.cos(e) * r; pos[i * 3 + 1] = Math.sin(e) * r; pos[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r; }
           var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); var m = new T.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: .9 }); stars = new T.Points(g, m); S.add(stars); disp.push(g, m); } stars.visible = true; }
         else if (stars) stars.visible = false;
-        if (!clouds) { clouds = []; S.children.forEach(function (o) { if (o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.transparent && o.position.y > 18) clouds.push(o); }); }
-        clouds.forEach(function (o) { o.material.color.set(st.phase === 'night' ? 0x3a4058 : st.rain > .1 || st.cond === 'storm' ? 0x8a9099 : st.phase === 'dusk' ? 0xffc0a0 : 0xffffff); o.material.opacity = .55 + st.cloud * .4; });
+        makeClouds(); cloudMat.color.set(st.phase === 'night' ? 0x3a4058 : st.rain > .1 || st.cond === 'storm' ? 0x8a9099 : st.phase === 'dusk' ? 0xffc8a8 : st.phase === 'dawn' ? 0xffe0cc : 0xffffff); cloudMat.opacity = .7 + st.cloud * .25;
+        clouds.forEach(function (g, i) { g.visible = i < 4 + Math.round(st.cloud * 8); });
         rainFx = particles(rainFx, st.rain > .05, 1400 * Math.max(.4, st.rain), true); snowFx = particles(snowFx, st.snow > .05, 900, false);
+      }
+      var VW = null;
+      function vwInit() {   // 阅览 gestures: one finger turns and tilts, two fingers pinch to zoom and drag to move the subject, a double tap resets, the wheel zooms
+        if (VW) return; var span = Math.max(lb.x1 - lb.x0, lb.y1 - lb.y0);
+        VW = { cx: (lb.x0 + lb.x1) / 2, cz: (lb.y0 + lb.y1) / 2, r: span * .8, yaw: .8, el: .42, k: 1, tx: 0, tz: 0, auto: true, ptr: {}, lastTap: 0 };
+        ov.insertAdjacentHTML('beforeend', '<div class="wk-x wk-vbar"><button type="button" data-vw="auto" class="on" aria-label="Orbit on its own">⟳</button><button type="button" data-vw="reset" aria-label="Reset the view">⤢</button></div>');
+        var bar = ov.querySelector('.wk-vbar'); bar.addEventListener('click', function (e) { e.stopPropagation(); var g = e.target.closest('[data-vw]'); if (!g) return; if (g.getAttribute('data-vw') === 'auto') VW.auto = !VW.auto; else reset(); paintBar(); });
+        function paintBar() { bar.querySelector('[data-vw="auto"]').classList.toggle('on', VW.auto); }
+        function reset() { VW.k = 1; VW.tx = VW.tz = 0; VW.el = .42; VW.auto = true; paintBar(); }
+        function on(e) {
+          if (!WKVIEW || !ov.isConnected || !ov.contains(e.target) || e.target.closest('.wk-x, [data-wkx]')) return; e.stopPropagation(); if (e.type !== 'pointerdown') e.preventDefault(); var P = VW.ptr, p = P[e.pointerId];
+          if (e.type === 'pointerdown') { P[e.pointerId] = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: Date.now() }; return; }
+          if (!p) return;
+          if (e.type === 'pointermove') { var ids = Object.keys(P), dx = e.clientX - p.x, dy = e.clientY - p.y;
+            if (ids.length === 1) { if (Math.abs(e.clientX - p.sx) + Math.abs(e.clientY - p.sy) > 6) { VW.auto = false; paintBar(); } VW.yaw -= dx * .006; VW.el = Math.max(.08, Math.min(1.35, VW.el + dy * .004)); }
+            else { var o = P[ids[0] === String(e.pointerId) ? ids[1] : ids[0]], d0 = Math.hypot(p.x - o.x, p.y - o.y), d1 = Math.hypot(e.clientX - o.x, e.clientY - o.y); VW.auto = false; paintBar();
+              if (d0 > 8 && d1 > 8) VW.k = Math.max(.2, Math.min(2.6, VW.k * d0 / d1));
+              var sc = VW.r * VW.k / Math.max(320, ov.clientWidth) * 1.4, mx = dx / 2, my = dy / 2, sy = Math.sin(VW.yaw), cyw = Math.cos(VW.yaw), lim = span * .6;
+              VW.tx = Math.max(-lim, Math.min(lim, VW.tx + (-cyw * mx - sy * my) * sc)); VW.tz = Math.max(-lim, Math.min(lim, VW.tz + (sy * mx - cyw * my) * sc)); }
+            p.x = e.clientX; p.y = e.clientY; return; }
+          var tap = Object.keys(P).length === 1 && Math.hypot(e.clientX - p.sx, e.clientY - p.sy) < 8 && Date.now() - p.t < 350; delete P[e.pointerId];
+          if (tap) { if (Date.now() - VW.lastTap < 320) { reset(); VW.lastTap = 0; } else { VW.lastTap = Date.now(); var cx2 = e.clientX, cy2 = e.clientY; setTimeout(function () { if (VW.lastTap && Date.now() - VW.lastTap >= 300) tapPick(cx2, cy2); }, 330); } }
+        }
+        ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(function (t) { window.addEventListener(t, on, true); });
+        function wh(e) { if (!WKVIEW) return; e.preventDefault(); VW.k = Math.max(.2, Math.min(2.6, VW.k * Math.exp(e.deltaY * .0015))); VW.auto = false; paintBar(); }
+        ov.addEventListener('wheel', wh, { passive: false });
+        VW.off = function () { ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(function (t) { window.removeEventListener(t, on, true); }); };
+      }
+      var cloudMat = null;
+      function makeClouds() {   // flat blocky clouds (Minecraft): each a blob of 2 × 2 cells, a block thick, high above the island
+        if (clouds) return; clouds = []; cloudMat = new T.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: .9, fog: false }); disp.push(cloudMat);
+        var span = Math.max(lb.x1 - lb.x0, lb.y1 - lb.y0), cxc = (lb.x0 + lb.x1) / 2, czc = (lb.y0 + lb.y1) / 2;
+        for (var c = 0; c < 12; c++) { var g = new T.Group(), n = 6 + ((c * 7) % 9), seen = {}, x = 0, z = 0;
+          for (var b = 0; b < n; b++) { var k = x + ',' + z; if (!seen[k]) { seen[k] = 1; var bg = new T.BoxGeometry(2, 1.1, 2), me3 = new T.Mesh(bg, cloudMat); me3.position.set(x * 2, 0, z * 2); g.add(me3); disp.push(bg); }
+            var dir = (c * 13 + b * 5) % 4; if (dir === 0) x++; else if (dir === 1) z++; else if (dir === 2) x--; else z += (b % 2 ? 1 : -1); }
+          var ca = c / 12 * 6.283 + (c % 3) * .4, cr = span * (.45 + ((c * 37) % 100) / 100 * .7); g.position.set(cxc + Math.cos(ca) * cr, span * .3 + (c % 4) * 1.8, czc + Math.sin(ca) * cr);   /* round the island's sky, in sight of the 阅览 orbit */ S.add(g); clouds.push(g); }
+        S.children.slice().forEach(function (o) { if (o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.transparent && o.position.y > 18 && o.position.y < 40) S.remove(o); });   // the old flat slabs
       }
       function particles(fx, on, n, isRain) {   // rain streaks / snowflakes in a box that travels with you
         if (!on) { if (fx) fx.o.visible = false; return fx; } if (fx) { fx.o.visible = true; return fx; }
@@ -115,7 +152,7 @@
       function flash() { if (room || !lights) return; flashT = .5; }
       function wxTick(dt) {
         if (room || !W) return; stepFx(rainFx, dt); stepFx(snowFx, dt); if (stars) stars.position.set(me.x, 0, me.z);
-        if (clouds) clouds.forEach(function (o) { o.position.x += (0.4 + W.wind * 3) * dt; if (o.position.x > lb.x1 + 60) o.position.x = lb.x0 - 60; });
+        if (clouds) { var spn = Math.max(lb.x1 - lb.x0, lb.y1 - lb.y0); clouds.forEach(function (o) { o.position.x += (0.35 + W.wind * 2.5) * dt; if (o.position.x > lb.x1 + spn * 1.2) o.position.x = lb.x0 - spn * 1.2; }); }
         if (flashT > 0) { flashT -= dt; var k = flashT > .38 || (flashT < .25 && flashT > .15) ? 1 : 0; if (lights.amb) lights.amb.intensity = lights.amb.base * (.4 + .6 * W.light) + k * 2.2; }
       }
       // ---- sitting and sleeping
@@ -174,10 +211,11 @@
           var s = seats.filter(function (x) { return x.p.id === p.id; })[0]; if (s) return K[p.k].n + (s.bed ? ' · tap to sleep' : ' · tap to sit'); var b = bld.filter(function (x) { return x.p.id === p.id; })[0]; if (b && nearB === b) return bldName(p) + ' · tap to go in'; return ''; },
         tick: function (dt, now) {
           ui(); wxTick(dt); mobs.forEach(function (m) { mobTick(m, dt); });
-          if (WKVIEW && !room) {   // 阅览: a slow drone orbit round the whole island (drag: round and up / down)
-            var cxv = (lb.x0 + lb.x1) / 2, czv = (lb.y0 + lb.y1) / 2, Rv = Math.max(lb.x1 - lb.x0, lb.y1 - lb.y0) * .8, ev = Math.max(.14, Math.min(1.15, .42 - (me.pitch + .12) * .7));
-            me.yaw += dt * .045; cam.position.set(cxv + Math.sin(me.yaw) * Rv * Math.cos(ev), Rv * Math.sin(ev) + 2, czv + Math.cos(me.yaw) * Rv * Math.cos(ev)); cam.lookAt(cxv, 1.2, czv);
-            if (S.fog) { S.fog.near = Rv * 1.6; S.fog.far = Rv * 4; } if (steps) steps.set(0); return; }
+          if (WKVIEW && !room) {   // 阅览: a drone orbit round the island — on its own, or by hand (see vwInit)
+            vwInit(); if (VW.auto && !Object.keys(VW.ptr).length) VW.yaw += dt * .045;
+            var Rv = VW.r * VW.k, tx0 = VW.cx + VW.tx, tz0 = VW.cz + VW.tz;
+            cam.position.set(tx0 + Math.sin(VW.yaw) * Rv * Math.cos(VW.el), Rv * Math.sin(VW.el) + 1.5, tz0 + Math.cos(VW.yaw) * Rv * Math.cos(VW.el)); cam.lookAt(tx0, 1.2, tz0);
+            if (S.fog) { S.fog.near = Rv * 1.6; S.fog.far = Rv * 4 + 40; } if (steps) steps.set(0); return; }
           var moving = Math.hypot(me.mx, me.mz) > .15 || ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].some(function (k) { return me.keys[k]; });
           if (sit) { if (moving && Math.hypot(me.mx, me.mz) > .6) standUp(); else { me.x = sit.x; me.z = sit.z; me.y = sit.y - EYE + .95; me.vy = 0; cam.position.set(sit.x, sit.y + .95, sit.z); } }
           if (steps) steps.set(!sit && moving && me.grounded && !me.fly ? (me.run ? .95 : .55) : 0);
@@ -187,6 +225,6 @@
             if (nearB) setAct('in', '🚪 Go into ' + bldName(nearB.p)); else if (nearP) { setAct('portal', nearP.label); if (bp < .45 && moving && now - spawnT > 900) goPortal(nearP); } else setAct(null); }   // walk into a door to go through
         },
         dbg: function () { return { mobs: mobs, seats: seats, bld: bld, sit: sit, me: me, near: nearB }; },
-        stop: function () { if (wxOff) wxOff(); if (flOff) flOff(); if (rainIn) { rainIn.stop(); rainIn = null; } if (amb) { amb.stop(); amb = null; } if (steps) { steps.stop(); steps = null; } }
+        stop: function () { if (VW && VW.off) VW.off(); if (wxOff) wxOff(); if (flOff) flOff(); if (rainIn) { rainIn.stop(); rainIn = null; } if (amb) { amb.stop(); amb = null; } if (steps) { steps.stop(); steps = null; } }
       };
     })();

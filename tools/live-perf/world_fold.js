@@ -1014,10 +1014,14 @@
       var G = {}; for (var gx = 0; gx <= 8; gx++) for (var gy = 0; gy <= 8; gy++) G[gx + ',' + gy] = r();   // value noise on a coarse grid
       function vn(x, y, s) { x /= s; y /= s; var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, g = function (i, j) { return G[((i % 9) + 9) % 9 + ',' + ((j % 9) + 9) % 9]; }, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
         return (g(x0, y0) * (1 - sx) + g(x0 + 1, y0) * sx) * (1 - sy) + (g(x0, y0 + 1) * (1 - sx) + g(x0 + 1, y0 + 1) * sx) * sy; }
-      var h = {}, w = {}, alp = kind === 'alpine', cx = 21 + (r() - .5) * 4, cy = 21 + (r() - .5) * 4, flatR = alp ? 10.5 + r() * 2 : 8;
+      var h = {}, w = {}, alp = kind === 'alpine', cx = 21 + (r() - .5) * 4, cy = 21 + (r() - .5) * 4, flatR = alp ? 10.5 + r() * 2 : 8, PEAKS = [];
+      if (alp) for (var pi = 0; pi < 5; pi++) { var along = -17 + pi * 8.5 + (r() - .5) * 3, bk = 13 + r() * 5, big = pi === 1 + ((r() * 3) | 0);   // [x, y, height (levels), radius]
+        PEAKS.push([cx + along * .707 - bk * .707, cy - along * .707 - bk * .707, big ? 22 : 13 + r() * 6, big ? 8.5 : 6 + r() * 2.5]); }
       for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) { var dd = Math.hypot(x + .5 - cx, y + .5 - cy), v;
-        if (alp) { var back = -((x + .5 - cx) + (y + .5 - cy)) / 1.414, t = back - (5 + vn(x, y, 6) * 3);   // the snowy range only behind the basin (far from the viewer); in front, the open valley
-          v = t <= 0 ? 0 : Math.round(t * (1.5 + vn(x + 50, y, 5) * .8) + vn(x, y + 30, 3) * 3 * Math.min(1, t / 3)); v = Math.min(16, v); }
+        if (alp) { var back = -((x + .5 - cx) + (y + .5 - cy)) / 1.414, v2 = 0;   // the range behind the valley: separate sharp peaks (a Matterhorn among them) on a rising foothill band
+          if (back > 3) { PEAKS.forEach(function (pk) { var dpk = Math.hypot(x + .5 - pk[0], y + .5 - pk[1]) * (1 + (vn(x * 3, y * 3, 2) - .5) * .35); if (dpk < pk[3]) v2 = Math.max(v2, pk[2] * Math.pow(1 - dpk / pk[3], 1.35)); });
+            v2 = Math.max(v2, (back - 3) * .55 + vn(x, y, 4) * 1.5); }
+          v = Math.min(22, Math.round(v2)); }
         else { var n = vn(x, y, 8) * .7 + vn(x + 20, y + 9, 4) * .3; v = Math.round(Math.max(0, n - .38) * 7); if (dd < flatR) v = 0; else v = Math.min(v, Math.floor((dd - flatR) / 1.5)); }
         if (v > 0) h[x + ',' + y] = v; }
       // water: the creek (or the mountain stream) by the cheapest way over low ground; a pond / the lake
@@ -1036,7 +1040,7 @@
         (P2 || []).forEach(function (k) { w[k] = 1; delete h[k]; var c = k.split(','); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (s) { var nk = (+c[0] + s[0]) + ',' + (+c[1] + s[1]); if (h[nk] > 1) h[nk] = 1; }); });
         var mid = P2 && P2.filter(function (k) { var c = k.split(','); var dc = Math.hypot(+c[0] + .5 - cx, +c[1] + .5 - cy); return dc > flatR - 1 && dc < flatR + 5; })[0];   // the village pond, beside the creek
         if (mid) { var mc = mid.split(','); for (var px2 = -2; px2 <= 2; px2++) for (var py2 = -2; py2 <= 2; py2++) if (px2 * px2 + py2 * py2 <= 4.5) { var pk = (+mc[0] + px2) + ',' + (+mc[1] + py2); if (!h[pk]) w[pk] = 2; } lake = [+mc[0] + .5, +mc[1] + .5]; } }
-      d.terr = { h: h, w: w, scape: kind, lv: alp ? { stone: 6, snow: 11 } : { stone: 5, snow: 7 } };
+      d.terr = { h: h, w: w, scape: kind, lv: alp ? { stone: 5, snow: 12 } : { stone: 5, snow: 7 } };
       // ---- the pieces
       var lists = megaLists(), li = 0;
       function lab(name, big) { var l = lists[li++]; return { label: l ? name + ' · ' + l.title : name, arch: big ? 'dom:city' : undefined }; }

@@ -25,6 +25,8 @@ EDITS = [
     ("if (p) lab.textContent = (t ? t.s.title", "if (p) lab.textContent = WKX.label(p) || (t ? t.s.title"),
     ("      R.render(S, cam);\n    }\n    size(); addEventListener('resize', size);", "      WKX.tick(dt, now);\n      R.render(S, cam);\n    }\n    size(); addEventListener('resize', size);"),
     ("WK = { ov: ov, stop: function () { cancelAnimationFrame(raf);", "WK = { ov: ov, stop: function () { cancelAnimationFrame(raf); WKX.stop();"),
+    ("if (!room) for (var ci = 0; ci < 9; ci++) { var cg = new T.BoxGeometry(6 + (ci % 3) * 3, 1, 3 + (ci % 2) * 2), cm = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .85 }), cl = new T.Mesh(cg, cm); cl.position.set(lb.x0 - 30 + (ci * 37) % 90, 22 + (ci % 3) * 3, lb.y0 - 30 + (ci * 53) % 90); S.add(cl); disp.push(cg, cm); }   // a few blocky clouds",
+     "/* the clouds: walk_in.js makeClouds() (blocky clusters, high, tinted by the weather) */"),
     ("  function wkClose() {", "  var WKVIEW = false;   // 阅览 View: the walk's 3D island as a slow orbit, full screen, no tools (patch_walk_in.py)\n  function wkView() { if (WK || !V) return; WKVIEW = true; document.documentElement.classList.add('mn-wview'); wkOpen(); setTimeout(function () { if (!WK && WKVIEW) { WKVIEW = false; document.documentElement.classList.remove('mn-wview'); } }, 9000); }\n  function wkClose() {"),
     ("w.stop(); if (WKIN && V) {", "w.stop(); WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) {"),
     ("ov.className = 'mn-walk'; el.appendChild(ov);", "ov.className = 'mn-walk' + (WKVIEW ? ' wk-view' : ''); el.appendChild(ov);"),
