@@ -141363,10 +141363,11 @@ html.duo-docktop[data-mn-bd] body .mn-bdock { display:flex !important;visibility
 html.duo-docktop body .mn-bdock::-webkit-scrollbar { display:none; }
 html.duo-docktop body .mn-bdock::before { display:none !important; }
 html.duo-docktop body .mn-bdock > * { flex:none; }
-html.duo-docktop body .mn-bdock .mn-bapp { width:36px !important;height:36px !important;border-radius:50% !important;background:transparent !important;border:0 !important;box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important; }
+html.duo-docktop body .mn-bdock .mn-bapp { align-self:center !important;margin:0 !important;padding:0 !important;transform:none !important;top:auto !important;bottom:auto !important;display:flex !important;align-items:center !important;justify-content:center !important;line-height:0 !important;width:36px !important;height:36px !important;border-radius:50% !important;background:transparent !important;border:0 !important;box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important; }
 html.duo-docktop body .mn-bdock .mn-bapp::before { display:none !important; }
 html.duo-docktop body .mn-bdock .mn-bapp.on { background:rgba(125,211,252,.18) !important; }
-html.duo-docktop body .mn-bdock .mn-bapp svg { width:58% !important; }
+html.duo-docktop body .mn-bdock .mn-bapp svg { width:21px !important;height:21px !important;margin:0 !important;transform:none !important;position:static !important;display:block !important;flex:none !important; }
+html.duo-docktop body .mn-bdock .mn-bapp > :not(svg) { display:none !important; }   /* labels / badges never push the icon up */
 html.duo-docktop body.clear-mode .mn-bdock, html.duo-docktop.duo-sheet body .mn-bdock { display:none !important; }
 html.duo-docktop body .mn-bd-edge { display:none !important; }
 html.duo-docktop body .mn-bdock .mn-bapp[aria-label^="Board settings"] { order:10; } html.duo-docktop body .mn-bdock .mn-bapp[aria-label*="CarPlay"] { order:11; }
@@ -144805,6 +144806,51 @@ html body .wv-style.dk .st-card { max-height:calc(100% - 16px); }
 .kd-gcar.on { border-color: #f5c400; box-shadow: 0 0 0 2px rgba(245,196,0,.35) inset; }
 .kdg-m-roadtrip .kdg-art { background: linear-gradient(180deg, #3a7bd5 0 42%, #c2643a 42% 62%, #4a4446 62%); }
 .kdg-m-roadtrip .kdg-art span { clip-path: polygon(0 100%, 18% 20%, 30% 20%, 40% 100%); left: 70%; bottom: 38%; width: 28%; height: 34%; background: #b55e33; }
+/* ---------------- pedals, steering, junction map, key start */
+.kd-root .kd-dash { padding-right: 150px; }
+.kd-root.narrow .kd-dash { padding-right: 132px; }
+.kd-play span { display: none; }
+.kd-play.on { background: rgba(74, 222, 128, .22); border-color: rgba(74, 222, 128, .45); }
+.kd-pedals { position: absolute; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); display: flex; align-items: flex-end; gap: 10px; z-index: 3; }
+.kd-pedal { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 0 0 8px; border: 1px solid rgba(255,255,255,.18); border-radius: 12px 12px 16px 16px; color: rgba(255,255,255,.8); font: 700 10px/1 -apple-system, sans-serif; letter-spacing: .12em; touch-action: none; cursor: pointer; transform-origin: 50% 100%; transition: transform .08s, box-shadow .12s, background .12s; -webkit-user-select: none; user-select: none; }
+.kd-pedal i { position: absolute; inset: 10px 10px 26px; border-radius: 8px; background: repeating-linear-gradient(180deg, rgba(255,255,255,.18) 0 3px, transparent 3px 9px); }
+.kd-pedal.kd-brake { width: 66px; height: 74px; background: linear-gradient(180deg, #4a4f57, #24272c); }
+.kd-pedal.kd-gas { width: 50px; height: 104px; background: linear-gradient(180deg, #5a5f68, #2a2d33); }
+.kd-root.braking .kd-pedal.kd-brake { transform: perspective(300px) rotateX(24deg) scale(.96); background: linear-gradient(180deg, #a3222a, #5c1016); box-shadow: 0 0 18px rgba(214,48,56,.55); }
+.kd-root.gassing .kd-pedal.kd-gas { transform: perspective(300px) rotateX(24deg) scale(.96); background: linear-gradient(180deg, #15803d, #0b4a24); box-shadow: 0 0 18px rgba(74,222,128,.5); }
+.kd-root.narrow .kd-pedal.kd-brake { width: 56px; height: 64px; } .kd-root.narrow .kd-pedal.kd-gas { width: 44px; height: 90px; }
+.kd-root.fold .kd-pedals { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); right: 16px; gap: 14px; }
+.kd-root.fold .kd-pedal.kd-brake { width: 84px; height: 96px; } .kd-root.fold .kd-pedal.kd-gas { width: 64px; height: 132px; }
+.kd-wheelpad { position: absolute; left: 0; bottom: 0; width: var(--kd-wheel); height: calc(var(--kd-dash) + 12%); z-index: 2; touch-action: none; cursor: grab; }
+.kd-root.steering .kd-wheelpad { cursor: grabbing; }
+.kd-root.fold .kd-wheelpad { bottom: var(--kd-dash); height: 22%; }
+.kd-root.intro .kd-pedals, .kd-root.intro .kd-wheelpad, .kd-root.intro .kd-junc { opacity: 0; pointer-events: none; }
+.kd-junc { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 62px); right: 12px; width: min(300px, calc(100% - 24px)); z-index: 4; background: rgba(14,16,20,.86); border: 1px solid rgba(255,255,255,.14); border-radius: 18px; padding: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.4); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.kd-junc[hidden] { display: none; }
+.kd-jh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.kd-jh b { font-size: 14px; } .kd-jh small { flex: 1; font-size: 12px; opacity: .7; } .kd-jh .kd-btn { width: 30px; height: 30px; font-size: 13px; }
+.kd-jmap { display: block; width: 100%; height: 140px; border-radius: 12px; background: radial-gradient(circle at 50% 46%, #2a3240, #141820); cursor: pointer; }
+.kd-jopts { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.kd-jo { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); color: #fff; font: inherit; text-align: left; cursor: pointer; }
+.kd-jo i { font-style: normal; font-size: 20px; width: 26px; text-align: center; color: var(--c); }
+.kd-jo b { display: block; font-size: 13px; } .kd-jo small { display: block; font-size: 11px; opacity: .65; }
+.kd-jo.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, rgba(0,0,0,.2)); }
+.kd-root.narrow .kd-junc { top: auto; bottom: calc(var(--kd-dash) + 10px); right: 50%; transform: translateX(50%); width: min(340px, calc(100% - 24px)); }
+.kd-root.narrow .kd-jmap { height: 110px; }
+/* the Luce's glass key: hovers over the console, drops into its dock, lights up */
+.kd-keyset { position: absolute; left: 50%; bottom: calc(var(--kd-dash) * .35 + 40px); width: 260px; height: 200px; margin-left: -130px; perspective: 520px; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.kd-intro.key.keyshow .kd-keyset { opacity: 1; }
+.kd-dock { position: absolute; left: 30px; right: 30px; bottom: 10px; height: 64px; border-radius: 14px; background: linear-gradient(180deg, #0b0c0e, #1e2024); box-shadow: inset 0 3px 10px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.12); transform: rotateX(58deg); }
+.kd-fob { position: absolute; left: 50px; right: 50px; bottom: 34px; height: 92px; border-radius: 12px; background: linear-gradient(180deg, #ffe14d 0%, #f5c400 55%, #d9a800 100%); box-shadow: 0 10px 0 #15161a, 0 12px 0 #2a2c31, 0 22px 30px rgba(0,0,0,.55); display: grid; place-items: center; transform: translateY(-70px) rotateX(48deg); transition: transform .5s cubic-bezier(.3,.7,.2,1), box-shadow .3s; overflow: hidden; }
+.kd-fob i { position: absolute; left: 0; right: 0; top: 0; height: 7px; background: linear-gradient(90deg, #0f8a3b 0 33%, #f5f5f5 33% 66%, #d0202a 66%); }
+.kd-fob b { font: 800 26px/1 "Didot", "Bodoni 72", Georgia, serif; letter-spacing: .18em; color: #111; transform: translateY(4px); }
+.kd-intro.keyin .kd-fob { transform: translateY(0) rotateX(58deg); box-shadow: 0 4px 0 #15161a, 0 5px 0 #2a2c31, 0 10px 18px rgba(0,0,0,.5); }
+.kd-intro.keylit .kd-fob { filter: brightness(1.25); box-shadow: 0 4px 0 #15161a, 0 0 0 3px rgba(255,225,77,.55), 0 0 40px rgba(255,214,0,.75); }
+.kd-intro.keylit .kd-dock { box-shadow: inset 0 3px 10px rgba(0,0,0,.9), 0 0 24px rgba(255,214,0,.45); }
+.kd-root.chase .kd-dash { background: linear-gradient(180deg, rgba(10,12,16,0), rgba(10,12,16,.72) 40%); }
+.kd-root.chase .kd-wheelpad { width: 34%; height: 30%; }
+.kd-root.chase .kd-view { background: rgba(125,211,252,.22); border-color: rgba(125,211,252,.5); }
+.kd-keyset::before { content: ''; position: absolute; inset: -60px -90px -30px; background: radial-gradient(closest-side, rgba(0,0,0,.78), rgba(0,0,0,0)); }
 
 /* Knowledge Train & Knowledge Metro prototypes: shared glass HUD */
 .kt-root, .km-root { position: fixed; inset: 0; z-index: 2147483300; background: #10131a; overflow: hidden; -webkit-user-select: none; user-select: none; touch-action: none;
@@ -145222,6 +145268,8 @@ html body .wv-style.dk .st-card { max-height:calc(100% - 16px); }
 .mn-dsp .mn-oc-bar {
   position: absolute;
   top: max(12px, env(safe-area-inset-top, 10px));
+  bottom: auto !important;
+  height: auto !important;
   left: 50%;
   transform: translateX(-50%);
   z-index: 38;
@@ -145363,6 +145411,56 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
 .mn-wf-oc-row button.on {
   box-shadow: 0 0 0 2px #f2c13d;
 }
+
+/* Minest Duo × Dynamic presentations — the console on the lower screen (half open) or the right page (open flat) */
+html.ddy-tent :is(.kt-root, .km-root, .ks-root, .kx-root) { bottom: 50% !important; height: auto !important; }
+html.ddy-book :is(.kt-root, .km-root, .ks-root, .kx-root) { right: 40% !important; width: auto !important; }
+/* the mode's own bottom bar moves into the console */
+html.ddy-tent :is(.kt-bar, .km-bar, .ks-bar, .kx-bar), html.ddy-book :is(.kt-bar, .km-bar, .ks-bar, .kx-bar) { display: none !important; }
+html.ddy-tent .kc-shop-card, html.ddy-book .kc-shop-card { bottom: 10px !important; }
+
+.ddy { position: fixed; z-index: 2147483350; left: 0; right: 0; top: 50%; bottom: 0; display: grid; grid-template-columns: 96px 1fr 96px; gap: 10px;
+  padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 12px); box-sizing: border-box;
+  background: radial-gradient(120% 90% at 50% 0%, #20242c 0%, #0d0f13 70%); color: #f3f4f6; border-top: 1px solid rgba(255,255,255,.08);
+  font: 14px/1.35 -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif; -webkit-user-select: none; user-select: none; }
+.ddy[hidden] { display: none; }
+html.ddy-book .ddy { left: 60%; top: 0; grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; padding-top: calc(env(safe-area-inset-top, 0px) + 12px); border-top: 0; border-left: 1px solid rgba(255,255,255,.08); }
+html.ddy-book .ddy-col { flex-direction: row; }
+html.ddy-book .ddy-col.l { order: 0; } html.ddy-book .ddy-mid { order: 1; } html.ddy-book .ddy-col.r { order: 2; }
+
+.ddy-col { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.ddy-t { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1px solid rgba(255,255,255,.1); border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03)); color: inherit; font: inherit; cursor: pointer; padding: 6px 4px; }
+.ddy-t i { font-style: normal; font-size: 30px; line-height: 1; }
+.ddy-t span { font-size: 11px; opacity: .78; text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ddy-t:active { transform: scale(.96); background: rgba(255,255,255,.16); }
+
+.ddy-mid { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.ddy-now { position: relative; flex: 1; min-height: 0; display: flex; gap: 12px; padding: 12px; border-radius: 20px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); overflow: hidden; }
+.ddy-img { flex: none; width: 96px; height: 96px; border-radius: 14px; background: #2a2f38 center / cover no-repeat; }
+.ddy-img.e { display: grid; place-items: center; font-size: 42px; font-weight: 700; color: rgba(255,255,255,.85); }
+.ddy-txt { min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.ddy-txt small { font-size: 11px; opacity: .6; letter-spacing: .02em; }
+.ddy-txt b { font-size: 21px; line-height: 1.2; margin-top: 2px; }
+.ddy-txt em { font-style: normal; font-size: 14px; opacity: .75; margin-top: 2px; }
+.ddy-txt p { margin: 8px 0 0; font-size: 15px; line-height: 1.5; opacity: .92; overflow: auto; -webkit-overflow-scrolling: touch; padding-right: 4px; white-space: pre-line; }
+.ddy-x { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; font-size: 14px; cursor: pointer; }
+
+.ddy-sh { display: flex; align-items: center; gap: 8px; }
+.ddy-sh b { flex: 1; min-width: 0; text-align: center; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ddy-sh b::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c); margin-right: 6px; vertical-align: 1px; }
+.ddy-nav { width: 34px; height: 30px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color: #fff; font-size: 20px; line-height: 1; cursor: pointer; }
+.ddy-strip { flex: none; display: flex; gap: 8px; overflow-x: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: 2px; scrollbar-width: none; }
+.ddy-strip::-webkit-scrollbar { display: none; }
+.ddy-c { flex: none; width: 86px; display: flex; flex-direction: column; gap: 4px; padding: 5px; border-radius: 14px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.04); color: inherit; font: inherit; cursor: pointer; }
+.ddy-c i { display: grid; place-items: center; height: 54px; border-radius: 10px; background: color-mix(in srgb, var(--c) 55%, #111) center / cover no-repeat; font-style: normal; font-size: 22px; font-weight: 700; }
+.ddy-c span { font-size: 11px; line-height: 1.2; height: 2.4em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-align: left; }
+.ddy-c.on { border-color: var(--c); box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 45%, transparent) inset; background: rgba(255,255,255,.1); }
+
+/* folded (outer screen): keep the essentials, bigger targets */
+html.ddy-outer :is(.kt-bar, .km-bar, .ks-bar, .kx-bar) { gap: 6px !important; max-width: calc(100% - 16px) !important; }
+html.ddy-outer :is(.kt-bar, .km-bar, .ks-bar, .kx-bar) > :nth-child(n+5) { display: none !important; }
+html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
 
 </style>
 <script id="mn-kdrive-script">
@@ -145639,15 +145737,18 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
     var root = document.createElement('div'); root.className = 'kd-root'; root.setAttribute('role', 'application'); root.setAttribute('aria-label', 'Knowledge Drive');
     root.innerHTML =
       '<canvas class="kd-gl"></canvas>' +
-      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><span class="kd-tr"><button type="button" class="kd-btn kd-car" data-kd="garage" aria-label="Garage" title="Change car">🚘</button><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></span></div>' +
-      '<div class="kd-intro" hidden><div class="kd-fade"></div><div class="kd-cap"><b></b><small>Tap to skip</small></div><button type="button" class="kd-ign" tabindex="-1"><span>ENGINE</span><b>START</b><span>STOP</span></button></div>' +
+      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><span class="kd-tr"><button type="button" class="kd-btn kd-view" data-kd="view" aria-label="Camera view" title="Cockpit / chase view">🎥</button><button type="button" class="kd-btn kd-car" data-kd="garage" aria-label="Garage" title="Change car">🚘</button><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></span></div>' +
+      '<div class="kd-intro" hidden><div class="kd-fade"></div><div class="kd-cap"><b></b><small>Tap to skip</small></div><button type="button" class="kd-ign" tabindex="-1"><span>ENGINE</span><b>START</b><span>STOP</span></button><div class="kd-keyset"><div class="kd-dock"></div><div class="kd-fob"><i></i><b>LUCE</b></div></div></div>' +
       '<div class="kd-garage" hidden><div class="kd-gcard"><div class="kd-ghead"><b>🚘 Garage</b><button type="button" class="kd-btn" data-kd="garage">✕</button></div><div class="kd-glist"></div></div></div>' +
       '<div class="kd-toast" aria-live="polite"></div>' +
       '<div class="kd-dash"><div class="kd-wheelgap"></div>' +
-        '<div class="kd-ctl"><button type="button" class="kd-btn" data-kd="prev" aria-label="Previous stop">⏮</button><button type="button" class="kd-btn kd-play" data-kd="play" aria-label="Stop">⏸</button><button type="button" class="kd-btn kd-brake" aria-label="Brake (hold)" title="Hold to brake (B)">🛑</button><button type="button" class="kd-btn" data-kd="next" aria-label="Next stop">⏭</button></div>' +
+        '<div class="kd-ctl"><button type="button" class="kd-btn" data-kd="prev" aria-label="Previous stop">⏮</button><button type="button" class="kd-btn kd-play" data-kd="play" aria-label="Cruise">⏸</button><button type="button" class="kd-btn" data-kd="next" aria-label="Next stop">⏭</button></div>' +
         '<div class="kd-nav"><canvas class="kd-map"></canvas><button type="button" class="kd-next" data-kd="focusnext"><small>Next stop</small><b></b><i></i></button></div>' +
         '<div class="kd-ctl kd-ctl2"><button type="button" class="kd-btn kd-sp" data-kd="speed"></button><button type="button" class="kd-btn kd-sg" data-kd="suggest" title="Suggest a landscape"></button><button type="button" class="kd-btn" data-kd="prevstyle" title="Previous landscape" aria-label="Previous landscape">↺</button></div>' +
       '</div>' +
+      '<div class="kd-pedals"><button type="button" class="kd-pedal kd-brake" aria-label="Brake (hold)" title="Hold to brake (B)"><i></i><span>BRAKE</span></button><button type="button" class="kd-pedal kd-gas" aria-label="Accelerator (hold)" title="Hold to accelerate (G)"><i></i><span>GAS</span></button></div>' +
+      '<div class="kd-wheelpad" aria-label="Steering wheel: drag to steer"></div>' +
+      '<div class="kd-junc" hidden><div class="kd-jh"><b>Junction ahead</b><small></small><button type="button" class="kd-btn" data-kd="juncx" aria-label="Close">✕</button></div><canvas class="kd-jmap"></canvas><div class="kd-jopts"></div></div>' +
       '';
     (opts.container || document.body).appendChild(root);
     var $ = function (s) { return root.querySelector(s); }, cvs = $('.kd-gl'), mapC = $('.kd-map');
@@ -146010,12 +146111,51 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
       toast((choice === 'left' ? '← ' : choice === 'right' ? '→ ' : '↑ ') + 'Next: ' + PL.roads[seg.opts[choice]].name);
     }
 
+    // ---------------- junction: a map of the crossing ahead; pick a way by tapping the map, a button, or turning the wheel
+    var jmap = $('.kd-jmap');
+    function pickTurn(c) { var seg = car.seg; if (seg.opts[c] == null) return; seg.picked = true; choose(seg, c); if (seg.choice === c) { drawJunc(); } }
+    function juncTick() {
+      var seg = car.seg, dj = seg.len - car.s, open = (dj < 110 && dj > 3) || st.jPin;
+      if (open !== !!st.jOpen) { st.jOpen = open; $('.kd-junc').hidden = !open; if (open) { st.jSeg = null; } }
+      if (!open) return;
+      if (st.jSeg !== seg) { st.jSeg = seg; drawJunc(true); }
+      $('.kd-jh small').textContent = dj < 110 ? Math.max(0, Math.round(dj)) + ' m' : 'Plan the next turn';
+      // turning the wheel near the junction picks that way
+      var us = st.userSteer || 0; if (dj < 110 && Math.abs(us) > .6) { var c = us < 0 ? 'left' : 'right'; if (seg.opts[c] != null && seg.choice !== c) pickTurn(c); }
+    }
+    var JDIR = { left: [-1, 0], straight: [0, -1], right: [1, 0] };
+    function drawJunc(rebuildOpts) {
+      var seg = car.seg, o = seg.opts, w = jmap.clientWidth || 260, h = jmap.clientHeight || 150, d = Math.min(dpr, 2);
+      if (jmap.width !== Math.round(w * d)) { jmap.width = Math.round(w * d); jmap.height = Math.round(h * d); }
+      var x = jmap.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, w, h);
+      var cx = w / 2, cy = h * .46, L = Math.min(w * .42, h * .62);
+      x.lineCap = 'round';
+      x.strokeStyle = PL.roads[seg.road].color; x.lineWidth = 12; x.beginPath(); x.moveTo(cx, h + 4); x.lineTo(cx, cy); x.stroke();
+      ['left', 'straight', 'right'].forEach(function (k) {
+        if (o[k] == null) return; var rd = PL.roads[o[k]], v = JDIR[k], on = seg.choice === k, ex = cx + v[0] * L, ey = cy + v[1] * L * .8;
+        x.strokeStyle = on ? rd.color : 'rgba(255,255,255,.28)'; x.lineWidth = on ? 12 : 8; x.beginPath(); x.moveTo(cx, cy); x.lineTo(ex, ey); x.stroke();
+        x.fillStyle = on ? '#fff' : 'rgba(255,255,255,.75)'; x.font = (on ? '700 ' : '600 ') + '12px ' + FONT; x.textAlign = k === 'left' ? 'left' : k === 'right' ? 'right' : 'center';
+        var tx = k === 'left' ? 4 : k === 'right' ? w - 4 : cx, ty = k === 'straight' ? 12 : cy - 12, nm = rd.name.length > 18 ? rd.name.slice(0, 17) + '…' : rd.name;
+        x.fillText((st.visited[o[k]] ? '✓ ' : '') + nm, tx, ty);
+      });
+      x.fillStyle = '#fff'; x.beginPath(); x.arc(cx, cy, 5, 0, 7); x.fill();
+      x.beginPath(); x.moveTo(cx, h - 18); x.lineTo(cx + 7, h - 6); x.lineTo(cx - 7, h - 6); x.closePath(); x.fill();
+      $('.kd-jopts').innerHTML = ['left', 'straight', 'right'].filter(function (k) { return o[k] != null; }).map(function (k) {
+        var rd = PL.roads[o[k]]; return '<button type="button" class="kd-jo' + (seg.choice === k ? ' on' : '') + '" data-kd="turn-' + k + '" style="--c:' + rd.color + '"><i>' + { left: '←', straight: '↑', right: '→' }[k] + '</i><span><b>' + esc(rd.name) + '</b><small>' + rd.items.length + ' stops' + (st.visited[o[k]] ? ' · visited' : '') + '</small></span></button>';
+      }).join('');
+    }
+    jmap.addEventListener('click', function (e) {   // tap a branch on the map
+      var r = jmap.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, w = r.width, h = r.height;
+      var c = py < h * .3 ? 'straight' : px < w * .4 ? 'left' : px > w * .6 ? 'right' : 'straight'; pickTurn(c);
+    });
+    mapC.addEventListener('click', function () { st.jPin = !st.jPin; st.jSeg = null; juncTick(); hap(); });
+
     // ---------------- HUD
     var toastT = 0;
     function toast(t) { var e = $('.kd-toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { e.classList.remove('on'); }, 1800); }
     function hap() { try { window.webkit && webkit.messageHandlers && webkit.messageHandlers.minest && webkit.messageHandlers.minest.postMessage({ action: 'haptic', data: { style: 'selection' } }); } catch (e) {} }
     function speedLabel() { var S = SPEEDS[st.speed], b = $('.kd-sp'); b.innerHTML = S[1] + '<span>' + S[2] + '</span>'; b.title = 'Speed: ' + S[2]; }
-    function playLabel() { var b = $('.kd-play'); b.textContent = st.playing ? '⏸' : '▶'; b.setAttribute('aria-label', st.playing ? 'Stop' : 'Drive'); b.title = st.playing ? 'Stop (Space)' : 'Drive (Space)'; }
+    function playLabel() { var b = $('.kd-play'); b.innerHTML = (st.playing ? '⏸' : '▶') + '<span>Cruise</span>'; b.classList.toggle('on', !!st.playing); b.setAttribute('aria-label', st.playing ? 'Cruise on — tap to coast' : 'Cruise off — tap to cruise'); b.title = 'Cruise control (Space)'; }
     function upcoming(min) { var g = gNow(), best = null; segs.forEach(function (seg) { seg.stops.forEach(function (sp) { var d = seg.g0 + sp.s - g; if (d > (min || 4) && (!best || d < best.d)) best = { sp: sp, d: d }; }); }); return best; }
     var hudT = 0, lastRoad = -1;
     function hud(force) {
@@ -146025,7 +146165,7 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
       $('.kd-rs').textContent = road.region + ' · ' + passed + '/' + road.items.length;
       var u = upcoming(), nb = $('.kd-next b'), ni = $('.kd-next i');
       if (u) { var I = u.sp.I || info(P, u.sp.ref); nb.textContent = I ? I.title : '—'; ni.textContent = Math.round(u.d) + ' m'; } else { nb.textContent = '—'; ni.textContent = ''; }
-      drawMap();
+      drawMap(); juncTick();
     }
     function drawMap() {
       var w = mapC.clientWidth, h = mapC.clientHeight; if (!w || !h) return;
@@ -146092,6 +146232,9 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
     function act(k) {
       if (k === 'exit') return self.close();
       if (k === 'garage') return garage();
+      if (k === 'view') { st.view = st.view === 'chase' ? 'cockpit' : 'chase'; try { localStorage.setItem('minest.drive.view', st.view); } catch (x) {} root.classList.toggle('chase', st.view === 'chase'); toast(st.view === 'chase' ? '🎥 Chase view' : '🪟 Cockpit view'); hap(); return; }
+      if (k === 'juncx') { st.jPin = false; car.seg.picked = true; $('.kd-junc').hidden = true; st.jOpen = false; return; }
+      if (k.indexOf('turn-') === 0) return pickTurn(k.slice(5));
       if (k === 'pickcar') return;
       if (k === 'play') { st.playing = !st.playing; playLabel(); hap(); }
       else if (k === 'prev' || k === 'next') { unfocus(); nextStop(k === 'next' ? 1 : -1); }
@@ -146112,16 +146255,27 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
       if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
       var k = e.key, m = { ' ': 'play', ArrowRight: 'next', ArrowLeft: 'prev', s: 'speed', S: 'speed', l: 'suggest', L: 'suggest' }[k];
       if (k === 'b' || k === 'B') { e.preventDefault(); brake(true); return; }
+      if (k === 'g' || k === 'G') { e.preventDefault(); gas(true); return; }
+      if (st.jOpen && (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp')) { e.preventDefault(); return pickTurn(k === 'ArrowLeft' ? 'left' : k === 'ArrowRight' ? 'right' : 'straight'); }
       if (st.focus && (k === 'f' || k === 'F')) { e.preventDefault(); return flipBoard(); }
       if (k === 'Escape') { e.preventDefault(); if (st.focus) return unfocus(); return self.close(); }
       if (k === 'Enter') { e.preventDefault(); return act('focusnext'); }
       if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); st.speed = clamp(st.speed + (k === 'ArrowUp' ? 1 : -1), 0, SPEEDS.length - 1); speedLabel(); return; }
       if (m) { e.preventDefault(); act(m); }
     }
-    function onKeyUp(e) { if (e.key === 'b' || e.key === 'B') brake(false); }
+    function onKeyUp(e) { if (e.key === 'b' || e.key === 'B') brake(false); if (e.key === 'g' || e.key === 'G') gas(false); }
     window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKeyUp);
     // 🛑 brake pedal: hold to slow down and stop; let go and the car drives on (if it was driving)
-    function brake(on) { if (st.braking === on) return; st.braking = on; root.classList.toggle('braking', on); if (on) hap(); }
+    function brake(on) { if (st.braking === on) return; st.braking = on; root.classList.toggle('braking', on); if (on) { hap(); if (st.playing) { st.playing = false; playLabel(); toast('Cruise off · GAS to drive'); } } }
+    function gas(on) { if (st.gas === on) return; st.gas = on; root.classList.toggle('gassing', on); if (on) hap(); }
+    var gp = $('.kd-gas');
+    gp.addEventListener('pointerdown', function (e) { e.preventDefault(); try { gp.setPointerCapture(e.pointerId); } catch (x) {} gas(true); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { gp.addEventListener(ev, function () { gas(false); }); });
+    // steering wheel: drag across the wheel; it centres itself when you let go
+    var wp = $('.kd-wheelpad'), wdrag = null;
+    wp.addEventListener('pointerdown', function (e) { e.preventDefault(); try { wp.setPointerCapture(e.pointerId); } catch (x) {} wdrag = { x: e.clientX, s: st.userSteer || 0 }; root.classList.add('steering'); });
+    wp.addEventListener('pointermove', function (e) { if (!wdrag) return; st.userSteer = clamp(wdrag.s + (e.clientX - wdrag.x) / Math.max(90, wp.clientWidth * .55), -1, 1); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { wp.addEventListener(ev, function () { wdrag = null; root.classList.remove('steering'); }); });
     var bk = $('.kd-brake');
     bk.addEventListener('pointerdown', function (e) { e.preventDefault(); try { bk.setPointerCapture(e.pointerId); } catch (x) {} brake(true); });
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { bk.addEventListener(ev, function () { brake(false); }); });
@@ -146145,10 +146299,26 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
       if (withIntro) startIntro(); else toast('🚘 ' + c.name);
     }
     // start-up: walk round the car parked on the road, climb in, press START — the dials sweep, the screen boots, off you go
-    var exteriorG = null;
+    var exteriorG = null, chaseG = null;
+    st.view = (function () { try { return localStorage.getItem('minest.drive.view'); } catch (e) { return null; } })() === 'chase' ? 'chase' : 'cockpit';
+    root.classList.toggle('chase', st.view === 'chase');
+    // chase view: your car on the road ahead of the camera, wheels turning, body leaning into your steering
+    var CC = new T.Vector3(), CP = new T.Vector3(), CL = new T.Vector3();
+    function chaseStep(dt, eye) {
+      if (!chaseG || chaseG.userData.car !== carNow.id) { if (chaseG) { scene.remove(chaseG); chaseG.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); } chaseG = CARS.exterior(T, carNow, R); chaseG.userData.car = carNow.id; scene.add(chaseG); }
+      chaseG.visible = true;
+      CC.copy(eye).addScaledVector(F.l, -.35).setY(0);
+      chaseG.position.copy(CC); chaseG.rotation.y = Math.atan2(-F.t.z, F.t.x) - (st.userSteer || 0) * .14;
+      chaseG.userData.wheels.forEach(function (w) { w.rotation.z -= st.v * dt / carNow.wheelR; });
+      CP.copy(CC).addScaledVector(F.t, -7.4).addScaledVector(F.l, (st.userSteer || 0) * .8); CP.y = 2.55;
+      if (!st.chaseInit) { st.cpos = CP.clone(); st.chaseInit = true; } else st.cpos.lerp(CP, 1 - Math.exp(-dt * 6));
+      cam.position.copy(st.cpos);
+      if (st.focus) CL.copy(look); else CL.copy(CC).addScaledVector(F.t, 9).setY(1.0);
+      cam.lookAt(CL);
+    }
     function startIntro() {
       if (exteriorG) { scene.remove(exteriorG); exteriorG = null; }
-      exteriorG = CARS.exterior(T, carNow); scene.add(exteriorG);
+      exteriorG = CARS.exterior(T, carNow, R); scene.add(exteriorG);
       st.intro = { t: 0, wasPlaying: st.intro ? st.intro.wasPlaying : st.playing, ign: false };
       st.playing = false; st.v = 0; inst.on = 0; inst.sweep = 0; inst.boot = 0; instruments(true);
       var ov = $('.kd-intro'); ov.hidden = false; ov.className = 'kd-intro'; $('.kd-cap b').textContent = carNow.name;
@@ -146182,13 +146352,16 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
         if (exteriorG.visible) exteriorG.visible = false;
         root.classList.add('incab'); ov.classList.toggle('dark', t < 3.35);
         cam.position.copy(eye); look.copy(eye).addScaledVector(F.t, 20); look.y = 1.05; cam.lookAt(look);
-        if (t > 3.5 && !I.ign) { I.ign = true; ov.classList.add('ign'); hap(); }
-        if (t > 3.6) {   // ignition: lights up, needles sweep to the stop and back, screen boots, ambient fades in
-          var s2 = clamp((t - 3.6) / 1.5, 0, 1); inst.on = Math.min(1, s2 * 3); inst.sweep = Math.sin(s2 * Math.PI); inst.boot = s2;
+        // a car with a key (the Luce): the glass key appears, drops into its dock on the console, clicks, the car wakes
+        var KD = carNow.key ? 1.2 : 0;
+        if (KD) { ov.classList.add('key'); ov.classList.toggle('keyshow', t > 3.3); if (t > 3.95 && !I.keyIn) { I.keyIn = true; ov.classList.add('keyin'); } if (t > 4.45 && !I.click) { I.click = true; ov.classList.add('keylit'); hap(); } }
+        if (t > 3.5 + KD && !I.ign) { I.ign = true; if (!KD) ov.classList.add('ign'); hap(); }
+        if (t > 3.6 + KD) {   // ignition: lights up, needles sweep to the stop and back, screen boots, ambient fades in
+          var s2 = clamp((t - 3.6 - KD) / 1.5, 0, 1); inst.on = Math.min(1, s2 * 3); inst.sweep = Math.sin(s2 * Math.PI); inst.boot = s2;
           ambient.material.opacity = .85 * s2; instruments(true);
           cam.position.x += (Math.random() - .5) * .006 * (1 - s2); cam.position.y += (Math.random() - .5) * .006 * (1 - s2);
         }
-        if (t > 5.3) return endIntro();
+        var KD2 = carNow.key ? 1.2 : 0; if (t > 5.3 + KD2) return endIntro();
       }
     }
 
@@ -146203,15 +146376,19 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
         car.seg = segAt(g); car.s = g - car.seg.g0; st.v = Math.abs(car.s - prevS) / Math.max(dt, 1e-3);
         if (k >= 1) { st.anim = null; st.v = 0; if (A.then) A.then(); }
       } else {
-        var target = st.playing && !st.braking ? SPEEDS[st.speed][0] : 0;
-        st.v = lerp(st.v, target, 1 - Math.exp(-dt * (target > st.v ? .9 : st.braking ? 3.2 : 2.4))); if (st.v < .05 && !target) st.v = 0;
+        // pedals: GAS pulls past the cruise speed, BRAKE stops (and drops cruise), no pedal + no cruise = coasting
+        var target = st.braking ? 0 : st.gas ? SPEEDS[SPEEDS.length - 1][0] * 1.25 : st.playing ? SPEEDS[st.speed][0] : 0;
+        var dj = car.seg.len - car.s; if (!st.gas && !car.seg.picked && dj < 45 && dj > 4) target = Math.min(target, 5);   // ease off before an unchosen junction
+        st.v = lerp(st.v, target, 1 - Math.exp(-dt * (target > st.v ? (st.gas ? 1.3 : .9) : st.braking ? 3.2 : st.playing || st.gas ? 2.4 : .35))); if (st.v < .05 && !target) st.v = 0;
         car.s += st.v * dt;
         while (car.s > car.seg.len) { var nx = nextSeg(car.seg); if (!nx) { ensureAhead(); nx = nextSeg(car.seg); } if (!nx) { car.s = car.seg.len; break; } car.s -= car.seg.len; var was = PL.roads[car.seg.road].region; car.seg = nx; toast((PL.roads[nx.road].region !== was ? '🗺 ' + PL.roads[nx.road].region + ' · ' : '🛣 ') + PL.roads[nx.road].name); }
       }
       ensureAhead();
       // camera
       frame(car.seg, car.s, F);
-      var eye = F.p.clone().addScaledVector(F.l, -LANE); eye.y = 1.3 + Math.sin(now / 260) * .012 * Math.min(1, st.v / 8);
+      if (!wdrag) st.userSteer = lerp(st.userSteer || 0, 0, 1 - Math.exp(-dt * 2.2));
+      st.lat = lerp(st.lat || 0, (st.userSteer || 0) * 1.7 * Math.min(1, st.v / 3 + .2), 1 - Math.exp(-dt * 2.5));
+      var eye = F.p.clone().addScaledVector(F.l, -LANE - st.lat); eye.y = 1.3 + Math.sin(now / 260) * .012 * Math.min(1, st.v / 8);
       if (st.intro) { introStep(dt, eye); sky.position.copy(cam.position); ground.position.set(cam.position.x, 0, cam.position.z); var sd0 = sun.userData.dir; sunDisc.position.copy(cam.position).addScaledVector(sd0, 480); sunDisc.lookAt(cam.position); sun.position.copy(cam.position).addScaledVector(sd0, 100); sun.target.position.copy(cam.position); R.autoClear = true; R.render(scene, cam); if (root.classList.contains('incab')) { R.autoClear = false; R.clearDepth(); R.render(cock, ccam); R.autoClear = true; } return; }
       cam.position.copy(eye);
       var fsp = st.focus;
@@ -146224,11 +146401,12 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
         var want = clamp(T.MathUtils.radToDeg(Math.max(vfit, hfit)), 12, Math.max(baseFov, 98));
         fov = lerp(fov, want, 1 - Math.exp(-dt * 3)); fsp.bb.scale.setScalar(lerp(fsp.bb.scale.x, sz, 1 - Math.exp(-dt * 4)));
       } else {
-        var ah = Math.min(car.s + 22, car.seg.lenAll), A2 = frame(car.seg, ah, {}); lookTo.copy(A2.p).addScaledVector(A2.l, -LANE * .7); lookTo.y = 1.05;
+        var ah = Math.min(car.s + 22, car.seg.lenAll), A2 = frame(car.seg, ah, {}); lookTo.copy(A2.p).addScaledVector(A2.l, -LANE * .7 - st.lat - (st.userSteer || 0) * 5); lookTo.y = 1.05;
         fov = lerp(fov, baseFov, 1 - Math.exp(-dt * 2.5));
         segs.forEach(function (s) { s.stops.forEach(function (sp) { if (sp.bb && sp.bb.scale.x !== 1) { var v = lerp(sp.bb.scale.x, 1, 1 - Math.exp(-dt * 4)); sp.bb.scale.setScalar(Math.abs(v - 1) < .002 ? 1 : v); } }); });
       }
       look.lerp(lookTo, 1 - Math.exp(-dt * (fsp ? 3.2 : 5))); cam.lookAt(look);
+      if (st.view === 'chase') chaseStep(dt, eye); else { st.chaseInit = false; if (chaseG) chaseG.visible = false; }
       if (Math.abs(cam.fov - fov) > .01) { cam.fov = fov; cam.updateProjectionMatrix(); }
       // flip the board in focus (and turn back any board that is left flipped)
       segs.forEach(function (s) { s.stops.forEach(function (sp) { if (!sp.bb) return; var fc = sp.bb.userData.face, to = sp.flip ? Math.PI : 0; if (Math.abs(fc.rotation.y - to) > .001) fc.rotation.y = lerp(fc.rotation.y, to, 1 - Math.exp(-dt * 7)); }); });
@@ -146239,7 +146417,7 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
       if (Math.abs(st.off) > .002 || Math.abs(st.offY) > .002) cam.setViewOffset(W, H, -st.off * W, -st.offY * H, W, H); else if (cam.view && cam.view.enabled) cam.clearViewOffset();
       // steering wheel follows the road's bend
       var B = frame(car.seg, Math.min(car.s + 10, car.seg.lenAll), {}), bend = Math.atan2(F.t.x * B.t.z - F.t.z * B.t.x, F.t.x * B.t.x + F.t.z * B.t.z);
-      steer = lerp(steer, clamp(-bend * 4, -1.2, 1.2), 1 - Math.exp(-dt * 3)); wheel.rotation.z = steer;
+      steer = lerp(steer, clamp(-bend * 4, -1.2, 1.2), 1 - Math.exp(-dt * 3)); wheel.rotation.z = steer - (st.userSteer || 0) * 1.9;
       // sky, sun, light follow the car
       sky.position.copy(eye); ground.position.set(eye.x, 0, eye.z); if (clouds) clouds.position.set(eye.x, 0, eye.z);
       var sd = sun.userData.dir; sunDisc.position.copy(eye).addScaledVector(sd, 480); sunDisc.lookAt(eye); sun.position.copy(eye).addScaledVector(sd, 100); sun.target.position.copy(eye);
@@ -146248,7 +146426,7 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
       hudT += dt; if (hudT > .25) { hudT = 0; hud(); }
       instT += dt; if (instT > .12) { instT = 0; instruments(); }
       saveT += dt; if (saveT > 2) { saveT = 0; persist(); }
-      R.autoClear = true; R.render(scene, cam); R.autoClear = false; R.clearDepth(); R.render(cock, ccam); R.autoClear = true;
+      R.autoClear = true; R.render(scene, cam); if (st.view !== 'chase') { R.autoClear = false; R.clearDepth(); R.render(cock, ccam); R.autoClear = true; }
     }
     function schedule() { if (!raf && alive && !document.hidden) raf = requestAnimationFrame(step); }
     function onVis() { if (document.hidden) { if (raf) cancelAnimationFrame(raf); raf = 0; persist(); } else { last = 0; schedule(); } }
@@ -146326,27 +146504,27 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
   var CARS = [
     { id: 'luce', name: 'Ferrari Luce', short: 'Luce', tag: 'Electric GT · aluminium & tan leather', paint: '#a8121c', glass: '#1b2430',
       body: [[-2.3, .22], [2.3, .22], [2.36, .44], [2.12, .62], [1.2, .78], [.6, .84], [-1.6, .88], [-2.2, .8], [-2.36, .55]],
-      cabin: [[-1.72, .86], [-.62, 1.28], [.28, 1.3], [.92, .84]], width: 1.96, wheelR: .37, lights: 'bar', badge: '#f5c400',
-      dash: '#1c1d20', trim: '#a7acb2', leather: '#9a5a2a', accent: '#f5c400', ambient: '#e8ecf2', steer: 'alu3', cluster: 'pods', screen: 'clock' },
+      cabin: [[-1.72, .86], [-.62, 1.28], [.28, 1.3], [.92, .84]], width: 1.96, wheelR: .37, lights: 'bar', badge: '#f5c400', caliper: '#f5c400', rim: '#2c2f34',
+      dash: '#1c1d20', trim: '#a7acb2', leather: '#9a5a2a', accent: '#f5c400', ambient: '#e8ecf2', steer: 'alu3', cluster: 'pods', screen: 'clock', key: true },
     { id: 'lexus', name: 'Lexus LC 500', short: 'LC 500', tag: 'Grand tourer · takumi craft', paint: '#29457a', glass: '#18202c',
       body: [[-2.3, .22], [2.3, .22], [2.36, .46], [2.06, .66], [1.0, .8], [-1.5, .86], [-2.16, .82], [-2.36, .6]],
-      cabin: [[-1.52, .84], [-.56, 1.24], [.24, 1.26], [.96, .8]], width: 1.92, wheelR: .36, lights: 'spindle', badge: '#d9dde3',
+      cabin: [[-1.52, .84], [-.56, 1.24], [.24, 1.26], [.96, .8]], width: 1.92, wheelR: .36, lights: 'spindle', badge: '#d9dde3', exhaust: 4,
       dash: '#1f2125', trim: '#6b7079', leather: '#c8b79a', accent: '#ffb35c', ambient: '#ffb35c', steer: 'sport3', cluster: 'ring', screen: 'map' },
     { id: 'spectre', name: 'Rolls-Royce Spectre', short: 'Spectre', tag: 'Electric super-coupé · starlight roof', paint: '#1f2a44', paint2: '#c9ccd2', glass: '#141a24',
       body: [[-2.55, .26], [2.55, .26], [2.6, .86], [2.34, .97], [.9, 1.02], [-1.8, 1.04], [-2.48, .96], [-2.6, .6]],
-      cabin: [[-1.92, 1.02], [-.9, 1.46], [.36, 1.48], [.96, 1.02]], width: 2.04, wheelR: .4, lights: 'rolls', badge: '#e8e8ea',
+      cabin: [[-1.92, 1.02], [-.9, 1.46], [.36, 1.48], [.96, 1.02]], width: 2.04, wheelR: .4, lights: 'rolls', badge: '#e8e8ea', caliper: '#3a3d44', rim: '#e8eaee',
       dash: '#0d0d10', trim: '#d9dce0', leather: '#ece6da', wood: '#5a3a22', accent: '#cfd6e6', ambient: '#9fb8ff', steer: 'thin', cluster: 'minimal', screen: 'spirit', stars: true },
     { id: 'p911', name: 'Porsche 911 Turbo S', short: '911', tag: 'Rear-engine icon · five round dials', paint: '#d6d2c6', glass: '#1a2028',
       body: [[-2.16, .2], [2.16, .2], [2.24, .42], [2.0, .6], [1.2, .7], [-.2, .74], [-1.72, .78], [-2.2, .62], [-2.26, .4]],
-      cabin: [[-1.92, .76], [-.78, 1.22], [.1, 1.24], [.76, .72]], width: 1.9, wheelR: .36, lights: 'round', badge: '#c8a24a',
+      cabin: [[-1.92, .76], [-.78, 1.22], [.1, 1.24], [.76, .72]], width: 1.9, wheelR: .36, lights: 'round', badge: '#c8a24a', caliper: '#f5c400', exhaust: 2,
       dash: '#19191b', trim: '#3a3b3e', leather: '#1c1c1e', accent: '#ffcf33', ambient: '#ffffff', steer: 'gt3', cluster: 'five', screen: 'none' },
     { id: 'bentley', name: 'Bentley Continental GT', short: 'Continental', tag: 'Grand tourer · walnut & knurled chrome', paint: '#1d4a34', glass: '#162019',
       body: [[-2.36, .24], [2.36, .24], [2.42, .6], [2.22, .82], [1.0, .9], [-1.6, .93], [-2.3, .86], [-2.42, .55]],
-      cabin: [[-1.72, .92], [-.7, 1.32], [.3, 1.33], [.96, .9]], width: 1.98, wheelR: .38, lights: 'quad', badge: '#e9e4d6',
+      cabin: [[-1.72, .92], [-.7, 1.32], [.3, 1.33], [.96, .9]], width: 1.98, wheelR: .38, lights: 'quad', badge: '#e9e4d6', caliper: '#1f2a44', exhaust: 2, rim: '#d9dbe0',
       dash: '#4a2e1b', trim: '#cfd2d6', leather: '#efe4cf', wood: '#5b3a20', accent: '#e9e4d6', ambient: '#ffcf8a', steer: 'classic3', cluster: 'twin', screen: 'clock' },
     { id: 'revuelto', name: 'Lamborghini Revuelto', short: 'Revuelto', tag: 'V12 hybrid · hexagons & Y lights', paint: '#6aa83a', glass: '#10161a',
       body: [[-2.3, .2], [2.3, .2], [2.42, .32], [1.42, .62], [.6, .72], [-1.5, .8], [-2.3, .78], [-2.36, .45]],
-      cabin: [[-1.32, .78], [-.2, 1.12], [.42, 1.12], [1.38, .62]], width: 2.02, wheelR: .38, lights: 'y', badge: '#d4af37',
+      cabin: [[-1.32, .78], [-.2, 1.12], [.42, 1.12], [1.38, .62]], width: 2.02, wheelR: .38, lights: 'y', badge: '#d4af37', caliper: '#8fe04a', exhaust: 3, rim: '#1c1d20',
       dash: '#141414', trim: '#2b2b2b', leather: '#1a1a1a', accent: '#8fe04a', ambient: '#8fe04a', steer: 'hexflat', cluster: 'hex', screen: 'drive' }
   ];
   function byId(id) { return CARS.filter(function (c) { return c.id === id; })[0] || CARS[0]; }
@@ -146355,58 +146533,102 @@ html body .mn-dsp.mn-hud .mn-coc-big.oc-city {
   function std(T, c, o) { return new T.MeshStandardMaterial(Object.assign({ color: c, roughness: .35, metalness: .4, flatShading: true }, o || {})); }
 
   // ---------------------------------------------------------------- exterior (front at +x, width along z, wheels on y=0)
-  function exterior(T, car) {
-    var g = new T.Group(), W = car.width;
-    var paint = std(T, car.paint, { roughness: .25, metalness: .55 });
-    var bodyG = new T.ExtrudeGeometry(shape(T, car.body), { depth: W - .2, bevelEnabled: true, bevelThickness: .1, bevelSize: .08, bevelSegments: 2 });
-    bodyG.translate(0, 0, -(W - .2) / 2);
+  // A smooth side profile (spline over the top), extruded with deep rounded edges, then shaped like a car:
+  // the nose and tail narrow, the glasshouse leans in (tumblehome). Clear-coat paint reflects a sky environment.
+  var ENV = null;
+  function envFor(T, renderer) {
+    if (ENV || !renderer || !T.PMREMGenerator) return ENV;
+    var c = document.createElement('canvas'); c.width = 512; c.height = 256; var x = c.getContext('2d');
+    var g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#6f9fe0'); g.addColorStop(.42, '#dbe8f7'); g.addColorStop(.5, '#ffffff'); g.addColorStop(.53, '#9a9a94'); g.addColorStop(1, '#2b2c2e');
+    x.fillStyle = g; x.fillRect(0, 0, 512, 256);
+    x.fillStyle = 'rgba(255,255,255,.9)'; for (var i = 0; i < 6; i++) x.fillRect(40 + i * 80, 40, 30, 18);   // soft "softbox" highlights
+    var t = new T.CanvasTexture(c); t.mapping = T.EquirectangularReflectionMapping;
+    var pm = new T.PMREMGenerator(renderer); ENV = pm.fromEquirectangular(t).texture; pm.dispose(); t.dispose();
+    return ENV;
+  }
+  function smoothShape(T, pts) {   // straight underside, spline over the rest
+    var s = new T.Shape(); s.moveTo(pts[0][0], pts[0][1]); s.lineTo(pts[1][0], pts[1][1]);
+    s.splineThru(pts.slice(2).map(function (p) { return new T.Vector2(p[0], p[1]); })); s.lineTo(pts[0][0], pts[0][1]); return s;
+  }
+  function shapeCar(geo, x0, x1, yFrom, inset, taper) {   // narrow the ends, lean the upper part in
+    var p = geo.attributes.position, mid = (x0 + x1) / 2, half = (x1 - x0) / 2;
+    for (var i = 0; i < p.count; i++) {
+      var xn = Math.min(1, Math.abs(p.getX(i) - mid) / half), y = p.getY(i), k = 1 - taper * Math.pow(xn, 3);
+      if (yFrom != null && y > yFrom) k *= 1 - inset * Math.min(1, (y - yFrom) / .55);
+      p.setZ(i, p.getZ(i) * k);
+    }
+    geo.computeVertexNormals(); return geo;
+  }
+  function exterior(T, car, renderer) {
+    var g = new T.Group(), W = car.width, env = envFor(T, renderer), xs0 = car.body[0][0], xs1 = car.body[1][0];
+    function phys(c, o) { var M = T.MeshPhysicalMaterial || T.MeshStandardMaterial; return new M(Object.assign({ color: c, metalness: .5, roughness: .3, envMap: env, envMapIntensity: 1.1 }, o || {})); }
+    var paint = phys(car.paint, { metalness: .35, roughness: .32, clearcoat: 1, clearcoatRoughness: .08, envMapIntensity: .75 });
+    var dark = phys('#0d0e10', { metalness: .2, roughness: .6 }), chrome = phys('#e8eaee', { metalness: 1, roughness: .08 });
+    var bodyG = new T.ExtrudeGeometry(smoothShape(T, car.body), { depth: W - .4, bevelEnabled: true, bevelThickness: .2, bevelSize: .16, bevelSegments: 4, curveSegments: 28 });
+    bodyG.translate(0, 0, -(W - .4) / 2); shapeCar(bodyG, xs0, xs1, null, 0, .16);
     g.add(new T.Mesh(bodyG, paint));
     if (car.paint2) {   // two-tone: the upper shell in a second colour
       var up = car.body.filter(function (p) { return p[1] > .7; });
-      if (up.length > 1) { var u = new T.ExtrudeGeometry(shape(T, [[up[0][0], .7]].concat(up).concat([[up[up.length - 1][0], .7]])), { depth: W - .16, bevelEnabled: false }); u.translate(0, .01, -(W - .16) / 2); g.add(new T.Mesh(u, std(T, car.paint2, { roughness: .2, metalness: .7 }))); }
+      if (up.length > 1) { var u = new T.ExtrudeGeometry(smoothShape(T, [[up[up.length - 1][0], .72], [up[0][0], .72]].concat(up)), { depth: W - .34, bevelEnabled: true, bevelThickness: .04, bevelSize: .04, bevelSegments: 2, curveSegments: 20 }); u.translate(0, .005, -(W - .34) / 2); shapeCar(u, xs0, xs1, null, 0, .14); g.add(new T.Mesh(u, phys(car.paint2, { metalness: .8, roughness: .15, clearcoat: 1 }))); }
     }
-    var cab = new T.ExtrudeGeometry(shape(T, car.cabin), { depth: W - .46, bevelEnabled: true, bevelThickness: .06, bevelSize: .05, bevelSegments: 1 });
-    cab.translate(0, 0, -(W - .46) / 2);
-    g.add(new T.Mesh(cab, std(T, car.glass, { roughness: .08, metalness: .9 })));
-    // wheels
-    var tyre = std(T, '#121212', { roughness: .9, metalness: 0 }), rimM = std(T, '#c9ccd1', { roughness: .2, metalness: .9 });
-    var xs = [car.body[1][0] - .75, car.body[0][0] + .72];
-    xs.forEach(function (x) {
+    var cab = new T.ExtrudeGeometry(smoothShape(T, [car.cabin[3], car.cabin[0], car.cabin[1], car.cabin[2]]), { depth: W - .62, bevelEnabled: true, bevelThickness: .1, bevelSize: .08, bevelSegments: 3, curveSegments: 20 });
+    cab.translate(0, -.02, -(W - .62) / 2); shapeCar(cab, car.cabin[0][0], car.cabin[3][0], car.cabin[0][1], .2, .08);
+    g.add(new T.Mesh(cab, phys(car.glass, { metalness: .9, roughness: .04, clearcoat: 1, envMapIntensity: 1.6 })));
+    // body details: side skirt, door cut, rear diffuser, front intake
+    var fx = car.body[2][0] + .14, rx = car.body[car.body.length - 1][0] - .14, fy = car.body[2][1];   // outside the rounded (bevelled) nose and tail
+    function box(x, y, z, sx, sy, sz, m) { var b = new T.Mesh(new T.BoxGeometry(sx, sy, sz), m); b.position.set(x, y, z); g.add(b); return b; }
+    [-1, 1].forEach(function (sz) {
+      box((xs0 + xs1) / 2, .2, sz * (W / 2 - .06), (xs1 - xs0) * .62, .07, .06, dark);
+      box(car.cabin[1][0] + .15, .55, sz * (W / 2 - .04), .015, .42, .02, dark);
+    });
+    box(rx + .05, .3, 0, .12, .14, W * .6, dark);
+    box(fx + .08, .32, 0, .1, .14, W * .55, dark);
+    // wheels: tyre, 5-spoke rim, caliper, arch shadow
+    var tyre = phys('#141414', { metalness: 0, roughness: .85, envMapIntensity: .2 }), rimM = phys(car.rim || '#c7cbd1', { metalness: 1, roughness: .18 }), cal = phys(car.caliper || '#c81e1e', { metalness: .3, roughness: .4 });
+    var R = car.wheelR, wx = [xs1 - .82, xs0 + .8];
+    g.userData.wheels = [];
+    wx.forEach(function (x) {
       [-1, 1].forEach(function (sz) {
-        var t = new T.Mesh(new T.CylinderGeometry(car.wheelR, car.wheelR, .3, 20), tyre); t.rotation.x = Math.PI / 2; t.position.set(x, car.wheelR, sz * (W / 2 - .08)); g.add(t);
-        var rm = new T.Mesh(new T.CylinderGeometry(car.wheelR * .66, car.wheelR * .66, .32, 10), rimM); rm.rotation.x = Math.PI / 2; rm.position.copy(t.position); g.add(rm);
+        var wg = new T.Group(); wg.position.set(x, R, sz * (W / 2 - .14)); g.add(wg);
+        var arch = new T.Mesh(new T.CircleGeometry(R + .08, 24), new T.MeshBasicMaterial({ color: '#050505' })); arch.position.set(x, R + .02, sz * (W / 2 + .005)); arch.rotation.y = sz > 0 ? 0 : Math.PI; g.add(arch);
+        var spin = new T.Group(); wg.add(spin); g.userData.wheels.push(spin);
+        var t = new T.Mesh(new T.TorusGeometry(R * .8, R * .22, 10, 28), tyre); spin.add(t);
+        var disc = new T.Mesh(new T.CylinderGeometry(R * .62, R * .62, .2, 24), phys('#2a2c30', { metalness: .8, roughness: .4 })); disc.rotation.x = Math.PI / 2; spin.add(disc);
+        for (var k = 0; k < 5; k++) { var sp = new T.Mesh(new T.BoxGeometry(R * .11, R * 1.18, .05), rimM); sp.rotation.z = k / 5 * Math.PI * 2; sp.position.z = sz * .11; spin.add(sp); }
+        var lip = new T.Mesh(new T.TorusGeometry(R * .6, .025, 6, 28), rimM); lip.position.z = sz * .11; spin.add(lip);
+        var hub = new T.Mesh(new T.CylinderGeometry(R * .14, R * .14, .06, 12), rimM); hub.rotation.x = Math.PI / 2; hub.position.z = sz * .12; spin.add(hub);
+        var cl = new T.Mesh(new T.BoxGeometry(R * .34, R * .22, .08), cal); cl.position.set(-R * .28, R * .32, sz * .06); wg.add(cl);
       });
     });
     // lights by style
-    var head = new T.MeshBasicMaterial({ color: '#f4f8ff' }), tail = new T.MeshBasicMaterial({ color: '#ff2a2a' });
-    var fx = car.body[2][0] + .02, rx = car.body[car.body.length - 1][0] - .02, fy = car.body[2][1] + .04;
-    function lamp(x, y, z, sx, sy, sz, m) { var b = new T.Mesh(new T.BoxGeometry(sx, sy, sz), m); b.position.set(x, y, z); g.add(b); return b; }
-    if (car.lights === 'bar') { lamp(fx, fy + .06, 0, .05, .05, W * .86, head); lamp(rx, .62, 0, .05, .06, W * .9, tail); }
+    var head = new T.MeshBasicMaterial({ color: '#f4f8ff' }), tail = new T.MeshBasicMaterial({ color: '#ff2a2a' }), fy2 = fy + .04;
+    function lamp(x, y, z, sx, sy, sz, m) { return box(x, y, z, sx, sy, sz, m); }
+    if (car.lights === 'bar') { lamp(fx, fy2 + .02, 0, .05, .045, W * .66, head); lamp(rx - .02, .66, 0, .05, .06, W * .72, tail); }
     else if (car.lights === 'round' || car.lights === 'quad') {
       [-1, 1].forEach(function (s) {
         var n = car.lights === 'quad' ? 2 : 1;
-        for (var i = 0; i < n; i++) { var c = new T.Mesh(new T.CylinderGeometry(i ? .09 : .13, i ? .09 : .13, .06, 16), head); c.rotation.z = Math.PI / 2; c.position.set(fx - .1, fy + .02, s * (W / 2 - .35 - i * .26)); g.add(c); }
-        lamp(rx + .02, .6, s * (W / 2 - .3), .05, .07, .5, tail);
+        for (var i = 0; i < n; i++) { var c = new T.Mesh(new T.CylinderGeometry(i ? .085 : .12, i ? .085 : .12, .06, 18), head); c.rotation.z = Math.PI / 2; c.position.set(fx - .1, fy2, s * (W / 2 - .48 - i * .24)); g.add(c); var rg = new T.Mesh(new T.TorusGeometry(i ? .09 : .125, .015, 6, 18), chrome); rg.rotation.y = Math.PI / 2; rg.position.copy(c.position); rg.position.x += .03; g.add(rg); }
+        lamp(rx, .62, s * (W / 2 - .46), .05, .07, .4, tail);
       });
-      if (car.lights === 'round') lamp(rx, .62, 0, .04, .03, W * .8, tail);
+      if (car.lights === 'round') lamp(rx - .01, .64, 0, .04, .03, W * .66, tail);
     } else if (car.lights === 'y') {
-      [-1, 1].forEach(function (s) { var a = lamp(fx - .15, fy, s * (W / 2 - .4), .05, .04, .5, head); a.rotation.x = s * .5; var b2 = lamp(fx - .15, fy - .06, s * (W / 2 - .4), .05, .04, .5, head); b2.rotation.x = -s * .5; lamp(rx, .6, s * (W / 2 - .4), .05, .05, .55, tail); });
+      [-1, 1].forEach(function (s) { var a = lamp(fx - .12, fy2, s * (W / 2 - .42), .05, .04, .46, head); a.rotation.x = s * .5; var b2 = lamp(fx - .12, fy2 - .07, s * (W / 2 - .42), .05, .04, .46, head); b2.rotation.x = -s * .5; lamp(rx, .62, s * (W / 2 - .52), .05, .05, .42, tail); });
+      box(rx + .05, .82, 0, .3, .03, W * .8, dark);                 // rear wing
     } else {
-      [-1, 1].forEach(function (s) { lamp(fx - .05, fy, s * (W / 2 - .38), .06, .06, .48, head); lamp(rx, .62, s * (W / 2 - .32), .05, .06, .55, tail); });
+      [-1, 1].forEach(function (s) { lamp(fx - .05, fy2, s * (W / 2 - .4), .06, .055, .44, head); lamp(rx, .64, s * (W / 2 - .48), .05, .06, .42, tail); });
     }
     if (car.lights === 'spindle') {   // hourglass grille
-      var sp = new T.Shape(); sp.moveTo(-.38, .5); sp.lineTo(.38, .5); sp.lineTo(.2, .05); sp.lineTo(.42, -.4); sp.lineTo(-.42, -.4); sp.lineTo(-.2, .05); sp.closePath();
-      var sm = new T.Mesh(new T.ShapeGeometry(sp), new T.MeshBasicMaterial({ color: '#0b0d10', side: T.DoubleSide })); sm.rotation.y = Math.PI / 2; sm.position.set(fx + .06, .42, 0); sm.scale.set(.75, .5, 1); g.add(sm);
+      var spg = new T.Shape(); spg.moveTo(-.38, .5); spg.lineTo(.38, .5); spg.lineTo(.2, .05); spg.lineTo(.42, -.4); spg.lineTo(-.42, -.4); spg.lineTo(-.2, .05); spg.closePath();
+      var sm = new T.Mesh(new T.ShapeGeometry(spg), new T.MeshBasicMaterial({ color: '#0b0d10', side: T.DoubleSide })); sm.rotation.y = Math.PI / 2; sm.position.set(fx + .1, .42, 0); sm.scale.set(.75, .5, 1); g.add(sm);
     }
     if (car.lights === 'rolls') {     // tall chrome grille
-      lamp(fx + .02, .58, 0, .06, .5, .62, std(T, '#e6e8ec', { roughness: .1, metalness: 1 }));
-      for (var v = 0; v < 7; v++) lamp(fx + .05, .58, -.27 + v * .09, .02, .46, .02, std(T, '#9aa0a8', { metalness: 1, roughness: .2 }));
+      box(fx + .06, .62, 0, .06, .5, .62, chrome);
+      for (var v = 0; v < 7; v++) box(fx + .09, .62, -.27 + v * .09, .02, .46, .02, phys('#9aa0a8', { metalness: 1, roughness: .2 }));
     }
-    // badge (plain shape in the badge colour) + mirrors
-    var bd = new T.Mesh(new T.CylinderGeometry(.06, .06, .02, 12), new T.MeshBasicMaterial({ color: car.badge })); bd.rotation.z = Math.PI / 2; bd.position.set(fx + .06, fy + .16, 0); g.add(bd);
-    [-1, 1].forEach(function (s) { lamp(car.cabin[3][0] - .1, car.cabin[3][1] + .02, s * (W / 2 + .05), .18, .1, .14, paint); });
-    // ground shadow
-    var sh = new T.Mesh(new T.PlaneGeometry(car.body[1][0] - car.body[0][0] + .6, W + .4), new T.MeshBasicMaterial({ color: '#000', transparent: true, opacity: .32, depthWrite: false }));
+    if (car.exhaust) for (var e = 0; e < car.exhaust; e++) { var ex = new T.Mesh(new T.CylinderGeometry(.05, .05, .14, 12), chrome); ex.rotation.z = Math.PI / 2; ex.position.set(rx + .06, .26, (e - (car.exhaust - 1) / 2) * .22); g.add(ex); }
+    var bd = new T.Mesh(new T.CylinderGeometry(.055, .055, .02, 14), new T.MeshBasicMaterial({ color: car.badge })); bd.rotation.z = Math.PI / 2; bd.position.set(fx + .1, fy + .16, 0); g.add(bd);
+    [-1, 1].forEach(function (s) { box(car.cabin[3][0] - .12, car.cabin[3][1] + .06, s * (W / 2 - .02), .16, .09, .16, paint); });
+    var sh = new T.Mesh(new T.PlaneGeometry(xs1 - xs0 + .7, W + .5), new T.MeshBasicMaterial({ color: '#000', transparent: true, opacity: .35, depthWrite: false }));
     sh.rotation.x = -Math.PI / 2; sh.position.y = .015; g.add(sh);
     return g;
   }
@@ -152772,6 +152994,178 @@ window.KRail = (function () {
 
   D.gallery = gallery;
   D.startFrom = start;
+})();
+
+/* Minest Duo × Dynamic presentations (duo-dyn.js)
+   On the iPhone Fold the screen you hold decides the layout — nothing to pick by hand:
+   - half open, upright (html.duo-halfopen.duo-tall): the 3D keeps the upper screen; the lower screen becomes the
+     mode's console — big tools down both sides, the card being read in the middle with its full text, and a strip of
+     the current road / line / floor / shelf below it. Browse and read below while the trip goes on above.
+   - open flat, sideways (inner, not tall): a book — the 3D on the left page, the same console on the right page.
+   - folded (outer screen): the mode stays full screen with its bar trimmed to the essentials.
+   Drive and Road Trip keep their own dashboard on the lower screen. Every tool here presses the mode's own button,
+   so the modes keep one behaviour whichever screen they are on. */
+(function () {
+  'use strict';
+  if (window.MinestDuoDyn) return;
+  var R = document.documentElement;
+  var K = function () { return window.KRail; };
+
+  // the modes: root selector, button attribute, tools [action, icon, fallback label] for the left and right columns
+  var MODES = [
+    { id: 'train', sel: '.kt-root', at: 'kt', api: 'MinestTrain', icon: '🚆', l: [['play', '⏯', 'Go'], ['station', '⏭', 'Next station'], ['speed', '⚡', 'Speed']], r: [['map', '🗺', 'Map'], ['suggest', '🎨', 'Scenery'], ['exit', '✕', 'Exit']], road: 'line' },
+    { id: 'metro', sel: '.km-root', at: 'km', api: 'MinestMetro', icon: '🚇', l: [['auto', '▶', 'Auto'], ['board', '🚇', 'Board'], ['xfer', '🔀', 'Transfer']], r: [['map', '🗺', 'Map'], ['lines', '☰', 'Lines'], ['suggest', '🎨', 'Theme']], road: 'lineTitle' },
+    { id: 'tower', sel: '.ks-root', at: 'ks', api: 'MinestTower', icon: '🏙', l: [['go', '🛗', 'Ride'], ['cut', '✂️', 'Cutaway'], ['lock', '🔒', 'Lock']], r: [['skyline', '🌆', 'Skyline'], ['suggest', '🎨', 'Exterior'], ['exit', '✕', 'Exit']], road: 'floor' },
+    { id: 'rack', sel: '.kr-root', at: 'kx', api: 'MinestRack', icon: '🎠', l: [['prev', '◀', 'Previous'], ['auto', '⟳', 'Auto'], ['next', '▶', 'Next']], r: [['mat', '🪵', 'Material'], ['suggest', '🎨', 'Shape'], ['exit', '✕', 'Exit']] },
+    { id: 'library', sel: '.kl-root', at: 'kx', api: 'MinestLibrary', icon: '📚', l: [['prev', '◀', 'Previous'], ['walk', '🚶', 'Walk'], ['next', '▶', 'Next']], r: [['cats', '🗂', 'Sections'], ['out', '⤺', 'Step back'], ['suggest', '🎨', 'Atmosphere']], road: 'section' },
+    { id: 'museum', sel: '.ku-root', at: 'kx', api: 'MinestMuseum', icon: '🏛', l: [['prev', '◀', 'Previous'], ['tour', '🎧', 'Tour'], ['next', '▶', 'Next']], r: [['map', '🗺', 'Map'], ['resume', '↩', 'Resume'], ['suggest', '🎨', 'Theme']] },
+    { id: 'city', sel: '.kc-root', at: 'kx', api: 'MinestCity', icon: '🌆', l: [['prev', '◀', 'Previous'], ['run', '🏃', 'Run'], ['next', '▶', 'Next']], r: [['time', '🌗', 'Day/Night'], ['shops', '🏪', 'Shops'], ['out', '⤺', 'Avenue']] },
+    { id: 'galaxy', sel: '.kg-root', at: 'kx', api: 'MinestGalaxy', icon: '🌌', l: [['warp', '⚡', 'Jump'], ['land', '🛬', 'Land'], ['cruise', '🚀', 'Cruise']], r: [['map', '🌌', 'Planets'], ['cockpit', '🪟', 'View'], ['exit', '✕', 'Exit']] }
+  ];
+  var cur = null, el = null, src = null, roads = [], roadI = 0, pick = null, lastSig = '', lastKey = '', infoC = {};
+
+  // remember each mode's source when it opens (the strip shows that source's cards)
+  function hook() {
+    MODES.forEach(function (m) {
+      var api = window[m.api]; if (!api || api.__ddy) return; api.__ddy = 1;
+      var open = api.open; api.open = function (o) { src = (o && o.source) || { type: 'workspace' }; roads = []; pick = null; var r = open.apply(this, arguments); setTimeout(check, 60); return r; };
+    });
+  }
+  function posture() {
+    if (!R.classList.contains('duo')) return null;
+    if (R.classList.contains('duo-outer')) return 'outer';
+    if (R.classList.contains('duo-halfopen') && R.classList.contains('duo-tall')) return 'tent';
+    if (R.classList.contains('duo-inner') && innerWidth > innerHeight * 1.15) return 'book';
+    return null;
+  }
+  function active() {
+    for (var i = 0; i < MODES.length; i++) { var root = document.querySelector(MODES[i].sel); if (root) return { m: MODES[i], root: root }; }
+    return null;
+  }
+  function inst() { var api = cur && window[cur.m.api]; return api && api.current && api.current(); }
+  function state() { try { var i = inst(); return i && i.state ? i.state() : {}; } catch (e) { return {}; } }
+  function hap() { try { webkit.messageHandlers.minest.postMessage({ action: 'haptic', data: { style: 'selection' } }); } catch (e) {} }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function plain(s) { var k = K(); return k && k.plain ? k.plain(s || '') : String(s || '').replace(/<[^>]+>/g, ' '); }
+
+  function check() {
+    hook();
+    var a = active(), p = posture();
+    if (!a || !p) { off(); return; }
+    var key = a.m.id + '|' + p;
+    if (cur && cur.root === a.root && key === lastKey) return;   // nothing changed (our own class edits land here too)
+    lastKey = key;
+    if (!cur || cur.root !== a.root) { cur = a; lastSig = ''; build(); }
+    ['tent', 'book', 'outer'].forEach(function (k) { var c = 'ddy-' + k; if ((p === k) !== R.classList.contains(c)) R.classList.toggle(c, p === k); });
+    if (!R.classList.contains('ddy-on')) R.classList.add('ddy-on');
+    if (R.getAttribute('data-ddy') !== a.m.id) R.setAttribute('data-ddy', a.m.id);
+    if (el) el.hidden = p === 'outer';
+    setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 30);
+  }
+  function off() {
+    if (!R.classList.contains('ddy-on')) return;
+    R.classList.remove('ddy-on', 'ddy-tent', 'ddy-book', 'ddy-outer'); R.removeAttribute('data-ddy');
+    if (el) el.hidden = true; cur = null; lastKey = ''; pick = null;
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  // ---------------- the console
+  function press(act) {
+    var b = cur && cur.root.querySelector('[data-' + cur.m.at + '="' + act + '"]');
+    if (b) { b.click(); hap(); setTimeout(refresh, 120); }
+  }
+  function label(act, fb) {
+    var b = cur && cur.root.querySelector('[data-' + cur.m.at + '="' + act + '"]');
+    var t = b ? (b.getAttribute('aria-label') || b.textContent || '').replace(/^[^\w(]+/u, '').trim() : '';
+    return t && t.length < 18 ? t : fb;
+  }
+  function tools(list) {
+    return list.filter(function (t) { return t[0] === 'exit' || (cur.root.querySelector('[data-' + cur.m.at + '="' + t[0] + '"]')); })
+      .map(function (t) { return '<button type="button" class="ddy-t" data-ddy-act="' + t[0] + '"><i>' + t[1] + '</i><span>' + esc(label(t[0], t[2])) + '</span></button>'; }).join('');
+  }
+  function build() {
+    if (!el) {
+      el = document.createElement('div'); el.className = 'ddy'; el.setAttribute('aria-label', 'Duo console');
+      el.addEventListener('click', onClick);
+      document.body.appendChild(el);
+    }
+    var m = cur.m;
+    el.innerHTML = '<div class="ddy-col l">' + tools(m.l) + '</div>' +
+      '<div class="ddy-mid"><div class="ddy-now"></div><div class="ddy-sh"><button type="button" class="ddy-nav" data-ddy-road="-1" aria-label="Previous">‹</button><b></b><button type="button" class="ddy-nav" data-ddy-road="1" aria-label="Next">›</button></div><div class="ddy-strip"></div></div>' +
+      '<div class="ddy-col r">' + tools(m.r) + '</div>';
+    el.hidden = false;
+    loadRoads(); refresh(true);
+  }
+  function loadRoads() {
+    var k = K(); if (!k) return;
+    try { var P = k.defaultProvider(), PL = k.plan(P, src || { type: 'workspace' }); roads = PL.roads || []; } catch (e) { roads = []; }
+    roadI = 0; infoC = {};
+  }
+  function cardInfo(ref) { var id = ref && (ref.bid + '/' + ref.col + '/' + ref.id); if (id && infoC[id] !== undefined) return infoC[id]; var k = K(), I = null; try { I = k.info(k.defaultProvider(), ref); } catch (e) {} if (id) infoC[id] = I; return I; }
+  function findByTitle(t) {
+    if (!t) return null;
+    for (var i = 0; i < roads.length; i++) for (var j = 0; j < roads[i].items.length; j++) {
+      var I = cardInfo(roads[i].items[j].ref); if (I && I.title === t) return { ri: i, j: j, I: I };
+    }
+    return null;
+  }
+  function roadFromState(s) {
+    var key = cur.m.road, t = key && s[key]; if (!t) return -1;
+    t = String(t).replace(/\s*[(（]\s*\d+\s*[)）]\s*$/, '').toLowerCase();
+    for (var i = 0; i < roads.length; i++) { var a = String(roads[i].title || '').replace(/\s*[(（]\s*\d+\s*[)）]\s*$/, '').toLowerCase(); if (a && (t.indexOf(a) >= 0 || a.indexOf(t) >= 0)) return i; }
+    return -1;
+  }
+  function refresh(force) {
+    if (!cur || !el) return;
+    var s = state(), reading = s.reading || s.focus || null;
+    var follow = roadFromState(s); if (follow >= 0 && !pick) roadI = follow;
+    var hit = reading ? findByTitle(reading) : null;
+    if (hit && !pick) roadI = hit.ri;
+    var sig = [roadI, reading, pick && pick.I.title, s.playing, s.auto, s.tour, s.walk].join('|');
+    // tool labels follow the mode (Pause ↔ Go …)
+    el.querySelectorAll('[data-ddy-act]').forEach(function (b) { var t = (cur.m.l.concat(cur.m.r)).filter(function (x) { return x[0] === b.dataset.ddyAct; })[0]; if (t) b.querySelector('span').textContent = label(t[0], t[2]); });
+    if (!force && sig === lastSig) return; lastSig = sig;
+    var show = pick || hit;
+    // the card in the middle: the one being read above, or the one picked on this screen
+    var now = el.querySelector('.ddy-now');
+    if (show && show.I) {
+      var I = show.I, body = plain(I.back || I.desc || I.notes || '');
+      now.innerHTML = (I.img ? '<div class="ddy-img" style="background-image:url(\'' + esc(I.img) + '\')"></div>' : '<div class="ddy-img e">' + esc(I.emoji || (I.title || '?').slice(0, 1)) + '</div>') +
+        '<div class="ddy-txt"><small>' + (pick ? '📖 Reading here' : '👆 Reading above') + '</small><b>' + esc(I.title) + '</b>' + (I.zh ? '<em>' + esc(I.zh) + '</em>' : '') +
+        '<p>' + esc(body || 'This card has no back yet.') + '</p></div>' + (pick ? '<button type="button" class="ddy-x" data-ddy-close aria-label="Close">✕</button>' : '');
+    } else {
+      var rd = roads[roadI];
+      now.innerHTML = '<div class="ddy-img e">' + cur.m.icon + '</div><div class="ddy-txt"><small>' + (s.playing === false ? 'Stopped' : 'On the way') + '</small><b>' + esc(rd ? rd.title : 'Knowledge') + '</b><p>Tap a card above to read it here in full · or tap one in the strip below.</p></div>';
+    }
+    // the strip: the current road / line / floor / shelf
+    var rd2 = roads[roadI]; el.querySelector('.ddy-sh b').textContent = rd2 ? (rd2.title + ' · ' + rd2.items.length) : '';
+    el.querySelector('.ddy-sh').style.setProperty('--c', rd2 ? rd2.color : '#888');
+    var strip = el.querySelector('.ddy-strip');
+    strip.innerHTML = rd2 ? rd2.items.map(function (it, j) {
+      var I = cardInfo(it.ref) || { title: '?' }, on = (show && show.I && show.I.title === I.title);
+      return '<button type="button" class="ddy-c' + (on ? ' on' : '') + '" data-ddy-card="' + j + '" style="--c:' + (rd2.color || '#888') + '">' + (I.img ? '<i style="background-image:url(\'' + esc(I.img) + '\')"></i>' : '<i class="e">' + esc(I.emoji || I.title.slice(0, 1)) + '</i>') + '<span>' + esc(I.title) + '</span></button>';
+    }).join('') : '';
+    var on = strip.querySelector('.on'); if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+  function onClick(e) {
+    var b = e.target.closest('button'); if (!b || !cur) return; e.preventDefault();
+    if (b.dataset.ddyAct) return press(b.dataset.ddyAct);
+    if (b.dataset.ddyRoad) { if (!roads.length) return; roadI = (roadI + (+b.dataset.ddyRoad) + roads.length) % roads.length; pick = null; hap(); return refresh(true); }
+    if (b.hasAttribute('data-ddy-close')) { pick = null; hap(); return refresh(true); }
+    if (b.dataset.ddyCard != null) {
+      var it = roads[roadI] && roads[roadI].items[+b.dataset.ddyCard], I = it && cardInfo(it.ref);
+      if (I) { pick = { ri: roadI, j: +b.dataset.ddyCard, I: I }; hap(); refresh(true); }
+    }
+  }
+
+  // ---------------- watch: modes opening / closing, folding / unfolding
+  new MutationObserver(function () { check(); }).observe(document.body, { childList: true });
+  new MutationObserver(function () { check(); }).observe(R, { attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('minest:hinge', function () { setTimeout(check, 80); });
+  var rzT = 0; window.addEventListener('resize', function () { clearTimeout(rzT); rzT = setTimeout(check, 120); });
+  setInterval(function () { if (cur && el && !el.hidden) refresh(false); }, 450);
+  hook();
+  window.MinestDuoDyn = { check: check, state: function () { return { on: !!cur, mode: cur && cur.m.id, posture: posture(), road: roads[roadI] && roads[roadI].title, pick: pick && pick.I.title }; } };
 })();
 
 </script>

@@ -271,15 +271,18 @@
     var root = document.createElement('div'); root.className = 'kd-root'; root.setAttribute('role', 'application'); root.setAttribute('aria-label', 'Knowledge Drive');
     root.innerHTML =
       '<canvas class="kd-gl"></canvas>' +
-      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><span class="kd-tr"><button type="button" class="kd-btn kd-car" data-kd="garage" aria-label="Garage" title="Change car">🚘</button><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></span></div>' +
-      '<div class="kd-intro" hidden><div class="kd-fade"></div><div class="kd-cap"><b></b><small>Tap to skip</small></div><button type="button" class="kd-ign" tabindex="-1"><span>ENGINE</span><b>START</b><span>STOP</span></button></div>' +
+      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><span class="kd-tr"><button type="button" class="kd-btn kd-view" data-kd="view" aria-label="Camera view" title="Cockpit / chase view">🎥</button><button type="button" class="kd-btn kd-car" data-kd="garage" aria-label="Garage" title="Change car">🚘</button><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></span></div>' +
+      '<div class="kd-intro" hidden><div class="kd-fade"></div><div class="kd-cap"><b></b><small>Tap to skip</small></div><button type="button" class="kd-ign" tabindex="-1"><span>ENGINE</span><b>START</b><span>STOP</span></button><div class="kd-keyset"><div class="kd-dock"></div><div class="kd-fob"><i></i><b>LUCE</b></div></div></div>' +
       '<div class="kd-garage" hidden><div class="kd-gcard"><div class="kd-ghead"><b>🚘 Garage</b><button type="button" class="kd-btn" data-kd="garage">✕</button></div><div class="kd-glist"></div></div></div>' +
       '<div class="kd-toast" aria-live="polite"></div>' +
       '<div class="kd-dash"><div class="kd-wheelgap"></div>' +
-        '<div class="kd-ctl"><button type="button" class="kd-btn" data-kd="prev" aria-label="Previous stop">⏮</button><button type="button" class="kd-btn kd-play" data-kd="play" aria-label="Stop">⏸</button><button type="button" class="kd-btn kd-brake" aria-label="Brake (hold)" title="Hold to brake (B)">🛑</button><button type="button" class="kd-btn" data-kd="next" aria-label="Next stop">⏭</button></div>' +
+        '<div class="kd-ctl"><button type="button" class="kd-btn" data-kd="prev" aria-label="Previous stop">⏮</button><button type="button" class="kd-btn kd-play" data-kd="play" aria-label="Cruise">⏸</button><button type="button" class="kd-btn" data-kd="next" aria-label="Next stop">⏭</button></div>' +
         '<div class="kd-nav"><canvas class="kd-map"></canvas><button type="button" class="kd-next" data-kd="focusnext"><small>Next stop</small><b></b><i></i></button></div>' +
         '<div class="kd-ctl kd-ctl2"><button type="button" class="kd-btn kd-sp" data-kd="speed"></button><button type="button" class="kd-btn kd-sg" data-kd="suggest" title="Suggest a landscape"></button><button type="button" class="kd-btn" data-kd="prevstyle" title="Previous landscape" aria-label="Previous landscape">↺</button></div>' +
       '</div>' +
+      '<div class="kd-pedals"><button type="button" class="kd-pedal kd-brake" aria-label="Brake (hold)" title="Hold to brake (B)"><i></i><span>BRAKE</span></button><button type="button" class="kd-pedal kd-gas" aria-label="Accelerator (hold)" title="Hold to accelerate (G)"><i></i><span>GAS</span></button></div>' +
+      '<div class="kd-wheelpad" aria-label="Steering wheel: drag to steer"></div>' +
+      '<div class="kd-junc" hidden><div class="kd-jh"><b>Junction ahead</b><small></small><button type="button" class="kd-btn" data-kd="juncx" aria-label="Close">✕</button></div><canvas class="kd-jmap"></canvas><div class="kd-jopts"></div></div>' +
       '';
     (opts.container || document.body).appendChild(root);
     var $ = function (s) { return root.querySelector(s); }, cvs = $('.kd-gl'), mapC = $('.kd-map');
@@ -642,12 +645,51 @@
       toast((choice === 'left' ? '← ' : choice === 'right' ? '→ ' : '↑ ') + 'Next: ' + PL.roads[seg.opts[choice]].name);
     }
 
+    // ---------------- junction: a map of the crossing ahead; pick a way by tapping the map, a button, or turning the wheel
+    var jmap = $('.kd-jmap');
+    function pickTurn(c) { var seg = car.seg; if (seg.opts[c] == null) return; seg.picked = true; choose(seg, c); if (seg.choice === c) { drawJunc(); } }
+    function juncTick() {
+      var seg = car.seg, dj = seg.len - car.s, open = (dj < 110 && dj > 3) || st.jPin;
+      if (open !== !!st.jOpen) { st.jOpen = open; $('.kd-junc').hidden = !open; if (open) { st.jSeg = null; } }
+      if (!open) return;
+      if (st.jSeg !== seg) { st.jSeg = seg; drawJunc(true); }
+      $('.kd-jh small').textContent = dj < 110 ? Math.max(0, Math.round(dj)) + ' m' : 'Plan the next turn';
+      // turning the wheel near the junction picks that way
+      var us = st.userSteer || 0; if (dj < 110 && Math.abs(us) > .6) { var c = us < 0 ? 'left' : 'right'; if (seg.opts[c] != null && seg.choice !== c) pickTurn(c); }
+    }
+    var JDIR = { left: [-1, 0], straight: [0, -1], right: [1, 0] };
+    function drawJunc(rebuildOpts) {
+      var seg = car.seg, o = seg.opts, w = jmap.clientWidth || 260, h = jmap.clientHeight || 150, d = Math.min(dpr, 2);
+      if (jmap.width !== Math.round(w * d)) { jmap.width = Math.round(w * d); jmap.height = Math.round(h * d); }
+      var x = jmap.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, w, h);
+      var cx = w / 2, cy = h * .46, L = Math.min(w * .42, h * .62);
+      x.lineCap = 'round';
+      x.strokeStyle = PL.roads[seg.road].color; x.lineWidth = 12; x.beginPath(); x.moveTo(cx, h + 4); x.lineTo(cx, cy); x.stroke();
+      ['left', 'straight', 'right'].forEach(function (k) {
+        if (o[k] == null) return; var rd = PL.roads[o[k]], v = JDIR[k], on = seg.choice === k, ex = cx + v[0] * L, ey = cy + v[1] * L * .8;
+        x.strokeStyle = on ? rd.color : 'rgba(255,255,255,.28)'; x.lineWidth = on ? 12 : 8; x.beginPath(); x.moveTo(cx, cy); x.lineTo(ex, ey); x.stroke();
+        x.fillStyle = on ? '#fff' : 'rgba(255,255,255,.75)'; x.font = (on ? '700 ' : '600 ') + '12px ' + FONT; x.textAlign = k === 'left' ? 'left' : k === 'right' ? 'right' : 'center';
+        var tx = k === 'left' ? 4 : k === 'right' ? w - 4 : cx, ty = k === 'straight' ? 12 : cy - 12, nm = rd.name.length > 18 ? rd.name.slice(0, 17) + '…' : rd.name;
+        x.fillText((st.visited[o[k]] ? '✓ ' : '') + nm, tx, ty);
+      });
+      x.fillStyle = '#fff'; x.beginPath(); x.arc(cx, cy, 5, 0, 7); x.fill();
+      x.beginPath(); x.moveTo(cx, h - 18); x.lineTo(cx + 7, h - 6); x.lineTo(cx - 7, h - 6); x.closePath(); x.fill();
+      $('.kd-jopts').innerHTML = ['left', 'straight', 'right'].filter(function (k) { return o[k] != null; }).map(function (k) {
+        var rd = PL.roads[o[k]]; return '<button type="button" class="kd-jo' + (seg.choice === k ? ' on' : '') + '" data-kd="turn-' + k + '" style="--c:' + rd.color + '"><i>' + { left: '←', straight: '↑', right: '→' }[k] + '</i><span><b>' + esc(rd.name) + '</b><small>' + rd.items.length + ' stops' + (st.visited[o[k]] ? ' · visited' : '') + '</small></span></button>';
+      }).join('');
+    }
+    jmap.addEventListener('click', function (e) {   // tap a branch on the map
+      var r = jmap.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, w = r.width, h = r.height;
+      var c = py < h * .3 ? 'straight' : px < w * .4 ? 'left' : px > w * .6 ? 'right' : 'straight'; pickTurn(c);
+    });
+    mapC.addEventListener('click', function () { st.jPin = !st.jPin; st.jSeg = null; juncTick(); hap(); });
+
     // ---------------- HUD
     var toastT = 0;
     function toast(t) { var e = $('.kd-toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { e.classList.remove('on'); }, 1800); }
     function hap() { try { window.webkit && webkit.messageHandlers && webkit.messageHandlers.minest && webkit.messageHandlers.minest.postMessage({ action: 'haptic', data: { style: 'selection' } }); } catch (e) {} }
     function speedLabel() { var S = SPEEDS[st.speed], b = $('.kd-sp'); b.innerHTML = S[1] + '<span>' + S[2] + '</span>'; b.title = 'Speed: ' + S[2]; }
-    function playLabel() { var b = $('.kd-play'); b.textContent = st.playing ? '⏸' : '▶'; b.setAttribute('aria-label', st.playing ? 'Stop' : 'Drive'); b.title = st.playing ? 'Stop (Space)' : 'Drive (Space)'; }
+    function playLabel() { var b = $('.kd-play'); b.innerHTML = (st.playing ? '⏸' : '▶') + '<span>Cruise</span>'; b.classList.toggle('on', !!st.playing); b.setAttribute('aria-label', st.playing ? 'Cruise on — tap to coast' : 'Cruise off — tap to cruise'); b.title = 'Cruise control (Space)'; }
     function upcoming(min) { var g = gNow(), best = null; segs.forEach(function (seg) { seg.stops.forEach(function (sp) { var d = seg.g0 + sp.s - g; if (d > (min || 4) && (!best || d < best.d)) best = { sp: sp, d: d }; }); }); return best; }
     var hudT = 0, lastRoad = -1;
     function hud(force) {
@@ -657,7 +699,7 @@
       $('.kd-rs').textContent = road.region + ' · ' + passed + '/' + road.items.length;
       var u = upcoming(), nb = $('.kd-next b'), ni = $('.kd-next i');
       if (u) { var I = u.sp.I || info(P, u.sp.ref); nb.textContent = I ? I.title : '—'; ni.textContent = Math.round(u.d) + ' m'; } else { nb.textContent = '—'; ni.textContent = ''; }
-      drawMap();
+      drawMap(); juncTick();
     }
     function drawMap() {
       var w = mapC.clientWidth, h = mapC.clientHeight; if (!w || !h) return;
@@ -724,6 +766,9 @@
     function act(k) {
       if (k === 'exit') return self.close();
       if (k === 'garage') return garage();
+      if (k === 'view') { st.view = st.view === 'chase' ? 'cockpit' : 'chase'; try { localStorage.setItem('minest.drive.view', st.view); } catch (x) {} root.classList.toggle('chase', st.view === 'chase'); toast(st.view === 'chase' ? '🎥 Chase view' : '🪟 Cockpit view'); hap(); return; }
+      if (k === 'juncx') { st.jPin = false; car.seg.picked = true; $('.kd-junc').hidden = true; st.jOpen = false; return; }
+      if (k.indexOf('turn-') === 0) return pickTurn(k.slice(5));
       if (k === 'pickcar') return;
       if (k === 'play') { st.playing = !st.playing; playLabel(); hap(); }
       else if (k === 'prev' || k === 'next') { unfocus(); nextStop(k === 'next' ? 1 : -1); }
@@ -744,16 +789,27 @@
       if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
       var k = e.key, m = { ' ': 'play', ArrowRight: 'next', ArrowLeft: 'prev', s: 'speed', S: 'speed', l: 'suggest', L: 'suggest' }[k];
       if (k === 'b' || k === 'B') { e.preventDefault(); brake(true); return; }
+      if (k === 'g' || k === 'G') { e.preventDefault(); gas(true); return; }
+      if (st.jOpen && (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp')) { e.preventDefault(); return pickTurn(k === 'ArrowLeft' ? 'left' : k === 'ArrowRight' ? 'right' : 'straight'); }
       if (st.focus && (k === 'f' || k === 'F')) { e.preventDefault(); return flipBoard(); }
       if (k === 'Escape') { e.preventDefault(); if (st.focus) return unfocus(); return self.close(); }
       if (k === 'Enter') { e.preventDefault(); return act('focusnext'); }
       if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); st.speed = clamp(st.speed + (k === 'ArrowUp' ? 1 : -1), 0, SPEEDS.length - 1); speedLabel(); return; }
       if (m) { e.preventDefault(); act(m); }
     }
-    function onKeyUp(e) { if (e.key === 'b' || e.key === 'B') brake(false); }
+    function onKeyUp(e) { if (e.key === 'b' || e.key === 'B') brake(false); if (e.key === 'g' || e.key === 'G') gas(false); }
     window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKeyUp);
     // 🛑 brake pedal: hold to slow down and stop; let go and the car drives on (if it was driving)
-    function brake(on) { if (st.braking === on) return; st.braking = on; root.classList.toggle('braking', on); if (on) hap(); }
+    function brake(on) { if (st.braking === on) return; st.braking = on; root.classList.toggle('braking', on); if (on) { hap(); if (st.playing) { st.playing = false; playLabel(); toast('Cruise off · GAS to drive'); } } }
+    function gas(on) { if (st.gas === on) return; st.gas = on; root.classList.toggle('gassing', on); if (on) hap(); }
+    var gp = $('.kd-gas');
+    gp.addEventListener('pointerdown', function (e) { e.preventDefault(); try { gp.setPointerCapture(e.pointerId); } catch (x) {} gas(true); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { gp.addEventListener(ev, function () { gas(false); }); });
+    // steering wheel: drag across the wheel; it centres itself when you let go
+    var wp = $('.kd-wheelpad'), wdrag = null;
+    wp.addEventListener('pointerdown', function (e) { e.preventDefault(); try { wp.setPointerCapture(e.pointerId); } catch (x) {} wdrag = { x: e.clientX, s: st.userSteer || 0 }; root.classList.add('steering'); });
+    wp.addEventListener('pointermove', function (e) { if (!wdrag) return; st.userSteer = clamp(wdrag.s + (e.clientX - wdrag.x) / Math.max(90, wp.clientWidth * .55), -1, 1); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { wp.addEventListener(ev, function () { wdrag = null; root.classList.remove('steering'); }); });
     var bk = $('.kd-brake');
     bk.addEventListener('pointerdown', function (e) { e.preventDefault(); try { bk.setPointerCapture(e.pointerId); } catch (x) {} brake(true); });
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { bk.addEventListener(ev, function () { brake(false); }); });
@@ -777,10 +833,26 @@
       if (withIntro) startIntro(); else toast('🚘 ' + c.name);
     }
     // start-up: walk round the car parked on the road, climb in, press START — the dials sweep, the screen boots, off you go
-    var exteriorG = null;
+    var exteriorG = null, chaseG = null;
+    st.view = (function () { try { return localStorage.getItem('minest.drive.view'); } catch (e) { return null; } })() === 'chase' ? 'chase' : 'cockpit';
+    root.classList.toggle('chase', st.view === 'chase');
+    // chase view: your car on the road ahead of the camera, wheels turning, body leaning into your steering
+    var CC = new T.Vector3(), CP = new T.Vector3(), CL = new T.Vector3();
+    function chaseStep(dt, eye) {
+      if (!chaseG || chaseG.userData.car !== carNow.id) { if (chaseG) { scene.remove(chaseG); chaseG.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); } chaseG = CARS.exterior(T, carNow, R); chaseG.userData.car = carNow.id; scene.add(chaseG); }
+      chaseG.visible = true;
+      CC.copy(eye).addScaledVector(F.l, -.35).setY(0);
+      chaseG.position.copy(CC); chaseG.rotation.y = Math.atan2(-F.t.z, F.t.x) - (st.userSteer || 0) * .14;
+      chaseG.userData.wheels.forEach(function (w) { w.rotation.z -= st.v * dt / carNow.wheelR; });
+      CP.copy(CC).addScaledVector(F.t, -7.4).addScaledVector(F.l, (st.userSteer || 0) * .8); CP.y = 2.55;
+      if (!st.chaseInit) { st.cpos = CP.clone(); st.chaseInit = true; } else st.cpos.lerp(CP, 1 - Math.exp(-dt * 6));
+      cam.position.copy(st.cpos);
+      if (st.focus) CL.copy(look); else CL.copy(CC).addScaledVector(F.t, 9).setY(1.0);
+      cam.lookAt(CL);
+    }
     function startIntro() {
       if (exteriorG) { scene.remove(exteriorG); exteriorG = null; }
-      exteriorG = CARS.exterior(T, carNow); scene.add(exteriorG);
+      exteriorG = CARS.exterior(T, carNow, R); scene.add(exteriorG);
       st.intro = { t: 0, wasPlaying: st.intro ? st.intro.wasPlaying : st.playing, ign: false };
       st.playing = false; st.v = 0; inst.on = 0; inst.sweep = 0; inst.boot = 0; instruments(true);
       var ov = $('.kd-intro'); ov.hidden = false; ov.className = 'kd-intro'; $('.kd-cap b').textContent = carNow.name;
@@ -814,13 +886,16 @@
         if (exteriorG.visible) exteriorG.visible = false;
         root.classList.add('incab'); ov.classList.toggle('dark', t < 3.35);
         cam.position.copy(eye); look.copy(eye).addScaledVector(F.t, 20); look.y = 1.05; cam.lookAt(look);
-        if (t > 3.5 && !I.ign) { I.ign = true; ov.classList.add('ign'); hap(); }
-        if (t > 3.6) {   // ignition: lights up, needles sweep to the stop and back, screen boots, ambient fades in
-          var s2 = clamp((t - 3.6) / 1.5, 0, 1); inst.on = Math.min(1, s2 * 3); inst.sweep = Math.sin(s2 * Math.PI); inst.boot = s2;
+        // a car with a key (the Luce): the glass key appears, drops into its dock on the console, clicks, the car wakes
+        var KD = carNow.key ? 1.2 : 0;
+        if (KD) { ov.classList.add('key'); ov.classList.toggle('keyshow', t > 3.3); if (t > 3.95 && !I.keyIn) { I.keyIn = true; ov.classList.add('keyin'); } if (t > 4.45 && !I.click) { I.click = true; ov.classList.add('keylit'); hap(); } }
+        if (t > 3.5 + KD && !I.ign) { I.ign = true; if (!KD) ov.classList.add('ign'); hap(); }
+        if (t > 3.6 + KD) {   // ignition: lights up, needles sweep to the stop and back, screen boots, ambient fades in
+          var s2 = clamp((t - 3.6 - KD) / 1.5, 0, 1); inst.on = Math.min(1, s2 * 3); inst.sweep = Math.sin(s2 * Math.PI); inst.boot = s2;
           ambient.material.opacity = .85 * s2; instruments(true);
           cam.position.x += (Math.random() - .5) * .006 * (1 - s2); cam.position.y += (Math.random() - .5) * .006 * (1 - s2);
         }
-        if (t > 5.3) return endIntro();
+        var KD2 = carNow.key ? 1.2 : 0; if (t > 5.3 + KD2) return endIntro();
       }
     }
 
@@ -835,15 +910,19 @@
         car.seg = segAt(g); car.s = g - car.seg.g0; st.v = Math.abs(car.s - prevS) / Math.max(dt, 1e-3);
         if (k >= 1) { st.anim = null; st.v = 0; if (A.then) A.then(); }
       } else {
-        var target = st.playing && !st.braking ? SPEEDS[st.speed][0] : 0;
-        st.v = lerp(st.v, target, 1 - Math.exp(-dt * (target > st.v ? .9 : st.braking ? 3.2 : 2.4))); if (st.v < .05 && !target) st.v = 0;
+        // pedals: GAS pulls past the cruise speed, BRAKE stops (and drops cruise), no pedal + no cruise = coasting
+        var target = st.braking ? 0 : st.gas ? SPEEDS[SPEEDS.length - 1][0] * 1.25 : st.playing ? SPEEDS[st.speed][0] : 0;
+        var dj = car.seg.len - car.s; if (!st.gas && !car.seg.picked && dj < 45 && dj > 4) target = Math.min(target, 5);   // ease off before an unchosen junction
+        st.v = lerp(st.v, target, 1 - Math.exp(-dt * (target > st.v ? (st.gas ? 1.3 : .9) : st.braking ? 3.2 : st.playing || st.gas ? 2.4 : .35))); if (st.v < .05 && !target) st.v = 0;
         car.s += st.v * dt;
         while (car.s > car.seg.len) { var nx = nextSeg(car.seg); if (!nx) { ensureAhead(); nx = nextSeg(car.seg); } if (!nx) { car.s = car.seg.len; break; } car.s -= car.seg.len; var was = PL.roads[car.seg.road].region; car.seg = nx; toast((PL.roads[nx.road].region !== was ? '🗺 ' + PL.roads[nx.road].region + ' · ' : '🛣 ') + PL.roads[nx.road].name); }
       }
       ensureAhead();
       // camera
       frame(car.seg, car.s, F);
-      var eye = F.p.clone().addScaledVector(F.l, -LANE); eye.y = 1.3 + Math.sin(now / 260) * .012 * Math.min(1, st.v / 8);
+      if (!wdrag) st.userSteer = lerp(st.userSteer || 0, 0, 1 - Math.exp(-dt * 2.2));
+      st.lat = lerp(st.lat || 0, (st.userSteer || 0) * 1.7 * Math.min(1, st.v / 3 + .2), 1 - Math.exp(-dt * 2.5));
+      var eye = F.p.clone().addScaledVector(F.l, -LANE - st.lat); eye.y = 1.3 + Math.sin(now / 260) * .012 * Math.min(1, st.v / 8);
       if (st.intro) { introStep(dt, eye); sky.position.copy(cam.position); ground.position.set(cam.position.x, 0, cam.position.z); var sd0 = sun.userData.dir; sunDisc.position.copy(cam.position).addScaledVector(sd0, 480); sunDisc.lookAt(cam.position); sun.position.copy(cam.position).addScaledVector(sd0, 100); sun.target.position.copy(cam.position); R.autoClear = true; R.render(scene, cam); if (root.classList.contains('incab')) { R.autoClear = false; R.clearDepth(); R.render(cock, ccam); R.autoClear = true; } return; }
       cam.position.copy(eye);
       var fsp = st.focus;
@@ -856,11 +935,12 @@
         var want = clamp(T.MathUtils.radToDeg(Math.max(vfit, hfit)), 12, Math.max(baseFov, 98));
         fov = lerp(fov, want, 1 - Math.exp(-dt * 3)); fsp.bb.scale.setScalar(lerp(fsp.bb.scale.x, sz, 1 - Math.exp(-dt * 4)));
       } else {
-        var ah = Math.min(car.s + 22, car.seg.lenAll), A2 = frame(car.seg, ah, {}); lookTo.copy(A2.p).addScaledVector(A2.l, -LANE * .7); lookTo.y = 1.05;
+        var ah = Math.min(car.s + 22, car.seg.lenAll), A2 = frame(car.seg, ah, {}); lookTo.copy(A2.p).addScaledVector(A2.l, -LANE * .7 - st.lat - (st.userSteer || 0) * 5); lookTo.y = 1.05;
         fov = lerp(fov, baseFov, 1 - Math.exp(-dt * 2.5));
         segs.forEach(function (s) { s.stops.forEach(function (sp) { if (sp.bb && sp.bb.scale.x !== 1) { var v = lerp(sp.bb.scale.x, 1, 1 - Math.exp(-dt * 4)); sp.bb.scale.setScalar(Math.abs(v - 1) < .002 ? 1 : v); } }); });
       }
       look.lerp(lookTo, 1 - Math.exp(-dt * (fsp ? 3.2 : 5))); cam.lookAt(look);
+      if (st.view === 'chase') chaseStep(dt, eye); else { st.chaseInit = false; if (chaseG) chaseG.visible = false; }
       if (Math.abs(cam.fov - fov) > .01) { cam.fov = fov; cam.updateProjectionMatrix(); }
       // flip the board in focus (and turn back any board that is left flipped)
       segs.forEach(function (s) { s.stops.forEach(function (sp) { if (!sp.bb) return; var fc = sp.bb.userData.face, to = sp.flip ? Math.PI : 0; if (Math.abs(fc.rotation.y - to) > .001) fc.rotation.y = lerp(fc.rotation.y, to, 1 - Math.exp(-dt * 7)); }); });
@@ -871,7 +951,7 @@
       if (Math.abs(st.off) > .002 || Math.abs(st.offY) > .002) cam.setViewOffset(W, H, -st.off * W, -st.offY * H, W, H); else if (cam.view && cam.view.enabled) cam.clearViewOffset();
       // steering wheel follows the road's bend
       var B = frame(car.seg, Math.min(car.s + 10, car.seg.lenAll), {}), bend = Math.atan2(F.t.x * B.t.z - F.t.z * B.t.x, F.t.x * B.t.x + F.t.z * B.t.z);
-      steer = lerp(steer, clamp(-bend * 4, -1.2, 1.2), 1 - Math.exp(-dt * 3)); wheel.rotation.z = steer;
+      steer = lerp(steer, clamp(-bend * 4, -1.2, 1.2), 1 - Math.exp(-dt * 3)); wheel.rotation.z = steer - (st.userSteer || 0) * 1.9;
       // sky, sun, light follow the car
       sky.position.copy(eye); ground.position.set(eye.x, 0, eye.z); if (clouds) clouds.position.set(eye.x, 0, eye.z);
       var sd = sun.userData.dir; sunDisc.position.copy(eye).addScaledVector(sd, 480); sunDisc.lookAt(eye); sun.position.copy(eye).addScaledVector(sd, 100); sun.target.position.copy(eye);
@@ -880,7 +960,7 @@
       hudT += dt; if (hudT > .25) { hudT = 0; hud(); }
       instT += dt; if (instT > .12) { instT = 0; instruments(); }
       saveT += dt; if (saveT > 2) { saveT = 0; persist(); }
-      R.autoClear = true; R.render(scene, cam); R.autoClear = false; R.clearDepth(); R.render(cock, ccam); R.autoClear = true;
+      R.autoClear = true; R.render(scene, cam); if (st.view !== 'chase') { R.autoClear = false; R.clearDepth(); R.render(cock, ccam); R.autoClear = true; }
     }
     function schedule() { if (!raf && alive && !document.hidden) raf = requestAnimationFrame(step); }
     function onVis() { if (document.hidden) { if (raf) cancelAnimationFrame(raf); raf = 0; persist(); } else { last = 0; schedule(); } }
