@@ -260,10 +260,11 @@
 
     // ---------------- loop
     var raf = 0, last = 0, mg = 0, ht = 0, sv = 0, alive = true, W = 1, H = 1;
+    var railSnd = window.MinestSfx ? MinestSfx.loop('rail') : null;   // wheels on the rail joints, a horn when the train sets off (sfx.js)
     function step(now) {
       raf = 0; if (!alive) return; schedule(); var dt = Math.min(.05, (now - (last || now)) / 1000); last = now;
       if (st.anim) { var A = st.anim; A.t += dt; var k = clamp(A.t / A.dur, 0, 1), g = lerp(A.from, A.to, ease(k)), ps = gNow(); pos.seg = segAt(g); pos.s = g - pos.seg.g0; st.v = Math.abs(gNow() - ps) / Math.max(dt, 1e-3); if (k >= 1) { st.anim = null; if (A.then) A.then(); } }
-      else { var tv = st.playing ? SPEEDS[st.speed][0] : 0; st.v = lerp(st.v, tv, 1 - Math.exp(-dt * (tv > st.v ? .5 : 1.6))); if (st.v < .05 && !tv) st.v = 0; pos.s += st.v * dt; while (pos.s > pos.seg.len) { var i = segs.indexOf(pos.seg), nx = segs[i + 1]; if (!nx) { ensureAhead(); nx = segs[i + 1]; } if (!nx) break; pos.s -= pos.seg.len; pos.seg = nx; toast('🚉 ' + PL.roads[nx.li].title + ' Line'); } }
+      else { var tv = st.playing ? SPEEDS[st.speed][0] : 0; st.v = lerp(st.v, tv, 1 - Math.exp(-dt * (tv > st.v ? .5 : 1.6))); if (st.v < .05 && !tv) st.v = 0; if (railSnd) railSnd.set(st.v / SPEEDS[SPEEDS.length - 1][0]); pos.s += st.v * dt; while (pos.s > pos.seg.len) { var i = segs.indexOf(pos.seg), nx = segs[i + 1]; if (!nx) { ensureAhead(); nx = segs[i + 1]; } if (!nx) break; pos.s -= pos.seg.len; pos.seg = nx; toast('🚉 ' + PL.roads[nx.li].title + ' Line'); } }
       ensureAhead();
       frame(pos.seg, pos.s, F);
       var eye = F.p.clone().addScaledVector(F.l, SEAT); eye.y = EYE_Y + Math.sin(now / 170) * .006 * Math.min(1, st.v / 6) + Math.sin(now / 53) * .0025 * Math.min(1, st.v / 10);   // the gentle rattle of the rails
@@ -299,7 +300,7 @@
     resize(); frame(pos.seg, pos.s, F); look.copy(F.p).addScaledVector(F.l, -30); ensureAhead(); manageChunks(gNow()); manageNodes(gNow()); hud();
     toast(saved.li ? '↺ Resuming the ' + PL.roads[startLi].title + ' Line' : '🚆 ' + PL.roads[startLi].title + ' Line'); schedule();
 
-    this.close = function () { if (!alive) return; persist(); alive = false; if (raf) cancelAnimationFrame(raf); window.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis); ro.disconnect(); segs.slice().forEach(disposeSeg); texCache.forEach(function (t) { t.dispose(); }); R.dispose(); root.remove(); if (opts.onExit) opts.onExit(); };
+    this.close = function () { if (!alive) return; if (railSnd) railSnd.stop(); persist(); alive = false; if (raf) cancelAnimationFrame(raf); window.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis); ro.disconnect(); segs.slice().forEach(disposeSeg); texCache.forEach(function (t) { t.dispose(); }); R.dispose(); root.remove(); if (opts.onExit) opts.onExit(); };
     this.state = function () { return { line: PL.roads[pos.seg.li].title, s: Math.round(pos.s), playing: st.playing, focus: st.focus && st.focus.I ? st.focus.I.title : null, flip: st.focus ? st.focus.flip : 0, style: st.style, nodes: picks.length / 2, segs: segs.length, fov: Math.round(cam.fov), dist: st.focus && st.focus.node ? Math.round(cam.position.distanceTo(st.focus.node.userData.front.getWorldPosition(new T.Vector3()))) : null }; };
     this.focusNext = function () { onKey({ key: 'Enter', preventDefault: function () {} }); };
     this.act = act;

@@ -17,7 +17,7 @@
   var DUO_API = null;   // the Build console's parts, for the Fold flow console (world_fold.js)
   (function () {
     var lastR = null, fitCam = null, quiet = false, lastSelKey = '';
-    function sceneR() { var s = el && el.querySelector('.mn-dsp-scene'); var r = s && s.getBoundingClientRect(); return r && r.width > 0 && r.height > 0 ? r : null; }
+    function sceneR() { var s = el && el.querySelector('.mn-dsp-scene'); var r = s && s.parentNode.getBoundingClientRect(); return r && r.width > 0 && r.height > 0 ? r : null; }
     function same(a, b) { return a && b && Math.abs(a.x - b.x) < .5 && Math.abs(a.y - b.y) < .5 && Math.abs(a.z - b.z) < 1e-3; }
     var fit0 = fit;
     fit = function () {

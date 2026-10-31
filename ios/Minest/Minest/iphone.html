@@ -7916,6 +7916,42 @@ body.mode-photos .mn-board-launcher,body.mode-photos button[title='Show in the i
 html.duo-dockpin .miv-ios-head{padding-right:16px}
 html.duo-dockpin .miv-ios-tabbar,html.duo-dockpin .miv-ios-toolbar{padding-right:8px}
 </style>
+<style id="mn-walkin-style">
+/* Walk in 2.0 — the action button, the room chips and the fade (top of the view, so the Duo console never covers them) */
+html body .mn-walk .wk-act { position:absolute;left:50%;top:calc(112px + env(safe-area-inset-top));transform:translateX(-50%);z-index:6;padding:12px 20px;font:900 16px/1 var(--pc-font, ui-monospace, monospace);color:#fff;background:#3f8f3fd9;border:3px solid;border-color:#9fe39f #2a5e2a #2a5e2a #9fe39f;cursor:pointer;text-shadow:0 2px 0 #0008;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis; }
+html body .mn-walk .wk-act:active { transform:translateX(-50%) translateY(2px); }
+html body .mn-walk .wk-act[data-a="up"] { background:#6b6b6bd9;border-color:#bdbdbd #3a3a3a #3a3a3a #bdbdbd; }
+html body .mn-walk .wk-act[data-a="out"] { background:#8a6a3ad9;border-color:#d9b98a #4e3a1c #4e3a1c #d9b98a; }
+html body .mn-walk .wk-rooms { position:absolute;left:10px;right:10px;top:calc(62px + env(safe-area-inset-top));z-index:6;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;justify-content:flex-end; }
+html body .mn-walk .wk-rooms::-webkit-scrollbar { display:none; }
+html body .mn-walk .wk-rooms button { flex:none;padding:8px 11px;font:800 13px/1 var(--pc-font, ui-monospace, monospace);color:#fff;background:#4a4a4acc;border:2px solid #9a9a9a;cursor:pointer; }
+html body .mn-walk .wk-rooms button.on { background:#3f8f3fd9;border-color:#9fe39f; }
+html body .mn-walk .wk-fade { position:absolute;inset:0;z-index:8;background:#000;opacity:0;pointer-events:none;transition:opacity .35s;display:grid;place-items:center; }
+html body .mn-walk .wk-fade.on { opacity:1; }
+html body .mn-walk .wk-fade b { font:900 22px/1.2 var(--pc-font, ui-monospace, monospace);color:#fff; }
+/* Minest Weather on the island (2D): a tint for the time of day and the clouds, rain and snow falling, a lightning flash.
+   Pure overlays (pointer-events: none) — the island SVG itself is never restyled. */
+html body .mn-dsp-stage > .mn-wx { position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden; }
+html body .mn-wx > i { position:absolute;inset:0;display:block;opacity:0;transition:opacity 1.2s; }
+html body .mn-wx > .t { transition:opacity 2s, background 2s; }
+html body .mn-wx.ph-dawn > .t { opacity:1;background:linear-gradient(180deg,rgba(255,160,120,.22),rgba(255,210,170,.08)); }
+html body .mn-wx.ph-dusk > .t { opacity:1;background:linear-gradient(180deg,rgba(255,110,40,.26),rgba(150,50,110,.2)); }
+html body .mn-wx.ph-night > .t { opacity:1;background:linear-gradient(180deg,rgba(6,12,44,.62),rgba(10,18,52,.48)); }
+html body .mn-wx.ph-day.c-cloudy > .t, html body .mn-wx.ph-day.c-fog > .t { opacity:1;background:rgba(110,120,130,.2); }
+html body .mn-wx.ph-day.c-rain > .t, html body .mn-wx.ph-day.c-storm > .t, html body .mn-wx.ph-day.c-snow > .t { opacity:1;background:rgba(70,80,95,.3); }
+html body .mn-wx.c-fog > .t { background:rgba(220,225,230,.42) !important;opacity:1; }
+html body .mn-wx > .r, html body .mn-wx > .s { inset:-100% 0 0 0;height:200%;will-change:transform; }
+html body .mn-wx.c-rain > .r, html body .mn-wx.c-storm > .r { opacity:.55;background:repeating-linear-gradient(104deg,transparent 0 13px,rgba(200,220,255,.55) 13px 14px,transparent 14px 31px),repeating-linear-gradient(98deg,transparent 0 22px,rgba(200,220,255,.35) 22px 23px,transparent 23px 47px);background-size:100% 120px;animation:mnwxRain .55s linear infinite; }
+html body .mn-wx.heavy > .r { opacity:.8;animation-duration:.38s; }
+html body .mn-wx.c-snow > .s { opacity:.9;background-image:radial-gradient(circle,#fff 0 1.6px,transparent 2.2px),radial-gradient(circle,rgba(255,255,255,.8) 0 1.1px,transparent 1.6px);background-size:44px 44px,29px 31px;background-position:0 0,13px 17px;animation:mnwxSnow 7s linear infinite; }
+html body .mn-wx.windy > .s { animation-name:mnwxSnowW; }
+html body .mn-wx > .f { background:#fff;opacity:0;transition:none; }
+@keyframes mnwxRain { from { transform:translate3d(0,0,0); } to { transform:translate3d(-26px,120px,0); } }
+@keyframes mnwxSnow { from { transform:translate3d(0,0,0); } to { transform:translate3d(14px,50%,0); } }
+@keyframes mnwxSnowW { from { transform:translate3d(0,0,0); } to { transform:translate3d(90px,50%,0); } }
+html body .mn-dsp-stage > .mn-wx-chip { position:absolute;left:10px;bottom:10px;z-index:4;padding:6px 10px;border:2px solid rgba(255,255,255,.55);background:rgba(20,26,40,.62);color:#fff;font:800 12px/1 ui-monospace,monospace;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+@media (prefers-reduced-motion: reduce) { html body .mn-wx > .r, html body .mn-wx > .s { animation:none; } }
+</style>
 </head>
   <body>
 <script id="mn-has-flags">
@@ -117644,6 +117680,9 @@ html body .mn-dsp-auto,html body .mn-dsp-start [data-auto] { padding:9px 13px;cu
   border:3px solid;border-color:var(--pcg-hi) var(--pcg-lt) var(--pcg-sh) var(--pcg-dk);border-radius:2px;box-shadow:0 0 0 2px var(--pc-ol); }
 html body .mn-dsp-stage { position:relative;flex:1;min-height:0; }
 html body .mn-dsp-scene { position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none; }
+html body .mn-dsp-stage > svg.mn-dsp-scene { transform-origin:0 0; will-change:transform; }
+html body .mn-dsp-stage > svg.mn-dsp-live { pointer-events:none; cursor:default; }
+html body .mn-dsp-stage > svg.mn-dsp-live .pc { pointer-events:auto; }
 html body .mn-dsp-scene polygon { stroke-linejoin:round; }
 html body .mn-dsp-scene .gnd { fill:transparent; }
 html body .mn-dsp-scene .bk .ol { fill:none;stroke:#10153a;stroke-width:1.6;stroke-opacity:.55; }
@@ -122272,8 +122311,18 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   function order(list) {
     var idx = list.map(function (q, i) { return i; }).sort(function (i, j) { var a = list[i], b = list[j]; return (a.x0 + a.x1 + a.y0 + a.y1 + a.z0) - (b.x0 + b.x1 + b.y0 + b.y1 + b.z0); });
     var st = new Array(list.length), out = [];
-    function visit(i) { if (st[i]) return; st[i] = 1; for (var k = 0; k < idx.length; k++) { var j = idx[k]; if (j !== i && !st[j] && before(list[j], list[i])) visit(j); } out.push(list[i]); }
-    idx.forEach(visit); return out;
+    // only parts that share some of the screen can cover each other: bucket them along the screen and test those (same order, not n x n)
+    var sig = list.length;   // the same boxes as last time (a tap, a selection): the same order
+    list.forEach(function (q) { [q.x0, q.x1, q.y0, q.y1, q.z0, q.z1, q.h || 0, q.t === 'ln' ? 7 : 1, q.o && q.o.glass ? 3 : 1].forEach(function (v) { sig = (Math.imul(sig, 31) + Math.round(v * 1024)) | 0; }); });
+    var big = list.length > 200; if (big && sig === order.sig && order.perm.length === list.length) return order.perm.map(function (i) { return list[i]; });   // (people and pets order their few parts too: only a scene is kept)
+    var n = list.length, rank = new Int32Array(n), ivs = list.map(iv), lo = Infinity, hi = -Infinity, mark = new Int32Array(n), stamp = 0, B = [];
+    idx.forEach(function (i, r) { rank[i] = r; lo = Math.min(lo, ivs[i][0]); hi = Math.max(hi, ivs[i][1]); });
+    var W = Math.max(.25, (hi - lo) / 256); function bk(x) { return Math.max(0, Math.floor((x - lo) / W)); }
+    idx.forEach(function (i) { for (var b = bk(ivs[i][0]), b1 = bk(ivs[i][1]); b <= b1; b++) (B[b] || (B[b] = [])).push(i); });
+    function near(i) { var c = [], b, b1, m, L; stamp++; for (b = bk(ivs[i][0]), b1 = bk(ivs[i][1]); b <= b1; b++) if ((L = B[b])) for (m = 0; m < L.length; m++) if (mark[L[m]] !== stamp) { mark[L[m]] = stamp; c.push(L[m]); }
+      return c.sort(function (a, b2) { return rank[a] - rank[b2]; }); }
+    function visit(i) { if (st[i]) return; st[i] = 1; var c = near(i); for (var k = 0; k < c.length; k++) { var j = c[k]; if (j !== i && !st[j] && before(list[j], list[i])) visit(j); } out.push(i); }
+    idx.forEach(visit); if (big) { order.sig = sig; order.perm = out; } return out.map(function (i) { return list[i]; });
   }
   function dateOf(ref) { var t = thing(ref); if (t && t.y != null) return t.y; var d = t && !V.visit && KN() && KN().dateOf && KN().dateOf(t.s.id); return d ? d.y : null; }   // visitors get the year from the snapshot
   function tag(x, y, z, text, cls) { var c = P(x, y, z), w = Math.min(170, 12 + String(text).length * 6.4); return ('<g class="tag ' + (cls || '') + '"><rect x="' + (c[0] - w / 2).toFixed(1) + '" y="' + (c[1] - 18).toFixed(1) + '" width="' + w.toFixed(1) + '" height="16"/><text x="' + c[0].toFixed(1) + '" y="' + (c[1] - 6).toFixed(1) + '" text-anchor="middle">' + esc(text) + '</text></g>').replace(/^<g class="tag ([^"]*)">/, function (m0, k) { return /\bbig\b/.test(k) ? '<g class="tag ' + k + '" transform="translate(' + c[0].toFixed(1) + ',' + c[1].toFixed(1) + ') scale(1.9) translate(' + (-c[0]).toFixed(1) + ',' + (-c[1]).toFixed(1) + ')">' : m0; }); }   /* big: an archipelago's area names, readable from afar */
@@ -122291,7 +122340,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       if (/^(time|mhall|stairs|path)$/.test(p.k)) b.parts.forEach(function (q) { var yref = q.o.ref || q.ref; if (q.o.year && yref && dateOf(yref) != null) tags.push(tag((q.x0 + q.x1) / 2, (q.y0 + q.y1) / 2, q.z1 + .28, dateOf(yref), 'yr')); });
     });
     var sel = V && V.sel && !V.sel.ref ? V.sel.pc : null;
-    return order(all).map(function (q) { return '<g class="pc' + (q.pc === sel ? ' sel' : '') + (V && V.hot === q.pc ? ' hot' : '') + '" data-pc="' + q.pc + '"' + (q.o && q.o.glass ? ' pointer-events="none"' : '') + '>' + (q.t === 'box' ? drawBox(q) : q.t === 'ln' ? drawLine(q) : q.t === 'img' ? drawImg(q) : q.t === 'pic' ? drawPic(q) : q.t === 'txt' ? drawTxt(q) : drawBB(q)) + '</g>'; }).join('') + tags.join('');
+    var sl = order(all).map(function (q) { return '<g class="pc' + (q.pc === sel ? ' sel' : '') + (V && V.hot === q.pc ? ' hot' : '') + '" data-pc="' + q.pc + '"' + (q.o && q.o.glass ? ' pointer-events="none"' : '') + '>' + (q.t === 'box' ? drawBox(q) : q.t === 'ln' ? drawLine(q) : q.t === 'img' ? drawImg(q) : q.t === 'pic' ? drawPic(q) : q.t === 'txt' ? drawTxt(q) : drawBB(q)) + '</g>'; }).concat(tags); scene.parts = sl; return sl.join('');
   }
   function byDate(its) { return its.map(function (r, i) { return { r: r, i: i, d: dateOf(r) }; }).sort(function (a, b) { return (a.d == null ? 1e9 + a.i : a.d) - (b.d == null ? 1e9 + b.i : b.d); }).map(function (x) { return x.r; }); }
 
@@ -122609,10 +122658,13 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       st.key = ''; out += '<g class="pc mob' + (V.sel && V.sel.pc === p.id ? ' sel' : '') + '" data-pc="' + p.id + '" data-mob="' + p.id + '">' + mobGroup(p, st) + '</g>'; });
     if (out && !mobRaf && !mobStill) mobRaf = requestAnimationFrame(mobTick); return out;
   }
+  function liveQ(q) {   // people, pets and cars live on their own layer: look there, not through the whole island, every frame
+    var lv = el.__lv && el.__lv.isConnected ? el.__lv : (el.__lv = el.querySelector('svg.mn-dsp-live')); return (lv || el).querySelector(q);
+  }
   function mobTick(now) {
     mobRaf = 0; if (!el || !V) return; var dt = Math.min(100, now - (mobLast || now)); mobLast = now; var any = false;
     V.d.pc.forEach(function (p) {
-      if (!K[p.k] || !K[p.k].mob) return; var st = MW[p.id], g = el.querySelector('[data-mob="' + p.id + '"]'); if (!st || !g) return; any = true;
+      if (!K[p.k] || !K[p.k].mob) return; var st = MW[p.id], g = liveQ('[data-mob="' + p.id + '"]'); if (!st || !g) return; any = true;
       var held = (V.sel && V.sel.pc === p.id) || (typeof drag !== 'undefined' && drag && drag.pc === p.id);
       if (held) { st.x = p.x; st.y = p.y; st.tx = p.x; st.ty = p.y; st.wait = 800; }
       else if (st.wait > 0) { st.wait -= dt; if (st.wait <= 0) { for (var i = 0; i < 8; i++) { var a = Math.random() * Math.PI * 2, r = 1 + Math.random() * 3, tx = Math.round((p.x + Math.cos(a) * r) * 4) / 4, ty = Math.round((p.y + Math.sin(a) * r) * 4) / 4; if (mobFree(p, tx, ty)) { st.tx = tx; st.ty = ty; break; } } } }
@@ -123192,7 +123244,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   function mvTick(now) {
     mvRaf = 0; if (!el || !V) return; var dt = Math.min(100, now - (mvLast || now)); mvLast = now; var any = false;
     V.d.pc.forEach(function (p) {
-      if (!moving(p)) return; var st = MV[p.id], g = el.querySelector('[data-mv="' + p.id + '"]'); if (!st || !g) return; any = true; st.t += dt;
+      if (!moving(p)) return; var st = MV[p.id], g = liveQ('[data-mv="' + p.id + '"]'); if (!st || !g) return; any = true; st.t += dt;
       var held = (V.sel && V.sel.pc === p.id) || (typeof drag !== 'undefined' && drag && drag.pc === p.id);
       if (held) { if (st.x !== p.x || st.y !== p.y || st.z) { MV[p.id] = st = mvInit(p); st.k = p.k; g.innerHTML = mvGroup(p, st); } }
       else mvStep(p, st, dt, g);
@@ -123292,7 +123344,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   }
   // ---- snapping a thing to the slot nearest the finger (drag or tap-to-place)
   function exSlots(p) {   // the slots of a piece on screen (client px), in order
-    var R = el.querySelector('.mn-dsp-scene').getBoundingClientRect(), out = []; if (!BUILD[p.k]) return out;
+    var R = el.querySelector('.mn-dsp-scene').parentNode.getBoundingClientRect(), out = []; if (!BUILD[p.k]) return out;
     var fake = []; for (var i = 0; i < Math.max(1, capOf(p)); i++) fake.push('~slot~');   // every slot, empty ones too
     build(p, fake).parts.forEach(function (q) { if (!q.o || !q.o.slot) return; var c = P((q.x0 + q.x1) / 2, (q.y0 + q.y1) / 2, (q.z0 != null ? (q.z0 + (q.z1 || q.z0)) / 2 : (q.z || 0))); out.push([R.left + V.cam.x + c[0] * V.cam.z, R.top + V.cam.y + c[1] * V.cam.z]); });
     return out;
@@ -123461,21 +123513,54 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   /* ── My World · Scene System · render, camera, fit, screen → floor, room-finding for pieces */
   // ---------------------------------------------------------------- the screen
   var V = null, el = null;
+function svgSet(g, list) {   // redraw only what changed: a part with the same markup keeps its node, so a tap or a drag restyles a few nodes, not the whole city
+    list = list.filter(function (h) { return h; }); var old = g.__ss, on = g.__sn, NS = 'http://www.w3.org/2000/svg';
+    function full() { g.innerHTML = list.join(''); var ch = [].slice.call(g.children); if (ch.length === list.length) { ch.forEach(function (n) { n.__k = 1; }); g.__ss = list; g.__sn = ch; } else g.__ss = g.__sn = null; }
+    if (!old || !on || on.length !== old.length || !on.every(function (n) { return n.parentNode === g; })) return full();
+    var idx = new Map(), i = 0, j, plan = [], ins = [], dead = []; old.forEach(function (h, k) { var a = idx.get(h); if (a) a.push(k); else idx.set(h, [k]); });
+    for (j = 0; j < list.length; j++) { var h = list[j];
+      if (i < old.length && old[i] === h) { plan.push(on[i++]); continue; }
+      var a = idx.get(h), k = -1; if (a) { while (a.length && a[0] < i) a.shift(); if (a.length && a[0] - i <= 400) k = a.shift(); }
+      if (k >= 0) { for (; i < k; i++) dead.push(on[i]); plan.push(on[k]); i = k + 1; continue; }
+      plan.push(ins.length); ins.push(h); }
+    for (; i < old.length; i++) dead.push(on[i]);
+    if (ins.length > list.length / 2) return full();
+    var tmp = document.createElementNS(NS, 'g'); tmp.innerHTML = ins.join(''); var made = [].slice.call(tmp.children); if (made.length !== ins.length) return full();
+    [].slice.call(g.children).forEach(function (n) { if (!n.__k) g.removeChild(n); }); dead.forEach(function (n) { g.removeChild(n); });
+    var nodes = plan.map(function (q) { return typeof q === 'number' ? made[q] : q; }), next = null;
+    for (j = nodes.length - 1; j >= 0; j--) { var n = nodes[j]; if (n.parentNode !== g) { n.__k = 1; g.insertBefore(n, next); }
+      else { var m = /^<g class="([^"]*)"/.exec(list[j]); if (m && n.getAttribute('class') !== m[1]) n.setAttribute('class', m[1]); } next = n; }
+    g.__ss = list; g.__sn = nodes;
+  }
   function render() {
     if (!el) return; tileSync(); index(); V.d.pc.forEach(function (p) { ensureBld(p.k); ensureModel(p.k, p.m); });
     var svg = el.querySelector('.mn-dsp-scene g.cam'); if (!svg) return;
     var hi = '', s = V.sel && !V.sel.ref && pieceOf(V.sel.pc); if (s) { var f = vfoot(s); hi = '<polygon class="foot' + (fits(s) ? '' : ' bad') + '" points="' + pts([P(f.x0, f.y0, 0), P(f.x1, f.y0, 0), P(f.x1, f.y1, 0), P(f.x0, f.y1, 0)]) + '"/>'; }
-    svg.innerHTML = '<g class="gw">' + ground() + landMarks() + '</g>' + hi + scene(V.d.pc.filter(function (p) { return BUILD[p.k] && !(K[p.k] && K[p.k].mob) && !moving(p) && shownHere(p); })) + '<g class="movers">' + moversLayer(0) + '</g><g class="mobs">' + mobsLayer() + '</g><g class="movers air">' + moversLayer(1) + '</g>';   // people and pets walk on their own layer (59-mobs.js)
+    scene.parts = null; var scs = scene(V.d.pc.filter(function (p) { return BUILD[p.k] && !(K[p.k] && K[p.k].mob) && !moving(p) && shownHere(p); })); svgSet(svg, ['<g class="gw">' + ground() + landMarks() + '</g>', hi].concat(scene.parts || [scs])); var lvg = liveCam(), lvh = '<g class="movers">' + moversLayer(0) + '</g><g class="mobs">' + mobsLayer() + '</g><g class="movers air">' + moversLayer(1) + '</g>'; if (lvg) lvg.innerHTML = lvh; else svg.insertAdjacentHTML('beforeend', lvh);   // people and pets walk on their own layer (59-mobs.js)
     if (V.ghost && V.hold && hudOn()) svg.insertAdjacentHTML('beforeend', hudGhostSvg()); else if (!V.hold) V.ghost = null;   // where it would go (86-hud.js)
     camera(); bar(); drawer(); guide(); hudSetup();
   }
-  function camera() { var g = el && el.querySelector('g.cam'); if (g) g.classList.toggle('far', V.cam.z < 1.05); if (g) g.setAttribute('transform', 'translate(' + V.cam.x.toFixed(1) + ',' + V.cam.y.toFixed(1) + ') scale(' + V.cam.z.toFixed(3) + ')'); }
+  var CAMQ = null;   // the camera drawn into the SVG; quick moves slide the painted layers, then it settles
+  function camLayers() { return el ? [].slice.call(el.querySelectorAll('.mn-dsp-stage > svg.mn-dsp-scene')) : []; }
+  function camera() { var ls = camLayers(); if (!ls.length) return; var now = performance.now(), c = V.cam;
+    if (CAMQ && CAMQ.el === el && now - CAMQ.t < 220) { var k = c.z / CAMQ.z, tf = 'translate(' + (c.x - k * CAMQ.x).toFixed(1) + 'px,' + (c.y - k * CAMQ.y).toFixed(1) + 'px) scale(' + k.toFixed(4) + ')';
+      ls.forEach(function (s) { camSlide(s, tf); }); CAMQ.t = now; clearTimeout(CAMQ.tm); CAMQ.tm = setTimeout(camSettle, 170); return; }
+    camSettle(); }
+  function camSettle() { if (!el || !V) return; var c = V.cam, tr = 'translate(' + c.x.toFixed(1) + ',' + c.y.toFixed(1) + ') scale(' + c.z.toFixed(3) + ')';
+    camLayers().forEach(function (s) { var g = s.querySelector('g.cam'); if (!g) return; g.classList.toggle('far', c.z < 1.05); g.setAttribute('transform', tr); if (s.__camA) { s.__camA.cancel(); s.__camA = null; } });
+    if (CAMQ) clearTimeout(CAMQ.tm); CAMQ = { el: el, x: c.x, y: c.y, z: c.z, t: performance.now() }; }
+  function liveCam() {   // the layer people, pets and cars walk on, over the island
+    var sc = el.querySelector('.mn-dsp-stage > svg.mn-dsp-scene'); if (!sc) return null; var lv = sc.parentNode.querySelector('svg.mn-dsp-live');
+    if (!lv) { sc.insertAdjacentHTML('afterend', '<svg class="mn-dsp-scene mn-dsp-live" xmlns="http://www.w3.org/2000/svg"><g class="cam"></g></svg>'); lv = sc.nextElementSibling; }
+    var g = lv.querySelector('g.cam'), g0 = sc.querySelector('g.cam'); if (g0 && g0.getAttribute('transform')) g.setAttribute('transform', g0.getAttribute('transform')); g.setAttribute('class', g0 ? g0.getAttribute('class') : 'cam'); if (sc.__camA && sc.__camTf) camSlide(lv, sc.__camTf); return g; }
+  function camSlide(s, tf) {   // an animation, not the style attribute: a style change on the island would restyle all its nodes
+    s.__camTf = tf; var kf = [{ transform: tf }, { transform: tf }]; if (s.__camA) s.__camA.effect.setKeyframes(kf); else s.__camA = s.animate(kf, { duration: 1e9, fill: 'forwards' }); }
   function fit() {
-    var r = el.querySelector('.mn-dsp-scene').getBoundingClientRect(), b = lbox(), span = (b.x1 - b.x0) + (b.y1 - b.y0), w = span * CW + 24, h = span * CH + 130, c = P((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, 0);
+    var r = el.querySelector('.mn-dsp-scene').parentNode.getBoundingClientRect(), b = lbox(), span = (b.x1 - b.x0) + (b.y1 - b.y0), w = span * CW + 24, h = span * CH + 130, c = P((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, 0);
     V.cam.z = clamp(Math.max(span > 18 ? .45 : .72, Math.min(r.width / w, r.height / h)), .3, 2.2); V.cam.x = r.width / 2 - c[0] * V.cam.z; V.cam.y = r.height / 2 - c[1] * V.cam.z + 64 * V.cam.z; V.fitZ = V.cam.z; camera();
   }
   function toFloor(cx, cy) {   // a point on the screen → a world cell position on the ground
-    var r = el.querySelector('.mn-dsp-scene').getBoundingClientRect(), sx = (cx - r.left - V.cam.x) / V.cam.z, sy = (cy - r.top - V.cam.y) / V.cam.z;
+    var r = el.querySelector('.mn-dsp-scene').parentNode.getBoundingClientRect(), sx = (cx - r.left - V.cam.x) / V.cam.z, sy = (cy - r.top - V.cam.y) / V.cam.z;
     var vx = (sx / CW + sy / CH) / 2, vy = (sy / CH - sx / CW) / 2; return unrot(vx, vy, V.d.rot);
   }
   function fits(p, ignore) {
@@ -123843,7 +123928,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   }
   function fitPlots(keys) {   // the camera on these plots, filling the screen
     var b = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }; keys.forEach(function (k) { var c = k.split(','); b.x0 = Math.min(b.x0, c[0] * PLOT); b.y0 = Math.min(b.y0, c[1] * PLOT); b.x1 = Math.max(b.x1, (+c[0] + 1) * PLOT); b.y1 = Math.max(b.y1, (+c[1] + 1) * PLOT); });
-    var r = el.querySelector('.mn-dsp-scene').getBoundingClientRect(), span = (b.x1 - b.x0) + (b.y1 - b.y0), w = span * CW + 24, h = span * CH + 160, m = rot((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, V.d.rot), c2 = P(m[0], m[1], 0);
+    var r = el.querySelector('.mn-dsp-scene').parentNode.getBoundingClientRect(), span = (b.x1 - b.x0) + (b.y1 - b.y0), w = span * CW + 24, h = span * CH + 160, m = rot((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, V.d.rot), c2 = P(m[0], m[1], 0);
     V.cam.z = clamp(Math.min(r.width / w, r.height / h), .4, 2.4); V.cam.x = r.width / 2 - c2[0] * V.cam.z; V.cam.y = r.height / 2 - c2[1] * V.cam.z + 50 * V.cam.z; camera();
   }
   function isleTitle(keys) {   // the name on the island: its area's (or world's) flag
@@ -124024,9 +124109,9 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     render(); fit(); hap('light');
   }
   function close() { closePiece(); if (typeof WK !== 'undefined' && WK) wkClose(); if (el && el.classList.contains('mn-hud')) try { if (window.MinestNative) MinestNative.send('setOrientation', { orientation: 'auto' }); } catch (e) {} var back = V && V.visit && V.back; if (el) { el.remove(); el = null; } if (V && !V.visit) { save(true); publishNow(); } if (V && V.visit && /isle=/.test(location.hash)) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} } V = null; drag = null; ghostOff(); if (back) setTimeout(back, 0); }   // a visit from someone's page goes back to it
-  function zoomAt(cx, cy, f) { var r = el.querySelector('.mn-dsp-scene').getBoundingClientRect(), z = clamp(V.cam.z * f, .3, 3.2), k = z / V.cam.z, px = cx - r.left, py = cy - r.top; V.cam.x = px - (px - V.cam.x) * k; V.cam.y = py - (py - V.cam.y) * k; V.cam.z = z; camera(); }
+  function zoomAt(cx, cy, f) { var r = el.querySelector('.mn-dsp-scene').parentNode.getBoundingClientRect(), z = clamp(V.cam.z * f, .3, 3.2), k = z / V.cam.z, px = cx - r.left, py = cy - r.top; V.cam.x = px - (px - V.cam.x) * k; V.cam.y = py - (py - V.cam.y) * k; V.cam.z = z; camera(); }
   function closer(p) {   // bring a piece to the middle, big enough to read what is on it
-    if (!p) return; var f = vfoot(p), r = el.querySelector('.mn-dsp-scene').getBoundingClientRect(), c = P((f.x0 + f.x1) / 2, (f.y0 + f.y1) / 2, 1.4), span = (f.x1 - f.x0 + f.y1 - f.y0) * CW + 60;
+    if (!p) return; var f = vfoot(p), r = el.querySelector('.mn-dsp-scene').parentNode.getBoundingClientRect(), c = P((f.x0 + f.x1) / 2, (f.y0 + f.y1) / 2, 1.4), span = (f.x1 - f.x0 + f.y1 - f.y0) * CW + 60;
     var z = clamp(Math.min(r.width / span, r.height / (span * .75 + 120)) * 1.0, 1, 2.6); V.cam.z = z; V.cam.x = r.width / 2 - c[0] * z; V.cam.y = r.height / 2 - c[1] * z + 20; camera();
   }
   var lastTap = null;
@@ -124357,6 +124442,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       if (p && !fits(p)) { if (!settle(p, p.x, p.y)) { p.x = d.px; p.y = d.py; } } change(function () {}); return; }
     if (d.t === 'new-pc') { if (overScene(e.clientX, e.clientY)) { var w = toFloor(e.clientX, e.clientY), q; change(function () { q = add(d.kind, w[0], w[1]); if (q) V.sel = { pc: q.id }; }); } return; }
     if (d.t === 'it' && overBox(e.clientX, e.clientY)) { change(function () { unplace(d.ref); V.sel = null; }); toast('Back in the box'); return; }
+    if (d.t === 'pan') { el.querySelectorAll('.mn-dsp-scene .pc.hot').forEach(function (x) { x.classList.remove('hot'); }); return; }   // a pan changed nothing but the camera
     exSnapShow(null);
     if ((d.t === 'it' || d.t === 'new-it') && d.snap && overScene(e.clientX, e.clientY)) { var sp2 = d.snap, fpp = pieceOf(sp2.pc); if (!sp2.ok) { toast(sp2.why); render(); return; } change(function () { if (fpp && exPutAt(d.ref, fpp, sp2.idx)) learnDrop(d.ref); }); hap('light'); return; }
     if ((d.t === 'it' || d.t === 'new-it') && overScene(e.clientX, e.clientY)) { change(function () { if (placeAt(d.ref, e.clientX, e.clientY)) learnDrop(d.ref); }); hap('light'); return; }
@@ -124405,7 +124491,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if (e.target.closest('[data-dx]')) return close();
     if (sharing(e)) return;
     if ((g = e.target.closest('[data-scene]'))) { change(function () { V.d.scene = g.getAttribute('data-scene'); }); fit(); return; }   // a room or a hall is framed again
-    if ((g = e.target.closest('[data-cam]'))) { var c = g.getAttribute('data-cam'), r = el.querySelector('.mn-dsp-scene').getBoundingClientRect(); if (c === 'left') turn(-1); if (c === 'right') turn(1); if (c === 'in') zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.25); if (c === 'out') zoomAt(r.left + r.width / 2, r.top + r.height / 2, .8); if (c === 'fit') fit(); return; }
+    if ((g = e.target.closest('[data-cam]'))) { var c = g.getAttribute('data-cam'), r = el.querySelector('.mn-dsp-scene').parentNode.getBoundingClientRect(); if (c === 'left') turn(-1); if (c === 'right') turn(1); if (c === 'in') zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.25); if (c === 'out') zoomAt(r.left + r.width / 2, r.top + r.height / 2, .8); if (c === 'fit') fit(); return; }
     if (e.target.closest('[data-start]')) { var st = el.querySelector('.mn-dsp-start'); if (st) st.remove(); save(); return; }
     if (e.target.closest('[data-auto]')) { smartOpen(); return; }   // sort first, then set out (75-smart-arrange.js)
     if ((g = e.target.closest('[data-dtab]'))) { NEW = null; V.tab = g.getAttribute('data-dtab'); V.hold = null; drawer(); bar(); return; }
@@ -125134,7 +125220,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
      Joystick (left) to walk, drag anywhere else to look, ⬆ jump (in flight: up), ⬇ down in flight, ✈ fly,
      ⏩ run; WASD / arrows, Space, Shift and the mouse on a computer. Look at a thing and its name shows; tap it to
      open its card. Nothing is changed or saved here — ✕ goes back to the island as it was. */
-  var WK = null;
+  var WK = null, WKS = null, WKIN = null, WKNS = false;   // Walk in 2.0: where to stand next, the building you are in, no-collision build
   function wkOpen() {
     if (!V || WK) return; if (V.visit === undefined) {}
     toast('Building the 3D world…'); a3().then(function (AS) { if (!AS || !AS.three || !AS.webgl()) { toast('This device cannot draw the 3D world'); return; } if (el && V && !WK) wkStart(AS); });
@@ -125165,7 +125251,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       quad(side, [X1, Y0, Z0], [X0, Y0, Z0], [X0, Y1, Z0], [X1, Y1, Z0], [0, 0, -1], X1 - X0, Y1 - Y0);
       if (Y1 - Y0 > .3 && !(q.o && q.o.glass)) solid(X0, X1, Z0, Z1, Y0, Y1);
     }
-    function solid(x0, x1, z0, z1, y0, y1) { var i = solids.length; solids.push([x0, x1, z0, z1, y0, y1]); for (var x = Math.floor(x0); x <= Math.floor(x1); x++) for (var z = Math.floor(z0); z <= Math.floor(z1); z++) (cells[x + ',' + z] = cells[x + ',' + z] || []).push(i); }
+    function solid(x0, x1, z0, z1, y0, y1) { if (WKNS) return; var i = solids.length; solids.push([x0, x1, z0, z1, y0, y1]); for (var x = Math.floor(x0); x <= Math.floor(x1); x++) for (var z = Math.floor(z0); z <= Math.floor(z1); z++) (cells[x + ',' + z] = cells[x + ',' + z] || []).push(i); }
     function fitInto(o, x0, x1, z0, z1, y0, y1, f) {   // a model scaled to stand in its place, turned to face the way the piece faces
       var bb = new T.Box3().setFromObject(o), sz = bb.getSize(new T.Vector3()), k = Math.min((x1 - x0) / Math.max(sz.x, sz.z, .001), (y1 - y0) / Math.max(sz.y, .001) * 1.15); o.scale.multiplyScalar(k);
       bb = new T.Box3().setFromObject(o); var c = bb.getCenter(new T.Vector3()); o.position.x += (x0 + x1) / 2 - c.x; o.position.z += (z0 + z1) / 2 - c.z; o.position.y += y0 - bb.min.y; o.rotation.y = -(f || 0) * Math.PI / 2; S.add(o);
@@ -125182,6 +125268,194 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       me.position.set((q.x0 + q.x1) / 2, (q.z0 + q.z1) / 2, (q.y0 + q.y1) / 2); if (thinX) me.rotation.y = Math.PI / 2; S.add(me); disp.push(g, m);
     }
     function addPick(p, ext) { if (!ext || ext[0] > ext[1]) return; var g = new T.BoxGeometry(Math.max(.2, ext[1] - ext[0]), Math.max(.2, ext[5] - ext[4]), Math.max(.2, ext[3] - ext[2])), me = new T.Mesh(g, new T.MeshBasicMaterial({ visible: false })); me.position.set((ext[0] + ext[1]) / 2, (ext[4] + ext[5]) / 2, (ext[2] + ext[3]) / 2); me.userData.pc = p.id; picks.add(me); disp.push(g); }
+    /* ── Walk in 2.0 (patch_walk_in.py) — the Minecraft way: go into buildings, sit down, sleep, talk to people, pet animals
+       Near a building: 🚪 Go in (or tap it) — you walk its rooms (chips at the top switch rooms, 🌳 Outside goes back
+       out where you came in). Tap a sofa / chair / bench to sit (move the stick or ⬆ Stand up), a bed to sleep till
+       morning. People and animals wander on their own; tap a person to talk (they turn to you, hop, say a line about
+       your cards), tap an animal to pet it (hearts). Nothing here is saved, except a building's first rooms (as when
+       you open it). */
+    var WKX = (function () {
+      var amb = null, rainIn = null, wxOff = null, flOff = null, W = null, sky = null, stars = null, rainFx = null, snowFx = null, clouds = null, lights = null, flashT = 0, portals = [], nearP = null, spawnT = 0, bld = [], seats = [], mobs = [], act = null, rooms = null, fade = null, sit = null, steps = null, nearB = null, chkT = 0, lines = null;
+      var SFX = function (n, k) { if (window.MinestSfx) MinestSfx.play(n, k); };
+      function cry(m) { var n = K[m.p.k].n.toLowerCase(); return /dog/.test(n) ? 'bark' : /cat/.test(n) ? 'meow' : /sheep|goat/.test(n) ? 'baa' : /cow/.test(n) ? 'moo' : /chicken|hen|duck|bird/.test(n) ? 'cluck' : /fox/.test(n) ? 'yip' : 'pop'; }
+      function pitch(m) { return /kid/.test(m.p.k) ? 1.5 : /chef/.test(m.p.k) ? .85 : /gardener/.test(m.p.k) ? 1.1 : 1; }
+      var SEAT = /^(f_sofa|f_armchair|f_desk|f_dining|f_piano|f_toilet|bench|f_vanity)$/, BED = /^(f_bed1|f_bed2|f_bunk)$/;
+      function enterable(p, ext) { if (room || !p || K[p.k].mob) return false; if (isBld(p) || /^(c_|k_|h_|bld:)/.test(p.k)) return true;
+        return !K[p.k].decor && ext[5] - ext[4] > 2.2 && (ext[1] - ext[0]) * (ext[3] - ext[2]) >= 4; }
+      function ui() {
+        if (act) return; ov.insertAdjacentHTML('beforeend', '<button type="button" class="wk-x wk-act" hidden></button><div class="wk-x wk-rooms" hidden></div><div class="wk-fade"><b></b></div>');
+        act = ov.querySelector('.wk-act'); rooms = ov.querySelector('.wk-rooms'); fade = ov.querySelector('.wk-fade');
+        act.addEventListener('click', function (e) { e.stopPropagation(); var a = act.getAttribute('data-a'); if (a === 'in' && nearB) goIn(nearB.p); else if (a === 'up') standUp(); else if (a === 'portal' && nearP) goPortal(nearP); });
+        rooms.addEventListener('click', function (e) { e.stopPropagation(); var g = e.target.closest('[data-wr]'); if (!g) return; var id = g.getAttribute('data-wr'); if (id === 'out') goOut(); else goRoom(id); });
+        var b = bOf(); if (b) {
+          rooms.innerHTML = '<button type="button" data-wr="out">🌳 Outside</button>' + ((b && b.rooms) || []).map(function (r) { return '<button type="button" data-wr="' + r.id + '"' + (V.at && V.at.room === r.id ? ' class="on"' : '') + '>' + esc(r.n || (ROOMS[r.k] || ROOMS.hall)[0]) + '</button>'; }).join('');
+          rooms.hidden = false; var tp = ov.querySelector('.tip'); if (tp) tp.classList.add('gone'); buildPortals(b); }
+        spawnT = performance.now();
+        if (window.MinestSfx) { steps = MinestSfx.loop('steps'); amb = MinestSfx.loop(room ? 'indoor' : 'outdoor'); amb.set(.8); if (room) { rainIn = MinestSfx.loop('outdoor'); } }   // a breeze and birds outside, a quiet room inside (rain heard through the walls)
+        if (window.MinestWX) { wxOff = MinestWX.on(wxApply); flOff = MinestWX.onFlash(flash); wxApply(MinestWX.state()); }
+      }
+      function setAct(a, text) { if (!act) return; if (!a) { act.hidden = true; act.removeAttribute('data-a'); return; } var tp = ov.querySelector('.tip'); if (tp) tp.classList.add('gone'); act.hidden = false; act.setAttribute('data-a', a); act.textContent = text; }
+      function fadeDo(text, mid, then) { fade.querySelector('b').textContent = text || ''; fade.classList.add('on'); setTimeout(function () { if (mid) mid(); setTimeout(function () { fade.classList.remove('on'); if (then) then(); }, mid ? 120 : 900); }, 380); }
+      // ---- buildings: in and out, room to room (the walk is built again for the room you are in)
+      function restart(spawn) { WKS = spawn || null; var w = WK; WK = null; if (steps) steps.stop(); w.stop(); wkStart(AS); }
+      function goIn(p) {
+        if (!(p.rooms || []).length) { p.roomsInit = 1; p.rooms = suggestRooms(p).map(function (k) { return { id: 'r' + uid().slice(1), k: k, n: ROOMS[k][0] }; }); p.rooms.forEach(function (r) { roomD(r); }); save(); }   // its first rooms, as when you open it
+        var r = p.rooms[0]; roomD(r); SFX('door'); WKIN = { pc: p.id, back: { x: me.x, z: me.z, yaw: Math.atan2(-((lb.x0 + lb.x1) / 2 - me.x), -((lb.y0 + lb.y1) / 2 - me.z)) } };   // back out facing the island
+        fadeDo('🚪 ' + bldName(p), function () { V.root = islandD(); V.at = { pc: p.id, room: r.id }; V.d = r.d; refreshLand(); restart(); });
+      }
+      function bpc() { return WKIN ? WKIN.pc : V.at && V.at.room ? V.at.pc : null; }
+      function bOf() { var id = bpc(); return id ? (islandD().pc || []).filter(function (q) { return q.id === id; })[0] || null : null; }
+      function goRoom(id, how) { var b = bOf(), r = b && (b.rooms || []).filter(function (x) { return x.id === id; })[0]; if (!r || (V.at && V.at.room === id)) return;
+        if (!WKIN) WKIN = { pc: b.id, back: null }; WKIN.from = V.at && V.at.room;   // you arrive at the door (or stairs) that leads back
+        roomD(r); SFX(how === 'stairs' ? 'thud' : 'door'); fadeDo((how === 'stairs' ? (((r.fl || 1) > ((roomOf() || {}).fl || 1)) ? '⬆ ' : '⬇ ') : '🚪 ') + (r.n || ROOMS[r.k][0]), function () { V.at = { pc: b.id, room: r.id }; V.d = r.d; refreshLand(); restart(); }); }
+      function goPortal(P) { if (P.kind === 'out') goOut(); else goRoom(P.to, P.kind === 'door' ? 'door' : 'stairs'); }
+      // ---- doors, stairs and the way out, inside a building: real doors on the walls, each with its room's name above
+      var DOORT = null;
+      function doorTex() { if (DOORT) return DOORT; var c = document.createElement('canvas'); c.width = 16; c.height = 32; var x = c.getContext('2d');
+        x.fillStyle = '#6b4a2b'; x.fillRect(0, 0, 16, 32); x.fillStyle = '#7d5834'; for (var i = 0; i < 16; i += 4) x.fillRect(i + 1, 0, 2, 32);
+        x.fillStyle = '#4a321c'; x.fillRect(0, 0, 16, 1); x.fillRect(0, 31, 16, 1); x.fillRect(0, 0, 1, 32); x.fillRect(15, 0, 1, 32); x.fillRect(0, 15, 16, 1);
+        x.fillStyle = '#9fd3e6'; x.fillRect(3, 3, 4, 5); x.fillRect(9, 3, 4, 5); x.fillStyle = '#d6b44a'; x.fillRect(12, 17, 2, 2);
+        DOORT = new T.CanvasTexture(c); DOORT.magFilter = T.NearestFilter; DOORT.minFilter = T.NearestFilter; if (T.SRGBColorSpace) DOORT.colorSpace = T.SRGBColorSpace; disp.push(DOORT); return DOORT; }
+      function plate(text, w, h, x, y, z, ry) { var g = new T.PlaneGeometry(w, h), m = new T.MeshBasicMaterial({ map: textTex(text, '#3b2a1a', '#ffe9b8'), side: T.DoubleSide }), me2 = new T.Mesh(g, m); me2.position.set(x, y, z); me2.rotation.y = ry; S.add(me2); disp.push(g, m); }
+      function door(x, z, ry, label, P) {   // a door flush on the wall at (x, z) facing into the room (ry: 0 back wall, ±π/2 side walls, π front)
+        var nx = Math.sin(ry), nz = Math.cos(ry), g = new T.PlaneGeometry(1, 2), m = new T.MeshLambertMaterial({ map: doorTex(), side: T.DoubleSide }), d = new T.Mesh(g, m);
+        d.position.set(x + nx * .03, 1, z + nz * .03); d.rotation.y = ry; S.add(d); disp.push(g, m);
+        var fg = new T.BoxGeometry(1.24, .14, .12), fm = new T.MeshLambertMaterial({ color: 0x3e2a17 }), f = new T.Mesh(fg, fm); f.position.set(x + nx * .05, 2.06, z + nz * .05); f.rotation.y = ry; S.add(f); disp.push(fg, fm);
+        plate(label, 1.5, .45, x + nx * .06, 2.45, z + nz * .06, ry);
+        P.x = x + nx * .7; P.z = z + nz * .7; P.yaw = Math.atan2(-nx, -nz); portals.push(P);
+      }
+      function stairs(up, x0, z0, label, P) {   // up: six oak steps climbing to the back wall · down: an opening in the floor with a rail
+        var m = new T.MeshLambertMaterial({ map: tex('oak') || null, color: tex('oak') ? 0xffffff : 0x9a6a3a }); disp.push(m);
+        if (up) { for (var i = 0; i < 6; i++) { var g = new T.BoxGeometry(1.1, (i + 1) * .3, .45), st = new T.Mesh(g, m); st.position.set(x0 + .55, (i + 1) * .15, z0 + (5 - i) * .45 + .22); S.add(st); disp.push(g); }
+          plate(label, 1.5, .45, x0 + .55, 2.6, z0 + .03, 0); P.x = x0 + .55; P.z = z0 + 6 * .45 + .5; }
+        else { var hg = new T.PlaneGeometry(1.2, 1.4), hm = new T.MeshBasicMaterial({ color: 0x0b0b10 }), h = new T.Mesh(hg, hm); h.rotation.x = -Math.PI / 2; h.position.set(x0 + .6, .02, z0 + .8); S.add(h); disp.push(hg, hm);
+          [[0, .1], [1.2, .1]].forEach(function (a) { var rg = new T.BoxGeometry(.08, .9, 1.4), rr = new T.Mesh(rg, m); rr.position.set(x0 + a[0], .45, z0 + .8); S.add(rr); disp.push(rg); });
+          plate(label, 1.5, .45, x0 + .6, 1.4, z0 + .05, 0); P.x = x0 + .6; P.z = z0 + 2.1; }
+        P.yaw = Math.PI; portals.push(P);   // arriving by the stairs: facing into the room
+      }
+      function buildPortals(b) {
+        var cur = (b.rooms || []).filter(function (r) { return V.at && r.id === V.at.room; })[0]; if (!cur || !room) return;
+        var fl = cur.fl || 1, same = b.rooms.filter(function (r) { return r !== cur && (r.fl || 1) === fl; }), up = b.rooms.filter(function (r) { return (r.fl || 1) === fl + 1; })[0], dn = b.rooms.filter(function (r) { return (r.fl || 1) === fl - 1; })[0];
+        var nm = function (r) { return r.n || (ROOMS[r.k] || ROOMS.hall)[0]; }, slots = [], x, z;
+        for (x = lb.x0 + 2.4; x < lb.x1 - (dn ? 2.2 : .8); x += 2.2) slots.push([x, lb.y0, 0]);
+        for (z = lb.y0 + 1.8; z < lb.y1 - 1.6; z += 2.2) { slots.push([lb.x0, z, Math.PI / 2]); slots.push([lb.x1, z, -Math.PI / 2]); }
+        same.forEach(function (r, i) { var sl = slots[i]; if (sl) door(sl[0], sl[1], sl[2], '🚪 ' + nm(r), { kind: 'door', to: r.id, label: '🚪 ' + nm(r) }); });
+        door((lb.x0 + lb.x1) / 2, lb.y1, Math.PI, '🌳 Outside', { kind: 'out', to: 'out', label: '🌳 Go outside' });
+        if (up) stairs(true, lb.x0 + .15, lb.y0, '⬆ ' + nm(up), { kind: 'up', to: up.id, label: '⬆ Upstairs · ' + nm(up) });
+        if (dn) stairs(false, lb.x1 - 1.4, lb.y0, '⬇ ' + nm(dn), { kind: 'down', to: dn.id, label: '⬇ Downstairs · ' + nm(dn) });
+        var from = WKIN && WKIN.from, at = portals.filter(function (P) { return from ? P.to === from : P.kind === 'out'; })[0];   // stand where you came in
+        if (at) { me.x = at.x + Math.sin(at.yaw + Math.PI) * .5; me.z = at.z + Math.cos(at.yaw + Math.PI) * .5; me.yaw = at.yaw; me.y = Math.max(0, floorAt(me.x, me.z, .3)); }
+        if (WKIN) WKIN.from = null;
+      }
+      function goOut() { if (!WKIN) WKIN = { pc: bpc(), back: null }; var back = WKIN.back; SFX('door'); fadeDo('🌳 Outside', function () { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; restart(back); }); }
+      // ---- the sky follows the real weather (world_wx.js): day, dawn, dusk, night; clouds, rain, snow, fog, wind, lightning
+      var SKY = { day: [0x8ecbff, 0xa9b4c0, 0x7d8792], dawn: [0xf6b48f, 0xc9a99a, 0x8a8790], dusk: [0xf08a5a, 0xb0807a, 0x7a6a72], night: [0x0d1430, 0x161c2c, 0x111520] };
+      function wxApply(st) {
+        if (!st) return; W = st; var C = T.Color;
+        if (!lights) { lights = { hemi: null, amb: null, sun: null }; S.children.forEach(function (o) { if (o.isHemisphereLight) lights.hemi = o; else if (o.isAmbientLight) lights.amb = o; else if (o.isDirectionalLight) lights.sun = o; }); ['hemi', 'amb', 'sun'].forEach(function (k) { if (lights[k]) lights[k].base = lights[k].intensity; }); }
+        if (amb && !room) amb.set(.8, st); if (rainIn) rainIn.set(1, { muffled: true, rain: st.rain });   // indoors: only the rain, muffled
+        var tiEl = ov.querySelector('.ti'); if (tiEl) { if (tiEl.getAttribute('data-base') == null) tiEl.setAttribute('data-base', tiEl.textContent); tiEl.textContent = tiEl.getAttribute('data-base') + '  ' + MinestWX.icon(st) + (st.temp != null && st.mode === 'auto' ? ' ' + st.temp + '°' : ''); }
+        if (room) return;   // a room keeps its own lights; the weather is outside
+        var row = SKY[st.phase] || SKY.day, col = new C(st.rain > .1 || st.snow > .1 || st.cond === 'storm' ? row[2] : st.cloud > .6 || st.cond === 'fog' ? row[1] : row[0]);
+        if (st.cond === 'fog') col.lerp(new C(0xd8dde2), st.phase === 'night' ? .15 : .55);
+        S.background = col; if (S.fog) { S.fog.color = col.clone(); S.fog.near = st.cond === 'fog' ? 4 : st.rain > .5 || st.snow > .5 ? 12 : 22; S.fog.far = st.cond === 'fog' ? 28 : st.rain > .5 || st.snow > .5 ? 55 : 90; }
+        var L = st.light; if (lights.hemi) lights.hemi.intensity = lights.hemi.base * (.25 + .75 * L); if (lights.amb) lights.amb.intensity = lights.amb.base * (.4 + .6 * L);
+        if (lights.sun) { lights.sun.intensity = lights.sun.base * L * (1 - st.cloud * .55); lights.sun.color = new C(st.phase === 'night' ? 0x8fa8ff : st.phase === 'dusk' ? 0xff9a55 : st.phase === 'dawn' ? 0xffc29a : 0xfff4e0); }
+        if (st.phase === 'night' && st.cloud < .7) { if (!stars) { var n = 700, pos = new Float32Array(n * 3); for (var i = 0; i < n; i++) { var a = Math.random() * 6.283, e = .15 + Math.random() * 1.3, r = 160; pos[i * 3] = Math.cos(a) * Math.cos(e) * r; pos[i * 3 + 1] = Math.sin(e) * r; pos[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r; }
+          var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); var m = new T.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: .9 }); stars = new T.Points(g, m); S.add(stars); disp.push(g, m); } stars.visible = true; }
+        else if (stars) stars.visible = false;
+        if (!clouds) { clouds = []; S.children.forEach(function (o) { if (o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.transparent && o.position.y > 18) clouds.push(o); }); }
+        clouds.forEach(function (o) { o.material.color.set(st.phase === 'night' ? 0x3a4058 : st.rain > .1 || st.cond === 'storm' ? 0x8a9099 : st.phase === 'dusk' ? 0xffc0a0 : 0xffffff); o.material.opacity = .55 + st.cloud * .4; });
+        rainFx = particles(rainFx, st.rain > .05, 1400 * Math.max(.4, st.rain), true); snowFx = particles(snowFx, st.snow > .05, 900, false);
+      }
+      function particles(fx, on, n, isRain) {   // rain streaks / snowflakes in a box that travels with you
+        if (!on) { if (fx) fx.o.visible = false; return fx; } if (fx) { fx.o.visible = true; return fx; }
+        n = Math.round(n); var pos = new Float32Array(n * (isRain ? 6 : 3)), seed = [];
+        for (var i = 0; i < n; i++) seed.push([(Math.random() - .5) * 36, Math.random() * 22, (Math.random() - .5) * 36, .6 + Math.random() * .8]);
+        var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
+        var o = isRain ? new T.LineSegments(g, new T.LineBasicMaterial({ color: 0xbfd4ff, transparent: true, opacity: .55 })) : new T.Points(g, new T.PointsMaterial({ color: 0xffffff, size: .13, transparent: true, opacity: .95 }));
+        o.frustumCulled = false; S.add(o); disp.push(g, o.material); return { o: o, g: g, pos: pos, seed: seed, rain: isRain, t: 0 };
+      }
+      function stepFx(fx, dt) {
+        if (!fx || !fx.o.visible) return; fx.t += dt; var P = fx.pos, w = W ? W.wind : .2, cx = me.x, cz = me.z, by = me.y;
+        fx.seed.forEach(function (s0, i) { var y = s0[1] - fx.t * (fx.rain ? 16 : 1.4) * s0[3], yy = ((y % 22) + 22) % 22, x = s0[0] + (fx.rain ? -w * 3 * (22 - yy) / 22 : Math.sin(fx.t * .7 + i) * .6 + fx.t * w * 1.5), X = cx + ((x + 18) % 36 + 36) % 36 - 18, Z = cz + s0[2], Y = by + yy - 4;
+          if (fx.rain) { P[i * 6] = X; P[i * 6 + 1] = Y; P[i * 6 + 2] = Z; P[i * 6 + 3] = X + w * .25; P[i * 6 + 4] = Y - .55; P[i * 6 + 5] = Z; } else { P[i * 3] = X; P[i * 3 + 1] = Y; P[i * 3 + 2] = Z; } });
+        fx.g.attributes.position.needsUpdate = true;
+      }
+      function flash() { if (room || !lights) return; flashT = .5; }
+      function wxTick(dt) {
+        if (room || !W) return; stepFx(rainFx, dt); stepFx(snowFx, dt); if (stars) stars.position.set(me.x, 0, me.z);
+        if (clouds) clouds.forEach(function (o) { o.position.x += (0.4 + W.wind * 3) * dt; if (o.position.x > lb.x1 + 60) o.position.x = lb.x0 - 60; });
+        if (flashT > 0) { flashT -= dt; var k = flashT > .38 || (flashT < .25 && flashT > .15) ? 1 : 0; if (lights.amb) lights.amb.intensity = lights.amb.base * (.4 + .6 * W.light) + k * 2.2; }
+      }
+      // ---- sitting and sleeping
+      function sitOn(s) { if (sit) return; var e = s.ext; sit = { x: (e[0] + e[1]) / 2, z: (e[2] + e[3]) / 2, y: e[4] + Math.min(.5, (e[5] - e[4]) * .45), from: { x: me.x, z: me.z, y: me.y } }; me.fly = false; me.vy = 0; SFX('thud'); setAct('up', '⬆ Stand up'); toast('🪑 Sitting on the ' + K[s.p.k].n.toLowerCase() + ' · move to stand up'); }
+      function standUp() { if (!sit) return; me.x = sit.from.x; me.z = sit.from.z; me.y = sit.from.y; sit = null; setAct(null); }
+      function sleep(s) { SFX('click'); fadeDo('😴 Zzz…', null, function () { toast('☀️ Good morning!'); SFX('chime'); }); }
+      // ---- people and animals: each its own little model, wandering
+      function mob(p, b) {
+        var B0 = BUF; BUF = {}; WKNS = true; var x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9, y1 = 0;
+        b.parts.forEach(function (q) { if (q.t !== 'box') return; box(q); x0 = Math.min(x0, q.x0); x1 = Math.max(x1, q.x1); z0 = Math.min(z0, q.y0); z1 = Math.max(z1, q.y1); y1 = Math.max(y1, q.z1); });
+        WKNS = false; var g = new T.Group(), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+        Object.keys(BUF).forEach(function (n) { var Bf = BUF[n], ge = new T.BufferGeometry(); ge.setAttribute('position', new T.Float32BufferAttribute(Bf.p, 3)); ge.setAttribute('normal', new T.Float32BufferAttribute(Bf.nm, 3)); ge.setAttribute('uv', new T.Float32BufferAttribute(Bf.u, 2)); ge.setIndex(Bf.i); ge.translate(-cx, 0, -cz);
+          var m = new T.MeshLambertMaterial({ map: tex(n) }); g.add(new T.Mesh(ge, m)); disp.push(ge, m); });
+        BUF = B0; if (!g.children.length) return; g.position.set(cx, 0, cz); S.add(g);
+        var pg = new T.BoxGeometry(Math.max(.5, x1 - x0), Math.max(.5, y1), Math.max(.5, z1 - z0)), pk = new T.Mesh(pg, new T.MeshBasicMaterial({ visible: false })); pk.userData.pc = p.id; picks.add(pk); disp.push(pg);
+        var person = /^mob_(explorer|gardener|villager|chef|kid)$/.test(p.k) || !/(dog|cat|sheep|cow|chicken|fox|pig|horse|bird|duck)/i.test(K[p.k].n);
+        mobs.push({ p: p, g: g, pk: pk, h: y1, home: [cx, cz], tx: cx, tz: cz, wait: Math.random() * 2, f0: (p.f || 0) * Math.PI / 2, yaw: 0, person: person, talk: 0, hop: 0, bub: null, hearts: [] });
+      }
+      function say(m) {   // a line from the island: a card's title, or a hello
+        if (!lines) { lines = []; try { Object.keys(IX).forEach(function (r) { var t = thing(r); if (t && t.s && t.s.title) lines.push(String(t.s.title).slice(0, 40)); }); } catch (e) {} }
+        var nm = K[m.p.k].n, pick = lines.length ? lines[(Math.random() * lines.length) | 0] : '', opts = ['Hi! I’m the ' + nm.toLowerCase() + '.', pick ? 'Have you seen “' + pick + '”?' : 'Lovely day on the island!', pick ? 'I was just reading about ' + pick + '.' : 'Hmm… hrm!', 'Welcome to ' + String((board(V.bid) || {}).title || 'our island').replace(/^my\s+/i, '') + '!'];
+        return opts[(m.talk++) % opts.length];
+      }
+      function bubble(m, text) { if (m.bub) { m.g.remove(m.bub); m.bub.material.map.dispose(); m.bub.material.dispose(); }
+        var t = textTex(text, '#fffdf3', '#2b2b2b'), s = new T.Sprite(new T.SpriteMaterial({ map: t, transparent: true, depthTest: false })); s.scale.set(1.3, .65, 1); s.position.set(0, m.h + .55, 0); s.renderOrder = 9; m.g.add(s); m.bub = s; m.bubT = 4.5; }
+      function heart(m) { var c = document.createElement('canvas'); c.width = c.height = 32; var x = c.getContext('2d'); x.fillStyle = '#e8203a'; [[1, 0], [2, 0], [4, 0], [5, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [2, 4], [3, 4], [4, 4], [3, 5]].forEach(function (q) { x.fillRect(2 + q[0] * 4, 4 + q[1] * 4, 4, 4); });
+        var t = new T.CanvasTexture(c); t.magFilter = T.NearestFilter; var s = new T.Sprite(new T.SpriteMaterial({ map: t, transparent: true })); s.scale.set(.4, .4, 1); s.position.set((Math.random() - .5) * .6, m.h + .2, (Math.random() - .5) * .6); m.g.add(s); m.hearts.push({ s: s, t: 0 }); }
+      function meet(m) {
+        var dx = me.x - m.g.position.x, dz = me.z - m.g.position.z; m.tx = m.g.position.x; m.tz = m.g.position.z; m.wait = 5; m.yaw = Math.atan2(dx, dz); m.hop = .35;
+        if (m.person) { bubble(m, say(m)); SFX('hmm', pitch(m)); } else { for (var i = 0; i < 4; i++) heart(m); SFX(cry(m)); setTimeout(function () { SFX('pop'); }, 250); toast('❤ ' + K[m.p.k].n); }
+      }
+      function mobTick(m, dt) {
+        var g = m.g, P = g.position;
+        if (m.wait > 0) m.wait -= dt;
+        else { var dx = m.tx - P.x, dz = m.tz - P.z, d = Math.hypot(dx, dz);
+          if (d < .08) { m.wait = 1.5 + Math.random() * 3.5; if (Math.random() < .25 && Math.hypot(P.x - me.x, P.z - me.z) < 9) SFX(m.person ? 'hmm' : cry(m), m.person ? pitch(m) : 1);   /* now and then, a sound from those close by */ for (var k = 0; k < 6; k++) { var a = Math.random() * 6.283, r = .8 + Math.random() * 2.6, nx = m.home[0] + Math.cos(a) * r, nz = m.home[1] + Math.sin(a) * r; if (onLandXZ(nx, nz) && !blocked(nx, nz, .1) && floorAt(nx, nz, .3) < .3) { m.tx = nx; m.tz = nz; break; } } }
+          else { var sp = Math.min(d, (m.person ? .9 : 1.1) * dt), nx2 = P.x + dx / d * sp, nz2 = P.z + dz / d * sp; if (!blocked(nx2, nz2, .1)) { P.x = nx2; P.z = nz2; m.yaw = Math.atan2(dx, dz); } else m.tx = P.x, m.tz = P.z; m.step = (m.step || 0) + dt * 9; } }
+        var dy = ((m.yaw - g.rotation.y + Math.PI) % 6.283 + 6.283) % 6.283 - Math.PI; g.rotation.y += dy * Math.min(1, dt * 8);
+        g.rotation.y = g.rotation.y; P.y = (m.hop > 0 ? Math.sin((.35 - m.hop) / .35 * Math.PI) * .45 : 0) + (m.wait <= 0 ? Math.abs(Math.sin(m.step || 0)) * .05 : 0); if (m.hop > 0) m.hop -= dt;
+        m.pk.position.set(P.x, m.h / 2 + P.y, P.z);
+        if (m.bub) { m.bubT -= dt; if (m.bubT <= 0) { m.g.remove(m.bub); m.bub.material.map.dispose(); m.bub.material.dispose(); m.bub = null; } }
+        m.hearts = m.hearts.filter(function (h) { h.t += dt; h.s.position.y += dt * .8; h.s.material.opacity = Math.max(0, 1 - h.t / 1.4); if (h.t > 1.4) { m.g.remove(h.s); h.s.material.map.dispose(); h.s.material.dispose(); return false; } return true; });
+      }
+      return {
+        mob: function (p, b) { mob(p, b); },
+        note: function (p, ext) { if (!p || ext[0] > ext[1]) return; if (enterable(p, ext)) bld.push({ p: p, ext: ext }); if (SEAT.test(p.k)) seats.push({ p: p, ext: ext, bed: false }); else if (BED.test(p.k)) seats.push({ p: p, ext: ext, bed: true }); },
+        isMob: function (p) { return K[p.k] && K[p.k].mob; },
+        spawn: function () { ui(); },
+        tap: function (p) {   // true when the walk handled it
+          var m = mobs.filter(function (x) { return x.p.id === p.id; })[0]; if (m) { if (Math.hypot(m.g.position.x - me.x, m.g.position.z - me.z) < 5) meet(m); else toast('Walk closer to ' + K[p.k].n.toLowerCase()); return true; }
+          var s = seats.filter(function (x) { return x.p.id === p.id; })[0]; if (s) { var e = s.ext, d = Math.hypot((e[0] + e[1]) / 2 - me.x, (e[2] + e[3]) / 2 - me.z); if (d > 3.2) { toast('Walk closer to sit'); return true; } if (s.bed) sleep(s); else sitOn(s); return true; }
+          var b = bld.filter(function (x) { return x.p.id === p.id; })[0]; if (b && nearB === b) { goIn(b.p); return true; }
+          return false;
+        },
+        label: function (p) { if (!p) return ''; if (mobs.some(function (x) { return x.p.id === p.id; })) return (K[p.k].n) + (/^mob_(explorer|gardener|villager|chef|kid)$/.test(p.k) ? ' · tap to talk' : ' · tap to pet');
+          var s = seats.filter(function (x) { return x.p.id === p.id; })[0]; if (s) return K[p.k].n + (s.bed ? ' · tap to sleep' : ' · tap to sit'); var b = bld.filter(function (x) { return x.p.id === p.id; })[0]; if (b && nearB === b) return bldName(p) + ' · tap to go in'; return ''; },
+        tick: function (dt, now) {
+          ui(); wxTick(dt); mobs.forEach(function (m) { mobTick(m, dt); });
+          var moving = Math.hypot(me.mx, me.mz) > .15 || ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].some(function (k) { return me.keys[k]; });
+          if (sit) { if (moving && Math.hypot(me.mx, me.mz) > .6) standUp(); else { me.x = sit.x; me.z = sit.z; me.y = sit.y - EYE + .95; me.vy = 0; cam.position.set(sit.x, sit.y + .95, sit.z); } }
+          if (steps) steps.set(!sit && moving && me.grounded && !me.fly ? (me.run ? .95 : .55) : 0);
+          if (now - chkT > 150 && !sit) { chkT = now; nearB = null; var best = 2.2;
+            bld.forEach(function (b) { var e = b.ext, dx = Math.max(e[0] - me.x, 0, me.x - e[1]), dz = Math.max(e[2] - me.z, 0, me.z - e[3]), d = Math.hypot(dx, dz); if (d < best && me.y < 1.5) { best = d; nearB = b; } });
+            nearP = null; var bp = 1.5; portals.forEach(function (P) { var d = Math.hypot(P.x - me.x, P.z - me.z); if (d < bp) { bp = d; nearP = P; } });
+            if (nearB) setAct('in', '🚪 Go into ' + bldName(nearB.p)); else if (nearP) { setAct('portal', nearP.label); if (bp < .45 && moving && now - spawnT > 900) goPortal(nearP); } else setAct(null); }   // walk into a door to go through
+        },
+        dbg: function () { return { mobs: mobs, seats: seats, bld: bld, sit: sit, me: me, near: nearB }; },
+        stop: function () { if (wxOff) wxOff(); if (flOff) flOff(); if (rainIn) { rainIn.stop(); rainIn = null; } if (amb) { amb.stop(); amb = null; } if (steps) { steps.stop(); steps = null; } }
+      };
+    })();
     // ---- the ground: the island's plots (or the room's floor and walls)
     var lb = lbox(), gtop = { grass: 'grass_top', sand: 'sand', snow: 'snow', stone: 'stone', moss: 'moss', path: 'path' }[V.d.ground || 'grass'] || 'grass_top';
     if (room) { var r0 = roomOf() || {}, fl = (r0.d && r0.d.floor) || (ROOMS[r0.k] || ROOMS.hall)[3] || 'oak', wl = (r0.d && r0.d.wall) || (ROOMS[r0.k] || ROOMS.hall)[4] || 'plaster';
@@ -125192,7 +125466,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     // ---- every piece, as it stands
     var AS3 = AS, gltf = AS.GLTFLoader ? new AS.GLTFLoader() : null;
     (V.d.pc || []).forEach(function (p) {
-      if (!BUILD[p.k] || !shownHere(p)) return; var its = (p.it || []).filter(thing), b; try { b = build(K[p.k].air ? Object.assign({}, p, { z: 2.6 }) : p, its, 0); } catch (e) { return; }   // birds and butterflies up in the air
+      if (!BUILD[p.k] || !shownHere(p)) return; var its = (p.it || []).filter(thing), b; try { b = build(K[p.k].air ? Object.assign({}, p, { z: 2.6 }) : p, its, 0); } catch (e) { return; } if (WKX.isMob(p)) { WKX.mob(p, b); return; }   // birds and butterflies up in the air; people and animals walk about
       var ext = [1e9, -1e9, 1e9, -1e9, 1e9, -1e9]; var grow = function (x0, x1, z0, z1, y0, y1) { ext[0] = Math.min(ext[0], x0); ext[1] = Math.max(ext[1], x1); ext[2] = Math.min(ext[2], z0); ext[3] = Math.max(ext[3], z1); ext[4] = Math.min(ext[4], y0); ext[5] = Math.max(ext[5], y1); };
       b.parts.forEach(function (q) {
         if (q.t === 'box') { box(q); grow(q.x0, q.x1, q.y0, q.y1, q.z0, q.z1); return; }
@@ -125206,7 +125480,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
         if (q.t === 'pic') { var px = sdPix(q.url), u2 = px && px.u ? px.u : q.url; tl.load(u2, function (t2) { t2.magFilter = T.NearestFilter; if (T.SRGBColorSpace) t2.colorSpace = T.SRGBColorSpace; if (WK) panel(q, t2); }); grow(q.x0, q.x1, q.y0, q.y1, q.z0, q.z1); return; }
         if (q.t === 'txt') { panel(q, textTex(q.title, '#c49a5c', '#2b1a08', q.note || '')); grow(q.x0, q.x1, q.y0, q.y1, q.z0, q.z1); return; }
       });
-      addPick(p, ext);
+      addPick(p, ext); WKX.note(p, ext);
     });
     S.add(picks);
     Object.keys(BUF).forEach(function (n) { var B = BUF[n], g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(B.nm, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(B.u, 2)); g.setIndex(B.i);
@@ -125224,11 +125498,12 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       if (best) { me.x = best[0]; me.z = best[1]; } me.yaw = Math.atan2(-(cx - me.x), -(cz - me.z));
     })();
     me.y = floorAt(me.x, me.z, 50); if (me.y < -1) me.y = 0;
+    if (WKS) { me.x = WKS.x; me.z = WKS.z; me.yaw = WKS.yaw; me.y = Math.max(0, floorAt(me.x, me.z, 50)); WKS = null; } WKX.spawn();
     // ---- input: the joystick, looking, the buttons, the keyboard
     var joy = ov.querySelector('.joy'), knob = ov.querySelector('.knob'), jp = null, lk = null, tapAt = null;
     function size() { var w = ov.clientWidth, h = ov.clientHeight; R.setSize(w, h, false); cam.aspect = w / Math.max(1, h); cam.updateProjectionMatrix(); }
     ov.addEventListener('pointerdown', function (e) {
-      e.stopPropagation(); var b = e.target.closest('[data-wk]'); if (b) { var a = b.getAttribute('data-wk'); if (a === 'up') { me.up = 1; if (!me.fly && me.grounded) me.vy = 6.2; } if (a === 'down') me.down = 1; if (a === 'fly') { me.fly = !me.fly; me.vy = 0; b.classList.toggle('on', me.fly); } if (a === 'run') { me.run = !me.run; b.classList.toggle('on', me.run); } return; }
+      e.stopPropagation(); if (e.target.closest('.wk-x')) return; var b = e.target.closest('[data-wk]'); if (b) { var a = b.getAttribute('data-wk'); if (a === 'up') { me.up = 1; if (!me.fly && me.grounded) me.vy = 6.2; } if (a === 'down') me.down = 1; if (a === 'fly') { me.fly = !me.fly; me.vy = 0; b.classList.toggle('on', me.fly); } if (a === 'run') { me.run = !me.run; b.classList.toggle('on', me.run); } return; }
       if (e.target.closest('[data-wkx]')) return wkClose();
       ov.querySelector('.tip').classList.add('gone');
       var jr = joy.getBoundingClientRect(); if (!jp && e.clientX < jr.right + 30 && e.clientY > jr.top - 30) { jp = { id: e.pointerId, cx: jr.left + jr.width / 2, cy: jr.top + jr.height / 2 }; joyMove(e); try { ov.setPointerCapture(e.pointerId); } catch (x) {} return; }
@@ -125243,7 +125518,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     var kd = function (e) { key(e, true); }, ku = function (e) { key(e, false); }; document.addEventListener('keydown', kd, true); document.addEventListener('keyup', ku, true);
     var ray = new T.Raycaster(), v2 = new T.Vector2();
     function hitAt(nx, ny) { v2.set(nx, ny); ray.setFromCamera(v2, cam); ray.far = 14; var h = ray.intersectObjects(picks.children, false)[0]; return h ? pieceOf(h.object.userData.pc) : null; }
-    function tapPick(cx, cy) { var r = cv.getBoundingClientRect(), p = hitAt((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); if (!p) return; var ref = sdRef(p) || ((p.it || []).filter(thing)[0]); if (ref || (!K[p.k].decor && (p.it || []).length)) { openPiece(p.id, ref || null); var pe = document.querySelector('.mn-pv'); if (pe) pe.style.zIndex = 2147483600; } else toast(p.label || K[p.k].n); }
+    function tapPick(cx, cy) { var r = cv.getBoundingClientRect(), p = hitAt((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); if (!p) return; if (WKX.tap(p)) return; var ref = sdRef(p) || ((p.it || []).filter(thing)[0]); if (ref || (!K[p.k].decor && (p.it || []).length)) { openPiece(p.id, ref || null); var pe = document.querySelector('.mn-pv'); if (pe) pe.style.zIndex = 2147483600; } else toast(p.label || K[p.k].n); }
     var lab = ov.querySelector('.lab'), ti = ov.querySelector('.ti'), last = 0, raf = 0, labT = 0;
     ti.textContent = (roomOf() ? (roomOf().n || 'Room') : String((board(V.bid) || {}).title || 'Island').replace(/^my\s+/i, ''));
     function frame(now) {
@@ -125256,15 +125531,16 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       if (me.fly) { me.y += ((me.up || K2[' '] ? 1 : 0) - (me.down || K2.shift ? 1 : 0)) * 4 * dt; if (me.y < fl) me.y = fl; me.grounded = me.y <= fl + .01; }
       else { me.vy -= 18 * dt; me.y += me.vy * dt; if (me.y <= fl) { me.y = fl; me.vy = 0; me.grounded = true; } else me.grounded = false; if (me.y < -25) { me.x = (lb.x0 + lb.x1) / 2; me.z = Math.max(lb.y0 + 1, lb.y1 - 1.2); me.y = floorAt(me.x, me.z, 50); me.vy = 0; toast('Back on the island'); } }
       cam.position.set(me.x, me.y + EYE, me.z); cam.rotation.order = 'YXZ'; cam.rotation.y = me.yaw; cam.rotation.x = me.pitch;
-      if (now - labT > 180) { labT = now; var p = hitAt(0, 0), ref = p && (sdRef(p) || (p.it || []).filter(thing)[0]), t = ref && thing(ref); lab.hidden = !p; if (p) lab.textContent = (t ? t.s.title : (p.label || K[p.k].n)) + (t || (p.it || []).length ? ' · tap to open' : ''); }
+      if (now - labT > 180) { labT = now; var p = hitAt(0, 0), ref = p && (sdRef(p) || (p.it || []).filter(thing)[0]), t = ref && thing(ref); lab.hidden = !p; if (p) lab.textContent = WKX.label(p) || (t ? t.s.title : (p.label || K[p.k].n)) + (t || (p.it || []).length ? ' · tap to open' : ''); }
+      WKX.tick(dt, now);
       R.render(S, cam);
     }
     size(); addEventListener('resize', size);
-    WK = { ov: ov, stop: function () { cancelAnimationFrame(raf); removeEventListener('resize', size); document.removeEventListener('keydown', kd, true); document.removeEventListener('keyup', ku, true);
+    WK = { ov: ov, stop: function () { cancelAnimationFrame(raf); WKX.stop(); removeEventListener('resize', size); document.removeEventListener('keydown', kd, true); document.removeEventListener('keyup', ku, true);
       S.traverse(function (o) { if (o.isMesh && o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(function (m) { if (m.map) m.map.dispose(); m.dispose(); }); }); disp.forEach(function (d) { try { d.dispose(); } catch (e) {} }); R.dispose(); try { R.forceContextLoss(); } catch (e) {} ov.remove(); } };
     raf = requestAnimationFrame(frame); hap('success');
   }
-  function wkClose() { if (!WK) return; var w = WK; WK = null; w.stop(); if (el && V) render(); }
+  function wkClose() { if (!WK) return; var w = WK; WK = null; w.stop(); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } if (el && V) render(); }
   /* ── My World · Sharing System · people: your public page — your name, your character and your shared islands */
   // Settings → Islands: pick a name (@peck) and switch the page on. It lists every island you share (View / View & Clone);
   // private islands never show. Anyone can open …/iphone#@peck: a sky of floating islands — tap one to visit it.
@@ -125454,7 +125730,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     var p = el && V && BQ81.pc && pieceOf(BQ81.pc);
     if (!el || !p || !V || V.visit) { if (!p) BQ81.pc = null; o.remove(); return; }
     if (V.sel && V.sel.pc && V.sel.pc !== BQ81.pc) { o.remove(); BQ81.pc = null; return; }
-    var sc = bqScene(), b = sc && sc.getBoundingClientRect(); if (!b) return;
+    var sc = bqScene(), b = sc && sc.parentNode.getBoundingClientRect(); if (!b) return;
     var f = vfoot(p), c = P(f.x1, f.y1, 0);
     var x = b.left + V.cam.x + c[0] * V.cam.z, y = b.top + V.cam.y + c[1] * V.cam.z;
     var w = o.offsetWidth || 168, hh = o.offsetHeight || 42;
@@ -126140,7 +126416,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
   var DUO_API = null;   // the Build console's parts, for the Fold flow console (world_fold.js)
   (function () {
     var lastR = null, fitCam = null, quiet = false, lastSelKey = '';
-    function sceneR() { var s = el && el.querySelector('.mn-dsp-scene'); var r = s && s.getBoundingClientRect(); return r && r.width > 0 && r.height > 0 ? r : null; }
+    function sceneR() { var s = el && el.querySelector('.mn-dsp-scene'); var r = s && s.parentNode.getBoundingClientRect(); return r && r.width > 0 && r.height > 0 ? r : null; }
     function same(a, b) { return a && b && Math.abs(a.x - b.x) < .5 && Math.abs(a.y - b.y) < .5 && Math.abs(a.z - b.z) < 1e-3; }
     var fit0 = fit;
     fit = function () {
@@ -127484,7 +127760,8 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     // The walk view's own joystick / pad stay in place (hidden); a stand-in set lives at the top of the page in the middle
     // of the lower screen and replays every touch onto the originals (mapped onto the original stick), so walking works
     // exactly as before and nothing can stack above it.
-    setInterval(function () { var ov = document.querySelector('.mn-dsp .mn-walk'), w = !!ov && R.classList.contains('wf-fold'); if (w !== R.classList.contains('wf-walk')) R.classList.toggle('wf-walk', w); walkPad(w ? ov : null); }, 300);
+    setInterval(function () { var wo = !!(el && el.isConnected); if (wo !== R.classList.contains('mn-world')) R.classList.toggle('mn-world', wo);   // Octo steps aside while My World is open
+      var ov = document.querySelector('.mn-dsp .mn-walk'), w = !!ov && R.classList.contains('wf-fold'); if (w !== R.classList.contains('wf-walk')) R.classList.toggle('wf-walk', w); walkPad(w ? ov : null); }, 300);
     function walkPad(ov) {
       if (!ov) { if (W.wp) { W.wp.remove(); W.wp = null; } return; }
       if (W.wp && W.wp._ov === ov) return; if (W.wp) W.wp.remove();
@@ -128141,7 +128418,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
         o.addEventListener('click', function (e) { var g = e.target.closest('button'); if (!g) return; e.preventDefault(); e.stopPropagation(); if (g.hasAttribute('data-wfconfirm')) sConfirm(); else sCancel(); }); }
       var sc = (pv && pv.el) || (el && el.querySelector('.mn-dsp-stage')); if (!sc) return; var r = sc.getBoundingClientRect(), x = r.left + r.width / 2, y = r.bottom - 64;
       var f = S.focus && !pv && level() !== 2 && pieceOf(S.focus), scn = el && el.querySelector('.mn-dsp-scene');
-      if (f && scn) { var rs = scn.getBoundingClientRect(), ft = foot(f), c2 = P((ft.x0 + ft.x1) / 2, (ft.y0 + ft.y1) / 2, 0); x = clamp(rs.left + V.cam.x + c2[0] * V.cam.z, r.left + 90, r.right - 90); y = clamp(rs.top + V.cam.y + c2[1] * V.cam.z + 18, r.top + 70, r.bottom - 60); }
+      if (f && scn) { var rs = scn.parentNode.getBoundingClientRect(), ft = foot(f), c2 = P((ft.x0 + ft.x1) / 2, (ft.y0 + ft.y1) / 2, 0); x = clamp(rs.left + V.cam.x + c2[0] * V.cam.z, r.left + 90, r.right - 90); y = clamp(rs.top + V.cam.y + c2[1] * V.cam.z + 18, r.top + 70, r.bottom - 60); }
       o.style.left = Math.round(x) + 'px'; o.style.top = Math.round(y) + 'px';
     }
 
@@ -144708,6 +144985,9 @@ html body .wf .wf-mega button.sm i .pxi { width:22px;height:22px; }
 html body .wf .wf-land-h > i .pxi { width:40px;height:40px; }
 html body .wf .wf-land-q button i .pxi { width:36px;height:36px; }
 html body .wf .wf-chips button > .pxi { display:inline-block;width:18px;height:18px;vertical-align:-3px;margin:0 4px 0 0;filter:none; }
+
+/* Octo (the mini pet) hides while My World is open */
+html.mn-world #minest-mini-pet-p0, html.mn-world .mpet-menu, html.mn-world .mpet-tip { visibility:hidden !important; pointer-events:none !important; }
 /* 53.89 · Item 实体化 (world_items.js): the carriers and their displays. Sizes are in em of --mi so a display can scale its items. */
 html body .mi { font-size:var(--mi,10px);position:relative;display:inline-block;vertical-align:bottom;box-sizing:border-box;line-height:1.1;font-family:-apple-system,"PingFang SC",sans-serif;-webkit-user-select:none;user-select:none; }
 html body .mi *, html body .mi *:before, html body .mi *:after { box-sizing:border-box; }
@@ -146217,6 +146497,207 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
 
 </style>
 <script id="mn-kdrive-script">
+/* Minest SFX — the Dynamic presentations' sounds, synthesised live with Web Audio (no files to load).
+   window.MinestSfx
+   - engine(profile) → { set(speed01, gas, braking), stop() }   one running engine: piston (lexus/p911/bentley/revuelto), electric (luce/spectre)
+   - ignite(profile)   starter crank → catch → rev flare (piston) · key click → power-up sweep → chime (electric); returns the engine
+   - loop(kind)      → { set(speed01), stop() }   rail · steps · ship · hum · outdoor (breeze, birds, rain, crickets, thunder — set(v, MinestWX.state())) · indoor
+   - play(name)        door · brake · horn · tick · chime · ding · click · whoosh · jump · trainhorn · thud · hmm(k) · pop · bark · meow · baa · moo · cluck · yip
+   - muted() / mute(on)   remembered in localStorage (minest.sfx = 'off')
+   The context starts on the first touch anywhere (iOS needs a gesture) and sleeps while the page is hidden. */
+(function () {
+  if (window.MinestSfx) return;
+  var AC = null, OUT = null, NOISE = null, KEY = 'minest.sfx', live = [];
+  function muted() { try { return localStorage.getItem(KEY) === 'off'; } catch (e) { return false; } }
+  function ctx() {
+    if (!AC) { var C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { AC = new C(); } catch (e) { return null; }
+      OUT = AC.createDynamicsCompressor(); OUT.threshold.value = -14; OUT.ratio.value = 4; var g = AC.createGain(); g.gain.value = muted() ? 0 : .8; OUT.connect(g); g.connect(AC.destination); OUT.vol = g; }
+    if (AC.state === 'suspended' && !document.hidden) try { AC.resume(); } catch (e) {}
+    return AC;
+  }
+  function noiseBuf() { if (NOISE) return NOISE; var n = AC.sampleRate * 2, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0), last = 0;
+    for (var i = 0; i < n; i++) { var w = Math.random() * 2 - 1; last = (last + .04 * w) / 1.04; d[i] = w * .55 + last * 2.4; } return (NOISE = b); }   // white + a little brown
+  function noise() { var s = AC.createBufferSource(); s.buffer = noiseBuf(); s.loop = true; s.loopStart = Math.random(); s.start(); return s; }
+  function osc(type, f) { var o = AC.createOscillator(); o.type = type; o.frequency.value = f; o.start(); return o; }
+  function gain(v) { var g = AC.createGain(); g.gain.value = v; return g; }
+  function filt(type, f, q) { var b = AC.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q != null) b.Q.value = q; return b; }
+  function shaper(k) { var w = AC.createWaveShaper(), n = 1024, c = new Float32Array(n); for (var i = 0; i < n; i++) { var x = i * 2 / n - 1; c[i] = (1 + k) * x / (1 + k * Math.abs(x)); } w.curve = c; return w; }
+  function to(p, v, tc) { p.setTargetAtTime(v, AC.currentTime, tc || .06); }
+  function env(g, a, peak, d, t0) { var t = t0 || AC.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d); }
+  function chain(nodes) { for (var i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]); return nodes[nodes.length - 1]; }
+  function kill(list, at) { setTimeout(function () { list.forEach(function (n) { try { n.stop && n.stop(); } catch (e) {} try { n.disconnect(); } catch (e) {} }); }, (at || 0) * 1000 + 50); }
+
+  // ---------------------------------------------------------------- engines
+  var PROF = {
+    lexus: { cyl: 8, idle: 750, red: 7100, tone: 1, bright: .9, burble: .5 },
+    p911: { cyl: 6, idle: 900, red: 7400, tone: 1, bright: 1.1, turbo: .05 },
+    bentley: { cyl: 12, idle: 700, red: 6000, tone: .8, bright: .6 },
+    revuelto: { cyl: 12, idle: 1000, red: 9200, tone: 1.15, bright: 1.5 },
+    luce: { ev: 1, whine: 1 },
+    spectre: { ev: 1, whine: .45 }
+  };
+  function prof(p) { return typeof p === 'object' && p ? p : PROF[p] || PROF.lexus; }
+  function engine(profile) {
+    if (!ctx()) return { set: function () {}, stop: function () {} };
+    var P = prof(profile), bus = gain(0), all = [], rpm = P.idle || 0, v = 0; bus.connect(OUT); to(bus.gain, .9, .3);
+    // road and wind under every car
+    var rn = noise(), rf = filt('bandpass', 380, .7), rg = gain(0); chain([rn, rf, rg, bus]); all.push(rn);
+    var wn = noise(), wf = filt('highpass', 1400), wg = gain(0); chain([wn, wf, wg, bus]); all.push(wn);
+    // brake squeal (only from speed) + pad hiss
+    var sq = osc('sine', 2350), sqv = osc('sine', 7), sqd = gain(40), sqg = gain(0); sqv.connect(sqd); sqd.connect(sq.frequency); chain([sq, sqg, bus]); all.push(sq, sqv);
+    var hn = noise(), hf = filt('bandpass', 3200, 1.4), hg = gain(0); chain([hn, hf, hg, bus]); all.push(hn);
+    var E = {};
+    if (P.ev) {   // electric: two whining tones that rise with speed, a soft synth bed
+      var w1 = osc('sine', 180), w2 = osc('triangle', 270), wg1 = gain(0), wg2 = gain(0), bed = osc('sawtooth', 55), bf = filt('lowpass', 220), bg = gain(.05 * P.whine);
+      chain([w1, wg1, bus]); chain([w2, wg2, bus]); chain([bed, bf, bg, bus]); all.push(w1, w2, bed);
+      E.tick = function (r, gas) { to(w1.frequency, 160 + 1500 * r); to(w2.frequency, 240 + 2300 * r); to(wg1.gain, (.03 + .09 * r + (gas ? .05 : 0)) * P.whine); to(wg2.gain, (.012 + .04 * r) * P.whine); to(bf.frequency, 160 + 500 * r); };
+    } else {   // pistons: the firing note (saw + a lumpy square an octave down), through a throttle-opened low-pass and a soft clip
+      var o1 = osc('sawtooth', 50), o2 = osc('square', 25), o3 = osc('sawtooth', 50.6), m = gain(1), g2 = gain(.45), g3 = gain(.5), lp = filt('lowpass', 600, 2.2), sh = shaper(6), eg = gain(.0);
+      o1.connect(m); o2.connect(g2); g2.connect(m); o3.connect(g3); g3.connect(m); chain([m, lp, sh, eg, bus]); all.push(o1, o2, o3);
+      var lfo = osc('sine', 6), lg = gain(0); lfo.connect(lg); lg.connect(eg.gain); all.push(lfo);   // the V8's uneven beat
+      var tb = P.turbo ? osc('sine', 1800) : null, tg = gain(0); if (tb) { chain([tb, tg, bus]); all.push(tb); }
+      E.tick = function (r, gas) {
+        var tgt; if (r < .02) tgt = P.idle; else { var gp = Math.min(r, 1.25) / 1.25 * 5, fr = gp % 1, gear = Math.floor(gp); tgt = P.idle + (P.red - P.idle) * (.3 + .55 * fr + (gear > 3 ? .1 : 0)); }
+        if (gas) tgt = Math.min(P.red, tgt * 1.12); rpm += (tgt - rpm) * .12;
+        var f = rpm / 60 * P.cyl / 2 * .5 * (P.tone || 1);
+        to(o1.frequency, f, .04); to(o2.frequency, f / 2, .04); to(o3.frequency, f * 1.006, .04);
+        to(lp.frequency, (240 + 1500 * (rpm / P.red) + (gas ? 900 : 0)) * (P.bright || 1), .05);
+        to(eg.gain, .16 + .22 * (rpm / P.red) + (gas ? .12 : 0), .08); to(lg.gain, P.burble ? .08 * (1 - rpm / P.red) : 0); to(lfo.frequency, f / 8);
+        if (tb) { to(tb.frequency, 1500 + 2600 * (rpm / P.red)); to(tg.gain, gas ? P.turbo : P.turbo * .2); }
+      };
+      E.flare = function () { rpm = P.idle * 3.2; };
+    }
+    var dead = false, last = 0;
+    E.set = function (speed01, gas, braking) {
+      if (dead || !AC) return; var now = AC.currentTime; if (now - last < .03) return; last = now;   // ~30 updates a second is plenty
+      v = Math.max(0, speed01); E.tick(v, !!gas);
+      to(rg.gain, Math.min(.16, v * .14)); to(rf.frequency, 300 + 500 * v); to(wg.gain, Math.max(0, v - .5) * .08);
+      var sqk = braking && v > .3 ? Math.min(.05, (v - .3) * .09) : 0; to(sqg.gain, sqk, .03); to(hg.gain, braking && v > .05 ? .025 : 0, .05);
+    };
+    E.stop = function (fade) { if (dead) return; dead = true; to(bus.gain, 0, fade || .15); kill(all.concat([bus]), (fade || .15) * 4); live = live.filter(function (x) { return x !== E; }); };
+    E.profile = P; live.push(E); return E;
+  }
+  function ignite(profile) {
+    if (!ctx()) return engine(profile);
+    var P = prof(profile), t = AC.currentTime;
+    if (P.ev) {   // key click → a rising power-up sweep → two-note chime, then the electric bed fades in
+      play('click');
+      var sw = osc('sawtooth', 110), sf = filt('lowpass', 300, 6), sg = gain(0); chain([sw, sf, sg, OUT]);
+      sw.frequency.setValueAtTime(110, t + .15); sw.frequency.exponentialRampToValueAtTime(880, t + 1.1); sf.frequency.setValueAtTime(300, t + .15); sf.frequency.exponentialRampToValueAtTime(4200, t + 1.1);
+      sg.gain.setValueAtTime(0, t + .15); sg.gain.linearRampToValueAtTime(.09, t + .8); sg.gain.exponentialRampToValueAtTime(.0001, t + 1.5); kill([sw], 1.6);
+      bell(1318.5, t + 1.05, .12, 1.4); bell(1975.5, t + 1.3, .1, 1.6);
+      var E = engine(P); return E;
+    }
+    // starter motor: a whirr pulsing with the compression strokes, then the engine catches and flares
+    var st = osc('sawtooth', 160), sl = filt('lowpass', 900), am = osc('square', 11), amg = gain(.5), sgn = gain(0); am.connect(amg); amg.connect(sgn.gain);
+    chain([st, sl, sgn, OUT]); sgn.gain.setValueAtTime(.0, t); sgn.gain.linearRampToValueAtTime(.12, t + .05); sgn.gain.setValueAtTime(.12, t + .85); sgn.gain.linearRampToValueAtTime(0, t + .95);
+    amg.gain.setValueAtTime(.5, t); amg.gain.setValueAtTime(0, t + .95); kill([st, am], 1.1);
+    var E2 = null; setTimeout(function () { E2 = engine(P); if (E2.flare) E2.flare(); E2.set(0, false, false); play('thud'); }, 900);
+    var proxy = { set: function (a, b, c) { if (E2) E2.set(a, b, c); }, stop: function (f) { if (E2) E2.stop(f); else setTimeout(function () { if (E2) E2.stop(f); }, 950); }, profile: P };
+    return proxy;
+  }
+  // ---------------------------------------------------------------- loops for the other rides
+  function loop(kind) {
+    if (!ctx()) return { set: function () {}, stop: function () {} };
+    var bus = gain(0), all = [], L = { v: 0 }, nextClack = 0; bus.connect(OUT); to(bus.gain, 1, .4);
+    if (kind === 'rail') {   // a low rumble, and the wheels clacking over rail joints faster with speed
+      var rn = noise(), rf = filt('lowpass', 160), rg = gain(.0); chain([rn, rf, rg, bus]); all.push(rn);
+      L.set = function (v) { L.v = v; to(rg.gain, .05 + .25 * v); to(rf.frequency, 120 + 260 * v); var now = AC.currentTime;
+        if (v > .05 && now >= nextClack) { clack(now); clack(now + .11); nextClack = now + Math.max(.35, 1.6 - v * 1.3); } };
+    } else if (kind === 'steps') {   // running: footsteps at a cadence that follows the pace
+      var nx = 0, side = 0;
+      L.set = function (v) { L.v = v; var now = AC.currentTime; if (v > .05 && now >= nx) { step(now, side++ % 2); nx = now + Math.max(.26, .62 - v * .32); } };
+    } else if (kind === 'ship') {   // the freighter: detuned saws under a low-pass, a sub, and a whistle rising with thrust
+      var a = osc('sawtooth', 55), b = osc('sawtooth', 55.8), sub = osc('sine', 41), lp = filt('lowpass', 260, 3), g = gain(.07), sg = gain(.14), wh = osc('sine', 900), wg = gain(0);
+      a.connect(lp); b.connect(lp); chain([lp, g, bus]); chain([sub, sg, bus]); chain([wh, wg, bus]); all.push(a, b, sub, wh);
+      L.set = function (v) { L.v = v; to(lp.frequency, 200 + 900 * v); to(a.frequency, 52 + 30 * v); to(b.frequency, 52.9 + 30 * v); to(wh.frequency, 700 + 1400 * v); to(wg.gain, .012 * v); };
+    } else if (kind === 'outdoor') {   // outside: a breeze that rises and falls, and birds now and then
+      var wn = noise(), wf = filt('lowpass', 420), wg = gain(.03), wl = osc('sine', .13), wd = gain(.022); wl.connect(wd); wd.connect(wg.gain); chain([wn, wf, wg, bus]); all.push(wn, wl);
+      var rn3 = noise(), rh = filt('highpass', 900), rl = filt('lowpass', 7000), rg3 = gain(0); chain([rn3, rh, rl, rg3, bus]); all.push(rn3);   // rain on leaves and roofs
+      var nb = 0, nc = 0, nt = 0;
+      L.set = function (v, W) {   // W: MinestWX.state() — wind, rain, night, a storm's thunder; without it, a plain fair day
+        L.v = v; W = W || {}; var now = AC.currentTime, night = W.phase === 'night', rain = W.rain || 0, wind = W.wind == null ? .25 : W.wind;
+        if (W.muffled) { to(wg.gain, 0, .5); to(rg3.gain, rain * .05 * v, .8); to(rl.frequency, 900, .5); return; }   // heard from indoors: only the rain, through the walls
+        to(wg.gain, (.02 + .07 * wind) * v * (W.snow ? .7 : 1), .8); to(wf.frequency, 300 + 700 * wind, .8); to(rg3.gain, rain * .09 * v, .8);
+        if (v > 0 && !night && rain < .2 && !W.snow && now >= nb) { birds(now, v); nb = now + 1.6 + Math.random() * 4.5; }
+        if (v > 0 && night && rain < .3 && now >= nc) { crickets(now, v); nc = now + .8 + Math.random() * 1.6; }
+        if (v > 0 && W.cond === 'storm' && now >= nt) { if (nt) thunder(v); nt = now + 7 + Math.random() * 14; }
+      };
+    } else if (kind === 'indoor') {   // a room: a low, quiet air
+      var rn2 = noise(), rf2 = filt('lowpass', 240), rg2 = gain(.018), mh = osc('sine', 60), mg = gain(.006); chain([rn2, rf2, rg2, bus]); chain([mh, mg, bus]); all.push(rn2, mh);
+      L.set = function (v) { L.v = v; };
+    } else {   // hum: an elevator / a museum's air
+      var h = osc('sine', 96), hg = gain(.05), hn2 = noise(), hf = filt('lowpass', 500), hng = gain(.02); chain([h, hg, bus]); chain([hn2, hf, hng, bus]); all.push(h, hn2);
+      L.set = function (v) { L.v = v; to(hg.gain, .03 + .06 * v); to(h.frequency, 90 + 40 * v); };
+    }
+    L.stop = function () { to(bus.gain, 0, .2); kill(all.concat([bus]), .9); live = live.filter(function (x) { return x !== L; }); };
+    live.push(L); L.set(0); return L;
+  }
+  function birds(t, v) {   // a bird's few chirps, each a quick upward sweep
+    var n = 2 + (Math.random() * 3 | 0), f0 = 2300 + Math.random() * 1400;
+    for (var i = 0; i < n; i++) { var o = osc('sine', f0), g = gain(0), at = t + i * (.09 + Math.random() * .05); chain([o, g, OUT]); o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f0 * (1.25 + Math.random() * .3), at + .06); env(g, .005, .035 * v, .07, at); kill([o], at - AC.currentTime + .2); }
+  }
+  function crickets(t, v) { for (var i = 0; i < 3; i++) { var o = osc('sine', 4300 + Math.random() * 300), am = osc('square', 38), ag = gain(.5), g = gain(0); am.connect(ag); ag.connect(g.gain); chain([o, g, OUT]); var at = t + i * .22; env(g, .01, .012 * v, .16, at); kill([o, am], at - AC.currentTime + .3); } }
+  function thunder(v) {   // the flash's sound: a crack, then a long low roll
+    var t = AC.currentTime, n = noise(), f = filt('lowpass', 900), g = gain(0); chain([n, f, g, OUT]); f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(90, t + 2.5); env(g, .02, .28 * v, 3.2); kill([n], 3.5);
+    if (window.MinestWXFlash) try { window.MinestWXFlash(); } catch (e) {}
+  }
+  function voice(f0, f1, dur, form, vol, wobble, type) {   // a voiced sound: a buzz sliding f0 → f1 through a vowel formant (animals, people)
+    var t = AC.currentTime, o = osc(type || 'sawtooth', f0), bp = filt('bandpass', form, 2.5), g = gain(0); chain([o, bp, g, OUT]);
+    o.frequency.setValueAtTime(f0, t); o.frequency.linearRampToValueAtTime(f1, t + dur);
+    if (wobble) { var lf = osc('sine', wobble), lg = gain(f0 * .08); lf.connect(lg); lg.connect(o.frequency); kill([lf], dur + .2); }
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .04); g.gain.setValueAtTime(vol, t + dur * .7); g.gain.exponentialRampToValueAtTime(.0001, t + dur); kill([o], dur + .1);
+  }
+  function clack(t) { var n = noise(), f = filt('bandpass', 900, 2), g = gain(0); chain([n, f, g, OUT]); env(g, .004, .18, .09, t); kill([n], t - AC.currentTime + .2); }
+  function step(t, side) { var n = noise(), f = filt('lowpass', side ? 520 : 440), g = gain(0); chain([n, f, g, OUT]); env(g, .006, .22, .11, t); kill([n], t - AC.currentTime + .2); }
+  function bell(f, t, v, d) { [1, 2.76, 5.4].forEach(function (h, i) { var o = osc('sine', f * h), g = gain(0); chain([o, g, OUT]); env(g, .005, v / (i * 2.2 + 1), d / (i + 1), t); kill([o], t - AC.currentTime + d + .1); }); }
+
+  // ---------------------------------------------------------------- one-shots
+  function play(name, k) {   // k: a pitch factor for voices (a kid speaks higher)
+    if (!ctx() || muted()) return; var t = AC.currentTime, n, f, g, o;
+    switch (name) {
+      case 'click': n = noise(); f = filt('highpass', 2500); g = gain(0); chain([n, f, g, OUT]); env(g, .002, .25, .03); kill([n], .1);
+        o = osc('sine', 1900); var og = gain(0); chain([o, og, OUT]); env(og, .002, .05, .05); kill([o], .1); break;
+      case 'thud': case 'door': o = osc('sine', name === 'door' ? 70 : 52); g = gain(0); chain([o, g, OUT]); env(g, .005, .35, .3); o.frequency.exponentialRampToValueAtTime(38, t + .3); kill([o], .4);
+        n = noise(); f = filt('lowpass', 420); var ng = gain(0); chain([n, f, ng, OUT]); env(ng, .003, .22, .14); kill([n], .25); break;
+      case 'brake': n = noise(); f = filt('bandpass', 3400, 1.2); g = gain(0); chain([n, f, g, OUT]); env(g, .01, .05, .22); kill([n], .3); break;
+      case 'horn': [349, 440].forEach(function (fr) { var h = osc('square', fr), hf = filt('lowpass', 1600), hg = gain(0); chain([h, hf, hg, OUT]); hg.gain.setValueAtTime(0, t); hg.gain.linearRampToValueAtTime(.07, t + .02); hg.gain.setValueAtTime(.07, t + .45); hg.gain.linearRampToValueAtTime(0, t + .5); kill([h], .6); }); break;
+      case 'trainhorn': [311, 370, 466].forEach(function (fr) { var h = osc('sawtooth', fr), hf = filt('lowpass', 1300), hg = gain(0); chain([h, hf, hg, OUT]); hg.gain.setValueAtTime(0, t); hg.gain.linearRampToValueAtTime(.05, t + .08); hg.gain.setValueAtTime(.05, t + 1.1); hg.gain.linearRampToValueAtTime(0, t + 1.3); kill([h], 1.4); }); break;
+      case 'tick': n = noise(); f = filt('bandpass', 1700, 4); g = gain(0); chain([n, f, g, OUT]); env(g, .001, .3, .03); kill([n], .1);
+        var n2 = noise(), f2 = filt('bandpass', 1200, 4), g2 = gain(0); chain([n2, f2, g2, OUT]); env(g2, .001, .22, .03, t + .36); kill([n2], .5); break;
+      case 'chime': bell(659.3, t, .12, 1.2); bell(523.3, t + .42, .12, 1.4); break;
+      case 'ding': bell(1046.5, t, .1, 1.1); break;
+      case 'whoosh': n = noise(); f = filt('bandpass', 400, 1.5); g = gain(0); chain([n, f, g, OUT]); f.frequency.exponentialRampToValueAtTime(3200, t + .45); env(g, .12, .14, .4); kill([n], .7); break;
+      case 'bark': voice(420, 260, .13, 900, .16); setTimeout(function () { voice(440, 270, .12, 950, .14); }, 190); break;
+      case 'meow': voice(520, 760, .22, 1300, .1); setTimeout(function () { voice(760, 430, .3, 1100, .1); }, 200); break;
+      case 'baa': voice(330, 300, .7, 1000, .1, 28); break;
+      case 'moo': voice(115, 92, 1.1, 480, .2); break;
+      case 'cluck': [0, 140, 260].forEach(function (d, i) { setTimeout(function () { voice(620 + i * 40, 480, .07, 1500, .1, 0, 'square'); }, d); }); break;
+      case 'yip': voice(700, 1100, .12, 1600, .1); setTimeout(function () { voice(800, 500, .15, 1400, .09); }, 160); break;
+      case 'hmm':   // a villager's "hrm": a voiced buzz through a vowel formant, sliding down
+        k = k || 1; o = osc('sawtooth', 190 * k); f = filt('bandpass', 700 * Math.sqrt(k), 3); g = gain(0); chain([o, f, g, OUT]); o.frequency.setValueAtTime(190 * k, t); o.frequency.exponentialRampToValueAtTime(130 * k, t + .32); if (Math.random() < .5) o.frequency.exponentialRampToValueAtTime(170 * k, t + .42); env(g, .03, .12, .3); kill([o], .45); break;
+      case 'pop': o = osc('sine', 500); g = gain(0); chain([o, g, OUT]); o.frequency.exponentialRampToValueAtTime(1200, t + .08); env(g, .005, .14, .12); kill([o], .2); break;
+      case 'thunder': thunder(1); break;
+      case 'jump':   // hyperspace: a long rising sweep, then the boom of the jump
+        o = osc('sawtooth', 60); f = filt('lowpass', 200, 8); g = gain(0); chain([o, f, g, OUT]); o.frequency.exponentialRampToValueAtTime(900, t + 1.4); f.frequency.exponentialRampToValueAtTime(5000, t + 1.4);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.1, t + 1.2); g.gain.exponentialRampToValueAtTime(.0001, t + 1.8); kill([o], 1.9);
+        setTimeout(function () { play('thud'); play('whoosh'); }, 1350); break;
+    }
+  }
+  function indicator(times) { for (var i = 0; i < (times || 3); i++) setTimeout(function () { play('tick'); }, i * 720); }
+
+  function unlock() { ctx(); }
+  ['pointerdown', 'touchend', 'keydown'].forEach(function (ev) { document.addEventListener(ev, unlock, { capture: true, passive: true }); });
+  document.addEventListener('visibilitychange', function () { if (!AC) return; try { if (document.hidden) AC.suspend(); else AC.resume(); } catch (e) {} });
+
+  window.MinestSfx = {
+    engine: engine, ignite: ignite, loop: loop, play: play, indicator: indicator,
+    muted: muted,
+    mute: function (on) { try { localStorage.setItem(KEY, on ? 'off' : 'on'); } catch (e) {} if (OUT) OUT.vol.gain.value = on ? 0 : .8; },
+    stopAll: function () { live.slice().forEach(function (x) { x.stop(); }); }
+  };
+})();
+
 /* Minest My World — Knowledge Drive V1.0 (independent module, prototype stage)
    A first-person, low-poly drive through a Board's knowledge.
    Workspace = road network · Board = region · List = a named road ("Ecology Road") · Stack = a road section · Card = a billboard.
@@ -146228,6 +146709,7 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
   if (window.MinestDrive && window.MinestDrive.version) return;
   var VERSION = '1.0-proto.1', STORE = 'minest.drive.v1';
   var LEAD = 70, SP = 46, TAIL = 70, LANE = 1.9, ROAD_W = 4, BB_LAT = 9.5, VIEW = 340, BEHIND = 40, CHUNK = 50, NEAR_LOD = 125;
+  var SFX = window.MinestSfx || null;   // sfx.js loads first
   var SPEEDS = [[7, '🐢', 'Slow'], [11, '🚗', 'Cruise'], [16, '🚀', 'Fast']];
   var PAL = ['#3d8bfd', '#22b07d', '#f08c2e', '#a46bf0', '#e8505b', '#14a3b8', '#d9a51c', '#5c7cfa'];
 
@@ -146490,7 +146972,7 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
     var root = document.createElement('div'); root.className = 'kd-root'; root.setAttribute('role', 'application'); root.setAttribute('aria-label', 'Knowledge Drive');
     root.innerHTML =
       '<canvas class="kd-gl"></canvas>' +
-      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><span class="kd-tr"><button type="button" class="kd-btn kd-view" data-kd="view" aria-label="Camera view" title="Cockpit / chase view">🎥</button><button type="button" class="kd-btn kd-car" data-kd="garage" aria-label="Garage" title="Change car">🚘</button><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></span></div>' +
+      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><span class="kd-tr"><button type="button" class="kd-btn kd-snd" data-kd="sound" aria-label="Sound" title="Sound on / off">' + (SFX && SFX.muted() ? '🔇' : '🔊') + '</button><button type="button" class="kd-btn kd-view" data-kd="view" aria-label="Camera view" title="Cockpit / chase view">🎥</button><button type="button" class="kd-btn kd-car" data-kd="garage" aria-label="Garage" title="Change car">🚘</button><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></span></div>' +
       '<div class="kd-intro" hidden><div class="kd-fade"></div><div class="kd-cap"><b></b><small>Tap to skip</small></div><button type="button" class="kd-ign" tabindex="-1"><span>ENGINE</span><b>START</b><span>STOP</span></button><div class="kd-keyset"><div class="kd-dock"></div><div class="kd-fob"><i></i><b>LUCE</b></div></div></div>' +
       '<div class="kd-garage" hidden><div class="kd-gcard"><div class="kd-ghead"><b>🚘 Garage</b><button type="button" class="kd-btn" data-kd="garage">✕</button></div><div class="kd-glist"></div></div></div>' +
       '<div class="kd-toast" aria-live="polite"></div>' +
@@ -146858,7 +147340,7 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
     function choose(seg, choice) {
       if (seg.opts[choice] == null || seg.choice === choice) return;
       if (car.seg === seg && car.s > seg.len - 10) return toast('Too late to turn here');
-      seg.choice = choice; markRoute(seg);
+      seg.choice = choice; markRoute(seg); if (SFX && choice !== 'straight') SFX.indicator(3);
       var nx = nextSeg(seg); if (nx) { var after = segs.slice(segs.indexOf(nx)); after.forEach(disposeSeg); }
       ensureAhead(); hap();
       toast((choice === 'left' ? '← ' : choice === 'right' ? '→ ' : '↑ ') + 'Next: ' + PL.roads[seg.opts[choice]].name);
@@ -146985,6 +147467,7 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
     function act(k) {
       if (k === 'exit') return self.close();
       if (k === 'garage') return garage();
+      if (k === 'sound' && SFX) { var mu = !SFX.muted(); SFX.mute(mu); $('.kd-snd').textContent = mu ? '🔇' : '🔊'; toast(mu ? '🔇 Sound off' : '🔊 Sound on'); hap(); return; }
       if (k === 'view') { st.view = st.view === 'chase' ? 'cockpit' : 'chase'; try { localStorage.setItem('minest.drive.view', st.view); } catch (x) {} root.classList.toggle('chase', st.view === 'chase'); toast(st.view === 'chase' ? '🎥 Chase view' : '🪟 Cockpit view'); hap(); return; }
       if (k === 'juncx') { st.jPin = false; car.seg.picked = true; $('.kd-junc').hidden = true; st.jOpen = false; return; }
       if (k.indexOf('turn-') === 0) return pickTurn(k.slice(5));
@@ -147016,6 +147499,8 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
       if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); st.speed = clamp(st.speed + (k === 'ArrowUp' ? 1 : -1), 0, SPEEDS.length - 1); speedLabel(); return; }
       if (m) { e.preventDefault(); act(m); }
     }
+    function onKeyUpH(e) { if ((e.key === 'h' || e.key === 'H') && SFX) SFX.play('horn'); }
+    window.addEventListener('keydown', onKeyUpH);
     function onKeyUp(e) { if (e.key === 'b' || e.key === 'B') brake(false); if (e.key === 'g' || e.key === 'G') gas(false); }
     window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKeyUp);
     // 🛑 brake pedal: hold to slow down and stop; let go and the car drives on (if it was driving)
@@ -147072,13 +147557,13 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
     function startIntro() {
       if (exteriorG) { scene.remove(exteriorG); exteriorG = null; }
       exteriorG = CARS.exterior(T, carNow, R); scene.add(exteriorG);
-      st.intro = { t: 0, wasPlaying: st.intro ? st.intro.wasPlaying : st.playing, ign: false };
+      st.intro = { t: 0, wasPlaying: st.intro ? st.intro.wasPlaying : st.playing, ign: false }; if (st.eng) { st.eng.stop(.4); st.eng = null; }
       st.playing = false; st.v = 0; inst.on = 0; inst.sweep = 0; inst.boot = 0; instruments(true);
       var ov = $('.kd-intro'); ov.hidden = false; ov.className = 'kd-intro'; $('.kd-cap b').textContent = carNow.name;
       root.classList.add('intro');
     }
     function endIntro() {
-      if (!st.intro) return; var was = st.intro.wasPlaying; st.intro = null;
+      if (!st.intro) return; var was = st.intro.wasPlaying; st.intro = null; if (!st.eng && SFX) st.eng = SFX.engine(carNow.id);
       if (exteriorG) { scene.remove(exteriorG); exteriorG.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); exteriorG = null; }
       inst.on = 1; inst.sweep = null; inst.boot = 0; ambient.material.opacity = .85; instruments(true);
       $('.kd-intro').hidden = true; root.classList.remove('intro', 'incab');
@@ -147100,15 +147585,15 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
         var k2 = ease(clamp((t - 2.4) / .7, 0, 1));
         var door = IC.clone().addScaledVector(F.l, 1.9).addScaledVector(F.t, -.4); door.y = 1.25;
         cam.position.copy(door).lerp(eye, k2); look.copy(IC).lerp(eye.clone().addScaledVector(F.t, 20), k2); look.y = lerp(.8, 1.05, k2); cam.lookAt(look);
-        ov.classList.toggle('dark', t > 2.75);
+        ov.classList.toggle('dark', t > 2.75); if (t > 2.95 && !I.door) { I.door = true; if (SFX) SFX.play('door'); }
       } else {
         if (exteriorG.visible) exteriorG.visible = false;
         root.classList.add('incab'); ov.classList.toggle('dark', t < 3.35);
         cam.position.copy(eye); look.copy(eye).addScaledVector(F.t, 20); look.y = 1.05; cam.lookAt(look);
         // a car with a key (the Luce): the glass key appears, drops into its dock on the console, clicks, the car wakes
         var KD = carNow.key ? 1.2 : 0;
-        if (KD) { ov.classList.add('key'); ov.classList.toggle('keyshow', t > 3.3); if (t > 3.95 && !I.keyIn) { I.keyIn = true; ov.classList.add('keyin'); } if (t > 4.45 && !I.click) { I.click = true; ov.classList.add('keylit'); hap(); } }
-        if (t > 3.5 + KD && !I.ign) { I.ign = true; if (!KD) ov.classList.add('ign'); hap(); }
+        if (KD) { ov.classList.add('key'); ov.classList.toggle('keyshow', t > 3.3); if (t > 3.95 && !I.keyIn) { I.keyIn = true; ov.classList.add('keyin'); if (SFX) SFX.play('click'); } if (t > 4.45 && !I.click) { I.click = true; ov.classList.add('keylit'); hap(); } }
+        if (t > 3.5 + KD && !I.ign) { I.ign = true; if (!KD) ov.classList.add('ign'); hap(); if (SFX) { if (st.eng) st.eng.stop(); st.eng = SFX.ignite(carNow.id); } }   // the starter turns, the engine catches (or the electric car powers up)
         if (t > 3.6 + KD) {   // ignition: lights up, needles sweep to the stop and back, screen boots, ambient fades in
           var s2 = clamp((t - 3.6 - KD) / 1.5, 0, 1); inst.on = Math.min(1, s2 * 3); inst.sweep = Math.sin(s2 * Math.PI); inst.boot = s2;
           ambient.material.opacity = .85 * s2; instruments(true);
@@ -147134,6 +147619,7 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
         var dj = car.seg.len - car.s; if (!st.gas && !car.seg.picked && dj < 45 && dj > 4) target = Math.min(target, 5);   // ease off before an unchosen junction
         st.v = lerp(st.v, target, 1 - Math.exp(-dt * (target > st.v ? (st.gas ? 1.3 : .9) : st.braking ? 3.2 : st.playing || st.gas ? 2.4 : .35))); if (st.v < .05 && !target) st.v = 0;
         car.s += st.v * dt;
+        if (st.eng) st.eng.set(st.v / SPEEDS[SPEEDS.length - 1][0], st.gas, st.braking);   // the engine follows the speed and the pedals
         while (car.s > car.seg.len) { var nx = nextSeg(car.seg); if (!nx) { ensureAhead(); nx = nextSeg(car.seg); } if (!nx) { car.s = car.seg.len; break; } car.s -= car.seg.len; var was = PL.roads[car.seg.road].region; car.seg = nx; toast((PL.roads[nx.road].region !== was ? '🗺 ' + PL.roads[nx.road].region + ' · ' : '🛣 ') + PL.roads[nx.road].name); }
       }
       ensureAhead();
@@ -147211,13 +147697,13 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
     frame(car.seg, car.s, F); look.copy(F.p).addScaledVector(F.t, 20); look.y = 1.05;
     resize(); ensureAhead(); manageChunks(gNow()); manageBoards(gNow()); hud(true);
     setCockpitCar(CARS.byId(carId)); ambient.material.opacity = .85;
-    if (opts.intro !== false) startIntro();
+    if (opts.intro !== false) startIntro(); else if (SFX) st.eng = SFX.engine(carNow.id);
     if (startS > 5) toast('Resuming · ' + PL.roads[startRoad].name); else toast('🛣 ' + PL.roads[startRoad].name);
     schedule();
 
     this.close = function () {
-      if (!alive) return; persist(); alive = false; if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('minest:hinge', resize); mo.disconnect(); document.removeEventListener('visibilitychange', onVis); if (ro) ro.disconnect();
+      if (!alive) return; persist(); alive = false; if (raf) cancelAnimationFrame(raf); if (st.eng) { st.eng.stop(.3); st.eng = null; }
+      window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('keydown', onKeyUpH); window.removeEventListener('minest:hinge', resize); mo.disconnect(); document.removeEventListener('visibilitychange', onVis); if (ro) ro.disconnect();
       segs.slice().forEach(disposeSeg); texCache.forEach(function (t) { t.dispose(); }); texCache.clear();
       R.dispose(); root.remove(); if (CUR === self) CUR = null; if (opts.onExit) try { opts.onExit(); } catch (e) {}
     };
@@ -147538,6 +148024,7 @@ window.KRail = (function () {
   'use strict';
   var VERSION = '1.0-proto.1', STORE = 'minest.drive.v1';
   var LEAD = 70, SP = 46, TAIL = 70, LANE = 1.9, ROAD_W = 4, BB_LAT = 9.5, VIEW = 340, BEHIND = 40, CHUNK = 50, NEAR_LOD = 125;
+  var SFX = window.MinestSfx || null;   // sfx.js loads first
   var SPEEDS = [[7, '🐢', 'Slow'], [11, '🚗', 'Cruise'], [16, '🚀', 'Fast']];
   var PAL = ['#3d8bfd', '#22b07d', '#f08c2e', '#a46bf0', '#e8505b', '#14a3b8', '#d9a51c', '#5c7cfa'];
 
@@ -148050,10 +148537,11 @@ window.KRail = (function () {
 
     // ---------------- loop
     var raf = 0, last = 0, mg = 0, ht = 0, sv = 0, alive = true, W = 1, H = 1;
+    var railSnd = window.MinestSfx ? MinestSfx.loop('rail') : null;   // wheels on the rail joints, a horn when the train sets off (sfx.js)
     function step(now) {
       raf = 0; if (!alive) return; schedule(); var dt = Math.min(.05, (now - (last || now)) / 1000); last = now;
       if (st.anim) { var A = st.anim; A.t += dt; var k = clamp(A.t / A.dur, 0, 1), g = lerp(A.from, A.to, ease(k)), ps = gNow(); pos.seg = segAt(g); pos.s = g - pos.seg.g0; st.v = Math.abs(gNow() - ps) / Math.max(dt, 1e-3); if (k >= 1) { st.anim = null; if (A.then) A.then(); } }
-      else { var tv = st.playing ? SPEEDS[st.speed][0] : 0; st.v = lerp(st.v, tv, 1 - Math.exp(-dt * (tv > st.v ? .5 : 1.6))); if (st.v < .05 && !tv) st.v = 0; pos.s += st.v * dt; while (pos.s > pos.seg.len) { var i = segs.indexOf(pos.seg), nx = segs[i + 1]; if (!nx) { ensureAhead(); nx = segs[i + 1]; } if (!nx) break; pos.s -= pos.seg.len; pos.seg = nx; toast('🚉 ' + PL.roads[nx.li].title + ' Line'); } }
+      else { var tv = st.playing ? SPEEDS[st.speed][0] : 0; st.v = lerp(st.v, tv, 1 - Math.exp(-dt * (tv > st.v ? .5 : 1.6))); if (st.v < .05 && !tv) st.v = 0; if (railSnd) railSnd.set(st.v / SPEEDS[SPEEDS.length - 1][0]); pos.s += st.v * dt; while (pos.s > pos.seg.len) { var i = segs.indexOf(pos.seg), nx = segs[i + 1]; if (!nx) { ensureAhead(); nx = segs[i + 1]; } if (!nx) break; pos.s -= pos.seg.len; pos.seg = nx; toast('🚉 ' + PL.roads[nx.li].title + ' Line'); } }
       ensureAhead();
       frame(pos.seg, pos.s, F);
       var eye = F.p.clone().addScaledVector(F.l, SEAT); eye.y = EYE_Y + Math.sin(now / 170) * .006 * Math.min(1, st.v / 6) + Math.sin(now / 53) * .0025 * Math.min(1, st.v / 10);   // the gentle rattle of the rails
@@ -148089,7 +148577,7 @@ window.KRail = (function () {
     resize(); frame(pos.seg, pos.s, F); look.copy(F.p).addScaledVector(F.l, -30); ensureAhead(); manageChunks(gNow()); manageNodes(gNow()); hud();
     toast(saved.li ? '↺ Resuming the ' + PL.roads[startLi].title + ' Line' : '🚆 ' + PL.roads[startLi].title + ' Line'); schedule();
 
-    this.close = function () { if (!alive) return; persist(); alive = false; if (raf) cancelAnimationFrame(raf); window.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis); ro.disconnect(); segs.slice().forEach(disposeSeg); texCache.forEach(function (t) { t.dispose(); }); R.dispose(); root.remove(); if (opts.onExit) opts.onExit(); };
+    this.close = function () { if (!alive) return; if (railSnd) railSnd.stop(); persist(); alive = false; if (raf) cancelAnimationFrame(raf); window.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis); ro.disconnect(); segs.slice().forEach(disposeSeg); texCache.forEach(function (t) { t.dispose(); }); R.dispose(); root.remove(); if (opts.onExit) opts.onExit(); };
     this.state = function () { return { line: PL.roads[pos.seg.li].title, s: Math.round(pos.s), playing: st.playing, focus: st.focus && st.focus.I ? st.focus.I.title : null, flip: st.focus ? st.focus.flip : 0, style: st.style, nodes: picks.length / 2, segs: segs.length, fov: Math.round(cam.fov), dist: st.focus && st.focus.node ? Math.round(cam.position.distanceTo(st.focus.node.userData.front.getWorldPosition(new T.Vector3()))) : null }; };
     this.focusNext = function () { onKey({ key: 'Enter', preventDefault: function () {} }); };
     this.act = act;
@@ -148230,7 +148718,7 @@ window.KRail = (function () {
       $('.km-th').innerHTML = th.icon + ' <span>' + th.name + '</span>'; $('.km-th').title = 'Suggest a station style';
     }
     // ---------------- flow: wait → arriving → doors open → (board) → ride → next station
-    function setPhase(p) { st.phase = p; st.t = 0; var b = $('.km-board'); b.disabled = false; b.innerHTML = p === 'doors' ? '🚇 <span>Board</span>' : p === 'wait' ? '🚆 <span>Call train</span>' : '⏳ <span>' + (p === 'arriving' ? 'Arriving' : 'Departing') + '</span>'; }
+    function setPhase(p) { st.phase = p; st.t = 0; var SX = window.MinestSfx; if (SX) SX.play({ arriving: 'whoosh', doorsopening: 'chime', closing: 'chime', departing: 'whoosh' }[p] || ''); var b = $('.km-board'); b.disabled = false; b.innerHTML = p === 'doors' ? '🚇 <span>Board</span>' : p === 'wait' ? '🚆 <span>Call train</span>' : '⏳ <span>' + (p === 'arriving' ? 'Arriving' : 'Departing') + '</span>'; }
     function arrive() { if (st.phase !== 'wait') return; unfocus(); setPhase('arriving'); setScreen('ARRIVING'); st.trainX = -95; }
     function board(target) {   // ride to target {li, si} (default: next station on this line)
       if (st.busy) return; unfocus();
@@ -148620,9 +149108,9 @@ window.KRail = (function () {
       st.view = 'lift'; lift.hidden = false; lift.classList.remove('open'); $('.ks-liftdisp .ks-arrow').textContent = dir > 0 ? '▲' : '▼'; $('.ks-panel .ks-arrow').textContent = dir > 0 ? '▲' : '▼';
       $('.ks-liftdisp b').textContent = label(floors[from]); $('.ks-liftdisp small').textContent = floors[i].name; hap();
       requestAnimationFrame(function () { lift.classList.add('shut'); });
-      var cur = from, timer = null, done = false;
+      var cur = from, timer = null, done = false, hum = window.MinestSfx ? MinestSfx.loop('hum') : null; if (hum) hum.set(.7);   // the lift hums, then dings (sfx.js)
       function finish() {
-        if (done) return; done = true; clearInterval(timer); st.floor = i; $('.ks-liftdisp b').textContent = label(floors[i]); $('.ks-panel .ks-arrow').textContent = '';
+        if (done) return; done = true; clearInterval(timer); if (hum) { hum.stop(); MinestSfx.play('ding'); } st.floor = i; $('.ks-liftdisp b').textContent = label(floors[i]); $('.ks-panel .ks-arrow').textContent = '';
         var pose = floorPose(i); camPos.copy(pose.p); camTgt.copy(pose.t); st.tw = null; st.view = 'floor'; st.lookYaw = st.lookPitch = 0; lodPass(); hud();
         lift.classList.add('open'); lift.classList.remove('shut'); setTimeout(function () { lift.hidden = true; lift.classList.remove('open'); }, 520); lift.onclick = null;
       }
@@ -151491,7 +151979,7 @@ window.KRail = (function () {
       var dyaw = ((tgt.yaw - cur.yaw + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
       cur.yaw += dyaw * a;
 
-      var bob = st.run && st.shop < 0 && !RD.open ? Math.sin(now / 165) * 0.022 : 0;
+      var bob = st.run && st.shop < 0 && !RD.open ? Math.sin(now / 165) * 0.022 : 0; if (stepSnd) stepSnd.set(bob ? .55 : 0);
       cam.position.set(cur.x, cur.y + bob, cur.z);
       lookV.set(
         cur.x - Math.sin(cur.yaw) * Math.cos(cur.pitch),
@@ -151565,7 +152053,8 @@ window.KRail = (function () {
     S.start();
     S.toast('🗽 Metropolis Avenue · Stroll past bespoke flagship storefronts & 3D vitrines');
 
-    this.close = function () { S.close(); };
+    var stepSnd = window.MinestSfx ? MinestSfx.loop('steps') : null;   // footsteps while strolling (sfx.js)
+    this.close = function () { if (stepSnd) stepSnd.stop(); S.close(); };
     this.setNight = toggleNight;
     this.focusShop = focusShop;
     this.pullItem = pullItem;
@@ -153203,7 +153692,7 @@ window.KRail = (function () {
       var pl = curPlanet();
       st.yaw = Math.atan2(-(pl.pos.x - st.shipPos.x), -(pl.pos.z - st.shipPos.z));
       st.pitch = 0;
-      setPhase('hyperspace');
+      setPhase('hyperspace'); if (window.MinestSfx) MinestSfx.play('jump');
       S.toast('⚡ Hyperdrive Engaged · Jumping to ' + pl.title);
     }
 
@@ -153222,7 +153711,7 @@ window.KRail = (function () {
       setPhase('approach');
     }
 
-    function landOnPlanet() {
+    function landOnPlanet() { if (window.MinestSfx) MinestSfx.play("whoosh");
       if (RD.open) RD.back(true);
       if (st.phase === 'cockpit') { onPlanetClicked(st.pi); return; }   // the planet passing by
       if (st.phase === 'surface') {
@@ -153452,7 +153941,7 @@ window.KRail = (function () {
       // ease off while a planet is close so it can be read and tapped
       var curN = planetNodes[st.routeCur], relC = curN ? curN.homePos.z - st.shipPos.z : -999;
       var slow = relC > -95 && relC < 30 ? 0.35 + 0.65 * clamp((-relC - 20) / 75, 0, 1) : 1;
-      if (st.cruise) st.shipPos.z -= ROUTE_SPEED * slow * dt;
+      if (st.cruise) st.shipPos.z -= ROUTE_SPEED * slow * dt; if (shipSnd) shipSnd.set(st.cruise ? .25 + .5 * slow : .08);
       st.yaw = lerp(st.yaw, 0, 1 - Math.exp(-dt * 0.5));
       st.pitch = lerp(st.pitch, -0.02, 1 - Math.exp(-dt * 0.5));
       st.shipPos.x = lerp(st.shipPos.x, 0, 1 - Math.exp(-dt * 0.5));
@@ -153759,7 +154248,8 @@ window.KRail = (function () {
     S.start();
     S.toast('🚀 Explorer cockpit ready · flying toward ' + curPlanet().title);
 
-    this.close = function () { persist(); S.close(); if (CUR === self) CUR = null; };
+    var shipSnd = window.MinestSfx ? MinestSfx.loop('ship') : null;   // the freighter's engines (sfx.js)
+    this.close = function () { if (shipSnd) shipSnd.stop(); persist(); S.close(); if (CUR === self) CUR = null; };
     this.state = function () {
       var pl = curPlanet(), B = curBiome();
       var lm = st.focusIdx >= 0 ? landmarkList[st.focusIdx] : null;
@@ -154119,6 +154609,95 @@ window.KRail = (function () {
   window.MinestDuoDyn = { check: check, state: function () { return { on: !!cur, mode: cur && cur.m.id, posture: posture(), road: roads[roadI] && roads[roadI].title, pick: pick && pick.I.title }; } };
 })();
 
+</script>
+<script id="mn-wx-script">
+/* Minest Weather — My World's sky follows the real one: the local weather (Open-Meteo, no key) and the time of day from
+   the local sunrise / sunset. window.MinestWX
+   - state() → { phase: dawn|day|dusk|night, light 0–1, cond: clear|cloudy|fog|rain|storm|snow, rain 0–1, snow 0–1,
+                 wind 0–1, cloud 0–1, temp °C, place, mode, live }
+   - on(fn) → off()      called whenever it changes (the 3D walk re-lights its scene)
+   - mode(m) / cycle()    auto (live) · sunny · dusk · night · rain · storm · snow · windy · fog   (remembered)
+   Where: the device's location when it allows (rounded to ~10 km, asked only once My World opens), otherwise a city
+   for the phone's time zone. Weather is fetched at most every 20 minutes; nothing else leaves the device.
+   On the island (2D) it lays a tint (dusk / night / overcast), rain, snow and lightning over the scene, with a chip
+   (bottom left) to switch the weather, and plays the outdoor sound (breeze, birds, rain, crickets, thunder). */
+(function () {
+  if (window.MinestWX) return;
+  var KEY = 'minest.wx', LOC = 'minest.wx.loc', MODE = 'minest.wx.mode', subs = [], S = null, data = null, asked = false, fetching = false;
+  var MODES = [['auto', '📍', 'Live'], ['sunny', '☀️', 'Sunny'], ['dusk', '🌇', 'Dusk'], ['night', '🌙', 'Night'], ['rain', '🌧', 'Rain'], ['storm', '⛈', 'Storm'], ['snow', '❄️', 'Snow'], ['windy', '🌬', 'Windy'], ['fog', '🌫', 'Fog']];
+  var TZ = { 'America/Chicago': [32.8, -96.8, 'Dallas'], 'America/New_York': [40.7, -74, 'New York'], 'America/Los_Angeles': [34.1, -118.2, 'Los Angeles'], 'America/Denver': [39.7, -105, 'Denver'],
+    'America/Phoenix': [33.4, -112.1, 'Phoenix'], 'America/Toronto': [43.7, -79.4, 'Toronto'], 'America/Vancouver': [49.3, -123.1, 'Vancouver'], 'Asia/Shanghai': [31.2, 121.5, 'Shanghai'],
+    'Asia/Taipei': [25, 121.5, 'Taipei'], 'Asia/Hong_Kong': [22.3, 114.2, 'Hong Kong'], 'Asia/Tokyo': [35.7, 139.7, 'Tokyo'], 'Asia/Seoul': [37.6, 127, 'Seoul'], 'Asia/Singapore': [1.35, 103.8, 'Singapore'],
+    'Europe/London': [51.5, -.1, 'London'], 'Europe/Paris': [48.9, 2.35, 'Paris'], 'Europe/Berlin': [52.5, 13.4, 'Berlin'], 'Australia/Sydney': [-33.9, 151.2, 'Sydney'] };
+  function get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function put(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function mode() { return get(MODE) || 'auto'; }
+  function loc() {
+    var l = get(LOC); if (l && l.la != null) return l;
+    var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+    var t = TZ[tz] || TZ['America/Chicago']; return { la: t[0], lo: t[1], place: t[2], guess: true };
+  }
+  function askLoc() {   // once: the device's own place (rounded), when it lets us
+    if (asked || !navigator.geolocation) return; asked = true; var l = get(LOC); if (l && !l.guess && Date.now() - (l.t || 0) < 6 * 3600e3) return;
+    try { navigator.geolocation.getCurrentPosition(function (p) { var la = Math.round(p.coords.latitude * 10) / 10, lo = Math.round(p.coords.longitude * 10) / 10, o = get(LOC);
+      put(LOC, { la: la, lo: lo, place: (o && Math.abs(o.la - la) < .2 && Math.abs(o.lo - lo) < .2 && o.place) || 'Here', t: Date.now() }); data = null; put(KEY, null); refresh(); }, function () {}, { timeout: 9000, maximumAge: 3 * 3600e3 }); } catch (e) {}
+  }
+  function refresh() {
+    var c = get(KEY), l = loc(); if (c && Date.now() - c.t < 20 * 60e3 && Math.abs(c.la - l.la) < .05 && Math.abs(c.lo - l.lo) < .05) { data = c; return compute(); }
+    if (fetching || !window.fetch) return compute(); fetching = true;
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=' + l.la + '&longitude=' + l.lo + '&current=temperature_2m,weather_code,wind_speed_10m,cloud_cover,is_day&daily=sunrise,sunset&timezone=auto&forecast_days=1&wind_speed_unit=ms')
+      .then(function (r) { return r.json(); }).then(function (j) { fetching = false; if (!j || !j.current) return compute(); data = { t: Date.now(), la: l.la, lo: l.lo, cur: j.current, off: j.utc_offset_seconds || 0, rise: j.daily && j.daily.sunrise && j.daily.sunrise[0], set: j.daily && j.daily.sunset && j.daily.sunset[0] }; put(KEY, data); compute(); })
+      .catch(function () { fetching = false; compute(); });
+  }
+  function localEpoch(s, off) { var m = /^(\d+)-(\d+)-(\d+)T(\d+):(\d+)/.exec(s || ''); return m ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5]) - off * 1000 : null; }
+  function compute() {
+    var now = Date.now(), d = data, rise = d && localEpoch(d.rise, d.off), set = d && localEpoch(d.set, d.off);
+    if (!rise || !set || Math.abs(now - rise) > 36 * 3600e3) { var t0 = new Date(); t0.setHours(6, 45, 0, 0); rise = +t0; t0.setHours(18, 30, 0, 0); set = +t0; }
+    var M = 60e3, phase = now < rise - 30 * M || now > set + 45 * M ? 'night' : now < rise + 45 * M ? 'dawn' : now > set - 60 * M ? 'dusk' : 'day';
+    var code = d && d.cur ? d.cur.weather_code : 1, cloud = d && d.cur ? (d.cur.cloud_cover || 0) / 100 : .2, wind = d && d.cur ? Math.min(1, (d.cur.wind_speed_10m || 0) / 12) : .2;
+    var cond = code >= 95 ? 'storm' : (code >= 71 && code <= 77) || code === 85 || code === 86 ? 'snow' : (code >= 51 && code <= 67) || (code >= 80 && code <= 82) ? 'rain' : code === 45 || code === 48 ? 'fog' : code === 3 ? 'cloudy' : 'clear';
+    var rain = cond === 'storm' ? 1 : cond === 'rain' ? (code === 65 || code === 82 ? 1 : code >= 61 || code >= 80 ? .65 : .35) : 0, snow = cond === 'snow' ? (code === 75 || code === 86 ? 1 : .6) : 0;
+    var st = { phase: phase, cond: cond, rain: rain, snow: snow, wind: wind, cloud: Math.max(cloud, rain ? .8 : 0), temp: d && d.cur ? Math.round(d.cur.temperature_2m) : null, place: loc().place, live: !!d, mode: mode() };
+    var m = st.mode;   // a chosen weather wins over the live one
+    if (m === 'sunny') Object.assign(st, { phase: 'day', cond: 'clear', rain: 0, snow: 0, cloud: .1 }); else if (m === 'dusk') Object.assign(st, { phase: 'dusk' }); else if (m === 'night') Object.assign(st, { phase: 'night' });
+    else if (m === 'rain') Object.assign(st, { cond: 'rain', rain: .7, snow: 0, cloud: .9 }); else if (m === 'storm') Object.assign(st, { cond: 'storm', rain: 1, snow: 0, cloud: 1, wind: Math.max(st.wind, .75) });
+    else if (m === 'snow') Object.assign(st, { cond: 'snow', snow: .8, rain: 0, cloud: .8 }); else if (m === 'windy') Object.assign(st, { wind: 1, cond: st.cond === 'storm' ? 'cloudy' : st.cond, rain: 0 }); else if (m === 'fog') Object.assign(st, { cond: 'fog', rain: 0, snow: 0, cloud: .9 });
+    st.light = { day: 1, dawn: .62, dusk: .55, night: .14 }[st.phase] * (1 - st.cloud * .3);
+    var key = JSON.stringify(st); if (S && JSON.stringify(S) === key) return S; S = st; subs.slice().forEach(function (f) { try { f(S); } catch (e) {} }); return S;
+  }
+  function icon(s) { s = s || S || {}; return s.cond === 'storm' ? '⛈' : s.cond === 'snow' ? '❄️' : s.cond === 'rain' ? '🌧' : s.cond === 'fog' ? '🌫' : s.phase === 'night' ? '🌙' : s.phase === 'dusk' ? '🌇' : s.phase === 'dawn' ? '🌅' : s.cond === 'cloudy' ? '☁️' : s.wind > .7 ? '🌬' : '☀️'; }
+  setInterval(function () { if (subs.length || document.querySelector('.mn-dsp')) refresh(); }, 60e3);
+
+  // ---------------------------------------------------------------- the island (2D): tint, rain, snow, lightning, the chip, the sound
+  var amb = null;
+  function paint(st, host) {
+    var o = host.querySelector(':scope > .mn-wx'); if (!o) { host.insertAdjacentHTML('beforeend', '<div class="mn-wx"><i class="t"></i><i class="r"></i><i class="s"></i><i class="f"></i></div><button type="button" class="mn-wx-chip"></button>'); o = host.querySelector(':scope > .mn-wx');
+      host.querySelector(':scope > .mn-wx-chip').addEventListener('click', function (e) { e.stopPropagation(); var n = MinestWX.cycle(); if (window.MinestSfx) MinestSfx.play('click'); }); }
+    var cls = 'mn-wx ph-' + st.phase + ' c-' + st.cond + (st.rain > .8 ? ' heavy' : '') + (st.wind > .6 ? ' windy' : ''); if (o.className !== cls) o.className = cls;
+    var chip = host.querySelector(':scope > .mn-wx-chip'), M = MODES.filter(function (x) { return x[0] === st.mode; })[0] || MODES[0], txt = icon(st) + (st.temp != null && st.mode === 'auto' ? ' ' + st.temp + '°' : '') + ' · ' + (st.mode === 'auto' ? st.place : M[2]);
+    if (chip.textContent !== txt) chip.textContent = txt; chip.title = 'Weather: ' + M[2] + ' — tap to change';
+  }
+  function sound(st, on) {
+    if (!window.MinestSfx) return; if (!on) { if (amb) { amb.stop(); amb = null; } return; }
+    if (!amb) amb = MinestSfx.loop('outdoor'); amb.set(.45, st);
+  }
+  setInterval(function () {
+    var host = document.querySelector('.mn-dsp .mn-dsp-stage'), walking = !!document.querySelector('.mn-dsp .mn-walk');
+    if (!host) { sound(null, false); return; } askLoc(); var st = S || refresh() || S; if (!st) return;
+    paint(st, host); sound(st, !walking && !document.hidden);   // the walk plays its own
+  }, 1000);
+
+  var flashers = [];   // lightning: the island's white flash, and whoever else lights up (the 3D walk)
+  window.MinestWXFlash = function () { var f = document.querySelector('.mn-dsp .mn-wx .f'); if (f && f.animate) f.animate([{ opacity: .85 }, { opacity: 0 }, { opacity: .55 }, { opacity: 0 }], { duration: 650 }); flashers.forEach(function (fn) { try { fn(); } catch (e) {} }); };
+  window.MinestWX = {
+    onFlash: function (f) { flashers.push(f); return function () { flashers = flashers.filter(function (x) { return x !== f; }); }; },
+    state: function () { return S || refresh() || S; },
+    on: function (f) { subs.push(f); askLoc(); if (!S) refresh(); return function () { subs = subs.filter(function (x) { return x !== f; }); }; },
+    mode: function (m) { put(MODE, m || 'auto'); return compute(); },
+    cycle: function () { var i = MODES.map(function (x) { return x[0]; }).indexOf(mode()); var m = MODES[(i + 1) % MODES.length]; put(MODE, m[0]); compute(); if (typeof window.minestToast === 'function') window.minestToast(m[1] + ' ' + m[2]); return m[0]; },
+    modes: MODES, icon: icon, refresh: refresh
+  };
+})();
 </script>
 </body>
 </html>

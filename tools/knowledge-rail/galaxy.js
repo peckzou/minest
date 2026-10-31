@@ -1617,7 +1617,7 @@
       var pl = curPlanet();
       st.yaw = Math.atan2(-(pl.pos.x - st.shipPos.x), -(pl.pos.z - st.shipPos.z));
       st.pitch = 0;
-      setPhase('hyperspace');
+      setPhase('hyperspace'); if (window.MinestSfx) MinestSfx.play('jump');
       S.toast('⚡ Hyperdrive Engaged · Jumping to ' + pl.title);
     }
 
@@ -1636,7 +1636,7 @@
       setPhase('approach');
     }
 
-    function landOnPlanet() {
+    function landOnPlanet() { if (window.MinestSfx) MinestSfx.play("whoosh");
       if (RD.open) RD.back(true);
       if (st.phase === 'cockpit') { onPlanetClicked(st.pi); return; }   // the planet passing by
       if (st.phase === 'surface') {
@@ -1866,7 +1866,7 @@
       // ease off while a planet is close so it can be read and tapped
       var curN = planetNodes[st.routeCur], relC = curN ? curN.homePos.z - st.shipPos.z : -999;
       var slow = relC > -95 && relC < 30 ? 0.35 + 0.65 * clamp((-relC - 20) / 75, 0, 1) : 1;
-      if (st.cruise) st.shipPos.z -= ROUTE_SPEED * slow * dt;
+      if (st.cruise) st.shipPos.z -= ROUTE_SPEED * slow * dt; if (shipSnd) shipSnd.set(st.cruise ? .25 + .5 * slow : .08);
       st.yaw = lerp(st.yaw, 0, 1 - Math.exp(-dt * 0.5));
       st.pitch = lerp(st.pitch, -0.02, 1 - Math.exp(-dt * 0.5));
       st.shipPos.x = lerp(st.shipPos.x, 0, 1 - Math.exp(-dt * 0.5));
@@ -2173,7 +2173,8 @@
     S.start();
     S.toast('🚀 Explorer cockpit ready · flying toward ' + curPlanet().title);
 
-    this.close = function () { persist(); S.close(); if (CUR === self) CUR = null; };
+    var shipSnd = window.MinestSfx ? MinestSfx.loop('ship') : null;   // the freighter's engines (sfx.js)
+    this.close = function () { if (shipSnd) shipSnd.stop(); persist(); S.close(); if (CUR === self) CUR = null; };
     this.state = function () {
       var pl = curPlanet(), B = curBiome();
       var lm = st.focusIdx >= 0 ? landmarkList[st.focusIdx] : null;

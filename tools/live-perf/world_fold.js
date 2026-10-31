@@ -377,7 +377,8 @@
     // The walk view's own joystick / pad stay in place (hidden); a stand-in set lives at the top of the page in the middle
     // of the lower screen and replays every touch onto the originals (mapped onto the original stick), so walking works
     // exactly as before and nothing can stack above it.
-    setInterval(function () { var ov = document.querySelector('.mn-dsp .mn-walk'), w = !!ov && R.classList.contains('wf-fold'); if (w !== R.classList.contains('wf-walk')) R.classList.toggle('wf-walk', w); walkPad(w ? ov : null); }, 300);
+    setInterval(function () { var wo = !!(el && el.isConnected); if (wo !== R.classList.contains('mn-world')) R.classList.toggle('mn-world', wo);   // Octo steps aside while My World is open
+      var ov = document.querySelector('.mn-dsp .mn-walk'), w = !!ov && R.classList.contains('wf-fold'); if (w !== R.classList.contains('wf-walk')) R.classList.toggle('wf-walk', w); walkPad(w ? ov : null); }, 300);
     function walkPad(ov) {
       if (!ov) { if (W.wp) { W.wp.remove(); W.wp = null; } return; }
       if (W.wp && W.wp._ov === ov) return; if (W.wp) W.wp.remove();
@@ -1034,7 +1035,7 @@
         o.addEventListener('click', function (e) { var g = e.target.closest('button'); if (!g) return; e.preventDefault(); e.stopPropagation(); if (g.hasAttribute('data-wfconfirm')) sConfirm(); else sCancel(); }); }
       var sc = (pv && pv.el) || (el && el.querySelector('.mn-dsp-stage')); if (!sc) return; var r = sc.getBoundingClientRect(), x = r.left + r.width / 2, y = r.bottom - 64;
       var f = S.focus && !pv && level() !== 2 && pieceOf(S.focus), scn = el && el.querySelector('.mn-dsp-scene');
-      if (f && scn) { var rs = scn.getBoundingClientRect(), ft = foot(f), c2 = P((ft.x0 + ft.x1) / 2, (ft.y0 + ft.y1) / 2, 0); x = clamp(rs.left + V.cam.x + c2[0] * V.cam.z, r.left + 90, r.right - 90); y = clamp(rs.top + V.cam.y + c2[1] * V.cam.z + 18, r.top + 70, r.bottom - 60); }
+      if (f && scn) { var rs = scn.parentNode.getBoundingClientRect(), ft = foot(f), c2 = P((ft.x0 + ft.x1) / 2, (ft.y0 + ft.y1) / 2, 0); x = clamp(rs.left + V.cam.x + c2[0] * V.cam.z, r.left + 90, r.right - 90); y = clamp(rs.top + V.cam.y + c2[1] * V.cam.z + 18, r.top + 70, r.bottom - 60); }
       o.style.left = Math.round(x) + 'px'; o.style.top = Math.round(y) + 'px';
     }
 

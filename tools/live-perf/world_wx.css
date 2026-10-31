@@ -1,0 +1,22 @@
+/* Minest Weather on the island (2D): a tint for the time of day and the clouds, rain and snow falling, a lightning flash.
+   Pure overlays (pointer-events: none) — the island SVG itself is never restyled. */
+html body .mn-dsp-stage > .mn-wx { position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden; }
+html body .mn-wx > i { position:absolute;inset:0;display:block;opacity:0;transition:opacity 1.2s; }
+html body .mn-wx > .t { transition:opacity 2s, background 2s; }
+html body .mn-wx.ph-dawn > .t { opacity:1;background:linear-gradient(180deg,rgba(255,160,120,.22),rgba(255,210,170,.08)); }
+html body .mn-wx.ph-dusk > .t { opacity:1;background:linear-gradient(180deg,rgba(255,110,40,.26),rgba(150,50,110,.2)); }
+html body .mn-wx.ph-night > .t { opacity:1;background:linear-gradient(180deg,rgba(6,12,44,.62),rgba(10,18,52,.48)); }
+html body .mn-wx.ph-day.c-cloudy > .t, html body .mn-wx.ph-day.c-fog > .t { opacity:1;background:rgba(110,120,130,.2); }
+html body .mn-wx.ph-day.c-rain > .t, html body .mn-wx.ph-day.c-storm > .t, html body .mn-wx.ph-day.c-snow > .t { opacity:1;background:rgba(70,80,95,.3); }
+html body .mn-wx.c-fog > .t { background:rgba(220,225,230,.42) !important;opacity:1; }
+html body .mn-wx > .r, html body .mn-wx > .s { inset:-100% 0 0 0;height:200%;will-change:transform; }
+html body .mn-wx.c-rain > .r, html body .mn-wx.c-storm > .r { opacity:.55;background:repeating-linear-gradient(104deg,transparent 0 13px,rgba(200,220,255,.55) 13px 14px,transparent 14px 31px),repeating-linear-gradient(98deg,transparent 0 22px,rgba(200,220,255,.35) 22px 23px,transparent 23px 47px);background-size:100% 120px;animation:mnwxRain .55s linear infinite; }
+html body .mn-wx.heavy > .r { opacity:.8;animation-duration:.38s; }
+html body .mn-wx.c-snow > .s { opacity:.9;background-image:radial-gradient(circle,#fff 0 1.6px,transparent 2.2px),radial-gradient(circle,rgba(255,255,255,.8) 0 1.1px,transparent 1.6px);background-size:44px 44px,29px 31px;background-position:0 0,13px 17px;animation:mnwxSnow 7s linear infinite; }
+html body .mn-wx.windy > .s { animation-name:mnwxSnowW; }
+html body .mn-wx > .f { background:#fff;opacity:0;transition:none; }
+@keyframes mnwxRain { from { transform:translate3d(0,0,0); } to { transform:translate3d(-26px,120px,0); } }
+@keyframes mnwxSnow { from { transform:translate3d(0,0,0); } to { transform:translate3d(14px,50%,0); } }
+@keyframes mnwxSnowW { from { transform:translate3d(0,0,0); } to { transform:translate3d(90px,50%,0); } }
+html body .mn-dsp-stage > .mn-wx-chip { position:absolute;left:10px;bottom:10px;z-index:4;padding:6px 10px;border:2px solid rgba(255,255,255,.55);background:rgba(20,26,40,.62);color:#fff;font:800 12px/1 ui-monospace,monospace;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+@media (prefers-reduced-motion: reduce) { html body .mn-wx > .r, html body .mn-wx > .s { animation:none; } }

@@ -255,9 +255,9 @@
       st.view = 'lift'; lift.hidden = false; lift.classList.remove('open'); $('.ks-liftdisp .ks-arrow').textContent = dir > 0 ? '▲' : '▼'; $('.ks-panel .ks-arrow').textContent = dir > 0 ? '▲' : '▼';
       $('.ks-liftdisp b').textContent = label(floors[from]); $('.ks-liftdisp small').textContent = floors[i].name; hap();
       requestAnimationFrame(function () { lift.classList.add('shut'); });
-      var cur = from, timer = null, done = false;
+      var cur = from, timer = null, done = false, hum = window.MinestSfx ? MinestSfx.loop('hum') : null; if (hum) hum.set(.7);   // the lift hums, then dings (sfx.js)
       function finish() {
-        if (done) return; done = true; clearInterval(timer); st.floor = i; $('.ks-liftdisp b').textContent = label(floors[i]); $('.ks-panel .ks-arrow').textContent = '';
+        if (done) return; done = true; clearInterval(timer); if (hum) { hum.stop(); MinestSfx.play('ding'); } st.floor = i; $('.ks-liftdisp b').textContent = label(floors[i]); $('.ks-panel .ks-arrow').textContent = '';
         var pose = floorPose(i); camPos.copy(pose.p); camTgt.copy(pose.t); st.tw = null; st.view = 'floor'; st.lookYaw = st.lookPitch = 0; lodPass(); hud();
         lift.classList.add('open'); lift.classList.remove('shut'); setTimeout(function () { lift.hidden = true; lift.classList.remove('open'); }, 520); lift.onclick = null;
       }

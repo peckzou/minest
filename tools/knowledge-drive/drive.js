@@ -9,6 +9,7 @@
   if (window.MinestDrive && window.MinestDrive.version) return;
   var VERSION = '1.0-proto.1', STORE = 'minest.drive.v1';
   var LEAD = 70, SP = 46, TAIL = 70, LANE = 1.9, ROAD_W = 4, BB_LAT = 9.5, VIEW = 340, BEHIND = 40, CHUNK = 50, NEAR_LOD = 125;
+  var SFX = window.MinestSfx || null;   // sfx.js loads first
   var SPEEDS = [[7, '🐢', 'Slow'], [11, '🚗', 'Cruise'], [16, '🚀', 'Fast']];
   var PAL = ['#3d8bfd', '#22b07d', '#f08c2e', '#a46bf0', '#e8505b', '#14a3b8', '#d9a51c', '#5c7cfa'];
 
@@ -271,7 +272,7 @@
     var root = document.createElement('div'); root.className = 'kd-root'; root.setAttribute('role', 'application'); root.setAttribute('aria-label', 'Knowledge Drive');
     root.innerHTML =
       '<canvas class="kd-gl"></canvas>' +
-      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><span class="kd-tr"><button type="button" class="kd-btn kd-view" data-kd="view" aria-label="Camera view" title="Cockpit / chase view">🎥</button><button type="button" class="kd-btn kd-car" data-kd="garage" aria-label="Garage" title="Change car">🚘</button><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></span></div>' +
+      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><span class="kd-tr"><button type="button" class="kd-btn kd-snd" data-kd="sound" aria-label="Sound" title="Sound on / off">' + (SFX && SFX.muted() ? '🔇' : '🔊') + '</button><button type="button" class="kd-btn kd-view" data-kd="view" aria-label="Camera view" title="Cockpit / chase view">🎥</button><button type="button" class="kd-btn kd-car" data-kd="garage" aria-label="Garage" title="Change car">🚘</button><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></span></div>' +
       '<div class="kd-intro" hidden><div class="kd-fade"></div><div class="kd-cap"><b></b><small>Tap to skip</small></div><button type="button" class="kd-ign" tabindex="-1"><span>ENGINE</span><b>START</b><span>STOP</span></button><div class="kd-keyset"><div class="kd-dock"></div><div class="kd-fob"><i></i><b>LUCE</b></div></div></div>' +
       '<div class="kd-garage" hidden><div class="kd-gcard"><div class="kd-ghead"><b>🚘 Garage</b><button type="button" class="kd-btn" data-kd="garage">✕</button></div><div class="kd-glist"></div></div></div>' +
       '<div class="kd-toast" aria-live="polite"></div>' +
@@ -639,7 +640,7 @@
     function choose(seg, choice) {
       if (seg.opts[choice] == null || seg.choice === choice) return;
       if (car.seg === seg && car.s > seg.len - 10) return toast('Too late to turn here');
-      seg.choice = choice; markRoute(seg);
+      seg.choice = choice; markRoute(seg); if (SFX && choice !== 'straight') SFX.indicator(3);
       var nx = nextSeg(seg); if (nx) { var after = segs.slice(segs.indexOf(nx)); after.forEach(disposeSeg); }
       ensureAhead(); hap();
       toast((choice === 'left' ? '← ' : choice === 'right' ? '→ ' : '↑ ') + 'Next: ' + PL.roads[seg.opts[choice]].name);
@@ -766,6 +767,7 @@
     function act(k) {
       if (k === 'exit') return self.close();
       if (k === 'garage') return garage();
+      if (k === 'sound' && SFX) { var mu = !SFX.muted(); SFX.mute(mu); $('.kd-snd').textContent = mu ? '🔇' : '🔊'; toast(mu ? '🔇 Sound off' : '🔊 Sound on'); hap(); return; }
       if (k === 'view') { st.view = st.view === 'chase' ? 'cockpit' : 'chase'; try { localStorage.setItem('minest.drive.view', st.view); } catch (x) {} root.classList.toggle('chase', st.view === 'chase'); toast(st.view === 'chase' ? '🎥 Chase view' : '🪟 Cockpit view'); hap(); return; }
       if (k === 'juncx') { st.jPin = false; car.seg.picked = true; $('.kd-junc').hidden = true; st.jOpen = false; return; }
       if (k.indexOf('turn-') === 0) return pickTurn(k.slice(5));
@@ -797,6 +799,8 @@
       if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); st.speed = clamp(st.speed + (k === 'ArrowUp' ? 1 : -1), 0, SPEEDS.length - 1); speedLabel(); return; }
       if (m) { e.preventDefault(); act(m); }
     }
+    function onKeyUpH(e) { if ((e.key === 'h' || e.key === 'H') && SFX) SFX.play('horn'); }
+    window.addEventListener('keydown', onKeyUpH);
     function onKeyUp(e) { if (e.key === 'b' || e.key === 'B') brake(false); if (e.key === 'g' || e.key === 'G') gas(false); }
     window.addEventListener('keydown', onKey); window.addEventListener('keyup', onKeyUp);
     // 🛑 brake pedal: hold to slow down and stop; let go and the car drives on (if it was driving)
@@ -853,13 +857,13 @@
     function startIntro() {
       if (exteriorG) { scene.remove(exteriorG); exteriorG = null; }
       exteriorG = CARS.exterior(T, carNow, R); scene.add(exteriorG);
-      st.intro = { t: 0, wasPlaying: st.intro ? st.intro.wasPlaying : st.playing, ign: false };
+      st.intro = { t: 0, wasPlaying: st.intro ? st.intro.wasPlaying : st.playing, ign: false }; if (st.eng) { st.eng.stop(.4); st.eng = null; }
       st.playing = false; st.v = 0; inst.on = 0; inst.sweep = 0; inst.boot = 0; instruments(true);
       var ov = $('.kd-intro'); ov.hidden = false; ov.className = 'kd-intro'; $('.kd-cap b').textContent = carNow.name;
       root.classList.add('intro');
     }
     function endIntro() {
-      if (!st.intro) return; var was = st.intro.wasPlaying; st.intro = null;
+      if (!st.intro) return; var was = st.intro.wasPlaying; st.intro = null; if (!st.eng && SFX) st.eng = SFX.engine(carNow.id);
       if (exteriorG) { scene.remove(exteriorG); exteriorG.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); exteriorG = null; }
       inst.on = 1; inst.sweep = null; inst.boot = 0; ambient.material.opacity = .85; instruments(true);
       $('.kd-intro').hidden = true; root.classList.remove('intro', 'incab');
@@ -881,15 +885,15 @@
         var k2 = ease(clamp((t - 2.4) / .7, 0, 1));
         var door = IC.clone().addScaledVector(F.l, 1.9).addScaledVector(F.t, -.4); door.y = 1.25;
         cam.position.copy(door).lerp(eye, k2); look.copy(IC).lerp(eye.clone().addScaledVector(F.t, 20), k2); look.y = lerp(.8, 1.05, k2); cam.lookAt(look);
-        ov.classList.toggle('dark', t > 2.75);
+        ov.classList.toggle('dark', t > 2.75); if (t > 2.95 && !I.door) { I.door = true; if (SFX) SFX.play('door'); }
       } else {
         if (exteriorG.visible) exteriorG.visible = false;
         root.classList.add('incab'); ov.classList.toggle('dark', t < 3.35);
         cam.position.copy(eye); look.copy(eye).addScaledVector(F.t, 20); look.y = 1.05; cam.lookAt(look);
         // a car with a key (the Luce): the glass key appears, drops into its dock on the console, clicks, the car wakes
         var KD = carNow.key ? 1.2 : 0;
-        if (KD) { ov.classList.add('key'); ov.classList.toggle('keyshow', t > 3.3); if (t > 3.95 && !I.keyIn) { I.keyIn = true; ov.classList.add('keyin'); } if (t > 4.45 && !I.click) { I.click = true; ov.classList.add('keylit'); hap(); } }
-        if (t > 3.5 + KD && !I.ign) { I.ign = true; if (!KD) ov.classList.add('ign'); hap(); }
+        if (KD) { ov.classList.add('key'); ov.classList.toggle('keyshow', t > 3.3); if (t > 3.95 && !I.keyIn) { I.keyIn = true; ov.classList.add('keyin'); if (SFX) SFX.play('click'); } if (t > 4.45 && !I.click) { I.click = true; ov.classList.add('keylit'); hap(); } }
+        if (t > 3.5 + KD && !I.ign) { I.ign = true; if (!KD) ov.classList.add('ign'); hap(); if (SFX) { if (st.eng) st.eng.stop(); st.eng = SFX.ignite(carNow.id); } }   // the starter turns, the engine catches (or the electric car powers up)
         if (t > 3.6 + KD) {   // ignition: lights up, needles sweep to the stop and back, screen boots, ambient fades in
           var s2 = clamp((t - 3.6 - KD) / 1.5, 0, 1); inst.on = Math.min(1, s2 * 3); inst.sweep = Math.sin(s2 * Math.PI); inst.boot = s2;
           ambient.material.opacity = .85 * s2; instruments(true);
@@ -915,6 +919,7 @@
         var dj = car.seg.len - car.s; if (!st.gas && !car.seg.picked && dj < 45 && dj > 4) target = Math.min(target, 5);   // ease off before an unchosen junction
         st.v = lerp(st.v, target, 1 - Math.exp(-dt * (target > st.v ? (st.gas ? 1.3 : .9) : st.braking ? 3.2 : st.playing || st.gas ? 2.4 : .35))); if (st.v < .05 && !target) st.v = 0;
         car.s += st.v * dt;
+        if (st.eng) st.eng.set(st.v / SPEEDS[SPEEDS.length - 1][0], st.gas, st.braking);   // the engine follows the speed and the pedals
         while (car.s > car.seg.len) { var nx = nextSeg(car.seg); if (!nx) { ensureAhead(); nx = nextSeg(car.seg); } if (!nx) { car.s = car.seg.len; break; } car.s -= car.seg.len; var was = PL.roads[car.seg.road].region; car.seg = nx; toast((PL.roads[nx.road].region !== was ? '🗺 ' + PL.roads[nx.road].region + ' · ' : '🛣 ') + PL.roads[nx.road].name); }
       }
       ensureAhead();
@@ -992,13 +997,13 @@
     frame(car.seg, car.s, F); look.copy(F.p).addScaledVector(F.t, 20); look.y = 1.05;
     resize(); ensureAhead(); manageChunks(gNow()); manageBoards(gNow()); hud(true);
     setCockpitCar(CARS.byId(carId)); ambient.material.opacity = .85;
-    if (opts.intro !== false) startIntro();
+    if (opts.intro !== false) startIntro(); else if (SFX) st.eng = SFX.engine(carNow.id);
     if (startS > 5) toast('Resuming · ' + PL.roads[startRoad].name); else toast('🛣 ' + PL.roads[startRoad].name);
     schedule();
 
     this.close = function () {
-      if (!alive) return; persist(); alive = false; if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('minest:hinge', resize); mo.disconnect(); document.removeEventListener('visibilitychange', onVis); if (ro) ro.disconnect();
+      if (!alive) return; persist(); alive = false; if (raf) cancelAnimationFrame(raf); if (st.eng) { st.eng.stop(.3); st.eng = null; }
+      window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp); window.removeEventListener('keydown', onKeyUpH); window.removeEventListener('minest:hinge', resize); mo.disconnect(); document.removeEventListener('visibilitychange', onVis); if (ro) ro.disconnect();
       segs.slice().forEach(disposeSeg); texCache.forEach(function (t) { t.dispose(); }); texCache.clear();
       R.dispose(); root.remove(); if (CUR === self) CUR = null; if (opts.onExit) try { opts.onExit(); } catch (e) {}
     };

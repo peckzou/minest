@@ -129,7 +129,7 @@
       $('.km-th').innerHTML = th.icon + ' <span>' + th.name + '</span>'; $('.km-th').title = 'Suggest a station style';
     }
     // ---------------- flow: wait → arriving → doors open → (board) → ride → next station
-    function setPhase(p) { st.phase = p; st.t = 0; var b = $('.km-board'); b.disabled = false; b.innerHTML = p === 'doors' ? '🚇 <span>Board</span>' : p === 'wait' ? '🚆 <span>Call train</span>' : '⏳ <span>' + (p === 'arriving' ? 'Arriving' : 'Departing') + '</span>'; }
+    function setPhase(p) { st.phase = p; st.t = 0; var SX = window.MinestSfx; if (SX) SX.play({ arriving: 'whoosh', doorsopening: 'chime', closing: 'chime', departing: 'whoosh' }[p] || ''); var b = $('.km-board'); b.disabled = false; b.innerHTML = p === 'doors' ? '🚇 <span>Board</span>' : p === 'wait' ? '🚆 <span>Call train</span>' : '⏳ <span>' + (p === 'arriving' ? 'Arriving' : 'Departing') + '</span>'; }
     function arrive() { if (st.phase !== 'wait') return; unfocus(); setPhase('arriving'); setScreen('ARRIVING'); st.trainX = -95; }
     function board(target) {   // ride to target {li, si} (default: next station on this line)
       if (st.busy) return; unfocus();

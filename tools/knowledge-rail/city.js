@@ -1925,7 +1925,7 @@
       var dyaw = ((tgt.yaw - cur.yaw + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
       cur.yaw += dyaw * a;
 
-      var bob = st.run && st.shop < 0 && !RD.open ? Math.sin(now / 165) * 0.022 : 0;
+      var bob = st.run && st.shop < 0 && !RD.open ? Math.sin(now / 165) * 0.022 : 0; if (stepSnd) stepSnd.set(bob ? .55 : 0);
       cam.position.set(cur.x, cur.y + bob, cur.z);
       lookV.set(
         cur.x - Math.sin(cur.yaw) * Math.cos(cur.pitch),
@@ -1999,7 +1999,8 @@
     S.start();
     S.toast('🗽 Metropolis Avenue · Stroll past bespoke flagship storefronts & 3D vitrines');
 
-    this.close = function () { S.close(); };
+    var stepSnd = window.MinestSfx ? MinestSfx.loop('steps') : null;   // footsteps while strolling (sfx.js)
+    this.close = function () { if (stepSnd) stepSnd.stop(); S.close(); };
     this.setNight = toggleNight;
     this.focusShop = focusShop;
     this.pullItem = pullItem;

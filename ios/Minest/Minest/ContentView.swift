@@ -101,8 +101,9 @@ struct ContentView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        // follows the system's Light / Dark appearance (was fixed to dark)
         .onAppear {
+            NativeNotificationManager.shared.requestAuthorization()   // ask once at launch, so reminders and alerts can arrive
             startCommandPolling()
             setupPowerMonitoring()
             NativeMotionManager.shared.startUpdates()
