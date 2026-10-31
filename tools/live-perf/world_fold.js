@@ -267,17 +267,41 @@
         var menu = [['new', '＋', D.menu[0]], ['gallery', '🖼', D.menu[1]], ['group', '🧩', D.menu[2]], ['smart', '✨', D.smart], ['more', '⋯', 'More tools ▾']];
         c.classList.add('wf3');   // 53.89 · tools down both sides, the console and a gallery in the middle
         c.innerHTML = head + '<div class="wf-main">' +
-          '<nav class="wf-acts" aria-label="Actions">' + acts.map(function (a) { var on = a[0] === pn || (a[0] === 'confirm' && S && S.i >= 0); return '<button type="button" data-wfact="' + a[0] + '"' + (on ? ' class="on"' : '') + (a[0] === 'confirm' && !(S && S.i >= 0) ? ' disabled' : '') + '><i>' + a[1] + '</i><span>' + esc(a[2]) + '</span></button>'; }).join('') + '</nav>' +
+          // left column: the five steps fold into one button (it pops the others), then the hands-on build tools
+          '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>🛠</i><span>Tools ▾</span></button></nav>' +
           '<div class="wf-center">' +
           (lv === 4 ? '<div class="wf-seg" role="tablist" aria-label="Which tools"><button type="button" data-wfset="roomd"' + (sk === 'roomd' ? ' class="on"' : '') + '>🛋 Room tools · 建房</button><button type="button" data-wfset="disp"' + (sk === 'disp' ? ' class="on"' : '') + '>🗄 Display tools · 陈列</button></div>' : '') +
           (S ? pendHtml(S) : '') +
           '<div class="wf-body">' + panelHtml(lv, sk, pn) + '</div>' + (pn === 'smart' ? '<section class="wf-gal"><h4>🖼 ' + esc(D.menu[1]) + '</h4>' + D.gallery() + '</section>' : '') + '<p class="wf-hint">' + esc(HINT[lv]) + '</p></div>' +
           '<nav class="wf-menu" aria-label="' + esc(D.name) + '">' + menu.map(function (a) { return '<button type="button" data-wfpanel="' + a[0] + '"' + (a[0] === pn ? ' class="on"' : '') + '><i>' + a[1] + '</i><span>' + esc(String(a[2]).replace(/ ▾$/, '')) + '</span></button>'; }).join('') + '</nav></div>';
         emoji(c);
+        if (W.pop) popOpen(c, acts, pn, S);
       }
       var nav = c.querySelector('.wf-crumbs'); if (nav) nav.scrollLeft = nav.scrollWidth;   // where you are stays in sight
       clearTimeout(W.fill); W.fill = setTimeout(libFill, 400);
       placePanels(); okChip(); backBtn();
+    }
+    // ---- hands-on build tools: each presses the island HUD's own button, so they behave exactly as before
+    var HUD_MAIN = [['fpv', '🚶', 'Walk in', '[data-fpv]'], ['expand', '⛰', 'More land', '[data-expand]'], ['undo', '↶', 'Undo', '[data-hudundo]']];
+    var HUD_MORE = [['redo', '↷', 'Redo', '[data-hudredo]'], ['snap', '▦', 'Grid', '[data-hudsnap]'], ['auto', '✦', 'Arrange for me', '[data-auto]'], ['reorg', '🔀', 'Reorganize', '[data-reorg]'],
+      ['arch', '🗺', 'Tile mode', '[data-arch]'], ['box', '🎒', 'Box', '[data-hudsheet="box"]'], ['in', '＋', 'Zoom in', '[data-cam="in"]'], ['out', '−', 'Zoom out', '[data-cam="out"]'],
+      ['left', '⟲', 'Turn left', '[data-cam="left"]'], ['right', '⟳', 'Turn right', '[data-cam="right"]'], ['fit', '⤢', 'See it all', '[data-cam="fit"]']];
+    function hudEl(sel) { return document.querySelector('.mn-dsp ' + sel) || document.querySelector(sel); }
+    function hudBtn(t) {   // mirrors the HUD button's state: ⛰ while adding land reads ✓ Done
+      var h = hudEl(t[3]), on = !!(h && h.classList.contains('on')), lab = on && t[0] === 'expand' ? '✓ Done' : t[2];
+      return '<button type="button" data-wfhud="' + esc(t[3]) + '"' + (on ? ' class="on"' : '') + (h ? '' : ' disabled') + '><i>' + t[1] + '</i><span>' + esc(lab) + '</span></button>';
+    }
+    function stepBtn(acts, pn, S) {
+      var cur = S && S.i >= 0 ? acts[3] : acts.filter(function (a) { return a[0] === pn; })[0] || acts[0];
+      return '<button type="button" class="wf-popb wf-step on' + (W.pop === 'steps' ? ' open' : '') + '" data-wfpop="steps" aria-expanded="' + (W.pop === 'steps') + '"><i>' + cur[1] + '</i><span>' + esc(cur[2]) + ' ▾</span></button>';
+    }
+    function popOpen(c, acts, pn, S) {   // the pop-out beside the left column
+      var html = W.pop === 'steps'
+        ? acts.map(function (a) { var on = a[0] === pn || (a[0] === 'confirm' && S && S.i >= 0); return '<button type="button" data-wfact="' + a[0] + '"' + (on ? ' class="on"' : '') + (a[0] === 'confirm' && !(S && S.i >= 0) ? ' disabled' : '') + '><i>' + a[1] + '</i><span>' + esc(a[2]) + '</span></button>'; }).join('')
+        : HUD_MORE.map(hudBtn).join('');
+      var pop = document.createElement('div'); pop.className = 'wf-pop ' + W.pop; pop.setAttribute('role', 'menu'); pop.innerHTML = html;
+      var main = c.querySelector('.wf-main'); main.appendChild(pop);
+      var b = c.querySelector('[data-wfpop="' + W.pop + '"]'); if (b) pop.style.top = Math.max(0, Math.min(b.offsetTop - 4, main.clientHeight - pop.offsetHeight)) + 'px';   // beside its button, never off the screen
     }
     function emoji(c) {   // the console reads by pictures: a leading emoji in a card or chip becomes its big icon
       var RE = /^\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[✦✧✓✎＋⋯▦◩▤🀄])(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*/u;
@@ -390,6 +414,9 @@
       if (g.hasAttribute('data-wfx')) { setPref(false); return sync(); }
       if ((v = g.getAttribute('data-wfgo'))) return goTo(+v);
       // the unified tools
+      if ((v = g.getAttribute('data-wfpop'))) { W.pop = W.pop === v ? null : v; return draw(); }
+      if ((v = g.getAttribute('data-wfhud'))) { W.pop = null; var hb = hudEl(v); if (hb) hb.click(); setTimeout(draw, 60); return; }
+      if (W.pop && g.closest('.wf-pop')) W.pop = null;
       if ((v = g.getAttribute('data-wfset'))) { if (W.S) sCancel(true); W.set4 = v; return draw(); }
       if ((v = g.getAttribute('data-wfact'))) {
         if (v === 'confirm') return sConfirm();
