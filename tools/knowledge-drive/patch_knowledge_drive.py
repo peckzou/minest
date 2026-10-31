@@ -19,7 +19,7 @@ def block(s, tag, body):
 RAIL = HERE.parent / 'knowledge-rail'   # Knowledge Train + Knowledge Metro ride along (rail-common.js is generated from drive.js)
 import subprocess, sys; subprocess.run([sys.executable, str(RAIL / 'build_common.py')], check=True)
 css = (HERE / 'drive.css').read_text(encoding='utf-8') + '\n' + (RAIL / 'rail.css').read_text(encoding='utf-8') + '\n' + (RAIL / 'phase3.css').read_text(encoding='utf-8')
-js = '\n'.join((d / f).read_text(encoding='utf-8') for d, f in [(HERE, 'drive.js'), (RAIL, 'rail-common.js'), (RAIL, 'train.js'), (RAIL, 'metro.js'), (RAIL, 'tower.js'), (RAIL, 'showcase-common.js'), (RAIL, 'rack.js'), (RAIL, 'library.js'), (RAIL, 'museum.js'), (RAIL, 'city.js'), (RAIL, 'galaxy.js'), (HERE, 'entry.js')])
+js = '\n'.join((d / f).read_text(encoding='utf-8') for d, f in [(HERE, 'drive.js'), (HERE, 'cars.js'), (RAIL, 'rail-common.js'), (RAIL, 'train.js'), (RAIL, 'metro.js'), (RAIL, 'tower.js'), (RAIL, 'showcase-common.js'), (RAIL, 'rack.js'), (RAIL, 'library.js'), (RAIL, 'museum.js'), (RAIL, 'city.js'), (RAIL, 'galaxy.js'), (HERE, 'entry.js')])
 assert '</script' not in js and '</style' not in css
 for e in ENTRIES:
     p = ROOT / e

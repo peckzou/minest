@@ -24,6 +24,9 @@
     tower: { icon: '🏙', name: 'Knowledge Skyscraper', tag: 'Explore Knowledge Vertically', desc: 'A board becomes a glass tower: ride the elevator, open the cutaway, tap a floor and pull items off the shelves.', store: 'minest.tower.v1', unit: ['list', 'lists'], stop: 'items', noWorkspace: 1,
       api: function () { return window.MinestTower; }, styles: function () { return (window.MinestTower && MinestTower.exteriors || []).map(function (e) { return { id: e.id, name: e.name, icon: '🏢' }; }); }, styleLabel: 'Exterior',
       key: function (src) { return 'tower:' + src.bid; }, resumeOf: function (sv) { return sv && sv.floor ? 'floor ' + (sv.floor + 1) : null; } },
+    roadtrip: { icon: '🛣', name: 'Road Trip', tag: 'Famous drives · six routes', desc: 'Drive your cards down a real road trip — California 1 through Big Sur, the Million Dollar Highway, Monument Valley, Route 66, the Overseas Highway or the Blue Ridge Parkway — in the car you pick in the 🚘 Garage.', store: 'minest.drive.v1', unit: ['road', 'roads'], stop: 'stops',
+      api: function () { return window.MinestDrive && MinestDrive.trips ? window.MinestDrive : null; }, styles: function () { return (window.MinestDrive && MinestDrive.trips) || []; }, styleLabel: 'Route',
+      key: function (src) { return D.plan(src).key; }, resumeOf: function () { return null; } },
     // Dynamic Presentation Phase 2 (showcase-common.js): the same cards as objects you find, pull out and read
     rack: { icon: '🎠', name: 'Rotating Rack', tag: 'Rotate · Select · Pull', desc: 'Up to 12 cards ride a turning display as books, memory orbs and medals. Tap one: it turns to you and slides out; flip it to read.', store: 'minest.rack.v1', unit: ['list', 'lists'], stop: 'items',
       api: function () { return window.MinestRack; }, styles: function () { return (window.MinestRack && MinestRack.shapes || []).map(function (s) { return { id: s[0], name: s[1].replace(/^\S+\s/, ''), icon: s[1].split(' ')[0] }; }); }, styleLabel: 'Rack',
@@ -107,6 +110,7 @@
       else if (mode === 'rack') o.shape = style || undefined;
       else if (mode === 'library') o.atm = style || undefined;
       else if (mode === 'museum') {}
+      else if (mode === 'roadtrip') o.style = style || 'ca1';
       else o.style = style || undefined;
       MO.api().open(o);
     } catch (e) { if (back && U() && U().go) U().go(back); try { window.showToast && showToast(MODES[mode].name + ': ' + e.message); } catch (x) {} }

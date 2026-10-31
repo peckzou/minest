@@ -99,7 +99,20 @@ window.KRail = (function () {
     { id: 'forest', name: 'Forest', icon: '🌲', sky: ['#3f6c7a', '#8fb5a8', '#d7e3c4'], fog: '#a9bfa6', ground: '#4f6b3a', road: '#45474c', shoulder: '#6d6a55', line: '#efe9cf',
       sun: ['#fff2c8', .95, [.3, .6, -.7]], hemi: ['#cfe8d8', '#3b4a2a', .8], sunDisc: '#fff6d8' },
     { id: 'city', name: 'City', icon: '🏙', sky: ['#1d2550', '#5b4d8a', '#f09a7a'], fog: '#9c7f99', ground: '#6d7078', road: '#3b3d44', shoulder: '#a6a7ad', line: '#f6e7b0',
-      sun: ['#ffc9a0', .9, [-.5, .3, -.8]], hemi: ['#a9b2ff', '#4a4250', .8], sunDisc: '#ffd2b0', walk: 1 }
+      sun: ['#ffc9a0', .9, [-.5, .3, -.8]], hemi: ['#a9b2ff', '#4a4250', .8], sunDisc: '#ffd2b0', walk: 1 },
+    // Road Trips: real drives, each with its route shield
+    { id: 'ca1', name: 'California 1 · Big Sur', icon: '🌊', trip: ['CA 1', 'Big Sur · Pacific Coast Hwy', '#1f6f4a'], sky: ['#3a7bd5', '#9fd0f2', '#ffe7c2'], fog: '#d7e6ee', ground: '#b9a35e', road: '#4d5058', shoulder: '#b8ab86', line: '#f3d04a',
+      sun: ['#fff0d0', 1.15, [-.7, .35, -.6]], hemi: ['#d9efff', '#9a8350', .8], sunDisc: '#fff2d6' },
+    { id: 'colorado', name: 'Colorado · Million Dollar Hwy', icon: '🏔', trip: ['US 550', 'San Juan Skyway · Colorado', '#2b4c8c'], sky: ['#2c5fa8', '#8fbbe6', '#e8f1fb'], fog: '#c8d8e8', ground: '#6f7f4c', road: '#46494f', shoulder: '#8b8576', line: '#f3d04a',
+      sun: ['#fff6e2', 1.1, [.4, .6, -.7]], hemi: ['#e2efff', '#4d5a36', .85], sunDisc: '#fffaf0' },
+    { id: 'utah', name: 'Utah · Monument Valley', icon: '🏜', trip: ['US 163', 'Monument Valley · Utah', '#8a3b1e'], sky: ['#2f6fc0', '#8cc4ea', '#f8d9b0'], fog: '#e9c9a4', ground: '#c2643a', road: '#4a4446', shoulder: '#b8714a', line: '#f3d04a',
+      sun: ['#ffe2b8', 1.2, [-.6, .45, -.65]], hemi: ['#ffe9d0', '#8a3b1e', .8], sunDisc: '#ffe9c8' },
+    { id: 'route66', name: 'Route 66 · Arizona', icon: '🌵', trip: ['66', 'Historic Route 66 · Arizona', '#5a3a1a'], sky: ['#3a5fb0', '#e7a46b', '#ffd59a'], fog: '#e9b98a', ground: '#c9a46a', road: '#3f3d41', shoulder: '#b49466', line: '#f3e5b0',
+      sun: ['#ffcc8a', 1.05, [-.8, .22, -.55]], hemi: ['#ffd9b0', '#7a5a34', .8], sunDisc: '#ffd8a0' },
+    { id: 'keys', name: 'Florida Keys · Overseas Hwy', icon: '🏝', trip: ['US 1', 'Overseas Highway · Florida Keys', '#1f6f4a'], sky: ['#1e88d6', '#7fd0f2', '#fff1d0'], fog: '#cdeefa', ground: '#2bb7c2', road: '#55585f', shoulder: '#d8d2bf', line: '#ffffff',
+      sun: ['#fff6e0', 1.2, [.5, .6, -.6]], hemi: ['#e0f7ff', '#2a9aa8', .85], sunDisc: '#fffbe8' },
+    { id: 'blueridge', name: 'Blue Ridge Parkway · Autumn', icon: '🍁', trip: ['BRP', 'Blue Ridge Parkway · Virginia', '#6b4a2b'], sky: ['#4a6fae', '#a9c3e4', '#f5dcc0'], fog: '#b9c8de', ground: '#7a7a3e', road: '#47484c', shoulder: '#8a8263', line: '#f3e5b0',
+      sun: ['#ffe2c0', 1.0, [-.5, .38, -.7]], hemi: ['#dbe6ff', '#5a4a2a', .8], sunDisc: '#ffe9d0' }
   ];
   function styleById(id) { return STYLES.filter(function (s) { return s.id === id; })[0] || STYLES[0]; }
 
@@ -136,6 +149,14 @@ window.KRail = (function () {
       bldg: { mat: bmat, geo: (function () { var b = new G.BoxGeometry(1, 1, 1); b.translate(0, .5, 0); return b; })() },
       pole: { mat: flat, geo: colored([[new G.CylinderGeometry(.09, .12, 6, 5), '#3d4048', M4(0, 3, 0)], [new G.BoxGeometry(1.6, .12, .14), '#3d4048', M4(-.75, 6, 0)]]) },
       lamp: { mat: lampMat, geo: new G.BoxGeometry(.6, .16, .36) },
+      cypress: { mat: flat, geo: colored([[new G.CylinderGeometry(.22, .34, 3, 5), '#5a4030', M4(0, 1.5, 0, 1, 1, 1, 0, .25)], [new G.IcosahedronGeometry(1.6, 0), '#2f5a3a', M4(.9, 3.6, 0, 1.9, .55, 1.3)], [new G.IcosahedronGeometry(1.1, 0), '#386a44', M4(1.9, 3.3, .3, 1.5, .5, 1)]]) },
+      aspen: { mat: flat, geo: colored([[new G.CylinderGeometry(.11, .15, 3.6, 5), '#e8e4da', M4(0, 1.8, 0)], [new G.IcosahedronGeometry(1.1, 0), '#ffffff', M4(0, 4.0, 0, .9, 1.4, .9)]]) },
+      peak: { mat: flat, geo: colored([[new G.ConeGeometry(1, 1, 6), '#6c7280', M4(0, .5, 0)], [new G.ConeGeometry(.36, .36, 6), '#f4f6f8', M4(0, .82, 0)]]) },
+      butte: { mat: flat, geo: colored([[new G.CylinderGeometry(.62, 1, .22, 7), '#a8532c', M4(0, .11, 0)], [new G.CylinderGeometry(.5, .56, .78, 7), '#b55e33', M4(0, .61, 0)], [new G.CylinderGeometry(.5, .5, .04, 7), '#c9784a', M4(0, 1.01, 0)]]) },
+      cactus: { mat: flat, geo: colored([[new G.CylinderGeometry(.22, .26, 4, 6), '#4f7a3c', M4(0, 2, 0)], [new G.CylinderGeometry(.15, .15, 1.4, 6), '#4f7a3c', M4(.55, 2.3, 0)], [new G.CylinderGeometry(.14, .14, .6, 6), '#4f7a3c', M4(.32, 1.7, 0, 1, 1, 1, 0, 1.57)], [new G.CylinderGeometry(.14, .14, 1.1, 6), '#4f7a3c', M4(-.5, 2.8, 0)], [new G.CylinderGeometry(.13, .13, .5, 6), '#4f7a3c', M4(-.3, 2.3, 0, 1, 1, 1, 0, 1.57)]]) },
+      tpole: { mat: flat, geo: colored([[new G.CylinderGeometry(.1, .13, 7, 5), '#5a4632', M4(0, 3.5, 0)], [new G.BoxGeometry(1.8, .12, .12), '#5a4632', M4(0, 6.6, 0)]]) },
+      roadsign: { mat: flat, geo: colored([[new G.CylinderGeometry(.12, .12, 5, 5), '#4a4a4a', M4(-1.4, 2.5, 0)], [new G.CylinderGeometry(.12, .12, 5, 5), '#4a4a4a', M4(1.4, 2.5, 0)], [new G.BoxGeometry(3.6, 2, .2), '#c8102e', M4(0, 5.6, 0)], [new G.BoxGeometry(3.2, .5, .22), '#f5d142', M4(0, 5.2, 0)], [new G.BoxGeometry(3.2, .3, .22), '#ffffff', M4(0, 6.1, 0)]]) },
+      sand: { mat: flat, geo: colored([[new G.CylinderGeometry(1, 1.1, .3, 9), '#efe2b8', M4(0, .1, 0)]]) },
       cloud: { mat: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .55, fog: false }), geo: colored([[new G.IcosahedronGeometry(1, 0), '#fff', M4(0, 0, 0, 1.6, .55, .9)], [new G.IcosahedronGeometry(.8, 0), '#fff', M4(1.3, .1, 0, 1.2, .5, .8)], [new G.IcosahedronGeometry(.7, 0), '#fff', M4(-1.3, -.05, .2, 1.1, .45, .8)]]) }
     };
     return KIT;

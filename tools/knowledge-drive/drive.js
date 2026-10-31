@@ -105,7 +105,20 @@
     { id: 'forest', name: 'Forest', icon: '🌲', sky: ['#3f6c7a', '#8fb5a8', '#d7e3c4'], fog: '#a9bfa6', ground: '#4f6b3a', road: '#45474c', shoulder: '#6d6a55', line: '#efe9cf',
       sun: ['#fff2c8', .95, [.3, .6, -.7]], hemi: ['#cfe8d8', '#3b4a2a', .8], sunDisc: '#fff6d8' },
     { id: 'city', name: 'City', icon: '🏙', sky: ['#1d2550', '#5b4d8a', '#f09a7a'], fog: '#9c7f99', ground: '#6d7078', road: '#3b3d44', shoulder: '#a6a7ad', line: '#f6e7b0',
-      sun: ['#ffc9a0', .9, [-.5, .3, -.8]], hemi: ['#a9b2ff', '#4a4250', .8], sunDisc: '#ffd2b0', walk: 1 }
+      sun: ['#ffc9a0', .9, [-.5, .3, -.8]], hemi: ['#a9b2ff', '#4a4250', .8], sunDisc: '#ffd2b0', walk: 1 },
+    // Road Trips: real drives, each with its route shield
+    { id: 'ca1', name: 'California 1 · Big Sur', icon: '🌊', trip: ['CA 1', 'Big Sur · Pacific Coast Hwy', '#1f6f4a'], sky: ['#3a7bd5', '#9fd0f2', '#ffe7c2'], fog: '#d7e6ee', ground: '#b9a35e', road: '#4d5058', shoulder: '#b8ab86', line: '#f3d04a',
+      sun: ['#fff0d0', 1.15, [-.7, .35, -.6]], hemi: ['#d9efff', '#9a8350', .8], sunDisc: '#fff2d6' },
+    { id: 'colorado', name: 'Colorado · Million Dollar Hwy', icon: '🏔', trip: ['US 550', 'San Juan Skyway · Colorado', '#2b4c8c'], sky: ['#2c5fa8', '#8fbbe6', '#e8f1fb'], fog: '#c8d8e8', ground: '#6f7f4c', road: '#46494f', shoulder: '#8b8576', line: '#f3d04a',
+      sun: ['#fff6e2', 1.1, [.4, .6, -.7]], hemi: ['#e2efff', '#4d5a36', .85], sunDisc: '#fffaf0' },
+    { id: 'utah', name: 'Utah · Monument Valley', icon: '🏜', trip: ['US 163', 'Monument Valley · Utah', '#8a3b1e'], sky: ['#2f6fc0', '#8cc4ea', '#f8d9b0'], fog: '#e9c9a4', ground: '#c2643a', road: '#4a4446', shoulder: '#b8714a', line: '#f3d04a',
+      sun: ['#ffe2b8', 1.2, [-.6, .45, -.65]], hemi: ['#ffe9d0', '#8a3b1e', .8], sunDisc: '#ffe9c8' },
+    { id: 'route66', name: 'Route 66 · Arizona', icon: '🌵', trip: ['66', 'Historic Route 66 · Arizona', '#5a3a1a'], sky: ['#3a5fb0', '#e7a46b', '#ffd59a'], fog: '#e9b98a', ground: '#c9a46a', road: '#3f3d41', shoulder: '#b49466', line: '#f3e5b0',
+      sun: ['#ffcc8a', 1.05, [-.8, .22, -.55]], hemi: ['#ffd9b0', '#7a5a34', .8], sunDisc: '#ffd8a0' },
+    { id: 'keys', name: 'Florida Keys · Overseas Hwy', icon: '🏝', trip: ['US 1', 'Overseas Highway · Florida Keys', '#1f6f4a'], sky: ['#1e88d6', '#7fd0f2', '#fff1d0'], fog: '#cdeefa', ground: '#2bb7c2', road: '#55585f', shoulder: '#d8d2bf', line: '#ffffff',
+      sun: ['#fff6e0', 1.2, [.5, .6, -.6]], hemi: ['#e0f7ff', '#2a9aa8', .85], sunDisc: '#fffbe8' },
+    { id: 'blueridge', name: 'Blue Ridge Parkway · Autumn', icon: '🍁', trip: ['BRP', 'Blue Ridge Parkway · Virginia', '#6b4a2b'], sky: ['#4a6fae', '#a9c3e4', '#f5dcc0'], fog: '#b9c8de', ground: '#7a7a3e', road: '#47484c', shoulder: '#8a8263', line: '#f3e5b0',
+      sun: ['#ffe2c0', 1.0, [-.5, .38, -.7]], hemi: ['#dbe6ff', '#5a4a2a', .8], sunDisc: '#ffe9d0' }
   ];
   function styleById(id) { return STYLES.filter(function (s) { return s.id === id; })[0] || STYLES[0]; }
 
@@ -142,6 +155,14 @@
       bldg: { mat: bmat, geo: (function () { var b = new G.BoxGeometry(1, 1, 1); b.translate(0, .5, 0); return b; })() },
       pole: { mat: flat, geo: colored([[new G.CylinderGeometry(.09, .12, 6, 5), '#3d4048', M4(0, 3, 0)], [new G.BoxGeometry(1.6, .12, .14), '#3d4048', M4(-.75, 6, 0)]]) },
       lamp: { mat: lampMat, geo: new G.BoxGeometry(.6, .16, .36) },
+      cypress: { mat: flat, geo: colored([[new G.CylinderGeometry(.22, .34, 3, 5), '#5a4030', M4(0, 1.5, 0, 1, 1, 1, 0, .25)], [new G.IcosahedronGeometry(1.6, 0), '#2f5a3a', M4(.9, 3.6, 0, 1.9, .55, 1.3)], [new G.IcosahedronGeometry(1.1, 0), '#386a44', M4(1.9, 3.3, .3, 1.5, .5, 1)]]) },
+      aspen: { mat: flat, geo: colored([[new G.CylinderGeometry(.11, .15, 3.6, 5), '#e8e4da', M4(0, 1.8, 0)], [new G.IcosahedronGeometry(1.1, 0), '#ffffff', M4(0, 4.0, 0, .9, 1.4, .9)]]) },
+      peak: { mat: flat, geo: colored([[new G.ConeGeometry(1, 1, 6), '#6c7280', M4(0, .5, 0)], [new G.ConeGeometry(.36, .36, 6), '#f4f6f8', M4(0, .82, 0)]]) },
+      butte: { mat: flat, geo: colored([[new G.CylinderGeometry(.62, 1, .22, 7), '#a8532c', M4(0, .11, 0)], [new G.CylinderGeometry(.5, .56, .78, 7), '#b55e33', M4(0, .61, 0)], [new G.CylinderGeometry(.5, .5, .04, 7), '#c9784a', M4(0, 1.01, 0)]]) },
+      cactus: { mat: flat, geo: colored([[new G.CylinderGeometry(.22, .26, 4, 6), '#4f7a3c', M4(0, 2, 0)], [new G.CylinderGeometry(.15, .15, 1.4, 6), '#4f7a3c', M4(.55, 2.3, 0)], [new G.CylinderGeometry(.14, .14, .6, 6), '#4f7a3c', M4(.32, 1.7, 0, 1, 1, 1, 0, 1.57)], [new G.CylinderGeometry(.14, .14, 1.1, 6), '#4f7a3c', M4(-.5, 2.8, 0)], [new G.CylinderGeometry(.13, .13, .5, 6), '#4f7a3c', M4(-.3, 2.3, 0, 1, 1, 1, 0, 1.57)]]) },
+      tpole: { mat: flat, geo: colored([[new G.CylinderGeometry(.1, .13, 7, 5), '#5a4632', M4(0, 3.5, 0)], [new G.BoxGeometry(1.8, .12, .12), '#5a4632', M4(0, 6.6, 0)]]) },
+      roadsign: { mat: flat, geo: colored([[new G.CylinderGeometry(.12, .12, 5, 5), '#4a4a4a', M4(-1.4, 2.5, 0)], [new G.CylinderGeometry(.12, .12, 5, 5), '#4a4a4a', M4(1.4, 2.5, 0)], [new G.BoxGeometry(3.6, 2, .2), '#c8102e', M4(0, 5.6, 0)], [new G.BoxGeometry(3.2, .5, .22), '#f5d142', M4(0, 5.2, 0)], [new G.BoxGeometry(3.2, .3, .22), '#ffffff', M4(0, 6.1, 0)]]) },
+      sand: { mat: flat, geo: colored([[new G.CylinderGeometry(1, 1.1, .3, 9), '#efe2b8', M4(0, .1, 0)]]) },
       cloud: { mat: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .55, fog: false }), geo: colored([[new G.IcosahedronGeometry(1, 0), '#fff', M4(0, 0, 0, 1.6, .55, .9)], [new G.IcosahedronGeometry(.8, 0), '#fff', M4(1.3, .1, 0, 1.2, .5, .8)], [new G.IcosahedronGeometry(.7, 0), '#fff', M4(-1.3, -.05, .2, 1.1, .45, .8)]]) }
     };
     return KIT;
@@ -242,6 +263,7 @@
     if (!PL.roads.length) throw new Error('Nothing to drive: this source has no cards');
     var saved = load()[PL.key] || {};
     var seed = opts.seed != null ? opts.seed : (saved.seed != null ? saved.seed : hash(PL.key) % 100000);
+    var CARS = window.MinestCars, carId = opts.car || (function () { try { return localStorage.getItem('minest.drive.car'); } catch (e) { return null; } })() || 'luce';
     var st = { style: opts.style || saved.style || 'countryside', styleHist: [], speed: saved.speed != null ? saved.speed : 1, playing: true, v: 0, mode: 'drive', visited: {} };
     var UP = new T.Vector3(0, 1, 0);
 
@@ -249,7 +271,9 @@
     var root = document.createElement('div'); root.className = 'kd-root'; root.setAttribute('role', 'application'); root.setAttribute('aria-label', 'Knowledge Drive');
     root.innerHTML =
       '<canvas class="kd-gl"></canvas>' +
-      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></div>' +
+      '<div class="kd-top"><div class="kd-road"><i class="kd-dot"></i><span><b class="kd-rn"></b><small class="kd-rs"></small></span></div><span class="kd-tr"><button type="button" class="kd-btn kd-car" data-kd="garage" aria-label="Garage" title="Change car">🚘</button><button type="button" class="kd-btn kd-exit" data-kd="exit" aria-label="Exit">✕</button></span></div>' +
+      '<div class="kd-intro" hidden><div class="kd-fade"></div><div class="kd-cap"><b></b><small>Tap to skip</small></div><button type="button" class="kd-ign" tabindex="-1"><span>ENGINE</span><b>START</b><span>STOP</span></button></div>' +
+      '<div class="kd-garage" hidden><div class="kd-gcard"><div class="kd-ghead"><b>🚘 Garage</b><button type="button" class="kd-btn" data-kd="garage">✕</button></div><div class="kd-glist"></div></div></div>' +
       '<div class="kd-toast" aria-live="polite"></div>' +
       '<div class="kd-dash"><div class="kd-wheelgap"></div>' +
         '<div class="kd-ctl"><button type="button" class="kd-btn" data-kd="prev" aria-label="Previous stop">⏮</button><button type="button" class="kd-btn kd-play" data-kd="play" aria-label="Stop">⏸</button><button type="button" class="kd-btn kd-brake" aria-label="Brake (hold)" title="Hold to brake (B)">🛑</button><button type="button" class="kd-btn" data-kd="next" aria-label="Next stop">⏭</button></div>' +
@@ -281,7 +305,41 @@
     var hub = new T.Mesh(new T.CylinderGeometry(.24, .26, .12, 8), trimM); hub.rotation.x = Math.PI / 2; wheel.add(hub);
     var pillL = new T.Mesh(new T.BoxGeometry(1, 1, .02), darkM), pillR = pillL.clone(), roof = new T.Mesh(new T.BoxGeometry(1, 1, .02), darkM);
     cockG.add(dash, lip, hood, wheel, pillL, pillR, roof);
-    var wheelBase = { x: 0, y: 0 }, steer = 0;
+    var wheelBase = { x: 0, y: 0 }, steer = 0, R0c = .1;
+    // the car's instruments: a cluster in the binnacle and a floating centre screen (canvas, redrawn with the speed)
+    var clusterCv = document.createElement('canvas'); clusterCv.width = 512; clusterCv.height = 256;
+    var screenCv = document.createElement('canvas'); screenCv.width = 512; screenCv.height = 320;
+    var clusterTex = new T.CanvasTexture(clusterCv), screenTex = new T.CanvasTexture(screenCv);
+    var cluster = new T.Mesh(new T.PlaneGeometry(1, .5), new T.MeshBasicMaterial({ map: clusterTex, toneMapped: false }));
+    var screen = new T.Mesh(new T.PlaneGeometry(1, .62), new T.MeshBasicMaterial({ map: screenTex, toneMapped: false }));
+    var screenFrame = new T.Mesh(new T.BoxGeometry(1.06, .68, .04), new T.MeshStandardMaterial({ color: '#0d0e10', roughness: .4, metalness: .3 }));
+    var ambient = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0 }));
+    var vent = new T.Mesh(new T.TorusGeometry(1, .22, 8, 24), new T.MeshStandardMaterial({ color: '#9aa0a6', roughness: .3, metalness: .8 }));
+    cockG.add(cluster, screenFrame, screen, ambient, vent);
+    var inst = { on: 1, sweep: null, boot: 0, t: 0 }, carNow = null;
+    function starTex() {
+      var c = document.createElement('canvas'); c.width = 512; c.height = 64; var x = c.getContext('2d'); x.fillStyle = '#07080c'; x.fillRect(0, 0, 512, 64);
+      var r = rng(11); for (var i = 0; i < 260; i++) { x.fillStyle = 'rgba(220,230,255,' + (.3 + r() * .7) + ')'; var sz = r() < .1 ? 2 : 1; x.fillRect(r() * 512, r() * 64, sz, sz); }
+      return new T.CanvasTexture(c);
+    }
+    function setCockpitCar(c) {
+      carNow = c;
+      dashM.color.set(c.wood || c.dash); trimM.color.set(c.trim); darkM.color.set(c.dash);
+      lip.material = new T.MeshStandardMaterial({ color: c.wood ? c.wood : c.leather, roughness: .7, flatShading: true });
+      while (wheel.children.length) wheel.remove(wheel.children[0]);
+      wheel.add(CARS.wheel(T, c));
+      ambient.material.color.set(c.ambient);
+      vent.material.color.set(c.trim);
+      if (c.stars) { roof.material = new T.MeshBasicMaterial({ map: starTex() }); } else roof.material = darkM;
+      screen.visible = screenFrame.visible = c.screen !== 'none' && !narrowNow;
+      instruments(true);
+    }
+    var narrowNow = false;
+    function instruments(force) {
+      if (!carNow) return;
+      CARS.drawCluster(clusterCv, carNow, st.v * 12, inst.sweep, inst.on); clusterTex.needsUpdate = true;
+      if (force || inst.boot || (inst.t += 1) % 8 === 0) { CARS.drawScreen(screenCv, carNow, inst.on, inst.boot > 0 && inst.boot < 1 ? 'boot' : null); screenTex.needsUpdate = true; }
+    }
 
     function layoutCockpit(w, h, fold) {   // fold: the Duo half folded — the lower screen is the dashboard, the 3D keeps only a lip and the wheel
       ccam.aspect = w / h; ccam.updateProjectionMatrix();
@@ -295,10 +353,20 @@
       root.style.setProperty('--kd-wheel', ((wheelBase.x + vw / 2 + R0 * .6) / vw * 100).toFixed(1) + '%');
       var pw = vw * .035; pillL.scale.set(pw, vh * 1.1, 1); pillL.position.set(-vw / 2 + pw * .2, 0, -d + .05); pillL.rotation.z = -.12; pillR.scale.copy(pillL.scale); pillR.position.set(vw / 2 - pw * .2, 0, -d + .05); pillR.rotation.z = .12;
       pillL.visible = pillR.visible = !narrow; roof.scale.set(vw * 1.2, vh * .045, 1); roof.position.set(0, vh / 2 - vh * .012, -d + .05);
+      R0c = R0; narrowNow = narrow;
+      var hoodFront = -d - .1 + R0 * .55;
+      cluster.scale.set(R0 * 1.9, R0 * 1.9, 1); cluster.position.set(wheelBase.x, top + R0 * .5, hoodFront + .004);
+      hood.scale.set(R0 * 1.05, R0 * 1.0, R0 * .55);
+      var sx = Math.min(vw / 2 - R0 * .95, wheelBase.x + R0 * 2.55);
+      screen.scale.set(R0 * 1.35, R0 * 1.35, 1); screen.position.set(sx, top + R0 * .42, -d + .03);
+      screenFrame.scale.copy(screen.scale); screenFrame.position.set(sx, top + R0 * .42, -d + .005);
+      screen.visible = screenFrame.visible = !!carNow && carNow.screen !== 'none' && !narrow;
+      ambient.scale.set(vw * 1.3, .004, .004); ambient.position.set(0, top - .006, -d + .012);
+      vent.scale.setScalar(R0 * .22); vent.position.set(wheelBase.x - R0 * 1.55, top - R0 * .3, -d + .02); vent.visible = !narrow;
     }
 
     // ---------------- style
-    var mats = { road: new T.MeshStandardMaterial({ color: '#4a4d55', roughness: .95, polygonOffset: true, polygonOffsetFactor: -2 }), shoulder: new T.MeshStandardMaterial({ color: '#8c8a7c', roughness: 1, polygonOffset: true, polygonOffsetFactor: -1 }), line: new T.MeshBasicMaterial({ color: '#fff', polygonOffset: true, polygonOffsetFactor: -4 }), water: new T.MeshStandardMaterial({ color: '#2f8fc4', roughness: .3, metalness: .1, flatShading: true }) };
+    var mats = { road: new T.MeshStandardMaterial({ color: '#4a4d55', roughness: .95, polygonOffset: true, polygonOffsetFactor: -2 }), shoulder: new T.MeshStandardMaterial({ color: '#8c8a7c', roughness: 1, polygonOffset: true, polygonOffsetFactor: -1 }), line: new T.MeshBasicMaterial({ color: '#fff', polygonOffset: true, polygonOffsetFactor: -4 }), water: new T.MeshStandardMaterial({ color: '#2f8fc4', roughness: .3, metalness: .1, flatShading: true }), rail: new T.MeshStandardMaterial({ color: '#e8e6df', roughness: .8, side: T.DoubleSide }) };
     function applyStyle() {
       var S = styleById(st.style), c0 = new T.Color(S.sky[0]), c1 = new T.Color(S.sky[1]), c2 = new T.Color(S.sky[2]), pos = skyGeo.attributes.position, col = [];
       for (var i = 0; i < pos.count; i++) { var y = pos.getY(i) / 520, c = new T.Color(); if (y < 0) c.copy(c2); else if (y < .28) c.copy(c2).lerp(c1, y / .28); else c.copy(c1).lerp(c0, Math.min(1, (y - .28) / .5)); col.push(c.r, c.g, c.b); }
@@ -307,6 +375,7 @@
       hemi.color.set(S.hemi[0]); hemi.groundColor.set(S.hemi[1]); hemi.intensity = S.hemi[2];
       sun.color.set(S.sun[0]); sun.intensity = S.sun[1]; sun.userData.dir = new T.Vector3().fromArray(S.sun[2]).normalize();
       sunDisc.material.color.set(S.sunDisc);
+      mats.water.color.set(S.id === 'keys' ? '#2fc2c9' : S.id === 'ca1' ? '#1f6fa8' : '#2f8fc4');
       ground.material.color.set(S.ground); mats.road.color.set(S.road); mats.shoulder.color.set(S.shoulder); mats.line.color.set(S.line);
       var sg = $('.kd-sg'); sg.innerHTML = S.icon + '<span>Suggest</span>'; sg.title = S.name + ' · tap for another landscape';
       if (!clouds) { var K = kit(); clouds = new T.InstancedMesh(K.cloud.geo, K.cloud.mat, 10); var r = rng(seed + 3), m = new T.Matrix4(); for (var j = 0; j < 10; j++) { var a = r() * Math.PI * 2, d = 330 + r() * 120; m.compose(new T.Vector3(Math.cos(a) * d, 95 + r() * 60, Math.sin(a) * d), new T.Quaternion().setFromAxisAngle(UP, r() * 3), new T.Vector3(1.6, .7, 1).multiplyScalar(12 + r() * 12)); clouds.setMatrixAt(j, m); } clouds.frustumCulled = false; scene.add(clouds); }
@@ -387,6 +456,11 @@
       pn.position.set(0, 6.6, 0); g.add(pn); post(7.8, -ROAD_W - 1.6, 0, g); post(7.8, ROAD_W + 1.6, 0, g);
       var beam = new T.Mesh(new T.BoxGeometry(ROAD_W * 2 + 3.4, .3, .3), new T.MeshStandardMaterial({ color: '#5b6068' })); beam.position.y = 7.7; g.add(beam);
       place(g, seg, 26, 0); seg.group.add(g); seg.signs.push(tex);
+      var TS = styleById(st.style);
+      if (TS.trip) {
+        var tt = signTex([TS.trip[0], TS.trip[1]], TS.trip[2], '#ffffff', 512, 220), sq = new T.Group(), ps = panel(tt, 2.8, 1.2); ps.position.set(0, 2.6, 0); sq.add(ps); post(2.6, 0, -.05, sq);
+        place(sq, seg, 44, ROAD_W + 2.4); seg.group.add(sq); seg.signs.push(tt);
+      }
       // stack = a road section
       seg.stops.forEach(function (sp) {
         if (!sp.sectionStart) return;
@@ -440,6 +514,32 @@
           [-1, 1].forEach(function (sg) { add('pine', s + r() * 4, sg * (11 + r() * 4), .9 + r() * .7); if (r() < .9) add('pine', s + r() * 4, sg * (17 + r() * 22), .9 + r() * .9); if (r() < .6) add('pine', s, sg * (40 + r() * 40), 1 + r()); });
           if (r() < .2) add('rock', s, sd() * (10.5 + r() * 2), .4 + r() * .5);
           if (r() < .08) add('hill', s, sd() * (130 + r() * 100), 40 + r() * 40, '#3e5a34', .5 + r() * .4);
+        } else if (S.id === 'ca1') {                 // ocean and sea stacks on the left, golden hills and cypress on the right
+          if (r() < .45) add('rock', s, -(11 + r() * 3), .8 + r() * 1.2, '#8a8070');
+          if (r() < .12) add('rock', s, -(40 + r() * 90), 4 + r() * 6, '#77705f');
+          if (r() < .35) add('cypress', s, 12 + r() * 14, .9 + r() * .5);
+          if (r() < .3) add('bush', s, 12 + r() * 30, .8 + r() * .6, '#9a9a52');
+          if (r() < .08) add('hill', s, 60 + r() * 120, 26 + r() * 30, ['#c9a75a', '#b8994e', '#d4b46a'][(r() * 3) | 0], .45 + r() * .3);
+        } else if (S.id === 'colorado') {            // pines, golden aspens, snow peaks
+          [-1, 1].forEach(function (sg) { if (r() < .7) add(r() < .5 ? 'aspen' : 'pine', s + r() * 4, sg * (11 + r() * 6), .9 + r() * .6, r() < .5 ? ['#f2c230', '#e8a925', '#f7d74a'][(r() * 3) | 0] : null); if (r() < .6) add('pine', s, sg * (20 + r() * 40), 1 + r() * .8); });
+          if (r() < .14) { var ps = 35 + r() * 35; add('peak', s, sd() * (ps + 50 + r() * 120), ps, null, 1.3 + r() * .6); }
+          if (r() < .15) add('rock', s, sd() * (11 + r() * 4), .6 + r() * .8);
+        } else if (S.id === 'utah') {                // red buttes and mesas on the desert floor
+          if (r() < .45) add('bush', s, sd() * (11 + r() * 40), .45 + r() * .4, '#9aa36a');
+          if (r() < .2) add('rock', s, sd() * (12 + r() * 30), .6 + r() * 1.4, '#b4562e');
+          if (r() < .13) { var bs = 9 + r() * 14; add('butte', s, sd() * (bs * 1.6 + 30 + r() * 110), bs, null, 1.6 + r() * 2.2); }
+        } else if (S.id === 'route66') {             // saguaros, telegraph poles, the old signs
+          if (r() < .28) add('cactus', s, sd() * (12 + r() * 50), .8 + r() * .5);
+          if (s % 30 < 6) add('tpole', s, ROAD_W + 4.5, 1);
+          if (s % 132 < 6) add('roadsign', s, ROAD_W + 9, 1);
+          if (r() < .35) add('bush', s, sd() * (11 + r() * 50), .4 + r() * .3, '#a3a06a');
+          if (r() < .05) { var bs2 = 12 + r() * 12; add('butte', s, sd() * (bs2 * 1.6 + 150 + r() * 100), bs2, '#a0704a', 1 + r()); }
+        } else if (S.id === 'keys') {                // open water both sides, little palm islets
+          if (r() < .08) { var lt = sd() * (34 + r() * 60); add('sand', s, lt, 6 + r() * 6); add('palm', s, lt, 1 + r() * .4); if (r() < .6) add('palm', s + 3, lt + 3, .8 + r() * .3); }
+        } else if (S.id === 'blueridge') {           // autumn trees and layered blue ridges
+          [-1, 1].forEach(function (sg) { if (r() < .85) add(r() < .8 ? 'aspen' : 'round', s + r() * 3, sg * (11 + r() * 8), 1.1 + r() * .6, ['#e8641e', '#f2b52a', '#d43a1c', '#e98a2a', '#c9b23a'][(r() * 5) | 0]); if (r() < .55) add('aspen', s, sg * (22 + r() * 30), 1.2 + r() * .5, ['#e8641e', '#f2b52a', '#d43a1c'][(r() * 3) | 0]); });
+          if (r() < .12) add('hill', s, sd() * (110 + r() * 60), 40 + r() * 30, '#5a7398', .35 + r() * .2);
+          if (r() < .1) add('hill', s, sd() * (190 + r() * 90), 60 + r() * 40, '#7d93b8', .3 + r() * .2);
         } else {
           if (s % 12 < 6) [-1, 1].forEach(function (sg) { add('bldg', s + 3, sg * (17 + r() * 4), 0, ['#c9c4cf', '#b8c3d6', '#d8c9b5', '#a9b1c2'][(r() * 4) | 0], 1); if (r() < .8) add('bldg', s + 3, sg * (34 + r() * 18), 0, ['#9aa4bb', '#c0b3c8', '#8e98ad'][(r() * 3) | 0], 2); });
           if (s % 30 < 6) [-1, 1].forEach(function (sg) { add('pole', s, sg * (ROAD_W + 1.9), 1, null, sg); });
@@ -454,6 +554,7 @@
           if (kind === 'bldg') { var big = it[5] === 2, w = big ? 12 + r() * 10 : 8 + r() * 6, hgt = big ? 18 + r() * 34 : 8 + r() * 18; sc.set(w, hgt, w * (.8 + r() * .4)); q.setFromAxisAngle(UP, it[6]); }
           else if (kind === 'field') { sc.set(14 + r() * 22, 1, 10 + r() * 18); q.setFromAxisAngle(UP, it[3]); }
           else if (kind === 'hill') { sc.set(it[2] * 2, it[2] * it[5], it[2] * 2); q.setFromAxisAngle(UP, it[3]); }
+          else if (kind === 'peak' || kind === 'butte') { sc.set(it[2] * (kind === 'butte' ? 1.4 : 1), it[2] * it[5] * (kind === 'butte' ? .5 : 1), it[2] * (kind === 'butte' ? 1.1 : 1)); q.setFromAxisAngle(UP, it[3]); }
           else if (kind === 'pole') { sc.set(1, 1, 1); q.setFromAxisAngle(UP, it[5] < 0 ? 0 : Math.PI); }
           else { sc.setScalar(it[2]); q.setFromAxisAngle(UP, it[3]); }
           if (kind === 'pole') q.setFromAxisAngle(UP, it[6] + (it[5] < 0 ? Math.PI : 0));
@@ -464,6 +565,11 @@
         if (im.instanceColor) im.instanceColor.needsUpdate = true;
         g.add(im); if (lamp) { lamp.userData.shared = 1; g.add(lamp); }
       });
+      if (S.id === 'ca1') { g.add(new T.Mesh(ribbon(seg, Math.max(0, s0 - 2), s1 + 2, -16, -360, .03, 10), mats.water)); }
+      if (S.id === 'keys') {
+        [[-ROAD_W - 1.5, -380], [ROAD_W + 1.5, 380]].forEach(function (ab) { g.add(new T.Mesh(ribbon(seg, Math.max(0, s0 - 2), s1 + 2, ab[0], ab[1], .03, 10), mats.water)); });
+        [-1, 1].forEach(function (sg) { g.add(new T.Mesh(ribbon(seg, Math.max(0, s0 - 2), s1 + 2, sg * (ROAD_W + 1.1), sg * (ROAD_W + 1.35), .75, 6), mats.rail)); });
+      }
       if (S.id === 'coastal') { var wm = new T.Mesh(ribbon(seg, Math.max(0, s0 - 2), s1 + 2, -30, -340, .03, 10), mats.water); g.add(wm); var sand = new T.Mesh(ribbon(seg, Math.max(0, s0 - 2), s1 + 2, -24, -31, .028, 10), mats.shoulder); g.add(sand); }
       return g;
     }
@@ -617,6 +723,8 @@
     cvs.addEventListener('pointerdown', onDown); cvs.addEventListener('pointerup', onUp); cvs.addEventListener('pointermove', onMove);
     function act(k) {
       if (k === 'exit') return self.close();
+      if (k === 'garage') return garage();
+      if (k === 'pickcar') return;
       if (k === 'play') { st.playing = !st.playing; playLabel(); hap(); }
       else if (k === 'prev' || k === 'next') { unfocus(); nextStop(k === 'next' ? 1 : -1); }
       else if (k === 'focusnext') { var u = upcoming(15); if (u) focus(u.sp); }
@@ -628,6 +736,8 @@
       persist();
     }
     root.addEventListener('click', function (e) {
+      if (st.intro && e.target.closest('.kd-intro')) { e.preventDefault(); return skipIntro(); }
+      var car2 = e.target.closest('[data-car]'); if (car2) { e.preventDefault(); $('.kd-garage').hidden = true; return setCar(car2.dataset.car, true); }
       var b = e.target.closest('[data-kd]'); if (b) { e.preventDefault(); act(b.dataset.kd); }
     });
     function onKey(e) {
@@ -647,10 +757,75 @@
     var bk = $('.kd-brake');
     bk.addEventListener('pointerdown', function (e) { e.preventDefault(); try { bk.setPointerCapture(e.pointerId); } catch (x) {} brake(true); });
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { bk.addEventListener(ev, function () { brake(false); }); });
-    function setStyle(id) { st.style = id; applyStyle(); rebuildScenery(); toast(styleById(id).icon + ' ' + styleById(id).name); persist(); }
+    function setStyle(id) { st.style = id; applyStyle(); rebuildScenery(); var TS = styleById(id); toast(TS.icon + ' ' + (TS.trip ? 'Road Trip · ' : '') + TS.name); persist(); }
+
+    // ---------------- garage: six cars; picking one plays the start-up again
+    function garage() {
+      var g = $('.kd-garage'); if (!g.hidden) { g.hidden = true; return; }
+      var list = $('.kd-glist'); list.innerHTML = '';
+      CARS.list.forEach(function (c) {
+        var b = document.createElement('button'); b.type = 'button'; b.dataset.car = c.id; b.className = 'kd-gcar' + (c.id === carNow.id ? ' on' : '');
+        var cv = document.createElement('canvas'); cv.width = 360; cv.height = 150; CARS.drawPreview(cv, c);
+        b.appendChild(cv); var t = document.createElement('span'); t.innerHTML = '<b>' + esc(c.name) + '</b><small>' + esc(c.tag) + '</small>'; b.appendChild(t);
+        list.appendChild(b);
+      });
+      g.hidden = false;
+    }
+    function setCar(id, withIntro) {
+      var c = CARS.byId(id); try { localStorage.setItem('minest.drive.car', c.id); } catch (e) {}
+      setCockpitCar(c); hap();
+      if (withIntro) startIntro(); else toast('🚘 ' + c.name);
+    }
+    // start-up: walk round the car parked on the road, climb in, press START — the dials sweep, the screen boots, off you go
+    var exteriorG = null;
+    function startIntro() {
+      if (exteriorG) { scene.remove(exteriorG); exteriorG = null; }
+      exteriorG = CARS.exterior(T, carNow); scene.add(exteriorG);
+      st.intro = { t: 0, wasPlaying: st.intro ? st.intro.wasPlaying : st.playing, ign: false };
+      st.playing = false; st.v = 0; inst.on = 0; inst.sweep = 0; inst.boot = 0; instruments(true);
+      var ov = $('.kd-intro'); ov.hidden = false; ov.className = 'kd-intro'; $('.kd-cap b').textContent = carNow.name;
+      root.classList.add('intro');
+    }
+    function endIntro() {
+      if (!st.intro) return; var was = st.intro.wasPlaying; st.intro = null;
+      if (exteriorG) { scene.remove(exteriorG); exteriorG.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); exteriorG = null; }
+      inst.on = 1; inst.sweep = null; inst.boot = 0; ambient.material.opacity = .85; instruments(true);
+      $('.kd-intro').hidden = true; root.classList.remove('intro', 'incab');
+      st.playing = was !== false; playLabel();
+    }
+    function skipIntro() { if (st.intro) endIntro(); }
+    var IC = new T.Vector3(), IP = new T.Vector3();
+    function introStep(dt, eye) {
+      var I = st.intro; I.t += dt; var t = I.t, ov = $('.kd-intro');
+      // the car sits where the driver's seat is: centre a little to the right of the eye
+      IC.copy(eye).addScaledVector(F.l, -.35).setY(0);
+      exteriorG.position.copy(IC); exteriorG.rotation.y = Math.atan2(-F.t.z, F.t.x);
+      if (t < 2.4) {   // walk round: front-left three-quarter → driver's side
+        var k = ease(clamp(t / 2.4, 0, 1)), a = lerp(.55, 1.75, k), r = lerp(7.2, 5.4, k);
+        IP.copy(IC).addScaledVector(F.t, Math.cos(a) * r).addScaledVector(F.l, Math.sin(a) * r); IP.y = lerp(1.9, 1.35, k);
+        cam.position.copy(IP); look.copy(IC); look.y = .7; cam.lookAt(look);
+        root.classList.remove('incab'); ov.classList.toggle('dark', false);
+      } else if (t < 3.1) {   // to the door, into the seat
+        var k2 = ease(clamp((t - 2.4) / .7, 0, 1));
+        var door = IC.clone().addScaledVector(F.l, 1.9).addScaledVector(F.t, -.4); door.y = 1.25;
+        cam.position.copy(door).lerp(eye, k2); look.copy(IC).lerp(eye.clone().addScaledVector(F.t, 20), k2); look.y = lerp(.8, 1.05, k2); cam.lookAt(look);
+        ov.classList.toggle('dark', t > 2.75);
+      } else {
+        if (exteriorG.visible) exteriorG.visible = false;
+        root.classList.add('incab'); ov.classList.toggle('dark', t < 3.35);
+        cam.position.copy(eye); look.copy(eye).addScaledVector(F.t, 20); look.y = 1.05; cam.lookAt(look);
+        if (t > 3.5 && !I.ign) { I.ign = true; ov.classList.add('ign'); hap(); }
+        if (t > 3.6) {   // ignition: lights up, needles sweep to the stop and back, screen boots, ambient fades in
+          var s2 = clamp((t - 3.6) / 1.5, 0, 1); inst.on = Math.min(1, s2 * 3); inst.sweep = Math.sin(s2 * Math.PI); inst.boot = s2;
+          ambient.material.opacity = .85 * s2; instruments(true);
+          cam.position.x += (Math.random() - .5) * .006 * (1 - s2); cam.position.y += (Math.random() - .5) * .006 * (1 - s2);
+        }
+        if (t > 5.3) return endIntro();
+      }
+    }
 
     // ---------------- loop
-    var raf = 0, last = 0, mgT = 0, saveT = 0, alive = true;
+    var raf = 0, last = 0, mgT = 0, saveT = 0, alive = true, instT = 0;
     function step(now) {
       raf = 0; if (!alive) return; schedule();
       var dt = Math.min(.05, (now - (last || now)) / 1000); last = now;
@@ -669,6 +844,7 @@
       // camera
       frame(car.seg, car.s, F);
       var eye = F.p.clone().addScaledVector(F.l, -LANE); eye.y = 1.3 + Math.sin(now / 260) * .012 * Math.min(1, st.v / 8);
+      if (st.intro) { introStep(dt, eye); sky.position.copy(cam.position); ground.position.set(cam.position.x, 0, cam.position.z); var sd0 = sun.userData.dir; sunDisc.position.copy(cam.position).addScaledVector(sd0, 480); sunDisc.lookAt(cam.position); sun.position.copy(cam.position).addScaledVector(sd0, 100); sun.target.position.copy(cam.position); R.autoClear = true; R.render(scene, cam); if (root.classList.contains('incab')) { R.autoClear = false; R.clearDepth(); R.render(cock, ccam); R.autoClear = true; } return; }
       cam.position.copy(eye);
       var fsp = st.focus;
       if (fsp && fsp.bb) {   // let go of a board once it is beside / behind the car
@@ -702,6 +878,7 @@
       // world management a few times a second
       mgT += dt; if (mgT > .2) { mgT = 0; var gg = gNow(); manageChunks(gg); manageBoards(gg); }
       hudT += dt; if (hudT > .25) { hudT = 0; hud(); }
+      instT += dt; if (instT > .12) { instT = 0; instruments(); }
       saveT += dt; if (saveT > 2) { saveT = 0; persist(); }
       R.autoClear = true; R.render(scene, cam); R.autoClear = false; R.clearDepth(); R.render(cock, ccam); R.autoClear = true;
     }
@@ -734,6 +911,8 @@
     car.seg = first; car.s = clamp(startS, 0, first.len - 5);
     frame(car.seg, car.s, F); look.copy(F.p).addScaledVector(F.t, 20); look.y = 1.05;
     resize(); ensureAhead(); manageChunks(gNow()); manageBoards(gNow()); hud(true);
+    setCockpitCar(CARS.byId(carId)); ambient.material.opacity = .85;
+    if (opts.intro !== false) startIntro();
     if (startS > 5) toast('Resuming · ' + PL.roads[startRoad].name); else toast('🛣 ' + PL.roads[startRoad].name);
     schedule();
 
@@ -744,6 +923,7 @@
       R.dispose(); root.remove(); if (CUR === self) CUR = null; if (opts.onExit) try { opts.onExit(); } catch (e) {}
     };
     this.state = function () { return { road: PL.roads[car.seg.road].name, s: car.s, g: gNow(), braking: !!st.braking, focus: st.focus ? (st.focus.I || {}).title : null, playing: st.playing, style: st.style, speed: st.speed, segs: segs.length, boards: picks.length, chunks: segs.reduce(function (n, s) { return n + Object.keys(s.chunks).length; }, 0), tex: texCache.size, calls: R.info.render.calls, tris: R.info.render.triangles }; };
+    this.setCar = setCar;
     this.focusNext = function () { act('focusnext'); };
     this.choose = function (c) { choose(car.seg, c); };
     this.act = act;
@@ -754,7 +934,9 @@
 
   window.MinestDrive = {
     version: VERSION,
-    styles: STYLES.map(function (s) { return { id: s.id, name: s.name, icon: s.icon }; }),
+    styles: STYLES.filter(function (s) { return !s.trip; }).map(function (s) { return { id: s.id, name: s.name, icon: s.icon }; }),
+    trips: STYLES.filter(function (s) { return s.trip; }).map(function (s) { return { id: s.id, name: s.name, icon: s.icon }; }),
+    cars: function () { return window.MinestCars ? MinestCars.list.map(function (c) { return { id: c.id, name: c.name }; }) : []; },
     plan: function (source, provider) { return plan(provider || defaultProvider(), source); },
     open: function (opts) { if (!window.THREE) throw new Error('three.js is not loaded'); if (CUR) CUR.close(); CUR = new Drive(opts || {}); return CUR; },
     close: function () { if (CUR) CUR.close(); },
