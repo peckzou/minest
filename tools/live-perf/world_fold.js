@@ -268,8 +268,8 @@
         c.classList.add('wf3');   // 53.89 · tools down both sides, the console and a gallery in the middle
         c.innerHTML = head + '<div class="wf-main">' +
           // left column: the five steps fold into one button (it pops the others), then the hands-on build tools
-          '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>' + px('tools') + '</i><span>Tools ▾</span></button></nav>' +
-          (V && V.expand ? '<div class="wf-center">' + landPanel() + '</div>' :
+          '<nav class="wf-acts" aria-label="Actions">' + stepBtn(acts, pn, S) + HUD_MAIN.map(hudBtn).join('') + (lv === 1 ? '<button type="button" data-wfter="toggle"' + (W.terr ? ' class="on"' : '') + '><i>' + px('hill') + '</i><span>' + (W.terr ? '✓ Done' : 'Terrain') + '</span></button>' : '') + '<button type="button" class="wf-popb' + (W.pop === 'tools' ? ' on' : '') + '" data-wfpop="tools" aria-expanded="' + (W.pop === 'tools') + '"><i>' + px('tools') + '</i><span>Tools ▾</span></button></nav>' +
+          (V && V.expand ? '<div class="wf-center">' + landPanel() + '</div>' : W.terr && lv === 1 ? '<div class="wf-center">' + terrPanel() + '</div>' :
           '<div class="wf-center">' + (lv === 1 && V ? megaRow() : '') +
           (lv === 4 ? '<div class="wf-seg" role="tablist" aria-label="Which tools"><button type="button" data-wfset="roomd"' + (sk === 'roomd' ? ' class="on"' : '') + '>🛋 Room tools · 建房</button><button type="button" data-wfset="disp"' + (sk === 'disp' ? ' class="on"' : '') + '>🗄 Display tools · 陈列</button></div>' : '') +
           (S ? pendHtml(S) : '') +
@@ -325,6 +325,11 @@
       snow: ['mmmmmmmmmm', 'mwmmmwmmwm', 'bmbbbmbbmb', 'bbbBbbbbbb', 'bbbbbbBbbb', 'bBbbbbbbbb', 'bbbbbBbbbb'],
       sand: ['nnnnnnnnnn', 'nNnnnnNnnn', 'nnnnNnnnnN', 'nNnnnnnnnn', 'nnnnnNnnNn', 'Nnnnnnnnnn', 'nnnNnnnnnn'],
       moss: ['GgGGgGgGGg', 'gGGgGGgGgG', 'sGssGsSsGs', 'ssSsssssSs', 'sssssSssss', 'sSssssssss', 'ssssSsssSs'],
+      hill: ['.....ww.....', '....wwws....', '...wwsssS...', '..ssssssSS..', '.gsssSssssg.', 'ggggSgssgggg', 'gGgggggGgggg', 'bbbbbbbbbbbb', 'bBbbbBbbbBbb'],
+      river: ['gggLLggggggg', 'ggggLLgggggg', 'gggggLLggggg', 'ggggLLlggggg', 'gggLLlgggggg', 'ggggLLgggggg', 'gggggLLggggg', 'ggggggLLgggg', 'gggggLLggggg'],
+      lake: ['gggggggggggg', 'gggnLLLLnggg', 'ggnLLlLLLngg', 'gnLLLLLlLLng', 'gnLLlLLLLLng', 'ggnLLLLLLngg', 'gggnnLLnnggg', 'gggggnnggggg', 'gggggggggggg'],
+      lower: ['.....kk.....', '.....kk.....', '.....kk.....', '...kkkkkk...', '....kkkk....', '.....kk.....', 'gggggggggggg', 'bbbbbbbbbbbb', 'bBbbbbBbbbbb'],
+      erase: ['............', '..yyyyyyyy..', '.yyoyyyoyyy.', '.yyyyoyyyyy.', '.yoyyyyyoyy.', '.yyyyyoyyyy.', '.yyoyyyyyoy.', '..yyyyyyyy..', '............'],
       door: ['.kkkkkkkk.', '.kbbbbbbk.', '.kbBbbBbk.', '.kbbbbbbk.', '.kbBbbBbk.', '.kbbbbbyk.', '.kbBbbBbk.', '.kbbbbbbk.', '.kkkkkkkk.']
     };
     // derived: mirrored / flipped versions
@@ -408,6 +413,39 @@
         (room ? '' : '<h4>Ground</h4><div class="wf-chips">' + GROUNDS.map(function (g) { return '<button type="button" data-wfgr="' + g[0] + '"' + (g0 === g[0] ? ' class="on"' : '') + '>' + px(g[0]) + ' ' + esc(g[1]) + '</button>'; }).join('') + '</div>') +
         '<button type="button" class="wf-land-ok" data-wfhud="[data-expand]">✓ Done</button></section>';
     }
+    // ⛰ Terrain (world_terrain.js): ✨ Smart terrain in the free land, or the brush — tap or drag on the island above
+    var BRUSHES = [['raise', 'hill', 'Hill', 'tap / drag to raise'], ['lower', 'lower', 'Lower', 'take a level off'], ['river', 'river', 'River', 'drag a river'], ['lake', 'lake', 'Lake', 'paint water'], ['erase', 'erase', 'Flatten', 'back to plain land']];
+    function terrPanel() {
+      var t = V.d.terr || {}, nh = Object.keys(t.h || {}).length, nw = Object.keys(t.w || {}).length;
+      return '<section class="wf-land wf-terr"><div class="wf-land-h"><i>' + px('hill') + '</i><div><b>Terrain</b><small>' + (nh || nw ? nh + ' hill blocks · ' + nw + ' water blocks' : 'hills, rivers and lakes — part of the island') + '</small></div></div>' +
+        '<div class="wf-land-q"><button type="button" data-wfter="auto"><i>' + px('smart') + '</i><b>Smart terrain</b><small>hills, a river and a lake in the free land</small></button><button type="button" data-wfter="again"><i>' + px('dice') + '</i><b>Another landscape</b><small>new hills, a new river</small></button></div>' +
+        '<h4>Brush · tap or drag on the island above</h4><div class="wf-chips">' + BRUSHES.map(function (b) { return '<button type="button" data-wfbrush="' + b[0] + '"' + (W.brush === b[0] ? ' class="on"' : '') + ' title="' + esc(b[3]) + '">' + px(b[1]) + ' ' + esc(b[2]) + '</button>'; }).join('') + '</div>' +
+        (nh || nw ? '<div class="wf-row"><button type="button" data-wfter="flat">' + px('clear') + ' Flatten everything</button></div>' : '') +
+        '<button type="button" class="wf-land-ok" data-wfter="toggle">✓ Done</button></section>';
+    }
+    function terrAct(v) {
+      if (v === 'toggle') { W.terr = !W.terr; W.brush = W.terr ? W.brush : null; if (W.terr && V.expand) { var hb = hudEl('[data-expand]'); if (hb) hb.click(); } hap(); return setTimeout(draw, 30); }
+      if (v === 'flat') { change(function () { delete V.d.terr; }); toast('Flat again · ↶ Undo brings the hills back'); hap(); return draw(); }
+      editOn(); W.terrSeed = v === 'again' ? (W.terrSeed || 1) + 1 : (Date.now() % 100000) | 0;
+      var g = TR.gen(W.terrSeed), size = function (x) { return x ? Object.keys(x.h).length + Object.keys(x.w).length : 0; };
+      if (size(g) < 30 && landOf().length + 60 < MAX_PLOTS) {   // a full island: two rings of new land around it for the hills and the water
+        dspPress('data-landfast', 'ring'); dspPress('data-landfast', 'ring'); refreshLand(); var g2 = TR.gen(W.terrSeed); if (size(g2) > size(g)) { g = g2; toast('⛰ Two rings of new land around the island for hills and water'); } }
+      if (!size(g)) { toast('Not enough free land for hills or water — ⛰ More land first'); return; }
+      change(function () { V.d.terr = g; }); toast('⛰ ' + (Object.keys(g.h).length ? 'Hills' : '') + (Object.keys(g.w).length ? (Object.keys(g.h).length ? ', a river and a lake' : 'A river and a lake') : '') + ' · ↶ Undo puts it back'); hap(); if (window.MinestSfx) MinestSfx.play('whoosh'); draw();
+    }
+    (function () {   // the brush: on the island while ⛰ Terrain is open — strokes never pan or select
+      var bd = null, q = false;
+      function dab(e) { var w = toFloor(e.clientX, e.clientY); if (TR.brush(W.brush, w[0], w[1]) && !q) { q = true; requestAnimationFrame(function () { q = false; if (el) render(); }); } }
+      function on(e) {
+        if (!W.terr || !W.brush || !el || !V || V.visit || V.at) return; var sc = e.target && e.target.closest && e.target.closest('.mn-dsp-scene');
+        if (e.type === 'pointerdown') { if (!sc || !e.isPrimary || bd) return; bd = e.pointerId; editOn(); dab(e); hap(); }
+        else if (e.type === 'pointermove') { if (bd !== e.pointerId) return; dab(e); }
+        else if (e.type === 'pointerup' || e.type === 'pointercancel') { if (bd !== e.pointerId) return; bd = null; save(); render(); setTimeout(draw, 30); }
+        else if (!sc) return;
+        e.stopPropagation(); if (e.type !== 'pointerdown') e.preventDefault();
+      }
+      ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'click'].forEach(function (t) { window.addEventListener(t, on, true); });
+    })();
     function dspPress(attr, val) {   // press a land / ground control through the island's own handler (undo, toasts, limits)
       var host = document.querySelector('.mn-dsp'); if (!host) return; var b = document.createElement('button'); b.type = 'button'; b.hidden = true; b.setAttribute(attr, val); host.appendChild(b); try { b.click(); } finally { b.remove(); }
     }
@@ -1085,6 +1123,8 @@
         }
         hap(); try { fit(); } catch (x) {} return setTimeout(draw, 60);
       }
+      if ((v = g.getAttribute('data-wfter'))) return terrAct(v);
+      if ((v = g.getAttribute('data-wfbrush'))) { W.brush = W.brush === v ? null : v; hap(); return draw(); }
       if ((v = g.getAttribute('data-wfland'))) { dspPress('data-landfast', v); return setTimeout(draw, 60); }
       if ((v = g.getAttribute('data-wfgr'))) { dspPress('data-gr', v); return setTimeout(draw, 60); }
       if ((v = g.getAttribute('data-wfpop'))) { W.pop = W.pop === v ? null : v; return draw(); }

@@ -79,7 +79,7 @@ EDITS = [
     ("  function mobTick(now) {", "  function liveQ(q) {   // people, pets and cars live on their own layer: look there, not through the whole island, every frame\n    var lv = el.__lv && el.__lv.isConnected ? el.__lv : (el.__lv = el.querySelector('svg.mn-dsp-live')); return (lv || el).querySelector(q);\n  }\n  function mobTick(now) {"),
     ("  function render() {\n    if (!el) return; tileSync();", SVGSET),
     (": drawBB(q)) + '</g>'; }).join('') + tags.join('');", ": drawBB(q)) + '</g>'; }).concat(tags); scene.parts = sl; return sl.join('');"),
-    ("return order(all).map(function (q) { return '<g class=\"pc' + (q.pc === sel", "var sl = order(all).map(function (q) { return '<g class=\"pc' + (q.pc === sel"),
+    ("return order(all).map(function (q) {", "var sl = order(all).map(function (q) {"),
     ("svg.innerHTML = '<g class=\"gw\">' + ground() + landMarks() + '</g>' + hi + scene(V.d.pc.filter(function (p) { return BUILD[p.k] && !(K[p.k] && K[p.k].mob) && !moving(p) && shownHere(p); })) ;",
      "scene.parts = null; var scs = scene(V.d.pc.filter(function (p) { return BUILD[p.k] && !(K[p.k] && K[p.k].mob) && !moving(p) && shownHere(p); })); svgSet(svg, ['<g class=\"gw\">' + ground() + landMarks() + '</g>', hi].concat(scene.parts || [scs]));"),
     ("    exSnapShow(null);\n    if ((d.t === 'it' || d.t === 'new-it') && d.snap", "    if (d.t === 'pan') { el.querySelectorAll('.mn-dsp-scene .pc.hot').forEach(function (x) { x.classList.remove('hot'); }); return; }   // a pan changed nothing but the camera\n    exSnapShow(null);\n    if ((d.t === 'it' || d.t === 'new-it') && d.snap"),
@@ -99,6 +99,7 @@ for f in FILES:
     if o2 and o2.group(0) != ORDER_NEW: s = s.replace(o2.group(0), ORDER_OLD)
     for a, b in EDITS:
         if b in s: continue
+        if a not in s and 'function svgSet' in s: continue   # applied, then built on by a later patch (patch_terrain.py)
         assert a in s, (f, a[:60])
         s = s.replace(a, b)
     if CSS not in s:
