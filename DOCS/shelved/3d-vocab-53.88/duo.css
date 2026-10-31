@@ -1,0 +1,303 @@
+/* the split line: half and half (the iPhone Fold's inner screen is 951 pt wide sideways: 475 | 475) */
+:root { --duo-l:50vw; }
+html.duo-split { --duo-l:50vw; }
+/* 53.84 Duo · iPhone Fold: outer-screen Glance + inner-screen split (tools/live-perf/duo.js) */
+html body .duo-gl { position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;background:#0d1117;color:#f3f5f8;font:15px/1.4 -apple-system,system-ui,sans-serif;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overflow:hidden; }
+html body .duo-gl[hidden] { display:none; }
+html body .duo-top { flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 8px; }
+html body .duo-top b { font-size:18px; }
+html body .duo-full { min-height:40px;padding:0 14px;border:0;border-radius:999px;background:#25303f;color:#fff;font:700 14px/1 inherit; }
+html body .duo-body { flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:4px 16px 20px;display:flex;flex-direction:column;gap:14px; }
+html body .duo-c { background:#161d27;border:1px solid #263142;border-radius:18px;padding:14px; }
+html body .duo-c h3 { margin:0 0 10px;font-size:15px;display:flex;align-items:baseline;gap:8px; }
+html body .duo-c h3 small { color:#8fa0b5;font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+html body .duo-m { margin:4px 0 0;color:#8fa0b5;font-size:13px; }
+html body .duo-card { width:100%;min-height:150px;border:0;border-radius:14px;background:linear-gradient(160deg,#233149,#1a2333);color:#fff;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;font:inherit; }
+html body .duo-card b { font-size:28px;line-height:1.2;overflow-wrap:anywhere; }
+html body .duo-card .back { display:none;color:#c9d6e6;font-size:15px; }
+html body .duo-card.show .back { display:block; }
+html body .duo-row { display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px; }
+html body .duo-row button { min-height:48px;border:0;border-radius:12px;background:#25303f;color:#fff;font:800 18px/1 inherit; }
+html body .duo-row button.on { background:#7a5b12;color:#ffd75e; }
+html body .duo-row button.go { background:#2f7d4f; }
+html body .duo-go { min-height:46px;border:0;border-radius:12px;background:#2f7d4f;color:#fff;font:800 15px/1 inherit;padding:0 16px;width:100%; }
+html body .duo-link { margin-top:10px;width:100%;min-height:40px;border:0;background:none;color:#7cc4ff;font:600 14px/1 inherit; }
+html body .duo-due { list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px; }
+html body .duo-due li { display:flex;align-items:center;gap:8px; }
+html body .duo-due .ck { flex:none;width:44px;height:44px;border:2px solid #3b4a60;border-radius:50%;background:none;color:#7fd35f;font:800 18px/1 inherit; }
+html body .duo-due .t { flex:1;min-width:0;min-height:44px;border:0;border-radius:10px;background:#1d2633;color:#fff;text-align:left;padding:6px 12px;font:600 14px/1.3 inherit;display:flex;flex-direction:column; }
+html body .duo-due .t small { color:#8fa0b5;font-weight:500;font-size:12px; }
+html body .duo-add { display:flex;flex-direction:column;gap:8px; }
+html body .duo-add input, html body .duo-add select { min-height:46px;border:1px solid #2c394c;border-radius:12px;background:#0f151e;color:#fff;padding:0 12px;font:16px/1 inherit; }
+html body .duo-back { position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:2147482990;min-height:40px;padding:0 14px;border:0;border-radius:999px;
+  background:#25303fe6;color:#fff;font:700 13px/1 -apple-system,system-ui,sans-serif;box-shadow:0 4px 14px #0007; }
+/* inner screen: ▥ split */
+html body .duo-split-b { position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:2147483300;min-height:40px;padding:0 14px;border:0;border-radius:999px;
+  background:#25303fe6;color:#fff;font:700 13px/1 -apple-system,system-ui,sans-serif;box-shadow:0 4px 14px #0007; }
+html body .duo-split-b.on { background:#2f7d4f; }
+html.duo-split body .uv { left:var(--duo-l) !important;right:0 !important;width:calc(100% - var(--duo-l)) !important;border-left:2px solid #000;box-shadow:-6px 0 18px #0006; }
+html.duo-split body .mn-dsp { left:var(--duo-l) !important;width:calc(100% - var(--duo-l)) !important; }
+/* fixed bars / buttons inside My World and the island (✨ Smart build, selection bars) stay within the right half */
+html.duo-split body .uv, html.duo-split body .mn-dsp { transform:translateZ(0); }
+/* the board keeps the left half (its own bars and sheets stay there too); My World the right half */
+html.duo-split body #root { width:var(--duo-l) !important;height:100vh;overflow:hidden;transform:translateZ(0); }
+html.duo-split body .uv { top:0 !important;bottom:0 !important; }
+/* Kanban × Island: the card picked on the left / found from the island */
+html.duo body #root .duo-sel { outline:3px solid #f2c13d !important;outline-offset:2px;border-radius:12px; }
+html.duo body #root .duo-flash { animation:duoFlash 1.5s ease; }
+@keyframes duoFlash { 0%,100% { box-shadow:none; } 25%,60% { box-shadow:0 0 0 5px #f2c13dcc,0 0 24px #f2c13d88; } }
+html body .mn-dsp-scene.duo-pulse g.cam { animation:duoPulse 1.4s ease; }
+@keyframes duoPulse { 0%,100% { filter:none; } 30%,65% { filter:drop-shadow(0 0 10px #f2c13d); } }
+html body .duo-wbar { position:absolute;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:calc(100% - 24px);
+  padding:8px 10px;background:#2b2b2bf2;color:#fff;border:2px solid #000;box-shadow:0 4px 0 #000;font:700 13px/1.2 var(--pc-font,system-ui); }
+html body .duo-wbar button { min-height:36px;padding:0 10px;border:2px solid #000;background:#4a4a4a;color:#fff;font:800 12.5px/1 var(--pc-font,system-ui); }
+html body .duo-wbar button.on, html body .duo-wbar button.go { background:#3c8527; }
+html body .duo-wbar .x { background:none;border:0;font-size:16px; }
+/* half-open (Device Posture "folded", where supported): study cards keep the top, their buttons the bottom */
+html.duo-halfopen body .duo-gl .duo-fc { min-height:50vh; }
+html body .duo-rp { position:fixed;left:var(--duo-l);top:0;right:0;bottom:0;z-index:2147481000;border:0;border-left:2px solid #000;background:radial-gradient(circle at 50% 40%,#1f3a52,#0d1117 70%);
+  color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font:600 14px/1.4 -apple-system,system-ui,sans-serif;padding:24px;text-align:center; }
+html body .duo-rp span { font-size:54px; }
+html body .duo-rp b { font-size:18px; }
+html body .duo-rp small { color:#9fb3c8;max-width:260px; }
+/* Build & Arrange: the library in the left half (world_duo.js §4) */
+html body .duo-lib { position:fixed;left:0;top:0;bottom:0;width:var(--duo-l);z-index:2147483150;display:flex;flex-direction:column;gap:8px;overflow:auto;-webkit-overflow-scrolling:touch;
+  padding:calc(10px + env(safe-area-inset-top)) 12px calc(70px + env(safe-area-inset-bottom));box-sizing:border-box;background:#3b3b3b;color:#fff;border-right:3px solid #000;font-family:var(--pc-font,system-ui); }
+html body .duo-lib header { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+html body .duo-lib header b { font:900 16px/1.2 var(--pc-font,system-ui); }
+html body .duo-lib header .x { width:40px;height:40px;border:2px solid #000;background:#5a5a5a;color:#fff;font-size:16px; }
+html body .duo-lib-hint { margin:0;color:#d9d9d9;font:700 12px/1.35 var(--pc-font,system-ui); }
+html body .duo-lib-tabs { display:flex;flex-wrap:wrap;gap:6px; }
+html body .duo-lib-tabs button { width:44px;height:44px;border:2px solid #000;background:#5a5a5a;font-size:20px; }
+html body .duo-lib-tabs button.on { background:#f2c13d; }
+html body .duo-lib h3 { margin:2px 0 0;font:900 14px/1.2 var(--pc-font,system-ui); }
+html body .duo-lib-chips { display:flex;flex-wrap:wrap;gap:6px; }
+html body .duo-lib-chips button { min-height:34px;padding:0 10px;border:2px solid #000;background:#4a4a4a;color:#fff;font:800 12px/1 var(--pc-font,system-ui); }
+html body .duo-lib-chips button.on { background:#3c8527; }
+html body .duo-lib-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px; }
+html body .duo-lib-grid .mn-pk-card { width:auto !important;min-height:138px !important;height:auto !important; }
+html body .duo-lib-grid .mn-pk-card .go { display:none; }
+html body .duo-lib-list { display:flex;flex-direction:column;gap:6px; }
+html body .duo-lib-list button { min-height:44px;text-align:left;padding:6px 10px;border:2px solid #000;background:#4a4a4a;color:#fff;display:flex;flex-direction:column;font:800 13px/1.25 var(--pc-font,system-ui); }
+html body .duo-lib-list small { color:#cfcfcf;font-weight:600; }
+html body .duo-lib-m { margin:4px 0;color:#d9d9d9;font:600 13px/1.4 var(--pc-font,system-ui); }
+html body .duo-lib-go { min-height:46px;border:2px solid #000;background:#3c8527;color:#fff;font:900 14px/1 var(--pc-font,system-ui); }
+html body .duo-spot { position:absolute;z-index:5;transform:translate(-50%,-100%);font-size:26px;font-style:normal;pointer-events:none;filter:drop-shadow(0 2px 2px #0008);animation:duoDrop .35s ease; }
+@keyframes duoDrop { from { transform:translate(-50%,-160%);opacity:0; } }
+/* 5 · Study Desk */
+html body .duo-desk { position:fixed;inset:0;z-index:2147483010;display:flex;flex-direction:column;background:#0d1117;color:#f3f5f8;font:15px/1.45 -apple-system,system-ui,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+html body .dd-top { flex:none;display:flex;align-items:center;gap:10px;padding:12px 16px; }
+html body .dd-top b { font-size:18px;white-space:nowrap; }
+html body .dd-list { flex:1;min-width:0;min-height:40px;border:1px solid #2c394c;border-radius:12px;background:#0f151e;color:#fff;padding:0 10px;font:14px/1 inherit; }
+html body .dd-body { flex:1;min-height:0;overflow:auto;padding:4px 16px 16px;display:flex;flex-direction:column;gap:14px; }
+html body .dd-card, html body .dd-side { background:#161d27;border:1px solid #263142;border-radius:20px;padding:18px; }
+html body .dd-card { display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;min-height:220px; }
+html body .dd-pos { color:#8fa0b5;font-size:13px;font-weight:700; }
+html body .dd-word { margin:0;font-size:clamp(30px,8vw,56px);line-height:1.15;overflow-wrap:anywhere; }
+html body .dd-pron { display:flex;align-items:center;gap:10px;color:#c9d6e6;font-size:17px; }
+html body .dd-pron button { width:48px;height:48px;border:0;border-radius:50%;background:#25303f;font-size:22px; }
+html body .dd-ex { margin:0;color:#dfe8f2;font-style:italic;max-width:46ch; }
+html body .dd-side { display:flex;flex-direction:column;gap:14px; }
+html body .dd-side h3 { margin:0 0 6px;color:#8fa0b5;font-size:12px;letter-spacing:.08em;text-transform:uppercase; }
+html body .dd-side p { margin:0; }
+html body .dd-mean .zh { font-size:20px;font-weight:700;margin-bottom:4px; }
+html body .dim { color:#6f8197; }
+html body .dd-stat { color:#8fa0b5;font-size:13px; }
+html body .dd-acts { display:grid;grid-template-columns:52px 1fr 1fr 1.2fr;gap:8px;margin-top:auto; }
+html body .dd-acts button { min-height:54px;border:0;border-radius:14px;background:#25303f;color:#fff;font:800 15px/1.1 inherit; }
+html body .dd-acts .ag { background:#5a4313;color:#ffd75e; }
+html body .dd-acts .ok { background:#1f4d36; }
+html body .dd-acts .ok.on { outline:2px solid #7fd35f; }
+html body .dd-acts .go { background:#2f7d4f; }
+html body .dd-done { display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px 0;font-size:20px;font-weight:800; }
+/* unfolded: the card on the left, meaning and the buttons on the right */
+html.duo-inner body .dd-body { flex-direction:row;align-items:stretch; }
+html.duo-inner body .dd-card { flex:1.1; }
+html.duo-inner body .dd-side { flex:1; }
+/* half-open: content up, buttons down */
+html.duo-halfopen body .dd-body { flex-direction:column; }
+html.duo-halfopen body .dd-acts { position:sticky;bottom:0; }
+html body .duo-row2 { display:flex;gap:8px; }
+html body .duo-desk-b { position:fixed;left:122px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:2147483300;min-height:40px;padding:0 14px;border:0;border-radius:999px;background:#25303fe6;color:#fff;font:700 13px/1 -apple-system,system-ui,sans-serif;box-shadow:0 4px 14px #0007; }
+/* 6 · Discover as two pages on the open screen */
+html.duo-inner body .dv[data-duo="vs"] .dv-vs { max-width:none;grid-template-columns:1fr 1fr;gap:40px;min-height:58vh; }
+html.duo-inner body .dv[data-duo="vs"] .dv-pick { justify-content:center;border-radius:20px;background:rgba(255,255,255,.04);padding:14px; }
+html.duo-inner body .dv[data-duo="vs"] .dv-vsb { position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2; }
+html.duo-inner body .dv[data-duo="tier"] .dv-body, html.duo-inner body .dv[data-duo="sc"] .dv-body { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:22px;align-content:start; }
+html.duo-inner body .dv[data-duo="tier"] .dv-body > .dv-h { grid-column:1;grid-row:1; }
+html.duo-inner body .dv[data-duo="tier"] .dv-body > .zone.pool { grid-column:1;grid-row:2;align-self:start;min-height:40vh; }
+html.duo-inner body .dv[data-duo="tier"] .dv-body > .dv-note { grid-column:1;grid-row:3; }
+html.duo-inner body .dv[data-duo="tier"] .dv-body > .dv-tiers { grid-column:2;grid-row:1 / span 3; }
+html.duo-inner body .dv[data-duo="tier"] .dv-body > .dv-chips { grid-column:2;grid-row:4; }
+html.duo-inner body .dv[data-duo="sc"] .dv-body > .sc-scene { grid-column:2;grid-row:1; }
+html.duo-inner body .dv[data-duo="sc"] .dv-body > .sc-ask { grid-column:2;grid-row:2; }
+html.duo-inner body .dv[data-duo="sc"] .dv-body > .sc-left { grid-column:2;grid-row:3; }
+html.duo-inner body .dv[data-duo="sc"] .dv-body > .duo-kept { grid-column:2;grid-row:4; }
+html.duo-inner body .dv[data-duo="sc"] .dv-body > .sc-grid, html.duo-inner body .dv[data-duo="sc"] .dv-body > .sc-tog { grid-column:1;grid-row:1 / span 8;align-self:start; }
+html body .duo-kept { display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start; }
+html body .duo-kept h3 { flex-basis:100%;margin:6px 0 2px;font-size:14px; }
+html body .duo-kept p { margin:0;opacity:.7;font-size:13px; }
+html body .duo-kept button { min-height:40px;padding:0 12px;border:0;border-radius:999px;background:rgba(127,211,95,.18);color:inherit;font:700 13px/1 inherit;display:flex;align-items:center;gap:8px; }
+html body .duo-kept button i { font-style:normal;opacity:.6; }
+/* 7 · Visual Library in the left half, the island on the right */
+html.duo-split body .pk.vl { right:auto !important;left:0 !important;width:var(--duo-l) !important;border-right:2px solid #000; }
+html body .duo-vlq { width:100%;margin:10px 0; }
+html body .duo-queue { position:fixed;left:calc(var(--duo-l) + 12px);right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:2147483400;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;
+  background:#2b2b2bf2;color:#fff;border:2px solid #000;box-shadow:0 4px 0 #000;font:700 13px/1.25 var(--pc-font,system-ui); }
+html body .duo-queue span { flex:1;min-width:120px;opacity:.85; }
+html body .duo-queue button { min-height:36px;padding:0 12px;border:2px solid #000;background:#4a4a4a;color:#fff;font:800 12.5px/1 var(--pc-font,system-ui); }
+html:not(.duo-split) body .duo-queue { left:12px; }
+html.duo-desk-on body .duo-split-b, html.duo-desk-on body .duo-desk-b, html.duo-desk-on body .duo-back { display:none; }
+/* full-screen tools (Discover, Knowledge views) keep the corner free */
+html.duo.kn-open body .duo-split-b, html.duo.kn-open body .duo-desk-b, html.duo.kn-open body .duo-back { display:none; }
+/* the right safe area (iOS puts the status bar in a column on the right when the phone is turned): in the split the
+   board does not touch that edge, so it keeps no gap for it; full screen, the board runs under it instead of leaving a
+   black strip (only the clock sits there) */
+html.duo-split body #root { --sar:0px; }
+html.duo-inner body .landscape main { margin-right:0 !important; }
+/* the tool rail in the right safe-area column (split view, phone held sideways): a liquid-glass capsule, centred
+   in the column below the clock */
+html body .duo-rail { position:fixed;right:max(6px, calc((var(--sar, 84px) - 68px) / 2));top:50%;transform:translateY(-38%);z-index:2147483500;
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 6px;border-radius:30px;box-sizing:border-box;width:auto !important;
+  background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.06));-webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid rgba(255,255,255,.32);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 0 rgba(255,255,255,.08),0 12px 30px rgba(0,0,0,.35);
+  font-family:-apple-system,system-ui,sans-serif; }
+html body .duo-rail button { width:56px;min-height:56px;border:0;border-radius:22px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 0;
+  background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.12);
+  text-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .15s ease,background .2s ease; }
+html body .duo-rail button:active { transform:scale(.94); }
+html body .duo-rail button i { font-style:normal;font-size:22px;line-height:1; }
+html body .duo-rail button small { font-size:10.5px;font-weight:700;opacity:.92; }
+html body .duo-rail button.on { background:linear-gradient(180deg,rgba(127,211,95,.55),rgba(47,125,79,.45));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 0 0 1px rgba(127,211,95,.55); }
+html.duo-rail-on body .duo-split-b, html.duo-rail-on body .duo-desk-b, html.duo-rail-on body .duo-back { display:none !important; }
+/* building in the split: the island on the left, its Builder on the right (by the tool rail) */
+html.duo-split.duo-build body .uv, html.duo-split.duo-build body .mn-dsp { left:0 !important;right:auto !important;width:var(--duo-l) !important; }
+html.duo-split.duo-build body .duo-lib { left:auto;right:0;width:calc(100% - var(--duo-l));border-right:0;border-left:3px solid #000;padding-right:calc(var(--sar, 0px) + 12px); }
+/* board | 3D Cover side by side (the app's own two views; SpatialFold.dual) */
+html.duo-cover body #root main { flex-direction:row !important; }
+html.duo-cover body #root main > .sf-slot { flex:1 1 50% !important;width:50% !important;min-width:0;position:relative !important;inset:auto !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { border-left:2px solid rgba(255,255,255,.12);overflow:hidden; }
+/* the dividing line sits on the hinge — the middle of the whole screen, not of the screen minus the clock column;
+   the right pane keeps the clock column inside itself */
+html.duo-cover body #root main { margin-right:0 !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="board"] { flex:0 0 calc(50vw - var(--sal, 0px)) !important;width:calc(50vw - var(--sal, 0px)) !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { flex:1 1 auto !important;width:auto !important;padding-right:var(--sar, 0px);box-sizing:border-box; }
+/* board | 3D Cover: the board pane shows one list at a time, as wide as the pane (swipe for the next list) */
+html.duo-cover body #root main > .sf-slot[data-sf-view="board"] { container-type:inline-size; }
+html.duo-cover body #root .sf-slot[data-sf-view="board"] .kanban-column-wrapper { width:calc(100cqw - 40px) !important;min-width:calc(100cqw - 40px) !important;max-width:none !important;flex:0 0 auto !important;scroll-snap-align:start; }
+html.duo-cover body #root .sf-slot[data-sf-view="board"] .board-swimlane-scroll { scroll-snap-type:x mandatory; }
+/* the 3D Cover's floating Card FX / Light FX pair stays off the Duo's open screen (it sat over the board's first list) */
+html.duo-inner body .fbfx-btn, html.duo-inner body .card-mode-btn, html.duo-inner body .student-cover-float-bar { display:none !important; }
+/* the Cover keeps to the right pane's height (on the Fold its stage grew to the page height and the cards fell below) */
+html.duo-cover body #root main { height:calc(100dvh - var(--duo-top, 0px)); }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { height:100% !important;max-height:100% !important;align-self:stretch;overflow:hidden !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] > *, html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] section { top:0 !important;bottom:0 !important;height:100% !important;max-height:100% !important; }
+html.duo-cover body #root main > .sf-slot[data-sf-view="board"] { height:100% !important;overflow:hidden; }
+/* held upright (the hinge runs across): the same two panes, top | bottom, split on the middle of the screen's height */
+html.duo-tall.duo-split body #root { width:100% !important;height:50vh !important; }
+html.duo-tall.duo-split body .uv, html.duo-tall.duo-split body .mn-dsp { left:0 !important;right:0 !important;width:100% !important;top:50vh !important;bottom:auto !important;height:50vh !important;border-left:0 !important;border-top:2px solid #000;box-shadow:0 -6px 18px #0006; }
+html.duo-tall.duo-split body .duo-rp { left:0;top:50vh;border-left:0;border-top:2px solid #000; }
+html.duo-tall.duo-split.duo-build body .uv, html.duo-tall.duo-split.duo-build body .mn-dsp { top:0 !important;height:50vh !important;border-top:0;box-shadow:none; }
+html.duo-tall.duo-split.duo-build body .duo-lib { left:0;right:0;width:100%;top:50vh;bottom:0;border-left:0;border-top:3px solid #000;padding-right:12px;padding-top:12px; }
+html.duo-tall.duo-split body .duo-queue { left:12px;bottom:auto;top:calc(50vh + 12px); }
+html.duo-tall.duo-cover body #root main { flex-direction:column !important; }
+html.duo-tall.duo-cover body #root main > .sf-slot[data-sf-view="board"] { flex:0 0 calc(50vh - var(--duo-mt, 0px)) !important;width:100% !important;height:calc(50vh - var(--duo-mt, 0px)) !important; }
+html.duo-tall.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { flex:1 1 auto !important;width:100% !important;padding-right:0;border-left:0 !important;border-top:2px solid rgba(255,255,255,.12); }
+/* Miniature Workshop: the console */
+html body .duo-wk { display:flex;flex-direction:column;gap:10px; }
+html body .duo-wk-t { display:flex;flex-direction:column;gap:2px; }
+html body .duo-wk-t b { font:900 15px/1.2 var(--pc-font,system-ui); }
+html body .duo-wk-t small { color:#cfcfcf;font:600 11.5px/1.3 var(--pc-font,system-ui); }
+html body .duo-wk-pad { position:relative;min-height:150px;flex:1 1 150px;border:3px solid #000;border-radius:14px;touch-action:none;display:grid;place-items:center;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 24px),#2a2a2a;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.1); }
+html body .duo-wk-pad span { font-size:34px;opacity:.35;pointer-events:none; }
+html body .duo-wk-pad.on { background-color:#33402f;border-color:#7fd35f; }
+html body .duo-wk-row { display:grid;grid-template-columns:repeat(3,1fr);gap:8px; }
+html body .duo-wk-row button { min-height:48px;border:2px solid #000;background:#4a4a4a;color:#fff;font:900 18px/1 var(--pc-font,system-ui);box-shadow:0 3px 0 #000; }
+html body .duo-wk-row button:active { transform:translateY(2px);box-shadow:0 1px 0 #000; }
+html body .duo-wk-row.act button { font-size:14px; }
+html body .duo-wk-row .ok { background:#3c8527; }
+html body .duo-wk-row .rm { background:#8a2c2c; }
+html body .duo-wk-size { display:flex;align-items:center;gap:10px;font:800 13px/1 var(--pc-font,system-ui); }
+html body .duo-wk-size input { flex:1;accent-color:#7fd35f;height:28px; }
+html body .duo-wk-size em { font-style:normal;min-width:44px;text-align:right; }
+/* Desk posture (held upright, half open): the console fills the lower half — pad beside the buttons */
+html.duo-tall.duo-split.duo-build body .duo-wk { display:grid;grid-template-columns:1.2fr 1fr;grid-template-rows:auto 1fr auto auto;column-gap:12px; }
+html.duo-tall.duo-split.duo-build body .duo-wk-t { grid-column:1 / span 2; }
+html.duo-tall.duo-split.duo-build body .duo-wk-pad { grid-column:1;grid-row:2 / span 3;min-height:0; }
+/* with the console out, the scene is only the scene: its own selection bar and the ✓ / ✕ chip stay hidden (the console does both) */
+html.duo-split.duo-build body .mn-dsp .mn-dsp-sel, html.duo-split.duo-build body .mn-bq { display:none !important; }
+
+/* full screen (inner sideways / outer): the Dock is pinned in the right status column as one narrow glass capsule under
+   the clock (like Xiaohongshu's tab pill), scrolling when the icons do not fit; the board's background runs on under it */
+html.duo-dockpin body .landscape main, html.duo-dockpin body #root main { margin-right:0 !important;padding-right:calc(var(--duo-dock, 84px) - 10px) !important;box-sizing:border-box !important; }
+/* inner screen: the board view has its own 16px inset, so the lists are cut off exactly where the column starts (as YouTube's video) */
+html.duo-dockpin.duo-inner body .landscape main, html.duo-dockpin.duo-inner body #root main { padding-right:calc(var(--duo-dock, 84px) - 16px) !important; }
+/* the top bar's buttons (search, +) step out of the column too */
+html.duo-dockpin body header.iphone-topbar { padding-right:calc(var(--duo-dock, 84px) + 2px) !important;box-sizing:border-box !important; }
+html.duo-dockpin[data-mn-bd] body .mn-bdock { left:auto !important;right:calc((var(--duo-dock, 84px) - 52px) / 2) !important;top:calc(var(--sat, 0px) + var(--duo-dock-top, 118px)) !important;bottom:auto !important;max-height:min(calc(100% - var(--sat, 0px) - var(--duo-dock-top, 118px) - 10px), var(--duo-dock-h, 9999px)) !important;width:52px !important;
+  transform:none !important;opacity:1 !important;pointer-events:auto !important;flex-direction:column !important;align-items:center !important;justify-content:flex-start !important;flex-wrap:nowrap !important;gap:4px !important;
+  overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y !important;scrollbar-width:none;padding:7px 0 !important;box-sizing:border-box;border-radius:25px !important;
+  background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08)) !important;border:1px solid rgba(255,255,255,.26) !important;-webkit-backdrop-filter:blur(22px) saturate(180%) !important;backdrop-filter:blur(22px) saturate(180%) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 22px rgba(0,0,0,.25) !important; }
+html.duo-dockpin.mnh-tw[data-mn-bd] body .mn-bdock { background:rgba(255,255,255,.82) !important;border-color:rgba(255,255,255,.95) !important;box-shadow:0 6px 18px rgba(15,23,42,.14) !important; }
+/* the outer screen shows one list at a time: it is as wide as what is left beside the Dock, not the whole screen */
+html.duo-dockpin.duo-outer body .mobile-board-view .kanban-column-wrapper { width:calc(100vw - var(--duo-dock, 84px) - 10px) !important;min-width:0 !important;max-width:none !important; }
+html.duo-dockpin body .mn-bdock::-webkit-scrollbar { display:none; }
+html.duo-dockpin body .mn-bdock::before { display:none !important; }
+html.duo-dockpin body .mn-bdock > * { flex:none; }
+html.duo-dockpin body .mn-bdock .mn-bapp { width:38px !important;height:38px !important;border-radius:50% !important;background:transparent !important;border:0 !important;box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important; }
+html.duo-dockpin body .mn-bdock .mn-bapp::before { display:none !important; }
+html.duo-dockpin body .mn-bdock .mn-bapp.on { background:rgba(125,211,252,.18) !important; }
+html.duo-dockpin body .mn-bdock .mn-bapp svg { width:58% !important; }
+html.duo-dockpin body.clear-mode .mn-bdock, html.duo-dockpin.duo-sheet body .mn-bdock { display:none !important; }
+html.duo-dockpin body .mn-bd-edge { display:none !important; }
+/* Duo: the list filter and the wallpaper live in Settings, not in the Dock */
+html.duo body .mn-bdock .mn-bapp[aria-label^="Filter by list"], html.duo body .mn-bdock .mn-bapp[aria-label^="Board Wallpaper"] { display:none !important; }
+.duo-set-tools { display:flex;gap:8px;padding:8px 16px 10px;border-bottom:1px solid rgba(255,255,255,.1); }
+.duo-set-tools button { flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:inherit;font:600 13px -apple-system,system-ui,sans-serif; }
+.duo-set-tools button:active { background:rgba(255,255,255,.16); }
+/* outer screen: the clock's bubble is taller there, the Dock starts below it */
+html.duo-dockpin.duo-outer { --duo-dock-top:172px; }
+/* the Dock ends Settings · CarPlay · Light FX · Card FX; it is cut after CarPlay (duo.js), the two FX icons are a scroll away */
+html.duo-dockpin body .mn-bdock .mn-bapp[aria-label^="Board settings"] { order:10; }
+html.duo-dockpin body .mn-bdock .mn-bapp[aria-label*="CarPlay"] { order:11; }
+html.duo-dockpin body .mn-bdock .mn-bapp[aria-label^="Light FX"] { order:12; }
+html.duo-dockpin body .mn-bdock .mn-bapp[aria-label^="Card FX"] { order:13; }
+/* the ⌂ 速览 pill stays out of sight until a two-finger pinch brings it up for a few seconds */
+html.duo body .duo-back { transition:opacity .25s ease, transform .25s ease; }
+html.duo:not(.duo-pinch) body .duo-back { opacity:0 !important;pointer-events:none !important;transform:translateY(14px); }
+/* board | 3D Cover, held sideways: the Cover takes the left half (up to the hinge), the board the right half up to the Dock */
+html.duo-cover:not(.duo-tall) body #root main > .sf-slot[data-sf-view="coverflow"] { order:-1;flex:0 0 calc(50vw - var(--sal, 0px)) !important;width:calc(50vw - var(--sal, 0px)) !important;padding-right:0 !important;border-left:0 !important;border-right:2px solid rgba(255,255,255,.12); }
+html.duo-cover:not(.duo-tall) body #root main > .sf-slot[data-sf-view="board"] { flex:1 1 auto !important;width:auto !important; }
+html.duo-dockpin body .mn-bdock .duo-bx { order:-1; }
+html.duo-dockpin body .mn-bdock .duo-bx svg { width:56% !important;height:auto;aspect-ratio:1; }
+/* the Cover's section fills its own pane exactly (it was laid out wider, so the front card sat off-centre) */
+html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] > section, html.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] > * > section { left:0 !important;right:0 !important;width:100% !important;max-width:100% !important;margin:0 !important; }
+/* board | 3D Cover, sideways: the list sits a little below the top edge, its whole frame in view */
+html.duo-cover:not(.duo-tall) body #root .sf-slot[data-sf-view="board"] .mobile-board-view { padding-top:calc(var(--sat, 0px) + 22px) !important; }
+html.duo-cover:not(.duo-tall) body #root .sf-slot[data-sf-view="board"] .kanban-column-wrapper { max-height:calc(100dvh - var(--sat, 0px) - 22px - 18px) !important; }
+/* the Contents column ends right after its last list, like any other list (53.8241's 96px scroll padding is cleared for
+   ordinary lists elsewhere, not for Contents — its frame stood a hand taller than its lists) */
+html body .mn-tocol .mn-tocol-b { padding-bottom: 2px !important; }
+/* pop-ups that open from the top bar (Workspace / board picker, list filter, create menu) stop short of the Dock column,
+   so their own buttons (↻ sync, ✕) are never under the clock or the Dock */
+html.duo-dockpin body .board-picker-popover, html.duo-dockpin body .list-filter-popover, html.duo-dockpin body .create-menu-popover {
+  max-width:calc(100vw - var(--duo-dock, 84px) - 24px) !important; box-sizing:border-box !important; }
+/* 2026-10-30: no ▦ Boards launcher bottom-left (the board picker in the top bar does the job), and no Card FX / Light FX
+   chips top-left in 3D Cover on any device (both effects stay in the Dock) */
+html body .mn-board-launcher { display:none !important; }
+html body .student-cover-float-bar, html body .fbfx-btn, html body .card-mode-btn { display:none !important; }
+/* MN-DUO-ONE-DOCK 2026-10-30: on the Duo the Dock is the pinned column under the clock. A two-finger pinch (MinestChrome's
+   bar toggle, mn-chrome) must not slide out a second, floating Dock: while the right column holds the two-pane tool rail
+   (or a sideways split / build view) the unpinned Dock and its edge strip stay away. Pinned Dock unchanged; upright, where
+   there is no column and no rail, the floating Dock is the only one and keeps its behaviour. */
+html.duo.duo-rail-on:not(.duo-dockpin) body .mn-bdock, html.duo.duo-rail-on:not(.duo-dockpin) body .mn-bd-edge,
+html.duo.duo-split:not(.duo-tall):not(.duo-dockpin) body .mn-bdock, html.duo.duo-split:not(.duo-tall):not(.duo-dockpin) body .mn-bd-edge { display:none !important; }
+/* /MN-DUO-ONE-DOCK */
+/* board | 3D Cover, upright half-fold: the 3D Cover on the top half, the board below it (the user's order) */
+html.duo-tall.duo-cover body #root main > .sf-slot[data-sf-view="coverflow"] { order:-1; flex:0 0 calc(50vh - var(--duo-mt, 0px)) !important; height:calc(50vh - var(--duo-mt, 0px)) !important; border-top:0 !important; border-bottom:2px solid rgba(255,255,255,.12); }
+html.duo-tall.duo-cover body #root main > .sf-slot[data-sf-view="board"] { flex:1 1 0 !important; height:auto !important; min-height:0; }

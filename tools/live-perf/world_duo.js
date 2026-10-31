@@ -14,6 +14,7 @@
          selected, ready to drag / turn, with the ✓ / ✕ chip beside it (the 53.81 chip). The library follows the level:
          the island gets buildings, outdoor decor, land; a building or room gets furniture and displays. 🎒 Saved items
          are your things not on the island yet (they go to a display the usual way); 🔭 opens the Visual Library. */
+  var DUO_API = null;   // the Build console's parts, for the Fold flow console (world_fold.js)
   (function () {
     var lastR = null, fitCam = null, quiet = false, lastSelKey = '';
     function sceneR() { var s = el && el.querySelector('.mn-dsp-scene'); var r = s && s.getBoundingClientRect(); return r && r.width > 0 && r.height > 0 ? r : null; }
@@ -149,7 +150,7 @@
       d.querySelectorAll('.mn-pk-card').forEach(function (c) { var pic = c.querySelector('.pic'); if (!pic || !pic.querySelector('.mn-a3wait')) return; var h = bldIcon(c.getAttribute('data-pkkind'), 132); if (h.indexOf('mn-a3wait') < 0) pic.innerHTML = h; else left++; });
       if (left) LIB.fillT = setTimeout(libFill, 700);
     }
-    function libOpen(tab, keep) { if (!V || V.visit) return; editOn(); if (!keep) { V.sel = null; V.menu = null; V.hold = null; V.ghost = null; } LIB.on = true; LIB.resume = false; document.documentElement.classList.add('duo-build'); if (tab) LIB.tab = tab; else if (!LIB.tab) LIB.tab = V.at && V.at.room ? 'furn' : 'bld'; libDraw(); render(); }
+    function libOpen(tab, keep) { if (!V || V.visit) return; if (typeof WFAPI !== 'undefined' && WFAPI && WFAPI.on()) return WFAPI.sync();   /* half folded upright: the Fold flow console is the builder */ editOn(); if (!keep) { V.sel = null; V.menu = null; V.hold = null; V.ghost = null; } LIB.on = true; LIB.resume = false; document.documentElement.classList.add('duo-build'); if (tab) LIB.tab = tab; else if (!LIB.tab) LIB.tab = V.at && V.at.room ? 'furn' : 'bld'; libDraw(); render(); }
     function libClose() { LIB.on = false; LIB.spot = null; spotMark(); document.documentElement.classList.remove('duo-build'); var d = document.querySelector('.duo-lib'); if (d) d.remove(); }
     function placeKind(k) {
       if (!V || !K[k]) return;
@@ -206,13 +207,13 @@
       change(function () { if (!tryAt(p, p.x + sx, p.y + sy)) toast('No room there'); }); hap('light');
     }
     document.addEventListener('change', function (e) {
-      var t = e.target; if (!t.matches || !t.matches('.duo-lib [data-wksize]')) return; var p = selPiece(); if (!p) return; var v = +t.value;
+      var t = e.target; if (!t.matches || !t.matches('.duo-lib [data-wksize], .wf [data-wksize]')) return; var p = selPiece(); if (!p) return; var v = +t.value;
       change(function () { var s0 = p.s || 1; p.s = v; if (!fits(p) && !settle(p, p.x, p.y)) { p.s = s0; toast('No room for it that big here'); } }); libDraw();
     }, true);
-    document.addEventListener('input', function (e) { var t = e.target; if (t.matches && t.matches('.duo-lib [data-wksize]')) { var em = t.parentNode.querySelector('em'); if (em) em.textContent = Math.round(t.value * 100) + '%'; } }, true);
+    document.addEventListener('input', function (e) { var t = e.target; if (t.matches && t.matches('.duo-lib [data-wksize], .wf [data-wksize]')) { var em = t.parentNode.querySelector('em'); if (em) em.textContent = Math.round(t.value * 100) + '%'; } }, true);
     var PAD = null;   // the touchpad: the finger's travel moves the piece the same way on screen
     document.addEventListener('pointerdown', function (e) {
-      var pad = e.target.closest && e.target.closest('.duo-lib [data-wkpad]'); if (!pad) return; var p = selPiece(); if (!p) return;
+      var pad = e.target.closest && e.target.closest('.duo-lib [data-wkpad], .wf [data-wkpad]'); if (!pad) return; var p = selPiece(); if (!p) return;
       e.preventDefault(); try { pad.setPointerCapture(e.pointerId); } catch (x) {} pad.classList.add('on');
       PAD = { id: e.pointerId, x: e.clientX, y: e.clientY, px: p.x, py: p.y, p: p, q: false };
     }, true);
@@ -222,7 +223,7 @@
       if (tryAt(PAD.p, PAD.px + d[0], PAD.py + d[1]) && !PAD.q) { PAD.q = true; requestAnimationFrame(function () { if (PAD) PAD.q = false; render(); }); }
     }, true);
     document.addEventListener('pointerup', function (e) {
-      if (!PAD || e.pointerId !== PAD.id) return; var pad = document.querySelector('.duo-lib [data-wkpad]'); if (pad) pad.classList.remove('on');
+      if (!PAD || e.pointerId !== PAD.id) return; var pad = document.querySelector('.duo-lib [data-wkpad], .wf [data-wkpad]'); if (pad) pad.classList.remove('on');
       PAD = null; change(function () {}); hap('light');   // saved, and one step for ↶ Undo
     }, true);
 
@@ -259,8 +260,10 @@
         try { if (window.MinestUniverse && !document.querySelector('.uv')) MinestUniverse.open({ path: [{ t: 'home' }, { t: 'world', bid: bid }] }); } catch (e) {}
         open({ t: 'world', bid: bid });
       }
-      if (!V) return false; if (V.at) { var g = 4; while (V.at && g--) leaveRoom(); }
+      if (!V) return false; if (typeof WFAPI !== 'undefined' && WFAPI && WFAPI.on()) { WFAPI.sync(); return true; }   // the Fold flow keeps the level you are on
+      if (V.at) { var g = 4; while (V.at && g--) leaveRoom(); }
       libOpen(); fit(); return true;
     }
+    DUO_API = { LIB: LIB, ctlHtml: ctlHtml, wkAct: wkAct, placeKind: placeKind, libClose: libClose, centreOn: centreOn, selPiece: selPiece };
     window.MinestDuoWorld = { buildHere: buildHere, sel: function () { var p = selPiece(); return p ? { id: p.id, k: p.k, x: p.x, y: p.y, f: p.f || 0, s: p.s || 1 } : null; }, placed: function (ref) { return !!(V && placed()[ref]); }, holding: function () { return !!(V && V.hold); }, locate: locate, build: function (tab) { return libOpen(tab); }, place: function (k) { return placeKind(k); }, libOn: function () { return LIB.on; }, open: function () { return !!V; }, board: function () { return V ? V.bid : null; } };
   })();

@@ -1,0 +1,186 @@
+/* 53.86 · Fold flow (world_fold.js): My World's levels console. Half folded upright (html.wf-fold): the scene in the top half,
+   the console in the bottom half, split on the hinge (50vh). Elsewhere, from 🎛 Levels: a side panel (html.wf-side) or a
+   bottom sheet (html.wf-sheet). The scene and the piece view keep clear of it; the island's own floating tools step aside. */
+html.wf-on { --wf-r:0px; --wf-b:0px; }
+html.wf-fold { --wf-b:50vh; }
+html.wf-sheet { --wf-b:min(46vh, 460px); }
+html.wf-side { --wf-r:min(420px, 38vw); }
+html.wf-on.wf-on.wf-on.wf-on body .mn-dsp, html.wf-on.wf-on.wf-on.wf-on body .mn-pv { top:0 !important;left:0 !important;right:var(--wf-r) !important;bottom:var(--wf-b) !important;width:auto !important;height:auto !important;border:0 !important;box-shadow:none !important; }
+html.wf-on.wf-on.wf-on body .duo-lib, html.wf-on.wf-on.wf-on body .mn-sbgo, html.wf-on.wf-on.wf-on body .mn-bq, html.wf-on.wf-on.wf-on body .mn-dsp.mn-dsp .mn-dsp-sel, html.wf-on.wf-on.wf-on body .mn-dsp .mn-guide:not(.in-pv), html.wf-on.wf-on.wf-on body .duo-rp { display:none !important; }
+/* the dollhouse fills the scene: its own head, tools and room bar live in the console */
+html.wf-on body .mn-dsp .mn-fp-head, html.wf-on body .mn-dsp .mn-fp-floors, html.wf-on body .mn-dsp .mn-dh-tools, html.wf-on body .mn-dsp .mn-fp-tip, html.wf-on body .mn-dsp .mn-dh-pal, html.wf-on body .mn-dsp .mn-dh-bar, html.wf-on body .mn-dsp .mn-bv-bar, html.wf-on body .mn-dsp .mn-bv-addp, html.wf-on body .mn-dsp .mn-sec-home, html.wf-on body .mn-dsp .mn-sec-pal { display:none !important; }
+html.wf-on body .mn-dsp .mn-bv { padding:56px 10px 6px !important;display:flex;flex-direction:column; }
+html.wf-on body .mn-dsp .mn-bv::after { display:none !important; }
+html.wf-on body .mn-dsp .mn-fp { flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:0 !important;margin:0 !important; }
+html.wf-on body .mn-dsp .mn-fp > * { flex:none; }
+html.wf-on body .mn-dsp .mn-fp > .mn-fp-doll { flex:1 1 auto;min-height:0;max-height:none;padding:0 !important;margin:0 !important; }
+html.wf-on body .mn-dsp .mn-fp-doll svg { width:100% !important;height:100% !important;max-height:none !important; }
+/* the piece view keeps its title bar a bar (≥ 900 px the island's row layout gave it the whole height) */
+html.wf-on body .mn-pv > .mn-dsp-top { flex:none !important; }
+/* one thing (level 6) in the scene half: its picture beside its words; ‹ › and the actions are in the console */
+html.wf-on body .mn-pv .pv-sheet:not(.pv-add) { display:grid;grid-template-columns:minmax(0,42%) minmax(0,1fr);column-gap:16px;align-items:start;max-height:calc(100% - 20px);box-sizing:border-box; }
+html.wf-on body .mn-pv .pv-sheet:not(.pv-add) .big { grid-column:1;width:100%;height:auto;aspect-ratio:1 / 1;max-height:calc(100vh - var(--wf-b) - 70px); }
+html.wf-on body .mn-pv .pv-sheet:not(.pv-add) .big img { width:100%;height:100%;object-fit:contain; }
+html.wf-on body .mn-pv .pv-sheet:not(.pv-add) .txt { grid-column:2;padding-top:18px; }
+html.wf-on body .mn-pv .pv-sheet:not(.pv-add) .nav { display:none; }
+/* the ✨ / 🔀 preview panels dock over the console (world_fold.js sets their box) */
+html.wf-on body .mn-sb.wf-docked, html.wf-on body .mn-ro.wf-docked { z-index:2147483320; }
+
+html body .wf { position:fixed;left:0;right:0;bottom:0;height:var(--wf-b);z-index:2147483260;display:flex;flex-direction:column;gap:8px;box-sizing:border-box;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#3b3b3b;color:#fff;border-top:3px solid #000;box-shadow:0 -4px 0 #5a5a5a inset;
+  font-family:var(--pc-font,system-ui);overflow:hidden;-webkit-user-select:none;user-select:none; }
+html.wf-side body .wf { top:0;bottom:0;left:auto;right:0;width:var(--wf-r);height:auto;border-top:0;border-left:3px solid #000;padding-top:calc(10px + env(safe-area-inset-top));padding-right:calc(12px + env(safe-area-inset-right)); }
+html.wf-sheet body .wf { border-radius:14px 14px 0 0; }
+html body .wf button { font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent; }
+html body .wf button:disabled { opacity:.4;cursor:default; }
+html body .wf-h { display:flex;align-items:center;gap:8px;min-width:0;flex:none; }
+html body .wf-up, html body .wf-x { flex:none;width:40px;height:40px;border:2px solid #000;background:#5a5a5a;color:#fff;font:900 22px/1 var(--pc-font,system-ui);box-shadow:0 3px 0 #000; }
+html body .wf-x { font-size:15px; }
+html body .wf-crumbs { flex:1;min-width:0;display:flex;align-items:center;gap:3px;overflow-x:auto;scrollbar-width:none;white-space:nowrap; }
+html body .wf-crumbs::-webkit-scrollbar { display:none; }
+html body .wf-crumbs button { flex:none;max-width:170px;overflow:hidden;text-overflow:ellipsis;min-height:34px;padding:0 9px;border:2px solid #000;background:#4a4a4a;color:#e8e8e8;font:800 12.5px/1 var(--pc-font,system-ui); }
+html body .wf-crumbs button.on { background:#f2c13d;color:#1b1b1b; }
+html body .wf-crumbs .sep { color:#9a9a9a;font-weight:900; }
+html body .wf-lv { flex:none;color:#cfcfcf;font:800 11px/1.1 var(--pc-font,system-ui);text-align:right;max-width:76px; }
+html body .wf-smart { flex:none;display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:10px;row-gap:2px;width:100%;min-height:48px;padding:7px 14px;color:#fff;text-align:left;
+  background:#3c8527;border:3px solid;border-color:#7fd35f #5aa83d #24521a #2f6b21;box-shadow:0 0 0 2px #000,0 4px 0 2px #000;margin-bottom:4px; }
+html body .wf-smart b { font:900 17px/1.1 var(--pc-font,system-ui);white-space:nowrap; }
+html body .wf-smart small { flex:1 1 180px;font:700 11.5px/1.25 var(--pc-font,system-ui);color:#e3f5d8; }
+html body .wf-smart:active { transform:translateY(2px);box-shadow:0 0 0 2px #000,0 2px 0 2px #000; }
+html body .wf-fs { flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 10px;background:#2b2b2b;border:2px solid #7fd35f; }
+html body .wf-fs > div:first-child { flex:1 1 200px;display:flex;flex-direction:column;gap:2px;min-width:0; }
+html body .wf-fs b { font:900 15px/1.15 var(--pc-font,system-ui); }
+html body .wf-fs small { color:#d9d9d9;font:600 12px/1.3 var(--pc-font,system-ui); }
+html body .wf-fs.busy small::after { content:' ⏳'; }
+html body .wf-fsb { display:flex;gap:6px; }
+html body .wf-fsb button { min-height:42px;padding:0 12px;border:2px solid #000;background:#5a5a5a;color:#fff;font:900 13px/1 var(--pc-font,system-ui);box-shadow:0 3px 0 #000; }
+html body .wf-fsb .ok { background:#3c8527; }
+html body .wf-fsb .no { background:#8a2c2c; }
+html body .wf-tabs { flex:none;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none; }
+html body .wf-tabs::-webkit-scrollbar { display:none; }
+html.wf-side body .wf-tabs { flex-wrap:wrap; }
+html body .wf-tabs button { flex:1 0 auto;min-width:64px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 10px;border:2px solid #000;background:#5a5a5a;color:#fff;font:800 12.5px/1 var(--pc-font,system-ui); }
+html body .wf-tabs button i { font-style:normal;font-size:18px; }
+html body .wf-tabs button.on { background:#f2c13d;color:#1b1b1b; }
+html body .wf-body { flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:8px;padding-bottom:4px; }
+html body .wf-body h4 { margin:4px 0 0;font:900 12px/1.2 var(--pc-font,system-ui);color:#f2c13d;letter-spacing:.03em; }
+html body .wf-hint { flex:none;margin:0;color:#bdbdbd;font:700 11.5px/1.3 var(--pc-font,system-ui);text-align:center; }
+html body .wf-row, html body .wf-chips { display:flex;flex-wrap:wrap;align-items:center;gap:6px; }
+html body .wf-row button, html body .wf-chips button { min-height:40px;padding:0 11px;border:2px solid #000;background:#4a4a4a;color:#fff;font:800 12.5px/1.1 var(--pc-font,system-ui);box-shadow:0 2px 0 #000; }
+html body .wf-row button.on, html body .wf-chips button.on { background:#3c8527; }
+html body .wf-chips button.has { background:#3d4a5a; }
+html body .wf-row .rm, html body .wf-item .rm { background:#8a2c2c; }
+html body .wf-row .lb { color:#cfcfcf;font:700 12px/1 var(--pc-font,system-ui); }
+html body .wf-row input[type=text], html body .wf-row input[type=url], html body .wf-row select, html body .wf-f input, html body .wf-f textarea { min-height:40px;box-sizing:border-box;padding:6px 9px;border:2px solid #000;background:#262626;color:#fff;font:700 14px/1.25 var(--pc-font,system-ui);border-radius:0;-webkit-user-select:text;user-select:text; }
+html body .wf-row input[type=text], html body .wf-row input[type=url] { flex:1 1 160px;min-width:0; }
+html body .wf-go { background:#3c8527 !important; }
+html body .wf-list { display:flex;flex-direction:column;gap:6px; }
+html body .wf-list > button, html body .wf-item > button:first-child { min-height:46px;text-align:left;padding:6px 10px;border:2px solid #000;background:#4a4a4a;color:#fff;display:flex;flex-direction:column;justify-content:center;gap:2px;font:800 13px/1.2 var(--pc-font,system-ui);box-shadow:0 2px 0 #000; }
+html body .wf-list small { color:#cfcfcf;font-weight:600;font-size:11.5px; }
+html body .wf-item { display:flex;gap:6px; }
+html body .wf-item > button:first-child { flex:1;min-width:0; }
+html body .wf-item > button:first-child b { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+html body .wf-item > button:not(:first-child) { flex:none;min-width:44px;border:2px solid #000;background:#5a5a5a;color:#fff;font:900 16px/1 var(--pc-font,system-ui);box-shadow:0 2px 0 #000; }
+html body .wf-item.on > button:first-child { background:#56622f;border-color:#f2c13d; }
+html body .wf-rooms { display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px; }
+html body .wf-rooms button { min-height:62px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:6px 9px;border:2px solid #000;background:#4a4a4a;color:#fff;text-align:left;box-shadow:0 2px 0 #000; }
+html body .wf-rooms button i { font-style:normal;font-size:18px; }
+html body .wf-rooms button b { font:800 12.5px/1.15 var(--pc-font,system-ui); }
+html body .wf-rooms button small { color:#cfcfcf;font:600 11px/1 var(--pc-font,system-ui); }
+html body .wf-rooms button.on { background:#56622f;border-color:#f2c13d; }
+/* the dollhouse's room bar, docked here */
+html body .wf-bv { position:static !important;display:flex;flex-direction:column;gap:6px;padding:8px;background:#2b2b2b;border:2px solid #000;color:#fff;transform:none !important;inset:auto !important;width:auto !important;max-width:none !important;box-shadow:none !important; }
+html body .wf-bv .row { display:flex;flex-wrap:wrap;align-items:center;gap:6px; }
+html body .wf-bv button { min-height:38px;padding:0 10px;border:2px solid #000;background:#4a4a4a;color:#fff;font:800 12.5px/1 var(--pc-font,system-ui); }
+html body .wf-bv button.go { background:#3c8527; }
+html body .wf-bv button.rm { background:#8a2c2c; }
+html body .wf-bv input, html body .wf-bv select { min-height:38px;padding:4px 8px;border:2px solid #000;background:#262626;color:#fff;font:700 13px/1.2 var(--pc-font,system-ui); }
+html body .wf-bv input[type=text] { flex:1 1 140px;min-width:0; }
+html body .wf-bv label { display:flex;align-items:center;gap:5px;font:700 12px/1 var(--pc-font,system-ui);color:#d9d9d9; }
+html body .wf-bv .lb { color:#bdbdbd;font:700 11.5px/1 var(--pc-font,system-ui); }
+/* the bag */
+html body .wf-bag { display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px; }
+html body .wf-bag button { display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;min-height:96px;border:2px solid #000;background:#4a4a4a;color:#fff;font:800 11.5px/1.15 var(--pc-font,system-ui);box-shadow:0 2px 0 #000; }
+html body .wf-bag img, html body .wf-bag i { width:52px;height:52px;object-fit:cover;display:grid;place-items:center;font-style:normal;font:900 22px/1 var(--pc-font,system-ui);background:hsl(var(--h,200) 45% 42%);border:2px solid #000; }
+html body .wf-bag span { overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-align:center; }
+html body .wf-bag button:active { background:#3c8527; }
+/* one thing */
+html body .wf-f { display:flex;flex-direction:column;gap:4px;font:800 12px/1 var(--pc-font,system-ui);color:#f2c13d; }
+html body .wf-f textarea { resize:vertical;min-height:84px; }
+html body .wf-chk { display:flex;align-items:center;gap:8px;font:800 13px/1 var(--pc-font,system-ui); }
+html body .wf-chk input { width:22px;height:22px;accent-color:#7fd35f; }
+html body .wf-pic { display:flex;justify-content:center; }
+html body .wf-pic img, html body .wf-pic .mn-letter { width:120px;height:120px;object-fit:cover;border:3px solid #000;display:grid;place-items:center;font:900 44px/1 var(--pc-font,system-ui); }
+/* the piece's controls (world_duo.js), the pad beside the buttons when there is room */
+html.wf-fold body .wf .duo-wk, html.wf-sheet body .wf .duo-wk { display:grid;grid-template-columns:1.2fr 1fr;grid-template-rows:auto 1fr auto auto;column-gap:12px;row-gap:8px; }
+html.wf-fold body .wf .duo-wk-t, html.wf-sheet body .wf .duo-wk-t { grid-column:1 / span 2; }
+html.wf-fold body .wf .duo-wk-pad, html.wf-sheet body .wf .duo-wk-pad { grid-column:1;grid-row:2 / span 3;min-height:120px; }
+html body .wf .duo-wk-row button { min-height:40px; }
+html body .wf .duo-wk { gap:8px; }
+html body .wf-body > .wf-row:first-child .wf-go { flex:1; }
+html body .wf .duo-lib-grid { grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); }
+/* 🎛 Levels: opens the console where the phone is not half folded */
+html body .wf-tog { position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(64px + env(safe-area-inset-right));z-index:2147483270;display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;color:#fff;
+  font:800 13px/1 var(--pc-font,system-ui);background:#4a4a4a;border:3px solid;border-color:#6b6b6b #2b2b2b #111 #2b2b2b;box-shadow:0 0 0 2px #000,0 3px 0 2px #000;cursor:pointer; }
+html body .wf-tog b { font-weight:900; }
+
+/* 53.87 · the unified tools: Smart · Suggest · Lock · Confirm · Edit, the level's menu, proposals */
+html body .wf-seg { flex:none;display:flex;gap:4px; }
+html body .wf-seg button { flex:1;min-height:34px;padding:0 8px;border:2px solid #000;background:#4a4a4a;color:#fff;font:800 12px/1.1 var(--pc-font,system-ui); }
+html body .wf-seg button.on { background:#f2c13d;color:#1b1b1b; }
+html body .wf-seg.sm button { min-height:32px;font-size:11.5px; }
+html body .wf-acts { flex:none;display:grid;grid-template-columns:repeat(5,1fr);gap:5px; }
+html body .wf-acts button { min-height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px 0;border:2px solid #000;background:#5a5a5a;color:#fff;font:800 11.5px/1 var(--pc-font,system-ui);box-shadow:0 3px 0 #000; }
+html body .wf-acts button i { font-style:normal;font-size:17px;line-height:1; }
+html body .wf-acts button.on { background:#f2c13d;color:#1b1b1b; }
+html body .wf-acts button[data-wfact="smart"] { background:#3c8527; }
+html body .wf-acts button[data-wfact="smart"].on { background:#5aa83d;color:#fff;box-shadow:0 0 0 2px #f2c13d,0 3px 0 #000; }
+html body .wf-acts button[data-wfact="confirm"]:not(:disabled) { background:#2f6b21;box-shadow:0 0 0 2px #7fd35f,0 3px 0 #000; }
+html body .wf-menu { flex:none;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none; }
+html body .wf-menu::-webkit-scrollbar { display:none; }
+html body .wf-menu button { flex:1 0 auto;min-height:36px;padding:0 10px;border:2px solid #000;background:#2b2b2b;color:#e8e8e8;font:800 12px/1 var(--pc-font,system-ui);white-space:nowrap; }
+html body .wf-menu button.on { background:#3d4a5a;color:#fff;border-color:#f2c13d; }
+html body .wf-pend { flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;background:#26311f;border:2px solid #7fd35f; }
+html body .wf-pend.idle { border-color:#9a9a9a;background:#2b2b2b; }
+html body .wf-pend .t { flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:1px; }
+html body .wf-pend .t b { font:900 13px/1.15 var(--pc-font,system-ui); }
+html body .wf-pend .t small { color:#d9e8cf;font:600 11.5px/1.25 var(--pc-font,system-ui); }
+html body .wf-car { display:flex;align-items:center;gap:4px; }
+html body .wf-car button { min-width:40px;min-height:38px;border:2px solid #000;background:#4a4a4a;color:#fff;font:900 16px/1 var(--pc-font,system-ui);box-shadow:0 2px 0 #000; }
+html body .wf-car span { min-width:38px;text-align:center;font:900 13px/1 var(--pc-font,system-ui); }
+html body .wf-car.big { justify-content:space-between; }
+html body .wf-car.big button { flex:1;font-size:13px; }
+html body .wf-fill { flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;min-height:46px;padding:7px 12px;color:#fff;text-align:left;background:#3d4a7a;border:3px solid;border-color:#7f95d3 #5a6ea8 #232f52 #2f3b6b;box-shadow:0 0 0 2px #000,0 4px 0 2px #000;margin:4px 0; }
+html body .wf-fill b { font:900 15px/1.1 var(--pc-font,system-ui); }
+html body .wf-fill small { font:700 11.5px/1.25 var(--pc-font,system-ui);color:#dfe6ff; }
+html body .wf-locks { display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px; }
+html body .wf-locks button { display:grid;grid-template-columns:auto 1fr;column-gap:8px;align-items:center;text-align:left;min-height:52px;padding:6px 10px;border:2px solid #000;background:#4a4a4a;color:#fff;box-shadow:0 2px 0 #000; }
+html body .wf-locks button i { grid-row:1 / span 2;font-style:normal;font-size:20px; }
+html body .wf-locks button b { font:800 12.5px/1.15 var(--pc-font,system-ui); }
+html body .wf-locks button small { color:#cfcfcf;font:600 11px/1.2 var(--pc-font,system-ui); }
+html body .wf-locks button.on { background:#6b4a1f;border-color:#f2c13d; }
+html body .wf-list.two { display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); }
+html body .wf-list > button.on { background:#56622f;border-color:#f2c13d; }
+html body .wf-sty button.on { background:#7a3f8a; }
+/* ‹ Back: a round glass button, top left of the scene on every level — level with the status bar (the clock is on the right) */
+html body .wf-back { position:fixed;z-index:2147483275;top:12px;left:max(12px, calc(env(safe-area-inset-left) + 10px));width:44px;height:44px;padding:0 0 3px;border-radius:50%;display:grid;place-items:center;color:#fff;cursor:pointer;
+  font:600 30px/1 -apple-system,system-ui,sans-serif;background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.1));-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);
+  border:1px solid rgba(255,255,255,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 6px 18px rgba(0,0,0,.28);text-shadow:0 1px 2px rgba(0,0,0,.45); }
+html body .wf-back:active { transform:scale(.94); }
+html.wf-on.wf-on body .mn-dsp .mn-hud-tl, html.wf-on.wf-on body .mn-dsp .mn-dsp-up, html.wf-on.wf-on body .mn-pv [data-pvx] { visibility:hidden !important; }
+html.wf-on body .mn-pv > .mn-dsp-top { padding-left:64px !important; }
+/* ✓ by what a proposal changed */
+html body .wf-ok { position:fixed;z-index:2147483272;transform:translate(-50%,0);display:flex;gap:6px;pointer-events:auto; }
+html body .wf-ok button { min-height:42px;padding:0 14px;border:3px solid;color:#fff;font:900 14px/1 var(--pc-font,system-ui);box-shadow:0 0 0 2px #000,0 4px 0 2px #000;cursor:pointer; }
+html body .wf-ok .ok { background:#3c8527;border-color:#7fd35f #5aa83d #24521a #2f6b21; }
+html body .wf-ok .no { background:#8a2c2c;border-color:#c25a5a #a04040 #4a1414 #6a2020;padding:0 12px; }
+html body .wf .mn-pk-card.on { outline:3px solid #f2c13d;outline-offset:-3px; }
+html body .wf .duo-lib-grid .mn-pk-card .pic img, html body .wf .duo-lib-grid .mn-pk-card .pic .ic { max-width:100%;height:auto; }
+html.wf-side body .wf-menu { flex-wrap:wrap; }
+
+/* the dashed next floor over the dollhouse: only while adding a floor (html.wf-addfl) */
+html.wf-on:not(.wf-addfl) body .mn-dsp .mn-fp-doll .dh-next, html.wf-on:not(.wf-addfl) body .mn-dsp .mn-fp-doll .dh-nexthit, html.wf-on:not(.wf-addfl) body .mn-dsp .mn-fp-doll .dh-lab.add { display:none !important; }
+html.wf-on body .mn-dsp .mn-fp-doll svg { overflow:visible; }
+/* the rooms a proposal changed light up */
+@keyframes wfFlash { 0%, 100% { fill:transparent;stroke:transparent; } 25%, 70% { fill:rgba(242,193,61,.38);stroke:#f2c13d; } }
+html body .mn-dsp .mn-fp-doll .wf-flash { animation:wfFlash 1.6s ease-in-out 1;stroke-width:3; }

@@ -241,7 +241,19 @@ function visibleList(){
   return best && best.getAttribute('data-col-id');
 }
 var lsQ = false;
-document.addEventListener('scroll', function(){ if (lsQ || !document.documentElement.classList.contains('duo-cover')) return; lsQ = true; setTimeout(function(){ lsQ = false; var id = visibleList(); if (id) sendList(id); }, 160); }, true);
+document.addEventListener('scroll', function(){ if (lsQ || !document.documentElement.classList.contains('duo-cover')) return; lsQ = true; setTimeout(function(){ lsQ = false; var id = visibleList(); if (id) sendList(id); followCard(); }, 160); }, true);
+/* scrolling the board's cards up and down turns the 3D Cover to the card at the top of the list in view */
+var cfLast = null;
+function followCard(){
+  var pane = document.querySelector('.sf-slot[data-sf-view="board"]'); if (!pane) return;
+  var pr = pane.getBoundingClientRect(), best = null, bestY = 1e9;
+  [].forEach.call(pane.querySelectorAll('article[data-card-id]'), function(a){
+    var r = a.getBoundingClientRect(); if (r.width < 40 || r.right < pr.left || r.left > pr.right || r.bottom < pr.top + 30 || r.top > pr.bottom) return;
+    var y = Math.max(r.top, pr.top) - pr.top; if (y < bestY) { bestY = y; best = a; }
+  });
+  var id = best && best.getAttribute('data-card-id'); if (!id || id === cfLast) return; cfLast = id;
+  setTimeout(function(){ window.dispatchEvent(new CustomEvent('minest:cf-goto', { detail: { cardId: id } })); }, 90);
+}
 document.addEventListener('visibilitychange', function(){ if (on && !document.hidden) { apply(); rail(); } });
 function toggleSplit(){ if (document.documentElement.classList.contains('duo-cover')) { coverOn(false); return rail(); } var on = !prefs().split; setPref('split', on); document.documentElement.classList.toggle('duo-split', on); relayout(); splitBtn(); rail(); hap(); setTimeout(rightPane, 600); if (on) openWorld(); }
 

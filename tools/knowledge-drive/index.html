@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Knowledge Drive · prototype</title>
+<link rel="stylesheet" href="drive.css">
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; background: linear-gradient(160deg, #1b2440, #3a2e4f 55%, #a5605a); color: #fff; font: 15px/1.4 -apple-system, "PingFang SC", sans-serif; display: grid; place-items: center; }
+  .start { width: min(520px, calc(100vw - 32px)); padding: 24px; border-radius: 24px; background: rgba(20, 24, 34, .55); border: 1px solid rgba(255,255,255,.14); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+  h1 { margin: 0 0 4px; font-size: 26px; } p { margin: 0 0 18px; opacity: .75; }
+  .grid { display: grid; gap: 10px; }
+  .grid button { text-align: left; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.07); color: #fff; font: inherit; cursor: pointer; }
+  .grid button b { display: block; font-size: 16px; } .grid button small { opacity: .7; }
+  .grid button:hover { background: rgba(255,255,255,.13); }
+  label { display: flex; gap: 8px; align-items: center; margin-top: 14px; opacity: .8; }
+</style>
+</head>
+<body>
+<div class="start">
+  <h1>🚗 Knowledge Drive</h1>
+  <p>Prototype · sample boards · nothing is saved to Kanban.</p>
+  <div class="grid">
+    <button data-src='{"type":"list","bid":"kd-b1","col":"kd-l1"}'><b>Start from a List</b><small>Ecology Road, then the other Biology roads</small></button>
+    <button data-src='{"type":"board","bid":"kd-b1"}'><b>Start from a Board</b><small>Biology: 6 roads · books, movies, albums, people</small></button>
+    <button data-src='{"type":"workspace"}'><b>Start from the Workspace</b><small>Every board is a region</small></button>
+    <button data-src='{"type":"board","bid":"kd-b2"}'><b>中文词汇</b><small>Chinese road names (天气路)</small></button>
+  </div>
+  <label><input type="checkbox" id="fresh"> Start fresh (ignore saved progress)</label>
+</div>
+<script src="../vendor/three.min.js"></script>
+<script>window.THREE || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
+<script src="sample-data.js"></script>
+<script src="drive.js"></script>
+<script>
+  document.querySelectorAll('[data-src]').forEach(function (b) {
+    b.onclick = function () { MinestDrive.open({ source: JSON.parse(b.dataset.src), provider: KD_SAMPLE.provider, fresh: document.getElementById('fresh').checked }); };
+  });
+  if (location.hash.length > 1) { try { MinestDrive.open({ source: JSON.parse(decodeURIComponent(location.hash.slice(1))), provider: KD_SAMPLE.provider, fresh: true }); } catch (e) { console.error(e); } }
+</script>
+</body>
+</html>
