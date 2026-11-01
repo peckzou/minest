@@ -7964,6 +7964,101 @@ html body .mn-wx > .f { background:#fff;opacity:0;transition:none; }
 html body .mn-dsp-stage > .mn-wx-chip { position:absolute;left:10px;bottom:10px;z-index:4;padding:6px 10px;border:2px solid rgba(255,255,255,.55);background:rgba(20,26,40,.62);color:#fff;font:800 12px/1 ui-monospace,monospace;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 @media (prefers-reduced-motion: reduce) { html body .mn-wx > .r, html body .mn-wx > .s { animation:none; } }
 </style>
+<style id="mn-oia-style">
+#oia-root { --ink:#fff; --shadow:#3a3a3a; --slot:#8b8b8b; }
+#oia-root, #oia-root * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+#oia-root { margin:0; height:100%; overflow:hidden; background:#2a7aa8; touch-action:none; overscroll-behavior:none;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,"PingFang SC","Microsoft YaHei",monospace; color:var(--ink); -webkit-user-select:none; user-select:none; }
+#oia-root #oia-gl { position:fixed; inset:0; width:100%; height:100%; display:block; outline:none; }
+#oia-root .mc { color:#fff; font-weight:800; letter-spacing:.5px; text-shadow:2px 2px 0 var(--shadow); }
+#oia-root .panel { background:rgba(18,24,36,.65); border:3px solid #111; box-shadow:inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.35); }
+#oia-root #oia-loading { position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    background:linear-gradient(#1f78ec,#b5dcf6 62%,#f5a070); transition:opacity .8s; }
+#oia-root #oia-loading.done { opacity:0; pointer-events:none; }
+#oia-root #oia-loading h1 { margin:0; font-size:clamp(34px,8vw,72px); }
+#oia-root #oia-loading .sub { font-size:clamp(13px,2.4vw,18px); opacity:.95; }
+#oia-root #oia-bar { width:min(380px,70vw); height:18px; border:3px solid #111; background:#2b2b2b; }
+#oia-root #oia-bar i { display:block; height:100%; width:0; background:repeating-linear-gradient(90deg,#6ee05a 0 10px,#58c247 10px 12px); transition:width .15s; }
+#oia-root #oia-loadMsg { font-size:14px; }
+#oia-root #oia-hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+#oia-root #oia-title { position:absolute; left:14px; top:calc(12px + env(safe-area-inset-top)); }
+#oia-root #oia-title b { font-size:clamp(18px,3vw,26px); display:block; }
+#oia-root #oia-title span { font-size:12px; opacity:.9; }
+#oia-root #oia-coords { margin-top:6px; font-size:12px; }
+#oia-root #oia-crosshair { position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px; display:none; }
+#oia-root #oia-crosshair:before, #oia-root #oia-crosshair:after { content:""; position:absolute; background:#fff; mix-blend-mode:difference; }
+#oia-root #oia-crosshair:before { left:9px; top:0; width:2px; height:20px; }
+#oia-root #oia-crosshair:after { top:9px; left:0; height:2px; width:20px; }
+#oia-root #oia-banner { position:absolute; left:50%; top:16%; transform:translateX(-50%); text-align:center; opacity:0; transition:opacity .6s; }
+#oia-root #oia-banner.show { opacity:1; }
+#oia-root #oia-banner b { display:block; font-size:clamp(24px,5vw,46px); }
+#oia-root #oia-banner span { font-size:clamp(12px,2vw,16px); opacity:.9; }
+#oia-root #oia-mmWrap { position:absolute; right:12px; top:calc(12px + env(safe-area-inset-top)); padding:4px; pointer-events:auto; }
+#oia-root #oia-mm { display:block; width:168px; height:auto; image-rendering:pixelated; cursor:crosshair; }
+#oia-root #oia-timeBox { margin-top:4px; font-size:12px; display:flex; align-items:center; gap:6px; }
+#oia-root #oia-timeBox input { flex:1; accent-color:#6ee05a; min-width:0; pointer-events:auto; }
+#oia-root #oia-held { position:absolute; right:12px; bottom:calc(86px + env(safe-area-inset-bottom)); padding:6px 10px; font-size:13px; display:none; align-items:center; gap:8px; }
+#oia-root #oia-held i { width:18px; height:18px; border:2px solid #000; display:inline-block; }
+#oia-root #oia-hint { position:absolute; left:14px; bottom:calc(86px + env(safe-area-inset-bottom)); padding:8px 10px; font-size:12px; line-height:1.55; max-width:min(340px,60vw); }
+#oia-root #oia-hint.hide { display:none; }
+#oia-root #oia-hotbar { position:absolute; left:50%; bottom:calc(10px + env(safe-area-inset-bottom)); transform:translateX(-50%); display:flex; padding:3px; background:rgba(0,0,0,.55); border:3px solid #1a1a1a; pointer-events:auto; max-width:98vw; }
+#oia-root .slot { position:relative; width:clamp(38px,8.6vw,58px); height:clamp(38px,8.6vw,58px); background:var(--slot); border:3px solid; border-color:#373737 #fff #fff #373737; margin:0 1px; display:flex; align-items:center; justify-content:center; font-size:clamp(18px,4.2vw,28px); cursor:pointer; }
+#oia-root .slot small { position:absolute; left:3px; top:1px; font-size:10px; color:#fff; text-shadow:1px 1px 0 #222; }
+#oia-root .slot em { position:absolute; bottom:-18px; left:50%; transform:translateX(-50%); font-style:normal; font-size:11px; white-space:nowrap; opacity:0; transition:opacity .15s; color:#fff; text-shadow:1px 1px 0 #000; pointer-events:none; }
+#oia-root .slot:hover em { opacity:1; }
+#oia-root .slot.active { outline:3px solid #fff; z-index:2; }
+#oia-root #oia-lockHint { position:absolute; left:50%; top:22%; transform:translateX(-50%); padding:8px 14px; font-size:13px; display:none; pointer-events:auto; cursor:pointer; }
+#oia-root #oia-toast { position:absolute; left:50%; top:30%; transform:translateX(-50%); padding:8px 14px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
+#oia-root #oia-toast.show { opacity:1; }
+#oia-root #oia-uw { position:fixed; inset:0; background:rgba(14,64,130,.45); pointer-events:none; display:none; }
+#oia-root #oia-touch { display:none; }
+#oia-root.touch #oia-touch { display:block; }
+#oia-root.touch #oia-lockHint { display:none!important; }
+#oia-root #oia-joy { position:absolute; left:20px; bottom:calc(92px + env(safe-area-inset-bottom)); width:110px; height:110px; border-radius:50%; background:rgba(0,0,0,.35); border:2px solid rgba(255,255,255,.3); pointer-events:auto; touch-action:none; }
+#oia-root #oia-joy i { position:absolute; left:33px; top:33px; width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,.7); pointer-events:none; }
+#oia-root .tbtn { position:absolute; width:52px; height:52px; border-radius:50%; background:rgba(0,0,0,.5); border:2px solid rgba(255,255,255,.5); color:#fff; font-size:22px; display:flex; align-items:center; justify-content:center; pointer-events:auto; touch-action:none; }
+#oia-root #oia-tJump { right:20px; bottom:calc(120px + env(safe-area-inset-bottom)); }
+#oia-root #oia-tDown { right:80px; bottom:calc(100px + env(safe-area-inset-bottom)); }
+#oia-root #oia-tFly { right:20px; bottom:calc(185px + env(safe-area-inset-bottom)); font-size:16px; font-weight:800; }
+#oia-root #oia-lmMenu { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); padding:12px; display:none; pointer-events:auto; max-width:min(420px,90vw); max-height:80vh; overflow-y:auto; }
+#oia-root #oia-lmMenu h3 { margin:0 0 10px; font-size:16px; }
+#oia-root #oia-lmMenu button { display:block; width:100%; text-align:left; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3); color:#fff; padding:8px 10px; margin-bottom:6px; font-family:inherit; font-size:13px; cursor:pointer; }
+#oia-root #oia-lmMenu button:hover { background:rgba(255,255,255,.25); }
+#oia-root #oia-mpanel { position:fixed; inset:20px; z-index:40; display:none; flex-direction:column; background:rgba(16,20,28,.95); border:3px solid #111; box-shadow:0 12px 40px rgba(0,0,0,.7); padding:14px; pointer-events:auto; overflow:hidden; }
+#oia-root #oia-mpanel.open { display:flex; }
+#oia-root #oia-mpanel header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+#oia-root #oia-mpanel header b { font-size:16px; }
+#oia-root .mbtn { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35); color:#fff; padding:6px 12px; font-family:inherit; font-size:12px; cursor:pointer; border-radius:4px; }
+#oia-root .mbtn:hover { background:rgba(255,255,255,.3); }
+#oia-root #oia-mpanel .row { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+#oia-root #oia-mpanel input[type="text"] { flex:1; min-width:180px; background:#0e1218; border:1px solid #333; color:#fff; padding:6px 10px; font-family:inherit; font-size:13px; border-radius:4px; }
+#oia-root .chip { font-size:11px; padding:3px 8px; border-radius:12px; background:rgba(255,255,255,.12); cursor:pointer; }
+#oia-root .chip:hover { background:rgba(255,255,255,.28); }
+#oia-root #oia-mstat { font-size:12px; opacity:.85; min-height:16px; margin-bottom:4px; }
+#oia-root #oia-mgrid { flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; padding:4px; }
+#oia-root .mcard { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:6px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; transition:transform .15s, border-color .15s; }
+#oia-root .mcard:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.4); }
+#oia-root .mcard img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#0a0c10; }
+#oia-root .mcard .info { padding:6px 8px; flex:1; display:flex; flex-direction:column; justify-content:space-between; }
+#oia-root .mcard .info b { font-size:12px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+#oia-root .mcard .info small { font-size:10px; opacity:.75; margin-top:3px; }
+#oia-root #oia-mview { display:none; flex-direction:column; flex:1; gap:6px; }
+#oia-root #oia-mFrame { width:100%; flex:1; border:0; background:#000; border-radius:4px; }
+#oia-root #oia-mview .cap { font-size:11px; opacity:.85; }
+#oia-root .imp { border-top:1px solid rgba(255,255,255,.18); padding-top:8px; font-size:12px; }
+#oia-root #oia-dropHint { position:fixed; inset:0; z-index:45; background:rgba(42,122,168,.75); border:6px dashed #fff; display:none; align-items:center; justify-content:center; font-size:26px; pointer-events:none; }
+#oia-root #oia-dropHint.drag { display:flex; }
+#oia-root { position:fixed; inset:0; z-index:2147483550; }
+#oia-root[hidden] { display:none; }
+#oia-root #oia-gl, #oia-root #oia-loading, #oia-root #oia-hud, #oia-root #oia-uw { position:absolute; }
+#oia-root #oia-back { position:absolute; z-index:60; left:calc(12px + env(safe-area-inset-left)); top:calc(10px + env(safe-area-inset-top)); padding:8px 12px; font:800 14px/1 ui-monospace,monospace; color:#fff;
+  background:rgba(18,24,36,.72); border:3px solid #111; box-shadow:inset 2px 2px 0 rgba(255,255,255,.2), inset -2px -2px 0 rgba(0,0,0,.35); cursor:pointer; pointer-events:auto; }
+#oia-root #oia-title { left:calc(150px + env(safe-area-inset-left)); }
+#oia-root #oia-enter { position:absolute; z-index:60; left:50%; top:calc(64px + env(safe-area-inset-top)); transform:translateX(-50%); padding:12px 20px; font:900 16px/1 ui-monospace,monospace; color:#fff; white-space:nowrap;
+  background:#3f8f3fd9; border:3px solid; border-color:#9fe39f #2a5e2a #2a5e2a #9fe39f; text-shadow:0 2px 0 #0008; cursor:pointer; pointer-events:auto; }
+#oia-root #oia-enter[hidden] { display:none; }
+html.mn-oia-on #minest-mini-pet-p0 { visibility:hidden !important; }
+</style>
 </head>
   <body>
 <script id="mn-has-flags">
@@ -123563,7 +123658,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       function add(x0, y0, x1, y1, z0, z1, top, side) { if (rotv) { var a = rot(x0, y0, rotv), b = rot(x1, y1, rotv); x0 = Math.min(a[0], b[0]); x1 = Math.max(a[0], b[0]); y0 = Math.min(a[1], b[1]); y1 = Math.max(a[1], b[1]); }
         out.push({ t: 'box', x0: x0, x1: x1, y0: y0, y1: y1, z0: z0, z1: z1, top: top, side: side, o: {}, vf: -1, ter: 1 }); }
       for (var lv = 1; lv <= maxL; lv++) { var S = {}; Object.keys(hs).forEach(function (k) { if (hs[k] >= lv) S[k] = 1; });
-        rects(S).forEach(function (r) { var top = lv >= LVS.snow ? 'snow' : lv >= LVS.stone ? 'stone' : L.top, side = lv >= LVS.snow + 1 ? 'snow' : lv >= LVS.stone ? 'stone' : lv >= 2 ? 'dirt' : L.side; /* snow caps the peaks and coats their faces */ add(r[0], r[1], r[2], r[3], (lv - 1) * H, lv * H, top, side); }); }
+        rects(S).forEach(function (r) { var top = lv >= LVS.snow ? 'snow' : lv >= LVS.stone ? 'stone' : t.top || L.top, side = lv >= LVS.snow + 1 ? 'snow' : lv >= LVS.stone ? 'stone' : t.side || (lv >= 2 ? 'dirt' : L.side); /* snow caps the peaks and coats their faces */ add(r[0], r[1], r[2], r[3], (lv - 1) * H, lv * H, top, side); }); }
       var W = {}; Object.keys(ws).forEach(function (k) { if (!hs[k]) W[k] = 1; });
       rects(W).forEach(function (r) { add(r[0], r[1], r[2], r[3], 0, .04, 'water', 'water'); });
       var shore = {}; Object.keys(ws).forEach(function (k) { if (ws[k] !== 2) return; var c = k.split(','), x = +c[0], y = +c[1];
@@ -125353,6 +125448,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
      open its card. Nothing is changed or saved here — ✕ goes back to the island as it was. */
   var WK = null, WKS = null, WKIN = null, WKNS = false;   // Walk in 2.0: where to stand next, the building you are in, no-collision build
   function wkOpen() {
+    if (window.MinestOia && V && V.d && V.d.terr && V.d.terr.scape === 'santorini' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestOia.open(); }   /* 🇬🇷 the original voxel Oia (🚶 and 阅览 both land here) */
     if (!V || WK) return; if (V.visit === undefined) {}
     toast('Building the 3D world…'); a3().then(function (AS) { if (!AS || !AS.three || !AS.webgl()) { toast('This device cannot draw the 3D world'); return; } if (el && V && !WK) wkStart(AS); });
   }
@@ -125478,7 +125574,8 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
         if (at) { me.x = at.x + Math.sin(at.yaw + Math.PI) * .5; me.z = at.z + Math.cos(at.yaw + Math.PI) * .5; me.yaw = at.yaw; me.y = Math.max(0, floorAt(me.x, me.z, .3)); }
         if (WKIN) WKIN.from = null;
       }
-      function goOut() { if (!WKIN) WKIN = { pc: bpc(), back: null }; var back = WKIN.back; SFX('door'); fadeDo('🌳 Outside', function () { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; restart(back); }); }
+      function goOut() { if (WKIN && WKIN.vox && window.MinestOia) { var vx = WKIN.vox; SFX('door'); fadeDo('🇬🇷 Oia', function () { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; var w2 = WK; WK = null; if (steps) steps.stop(); w2.stop(); if (el && V) render(); MinestOia.open({ at: vx }); }); return; }   /* a voxel Oia building: back out onto its doorstep */
+        if (!WKIN) WKIN = { pc: bpc(), back: null }; var back = WKIN.back; SFX('door'); fadeDo('🌳 Outside', function () { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; restart(back); }); }
       // ---- the sky follows the real weather (world_wx.js): day, dawn, dusk, night; clouds, rain, snow, fog, wind, lightning
       var SKY = { day: [0x8ecbff, 0xa9b4c0, 0x7d8792], dawn: [0xf6b48f, 0xc9a99a, 0x8a8790], dusk: [0xf08a5a, 0xb0807a, 0x7a6a72], night: [0x0d1430, 0x161c2c, 0x111520] };
       function wxApply(st) {
@@ -125716,7 +125813,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
   }
   var WKVIEW = false;   // 阅览 View: the walk's 3D island as a slow orbit, full screen, no tools (patch_walk_in.py)
   function wkView() { if (WK || !V) return; WKVIEW = true; document.documentElement.classList.add('mn-wview'); wkOpen(); setTimeout(function () { if (!WK && WKVIEW) { WKVIEW = false; document.documentElement.classList.remove('mn-wview'); } }, 9000); }
-  function wkClose() { if (!WK) return; var w = WK; WK = null; w.stop(); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } if (el && V) render(); }
+  function wkClose() { if (!WK) return; var w = WK; WK = null; w.stop(); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } WKVIEW = false; document.documentElement.classList.remove('mn-wview'); if (WKIN && V) { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; } if (el && V) render(); }
   /* ── My World · Sharing System · people: your public page — your name, your character and your shared islands */
   // Settings → Islands: pick a name (@peck) and switch the page on. It lists every island you share (View / View & Clone);
   // private islands never show. Anyone can open …/iphone#@peck: a sky of floating islands — tap one to visit it.
@@ -127887,6 +127984,9 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       eye: ['............', '....kkkk....', '..kkwwwwkk..', '.kwwwLLwwwk.', 'kwwwLkkLwwwk', 'kwwwLkkLwwwk', '.kwwwLLwwwk.', '..kkwwwwkk..', '....kkkk....'],
       shire: ['............', '....rrr.....', '...rrrrr....', '....wkw.....', '....wbw.....', '.gggggggg...', 'gggGgggggggg', 'GgggggGggggG', 'gggGgggggGgg'],
       alps: ['.....w......', '....www..w..', '...wwSw.www.', '..wSsssswSw.', '.sSsssSsssS.', 'sssSssssSsss', 'gGgggGgggGgg', 'gggggggggggg', 'bbbbbbbbbbbb'],
+      oia: ['.....LL.....', '....LLLL....', '....wwww....', '...wwwwww...', '.ww.wLLw.ww.', '.ww.wwww.ww.', 'nnnnnnnnnnnn', 'LLLLlLLLLLLL', 'lLLLLLlLLLLl'],
+      venice: ['....bb......', '....bb......', '...wbwb.....', '...wbwb.....', '..w...w.....', '..k...k.....', '.kkkkkkk....', 'kLLLLLLLk...', 'LLLLlLLLLLL.', 'lLLLLLLLlLLL'],
+      gondola: ['..........k.', '..........k.', '..........w.', '..........r.', '..k......k..', '..kkkrrkkk..', '.kkkkkkkkkk.', 'LLLLLLLLLLLL', 'lLLLLlLLLLlL'],
       hill: ['.....ww.....', '....wwws....', '...wwsssS...', '..ssssssSS..', '.gsssSssssg.', 'ggggSgssgggg', 'gGgggggGgggg', 'bbbbbbbbbbbb', 'bBbbbBbbbBbb'],
       river: ['gggLLggggggg', 'ggggLLgggggg', 'gggggLLggggg', 'ggggLLlggggg', 'gggLLlgggggg', 'ggggLLgggggg', 'gggggLLggggg', 'ggggggLLgggg', 'gggggLLggggg'],
       lake: ['gggggggggggg', 'gggnLLLLnggg', 'ggnLLlLLLngg', 'gnLLLLLlLLng', 'gnLLlLLLLLng', 'ggnLLLLLLngg', 'gggnnLLnnggg', 'gggggnnggggg', 'gggggggggggg'],
@@ -128559,6 +128659,84 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
 
       d.pc = pcs; refreshLand();
     }
+    // ---------------------------------------------------------------- 🇬🇷 Santorini pieces (Cycladic, built from blocks like every house; in the build picker under Houses / Community)
+    var GREEK = {
+      house: function (B) {   // a whitewashed cube: flat roof with a parapet, a blue door, blue shutters, a little chimney
+        bx(B, 0, 2, 0, 2, 0, 1.3, 'white'); bx(B, -.04, 2.04, -.04, 2.04, 1.3, 1.4, 'white'); bx(B, .1, 1.9, .1, 1.9, 1.3, 1.34, 'quartz');
+        door(B, 1.35, 2, 0, 'concrete_blue'); winsT(B, .25, .85, 2, .5, .95, .3, .1, 'concrete_blue'); winsU(B, 2, .5, 1.5, .5, .95, .35, .2, 'concrete_blue');
+        sq(B, .45, .45, .3, .3, 1.4, 1.75, 'white'); return { W: 2, D: 2 };
+      },
+      ochre: function (B) {   // two cubes stepped up the slope, ochre and rose plaster, blue shutters, a roof terrace
+        bx(B, 0, 2.4, 0, 2, 0, 1.1, 'sandstone'); bx(B, .2, 1.4, .1, 1.3, 1.1, 2, 'concrete_orange', 'sandstone'); bx(B, 1.4, 2.4, 1.3, 2, 1.1, 1.22, 'white');
+        door(B, 1.8, 2, 0, 'concrete_blue'); winsT(B, .3, 1.1, 2, .45, .85, .32, .14, 'concrete_blue'); winsT(B, .4, 1.2, 1.3, 1.35, 1.75, .3, .2, 'concrete_blue');
+        bx(B, 1.45, 2.4, 1.95, 2, 1.22, 1.5, 'white'); return { W: 2.4, D: 2 };
+      },
+      cave: function (B) {   // a cave house dug into the cliff: a low white front, an arched blue door, a vaulted roof, a terrace
+        bx(B, 0, 2.4, 0, 1.6, 0, 1.1, 'white'); for (var i = 0; i < 3; i++) bx(B, .1 + i * .12, 2.3 - i * .12, 0, 1.6, 1.1 + i * .12, 1.22 + i * .12, 'white');
+        bx(B, .95, 1.45, 1.6, 1.63, 0, .8, 'concrete_blue'); bx(B, 1.05, 1.35, 1.6, 1.64, .8, .9, 'concrete_blue'); winsT(B, .25, .55, 1.6, .4, .75, .3, 0, 'concrete_blue'); winsT(B, 1.85, 2.15, 1.6, .4, .75, .3, 0, 'concrete_blue');
+        bx(B, 0, 2.4, 1.6, 2.4, 0, .08, 'quartz'); bx(B, 0, .06, 1.6, 2.4, .08, .4, 'white'); bx(B, 2.34, 2.4, 1.6, 2.4, .08, .4, 'white'); return { W: 2.4, D: 2.4 };
+      },
+      church: function (B) {   // the blue-dome church: a white nave, a drum and a blue dome with a cross, a bell gable in front
+        bx(B, 0, 2.2, 0, 3, 0, 1.6, 'white'); bx(B, -.05, 2.25, -.05, 3.05, 1.6, 1.7, 'white');
+        disc(B, 1.1, 1.3, .62, 1.7, 2.05, 'white'); cone(B, 1.1, 1.3, .7, 2.05, .85, 'concrete_blue', 4, 1); sq(B, 1.1, 1.3, .08, .08, 2.85, 3.35, 'white'); sq(B, 1.1, 1.3, .3, .08, 3.15, 3.23, 'white');
+        door(B, 1.1, 3, 0, 'concrete_blue'); winsU(B, 2.2, .5, 2.6, .7, 1.2, .25, .4, 'concrete_blue'); winsU(B, -.03, .5, 2.6, .7, 1.2, .25, .4, 'concrete_blue');
+        bx(B, .55, 1.65, 2.75, 3, 1.7, 2.6, 'white'); bx(B, .75, .95, 2.74, 3.01, 1.95, 2.3, 'dark'); bx(B, 1.25, 1.45, 2.74, 3.01, 1.95, 2.3, 'dark');   // the bell gable: two arches
+        sq(B, .85, 2.88, .14, .14, 2.05, 2.2, 'gold'); sq(B, 1.35, 2.88, .14, .14, 2.05, 2.2, 'gold'); sq(B, 1.1, 2.88, .08, .08, 2.6, 3, 'white'); return { W: 2.2, D: 3 };
+      },
+      bells: function (B) {   // a bell tower: a white wall with three arched openings and bells, a small blue dome
+        bx(B, 0, 1.6, 0, .5, 0, 2.2, 'white'); [.2, .65, 1.1].forEach(function (u) { bx(B, u, u + .3, -.01, .51, 1.3, 1.8, 'dark'); sq(B, u + .15, .25, .16, .16, 1.45, 1.62, 'gold'); });
+        cone(B, .8, .25, .32, 2.2, .45, 'concrete_blue', 3, 1); sq(B, .8, .25, .06, .06, 2.65, 2.95, 'white'); return { W: 1.6, D: .5 };
+      },
+      windmill: function (B) {   // a round white mill with a thatched cone and four sails turned to the sea
+        disc(B, .9, .9, .7, 0, 2.1, 'white'); door(B, .9, 1.75, 0, 'oak'); cone(B, .9, .9, .78, 2.1, .7, 'hay_top', 4, 1);
+        sq(B, .9, 1.75, .12, .12, 1.6, 1.8, 'oak'); [[0, 1], [1, 0]].forEach(function (d) { bx(B, .9 - (d[0] ? 1.15 : .05), .9 + (d[0] ? 1.15 : .05), 1.78, 1.84, 1.7 - (d[1] ? 1.15 : .05), 1.7 + (d[1] ? 1.15 : .05), 'oak'); });
+        bx(B, .95, 1.9, 1.85, 1.87, 1.72, 2.2, 'wool_white'); bx(B, -.1, .85, 1.85, 1.87, 1.2, 1.68, 'wool_white'); return { W: 1.8, D: 1.9 };
+      }
+    };
+    [['gr_house', '基克拉泽斯白屋 Cycladic house', GREEK.house, 'home'], ['gr_ochre', '赭色民居 Ochre house', GREEK.ochre, 'home'], ['gr_cave', '悬崖洞穴屋 Cave house', GREEK.cave, 'home'],
+     ['gr_church', '蓝顶教堂 Blue-dome church', GREEK.church, 'town'], ['gr_bells', '钟楼 Bell tower', GREEK.bells, 'town'], ['gr_mill', '希腊风车 Greek windmill', GREEK.windmill, 'town']].forEach(function (v) {
+      if (K[v[0]]) return; var fn = v[2]; K[v[0]] = { n: v[1], decor: 1, flat: 0, landmark: 1 }; BUILD[v[0]] = function (p, its, B) { return sized(p, B, fn); }; KIT_PIECES.push(v); KIT_KINDS.push(v[0]); });
+    // 🇬🇷 一键圣托里尼 · Oia: the caldera cliff in terraces facing you, the sea in front; a whitewashed town cascading down it — cubes,
+    // cave houses with pools, blue-dome churches and bell towers; windmills and the Kastro on the north rim, the main street along
+    // the top (Atlantis Books, sunset bars), Amoudi Bay down at the water with boats, the volcano islet out in the caldera.
+    // All native: the island's own terrain and pieces — walk in, 阅览, weather and sound work as everywhere. ↶ Undo puts it back.
+    function santoriniBuild(seed) {   // the island IS Zed's Oia voxel world: its real cliffs and caldera as the terrain, each of its buildings a piece linked to it (p.vox)
+      if (!window.MinestOia) return;
+      var wv = MinestOia.world(), d = V.d, Wv = wv.W, Dv = wv.D, PL = 16, N = PL * 3, s = N / Math.max(Wv, Dv), NY = Math.ceil(Dv * s);
+      var land = []; for (var i = 0; i < PL; i++) for (var j = 0; j < PL; j++) land.push(i + ',' + j);
+      var keep = {}; (d.pc || []).forEach(function (p) { if (p.vox) keep[p.vox] = p; });   // rooms, displays and things you gave its buildings stay with them
+      d.land = land; d.v = 1; d.ground = 'sand'; d.pc = (d.pc || []).filter(function (p) { return !p.vox && (!p.city || (p.it && p.it.length)); }); refreshLand();
+      function ix(vx) { return (Wv - vx) * s; } function iy(vz) { return (Dv - vz) * s; }   // turned half round: the caldera in front of you, the town climbing away
+      var h = {}, wt = {};
+      for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) { var k = x + ',' + y; if (y >= NY) { wt[k] = 2; continue; }
+        var vx = Math.min(Wv - 1, Math.max(0, Math.floor(Wv - (x + .5) / s))), vz = Math.min(Dv - 1, Math.max(0, Math.floor(Dv - (y + .5) / s))), hv = wv.hm[vx + Wv * vz];
+        if (hv <= 11) wt[k] = 2; else { var L = Math.round((hv - 11) / 2.4); if (L > 0) h[k] = Math.min(22, L); } }
+      d.terr = { h: h, w: wt, scape: 'santorini', lv: { stone: 99, snow: 99 }, top: 'quartz', side: 'dirt' };   // whitewashed lanes on red-brown volcanic rock
+      d.vox = d.vox || { edits: [] };   // the island's own changes to the voxel world (break / place), synced like everything else
+      var KM = { house: ['gr_house', 2], cave: ['gr_cave', 2.4], chapel: ['gr_church', 2.2], church: ['gr_church', 2.2], castle: ['ruins', 3], mill: ['gr_mill', 1.8], taverna: ['c_cafe', 3] }, n = 0;
+      wv.buildings.forEach(function (b) {
+        var m = KM[b.kind] || KM.house, cx = (b.x0 + b.x1 + 1) / 2, cz = (b.z0 + b.z1 + 1) / 2, sz = Math.max(b.x1 - b.x0 + 1, b.z1 - b.z0 + 1) * s, kk = m[0], old = keep[b.id];
+        if (kk === 'gr_house' && (n++ % 4) === 3) kk = 'gr_ochre';
+        var p = { id: old ? old.id : uid(), k: kk, x: Math.round(ix(cx) * 2) / 2, y: Math.round(iy(cz) * 2) / 2, f: 3, s: Math.max(.45, Math.min(1.3, sz / m[1])), it: old ? old.it || [] : [], city: 1, vox: b.id };
+        p.label = old && old.label || b.name || undefined; if (old && old.rooms) { p.rooms = old.rooms; p.roomsInit = 1; }
+        d.pc.push(p); if (!fits(p)) { p.k = 'vox_door'; p.s = 1; }   // no room for it on the map: an invisible marker still holds its rooms
+      });
+      refreshLand();
+    }
+    if (!K.vox_door) { K.vox_door = { n: 'Building (3D)', decor: 1, flat: 1, landmark: 1 }; BUILD.vox_door = function (p, its, B) { return sized(p, B, function () { return { W: 1, D: 1 }; }); }; }
+    window.__oiaBind = function () { MinestOia.bind({   // the voxel Oia and this island (bound on its first open: its runtime loads after this): its edits, its buildings' names, going into one
+      key: function () { return V && V.bid; },
+      edits: function () { var R = V && (V.root || V.d); return (R && R.vox && R.vox.edits) || []; },
+      edit: function (x, y, z, id, c) { if (!V) return; var R = islandD(); R.vox = R.vox || { edits: [] }; var E = R.vox.edits; for (var i = E.length - 1; i >= 0; i--) if (E[i][0] === x && E[i][1] === y && E[i][2] === z) { E.splice(i, 1); break; } E.push([x, y, z, id, c]); clearTimeout(W.voxT); W.voxT = setTimeout(function () { save(); }, 800); },
+      label: function (bid) { if (!V) return null; var p = (islandD().pc || []).filter(function (q) { return q.vox === bid; })[0]; return p && p.label; },
+      enter: function (bid, at) {   // through its door into its rooms: My World's rooms, displays and cards; 🌳 Outside brings you back to this doorstep
+        if (!V) return; var R = islandD(), p = (R.pc || []).filter(function (q) { return q.vox === bid; })[0];
+        if (!p) { var bb = MinestOia.world().buildings.filter(function (x) { return x.id === bid; })[0]; p = { id: uid(), k: 'vox_door', x: 1, y: 1, f: 0, s: 1, it: [], city: 1, vox: bid, label: bb && bb.name }; R.pc.push(p); }
+        if (!(p.rooms || []).length) { p.roomsInit = 1; p.rooms = suggestRooms(p).map(function (k) { return { id: 'r' + uid().slice(1), k: k, n: ROOMS[k][0] }; }); p.rooms.forEach(function (r) { roomD(r); }); }
+        var r = p.rooms[0]; roomD(r); save(); MinestOia.close(); if (window.MinestSfx) MinestSfx.play('door');
+        WKIN = { pc: p.id, back: null, vox: at }; V.root = R; V.at = { pc: p.id, room: r.id }; V.d = r.d; refreshLand(); render(); wkOpen();
+      }
+    }); };
     // ---------------------------------------------------------------- one-tap landscapes: terrain (world_terrain.js) + pieces
     // 🇬🇧 English countryside: rolling hills, a creek winding past a village (church, pub, shop, cottages), a farm with
     // fields and hedges, sheep on the hills, a pond with ducks, Stonehenge on a far hill.
@@ -128644,12 +128822,93 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       }
       refreshLand();
     }
-    function megaRow() {   // island level: the one-click buttons, then reroll / clear once a city stands
-      var has = (V.d.pc || []).some(function (p) { return p.city; });
-      return '<div class="wf-mega"><button type="button" data-wfmega="city"><i>' + px('city') + '</i><b>一键变 City</b><small>2× island · 21 districts · flagship avenue</small></button>' +
-        '<button type="button" data-wfmega="town"><i>' + px('town') + '</i><b>一键变 Town</b><small>2× island · market town, green, school</small></button>' +
-        '<button type="button" data-wfmega="countryside"><i>' + px('shire') + '</i><b>一键英国乡村</b><small>rolling hills, a creek, a village & farm</small></button>' +
-        '<button type="button" data-wfmega="alpine"><i>' + px('alps') + '</i><b>一键瑞士雪山小镇</b><small>snowy peaks, a lake, chalets & a railway</small></button>' +
+    // 🇮🇹 一键变水城 · Venice: the island becomes a lagoon city — the Grand Canal winding through it in a reversed S,
+    // little rii between the sestieri, the Rialto over the Grand Canal, small bridges over the rii, Piazza San Marco
+    // (Basilica, Campanile, Palazzo Ducale, Caffè Florian) on the lagoon front, palazzi and townhouses packed along the
+    // water, gondolas in the canals, vaporetti and sailboats in the lagoon. Then it opens the 3D Venezia Voxel world
+    // (venice.html) full screen; ✕ comes back to the island. Your own pieces stay; ↶ Undo puts the island back.
+    function veniceBuild(seed) {
+      var d = V.d, a = (seed * 2654435761) >>> 0, r = function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      var N = 42, land = []; for (var i = 0; i < 14; i++) for (var j = 0; j < 14; j++) land.push(i + ',' + j);
+      var had = landOf(); d.land = had.concat(land.filter(function (k) { return had.indexOf(k) < 0; })).slice(0, MAX_PLOTS); d.v = 1; d.ground = 'grass';
+      d.pc = (d.pc || []).filter(function (p) { return !p.city || (p.it && p.it.length); }); refreshLand();
+      var w = {}, ph = r() * 6.283, amp = 6 + r() * 2;
+      function gc(y) { return 21 + amp * Math.sin((y - 21) / 8.5 + ph * .15); }   // the Grand Canal's middle at row y
+      for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) {
+        var dx = (x + .5 - 21) / 18.5, dy = (y + .5 - 21) / 17.5, wob = Math.sin(x * .55 + ph) * .05 + Math.cos(y * .47 + ph) * .05;
+        if (dx * dx + dy * dy > 1 + wob) { w[x + ',' + y] = 2; continue; }   // the lagoon
+        var g = gc(y + .5); if (Math.abs(x + .5 - g) < 1.25) { w[x + ',' + y] = 1; continue; }   // the Grand Canal, two blocks wide
+        if (y === 9 || y === 32 || (y === 16 && x < g) || (y === 26 && x > g)) w[x + ',' + y] = 1;   // the rii
+        if (x === 9 || x === 32 || (x === 15 && y > 26) || (x === 27 && y < 15)) w[x + ',' + y] = 1;
+      }
+      d.terr = { h: {}, w: w, scape: 'venice', lv: { stone: 5, snow: 9 } };
+      var lists = megaLists(), li = 0;
+      function lab(name, big) { var l = lists[li++]; return { label: l ? name + ' · ' + l.title : name, arch: big ? 'dom:city' : undefined }; }
+      function cells(p, fn) { var f = foot(p); for (var x3 = Math.floor(f.x0 + .02); x3 < f.x1 - .02; x3++) for (var y3 = Math.floor(f.y0 + .02); y3 < f.y1 - .02; y3++) fn(x3 + ',' + y3); }
+      function put(k, x4, y4, f, ex, opt) {   // dry for buildings, wet for boats, a bridge must span some water with land at both ends
+        if (!K[k] || !BUILD[k]) return null; opt = opt || {};
+        var p = { id: uid(), k: k, x: Math.round(x4 * 2) / 2, y: Math.round(y4 * 2) / 2, f: f || 0, s: 1, it: [], city: 1 }; if (ex && ex.label) p.label = ex.label; if (ex && ex.arch) p.arch = ex.arch;
+        var wet = 0, dry = 0, deep = 0; cells(p, function (c) { if (w[c]) { wet++; if (w[c] === 2) deep++; } else dry++; });
+        if (opt.bridge) { if (!wet || !dry || deep) return null; } else if (opt.boat ? dry : wet) return null;
+        if (opt.lagoon && deep < wet) return null; if (opt.canal && deep) return null;
+        d.pc.push(p); if (!fits(p)) { d.pc.pop(); return null; } return p;
+      }
+      function near(k, x5, y5, f, ex, opt, rad) { for (var s = 0; s <= (rad || 4); s += .5) for (var tr = 0; tr < 8; tr++) { var an = tr / 8 * 6.283 + s, p = put(k, x5 + (s ? Math.cos(an) * s : 0), y5 + (s ? Math.sin(an) * s : 0), f, ex, opt); if (p) return p; if (!s) break; } return null; }
+      function scatter(k, n, opt, ex) { for (var tries = 0, got = 0; tries < n * 14 && got < n; tries++) if (put(k, 1 + r() * (N - 2), 1 + r() * (N - 2), (r() * 4) | 0, ex, opt)) got++; }
+      // the Rialto over the Grand Canal, small bridges over the rii
+      var ry = 20 + Math.round(r() * 2); near('lm_rialto', gc(ry + .5), ry, 1, lab('🌉 Ponte di Rialto', true), { bridge: true }, 3) || near('w_creek', gc(ry + .5), ry, 1, { label: '🌉 Ponte di Rialto', arch: 'dom:city' }, { bridge: true }, 3);
+      [[9, 5], [9, 21], [9, 36], [32, 6], [32, 20], [32, 35], [5, 9], [20, 9], [36, 32], [22, 32], [5, 16], [36, 26], [15, 30], [27, 12]].forEach(function (b, bi) {
+        var horiz = b[1] === 9 || b[1] === 32 || b[1] === 16 || b[1] === 26; near('w_creek', b[0], b[1], horiz ? 1 : 0, bi < 3 ? { label: ['🌉 Ponte dei Sospiri', '🌉 Ponte dell’Accademia', '🌉 Ponte degli Scalzi'][bi] } : null, { bridge: true, canal: true }, 2);
+      });
+      // Piazza San Marco on the lagoon front (south-east), the Doge's Palace beside it
+      var sx = 26, sy = 35, LV = {};
+      near('c_church', sx, sy - 1, 0, lab('⛪ Basilica di San Marco', true), LV, 4);
+      near('lm_bigben', sx + 4, sy - 2, 0, lab('🔔 Campanile di San Marco', true), LV, 4);
+      near('k_townhall', sx + 3, sy + 2, 0, lab('🏛 Palazzo Ducale', true), LV, 4);
+      near('c_cafe', sx - 4, sy, 0, lab('☕ Caffè Florian', true), LV, 4);
+      near('fountain', sx, sy + 2.5, 0, { label: '🕊 Piazza San Marco' }, LV, 3);
+      near('lm_duomo', 12, 30, 0, lab('⛪ Santa Maria della Salute', true), LV, 5);
+      near('market', gc(18) + 4, 18, 0, lab('🐟 Mercato di Rialto', true), LV, 4);
+      near('c_hotel', 31, 28, 0, lab('🏨 Hotel Danieli', true), LV, 5);
+      near('c_shops', gc(24) - 4, 24, 0, lab('🎭 Maschere · Carnevale', true), LV, 4);
+      near('c_shops', 22, 12, 0, lab('🪞 Vetri di Murano'), LV, 5);
+      near('c_school', 13, 12, 0, lab('🎨 Gallerie dell’Accademia'), LV, 5);
+      near('c_cafe', 30, 13, 0, lab('🍝 Trattoria al Canal'), LV, 5);
+      near('k_store', 14, 22, 0, lab('🍦 Gelateria'), LV, 5);
+      near('k_post', 28, 22, 0, lab('📮 Poste Italiane'), LV, 5);
+      // palazzi packed along the water: a sweep over the dry land
+      var PAL = ['c_town', 'c_town', 'c_apartment', 'c_town', 'house', 'c_hotel', 'c_town', 'cottage'];
+      for (var py = 2; py < N - 2; py += 3) for (var px3 = 2; px3 < N - 2; px3 += 3) if (r() < .82) put(PAL[(r() * PAL.length) | 0], px3 + (r() - .5), py + (r() - .5), (r() * 4) | 0, null, LV);
+      // boats: gondolas in the canals, vaporetti and sails in the lagoon, landing stages on the shore
+      for (var gi = 0; gi < 10; gi++) { var gy = 3 + gi * 3.6; near('b_row', gc(gy + .5) - .5, gy, 1, gi === 4 ? { label: '🛶 Gondola' } : null, { boat: true, canal: true }, 2); }
+      scatter('b_row', 6, { boat: true, canal: true });
+      near('b_ferry', 28, 40, 0, { label: '🚤 Vaporetto · Linea 1' }, { boat: true, lagoon: true }, 4); near('b_ferry', 3, 22, 1, null, { boat: true, lagoon: true }, 4);
+      scatter('b_sail', 3, { boat: true, lagoon: true }); scatter('b_yacht', 1, { boat: true, lagoon: true });
+      near('y_dock', 22, 38.5, 0, { label: '⚓ San Zaccaria' }, { bridge: true }, 4); near('y_dock', 39, 18, 1, null, { bridge: true }, 4);
+      scatter('lamp', 10, LV); scatter('bench', 4, LV); scatter('tree', 4, LV);
+      scatter('a_gulls', 2, {}); scatter('a_birds', 1, {});
+      refreshLand();
+    }
+    function veniceUrl() { return (/^https?:$/.test(location.protocol) ? '' : 'https://minest-app.vercel.app/') + 'venice.html?embed=1'; }   // the app's own copy (file://) loads it from the site
+    function veniceOpen() {   // the 3D Venezia Voxel world, full screen over everything; ✕ back to the island
+      if (document.querySelector('.wf-venice')) return;
+      var ov = document.createElement('div'); ov.className = 'wf-venice';
+      ov.innerHTML = '<iframe src="' + veniceUrl() + '" title="威尼斯水城 · Venezia" allow="fullscreen; autoplay; gyroscope; accelerometer" allowfullscreen></iframe><button type="button" class="wf-venice-x" aria-label="Back to the island">✕ <span>回到小岛</span></button>';
+      ov.querySelector('.wf-venice-x').addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); ov.remove(); hap(); });
+      ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+      document.body.appendChild(ov); var fr = ov.querySelector('iframe'); setTimeout(function () { try { fr.focus(); } catch (x) {} }, 300);
+    }
+    function megaRow() {   // island level: one 「一键生成 ▾」 button that pops the six one-tap islands (like the five steps); the way into 3D, reroll and clear stay out
+      var has = (V.d.pc || []).some(function (p) { return p.city; }), sc = V.d.terr && V.d.terr.scape, cur = W.mega && W.mega.kind, open = !!W.megaOpen;
+      var KINDS = [['city', 'city', '一键变 City', '2× island · 21 districts · flagship avenue'], ['town', 'town', '一键变 Town', '2× island · market town, green, school'],
+        ['countryside', 'shire', '一键英国乡村', 'rolling hills, a creek, a village & farm'], ['alpine', 'alps', '一键瑞士雪山小镇', 'snowy peaks, a lake, chalets & a railway'],
+        ['santorini', 'oia', '一键圣托里尼', '伊亚 Oia · 原版 3D 体素世界 · 可进建筑'], ['venice', 'venice', '一键变水城', '威尼斯 · Grand Canal, Rialto, gondolas · 3D']];
+      var ck = KINDS.filter(function (k) { return k[0] === (sc || cur); })[0];   // what the island is now
+      var head = '<button type="button" class="wf-mega-pick' + (open ? ' on' : '') + '" data-wfmegapop aria-expanded="' + open + '"><i>' + px(ck && has ? ck[1] : 'wand') + '</i><b>一键生成 ' + (open ? '▴' : '▾') + '</b><small>' + (ck && has ? '现在：' + ck[2].replace('一键', '').replace(/^变 ?/, '') : 'City · Town · 英国乡村 · 瑞士雪山 · 圣托里尼 · 水城') + '</small></button>';
+      var go3d = (sc === 'santorini' && window.MinestOia ? '<button type="button" class="sm" data-wfoia><i>' + px('oia') + '</i><b>进入 3D 圣托里尼</b></button>' : '') +
+        (W.mega && W.mega.kind === 'venice' && has ? '<button type="button" class="sm" data-wfvenice><i>' + px('gondola') + '</i><b>进入 3D 威尼斯</b></button>' : '');
+      var list = open ? KINDS.map(function (k) { return '<button type="button" data-wfmega="' + k[0] + '"><i>' + px(k[1]) + '</i><b>' + k[2] + '</b><small>' + k[3] + '</small></button>'; }).join('') : '';
+      return '<div class="wf-mega' + (open ? ' open' : '') + '">' + head + go3d + list +
         (has ? '<button type="button" class="sm" data-wfmega="again"><i>' + px('dice') + '</i><b>Another layout</b></button><button type="button" class="sm rm" data-wfmega="clear"><i>' + px('clear') + '</i><b>Clear the city</b></button>' : '') + '</div>';
     }
     function emoji(c) {   // the console reads by pictures: a leading emoji in a card or chip becomes its big icon
@@ -128763,16 +129022,21 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       if (g.hasAttribute('data-wfx')) { setPref(false); return sync(); }
       if ((v = g.getAttribute('data-wfgo'))) return goTo(+v);
       // the unified tools
-      if ((v = g.getAttribute('data-wfmega'))) {
+      if (g.hasAttribute('data-wfmegapop')) { W.megaOpen = !W.megaOpen; hap(); return draw(); }   // 一键生成 ▾
+      if ((v = g.getAttribute('data-wfmega'))) { W.megaOpen = false;
         if (v === 'clear') change(function () { V.d.pc = V.d.pc.filter(function (p) { return !p.city || (p.it && p.it.length); }); if (V.d.terr && V.d.terr.scape) delete V.d.terr; });
         else {
           var mk = v === 'again' ? (W.mega && W.mega.kind) || 'city' : v, sd = v === 'again' ? ((W.mega && W.mega.seed) || 1) + 1 : 1;
-          var scape = mk === 'countryside' || mk === 'alpine'; if (scape && v !== 'again') sd = (Date.now() % 9973) + 1;
-          W.mega = { kind: mk, seed: sd }; change(function () { if (V.d.terr && V.d.terr.scape) delete V.d.terr; if (scape) scapeBuild(mk, sd); else megaBuild(mk, sd); });
-          toast((mk === 'town' ? '🏘 Town' : mk === 'countryside' ? '🌿 English countryside' : mk === 'alpine' ? '🏔 Swiss alpine town' : '🏙 City') + ' built · ↶ Undo puts the island back'); if (scape && window.MinestSfx) MinestSfx.play('whoosh');
+          var scape = mk === 'countryside' || mk === 'alpine' || mk === 'venice' || mk === 'santorini'; if (scape && v !== 'again') sd = (Date.now() % 9973) + 1;
+          W.mega = { kind: mk, seed: sd }; change(function () { if (V.d.terr && V.d.terr.scape) delete V.d.terr; if (mk === 'venice') veniceBuild(sd); else if (mk === 'santorini') santoriniBuild(sd); else if (scape) scapeBuild(mk, sd); else megaBuild(mk, sd); });
+          toast((mk === 'town' ? '🏘 Town' : mk === 'countryside' ? '🌿 English countryside' : mk === 'alpine' ? '🏔 Swiss alpine town' : mk === 'venice' ? '🛶 威尼斯水城 Venice' : mk === 'santorini' ? '🇬🇷 圣托里尼 · Oia' : '🏙 City') + ' built · ↶ Undo puts the island back'); if (scape && window.MinestSfx) MinestSfx.play('whoosh');
+          if (mk === 'venice' && v !== 'again') setTimeout(veniceOpen, 700);
+          if (mk === 'santorini' && window.MinestOia) setTimeout(MinestOia.open, 700);   // then straight into the original voxel Oia   // then straight into the 3D water city
         }
         hap(); try { fit(); } catch (x) {} return setTimeout(draw, 60);
       }
+      if (g.hasAttribute('data-wfvenice')) { hap(); return veniceOpen(); }
+      if (g.hasAttribute('data-wfoia') && window.MinestOia) { hap(); return MinestOia.open(); }   // 🇬🇷 the voxel Oia, in My World   // 3D Venezia Voxel, full screen
       if (g.hasAttribute('data-wfview')) { W.pop = null; hap(); return wkView(); }   // 阅览: the whole island in 3D, full screen
       if ((v = g.getAttribute('data-wfter'))) return terrAct(v);
       if ((v = g.getAttribute('data-wfbrush'))) { W.brush = W.brush === v ? null : v; hap(); return draw(); }
@@ -145277,6 +145541,17 @@ html body .wf .wf-land-ok { align-self:center;min-width:180px;padding:12px 20px;
 html body .wf .wf-mega { flex:none;display:grid;grid-template-columns:1fr 1fr;gap:8px; }
 html body .wf .wf-mega button { display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;text-align:left;padding:10px 12px;color:#fff;cursor:pointer;font:inherit;background:#2e4a7a;border:3px solid;border-color:#5f86c9 #182a48 #182a48 #5f86c9; }
 html body .wf .wf-mega button[data-wfmega="town"] { background:#7a4a2e;border-color:#c98a5f #48281a #48281a #c98a5f; }
+html body .wf .wf-mega button[data-wfmega="countryside"] { background:#2e6a3f;border-color:#5fc986 #184824 #184824 #5fc986; }
+html body .wf .wf-mega button[data-wfmega="alpine"] { background:#3a5a7a;border-color:#7ca9d6 #1b2f44 #1b2f44 #7ca9d6; }
+html body .wf .wf-mega button[data-wfmega="santorini"] { background:#1f5fa8;border-color:#7fb2ec #12345e #12345e #7fb2ec; }
+html body .wf .wf-mega button[data-wfmega="venice"] { background:#1e5b8a;border-color:#5fa6c9 #14354f #14354f #5fa6c9; }
+html body .wf .wf-mega button[data-wfoia] { background:#0d3f7a;border-color:#4f8fd6 #082348 #082348 #4f8fd6;grid-column:span 2; }
+html body .wf .wf-mega button[data-wfvenice] { background:#0d4263;border-color:#4fa0cf #092334 #092334 #4fa0cf;grid-column:span 2; }
+/* 🛶 3D Venezia Voxel overlay */
+.wf-venice { position:fixed;inset:0;z-index:2147483600;background:#000;display:flex; }
+.wf-venice iframe { width:100%;height:100%;border:0;display:block; }
+.wf-venice-x { position:fixed;left:calc(14px + env(safe-area-inset-left));top:calc(14px + env(safe-area-inset-top));z-index:2147483601;padding:8px 14px;background:rgba(20,20,24,0.85);border:2px solid #fff;border-radius:8px;color:#fff;font:bold 14px system-ui,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,0.5); }
+.wf-venice-x:hover { background:rgba(40,40,48,0.95); }
 html body .wf .wf-mega button i { grid-row:1 / 3;font-style:normal;font-size:30px;line-height:1; }
 html body .wf .wf-mega button b { font:800 15px/1.2 var(--pc-font, system-ui); }
 html body .wf .wf-mega button small { font-size:11px;opacity:.8;line-height:1.2; }
@@ -145296,6 +145571,8 @@ html body .wf .wf-chips button > .pxi { display:inline-block;width:18px;height:1
 
 /* Octo (the mini pet) hides while My World is open */
 html.mn-world #minest-mini-pet-p0, html.mn-world .mpet-menu, html.mn-world .mpet-tip { visibility:hidden !important; pointer-events:none !important; }
+html body .wf .wf-mega button.wf-mega-pick { grid-column:span 2;background:#5a3d8a;border-color:#a98fd6 #2e1d4a #2e1d4a #a98fd6; }
+html body .wf .wf-mega button.wf-mega-pick.on { background:#6c4aa6; }
 /* 53.89 · Item 实体化 (world_items.js): the carriers and their displays. Sizes are in em of --mi so a display can scale its items. */
 html body .mi { font-size:var(--mi,10px);position:relative;display:inline-block;vertical-align:bottom;box-sizing:border-box;line-height:1.1;font-family:-apple-system,"PingFang SC",sans-serif;-webkit-user-select:none;user-select:none; }
 html body .mi *, html body .mi *:before, html body .mi *:after { box-sizing:border-box; }
@@ -155005,6 +155282,2575 @@ window.KRail = (function () {
     cycle: function () { var i = MODES.map(function (x) { return x[0]; }).indexOf(mode()); var m = MODES[(i + 1) % MODES.length]; put(MODE, m[0]); compute(); if (typeof window.minestToast === 'function') window.minestToast(m[1] + ' ' + m[2]); return m[0]; },
     modes: MODES, icon: icon, refresh: refresh
   };
+})();
+</script>
+<script type="text/plain" id="mn-oia-world">
+/* Santorini (Oia) Voxel World — procedural generator (no DOM / no THREE dependency).
+ * Exposes global SantoriniWorld = { W, D, H, P, B, BI, T, create(seed) }.
+ * Layout: the caldera sea lies to the WEST (sunset side); the whitewashed town climbs down the cliff.
+ * x east, z south, y up. Cell (x,y,z) occupies [x,x+1)×[y,y+1)×[z,z+1).
+ * hm[x,z] = number of solid layers in a column (top block y = hm-1, first air cell y = hm).
+ */
+(function (root) {
+  'use strict';
+
+  const W = 272, D = 224, H = 96;
+  const P = 44;              // plateau height
+  const WATER_Y = 10.85;     // water surface
+  const QUAY = 13;           // harbour deck height
+
+  // ---- tiles & blocks -------------------------------------------------
+  const T = {
+    ash: 0, strata: 1, pave: 2, plaster: 3, stone: 4, rubble: 5, thatch: 6, planks: 7, glass: 8, shutter: 9,
+    bronze: 10, dome: 11, tile: 12, dark: 13, lamp: 14, leaf: 15, log: 16, pool: 17, door: 18, flower: 19,
+    awnB: 20, dry: 21, cobble: 22, awnO: 23
+  };
+  const B = {
+    AIR: 0, ASH: 1, ROCK: 2, PAVE: 3, PLASTER: 4, STONE: 5, RUBBLE: 6, THATCH: 7, WOOD: 8, GLASS: 9,
+    SHUTTER: 10, BRONZE: 11, DOME: 12, TILE: 13, DARK: 14, LAMP: 15, LEAF: 16, LOG: 17, POOL: 18, DOOR: 19,
+    FLOWER: 20, AWN_B: 21, AWN_O: 22, DRY: 23
+  };
+  const BI = [];
+  function def(id, name, top, side, bottom, glow, jit) {
+    BI[id] = { name, top, side, bottom: bottom == null ? side : bottom, glow: !!glow, jit: jit == null ? 0.08 : jit };
+  }
+  def(B.AIR, 'air', 0, 0);
+  def(B.ASH, 'ash', T.ash, T.ash, T.ash, false, 0.12);
+  def(B.ROCK, 'rock', T.strata, T.strata, T.strata, false, 0.09);
+  def(B.PAVE, 'pave', T.pave, T.plaster, T.plaster, false, 0.05);
+  def(B.PLASTER, 'plaster', T.plaster, T.plaster, T.plaster, false, 0.035);
+  def(B.STONE, 'stone', T.stone, T.stone, T.stone, false, 0.05);
+  def(B.RUBBLE, 'rubble', T.rubble, T.rubble, T.rubble, false, 0.12);
+  def(B.THATCH, 'thatch', T.thatch, T.thatch, T.thatch, false, 0.1);
+  def(B.WOOD, 'wood', T.planks, T.planks, T.planks, false, 0.08);
+  def(B.GLASS, 'glass', T.glass, T.glass, T.glass, true, 0);
+  def(B.SHUTTER, 'shutter', T.shutter, T.shutter, T.shutter, false, 0.05);
+  def(B.BRONZE, 'bronze', T.bronze, T.bronze, T.bronze, false, 0.04);
+  def(B.DOME, 'dome', T.dome, T.dome, T.dome, false, 0.04);
+  def(B.TILE, 'tile', T.tile, T.tile, T.tile, false, 0.1);
+  def(B.DARK, 'dark', T.dark, T.dark, T.dark, false, 0.04);
+  def(B.LAMP, 'lamp', T.lamp, T.lamp, T.lamp, true, 0);
+  def(B.LEAF, 'leaf', T.leaf, T.leaf, T.leaf, false, 0.16);
+  def(B.LOG, 'log', T.log, T.log, T.log, false, 0.08);
+  def(B.POOL, 'pool', T.pool, T.pool, T.pool, false, 0.03);
+  def(B.DOOR, 'door', T.door, T.door, T.door, false, 0.04);
+  def(B.FLOWER, 'flower', T.flower, T.flower, T.flower, false, 0.1);
+  def(B.AWN_B, 'awning', T.awnB, T.awnB, T.awnB, false, 0.03);
+  def(B.AWN_O, 'awning', T.awnO, T.awnO, T.awnO, false, 0.03);
+  def(B.DRY, 'soil', T.dry, T.dry, T.dry, false, 0.12);
+
+  // ---- utils ----------------------------------------------------------
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hash3(x, y, z) {
+    let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(z | 0, 2147483647);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const smoothstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  function vn(x, z, s) {
+    const xi = Math.floor(x), zi = Math.floor(z), fx = x - xi, fz = z - zi;
+    const sx = fx * fx * (3 - 2 * fx), sz = fz * fz * (3 - 2 * fz);
+    const a = hash3(xi, s, zi), b = hash3(xi + 1, s, zi), c = hash3(xi, s, zi + 1), d = hash3(xi + 1, s, zi + 1);
+    return lerp(lerp(a, b, sx), lerp(c, d, sx), sz);
+  }
+
+  // ---- terrain shape --------------------------------------------------
+  const XC = (z) => 136 + 8 * Math.sin(z / 48 + 0.4) + 3.5 * Math.sin(z / 15 + 2.0);   // caldera cliff edge
+  const ZN = (x) => 22 + 6 * Math.sin(x / 37);                                            // northern cliff edge
+  const ZS = 188;                                                                          // southern cliff edge
+  const XE = (z) => 242 + 6 * Math.sin(z / 40);                                           // Aegean shore
+  const LANES = [38, 56, 124, 152, 174];
+  const ALLEYS = [30, 44, 58, 72, 86, 100, 114, 128, 142, 156, 170, 184];
+
+  const FACADES = [
+    [0.97, 0.97, 0.95], [0.96, 0.95, 0.92], [0.97, 0.97, 0.95], [0.95, 0.94, 0.9], [0.97, 0.97, 0.95], [0.97, 0.96, 0.93],
+    [0.93, 0.80, 0.55], [0.92, 0.70, 0.58], [0.95, 0.88, 0.66], [0.88, 0.62, 0.50], [0.84, 0.82, 0.84], [0.94, 0.78, 0.50]
+  ];
+  const SHUTTERS = [[0.10, 0.36, 0.76], [0.12, 0.42, 0.80], [0.08, 0.30, 0.66], [0.10, 0.36, 0.76], [0.18, 0.46, 0.52], [0.55, 0.22, 0.18]];
+
+  // ---- world creation -------------------------------------------------
+  function create(seed) {
+    seed = seed == null ? 2021 : seed;
+    const rnd = mulberry32(seed);
+    const R = (a, b) => a + rnd() * (b - a);
+    const RI = (a, b) => Math.floor(R(a, b + 1));
+    const pick = (a) => a[Math.floor(rnd() * a.length)];
+
+    const blocks = new Uint8Array(W * H * D);
+    const cols = new Uint8Array(W * H * D);
+    const idx = (x, y, z) => x + W * (z + D * y);
+    const inb = (x, y, z) => x >= 0 && x < W && y >= 0 && y < H && z >= 0 && z < D;
+    const get = (x, y, z) => (inb(x, y, z) ? blocks[idx(x, y, z)] : (y < 0 ? B.ASH : 0));
+    const set = (x, y, z, id, c) => { if (!inb(x, y, z)) return; const i = idx(x, y, z); blocks[i] = id; cols[i] = c || 0; };
+    const isAir = (x, y, z) => get(x, y, z) === B.AIR;
+    const zi = (x, z) => x + W * z;
+
+    const palette = [[1, 1, 1]];
+    const palMap = new Map([['100,100,100', 0]]);
+    function pal(r, g, b) {
+      if (Array.isArray(r)) { b = r[2]; g = r[1]; r = r[0]; }
+      const k = Math.round(r * 100) + ',' + Math.round(g * 100) + ',' + Math.round(b * 100);
+      let i = palMap.get(k);
+      if (i === undefined) {
+        if (palette.length >= 255) {
+          let best = 0, bd = 1e9;
+          palette.forEach((p, n) => { const d = (p[0] - r) ** 2 + (p[1] - g) ** 2 + (p[2] - b) ** 2; if (d < bd) { bd = d; best = n; } });
+          return best;
+        }
+        i = palette.length; palette.push([r, g, b]); palMap.set(k, i);
+      }
+      return i;
+    }
+    function fillBox(x0, y0, z0, x1, y1, z1, id, c) {
+      for (let y = Math.max(0, y0); y <= Math.min(H - 1, y1); y++)
+        for (let z = Math.max(0, z0); z <= Math.min(D - 1, z1); z++)
+          for (let x = Math.max(0, x0); x <= Math.min(W - 1, x1); x++) { const i = idx(x, y, z); blocks[i] = id; cols[i] = c || 0; }
+    }
+
+    // ---------- colours ----------
+    const WHITE = pal(0.97, 0.97, 0.95), IVORY = pal(0.95, 0.93, 0.88), STONE_C = pal(0.9, 0.88, 0.83), GREY_C = pal(0.62, 0.6, 0.58);
+    const BLUE = pal(0.09, 0.36, 0.78), BLUE_D = pal(0.10, 0.42, 0.86), BLUE_L = pal(0.30, 0.58, 0.9);
+    const WOODC = pal(0.55, 0.38, 0.22), WOOD_W = pal(0.92, 0.9, 0.84), THATCH_C = pal(0.46, 0.34, 0.22);
+    const PV_A = pal(0.92, 0.9, 0.84), PV_B = pal(0.82, 0.8, 0.74), PV_C = pal(0.74, 0.72, 0.68);
+    const SOIL = [pal(0.74, 0.60, 0.40), pal(0.70, 0.57, 0.38), pal(0.78, 0.65, 0.45), pal(0.66, 0.56, 0.38), pal(0.56, 0.52, 0.33)];
+    const SAND_D = [pal(0.20, 0.18, 0.17), pal(0.27, 0.24, 0.21), pal(0.15, 0.14, 0.14)];
+    const SB = [pal(0.78, 0.74, 0.62), pal(0.62, 0.66, 0.6), pal(0.36, 0.52, 0.54), pal(0.2, 0.4, 0.52), pal(0.13, 0.3, 0.45), pal(0.09, 0.22, 0.38), pal(0.06, 0.16, 0.3)];
+    const PUMICE = [pal(0.9, 0.84, 0.72), pal(0.84, 0.76, 0.64), pal(0.78, 0.7, 0.58), pal(0.92, 0.88, 0.8)];
+    const OCHRE = [pal(0.8, 0.52, 0.3), pal(0.7, 0.42, 0.24), pal(0.84, 0.64, 0.4), pal(0.62, 0.34, 0.2)];
+    const REDS = [pal(0.45, 0.2, 0.14), pal(0.55, 0.26, 0.17), pal(0.3, 0.14, 0.11), pal(0.64, 0.32, 0.2), pal(0.2, 0.17, 0.16)];
+    const DARKS = [pal(0.13, 0.12, 0.13), pal(0.22, 0.17, 0.16), pal(0.3, 0.14, 0.11), pal(0.17, 0.15, 0.15), pal(0.38, 0.2, 0.15)];
+    const VOLC = [pal(0.12, 0.11, 0.12), pal(0.2, 0.15, 0.14), pal(0.34, 0.16, 0.12), pal(0.16, 0.14, 0.14), pal(0.45, 0.22, 0.14), pal(0.1, 0.09, 0.1)];
+    const TERR = [WHITE, WHITE, WHITE, WHITE, IVORY, pal(0.93, 0.8, 0.56), pal(0.92, 0.7, 0.58), pal(0.95, 0.88, 0.66), pal(0.84, 0.82, 0.84), pal(0.82, 0.55, 0.42)];
+    function strata(x, y, z, volc) {
+      const yy = y + vn(x / 14, z / 14, 5) * 2.6;
+      const k = Math.floor(yy / 1.8), r = hash3(k, 9, 7);
+      if (volc) return VOLC[Math.floor(r * VOLC.length)];
+      let s = yy > 38 ? PUMICE : yy > 26 ? OCHRE : yy > 16 ? REDS : DARKS;
+      if (hash3(x, y, z) < 0.07) s = yy > 30 ? OCHRE : REDS;
+      return s[Math.floor(r * s.length)];
+    }
+
+    // ---------- heightmap ----------
+    const hm = new Uint8Array(W * D);
+    const kind = new Uint8Array(W * D);     // 0 sea/beach, 1 soil, 2 rock
+    const occ = new Uint8Array(W * D);      // 0 free, 1 building, 2 street/reserved, 3 landmark
+    const town = new Uint8Array(W * D);
+    const walk = new Uint8Array(W * D);
+    const roadH = new Uint8Array(W * D);
+
+    function islandH(x, z) {
+      let hI = 0;
+      const u = ((x - 20) / 13) ** 2 + ((z - 112) / 84) ** 2;
+      if (u < 1) hI = Math.max(hI, 11 + Math.floor(36 * Math.pow(1 - u, 0.55) + 2 * vn(x / 6, z / 6, 11)));
+      const r = Math.hypot(x - 64, z - 132);
+      if (r < 17) {
+        let v = 11 + 26 * Math.pow(1 - r / 17, 1.25) + 3 * vn(x / 5, z / 5, 12);
+        if (r < 4.5) v -= (4.5 - r) * 2.2;
+        hI = Math.max(hI, Math.floor(v));
+      }
+      return hI;
+    }
+    for (let z = 0; z < D; z++) {
+      for (let x = 0; x < W; x++) {
+        const dw = XC(z) - x, dn = ZN(x) - z, ds = z - ZS;
+        const d = Math.hypot(Math.max(dw, 0), Math.max(dn, 0), Math.max(ds, 0));
+        let h = P, rock = false;
+        if (d > 0) {
+          const sc = 1 + 0.7 * smoothstep(160, 192, z);
+          const step = Math.max(3, Math.round(3 * sc));
+          const off = 1.2 + 1.1 * Math.sin(z / 7 + x / 11);
+          const k = Math.floor((d + off) / 3);
+          h = P - step * k;
+          if (k >= 1) rock = true;
+        }
+        const hE = Math.floor(12 + 0.4 * (XE(z) - x) + (XE(z) - x < 34 ? 0.35 * vn(x / 12, z / 12, 3) : 0));
+        if (hE < h) { h = hE; rock = false; }
+        const hI = islandH(x, z);
+        if (hI > h) { h = hI; rock = true; }
+        const sf = 3 + Math.floor(1.6 * vn(x / 9, z / 9, 21));
+        if (sf >= h) { h = sf; rock = false; }
+        const i = zi(x, z);
+        hm[i] = clamp(h, 1, H - 1);
+        kind[i] = h <= 13 && !rock ? 0 : (rock ? 2 : 1);
+      }
+    }
+    for (let z = 42; z <= 184; z++) for (let x = 0; x < W; x++) {
+      const t = x - XC(z);
+      if (t >= -33 && t <= 54 && hm[zi(x, z)] >= 14 && x > 90) town[zi(x, z)] = 1;
+    }
+
+    // ---------- fill solid ----------
+    for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
+      const i = zi(x, z), h = hm[i], k = kind[i];
+      const volc = Math.hypot(x - 64, z - 132) < 20;
+      for (let y = 0; y < h; y++) {
+        let id, c;
+        if (y <= 11) { id = k === 2 ? B.ROCK : B.ASH; c = SB[clamp(11 - y, 0, 6)]; if (k === 2 && y >= h - 1 && y > 8) c = SB[clamp(11 - y, 0, 6)]; }
+        else if (k === 2) { id = B.ROCK; c = strata(x, y, z, volc); }
+        else if (h <= 13) { id = B.ASH; c = pick(SAND_D); }
+        else if (y >= h - 2) { id = B.DRY; c = hash3(x, 3, z) < 0.12 ? SOIL[4] : SOIL[Math.floor(hash3(x, 1, z) * 4)]; }
+        else { id = B.ROCK; c = strata(x, y, z, false); }
+        set(x, y, z, id, c);
+      }
+    }
+    // whitewashed, pastel-tinted retaining terraces down the caldera cliff
+    for (let z = 42; z <= 184; z++) for (let x = 0; x < W; x++) {
+      const i = zi(x, z);
+      if (!town[i] || kind[i] !== 2) continue;
+      const t = x - XC(z);
+      if (t >= -0.5) continue;
+      const h = hm[i];
+      const tint = TERR[Math.floor(hash3(h, 5, z >> 3) * TERR.length)];
+      set(x, h - 1, z, B.PAVE, tint); set(x, h - 2, z, B.PLASTER, tint); set(x, h - 3, z, B.PLASTER, tint);
+    }
+
+    // ---------- ground editing ----------
+    function setGround(x, z, nh, topId, topC, fillId, fillC) {
+      if (x < 1 || x >= W - 1 || z < 1 || z >= D - 1) return;
+      const i = zi(x, z), oh = hm[i];
+      if (nh > oh) for (let y = oh; y < nh - 1; y++) set(x, y, z, fillId, fillC);
+      else for (let y = nh; y < oh; y++) set(x, y, z, B.AIR, 0);
+      set(x, nh - 1, z, topId, topC);
+      hm[i] = nh; kind[i] = 1;
+    }
+    const roadColor = (x, z) => {
+      const a = ((x >> 1) + (z >> 1)) & 1;
+      return hash3(x, 2, z) < 0.08 ? PV_C : a ? PV_A : PV_B;
+    };
+    function roadCell(x, z, hp, c) {
+      if (x < 1 || x >= W - 1 || z < 1 || z >= D - 1) return;
+      setGround(x, z, hp, B.PAVE, c == null ? roadColor(x, z) : c, B.PLASTER, WHITE);
+      const i = zi(x, z); roadH[i] = hp; walk[i] = 1; occ[i] = 2;
+    }
+    function markOcc(x0, z0, x1, z1, v, m) {
+      m = m || 0;
+      for (let z = z0 - m; z <= z1 + m; z++) for (let x = x0 - m; x <= x1 + m; x++)
+        if (x >= 0 && x < W && z >= 0 && z < D && occ[zi(x, z)] < v) occ[zi(x, z)] = v;
+    }
+    function platform(x0, z0, x1, z1, level, c) {
+      for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) roadCell(x, z, level, c);
+    }
+
+    // --- promenade along the cliff edge (Nikolaou Nomikou)
+    for (let z = 24; z <= 184; z++) {
+      const xs = Math.round(XC(z) + 3.5);
+      let x = xs; while (x > 2 && hm[zi(x - 1, z)] === P) x--;
+      for (let xx = x; xx <= xs + 2; xx++) roadCell(xx, z, P);
+    }
+    // --- E-W alleys
+    for (const za of ALLEYS) {
+      const xs = Math.round(XC(za) + 3.5) + 3, xe = Math.round(XC(za) + 62);
+      for (let x = xs; x <= xe; x++) for (let z = za - 1; z <= za + 1; z++) { if (hm[zi(x, z)] >= 14) roadCell(x, z, hm[zi(x, z)]); }
+    }
+    // --- N-S alleys (follow the cliff edge)
+    for (const off of [22, 40]) for (let z = 40; z <= 184; z++) {
+      const xc = Math.round(XC(z) + off);
+      for (let x = xc - 1; x <= xc + 1; x++) if (hm[zi(x, z)] >= 14) roadCell(x, z, hm[zi(x, z)]);
+    }
+    // --- stair lanes down the cliff: one block lower per step
+    for (const zl of LANES) {
+      const xc = XC(zl);
+      for (let x = Math.round(xc + 2); x >= Math.round(xc - 35); x--) {
+        const dd = xc - x;
+        const hp = dd <= 0 ? P : Math.max(QUAY, P - Math.floor(dd));
+        for (let z = zl - 1; z <= zl + 1; z++) roadCell(x, z, hp);
+      }
+    }
+
+    // --- Ammoudi zig-zag (flat landings, stairs at the switchbacks)
+    const donkeyPath = [];
+    const ZA = 64, ZB = 84;
+    {
+      const d0 = 3;
+      const hpAt = (x, z) => { const dd = XC(z) - x; return dd <= 0 ? P : Math.max(QUAY, P - Math.floor(dd)); };
+
+      // connector from the promenade
+      for (let x = Math.round(XC(ZA) + 3); x >= Math.round(XC(ZA) - d0); x--) {
+        const hp = hpAt(x, ZA);
+        for (let z = ZA - 1; z <= ZA + 1; z++) roadCell(x, z, hp);
+        donkeyPath.push([x + 0.5, hp, ZA + 0.5]);
+      }
+      let dir = 1;                          // 1 = southwards
+      for (let k = 0; k < 5; k++) {
+        const dk = d0 + 7 * k, hpLeg = P - dk;
+        const zStart = dir > 0 ? ZA : ZB, zEnd = dir > 0 ? ZB : ZA;
+        for (let z = zStart; ; z += dir) {
+          const xcen = Math.round(XC(z) - dk);
+          for (let x = xcen - 1; x <= xcen + 1; x++) roadCell(x, z, hpLeg);
+          donkeyPath.push([xcen + 0.5, hpLeg, z + 0.5]);
+          if (z === zEnd) break;
+        }
+        if (k < 4) {
+          const zt = zEnd, dn = dk + 7;
+          for (let x = Math.round(XC(zt) - dk) - 1; x >= Math.round(XC(zt) - dn); x--) {
+            const hp = hpAt(x, zt) > hpLeg ? hpLeg : hpAt(x, zt);
+            for (let z = zt - 1; z <= zt + 1; z++) roadCell(x, z, Math.min(hpLeg, Math.max(P - dn, hp)));
+            donkeyPath.push([x + 0.5, Math.min(hpLeg, Math.max(P - dn, hp)), zt + 0.5]);
+          }
+        }
+        dir = -dir;
+      }
+    }
+    // reserve a clear flank around the zig-zag so houses do not block the descent
+    markOcc(Math.round(XC(ZA)) - 40, ZA - 3, Math.round(XC(ZB)) + 4, ZB + 3, 2, 0);
+
+    // --- harbour quay, pier and tavernas
+    const harbour = { qx0: 0, qx1: 0, z0: 62, z1: 98, pierZ: 76, pierX0: 0 };
+    {
+      const xr = Math.round(XC(ZB) - 31);
+      harbour.qx1 = xr + 2; harbour.qx0 = xr - 15;
+      for (let z = harbour.z0; z <= harbour.z1; z++) for (let x = harbour.qx0; x <= harbour.qx1; x++) {
+        if (hm[zi(x, z)] <= QUAY && !(x > xr + 1 && hm[zi(x, z)] > 12)) roadCell(x, z, QUAY, ((x + z) & 1) ? PV_B : PV_C);
+      }
+    }
+
+    const landmarks = [], lamps = [], flags = [], windmills = [], poles = [], parapets = [], moorings = [], buildings = [];
+    function lamp(x, z) {
+      const y0 = hm[zi(x, z)];
+      if (get(x, y0, z) !== B.AIR || occ[zi(x, z)] === 1) return;
+      set(x, y0, z, B.DARK, 0); set(x, y0 + 1, z, B.DARK, 0); set(x, y0 + 2, z, B.LAMP, 0);
+      lamps.push([x + 0.5, y0 + 2.5, z + 0.5]);
+    }
+
+    // ---------- helpers for architecture ----------
+    function dome(cx, cy, cz, Rr, id, c, hRatio) {
+      hRatio = hRatio || 1.0;
+      const hMax = Math.round(Rr * hRatio);
+      for (let j = 0; j <= hMax; j++) {
+        const t = j / (Rr * hRatio + 0.4);
+        const r = Rr * Math.sqrt(Math.max(0, 1 - t * t)) + (j < Rr * 0.4 ? 0.2 : 0);
+        const ri = Math.ceil(r);
+        for (let dz = -ri; dz <= ri; dz++) for (let dx = -ri; dx <= ri; dx++)
+          if (dx * dx + dz * dz <= r * r + 0.5) set(cx + dx, cy + j, cz + dz, id, c);
+      }
+      return cy + hMax;
+    }
+    function drum(cx, cy, cz, Rr, h, windows, c) {
+      const ri = Math.ceil(Rr);
+      for (let j = 0; j < h; j++) for (let dz = -ri; dz <= ri; dz++) for (let dx = -ri; dx <= ri; dx++) {
+        const d = Math.hypot(dx, dz);
+        if (d > Rr + 0.5) continue;
+        let id = B.PLASTER, cc = c == null ? WHITE : c;
+        if (windows && d > Rr - 0.8 && j === 0) {
+          const ang = Math.atan2(dz, dx) / (Math.PI * 2) + 0.5;
+          if (Math.floor(ang * 12) % 2 === 0) { id = B.GLASS; cc = 0; }
+        }
+        set(cx + dx, cy + j, cz + dz, id, cc);
+      }
+    }
+    function cross(x, y, z, c) {
+      c = c == null ? WHITE : c;
+      set(x, y, z, B.PLASTER, c); set(x, y + 1, z, B.PLASTER, c); set(x, y + 2, z, B.PLASTER, c);
+      set(x, y + 1, z - 1, B.PLASTER, c); set(x, y + 1, z + 1, B.PLASTER, c);
+    }
+    function disc(cx, y, cz, r, id, c) {
+      const ri = Math.ceil(r);
+      for (let dz = -ri; dz <= ri; dz++) for (let dx = -ri; dx <= ri; dx++) if (dx * dx + dz * dz <= r * r + 0.4) set(cx + dx, y, cz + dz, id, c);
+    }
+    function flag(x, y, z, h) {
+      for (let k = 0; k < h; k++) set(x, y + k, z, B.PLASTER, WHITE);
+      set(x, y + h, z, B.BRONZE, 0);
+      flags.push([x + 0.5, y + h - 0.6, z + 0.5]);
+    }
+    function bellTower(cx, cz, y0, h1, caps) {
+      fillBox(cx - 2, y0, cz - 2, cx + 2, y0 + h1 - 1, cz + 2, B.PLASTER, WHITE);
+      for (let y = y0 + 2; y < y0 + h1 - 2; y += 4) for (const [px, pz] of [[cx, cz - 2], [cx, cz + 2], [cx - 2, cz], [cx + 2, cz]]) { set(px, y, pz, B.DARK, 0); set(px, y + 1, pz, B.DARK, 0); }
+      const y1 = y0 + h1;
+      fillBox(cx - 2, y1, cz - 2, cx + 2, y1, cz + 2, B.STONE, STONE_C);
+      fillBox(cx - 2, y1 + 1, cz - 2, cx + 2, y1 + 4, cz + 2, B.PLASTER, WHITE);
+      fillBox(cx - 1, y1 + 1, cz - 1, cx + 1, y1 + 4, cz + 1, B.AIR, 0);
+      for (let y = y1 + 1; y <= y1 + 3; y++) {
+        const w = y === y1 + 3 ? 0 : 0;
+        set(cx + w, y, cz - 2, B.AIR, 0); set(cx + w, y, cz + 2, B.AIR, 0); set(cx - 2, y, cz + w, B.AIR, 0); set(cx + 2, y, cz + w, B.AIR, 0);
+      }
+      set(cx, y1 + 3, cz, B.BRONZE, 0); set(cx, y1 + 2, cz, B.BRONZE, 0);
+      fillBox(cx - 2, y1 + 5, cz - 2, cx + 2, y1 + 5, cz + 2, B.STONE, STONE_C);
+      let top = y1 + 6;
+      if (caps) {
+        fillBox(cx - 1, top, cz - 1, cx + 1, top + 1, cz + 1, B.PLASTER, WHITE);
+        const t = dome(cx, top + 2, cz, 2, B.DOME, BLUE_D, 1.0);
+        cross(cx, t + 1, cz); top = t + 4;
+      }
+      return top;
+    }
+
+    // ================= LANDMARKS =================
+    // --- Three Blue Domes (Anastasis church) on the caldera edge
+    function anastasis() {
+      const az = 104, ax = Math.round(XC(az));
+      platform(ax - 11, az - 14, ax + 1, az + 21, P, PV_A);
+      const x0 = ax - 7, x1 = ax - 1, z0 = az - 12, z1 = az + 12, y0 = P;
+      fillBox(x0, y0, z0, x1, y0 + 5, z1, B.PLASTER, WHITE);
+      fillBox(x0, y0 + 6, z0, x1, y0 + 6, z1, B.PLASTER, IVORY);
+      for (const zc of [az - 8, az, az + 8]) {
+        for (const xx of [x0, x1]) {
+          for (let dz = -1; dz <= 1; dz++) for (let y = 0; y <= 2; y++) set(xx, y0 + y, zc + dz, B.DARK, 0);
+          set(xx, y0 + 3, zc, B.DARK, 0);
+          set(xx, y0, zc, B.DOOR, BLUE); set(xx, y0 + 1, zc, B.DOOR, BLUE);
+        }
+        drum(ax - 4, y0 + 7, zc, 3.4, 2, true);
+        const t = dome(ax - 4, y0 + 9, zc, 3.6, B.DOME, BLUE_D, 0.95);
+        cross(ax - 4, t + 1, zc);
+      }
+      for (const zc of [az - 4, az + 4, az - 12 + 1, az + 12 - 1]) for (const xx of [x0, x1]) { set(xx, y0 + 2, zc, B.GLASS, 0); set(xx, y0 + 3, zc, B.GLASS, 0); }
+      for (let z = z0; z <= z1; z += 2) { set(x0, y0 + 5, z, B.PLASTER, IVORY); }
+      const topT = bellTower(ax - 4, az + 17, y0, 11, true);
+      flag(ax - 9, y0, az - 12, 12);
+      markOcc(ax - 12, az - 15, ax + 3, az + 22, 3, 1); buildings.push({ id: 'anastasis', kind: 'church', x0, z0, x1, z1, y: y0, floors: 1, name: '三蓝顶教堂' });
+      landmarks.push({ id: 'anastasis', name: '三蓝顶教堂', en: 'Anastasis · Three Blue Domes', x: ax - 4 + 0.5, z: az + 0.5, top: topT + 3, r: 26 });
+    }
+
+    // --- Panagia Platsani on the central square
+    function platsani() {
+      const pz = 138, px = Math.round(XC(pz)) + 13;
+      platform(px - 9, pz - 8, px + 11, pz + 13, P, PV_A);
+      for (let z = pz - 8; z <= pz + 13; z++) for (let x = px - 9; x <= px + 11; x++) {
+        if (((x - px + 9) % 6 === 0 || (z - pz + 8) % 6 === 0)) set(x, P - 1, z, B.PAVE, PV_C);
+      }
+      const x0 = px + 2, x1 = px + 10, z0 = pz - 5, z1 = pz + 5, y0 = P;
+      fillBox(x0, y0, z0, x1, y0 + 6, z1, B.PLASTER, WHITE);
+      fillBox(x0, y0 + 7, z0, x1, y0 + 7, z1, B.PLASTER, IVORY);
+      for (let dz = -1; dz <= 1; dz++) for (let y = 0; y <= 2; y++) set(x0, y0 + y, pz + dz, B.DARK, 0);
+      set(x0, y0, pz, B.DOOR, BLUE); set(x0, y0 + 1, pz, B.DOOR, BLUE); set(x0, y0 + 3, pz, B.DARK, 0);
+      for (const zz of [pz - 4, pz - 3, pz + 3, pz + 4]) { set(x0, y0 + 3, zz, B.GLASS, 0); set(x0, y0 + 4, zz, B.GLASS, 0); }
+      for (const zz of [z0, z1]) for (let x = x0 + 2; x <= x1 - 2; x += 3) { set(x, y0 + 3, zz, B.GLASS, 0); set(x, y0 + 4, zz, B.GLASS, 0); }
+      for (let z = z0; z <= z1; z += 2) set(x0, y0 + 6, z, B.PLASTER, IVORY);
+      for (let k = 0; k < 3; k++) { const zz = pz - 2 + k * 2; for (let y = 0; y <= 4; y++) set(x0 - 1, y0 + y, zz, B.PLASTER, WHITE); }
+      fillBox(x0 - 1, y0 + 5, pz - 3, x0 - 1, y0 + 5, pz + 3, B.PLASTER, IVORY);
+      const cxm = px + 6;
+      drum(cxm, y0 + 8, pz, 3.6, 2, true);
+      const t = dome(cxm, y0 + 10, pz, 3.9, B.DOME, BLUE_D, 0.95);
+      cross(cxm, t + 1, pz);
+      const topT = bellTower(px + 5, pz + 9, y0, 12, true);
+      // café parasols & planters
+      function parasol(x, z, tall) {
+        for (let k = 0; k < tall; k++) set(x, P + k, z, B.PLASTER, WOOD_W);
+        for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) set(x + dx, P + tall, z + dz, B.AWN_B, 0);
+        set(x, P + tall + 1, z, B.PLASTER, WHITE);
+      }
+      for (const [dx, dz] of [[-7, -5], [-3, -5], [-7, 0], [-3, 0], [-7, 5], [-3, 5], [-5, 9], [-1, 10]]) parasol(px + dx, pz + dz, 3);
+      for (const [dx, dz] of [[-9, -8], [-9, 13], [11, -8], [0, -8], [0, 13]]) { set(px + dx, P, pz + dz, B.FLOWER, 0); set(px + dx, P + 1, pz + dz, B.FLOWER, 0); }
+      markOcc(px - 10, pz - 9, px + 12, pz + 14, 3, 1);
+      landmarks.push({ id: 'platsani', name: '普拉察尼广场', en: 'Panagia Platsani · Main Square', x: px + 0.5, z: pz + 3.5, top: topT + 3, r: 22 });
+      return { x: px, z: pz };
+    }
+
+    // --- Castle of Agios Nikolaos ruins on the NW headland
+    function castle() {
+      const cx = 147, cz = 29;
+      platform(cx - 11, cz - 11, cx + 11, cz + 11, P, PV_B);
+      const rub = [pal(0.6, 0.48, 0.4), pal(0.5, 0.4, 0.34), pal(0.68, 0.56, 0.46), pal(0.42, 0.34, 0.3), pal(0.74, 0.66, 0.56)];
+      for (let dz = -10; dz <= 10; dz++) for (let dx = -10; dx <= 10; dx++) {
+        const r = Math.hypot(dx, dz), ang = Math.atan2(dz, dx);
+        if (r >= 7.0 && r <= 8.7) {
+          if (Math.abs(wrapA(ang - 0)) < 0.28) continue;                      // gate (east)
+          if (Math.abs(wrapA(ang - 2.4)) < 0.34) continue;                    // collapsed bay
+          const hh = 3 + Math.floor(vn(ang * 3 + 7, r, 31) * 7) + (hash3(dx, 4, dz) < 0.3 ? 1 : 0);
+          for (let y = 0; y < hh; y++) set(cx + dx, P + y, cz + dz, hash3(dx, y, dz) < 0.08 ? B.PLASTER : B.RUBBLE, hash3(dx, y, dz) < 0.08 ? WHITE : pick(rub));
+        }
+      }
+      // keep (tower) at the NW corner
+      const tx = cx - 6, tz = cz - 6;
+      for (let dz = -5; dz <= 5; dz++) for (let dx = -5; dx <= 5; dx++) {
+        const r = Math.hypot(dx, dz);
+        if (r > 4.1 || r < 2.5) continue;
+        const ang = Math.atan2(dz, dx);
+        if (Math.abs(wrapA(ang - 0.8)) < 0.3) continue;
+        const hh = 9 + Math.floor(vn(ang * 4 + 3, r, 33) * 6);
+        for (let y = 0; y < hh; y++) set(tx + dx, P + y, tz + dz, B.RUBBLE, pick(rub));
+        set(tx + dx, P + 5, tz + dz, hash3(dx, 5, dz) < 0.3 ? B.DARK : B.RUBBLE, 0);
+      }
+      for (let y = 0; y < 3; y++) set(tx - 3, P + 3 + y, tz, B.DARK, 0);
+      fillBox(tx - 1, P, tz - 1, tx + 1, P, tz + 1, B.PAVE, PV_B);
+      // inner stones, benches and fallen blocks
+      for (let n = 0; n < 34; n++) {
+        const a = R(0, 6.28), rr2 = R(8.9, 12.5), x = Math.round(cx + Math.cos(a) * rr2), z = Math.round(cz + Math.sin(a) * rr2);
+        if (isAir(x, P, z)) { set(x, P, z, B.RUBBLE, pick(rub)); if (rnd() < 0.4) set(x, P + 1, z, B.RUBBLE, pick(rub)); }
+      }
+      for (const [dx, dz] of [[-2, 2], [-1, 2], [0, 2], [2, -2], [3, -2]]) set(cx + dx, P, cz + dz, B.STONE, STONE_C);
+      flag(cx + 2, P, cz + 3, 9);
+      markOcc(cx - 12, cz - 12, cx + 12, cz + 12, 3, 1);
+      landmarks.push({ id: 'castle', name: '圣尼古拉斯城堡遗址', en: 'Castle of Agios Nikolaos · Sunset Point', x: cx + 0.5, z: cz + 0.5, top: P + 14, r: 18 });
+    }
+    function wrapA(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
+
+    // --- Windmills
+    function windmill(cx, cz) {
+      for (let y = 0; y < 12; y++) disc(cx, P + y, cz, 3.3 - y * 0.06, B.PLASTER, WHITE);
+      disc(cx, P + 12, cz, 3.8, B.STONE, STONE_C);
+      const xe = cx - Math.round(3.3 - 0.06 * 6);
+      set(cx - 3, P, cz, B.DOOR, BLUE); set(cx - 3, P + 1, cz, B.DOOR, BLUE);
+      set(xe, P + 6, cz, B.GLASS, 0); set(cx, P + 6, cz - 3, B.GLASS, 0); set(cx, P + 6, cz + 3, B.GLASS, 0);
+      for (let j = 0; j < 6; j++) disc(cx, P + 13 + j, cz, Math.max(0.5, 3.7 - j * 0.65), B.THATCH, THATCH_C);
+      set(cx, P + 19, cz, B.THATCH, THATCH_C);
+      windmills.push({ x: cx + 0.5, z: cz + 0.5, hubX: cx + 0.5 - 4.0, hubY: P + 13.2, hubZ: cz + 0.5 });
+      markOcc(cx - 5, cz - 5, cx + 5, cz + 5, 3, 1);
+    }
+
+    // --- Ammoudi fishing tavernas
+    function ammoudiBuildings() {
+      const xr = harbour.qx1 - 2;
+      for (const [zz, w, d] of [[66, 6, 7], [79, 7, 7], [90, 6, 6]]) {
+        const x0 = xr - w - 1 + (zz === 79 ? 0 : 1);
+        if (house(x0, zz, w, d, 1, pick([[0.97, 0.97, 0.95], [0.93, 0.8, 0.55], [0.92, 0.7, 0.58]]), { tav: true, flat: true })) markOcc(x0, zz, x0 + w - 1, zz + d - 1, 3, 0);
+      }
+      // wooden pier with moored caiques
+      const pz = 76, px1 = harbour.qx0, px0 = px1 - 22;
+      harbour.pierZ = pz; harbour.pierX0 = px0;
+      for (let x = px0; x <= px1; x++) for (let z = pz - 1; z <= pz + 1; z++) {
+        set(x, QUAY - 1, z, B.WOOD, WOODC); walk[zi(x, z)] = 1; occ[zi(x, z)] = 3;
+        if (x % 4 === 0 && z !== pz) for (let y = hm[zi(x, z)] > 11 ? 11 : hm[zi(x, z)]; y < QUAY - 1; y++) set(x, y, z, B.LOG, WOODC);
+        if (x === px0 && z === pz) { for (let k = 0; k < 3; k++) set(x - 1, QUAY - 1 + k, pz, B.LOG, WOODC); }
+      }
+      for (let x = px0 + 3; x <= px1 - 3; x += 7) {
+        moorings.push({ x: x + 0.5, z: pz - 3.2, yaw: Math.PI / 2, color: pick([0, 1, 2, 3]) });
+        moorings.push({ x: x + 3.5, z: pz + 3.2, yaw: -Math.PI / 2, color: pick([0, 1, 2, 3]) });
+      }
+      moorings.push({ x: px0 - 4.5, z: pz + 0.5, yaw: Math.PI / 2, color: 2 });
+      for (let z = harbour.z0 + 4; z <= harbour.z1 - 4; z += 6) lamp(harbour.qx0 + 3, z);
+      markOcc(harbour.qx0 - 2, harbour.z0, harbour.qx1 + 2, harbour.z1, 3, 0);
+      landmarks.push({ id: 'ammoudi', name: '阿穆迪湾', en: 'Ammoudi Bay', x: harbour.qx0 + 8.5, z: 80.5, top: QUAY + 4, r: 22 });
+    }
+
+    // ================= HOUSES =================
+    function wallPattern(x, z, x0, z0, x1, z1, y0, floors, wallC, o) {
+      const horiz = z === z0 || z === z1;
+      const corner = (x === x0 || x === x1) && (z === z0 || z === z1);
+      const i = horiz ? x - x0 : z - z0;
+      const j = i - 1, m = (((j + o.ph) % 4) + 4) % 4;
+      for (let fl = 0; fl < floors; fl++) for (let r = 0; r < 4; r++) {
+        const y = y0 + fl * 4 + r;
+        let id = B.PLASTER, c = wallC;
+        if (!corner) {
+          if (r === 1 || r === 2) {
+            if (m === 1) {
+              const doorSlot = fl === 0 && ((((j + o.ph) >> 2) + o.ph2) & 1) === 0;
+              if (doorSlot && !o.tav) { id = B.DOOR; c = o.door; } else if (doorSlot && o.tav) { id = B.DARK; c = 0; } else { id = B.GLASS; c = 0; }
+            } else if ((m === 0 || m === 2) && o.shut) { id = B.SHUTTER; c = o.shutC; }
+          }
+        }
+        set(x, y, z, id, c);
+      }
+    }
+    function cube(x0, z0, w, d, y0, floors, wallC, o) {
+      const x1 = x0 + w - 1, z1 = z0 + d - 1, top = y0 + floors * 4;
+      fillBox(x0, y0, z0, x1, top - 1, z1, B.PLASTER, wallC);
+      for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++)
+        if (x === x0 || x === x1 || z === z0 || z === z1) wallPattern(x, z, x0, z0, x1, z1, y0, floors, wallC, o);
+      fillBox(x0, top, z0, x1, top, z1, B.PLASTER, wallC);
+      for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++)
+        if (x === x0 || x === x1 || z === z0 || z === z1) set(x, top + 1, z, B.PLASTER, wallC);
+      return top;
+    }
+    function roofDeco(x0, z0, w, d, top, wallC, o) {
+      const ix0 = x0 + 1, iz0 = z0 + 1, ix1 = x0 + w - 2, iz1 = z0 + d - 2, y = top + 1;
+      if (ix1 - ix0 < 1 || iz1 - iz0 < 1) return;
+      const r = rnd();
+      if (r < 0.22) {              // pergola with blue/white awning
+        const px0 = ix0, pz0 = iz0, px1 = Math.min(ix1, ix0 + 3), pz1 = Math.min(iz1, iz0 + 3);
+        for (const [px, pz] of [[px0, pz0], [px1, pz0], [px0, pz1], [px1, pz1]]) for (let k = 0; k < 3; k++) set(px, y + k, pz, B.PLASTER, WOOD_W);
+        for (let z = pz0; z <= pz1; z++) for (let x = px0; x <= px1; x++) set(x, y + 3, z, o.tav ? B.AWN_O : B.AWN_B, 0);
+      } else if (r < 0.40) {       // loungers
+        for (let k = 0; k < 2; k++) {
+          const px = ix0 + k * 2; if (px > ix1) break;
+          set(px, y, iz0, B.PLASTER, WHITE); if (iz0 + 1 <= iz1) set(px, y, iz0 + 1, B.PAVE, BLUE_L);
+        }
+      } else if (r < 0.54) {       // water tank + stair box
+        set(ix1, y, iz1, B.DOME, BLUE); set(ix1, y + 1, iz1, B.DOME, BLUE);
+        if (ix1 - 1 >= ix0) { set(ix1 - 1, y, iz1, B.DOME, BLUE); set(ix1 - 1, y + 1, iz1, B.DOME, BLUE); }
+      } else if (r < 0.68) {       // bougainvillea planters on the parapet line
+        for (let x = ix0; x <= ix1; x++) if (hash3(x, 8, z0) < 0.6) set(x, y, iz0, B.FLOWER, 0);
+        for (let z = iz0; z <= iz1; z++) if (hash3(x0, 8, z) < 0.5) set(ix0, y, z, B.FLOWER, 0);
+      } else if (r < 0.78 && w >= 6 && d >= 6) {  // small blue dome
+        const cx = x0 + (w >> 1), cz = z0 + (d >> 1);
+        drum(cx, y, cz, 1.8, 1, false);
+        const t = dome(cx, y + 1, cz, 2.2, B.DOME, BLUE_D, 1.0);
+        set(cx, t + 1, cz, B.PLASTER, WHITE); set(cx, t + 2, cz, B.PLASTER, WHITE);
+      }
+    }
+    function house(x0, z0, w, d, floors, wallRGB, o) {
+      o = o || {};
+      const x1 = x0 + w - 1, z1 = z0 + d - 1;
+      let sum = 0;
+      for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) sum += hm[zi(x, z)];
+      const b = Math.round(sum / (w * d));
+      const wallC = pal(wallRGB);
+      for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
+        const h = hm[zi(x, z)];
+        if (h < b) for (let y = h; y < b; y++) set(x, y, z, B.PLASTER, wallC);
+        else if (h > b) for (let y = b; y < h; y++) set(x, y, z, B.AIR, 0);
+        if (h !== b) { set(x, b - 1, z, B.PLASTER, wallC); }
+      }
+      const shutC = pal(pick(SHUTTERS));
+      const oo = { ph: RI(0, 3), ph2: RI(0, 1), shut: rnd() < 0.55, shutC, door: pal(pick(SHUTTERS)), tav: !!o.tav };
+      const stack = floors >= 2 && w >= 6 && d >= 6 && rnd() < 0.6;
+      let top;
+      if (stack) {
+        top = cube(x0, z0, w, d, b, 1, wallC, oo);
+        const ux0 = x0 + RI(1, 2), uz0 = z0 + RI(1, 2), uw = w - RI(2, 3), ud = d - RI(2, 3);
+        const top2 = cube(ux0, uz0, uw, ud, top + 1, floors - 1, wallC, oo);
+        roofDeco(x0, z0, w, d, top, wallC, oo);
+        roofDeco(ux0, uz0, uw, ud, top2, wallC, oo);
+        top = top2;
+      } else {
+        top = cube(x0, z0, w, d, b, floors, wallC, oo);
+        roofDeco(x0, z0, w, d, top, wallC, oo);
+      }
+      if (o.tav) {
+        for (let k = 0; k < d - 2; k++) for (let a = 1; a <= 2; a++) { if (isAir(x1 + a, b + 3, z0 + 1 + k)) set(x1 + a, b + 3, z0 + 1 + k, B.AWN_O, 0); }
+        for (let k = 0; k < 3; k++) { const pz = z0 + 1 + k * 2; for (let y = 0; y < 3; y++) set(x1 + 3, b + y, Math.min(z1 - 1, pz), B.PLASTER, WOOD_W); }
+      }
+      for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) { occ[zi(x, z)] = 1; walk[zi(x, z)] = 0; hm[zi(x, z)] = Math.min(H - 1, b + 1); }
+      if (!o.tav && rnd() < 0.45) {   // bougainvillea against a wall
+        const side = RI(0, 3), n = RI(1, 3);
+        for (let k = 0; k < n; k++) {
+          const fx = side === 0 ? x0 - 1 : side === 1 ? x1 + 1 : x0 + 1 + k, fz = side === 2 ? z0 - 1 : side === 3 ? z1 + 1 : z0 + 1 + k;
+          if (inb(fx, b, fz) && occ[zi(fx, fz)] === 0 && Math.abs(hm[zi(fx, fz)] - b) <= 0) { set(fx, b, fz, B.FLOWER, 0); if (rnd() < 0.6) set(fx, b + 1, fz, B.FLOWER, 0); }
+        }
+      }
+      buildings.push({ id: 'b' + buildings.length, kind: o.tav ? 'taverna' : 'house', x0, z0, x1, z1, y: b, floors });
+      return true;
+    }
+    function vaultHouse(x0, z0, w, d, wallRGB) {
+      const x1 = x0 + w - 1, z1 = z0 + d - 1;
+      let sum = 0; for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) sum += hm[zi(x, z)];
+      const b = Math.round(sum / (w * d)), wallC = pal(wallRGB), cx = (x0 + x1) / 2; buildings.push({ id: 'b' + buildings.length, kind: 'cave', x0, z0, x1, z1, y: b, floors: 1 });
+      for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
+        const h = hm[zi(x, z)];
+        if (h < b) for (let y = h; y < b; y++) set(x, y, z, B.PLASTER, wallC);
+        else if (h > b) for (let y = b; y < h; y++) set(x, y, z, B.AIR, 0);
+        const rr2 = w / 2, dx = x - cx, ah = Math.floor(Math.sqrt(Math.max(0, rr2 * rr2 - dx * dx)) * 0.95);
+        for (let y = 0; y < 3 + ah; y++) set(x, b + y, z, B.PLASTER, wallC);
+        occ[zi(x, z)] = 1; walk[zi(x, z)] = 0; hm[zi(x, z)] = Math.min(H - 1, b + 4 + ah);
+      }
+      const door = pal(pick(SHUTTERS)); const ph = RI(0, 2);
+      for (let z = z0 + 1; z < z1; z++) {
+        if ((z + ph) % 3 === 0) { set(x0, b, z, B.DOOR, door); set(x0, b + 1, z, B.DOOR, door); }
+        else if ((z + ph) % 3 === 1) { set(x0, b + 1, z, B.GLASS, 0); set(x0, b + 2, z, B.GLASS, 0); }
+      }
+    }
+    function chapel(x0, z0) {
+      const w = 6, d = 8, x1 = x0 + w - 1, z1 = z0 + d - 1;
+      let sum = 0; for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) sum += hm[zi(x, z)];
+      const b = Math.round(sum / (w * d));
+      for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
+        const h = hm[zi(x, z)];
+        if (h < b) for (let y = h; y < b; y++) set(x, y, z, B.PLASTER, WHITE); else for (let y = b; y < h; y++) set(x, y, z, B.AIR, 0);
+        set(x, b - 1, z, B.PAVE, PV_A);
+      }
+      fillBox(x0, b, z0, x1, b + 4, z1, B.PLASTER, WHITE); fillBox(x0, b + 5, z0, x1, b + 5, z1, B.PLASTER, IVORY);
+      set(x0, b, z0 + 3, B.DOOR, BLUE); set(x0, b + 1, z0 + 3, B.DOOR, BLUE); set(x0, b, z0 + 4, B.DOOR, BLUE); set(x0, b + 1, z0 + 4, B.DOOR, BLUE);
+      for (const zz of [z0 + 1, z1 - 1]) { set(x0, b + 2, zz, B.GLASS, 0); set(x0, b + 3, zz, B.GLASS, 0); }
+      buildings.push({ id: 'b' + buildings.length, kind: 'chapel', x0, z0, x1, z1, y: b, floors: 1 });
+      drum(x0 + 3, b + 6, z0 + 4, 2.4, 1, false);
+      const t = dome(x0 + 3, b + 7, z0 + 4, 2.7, B.DOME, BLUE_D, 1.0);
+      cross(x0 + 3, t + 1, z0 + 4);
+      fillBox(x0, b + 6, z0, x0, b + 8, z0 + 1, B.PLASTER, WHITE); set(x0, b + 7, z0, B.DARK, 0);
+      for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) { occ[zi(x, z)] = 1; walk[zi(x, z)] = 0; hm[zi(x, z)] = Math.min(H - 1, b + 6); }
+      return b;
+    }
+    function pool(x0, z0, w, d) {
+      let sum = 0; for (let z = z0; z < z0 + d; z++) for (let x = x0; x < x0 + w; x++) sum += hm[zi(x, z)];
+      const b = Math.round(sum / (w * d));
+      for (let z = z0; z < z0 + d; z++) for (let x = x0; x < x0 + w; x++) {
+        const edge = x === x0 || x === x0 + w - 1 || z === z0 || z === z0 + d - 1;
+        roadCell(x, z, b, edge ? PV_A : PV_B);
+        if (!edge) { set(x, b - 1, z, B.POOL, pal(0.30, 0.78, 0.92)); walk[zi(x, z)] = 0; }
+      }
+      for (let k = 0; k < 2; k++) { set(x0 + 1 + k * 2, b, z0, B.PLASTER, WHITE); set(x0 + 1 + k * 2, b, z0 + d - 1, B.PAVE, BLUE_L); }
+      // parasol
+      for (let k = 0; k < 3; k++) set(x0 + w - 1, b + k, z0, B.PLASTER, WOOD_W);
+      for (let dz = 0; dz <= 1; dz++) for (let dx = -1; dx <= 0; dx++) set(x0 + w - 1 + dx, b + 3, z0 + dz, B.AWN_B, 0);
+    }
+
+    function canBuild(x0, z0, w, d, maxRange) {
+      let mn = 99, mx = 0;
+      for (let z = z0; z < z0 + d; z++) for (let x = x0; x < x0 + w; x++) {
+        if (x < 2 || z < 2 || x >= W - 2 || z >= D - 2) return false;
+        const i = zi(x, z);
+        if (!town[i] || occ[i] !== 0) return false;
+        const h = hm[i];
+        if (h < 14) return false;
+        if (h < mn) mn = h; if (h > mx) mx = h;
+      }
+      return mx - mn <= maxRange;
+    }
+
+    // --- build landmarks first so houses fill the gaps around them
+    anastasis();
+    const sq = platsani();
+    castle();
+    windmill(155, 41); windmill(167, 48); windmill(155, 57);
+    ammoudiBuildings();
+    landmarks.push({ id: 'windmills', name: '伊亚风车', en: 'Oia Windmills', x: 160.5, z: 48.5, top: P + 20, r: 18 });
+    landmarks.push({ id: 'kameni', name: '新卡梅尼火山岛', en: 'Nea Kameni · Volcano', x: 64.5, z: 132.5, top: 38, r: 30 });
+    landmarks.push({ id: 'thirassia', name: '提拉希亚岛', en: 'Thirassia', x: 20.5, z: 112.5, top: 48, r: 40 });
+
+    // --- main town
+    const houseCount = { n: 0, vault: 0, chapel: 0, pool: 0, small: 0 };
+    for (let n = 0; n < 900 && houseCount.chapel < 8; n++) {          // blue-domed chapels
+      const z = RI(46, 178), x = Math.round(XC(z)) + RI(14, 46);
+      if (canBuild(x, z, 6, 8, 1)) { chapel(x, z); markOcc(x, z, x + 5, z + 7, 1, 1); houseCount.chapel++; }
+    }
+    for (let n = 0; n < 1200 && houseCount.pool < 9; n++) {           // infinity pools hanging over the caldera
+      const z = RI(46, 176), x = Math.round(XC(z)) - RI(5, 24);
+      if (canBuild(x, z, 6, 9, 6)) { pool(x, z, 6, 9); markOcc(x, z, x + 5, z + 8, 2, 1); houseCount.pool++; }
+    }
+    for (let z = 42; z <= 184; z++) for (let x = 90; x < W - 2; x++) {
+      const i = zi(x, z);
+      if (!town[i] || occ[i] !== 0 || hm[i] < 14) continue;
+      const t = x - XC(z);
+      const cliff = t < -1;
+      let placed = false;
+      for (let tries = 0; tries < 6 && !placed; tries++) {
+        let w = RI(5, 10) - tries, d = RI(5, 10) - tries;
+        if (w < 4) w = 4; if (d < 4) d = 4;
+        if (!canBuild(x, z, w, d, cliff ? 5 : 3)) continue;
+        const wallRGB = pick(FACADES);
+        if (cliff && rnd() < 0.3) { vaultHouse(x, z, Math.max(5, w | 1), d, wallRGB); houseCount.vault++; }
+        else {
+          const nearEdge = t < 24;
+          const floors = cliff ? RI(1, 2) : (nearEdge ? RI(1, 3) : RI(1, 2));
+          house(x, z, w, d, floors, wallRGB);
+        }
+        houseCount.n++;
+        markOcc(x, z, x + w - 1, z + d - 1, 1, 0);
+        if (rnd() < 0.5) markOcc(x + w, z, x + w, z + d - 1, 2, 0);
+        if (rnd() < 0.5) markOcc(x, z + d, x + w - 1, z + d, 2, 0);
+        placed = true;
+      }
+    }
+
+    // --- infill: small cubes in the leftover gaps
+    for (let z = 42; z <= 184; z++) for (let x = 90; x < W - 2; x++) {
+      const i = zi(x, z);
+      if (!town[i] || occ[i] !== 0 || hm[i] < 14 || rnd() < 0.25) continue;
+      for (let tries = 0; tries < 3; tries++) {
+        const w = RI(3, 5), d = RI(3, 5);
+        if (!canBuild(x, z, w, d, 4)) continue;
+        house(x, z, w, d, RI(1, 2), pick(FACADES), { noDeco: true });
+        markOcc(x, z, x + w - 1, z + d - 1, 1, 0);
+        houseCount.small++;
+        break;
+      }
+    }
+
+    // --- tiny dotted houses along Thirassia's rim (distant backdrop)
+    for (let z = 40; z <= 186; z += 5) {
+      let bx = -1, bh = 0;
+      for (let x = 4; x <= 34; x++) if (hm[zi(x, z)] > bh) { bh = hm[zi(x, z)]; bx = x; }
+      if (bh < 38 || rnd() < 0.3) continue;
+      const x0 = bx + RI(-1, 2), z0 = z;
+      let mx = 0; for (let zz = z0; zz < z0 + 3; zz++) for (let xx = x0; xx < x0 + 3; xx++) mx = Math.max(mx, hm[zi(xx, zz)]);
+      fillBox(x0, hm[zi(x0, z0)] - 1, z0, x0 + 2, mx + 1, z0 + 2, B.PLASTER, WHITE);
+      if (rnd() < 0.25) dome(x0 + 1, mx + 2, z0 + 1, 1.6, B.DOME, BLUE_D, 1.0);
+    }
+
+    // ================= decorations =================
+    for (let z = 30; z <= 184; z += 9) lamp(Math.round(XC(z) + 5.2), z);
+    for (const zl of [38, 56, 124, 152, 174]) for (let x = Math.round(XC(zl)) + 3; x < Math.round(XC(zl)) + 36; x += 9) lamp(x, zl + 2);
+
+    // cypress / olive trees around the squares and edges of town
+    function tree(x, z, tall) {
+      const y0 = hm[zi(x, z)];
+      if (get(x, y0, z) !== B.AIR || occ[zi(x, z)] === 1) return;
+      for (let y = 0; y < tall; y++) set(x, y0 + y, z, B.LOG, pal(0.38, 0.3, 0.22));
+      const lc = [pal(0.22, 0.38, 0.22), pal(0.28, 0.44, 0.26), pal(0.34, 0.46, 0.28)];
+      for (let dy = 0; dy < tall - 1; dy++) {
+        const r = dy < tall / 2 ? 1.2 : 0.6;
+        for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++)
+          if (dx * dx + dz * dz <= r * r + 0.2 && isAir(x + dx, y0 + 1 + dy, z + dz)) set(x + dx, y0 + 1 + dy, z + dz, B.LEAF, pick(lc));
+      }
+    }
+    for (let n = 0; n < 7; n++) tree(sq.x - 9 + n * 3, sq.z - 9, RI(5, 7));
+    // dry scrub and rocks outside of town
+    const bush = [pal(0.42, 0.5, 0.3), pal(0.48, 0.54, 0.32), pal(0.36, 0.46, 0.28), pal(0.55, 0.52, 0.3)];
+    for (let z = 4; z < D - 4; z++) for (let x = 4; x < W - 4; x++) {
+      const i = zi(x, z);
+      if (kind[i] !== 1 || occ[i] !== 0 || hm[i] < 15 || hm[i] > P + 1) continue;
+      if (town[i] && hash3(x, 13, z) > 0.1) continue;
+      const rr0 = hash3(x, 17, z);
+      if (rr0 < 0.014) {
+        const y0 = hm[i];
+        if (!isAir(x, y0, z)) continue;
+        set(x, y0, z, B.LEAF, pick(bush));
+        if (rr0 < 0.006) set(x, y0 + 1, z, B.LEAF, pick(bush));
+        if (rr0 < 0.003) { set(x + 1, y0, z, B.LEAF, pick(bush)); }
+      } else if (rr0 > 0.992 && kind[i] === 1) {
+        const y0 = hm[i];
+        if (isAir(x, y0, z)) set(x, y0, z, B.ROCK, strata(x, y0, z, false));
+      }
+    }
+
+    // ---- parapets along every exposed road edge ----
+    const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (let z = 2; z < D - 2; z++) for (let x = 2; x < W - 2; x++) {
+      const i = zi(x, z), hp = roadH[i];
+      if (!hp) continue;
+      for (const [dx, dz] of N4) {
+        const nx = x + dx, nz = z + dz, ni = zi(nx, nz);
+        if (roadH[ni] || occ[ni] === 1 || occ[ni] === 3 && hm[ni] > hp) continue;
+        const nh = hm[ni];
+        if (nh >= hp) continue;
+        if (walk[ni] && !roadH[ni]) continue;
+        const tall = hp - nh > 4;
+        for (let y = nh; y <= hp; y++) set(nx, y, nz, tall && y < hp - 1 ? B.RUBBLE : B.PLASTER, tall && y < hp - 1 ? pal(0.66, 0.62, 0.58) : WHITE);
+        hm[ni] = hp + 1; occ[ni] = Math.max(occ[ni], 2);
+        if (hash3(nx, 6, nz) < 0.18) parapets.push([nx + 0.5, hp + 1, nz + 0.5]);
+      }
+    }
+
+    // ================= derived data =================
+    const topH = new Uint8Array(W * D), topB = new Uint8Array(W * D), topC = new Uint8Array(W * D);
+    for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
+      for (let y = H - 1; y >= 0; y--) {
+        const b = blocks[idx(x, y, z)];
+        if (b) { topH[zi(x, z)] = y + 1; topB[zi(x, z)] = b; topC[zi(x, z)] = cols[idx(x, y, z)]; break; }
+      }
+    }
+
+
+    return {
+      W, D, H, BASE: P, GY: P, WATER_Y, QUAY, blocks, cols, palette, pal, get, set, idx, inb, B, BI,
+      hm, walk, occ, land: null, topH, topB, topC, landmarks, lamps, flags, windmills, poles, parapets, moorings,
+      donkeyPath, harbour, XC, ZN, ZS, XE, town, houseCount, buildings: (function () {
+        landmarks.forEach(function (l) { if (l.id === 'platsani' || l.id === 'castle') buildings.push({ id: l.id, kind: l.id === 'castle' ? 'castle' : 'church', x0: Math.floor(l.x - 4), x1: Math.floor(l.x + 3), z0: Math.floor(l.z - 4), z1: Math.floor(l.z + 3), y: P, floors: 1, name: l.name }); });
+        windmills.forEach(function (m, i) { buildings.push({ id: 'mill' + i, kind: 'mill', x0: Math.floor(m.x - 3.5), x1: Math.floor(m.x + 2.5), z0: Math.floor(m.z - 3.5), z1: Math.floor(m.z + 2.5), y: P, floors: 1, name: '伊亚风车' }); });
+        return buildings; })()
+    };
+  }
+
+  root.SantoriniWorld = { W, D, H, P, WATER_Y, B, BI, T, create, hash3, mulberry32, XC, ZN, XE };
+  if (typeof module !== 'undefined') module.exports = root.SantoriniWorld;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script type="text/plain" id="mn-oia-src">
+/* Procedural 16×16 pixel-art texture atlas (8 cols × 4 rows) for the Santorini voxel world.
+ * Most tiles are near-greyscale and get tinted by per-vertex colour in the mesher. */
+(function (root) {
+  'use strict';
+  const TS = 16, COLS = 8, ROWS = 4;
+
+  function rng(seed) {
+    let a = seed | 0;
+    return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  const cl = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
+  const T = root.SantoriniWorld.T;
+
+  const painters = {
+    ash(x, y, r) { const v = 0.8 + r() * 0.2 - (r() < 0.08 ? 0.22 : 0) + (r() < 0.05 ? 0.12 : 0); return [v, v, v]; },
+    strata(x, y, r) {
+      let v = 0.86 + r() * 0.14;
+      if (y === 5 || y === 11) v -= 0.12;
+      if (((x * 3 + y * 7) % 23) < 1) v -= 0.18;
+      if (r() < 0.05) v += 0.08;
+      return [v, v, v];
+    },
+    pave(x, y, r) {
+      const row = y >> 2, off = (row & 1) * 4;
+      const line = (y & 3) === 3 || ((x + off) & 7) === 7;
+      const v = line ? 0.78 : 0.93 + r() * 0.07;
+      return [v, v, v];
+    },
+    plaster(x, y, r) {
+      let v = 0.95 + r() * 0.05;
+      if (((x * 5 + y * 11) % 31) < 1) v -= 0.05;
+      if (y > 13) v -= 0.025;
+      return [v, v, v];
+    },
+    stone(x, y, r) {
+      const off = (y >> 3) * 5;
+      const line = (y & 7) === 7 || ((x + off) & 15) === 15;
+      const v = line ? 0.8 : 0.94 + r() * 0.06;
+      return [v, v, v];
+    },
+    rubble(x, y, r) {
+      const row = y >> 2, off = ((row * 3) & 7);
+      const mortar = (y & 3) === 3 || ((x + off) & 7) === 7;
+      const v = mortar ? 0.55 : 0.72 + r() * 0.28;
+      return [v, v * 0.97, v * 0.94];
+    },
+    thatch(x, y, r) {
+      const v = ((y + (x >> 2)) & 1 ? 0.82 : 0.68) + r() * 0.16;
+      const streak = (x + y * 2) % 7 === 0 ? -0.1 : 0;
+      return [v + streak, (v + streak) * 0.92, (v + streak) * 0.75];
+    },
+    planks(x, y, r) {
+      const line = (y & 3) === 3;
+      const grain = Math.sin((x + (y >> 2) * 5) * 1.3) * 0.04;
+      const v = line ? 0.55 : 0.82 + grain + r() * 0.08;
+      return [v, v * 0.95, v * 0.88];
+    },
+    glass(x, y, r) {
+      const border = x === 0 || y === 0 || x === 15 || y === 15 || x === 1 || x === 14;
+      if (border) return [0.18, 0.2, 0.26];
+      const mullion = x === 7 || x === 8 || y === 7 || y === 8;
+      if (mullion) return [0.3, 0.34, 0.4];
+      const g = 0.72 + (y < 6 ? 0.2 * (1 - y / 6) : 0) + r() * 0.04;
+      return [g * 0.8, g * 0.92, g];
+    },
+    shutter(x, y, r) {
+      const slat = (y & 1) === 1;
+      let v = slat ? 0.66 : 0.92 + r() * 0.05;
+      if (x === 0 || x === 15) v *= 0.7;
+      return [v, v, v];
+    },
+    bronze(x, y, r) {
+      const v = 0.8 + r() * 0.2;
+      return [Math.min(1, 0.86 * v), Math.min(1, 0.6 * v), 0.25 * v];
+    },
+    dome(x, y, r) {
+      const seam = (x & 3) === 3;
+      const hl = y < 4 ? 0.08 : 0;
+      const v = seam ? 0.78 : 0.92 + r() * 0.06 + hl;
+      return [v, v, Math.min(1, v + 0.04)];
+    },
+    tile(x, y, r) {
+      const row = y >> 2, off = (row & 1) * 2;
+      const gx = (x + off) & 3, gy = y & 3;
+      let v = 0.62 + gy * 0.1 + r() * 0.06;
+      if (gx === 3) v *= 0.75;
+      return [v, v, v];
+    },
+    dark(x, y, r) { const v = 0.1 + r() * 0.06; return [v, v, v * 1.15]; },
+    lamp(x, y, r) {
+      const d = Math.hypot(x - 7.5, y - 7.5);
+      if (x === 0 || y === 0 || x === 15 || y === 15) return [0.45, 0.4, 0.3];
+      const v = 1 - d / 14;
+      return [1, 0.9 + v * 0.1, 0.55 + v * 0.45];
+    },
+    leaf(x, y, r) {
+      const v = 0.45 + r() * 0.5;
+      return [0.45 * v + 0.12, 0.9 * v + 0.08, 0.35 * v + 0.05];
+    },
+    log(x, y, r) {
+      const v = (x % 5 === 0 ? 0.62 : 0.85) + r() * 0.12;
+      return [v, v * 0.9, v * 0.8];
+    },
+    pool(x, y, r) {
+      const w = Math.sin(x * 0.9 + y * 0.5) * 0.5 + Math.sin(y * 1.3 - x * 0.4) * 0.5;
+      const v = 0.84 + w * 0.08 + r() * 0.05;
+      const spark = ((x * 7 + y * 13) % 29) < 1 ? 0.12 : 0;
+      return [v + spark, v + spark, Math.min(1, v + 0.1 + spark)];
+    },
+    door(x, y, r) {
+      const groove = (x & 3) === 3;
+      let v = groove ? 0.6 : 0.88 + r() * 0.08;
+      if ((x === 11 || x === 12) && (y === 8 || y === 9)) v = 1.0;
+      if (y < 2 || y > 13) v *= 0.82;
+      return [v, v, v];
+    },
+    flower(x, y, r) {
+      const k = r();
+      if (k > 0.35) { const m = (x * 3 + y * 5) % 5; return m < 3 ? [0.92, 0.18, 0.55] : m < 4 ? [0.98, 0.45, 0.72] : [0.75, 0.1, 0.45]; }
+      const v = 0.4 + k * 0.6;
+      return [0.18 * v + 0.1, 0.8 * v + 0.05, 0.2 * v + 0.05];
+    },
+    awnB(x, y, r) { const s = ((x >> 2) & 1) === 0; const v = 0.95 + r() * 0.05; return s ? [0.1 * v, 0.34 * v, 0.76 * v] : [v, v * 0.98, v * 0.94]; },
+    awnO(x, y, r) { const s = ((x >> 2) & 1) === 0; const v = 0.95 + r() * 0.05; return s ? [0.95 * v, 0.5 * v, 0.1 * v] : [v, v * 0.98, v * 0.94]; },
+    dry(x, y, r) {
+      let v = 0.84 + r() * 0.16;
+      if (r() < 0.06) v -= 0.18;
+      if (r() < 0.04) return [0.6, 0.62, 0.3];
+      return [v, v * 0.99, v * 0.96];
+    },
+    cobble(x, y, r) { const v = 0.85 + r() * 0.15; return [v, v, v]; }
+  };
+
+  function buildCanvas() {
+    const c = document.createElement('canvas');
+    c.width = TS * COLS; c.height = TS * ROWS;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(c.width, c.height);
+    Object.keys(painters).forEach((name) => {
+      const idx = T[name];
+      if (idx == null) return;
+      const ox = (idx % COLS) * TS, oy = Math.floor(idx / COLS) * TS;
+      const r = rng(idx * 7919 + 13);
+      for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+        const col = painters[name](x, y, r);
+        const o = ((oy + y) * c.width + ox + x) * 4;
+        img.data[o] = cl(col[0]); img.data[o + 1] = cl(col[1]); img.data[o + 2] = cl(col[2]); img.data[o + 3] = 255;
+      }
+    });
+    ctx.putImageData(img, 0, 0);
+    return c;
+  }
+
+  root.SantoriniTex = { TS, COLS, ROWS, buildCanvas };
+})(window);
+
+/* Chunked voxel mesher with face culling, baked ambient occlusion and per-block colour jitter. */
+(function (root) {
+  'use strict';
+  const FACES = [
+    { dir: [-1, 0, 0], corners: [{ p: [0, 1, 0], uv: [0, 1] }, { p: [0, 0, 0], uv: [0, 0] }, { p: [0, 1, 1], uv: [1, 1] }, { p: [0, 0, 1], uv: [1, 0] }] },
+    { dir: [1, 0, 0], corners: [{ p: [1, 1, 1], uv: [0, 1] }, { p: [1, 0, 1], uv: [0, 0] }, { p: [1, 1, 0], uv: [1, 1] }, { p: [1, 0, 0], uv: [1, 0] }] },
+    { dir: [0, -1, 0], corners: [{ p: [1, 0, 1], uv: [1, 0] }, { p: [0, 0, 1], uv: [0, 0] }, { p: [1, 0, 0], uv: [1, 1] }, { p: [0, 0, 0], uv: [0, 1] }] },
+    { dir: [0, 1, 0], corners: [{ p: [0, 1, 1], uv: [1, 1] }, { p: [1, 1, 1], uv: [0, 1] }, { p: [0, 1, 0], uv: [1, 0] }, { p: [1, 1, 0], uv: [0, 0] }] },
+    { dir: [0, 0, -1], corners: [{ p: [1, 0, 0], uv: [0, 0] }, { p: [0, 0, 0], uv: [1, 0] }, { p: [1, 1, 0], uv: [0, 1] }, { p: [0, 1, 0], uv: [1, 1] }] },
+    { dir: [0, 0, 1], corners: [{ p: [0, 0, 1], uv: [0, 0] }, { p: [1, 0, 1], uv: [1, 0] }, { p: [0, 1, 1], uv: [0, 1] }, { p: [1, 1, 1], uv: [1, 1] }] }
+  ];
+  const SHADE = [0.9, 0.9, 0.7, 1.0, 0.84, 0.84];
+  const AO = [0.52, 0.72, 0.87, 1.0];
+  const TS = 16, COLS = 8, ROWS = 4;
+
+  function Attr() { return { pos: [], nor: [], uv: [], col: [], idx: [], n: 0 }; }
+
+  function toGeometry(a) {
+    if (!a.n) return null;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(a.pos), 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(new Int8Array(a.nor), 3, true));
+    g.setAttribute('uv', new THREE.BufferAttribute(new Uint16Array(a.uv), 2, true));
+    g.setAttribute('color', new THREE.BufferAttribute(new Uint8Array(a.col), 3, true));
+    g.setIndex(new THREE.BufferAttribute(new Uint32Array(a.idx), 1));
+    g.computeBoundingSphere();
+    g.computeBoundingBox();
+    return g;
+  }
+
+  function buildChunk(world, cx, cz, CH) {
+    const { W, D, H, blocks, cols, palette, BI } = world;
+    const x0 = cx * CH, z0 = cz * CH, x1 = Math.min(W, x0 + CH), z1 = Math.min(D, z0 + CH);
+    const opaque = Attr(), glow = Attr();
+    const hash3 = SantoriniWorld.hash3;
+    const WD = W * D;
+    const solid = (x, y, z) => {
+      if (y < 0) return 1;
+      if (x < 0 || x >= W || z < 0 || z >= D || y >= H) return 0;
+      return blocks[x + W * z + WD * y] !== 0 ? 1 : 0;
+    };
+    const pos = [0, 0, 0];
+    for (let y = 0; y < H; y++) {
+      for (let z = z0; z < z1; z++) {
+        for (let x = x0; x < x1; x++) {
+          const id = blocks[x + W * z + WD * y];
+          if (id === 0) continue;
+          const info = BI[id];
+          const A = info.glow ? glow : opaque;
+          const pc = palette[cols[x + W * z + WD * y]] || palette[0];
+          const hv = hash3(x, y, z);
+          const wv = id === world.B.GLASS ? hash3(x, Math.floor((y - 1) / 5), z) : 0;
+          const jb = id === world.B.GLASS ? (wv < 0.3 ? 0.2 : 0.8 + wv * 0.2) : 1 + (hv - 0.5) * 2 * info.jit;
+          for (let f = 0; f < 6; f++) {
+            const face = FACES[f], d = face.dir;
+            if (solid(x + d[0], y + d[1], z + d[2])) continue;
+            const tile = f === 3 ? info.top : f === 2 ? info.bottom : info.side;
+            const u0 = (tile % COLS) / COLS, v0 = 1 - (Math.floor(tile / COLS) + 1) / ROWS;
+            const du = 1 / COLS, dv = 1 / ROWS, eps = 0.012;
+            const ao = [0, 0, 0, 0];
+            const axis = d[0] !== 0 ? 0 : d[1] !== 0 ? 1 : 2;
+            const ta = axis === 0 ? 1 : 0, tb = axis === 2 ? 1 : 2;
+            for (let c = 0; c < 4; c++) {
+              const p = face.corners[c].p;
+              const sa = p[ta] ? 1 : -1, sb = p[tb] ? 1 : -1;
+              const o1 = [d[0], d[1], d[2]], o2 = [d[0], d[1], d[2]], o3 = [d[0], d[1], d[2]];
+              o1[ta] += sa; o2[tb] += sb; o3[ta] += sa; o3[tb] += sb;
+              const s1 = solid(x + o1[0], y + o1[1], z + o1[2]), s2 = solid(x + o2[0], y + o2[1], z + o2[2]);
+              const s3 = solid(x + o3[0], y + o3[1], z + o3[2]);
+              ao[c] = (s1 && s2) ? 0 : 3 - (s1 + s2 + s3);
+            }
+            const base = A.n;
+            const shade = SHADE[f] * jb;
+            for (let c = 0; c < 4; c++) {
+              const cr = face.corners[c];
+              A.pos.push(x + cr.p[0], y + cr.p[1], z + cr.p[2]);
+              A.nor.push(d[0] * 127, d[1] * 127, d[2] * 127);
+              A.uv.push(Math.round((u0 + du * (eps + cr.uv[0] * (1 - 2 * eps))) * 65535), Math.round((v0 + dv * (eps + cr.uv[1] * (1 - 2 * eps))) * 65535));
+              const k = shade * AO[ao[c]];
+              A.col.push(Math.min(255, Math.round(pc[0] * k * 255)), Math.min(255, Math.round(pc[1] * k * 255)), Math.min(255, Math.round(pc[2] * k * 255)));
+            }
+            if (ao[0] + ao[3] > ao[1] + ao[2]) A.idx.push(base, base + 1, base + 3, base, base + 3, base + 2);
+            else A.idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
+            A.n += 4;
+          }
+        }
+      }
+    }
+    return { opaque: toGeometry(opaque), glow: toGeometry(glow) };
+  }
+
+  root.SantoriniMesher = { buildChunk };
+})(window);
+
+/* External 3D model integration:
+ *  1. Sketchfab Data API v3 (public search, no key needed) → browse Venice models, preview with the Sketchfab embed viewer.
+ *  2. glTF/GLB import (file picker, drag & drop, ?glb=<url>) → drops the model into the live Three.js scene.
+ */
+(function (root) {
+  'use strict';
+  const $ = (id) => document.getElementById('oia-' + id);
+  const API = 'https://api.sketchfab.com/v3/search';
+  const CHIPS = ['santorini', 'oia santorini', 'santorini church', 'blue dome', 'greek windmill', 'cycladic house', 'low poly island', 'greece'];
+  const hooks = { loadGLB: null, clearGLB: null, setGLBScale: null, toast: null, onOpen: null, onClose: null };
+  let nextUrl = null, busy = false, firstOpen = true;
+
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function status(msg) { $('mstat').textContent = msg || ''; }
+
+  function thumb(m) {
+    const imgs = (m.thumbnails && m.thumbnails.images) || [];
+    const pick = imgs.filter((i) => i.width >= 200).sort((a, b) => a.width - b.width)[0] || imgs[0];
+    return pick ? pick.url : '';
+  }
+
+  async function search(q, append) {
+    if (busy) return;
+    busy = true;
+    const grid = $('mgrid');
+    if (!append) { grid.innerHTML = ''; nextUrl = null; }
+    status('正在连接 Sketchfab API…');
+    try {
+      let url = append && nextUrl ? nextUrl : API + '?type=models&count=24&sort_by=-likeCount&q=' + encodeURIComponent(q || 'santorini');
+      if (!append || !nextUrl) {
+        if ($('mDl').checked) url += '&downloadable=true';
+        if ($('mAnim').checked) url += '&animated=true';
+      }
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      nextUrl = data.next || null;
+      const list = data.results || [];
+      list.forEach((m) => {
+        const card = document.createElement('div');
+        card.className = 'mcard';
+        card.innerHTML = '<img loading="lazy" alt="" src="' + esc(thumb(m)) + '"><div><b>' + esc(m.name) + '</b><span>' + esc(m.user && m.user.displayName) +
+          ' · ♥ ' + (m.likeCount || 0) + '</span><span>' + esc((m.license && m.license.label) || '标准许可') + (m.isDownloadable ? ' · 可下载' : '') + '</span></div>';
+        card.onclick = () => openModel(m);
+        grid.appendChild(card);
+      });
+      if (nextUrl) {
+        const more = document.createElement('button');
+        more.className = 'mbtn'; more.textContent = '加载更多…'; more.style.gridColumn = '1/-1';
+        more.onclick = () => { more.remove(); search(q, true); };
+        grid.appendChild(more);
+      }
+      status(list.length ? '共显示 ' + grid.querySelectorAll('.mcard').length + ' 个结果 · 数据来自 Sketchfab' : '没有找到结果，换个关键词试试');
+    } catch (e) {
+      status('无法访问 Sketchfab API（离线或被拦截）：' + e.message);
+    } finally { busy = false; }
+  }
+
+  function openModel(m) {
+    const uid = m.uid || m;
+    const embed = (m.embedUrl || 'https://sketchfab.com/models/' + uid + '/embed') + '?autostart=1&ui_theme=dark&ui_infos=1&ui_hint=1&dnt=1';
+    $('mTitle').textContent = m.name || uid;
+    $('mFrame').src = embed;
+    const lic = m.license && m.license.label ? m.license.label : '见模型页面';
+    const author = m.user ? '<a target="_blank" rel="noopener" href="' + esc(m.user.profileUrl) + '">' + esc(m.user.displayName) + '</a>' : '';
+    $('mCap').innerHTML = '作者：' + author + ' · 许可：' + esc(lic) + ' · <a target="_blank" rel="noopener" href="' + esc(m.viewerUrl || ('https://sketchfab.com/models/' + uid)) + '">在 Sketchfab 打开 / 下载</a>' +
+      '<br>' + (m.faceCount ? '面数 ' + m.faceCount.toLocaleString() + ' · ' : '') + '使用 CC 模型请按许可署名；下载后的 .glb 可用下方“导入”放进场景。';
+    $('mgrid').style.display = 'none'; $('mstat').style.display = 'none'; $('mchips').style.display = 'none';
+    $('mview').classList.add('open');
+  }
+  function closeModel() {
+    $('mFrame').src = 'about:blank';
+    $('mview').classList.remove('open');
+    $('mgrid').style.display = ''; $('mstat').style.display = ''; $('mchips').style.display = '';
+  }
+
+  function open() {
+    $('mpanel').classList.add('open');
+    if (hooks.onOpen) hooks.onOpen();
+    if (firstOpen) { firstOpen = false; search($('mq').value); }
+  }
+  function close() {
+    $('mpanel').classList.remove('open');
+    closeModel();
+    if (hooks.onClose) hooks.onClose();
+  }
+  function toggle() { $('mpanel').classList.contains('open') ? close() : open(); }
+
+  function init(h) {
+    Object.assign(hooks, h || {});
+    const chips = $('mchips');
+    CHIPS.forEach((c) => {
+      const b = document.createElement('button'); b.textContent = c;
+      b.onclick = () => { $('mq').value = c; closeModel(); search(c); };
+      chips.appendChild(b);
+    });
+    $('mGo').onclick = () => { closeModel(); search($('mq').value); };
+    $('mq').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { closeModel(); search($('mq').value); } });
+    ['glbUrl'].forEach((id) => $(id).addEventListener('keydown', (e) => e.stopPropagation()));
+    $('mClose').onclick = close;
+    $('mBack').onclick = closeModel;
+    $('mDl').onchange = $('mAnim').onchange = () => { closeModel(); search($('mq').value); };
+    $('glbFile').onchange = (e) => { const f = e.target.files[0]; if (f) importFile(f); e.target.value = ''; };
+    $('glbGo').onclick = () => { const u = $('glbUrl').value.trim(); if (u) loadURL(u, u.split('/').pop()); };
+    $('glbClear').onclick = () => hooks.clearGLB && hooks.clearGLB();
+    $('glbScale').oninput = (e) => hooks.setGLBScale && hooks.setGLBScale(parseFloat(e.target.value));
+
+    // drag & drop anywhere
+    let dragDepth = 0;
+    __oiaL(window, 'dragenter', (e) => { if (e.dataTransfer && [].includes.call(e.dataTransfer.types, 'Files')) { dragDepth++; window.__oiaRoot.classList.add('dragging'); } });
+    __oiaL(window, 'dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) window.__oiaRoot.classList.remove('dragging'); });
+    __oiaL(window, 'dragover', (e) => e.preventDefault());
+    __oiaL(window, 'drop', (e) => {
+      e.preventDefault(); dragDepth = 0; window.__oiaRoot.classList.remove('dragging');
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) importFile(f);
+    });
+
+    const qs = new URLSearchParams('');
+    if (qs.get('glb')) loadURL(qs.get('glb'), 'URL 模型');
+    if (qs.get('sketchfab')) { open(); openModel({ uid: qs.get('sketchfab'), name: 'Sketchfab ' + qs.get('sketchfab') }); }
+  }
+
+  function importFile(file) {
+    if (!/\.(glb|gltf)$/i.test(file.name)) { hooks.toast && hooks.toast('请选择 .glb / .gltf 文件'); return; }
+    loadURL(URL.createObjectURL(file), file.name);
+  }
+  function loadURL(url, name) {
+    if (!hooks.loadGLB) return;
+    hooks.toast && hooks.toast('正在加载 ' + name + ' …');
+    hooks.loadGLB(url, name).then(
+      () => hooks.toast && hooks.toast('已放入场景：' + name + '（在面前约 50 格）'),
+      (e) => hooks.toast && hooks.toast('加载失败：' + (e && e.message ? e.message : e))
+    );
+  }
+
+  root.SantoriniModels = root.VeniceModels = { init, open, close, toggle, isOpen: () => $('mpanel').classList.contains('open') };
+})(window);
+
+/* Santorini Voxel — main application: renderer, sky/day-night, water, player, boats, crowds, UI. */
+(function () {
+  'use strict';
+  const VW = window.SantoriniWorld, B = VW.B;
+  const CH = 32;
+  const $ = (id) => document.getElementById('oia-' + id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const wrapAngle = (a) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
+  const rr = (a, b) => a + Math.random() * (b - a);
+  const pickOf = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
+  const V3 = THREE.Vector3;
+  const qs = new URLSearchParams('');
+  const isTouch = ('ontouchstart' in window) || matchMedia('(pointer:coarse)').matches;
+  if (isTouch) window.__oiaRoot.classList.add('touch');
+
+  /* ================= renderer / scene ================= */
+  const canvas = $('gl');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isTouch, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isTouch ? 1.5 : 2));
+  const wantShadow = qs.get('q') !== 'low' && !(isTouch && qs.get('shadow') !== '1');
+  renderer.shadowMap.enabled = wantShadow;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0xaad4f6, 0.0028);
+  const camera = new THREE.PerspectiveCamera(72, 1, 0.1, 3000);
+  camera.rotation.order = 'YXZ';
+  scene.add(camera);
+
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  __oiaL(window, 'resize', resize); resize();
+
+  /* ================= state ================= */
+  let world = null;
+  const S = { mode: 'tour', time: parseFloat(qs.get('t')) || 17.4, auto: qs.get('auto') === '1', shadows: wantShadow, tourT: 0, hudT: 0, lampT: 0, held: 0, locked: false, elapsed: 0 };
+  const keys = Object.create(null);
+  const player = { pos: new V3(150.5, 44, 100.5), vel: new V3(), yaw: Math.PI / 2, pitch: 0.02, onGround: false, swim: false, fly: false, stepOff: 0, lastSpace: 0, climbT: 0 };
+  const joy = { x: 0, y: 0 };
+  const touchBtn = { jump: false, down: false };
+
+  /* ================= lights ================= */
+  const hemi = new THREE.HemisphereLight(0xcfe4ff, 0x6a5a48, 0.6);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+  sun.castShadow = wantShadow;
+  sun.shadow.mapSize.set(2048, 2048);
+  const SH = 72;
+  Object.assign(sun.shadow.camera, { left: -SH, right: SH, top: SH, bottom: -SH, near: 1, far: 420 });
+  sun.shadow.camera.updateProjectionMatrix();
+  sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
+  scene.add(sun, sun.target);
+  const lampLights = [];
+  for (let i = 0; i < 4; i++) { const l = new THREE.PointLight(0xffb464, 0, 16, 1.6); lampLights.push(l); scene.add(l); }
+
+  /* ================= sky ================= */
+  const skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSunDir: { value: new V3(0, 1, 0) }, uSunCol: { value: new THREE.Color() } },
+    vertexShader: 'varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    fragmentShader: [
+      'uniform vec3 uTop; uniform vec3 uHor; uniform vec3 uSunDir; uniform vec3 uSunCol; varying vec3 vDir;',
+      'void main(){ vec3 d = normalize(vDir); float h = d.y;',
+      ' vec3 col = mix(uHor, uTop, pow(clamp(h,0.0,1.0), 0.5));',
+      ' col = mix(col, uHor*0.85, smoothstep(0.0,-0.3,h));',
+      ' float sd = max(dot(d, uSunDir), 0.0);',
+      ' float vis = smoothstep(-0.25, 0.1, uSunDir.y);',
+      ' col += uSunCol * (pow(sd, 5.0)*0.22 + pow(sd, 80.0)*0.35) * vis;',
+      ' gl_FragColor = vec4(col, 1.0); }'
+    ].join('\n')
+  });
+  const skyMesh = new THREE.Mesh(new THREE.SphereGeometry(1500, 24, 16), skyMat);
+  skyMesh.renderOrder = -10; skyMesh.frustumCulled = false;
+  scene.add(skyMesh);
+
+  function pixelTex(size, fn) {
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    const x = c.getContext('2d'); fn(x, size);
+    const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+    return t;
+  }
+  const sunTex = pixelTex(16, (x) => {
+    x.fillStyle = 'rgba(255,230,150,.35)'; x.fillRect(0, 0, 16, 16);
+    x.fillStyle = '#ffe9a0'; x.fillRect(2, 2, 12, 12);
+    x.fillStyle = '#fffbe0'; x.fillRect(4, 4, 8, 8);
+  });
+  const moonTex = pixelTex(16, (x) => {
+    x.fillStyle = '#dfe6f5'; x.fillRect(3, 3, 10, 10);
+    x.fillStyle = '#c5cde0'; [[5, 5, 2, 2], [9, 7, 3, 2], [6, 10, 2, 2], [10, 10, 2, 2]].forEach((r) => x.fillRect(r[0], r[1], r[2], r[3]));
+  });
+  const sunSprite = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshBasicMaterial({ map: sunTex, transparent: true, depthWrite: false, fog: false }));
+  const moonSprite = new THREE.Mesh(new THREE.PlaneGeometry(70, 70), new THREE.MeshBasicMaterial({ map: moonTex, transparent: true, depthWrite: false, fog: false }));
+  sunSprite.renderOrder = moonSprite.renderOrder = -9; sunSprite.frustumCulled = moonSprite.frustumCulled = false;
+  scene.add(sunSprite, moonSprite);
+
+  const starGeo = new THREE.BufferGeometry();
+  {
+    const n = 1400, p = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      let x, y, z, l;
+      do { x = Math.random() * 2 - 1; y = Math.random(); z = Math.random() * 2 - 1; l = Math.hypot(x, y, z); } while (l > 1 || l < 0.2 || y < 0.04 * l);
+      p[i * 3] = x / l * 1200; p[i * 3 + 1] = y / l * 1200; p[i * 3 + 2] = z / l * 1200;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  }
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false, fog: false });
+  const stars = new THREE.Points(starGeo, starMat);
+  stars.renderOrder = -8; stars.frustumCulled = false;
+  scene.add(stars);
+
+  // Minecraft-style blocky clouds
+  const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+  const cloudMesh = (function () {
+    const N = 24, CS = 16, TILE = N * CS;
+    const hv = (x, y) => { x = ((x % N) + N) % N; y = ((y % N) + y * 0 + N) % N; let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+    const vn = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi; const a = hv(xi, yi), b = hv(xi + 1, yi), c = hv(xi, yi + 1), d = hv(xi + 1, yi + 1); return lerp(lerp(a, b, fx), lerp(c, d, fx), fy); };
+    const cells = [];
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const v = vn(i / 4, j / 4) * 0.7 + hv(i, j) * 0.3; if (v > 0.6) cells.push([i, j]); }
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(CS, 5, CS), cloudMat, cells.length * 9);
+    const m = new THREE.Matrix4(); let k = 0;
+    for (let tz = -1; tz <= 1; tz++) for (let tx = -1; tx <= 1; tx++) for (const c of cells) {
+      m.makeTranslation(tx * TILE + c[0] * CS, 0, tz * TILE + c[1] * CS); mesh.setMatrixAt(k++, m);
+    }
+    mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false; mesh.userData.TILE = TILE;
+    return mesh;
+  })();
+  cloudMesh.position.y = 125;
+  scene.add(cloudMesh);
+
+  // distant sea floor beyond the generated map
+  const farFloor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.MeshLambertMaterial({ color: 0x0b3f78 }));
+  farFloor.rotation.x = -Math.PI / 2; farFloor.position.y = 0.9;
+  scene.add(farFloor);
+
+  /* ================= water ================= */
+  const waterMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    uniforms: {
+      uTime: { value: 0 }, uSunDir: { value: new V3(0, 1, 0) }, uSunCol: { value: new THREE.Color(1, 1, 1) },
+      uSky: { value: new THREE.Color() }, uDeep: { value: new THREE.Color() }, uShallow: { value: new THREE.Color() },
+      uFog: { value: new THREE.Color() }, uFogD: { value: 0.0028 }, uNight: { value: 0 }
+    },
+    vertexShader: 'varying vec3 vW; varying float vD; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; vec4 mv = viewMatrix * w; vD = -mv.z; gl_Position = projectionMatrix * mv; }',
+    fragmentShader: [
+      'uniform float uTime; uniform vec3 uSunDir; uniform vec3 uSunCol; uniform vec3 uSky; uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uFog; uniform float uFogD; uniform float uNight;',
+      'varying vec3 vW; varying float vD;',
+      'float h21(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p,p+45.32); return fract(p.x*p.y); }',
+      'void main(){',
+      ' vec2 p = vW.xz*2.0;',
+      ' float t1 = floor(uTime*1.6);',
+      ' vec2 c1 = floor(p + vec2(uTime*0.55, uTime*0.30));',
+      ' vec2 c2 = floor(p*0.5 + vec2(-uTime*0.25, uTime*0.4) + 17.0);',
+      ' float n1 = h21(c1 + t1*0.37); float n2 = h21(c2 + 31.7);',
+      ' vec3 N = normalize(vec3((n1-0.5)*0.34, 1.0, (n2-0.5)*0.34));',
+      ' vec3 V = normalize(cameraPosition - vW);',
+      ' float fr = pow(1.0 - max(dot(N,V),0.0), 3.0);',
+      ' vec3 base = mix(uDeep, uShallow, n1*0.55 + n2*0.25 + 0.1);',
+      ' vec3 col = mix(base, uSky, fr*0.8);',
+      ' vec3 R = reflect(-uSunDir, N);',
+      ' float spec = pow(max(dot(R,V),0.0), 110.0);',
+      ' col += uSunCol * spec * 1.6;',
+      ' col += vec3(0.16) * step(0.94, n1) * (1.0 - uNight*0.85);',
+      ' float a = mix(0.74, 0.95, fr);',
+      ' float fog = 1.0 - exp(-uFogD*uFogD*vD*vD);',
+      ' col = mix(col, uFog, fog); a = mix(a, 1.0, fog);',
+      ' gl_FragColor = vec4(col, a); }'
+    ].join('\n')
+  });
+  const waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), waterMat);
+  waterMesh.rotation.x = -Math.PI / 2; waterMesh.position.y = VW.WATER_Y; waterMesh.renderOrder = 5; waterMesh.frustumCulled = false;
+  scene.add(waterMesh);
+
+  /* ================= time of day ================= */
+  const KEYS = [
+    [0, 0x040716, 0x0c1330, 0x020b1e, 0x08203a],
+    [5, 0x080f2c, 0x2a2858, 0x03122c, 0x0c2c52],
+    [6.3, 0x2f5aa8, 0xf5a070, 0x0a3a74, 0x2a7aa8],
+    [8, 0x2f86e8, 0xb5dcf6, 0x0452a8, 0x1ea0d8],
+    [12, 0x1f78ec, 0x9fd0f8, 0x044aa6, 0x14a8dc],
+    [16.5, 0x2c82e4, 0xb0d6f4, 0x0648a0, 0x1a9ed4],
+    [18, 0x3a6cc8, 0xfbbc7c, 0x083c84, 0x2a82b4],
+    [19.2, 0x2a2e72, 0xea6a52, 0x061f4a, 0x1a4a74],
+    [20.6, 0x0c1238, 0x34305c, 0x031430, 0x0c2c52],
+    [24, 0x040716, 0x0c1330, 0x020b1e, 0x08203a]
+  ];
+  const cTop = new THREE.Color(), cHor = new THREE.Color(), cDeep = new THREE.Color(), cShal = new THREE.Color(), cTmp = new THREE.Color();
+  function sampleKey(t, idx, out) {
+    let i = 0; while (i < KEYS.length - 2 && t >= KEYS[i + 1][0]) i++;
+    const a = KEYS[i], b = KEYS[i + 1], f = clamp((t - a[0]) / (b[0] - a[0]), 0, 1);
+    out.setHex(a[idx]); out.lerp(cTmp.setHex(b[idx]), f);
+  }
+  const sunDir = new V3(), lightDir = new V3();
+  const sunCol = new THREE.Color(), warmCol = new THREE.Color(1.0, 0.55, 0.28), whiteCol = new THREE.Color(1.0, 0.97, 0.9), moonCol = new THREE.Color(0.5, 0.62, 1.0);
+  const winDay = new THREE.Color(0.2, 0.3, 0.42), winNight = new THREE.Color(1.0, 0.8, 0.45);
+  let nightF = 0, dayF = 1;
+  const matWorld = new THREE.MeshLambertMaterial({ vertexColors: true });
+  const matGlow = new THREE.MeshBasicMaterial({ vertexColors: true });
+
+  function updateSky(cam) {
+    const t = ((S.time % 24) + 24) % 24;
+    const a = (t - 5.5) / 14 * Math.PI;
+    sunDir.set(Math.cos(a), Math.sin(a), 0.3).normalize();
+    const e = sunDir.y;
+    dayF = smooth(-0.08, 0.35, e);
+    nightF = 1 - smooth(-0.12, 0.14, e);
+    sampleKey(t, 1, cTop); sampleKey(t, 2, cHor); sampleKey(t, 3, cDeep); sampleKey(t, 4, cShal);
+    // sun / moon light
+    sunCol.copy(warmCol).lerp(whiteCol, smooth(0.04, 0.5, e));
+    if (e > -0.02) {
+      lightDir.copy(sunDir); sun.color.copy(sunCol); sun.intensity = 0.06 + 0.82 * smooth(-0.02, 0.32, e);
+    } else {
+      lightDir.copy(sunDir).negate(); sun.color.copy(moonCol); sun.intensity = 0.42 * smooth(0.0, 0.25, -e);
+    }
+    hemi.color.setRGB(lerp(0.2, 0.74, dayF), lerp(0.26, 0.85, dayF), lerp(0.46, 1.0, dayF)).lerp(cHor, 0.22);
+    hemi.groundColor.setRGB(lerp(0.07, 0.42, dayF), lerp(0.07, 0.38, dayF), lerp(0.12, 0.33, dayF));
+    hemi.intensity = lerp(0.5, 0.62, dayF);
+    // sky uniforms
+    skyMat.uniforms.uTop.value.copy(cTop); skyMat.uniforms.uHor.value.copy(cHor);
+    skyMat.uniforms.uSunDir.value.copy(sunDir); skyMat.uniforms.uSunCol.value.copy(sunCol);
+    const under = cam.y < VW.WATER_Y - 0.05;
+    if (under) { scene.fog.color.setRGB(0.07, 0.28, 0.4).multiplyScalar(0.3 + dayF * 0.7); scene.fog.density = 0.07; }
+    else { scene.fog.color.copy(cHor); scene.fog.density = 0.0028; }
+    renderer.setClearColor(scene.fog.color);
+    waterMesh.visible = !under;
+    const wu = waterMat.uniforms;
+    wu.uSunDir.value.copy(lightDir); wu.uSunCol.value.copy(sun.color).multiplyScalar(sun.intensity > 0.2 ? 1 : 0.4);
+    wu.uSky.value.copy(cHor).lerp(cTop, 0.35); wu.uDeep.value.copy(cDeep); wu.uShallow.value.copy(cShal);
+    wu.uFog.value.copy(cHor); wu.uFogD.value = scene.fog.density; wu.uNight.value = nightF;
+    // celestial sprites & stars follow the camera
+    sunSprite.position.copy(cam).addScaledVector(sunDir, 900); sunSprite.lookAt(cam);
+    moonSprite.position.copy(cam).addScaledVector(sunDir, -900); moonSprite.lookAt(cam);
+    sunSprite.visible = e > -0.12; moonSprite.visible = e < 0.1;
+    skyMesh.position.copy(cam); stars.position.copy(cam);
+    starMat.opacity = clamp(nightF * 1.1 - 0.1, 0, 0.95);
+    // clouds
+    const TILE = cloudMesh.userData.TILE, drift = S.elapsed * 2.2;
+    cloudMesh.position.x = Math.floor((cam.x - drift) / TILE) * TILE + drift;
+    cloudMesh.position.z = Math.floor(cam.z / TILE) * TILE;
+    cloudMat.color.setRGB(1, 1, 1).lerp(cHor, 0.3 * (1 - dayF) + 0.1).multiplyScalar(0.2 + dayF * 0.8);
+    // windows glow at night
+    matGlow.color.copy(winDay).lerp(winNight, nightF);
+    // lamp lights
+    const ni = nightF;
+    lampLights.forEach((l) => { l.intensity = 1.7 * ni; });
+  }
+
+  /* ================= world build ================= */
+  const chunks = [];
+  const worldGroup = new THREE.Group(); scene.add(worldGroup);
+  let CX = 0, CZ = 0;
+  const dirty = new Set();
+
+  function meshChunk(cx, cz) {
+    const i = cx + cz * CX, rec = chunks[i] || (chunks[i] = {});
+    const g = SantoriniMesher.buildChunk(world, cx, cz, CH);
+    if (rec.opaque) { worldGroup.remove(rec.opaque); rec.opaque.geometry.dispose(); rec.opaque = null; }
+    if (rec.glow) { worldGroup.remove(rec.glow); rec.glow.geometry.dispose(); rec.glow = null; }
+    if (g.opaque) { const m = new THREE.Mesh(g.opaque, matWorld); m.castShadow = m.receiveShadow = true; rec.opaque = m; worldGroup.add(m); }
+    if (g.glow) { const m = new THREE.Mesh(g.glow, matGlow); m.castShadow = true; rec.glow = m; worldGroup.add(m); }
+  }
+  function markDirty(x, z) {
+    const cx = Math.floor(x / CH), cz = Math.floor(z / CH);
+    dirty.add(cx + cz * CX);
+    const lx = x - cx * CH, lz = z - cz * CH;
+    if (lx === 0 && cx > 0) dirty.add(cx - 1 + cz * CX);
+    if (lx === CH - 1 && cx < CX - 1) dirty.add(cx + 1 + cz * CX);
+    if (lz === 0 && cz > 0) dirty.add(cx + (cz - 1) * CX);
+    if (lz === CH - 1 && cz < CZ - 1) dirty.add(cx + (cz + 1) * CX);
+  }
+
+  const solidAt = (x, y, z) => {
+    if (y < 0) return true;
+    if (x < 0 || x >= world.W || z < 0 || z >= world.D || y >= world.H) return false;
+    return world.blocks[x + world.W * (z + world.D * y)] !== 0;
+  };
+  function groundY(x, z, fromY) {
+    for (let y = Math.min(world.H - 1, fromY); y >= 0; y--) if (solidAt(Math.floor(x), y, Math.floor(z))) return y + 1;
+    return 1;
+  }
+
+  /* ================= shared mesh helpers ================= */
+  const unitBox = new THREE.BoxGeometry(1, 1, 1);
+  const matCache = new Map();
+  const lam = (hex) => { let m = matCache.get(hex); if (!m) { m = new THREE.MeshLambertMaterial({ color: hex }); matCache.set(hex, m); } return m; };
+  function bx(parent, w, h, d, color, x, y, z, shadow) {
+    const m = new THREE.Mesh(unitBox, typeof color === 'number' ? lam(color) : color);
+    m.scale.set(w, h, d); m.position.set(x, y, z); m.castShadow = shadow !== false; m.receiveShadow = false;
+    parent.add(m); return m;
+  }
+  const stripeMat = new THREE.MeshLambertMaterial({
+    map: pixelTex(8, (x) => { for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#f4f4f0' : '#1b2a5c'; x.fillRect(0, i, 8, 1); } })
+  });
+
+  /* ================= boats ================= */
+  const boats = [];
+  const rideBoats = [];
+  const HULLS = [0xf4f4f0, 0x1f55b5, 0xc83a2c, 0xe8b028];
+  const awnMat = new THREE.MeshLambertMaterial({
+    map: pixelTex(8, (x) => { for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#f6f6f2' : '#1f55b5'; x.fillRect(0, i, 8, 1); } })
+  });
+
+  function addPerson(parent, x, y, z, shirt, hat) {
+    const skin = pickOf([0xf0c8a0, 0xe0b48c, 0xc99a74, 0x8d5a3a]);
+    bx(parent, 0.3, 0.5, 0.2, 0x2a3a5c, x, y + 0.25, z);
+    bx(parent, 0.38, 0.5, 0.24, shirt, x, y + 0.75, z);
+    bx(parent, 0.28, 0.28, 0.28, skin, x, y + 1.14, z);
+    if (hat) { bx(parent, 0.5, 0.05, 0.5, hat, x, y + 1.31, z); bx(parent, 0.3, 0.12, 0.3, hat, x, y + 1.38, z); }
+  }
+
+  // traditional Greek caïque: small wooden fishing boat with a little wheelhouse
+  function makeCaique(hull) {
+    const g = new THREE.Group();
+    const wood = 0x8a5a32, white = 0xf6f6f2, blue = 0x1f55b5;
+    bx(g, 1.7, 0.55, 5.4, hull, 0, 0.27, 0);
+    bx(g, 1.2, 0.5, 1.5, hull, 0, 0.42, 3.1); bx(g, 0.7, 0.5, 1.0, hull, 0, 0.7, 4.0);
+    bx(g, 1.3, 0.5, 1.3, hull, 0, 0.42, -3.0);
+    bx(g, 1.5, 0.06, 4.9, wood, 0, 0.58, 0);
+    bx(g, 0.1, 0.22, 5.6, white, 0.85, 0.66, 0.2); bx(g, 0.1, 0.22, 5.6, white, -0.85, 0.66, 0.2);
+    bx(g, 1.1, 0.9, 1.5, white, 0, 1.06, -1.3);
+    bx(g, 1.12, 0.28, 1.0, 0x24344c, 0, 1.2, -1.3);
+    bx(g, 1.3, 0.1, 1.7, blue, 0, 1.55, -1.3);
+    bx(g, 0.12, 2.4, 0.12, wood, 0, 1.8, 1.7);
+    bx(g, 0.03, 0.45, 0.7, blue, 0, 2.8, 2.05);
+    bx(g, 0.14, 0.2, 0.14, 0xffd070, 0, 1.0, 4.35);
+    bx(g, 0.35, 0.3, 0.35, 0xe8602a, 0.45, 0.75, 0.7); bx(g, 0.35, 0.3, 0.35, 0xe8602a, -0.4, 0.75, 0.25);
+    bx(g, 0.5, 0.25, 0.5, 0xb98a58, 0.35, 0.72, -3.0);
+    if (Math.random() < 0.75) addPerson(g, -0.35, 0.6, 0.9, pickOf([0xf0f0ea, 0xc03a2e, 0x2f5fb8]), 0x1f55b5);
+    const root = new THREE.Group(); root.add(g);
+    return { root, inner: g, kind: 'caique', eye: [0.45, 2.3, 2.4] };
+  }
+
+  const sailGeo = (function () {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0, 4.4, 0, 0, 0, -2.4]), 3));
+    g.computeVertexNormals(); return g;
+  })();
+  // two-masted wooden gulet used for caldera sunset cruises
+  function makeGulet() {
+    const g = new THREE.Group();
+    const wood = 0x7a4a28, deck = 0xb98a58, white = 0xf6f6f2, blue = 0x1f55b5, cream = 0xf7f2e4;
+    bx(g, 3.0, 1.1, 10.5, wood, 0, 0.55, 0);
+    bx(g, 2.4, 1.0, 2.6, wood, 0, 0.7, 6.2); bx(g, 1.4, 0.9, 1.8, wood, 0, 1.0, 8.0); bx(g, 0.5, 0.7, 1.4, wood, 0, 1.55, 9.4);
+    bx(g, 2.6, 0.08, 9.6, deck, 0, 1.12, 0);
+    bx(g, 0.12, 0.4, 10.4, white, 1.45, 1.32, 0); bx(g, 0.12, 0.4, 10.4, white, -1.45, 1.32, 0);
+    bx(g, 2.4, 1.3, 3.0, white, 0, 1.8, -3.4); bx(g, 2.42, 0.35, 2.4, 0x24344c, 0, 1.95, -3.4); bx(g, 2.6, 0.12, 3.2, deck, 0, 2.5, -3.4);
+    for (const [px, pz] of [[0.95, -0.9], [-0.95, -0.9], [0.95, 1.9], [-0.95, 1.9]]) bx(g, 0.1, 1.45, 0.1, wood, px, 1.85, pz);
+    bx(g, 2.2, 0.08, 3.0, awnMat, 0, 2.62, 0.5);
+    bx(g, 0.2, 9, 0.2, wood, 0, 5.6, 1.4); bx(g, 0.16, 7, 0.16, wood, 0, 4.6, 5.0);
+    const mk = (sx, sy, sz, px, py, pz, flip) => {
+      const m = new THREE.Mesh(sailGeo, new THREE.MeshLambertMaterial({ color: cream, side: THREE.DoubleSide }));
+      m.scale.set(1, sy, sz); m.position.set(px, py, pz); if (flip) m.rotation.y = Math.PI; m.castShadow = true; g.add(m); return m;
+    };
+    mk(1, 1.8, 2.6, 0, 1.9, 1.4); mk(1, 1.3, 1.6, 0, 1.7, 5.0); mk(1, 1.4, 1.7, 0, 1.9, 5.2, true);
+    bx(g, 0.1, 1.6, 0.1, wood, 0, 2.0, -4.9); bx(g, 0.03, 0.5, 0.8, blue, 0, 3.0, -5.3);
+    addPerson(g, 0.7, 1.15, 0.2, 0xd04040, 0xe8d49a); addPerson(g, -0.6, 1.15, 0.9, 0x3a6ad0, null);
+    addPerson(g, 0.3, 1.15, 1.6, 0xf0e0b0, 0xf6f6f2); addPerson(g, -0.8, 1.15, -0.3, 0xe0a030, null);
+    addPerson(g, 0.0, 1.15, -5.0, 0xf6f6f2, 0x1f55b5);
+    const root = new THREE.Group(); root.add(g);
+    return { root, inner: g, kind: 'gulet', eye: [1.0, 2.85, 6.6] };
+  }
+
+  function makeFerry() {
+    const g = new THREE.Group();
+    bx(g, 3.2, 0.9, 11, 0xf2f2ee, 0, 0.45, 0);
+    bx(g, 2.5, 0.8, 1.6, 0xf2f2ee, 0, 0.45, 6.2); bx(g, 1.6, 0.7, 1.2, 0xf2f2ee, 0, 0.5, 7.4);
+    bx(g, 3.24, 0.22, 11.04, 0x1f3f8a, 0, 0.62, 0);
+    bx(g, 3.26, 0.1, 11.06, 0xe0b020, 0, 0.82, 0);
+    bx(g, 2.8, 1.3, 7.6, 0xf6f6f2, 0, 1.55, -0.6);
+    bx(g, 2.86, 0.55, 7.2, 0x24344c, 0, 1.7, -0.6);
+    bx(g, 2.9, 0.1, 8.0, 0xdadad6, 0, 2.25, -0.6);
+    bx(g, 2.2, 0.8, 1.6, 0xf6f6f2, 0, 1.45, 4.0); bx(g, 2.0, 0.4, 0.2, 0x24344c, 0, 1.7, 4.85);
+    bx(g, 0.3, 0.9, 0.3, 0x1f3f8a, 0.9, 2.7, -4.2);
+    for (let i = -3; i <= 3; i++) { bx(g, 0.1, 0.3, 0.3, 0xdddddd, 1.62, 1.05, i * 1.4); bx(g, 0.1, 0.3, 0.3, 0xdddddd, -1.62, 1.05, i * 1.4); }
+    const root = new THREE.Group(); root.add(g);
+    return { root, inner: g, kind: 'ferry' };
+  }
+
+  function addRoute(points, kind, opts) {
+    const curve = new THREE.CatmullRomCurve3(points.map((p) => new V3(p[0], 0, p[1])), false, 'centripetal');
+    const L = curve.getLength();
+    const b = kind === 'caique' ? makeCaique(opts.hull) : kind === 'gulet' ? makeGulet() : makeFerry();
+    b.curve = curve; b.L = L; b.a = opts.a == null ? 4 : opts.a; b.b = L - (opts.b == null ? 4 : opts.b);
+    b.speed = opts.speed || 3; b.u0 = opts.u0 || 0; b.lat = opts.lat == null ? 0 : opts.lat; b.phase = Math.random() * 6.28;
+    b.yaw = 0; b.pos = new V3(); b.dir = 1; b.heading = 0;
+    scene.add(b.root); boats.push(b);
+    if (b.eye) rideBoats.push(b);
+    return b;
+  }
+  function addMoored() {
+    for (const m of world.moorings) {
+      const b = makeCaique(HULLS[m.color % HULLS.length]);
+      b.root.position.set(m.x, VW.WATER_Y - 0.25, m.z);
+      b.root.rotation.y = m.yaw + (Math.random() - 0.5) * 0.06;
+      b.phase = Math.random() * 6.28; b.moored = true;
+      scene.add(b.root); boats.push(b);
+    }
+  }
+  const _p = new V3(), _t = new V3();
+  function updateBoats(dt, time) {
+    for (const b of boats) {
+      if (b.moored) {
+        b.inner.position.y = Math.sin(time * 1.4 + b.phase) * 0.035;
+        b.inner.rotation.z = Math.sin(time * 1.1 + b.phase) * 0.025;
+        continue;
+      }
+      const span = b.b - b.a;
+      const u = (b.u0 + time * b.speed) % (2 * span);
+      const ph = u / span;
+      const p = ph < 1 ? ph : 2 - ph;
+      const f = p - 0.5 * Math.sin(2 * Math.PI * p) / (2 * Math.PI);
+      const s = b.a + span * f;
+      const dir = ph < 1 ? 1 : -1;
+      const uu = clamp(s / b.L, 0, 1);
+      b.curve.getPointAt(uu, _p); b.curve.getTangentAt(uu, _t);
+      const nx = -_t.z, nz = _t.x;
+      const lat = b.lat * clamp(Math.sin(Math.PI * ph) * 6, -1, 1);
+      const px = _p.x + nx * lat, pz = _p.z + nz * lat;
+      const target = Math.atan2(_t.x * dir, _t.z * dir);
+      if (!b.init) { b.heading = target; b.init = true; }
+      b.heading += wrapAngle(target - b.heading) * (1 - Math.exp(-2.2 * dt));
+      b.pos.set(px, VW.WATER_Y - (b.kind === 'gulet' ? 0.45 : b.kind === 'ferry' ? 0.3 : 0.25), pz);
+      b.root.position.copy(b.pos); b.root.rotation.y = b.heading;
+      b.inner.position.y = Math.sin(time * 1.6 + b.phase) * 0.03;
+      b.inner.rotation.z = Math.sin(time * 1.2 + b.phase) * 0.02 + (b.kind === 'gulet' ? 0.05 : 0);
+      b.inner.rotation.x = Math.sin(time * 1.9 + b.phase) * 0.012;
+    }
+  }
+
+  /* ================= people (instanced voxel villagers) ================= */
+  const NPC_N = isTouch ? 50 : 100;
+  const npcs = [];
+  const PART = {
+    body: { w: 0.52, h: 0.72, d: 0.3 }, head: { w: 0.36, h: 0.36, d: 0.36 }, hair: { w: 0.4, h: 0.14, d: 0.4 },
+    leg: { w: 0.22, h: 0.62, d: 0.24 }, arm: { w: 0.15, h: 0.62, d: 0.2 }
+  };
+  let npcMeshes = null;
+  const dummy = new THREE.Object3D();
+  const SHIRTS = [0xc03a2e, 0x2f5fb8, 0xf1e4c0, 0x2f8a5e, 0xe3a72f, 0x6f3fa0, 0x1f1f26, 0xd96aa0, 0x3aa5b8, 0xf5f5f0, 0xb0602c];
+  const PANTS = [0x20222c, 0x3a3a46, 0x5a4636, 0x2a3a5c, 0x7a7466];
+  const SKINS = [0xf0c8a0, 0xe0b48c, 0xc99a74, 0x8d5a3a, 0xf5d6b8];
+  const HAIRS = [0x222018, 0x4a3320, 0x8a5a2a, 0xd8c070, 0x888888, 0x111111];
+
+  function makeNPCMeshes() {
+    const mk = (p, name) => { const m = new THREE.InstancedMesh(unitBox, new THREE.MeshLambertMaterial({ color: 0xffffff }), NPC_N); m.castShadow = true; m.frustumCulled = false; m.userData.name = name; scene.add(m); return m; };
+    npcMeshes = { body: mk(PART.body), head: mk(PART.head), hair: mk(PART.hair), legL: mk(PART.leg), legR: mk(PART.leg), armL: mk(PART.arm), armR: mk(PART.arm) };
+    const c = new THREE.Color();
+    npcs.forEach((n, i) => {
+      npcMeshes.body.setColorAt(i, c.setHex(n.shirt)); npcMeshes.armL.setColorAt(i, c); npcMeshes.armR.setColorAt(i, c);
+      npcMeshes.head.setColorAt(i, c.setHex(n.skin)); npcMeshes.hair.setColorAt(i, c.setHex(n.hair));
+      npcMeshes.legL.setColorAt(i, c.setHex(n.pants)); npcMeshes.legR.setColorAt(i, c);
+    });
+    Object.values(npcMeshes).forEach((m) => { m.instanceColor.needsUpdate = true; });
+  }
+
+  function surfaceAt(x, z, refY) {
+    for (const c of [refY, refY + 1, refY - 1]) {
+      if (c < 3) continue;
+      if (solidAt(x, c - 1, z) && !solidAt(x, c, z) && !solidAt(x, c + 1, z)) return c;
+    }
+    return -1;
+  }
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  function spawnNPCs() {
+    let tries = 0;
+    while (npcs.length < NPC_N && tries++ < 20000) {
+      const crowd = npcs.length < NPC_N * 0.5;
+      const x = crowd ? Math.floor(rr(132, 172)) : Math.floor(rr(100, world.W - 6));
+      const z = crowd ? Math.floor(rr(90, 158)) : Math.floor(rr(26, 188));
+      if (!world.walk[x + world.W * z]) continue;
+      const y = surfaceAt(x, z, world.hm[x + world.W * z]);
+      if (y < 0) continue;
+      npcs.push({
+        x, z, y, tx: x, tz: z, ty: y, p: 1, dx: 1, dz: 0, speed: rr(1.0, 1.7), phase: Math.random() * 6.28, wait: Math.random() * 3,
+        shirt: pickOf(SHIRTS), pants: pickOf(PANTS), skin: pickOf(SKINS), hair: pickOf(HAIRS),
+        px: x + 0.5, pz: z + 0.5, py: y, yaw: Math.random() * 6.28, h: rr(0.9, 1.08)
+      });
+    }
+  }
+  function npcPickNext(n) {
+    const opts = [];
+    for (const d of DIRS) {
+      const nx = n.x + d[0], nz = n.z + d[1];
+      if (!world.walk[nx + world.W * nz]) continue;
+      const y = surfaceAt(nx, nz, n.y);
+      if (y < 0) continue;
+      let w = 1;
+      if (d[0] === n.dx && d[1] === n.dz) w = 5; else if (d[0] === -n.dx && d[1] === -n.dz) w = 0.15;
+      opts.push([nx, nz, y, w, d]);
+    }
+    if (!opts.length) { n.wait = 1; return; }
+    let tot = 0; opts.forEach((o) => (tot += o[3]));
+    let r = Math.random() * tot, o = opts[0];
+    for (const c of opts) { r -= c[3]; if (r <= 0) { o = c; break; } }
+    n.tx = o[0]; n.tz = o[1]; n.ty = o[2]; n.dx = o[4][0]; n.dz = o[4][1]; n.p = 0;
+    if (Math.random() < 0.04) n.wait = rr(1, 4);
+  }
+  function setPart(mesh, i, w, h, d, x, y, z, rx, ry) {
+    dummy.position.set(x, y, z); dummy.rotation.set(rx, ry, 0, 'YXZ'); dummy.scale.set(w, h, d); dummy.updateMatrix(); mesh.setMatrixAt(i, dummy.matrix);
+  }
+  function updateNPCs(dt, time) {
+    if (!npcMeshes) return;
+    for (let i = 0; i < npcs.length; i++) {
+      const n = npcs[i];
+      let walking = false;
+      if (n.wait > 0) n.wait -= dt;
+      else {
+        if (n.p >= 1) { n.x = n.tx; n.z = n.tz; n.y = n.ty; npcPickNext(n); }
+        if (n.p < 1) { n.p = Math.min(1, n.p + dt * n.speed); walking = true; }
+      }
+      const px = lerp(n.x, n.tx, n.p) + 0.5, pz = lerp(n.z, n.tz, n.p) + 0.5, py = lerp(n.y, n.ty, n.p);
+      if (walking) n.yaw += wrapAngle(Math.atan2(n.dx, n.dz) - n.yaw) * (1 - Math.exp(-8 * dt));
+      const sw = walking ? Math.sin(time * n.speed * 7 + n.phase) * 0.7 : 0;
+      const yaw = n.yaw, s = Math.sin(yaw), c = Math.cos(yaw), k = n.h;
+      const loc = (lx, ly, lz) => [px + lx * c + lz * s, py + ly * k, pz - lx * s + lz * c];
+      let q;
+      q = loc(0, 0.62 + 0.36, 0); setPart(npcMeshes.body, i, 0.52, 0.72 * k, 0.3, q[0], q[1], q[2], 0, yaw);
+      q = loc(0, 1.34 + 0.18, 0); setPart(npcMeshes.head, i, 0.36, 0.36 * k, 0.36, q[0], q[1], q[2], 0, yaw);
+      q = loc(0, 1.34 + 0.34, 0); setPart(npcMeshes.hair, i, 0.4, 0.14 * k, 0.4, q[0], q[1], q[2], 0, yaw);
+      const limb = (mesh, lx, ly, len, ang, w, d) => {
+        const cy = -len / 2 * Math.cos(ang), cz = -len / 2 * Math.sin(ang);
+        const qq = loc(lx, ly + cy, cz);
+        setPart(mesh, i, w, len * k, d, qq[0], qq[1], qq[2], ang, yaw);
+      };
+      limb(npcMeshes.legL, -0.13, 0.62, 0.62, sw, 0.22, 0.24); limb(npcMeshes.legR, 0.13, 0.62, 0.62, -sw, 0.22, 0.24);
+      limb(npcMeshes.armL, -0.34, 1.32, 0.62, -sw * 0.9, 0.15, 0.2); limb(npcMeshes.armR, 0.34, 1.32, 0.62, sw * 0.9, 0.15, 0.2);
+      n.px = px; n.pz = pz; n.py = py;
+    }
+    Object.values(npcMeshes).forEach((m) => { m.instanceMatrix.needsUpdate = true; });
+  }
+
+  /* ================= birds ================= */
+  const gulls = [];
+  function makeGull() {
+    const g = new THREE.Group(), w = 0xf4f4f2;
+    bx(g, 0.26, 0.2, 0.7, w, 0, 0, 0, false); bx(g, 0.18, 0.18, 0.2, w, 0, 0.06, 0.42, false); bx(g, 0.07, 0.05, 0.16, 0xe8a020, 0, 0.04, 0.56, false);
+    bx(g, 0.2, 0.05, 0.3, 0x909498, 0, 0.0, -0.45, false);
+    const wl = new THREE.Group(), wr = new THREE.Group(); wl.position.set(-0.12, 0.05, 0.05); wr.position.set(0.12, 0.05, 0.05);
+    bx(wl, 0.9, 0.04, 0.34, 0xe8e8e6, -0.45, 0, 0, false); bx(wl, 0.4, 0.04, 0.3, 0x45484d, -1.05, 0, 0, false);
+    bx(wr, 0.9, 0.04, 0.34, 0xe8e8e6, 0.45, 0, 0, false); bx(wr, 0.4, 0.04, 0.3, 0x45484d, 1.05, 0, 0, false);
+    g.add(wl, wr); g.userData = { wl, wr };
+    return g;
+  }
+  function spawnBirds() {
+    for (let i = 0; i < 14; i++) {
+      const g = makeGull(); scene.add(g);
+      gulls.push({ g, cx: rr(40, 150), cz: rr(40, 190), R: rr(18, 55), h: rr(40, 85), sp: rr(0.18, 0.4) * (Math.random() < 0.5 ? 1 : -1), ph: rr(0, 6.28), flap: rr(6, 9) });
+    }
+  }
+  function updateBirds(dt, time) {
+    for (const b of gulls) {
+      const a = b.ph + time * b.sp;
+      const x = b.cx + Math.cos(a) * b.R, z = b.cz + Math.sin(a) * b.R;
+      b.g.position.set(x, b.h + Math.sin(time * 0.7 + b.ph) * 2.2, z);
+      b.g.rotation.y = Math.atan2(-Math.sin(a) * Math.sign(b.sp), Math.cos(a) * Math.sign(b.sp));
+      b.g.rotation.z = -0.25 * Math.sign(b.sp);
+      const f = Math.sin(time * b.flap + b.ph) * 0.45;
+      b.g.userData.wl.rotation.z = f; b.g.userData.wr.rotation.z = -f;
+    }
+  }
+
+  /* ================= flags (Greek) ================= */
+  const flagMeshes = [];
+  function spawnFlags() {
+    const c = document.createElement('canvas'); c.width = 54; c.height = 36;
+    const x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 54, 36);
+    x.fillStyle = '#0d5eaf';
+    for (let i = 0; i < 9; i += 2) x.fillRect(0, i * 4, 54, 4);
+    x.fillRect(0, 0, 20, 20);
+    x.fillStyle = '#ffffff'; x.fillRect(8, 0, 4, 20); x.fillRect(0, 8, 20, 4);
+    const tex = new THREE.CanvasTexture(c); tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+    for (const f of world.flags) {
+      const geo = new THREE.PlaneGeometry(4.2, 2.8, 11, 6); geo.translate(2.1, -1.4, 0);
+      const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide }));
+      mesh.position.set(f[0] + 0.5, f[1] + 0.6, f[2]); mesh.castShadow = true; scene.add(mesh);
+      flagMeshes.push({ mesh, base: Float32Array.from(geo.attributes.position.array), ph: Math.random() * 6 });
+    }
+  }
+  function updateFlags(time) {
+    for (const f of flagMeshes) {
+      const p = f.mesh.geometry.attributes.position, a = p.array;
+      for (let i = 0; i < p.count; i++) {
+        const x = f.base[i * 3], y = f.base[i * 3 + 1], k = x / 4.2;
+        a[i * 3 + 2] = Math.sin(x * 1.5 - time * 5 + f.ph) * 0.32 * k + Math.sin(y * 2 - time * 3) * 0.05 * k;
+        a[i * 3 + 1] = y - Math.sin(x * 1.1 - time * 4 + f.ph) * 0.06 * k;
+      }
+      p.needsUpdate = true; f.mesh.geometry.computeVertexNormals();
+    }
+  }
+
+  /* ================= windmills ================= */
+  const mills = [];
+  function spawnWindmills() {
+    for (const m of world.windmills) {
+      const hub = new THREE.Group(); hub.position.set(m.hubX, m.hubY, m.hubZ);
+      const rot = new THREE.Group(); hub.add(rot);
+      for (let k = 0; k < 4; k++) {
+        const arm = new THREE.Group(); arm.rotation.x = k * Math.PI / 2; rot.add(arm);
+        bx(arm, 0.22, 9.4, 0.22, 0x6b4a2a, 0, 4.7, 0);
+        bx(arm, 0.08, 7.0, 1.5, 0xf6f2e6, -0.06, 5.4, 0.85);
+        for (let j = 1; j <= 4; j++) bx(arm, 0.1, 0.1, 1.6, 0x6b4a2a, -0.06, 1.2 + j * 1.5, 0.85);
+      }
+      bx(hub, 0.7, 0.7, 0.7, 0x4a3320, 0, 0, 0);
+      scene.add(hub); mills.push({ rot, ph: Math.random() * 6 });
+    }
+  }
+  function updateMills(t) { for (const m of mills) m.rot.rotation.x = t * 0.6 + m.ph; }
+
+  /* ================= donkeys on the Ammoudi stairs ================= */
+  const donkeys = [];
+  function makeDonkey() {
+    const g = new THREE.Group(), body = pickOf([0x8a8478, 0x6e6a60, 0xa49a88]), dk = 0x3a3630, lt = 0xd8d2c4;
+    bx(g, 0.5, 0.58, 1.2, body, 0, 1.0, 0);
+    bx(g, 0.36, 0.5, 0.4, body, 0, 1.4, 0.65);
+    bx(g, 0.32, 0.34, 0.55, body, 0, 1.62, 1.0);
+    bx(g, 0.28, 0.2, 0.22, lt, 0, 1.52, 1.34);
+    bx(g, 0.08, 0.36, 0.08, dk, 0.1, 1.95, 0.9); bx(g, 0.08, 0.36, 0.08, dk, -0.1, 1.95, 0.9);
+    bx(g, 0.07, 0.5, 0.07, dk, 0, 0.92, -0.66);
+    bx(g, 0.58, 0.12, 0.6, 0xb03030, 0, 1.35, -0.05);
+    bx(g, 0.22, 0.34, 0.5, 0xc89050, 0.38, 1.1, -0.05); bx(g, 0.22, 0.34, 0.5, 0xc89050, -0.38, 1.1, -0.05);
+    const legs = [];
+    for (const [lx, lz] of [[0.17, 0.45], [-0.17, 0.45], [0.17, -0.45], [-0.17, -0.45]]) {
+      const lg = new THREE.Group(); lg.position.set(lx, 0.72, lz); g.add(lg);
+      bx(lg, 0.14, 0.72, 0.14, body, 0, -0.36, 0); bx(lg, 0.16, 0.08, 0.16, dk, 0, -0.68, 0);
+      legs.push(lg);
+    }
+    const root = new THREE.Group(); root.add(g);
+    return { root, inner: g, legs };
+  }
+  function spawnDonkeys() {
+    const path = world.donkeyPath;
+    if (!path || path.length < 4) return;
+    const cum = [0];
+    for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + Math.hypot(path[i][0] - path[i - 1][0], path[i][2] - path[i - 1][2]) + 0.0001);
+    const L = cum[cum.length - 1];
+    for (let n = 0; n < 4; n++) {
+      const d = makeDonkey(); scene.add(d.root);
+      Object.assign(d, { path, cum, L, s: L * (n + 0.5) / 4, dir: n % 2 ? 1 : -1, speed: rr(1.1, 1.5), heading: 0, init: false, wait: 0, ph: Math.random() * 6 });
+      donkeys.push(d);
+    }
+  }
+  function updateDonkeys(dt, time) {
+    for (const d of donkeys) {
+      if (d.wait > 0) d.wait -= dt;
+      else {
+        d.s += d.dir * d.speed * dt;
+        if (d.s > d.L) { d.s = d.L; d.dir = -1; d.wait = rr(2, 6); }
+        if (d.s < 0) { d.s = 0; d.dir = 1; d.wait = rr(2, 6); }
+      }
+      let i = 1; while (i < d.cum.length - 1 && d.cum[i] < d.s) i++;
+      const a = d.path[i - 1], b = d.path[i], t = clamp((d.s - d.cum[i - 1]) / (d.cum[i] - d.cum[i - 1]), 0, 1);
+      d.root.position.set(lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t));
+      const tx = (b[0] - a[0]) * d.dir, tz = (b[2] - a[2]) * d.dir;
+      const target = (Math.abs(tx) + Math.abs(tz) > 1e-4) ? Math.atan2(tx, tz) : d.heading;
+      if (!d.init) { d.heading = target; d.init = true; }
+      d.heading += wrapAngle(target - d.heading) * (1 - Math.exp(-6 * dt));
+      d.root.rotation.y = d.heading;
+      const moving = d.wait <= 0, sw = moving ? Math.sin(time * 6 + d.ph) * 0.5 : 0;
+      d.legs[0].rotation.x = sw; d.legs[3].rotation.x = sw; d.legs[1].rotation.x = -sw; d.legs[2].rotation.x = -sw;
+      d.inner.position.y = moving ? Math.abs(Math.sin(time * 6 + d.ph)) * 0.04 : 0;
+    }
+  }
+
+  /* ================= cats on the rooftops ================= */
+  const cats = [];
+  function makeCat(c) {
+    const g = new THREE.Group();
+    bx(g, 0.22, 0.2, 0.46, c, 0, 0.2, 0, false);
+    bx(g, 0.2, 0.19, 0.19, c, 0, 0.34, 0.26, false);
+    bx(g, 0.05, 0.08, 0.04, c, 0.07, 0.47, 0.26, false); bx(g, 0.05, 0.08, 0.04, c, -0.07, 0.47, 0.26, false);
+    bx(g, 0.04, 0.04, 0.02, 0x66cc55, 0.05, 0.36, 0.36, false); bx(g, 0.04, 0.04, 0.02, 0x66cc55, -0.05, 0.36, 0.36, false);
+    const tail = new THREE.Group(); tail.position.set(0, 0.2, -0.24); g.add(tail);
+    bx(tail, 0.06, 0.06, 0.4, c, 0, 0, -0.2, false);
+    return { g, tail };
+  }
+  function spawnCats() {
+    const cols = [0xe0883a, 0x6a6a70, 0x1c1c20, 0xf0ede6, 0xb8a080, 0xcfa070];
+    let n = 0, tries = 0;
+    while (n < 22 && tries++ < 8000) {
+      const x = Math.floor(rr(100, world.W - 6)), z = Math.floor(rr(30, 190)), i = x + world.W * z;
+      if (!world.town[i]) continue;
+      const tb = world.topB[i], y = world.topH[i];
+      if ((tb !== B.PLASTER && tb !== B.PAVE) || y < 16) continue;
+      const c = makeCat(pickOf(cols));
+      c.g.position.set(x + 0.5, y, z + 0.5); c.g.rotation.y = Math.random() * 6.28; c.ph = Math.random() * 6;
+      scene.add(c.g); cats.push(c); n++;
+    }
+  }
+  function updateCats(time) { for (const c of cats) c.tail.rotation.y = Math.sin(time * 1.6 + c.ph) * 0.55; }
+
+  function spawnProps() { spawnFlags(); spawnWindmills(); spawnDonkeys(); spawnCats(); }
+  function updateProps(dt, time) { updateFlags(time); updateMills(time); updateDonkeys(dt, time); updateCats(time); }
+
+  /* ================= external glTF ================= */
+  const glb = { pivot: null, mixer: null, base: 1 };
+  function clearGLB() {
+    if (glb.pivot) { scene.remove(glb.pivot); glb.pivot.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); glb.pivot = null; glb.mixer = null; }
+  }
+  function loadGLB(url) {
+    return new Promise((resolve, reject) => {
+      if (!THREE.GLTFLoader) return reject(new Error('GLTFLoader 未加载'));
+      new THREE.GLTFLoader().load(url, (gltf) => {
+        clearGLB();
+        const obj = gltf.scene;
+        const box = new THREE.Box3().setFromObject(obj);
+        const size = box.getSize(new V3()), ctr = box.getCenter(new V3());
+        const s = 40 / (Math.max(size.x, size.y, size.z) || 1);
+        obj.scale.setScalar(s); obj.position.set(-ctr.x * s, -box.min.y * s, -ctr.z * s);
+        const pivot = new THREE.Group(); pivot.add(obj);
+        const fwd = new V3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+        const cam = camera.position;
+        pivot.position.set(cam.x + fwd.x * 50, world.BASE, cam.z + fwd.z * 50);
+        obj.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; } });
+        scene.add(pivot); glb.pivot = pivot; glb.base = 1; pivot.scale.setScalar(parseFloat($('glbScale').value) || 1);
+        if (gltf.animations && gltf.animations.length) { glb.mixer = new THREE.AnimationMixer(obj); gltf.animations.forEach((a) => glb.mixer.clipAction(a).play()); }
+        resolve();
+      }, undefined, (e) => reject(e && e.message ? e : new Error('无法解析模型（需要 .glb，且服务器需允许跨域）')));
+    });
+  }
+
+  /* ================= landmarks / teleports ================= */
+  function look(fx, fy, fz, tx, ty, tz) { const dx = tx - fx, dy = ty - fy, dz = tz - fz; return { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) }; }
+  let TELE = [];
+  function buildTele() {
+    const P0 = world.BASE, lm = (id) => world.landmarks.find((l) => l.id === id);
+    const sq = lm('platsani'), ca = lm('castle'), wm = lm('windmills'), h = world.harbour, dp = world.donkeyPath;
+    const az = 104, ax = Math.round(world.XC(az));
+    const zz = dp[Math.min(dp.length - 1, 60)];
+    TELE = [
+      { name: '三蓝顶教堂', en: 'Three Blue Domes · Anastasis', mode: 'fly', p: [ax - 22, P0 + 9, az - 24], t: [ax - 4, P0 + 8, az] },
+      { name: '伊亚城堡 · 日落观景点', en: 'Castle of Agios Nikolaos', mode: 'walk', p: [ca.x + 10.5, P0, ca.z], t: [ca.x - 6, P0 + 9, ca.z - 6] },
+      { name: '伊亚风车', en: 'Oia Windmills', mode: 'walk', p: [wm.x, P0, wm.z + 1], t: [155.5, P0 + 12, 41.5] },
+      { name: '普拉察尼广场', en: 'Panagia Platsani', mode: 'walk', p: [sq.x - 5, P0, sq.z - 6.5], t: [sq.x + 4, P0 + 10, sq.z - 3] },
+      { name: '阿穆迪湾码头', en: 'Ammoudi Bay', mode: 'walk', p: [h.pierX0 + 9, world.QUAY, h.pierZ + 0.5], t: [h.qx1 + 28, 46, h.pierZ] },
+      { name: '之字形驴道', en: 'Donkey Steps', mode: 'walk', p: [dp[0][0], dp[0][1], dp[0][2]], t: [zz[0], zz[1] - 3, zz[2]] },
+      { name: '新卡梅尼火山岛', en: 'Nea Kameni · Volcano', mode: 'fly', p: [94, 34, 152], t: [64, 14, 132] },
+      { name: '乘船游览破火山口', en: 'Caldera Cruise', mode: 'boat' }
+    ];
+  }
+
+  const TOUR = {
+    cam: [[62, 40, 10], [84, 58, 56], [88, 66, 100], [92, 58, 150], [82, 46, 198], [42, 52, 176], [18, 64, 112], [40, 52, 50]],
+    tgt: [[142, 54, 50], [142, 58, 100], [140, 60, 108], [140, 56, 150], [140, 50, 182], [142, 52, 160], [140, 56, 112], [142, 54, 70]],
+    dur: 170
+  };
+  let tourCam = null, tourTgt = null;
+  function initTour() {
+    tourCam = new THREE.CatmullRomCurve3(TOUR.cam.map((p) => new V3(p[0], p[1], p[2])), true, 'centripetal');
+    tourTgt = new THREE.CatmullRomCurve3(TOUR.tgt.map((p) => new V3(p[0], p[1], p[2])), true, 'centripetal');
+  }
+
+  /* ================= modes ================= */
+  const MODE_LABEL = { tour: '导览模式 · 点击或按任意键开始探索', walk: '步行模式', fly: '飞行模式', boat: '贡多拉 · 大运河' };
+  let rideIdx = 0, ridePrevHeading = 0;
+  function setMode(m, keepPos) {
+    const prev = S.mode;
+    if (!keepPos && (m === 'walk' || m === 'fly') && (prev === 'tour' || prev === 'boat')) {
+      player.pos.set(camera.position.x, camera.position.y - 1.62, camera.position.z);
+      player.vel.set(0, 0, 0);
+    }
+    S.mode = m;
+    player.fly = m === 'fly';
+    if (m === 'boat') {
+      const b = rideBoats[rideIdx % rideBoats.length];
+      ridePrevHeading = b.heading; player.yaw = b.heading; player.pitch = -0.05;
+    }
+    $('modeLabel').textContent = MODE_LABEL[m];
+    $('crosshair').style.display = (m === 'walk' || m === 'fly') ? 'block' : 'none';
+    $('held').style.display = (m === 'walk' || m === 'fly') ? 'flex' : 'none';
+    updateHotbar(); updateHint();
+    if (m === 'tour') exitLock();
+  }
+  function teleport(t) {
+    if (t.mode === 'boat') { setMode('boat'); return; }
+    const f = look(t.p[0], t.p[1] + 1.62, t.p[2], t.t[0], t.t[1], t.t[2]);
+    player.yaw = f.yaw; player.pitch = f.pitch;
+    let y = t.p[1];
+    if (t.mode === 'walk') y = groundY(t.p[0], t.p[2], Math.floor(t.p[1] + 6));
+    player.pos.set(t.p[0], y + 0.01, t.p[2]); player.vel.set(0, 0, 0);
+    setMode(t.mode, true);
+    if (!isTouch) requestLock();
+  }
+
+  /* ================= input ================= */
+  function requestLock() { if (!isTouch && canvas.requestPointerLock && !document.pointerLockElement) { try { canvas.requestPointerLock(); } catch (e) { /* ignore */ } } }
+  function exitLock() { if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock(); }
+  __oiaL(document, 'pointerlockchange', () => {
+    S.locked = document.pointerLockElement === canvas;
+    $('lockHint').style.display = (!S.locked && !isTouch && (S.mode === 'walk' || S.mode === 'fly' || S.mode === 'boat')) ? 'block' : 'none';
+  });
+  const inField = (e) => e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
+  __oiaL(window, 'keydown', (e) => {
+    if (inField(e)) return;
+    keys[e.code] = true;
+    if (S.mode === 'tour' && !e.metaKey && !e.ctrlKey && !/^(F\d+|Tab|Escape|Digit\d|KeyT|KeyY|KeyM|KeyH)$/.test(e.code)) { setMode('fly'); requestLock(); }
+    if (e.code === 'Space') {
+      e.preventDefault();
+      const now = performance.now();
+      if (now - player.lastSpace < 300 && (S.mode === 'walk' || S.mode === 'fly')) setMode(S.mode === 'fly' ? 'walk' : 'fly');
+      player.lastSpace = now;
+    }
+    if (e.code === 'KeyF' && (S.mode === 'walk' || S.mode === 'fly')) setMode(S.mode === 'fly' ? 'walk' : 'fly');
+    if (e.code === 'KeyT') cycleTime();
+    if (e.code === 'KeyY') toggleAuto();
+    if (e.code === 'KeyH') $('hint').classList.toggle('hide');
+    if (e.code === 'KeyM') SantoriniModels.toggle();
+    if (e.code === 'KeyQ') cycleHeld(-1);
+    if (e.code === 'KeyE') cycleHeld(1);
+    if (S.mode === 'boat') {
+      if (e.code === 'KeyA' || e.code === 'ArrowLeft') nextRide(-1);
+      if (e.code === 'KeyD' || e.code === 'ArrowRight') nextRide(1);
+    }
+    const m = /^Digit([1-9])$/.exec(e.code);
+    if (m) hotbarAction(parseInt(m[1], 10) - 1);
+    if (e.code === 'Escape') { $('lmMenu').style.display = 'none'; }
+  });
+  __oiaL(window, 'keyup', (e) => { keys[e.code] = false; });
+  __oiaL(window, 'blur', () => { for (const k in keys) keys[k] = false; });
+
+  let dragging = false;
+  canvas.addEventListener('mousedown', (e) => {
+    $('lmMenu').style.display = 'none';
+    if (S.mode === 'tour') { setMode('fly'); requestLock(); return; }
+    if (!S.locked) { requestLock(); dragging = true; return; }
+    if (S.mode !== 'walk' && S.mode !== 'fly') return;
+    if (e.button === 0) breakBlock(); else if (e.button === 2) placeBlock(); else if (e.button === 1) pickBlock();
+  });
+  __oiaL(window, 'mouseup', () => { dragging = false; });
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  __oiaL(window, 'mousemove', (e) => {
+    if (!(S.locked || dragging)) return;
+    if (S.mode === 'tour') return;
+    player.yaw -= (e.movementX || 0) * 0.0022;
+    player.pitch = clamp(player.pitch - (e.movementY || 0) * 0.0022, -1.55, 1.55);
+  });
+  __oiaL(window, 'wheel', (e) => { if (S.locked && (S.mode === 'walk' || S.mode === 'fly')) cycleHeld(e.deltaY > 0 ? 1 : -1); }, { passive: true });
+
+  // touch: left joystick, right-side look
+  (function touchInit() {
+    const joyEl = $('joy'), knob = joyEl.firstElementChild;
+    let jid = null, jc = null, lid = null, lx = 0, ly = 0, ltx = 0, lty = 0, lt0 = 0;
+    joyEl.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.changedTouches[0]; jid = t.identifier; const r = joyEl.getBoundingClientRect(); jc = [r.left + r.width / 2, r.top + r.height / 2]; if (S.mode === 'tour') setMode('walk'); }, { passive: false });
+    __oiaL(window, 'touchmove', (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === jid) {
+          let dx = (t.clientX - jc[0]) / 50, dy = (t.clientY - jc[1]) / 50; const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+          joy.x = dx; joy.y = dy; knob.style.transform = 'translate(' + dx * 40 + 'px,' + dy * 40 + 'px)';
+        } else if (t.identifier === lid) {
+          player.yaw -= (t.clientX - lx) * 0.005; player.pitch = clamp(player.pitch - (t.clientY - ly) * 0.005, -1.5, 1.5); lx = t.clientX; ly = t.clientY;
+        }
+      }
+    }, { passive: true });
+    const end = (e) => { for (const t of e.changedTouches) { if (t.identifier === jid) { jid = null; joy.x = joy.y = 0; knob.style.transform = ''; } if (t.identifier === lid) { lid = null; if (performance.now() - lt0 < 220 && Math.hypot(t.clientX - ltx, t.clientY - lty) < 8 && (S.mode === 'walk' || S.mode === 'fly')) breakBlock(); } } };
+    __oiaL(window, 'touchend', end); __oiaL(window, 'touchcancel', end);
+    canvas.addEventListener('touchstart', (e) => {
+      $('lmMenu').style.display = 'none';
+      if (S.mode === 'tour') { setMode('walk'); return; }
+      const t = e.changedTouches[0]; if (lid === null) { lid = t.identifier; lx = ltx = t.clientX; ly = lty = t.clientY; lt0 = performance.now(); }
+    }, { passive: true });
+    const hold = (el, key) => { el.addEventListener('touchstart', (e) => { e.preventDefault(); touchBtn[key] = true; }, { passive: false }); el.addEventListener('touchend', () => { touchBtn[key] = false; }); el.addEventListener('touchcancel', () => { touchBtn[key] = false; }); };
+    hold($('tJump'), 'jump'); hold($('tDown'), 'down');
+    $('tFly').addEventListener('touchstart', (e) => { e.preventDefault(); if (S.mode === 'tour') setMode('walk'); else setMode(S.mode === 'fly' ? 'walk' : 'fly'); }, { passive: false });
+  })();
+
+  /* ================= player physics ================= */
+  const HW = 0.3, PH = 1.8;
+  function blocked(px, py, pz) {
+    const x0 = Math.floor(px - HW), x1 = Math.floor(px + HW), y0 = Math.floor(py), y1 = Math.floor(py + PH - 0.001), z0 = Math.floor(pz - HW), z1 = Math.floor(pz + HW);
+    for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) if (solidAt(x, y, z)) return true;
+    return false;
+  }
+  function movePlayer(dt) {
+    const p = player;
+    const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - joy.y;
+    const side = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joy.x;
+    let ix = side, iz = -fwd;
+    const l = Math.hypot(ix, iz); if (l > 1) { ix /= l; iz /= l; }
+    const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
+    const wx = cos * ix + sin * iz, wz = -sin * ix + cos * iz;
+    const sprint = !!(keys.ShiftLeft || keys.ShiftRight || keys.ControlLeft && !p.fly);
+    const jump = !!(keys.Space || touchBtn.jump);
+    const down = !!(keys.KeyC || (p.fly && (keys.ShiftLeft || keys.ShiftRight)) || touchBtn.down);
+    const feetCellWater = p.pos.y + 1.0 < VW.WATER_Y && !solidAt(Math.floor(p.pos.x), Math.floor(p.pos.y + 0.5), Math.floor(p.pos.z));
+    p.swim = !p.fly && feetCellWater;
+    if (p.climbT > 0) p.climbT -= dt;
+    const climbing = !p.fly && p.climbT > 0;
+    let speed;
+    if (p.fly) speed = sprint ? 42 : 17; else if (p.swim || climbing) speed = 2.8; else speed = sprint ? 7.4 : 4.5;
+    const k = p.fly ? 1 - Math.exp(-9 * dt) : (p.onGround || p.swim || climbing ? 1 - Math.exp(-14 * dt) : 1 - Math.exp(-3 * dt));
+    p.vel.x += (wx * speed - p.vel.x) * k; p.vel.z += (wz * speed - p.vel.z) * k;
+    if (p.fly) {
+      const vy = (jump ? 1 : 0) - (down ? 1 : 0);
+      p.vel.y += (vy * (sprint ? 28 : 12) - p.vel.y) * (1 - Math.exp(-9 * dt));
+    } else if (p.swim || climbing) {
+      let target = clamp((VW.WATER_Y - 1.25 - p.pos.y) * 3, -3, 3);
+      if (jump) target = 3.6; if (down) target = -3.6;
+      if (climbing) target = 5.6;
+      p.vel.y += (target - p.vel.y) * (1 - Math.exp(-8 * dt));
+    } else {
+      p.vel.y -= 30 * dt; if (p.vel.y < -50) p.vel.y = -50;
+      if (jump && p.onGround) { p.vel.y = 8.6; p.onGround = false; }
+    }
+    // sub-stepped axis-separated collision
+    const steps = Math.max(1, Math.ceil(dt / 0.012)), h = dt / steps;
+    let hitH = false;
+    for (let s = 0; s < steps; s++) {
+      const nx = p.pos.x + p.vel.x * h;
+      if (blocked(nx, p.pos.y, p.pos.z)) {
+        if (p.onGround && !blocked(nx, p.pos.y + 1.02, p.pos.z)) { p.pos.y += 1.02; p.stepOff -= 1.02; p.pos.x = nx; }
+        else { p.vel.x = 0; hitH = true; }
+      } else p.pos.x = nx;
+      const nz = p.pos.z + p.vel.z * h;
+      if (blocked(p.pos.x, p.pos.y, nz)) {
+        if (p.onGround && !blocked(p.pos.x, p.pos.y + 1.02, nz)) { p.pos.y += 1.02; p.stepOff -= 1.02; p.pos.z = nz; }
+        else { p.vel.z = 0; hitH = true; }
+      } else p.pos.z = nz;
+      const ny = p.pos.y + p.vel.y * h;
+      if (blocked(p.pos.x, ny, p.pos.z)) {
+        if (p.vel.y < 0) { const sy = Math.floor(ny) + 1; if (!blocked(p.pos.x, sy, p.pos.z)) p.pos.y = sy; }
+        p.vel.y = 0;
+      } else p.pos.y = ny;
+      p.onGround = !p.fly && p.vel.y <= 0 && blocked(p.pos.x, p.pos.y - 0.03, p.pos.z);
+    }
+    if (p.swim && hitH && jump) p.climbT = 0.55;
+    p.stepOff += (0 - p.stepOff) * (1 - Math.exp(-14 * dt));
+    if (p.pos.y < -20) { p.pos.set(150.5, 46, 100.5); p.vel.set(0, 0, 0); }
+    p.pos.x = clamp(p.pos.x, -600, 800); p.pos.z = clamp(p.pos.z, -600, 800);
+  }
+
+  /* ================= block interaction ================= */
+  const HELD = [];
+  function buildHeld() {
+    const P = world.pal;
+    HELD.push(
+      { n: '白石砖', id: B.STONE, c: P(0.93, 0.91, 0.86) }, { n: '赭石墙', id: B.PLASTER, c: P(0.88, 0.66, 0.36) },
+      { n: '玫瑰墙', id: B.PLASTER, c: P(0.92, 0.62, 0.52) }, { n: '红砖', id: B.BRICK, c: P(0.8, 0.42, 0.3) },
+      { n: '陶土瓦', id: B.ROOF, c: P(0.78, 0.36, 0.22) }, { n: '木板', id: B.WOOD, c: P(0.7, 0.5, 0.3) },
+      { n: '绿百叶窗', id: B.SHUTTER, c: P(0.2, 0.45, 0.3) }, { n: '窗（夜亮灯）', id: B.GLASS, c: 0 },
+      { n: '金马赛克', id: B.GOLD, c: 0 }, { n: '铜绿穹顶', id: B.DOME, c: P(0.4, 0.72, 0.6) },
+      { n: '粉白菱形', id: B.DIAMOND, c: 0 }, { n: '灯笼', id: B.LAMP, c: 0 }
+    );
+    updateHeld();
+  }
+  const SWATCH = ['#ece8dc', '#e0a85c', '#eb9e85', '#cc6b4d', '#c75c38', '#b3804d', '#33734d', '#f2d27a', '#e8bd3a', '#66b89a', '#e58a80', '#ffe9a0'];
+  function updateHeld() { const h = HELD[S.held]; if (!h) return; $('heldName').textContent = h.n + '  [' + (S.held + 1) + '/' + HELD.length + ']'; $('heldSw').style.background = SWATCH[S.held]; }
+  function cycleHeld(d) { if (!HELD.length) return; S.held = (S.held + d + HELD.length) % HELD.length; updateHeld(); }
+  const outline = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.004, 1.004, 1.004)), new THREE.LineBasicMaterial({ color: 0x000000 }));
+  outline.visible = false; scene.add(outline);
+  const rayDir = new V3();
+  let target = null;
+  function raycastVoxel(o, d, maxD) {
+    let x = Math.floor(o.x), y = Math.floor(o.y), z = Math.floor(o.z);
+    const sx = Math.sign(d.x), sy = Math.sign(d.y), sz = Math.sign(d.z);
+    const tdx = d.x ? Math.abs(1 / d.x) : Infinity, tdy = d.y ? Math.abs(1 / d.y) : Infinity, tdz = d.z ? Math.abs(1 / d.z) : Infinity;
+    let tx = d.x > 0 ? (x + 1 - o.x) * tdx : d.x < 0 ? (o.x - x) * tdx : Infinity;
+    let ty = d.y > 0 ? (y + 1 - o.y) * tdy : d.y < 0 ? (o.y - y) * tdy : Infinity;
+    let tz = d.z > 0 ? (z + 1 - o.z) * tdz : d.z < 0 ? (o.z - z) * tdz : Infinity;
+    let nx = 0, ny = 0, nz = 0, t = 0;
+    for (let i = 0; i < 64; i++) {
+      if (solidAt(x, y, z) && x >= 0 && x < world.W && z >= 0 && z < world.D && y >= 0 && y < world.H) return { x, y, z, nx, ny, nz };
+      if (tx < ty && tx < tz) { t = tx; x += sx; tx += tdx; nx = -sx; ny = 0; nz = 0; }
+      else if (ty < tz) { t = ty; y += sy; ty += tdy; nx = 0; ny = -sy; nz = 0; }
+      else { t = tz; z += sz; tz += tdz; nx = 0; ny = 0; nz = -sz; }
+      if (t > maxD) break;
+    }
+    return null;
+  }
+  function updateTarget() {
+    if (S.mode !== 'walk' && S.mode !== 'fly') { outline.visible = false; target = null; return; }
+    camera.getWorldDirection(rayDir);
+    target = raycastVoxel(camera.position, rayDir, p_reach());
+    if (target) { outline.visible = true; outline.position.set(target.x + 0.5, target.y + 0.5, target.z + 0.5); } else outline.visible = false;
+  }
+  const p_reach = () => (player.fly ? 12 : 6.5);
+  function breakBlock() {
+    if (!target || target.y < 1) return;
+    if (window.__oiaEdit) window.__oiaEdit(target.x, target.y, target.z, 0, 0); world.set(target.x, target.y, target.z, 0, 0); markDirty(target.x, target.z);
+  }
+  function placeBlock() {
+    if (!target) return;
+    const x = target.x + target.nx, y = target.y + target.ny, z = target.z + target.nz;
+    if (y < 0 || y >= world.H || solidAt(x, y, z)) return;
+    const pp = player.pos;
+    if (x + 1 > pp.x - HW && x < pp.x + HW && z + 1 > pp.z - HW && z < pp.z + HW && y + 1 > pp.y && y < pp.y + PH) return;
+    const h = HELD[S.held]; if (window.__oiaEdit) window.__oiaEdit(x, y, z, h.id, h.c); world.set(x, y, z, h.id, h.c); markDirty(x, z);
+  }
+  function pickBlock() {
+    if (!target) return;
+    const id = world.blocks[world.idx(target.x, target.y, target.z)];
+    const i = HELD.findIndex((h) => h.id === id); if (i >= 0) { S.held = i; updateHeld(); }
+  }
+
+  /* ================= boat ride ================= */
+  function nextRide(d) { rideIdx = (rideIdx + d + rideBoats.length) % rideBoats.length; const b = rideBoats[rideIdx]; ridePrevHeading = b.heading; player.yaw = b.heading; toast('贡多拉 ' + (rideIdx + 1) + '/' + rideBoats.length); }
+
+  /* ================= HUD ================= */
+  let toastT = 0;
+  function toast(msg) { const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2600); }
+
+  const SLOTS = [
+    { ic: '🎥', tip: '导览', act: () => setMode('tour') },
+    { ic: '🚶', tip: '步行', act: () => { setMode('walk'); requestLock(); } },
+    { ic: '🕊️', tip: '飞行', act: () => { setMode('fly'); requestLock(); } },
+    { ic: '🛶', tip: '贡多拉', act: () => { setMode('boat'); requestLock(); } },
+    { ic: '📍', tip: '地标传送', act: () => toggleLmMenu() },
+    { ic: '🌅', tip: '切换时间 (T)', act: () => cycleTime() },
+    { ic: '⏱️', tip: '昼夜循环 (Y)', act: () => toggleAuto() },
+    { ic: '◐', tip: '阴影', act: () => toggleShadows() },
+    { ic: '🌐', tip: '3D 模型库 (M)', act: () => SantoriniModels.toggle() }
+  ];
+  function buildHotbar() {
+    const hb = $('hotbar'); hb.innerHTML = '';
+    SLOTS.forEach((s, i) => {
+      const el = document.createElement('div'); el.className = 'slot'; el.id = 'oia-slot' + i;
+      el.innerHTML = '<small>' + (i + 1) + '</small>' + s.ic + '<em>' + s.tip + '</em>';
+      el.addEventListener('mousedown', (e) => e.stopPropagation());
+      el.addEventListener('click', () => hotbarAction(i));
+      hb.appendChild(el);
+    });
+    updateHotbar();
+  }
+  function hotbarAction(i) { if (SLOTS[i]) SLOTS[i].act(); }
+  function updateHotbar() {
+    const modeIdx = { tour: 0, walk: 1, fly: 2, boat: 3 }[S.mode];
+    SLOTS.forEach((s, i) => {
+      const el = $('slot' + i); if (!el) return;
+      el.classList.toggle('on', i === modeIdx || (i === 6 && S.auto) || (i === 7 && S.shadows));
+      el.classList.toggle('off', (i === 6 && !S.auto) || (i === 7 && !S.shadows));
+    });
+  }
+  function updateHint() {
+    const h = {
+      tour: '点击画面 / 任意键：进入探索<br>1-9：功能栏 · T：时间 · M：模型库',
+      walk: 'WASD 移动 · 空格 跳 · Shift 冲刺<br>左键 拆方块 · 右键 放方块 · Q/E 换方块<br>F / 双击空格：飞行 · 水里按空格上岸',
+      fly: 'WASD 飞行 · 空格 上升 · C/Shift 下降<br>Ctrl 加速 · 左键拆 · 右键放 · F 落地',
+      boat: 'A / D：换一条贡多拉<br>鼠标：环顾四周 · 1-4：切换模式'
+    };
+    $('hint').innerHTML = h[S.mode] + '<br><span style="opacity:.7">H 隐藏提示</span>';
+    $('lockHint').style.display = (!S.locked && !isTouch && S.mode !== 'tour') ? 'block' : 'none';
+  }
+  function toggleLmMenu() {
+    const m = $('lmMenu');
+    if (m.style.display === 'flex') { m.style.display = 'none'; return; }
+    m.innerHTML = '';
+    TELE.forEach((t) => { const b = document.createElement('button'); b.innerHTML = t.name + '<small>' + t.en + '</small>'; b.onclick = () => { m.style.display = 'none'; teleport(t); }; m.appendChild(b); });
+    m.style.display = 'flex';
+  }
+  function cycleTime() {
+    const presets = [6.6, 12.5, 17.8, 21.6];
+    let i = presets.findIndex((p) => p > S.time + 0.05); if (i < 0) i = 0;
+    S.time = presets[i]; $('timeSlider').value = S.time;
+    toast(['清晨', '正午', '黄昏', '夜晚'][i]);
+  }
+  function toggleAuto() { S.auto = !S.auto; updateHotbar(); toast(S.auto ? '昼夜循环：开' : '昼夜循环：关'); }
+  function toggleShadows() {
+    if (!renderer.shadowMap.enabled && !S.shadows) { renderer.shadowMap.enabled = true; }
+    S.shadows = !S.shadows; sun.castShadow = S.shadows; matWorld.needsUpdate = true;
+    updateHotbar(); toast(S.shadows ? '阴影：开' : '阴影：关');
+  }
+  $('timeSlider').addEventListener('input', (e) => { S.time = parseFloat(e.target.value); });
+  ['mousedown', 'touchstart'].forEach((ev) => { $('timeSlider').addEventListener(ev, (e) => e.stopPropagation()); $('mmWrap').addEventListener(ev, (e) => e.stopPropagation()); });
+
+  /* ---- minimap ---- */
+  let mmBase = null;
+  function buildMinimap() {
+    const { W, D } = world;
+    const c = document.createElement('canvas'); c.width = W; c.height = D;
+    const x = c.getContext('2d'), img = x.createImageData(W, D);
+    for (let z = 0; z < D; z++) for (let i = 0; i < W; i++) {
+      const k = i + W * z, h = world.topH[k], b = world.topB[k], pc = world.palette[world.topC[k]] || [1, 1, 1];
+      let r, g, bl;
+      if (b === B.SAND || h <= 1) { r = 26; g = 92; bl = 118; }
+      else {
+        const sh = 0.62 + Math.min(h, 45) / 45 * 0.5 - (world.topH[Math.min(W - 1, i + 1) + W * Math.min(D - 1, z + 1)] > h ? 0.12 : 0);
+        r = pc[0] * 255 * sh; g = pc[1] * 255 * sh; bl = pc[2] * 255 * sh;
+        if (b === B.ROOF) { r = 190 * sh; g = 90 * sh; bl = 60 * sh; }
+        if (b === B.PAVE) { r = 150; g = 146; bl = 138; }
+      }
+      const o = k * 4; img.data[o] = r; img.data[o + 1] = g; img.data[o + 2] = bl; img.data[o + 3] = 255;
+    }
+    x.putImageData(img, 0, 0); mmBase = c;
+  }
+  const mm = $('mm'), mmx = mm.getContext('2d');
+  function drawMinimap() {
+    if (!mmBase) return;
+    mmx.imageSmoothingEnabled = false;
+    mmx.drawImage(mmBase, 0, 0);
+    mmx.fillStyle = '#fff';
+    world.landmarks.forEach((l) => mmx.fillRect(Math.floor(l.x) - 1, Math.floor(l.z) - 1, 3, 3));
+    rideBoats.forEach((b) => { mmx.fillStyle = '#ffd34a'; mmx.fillRect(Math.floor(b.pos.x) - 1, Math.floor(b.pos.z) - 1, 2, 2); });
+    const cp = camera.position;
+    mmx.save(); mmx.translate(cp.x, cp.z); mmx.rotate(-player.yaw + Math.PI);
+    mmx.fillStyle = '#ff3b3b'; mmx.strokeStyle = '#000'; mmx.lineWidth = 1;
+    mmx.beginPath(); mmx.moveTo(0, -6); mmx.lineTo(4, 5); mmx.lineTo(0, 2.5); mmx.lineTo(-4, 5); mmx.closePath(); mmx.fill(); mmx.stroke();
+    mmx.restore();
+  }
+  mm.addEventListener('click', (e) => {
+    const r = mm.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width * world.W, z = (e.clientY - r.top) / r.height * world.D;
+    const gy = Math.max(world.topH[Math.floor(x) + world.W * Math.floor(z)] || 5, 5);
+    player.pos.set(x, gy + 12, z); player.vel.set(0, 0, 0);
+    if (S.mode === 'tour' || S.mode === 'boat') player.pitch = -0.25;
+    setMode('fly', true);
+    toast('已飞到 (' + Math.round(x) + ', ' + Math.round(z) + ')');
+  });
+
+  /* ---- landmark banner ---- */
+  let lastLm = null, bannerTimer = 0;
+  function updateBanner() {
+    const cp = camera.position;
+    let best = null, bd = 1e9;
+    for (const l of world.landmarks) { const d = Math.hypot(cp.x - l.x, cp.z - l.z); if (d < l.r && d < bd) { bd = d; best = l; } }
+    if (best !== lastLm) {
+      lastLm = best;
+      if (best) { $('bannerT').textContent = best.name; $('bannerS').textContent = best.en; $('banner').classList.add('show'); clearTimeout(bannerTimer); bannerTimer = setTimeout(() => $('banner').classList.remove('show'), 3800); }
+    }
+  }
+
+  /* ================= camera per mode ================= */
+  const _la = new V3(), _tc = new V3(), _tt = new V3();
+  function updateCamera(dt) {
+    if (S.mode === 'tour') {
+      S.tourT = (S.tourT + dt / TOUR.dur) % 1;
+      tourCam.getPointAt(S.tourT, _tc); tourTgt.getPointAt(S.tourT, _tt);
+      camera.position.copy(_tc); camera.lookAt(_tt);
+      const d = new V3().subVectors(_tt, _tc);
+      player.yaw = Math.atan2(-d.x, -d.z); player.pitch = Math.atan2(d.y, Math.hypot(d.x, d.z));
+      player.pos.set(_tt.x, _tt.y, _tt.z);
+      camera.fov = 66;
+    } else if (S.mode === 'boat') {
+      const b = rideBoats[rideIdx % rideBoats.length];
+      player.yaw += wrapAngle(b.heading - ridePrevHeading); ridePrevHeading = b.heading;
+      const s = Math.sin(b.heading), c = Math.cos(b.heading);
+      const lx = 0.0, ly = 1.45 + Math.sin(S.elapsed * 1.6 + b.phase) * 0.03, lz = 0.7;
+      camera.position.set(b.pos.x + lx * c + lz * s, b.pos.y + ly + 0.15, b.pos.z - lx * s + lz * c);
+      camera.rotation.set(player.pitch, player.yaw, 0);
+      player.pos.set(camera.position.x, camera.position.y - 1.62, camera.position.z);
+      camera.fov = 74;
+    } else {
+      movePlayer(dt);
+      camera.position.set(player.pos.x, player.pos.y + 1.62 + player.stepOff, player.pos.z);
+      camera.rotation.set(player.pitch, player.yaw, 0);
+      const spr = (keys.ShiftLeft || keys.ShiftRight || keys.ControlLeft) && (Math.abs(player.vel.x) + Math.abs(player.vel.z) > 3);
+      camera.fov += ((spr ? 80 : 72) - camera.fov) * (1 - Math.exp(-8 * dt));
+    }
+    camera.updateProjectionMatrix();
+  }
+
+  /* shadow camera follows the player/target, snapped to the shadow texel grid */
+  const _r = new V3(), _u = new V3(), _c = new V3(), _up = new V3(0, 1, 0);
+  function updateShadow() {
+    if (!S.shadows) return;
+    const ctr = _c.copy(S.mode === 'tour' ? player.pos : camera.position);
+    _r.crossVectors(_up, lightDir).normalize(); _u.crossVectors(lightDir, _r).normalize();
+    const tex = (SH * 2) / sun.shadow.mapSize.x;
+    const a = Math.round(ctr.dot(_r) / tex) * tex, b = Math.round(ctr.dot(_u) / tex) * tex, d = ctr.dot(lightDir);
+    ctr.set(0, 0, 0).addScaledVector(_r, a).addScaledVector(_u, b).addScaledVector(lightDir, d);
+    sun.target.position.copy(ctr);
+    sun.position.copy(ctr).addScaledVector(lightDir, 200);
+    sun.target.updateMatrixWorld();
+  }
+  function updateLamps() {
+    if (nightF < 0.05) return;
+    const cp = camera.position, arr = world.lamps, best = [];
+    for (let i = 0; i < arr.length; i++) {
+      const l = arr[i], d = (l[0] - cp.x) ** 2 + (l[1] - cp.y) ** 2 + (l[2] - cp.z) ** 2;
+      if (best.length < 4 || d < best[best.length - 1][0]) { best.push([d, l]); best.sort((p, q) => p[0] - q[0]); if (best.length > 4) best.pop(); }
+    }
+    best.forEach((b, i) => lampLights[i].position.set(b[1][0], b[1][1] + 0.4, b[1][2]));
+  }
+
+  /* ================= main loop ================= */
+  let last = performance.now(), fpsAcc = 0, fpsN = 0, fps = 60;
+  function frame(now) {
+    if (!window.__oiaOn) { window.__oiaResume = function () { last = 0; requestAnimationFrame(frame); }; return; }   // closed: paused
+    requestAnimationFrame(frame);
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    S.elapsed += dt;
+    if (S.auto) S.time = (S.time + dt * 0.12) % 24;
+    updateCamera(dt);
+    updateSky(camera.position);
+    waterMat.uniforms.uTime.value = S.elapsed;
+    waterMesh.position.x = Math.round(camera.position.x); waterMesh.position.z = Math.round(camera.position.z);
+    farFloor.position.x = waterMesh.position.x; farFloor.position.z = waterMesh.position.z;
+    updateBoats(dt, S.elapsed); updateNPCs(dt, S.elapsed); updateBirds(dt, S.elapsed); updateFlags(S.elapsed);
+    if (glb.mixer) glb.mixer.update(dt);
+    updateTarget();
+    updateShadow();
+    S.lampT -= dt; if (S.lampT <= 0) { S.lampT = 0.35; updateLamps(); }
+    // rebuild edited chunks (max 2 per frame)
+    if (dirty.size) { let n = 0; for (const i of dirty) { meshChunk(i % CX, Math.floor(i / CX)); dirty.delete(i); if (++n >= 2) break; } }
+    $('uw').style.display = camera.position.y < VW.WATER_Y - 0.05 ? 'block' : 'none';
+    S.hudT -= dt;
+    if (S.hudT <= 0) {
+      S.hudT = 0.2;
+      const cp = camera.position, hh = Math.floor(S.time), mmn = Math.floor((S.time - hh) * 60);
+      $('clock').textContent = String(hh).padStart(2, '0') + ':' + String(mmn).padStart(2, '0');
+      if (S.auto) $('timeSlider').value = S.time;
+      $('coords').textContent = 'XYZ ' + cp.x.toFixed(0) + ' ' + cp.y.toFixed(0) + ' ' + cp.z.toFixed(0) + ' · ' + fps.toFixed(0) + ' fps';
+      drawMinimap(); updateBanner();
+    }
+    fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; }
+    renderer.render(scene, camera);
+  }
+
+  /* ================= boot ================= */
+  const setLoad = (msg, p) => { $('loadMsg').textContent = msg; $('bar').firstElementChild.style.width = Math.round(p * 100) + '%'; };
+  async function boot() {
+    try {
+      setLoad('正在塑造破火山口悬崖…', 0.04); await nextFrame();
+      world = window.__oiaWorld || VW.create(2021); window.__oiaWorld = world; if (window.__oiaApply) window.__oiaApply(world, null);   // the same world My World mapped; your saved edits on it
+      window.__santorini = { world, player, scene, camera, S, setMode, teleport, markDirty };
+      setLoad('烘焙像素贴图…', 0.16); await nextFrame();
+      const atlas = new THREE.CanvasTexture(SantoriniTex.buildCanvas());
+      atlas.magFilter = THREE.NearestFilter; atlas.minFilter = THREE.NearestFilter; atlas.generateMipmaps = false;
+      matWorld.map = atlas; matGlow.map = atlas; matWorld.needsUpdate = true; matGlow.needsUpdate = true;
+      CX = Math.ceil(world.W / CH); CZ = Math.ceil(world.D / CH);
+      const total = CX * CZ; let done = 0;
+      for (let cz = 0; cz < CZ; cz++) for (let cx = 0; cx < CX; cx++) {
+        meshChunk(cx, cz); done++;
+        if (done % 3 === 0) { setLoad('搭建白色小镇 ' + done + '/' + total, 0.2 + 0.6 * done / total); await nextFrame(); }
+      }
+      setLoad('扬帆、牵驴、放风车…', 0.86); await nextFrame();
+      addRoute([[84, 24], [60, 52], [56, 86], [60, 112]], 'gulet', { speed: 2.4, u0: 0, a: 4, b: 4 });
+      addRoute([[56, 168], [66, 190], [56, 214]], 'gulet', { speed: 2.2, u0: 40, a: 4, b: 4 });
+      addRoute([[42, 40], [44, 80], [42, 112], [40, 150], [46, 190]], 'caique', { speed: 3.2, hull: 0x1f55b5, u0: 0, a: 4, b: 4 });
+      addRoute([[96, 100], [94, 128], [92, 160], [96, 196]], 'caique', { speed: 3.6, hull: 0xf4f4f0, u0: 20, a: 3, b: 3 });
+      addRoute([[84, 4], [80, 36], [66, 64], [66, 94], [86, 112], [92, 132], [88, 160], [76, 200], [70, 222]], 'ferry', { speed: 4.4, u0: 60, a: 2, b: 2 });
+      addMoored();
+      spawnNPCs(); makeNPCMeshes(); spawnBirds(); spawnProps();
+      buildHeld(); buildMinimap(); buildTele(); initTour(); buildHotbar();
+      SantoriniModels.init({
+        loadGLB, clearGLB, setGLBScale: (s) => { if (glb.pivot) glb.pivot.scale.setScalar(s); }, toast,
+        onOpen: () => { exitLock(); }, onClose: () => { }
+      });
+      setLoad('完成', 1);
+      applyURLCamera();
+      setMode(S.mode); updateHint();
+      $('loading').classList.add('done');
+      requestAnimationFrame(frame);
+    } catch (err) {
+      console.error(err);
+      setLoad('加载失败：' + (err && err.message ? err.message : err), 1);
+    }
+  }
+  function applyURLCamera() {
+    const c = qs.get('cam');
+    if (c) {
+      const v = c.split(',').map(Number);
+      if (v.length >= 6) {
+        const f = look(v[0], v[1], v[2], v[3], v[4], v[5]);
+        player.pos.set(v[0], v[1] - 1.62, v[2]); player.yaw = f.yaw; player.pitch = f.pitch; S.mode = 'fly';
+      }
+    }
+    const m = qs.get('mode'); if (m && ['tour', 'walk', 'fly', 'boat'].includes(m)) S.mode = m;
+    const tp = parseInt(qs.get('tp'), 10); if (!isNaN(tp) && TELE[tp]) { teleport(TELE[tp]); }
+    if (qs.get('hud') === '0') $('hud').style.display = 'none';
+  }
+  boot();
+})();
+
+</script>
+<script id="mn-oia-run">
+/* 🇬🇷 MinestOia — the Santorini voxel world (Zed's engine) inside My World (tools/voxel-oia/patch_oia.py)
+   open(opts) / close() / isOpen() / world() / bind(hooks). My World binds: key(), edits(), edit(x,y,z,id,c), label(bid), enter(bid, at).
+   Edits you make (break / place) are the island's: kept as a diff on the generated world, re-applied on open (another island's
+   undone first). Near a building's wall a 🚪 button takes you into its rooms (My World's own rooms, displays and cards). */
+(function () {
+  if (window.MinestOia) return;
+  var root = null, started = false, amb = null, wxOff = null, H = null, near = null, enterBtn = null, owner = null, applied = null, orig = {}, pendingAt = null;
+  window.__oiaOn = false;
+  window.__oiaL = function (t, type, fn, o) { t.addEventListener(type, function (e) { if (window.__oiaOn) return fn.call(this, e); }, o); };
+  function run(id) { var t = document.getElementById(id), s = document.createElement('script'); s.textContent = t ? t.textContent : ''; document.body.appendChild(s); }
+  function world() { if (!window.SantoriniWorld) run('mn-oia-world'); if (!window.__oiaWorld) window.__oiaWorld = SantoriniWorld.create(2021); return window.__oiaWorld; }
+  function cell(w, x, y, z) { var i = w.idx(x, y, z); return [w.blocks[i], w.cols[i]]; }
+  window.__oiaApply = function (w, dirty) {   // this island's edits on the world (the last island's put back first)
+    var key = H ? H.key() : null, list = H ? H.edits() : []; if (owner === key && applied === list && !dirty) return;
+    Object.keys(orig).forEach(function (k) { var c = k.split(',').map(Number), o = orig[k]; w.set(c[0], c[1], c[2], o[0], o[1]); if (dirty) dirty(c[0], c[2]); }); orig = {};
+    list.forEach(function (e) { var k = e[0] + ',' + e[1] + ',' + e[2]; if (!(k in orig)) orig[k] = cell(w, e[0], e[1], e[2]); w.set(e[0], e[1], e[2], e[3], e[4]); if (dirty) dirty(e[0], e[2]); });
+    owner = key; applied = list;
+  };
+  window.__oiaEdit = function (x, y, z, id, c) { var w = window.__oiaWorld; if (!w) return; var k = x + ',' + y + ',' + z; if (!(k in orig)) orig[k] = cell(w, x, y, z); if (H && H.edit) H.edit(x, y, z, id, c); };
+  var KIND = { house: '白屋', cave: '洞穴屋', chapel: '蓝顶小教堂', church: '教堂', castle: '城堡遗址', mill: '风车', taverna: '小酒馆' };
+  function bName(b) { return (H && H.label && H.label(b.id)) || b.name || KIND[b.kind] || '建筑'; }
+  setInterval(function () {   // the door you are standing at
+    if (!window.__oiaOn || !enterBtn) return; var sa = window.__santorini; if (!sa || !sa.player) return; var p = sa.player.pos, best = null, bd = 1.9;
+    (sa.world.buildings || []).forEach(function (b) { var dx = Math.max(b.x0 - p.x, 0, p.x - (b.x1 + 1)), dz = Math.max(b.z0 - p.z, 0, p.z - (b.z1 + 1)), d = Math.hypot(dx, dz); if (d < bd && Math.abs(p.y - b.y) < 3.5) { bd = d; best = b; } });
+    near = best; var show = !!(best && sa.S.mode !== 'tour' && H && H.enter); enterBtn.hidden = !show; if (show) { var t = '🚪 进入 ' + bName(best); if (enterBtn.textContent !== t) enterBtn.textContent = t; }
+  }, 250);
+  function sound(on) {
+    if (!window.MinestSfx) return; if (!on) { if (amb) { amb.stop(); amb = null; } if (wxOff) { wxOff(); wxOff = null; } return; }
+    amb = MinestSfx.loop('outdoor'); var st = window.MinestWX ? MinestWX.state() : null; amb.set(.6, st);
+    if (window.MinestWX) wxOff = MinestWX.on(function (s2) { if (amb) amb.set(.6, s2); });
+  }
+  function placeAt() {   // back out of a building: on its doorstep, facing away from it
+    var sa = window.__santorini; if (!pendingAt || !sa || !sa.player) return false; var a = pendingAt; pendingAt = null;
+    sa.player.pos.set(a.x, a.y, a.z); sa.player.yaw = a.yaw || 0; sa.player.pitch = 0; sa.player.vel && sa.player.vel.set(0, 0, 0); if (sa.setMode) sa.setMode('walk'); return true;
+  }
+  function start() {
+    root = document.createElement('div'); root.id = 'oia-root'; root.className = 'mn-oia'; root.innerHTML = MARKUP; document.body.appendChild(root); window.__oiaRoot = root;
+    root.querySelector('#oia-back').addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); close(); });
+    enterBtn = root.querySelector('#oia-enter'); enterBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); var sa = window.__santorini; if (!near || !sa || !H || !H.enter) return; var p = sa.player.pos, b = near, cx = (b.x0 + b.x1 + 1) / 2, cz = (b.z0 + b.z1 + 1) / 2; H.enter(near.id, { x: p.x, y: p.y, z: p.z, yaw: Math.atan2(-(p.x - cx), -(p.z - cz)) }); });   // coming back out: facing the street
+    ['pointerdown', 'touchstart', 'wheel', 'click'].forEach(function (t) { root.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });   // My World's own handlers stay out
+    world(); run('mn-oia-src');   // the engine boots now, on the world My World already mapped
+    var tries = 0; (function ready() { var w = window.__santorini; if (w && w.S && w.player && document.getElementById('oia-loading').classList.contains('done')) { var d = new Date(); w.S.time = d.getHours() + d.getMinutes() / 60; placeAt(); return; } if (++tries < 400) setTimeout(ready, 150); })();   // starts at your local time
+  }
+  function open(opts) {
+    if (!window.THREE) { if (window.toast) toast('3D is still loading — try again in a moment'); return; }
+    if (!H && window.__oiaBind) window.__oiaBind();   // My World binds this island on the first open
+    pendingAt = opts && opts.at || null;
+    window.__oiaOn = true; document.documentElement.classList.add('mn-oia-on');
+    if (!started) { started = true; start(); }
+    else { root.hidden = false; var sa = window.__santorini; if (sa && sa.world) window.__oiaApply(sa.world, sa.markDirty); placeAt(); if (window.__oiaResume) { var r = window.__oiaResume; window.__oiaResume = null; r(); } window.dispatchEvent(new Event('resize')); }
+    sound(true);
+  }
+  function close() {
+    if (!root) return; window.__oiaOn = false; root.hidden = true; document.documentElement.classList.remove('mn-oia-on'); sound(false); if (enterBtn) enterBtn.hidden = true;
+    try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) {}
+  }
+  window.MinestOia = { open: open, close: close, world: world, bind: function (h) { H = h; }, isOpen: function () { return !!(root && !root.hidden && window.__oiaOn); } };
+  var MARKUP = "<button type=\"button\" id=\"oia-back\" class=\"mc\">\u2039 My World<\/button><button type=\"button\" id=\"oia-enter\" class=\"mc\" hidden><\/button><canvas id=\"oia-gl\" tabindex=\"0\"><\/canvas>\n\n<div id=\"oia-loading\">\n  <h1 class=\"mc\">SANTORINI<\/h1>\n  <div class=\"mc sub\">\u5723\u6258\u91cc\u5c3c \u00b7 \u7231\u7434\u6d77\u7834\u706b\u5c71\u53e3\u60ac\u5d16 \u00b7 \u4f0a\u4e9a Oia / \u84dd\u9876\u6559\u5802 / \u60ac\u5d16\u65e5\u843d / \u89c2\u5149\u8239<\/div>\n  <div id=\"oia-bar\"><i><\/i><\/div>\n  <div id=\"oia-loadMsg\" class=\"mc\">\u51c6\u5907\u4e2d\u2026<\/div>\n<\/div>\n\n<div id=\"oia-hud\">\n  <div id=\"oia-title\" class=\"mc\"><b>SANTORINI \u5723\u6258\u91cc\u5c3c<\/b><span id=\"oia-modeLabel\">\u5bfc\u89c8\u6a21\u5f0f<\/span><div id=\"oia-coords\"><\/div><\/div>\n  <div id=\"oia-crosshair\"><\/div>\n  <div id=\"oia-banner\" class=\"mc\"><b id=\"oia-bannerT\"><\/b><span id=\"oia-bannerS\"><\/span><\/div>\n  <div id=\"oia-mmWrap\" class=\"panel\">\n    <canvas id=\"oia-mm\" width=\"272\" height=\"224\"><\/canvas>\n    <div id=\"oia-timeBox\" class=\"mc\"><span id=\"oia-clock\">17:24<\/span><input id=\"oia-timeSlider\" type=\"range\" min=\"0\" max=\"24\" step=\"0.05\" value=\"17.4\"><\/div>\n  <\/div>\n  <div id=\"oia-held\" class=\"panel mc\"><i id=\"oia-heldSw\"><\/i><span id=\"oia-heldName\"><\/span><\/div>\n  <div id=\"oia-hint\" class=\"panel mc\"><\/div>\n  <div id=\"oia-lmMenu\" class=\"panel\"><\/div>\n  <div id=\"oia-lockHint\" class=\"panel mc\">\u70b9\u51fb\u753b\u9762\u5f00\u59cb \u00b7 Esc \u9000\u51fa\u9f20\u6807\u63a7\u5236<\/div>\n  <div id=\"oia-hotbar\"><\/div>\n  <div id=\"oia-toast\" class=\"panel mc\"><\/div>\n  <div id=\"oia-uw\"><\/div>\n<\/div>\n\n<div id=\"oia-touch\">\n  <div id=\"oia-joy\"><i><\/i><\/div>\n  <div id=\"oia-tJump\" class=\"tbtn\">\u2912<\/div>\n  <div id=\"oia-tDown\" class=\"tbtn\">\u2913<\/div>\n  <div id=\"oia-tFly\" class=\"tbtn\">\u98de<\/div>\n<\/div>\n\n<div id=\"oia-mpanel\">\n  <header><b>\ud83c\udf10 \u5723\u6258\u91cc\u5c3c 3D \u6a21\u578b\u5e93 \u00b7 Sketchfab<\/b><button class=\"mbtn\" id=\"oia-mClose\">\u2715 \u5173\u95ed<\/button><\/header>\n  <div class=\"row\">\n    <input type=\"text\" id=\"oia-mq\" value=\"santorini\" placeholder=\"\u641c\u7d22 Sketchfab \u6a21\u578b\u2026\">\n    <button class=\"mbtn\" id=\"oia-mGo\">\u641c\u7d22<\/button>\n  <\/div>\n  <div class=\"row\" id=\"oia-mchips\"><\/div>\n  <div class=\"row\" style=\"padding-top:0\"><label><input type=\"checkbox\" id=\"oia-mDl\"> \u4ec5\u53ef\u4e0b\u8f7d\uff08CC\uff09<\/label>\n    <label><input type=\"checkbox\" id=\"oia-mAnim\"> \u4ec5\u542b\u52a8\u753b<\/label><\/div>\n  <div id=\"oia-mstat\"><\/div>\n  <div id=\"oia-mgrid\"><\/div>\n  <div id=\"oia-mview\">\n    <div class=\"row\"><button class=\"mbtn\" id=\"oia-mBack\">\u2190 \u8fd4\u56de\u5217\u8868<\/button><span id=\"oia-mTitle\" style=\"font-weight:800\"><\/span><\/div>\n    <iframe id=\"oia-mFrame\" allow=\"autoplay; fullscreen; xr-spatial-tracking\" allowfullscreen mozallowfullscreen webkitallowfullscreen><\/iframe>\n    <div class=\"cap\" id=\"oia-mCap\"><\/div>\n  <\/div>\n  <div class=\"imp\">\n    <b>\u5bfc\u5165 glTF / GLB \u5230\u5f53\u524d\u573a\u666f<\/b>\uff08\u6765\u81ea Sketchfab \u4e0b\u8f7d\u3001Kenney\u3001Poly Pizza \u7b49\uff1b\u4e5f\u53ef\u76f4\u63a5\u628a\u6587\u4ef6\u62d6\u8fdb\u9875\u9762\uff09\n    <div class=\"row\"><input type=\"file\" id=\"oia-glbFile\" accept=\".glb,.gltf\" style=\"max-width:190px\">\n      <input type=\"text\" id=\"oia-glbUrl\" placeholder=\"https://\u2026/model.glb\uff08\u9700\u5141\u8bb8\u8de8\u57df\uff09\"><button class=\"mbtn\" id=\"oia-glbGo\">\u52a0\u8f7d<\/button><\/div>\n    <div class=\"row\">\u7f29\u653e <input type=\"range\" id=\"oia-glbScale\" min=\"0.2\" max=\"4\" step=\"0.05\" value=\"1\"><button class=\"mbtn\" id=\"oia-glbClear\">\u79fb\u9664<\/button><\/div>\n  <\/div>\n<\/div>\n<div id=\"oia-dropHint\" class=\"mc\">\u677e\u5f00\u4ee5\u5bfc\u5165 .glb \u6a21\u578b<\/div>";
 })();
 </script>
 </body>

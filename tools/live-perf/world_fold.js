@@ -328,6 +328,9 @@
       eye: ['............', '....kkkk....', '..kkwwwwkk..', '.kwwwLLwwwk.', 'kwwwLkkLwwwk', 'kwwwLkkLwwwk', '.kwwwLLwwwk.', '..kkwwwwkk..', '....kkkk....'],
       shire: ['............', '....rrr.....', '...rrrrr....', '....wkw.....', '....wbw.....', '.gggggggg...', 'gggGgggggggg', 'GgggggGggggG', 'gggGgggggGgg'],
       alps: ['.....w......', '....www..w..', '...wwSw.www.', '..wSsssswSw.', '.sSsssSsssS.', 'sssSssssSsss', 'gGgggGgggGgg', 'gggggggggggg', 'bbbbbbbbbbbb'],
+      oia: ['.....LL.....', '....LLLL....', '....wwww....', '...wwwwww...', '.ww.wLLw.ww.', '.ww.wwww.ww.', 'nnnnnnnnnnnn', 'LLLLlLLLLLLL', 'lLLLLLlLLLLl'],
+      venice: ['....bb......', '....bb......', '...wbwb.....', '...wbwb.....', '..w...w.....', '..k...k.....', '.kkkkkkk....', 'kLLLLLLLk...', 'LLLLlLLLLLL.', 'lLLLLLLLlLLL'],
+      gondola: ['..........k.', '..........k.', '..........w.', '..........r.', '..k......k..', '..kkkrrkkk..', '.kkkkkkkkkk.', 'LLLLLLLLLLLL', 'lLLLLlLLLLlL'],
       hill: ['.....ww.....', '....wwws....', '...wwsssS...', '..ssssssSS..', '.gsssSssssg.', 'ggggSgssgggg', 'gGgggggGgggg', 'bbbbbbbbbbbb', 'bBbbbBbbbBbb'],
       river: ['gggLLggggggg', 'ggggLLgggggg', 'gggggLLggggg', 'ggggLLlggggg', 'gggLLlgggggg', 'ggggLLgggggg', 'gggggLLggggg', 'ggggggLLgggg', 'gggggLLggggg'],
       lake: ['gggggggggggg', 'gggnLLLLnggg', 'ggnLLlLLLngg', 'gnLLLLLlLLng', 'gnLLlLLLLLng', 'ggnLLLLLLngg', 'gggnnLLnnggg', 'gggggnnggggg', 'gggggggggggg'],
@@ -1000,6 +1003,84 @@
 
       d.pc = pcs; refreshLand();
     }
+    // ---------------------------------------------------------------- 🇬🇷 Santorini pieces (Cycladic, built from blocks like every house; in the build picker under Houses / Community)
+    var GREEK = {
+      house: function (B) {   // a whitewashed cube: flat roof with a parapet, a blue door, blue shutters, a little chimney
+        bx(B, 0, 2, 0, 2, 0, 1.3, 'white'); bx(B, -.04, 2.04, -.04, 2.04, 1.3, 1.4, 'white'); bx(B, .1, 1.9, .1, 1.9, 1.3, 1.34, 'quartz');
+        door(B, 1.35, 2, 0, 'concrete_blue'); winsT(B, .25, .85, 2, .5, .95, .3, .1, 'concrete_blue'); winsU(B, 2, .5, 1.5, .5, .95, .35, .2, 'concrete_blue');
+        sq(B, .45, .45, .3, .3, 1.4, 1.75, 'white'); return { W: 2, D: 2 };
+      },
+      ochre: function (B) {   // two cubes stepped up the slope, ochre and rose plaster, blue shutters, a roof terrace
+        bx(B, 0, 2.4, 0, 2, 0, 1.1, 'sandstone'); bx(B, .2, 1.4, .1, 1.3, 1.1, 2, 'concrete_orange', 'sandstone'); bx(B, 1.4, 2.4, 1.3, 2, 1.1, 1.22, 'white');
+        door(B, 1.8, 2, 0, 'concrete_blue'); winsT(B, .3, 1.1, 2, .45, .85, .32, .14, 'concrete_blue'); winsT(B, .4, 1.2, 1.3, 1.35, 1.75, .3, .2, 'concrete_blue');
+        bx(B, 1.45, 2.4, 1.95, 2, 1.22, 1.5, 'white'); return { W: 2.4, D: 2 };
+      },
+      cave: function (B) {   // a cave house dug into the cliff: a low white front, an arched blue door, a vaulted roof, a terrace
+        bx(B, 0, 2.4, 0, 1.6, 0, 1.1, 'white'); for (var i = 0; i < 3; i++) bx(B, .1 + i * .12, 2.3 - i * .12, 0, 1.6, 1.1 + i * .12, 1.22 + i * .12, 'white');
+        bx(B, .95, 1.45, 1.6, 1.63, 0, .8, 'concrete_blue'); bx(B, 1.05, 1.35, 1.6, 1.64, .8, .9, 'concrete_blue'); winsT(B, .25, .55, 1.6, .4, .75, .3, 0, 'concrete_blue'); winsT(B, 1.85, 2.15, 1.6, .4, .75, .3, 0, 'concrete_blue');
+        bx(B, 0, 2.4, 1.6, 2.4, 0, .08, 'quartz'); bx(B, 0, .06, 1.6, 2.4, .08, .4, 'white'); bx(B, 2.34, 2.4, 1.6, 2.4, .08, .4, 'white'); return { W: 2.4, D: 2.4 };
+      },
+      church: function (B) {   // the blue-dome church: a white nave, a drum and a blue dome with a cross, a bell gable in front
+        bx(B, 0, 2.2, 0, 3, 0, 1.6, 'white'); bx(B, -.05, 2.25, -.05, 3.05, 1.6, 1.7, 'white');
+        disc(B, 1.1, 1.3, .62, 1.7, 2.05, 'white'); cone(B, 1.1, 1.3, .7, 2.05, .85, 'concrete_blue', 4, 1); sq(B, 1.1, 1.3, .08, .08, 2.85, 3.35, 'white'); sq(B, 1.1, 1.3, .3, .08, 3.15, 3.23, 'white');
+        door(B, 1.1, 3, 0, 'concrete_blue'); winsU(B, 2.2, .5, 2.6, .7, 1.2, .25, .4, 'concrete_blue'); winsU(B, -.03, .5, 2.6, .7, 1.2, .25, .4, 'concrete_blue');
+        bx(B, .55, 1.65, 2.75, 3, 1.7, 2.6, 'white'); bx(B, .75, .95, 2.74, 3.01, 1.95, 2.3, 'dark'); bx(B, 1.25, 1.45, 2.74, 3.01, 1.95, 2.3, 'dark');   // the bell gable: two arches
+        sq(B, .85, 2.88, .14, .14, 2.05, 2.2, 'gold'); sq(B, 1.35, 2.88, .14, .14, 2.05, 2.2, 'gold'); sq(B, 1.1, 2.88, .08, .08, 2.6, 3, 'white'); return { W: 2.2, D: 3 };
+      },
+      bells: function (B) {   // a bell tower: a white wall with three arched openings and bells, a small blue dome
+        bx(B, 0, 1.6, 0, .5, 0, 2.2, 'white'); [.2, .65, 1.1].forEach(function (u) { bx(B, u, u + .3, -.01, .51, 1.3, 1.8, 'dark'); sq(B, u + .15, .25, .16, .16, 1.45, 1.62, 'gold'); });
+        cone(B, .8, .25, .32, 2.2, .45, 'concrete_blue', 3, 1); sq(B, .8, .25, .06, .06, 2.65, 2.95, 'white'); return { W: 1.6, D: .5 };
+      },
+      windmill: function (B) {   // a round white mill with a thatched cone and four sails turned to the sea
+        disc(B, .9, .9, .7, 0, 2.1, 'white'); door(B, .9, 1.75, 0, 'oak'); cone(B, .9, .9, .78, 2.1, .7, 'hay_top', 4, 1);
+        sq(B, .9, 1.75, .12, .12, 1.6, 1.8, 'oak'); [[0, 1], [1, 0]].forEach(function (d) { bx(B, .9 - (d[0] ? 1.15 : .05), .9 + (d[0] ? 1.15 : .05), 1.78, 1.84, 1.7 - (d[1] ? 1.15 : .05), 1.7 + (d[1] ? 1.15 : .05), 'oak'); });
+        bx(B, .95, 1.9, 1.85, 1.87, 1.72, 2.2, 'wool_white'); bx(B, -.1, .85, 1.85, 1.87, 1.2, 1.68, 'wool_white'); return { W: 1.8, D: 1.9 };
+      }
+    };
+    [['gr_house', '基克拉泽斯白屋 Cycladic house', GREEK.house, 'home'], ['gr_ochre', '赭色民居 Ochre house', GREEK.ochre, 'home'], ['gr_cave', '悬崖洞穴屋 Cave house', GREEK.cave, 'home'],
+     ['gr_church', '蓝顶教堂 Blue-dome church', GREEK.church, 'town'], ['gr_bells', '钟楼 Bell tower', GREEK.bells, 'town'], ['gr_mill', '希腊风车 Greek windmill', GREEK.windmill, 'town']].forEach(function (v) {
+      if (K[v[0]]) return; var fn = v[2]; K[v[0]] = { n: v[1], decor: 1, flat: 0, landmark: 1 }; BUILD[v[0]] = function (p, its, B) { return sized(p, B, fn); }; KIT_PIECES.push(v); KIT_KINDS.push(v[0]); });
+    // 🇬🇷 一键圣托里尼 · Oia: the caldera cliff in terraces facing you, the sea in front; a whitewashed town cascading down it — cubes,
+    // cave houses with pools, blue-dome churches and bell towers; windmills and the Kastro on the north rim, the main street along
+    // the top (Atlantis Books, sunset bars), Amoudi Bay down at the water with boats, the volcano islet out in the caldera.
+    // All native: the island's own terrain and pieces — walk in, 阅览, weather and sound work as everywhere. ↶ Undo puts it back.
+    function santoriniBuild(seed) {   // the island IS Zed's Oia voxel world: its real cliffs and caldera as the terrain, each of its buildings a piece linked to it (p.vox)
+      if (!window.MinestOia) return;
+      var wv = MinestOia.world(), d = V.d, Wv = wv.W, Dv = wv.D, PL = 16, N = PL * 3, s = N / Math.max(Wv, Dv), NY = Math.ceil(Dv * s);
+      var land = []; for (var i = 0; i < PL; i++) for (var j = 0; j < PL; j++) land.push(i + ',' + j);
+      var keep = {}; (d.pc || []).forEach(function (p) { if (p.vox) keep[p.vox] = p; });   // rooms, displays and things you gave its buildings stay with them
+      d.land = land; d.v = 1; d.ground = 'sand'; d.pc = (d.pc || []).filter(function (p) { return !p.vox && (!p.city || (p.it && p.it.length)); }); refreshLand();
+      function ix(vx) { return (Wv - vx) * s; } function iy(vz) { return (Dv - vz) * s; }   // turned half round: the caldera in front of you, the town climbing away
+      var h = {}, wt = {};
+      for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) { var k = x + ',' + y; if (y >= NY) { wt[k] = 2; continue; }
+        var vx = Math.min(Wv - 1, Math.max(0, Math.floor(Wv - (x + .5) / s))), vz = Math.min(Dv - 1, Math.max(0, Math.floor(Dv - (y + .5) / s))), hv = wv.hm[vx + Wv * vz];
+        if (hv <= 11) wt[k] = 2; else { var L = Math.round((hv - 11) / 2.4); if (L > 0) h[k] = Math.min(22, L); } }
+      d.terr = { h: h, w: wt, scape: 'santorini', lv: { stone: 99, snow: 99 }, top: 'quartz', side: 'dirt' };   // whitewashed lanes on red-brown volcanic rock
+      d.vox = d.vox || { edits: [] };   // the island's own changes to the voxel world (break / place), synced like everything else
+      var KM = { house: ['gr_house', 2], cave: ['gr_cave', 2.4], chapel: ['gr_church', 2.2], church: ['gr_church', 2.2], castle: ['ruins', 3], mill: ['gr_mill', 1.8], taverna: ['c_cafe', 3] }, n = 0;
+      wv.buildings.forEach(function (b) {
+        var m = KM[b.kind] || KM.house, cx = (b.x0 + b.x1 + 1) / 2, cz = (b.z0 + b.z1 + 1) / 2, sz = Math.max(b.x1 - b.x0 + 1, b.z1 - b.z0 + 1) * s, kk = m[0], old = keep[b.id];
+        if (kk === 'gr_house' && (n++ % 4) === 3) kk = 'gr_ochre';
+        var p = { id: old ? old.id : uid(), k: kk, x: Math.round(ix(cx) * 2) / 2, y: Math.round(iy(cz) * 2) / 2, f: 3, s: Math.max(.45, Math.min(1.3, sz / m[1])), it: old ? old.it || [] : [], city: 1, vox: b.id };
+        p.label = old && old.label || b.name || undefined; if (old && old.rooms) { p.rooms = old.rooms; p.roomsInit = 1; }
+        d.pc.push(p); if (!fits(p)) { p.k = 'vox_door'; p.s = 1; }   // no room for it on the map: an invisible marker still holds its rooms
+      });
+      refreshLand();
+    }
+    if (!K.vox_door) { K.vox_door = { n: 'Building (3D)', decor: 1, flat: 1, landmark: 1 }; BUILD.vox_door = function (p, its, B) { return sized(p, B, function () { return { W: 1, D: 1 }; }); }; }
+    window.__oiaBind = function () { MinestOia.bind({   // the voxel Oia and this island (bound on its first open: its runtime loads after this): its edits, its buildings' names, going into one
+      key: function () { return V && V.bid; },
+      edits: function () { var R = V && (V.root || V.d); return (R && R.vox && R.vox.edits) || []; },
+      edit: function (x, y, z, id, c) { if (!V) return; var R = islandD(); R.vox = R.vox || { edits: [] }; var E = R.vox.edits; for (var i = E.length - 1; i >= 0; i--) if (E[i][0] === x && E[i][1] === y && E[i][2] === z) { E.splice(i, 1); break; } E.push([x, y, z, id, c]); clearTimeout(W.voxT); W.voxT = setTimeout(function () { save(); }, 800); },
+      label: function (bid) { if (!V) return null; var p = (islandD().pc || []).filter(function (q) { return q.vox === bid; })[0]; return p && p.label; },
+      enter: function (bid, at) {   // through its door into its rooms: My World's rooms, displays and cards; 🌳 Outside brings you back to this doorstep
+        if (!V) return; var R = islandD(), p = (R.pc || []).filter(function (q) { return q.vox === bid; })[0];
+        if (!p) { var bb = MinestOia.world().buildings.filter(function (x) { return x.id === bid; })[0]; p = { id: uid(), k: 'vox_door', x: 1, y: 1, f: 0, s: 1, it: [], city: 1, vox: bid, label: bb && bb.name }; R.pc.push(p); }
+        if (!(p.rooms || []).length) { p.roomsInit = 1; p.rooms = suggestRooms(p).map(function (k) { return { id: 'r' + uid().slice(1), k: k, n: ROOMS[k][0] }; }); p.rooms.forEach(function (r) { roomD(r); }); }
+        var r = p.rooms[0]; roomD(r); save(); MinestOia.close(); if (window.MinestSfx) MinestSfx.play('door');
+        WKIN = { pc: p.id, back: null, vox: at }; V.root = R; V.at = { pc: p.id, room: r.id }; V.d = r.d; refreshLand(); render(); wkOpen();
+      }
+    }); };
     // ---------------------------------------------------------------- one-tap landscapes: terrain (world_terrain.js) + pieces
     // 🇬🇧 English countryside: rolling hills, a creek winding past a village (church, pub, shop, cottages), a farm with
     // fields and hedges, sheep on the hills, a pond with ducks, Stonehenge on a far hill.
@@ -1085,12 +1166,93 @@
       }
       refreshLand();
     }
-    function megaRow() {   // island level: the one-click buttons, then reroll / clear once a city stands
-      var has = (V.d.pc || []).some(function (p) { return p.city; });
-      return '<div class="wf-mega"><button type="button" data-wfmega="city"><i>' + px('city') + '</i><b>一键变 City</b><small>2× island · 21 districts · flagship avenue</small></button>' +
-        '<button type="button" data-wfmega="town"><i>' + px('town') + '</i><b>一键变 Town</b><small>2× island · market town, green, school</small></button>' +
-        '<button type="button" data-wfmega="countryside"><i>' + px('shire') + '</i><b>一键英国乡村</b><small>rolling hills, a creek, a village & farm</small></button>' +
-        '<button type="button" data-wfmega="alpine"><i>' + px('alps') + '</i><b>一键瑞士雪山小镇</b><small>snowy peaks, a lake, chalets & a railway</small></button>' +
+    // 🇮🇹 一键变水城 · Venice: the island becomes a lagoon city — the Grand Canal winding through it in a reversed S,
+    // little rii between the sestieri, the Rialto over the Grand Canal, small bridges over the rii, Piazza San Marco
+    // (Basilica, Campanile, Palazzo Ducale, Caffè Florian) on the lagoon front, palazzi and townhouses packed along the
+    // water, gondolas in the canals, vaporetti and sailboats in the lagoon. Then it opens the 3D Venezia Voxel world
+    // (venice.html) full screen; ✕ comes back to the island. Your own pieces stay; ↶ Undo puts the island back.
+    function veniceBuild(seed) {
+      var d = V.d, a = (seed * 2654435761) >>> 0, r = function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+      var N = 42, land = []; for (var i = 0; i < 14; i++) for (var j = 0; j < 14; j++) land.push(i + ',' + j);
+      var had = landOf(); d.land = had.concat(land.filter(function (k) { return had.indexOf(k) < 0; })).slice(0, MAX_PLOTS); d.v = 1; d.ground = 'grass';
+      d.pc = (d.pc || []).filter(function (p) { return !p.city || (p.it && p.it.length); }); refreshLand();
+      var w = {}, ph = r() * 6.283, amp = 6 + r() * 2;
+      function gc(y) { return 21 + amp * Math.sin((y - 21) / 8.5 + ph * .15); }   // the Grand Canal's middle at row y
+      for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) {
+        var dx = (x + .5 - 21) / 18.5, dy = (y + .5 - 21) / 17.5, wob = Math.sin(x * .55 + ph) * .05 + Math.cos(y * .47 + ph) * .05;
+        if (dx * dx + dy * dy > 1 + wob) { w[x + ',' + y] = 2; continue; }   // the lagoon
+        var g = gc(y + .5); if (Math.abs(x + .5 - g) < 1.25) { w[x + ',' + y] = 1; continue; }   // the Grand Canal, two blocks wide
+        if (y === 9 || y === 32 || (y === 16 && x < g) || (y === 26 && x > g)) w[x + ',' + y] = 1;   // the rii
+        if (x === 9 || x === 32 || (x === 15 && y > 26) || (x === 27 && y < 15)) w[x + ',' + y] = 1;
+      }
+      d.terr = { h: {}, w: w, scape: 'venice', lv: { stone: 5, snow: 9 } };
+      var lists = megaLists(), li = 0;
+      function lab(name, big) { var l = lists[li++]; return { label: l ? name + ' · ' + l.title : name, arch: big ? 'dom:city' : undefined }; }
+      function cells(p, fn) { var f = foot(p); for (var x3 = Math.floor(f.x0 + .02); x3 < f.x1 - .02; x3++) for (var y3 = Math.floor(f.y0 + .02); y3 < f.y1 - .02; y3++) fn(x3 + ',' + y3); }
+      function put(k, x4, y4, f, ex, opt) {   // dry for buildings, wet for boats, a bridge must span some water with land at both ends
+        if (!K[k] || !BUILD[k]) return null; opt = opt || {};
+        var p = { id: uid(), k: k, x: Math.round(x4 * 2) / 2, y: Math.round(y4 * 2) / 2, f: f || 0, s: 1, it: [], city: 1 }; if (ex && ex.label) p.label = ex.label; if (ex && ex.arch) p.arch = ex.arch;
+        var wet = 0, dry = 0, deep = 0; cells(p, function (c) { if (w[c]) { wet++; if (w[c] === 2) deep++; } else dry++; });
+        if (opt.bridge) { if (!wet || !dry || deep) return null; } else if (opt.boat ? dry : wet) return null;
+        if (opt.lagoon && deep < wet) return null; if (opt.canal && deep) return null;
+        d.pc.push(p); if (!fits(p)) { d.pc.pop(); return null; } return p;
+      }
+      function near(k, x5, y5, f, ex, opt, rad) { for (var s = 0; s <= (rad || 4); s += .5) for (var tr = 0; tr < 8; tr++) { var an = tr / 8 * 6.283 + s, p = put(k, x5 + (s ? Math.cos(an) * s : 0), y5 + (s ? Math.sin(an) * s : 0), f, ex, opt); if (p) return p; if (!s) break; } return null; }
+      function scatter(k, n, opt, ex) { for (var tries = 0, got = 0; tries < n * 14 && got < n; tries++) if (put(k, 1 + r() * (N - 2), 1 + r() * (N - 2), (r() * 4) | 0, ex, opt)) got++; }
+      // the Rialto over the Grand Canal, small bridges over the rii
+      var ry = 20 + Math.round(r() * 2); near('lm_rialto', gc(ry + .5), ry, 1, lab('🌉 Ponte di Rialto', true), { bridge: true }, 3) || near('w_creek', gc(ry + .5), ry, 1, { label: '🌉 Ponte di Rialto', arch: 'dom:city' }, { bridge: true }, 3);
+      [[9, 5], [9, 21], [9, 36], [32, 6], [32, 20], [32, 35], [5, 9], [20, 9], [36, 32], [22, 32], [5, 16], [36, 26], [15, 30], [27, 12]].forEach(function (b, bi) {
+        var horiz = b[1] === 9 || b[1] === 32 || b[1] === 16 || b[1] === 26; near('w_creek', b[0], b[1], horiz ? 1 : 0, bi < 3 ? { label: ['🌉 Ponte dei Sospiri', '🌉 Ponte dell’Accademia', '🌉 Ponte degli Scalzi'][bi] } : null, { bridge: true, canal: true }, 2);
+      });
+      // Piazza San Marco on the lagoon front (south-east), the Doge's Palace beside it
+      var sx = 26, sy = 35, LV = {};
+      near('c_church', sx, sy - 1, 0, lab('⛪ Basilica di San Marco', true), LV, 4);
+      near('lm_bigben', sx + 4, sy - 2, 0, lab('🔔 Campanile di San Marco', true), LV, 4);
+      near('k_townhall', sx + 3, sy + 2, 0, lab('🏛 Palazzo Ducale', true), LV, 4);
+      near('c_cafe', sx - 4, sy, 0, lab('☕ Caffè Florian', true), LV, 4);
+      near('fountain', sx, sy + 2.5, 0, { label: '🕊 Piazza San Marco' }, LV, 3);
+      near('lm_duomo', 12, 30, 0, lab('⛪ Santa Maria della Salute', true), LV, 5);
+      near('market', gc(18) + 4, 18, 0, lab('🐟 Mercato di Rialto', true), LV, 4);
+      near('c_hotel', 31, 28, 0, lab('🏨 Hotel Danieli', true), LV, 5);
+      near('c_shops', gc(24) - 4, 24, 0, lab('🎭 Maschere · Carnevale', true), LV, 4);
+      near('c_shops', 22, 12, 0, lab('🪞 Vetri di Murano'), LV, 5);
+      near('c_school', 13, 12, 0, lab('🎨 Gallerie dell’Accademia'), LV, 5);
+      near('c_cafe', 30, 13, 0, lab('🍝 Trattoria al Canal'), LV, 5);
+      near('k_store', 14, 22, 0, lab('🍦 Gelateria'), LV, 5);
+      near('k_post', 28, 22, 0, lab('📮 Poste Italiane'), LV, 5);
+      // palazzi packed along the water: a sweep over the dry land
+      var PAL = ['c_town', 'c_town', 'c_apartment', 'c_town', 'house', 'c_hotel', 'c_town', 'cottage'];
+      for (var py = 2; py < N - 2; py += 3) for (var px3 = 2; px3 < N - 2; px3 += 3) if (r() < .82) put(PAL[(r() * PAL.length) | 0], px3 + (r() - .5), py + (r() - .5), (r() * 4) | 0, null, LV);
+      // boats: gondolas in the canals, vaporetti and sails in the lagoon, landing stages on the shore
+      for (var gi = 0; gi < 10; gi++) { var gy = 3 + gi * 3.6; near('b_row', gc(gy + .5) - .5, gy, 1, gi === 4 ? { label: '🛶 Gondola' } : null, { boat: true, canal: true }, 2); }
+      scatter('b_row', 6, { boat: true, canal: true });
+      near('b_ferry', 28, 40, 0, { label: '🚤 Vaporetto · Linea 1' }, { boat: true, lagoon: true }, 4); near('b_ferry', 3, 22, 1, null, { boat: true, lagoon: true }, 4);
+      scatter('b_sail', 3, { boat: true, lagoon: true }); scatter('b_yacht', 1, { boat: true, lagoon: true });
+      near('y_dock', 22, 38.5, 0, { label: '⚓ San Zaccaria' }, { bridge: true }, 4); near('y_dock', 39, 18, 1, null, { bridge: true }, 4);
+      scatter('lamp', 10, LV); scatter('bench', 4, LV); scatter('tree', 4, LV);
+      scatter('a_gulls', 2, {}); scatter('a_birds', 1, {});
+      refreshLand();
+    }
+    function veniceUrl() { return (/^https?:$/.test(location.protocol) ? '' : 'https://minest-app.vercel.app/') + 'venice.html?embed=1'; }   // the app's own copy (file://) loads it from the site
+    function veniceOpen() {   // the 3D Venezia Voxel world, full screen over everything; ✕ back to the island
+      if (document.querySelector('.wf-venice')) return;
+      var ov = document.createElement('div'); ov.className = 'wf-venice';
+      ov.innerHTML = '<iframe src="' + veniceUrl() + '" title="威尼斯水城 · Venezia" allow="fullscreen; autoplay; gyroscope; accelerometer" allowfullscreen></iframe><button type="button" class="wf-venice-x" aria-label="Back to the island">✕ <span>回到小岛</span></button>';
+      ov.querySelector('.wf-venice-x').addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); ov.remove(); hap(); });
+      ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+      document.body.appendChild(ov); var fr = ov.querySelector('iframe'); setTimeout(function () { try { fr.focus(); } catch (x) {} }, 300);
+    }
+    function megaRow() {   // island level: one 「一键生成 ▾」 button that pops the six one-tap islands (like the five steps); the way into 3D, reroll and clear stay out
+      var has = (V.d.pc || []).some(function (p) { return p.city; }), sc = V.d.terr && V.d.terr.scape, cur = W.mega && W.mega.kind, open = !!W.megaOpen;
+      var KINDS = [['city', 'city', '一键变 City', '2× island · 21 districts · flagship avenue'], ['town', 'town', '一键变 Town', '2× island · market town, green, school'],
+        ['countryside', 'shire', '一键英国乡村', 'rolling hills, a creek, a village & farm'], ['alpine', 'alps', '一键瑞士雪山小镇', 'snowy peaks, a lake, chalets & a railway'],
+        ['santorini', 'oia', '一键圣托里尼', '伊亚 Oia · 原版 3D 体素世界 · 可进建筑'], ['venice', 'venice', '一键变水城', '威尼斯 · Grand Canal, Rialto, gondolas · 3D']];
+      var ck = KINDS.filter(function (k) { return k[0] === (sc || cur); })[0];   // what the island is now
+      var head = '<button type="button" class="wf-mega-pick' + (open ? ' on' : '') + '" data-wfmegapop aria-expanded="' + open + '"><i>' + px(ck && has ? ck[1] : 'wand') + '</i><b>一键生成 ' + (open ? '▴' : '▾') + '</b><small>' + (ck && has ? '现在：' + ck[2].replace('一键', '').replace(/^变 ?/, '') : 'City · Town · 英国乡村 · 瑞士雪山 · 圣托里尼 · 水城') + '</small></button>';
+      var go3d = (sc === 'santorini' && window.MinestOia ? '<button type="button" class="sm" data-wfoia><i>' + px('oia') + '</i><b>进入 3D 圣托里尼</b></button>' : '') +
+        (W.mega && W.mega.kind === 'venice' && has ? '<button type="button" class="sm" data-wfvenice><i>' + px('gondola') + '</i><b>进入 3D 威尼斯</b></button>' : '');
+      var list = open ? KINDS.map(function (k) { return '<button type="button" data-wfmega="' + k[0] + '"><i>' + px(k[1]) + '</i><b>' + k[2] + '</b><small>' + k[3] + '</small></button>'; }).join('') : '';
+      return '<div class="wf-mega' + (open ? ' open' : '') + '">' + head + go3d + list +
         (has ? '<button type="button" class="sm" data-wfmega="again"><i>' + px('dice') + '</i><b>Another layout</b></button><button type="button" class="sm rm" data-wfmega="clear"><i>' + px('clear') + '</i><b>Clear the city</b></button>' : '') + '</div>';
     }
     function emoji(c) {   // the console reads by pictures: a leading emoji in a card or chip becomes its big icon
@@ -1204,16 +1366,21 @@
       if (g.hasAttribute('data-wfx')) { setPref(false); return sync(); }
       if ((v = g.getAttribute('data-wfgo'))) return goTo(+v);
       // the unified tools
-      if ((v = g.getAttribute('data-wfmega'))) {
+      if (g.hasAttribute('data-wfmegapop')) { W.megaOpen = !W.megaOpen; hap(); return draw(); }   // 一键生成 ▾
+      if ((v = g.getAttribute('data-wfmega'))) { W.megaOpen = false;
         if (v === 'clear') change(function () { V.d.pc = V.d.pc.filter(function (p) { return !p.city || (p.it && p.it.length); }); if (V.d.terr && V.d.terr.scape) delete V.d.terr; });
         else {
           var mk = v === 'again' ? (W.mega && W.mega.kind) || 'city' : v, sd = v === 'again' ? ((W.mega && W.mega.seed) || 1) + 1 : 1;
-          var scape = mk === 'countryside' || mk === 'alpine'; if (scape && v !== 'again') sd = (Date.now() % 9973) + 1;
-          W.mega = { kind: mk, seed: sd }; change(function () { if (V.d.terr && V.d.terr.scape) delete V.d.terr; if (scape) scapeBuild(mk, sd); else megaBuild(mk, sd); });
-          toast((mk === 'town' ? '🏘 Town' : mk === 'countryside' ? '🌿 English countryside' : mk === 'alpine' ? '🏔 Swiss alpine town' : '🏙 City') + ' built · ↶ Undo puts the island back'); if (scape && window.MinestSfx) MinestSfx.play('whoosh');
+          var scape = mk === 'countryside' || mk === 'alpine' || mk === 'venice' || mk === 'santorini'; if (scape && v !== 'again') sd = (Date.now() % 9973) + 1;
+          W.mega = { kind: mk, seed: sd }; change(function () { if (V.d.terr && V.d.terr.scape) delete V.d.terr; if (mk === 'venice') veniceBuild(sd); else if (mk === 'santorini') santoriniBuild(sd); else if (scape) scapeBuild(mk, sd); else megaBuild(mk, sd); });
+          toast((mk === 'town' ? '🏘 Town' : mk === 'countryside' ? '🌿 English countryside' : mk === 'alpine' ? '🏔 Swiss alpine town' : mk === 'venice' ? '🛶 威尼斯水城 Venice' : mk === 'santorini' ? '🇬🇷 圣托里尼 · Oia' : '🏙 City') + ' built · ↶ Undo puts the island back'); if (scape && window.MinestSfx) MinestSfx.play('whoosh');
+          if (mk === 'venice' && v !== 'again') setTimeout(veniceOpen, 700);
+          if (mk === 'santorini' && window.MinestOia) setTimeout(MinestOia.open, 700);   // then straight into the original voxel Oia   // then straight into the 3D water city
         }
         hap(); try { fit(); } catch (x) {} return setTimeout(draw, 60);
       }
+      if (g.hasAttribute('data-wfvenice')) { hap(); return veniceOpen(); }
+      if (g.hasAttribute('data-wfoia') && window.MinestOia) { hap(); return MinestOia.open(); }   // 🇬🇷 the voxel Oia, in My World   // 3D Venezia Voxel, full screen
       if (g.hasAttribute('data-wfview')) { W.pop = null; hap(); return wkView(); }   // 阅览: the whole island in 3D, full screen
       if ((v = g.getAttribute('data-wfter'))) return terrAct(v);
       if ((v = g.getAttribute('data-wfbrush'))) { W.brush = W.brush === v ? null : v; hap(); return draw(); }

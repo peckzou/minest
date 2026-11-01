@@ -77,7 +77,8 @@
         if (at) { me.x = at.x + Math.sin(at.yaw + Math.PI) * .5; me.z = at.z + Math.cos(at.yaw + Math.PI) * .5; me.yaw = at.yaw; me.y = Math.max(0, floorAt(me.x, me.z, .3)); }
         if (WKIN) WKIN.from = null;
       }
-      function goOut() { if (!WKIN) WKIN = { pc: bpc(), back: null }; var back = WKIN.back; SFX('door'); fadeDo('🌳 Outside', function () { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; restart(back); }); }
+      function goOut() { if (WKIN && WKIN.vox && window.MinestOia) { var vx = WKIN.vox; SFX('door'); fadeDo('🇬🇷 Oia', function () { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; var w2 = WK; WK = null; if (steps) steps.stop(); w2.stop(); if (el && V) render(); MinestOia.open({ at: vx }); }); return; }   /* a voxel Oia building: back out onto its doorstep */
+        if (!WKIN) WKIN = { pc: bpc(), back: null }; var back = WKIN.back; SFX('door'); fadeDo('🌳 Outside', function () { V.d = V.root || V.d; V.root = null; V.at = null; refreshLand(); WKIN = null; restart(back); }); }
       // ---- the sky follows the real weather (world_wx.js): day, dawn, dusk, night; clouds, rain, snow, fog, wind, lightning
       var SKY = { day: [0x8ecbff, 0xa9b4c0, 0x7d8792], dawn: [0xf6b48f, 0xc9a99a, 0x8a8790], dusk: [0xf08a5a, 0xb0807a, 0x7a6a72], night: [0x0d1430, 0x161c2c, 0x111520] };
       function wxApply(st) {
