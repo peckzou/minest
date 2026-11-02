@@ -1,0 +1,50 @@
+/* Trinity College, Cambridge - data model (phase 1: Great Court block-out). No DOM, no THREE.
+ * Exposes TrinityWorld = { create() }.
+ *
+ * Coordinates are METRES. x runs west -> east (east = Trinity Street), z runs north -> south, y is up.
+ * The court's centre is the origin.
+ *
+ * SOURCES (what is known and what is estimated):
+ *  - Known: Great Gate in the east range; Queen's Gate is the centrepiece of the south range; the Great Hall and
+ *    the Master's Lodge are in the west range; the Chapel is on the north side and is 62.5 m long; the court has an
+ *    octagonal fountain in the centre; a passage beside the Hall leads west to Nevile's Court; Wren Library closes
+ *    Nevile's Court at its west end.
+ *  - 19th-century survey: the court measures 1,202 feet (366 m) round. A 98 x 85 m rectangle gives that circuit, so
+ *    COURT_X x COURT_Z below are an ESTIMATE that matches it. Replace them (and every ESTIMATE) with the RCHME 1959
+ *    survey plan or OS / LiDAR data before the next stage.
+ *  - Estimates: range depth, storey heights, Hall length, Lodge extent, tower heights, window spacing.
+ */
+(function (root) {
+  'use strict';
+
+  const COURT_X = 98;        // ESTIMATE east-west (inner faces)   circuit 2*(98+85)=366 m = 1,202 ft
+  const COURT_Z = 85;        // ESTIMATE north-south (inner faces)
+  const DEPTH = 9;           // ESTIMATE depth of each range
+  const IX = COURT_X / 2, IZ = COURT_Z / 2;           // inner face: x = +-49, z = +-42.5
+
+  function create() {
+    const places = [
+      { id: 'great_court', kind: 'tc_court', name: '大庭院 Great Court', x0: -IX, z0: -IZ, x1: IX, z1: IZ, door: [IX + 4, 0, 0] },
+      { id: 'great_hall', kind: 'tc_hall', name: '大礼堂 Great Hall', x0: -IX - 12, z0: -26, x1: -IX, z1: 8, door: [-IX - 5, 0, 11] },
+      { id: 'chapel', kind: 'tc_chapel', name: '礼拜堂 Chapel', x0: -31.25, z0: -IZ - DEPTH, x1: 31.25, z1: -IZ, door: [0, 0, -IZ] },
+      { id: 'wren', kind: 'tc_wren', name: '雷恩图书馆 Wren Library', x0: -999, z0: -999, x1: -999, z1: -999, door: [-999, 0, -999], later: true }   // phase 1, next stage
+    ];
+    return {
+      COURT_X, COURT_Z, DEPTH, IX, IZ,
+      places, buildings: places,
+      doors: [], seats: [],
+      bounds: { x0: -IX - DEPTH - 10, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // the street is walled off at both ends
+      // outside on Trinity Street, looking west through the Great Gate
+      spawn: { x: IX + DEPTH + 16, y: 0, z: 0, yaw: Math.PI / 2 },
+      tour: {
+        cam: [[IX + DEPTH + 18, 3.0, 4], [IX + 2, 2.2, 0], [20, 2.4, 6], [-8, 2.4, 12], [-26, 3.0, 4], [-8, 14, -6], [18, 16, 10], [IX + DEPTH + 18, 3.0, 4]],
+        tgt: [[0, 3.5, 0], [-20, 4, 0], [-30, 5, -6], [-20, 5, -30], [0, 4, -30], [10, 3, 20], [-20, 6, 0], [0, 3.5, 0]],
+        dur: 110
+      },
+      lamps: [], chimneys: [], flags: []
+    };
+  }
+
+  root.TrinityWorld = { create, COURT_X, COURT_Z, DEPTH };
+  if (typeof module !== 'undefined') module.exports = root.TrinityWorld;
+})(typeof window !== 'undefined' ? window : globalThis);
