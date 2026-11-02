@@ -1,59 +1,61 @@
 # Admont Abbey Library · tools
 
-A high-quality procedural 3D interior reconstruction of the Admont Abbey Library
-(Stift Admont), built with Option D: three.js code-modelled MESH (not voxel),
-with CC0-equivalent procedural placeholder textures and public-domain fresco stubs.
+A procedural 3D interior of the Admont Abbey Library (Stift Admont, Josef Hueber, 1776), built with
+three.js r128 meshes (not voxels). Every texture, fresco and sculpture is generated in code, so the page
+works offline and needs no third-party or paid API. Mirrors the Alpine Chalet layout (`alps/`): a
+standalone page plus a My World page produced by a patch script.
 
-Mirrors the Alpine Chalet precedent (`alps/`): a standalone page plus a My World
-integration produced by a Python patch tool.
+## Files
 
-## Layout
+- `admont.html`: the standalone page.
+- `admont-world/world.js`: data model (70 x 14 x 11 m hall, dome apex 12.7 m, three wings, doors, seats, tour, spawn).
+- `admont-world/textures.js`: canvas textures (rhomb marble floor, stucco, gold, painted wood, book spine, window glass, relief).
+- `admont-world/frescoes.js`: the seven ceiling frescoes (procedural stand-ins, real photo drop-in).
+- `admont-world/scene.js`: the meshes. Static architecture is merged per material; ~17 700 books in one InstancedMesh.
+  Includes the gallery and balustrade, upper and lower bookcases, 6 vaults + dome, 16 sculpture proxies + 2 reliefs, windows, light shafts, doors.
+- `admont-world/app.js`: renderer, light rig + PMREM reflections, first-person walk / fly, tour, book collecting, `window.__admont`.
+- `tools/patch_admont.py`: builds `iPhoneDuo65.html` from the unmodified `iPhoneDuo.html`.
+- `assets/`: drop-in folders for real public-domain / CC0 files (see `assets/README.md`).
 
-- `admont.html` - the standalone page (open directly in a browser).
-- `admont-world/world.js` - the non-voxel data model (hall at published proportions,
-  the three wings, doors, seats, landmarks, tour path, spawn). THREE-independent.
-- `admont-world/textures.js` - procedural canvas placeholder textures (marble floor,
-  white stucco, gold trim, carved bookcase, leather book spines). Each is marked in a
-  top comment with the exact `assets/textures/<file>` path for a real CC0 drop-in.
-- `admont-world/scene.js` - three.js mesh builders: the architecture shell (marble
-  floor, long side walls with window openings, flat side ceilings, central dome drum)
-  and ONE finished two-storey white+gold bookcase with INSTANCED book spines.
-- `admont-world/app.js` - the runtime: renderer, natural-light rig, first-person
-  free-walk controller (WASD + mouse / joystick + drag, pointer-lock, shell collision),
-  idle tour mode, loading sequence. Exposes `window.__admont`.
-- `vendor/three.min.js` - three.js r128 (copied from `work/`). A same-dir copy sits at
-  `admont/three.min.js` as a fallback (as `alpine.html` does).
-- `assets/textures/` and `assets/frescoes/` - drop-in dirs for real PD/CC0 assets.
-
-## Published proportions
-
-About 70 m long x 14 m wide x 11 m high, three sections, central dome apex ~12.7 m.
-Coordinates are in metres; x runs along the 70 m length; the hall is centred on the origin.
-
-## Rebuild / verify
+## Rebuild
 
 ```sh
-# syntax check every world script
-node --check admont/admont-world/world.js
-node --check admont/admont-world/textures.js
-node --check admont/admont-world/scene.js
-node --check admont/admont-world/app.js
-
-# render check: open admont/admont.html in a browser (or the playwright power)
-#   file:///projects/sandbox/admont/admont.html
-# window.__admont is defined after load; world.buildings has three wings.
+cd admont
+for f in admont-world/*.js; do node --check "$f"; done
+python3 tools/patch_admont.py ../iPhoneDuo.html ../iPhoneDuo65.html
 ```
 
-## Assets drop-in (CC0 / public domain only)
+The patch asserts that it only inserts: Santorini (`mn-oia-run`, `santoriniBuild`) is unchanged and no Alpine
+layer is present. The source page is only read.
 
-Textures: save real CC0 textures under `assets/textures/` at the paths named in the
-top comment of `admont-world/textures.js`, then have `scene.js` load them to override
-the procedural placeholders. Frescoes (FEAT-002): public-domain Altomonte ceiling
-images under `assets/frescoes/`. No CC BY-SA, no paid API, no attribution page required.
+## Controls (standalone)
 
-## Scope notes
+WASD / arrows move, mouse looks, Space jumps, Shift sprints, F toggles fly (the only way onto the gallery for
+now), E or click on a spine collects / un-collects a book. Touch: left joystick, drag to look, 🚪 button = E.
+`?mode=walk` starts walking, `?q=low` turns off shadows and halves fresco resolution.
 
-FEAT-001 (this slice): the hall shell at published proportions, ONE finished bookcase
-section, free-walk first-person camera with shell collision, tour mode, loading overlay,
-white+gold theme. The richer content (7 frescoes, 16 sculptures, marble shader, windows,
-collect-books hook) is FEAT-002. The My World integration (`patch_admont.py`) is FEAT-003.
+## In My World (iPhoneDuo65.html)
+
+Console → 一键生成 → 一键阿德蒙特图书馆. The island gets one landmark piece (`p.adm = 'library'`) and opens the
+3D hall. The 🏠 button at the top names the wing you stand in:
+
+- 🏠 剖面 Dollhouse: My World's building view; its 3 rooms are 北厅 / 中央穹顶厅 / 南厅 (`r.adm = wing id`).
+  Smart Room, double-tap a room → Room → Display → Item. The pill 📚 回到大厅 (or leaving the building) returns
+  to the same spot in the hall.
+- 🚶 走进「…」房间: straight into that wing's My World room; 🌳 Outside returns to the hall.
+
+Collected book ids are stored on the island (`d.adm.books`); the standalone page uses localStorage
+`admont.books.v1`. Hooks: `window.__admBooks = { load(), save(ids) }`, `window.__admBook(evt)`.
+
+## API
+
+`window.__admont`: `world, player, scene, camera, S, setMode, teleport, interact, toggleDoor, sitOn, markDirty`,
+`books.{count, ids(), collected(), aim(), collect(id, on), cases}`, `stats()`.
+
+Measured in headless Chromium (desktop settings): 19–28 draw calls, ~272k scene triangles, 17 745 books.
+Code ~95 KB + three.js 0.6 MB.
+
+## Not verified against the real building
+
+Window count, the gallery form and stair access, bookcase module size, sculpture positions, and the subject and
+exact placement of each fresco. All are modelled from published overall dimensions.
