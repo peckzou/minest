@@ -1081,6 +1081,48 @@
         WKIN = { pc: p.id, back: null, vox: at }; V.root = R; V.at = { pc: p.id, room: r.id }; V.d = r.d; refreshLand(); render(); wkOpen();
       }
     }); };
+    // 🇦🇹 一键哈尔施塔特 · Hallstatt: the island IS the Hallstatt voxel world — its real alpine lake, village shelf and
+    // limestone peaks as the terrain, each of its colourful houses and the lakeside church a piece linked to it (p.vox).
+    // Pitched-roof timber houses, a spired church on the water, a market square, a wooden dock with boats and swans on
+    // the lake, pines up the slopes, snow on the summits. All native — walk in, 阅览, weather and sound work as everywhere.
+    // ↶ Undo puts it back. Reuses the exact Santorini mapping shape so nothing else changes.
+    function hallstattBuild(seed) {
+      if (!window.MinestHallstatt) return;
+      var wv = MinestHallstatt.world(), d = V.d, Wv = wv.W, Dv = wv.D, PL = 16, N = PL * 3, s = N / Math.max(Wv, Dv), NY = Math.ceil(Dv * s);
+      var land = []; for (var i = 0; i < PL; i++) for (var j = 0; j < PL; j++) land.push(i + ',' + j);
+      var keep = {}; (d.pc || []).forEach(function (p) { if (p.vox) keep[p.vox] = p; });   // rooms, displays and things you gave its buildings stay with them
+      d.land = land; d.v = 1; d.ground = 'grass'; d.pc = (d.pc || []).filter(function (p) { return !p.vox && (!p.city || (p.it && p.it.length)); }); refreshLand();
+      // keep the lake on the left of the flat island, the village + mountains climbing to the right (matches the 3D view)
+      function ix(vx) { return vx * s; } function iy(vz) { return vz * s; }
+      var h = {}, wt = {};
+      for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) { var k = x + ',' + y; if (y >= NY) { wt[k] = 2; continue; }
+        var vx = Math.min(Wv - 1, Math.max(0, Math.floor((x + .5) / s))), vz = Math.min(Dv - 1, Math.max(0, Math.floor((y + .5) / s))), hv = wv.hm[vx + Wv * vz];
+        if (hv <= wv.WATER_Y) wt[k] = 2; else { var L = Math.round((hv - wv.WATER_Y) / 3); if (L > 0) h[k] = Math.min(24, L); } }
+      d.terr = { h: h, w: wt, scape: 'hallstatt', lv: { stone: 14, snow: 20 }, top: 'grass', side: 'dirt' };   // green shelf, grey rock higher, snow on top
+      d.hsvox = d.hsvox || { edits: [] };   // the island's own changes to the voxel world (break / place), synced like everything else
+      var KM = { house: ['gr_house', 2], church: ['gr_church', 2.2], chapel: ['gr_church', 2.2], boathouse: ['gr_house', 2], mill: ['gr_mill', 1.8] }, n = 0;
+      (wv.buildings || []).forEach(function (b) {
+        var m = KM[b.kind] || KM.house, cx = (b.x0 + b.x1 + 1) / 2, cz = (b.z0 + b.z1 + 1) / 2, sz = Math.max(b.x1 - b.x0 + 1, b.z1 - b.z0 + 1) * s, kk = m[0], old = keep[b.id];
+        if (kk === 'gr_house' && (n++ % 3) === 2) kk = 'gr_ochre';
+        var p = { id: old ? old.id : uid(), k: kk, x: Math.round(ix(cx) * 2) / 2, y: Math.round(iy(cz) * 2) / 2, f: 3, s: Math.max(.45, Math.min(1.3, sz / m[1])), it: old ? old.it || [] : [], city: 1, vox: b.id };
+        p.label = old && old.label || b.name || undefined; if (old && old.rooms) { p.rooms = old.rooms; p.roomsInit = 1; }
+        d.pc.push(p); if (!fits(p)) { p.k = 'vox_door'; p.s = 1; }   // no room for it on the map: an invisible marker still holds its rooms
+      });
+      refreshLand();
+    }
+    window.__hsBind = function () { MinestHallstatt.bind({   // the voxel Hallstatt and this island (its edits, its buildings' names, going into one)
+      key: function () { return V && V.bid; },
+      edits: function () { var R = V && (V.root || V.d); return (R && R.hsvox && R.hsvox.edits) || []; },
+      edit: function (x, y, z, id, c) { if (!V) return; var R = islandD(); R.hsvox = R.hsvox || { edits: [] }; var E = R.hsvox.edits; for (var i = E.length - 1; i >= 0; i--) if (E[i][0] === x && E[i][1] === y && E[i][2] === z) { E.splice(i, 1); break; } E.push([x, y, z, id, c]); clearTimeout(W.hsvoxT); W.hsvoxT = setTimeout(function () { save(); }, 800); },
+      label: function (bid) { if (!V) return null; var p = (islandD().pc || []).filter(function (q) { return q.vox === bid; })[0]; return p && p.label; },
+      enter: function (bid, at) {   // through its door into its rooms: My World's rooms, displays and cards; 🌳 Outside brings you back to this doorstep
+        if (!V) return; var R = islandD(), p = (R.pc || []).filter(function (q) { return q.vox === bid; })[0];
+        if (!p) { var bb = MinestHallstatt.world().buildings.filter(function (x) { return x.id === bid; })[0]; p = { id: uid(), k: 'vox_door', x: 1, y: 1, f: 0, s: 1, it: [], city: 1, vox: bid, label: bb && bb.name }; R.pc.push(p); }
+        if (!(p.rooms || []).length) { p.roomsInit = 1; p.rooms = suggestRooms(p).map(function (k) { return { id: 'r' + uid().slice(1), k: k, n: ROOMS[k][0] }; }); p.rooms.forEach(function (r) { roomD(r); }); }
+        var r = p.rooms[0]; roomD(r); save(); MinestHallstatt.close(); if (window.MinestSfx) MinestSfx.play('door');
+        WKIN = { pc: p.id, back: null, vox: at }; V.root = R; V.at = { pc: p.id, room: r.id }; V.d = r.d; refreshLand(); render(); wkOpen();
+      }
+    }); };
     // ---------------------------------------------------------------- one-tap landscapes: terrain (world_terrain.js) + pieces
     // 🇬🇧 English countryside: rolling hills, a creek winding past a village (church, pub, shop, cottages), a farm with
     // fields and hedges, sheep on the hills, a pond with ducks, Stonehenge on a far hill.
@@ -1246,10 +1288,12 @@
       var has = (V.d.pc || []).some(function (p) { return p.city; }), sc = V.d.terr && V.d.terr.scape, cur = W.mega && W.mega.kind, open = !!W.megaOpen;
       var KINDS = [['city', 'city', '一键变 City', '2× island · 21 districts · flagship avenue'], ['town', 'town', '一键变 Town', '2× island · market town, green, school'],
         ['countryside', 'shire', '一键英国乡村', 'rolling hills, a creek, a village & farm'], ['alpine', 'alps', '一键瑞士雪山小镇', 'snowy peaks, a lake, chalets & a railway'],
-        ['santorini', 'oia', '一键圣托里尼', '伊亚 Oia · 原版 3D 体素世界 · 可进建筑'], ['venice', 'venice', '一键变水城', '威尼斯 · Grand Canal, Rialto, gondolas · 3D']];
+        ['santorini', 'oia', '一键圣托里尼', '伊亚 Oia · 原版 3D 体素世界 · 可进建筑'], ['venice', 'venice', '一键变水城', '威尼斯 · Grand Canal, Rialto, gondolas · 3D'],
+        ['hallstatt', 'alps', '一键哈尔施塔特', '🇦🇹 阿尔卑斯湖畔 · 彩色木屋 · 3D 体素世界 · 可进建筑']];
       var ck = KINDS.filter(function (k) { return k[0] === (sc || cur); })[0];   // what the island is now
       var head = '<button type="button" class="wf-mega-pick' + (open ? ' on' : '') + '" data-wfmegapop aria-expanded="' + open + '"><i>' + px(ck && has ? ck[1] : 'wand') + '</i><b>一键生成 ' + (open ? '▴' : '▾') + '</b><small>' + (ck && has ? '现在：' + ck[2].replace('一键', '').replace(/^变 ?/, '') : 'City · Town · 英国乡村 · 瑞士雪山 · 圣托里尼 · 水城') + '</small></button>';
       var go3d = (sc === 'santorini' && window.MinestOia ? '<button type="button" class="sm" data-wfoia><i>' + px('oia') + '</i><b>进入 3D 圣托里尼</b></button>' : '') +
+        (sc === 'hallstatt' && window.MinestHallstatt ? '<button type="button" class="sm" data-wfhallstatt><i>' + px('alps') + '</i><b>进入 3D 哈尔施塔特</b></button>' : '') +
         (W.mega && W.mega.kind === 'venice' && has ? '<button type="button" class="sm" data-wfvenice><i>' + px('gondola') + '</i><b>进入 3D 威尼斯</b></button>' : '');
       var list = open ? KINDS.map(function (k) { return '<button type="button" data-wfmega="' + k[0] + '"><i>' + px(k[1]) + '</i><b>' + k[2] + '</b><small>' + k[3] + '</small></button>'; }).join('') : '';
       return '<div class="wf-mega' + (open ? ' open' : '') + '">' + head + go3d + list +
@@ -1371,16 +1415,18 @@
         if (v === 'clear') change(function () { V.d.pc = V.d.pc.filter(function (p) { return !p.city || (p.it && p.it.length); }); if (V.d.terr && V.d.terr.scape) delete V.d.terr; });
         else {
           var mk = v === 'again' ? (W.mega && W.mega.kind) || 'city' : v, sd = v === 'again' ? ((W.mega && W.mega.seed) || 1) + 1 : 1;
-          var scape = mk === 'countryside' || mk === 'alpine' || mk === 'venice' || mk === 'santorini'; if (scape && v !== 'again') sd = (Date.now() % 9973) + 1;
-          W.mega = { kind: mk, seed: sd }; change(function () { if (V.d.terr && V.d.terr.scape) delete V.d.terr; if (mk === 'venice') veniceBuild(sd); else if (mk === 'santorini') santoriniBuild(sd); else if (scape) scapeBuild(mk, sd); else megaBuild(mk, sd); });
-          toast((mk === 'town' ? '🏘 Town' : mk === 'countryside' ? '🌿 English countryside' : mk === 'alpine' ? '🏔 Swiss alpine town' : mk === 'venice' ? '🛶 威尼斯水城 Venice' : mk === 'santorini' ? '🇬🇷 圣托里尼 · Oia' : '🏙 City') + ' built · ↶ Undo puts the island back'); if (scape && window.MinestSfx) MinestSfx.play('whoosh');
+          var scape = mk === 'countryside' || mk === 'alpine' || mk === 'venice' || mk === 'santorini' || mk === 'hallstatt'; if (scape && v !== 'again') sd = (Date.now() % 9973) + 1;
+          W.mega = { kind: mk, seed: sd }; change(function () { if (V.d.terr && V.d.terr.scape) delete V.d.terr; if (mk === 'venice') veniceBuild(sd); else if (mk === 'santorini') santoriniBuild(sd); else if (mk === 'hallstatt') hallstattBuild(sd); else if (scape) scapeBuild(mk, sd); else megaBuild(mk, sd); });
+          toast((mk === 'town' ? '🏘 Town' : mk === 'countryside' ? '🌿 English countryside' : mk === 'alpine' ? '🏔 Swiss alpine town' : mk === 'venice' ? '🛶 威尼斯水城 Venice' : mk === 'santorini' ? '🇬🇷 圣托里尼 · Oia' : mk === 'hallstatt' ? '🇦🇹 哈尔施塔特 · Hallstatt' : '🏙 City') + ' built · ↶ Undo puts the island back'); if (scape && window.MinestSfx) MinestSfx.play('whoosh');
           if (mk === 'venice' && v !== 'again') setTimeout(veniceOpen, 700);
-          if (mk === 'santorini' && window.MinestOia) setTimeout(MinestOia.open, 700);   // then straight into the original voxel Oia   // then straight into the 3D water city
+          if (mk === 'santorini' && window.MinestOia) setTimeout(MinestOia.open, 700);   // then straight into the original voxel Oia
+          if (mk === 'hallstatt' && window.MinestHallstatt) setTimeout(MinestHallstatt.open, 700);   // then straight into the voxel Hallstatt
         }
         hap(); try { fit(); } catch (x) {} return setTimeout(draw, 60);
       }
       if (g.hasAttribute('data-wfvenice')) { hap(); return veniceOpen(); }
-      if (g.hasAttribute('data-wfoia') && window.MinestOia) { hap(); return MinestOia.open(); }   // 🇬🇷 the voxel Oia, in My World   // 3D Venezia Voxel, full screen
+      if (g.hasAttribute('data-wfoia') && window.MinestOia) { hap(); return MinestOia.open(); }   // 🇬🇷 the voxel Oia, in My World
+      if (g.hasAttribute('data-wfhallstatt') && window.MinestHallstatt) { hap(); return MinestHallstatt.open(); }   // 🇦🇹 the voxel Hallstatt, in My World
       if (g.hasAttribute('data-wfview')) { W.pop = null; hap(); return wkView(); }   // 阅览: the whole island in 3D, full screen
       if ((v = g.getAttribute('data-wfter'))) return terrAct(v);
       if ((v = g.getAttribute('data-wfbrush'))) { W.brush = W.brush === v ? null : v; hap(); return draw(); }
