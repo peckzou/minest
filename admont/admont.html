@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Admont Abbey Library · 阿德蒙特修道院图书馆</title>
+<style>
+  :root { --ink:#3a2f12; --gold:#c9a227; --goldLt:#f0d27a; --cream:#f6f2e9; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; background:var(--cream); touch-action:none; overscroll-behavior:none;
+    font-family:ui-serif,Georgia,"Times New Roman","Songti SC","PingFang SC",serif; color:var(--ink); -webkit-user-select:none; user-select:none; }
+  #gl { position:fixed; inset:0; width:100%; height:100%; display:block; outline:none; }
+  .mc { color:var(--ink); font-weight:700; letter-spacing:.3px; text-shadow:0 1px 0 rgba(255,255,255,.6); }
+  .panel { background:rgba(255,252,244,.82); border:2px solid var(--gold); box-shadow:0 2px 10px rgba(120,90,20,.18), inset 0 0 0 1px rgba(255,255,255,.5); border-radius:6px; }
+
+  /* ---------- loading ---------- */
+  #loading { position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    background:linear-gradient(#fbf7ee,#efe7d4 60%,#e3d6b4); transition:opacity .8s; }
+  #loading.done { opacity:0; pointer-events:none; }
+  #loading h1 { margin:0; font-size:clamp(30px,7vw,64px); color:#8a6418; text-shadow:0 2px 0 rgba(255,255,255,.7); }
+  #loading .sub { font-size:clamp(12px,2.2vw,17px); opacity:.9; max-width:80vw; text-align:center; }
+  #bar { width:min(380px,70vw); height:16px; border:2px solid var(--gold); background:#fffaf0; border-radius:8px; overflow:hidden; }
+  #bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--goldLt),var(--gold)); transition:width .15s; }
+  #loadMsg { font-size:14px; }
+
+  /* ---------- HUD ---------- */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  #title { position:absolute; left:14px; top:calc(12px + env(safe-area-inset-top)); }
+  #title b { font-size:clamp(17px,3vw,24px); display:block; color:#8a6418; }
+  #title span { font-size:12px; opacity:.85; }
+  #coords { margin-top:6px; font-size:12px; }
+  #crosshair { position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px; display:none; }
+  #crosshair:before,#crosshair:after { content:""; position:absolute; background:var(--gold); }
+  #crosshair:before { left:9px; top:0; width:2px; height:20px; } #crosshair:after { top:9px; left:0; height:2px; width:20px; }
+  #lockHint { position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); padding:10px 18px; font-size:15px; display:none; text-align:center; }
+  #toast { position:absolute; left:50%; top:calc(14px + env(safe-area-inset-top)); transform:translateX(-50%); padding:6px 12px; font-size:13px; opacity:0; transition:opacity .3s; }
+  #toast.show { opacity:1; }
+  #hint { position:absolute; left:14px; bottom:calc(20px + env(safe-area-inset-bottom)); padding:8px 10px; font-size:12px; line-height:1.55; max-width:min(340px,60vw); }
+  body.touch #hint { display:none; }
+
+  /* ---------- touch controls ---------- */
+  #touch { display:none; }
+  body.touch #touch { display:block; }
+  #joy { position:fixed; left:calc(22px + env(safe-area-inset-left)); bottom:calc(96px + env(safe-area-inset-bottom)); width:120px; height:120px; border-radius:50%; background:rgba(201,162,39,.14); border:3px solid rgba(201,162,39,.5); pointer-events:auto; touch-action:none; z-index:12; }
+  #joy i { position:absolute; left:40px; top:40px; width:40px; height:40px; border-radius:50%; background:rgba(201,162,39,.5); }
+  .tbtn { position:fixed; width:54px; height:54px; border-radius:12px; background:rgba(255,252,244,.75); border:2px solid var(--gold); color:#8a6418; font-size:22px; display:flex; align-items:center; justify-content:center; pointer-events:auto; z-index:12; touch-action:none; }
+  #tJump { right:calc(24px + env(safe-area-inset-right)); bottom:calc(150px + env(safe-area-inset-bottom)); }
+  #tDown { right:calc(24px + env(safe-area-inset-right)); bottom:calc(90px + env(safe-area-inset-bottom)); }
+  #tUse { right:calc(92px + env(safe-area-inset-right)); bottom:calc(120px + env(safe-area-inset-bottom)); font-size:20px; }
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0"></canvas>
+
+<div id="loading">
+  <h1 class="mc">ADMONT</h1>
+  <div class="mc sub">阿德蒙特修道院图书馆 · 70 米大厅 · 白金装饰 · 穹顶壁画 · 书墙 · 大理石地板</div>
+  <div id="bar"><i></i></div>
+  <div id="loadMsg" class="mc">准备中…</div>
+</div>
+
+<div id="hud">
+  <div id="title" class="mc"><b>Admont Abbey Library</b><span id="modeLabel">导览模式</span><div id="coords"></div></div>
+  <div id="crosshair"></div>
+  <div id="lockHint" class="panel mc">点击画面开始 · Esc 退出鼠标控制</div>
+  <div id="toast" class="panel mc"></div>
+  <div id="hint" class="panel mc">WASD 移动 · 鼠标 转视角 · 空格 跳 · Shift 冲刺<br>E 开门 / 坐下 / 收藏书 · F 飞行（可上楼座）<br>点击画面进入步行 · 对准书脊点击收藏</div>
+</div>
+
+<div id="touch">
+  <div id="joy"><i></i></div>
+  <div id="tJump" class="tbtn">⤒</div>
+  <div id="tDown" class="tbtn">⤓</div>
+  <div id="tUse" class="tbtn">🚪</div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script>if (!window.THREE) document.write('<script src="three.min.js"><\/script>');</script>
+<script>if (!window.THREE) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
+<script src="admont-world/world.js"></script>
+<script src="admont-world/textures.js"></script>
+<script src="admont-world/frescoes.js"></script>
+<script src="admont-world/scene.js"></script>
+<script src="admont-world/app.js"></script>
+</body>
+</html>
