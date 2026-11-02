@@ -29,7 +29,7 @@
       { id: 'great_hall', kind: 'tc_hall', name: '大礼堂 Great Hall', x0: -IX - 12.2, z0: -22.5, x1: -IX, z1: 8, door: [-IX - 0.3, 0, 5.5], interior: 'hall' },
       { id: 'chapel', kind: 'tc_chapel', name: '礼拜堂 Chapel', x0: -31.25, z0: -IZ - DEPTH, x1: 31.25, z1: -IZ, door: [0, 0, -IZ] },
       { id: 'nevile', kind: 'tc_nevile', name: '尼维尔庭院 Nevile\'s Court', x0: -IX - 12.2 - NEV_L, z0: -NEV_W / 2, x1: -IX - 12.2, z1: NEV_W / 2, door: [-IX - 12.6, 0, 0] },
-      { id: 'wren', kind: 'tc_wren', name: '雷恩图书馆 Wren Library', interior: 'wren', door: [-IX - 12.2 - NEV_L, 0, 0] }
+      { id: 'wren', kind: 'tc_wren', name: '雷恩图书馆 Wren Library', interior: 'wren', x0: -IX - 12.2 - NEV_L - 12, x1: -IX - 12.2 - NEV_L, z0: -22.5, z1: 22.5, door: [-IX - 12.2 - NEV_L, 0, 0] }
     ];
     return {
       COURT_X, COURT_Z, DEPTH, IX, IZ,

@@ -255,7 +255,12 @@
       // Great Hall outer shell (30.5 x 12.2 m); the court (east) wall has a doorway at dz
       box(mStone, hx0, wx1 + 0.3, 0, hH, hz0 - 0.3, hz0, true);       // north gable base
       box(mStone, hx0, wx1 + 0.3, 0, hH, hz1, hz1 + 0.3, true);       // south end
-      box(mStone, hx0 - 0.3, hx0, 0, hH, hz0, hz1, true);            // west (back) wall
+      // west (back) wall, with a doorway at linkZ into Nevile's Court
+      const linkZ = hz1 - 3.2, LGW = 2.4;
+      box(mStone, hx0 - 0.3, hx0, 0, hH, hz0, linkZ - LGW / 2, true);
+      box(mStone, hx0 - 0.3, hx0, 0, hH, linkZ + LGW / 2, hz1, true);
+      box(mStone, hx0 - 0.3, hx0, GATE_H, hH, linkZ - LGW / 2, linkZ + LGW / 2, true);
+      world._hallLinkZ = linkZ;
       box(mStone, wx1, wx1 + 0.3, 0, hH, hz0, dz - GW / 2, true);
       box(mStone, wx1, wx1 + 0.3, 0, hH, dz + GW / 2, hz1, true);
       box(mStone, wx1, wx1 + 0.3, GATE_H, hH, dz - GW / 2, dz + GW / 2, true);   // lintel over the court door
@@ -284,13 +289,9 @@
       x.strokeStyle = '#d9d2bf'; x.lineWidth = 2; x.beginPath(); x.moveTo(32, 0); x.lineTo(32, 96); x.stroke(); for (const y of [32, 64]) { x.beginPath(); x.moveTo(0, y); x.lineTo(64, y); x.stroke(); }
       const t = new THREE.CanvasTexture(c); if (THREE.sRGBEncoding !== undefined) t.encoding = THREE.sRGBEncoding; return t;
     })();
+    opts.hallLinkZ = world.hall.z1 - 3.2;   // the Hall<->Nevile doorway z (matches the hall back-wall gap)
     if (root.TrinityNevile) { const nv = root.TrinityNevile.build(world, THREE, T, opts); group.add(nv.group); for (const c of nv.colliders) colliders.push(c); }
     if (root.TrinityWren) { const wn = root.TrinityWren.build(world, THREE, T, opts); group.add(wn.group); for (const c of wn.colliders) colliders.push(c); }
-    // a short covered link from the Great Hall's screens-passage end into the east cloister of Nevile's Court
-    {
-      const nx1 = world.nevile.x1, hx1 = -IX;
-      box(mStone, hx1 - 0.3, hx1, 0, H, world.hall.z1, world.hall.z1 + 3.4, false);   // (north jamb only; gateway open at z-centre)
-    }
     // the Great Hall interior
     const hallBuilt = root.TrinityHall ? root.TrinityHall.build(hall, THREE, T, opts) : null;
     if (hallBuilt) {

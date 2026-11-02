@@ -109,7 +109,7 @@
       box(mGold, xface + nx * 0.11, 4.0, (z0 + z1) / 2, 0.06, 0.14, z1 - z0, false);                                     // gilt frieze rail
       box(mOak, xface + nx * 0.09, 4.2, (z0 + z1) / 2, 0.12, 0.3, z1 - z0, false);                                       // cornice
     }
-    wall(xw, 1); wall(xe, -1, hall.doorZ);
+    wall(xw, 1, hall.z1 - 3.2); wall(xe, -1, hall.doorZ);   // west wall has the link doorway to Nevile's Court
     // north (High Table) wall and south (screen) wall
     box(mPlaster, cx, EAVE / 2 + 0.3, z0 - 0.15, W, EAVE, 0.3, true);
     box(mPlaster, cx, EAVE / 2 + 0.3, z1 + 0.15, W, EAVE, 0.3, true);

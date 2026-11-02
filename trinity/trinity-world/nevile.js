@@ -53,9 +53,16 @@
         if (side === 'e') return [at + nIn * off, a];
         return [a, at + nIn * off];
       }
-      // back wall
+      // back wall (the east range gets a doorway at gapZ linking to the Great Hall)
       const [bx, bz] = pos((a0 + a1) / 2, 0.3);
-      box(mStone, bx, H2 / 2, bz, along === 'x' ? L : 0.6, H2, along === 'x' ? 0.6 : L, true);
+      if (side === 'e' && opts.hallLinkZ != null) {
+        const g = opts.hallLinkZ, GW = 2.6, [wx] = pos(0, 0.3);
+        box(mStone, wx, H2 / 2, (a0 + g - GW / 2) / 2, 0.6, H2, (g - GW / 2) - a0, true);
+        box(mStone, wx, H2 / 2, (g + GW / 2 + a1) / 2, 0.6, H2, a1 - (g + GW / 2), true);
+        box(mStone, wx, (CH + 1.0 + H2) / 2, g, 0.6, H2 - CH - 1.0, GW, true);
+      } else {
+        box(mStone, bx, H2 / 2, bz, along === 'x' ? L : 0.6, H2, along === 'x' ? 0.6 : L, true);
+      }
       // arcade: piers + round arches along the inner edge
       const nA = Math.round(L / 3.4), step = L / nA;
       for (let i = 0; i <= nA; i++) {

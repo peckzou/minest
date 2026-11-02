@@ -77,3 +77,30 @@ so no attribution page is needed yet.
 
 21 draw calls, 17k triangles, 316 windows. Walk from Trinity Street through the Great Gate passage into the court works.
 Not tested: real phones.
+
+## Step 4: My World integration (iPhoneDuo66.html) + the Hall<->Nevile walking link
+
+`tools/patch_trinity.py` builds `iPhoneDuo66.html` from the UNMODIFIED `iPhoneDuo.html` by appending (never editing):
+the engine sources (trinity-world/*.js) as inert `<script type=text/plain>` run on first open with ids prefixed `tr-`
+and CSS scoped to `#tr-root`; the runtime `MinestTrinity` (open/close/isOpen/world/bind/linked/back); and the one-tap
+`一键三一学院` on the console. Mirrors patch_admont.py / patch_alps.py exactly; asserts prove Santorini (`mn-oia-run`,
+`santoriniBuild`) is untouched and no Alpine/Admont layer is present. base.html stays sha1 ed17ba0f7af2.
+
+In My World: Console → 一键生成 → 一键三一学院. The island becomes Trinity with one campus piece (`p.tr = 'campus'`)
+and opens the 3D campus. The 🏠 button names the space you stand in (Great Court / Great Hall / Wren Library). It asks:
+- 🏠 剖面 Dollhouse: the building's three rooms (大礼堂 / 雷恩图书馆 / 大庭院, keyed `r.tr`), Smart Room, then
+  Room → Display → Item. The pill 🎓 回到校园 (or leaving) returns to the same spot in 3D.
+- 🚶 走进「…」房间: straight into that space's My World room; 🌳 Outside returns.
+
+Also fixed in step 4: a walking doorway now links the Great Hall's west wall to Nevile's Court, so Great Court →
+Great Hall → Nevile's Court is continuous on foot (verified).
+
+Rebuild: `python3 tools/patch_trinity.py ../work/base.html iPhoneDuo66.html` (or `../iPhoneDuo.html` in the repo).
+
+Verified in headless Chromium: one-tap opens the 3D campus (67 draw calls), the chooser names the Great Hall,
+Dollhouse shows 3 rooms at level 3, the return pill comes back to 3D, walk-into-room works, and the one-tap entry
+persists after reload. Not tested: real phones; GitHub Pages online URL.
+
+Phase 1 is complete. Future (phase 2, structure is reserved): the River Cam and the Backs, student rooms and
+staircases, study interactions (reuse the collect-books hook). Each is a new place entry + a build() module; nothing
+already built needs changing.
