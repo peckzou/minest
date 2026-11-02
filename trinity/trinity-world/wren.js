@@ -46,6 +46,7 @@
     const mGold = std({ color: 0xcaa43a, roughness: 0.35, metalness: 0.9 });
     const mMarble = std({ color: 0xffffff, roughness: 0.2, metalness: 0.0, envMapIntensity: 0.6 });
     const mWood = std({ color: 0x7a5a36, roughness: 0.6 });
+    const mTrim = std({ color: 0xf1e9d3, roughness: 0.85 });
     const tMarble = marbleFloorTexture(THREE); if (tMarble) { tMarble.repeat.set((z1 - z0) / 2.2, W / 2.2); mMarble.map = tMarble; }
 
     const batches = new Map();
@@ -55,12 +56,28 @@
     function box(mat, x, y, z, w, h, d, collide) { add(mat, UNIT, M(x, y, z, 0, w, h, d)); if (collide) colliders.push({ min: { x: x - w / 2, y: y - h / 2, z: z - d / 2 }, max: { x: x + w / 2, y: y + h / 2, z: z + d / 2 } }); }
     function flush() { for (const [mat, list] of batches) { const mesh = new THREE.Mesh(mergeGeoms(list), mat); mesh.castShadow = true; mesh.receiveShadow = true; group.add(mesh); } batches.clear(); }
 
+    /* ---- the open colonnade under the library (Doric columns along both long faces; walk through) ---- */
+    {
+      const nC = 12, colH = fy - 1.0;
+      for (const xf of [xw - 0.3, xe + 0.3]) for (let i = 0; i <= nC; i++) {
+        const z = z0 + i * ((z1 - z0) / nC);
+        const g = new THREE.CylinderGeometry(0.42, 0.48, colH, 12); g.translate(xf, colH / 2, z); add(mStone, g);
+        box(mStone, xf, colH + 0.12, z, 1.1, 0.24, 1.1, false);
+        colliders.push({ min: { x: xf - 0.45, y: 0, z: z - 0.45 }, max: { x: xf + 0.45, y: colH, z: z + 0.45 } });
+      }
+    }
+
     /* ---- floor (diagonal marble) + walls ---- */
     { const g = new THREE.PlaneGeometry(W, z1 - z0); g.rotateX(-Math.PI / 2); g.translate(cx, fy + 0.02, (z0 + z1) / 2); add(mMarble, g); }
     box(mStone, cx, fy - 0.5, (z0 + z1) / 2, W + 1.2, 1.0, z1 - z0 + 1.2, true);          // the floor slab / colonnade top
     box(mWall, xw - 0.3, fy + Hh / 2, (z0 + z1) / 2, 0.6, Hh, z1 - z0, true);             // west wall
     box(mWall, xe + 0.3, fy + Hh / 2, (z0 + z1) / 2, 0.6, Hh, z1 - z0, true);             // east wall
-    box(mWall, cx, fy + Hh / 2, z0 - 0.3, W + 1, Hh, 0.6, true);                          // north end
+    {   // north end wall with the stair door (2.4 m wide, 3.0 m high) at x = cx
+      const DW = 2.4, DH = 3.0, xl = cx - (W + 1) / 2, xr = cx + (W + 1) / 2;
+      box(mWall, (xl + cx - DW / 2) / 2, fy + Hh / 2, z0 - 0.3, (cx - DW / 2) - xl, Hh, 0.6, true);
+      box(mWall, (cx + DW / 2 + xr) / 2, fy + Hh / 2, z0 - 0.3, xr - (cx + DW / 2), Hh, 0.6, true);
+      box(mWall, cx, fy + DH + (Hh - DH) / 2, z0 - 0.3, DW, Hh - DH, 0.6, true);
+    }
     box(mWall, cx, fy + Hh / 2, z1 + 0.3, W + 1, Hh, 0.6, true);                          // south end (Byron end)
     // coved ceiling
     box(mWall, cx, fy + Hh - 0.2, (z0 + z1) / 2, W + 1, 0.4, z1 - z0, false);
@@ -73,12 +90,33 @@
     for (const [xf, nx] of [[xw, 1], [xe, -1]]) {
       for (let i = 0; i < nWin; i++) {
         const z = z0 + 2.0 + (i + 0.5) * ((z1 - z0 - 4) / nWin);
-        paneM.push(M(xf + nx * 0.16, winY, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, winW, winH, 1));
+        paneM.push(M(xf + nx * 0.18, winY, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, winW, winH, 1));
         box(mStone, xf + nx * 0.1, winY, z, 0.12, winH + 0.5, winW + 0.5, false);
         add(mStone, new THREE.TorusGeometry(winW / 2 + 0.2, 0.14, 6, 18, Math.PI), M(xf + nx * 0.1, winY + winH / 2, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, 1, 1, 1));   // round arch head
       }
     }
     { const im = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), mPane, paneM.length); paneM.forEach((m, i) => im.setMatrixAt(i, m)); im.instanceMatrix.needsUpdate = true; group.add(im); }
+
+    /* ---- the exterior: ashlar skin, the same 28-window rhythm with arched heads, pilasters and a balustrade ---- */
+    {
+      const skinH = Hh + 0.9, pm = [];
+      for (const [xo, nx] of [[xw - 0.64, -1], [xe + 0.64, 1]]) {
+        box(mStone, xo, fy + skinH / 2 - 0.5, (z0 + z1) / 2, 0.04, skinH, z1 - z0 + 1.2, false);
+        for (let i = 0; i < nWin; i++) {
+          const z = z0 + 2.0 + (i + 0.5) * ((z1 - z0 - 4) / nWin);
+          pm.push(M(xo + nx * 0.14, winY, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, winW, winH, 1));
+          box(mTrim, xo + nx * 0.05, winY, z, 0.12, winH + 0.6, winW + 0.6, false);
+          add(mTrim, new THREE.TorusGeometry(winW / 2 + 0.25, 0.16, 6, 18, Math.PI), M(xo + nx * 0.05, winY + winH / 2, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, 1, 1, 1));
+          if (i > 0) { const zp = z - ((z1 - z0 - 4) / nWin) / 2; box(mTrim, xo + nx * 0.14, fy + (Hh - 1) / 2, zp, 0.3, Hh - 1, 0.55, false); }   // Ionic-style pilasters between the windows
+        }
+        box(mTrim, xo + nx * 0.12, fy + Hh + 0.05, (z0 + z1) / 2, 0.4, 0.3, z1 - z0 + 1.2, false);        // cornice
+        box(mStone, xo + nx * 0.05, fy + Hh + 0.55, (z0 + z1) / 2, 0.25, 0.7, z1 - z0 + 1.2, false);      // balustraded parapet
+        box(mTrim, xo + nx * 0.05, fy + 0.3, (z0 + z1) / 2, 0.3, 0.3, z1 - z0 + 1.2, false);             // string course at the floor line
+      }
+      box(mStone, cx, fy + skinH / 2 - 0.5, z1 + 0.66, W + 1.2, skinH, 0.04, false);                      // south end skin
+      const mPaneOut = std({ color: 0x56626f, map: paneMap, roughness: 0.4, metalness: 0.0, envMapIntensity: 0.15 });   // seen from outside: dark glass, not glowing
+      const im = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), mPaneOut, pm.length); pm.forEach((m, i) => im.setMatrixAt(i, m)); im.instanceMatrix.needsUpdate = true; group.add(im);
+    }
 
     /* ---- 15 bays each side: presses (bookcases) perpendicular to the walls, raised bay floor ---- */
     const nBay = L.bays, pressD = 2.6, pressH = 3.6, pressW = 0.5;
@@ -143,20 +181,21 @@
     bookMesh.instanceMatrix.needsUpdate = true; if (bookMesh.instanceColor) bookMesh.instanceColor.needsUpdate = true;
     bookMesh.castShadow = true; group.add(bookMesh);
 
-    /* ---- the stair up from Nevile's Court (at the north end, against the east wall) ---- */
-    const stairZ = z0 - 2.5, steps = 14;
-    for (let i = 0; i < steps; i++) box(mStone, cx, (i + 0.5) * (fy / steps), stairZ - i * 0.32, 2.4, fy / steps, 0.34, true);
-    box(mStone, cx - 1.3, fy / 2, stairZ - steps * 0.16, 0.2, fy, steps * 0.34, false);
-    box(mStone, cx + 1.3, fy / 2, stairZ - steps * 0.16, 0.2, fy, steps * 0.34, false);
-    // a landing opening in the north wall
-    colliders.push({ min: { x: cx - 1.1, y: fy, z: z0 - 0.3 }, max: { x: cx + 1.1, y: fy + 2.6, z: z0 + 0.1 } });   // (kept walkable; wall box above has the gap conceptually)
+    /* ---- the stair up to the library door (a stair tower against the north end; ascends toward +z) ---- */
+    const steps = 15, run = 0.45, rise = fy / steps, zTop = z0 - 0.6, zBot = zTop - steps * run;
+    for (let i = 0; i < steps; i++) box(mStone, cx, (i + 1) * rise / 2, zBot + (i + 0.5) * run, 2.4, (i + 1) * rise, run, true);   // solid steps
+    for (const sx of [-1, 1]) {
+      box(mStone, cx + sx * 1.3, (fy + 1.2) / 2, (zBot + zTop) / 2, 0.2, fy + 1.2, zTop - zBot, true);                           // stair-tower side walls
+    }
+    box(mStone, cx, fy + 1.2, zBot - 0.1, 2.8, 0.2, 0.2, false);
+    const stairZ = zBot;
 
     // soft interior fill
     const f1 = new THREE.PointLight(0xffe9c8, 0.5, 40, 1.6); f1.position.set(cx, fy + 5, z0 + 8); group.add(f1);
     const f2 = new THREE.PointLight(0xffe9c8, 0.5, 40, 1.6); f2.position.set(cx, fy + 5, z1 - 8); group.add(f2);
     const fh = new THREE.HemisphereLight(0xf4ecd8, 0x3a2c1e, 0.4); group.add(fh);
 
-    return { group, colliders, enterXZ: [cx, z0 - 1], books: bookMesh, bookCount: nB, stairZ };
+    return { group, colliders, enterXZ: [cx, zBot - 1], books: bookMesh, bookCount: nB, stairZ };
   }
 
   root.TrinityWren = { build };

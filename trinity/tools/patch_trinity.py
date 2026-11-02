@@ -118,7 +118,7 @@ RUNTIME = r"""<script id="mn-tr-run">
   }, 250);
   function openChooser() {
     var b = wing; if (!b) return; var n = H && H.counts ? H.counts(b.id) : null;
-    choose.innerHTML = '<b class="t">🎓 ' + esc(wName(b)) + '</b><div class="n">' + (n && n.rooms ? n.rooms + ' 个空间 · 这里 ' + n.displays + ' 个展位 · ' + n.items + ' 件展品' : '第一次进去会建成 大礼堂 · 雷恩图书馆 · 大庭院 三个房间') + '</div>' +
+    choose.innerHTML = '<b class="t">🎓 ' + esc(wName(b)) + '</b><div class="n">' + (n && n.rooms ? n.rooms + ' 个空间 · 这里 ' + n.displays + ' 个展位 · ' + n.items + ' 件展品' : '第一次进去会建成 大礼堂 · 雷恩图书馆 · 大庭院 · 后园 四个房间') + '</div>' +
       '<button class="go" data-a="doll">🏠 剖面 Dollhouse<small>北厅 · 中央穹顶厅 · 南厅 · Smart Room 推荐 · 双击房间布置书架和展品</small></button>' +
       (H && H.enter ? '<button data-a="walk">🚶 走进「' + esc(wName(b)) + '」房间<small>My World 的房间（3D）· 🌳 Outside 回到大厅原处</small></button>' : '') +
       '<button class="x" data-a="x">✕</button>';
@@ -198,7 +198,7 @@ MYWORLD = r"""    // 🎓 一键三一学院 (trinity/tools/patch_trinity.py): t
     // you add stay with that space.
     (function () { if (K.tr_campus) return; var base = BUILD.c_church ? 'c_church' : BUILD.c_town ? 'c_town' : null; if (!base) return;
       K.tr_campus = { n: '三一学院 Trinity College', decor: 1, flat: 0, landmark: 1 }; BUILD.tr_campus = BUILD[base]; })();
-    var TR_ROOMS = [['great_hall', 'dining', '大礼堂 Great Hall'], ['wren', 'reading', '雷恩图书馆 Wren Library'], ['great_court', 'gallery', '大庭院 Great Court']];
+    var TR_ROOMS = [['great_hall', 'dining', '大礼堂 Great Hall'], ['wren', 'reading', '雷恩图书馆 Wren Library'], ['great_court', 'gallery', '大庭院 Great Court'], ['backs', 'garden', '后园与剑河 The Backs']];
     function trinityBuild(seed) {
       if (!window.MinestTrinity) return;
       var d = V.d, PL = 8, NY = 4, land = []; for (var i = 0; i < PL; i++) for (var j = 0; j < NY; j++) land.push(i + ',' + j);
@@ -216,6 +216,7 @@ MYWORLD = r"""    // 🎓 一键三一学院 (trinity/tools/patch_trinity.py): t
       key: function () { return V && V.bid; },
       lib: function () { var R = islandD(), p = (R.pc || []).filter(function (q) { return q.tr === 'campus'; })[0];
         if (!p) { p = { id: uid(), k: 'vox_door', x: 1, y: 1, f: 0, s: 1, it: [], city: 1, tr: 'campus', label: 'Trinity College' }; R.pc.push(p); save(); }
+        if ((p.rooms || []).length && p.rooms.length < TR_ROOMS.length && p.rooms.every(function (r) { return r.tr; })) { var have = {}; p.rooms.forEach(function (r) { have[r.tr] = 1; }); TR_ROOMS.forEach(function (a) { if (!have[a[0]]) { var nr = { id: 'r' + uid().slice(1), k: ROOMS[a[1]] ? a[1] : 'hall', n: a[2], tr: a[0] }; p.rooms.push(nr); roomD(nr); } }); save(); }
         if (!(p.rooms || []).length) { p.roomsInit = 1; p.rooms = TR_ROOMS.map(function (a) { return { id: 'r' + uid().slice(1), k: ROOMS[a[1]] ? a[1] : 'hall', n: a[2], tr: a[0] }; }); p.rooms.forEach(function (r) { roomD(r); }); save(); }
         return p; },
       room: function (place) { var p = this.lib(), r = (p.rooms || []).filter(function (x) { return x.tr === place; })[0]; return r || p.rooms[0]; },
@@ -267,7 +268,7 @@ assert 'mn-tr-run' not in page, 'already patched'
 s = page
 for a, b in EDITS:
     s = must(s, a, b)
-srcs = '\n'.join(js(n) for n in ['textures.js', 'hall.js', 'nevile.js', 'wren.js', 'scene.js', 'app.js'])
+srcs = '\n'.join(js(n) for n in ['textures.js', 'hall.js', 'nevile.js', 'wren.js', 'backs.js', 'scene.js', 'app.js'])
 SRCTAG = ('<script type="text/plain" id="mn-tr-world">\n' + js('world.js') + '\n</script>\n'
           '<script type="text/plain" id="mn-tr-src">\n' + srcs + '\n</script>\n')
 RUN = RUNTIME.replace('__MARKUP__', json.dumps(markup()).replace('</', '<\\/'))

@@ -292,6 +292,7 @@
     opts.hallLinkZ = world.hall.z1 - 3.2;   // the Hall<->Nevile doorway z (matches the hall back-wall gap)
     if (root.TrinityNevile) { const nv = root.TrinityNevile.build(world, THREE, T, opts); group.add(nv.group); for (const c of nv.colliders) colliders.push(c); }
     if (root.TrinityWren) { const wn = root.TrinityWren.build(world, THREE, T, opts); group.add(wn.group); for (const c of wn.colliders) colliders.push(c); }
+    if (root.TrinityBacks) { const bk = root.TrinityBacks.build(world, THREE, T, opts); group.add(bk.group); for (const c of bk.colliders) colliders.push(c); }
     // the Great Hall interior
     const hallBuilt = root.TrinityHall ? root.TrinityHall.build(hall, THREE, T, opts) : null;
     if (hallBuilt) {

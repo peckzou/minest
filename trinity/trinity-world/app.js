@@ -111,6 +111,15 @@
   function outOfBounds(px, pz) {
     const b = world.bounds; return px < b.x0 || px > b.x1 || pz < b.z0 || pz > b.z1;
   }
+  // highest collider top at or below y under the player's footprint (so we stand ON it, not at a rounded height)
+  function surfaceBelow(px, pz, y) {
+    let best = 0;
+    for (let i = 0; i < colliders.length; i++) {
+      const c = colliders[i];
+      if (px + HW > c.min.x && px - HW < c.max.x && pz + HW > c.min.z && pz - HW < c.max.z && c.max.y <= y && c.max.y > best) best = c.max.y;
+    }
+    return best;
+  }
   function blocked(px, py, pz) {
     if (!world) return false;
     if (outOfBounds(px, pz)) return true;
@@ -228,13 +237,19 @@
     // sub-stepped axis-separated collision
     const steps = Math.max(1, Math.ceil(dt / 0.012)), h = dt / steps;
     for (let s = 0; s < steps; s++) {
+      // walking into a low step (stairs, a dais, a bridge approach): climb it if there is headroom
+      const stepTo = (tx, tz) => {
+        if (p.fly || !p.onGround) return false;
+        for (const dy of [0.25, 0.45]) if (!blocked(tx, p.pos.y + dy, tz)) { p.pos.x = tx; p.pos.z = tz; p.pos.y += dy; return true; }
+        return false;
+      };
       const nx = p.pos.x + p.vel.x * h;
-      if (blocked(nx, p.pos.y, p.pos.z)) p.vel.x = 0; else p.pos.x = nx;
+      if (blocked(nx, p.pos.y, p.pos.z)) { if (!stepTo(nx, p.pos.z)) p.vel.x = 0; } else p.pos.x = nx;
       const nz = p.pos.z + p.vel.z * h;
-      if (blocked(p.pos.x, p.pos.y, nz)) p.vel.z = 0; else p.pos.z = nz;
+      if (blocked(p.pos.x, p.pos.y, nz)) { if (!stepTo(p.pos.x, nz)) p.vel.z = 0; } else p.pos.z = nz;
       const ny = p.pos.y + p.vel.y * h;
       if (blocked(p.pos.x, ny, p.pos.z)) {
-        if (p.vel.y < 0) { p.pos.y = Math.max(0, Math.floor(ny)); p.onGround = true; }
+        if (p.vel.y < 0) { p.pos.y = surfaceBelow(p.pos.x, p.pos.z, p.pos.y + 0.001); p.onGround = true; }
         p.vel.y = 0;
       } else {
         p.pos.y = ny;

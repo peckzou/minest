@@ -104,3 +104,14 @@ persists after reload. Not tested: real phones; GitHub Pages online URL.
 Phase 1 is complete. Future (phase 2, structure is reserved): the River Cam and the Backs, student rooms and
 staircases, study interactions (reuse the collect-books hook). Each is a new place entry + a build() module; nothing
 already built needs changing.
+## Phase 2, step 1: the Backs and the River Cam
+
+New module `trinity-world/backs.js`, a fourth place ("The Backs") west of the Wren Library, reached on foot across the lawn.
+
+- **Built:** lawn, 14 m river, three-arch Trinity College Bridge with approach steps, weeping willows on both banks, a lime avenue leading west from the bridge, 3 punts.
+- **Documented:** the bridge is a triple-arch stone bridge by James Essex (1764-5); the riverside walk dates from 1760 and the willows from 1761.
+- **Estimated (no survey data):** river width (14 m), lawn depth between library and river, bridge position and size, tree layout and spacing.
+- **Engine fixes in `app.js`:** `surfaceBelow()` now lands the player on collider tops (the old code rounded to an integer y); `stepTo` auto-steps up 0.25-0.45 m so stairs, kerbs and bridge steps are walkable.
+- **Wren Library:** stair re-oriented (rises toward +z to a door in the north wall); added a colonnade, an ashlar exterior skin with pilasters, cornice and balustrade, and outside window panes (dark glass, not emissive).
+- **My World (`iPhoneDuo66.html`):** the building now has a 4th room "后园与剑河 The Backs". Buildings created earlier with 3 rooms get the missing room added automatically.
+- **Measured (software rendering):** 79 draw calls, 108,806 triangles, 322 instanced windows, 28 textures. Walk tests passed (colonnade, bridge steps to y=1.65 and across, Wren stair to y=6).

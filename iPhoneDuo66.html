@@ -128806,7 +128806,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
     // you add stay with that space.
     (function () { if (K.tr_campus) return; var base = BUILD.c_church ? 'c_church' : BUILD.c_town ? 'c_town' : null; if (!base) return;
       K.tr_campus = { n: '三一学院 Trinity College', decor: 1, flat: 0, landmark: 1 }; BUILD.tr_campus = BUILD[base]; })();
-    var TR_ROOMS = [['great_hall', 'dining', '大礼堂 Great Hall'], ['wren', 'reading', '雷恩图书馆 Wren Library'], ['great_court', 'gallery', '大庭院 Great Court']];
+    var TR_ROOMS = [['great_hall', 'dining', '大礼堂 Great Hall'], ['wren', 'reading', '雷恩图书馆 Wren Library'], ['great_court', 'gallery', '大庭院 Great Court'], ['backs', 'garden', '后园与剑河 The Backs']];
     function trinityBuild(seed) {
       if (!window.MinestTrinity) return;
       var d = V.d, PL = 8, NY = 4, land = []; for (var i = 0; i < PL; i++) for (var j = 0; j < NY; j++) land.push(i + ',' + j);
@@ -128824,6 +128824,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       key: function () { return V && V.bid; },
       lib: function () { var R = islandD(), p = (R.pc || []).filter(function (q) { return q.tr === 'campus'; })[0];
         if (!p) { p = { id: uid(), k: 'vox_door', x: 1, y: 1, f: 0, s: 1, it: [], city: 1, tr: 'campus', label: 'Trinity College' }; R.pc.push(p); save(); }
+        if ((p.rooms || []).length && p.rooms.length < TR_ROOMS.length && p.rooms.every(function (r) { return r.tr; })) { var have = {}; p.rooms.forEach(function (r) { have[r.tr] = 1; }); TR_ROOMS.forEach(function (a) { if (!have[a[0]]) { var nr = { id: 'r' + uid().slice(1), k: ROOMS[a[1]] ? a[1] : 'hall', n: a[2], tr: a[0] }; p.rooms.push(nr); roomD(nr); } }); save(); }
         if (!(p.rooms || []).length) { p.roomsInit = 1; p.rooms = TR_ROOMS.map(function (a) { return { id: 'r' + uid().slice(1), k: ROOMS[a[1]] ? a[1] : 'hall', n: a[2], tr: a[0] }; }); p.rooms.forEach(function (r) { roomD(r); }); save(); }
         return p; },
       room: function (place) { var p = this.lib(), r = (p.rooms || []).filter(function (x) { return x.tr === place; })[0]; return r || p.rooms[0]; },
@@ -157993,6 +157994,7 @@ window.KRail = (function () {
       { id: 'great_hall', kind: 'tc_hall', name: '大礼堂 Great Hall', x0: -IX - 12.2, z0: -22.5, x1: -IX, z1: 8, door: [-IX - 0.3, 0, 5.5], interior: 'hall' },
       { id: 'chapel', kind: 'tc_chapel', name: '礼拜堂 Chapel', x0: -31.25, z0: -IZ - DEPTH, x1: 31.25, z1: -IZ, door: [0, 0, -IZ] },
       { id: 'nevile', kind: 'tc_nevile', name: '尼维尔庭院 Nevile\'s Court', x0: -IX - 12.2 - NEV_L, z0: -NEV_W / 2, x1: -IX - 12.2, z1: NEV_W / 2, door: [-IX - 12.6, 0, 0] },
+      { id: 'backs', kind: 'tc_backs', name: '后园与剑河 The Backs & River Cam', x0: -250, x1: -IX - 12.2 - NEV_L - 12, z0: -95, z1: 95, door: [-IX - 12.2 - NEV_L - 14, 0, 0] },
       { id: 'wren', kind: 'tc_wren', name: '雷恩图书馆 Wren Library', interior: 'wren', x0: -IX - 12.2 - NEV_L - 12, x1: -IX - 12.2 - NEV_L, z0: -22.5, z1: 22.5, door: [-IX - 12.2 - NEV_L, 0, 0] }
     ];
     return {
@@ -158007,9 +158009,12 @@ window.KRail = (function () {
       nevile: { L: NEV_L, W: NEV_W, x0: -IX - 12.2 - NEV_L, x1: -IX - 12.2, z0: -NEV_W / 2, z1: NEV_W / 2, cloisterH: 5.6 },
       // the Wren Library: a single first-floor room over the colonnade. 15 bays each side.
       // Interior ESTIMATE ~ 45 x 12 m x 12 m high (floor 6 m up); the diagonal black/white marble floor, 28 arched windows.
+      // The Backs: the lawn west of the Library, the River Cam (flows along z), Trinity College Bridge (1764-5, three arches),
+      // a lime avenue beyond. Sizes are ESTIMATES (river 14 m wide, lawn 34 m deep, bridge on the library's axis).
+      backs: { x0: -250, x1: -IX - 12.2 - NEV_L - 12, riverE: -IX - 12.2 - NEV_L - 12 - 34, riverW: -IX - 12.2 - NEV_L - 12 - 48, zLawn: 95, bridgeZ: 0, bridgeW: 6 },
       wren: { x: -IX - 12.2 - NEV_L - 6, z0: -22.5, z1: 22.5, W: 12.0, H: 12.0, floorY: 6.0, bays: 15 },
       doors: [], seats: [],
-      bounds: { x0: -IX - 12.2 - NEV_L - 14, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // west: past the Wren Library; east: the street, walled at both ends
+      bounds: { x0: -246, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // west: past the Wren Library; east: the street, walled at both ends
       // outside on Trinity Street, looking west through the Great Gate
       spawn: { x: IX + DEPTH + 16, y: 0, z: 0, yaw: Math.PI / 2 },
       tour: {
@@ -158482,6 +158487,7 @@ window.KRail = (function () {
     const mGold = std({ color: 0xcaa43a, roughness: 0.35, metalness: 0.9 });
     const mMarble = std({ color: 0xffffff, roughness: 0.2, metalness: 0.0, envMapIntensity: 0.6 });
     const mWood = std({ color: 0x7a5a36, roughness: 0.6 });
+    const mTrim = std({ color: 0xf1e9d3, roughness: 0.85 });
     const tMarble = marbleFloorTexture(THREE); if (tMarble) { tMarble.repeat.set((z1 - z0) / 2.2, W / 2.2); mMarble.map = tMarble; }
 
     const batches = new Map();
@@ -158491,12 +158497,28 @@ window.KRail = (function () {
     function box(mat, x, y, z, w, h, d, collide) { add(mat, UNIT, M(x, y, z, 0, w, h, d)); if (collide) colliders.push({ min: { x: x - w / 2, y: y - h / 2, z: z - d / 2 }, max: { x: x + w / 2, y: y + h / 2, z: z + d / 2 } }); }
     function flush() { for (const [mat, list] of batches) { const mesh = new THREE.Mesh(mergeGeoms(list), mat); mesh.castShadow = true; mesh.receiveShadow = true; group.add(mesh); } batches.clear(); }
 
+    /* ---- the open colonnade under the library (Doric columns along both long faces; walk through) ---- */
+    {
+      const nC = 12, colH = fy - 1.0;
+      for (const xf of [xw - 0.3, xe + 0.3]) for (let i = 0; i <= nC; i++) {
+        const z = z0 + i * ((z1 - z0) / nC);
+        const g = new THREE.CylinderGeometry(0.42, 0.48, colH, 12); g.translate(xf, colH / 2, z); add(mStone, g);
+        box(mStone, xf, colH + 0.12, z, 1.1, 0.24, 1.1, false);
+        colliders.push({ min: { x: xf - 0.45, y: 0, z: z - 0.45 }, max: { x: xf + 0.45, y: colH, z: z + 0.45 } });
+      }
+    }
+
     /* ---- floor (diagonal marble) + walls ---- */
     { const g = new THREE.PlaneGeometry(W, z1 - z0); g.rotateX(-Math.PI / 2); g.translate(cx, fy + 0.02, (z0 + z1) / 2); add(mMarble, g); }
     box(mStone, cx, fy - 0.5, (z0 + z1) / 2, W + 1.2, 1.0, z1 - z0 + 1.2, true);          // the floor slab / colonnade top
     box(mWall, xw - 0.3, fy + Hh / 2, (z0 + z1) / 2, 0.6, Hh, z1 - z0, true);             // west wall
     box(mWall, xe + 0.3, fy + Hh / 2, (z0 + z1) / 2, 0.6, Hh, z1 - z0, true);             // east wall
-    box(mWall, cx, fy + Hh / 2, z0 - 0.3, W + 1, Hh, 0.6, true);                          // north end
+    {   // north end wall with the stair door (2.4 m wide, 3.0 m high) at x = cx
+      const DW = 2.4, DH = 3.0, xl = cx - (W + 1) / 2, xr = cx + (W + 1) / 2;
+      box(mWall, (xl + cx - DW / 2) / 2, fy + Hh / 2, z0 - 0.3, (cx - DW / 2) - xl, Hh, 0.6, true);
+      box(mWall, (cx + DW / 2 + xr) / 2, fy + Hh / 2, z0 - 0.3, xr - (cx + DW / 2), Hh, 0.6, true);
+      box(mWall, cx, fy + DH + (Hh - DH) / 2, z0 - 0.3, DW, Hh - DH, 0.6, true);
+    }
     box(mWall, cx, fy + Hh / 2, z1 + 0.3, W + 1, Hh, 0.6, true);                          // south end (Byron end)
     // coved ceiling
     box(mWall, cx, fy + Hh - 0.2, (z0 + z1) / 2, W + 1, 0.4, z1 - z0, false);
@@ -158509,12 +158531,33 @@ window.KRail = (function () {
     for (const [xf, nx] of [[xw, 1], [xe, -1]]) {
       for (let i = 0; i < nWin; i++) {
         const z = z0 + 2.0 + (i + 0.5) * ((z1 - z0 - 4) / nWin);
-        paneM.push(M(xf + nx * 0.16, winY, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, winW, winH, 1));
+        paneM.push(M(xf + nx * 0.18, winY, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, winW, winH, 1));
         box(mStone, xf + nx * 0.1, winY, z, 0.12, winH + 0.5, winW + 0.5, false);
         add(mStone, new THREE.TorusGeometry(winW / 2 + 0.2, 0.14, 6, 18, Math.PI), M(xf + nx * 0.1, winY + winH / 2, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, 1, 1, 1));   // round arch head
       }
     }
     { const im = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), mPane, paneM.length); paneM.forEach((m, i) => im.setMatrixAt(i, m)); im.instanceMatrix.needsUpdate = true; group.add(im); }
+
+    /* ---- the exterior: ashlar skin, the same 28-window rhythm with arched heads, pilasters and a balustrade ---- */
+    {
+      const skinH = Hh + 0.9, pm = [];
+      for (const [xo, nx] of [[xw - 0.64, -1], [xe + 0.64, 1]]) {
+        box(mStone, xo, fy + skinH / 2 - 0.5, (z0 + z1) / 2, 0.04, skinH, z1 - z0 + 1.2, false);
+        for (let i = 0; i < nWin; i++) {
+          const z = z0 + 2.0 + (i + 0.5) * ((z1 - z0 - 4) / nWin);
+          pm.push(M(xo + nx * 0.14, winY, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, winW, winH, 1));
+          box(mTrim, xo + nx * 0.05, winY, z, 0.12, winH + 0.6, winW + 0.6, false);
+          add(mTrim, new THREE.TorusGeometry(winW / 2 + 0.25, 0.16, 6, 18, Math.PI), M(xo + nx * 0.05, winY + winH / 2, z, nx > 0 ? Math.PI / 2 : -Math.PI / 2, 1, 1, 1));
+          if (i > 0) { const zp = z - ((z1 - z0 - 4) / nWin) / 2; box(mTrim, xo + nx * 0.14, fy + (Hh - 1) / 2, zp, 0.3, Hh - 1, 0.55, false); }   // Ionic-style pilasters between the windows
+        }
+        box(mTrim, xo + nx * 0.12, fy + Hh + 0.05, (z0 + z1) / 2, 0.4, 0.3, z1 - z0 + 1.2, false);        // cornice
+        box(mStone, xo + nx * 0.05, fy + Hh + 0.55, (z0 + z1) / 2, 0.25, 0.7, z1 - z0 + 1.2, false);      // balustraded parapet
+        box(mTrim, xo + nx * 0.05, fy + 0.3, (z0 + z1) / 2, 0.3, 0.3, z1 - z0 + 1.2, false);             // string course at the floor line
+      }
+      box(mStone, cx, fy + skinH / 2 - 0.5, z1 + 0.66, W + 1.2, skinH, 0.04, false);                      // south end skin
+      const mPaneOut = std({ color: 0x56626f, map: paneMap, roughness: 0.4, metalness: 0.0, envMapIntensity: 0.15 });   // seen from outside: dark glass, not glowing
+      const im = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), mPaneOut, pm.length); pm.forEach((m, i) => im.setMatrixAt(i, m)); im.instanceMatrix.needsUpdate = true; group.add(im);
+    }
 
     /* ---- 15 bays each side: presses (bookcases) perpendicular to the walls, raised bay floor ---- */
     const nBay = L.bays, pressD = 2.6, pressH = 3.6, pressW = 0.5;
@@ -158579,24 +158622,141 @@ window.KRail = (function () {
     bookMesh.instanceMatrix.needsUpdate = true; if (bookMesh.instanceColor) bookMesh.instanceColor.needsUpdate = true;
     bookMesh.castShadow = true; group.add(bookMesh);
 
-    /* ---- the stair up from Nevile's Court (at the north end, against the east wall) ---- */
-    const stairZ = z0 - 2.5, steps = 14;
-    for (let i = 0; i < steps; i++) box(mStone, cx, (i + 0.5) * (fy / steps), stairZ - i * 0.32, 2.4, fy / steps, 0.34, true);
-    box(mStone, cx - 1.3, fy / 2, stairZ - steps * 0.16, 0.2, fy, steps * 0.34, false);
-    box(mStone, cx + 1.3, fy / 2, stairZ - steps * 0.16, 0.2, fy, steps * 0.34, false);
-    // a landing opening in the north wall
-    colliders.push({ min: { x: cx - 1.1, y: fy, z: z0 - 0.3 }, max: { x: cx + 1.1, y: fy + 2.6, z: z0 + 0.1 } });   // (kept walkable; wall box above has the gap conceptually)
+    /* ---- the stair up to the library door (a stair tower against the north end; ascends toward +z) ---- */
+    const steps = 15, run = 0.45, rise = fy / steps, zTop = z0 - 0.6, zBot = zTop - steps * run;
+    for (let i = 0; i < steps; i++) box(mStone, cx, (i + 1) * rise / 2, zBot + (i + 0.5) * run, 2.4, (i + 1) * rise, run, true);   // solid steps
+    for (const sx of [-1, 1]) {
+      box(mStone, cx + sx * 1.3, (fy + 1.2) / 2, (zBot + zTop) / 2, 0.2, fy + 1.2, zTop - zBot, true);                           // stair-tower side walls
+    }
+    box(mStone, cx, fy + 1.2, zBot - 0.1, 2.8, 0.2, 0.2, false);
+    const stairZ = zBot;
 
     // soft interior fill
     const f1 = new THREE.PointLight(0xffe9c8, 0.5, 40, 1.6); f1.position.set(cx, fy + 5, z0 + 8); group.add(f1);
     const f2 = new THREE.PointLight(0xffe9c8, 0.5, 40, 1.6); f2.position.set(cx, fy + 5, z1 - 8); group.add(f2);
     const fh = new THREE.HemisphereLight(0xf4ecd8, 0x3a2c1e, 0.4); group.add(fh);
 
-    return { group, colliders, enterXZ: [cx, z0 - 1], books: bookMesh, bookCount: nB, stairZ };
+    return { group, colliders, enterXZ: [cx, zBot - 1], books: bookMesh, bookCount: nB, stairZ };
   }
 
   root.TrinityWren = { build };
   if (typeof module !== 'undefined') module.exports = root.TrinityWren;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* Trinity College - the Backs and the River Cam (phase 2, step 1). three.js r128 meshes built in code.
+ *
+ * West of the Wren Library: the Backs lawn, the river, Trinity College Bridge, weeping willows, a lime avenue
+ * leading west from the bridge, and a few punts. The river flows north-south (along z); the bridge crosses it east-west.
+ *
+ * Documented: Trinity College Bridge is a triple-arch road bridge of Portland and Ketton stone, built 1764-5 to designs by
+ * James Essex; the riverside walk was laid out in 1760 and weeping willows were planted in 1761; punting is run from inside
+ * the college grounds. ESTIMATES: the river width (14 m), the lawn depth between library and river, the bridge's exact
+ * position (here on the library's axis) and size, the avenue's length and tree spacing, willow count and placement.
+ *
+ * Exposes TrinityBacks = { build(world, THREE, tex, opts) -> { group, colliders, bridge } }.
+ */
+(function (root) {
+  'use strict';
+  function mergeGeoms(list) { return root.TrinityScene.mergeGeoms(list); }
+
+  function build(world, THREE, tex, opts) {
+    const B = world.backs;
+    const group = new THREE.Group();
+    const colliders = [];
+    const T = tex || {};
+    const std = (o) => new THREE.MeshStandardMaterial(o);
+    const tStone = T.stone && T.stone(), tGrass = T.grass && T.grass(), tSlab = T.slab && T.slab();
+    const mStone = std({ color: 0xffffff, map: tStone, roughness: 0.9, envMapIntensity: 0.3 });
+    const mGrass = std({ color: 0xffffff, map: tGrass, roughness: 1.0, envMapIntensity: 0.15 });
+    const mSlab = std({ color: 0xffffff, map: tSlab, roughness: 0.9 });
+    const mWater = std({ color: 0x2c4f48, roughness: 0.05, metalness: 0.1, envMapIntensity: 0.7 });
+    const mBark = std({ color: 0x3e2f20, roughness: 1.0, envMapIntensity: 0.1 });
+    const mLeaf = std({ color: 0x3f6a28, roughness: 0.95, envMapIntensity: 0.2 });
+    const mWillow = std({ color: 0x4a7a2c, roughness: 0.95, side: THREE.DoubleSide, envMapIntensity: 0.2 });
+    const mLime = std({ color: 0x3a6526, roughness: 0.95, envMapIntensity: 0.2 });
+    const mPunt = std({ color: 0x4a3a2a, roughness: 0.7 });
+    const mTrim = std({ color: 0xf1e9d3, roughness: 0.85 });
+
+    const batches = new Map();
+    const UNIT = new THREE.BoxGeometry(1, 1, 1);
+    const M = (x, y, z, ry, sx, sy, sz) => { const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ry || 0); return new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(sx || 1, sy || 1, sz || 1)); };
+    function add(mat, geo, m, uvScale) {
+      const g = geo.index ? geo.toNonIndexed() : geo.clone(); if (m) g.applyMatrix4(m);
+      if (uvScale) { const p = g.attributes.position, uv = g.attributes.uv, nn = g.attributes.normal; for (let i = 0; i < p.count; i++) { const ay = Math.abs(nn.getY(i)); if (ay > 0.7) uv.setXY(i, p.getX(i) / uvScale, p.getZ(i) / uvScale); else if (Math.abs(nn.getX(i)) > Math.abs(nn.getZ(i))) uv.setXY(i, p.getZ(i) / uvScale, p.getY(i) / uvScale); else uv.setXY(i, p.getX(i) / uvScale, p.getY(i) / uvScale); } }
+      if (!batches.has(mat)) batches.set(mat, []); batches.get(mat).push(g);
+    }
+    function box(mat, x0, x1, y0, y1, z0, z1, collide, ry) { add(mat, UNIT, M((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, ry || 0, x1 - x0, y1 - y0, z1 - z0), mat === mStone || mat === mTrim ? 2.4 : 0); if (collide) colliders.push({ min: { x: x0, y: y0, z: z0 }, max: { x: x1, y: y1, z: z1 } }); }
+    function plane(mat, x0, x1, z0, z1, y, tile) { const g = new THREE.PlaneGeometry(x1 - x0, z1 - z0); g.rotateX(-Math.PI / 2); g.translate((x0 + x1) / 2, y, (z0 + z1) / 2); add(mat, g, null, tile); }
+    function flush() { for (const [mat, list] of batches) { const mesh = new THREE.Mesh(mergeGeoms(list), mat); mesh.castShadow = mat !== mWater && mat !== mGrass && mat !== mSlab; mesh.receiveShadow = true; group.add(mesh); } batches.clear(); }
+
+    const zL = B.zLawn, rE = B.riverE, rW = B.riverW, wl = B.x1;      // wl = the library's west edge (the lawn starts here)
+    let rs = 1761; const rnd = () => { rs = (rs * 1103515245 + 12345) & 0x7fffffff; return rs / 0x7fffffff; };
+
+    /* ---- ground: lawns, paths, river ---- */
+    plane(mGrass, rE, wl, -zL, zL, 0.04, 4);                    // the Backs lawn (east bank)
+    plane(mGrass, B.x0, rW, -zL, zL, 0.04, 4);                  // the far bank
+    plane(mSlab, wl, rE, -1.6, 1.6, 0.06, 3.6);                 // the path from the library to the bridge
+    plane(mSlab, rE - 2.2, rE, -zL, zL, 0.06, 3.6);             // the riverside walk (1760)
+    plane(mSlab, B.x0, rW, -2.0, 2.0, 0.06, 3.6);               // the avenue path west of the bridge
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(rE - rW, 2 * zL + 40), mWater); water.rotation.x = -Math.PI / 2; water.position.set((rE + rW) / 2, 0.0, 0); group.add(water);
+    for (const xb of [rE, rW]) box(mStone, xb - 0.3, xb + 0.3, -0.2, 0.18, -zL, zL, false);   // stone river edging
+    // you cannot walk into the river (the bridge deck is above this)
+    colliders.push({ min: { x: rW, y: -2, z: -zL - 20 }, max: { x: rE, y: 1.2, z: zL + 20 } });
+
+    /* ---- Trinity College Bridge: three elliptical arches, Portland and Ketton stone, 1764-5 ---- */
+    const bz = B.bridgeZ, bw = B.bridgeW, x0b = rW - 1.0, x1b = rE + 1.0, Lb = x1b - x0b, DECK = 1.6;
+    {
+      const sh = new THREE.Shape(); sh.moveTo(0, -1.4); sh.lineTo(Lb, -1.4); sh.lineTo(Lb, DECK); sh.lineTo(0, DECK); sh.closePath();
+      const aw = 4.2;
+      for (let k = 0; k < 3; k++) {
+        const c = Lb * (k * 2 + 1) / 6, h = new THREE.Path();
+        h.moveTo(c - aw / 2, -1.2); h.lineTo(c - aw / 2, 0.1); h.absellipse(c, 0.1, aw / 2, 1.0, Math.PI, 0, true); h.lineTo(c + aw / 2, -1.2); h.closePath();
+        sh.holes.push(h);
+      }
+      const g = new THREE.ExtrudeGeometry(sh, { depth: bw, bevelEnabled: false, curveSegments: 18 });
+      g.translate(x0b, 0, bz - bw / 2);
+      const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 2.4, uv.getY(i) / 2.4);
+      add(mStone, g);
+      colliders.push({ min: { x: x0b, y: 1.0, z: bz - bw / 2 }, max: { x: x1b, y: DECK, z: bz + bw / 2 } });      // the walkable deck
+      for (const sz of [-1, 1]) {                                                                                      // parapets
+        box(mStone, x0b, x1b, DECK, DECK + 0.95, bz + sz * (bw / 2 - 0.18), bz + sz * (bw / 2), true);
+        box(mTrim, x0b - 0.05, x1b + 0.05, DECK + 0.95, DECK + 1.1, bz + sz * (bw / 2 - 0.3), bz + sz * (bw / 2 + 0.05), false);
+      }
+      // approach steps on both banks (0.4 m risers)
+      for (const [xs, dir] of [[x1b, 1], [x0b, -1]]) for (let k = 0; k < 3; k++) {
+        const a = xs + dir * k * 0.7, b = xs + dir * (k + 1) * 0.7, top = (3 - k) * 0.4;
+        box(mStone, Math.min(a, b), Math.max(a, b), 0, top, bz - bw / 2, bz + bw / 2, true);
+      }
+    }
+
+    /* ---- trees ---- */
+    function trunk(x, z, h, r) { const g = new THREE.CylinderGeometry(r * 0.8, r, h, 8); g.translate(x, h / 2, z); add(mBark, g); colliders.push({ min: { x: x - r, y: 0, z: z - r }, max: { x: x + r, y: h, z: z + r } }); }
+    function willow(x, z, s) {                                                                       // weeping willow (planted 1761)
+      trunk(x, z, 3.2 * s, 0.38 * s);
+      const crown = new THREE.IcosahedronGeometry(2.6 * s, 1); crown.scale(1, 0.65, 1); crown.translate(x, 4.6 * s, z); add(mLeaf, crown);
+      const skirt = new THREE.ConeGeometry(3.6 * s, 4.4 * s, 12, 1, true); skirt.translate(x, 2.9 * s, z); add(mWillow, skirt);
+    }
+    function lime(x, z, s) {                                                                          // lime (avenue)
+      trunk(x, z, 4.2 * s, 0.34 * s);
+      const crown = new THREE.IcosahedronGeometry(2.7 * s, 1); crown.scale(1, 1.15, 1); crown.translate(x, 6.4 * s, z); add(mLime, crown);
+    }
+    for (let z = -64; z <= 64; z += 16) { if (Math.abs(z - bz) < 7) continue; willow(rE - 3.4, z + (rnd() - 0.5) * 3, 0.95 + rnd() * 0.3); }          // east bank
+    for (let z = -56; z <= 56; z += 14) { if (Math.abs(z - bz) < 7) continue; willow(rW + 3.2, z + (rnd() - 0.5) * 3, 0.9 + rnd() * 0.3); }          // west bank
+    for (let x = rW - 8; x > B.x0 + 8; x -= 9) for (const sz of [-1, 1]) lime(x, bz + sz * 6.2, 0.95 + rnd() * 0.2);                                   // the avenue
+
+    /* ---- a few punts on the river ---- */
+    for (const [px, pz, ry] of [[(rE + rW) / 2 + 2.4, -24, 0.06], [(rE + rW) / 2 - 2.6, 17, -0.05], [(rE + rW) / 2 + 1.2, 46, 0.1]]) {
+      add(mPunt, UNIT, M(px, 0.1, pz, ry, 0.95, 0.28, 5.2));
+      add(mPunt, UNIT, M(px, 0.28, pz - 1.6, ry, 0.8, 0.05, 1.0));
+      add(mTrim, UNIT, M(px + 0.25, 0.45, pz + 1.0, ry, 0.05, 0.5, 0.05));
+    }
+
+    flush();
+    return { group, colliders, bridge: { x0: x0b, x1: x1b, z: bz, deck: DECK } };
+  }
+
+  root.TrinityBacks = { build };
+  if (typeof module !== 'undefined') module.exports = root.TrinityBacks;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* Trinity College, Cambridge - Great Court block-out (phase 1, step 1). three.js r128 meshes, all built in code.
@@ -158893,6 +159053,7 @@ window.KRail = (function () {
     opts.hallLinkZ = world.hall.z1 - 3.2;   // the Hall<->Nevile doorway z (matches the hall back-wall gap)
     if (root.TrinityNevile) { const nv = root.TrinityNevile.build(world, THREE, T, opts); group.add(nv.group); for (const c of nv.colliders) colliders.push(c); }
     if (root.TrinityWren) { const wn = root.TrinityWren.build(world, THREE, T, opts); group.add(wn.group); for (const c of wn.colliders) colliders.push(c); }
+    if (root.TrinityBacks) { const bk = root.TrinityBacks.build(world, THREE, T, opts); group.add(bk.group); for (const c of bk.colliders) colliders.push(c); }
     // the Great Hall interior
     const hallBuilt = root.TrinityHall ? root.TrinityHall.build(hall, THREE, T, opts) : null;
     if (hallBuilt) {
@@ -159085,6 +159246,15 @@ window.KRail = (function () {
   function outOfBounds(px, pz) {
     const b = world.bounds; return px < b.x0 || px > b.x1 || pz < b.z0 || pz > b.z1;
   }
+  // highest collider top at or below y under the player's footprint (so we stand ON it, not at a rounded height)
+  function surfaceBelow(px, pz, y) {
+    let best = 0;
+    for (let i = 0; i < colliders.length; i++) {
+      const c = colliders[i];
+      if (px + HW > c.min.x && px - HW < c.max.x && pz + HW > c.min.z && pz - HW < c.max.z && c.max.y <= y && c.max.y > best) best = c.max.y;
+    }
+    return best;
+  }
   function blocked(px, py, pz) {
     if (!world) return false;
     if (outOfBounds(px, pz)) return true;
@@ -159202,13 +159372,19 @@ window.KRail = (function () {
     // sub-stepped axis-separated collision
     const steps = Math.max(1, Math.ceil(dt / 0.012)), h = dt / steps;
     for (let s = 0; s < steps; s++) {
+      // walking into a low step (stairs, a dais, a bridge approach): climb it if there is headroom
+      const stepTo = (tx, tz) => {
+        if (p.fly || !p.onGround) return false;
+        for (const dy of [0.25, 0.45]) if (!blocked(tx, p.pos.y + dy, tz)) { p.pos.x = tx; p.pos.z = tz; p.pos.y += dy; return true; }
+        return false;
+      };
       const nx = p.pos.x + p.vel.x * h;
-      if (blocked(nx, p.pos.y, p.pos.z)) p.vel.x = 0; else p.pos.x = nx;
+      if (blocked(nx, p.pos.y, p.pos.z)) { if (!stepTo(nx, p.pos.z)) p.vel.x = 0; } else p.pos.x = nx;
       const nz = p.pos.z + p.vel.z * h;
-      if (blocked(p.pos.x, p.pos.y, nz)) p.vel.z = 0; else p.pos.z = nz;
+      if (blocked(p.pos.x, p.pos.y, nz)) { if (!stepTo(p.pos.x, nz)) p.vel.z = 0; } else p.pos.z = nz;
       const ny = p.pos.y + p.vel.y * h;
       if (blocked(p.pos.x, ny, p.pos.z)) {
-        if (p.vel.y < 0) { p.pos.y = Math.max(0, Math.floor(ny)); p.onGround = true; }
+        if (p.vel.y < 0) { p.pos.y = surfaceBelow(p.pos.x, p.pos.z, p.pos.y + 0.001); p.onGround = true; }
         p.vel.y = 0;
       } else {
         p.pos.y = ny;
@@ -159431,7 +159607,7 @@ window.KRail = (function () {
   }, 250);
   function openChooser() {
     var b = wing; if (!b) return; var n = H && H.counts ? H.counts(b.id) : null;
-    choose.innerHTML = '<b class="t">🎓 ' + esc(wName(b)) + '</b><div class="n">' + (n && n.rooms ? n.rooms + ' 个空间 · 这里 ' + n.displays + ' 个展位 · ' + n.items + ' 件展品' : '第一次进去会建成 大礼堂 · 雷恩图书馆 · 大庭院 三个房间') + '</div>' +
+    choose.innerHTML = '<b class="t">🎓 ' + esc(wName(b)) + '</b><div class="n">' + (n && n.rooms ? n.rooms + ' 个空间 · 这里 ' + n.displays + ' 个展位 · ' + n.items + ' 件展品' : '第一次进去会建成 大礼堂 · 雷恩图书馆 · 大庭院 · 后园 四个房间') + '</div>' +
       '<button class="go" data-a="doll">🏠 剖面 Dollhouse<small>北厅 · 中央穹顶厅 · 南厅 · Smart Room 推荐 · 双击房间布置书架和展品</small></button>' +
       (H && H.enter ? '<button data-a="walk">🚶 走进「' + esc(wName(b)) + '」房间<small>My World 的房间（3D）· 🌳 Outside 回到大厅原处</small></button>' : '') +
       '<button class="x" data-a="x">✕</button>';

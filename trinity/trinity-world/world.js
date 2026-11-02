@@ -29,6 +29,7 @@
       { id: 'great_hall', kind: 'tc_hall', name: '大礼堂 Great Hall', x0: -IX - 12.2, z0: -22.5, x1: -IX, z1: 8, door: [-IX - 0.3, 0, 5.5], interior: 'hall' },
       { id: 'chapel', kind: 'tc_chapel', name: '礼拜堂 Chapel', x0: -31.25, z0: -IZ - DEPTH, x1: 31.25, z1: -IZ, door: [0, 0, -IZ] },
       { id: 'nevile', kind: 'tc_nevile', name: '尼维尔庭院 Nevile\'s Court', x0: -IX - 12.2 - NEV_L, z0: -NEV_W / 2, x1: -IX - 12.2, z1: NEV_W / 2, door: [-IX - 12.6, 0, 0] },
+      { id: 'backs', kind: 'tc_backs', name: '后园与剑河 The Backs & River Cam', x0: -250, x1: -IX - 12.2 - NEV_L - 12, z0: -95, z1: 95, door: [-IX - 12.2 - NEV_L - 14, 0, 0] },
       { id: 'wren', kind: 'tc_wren', name: '雷恩图书馆 Wren Library', interior: 'wren', x0: -IX - 12.2 - NEV_L - 12, x1: -IX - 12.2 - NEV_L, z0: -22.5, z1: 22.5, door: [-IX - 12.2 - NEV_L, 0, 0] }
     ];
     return {
@@ -43,9 +44,12 @@
       nevile: { L: NEV_L, W: NEV_W, x0: -IX - 12.2 - NEV_L, x1: -IX - 12.2, z0: -NEV_W / 2, z1: NEV_W / 2, cloisterH: 5.6 },
       // the Wren Library: a single first-floor room over the colonnade. 15 bays each side.
       // Interior ESTIMATE ~ 45 x 12 m x 12 m high (floor 6 m up); the diagonal black/white marble floor, 28 arched windows.
+      // The Backs: the lawn west of the Library, the River Cam (flows along z), Trinity College Bridge (1764-5, three arches),
+      // a lime avenue beyond. Sizes are ESTIMATES (river 14 m wide, lawn 34 m deep, bridge on the library's axis).
+      backs: { x0: -250, x1: -IX - 12.2 - NEV_L - 12, riverE: -IX - 12.2 - NEV_L - 12 - 34, riverW: -IX - 12.2 - NEV_L - 12 - 48, zLawn: 95, bridgeZ: 0, bridgeW: 6 },
       wren: { x: -IX - 12.2 - NEV_L - 6, z0: -22.5, z1: 22.5, W: 12.0, H: 12.0, floorY: 6.0, bays: 15 },
       doors: [], seats: [],
-      bounds: { x0: -IX - 12.2 - NEV_L - 14, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // west: past the Wren Library; east: the street, walled at both ends
+      bounds: { x0: -246, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // west: past the Wren Library; east: the street, walled at both ends
       // outside on Trinity Street, looking west through the Great Gate
       spawn: { x: IX + DEPTH + 16, y: 0, z: 0, yaw: Math.PI / 2 },
       tour: {
