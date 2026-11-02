@@ -1,19 +1,18 @@
 /* Admont Abbey Library - procedural CC0-equivalent PLACEHOLDER textures (canvas).
  *
  * Every texture here is painted in code so the scene renders with NO network access.
- * They are placeholders for real public-domain / CC0 textures to be dropped in later.
- * When real assets are available, save them under admont/assets/textures/ at these exact
- * paths and have scene.js load them (CanvasTexture -> TextureLoader) to override:
+ * They stand in for real CC0 textures. To use real files, save them under
+ * admont/assets/textures/ with these names (scene.js tries them first, see AdmontTex.load):
  *
- *   marbleFloor  -> assets/textures/marble_floor_diff.jpg      (e.g. Poly Haven "marble_01", CC0)
- *   stuccoWall   -> assets/textures/white_plaster_diff.jpg     (e.g. Poly Haven "plaster_wall", CC0)
- *   goldTrim     -> assets/textures/gold_leaf_diff.jpg         (e.g. Poly Haven "gold_metal", CC0)
- *   woodCase     -> assets/textures/carved_wood_diff.jpg       (e.g. Poly Haven "wood_cabinet", CC0)
- *   bookSpines   -> assets/textures/leather_books_diff.jpg     (e.g. Poly Haven "book_pattern", CC0)
+ *   marbleFloor -> assets/textures/marble_floor_diff.jpg   (CC0, e.g. Poly Haven marble)
+ *   stuccoWall  -> assets/textures/white_plaster_diff.jpg  (CC0, e.g. Poly Haven plaster)
+ *   goldTrim    -> assets/textures/gold_leaf_diff.jpg      (CC0)
+ *   woodCase    -> assets/textures/carved_wood_diff.jpg    (CC0, painted wood)
+ *   bookSpine   -> assets/textures/leather_books_diff.jpg  (CC0, one spine, vertical)
  *
  * PUBLIC-DOMAIN + CC0 ONLY. No CC BY-SA, no paid API, no attribution page required.
- * Exposes global AdmontTex = { marbleFloor, stuccoWall, goldTrim, woodCase, bookSpines, make }.
- * Each builder returns a THREE.CanvasTexture (THREE must be loaded first).
+ * Exposes AdmontTex = { marbleFloor, stuccoWall, goldTrim, woodCase, bookSpine, bookSpines,
+ *   windowGlass, relief, load }.  Builders return THREE.CanvasTexture (THREE loaded first).
  */
 (function (root) {
   'use strict';
@@ -22,135 +21,177 @@
     let a = seed | 0;
     return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   }
-
-  function canvas(size) {
-    const c = (typeof document !== 'undefined') ? document.createElement('canvas') : null;
-    if (!c) return null;
-    c.width = c.height = size;
-    return c;
+  function canvas(w, h) {
+    if (typeof document === 'undefined') return null;
+    const c = document.createElement('canvas'); c.width = w; c.height = h || w; return c;
   }
-
-  function finalize(c, repeat) {
-    if (!root.THREE || !c) return null;
-    const t = new root.THREE.CanvasTexture(c);
-    t.wrapS = t.wrapT = root.THREE.RepeatWrapping;
-    t.anisotropy = 4;
+  function finalize(c, repeat, srgb) {
+    const T = root.THREE; if (!T || !c) return null;
+    const t = new T.CanvasTexture(c);
+    t.wrapS = t.wrapT = T.RepeatWrapping;
+    t.anisotropy = 8;
+    if (srgb !== false && T.sRGBEncoding !== undefined) t.encoding = T.sRGBEncoding;
     if (repeat) t.repeat.set(repeat[0], repeat[1]);
     return t;
   }
-
-  // ---- faux / illusionistic marble floor -----------------------------
-  function marbleFloor() {
-    const S = 256, c = canvas(S); if (!c) return null;
-    const x = c.getContext('2d'), r = rng(31);
-    // warm white base with soft grey veining (a calm Baroque marble)
-    x.fillStyle = '#efeae0'; x.fillRect(0, 0, S, S);
-    for (let i = 0; i < 2400; i++) {
-      const px = r() * S, py = r() * S, v = 0.9 + r() * 0.1;
-      x.fillStyle = 'rgba(' + (238 * v | 0) + ',' + (232 * v | 0) + ',' + (220 * v | 0) + ',0.5)';
-      x.fillRect(px, py, 1, 1);
-    }
-    // meandering veins
-    x.strokeStyle = 'rgba(150,140,125,0.35)'; x.lineWidth = 1.2;
-    for (let v = 0; v < 9; v++) {
+  // soft marble veins over the whole canvas (they cross tile edges, like real stone)
+  function veins(x, w, h, r, n, col, lw) {
+    x.save(); x.lineCap = 'round';
+    for (let v = 0; v < n; v++) {
+      x.strokeStyle = col; x.lineWidth = lw * (0.4 + r());
       x.beginPath();
-      let px = r() * S, py = r() * S; x.moveTo(px, py);
-      for (let s = 0; s < 40; s++) { px += (r() - 0.5) * 24; py += (r() - 0.5) * 24; x.lineTo(px, py); }
+      let px = r() * w, py = r() * h, a = r() * Math.PI * 2; x.moveTo(px, py);
+      for (let s = 0; s < 60; s++) { a += (r() - 0.5) * 0.7; px += Math.cos(a) * 9; py += Math.sin(a) * 9; x.lineTo(px, py); }
       x.stroke();
     }
-    // a subtle diamond grid of inlay (white/ochre marble tiles)
-    x.strokeStyle = 'rgba(120,100,70,0.22)'; x.lineWidth = 1.4;
-    x.save(); x.translate(S / 2, S / 2); x.rotate(Math.PI / 4);
-    for (let g = -S; g <= S; g += S / 4) { x.beginPath(); x.moveTo(g, -S * 1.5); x.lineTo(g, S * 1.5); x.stroke(); x.beginPath(); x.moveTo(-S * 1.5, g); x.lineTo(S * 1.5, g); x.stroke(); }
     x.restore();
-    return finalize(c, [6, 2]);
   }
 
-  // ---- white stucco wall ---------------------------------------------
+  /* ---- illusionistic marble floor ------------------------------------
+   * Admont's floor is a rhomb inlay of white, grey and red marble laid so it reads as
+   * tumbling 3D cubes. One canvas = 4 x 2 hexagons, so it tiles seamlessly.
+   * userData.tile = [metres per repeat in x, in z]  (cube edge s = 0.45 m). */
+  function marbleFloor() {
+    const SW = 1024, s = SW / (4 * Math.sqrt(3)), SH = Math.round(6 * s);
+    const c = canvas(SW, SH); if (!c) return null;
+    const x = c.getContext('2d'), r = rng(31);
+    const hw = Math.sqrt(3) / 2 * s;            // half hex width
+    const top = '#f3eee4', left = '#9c9c98', right = '#a75a40';
+    function rhomb(pts, fill) { x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < 4; i++) x.lineTo(pts[i][0], pts[i][1]); x.closePath(); x.fillStyle = fill; x.fill(); }
+    // pointy-top hexes; cube seen from above: top rhomb, left rhomb, right rhomb
+    for (let row = -1; row <= 4; row++) {
+      for (let col = -1; col <= 5; col++) {
+        const cx = col * 2 * hw + (row & 1 ? hw : 0), cy = row * 1.5 * s;
+        const T = [cx, cy - s], TR = [cx + hw, cy - s / 2], BR = [cx + hw, cy + s / 2], B = [cx, cy + s], BL = [cx - hw, cy + s / 2], TL = [cx - hw, cy - s / 2], C = [cx, cy];
+        rhomb([T, TR, C, TL], top);
+        rhomb([TL, C, B, BL], left);
+        rhomb([C, TR, BR, B], right);
+      }
+    }
+    // stone grain
+    const img = x.getImageData(0, 0, SW, SH), d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const n = (r() - 0.5) * 10; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+    x.putImageData(img, 0, 0);
+    veins(x, SW, SH, r, 26, 'rgba(110,100,92,0.18)', 2.2);
+    veins(x, SW, SH, r, 18, 'rgba(255,255,255,0.22)', 1.6);
+    // grout lines
+    x.strokeStyle = 'rgba(70,58,48,0.45)'; x.lineWidth = 1.6;
+    for (let row = -1; row <= 4; row++) for (let col = -1; col <= 5; col++) {
+      const cx = col * 2 * hw + (row & 1 ? hw : 0), cy = row * 1.5 * s;
+      x.beginPath();
+      x.moveTo(cx, cy - s); x.lineTo(cx + hw, cy - s / 2); x.lineTo(cx + hw, cy + s / 2); x.lineTo(cx, cy + s); x.lineTo(cx - hw, cy + s / 2); x.lineTo(cx - hw, cy - s / 2); x.closePath();
+      x.moveTo(cx, cy); x.lineTo(cx, cy + s); x.moveTo(cx, cy); x.lineTo(cx + hw, cy - s / 2); x.moveTo(cx, cy); x.lineTo(cx - hw, cy - s / 2);
+      x.stroke();
+    }
+    const t = finalize(c);
+    const S = 0.45; if (t) { t.userData = t.userData || {}; t.userData.tile = [4 * Math.sqrt(3) * S, 6 * S]; }
+    return t;
+  }
+
+  /* ---- white stucco (walls, vaults) ---------------------------------- */
   function stuccoWall() {
     const S = 256, c = canvas(S); if (!c) return null;
     const x = c.getContext('2d'), r = rng(77);
-    x.fillStyle = '#f6f2e9'; x.fillRect(0, 0, S, S);
-    // fine plaster grain
-    for (let i = 0; i < 9000; i++) {
-      const px = r() * S, py = r() * S, d = (r() - 0.5) * 18;
-      x.fillStyle = 'rgba(' + (246 + d | 0) + ',' + (242 + d | 0) + ',' + (233 + d | 0) + ',0.5)';
-      x.fillRect(px, py, 1, 1);
-    }
-    // soft panel shading top-to-bottom
-    const grad = x.createLinearGradient(0, 0, 0, S);
-    grad.addColorStop(0, 'rgba(255,255,255,0.12)');
-    grad.addColorStop(1, 'rgba(180,170,150,0.12)');
-    x.fillStyle = grad; x.fillRect(0, 0, S, S);
-    return finalize(c, [2, 2]);
+    x.fillStyle = '#f7f4ec'; x.fillRect(0, 0, S, S);
+    const img = x.getImageData(0, 0, S, S), d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const n = (r() - 0.5) * 9; d[i] += n; d[i + 1] += n; d[i + 2] += n - 1; }
+    x.putImageData(img, 0, 0);
+    for (let i = 0; i < 40; i++) { x.fillStyle = 'rgba(230,222,205,' + (0.05 + r() * 0.06) + ')'; x.beginPath(); x.arc(r() * S, r() * S, 8 + r() * 30, 0, 7); x.fill(); }
+    return finalize(c);
   }
 
-  // ---- gold leaf trim -------------------------------------------------
+  /* ---- gold leaf ------------------------------------------------------ */
   function goldTrim() {
     const S = 128, c = canvas(S); if (!c) return null;
     const x = c.getContext('2d'), r = rng(99);
-    const grad = x.createLinearGradient(0, 0, S, S);
-    grad.addColorStop(0, '#b8860b');
-    grad.addColorStop(0.4, '#f6d774');
-    grad.addColorStop(0.5, '#fff3bf');
-    grad.addColorStop(0.6, '#f6d774');
-    grad.addColorStop(1, '#a9760a');
-    x.fillStyle = grad; x.fillRect(0, 0, S, S);
-    // hammered highlights
-    for (let i = 0; i < 400; i++) {
-      const px = r() * S, py = r() * S;
-      x.fillStyle = r() < 0.5 ? 'rgba(255,248,210,0.5)' : 'rgba(140,100,10,0.4)';
-      x.fillRect(px, py, 2, 2);
-    }
-    return finalize(c, [1, 1]);
+    x.fillStyle = '#e8c46a'; x.fillRect(0, 0, S, S);
+    for (let i = 0; i < 260; i++) { x.fillStyle = r() < 0.5 ? 'rgba(255,240,190,0.35)' : 'rgba(150,105,25,0.25)'; const q = 2 + r() * 7; x.fillRect(r() * S, r() * S, q, q); }
+    return finalize(c);
   }
 
-  // ---- carved white+gold bookcase wood -------------------------------
+  /* ---- ivory-painted carved wood (bookcases) ------------------------- */
   function woodCase() {
     const S = 128, c = canvas(S); if (!c) return null;
     const x = c.getContext('2d'), r = rng(123);
-    // the cases are painted white (ivory) with gilt mouldings, not bare wood
-    x.fillStyle = '#f3ecdd'; x.fillRect(0, 0, S, S);
-    for (let i = 0; i < 3000; i++) {
-      const px = r() * S, py = r() * S, d = (r() - 0.5) * 14;
-      x.fillStyle = 'rgba(' + (243 + d | 0) + ',' + (236 + d | 0) + ',' + (221 + d | 0) + ',0.5)';
-      x.fillRect(px, py, 1, 1);
-    }
-    // a gilt border frame (the carved moulding)
-    x.strokeStyle = '#d9b24a'; x.lineWidth = 6; x.strokeRect(6, 6, S - 12, S - 12);
-    x.strokeStyle = '#8a6418'; x.lineWidth = 1.5; x.strokeRect(9, 9, S - 18, S - 18);
-    return finalize(c, [1, 2]);
+    x.fillStyle = '#f2ebdb'; x.fillRect(0, 0, S, S);
+    for (let i = 0; i < 70; i++) { x.strokeStyle = 'rgba(200,185,160,' + (0.08 + r() * 0.1) + ')'; x.lineWidth = 1; const y = r() * S; x.beginPath(); x.moveTo(0, y); x.bezierCurveTo(S / 3, y + (r() - 0.5) * 6, 2 * S / 3, y + (r() - 0.5) * 6, S, y); x.stroke(); }
+    return finalize(c);
   }
 
-  // ---- leather book spines -------------------------------------------
-  function bookSpines() {
-    const S = 256, c = canvas(S); if (!c) return null;
+  /* ---- one book spine (pale vellum with gilt bands and a title label) --
+   * Mapped onto a unit box; the per-instance colour tints it (most of Admont's
+   * books are white pigskin/vellum bindings). */
+  function bookSpine() {
+    const c = canvas(64, 256); if (!c) return null;
     const x = c.getContext('2d'), r = rng(256);
-    // Admont's books are famously uniform white-vellum bindings with gilt titles.
-    // We paint a shelf-strip of pale spines with occasional tan/brown leather.
-    const pale = ['#efe6d2', '#e9ddc4', '#f2ead8', '#e4d9bf'];
-    const dark = ['#7a4a2a', '#5a3620', '#8a5a2e', '#3c2a1c'];
-    let px = 0;
-    while (px < S) {
-      const wpx = 6 + Math.floor(r() * 10);
-      const isDark = r() < 0.18;
-      x.fillStyle = isDark ? dark[(r() * dark.length) | 0] : pale[(r() * pale.length) | 0];
-      x.fillRect(px, 0, wpx, S);
-      // shading at each spine edge
-      x.fillStyle = 'rgba(0,0,0,0.12)'; x.fillRect(px, 0, 1, S);
-      x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(px + 1, 0, 1, S);
-      // a gilt title band
-      x.fillStyle = 'rgba(190,150,60,0.75)';
-      x.fillRect(px + 1, S * 0.32 + r() * 16, wpx - 2, 3);
-      x.fillRect(px + 1, S * 0.58 + r() * 16, wpx - 2, 2);
-      px += wpx;
-    }
-    return finalize(c, [8, 1]);
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 64, 256);
+    for (let i = 0; i < 500; i++) { x.fillStyle = 'rgba(0,0,0,' + r() * 0.05 + ')'; x.fillRect(r() * 64, r() * 256, 2, 2); }
+    const g = x.createLinearGradient(0, 0, 64, 0); g.addColorStop(0, 'rgba(0,0,0,0.22)'); g.addColorStop(0.25, 'rgba(0,0,0,0)'); g.addColorStop(0.75, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.25)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 256);
+    x.fillStyle = '#b8892c';
+    for (const y of [22, 30, 224, 232]) x.fillRect(4, y, 56, 4);
+    x.fillStyle = '#7a3a26'; x.fillRect(8, 60, 48, 34);      // title label
+    x.fillStyle = '#e2bd5c'; x.fillRect(12, 72, 40, 3); x.fillRect(16, 80, 32, 2);
+    x.fillStyle = 'rgba(184,137,44,0.8)'; x.fillRect(10, 150, 44, 2);
+    return finalize(c);
+  }
+  // kept for FEAT-001 callers
+  const bookSpines = bookSpine;
+
+  /* ---- window: bright sky through leaded glass ----------------------- */
+  function windowGlass() {
+    const c = canvas(128, 256); if (!c) return null;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#e9f3ff'); g.addColorStop(0.6, '#fbfdff'); g.addColorStop(1, '#fff7e4');
+    x.fillStyle = g; x.fillRect(0, 0, 128, 256);
+    x.fillStyle = 'rgba(214,226,214,0.35)';
+    for (let i = 0; i < 6; i++) for (let j = 0; j < 12; j++) if ((i + j) & 1) x.fillRect(i * 21.3, j * 21.3, 21.3, 21.3);
+    x.strokeStyle = 'rgba(95,95,90,0.55)'; x.lineWidth = 1.2;
+    for (let i = 1; i < 6; i++) { x.beginPath(); x.moveTo(i * 21.3, 0); x.lineTo(i * 21.3, 256); x.stroke(); }
+    for (let j = 1; j < 12; j++) { x.beginPath(); x.moveTo(0, j * 21.3); x.lineTo(128, j * 21.3); x.stroke(); }
+    x.fillStyle = '#efe8d8'; x.fillRect(60, 0, 8, 256); x.fillRect(0, 84, 128, 7); x.fillRect(0, 170, 128, 7);   // mullion + transoms
+    x.strokeStyle = '#efe8d8'; x.lineWidth = 10; x.strokeRect(0, 0, 128, 256);
+    return finalize(c);
   }
 
-  root.AdmontTex = {
-    marbleFloor, stuccoWall, goldTrim, woodCase, bookSpines,
-    make: { marbleFloor, stuccoWall, goldTrim, woodCase, bookSpines }
-  };
+  /* ---- gilt relief medallion (Stammel's two reliefs) ----------------- */
+  function relief(seed) {
+    const S = 256, c = canvas(S); if (!c) return null;
+    const x = c.getContext('2d'), r = rng(seed || 5);
+    const g = x.createRadialGradient(100, 90, 10, 128, 128, 140); g.addColorStop(0, '#fbe7a4'); g.addColorStop(0.6, '#d3a63e'); g.addColorStop(1, '#8a6414');
+    x.fillStyle = g; x.fillRect(0, 0, S, S);
+    // embossed figures: draw each shape dark offset, then light
+    function fig(cx, cy, sc) {
+      for (const [dx, dy, col] of [[2, 3, 'rgba(90,60,10,0.55)'], [-1, -1, 'rgba(255,245,200,0.55)'], [0, 0, '#c99a36']]) {
+        x.fillStyle = col; x.beginPath();
+        x.ellipse(cx + dx, cy - 40 * sc + dy, 9 * sc, 10 * sc, 0, 0, 7); x.fill();
+        x.beginPath(); x.moveTo(cx - 14 * sc + dx, cy - 28 * sc + dy); x.quadraticCurveTo(cx - 26 * sc + dx, cy + 30 * sc + dy, cx - 20 * sc + dx, cy + 38 * sc + dy);
+        x.lineTo(cx + 22 * sc + dx, cy + 38 * sc + dy); x.quadraticCurveTo(cx + 24 * sc + dx, cy + 10 * sc + dy, cx + 14 * sc + dx, cy - 28 * sc + dy); x.closePath(); x.fill();
+      }
+    }
+    for (let i = 0; i < 4; i++) fig(60 + i * 46, 140 + (r() - 0.5) * 20, 0.85 + r() * 0.3);
+    x.strokeStyle = 'rgba(255,240,190,0.6)'; x.lineWidth = 2;
+    for (let i = 0; i < 9; i++) { x.beginPath(); x.arc(128, 128, 112 - i * 0.5, 0, 7); x.stroke(); }
+    return finalize(c);
+  }
+
+  /* ---- optional real-file override ----------------------------------
+   * Try base + 'assets/textures/<file>'; when it loads, swap it into tex.image.
+   * Silent on 404 / file:// (cross-origin) so the placeholder stays. */
+  function load(tex, file, base) {
+    if (!tex || typeof Image === 'undefined') return;
+    const img = new Image();
+    img.onload = function () {
+      try {
+        const c = canvas(img.width, img.height); const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+        x.getImageData(0, 0, 1, 1);              // throws if the canvas is tainted (file://)
+        tex.image = c; tex.needsUpdate = true;
+      } catch (e) { /* keep the procedural placeholder */ }
+    };
+    img.onerror = function () {};
+    img.src = (base || '') + 'assets/textures/' + file;
+  }
+
+  root.AdmontTex = { marbleFloor, stuccoWall, goldTrim, woodCase, bookSpine, bookSpines, windowGlass, relief, load, rng, canvas, finalize };
   if (typeof module !== 'undefined') module.exports = root.AdmontTex;
 })(typeof window !== 'undefined' ? window : globalThis);

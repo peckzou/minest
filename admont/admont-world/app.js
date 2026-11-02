@@ -31,6 +31,9 @@
   renderer.shadowMap.enabled = !isTouch && qs.get('q') !== 'low';
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   if (renderer.outputEncoding !== undefined && THREE.sRGBEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.95;
+  const Q = isTouch || qs.get('q') === 'low' ? 0.5 : 1;   // texture scale (frescoes)
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf3efe6);
@@ -49,9 +52,22 @@
   window.addEventListener('resize', resize); resize();
 
   /* ================= lights (bright natural-light interior) ================= */
-  const hemi = new THREE.HemisphereLight(0xfff6e2, 0xb9ad96, 0.9);
+  // reflections: a small bright "room" (cream walls, white window strips) baked with PMREM,
+  // so the gilding and the polished floor read as metal and stone instead of flat colour
+  (function envMap() {
+    const es = new THREE.Scene();
+    const room = new THREE.Mesh(new THREE.BoxGeometry(20, 8, 6), new THREE.MeshBasicMaterial({ color: 0xcfc4ae, side: THREE.BackSide }));
+    room.position.y = 3; es.add(room);
+    const strip = new THREE.MeshBasicMaterial({ color: 0xffffff }); strip.color.setScalar(2.2);
+    for (let i = -4; i <= 4; i++) for (const z of [-2.95, 2.95]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 3), strip); w.position.set(i * 2.2, 4.5, z); w.lookAt(i * 2.2, 4.5, 0); es.add(w); }
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(20, 6), new THREE.MeshBasicMaterial({ color: 0xf6eedc })); top.rotation.x = Math.PI / 2; top.position.y = 6.9; es.add(top);
+    const pm = new THREE.PMREMGenerator(renderer);
+    scene.environment = pm.fromScene(es, 0.02).texture;
+    pm.dispose();
+  })();
+  const hemi = new THREE.HemisphereLight(0xfff6e2, 0xb9ad96, 0.45);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xfff4e0, 0.75);
+  const sun = new THREE.DirectionalLight(0xfff1d6, 1.5);
   sun.position.set(18, 30, 24);
   sun.castShadow = renderer.shadowMap.enabled;
   if (sun.castShadow) {
@@ -63,11 +79,11 @@
   }
   scene.add(sun, sun.target);
   // soft fill from the window side so the shadows do not go black
-  const fill = new THREE.DirectionalLight(0xeaf0ff, 0.35);
+  const fill = new THREE.DirectionalLight(0xeaf0ff, 0.3);
   fill.position.set(-16, 20, -22);
   scene.add(fill);
   // a gentle warm point light under the dome
-  const domeLight = new THREE.PointLight(0xffe9c0, 0.5, 40, 1.4);
+  const domeLight = new THREE.PointLight(0xffe9c0, 0.4, 40, 1.4);
   domeLight.position.set(0, 9, 0);
   scene.add(domeLight);
 
@@ -127,7 +143,7 @@
   }
 
   /* ================= input ================= */
-  function requestLock() { if (!isTouch && canvas.requestPointerLock && !document.pointerLockElement) { try { canvas.requestPointerLock(); } catch (e) { /* ignore */ } } }
+  function requestLock() { if (!isTouch && canvas.requestPointerLock && !document.pointerLockElement) { try { const pr = canvas.requestPointerLock(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* ignore */ } } }
   function exitLock() { if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock(); }
   document.addEventListener('pointerlockchange', () => {
     S.locked = document.pointerLockElement === canvas;
@@ -149,6 +165,7 @@
   canvas.addEventListener('mousedown', () => {
     if (S.mode === 'tour') { setMode('walk'); requestLock(); return; }
     if (!S.locked) { requestLock(); dragging = true; return; }
+    const b = aimBook(); if (b >= 0) collectBook(b);     // click a spine to collect it
   });
   window.addEventListener('mouseup', () => { dragging = false; });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -253,11 +270,47 @@
     toast('🪑 坐下 · 移动即可站起来');
   }
   function standUp() { const s = S.sit; S.sit = null; if (s) { player.pos.set(s.x, s.y + 0.02, s.z); player.vel.set(0, 0, 0); } }
+  /* ================= collect books (hook for a future collection feature) =================
+   * Aim at a spine (crosshair) and press E / tap: the book is marked collected (gold) or
+   * un-marked. Ids are stable ("<case>-<row>-<n>"). Storage: window.__admBooks = { load()
+   * -> [ids], save(ids) } when My World provides it, else localStorage 'admont.books.v1'.
+   * No inventory UI yet. */
+  const BOOK_KEY = 'admont.books.v1';
+  const collected = new Set();
+  let built = null;
+  const ray = new THREE.Raycaster(); ray.far = 4.5;
+  function loadBooks() {
+    let ids = [];
+    try { ids = window.__admBooks ? window.__admBooks.load() || [] : JSON.parse(localStorage.getItem(BOOK_KEY) || '[]'); } catch (e) { ids = []; }
+    for (const id of ids) { const i = built.books.index[id]; if (i != null) { collected.add(id); built.books.setCollected(i, true); } }
+  }
+  function saveBooks() {
+    const ids = Array.from(collected);
+    try { if (window.__admBooks) window.__admBooks.save(ids); else localStorage.setItem(BOOK_KEY, JSON.stringify(ids)); } catch (e) { /* storage full / blocked */ }
+  }
+  function aimBook() {
+    if (!built) return -1;
+    ray.setFromCamera({ x: 0, y: 0 }, camera);
+    const hit = ray.intersectObject(built.books.mesh, false)[0];
+    return hit && hit.instanceId != null ? hit.instanceId : -1;
+  }
+  function collectBook(i, on) {
+    const id = built.books.ids[i];
+    if (on == null) on = !collected.has(id);
+    if (on) collected.add(id); else collected.delete(id);
+    built.books.setCollected(i, on);
+    saveBooks();
+    const m = built.books.meta[i];
+    toast(on ? '📕 已收藏 · ' + id + ' · 共 ' + collected.size + ' 本' : '📖 取消收藏 · ' + id);
+    if (window.__admBook) window.__admBook({ id, on, case: m.case, wing: m.wing });
+    return on;
+  }
   function interact() {
     if (S.sit) { standUp(); return true; }
+    const b = aimBook(); if (b >= 0) { collectBook(b); return true; }
     const d = nearDoor(2.6); if (d) { toggleDoor(d); return true; }
     const s = nearSeat(1.6); if (s) { sitOn(s); return true; }
-    toast('附近没有门或座位');
+    toast('对准书脊按 E 收藏 · 附近没有门或座位');
     return false;
   }
 
@@ -300,6 +353,7 @@
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     S.elapsed += dt;
     updateCamera(dt);
+    if (built && built.update) built.update(dt);
     sun.target.position.set(camera.position.x, 0, camera.position.z);
     sun.position.set(camera.position.x + 18, 30, camera.position.z + 24);
     sun.target.updateMatrixWorld();
@@ -323,17 +377,37 @@
       player.yaw = world.spawn.yaw || 0;
 
       setLoad('浇筑大理石地板与白金墙…', 0.3); await nextFrame();
-      const built = AdmontScene.build(world, THREE, window.AdmontTex);
+      setLoad('绘制七幅天顶壁画 · 雕塑 · 书架…', 0.45); await nextFrame();
+      built = AdmontScene.build(world, THREE, window.AdmontTex, { q: Q, base: window.__admBase || '' });
       scene.add(built.group);
       colliders = built.colliders;
+      loadBooks();
 
-      setLoad('整理书架 · 装订书脊…', 0.7); await nextFrame();
+      setLoad('整理书架 · 装订 ' + built.books.count + ' 本书…', 0.8); await nextFrame();
       initTour();
 
-      // expose the SAME API shape as Alpine's __alpine
+      // expose the SAME API shape as Alpine's __alpine (+ books and stats)
       window.__admont = {
-        world, player, scene, camera, S,
-        setMode, teleport, markDirty: function () {}, interact, toggleDoor, sitOn
+        world, player, scene, camera, S, built,
+        setMode, teleport, markDirty: function () {}, interact, toggleDoor, sitOn,
+        books: {
+          count: built.books.count,
+          ids: () => built.books.ids.slice(),
+          collected: () => Array.from(collected),
+          aim: () => { const i = aimBook(); return i >= 0 ? built.books.ids[i] : null; },
+          collect: (id, on) => { const i = built.books.index[id]; return i == null ? null : collectBook(i, on); },
+          cases: built.cases.map((c) => ({ id: c.id, wing: c.wing, books: c.books.length }))
+        },
+        stats: function () {
+          let tris = 0, geos = 0;
+          scene.traverse((o) => {
+            if (!o.isMesh || !o.visible) return;
+            const g = o.geometry; const n = (g.index ? g.index.count : g.attributes.position.count) / 3;
+            tris += n * (o.isInstancedMesh ? o.count : 1); geos++;
+          });
+          const r = renderer.info.render;
+          return { drawCalls: r.calls, renderedTris: r.triangles, sceneTris: Math.round(tris), meshes: geos, books: built.books.count, collected: collected.size, frescoes: built.frescoes, sculptures: built.sculptures.length, windows: built.windows, textures: renderer.info.memory.textures, shadows: renderer.shadowMap.enabled };
+        }
       };
 
       setLoad('完成', 1);
