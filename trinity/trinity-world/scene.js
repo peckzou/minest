@@ -274,7 +274,22 @@
       storeys(wx0, pz1 + 1, wx0, zz - 3, -1, 0, H, null);
       parapet(wx1, pz1, wx1, zz, H + 0.9, 1, 0); box(mStone, wx0, wx1, H, H + 0.9, pz1, zz, false); prism(wx0 + 0.5, wx1 - 0.5, pz1, zz, H + 0.9, 3.0, 'z');
       box(mTrim, wx1, wx1 + 0.12, 4.2, 4.45, pz1, IZ, false);
-      box(mStone, hx0, hx0 + 0.3, 0, H, pz0, pz1, true);              // passage closed until Nevile's Court exists
+      // the passage now runs west into Nevile's Court (the wall here is opened as a 3 m gateway at z=(pz0+pz1)/2)
+    }
+    // Nevile's Court + the Wren Library (phase 1 step 3)
+    opts._paneMap = (function () {
+      if (typeof document === 'undefined') return null;
+      const c = document.createElement('canvas'); c.width = 64; c.height = 96; const x = c.getContext('2d');
+      const g = x.createLinearGradient(0, 0, 0, 96); g.addColorStop(0, '#9fb4c8'); g.addColorStop(1, '#5a6b7c'); x.fillStyle = g; x.fillRect(0, 0, 64, 96);
+      x.strokeStyle = '#d9d2bf'; x.lineWidth = 2; x.beginPath(); x.moveTo(32, 0); x.lineTo(32, 96); x.stroke(); for (const y of [32, 64]) { x.beginPath(); x.moveTo(0, y); x.lineTo(64, y); x.stroke(); }
+      const t = new THREE.CanvasTexture(c); if (THREE.sRGBEncoding !== undefined) t.encoding = THREE.sRGBEncoding; return t;
+    })();
+    if (root.TrinityNevile) { const nv = root.TrinityNevile.build(world, THREE, T, opts); group.add(nv.group); for (const c of nv.colliders) colliders.push(c); }
+    if (root.TrinityWren) { const wn = root.TrinityWren.build(world, THREE, T, opts); group.add(wn.group); for (const c of wn.colliders) colliders.push(c); }
+    // a short covered link from the Great Hall's screens-passage end into the east cloister of Nevile's Court
+    {
+      const nx1 = world.nevile.x1, hx1 = -IX;
+      box(mStone, hx1 - 0.3, hx1, 0, H, world.hall.z1, world.hall.z1 + 3.4, false);   // (north jamb only; gateway open at z-centre)
     }
     // the Great Hall interior
     const hallBuilt = root.TrinityHall ? root.TrinityHall.build(hall, THREE, T, opts) : null;

@@ -21,13 +21,15 @@
   const COURT_Z = 85;        // ESTIMATE north-south (inner faces)
   const DEPTH = 9;           // ESTIMATE depth of each range
   const IX = COURT_X / 2, IZ = COURT_Z / 2;           // inner face: x = +-49, z = +-42.5
+  const NEV_L = 52, NEV_W = 43.6;   // Nevile's Court 228x143 ft; L shortened a little from 69.5 so the Library fits the view budget
 
   function create() {
     const places = [
       { id: 'great_court', kind: 'tc_court', name: '大庭院 Great Court', x0: -IX, z0: -IZ, x1: IX, z1: IZ, door: [IX + 4, 0, 0] },
       { id: 'great_hall', kind: 'tc_hall', name: '大礼堂 Great Hall', x0: -IX - 12.2, z0: -22.5, x1: -IX, z1: 8, door: [-IX - 0.3, 0, 5.5], interior: 'hall' },
       { id: 'chapel', kind: 'tc_chapel', name: '礼拜堂 Chapel', x0: -31.25, z0: -IZ - DEPTH, x1: 31.25, z1: -IZ, door: [0, 0, -IZ] },
-      { id: 'wren', kind: 'tc_wren', name: '雷恩图书馆 Wren Library', x0: -999, z0: -999, x1: -999, z1: -999, door: [-999, 0, -999], later: true }   // phase 1, next stage
+      { id: 'nevile', kind: 'tc_nevile', name: '尼维尔庭院 Nevile\'s Court', x0: -IX - 12.2 - NEV_L, z0: -NEV_W / 2, x1: -IX - 12.2, z1: NEV_W / 2, door: [-IX - 12.6, 0, 0] },
+      { id: 'wren', kind: 'tc_wren', name: '雷恩图书馆 Wren Library', interior: 'wren', door: [-IX - 12.2 - NEV_L, 0, 0] }
     ];
     return {
       COURT_X, COURT_Z, DEPTH, IX, IZ,
@@ -36,8 +38,14 @@
       // (court side = the east wall, where the screens passage and gallery are); High Table and the dais are at the
       // north end (-z), under the portrait of Elizabeth I. The door from the court is in the east wall.
       hall: { W: 12.2, L: 30.5, H: 15.2, EAVE: 8.5, x: -IX - 6.1, z0: -22.5, z1: 8.0, doorZ: 5.5 },
+      // Nevile's Court: 228 x 143 ft = 69.5 x 43.6 m (documented), cloister arcades N/S/E, the Wren Library closing the W end.
+      // It opens off the screens-passage end of the Great Hall. Its long axis runs along -x (west toward the river).
+      nevile: { L: NEV_L, W: NEV_W, x0: -IX - 12.2 - NEV_L, x1: -IX - 12.2, z0: -NEV_W / 2, z1: NEV_W / 2, cloisterH: 5.6 },
+      // the Wren Library: a single first-floor room over the colonnade. 15 bays each side.
+      // Interior ESTIMATE ~ 45 x 12 m x 12 m high (floor 6 m up); the diagonal black/white marble floor, 28 arched windows.
+      wren: { x: -IX - 12.2 - NEV_L - 6, z0: -22.5, z1: 22.5, W: 12.0, H: 12.0, floorY: 6.0, bays: 15 },
       doors: [], seats: [],
-      bounds: { x0: -IX - DEPTH - 14, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // the street is walled off at both ends
+      bounds: { x0: -IX - 12.2 - NEV_L - 14, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // west: past the Wren Library; east: the street, walled at both ends
       // outside on Trinity Street, looking west through the Great Gate
       spawn: { x: IX + DEPTH + 16, y: 0, z: 0, yaw: Math.PI / 2 },
       tour: {

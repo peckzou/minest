@@ -38,6 +38,24 @@ Not verified against the real hall: which sitters hang where and how many, the e
 oriel's position and tracery, the roof truss spacing, panelling height, the dais size. Modelled from the documented
 overall size and typical Tudor hall layout.
 
+## Step 3: Nevile's Court + the Wren Library
+
+- `trinity-world/nevile.js`: Nevile's Court, 228 x 143 ft = 69.5 x 43.6 m (documented; shortened to ~52 m long here to
+  keep the Library in the view budget). Cloister arcades (Doric columns, round arches) on three sides, two upper
+  storeys of windows, a central lawn; the Library closes the west end.
+- `trinity-world/wren.js`: the Wren Library interior (Christopher Wren, 1695). A single first-floor room over an open
+  colonnade, reached by a stair. Built: 15 bays each side with oak presses perpendicular to the walls, pale carved
+  limewood ends + plaster busts on top; the black-and-white marble floor laid DIAGONALLY; 28 round-arched windows
+  (5.03 x 2.44 m documented); a coved ceiling; reader tables; Thorvaldsen's Byron statue (proxy) at the south end;
+  ~3,000 book spines in one InstancedMesh.
+
+Measured with all three spaces: 67 draw calls, ~96k triangles (window panes and cloister glazing are instanced).
+
+Not verified: the Library's exact interior length/width/height (ESTIMATE ~45 x 12 x 12 m), the bay and press module
+sizes, the bust identities, the Byron statue form (a proxy), the ceiling profile, and the ground-level route that
+links the Great Hall's screens passage to Nevile's Court (here the two interiors are reachable in fly mode but the
+walking link through the colonnade is not finished). To refine, use the RCHME 1959 survey or college plans.
+
 ## Sources and what is estimated
 
 Documented: the court's circuit is 1,202 ft (366 m) in a 19th-century survey; Great Gate in the east range;
