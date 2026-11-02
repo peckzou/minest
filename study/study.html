@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>The Study · 英式古典私人藏书室</title>
+<style>
+  :root { --ink:#f2e6c9; --brass:#c9a24a; --wood:#2a1a10; --wood2:#3b2416; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#15100c; touch-action:none; overscroll-behavior:none; font-family:ui-serif,Georgia,"Songti SC","PingFang SC",serif; color:var(--ink); -webkit-user-select:none; user-select:none; }
+  #gl { position:fixed; inset:0; width:100%; height:100%; display:block; outline:none; }
+  .mc { color:var(--ink); font-weight:700; letter-spacing:.3px; text-shadow:0 1px 2px rgba(0,0,0,.7); }
+  .panel { background:rgba(36,22,13,.86); border:2px solid var(--brass); border-radius:6px; box-shadow:0 2px 12px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07); }
+  #loading { position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; background:radial-gradient(#3a2416,#150e09); transition:opacity .8s; }
+  #loading.done { opacity:0; pointer-events:none; }
+  #loading h1 { margin:0; font-size:clamp(30px,7vw,60px); color:var(--brass); letter-spacing:.12em; }
+  #loading .sub { font-size:clamp(12px,2.2vw,16px); opacity:.9; max-width:80vw; text-align:center; }
+  #bar { width:min(380px,70vw); height:14px; border:2px solid var(--brass); background:#2a1a10; border-radius:8px; overflow:hidden; }
+  #bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,#8a6a2a,var(--brass)); transition:width .15s; }
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  #title { position:absolute; left:14px; top:calc(12px + env(safe-area-inset-top)); }
+  #title b { font-size:clamp(17px,3vw,24px); display:block; color:var(--brass); }
+  #title span { font-size:12px; opacity:.85; } #coords { margin-top:6px; font-size:12px; }
+  #crosshair { position:absolute; left:50%; top:50%; width:18px; height:18px; margin:-9px 0 0 -9px; display:none; }
+  #crosshair:before,#crosshair:after { content:""; position:absolute; background:var(--brass); } #crosshair:before { left:8px; top:0; width:2px; height:18px; } #crosshair:after { top:8px; left:0; height:2px; width:18px; }
+  #aim { position:absolute; left:50%; top:calc(50% + 24px); transform:translateX(-50%); font-size:13px; max-width:80vw; text-align:center; text-shadow:0 1px 3px #000; }
+  #lockHint { position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); padding:10px 18px; font-size:15px; display:none; text-align:center; }
+  #toast { position:absolute; left:50%; top:calc(14px + env(safe-area-inset-top)); transform:translateX(-50%); padding:6px 12px; font-size:13px; opacity:0; transition:opacity .3s; max-width:90vw; text-align:center; }
+  #toast.show { opacity:1; }
+  #hint { position:absolute; left:14px; bottom:calc(20px + env(safe-area-inset-bottom)); padding:8px 10px; font-size:12px; line-height:1.6; max-width:min(380px,60vw); }
+  body.touch #hint { display:none; }
+  #card { position:fixed; right:18px; top:80px; width:min(330px,86vw); padding:14px; z-index:20; display:none; pointer-events:auto; }
+  #card.show { display:block; } #card.reading { right:50%; transform:translateX(50%); top:auto; bottom:calc(24px + env(safe-area-inset-bottom)); width:min(560px,92vw); }
+  #card .t { font-size:19px; font-weight:700; color:var(--brass); } #card .a { font-size:13px; opacity:.85; margin:2px 0 8px; } #card .x { font-size:14px; line-height:1.55; max-height:30vh; overflow:auto; font-style:italic; }
+  #card.reading .x { font-size:17px; line-height:1.7; } #card .r { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  button.b { background:#4a2e1b; color:var(--ink); border:1px solid var(--brass); border-radius:6px; padding:7px 12px; font:700 13px ui-serif,Georgia,"Songti SC",serif; cursor:pointer; pointer-events:auto; }
+  #bAdd { position:absolute; right:14px; top:calc(12px + env(safe-area-inset-top)); pointer-events:auto; }
+  #addp { position:fixed; left:50%; top:30%; transform:translateX(-50%); width:min(360px,90vw); padding:14px; z-index:30; display:none; pointer-events:auto; user-select:text; }
+  #addp.show { display:block; } #addp input { width:100%; margin:6px 0; padding:8px; font:15px ui-serif,Georgia,"Songti SC",serif; background:#f2e6c9; color:#2a1a10; border:1px solid var(--brass); border-radius:4px; user-select:text; }
+  #touch { display:none; } body.touch #touch { display:block; }
+  #joy { position:fixed; left:calc(22px + env(safe-area-inset-left)); bottom:calc(96px + env(safe-area-inset-bottom)); width:120px; height:120px; border-radius:50%; background:rgba(201,162,74,.14); border:3px solid rgba(201,162,74,.5); pointer-events:auto; touch-action:none; z-index:12; }
+  #joy i { position:absolute; left:40px; top:40px; width:40px; height:40px; border-radius:50%; background:rgba(201,162,74,.5); }
+  .tbtn { position:fixed; width:54px; height:54px; border-radius:12px; background:rgba(36,22,13,.8); border:2px solid var(--brass); color:var(--ink); font-size:22px; display:flex; align-items:center; justify-content:center; pointer-events:auto; z-index:12; touch-action:none; }
+  #tJump { right:calc(24px + env(safe-area-inset-right)); bottom:calc(150px + env(safe-area-inset-bottom)); } #tDown { right:calc(24px + env(safe-area-inset-right)); bottom:calc(90px + env(safe-area-inset-bottom)); }
+  #tUse { right:calc(92px + env(safe-area-inset-right)); bottom:calc(120px + env(safe-area-inset-bottom)); } #tGrab { right:calc(160px + env(safe-area-inset-right)); bottom:calc(150px + env(safe-area-inset-bottom)); } #tRead { right:calc(160px + env(safe-area-inset-right)); bottom:calc(90px + env(safe-area-inset-bottom)); }
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0"></canvas>
+<div id="loading">
+  <h1 class="mc">THE STUDY</h1>
+  <div class="mc sub">英式古典私人藏书室 · 深色橡木书架 · 实木书桌 · 滑动木梯 · 能坐下来读书的地方</div>
+  <div id="bar"><i></i></div><div id="loadMsg" class="mc">准备中…</div>
+</div>
+<div id="hud">
+  <div id="title" class="mc"><b>The Study</b><span id="modeLabel">导览模式</span><div id="coords"></div></div>
+  <button id="bAdd" class="b" type="button">＋ 放一本书</button>
+  <div id="crosshair"></div><div id="aim" class="mc"></div>
+  <div id="lockHint" class="panel mc">点击画面开始 · Esc 退出鼠标控制</div>
+  <div id="toast" class="panel mc"></div>
+  <div id="hint" class="panel mc">WASD 移动 · 鼠标 转视角 · Shift 快走<br>E 取书（对准书脊）/ 爬梯 / 坐下 · G 推梯子 · R 在书桌读书<br>梯子脚下按 E 爬上去：W/S 上下，A/D 带着梯子滑 · B 放一本自己的书</div>
+</div>
+<div id="card" class="panel"><div class="t"></div><div class="a"></div><div class="x"></div><div class="r"><button class="b" data-c="back" type="button">放回书架</button><button class="b" data-c="read" type="button">📖 坐下阅读</button><button class="b" data-c="open" type="button" style="display:none">打开原文</button></div></div>
+<div id="addp" class="panel"><div class="mc">放一本书上书架</div><input id="addT" placeholder="书名"><input id="addA" placeholder="作者（可不填）"><div style="display:flex;gap:8px"><button class="b" data-c="add" type="button">放上去</button><button class="b" data-c="x" type="button">取消</button></div></div>
+<div id="touch"><div id="joy"><i></i></div><div id="tJump" class="tbtn">⤒</div><div id="tDown" class="tbtn">⤓</div><div id="tUse" class="tbtn">✋</div><div id="tGrab" class="tbtn">🪜</div><div id="tRead" class="tbtn">📖</div></div>
+<script src="vendor/three.min.js"></script>
+<script>if (!window.THREE) document.write('<script src="three.min.js"><\/script>');</script>
+<script>if (!window.THREE) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
+<script src="study-world/world.js"></script>
+<script src="study-world/textures.js"></script>
+<script src="study-world/scene.js"></script>
+<script src="study-world/app.js"></script>
+</body>
+</html>
