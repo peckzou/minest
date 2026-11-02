@@ -32,7 +32,7 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   if (renderer.outputEncoding !== undefined && THREE.sRGBEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.95;
+  renderer.toneMappingExposure = 0.9;
   const Q = isTouch || qs.get('q') === 'low' ? 0.5 : 1;   // texture scale (frescoes)
 
   const scene = new THREE.Scene();

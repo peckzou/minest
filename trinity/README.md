@@ -18,8 +18,25 @@ WASD / arrows move, mouse looks, Space jumps, Shift sprints, F toggles fly. Touc
 - `trinity-world/world.js`: data model and the size constants. Every number is tagged known or ESTIMATE.
 - `trinity-world/textures.js`: canvas placeholder textures (limestone ashlar, lawn, flagstone, slate, road).
   Real CC0 files can go in `assets/textures/` (names in the file header).
-- `trinity-world/scene.js`: the meshes. Static geometry is merged per material; windows (316) and crenellations are instanced.
+- `trinity-world/scene.js`: the meshes. Static geometry is merged per material; windows and crenellations are instanced.
+- `trinity-world/hall.js`: the Great Hall INTERIOR (step 2), built in world space and dropped into the scene.
 - `trinity-world/app.js`: adapted from Admont's app.js (renderer, walk / fly, collision, tour, `window.__trinity`).
+
+## Step 2: the Great Hall interior
+
+100 x 40 x 50 ft = 30.5 x 12.2 x 15.2 m (documented size). Built: oak linenfold panelling + gilt frieze; the
+hammerbeam roof (tie beams, hammer beams on braces, arch braces, king posts, purlins, ridge, a louvre); the raised
+dais with High Table at the north end; long tables and benches down the body; the oak screen with the minstrels'
+gallery over the screens passage; the great oriel bay; clerestory windows; and portraits in gilt frames, with
+Elizabeth I over High Table. You walk in from the court through the east-wall doorway (verified: court -> hall).
+
+The portraits are procedural PLACEHOLDERS. Real public-domain images (the sitters are long dead; use PD-Art files from
+Wikimedia Commons, NOT CC BY-SA photos) go in `trinity/assets/portraits/<id>.jpg` and load over http(s). ids:
+elizabeth_i, henry_viii, newton, bacon, byron, tennyson, macaulay, whewell, thompson, barrow.
+
+Not verified against the real hall: which sitters hang where and how many, the exact screen and gallery design, the
+oriel's position and tracery, the roof truss spacing, panelling height, the dais size. Modelled from the documented
+overall size and typical Tudor hall layout.
 
 ## Sources and what is estimated
 

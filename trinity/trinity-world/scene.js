@@ -240,38 +240,51 @@
     }
 
     /* ================= west range: Hall, passage to Nevile's Court, Master's Lodge ================= */
+    const hall = world.hall;
     {
-      const wx1 = -IX, wx0 = -IX - DEPTH, hx0 = -IX - 12.0;           // hall is deeper than the range (ESTIMATE)
-      const hz0 = -26, hz1 = 8, pz0 = 8, pz1 = 11.4;                  // hall extent; passage between hall and lodge
+      const wx1 = -IX, wx0 = -IX - DEPTH;
+      const hz0 = hall.z0, hz1 = hall.z1, hH = 13.5, dz = hall.doorZ, GW = 2.4;
+      const hx0 = hall.x - hall.W / 2 - 0.3;
+      const pz0 = hz1, pz1 = hz1 + 3.4;                               // passage between hall and lodge
       const zz = IZ + DEPTH;
-      // northern staircases
+      // northern staircases (court's NW corner down to the Hall)
       box(mStone, wx0, wx1, 0, H, -IZ - DEPTH, hz0, true);
       storeys(wx1, -IZ + 2, wx1, hz0, 1, 0, H, null);
       storeys(wx0, -IZ - DEPTH + 3, wx0, hz0, -1, 0, H, null);
       parapet(wx1, -IZ - DEPTH, wx1, hz0, H + 0.9, 1, 0); box(mStone, wx0, wx1, H, H + 0.9, -IZ - DEPTH, hz0, false); prism(wx0 + 0.5, wx1 - 0.5, -IZ - DEPTH, hz0, H + 0.9, 3.0, 'z');
-      // Great Hall
-      box(mStone, hx0, wx1, 0, 13.5, hz0, hz1, true);
-      prism(hx0, wx1, hz0, hz1, 13.5, 7.0, 'z');
-      windowRow(wx1, hz0 + 3.5, wx1, hz1 - 3.0, 1, 0, 7.6, 2.3, 6.6, 6.4, null);                // five tall hall windows
-      windowRow(wx1, hz0 + 3.5, wx1, hz1 - 3.0, 1, 0, 1.7, 1.3, 1.5, 6.4, null);
-      box(mTrim, wx1 - 0.0, wx1 + 0.14, 4.2, 4.45, hz0, hz1, false);
-      parapet(wx1, hz0, wx1, hz1, 13.9, 1, 0); box(mStone, wx1 - 0.5, wx1, 13.5, 13.9, hz0, hz1, false);
-      box(mStone, hx0 + 4, hx0 + 8, 20.0, 21.0, -10.5, -7.5, false);          // louvre lantern on the ridge
-      box(mStone, hx0 + 4.2, hx0 + 7.8, 21.0, 23.2, -10.3, -7.7, false);
-      cone(mRoof, hx0 + 6, -9, 23.2, 3.2, 2.6, 4); cyl(mGold, hx0 + 6, -9, 26.2, 28.0, 0.07, 6);
-      // the screens passage, then the Lodge
-      box(mStone, wx0, wx1, GATE_H - 1.2, H, pz0, pz1, true);                  // low arch over the passage
+      // Great Hall outer shell (30.5 x 12.2 m); the court (east) wall has a doorway at dz
+      box(mStone, hx0, wx1 + 0.3, 0, hH, hz0 - 0.3, hz0, true);       // north gable base
+      box(mStone, hx0, wx1 + 0.3, 0, hH, hz1, hz1 + 0.3, true);       // south end
+      box(mStone, hx0 - 0.3, hx0, 0, hH, hz0, hz1, true);            // west (back) wall
+      box(mStone, wx1, wx1 + 0.3, 0, hH, hz0, dz - GW / 2, true);
+      box(mStone, wx1, wx1 + 0.3, 0, hH, dz + GW / 2, hz1, true);
+      box(mStone, wx1, wx1 + 0.3, GATE_H, hH, dz - GW / 2, dz + GW / 2, true);   // lintel over the court door
+      box(mTrim, wx1 - 0.1, wx1 + 0.4, GATE_H, GATE_H + 0.4, dz - GW / 2 - 0.4, dz + GW / 2 + 0.4, false);
+      prism(hx0, wx1 + 0.3, hz0, hz1, hH, 7.6, 'z');
+      windowRow(wx1, hz0 + 3.0, wx1, hz1 - 3.0, 1, 0, 8.0, 2.3, 6.6, 5.4, (x, z) => Math.abs(z - dz) < 3.0);   // court-side windows
+      windowRow(hx0, hz0 + 3.0, hx0, hz1 - 3.0, -1, 0, 8.0, 2.3, 6.6, 5.4, null);                              // back-wall windows
+      box(mTrim, wx1 - 0.0, wx1 + 0.16, 4.2, 4.45, hz0, hz1, false);
+      parapet(wx1, hz0, wx1, hz1, hH, 1, 0); box(mStone, wx1 - 0.3, wx1 + 0.3, hH, hH + 0.4, hz0, hz1, false);
+      box(mStone, hall.x - 1.8, hall.x + 1.8, 20.6, 21.6, hz0 + (hz1 - hz0) * 0.42 - 1.0, hz0 + (hz1 - hz0) * 0.42 + 1.0, false);   // louvre
+      cone(mRoof, hall.x, hz0 + (hz1 - hz0) * 0.42, 21.6, 3.0, 2.4, 4); cyl(mGold, hall.x, hz0 + (hz1 - hz0) * 0.42, 24.6, 26.2, 0.07, 6);
+      // the screens passage (court -> Nevile's Court), then the Lodge
+      box(mStone, hx0, wx1 + 0.3, GATE_H - 1.0, H, pz0, pz1, true);
       box(mStone, wx0, wx1, 0, H, pz1, zz, true);
       storeys(wx1, pz1, wx1, IZ - 2, 1, 0, H, null);
       storeys(wx0, pz1 + 1, wx0, zz - 3, -1, 0, H, null);
       parapet(wx1, pz1, wx1, zz, H + 0.9, 1, 0); box(mStone, wx0, wx1, H, H + 0.9, pz1, zz, false); prism(wx0 + 0.5, wx1 - 0.5, pz1, zz, H + 0.9, 3.0, 'z');
       box(mTrim, wx1, wx1 + 0.12, 4.2, 4.45, pz1, IZ, false);
-      // the passage ends at a closed gate until Nevile's Court is built (phase 1, next stage)
-      box(mStone, hx0 - 0.6, hx0, 0, 7, pz0, pz1, true);
-      box(mStone, hx0, wx0, 0, H, pz1 - 0.3, pz1, true);
+      box(mStone, hx0, hx0 + 0.3, 0, H, pz0, pz1, true);              // passage closed until Nevile's Court exists
     }
-    // the west range's back wall at the Hall's southern gable end
-    box(mStone, -IX - 12.0, -IX, 0, 13.5, 8, 8.2, false);
+    // the Great Hall interior
+    const hallBuilt = root.TrinityHall ? root.TrinityHall.build(hall, THREE, T, opts) : null;
+    if (hallBuilt) {
+      group.add(hallBuilt.group); for (const c of hallBuilt.colliders) colliders.push(c);
+      // a soft warm fill inside the enclosed hall so the panelling and portraits read in daytime
+      const f1 = new THREE.PointLight(0xfff0d8, 0.5, 34, 1.6); f1.position.set(hall.x, 6, hall.z0 + 6); group.add(f1);
+      const f2 = new THREE.PointLight(0xfff0d8, 0.45, 34, 1.6); f2.position.set(hall.x, 6, hall.z1 - 8); group.add(f2);
+      const fh = new THREE.HemisphereLight(0xffe9c8, 0x3a2c1e, 0.35); fh.position.set(hall.x, 8, (hall.z0 + hall.z1) / 2); group.add(fh);
+    }
 
     /* ================= fountain (octagonal conduit) ================= */
     {

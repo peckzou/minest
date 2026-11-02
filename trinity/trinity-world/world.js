@@ -25,15 +25,19 @@
   function create() {
     const places = [
       { id: 'great_court', kind: 'tc_court', name: '大庭院 Great Court', x0: -IX, z0: -IZ, x1: IX, z1: IZ, door: [IX + 4, 0, 0] },
-      { id: 'great_hall', kind: 'tc_hall', name: '大礼堂 Great Hall', x0: -IX - 12, z0: -26, x1: -IX, z1: 8, door: [-IX - 5, 0, 11] },
+      { id: 'great_hall', kind: 'tc_hall', name: '大礼堂 Great Hall', x0: -IX - 12.2, z0: -22.5, x1: -IX, z1: 8, door: [-IX - 0.3, 0, 5.5], interior: 'hall' },
       { id: 'chapel', kind: 'tc_chapel', name: '礼拜堂 Chapel', x0: -31.25, z0: -IZ - DEPTH, x1: 31.25, z1: -IZ, door: [0, 0, -IZ] },
       { id: 'wren', kind: 'tc_wren', name: '雷恩图书馆 Wren Library', x0: -999, z0: -999, x1: -999, z1: -999, door: [-999, 0, -999], later: true }   // phase 1, next stage
     ];
     return {
       COURT_X, COURT_Z, DEPTH, IX, IZ,
       places, buildings: places,
+      // the Great Hall: 100 x 40 x 50 ft = 30.5 x 12.2 x 15.2 m (documented). Its long axis runs along z
+      // (court side = the east wall, where the screens passage and gallery are); High Table and the dais are at the
+      // north end (-z), under the portrait of Elizabeth I. The door from the court is in the east wall.
+      hall: { W: 12.2, L: 30.5, H: 15.2, EAVE: 8.5, x: -IX - 6.1, z0: -22.5, z1: 8.0, doorZ: 5.5 },
       doors: [], seats: [],
-      bounds: { x0: -IX - DEPTH - 10, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // the street is walled off at both ends
+      bounds: { x0: -IX - DEPTH - 14, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // the street is walled off at both ends
       // outside on Trinity Street, looking west through the Great Gate
       spawn: { x: IX + DEPTH + 16, y: 0, z: 0, yaw: Math.PI / 2 },
       tour: {
