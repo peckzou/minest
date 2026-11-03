@@ -100,6 +100,23 @@
 </style>
 </head>
 <body>
+<nav id="mn-venice-nav" style="position:fixed;top:calc(12px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));z-index:99999999;display:flex;align-items:center;gap:8px;pointer-events:auto;font-family:system-ui,-apple-system,sans-serif;">
+  <button type="button" id="mn-venice-back" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:24px;font-size:13px;font-weight:800;background:rgba(15,23,42,0.92);border:2px solid #60a5fa;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.55);cursor:pointer;backdrop-filter:blur(8px);user-select:none;-webkit-user-select:none;"><span style="font-size:16px;">‹</span> <b>回到 My World (小岛)</b></button>
+  <a href="worlds.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:24px;font-size:13px;font-weight:700;background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.22);color:#cbd5e1;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.5);backdrop-filter:blur(8px);"><span>🌍</span> <span>3D世界大厅</span></a>
+</nav>
+<script>
+document.getElementById('mn-venice-back').addEventListener('click', function(e) {
+  e.preventDefault(); e.stopPropagation();
+  if (window.parent && window.parent !== window) {
+    try {
+      if (window.parent.closeWorldOverlay3D) { window.parent.closeWorldOverlay3D(); return; }
+      window.parent.postMessage({ action: 'closeMinest3DOverlay' }, '*');
+      return;
+    } catch(err) {}
+  }
+  window.location.href = 'iPhoneDuo.html';
+});
+</script>
 <canvas id="gl" tabindex="0"></canvas>
 
 <div id="loading">
