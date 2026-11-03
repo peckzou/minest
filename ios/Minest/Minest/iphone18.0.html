@@ -8051,8 +8051,8 @@ html body .mn-dsp-stage > .mn-wx-chip { position:absolute;left:10px;bottom:10px;
 #oia-root { position:fixed; inset:0; z-index:2147483550; }
 #oia-root[hidden] { display:none; }
 #oia-root #oia-gl, #oia-root #oia-loading, #oia-root #oia-hud, #oia-root #oia-uw { position:absolute; }
-#oia-root #oia-back { position:absolute; z-index:60; left:calc(12px + env(safe-area-inset-left)); top:calc(10px + env(safe-area-inset-top)); padding:8px 12px; font:800 14px/1 ui-monospace,monospace; color:#fff;
-  background:rgba(18,24,36,.72); border:3px solid #111; box-shadow:inset 2px 2px 0 rgba(255,255,255,.2), inset -2px -2px 0 rgba(0,0,0,.35); cursor:pointer; pointer-events:auto; }
+#oia-root #oia-back { position:absolute; z-index:999999; left:calc(12px + env(safe-area-inset-left)); top:calc(10px + env(safe-area-inset-top)); padding:10px 18px; font:800 14px/1 system-ui,-apple-system,sans-serif; color:#fff;
+  background:rgba(15,23,42,.92); border:2px solid #60a5fa; border-radius:24px; box-shadow:0 6px 20px rgba(0,0,0,.6); cursor:pointer; pointer-events:auto; backdrop-filter:blur(8px); }
 #oia-root #oia-title { left:calc(150px + env(safe-area-inset-left)); }
 #oia-root #oia-enter { position:absolute; z-index:60; left:50%; top:calc(64px + env(safe-area-inset-top)); transform:translateX(-50%); padding:12px 20px; font:900 16px/1 ui-monospace,monospace; color:#fff; white-space:nowrap;
   background:#3f8f3fd9; border:3px solid; border-color:#9fe39f #2a5e2a #2a5e2a #9fe39f; text-shadow:0 2px 0 #0008; cursor:pointer; pointer-events:auto; }
@@ -125662,7 +125662,15 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
     if (window.MinestAlps && V && V.d && V.d.terr && V.d.terr.scape === 'alpchalet' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestAlps.open(); }   /* 🏔 the Alpine Chalet valley */
     if (window.MinestAdmont && V && V.d && V.d.terr && V.d.terr.scape === 'admont' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestAdmont.open(); }   /* 📚 the Admont library */
     if (window.MinestTrinity && V && V.d && V.d.terr && V.d.terr.scape === 'trinity' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestTrinity.open(); }   /* 🎓 the Trinity campus */
-    if (window.MinestOia && V && V.d && V.d.terr && V.d.terr.scape === 'santorini' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestOia.open(); }   /* 🇬🇷 the original voxel Oia (🚶 and 阅览 both land here) */
+    if (window.MinestOia && V && V.d && V.d.terr && V.d.terr.scape === 'santorini' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestOia.open(); }
+    if (W && W.mega && W.mega.kind === 'hobbiton') { return openWorldOverlay3D('hobbiton.html', '霍比屯 · Hobbiton'); }
+    if (W && W.mega && W.mega.kind === 'lauterbrunnen') { return openWorldOverlay3D('lauterbrunnen.html', '劳特布龙嫩 · Lauterbrunnen'); }
+    if (W && W.mega && W.mega.kind === 'bibury') { return openWorldOverlay3D('bibury.html', '拜伯里 · Bibury'); }
+    if (W && W.mega && W.mega.kind === 'downton') { return openWorldOverlay3D('downton.html', '唐顿庄园 · Downton Abbey'); }
+    if (W && W.mega && W.mega.kind === 'hallstatt') { return openWorldOverlay3D('hallstatt.html', '哈尔施塔特 · Hallstatt'); }
+    if (W && W.mega && W.mega.kind === 'giethoorn') { return openWorldOverlay3D('giethoorn.html', '羊角村 · Giethoorn'); }
+    if (W && W.mega && W.mega.kind === 'neuschwanstein') { return openWorldOverlay3D('neuschwanstein.html', '新天鹅堡 · Neuschwanstein'); }
+    if (W && W.mega && W.mega.kind === 'venice') { return openWorldOverlay3D('venice.html', '威尼斯水城 · Venice'); }   /* 🇬🇷 the original voxel Oia (🚶 and 阅览 both land here) */
     if (!V || WK) return; if (V.visit === undefined) {}
     toast('Building the 3D world…'); a3().then(function (AS) { if (!AS || !AS.three || !AS.webgl()) { toast('This device cannot draw the 3D world'); return; } if (el && V && !WK) wkStart(AS); });
   }
@@ -129269,18 +129277,73 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
       document.body.appendChild(ov); var fr = ov.querySelector('iframe'); setTimeout(function () { try { fr.focus(); } catch (x) {} }, 300);
     }
-    function megaRow() {   // island level: one 「一键生成 ▾」 button that pops the six one-tap islands (like the five steps); the way into 3D, reroll and clear stay out
+    function openWorldOverlay3D(url, title) {
+      var old = document.querySelector('.mn-world-3d-overlay');
+      if (old) old.remove();
+      var ov = document.createElement('div');
+      ov.className = 'mn-world-3d-overlay';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:2147483640;background:#000;display:flex;width:100vw;height:100vh;overflow:hidden;';
+      ov.innerHTML = '<iframe src="' + url + '" title="' + (title || 'Minest 3D World') + '" style="width:100%;height:100%;border:none;display:block;" allow="fullscreen; autoplay; gyroscope; accelerometer; xr-spatial-tracking"></iframe>' +
+        '<button type="button" onclick="window.closeWorldOverlay3D()" class="mn-back-myworld-btn" aria-label="回到 My World" style="position:fixed;left:calc(14px + env(safe-area-inset-left));top:calc(12px + env(safe-area-inset-top));z-index:2147483647;padding:10px 18px;background:rgba(15,23,42,0.94);border:2px solid #60a5fa;border-radius:24px;color:#fff;font:800 13px system-ui,-apple-system,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 20px rgba(0,0,0,0.6);backdrop-filter:blur(8px);pointer-events:auto;transition:transform .15s,background .15s;">' +
+          '<span style="font-size:16px;">‹</span> <b>回到 My World (小岛)</b>' +
+        '</button>';
+      ov.querySelector('.mn-back-myworld-btn').addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        ov.remove();
+        if (window.hap) try { hap(); } catch (x) {}
+      });
+      window.addEventListener('message', function onMsg(e) {
+        if (e.data && e.data.action === 'closeMinest3DOverlay') {
+          window.removeEventListener('message', onMsg);
+          ov.remove();
+          if (window.hap) try { hap(); } catch (x) {}
+        }
+      });
+      ['pointerdown', 'touchstart', 'keydown', 'wheel'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+      document.body.appendChild(ov);
+      var fr = ov.querySelector('iframe');
+      setTimeout(function () { try { fr.focus(); } catch (x) {} }, 300);
+    }
+    window.openWorldOverlay3D = openWorldOverlay3D;
+    window.closeWorldOverlay3D = function () {
+      var ov = document.querySelector('.mn-world-3d-overlay');
+      if (ov) ov.remove();
+    };
+
+    function megaRow() {   // island level: one 「一键生成 ▾」 button with 16 worlds
       var has = (V.d.pc || []).some(function (p) { return p.city; }), sc = V.d.terr && V.d.terr.scape, cur = W.mega && W.mega.kind, open = !!W.megaOpen;
-      var KINDS = [['city', 'city', '一键变 City', '2× island · 21 districts · flagship avenue'], ['town', 'town', '一键变 Town', '2× island · market town, green, school'],
-        ['countryside', 'shire', '一键英国乡村', 'rolling hills, a creek, a village & farm'], ['alpine', 'alps', '一键瑞士雪山小镇', 'snowy peaks, a lake, chalets & a railway'],
-        ['santorini', 'oia', '一键圣托里尼', '伊亚 Oia · 原版 3D 体素世界 · 可进建筑'], ['alpchalet', 'alps', '一键阿尔卑斯木屋', '雪山 · 松林 · 木屋 · 3D 体素 · 可进屋'], ['admont', 'admont', '一键阿德蒙特图书馆', '阿德蒙特修道院图书馆 · 3D 室内 · 白金色 · 可自由行走'], ['trinity', 'trinity', '一键三一学院', '剑桥三一学院 · 大庭院 · 大礼堂 · 雷恩图书馆 · 可自由行走'], ['venice', 'venice', '一键变水城', '威尼斯 · Grand Canal, Rialto, gondolas · 3D']];
-      var ck = KINDS.filter(function (k) { return k[0] === (sc || cur); })[0];   // what the island is now
-      var head = '<button type="button" class="wf-mega-pick' + (open ? ' on' : '') + '" data-wfmegapop aria-expanded="' + open + '"><i>' + px(ck && has ? ck[1] : 'wand') + '</i><b>一键生成 ' + (open ? '▴' : '▾') + '</b><small>' + (ck && has ? '现在：' + ck[2].replace('一键', '').replace(/^变 ?/, '') : 'City · Town · 英国乡村 · 瑞士雪山 · 圣托里尼 · 水城') + '</small></button>';
+      var KINDS = [
+        ['city', 'city', '一键变 City', '2× 巨型海岛 · 21 个街区 · 旗舰商业大街'],
+        ['town', 'town', '一键变 Town', '2× 海岛 · 集市小镇 · 绿地、喷泉与学校'],
+        ['countryside', 'shire', '一键英国乡村', '连绵丘陵 · 蜿蜒小溪 · 村落、水塘与农场'],
+        ['alpine', 'alps', '一键瑞士雪山小镇', '阿尔卑斯雪峰 · 高山湖泊 · 木屋与铁道'],
+        ['santorini', 'oia', '一键圣托里尼', '爱琴海悬崖伊亚 · 蓝顶教堂 · 6层联动建造'],
+        ['hobbiton', 'shire', '一键霍比屯', '中土夏尔袋底洞 · 13座洞屋与水车磨坊 · 3D'],
+        ['lauterbrunnen', 'alps', '一键劳特布龙嫩', '瑞士 72 瀑布山谷 · 施陶巴赫悬崖木屋 · 3D'],
+        ['bibury', 'shire', '一键拜伯里', '科茨沃尔德阿灵顿排屋 · 蜂蜜石屋天鹅村 · 3D'],
+        ['downton', 'city', '一键唐顿庄园', '海克利尔城堡 · 雅各宾大沙龙与图书室 · 3D'],
+        ['hallstatt', 'town', '一键哈尔施塔特', '奥地利最美湖畔 · 福音堂尖塔木屋群 · 3D'],
+        ['giethoorn', 'gondola', '一键羊角村', '荷兰绿色水乡 · 运河乘船与驼峰茅草屋 · 3D'],
+        ['neuschwanstein', 'city', '一键新天鹅堡', '巴伐利亚梦幻城堡 · 王座厅与诗人殿 · 3D'],
+        ['venice', 'venice', '一键变水城威尼斯', '大运河 · 里亚托桥与贡多拉水城 · 3D'],
+        ['alpchalet', 'alps', '一键阿尔卑斯木屋', '雪山 · 松林 · 木屋 · 3D 体素 · 可进屋探索'],
+        ['admont', 'admont', '一键阿德蒙特图书馆', '阿德蒙特修道院图书馆 · 3D 室内 · 白金色 · 可自由行走'],
+        ['trinity', 'trinity', '一键剑桥三一学院', '剑桥三一学院 · 大庭院 · 大礼堂 · 雷恩图书馆']
+      ];
+      var ck = KINDS.filter(function (k) { return k[0] === (sc || cur); })[0];
+      var head = '<button type="button" class="wf-mega-pick' + (open ? ' on' : '') + '" data-wfmegapop aria-expanded="' + open + '"><i>' + px(ck && has ? ck[1] : 'wand') + '</i><b>一键生成 (16大世界) ' + (open ? '▴' : '▾') + '</b><small>' + (ck && has ? '现在：' + ck[2].replace('一键', '').replace(/^变 ?/, '') : 'City · Town · 乡村 · 瑞士雪山 · 圣托里尼 · 霍比屯 · 16大世界') + '</small></button>';
       var go3d = (sc === 'santorini' && window.MinestOia ? '<button type="button" class="sm" data-wfoia><i>' + px('oia') + '</i><b>进入 3D 圣托里尼</b></button>' : '') +
+        (cur === 'hobbiton' ? '<button type="button" class="sm" data-wfhobbiton><i>' + px('shire') + '</i><b>进入 3D 霍比屯</b></button>' : '') +
+        (cur === 'lauterbrunnen' ? '<button type="button" class="sm" data-wflauterbrunnen><i>' + px('alps') + '</i><b>进入 3D 劳特布龙嫩</b></button>' : '') +
+        (cur === 'bibury' ? '<button type="button" class="sm" data-wfbibury><i>' + px('shire') + '</i><b>进入 3D 拜伯里</b></button>' : '') +
+        (cur === 'downton' ? '<button type="button" class="sm" data-wfdownton><i>' + px('city') + '</i><b>进入 3D 唐顿庄园</b></button>' : '') +
+        (cur === 'hallstatt' ? '<button type="button" class="sm" data-wfhallstatt><i>' + px('town') + '</i><b>进入 3D 哈尔施塔特</b></button>' : '') +
+        (cur === 'giethoorn' ? '<button type="button" class="sm" data-wfgiethoorn><i>' + px('gondola') + '</i><b>进入 3D 羊角村</b></button>' : '') +
+        (cur === 'neuschwanstein' ? '<button type="button" class="sm" data-wfneuschwanstein><i>' + px('city') + '</i><b>进入 3D 新天鹅堡</b></button>' : '') +
         (sc === 'trinity' && window.MinestTrinity ? '<button type="button" class="sm" data-wftrinity><i>' + px('books') + '</i><b>进入 3D 三一学院</b></button>' : '') +
         (sc === 'admont' && window.MinestAdmont ? '<button type="button" class="sm" data-wfadmont><i>' + px('books') + '</i><b>进入 3D 阿德蒙特图书馆</b></button>' : '') +
         (sc === 'alpchalet' && window.MinestAlps ? '<button type="button" class="sm" data-wfalps><i>' + px('alps') + '</i><b>进入 3D 阿尔卑斯木屋</b></button>' : '') +
-        (W.mega && W.mega.kind === 'venice' && has ? '<button type="button" class="sm" data-wfvenice><i>' + px('gondola') + '</i><b>进入 3D 威尼斯</b></button>' : '');
+        (((W.mega && W.mega.kind === 'venice' && has) || sc === 'venice') ? '<button type="button" class="sm" data-wfvenice><i>' + px('gondola') + '</i><b>进入 3D 威尼斯</b></button>' : '');
       var list = open ? KINDS.map(function (k) { return '<button type="button" data-wfmega="' + k[0] + '"><i>' + px(k[1]) + '</i><b>' + k[2] + '</b><small>' + k[3] + '</small></button>'; }).join('') : '';
       return '<div class="wf-mega' + (open ? ' open' : '') + '">' + head + go3d + list +
         (has ? '<button type="button" class="sm" data-wfmega="again"><i>' + px('dice') + '</i><b>Another layout</b></button><button type="button" class="sm rm" data-wfmega="clear"><i>' + px('clear') + '</i><b>Clear the city</b></button>' : '') + '</div>';
@@ -129401,21 +129464,50 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
         if (v === 'clear') change(function () { V.d.pc = V.d.pc.filter(function (p) { return !p.city || (p.it && p.it.length); }); if (V.d.terr && V.d.terr.scape) delete V.d.terr; });
         else {
           var mk = v === 'again' ? (W.mega && W.mega.kind) || 'city' : v, sd = v === 'again' ? ((W.mega && W.mega.seed) || 1) + 1 : 1;
-          var scape = mk === 'countryside' || mk === 'alpine' || mk === 'venice' || mk === 'santorini' || mk === 'alpchalet' || mk === 'admont' || mk === 'trinity'; if (scape && v !== 'again') sd = (Date.now() % 9973) + 1;
-          W.mega = { kind: mk, seed: sd }; change(function () { if (V.d.terr && V.d.terr.scape) delete V.d.terr; if (mk === 'venice') veniceBuild(sd); else if (mk === 'santorini') santoriniBuild(sd); else if (mk === 'alpchalet') alpsBuild(sd); else if (mk === 'admont') admontBuild(sd); else if (mk === 'trinity') trinityBuild(sd); else if (scape) scapeBuild(mk, sd); else megaBuild(mk, sd); });
-          toast((mk === 'town' ? '🏘 Town' : mk === 'countryside' ? '🌿 English countryside' : mk === 'alpine' ? '🏔 Swiss alpine town' : mk === 'venice' ? '🛶 威尼斯水城 Venice' : mk === 'santorini' ? '🇬🇷 圣托里尼 · Oia' : mk === 'alpchalet' ? '🏔 阿尔卑斯木屋 · Alpine Chalet' : mk === 'admont' ? '📚 阿德蒙特图书馆 · Admont' : mk === 'trinity' ? '🎓 三一学院 · Trinity' : '🏙 City') + ' built · ↶ Undo puts the island back'); if (scape && window.MinestSfx) MinestSfx.play('whoosh');
-          if (mk === 'venice' && v !== 'again') setTimeout(veniceOpen, 700);
-          if (mk === 'santorini' && window.MinestOia) setTimeout(MinestOia.open, 700);
-          if (mk === 'trinity' && window.MinestTrinity && v !== 'again') setTimeout(MinestTrinity.open, 700);   // then straight into the 3D library
-          if (mk === 'admont' && window.MinestAdmont && v !== 'again') setTimeout(MinestAdmont.open, 700);   // then straight into the 3D library
-          if (mk === 'alpchalet' && window.MinestAlps && v !== 'again') setTimeout(MinestAlps.open, 700);   // then straight into the 3D valley   // then straight into the original voxel Oia   // then straight into the 3D water city
+          var is3d = mk === 'santorini' || mk === 'hobbiton' || mk === 'lauterbrunnen' || mk === 'bibury' || mk === 'downton' || mk === 'hallstatt' || mk === 'giethoorn' || mk === 'neuschwanstein' || mk === 'venice' || mk === 'alpchalet' || mk === 'admont' || mk === 'trinity';
+          var scape = mk === 'countryside' || mk === 'alpine' || is3d; if (scape && v !== 'again') sd = (Date.now() % 9973) + 1;
+          W.mega = { kind: mk, seed: sd };
+          change(function () {
+            if (V.d.terr && V.d.terr.scape) delete V.d.terr;
+            if (mk === 'santorini') santoriniBuild(sd);
+            else if (mk === 'venice' || mk === 'giethoorn') veniceBuild(sd);
+            else if (mk === 'alpchalet' && window.alpsBuild) alpsBuild(sd);
+            else if (mk === 'admont' && window.admontBuild) admontBuild(sd);
+            else if (mk === 'trinity' && window.trinityBuild) trinityBuild(sd);
+            else if (mk === 'lauterbrunnen' || mk === 'hallstatt' || mk === 'neuschwanstein' || mk === 'alpine') scapeBuild('alpine', sd);
+            else if (mk === 'hobbiton' || mk === 'bibury' || mk === 'downton' || mk === 'countryside') scapeBuild('countryside', sd);
+            else megaBuild(mk, sd);
+          });
+          var names = { city: '🏙 City 城市', town: '🏘 Town 小镇', countryside: '🌾 英国乡村', alpine: '🏔 瑞士雪山小镇', santorini: '🏛️ 圣托里尼 · Oia', hobbiton: '🍃 霍比屯 · Hobbiton', lauterbrunnen: '🏔️ 劳特布龙嫩 · Lauterbrunnen', bibury: '🏡 拜伯里 · Bibury', downton: '🏰 唐顿庄园 · Downton Abbey', hallstatt: '⛪ 哈尔施塔特 · Hallstatt', giethoorn: '🛶 羊角村 · Giethoorn', neuschwanstein: '👑 新天鹅堡 · Neuschwanstein', venice: '🛶 威尼斯水城 · Venice', alpchalet: '🪵 阿尔卑斯木屋', admont: '📚 阿德蒙特图书馆', trinity: '🎓 剑桥三一学院' };
+          toast((names[mk] || mk) + ' 已生成 · ↶ Undo 可复原小岛'); if (scape && window.MinestSfx) MinestSfx.play('whoosh');
+          if (v !== 'again') {
+            if (mk === 'santorini' && window.MinestOia) setTimeout(MinestOia.open, 600);
+            else if (mk === 'venice') setTimeout(function () { openWorldOverlay3D('venice.html', '威尼斯水城 · Venice'); }, 600);
+            else if (mk === 'hobbiton') setTimeout(function () { openWorldOverlay3D('hobbiton.html', '霍比屯 · Hobbiton'); }, 600);
+            else if (mk === 'lauterbrunnen') setTimeout(function () { openWorldOverlay3D('lauterbrunnen.html', '劳特布龙嫩 · Lauterbrunnen'); }, 600);
+            else if (mk === 'bibury') setTimeout(function () { openWorldOverlay3D('bibury.html', '拜伯里 · Bibury'); }, 600);
+            else if (mk === 'downton') setTimeout(function () { openWorldOverlay3D('downton.html', '唐顿庄园 · Downton Abbey'); }, 600);
+            else if (mk === 'hallstatt') setTimeout(function () { openWorldOverlay3D('hallstatt.html', '哈尔施塔特 · Hallstatt'); }, 600);
+            else if (mk === 'giethoorn') setTimeout(function () { openWorldOverlay3D('giethoorn.html', '羊角村 · Giethoorn'); }, 600);
+            else if (mk === 'neuschwanstein') setTimeout(function () { openWorldOverlay3D('neuschwanstein.html', '新天鹅堡 · Neuschwanstein'); }, 600);
+            else if (mk === 'trinity' && window.MinestTrinity) setTimeout(MinestTrinity.open, 600);
+            else if (mk === 'admont' && window.MinestAdmont) setTimeout(MinestAdmont.open, 600);
+            else if (mk === 'alpchalet' && window.MinestAlps) setTimeout(MinestAlps.open, 600);
+          }
         }
         hap(); try { fit(); } catch (x) {} return setTimeout(draw, 60);
       }
-      if (g.hasAttribute('data-wfvenice')) { hap(); return veniceOpen(); }
+      if (g.hasAttribute('data-wfvenice')) { hap(); return openWorldOverlay3D('venice.html', '威尼斯水城 · Venice'); }
       if (g.hasAttribute('data-wfoia') && window.MinestOia) { hap(); return MinestOia.open(); }
-      if (g.hasAttribute('data-wftrinity') && window.MinestTrinity) { hap(); return MinestTrinity.open(); }   // 🎓 the Trinity campus, in My World
-      if (g.hasAttribute('data-wfadmont') && window.MinestAdmont) { hap(); return MinestAdmont.open(); }   // 📚 the Admont library, in My World
+      if (g.hasAttribute('data-wfhobbiton')) { hap(); return openWorldOverlay3D('hobbiton.html', '霍比屯 · Hobbiton'); }
+      if (g.hasAttribute('data-wflauterbrunnen')) { hap(); return openWorldOverlay3D('lauterbrunnen.html', '劳特布龙嫩 · Lauterbrunnen'); }
+      if (g.hasAttribute('data-wfbibury')) { hap(); return openWorldOverlay3D('bibury.html', '拜伯里 · Bibury'); }
+      if (g.hasAttribute('data-wfdownton')) { hap(); return openWorldOverlay3D('downton.html', '唐顿庄园 · Downton Abbey'); }
+      if (g.hasAttribute('data-wfhallstatt')) { hap(); return openWorldOverlay3D('hallstatt.html', '哈尔施塔特 · Hallstatt'); }
+      if (g.hasAttribute('data-wfgiethoorn')) { hap(); return openWorldOverlay3D('giethoorn.html', '羊角村 · Giethoorn'); }
+      if (g.hasAttribute('data-wfneuschwanstein')) { hap(); return openWorldOverlay3D('neuschwanstein.html', '新天鹅堡 · Neuschwanstein'); }
+      if (g.hasAttribute('data-wftrinity') && window.MinestTrinity) { hap(); return MinestTrinity.open(); }
+      if (g.hasAttribute('data-wfadmont') && window.MinestAdmont) { hap(); return MinestAdmont.open(); }
       if (g.hasAttribute('data-wfalps') && window.MinestAlps) { hap(); return MinestAlps.open(); }   // 🏔 the Alpine Chalet valley, in My World   // 🇬🇷 the voxel Oia, in My World   // 3D Venezia Voxel, full screen
       if (g.hasAttribute('data-wfview')) { W.pop = null; hap(); return wkView(); }   // 阅览: the whole island in 3D, full screen
       if ((v = g.getAttribute('data-wfter'))) return terrAct(v);
@@ -145927,6 +146019,13 @@ html body .wf .wf-mega button[data-wfmega="santorini"] { background:#1f5fa8;bord
 html body .wf .wf-mega button[data-wfmega="venice"] { background:#1e5b8a;border-color:#5fa6c9 #14354f #14354f #5fa6c9; }
 html body .wf .wf-mega button[data-wfoia] { background:#0d3f7a;border-color:#4f8fd6 #082348 #082348 #4f8fd6;grid-column:span 2; }
 html body .wf .wf-mega button[data-wfvenice] { background:#0d4263;border-color:#4fa0cf #092334 #092334 #4fa0cf;grid-column:span 2; }
+html body .wf .wf-mega button[data-wfmega="hobbiton"] { background:#2d5a27;border-color:#65a30d #142e12 #142e12 #65a30d; }
+html body .wf .wf-mega button[data-wfmega="lauterbrunnen"] { background:#1e3a5f;border-color:#38bdf8 #0c1e33 #0c1e33 #38bdf8; }
+html body .wf .wf-mega button[data-wfmega="bibury"] { background:#5a4a28;border-color:#eab308 #2d2414 #2d2414 #eab308; }
+html body .wf .wf-mega button[data-wfmega="downton"] { background:#4c1d95;border-color:#c084fc #240e4a #240e4a #c084fc; }
+html body .wf .wf-mega button[data-wfmega="hallstatt"] { background:#155e75;border-color:#22d3ee #082f3b #082f3b #22d3ee; }
+html body .wf .wf-mega button[data-wfmega="giethoorn"] { background:#065f46;border-color:#34d399 #022c22 #022c22 #34d399; }
+html body .wf .wf-mega button[data-wfmega="neuschwanstein"] { background:#312e81;border-color:#818cf8 #171540 #171540 #818cf8; }
 /* 🛶 3D Venezia Voxel overlay */
 .wf-venice { position:fixed;inset:0;z-index:2147483600;background:#000;display:flex; }
 .wf-venice iframe { width:100%;height:100%;border:0;display:block; }
@@ -158251,7 +158350,7 @@ window.KRail = (function () {
     try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) {}
   }
   window.MinestOia = { open: open, close: close, world: world, bind: function (h) { H = h; }, isOpen: function () { return !!(root && !root.hidden && window.__oiaOn); } };
-  var MARKUP = "<button type=\"button\" id=\"oia-back\" class=\"mc\">\u2039 My World<\/button><button type=\"button\" id=\"oia-enter\" class=\"mc\" hidden><\/button><canvas id=\"oia-gl\" tabindex=\"0\"><\/canvas>\n\n<div id=\"oia-loading\">\n  <h1 class=\"mc\">SANTORINI<\/h1>\n  <div class=\"mc sub\">\u5723\u6258\u91cc\u5c3c \u00b7 \u7231\u7434\u6d77\u7834\u706b\u5c71\u53e3\u60ac\u5d16 \u00b7 \u4f0a\u4e9a Oia / \u84dd\u9876\u6559\u5802 / \u60ac\u5d16\u65e5\u843d / \u89c2\u5149\u8239<\/div>\n  <div id=\"oia-bar\"><i><\/i><\/div>\n  <div id=\"oia-loadMsg\" class=\"mc\">\u51c6\u5907\u4e2d\u2026<\/div>\n<\/div>\n\n<div id=\"oia-hud\">\n  <div id=\"oia-title\" class=\"mc\"><b>SANTORINI \u5723\u6258\u91cc\u5c3c<\/b><span id=\"oia-modeLabel\">\u5bfc\u89c8\u6a21\u5f0f<\/span><div id=\"oia-coords\"><\/div><\/div>\n  <div id=\"oia-crosshair\"><\/div>\n  <div id=\"oia-banner\" class=\"mc\"><b id=\"oia-bannerT\"><\/b><span id=\"oia-bannerS\"><\/span><\/div>\n  <div id=\"oia-mmWrap\" class=\"panel\">\n    <canvas id=\"oia-mm\" width=\"272\" height=\"224\"><\/canvas>\n    <div id=\"oia-timeBox\" class=\"mc\"><span id=\"oia-clock\">17:24<\/span><input id=\"oia-timeSlider\" type=\"range\" min=\"0\" max=\"24\" step=\"0.05\" value=\"17.4\"><\/div>\n  <\/div>\n  <div id=\"oia-held\" class=\"panel mc\"><i id=\"oia-heldSw\"><\/i><span id=\"oia-heldName\"><\/span><\/div>\n  <div id=\"oia-hint\" class=\"panel mc\"><\/div>\n  <div id=\"oia-lmMenu\" class=\"panel\"><\/div>\n  <div id=\"oia-lockHint\" class=\"panel mc\">\u70b9\u51fb\u753b\u9762\u5f00\u59cb \u00b7 Esc \u9000\u51fa\u9f20\u6807\u63a7\u5236<\/div>\n  <div id=\"oia-hotbar\"><\/div>\n  <div id=\"oia-toast\" class=\"panel mc\"><\/div>\n  <div id=\"oia-uw\"><\/div>\n<\/div>\n\n<div id=\"oia-touch\">\n  <div id=\"oia-joy\"><i><\/i><\/div>\n  <div id=\"oia-tJump\" class=\"tbtn\">\u2912<\/div>\n  <div id=\"oia-tDown\" class=\"tbtn\">\u2913<\/div>\n  <div id=\"oia-tFly\" class=\"tbtn\">\u98de<\/div>\n<\/div>\n\n<div id=\"oia-mpanel\">\n  <header><b>\ud83c\udf10 \u5723\u6258\u91cc\u5c3c 3D \u6a21\u578b\u5e93 \u00b7 Sketchfab<\/b><button class=\"mbtn\" id=\"oia-mClose\">\u2715 \u5173\u95ed<\/button><\/header>\n  <div class=\"row\">\n    <input type=\"text\" id=\"oia-mq\" value=\"santorini\" placeholder=\"\u641c\u7d22 Sketchfab \u6a21\u578b\u2026\">\n    <button class=\"mbtn\" id=\"oia-mGo\">\u641c\u7d22<\/button>\n  <\/div>\n  <div class=\"row\" id=\"oia-mchips\"><\/div>\n  <div class=\"row\" style=\"padding-top:0\"><label><input type=\"checkbox\" id=\"oia-mDl\"> \u4ec5\u53ef\u4e0b\u8f7d\uff08CC\uff09<\/label>\n    <label><input type=\"checkbox\" id=\"oia-mAnim\"> \u4ec5\u542b\u52a8\u753b<\/label><\/div>\n  <div id=\"oia-mstat\"><\/div>\n  <div id=\"oia-mgrid\"><\/div>\n  <div id=\"oia-mview\">\n    <div class=\"row\"><button class=\"mbtn\" id=\"oia-mBack\">\u2190 \u8fd4\u56de\u5217\u8868<\/button><span id=\"oia-mTitle\" style=\"font-weight:800\"><\/span><\/div>\n    <iframe id=\"oia-mFrame\" allow=\"autoplay; fullscreen; xr-spatial-tracking\" allowfullscreen mozallowfullscreen webkitallowfullscreen><\/iframe>\n    <div class=\"cap\" id=\"oia-mCap\"><\/div>\n  <\/div>\n  <div class=\"imp\">\n    <b>\u5bfc\u5165 glTF / GLB \u5230\u5f53\u524d\u573a\u666f<\/b>\uff08\u6765\u81ea Sketchfab \u4e0b\u8f7d\u3001Kenney\u3001Poly Pizza \u7b49\uff1b\u4e5f\u53ef\u76f4\u63a5\u628a\u6587\u4ef6\u62d6\u8fdb\u9875\u9762\uff09\n    <div class=\"row\"><input type=\"file\" id=\"oia-glbFile\" accept=\".glb,.gltf\" style=\"max-width:190px\">\n      <input type=\"text\" id=\"oia-glbUrl\" placeholder=\"https://\u2026/model.glb\uff08\u9700\u5141\u8bb8\u8de8\u57df\uff09\"><button class=\"mbtn\" id=\"oia-glbGo\">\u52a0\u8f7d<\/button><\/div>\n    <div class=\"row\">\u7f29\u653e <input type=\"range\" id=\"oia-glbScale\" min=\"0.2\" max=\"4\" step=\"0.05\" value=\"1\"><button class=\"mbtn\" id=\"oia-glbClear\">\u79fb\u9664<\/button><\/div>\n  <\/div>\n<\/div>\n<div id=\"oia-dropHint\" class=\"mc\">\u677e\u5f00\u4ee5\u5bfc\u5165 .glb \u6a21\u578b<\/div>";
+  var MARKUP = "<button type=\"button\" id=\"oia-back\" onclick=\"if(window.MinestOia)MinestOia.close()\" class=\"mc\">‹ 回到 My World (小岛)<\/button><button type=\"button\" id=\"oia-enter\" class=\"mc\" hidden><\/button><canvas id=\"oia-gl\" tabindex=\"0\"><\/canvas>\n\n<div id=\"oia-loading\">\n  <h1 class=\"mc\">SANTORINI<\/h1>\n  <div class=\"mc sub\">\u5723\u6258\u91cc\u5c3c \u00b7 \u7231\u7434\u6d77\u7834\u706b\u5c71\u53e3\u60ac\u5d16 \u00b7 \u4f0a\u4e9a Oia / \u84dd\u9876\u6559\u5802 / \u60ac\u5d16\u65e5\u843d / \u89c2\u5149\u8239<\/div>\n  <div id=\"oia-bar\"><i><\/i><\/div>\n  <div id=\"oia-loadMsg\" class=\"mc\">\u51c6\u5907\u4e2d\u2026<\/div>\n<\/div>\n\n<div id=\"oia-hud\">\n  <div id=\"oia-title\" class=\"mc\"><b>SANTORINI \u5723\u6258\u91cc\u5c3c<\/b><span id=\"oia-modeLabel\">\u5bfc\u89c8\u6a21\u5f0f<\/span><div id=\"oia-coords\"><\/div><\/div>\n  <div id=\"oia-crosshair\"><\/div>\n  <div id=\"oia-banner\" class=\"mc\"><b id=\"oia-bannerT\"><\/b><span id=\"oia-bannerS\"><\/span><\/div>\n  <div id=\"oia-mmWrap\" class=\"panel\">\n    <canvas id=\"oia-mm\" width=\"272\" height=\"224\"><\/canvas>\n    <div id=\"oia-timeBox\" class=\"mc\"><span id=\"oia-clock\">17:24<\/span><input id=\"oia-timeSlider\" type=\"range\" min=\"0\" max=\"24\" step=\"0.05\" value=\"17.4\"><\/div>\n  <\/div>\n  <div id=\"oia-held\" class=\"panel mc\"><i id=\"oia-heldSw\"><\/i><span id=\"oia-heldName\"><\/span><\/div>\n  <div id=\"oia-hint\" class=\"panel mc\"><\/div>\n  <div id=\"oia-lmMenu\" class=\"panel\"><\/div>\n  <div id=\"oia-lockHint\" class=\"panel mc\">\u70b9\u51fb\u753b\u9762\u5f00\u59cb \u00b7 Esc \u9000\u51fa\u9f20\u6807\u63a7\u5236<\/div>\n  <div id=\"oia-hotbar\"><\/div>\n  <div id=\"oia-toast\" class=\"panel mc\"><\/div>\n  <div id=\"oia-uw\"><\/div>\n<\/div>\n\n<div id=\"oia-touch\">\n  <div id=\"oia-joy\"><i><\/i><\/div>\n  <div id=\"oia-tJump\" class=\"tbtn\">\u2912<\/div>\n  <div id=\"oia-tDown\" class=\"tbtn\">\u2913<\/div>\n  <div id=\"oia-tFly\" class=\"tbtn\">\u98de<\/div>\n<\/div>\n\n<div id=\"oia-mpanel\">\n  <header><b>\ud83c\udf10 \u5723\u6258\u91cc\u5c3c 3D \u6a21\u578b\u5e93 \u00b7 Sketchfab<\/b><button class=\"mbtn\" id=\"oia-mClose\">\u2715 \u5173\u95ed<\/button><\/header>\n  <div class=\"row\">\n    <input type=\"text\" id=\"oia-mq\" value=\"santorini\" placeholder=\"\u641c\u7d22 Sketchfab \u6a21\u578b\u2026\">\n    <button class=\"mbtn\" id=\"oia-mGo\">\u641c\u7d22<\/button>\n  <\/div>\n  <div class=\"row\" id=\"oia-mchips\"><\/div>\n  <div class=\"row\" style=\"padding-top:0\"><label><input type=\"checkbox\" id=\"oia-mDl\"> \u4ec5\u53ef\u4e0b\u8f7d\uff08CC\uff09<\/label>\n    <label><input type=\"checkbox\" id=\"oia-mAnim\"> \u4ec5\u542b\u52a8\u753b<\/label><\/div>\n  <div id=\"oia-mstat\"><\/div>\n  <div id=\"oia-mgrid\"><\/div>\n  <div id=\"oia-mview\">\n    <div class=\"row\"><button class=\"mbtn\" id=\"oia-mBack\">\u2190 \u8fd4\u56de\u5217\u8868<\/button><span id=\"oia-mTitle\" style=\"font-weight:800\"><\/span><\/div>\n    <iframe id=\"oia-mFrame\" allow=\"autoplay; fullscreen; xr-spatial-tracking\" allowfullscreen mozallowfullscreen webkitallowfullscreen><\/iframe>\n    <div class=\"cap\" id=\"oia-mCap\"><\/div>\n  <\/div>\n  <div class=\"imp\">\n    <b>\u5bfc\u5165 glTF / GLB \u5230\u5f53\u524d\u573a\u666f<\/b>\uff08\u6765\u81ea Sketchfab \u4e0b\u8f7d\u3001Kenney\u3001Poly Pizza \u7b49\uff1b\u4e5f\u53ef\u76f4\u63a5\u628a\u6587\u4ef6\u62d6\u8fdb\u9875\u9762\uff09\n    <div class=\"row\"><input type=\"file\" id=\"oia-glbFile\" accept=\".glb,.gltf\" style=\"max-width:190px\">\n      <input type=\"text\" id=\"oia-glbUrl\" placeholder=\"https://\u2026/model.glb\uff08\u9700\u5141\u8bb8\u8de8\u57df\uff09\"><button class=\"mbtn\" id=\"oia-glbGo\">\u52a0\u8f7d<\/button><\/div>\n    <div class=\"row\">\u7f29\u653e <input type=\"range\" id=\"oia-glbScale\" min=\"0.2\" max=\"4\" step=\"0.05\" value=\"1\"><button class=\"mbtn\" id=\"oia-glbClear\">\u79fb\u9664<\/button><\/div>\n  <\/div>\n<\/div>\n<div id=\"oia-dropHint\" class=\"mc\">\u677e\u5f00\u4ee5\u5bfc\u5165 .glb \u6a21\u578b<\/div>";
 })();
 </script>
 <script id="mn-voxel-62">
@@ -159239,7 +159338,7 @@ window.KRail = (function () {
     if (!R.con) setCon(true);   // the Smart tools show their proposals in the console: keep it in sight
     if (c === 'smart') { wfPress('data-wfpanel', 'smart'); return toast('✨ Smart：在控制台里挑一个方案，✓ Confirm 后体素世界随之更新'); }
     if (c === 'fill') { wfPress('data-wffill'); return toast('🪄 Smart Fill：在控制台里预览，✓ Confirm 后生效'); }
-    if (c === 'mega') { wfPress('data-wfmegapop'); return toast('一键生成：在控制台里选一种岛'); }
+    if (c === 'mega') { if (window.MinestOpenMegaModal) return MinestOpenMegaModal(); wfPress('data-wfmegapop'); return; }
   }
   // world layout (x, y) → a point on My World's island view (its own iso projection and camera)
   function camOf() {
@@ -166942,8 +167041,8 @@ window.KRail = (function () {
       qbar.innerHTML = '<button type="button" class="oia-quick-btn pri" id="oia-q-bld">🏛️ 建造面板</button>' +
         '<button type="button" class="oia-quick-btn" id="oia-q-disp">🎨 展架与卡片</button>' +
         '<button type="button" class="oia-quick-btn" id="oia-q-door">🏠 进入剖面 (Doorhouse)</button>' +
-        '<button type="button" class="oia-quick-btn" id="oia-q-worlds">🌍 切换世界 (7大体素)</button>' +
-        '<button type="button" class="oia-quick-btn" id="oia-q-exit">‹ 返回 2D</button>';
+        '<button type="button" class="oia-quick-btn" id="oia-q-worlds">🎲 一键系列 (16大世界)</button>' +
+        '<button type="button" class="oia-quick-btn" id="oia-q-exit">‹ 回到 My World (小岛)</button>';
 
       qbar.addEventListener('click', function(e) {
         var b = e.target.closest('button'); if (!b) return;
@@ -166965,7 +167064,7 @@ window.KRail = (function () {
           }
           if (window.MinestOiaBld) MinestOiaBld.enterDoorhouse(sel);
         } else if (b.id === 'oia-q-worlds') {
-          openWorldsModal();
+          openMegaModal();
         } else if (b.id === 'oia-q-exit') {
           if (window.MinestOia) MinestOia.close();
         }
@@ -166979,42 +167078,41 @@ window.KRail = (function () {
     if (old) { old.remove(); return; }
     var m = document.createElement('div');
     m.id = 'mn-worlds-modal-69';
-    m.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(11,15,25,.82);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;';
-    m.innerHTML = '<div style="background:#161e2e;border:1px solid rgba(255,255,255,.15);border-radius:22px;box-shadow:0 24px 60px rgba(0,0,0,.6);width:min(680px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;position:relative;">' +
-      '<div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;">' +
-        '<div><h3 style="margin:0;font-size:19px;font-weight:800;background:linear-gradient(135deg,#60a5fa,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🌍 Minest 3D 体素世界大厅</h3><p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">Kiro 与 AI Studio 最新精选 8 大高拟真体素世界</p></div>' +
-        '<button type="button" id="mn-wm-close" style="background:rgba(255,255,255,.1);border:none;border-radius:50%;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;">✕</button>' +
+    m.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(11,15,25,.84);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;';
+    m.innerHTML = '<div style="background:#161e2e;border:1px solid rgba(255,255,255,.15);border-radius:24px;box-shadow:0 24px 60px rgba(0,0,0,.7);width:min(720px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;position:relative;">' +
+      '<div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.02);">' +
+        '<div><h3 style="margin:0;font-size:20px;font-weight:800;background:linear-gradient(135deg,#60a5fa,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🌍 Minest 3D 体素世界大厅</h3><p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">Kiro 与 AI Studio 最新精选 8 大高拟真体素世界 · 随时点击左上角安全返回</p></div>' +
+        '<button type="button" id="mn-wm-close" style="background:rgba(255,255,255,.1);border:none;border-radius:50%;width:34px;height:34px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>' +
       '</div>' +
-      '<div style="padding:16px 20px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">' +
-        '<a href="lauterbrunnen.html" style="text-decoration:none;color:inherit;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;" onmouseover="this.style.background=\'rgba(37,99,235,.2)\';this.style.borderColor=\'#60a5fa\'" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.08)\'">' +
+      '<div style="padding:18px 20px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;">' +
+        '<div class="mn-wm-card" data-url="lauterbrunnen.html" data-title="劳特布龙嫩 · Lauterbrunnen" style="cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;">' +
           '<span style="font-size:32px;">🏔️</span><div><b style="font-size:15px;display:block;">劳特布龙嫩 Lauterbrunnen</b><small style="color:#94a3b8;font-size:12px;">瑞士 72 瀑布山谷 · 施陶巴赫悬崖木屋</small></div>' +
-        '</a>' +
-        '<a href="bibury.html" style="text-decoration:none;color:inherit;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;" onmouseover="this.style.background=\'rgba(37,99,235,.2)\';this.style.borderColor=\'#60a5fa\'" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.08)\'">' +
-          '<span style="font-size:32px;">🏡</span><div><b style="font-size:15px;display:block;">拜伯里 Bibury</b><small style="color:#94a3b8;font-size:12px;">科茨沃尔德阿灵顿排屋 · 科恩河天鹅村</small></div>' +
-        '</a>' +
-        '<a href="downton.html" style="text-decoration:none;color:inherit;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;" onmouseover="this.style.background=\'rgba(37,99,235,.2)\';this.style.borderColor=\'#60a5fa\'" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.08)\'">' +
-          '<span style="font-size:32px;">🏰</span><div><b style="font-size:15px;display:block;">唐顿庄园 Downton Abbey</b><small style="color:#94a3b8;font-size:12px;">海克利尔城堡 · 雅各宾大沙龙与图书室</small></div>' +
-        '</a>' +
-        '<a href="hallstatt.html" style="text-decoration:none;color:inherit;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;" onmouseover="this.style.background=\'rgba(37,99,235,.2)\';this.style.borderColor=\'#60a5fa\'" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.08)\'">' +
-          '<span style="font-size:32px;">⛪</span><div><b style="font-size:15px;display:block;">哈尔施塔特 Hallstatt</b><small style="color:#94a3b8;font-size:12px;">奥地利最美湖畔 · 福音堂尖塔木屋群</small></div>' +
-        '</a>' +
-        '<a href="giethoorn.html" style="text-decoration:none;color:inherit;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;" onmouseover="this.style.background=\'rgba(37,99,235,.2)\';this.style.borderColor=\'#60a5fa\'" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.08)\'">' +
-          '<span style="font-size:32px;">🛶</span><div><b style="font-size:15px;display:block;">羊角村 Giethoorn</b><small style="color:#94a3b8;font-size:12px;">荷兰绿色水乡 · 运河乘船与驼峰茅草屋</small></div>' +
-        '</a>' +
-        '<a href="neuschwanstein.html" style="text-decoration:none;color:inherit;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;" onmouseover="this.style.background=\'rgba(37,99,235,.2)\';this.style.borderColor=\'#60a5fa\'" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.08)\'">' +
-          '<span style="font-size:32px;">👑</span><div><b style="font-size:15px;display:block;">新天鹅堡 Neuschwanstein</b><small style="color:#94a3b8;font-size:12px;">巴伐利亚梦幻城堡 · 王座厅与诗人殿</small></div>' +
-        '</a>' +
-        ' +
-        '<a href="hobbiton.html" style="text-decoration:none;color:inherit;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;" onmouseover="this.style.background=\'rgba(37,99,235,.2)\';this.style.borderColor=\'#60a5fa\'" onmouseout="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.08)\'">' +
+        '</div>' +
+        '<div class="mn-wm-card" data-url="bibury.html" data-title="拜伯里 · Bibury" style="cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;">' +
+          '<span style="font-size:32px;">🏡</span><div><b style="font-size:15px;display:block;">拜伯里 Bibury</b><small style="color:#94a3b8;font-size:12px;">科茨沃尔德阿灵顿排屋 · 蜂蜜石屋天鹅村</small></div>' +
+        '</div>' +
+        '<div class="mn-wm-card" data-url="hobbiton.html" data-title="霍比屯 · Hobbiton" style="cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;">' +
           '<span style="font-size:32px;">🍃</span><div><b style="font-size:15px;display:block;">霍比屯 Hobbiton</b><small style="color:#94a3b8;font-size:12px;">中土夏尔袋底洞 · 13座洞屋与水车磨坊</small></div>' +
-        '</a> +
-        '<a href="javascript:void(0)" id="mn-wm-stay-oia" style="text-decoration:none;color:inherit;background:rgba(37,99,235,.15);border:1px solid #3b82f6;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;">' +
-          '<span style="font-size:32px;">🏛️</span><div><b style="font-size:15px;display:block;">圣托里尼 Santorini</b><small style="color:#93c5fd;font-size:12px;">当前所在世界 · 6 层全景联动建造</small></div>' +
-        '</a>' +
+        '</div>' +
+        '<div class="mn-wm-card" data-url="downton.html" data-title="唐顿庄园 · Downton Abbey" style="cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;">' +
+          '<span style="font-size:32px;">🏰</span><div><b style="font-size:15px;display:block;">唐顿庄园 Downton Abbey</b><small style="color:#94a3b8;font-size:12px;">海克利尔城堡 · 雅各宾大沙龙与图书室</small></div>' +
+        '</div>' +
+        '<div class="mn-wm-card" data-url="hallstatt.html" data-title="哈尔施塔特 · Hallstatt" style="cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;">' +
+          '<span style="font-size:32px;">⛪</span><div><b style="font-size:15px;display:block;">哈尔施塔特 Hallstatt</b><small style="color:#94a3b8;font-size:12px;">奥地利最美湖畔 · 福音堂尖塔木屋群</small></div>' +
+        '</div>' +
+        '<div class="mn-wm-card" data-url="giethoorn.html" data-title="羊角村 · Giethoorn" style="cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;">' +
+          '<span style="font-size:32px;">🛶</span><div><b style="font-size:15px;display:block;">羊角村 Giethoorn</b><small style="color:#94a3b8;font-size:12px;">荷兰绿色水乡 · 运河乘船与驼峰茅草屋</small></div>' +
+        '</div>' +
+        '<div class="mn-wm-card" data-url="neuschwanstein.html" data-title="新天鹅堡 · Neuschwanstein" style="cursor:pointer;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .15s;">' +
+          '<span style="font-size:32px;">👑</span><div><b style="font-size:15px;display:block;">新天鹅堡 Neuschwanstein</b><small style="color:#94a3b8;font-size:12px;">巴伐利亚梦幻城堡 · 王座厅与诗人殿</small></div>' +
+        '</div>' +
+        '<div id="mn-wm-stay-oia" style="cursor:pointer;background:rgba(37,99,235,.15);border:1px solid #3b82f6;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;">' +
+          '<span style="font-size:32px;">🏛️</span><div><b style="font-size:15px;display:block;">圣托里尼 Santorini</b><small style="color:#93c5fd;font-size:12px;">全景体素世界 · 6 层全景联动建造</small></div>' +
+        '</div>' +
       '</div>' +
-      '<div style="padding:12px 20px;background:rgba(0,0,0,.2);display:flex;align-items:center;justify-content:space-between;">' +
-        '<a href="worlds.html" style="color:#60a5fa;font-size:13px;font-weight:700;text-decoration:none;">打开 3D 世界全景大厅 (网页版) ›</a>' +
-        '<span style="font-size:11px;color:#64748b;">Minest Voxel Worlds v69.5</span>' +
+      '<div style="padding:14px 24px;background:rgba(0,0,0,.25);border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;">' +
+        '<button type="button" id="mn-wm-to-mega" style="background:rgba(245,158,11,.2);border:1px solid #f59e0b;border-radius:12px;color:#fde68a;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;">🎲 查看全部「一键系列 16 大世界」</button>' +
+        '<span style="font-size:11px;color:#64748b;">Minest Voxel Worlds v69.8 · 随时一键返回</span>' +
       '</div>' +
     '</div>';
 
@@ -167022,34 +167120,150 @@ window.KRail = (function () {
     document.getElementById('mn-wm-close').onclick = function() { m.remove(); };
     var oiaLink = document.getElementById('mn-wm-stay-oia');
     if (oiaLink) oiaLink.onclick = function() { m.remove(); enterSantorini(); };
+    var megaBtn = document.getElementById('mn-wm-to-mega');
+    if (megaBtn) megaBtn.onclick = function() { m.remove(); openMegaModal(); };
+
+    m.querySelectorAll('.mn-wm-card').forEach(function(card) {
+      card.onmouseover = function() { card.style.background = 'rgba(37,99,235,.22)'; card.style.borderColor = '#60a5fa'; };
+      card.onmouseout = function() { card.style.background = 'rgba(255,255,255,.04)'; card.style.borderColor = 'rgba(255,255,255,.08)'; };
+      card.onclick = function() {
+        var url = card.getAttribute('data-url');
+        var title = card.getAttribute('data-title');
+        m.remove();
+        openWorldOverlay3D(url, title);
+      };
+    });
   }
   window.MinestOpenWorldsModal = openWorldsModal;
 
-  function injectBtn() {
-    if (!document.body) return;
-    if (!document.getElementById('mn-btn-santorini-3d')) {
-      var b = document.createElement('button');
-      b.id = 'mn-btn-santorini-3d';
-      b.type = 'button';
-      b.innerHTML = '🏛️ <b>3D 圣托里尼</b><small style="opacity:.85;font-size:10px;font-weight:600">体素世界 · 6层联动</small>';
-      b.style.cssText = 'position:fixed;top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:99999;display:flex;flex-direction:column;align-items:center;padding:7px 15px;background:linear-gradient(135deg,#007aff,#0051a8);color:#fff;border:2px solid #80bdff;border-radius:24px;font:800 13px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 6px 18px rgba(0,80,200,.45);cursor:pointer;pointer-events:auto;transition:transform .15s,box-shadow .15s;';
-      b.addEventListener('mouseenter', function() { b.style.transform = 'scale(1.05)'; });
-      b.addEventListener('mouseleave', function() { b.style.transform = 'scale(1)'; });
-      b.addEventListener('click', function(e) { e.stopPropagation(); enterSantorini(); });
-      document.body.appendChild(b);
-    }
+  function openMegaModal() {
+    var old = document.getElementById('mn-mega-modal');
+    if (old) { old.remove(); return; }
+    var m = document.createElement('div');
+    m.id = 'mn-mega-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:9999999;background:rgba(11,15,25,.86);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;';
 
-    if (!document.getElementById('mn-btn-worlds-portal-3d')) {
-      var p = document.createElement('button');
-      p.id = 'mn-btn-worlds-portal-3d';
-      p.type = 'button';
-      p.innerHTML = '🌍 <b>3D 探索大厅</b><small style="opacity:.85;font-size:10px;font-weight:600">霍比屯·劳特布龙嫩·8大世界</small>';
-      p.style.cssText = 'position:fixed;top:calc(12px + env(safe-area-inset-top));right:calc(168px + env(safe-area-inset-right));z-index:99999;display:flex;flex-direction:column;align-items:center;padding:7px 15px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:2px solid #c084fc;border-radius:24px;font:800 13px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 6px 18px rgba(124,58,237,.45);cursor:pointer;pointer-events:auto;transition:transform .15s,box-shadow .15s;';
-      p.addEventListener('mouseenter', function() { p.style.transform = 'scale(1.05)'; });
-      p.addEventListener('mouseleave', function() { p.style.transform = 'scale(1)'; });
-      p.addEventListener('click', function(e) { e.stopPropagation(); openWorldsModal(); });
-      document.body.appendChild(p);
-    }
+    var WORLDS_DATA = [
+      { cat: '经典一键小岛模板 (Codex 原生打造)', items: [
+        { id: 'city', icon: '🏙️', name: '一键变 City', desc: '2× 巨型海岛 · 21 个街区 · 旗舰商业大街', type: '2d' },
+        { id: 'town', icon: '🏘️', name: '一键变 Town', desc: '2× 海岛 · 集市小镇 · 绿地、喷泉与学校', type: '2d' },
+        { id: 'countryside', icon: '🌾', name: '一键英国乡村', desc: '连绵丘陵 · 蜿蜒小溪 · 村落、水塘与农场', type: '2d' },
+        { id: 'alpine', icon: '🏔️', name: '一键瑞士雪山小镇', desc: '阿尔卑斯雪峰 · 高山湖泊 · 木屋与铁道', type: '2d' }
+      ]},
+      { cat: '高拟真 3D 体素世界 (Kiro & AI Studio 最新精选)', items: [
+        { id: 'santorini', icon: '🏛️', name: '圣托里尼 Santorini', desc: '爱琴海悬崖伊亚 · 蓝顶教堂 · 6层联动建造', type: '3d_oia' },
+        { id: 'hobbiton', icon: '🍃', name: '霍比屯 Hobbiton', desc: '中土夏尔袋底洞 · 13座洞屋与水车磨坊', type: '3d_overlay', url: 'hobbiton.html' },
+        { id: 'lauterbrunnen', icon: '🏔️', name: '劳特布龙嫩 Lauterbrunnen', desc: '瑞士 72 瀑布山谷 · 施陶巴赫悬崖木屋', type: '3d_overlay', url: 'lauterbrunnen.html' },
+        { id: 'bibury', icon: '🏡', name: '拜伯里 Bibury', desc: '科茨沃尔德阿灵顿排屋 · 蜂蜜石屋天鹅村', type: '3d_overlay', url: 'bibury.html' },
+        { id: 'downton', icon: '🏰', name: '唐顿庄园 Downton Abbey', desc: '海克利尔城堡 · 雅各宾大沙龙与图书室', type: '3d_overlay', url: 'downton.html' },
+        { id: 'hallstatt', icon: '⛪', name: '哈尔施塔特 Hallstatt', desc: '奥地利最美湖畔 · 福音堂尖塔木屋群', type: '3d_overlay', url: 'hallstatt.html' },
+        { id: 'giethoorn', icon: '🛶', name: '羊角村 Giethoorn', desc: '荷兰绿色水乡 · 运河乘船与驼峰茅草屋', type: '3d_overlay', url: 'giethoorn.html' },
+        { id: 'neuschwanstein', icon: '👑', name: '新天鹅堡 Neuschwanstein', desc: '巴伐利亚梦幻城堡 · 王座厅与诗人殿', type: '3d_overlay', url: 'neuschwanstein.html' },
+        { id: 'venice', icon: '🛶', name: '威尼斯水城 Venice', desc: '大运河 · 里亚托桥与贡多拉水城', type: '3d_overlay', url: 'venice.html' }
+      ]},
+      { cat: '3D 室内名胜与学术建筑', items: [
+        { id: 'alpchalet', icon: '🪵', name: '阿尔卑斯木屋 Alpine Chalet', desc: '雪山 · 松林 · 木屋 · 3D 体素 · 可进屋探索', type: '3d_alps' },
+        { id: 'admont', icon: '📚', name: '阿德蒙特图书馆 Admont', desc: '阿德蒙特修道院图书馆 · 白金色 · 可自由行走', type: '3d_admont' },
+        { id: 'trinity', icon: '🎓', name: '剑桥三一学院 Trinity', desc: '剑桥三一学院 · 大庭院 · 大礼堂 · 雷恩图书馆', type: '3d_trinity' }
+      ]}
+    ];
+
+    var html = '<div style="background:#161e2e;border:1px solid rgba(255,255,255,.18);border-radius:24px;box-shadow:0 24px 60px rgba(0,0,0,.7);width:min(760px,96vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;position:relative;">' +
+      '<div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.02);">' +
+        '<div>' +
+          '<h3 style="margin:0;font-size:20px;font-weight:800;background:linear-gradient(135deg,#f59e0b,#60a5fa,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🎲 一键系列 · 16 大世界全景矩阵</h3>' +
+          '<p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">一键生成经典岛屿与沉浸 3D 体素世界 · 任何世界均可一键安全返回 My World</p>' +
+        '</div>' +
+        '<button type="button" id="mn-mega-close" style="background:rgba(255,255,255,.1);border:none;border-radius:50%;width:34px;height:34px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>' +
+      '</div>' +
+      '<div style="padding:18px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:18px;">';
+
+    WORLDS_DATA.forEach(function(group) {
+      html += '<div>' +
+        '<div style="font-size:13px;font-weight:800;color:#93c5fd;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">' +
+          '<span>' + group.cat + '</span>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;">';
+
+      group.items.forEach(function(it) {
+        html += '<div class="mn-mega-card" data-mid="' + it.id + '" data-mtype="' + it.type + '" data-murl="' + (it.url || '') + '" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;">' +
+          '<span style="font-size:30px;flex-shrink:0;">' + it.icon + '</span>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">' +
+              '<b style="font-size:14px;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + it.name + '</b>' +
+              (it.type !== '2d' ? '<span style="font-size:10px;font-weight:800;padding:2px 6px;background:rgba(59,130,246,.25);border:1px solid #3b82f6;border-radius:10px;color:#93c5fd;">3D</span>' : '<span style="font-size:10px;font-weight:800;padding:2px 6px;background:rgba(16,185,129,.2);border:1px solid #10b981;border-radius:10px;color:#6ee7b7;">小岛</span>') +
+            '</div>' +
+            '<small style="color:#94a3b8;font-size:11px;display:block;margin-top:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + it.desc + '</small>' +
+          '</div>' +
+        '</div>';
+      });
+      html += '</div></div>';
+    });
+
+    html += '</div>' +
+      '<div style="padding:12px 22px;background:rgba(0,0,0,.3);border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;">' +
+        '<span style="font-size:12px;color:#94a3b8;">💡 提示：进入任何 3D 世界后，左上角均有「‹ 回到 My World」一键返回</span>' +
+        '<a href="worlds.html" style="color:#60a5fa;font-size:12px;font-weight:700;text-decoration:none;">打开 3D 世界全景大厅 ›</a>' +
+      '</div>' +
+    '</div>';
+
+    m.innerHTML = html;
+    document.body.appendChild(m);
+
+    m.querySelector('#mn-mega-close').onclick = function() { m.remove(); };
+    m.querySelectorAll('.mn-mega-card').forEach(function(card) {
+      card.onmouseover = function() { card.style.background = 'rgba(37,99,235,.22)'; card.style.borderColor = '#60a5fa'; };
+      card.onmouseout = function() { card.style.background = 'rgba(255,255,255,.04)'; card.style.borderColor = 'rgba(255,255,255,.08)'; };
+      card.onclick = function() {
+        var mid = card.getAttribute('data-mid'), mtype = card.getAttribute('data-mtype'), murl = card.getAttribute('data-murl');
+        var title = (card.querySelector('b') && card.querySelector('b').textContent) || mid;
+        m.remove();
+
+        if (mtype === '3d_overlay') {
+          openWorldOverlay3D(murl, title);
+          return;
+        } else if (mtype === '3d_oia') {
+          enterSantorini();
+          return;
+        } else if (mtype === '3d_alps') {
+          if (window.MinestAlps) MinestAlps.open();
+          return;
+        } else if (mtype === '3d_admont') {
+          if (window.MinestAdmont) MinestAdmont.open();
+          return;
+        } else if (mtype === '3d_trinity') {
+          if (window.MinestTrinity) MinestTrinity.open();
+          return;
+        }
+
+        var btn = document.querySelector('button[data-wfmega="' + mid + '"]');
+        if (btn) {
+          btn.click();
+        } else {
+          var wf = document.querySelector('.wf');
+          if (wf) {
+            var tmp = document.createElement('button');
+            tmp.setAttribute('data-wfmega', mid);
+            wf.appendChild(tmp);
+            tmp.click();
+            tmp.remove();
+          }
+        }
+      };
+    });
+  }
+  window.MinestOpenMegaModal = openMegaModal;
+
+  function removeBoardWorldBtns() {
+    var ids = ['mn-btn-santorini-3d', 'mn-btn-worlds-portal-3d', 'mn-btn-mega-worlds-3d'];
+    ids.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.remove();
+    });
+  }
+
+  function injectBtn() {
+    removeBoardWorldBtns();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectBtn);

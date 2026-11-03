@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>劳特布龙嫩 · Lauterbrunnen 3D Voxel Valley</title>
+<style>
+  html,body,iframe { margin:0; padding:0; width:100%; height:100%; border:0; overflow:hidden; background:#0e1116; }
+  #mn-nav-bar {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top));
+    left: calc(14px + env(safe-area-inset-left));
+    z-index: 99999999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .mn-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.55);
+    backdrop-filter: blur(8px);
+    transition: transform .15s, background .15s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .mn-nav-btn:hover { transform: scale(1.04); }
+  .mn-nav-back {
+    background: rgba(15,23,42,0.92);
+    border: 2px solid #60a5fa;
+    color: #fff;
+  }
+  .mn-nav-hall {
+    background: rgba(15,23,42,0.8);
+    border: 1px solid rgba(255,255,255,0.22);
+    color: #cbd5e1;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+<nav id="mn-nav-bar">
+  <button type="button" id="mn-back-myworld" class="mn-nav-btn mn-nav-back"><span style="font-size:16px;">‹</span> <b>回到 My World (小岛)</b></button>
+  <a href="worlds.html" class="mn-nav-btn mn-nav-hall"><span>🌍</span> <span>3D世界大厅</span></a>
+</nav>
+<iframe src="lauterbrunnen/index.html" allow="autoplay; fullscreen; xr-spatial-tracking; accelerometer; gyroscope" style="width:100vw;height:100vh;border:0;"></iframe>
+<script>
+document.getElementById('mn-back-myworld').addEventListener('click', function(e) {
+  e.preventDefault(); e.stopPropagation();
+  if (window.parent && window.parent !== window) {
+    try {
+      if (window.parent.closeWorldOverlay3D) { window.parent.closeWorldOverlay3D(); return; }
+      window.parent.postMessage({ action: 'closeMinest3DOverlay' }, '*');
+      return;
+    } catch(err) {}
+  }
+  window.location.href = 'iPhoneDuo.html';
+});
+</script>
+</body>
+</html>

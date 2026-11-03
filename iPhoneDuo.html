@@ -125662,7 +125662,15 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
     if (window.MinestAlps && V && V.d && V.d.terr && V.d.terr.scape === 'alpchalet' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestAlps.open(); }   /* 🏔 the Alpine Chalet valley */
     if (window.MinestAdmont && V && V.d && V.d.terr && V.d.terr.scape === 'admont' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestAdmont.open(); }   /* 📚 the Admont library */
     if (window.MinestTrinity && V && V.d && V.d.terr && V.d.terr.scape === 'trinity' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestTrinity.open(); }   /* 🎓 the Trinity campus */
-    if (window.MinestOia && V && V.d && V.d.terr && V.d.terr.scape === 'santorini' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestOia.open(); }   /* 🇬🇷 the original voxel Oia (🚶 and 阅览 both land here) */
+    if (window.MinestOia && V && V.d && V.d.terr && V.d.terr.scape === 'santorini' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestOia.open(); }
+    if (W && W.mega && W.mega.kind === 'hobbiton') { return openWorldOverlay3D('hobbiton.html', '霍比屯 · Hobbiton'); }
+    if (W && W.mega && W.mega.kind === 'lauterbrunnen') { return openWorldOverlay3D('lauterbrunnen.html', '劳特布龙嫩 · Lauterbrunnen'); }
+    if (W && W.mega && W.mega.kind === 'bibury') { return openWorldOverlay3D('bibury.html', '拜伯里 · Bibury'); }
+    if (W && W.mega && W.mega.kind === 'downton') { return openWorldOverlay3D('downton.html', '唐顿庄园 · Downton Abbey'); }
+    if (W && W.mega && W.mega.kind === 'hallstatt') { return openWorldOverlay3D('hallstatt.html', '哈尔施塔特 · Hallstatt'); }
+    if (W && W.mega && W.mega.kind === 'giethoorn') { return openWorldOverlay3D('giethoorn.html', '羊角村 · Giethoorn'); }
+    if (W && W.mega && W.mega.kind === 'neuschwanstein') { return openWorldOverlay3D('neuschwanstein.html', '新天鹅堡 · Neuschwanstein'); }
+    if (W && W.mega && W.mega.kind === 'venice') { return openWorldOverlay3D('venice.html', '威尼斯水城 · Venice'); }   /* 🇬🇷 the original voxel Oia (🚶 and 阅览 both land here) */
     if (!V || WK) return; if (V.visit === undefined) {}
     toast('Building the 3D world…'); a3().then(function (AS) { if (!AS || !AS.three || !AS.webgl()) { toast('This device cannot draw the 3D world'); return; } if (el && V && !WK) wkStart(AS); });
   }
@@ -129451,7 +129459,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       if (g.hasAttribute('data-wfx')) { setPref(false); return sync(); }
       if ((v = g.getAttribute('data-wfgo'))) return goTo(+v);
       // the unified tools
-      if (g.hasAttribute('data-wfmegapop')) { if (window.MinestOpenMegaModal) return MinestOpenMegaModal(); W.megaOpen = !W.megaOpen; hap(); return draw(); }   // 一键生成 ▾
+      if (g.hasAttribute('data-wfmegapop')) { W.megaOpen = !W.megaOpen; hap(); return draw(); }   // 一键生成 ▾
       if ((v = g.getAttribute('data-wfmega'))) { W.megaOpen = false;
         if (v === 'clear') change(function () { V.d.pc = V.d.pc.filter(function (p) { return !p.city || (p.it && p.it.length); }); if (V.d.terr && V.d.terr.scape) delete V.d.terr; });
         else {
@@ -167246,43 +167254,16 @@ window.KRail = (function () {
   }
   window.MinestOpenMegaModal = openMegaModal;
 
+  function removeBoardWorldBtns() {
+    var ids = ['mn-btn-santorini-3d', 'mn-btn-worlds-portal-3d', 'mn-btn-mega-worlds-3d'];
+    ids.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.remove();
+    });
+  }
+
   function injectBtn() {
-    if (!document.body) return;
-    if (!document.getElementById('mn-btn-santorini-3d')) {
-      var b = document.createElement('button');
-      b.id = 'mn-btn-santorini-3d';
-      b.type = 'button';
-      b.innerHTML = '🏛️ <b>3D 圣托里尼</b><small style="opacity:.85;font-size:10px;font-weight:600">体素世界 · 6层联动</small>';
-      b.style.cssText = 'position:fixed;top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:99999;display:flex;flex-direction:column;align-items:center;padding:7px 15px;background:linear-gradient(135deg,#007aff,#0051a8);color:#fff;border:2px solid #80bdff;border-radius:24px;font:800 13px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 6px 18px rgba(0,80,200,.45);cursor:pointer;pointer-events:auto;transition:transform .15s,box-shadow .15s;';
-      b.addEventListener('mouseenter', function() { b.style.transform = 'scale(1.05)'; });
-      b.addEventListener('mouseleave', function() { b.style.transform = 'scale(1)'; });
-      b.addEventListener('click', function(e) { e.stopPropagation(); enterSantorini(); });
-      document.body.appendChild(b);
-    }
-
-    if (!document.getElementById('mn-btn-worlds-portal-3d')) {
-      var p = document.createElement('button');
-      p.id = 'mn-btn-worlds-portal-3d';
-      p.type = 'button';
-      p.innerHTML = '🌍 <b>3D 探索大厅</b><small style="opacity:.85;font-size:10px;font-weight:600">霍比屯·劳特布龙嫩·8大世界</small>';
-      p.style.cssText = 'position:fixed;top:calc(12px + env(safe-area-inset-top));right:calc(168px + env(safe-area-inset-right));z-index:99999;display:flex;flex-direction:column;align-items:center;padding:7px 15px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:2px solid #c084fc;border-radius:24px;font:800 13px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 6px 18px rgba(124,58,237,.45);cursor:pointer;pointer-events:auto;transition:transform .15s,box-shadow .15s;';
-      p.addEventListener('mouseenter', function() { p.style.transform = 'scale(1.05)'; });
-      p.addEventListener('mouseleave', function() { p.style.transform = 'scale(1)'; });
-      p.addEventListener('click', function(e) { e.stopPropagation(); openWorldsModal(); });
-      document.body.appendChild(p);
-    }
-
-    if (!document.getElementById('mn-btn-mega-worlds-3d')) {
-      var mg = document.createElement('button');
-      mg.id = 'mn-btn-mega-worlds-3d';
-      mg.type = 'button';
-      mg.innerHTML = '🎲 <b>一键系列</b><small style="opacity:.9;font-size:10px;font-weight:700">16大世界 · 经典与3D</small>';
-      mg.style.cssText = 'position:fixed;top:calc(12px + env(safe-area-inset-top));right:calc(324px + env(safe-area-inset-right));z-index:99999;display:flex;flex-direction:column;align-items:center;padding:7px 15px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:2px solid #fde68a;border-radius:24px;font:800 13px/1.2 system-ui,-apple-system,sans-serif;box-shadow:0 6px 18px rgba(245,158,11,.45);cursor:pointer;pointer-events:auto;transition:transform .15s,box-shadow .15s;';
-      mg.addEventListener('mouseenter', function() { mg.style.transform = 'scale(1.05)'; });
-      mg.addEventListener('mouseleave', function() { mg.style.transform = 'scale(1)'; });
-      mg.addEventListener('click', function(e) { e.stopPropagation(); openMegaModal(); });
-      document.body.appendChild(mg);
-    }
+    removeBoardWorldBtns();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectBtn);
