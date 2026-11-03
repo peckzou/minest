@@ -18,7 +18,7 @@ for w in bibury downton giethoorn hallstatt lauterbrunnen neuschwanstein santori
         echo "  -> copied ${w} to $DEST"
     fi
 done
-for h in worlds.html santorini.html bibury.html downton.html giethoorn.html hallstatt.html lauterbrunnen.html neuschwanstein.html; do
+for h in worlds.html santorini.html bibury.html downton.html giethoorn.html hallstatt.html lauterbrunnen.html neuschwanstein.html hobbiton.html; do
     if [ -f "${ROOT_DIR}/${h}" ]; then
         cp "${ROOT_DIR}/${h}" "$DEST/"
         echo "  -> copied ${h} to $DEST"
