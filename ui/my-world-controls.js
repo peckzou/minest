@@ -46,6 +46,7 @@ function prepare(){
    console.querySelectorAll('[data-console]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-console')===name);});
   }
   function open(on){if(window.MinestWorldNavigation)MinestWorldNavigation.stop();console.hidden=!on;toggle.setAttribute('aria-expanded',String(on));if(on)tab(activeTab);history();}
+  window.MinestOiaConsole={open:function(name){open(true);if(name)tab(name);}};
   toggle.onclick=function(){open(console.hidden);};
   console.addEventListener('click',function(e){
    var b=e.target.closest('[data-console]');if(!b)return;e.stopPropagation();var a=b.getAttribute('data-console'),api=window.MinestOiaBld;

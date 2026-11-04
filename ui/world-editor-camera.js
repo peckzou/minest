@@ -83,7 +83,7 @@ function frame(){
  var label=document.getElementById('oia-modeLabel');if(label)label.textContent='全局编辑 · 可缩放、旋转、平移';
  publish();return true;
 }
-root.MinestOiaEditor={get daylight(){return daylight;},get active(){return active;},get target(){return target;},get distance(){return distance;},frame:frame,fit:fit,focus:focus,walk:walk,explore:explore,zoom:zoom,pickBuilding:pickBuilding,ensureContext:ensureContext};
+root.MinestOiaEditor={get ready(){return initialized&&scene()&&worldRef===scene().world;},get daylight(){return daylight;},get active(){return active;},get target(){return target;},get distance(){return distance;},frame:frame,fit:fit,focus:focus,walk:walk,explore:explore,zoom:zoom,pickBuilding:pickBuilding,ensureContext:ensureContext};
 function onCanvas(e){return e.target&&e.target.id==='oia-gl'&&root.__oiaOn;}
 function pair(){
  var a=Array.from(points.values());

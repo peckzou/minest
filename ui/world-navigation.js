@@ -11,7 +11,7 @@ function inputLatch(write) {
  };
 }
 if (typeof module === 'object' && module.exports) { module.exports = { inputLatch: inputLatch }; return; }
-var voxelPane = false, fast = false, current = '', lastMode = '', heldProvider = null;
+var pendingOiaWalk = false, voxelPane = false, fast = false, current = '', lastMode = '', heldProvider = null;
 function provider(id) {
  if (id === 'voxel') {
   var v = root.MinestVoxel62;
@@ -43,6 +43,8 @@ function markup(id) {
 }
 function modeFor(e) { var host = e.target.closest('[data-nav-provider]'); return host && host.getAttribute('data-nav-provider'); }
 function render() {
+if(pendingOiaWalk&&root.__oiaOn&&root.MinestOiaEditor&&root.MinestOiaEditor.ready&&root.MinestOiaConsole){pendingOiaWalk=false;root.MinestOiaConsole.open('walk');root.MinestOiaEditor.explore('walk');}
+
  var v = root.MinestVoxel62, on = !!(v && v.isOpen()), center = document.querySelector('.wf .wf-center'), ov = document.getElementById('vx62');
  if (ov) ov.classList.toggle('navigation-integrated', on && !!v.controls);
  if (!on) voxelPane = false;
@@ -69,7 +71,8 @@ function render() {
 }
 document.addEventListener('click', function (e) {
  var original = e.target.closest('[data-wfhud="[data-fpv]"]'), v = root.MinestVoxel62;
- if (original && v && v.isOpen()) { e.preventDefault(); e.stopImmediatePropagation(); stop(); voxelPane = true; render(); return; }
+ if (original && v && v.isOpen()) { e.preventDefault(); e.stopImmediatePropagation(); stop();voxelPane=true;if(v.mode()==='view')v.mode('walk');render();return; }
+ if(original){var md=root.MinestDisplay,ctx=md&&md.integration&&md.integration.context();if(ctx&&ctx.world==='santorini'&&!ctx.roomId&&root.MinestOia){e.preventDefault();e.stopImmediatePropagation();pendingOiaWalk=true;root.MinestOia.open();return;}}
  if (e.target.closest('.wf button') && !e.target.closest('[data-nav-provider]')) { if (voxelPane) { stop(); voxelPane = false; render(); } }
  var id = modeFor(e), p = id && provider(id); if (!p) return;
  var b = e.target.closest('button'); if (!b) return;
