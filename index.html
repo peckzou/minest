@@ -157071,6 +157071,11 @@ window.KRail = (function () {
   let world = null;
   const S = { mode: 'walk', time: parseFloat(qs.get('t')) || 17.4, /* 69: start in walk */ auto: qs.get('auto') === '1', shadows: wantShadow, tourT: 0, hudT: 0, lampT: 0, held: 0, locked: false, elapsed: 0 };
   const keys = Object.create(null);
+  let consoleInput = {};
+  const consoleControls = {
+    input: function (next) { consoleInput = Object.assign({}, next); },
+    stop: function () { consoleInput = {}; for (const k in keys) keys[k] = false; joy.x = joy.y = 0; touchBtn.jump = touchBtn.down = false; player.vel.set(0, 0, 0); }
+  };
   const player = { pos: new V3(150.5, 44, 100.5), vel: new V3(), yaw: Math.PI / 2, pitch: 0.02, onGround: false, swim: false, fly: false, stepOff: 0, lastSpace: 0, climbT: 0 };
   const joy = { x: 0, y: 0 };
   const touchBtn = { jump: false, down: false };
@@ -157791,6 +157796,7 @@ window.KRail = (function () {
   let rideIdx = 0, ridePrevHeading = 0;
   function setMode(m, keepPos) {
     const prev = S.mode;
+    if (prev !== m) consoleControls.stop();
     if (!keepPos && (m === 'walk' || m === 'fly') && (prev === 'tour' || prev === 'boat')) {
       player.pos.set(camera.position.x, camera.position.y - 1.62, camera.position.z);
       player.vel.set(0, 0, 0);
@@ -157925,16 +157931,18 @@ window.KRail = (function () {
     return false;
   }
   function movePlayer(dt) {
-    const p = player;
-    const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - joy.y;
-    const side = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joy.x;
+    const p = player, n = consoleInput;
+    p.yaw += ((n.lookLeft ? 1 : 0) - (n.lookRight ? 1 : 0)) * dt * 1.6;
+    p.pitch = clamp(p.pitch + ((n.lookUp ? 1 : 0) - (n.lookDown ? 1 : 0)) * dt * 1.2, -1.5, 1.5);
+    const fwd = (keys.KeyW || keys.ArrowUp || n.forward ? 1 : 0) - (keys.KeyS || keys.ArrowDown || n.back ? 1 : 0) - joy.y;
+    const side = (keys.KeyD || keys.ArrowRight || n.right ? 1 : 0) - (keys.KeyA || keys.ArrowLeft || n.left ? 1 : 0) + joy.x;
     let ix = side, iz = -fwd;
     const l = Math.hypot(ix, iz); if (l > 1) { ix /= l; iz /= l; }
     const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
     const wx = cos * ix + sin * iz, wz = -sin * ix + cos * iz;
-    const sprint = !!(keys.ShiftLeft || keys.ShiftRight || keys.ControlLeft && !p.fly);
-    const jump = !!(keys.Space || touchBtn.jump);
-    const down = !!(keys.KeyC || (p.fly && (keys.ShiftLeft || keys.ShiftRight)) || touchBtn.down);
+    const sprint = !!(n.fast || keys.ShiftLeft || keys.ShiftRight || keys.ControlLeft && !p.fly);
+    const jump = !!(n.up || keys.Space || touchBtn.jump);
+    const down = !!(keys.KeyC || (p.fly && (keys.ShiftLeft || keys.ShiftRight)) || touchBtn.down || n.down);
     const feetCellWater = p.pos.y + 1.0 < VW.WATER_Y && !solidAt(Math.floor(p.pos.x), Math.floor(p.pos.y + 0.5), Math.floor(p.pos.z));
     p.swim = !p.fly && feetCellWater;
     if (p.climbT > 0) p.climbT -= dt;
@@ -158268,7 +158276,7 @@ window.KRail = (function () {
     try {
       setLoad('正在塑造破火山口悬崖…', 0.04); await nextFrame();
       world = window.__oiaWorld || VW.create(2021); window.__oiaWorld = world; if (window.__oiaApply) window.__oiaApply(world, null);   // the same world My World mapped; your saved edits on it
-      window.__santorini = { world, player, scene, camera, S, setMode, teleport, markDirty };
+      window.__santorini = { world, player, scene, camera, S, setMode, teleport, markDirty, controls: consoleControls };
       setLoad('烘焙像素贴图…', 0.16); await nextFrame();
       const atlas = new THREE.CanvasTexture(SantoriniTex.buildCanvas());
       atlas.magFilter = THREE.NearestFilter; atlas.minFilter = THREE.NearestFilter; atlas.generateMipmaps = false;
@@ -159108,18 +159116,20 @@ window.KRail = (function () {
     return true;
   }
   function updatePlayer(dt) {
-    var p = R.player, S = R.vw.S, k = R.keys, fly = R.mode === 'fly';
-    var f = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) - R.joy.y;
-    var s = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0) + R.joy.x;
+    var p = R.player, S = R.vw.S, k = R.keys, fly = R.mode === 'fly', n = R.navigation || {};
+    p.yaw += ((n.lookLeft ? 1 : 0) - (n.lookRight ? 1 : 0)) * dt * 1.6;
+    p.pitch = clamp(p.pitch + ((n.lookUp ? 1 : 0) - (n.lookDown ? 1 : 0)) * dt * 1.2, -1.5, 1.5);
+    var f = (k.KeyW || k.ArrowUp || n.forward ? 1 : 0) - (k.KeyS || k.ArrowDown || n.back ? 1 : 0) - R.joy.y;
+    var s = (k.KeyD || k.ArrowRight || n.right ? 1 : 0) - (k.KeyA || k.ArrowLeft || n.left ? 1 : 0) + R.joy.x;
     var fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw), rx = -fz, rz = fx;
     var wx = fx * f + rx * s, wz = fz * f + rz * s, wl = Math.hypot(wx, wz);
     if (wl > 1) { wx /= wl; wz /= wl; }
     var vw = R.vw, inW = (function () { var id = vw.get(Math.floor(p.x), Math.floor(p.y + .4 * S), Math.floor(p.z)); return id && REG.list[id].kind === 'water'; })();
-    var run = k.ShiftLeft && !fly || R.pad.run;
-    var sp = (fly ? 7 : inW ? 1.6 : run ? 5.2 : 3.2) * S * .5;
+    var run = n.fast || k.ShiftLeft && !fly || R.pad.run;
+    var sp = (fly ? (n.fast ? 12 : 7) : inW ? 1.6 : run ? 5.2 : 3.2) * S * .5;
     var a = 1 - Math.exp(-dt * (p.ground || fly ? 12 : 4));
     p.vx += (wx * sp - p.vx) * a; p.vz += (wz * sp - p.vz) * a;
-    var up = k.Space || R.pad.up, down = (fly && (k.ShiftLeft || k.KeyC)) || R.pad.down;
+    var up = n.up || k.Space || R.pad.up, down = (fly && (k.ShiftLeft || k.KeyC)) || R.pad.down || n.down;
     if (fly) p.vy += (((up ? 1 : 0) - (down ? 1 : 0)) * 4 * S - p.vy) * a;
     else if (inW) { p.vy -= 3 * S * dt; p.vy = Math.max(p.vy, -1.5 * S); if (up) p.vy = 1.4 * S; }
     else { p.vy -= 7 * S * dt; p.vy = Math.max(p.vy, -12 * S); if (up && p.ground) p.vy = Math.sqrt(2 * 7 * S * 1.15 * S * .5); }
@@ -159269,6 +159279,7 @@ window.KRail = (function () {
   /* ================================================================ modes + buttons */
   function setMode(m) {
     if (!R.vw) return;
+    if (R.mode !== m) stopNavigation();
     if (R.mode === 'view' && m !== 'view') {
       var o = R.orbit, p = R.player;   // walk in where the view looks
       p.yaw = o.az + Math.PI; p.pitch = -.15;
@@ -159760,6 +159771,7 @@ window.KRail = (function () {
     return build();
   }
   function close() {
+    stopNavigation();
     ov.classList.remove('open'); hidePop(ov); R.running = false; R.keys = {}; R.joy.x = R.joy.y = 0; layout();
     syncBtn();
   }
@@ -159772,7 +159784,9 @@ window.KRail = (function () {
   }
   setInterval(syncBtn, 900);
 
+  function stopNavigation() { R.navigation = {}; R.keys = {}; R.joy.x = R.joy.y = 0; R.pad.up = R.pad.down = R.pad.run = false; R.player.vx = R.player.vy = R.player.vz = 0; }
   window.MinestVoxel62 = {
+    controls: { input: function (next) { R.navigation = Object.assign({}, next); }, stop: stopNavigation },
     version: '62', open: open, close: close, isOpen: isOpen, rebuild: build,
     setScale: function (s) { R.S = s; return build(); }, mode: function (m) { if (m) setMode(m); return R.mode; },
     stats: function () { return R.stats || null; },
@@ -167384,6 +167398,29 @@ window.KRail = (function () {
 #oia-world-picker>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 #oia-world-picker button{min-height:44px;background:#4b4b4b;color:#fff;border:2px solid #111;padding:8px;font:600 13px system-ui}
 
+/* Walking and flying live in the console, using the original scene controls. */
+#oia-root #oia-dpad-69,#oia-root #oia-touch,#oia-root #oia-joy{display:none!important}
+#vx62.navigation-integrated .top .seg,#vx62.navigation-integrated .joy,#vx62.navigation-integrated .pad{display:none!important}
+#oia-navigation-pane[hidden]{display:none!important}
+.wf-center.world-navigation-open>:not(.world-navigation){display:none!important}
+.wf-center:not(.world-navigation-open)>.world-navigation{display:none!important}
+.world-navigation{font:600 13px/1.4 system-ui;color:#eee;padding:0 2px 10px;box-sizing:border-box}
+.world-navigation h3{font-size:15px;margin:0 0 8px}.world-navigation h4{font-size:12px;margin:8px 0 4px}
+.world-navigation .nav-help,.world-navigation [data-nav-status]{font-size:11px;line-height:1.5;color:#ddd;margin:7px 0}
+.world-navigation button{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;min-height:44px;background:#4b4b4b;color:#fff;border:2px solid #111;padding:6px;font:700 12px/1.35 system-ui;white-space:normal;cursor:pointer}
+.world-navigation button.on{background:#347725;border-color:#f2c633}.world-navigation button:disabled{opacity:.35;cursor:default}
+.world-navigation .nav-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.world-navigation .nav-pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.world-navigation .nav-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.world-navigation .nav-pad>button:first-child{grid-column:2}.world-navigation .nav-pad>button:nth-child(2){grid-column:1}.world-navigation .nav-pad>button:last-child{grid-column:2}
+.world-navigation .nav-altitude,.world-navigation .nav-camera{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:8px}
+@media(max-width:700px){.world-navigation .nav-pads{grid-template-columns:1fr}.world-navigation .nav-modes{grid-template-columns:1fr 1fr}.world-navigation .nav-modes>button:last-child{grid-column:1/-1}}
+
+#oia-root #oia-enter{display:none!important}
+
+.world-navigation .nav-modes{position:sticky;top:0;z-index:3;background:#383838;padding:3px 0}
+@media(max-width:700px){.world-navigation .nav-modes{grid-template-columns:repeat(3,minmax(0,1fr))}.world-navigation .nav-modes>button:last-child{grid-column:auto}.world-navigation .nav-modes>button{font-size:11px!important;padding:4px 2px!important}}
+
 </style>
 <script id="minest-world-editor-camera">
 /* Orbit editor over the original Santorini camera; no duplicated scene or content. */
@@ -167409,18 +167446,19 @@ function viewport(){
  return {width:r.width,height:r.height,visibleHeight:vh,aspect:r.width/vh};
 }
 function fit(top){
- var s=scene();if(!s)return;
+ if(root.MinestWorldNavigation)root.MinestWorldNavigation.stop();
+ var s=scene();if(!s)return;if(s.controls)s.controls.stop();
  target.x=s.world.W/2;target.z=s.world.D/2;target.y=30;
  elevation=top?1.48:.78;yaw=.65;active=true;fitted=true;var v=viewport();
  distance=fitDistance(s.world.W,s.world.D,65,v.aspect,50);viewHeight=v.visibleHeight;publish();
 }
 function publish(){
- var el=document.getElementById('oia-camera-summary');if(el && el.textContent!== (active?'编辑视角':'步行探索')+' · '+Math.round(distance)+' m · '+(gesture==='pan'?'拖动平移':'拖动旋转'))el.textContent=(active?'编辑视角':'步行探索')+' · '+Math.round(distance)+' m · '+(gesture==='pan'?'拖动平移':'拖动旋转');
+ var s=scene(),summary=active?'编辑视角 · '+Math.round(distance)+' m · '+(gesture==='pan'?'拖动平移':'拖动旋转'):(s&&s.S.mode==='fly'?'飞行探索':'步行探索')+' · 在 Walk in 控制台操作';var el=document.getElementById('oia-camera-summary');if(el&&el.textContent!==summary)el.textContent=summary;
  var r=document.getElementById('oia-camera-distance');if(r)r.value=String(Math.round(distance));
  var selected=root.MinestOiaBld&&root.MinestOiaBld.selected(),g=scene(),b=g&&g.world.buildings.find(function(b){return b.id===selected;}),n=document.getElementById('oia-selection');if(n&&n.textContent!==(b?'已选中：'+(b.name||b.id):'轻点画面中的建筑以选中'))n.textContent=b?'已选中：'+(b.name||b.id):'轻点画面中的建筑以选中';
  var p=document.getElementById('oia-camera-gesture');if(p&&p.textContent!==(gesture==='pan'?'当前：平移':'当前：旋转'))p.textContent=gesture==='pan'?'当前：平移':'当前：旋转';
 }
-function zoom(factor){active=true;fitted=false;distance=Math.max(12,Math.min(3500,distance*factor));publish();}
+function zoom(factor){if(root.MinestWorldNavigation)root.MinestWorldNavigation.stop();var s=scene();if(s&&s.controls)s.controls.stop();active=true;fitted=false;distance=Math.max(12,Math.min(3500,distance*factor));publish();}
 function pan(dx,dy){
  var v=viewport(),scale=2*distance*Math.tan(25*Math.PI/180)/v.visibleHeight;
  target.x+=(-Math.cos(yaw)*dx+Math.sin(yaw)*dy)*scale;
@@ -167440,22 +167478,27 @@ function pickBuilding(x,y){
  return best;
 }
 function focus(){
+ if(root.MinestWorldNavigation)root.MinestWorldNavigation.stop();
  var s=scene(),api=root.MinestOiaBld,id=api&&api.selected(),b=s&&s.world.buildings.find(function(b){return b.id===id;});
  if(!b){var el=document.getElementById('oia-camera-summary');if(el)el.textContent='先在画面中轻点一栋建筑，再聚焦';return;}
  target.x=(b.x0+b.x1+1)/2;target.z=(b.z0+b.z1+1)/2;target.y=b.y+(b.floors||2)*2;
  distance=fitDistance(b.x1-b.x0+5,b.z1-b.z0+5,(b.floors||2)*4+8,viewport().aspect,50);
  elevation=.7;active=true;fitted=false;publish();
 }
-function walk(){
+function explore(mode){
+ if(mode==='edit'){fit(false);return;}
+ if(mode!=='walk'&&mode!=='fly')return;
+ if(root.MinestWorldNavigation)root.MinestWorldNavigation.stop();
  active=false;points.clear();previous=null;
- var s=scene();if(s){s.camera.clearViewOffset();s.camera.far=3000;s.camera.fov=72;s.camera.updateProjectionMatrix();s.setMode('walk',true);}
+ var s=scene();if(s){if(s.controls)s.controls.stop();if(document.pointerLockElement)document.exitPointerLock();s.camera.clearViewOffset();s.camera.far=3000;s.camera.fov=72;s.camera.updateProjectionMatrix();s.setMode(mode,true);}
  publish();
 }
+function walk(){explore('walk');}
 function frame(){
  var s=scene();if(!s)return false;
  if(!initialized||worldRef!==s.world){initialized=true;worldRef=s.world;ensureContext();fit(false);}
  var host=document.getElementById('oia-root');host.classList.toggle('oia-edit-camera',active);
- if(!active)return false;
+ if(!active){var v=viewport();s.camera.setViewOffset(v.width,v.visibleHeight,0,0,v.width,v.height);publish();return false;}
  var v=viewport();if(fitted&&Math.abs(viewHeight-v.visibleHeight)>2){distance=fitDistance(s.world.W,s.world.D,65,v.aspect,50);viewHeight=v.visibleHeight;}
  var h=distance*Math.cos(elevation);
  s.camera.position.set(target.x+Math.sin(yaw)*h,target.y+Math.sin(elevation)*distance,target.z+Math.cos(yaw)*h);
@@ -167465,7 +167508,7 @@ function frame(){
  var label=document.getElementById('oia-modeLabel');if(label)label.textContent='全局编辑 · 可缩放、旋转、平移';
  publish();return true;
 }
-root.MinestOiaEditor={get daylight(){return daylight;},get active(){return active;},get target(){return target;},get distance(){return distance;},frame:frame,fit:fit,focus:focus,walk:walk,zoom:zoom,pickBuilding:pickBuilding,ensureContext:ensureContext};
+root.MinestOiaEditor={get daylight(){return daylight;},get active(){return active;},get target(){return target;},get distance(){return distance;},frame:frame,fit:fit,focus:focus,walk:walk,explore:explore,zoom:zoom,pickBuilding:pickBuilding,ensureContext:ensureContext};
 function onCanvas(e){return e.target&&e.target.id==='oia-gl'&&root.__oiaOn;}
 function pair(){
  var a=Array.from(points.values());
@@ -167509,6 +167552,103 @@ document.addEventListener('input',function(e){if(e.target.id==='oia-camera-dista
 })(typeof window==='object'?window:globalThis);
 
 </script>
+<script id="minest-world-navigation">
+/* One console controller; the original engines retain movement and collisions. */
+(function (root) {
+'use strict';
+function inputLatch(write) {
+ var held = new Map();
+ function flush() { var next = {}; held.forEach(function (a) { next[a] = true; }); write(next); }
+ return {
+  press: function (id, action) { held.set(id, action); flush(); },
+  release: function (id) { if(!held.has(id))return;held.delete(id);flush(); },
+  clear: function () { held.clear(); flush(); }
+ };
+}
+if (typeof module === 'object' && module.exports) { module.exports = { inputLatch: inputLatch }; return; }
+var voxelPane = false, fast = false, current = '', lastMode = '', heldProvider = null;
+function provider(id) {
+ if (id === 'voxel') {
+  var v = root.MinestVoxel62;
+  if (!v || !v.isOpen() || !v.controls) return null;
+  return { controls: v.controls, mode: function () { return v.mode(); }, setMode: function (m) { v.mode(m === 'edit' ? 'view' : m); }, position: v.player };
+ }
+ var s = root.__santorini, editor = root.MinestOiaEditor;
+ if (!root.__oiaOn || !s || !s.controls || !editor) return null;
+ return { controls: s.controls, mode: function () { return editor.active ? 'view' : s.S.mode; }, setMode: function (m) { editor.explore(m); }, position: function () { return s.player.pos; } };
+}
+var latch = inputLatch(function (next) { var p = heldProvider; if (p) { var moving=Object.keys(next).length>0; next.fast = fast; p.controls.input(next); if(!moving)p.controls.stop(); } });
+function stop() {
+ latch.clear();
+ if (heldProvider) heldProvider.controls.stop();
+ heldProvider = null; fast = false;
+ document.querySelectorAll('[data-nav-hold], [data-nav-fast]').forEach(function (b) { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); });
+}
+function button(action, label) { return '<button type="button" data-nav-hold="' + action + '" aria-label="' + label + '">' + label + '</button>'; }
+function markup(id) {
+ return '<section class="world-navigation" data-nav-provider="' + id + '" aria-label="Walk in 操作面板">' +
+  '<h3>🚶 Walk in · 探索与视角</h3><p data-nav-status role="status"></p>' +
+  '<div class="nav-modes"><button data-nav-mode="walk">🚶 步行</button><button data-nav-mode="fly">✈️ 飞行</button><button data-nav-mode="edit">🌐 全局视角</button></div>' +
+  '<p class="nav-help">长按移动或转头，松手即停。步行保留原有碰撞与跳跃。</p>' +
+  '<div class="nav-pads"><div><h4>移动</h4><div class="nav-pad">' + button('forward','↑ 前进') + button('left','← 左移') + '<button data-nav-stop aria-label="停止移动">■ 停止</button>' + button('right','右移 →') + button('back','↓ 后退') + '</div></div>' +
+  '<div><h4>视线</h4><div class="nav-pad">' + button('lookUp','↑ 抬头') + button('lookLeft','← 左转') + '<button data-nav-level>平视</button>' + button('lookRight','右转 →') + button('lookDown','↓ 低头') + '</div></div></div>' +
+  '<div class="nav-altitude">' + button('up','↑ 跳跃 / 上升') + button('down','↓ 下降') + '<button data-nav-fast aria-pressed="false">加速：关</button></div>' +
+  '<p class="nav-help">键盘 WASD 移动 · F 切换飞行 · 画面拖动转头</p>' +
+  (id === 'oia' ? '<div class="nav-camera"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="focus">聚焦选中建筑</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div>' : '<p class="nav-help">全局视角中拖动画面旋转，滚轮或双指缩放。</p>') + '</section>';
+}
+function modeFor(e) { var host = e.target.closest('[data-nav-provider]'); return host && host.getAttribute('data-nav-provider'); }
+function render() {
+ var v = root.MinestVoxel62, on = !!(v && v.isOpen()), center = document.querySelector('.wf .wf-center'), ov = document.getElementById('vx62');
+ if (ov) ov.classList.toggle('navigation-integrated', on && !!v.controls);
+ if (!on) voxelPane = false;
+ if (center) {
+  if (on && voxelPane && !center.querySelector('[data-nav-provider="voxel"]')) center.insertAdjacentHTML('beforeend', markup('voxel'));
+  center.classList.toggle('world-navigation-open', on && voxelPane);
+ }
+ var id = on && voxelPane ? 'voxel' : root.__oiaOn ? 'oia' : '', p = provider(id);
+ var mode = p ? p.mode() : '';
+ if (current !== id || lastMode !== mode) { stop(); current = id; lastMode = mode; }
+ document.querySelectorAll('[data-nav-provider]').forEach(function (host) {
+  var p = provider(host.getAttribute('data-nav-provider')); if (!p) return;
+  var m = p.mode(), pos = p.position(), text = ({ walk:'步行', fly:'飞行', view:'全局视角', tour:'导览' }[m] || m) + ' · XYZ ' + pos.x.toFixed(1) + ' / ' + pos.y.toFixed(1) + ' / ' + pos.z.toFixed(1);
+  var label = host.querySelector('[data-nav-status]'); if (label.textContent !== text) label.textContent = text;
+  host.querySelectorAll('[data-nav-mode]').forEach(function (b) { var active = b.dataset.navMode === (m === 'view' ? 'edit' : m); b.classList.toggle('on', active); b.setAttribute('aria-pressed', String(active)); });
+  host.querySelectorAll('[data-nav-hold],[data-nav-fast],[data-nav-level]').forEach(function (b) { b.disabled = m !== 'walk' && m !== 'fly'; });
+  var fastButton = host.querySelector('[data-nav-fast]'), textFast = fast && current === host.dataset.navProvider ? '加速：开' : '加速：关'; if (fastButton.textContent !== textFast) fastButton.textContent = textFast;fastButton.classList.toggle('on',fast&&current===host.dataset.navProvider);fastButton.setAttribute('aria-pressed',String(fast&&current===host.dataset.navProvider));
+ });
+ // If a console is closed or another tool replaces this pane, release every held action.
+ if (heldProvider) {
+  var visible = Array.from(document.querySelectorAll('[data-nav-provider="' + current + '"]')).some(function (h) { return h.getClientRects().length && !h.closest('[hidden]') && (current !== 'voxel' || voxelPane); });
+  if (!visible) stop();
+ }
+}
+document.addEventListener('click', function (e) {
+ var original = e.target.closest('[data-wfhud="[data-fpv]"]'), v = root.MinestVoxel62;
+ if (original && v && v.isOpen()) { e.preventDefault(); e.stopImmediatePropagation(); stop(); voxelPane = true; render(); return; }
+ if (e.target.closest('.wf button') && !e.target.closest('[data-nav-provider]')) { if (voxelPane) { stop(); voxelPane = false; render(); } }
+ var id = modeFor(e), p = id && provider(id); if (!p) return;
+ var b = e.target.closest('button'); if (!b) return;
+ if (b.hasAttribute('data-nav-mode')) { stop(); p.setMode(b.dataset.navMode); lastMode = p.mode(); render(); }
+ if (b.hasAttribute('data-nav-stop')) stop();
+ if (b.hasAttribute('data-nav-fast')) { heldProvider = p; current = id; fast = !fast; latch.release('fast-toggle'); render(); }
+ if (b.hasAttribute('data-nav-level')) { var pos = id === 'voxel' ? root.MinestVoxel62.player() : root.__santorini.player; pos.pitch = 0; }
+}, true);
+function press(e, token) {
+ var b = e.target.closest('[data-nav-hold]'); if (!b || b.disabled) return;
+ var id = modeFor(e), p = provider(id); if (!p || (p.mode() !== 'walk' && p.mode() !== 'fly')) return;
+ e.preventDefault(); e.stopPropagation(); heldProvider = p; current = id; lastMode = p.mode(); latch.press(token, b.dataset.navHold); b.classList.add('on'); b.setAttribute('aria-pressed','true');
+}
+document.addEventListener('pointerdown', function (e) { var b = e.target.closest('[data-nav-hold]'); if (!b || b.disabled) return; press(e, 'p' + e.pointerId); b.setPointerCapture(e.pointerId); }, true);
+function release(e) { latch.release('p' + e.pointerId); var b = e.target.closest('[data-nav-hold]'); if (b) { b.classList.remove('on'); b.setAttribute('aria-pressed','false'); } }
+document.addEventListener('pointerup', release, true); document.addEventListener('pointercancel', release, true); document.addEventListener('lostpointercapture', release, true);
+document.addEventListener('keydown', function (e) { if (e.repeat) return; if ((e.code === 'Space' || e.code === 'Enter') && e.target.matches('[data-nav-hold]')) { e.stopImmediatePropagation(); press(e, 'k' + e.code); } }, true);
+document.addEventListener('keyup', function (e) { if (e.code === 'Space' || e.code === 'Enter') { latch.release('k' + e.code); if(e.target.matches('[data-nav-hold]')){e.preventDefault();e.stopImmediatePropagation();e.target.classList.remove('on');} } }, true);
+window.addEventListener('blur', stop); document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); });
+root.MinestWorldNavigation = { markup: markup, stop: stop, render: render };
+setInterval(render, 150);
+})(typeof window === 'object' ? window : globalThis);
+
+</script>
 <script id="minest-world-controls-adapter">
 /* Console adapter: all content edits use the original My World data and history. */
 (function(){
@@ -167548,15 +167688,16 @@ function prepare(){
   var toggle=document.createElement('button');toggle.type='button';toggle.id='oia-console-toggle';toggle.textContent='≡';toggle.setAttribute('aria-label','打开 My World 控制台');toggle.setAttribute('aria-expanded','false');
   var console=document.createElement('section');console.id='oia-console';console.hidden=true;console.setAttribute('aria-label','My World 控制台');
   console.innerHTML='<header><b>🌴 World › 圣托里尼</b><span>1/6 · World</span><button data-console="close" aria-label="收起控制台">×</button></header>'+
-   '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="view" class="on">🌐<br>视角</button><button data-console="map">🗺️<br>地图</button><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button></nav><main><section id="oia-camera-pane"><h3>全局编辑</h3><p id="oia-camera-summary" role="status"></p><p id="oia-selection"></p><div class="camera-actions"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="focus">聚焦选中建筑</button><button data-camera="light">编辑照明：明亮</button><button data-camera="gesture" id="oia-camera-gesture">当前：旋转</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div><label>镜头距离<input id="oia-camera-distance" type="range" min="12" max="3500" step="1" aria-label="镜头距离"></label><p class="camera-help">拖动旋转 · 双指捏合缩放并平移<br>切换「平移」后单指拖动平移 · 轻点选建筑</p><button data-camera="walk">🚶 步行探索</button></section><section id="oia-map-pane" hidden><h3>世界地图</h3><p>轻点地图定位镜头 · 下方滑杆调整时间</p><div id="oia-console-map"></div></section></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>'+
+   '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="walk">🚶<br>Walk in</button><button data-console="view" class="on">🌐<br>视角</button><button data-console="map">🗺️<br>地图</button><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button></nav><main><div id="oia-navigation-pane" hidden></div><section id="oia-camera-pane"><h3>全局编辑</h3><p id="oia-camera-summary" role="status"></p><p id="oia-selection"></p><div class="camera-actions"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="focus">聚焦选中建筑</button><button data-camera="light">编辑照明：明亮</button><button data-camera="gesture" id="oia-camera-gesture">当前：旋转</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div><label>镜头距离<input id="oia-camera-distance" type="range" min="12" max="3500" step="1" aria-label="镜头距离"></label><p class="camera-help">拖动旋转 · 双指捏合缩放并平移<br>切换「平移」后单指拖动平移 · 轻点选建筑</p><button data-console="walk">🚶 Walk in · 步行与飞行</button></section><section id="oia-map-pane" hidden><h3>世界地图</h3><p>轻点地图定位镜头 · 下方滑杆调整时间</p><div id="oia-console-map"></div></section></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>'+
    '<footer><p id="oia-operation-status" role="status"></p><span id="oia-building-count"></span><div><button data-console="undo">↶ 撤销</button><button data-console="redo">↷ 重做</button><button data-console="reset">还原原始场景</button><button data-console="restore">恢复还原前编辑</button></div></footer>';
-  function tab(name){
+  var activeTab="view";
+  function tab(name){activeTab=name;
    var view=console.querySelector('#oia-camera-pane'),p=root.querySelector('#mn-bld-p');
-   var sceneTab=name==='view'||name==='map';view.hidden=name!=='view';console.querySelector('#oia-map-pane').hidden=name!=='map';if(window.MinestOiaBld)MinestOiaBld.toggle(!sceneTab);if(p)p.hidden=sceneTab;
+   if(window.MinestWorldNavigation)MinestWorldNavigation.stop();var sceneTab=name==='view'||name==='map'||name==='walk';console.querySelector('#oia-navigation-pane').hidden=name!=='walk';view.hidden=name!=='view';console.querySelector('#oia-map-pane').hidden=name!=='map';if(window.MinestOiaBld)MinestOiaBld.toggle(!sceneTab);if(p)p.hidden=sceneTab;
    var original=p&&p.querySelector('[data-tab="'+name+'"]');if(original)original.click();
    console.querySelectorAll('[data-console]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-console')===name);});
   }
-  function open(on){console.hidden=!on;toggle.setAttribute('aria-expanded',String(on));if(on)tab('view');history();}
+  function open(on){if(window.MinestWorldNavigation)MinestWorldNavigation.stop();console.hidden=!on;toggle.setAttribute('aria-expanded',String(on));if(on)tab(activeTab);history();}
   toggle.onclick=function(){open(console.hidden);};
   console.addEventListener('click',function(e){
    var b=e.target.closest('[data-console]');if(!b)return;e.stopPropagation();var a=b.getAttribute('data-console'),api=window.MinestOiaBld;
@@ -167564,10 +167705,11 @@ function prepare(){
    if(a==='worlds')return chooseWorld();
    if(a==='voxel'){open(false);return voxel();}
    if(a==='return'){open(false);if(window.MinestOia)MinestOia.close();return;}
-   if(a==='door'){if(api){var id=api.selected();if(id)api.enterDoorhouse(id);else{tab('view');status('先在画面中轻点一栋建筑，再进入房间');}}return;}
+   if(a==='door'){if(window.MinestWorldNavigation)MinestWorldNavigation.stop();if(window.MinestOiaEditor)MinestOiaEditor.ensureContext();var near=document.getElementById('oia-enter');if(near&&!near.hidden&&window.MinestOiaEditor&&!MinestOiaEditor.active){near.click();return;}if(api){var id=api.selected();if(id)api.enterDoorhouse(id);else{tab('view');status('先在画面中轻点一栋建筑，再进入房间');}}return;}
    if(['undo','redo','reset','restore'].includes(a)){if(api&&api[a]){var ok=api[a]();tab('view');status(ok?(a==='reset'?'已还原原始场景，仍可撤销或恢复还原前编辑':'操作完成'):a==='restore'?'没有还原前的备份':'当前没有可执行的操作');history();}return;}
    tab(a);
   });
+  if(window.MinestWorldNavigation)console.querySelector('#oia-navigation-pane').innerHTML=MinestWorldNavigation.markup('oia');
   root.appendChild(toggle);root.appendChild(console);
  }
  var console=root.querySelector('#oia-console'),main=console.querySelector('main');
