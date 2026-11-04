@@ -1,6 +1,8 @@
 /* Console adapter: all content edits use the original My World data and history. */
 (function(){
 'use strict';
+function nextTool(current,clicked){return current===clicked?null:clicked;}
+if(typeof module==='object'&&module.exports){module.exports={nextTool:nextTool};return;}
 function status(text){var e=document.getElementById('oia-operation-status');if(e)e.textContent=text;}
 function voxel(){
  var editor=window.MinestOiaEditor;if(editor)editor.ensureContext();
@@ -8,10 +10,10 @@ function voxel(){
  if(window.MinestVoxel62){Promise.resolve(MinestVoxel62.open({forceVoxel:true})).catch(function(e){status('体素空间未能打开：'+e.message);if(window.MinestOia)MinestOia.open();});}
 }
 function chooseWorld(){
- var host=document.getElementById('oia-root');if(!host||host.querySelector('#oia-world-picker'))return;
+ var host=document.getElementById('oia-world-pane');if(!host||host.querySelector('#oia-world-picker'))return;
  var picker=document.createElement('section');picker.id='oia-world-picker';picker.setAttribute('role','dialog');picker.setAttribute('aria-label','一键世界');
  picker.innerHTML='<header><b>🌍 一键世界</b><button aria-label="关闭世界选择">×</button></header><div></div>';
- picker.querySelector('header button').onclick=function(){picker.remove();};
+ picker.querySelector('header button').onclick=function(){if(window.MinestOiaConsole)MinestOiaConsole.cancel();};
  var native=[['santorini','圣托里尼','MinestOia'],['alpchalet','阿尔卑斯木屋','MinestAlps'],['admont','阿德蒙特图书馆','MinestAdmont'],['trinity','三一学院','MinestTrinity'],['study','英式藏书室','MinestStudy'],['hallstatt','哈尔施塔特','MinestHallstatt']];
  var options=native.filter(function(x){return window[x[2]];}).map(function(x){return {id:x[0],name:x[1],open:function(){if(window.MinestOia)MinestOia.close();if(window.MinestSceneCatalog)MinestSceneCatalog.open(x[0]);else window[x[2]].open();}};});
  if(window.MinestInteriors)MinestInteriors.kinds.forEach(function(k){options.push({id:k[0],name:k[2].replace('一键进入',''),open:function(){if(window.MinestOia)MinestOia.close();MinestInteriors.open(k[0]);}});});
@@ -35,28 +37,37 @@ function prepare(){
  if(!root.querySelector('#oia-console')){
   var toggle=document.createElement('button');toggle.type='button';toggle.id='oia-console-toggle';toggle.textContent='≡';toggle.setAttribute('aria-label','打开 My World 控制台');toggle.setAttribute('aria-expanded','false');
   var console=document.createElement('section');console.id='oia-console';console.hidden=true;console.setAttribute('aria-label','My World 控制台');
-  console.innerHTML='<header><b>🌴 World › 圣托里尼</b><span>1/6 · World</span><button data-console="close" aria-label="收起控制台">×</button></header>'+
-   '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="walk">🚶<br>Walk in</button><button data-console="view" class="on">🌐<br>视角</button><button data-console="map">🗺️<br>地图</button><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button></nav><main><div id="oia-navigation-pane" hidden></div><section id="oia-camera-pane"><h3>全局编辑</h3><p id="oia-camera-summary" role="status"></p><p id="oia-selection"></p><div class="camera-actions"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="focus">聚焦选中建筑</button><button data-camera="light">编辑照明：明亮</button><button data-camera="gesture" id="oia-camera-gesture">当前：旋转</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div><label>镜头距离<input id="oia-camera-distance" type="range" min="12" max="3500" step="1" aria-label="镜头距离"></label><p class="camera-help">拖动旋转 · 双指捏合缩放并平移<br>切换「平移」后单指拖动平移 · 轻点选建筑</p><button data-console="walk">🚶 Walk in · 步行与飞行</button></section><section id="oia-map-pane" hidden><h3>世界地图</h3><p>轻点地图定位镜头 · 下方滑杆调整时间</p><div id="oia-console-map"></div></section></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>'+
+  console.innerHTML='<header><b>🌴 World › 圣托里尼</b><span>1/6 · World</span><button data-console="cancel" aria-label="取消当前工具" disabled>取消</button><button data-console="close" aria-label="收起控制台">×</button></header>'+
+   '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="walk">🚶<br>Walk in</button><button data-console="view">🌐<br>视角</button><button data-console="map">🗺️<br>地图</button><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button></nav><main><section id="oia-idle-pane"><h3>选择一个工具</h3><p>再点一次已选按钮，或点「取消」，即可退出当前操作。</p><div><button data-console="walk">🚶 Walk in</button><button data-console="view">🌐 管理视角</button><button data-console="ai">✨ Smart</button></div></section><div id="oia-navigation-pane" hidden></div><section id="oia-camera-pane" hidden><h3>全局编辑</h3><p id="oia-camera-summary" role="status"></p><p id="oia-selection"></p><div class="camera-actions"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="focus">聚焦选中建筑</button><button data-camera="light">编辑照明：明亮</button><button data-camera="gesture" id="oia-camera-gesture">当前：旋转</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div><label>镜头距离<input id="oia-camera-distance" type="range" min="12" max="3500" step="1" aria-label="镜头距离"></label><p class="camera-help">拖动旋转 · 双指捏合缩放并平移<br>切换「平移」后单指拖动平移 · 轻点选建筑</p><button data-console="walk">🚶 Walk in · 步行与飞行</button></section><section id="oia-map-pane" hidden><h3>世界地图</h3><p>轻点地图定位镜头 · 下方滑杆调整时间</p><div id="oia-console-map"></div></section><section id="oia-world-pane" hidden></section></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>'+
    '<footer><p id="oia-operation-status" role="status"></p><span id="oia-building-count"></span><div><button data-console="undo">↶ 撤销</button><button data-console="redo">↷ 重做</button><button data-console="reset">还原原始场景</button><button data-console="restore">恢复还原前编辑</button></div></footer>';
-  var activeTab="view";
-  function tab(name){activeTab=name;
-   var view=console.querySelector('#oia-camera-pane'),p=root.querySelector('#mn-bld-p');
-   if(window.MinestWorldNavigation)MinestWorldNavigation.stop();var sceneTab=name==='view'||name==='map'||name==='walk';console.querySelector('#oia-navigation-pane').hidden=name!=='walk';view.hidden=name!=='view';console.querySelector('#oia-map-pane').hidden=name!=='map';if(window.MinestOiaBld)MinestOiaBld.toggle(!sceneTab);if(p)p.hidden=sceneTab;
+  var activeTab=null;
+  function tab(name){
+   var previous=activeTab;activeTab=name;console.dataset.tool=name||'';
+   if(window.MinestWorldNavigation)MinestWorldNavigation.stop();
+   if(previous==='walk'&&name!=='walk'&&window.MinestOiaEditor)MinestOiaEditor.explore('edit');
+   ['idle','navigation','camera','map','world'].forEach(function(key){var names={idle:null,navigation:'walk',camera:'view',map:'map',world:'worlds'};console.querySelector('#oia-'+key+'-pane').hidden=name!==names[key];});
+   var p=root.querySelector('#mn-bld-p'),build=['bld','elem','disp','ai'].includes(name);
+   if(window.MinestOiaBld)MinestOiaBld.toggle(build);if(p)p.hidden=!build;
    var original=p&&p.querySelector('[data-tab="'+name+'"]');if(original)original.click();
-   console.querySelectorAll('[data-console]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-console')===name);});
+   if(name==='worlds')chooseWorld();
+   if(name==='walk'&&window.MinestOiaEditor&&MinestOiaEditor.active)MinestOiaEditor.explore('walk');
+   console.querySelectorAll('[data-console]').forEach(function(b){var selected=!!name&&b.getAttribute('data-console')===name;b.classList.toggle('on',selected);if(['walk','view','map','bld','elem','disp','ai','worlds'].includes(b.dataset.console))b.setAttribute('aria-pressed',String(selected));});
+   console.querySelector('[data-console="cancel"]').disabled=!name;
+   console.querySelector('main').scrollTop=0;
+   status(name?'再次点击已选工具可取消':'已退出工具 · 可自由查看世界');
   }
-  function open(on){if(window.MinestWorldNavigation)MinestWorldNavigation.stop();console.hidden=!on;toggle.setAttribute('aria-expanded',String(on));if(on)tab(activeTab);history();}
-  window.MinestOiaConsole={open:function(name){open(true);if(name)tab(name);}};
+  function open(on){if(window.MinestWorldNavigation)MinestWorldNavigation.stop();console.hidden=!on;toggle.setAttribute('aria-expanded',String(on));if(on)tab(activeTab);else tab(null);history();}
+  window.MinestOiaConsole={open:function(name){open(true);if(name)tab(name);},cancel:function(){tab(null);},active:function(){return activeTab;}};
   toggle.onclick=function(){open(console.hidden);};
   console.addEventListener('click',function(e){
    var b=e.target.closest('[data-console]');if(!b)return;e.stopPropagation();var a=b.getAttribute('data-console'),api=window.MinestOiaBld;
    if(a==='close')return open(false);
-   if(a==='worlds')return chooseWorld();
+   if(a==='cancel')return tab(null);
    if(a==='voxel'){open(false);return voxel();}
    if(a==='return'){open(false);if(window.MinestOia)MinestOia.close();return;}
    if(a==='door'){if(window.MinestWorldNavigation)MinestWorldNavigation.stop();if(window.MinestOiaEditor)MinestOiaEditor.ensureContext();var near=document.getElementById('oia-enter');if(near&&!near.hidden&&window.MinestOiaEditor&&!MinestOiaEditor.active){near.click();return;}if(api){var id=api.selected();if(id)api.enterDoorhouse(id);else{tab('view');status('先在画面中轻点一栋建筑，再进入房间');}}return;}
-   if(['undo','redo','reset','restore'].includes(a)){if(api&&api[a]){var ok=api[a]();tab('view');status(ok?(a==='reset'?'已还原原始场景，仍可撤销或恢复还原前编辑':'操作完成'):a==='restore'?'没有还原前的备份':'当前没有可执行的操作');history();}return;}
-   tab(a);
+   if(['undo','redo','reset','restore'].includes(a)){if(api&&api[a]){var ok=api[a]();status(ok?(a==='reset'?'已还原原始场景，仍可撤销或恢复还原前编辑':'操作完成'):a==='restore'?'没有还原前的备份':'当前没有可执行的操作');history();}return;}
+   tab(nextTool(activeTab,a));
   });
   if(window.MinestWorldNavigation)console.querySelector('#oia-navigation-pane').innerHTML=MinestWorldNavigation.markup('oia');
   root.appendChild(toggle);root.appendChild(console);
