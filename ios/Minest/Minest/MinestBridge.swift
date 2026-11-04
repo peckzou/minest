@@ -44,6 +44,7 @@ public final class MinestBridge: NSObject, WKScriptMessageHandler {
     }
     
     private func handleAction(_ action: String, data: [String: Any]) {
+        if CarFlashController.shared.handle(action, data: data, bridge: self) { return }
         let boardTitle = data["boardTitle"] as? String ?? "Minest"
         let totalCards = data["totalCards"] as? Int ?? (data["totalCount"] as? Int ?? 20)
         let completedCards = data["completedCards"] as? Int ?? (data["completedCount"] as? Int ?? 0)

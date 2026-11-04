@@ -238,6 +238,7 @@ public final class LiveActivityManager: ObservableObject {
         // Find existing active activity
         let activeActivity = Activity<StudyActivityAttributes>.activities.first(where: { $0.activityState == .active })
         state.timer = activeActivity?.content.state.timer ?? pendingTimer
+        CarFlashController.shared.apply(to: &state)   // a playing car flashcard keeps the card
         let content = ActivityContent(state: state, staleDate: nil)
         
         if let activity = activeActivity {
@@ -303,6 +304,7 @@ public final class LiveActivityManager: ObservableObject {
             isPaused: false
         )
         initialContentState.rings = latestRings
+        CarFlashController.shared.apply(to: &initialContentState)
         let activityContent = ActivityContent(state: initialContentState, staleDate: nil)
         
         do {
@@ -342,6 +344,7 @@ public final class LiveActivityManager: ObservableObject {
         )
         updatedState.rings = latestRings
         updatedState.timer = currentState.timer
+        CarFlashController.shared.apply(to: &updatedState)
         let content = ActivityContent(state: updatedState, staleDate: nil)
         
         Task {

@@ -391,5 +391,29 @@ public struct MinestShortcuts: AppShortcutsProvider {
             shortTitle: "随机抽卡",
             systemImageName: "sparkles.rectangle.stack.fill"
         )
+        // hands-free while driving: the CarPlay Dashboard shows the card, Siri pauses / resumes it
+        AppShortcut(
+            intent: CarFlashToggleIntent(),
+            phrases: [
+                "暂停 \(.applicationName) 闪卡",
+                "继续 \(.applicationName) 闪卡",
+                "\(.applicationName) 闪卡 暂停",
+                "\(.applicationName) 闪卡 继续",
+                "Pause \(.applicationName) flashcards",
+                "Resume \(.applicationName) flashcards"
+            ],
+            shortTitle: "车载闪卡 暂停／继续",
+            systemImageName: "car.fill"
+        )
+        AppShortcut(
+            intent: CarFlashNextIntent(),
+            phrases: [
+                "\(.applicationName) 下一个闪卡",
+                "\(.applicationName) 闪卡 下一个",
+                "Next \(.applicationName) flashcard"
+            ],
+            shortTitle: "车载闪卡 下一个",
+            systemImageName: "forward.fill"
+        )
     }
 }

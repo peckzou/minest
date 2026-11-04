@@ -6,6 +6,7 @@ struct MinestWidgetBundle: WidgetBundle {
     var body: some Widget {
         MinestLiveActivityWidget()
         MinestStaticWidget()
+        MinestCarFlashWidget()
         if #available(iOS 18.0, *) {
             MinestFocusControlWidget()
             MinestCompleteControlWidget()
