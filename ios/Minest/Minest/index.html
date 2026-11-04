@@ -123125,18 +123125,20 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     return t + '</text></g>';
   }
   // ---- undo / redo: a step for every finished change of the scene (snapshots of the island record)
+  var HISTORIES = Object.create(null);
   var HIST = { bid: null, cur: null, u: [], r: [], busy: 0 };
-  function histSnap(R) { return JSON.stringify({ pc: R.pc || [], land: R.land || null, ground: R.ground || null, scene: R.scene || null, ex: R.ex || null, pg: R.pg || null, arch: R.arch || null, archLand: R.archLand || null, view: R.view || null, terr: R.terr || null }); }   // exhibitions too (64-exhibit.js)
-  function histStart() { if (!V || V.visit) return; HIST = { bid: V.bid, cur: histSnap(V.root || V.d), u: [], r: [], busy: 0 }; }
-  function histNote(bid, d) { if (HIST.busy || !V || V.visit) return; var j = histSnap(d); if (HIST.bid !== bid || HIST.cur == null) { HIST = { bid: bid, cur: j, u: [], r: [], busy: 0 }; return; } if (j === HIST.cur) return; HIST.u.push(HIST.cur); if (HIST.u.length > 60) HIST.u.shift(); HIST.cur = j; HIST.r = []; }
+  function histSnap(R) { return JSON.stringify({ pc: R.pc || [], land: R.land || null, ground: R.ground || null, scene: R.scene || null, ex: R.ex || null, pg: R.pg || null, arch: R.arch || null, archLand: R.archLand || null, view: R.view || null, terr: R.terr || null, vox: R.vox || null }); }   // exhibitions too (64-exhibit.js)
+  function histStart() { if(!V||V.visit)return;var bid=V.bid,j=histSnap(V.root||V.d),old=HISTORIES[bid];HIST=old&&old.cur===j?old:{bid:bid,cur:j,u:[],r:[],busy:0};HISTORIES[bid]=HIST; }
+  function histNote(bid,d) { if(!V||V.visit)return;var j=histSnap(d),h=HISTORIES[bid];if(!h){h=HISTORIES[bid]={bid:bid,cur:j,u:[],r:[],busy:0};}if(h.busy)return;if(j!==h.cur){h.u.push(h.cur);if(h.u.length>60)h.u.shift();h.cur=j;h.r=[];}HIST=h; }
   function histGo(back) {
+    if(V && HISTORIES[V.bid])HIST=HISTORIES[V.bid];
     if (!V || V.visit || HIST.bid !== V.bid) return false; var from = back ? HIST.u : HIST.r, to = back ? HIST.r : HIST.u; if (!from.length) { toast(back ? 'Nothing to undo' : 'Nothing to redo'); return false; }
-    to.push(HIST.cur); HIST.cur = from.pop(); var s = JSON.parse(HIST.cur), R = V.root || V.d; R.pc = s.pc; if (s.land) R.land = s.land; if (s.ground) R.ground = s.ground; if (s.scene) R.scene = s.scene; if (s.ex) R.ex = s.ex; else delete R.ex; ['pg', 'arch', 'archLand', 'view', 'terr'].forEach(function (k) { if (s[k]) R[k] = s[k]; else delete R[k]; });
+    to.push(HIST.cur); HIST.cur = from.pop(); var s = JSON.parse(HIST.cur), R = V.root || V.d; R.pc = s.pc; if (s.land) R.land = s.land; if (s.ground) R.ground = s.ground; if (s.scene) R.scene = s.scene; if (s.ex) R.ex = s.ex; else delete R.ex; ['pg', 'arch', 'archLand', 'view', 'terr', 'vox'].forEach(function (k) { if (s[k]) R[k] = s[k]; else delete R[k]; });
     if (V.at) { var b = (R.pc || []).filter(function (p) { return p.id === V.at.pc; })[0], r = b && V.at.room && (b.rooms || []).filter(function (x) { return x.id === V.at.room; })[0];
       if (!b) { bvClose(); V.d = R; V.root = null; V.at = null; } else if (V.at.room) { if (r) { roomD(r); V.d = r.d; } else { V.d = R; V.at = null; V.root = null; bldOpen(b.id); } } }
     V.sel = null; V.menu = null; HUD.moving = null; refreshLand(); HIST.busy = 1; save(); HIST.busy = 0; render(); if (typeof BV !== 'undefined' && BV) bvDraw(); hap('light'); toast(back ? '↶ Undone' : '↷ Redone'); return true;
   }
-  function histCan() { return { undo: HIST.bid === (V && V.bid) && HIST.u.length > 0, redo: HIST.bid === (V && V.bid) && HIST.r.length > 0 }; }
+  function histCan() {var h=V&&HISTORIES[V.bid];return {undo:!!(h&&h.u.length),redo:!!(h&&h.r.length)};}
   // ---- the look picker (selection bar ▸ 🎨 Look)
   function sdLookHtml(p) {
     var ref = (p.it || [])[0], v = resolveVisual(ref, p.vis), cur = v.type + (v.asset || ''), hasModel = v.options.some(function (o) { return o.type === 'model' && o.exact; });
@@ -125662,7 +125664,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
     if (window.MinestAlps && V && V.d && V.d.terr && V.d.terr.scape === 'alpchalet' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestAlps.open(); }   /* 🏔 the Alpine Chalet valley */
     if (window.MinestAdmont && V && V.d && V.d.terr && V.d.terr.scape === 'admont' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestAdmont.open(); }   /* 📚 the Admont library */
     if (window.MinestTrinity && V && V.d && V.d.terr && V.d.terr.scape === 'trinity' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestTrinity.open(); }   /* 🎓 the Trinity campus */
-    if (window.MinestOia && V && V.d && V.d.terr && V.d.terr.scape === 'santorini' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestOia.open(); }
+    if (!window.__vx62Cap && window.MinestOia && V && V.d && V.d.terr && V.d.terr.scape === 'santorini' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestOia.open(); }
     if (W && W.mega && W.mega.kind === 'hobbiton') { return openWorldOverlay3D('hobbiton.html', '霍比屯 · Hobbiton'); }
     if (W && W.mega && W.mega.kind === 'lauterbrunnen') { return openWorldOverlay3D('lauterbrunnen.html', '劳特布龙嫩 · Lauterbrunnen'); }
     if (W && W.mega && W.mega.kind === 'bibury') { return openWorldOverlay3D('bibury.html', '拜伯里 · Bibury'); }
@@ -128975,12 +128977,17 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       var A = out.displays; for (var i = 0; i < A.length; i++) for (var j = i + 1; j < A.length; j++) { var a = A[i].local, c = A[j].local, ka = K[A[i].kind], kc = K[A[j].kind]; if ((ka && ka.decor) || (kc && kc.decor)) continue; if (a.x - a.w / 2 < c.x + c.w / 2 - .05 && c.x - c.w / 2 < a.x + a.w / 2 - .05 && a.y - a.d / 2 < c.y + c.d / 2 - .05 && c.y - c.d / 2 < a.y + a.d / 2 - .05) out.problems.push('overlap: ' + A[i].id + ' / ' + A[j].id); }
       return out;
     };
-    window.__oiaBind = function () { MinestOia.bind({   // the voxel Oia and this island (bound on its first open: its runtime loads after this): its edits, its buildings' names, going into one
+    window.__oiaBind = function () { if(!V)return;var boundWorldContext=V;var hooks={   // the voxel Oia and this island (bound on its first open: its runtime loads after this): its edits, its buildings' names, going into one
       key: function () { return V && V.bid; },
       edits: function () { var R = V && (V.root || V.d); return (R && R.vox && R.vox.edits) || []; },
       edit: function (x, y, z, id, c) { if (!V) return; var R = islandD(); R.vox = R.vox || { edits: [] }; var E = R.vox.edits; for (var i = E.length - 1; i >= 0; i--) if (E[i][0] === x && E[i][1] === y && E[i][2] === z) { E.splice(i, 1); break; } E.push([x, y, z, id, c]); clearTimeout(W.voxT); W.voxT = setTimeout(function () { save(); }, 800); },
       bld: function () { var R = V && (V.root || V.d); return (R && R.vox && R.vox.bld) || null; },   /* 68: whole-building edits of this island */
-      bldSet: function (fn) { if (!V) return; var R = islandD(); R.vox = R.vox || { edits: [] }; R.vox.bld = R.vox.bld || { m: {}, a: [], n: 0 }; fn(R.vox.bld); clearTimeout(W.voxT); W.voxT = setTimeout(function () { save(); }, 400); },
+      bldSet: function (fn) { if (!V || V.visit) return false; var R = islandD(); histNote(V.bid,R); R.vox = R.vox || { edits: [] }; R.vox.bld = R.vox.bld || { m: {}, a: [], n: 0 }; fn(R.vox.bld); clearTimeout(W.voxT); save(true); return true; },
+      undo: function () {  return histGo(true); },
+      redo: function () { return histGo(false); },
+      history: function () { var c=histCan();return {undo:c.undo,redo:c.redo}; },
+      reset: function () { if(!V||V.visit)return false;var R=islandD(),vo=R.vox||{},br=vo.bld||{};if(!(vo.edits||[]).length&&!Object.keys(br.m||{}).length&&!(br.a||[]).length&&!(br.elements||[]).length&&!(br.displays||[]).length)return false;histNote(V.bid,R);R.vox=R.vox||{edits:[]};var backup={bld:R.vox.bld||null,edits:R.vox.edits||[]};var saveContext=V;KN().set('oia-restore:'+V.bid,JSON.parse(JSON.stringify(backup)),true);V=saveContext;R.vox.bld={m:{},a:[],n:0,elements:[],displays:[]};R.vox.edits=[];save(true);return true; },
+      restore: function () { if(!V||V.visit)return false;var saved=KN().get('oia-restore:'+V.bid);if(!saved)return false;var R=islandD();histNote(V.bid,R);R.vox=R.vox||{edits:[]};R.vox.bld=JSON.parse(JSON.stringify(saved.bld||{m:{},a:[],n:0}));R.vox.edits=JSON.parse(JSON.stringify(saved.edits||[]));save(true);return true; },
       label: function (bid) { if (!V) return null; var p = (islandD().pc || []).filter(function (q) { return q.vox === bid; })[0]; return p && p.label; },
       enter: function (bid, at) {   // through its door into its rooms: My World's rooms, displays and cards; 🌳 Outside brings you back to this doorstep
         if (!V) return; var R = islandD(), p = (R.pc || []).filter(function (q) { return q.vox === bid; })[0];
@@ -128989,7 +128996,9 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
         var r = p.rooms[0]; roomD(r); save(); MinestOia.close(); if (window.MinestSfx) MinestSfx.play('door');
         WKIN = { pc: p.id, back: null, vox: at }; V.root = R; V.at = { pc: p.id, room: r.id }; V.d = r.d; refreshLand(); render(); wkOpen();
       }
-    }); };
+    };
+    Object.keys(hooks).forEach(function(key){var fn=hooks[key];if(typeof fn!=='function'||key==='enter')return;hooks[key]=function(){var previous=V;V=boundWorldContext;try{return fn.apply(null,arguments);}finally{V=previous;}};});
+    MinestOia.bind(hooks); };
     // 🏔 一键阿尔卑斯木屋 (tools/voxel-alps/patch_alps.py): the island IS the Alpine Chalet voxel valley — its slopes, peaks and lake as the
     // terrain, each of its buildings a piece linked to it (p.alp), so the rooms, displays and things you give a chalet stay with it
     [['alp_chalet', '阿尔卑斯木屋 Alpine chalet', 'h_chalet'], ['alp_inn', '山间旅馆 Gasthaus', 'c_hotel'], ['alp_chapel', '山间小教堂 Chapel', 'c_church'], ['alp_barn', '谷仓 Barn', 'barn'], ['alp_hut', '山屋 Mountain hut', 'cabin']].forEach(function (v) {
@@ -130361,7 +130370,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       session: function () { return W.S ? { set: W.S.set, kind: W.S.kind, i: W.S.i, n: W.S.n, note: W.S.note } : null; }, locks: function (s) { return locks(s || setKey()); } };
     window.MinestWorldFold = WFAPI;
   })();
-  window.MinestDisplay = { resolve: function (ref, vis) { return V ? resolveVisual(ref, vis) : null; }, undo: function () { return histGo(true); }, redo: function () { return histGo(false); }, explore: function (on) { if (!V) return; V.explore = !!on; render(); },
+  window.MinestDisplay = { resolve: function (ref, vis) { return V ? resolveVisual(ref, vis) : null; }, undo: function () {  return histGo(true); }, redo: function () { return histGo(false); }, explore: function (on) { if (!V) return; V.explore = !!on; render(); },
     display: function (ref) {   // Universal Add: show a saved card in its world's scene, ready to place (Save first, display later)
       var lid = String(ref || '').split('/')[0], b = (A().boards() || []).filter(function (x) { return (x.columns || []).some(function (c) { return (c.cards || []).some(function (k) { return k.id === lid; }); }); })[0]; if (!b) return false;
       if (!V || V.bid !== b.id) { try { if (window.MinestUniverse && !document.querySelector('.uv')) MinestUniverse.open({ path: [{ t: 'home' }, { t: 'world', bid: b.id }] }); } catch (e) {} open({ t: 'world', bid: b.id }); }
@@ -157224,7 +157233,7 @@ window.KRail = (function () {
   const matGlow = new THREE.MeshBasicMaterial({ vertexColors: true });
 
   function updateSky(cam) {
-    const t = ((S.time % 24) + 24) % 24;
+    const t = window.MinestOiaEditor && window.MinestOiaEditor.active && window.MinestOiaEditor.daylight ? 12 : ((S.time % 24) + 24) % 24;
     const a = (t - 5.5) / 14 * Math.PI;
     sunDir.set(Math.cos(a), Math.sin(a), 0.3).normalize();
     const e = sunDir.y;
@@ -157246,7 +157255,7 @@ window.KRail = (function () {
     skyMat.uniforms.uSunDir.value.copy(sunDir); skyMat.uniforms.uSunCol.value.copy(sunCol);
     const under = cam.y < VW.WATER_Y - 0.05;
     if (under) { scene.fog.color.setRGB(0.07, 0.28, 0.4).multiplyScalar(0.3 + dayF * 0.7); scene.fog.density = 0.07; }
-    else { scene.fog.color.copy(cHor); scene.fog.density = 0.0028; }
+    else { scene.fog.color.copy(cHor); scene.fog.density = window.MinestOiaEditor && window.MinestOiaEditor.active ? Math.min(0.0028, 0.45 / window.MinestOiaEditor.distance) : 0.0028; }
     renderer.setClearColor(scene.fog.color);
     waterMesh.visible = !under;
     const wu = waterMat.uniforms;
@@ -157259,6 +157268,7 @@ window.KRail = (function () {
     sunSprite.visible = e > -0.12; moonSprite.visible = e < 0.1;
     skyMesh.position.copy(cam); stars.position.copy(cam);
     starMat.opacity = clamp(nightF * 1.1 - 0.1, 0, 0.95);
+    cloudMesh.visible = !(window.MinestOiaEditor && window.MinestOiaEditor.active);
     // clouds
     const TILE = cloudMesh.userData.TILE, drift = S.elapsed * 2.2;
     cloudMesh.position.x = Math.floor((cam.x - drift) / TILE) * TILE + drift;
@@ -158167,6 +158177,7 @@ window.KRail = (function () {
   /* ================= camera per mode ================= */
   const _la = new V3(), _tc = new V3(), _tt = new V3();
   function updateCamera(dt) {
+    if (window.MinestOiaEditor && window.MinestOiaEditor.frame()) return;
     if (S.mode === 'tour') {
       S.tourT = (S.tourT + dt / TOUR.dur) % 1;
       tourCam.getPointAt(S.tourT, _tc); tourTgt.getPointAt(S.tourT, _tt);
@@ -158198,7 +158209,7 @@ window.KRail = (function () {
   const _r = new V3(), _u = new V3(), _c = new V3(), _up = new V3(0, 1, 0);
   function updateShadow() {
     if (!S.shadows) return;
-    const ctr = _c.copy(S.mode === 'tour' ? player.pos : camera.position);
+    const ctr = _c.copy(window.MinestOiaEditor && window.MinestOiaEditor.active ? window.MinestOiaEditor.target : (S.mode === 'tour' ? player.pos : camera.position));
     _r.crossVectors(_up, lightDir).normalize(); _u.crossVectors(lightDir, _r).normalize();
     const tex = (SH * 2) / sun.shadow.mapSize.x;
     const a = Math.round(ctr.dot(_r) / tex) * tex, b = Math.round(ctr.dot(_u) / tex) * tex, d = ctr.dot(lightDir);
@@ -165310,12 +165321,12 @@ window.KRail = (function () {
    彻底移除 Minecraft 单块破坏与放置工具 (No Place, No Break, No 1x1x1 Outline) */
 (function () {
   'use strict';
-  if (window.MinestOiaBld && window.MinestOiaBld.version === '69.3') return;
+  if (window.MinestOiaBld && window.MinestOiaBld.version === '69.5') return;
 
   var H = null, bOrig = {}, lastSig = null, B0 = null, G0 = null, edit = null;
   var sel = null, selElem = null, selDisp = null, panel = null, hl = null, undoOne = null, armDel = 0, toastT = 0;
   var curTab = 'bld'; // 'bld' | 'elem' | 'disp' | 'ai'
-  var MOVABLE = /^(b\d+|u\d+)$/;
+  var MOVABLE = { test: function(id){ return typeof id === 'string' && id.length > 0; } };
   var KIND = { house: '白屋', cave: '洞穴屋', taverna: '小酒馆', chapel: '教堂' };
 
   /* ---------------------------------------------------------------- Real Cards from Minest Boards */
@@ -165703,7 +165714,7 @@ window.KRail = (function () {
       if (H && H.bldSet) {
         try { H.bldSet(function (rec) { rec.displays = st.displays; }); } catch (e) {}
       }
-    } else if (!st.displays || !st.displays.length) {
+    } else if (!st.displays) {
       st.displays = defaultDisplays(w);
       if (H && H.bldSet) {
         try { H.bldSet(function (rec) { rec.displays = st.displays; }); } catch (e) {}
@@ -165888,6 +165899,7 @@ window.KRail = (function () {
 
   function pickBuildingAt(clientX, clientY) {
     var s = sa(); if (!s || !s.world) return null;
+    if(window.MinestOiaEditor && window.MinestOiaEditor.active)return window.MinestOiaEditor.pickBuilding(clientX,clientY);
     var w = s.world, p = s.player.pos, yaw = s.player.yaw, pitch = s.player.pitch;
     var dx = -Math.sin(yaw) * Math.cos(pitch), dy = Math.sin(pitch), dz = -Math.cos(yaw) * Math.cos(pitch);
 
@@ -166069,7 +166081,7 @@ window.KRail = (function () {
       hl = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(1, 1, 1)), new T.LineBasicMaterial({ color: 0xffd23f, depthTest: false, linewidth: 2 }));
       hl.renderOrder = 999; hl.visible = false; s.scene.add(hl);
     }
-    if (!edit) { hl.visible = false; return; }
+    if (!edit && !(window.MinestOiaEditor&&window.MinestOiaEditor.active)) { hl.visible = false; return; }
 
     if (curTab === 'disp' && selDisp) {
       var st = H && H.bld ? H.bld() : null, dList = (st && st.displays) || defaultDisplays(world());
@@ -166111,6 +166123,8 @@ window.KRail = (function () {
 
   /* ---------------------------------------------------------------- Commit Changes */
   function commit(fn) {
+    if(window.MinestOiaEditor)window.MinestOiaEditor.ensureContext();
+    if(!H || !H.key || !H.key() || !H.bldSet){toast('未连接到当前世界，修改未保存');throw new Error('World is not bound');}
     var cur = H && H.bld ? H.bld() : null;
     var next = JSON.parse(JSON.stringify(cur || { m: {}, a: [], n: 0, elements: [], displays: defaultDisplays(world()) }));
     fn(next);
@@ -166119,7 +166133,8 @@ window.KRail = (function () {
       rec.elements = next.elements || [];
       rec.displays = next.displays || [];
     });
-    reapply();
+    if(JSON.stringify((H.bld()||{}).m)!==JSON.stringify(next.m)){toast('修改未保存，请重试');throw new Error('World write was not retained');}
+    reapply(); window.dispatchEvent(new Event('minest-world-edit'));
     return true;
   }
 
@@ -166577,7 +166592,7 @@ window.KRail = (function () {
   });
 
   window.MinestOiaBld = {
-    version: '69.3',
+    version: '69.5',
     toggle: toggle,
     act: function (a, d) { return ACT[a] ? ACT[a](d) : null; },
     select: function (id) { sel = id; curTab = 'bld'; updateHl(); fillPanel(); },
@@ -166593,6 +166608,11 @@ window.KRail = (function () {
       return w ? defaultDisplays(w) : [];
     },
     reapply: function () { reapply(); },
+    history: function () { return H&&H.history?H.history():{undo:false,redo:false}; },
+    undo: function () { if(!H||!H.undo||!H.undo())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
+    redo: function () { if(!H||!H.redo||!H.redo())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
+    reset: function () { if(!H||!H.reset||!H.reset())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
+    restore: function () { if(!H||!H.restore||!H.restore())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
     ensurePieceForBuilding: ensurePieceForBuilding,
     enterDoorhouse: enterDoorhouse,
     openCardModal: openCardModal,
@@ -167293,7 +167313,8 @@ window.KRail = (function () {
 
 
 
-<style id="minest-world-controls-20261103">/* One header, one action dock, and separate movement controls. */
+<style id="minest-world-controls-20261103">
+/* One header, one action dock, and separate movement controls. */
 #oia-root #oia-back { font:700 13px/1 system-ui!important; padding:11px 15px!important; border:1px solid #ffffff45!important; border-radius:16px!important; max-width:150px; white-space:nowrap; }
 #oia-root #oia-title { left:16px!important; top:calc(65px + env(safe-area-inset-top))!important; max-width:calc(100% - 170px); font:13px/1.5 system-ui!important; }
 #oia-root #oia-title b { display:block; font:700 17px/1.4 system-ui!important; }
@@ -167347,58 +167368,219 @@ window.KRail = (function () {
 #oia-root #oia-lockHint{display:none!important}
 
 #mn-btn-santorini-3d{display:none!important}
+#oia-map-pane[hidden],#oia-camera-pane[hidden]{display:none!important}
+#oia-camera-pane h3{margin:0 0 6px;font-size:15px}#oia-camera-pane p{margin:6px 0;font-size:11px;color:#ddd;line-height:1.5}
+#oia-camera-pane .camera-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#oia-camera-pane label{display:block;font-size:12px;margin:10px 0}#oia-camera-distance{display:block;width:100%;min-width:0;touch-action:auto}
+#oia-root #oia-console-map #oia-mmWrap{position:static!important;width:min(250px,100%)!important;max-width:none!important;margin:10px auto 0;box-sizing:border-box}
+#oia-root #oia-console-map #oia-mm{touch-action:manipulation}
+#oia-console footer{padding-top:8px;flex:none;font:11px/1.4 system-ui;color:#ccc}
+#oia-console footer div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:5px}
+#oia-console footer button{font-size:11px;min-height:40px;padding:5px}#oia-console button:disabled{opacity:.35;cursor:default}
+#oia-root.oia-edit-camera #oia-dpad-69,#oia-root.oia-edit-camera #oia-touch,#oia-root.oia-edit-camera #oia-enter,#oia-root.oia-edit-camera #oia-crosshair,#oia-root.oia-edit-camera #oia-banner{display:none!important}
+#oia-root #oia-gl{touch-action:none}
+#oia-world-picker{position:absolute;inset:12% 8%;z-index:2147483640;background:#383838;color:white;border:3px solid #111;border-radius:18px;padding:14px;overflow:auto;pointer-events:auto;font:600 14px system-ui}
+#oia-world-picker header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+#oia-world-picker>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#oia-world-picker button{min-height:44px;background:#4b4b4b;color:#fff;border:2px solid #111;padding:8px;font:600 13px system-ui}
+
 </style>
-<script id="minest-world-controls-adapter">/* UI adapter: all actions delegate to the existing My World systems. */
-(function () {
-  'use strict';
-  function voxel() { var b = document.getElementById('vx62-btn'); if (b) b.click(); }
-  function prepare() {
-    document.querySelectorAll('.wf .wf-acts').forEach(function (nav) {
-      if (nav.querySelector('[data-console-voxel]')) return;
-      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-console-voxel', '');
-      b.innerHTML = '<i>🧊</i><span>体素世界</span>'; b.addEventListener('click', voxel); nav.appendChild(b);
-    });
-    var santorini = document.getElementById('mn-btn-santorini-3d');
-    if (santorini) document.querySelectorAll('.wf .wf-acts').forEach(function(nav){
-      if(nav.querySelector('[data-console-santorini]'))return;
-      var b=document.createElement('button');b.type='button';b.setAttribute('data-console-santorini','');b.innerHTML='<i>🏛️</i><span>圣托里尼</span>';b.onclick=function(){santorini.click();};nav.appendChild(b);
-    });
-    var root = document.getElementById('oia-root');
-    if (!root) return;
-    var panel = root.querySelector('#mn-bld-p');
-    if (!root.querySelector('#oia-console')) {
-      var toggle = document.createElement('button'); toggle.type = 'button'; toggle.id = 'oia-console-toggle';
-      toggle.textContent = '≡'; toggle.setAttribute('aria-label', '打开 My World 控制台'); toggle.setAttribute('aria-expanded','false');
-      var console = document.createElement('section'); console.id = 'oia-console'; console.hidden = true;
-      console.setAttribute('aria-label','My World 控制台');
-      console.innerHTML = '<header><b>🌴 World › 圣托里尼</b><span>1/6 · World</span><button data-console="close" aria-label="收起控制台">×</button></header>' +
-        '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button></nav><main></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>';
-      function open(on) {
-        console.hidden = !on; toggle.setAttribute('aria-expanded',String(on));
-        if (window.MinestOiaBld) window.MinestOiaBld.toggle(on);
-      }
-      toggle.onclick = function () { open(console.hidden); };
-      console.addEventListener('click',function(e){
-        var b=e.target.closest('[data-console]'); if(!b)return;
-        var action=b.getAttribute('data-console'); e.stopPropagation();
-        if(action==='close')return open(false);
-        if(action==='voxel'){open(false);return voxel();}
-        if(action==='return'){open(false);if(window.MinestOia)window.MinestOia.close();return;}
-        if(action==='worlds'||action==='door'){
-          var old=document.getElementById(action==='worlds'?'oia-q-worlds':'oia-q-door');if(old){old.click();return;} if(action==='worlds'){open(false);if(window.MinestOia)window.MinestOia.close();var pick=document.querySelector('.wf [data-wfmegapop]');if(pick&&pick.getAttribute('aria-expanded')!=='true')pick.click();}return;
-        }
-        if(window.MinestOiaBld)window.MinestOiaBld.toggle(true);
-        var tab=root.querySelector('#mn-bld-p [data-tab="'+action+'"]');if(tab)tab.click();
-        console.querySelectorAll('[data-console]').forEach(function(x){x.classList.toggle('on',x===b);});
-      });
-      root.appendChild(toggle);root.appendChild(console);
-    }
-    if(panel && panel.parentElement!==root.querySelector('#oia-console main'))root.querySelector('#oia-console main').appendChild(panel);
+<script id="minest-world-editor-camera">
+/* Orbit editor over the original Santorini camera; no duplicated scene or content. */
+(function(root){
+'use strict';
+function fitDistance(w,d,h,aspect,fov){var r=Math.hypot(w,d,h)/2,half=Math.min(fov*Math.PI/360,Math.atan(Math.tan(fov*Math.PI/360)*aspect));return Math.max(12,r/Math.sin(half)*1.12);}
+if(typeof module==='object'&&module.exports){module.exports={fitDistance:fitDistance};return;}
+var daylight=true,active=true,initialized=false,worldRef=null,target={x:0,y:25,z:0},distance=350,yaw=.65,elevation=.8,gesture='rotate',fitted=true,points=new Map(),previous=null,dragged=false,viewHeight=0;
+function scene(){return root.__santorini;}
+function field(e){return e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName);}
+function ensureContext(){
+ var md=root.MinestDisplay;if(!md)return false;
+ if(md.isOpen&&md.isOpen()){if(root.__oiaBind)root.__oiaBind();return true;}
+ var A=root.MinestAI,boards=A&&A.boards?A.boards():[],current=A&&A.board?A.board():null;
+ var chosen=boards.find(function(b){var d=root.MinestKnowledge&&root.MinestKnowledge.get('dsp:'+b.id);return d&&d.terr&&d.terr.scape==='santorini';})||current||boards[0];
+ if(!chosen)return false;
+ if(root.MinestUniverse)root.MinestUniverse.open({path:[{t:'home'},{t:'world',bid:chosen.id}]});
+ md.open({bid:chosen.id});if(root.__oiaBind)root.__oiaBind();if(root.MinestOiaBld&&root.__santorini)root.MinestOiaBld.reapply();return true;
+}
+function viewport(){
+ var cv=document.getElementById('oia-gl'),r=cv.getBoundingClientRect(),c=document.getElementById('oia-console');
+ var vh=c&&!c.hidden?Math.max(180,c.getBoundingClientRect().top-r.top):r.height;
+ return {width:r.width,height:r.height,visibleHeight:vh,aspect:r.width/vh};
+}
+function fit(top){
+ var s=scene();if(!s)return;
+ target.x=s.world.W/2;target.z=s.world.D/2;target.y=30;
+ elevation=top?1.48:.78;yaw=.65;active=true;fitted=true;var v=viewport();
+ distance=fitDistance(s.world.W,s.world.D,65,v.aspect,50);viewHeight=v.visibleHeight;publish();
+}
+function publish(){
+ var el=document.getElementById('oia-camera-summary');if(el && el.textContent!== (active?'编辑视角':'步行探索')+' · '+Math.round(distance)+' m · '+(gesture==='pan'?'拖动平移':'拖动旋转'))el.textContent=(active?'编辑视角':'步行探索')+' · '+Math.round(distance)+' m · '+(gesture==='pan'?'拖动平移':'拖动旋转');
+ var r=document.getElementById('oia-camera-distance');if(r)r.value=String(Math.round(distance));
+ var selected=root.MinestOiaBld&&root.MinestOiaBld.selected(),g=scene(),b=g&&g.world.buildings.find(function(b){return b.id===selected;}),n=document.getElementById('oia-selection');if(n&&n.textContent!==(b?'已选中：'+(b.name||b.id):'轻点画面中的建筑以选中'))n.textContent=b?'已选中：'+(b.name||b.id):'轻点画面中的建筑以选中';
+ var p=document.getElementById('oia-camera-gesture');if(p&&p.textContent!==(gesture==='pan'?'当前：平移':'当前：旋转'))p.textContent=gesture==='pan'?'当前：平移':'当前：旋转';
+}
+function zoom(factor){active=true;fitted=false;distance=Math.max(12,Math.min(3500,distance*factor));publish();}
+function pan(dx,dy){
+ var v=viewport(),scale=2*distance*Math.tan(25*Math.PI/180)/v.visibleHeight;
+ target.x+=(-Math.cos(yaw)*dx+Math.sin(yaw)*dy)*scale;
+ target.z+=(Math.sin(yaw)*dx+Math.cos(yaw)*dy)*scale;
+ fitted=false;
+}
+function pickBuilding(x,y){
+ var s=scene(),T=root.THREE;if(!s||!T)return null;
+ var r=document.getElementById('oia-gl').getBoundingClientRect(),ray=new T.Raycaster();s.camera.updateMatrixWorld(true);
+ ray.setFromCamera(new T.Vector2((x-r.left)/r.width*2-1,1-(y-r.top)/r.height*2),s.camera);
+ var best=null,dist=Infinity,p=new T.Vector3();
+ s.world.buildings.forEach(function(b){
+  var maxY=b.y+(b.floors||2)*4+6;
+  var box=new T.Box3(new T.Vector3(b.x0,b.y,b.z0),new T.Vector3(b.x1+1,maxY,b.z1+1));
+  if(ray.ray.intersectBox(box,p)){var d=p.distanceTo(s.camera.position);if(d<dist){best=b;dist=d;}}
+ });
+ return best;
+}
+function focus(){
+ var s=scene(),api=root.MinestOiaBld,id=api&&api.selected(),b=s&&s.world.buildings.find(function(b){return b.id===id;});
+ if(!b){var el=document.getElementById('oia-camera-summary');if(el)el.textContent='先在画面中轻点一栋建筑，再聚焦';return;}
+ target.x=(b.x0+b.x1+1)/2;target.z=(b.z0+b.z1+1)/2;target.y=b.y+(b.floors||2)*2;
+ distance=fitDistance(b.x1-b.x0+5,b.z1-b.z0+5,(b.floors||2)*4+8,viewport().aspect,50);
+ elevation=.7;active=true;fitted=false;publish();
+}
+function walk(){
+ active=false;points.clear();previous=null;
+ var s=scene();if(s){s.camera.clearViewOffset();s.camera.far=3000;s.camera.fov=72;s.camera.updateProjectionMatrix();s.setMode('walk',true);}
+ publish();
+}
+function frame(){
+ var s=scene();if(!s)return false;
+ if(!initialized||worldRef!==s.world){initialized=true;worldRef=s.world;ensureContext();fit(false);}
+ var host=document.getElementById('oia-root');host.classList.toggle('oia-edit-camera',active);
+ if(!active)return false;
+ var v=viewport();if(fitted&&Math.abs(viewHeight-v.visibleHeight)>2){distance=fitDistance(s.world.W,s.world.D,65,v.aspect,50);viewHeight=v.visibleHeight;}
+ var h=distance*Math.cos(elevation);
+ s.camera.position.set(target.x+Math.sin(yaw)*h,target.y+Math.sin(elevation)*distance,target.z+Math.cos(yaw)*h);
+ s.camera.fov=50;s.camera.far=6000;
+ s.camera.setViewOffset(v.width,v.visibleHeight,0,0,v.width,v.height);
+ s.camera.lookAt(target.x,target.y,target.z);s.camera.updateMatrixWorld(true);
+ var label=document.getElementById('oia-modeLabel');if(label)label.textContent='全局编辑 · 可缩放、旋转、平移';
+ publish();return true;
+}
+root.MinestOiaEditor={get daylight(){return daylight;},get active(){return active;},get target(){return target;},get distance(){return distance;},frame:frame,fit:fit,focus:focus,walk:walk,zoom:zoom,pickBuilding:pickBuilding,ensureContext:ensureContext};
+function onCanvas(e){return e.target&&e.target.id==='oia-gl'&&root.__oiaOn;}
+function pair(){
+ var a=Array.from(points.values());
+ if(a.length===1)return {x:a[0].x,y:a[0].y};
+ var p=a[0],q=a[1];return {x:(p.x+q.x)/2,y:(p.y+q.y)/2,length:Math.hypot(p.x-q.x,p.y-q.y)};
+}
+document.addEventListener('pointerdown',function(e){
+ if(!active||!onCanvas(e))return;e.preventDefault();e.stopImmediatePropagation();
+ if(document.pointerLockElement)document.exitPointerLock();
+ e.target.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});previous=pair();dragged=false;
+},{capture:true,passive:false});
+document.addEventListener('pointermove',function(e){
+ if(!active||!points.has(e.pointerId))return;e.preventDefault();e.stopImmediatePropagation();
+ points.set(e.pointerId,{x:e.clientX,y:e.clientY});var now=pair();if(!previous){previous=now;return;}
+ var dx=now.x-previous.x,dy=now.y-previous.y;if(Math.hypot(dx,dy)>2)dragged=true;
+ if(now.length&&previous.length){zoom(previous.length/Math.max(1,now.length));pan(dx,dy);dragged=true;}
+ else if(gesture==='pan'||e.shiftKey||e.buttons===2)pan(dx,dy);
+ else{yaw-=dx*.006;elevation=Math.max(.2,Math.min(1.49,elevation+dy*.005));fitted=false;}
+ previous=now;publish();
+},{capture:true,passive:false});
+document.addEventListener('pointerup',function(e){
+ if(!points.has(e.pointerId))return;e.preventDefault();e.stopImmediatePropagation();
+ var tap=points.size===1&&!dragged;points.delete(e.pointerId);previous=points.size?pair():null;
+ if(tap&&root.MinestOiaClick)root.MinestOiaClick(e.clientX,e.clientY);
+},{capture:true,passive:false});
+document.addEventListener('pointercancel',function(e){points.delete(e.pointerId);previous=points.size?pair():null;},true);
+window.addEventListener('blur',function(){points.clear();previous=null;});
+['mousedown','mouseup','touchstart','touchmove','touchend','dblclick','contextmenu'].forEach(function(type){
+ document.addEventListener(type,function(e){if(active&&onCanvas(e)){e.preventDefault();e.stopImmediatePropagation();}},{capture:true,passive:false});
+});
+document.addEventListener('wheel',function(e){if(active&&onCanvas(e)){e.preventDefault();e.stopImmediatePropagation();zoom(Math.exp(e.deltaY*.0015));}},{capture:true,passive:false});
+document.addEventListener('click',function(e){
+ if(active&&e.target.id==='oia-mm'){e.preventDefault();e.stopImmediatePropagation();var s=scene(),r=e.target.getBoundingClientRect();target.x=(e.clientX-r.left)/r.width*s.world.W;target.z=(e.clientY-r.top)/r.height*s.world.D;fitted=false;}
+ var b=e.target.closest('[data-camera]');if(!b)return;
+ var a=b.getAttribute('data-camera');
+ if(a==='fit')fit(false);if(a==='top')fit(true);if(a==='focus')focus();if(a==='in')zoom(.8);if(a==='out')zoom(1.25);if(a==='walk')walk();
+ if(a==='light'){daylight=!daylight;b.textContent=daylight?'编辑照明：明亮':'编辑照明：真实时间';}
+ if(a==='gesture'){gesture=gesture==='pan'?'rotate':'pan';publish();}
+},true);
+document.addEventListener('input',function(e){if(e.target.id==='oia-camera-distance'){distance=+e.target.value;active=true;fitted=false;publish();}});
+})(typeof window==='object'?window:globalThis);
+
+</script>
+<script id="minest-world-controls-adapter">
+/* Console adapter: all content edits use the original My World data and history. */
+(function(){
+'use strict';
+function status(text){var e=document.getElementById('oia-operation-status');if(e)e.textContent=text;}
+function voxel(){
+ var editor=window.MinestOiaEditor;if(editor)editor.ensureContext();
+ if(window.MinestOia)MinestOia.close();
+ if(window.MinestVoxel62){Promise.resolve(MinestVoxel62.open({forceVoxel:true})).catch(function(e){status('体素空间未能打开：'+e.message);if(window.MinestOia)MinestOia.open();});}
+}
+function chooseWorld(){
+ var host=document.getElementById('oia-root');if(!host||host.querySelector('#oia-world-picker'))return;
+ var picker=document.createElement('section');picker.id='oia-world-picker';picker.setAttribute('role','dialog');picker.setAttribute('aria-label','一键世界');
+ picker.innerHTML='<header><b>🌍 一键世界</b><button aria-label="关闭世界选择">×</button></header><div></div>';
+ picker.querySelector('header button').onclick=function(){picker.remove();};
+ var native=[['santorini','圣托里尼','MinestOia'],['alpchalet','阿尔卑斯木屋','MinestAlps'],['admont','阿德蒙特图书馆','MinestAdmont'],['trinity','三一学院','MinestTrinity'],['study','英式藏书室','MinestStudy'],['hallstatt','哈尔施塔特','MinestHallstatt']];
+ var options=native.filter(function(x){return window[x[2]];}).map(function(x){return {id:x[0],name:x[1],open:function(){if(window.MinestOia)MinestOia.close();if(window.MinestSceneCatalog)MinestSceneCatalog.open(x[0]);else window[x[2]].open();}};});
+ if(window.MinestInteriors)MinestInteriors.kinds.forEach(function(k){options.push({id:k[0],name:k[2].replace('一键进入',''),open:function(){if(window.MinestOia)MinestOia.close();MinestInteriors.open(k[0]);}});});
+ else if(window.openWorldOverlay3D)[['hobbiton','霍比屯'],['bibury','拜伯里'],['downton','唐顿庄园'],['giethoorn','羊角村'],['lauterbrunnen','劳特布龙嫩'],['neuschwanstein','新天鹅堡']].forEach(function(x){options.push({id:x[0],name:x[1],open:function(){MinestOia.close();openWorldOverlay3D(x[0]+'.html',x[1]);}});});
+ options.forEach(function(option){var b=document.createElement('button');b.textContent=option.name;b.onclick=function(){picker.remove();option.open();};picker.querySelector('div').appendChild(b);});
+ host.appendChild(picker);
+}
+function history(){
+ var api=window.MinestOiaBld,h=api&&api.history?api.history():{};
+ ['undo','redo'].forEach(function(a){var b=document.querySelector('#oia-console [data-console="'+a+'"]');if(b){b.disabled=!h[a];b.title=h[a]?'执行'+(a==='undo'?'撤销':'重做'):'尚无'+(a==='undo'?'撤销':'重做')+'记录';}});
+ var s=window.__santorini,e=document.getElementById('oia-building-count');if(e&&s&&e.textContent!==s.world.buildings.length+' 栋建筑 · 修改自动保存')e.textContent=s.world.buildings.length+' 栋建筑 · 修改自动保存';
+}
+function prepare(){
+ document.querySelectorAll('.wf .wf-acts').forEach(function(nav){
+  if(!nav.querySelector('[data-console-voxel]')){var b=document.createElement('button');b.type='button';b.setAttribute('data-console-voxel','');b.innerHTML='<i>🧊</i><span>体素世界</span>';b.onclick=voxel;nav.appendChild(b);}
+  var original=document.getElementById('mn-btn-santorini-3d');
+  if(original&&!nav.querySelector('[data-console-santorini]')){var b=document.createElement('button');b.type='button';b.setAttribute('data-console-santorini','');b.innerHTML='<i>🏛️</i><span>圣托里尼</span>';b.onclick=function(){original.click();};nav.appendChild(b);}
+ });
+ var root=document.getElementById('oia-root');if(!root)return;
+ var panel=root.querySelector('#mn-bld-p');
+ if(!root.querySelector('#oia-console')){
+  var toggle=document.createElement('button');toggle.type='button';toggle.id='oia-console-toggle';toggle.textContent='≡';toggle.setAttribute('aria-label','打开 My World 控制台');toggle.setAttribute('aria-expanded','false');
+  var console=document.createElement('section');console.id='oia-console';console.hidden=true;console.setAttribute('aria-label','My World 控制台');
+  console.innerHTML='<header><b>🌴 World › 圣托里尼</b><span>1/6 · World</span><button data-console="close" aria-label="收起控制台">×</button></header>'+
+   '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="view" class="on">🌐<br>视角</button><button data-console="map">🗺️<br>地图</button><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button></nav><main><section id="oia-camera-pane"><h3>全局编辑</h3><p id="oia-camera-summary" role="status"></p><p id="oia-selection"></p><div class="camera-actions"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="focus">聚焦选中建筑</button><button data-camera="light">编辑照明：明亮</button><button data-camera="gesture" id="oia-camera-gesture">当前：旋转</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div><label>镜头距离<input id="oia-camera-distance" type="range" min="12" max="3500" step="1" aria-label="镜头距离"></label><p class="camera-help">拖动旋转 · 双指捏合缩放并平移<br>切换「平移」后单指拖动平移 · 轻点选建筑</p><button data-camera="walk">🚶 步行探索</button></section><section id="oia-map-pane" hidden><h3>世界地图</h3><p>轻点地图定位镜头 · 下方滑杆调整时间</p><div id="oia-console-map"></div></section></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>'+
+   '<footer><p id="oia-operation-status" role="status"></p><span id="oia-building-count"></span><div><button data-console="undo">↶ 撤销</button><button data-console="redo">↷ 重做</button><button data-console="reset">还原原始场景</button><button data-console="restore">恢复还原前编辑</button></div></footer>';
+  function tab(name){
+   var view=console.querySelector('#oia-camera-pane'),p=root.querySelector('#mn-bld-p');
+   var sceneTab=name==='view'||name==='map';view.hidden=name!=='view';console.querySelector('#oia-map-pane').hidden=name!=='map';if(window.MinestOiaBld)MinestOiaBld.toggle(!sceneTab);if(p)p.hidden=sceneTab;
+   var original=p&&p.querySelector('[data-tab="'+name+'"]');if(original)original.click();
+   console.querySelectorAll('[data-console]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-console')===name);});
   }
-  var queued=false;
-  new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;prepare();});}).observe(document.body,{childList:true,subtree:true});
-  prepare();
+  function open(on){console.hidden=!on;toggle.setAttribute('aria-expanded',String(on));if(on)tab('view');history();}
+  toggle.onclick=function(){open(console.hidden);};
+  console.addEventListener('click',function(e){
+   var b=e.target.closest('[data-console]');if(!b)return;e.stopPropagation();var a=b.getAttribute('data-console'),api=window.MinestOiaBld;
+   if(a==='close')return open(false);
+   if(a==='worlds')return chooseWorld();
+   if(a==='voxel'){open(false);return voxel();}
+   if(a==='return'){open(false);if(window.MinestOia)MinestOia.close();return;}
+   if(a==='door'){if(api){var id=api.selected();if(id)api.enterDoorhouse(id);else{tab('view');status('先在画面中轻点一栋建筑，再进入房间');}}return;}
+   if(['undo','redo','reset','restore'].includes(a)){if(api&&api[a]){var ok=api[a]();tab('view');status(ok?(a==='reset'?'已还原原始场景，仍可撤销或恢复还原前编辑':'操作完成'):a==='restore'?'没有还原前的备份':'当前没有可执行的操作');history();}return;}
+   tab(a);
+  });
+  root.appendChild(toggle);root.appendChild(console);
+ }
+ var console=root.querySelector('#oia-console'),main=console.querySelector('main');
+ if(panel&&panel.parentElement!==main){main.appendChild(panel);panel.hidden=true;}
+ var map=root.querySelector('#oia-mmWrap'),mapHost=console.querySelector('#oia-console-map');
+ if(map&&map.parentElement!==mapHost)mapHost.appendChild(map);
+ history();
+}
+var queued=false;new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;prepare();});}).observe(document.body,{childList:true,subtree:true});
+window.addEventListener('minest-world-edit',history);
+prepare();
 })();
+
 </script>
 </body>
 </html>
