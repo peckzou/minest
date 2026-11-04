@@ -142187,7 +142187,21 @@ if (window.MinestCarFlash) return;
 var KEY = 'minest.carflash.v1';
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
 function native(){ try { return window.webkit && webkit.messageHandlers && webkit.messageHandlers.minestBridge; } catch(e){ return null; } }
-function post(action, extra){ var h = native(); if (!h) return false; try { h.postMessage(Object.assign({ action: action }, extra || {})); return true; } catch(e){ return false; } }
+var nativeReplyTimer = 0, nativeBridgeWarning = false;
+function bridgeStatus(message){ var note = ov && ov.querySelector('[data-cf-note]'); if (note) note.textContent = message; }
+function post(action, extra){
+  var h = native(); if (!h) return false;
+  var awaitingReply = action === 'carFlashStart' || action === 'carFlashState';
+  if (awaitingReply) {
+    clearTimeout(nativeReplyTimer);
+    nativeReplyTimer = setTimeout(function(){
+      nativeReplyTimer = 0; nativeBridgeWarning = true;
+      bridgeStatus('未收到原生闪卡响应，CarPlay 无法同步。请安装包含车载闪卡组件的新版 Minest App；只刷新网页无法修复。');
+    }, 5000);
+  }
+  try { h.postMessage(Object.assign({ action: action }, extra || {})); return true; }
+  catch(e){ if (awaitingReply) clearTimeout(nativeReplyTimer); return false; }
+}
 function prefs(){ try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ return {}; } }
 function savePrefs(p){ try { localStorage.setItem(KEY, JSON.stringify(p)); } catch(e){} }
 function plain(s){ var d = document.createElement('div'); d.innerHTML = String(s || ''); return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
@@ -142441,6 +142455,8 @@ function paint(){
 }
 window.addEventListener('minestNativeEvent', function(e){
   var d = e.detail || {}; if (d.event !== 'carFlash') return; var p = d.payload || {};
+  clearTimeout(nativeReplyTimer); nativeReplyTimer = 0;
+  if (nativeBridgeWarning) { nativeBridgeWarning = false; bridgeStatus('原生闪卡已连接。'); }
   if (p.listKey && G()) {
     /* Next / ★ taps made on the CarPlay widget / Siri while this page slept: record them in the study progress */
     var src = findSource(p.listKey);
@@ -166359,7 +166375,7 @@ window.KRail = (function () {
     var h = '<div class="obld-tabs">' +
       '<button type="button" class="obld-tab' + (curTab === 'bld' ? ' on' : '') + '" data-tab="bld">🏛️ 整栋建筑</button>' +
       '<button type="button" class="obld-tab' + (curTab === 'elem' ? ' on' : '') + '" data-tab="elem">🌳 完整元素</button>' +
-      '<button type="button" class="obld-tab' + (curTab === 'disp' ? ' on' : '') + '" data-tab="disp">🎨 展架与卡片</button>' +
+      '<button type="button" class="obld-tab' + (curTab === 'disp' ? ' on' : '') + '" data-tab="disp">🎨 陈列</button>' +
       '<button type="button" class="obld-tab' + (curTab === 'ai' ? ' on' : '') + '" data-tab="ai">✨ AI 智能规划</button>' +
       '</div>';
 
@@ -166978,7 +166994,7 @@ window.KRail = (function () {
           s.player.yaw = 0; s.player.pitch = -0.05;
         }
         if (window.MinestOiaBld) {
-          window.MinestOiaBld.toggle(true);
+          window.MinestOiaBld.toggle(false);
         }
         ensureControls();
       }, 400);
@@ -167038,10 +167054,10 @@ window.KRail = (function () {
       var qbar = document.createElement('div');
       qbar.id = 'oia-quick-69';
       qbar.className = 'oia-quick-bar';
-      qbar.innerHTML = '<button type="button" class="oia-quick-btn pri" id="oia-q-bld">🏛️ 建造面板</button>' +
-        '<button type="button" class="oia-quick-btn" id="oia-q-disp">🎨 展架与卡片</button>' +
-        '<button type="button" class="oia-quick-btn" id="oia-q-door">🏠 进入剖面 (Doorhouse)</button>' +
-        '<button type="button" class="oia-quick-btn" id="oia-q-worlds">🎲 一键系列 (16大世界)</button>' +
+      qbar.innerHTML = '<button type="button" class="oia-quick-btn pri" id="oia-q-bld">🏛️ 建造</button>' +
+        '<button type="button" class="oia-quick-btn" id="oia-q-disp">🎨 陈列</button>' +
+        '<button type="button" class="oia-quick-btn" id="oia-q-door">🏠 房间</button>' +
+        '<button type="button" class="oia-quick-btn" id="oia-q-worlds">🌍 世界</button>' +
         '<button type="button" class="oia-quick-btn" id="oia-q-exit">‹ 回到 My World (小岛)</button>';
 
       qbar.addEventListener('click', function(e) {
@@ -167275,5 +167291,114 @@ window.KRail = (function () {
 })();
 </script>
 
+
+
+<style id="minest-world-controls-20261103">/* One header, one action dock, and separate movement controls. */
+#oia-root #oia-back { font:700 13px/1 system-ui!important; padding:11px 15px!important; border:1px solid #ffffff45!important; border-radius:16px!important; max-width:150px; white-space:nowrap; }
+#oia-root #oia-title { left:16px!important; top:calc(65px + env(safe-area-inset-top))!important; max-width:calc(100% - 170px); font:13px/1.5 system-ui!important; }
+#oia-root #oia-title b { display:block; font:700 17px/1.4 system-ui!important; }
+#oia-root #oia-coords,#oia-root #oia-hotbar,#oia-root #oia-held,#oia-root #oia-hint,#oia-root #oia-joy,#oia-root .obld-t { display:none!important; }
+#oia-root #oia-mmWrap { top:calc(65px + env(safe-area-inset-top))!important; right:16px!important; width:128px!important; padding:4px!important; border:1px solid #ffffff38!important; border-radius:14px; overflow:hidden; }
+#oia-root #oia-mm { width:100%!important; height:auto!important; }
+#oia-root #oia-timeBox { font:11px/1.2 system-ui!important; gap:4px!important; }
+#oia-root #oia-timeSlider { width:74px!important; min-width:0; }
+#oia-root #oia-enter { top:calc(125px + env(safe-area-inset-top))!important; left:16px!important; transform:none!important; max-width:calc(100% - 170px); font:700 13px/1.3 system-ui!important; padding:10px 14px!important; border-radius:14px; }
+#oia-root #oia-banner { top:calc(165px + env(safe-area-inset-top))!important; }
+#oia-root #oia-lockHint { bottom:calc(162px + env(safe-area-inset-bottom))!important; font:12px/1.4 system-ui!important; max-width:80%; }
+#oia-root #oia-quick-69 { display:grid!important; grid-template-columns:repeat(4,minmax(0,1fr)); width:min(470px,calc(100% - 340px)); box-sizing:border-box; padding:6px!important; gap:6px!important; border-radius:18px!important; bottom:calc(20px + env(safe-area-inset-bottom))!important; }
+#oia-root .oia-quick-btn { width:auto!important; height:44px!important; min-width:0!important; padding:6px 9px!important; display:flex!important; justify-content:center; white-space:nowrap!important; writing-mode:horizontal-tb!important; font:600 13px/1.2 system-ui!important; border-radius:12px!important; }
+#oia-root #oia-q-exit { display:none!important; }
+#oia-root #oia-dpad-69 { bottom:calc(18px + env(safe-area-inset-bottom))!important; left:16px!important; grid-template-columns:repeat(3,42px)!important; grid-template-rows:repeat(3,42px)!important; gap:4px!important; }
+#oia-root #oia-dpad-69 button { width:42px!important; height:42px!important; font:18px system-ui!important; border-radius:14px!important; touch-action:none; }
+#oia-root #oia-tJump,#oia-root #oia-tDown,#oia-root #oia-tFly { width:46px!important; height:46px!important; right:18px!important; font:18px/46px system-ui!important; }
+#oia-root #oia-tJump { bottom:calc(70px + env(safe-area-inset-bottom))!important; }
+#oia-root #oia-tDown { bottom:calc(18px + env(safe-area-inset-bottom))!important; }
+#oia-root #oia-tFly { bottom:calc(122px + env(safe-area-inset-bottom))!important; }
+#oia-root #mn-bld-p { max-height:calc(100dvh - 260px)!important; width:min(390px,calc(100% - 32px))!important; box-sizing:border-box; right:16px!important; bottom:calc(180px + env(safe-area-inset-bottom))!important; overflow:auto!important; }
+.mn-world-3d-overlay > .mn-back-myworld-btn { font-size:12px!important; max-width:150px; white-space:nowrap; padding:10px 12px!important; }
+@media(max-width:700px) {
+ #oia-root #oia-quick-69 { width:calc(100% - 32px); bottom:calc(174px + env(safe-area-inset-bottom))!important; }
+ #oia-root #mn-bld-p { bottom:calc(236px + env(safe-area-inset-bottom))!important; max-height:calc(100dvh - 320px)!important; }
+}
+@media(max-height:540px) and (min-width:701px) {
+ #oia-root #oia-mmWrap { width:100px!important; }
+ #oia-root #mn-bld-p { max-height:calc(100dvh - 150px)!important; bottom:calc(85px + env(safe-area-inset-bottom))!important; }
+}
+/* Voxel entry belongs to My World's existing console, never a floating chip. */
+#vx62-btn,#oia-root #oia-quick-69 { display:none!important; }
+#oia-console-toggle { position:absolute;right:16px;top:calc(12px + env(safe-area-inset-top));z-index:1000000;width:44px;height:44px;border:2px solid #111;background:#494949;color:#fff;box-shadow:inset 2px 2px #ffffff55,inset -2px -2px #0008;font:800 24px system-ui;pointer-events:auto; }
+#oia-console { position:absolute;left:0;right:0;bottom:0;z-index:1000001;box-sizing:border-box;background:#383838;color:white;border:3px solid #111;border-radius:18px 18px 0 0;padding:8px 8px calc(8px + env(safe-area-inset-bottom));font:600 13px/1.35 system-ui;pointer-events:auto;max-height:55dvh;display:flex;flex-direction:column; }
+#oia-console[hidden] { display:none!important; }
+#oia-console header { display:flex;align-items:center;gap:8px;padding-bottom:8px; }
+#oia-console header b { flex:1; }
+#oia-console header span { color:#ddd;font-size:11px; }
+#oia-console button { background:#4b4b4b;border:2px solid #111;box-shadow:inset 2px 2px #ffffff30,inset -2px -2px #0009;border-radius:0;color:#fff;font:700 12px/1.35 system-ui;padding:9px 6px;min-height:44px;cursor:pointer;white-space:normal;writing-mode:horizontal-tb; }
+#oia-console button.on { background:#347725;border-color:#f2c633; }
+#oia-console .console-grid { display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:8px;overflow:hidden;min-height:0; }
+#oia-console nav { display:flex;flex-direction:column;gap:6px;overflow:auto; }
+#oia-console main { min-width:0;overflow:auto; }
+#oia-console #mn-bld-p { position:static!important;width:100%!important;max-height:none!important;margin:0!important;border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important; }
+#oia-console #mn-bld-p .obld-tabs { display:none; }
+#oia-console #mn-bld-p .obld-actions { flex-wrap:wrap; }
+#oia-console #mn-bld-p .obld-btn { min-height:40px; }
+#oia-console #mn-bld-p .obld-card { background:#454545; }
+@media(min-width:750px){#oia-console .console-grid{grid-template-columns:110px minmax(0,1fr) 110px}#oia-console{max-height:48dvh}#oia-console button{font-size:13px}}
+
+#oia-root #oia-lockHint{display:none!important}
+
+#mn-btn-santorini-3d{display:none!important}
+</style>
+<script id="minest-world-controls-adapter">/* UI adapter: all actions delegate to the existing My World systems. */
+(function () {
+  'use strict';
+  function voxel() { var b = document.getElementById('vx62-btn'); if (b) b.click(); }
+  function prepare() {
+    document.querySelectorAll('.wf .wf-acts').forEach(function (nav) {
+      if (nav.querySelector('[data-console-voxel]')) return;
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-console-voxel', '');
+      b.innerHTML = '<i>🧊</i><span>体素世界</span>'; b.addEventListener('click', voxel); nav.appendChild(b);
+    });
+    var santorini = document.getElementById('mn-btn-santorini-3d');
+    if (santorini) document.querySelectorAll('.wf .wf-acts').forEach(function(nav){
+      if(nav.querySelector('[data-console-santorini]'))return;
+      var b=document.createElement('button');b.type='button';b.setAttribute('data-console-santorini','');b.innerHTML='<i>🏛️</i><span>圣托里尼</span>';b.onclick=function(){santorini.click();};nav.appendChild(b);
+    });
+    var root = document.getElementById('oia-root');
+    if (!root) return;
+    var panel = root.querySelector('#mn-bld-p');
+    if (!root.querySelector('#oia-console')) {
+      var toggle = document.createElement('button'); toggle.type = 'button'; toggle.id = 'oia-console-toggle';
+      toggle.textContent = '≡'; toggle.setAttribute('aria-label', '打开 My World 控制台'); toggle.setAttribute('aria-expanded','false');
+      var console = document.createElement('section'); console.id = 'oia-console'; console.hidden = true;
+      console.setAttribute('aria-label','My World 控制台');
+      console.innerHTML = '<header><b>🌴 World › 圣托里尼</b><span>1/6 · World</span><button data-console="close" aria-label="收起控制台">×</button></header>' +
+        '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button></nav><main></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>';
+      function open(on) {
+        console.hidden = !on; toggle.setAttribute('aria-expanded',String(on));
+        if (window.MinestOiaBld) window.MinestOiaBld.toggle(on);
+      }
+      toggle.onclick = function () { open(console.hidden); };
+      console.addEventListener('click',function(e){
+        var b=e.target.closest('[data-console]'); if(!b)return;
+        var action=b.getAttribute('data-console'); e.stopPropagation();
+        if(action==='close')return open(false);
+        if(action==='voxel'){open(false);return voxel();}
+        if(action==='return'){open(false);if(window.MinestOia)window.MinestOia.close();return;}
+        if(action==='worlds'||action==='door'){
+          var old=document.getElementById(action==='worlds'?'oia-q-worlds':'oia-q-door');if(old){old.click();return;} if(action==='worlds'){open(false);if(window.MinestOia)window.MinestOia.close();var pick=document.querySelector('.wf [data-wfmegapop]');if(pick&&pick.getAttribute('aria-expanded')!=='true')pick.click();}return;
+        }
+        if(window.MinestOiaBld)window.MinestOiaBld.toggle(true);
+        var tab=root.querySelector('#mn-bld-p [data-tab="'+action+'"]');if(tab)tab.click();
+        console.querySelectorAll('[data-console]').forEach(function(x){x.classList.toggle('on',x===b);});
+      });
+      root.appendChild(toggle);root.appendChild(console);
+    }
+    if(panel && panel.parentElement!==root.querySelector('#oia-console main'))root.querySelector('#oia-console main').appendChild(panel);
+  }
+  var queued=false;
+  new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;prepare();});}).observe(document.body,{childList:true,subtree:true});
+  prepare();
+})();
+</script>
 </body>
 </html>
