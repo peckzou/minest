@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>唐顿庄园 · Downton Abbey (Highclere Castle) Voxel</title>
+<style>
+  :root { --ink:#fff; --shadow:#3a3a3a; --slot:#8b8b8b; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#bcdcf4; touch-action:none; overscroll-behavior:none;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,"PingFang SC","Microsoft YaHei",monospace; color:var(--ink); -webkit-user-select:none; user-select:none; }
+  #gl { position:fixed; inset:0; width:100%; height:100%; display:block; outline:none; }
+  .mc { color:#fff; font-weight:800; letter-spacing:.5px; text-shadow:2px 2px 0 var(--shadow); }
+  .panel { background:rgba(20,20,24,.62); border:3px solid #111; box-shadow:inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.35); }
+
+  /* ---------- loading ---------- */
+  #loading { position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    background:linear-gradient(#6a8ab0,#e8e2cc 58%,#6a8a4a); transition:opacity .8s; }
+  #loading.done { opacity:0; pointer-events:none; }
+  #loading h1 { margin:0; font-size:clamp(34px,8vw,72px); }
+  #loading .sub { font-size:clamp(13px,2.4vw,18px); opacity:.95; }
+  #bar { width:min(380px,70vw); height:18px; border:3px solid #111; background:#2b2b2b; }
+  #bar i { display:block; height:100%; width:0; background:repeating-linear-gradient(90deg,#6ee05a 0 10px,#58c247 10px 12px); transition:width .15s; }
+  #loadMsg { font-size:14px; }
+
+  /* ---------- HUD ---------- */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  #title { position:absolute; left:14px; top:calc(12px + env(safe-area-inset-top)); }
+  #title b { font-size:clamp(18px,3vw,26px); display:block; }
+  #title span { font-size:12px; opacity:.9; }
+  #coords { margin-top:6px; font-size:12px; }
+  #crosshair { position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px; display:none; }
+  #crosshair:before,#crosshair:after { content:""; position:absolute; background:#fff; mix-blend-mode:difference; }
+  #crosshair:before { left:9px; top:0; width:2px; height:20px; } #crosshair:after { top:9px; left:0; height:2px; width:20px; }
+  #banner { position:absolute; left:50%; top:16%; transform:translateX(-50%); text-align:center; opacity:0; transition:opacity .6s; }
+  #banner.show { opacity:1; }
+  #banner b { display:block; font-size:clamp(24px,5vw,46px); } #banner span { font-size:clamp(12px,2vw,16px); opacity:.9; }
+  #mmWrap { position:absolute; right:12px; top:calc(12px + env(safe-area-inset-top)); padding:4px; pointer-events:auto; }
+  #mm { display:block; width:168px; height:auto; image-rendering:pixelated; cursor:crosshair; }
+  #timeBox { margin-top:4px; font-size:12px; display:flex; align-items:center; gap:6px; }
+  #timeBox input { flex:1; accent-color:#6ee05a; min-width:0; pointer-events:auto; }
+  #held { position:absolute; right:12px; bottom:calc(86px + env(safe-area-inset-bottom)); padding:6px 10px; font-size:13px; display:none; align-items:center; gap:8px; }
+  #held i { width:18px; height:18px; border:2px solid #000; display:inline-block; }
+  #hint { position:absolute; left:14px; bottom:calc(86px + env(safe-area-inset-bottom)); padding:8px 10px; font-size:12px; line-height:1.55; max-width:min(340px,60vw); }
+  #hint.hide { display:none; }
+  #hotbar { position:absolute; left:50%; bottom:calc(10px + env(safe-area-inset-bottom)); transform:translateX(-50%); display:flex; padding:3px; background:rgba(0,0,0,.55); border:3px solid #1a1a1a; pointer-events:auto; max-width:98vw; }
+  .slot { position:relative; width:clamp(38px,8.6vw,58px); height:clamp(38px,8.6vw,58px); background:var(--slot); border:3px solid; border-color:#373737 #fff #fff #373737; margin:0 1px; display:flex; align-items:center; justify-content:center; font-size:clamp(18px,4.2vw,28px); cursor:pointer; }
+  .slot small { position:absolute; left:3px; top:1px; font-size:10px; color:#fff; text-shadow:1px 1px 0 #222; }
+  .slot em { position:absolute; bottom:-18px; left:50%; transform:translateX(-50%); font-style:normal; font-size:11px; white-space:nowrap; opacity:0; transition:opacity .15s; color:#fff; text-shadow:1px 1px 0 #000; pointer-events:none; }
+  .slot:hover em { opacity:1; }
+  .slot.on { outline:4px solid #fff; outline-offset:-1px; z-index:2; background:#a9a9a9; }
+  .slot.off { filter:grayscale(1) brightness(.75); }
+  #lmMenu { position:absolute; left:50%; bottom:calc(86px + env(safe-area-inset-bottom)); transform:translateX(-50%); display:none; flex-direction:column; gap:3px; padding:6px; pointer-events:auto; min-width:230px; }
+  #lmMenu button { all:unset; cursor:pointer; padding:7px 10px; font-size:14px; color:#fff; text-shadow:1px 1px 0 #000; background:rgba(255,255,255,.08); border:2px solid transparent; }
+  #lmMenu button:hover { background:rgba(255,255,255,.22); border-color:#fff; }
+  #lmMenu small { opacity:.7; margin-left:8px; font-size:11px; }
+  #lockHint { position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); padding:10px 18px; font-size:15px; display:none; text-align:center; }
+  #uw { position:absolute; inset:0; background:rgba(20,90,140,.38); display:none; }
+  #toast { position:absolute; left:50%; top:calc(14px + env(safe-area-inset-top)); transform:translateX(-50%); padding:6px 12px; font-size:13px; opacity:0; transition:opacity .3s; }
+  #toast.show { opacity:1; }
+
+  /* ---------- touch controls ---------- */
+  #touch { display:none; }
+  body.touch #touch { display:block; }
+  body.touch #hint { display:none; }
+  #joy { position:fixed; left:calc(22px + env(safe-area-inset-left)); bottom:calc(96px + env(safe-area-inset-bottom)); width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.14); border:3px solid rgba(255,255,255,.45); pointer-events:auto; touch-action:none; z-index:12; }
+  #joy i { position:absolute; left:40px; top:40px; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.55); }
+  .tbtn { position:fixed; width:54px; height:54px; border-radius:12px; background:rgba(255,255,255,.2); border:3px solid rgba(255,255,255,.55); color:#fff; font-size:22px; display:flex; align-items:center; justify-content:center; pointer-events:auto; z-index:12; touch-action:none; }
+  #tJump { right:calc(24px + env(safe-area-inset-right)); bottom:calc(150px + env(safe-area-inset-bottom)); }
+  #tDown { right:calc(24px + env(safe-area-inset-right)); bottom:calc(90px + env(safe-area-inset-bottom)); }
+  #tFly { right:calc(92px + env(safe-area-inset-right)); bottom:calc(120px + env(safe-area-inset-bottom)); font-size:14px; }
+
+  #useHint { position:absolute; left:50%; top:58%; transform:translateX(-50%); padding:6px 12px; font-size:14px; display:none; }
+  #tUse { right:calc(92px + env(safe-area-inset-right)); bottom:calc(184px + env(safe-area-inset-bottom)); font-size:20px; }
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0"></canvas>
+
+<div id="loading">
+  <h1 class="mc">DOWNTON ABBEY</h1>
+  <div class="mc sub">唐顿庄园 · 海克利尔城堡 · 中央大厅 / 主楼梯 / 图书馆 / 餐厅 / 起居室 / 书房 · 草坪、花园与林荫大道</div>
+  <div id="bar"><i></i></div>
+  <div id="loadMsg" class="mc">准备中…</div>
+</div>
+
+<div id="hud">
+  <div id="title" class="mc"><b>DOWNTON ABBEY 唐顿庄园</b><span id="modeLabel">导览模式</span><div id="coords"></div></div>
+  <div id="crosshair"></div>
+  <div id="banner" class="mc"><b id="bannerT"></b><span id="bannerS"></span></div>
+  <div id="mmWrap" class="panel">
+    <canvas id="mm" width="256" height="240"></canvas>
+    <div id="timeBox" class="mc"><span id="clock">10:30</span><input id="timeSlider" type="range" min="0" max="24" step="0.05" value="10.5"></div>
+  </div>
+    <div id="hint" class="panel mc"></div>
+  <div id="lmMenu" class="panel"></div>
+  <div id="lockHint" class="panel mc">点击画面开始 · Esc 退出鼠标控制</div>
+  <div id="hotbar"></div>
+  <div id="toast" class="panel mc"></div>
+  <div id="useHint" class="panel mc"></div>
+  <div id="uw"></div>
+</div>
+
+<div id="touch">
+  <div id="joy"><i></i></div>
+  <div id="tJump" class="tbtn">⤒</div>
+  <div id="tDown" class="tbtn">⤓</div>
+  <div id="tFly" class="tbtn">飞</div>
+  <div id="tUse" class="tbtn">🚪</div>
+</div>
+
+
+<script src="vendor/three.min.js"></script>
+<script>if (!window.THREE) document.write('<script src="three.min.js"><\/script>');</script>
+<script>if (!window.THREE) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
+<script src="da-world/world.js"></script>
+<script src="da-world/textures.js"></script>
+<script src="da-world/mesher.js"></script>
+<script src="da-world/props.js"></script>
+<script src="da-world/app.js"></script>
+</body>
+</html>

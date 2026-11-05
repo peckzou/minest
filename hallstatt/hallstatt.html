@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>哈尔施塔特 · Hallstatt Voxel</title>
+<style>
+  :root { --ink:#fff; --shadow:#3a3a3a; --slot:#8b8b8b; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#5a7a82; touch-action:none; overscroll-behavior:none;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,"PingFang SC","Microsoft YaHei",monospace; color:var(--ink); -webkit-user-select:none; user-select:none; }
+  #gl { position:fixed; inset:0; width:100%; height:100%; display:block; outline:none; }
+  .mc { color:#fff; font-weight:800; letter-spacing:.5px; text-shadow:2px 2px 0 var(--shadow); }
+  .panel { background:rgba(18,24,36,.65); border:3px solid #111; box-shadow:inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.35); }
+
+  /* ---------- loading ---------- */
+  #loading { position:fixed; inset:0; z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    background:linear-gradient(#3a86d6,#c6dde4 58%,#2a8a70); transition:opacity .8s; }
+  #loading.done { opacity:0; pointer-events:none; }
+  #loading h1 { margin:0; font-size:clamp(34px,8vw,72px); }
+  #loading .sub { font-size:clamp(13px,2.4vw,18px); opacity:.95; }
+  #bar { width:min(380px,70vw); height:18px; border:3px solid #111; background:#2b2b2b; }
+  #bar i { display:block; height:100%; width:0; background:repeating-linear-gradient(90deg,#6ee05a 0 10px,#58c247 10px 12px); transition:width .15s; }
+  #loadMsg { font-size:14px; }
+
+  /* ---------- HUD ---------- */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  #title { position:absolute; left:14px; top:calc(12px + env(safe-area-inset-top)); }
+  #title b { font-size:clamp(18px,3vw,26px); display:block; }
+  #title span { font-size:12px; opacity:.9; }
+  #coords { margin-top:6px; font-size:12px; }
+  #crosshair { position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px; display:none; }
+  #crosshair:before,#crosshair:after { content:""; position:absolute; background:#fff; mix-blend-mode:difference; }
+  #crosshair:before { left:9px; top:0; width:2px; height:20px; } #crosshair:after { top:9px; left:0; height:2px; width:20px; }
+  #banner { position:absolute; left:50%; top:16%; transform:translateX(-50%); text-align:center; opacity:0; transition:opacity .6s; }
+  #banner.show { opacity:1; }
+  #banner b { display:block; font-size:clamp(24px,5vw,46px); } #banner span { font-size:clamp(12px,2vw,16px); opacity:.9; }
+  #mmWrap { position:absolute; right:12px; top:calc(12px + env(safe-area-inset-top)); padding:4px; pointer-events:auto; }
+  #mm { display:block; width:168px; height:auto; image-rendering:pixelated; cursor:crosshair; }
+  #timeBox { margin-top:4px; font-size:12px; display:flex; align-items:center; gap:6px; }
+  #timeBox input { flex:1; accent-color:#6ee05a; min-width:0; pointer-events:auto; }
+  #held { position:absolute; right:12px; bottom:calc(86px + env(safe-area-inset-bottom)); padding:6px 10px; font-size:13px; display:none; align-items:center; gap:8px; }
+  #held i { width:18px; height:18px; border:2px solid #000; display:inline-block; }
+  #hint { position:absolute; left:14px; bottom:calc(86px + env(safe-area-inset-bottom)); padding:8px 10px; font-size:12px; line-height:1.55; max-width:min(340px,60vw); }
+  #hint.hide { display:none; }
+  #hotbar { position:absolute; left:50%; bottom:calc(10px + env(safe-area-inset-bottom)); transform:translateX(-50%); display:flex; padding:3px; background:rgba(0,0,0,.55); border:3px solid #1a1a1a; pointer-events:auto; max-width:98vw; }
+  .slot { position:relative; width:clamp(38px,8.6vw,58px); height:clamp(38px,8.6vw,58px); background:var(--slot); border:3px solid; border-color:#373737 #fff #fff #373737; margin:0 1px; display:flex; align-items:center; justify-content:center; font-size:clamp(18px,4.2vw,28px); cursor:pointer; }
+  .slot small { position:absolute; left:3px; top:1px; font-size:10px; color:#fff; text-shadow:1px 1px 0 #222; }
+  .slot em { position:absolute; bottom:-18px; left:50%; transform:translateX(-50%); font-style:normal; font-size:11px; white-space:nowrap; opacity:0; transition:opacity .15s; color:#fff; text-shadow:1px 1px 0 #000; pointer-events:none; }
+  .slot:hover em { opacity:1; }
+  .slot.active { outline:3px solid #fff; z-index:2; }
+  #lockHint { position:absolute; left:50%; top:22%; transform:translateX(-50%); padding:8px 14px; font-size:13px; display:none; pointer-events:auto; cursor:pointer; }
+  #toast { position:absolute; left:50%; top:30%; transform:translateX(-50%); padding:8px 14px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
+  #toast.show { opacity:1; }
+  #prompt { position:absolute; left:50%; top:60%; transform:translateX(-50%); padding:6px 14px; font-size:13px; display:none; pointer-events:none; }
+  #uw { position:fixed; inset:0; background:rgba(14,64,130,.45); pointer-events:none; display:none; }
+
+  /* ---------- touch joystick ---------- */
+  #touch { display:none; }
+  body.touch #touch { display:block; }
+  body.touch #lockHint { display:none!important; }
+  #joy { position:absolute; left:20px; bottom:calc(92px + env(safe-area-inset-bottom)); width:110px; height:110px; border-radius:50%; background:rgba(0,0,0,.35); border:2px solid rgba(255,255,255,.3); pointer-events:auto; touch-action:none; }
+  #joy i { position:absolute; left:33px; top:33px; width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,.7); pointer-events:none; }
+  .tbtn { position:absolute; width:52px; height:52px; border-radius:50%; background:rgba(0,0,0,.5); border:2px solid rgba(255,255,255,.5); color:#fff; font-size:22px; display:flex; align-items:center; justify-content:center; pointer-events:auto; touch-action:none; }
+  #tJump { right:20px; bottom:calc(120px + env(safe-area-inset-bottom)); }
+  #tDown { right:80px; bottom:calc(100px + env(safe-area-inset-bottom)); }
+  #tAct { right:80px; bottom:calc(165px + env(safe-area-inset-bottom)); font-size:14px; font-weight:800; }
+  #tFly { right:20px; bottom:calc(185px + env(safe-area-inset-bottom)); font-size:16px; font-weight:800; }
+
+  /* ---------- landmarks menu ---------- */
+  #lmMenu { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); padding:12px; display:none; pointer-events:auto; max-width:min(420px,90vw); max-height:80vh; overflow-y:auto; }
+  #lmMenu h3 { margin:0 0 10px; font-size:16px; }
+  #lmMenu button { display:block; width:100%; text-align:left; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3); color:#fff; padding:8px 10px; margin-bottom:6px; font-family:inherit; font-size:13px; cursor:pointer; }
+  #lmMenu button:hover { background:rgba(255,255,255,.25); }
+
+  /* ---------- 3D model browser (Sketchfab / GLTF) ---------- */
+  #mpanel { position:fixed; inset:20px; z-index:40; display:none; flex-direction:column; background:rgba(16,20,28,.95); border:3px solid #111; box-shadow:0 12px 40px rgba(0,0,0,.7); padding:14px; pointer-events:auto; overflow:hidden; }
+  #mpanel.open { display:flex; }
+  #mpanel header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  #mpanel header b { font-size:16px; }
+  .mbtn { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35); color:#fff; padding:6px 12px; font-family:inherit; font-size:12px; cursor:pointer; border-radius:4px; }
+  .mbtn:hover { background:rgba(255,255,255,.3); }
+  #mpanel .row { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  #mpanel input[type="text"] { flex:1; min-width:180px; background:#0e1218; border:1px solid #333; color:#fff; padding:6px 10px; font-family:inherit; font-size:13px; border-radius:4px; }
+  .chip { font-size:11px; padding:3px 8px; border-radius:12px; background:rgba(255,255,255,.12); cursor:pointer; }
+  .chip:hover { background:rgba(255,255,255,.28); }
+  #mstat { font-size:12px; opacity:.85; min-height:16px; margin-bottom:4px; }
+  #mgrid { flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; padding:4px; }
+  .mcard { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:6px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; transition:transform .15s, border-color .15s; }
+  .mcard:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.4); }
+  .mcard img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#0a0c10; }
+  .mcard .info { padding:6px 8px; flex:1; display:flex; flex-direction:column; justify-content:space-between; }
+  .mcard .info b { font-size:12px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .mcard .info small { font-size:10px; opacity:.75; margin-top:3px; }
+  #mview { display:none; flex-direction:column; flex:1; gap:6px; }
+  #mFrame { width:100%; flex:1; border:0; background:#000; border-radius:4px; }
+  #mview .cap { font-size:11px; opacity:.85; }
+  .imp { border-top:1px solid rgba(255,255,255,.18); padding-top:8px; font-size:12px; }
+  #dropHint { position:fixed; inset:0; z-index:45; background:rgba(42,122,168,.75); border:6px dashed #fff; display:none; align-items:center; justify-content:center; font-size:26px; pointer-events:none; }
+  #dropHint.drag { display:flex; }
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0"></canvas>
+
+<div id="loading">
+  <h1 class="mc">HALLSTATT</h1>
+  <div class="mc sub">哈尔施塔特 · 阿尔卑斯湖畔小镇 · 彩色木屋 / 尖塔教堂 / 湖光山色 / 游船</div>
+  <div id="bar"><i></i></div>
+  <div id="loadMsg" class="mc">准备中…</div>
+</div>
+
+<div id="hud">
+  <div id="title" class="mc"><b>HALLSTATT 哈尔施塔特</b><span id="modeLabel">导览模式</span><div id="coords"></div></div>
+  <div id="crosshair"></div>
+  <div id="banner" class="mc"><b id="bannerT"></b><span id="bannerS"></span></div>
+  <div id="mmWrap" class="panel">
+    <canvas id="mm" width="272" height="224"></canvas>
+    <div id="timeBox" class="mc"><span id="clock">17:24</span><input id="timeSlider" type="range" min="0" max="24" step="0.05" value="17.4"></div>
+  </div>
+  <div id="held" class="panel mc"><i id="heldSw"></i><span id="heldName"></span></div>
+  <div id="hint" class="panel mc"></div>
+  <div id="lmMenu" class="panel"></div>
+  <div id="lockHint" class="panel mc">点击画面开始 · Esc 退出鼠标控制</div>
+  <div id="hotbar"></div>
+  <div id="prompt" class="panel mc"></div>
+  <div id="toast" class="panel mc"></div>
+  <div id="uw"></div>
+</div>
+
+<div id="touch">
+  <div id="joy"><i></i></div>
+  <div id="tJump" class="tbtn">⤒</div>
+  <div id="tDown" class="tbtn">⤓</div>
+  <div id="tFly" class="tbtn">飞</div>
+  <div id="tAct" class="tbtn">互动</div>
+</div>
+
+<div id="mpanel">
+  <header><b>🌐 哈尔施塔特 3D 模型库 · Sketchfab</b><button class="mbtn" id="mClose">✕ 关闭</button></header>
+  <div class="row">
+    <input type="text" id="mq" value="hallstatt" placeholder="搜索 Sketchfab 模型…">
+    <button class="mbtn" id="mGo">搜索</button>
+  </div>
+  <div class="row" id="mchips"></div>
+  <div class="row" style="padding-top:0"><label><input type="checkbox" id="mDl"> 仅可下载（CC）</label>
+    <label><input type="checkbox" id="mAnim"> 仅含动画</label></div>
+  <div id="mstat"></div>
+  <div id="mgrid"></div>
+  <div id="mview">
+    <div class="row"><button class="mbtn" id="mBack">← 返回列表</button><span id="mTitle" style="font-weight:800"></span></div>
+    <iframe id="mFrame" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen mozallowfullscreen webkitallowfullscreen></iframe>
+    <div class="cap" id="mCap"></div>
+  </div>
+  <div class="imp">
+    <b>导入 glTF / GLB 到当前场景</b>（来自 Sketchfab 下载、Kenney、Poly Pizza 等；也可直接把文件拖进页面）
+    <div class="row"><input type="file" id="glbFile" accept=".glb,.gltf" style="max-width:190px">
+      <input type="text" id="glbUrl" placeholder="https://…/model.glb（需允许跨域）"><button class="mbtn" id="glbGo">加载</button></div>
+    <div class="row">缩放 <input type="range" id="glbScale" min="0.2" max="4" step="0.05" value="1"><button class="mbtn" id="glbClear">移除</button></div>
+  </div>
+</div>
+<div id="dropHint" class="mc">松开以导入 .glb 模型</div>
+
+<script src="vendor/three.min.js"></script>
+<script>if (!window.THREE) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
+<script src="vendor/GLTFLoader.js"></script>
+<script src="hallstatt-world/world.js"></script>
+<script src="hallstatt-world/textures.js"></script>
+<script src="hallstatt-world/mesher.js"></script>
+<script src="hallstatt-world/models.js"></script>
+<script src="hallstatt-world/app.js"></script>
+</body>
+</html>

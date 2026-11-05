@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Minest My World — 3D 体素世界全景大厅</title>
+<style>
+  :root {
+    --bg: #0b0f19;
+    --card-bg: rgba(22, 30, 46, 0.75);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --card-hover: rgba(59, 130, 246, 0.25);
+    --text-pri: #f8fafc;
+    --text-sec: #94a3b8;
+    --accent: #3b82f6;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0b0f19 80%);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
+    color: var(--text-pri);
+    padding: calc(24px + env(safe-area-inset-top)) 20px calc(48px + env(safe-area-inset-bottom));
+  }
+  .header {
+    max-width: 1200px;
+    margin: 0 auto 32px;
+    text-align: center;
+  }
+  .header h1 {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 800;
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, #60a5fa, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header p {
+    font-size: clamp(14px, 2.5vw, 16px);
+    color: var(--text-sec);
+    max-width: 680px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  .nav-bar {
+    max-width: 1200px;
+    margin: 0 auto 28px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .nav-btn {
+    padding: 8px 18px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .2s;
+  }
+  .nav-btn:hover, .nav-btn.active {
+    background: #2563eb;
+    border-color: #60a5fa;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.4);
+  }
+  .grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    overflow: hidden;
+    backdrop-filter: blur(16px);
+    transition: transform .25s, border-color .25s, box-shadow .25s;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    border-color: #60a5fa;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  }
+  .card-media {
+    width: 100%;
+    height: 190px;
+    background: #1e293b;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .4s;
+  }
+  .card:hover .card-media img {
+    transform: scale(1.06);
+  }
+  .card-media .tag {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #93c5fd;
+  }
+  .card-body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: #60a5fa;
+    font-weight: 600;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .card-desc {
+    font-size: 13.5px;
+    color: var(--text-sec);
+    line-height: 1.55;
+    margin: 0 0 16px;
+    flex: 1;
+  }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .features {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .feat-pill {
+    font-size: 11px;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: #cbd5e1;
+  }
+  .enter-btn {
+    padding: 6px 14px;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 700;
+    transition: background .2s;
+  }
+  .card:hover .enter-btn {
+    background: #3b82f6;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🌍 Minest My World · 3D 体素探索世界</h1>
+  <p>融合 Kiro 高拟真 3D 体素引擎与 AI Studio 模块化世界设计，支持全景漫游、室内剖面探索与无缝交互。</p>
+</div>
+
+<div class="nav-bar">
+  <button type="button" id="mn-wh-back" class="nav-btn" style="background:rgba(37,99,235,0.5);border-color:#60a5fa;color:#fff;font-weight:800;">‹ 回到 My World (小岛)</button>
+<script>
+document.getElementById('mn-wh-back').addEventListener('click', function(e) {
+  e.preventDefault();
+  if (window.parent && window.parent !== window) {
+    try {
+      if (window.parent.closeWorldOverlay3D) { window.parent.closeWorldOverlay3D(); return; }
+      window.parent.postMessage({ action: 'closeMinest3DOverlay' }, '*');
+      return;
+    } catch(err) {}
+  }
+  window.location.href = 'iPhoneDuo.html';
+});
+</script>
+  <a href="#all" class="nav-btn active">全部 8 大世界</a>
+  <a href="lauterbrunnen.html" class="nav-btn">🇨🇭 劳特布龙嫩</a>
+  <a href="bibury.html" class="nav-btn">🇬🇧 拜伯里</a>
+  <a href="downton.html" class="nav-btn">🏰 唐顿庄园</a>
+  <a href="hallstatt.html" class="nav-btn">🇦🇹 哈尔施塔特</a>
+  <a href="giethoorn.html" class="nav-btn">🇳🇱 羊角村</a>
+  <a href="neuschwanstein.html" class="nav-btn">👑 新天鹅堡</a>
+</div>
+
+<div class="grid">
+
+  <!-- 1. 劳特布龙嫩 Lauterbrunnen -->
+  <a href="lauterbrunnen.html" class="card">
+    <div class="card-media">
+      <div class="tag">AI STUDIO × KIRO</div>
+      <div style="font-size:64px;">🏔️</div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">劳特布龙嫩 <span>Lauterbrunnen</span></div>
+      <div class="card-sub">瑞士阿尔卑斯 · 72 瀑布山谷与施陶巴赫悬崖</div>
+      <div class="card-desc">深度还原瑞士卢达本纳仙境峡谷！高耸入云的万丈绝壁、垂直倾泻的施陶巴赫瀑布（Staubbach Falls）、阿尔卑斯木屋群落、缆车站、日出日落晨昏系统与悠扬高山音效。</div>
+      <div class="card-footer">
+        <div class="features">
+          <span class="feat-pill">瀑布悬崖</span>
+          <span class="feat-pill">高山缆车</span>
+          <span class="feat-pill">晨昏天空</span>
+        </div>
+        <span class="enter-btn">进入探索 ›</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- 2. 拜伯里 Bibury -->
+  <a href="bibury.html" class="card">
+    <div class="card-media">
+      <div class="tag">KIRO OFFICIAL</div>
+      <div style="font-size:64px;">🏡</div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">拜伯里 <span>Bibury</span></div>
+      <div class="card-sub">英格兰科茨沃尔德 · 阿灵顿排屋 (Arlington Row)</div>
+      <div class="card-desc">英格兰最美乡村！高低起伏的 Cotswold 蜂蜜色石构斜顶织布工排屋、穿村而过的科恩河（River Coln）、小石拱桥、鳟鱼养殖水面与天鹅酒店，支持进入小屋内部探索壁炉与古朴木梁。</div>
+      <div class="card-footer">
+        <div class="features">
+          <span class="feat-pill">阿灵顿排屋</span>
+          <span class="feat-pill">科恩河</span>
+          <span class="feat-pill">室内壁炉</span>
+        </div>
+        <span class="enter-btn">进入探索 ›</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- 3. 唐顿庄园 Downton Abbey -->
+  <a href="downton.html" class="card">
+    <div class="card-media">
+      <div class="tag">AI STUDIO × KIRO</div>
+      <div style="font-size:64px;">🏰</div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">唐顿庄园 <span>Downton Abbey</span></div>
+      <div class="card-sub">英国海克利尔城堡 · Highclere Castle</div>
+      <div class="card-desc">以英剧经典原型海克利尔城堡为蓝本打造的 Jacobethan 风格奢华体素庄园！涵盖宏伟主立面角塔、英式修剪几何花园、大沙龙（Great Saloon）、华丽主楼梯、红木图书室、宴会厅与伯爵书房。</div>
+      <div class="card-footer">
+        <div class="features">
+          <span class="feat-pill">雅各宾城堡</span>
+          <span class="feat-pill">全套豪华室内</span>
+          <span class="feat-pill">名画陈列</span>
+        </div>
+        <span class="enter-btn">进入探索 ›</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- 4. 哈尔施塔特 Hallstatt -->
+  <a href="hallstatt.html" class="card">
+    <div class="card-media">
+      <div class="tag">AI STUDIO × KIRO</div>
+      <div style="font-size:64px;">⛪</div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">哈尔施塔特 <span>Hallstatt</span></div>
+      <div class="card-sub">奥地利阿尔卑斯 · 最美湖畔木屋小镇</div>
+      <div class="card-desc">奥地利世界文化遗产小镇！标志性的福音堂哥特式黑色尖塔、依山傍湖的彩色木屋群、石板漫步道、木桩停泊码头与清澈泛舟湖泊，支持一键开门与室内多层剖面空间互动。</div>
+      <div class="card-footer">
+        <div class="features">
+          <span class="feat-pill">湖畔尖塔</span>
+          <span class="feat-pill">泛舟湖泊</span>
+          <span class="feat-pill">彩色木屋</span>
+        </div>
+        <span class="enter-btn">进入探索 ›</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- 5. 羊角村 Giethoorn -->
+  <a href="giethoorn.html" class="card">
+    <div class="card-media">
+      <div class="tag">AI STUDIO</div>
+      <div style="font-size:64px;">🛶</div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">羊角村 <span>Giethoorn</span></div>
+      <div class="card-sub">荷兰绿色水乡 · 运河村庄与高拱木桥</div>
+      <div class="card-desc">没有汽车的童话水乡！520 米垂柳沿岸运河、茅草斜顶驼峰农舍、标志性白栏杆高拱木桥、绣球花丛与野生水鸟生态。支持乘木舟沿水道泛游并走入小桥庭院。</div>
+      <div class="card-footer">
+        <div class="features">
+          <span class="feat-pill">乘船漫游</span>
+          <span class="feat-pill">高拱木桥</span>
+          <span class="feat-pill">茅草农舍</span>
+        </div>
+        <span class="enter-btn">进入探索 ›</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- 6. 圣托里尼 Santorini -->
+  <a href="iPhoneDuo69.html" class="card">
+    <div class="card-media">
+      <div class="tag">DEEP INTEGRATION</div>
+      <div style="font-size:64px;">🏛️</div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">圣托里尼 <span>Santorini</span></div>
+      <div class="card-sub">希腊爱琴海 · Oia 伊亚蓝顶与悬崖村落</div>
+      <div class="card-desc">与 Minest My World 智能建造深度联动的核心体素世界！整栋建筑交互、3D 展架与真实卡片展示、双层剖面（Doorhouse）与 3D 房间漫游，六级层级闭环。</div>
+      <div class="card-footer">
+        <div class="features">
+          <span class="feat-pill">6层联动</span>
+          <span class="feat-pill">3D展架</span>
+          <span class="feat-pill">Doorhouse</span>
+        </div>
+        <span class="enter-btn">进入探索 ›</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- 7. 新天鹅堡 Neuschwanstein -->
+  <a href="neuschwanstein.html" class="card">
+    <div class="card-media">
+      <div class="tag">KIRO OFFICIAL</div>
+      <div style="font-size:64px;">👑</div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">新天鹅堡 <span>Neuschwanstein</span></div>
+      <div class="card-sub">德国巴伐利亚 · 迪士尼原型罗曼式梦幻城堡</div>
+      <div class="card-desc">路德维希二世的浪漫主义巅峰杰作！耸立于阿尔卑斯悬崖顶端的巍峨城堡、金色王座大厅（Throne Hall）、游吟诗人厅（Singers' Hall）、旋转大理石阶梯与悬崖眺望台。</div>
+      <div class="card-footer">
+        <div class="features">
+          <span class="feat-pill">王座大厅</span>
+          <span class="feat-pill">游吟诗人殿</span>
+          <span class="feat-pill">皇家内室</span>
+        </div>
+        <span class="enter-btn">进入探索 ›</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- 8. 霍比屯 Hobbiton -->
+  <a href="hobbiton.html" class="card">
+    <div class="card-media">
+      <div class="tag">KIRO OFFICIAL</div>
+      <div style="font-size:64px;">🍃</div>
+    </div>
+    <div class="card-body">
+      <div class="card-title">霍比屯 <span>Hobbiton</span></div>
+      <div class="card-sub">新西兰玛塔玛塔 · 夏尔山丘袋底洞与绿龙酒馆</div>
+      <div class="card-desc">托尔金笔下的中土夏尔仙境！13座依山而建的霍比特洞屋、山顶袋底洞标志性绿圆门、河畔旋转水车磨坊、巨型节庆宴会树与绿龙酒馆，支持圆门互动开闭与全景地标漫游。</div>
+      <div class="card-footer">
+        <div class="features">
+          <span class="feat-pill">袋底洞</span>
+          <span class="feat-pill">13座洞屋</span>
+          <span class="feat-pill">旋转水车</span>
+          <span class="feat-pill">圆门互动</span>
+        </div>
+        <span class="enter-btn">进入探索 ›</span>
+      </div>
+    </div>
+  </a>
+
+</div>
+
+</body>
+</html>
