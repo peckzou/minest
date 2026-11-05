@@ -3,7 +3,7 @@
 - tools/routine/minest-routine.js is the app's embeddable build (`npm run build:embed` in ~/Documents/liquid-routine,
   then copy dist-embed/minest-routine.js here). It rides in the page as inert text (<script type="text/plain"
   id="mn-routine-src">) and runs on the first open; it mounts in a shadow root, so its styles and Minest's never meet.
-- window.MinestRoutine = { open, close, isOpen, _cloud, _mergeCloud }: full screen over Minest with a ‹ Minest button;
+- window.MinestRoutine = { open, close, isOpen, _cloud, _mergeCloud }: full screen over Minest, left by the routine's own ✕ (top right);
   closing unmounts it (no GPU work in the background). Entries: a tile in the right-side dock column and a tab in
   the bottom tab bar.
 - The routine (tasks + execution records) is Minest's: kept in this page's localStorage (liquid-routine.v1, saved
@@ -26,9 +26,6 @@ CSS = """<style id="mn-routine-style">
 .mn-routine { position:fixed; inset:0; z-index:2147483560; background:#F7F9FC; }
 .mn-routine[hidden] { display:none; }
 .mn-routine-host { position:absolute; inset:0; }
-.mn-routine-x { position:fixed; z-index:40; left:calc(10px + env(safe-area-inset-left)); bottom:calc(76px + env(safe-area-inset-bottom));   /* above the routine's own bottom bar (z 25, 64px) */ padding:8px 13px; border-radius:999px;
-  font:600 13px/1 -apple-system, system-ui, sans-serif; color:#23344B; background:rgba(255,255,255,.78); border:1px solid rgba(35,52,75,.16);
-  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); box-shadow:0 6px 20px rgba(35,52,75,.14); cursor:pointer; }
 html.mn-routine-on #minest-mini-pet-p0 { visibility:hidden !important; }
 </style>
 """
@@ -47,12 +44,13 @@ RUN = r"""<script id="mn-routine-run">
     boot(); if (!window.MinestRoutineApp) return;
     if (!ov) {
       ov = document.createElement('div'); ov.className = 'mn-routine'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Liquid Routine');
-      ov.innerHTML = '<div class="mn-routine-host"></div><button type="button" class="mn-routine-x" aria-label="Back to Minest">‹ Minest</button>';
-      document.body.appendChild(ov); ov.querySelector('.mn-routine-x').addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); close(); });
+      // no button of Minest's own: the routine is full screen and its single ✕ (top right) leaves to Minest
+      ov.innerHTML = '<div class="mn-routine-host"></div>';
+      document.body.appendChild(ov);
       ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });   // Minest's own handlers stay out
     }
     ov.hidden = false; document.documentElement.classList.add('mn-routine-on'); last = get(KEY);
-    MinestRoutineApp.mount(ov.querySelector('.mn-routine-host'), { store: store });
+    MinestRoutineApp.mount(ov.querySelector('.mn-routine-host'), { store: store, onExit: close });
   }
   function close() { if (!ov || ov.hidden) return; try { MinestRoutineApp.unmount(); } catch (e) {} ov.hidden = true; document.documentElement.classList.remove('mn-routine-on'); }
   // ---- the cloud copy
@@ -92,7 +90,7 @@ RUN = r"""<script id="mn-routine-run">
   var queued = false;
   new MutationObserver(function () { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; entries(); }); }).observe(document.body, { childList: true, subtree: true });
   entries();
-  window.MinestRoutine = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, _cloud: cloud, _mergeCloud: mergeCloud, _merge: merge, version: '4.12.3' };
+  window.MinestRoutine = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, _cloud: cloud, _mergeCloud: mergeCloud, _merge: merge, version: '4.15.1' };
 })();
 </script>
 """
