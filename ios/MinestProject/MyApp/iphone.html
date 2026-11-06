@@ -94271,6 +94271,7 @@ var Ve = (function(_Component) {
   function attach(box, o) {
     ensureCss();
     o = o || {};
+    /* duo-dock-plain-runtime */ var duoPlain = function () { var c = document.documentElement.classList; return c.contains('duo-inner') || c.contains('duo-outer'); };
     var axis = o.axis || 'y', side = o.side || 'right', max = o.max || 1.65, base = 46, reach = 150, mode = o.mode || 'size';
     var boxes = o.boxes || [box];
     // axis / side are read every time, so a dock can move (left · bottom · right) without attaching again
@@ -94286,6 +94287,7 @@ var Ve = (function(_Component) {
     function restC(t) { var r = t.getBoundingClientRect(); return (axis === 'y' ? r.top + r.height / 2 : r.left + r.width / 2) - (t.__push || 0); }
     function apply() {
       raf = 0; sizes();
+      if (duoPlain()) pos = null;
       var ts = tiles(), best = null, bestS = 1;
       var info = ts.map(function (t) {
         var c = restC(t), s = 1;
@@ -94364,6 +94366,7 @@ var Ve = (function(_Component) {
     if (o.pickFirst) boxes.forEach(function (bx) {
       bx.addEventListener('click', function (e) {
         if (!e.isTrusted || e.detail === 0) return;   // keyboard / scripted clicks open at once
+        if (duoPlain()) return;
         var t = tiles().filter(function (x) { return x.contains(e.target); })[0];
         if (!t) return;
         if (t === sel) { clearTimeout(selT); sel = null; return; }   // the second click: open
@@ -94393,6 +94396,7 @@ var Ve = (function(_Component) {
       bx.addEventListener('touchend', function (e) {
         var s = scrub; scrub = null;
         if (!s) return;
+        if (duoPlain()) { leave(); return; }
         var hit = null, best = 1e9;
         tiles().forEach(function (t) { var d = Math.abs((axis === 'y' ? s.ly : s.lx) - restC(t)); if (d < best) { best = d; hit = t; } });
         if (!hit || best >= base * 0.75) { leave(); return; }
