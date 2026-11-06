@@ -44,6 +44,11 @@
   let world = null, props = null;
   const S = { mode: 'tour', sit: null, time: parseFloat(qs.get('t')) || 10.5, auto: qs.get('auto') === '1', shadows: wantShadow, tourT: 0, hudT: 0, lampT: 0, held: 0, locked: false, elapsed: 0 };
   const keys = Object.create(null);
+  let consoleInput = {};   /* My World 71: the console's Walk in (as in Santorini) */
+  const consoleControls = {
+    input: function (next) { consoleInput = Object.assign({}, next); },
+    stop: function () { consoleInput = {}; for (const k in keys) keys[k] = false; joy.x = joy.y = 0; touchBtn.jump = touchBtn.down = false; player.vel.set(0, 0, 0); }
+  };
   const player = { pos: new V3(90.5, 22, 103.5), vel: new V3(), yaw: 0, pitch: 0.02, onGround: false, swim: false, fly: false, stepOff: 0, lastSpace: 0, climbT: 0 };
   const joy = { x: 0, y: 0 };
   const touchBtn = { jump: false, down: false };
@@ -210,7 +215,7 @@
   const matLit = new THREE.MeshBasicMaterial({ vertexColors: true });   // the fire in the hearth: lit day and night
 
   function updateSky(cam) {
-    const t = ((S.time % 24) + 24) % 24;
+    const t = window.MinestOiaEditor && window.MinestOiaEditor.active && window.MinestOiaEditor.daylight ? 12 : ((S.time % 24) + 24) % 24;
     const a = (t - 5.5) / 14 * Math.PI;
     sunDir.set(Math.cos(a), Math.sin(a), 0.3).normalize();
     const e = sunDir.y;
@@ -246,6 +251,7 @@
     sunSprite.visible = e > -0.12; moonSprite.visible = e < 0.1;
     skyMesh.position.copy(cam); stars.position.copy(cam);
     starMat.opacity = clamp(nightF * 1.1 - 0.1, 0, 0.95);
+    cloudMesh.visible = !(window.MinestOiaEditor && window.MinestOiaEditor.active);   /* 71 clouds */
     // clouds
     const TILE = cloudMesh.userData.TILE, drift = S.elapsed * 2.2;
     cloudMesh.position.x = Math.floor((cam.x - drift) / TILE) * TILE + drift;
@@ -638,16 +644,18 @@
     return false;
   }
   function movePlayer(dt) {
-    const p = player;
-    const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - joy.y;
-    const side = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joy.x;
+    const p = player, n = consoleInput;
+    p.yaw += ((n.lookLeft ? 1 : 0) - (n.lookRight ? 1 : 0) - (n.lookX || 0)) * dt * 1.6;
+    p.pitch = Math.max(-1.5, Math.min(1.5, p.pitch + ((n.lookUp ? 1 : 0) - (n.lookDown ? 1 : 0) + (n.lookY || 0)) * dt * 1.2));
+    const fwd = (keys.KeyW || keys.ArrowUp || n.forward ? 1 : 0) - (keys.KeyS || keys.ArrowDown || n.back ? 1 : 0) - joy.y + (n.moveY || 0);
+    const side = (keys.KeyD || keys.ArrowRight || n.right ? 1 : 0) - (keys.KeyA || keys.ArrowLeft || n.left ? 1 : 0) + joy.x + (n.moveX || 0);
     let ix = side, iz = -fwd;
     const l = Math.hypot(ix, iz); if (l > 1) { ix /= l; iz /= l; }
     const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
     const wx = cos * ix + sin * iz, wz = -sin * ix + cos * iz;
-    const sprint = !!(keys.ShiftLeft || keys.ShiftRight || keys.ControlLeft && !p.fly);
-    const jump = !!(keys.Space || touchBtn.jump);
-    const down = !!(keys.KeyC || (p.fly && (keys.ShiftLeft || keys.ShiftRight)) || touchBtn.down);
+    const sprint = !!(n.fast || keys.ShiftLeft || keys.ShiftRight || keys.ControlLeft && !p.fly);
+    const jump = !!(n.up || keys.Space || touchBtn.jump);
+    const down = !!(keys.KeyC || (p.fly && (keys.ShiftLeft || keys.ShiftRight)) || touchBtn.down || n.down);
     const feetCellWater = p.pos.y + 1.0 < VW.WATER_Y && !solidAt(Math.floor(p.pos.x), Math.floor(p.pos.y + 0.5), Math.floor(p.pos.z));
     p.swim = !p.fly && feetCellWater;
     if (p.climbT > 0) p.climbT -= dt;
@@ -936,6 +944,7 @@
   /* ================= camera per mode ================= */
   const _la = new V3(), _tc = new V3(), _tt = new V3();
   function updateCamera(dt) {
+    if (window.MinestOiaEditor && window.MinestOiaEditor.frame()) return;   /* My World 71: the editing camera */
     if (S.mode === 'tour') {
       S.tourT = (S.tourT + dt / TOUR.dur) % 1;
       tourCam.getPointAt(S.tourT, _tc); tourTgt.getPointAt(S.tourT, _tt);
@@ -1023,7 +1032,7 @@
       setLoad('垒起天鹅石山崖、开出珀拉特峡谷…', 0.04); await nextFrame();
       world = window.__nsWorld || VW.create(1869); window.__nsWorld = world;
       if (window.__nsApply) window.__nsApply(world, null);
-      window.__ns = { world, player, scene, camera, S, setMode, teleport, markDirty, interact, toggleDoor, sitOn, renderer, stats: () => { const r = renderer.info; return { drawCalls: r.render.calls, tris: r.render.triangles, geometries: r.memory.geometries, textures: r.memory.textures, fps: Math.round(fps), props: props ? props.stats() : null }; }, lights: () => lampLights.map((l) => +l.intensity.toFixed(2)), indoor: () => indoor };
+      window.__ns = window.__voxel = { controls: consoleControls, world, player, scene, camera, S, setMode, teleport, markDirty, interact, toggleDoor, sitOn, renderer, stats: () => { const r = renderer.info; return { drawCalls: r.render.calls, tris: r.render.triangles, geometries: r.memory.geometries, textures: r.memory.textures, fps: Math.round(fps), props: props ? props.stats() : null }; }, lights: () => lampLights.map((l) => +l.intensity.toFixed(2)), indoor: () => indoor };
       { const L = world.lake; waterMesh.geometry.dispose(); waterMesh.geometry = new THREE.PlaneGeometry(L.w, L.d); waterMesh.position.x = L.x; waterMesh.position.z = L.z; lakeHW = L.w / 2; lakeHD = L.d / 2; }
       player.pos.set(world.spawn.x, world.spawn.y, world.spawn.z);
       setLoad('烘焙像素贴图…', 0.16); await nextFrame();

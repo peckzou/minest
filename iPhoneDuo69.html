@@ -96330,7 +96330,17 @@ var Ve = (function(_Component) {
     { k: 'blast', name: 'Glass Blast', icon: '🚀', tag: 'Shoot the right answer' },
     { k: 'whack', name: 'Whack-a-Term', icon: '🔨', tag: 'Bonk the right answer' },
     { k: 'missing', name: "What's Missing?", icon: '🧩', tag: 'Which card vanished?' },
-    { k: 'smash', name: 'Smash It', icon: '💎', tag: 'Boss level · smash the answer' }
+    { k: 'smash', name: 'Smash It', icon: '💎', tag: 'Boss level · smash the answer' },
+    { k: 'tt-dragmatching', name: 'Drag Matching', icon: '🧲', tag: '教学游戏 · 拖拽配对', teach: 'dragmatching' },
+    { k: 'tt-missing', name: "What's Missing · 教学版", icon: '🫥', tag: '教学游戏 · 哪张消失了', teach: 'missing' },
+    { k: 'tt-disappear', name: 'Disappearing', icon: '🌙', tag: '教学游戏 · 逐张消失', teach: 'disappear' },
+    { k: 'tt-memorygrid', name: 'Memory Grid', icon: '🧠', tag: '教学游戏 · 记忆网格', teach: 'memorygrid' },
+    { k: 'tt-scramble', name: 'Word Scramble', icon: '🔤', tag: '教学游戏 · 拖拽拼词', teach: 'scramble' },
+    { k: 'tt-tf', name: 'True or False', icon: '⚡', tag: '教学游戏 · 滑动对决', teach: 'tf' },
+    { k: 'tt-match', name: 'Memory Match', icon: '🧩', tag: '教学游戏 · 翻牌对决', teach: 'match' },
+    { k: 'tt-find', name: 'Find It', icon: '🔎', tag: '教学游戏 · 寻词探险', teach: 'find' },
+    { k: 'tt-bingo', name: 'Vocabulary Bingo', icon: '🎯', tag: '教学游戏 · 词义 Bingo', teach: 'bingo' },
+    { k: 'tt-reveal', name: 'Reveal', icon: '🎁', tag: '教学游戏 · 揭格猜词', teach: 'reveal' }   /* 74: the ten teaching games */
   ];
   function levelInfo(k) { return LEVELS.filter(function (l) { return l.k === k; })[0] || LEVELS[0]; }
   // the board the students play: only the chosen lists, only what the games read
@@ -97247,7 +97257,7 @@ var Ve = (function(_Component) {
     launchOptions=launchOptions&&launchOptions.board&&Array.isArray(launchOptions.board.columns)?launchOptions:{};
     var o = overlay('Minest Live · Teacher');
     var cur = launchOptions.board||activeBoard(), boards = launchOptions.board?[cur]:boardsList().concat(kits());
-    var st = { boardId: (cur && cur.id) || (boards[0] && boards[0].id), cols: null, levels: LEVELS.map(function (l) { return l.k; }), pace: 'slow', spd: true, goal: 'levels', time: 10, target: 100000 };
+    var st = { boardId: (cur && cur.id) || (boards[0] && boards[0].id), cols: null, levels: LEVELS.filter(function (l) { return !l.teach; }).map(function (l) { return l.k; }), pace: 'slow', spd: true, goal: 'levels', time: 10, target: 100000 };
     function board() { return boards.filter(function (b) { return b.id === st.boardId; })[0] || cur; }
     // 53.801: Mandarin learning entry, independent of the selected board.
     function chineseEntry() {
@@ -97279,7 +97289,7 @@ var Ve = (function(_Component) {
         '<button class="mlv-btn alt mlv-sm" data-export type="button">⬇ Export JSON</button><button class="mlv-btn alt mlv-sm" data-template type="button">📄 Template</button>' + (b.kit ? '<button class="mlv-btn alt mlv-sm" data-dropkit type="button">🗑 Remove set</button>' : '') +
         '<input type="file" accept=".json,application/json" data-file hidden></div><div class="mlv-err" data-kiterr></div>' +
         '<label class="f">Lists (the deck)</label><div class="mlv-chips">' + cols.map(function (c) { return '<button type="button" class="mlv-chip' + (st.cols.indexOf(c.id) >= 0 ? ' on' : '') + '" data-col="' + esc(c.id) + '">' + esc(c.title || 'List') + ' · ' + (c.cards || []).length + '</button>'; }).join('') + '</div>' +
-        '<label class="f">Levels · 📖 learning first (in order), then 🎮 any game</label><div class="mlv-chips">' + LEVELS.map(function (l, i) { return '<button type="button" class="mlv-chip' + (st.levels.indexOf(l.k) >= 0 ? ' on' : '') + '" data-lv="' + l.k + '">' + (i + 1) + ' ' + l.icon + ' ' + esc(l.name) + '</button>'; }).join('') + '</div>' +
+        '<label class="f">Levels · 📖 learning first (in order), then 🎮 any game</label><div class="mlv-chips">' + LEVELS.map(function (l, i) { return (l.teach && !LEVELS[i - 1].teach ? '<span class="mlv-chip-sep">🎓 教学游戏 · 点一下放进学生端</span>' : '') + '<button type="button" class="mlv-chip' + (st.levels.indexOf(l.k) >= 0 ? ' on' : '') + '" data-lv="' + l.k + '">' + (i + 1) + ' ' + l.icon + ' ' + esc(l.name) + '</button>'; }).join('') + '</div>' +
         '<label class="f">Pace</label><div class="mlv-chips">' + [['veryslow', 'Very slow 🐢'], ['slow', 'Slow'], ['easy', 'Easy'], ['normal', 'Normal'], ['fast', 'Fast']].map(function (p) { return '<button type="button" class="mlv-chip' + (st.pace === p[0] ? ' on' : '') + '" data-pace="' + p[0] + '">' + p[1] + '</button>'; }).join('') + '</div>' +
         '<div class="mlv-chips"><button type="button" class="mlv-chip' + (st.spd !== false ? ' on' : '') + '" data-spd>' + (st.spd !== false ? '✓' : '✕') + ' Students can change speed (🐢 / 🐇 in Glass Fruit &amp; Whack-a-Term)</button></div>' +
         '<label class="f">Goal</label><div class="mlv-chips">' +
@@ -98715,8 +98725,8 @@ var Ve = (function(_Component) {
       run = { k: k, c: 0, w: 0, earned: 0, bonus: s.bonus, seen: 0 };
       var pk = perksOf(s); if (pk.streak && s.streak < pk.streak) s.streak = pk.streak;   // a card's head start
       s.bonus = 1;   // a bought bonus lasts one level
-      var TO = window.MinestArcadeToon; if (TO) TO.on(k);   // Blooket style for every game but Smash It (tools/web31/arcade-toon.js)
-      var ok = SA.level ? SA.level(host.board, k, opts) : false;
+      var TO = levelInfo(k).teach ? null : window.MinestArcadeToon; if (TO) TO.on(k);   // Blooket style for every game but Smash It (tools/web31/arcade-toon.js)
+      var ok = levelInfo(k).teach ? !!(window.MinestLiveTeach && MinestLiveTeach.start(host.board, levelInfo(k).teach, k)) : SA.level ? SA.level(host.board, k, opts) : false;   // 74: a teaching game
       if (TO) { if (ok) TO.on(k); else TO.off(); }
       if (!ok) { run = null; toast('No cards here can be asked this way — level skipped.'); s.lv[k] = 1; save(); draw(); return; }
       o.el.hidden = true;
@@ -98752,6 +98762,7 @@ var Ve = (function(_Component) {
       if (!run || run.done) return;
       var d = e.detail || {}, k = run.k, L = levelInfo(k), r0;
       if (d.mode && d.mode !== k) return;
+      if (L.teach && d.c != null) { run.c = d.c; run.w = d.w || 0; run.seen = d.c + run.w; }   // 74: the teaching game counted its own answers
       var passed = !!d.cleared && (L.self ? run.seen > 0 : run.c + run.w > 0 && run.c / (run.c + run.w) >= 0.6);
       var stars = passed ? (L.self ? 3 : starsOf(run.c, run.w)) : 0, first = passed && !s.lv[k], prize = 0;
       if (passed) {
@@ -98785,6 +98796,7 @@ var Ve = (function(_Component) {
       if (floatEl) { floatEl.remove(); floatEl = null; }
       $$(document, '.mlv-res').forEach(function (x) { x.remove(); });
       if (r && SA && SA.isOpen && SA.isOpen()) SA.close(true);
+      if (r && levelInfo(r.k).teach && window.MinestLiveTeach) { MinestLiveTeach.stop(); if (window.MinestTemplates && MinestTemplates.isOpen()) MinestTemplates.close(); }   // 74
       if (!silent && o.el) o.el.hidden = false;
     }
     // the money sits in the Arcade's own top bar, next to its score chips (out of the way of the game)
@@ -123125,18 +123137,20 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     return t + '</text></g>';
   }
   // ---- undo / redo: a step for every finished change of the scene (snapshots of the island record)
+  var HISTORIES = Object.create(null);
   var HIST = { bid: null, cur: null, u: [], r: [], busy: 0 };
-  function histSnap(R) { return JSON.stringify({ pc: R.pc || [], land: R.land || null, ground: R.ground || null, scene: R.scene || null, ex: R.ex || null, pg: R.pg || null, arch: R.arch || null, archLand: R.archLand || null, view: R.view || null, terr: R.terr || null }); }   // exhibitions too (64-exhibit.js)
-  function histStart() { if (!V || V.visit) return; HIST = { bid: V.bid, cur: histSnap(V.root || V.d), u: [], r: [], busy: 0 }; }
-  function histNote(bid, d) { if (HIST.busy || !V || V.visit) return; var j = histSnap(d); if (HIST.bid !== bid || HIST.cur == null) { HIST = { bid: bid, cur: j, u: [], r: [], busy: 0 }; return; } if (j === HIST.cur) return; HIST.u.push(HIST.cur); if (HIST.u.length > 60) HIST.u.shift(); HIST.cur = j; HIST.r = []; }
+  function histSnap(R) { return JSON.stringify({ pc: R.pc || [], land: R.land || null, ground: R.ground || null, scene: R.scene || null, ex: R.ex || null, pg: R.pg || null, arch: R.arch || null, archLand: R.archLand || null, view: R.view || null, terr: R.terr || null, vox: R.vox || null }); }   // exhibitions too (64-exhibit.js)
+  function histStart() { if(!V||V.visit)return;var bid=V.bid,j=histSnap(V.root||V.d),old=HISTORIES[bid];HIST=old&&old.cur===j?old:{bid:bid,cur:j,u:[],r:[],busy:0};HISTORIES[bid]=HIST; }
+  function histNote(bid,d) { if(!V||V.visit)return;var j=histSnap(d),h=HISTORIES[bid];if(!h){h=HISTORIES[bid]={bid:bid,cur:j,u:[],r:[],busy:0};}if(h.busy)return;if(j!==h.cur){h.u.push(h.cur);if(h.u.length>60)h.u.shift();h.cur=j;h.r=[];}HIST=h; }
   function histGo(back) {
+    if(V && HISTORIES[V.bid])HIST=HISTORIES[V.bid];
     if (!V || V.visit || HIST.bid !== V.bid) return false; var from = back ? HIST.u : HIST.r, to = back ? HIST.r : HIST.u; if (!from.length) { toast(back ? 'Nothing to undo' : 'Nothing to redo'); return false; }
-    to.push(HIST.cur); HIST.cur = from.pop(); var s = JSON.parse(HIST.cur), R = V.root || V.d; R.pc = s.pc; if (s.land) R.land = s.land; if (s.ground) R.ground = s.ground; if (s.scene) R.scene = s.scene; if (s.ex) R.ex = s.ex; else delete R.ex; ['pg', 'arch', 'archLand', 'view', 'terr'].forEach(function (k) { if (s[k]) R[k] = s[k]; else delete R[k]; });
+    to.push(HIST.cur); HIST.cur = from.pop(); var s = JSON.parse(HIST.cur), R = V.root || V.d; R.pc = s.pc; if (s.land) R.land = s.land; if (s.ground) R.ground = s.ground; if (s.scene) R.scene = s.scene; if (s.ex) R.ex = s.ex; else delete R.ex; ['pg', 'arch', 'archLand', 'view', 'terr', 'vox'].forEach(function (k) { if (s[k]) R[k] = s[k]; else delete R[k]; });
     if (V.at) { var b = (R.pc || []).filter(function (p) { return p.id === V.at.pc; })[0], r = b && V.at.room && (b.rooms || []).filter(function (x) { return x.id === V.at.room; })[0];
       if (!b) { bvClose(); V.d = R; V.root = null; V.at = null; } else if (V.at.room) { if (r) { roomD(r); V.d = r.d; } else { V.d = R; V.at = null; V.root = null; bldOpen(b.id); } } }
     V.sel = null; V.menu = null; HUD.moving = null; refreshLand(); HIST.busy = 1; save(); HIST.busy = 0; render(); if (typeof BV !== 'undefined' && BV) bvDraw(); hap('light'); toast(back ? '↶ Undone' : '↷ Redone'); return true;
   }
-  function histCan() { return { undo: HIST.bid === (V && V.bid) && HIST.u.length > 0, redo: HIST.bid === (V && V.bid) && HIST.r.length > 0 }; }
+  function histCan() {var h=V&&HISTORIES[V.bid];return {undo:!!(h&&h.u.length),redo:!!(h&&h.r.length)};}
   // ---- the look picker (selection bar ▸ 🎨 Look)
   function sdLookHtml(p) {
     var ref = (p.it || [])[0], v = resolveVisual(ref, p.vis), cur = v.type + (v.asset || ''), hasModel = v.options.some(function (o) { return o.type === 'model' && o.exact; });
@@ -125662,15 +125676,15 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
     if (window.MinestAlps && V && V.d && V.d.terr && V.d.terr.scape === 'alpchalet' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestAlps.open(); }   /* 🏔 the Alpine Chalet valley */
     if (window.MinestAdmont && V && V.d && V.d.terr && V.d.terr.scape === 'admont' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestAdmont.open(); }   /* 📚 the Admont library */
     if (window.MinestTrinity && V && V.d && V.d.terr && V.d.terr.scape === 'trinity' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestTrinity.open(); }   /* 🎓 the Trinity campus */
-    if (window.MinestOia && V && V.d && V.d.terr && V.d.terr.scape === 'santorini' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestOia.open(); }
-    if (W && W.mega && W.mega.kind === 'hobbiton') { return openWorldOverlay3D('hobbiton.html', '霍比屯 · Hobbiton'); }
-    if (W && W.mega && W.mega.kind === 'lauterbrunnen') { return openWorldOverlay3D('lauterbrunnen.html', '劳特布龙嫩 · Lauterbrunnen'); }
-    if (W && W.mega && W.mega.kind === 'bibury') { return openWorldOverlay3D('bibury.html', '拜伯里 · Bibury'); }
-    if (W && W.mega && W.mega.kind === 'downton') { return openWorldOverlay3D('downton.html', '唐顿庄园 · Downton Abbey'); }
-    if (W && W.mega && W.mega.kind === 'hallstatt') { return openWorldOverlay3D('hallstatt.html', '哈尔施塔特 · Hallstatt'); }
-    if (W && W.mega && W.mega.kind === 'giethoorn') { return openWorldOverlay3D('giethoorn.html', '羊角村 · Giethoorn'); }
-    if (W && W.mega && W.mega.kind === 'neuschwanstein') { return openWorldOverlay3D('neuschwanstein.html', '新天鹅堡 · Neuschwanstein'); }
-    if (W && W.mega && W.mega.kind === 'venice') { return openWorldOverlay3D('venice.html', '威尼斯水城 · Venice'); }   /* 🇬🇷 the original voxel Oia (🚶 and 阅览 both land here) */
+    if (!window.__vx62Cap && window.MinestOia && V && V.d && V.d.terr && V.d.terr.scape === 'santorini' && !(V.at && V.at.room)) { if (typeof WKVIEW !== 'undefined') WKVIEW = false; document.documentElement.classList.remove('mn-wview'); return MinestOia.open(); }
+    if (((typeof W !== 'undefined' && W && W.mega && W.mega.kind === 'hobbiton') || (V && V.d && V.d.terr && V.d.terr.scape === 'hobbiton')) && !(V && V.at && V.at.room)) { return openWorldOverlay3D('hobbiton.html', '霍比屯 · Hobbiton'); }
+    if (((typeof W !== 'undefined' && W && W.mega && W.mega.kind === 'lauterbrunnen') || (V && V.d && V.d.terr && V.d.terr.scape === 'lauterbrunnen')) && !(V && V.at && V.at.room)) { return openWorldOverlay3D('lauterbrunnen.html', '劳特布龙嫩 · Lauterbrunnen'); }
+    if (((typeof W !== 'undefined' && W && W.mega && W.mega.kind === 'bibury') || (V && V.d && V.d.terr && V.d.terr.scape === 'bibury')) && !(V && V.at && V.at.room)) { return openWorldOverlay3D('bibury.html', '拜伯里 · Bibury'); }
+    if (((typeof W !== 'undefined' && W && W.mega && W.mega.kind === 'downton') || (V && V.d && V.d.terr && V.d.terr.scape === 'downton')) && !(V && V.at && V.at.room)) { return openWorldOverlay3D('downton.html', '唐顿庄园 · Downton Abbey'); }
+    if (((typeof W !== 'undefined' && W && W.mega && W.mega.kind === 'hallstatt') || (V && V.d && V.d.terr && V.d.terr.scape === 'hallstatt')) && !(V && V.at && V.at.room)) { return openWorldOverlay3D('hallstatt.html', '哈尔施塔特 · Hallstatt'); }
+    if (((typeof W !== 'undefined' && W && W.mega && W.mega.kind === 'giethoorn') || (V && V.d && V.d.terr && V.d.terr.scape === 'giethoorn')) && !(V && V.at && V.at.room)) { return openWorldOverlay3D('giethoorn.html', '羊角村 · Giethoorn'); }
+    if (((typeof W !== 'undefined' && W && W.mega && W.mega.kind === 'neuschwanstein') || (V && V.d && V.d.terr && V.d.terr.scape === 'neuschwanstein')) && !(V && V.at && V.at.room)) { return openWorldOverlay3D('neuschwanstein.html', '新天鹅堡 · Neuschwanstein'); }
+    if (((typeof W !== 'undefined' && W && W.mega && W.mega.kind === 'venice') || (V && V.d && V.d.terr && V.d.terr.scape === 'venice')) && !(V && V.at && V.at.room)) { return openWorldOverlay3D('venice.html', '威尼斯水城 · Venice'); }   /* 🇬🇷 the original voxel Oia (🚶 and 阅览 both land here) */
     if (!V || WK) return; if (V.visit === undefined) {}
     toast('Building the 3D world…'); a3().then(function (AS) { if (!AS || !AS.three || !AS.webgl()) { toast('This device cannot draw the 3D world'); return; } if (el && V && !WK) wkStart(AS); });
   }
@@ -128975,13 +128989,59 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       var A = out.displays; for (var i = 0; i < A.length; i++) for (var j = i + 1; j < A.length; j++) { var a = A[i].local, c = A[j].local, ka = K[A[i].kind], kc = K[A[j].kind]; if ((ka && ka.decor) || (kc && kc.decor)) continue; if (a.x - a.w / 2 < c.x + c.w / 2 - .05 && c.x - c.w / 2 < a.x + a.w / 2 - .05 && a.y - a.d / 2 < c.y + c.d / 2 - .05 && c.y - c.d / 2 < a.y + a.d / 2 - .05) out.problems.push('overlap: ' + A[i].id + ' / ' + A[j].id); }
       return out;
     };
-    window.__oiaBind = function () { MinestOia.bind({   // the voxel Oia and this island (bound on its first open: its runtime loads after this): its edits, its buildings' names, going into one
+    window.__oiaBind = function () { if(!V)return;var boundWorldContext=V;var hooks={   // the voxel Oia and this island (bound on its first open: its runtime loads after this): its edits, its buildings' names, going into one
       key: function () { return V && V.bid; },
       edits: function () { var R = V && (V.root || V.d); return (R && R.vox && R.vox.edits) || []; },
       edit: function (x, y, z, id, c) { if (!V) return; var R = islandD(); R.vox = R.vox || { edits: [] }; var E = R.vox.edits; for (var i = E.length - 1; i >= 0; i--) if (E[i][0] === x && E[i][1] === y && E[i][2] === z) { E.splice(i, 1); break; } E.push([x, y, z, id, c]); clearTimeout(W.voxT); W.voxT = setTimeout(function () { save(); }, 800); },
       bld: function () { var R = V && (V.root || V.d); return (R && R.vox && R.vox.bld) || null; },   /* 68: whole-building edits of this island */
-      bldSet: function (fn) { if (!V) return; var R = islandD(); R.vox = R.vox || { edits: [] }; R.vox.bld = R.vox.bld || { m: {}, a: [], n: 0 }; fn(R.vox.bld); clearTimeout(W.voxT); W.voxT = setTimeout(function () { save(); }, 400); },
+      bldSet: function (fn) { if (!V || V.visit) return false; var R = islandD(); histNote(V.bid,R); R.vox = R.vox || { edits: [] }; R.vox.bld = R.vox.bld || { m: {}, a: [], n: 0 }; fn(R.vox.bld); clearTimeout(W.voxT); save(true); return true; },
+      undo: function () {  return histGo(true); },
+      redo: function () { return histGo(false); },
+      history: function () { var c=histCan();return {undo:c.undo,redo:c.redo}; },
+      reset: function () { if(!V||V.visit)return false;var R=islandD(),vo=R.vox||{},br=vo.bld||{};if(!(vo.edits||[]).length&&!Object.keys(br.m||{}).length&&!(br.a||[]).length&&!(br.elements||[]).length&&!(br.displays||[]).length)return false;histNote(V.bid,R);R.vox=R.vox||{edits:[]};var backup={bld:R.vox.bld||null,edits:R.vox.edits||[]};var saveContext=V;KN().set('oia-restore:'+V.bid,JSON.parse(JSON.stringify(backup)),true);V=saveContext;R.vox.bld={m:{},a:[],n:0,elements:[],displays:[]};R.vox.edits=[];save(true);return true; },
+      restore: function () { if(!V||V.visit)return false;var saved=KN().get('oia-restore:'+V.bid);if(!saved)return false;var R=islandD();histNote(V.bid,R);R.vox=R.vox||{edits:[]};R.vox.bld=JSON.parse(JSON.stringify(saved.bld||{m:{},a:[],n:0}));R.vox.edits=JSON.parse(JSON.stringify(saved.edits||[]));save(true);return true; },
       label: function (bid) { if (!V) return null; var p = (islandD().pc || []).filter(function (q) { return q.vox === bid; })[0]; return p && p.label; },
+      /* 70 */ things: function () { if (!V || V.visit) return []; try { index(); } catch (e) { return []; }
+        return Object.keys(IX).map(function (r) { var t = IX[r], u = null; try { u = picOf(t.s); if (u) u = S(u); } catch (e) { u = null; } return { id: r, title: String(t.s.title || ''), col: (t.k && t.k.title) || '', zh: '', desc: '', pic: u || '', own: 1 }; }); },
+      info: function (bid) { if (!V) return null; var p = (islandD().pc || []).filter(function (q) { return q.vox === bid; })[0]; if (!p) return null;
+        var n = 0, t = (p.it || []).length; (p.rooms || []).forEach(function (r) { ((r.d && r.d.pc) || []).forEach(function (q) { if (Array.isArray(q.it)) { n++; t += q.it.length; } }); });
+        return { label: p.label || null, rooms: (p.rooms || []).length, displays: n, things: t }; },
+      sync: function (info) {   /* 70: the voxel world's buildings and displays, mirrored into this island's pieces and rooms */
+        if (!V || V.visit || !info || !window.MinestOia) return 0; try { index(); } catch (e) {}
+        var R = islandD(); R.pc = R.pc || []; var before = JSON.stringify(R.pc), wv = MinestOia.world(), san = !!(R.terr && R.terr.scape === 'santorini'), sc = 48 / Math.max(wv.W, wv.D);
+        var KM = { house: 'gr_house', cave: 'gr_cave', chapel: 'gr_church', church: 'gr_church', castle: 'ruins', mill: 'gr_mill', taverna: 'c_cafe' }, byV = {};
+        R.pc.forEach(function (p) { if (p.vox) byV[p.vox] = p; });
+        (info.bld || []).forEach(function (b) {
+          var p = byV[b.id];
+          if (b.gone) { if (p && !p.gone) { p.gone = 1; p.k0 = p.k; p.k = 'vox_door'; } return; }   // its rooms and things stay with it
+          if (!san) return;
+          var x = Math.round((wv.W - b.cx) * sc * 2) / 2, y = Math.round((wv.D - b.cz) * sc * 2) / 2;
+          if (!p) { if (!/^u/.test(b.id)) return; p = { id: uid(), k: K[KM[b.kind]] ? KM[b.kind] : 'gr_house', x: x, y: y, f: 3, s: .8, it: [], city: 1, vox: b.id, label: b.name || undefined }; R.pc.push(p); byV[b.id] = p; if (typeof fits === 'function' && !fits(p)) { p.k = 'vox_door'; p.s = 1; } return; }
+          if (p.gone) { p.k = p.k0 || p.k; delete p.gone; delete p.k0; }
+          if (p.k !== 'vox_door') { p.x = x; p.y = y; p.f = (3 + (b.rot || 0)) % 4; }
+        });
+        var KD = { easel: 'easel', shelf: 'shelf', showcase: 'gallery', wall: 'wall' }, want = {};
+        (info.disp || []).forEach(function (d) { if (d.bid) (want[d.bid] = want[d.bid] || []).push(d); });
+        R.pc.forEach(function (p) { (p.rooms || []).forEach(function (r) { if (r.v3d && r.d && !want[p.vox]) { r.d.pc = (r.d.pc || []).filter(function (q) { return !q.v3d; }); r.v3dIds = []; } }); });
+        Object.keys(want).forEach(function (bid) {
+          var p = byV[bid];
+          if (!p) { p = { id: uid(), k: 'vox_door', x: 1, y: 1, f: 0, s: 1, it: [], city: 1, vox: bid, label: want[bid][0].bname || undefined }; R.pc.push(p); byV[bid] = p; }
+          if (!(p.rooms || []).length) { p.roomsInit = 1; p.rooms = suggestRooms(p).map(function (k) { return { id: 'r' + uid().slice(1), k: k, n: ROOMS[k][0] }; }); p.rooms.forEach(function (r) { roomD(r); }); }
+          var r = p.rooms.filter(function (q) { return q.v3d; })[0];
+          if (!r) { r = { id: 'r' + uid().slice(1), k: ROOMS.gallery ? 'gallery' : p.rooms[0].k, n: '3D 陈列', v3d: 1, fl: 1 }; p.rooms.push(r); roomD(r); r.d.pc = (r.d.pc || []).filter(function (q) { return !Array.isArray(q.it); }); }   // its furniture, not empty displays: only the voxel world's own
+          roomD(r); var old = {}; (r.d.pc || []).forEach(function (q) { if (q.v3d) old[q.id] = q; });
+          var mine = want[bid].map(function (d, i) { var id = 'v3d-' + d.id, q = old[id] || { id: id, x: 1.5 + (i % 3) * 2.5, y: 1.5 + Math.floor(i / 3) * 2.5, f: 0, s: 1, v3d: 1 };
+            q.k = K[KD[d.kind]] ? KD[d.kind] : 'easel'; q.it = d.cardId && IX[d.cardId] ? [d.cardId] : []; q.d3 = d.id; q.c3 = d.cardId || null; return q; });
+          r.d.pc = (r.d.pc || []).filter(function (q) { return !q.v3d; }).concat(mine); r.v3dIds = mine.map(function (q) { return q.d3; });
+        });
+        if (JSON.stringify(R.pc) === before) return 0; var hh = HISTORIES[V.bid]; if (hh && !hh.busy) hh.cur = histSnap(R);   /* the mirror is part of the voxel edit's own undo step */
+        save(true); return 1;
+      },
+      pull: function () { if (!V || V.visit) return null; try { index(); } catch (e) {} var out = { cards: {}, gone: [] };
+        (islandD().pc || []).forEach(function (p) { (p.rooms || []).forEach(function (r) { if (!r.v3d || !r.d) return; var have = {};
+          (r.d.pc || []).forEach(function (q) { if (!q.v3d) return; have[q.d3] = 1; var ref = (q.it || [])[0]; if (ref && ref !== q.c3 && IX[ref]) out.cards[q.d3] = ref; });
+          (r.v3dIds || []).forEach(function (id) { if (!have[id]) out.gone.push(id); }); }); });
+        return out; },
       enter: function (bid, at) {   // through its door into its rooms: My World's rooms, displays and cards; 🌳 Outside brings you back to this doorstep
         if (!V) return; var R = islandD(), p = (R.pc || []).filter(function (q) { return q.vox === bid; })[0];
         if (!p) { var bb = MinestOia.world().buildings.filter(function (x) { return x.id === bid; })[0]; p = { id: uid(), k: 'vox_door', x: 1, y: 1, f: 0, s: 1, it: [], city: 1, vox: bid, label: bb && bb.name }; R.pc.push(p); }
@@ -128989,7 +129049,77 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
         var r = p.rooms[0]; roomD(r); save(); MinestOia.close(); if (window.MinestSfx) MinestSfx.play('door');
         WKIN = { pc: p.id, back: null, vox: at }; V.root = R; V.at = { pc: p.id, room: r.id }; V.d = r.d; refreshLand(); render(); wkOpen();
       }
-    }); };
+    };
+    Object.keys(hooks).forEach(function(key){var fn=hooks[key];if(typeof fn!=='function'||key==='enter')return;hooks[key]=function(){var previous=V;V=boundWorldContext;try{return fn.apply(null,arguments);}finally{V=previous;}};});
+    MinestOia.bind(hooks); };
+    /* 78 · 展馆 — the exhibition flow of the voxel world, on My World's own building / room / display logic:
+       state() what the island holds (buildings, their rooms, the board's lists and how much of each is out),
+       hall(k) a new exhibition building on a free spot, fill(id[, listId]) its rooms and displays with the cards
+       (listId '*': every list its own room, named after it · one listId: that list · none: My World's Smart arrange).
+       Every write is one history step (↶ ↷). */
+    window.__showStore = {
+      card: function (ref) {   // one card, front and back, as the voxel world shows it
+        if (!V) return null; try { index(); } catch (e) {} var t = thing(ref); if (!t || !t.s) return null; var s = t.s, u = '';
+        try { u = picOf(s) || ''; if (u) u = S(u); } catch (e) { u = ''; }
+        return { title: String(s.title || ''), zh: String(s.titleZh || ''), text: String(s.meaning || s.desc || s.description || ''), img: u || '', list: String((t.k && t.k.title) || ''),
+          sub: (s.stack || []).filter(function (x) { return x && x.title; }).slice(0, 8).map(function (x) { return String(x.title); }),
+          checks: (s.checklistItems || []).filter(function (x) { return x && (x.text || x.title); }).slice(0, 8).map(function (x) { return String(x.text || x.title); }) };
+      },
+      pieces: function () {   // the displays in the scene that is open (the island or a room): where each stands and what it holds
+        if (!V) return []; return (V.d.pc || []).filter(function (p) { return (p.it || []).length && !isBld(p) && BUILD[p.k]; }).map(function (p) {
+          var f = foot(p); return { id: p.id, k: p.k, n: (K[p.k] && K[p.k].n) || p.k, x0: f.x0, x1: f.x1, y0: f.y0, y1: f.y1, refs: (p.it || []).filter(thing), label: p.label || '' }; });
+      },
+      state: function () {
+        if (!V) return null; index(); var R = islandD(), on = placed();
+        var bl = (R.pc || []).filter(isBld).map(function (p) { return { id: p.id, k: p.k, name: bldName(p), rooms: (p.rooms || []).map(function (r) {
+          var n = 0, t = 0; ((r.d && r.d.pc) || []).forEach(function (q) { var its = (q.it || []).filter(thing); if (its.length) { n++; t += its.length; } });
+          return { id: r.id, n: r.n || (ROOMS[r.k] || ROOMS.hall)[0], ic: (ROOMS[r.k] || ROOMS.hall)[1], displays: n, things: t }; }) }; });
+        var ls = lists(board(V.bid)).map(function (L) { var refs = (L.k.stack || []).filter(function (s) { return s && s.id; }).map(function (s) { return L.k.id + '/' + s.id; });
+          return { id: L.k.id, title: String(L.k.title || 'List'), n: refs.length, out: refs.filter(function (r) { return on[r]; }).length }; });
+        return { buildings: bl, lists: ls, at: V.at ? { pc: V.at.pc, room: V.at.room || null } : null };
+      },
+      hall: function (k) {
+        if (!V || V.visit || V.at) return null; var R = islandD(); k = k || 'bld:building_30_design_exhibition_pavilion'; ensureBld(k);
+        var p = { id: uid(), k: k, x: 0, y: 0, f: R.rot || 0, s: 1.25, it: [], rooms: [], roomsInit: 1, label: '' };
+        var spot = function () { return typeof bldSpot === 'function' ? (bldSpot(p, 2) || bldSpot(p, 1)) : (freeSpot(p, 1) || freeSpot(p)); }, ok = spot();
+        for (var g = 0; g < 4 && !ok && typeof growLand === 'function'; g++) { if (!growLand()) break; refreshLand(); ok = spot(); }   // a full island grows, as My World's own arranging does
+        if (!ok) return null; R.pc.push(p); save(true); try { render(); } catch (e) {} return p.id;
+      },
+      fill: function (id, listId) {
+        var each = listId === '*'; if (each) listId = null;
+        if (!V || V.visit || V.at) return { rooms: 0, displays: 0 }; var R = islandD(), p = (R.pc || []).filter(function (q) { return q.id === id; })[0];
+        if (!p || !isBld(p)) return { rooms: 0, displays: 0 };
+        var at0 = V.at; V.at = { pc: id }; var made = [], n = 0;
+        try {
+          index();
+          if (!listId && !each) (p.rooms || []).forEach(function (r) { if (r.d) r.d.pc = r.d.pc.filter(function (q) { return !q.auto; }); });
+          var plan = makePlan('build'), on = placed(), mine = {};
+          (p.rooms || []).forEach(function (r) { (r.d && r.d.pc || []).forEach(function (q) { if (q.auto) (q.it || []).forEach(function (x) { mine[x] = 1; }); }); });
+          plan.groups.forEach(function (g) { g.refs = g.refs.filter(function (x) { return !on[x] || (!listId && mine[x]); }); });
+          plan.groups = plan.groups.filter(function (g) { return g.on && g.refs.length && (!listId || g.id === 'l:' + listId); });
+          var byRoom = {}, order = [];
+          plan.groups.forEach(function (g) { var rk = listId || each ? 'list:' + g.id : roomFor(g); if (!byRoom[rk]) { byRoom[rk] = []; order.push(rk); } byRoom[rk].push(g); });
+          var big = (p.rooms || []).length + order.length > 5;
+          order.forEach(function (rk) {
+            var g0 = byRoom[rk][0], per = listId || each, kind = per ? roomFor(g0) : rk, room = per ? (p.rooms || []).filter(function (r) { return r.lid === g0.id; })[0] : (p.rooms || []).filter(function (r) { return r.k === rk; })[0];
+            if (!room) { var T = ROOMS[kind] || ROOMS.hall; room = { id: 'r' + uid().slice(1), k: kind, lid: per ? g0.id : undefined, n: per ? String(g0.n) : T[0], fl: per ? 1 + Math.floor(((p.rooms || []).length) / 4) : big && /^(bedroom|study|dreams|reading)$/.test(kind) ? 2 : 1, seeded: 1, auto: 1, d: { scene: 'room', rot: 0, pc: [], land: DEF_LAND.slice(), floor: T[3], wall: T[4] } }; placeIn(p, room, room.fl, 1e9); made.push(room.n); }
+            roomD(room); var res = withD(room.d, function () { return placeGroups(byRoom[rk], 'build'); }); n += res.made;
+          });
+        } finally { V.at = at0; }
+        save(true); try { render(); } catch (e) {}
+        return { rooms: made.length, displays: n, names: made };
+      }
+    };
+    /* 76 · the island's terrain for the voxel world's ⛰ tools: read, and written as one history step */
+    window.__terStore = {
+      get: function () { if (!V) return null; var R = islandD(); return R.terr ? JSON.parse(JSON.stringify(R.terr)) : null; },
+      set: function (t) { if (!V || V.visit) return false; var R = islandD(); histNote(V.bid, R); R.terr = JSON.parse(JSON.stringify(t)); save(true); try { refreshLand(); render(); } catch (e) {} return true; }
+    };
+    /* 75 · the voxel world's build steps (体素世界 🧱 建造), kept in the island's own data and its history */
+    window.__vxStore = {
+      get: function (k) { if (!V) return null; var R = islandD(); return (R.vox && R.vox.b75 && R.vox.b75[k]) || null; },
+      set: function (k, ops) { if (!V || V.visit) return false; var R = islandD(); histNote(V.bid, R); R.vox = R.vox || { edits: [] }; R.vox.b75 = R.vox.b75 || {}; if (ops && ops.length) R.vox.b75[k] = JSON.parse(JSON.stringify(ops)); else delete R.vox.b75[k]; save(true); return true; }   // in vox: part of every history step
+    };
     // 🏔 一键阿尔卑斯木屋 (tools/voxel-alps/patch_alps.py): the island IS the Alpine Chalet voxel valley — its slopes, peaks and lake as the
     // terrain, each of its buildings a piece linked to it (p.alp), so the rooms, displays and things you give a chalet stay with it
     [['alp_chalet', '阿尔卑斯木屋 Alpine chalet', 'h_chalet'], ['alp_inn', '山间旅馆 Gasthaus', 'c_hotel'], ['alp_chapel', '山间小教堂 Chapel', 'c_church'], ['alp_barn', '谷仓 Barn', 'barn'], ['alp_hut', '山屋 Mountain hut', 'cabin']].forEach(function (v) {
@@ -130361,7 +130491,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       session: function () { return W.S ? { set: W.S.set, kind: W.S.kind, i: W.S.i, n: W.S.n, note: W.S.note } : null; }, locks: function (s) { return locks(s || setKey()); } };
     window.MinestWorldFold = WFAPI;
   })();
-  window.MinestDisplay = { resolve: function (ref, vis) { return V ? resolveVisual(ref, vis) : null; }, undo: function () { return histGo(true); }, redo: function () { return histGo(false); }, explore: function (on) { if (!V) return; V.explore = !!on; render(); },
+  window.MinestDisplay = { resolve: function (ref, vis) { return V ? resolveVisual(ref, vis) : null; }, undo: function () {  return histGo(true); }, redo: function () { return histGo(false); }, explore: function (on) { if (!V) return; V.explore = !!on; render(); },
     display: function (ref) {   // Universal Add: show a saved card in its world's scene, ready to place (Save first, display later)
       var lid = String(ref || '').split('/')[0], b = (A().boards() || []).filter(function (x) { return (x.columns || []).some(function (c) { return (c.cards || []).some(function (k) { return k.id === lid; }); }); })[0]; if (!b) return false;
       if (!V || V.bid !== b.id) { try { if (window.MinestUniverse && !document.querySelector('.uv')) MinestUniverse.open({ path: [{ t: 'home' }, { t: 'world', bid: b.id }] }); } catch (e) {} open({ t: 'world', bid: b.id }); }
@@ -137352,7 +137482,7 @@ var origOpen=T.open;
 T.version=M.V;
 
 T.open=function(board,options){
-  options=Object.assign({},options||{});try{board=Sets.read();}catch(e){alert(e.message);return;}if(!(board.columns||[]).some(function(c){return c.id===options.col;}))options.col=board.selected||((board.columns[0]||{}).id)||'';
+  options=Object.assign({},options||{});try{if(!options.liveBoard)board=Sets.read();}catch(e){alert(e.message);return;}if(!(board.columns||[]).some(function(c){return c.id===options.col;}))options.col=board.selected||((board.columns[0]||{}).id)||'';
   var ret=origOpen.call(this,board,options);
   var root=document.getElementById('mn-templates');
   if(root&&!root.__u72&&!options.quest824&&!options.quest8241)try{enhance(root,board,options||{});}catch(e){console.warn('53.8072 enhance failed',e);}
@@ -142187,7 +142317,21 @@ if (window.MinestCarFlash) return;
 var KEY = 'minest.carflash.v1';
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
 function native(){ try { return window.webkit && webkit.messageHandlers && webkit.messageHandlers.minestBridge; } catch(e){ return null; } }
-function post(action, extra){ var h = native(); if (!h) return false; try { h.postMessage(Object.assign({ action: action }, extra || {})); return true; } catch(e){ return false; } }
+var nativeReplyTimer = 0, nativeBridgeWarning = false;
+function bridgeStatus(message){ var note = ov && ov.querySelector('[data-cf-note]'); if (note) note.textContent = message; }
+function post(action, extra){
+  var h = native(); if (!h) return false;
+  var awaitingReply = action === 'carFlashStart' || action === 'carFlashState';
+  if (awaitingReply) {
+    clearTimeout(nativeReplyTimer);
+    nativeReplyTimer = setTimeout(function(){
+      nativeReplyTimer = 0; nativeBridgeWarning = true;
+      bridgeStatus('未收到原生闪卡响应，CarPlay 无法同步。请安装包含车载闪卡组件的新版 Minest App；只刷新网页无法修复。');
+    }, 5000);
+  }
+  try { h.postMessage(Object.assign({ action: action }, extra || {})); return true; }
+  catch(e){ if (awaitingReply) clearTimeout(nativeReplyTimer); return false; }
+}
 function prefs(){ try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ return {}; } }
 function savePrefs(p){ try { localStorage.setItem(KEY, JSON.stringify(p)); } catch(e){} }
 function plain(s){ var d = document.createElement('div'); d.innerHTML = String(s || ''); return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
@@ -142441,6 +142585,8 @@ function paint(){
 }
 window.addEventListener('minestNativeEvent', function(e){
   var d = e.detail || {}; if (d.event !== 'carFlash') return; var p = d.payload || {};
+  clearTimeout(nativeReplyTimer); nativeReplyTimer = 0;
+  if (nativeBridgeWarning) { nativeBridgeWarning = false; bridgeStatus('原生闪卡已连接。'); }
   if (p.listKey && G()) {
     /* Next / ★ taps made on the CarPlay widget / Siri while this page slept: record them in the study progress */
     var src = findSource(p.listKey);
@@ -157046,6 +157192,11 @@ window.KRail = (function () {
   let world = null;
   const S = { mode: 'walk', time: parseFloat(qs.get('t')) || 17.4, /* 69: start in walk */ auto: qs.get('auto') === '1', shadows: wantShadow, tourT: 0, hudT: 0, lampT: 0, held: 0, locked: false, elapsed: 0 };
   const keys = Object.create(null);
+  let consoleInput = {};
+  const consoleControls = {
+    input: function (next) { consoleInput = Object.assign({}, next); },
+    stop: function () { consoleInput = {}; for (const k in keys) keys[k] = false; joy.x = joy.y = 0; touchBtn.jump = touchBtn.down = false; player.vel.set(0, 0, 0); }
+  };
   const player = { pos: new V3(150.5, 44, 100.5), vel: new V3(), yaw: Math.PI / 2, pitch: 0.02, onGround: false, swim: false, fly: false, stepOff: 0, lastSpace: 0, climbT: 0 };
   const joy = { x: 0, y: 0 };
   const touchBtn = { jump: false, down: false };
@@ -157208,7 +157359,7 @@ window.KRail = (function () {
   const matGlow = new THREE.MeshBasicMaterial({ vertexColors: true });
 
   function updateSky(cam) {
-    const t = ((S.time % 24) + 24) % 24;
+    const t = window.MinestOiaEditor && window.MinestOiaEditor.active && window.MinestOiaEditor.daylight ? 12 : ((S.time % 24) + 24) % 24;
     const a = (t - 5.5) / 14 * Math.PI;
     sunDir.set(Math.cos(a), Math.sin(a), 0.3).normalize();
     const e = sunDir.y;
@@ -157230,7 +157381,7 @@ window.KRail = (function () {
     skyMat.uniforms.uSunDir.value.copy(sunDir); skyMat.uniforms.uSunCol.value.copy(sunCol);
     const under = cam.y < VW.WATER_Y - 0.05;
     if (under) { scene.fog.color.setRGB(0.07, 0.28, 0.4).multiplyScalar(0.3 + dayF * 0.7); scene.fog.density = 0.07; }
-    else { scene.fog.color.copy(cHor); scene.fog.density = 0.0028; }
+    else { scene.fog.color.copy(cHor); scene.fog.density = window.MinestOiaEditor && window.MinestOiaEditor.active ? Math.min(0.0028, 0.45 / window.MinestOiaEditor.distance) : 0.0028; }
     renderer.setClearColor(scene.fog.color);
     waterMesh.visible = !under;
     const wu = waterMat.uniforms;
@@ -157243,6 +157394,7 @@ window.KRail = (function () {
     sunSprite.visible = e > -0.12; moonSprite.visible = e < 0.1;
     skyMesh.position.copy(cam); stars.position.copy(cam);
     starMat.opacity = clamp(nightF * 1.1 - 0.1, 0, 0.95);
+    cloudMesh.visible = !(window.MinestOiaEditor && window.MinestOiaEditor.active);
     // clouds
     const TILE = cloudMesh.userData.TILE, drift = S.elapsed * 2.2;
     cloudMesh.position.x = Math.floor((cam.x - drift) / TILE) * TILE + drift;
@@ -157765,6 +157917,7 @@ window.KRail = (function () {
   let rideIdx = 0, ridePrevHeading = 0;
   function setMode(m, keepPos) {
     const prev = S.mode;
+    if (prev !== m) consoleControls.stop();
     if (!keepPos && (m === 'walk' || m === 'fly') && (prev === 'tour' || prev === 'boat')) {
       player.pos.set(camera.position.x, camera.position.y - 1.62, camera.position.z);
       player.vel.set(0, 0, 0);
@@ -157899,16 +158052,18 @@ window.KRail = (function () {
     return false;
   }
   function movePlayer(dt) {
-    const p = player;
-    const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - joy.y;
-    const side = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joy.x;
+    const p = player, n = consoleInput;
+    p.yaw += ((n.lookLeft ? 1 : 0) - (n.lookRight ? 1 : 0) - (n.lookX || 0)) * dt * 1.6;
+    p.pitch = clamp(p.pitch + ((n.lookUp ? 1 : 0) - (n.lookDown ? 1 : 0) + (n.lookY || 0)) * dt * 1.2, -1.5, 1.5);
+    const fwd = (keys.KeyW || keys.ArrowUp || n.forward ? 1 : 0) - (keys.KeyS || keys.ArrowDown || n.back ? 1 : 0) - joy.y + (n.moveY || 0);
+    const side = (keys.KeyD || keys.ArrowRight || n.right ? 1 : 0) - (keys.KeyA || keys.ArrowLeft || n.left ? 1 : 0) + joy.x + (n.moveX || 0);
     let ix = side, iz = -fwd;
     const l = Math.hypot(ix, iz); if (l > 1) { ix /= l; iz /= l; }
     const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
     const wx = cos * ix + sin * iz, wz = -sin * ix + cos * iz;
-    const sprint = !!(keys.ShiftLeft || keys.ShiftRight || keys.ControlLeft && !p.fly);
-    const jump = !!(keys.Space || touchBtn.jump);
-    const down = !!(keys.KeyC || (p.fly && (keys.ShiftLeft || keys.ShiftRight)) || touchBtn.down);
+    const sprint = !!(n.fast || keys.ShiftLeft || keys.ShiftRight || keys.ControlLeft && !p.fly);
+    const jump = !!(n.up || keys.Space || touchBtn.jump);
+    const down = !!(keys.KeyC || (p.fly && (keys.ShiftLeft || keys.ShiftRight)) || touchBtn.down || n.down);
     const feetCellWater = p.pos.y + 1.0 < VW.WATER_Y && !solidAt(Math.floor(p.pos.x), Math.floor(p.pos.y + 0.5), Math.floor(p.pos.z));
     p.swim = !p.fly && feetCellWater;
     if (p.climbT > 0) p.climbT -= dt;
@@ -158151,6 +158306,7 @@ window.KRail = (function () {
   /* ================= camera per mode ================= */
   const _la = new V3(), _tc = new V3(), _tt = new V3();
   function updateCamera(dt) {
+    if (window.MinestOiaEditor && window.MinestOiaEditor.frame()) return;
     if (S.mode === 'tour') {
       S.tourT = (S.tourT + dt / TOUR.dur) % 1;
       tourCam.getPointAt(S.tourT, _tc); tourTgt.getPointAt(S.tourT, _tt);
@@ -158182,7 +158338,7 @@ window.KRail = (function () {
   const _r = new V3(), _u = new V3(), _c = new V3(), _up = new V3(0, 1, 0);
   function updateShadow() {
     if (!S.shadows) return;
-    const ctr = _c.copy(S.mode === 'tour' ? player.pos : camera.position);
+    const ctr = _c.copy(window.MinestOiaEditor && window.MinestOiaEditor.active ? window.MinestOiaEditor.target : (S.mode === 'tour' ? player.pos : camera.position));
     _r.crossVectors(_up, lightDir).normalize(); _u.crossVectors(lightDir, _r).normalize();
     const tex = (SH * 2) / sun.shadow.mapSize.x;
     const a = Math.round(ctr.dot(_r) / tex) * tex, b = Math.round(ctr.dot(_u) / tex) * tex, d = ctr.dot(lightDir);
@@ -158241,7 +158397,7 @@ window.KRail = (function () {
     try {
       setLoad('正在塑造破火山口悬崖…', 0.04); await nextFrame();
       world = window.__oiaWorld || VW.create(2021); window.__oiaWorld = world; if (window.__oiaApply) window.__oiaApply(world, null);   // the same world My World mapped; your saved edits on it
-      window.__santorini = { world, player, scene, camera, S, setMode, teleport, markDirty };
+      window.__santorini = { world, player, scene, camera, S, setMode, teleport, markDirty, controls: consoleControls };
       setLoad('烘焙像素贴图…', 0.16); await nextFrame();
       const atlas = new THREE.CanvasTexture(SantoriniTex.buildCanvas());
       atlas.magFilter = THREE.NearestFilter; atlas.minFilter = THREE.NearestFilter; atlas.generateMipmaps = false;
@@ -158477,7 +158633,7 @@ window.KRail = (function () {
   btn.setAttribute('popover', 'manual');
   var ov = document.createElement('div');
   ov.id = 'vx62'; ov.setAttribute('popover', 'manual');
-  var DOCK = [['look', '👆', '浏览'], ['put', '🧩', '摆放'], ['room', '🏠', '房间'], ['show', '📄', '陈列'], ['ter', '⛰', '地形'], ['smart', '✨', 'Smart']];
+  var DOCK = [['look', '👆', '浏览'], ['hall', '🏛', '展馆'], ['build', '🧱', '建造'],   /* 78 */ ['put', '🧩', '摆放'], ['room', '🏠', '房间'], ['show', '📄', '陈列'], ['ter', '⛰', '地形'], ['smart', '✨', 'Smart']];
   ov.innerHTML =
     '<div class="st"></div><div class="cross">+</div><div class="info"></div>' +
     '<div class="top"><button class="ic" data-a="x" title="回到 2D 岛">✕</button><button class="ic" data-r="up" title="上一层" hidden>‹</button>' +
@@ -158982,6 +159138,9 @@ window.KRail = (function () {
       R.ctxKey = c.key + '|S' + R.S;
       R.edits = loadEdits(R.ctxKey);
       applyEdits();
+      terSculpt();   /* 76: the terrain, naturally */
+      applyOps();   /* 75: your build steps */
+      try { cards78(); } catch (e) {}   /* 78: the cards on their displays */
       R.atlasTex.needsUpdate = true;
       var vw = R.vw, nx = Math.ceil(vw.W / CH), nz = Math.ceil(vw.D / CH);
       for (var cz = 0; cz < nz; cz++) for (var cx = 0; cx < nx; cx++) buildChunk(cx, cz);
@@ -159081,18 +159240,20 @@ window.KRail = (function () {
     return true;
   }
   function updatePlayer(dt) {
-    var p = R.player, S = R.vw.S, k = R.keys, fly = R.mode === 'fly';
-    var f = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) - R.joy.y;
-    var s = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0) + R.joy.x;
+    var p = R.player, S = R.vw.S, k = R.keys, fly = R.mode === 'fly', n = R.navigation || {};
+    p.yaw += ((n.lookLeft ? 1 : 0) - (n.lookRight ? 1 : 0) - (n.lookX || 0)) * dt * 1.6;
+    p.pitch = clamp(p.pitch + ((n.lookUp ? 1 : 0) - (n.lookDown ? 1 : 0) + (n.lookY || 0)) * dt * 1.2, -1.5, 1.5);
+    var f = (k.KeyW || k.ArrowUp || n.forward ? 1 : 0) - (k.KeyS || k.ArrowDown || n.back ? 1 : 0) - R.joy.y + (n.moveY || 0);
+    var s = (k.KeyD || k.ArrowRight || n.right ? 1 : 0) - (k.KeyA || k.ArrowLeft || n.left ? 1 : 0) + R.joy.x + (n.moveX || 0);
     var fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw), rx = -fz, rz = fx;
     var wx = fx * f + rx * s, wz = fz * f + rz * s, wl = Math.hypot(wx, wz);
     if (wl > 1) { wx /= wl; wz /= wl; }
     var vw = R.vw, inW = (function () { var id = vw.get(Math.floor(p.x), Math.floor(p.y + .4 * S), Math.floor(p.z)); return id && REG.list[id].kind === 'water'; })();
-    var run = k.ShiftLeft && !fly || R.pad.run;
-    var sp = (fly ? 7 : inW ? 1.6 : run ? 5.2 : 3.2) * S * .5;
+    var run = n.fast || k.ShiftLeft && !fly || R.pad.run;
+    var sp = (fly ? (n.fast ? 12 : 7) : inW ? 1.6 : run ? 5.2 : 3.2) * S * .5;
     var a = 1 - Math.exp(-dt * (p.ground || fly ? 12 : 4));
     p.vx += (wx * sp - p.vx) * a; p.vz += (wz * sp - p.vz) * a;
-    var up = k.Space || R.pad.up, down = (fly && (k.ShiftLeft || k.KeyC)) || R.pad.down;
+    var up = n.up || k.Space || R.pad.up, down = (fly && (k.ShiftLeft || k.KeyC)) || R.pad.down || n.down;
     if (fly) p.vy += (((up ? 1 : 0) - (down ? 1 : 0)) * 4 * S - p.vy) * a;
     else if (inW) { p.vy -= 3 * S * dt; p.vy = Math.max(p.vy, -1.5 * S); if (up) p.vy = 1.4 * S; }
     else { p.vy -= 7 * S * dt; p.vy = Math.max(p.vy, -12 * S); if (up && p.ground) p.vy = Math.sqrt(2 * 7 * S * 1.15 * S * .5); }
@@ -159152,6 +159313,7 @@ window.KRail = (function () {
     if (tool === 'room') return roomTap(hit);
     if (tool === 'put' || tool === 'show') return putAt(hit);
     if (/^ter:/.test(tool)) return terStroke(tool.slice(4), [hit]);
+    if (tool === 'build') return buildTap(hit);   /* 75: 🧱 建造 */
     if (tool === 'break' || tool === 'place') return; /* 69: no single-block destruction or placement */
     if (R.edits.length > 20000) R.edits = R.edits.slice(-20000);
     saveEdits();
@@ -159192,7 +159354,7 @@ window.KRail = (function () {
       if (d.painted && d.paint && d.paint.length) { terStroke(R.tool.slice(4), d.paint); return; }
       var moved = Math.hypot(e.clientX - d.sx, e.clientY - d.sy), quick = performance.now() - d.t < 450;
       if (moved < 8 && quick) {   // a tap: break or place where you tapped (right click always places)
-        /* 69: no tap block placing */
+        if (R.tool !== 'look') act(pickAt(e.clientX, e.clientY), R.tool);   /* 75 / 76: a tap uses the picked tool (a terrain brush too) */
       }
     }
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
@@ -159242,6 +159404,7 @@ window.KRail = (function () {
   /* ================================================================ modes + buttons */
   function setMode(m) {
     if (!R.vw) return;
+    if (R.mode !== m) stopNavigation();
     if (R.mode === 'view' && m !== 'view') {
       var o = R.orbit, p = R.player;   // walk in where the view looks
       p.yaw = o.az + Math.PI; p.pitch = -.15;
@@ -159251,7 +159414,7 @@ window.KRail = (function () {
   }
   function setTool(t) {
     if (t === 'break' || t === 'place') t = 'look';   /* 68: no per-block tools */
-    R.tool = t; $('[data-p="act"]').textContent = { break: '⛏', place: '🧱', put: '🧩', show: '📄', room: '🚪', look: '👆' }[t] || (/^ter:/.test(t) ? '⛰' : '👆'); setBtns();
+    R.tool = t; $('[data-p="act"]').textContent = { build: '🧱', break: '⛏', place: '🧱', put: '🧩', show: '📄', room: '🚪', look: '👆' }[t] || (/^ter:/.test(t) ? '⛰' : '👆'); setBtns();
     if (/^ter:/.test(t)) { ensureTerrain(); R.terTool = t; }
   }
   function setBtns() {
@@ -159515,7 +159678,7 @@ window.KRail = (function () {
     });
     return list;
   }
-  function terStroke(tool, hits) {
+  function terStroke0(tool, hits) {   /* 76: the old strokes on the 2D island (terrain76.js has the new terStroke) */
     if (inRoom()) return toast('地形只在岛上（不在房间里）');
     if (!R.vw || !hits.length) return;
     var cells = brushCells(hits), md = MD(), lb = landBounds(md.state());
@@ -159542,8 +159705,8 @@ window.KRail = (function () {
   var TERS = [['raise', '⛰ 升起'], ['lower', '⬇ 降低'], ['flatten', '▦ 拉平'], ['smooth', '∿ 平滑'], ['lake', '💧 造水'], ['river', '〰 河流'], ['erase', '🌿 恢复']];
   function setTab(t) {
     R.tab = t;
-    var tool = { look: 'look', put: 'put', room: 'room', show: 'show', smart: 'look' }[t];
-    if (t === 'build') tool = R.tool === 'place' ? 'place' : 'break';
+    var tool = { look: 'look', put: 'put', room: 'room', show: 'show', smart: 'look', hall: 'look' }[t];
+    if (t === 'build') tool = 'build';   /* 75 */
     if (t === 'ter') tool = R.terTool || 'ter:raise';
     if (t !== 'show') R.holdRef = null;
     setTool(tool); drawSheet();
@@ -159552,7 +159715,7 @@ window.KRail = (function () {
   function drawSheet() {
     var t = R.tab, h = '';
     if (t === 'build') {
-      h = '<div class="row"><span class="lab">整栋建筑、树木和家具请用 🧩 摆放 / 🏠 房间</span></div>';
+      h = buildSheet();   /* 75 */
     } else if (t === 'put') {
       var mv = R.moveId && pieceById(R.moveId);
       h = '<p class="hint">' + (mv ? '选中 <b>' + escH(mv.label || mv.k) + '</b> · 点体素世界的地面，把它摆过去' : (inRoom() ? '在 📦 物件库 里选家具或展示架，或点体素世界里的一个物件选中它' : '在 📦 物件库 里选一个物件，或点体素世界里的一个物件选中它')) + '</p>' +
@@ -159733,6 +159896,7 @@ window.KRail = (function () {
     return build();
   }
   function close() {
+    stopNavigation();
     ov.classList.remove('open'); hidePop(ov); R.running = false; R.keys = {}; R.joy.x = R.joy.y = 0; layout();
     syncBtn();
   }
@@ -159745,7 +159909,621 @@ window.KRail = (function () {
   }
   setInterval(syncBtn, 900);
 
+  function stopNavigation() { R.navigation = {}; R.keys = {}; R.joy.x = R.joy.y = 0; R.pad.up = R.pad.down = R.pad.run = false; R.player.vx = R.player.vy = R.player.vz = 0; }
+  /* ================================================================ 75 · 🧱 建造 — build the voxel world yourself
+     Tools: 🧱 放置 / ⛏ 拆除 one cell · ▭ 方块体 two taps = a solid box · ▱ 地板 two taps = a floor · 🏠 小屋 two taps =
+     walls, floor and roof with a door · 🖌 涂色 recolours a cell · 🌳 预制 stamps a tree, lamp, bench, fountain, tower
+     or bridge. Cell size 细 / 标准 / 大 (1 voxel, one My World block, two blocks), 🪞 mirror across the island.
+     Every step is kept in the island's own data (window.__vxStore: synced with it, and My World's ↶ ↷ take it back);
+     steps are in My World block units, so they stay put at any voxel precision. Off My World (no store) they stay on
+     this device. */
+  var BMAT = [   // [key, name, texture | colour, kind]
+    ['grass', '草地', 'grass_top', 'ground'], ['dirt', '泥土', 'dirt', 'ground'], ['sand', '沙子', 'sand', 'ground'], ['stone', '石头', 'stone', 'solid'],
+    ['cobble', '圆石', 'cobble', 'solid'], ['bricks', '石砖', 'stone_bricks', 'solid'], ['brick', '红砖', 'brick', 'solid'], ['plaster', '白墙', 'plaster', 'solid'],
+    ['quartz', '石英', 'quartz', 'solid'], ['oak', '橡木板', 'oak', 'solid'], ['spruce', '云杉板', 'spruce', 'solid'], ['dark', '深色木', 'dark', 'solid'],
+    ['log', '原木', 'log', 'solid'], ['leaves', '树叶', 'leaves', 'solid'], ['glass', '玻璃', 'glass', 'glass'], ['water', '水', 'water', 'water'],
+    ['books', '书架', 'bookshelf', 'solid'], ['lantern', '灯', 'lantern', 'solid'], ['gold', '金块', 'gold', 'solid'], ['path', '小路', 'path', 'ground'],
+    ['c:e74c3c', '红', '#e74c3c'], ['c:f39c12', '橙', '#f39c12'], ['c:f1c40f', '黄', '#f1c40f'], ['c:2ecc71', '绿', '#2ecc71'],
+    ['c:1abc9c', '青', '#1abc9c'], ['c:3498db', '蓝', '#3498db'], ['c:9b59b6', '紫', '#9b59b6'], ['c:ff7eb6', '粉', '#ff7eb6'],
+    ['c:ffffff', '白', '#ffffff'], ['c:95a5a6', '灰', '#95a5a6'], ['c:34495e', '深灰', '#34495e'], ['c:111111', '黑', '#111111']
+  ];
+  var BTOOLS = [['place', '🧱', '放置'], ['erase', '⛏', '拆除'], ['box', '▭', '方块体'], ['floor', '▱', '地板'], ['house', '🏠', '小屋'], ['paint', '🖌', '涂色'], ['stamp', '🌳', '预制']];
+  var BPRE = [['tree', '🌳', '树'], ['lamp', '💡', '路灯'], ['bench', '🪑', '长椅'], ['fountain', '⛲', '喷泉'], ['tower', '🗼', '塔'], ['bridge', '🌉', '小桥']];
+  var BS = { tool: 'place', mat: 'oak', size: 'std', mirror: false, pre: 'tree', a: null, ops: null, key: '', marker: null };
+  var texImg = {};
+  function matDef(k) { for (var i = 0; i < BMAT.length; i++) if (BMAT[i][0] === k) return BMAT[i]; return BMAT[0]; }
+  function matUrl(m) { var md = MD(); if (/^#/.test(m[2])) return ''; try { return md && md.tex ? md.tex(m[2]) : ''; } catch (e) { return ''; } }
+  function matBlock(k) {   // the block for a palette key (registered on demand: the registry is rebuilt with every conversion)
+    var m = matDef(k);
+    if (/^#/.test(m[2])) { var n = parseInt(m[2].slice(1), 16); return colorBlock(n >> 16 & 255, n >> 8 & 255, n & 255); }
+    return block('b75:' + m[0], function () {
+      var url = matUrl(m), key = 'b75img:' + m[0];
+      function draw(cx, x, y) { var im = texImg[url]; if (im && im.complete && im.naturalWidth) { cx.imageSmoothingEnabled = false; cx.drawImage(im, x, y, TS, TS); } else { cx.fillStyle = '#9aa3ad'; cx.fillRect(x, y, TS, TS); } }
+      var t = tileOf(key, draw);
+      if (url && !(texImg[url] && texImg[url].complete)) {
+        var im = texImg[url] || (texImg[url] = new Image());
+        im.addEventListener('load', function () { try { draw(atlasCx, (t % ATN) * TS, Math.floor(t / ATN) * TS); if (R.atlasTex) R.atlasTex.needsUpdate = true; } catch (e) {} });
+        if (!im.src) im.src = url;
+      }
+      return { tile: t, col: [1, 1, 1], kind: m[3] || 'solid', name: m[1] };
+    });
+  }
+  function cellVox() { var S = R.vw ? R.vw.S : 4; return BS.size === 'fine' ? 1 : BS.size === 'big' ? S * 2 : S; }
+  // ---- the steps, in My World block units: { t: 'box', a: [x, y, z], b: [x, y, z], k: key | '' , m: 'solid' | 'shell' | 'paint' }
+  function toW(x, y, z) { var vw = R.vw; return [Math.round((x / vw.S + vw.ox) * 8) / 8, Math.round(y / vw.S * 8) / 8, Math.round((z / vw.S + vw.oz) * 8) / 8]; }
+  function toV(p) { var vw = R.vw; return [Math.round((p[0] - vw.ox) * vw.S), Math.round(p[1] * vw.S), Math.round((p[2] - vw.oz) * vw.S)]; }
+  function storeKey() { return (R.ctxKey || '').replace(/\|S\d+$/, ''); }
+  function loadOps() {
+    BS.key = storeKey(); var st = window.__vxStore, o = null;
+    try { o = st && st.get ? st.get(BS.key) : null; } catch (e) {}
+    if (!o) try { o = JSON.parse(localStorage.getItem(LS_KEY + 'b75:' + BS.key) || 'null'); } catch (e) {}
+    BS.ops = Array.isArray(o) ? o : [];
+  }
+  function saveOps() {
+    var st = window.__vxStore, ok = false;
+    try { ok = !!(st && st.set && st.set(BS.key, BS.ops)); } catch (e) {}
+    if (!ok) try { localStorage.setItem(LS_KEY + 'b75:' + BS.key, JSON.stringify(BS.ops)); } catch (e) {}
+    R.hash = stateHash();   // our own change: no reconversion for it
+  }
+  function writeOp(op, cols) {   // the voxels of one step
+    var vw = R.vw, a = toV(op.a), b = toV(op.b), id = op.k ? matBlock(op.k) : 0;
+    var x0 = Math.max(0, Math.min(a[0], b[0])), x1 = Math.min(vw.W, Math.max(a[0], b[0])), y0 = Math.max(0, Math.min(a[1], b[1])), y1 = Math.min(vw.H, Math.max(a[1], b[1])), z0 = Math.max(0, Math.min(a[2], b[2])), z1 = Math.min(vw.D, Math.max(a[2], b[2]));
+    var th = Math.max(1, Math.round((op.th || 0) * vw.S)), door = op.door ? [Math.round((op.door[0] - vw.ox) * vw.S), Math.round((op.door[1] - vw.ox) * vw.S), Math.round(op.door[2] * vw.S)] : null;   // door and walls: block units too
+    for (var y = y0; y < y1; y++) for (var z = z0; z < z1; z++) for (var x = x0; x < x1; x++) {
+      var v = id;
+      if (op.m === 'shell') {   // walls one cell thick, a floor, a flat roof and a door gap on the front
+        var edge = x < x0 + th || x >= x1 - th || z < z0 + th || z >= z1 - th, cap = y < y0 + th || y >= y1 - th;
+        if (!edge && !cap) v = 0;
+        if (door && z < z0 + th && x >= door[0] && x < door[1] && y >= y0 + th && y < Math.min(y1 - th, y0 + th + door[2])) v = 0;
+        if (!edge && !cap) { vw.v[vw.i(x, y, z)] = 0; continue; }
+      }
+      if (op.m === 'paint' && !vw.v[vw.i(x, y, z)]) continue;
+      vw.v[vw.i(x, y, z)] = v;
+    }
+    if (cols) cols.push([x0, z0, x1, z1]);
+  }
+  function applyOps() { if (!R.vw) return; loadOps(); BS.ops.forEach(function (op) { try { writeOp(op); } catch (e) {} }); R.vw.tops(); }
+  function refresh(boxes) {
+    var vw = R.vw, seen = {};
+    boxes.forEach(function (bx) {
+      for (var z = bx[1]; z < bx[3]; z++) for (var x = bx[0]; x < bx[2]; x++) vw.colTop(x, z);
+      for (var cz = Math.floor((bx[1] - 1) / CH); cz <= Math.floor(bx[3] / CH); cz++) for (var cx = Math.floor((bx[0] - 1) / CH); cx <= Math.floor(bx[2] / CH); cx++) { var k = cx + ',' + cz; if (!seen[k]) { seen[k] = 1; buildChunk(cx, cz); } }
+    });
+    if (R.atlasTex) R.atlasTex.needsUpdate = true;
+  }
+  function mirrorOf(op) {   // across the island's middle (east ↔ west)
+    var vw = R.vw, mid = vw.ox + vw.W / vw.S / 2, o = JSON.parse(JSON.stringify(op));
+    o.a[0] = 2 * mid - op.b[0]; o.b[0] = 2 * mid - op.a[0];
+    if (o.door) o.door = [2 * mid - op.door[1], 2 * mid - op.door[0], op.door[2]];
+    return o;
+  }
+  function commit(list, label) {
+    if (BS.mirror) list = list.concat(list.map(mirrorOf));
+    var boxes = []; list.forEach(function (op) { BS.ops.push(op); writeOp(op, boxes); });
+    refresh(boxes); saveOps(); toast(label + (BS.mirror ? ' · 🪞 已镜像' : '')); drawSheet();
+  }
+  function cellAt(hit, out) {   // the grid cell next to the face you tapped (out) or the one you tapped
+    var u = cellVox(), x = hit.x + (out ? hit.n[0] : 0), y = hit.y + (out ? hit.n[1] : 0), z = hit.z + (out ? hit.n[2] : 0);
+    return [Math.floor(x / u) * u, Math.floor(y / u) * u, Math.floor(z / u) * u];
+  }
+  function boxOp(c0, c1, k, m) { var u = cellVox(); return { t: 'box', a: toW(Math.min(c0[0], c1[0]), Math.min(c0[1], c1[1]), Math.min(c0[2], c1[2])), b: toW(Math.max(c0[0], c1[0]) + u, Math.max(c0[1], c1[1]) + u, Math.max(c0[2], c1[2]) + u), k: k, m: m || 'solid' }; }
+  function prefab(id, c) {   // a few boxes around the tapped cell, in voxels (u = one cell)
+    var u = cellVox(), P = [];
+    function bx(x0, y0, z0, x1, y1, z1, k) { P.push({ t: 'box', a: toW(c[0] + x0 * u, c[1] + y0 * u, c[2] + z0 * u), b: toW(c[0] + x1 * u, c[1] + y1 * u, c[2] + z1 * u), k: k, m: 'solid' }); }
+    if (id === 'tree') { bx(0, 0, 0, 1, 4, 1, 'log'); bx(-2, 3, -2, 3, 5, 3, 'leaves'); bx(-1, 5, -1, 2, 6, 2, 'leaves'); }
+    if (id === 'lamp') { bx(0, 0, 0, 1, 4, 1, 'c:34495e'); bx(0, 4, 0, 1, 5, 1, 'lantern'); }
+    if (id === 'bench') { bx(-1, 0, 0, 2, 1, 1, 'dark'); bx(-1, 1, 1, 2, 2, 2, 'dark'); bx(-1, 0, 1, 2, 1, 2, 'dark'); }
+    if (id === 'fountain') { bx(-2, 0, -2, 3, 1, 3, 'quartz'); bx(-1, 0, -1, 2, 1, 2, 'water'); bx(0, 1, 0, 1, 3, 1, 'quartz'); bx(0, 3, 0, 1, 4, 1, 'water'); }
+    if (id === 'tower') { P.push(Object.assign(boxOp([c[0] - u, c[1], c[2] - u], [c[0] + u, c[1] + 7 * u, c[2] + u], 'bricks', 'shell'), { th: u / R.vw.S, door: [toW(c[0], 0, 0)[0], toW(c[0] + u, 0, 0)[0], 2 * u / R.vw.S] })); bx(-2, 8, -2, 3, 9, 3, 'bricks'); bx(-1, 9, -1, 2, 10, 2, 'c:e74c3c'); }
+    if (id === 'bridge') { bx(-3, 0, 0, 4, 1, 2, 'oak'); bx(-3, 1, 0, 4, 2, 1, 'log'); bx(-3, 1, 1, 4, 2, 2, 'log'); bx(-2, 1, 0, 3, 2, 2, ''); }
+    return P;
+  }
+  function buildTap(hit) {
+    var t = BS.tool, k = BS.mat, out = t === 'place' || t === 'box' || t === 'floor' || t === 'house' || t === 'stamp';
+    var c = cellAt(hit, out), u = cellVox();
+    if (t === 'place') return commit([boxOp(c, c, k)], '已放置 ' + matDef(k)[1]);
+    if (t === 'erase') return commit([boxOp(cellAt(hit, false), cellAt(hit, false), '')], '已拆除');
+    if (t === 'paint') return commit([Object.assign(boxOp(cellAt(hit, false), cellAt(hit, false), k), { m: 'paint' })], '已涂成 ' + matDef(k)[1]);
+    if (t === 'stamp') return commit(prefab(BS.pre, c), '已放置 ' + (BPRE.filter(function (p) { return p[0] === BS.pre; })[0] || [0, 0, ''])[2]);
+    // two taps: the first corner, then the second
+    if (!BS.a) { BS.a = c; mark(c); drawSheet(); return toast('已选第一个角 · 再点第二个角'); }
+    var a = BS.a; BS.a = null; mark(null);
+    if (t === 'floor') return commit([boxOp(a, [c[0], a[1], c[2]], k)], '已铺地板');
+    if (t === 'box') return commit([boxOp(a, c, k)], '已建方块体');
+    if (t === 'house') {   // at least 3 × 3 cells, walls 4 cells high above the floor if the second tap was on the ground
+      var x0 = Math.min(a[0], c[0]), x1 = Math.max(a[0], c[0]), z0 = Math.min(a[2], c[2]), z1 = Math.max(a[2], c[2]);
+      if (x1 - x0 < 2 * u) x1 = x0 + 2 * u; if (z1 - z0 < 2 * u) z1 = z0 + 2 * u;
+      var y0 = Math.min(a[1], c[1]), y1 = Math.max(Math.max(a[1], c[1]), y0 + 5 * u), mid = Math.floor((x0 + x1) / 2 / u) * u;
+      var op = boxOp([x0, y0, z0], [x1, y1, z1], k, 'shell'); op.th = u / R.vw.S; op.door = [toW(mid, 0, 0)[0], toW(mid + u, 0, 0)[0], 2 * u / R.vw.S];
+      return commit([op], '已建小屋（门朝南）');
+    }
+  }
+  function mark(c) {   // a wire cube on the first corner
+    var T = R.T; if (BS.marker) { R.scene.remove(BS.marker); BS.marker.geometry.dispose(); BS.marker = null; }
+    if (!c || !T) return; var u = cellVox();
+    BS.marker = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(u * 1.04, u * 1.04, u * 1.04)), new T.LineBasicMaterial({ color: 0xffd400 }));
+    BS.marker.position.set(c[0] + u / 2, c[1] + u / 2, c[2] + u / 2); R.scene.add(BS.marker);
+  }
+  function buildSheet() {
+    var two = BS.tool === 'box' || BS.tool === 'floor' || BS.tool === 'house';
+    var hint = { place: '点方块的一面，在它旁边放一格', erase: '点一格把它拆掉', box: '点两个角，填满之间的方块体', floor: '点两个角，铺一层地板', house: '点两个角，建一间有门的小屋（墙、地板、屋顶）', paint: '点一格，涂成选中的材质', stamp: '点地面，放下选中的预制件' }[BS.tool];
+    return '<p class="hint b75-hint">' + (two && BS.a ? '✅ 已选第一个角 · 再点第二个角 <button data-bx="cancel">取消</button>' : hint) + '</p>' +
+      '<div class="row b75-tools">' + BTOOLS.map(function (t) { return '<button data-bt="' + t[0] + '"' + (BS.tool === t[0] ? ' class="on"' : '') + '>' + t[1] + ' ' + t[2] + '</button>'; }).join('') + '</div>' +
+      (BS.tool === 'stamp' ? '<div class="row">' + BPRE.map(function (p) { return '<button data-bp="' + p[0] + '"' + (BS.pre === p[0] ? ' class="on"' : '') + '>' + p[1] + ' ' + p[2] + '</button>'; }).join('') + '</div>' : '') +
+      (BS.tool === 'erase' || BS.tool === 'stamp' ? '' : '<div class="b75-mats">' + BMAT.map(function (m) { var u = matUrl(m); return '<button data-bm="' + m[0] + '" title="' + m[1] + '"' + (BS.mat === m[0] ? ' class="on"' : '') + '><i style="' + (u ? 'background-image:url(' + u + ')' : 'background:' + m[2]) + '"></i><span>' + m[1] + '</span></button>'; }).join('') + '</div>') +
+      '<div class="row"><span class="lab">格子</span>' + [['fine', '细'], ['std', '标准'], ['big', '大']].map(function (s) { return '<button data-bs="' + s[0] + '"' + (BS.size === s[0] ? ' class="on"' : '') + '>' + s[1] + '</button>'; }).join('') +
+      '<button data-bx="mirror"' + (BS.mirror ? ' class="on"' : '') + '>🪞 镜像</button><span class="lab">' + (BS.ops ? BS.ops.length : 0) + ' 步 · ↶ ↷ 撤销/重做</span>' + (BS.ops && BS.ops.length ? '<button data-bx="clear">🗑 清空建造</button>' : '') + '</div>';
+  }
+  ov.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-bt],[data-bm],[data-bs],[data-bp],[data-bx]'); if (!b || !ov.contains(b)) return;
+    e.stopPropagation(); var v;
+    if ((v = b.getAttribute('data-bt'))) { BS.tool = v; BS.a = null; mark(null); }
+    if ((v = b.getAttribute('data-bm'))) BS.mat = v;
+    if ((v = b.getAttribute('data-bs'))) { BS.size = v; BS.a = null; mark(null); }
+    if ((v = b.getAttribute('data-bp'))) BS.pre = v;
+    if ((v = b.getAttribute('data-bx'))) {
+      if (v === 'cancel') { BS.a = null; mark(null); }
+      if (v === 'mirror') BS.mirror = !BS.mirror;
+      if (v === 'clear') { if (b.dataset.sure) { BS.ops = []; saveOps(); return build({ keep: true }); } b.dataset.sure = '1'; b.textContent = '再点一次确认清空'; return; }
+    }
+    drawSheet();
+  }, true);
+  var b75css = document.createElement('style'); b75css.textContent =
+    '#vx62 .b75-tools{flex-wrap:nowrap;overflow-x:auto}#vx62 .b75-mats{display:flex;gap:5px;overflow-x:auto;margin:6px 0;padding-bottom:2px;scrollbar-width:thin}#vx62 .b75-mats button{flex:0 0 50px}' +
+    '#vx62 .b75-mats button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;font-size:11px}#vx62 .b75-mats i{width:26px;height:26px;border-radius:5px;background-size:cover;image-rendering:pixelated;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}' +
+    '#vx62 .b75-mats button.on{outline:2px solid #ffd400;outline-offset:1px}#vx62 .b75-hint button{margin-left:6px;padding:3px 8px}';
+  document.head.appendChild(b75css);
+  /* ================================================================ 76 · ⛰ 地形 — quick to shape, and it looks real
+     The island's terrain stays My World's own (terr.h levels of half a block, terr.w water, terr.lv rock / snow lines),
+     read and written through window.__terStore (its history: ↶ ↷). In the voxel world it is sculpted naturally:
+     heights flow between cells (no terraces), a little relief, and the surface by slope and height — grass, earth on
+     the slopes, rock faces, snow on the peaks, sand on the shores, lake beds below the water — in one of five looks.
+     Columns with a building, a display or a tree in them are left as converted. One-tap landscapes keep the land
+     around buildings flat; brushes fall off softly; ▲ 山峰 raises a whole peak with one tap. */
+  var T76 = { look: null, g0: null, nat: true };
+  var TLOOK = [['green', '🌿 夏绿'], ['autumn', '🍂 金秋'], ['winter', '❄ 冬雪'], ['desert', '🏜 沙漠'], ['volcanic', '🌋 火山岩']];
+  var TPRE = [['alps', '🏔 雪山'], ['hills', '⛰ 丘陵'], ['isle', '🏝 海岛'], ['canyon', '🏜 峡谷'], ['volcano', '🌋 火山'], ['lakes', '🌊 湖区'], ['valley', '〰 河谷'], ['flat', '▭ 平地']];
+  var TBR = [['raise', '⛰ 抬升'], ['lower', '⬇ 下挖'], ['peak', '▲ 山峰'], ['smooth', '∿ 抚平'], ['flatten', '▦ 削平'], ['lake', '💧 加水'], ['erase', '🌿 去水']];
+  function tStore() { return window.__terStore || null; }
+  function tGet() { var s = tStore(); try { return s ? s.get() : null; } catch (e) { return null; } }
+  function tHash(x, y, s) { var h = (x * 374761393 + y * 668265263 + (s || 0) * 2147483647) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+  function tNoise(x, y, s) { var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    var a = tHash(x0, y0, s), b = tHash(x0 + 1, y0, s), c = tHash(x0, y0 + 1, s), d = tHash(x0 + 1, y0 + 1, s); return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy; }
+  function tFbm(x, y, s, oct) { var v = 0, a = .5, f = 1, n = 0; for (var i = 0; i < (oct || 4); i++) { v += a * tNoise(x * f, y * f, s + i * 17); n += a; a *= .5; f *= 2; } return v / n; }
+  function texB(name, tint, kind) {   // a block with one of My World's own textures (tinted), registered on demand
+    var tk = tint ? tint.join(',') : '1,1,1';
+    return block('t76:' + name + ':' + tk + ':' + (kind || 'ground'), function () {
+      var md = MD(), url = ''; try { url = md && md.tex ? md.tex(name) : ''; } catch (e) {}
+      var key = 't76img:' + name;
+      function draw(cx, x, y) { var im = texImg[url]; if (im && im.complete && im.naturalWidth) { cx.imageSmoothingEnabled = false; cx.drawImage(im, x, y, TS, TS); } else { cx.fillStyle = '#8a8f7a'; cx.fillRect(x, y, TS, TS); } }
+      var t = tileOf(key, draw);
+      if (url && !(texImg[url] && texImg[url].complete)) {
+        var im = texImg[url] || (texImg[url] = new Image());
+        im.addEventListener('load', function () { try { draw(atlasCx, (t % ATN) * TS, Math.floor(t / ATN) * TS); if (R.atlasTex) R.atlasTex.needsUpdate = true; } catch (e) {} });
+        if (!im.src) im.src = url;
+      }
+      return { tile: t, col: tint ? tint.map(lin) : [1, 1, 1], kind: kind || 'ground', name: name };
+    });
+  }
+  function surfaceBlock(look, f) {   // f: { hv, wl, slope, nearWater, rel (0..1 of the peaks), snow, rock, n }
+    var n = f.n;
+    if (look === 'desert') return f.slope >= 3 ? texB('sandstone', n > .5 ? [1, .9, .8] : null) : f.slope >= 2 ? texB('sandstone_top') : texB('sand', n > .66 ? [.96, .9, .8] : null);
+    if (look === 'volcanic') return f.nearWater ? texB('sand', [.55, .5, .45]) : f.slope >= 2 || f.rock ? (n > .55 ? texB('blackstone') : texB('obsidian', [1.2, 1.2, 1.25])) : texB('grass_top', [.75, .8, .55]);
+    if (f.nearWater && f.hv <= f.wl + 2) return texB('sand');
+    if (look === 'winter') return f.slope >= 3 ? texB('stone', [.9, .92, 1]) : texB('snow');
+    if (f.snow && f.slope <= 2) return texB('snow');
+    if (f.slope >= 3 || (f.snow && f.slope > 2)) return n > .5 ? texB('stone') : texB('andesite');
+    if (f.rock) return n > .6 ? texB('cobble', [.9, .9, .9]) : texB('stone');
+    if (f.slope >= 2) return n > .5 ? texB('dirt') : texB('grass_top', look === 'autumn' ? [1.15, .85, .45] : [.85, .9, .7]);
+    if (look === 'autumn') return n > .72 ? texB('grass_top', [1.35, .7, .3]) : n > .4 ? texB('grass_top', [1.2, .95, .4]) : texB('grass_top', [1.05, 1, .55]);
+    return n > .82 ? texB('moss') : n > .55 ? texB('grass_top', [.9, 1.05, .85]) : texB('grass_top');
+  }
+  function terSculpt() {   // the island's terrain, naturally, in this voxel world
+    var vw = R.vw, md = MD(); if (!vw || !md || !md.state) return;
+    var st = md.state(), t = st && st.terr; if (inRoom() || !st || (t && t.nat === false)) return;
+    var hs = (t && t.h) || {}, ws = (t && t.w) || {}, lv = (t && t.lv) || { stone: 5, snow: 7 }, look = (t && t.look) || (t && t.scape === 'alpchalet' ? 'green' : 'green');
+    if (t && t.scape && !t.look && t.scape !== 'alpchalet') return;   // the one-tap worlds (Santorini, Venice …) keep their own look
+    var lb = landBounds(st), S = vw.S, W = vw.W, D = vw.D, L = REG.list;
+    function terrainId(id) { if (!id) return true; var b = L[id]; return !b || b.kind === 'ground' || b.kind === 'water' || /^t76:/.test(b.key || ''); }
+    // where flat ground is (h = 0, no water): the island's surface height in this world
+    var cnt = {}, best = 0, g0 = 0;
+    for (var z = 0; z < D; z += 2) for (var x = 0; x < W; x += 2) { var cx = Math.floor(vw.ox + (x + .5) / S), cy = Math.floor(vw.oz + (z + .5) / S), k = cx + ',' + cy;
+      if (!lb.cells[k] || hs[k] || ws[k]) continue; var tp = vw.top[z * W + x]; if (tp <= 0 || !terrainId(vw.v[vw.i(x, tp - 1, z)]) || !vw.v[vw.i(x, tp - 1, z)]) continue;   // the ground itself, not a roof
+      cnt[tp] = (cnt[tp] || 0) + 1; if (cnt[tp] > best || (cnt[tp] === best && tp < g0)) { best = cnt[tp]; g0 = tp; } }
+    if (!g0) return; T76.g0 = g0;
+    var step = .5 * S, HV = new Float32Array(W * D), WET = new Uint8Array(W * D), OWN = new Uint8Array(W * D);
+    var BH = {};   // the levels softened a little (a 5 × 5 Gaussian): slopes widen like real ones, peaks round off
+    Object.keys(lb.cells).forEach(function (k) { var c = k.split(','), x = +c[0], y = +c[1], s = 0, n = 0;
+      for (var a = -2; a <= 2; a++) for (var b = -2; b <= 2; b++) { var kk = (x + a) + ',' + (y + b), g = Math.exp(-(a * a + b * b) / 2.2); s += (lb.cells[kk] ? hs[kk] || 0 : 0) * g; n += g; }
+      BH[k] = Math.max(s / n, (hs[k] || 0) * .55); });
+    function lvAt(fx, fy) { var x0 = Math.floor(fx - .5), y0 = Math.floor(fy - .5), ax = fx - .5 - x0, ay = fy - .5 - y0;
+      function h(i, j) { var k = (x0 + i) + ',' + (y0 + j); return lb.cells[k] ? BH[k] || 0 : 0; }
+      return h(0, 0) * (1 - ax) * (1 - ay) + h(1, 0) * ax * (1 - ay) + h(0, 1) * (1 - ax) * ay + h(1, 1) * ax * ay; }
+    for (z = 0; z < D; z++) for (x = 0; x < W; x++) {
+      var fx = vw.ox + (x + .5) / S, fy = vw.oz + (z + .5) / S, key = Math.floor(fx) + ',' + Math.floor(fy), i = z * W + x;
+      if (!lb.cells[key]) continue;
+      var foreign = false; for (var y = g0; y < vw.H && !foreign; y++) if (!terrainId(vw.v[vw.i(x, y, z)])) foreign = true;
+      if (foreign) continue;
+      OWN[i] = 1;
+      if (ws[key] && !hs[key]) { WET[i] = 1; HV[i] = g0 - 2; continue; }
+      var l = lvAt(fx, fy), rel = l > .3 ? (tFbm(fx * .35, fy * .35, 7, 3) - .5) * (.8 + l * .12) : 0;
+      HV[i] = g0 + l * step + rel * S * .5;
+    }
+    var wl = g0 - 2, peak = 0; for (i = 0; i < W * D; i++) if (OWN[i] && HV[i] > peak) peak = HV[i];
+    var near = function (x, z) { for (var dz = -S; dz <= S; dz += Math.max(1, S / 2)) for (var dx = -S; dx <= S; dx += Math.max(1, S / 2)) { var X = x + dx, Z = z + dz; if (X >= 0 && Z >= 0 && X < W && Z < D && WET[Z * W + X]) return true; } return false; };
+    for (z = 0; z < D; z++) for (x = 0; x < W; x++) {
+      i = z * W + x; if (!OWN[i]) continue;
+      for (y = g0 - 4; y < vw.H; y++) { if (y < 0) continue; var id0 = vw.v[vw.i(x, y, z)]; if (y >= g0 || (id0 && (L[id0].kind === 'water'))) vw.v[vw.i(x, y, z)] = 0; }
+      if (WET[i]) {   // a lake bed, deeper away from its shore
+        var deep = near(x + S, z) && near(x - S, z) && near(x, z + S) && near(x, z - S) ? 3 : 2, bed = g0 - 1 - deep;
+        for (y = Math.max(0, bed); y < g0 - 1; y++) vw.v[vw.i(x, y, z)] = y === bed ? texB('sand', [.8, .78, .7]) : texB('water', null, 'water');
+        continue;
+      }
+      var hv = Math.max(g0, Math.round(HV[i])), sl = 0;
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) { var X = x + d[0], Z = z + d[1]; if (X < 0 || Z < 0 || X >= W || Z >= D || !OWN[Z * W + X]) return; var o = WET[Z * W + X] ? g0 - 1 : Math.round(HV[Z * W + X]); sl = Math.max(sl, Math.abs(hv - o)); });
+      var lvl = (hv - g0) / step, f = { hv: hv, wl: wl, slope: sl, nearWater: near(x, z), snow: lvl >= lv.snow - tNoise(x * .3, z * .3, 3) * 1.5, rock: lvl >= lv.stone - tNoise(x * .25, z * .25, 5) * 1.5, n: tNoise(x * .45, z * .45, 11) * .7 + tHash(x, z, 2) * .3 };
+      var top = surfaceBlock(look, f), under = look === 'desert' ? texB('sandstone') : f.nearWater && hv <= wl + 2 ? texB('sand') : f.rock || f.snow ? texB('stone') : texB('dirt');
+      for (y = g0 - 1; y < hv; y++) vw.v[vw.i(x, y, z)] = y === hv - 1 ? top : y >= hv - 3 ? under : texB('stone');
+    }
+    vw.tops();
+  }
+  function terRefresh() {   // the voxel world follows a terrain change at once (no reconversion)
+    if (!R.vw) return; terSculpt();
+    var nx = Math.ceil(R.vw.W / CH), nz = Math.ceil(R.vw.D / CH);
+    for (var cz = 0; cz < nz; cz++) for (var cx = 0; cx < nx; cx++) buildChunk(cx, cz);
+    if (R.atlasTex) R.atlasTex.needsUpdate = true;
+    R.hash = stateHash();
+  }
+  function tWrite(fn, label) {
+    var s = tStore(); if (!s) return toast('先在 My World 里打开一座岛');
+    var t = tGet() || {}; t.h = t.h || {}; t.w = t.w || {};
+    fn(t); s.set(t); terRefresh(); toast(label + '（↶ 可撤销）'); drawSheet();
+  }
+  function pads(st) {   // the ground under buildings and displays stays as it is
+    var P = {}; (st.pc || []).forEach(function (p) {
+      var big = /^bld:|house|hall|school|library|church|chapel|cafe|tower|castle|museum|mill|shop|inn|chalet|barn|hut|pavilion|dome|gr_|c_|h_|ruins|vox_door|gallery|stand/.test(p.k), r = big ? 1.4 + 2.2 * (p.s || 1) : 1;
+      for (var dx = -Math.ceil(r + 2); dx <= Math.ceil(r + 2); dx++) for (var dy = -Math.ceil(r + 2); dy <= Math.ceil(r + 2); dy++) {
+        var d = Math.hypot(dx, dy), k = Math.floor(p.x + dx) + ',' + Math.floor(p.y + dy), w = d <= r ? 0 : Math.min(1, (d - r) / 2.5);
+        P[k] = P[k] == null ? w : Math.min(P[k], w);
+      }
+    }); return P;
+  }
+  function landscape(kind) {   // one tap: a whole island of hills, peaks, water — the land around buildings kept flat
+    var md = MD(), st = md && md.state(); if (!st) return;
+    var lb = landBounds(st), keys = Object.keys(lb.cells); if (!keys.length) return;
+    var xs = keys.map(function (k) { return +k.split(',')[0]; }), ys = keys.map(function (k) { return +k.split(',')[1]; });
+    var X0 = Math.min.apply(null, xs), X1 = Math.max.apply(null, xs) + 1, Y0 = Math.min.apply(null, ys), Y1 = Math.max.apply(null, ys) + 1, cxm = (X0 + X1) / 2, cym = (Y0 + Y1) / 2, rad = Math.max(X1 - X0, Y1 - Y0) / 2;
+    var seed = (Date.now() % 997) + 1, P = pads(st), h = {}, w = {}, lv = { stone: 6, snow: 99 }, look = 'green';
+    var amp = Math.max(.35, Math.min(1, rad / 22));   // a small island gets hills, a big one its peaks
+    var LOOKS = { alps: 'green', hills: 'green', isle: 'green', canyon: 'desert', volcano: 'volcanic', lakes: 'green', valley: 'autumn', flat: 'green' };
+    look = LOOKS[kind] || 'green';
+    keys.forEach(function (k) {
+      var c = k.split(','), x = +c[0] + .5, y = +c[1] + .5, u = (x - cxm) / rad, v = (y - cym) / rad, d = Math.hypot(u, v), n = tFbm(x * .09, y * .09, seed, 5), m = tFbm(x * .2, y * .2, seed + 9, 3), L = 0, wet = false;
+      if (kind === 'alps') { var ridge = 1 - Math.abs(tFbm(x * .07, y * .07, seed, 4) * 2 - 1); L = Math.pow(ridge, 2.2) * 24 + n * 4 - 3; lv = { stone: 9, snow: 14 }; }
+      if (kind === 'hills') { L = n * 13 - 4 + m * 2; lv = { stone: 13, snow: 99 }; }
+      if (kind === 'isle') { L = Math.max(0, 1 - d * 1.05) * 20 * (.7 + n * .6) - 1; wet = d > .9 + (m - .5) * .15; lv = { stone: 11, snow: 17 }; }
+      if (kind === 'canyon') { var mid = cym + Math.sin((x - X0) * .22 + seed) * rad * .25, gap = Math.abs(y - mid); L = gap < 1.6 ? 0 : gap < 3.5 ? (gap - 1.6) * 6 : 12 + n * 3; wet = gap < 1.2; lv = { stone: 3, snow: 99 }; }
+      if (kind === 'volcano') { L = d < .16 ? 3 : Math.max(0, 1 - (d - .12) * 1.25) * 22 * (.85 + m * .3); wet = d < .11; lv = { stone: 5, snow: 99 }; }
+      if (kind === 'lakes') { L = n * 9 - 2; wet = tFbm(x * .14, y * .14, seed + 31, 3) < .36; lv = { stone: 9, snow: 99 }; }
+      if (kind === 'valley') { var rv = cxm + Math.sin((y - Y0) * .25 + seed) * rad * .2, g2 = Math.abs(x - rv); L = Math.min(16, g2 * 1.4) * (.7 + n * .6) - 1; wet = g2 < 1.3; lv = { stone: 11, snow: 15 }; }
+      var pw = P[k] == null ? 1 : P[k]; L *= pw * amp; if (pw < 1) wet = false;
+      L = Math.max(0, Math.min(22, Math.round(L)));
+      if (wet) { w[k] = 2; } else if (L > 0) h[k] = L;
+    });
+    lv = { stone: Math.max(2, Math.round(lv.stone * amp)), snow: lv.snow >= 99 ? 99 : Math.max(3, Math.round(lv.snow * amp)) };
+    tWrite(function (t) { t.h = h; t.w = w; t.lv = lv; t.look = look; delete t.scape; t.nat = true; }, '已生成「' + (TPRE.filter(function (p) { return p[0] === kind; })[0] || ['', ''])[1] + '」');
+  }
+  function terStroke(tool, hits) {   // brushes, straight on the island's terrain data, softly falling off
+    if (inRoom()) return toast('地形只在岛上（不在房间里）');
+    if (!R.vw || !hits.length) return;
+    var md = MD(), st = md.state(), lb = landBounds(st), vw = R.vw, S = vw.S, r = Math.max(1, (R.brush - 1) / 2) + .5, centres = [];
+    hits.forEach(function (hh) { var c = [vw.ox + (hh.x + .5) / S, vw.oz + (hh.z + .5) / S]; if (!centres.length || Math.hypot(c[0] - centres[centres.length - 1][0], c[1] - centres[centres.length - 1][1]) > r * .4) centres.push(c); });
+    var strong = T76.strong ? 2 : 1, seed = Date.now() % 997;
+    tWrite(function (t) {
+      var h = t.h, w = t.w, acc = {}, target = null, flat = null;
+      if (tool === 'flatten') { var c0 = centres[0], k0 = Math.floor(c0[0]) + ',' + Math.floor(c0[1]); flat = h[k0] || 0; }
+      centres.forEach(function (c) {
+        for (var dx = -Math.ceil(r); dx <= Math.ceil(r); dx++) for (var dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) {
+          var x = Math.floor(c[0]) + dx, y = Math.floor(c[1]) + dy, k = x + ',' + y; if (!lb.cells[k]) continue;
+          var d = Math.hypot(x + .5 - c[0], y + .5 - c[1]) / r; if (d > 1) continue;
+          var wgt = tool === 'peak' ? Math.pow(1 - d, 1.5) : Math.exp(-d * d * 2.5);
+          acc[k] = Math.max(acc[k] || 0, wgt);
+        }
+      });
+      if (tool === 'smooth') { target = {}; Object.keys(acc).forEach(function (k) { var c = k.split(','), x = +c[0], y = +c[1], s = 0, n = 0; for (var a = -1; a <= 1; a++) for (var b = -1; b <= 1; b++) { var kk = (x + a) + ',' + (y + b); if (!lb.cells[kk]) continue; s += h[kk] || 0; n++; } target[k] = s / Math.max(1, n); }); }
+      Object.keys(acc).forEach(function (k) {
+        var wg = acc[k], cur = h[k] || 0, nv = cur, c = k.split(',');
+        if (tool === 'raise') nv = cur + Math.round(wg * 2 * strong);
+        if (tool === 'lower') nv = cur - Math.round(wg * 2 * strong);
+        if (tool === 'peak') nv = Math.max(cur, Math.round(wg * (8 + 6 * strong) + (tFbm(+c[0] * .3, +c[1] * .3, seed, 3) - .5) * 4 * wg));
+        if (tool === 'smooth') nv = Math.round(cur + (target[k] - cur) * Math.min(1, wg * 1.5));
+        if (tool === 'flatten') nv = wg > .3 ? flat : Math.round(cur + (flat - cur) * wg * 2);
+        if (tool === 'lake' || tool === 'river') { if (wg > .35) { w[k] = 2; delete h[k]; } return; }
+        if (tool === 'erase') { if (wg > .35) delete w[k]; return; }
+        nv = Math.max(0, Math.min(22, nv)); if (nv) { h[k] = nv; delete w[k]; } else delete h[k];
+      });
+      t.nat = true; if (!t.look && !t.scape) t.look = T76.look || 'green';
+    }, '🛠 ' + ((TBR.filter(function (b) { return b[0] === tool; })[0] || ['', tool])[1]) + ' · ' + hits.length + ' 处');
+  }
+  function terSheet() {
+    var t = tGet() || {}, look = t.look || 'green', cur = R.terTool || 'ter:raise';
+    return inRoom() ? '<p class="hint">地形只在岛上 · 先 ‹ 回到岛</p>' :
+      '<p class="hint">一键生成整座岛的地形（建筑周围保持平整），再用笔刷在画面上点或拖来修</p>' +
+      '<div class="row t76-row">' + TPRE.map(function (p) { return '<button data-tp="' + p[0] + '">' + p[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="row t76-row">' + TBR.map(function (b) { return '<button data-t="ter:' + b[0] + '"' + (cur === 'ter:' + b[0] ? ' class="on"' : '') + '>' + b[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="row t76-row"><span class="lab">笔刷</span>' + [[3, '小'], [7, '中'], [13, '大']].map(function (b) { return '<button data-tb="' + b[0] + '"' + (R.brush === b[0] ? ' class="on"' : '') + '>' + b[1] + '</button>'; }).join('') +
+      '<button data-tx="strong"' + (T76.strong ? ' class="on"' : '') + '>💪 强</button><span class="lab">风格</span>' + TLOOK.map(function (l) { return '<button data-tl="' + l[0] + '"' + (look === l[0] ? ' class="on"' : '') + '>' + l[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="row t76-row"><button data-tx="nat"' + (t.nat === false ? '' : ' class="on"') + '>🏞 自然地形</button><button data-c="terauto">✨ Smart 地形</button><button data-tp="flat">🗑 清空地形</button></div>';
+  }
+  var drawSheet0 = drawSheet;
+  drawSheet = function () { drawSheet0(); if (R.tab === 'ter') { var sh = ov.querySelector('.sheet'); if (sh) sh.innerHTML = terSheet(); } };
+  ov.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-tp],[data-tb],[data-tl],[data-tx]'); if (!b || !ov.contains(b)) return;
+    e.stopPropagation(); var v;
+    if ((v = b.getAttribute('data-tp'))) return landscape(v);
+    if ((v = b.getAttribute('data-tb'))) { R.brush = +v; return drawSheet(); }
+    if ((v = b.getAttribute('data-tl'))) { T76.look = v; return tWrite(function (t) { t.look = v; t.nat = true; delete t.scape; }, '地形风格：' + (TLOOK.filter(function (l) { return l[0] === v; })[0] || ['', v])[1]); }
+    if ((v = b.getAttribute('data-tx'))) {
+      if (v === 'strong') { T76.strong = !T76.strong; return drawSheet(); }
+      if (v === 'nat') { var on = (tGet() || {}).nat === false; return tWrite(function (t) { t.nat = on; }, on ? '🏞 自然地形：开' : '🏞 自然地形：关（方块台阶）'); }
+    }
+  }, true);
+  var t76css = document.createElement('style'); t76css.textContent = '#vx62 .t76-row{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}#vx62 .t76-row button{flex:none}';
+  document.head.appendChild(t76css);
+  /* ================================================================ 77 · the voxel world's console = My World's 2D console
+     The same three columns as the 2D world (aside.wf): a header (‹ up, where you are, the tool, ▾ / ✕), the tools on
+     the left, the picked tool's controls in the middle, and the view / ↶ ↷ / 2D / ⚙ on the right. Its look is My
+     World's own: the 2D console's style rules, taken as they are under another root class (.vxc), so nothing that looks
+     for the 2D console (.wf) ever finds this one. The world stays above it; the joystick and the toasts sit over it. */
+  (function console77() {
+    if (ov.querySelector('.vxc')) return;
+    var TOOLNAME = { look: '浏览', hall: '展馆', build: '建造', put: '摆放', room: '房间', show: '陈列', ter: '地形', smart: 'Smart' };
+    function cssFromWf() {   // the 2D console's rules, re-rooted
+      var out = [];
+      Array.prototype.forEach.call(document.styleSheets, function (sh) {
+        var rules; try { rules = sh.cssRules; } catch (e) { return; }
+        Array.prototype.forEach.call(rules || [], function (r) {
+          var t = r.cssText; if (!/\.wf3?(?![\w-])/.test(t)) return;
+          out.push(t.replace(/\.wf3(?![\w-])/g, '.vxc3').replace(/\.wf(?![\w-])/g, '#vx62 .vxc'));
+        });
+      });
+      return out.join('\n');
+    }
+    var st = document.createElement('style'); st.id = 'vx77-wf-css'; st.textContent = cssFromWf();
+    st.textContent += '\n#vx62 .vxc{position:absolute!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;width:auto!important;z-index:5!important;max-height:none!important}' +
+      '#vx62 .vxc.mini{height:auto!important;min-height:0!important}#vx62 .vxc.mini .wf-main{display:none!important}#vx62 .vxc .wf-center{overflow:auto}' +
+      '#vx62 .vxc .wf-center .sheet{position:static!important;display:block!important;background:none!important;border:0!important;padding:4px 2px!important;max-height:none!important}' +
+      '#vx62 .vxc .vx77-idle{opacity:.85;font:600 13px/1.5 system-ui;padding:6px 4px}#vx62 .vxc .vx77-idle b{color:#f2c13d}' +
+      '#vx62 .top{display:none!important}#vx62 .dock{display:none!important}#vx62 .info{top:10px!important}' +
+      '#vx62 .more{top:auto!important;bottom:calc(var(--ch,60px) + 8px)!important}#vx62 .vxc .wf-crumbs b{white-space:nowrap}' +
+      '#vx62 .vxc .wf-acts button i,#vx62 .vxc .wf-menu button i{font-style:normal;font-size:20px;line-height:1}';
+    document.head.appendChild(st);
+    var con = document.createElement('aside'); con.className = 'vxc vxc3'; con.setAttribute('aria-label', '体素世界控制台');
+    con.innerHTML = '<header class="wf-h"><nav class="wf-crumbs"><button type="button" class="on" data-vx77="top"><b>🧊 体素世界</b></button><button type="button" data-vx77="ctx"></button></nav>' +
+      '<span class="wf-lv" data-vx77="lv"></span><button type="button" class="wf-x" data-vx77="mini" title="收起 / 展开控制台">▾</button></header>' +
+      '<div class="wf-main"><nav class="wf-acts" aria-label="工具"></nav><div class="wf-center"></div><nav class="wf-menu" aria-label="视图"></nav></div>';
+    ov.appendChild(con);
+    var head = con.querySelector('.wf-h'), acts = con.querySelector('.wf-acts'), center = con.querySelector('.wf-center'), menu = con.querySelector('.wf-menu');
+    function tile(b, icon, label) { b.innerHTML = '<i>' + icon + '</i><span>' + label + '</span>'; b.classList.remove('ic'); return b; }
+    // ‹ up and ✕ go into the header, as in the 2D console
+    var up = ov.querySelector('[data-r="up"]'); if (up) { up.classList.add('wf-up'); up.classList.remove('ic'); head.insertBefore(up, head.firstChild); }
+    var x = ov.querySelector('.top [data-a="x"]'); if (x) { x.classList.add('wf-x'); x.classList.remove('ic'); x.title = '回到 2D 岛'; head.appendChild(x); }
+    // the tools, left
+    Array.prototype.forEach.call(ov.querySelectorAll('.dock [data-tab]'), function (b) {
+      var i = b.querySelector('i'), icon = i ? i.textContent : '', label = b.textContent.replace(icon, '').trim();
+      acts.appendChild(tile(b, icon, label));
+    });
+    // the picked tool's controls, centre
+    var sheet = ov.querySelector('.sheet'); if (sheet) center.appendChild(sheet);
+    var idle = document.createElement('div'); idle.className = 'vx77-idle'; center.appendChild(idle);
+    // view, ↶ ↷, 2D and settings, right
+    [['[data-m="view"]', '👁', '阅览'], ['[data-m="walk"]', '🚶', '步行'], ['[data-m="fly"]', '✈', '飞行'], ['[data-c="undo"]', '↶', '撤销'], ['[data-c="redo"]', '↷', '重做'], ['.top [data-a="2d"]', '🗺', '看 2D'], ['.top [data-a="more"]', '⚙', '设置']].forEach(function (d) {
+      var b = ov.querySelector(d[0]); if (b) menu.appendChild(tile(b, d[1], d[2]));
+    });
+    var seg = ov.querySelector('.top .seg'); if (seg && !seg.children.length) seg.remove();
+    head.querySelector('[data-vx77="mini"]').onclick = function (e) { e.stopPropagation(); con.classList.toggle('mini'); this.textContent = con.classList.contains('mini') ? '▴' : '▾'; fit(); };
+    head.querySelector('[data-vx77="top"]').onclick = function (e) { e.stopPropagation(); con.classList.remove('mini'); setTab('look'); fit(); };
+    head.querySelector('[data-vx77="ctx"]').onclick = function (e) { e.stopPropagation(); };
+    function fit() { ov.style.setProperty('--ch', Math.round(con.getBoundingClientRect().height || 60) + 'px'); }
+    function sync() {   // where you are and the picked tool, as the 2D console says it
+      var ctx = ov.querySelector('.top .ctx'), c = head.querySelector('[data-vx77="ctx"]'), t = (ctx && ctx.textContent) || '';
+      if (c.textContent !== t) { c.textContent = t; c.hidden = !t; }
+      var lv = head.querySelector('[data-vx77="lv"]'), l = (TOOLNAME[R.tab] || '浏览') + ' · ' + ({ view: '阅览', walk: '步行', fly: '飞行' }[R.mode] || '');
+      if (lv.textContent !== l) lv.textContent = l;
+      var empty = !sheet || !sheet.textContent.trim();
+      idle.hidden = !empty;
+      if (empty && !idle.innerHTML) idle.innerHTML = '<b>🧊 体素世界</b> · 拖动转视角，双指缩放<br>左边选工具：<b>🏛 展馆</b> 几下就把看板布成展览（建筑 → 展厅 → 展架上的卡片），<b>⛰ 地形</b> 一键生成山水；<b>🧩 摆放</b> / <b>🏠 房间</b> / <b>📄 陈列</b> 用手细调<br>右边切换 👁 阅览 / 🚶 步行 / ✈ 飞行';
+      fit();
+    }
+    setInterval(function () { if (ov.classList.contains('open')) sync(); }, 400);
+    window.addEventListener('resize', fit);
+    sync();
+  })();
+  /* ================================================================ 78 · 🏛 展馆 — from cards to an exhibition in a few taps
+     ① a building (one tap: a new exhibition pavilion on a free spot, or one of the island's own) · ② its rooms — ⚡ all
+     the board's lists set out at once (My World's Smart arrange for one building), or one list as its own room named
+     after it · ③ walk in: tap a room and it is built in voxels, its displays already holding the cards. 📄 陈列 stays for
+     placing one card by hand. Everything is My World's own data and history (window.__showStore). */
+  var SH = { sel: null, busy: false };
+  function shStore() { return window.__showStore || null; }
+  function shState() { var s = shStore(); try { return s ? s.state() : null; } catch (e) { return null; } }
+  function pressR(v) {   // the voxel world's own 🏠 actions (data-r): into a building, into one of its rooms
+    var b = document.createElement('button'); b.type = 'button'; b.hidden = true; b.setAttribute('data-r', v);
+    (ov.querySelector('.wf-center') || ov).appendChild(b); try { b.click(); } finally { b.remove(); }
+  }
+  function goRoom(pcId, rid) {
+    toast('🚪 正在进入展厅…');
+    if (lvl() >= 3) return pressR('room:' + rid);
+    pressR('bld:' + pcId); var t = 0, iv = setInterval(function () { if (lvl() >= 3 || ++t > 25) { clearInterval(iv); if (lvl() >= 3) pressR('room:' + rid); } }, 200);
+  }
+  function hallSheet() {
+    var st = shState(); if (!st) return '<p class="hint">先在 My World 里打开一座岛</p>';
+    if (st.at && st.at.room) return '<p class="hint">🖼 你在展厅里 · 点展架上的卡片看大图 · 用 <b>📄 陈列</b> 再放一张，<b>🧩 摆放</b> 加展架</p><div class="row"><button class="go" data-r="up">‹ 回到建筑</button><button data-tab="show">📄 陈列</button><button data-tab="put">🧩 摆放</button></div>';
+    if (st.at) return '<p class="hint">在建筑里 · 选一个展厅进去，或 ‹ 回到岛上布展</p><div class="row"><button data-r="up">‹ 回到岛</button></div>' + (function () { var b = st.buildings.filter(function (x) { return x.id === st.at.pc; })[0]; return b ? roomsRow(b) : ''; })();
+    var bs = st.buildings; if (!SH.sel || !bs.some(function (b) { return b.id === SH.sel; })) SH.sel = bs.length ? bs[0].id : null;
+    var b = bs.filter(function (x) { return x.id === SH.sel; })[0], total = 0, out = 0; st.lists.forEach(function (l) { total += l.n; out += l.out; });
+    var h = '<p class="hint"><b>① 选建筑</b> → <b>② 一键布展</b>（每个列表一个展厅，卡片上展架）→ <b>③ 点展厅走进去</b> · 已陈列 ' + out + '/' + total + ' 张</p>';
+    h += '<div class="row"><span class="lab">① 建筑</span>' + bs.map(function (x) { return '<button data-sh="sel:' + escH(x.id) + '"' + (x.id === SH.sel ? ' class="on"' : '') + '>🏛 ' + escH(x.name) + (x.rooms.length ? ' · ' + x.rooms.length + ' 间' : '') + '</button>'; }).join('') +
+      '<button class="add" data-sh="hall">＋ 新展馆</button><button data-tab="room">🏗 换一种建筑…</button></div>';
+    if (!b) return h + '<div class="row"><button class="go" data-sh="quick">⚡ 一键：建展馆并把整个看板陈列进去</button></div>';
+    h += '<div class="row"><span class="lab">② 布展</span><button class="go" data-sh="fill:">⚡ 所有列表 → 展厅</button></div>';
+    h += '<div class="sh78-lists">' + st.lists.map(function (l) { var all = l.n && l.out >= l.n;
+      return '<div class="sh78-l"><span><b>' + escH(l.title) + '</b><small>' + l.n + ' 张 · 已陈列 ' + l.out + '</small></span><button data-sh="fill:' + escH(l.id) + '"' + (all ? ' disabled' : '') + '>' + (all ? '✓ 已陈列' : '＋ 建成展厅') + '</button></div>'; }).join('') + '</div>';
+    return h + roomsRow(b);
+  }
+  function roomsRow(b) {
+    return '<div class="row"><span class="lab">③ 走进去</span>' + (b.rooms.length ? b.rooms.map(function (r) { return '<button class="go" data-sh="room:' + escH(b.id) + ':' + escH(r.id) + '">' + r.ic + ' ' + escH(r.n) + (r.displays ? ' · ' + r.displays + ' 架 · ' + r.things + ' 件' : '') + '</button>'; }).join('') : '<span class="lab">还没有展厅 · 先 ② 布展</span>') + '</div>';
+  }
+  function shAct(v) {
+    var s = shStore(); if (!s || SH.busy) return;
+    if (/^sel:/.test(v)) { SH.sel = v.slice(4); return drawSheet(); }
+    if (/^room:/.test(v)) { var p = v.split(':'); return goRoom(p[1], p[2]); }
+    SH.busy = true;
+    try {
+      if (v === 'hall' || v === 'quick') {
+        var id = s.hall(); if (!id) { toast('岛上没有空地放展馆了 · 用 ⛰ 地形 削平一块，或在 2D 里 More land'); return; }
+        SH.sel = id; toast('🏛 已放下一座展馆（↶ 可撤销）');
+        if (v === 'quick') { var q = s.fill(id, '*'); toast('⚡ 已建 ' + q.rooms + ' 个展厅、' + q.displays + ' 个展架 · 点 ③ 里的展厅走进去'); }
+      }
+      if (/^fill:/.test(v)) {
+        var lid = v.slice(5), r = s.fill(SH.sel, lid || '*');
+        toast(r.displays ? '⚡ ' + (r.rooms ? '新展厅：' + r.names.join('、') + ' · ' : '') + r.displays + ' 个展架摆好了（↶ 可撤销）· 点 ③ 走进去' : '这些卡片都已经陈列在别处了');
+      }
+    } finally { SH.busy = false; }
+    drawSheet();
+  }
+  ov.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-sh]'); if (!b || !ov.contains(b)) return;
+    e.stopPropagation(); shAct(b.getAttribute('data-sh'));
+  }, true);
+  var drawSheet78 = drawSheet;
+  drawSheet = function () { drawSheet78(); if (R.tab === 'hall') { var sh = ov.querySelector('.sheet'); if (sh) { sh.innerHTML = hallSheet(); sh.classList.add('on'); } } };
+  var sh78css = document.createElement('style'); sh78css.textContent =
+    '#vx62 .sh78-lists{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;margin:4px 0 8px}' +
+    '#vx62 .sh78-l{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}' +
+    '#vx62 .sh78-l span{flex:1;min-width:0;display:flex;flex-direction:column}#vx62 .sh78-l b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}#vx62 .sh78-l small{opacity:.7;font-size:11px}' +
+    '#vx62 .sh78-l button{flex:none}#vx62 .sheet button:disabled{opacity:.5}';
+  document.head.appendChild(sh78css);
+  /* 78 · the cards themselves, in the voxel world, on their displays as the display is made: a shelf holds them in rows
+     on its front, a wall or board carries them flat, an easel one big card, a knowledge tree hangs them round its
+     crown, a table or case lays them tilted on top; anything else gets a small wall of cards in front. Each display's
+     size is measured in the voxels; its front is the side facing the middle of the room (or island). Tap a card: it
+     opens big, and flips to its meaning, points and checklist. */
+  var C78 = { g: null };
+  function shapeOf(k) {
+    if (/tree|plant|bonsai/.test(k)) return 'tree';
+    if (/easel|lectern|podium|stand$|^stand|tripod/.test(k)) return 'easel';
+    if (/table|desk|vitrine|showcase|counter|plinth|pedestal|bench|island/.test(k)) return 'table';
+    if (/shelf|book|case|cabinet|rack|cubby|locker|dresser/.test(k)) return 'shelf';
+    if (/wall|frame|gallery|board|map|screen|poster|notice|panel|sign/.test(k)) return 'wall';
+    return 'free';
+  }
+  function cardTex(c) {
+    var T = R.T, cv = document.createElement('canvas'); cv.width = 256; cv.height = 192; var g = cv.getContext('2d');
+    g.fillStyle = '#fbfaf7'; g.fillRect(0, 0, 256, 192); g.fillStyle = '#f2c13d'; g.fillRect(0, 0, 256, 10);
+    g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 4; g.strokeRect(2, 2, 252, 188);
+    var tex = new T.CanvasTexture(cv); if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
+    function words(text, y0, size, lines, col) {
+      g.fillStyle = col || '#1f2937'; g.font = 'bold ' + size + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      var out = [], line = '';
+      String(text || '').split(/(\s+)/).forEach(function (w) { if (/[㐀-鿿]/.test(w)) { for (var i = 0; i < w.length; i++) { if (g.measureText(line + w[i]).width > 228) { out.push(line); line = ''; } line += w[i]; } return; } if (g.measureText(line + w).width > 228 && line.trim()) { out.push(line.trim()); line = ''; } line += w; });
+      if (line.trim()) out.push(line.trim()); out = out.slice(0, lines);
+      out.forEach(function (l, i) { g.fillText(l, 128, y0 + (i - (out.length - 1) / 2) * size * 1.15); });
+    }
+    if (c.img) {
+      words(c.title, 166, 20, 1);
+      var im = new Image(); im.crossOrigin = 'anonymous';
+      im.onload = function () { try { var r = Math.max(236 / im.width, 132 / im.height), w = im.width * r, h = im.height * r; g.save(); g.beginPath(); g.rect(10, 14, 236, 132); g.clip(); g.drawImage(im, 128 - w / 2, 80 - h / 2, w, h); g.restore(); tex.needsUpdate = true; } catch (e) {} };
+      im.src = c.img;
+    } else { words(c.title, c.zh ? 84 : 100, 26, c.zh ? 3 : 4); if (c.zh) words(c.zh, 160, 20, 1, '#64748b'); }
+    return tex;
+  }
+  function clearCards() { if (C78.g && R.scene) { R.scene.remove(C78.g); C78.g.traverse(function (o) { if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } if (o.geometry) o.geometry.dispose(); }); } C78.g = null; }
+  function cardOf(ref) {
+    var st = shStore(), c = null; try { c = st && st.card ? st.card(ref) : null; } catch (e) {}
+    if (!c) { var v = null; try { v = MD().resolve(ref); } catch (e) {} c = { title: (v && v.title) || ref, zh: '', text: (v && v.note) || '', img: (v && (v.img || v.url)) || '', list: '', sub: [], checks: [] }; }
+    c.ref = ref; return c;
+  }
+  function plane(T, c, w, h) { var m = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ map: cardTex(c), side: T.DoubleSide })); m.userData.card78 = c; return m; }
+  function cards78() {
+    clearCards(); var vw = R.vw, T = R.T, st = shStore(); if (!vw || !T || !st || !st.pieces) return;
+    var P = []; try { P = st.pieces(); } catch (e) { return; } if (!P.length) return;
+    var S = vw.S, L = REG.list, cx = vw.W / 2, cz = vw.D / 2, grp = new T.Group(); grp.name = 'cards78';
+    P.forEach(function (p) {
+      var refs = p.refs.slice(0, 30); if (!refs.length) return;
+      var x0 = (p.x0 - vw.ox) * S, x1 = (p.x1 - vw.ox) * S, z0 = (p.y0 - vw.oz) * S, z1 = (p.y1 - vw.oz) * S, mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+      // its front: the side that faces the middle, along one axis
+      var dx = cx - mx, dz = cz - mz, alongX = Math.abs(dz) >= Math.abs(dx), sgn = alongX ? (dz >= 0 ? 1 : -1) : (dx >= 0 ? 1 : -1);
+      var faceW = alongX ? x1 - x0 : z1 - z0, depth = alongX ? z1 - z0 : x1 - x0;
+      // its height and the floor, measured in the voxels
+      var floor = groundAt(alongX ? mx : mx + sgn * (depth / 2 + 1), alongX ? mz + sgn * (depth / 2 + 1) : mz), top = floor;
+      for (var z = Math.max(0, Math.floor(z0)); z < Math.min(vw.D, Math.ceil(z1)); z++) for (var x = Math.max(0, Math.floor(x0)); x < Math.min(vw.W, Math.ceil(x1)); x++)
+        for (var y = vw.H - 1; y >= floor; y--) { var id = vw.v[vw.i(x, y, z)]; if (id && L[id] && L[id].kind !== 'ground' && L[id].kind !== 'water') { top = Math.max(top, y + 1); break; } }
+      var h = Math.max(S, top - floor), shape = shapeOf(p.k), cards = refs.map(cardOf), n = cards.length, g = new T.Group();
+      function grid(w0, h0, y0, push, maxW) {   // cards in rows over a w0 × h0 face, y0 its bottom, push off the face
+        var best = null;
+        for (var cols = 1; cols <= n; cols++) { var rows = Math.ceil(n / cols), cw = Math.min(maxW || 1.1 * S, (w0 - (cols + 1) * .08 * S) / cols, ((h0 - (rows + 1) * .08 * S) / rows) * 4 / 3); if (cw > 0 && (!best || cw > best.cw)) best = { cols: cols, rows: rows, cw: cw }; }
+        if (!best) best = { cols: n, rows: 1, cw: .4 * S }; var cw = Math.max(.35 * S, best.cw), ch = cw * .75, gap = .08 * S;
+        cards.forEach(function (c, i) { var col = i % best.cols, row = Math.floor(i / best.cols), m = plane(T, c, cw, ch);
+          m.position.set((col - (best.cols - 1) / 2) * (cw + gap), y0 + h0 - (row + .5) * (ch + gap) - gap / 2, push); g.add(m); });
+      }
+      if (shape === 'shelf') grid(faceW * .94, h * .92, floor + h * .04, depth / 2 + .06 * S, .9 * S);
+      else if (shape === 'wall') grid(faceW * .96, Math.max(S, h - .5 * S), floor + .5 * S, depth / 2 + .06 * S, 1.2 * S);
+      else if (shape === 'easel') { var ew = Math.min(1.4 * S, Math.max(.8 * S, faceW * .9)); if (n === 1) { var m1 = plane(T, cards[0], ew, ew * .75); m1.position.set(0, floor + h * .62, depth * .15); m1.rotation.x = -.12; g.add(m1); } else grid(Math.max(faceW, 1.6 * S), Math.max(h * .7, S), floor + h * .3, depth * .15, ew); }
+      else if (shape === 'table') {
+        var tw = Math.min(.9 * S, (faceW - .1 * S) / Math.min(n, 4)), per = Math.max(1, Math.floor(faceW / (tw + .08 * S)));
+        cards.forEach(function (c, i) { var col = i % per, row = Math.floor(i / per), m = plane(T, c, tw, tw * .75);
+          m.position.set((col - (Math.min(per, n) - 1) / 2) * (tw + .08 * S), floor + h + .25 * S + row * .02 * S, depth / 2 - .3 * S - row * tw * .8); m.rotation.x = -1.0; g.add(m); });
+      }
+      else if (shape === 'tree') {
+        var rad = Math.max(faceW, depth) / 2 + .35 * S, tiers = Math.ceil(n / 10), cw2 = .85 * S;
+        cards.forEach(function (c, i) { var tier = Math.floor(i / 10), k = i % 10, cnt = Math.min(10, n - tier * 10), a = (k / cnt) * Math.PI * 2 + tier * .3, m = plane(T, c, cw2, cw2 * .75);
+          m.position.set(Math.sin(a) * rad, floor + h * (.72 - tier * .22), Math.cos(a) * rad); m.rotation.y = a; g.add(m); });
+      }
+      else grid(Math.max(faceW, Math.ceil(Math.sqrt(n * 1.6)) * 1.25 * S), Math.ceil(n / Math.ceil(Math.sqrt(n * 1.6))) * .95 * S + .3 * S, floor + .3 * S, depth / 2 + 1.1 * S, 1.1 * S);
+      g.position.set(mx, 0, mz);
+      if (shape !== 'tree') g.rotation.y = alongX ? (sgn > 0 ? 0 : Math.PI) : (sgn > 0 ? Math.PI / 2 : -Math.PI / 2);   // the cards face the front
+      grp.add(g);
+    });
+    if (grp.children.length) { R.scene.add(grp); C78.g = grp; }
+  }
+  function openCard78(c) {
+    var old = ov.querySelector('.c78-card'); if (old) old.remove();
+    var m = document.createElement('div'); m.className = 'c78-card';
+    var back = (c.text ? '<p>' + escH(c.text) + '</p>' : '<p class="c78-none">这张卡片还没有释义</p>') +
+      (c.sub && c.sub.length ? '<h5>要点</h5><ul>' + c.sub.map(function (x) { return '<li>' + escH(x) + '</li>'; }).join('') + '</ul>' : '') +
+      (c.checks && c.checks.length ? '<h5>清单</h5><ul>' + c.checks.map(function (x) { return '<li>☐ ' + escH(x) + '</li>'; }).join('') + '</ul>' : '');
+    m.innerHTML = '<div class="c78-flip"><div class="c78-face c78-front">' + (c.img ? '<img alt="" src="' + escH(c.img) + '">' : '<em>' + escH(String(c.title).charAt(0).toUpperCase()) + '</em>') +
+      '<b>' + escH(c.title) + '</b>' + (c.zh ? '<small>' + escH(c.zh) + '</small>' : '') + (c.list ? '<small>📚 ' + escH(c.list) + '</small>' : '') + '</div>' +
+      '<div class="c78-face c78-back"><b>' + escH(c.title) + '</b>' + back + '</div></div>' +
+      '<div class="c78-bar"><button type="button" data-c78="flip">⟲ 翻面</button><button type="button" data-c78="x">关闭</button></div>';
+    m.addEventListener('click', function (e) { var b = e.target.closest('[data-c78]'); if (e.target === m || (b && b.dataset.c78 === 'x')) return m.remove(); if (b || e.target.closest('.c78-flip')) m.classList.toggle('flipped'); });
+    ov.appendChild(m);
+  }
+  (function cardTaps() {   // a quick tap on a card in the world opens it (any tool)
+    var down = null;
+    ov.addEventListener('pointerdown', function (e) { if (e.target.tagName === 'CANVAS') down = { x: e.clientX, y: e.clientY, t: performance.now() }; }, true);
+    ov.addEventListener('pointerup', function (e) {
+      if (!down || !C78.g || e.target.tagName !== 'CANVAS') return; var d = down; down = null;
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8 || performance.now() - d.t > 450) return;
+      var T = R.T, r = R.renderer.domElement.getBoundingClientRect(), ray = new T.Raycaster();
+      ray.setFromCamera(new T.Vector2((e.clientX - r.left) / r.width * 2 - 1, 1 - (e.clientY - r.top) / r.height * 2), R.cam);
+      var hit = ray.intersectObjects(C78.g.children, true).filter(function (h) { return h.object.userData.card78; })[0];
+      if (hit) { e.stopImmediatePropagation(); openCard78(hit.object.userData.card78); }
+    }, true);
+  })();
+  var c78css = document.createElement('style'); c78css.textContent =
+    '#vx62 .c78-card{position:absolute;inset:0;z-index:9;background:rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:center;padding-top:max(56px,env(safe-area-inset-top));perspective:1200px}' +
+    '#vx62 .c78-flip{position:relative;width:min(340px,86%);height:min(330px,52vh);transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.2,1);cursor:pointer}#vx62 .c78-card.flipped .c78-flip{transform:rotateY(180deg)}' +
+    '#vx62 .c78-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;padding:14px;box-sizing:border-box;overflow:auto;display:flex;flex-direction:column;gap:6px;box-shadow:0 18px 50px rgba(0,0,0,.5)}' +
+    '#vx62 .c78-front{background:#fbfaf7;color:#111827}#vx62 .c78-back{background:#1d2433;color:#e8eef8;transform:rotateY(180deg)}' +
+    '#vx62 .c78-front img,#vx62 .c78-front em{width:100%;height:46%;flex:none;object-fit:cover;border-radius:12px;background:#e8ecf2;display:flex;align-items:center;justify-content:center;font:700 72px system-ui;font-style:normal;color:#c3ccd8}' +
+    '#vx62 .c78-face b{font-size:19px}#vx62 .c78-front small{color:#64748b;font-size:13px}#vx62 .c78-back p{margin:0;line-height:1.55;color:#c6d2e4;white-space:pre-wrap}#vx62 .c78-back .c78-none{opacity:.6}' +
+    '#vx62 .c78-back h5{margin:6px 0 0;font:700 12px system-ui;color:#f2c13d}#vx62 .c78-back ul{margin:0;padding-left:18px;color:#9fb0c8;font-size:13px;line-height:1.6}' +
+    '#vx62 .c78-bar{display:flex;gap:8px;margin-top:10px}#vx62 .c78-bar button{background:#1f2937;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:8px 14px;font:700 13px system-ui}';
+  document.head.appendChild(c78css);
   window.MinestVoxel62 = {
+    controls: { input: function (next) { R.navigation = Object.assign({}, next); }, stop: stopNavigation },
     version: '62', open: open, close: close, isOpen: isOpen, rebuild: build,
     setScale: function (s) { R.S = s; return build(); }, mode: function (m) { if (m) setMode(m); return R.mode; },
     stats: function () { return R.stats || null; },
@@ -165294,12 +166072,12 @@ window.KRail = (function () {
    彻底移除 Minecraft 单块破坏与放置工具 (No Place, No Break, No 1x1x1 Outline) */
 (function () {
   'use strict';
-  if (window.MinestOiaBld && window.MinestOiaBld.version === '69.3') return;
+  if (window.MinestOiaBld && window.MinestOiaBld.version === '69.5') return;
 
   var H = null, bOrig = {}, lastSig = null, B0 = null, G0 = null, edit = null;
   var sel = null, selElem = null, selDisp = null, panel = null, hl = null, undoOne = null, armDel = 0, toastT = 0;
   var curTab = 'bld'; // 'bld' | 'elem' | 'disp' | 'ai'
-  var MOVABLE = /^(b\d+|u\d+)$/;
+  var MOVABLE = { test: function(id){ return typeof id === 'string' && id.length > 0; } };
   var KIND = { house: '白屋', cave: '洞穴屋', taverna: '小酒馆', chapel: '教堂' };
 
   /* ---------------------------------------------------------------- Real Cards from Minest Boards */
@@ -165317,7 +166095,8 @@ window.KRail = (function () {
     { id: 'ART-PRN-01-T01-C03', title: 'Emphasis', col: 'Principles of Design', zh: '视觉焦点', desc: 'The focal point that attracts attention first through contrast, size, or placement.' }
   ];
 
-  function getActiveCards() {
+  function getActiveCards() {   /* 70: this world's own cards first */
+    try { if (H && H.things) { var own = H.things(); if (own && own.length) return own; } } catch (e) {}
     var list = [];
     try {
       if (window.boards && Array.isArray(window.boards)) {
@@ -165336,7 +166115,7 @@ window.KRail = (function () {
 
   function getCardById(id) {
     var cards = getActiveCards();
-    return cards.find(function (c) { return c.id === id; }) || cards[0];
+    var hit = cards.find(function (c) { return c.id === id; }); if (hit) return hit; var h = 0; String(id || '').split('').forEach(function (ch) { h = (h * 31 + ch.charCodeAt(0)) | 0; }); return cards[Math.abs(h) % cards.length];
   }
 
   /* ---------------------------------------------------------------- Card Canvas Texture Generator */
@@ -165423,12 +166202,13 @@ window.KRail = (function () {
     g.fillStyle = '#0f172a';
     g.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
     g.textAlign = 'center';
-    g.fillText(card.title || 'Art Exhibit', 128, 190);
+    g.fillText(card.title || 'Art Exhibit', 128, 190, 232);
 
     // ID / Translation
     g.fillStyle = '#64748b';
     g.font = '12px ui-monospace, monospace';
-    g.fillText((card.zh ? card.zh + ' · ' : '') + (card.id || ''), 128, 212);
+    g.fillText(card.own ? (card.col || '') : (card.zh ? card.zh + ' · ' : '') + (card.id || ''), 128, 212, 232);
+    if (card.pic) { var im = new Image(); im.crossOrigin = 'anonymous'; im.onload = function () { try { var r = Math.max(216 / im.width, 94 / im.height), iw = im.width * r, ih = im.height * r; g.save(); g.beginPath(); g.rect(20, 66, 216, 94); g.clip(); g.drawImage(im, 128 - iw / 2, 113 - ih / 2, iw, ih); g.restore(); if (cardTexCache[key]) cardTexCache[key].needsUpdate = true; } catch (e) {} }; im.src = card.pic; }
 
     // Footer tag
     g.fillStyle = '#f1f5f9';
@@ -165687,7 +166467,7 @@ window.KRail = (function () {
       if (H && H.bldSet) {
         try { H.bldSet(function (rec) { rec.displays = st.displays; }); } catch (e) {}
       }
-    } else if (!st.displays || !st.displays.length) {
+    } else if (!st.displays) {
       st.displays = defaultDisplays(w);
       if (H && H.bldSet) {
         try { H.bldSet(function (rec) { rec.displays = st.displays; }); } catch (e) {}
@@ -165872,6 +166652,7 @@ window.KRail = (function () {
 
   function pickBuildingAt(clientX, clientY) {
     var s = sa(); if (!s || !s.world) return null;
+    if(window.MinestOiaEditor && window.MinestOiaEditor.active)return window.MinestOiaEditor.pickBuilding(clientX,clientY);
     var w = s.world, p = s.player.pos, yaw = s.player.yaw, pitch = s.player.pitch;
     var dx = -Math.sin(yaw) * Math.cos(pitch), dy = Math.sin(pitch), dz = -Math.cos(yaw) * Math.cos(pitch);
 
@@ -166028,7 +166809,7 @@ window.KRail = (function () {
     m.innerHTML = '<div style="background:#fff;border-radius:16px;box-shadow:0 12px 36px rgba(0,0,0,.35);width:min(440px,94vw);padding:22px;position:relative;font-family:system-ui,-apple-system,sans-serif;color:#0f172a;">' +
       '<button type="button" id="mn-card-modal-close" style="position:absolute;top:12px;right:14px;background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;font:bold 16px monospace;cursor:pointer;">✕</button>' +
       '<div style="display:inline-block;padding:3px 10px;background:#dbeafe;color:#1d4ed8;border-radius:12px;font:bold 11px system-ui;letter-spacing:.5px;margin-bottom:8px;">' + (card.col || 'EC-6 ART') + '</div>' +
-      '<h2 style="margin:0 0 6px 0;font:bold 22px system-ui;color:#1e3a8a;">' + card.title + ' <span style="font-size:16px;font-weight:normal;color:#64748b;">(' + (card.zh || '') + ')</span></h2>' +
+      '<h2 style="margin:0 0 6px 0;font:bold 22px system-ui;color:#1e3a8a;">' + card.title + ' <span style="font-size:16px;font-weight:normal;color:#64748b;">' + (card.zh ? '(' + card.zh + ')' : '') + '</span></h2>' +
       '<div style="font:11px monospace;color:#94a3b8;margin-bottom:14px;">ID: ' + card.id + '</div>' +
       '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font:14px/1.5 system-ui;color:#334155;margin-bottom:18px;">' +
       (card.desc || 'A core visual element defining artistic form in the EC-6 framework.') +
@@ -166053,7 +166834,7 @@ window.KRail = (function () {
       hl = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(1, 1, 1)), new T.LineBasicMaterial({ color: 0xffd23f, depthTest: false, linewidth: 2 }));
       hl.renderOrder = 999; hl.visible = false; s.scene.add(hl);
     }
-    if (!edit) { hl.visible = false; return; }
+    if (!edit && !(window.MinestOiaEditor&&window.MinestOiaEditor.active)) { hl.visible = false; return; }
 
     if (curTab === 'disp' && selDisp) {
       var st = H && H.bld ? H.bld() : null, dList = (st && st.displays) || defaultDisplays(world());
@@ -166094,7 +166875,17 @@ window.KRail = (function () {
   }
 
   /* ---------------------------------------------------------------- Commit Changes */
+  function placeAt(dist) {   /* 70: where a new thing goes: beside the selected building, else where the editing camera looks, else in front of you */
+    var w = world(), b = sel && w && (w.buildings || []).find(function (x) { return x.id === sel; });
+    if (b) return { x: (b.x0 + b.x1 + 1) / 2 + .5, z: b.z1 + 2.5 };
+    var E = window.MinestOiaEditor; if (E && E.active && E.target) return { x: Math.floor(E.target.x) + .5, z: Math.floor(E.target.z) + .5 };
+    var s = sa(), p = s ? s.player.pos : { x: 20, z: 20 }, yaw = s ? s.player.yaw : 0;
+    return { x: p.x - Math.sin(yaw) * dist, z: p.z - Math.cos(yaw) * dist };
+  }
+
   function commit(fn) {
+    if(window.MinestOiaEditor)window.MinestOiaEditor.ensureContext();
+    if(!H || !H.key || !H.key() || !H.bldSet){toast('未连接到当前世界，修改未保存');throw new Error('World is not bound');}
     var cur = H && H.bld ? H.bld() : null;
     var next = JSON.parse(JSON.stringify(cur || { m: {}, a: [], n: 0, elements: [], displays: defaultDisplays(world()) }));
     fn(next);
@@ -166103,7 +166894,8 @@ window.KRail = (function () {
       rec.elements = next.elements || [];
       rec.displays = next.displays || [];
     });
-    reapply();
+    if(JSON.stringify((H.bld()||{}).m)!==JSON.stringify(next.m)){toast('修改未保存，请重试');throw new Error('World write was not retained');}
+    reapply(); window.dispatchEvent(new Event('minest-world-edit'));
     return true;
   }
 
@@ -166179,9 +166971,7 @@ window.KRail = (function () {
     },
     addElem: function (type) {
       var tmpl = ELEM_TEMPLATES[type]; if (!tmpl) return;
-      var s = sa(), p = s ? s.player.pos : { x: 20, y: 10, z: 20 }, yaw = s ? s.player.yaw : 0;
-      var fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-      var ex = Math.floor(p.x + fx * 4), ez = Math.floor(p.z + fz * 4);
+      var at = placeAt(4), ex = Math.floor(at.x), ez = Math.floor(at.z);
       var w = world(), ey = top(w, ex, ez) + 1;
       var id = 'el_' + Date.now();
       commit(function (next) {
@@ -166222,13 +167012,9 @@ window.KRail = (function () {
 
     /* 3D Displays in Santorini World */
     addDisp: function (kind) {
-      var s = sa(), p = s ? s.player.pos : { x: 20, y: 10, z: 20 }, yaw = s ? s.player.yaw : 0;
-      var fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-      var dx = p.x + fx * 3, dz = p.z + fz * 3;
-      var w = world(), dy = top(w, Math.floor(dx), Math.floor(dz)) + 1;
-      var cards = getActiveCards();
-      var id = 'disp-' + Date.now();
-      var cardId = cards[Math.floor(Math.random() * cards.length)].id;
+      var w = world(), at = placeAt(3), dx = at.x, dz = at.z, dy = top(w, Math.floor(dx), Math.floor(dz)) + 1;
+      var cards = getActiveCards(), used = {}; (((H && H.bld && H.bld()) || {}).displays || []).forEach(function (q) { used[q.cardId] = 1; });
+      var id = 'disp-' + Date.now(), cardId = (cards.filter(function (c) { return !used[c.id]; })[0] || cards[0]).id;
 
       commit(function (next) {
         if (!next.displays) next.displays = [];
@@ -166273,7 +167059,7 @@ window.KRail = (function () {
           var idx = cards.findIndex(function (c) { return c.id === d.cardId; });
           var nextCard = cards[(idx + 1) % cards.length];
           d.cardId = nextCard.id;
-          toast('展品已切换为: ' + nextCard.title + ' (' + (nextCard.zh || '') + ')');
+          toast('展品已切换为: ' + nextCard.title + '' + (nextCard.zh ? ' (' + nextCard.zh + ')' : '') + '');
         }
       });
     },
@@ -166359,7 +167145,7 @@ window.KRail = (function () {
     var h = '<div class="obld-tabs">' +
       '<button type="button" class="obld-tab' + (curTab === 'bld' ? ' on' : '') + '" data-tab="bld">🏛️ 整栋建筑</button>' +
       '<button type="button" class="obld-tab' + (curTab === 'elem' ? ' on' : '') + '" data-tab="elem">🌳 完整元素</button>' +
-      '<button type="button" class="obld-tab' + (curTab === 'disp' ? ' on' : '') + '" data-tab="disp">🎨 展架与卡片</button>' +
+      '<button type="button" class="obld-tab' + (curTab === 'disp' ? ' on' : '') + '" data-tab="disp">🎨 陈列</button>' +
       '<button type="button" class="obld-tab' + (curTab === 'ai' ? ' on' : '') + '" data-tab="ai">✨ AI 智能规划</button>' +
       '</div>';
 
@@ -166368,10 +167154,10 @@ window.KRail = (function () {
         '<b class="t">🏛️ 当前选中建筑: ' + (b ? (b.name || b.id) : '<span style="color:#94a3b8">未选中 (在画面中点击一栋建筑)</span>') + '</b>' +
         (b ? '<div class="obld-sub">类型: ' + (KIND[b.kind] || b.kind) + ' · 楼层: ' + (b.floors || 2) + '层 · 坐标: (' + b.x0 + ',' + b.z0 + ')</div>' : '') +
         '<div class="obld-actions">' +
-        '<button type="button" class="obld-btn pri" data-a="enter">🏠 进入建筑剖面 (Doorhouse)</button>' +
-        '<button type="button" class="obld-btn" data-a="rot">⟳ 旋转 90° (C)</button>' +
-        '<button type="button" class="obld-btn" data-a="rep">🔀 替换建筑形态 (G)</button>' +
-        '<button type="button" class="obld-btn warn" data-a="del">🗑️ 移除整栋建筑 (X)</button>' +
+        '<button type="button" class="obld-btn pri" data-a="enter">🏠 进入房间</button>' +
+        '<button type="button" class="obld-btn" data-a="rot">⟳ 旋转 90°</button>' +
+        '<button type="button" class="obld-btn" data-a="rep">🔀 替换建筑形态</button>' +
+        '<button type="button" class="obld-btn warn" data-a="del">🗑️ 移除整栋建筑</button>' +
         '</div>' +
         '<div class="obld-dir">' +
         '<button type="button" class="obld-btn" data-a="mv" data-d="f">↑ 前移</button>' +
@@ -166411,15 +167197,15 @@ window.KRail = (function () {
         '<b class="t">🎨 在体素世界摆放 3D 展架与卡片</b>' +
         '<div class="obld-sub">支持木质画架、经典书架、悬崖展柜与观景展板，直接渲染看板真实 Item</div>' +
         '<div class="obld-actions">' +
-        '<button type="button" class="obld-btn" data-a="addDisp" data-d="easel">＋ 艺术画架 (Easel)</button>' +
-        '<button type="button" class="obld-btn" data-a="addDisp" data-d="shelf">＋ 经典书架 (Shelf)</button>' +
-        '<button type="button" class="obld-btn" data-a="addDisp" data-d="showcase">＋ 悬崖展柜 (Showcase)</button>' +
-        '<button type="button" class="obld-btn" data-a="addDisp" data-d="wall">＋ 观景展板 (Wall)</button>' +
+        '<button type="button" class="obld-btn" data-a="addDisp" data-d="easel">＋ 艺术画架</button>' +
+        '<button type="button" class="obld-btn" data-a="addDisp" data-d="shelf">＋ 经典书架</button>' +
+        '<button type="button" class="obld-btn" data-a="addDisp" data-d="showcase">＋ 悬崖展柜</button>' +
+        '<button type="button" class="obld-btn" data-a="addDisp" data-d="wall">＋ 观景展板</button>' +
         '</div>' +
         (disp ? '<hr style="border:none;border-top:1px solid #334155;margin:12px 0">' +
           '<b class="t">当前选中展位: ' + (disp.kind === 'easel' ? '艺术画架' : (disp.kind === 'shelf' ? '书架' : (disp.kind === 'showcase' ? '悬崖展柜' : '观景展板'))) + '</b>' +
           (card ? '<div style="background:#0f172a;padding:8px 10px;border-radius:8px;margin:8px 0;font-size:12px;border:1px solid #3b82f6;">' +
-            '<span style="color:#60a5fa;font-weight:bold;">[' + card.col + ']</span> <b>' + card.title + '</b> (' + (card.zh || '') + ')<br>' +
+            '<span style="color:#60a5fa;font-weight:bold;">[' + card.col + ']</span> <b>' + card.title + '</b>' + (card.zh ? ' (' + card.zh + ')' : '') + '<br>' +
             '<small style="color:#94a3b8;">' + (card.desc || '') + '</small>' +
             '</div>' : '') +
           '<div class="obld-actions">' +
@@ -166561,7 +167347,7 @@ window.KRail = (function () {
   });
 
   window.MinestOiaBld = {
-    version: '69.3',
+    version: '69.5',
     toggle: toggle,
     act: function (a, d) { return ACT[a] ? ACT[a](d) : null; },
     select: function (id) { sel = id; curTab = 'bld'; updateHl(); fillPanel(); },
@@ -166577,6 +167363,11 @@ window.KRail = (function () {
       return w ? defaultDisplays(w) : [];
     },
     reapply: function () { reapply(); },
+    history: function () { return H&&H.history?H.history():{undo:false,redo:false}; },
+    undo: function () { if(!H||!H.undo||!H.undo())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
+    redo: function () { if(!H||!H.redo||!H.redo())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
+    reset: function () { if(!H||!H.reset||!H.reset())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
+    restore: function () { if(!H||!H.restore||!H.restore())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
     ensurePieceForBuilding: ensurePieceForBuilding,
     enterDoorhouse: enterDoorhouse,
     openCardModal: openCardModal,
@@ -166978,7 +167769,7 @@ window.KRail = (function () {
           s.player.yaw = 0; s.player.pitch = -0.05;
         }
         if (window.MinestOiaBld) {
-          window.MinestOiaBld.toggle(true);
+          window.MinestOiaBld.toggle(false);
         }
         ensureControls();
       }, 400);
@@ -167038,10 +167829,10 @@ window.KRail = (function () {
       var qbar = document.createElement('div');
       qbar.id = 'oia-quick-69';
       qbar.className = 'oia-quick-bar';
-      qbar.innerHTML = '<button type="button" class="oia-quick-btn pri" id="oia-q-bld">🏛️ 建造面板</button>' +
-        '<button type="button" class="oia-quick-btn" id="oia-q-disp">🎨 展架与卡片</button>' +
-        '<button type="button" class="oia-quick-btn" id="oia-q-door">🏠 进入剖面 (Doorhouse)</button>' +
-        '<button type="button" class="oia-quick-btn" id="oia-q-worlds">🎲 一键系列 (16大世界)</button>' +
+      qbar.innerHTML = '<button type="button" class="oia-quick-btn pri" id="oia-q-bld">🏛️ 建造</button>' +
+        '<button type="button" class="oia-quick-btn" id="oia-q-disp">🎨 陈列</button>' +
+        '<button type="button" class="oia-quick-btn" id="oia-q-door">🏠 房间</button>' +
+        '<button type="button" class="oia-quick-btn" id="oia-q-worlds">🌍 世界</button>' +
         '<button type="button" class="oia-quick-btn" id="oia-q-exit">‹ 回到 My World (小岛)</button>';
 
       qbar.addEventListener('click', function(e) {
@@ -167275,5 +168066,733 @@ window.KRail = (function () {
 })();
 </script>
 
+
+
+<style id="minest-world-controls-20261103">
+/* One header, one action dock, and separate movement controls. */
+#oia-root #oia-back { font:700 13px/1 system-ui!important; padding:11px 15px!important; border:1px solid #ffffff45!important; border-radius:16px!important; max-width:150px; white-space:nowrap; }
+#oia-root #oia-title { left:16px!important; top:calc(65px + env(safe-area-inset-top))!important; max-width:calc(100% - 170px); font:13px/1.5 system-ui!important; }
+#oia-root #oia-title b { display:block; font:700 17px/1.4 system-ui!important; }
+#oia-root #oia-coords,#oia-root #oia-hotbar,#oia-root #oia-held,#oia-root #oia-hint,#oia-root #oia-joy,#oia-root .obld-t { display:none!important; }
+#oia-root #oia-mmWrap { top:calc(65px + env(safe-area-inset-top))!important; right:16px!important; width:128px!important; padding:4px!important; border:1px solid #ffffff38!important; border-radius:14px; overflow:hidden; }
+#oia-root #oia-mm { width:100%!important; height:auto!important; }
+#oia-root #oia-timeBox { font:11px/1.2 system-ui!important; gap:4px!important; }
+#oia-root #oia-timeSlider { width:74px!important; min-width:0; }
+#oia-root #oia-enter { top:calc(125px + env(safe-area-inset-top))!important; left:16px!important; transform:none!important; max-width:calc(100% - 170px); font:700 13px/1.3 system-ui!important; padding:10px 14px!important; border-radius:14px; }
+#oia-root #oia-banner { top:calc(165px + env(safe-area-inset-top))!important; }
+#oia-root #oia-lockHint { bottom:calc(162px + env(safe-area-inset-bottom))!important; font:12px/1.4 system-ui!important; max-width:80%; }
+#oia-root #oia-quick-69 { display:grid!important; grid-template-columns:repeat(4,minmax(0,1fr)); width:min(470px,calc(100% - 340px)); box-sizing:border-box; padding:6px!important; gap:6px!important; border-radius:18px!important; bottom:calc(20px + env(safe-area-inset-bottom))!important; }
+#oia-root .oia-quick-btn { width:auto!important; height:44px!important; min-width:0!important; padding:6px 9px!important; display:flex!important; justify-content:center; white-space:nowrap!important; writing-mode:horizontal-tb!important; font:600 13px/1.2 system-ui!important; border-radius:12px!important; }
+#oia-root #oia-q-exit { display:none!important; }
+#oia-root #oia-dpad-69 { bottom:calc(18px + env(safe-area-inset-bottom))!important; left:16px!important; grid-template-columns:repeat(3,42px)!important; grid-template-rows:repeat(3,42px)!important; gap:4px!important; }
+#oia-root #oia-dpad-69 button { width:42px!important; height:42px!important; font:18px system-ui!important; border-radius:14px!important; touch-action:none; }
+#oia-root #oia-tJump,#oia-root #oia-tDown,#oia-root #oia-tFly { width:46px!important; height:46px!important; right:18px!important; font:18px/46px system-ui!important; }
+#oia-root #oia-tJump { bottom:calc(70px + env(safe-area-inset-bottom))!important; }
+#oia-root #oia-tDown { bottom:calc(18px + env(safe-area-inset-bottom))!important; }
+#oia-root #oia-tFly { bottom:calc(122px + env(safe-area-inset-bottom))!important; }
+#oia-root #mn-bld-p { max-height:calc(100dvh - 260px)!important; width:min(390px,calc(100% - 32px))!important; box-sizing:border-box; right:16px!important; bottom:calc(180px + env(safe-area-inset-bottom))!important; overflow:auto!important; }
+.mn-world-3d-overlay > .mn-back-myworld-btn { font-size:12px!important; max-width:150px; white-space:nowrap; padding:10px 12px!important; }
+@media(max-width:700px) {
+ #oia-root #oia-quick-69 { width:calc(100% - 32px); bottom:calc(174px + env(safe-area-inset-bottom))!important; }
+ #oia-root #mn-bld-p { bottom:calc(236px + env(safe-area-inset-bottom))!important; max-height:calc(100dvh - 320px)!important; }
+}
+@media(max-height:540px) and (min-width:701px) {
+ #oia-root #oia-mmWrap { width:100px!important; }
+ #oia-root #mn-bld-p { max-height:calc(100dvh - 150px)!important; bottom:calc(85px + env(safe-area-inset-bottom))!important; }
+}
+/* Voxel entry belongs to My World's existing console, never a floating chip. */
+#vx62-btn,#oia-root #oia-quick-69 { display:none!important; }
+#oia-console-toggle { position:absolute;right:16px;top:calc(12px + env(safe-area-inset-top));z-index:1000000;width:44px;height:44px;border:2px solid #111;background:#494949;color:#fff;box-shadow:inset 2px 2px #ffffff55,inset -2px -2px #0008;font:800 24px system-ui;pointer-events:auto; }
+#oia-console { position:absolute;left:0;right:0;bottom:0;z-index:1000001;box-sizing:border-box;background:#383838;color:white;border:3px solid #111;border-radius:18px 18px 0 0;padding:8px 8px calc(8px + env(safe-area-inset-bottom));font:600 13px/1.35 system-ui;pointer-events:auto;max-height:55dvh;display:flex;flex-direction:column; }
+#oia-console[hidden] { display:none!important; }
+#oia-console header { display:flex;align-items:center;gap:8px;padding-bottom:8px; }
+#oia-console header b { flex:1; }
+#oia-console header span { color:#ddd;font-size:11px; }
+#oia-console button { background:#4b4b4b;border:2px solid #111;box-shadow:inset 2px 2px #ffffff30,inset -2px -2px #0009;border-radius:0;color:#fff;font:700 12px/1.35 system-ui;padding:9px 6px;min-height:44px;cursor:pointer;white-space:normal;writing-mode:horizontal-tb; }
+#oia-console button.on { background:#347725;border-color:#f2c633; }
+#oia-console .console-grid { display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:8px;overflow:hidden;min-height:0; }
+#oia-console nav { display:flex;flex-direction:column;gap:6px;overflow:auto; }
+#oia-console main { min-width:0;overflow:auto; }
+#oia-console #mn-bld-p { position:static!important;width:100%!important;max-height:none!important;margin:0!important;border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important; }
+#oia-console #mn-bld-p .obld-tabs { display:none; }
+#oia-console #mn-bld-p .obld-actions { flex-wrap:wrap; }
+#oia-console #mn-bld-p .obld-btn { min-height:40px; }
+#oia-console #mn-bld-p .obld-card { background:#454545; }
+@media(min-width:750px){#oia-console .console-grid{grid-template-columns:110px minmax(0,1fr) 110px}#oia-console{max-height:48dvh}#oia-console button{font-size:13px}}
+
+#oia-root #oia-lockHint{display:none!important}
+
+#mn-btn-santorini-3d{display:none!important}
+#oia-map-pane[hidden],#oia-camera-pane[hidden]{display:none!important}
+#oia-camera-pane h3{margin:0 0 6px;font-size:15px}#oia-camera-pane p{margin:6px 0;font-size:11px;color:#ddd;line-height:1.5}
+#oia-camera-pane .camera-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#oia-camera-pane label{display:block;font-size:12px;margin:10px 0}#oia-camera-distance{display:block;width:100%;min-width:0;touch-action:auto}
+#oia-root #oia-console-map #oia-mmWrap{position:static!important;width:min(250px,100%)!important;max-width:none!important;margin:10px auto 0;box-sizing:border-box}
+#oia-root #oia-console-map #oia-mm{touch-action:manipulation}
+#oia-console footer{padding-top:8px;flex:none;font:11px/1.4 system-ui;color:#ccc}
+#oia-console footer div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:5px}
+#oia-console footer button{font-size:11px;min-height:40px;padding:5px}#oia-console button:disabled{opacity:.35;cursor:default}
+#oia-root.oia-edit-camera #oia-dpad-69,#oia-root.oia-edit-camera #oia-touch,#oia-root.oia-edit-camera #oia-enter,#oia-root.oia-edit-camera #oia-crosshair,#oia-root.oia-edit-camera #oia-banner{display:none!important}
+#oia-root #oia-gl{touch-action:none}
+#oia-world-picker{position:absolute;inset:12% 8%;z-index:2147483640;background:#383838;color:white;border:3px solid #111;border-radius:18px;padding:14px;overflow:auto;pointer-events:auto;font:600 14px system-ui}
+#oia-world-picker header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+#oia-world-picker>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#oia-world-picker button{min-height:44px;background:#4b4b4b;color:#fff;border:2px solid #111;padding:8px;font:600 13px system-ui}
+
+/* Walking and flying live in the console, using the original scene controls. */
+#oia-root #oia-dpad-69,#oia-root #oia-touch,#oia-root #oia-joy{display:none!important}
+#vx62.navigation-integrated .top .seg,#vx62.navigation-integrated .joy,#vx62.navigation-integrated .pad{display:none!important}
+#oia-navigation-pane[hidden]{display:none!important}
+.wf-center.world-navigation-open>:not(.world-navigation){display:none!important}
+.wf-center:not(.world-navigation-open)>.world-navigation{display:none!important}
+.world-navigation{font:600 13px/1.4 system-ui;color:#eee;padding:0 2px 10px;box-sizing:border-box}
+.world-navigation h3{font-size:15px;margin:0 0 8px}.world-navigation h4{font-size:12px;margin:8px 0 4px}
+.world-navigation .nav-help,.world-navigation [data-nav-status]{font-size:11px;line-height:1.5;color:#ddd;margin:7px 0}
+.world-navigation button{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;min-height:44px;background:#4b4b4b;color:#fff;border:2px solid #111;padding:6px;font:700 12px/1.35 system-ui;white-space:normal;cursor:pointer}
+.world-navigation button.on{background:#347725;border-color:#f2c633}.world-navigation button:disabled{opacity:.35;cursor:default}
+.world-navigation .nav-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.world-navigation .nav-pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.world-navigation .nav-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.world-navigation .nav-pad>button:first-child{grid-column:2}.world-navigation .nav-pad>button:nth-child(2){grid-column:1}.world-navigation .nav-pad>button:last-child{grid-column:2}
+.world-navigation .nav-altitude,.world-navigation .nav-camera{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:8px}
+@media(max-width:700px){.world-navigation .nav-pads{grid-template-columns:1fr}.world-navigation .nav-modes{grid-template-columns:1fr 1fr}.world-navigation .nav-modes>button:last-child{grid-column:1/-1}}
+
+#oia-root #oia-enter{display:none!important}
+
+.world-navigation .nav-modes{position:sticky;top:0;z-index:3;background:#383838;padding:3px 0}
+@media(max-width:700px){.world-navigation .nav-modes{grid-template-columns:repeat(3,minmax(0,1fr))}.world-navigation .nav-modes>button:last-child{grid-column:auto}.world-navigation .nav-modes>button{font-size:11px!important;padding:4px 2px!important}}
+/* Tool selection is reversible; the centre always belongs to the selected tool. */
+#oia-console .console-grid{grid-template-columns:64px minmax(0,1fr) 64px;flex:1}
+#oia-console[data-tool="walk"]{height:65dvh;max-height:65dvh}
+#oia-console main>[hidden]{display:none!important}
+#oia-console header>[data-console="cancel"]{min-height:38px;padding:5px 9px}
+#oia-console header>[data-console="close"]{min-height:38px;width:38px;padding:5px}
+#oia-console header>b{font-size:12px}#oia-console header>span{font-size:10px}
+#oia-console #oia-world-picker{position:static;inset:auto;border:0;border-radius:0;padding:0;overflow:visible}
+#oia-idle-pane{padding:20px 8px;color:#ddd;font-size:12px}#oia-idle-pane h3{font-size:16px;color:#fff;margin:0 0 8px}
+#oia-idle-pane>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+#oia-console .nav-heading{display:flex;justify-content:space-between;align-items:center;padding:0;gap:6px}
+#oia-console .nav-heading h3{margin:0}#oia-console .nav-heading button{min-height:32px;padding:4px 8px;font-size:11px}
+.world-navigation .nav-dashboard{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:420px;margin:8px auto 4px}
+.world-navigation .nav-stick-group{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px}
+.world-navigation [data-nav-stick]{position:relative;display:grid;place-items:center;width:min(118px,100%);aspect-ratio:1;border:2px solid #777;border-radius:50%;background:radial-gradient(circle,#545454 0 26%,#333 27% 64%,#222 65%);box-sizing:border-box;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;outline-offset:3px}
+.world-navigation [data-nav-stick]>b{position:absolute;top:5px;font-size:13px;color:#999;pointer-events:none}
+.world-navigation [data-nav-stick]>i{width:42px;height:42px;background:#8c8c8c;border:3px solid #bbb;border-radius:50%;box-shadow:0 3px 8px #0008;pointer-events:none;box-sizing:border-box}
+.world-navigation [data-nav-stick].on{border-color:#f2c633;cursor:grabbing}.world-navigation [data-nav-stick].on>i{background:#4d9535;border-color:#c3e5ac}
+.world-navigation [data-nav-stick][aria-disabled="true"]{opacity:.35;cursor:default}
+.world-navigation .nav-altitude{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.world-navigation .nav-extra{margin-top:8px;font-size:11px;color:#ccc}.world-navigation .nav-extra summary{cursor:pointer;padding:5px 0}
+.world-navigation .nav-modes{position:static;grid-template-columns:repeat(3,minmax(0,1fr))}
+#oia-console .world-navigation [data-nav-status]{margin:3px 0;font-size:10px}
+@media(min-width:750px){#oia-console .console-grid{grid-template-columns:84px minmax(0,1fr) 84px}.world-navigation .nav-dashboard{max-width:360px}}
+@media(max-width:500px){#oia-console{padding-left:6px;padding-right:6px}#oia-console .console-grid{grid-template-columns:56px minmax(0,1fr) 56px;gap:6px}#oia-console nav>button{font-size:11px;padding:8px 3px}#oia-console header>b{font-size:11px}#oia-console header>span{display:none}.world-navigation .nav-dashboard{gap:8px}.world-navigation .nav-altitude button{font-size:10px!important;padding:4px 2px!important}}
+
+@media(min-width:750px){.world-navigation [data-nav-stick]{width:104px}.world-navigation .nav-dashboard{margin:6px auto 0}}
+
+</style>
+<script id="minest-world-editor-camera">
+/* Orbit editor over the original Santorini camera; no duplicated scene or content. */
+(function(root){
+'use strict';
+function fitDistance(w,d,h,aspect,fov){var r=Math.hypot(w,d,h)/2,half=Math.min(fov*Math.PI/360,Math.atan(Math.tan(fov*Math.PI/360)*aspect));return Math.max(12,r/Math.sin(half)*1.12);}
+if(typeof module==='object'&&module.exports){module.exports={fitDistance:fitDistance};return;}
+var daylight=true,active=true,initialized=false,worldRef=null,target={x:0,y:25,z:0},distance=350,yaw=.65,elevation=.8,gesture='rotate',fitted=true,points=new Map(),previous=null,dragged=false,viewHeight=0;
+function scene(){return root.__santorini;}
+function field(e){return e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName);}
+function ensureContext(){
+ var md=root.MinestDisplay;if(!md)return false;
+ if(md.isOpen&&md.isOpen()){if(root.__oiaBind)root.__oiaBind();return true;}
+ var A=root.MinestAI,boards=A&&A.boards?A.boards():[],current=A&&A.board?A.board():null;
+ var chosen=boards.find(function(b){var d=root.MinestKnowledge&&root.MinestKnowledge.get('dsp:'+b.id);return d&&d.terr&&d.terr.scape==='santorini';})||current||boards[0];
+ if(!chosen)return false;
+ if(root.MinestUniverse)root.MinestUniverse.open({path:[{t:'home'},{t:'world',bid:chosen.id}]});
+ md.open({bid:chosen.id});if(root.__oiaBind)root.__oiaBind();if(root.MinestOiaBld&&root.__santorini)root.MinestOiaBld.reapply();return true;
+}
+function viewport(){
+ var cv=document.getElementById('oia-gl'),r=cv.getBoundingClientRect(),c=document.getElementById('oia-console');
+ var vh=c&&!c.hidden?Math.max(180,c.getBoundingClientRect().top-r.top):r.height;
+ return {width:r.width,height:r.height,visibleHeight:vh,aspect:r.width/vh};
+}
+function fit(top){
+ if(root.MinestWorldNavigation)root.MinestWorldNavigation.stop();
+ var s=scene();if(!s)return;if(s.controls)s.controls.stop();
+ target.x=s.world.W/2;target.z=s.world.D/2;target.y=30;
+ elevation=top?1.48:.78;yaw=.65;active=true;fitted=true;var v=viewport();
+ distance=fitDistance(s.world.W,s.world.D,65,v.aspect,50);viewHeight=v.visibleHeight;publish();
+}
+function publish(){
+ var s=scene(),summary=active?'编辑视角 · '+Math.round(distance)+' m · '+(gesture==='pan'?'拖动平移':'拖动旋转'):(s&&s.S.mode==='fly'?'飞行探索':'步行探索')+' · 在 Walk in 控制台操作';var el=document.getElementById('oia-camera-summary');if(el&&el.textContent!==summary)el.textContent=summary;
+ var r=document.getElementById('oia-camera-distance');if(r)r.value=String(Math.round(distance));
+ var selected=root.MinestOiaBld&&root.MinestOiaBld.selected(),g=scene(),b=g&&g.world.buildings.find(function(b){return b.id===selected;}),n=document.getElementById('oia-selection');if(n&&n.textContent!==(b?'已选中：'+(b.name||b.id):'轻点画面中的建筑以选中'))n.textContent=b?'已选中：'+(b.name||b.id):'轻点画面中的建筑以选中';
+ var p=document.getElementById('oia-camera-gesture');if(p&&p.textContent!==(gesture==='pan'?'当前：平移':'当前：旋转'))p.textContent=gesture==='pan'?'当前：平移':'当前：旋转';
+}
+function zoom(factor){if(root.MinestWorldNavigation)root.MinestWorldNavigation.stop();var s=scene();if(s&&s.controls)s.controls.stop();active=true;fitted=false;distance=Math.max(12,Math.min(3500,distance*factor));publish();}
+function pan(dx,dy){
+ var v=viewport(),scale=2*distance*Math.tan(25*Math.PI/180)/v.visibleHeight;
+ target.x+=(-Math.cos(yaw)*dx+Math.sin(yaw)*dy)*scale;
+ target.z+=(Math.sin(yaw)*dx+Math.cos(yaw)*dy)*scale;
+ fitted=false;
+}
+function pickBuilding(x,y){
+ var s=scene(),T=root.THREE;if(!s||!T)return null;
+ var r=document.getElementById('oia-gl').getBoundingClientRect(),ray=new T.Raycaster();s.camera.updateMatrixWorld(true);
+ ray.setFromCamera(new T.Vector2((x-r.left)/r.width*2-1,1-(y-r.top)/r.height*2),s.camera);
+ var best=null,dist=Infinity,p=new T.Vector3();
+ s.world.buildings.forEach(function(b){
+  var maxY=b.y+(b.floors||2)*4+6;
+  var box=new T.Box3(new T.Vector3(b.x0,b.y,b.z0),new T.Vector3(b.x1+1,maxY,b.z1+1));
+  if(ray.ray.intersectBox(box,p)){var d=p.distanceTo(s.camera.position);if(d<dist){best=b;dist=d;}}
+ });
+ return best;
+}
+function focus(){
+ if(root.MinestWorldNavigation)root.MinestWorldNavigation.stop();
+ var s=scene(),api=root.MinestOiaBld,id=api&&api.selected(),b=s&&s.world.buildings.find(function(b){return b.id===id;});
+ if(!b){var el=document.getElementById('oia-camera-summary');if(el)el.textContent='先在画面中轻点一栋建筑，再聚焦';return;}
+ target.x=(b.x0+b.x1+1)/2;target.z=(b.z0+b.z1+1)/2;target.y=b.y+(b.floors||2)*2;
+ distance=fitDistance(b.x1-b.x0+5,b.z1-b.z0+5,(b.floors||2)*4+8,viewport().aspect,50);
+ elevation=.7;active=true;fitted=false;publish();
+}
+function explore(mode){
+ if(mode==='edit'){fit(false);return;}
+ if(mode!=='walk'&&mode!=='fly')return;
+ if(root.MinestWorldNavigation)root.MinestWorldNavigation.stop();
+ active=false;points.clear();previous=null;
+ var s=scene();if(s){if(s.controls)s.controls.stop();if(document.pointerLockElement)document.exitPointerLock();s.camera.clearViewOffset();s.camera.far=3000;s.camera.fov=72;s.camera.updateProjectionMatrix();s.setMode(mode,true);}
+ publish();
+}
+function walk(){explore('walk');}
+function frame(){
+ var s=scene();if(!s)return false;
+ if(!initialized||worldRef!==s.world){initialized=true;worldRef=s.world;ensureContext();fit(false);}
+ var host=document.getElementById('oia-root');host.classList.toggle('oia-edit-camera',active);
+ if(!active){var v=viewport();s.camera.setViewOffset(v.width,v.visibleHeight,0,0,v.width,v.height);publish();return false;}
+ var v=viewport();if(fitted&&Math.abs(viewHeight-v.visibleHeight)>2){distance=fitDistance(s.world.W,s.world.D,65,v.aspect,50);viewHeight=v.visibleHeight;}
+ var h=distance*Math.cos(elevation);
+ s.camera.position.set(target.x+Math.sin(yaw)*h,target.y+Math.sin(elevation)*distance,target.z+Math.cos(yaw)*h);
+ s.camera.fov=50;s.camera.far=6000;
+ s.camera.setViewOffset(v.width,v.visibleHeight,0,0,v.width,v.height);
+ s.camera.lookAt(target.x,target.y,target.z);s.camera.updateMatrixWorld(true);
+ var label=document.getElementById('oia-modeLabel');if(label)label.textContent='全局编辑 · 可缩放、旋转、平移';
+ publish();return true;
+}
+root.MinestOiaEditor={get ready(){return initialized&&scene()&&worldRef===scene().world;},get daylight(){return daylight;},get active(){return active;},get target(){return target;},get distance(){return distance;},frame:frame,fit:fit,focus:focus,walk:walk,explore:explore,zoom:zoom,pickBuilding:pickBuilding,ensureContext:ensureContext};
+function onCanvas(e){return e.target&&e.target.id==='oia-gl'&&root.__oiaOn;}
+function pair(){
+ var a=Array.from(points.values());
+ if(a.length===1)return {x:a[0].x,y:a[0].y};
+ var p=a[0],q=a[1];return {x:(p.x+q.x)/2,y:(p.y+q.y)/2,length:Math.hypot(p.x-q.x,p.y-q.y)};
+}
+document.addEventListener('pointerdown',function(e){
+ if(!active||!onCanvas(e))return;e.preventDefault();e.stopImmediatePropagation();
+ if(document.pointerLockElement)document.exitPointerLock();
+ e.target.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});previous=pair();dragged=false;
+},{capture:true,passive:false});
+document.addEventListener('pointermove',function(e){
+ if(!active||!points.has(e.pointerId))return;e.preventDefault();e.stopImmediatePropagation();
+ points.set(e.pointerId,{x:e.clientX,y:e.clientY});var now=pair();if(!previous){previous=now;return;}
+ var dx=now.x-previous.x,dy=now.y-previous.y;if(Math.hypot(dx,dy)>2)dragged=true;
+ if(now.length&&previous.length){zoom(previous.length/Math.max(1,now.length));pan(dx,dy);dragged=true;}
+ else if(gesture==='pan'||e.shiftKey||e.buttons===2)pan(dx,dy);
+ else{yaw-=dx*.006;elevation=Math.max(.2,Math.min(1.49,elevation+dy*.005));fitted=false;}
+ previous=now;publish();
+},{capture:true,passive:false});
+document.addEventListener('pointerup',function(e){
+ if(!points.has(e.pointerId))return;e.preventDefault();e.stopImmediatePropagation();
+ var tap=points.size===1&&!dragged;points.delete(e.pointerId);previous=points.size?pair():null;
+ if(tap&&root.MinestOiaClick)root.MinestOiaClick(e.clientX,e.clientY);
+},{capture:true,passive:false});
+document.addEventListener('pointercancel',function(e){points.delete(e.pointerId);previous=points.size?pair():null;},true);
+window.addEventListener('blur',function(){points.clear();previous=null;});
+['mousedown','mouseup','touchstart','touchmove','touchend','dblclick','contextmenu'].forEach(function(type){
+ document.addEventListener(type,function(e){if(active&&onCanvas(e)){e.preventDefault();e.stopImmediatePropagation();}},{capture:true,passive:false});
+});
+document.addEventListener('wheel',function(e){if(active&&onCanvas(e)){e.preventDefault();e.stopImmediatePropagation();zoom(Math.exp(e.deltaY*.0015));}},{capture:true,passive:false});
+document.addEventListener('click',function(e){
+ if(active&&e.target.id==='oia-mm'){e.preventDefault();e.stopImmediatePropagation();var s=scene(),r=e.target.getBoundingClientRect();target.x=(e.clientX-r.left)/r.width*s.world.W;target.z=(e.clientY-r.top)/r.height*s.world.D;fitted=false;}
+ var b=e.target.closest('[data-camera]');if(!b)return;
+ var a=b.getAttribute('data-camera');
+ if(a==='fit')fit(false);if(a==='top')fit(true);if(a==='focus')focus();if(a==='in')zoom(.8);if(a==='out')zoom(1.25);if(a==='walk')walk();
+ if(a==='light'){daylight=!daylight;b.textContent=daylight?'编辑照明：明亮':'编辑照明：真实时间';}
+ if(a==='gesture'){gesture=gesture==='pan'?'rotate':'pan';publish();}
+},true);
+document.addEventListener('input',function(e){if(e.target.id==='oia-camera-distance'){distance=+e.target.value;active=true;fitted=false;publish();}});
+})(typeof window==='object'?window:globalThis);
+
+</script>
+<script id="minest-world-navigation">
+/* One console controller; the original engines retain movement and collisions. */
+(function (root) {
+'use strict';
+function inputLatch(write) {
+ var held = new Map();
+ function flush() { var next = {}; held.forEach(function (a) { next[a] = true; }); write(next); }
+ return {
+  press: function (id, action) { held.set(id, action); flush(); },
+  release: function (id) { if(!held.has(id))return;held.delete(id);flush(); },
+  clear: function () { held.clear(); flush(); }
+ };
+}
+function joystickVector(x,y,radius){var length=Math.hypot(x,y);if(length<radius*.12)return {x:0,y:0};var scale=Math.max(radius,length);return {x:x/scale,y:-y/scale};}
+if (typeof module === 'object' && module.exports) { module.exports = { inputLatch: inputLatch, joystickVector:joystickVector }; return; }
+var pendingOiaWalk = false, voxelPane = false, fast = false, current = '', lastMode = '', heldProvider = null;
+var sticks=new Map(),held={},axes={};
+function provider(id) {
+ if (id === 'voxel') {
+  var v = root.MinestVoxel62;
+  if (!v || !v.isOpen() || !v.controls) return null;
+  return { controls: v.controls, mode: function () { return v.mode(); }, setMode: function (m) { v.mode(m === 'edit' ? 'view' : m); }, position: v.player };
+ }
+ var s = root.__santorini, editor = root.MinestOiaEditor;
+ if (!root.__oiaOn || !s || !s.controls || !editor) return null;
+ return { controls: s.controls, mode: function () { return editor.active ? 'view' : s.S.mode; }, setMode: function (m) { editor.explore(m); }, position: function () { return s.player.pos; } };
+}
+function sendInput(){var p=heldProvider;if(!p)return;var next=Object.assign({},held,axes),moving=Object.keys(next).some(function(k){return !!next[k];});next.fast=fast;p.controls.input(next);if(!moving)p.controls.stop();}
+var latch = inputLatch(function (next) {held=next;sendInput();});
+function stop() {
+ sticks.clear();axes={};
+ latch.clear();
+ if (heldProvider) heldProvider.controls.stop();
+ heldProvider = null; fast = false;
+ document.querySelectorAll('[data-nav-hold], [data-nav-fast]').forEach(function (b) { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); });
+ document.querySelectorAll('[data-nav-stick]').forEach(function(el){el.classList.remove('on');el.querySelector('i').style.transform='';el.setAttribute('aria-label',el.dataset.navStick==='move'?'移动摇杆，已居中':'视线摇杆，已居中');});
+}
+function button(action, label) { return '<button type="button" data-nav-hold="' + action + '" aria-label="' + label + '">' + label + '</button>'; }
+function markup(id) {
+ return '<section class="world-navigation" data-nav-provider="' + id + '" aria-label="Walk in 操作面板">' +
+  '<header class="nav-heading"><h3>🚶 Walk in</h3>'+(id==='voxel'?'<button data-nav-exit aria-label="退出 Walk in">取消 ×</button>':'')+'</header><p data-nav-status role="status"></p>' +
+  '<div class="nav-modes"><button data-nav-mode="walk">🚶 步行</button><button data-nav-mode="fly">✈️ 飞行</button><button data-nav-mode="edit">🌐 全局视角</button></div>' +
+  '<div class="nav-dashboard"><div class="nav-stick-group"><span>移动</span><div data-nav-stick="move" role="group" tabindex="0" aria-label="移动摇杆，已居中"><b>↑</b><i></i></div></div>'+
+  '<div class="nav-stick-group"><span>视线</span><div data-nav-stick="look" role="group" tabindex="0" aria-label="视线摇杆，已居中"><b>↔</b><i></i></div></div></div>'+
+  '<div class="nav-altitude">' + button('up','↑ 上升 / 跳跃') + button('down','↓ 下降') + '<button data-nav-fast aria-pressed="false">加速：关</button><button data-nav-stop aria-label="停止移动">■ 停止</button></div>' +
+  '<p class="nav-help">拖动摇杆，松手回中 · 再点已选模式可退出</p>' +
+  '<details class="nav-extra"><summary>方向键与视角微调</summary><div class="nav-camera">'+button('forward','↑ 前进')+button('left','← 左移')+button('right','右移 →')+button('back','↓ 后退')+button('lookUp','↑ 抬头')+button('lookLeft','← 左转')+button('lookRight','右转 →')+button('lookDown','↓ 低头')+'<button data-nav-level>平视</button></div>'+
+  (id === 'oia' ? '<div class="nav-camera"><button data-camera="fit">看全世界</button><button data-camera="top">俯视</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div>' : '') + '</details></section>';
+}
+function exitProvider(id){stop();if(id==='voxel'){voxelPane=false;var p=provider(id);if(p)p.setMode('edit');render();}else if(root.MinestOiaConsole)root.MinestOiaConsole.cancel();}
+function modeFor(e) { var host = e.target.closest('[data-nav-provider]'); return host && host.getAttribute('data-nav-provider'); }
+function render() {
+if(pendingOiaWalk&&root.__oiaOn&&root.MinestOiaEditor&&root.MinestOiaEditor.ready&&root.MinestOiaConsole){pendingOiaWalk=false;root.MinestOiaConsole.open('walk');root.MinestOiaEditor.explore('walk');}
+
+ var v = root.MinestVoxel62, on = !!(v && v.isOpen()), center = document.querySelector('.wf .wf-center'), ov = document.getElementById('vx62');
+ if (ov) ov.classList.toggle('navigation-integrated', on && !!v.controls);
+ if (!on) voxelPane = false;
+ if (center) {
+  if (on && voxelPane && !center.querySelector('[data-nav-provider="voxel"]')) center.insertAdjacentHTML('beforeend', markup('voxel'));
+  center.classList.toggle('world-navigation-open', on && voxelPane);
+ }
+ document.querySelectorAll('.wf [data-wfhud="[data-fpv]"]').forEach(function(b){if(on){b.dataset.navIntegrated='true';b.classList.toggle('on',voxelPane);b.setAttribute('aria-pressed',String(voxelPane));}else if(b.dataset.navIntegrated){delete b.dataset.navIntegrated;b.classList.remove('on');b.setAttribute('aria-pressed','false');}});
+ var id = on && voxelPane ? 'voxel' : root.__oiaOn ? 'oia' : '', p = provider(id);
+ var mode = p ? p.mode() : '';
+ if (current !== id || lastMode !== mode) { stop(); current = id; lastMode = mode; }
+ document.querySelectorAll('[data-nav-provider]').forEach(function (host) {
+  var p = provider(host.getAttribute('data-nav-provider')); if (!p) return;
+  var m = p.mode(), pos = p.position(), text = ({ walk:'步行', fly:'飞行', view:'全局视角', tour:'导览' }[m] || m) + ' · XYZ ' + pos.x.toFixed(1) + ' / ' + pos.y.toFixed(1) + ' / ' + pos.z.toFixed(1);
+  var label = host.querySelector('[data-nav-status]'); if (label.textContent !== text) label.textContent = text;
+  host.querySelectorAll('[data-nav-mode]').forEach(function (b) { var active = b.dataset.navMode === (m === 'view' ? 'edit' : m); b.classList.toggle('on', active); b.setAttribute('aria-pressed', String(active)); });
+  host.querySelectorAll('[data-nav-hold],[data-nav-fast],[data-nav-level]').forEach(function (b) { b.disabled = m !== 'walk' && m !== 'fly'; });
+  var upButton=host.querySelector('[data-nav-hold="up"]'),upText=m==='fly'?'↑ 上升':'↑ 跳跃';if(upButton.textContent!==upText)upButton.textContent=upText;
+  host.querySelectorAll('[data-nav-stick]').forEach(function(el){el.setAttribute('aria-disabled',String(m!=='walk'&&m!=='fly'));});
+  var fastButton = host.querySelector('[data-nav-fast]'), textFast = fast && current === host.dataset.navProvider ? '加速：开' : '加速：关'; if (fastButton.textContent !== textFast) fastButton.textContent = textFast;fastButton.classList.toggle('on',fast&&current===host.dataset.navProvider);fastButton.setAttribute('aria-pressed',String(fast&&current===host.dataset.navProvider));
+ });
+ // If a console is closed or another tool replaces this pane, release every held action.
+ if (heldProvider) {
+  var visible = Array.from(document.querySelectorAll('[data-nav-provider="' + current + '"]')).some(function (h) { return h.getClientRects().length && !h.closest('[hidden]') && (current !== 'voxel' || voxelPane); });
+  if (!visible) stop();
+ }
+}
+document.addEventListener('click', function (e) {
+ var original = e.target.closest('[data-wfhud="[data-fpv]"]'), v = root.MinestVoxel62;
+ if (original && v && v.isOpen()) { e.preventDefault(); e.stopImmediatePropagation();if(voxelPane){exitProvider('voxel');return;}stop();voxelPane=true;if(v.mode()==='view')v.mode('walk');render();return; }
+ if(original){var md=root.MinestDisplay,ctx=md&&md.integration&&md.integration.context();if(ctx&&ctx.world==='santorini'&&!ctx.roomId&&root.MinestOia){e.preventDefault();e.stopImmediatePropagation();pendingOiaWalk=true;root.MinestOia.open();return;}}
+ if (e.target.closest('.wf button') && !e.target.closest('[data-nav-provider]')) { if(voxelPane)exitProvider('voxel'); }
+ var id = modeFor(e), p = id && provider(id); if (!p) return;
+ var b = e.target.closest('button'); if (!b) return;
+ if (b.hasAttribute('data-nav-exit')) {exitProvider(id);return;}
+ if (b.hasAttribute('data-nav-mode')) {var next=b.dataset.navMode;if(next===(p.mode()==='view'?'edit':p.mode())){exitProvider(id);return;}stop();p.setMode(next);lastMode=p.mode();render();}
+ if (b.hasAttribute('data-nav-stop')) stop();
+ if (b.hasAttribute('data-nav-fast')) { heldProvider = p; current = id; fast = !fast; latch.release('fast-toggle'); render(); }
+ if (b.hasAttribute('data-nav-level')) { var pos = id === 'voxel' ? root.MinestVoxel62.player() : root.__santorini.player; pos.pitch = 0; }
+}, true);
+function press(e, token) {
+ var b = e.target.closest('[data-nav-hold]'); if (!b || b.disabled) return;
+ var id = modeFor(e), p = provider(id); if (!p || (p.mode() !== 'walk' && p.mode() !== 'fly')) return;
+ e.preventDefault(); e.stopPropagation(); heldProvider = p; current = id; lastMode = p.mode(); latch.press(token, b.dataset.navHold); b.classList.add('on'); b.setAttribute('aria-pressed','true');
+}
+function updateSticks(){axes={};sticks.forEach(function(s){var x=s.vector.x,y=s.vector.y;if(s.kind==='move'){axes.moveX=x;axes.moveY=y;}else{axes.lookX=x;axes.lookY=y;}});sendInput();}
+function moveStick(e){var s=sticks.get(e.pointerId);if(!s)return;e.preventDefault();e.stopPropagation();var r=s.el.getBoundingClientRect(),radius=Math.min(r.width,r.height)*.34;s.vector=joystickVector(e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2,radius);s.el.querySelector('i').style.transform='translate('+s.vector.x*radius+'px,'+-s.vector.y*radius+'px)';s.el.setAttribute('aria-label',(s.kind==='move'?'移动摇杆':'视线摇杆')+'，横向 '+Math.round(s.vector.x*100)+'%，纵向 '+Math.round(s.vector.y*100)+'%');updateSticks();}
+document.addEventListener('pointerdown',function(e){var el=e.target.closest('[data-nav-stick]');if(!el||el.getAttribute('aria-disabled')==='true')return;var id=modeFor(e),p=provider(id);if(!p)return;e.preventDefault();e.stopPropagation();heldProvider=p;current=id;lastMode=p.mode();el.classList.add('on');sticks.set(e.pointerId,{el:el,kind:el.dataset.navStick,vector:{x:0,y:0}});el.setPointerCapture(e.pointerId);moveStick(e);},true);
+document.addEventListener('pointermove',moveStick,{capture:true,passive:false});
+document.addEventListener('pointerdown', function (e) { var b = e.target.closest('[data-nav-hold]'); if (!b || b.disabled) return; press(e, 'p' + e.pointerId); b.setPointerCapture(e.pointerId); }, true);
+function release(e) {var s=sticks.get(e.pointerId);if(s){sticks.delete(e.pointerId);s.el.classList.remove('on');s.el.querySelector('i').style.transform='';s.el.setAttribute('aria-label',s.kind==='move'?'移动摇杆，已居中':'视线摇杆，已居中');updateSticks();} latch.release('p' + e.pointerId); var b = e.target.closest('[data-nav-hold]'); if (b) { b.classList.remove('on'); b.setAttribute('aria-pressed','false'); } }
+document.addEventListener('pointerup', release, true); document.addEventListener('pointercancel', release, true); document.addEventListener('lostpointercapture', release, true);
+document.addEventListener('keydown', function (e) {var stick=e.target.closest('[data-nav-stick]');if(stick&&/^Arrow/.test(e.code)){e.preventDefault();e.stopImmediatePropagation();if(stick.getAttribute('aria-disabled')==='true')return;var id=modeFor(e),p=provider(id);if(!p)return;heldProvider=p;current=id;var action=(stick.dataset.navStick==='move'?{ArrowUp:'forward',ArrowDown:'back',ArrowLeft:'left',ArrowRight:'right'}:{ArrowUp:'lookUp',ArrowDown:'lookDown',ArrowLeft:'lookLeft',ArrowRight:'lookRight'})[e.code];latch.press('k'+e.code,action);return;}if(e.repeat)return;if ((e.code === 'Space' || e.code === 'Enter') && e.target.matches('[data-nav-hold]')) { e.stopImmediatePropagation(); press(e, 'k' + e.code); } }, true);
+document.addEventListener('keyup', function (e) { if (/^(Space|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight)$/.test(e.code)) { latch.release('k' + e.code); if(e.target.matches('[data-nav-hold],[data-nav-stick]')){e.preventDefault();e.stopImmediatePropagation();e.target.classList.remove('on');} } }, true);
+window.addEventListener('blur', stop); document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); });
+root.MinestWorldNavigation = { markup: markup, stop: stop, render: render };
+setInterval(render, 150);
+})(typeof window === 'object' ? window : globalThis);
+
+</script>
+<script id="minest-world-controls-adapter">
+/* Console adapter: all content edits use the original My World data and history. */
+(function(){
+'use strict';
+function nextTool(current,clicked){return current===clicked?null:clicked;}
+if(typeof module==='object'&&module.exports){module.exports={nextTool:nextTool};return;}
+function status(text){var e=document.getElementById('oia-operation-status');if(e)e.textContent=text;}
+function voxel(){
+ var editor=window.MinestOiaEditor;if(editor)editor.ensureContext();
+ if(window.MinestOia)MinestOia.close();
+ if(window.MinestVoxel62){Promise.resolve(MinestVoxel62.open({forceVoxel:true})).catch(function(e){status('体素空间未能打开：'+e.message);if(window.MinestOia)MinestOia.open();});}
+}
+function chooseWorld(){
+ var host=document.getElementById('oia-world-pane');if(!host||host.querySelector('#oia-world-picker'))return;
+ var picker=document.createElement('section');picker.id='oia-world-picker';picker.setAttribute('role','dialog');picker.setAttribute('aria-label','一键世界');
+ picker.innerHTML='<header><b>🌍 一键世界</b><button aria-label="关闭世界选择">×</button></header><div></div>';
+ picker.querySelector('header button').onclick=function(){if(window.MinestOiaConsole)MinestOiaConsole.cancel();};
+ var native=[['santorini','圣托里尼','MinestOia'],['alpchalet','阿尔卑斯木屋','MinestAlps'],['admont','阿德蒙特图书馆','MinestAdmont'],['trinity','三一学院','MinestTrinity'],['study','英式藏书室','MinestStudy'],['hallstatt','哈尔施塔特','MinestHallstatt']];
+ var options=native.filter(function(x){return window[x[2]];}).map(function(x){return {id:x[0],name:x[1],open:function(){if(window.MinestOia)MinestOia.close();if(window.MinestSceneCatalog)MinestSceneCatalog.open(x[0]);else window[x[2]].open();}};});
+ if(window.MinestInteriors)MinestInteriors.kinds.forEach(function(k){options.push({id:k[0],name:k[2].replace('一键进入',''),open:function(){if(window.MinestOia)MinestOia.close();MinestInteriors.open(k[0]);}});});
+ else if(window.openWorldOverlay3D)[['hobbiton','霍比屯'],['bibury','拜伯里'],['downton','唐顿庄园'],['giethoorn','羊角村'],['lauterbrunnen','劳特布龙嫩'],['neuschwanstein','新天鹅堡']].forEach(function(x){options.push({id:x[0],name:x[1],open:function(){MinestOia.close();openWorldOverlay3D(x[0]+'.html',x[1]);}});});
+ options.forEach(function(option){var b=document.createElement('button');b.textContent=option.name;b.onclick=function(){picker.remove();option.open();};picker.querySelector('div').appendChild(b);});
+ host.appendChild(picker);
+}
+function history(){
+ var api=window.MinestOiaBld,h=api&&api.history?api.history():{};
+ ['undo','redo'].forEach(function(a){var b=document.querySelector('#oia-console [data-console="'+a+'"]');if(b){b.disabled=!h[a];b.title=h[a]?'执行'+(a==='undo'?'撤销':'重做'):'尚无'+(a==='undo'?'撤销':'重做')+'记录';}});
+ var s=window.__santorini,e=document.getElementById('oia-building-count');if(e&&s&&e.textContent!==s.world.buildings.length+' 栋建筑 · 修改自动保存')e.textContent=s.world.buildings.length+' 栋建筑 · 修改自动保存';
+}
+function prepare(){
+ document.querySelectorAll('.wf .wf-acts').forEach(function(nav){
+  if(!nav.querySelector('[data-console-voxel]')){var b=document.createElement('button');b.type='button';b.setAttribute('data-console-voxel','');b.innerHTML='<i>🧊</i><span>体素世界</span>';b.onclick=voxel;nav.appendChild(b);}
+  var original=document.getElementById('mn-btn-santorini-3d');
+  if(original&&!nav.querySelector('[data-console-santorini]')){var b=document.createElement('button');b.type='button';b.setAttribute('data-console-santorini','');b.innerHTML='<i>🏛️</i><span>圣托里尼</span>';b.onclick=function(){original.click();};nav.appendChild(b);}
+ });
+ var root=document.getElementById('oia-root');if(!root)return;
+ var panel=root.querySelector('#mn-bld-p');
+ if(!root.querySelector('#oia-console')){
+  var toggle=document.createElement('button');toggle.type='button';toggle.id='oia-console-toggle';toggle.textContent='≡';toggle.setAttribute('aria-label','打开 My World 控制台');toggle.setAttribute('aria-expanded','false');
+  var console=document.createElement('section');console.id='oia-console';console.hidden=true;console.setAttribute('aria-label','My World 控制台');
+  console.innerHTML='<header><b>🌴 World › 圣托里尼</b><span>1/6 · World</span><button data-console="cancel" aria-label="取消当前工具" disabled>取消</button><button data-console="close" aria-label="收起控制台">×</button></header>'+
+   '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="walk">🚶<br>Walk in</button><button data-console="view">🌐<br>视角</button><button data-console="map">🗺️<br>地图</button><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button></nav><main><section id="oia-idle-pane"><h3>选择一个工具</h3><p>再点一次已选按钮，或点「取消」，即可退出当前操作。</p><div><button data-console="walk">🚶 Walk in</button><button data-console="view">🌐 管理视角</button><button data-console="ai">✨ Smart</button></div></section><div id="oia-navigation-pane" hidden></div><section id="oia-camera-pane" hidden><h3>全局编辑</h3><p id="oia-camera-summary" role="status"></p><p id="oia-selection"></p><div class="camera-actions"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="focus">聚焦选中建筑</button><button data-camera="light">编辑照明：明亮</button><button data-camera="gesture" id="oia-camera-gesture">当前：旋转</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div><label>镜头距离<input id="oia-camera-distance" type="range" min="12" max="3500" step="1" aria-label="镜头距离"></label><p class="camera-help">拖动旋转 · 双指捏合缩放并平移<br>切换「平移」后单指拖动平移 · 轻点选建筑</p><button data-console="walk">🚶 Walk in · 步行与飞行</button></section><section id="oia-map-pane" hidden><h3>世界地图</h3><p>轻点地图定位镜头 · 下方滑杆调整时间</p><div id="oia-console-map"></div></section><section id="oia-world-pane" hidden></section></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>'+
+   '<footer><p id="oia-operation-status" role="status"></p><span id="oia-building-count"></span><div><button data-console="undo">↶ 撤销</button><button data-console="redo">↷ 重做</button><button data-console="reset">还原原始场景</button><button data-console="restore">恢复还原前编辑</button></div></footer>';
+  var activeTab=null;
+  function tab(name){
+   var previous=activeTab;activeTab=name;console.dataset.tool=name||'';
+   if(window.MinestWorldNavigation)MinestWorldNavigation.stop();
+   if(previous==='walk'&&name!=='walk'&&window.MinestOiaEditor)MinestOiaEditor.explore('edit');
+   ['idle','navigation','camera','map','world'].forEach(function(key){var names={idle:null,navigation:'walk',camera:'view',map:'map',world:'worlds'};console.querySelector('#oia-'+key+'-pane').hidden=name!==names[key];});
+   var p=root.querySelector('#mn-bld-p'),build=['bld','elem','disp','ai'].includes(name);
+   if(window.MinestOiaBld)MinestOiaBld.toggle(build);if(p)p.hidden=!build;
+   var original=p&&p.querySelector('[data-tab="'+name+'"]');if(original)original.click();
+   if(name==='worlds')chooseWorld();
+   if(name==='walk'&&window.MinestOiaEditor&&MinestOiaEditor.active)MinestOiaEditor.explore('walk');
+   console.querySelectorAll('[data-console]').forEach(function(b){var selected=!!name&&b.getAttribute('data-console')===name;b.classList.toggle('on',selected);if(['walk','view','map','bld','elem','disp','ai','worlds'].includes(b.dataset.console))b.setAttribute('aria-pressed',String(selected));});
+   console.querySelector('[data-console="cancel"]').disabled=!name;
+   console.querySelector('main').scrollTop=0;
+   status(name?'再次点击已选工具可取消':'已退出工具 · 可自由查看世界');
+  }
+  function open(on){if(window.MinestWorldNavigation)MinestWorldNavigation.stop();console.hidden=!on;toggle.setAttribute('aria-expanded',String(on));if(on)tab(activeTab);else tab(null);history();}
+  window.MinestOiaConsole={open:function(name){open(true);if(name)tab(name);},cancel:function(){tab(null);},active:function(){return activeTab;}};
+  toggle.onclick=function(){open(console.hidden);};
+  console.addEventListener('click',function(e){
+   var b=e.target.closest('[data-console]');if(!b)return;e.stopPropagation();var a=b.getAttribute('data-console'),api=window.MinestOiaBld;
+   if(a==='close')return open(false);
+   if(a==='cancel')return tab(null);
+   if(a==='voxel'){open(false);return voxel();}
+   if(a==='return'){open(false);if(window.MinestOia)MinestOia.close();return;}
+   if(a==='door'){if(window.MinestWorldNavigation)MinestWorldNavigation.stop();if(window.MinestOiaEditor)MinestOiaEditor.ensureContext();var near=document.getElementById('oia-enter');if(near&&!near.hidden&&window.MinestOiaEditor&&!MinestOiaEditor.active){near.click();return;}if(api){var id=api.selected();if(id)api.enterDoorhouse(id);else{tab('view');status('先在画面中轻点一栋建筑，再进入房间');}}return;}
+   if(['undo','redo','reset','restore'].includes(a)){if(api&&api[a]){var ok=api[a]();status(ok?(a==='reset'?'已还原原始场景，仍可撤销或恢复还原前编辑':'操作完成'):a==='restore'?'没有还原前的备份':'当前没有可执行的操作');history();}return;}
+   tab(nextTool(activeTab,a));
+  });
+  if(window.MinestWorldNavigation)console.querySelector('#oia-navigation-pane').innerHTML=MinestWorldNavigation.markup('oia');
+  root.appendChild(toggle);root.appendChild(console);
+ }
+ var console=root.querySelector('#oia-console'),main=console.querySelector('main');
+ if(panel&&panel.parentElement!==main){main.appendChild(panel);panel.hidden=true;}
+ var map=root.querySelector('#oia-mmWrap'),mapHost=console.querySelector('#oia-console-map');
+ if(map&&map.parentElement!==mapHost)mapHost.appendChild(map);
+ history();
+}
+var queued=false;new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;prepare();});}).observe(document.body,{childList:true,subtree:true});
+window.addEventListener('minest-world-edit',history);
+prepare();
+})();
+
+</script>
+<style id="mn-oia-sync-70-css">
+/* 70 · console polish: compact tool rails (all tools visible), quieter build buttons, the 2D link card and card picker */
+#oia-console .console-grid { grid-template-columns: 96px minmax(0, 1fr) 84px !important; }
+#oia-console .console-grid > nav:first-child { gap: 4px !important; }
+#oia-console .console-grid > nav:first-child button { display: flex !important; align-items: center; justify-content: flex-start; gap: 6px; min-height: 34px !important; height: auto !important; padding: 6px 8px !important; font-size: 12px !important; line-height: 1.1 !important; text-align: left; white-space: nowrap; }
+#oia-console .console-grid > nav:first-child button i { font-style: normal; font-size: 15px; width: 18px; text-align: center; flex: none; }
+#oia-console .console-grid > nav:first-child button span { overflow: hidden; text-overflow: ellipsis; }
+#oia-console header span { max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#oia-console #mn-bld-p .obld-btn { background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.14) !important; color: #eef2f7 !important; box-shadow: none !important; border-radius: 10px !important; }
+#oia-console #mn-bld-p .obld-btn:active { background: rgba(255,255,255,.18) !important; }
+#oia-console #mn-bld-p .obld-btn[data-a="enter"] { background: rgba(80,150,255,.28) !important; border-color: rgba(120,175,255,.5) !important; }
+#oia-console #mn-bld-p .obld-btn.warn { background: rgba(255,90,90,.14) !important; border-color: rgba(255,120,120,.4) !important; color: #ffd6d6 !important; }
+#oia-console #mn-bld-p > .obld-tabs, #oia-console #mn-bld-p .obld-tabs { display: none !important; }   /* the console's own rail picks the tab */
+#oia-console .o70-link { margin: 10px 0 4px; padding: 10px 12px; border-radius: 12px; background: rgba(120,180,255,.08); border: 1px solid rgba(120,180,255,.22); color: #dfe8f5; font-size: 12px; }
+#oia-console .o70-link b { font-size: 12px; color: #9cc6ff; }
+#oia-console .o70-link p { margin: 4px 0 0; }
+#oia-console .o70-link .o70-sub { color: #9aa8bb; }
+#oia-console .o70-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; margin-top: 8px; max-height: 196px; overflow: auto; }
+#oia-console .o70-cards button { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 4px; border-radius: 9px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #eef2f7; font-size: 11px; text-align: left; min-height: 0; }
+#oia-console .o70-cards button[aria-selected="true"] { border-color: #6aa8ff; background: rgba(106,168,255,.2); }
+#oia-console .o70-cards img, #oia-console .o70-cards em { width: 100%; height: 52px; object-fit: cover; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 20px; background: rgba(255,255,255,.1); }
+#oia-console .o70-cards span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+<script id="mn-oia-sync-70">
+/* 70 · the voxel world and 2D My World as one: 3D buildings ↔ the island's pieces, 3D displays ↔ the displays in that
+   building's rooms, cards from this world's own board; and a tidier console (tools/myworld/patch_oia_sync_70.py). */
+(function () {
+  'use strict';
+  if (window.MinestOiaSync) return;
+  var H = null, timer = 0, pulled = false;
+  var KIND = { easel: '画架', shelf: '书架', showcase: '展柜', wall: '展板' };
+  function api() { return window.MinestOiaBld; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // ---- catch the world's hooks (My World binds them on the voxel world's first open)
+  function wrapBind() {
+    var O = window.MinestOia; if (!O || O.__sync70) return !!O;
+    var bind0 = O.bind; O.bind = function (h) { H = h; pulled = false; return bind0.apply(O, arguments); }; O.__sync70 = 1;
+    var open0 = O.open; if (open0) O.open = function () { var r = open0.apply(O, arguments); pulled = false; setTimeout(pull, 900); return r; };
+    return true;
+  }
+  if (!wrapBind()) { var tries = 0, iv = setInterval(function () { if (wrapBind() || ++tries > 120) clearInterval(iv); }, 250); }
+
+  // ---- what the voxel world holds now
+  function buildingOf(d, bs) {   // a display belongs to the building it stands in or next to
+    var best = null, bd = 1e9;
+    bs.forEach(function (b) {
+      var dx = Math.max(b.x0 - d.x, 0, d.x - b.x1 - 1), dz = Math.max(b.z0 - d.z, 0, d.z - b.z1 - 1), dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < bd) { bd = dist; best = b; }
+    });
+    return best && bd <= 10 ? best : null;
+  }
+  function collect() {
+    var a = api(); if (!a) return null;
+    var rec = a.record() || {}, m = rec.m || {}, bs = a.buildings(), live = {};
+    var out = { bld: [], disp: [] };
+    bs.forEach(function (b) { live[b.id] = 1; out.bld.push({ id: b.id, kind: b.kind, name: b.name || null, cx: (b.x0 + b.x1 + 1) / 2, cz: (b.z0 + b.z1 + 1) / 2, rot: (m[b.id] && m[b.id].rot) || 0, gone: !!(m[b.id] && m[b.id].gone) }); });
+    Object.keys(m).forEach(function (id) { if (m[id] && m[id].gone && !live[id]) out.bld.push({ id: id, gone: true }); });
+    var standing = bs.filter(function (b) { return !(m[b.id] && m[b.id].gone); });
+    (a.displays() || []).forEach(function (d) { var b = buildingOf(d, standing); out.disp.push({ id: d.id, kind: d.kind, cardId: d.cardId, x: d.x, z: d.z, bid: b ? b.id : null, bname: b ? b.name || null : null }); });
+    return out;
+  }
+  function push() {   // the voxel world → 2D My World
+    clearTimeout(timer);
+    timer = setTimeout(function () { if (!H || !H.sync) return; var info = collect(); if (!info) return; try { H.sync(info); } catch (e) { if (window.console) console.error('oia-sync', e); } decorate(); }, 250);
+  }
+  function pull() {   // 2D My World → the voxel world: a card changed or a mirrored display removed in a room
+    if (pulled || !H || !H.pull || !H.bldSet) return; pulled = true;
+    var p = null; try { p = H.pull(); } catch (e) { return; }
+    if (!p || (!Object.keys(p.cards || {}).length && !(p.gone || []).length)) return push();
+    H.bldSet(function (rec) {
+      rec.displays = (rec.displays || []).filter(function (d) { return (p.gone || []).indexOf(d.id) < 0; });
+      rec.displays.forEach(function (d) { if (p.cards[d.id]) d.cardId = p.cards[d.id]; });
+    });
+    var a = api(); if (a && a.reapply) a.reapply();
+    window.dispatchEvent(new Event('minest-world-edit'));
+  }
+  window.addEventListener('minest-world-edit', push);
+
+  // ---- the console: compact tool rails, a live header, the 2D side of what is selected, a card picker
+  function setCard(id, ref) {
+    if (!H || !H.bldSet) return;
+    H.bldSet(function (rec) { (rec.displays || []).forEach(function (d) { if (d.id === id) d.cardId = ref; }); });
+    var a = api(); if (a && a.reapply) a.reapply();
+    window.dispatchEvent(new Event('minest-world-edit'));
+  }
+  function decorate() {
+    var c = document.getElementById('oia-console'); if (!c) return;
+    c.querySelectorAll('.console-grid > nav:first-child button').forEach(function (b) {
+      if (b.__c70) return; b.__c70 = 1; var parts = b.innerHTML.split('<br>');
+      if (parts.length === 2) b.innerHTML = '<i>' + parts[0] + '</i><span>' + parts[1] + '</span>';
+    });
+    var a = api(), head = c.querySelector('header span');
+    if (head && a) {
+      var sel = a.selected && a.selected(), b = sel && a.buildings().filter(function (x) { return x.id === sel; })[0];
+      var t = b ? '已选 · ' + (b.name || (H && H.label && H.label(b.id)) || b.id) : a.buildings().length + ' 栋建筑';
+      if (head.textContent !== t) head.textContent = t;
+    }
+    var panel = document.getElementById('mn-bld-p'); if (!panel || panel.hidden || !a) return;
+    var tool = c.dataset.tool, box = panel.querySelector('.o70-link');
+    var html = '';
+    if (tool === 'bld' && a.selected && a.selected()) {
+      var bid = a.selected(), info = H && H.info ? H.info(bid) : null;
+      html = '<b>⇄ My World 2D</b><p>' + (info ? esc(info.label || bid) + ' · ' + info.rooms + ' 个房间 · ' + info.displays + ' 个陈列 · ' + info.things + ' 件卡片' : '这栋楼在 2D 里还没有房间，进入房间后会自动建好') + '</p><p class="o70-sub">移动、旋转、复制、移除会同步到 2D 小岛；房间与陈列两边共用。</p>';
+    } else if (tool === 'disp') {
+      var did = a.selectedDisplay && a.selectedDisplay(), info2 = collect(), d = info2 && info2.disp.filter(function (x) { return x.id === did; })[0];
+      var cards = (a.getActiveCards && a.getActiveCards()) || [], own = cards.length && cards[0].own;
+      html = '<b>⇄ My World 2D</b><p>' + (own ? '卡片来自这个世界的看板（' + cards.length + ' 张）' : '这个世界的看板还没有卡片，先用示例卡片') + '</p>';
+      if (d) {
+        html += '<p class="o70-sub">' + (d.bid ? '同步到 2D：' + esc(d.bname || (H && H.label && H.label(d.bid)) || d.bid) + ' › 3D 陈列 房间' : '离建筑太远，只在 3D 里展示；挪到建筑旁即可进 2D') + '</p>';
+        html += '<div class="o70-cards" role="listbox" aria-label="选择展出的卡片">' + cards.slice(0, 60).map(function (k) {
+          return '<button type="button" role="option" data-o70card="' + esc(k.id) + '" aria-selected="' + (k.id === d.cardId) + '">' + (k.pic ? '<img alt="" loading="lazy" src="' + esc(k.pic) + '">' : '<em>' + esc(String(k.title || '?').charAt(0)) + '</em>') + '<span>' + esc(k.title) + '</span></button>';
+        }).join('') + '</div>';
+      } else html += '<p class="o70-sub">轻点画面里的展架选中它，就能换上看板里的任意一张卡片。</p>';
+    }
+    if (!html) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement('div'); box.className = 'o70-link'; if (tool === 'bld') panel.insertBefore(box, panel.firstChild); else panel.appendChild(box); }
+    if (box.__h !== html) { box.innerHTML = html; box.__h = html; }
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-o70card]'); if (!b) return;
+    e.stopPropagation(); var a = api(), id = a && a.selectedDisplay && a.selectedDisplay();
+    if (id) setCard(id, b.getAttribute('data-o70card'));
+  }, true);
+  var q = false;
+  new MutationObserver(function () { if (q) return; q = true; requestAnimationFrame(function () { q = false; decorate(); }); }).observe(document.body, { childList: true, subtree: true });
+
+  window.MinestOiaSync = { version: '70.0', push: push, pull: function () { pulled = false; pull(); }, collect: collect, hooks: function () { return H; } };
+})();
+</script>
+
+<script id="mn-world-shell-71">
+/* 71 · third-party voxel worlds in My World's own shell (tools/myworld/build_world_shells.py): they open straight into
+   their engine page — no wrapper nav bar, no overlay back pill — where the Santorini console runs; that console's
+   返回 / 一键世界 / 体素世界 reach back here. */
+(function () {
+  'use strict';
+  if (window.MinestWorldShell) return;
+  var SHELL = { 'bibury.html': 'bibury/bibury.html', 'downton.html': 'downton/downton.html', 'neuschwanstein.html': 'neuschwanstein/neuschwanstein.html', 'hallstatt.html': 'hallstatt/hallstatt.html', 'venice.html': 'venice.html',
+    'hobbiton.html': 'hobbiton.html', 'giethoorn.html': 'giethoorn/index.html', 'lauterbrunnen.html': 'lauterbrunnen/index.html' };
+  var SITE = 'https://minest-app.vercel.app/';
+  function base() { return /^https?:$/.test(location.protocol) ? '' : SITE; }   // the app's own copy (file://) has no world pages: they load from the site
+  var INNER = {}; Object.keys(SHELL).forEach(function (k) { INNER[SHELL[k]] = 1; });
+  var PAGE = { hobbiton: ['hobbiton.html', '霍比屯'], bibury: ['bibury.html', '拜伯里'], downton: ['downton.html', '唐顿庄园'], giethoorn: ['giethoorn.html', '羊角村'], hallstatt: ['hallstatt.html', '哈尔施塔特'], lauterbrunnen: ['lauterbrunnen.html', '劳特布龙嫩'], neuschwanstein: ['neuschwanstein.html', '新天鹅堡'], venice: ['venice.html', '威尼斯'] };
+  var NATIVE = { alpchalet: 'MinestAlps', admont: 'MinestAdmont', trinity: 'MinestTrinity', study: 'MinestStudy' };
+  function adopt(ov) {
+    var f = ov.querySelector('iframe'); if (!f || ov.__shell71) return; ov.__shell71 = 1;
+    var src = (f.getAttribute('src') || '').split('?')[0].replace(SITE, ''), to = SHELL[src] || (INNER[src] ? src : null);
+    if (!to) return;
+    ov.classList.add('mn-shelled'); f.setAttribute('src', base() + to + '?myworld=1');
+  }
+  new MutationObserver(function (list) {
+    list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1 && (n.classList.contains('mn-world-3d-overlay') || n.classList.contains('wf-venice'))) adopt(n); }); });
+  }).observe(document.body, { childList: true });
+  function closeOverlays() { document.querySelectorAll('.mn-world-3d-overlay, .wf-venice').forEach(function (o) { o.remove(); }); }
+  function fromWorld(src) { return Array.prototype.some.call(document.querySelectorAll('.mn-world-3d-overlay iframe, .wf-venice iframe'), function (f) { return f.contentWindow === src; }); }
+  function openWorld(id) {
+    closeOverlays();
+    if (PAGE[id] && window.openWorldOverlay3D) return openWorldOverlay3D(PAGE[id][0], PAGE[id][1]);
+    if (id === 'santorini') { if (window.MinestEnterSantorini3D) return MinestEnterSantorini3D(); if (window.MinestOia) return MinestOia.open(); }
+    var g = NATIVE[id] && window[NATIVE[id]]; if (g && g.open) return g.open();
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data; if (!d || typeof d !== 'object' || !fromWorld(e.source)) return;   // only the world page open in My World
+    if (d.action === 'closeMinest3DOverlay') { document.querySelectorAll('.wf-venice').forEach(function (o) { o.remove(); }); return; }   // the 3D overlay closes itself
+    if (d.action === 'minestOpenWorld' && typeof d.id === 'string') openWorld(d.id);
+    if (d.action === 'minestRunData?') { try { e.source.postMessage(runData(), '*'); } catch (x) {} }   // 72 · Knowledge Run: the cards of the board you are on
+    if (d.action === 'minestOpenVoxel') {
+      closeOverlays();
+      if (window.MinestOiaEditor) MinestOiaEditor.ensureContext();
+      if (window.MinestVoxel62) Promise.resolve(MinestVoxel62.open({ forceVoxel: true })).catch(function () {});
+    }
+  });
+  function runData() {   // the current board, as the Dynamic presentations read it: its lists, their cards (and a card's stack as its points)
+    var A = window.MinestAI, b = null; try { b = (A && A.board && A.board()) || (A && A.boards && A.boards()[0]) || null; } catch (x) {}
+    var PAL = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
+    var lists = []; ((b && b.columns) || []).forEach(function (col) {
+      if (!col || col.archived) return;
+      var items = (col.cards || []).filter(function (c) { return c && !c.archived; }).slice(0, 24).map(function (c) {
+        var cv = c.cover && typeof c.cover.value === 'string' && c.cover.value.length < 400000 && !/^(color|gradient)$/.test(c.cover.type) ? c.cover.value : '';
+        return { title: c.title || c.term || '', zh: c.titleZh || '', text: c.meaning || c.desc || '', img: cv, sub: (c.stack || []).filter(function (s) { return s && s.title; }).slice(0, 8).map(function (s) { return s.title; }) };
+      });
+      if (items.length) lists.push({ title: col.title || 'Untitled', color: /^#[0-9a-f]{6}$/i.test(col.color || '') ? col.color : PAL[lists.length % PAL.length], items: items });
+    });
+    return { action: 'minestRunData', title: (b && b.title) || 'Board', lists: lists.slice(0, 10) };
+  }
+  var st = document.createElement('style'); st.id = 'mn-world-shell-71-css';
+  st.textContent = '.mn-world-3d-overlay.mn-shelled > .mn-back-myworld-btn, .wf-venice.mn-shelled > .wf-venice-x { display:none !important; }';
+  document.head.appendChild(st);
+  window.MinestWorldShell = { version: '71.0', open: openWorld, shelled: function () { return Object.keys(SHELL); } };
+})();
+</script>
+<script id="mn-live-74">
+/* 74 · Octo in the waiting games on the student side: student mode pins the Mini Pet to the bottom-left corner
+   (!important, under everything) so it never covers a button — which also kept Octo out of Octo Dive, Flappy Octo and
+   Energy Rush, where Octo IS the player. While one of those games (.mlv-of) is open, the pin gives way to where the
+   game puts Octo; when it closes, the pin is back. */
+(function () {
+  'use strict';
+  if (window.__mlvOctoFree) return; window.__mlvOctoFree = 1;
+  var H = document.documentElement, on = false, petObs = null;
+  function pet() { return document.getElementById('minest-mini-pet-p0'); }
+  function copy() {
+    var el = pet(); if (!el || !on) return;
+    var x = el.style.left, y = el.style.top;
+    if (x && el.style.getPropertyValue('--mlv-px') !== x) el.style.setProperty('--mlv-px', x);
+    if (y && el.style.getPropertyValue('--mlv-py') !== y) el.style.setProperty('--mlv-py', y);
+  }
+  function check() {
+    var now = !!document.querySelector('.mlv-of');
+    if (now === on) return; on = now; H.classList.toggle('mlv-octo-free', on);
+    var el = pet();
+    if (on && el) {
+      var r = el.getBoundingClientRect(); if (!el.style.left) el.style.left = r.left + 'px'; if (!el.style.top) el.style.top = r.top + 'px'; copy();
+      if (petObs) petObs.disconnect(); petObs = new MutationObserver(copy); petObs.observe(el, { attributes: true, attributeFilter: ['style'] });
+    } else if (petObs) { petObs.disconnect(); petObs = null; if (el) { el.style.removeProperty('--mlv-px'); el.style.removeProperty('--mlv-py'); } }
+  }
+  var st = document.createElement('style'); st.id = 'mlv-octo-free-css';
+  st.textContent = 'html.student-mode.mlv-octo-free #minest-mini-pet-p0, html.mlv-octo-free body.student-mode #minest-mini-pet-p0 { left: var(--mlv-px, 14px) !important; top: var(--mlv-py, auto) !important; right: auto !important; bottom: auto !important; z-index: 2147483450 !important; transform: rotate(var(--game-drift, 0deg)) !important; }';
+  st.textContent += ' .mlv-chips .mlv-chip-sep { flex-basis: 100%; font-size: 12px; font-weight: 800; color: #c7cdf5; margin: 8px 0 2px; }';   /* the teacher's Levels: the teaching games' heading */
+  (document.head || document.documentElement).appendChild(st);
+  new MutationObserver(check).observe(document.body || document.documentElement, { childList: true });
+  check();
+})();
+
+/* 74 · Minest Live × the ten teaching games: a level of a live class game can be one of the solo teaching games
+   (MinestTemplates quest8241). The live game's lists become one list, the game opens on it; when it ends it reports
+   right / wrong and its score as minest:arcade-done (so stars, coins and unlocks are Live's own), leaving it early is
+   minest:arcade-closed. The teacher switches each one on in the Levels chips. */
+(function () {
+  'use strict';
+  if (window.MinestLiveTeach) return;
+  var watch = 0, cur = null;
+  function han(s) { return /[㐀-鿿]/.test(String(s || '')); }
+  function flat(board) {   // every chosen list as one teaching list (a card's stack items are cards too)
+    var cards = [];
+    (board.columns || []).forEach(function (c) {
+      (c.cards || []).forEach(function (k) {
+        if (!k || !k.title) return;
+        cards.push({ id: String(k.id), title: k.title, desc: k.desc || '' });
+        (k.stack || []).forEach(function (x) { if (x && x.title) cards.push({ id: String(x.id), title: x.title, desc: x.desc || '' }); });
+      });
+    });
+    return { id: 'live-' + (board.id || 'game'), title: board.title || 'Minest Live', columns: [{ id: 'live-all', title: board.title || 'Minest Live', cards: cards }] };
+  }
+  function stop() { clearInterval(watch); watch = 0; cur = null; }
+  function start(board, mode, levelKey) {
+    var T = window.MinestTemplates, TT = window.MinestTeachingTen;
+    if (!T || !TT || TT.modes.indexOf(mode) < 0) return false;
+    var b = flat(board); if (b.columns[0].cards.length < 3) return false;
+    stop();
+    try { T.open(b, { quest824: true, quest8241: true, liveBoard: true, audience: 'student', col: 'live-all', chinese: b.columns[0].cards.some(function (c) { return han(c.title); }) }); } catch (e) { return false; }
+    var root = document.getElementById('mn-templates'), api = root && root.__teaching824;
+    if (!api) { try { T.close(); } catch (e) {} return false; }
+    api.start(mode);
+    root.classList.add('mlv-teach-level');
+    cur = { mode: mode, k: levelKey, reported: false };
+    watch = setInterval(function () {
+      var r = document.getElementById('mn-templates');
+      if (!r) { var was = cur; stop(); if (was && !was.reported) window.dispatchEvent(new CustomEvent('minest:arcade-closed')); return; }
+      var a = r.__teaching824, info = a && a.info();
+      if (!cur.reported && info && info.mode === mode && r.dataset.tenView === 'result') {
+        cur.reported = true;
+        var v = TT.score ? TT.score(info) : { completed: info.completed, total: info.total, correct: info.correct, xp: info.correct * 10 };
+        window.dispatchEvent(new CustomEvent('minest:arcade-done', { detail: { mode: levelKey, cleared: v.total > 0 && v.completed >= v.total, score: (v.xp || 0) * 10, combo: info.streak || 0, c: v.correct || 0, w: Math.max(0, (v.completed || 0) - (v.correct || 0)) } }));
+        setTimeout(function () { if (cur && cur.reported) { stop(); try { T.close(); } catch (e) {} } }, 1300);   // Live's own result comes next
+      }
+    }, 400);
+    return true;
+  }
+  window.MinestLiveTeach = { start: start, stop: stop, active: function () { return !!cur; } };
+})();
+</script>
 </body>
 </html>

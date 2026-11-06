@@ -62,7 +62,8 @@ RUN = r"""<script id="mn-routine-run">
     var live = Object.keys(runs).filter(function (k) { return runs[k].since !== null; });
     if (live.length > 1) { var keep = live.filter(function (k) { return (newer.runs || {})[k] && newer.runs[k].since !== null; })[0] || live[0];   // one running timer: the newer side's
       live.forEach(function (k) { if (k !== keep) { var r = Object.assign({}, runs[k]); r.since = null; r.status = 'paused'; runs[k] = r; } }); }
-    return { version: 1, tasks: newer.tasks, runs: runs, activeId: newer.activeId };
+    // the newer side's whole record (its tabs / routines and their modes ride along), with the merged runs
+    return Object.assign({}, newer, { version: 1, tasks: newer.tasks, runs: runs, activeId: newer.activeId });
   }
   function cloud() { var raw = get(KEY); if (!raw) return null; try { return { v: 1, at: +get(AT) || 0, state: JSON.parse(raw) }; } catch (e) { return null; } }
   function mergeCloud(remote) {
@@ -90,7 +91,7 @@ RUN = r"""<script id="mn-routine-run">
   var queued = false;
   new MutationObserver(function () { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; entries(); }); }).observe(document.body, { childList: true, subtree: true });
   entries();
-  window.MinestRoutine = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, _cloud: cloud, _mergeCloud: mergeCloud, _merge: merge, version: '4.15.1' };
+  window.MinestRoutine = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, _cloud: cloud, _mergeCloud: mergeCloud, _merge: merge, version: '4.17.1' };
 })();
 </script>
 """

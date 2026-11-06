@@ -1,0 +1,119 @@
+/* One header, one action dock, and separate movement controls. */
+#oia-root #oia-back { font:700 13px/1 system-ui!important; padding:11px 15px!important; border:1px solid #ffffff45!important; border-radius:16px!important; max-width:150px; white-space:nowrap; }
+#oia-root #oia-title { left:16px!important; top:calc(65px + env(safe-area-inset-top))!important; max-width:calc(100% - 170px); font:13px/1.5 system-ui!important; }
+#oia-root #oia-title b { display:block; font:700 17px/1.4 system-ui!important; }
+#oia-root #oia-coords,#oia-root #oia-hotbar,#oia-root #oia-held,#oia-root #oia-hint,#oia-root #oia-joy,#oia-root .obld-t { display:none!important; }
+#oia-root #oia-mmWrap { top:calc(65px + env(safe-area-inset-top))!important; right:16px!important; width:128px!important; padding:4px!important; border:1px solid #ffffff38!important; border-radius:14px; overflow:hidden; }
+#oia-root #oia-mm { width:100%!important; height:auto!important; }
+#oia-root #oia-timeBox { font:11px/1.2 system-ui!important; gap:4px!important; }
+#oia-root #oia-timeSlider { width:74px!important; min-width:0; }
+#oia-root #oia-enter { top:calc(125px + env(safe-area-inset-top))!important; left:16px!important; transform:none!important; max-width:calc(100% - 170px); font:700 13px/1.3 system-ui!important; padding:10px 14px!important; border-radius:14px; }
+#oia-root #oia-banner { top:calc(165px + env(safe-area-inset-top))!important; }
+#oia-root #oia-lockHint { bottom:calc(162px + env(safe-area-inset-bottom))!important; font:12px/1.4 system-ui!important; max-width:80%; }
+#oia-root #oia-quick-69 { display:grid!important; grid-template-columns:repeat(4,minmax(0,1fr)); width:min(470px,calc(100% - 340px)); box-sizing:border-box; padding:6px!important; gap:6px!important; border-radius:18px!important; bottom:calc(20px + env(safe-area-inset-bottom))!important; }
+#oia-root .oia-quick-btn { width:auto!important; height:44px!important; min-width:0!important; padding:6px 9px!important; display:flex!important; justify-content:center; white-space:nowrap!important; writing-mode:horizontal-tb!important; font:600 13px/1.2 system-ui!important; border-radius:12px!important; }
+#oia-root #oia-q-exit { display:none!important; }
+#oia-root #oia-dpad-69 { bottom:calc(18px + env(safe-area-inset-bottom))!important; left:16px!important; grid-template-columns:repeat(3,42px)!important; grid-template-rows:repeat(3,42px)!important; gap:4px!important; }
+#oia-root #oia-dpad-69 button { width:42px!important; height:42px!important; font:18px system-ui!important; border-radius:14px!important; touch-action:none; }
+#oia-root #oia-tJump,#oia-root #oia-tDown,#oia-root #oia-tFly { width:46px!important; height:46px!important; right:18px!important; font:18px/46px system-ui!important; }
+#oia-root #oia-tJump { bottom:calc(70px + env(safe-area-inset-bottom))!important; }
+#oia-root #oia-tDown { bottom:calc(18px + env(safe-area-inset-bottom))!important; }
+#oia-root #oia-tFly { bottom:calc(122px + env(safe-area-inset-bottom))!important; }
+#oia-root #mn-bld-p { max-height:calc(100dvh - 260px)!important; width:min(390px,calc(100% - 32px))!important; box-sizing:border-box; right:16px!important; bottom:calc(180px + env(safe-area-inset-bottom))!important; overflow:auto!important; }
+.mn-world-3d-overlay > .mn-back-myworld-btn { font-size:12px!important; max-width:150px; white-space:nowrap; padding:10px 12px!important; }
+@media(max-width:700px) {
+ #oia-root #oia-quick-69 { width:calc(100% - 32px); bottom:calc(174px + env(safe-area-inset-bottom))!important; }
+ #oia-root #mn-bld-p { bottom:calc(236px + env(safe-area-inset-bottom))!important; max-height:calc(100dvh - 320px)!important; }
+}
+@media(max-height:540px) and (min-width:701px) {
+ #oia-root #oia-mmWrap { width:100px!important; }
+ #oia-root #mn-bld-p { max-height:calc(100dvh - 150px)!important; bottom:calc(85px + env(safe-area-inset-bottom))!important; }
+}
+/* Voxel entry belongs to My World's existing console, never a floating chip. */
+#vx62-btn,#oia-root #oia-quick-69 { display:none!important; }
+#oia-console-toggle { position:absolute;right:16px;top:calc(12px + env(safe-area-inset-top));z-index:1000000;width:44px;height:44px;border:2px solid #111;background:#494949;color:#fff;box-shadow:inset 2px 2px #ffffff55,inset -2px -2px #0008;font:800 24px system-ui;pointer-events:auto; }
+#oia-console { position:absolute;left:0;right:0;bottom:0;z-index:1000001;box-sizing:border-box;background:#383838;color:white;border:3px solid #111;border-radius:18px 18px 0 0;padding:8px 8px calc(8px + env(safe-area-inset-bottom));font:600 13px/1.35 system-ui;pointer-events:auto;max-height:55dvh;display:flex;flex-direction:column; }
+#oia-console[hidden] { display:none!important; }
+#oia-console header { display:flex;align-items:center;gap:8px;padding-bottom:8px; }
+#oia-console header b { flex:1; }
+#oia-console header span { color:#ddd;font-size:11px; }
+#oia-console button { background:#4b4b4b;border:2px solid #111;box-shadow:inset 2px 2px #ffffff30,inset -2px -2px #0009;border-radius:0;color:#fff;font:700 12px/1.35 system-ui;padding:9px 6px;min-height:44px;cursor:pointer;white-space:normal;writing-mode:horizontal-tb; }
+#oia-console button.on { background:#347725;border-color:#f2c633; }
+#oia-console .console-grid { display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:8px;overflow:hidden;min-height:0; }
+#oia-console nav { display:flex;flex-direction:column;gap:6px;overflow:auto; }
+#oia-console main { min-width:0;overflow:auto; }
+#oia-console #mn-bld-p { position:static!important;width:100%!important;max-height:none!important;margin:0!important;border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important; }
+#oia-console #mn-bld-p .obld-tabs { display:none; }
+#oia-console #mn-bld-p .obld-actions { flex-wrap:wrap; }
+#oia-console #mn-bld-p .obld-btn { min-height:40px; }
+#oia-console #mn-bld-p .obld-card { background:#454545; }
+@media(min-width:750px){#oia-console .console-grid{grid-template-columns:110px minmax(0,1fr) 110px}#oia-console{max-height:48dvh}#oia-console button{font-size:13px}}
+
+#oia-root #oia-lockHint{display:none!important}
+
+#mn-btn-santorini-3d{display:none!important}
+#oia-map-pane[hidden],#oia-camera-pane[hidden]{display:none!important}
+#oia-camera-pane h3{margin:0 0 6px;font-size:15px}#oia-camera-pane p{margin:6px 0;font-size:11px;color:#ddd;line-height:1.5}
+#oia-camera-pane .camera-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#oia-camera-pane label{display:block;font-size:12px;margin:10px 0}#oia-camera-distance{display:block;width:100%;min-width:0;touch-action:auto}
+#oia-root #oia-console-map #oia-mmWrap{position:static!important;width:min(250px,100%)!important;max-width:none!important;margin:10px auto 0;box-sizing:border-box}
+#oia-root #oia-console-map #oia-mm{touch-action:manipulation}
+#oia-console footer{padding-top:8px;flex:none;font:11px/1.4 system-ui;color:#ccc}
+#oia-console footer div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:5px}
+#oia-console footer button{font-size:11px;min-height:40px;padding:5px}#oia-console button:disabled{opacity:.35;cursor:default}
+#oia-root.oia-edit-camera #oia-dpad-69,#oia-root.oia-edit-camera #oia-touch,#oia-root.oia-edit-camera #oia-enter,#oia-root.oia-edit-camera #oia-crosshair,#oia-root.oia-edit-camera #oia-banner{display:none!important}
+#oia-root #oia-gl{touch-action:none}
+#oia-world-picker{position:absolute;inset:12% 8%;z-index:2147483640;background:#383838;color:white;border:3px solid #111;border-radius:18px;padding:14px;overflow:auto;pointer-events:auto;font:600 14px system-ui}
+#oia-world-picker header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+#oia-world-picker>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#oia-world-picker button{min-height:44px;background:#4b4b4b;color:#fff;border:2px solid #111;padding:8px;font:600 13px system-ui}
+
+/* Walking and flying live in the console, using the original scene controls. */
+#oia-root #oia-dpad-69,#oia-root #oia-touch,#oia-root #oia-joy{display:none!important}
+#vx62.navigation-integrated .top .seg,#vx62.navigation-integrated .joy,#vx62.navigation-integrated .pad{display:none!important}
+#oia-navigation-pane[hidden]{display:none!important}
+.wf-center.world-navigation-open>:not(.world-navigation){display:none!important}
+.wf-center:not(.world-navigation-open)>.world-navigation{display:none!important}
+.world-navigation{font:600 13px/1.4 system-ui;color:#eee;padding:0 2px 10px;box-sizing:border-box}
+.world-navigation h3{font-size:15px;margin:0 0 8px}.world-navigation h4{font-size:12px;margin:8px 0 4px}
+.world-navigation .nav-help,.world-navigation [data-nav-status]{font-size:11px;line-height:1.5;color:#ddd;margin:7px 0}
+.world-navigation button{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;min-height:44px;background:#4b4b4b;color:#fff;border:2px solid #111;padding:6px;font:700 12px/1.35 system-ui;white-space:normal;cursor:pointer}
+.world-navigation button.on{background:#347725;border-color:#f2c633}.world-navigation button:disabled{opacity:.35;cursor:default}
+.world-navigation .nav-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.world-navigation .nav-pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.world-navigation .nav-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.world-navigation .nav-pad>button:first-child{grid-column:2}.world-navigation .nav-pad>button:nth-child(2){grid-column:1}.world-navigation .nav-pad>button:last-child{grid-column:2}
+.world-navigation .nav-altitude,.world-navigation .nav-camera{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:8px}
+@media(max-width:700px){.world-navigation .nav-pads{grid-template-columns:1fr}.world-navigation .nav-modes{grid-template-columns:1fr 1fr}.world-navigation .nav-modes>button:last-child{grid-column:1/-1}}
+
+#oia-root #oia-enter{display:none!important}
+
+.world-navigation .nav-modes{position:sticky;top:0;z-index:3;background:#383838;padding:3px 0}
+@media(max-width:700px){.world-navigation .nav-modes{grid-template-columns:repeat(3,minmax(0,1fr))}.world-navigation .nav-modes>button:last-child{grid-column:auto}.world-navigation .nav-modes>button{font-size:11px!important;padding:4px 2px!important}}
+/* Tool selection is reversible; the centre always belongs to the selected tool. */
+#oia-console .console-grid{grid-template-columns:64px minmax(0,1fr) 64px;flex:1}
+#oia-console[data-tool="walk"]{height:65dvh;max-height:65dvh}
+#oia-console main>[hidden]{display:none!important}
+#oia-console header>[data-console="cancel"]{min-height:38px;padding:5px 9px}
+#oia-console header>[data-console="close"]{min-height:38px;width:38px;padding:5px}
+#oia-console header>b{font-size:12px}#oia-console header>span{font-size:10px}
+#oia-console #oia-world-picker{position:static;inset:auto;border:0;border-radius:0;padding:0;overflow:visible}
+#oia-idle-pane{padding:20px 8px;color:#ddd;font-size:12px}#oia-idle-pane h3{font-size:16px;color:#fff;margin:0 0 8px}
+#oia-idle-pane>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+#oia-console .nav-heading{display:flex;justify-content:space-between;align-items:center;padding:0;gap:6px}
+#oia-console .nav-heading h3{margin:0}#oia-console .nav-heading button{min-height:32px;padding:4px 8px;font-size:11px}
+.world-navigation .nav-dashboard{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:420px;margin:8px auto 4px}
+.world-navigation .nav-stick-group{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px}
+.world-navigation [data-nav-stick]{position:relative;display:grid;place-items:center;width:min(118px,100%);aspect-ratio:1;border:2px solid #777;border-radius:50%;background:radial-gradient(circle,#545454 0 26%,#333 27% 64%,#222 65%);box-sizing:border-box;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;outline-offset:3px}
+.world-navigation [data-nav-stick]>b{position:absolute;top:5px;font-size:13px;color:#999;pointer-events:none}
+.world-navigation [data-nav-stick]>i{width:42px;height:42px;background:#8c8c8c;border:3px solid #bbb;border-radius:50%;box-shadow:0 3px 8px #0008;pointer-events:none;box-sizing:border-box}
+.world-navigation [data-nav-stick].on{border-color:#f2c633;cursor:grabbing}.world-navigation [data-nav-stick].on>i{background:#4d9535;border-color:#c3e5ac}
+.world-navigation [data-nav-stick][aria-disabled="true"]{opacity:.35;cursor:default}
+.world-navigation .nav-altitude{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.world-navigation .nav-extra{margin-top:8px;font-size:11px;color:#ccc}.world-navigation .nav-extra summary{cursor:pointer;padding:5px 0}
+.world-navigation .nav-modes{position:static;grid-template-columns:repeat(3,minmax(0,1fr))}
+#oia-console .world-navigation [data-nav-status]{margin:3px 0;font-size:10px}
+@media(min-width:750px){#oia-console .console-grid{grid-template-columns:84px minmax(0,1fr) 84px}.world-navigation .nav-dashboard{max-width:360px}}
+@media(max-width:500px){#oia-console{padding-left:6px;padding-right:6px}#oia-console .console-grid{grid-template-columns:56px minmax(0,1fr) 56px;gap:6px}#oia-console nav>button{font-size:11px;padding:8px 3px}#oia-console header>b{font-size:11px}#oia-console header>span{display:none}.world-navigation .nav-dashboard{gap:8px}.world-navigation .nav-altitude button{font-size:10px!important;padding:4px 2px!important}}
+
+@media(min-width:750px){.world-navigation [data-nav-stick]{width:104px}.world-navigation .nav-dashboard{margin:6px auto 0}}
