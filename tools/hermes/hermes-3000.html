@@ -4241,7 +4241,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     s.textContent = lines.length ? lines.slice(-2).join('\n') : 'Write. Reflect.\nLive better.';
   }
   /* 关箱：机盖从上翻下 → 落下震一下 → 扣上 */
-  function closeCase(){
+  function closeCase(stay){
     if(busy||!lid) return; busy=true; initAudio(); slip();
     lid.classList.remove('lift','thud','opening');
     lid.classList.add('case-anim','up');
@@ -4252,21 +4252,92 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     setTimeout(()=>{ latchSnap(); }, 700);
     setTimeout(()=>{
       lid.classList.remove('thud'); busy=false;
-      if(embedded){ try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(e){} }
+      if(embedded && !stay){ try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(e){} }
+      else if(stay){ lidDismissed=false; }
       else { lidDismissed=false; }   // 单独打开：停在机盖上，轻触再打开
     }, 900);
   }
-  /* 开箱：显示合着的机盖 → 扣松开 → 向上翻开 */
+  /* 开箱（约 2.4 秒）：
+     01 锁扣释放 0–0.3s：左右锁扣先后弹开，两声清脆金属声
+     02 箱盖脱离 0.3–0.9s：箱盖先抬起几毫米，再沿竖直方向平稳升起
+     03 机械显露 0.9–1.5s：盖子移出画面，镜头缓慢推进并倾斜到打字视角
+     04 机械就绪 1.5–2.0s：纸架锁释放，微小机械振动，滚筒与色带进入焦点
+     05 进入打字 2.0–2.4s：环境稳定，键盘可交互，纸张成为视觉焦点 */
+  function ping(f, at, vol){            // 清脆金属声：高频带通噪声 + 一点衰减的正弦泛音
+    const ctx=S.audio; if(!ctx) return; const t=ctx.currentTime+(at||0);
+    const s=ctx.createBufferSource(); s.buffer=noiseBuf(ctx,0.025,0.04);
+    const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=f; bp.Q.value=6;
+    const g=ctx.createGain(); g.gain.setValueAtTime(.5*(vol||1),t); g.gain.exponentialRampToValueAtTime(.001,t+.06);
+    s.connect(bp); bp.connect(g); g.connect(ctx.destination); s.start(t);
+    const o=ctx.createOscillator(), og=ctx.createGain(); o.type='triangle'; o.frequency.value=f*1.02;
+    og.gain.setValueAtTime(.12*(vol||1),t); og.gain.exponentialRampToValueAtTime(.001,t+.18);
+    o.connect(og); og.connect(ctx.destination); o.start(t); o.stop(t+.2);
+  }
+  let focusEl=null;
   function openCase(){
-    if(!lid) return; busy=true;
-    lid.classList.remove('slam','up','thud','opening');
+    if(!lid) return; busy=true; initAudio();
+    lid.classList.remove('slam','up','thud','opening','lift');
     lid.classList.add('case-anim'); slip();
-    setTimeout(()=>{ initAudio(); latchSnap(); }, 160);
-    setTimeout(()=>{
-      lid.classList.add('lift','up');
-      try{ sfx('return',.5); }catch(e){}
-    }, 300);
-    setTimeout(()=>{ lid.classList.remove('case-anim','lift','up'); busy=false; lidDismissed=true; applyMode(); fit(); }, 950);
+    const app=$$('app'); if(app) app.style.pointerEvents='none';
+    const anims=[];
+    const A=(el,kf,opt)=>{ if(!el) return; try{ const a=el.animate(kf,opt); anims.push(a); return a; }catch(e){} };
+    const at=(ms,fn)=>setTimeout(fn,ms);
+
+    // 03 的起始镜头：俯视、稍远（盖子还盖着时就摆好）
+    A(app,[
+      {transform:'perspective(1400px) translateY(-2%) rotateX(13deg) scale(.9)',filter:'brightness(.82) saturate(.9)',offset:0},
+      {transform:'perspective(1400px) translateY(-2%) rotateX(13deg) scale(.9)',filter:'brightness(.82) saturate(.9)',offset:.6,easing:'cubic-bezier(.33,0,.2,1)'},
+      {transform:'perspective(1400px) translateY(0) rotateX(0deg) scale(1)',filter:'brightness(1) saturate(1)',offset:1}
+    ],{duration:1500,fill:'both'});
+
+    // 01 锁扣释放：左、右先后弹开
+    const L=lid.querySelector('.lid-latch.l'), R=lid.querySelector('.lid-latch.r');
+    const pop=[{transform:'none'},{transform:'translateY(-8px) rotateX(60deg) scale(1.06)',offset:.55},{transform:'translateY(-5px) rotateX(72deg)'}];
+    at(40, ()=>{ A(L,pop,{duration:170,easing:'cubic-bezier(.2,1.5,.4,1)',fill:'forwards'}); ping(3200,0,1); if(navigator.vibrate) navigator.vibrate(6); });
+    at(170,()=>{ A(R,pop,{duration:170,easing:'cubic-bezier(.2,1.5,.4,1)',fill:'forwards'}); ping(2800,0,1); if(navigator.vibrate) navigator.vibrate(6); });
+
+    // 02 + 03 箱盖：先抬几毫米，停一下，再竖直平稳升起、移出画面
+    at(300,()=>{
+      A(lid,[
+        {transform:'translateY(0)',offset:0,easing:'cubic-bezier(.2,.8,.3,1)'},
+        {transform:'translateY(-7px)',offset:.125},
+        {transform:'translateY(-7px)',offset:.2,easing:'cubic-bezier(.45,0,.25,1)'},
+        {transform:'translateY(-40%)',offset:.5,easing:'cubic-bezier(.3,0,.25,1)'},
+        {transform:'translateY(-115%)',offset:1}
+      ],{duration:1200,fill:'forwards'});
+      try{ sfx('ratchet',.25); }catch(e){}
+    });
+    at(560,()=>{ try{ sfx('return',.28); }catch(e){} });
+
+    // 04 机械就绪：纸架锁释放（咔 + 微振），滚筒与色带进入焦点
+    at(1500,()=>{
+      lid.classList.remove('case-anim'); anims.filter(a=>a.effect&&a.effect.target!==app).forEach(a=>{ try{a.cancel();}catch(e){} });
+      ping(1900,0,.8); try{ (window.__click2||(()=>{}))(1.0); sfx('ratchet',.35); }catch(e){}
+      if(navigator.vibrate) navigator.vibrate([8,30,6]);
+      A($$('carriage'),[{translate:'0 0'},{translate:'-3px 0'},{translate:'2px 1px'},{translate:'-1px 0'},{translate:'0 0'}],{duration:280,easing:'ease-out'});
+      A($$('machine-half'),[{translate:'0 0'},{translate:'0 1.5px'},{translate:'0 -1px'},{translate:'0 0'}],{duration:220});
+      const glow=[{filter:'brightness(1)'},{filter:'brightness(1.35) drop-shadow(0 0 6px rgba(255,255,255,.55))',offset:.35},{filter:'brightness(1)'}];
+      A($$('platen'),glow,{duration:520,easing:'ease-out'});
+      A(document.querySelector('.hinge-ribbon'),glow,{duration:520,delay:90,easing:'ease-out'});
+      A(document.querySelector('.card-holder'),glow,{duration:520,delay:150,easing:'ease-out'});
+      // 焦点光圈：四周微暗，纸张最亮
+      const paper=$$('paper');
+      if(paper){
+        const r=paper.getBoundingClientRect();
+        const cx=Math.round(r.left+r.width/2), cy=Math.round(r.bottom-20);
+        if(!focusEl){ focusEl=document.createElement('div'); focusEl.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:998;opacity:0'; document.body.appendChild(focusEl); }
+        focusEl.style.background=`radial-gradient(ellipse ${Math.max(260,r.width*.75)}px 220px at ${cx}px ${cy}px,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 55%,rgba(10,18,14,.42) 100%)`;
+        A(focusEl,[{opacity:0},{opacity:1,offset:.55},{opacity:1,offset:.7},{opacity:0}],{duration:900,easing:'ease-in-out',fill:'forwards'});
+      }
+    });
+
+    // 05 进入打字：环境稳定，键盘可交互
+    at(2000,()=>{ if(app) app.style.pointerEvents=''; busy=false; lidDismissed=true; applyMode(); });
+    at(2400,()=>{
+      anims.forEach(a=>{ try{a.cancel();}catch(e){} });
+      lid.classList.remove('case-anim','lift','up');
+      fit();
+    });
   }
   // 单独打开时：轻触机盖（盖着的状态）也走开箱动画
   if(lid){
@@ -4325,10 +4396,26 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   /* Minest 发来的消息：开箱 / 铰链状态 */
   addEventListener('message',e=>{
     const d=e.data||{};
-    if(d.type==='hermes:open') openCase();
+    if(d.type==='hermes:open'){ wasFolded=folded(); if(!wasFolded) openCase(); }
     if(d.type==='hermes:hinge'){ window.__minestHinge=d.hinge; dispatchEvent(new CustomEvent('minest:hinge',{detail:d.hinge})); }
   });
-  window.hermesCase={open:openCase, close:closeCase, fit:fit};
+  /* 翻开 Duo → 开箱；合上 Duo → 关箱（铰链 closed / partial / open；没有铰链时按屏幕尺寸判断外屏） */
+  function folded(){
+    const h=window.__minestHinge;
+    if(h && h.status && h.status!=='unknown') return h.status==='closed';
+    try{ return detectMode()==='closed'; }catch(e){ return false; }
+  }
+  let wasFolded=folded();
+  function onFold(){
+    const f=folded(); if(f===wasFolded) return; wasFolded=f;
+    const shut=lid && lid.classList.contains('case-anim');
+    if(f && !shut){ busy=false; closeCase(true); }
+    else if(!f && shut){ if(busy){ setTimeout(onFoldOpen,950); } else openCase(); }
+  }
+  function onFoldOpen(){ if(!folded() && lid.classList.contains('case-anim') && !busy) openCase(); }
+  addEventListener('minest:hinge',()=>setTimeout(onFold,60));
+  addEventListener('resize',()=>setTimeout(onFold,140));
+  window.hermesCase={open:openCase, close:closeCase, fit:fit, folded:folded};
 })();
 </script>
 
