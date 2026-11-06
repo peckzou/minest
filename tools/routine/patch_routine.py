@@ -101,7 +101,7 @@ RUN = r"""<script id="mn-routine-run">
       if (document.readyState === 'complete') home(); else window.addEventListener('load', home, { once: true });
     }
   } catch (e) {}
-  window.MinestRoutine = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, _cloud: cloud, _mergeCloud: mergeCloud, _merge: merge, version: '4.22.2' };
+  window.MinestRoutine = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, _cloud: cloud, _mergeCloud: mergeCloud, _merge: merge, version: '4.22.3' };
 })();
 </script>
 """
