@@ -4247,7 +4247,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     lid.append(a,b,h);
   }
   // 嵌在 Minest 里：一载入就是合着的箱子，等 Minest 发 'hermes:open' 再翻开（不闪出机器）
-  if(embedded && lid) lid.classList.add('case-anim');
+  // (embedded: CaseScene starts closed — see enh-casescene)
   function thump(){
     const ctx=S.audio; if(!ctx) return; const t=ctx.currentTime;
     const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine';
@@ -4264,158 +4264,19 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     s.textContent = lines.length ? lines.slice(-2).join('\n') : 'Write. Reflect.\nLive better.';
   }
   /* 关箱：机盖从上翻下 → 落下震一下 → 扣上 */
-  /* 箱盖：一整片、装在后方铰链上（= Duo 的折痕）。
-     · Duo 上：上屏就是箱盖本身，翻开多少度由真实铰链角度决定，这里只负责光影（内衬明暗、箱盖投在机器上的影子）
-       和声音；合上 = 关箱，翻开 = 开箱。
-     · 没有铰链的屏幕：虚拟箱盖绕折痕从 0°（盖在箱底上，看到外壳）翻到 180°（平放在上半屏，看到内衬），
-       中间是真实的 3D 透视；关箱反过来。 */
-  function hingeY(){
-    const h=$$('hinge'); if(h){ const r=h.getBoundingClientRect(); if(r.height>0) return Math.round(r.top+r.height/2); }
-    return Math.round(innerHeight/2);
-  }
-  function ping(f, at, vol){            // 清脆金属声
-    const ctx=S.audio; if(!ctx) return; const t=ctx.currentTime+(at||0);
-    const s=ctx.createBufferSource(); s.buffer=noiseBuf(ctx,0.025,0.04);
-    const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=f; bp.Q.value=6;
-    const g=ctx.createGain(); g.gain.setValueAtTime(.5*(vol||1),t); g.gain.exponentialRampToValueAtTime(.001,t+.06);
-    s.connect(bp); bp.connect(g); g.connect(ctx.destination); s.start(t);
-    const o=ctx.createOscillator(), og=ctx.createGain(); o.type='triangle'; o.frequency.value=f*1.02;
-    og.gain.setValueAtTime(.12*(vol||1),t); og.gain.exponentialRampToValueAtTime(.001,t+.18);
-    o.connect(og); og.connect(ctx.destination); o.start(t); o.stop(t+.2);
-  }
-  function creak(dur){                  // 铰链：一声很轻的摩擦
-    const ctx=S.audio; if(!ctx) return; const t=ctx.currentTime;
-    const s=ctx.createBufferSource(); s.buffer=noiseBuf(ctx,dur,0.9);
-    const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.setValueAtTime(700,t); bp.frequency.linearRampToValueAtTime(1100,t+dur); bp.Q.value=5;
-    const g=ctx.createGain(); g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.06,t+dur*.3); g.gain.exponentialRampToValueAtTime(.0005,t+dur);
-    s.connect(bp); bp.connect(g); g.connect(ctx.destination); s.start(t);
-  }
-  const hap=(st)=>{ try{ (window.__hermesHaptic||(()=>{}))(st); }catch(e){} };
-  /** the real hinge angle in degrees (0 closed … 180 flat), or null when this screen has no hinge */
-  function hingeDeg(){
-    const h=window.__minestHinge;
-    if(!h || typeof h.angle!=='number' || !isFinite(h.angle)) return null;
-    let a=h.angle; if(Math.abs(a)<=3.3) a=a*180/Math.PI;
-    return Math.max(0,Math.min(180,Math.abs(a)));
-  }
-  /** light and shade for a lid open at θ degrees: the lining is dim when the lid is nearly shut and full when it
-   *  is wide open; the lid's shadow over the machine is deepest when the lid stands upright */
-  function setAngle(th){
-    const app=$$('app'); if(!app) return;
-    const k=Math.max(0,Math.min(1,(th-15)/150));
-    const ease=k*k*(3-2*k);
-    app.style.setProperty('--lid-dark', (0.62*(1-ease)).toFixed(3));
-    app.style.setProperty('--lid-shade', (0.42*Math.sin(Math.max(0,Math.min(180,th))*Math.PI/180)).toFixed(3));
-    app.style.setProperty('--lid-sheen', (th/180).toFixed(3));
-  }
-  window.__hermesSetAngle=setAngle;
-  /** the virtual lid (screens without a hinge) */
-  function lid3d(){
-    let d=$$('h3-lid3d');
-    if(!d){
-      d=document.createElement('div'); d.id='h3-lid3d';
-      d.innerHTML='<div class="backdrop"></div><div class="panel"><div class="face in"><div class="royal-lining"></div><div class="royal-rim"></div><div class="royal-strap"></div><i class="shade"></i></div><div class="face out"><div class="skin hermes-lid"></div><i class="shade"></i></div></div>';
-      document.body.appendChild(d);
-    }
-    d.style.setProperty('--hy', hingeY()+'px');
-    const skin=d.querySelector('.face.out .skin');
-    skin.innerHTML=lid.innerHTML.replace(/\sid="[^"]*"/g,'');
-    d.style.display='block';
-    return d;
-  }
-  /** pose the virtual lid at θ (0 = shut over the base, 180 = flat in the top half) */
-  function poseLid(d, th){
-    const panel=d.querySelector('.panel');
-    panel.style.transform=`rotateX(${-(180-th)}deg)`;
-    // the face turned away from the light darkens as it swings
-    const s=Math.abs(Math.cos(th*Math.PI/180));
-    d.querySelectorAll('.shade').forEach(x=>x.style.opacity=(0.5*(1-s)).toFixed(3));
-    // the top half: an empty desk while the lid is down, the machine as the lid rises past upright
-    d.querySelector('.backdrop').style.opacity=Math.max(0,Math.min(1,(150-th)/70)).toFixed(3);
-    setAngle(th);
-  }
-  function tween(from, to, ms, ease, onStep, done){
-    const t0=performance.now();
-    const step=(now)=>{
-      const k=Math.min(1,(now-t0)/ms), e=ease(k);
-      onStep(from+(to-from)*e, k);
-      if(k<1) requestAnimationFrame(step); else done&&done();
-    };
-    requestAnimationFrame(step);
-  }
-  const easeOpen=k=>{ // lift, swing, and settle back a touch past the stop
-    if(k<0.82){ const x=k/0.82; return 1.035*(x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2); }
-    const x=(k-0.82)/0.18; return 1.035-0.035*(1-Math.pow(1-x,3));
-  };
-  const easeShut=k=>k*k*k*(1.2-0.2*k); // gravity: slow, then faster and faster
-
+  /* 开箱 / 关箱交给独立的箱体展示系统（CaseScene，见 enh-casescene）：它负责 3D 箱子、锁扣、铰链、镜头与过渡；
+     这里只管状态（busy / lidDismissed）和通知 Minest。打字界面本身不含任何箱体元素。 */
   function closeCase(stay){
-    if(busy||!lid) return; busy=true; initAudio(); slip();
-    const real=hingeDeg();
-    const finish=()=>{
-      thump(); hap('heavy'); if(navigator.vibrate) navigator.vibrate(18);
-      setTimeout(()=>{ latchSnap(); hap('rigid'); }, 200);
-      setTimeout(()=>{
-        lid.classList.remove('slam','up','thud','lift','opening'); lid.classList.add('case-anim');
-        const d=$$('h3-lid3d'); if(d) d.style.display='none';
-        busy=false;
-        if(embedded && !stay){ try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(e){} }
-        else lidDismissed=false;
-      }, 380);
-    };
-    if(real!==null && stay){ setAngle(0); finish(); return; }   // the Duo itself is the lid: it just closed
-    const d=lid3d();
-    creak(.55);
-    tween(180, 0, 620, easeShut, th=>poseLid(d, th), finish);
-  }
-  let focusEl=null;
-  function openCase(){
-    if(!lid) return; busy=true; initAudio(); slip();
-    const real=hingeDeg();
-    const app=$$('app'); if(app) app.style.pointerEvents='none';
-    const anims=[];
-    const An=(el,kf,opt)=>{ if(!el) return; try{ const a=el.animate(kf,opt); anims.push(a); return a; }catch(e){} };
-    const at=(ms,fn)=>setTimeout(fn,ms);
-    // 01 锁扣：左、右先后弹开
-    const latches=lid.querySelectorAll('.lid-latch');
-    const pop=[{transform:'none'},{transform:'translateY(-8px) rotateX(60deg) scale(1.06)',offset:.55},{transform:'translateY(-5px) rotateX(72deg)'}];
-    at(40, ()=>{ latches[0]&&An(latches[0],pop,{duration:170,easing:'cubic-bezier(.2,1.5,.4,1)',fill:'forwards'}); ping(3200,0,1); hap('rigid'); });
-    at(170,()=>{ latches[1]&&An(latches[1],pop,{duration:170,easing:'cubic-bezier(.2,1.5,.4,1)',fill:'forwards'}); ping(2800,0,1); hap('rigid'); });
-    let ready=1500;
-    if(real!==null){
-      // the Duo is the lid: the screens are already open as far as the hand opened them — light follows the angle
-      at(300,()=>{ lid.classList.remove('case-anim','lift','up'); setAngle(hingeDeg() ?? 180); });
-      ready=700;
-    }else{
-      // 02 箱盖：先抬起一点（锁扣松开），再绕后方铰链平稳翻起，越过直立后落到 180° 轻轻回弹
-      at(300,()=>{
-        const d=lid3d(); poseLid(d, 0);
-        lid.classList.remove('case-anim','lift','up');
-        creak(.9);
-        tween(0, 180, 1150, easeOpen, th=>poseLid(d, Math.min(186, th)), ()=>{ poseLid(d,180); d.style.display='none'; });
-        // 03 镜头：从俯视推近、倾到打字视角
-        An(app,[
-          {transform:'perspective(1400px) translateY(-2%) rotateX(11deg) scale(.92)',filter:'brightness(.85)'},
-          {transform:'perspective(1400px) translateY(0) rotateX(0deg) scale(1)',filter:'brightness(1)'}
-        ],{duration:1200,easing:'cubic-bezier(.33,0,.2,1)',fill:'both'});
-      });
-    }
-    // 04 机械就绪：纸架锁释放、微振，滚筒与色带进入焦点
-    at(ready,()=>{
-      ping(1900,0,.8); try{ (window.__click2||(()=>{}))(1.0); sfx('ratchet',.35); }catch(e){}
-      hap('medium');
-      An($$('carriage'),[{translate:'0 0'},{translate:'-3px 0'},{translate:'2px 1px'},{translate:'-1px 0'},{translate:'0 0'}],{duration:280,easing:'ease-out'});
-      const glow=[{filter:'brightness(1)'},{filter:'brightness(1.3) drop-shadow(0 0 6px rgba(255,255,255,.5))',offset:.35},{filter:'brightness(1)'}];
-      An($$('platen'),glow,{duration:520,easing:'ease-out'});
-      An(document.querySelector('.hinge-ribbon'),glow,{duration:520,delay:90,easing:'ease-out'});
+    if(busy || !window.CaseScene) return; busy=true; initAudio(); slip();
+    CaseScene.close().then(()=>{
+      busy=false; lidDismissed=false;
+      if(embedded && !stay){ try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(e){} }
     });
-    // 05 进入打字
-    at(ready+500,()=>{ if(app) app.style.pointerEvents=''; busy=false; lidDismissed=true; applyMode(); });
-    at(ready+900,()=>{ anims.forEach(a=>{ try{a.cancel();}catch(e){} }); fit(); });
   }
-  // the real hinge moving: the light follows it every step
-  addEventListener('minest:hinge',()=>{ const a=hingeDeg(); if(a!==null) setAngle(a); });
-  setAngle(hingeDeg() ?? 180);
+  function openCase(){
+    if(busy || !window.CaseScene || !CaseScene.shown) return; busy=true; initAudio();
+    CaseScene.open().then(()=>{ busy=false; lidDismissed=true; applyMode(); fit(); });
+  }
   // 单独打开时：轻触机盖（盖着的状态）也走开箱动画
   if(lid){
     lid.addEventListener('click',e=>{
@@ -4479,11 +4340,11 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   let wasFolded=folded();
   function onFold(){
     const f=folded(); if(f===wasFolded) return; wasFolded=f;
-    const shut=lid && lid.classList.contains('case-anim');
+    const shut=!!(window.CaseScene && CaseScene.shown);
     if(f && !shut){ busy=false; closeCase(true); }
     else if(!f && shut){ if(busy){ setTimeout(onFoldOpen,950); } else openCase(); }
   }
-  function onFoldOpen(){ if(!folded() && lid.classList.contains('case-anim') && !busy) openCase(); }
+  function onFoldOpen(){ if(!folded() && window.CaseScene && CaseScene.shown && !busy) openCase(); }
   addEventListener('minest:hinge',()=>setTimeout(onFold,60));
   addEventListener('resize',()=>setTimeout(onFold,140));
   window.hermesCase={open:openCase, close:closeCase, fit:fit, folded:folded};
@@ -4677,56 +4538,19 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 </script>
 
 
+
 <!-- ══════════════════════════════════════════════════════════
-     增强（Claude）· 打字机箱（参考 Royal Quiet De Luxe 的箱子）
-     Duo 的上下屏就是箱子的上下两半：上屏 = 箱盖内侧（织物内衬、镀铬包边、绑带），纸从滚筒处立在内衬前；
-     下屏 = 箱底（打字机坐在里面，前沿是箱边和镀铬锁扣）；颜色沿用 Hermes 的鼠尾草绿。
-     内衬明暗与箱盖投在机器上的影子跟着开合角度走（--lid-dark / --lid-shade，由真实铰链或虚拟箱盖设置）。
+     增强（Claude）· 开箱动画与打字工作区解耦
+     · Case Experience（CaseScene）：一只有真实厚度的 3D 薄荷绿硬壳箱 —— 箱底（地板、四壁、包边、镀铬接缝、防滑脚）、
+       箱盖（外壳、深色衬垫内侧 + 加强筋 + 绑带、四壁、提手与金属座、铭牌）、左右锁扣（底座 + 可翻的锁钩 + 锁舌槽）、
+       后方铰链（轴 + 连接片 + 螺丝）。只在开箱 / 关箱时存在，结束后 display:none，不参与任何布局。
+     · Typing Experience：原来的 #app，保持独立、全屏，按屏幕自行缩放；不含任何箱体元素。
+     · Transition：箱里展示的打字机就是 #app 本身（同一个元素，不复制、不闪烁）。箱子按真实空间关系围在屏幕四周，
+       镜头（同一个 3D 变换同时作用于 #app 与箱体两层）从 3/4 俯视推进到正面时，箱壁、箱盖自然移出画面；
+       关箱时反过来，镜头后退、箱体从画面外回来、箱盖绕铰链合上、锁扣依次扣紧。
+     时间轴（开箱约 3.2 秒）：0–0.5 环绕展示 · 0.5–0.9 锁扣解锁 · 0.9–2.0 箱盖展开 · 2.0–2.4 完整展示 · 2.4–3.2 推进进入打字。
      ══════════════════════════════════════════════════════════ -->
-<style id="enh-royal">
-#app{--lid-dark:0;--lid-shade:0;--lid-sheen:1}
-#carriage-half{background:#a9bbb3 !important}
-.royal-lining{
-  position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(120% 80% at 50% 30%,rgba(255,255,255,.16),transparent 60%),
-    repeating-linear-gradient(45deg,rgba(255,255,255,.04) 0 1px,transparent 1px 3px),
-    repeating-linear-gradient(-45deg,rgba(20,40,32,.05) 0 1px,transparent 1px 3px),
-    linear-gradient(180deg,#bccbc4 0%,#aebfb8 55%,#9db0a7 100%);
-}
-.royal-rim{
-  position:absolute;inset:0;pointer-events:none;border-radius:26px 26px 0 0;
-  border:9px solid transparent;border-bottom:0;
-  background:linear-gradient(180deg,#f4f7f8,#aeb8bd 40%,#e3e8ea 60%,#7d878c) border-box;
-  -webkit-mask:linear-gradient(#000 0 0) padding-box exclude,linear-gradient(#000 0 0);
-  mask:linear-gradient(#000 0 0) padding-box exclude,linear-gradient(#000 0 0);
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);
-}
-.royal-rim-shadow{position:absolute;inset:9px 9px 0 9px;pointer-events:none;border-radius:18px 18px 0 0;
-  box-shadow:inset 0 10px 18px rgba(30,50,42,.32),inset 8px 0 14px rgba(30,50,42,.18),inset -8px 0 14px rgba(30,50,42,.18)}
-.royal-strap{
-  position:absolute;left:33%;width:34%;top:13%;height:24%;pointer-events:none;
-  border:10px solid #2c3a34;border-top:0;border-radius:0 0 3px 3px;
-  box-shadow:0 2px 3px rgba(0,0,0,.35),inset 0 -1px 0 rgba(255,255,255,.08);
-}
-.royal-strap::before,.royal-strap::after{content:"";position:absolute;top:-4px;width:9px;height:9px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,#f4f7f8,#8e999e 60%,#4b555a)}
-.royal-strap::before{left:-10px}.royal-strap::after{right:-10px}
-/* the angle: dim when nearly shut, a soft sheen sliding down the lining as it opens */
-.royal-light{position:absolute;inset:0;pointer-events:none;
-  background:
-    linear-gradient(180deg,rgba(255,255,255,calc(.12 * var(--lid-sheen))) 0%,transparent 35%),
-    linear-gradient(180deg,rgba(10,22,17,var(--lid-dark)),rgba(10,22,17,calc(var(--lid-dark) * .7)));
-  transition:background .12s linear}
-.royal-lid-layer{position:absolute;inset:0;z-index:0;pointer-events:none}
-/* the base: the lid's shadow over the machine (deepest with the lid upright), the tweed rim and the latch */
-.royal-hinge-shadow{position:absolute;left:0;right:0;top:0;height:70px;z-index:65;pointer-events:none;
-  background:linear-gradient(180deg,rgba(12,26,20,var(--lid-shade)),transparent)}
-.royal-tray{position:absolute;left:0;right:0;bottom:0;height:14px;z-index:66;pointer-events:none;
-  background:
-    repeating-linear-gradient(90deg,rgba(20,40,32,.12) 0 1px,transparent 1px 3px),
-    linear-gradient(180deg,#93a79e,#6f8379);
-  border-top:3px solid #cfd6d9;box-shadow:0 -2px 4px rgba(0,0,0,.25)}
+<style id="enh-casescene">
 /* the case clasp in the middle of the top rim (it closes the case): a chrome plate, a hinged lever with a lip,
    two screws and a keyhole; pressed, the lever lifts */
 .top-chrome .chrome-spool:first-of-type{
@@ -4751,36 +4575,241 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 }
 .top-chrome .chrome-spool:first-of-type.press::before{transform:perspective(60px) rotateX(-38deg)}
 .top-chrome .chrome-spool:first-of-type.press .lever,.top-chrome .chrome-spool:first-of-type.press .spool{transform:none !important}
-.royal-tray::after{content:"";position:absolute;left:50%;top:-6px;width:54px;height:16px;margin-left:-27px;border-radius:3px;
-  background:linear-gradient(180deg,#f4f7f8,#aeb8bd 50%,#7d878c);box-shadow:0 2px 3px rgba(0,0,0,.35)}
-/* the virtual lid (screens without a hinge) */
-#h3-lid3d{position:fixed;inset:0;z-index:1000;pointer-events:none;display:none;perspective:1500px;perspective-origin:50% var(--hy,50%)}
-#h3-lid3d .backdrop{position:absolute;left:0;right:0;top:0;height:var(--hy);
-  background:radial-gradient(120% 90% at 50% 100%,#3a3d3c,#1b1d1c 70%);opacity:1}
-#h3-lid3d .panel{position:absolute;left:0;right:0;top:0;height:var(--hy);transform-origin:50% 100%;transform-style:preserve-3d;will-change:transform}
-#h3-lid3d .face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:26px 26px 0 0}
-#h3-lid3d .face.out{transform:rotateX(180deg);border-radius:0 0 26px 26px}
-#h3-lid3d .face.out .skin{position:absolute !important;inset:0;display:flex !important;transform:none !important;transition:none !important;animation:none !important;opacity:1 !important}
-#h3-lid3d .shade{position:absolute;inset:0;background:#0b0907;opacity:0;pointer-events:none}
+
+#case-desk{position:fixed;inset:0;z-index:0;display:none;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 40%,#e9ece9 0%,#cfd6d2 55%,#aeb8b3 100%)}
+#case-back,#case-front{position:fixed;inset:0;display:none;pointer-events:none;transform-style:preserve-3d;transform-origin:50% 50%}
+#case-back{z-index:1}#case-front{z-index:3}
+.cs-g{position:absolute;left:0;top:0;transform-style:preserve-3d;transform-origin:0 0}
+.cs-f{position:absolute;left:0;top:0;transform-origin:0 0;backface-visibility:visible}
+/* the shell: mint green hard case, a fine grain, slight wear on the edges */
+.cs-shell{background:
+  radial-gradient(120% 120% at 30% 20%,rgba(255,255,255,.18),transparent 55%),
+  repeating-linear-gradient(35deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),
+  linear-gradient(180deg,#a9cfbd,#8fbba6 60%,#7aa892);
+  box-shadow:inset 0 0 0 1px rgba(30,60,48,.25)}
+.cs-shell.dark{filter:brightness(.82)}
+.cs-shell.darker{filter:brightness(.68)}
+.cs-floor{background:
+  repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
+  linear-gradient(180deg,#2e3734,#252c2a);
+  box-shadow:inset 0 0 40px rgba(0,0,0,.6)}
+.cs-rim{box-sizing:border-box;border-style:solid;border-color:#9cc6b2;
+  box-shadow:inset 0 0 0 2px #e7eef0,inset 0 0 0 4px #9aa6ab,0 0 0 1px rgba(30,60,48,.35)}
+.cs-lining{background:
+  radial-gradient(90% 70% at 50% 40%,rgba(255,255,255,.06),transparent 70%),
+  repeating-linear-gradient(45deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),
+  repeating-linear-gradient(-45deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),
+  linear-gradient(180deg,#34403b,#28312e);
+  box-shadow:inset 0 0 0 6px #9cc6b2,inset 0 0 0 8px #e7eef0,inset 0 0 26px rgba(0,0,0,.55)}
+.cs-rib{position:absolute;background:linear-gradient(90deg,#222a27,#3a4642 50%,#222a27);border-radius:3px;box-shadow:0 2px 3px rgba(0,0,0,.45)}
+.cs-strap{position:absolute;border:9px solid #1a201e;border-top:0;border-radius:0 0 4px 4px;box-shadow:0 2px 4px rgba(0,0,0,.5)}
+.cs-chrome{background:linear-gradient(180deg,#fbfdfd,#c9d2d6 40%,#eef2f3 55%,#7f8a8f)}
+.cs-screw{position:absolute;width:7px;height:7px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff,#9aa5aa 60%,#4f5a5f);box-shadow:0 1px 1px rgba(0,0,0,.4)}
+.cs-screw::after{content:"";position:absolute;left:1px;right:1px;top:3px;height:1px;background:#4f5a5f;transform:rotate(30deg)}
+.cs-badge{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:4px;
+  font:800 13px/1 "Futura","Avenir Next","Helvetica Neue",sans-serif;letter-spacing:4px;color:#5b666b;
+  background:linear-gradient(180deg,#fbfdfd,#cfd7da 45%,#8f9a9f);box-shadow:0 2px 3px rgba(0,0,0,.35),inset 0 1px 0 #fff;
+  text-shadow:0 1px 0 rgba(255,255,255,.7)}
+.cs-handle{position:absolute;border-radius:14px;
+  background:linear-gradient(180deg,#f7efe0,#e6d8bf 50%,#c9b694);box-shadow:0 4px 6px rgba(0,0,0,.4),inset 0 2px 2px rgba(255,255,255,.6),inset 0 -2px 3px rgba(80,60,30,.3)}
+.cs-mount{position:absolute;border-radius:4px;background:linear-gradient(180deg,#fbfdfd,#b9c3c7 50%,#727d82);box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.cs-latch{position:absolute;border-radius:5px;background:linear-gradient(180deg,#fbfdfd,#c4cdd1 45%,#eef2f3 55%,#7a858a);
+  box-shadow:0 2px 4px rgba(0,0,0,.45),inset 0 1px 0 #fff}
+.cs-latch .slot{position:absolute;left:50%;top:58%;width:30%;height:4px;margin-left:-15%;border-radius:2px;background:#2b3236;box-shadow:inset 0 1px 1px rgba(0,0,0,.8)}
+.cs-hook{position:absolute;border-radius:4px 4px 6px 6px;transform-origin:50% 100%;
+  background:linear-gradient(180deg,#ffffff,#d3dade 45%,#9aa5aa 80%,#6a757a);box-shadow:0 2px 3px rgba(0,0,0,.45),inset 0 1px 0 #fff}
+.cs-hook::before{content:"";position:absolute;left:20%;right:20%;top:-5px;height:7px;border-radius:3px 3px 0 0;background:inherit;box-shadow:inherit}
+.cs-strike{position:absolute;border-radius:3px;background:linear-gradient(180deg,#e9eef0,#9aa5aa)}
+.cs-knuckle{position:absolute;border-radius:6px;background:linear-gradient(180deg,#fbfdfd,#aeb8bd 45%,#e8edef 60%,#6f7a7f);box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.cs-foot{position:absolute;width:22px;height:8px;border-radius:4px;background:#1d2220;box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.cs-shadow{background:radial-gradient(50% 50% at 50% 50%,rgba(20,30,25,.38),transparent 72%)}
 </style>
-<script id="enh-royal-script">
+<script id="enh-casescene-script">
 (function(){
   const $$=id=>document.getElementById(id);
-  function build(){
-    const top=$$('carriage-half'), bot=$$('machine-half');
-    if(top && !top.querySelector('.royal-lid-layer')){
-      const l=document.createElement('div'); l.className='royal-lid-layer';
-      l.innerHTML='<div class="royal-lining"></div><div class="royal-rim"></div><div class="royal-rim-shadow"></div><div class="royal-strap"></div><div class="royal-light"></div>';
-      top.prepend(l);
-    }
-    if(bot && !bot.querySelector('.royal-tray')){
-      const s=document.createElement('div'); s.className='royal-hinge-shadow';
-      const t=document.createElement('div'); t.className='royal-tray';
-      bot.append(s,t);
-    }
+  const embedded=(()=>{ try{ return window.parent!==window; }catch(e){ return true; } })();
+  let built=null, W=0, H=0;
+  const st={cam:{rx:0,rz:0,s:1,ty:0}, lid:0, latch:1, shown:false};   // latch: 1 locked … 0 open
+
+  /* ---------- the case model ---------- */
+  function face(cls, w, h, tf, parent, html){
+    const d=document.createElement('div'); d.className='cs-f '+(cls||'');
+    d.style.width=w+'px'; d.style.height=h+'px'; d.style.transform=tf;
+    if(html) d.innerHTML=html; parent.appendChild(d); return d;
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(build,60));
-  else setTimeout(build,60);
+  function group(tf, parent){ const g=document.createElement('div'); g.className='cs-g'; g.style.transform=tf||''; parent.appendChild(g); return g; }
+  function build(){
+    W=innerWidth; H=innerHeight;
+    let desk=$$('case-desk'), back=$$('case-back'), front=$$('case-front');
+    if(!desk){ desk=document.createElement('div'); desk.id='case-desk'; document.body.appendChild(desk); }
+    if(!back){ back=document.createElement('div'); back.id='case-back'; document.body.appendChild(back); }
+    if(!front){ front=document.createElement('div'); front.id='case-front'; document.body.appendChild(front); }
+    back.innerHTML=''; front.innerHTML='';
+    const m=Math.round(Math.max(18, Math.min(W,H)*0.05));   // wall thickness / margin round the machine
+    const D=Math.round(Math.min(W,H)*0.09);                 // base depth below the machine
+    const R=Math.round(Math.min(W,H)*0.025);                // rim above it
+    const L=Math.round(Math.min(W,H)*0.075);                // lid depth
+    const BW=W+2*m, BH=H+2*m;
+    // ---- back layer: shadow on the desk, floor, back + side walls, hinge
+    face('cs-shadow', BW*1.3, BH*1.3, `translate3d(${-m-BW*0.15}px,${-m-BH*0.1}px,${-D-2}px)`, back);
+    face('cs-floor', BW, BH, `translate3d(${-m}px,${-m}px,${-D}px)`, back);
+    face('cs-shell darker', BW, D+R, `translate3d(${-m}px,${-m}px,${R}px) rotateX(-90deg)`, back);            // back wall
+    face('cs-shell dark', D+R, BH, `translate3d(${-m}px,${-m}px,${R}px) rotateY(90deg)`, back);               // left wall
+    face('cs-shell dark', D+R, BH, `translate3d(${W+m}px,${-m}px,${R}px) rotateY(90deg)`, back);              // right wall
+    // hinge: a chrome barrel along the back edge, knuckles and leaves with screws
+    const hinge=group(`translate3d(${-m}px,${-m}px,${R}px)`, back);
+    const hk=face('', BW, 14, `translate3d(0,-7px,0) rotateX(-90deg)`, hinge);
+    for(let i=0;i<5;i++){
+      const k=document.createElement('div'); k.className='cs-knuckle';
+      Object.assign(k.style,{left:(BW*(0.12+i*0.19))+'px',top:'0',width:(BW*0.13)+'px',height:'12px'}); hk.appendChild(k);
+      const sc=document.createElement('div'); sc.className='cs-screw'; Object.assign(sc.style,{left:(BW*(0.12+i*0.19)+BW*0.065-3)+'px',top:'2px'}); hk.appendChild(sc);
+    }
+    // ---- front layer: rim (with a chrome seam), front wall with latches and feet
+    face('cs-rim', BW, BH, `translate3d(${-m}px,${-m}px,${R}px)`, front).style.borderWidth=m+'px';
+    const fw=face('cs-shell', BW, D+R, `translate3d(${-m}px,${H+m}px,${R}px) rotateX(-90deg)`, front);
+    fw.innerHTML=`<div class="cs-chrome" style="position:absolute;left:0;right:0;top:0;height:3px"></div>`+
+      [0.18,0.82].map(p=>`<div class="cs-foot" style="left:${BW*p-11}px;bottom:-4px"></div>`).join('');
+    const latchEls=[];
+    [0.24,0.76].forEach(p=>{
+      const lw=Math.max(44, BW*0.07), lh=Math.max(30,(D+R)*0.62);
+      const base=document.createElement('div'); base.className='cs-latch';
+      Object.assign(base.style,{left:(BW*p-lw/2)+'px',top:'6px',width:lw+'px',height:lh+'px'});
+      base.innerHTML='<div class="slot"></div><div class="cs-screw" style="left:4px;top:4px"></div><div class="cs-screw" style="right:4px;top:4px"></div>';
+      const hook=document.createElement('div'); hook.className='cs-hook';
+      Object.assign(hook.style,{left:(lw*0.18)+'px',width:(lw*0.64)+'px',top:'-10px',height:(lh*0.7)+'px'});
+      base.appendChild(hook); fw.appendChild(base); latchEls.push(hook);
+    });
+    // ---- the lid (its own group, turning on the hinge axis); it moves between the layers as it passes upright
+    const lid=group('', front);
+    face('cs-lining', BW, BH, `translate3d(0,0,0)`, lid,
+      `<div class="cs-rib" style="left:8%;right:8%;top:22%;height:6px"></div><div class="cs-rib" style="left:8%;right:8%;top:68%;height:6px"></div>
+       <div class="cs-rib" style="left:20%;width:6px;top:10%;bottom:10%"></div><div class="cs-rib" style="right:20%;width:6px;top:10%;bottom:10%"></div>
+       <div class="cs-strap" style="left:34%;width:32%;top:6%;height:30%"></div>`);
+    const top=face('cs-shell', BW, BH, `translate3d(0,0,${L}px)`, lid,
+      `<div class="cs-badge" style="left:50%;top:44%;width:${Math.max(120,BW*0.28)}px;height:30px;transform:translate(-50%,-50%)">HERMES</div>
+       <div class="cs-chrome" style="position:absolute;left:0;right:0;bottom:0;height:3px"></div>`);
+    top.style.borderRadius='18px';
+    face('cs-shell dark', BW, L, `translate3d(0,${BH}px,0) rotateX(90deg)`, lid,
+      [0.24,0.76].map(p=>`<div class="cs-strike" style="left:${BW*p-14}px;bottom:2px;width:28px;height:8px"></div>`).join('')); // front wall of lid
+    face('cs-shell darker', BW, L, `translate3d(0,0,0) rotateX(90deg)`, lid);
+    face('cs-shell dark', L, BH, `translate3d(0,0,0) rotateY(-90deg)`, lid);
+    face('cs-shell dark', L, BH, `translate3d(${BW}px,0,0) rotateY(-90deg)`, lid);
+    // the handle on the lid's front edge: a cream grip on two chrome mounts
+    const hw=Math.max(120, BW*0.26);
+    const hg=group(`translate3d(${BW/2-hw/2}px,${BH}px,${L*0.55}px)`, lid);
+    face('', hw, 30, 'translate3d(0,0,0)', hg, `<div class="cs-mount" style="left:0;top:0;width:22px;height:14px"></div><div class="cs-mount" style="right:0;top:0;width:22px;height:14px"></div><div class="cs-handle" style="left:10px;right:10px;top:8px;height:20px"></div>`);
+    built={desk,back,front,lid,latchEls,m,D,R,L,BW,BH};
+    pose();
+  }
+
+  /* ---------- the camera and the parts ---------- */
+  function camStr(c){ return `perspective(1700px) translate3d(0,${c.ty*H}px,0) rotateX(${c.rx}deg) rotateZ(${c.rz}deg) scale3d(${c.s},${c.s},${c.s})`; }
+  function pose(){
+    if(!built) return;
+    const t=camStr(st.cam), app=$$('app');
+    built.back.style.transform=t; built.front.style.transform=t;
+    if(app) app.style.transform = (st.cam.s===1 && !st.cam.rx && !st.cam.rz && !st.cam.ty) ? '' : t;
+    const {m,R,lid}=built;
+    lid.style.transform=`translate3d(${-m}px,${-m}px,${R}px) rotateX(${st.lid}deg)`;
+    // past upright the lid stands behind the machine
+    const want = st.lid>90 ? built.back : built.front;
+    if(lid.parentElement!==want) want.appendChild(lid);
+    built.latchEls.forEach(h=>h.style.transform=`rotateX(${(1-st.latch)*-150}deg)`);
+  }
+  function show(on){
+    if(!built) build();
+    const app=$$('app');
+    ['desk','back','front'].forEach(k=>built[k].style.display=on?'block':'none');
+    if(app){ app.style.zIndex=on?'2':''; app.style.pointerEvents=on?'none':''; if(!on) app.style.transform=''; }
+    st.shown=on; window.__caseLock=on;
+  }
+
+  /* ---------- sounds and touch ---------- */
+  const hap=s=>{ try{ (window.__hermesHaptic||(()=>{}))(s); }catch(e){} };
+  function snd(fn){ try{ initAudio(); const c=S.audio; if(c) fn(c, c.currentTime); }catch(e){} }
+  function noise(c,t,dur,dec,type,f,q,g){ const s=c.createBufferSource(); s.buffer=noiseBuf(c,dur,dec); const fl=c.createBiquadFilter(); fl.type=type; fl.frequency.value=f; if(q) fl.Q.value=q; const gg=c.createGain(); gg.gain.setValueAtTime(g,t); gg.gain.exponentialRampToValueAtTime(.0004,t+dur); s.connect(fl); fl.connect(gg); gg.connect(c.destination); s.start(t); }
+  function tone(c,t,f0,f1,g,d){ const o=c.createOscillator(); o.frequency.setValueAtTime(f0,t); if(f1!==f0) o.frequency.exponentialRampToValueAtTime(f1,t+d); const gg=c.createGain(); gg.gain.setValueAtTime(g,t); gg.gain.exponentialRampToValueAtTime(.0004,t+d); o.connect(gg); gg.connect(c.destination); o.start(t); o.stop(t+d+.02); }
+  const sLatchOpen=()=>snd((c,t)=>{ noise(c,t,.012,.3,'bandpass',3400,5,.5); tone(c,t,2900,2900,.08,.12); noise(c,t+.03,.03,.3,'lowpass',900,0,.15); });
+  const sLatchShut=()=>snd((c,t)=>{ noise(c,t,.01,.3,'highpass',2600,0,.45); noise(c,t,.03,.25,'bandpass',1500,2,.35); tone(c,t,2400,2400,.06,.08); });
+  const sCreak=d=>snd((c,t)=>{ const s=c.createBufferSource(); s.buffer=noiseBuf(c,d,.9); const bp=c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.setValueAtTime(620,t); bp.frequency.linearRampToValueAtTime(980,t+d); bp.Q.value=6; const g=c.createGain(); g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.05,t+d*.3); g.gain.exponentialRampToValueAtTime(.0005,t+d); s.connect(bp); bp.connect(g); g.connect(c.destination); s.start(t); });
+  const sStop=()=>snd((c,t)=>{ noise(c,t,.02,.3,'bandpass',1200,2,.25); tone(c,t,300,180,.12,.05); });
+  const sThud=()=>snd((c,t)=>{ tone(c,t,120,55,.6,.14); noise(c,t,.08,.25,'lowpass',700,0,.45); noise(c,t,.006,.3,'highpass',2500,0,.3); });
+
+  /* ---------- the timeline ---------- */
+  const lerp=(a,b,k)=>a+(b-a)*k;
+  const ease=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+  const CLOSED={rx:48,rz:-12,s:.6,ty:-.02}, SHOW={rx:42,rz:-6,s:.58,ty:0}, OPENV={rx:36,rz:-4,s:.44,ty:.17}, TYPE={rx:0,rz:0,s:1,ty:0};
+  const camLerp=(a,b,k)=>({rx:lerp(a.rx,b.rx,k),rz:lerp(a.rz,b.rz,k),s:lerp(a.s,b.s,k),ty:lerp(a.ty,b.ty,k)});
+  let token=0;
+  /** run a list of [start, end, fn(k)] segments (seconds) on one clock; resolves at the end */
+  function play(segs, total, cbs){
+    const my=++token;
+    return new Promise(res=>{
+      const t0=performance.now(); const fired=new Set();
+      const step=now=>{
+        if(my!==token){ res(false); return; }
+        const t=(now-t0)/1000;
+        for(const [a,b,fn] of segs){ if(t>=a){ fn(Math.max(0,Math.min(1,(t-a)/(b-a||1e-6)))); } }
+        for(const [at,fn] of (cbs||[])) if(t>=at && !fired.has(at)){ fired.add(at); fn(); }
+        pose();
+        if(t<total) requestAnimationFrame(step); else res(true);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  function open(){
+    if(!built || W!==innerWidth || H!==innerHeight) build();
+    show(true);
+    st.cam={...CLOSED}; st.lid=0; st.latch=1; pose();
+    const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const k=reduce?0.35:1;
+    return play([
+      [0, .5*k, x=>st.cam=camLerp(CLOSED,SHOW,ease(x))],                              // 环绕展示
+      [.5*k, .68*k, x=>{ st.latch=1-Math.min(1,x)*0.5; }],                             // 左锁扣
+      [.65*k, .83*k, x=>{ st.latch=0.5-Math.min(1,x)*0.5; }],                          // 右锁扣
+      [.9*k, 2.0*k, x=>{ const e=ease(x); st.lid=Math.min(108, e*111); st.cam=camLerp(SHOW,OPENV,e); }],  // 箱盖展开
+      [1.95*k, 2.05*k, x=>{ st.lid=111-3*x; }],                                        // 机械限位回弹
+      [2.4*k, 3.2*k, x=>st.cam=camLerp(OPENV,TYPE,ease(x))],                           // 推进进入打字
+    ], 3.2*k, [
+      [.5*k, ()=>{ sLatchOpen(); hap('rigid'); }],
+      [.65*k, ()=>{ sLatchOpen(); hap('rigid'); }],
+      [.92*k, ()=>sCreak(1.0*k)],
+      [2.0*k, ()=>{ sStop(); hap('soft'); }],
+    ]).then(ok=>{ if(ok){ st.cam={...TYPE}; pose(); show(false); } return ok; });
+  }
+  function close(){
+    if(!built || W!==innerWidth || H!==innerHeight) build();
+    show(true);
+    st.cam={...TYPE}; st.lid=108; st.latch=0; pose();
+    return play([
+      [0, .8, x=>st.cam=camLerp(TYPE,OPENV,ease(x))],                                  // 镜头后退，箱体回到画面
+      [.95, 1.6, x=>{ const e=x*x*x; st.lid=108*(1-e); st.cam=camLerp(OPENV,SHOW,ease(x)); }],  // 箱盖绕铰链合上
+      [1.75, 1.9, x=>{ st.latch=Math.min(1,x)*0.5; }],                                 // 左锁扣
+      [1.9, 2.05, x=>{ st.latch=0.5+Math.min(1,x)*0.5; }],                             // 右锁扣
+      [2.05, 2.6, x=>st.cam=camLerp(SHOW,CLOSED,ease(x))],                             // 回到闭合展示视角
+    ], 2.6, [
+      [.95, ()=>sCreak(.6)],
+      [1.6, ()=>{ sThud(); hap('heavy'); }],
+      [1.75, ()=>{ sLatchShut(); hap('rigid'); }],
+      [1.9, ()=>{ sLatchShut(); hap('rigid'); }],
+    ]);
+  }
+  /** the closed case, standing still (embedded start; after a close outside Minest) */
+  function showClosed(){ if(!built) build(); show(true); st.cam={...CLOSED}; st.lid=0; st.latch=1; pose(); }
+
+  // input is locked while the case is on screen; a tap on the closed case opens it
+  addEventListener('keydown',e=>{ if(window.__caseLock){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
+  addEventListener('pointerdown',e=>{
+    if(!st.shown) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    if(st.lid===0 && st.latch===1 && window.hermesCase) hermesCase.open();
+  },true);
+  addEventListener('resize',()=>{ if(st.shown){ build(); } else built=null; });
+
+  window.CaseScene={open, close, showClosed, get shown(){ return st.shown; }};
+  if(embedded) showClosed();
 })();
 </script>
 
