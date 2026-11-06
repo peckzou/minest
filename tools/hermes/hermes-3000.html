@@ -4589,6 +4589,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   linear-gradient(180deg,#a9cfbd,#8fbba6 60%,#7aa892);
   box-shadow:inset 0 0 0 1px rgba(30,60,48,.25)}
 .cs-shell.dark{filter:brightness(.82)}
+/* the base's front: the light falls from above, so the wall facing us is a step darker than the rim, shading down to the feet */
+.cs-shell.front{background:linear-gradient(180deg,#8cb9a3 0%,#7aa892 40%,#638f7a 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -6px 10px rgba(20,40,32,.3)}
 .cs-shell.darker{filter:brightness(.68)}
 .cs-floor{background:
   repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
@@ -4647,10 +4649,10 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(!back){ back=document.createElement('div'); back.id='case-back'; document.body.appendChild(back); }
     if(!front){ front=document.createElement('div'); front.id='case-front'; document.body.appendChild(front); }
     back.innerHTML=''; front.innerHTML='';
-    const m=Math.round(Math.max(18, Math.min(W,H)*0.05));   // wall thickness / margin round the machine
-    const D=Math.round(Math.min(W,H)*0.09);                 // base depth below the machine
-    const R=Math.round(Math.min(W,H)*0.025);                // rim above it
-    const L=Math.round(Math.min(W,H)*0.075);                // lid depth
+    const m=Math.round(Math.max(26, Math.min(W,H)*0.07));   // wall thickness / margin round the machine
+    const D=Math.round(Math.min(W,H)*0.32);                 // base depth below the machine (a deep, heavy base)
+    const R=Math.round(Math.min(W,H)*0.035);                // rim above it
+    const L=Math.round(Math.min(W,H)*0.17);                 // lid depth (a thick, hard lid)
     const BW=W+2*m, BH=H+2*m;
     // ---- back layer: shadow on the desk, floor, back + side walls, hinge
     face('cs-shadow', BW*1.3, BH*1.3, `translate3d(${-m-BW*0.15}px,${-m-BH*0.1}px,${-D-2}px)`, back);
@@ -4668,12 +4670,12 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     }
     // ---- front layer: rim (with a chrome seam), front wall with latches and feet
     face('cs-rim', BW, BH, `translate3d(${-m}px,${-m}px,${R}px)`, front).style.borderWidth=m+'px';
-    const fw=face('cs-shell', BW, D+R, `translate3d(${-m}px,${H+m}px,${R}px) rotateX(-90deg)`, front);
+    const fw=face('cs-shell front', BW, D+R, `translate3d(${-m}px,${H+m}px,${R}px) rotateX(-90deg)`, front);
     fw.innerHTML=`<div class="cs-chrome" style="position:absolute;left:0;right:0;top:0;height:3px"></div>`+
       [0.18,0.82].map(p=>`<div class="cs-foot" style="left:${BW*p-11}px;bottom:-4px"></div>`).join('');
     const latchEls=[];
     [0.24,0.76].forEach(p=>{
-      const lw=Math.max(44, BW*0.07), lh=Math.max(30,(D+R)*0.62);
+      const lw=Math.max(54, BW*0.085), lh=Math.max(40,(D+R)*0.42);
       const base=document.createElement('div'); base.className='cs-latch';
       Object.assign(base.style,{left:(BW*p-lw/2)+'px',top:'6px',width:lw+'px',height:lh+'px'});
       base.innerHTML='<div class="slot"></div><div class="cs-screw" style="left:4px;top:4px"></div><div class="cs-screw" style="right:4px;top:4px"></div>';
@@ -4740,7 +4742,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   /* ---------- the timeline ---------- */
   const lerp=(a,b,k)=>a+(b-a)*k;
   const ease=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
-  const CLOSED={rx:48,rz:-12,s:.6,ty:-.02}, SHOW={rx:42,rz:-6,s:.58,ty:0}, OPENV={rx:36,rz:-4,s:.44,ty:.17}, TYPE={rx:0,rz:0,s:1,ty:0};
+  // seen from the front and a little above: the top and the thick front wall both show, the sides lean in evenly
+  const CLOSED={rx:44,rz:0,s:.58,ty:-.04}, SHOW={rx:44,rz:0,s:.55,ty:-.02}, OPENV={rx:46,rz:0,s:.41,ty:.13}, TYPE={rx:0,rz:0,s:1,ty:0};
   const camLerp=(a,b,k)=>({rx:lerp(a.rx,b.rx,k),rz:lerp(a.rz,b.rz,k),s:lerp(a.s,b.s,k),ty:lerp(a.ty,b.ty,k)});
   let token=0;
   /** run a list of [start, end, fn(k)] segments (seconds) on one clock; resolves at the end */
