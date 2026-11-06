@@ -870,7 +870,7 @@ void main(){
     float edge = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, q);
     float qq = min(q, 0.9999);
     float nz = sqrt(1.0 - qq * qq);                       // the sphere's normal toward the eye
-    float fres = pow(1.0 - nz, 2.6);
+    float fres = pow(1.0 - nz, 3.6);
     vec2 l = d / max(rr, 1.0);
     // film thickness: swirling flow on the surface, gravity drains it (thin at the top, thick below)
     float t = uT;
@@ -894,8 +894,10 @@ void main(){
     float arc = smoothstep(0.82, 0.9, q) * (1.0 - smoothstep(0.93, 0.99, q)) * smoothstep(0.1, 0.6, -l.y - l.x * 0.4);
     // the rim reads as a crisp coloured line on a light background
     float rimLine = smoothstep(0.86, 0.97, q);
-    c = irid;
-    a = 0.13 + 0.72 * fres + rimLine * 0.3;
+    // the colour lives in the outer ring only; inside, the film is clear (just a breath of colour)
+    float ringCol = smoothstep(0.62, 0.95, q);
+    c = mix(mix(vec3(1.0), irid, 0.25), irid, ringCol);
+    a = 0.025 + 0.85 * fres + rimLine * 0.32;
     c = mix(c, irid * 0.72, rimLine * 0.55);
     float hl = clamp(w1 * 0.85 + w2 * 0.7 + arc * 0.55, 0.0, 1.0);
     c = mix(c, vec3(1.0), hl);

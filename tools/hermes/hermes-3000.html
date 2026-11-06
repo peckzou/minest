@@ -4211,6 +4211,20 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 .hermes-lid .lid-latch.l{left:18%}.hermes-lid .lid-latch.r{right:18%}
 .hermes-lid .lid-handle{position:absolute;bottom:34px;left:50%;width:120px;height:16px;margin-left:-60px;border-radius:8px;
   background:linear-gradient(180deg,#2d3532,#121614);box-shadow:0 3px 6px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.15)}
+
+/* 3D 折叠机盖：上下两扇，铰链线 = Duo 折痕 */
+#h3-fold{position:fixed;inset:0;z-index:1000;pointer-events:none;display:none;perspective:1100px;perspective-origin:50% var(--hy,50%)}
+#h3-fold .half{position:absolute;left:0;right:0;overflow:hidden;transform-style:preserve-3d;backface-visibility:hidden;will-change:transform}
+#h3-fold .half.a{top:0;height:var(--hy);transform-origin:50% 0}
+#h3-fold .half.b{top:var(--hy);bottom:0;transform-origin:50% 100%}
+#h3-fold .in{position:absolute !important;left:0;right:0;height:100vh;inset:auto 0 auto 0;display:flex !important;
+  transform:none !important;transition:none !important;animation:none !important;opacity:1 !important;cursor:default}
+#h3-fold .half.a .in{top:0}
+#h3-fold .half.b .in{top:calc(-1 * var(--hy))}
+#h3-fold .shade{position:absolute;inset:0;background:#0b1410;opacity:0;pointer-events:none}
+/* 两扇在折痕处的接缝：上扇下沿一道亮边，下扇上沿一道暗影 */
+#h3-fold .half.a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(0,0,0,.35));z-index:2}
+#h3-fold .half.b::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(180deg,rgba(0,0,0,.3),transparent);z-index:2}
 </style>
 <script id="enh-case-script">
 (function(){
@@ -4241,29 +4255,50 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     s.textContent = lines.length ? lines.slice(-2).join('\n') : 'Write. Reflect.\nLive better.';
   }
   /* 关箱：机盖从上翻下 → 落下震一下 → 扣上 */
+  /* 3D 折叠：机盖分成上下两扇，铰链线与 Duo 的折痕对齐。
+     关箱：两扇从屏幕外侧绕外沿翻转合拢，在折痕处碰上（闷响 + 震动），锁扣扣上。
+     开箱（约 2.4 秒）：01 锁扣释放 → 02 两扇先分开几毫米再翻开 → 03 翻出画面、镜头推进并倾斜到打字视角
+                        → 04 纸架锁释放、微振，滚筒与色带进入焦点 → 05 进入打字 */
+  function hingeY(){
+    const h=$$('hinge'); if(h){ const r=h.getBoundingClientRect(); if(r.height>0) return Math.round(r.top+r.height/2); }
+    return Math.round(innerHeight/2);
+  }
+  function foldPanels(){
+    let f=$$('h3-fold');
+    if(!f){
+      f=document.createElement('div'); f.id='h3-fold';
+      f.innerHTML='<div class="half a"><div class="in"></div><i class="shade"></i></div><div class="half b"><div class="in"></div><i class="shade"></i></div>';
+      document.body.appendChild(f);
+    }
+    f.style.setProperty('--hy', hingeY()+'px');
+    const skin=lid.innerHTML.replace(/\sid="[^"]*"/g,'');
+    f.querySelectorAll('.in').forEach(el=>{ el.className='in hermes-lid'; el.innerHTML=skin; });
+    f.style.display='block';
+    return f;
+  }
+  const SWING=100;   // 打开时两扇翻出去的角度
   function closeCase(stay){
     if(busy||!lid) return; busy=true; initAudio(); slip();
-    lid.classList.remove('lift','thud','opening');
-    lid.classList.add('case-anim','up');
-    void lid.offsetWidth;
-    lid.classList.add('slam'); lid.classList.remove('up');
-    try{ sfx('ratchet',.4); }catch(e){}
-    setTimeout(()=>{ thump(); if(navigator.vibrate) navigator.vibrate(18); lid.classList.remove('slam'); lid.classList.add('thud'); }, 500);
-    setTimeout(()=>{ latchSnap(); }, 700);
+    const f=foldPanels(), A=f.querySelector('.half.a'), B=f.querySelector('.half.b');
+    const sA=A.querySelector('.shade'), sB=B.querySelector('.shade');
+    const ease='cubic-bezier(.55,0,.85,.35)';   // 越合越快（重力）
+    A.animate([{transform:`rotateX(${-SWING}deg)`},{transform:'rotateX(0deg)',offset:.86},{transform:'rotateX(-3deg)',offset:.93},{transform:'rotateX(0deg)'}],{duration:640,easing:ease,fill:'forwards'});
+    B.animate([{transform:`rotateX(${SWING}deg)`},{transform:'rotateX(0deg)',offset:.86},{transform:'rotateX(3deg)',offset:.93},{transform:'rotateX(0deg)'}],{duration:640,easing:ease,fill:'forwards'});
+    [sA,sB].forEach(s=>s.animate([{opacity:.55},{opacity:0,offset:.86},{opacity:.06,offset:.93},{opacity:0}],{duration:640,easing:ease,fill:'forwards'}));
+    try{ sfx('ratchet',.3); }catch(e){}
+    setTimeout(()=>{ thump(); if(navigator.vibrate) navigator.vibrate(18); }, 550);
+    setTimeout(()=>{ latchSnap(); }, 760);
     setTimeout(()=>{
-      lid.classList.remove('thud'); busy=false;
+      // 合好了：换成整块机盖
+      lid.classList.remove('slam','up','thud','lift','opening'); lid.classList.add('case-anim');
+      f.style.display='none'; f.getAnimations({subtree:true}).forEach(a=>a.cancel());
+      busy=false;
       if(embedded && !stay){ try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(e){} }
       else if(stay){ lidDismissed=false; }
-      else { lidDismissed=false; }   // 单独打开：停在机盖上，轻触再打开
+      else { lidDismissed=false; }
     }, 900);
   }
-  /* 开箱（约 2.4 秒）：
-     01 锁扣释放 0–0.3s：左右锁扣先后弹开，两声清脆金属声
-     02 箱盖脱离 0.3–0.9s：箱盖先抬起几毫米，再沿竖直方向平稳升起
-     03 机械显露 0.9–1.5s：盖子移出画面，镜头缓慢推进并倾斜到打字视角
-     04 机械就绪 1.5–2.0s：纸架锁释放，微小机械振动，滚筒与色带进入焦点
-     05 进入打字 2.0–2.4s：环境稳定，键盘可交互，纸张成为视觉焦点 */
-  function ping(f, at, vol){            // 清脆金属声：高频带通噪声 + 一点衰减的正弦泛音
+  function ping(f, at, vol){            // 清脆金属声：高频带通噪声 + 一点衰减的泛音
     const ctx=S.audio; if(!ctx) return; const t=ctx.currentTime+(at||0);
     const s=ctx.createBufferSource(); s.buffer=noiseBuf(ctx,0.025,0.04);
     const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=f; bp.Q.value=6;
@@ -4276,68 +4311,61 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   let focusEl=null;
   function openCase(){
     if(!lid) return; busy=true; initAudio();
-    lid.classList.remove('slam','up','thud','opening','lift');
-    lid.classList.add('case-anim'); slip();
+    slip();
+    const f=foldPanels(), A=f.querySelector('.half.a'), B=f.querySelector('.half.b');
+    const sA=A.querySelector('.shade'), sB=B.querySelector('.shade');
+    lid.classList.remove('slam','up','thud','opening','lift','case-anim');   // 整块机盖让位给两扇
     const app=$$('app'); if(app) app.style.pointerEvents='none';
     const anims=[];
-    const A=(el,kf,opt)=>{ if(!el) return; try{ const a=el.animate(kf,opt); anims.push(a); return a; }catch(e){} };
+    const An=(el,kf,opt)=>{ if(!el) return; try{ const a=el.animate(kf,opt); anims.push(a); return a; }catch(e){} };
     const at=(ms,fn)=>setTimeout(fn,ms);
-
-    // 03 的起始镜头：俯视、稍远（盖子还盖着时就摆好）
-    A(app,[
-      {transform:'perspective(1400px) translateY(-2%) rotateX(13deg) scale(.9)',filter:'brightness(.82) saturate(.9)',offset:0},
-      {transform:'perspective(1400px) translateY(-2%) rotateX(13deg) scale(.9)',filter:'brightness(.82) saturate(.9)',offset:.6,easing:'cubic-bezier(.33,0,.2,1)'},
+    // 03 的起始镜头：俯视、稍远
+    An(app,[
+      {transform:'perspective(1400px) translateY(-2%) rotateX(13deg) scale(.9)',filter:'brightness(.8) saturate(.9)',offset:0},
+      {transform:'perspective(1400px) translateY(-2%) rotateX(13deg) scale(.9)',filter:'brightness(.8) saturate(.9)',offset:.6,easing:'cubic-bezier(.33,0,.2,1)'},
       {transform:'perspective(1400px) translateY(0) rotateX(0deg) scale(1)',filter:'brightness(1) saturate(1)',offset:1}
     ],{duration:1500,fill:'both'});
-
-    // 01 锁扣释放：左、右先后弹开
-    const L=lid.querySelector('.lid-latch.l'), R=lid.querySelector('.lid-latch.r');
+    A.style.transform='rotateX(0deg)'; B.style.transform='rotateX(0deg)';
+    // 01 锁扣释放：左、右先后弹开（两扇随之轻轻一颤）
+    const latches=f.querySelectorAll('.half.a .lid-latch');
     const pop=[{transform:'none'},{transform:'translateY(-8px) rotateX(60deg) scale(1.06)',offset:.55},{transform:'translateY(-5px) rotateX(72deg)'}];
-    at(40, ()=>{ A(L,pop,{duration:170,easing:'cubic-bezier(.2,1.5,.4,1)',fill:'forwards'}); ping(3200,0,1); if(navigator.vibrate) navigator.vibrate(6); });
-    at(170,()=>{ A(R,pop,{duration:170,easing:'cubic-bezier(.2,1.5,.4,1)',fill:'forwards'}); ping(2800,0,1); if(navigator.vibrate) navigator.vibrate(6); });
-
-    // 02 + 03 箱盖：先抬几毫米，停一下，再竖直平稳升起、移出画面
-    at(300,()=>{
-      A(lid,[
-        {transform:'translateY(0)',offset:0,easing:'cubic-bezier(.2,.8,.3,1)'},
-        {transform:'translateY(-7px)',offset:.125},
-        {transform:'translateY(-7px)',offset:.2,easing:'cubic-bezier(.45,0,.25,1)'},
-        {transform:'translateY(-40%)',offset:.5,easing:'cubic-bezier(.3,0,.25,1)'},
-        {transform:'translateY(-115%)',offset:1}
+    at(40, ()=>{ latches[0]&&An(latches[0],pop,{duration:170,easing:'cubic-bezier(.2,1.5,.4,1)',fill:'forwards'}); ping(3200,0,1); if(navigator.vibrate) navigator.vibrate(6); });
+    at(170,()=>{ latches[1]&&An(latches[1],pop,{duration:170,easing:'cubic-bezier(.2,1.5,.4,1)',fill:'forwards'}); ping(2800,0,1); if(navigator.vibrate) navigator.vibrate(6); });
+    // 02 + 03 两扇：先在折痕处分开几毫米，再绕外沿平稳翻开、翻出画面
+    const swing=(el,sign,sh)=>{
+      An(el,[
+        {transform:'rotateX(0deg)',offset:0,easing:'cubic-bezier(.2,.8,.3,1)'},
+        {transform:`rotateX(${sign*3}deg)`,offset:.12},
+        {transform:`rotateX(${sign*3}deg)`,offset:.2,easing:'cubic-bezier(.4,0,.2,1)'},
+        {transform:`rotateX(${sign*SWING}deg)`,offset:1}
       ],{duration:1200,fill:'forwards'});
-      try{ sfx('ratchet',.25); }catch(e){}
-    });
+      An(sh,[{opacity:0},{opacity:.05,offset:.2},{opacity:.6}],{duration:1200,fill:'forwards'});
+    };
+    at(300,()=>{ swing(A,-1,sA); swing(B,1,sB); try{ sfx('ratchet',.25); }catch(e){} });
     at(560,()=>{ try{ sfx('return',.28); }catch(e){} });
-
-    // 04 机械就绪：纸架锁释放（咔 + 微振），滚筒与色带进入焦点
+    // 04 机械就绪
     at(1500,()=>{
-      lid.classList.remove('case-anim'); anims.filter(a=>a.effect&&a.effect.target!==app).forEach(a=>{ try{a.cancel();}catch(e){} });
+      f.style.display='none'; anims.filter(a=>a.effect&&a.effect.target!==app).forEach(a=>{ try{a.cancel();}catch(e){} });
       ping(1900,0,.8); try{ (window.__click2||(()=>{}))(1.0); sfx('ratchet',.35); }catch(e){}
       if(navigator.vibrate) navigator.vibrate([8,30,6]);
-      A($$('carriage'),[{translate:'0 0'},{translate:'-3px 0'},{translate:'2px 1px'},{translate:'-1px 0'},{translate:'0 0'}],{duration:280,easing:'ease-out'});
-      A($$('machine-half'),[{translate:'0 0'},{translate:'0 1.5px'},{translate:'0 -1px'},{translate:'0 0'}],{duration:220});
+      An($$('carriage'),[{translate:'0 0'},{translate:'-3px 0'},{translate:'2px 1px'},{translate:'-1px 0'},{translate:'0 0'}],{duration:280,easing:'ease-out'});
+      An($$('machine-half'),[{translate:'0 0'},{translate:'0 1.5px'},{translate:'0 -1px'},{translate:'0 0'}],{duration:220});
       const glow=[{filter:'brightness(1)'},{filter:'brightness(1.35) drop-shadow(0 0 6px rgba(255,255,255,.55))',offset:.35},{filter:'brightness(1)'}];
-      A($$('platen'),glow,{duration:520,easing:'ease-out'});
-      A(document.querySelector('.hinge-ribbon'),glow,{duration:520,delay:90,easing:'ease-out'});
-      A(document.querySelector('.card-holder'),glow,{duration:520,delay:150,easing:'ease-out'});
-      // 焦点光圈：四周微暗，纸张最亮
+      An($$('platen'),glow,{duration:520,easing:'ease-out'});
+      An(document.querySelector('.hinge-ribbon'),glow,{duration:520,delay:90,easing:'ease-out'});
+      An(document.querySelector('.card-holder'),glow,{duration:520,delay:150,easing:'ease-out'});
       const paper=$$('paper');
       if(paper){
         const r=paper.getBoundingClientRect();
         const cx=Math.round(r.left+r.width/2), cy=Math.round(r.bottom-20);
         if(!focusEl){ focusEl=document.createElement('div'); focusEl.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:998;opacity:0'; document.body.appendChild(focusEl); }
         focusEl.style.background=`radial-gradient(ellipse ${Math.max(260,r.width*.75)}px 220px at ${cx}px ${cy}px,rgba(0,0,0,0) 0%,rgba(0,0,0,0) 55%,rgba(10,18,14,.42) 100%)`;
-        A(focusEl,[{opacity:0},{opacity:1,offset:.55},{opacity:1,offset:.7},{opacity:0}],{duration:900,easing:'ease-in-out',fill:'forwards'});
+        An(focusEl,[{opacity:0},{opacity:1,offset:.55},{opacity:1,offset:.7},{opacity:0}],{duration:900,easing:'ease-in-out',fill:'forwards'});
       }
     });
-
-    // 05 进入打字：环境稳定，键盘可交互
+    // 05 进入打字
     at(2000,()=>{ if(app) app.style.pointerEvents=''; busy=false; lidDismissed=true; applyMode(); });
-    at(2400,()=>{
-      anims.forEach(a=>{ try{a.cancel();}catch(e){} });
-      lid.classList.remove('case-anim','lift','up');
-      fit();
-    });
+    at(2400,()=>{ anims.forEach(a=>{ try{a.cancel();}catch(e){} }); fit(); });
   }
   // 单独打开时：轻触机盖（盖着的状态）也走开箱动画
   if(lid){
@@ -4416,6 +4444,40 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   addEventListener('minest:hinge',()=>setTimeout(onFold,60));
   addEventListener('resize',()=>setTimeout(onFold,140));
   window.hermesCase={open:openCase, close:closeCase, fit:fit, folded:folded};
+})();
+</script>
+
+
+<!-- 增强（Claude）· 功能键挪到空格键两边（左：BACK SPACE / TAB SET / TAB CLEAR；右：ALL CLEAR / MAR. REL. / TAB），
+     键盘不再多一排；前盖与键盘、键盘与前唇之间的空隙收紧 -->
+<style id="enh-keys2">
+#kr0{display:none !important}
+#kr5{gap:calc(var(--k) * .14) !important;justify-content:center !important;width:auto !important;padding:0 !important}
+#kr5 .h3-fgrp{display:flex;gap:calc(var(--k) * .12);align-items:center}
+#kr5 .fkey .cap{min-width:calc(var(--k) * 1.08) !important;height:calc(var(--k) * .62) !important;font-size:calc(var(--k) * .19) !important;padding:0 calc(var(--k) * .08) !important}
+.key.k-space{width:calc(var(--k) * 4.6) !important}
+.key.k-space .cap{width:calc(var(--k) * 4.5) !important}
+/* 空隙 1：前盖下沿到键盘 —— 键盘倾角放小（梯形上沿不再缩进太多），上边距收紧 */
+#deck{transform:perspective(1100px) rotateX(10deg) !important;padding-top:2px !important;padding-bottom:2px !important;margin-top:-6px}
+#mech-deck::after{height:8px !important;bottom:-8px !important}
+/* 空隙 2：键盘下沿到前唇 */
+.h3-lip{margin:0 10px 2px !important;height:14px !important}
+</style>
+<script id="enh-keys2-script">
+(function(){
+  const $$=id=>document.getElementById(id);
+  function move(){
+    const kr0=$$('kr0'), kr5=$$('kr5'); if(!kr0||!kr5||kr5.querySelector('.h3-fgrp')) return !!(kr5&&kr5.querySelector('.h3-fgrp'));
+    const keys=[...kr0.querySelectorAll('.fkey')]; if(keys.length<6) return false;
+    const sp=kr5.querySelector('.k-space'); if(!sp) return false;
+    const L=document.createElement('div'); L.className='h3-fgrp l';
+    const R=document.createElement('div'); R.className='h3-fgrp r';
+    keys.slice(0,3).forEach(k=>L.appendChild(k)); keys.slice(3).forEach(k=>R.appendChild(k));
+    kr5.insertBefore(L, sp); sp.after(R);
+    return true;
+  }
+  let tries=0;
+  (function wait(){ if(move()){ if(window.hermesCase&&hermesCase.fit) setTimeout(hermesCase.fit,30); return; } if(++tries<40) setTimeout(wait,100); })();
 })();
 </script>
 
