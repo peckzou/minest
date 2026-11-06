@@ -4169,7 +4169,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 
 <!-- ══════════════════════════════════════════════════════════
      增强（Claude）· 开箱 / 关箱
-     · 顶栏右上角的卷轴扣 = 关箱按钮：机盖从上方翻下来盖住整台机器（关箱动画 + 声音）；
+     · 顶栏中间的卷轴扣 = 关箱（退出）按钮：机盖从上方翻下来盖住整台机器（关箱动画 + 声音）；
        嵌在 Minest 里时，关好后回到 Minest（postMessage 'hermes:closed'）；单独打开时停在机盖上，轻触再打开
      · 开箱：从 Minest 进来时先显示合着的机盖，再向上翻开（window.hermesCase.open()）
      · Hermes 3000 丝印往右挪，不被屏幕圆角挡住
@@ -4182,18 +4182,18 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 /* 上下两半 + 铰链加起来不超过一屏：下半屏只占剩余高度 */
 #machine-half{flex:1 1 0 !important;min-height:0 !important}
 #deck{min-height:0 !important}
-.top-chrome .chrome-spool:last-child{
+.top-chrome .chrome-spool:first-of-type{
   position:relative;cursor:pointer;padding:8px 6px 8px 14px;margin:-8px -6px -8px 0;border-radius:12px;
   -webkit-tap-highlight-color:transparent;
 }
-.top-chrome .chrome-spool:last-child::after{
+.top-chrome .chrome-spool:first-of-type::after{
   content:"";position:absolute;inset:4px;border-radius:10px;pointer-events:none;
   box-shadow:0 0 0 1.5px rgba(255,255,255,.0);transition:box-shadow .2s;
 }
-.top-chrome .chrome-spool:last-child:hover::after{box-shadow:0 0 0 1.5px rgba(255,255,255,.55)}
-.top-chrome .chrome-spool:last-child.press .lever{transform:rotate(-35deg);transform-origin:100% 50%}
-.top-chrome .chrome-spool:last-child.press .spool{transform:scale(.88)}
-.top-chrome .chrome-spool:last-child .lever,.top-chrome .chrome-spool:last-child .spool{transition:transform .14s}
+.top-chrome .chrome-spool:first-of-type:hover::after{box-shadow:0 0 0 1.5px rgba(255,255,255,.55)}
+.top-chrome .chrome-spool:first-of-type.press .lever{transform:rotate(-35deg);transform-origin:100% 50%}
+.top-chrome .chrome-spool:first-of-type.press .spool{transform:scale(.88)}
+.top-chrome .chrome-spool:first-of-type .lever,.top-chrome .chrome-spool:first-of-type .spool{transition:transform .14s}
 
 /* 机盖动画：不论什么形态都能盖下来 */
 .hermes-lid.case-anim{display:flex !important}
@@ -4225,6 +4225,15 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 /* 两扇在折痕处的接缝：上扇下沿一道亮边，下扇上沿一道暗影 */
 #h3-fold .half.a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(0,0,0,.35));z-index:2}
 #h3-fold .half.b::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(180deg,rgba(0,0,0,.3),transparent);z-index:2}
+
+/* 键帽高度跟着 --kh（默认 = 键宽）；行距也按 --kh */
+#deck{gap:calc(var(--kh, var(--k)) * 0.12) !important}
+.key{height:var(--kh, var(--k)) !important}
+.key .cap{height:calc(var(--kh, var(--k)) * 0.9) !important}
+.key.h3-shift .cap{height:calc(var(--kh, var(--k)) * 0.95) !important}
+.fkey.lock .cap{height:calc(var(--kh, var(--k)) * 0.9) !important}
+#deck #kr5 .fkey .cap,#deck .key.k-space .cap{height:calc(var(--kh, var(--k)) * 0.62) !important}
+#deck #kr5 .key{height:calc(var(--kh, var(--k)) * 0.7) !important}
 </style>
 <script id="enh-case-script">
 (function(){
@@ -4373,7 +4382,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       if(lid.classList.contains('case-anim') && !busy){ e.stopImmediatePropagation(); openCase(); }
     }, true);
   }
-  const btn=document.querySelector('.top-chrome .chrome-spool:last-child');
+  const btn=document.querySelector('.top-chrome .chrome-spool:first-of-type');
   if(btn){
     btn.title='关箱';
     btn.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); btn.classList.add('press'); });
@@ -4382,34 +4391,28 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     btn.addEventListener('pointerleave',()=>btn.classList.remove('press'));
   }
 
-  /* 按高度收键盘：整台机器在屏幕内完整显示（键盘按可用高度算键宽；还不够再压机构窗） */
+  /* 按高度排键盘：键宽按屏幕宽度放大（--k），放不下时先把键帽压扁一些（--kh，最低 0.7 倍）、行距收紧，
+     还放不下才缩小键宽；整台机器在屏幕内完整显示 */
   let fitting=false;
   function fit(){
     if(fitting) return; fitting=true;
-    const deck=$$('deck'), mh=$$('machine-half'), md=$$('mech-deck');
+    const deck=$$('deck'), mh=$$('machine-half');
     if(!deck||!mh){ fitting=false; return; }
-    deck.style.removeProperty('--k'); if(md) md.style.removeProperty('height');
+    deck.style.removeProperty('--k'); deck.style.removeProperty('--kh');
     requestAnimationFrame(()=>{
-      // 键盘区高度已由布局决定（下半屏 = 剩余高度）；量的是最后一排键是否超出键盘区
-      const kr=[...deck.querySelectorAll('.krow')], lastRow=kr[kr.length-1];
-      const room=()=>deck.getBoundingClientRect().bottom-8;
-      const bottom=()=>{ const b=lastRow?lastRow.getBoundingClientRect().bottom:0; return b-room()+limit; };
-      const limit=innerHeight-4;
-      if(bottom()>limit){
-        deck.style.setProperty('--k','44px'); const b1=bottom();
-        deck.style.setProperty('--k','36px'); const b2=bottom();
-        const slope=(b1-b2)/8 || 6.5;                 // 每 1px 键宽占多少高度
-        let nk=36+(limit-b2)/slope;
-        if(nk<38 && md){                              // 键太小：先把机构窗压矮（最低 150px）
-          const h0=md.getBoundingClientRect().height;
-          const take=Math.min((38-nk)*slope, h0-150);
-          md.style.height=(h0-take)+'px';
-          deck.style.setProperty('--k','36px'); nk=36+(limit-bottom())/slope;
+      const kr=[...deck.querySelectorAll('.krow')].filter(r=>getComputedStyle(r).display!=='none'), lastRow=kr[kr.length-1];
+      const over=()=>lastRow ? lastRow.getBoundingClientRect().bottom-(deck.getBoundingClientRect().bottom-6) : 0;
+      if(over()>0){
+        const k=deck.querySelector('.key[data-ch]').getBoundingClientRect().width;
+        let kh=k;
+        for(let i=0;i<8 && over()>0 && kh>k*0.7;i++){
+          kh=Math.max(k*0.7, kh-Math.max(1,over()/kr.length));
+          deck.style.setProperty('--kh', kh+'px');
         }
-        deck.style.setProperty('--k', Math.max(26, Math.min(54, nk))+'px');
-        for(let i=0;i<4;i++){                         // 再按实测微调（斜率不完全线性）
-          const over=bottom()-limit; if(over<=0) break;
-          nk=Math.max(26, nk-over/slope-.3); deck.style.setProperty('--k', nk+'px');
+        let kk=k;
+        for(let i=0;i<8 && over()>0 && kk>26;i++){
+          kk=Math.max(26, kk-Math.max(1,over()/(kr.length*0.9)));
+          deck.style.setProperty('--k', kk+'px'); deck.style.setProperty('--kh', (kk*0.7)+'px');
         }
       }
       fitting=false;

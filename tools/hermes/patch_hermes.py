@@ -3,7 +3,7 @@
 - tools/hermes/hermes-3000.html is a copy of that page (copy it again here after it changes, then re-run).
   It rides in the page as inert base64 text (<script type="text/plain" id="mn-hermes-src">) and becomes an
   iframe (srcdoc) on the first open: the typewriter keeps its own globals, styles and keyboard handling.
-- window.MinestHermes = { open, close, isOpen }: full screen over Minest, left by the typewriter's own case latch (top right chrome spool):
+- window.MinestHermes = { open, close, isOpen }: full screen over Minest, left by the typewriter's own case latch (the chrome spool in the middle of the top bar):
   the lid swings down and the typewriter posts 'hermes:closed'; opening posts 'hermes:open' and the lid swings up.
   The hinge state is forwarded ('hermes:hinge') so a half-folded phone gets the half-folded typewriter. Closing only hides it, so the sheet in the machine stays as it was typed until the app is closed.
 - The ways in: an icon in the Dock (after Liquid Routine) and a tab in the bottom tab bar.
@@ -75,7 +75,7 @@ RUN = r"""<script id="mn-hermes-run">
   var queued = false;
   new MutationObserver(function () { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; entries(); }); }).observe(document.body, { childList: true, subtree: true });
   entries();
-  window.MinestHermes = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.3.0' };
+  window.MinestHermes = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.4.0' };
 })();
 </script>
 """
