@@ -12,7 +12,7 @@ RUNTIME = ["ios/Minest/Minest/iphone18.0.html", "ios/Minest/Minest/iphone.html",
 MARK = "/* duo-dock-plain */"
 RMARK = "/* duo-dock-plain-runtime */"
 EDITS = [
-    (HEAD, HEAD + "    " + RMARK + " var duoPlain = function () { var c = document.documentElement.classList; return c.contains('duo-inner') || c.contains('duo-outer'); };\n"),
+    (HEAD, HEAD + "    " + RMARK + " var duoPlain = function () { var c = document.documentElement.classList; return c.contains('duo-inner') || c.contains('duo-outer') || (window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0; };\n"),
     # no swell on the Duo
     ("    function apply() {\n      raf = 0; sizes();\n", "    function apply() {\n      raf = 0; sizes();\n      if (duoPlain()) pos = null;\n"),
     # a tap goes straight through (no pick first)
