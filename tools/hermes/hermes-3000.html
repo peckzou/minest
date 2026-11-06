@@ -4166,5 +4166,171 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 .h3-lip{height:18px !important;margin:0 10px 4px !important}
 </style>
 
+
+<!-- ══════════════════════════════════════════════════════════
+     增强（Claude）· 开箱 / 关箱
+     · 顶栏右上角的卷轴扣 = 关箱按钮：机盖从上方翻下来盖住整台机器（关箱动画 + 声音）；
+       嵌在 Minest 里时，关好后回到 Minest（postMessage 'hermes:closed'）；单独打开时停在机盖上，轻触再打开
+     · 开箱：从 Minest 进来时先显示合着的机盖，再向上翻开（window.hermesCase.open()）
+     · Hermes 3000 丝印往右挪，不被屏幕圆角挡住
+     · 键盘按可用高度自动缩小，整台机器（含空格键、前唇）完整显示；Minest 把铰链状态转给这里，半折时进入半折形态
+     ══════════════════════════════════════════════════════════ -->
+<style id="enh-case">
+.top-chrome .brand-script{margin-left:30px}
+/* 底下那排“操作杆”是重复的（回车杆在字车上、退格是键、行距用滚筒旋钮）：真机没有，去掉腾出高度 */
+#machine-half > .lever-deck{display:none !important}
+/* 上下两半 + 铰链加起来不超过一屏：下半屏只占剩余高度 */
+#machine-half{flex:1 1 0 !important;min-height:0 !important}
+#deck{min-height:0 !important}
+.top-chrome .chrome-spool:last-child{
+  position:relative;cursor:pointer;padding:8px 6px 8px 14px;margin:-8px -6px -8px 0;border-radius:12px;
+  -webkit-tap-highlight-color:transparent;
+}
+.top-chrome .chrome-spool:last-child::after{
+  content:"";position:absolute;inset:4px;border-radius:10px;pointer-events:none;
+  box-shadow:0 0 0 1.5px rgba(255,255,255,.0);transition:box-shadow .2s;
+}
+.top-chrome .chrome-spool:last-child:hover::after{box-shadow:0 0 0 1.5px rgba(255,255,255,.55)}
+.top-chrome .chrome-spool:last-child.press .lever{transform:rotate(-35deg);transform-origin:100% 50%}
+.top-chrome .chrome-spool:last-child.press .spool{transform:scale(.88)}
+.top-chrome .chrome-spool:last-child .lever,.top-chrome .chrome-spool:last-child .spool{transition:transform .14s}
+
+/* 机盖动画：不论什么形态都能盖下来 */
+.hermes-lid.case-anim{display:flex !important}
+.hermes-lid.case-anim.up{transform:perspective(1100px) rotateX(-86deg);opacity:0}
+.hermes-lid.case-anim.slam{transition:transform .5s cubic-bezier(.55,0,.75,.2),opacity .18s}
+.hermes-lid.case-anim.lift{transition:transform .6s cubic-bezier(.2,.75,.3,1),opacity .45s .12s}
+/* 盖下时的落地抖动 */
+@keyframes h3Thud{0%{transform:translateY(0)}35%{transform:translateY(5px) scaleY(.995)}70%{transform:translateY(-2px)}100%{transform:none}}
+.hermes-lid.case-anim.thud{animation:h3Thud .22s ease-out}
+/* 机盖下沿的阴影（翻动时） */
+.hermes-lid.case-anim::after{content:"";position:absolute;left:0;right:0;bottom:-30px;height:30px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.35),transparent)}
+.hermes-lid .lid-latch{position:absolute;top:10px;width:46px;height:12px;border-radius:6px;
+  background:linear-gradient(180deg,#f4f8f9,#aab6bb 55%,#6b787e);box-shadow:0 2px 4px rgba(0,0,0,.35)}
+.hermes-lid .lid-latch.l{left:18%}.hermes-lid .lid-latch.r{right:18%}
+.hermes-lid .lid-handle{position:absolute;bottom:34px;left:50%;width:120px;height:16px;margin-left:-60px;border-radius:8px;
+  background:linear-gradient(180deg,#2d3532,#121614);box-shadow:0 3px 6px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.15)}
+</style>
+<script id="enh-case-script">
+(function(){
+  const $$=id=>document.getElementById(id);
+  const embedded = (()=>{ try{ return window.parent!==window; }catch(e){ return true; } })();
+  const lid=$$('hermes-lid');
+  if(lid && !lid.querySelector('.lid-latch')){
+    const a=document.createElement('div'); a.className='lid-latch l';
+    const b=document.createElement('div'); b.className='lid-latch r';
+    const h=document.createElement('div'); h.className='lid-handle';
+    lid.append(a,b,h);
+  }
+  // 嵌在 Minest 里：一载入就是合着的箱子，等 Minest 发 'hermes:open' 再翻开（不闪出机器）
+  if(embedded && lid) lid.classList.add('case-anim');
+  function thump(){
+    const ctx=S.audio; if(!ctx) return; const t=ctx.currentTime;
+    const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine';
+    o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(52,t+.16);
+    g.gain.setValueAtTime(.55,t); g.gain.exponentialRampToValueAtTime(.001,t+.22);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+.25);
+    try{ (window.__click2||(()=>{}))(1.3); }catch(e){}
+  }
+  function latchSnap(){ try{ (window.__click2||(()=>{}))(1.0); }catch(e){} }
+  let busy=false;
+  function slip(){
+    const s=$$('lid-slip'); if(!s) return;
+    const lines=(S.text||'').trim().split('\n').filter(Boolean);
+    s.textContent = lines.length ? lines.slice(-2).join('\n') : 'Write. Reflect.\nLive better.';
+  }
+  /* 关箱：机盖从上翻下 → 落下震一下 → 扣上 */
+  function closeCase(){
+    if(busy||!lid) return; busy=true; initAudio(); slip();
+    lid.classList.remove('lift','thud','opening');
+    lid.classList.add('case-anim','up');
+    void lid.offsetWidth;
+    lid.classList.add('slam'); lid.classList.remove('up');
+    try{ sfx('ratchet',.4); }catch(e){}
+    setTimeout(()=>{ thump(); if(navigator.vibrate) navigator.vibrate(18); lid.classList.remove('slam'); lid.classList.add('thud'); }, 500);
+    setTimeout(()=>{ latchSnap(); }, 700);
+    setTimeout(()=>{
+      lid.classList.remove('thud'); busy=false;
+      if(embedded){ try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(e){} }
+      else { lidDismissed=false; }   // 单独打开：停在机盖上，轻触再打开
+    }, 900);
+  }
+  /* 开箱：显示合着的机盖 → 扣松开 → 向上翻开 */
+  function openCase(){
+    if(!lid) return; busy=true;
+    lid.classList.remove('slam','up','thud','opening');
+    lid.classList.add('case-anim'); slip();
+    setTimeout(()=>{ initAudio(); latchSnap(); }, 160);
+    setTimeout(()=>{
+      lid.classList.add('lift','up');
+      try{ sfx('return',.5); }catch(e){}
+    }, 300);
+    setTimeout(()=>{ lid.classList.remove('case-anim','lift','up'); busy=false; lidDismissed=true; applyMode(); fit(); }, 950);
+  }
+  // 单独打开时：轻触机盖（盖着的状态）也走开箱动画
+  if(lid){
+    lid.addEventListener('click',e=>{
+      if(lid.classList.contains('case-anim') && !busy){ e.stopImmediatePropagation(); openCase(); }
+    }, true);
+  }
+  const btn=document.querySelector('.top-chrome .chrome-spool:last-child');
+  if(btn){
+    btn.title='关箱';
+    btn.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); btn.classList.add('press'); });
+    const up=()=>{ if(!btn.classList.contains('press')) return; btn.classList.remove('press'); closeCase(); };
+    btn.addEventListener('pointerup',up);
+    btn.addEventListener('pointerleave',()=>btn.classList.remove('press'));
+  }
+
+  /* 按高度收键盘：整台机器在屏幕内完整显示（键盘按可用高度算键宽；还不够再压机构窗） */
+  let fitting=false;
+  function fit(){
+    if(fitting) return; fitting=true;
+    const deck=$$('deck'), mh=$$('machine-half'), md=$$('mech-deck');
+    if(!deck||!mh){ fitting=false; return; }
+    deck.style.removeProperty('--k'); if(md) md.style.removeProperty('height');
+    requestAnimationFrame(()=>{
+      // 键盘区高度已由布局决定（下半屏 = 剩余高度）；量的是最后一排键是否超出键盘区
+      const kr=[...deck.querySelectorAll('.krow')], lastRow=kr[kr.length-1];
+      const room=()=>deck.getBoundingClientRect().bottom-8;
+      const bottom=()=>{ const b=lastRow?lastRow.getBoundingClientRect().bottom:0; return b-room()+limit; };
+      const limit=innerHeight-4;
+      if(bottom()>limit){
+        deck.style.setProperty('--k','44px'); const b1=bottom();
+        deck.style.setProperty('--k','36px'); const b2=bottom();
+        const slope=(b1-b2)/8 || 6.5;                 // 每 1px 键宽占多少高度
+        let nk=36+(limit-b2)/slope;
+        if(nk<38 && md){                              // 键太小：先把机构窗压矮（最低 150px）
+          const h0=md.getBoundingClientRect().height;
+          const take=Math.min((38-nk)*slope, h0-150);
+          md.style.height=(h0-take)+'px';
+          deck.style.setProperty('--k','36px'); nk=36+(limit-bottom())/slope;
+        }
+        deck.style.setProperty('--k', Math.max(26, Math.min(54, nk))+'px');
+        for(let i=0;i<4;i++){                         // 再按实测微调（斜率不完全线性）
+          const over=bottom()-limit; if(over<=0) break;
+          nk=Math.max(26, nk-over/slope-.3); deck.style.setProperty('--k', nk+'px');
+        }
+      }
+      fitting=false;
+      if(typeof calibrateTypebars==='function') setTimeout(calibrateTypebars,30);
+    });
+  }
+  addEventListener('resize',()=>setTimeout(fit,120));
+  addEventListener('minest:hinge',()=>setTimeout(fit,160));
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(fit,700));
+  else setTimeout(fit,700);
+
+  /* Minest 发来的消息：开箱 / 铰链状态 */
+  addEventListener('message',e=>{
+    const d=e.data||{};
+    if(d.type==='hermes:open') openCase();
+    if(d.type==='hermes:hinge'){ window.__minestHinge=d.hinge; dispatchEvent(new CustomEvent('minest:hinge',{detail:d.hinge})); }
+  });
+  window.hermesCase={open:openCase, close:closeCase, fit:fit};
+})();
+</script>
+
 </body>
 </html>

@@ -3,8 +3,9 @@
 - tools/hermes/hermes-3000.html is a copy of that page (copy it again here after it changes, then re-run).
   It rides in the page as inert base64 text (<script type="text/plain" id="mn-hermes-src">) and becomes an
   iframe (srcdoc) on the first open: the typewriter keeps its own globals, styles and keyboard handling.
-- window.MinestHermes = { open, close, isOpen }: full screen over Minest, left by a small ✕ (top right).
-  Closing only hides it, so the sheet in the machine stays as it was typed until the app is closed.
+- window.MinestHermes = { open, close, isOpen }: full screen over Minest, left by the typewriter's own case latch (top right chrome spool):
+  the lid swings down and the typewriter posts 'hermes:closed'; opening posts 'hermes:open' and the lid swings up.
+  The hinge state is forwarded ('hermes:hinge') so a half-folded phone gets the half-folded typewriter. Closing only hides it, so the sheet in the machine stays as it was typed until the app is closed.
 - The ways in: an icon in the Dock (after Liquid Routine) and a tab in the bottom tab bar.
 Patched into every copy; safe to re-run (each block is replaced with its current text)."""
 import base64, re
@@ -21,11 +22,6 @@ CSS = """<style id="mn-hermes-style">
 .mn-hermes { position:fixed; inset:0; z-index:2147483561; background:#b8c8c1; }
 .mn-hermes[hidden] { display:none; }
 .mn-hermes iframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
-.mn-hermes-x { position:absolute; z-index:2; right:max(10px, env(safe-area-inset-right, 0px)); top:calc(env(safe-area-inset-top, 0px) + 46px);
-  width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,.6); color:#24332c; font:600 16px/1 -apple-system, system-ui, sans-serif;
-  background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(225,235,230,.55)); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
-  box-shadow:0 4px 12px rgba(0,0,0,.22), inset 0 1px 0 #fff; display:grid; place-items:center; padding:0; -webkit-tap-highlight-color:transparent; }
-.mn-hermes-x:active { transform:scale(.92); }
 html.mn-hermes-on #minest-mini-pet-p0 { visibility:hidden !important; }
 </style>
 """
@@ -41,19 +37,29 @@ RUN = r"""<script id="mn-hermes-run">
     for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
     return new TextDecoder('utf-8').decode(u);
   }
+  // 开箱 / 关箱都在打字机里：右上角的卷轴扣关箱，盖好后发 'hermes:closed' 回来；打开时发 'hermes:open' 让它翻开
+  function post(m) { try { var w = ov && ov.querySelector('iframe').contentWindow; if (w) w.postMessage(m, '*'); } catch (e) {} }
+  function hinge() { if (window.__minestHinge) post({ type: 'hermes:hinge', hinge: window.__minestHinge }); }
+  var loaded = false;
   function open() {
     if (!ov) {
       ov = document.createElement('div'); ov.className = 'mn-hermes'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Hermes 3000');
-      var fr = document.createElement('iframe'); fr.title = 'Hermes 3000'; fr.setAttribute('allow', 'autoplay'); fr.srcdoc = page();
-      var x = document.createElement('button'); x.type = 'button'; x.className = 'mn-hermes-x'; x.setAttribute('aria-label', '关闭打字机'); x.textContent = '✕';
-      x.addEventListener('click', close);
-      ov.append(fr, x); document.body.appendChild(ov);
+      var fr = document.createElement('iframe'); fr.title = 'Hermes 3000'; fr.setAttribute('allow', 'autoplay');
+      fr.addEventListener('load', function () { loaded = true; hinge(); if (!ov.hidden) post({ type: 'hermes:open' }); });
+      fr.srcdoc = page();
+      ov.appendChild(fr); document.body.appendChild(ov);
       ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
     }
     ov.hidden = false; document.documentElement.classList.add('mn-hermes-on');
+    if (loaded) { hinge(); post({ type: 'hermes:open' }); }
     try { ov.querySelector('iframe').focus(); } catch (e) {}
   }
   function close() { if (!ov || ov.hidden) return; ov.hidden = true; document.documentElement.classList.remove('mn-hermes-on'); }
+  window.addEventListener('message', function (e) {
+    var fr = ov && ov.querySelector('iframe');
+    if (fr && e.source === fr.contentWindow && e.data && e.data.type === 'hermes:closed') close();
+  });
+  window.addEventListener('minest:hinge', function () { if (ov && !ov.hidden) hinge(); });
   var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3.5h10V9"/><path d="M9.5 6h5"/><rect x="3" y="9" width="18" height="11" rx="2.5"/><path d="M7 13h.01M10 13h.01M14 13h.01M17 13h.01M8 16.5h8"/></svg>';
   function entries() {
     if (!document.getElementById('mn-hermes-trigger')) {   // a hidden button the Dock presses (like Routine's)
@@ -69,7 +75,7 @@ RUN = r"""<script id="mn-hermes-run">
   var queued = false;
   new MutationObserver(function () { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; entries(); }); }).observe(document.body, { childList: true, subtree: true });
   entries();
-  window.MinestHermes = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.0.0' };
+  window.MinestHermes = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.1.0' };
 })();
 </script>
 """
