@@ -4998,6 +4998,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       const Z=built ? built.D+built.R+built.L : 0, c=Math.cos(52*Math.PI/180), sn=Math.sin(52*Math.PI/180);
       const fit=0.86*Math.min(W/(BH*c+Z*sn), H/(BW*1.08));
       CLOSED={rx:0,ry:-32,rz:-90,s:fit,ty:0}; SHOW={...CLOSED}; OPENV={rx:0,ry:-52,rz:-90,s:fit*1.02,ty:0};
+      if(W>H){ CLOSED={rx:50,ry:0,rz:0,s:1,ty:0}; SHOW={...CLOSED}; OPENV={rx:44,ry:0,rz:0,s:1,ty:0}; }
       // measured: the box's eight corners under the camera — scaled to fit and centred on the screen
       if(built){
         const xs=[built.ox-built.mx, built.ox+built.gw+built.mx], ys=[built.oy-built.m, built.oy+built.gh+built.m], zs=[-built.D, built.R+built.L];
@@ -5439,7 +5440,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     const a=sysAngle();
     let r=0;
     let native=false; try{ native=!!(window.MinestNative || (window.parent!==window && window.parent.MinestNative)); }catch(e){}
-    if(onDuo() && !native){
+    if(onDuo() && native){ if(kind==='inner'){ r=((360-a)%360+360)%360; if(r%90) r=0; } }
+    else if(onDuo() && !native){
       if(w<h && ref[kind]===undefined) ref[kind]=a;                 // standing the way we lay it out: the reference
       const base = ref[kind]!==undefined ? ref[kind] : ((a===0||a===180) ? (a+90)%360 : 0);   // not seen standing yet: a guess
       r=((base-a)%360+360)%360;
