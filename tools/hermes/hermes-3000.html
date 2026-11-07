@@ -4801,7 +4801,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
         const w=r.width>200?r.width:Math.min(W,H), h=r.height>120?r.height:w*0.58;
         snap={html:mh.outerHTML, w, h, cls:''}; }
       // laid out afresh in the base's own proportions (wide and low), so the keys are as big as the base allows
-      const lw=KB_LW, lh=Math.round(KB_LW*gh/gw*KB_FILL);
+      const lw=Math.round(Math.max(820, Math.min(1300, 520*gw/gh))), lh=Math.round(lw*gh/gw*KB_FILL);
       snap={...snap, w:lw, h:lh};
       const k=Math.min(gw*0.97/snap.w, gh*0.97/snap.h);
       const x=(gw-snap.w*k)/2, y=(gh-snap.h*k)/2;
@@ -4842,9 +4842,9 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     const backL=back, frontL=front;
     back=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, backL); front=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, frontL);
     const m=Math.round(Math.max(26, gh*0.07));   // wall thickness / margin round the machine
-    const D=Math.round(gh*0.22);                 // base depth below the machine
+    const D=Math.round(gh*0.42);                 // base depth below the machine (a deep base)
     const R=Math.round(gh*0.035);                // rim above it
-    const L=Math.round(gh*0.12);                 // lid depth
+    const L=Math.round(gh*0.17);                 // lid depth
     // the sides: as far out as the screen allows in the open view (sideM, worked out by cameras()), never less than m
     const mx=m;
     const BW=gw+2*mx, BH=gh+2*m;
@@ -4914,7 +4914,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   }
 
   /* ---------- the camera and the parts ---------- */
-  function camStr(c){ return `perspective(1700px) translate3d(0,${c.ty*H}px,0) rotateY(${c.ry||0}deg) rotateX(${c.rx}deg) rotateZ(${c.rz}deg) scale3d(${c.s},${c.s},${c.s})`; }
+  function camStr(c){ return `perspective(1700px) translate3d(${(c.tx||0)*W}px,${c.ty*H}px,0) rotateY(${c.ry||0}deg) rotateX(${c.rx}deg) rotateZ(${c.rz}deg) scale3d(${c.s},${c.s},${c.s})`; }
   function pose(){
     if(!built) return;
     const t=camStr(st.cam), app=$$('app');
@@ -4976,7 +4976,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   /** where a point of the case lands on screen under a camera (the same matrix the CSS transform builds) */
   function project(cam, x, y, z){
     const P=new DOMMatrix([1,0,0,0, 0,1,0,0, 0,0,1,-1/1700, 0,0,0,1]);
-    const M=new DOMMatrix().translate(W/2,H/2).multiply(P).translate(0,cam.ty*H,0).rotate(0,cam.ry||0,0).rotate(cam.rx,0,0).rotate(0,0,cam.rz).scale(cam.s,cam.s,cam.s).translate(-W/2,-H/2);
+    const M=new DOMMatrix().translate(W/2,H/2).multiply(P).translate((cam.tx||0)*W,cam.ty*H,0).rotate(0,cam.ry||0,0).rotate(cam.rx,0,0).rotate(0,0,cam.rz).scale(cam.s,cam.s,cam.s).translate(-W/2,-H/2);
     const p=M.transformPoint(new DOMPoint(x,y,z,1));
     return {x:p.x/p.w, y:p.y/p.w};
   }
@@ -4987,8 +4987,23 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       // the case lies across the outer screen, its front (handle and latches) toward the right edge, seen a little
       // from that side so the front shows
       const BW=(built?built.BW:Math.max(W,H)), BH=(built?built.BH:Math.min(W,H));
-      const fit=0.9*Math.min(W/BH, H/BW);
+      // the whole box in view: the footprint seen turned, plus the depth (base + rim + lid) the turn shows
+      const Z=built ? built.D+built.R+built.L : 0, c=Math.cos(52*Math.PI/180), sn=Math.sin(52*Math.PI/180);
+      const fit=0.86*Math.min(W/(BH*c+Z*sn), H/(BW*1.08));
       CLOSED={rx:0,ry:-32,rz:-90,s:fit,ty:0}; SHOW={...CLOSED}; OPENV={rx:0,ry:-52,rz:-90,s:fit*1.02,ty:0};
+      // measured: the box's eight corners under the camera — scaled to fit and centred on the screen
+      if(built){
+        const xs=[built.ox-built.mx, built.ox+built.gw+built.mx], ys=[built.oy-built.m, built.oy+built.gh+built.m], zs=[-built.D, built.R+built.L];
+        const fitCam=c0=>{ let c={...c0, tx:0, ty:0};
+          for(let i=0;i<3;i++){
+            let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+            xs.forEach(x=>ys.forEach(y=>zs.forEach(z=>{ const p=project(c,x,y,z); x0=Math.min(x0,p.x); x1=Math.max(x1,p.x); y0=Math.min(y0,p.y); y1=Math.max(y1,p.y); })));
+            const k=Math.min(0.9*W/(x1-x0), 0.9*H/(y1-y0));
+            c={...c, s:c.s*k, tx:c.tx+(W/2-(x0+x1)/2)/W, ty:c.ty+(H/2-(y0+y1)/2)/H};
+          }
+          return c; };
+        CLOSED=fitCam(CLOSED); SHOW={...CLOSED}; OPENV=fitCam(OPENV);
+      }
       return;
     }
     const r=0;
@@ -5057,7 +5072,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       [0,d,x=>{ st.cam=camLerp(into,to,ease(x)); }],
     ], d).then(ok=>{ xfade(0); const app=$$('app'); if(app){ app.style.visibility='hidden'; app.style.opacity=''; } return ok; });
   }
-  const camLerp=(a,b,k)=>({rx:lerp(a.rx,b.rx,k),ry:lerp(a.ry||0,b.ry||0,k),rz:lerp(a.rz,b.rz,k),s:lerp(a.s,b.s,k),ty:lerp(a.ty,b.ty,k)});
+  const camLerp=(a,b,k)=>({tx:lerp(a.tx||0,b.tx||0,k),rx:lerp(a.rx,b.rx,k),ry:lerp(a.ry||0,b.ry||0,k),rz:lerp(a.rz,b.rz,k),s:lerp(a.s,b.s,k),ty:lerp(a.ty,b.ty,k)});
   let token=0, playing=0;
   /** run a list of [start, end, fn(k)] segments (seconds) on one clock; resolves at the end */
   function play(segs, total, cbs){
@@ -5139,7 +5154,13 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   },true);
   // a new screen (the phone opened or shut): rebuild for it and keep the lid where it is
   let wasOuter=isOuter();
-  addEventListener('resize',()=>{ const nowOuter=isOuter(); if(wasOuter && !nowOuter && st.shown && mode!=='typing') arrive=true; wasOuter=nowOuter; if(built){ ['desk','back','front'].forEach(k=>built[k] && (built[k].style.opacity='')); } if(st.shown){ build(); const app=$$('app'); if(app) app.style.visibility='hidden'; if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else { built=null; const app=$$('app'); if(app){ app.style.transform=typingTransform(); app.style.visibility=''; } } });
+  let arriveT=0;
+  addEventListener('resize',()=>{ const nowOuter=isOuter(); const switched=wasOuter!==nowOuter;
+    if(wasOuter && !nowOuter && st.shown && mode!=='typing'){ arrive=true; clearTimeout(arriveT); arriveT=setTimeout(settleArrival, 280); }
+    wasOuter=nowOuter;
+    // the same screen size again (the system re-announcing it): nothing to rebuild
+    if(st.shown && built && !switched && W===innerWidth && H===innerHeight) return;
+    if(st.shown){ build(); const app=$$('app'); if(app) app.style.visibility='hidden'; if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else { built=null; const app=$$('app'); if(app){ app.style.transform=typingTransform(); app.style.visibility=''; } } });
 
 
   /* ---------- opening and closing: two separate mechanisms ----------
@@ -5215,16 +5236,35 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     });
   }
   function foldClose(){ closeMode(false); }
+  /** arrived on the inner screen with the phone already open: the whole opening, start to end — the case settles
+   *  in view, the two latches spring, the lid swings up to its stop and rebounds, then in to the typewriter */
   function arriveOpen(){
     if(lv.busy) return;
-    lv.busy=true; mode='opening'; armed=false;
-    const fromLid=st.lid, fromCam={...st.cam};
-    if(lv.latched){ sLatchOpen(); hap('rigid'); setTimeout(()=>{ sLatchOpen(); hap('rigid'); },120); lv.latched=false; }
-    sCreak(.9);
-    play([
-      [0,.25,x=>{ st.latch=1-x; }],
-      [.1,1.2,x=>{ const e=ease(x); st.lid=fromLid+(LID_MAX-fromLid)*e; st.cam=camLerp(fromCam, camFor(LID_MAX), e); }],
-    ], 1.75, [[1.2,()=>{ sStop(); hap('soft'); }]]).then(ok=>{ lv.busy=false; lv.cur=lv.target=LID_MAX; if(ok) pushIn(); });
+    arrive=false; lv.busy=true; mode='opening'; armed=false;
+    if(lv.raf){ cancelAnimationFrame(lv.raf); lv.raf=0; }
+    const fromLid=st.lid, fromCam={...st.cam}, fromLatch=st.latch, top=LID_MAX+3;
+    const view=fromLid<2 ? SHOW : camFor(fromLid);
+    const L1=fromLatch>0.05, k=matchMedia('(prefers-reduced-motion: reduce)').matches ? 0.5 : 1;
+    const t=x=>x*k;
+    return play([
+      [0, t(.45), x=>{ st.cam=camLerp(fromCam, view, ease(x)); }],
+      [t(.45), t(.62), x=>{ if(L1) st.latch=fromLatch*(1-x*.5); }],
+      [t(.6), t(.77), x=>{ if(L1) st.latch=fromLatch*.5*(1-x); }],
+      [t(.85), t(2.05), x=>{ const e=ease(x); st.lid=fromLid+(top-fromLid)*e; st.cam=camLerp(view, camFor(LID_MAX), e); }],
+      [t(2.05), t(2.2), x=>{ st.lid=top-3*Math.sin(x*Math.PI/2); }],
+    ], t(2.4), [
+      ...(L1 ? [[t(.45),()=>{ sLatchOpen(); hap('rigid'); }],[t(.6),()=>{ sLatchOpen(); hap('rigid'); }]] : []),
+      [t(.88),()=>sCreak(1.1*k)],
+      [t(2.05),()=>{ sStop(); hap('soft'); }],
+    ]).then(ok=>{ lv.busy=false; lv.latched=false; st.latch=0; lv.cur=lv.target=LID_MAX; if(ok) return pushIn(); return ok; });
+  }
+  /** the inner screen has settled after the switch: the hinge says where the lid is */
+  function settleArrival(){
+    if(!arrive || !st.shown || isOuter() || mode==='typing' || mode==='closing') return;
+    if(lv.busy){ arriveT=setTimeout(settleArrival, 200); return; }
+    const th=hingeDeg();
+    if(th===null || th>=OPEN_AT){ arriveOpen(); return; }
+    arrive=false; armed=true; follow(th*LID_MAX/OPEN_AT);
   }
   /** shut by the hand: if the clasp asked for it, back to Minest */
   function shutDone(){
@@ -5244,10 +5284,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     }
     // the case is shut or opening: the hand drives the lid
     if(!st.shown) showClosed();
-    // just arrived on the inner screen (the phone was opened from the outer one), already past the opening angle:
-    // the lid is shown swinging up to its stop over the base and the typewriter, a breath, then in to the typewriter
-    if(arrive && th>=OPEN_AT){ arrive=false; arriveOpen(); return; }
-    if(th<OPEN_AT) arrive=false;
+    if(isOuter()) return;
+    if(arrive) return;          // just arrived on the inner screen: settleArrival() takes it from here
     if(th<OPEN_AT-10) armed=true;
     if(th>=OPEN_AT){ if(armed){ armed=false; pushIn(); } return; }
     follow(th*LID_MAX/OPEN_AT);
@@ -5261,10 +5299,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
      end, latches sprung — ready to open (unfold the phone, or tap the case) */
   function outerReady(){
     showClosed();
-    clearTimeout(outerDark);
-    outerDark=setTimeout(()=>{ if(!isOuter() || !st.shown || mode==='typing') return;
-      ['desk','back','front'].forEach(k=>{ const el=built[k]; if(!el) return; el.style.transition='opacity .6s ease'; el.style.opacity=k==='desk'?'1':'0'; });
-      if(built.desk) built.desk.style.background='#000'; }, 1600);
+
     play([[.15,.33,x=>{ st.latch=1-x*0.5; }],[.3,.48,x=>{ st.latch=.5-x*.5; lv.latched=false; }],[.5,.9,x=>{ st.lid=3*Math.sin(x*Math.PI); }]], .95,
       [[.15,()=>{ sLatchOpen(); hap('rigid'); }],[.3,()=>{ sLatchOpen(); hap('rigid'); }]]).then(()=>{ st.lid=0; lv.cur=lv.target=0; pose(); });
   }
