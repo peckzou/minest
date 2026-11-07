@@ -4712,7 +4712,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 /* the machine in the base: a still copy of the typewriter's keyboard half (in its own shadow tree) */
 .cs-kb{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;border-radius:10px;overflow:hidden;
   box-shadow:0 0 0 2px rgba(20,45,35,.35),0 6px 14px rgba(0,0,0,.35)}
-#case-exit{position:fixed;z-index:20;left:calc(env(safe-area-inset-left,0px) + 14px);top:calc(env(safe-area-inset-top,0px) + 14px);
+#case-exit{position:fixed;z-index:2147483000;left:calc(env(safe-area-inset-left,0px) + 14px);top:calc(env(safe-area-inset-top,0px) + 14px);
   width:42px;height:42px;border-radius:50%;border:0;padding:10px;color:#e9f2ee;cursor:pointer;
   background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 4px 12px rgba(0,0,0,.4)}
@@ -5136,7 +5136,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     ])).then(ok=>{ lv.cur=lv.target=0; lv.latched=true; mode='closed'; armed=hingeDeg()!==null && hingeDeg()<OPEN_AT-10; return ok; });
   }
   /** the closed case, standing still (embedded start; after a close outside Minest) */
-  function showClosed(){ if(!built) build(); show(true); st.cam={...CLOSED}; st.lid=0; st.latch=1; lv.cur=lv.target=0; lv.latched=true; playing=token; mode='closed'; armed=hingeDeg()!==null && hingeDeg()<OPEN_AT-10; pose(); }
+  function showClosed(){ onLid=false; if(!built) build(); show(true); st.cam={...CLOSED}; st.lid=0; st.latch=1; lv.cur=lv.target=0; lv.latched=true; playing=token; mode='closed'; armed=hingeDeg()!==null && hingeDeg()<OPEN_AT-10; pose(); }
 
   // input is locked while the case is on screen; a tap on the closed case opens it
   addEventListener('keydown',e=>{ if(window.__caseLock){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
@@ -5185,15 +5185,16 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       [d+.22, ()=>{ sLatchShut(); hap('rigid'); }],
     ]).then(ok=>{
       lv.busy=false; st.lid=0; st.latch=1; lv.cur=lv.target=0; lv.latched=true; mode='closed'; armed=true; pose();
-      if(ok && wasClosing){ closeIntent=true; shutDone(); }
+      if(ok){ closeIntent=false; setTimeout(()=>{ if(mode==='closed' && !lv.busy && isOuter()) toLidPage(); }, 500); }
       return ok;
     });
   }
   let trend=0;   // the hinge's last movement: > 0 unfolding, < 0 folding
   let outerO=null, innerO=null;   // the lock each display was last seen held in
   function onScreen(){ const nowOuter=isOuter(); const switched=wasOuter!==nowOuter;
-    if(switched){ const o=curO(); if(nowOuter) outerO=o; else innerO=o; lockO=o; }
-    if(wasOuter && !nowOuter && st.shown && mode!=='typing'){
+
+    if(wasOuter && !nowOuter && (st.shown || onLid) && mode!=='typing'){
+      onLid=false; try{ lidDismissed=true; applyMode(); }catch(e){}
       // in from the outer screen: whatever was running there stops; the case, shut, turned base-to-the-camera-half,
       // waits for the screen to settle, then opens in full (or follows the hand)
       arrive=true; caseFlip=180; clearTimeout(arriveT); token++; playing=token; lv.busy=false;
@@ -5332,7 +5333,14 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     arrive=false; armed=true; follow(th*LID_MAX/OPEN_AT);
   }
   /** shut by the hand: if the clasp asked for it, back to Minest */
-  function shutDone(){ closeIntent=false; }   // shut: the case stays on its first page (the ✕ there goes back to Minest)
+  function shutDone(){ closeIntent=false; }
+  let onLid=false;
+  /** back to the typewriter's first page: the flat lid (outer screen) */
+  function toLidPage(){
+    if(!isOuter()) return;
+    onLid=true; show(false); mode='closed';
+    try{ lidDismissed=false; applyMode(); }catch(e){}
+  }   // shut: the case stays on its first page (the ✕ there goes back to Minest)
   /* the system orientation lock, following the hand (see the orient-lock shim, which keeps the page upright) */
   let lockO=null;
   function curO(){ let a=0; try{ a=(typeof window.orientation==='number') ? window.orientation : (screen.orientation ? screen.orientation.angle : 0); }catch(e){} a=((a%360)+360)%360; return (a===90||a===270) ? 'landscape' : 'portrait'; }
@@ -5345,9 +5353,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   function onHinge(){
     const th=hingeDeg(); if(th===null) return;
     if(lastTh!==null && Math.abs(th-lastTh)>0.4) trend=th-lastTh;
-    if(lockO===null) lockO=curO();
-    if(isOuter() && th>8 && trend>0) setLock(opp(outerO||curO()));
-    if(!isOuter() && th<70 && trend<0 && innerO) setLock(opp(innerO));
+
     if(isOuter()!==wasOuter && (st.shown || mode==='typing')){ onScreen(); }   // the hinge came in before the resize: the switch first
     const prev=lastTh; lastTh=th;
     if(lv.busy || mode==='closing') return;
@@ -5357,7 +5363,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       return;
     }
     // the case is shut or opening: the hand drives the lid
-    if(!st.shown) showClosed();
+    if(!st.shown){ if(isOuter()) return; showClosed(); }
     if(isOuter()) return;
     if(arrive) return;          // just arrived on the inner screen: settleArrival() takes it from here
     if(th<OPEN_AT-10) armed=true;
@@ -5365,7 +5371,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     follow(th*LID_MAX/OPEN_AT);
   }
   addEventListener('minest:hinge', onHinge);
-  setTimeout(()=>{ lockO=curO(); if(isOuter()) outerO=lockO; else innerO=lockO; }, 400);
+
   /** the case is being driven by a real hinge right now */
   const liveHinge=()=>hingeDeg()!==null;
   let outerDark=0;
@@ -5395,7 +5401,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     x.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     x.addEventListener('click',e=>{ e.stopPropagation(); hap('light'); try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(err){} });
     document.body.appendChild(x);
-    const sync=()=>{ x.hidden=!(st.shown && (mode==='closed' || mode==='opening') && !lv.busy); };
+    const sync=()=>{ const app=$$('app'), lidPage=!st.shown && app && app.classList.contains('mode-closed');
+      x.hidden=!(lidPage || (st.shown && mode==='closed' && !lv.busy)); };
     setInterval(sync, 200); sync();
   }
   if(embedded) showClosed();
@@ -5431,8 +5438,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     const a=sysAngle();
     let r=0;
     let native=false; try{ native=!!(window.MinestNative || (window.parent!==window && window.parent.MinestNative)); }catch(e){}
-    if(onDuo() && native){ r=((360-a)%360+360)%360; if(r%90) r=0; }
-    else if(onDuo() && !native){
+    if(onDuo() && !native){
       if(w<h && ref[kind]===undefined) ref[kind]=a;                 // standing the way we lay it out: the reference
       const base = ref[kind]!==undefined ? ref[kind] : ((a===0||a===180) ? (a+90)%360 : 0);   // not seen standing yet: a guess
       r=((base-a)%360+360)%360;

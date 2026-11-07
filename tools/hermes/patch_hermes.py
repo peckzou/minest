@@ -58,8 +58,7 @@ RUN = r"""<script id="mn-hermes-run">
   function close() { if (!ov || ov.hidden) return; ov.hidden = true; document.documentElement.classList.remove('mn-hermes-on'); lockTurn(false); }
   // while the typewriter is open (its case and its typing view) the screen holds still, as with the system's
   // orientation lock: the app's own setOrientation (portrait); back to the usual turns when it closes
-  // on: held the way the phone is held right now (no turn on opening — the typewriter keeps itself upright inside)
-  function lockTurn(on) { try { if (!(window.MinestNative && MinestNative.send)) return; var a = 0; try { a = (typeof window.orientation === 'number') ? window.orientation : (screen.orientation ? screen.orientation.angle : 0); } catch (e) {} a = ((a % 360) + 360) % 360; MinestNative.send('setOrientation', { orientation: on ? ((a === 90 || a === 270) ? 'landscape' : 'portrait') : 'auto' }); } catch (e) {} }
+  function lockTurn(on) { try { if (window.MinestNative && MinestNative.send) MinestNative.send('setOrientation', { orientation: on ? 'portrait' : 'auto' }); } catch (e) {} }
   window.addEventListener('message', function (e) {
     var fr = ov && ov.querySelector('iframe');
     if (fr && e.source === fr.contentWindow && e.data && e.data.type === 'hermes:closed') close();
@@ -80,7 +79,7 @@ RUN = r"""<script id="mn-hermes-run">
   var queued = false;
   new MutationObserver(function () { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; entries(); }); }).observe(document.body, { childList: true, subtree: true });
   entries();
-  window.MinestHermes = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.24.0' };
+  window.MinestHermes = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.24.1' };
 })();
 </script>
 """
