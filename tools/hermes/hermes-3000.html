@@ -4781,23 +4781,25 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     const D=Math.round(Math.min(W,H)*0.32);                 // base depth below the machine (a deep, heavy base)
     const R=Math.round(Math.min(W,H)*0.035);                // rim above it
     const L=Math.round(Math.min(W,H)*0.17);                 // lid depth (a thick, hard lid)
-    const BW=gw+2*m, BH=gh+2*m;
+    // the sides: as far out as the screen allows in the open view (sideM, worked out by cameras()), never less than m
+    const mx=Math.max(m, (!outer && sideM && sideM.W===W && sideM.H===H) ? sideM.mx : m);
+    const BW=gw+2*mx, BH=gh+2*m;
     // ---- back layer: a soft shadow on the (black) desk, the felt floor, back + side walls
-    face('cs-shadow', BW*1.3, BH*1.3, `translate3d(${-m-BW*0.15}px,${-m-BH*0.1}px,${-D-2}px)`, back);
-    face('cs-floor', BW, BH, `translate3d(${-m}px,${-m}px,${-D}px)`, back);
-    face('cs-shell cs-grain darker', BW, D+R, `translate3d(${-m}px,${-m}px,${R}px) rotateX(-90deg)`, back);            // back wall
-    face('cs-shell cs-grain dark', D+R, BH, `translate3d(${-m}px,${-m}px,${R}px) rotateY(90deg)`, back);               // left wall
-    face('cs-shell cs-grain dark', D+R, BH, `translate3d(${gw+m}px,${-m}px,${R}px) rotateY(90deg)`, back);              // right wall
+    face('cs-shadow', BW*1.3, BH*1.3, `translate3d(${-mx-BW*0.15}px,${-m-BH*0.1}px,${-D-2}px)`, back);
+    face('cs-floor', BW, BH, `translate3d(${-mx}px,${-m}px,${-D}px)`, back);
+    face('cs-shell cs-grain darker', BW, D+R, `translate3d(${-mx}px,${-m}px,${R}px) rotateX(-90deg)`, back);            // back wall
+    face('cs-shell cs-grain dark', D+R, BH, `translate3d(${-mx}px,${-m}px,${R}px) rotateY(90deg)`, back);               // left wall
+    face('cs-shell cs-grain dark', D+R, BH, `translate3d(${gw+mx}px,${-m}px,${R}px) rotateY(90deg)`, back);              // right wall
     // ---- front layer: the base's rim (mint, a fine chrome rail round the opening), the two hinges on its back edge
-    face('cs-rim cs-grain', BW, BH, `translate3d(${-m}px,${-m}px,${R}px)`, front).style.borderWidth=m+'px';
-    const hs=face('', BW, m, `translate3d(${-m}px,${-m}px,${R+0.5}px)`, front);
+    face('cs-rim cs-grain', BW, BH, `translate3d(${-mx}px,${-m}px,${R}px)`, front).style.borderWidth=m+'px '+mx+'px';
+    const hs=face('', BW, m, `translate3d(${-mx}px,${-m}px,${R+0.5}px)`, front);
     hs.innerHTML=[0.2,0.8].map(p=>`<div class="cs-hinge" style="left:${BW*p-48}px;top:${m*0.12}px;height:${m*0.76}px">
         <i class="leaf"><b class="cs-screw" style="left:8px;top:30%"></b><b class="cs-screw" style="right:8px;top:30%"></b></i>
         <i class="barrel"></i></div>`).join('');
-    face('cs-bevel', BW-24, Math.round(m*0.55), `translate3d(${-m+12}px,${gh+m-Math.round(m*0.4)}px,${R}px) rotateX(-42deg)`, front);
+    face('cs-bevel', BW-24, Math.round(m*0.55), `translate3d(${-mx+12}px,${gh+m-Math.round(m*0.4)}px,${R}px) rotateX(-42deg)`, front);
     // ---- the base's front: matte mint, a hairline seam at the top, two draw latches straddling the seam, the cream
     // leather handle on its D-shaped chrome mounts, rubber feet, a few soft scuffs
-    const fw=face('cs-shell cs-grain front cs-wall', BW, D+R, `translate3d(${-m}px,${gh+m}px,${R}px) rotateX(-90deg)`, front);
+    const fw=face('cs-shell cs-grain front cs-wall', BW, D+R, `translate3d(${-mx}px,${gh+m}px,${R}px) rotateX(-90deg)`, front);
     const hw=Math.max(170, BW*0.44), hy=(D+R)*0.5;
     fw.innerHTML=`<div class="cs-seam"></div><div class="cs-cap l"></div><div class="cs-cap r"></div>`+
       [0.12,0.88].map(p=>`<div class="cs-foot" style="left:${BW*p-11}px;bottom:-4px"></div>`).join('')+
@@ -4838,8 +4840,9 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     face('cs-shell cs-grain darker', BW, L, `translate3d(0,0,0) rotateX(90deg)`, lid);
     face('cs-shell cs-grain dark', L, BH, `translate3d(0,0,0) rotateY(-90deg)`, lid);
     face('cs-shell cs-grain dark', L, BH, `translate3d(${BW}px,0,0) rotateY(-90deg)`, lid);
-    built={desk,back:backL,front:frontL,backR:back,frontR:front,lid,latchEls,m,D,R,L,BW,BH,outer};
+    built={desk,back:backL,front:frontL,backR:back,frontR:front,lid,latchEls,m,mx,D,R,L,BW,BH,outer};
     cameras();
+    if(widen){ widen=false; if(Math.abs(mx-sideM.mx)>2) return build(); }
     front.classList.toggle('outer', isOuter());
     front.style.setProperty('--medal-rot', '0deg');
     pose();
@@ -4853,7 +4856,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     built.back.style.transform=t; built.front.style.transform=t;
     if(app) app.style.transform = (st.cam.s===1 && !st.cam.rx && !(st.cam.rz%360) && !st.cam.ty) ? '' : t;
     const {m,R,lid}=built;
-    lid.style.transform=`translate3d(${-m}px,${-m}px,${R}px) rotateX(${st.lid}deg)`;
+    lid.style.transform=`translate3d(${-(built.mx||m)}px,${-m}px,${R}px) rotateX(${st.lid}deg)`;
     // past upright the lid stands behind the machine
     const want = st.lid>90 ? built.backR : built.frontR;
     if(lid.parentElement!==want) want.appendChild(lid);
@@ -4940,7 +4943,13 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       OPENV={...c};
       if(t.y>=10 && b.y<=H-10) break;
     }
+    // wide rather than long: the side walls go out until the case fills the screen's width in the open view
+    const want=Math.round(Math.max(built.m, (W*0.9/OPENV.s - W)/2));
+    if(!sideM || sideM.W!==W || sideM.H!==H || Math.abs(sideM.mx-want)>2){ sideM={W,H,mx:want}; widen=true; }
+    // shut, the wider case still fits across
+    CLOSED.s=Math.min(CLOSED.s, 0.84*W/(W+2*want)); SHOW.s=Math.min(SHOW.s, 0.84*W/(W+2*want));
   }
+  let sideM=null, widen=false;
   let creaseY=0;
   /** the camera height that puts the case's hinge axis exactly on the phone's crease */
   function pinTy(cam){
