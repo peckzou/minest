@@ -4972,7 +4972,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   window.__hermesTypingTransform=typingTransform;
   /** the outer screen (the phone shut): the case lies across it, its handle toward the camera end (the far edge
    *  from the hinge), waiting to be opened */
-  const isOuter=()=>{ try{ return detectMode()==='closed'; }catch(e){ return false; } };
+  const isOuter=()=>{ const w=innerWidth, h=innerHeight, mn=Math.min(w,h), mx=Math.max(w,h); return mn<560 && mx/mn<1.6; };
   /** where a point of the case lands on screen under a camera (the same matrix the CSS transform builds) */
   function project(cam, x, y, z){
     const P=new DOMMatrix([1,0,0,0, 0,1,0,0, 0,0,1,-1/1700, 0,0,0,1]);
@@ -5160,6 +5160,12 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   let arriveT=0;
   addEventListener('resize',()=>{ const nowOuter=isOuter(); const switched=wasOuter!==nowOuter;
     if(wasOuter && !nowOuter && st.shown && mode!=='typing'){ arrive=true; clearTimeout(arriveT); arriveT=setTimeout(settleArrival, 280); }
+    if(!wasOuter && nowOuter && st.shown && mode!=='typing'){
+      arrive=false; clearTimeout(arriveT); token++; playing=token; lv.busy=false;
+      if(lv.raf){ cancelAnimationFrame(lv.raf); lv.raf=0; }
+      st.lid=0; lv.cur=lv.target=0; mode='closed'; armed=true;
+      wasOuter=nowOuter; build(); show(true); st.cam={...CLOSED}; pose(); return;
+    }
     wasOuter=nowOuter;
     // the same screen size again (the system re-announcing it): nothing to rebuild
     if(st.shown && built && !switched && W===innerWidth && H===innerHeight) return;
