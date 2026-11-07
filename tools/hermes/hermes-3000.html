@@ -4841,7 +4841,6 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     if(!desk){ desk=document.createElement('div'); desk.id='case-desk'; document.body.appendChild(desk); }
     if(!back){ back=document.createElement('div'); back.id='case-back'; document.body.appendChild(back); }
     if(!front){ front=document.createElement('div'); front.id='case-front'; document.body.appendChild(front); }
-    back.innerHTML=''; front.innerHTML='';
     // the outer screen shows a case of its own, wide along the handle (the machine inside is not shown there);
     // the inner screens wrap the case round the typewriter exactly
     // one case for every screen: the outer screen's wide case (its size remembered); on the inner screen the very same
@@ -4854,6 +4853,15 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
       if(d && d.gw>200 && d.gh>100){ gw=d.gw; gh=d.gh; } else { gw=Math.max(W,H); gh=Math.round(gw*0.46); }
     }
     const ox=(W-gw)/2, oy=(H-gh)/2;
+    if(built && built.gw===gw && built.gh===gh && built.backR && built.backR.isConnected){
+      built.backR.style.transform=built.frontR.style.transform=`translate3d(${ox}px,${oy}px,0)`;
+      if(built.kb) built.kb={x:built.kb.x-built.ox+ox, y:built.kb.y-built.oy+oy, w:built.kb.w, h:built.kb.h};
+      built.ox=ox; built.oy=oy; built.outer=outer;
+      cameras();
+      front.classList.toggle('outer', isOuter());
+      pose(); return;
+    }
+    back.innerHTML=''; front.innerHTML='';
     const backL=back, frontL=front;
     back=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, backL); front=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, frontL);
     const m=Math.round(Math.max(26, gh*0.07));   // wall thickness / margin round the machine
@@ -5052,7 +5060,8 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     }
   }
   let creaseY=0;
-  let caseFlip=0;   // 180 while the case arrives from the outer screen (base on the camera half); else 0
+  let caseFlip=0;
+  let arriving=false;   // the case came in from the outer screen: filmed from the open view from the start   // 180 while the case arrives from the outer screen (base on the camera half); else 0
   /** the camera height that puts the case's hinge axis exactly on the phone's crease */
   function pinTy(cam){
     if(!built) return cam.ty;
@@ -5180,6 +5189,7 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
   let arriveT=0;
   /** the close, finished on the outer screen: from the lid's angle down onto the base, the thud, the latches */
   function shutOuter(fromLid){
+    arriving=false;
     const wasClosing=closeIntent;
     arrive=false; clearTimeout(arriveT); token++; playing=token;
     if(lv.raf){ cancelAnimationFrame(lv.raf); lv.raf=0; }
@@ -5212,8 +5222,9 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
       arrive=true; caseFlip=180; clearTimeout(arriveT); token++; playing=token; lv.busy=false;
       if(lv.raf){ cancelAnimationFrame(lv.raf); lv.raf=0; }
       st.lid=0; lv.cur=lv.target=0; mode='closed';
-      wasOuter=nowOuter; build(); show(true); st.cam={...CLOSED}; pose();
-      arriveT=setTimeout(settleArrival, 140); return;
+      arriving=true;
+      wasOuter=nowOuter; build(); show(true); st.cam=camFor(0); pose();
+      arriveT=setTimeout(settleArrival, 60); return;
     }
     const folding = trend<0;
     if(!wasOuter && nowOuter && ((st.shown && mode!=='typing' && folding && st.lid>2) || (mode==='typing' && folding && hingeDeg()!==null))){
@@ -5250,6 +5261,7 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
   // the camera for a lid at a: from the shut view to the open one; as soon as the lid is up, the case's hinge rides
   // on the phone's crease (top screen = lid, bottom screen = base) all the way
   const camFor=a=>{
+    if(arriving && !isOuter() && built){ const c={...OPENV}; c.ty=pinTy(c); return c; }
     const k=Math.max(0,Math.min(1,a/LID_MAX));
     const c=camLerp(CLOSED, OPENV, k);
     if(!isOuter() && built) c.ty=lerp(c.ty, pinTy(c), Math.min(1,k*2.2));
@@ -5286,7 +5298,7 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     cameras(); lv.busy=true; mode='opening';
     return enterTyping(.95).then(ok=>{
       lv.busy=false;
-      if(ok){ st.cam={...TYPE}; show(false); pose(); mode='typing'; typRef=hingeDeg(); lv.cur=lv.target=LID_MAX; lv.latched=false;
+      if(ok){ arriving=false; st.cam={...TYPE}; show(false); pose(); mode='typing'; typRef=hingeDeg(); lv.cur=lv.target=LID_MAX; lv.latched=false;
         try{ lidDismissed=true; applyMode(); }catch(e){} if(window.hermesCase) hermesCase.fit(); }
       return ok;
     });
@@ -5297,7 +5309,7 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
   let closeIntent=false;
   function closeMode(fromClasp){
     if(mode!=='typing' || lv.busy) return;
-    closeIntent=!!fromClasp; caseFlip=0;
+    closeIntent=!!fromClasp; caseFlip=0; arriving=false;
     snapKb(); build();
     const th=hingeDeg();
     const a = th===null ? LID_MAX : Math.min(LID_MAX, th*LID_MAX/OPEN_AT);
@@ -5322,19 +5334,19 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     arrive=false; lv.busy=true; mode='opening'; armed=false;
     if(lv.raf){ cancelAnimationFrame(lv.raf); lv.raf=0; }
     const fromLid=st.lid, fromCam={...st.cam}, fromLatch=st.latch, top=LID_MAX+3;
-    const view=fromLid<2 ? SHOW : camFor(fromLid);
+    const view=arriving ? camFor(0) : (fromLid<2 ? SHOW : camFor(fromLid));
     const L1=fromLatch>0.05, k=matchMedia('(prefers-reduced-motion: reduce)').matches ? 0.5 : 1;
     const t=x=>x*k;
     return play([
-      [0, t(.2), x=>{ st.cam=camLerp(fromCam, view, ease(x)); }],
-      [t(.12), t(.29), x=>{ if(L1) st.latch=fromLatch*(1-x*.5); }],
-      [t(.27), t(.44), x=>{ if(L1) st.latch=fromLatch*.5*(1-x); }],
-      [t(.45), t(1.65), x=>{ const e=ease(x); st.lid=fromLid+(top-fromLid)*e; st.cam=camLerp(view, camFor(LID_MAX), e); }],
-      [t(1.65), t(1.8), x=>{ st.lid=top-3*Math.sin(x*Math.PI/2); }],
-    ], t(1.95), [
-      ...(L1 ? [[t(.12),()=>{ sLatchOpen(); hap('rigid'); }],[t(.27),()=>{ sLatchOpen(); hap('rigid'); }]] : []),
-      [t(.48),()=>sCreak(1.1*k)],
-      [t(1.65),()=>{ sStop(); hap('soft'); }],
+      [0, t(.12), x=>{ st.cam=camLerp(fromCam, view, ease(x)); }],
+      [0, t(.15), x=>{ if(L1) st.latch=fromLatch*(1-x*.5); }],
+      [t(.13), t(.28), x=>{ if(L1) st.latch=fromLatch*.5*(1-x); }],
+      [t(.25), t(1.4), x=>{ const e=ease(x); st.lid=fromLid+(top-fromLid)*e; st.cam=camLerp(view, camFor(LID_MAX), e); }],
+      [t(1.4), t(1.55), x=>{ st.lid=top-3*Math.sin(x*Math.PI/2); }],
+    ], t(1.7), [
+      ...(L1 ? [[0,()=>{ sLatchOpen(); hap('rigid'); }],[t(.13),()=>{ sLatchOpen(); hap('rigid'); }]] : []),
+      [t(.28),()=>sCreak(1.1*k)],
+      [t(1.4),()=>{ sStop(); hap('soft'); }],
     ]).then(ok=>{ lv.busy=false; lv.latched=false; st.latch=0; lv.cur=lv.target=LID_MAX; if(ok) return pushIn(); return ok; });
   }
   /** the inner screen has settled after the switch: the hinge says where the lid is */
