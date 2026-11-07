@@ -4717,8 +4717,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 4px 12px rgba(0,0,0,.4)}
 #case-exit[hidden]{display:none}
-html.h-outer-land .hermes-lid{inset:auto !important;left:50% !important;top:50% !important;width:100vh !important;height:100vw !important;translate:-50% -50%;rotate:-90deg;transform-origin:50% 50% !important}
-html.h-outer-land #case-exit{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
+html.h-outer-land .hermes-lid{inset:auto !important;left:50% !important;top:50% !important;width:100vh !important;height:100vw !important;translate:-50% -50%;rotate:90deg;transform-origin:50% 50% !important}
+html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px) + 14px)}
 #case-exit:active{transform:scale(.92)}
 #case-exit svg{width:100%;height:100%;display:block}
 /* two chrome hinges on the back edge */
@@ -5001,7 +5001,7 @@ html.h-outer-land #case-exit{top:auto;bottom:calc(env(safe-area-inset-bottom,0px
       const fit=0.86*Math.min(W/(BH*c+Z*sn), H/(BW*1.08));
       CLOSED={rx:0,ry:-32,rz:-90,s:fit,ty:0}; SHOW={...CLOSED}; OPENV={rx:0,ry:-52,rz:-90,s:fit*1.02,ty:0};
       if(W>H){ CLOSED={rx:50,ry:0,rz:0,s:1,ty:0}; SHOW={...CLOSED}; OPENV={rx:44,ry:0,rz:0,s:1,ty:0}; }
-      else if(embedded){ CLOSED={flip:-90,rx:50,ry:0,rz:0,s:1,ty:0}; SHOW={...CLOSED}; OPENV={flip:-90,rx:44,ry:0,rz:0,s:1,ty:0}; }
+      else if(embedded){ CLOSED={flip:90,rx:50,ry:0,rz:0,s:1,ty:0}; SHOW={...CLOSED}; OPENV={flip:90,rx:44,ry:0,rz:0,s:1,ty:0}; }
       // measured: the box's eight corners under the camera — scaled to fit and centred on the screen
       if(built){
         const xs=[built.ox-built.mx, built.ox+built.gw+built.mx], ys=[built.oy-built.m, built.oy+built.gh+built.m], zs=[-built.D, built.R+built.L];
@@ -5202,7 +5202,7 @@ html.h-outer-land #case-exit{top:auto;bottom:calc(env(safe-area-inset-bottom,0px
       onLid=false; try{ lidDismissed=true; applyMode(); }catch(e){}
       // in from the outer screen: whatever was running there stops; the case, shut, turned base-to-the-camera-half,
       // waits for the screen to settle, then opens in full (or follows the hand)
-      arrive=true; caseFlip=0; clearTimeout(arriveT);   /* held as the outer screen now reads: the case runs on without a turn */ token++; playing=token; lv.busy=false;
+      arrive=true; caseFlip=180; clearTimeout(arriveT); token++; playing=token; lv.busy=false;
       if(lv.raf){ cancelAnimationFrame(lv.raf); lv.raf=0; }
       st.lid=0; lv.cur=lv.target=0; mode='closed';
       wasOuter=nowOuter; build(); show(true); st.cam={...CLOSED}; pose();
