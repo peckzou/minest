@@ -4682,7 +4682,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     #dfe5e8;
   box-shadow:0 3px 6px rgba(0,0,0,.35),inset 0 0 0 2px rgba(255,255,255,.85),inset 0 0 0 3.5px rgba(90,100,105,.5),0 0 0 1px rgba(20,45,35,.25);
   color:#3e484d;text-shadow:0 1px 0 rgba(255,255,255,.75)}
-#case-front.outer .cs-medal{transform:translate(-50%,-50%) rotate(180deg)}
+#case-front.flip .cs-medal{transform:translate(-50%,-50%) rotate(180deg)}
 .cs-medal b{font:400 28px/1 "Snell Roundhand","Brush Script MT","Apple Chancery",cursive}
 .cs-medal i{font:600 10px/1 "Didot","Bodoni 72",Georgia,serif;font-style:normal;letter-spacing:4px}
 /* the lid's inside: charcoal felt in a thick mint frame with round corners, a black wire paper rest */
@@ -4837,6 +4837,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     built={desk,back,front,lid,latchEls,m,D,R,L,BW,BH};
     cameras();
     front.classList.toggle('outer', isOuter());
+    front.classList.toggle('flip', Math.abs((CLOSED.rz%360))===180);
     pose();
   }
 
@@ -4846,7 +4847,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(!built) return;
     const t=camStr(st.cam), app=$$('app');
     built.back.style.transform=t; built.front.style.transform=t;
-    if(app) app.style.transform = (st.cam.s===1 && !st.cam.rx && !st.cam.rz && !st.cam.ty) ? '' : t;
+    if(app) app.style.transform = (st.cam.s===1 && !st.cam.rx && !(st.cam.rz%360) && !st.cam.ty) ? '' : t;
     const {m,R,lid}=built;
     lid.style.transform=`translate3d(${-m}px,${-m}px,${R}px) rotateX(${st.lid}deg)`;
     // past upright the lid stands behind the machine
@@ -4858,7 +4859,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(!built) build();
     const app=$$('app');
     ['desk','back','front'].forEach(k=>built[k].style.display=on?'block':'none');
-    if(app){ app.style.zIndex=on?'2':''; app.style.pointerEvents=on?'none':''; if(!on){ app.style.transform=''; setTimeout(()=>dispatchEvent(new Event('resize')),30); } }
+    if(app){ app.style.zIndex=on?'2':''; app.style.pointerEvents=on?'none':''; if(!on){ app.style.transform=typingTransform(); setTimeout(()=>dispatchEvent(new Event('resize')),30); } }
     st.shown=on; window.__caseLock=on;
   }
 
@@ -4879,7 +4880,23 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   // seen from the front and a little above: the top and the thick front wall both show, the sides lean in evenly
   // shut: the case fills the screen; open: the lid fills the top half and the base the bottom half (like the Duo)
   let CLOSED={rx:54,rz:0,s:.84,ty:-.03}, SHOW={rx:56,rz:0,s:.86,ty:0}, OPENV={rx:66,rz:0,s:1,ty:.19};
-  const TYPE={rx:0,rz:0,s:1,ty:0};
+  let TYPE={rx:0,rz:0,s:1,ty:0};
+  /* orientation, held fixed against the system's rotation:
+     · the outer screen: the case's handle stays at the camera end (the far edge from the hinge)
+     · the inner screen, opening: the lid is the camera half (it is the outer screen's half, swinging up)
+     · the inner screen, typing (on the Duo): the camera half lies on the table now — the keyboard is drawn on it,
+       the paper on the half that stands; so the view turns 180° as the case opens into the typewriter */
+  function sysRot(){
+    let a=0;
+    try{ a=(screen.orientation && typeof screen.orientation.angle==='number') ? screen.orientation.angle : (typeof window.orientation==='number' ? window.orientation : 0); }catch(e){}
+    return ((a%360)+360)%360;
+  }
+  /** the rotation that puts what should be at the camera end there, whatever the system did (0 or 180 only) */
+  function fixRot(want){ const r=((want-sysRot())%360+360)%360; return (r===0||r===180)?r:want; }
+  const onDuo=()=>{ const h=window.__minestHinge; return !!(h && typeof h.angle==='number'); };
+  const typingRot=()=>(onDuo() && !isOuter())?fixRot(180):0;
+  function typingTransform(){ const r=typingRot(); return r?`rotateZ(${r}deg)`:''; }
+  window.__hermesTypingTransform=typingTransform;
   /** the outer screen (the phone shut): the case lies across it, its handle toward the camera end (the far edge
    *  from the hinge), waiting to be opened */
   const isOuter=()=>{ try{ return detectMode()==='closed'; }catch(e){ return false; } };
@@ -4892,11 +4909,16 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   }
   /** the cameras for this screen; the open view puts the case's hinge exactly on the phone's crease */
   function cameras(){
+    TYPE={rx:0,rz:typingRot(),s:1,ty:0};
     if(isOuter()){
-      CLOSED={rx:28,rz:180,s:.8,ty:0}; SHOW={rx:30,rz:180,s:.8,ty:0}; OPENV={rx:58,rz:180,s:.9,ty:-.1};
+      // the case across the outer screen, its front (handle and latches) toward the camera end, seen from the
+      // hinge side and a little low so the front shows
+      const r=fixRot(180);
+      CLOSED={rx:-34,rz:r,s:.6,ty:.08}; SHOW={rx:-34,rz:r,s:.6,ty:.08}; OPENV={rx:-58,rz:r,s:.62,ty:.02};
       return;
     }
-    CLOSED={rx:54,rz:0,s:.84,ty:-.03}; SHOW={rx:56,rz:0,s:.86,ty:0}; OPENV={rx:66,rz:0,s:1,ty:.19};
+    const r=fixRot(0);
+    CLOSED={rx:54,rz:r,s:.84,ty:-.03}; SHOW={rx:56,rz:r,s:.86,ty:0}; OPENV={rx:66,rz:r,s:1,ty:.19};
     if(!built) return;
     // the crease on screen: the typewriter's own hinge strip (measured flat) — else the middle
     let target=H/2;
@@ -4932,7 +4954,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     });
   }
   function open(){
-    if(!built || W!==innerWidth || H!==innerHeight) build();
+    if(!built || W!==innerWidth || H!==innerHeight) build(); else cameras();
     show(true); mode='opening';
     st.cam={...CLOSED}; st.lid=0; st.latch=1; pose();
     const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -4952,7 +4974,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     ]).then(ok=>{ if(ok){ st.cam={...TYPE}; pose(); show(false); lv.cur=lv.target=LID_MAX; lv.latched=false; mode='typing'; } return ok; });
   }
   function close(){
-    if(!built || W!==innerWidth || H!==innerHeight) build();
+    if(!built || W!==innerWidth || H!==innerHeight) build(); else cameras();
     show(true); mode='closing';
     st.cam={...TYPE}; st.lid=108; st.latch=0; pose();
     return play([
@@ -4996,7 +5018,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     else follow(0);
   },true);
   // a new screen (the phone opened or shut): rebuild for it and keep the lid where it is
-  addEventListener('resize',()=>{ if(st.shown){ build(); if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else built=null; });
+  addEventListener('resize',()=>{ if(st.shown){ build(); if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else { built=null; const app=$$('app'); if(app) app.style.transform=typingTransform(); } });
 
 
   /* ---------- opening and closing: two separate mechanisms ----------
@@ -5045,7 +5067,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   function follow(a){ if(!st.shown) return; lv.target=Math.max(0,Math.min(LID_MAX,a)); kick(); }
   /** from the case in to the typewriter (the lid finishes opening, the camera pushes in) */
   function pushIn(){
-    lv.busy=true; mode='opening';
+    cameras(); lv.busy=true; mode='opening';
     const fromCam={...st.cam}, fromLid=st.lid;
     return play([
       [0,.35,x=>{ st.lid=fromLid+(LID_MAX-fromLid)*ease(x); st.latch=0; }],
