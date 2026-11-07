@@ -4778,9 +4778,9 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     const backL=back, frontL=front;
     back=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, backL); front=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, frontL);
     const m=Math.round(Math.max(26, Math.min(W,H)*0.07));   // wall thickness / margin round the machine
-    const D=Math.round(Math.min(W,H)*0.32);                 // base depth below the machine (a deep, heavy base)
+    const D=Math.round(Math.min(W,H)*0.22);                 // base depth below the machine
     const R=Math.round(Math.min(W,H)*0.035);                // rim above it
-    const L=Math.round(Math.min(W,H)*0.17);                 // lid depth (a thick, hard lid)
+    const L=Math.round(Math.min(W,H)*0.12);                 // lid depth
     // the sides: as far out as the screen allows in the open view (sideM, worked out by cameras()), never less than m
     const mx=Math.max(m, (!outer && sideM && sideM.W===W && sideM.H===H) ? sideM.mx : m);
     const BW=gw+2*mx, BH=gh+2*m;
@@ -4926,7 +4926,9 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       return;
     }
     const r=0;
-    CLOSED={rx:50,rz:r,s:.66,ty:-.07}; SHOW={rx:52,rz:r,s:.68,ty:-.05}; OPENV={rx:66,rz:r,s:1,ty:.19};
+    // the open view looks in from the front at a moderate angle: the standing lid and the lying base share the screen
+    // evenly, so the machine (and its keyboard) shows large
+    CLOSED={rx:50,rz:r,s:.66,ty:-.07}; SHOW={rx:50,rz:r,s:.68,ty:-.05}; OPENV={rx:48,rz:r,s:1,ty:.1};
     if(!built) return;
     // the crease on screen: the typewriter's own hinge strip (measured flat) — else the middle
     let target=H/2;
@@ -4944,7 +4946,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       if(t.y>=10 && b.y<=H-10) break;
     }
     // wide rather than long: the side walls go out until the case fills the screen's width in the open view
-    const want=Math.round(Math.max(built.m, (W*0.9/OPENV.s - W)/2));
+    const want=Math.round(Math.min(built.m*1.5, Math.max(built.m, (W*0.9/OPENV.s - W)/2)));
     if(!sideM || sideM.W!==W || sideM.H!==H || Math.abs(sideM.mx-want)>2){ sideM={W,H,mx:want}; widen=true; }
     // shut, the wider case still fits across
     CLOSED.s=Math.min(CLOSED.s, 0.84*W/(W+2*want)); SHOW.s=Math.min(SHOW.s, 0.84*W/(W+2*want));
