@@ -4712,6 +4712,13 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 /* the machine in the base: a still copy of the typewriter's keyboard half (in its own shadow tree) */
 .cs-kb{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;border-radius:10px;overflow:hidden;
   box-shadow:0 0 0 2px rgba(20,45,35,.35),0 6px 14px rgba(0,0,0,.35)}
+#case-exit{position:fixed;z-index:20;left:calc(env(safe-area-inset-left,0px) + 14px);top:calc(env(safe-area-inset-top,0px) + 14px);
+  width:42px;height:42px;border-radius:50%;border:0;padding:10px;color:#e9f2ee;cursor:pointer;
+  background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 4px 12px rgba(0,0,0,.4)}
+#case-exit[hidden]{display:none}
+#case-exit:active{transform:scale(.92)}
+#case-exit svg{width:100%;height:100%;display:block}
 /* two chrome hinges on the back edge */
 .cs-hinge{position:absolute;width:96px}
 .cs-hinge .leaf{position:absolute;inset:0 0 40% 0;border-radius:4px;background:linear-gradient(180deg,#f6f8f9,#b8c2c6 60%,#8b969b);box-shadow:0 2px 3px rgba(0,0,0,.45)}
@@ -5138,6 +5145,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   const drag={on:false,y0:0,a0:0,moved:false};
   addEventListener('pointerdown',e=>{
     if(!st.shown) return;
+    if(e.target && e.target.closest && e.target.closest('#case-exit')) return;
     e.stopImmediatePropagation(); e.preventDefault();
     if(lv.busy || token!==playing) { if(token!==playing) return; }
     drag.on=true; drag.y0=(window.__toLogical?__toLogical(e.clientX,e.clientY).y:e.clientY); drag.a0=st.lid; drag.moved=false;
@@ -5182,7 +5190,9 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     });
   }
   let trend=0;   // the hinge's last movement: > 0 unfolding, < 0 folding
+  let outerO=null, innerO=null;   // the lock each display was last seen held in
   function onScreen(){ const nowOuter=isOuter(); const switched=wasOuter!==nowOuter;
+    if(switched){ const o=curO(); if(nowOuter) outerO=o; else innerO=o; lockO=o; }
     if(wasOuter && !nowOuter && st.shown && mode!=='typing'){
       // in from the outer screen: whatever was running there stops; the case, shut, turned base-to-the-camera-half,
       // waits for the screen to settle, then opens in full (or follows the hand)
@@ -5322,15 +5332,22 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     arrive=false; armed=true; follow(th*LID_MAX/OPEN_AT);
   }
   /** shut by the hand: if the clasp asked for it, back to Minest */
-  function shutDone(){
-    if(!closeIntent) return;
-    closeIntent=false;
-    setTimeout(()=>{ if(lv.latched && st.shown && embedded){ try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(e){} } }, 650);
+  function shutDone(){ closeIntent=false; }   // shut: the case stays on its first page (the ✕ there goes back to Minest)
+  /* the system orientation lock, following the hand (see the orient-lock shim, which keeps the page upright) */
+  let lockO=null;
+  function curO(){ let a=0; try{ a=(typeof window.orientation==='number') ? window.orientation : (screen.orientation ? screen.orientation.angle : 0); }catch(e){} a=((a%360)+360)%360; return (a===90||a===270) ? 'landscape' : 'portrait'; }
+  const opp=o=>o==='landscape'?'portrait':'landscape';
+  function setLock(o){
+    if(!o || o===lockO) return; lockO=o;
+    try{ const N=window.MinestNative || (parent!==window && parent.MinestNative); if(N && N.send) N.send('setOrientation',{orientation:o}); }catch(e){}
   }
   /** the real hinge moved */
   function onHinge(){
     const th=hingeDeg(); if(th===null) return;
     if(lastTh!==null && Math.abs(th-lastTh)>0.4) trend=th-lastTh;
+    if(lockO===null) lockO=curO();
+    if(isOuter() && th>8 && trend>0) setLock(opp(outerO||curO()));
+    if(!isOuter() && th<70 && trend<0 && innerO) setLock(opp(innerO));
     if(isOuter()!==wasOuter && (st.shown || mode==='typing')){ onScreen(); }   // the hinge came in before the resize: the switch first
     const prev=lastTh; lastTh=th;
     if(lv.busy || mode==='closing') return;
@@ -5348,6 +5365,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     follow(th*LID_MAX/OPEN_AT);
   }
   addEventListener('minest:hinge', onHinge);
+  setTimeout(()=>{ lockO=curO(); if(isOuter()) outerO=lockO; else innerO=lockO; }, 400);
   /** the case is being driven by a real hinge right now */
   const liveHinge=()=>hingeDeg()!==null;
   let outerDark=0;
@@ -5371,6 +5389,15 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   },true);
   window.CaseScene={open, close, showClosed, get shown(){ return st.shown; }, get live(){ return liveHinge(); }, get flat(){ const a=hingeDeg(); return a===null || a>=OPEN_AT; }, get mode(){ return mode; }, closeMode, follow, pushIn, sync:onHinge, _dbg:()=>({st, built, lv, arrive, token, playing}), _pose:(c,l)=>{ if(!built) build(); show(true); st.cam={...st.cam,...c}; if(l!==undefined) st.lid=l; pose(); }};
   setTimeout(()=>{ if(!st.shown) snapKb(); }, 1500);
+  // the way out, on the case's first page (top left): back to Minest
+  if(embedded){
+    const x=document.createElement('button'); x.id='case-exit'; x.type='button'; x.setAttribute('aria-label','退出 · Back to Minest'); x.title='退出';
+    x.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    x.addEventListener('click',e=>{ e.stopPropagation(); hap('light'); try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(err){} });
+    document.body.appendChild(x);
+    const sync=()=>{ x.hidden=!(st.shown && (mode==='closed' || mode==='opening') && !lv.busy); };
+    setInterval(sync, 200); sync();
+  }
   if(embedded) showClosed();
 })();
 </script>
@@ -5404,7 +5431,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     const a=sysAngle();
     let r=0;
     let native=false; try{ native=!!(window.MinestNative || (window.parent!==window && window.parent.MinestNative)); }catch(e){}
-    if(onDuo() && !native){
+    if(onDuo() && native){ r=((360-a)%360+360)%360; if(r%90) r=0; }
+    else if(onDuo() && !native){
       if(w<h && ref[kind]===undefined) ref[kind]=a;                 // standing the way we lay it out: the reference
       const base = ref[kind]!==undefined ? ref[kind] : ((a===0||a===180) ? (a+90)%360 : 0);   // not seen standing yet: a guess
       r=((base-a)%360+360)%360;
