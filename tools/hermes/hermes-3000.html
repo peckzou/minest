@@ -4267,11 +4267,9 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   /* 开箱 / 关箱交给独立的箱体展示系统（CaseScene，见 enh-casescene）：它负责 3D 箱子、锁扣、铰链、镜头与过渡；
      这里只管状态（busy / lidDismissed）和通知 Minest。打字界面本身不含任何箱体元素。 */
   function closeCase(stay){
-    if(busy || !window.CaseScene) return; busy=true; initAudio(); slip();
-    CaseScene.close().then(()=>{
-      busy=false; lidDismissed=false;
-      if(embedded && !stay){ try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(e){} }
-    });
+    // the clasp: into the close mode — the hand closes the lid (CaseScene); shut, it goes back to Minest
+    if(busy || !window.CaseScene) return; initAudio(); slip();
+    CaseScene.closeMode(!stay);
   }
   function openCase(){
     if(busy || !window.CaseScene || !CaseScene.shown) return;
@@ -4773,27 +4771,33 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(!back){ back=document.createElement('div'); back.id='case-back'; document.body.appendChild(back); }
     if(!front){ front=document.createElement('div'); front.id='case-front'; document.body.appendChild(front); }
     back.innerHTML=''; front.innerHTML='';
+    // the outer screen shows a case of its own, wide along the handle (the machine inside is not shown there);
+    // the inner screens wrap the case round the typewriter exactly
+    const outer=isOuter();
+    const gw=outer?Math.max(W,H):W, gh=outer?Math.min(W,H):H;
+    const backL=back, frontL=front;
+    back=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, backL); front=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, frontL);
     const m=Math.round(Math.max(26, Math.min(W,H)*0.07));   // wall thickness / margin round the machine
     const D=Math.round(Math.min(W,H)*0.32);                 // base depth below the machine (a deep, heavy base)
     const R=Math.round(Math.min(W,H)*0.035);                // rim above it
     const L=Math.round(Math.min(W,H)*0.17);                 // lid depth (a thick, hard lid)
-    const BW=W+2*m, BH=H+2*m;
+    const BW=gw+2*m, BH=gh+2*m;
     // ---- back layer: a soft shadow on the (black) desk, the felt floor, back + side walls
     face('cs-shadow', BW*1.3, BH*1.3, `translate3d(${-m-BW*0.15}px,${-m-BH*0.1}px,${-D-2}px)`, back);
     face('cs-floor', BW, BH, `translate3d(${-m}px,${-m}px,${-D}px)`, back);
     face('cs-shell cs-grain darker', BW, D+R, `translate3d(${-m}px,${-m}px,${R}px) rotateX(-90deg)`, back);            // back wall
     face('cs-shell cs-grain dark', D+R, BH, `translate3d(${-m}px,${-m}px,${R}px) rotateY(90deg)`, back);               // left wall
-    face('cs-shell cs-grain dark', D+R, BH, `translate3d(${W+m}px,${-m}px,${R}px) rotateY(90deg)`, back);              // right wall
+    face('cs-shell cs-grain dark', D+R, BH, `translate3d(${gw+m}px,${-m}px,${R}px) rotateY(90deg)`, back);              // right wall
     // ---- front layer: the base's rim (mint, a fine chrome rail round the opening), the two hinges on its back edge
     face('cs-rim cs-grain', BW, BH, `translate3d(${-m}px,${-m}px,${R}px)`, front).style.borderWidth=m+'px';
     const hs=face('', BW, m, `translate3d(${-m}px,${-m}px,${R+0.5}px)`, front);
     hs.innerHTML=[0.2,0.8].map(p=>`<div class="cs-hinge" style="left:${BW*p-48}px;top:${m*0.12}px;height:${m*0.76}px">
         <i class="leaf"><b class="cs-screw" style="left:8px;top:30%"></b><b class="cs-screw" style="right:8px;top:30%"></b></i>
         <i class="barrel"></i></div>`).join('');
-    face('cs-bevel', BW-24, Math.round(m*0.55), `translate3d(${-m+12}px,${H+m-Math.round(m*0.4)}px,${R}px) rotateX(-42deg)`, front);
+    face('cs-bevel', BW-24, Math.round(m*0.55), `translate3d(${-m+12}px,${gh+m-Math.round(m*0.4)}px,${R}px) rotateX(-42deg)`, front);
     // ---- the base's front: matte mint, a hairline seam at the top, two draw latches straddling the seam, the cream
     // leather handle on its D-shaped chrome mounts, rubber feet, a few soft scuffs
-    const fw=face('cs-shell cs-grain front cs-wall', BW, D+R, `translate3d(${-m}px,${H+m}px,${R}px) rotateX(-90deg)`, front);
+    const fw=face('cs-shell cs-grain front cs-wall', BW, D+R, `translate3d(${-m}px,${gh+m}px,${R}px) rotateX(-90deg)`, front);
     const hw=Math.max(170, BW*0.44), hy=(D+R)*0.5;
     fw.innerHTML=`<div class="cs-seam"></div><div class="cs-cap l"></div><div class="cs-cap r"></div>`+
       [0.12,0.88].map(p=>`<div class="cs-foot" style="left:${BW*p-11}px;bottom:-4px"></div>`).join('')+
@@ -4834,7 +4838,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     face('cs-shell cs-grain darker', BW, L, `translate3d(0,0,0) rotateX(90deg)`, lid);
     face('cs-shell cs-grain dark', L, BH, `translate3d(0,0,0) rotateY(-90deg)`, lid);
     face('cs-shell cs-grain dark', L, BH, `translate3d(${BW}px,0,0) rotateY(-90deg)`, lid);
-    built={desk,back,front,lid,latchEls,m,D,R,L,BW,BH};
+    built={desk,back:backL,front:frontL,backR:back,frontR:front,lid,latchEls,m,D,R,L,BW,BH,outer};
     cameras();
     front.classList.toggle('outer', isOuter());
     front.style.setProperty('--medal-rot', (-(CLOSED.rz||0))+'deg');
@@ -4851,7 +4855,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     const {m,R,lid}=built;
     lid.style.transform=`translate3d(${-m}px,${-m}px,${R}px) rotateX(${st.lid}deg)`;
     // past upright the lid stands behind the machine
-    const want = st.lid>90 ? built.back : built.front;
+    const want = st.lid>90 ? built.backR : built.frontR;
     if(lid.parentElement!==want) want.appendChild(lid);
     built.latchEls.forEach(h=>h.style.transform=`rotateX(${(1-st.latch)*-150}deg)`);
   }
@@ -4859,7 +4863,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(!built) build();
     const app=$$('app');
     ['desk','back','front'].forEach(k=>built[k].style.display=on?'block':'none');
-    if(app){ app.style.zIndex=on?'2':''; app.style.pointerEvents=on?'none':''; if(!on){ app.style.transform=typingTransform(); setTimeout(()=>dispatchEvent(new Event('resize')),30); } }
+    if(app){ app.style.zIndex=on?'2':''; app.style.pointerEvents=on?'none':''; app.style.visibility=(on && isOuter())?'hidden':''; if(!on){ app.style.transform=typingTransform(); setTimeout(()=>dispatchEvent(new Event('resize')),30); } }
     st.shown=on; window.__caseLock=on;
   }
 
@@ -4913,8 +4917,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(isOuter()){
       // the case lies across the outer screen, its front (handle and latches) toward the right edge, seen a little
       // from that side so the front shows
-      const BW=W+2*(built?built.m:0), BH=H+2*(built?built.m:0);
-      const fit=0.86*Math.min(W/BH, H/BW);
+      const BW=(built?built.BW:Math.max(W,H)), BH=(built?built.BH:Math.min(W,H));
+      const fit=0.9*Math.min(W/BH, H/BW);
       CLOSED={rx:0,ry:-32,rz:-90,s:fit,ty:0}; SHOW={...CLOSED}; OPENV={rx:0,ry:-52,rz:-90,s:fit*1.02,ty:0};
       return;
     }
@@ -5014,7 +5018,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   addEventListener('pointerup',e=>{
     if(!drag.on) return; drag.on=false;
     if(!st.shown) return;
-    if(!drag.moved){ if(st.lid<4 && window.hermesCase) hermesCase.open(); return; }
+    if(!drag.moved){ if(isOuter()){ outerReady(); return; } if(st.lid<4 && window.hermesCase) hermesCase.open(); return; }
     if(lv.target>LID_MAX*0.5){ pushIn().then(()=>{ if(window.hermesCase && embedded===false){} }); }
     else follow(0);
   },true);
@@ -5057,7 +5061,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(Math.abs(lv.target-lv.cur)<0.05) lv.cur=lv.target;
     st.lid=lv.cur; st.cam=camFor(lv.cur);
     if(lv.latched && lv.cur>2.5){ lv.latched=false; sLatchOpen(); hap('rigid'); setTimeout(()=>{ sLatchOpen(); hap('rigid'); },120); }
-    if(!lv.latched && lv.cur<1.2){ lv.latched=true; if(prev-lv.cur>0.02 || lv.target===0){ sThud(); hap('heavy'); } setTimeout(()=>{ sLatchShut(); hap('rigid'); },140); setTimeout(()=>{ sLatchShut(); hap('rigid'); },260); }
+    if(!lv.latched && lv.cur<1.2){ lv.latched=true; if(prev-lv.cur>0.02 || lv.target===0){ sThud(); hap('heavy'); } setTimeout(()=>{ sLatchShut(); hap('rigid'); },140); setTimeout(()=>{ sLatchShut(); hap('rigid'); },260); shutDone(); }
     st.latch += ((lv.latched?1:0)-st.latch)*Math.min(1,dt*14);
     mode = lv.cur>1.2 ? 'opening' : 'closed';
     pose();
@@ -5080,10 +5084,30 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       return ok;
     });
   }
-  /** the fold that shuts the case from the typing view (it stays in the typewriter, it does not leave Minest) */
-  function foldClose(){
+  /** CLOSE MODE: the camera pulls back out of the typewriter to the open case, the lid where the hand holds the
+   *  phone (or wide open); from there the hand closes it — folding the phone, or a finger dragging the lid down.
+   *  Shut, the latches snap; if the clasp started it, the typewriter then goes back to Minest. */
+  let closeIntent=false;
+  function closeMode(fromClasp){
     if(mode!=='typing' || lv.busy) return;
-    close().then(()=>{ try{ lidDismissed=false; }catch(e){} });
+    closeIntent=!!fromClasp;
+    if(!built || W!==innerWidth || H!==innerHeight) build(); else cameras();
+    const th=hingeDeg();
+    const a = th===null ? LID_MAX : Math.min(LID_MAX, th*LID_MAX/OPEN_AT);
+    show(true); lv.busy=true; mode='opening'; armed=false;
+    st.lid=LID_MAX; st.latch=0; lv.latched=false; lv.cur=LID_MAX; lv.target=LID_MAX;
+    sCreak(.4); hap('medium');
+    return play([[0,.75,x=>{ st.cam=camLerp(TYPE, camFor(LID_MAX), ease(x)); }]], .75).then(()=>{
+      lv.busy=false; lv.cur=LID_MAX; try{ lidDismissed=false; }catch(e){}
+      follow(a);
+    });
+  }
+  function foldClose(){ closeMode(false); }
+  /** shut by the hand: if the clasp asked for it, back to Minest */
+  function shutDone(){
+    if(!closeIntent) return;
+    closeIntent=false;
+    setTimeout(()=>{ if(lv.latched && st.shown && embedded){ try{ parent.postMessage({type:'hermes:closed'},'*'); }catch(e){} } }, 650);
   }
   /** the real hinge moved */
   function onHinge(){
@@ -5121,7 +5145,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     initAudio();
     outerReady();
   },true);
-  window.CaseScene={open, close, showClosed, get shown(){ return st.shown; }, get live(){ return liveHinge(); }, get flat(){ const a=hingeDeg(); return a===null || a>=OPEN_AT; }, get mode(){ return mode; }, follow, pushIn, sync:onHinge, _pose:(c,l)=>{ if(!built) build(); show(true); st.cam={...st.cam,...c}; if(l!==undefined) st.lid=l; pose(); }};
+  window.CaseScene={open, close, showClosed, get shown(){ return st.shown; }, get live(){ return liveHinge(); }, get flat(){ const a=hingeDeg(); return a===null || a>=OPEN_AT; }, get mode(){ return mode; }, closeMode, follow, pushIn, sync:onHinge, _pose:(c,l)=>{ if(!built) build(); show(true); st.cam={...st.cam,...c}; if(l!==undefined) st.lid=l; pose(); }};
   if(embedded) showClosed();
 })();
 </script>
@@ -5154,7 +5178,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     const kind = Math.min(w,h) < 560 ? 'outer' : 'inner';
     const a=sysAngle();
     let r=0;
-    if(onDuo()){
+    let native=false; try{ native=!!(window.MinestNative || (window.parent!==window && window.parent.MinestNative)); }catch(e){}
+    if(onDuo() && !native){
       if(w<h && ref[kind]===undefined) ref[kind]=a;                 // standing the way we lay it out: the reference
       const base = ref[kind]!==undefined ? ref[kind] : ((a===0||a===180) ? (a+90)%360 : 0);   // not seen standing yet: a guess
       r=((base-a)%360+360)%360;

@@ -40,3 +40,18 @@ for rel in RUNTIME:
         s = s.replace(a, b)
     p.write_text(s, encoding="utf-8")
     print("patched (runtime)", rel)
+
+# 53.86 · the pinned Dock on the Duo stays put under one finger: no native scroll (a drag used to slide the column up and
+# down, so taps missed); a tap still opens an icon, and two fingers still scroll it (the pinned-Dock script handles that).
+import re
+STILL = ('<style id="mn-dock-still">html.duo-dockpin .mn-bdock,html.duo-docktop .mn-bdock{touch-action:none!important;'
+         'overscroll-behavior:contain!important;-webkit-overflow-scrolling:auto!important}</style>\n')
+for rel in OUTRIGHT + RUNTIME:
+    p = ROOT / rel
+    if not p.exists(): continue
+    s = p.read_text(encoding="utf-8")
+    s = re.sub(r'<style id="mn-dock-still">.*?</style>\n', '', s, flags=re.S)
+    if '</head>' not in s: continue
+    s = s.replace('</head>', STILL + '</head>', 1)
+    p.write_text(s, encoding="utf-8")
+    print("dock still", rel)

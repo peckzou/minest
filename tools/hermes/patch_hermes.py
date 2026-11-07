@@ -51,10 +51,14 @@ RUN = r"""<script id="mn-hermes-run">
       ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
     }
     ov.hidden = false; document.documentElement.classList.add('mn-hermes-on');
+    lockTurn(true);
     if (loaded) { hinge(); post({ type: 'hermes:open' }); }
     try { ov.querySelector('iframe').focus(); } catch (e) {}
   }
-  function close() { if (!ov || ov.hidden) return; ov.hidden = true; document.documentElement.classList.remove('mn-hermes-on'); }
+  function close() { if (!ov || ov.hidden) return; ov.hidden = true; document.documentElement.classList.remove('mn-hermes-on'); lockTurn(false); }
+  // while the typewriter is open (its case and its typing view) the screen holds still, as with the system's
+  // orientation lock: the app's own setOrientation (portrait); back to the usual turns when it closes
+  function lockTurn(on) { try { if (window.MinestNative && MinestNative.send) MinestNative.send('setOrientation', { orientation: on ? 'portrait' : 'auto' }); } catch (e) {} }
   window.addEventListener('message', function (e) {
     var fr = ov && ov.querySelector('iframe');
     if (fr && e.source === fr.contentWindow && e.data && e.data.type === 'hermes:closed') close();
@@ -75,7 +79,7 @@ RUN = r"""<script id="mn-hermes-run">
   var queued = false;
   new MutationObserver(function () { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; entries(); }); }).observe(document.body, { childList: true, subtree: true });
   entries();
-  window.MinestHermes = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.14.0' };
+  window.MinestHermes = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.15.0' };
 })();
 </script>
 """
