@@ -55,3 +55,19 @@ for rel in OUTRIGHT + RUNTIME:
     s = s.replace('</head>', STILL + '</head>', 1)
     p.write_text(s, encoding="utf-8")
     print("dock still", rel)
+
+# 53.87 · touch-action alone did not hold the pinned column still on iOS (a scrolling box keeps its own pan); a one-finger
+# move that starts on the Dock is stopped outright — a tap still opens, two fingers still scroll (handled elsewhere).
+STILL_JS = ('<script id="mn-dock-still-js">(function(){document.addEventListener("touchmove",function(e){'
+            'if(e.touches.length!==1||!e.cancelable)return;var d=e.target&&e.target.closest&&e.target.closest(".mn-bdock");'
+            'if(d)e.preventDefault();},{capture:true,passive:false});})();</script>\n')
+for rel in OUTRIGHT + RUNTIME:
+    p = ROOT / rel
+    if not p.exists(): continue
+    s = p.read_text(encoding="utf-8")
+    s = re.sub(r'<script id="mn-dock-still-js">.*?</script>\n', '', s, flags=re.S)
+    i = s.rfind('</body>')
+    if i < 0: continue
+    s = s[:i] + STILL_JS + s[i:]
+    p.write_text(s, encoding="utf-8")
+    print("dock still js", rel)

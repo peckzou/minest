@@ -4841,7 +4841,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     built={desk,back:backL,front:frontL,backR:back,frontR:front,lid,latchEls,m,D,R,L,BW,BH,outer};
     cameras();
     front.classList.toggle('outer', isOuter());
-    front.style.setProperty('--medal-rot', (-(CLOSED.rz||0))+'deg');
+    front.style.setProperty('--medal-rot', '0deg');
     pose();
   }
 
@@ -4923,7 +4923,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       return;
     }
     const r=0;
-    CLOSED={rx:54,rz:r,s:.84,ty:-.03}; SHOW={rx:56,rz:r,s:.86,ty:0}; OPENV={rx:66,rz:r,s:1,ty:.19};
+    CLOSED={rx:50,rz:r,s:.66,ty:-.07}; SHOW={rx:52,rz:r,s:.68,ty:-.05}; OPENV={rx:66,rz:r,s:1,ty:.19};
     if(!built) return;
     // the crease on screen: the typewriter's own hinge strip (measured flat) — else the middle
     let target=H/2;
@@ -5023,7 +5023,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     else follow(0);
   },true);
   // a new screen (the phone opened or shut): rebuild for it and keep the lid where it is
-  addEventListener('resize',()=>{ if(st.shown){ build(); if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else { built=null; const app=$$('app'); if(app) app.style.transform=typingTransform(); } });
+  addEventListener('resize',()=>{ if(st.shown){ build(); const app=$$('app'); if(app) app.style.visibility=isOuter()?'hidden':''; if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else { built=null; const app=$$('app'); if(app){ app.style.transform=typingTransform(); app.style.visibility=''; } } });
 
 
   /* ---------- opening and closing: two separate mechanisms ----------
