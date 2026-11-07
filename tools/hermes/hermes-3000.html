@@ -4682,7 +4682,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     #dfe5e8;
   box-shadow:0 3px 6px rgba(0,0,0,.35),inset 0 0 0 2px rgba(255,255,255,.85),inset 0 0 0 3.5px rgba(90,100,105,.5),0 0 0 1px rgba(20,45,35,.25);
   color:#3e484d;text-shadow:0 1px 0 rgba(255,255,255,.75)}
-#case-front.flip .cs-medal{transform:translate(-50%,-50%) rotate(180deg)}
+.cs-medal{transform:translate(-50%,-50%) rotate(var(--medal-rot,0deg)) !important}
 .cs-medal b{font:400 28px/1 "Snell Roundhand","Brush Script MT","Apple Chancery",cursive}
 .cs-medal i{font:600 10px/1 "Didot","Bodoni 72",Georgia,serif;font-style:normal;letter-spacing:4px}
 /* the lid's inside: charcoal felt in a thick mint frame with round corners, a black wire paper rest */
@@ -4837,12 +4837,12 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     built={desk,back,front,lid,latchEls,m,D,R,L,BW,BH};
     cameras();
     front.classList.toggle('outer', isOuter());
-    front.classList.toggle('flip', Math.abs((CLOSED.rz%360))===180);
+    front.style.setProperty('--medal-rot', (-(CLOSED.rz||0))+'deg');
     pose();
   }
 
   /* ---------- the camera and the parts ---------- */
-  function camStr(c){ return `perspective(1700px) translate3d(0,${c.ty*H}px,0) rotateX(${c.rx}deg) rotateZ(${c.rz}deg) scale3d(${c.s},${c.s},${c.s})`; }
+  function camStr(c){ return `perspective(1700px) translate3d(0,${c.ty*H}px,0) rotateY(${c.ry||0}deg) rotateX(${c.rx}deg) rotateZ(${c.rz}deg) scale3d(${c.s},${c.s},${c.s})`; }
   function pose(){
     if(!built) return;
     const t=camStr(st.cam), app=$$('app');
@@ -4894,7 +4894,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   /** the rotation that puts what should be at the camera end there, whatever the system did (0 or 180 only) */
   function fixRot(want){ const r=((want-sysRot())%360+360)%360; return (r===0||r===180)?r:want; }
   const onDuo=()=>{ const h=window.__minestHinge; return !!(h && typeof h.angle==='number'); };
-  const typingRot=()=>(onDuo() && !isOuter())?fixRot(180):0;
+  const typingRot=()=>0;   // the typing view keeps its own fixed orientation (enh-orient-lock), never turned here
   function typingTransform(){ const r=typingRot(); return r?`rotateZ(${r}deg)`:''; }
   window.__hermesTypingTransform=typingTransform;
   /** the outer screen (the phone shut): the case lies across it, its handle toward the camera end (the far edge
@@ -4903,7 +4903,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   /** where a point of the case lands on screen under a camera (the same matrix the CSS transform builds) */
   function project(cam, x, y, z){
     const P=new DOMMatrix([1,0,0,0, 0,1,0,0, 0,0,1,-1/1700, 0,0,0,1]);
-    const M=new DOMMatrix().translate(W/2,H/2).multiply(P).translate(0,cam.ty*H,0).rotate(cam.rx,0,0).rotate(0,0,cam.rz).scale(cam.s,cam.s,cam.s).translate(-W/2,-H/2);
+    const M=new DOMMatrix().translate(W/2,H/2).multiply(P).translate(0,cam.ty*H,0).rotate(0,cam.ry||0,0).rotate(cam.rx,0,0).rotate(0,0,cam.rz).scale(cam.s,cam.s,cam.s).translate(-W/2,-H/2);
     const p=M.transformPoint(new DOMPoint(x,y,z,1));
     return {x:p.x/p.w, y:p.y/p.w};
   }
@@ -4911,13 +4911,14 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   function cameras(){
     TYPE={rx:0,rz:typingRot(),s:1,ty:0};
     if(isOuter()){
-      // the case across the outer screen, its front (handle and latches) toward the camera end, seen from the
-      // hinge side and a little low so the front shows
-      const r=fixRot(180);
-      CLOSED={rx:-34,rz:r,s:.6,ty:.08}; SHOW={rx:-34,rz:r,s:.6,ty:.08}; OPENV={rx:-58,rz:r,s:.62,ty:.02};
+      // the case lies across the outer screen, its front (handle and latches) toward the right edge, seen a little
+      // from that side so the front shows
+      const BW=W+2*(built?built.m:0), BH=H+2*(built?built.m:0);
+      const fit=0.86*Math.min(W/BH, H/BW);
+      CLOSED={rx:0,ry:-32,rz:-90,s:fit,ty:0}; SHOW={...CLOSED}; OPENV={rx:0,ry:-52,rz:-90,s:fit*1.02,ty:0};
       return;
     }
-    const r=fixRot(0);
+    const r=0;
     CLOSED={rx:54,rz:r,s:.84,ty:-.03}; SHOW={rx:56,rz:r,s:.86,ty:0}; OPENV={rx:66,rz:r,s:1,ty:.19};
     if(!built) return;
     // the crease on screen: the typewriter's own hinge strip (measured flat) — else the middle
@@ -4935,7 +4936,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     for(let i=0;i<32;i++){ const mid=(lo+hi)/2; const p=project({...cam,ty:mid},hx,hy,hz); if(p.y<creaseY) lo=mid; else hi=mid; }
     return (lo+hi)/2;
   }
-  const camLerp=(a,b,k)=>({rx:lerp(a.rx,b.rx,k),rz:lerp(a.rz,b.rz,k),s:lerp(a.s,b.s,k),ty:lerp(a.ty,b.ty,k)});
+  const camLerp=(a,b,k)=>({rx:lerp(a.rx,b.rx,k),ry:lerp(a.ry||0,b.ry||0,k),rz:lerp(a.rz,b.rz,k),s:lerp(a.s,b.s,k),ty:lerp(a.ty,b.ty,k)});
   let token=0, playing=0;
   /** run a list of [start, end, fn(k)] segments (seconds) on one clock; resolves at the end */
   function play(segs, total, cbs){
@@ -5002,11 +5003,11 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(!st.shown) return;
     e.stopImmediatePropagation(); e.preventDefault();
     if(lv.busy || token!==playing) { if(token!==playing) return; }
-    drag.on=true; drag.y0=e.clientY; drag.a0=st.lid; drag.moved=false;
+    drag.on=true; drag.y0=(window.__toLogical?__toLogical(e.clientX,e.clientY).y:e.clientY); drag.a0=st.lid; drag.moved=false;
   },true);
   addEventListener('pointermove',e=>{
     if(!drag.on || !st.shown) return;
-    const dy=drag.y0-e.clientY;
+    const dy=drag.y0-(window.__toLogical?__toLogical(e.clientX,e.clientY).y:e.clientY);
     if(Math.abs(dy)>8) drag.moved=true;
     if(drag.moved){ lv.cur=st.lid; follow(drag.a0+dy*0.32); }
   },true);
@@ -5122,6 +5123,92 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   },true);
   window.CaseScene={open, close, showClosed, get shown(){ return st.shown; }, get live(){ return liveHinge(); }, get flat(){ const a=hingeDeg(); return a===null || a>=OPEN_AT; }, get mode(){ return mode; }, follow, pushIn, sync:onHinge, _pose:(c,l)=>{ if(!built) build(); show(true); st.cam={...st.cam,...c}; if(l!==undefined) st.lid=l; pose(); }};
   if(embedded) showClosed();
+})();
+</script>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     增强（Claude）· 方向锁定（Duo 上）
+     iOS 网页没法锁屏幕方向，翻动手机时系统会把页面转成横屏 / 竖屏。这里把整页反着转回去：
+     · 页面始终按"上下屏"（铰链横着）那个方向排版 —— 内屏上半 = 箱盖（背面是外屏的那一半），下半 = 箱底 + 打字机；
+       打字主界面也就固定在这个方向
+     · 外屏固定在它自己的竖向
+     · 页面看到的 innerWidth / innerHeight 是锁定后的尺寸；位置测量、手指坐标都换回锁定后的坐标
+     每块屏幕第一次以竖向出现时记下那时的系统角度作为基准；之后系统转了多少，就反着转多少。
+     ══════════════════════════════════════════════════════════ -->
+<script id="enh-orient-lock-script">
+(function(){
+  const de=document.documentElement;
+  const realW=()=>de.clientWidth, realH=()=>de.clientHeight;
+  const onDuo=()=>{ const h=window.__minestHinge; return !!(h && typeof h.angle==='number'); };
+  function sysAngle(){
+    let a=0;
+    try{ a=(typeof window.orientation==='number') ? window.orientation : (screen.orientation ? screen.orientation.angle : 0); }catch(e){}
+    return ((a%360)+360)%360;
+  }
+  const ref={};          // per screen (outer / inner): the system angle when that screen stood the way we lay it out
+  let rot=0, L={w:0,h:0};
+  /** apply: rot is how far (clockwise) the page must turn to look as if the system had not rotated it */
+  function apply(){
+    const w=realW(), h=realH();
+    const kind = Math.min(w,h) < 560 ? 'outer' : 'inner';
+    const a=sysAngle();
+    let r=0;
+    if(onDuo()){
+      if(w<h && ref[kind]===undefined) ref[kind]=a;                 // standing the way we lay it out: the reference
+      const base = ref[kind]!==undefined ? ref[kind] : ((a===0||a===180) ? (a+90)%360 : 0);   // not seen standing yet: a guess
+      r=((base-a)%360+360)%360;
+      if(r%90) r=0;
+      // whatever the angles say, the locked page always stands (top / bottom screens)
+      if(r%180===0 && w>h) r=(r+90)%360;
+      if(r%180===90 && w<h) r=(r+90)%360;
+    }
+    const b=document.body; if(!b) return;
+    if(r===rot && L.w) return;
+    rot=r;
+    if(!r){
+      ['position','left','top','width','height','transform','transformOrigin'].forEach(k=>b.style[k]='');
+      L={w:w,h:h}; delete b.dataset.lock;
+    }else{
+      const lw = r%180 ? h : w, lh = r%180 ? w : h;
+      L={w:lw,h:lh};
+      Object.assign(b.style,{position:'fixed',left:'0',top:'0',width:lw+'px',height:lh+'px',transformOrigin:'0 0',
+        transform: r===90 ? `translate(${w}px,0) rotate(90deg)` : r===270 ? `translate(0,${h}px) rotate(-90deg)` : `translate(${w}px,${h}px) rotate(180deg)`});
+      b.dataset.lock=String(r);
+    }
+    setTimeout(()=>dispatchEvent(new Event('resize')),20);
+  }
+  // what the page reads as its size: the locked frame
+  try{
+    Object.defineProperty(window,'innerWidth',{configurable:true,get:()=>rot%180 ? realH() : realW()});
+    Object.defineProperty(window,'innerHeight',{configurable:true,get:()=>rot%180 ? realW() : realH()});
+  }catch(e){}
+  /** a point on the screen → the locked page's coordinates */
+  window.__toLogical=(x,y)=>{
+    const w=realW(), h=realH();
+    if(rot===90) return {x:y, y:w-x};
+    if(rot===270) return {x:h-y, y:x};
+    if(rot===180) return {x:w-x, y:h-y};
+    return {x,y};
+  };
+  // measurements are taken in the locked frame (the page turned back for that moment)
+  const _gbr=Element.prototype.getBoundingClientRect;
+  Element.prototype.getBoundingClientRect=function(){
+    const b=document.body;
+    if(b && b.dataset.lock && this!==document.documentElement){
+      const t=b.style.transform; b.style.transform='none';
+      try{ return _gbr.call(this); } finally{ b.style.transform=t; }
+    }
+    return _gbr.call(this);
+  };
+  let q=0;
+  const later=()=>{ cancelAnimationFrame(q); q=requestAnimationFrame(apply); };
+  addEventListener('orientationchange', later);
+  try{ screen.orientation && screen.orientation.addEventListener('change', later); }catch(e){}
+  addEventListener('minest:hinge', later);
+  const ro=new ResizeObserver(later); ro.observe(de);
+  later();
+  window.__orientLock={get rot(){ return rot; }, get ref(){ return {...ref}; }, apply};
 })();
 </script>
 
