@@ -4803,7 +4803,13 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     try{ const sh=new CSSStyleSheet(); sh.replaceSync(css); kbSheet=sh; }catch(e){ kbSheet=css; }
     return kbSheet;
   }
+  let kbKept=null;   // {key, r}: the copy last made, reused while the case's size and the keyboard stay the same
   function kbFace(gw, gh){
+    const key=gw+'x'+gh+'|'+(kbSnap ? kbSnap.html.length : 0);
+    if(kbKept && kbKept.key===key) return kbKept.r;
+    const r=kbMake(gw, gh); if(r) kbKept={key, r}; return r;
+  }
+  function kbMake(gw, gh){
     try{
       let snap=kbSnap;
       if(!snap){ const mh=$$('machine-half'); if(!mh) return null; const r=mh.getBoundingClientRect();
@@ -5123,7 +5129,7 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
       [.65*k, ()=>{ sLatchOpen(); hap('rigid'); }],
       [.92*k, ()=>sCreak(1.0*k)],
       [2.0*k, ()=>{ sStop(); hap('soft'); }],
-    ]).then(ok=>ok ? enterTyping(.8*k) : false).then(ok=>{ if(ok){ st.cam={...TYPE}; show(false); pose(); lv.cur=lv.target=LID_MAX; lv.latched=false; mode='typing'; } return ok; });
+    ]).then(ok=>ok ? enterTyping(.8*k) : false).then(ok=>{ if(ok){ st.cam={...TYPE}; show(false); pose(); lv.cur=lv.target=LID_MAX; lv.latched=false; mode='typing'; typRef=hingeDeg(); } return ok; });
   }
   function close(){
     caseFlip=0; snapKb(); build();
@@ -5207,7 +5213,7 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
       if(lv.raf){ cancelAnimationFrame(lv.raf); lv.raf=0; }
       st.lid=0; lv.cur=lv.target=0; mode='closed';
       wasOuter=nowOuter; build(); show(true); st.cam={...CLOSED}; pose();
-      arriveT=setTimeout(settleArrival, 280); return;
+      arriveT=setTimeout(settleArrival, 140); return;
     }
     const folding = trend<0;
     if(!wasOuter && nowOuter && ((st.shown && mode!=='typing' && folding && st.lid>2) || (mode==='typing' && folding && hingeDeg()!==null))){
@@ -5280,7 +5286,7 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     cameras(); lv.busy=true; mode='opening';
     return enterTyping(.95).then(ok=>{
       lv.busy=false;
-      if(ok){ st.cam={...TYPE}; show(false); pose(); mode='typing'; lv.cur=lv.target=LID_MAX; lv.latched=false;
+      if(ok){ st.cam={...TYPE}; show(false); pose(); mode='typing'; typRef=hingeDeg(); lv.cur=lv.target=LID_MAX; lv.latched=false;
         try{ lidDismissed=true; applyMode(); }catch(e){} if(window.hermesCase) hermesCase.fit(); }
       return ok;
     });
@@ -5307,6 +5313,7 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
       follow(th2===null ? a : Math.min(LID_MAX, th2*LID_MAX/OPEN_AT));
     });
   }
+  let typRef=null;   // the widest the hinge has been in the typing view (folding 5° from it closes)
   function foldClose(){ closeMode(false); }
   /** arrived on the inner screen with the phone already open: the whole opening, start to end — the case settles
    *  in view, the two latches spring, the lid swings up to its stop and rebounds, then in to the typewriter */
@@ -5319,15 +5326,15 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     const L1=fromLatch>0.05, k=matchMedia('(prefers-reduced-motion: reduce)').matches ? 0.5 : 1;
     const t=x=>x*k;
     return play([
-      [0, t(.45), x=>{ st.cam=camLerp(fromCam, view, ease(x)); }],
-      [t(.45), t(.62), x=>{ if(L1) st.latch=fromLatch*(1-x*.5); }],
-      [t(.6), t(.77), x=>{ if(L1) st.latch=fromLatch*.5*(1-x); }],
-      [t(.85), t(2.05), x=>{ const e=ease(x); st.lid=fromLid+(top-fromLid)*e; st.cam=camLerp(view, camFor(LID_MAX), e); }],
-      [t(2.05), t(2.2), x=>{ st.lid=top-3*Math.sin(x*Math.PI/2); }],
-    ], t(2.4), [
-      ...(L1 ? [[t(.45),()=>{ sLatchOpen(); hap('rigid'); }],[t(.6),()=>{ sLatchOpen(); hap('rigid'); }]] : []),
-      [t(.88),()=>sCreak(1.1*k)],
-      [t(2.05),()=>{ sStop(); hap('soft'); }],
+      [0, t(.2), x=>{ st.cam=camLerp(fromCam, view, ease(x)); }],
+      [t(.12), t(.29), x=>{ if(L1) st.latch=fromLatch*(1-x*.5); }],
+      [t(.27), t(.44), x=>{ if(L1) st.latch=fromLatch*.5*(1-x); }],
+      [t(.45), t(1.65), x=>{ const e=ease(x); st.lid=fromLid+(top-fromLid)*e; st.cam=camLerp(view, camFor(LID_MAX), e); }],
+      [t(1.65), t(1.8), x=>{ st.lid=top-3*Math.sin(x*Math.PI/2); }],
+    ], t(1.95), [
+      ...(L1 ? [[t(.12),()=>{ sLatchOpen(); hap('rigid'); }],[t(.27),()=>{ sLatchOpen(); hap('rigid'); }]] : []),
+      [t(.48),()=>sCreak(1.1*k)],
+      [t(1.65),()=>{ sStop(); hap('soft'); }],
     ]).then(ok=>{ lv.busy=false; lv.latched=false; st.latch=0; lv.cur=lv.target=LID_MAX; if(ok) return pushIn(); return ok; });
   }
   /** the inner screen has settled after the switch: the hinge says where the lid is */
@@ -5365,7 +5372,8 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     if(lv.busy || mode==='closing') return;
     if(mode==='typing'){
       // flat or folded, the typewriter stays; folded on down past CLOSE_AT, the case shuts
-      if(prev!==null && prev>=CLOSE_AT && th<CLOSE_AT) foldClose();
+      if(typRef===null || th>typRef) typRef=th;
+      if(th < typRef-5){ typRef=null; hap('heavy'); foldClose(); }
       return;
     }
     // the case is shut or opening: the hand drives the lid
@@ -5401,6 +5409,14 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
   },true);
   window.CaseScene={open, close, showClosed, get shown(){ return st.shown; }, get live(){ return liveHinge(); }, get flat(){ const a=hingeDeg(); return a===null || a>=OPEN_AT; }, get mode(){ return mode; }, closeMode, follow, pushIn, sync:onHinge, _dbg:()=>({st, built, lv, arrive, token, playing}), _pose:(c,l)=>{ if(!built) build(); show(true); st.cam={...st.cam,...c}; if(l!==undefined) st.lid=l; pose(); }};
   setTimeout(()=>{ if(!st.shown) snapKb(); }, 1500);
+  setTimeout(()=>{ try{
+    let d=null; try{ d=JSON.parse(localStorage.getItem('hermes.caseDims')||'null'); }catch(e){}
+    const gw=d && d.gw>200 ? d.gw : Math.max(innerWidth,innerHeight), gh=d && d.gh>100 ? d.gh : Math.round(gw*0.46);
+    const r=kbFace(gw, gh);
+    if(r && !r.el.isConnected){ let hold=$$('cs-kb-hold'); if(!hold){ hold=document.createElement('div'); hold.id='cs-kb-hold';
+        hold.style.cssText='position:fixed;left:-30000px;top:0;width:10px;height:10px;overflow:hidden;pointer-events:none;'; document.body.appendChild(hold); }
+      hold.appendChild(r.el); }
+  }catch(e){} }, 900);
   try{ localStorage.removeItem('hermes.log'); }catch(e){}
   // the way out, on the case's first page (top left): back to Minest
   if(embedded){
