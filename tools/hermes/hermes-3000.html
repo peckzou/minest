@@ -4930,6 +4930,16 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     try{ const h=$$('hinge'); if(h){ const r=h.getBoundingClientRect(); if(r.height>0) target=r.top+r.height/2; } }catch(e){}
     creaseY=target;
     OPENV.ty=pinTy(OPENV);
+    // as large as it can be while the lid's front edge (open at the stop) and the base's handle both stay on screen
+    const lidTip=(cam)=>{ const a=108*Math.PI/180, yl=built.BH*Math.cos(a)-built.L*Math.sin(a), zl=built.BH*Math.sin(a)+built.L*Math.cos(a);
+      return project(cam, W/2, -built.m+yl, built.R+zl); };
+    const handle=(cam)=>project(cam, W/2, H+built.m, built.R-(built.D+built.R)*0.75);
+    for(let sc=1; sc>=0.4; sc-=0.02){
+      const c={...OPENV, s:sc}; c.ty=pinTy(c);
+      const t=lidTip(c), b=handle(c);
+      OPENV={...c};
+      if(t.y>=10 && b.y<=H-10) break;
+    }
   }
   let creaseY=0;
   /** the camera height that puts the case's hinge axis exactly on the phone's crease */
@@ -5023,7 +5033,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     else follow(0);
   },true);
   // a new screen (the phone opened or shut): rebuild for it and keep the lid where it is
-  addEventListener('resize',()=>{ if(st.shown){ build(); const app=$$('app'); if(app) app.style.visibility=isOuter()?'hidden':''; if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else { built=null; const app=$$('app'); if(app){ app.style.transform=typingTransform(); app.style.visibility=''; } } });
+  let wasOuter=isOuter();
+  addEventListener('resize',()=>{ const nowOuter=isOuter(); if(wasOuter && !nowOuter && st.shown && mode!=='typing') arrive=true; wasOuter=nowOuter; if(built){ ['desk','back','front'].forEach(k=>built[k] && (built[k].style.opacity='')); } if(st.shown){ build(); const app=$$('app'); if(app) app.style.visibility=isOuter()?'hidden':''; if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else { built=null; const app=$$('app'); if(app){ app.style.transform=typingTransform(); app.style.visibility=''; } } });
 
 
   /* ---------- opening and closing: two separate mechanisms ----------
@@ -5045,7 +5056,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     return c;
   };
   const lv={target:0, cur:0, raf:0, last:0, latched:true, busy:false};
-  let mode=st.shown?'closed':'typing', armed=true, lastTh=null;
+  let mode=st.shown?'closed':'typing', armed=true, lastTh=null, arrive=false;
   function hingeDeg(){
     const h=window.__minestHinge;
     if(!h || typeof h.angle!=='number' || !isFinite(h.angle)) return null;
@@ -5103,6 +5114,17 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     });
   }
   function foldClose(){ closeMode(false); }
+  function arriveOpen(){
+    if(lv.busy) return;
+    lv.busy=true; mode='opening'; armed=false;
+    const fromLid=st.lid, fromCam={...st.cam};
+    if(lv.latched){ sLatchOpen(); hap('rigid'); setTimeout(()=>{ sLatchOpen(); hap('rigid'); },120); lv.latched=false; }
+    sCreak(.9);
+    play([
+      [0,.25,x=>{ st.latch=1-x; }],
+      [.1,1.2,x=>{ const e=ease(x); st.lid=fromLid+(LID_MAX-fromLid)*e; st.cam=camLerp(fromCam, camFor(LID_MAX), e); }],
+    ], 1.75, [[1.2,()=>{ sStop(); hap('soft'); }]]).then(ok=>{ lv.busy=false; lv.cur=lv.target=LID_MAX; if(ok) pushIn(); });
+  }
   /** shut by the hand: if the clasp asked for it, back to Minest */
   function shutDone(){
     if(!closeIntent) return;
@@ -5121,6 +5143,10 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     }
     // the case is shut or opening: the hand drives the lid
     if(!st.shown) showClosed();
+    // just arrived on the inner screen (the phone was opened from the outer one), already past the opening angle:
+    // the lid is shown swinging up to its stop over the base and the typewriter, a breath, then in to the typewriter
+    if(arrive && th>=OPEN_AT){ arrive=false; arriveOpen(); return; }
+    if(th<OPEN_AT) arrive=false;
     if(th<OPEN_AT-10) armed=true;
     if(th>=OPEN_AT){ if(armed){ armed=false; pushIn(); } return; }
     follow(th*LID_MAX/OPEN_AT);
@@ -5128,11 +5154,16 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   addEventListener('minest:hinge', onHinge);
   /** the case is being driven by a real hinge right now */
   const liveHinge=()=>hingeDeg()!==null;
+  let outerDark=0;
 
   /* the outer screen: "tap to open" on the flat lid brings the case across the screen, handle toward the camera
      end, latches sprung — ready to open (unfold the phone, or tap the case) */
   function outerReady(){
     showClosed();
+    clearTimeout(outerDark);
+    outerDark=setTimeout(()=>{ if(!isOuter() || !st.shown || mode==='typing') return;
+      ['desk','back','front'].forEach(k=>{ const el=built[k]; if(!el) return; el.style.transition='opacity .6s ease'; el.style.opacity=k==='desk'?'1':'0'; });
+      if(built.desk) built.desk.style.background='#000'; }, 1600);
     play([[.15,.33,x=>{ st.latch=1-x*0.5; }],[.3,.48,x=>{ st.latch=.5-x*.5; lv.latched=false; }],[.5,.9,x=>{ st.lid=3*Math.sin(x*Math.PI); }]], .95,
       [[.15,()=>{ sLatchOpen(); hap('rigid'); }],[.3,()=>{ sLatchOpen(); hap('rigid'); }]]).then(()=>{ st.lid=0; lv.cur=lv.target=0; pose(); });
   }
