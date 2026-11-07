@@ -4914,7 +4914,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   }
 
   /* ---------- the camera and the parts ---------- */
-  function camStr(c){ return `perspective(1700px) translate3d(${(c.tx||0)*W}px,${c.ty*H}px,0) rotateY(${c.ry||0}deg) rotateX(${c.rx}deg) rotateZ(${c.rz}deg) scale3d(${c.s},${c.s},${c.s})`; }
+  function camStr(c){ return `rotateZ(${c.flip||0}deg) perspective(1700px) translate3d(${(c.tx||0)*W}px,${c.ty*H}px,0) rotateY(${c.ry||0}deg) rotateX(${c.rx}deg) rotateZ(${c.rz}deg) scale3d(${c.s},${c.s},${c.s})`; }
   function pose(){
     if(!built) return;
     const t=camStr(st.cam), app=$$('app');
@@ -4976,7 +4976,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   /** where a point of the case lands on screen under a camera (the same matrix the CSS transform builds) */
   function project(cam, x, y, z){
     const P=new DOMMatrix([1,0,0,0, 0,1,0,0, 0,0,1,-1/1700, 0,0,0,1]);
-    const M=new DOMMatrix().translate(W/2,H/2).multiply(P).translate((cam.tx||0)*W,cam.ty*H,0).rotate(0,cam.ry||0,0).rotate(cam.rx,0,0).rotate(0,0,cam.rz).scale(cam.s,cam.s,cam.s).translate(-W/2,-H/2);
+    const M=new DOMMatrix().translate(W/2,H/2).rotate(0,0,cam.flip||0).multiply(P).translate((cam.tx||0)*W,cam.ty*H,0).rotate(0,cam.ry||0,0).rotate(cam.rx,0,0).rotate(0,0,cam.rz).scale(cam.s,cam.s,cam.s).translate(-W/2,-H/2);
     const p=M.transformPoint(new DOMPoint(x,y,z,1));
     return {x:p.x/p.w, y:p.y/p.w};
   }
@@ -5008,7 +5008,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     }
     const r=0;
     // the open view looks in from the front at a moderate angle: the standing lid and the lying base share the screen
-    CLOSED={rx:50,rz:r,s:.66,ty:-.03}; SHOW={rx:50,rz:r,s:.68,ty:0}; OPENV={rx:48,rz:r,s:1,ty:.1};
+    const F=INNER_FLIP;
+    CLOSED={flip:F,rx:50,rz:r,s:.66,ty:-.03}; SHOW={flip:F,rx:50,rz:r,s:.68,ty:0}; OPENV={flip:F,rx:48,rz:r,s:1,ty:.1};
     if(!built) return;
     // shut: the wide case across the screen
     const fitW=0.9*W/built.BW; CLOSED.s=fitW*0.96; SHOW.s=fitW;
@@ -5027,16 +5028,18 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       const c={...OPENV, s:sc}; c.ty=pinTy(c);
       const t=lidTip(c), b=handle(c), q=corner(c);
       OPENV={...c};
-      if(t.y>=10 && b.y<=H-10 && q.x>=4) break;
+      const inside=p=>p.y>=10 && p.y<=H-10 && p.x>=4 && p.x<=W-4;
+      if(inside(t) && inside(b) && inside(q)) break;
     }
   }
   let creaseY=0;
+  const INNER_FLIP=180;
   /** the camera height that puts the case's hinge axis exactly on the phone's crease */
   function pinTy(cam){
     if(!built) return cam.ty;
     const hx=W/2, hy=(built.oy||0)-built.m, hz=built.R;
-    let lo=-0.9, hi=0.9;
-    for(let i=0;i<32;i++){ const mid=(lo+hi)/2; const p=project({...cam,ty:mid},hx,hy,hz); if(p.y<creaseY) lo=mid; else hi=mid; }
+    let lo=-0.9, hi=0.9; const f=((cam.flip||0)%360+360)%360, goal=f===180 ? H-creaseY : creaseY;
+    for(let i=0;i<32;i++){ const mid=(lo+hi)/2; const p=project({...cam,flip:0,ty:mid},hx,hy,hz); if(p.y<goal) lo=mid; else hi=mid; }
     return (lo+hi)/2;
   }
   function intoCam(){
@@ -5072,7 +5075,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       [0,d,x=>{ st.cam=camLerp(into,to,ease(x)); }],
     ], d).then(ok=>{ xfade(0); const app=$$('app'); if(app){ app.style.visibility='hidden'; app.style.opacity=''; } return ok; });
   }
-  const camLerp=(a,b,k)=>({tx:lerp(a.tx||0,b.tx||0,k),rx:lerp(a.rx,b.rx,k),ry:lerp(a.ry||0,b.ry||0,k),rz:lerp(a.rz,b.rz,k),s:lerp(a.s,b.s,k),ty:lerp(a.ty,b.ty,k)});
+  const camLerp=(a,b,k)=>({flip:lerp(a.flip||0,b.flip||0,k),tx:lerp(a.tx||0,b.tx||0,k),rx:lerp(a.rx,b.rx,k),ry:lerp(a.ry||0,b.ry||0,k),rz:lerp(a.rz,b.rz,k),s:lerp(a.s,b.s,k),ty:lerp(a.ty,b.ty,k)});
   let token=0, playing=0;
   /** run a list of [start, end, fn(k)] segments (seconds) on one clock; resolves at the end */
   function play(segs, total, cbs){
@@ -5141,7 +5144,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   },true);
   addEventListener('pointermove',e=>{
     if(!drag.on || !st.shown) return;
-    const dy=drag.y0-(window.__toLogical?__toLogical(e.clientX,e.clientY).y:e.clientY);
+    const dy=(drag.y0-(window.__toLogical?__toLogical(e.clientX,e.clientY).y:e.clientY))*((((st.cam.flip||0)%360+360)%360)===180?-1:1);
     if(Math.abs(dy)>8) drag.moved=true;
     if(drag.moved){ lv.cur=st.lid; follow(drag.a0+dy*0.32); }
   },true);
