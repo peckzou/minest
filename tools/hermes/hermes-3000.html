@@ -4696,6 +4696,22 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
 .cs-lining .wire.v{top:14%;height:46%;width:0;border-width:0 0 0 3px;transform:rotate(-6deg)}
 .cs-lining .wire.v:last-of-type{transform:rotate(6deg)}
 .cs-lining .clip{position:absolute;top:41%;width:26px;height:30px;border-radius:4px;background:linear-gradient(180deg,#46534d,#2b3430);box-shadow:0 2px 3px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12)}
+/* 5.x · the lid's inside is the typewriter's own light panel again (the colour of the carriage half), with the dark
+   U-shaped paper rest; no felt */
+.cs-lining{background:
+  radial-gradient(ellipse 90% 70% at 50% 108%,rgba(93,132,115,.55) 0%,transparent 70%),
+  linear-gradient(180deg,#a8c9b9 0%,#93b9a6 55%,#7ea692 100%) !important;
+  box-shadow:inset 0 0 0 1px rgba(10,35,25,.3),inset 0 0 22px rgba(20,50,38,.25) !important}
+.cs-lining .felt{background:none !important;box-shadow:none !important;inset:0 !important}
+/* (the lid's own top edge is its hinge: the U opens toward the hinge, its ends at the far edge's side) */
+.cs-lining .wire.u{left:30% !important;right:30% !important;top:auto !important;bottom:14% !important;height:30% !important;border-width:5px 5px 0 5px !important;border-color:#1f3a31 !important;border-radius:3px 3px 0 0 !important;
+  box-shadow:0 -3px 3px rgba(0,0,0,.22) !important}
+.cs-lining .wire.u::before,.cs-lining .wire.u::after{content:"";position:absolute;bottom:-4px;width:9px;height:9px;border-radius:50%;background:#1f3a31}
+.cs-lining .wire.u::before{left:-7px}.cs-lining .wire.u::after{right:-7px}
+.cs-lining .wire.h,.cs-lining .wire.v,.cs-lining .clip{display:none !important}
+/* the machine in the base: a still copy of the typewriter's keyboard half (in its own shadow tree) */
+.cs-kb{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;border-radius:10px;overflow:hidden;
+  box-shadow:0 0 0 2px rgba(20,45,35,.35),0 6px 14px rgba(0,0,0,.35)}
 /* two chrome hinges on the back edge */
 .cs-hinge{position:absolute;width:96px}
 .cs-hinge .leaf{position:absolute;inset:0 0 40% 0;border-radius:4px;background:linear-gradient(180deg,#f6f8f9,#b8c2c6 60%,#8b969b);box-shadow:0 2px 3px rgba(0,0,0,.45)}
@@ -4763,6 +4779,46 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     d.style.width=w+'px'; d.style.height=h+'px'; d.style.transform=tf;
     if(html) d.innerHTML=html; parent.appendChild(d); return d;
   }
+  /* the keyboard half, copied while the typewriter is on screen (a still copy, in a shadow tree so nothing that looks
+     the real keys up ever finds it) */
+  let kbSnap=null, kbSheet=null, KB_LW=+(window.__kbLW||1050), KB_FILL=1;
+  function snapKb(){
+    if(isOuter()) return;
+    const mh=$$('machine-half'), app=$$('app'); if(!mh) return;
+    const r=mh.getBoundingClientRect(); if(r.width<200 || r.height<120) return;
+    kbSnap={html:mh.outerHTML, w:r.width, h:r.height, cls:(app && app.className)||''};
+  }
+  function kbStyles(){
+    if(kbSheet) return kbSheet;
+    let css=''; document.querySelectorAll('style').forEach(el=>{ if(el.id!=='enh-casescene') css+=el.textContent+'\n'; });
+    try{ const sh=new CSSStyleSheet(); sh.replaceSync(css); kbSheet=sh; }catch(e){ kbSheet=css; }
+    return kbSheet;
+  }
+  function kbFace(gw, gh){
+    try{
+      let snap=kbSnap;
+      if(!snap){ const mh=$$('machine-half'); if(!mh) return null; const r=mh.getBoundingClientRect();
+        const w=r.width>200?r.width:Math.min(W,H), h=r.height>120?r.height:w*0.58;
+        snap={html:mh.outerHTML, w, h, cls:''}; }
+      // laid out afresh in the base's own proportions (wide and low), so the keys are as big as the base allows
+      const lw=KB_LW, lh=Math.round(KB_LW*gh/gw*KB_FILL);
+      snap={...snap, w:lw, h:lh};
+      const k=Math.min(gw*0.97/snap.w, gh*0.97/snap.h);
+      const x=(gw-snap.w*k)/2, y=(gh-snap.h*k)/2;
+      const el=document.createElement('div'); el.className='cs-kb';
+      el.style.width=snap.w+'px'; el.style.height=snap.h+'px';
+      el.style.transform=`translate3d(${x}px,${y}px,0) scale(${k})`;
+      const sr=el.attachShadow({mode:'open'}), sh=kbStyles();
+      if(typeof sh==='string'){ const t=document.createElement('style'); t.textContent=sh; sr.appendChild(t); } else sr.adoptedStyleSheets=[sh];
+      const wrap=document.createElement('div'); wrap.id='app';
+      wrap.className=String(snap.cls).replace(/\bmode-closed\b/g,'');
+      wrap.setAttribute('style',`position:absolute;inset:auto;left:0;top:0;width:${snap.w}px;height:${snap.h}px;display:flex;flex-direction:column;overflow:hidden;transform:none;visibility:visible;opacity:1;pointer-events:none;z-index:auto`);
+      wrap.innerHTML=snap.html;
+      const mh=wrap.firstElementChild; if(mh){ mh.style.flex='1 1 auto'; mh.style.height='100%'; mh.style.transform='none'; }
+      sr.appendChild(wrap);
+      return {el, x, y, w:snap.w*k, h:snap.h*k};
+    }catch(e){ return null; }
+  }
   function group(tf, parent){ const g=document.createElement('div'); g.className='cs-g'; g.style.transform=tf||''; parent.appendChild(g); return g; }
   function build(){
     W=innerWidth; H=innerHeight;
@@ -4773,20 +4829,29 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     back.innerHTML=''; front.innerHTML='';
     // the outer screen shows a case of its own, wide along the handle (the machine inside is not shown there);
     // the inner screens wrap the case round the typewriter exactly
+    // one case for every screen: the outer screen's wide case (its size remembered); on the inner screen the very same
+    // case is shown (the camera scales it), the keyboard lying in its base
     const outer=isOuter();
-    const gw=outer?Math.max(W,H):W, gh=outer?Math.min(W,H):H;
+    let gw, gh;
+    if(outer){ gw=Math.max(W,H); gh=Math.min(W,H); try{ localStorage.setItem('hermes.caseDims', JSON.stringify({gw,gh})); }catch(e){} }
+    else {
+      let d=null; try{ d=JSON.parse(localStorage.getItem('hermes.caseDims')||'null'); }catch(e){}
+      if(d && d.gw>200 && d.gh>100){ gw=d.gw; gh=d.gh; } else { gw=Math.max(W,H); gh=Math.round(gw*0.46); }
+    }
+    const ox=(W-gw)/2, oy=(H-gh)/2;
     const backL=back, frontL=front;
     back=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, backL); front=group(`translate3d(${(W-gw)/2}px,${(H-gh)/2}px,0)`, frontL);
-    const m=Math.round(Math.max(26, Math.min(W,H)*0.07));   // wall thickness / margin round the machine
-    const D=Math.round(Math.min(W,H)*0.22);                 // base depth below the machine
-    const R=Math.round(Math.min(W,H)*0.035);                // rim above it
-    const L=Math.round(Math.min(W,H)*0.12);                 // lid depth
+    const m=Math.round(Math.max(26, gh*0.07));   // wall thickness / margin round the machine
+    const D=Math.round(gh*0.22);                 // base depth below the machine
+    const R=Math.round(gh*0.035);                // rim above it
+    const L=Math.round(gh*0.12);                 // lid depth
     // the sides: as far out as the screen allows in the open view (sideM, worked out by cameras()), never less than m
-    const mx=Math.max(m, (!outer && sideM && sideM.W===W && sideM.H===H) ? sideM.mx : m);
+    const mx=m;
     const BW=gw+2*mx, BH=gh+2*m;
     // ---- back layer: a soft shadow on the (black) desk, the felt floor, back + side walls
     face('cs-shadow', BW*1.3, BH*1.3, `translate3d(${-mx-BW*0.15}px,${-m-BH*0.1}px,${-D-2}px)`, back);
     face('cs-floor', BW, BH, `translate3d(${-mx}px,${-m}px,${-D}px)`, back);
+    const kb=kbFace(gw, gh); if(kb) back.appendChild(kb.el);
     face('cs-shell cs-grain darker', BW, D+R, `translate3d(${-mx}px,${-m}px,${R}px) rotateX(-90deg)`, back);            // back wall
     face('cs-shell cs-grain dark', D+R, BH, `translate3d(${-mx}px,${-m}px,${R}px) rotateY(90deg)`, back);               // left wall
     face('cs-shell cs-grain dark', D+R, BH, `translate3d(${gw+mx}px,${-m}px,${R}px) rotateY(90deg)`, back);              // right wall
@@ -4840,9 +4905,9 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     face('cs-shell cs-grain darker', BW, L, `translate3d(0,0,0) rotateX(90deg)`, lid);
     face('cs-shell cs-grain dark', L, BH, `translate3d(0,0,0) rotateY(-90deg)`, lid);
     face('cs-shell cs-grain dark', L, BH, `translate3d(${BW}px,0,0) rotateY(-90deg)`, lid);
-    built={desk,back:backL,front:frontL,backR:back,frontR:front,lid,latchEls,m,mx,D,R,L,BW,BH,outer};
+    built={desk,back:backL,front:frontL,backR:back,frontR:front,lid,latchEls,m,mx,D,R,L,BW,BH,outer,gw,gh,ox,oy,
+      kb: kb ? {x:ox+kb.x, y:oy+kb.y, w:kb.w, h:kb.h} : null};
     cameras();
-    if(widen){ widen=false; if(Math.abs(mx-sideM.mx)>2) return build(); }
     front.classList.toggle('outer', isOuter());
     front.style.setProperty('--medal-rot', '0deg');
     pose();
@@ -4854,7 +4919,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(!built) return;
     const t=camStr(st.cam), app=$$('app');
     built.back.style.transform=t; built.front.style.transform=t;
-    if(app) app.style.transform = (st.cam.s===1 && !st.cam.rx && !(st.cam.rz%360) && !st.cam.ty) ? '' : t;
+    if(app) app.style.transform='';
     const {m,R,lid}=built;
     lid.style.transform=`translate3d(${-(built.mx||m)}px,${-m}px,${R}px) rotateX(${st.lid}deg)`;
     // past upright the lid stands behind the machine
@@ -4866,7 +4931,8 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     if(!built) build();
     const app=$$('app');
     ['desk','back','front'].forEach(k=>built[k].style.display=on?'block':'none');
-    if(app){ app.style.zIndex=on?'2':''; app.style.pointerEvents=on?'none':''; app.style.visibility=(on && isOuter())?'hidden':''; if(!on){ app.style.transform=typingTransform(); setTimeout(()=>dispatchEvent(new Event('resize')),30); } }
+    ['desk','back','front'].forEach(k=>{ built[k].style.opacity=''; built[k].style.transition=''; });
+    if(app){ app.style.opacity=''; app.style.zIndex=on?'2':''; app.style.pointerEvents=on?'none':''; app.style.visibility=on?'hidden':''; if(!on){ app.style.transform=typingTransform(); setTimeout(()=>dispatchEvent(new Event('resize')),30); } }
     st.shown=on; window.__caseLock=on;
   }
 
@@ -4927,39 +4993,69 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     }
     const r=0;
     // the open view looks in from the front at a moderate angle: the standing lid and the lying base share the screen
-    // evenly, so the machine (and its keyboard) shows large
-    CLOSED={rx:50,rz:r,s:.66,ty:-.07}; SHOW={rx:50,rz:r,s:.68,ty:-.05}; OPENV={rx:48,rz:r,s:1,ty:.1};
+    CLOSED={rx:50,rz:r,s:.66,ty:-.03}; SHOW={rx:50,rz:r,s:.68,ty:0}; OPENV={rx:48,rz:r,s:1,ty:.1};
     if(!built) return;
+    // shut: the wide case across the screen
+    const fitW=0.9*W/built.BW; CLOSED.s=fitW*0.96; SHOW.s=fitW;
     // the crease on screen: the typewriter's own hinge strip (measured flat) — else the middle
     let target=H/2;
     try{ const h=$$('hinge'); if(h){ const r=h.getBoundingClientRect(); if(r.height>0) target=r.top+r.height/2; } }catch(e){}
     creaseY=target;
     OPENV.ty=pinTy(OPENV);
     // as large as it can be while the lid's front edge (open at the stop) and the base's handle both stay on screen
+    const top=built.oy-built.m, bot=built.oy+built.gh+built.m, left=built.ox-built.mx;
     const lidTip=(cam)=>{ const a=108*Math.PI/180, yl=built.BH*Math.cos(a)-built.L*Math.sin(a), zl=built.BH*Math.sin(a)+built.L*Math.cos(a);
-      return project(cam, W/2, -built.m+yl, built.R+zl); };
-    const handle=(cam)=>project(cam, W/2, H+built.m, built.R-(built.D+built.R)*0.75);
-    for(let sc=1; sc>=0.4; sc-=0.02){
+      return project(cam, W/2, top+yl, built.R+zl); };
+    const handle=(cam)=>project(cam, W/2, bot, built.R-(built.D+built.R)*0.75);
+    const corner=(cam)=>project(cam, left, bot, built.R);
+    for(let sc=Math.min(1.6, 0.96*W/built.BW); sc>=0.3; sc-=0.02){
       const c={...OPENV, s:sc}; c.ty=pinTy(c);
-      const t=lidTip(c), b=handle(c);
+      const t=lidTip(c), b=handle(c), q=corner(c);
       OPENV={...c};
-      if(t.y>=10 && b.y<=H-10) break;
+      if(t.y>=10 && b.y<=H-10 && q.x>=4) break;
     }
-    // wide rather than long: the side walls go out until the case fills the screen's width in the open view
-    const want=Math.round(Math.min(built.m*1.5, Math.max(built.m, (W*0.9/OPENV.s - W)/2)));
-    if(!sideM || sideM.W!==W || sideM.H!==H || Math.abs(sideM.mx-want)>2){ sideM={W,H,mx:want}; widen=true; }
-    // shut, the wider case still fits across
-    CLOSED.s=Math.min(CLOSED.s, 0.84*W/(W+2*want)); SHOW.s=Math.min(SHOW.s, 0.84*W/(W+2*want));
   }
-  let sideM=null, widen=false;
   let creaseY=0;
   /** the camera height that puts the case's hinge axis exactly on the phone's crease */
   function pinTy(cam){
     if(!built) return cam.ty;
-    const hx=W/2, hy=-built.m, hz=built.R;
+    const hx=W/2, hy=(built.oy||0)-built.m, hz=built.R;
     let lo=-0.9, hi=0.9;
     for(let i=0;i<32;i++){ const mid=(lo+hi)/2; const p=project({...cam,ty:mid},hx,hy,hz); if(p.y<creaseY) lo=mid; else hi=mid; }
     return (lo+hi)/2;
+  }
+  function intoCam(){
+    const mh=$$('machine-half'), kb=built && built.kb;
+    if(!mh || !kb) return {...TYPE};
+    const r=mh.getBoundingClientRect(); if(r.width<50) return {...TYPE};
+    const s=r.width/kb.w;
+    return {rx:0, rz:0, s, ty:(r.top - H/2 - s*(kb.y - H/2))/H};
+  }
+  /** the case and the real typewriter cross-fade (x: 0 case … 1 typewriter) */
+  function xfade(x){
+    const app=$$('app'); if(!built) return;
+    if(app){ app.style.visibility='visible'; app.style.opacity=String(x); }
+    ['back','front'].forEach(k=>built[k].style.opacity=String(1-x));
+    built.desk.style.opacity=String(1-x);
+  }
+  /** from the open case in to the typewriter: the lid to its stop, the camera down onto the keyboard in the base, the
+   *  real typewriter fades in over the copy */
+  function enterTyping(dur){
+    const d=dur||.95, into=intoCam(), from={...st.cam}, fromLid=st.lid;
+    return play([
+      [0,.35*d/.95,x=>{ st.lid=fromLid+(LID_MAX-fromLid)*ease(x); st.latch=0; }],
+      [0,.8*d/.95,x=>{ st.cam=camLerp(from,into,ease(x)); }],
+      [.5*d/.95,d,x=>xfade(ease(x))],
+    ], d);
+  }
+  /** out of the typewriter: it fades over the copy in the base, the camera pulls back to the open case */
+  function leaveTyping(to, dur){
+    const d=dur||.8, into=intoCam();
+    st.cam={...into}; st.lid=LID_MAX; xfade(1); pose();
+    return play([
+      [0,.3,x=>xfade(1-ease(x))],
+      [0,d,x=>{ st.cam=camLerp(into,to,ease(x)); }],
+    ], d).then(ok=>{ xfade(0); const app=$$('app'); if(app){ app.style.visibility='hidden'; app.style.opacity=''; } return ok; });
   }
   const camLerp=(a,b,k)=>({rx:lerp(a.rx,b.rx,k),ry:lerp(a.ry||0,b.ry||0,k),rz:lerp(a.rz,b.rz,k),s:lerp(a.s,b.s,k),ty:lerp(a.ty,b.ty,k)});
   let token=0, playing=0;
@@ -4991,30 +5087,28 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
       [.65*k, .83*k, x=>{ st.latch=0.5-Math.min(1,x)*0.5; }],                          // 右锁扣
       [.9*k, 2.0*k, x=>{ const e=ease(x); st.lid=Math.min(108, e*111); st.cam=camLerp(SHOW,OPENV,e); }],  // 箱盖展开
       [1.95*k, 2.05*k, x=>{ st.lid=111-3*x; }],                                        // 机械限位回弹
-      [2.4*k, 3.2*k, x=>st.cam=camLerp(OPENV,TYPE,ease(x))],                           // 推进进入打字
-    ], 3.2*k, [
+    ], 2.4*k, [
       [.5*k, ()=>{ sLatchOpen(); hap('rigid'); }],
       [.65*k, ()=>{ sLatchOpen(); hap('rigid'); }],
       [.92*k, ()=>sCreak(1.0*k)],
       [2.0*k, ()=>{ sStop(); hap('soft'); }],
-    ]).then(ok=>{ if(ok){ st.cam={...TYPE}; pose(); show(false); lv.cur=lv.target=LID_MAX; lv.latched=false; mode='typing'; } return ok; });
+    ]).then(ok=>ok ? enterTyping(.8*k) : false).then(ok=>{ if(ok){ st.cam={...TYPE}; show(false); pose(); lv.cur=lv.target=LID_MAX; lv.latched=false; mode='typing'; } return ok; });
   }
   function close(){
-    if(!built || W!==innerWidth || H!==innerHeight) build(); else cameras();
+    snapKb(); build();
     show(true); mode='closing';
-    st.cam={...TYPE}; st.lid=108; st.latch=0; pose();
-    return play([
-      [0, .8, x=>st.cam=camLerp(TYPE,OPENV,ease(x))],                                  // 镜头后退，箱体回到画面
-      [.95, 1.6, x=>{ const e=x*x*x; st.lid=108*(1-e); st.cam=camLerp(OPENV,SHOW,ease(x)); }],  // 箱盖绕铰链合上
-      [1.75, 1.9, x=>{ st.latch=Math.min(1,x)*0.5; }],                                 // 左锁扣
-      [1.9, 2.05, x=>{ st.latch=0.5+Math.min(1,x)*0.5; }],                             // 右锁扣
-      [2.05, 2.6, x=>st.cam=camLerp(SHOW,CLOSED,ease(x))],                             // 回到闭合展示视角
-    ], 2.6, [
-      [.95, ()=>sCreak(.6)],
-      [1.6, ()=>{ sThud(); hap('heavy'); }],
-      [1.75, ()=>{ sLatchShut(); hap('rigid'); }],
-      [1.9, ()=>{ sLatchShut(); hap('rigid'); }],
-    ]).then(ok=>{ lv.cur=lv.target=0; lv.latched=true; mode='closed'; armed=hingeDeg()!==null && hingeDeg()<OPEN_AT-10; return ok; });
+    st.lid=108; st.latch=0;
+    return leaveTyping(OPENV, .8).then(ok=>!ok ? false : play([
+      [.15, .8, x=>{ const e=x*x*x; st.lid=108*(1-e); st.cam=camLerp(OPENV,SHOW,ease(x)); }],  // 箱盖绕铰链合上
+      [.95, 1.1, x=>{ st.latch=Math.min(1,x)*0.5; }],                                 // 左锁扣
+      [1.1, 1.25, x=>{ st.latch=0.5+Math.min(1,x)*0.5; }],                             // 右锁扣
+      [1.25, 1.8, x=>st.cam=camLerp(SHOW,CLOSED,ease(x))],                             // 回到闭合展示视角
+    ], 1.8, [
+      [.15, ()=>sCreak(.6)],
+      [.8, ()=>{ sThud(); hap('heavy'); }],
+      [.95, ()=>{ sLatchShut(); hap('rigid'); }],
+      [1.1, ()=>{ sLatchShut(); hap('rigid'); }],
+    ])).then(ok=>{ lv.cur=lv.target=0; lv.latched=true; mode='closed'; armed=hingeDeg()!==null && hingeDeg()<OPEN_AT-10; return ok; });
   }
   /** the closed case, standing still (embedded start; after a close outside Minest) */
   function showClosed(){ if(!built) build(); show(true); st.cam={...CLOSED}; st.lid=0; st.latch=1; lv.cur=lv.target=0; lv.latched=true; playing=token; mode='closed'; armed=hingeDeg()!==null && hingeDeg()<OPEN_AT-10; pose(); }
@@ -5045,7 +5139,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   },true);
   // a new screen (the phone opened or shut): rebuild for it and keep the lid where it is
   let wasOuter=isOuter();
-  addEventListener('resize',()=>{ const nowOuter=isOuter(); if(wasOuter && !nowOuter && st.shown && mode!=='typing') arrive=true; wasOuter=nowOuter; if(built){ ['desk','back','front'].forEach(k=>built[k] && (built[k].style.opacity='')); } if(st.shown){ build(); const app=$$('app'); if(app) app.style.visibility=isOuter()?'hidden':''; if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else { built=null; const app=$$('app'); if(app){ app.style.transform=typingTransform(); app.style.visibility=''; } } });
+  addEventListener('resize',()=>{ const nowOuter=isOuter(); if(wasOuter && !nowOuter && st.shown && mode!=='typing') arrive=true; wasOuter=nowOuter; if(built){ ['desk','back','front'].forEach(k=>built[k] && (built[k].style.opacity='')); } if(st.shown){ build(); const app=$$('app'); if(app) app.style.visibility='hidden'; if(mode!=='closing' && token===playing){ st.cam=camFor(st.lid); pose(); } } else { built=null; const app=$$('app'); if(app){ app.style.transform=typingTransform(); app.style.visibility=''; } } });
 
 
   /* ---------- opening and closing: two separate mechanisms ----------
@@ -5095,13 +5189,9 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   /** from the case in to the typewriter (the lid finishes opening, the camera pushes in) */
   function pushIn(){
     cameras(); lv.busy=true; mode='opening';
-    const fromCam={...st.cam}, fromLid=st.lid;
-    return play([
-      [0,.35,x=>{ st.lid=fromLid+(LID_MAX-fromLid)*ease(x); st.latch=0; }],
-      [0,.9,x=>{ st.cam=camLerp(fromCam,TYPE,ease(x)); }],
-    ], .9).then(ok=>{
+    return enterTyping(.95).then(ok=>{
       lv.busy=false;
-      if(ok){ st.cam={...TYPE}; pose(); show(false); mode='typing'; lv.cur=lv.target=LID_MAX; lv.latched=false;
+      if(ok){ st.cam={...TYPE}; show(false); pose(); mode='typing'; lv.cur=lv.target=LID_MAX; lv.latched=false;
         try{ lidDismissed=true; applyMode(); }catch(e){} if(window.hermesCase) hermesCase.fit(); }
       return ok;
     });
@@ -5113,13 +5203,13 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
   function closeMode(fromClasp){
     if(mode!=='typing' || lv.busy) return;
     closeIntent=!!fromClasp;
-    if(!built || W!==innerWidth || H!==innerHeight) build(); else cameras();
+    snapKb(); build();
     const th=hingeDeg();
     const a = th===null ? LID_MAX : Math.min(LID_MAX, th*LID_MAX/OPEN_AT);
     show(true); lv.busy=true; mode='opening'; armed=false;
     st.lid=LID_MAX; st.latch=0; lv.latched=false; lv.cur=LID_MAX; lv.target=LID_MAX;
     sCreak(.4); hap('medium');
-    return play([[0,.75,x=>{ st.cam=camLerp(TYPE, camFor(LID_MAX), ease(x)); }]], .75).then(()=>{
+    return leaveTyping(camFor(LID_MAX), .8).then(()=>{
       lv.busy=false; lv.cur=LID_MAX; try{ lidDismissed=false; }catch(e){}
       follow(a);
     });
@@ -5188,6 +5278,7 @@ document.getElementById('hermes-lid').addEventListener('click',()=>{
     outerReady();
   },true);
   window.CaseScene={open, close, showClosed, get shown(){ return st.shown; }, get live(){ return liveHinge(); }, get flat(){ const a=hingeDeg(); return a===null || a>=OPEN_AT; }, get mode(){ return mode; }, closeMode, follow, pushIn, sync:onHinge, _pose:(c,l)=>{ if(!built) build(); show(true); st.cam={...st.cam,...c}; if(l!==undefined) st.lid=l; pose(); }};
+  setTimeout(()=>{ if(!st.shown) snapKb(); }, 1500);
   if(embedded) showClosed();
 })();
 </script>
