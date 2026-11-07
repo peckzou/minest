@@ -164612,7 +164612,6 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Activity Rings"],html.mn-bd .mn-bdock
 html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock .mn-bapp[data-carflash-dock]{display:none!important}
 .mn-more-fan .miv-fan-label{white-space:nowrap}
 .mn-bdock .mn-sys-btn svg{width:46%!important}
-.mn-bdock .mn-sys-exit{color:#fda4af!important}
 </style>
 <script id="mn-dock-more">
 /* the Dock: ⏻ exit · ‹ back at the top, ⋯ More at the bottom (tools/duo/patch_dock_more.py) */
@@ -164626,7 +164625,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     { m: function (l) { return /^Board settings/.test(l); }, label: 'Settings 设置' }
   ];
   var DOTS = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/></svg>';
-  var POWER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>';
+  var CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   var BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
   var fan = null, blockUntil = 0;
   function haptic(s) { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic(s || 'light'); } catch (e) {} }
@@ -164641,28 +164640,27 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); on(b); });
     return b;
   }
-  /* ‹ back: the topmost thing open closes; else a page back */
-  function goBack() {
+  /* ✕ close: the page that is open on top closes (a module, then a panel with its own ✕) */
+  function closeOpen() {
     haptic('light');
-    try { if (window.MinestHermes && MinestHermes.isOpen && MinestHermes.isOpen()) { MinestHermes.close(); return; } } catch (e) {}
-    try { if (window.MinestRoutine && MinestRoutine.isOpen && MinestRoutine.isOpen()) { MinestRoutine.close(); return; } } catch (e) {}
+    try { if (window.MinestHermes && MinestHermes.isOpen && MinestHermes.isOpen()) { MinestHermes.close(); return true; } } catch (e) {}
+    try { if (window.MinestRoutine && MinestRoutine.isOpen && MinestRoutine.isOpen()) { MinestRoutine.close(); return true; } } catch (e) {}
     // an open panel / sheet: its own close button (✕), the topmost one on screen
     var xs = document.querySelectorAll('[data-cf-close],[aria-label="关闭"],[aria-label="Close"],[aria-label^="Close "],button.close,.close-btn');
-    for (var i = xs.length - 1; i >= 0; i--) { var r = xs[i].getBoundingClientRect(); if (r.width > 0 && r.height > 0 && getComputedStyle(xs[i]).visibility !== 'hidden') { xs[i].click(); return; } }
-    var esc = new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true });
-    if (!document.dispatchEvent(esc)) return;
-    if (location.hash && location.hash.length > 1) history.back();   // an in-page step back (never off the page)
+    for (var i = xs.length - 1; i >= 0; i--) { var r = xs[i].getBoundingClientRect(); if (r.width > 0 && r.height > 0 && getComputedStyle(xs[i]).visibility !== 'hidden') { xs[i].click(); return true; } }
+    return false;
   }
-  /* ⏻ exit: Minest to the background (the Home Screen) */
-  function exitApp() {
-    haptic('medium');
-    try { if (window.MinestNative && MinestNative.send) { MinestNative.send('suspendApp', {}); return; } } catch (e) {}
-    try { window.close(); } catch (e) {}
+  /* ‹ back: one step back (Escape for what listens to it, the in-page history); nothing to step back from: close */
+  function goBack() {
+    var esc = new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true });
+    if (!document.dispatchEvent(esc)) { haptic('light'); return; }
+    if (location.hash && location.hash.length > 1) { haptic('light'); history.back(); return; }   // never off the page
+    closeOpen();
   }
   function ensure() {
     var dock = document.querySelector('.mn-bdock'); if (!dock) return;
     var back = dock.querySelector('.mn-sys-back'), ex = dock.querySelector('.mn-sys-exit');
-    if (!ex) ex = tile('mn-sys-btn mn-sys-exit', 'Exit · 退出 Minest', POWER, exitApp);
+    if (!ex) ex = tile('mn-sys-btn mn-sys-exit', 'Close · 关闭', CROSS, closeOpen);
     if (!back) back = tile('mn-sys-btn mn-sys-back', 'Back · 返回', BACK, goBack);
     if (dock.firstElementChild !== ex) dock.insertBefore(ex, dock.firstElementChild);
     if (ex.nextElementSibling !== back) dock.insertBefore(back, ex.nextElementSibling);
