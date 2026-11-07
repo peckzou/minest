@@ -5223,8 +5223,10 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
       if(lv.raf){ cancelAnimationFrame(lv.raf); lv.raf=0; }
       st.lid=0; lv.cur=lv.target=0; mode='closed';
       arriving=true;
-      wasOuter=nowOuter; build(); show(true); st.cam=camFor(0); pose();
-      arriveT=setTimeout(settleArrival, 60); return;
+      { const th0=hingeDeg(); st.lid = th0===null ? LID_MAX : Math.min(LID_MAX, th0*LID_MAX/OPEN_AT); }
+      st.latch=0; lv.latched=false; lv.cur=lv.target=st.lid;
+      wasOuter=nowOuter; build(); show(true); st.cam=camFor(st.lid); pose();
+      arriveT=setTimeout(settleArrival, 40); return;
     }
     const folding = trend<0;
     if(!wasOuter && nowOuter && ((st.shown && mode!=='typing' && folding && st.lid>2) || (mode==='typing' && folding && hingeDeg()!==null))){
@@ -5354,8 +5356,9 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     if(!arrive || !st.shown || isOuter() || mode==='typing' || mode==='closing') return;
     if(lv.busy){ arriveT=setTimeout(settleArrival, 200); return; }
     const th=hingeDeg();
-    if(th===null || th>=OPEN_AT){ arriveOpen(); return; }
-    arrive=false; armed=true; follow(th*LID_MAX/OPEN_AT);
+    arrive=false;
+    if(th===null || th>=OPEN_AT){ armed=false; lv.latched=false; st.latch=0; pushIn(); return; }
+    armed=true; follow(th*LID_MAX/OPEN_AT);
   }
   /** shut by the hand: if the clasp asked for it, back to Minest */
   function shutDone(){ closeIntent=false; }
@@ -5391,7 +5394,8 @@ html.h-outer-land #case-exit{left:auto;right:calc(env(safe-area-inset-right,0px)
     // the case is shut or opening: the hand drives the lid
     if(!st.shown){ if(isOuter()) return; showClosed(); }
     if(isOuter()) return;
-    if(arrive) return;          // just arrived on the inner screen: settleArrival() takes it from here
+    // just arrived on the inner screen: the lid sits where the hand holds the phone until settleArrival() takes over
+    if(arrive){ st.lid=lv.cur=lv.target=Math.min(LID_MAX, th*LID_MAX/OPEN_AT); st.cam=camFor(st.lid); pose(); return; }
     if(th<OPEN_AT-10) armed=true;
     if(th>=OPEN_AT){ if(armed){ armed=false; pushIn(); } return; }
     follow(th*LID_MAX/OPEN_AT);
