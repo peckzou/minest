@@ -502,8 +502,8 @@ setInterval(render, 150);
     var toggle = document.createElement('button'); toggle.type = 'button'; toggle.id = 'oia-console-toggle'; toggle.textContent = '≡'; toggle.setAttribute('aria-label', '打开 My World 控制台'); toggle.setAttribute('aria-expanded', 'false');
     var c = document.createElement('section'); c.id = 'oia-console'; c.hidden = true; c.setAttribute('aria-label', 'My World 控制台');
     c.innerHTML = '<header><b>🌴 World › ' + NAME + '</b><span>体素世界</span><button data-console="cancel" aria-label="取消当前工具" disabled>取消</button><button data-console="close" aria-label="收起控制台">×</button></header>' +
-      '<div class="console-grid"><nav aria-label="浏览工具"><button data-console="walk"><i>🚶</i><span>Walk in</span></button><button data-console="view"><i>🌐</i><span>视角</span></button><button data-console="map"><i>🗺️</i><span>地图</span></button><button data-console="place"><i>📍</i><span>地点</span></button>' + (window.MinestRun ? '<button data-console="run"><i>🏃</i><span>Run</span></button>' : '') + '</nav><main>' +
-      '<section id="oia-idle-pane"><h3>选择一个工具</h3><p>再点一次已选按钮，或点「取消」，即可退出当前操作。</p><div><button data-console="walk">🚶 Walk in</button><button data-console="view">🌐 管理视角</button><button data-console="place">📍 地点</button></div></section>' +
+      '<div class="console-grid"><nav aria-label="浏览工具"><button data-console="walk"><i>🚶</i><span>Walk in</span></button><button data-console="view"><i>🌐</i><span>视角</span></button><button data-console="map"><i>🗺️</i><span>地图</span></button><button data-console="place"><i>📍</i><span>地点</span></button><button data-console="drive"><i>🚗</i><span>动态呈现</span></button>' + (window.MinestRun ? '<button data-console="run"><i>🏃</i><span>Run</span></button>' : '') + '</nav><main>' +
+      '<section id="oia-idle-pane"><h3>选择一个工具</h3><p>再点一次已选按钮，或点「取消」，即可退出当前操作。</p><div><button data-console="walk">🚶 Walk in</button><button data-console="view">🌐 管理视角</button><button data-console="place">📍 地点</button><button data-console="drive">🚗 动态呈现</button>' + (window.MinestRun ? '<button data-console="run">🏃 Run</button>' : '') + '</div></section>' +
       '<div id="oia-navigation-pane" hidden></div>' +
       '<section id="oia-camera-pane" hidden><h3>全局视角</h3><p id="oia-camera-summary" role="status"></p><p id="oia-selection"></p><div class="camera-actions"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="light">编辑照明：明亮</button><button data-camera="gesture" id="oia-camera-gesture">当前：旋转</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div><label>镜头距离<input id="oia-camera-distance" type="range" min="12" max="3500" step="1" aria-label="镜头距离"></label><p class="camera-help">拖动旋转 · 双指捏合缩放并平移<br>切换「平移」后单指拖动平移</p><button data-console="walk">🚶 Walk in · 步行与飞行</button></section>' +
       '<section id="oia-map-pane" hidden><h3>世界地图</h3><p>轻点地图定位镜头 · 下方滑杆调整时间</p><div id="oia-console-map"></div></section>' +
@@ -554,6 +554,12 @@ setInterval(render, 150);
       if (a === 'close') return open(false);
       if (a === 'cancel') return tab(null);
       if (a === 'return') return leave();
+      if (a === 'drive') {
+        if (!toParent({ action: 'minestOpenDynamic' })) {
+          if (window.MinestDrive && MinestDrive.gallery) MinestDrive.gallery();
+        }
+        return;
+      }
       if (a === 'voxel') return toParent({ action: 'minestOpenVoxel' });
       if (a === 'door') {
         var s = engine(), E = window.MinestOiaEditor;
@@ -581,6 +587,13 @@ setInterval(render, 150);
     // the engine's own pointer lock and tour start stay out while the editing camera is on
     document.addEventListener('click', function (e) { if (window.MinestOiaEditor && MinestOiaEditor.active && e.target && e.target.id === 'gl') { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
     document.addEventListener('keydown', function (e) { if (window.MinestOiaEditor && MinestOiaEditor.active && !/INPUT|TEXTAREA/.test((e.target && e.target.tagName) || '')) e.stopImmediatePropagation(); }, true);
+    if (/[?&]run=1\b/.test(location.search)) {
+      setTimeout(function () {
+        open(true);
+        tab('run');
+        if (window.MinestRun && MinestRun.start) MinestRun.start(0);
+      }, 700);
+    }
   }
   if (document.body) build(); else document.addEventListener('DOMContentLoaded', build);
 })();

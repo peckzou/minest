@@ -8270,6 +8270,7 @@ html.mn-adm-on #minest-mini-pet-p0 { visibility:hidden !important; }
 html.duo-halfopen .mn-tr-pill { bottom:calc(50vh + 10px); }
 html.mn-tr-on #minest-mini-pet-p0 { visibility:hidden !important; }
 </style>
+<style id="mn-dock-still">html.duo-dockpin .mn-bdock,html.duo-docktop .mn-bdock{touch-action:none!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:auto!important}</style>
 </head>
   <body>
 <script id="mn-has-flags">
@@ -95751,6 +95752,7 @@ var Ve = (function(_Component) {
   function attach(box, o) {
     ensureCss();
     o = o || {};
+    /* duo-dock-plain */ return { refresh: function () {}, leave: function () {} };   // Duo: no swell, a tap opens at once
     var axis = o.axis || 'y', side = o.side || 'right', max = o.max || 1.65, base = 46, reach = 150, mode = o.mode || 'size';
     var boxes = o.boxes || [box];
     // axis / side are read every time, so a dock can move (left · bottom · right) without attaching again
@@ -147829,8 +147831,6 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
         L.v = v; W = W || {}; var now = AC.currentTime, night = W.phase === 'night', rain = W.rain || 0, wind = W.wind == null ? .25 : W.wind;
         if (W.muffled) { to(wg.gain, 0, .5); to(rg3.gain, rain * .05 * v, .8); to(rl.frequency, 900, .5); return; }   // heard from indoors: only the rain, through the walls
         to(wg.gain, (.02 + .07 * wind) * v * (W.snow ? .7 : 1), .8); to(wf.frequency, 300 + 700 * wind, .8); to(rg3.gain, rain * .09 * v, .8);
-        if (v > 0 && !night && rain < .2 && !W.snow && now >= nb) { birds(now, v); nb = now + 1.6 + Math.random() * 4.5; }
-        if (v > 0 && night && rain < .3 && now >= nc) { crickets(now, v); nc = now + .8 + Math.random() * 1.6; }
         if (v > 0 && W.cond === 'storm' && now >= nt) { if (nt) thunder(v); nt = now + 7 + Math.random() * 14; }
       };
     } else if (kind === 'indoor') {   // a room: a low, quiet air
@@ -147843,11 +147843,8 @@ html.ddy-outer :is(.kt-b, .km-b, .ks-b, .kx-b) { min-height: 44px; }
     L.stop = function () { to(bus.gain, 0, .2); kill(all.concat([bus]), .9); live = live.filter(function (x) { return x !== L; }); };
     live.push(L); L.set(0); return L;
   }
-  function birds(t, v) {   // a bird's few chirps, each a quick upward sweep
-    var n = 2 + (Math.random() * 3 | 0), f0 = 2300 + Math.random() * 1400;
-    for (var i = 0; i < n; i++) { var o = osc('sine', f0), g = gain(0), at = t + i * (.09 + Math.random() * .05); chain([o, g, OUT]); o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f0 * (1.25 + Math.random() * .3), at + .06); env(g, .005, .035 * v, .07, at); kill([o], at - AC.currentTime + .2); }
-  }
-  function crickets(t, v) { for (var i = 0; i < 3; i++) { var o = osc('sine', 4300 + Math.random() * 300), am = osc('square', 38), ag = gain(.5), g = gain(0); am.connect(ag); ag.connect(g.gain); chain([o, g, OUT]); var at = t + i * .22; env(g, .01, .012 * v, .16, at); kill([o, am], at - AC.currentTime + .3); } }
+  function birds(t, v) {}
+  function crickets(t, v) {} }
   function thunder(v) {   // the flash's sound: a crack, then a long low roll
     var t = AC.currentTime, n = noise(), f = filt('lowpass', 900), g = gain(0); chain([n, f, g, OUT]); f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(90, t + 2.5); env(g, .02, .28 * v, 3.2); kill([n], 3.5);
     if (window.MinestWXFlash) try { window.MinestWXFlash(); } catch (e) {}
@@ -155892,7 +155889,7 @@ window.KRail = (function () {
     if (!amb) amb = MinestSfx.loop('outdoor'); amb.set(.45, st);
   }
   setInterval(function () {
-    var host = document.querySelector('.mn-dsp .mn-dsp-stage'), walking = !!document.querySelector('.mn-dsp .mn-walk');
+    var host = document.querySelector('.mn-dsp .mn-dsp-stage'), walking = !!document.querySelector('.mn-dsp .mn-walk, .mn-world-3d-overlay, .wf-venice, #oia-root:not([hidden])');
     if (!host) { sound(null, false); return; } askLoc(); var st = S || refresh() || S; if (!st) return;
     paint(st, host); sound(st, !walking && !document.hidden);   // the walk plays its own
   }, 1000);
@@ -168468,6 +168465,8 @@ function prepare(){
   if(!nav.querySelector('[data-console-voxel]')){var b=document.createElement('button');b.type='button';b.setAttribute('data-console-voxel','');b.innerHTML='<i>🧊</i><span>体素世界</span>';b.onclick=voxel;nav.appendChild(b);}
   var original=document.getElementById('mn-btn-santorini-3d');
   if(original&&!nav.querySelector('[data-console-santorini]')){var b=document.createElement('button');b.type='button';b.setAttribute('data-console-santorini','');b.innerHTML='<i>🏛️</i><span>圣托里尼</span>';b.onclick=function(){original.click();};nav.appendChild(b);}
+  if(!nav.querySelector('[data-console-dynamic]')){var bd=document.createElement('button');bd.type='button';bd.setAttribute('data-console-dynamic','');bd.innerHTML='<i>🚗</i><span>动态呈现</span>';bd.onclick=function(){if(window.MinestDrive&&MinestDrive.gallery)MinestDrive.gallery();};nav.appendChild(bd);}
+  if(!nav.querySelector('[data-console-run]')){var br=document.createElement('button');br.type='button';br.setAttribute('data-console-run','');br.innerHTML='<i>🏃</i><span>Run</span>';br.onclick=function(){if(window.MinestWorldShell&&MinestWorldShell.open)MinestWorldShell.open('venice','run=1');else if(window.openWorldOverlay3D)openWorldOverlay3D('venice.html?run=1','威尼斯');};nav.appendChild(br);}
  });
  var root=document.getElementById('oia-root');if(!root)return;
  var panel=root.querySelector('#mn-bld-p');
@@ -168475,7 +168474,7 @@ function prepare(){
   var toggle=document.createElement('button');toggle.type='button';toggle.id='oia-console-toggle';toggle.textContent='≡';toggle.setAttribute('aria-label','打开 My World 控制台');toggle.setAttribute('aria-expanded','false');
   var console=document.createElement('section');console.id='oia-console';console.hidden=true;console.setAttribute('aria-label','My World 控制台');
   console.innerHTML='<header><b>🌴 World › 圣托里尼</b><span>1/6 · World</span><button data-console="cancel" aria-label="取消当前工具" disabled>取消</button><button data-console="close" aria-label="收起控制台">×</button></header>'+
-   '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="walk">🚶<br>Walk in</button><button data-console="view">🌐<br>视角</button><button data-console="map">🗺️<br>地图</button><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button></nav><main><section id="oia-idle-pane"><h3>选择一个工具</h3><p>再点一次已选按钮，或点「取消」，即可退出当前操作。</p><div><button data-console="walk">🚶 Walk in</button><button data-console="view">🌐 管理视角</button><button data-console="ai">✨ Smart</button></div></section><div id="oia-navigation-pane" hidden></div><section id="oia-camera-pane" hidden><h3>全局编辑</h3><p id="oia-camera-summary" role="status"></p><p id="oia-selection"></p><div class="camera-actions"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="focus">聚焦选中建筑</button><button data-camera="light">编辑照明：明亮</button><button data-camera="gesture" id="oia-camera-gesture">当前：旋转</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div><label>镜头距离<input id="oia-camera-distance" type="range" min="12" max="3500" step="1" aria-label="镜头距离"></label><p class="camera-help">拖动旋转 · 双指捏合缩放并平移<br>切换「平移」后单指拖动平移 · 轻点选建筑</p><button data-console="walk">🚶 Walk in · 步行与飞行</button></section><section id="oia-map-pane" hidden><h3>世界地图</h3><p>轻点地图定位镜头 · 下方滑杆调整时间</p><div id="oia-console-map"></div></section><section id="oia-world-pane" hidden></section></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>'+
+   '<div class="console-grid"><nav aria-label="编辑工具"><button data-console="walk">🚶<br>Walk in</button><button data-console="view">🌐<br>视角</button><button data-console="map">🗺️<br>地图</button><button data-console="bld">🏛️<br>建筑</button><button data-console="elem">🌳<br>元素</button><button data-console="disp">🎨<br>陈列</button><button data-console="ai">✨<br>Smart</button><button data-console="drive">🚗<br>动态呈现</button><button data-console="run">🏃<br>Run</button></nav><main><section id="oia-idle-pane"><h3>选择一个工具</h3><p>再点一次已选按钮，或点「取消」，即可退出当前操作。</p><div><button data-console="walk">🚶 Walk in</button><button data-console="view">🌐 管理视角</button><button data-console="ai">✨ Smart</button><button data-console="drive">🚗 动态呈现</button><button data-console="run">🏃 Run</button></div></section><div id="oia-navigation-pane" hidden></div><section id="oia-camera-pane" hidden><h3>全局编辑</h3><p id="oia-camera-summary" role="status"></p><p id="oia-selection"></p><div class="camera-actions"><button data-camera="fit">看全世界</button><button data-camera="top">正上方俯视</button><button data-camera="focus">聚焦选中建筑</button><button data-camera="light">编辑照明：明亮</button><button data-camera="gesture" id="oia-camera-gesture">当前：旋转</button><button data-camera="out">− 缩小</button><button data-camera="in">＋ 放大</button></div><label>镜头距离<input id="oia-camera-distance" type="range" min="12" max="3500" step="1" aria-label="镜头距离"></label><p class="camera-help">拖动旋转 · 双指捏合缩放并平移<br>切换「平移」后单指拖动平移 · 轻点选建筑</p><button data-console="walk">🚶 Walk in · 步行与飞行</button></section><section id="oia-map-pane" hidden><h3>世界地图</h3><p>轻点地图定位镜头 · 下方滑杆调整时间</p><div id="oia-console-map"></div></section><section id="oia-world-pane" hidden></section></main><nav aria-label="世界导航"><button data-console="door">🏠<br>进入房间</button><button data-console="worlds">🌍<br>一键世界</button><button data-console="voxel">🧊<br>体素世界</button><button data-console="return">‹<br>返回小岛</button></nav></div>'+
    '<footer><p id="oia-operation-status" role="status"></p><span id="oia-building-count"></span><div><button data-console="undo">↶ 撤销</button><button data-console="redo">↷ 重做</button><button data-console="reset">还原原始场景</button><button data-console="restore">恢复还原前编辑</button></div></footer>';
   var activeTab=null;
   function tab(name){
@@ -168500,6 +168499,10 @@ function prepare(){
    var b=e.target.closest('[data-console]');if(!b)return;e.stopPropagation();var a=b.getAttribute('data-console'),api=window.MinestOiaBld;
    if(a==='close')return open(false);
    if(a==='cancel')return tab(null);
+   if(a==='drive'){if(window.MinestDrive&&MinestDrive.gallery)MinestDrive.gallery();return;}
+   if(a==='run'){open(false);if(window.MinestOia)MinestOia.close();if(window.MinestWorldShell&&MinestWorldShell.open)MinestWorldShell.open('venice','run=1');else if(window.openWorldOverlay3D)openWorldOverlay3D('venice.html?run=1','威尼斯');return;}
+   if(a==='drive'){if(window.MinestDrive&&MinestDrive.gallery)MinestDrive.gallery();return;}
+   if(a==='run'){open(false);if(window.MinestOia)MinestOia.close();if(window.MinestWorldShell&&MinestWorldShell.open)MinestWorldShell.open('venice','run=1');else if(window.openWorldOverlay3D)openWorldOverlay3D('venice.html?run=1','威尼斯');return;}
    if(a==='voxel'){open(false);return voxel();}
    if(a==='return'){open(false);if(window.MinestOia)MinestOia.close();return;}
    if(a==='door'){if(window.MinestWorldNavigation)MinestWorldNavigation.stop();if(window.MinestOiaEditor)MinestOiaEditor.ensureContext();var near=document.getElementById('oia-enter');if(near&&!near.hidden&&window.MinestOiaEditor&&!MinestOiaEditor.active){near.click();return;}if(api){var id=api.selected();if(id)api.enterDoorhouse(id);else{tab('view');status('先在画面中轻点一栋建筑，再进入房间');}}return;}
@@ -168652,67 +168655,6 @@ prepare();
 })();
 </script>
 
-<script id="mn-world-shell-71">
-/* 71 · third-party voxel worlds in My World's own shell (tools/myworld/build_world_shells.py): they open straight into
-   their engine page — no wrapper nav bar, no overlay back pill — where the Santorini console runs; that console's
-   返回 / 一键世界 / 体素世界 reach back here. */
-(function () {
-  'use strict';
-  if (window.MinestWorldShell) return;
-  var SHELL = { 'bibury.html': 'bibury/bibury.html', 'downton.html': 'downton/downton.html', 'neuschwanstein.html': 'neuschwanstein/neuschwanstein.html', 'hallstatt.html': 'hallstatt/hallstatt.html', 'venice.html': 'venice.html',
-    'hobbiton.html': 'hobbiton.html', 'giethoorn.html': 'giethoorn/index.html', 'lauterbrunnen.html': 'lauterbrunnen/index.html' };
-  var SITE = 'https://minest-app.vercel.app/';
-  function base() { return /^https?:$/.test(location.protocol) ? '' : SITE; }   // the app's own copy (file://) has no world pages: they load from the site
-  var INNER = {}; Object.keys(SHELL).forEach(function (k) { INNER[SHELL[k]] = 1; });
-  var PAGE = { hobbiton: ['hobbiton.html', '霍比屯'], bibury: ['bibury.html', '拜伯里'], downton: ['downton.html', '唐顿庄园'], giethoorn: ['giethoorn.html', '羊角村'], hallstatt: ['hallstatt.html', '哈尔施塔特'], lauterbrunnen: ['lauterbrunnen.html', '劳特布龙嫩'], neuschwanstein: ['neuschwanstein.html', '新天鹅堡'], venice: ['venice.html', '威尼斯'] };
-  var NATIVE = { alpchalet: 'MinestAlps', admont: 'MinestAdmont', trinity: 'MinestTrinity', study: 'MinestStudy' };
-  function adopt(ov) {
-    var f = ov.querySelector('iframe'); if (!f || ov.__shell71) return; ov.__shell71 = 1;
-    var src = (f.getAttribute('src') || '').split('?')[0].replace(SITE, ''), to = SHELL[src] || (INNER[src] ? src : null);
-    if (!to) return;
-    ov.classList.add('mn-shelled'); f.setAttribute('src', base() + to + '?myworld=1');
-  }
-  new MutationObserver(function (list) {
-    list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1 && (n.classList.contains('mn-world-3d-overlay') || n.classList.contains('wf-venice'))) adopt(n); }); });
-  }).observe(document.body, { childList: true });
-  function closeOverlays() { document.querySelectorAll('.mn-world-3d-overlay, .wf-venice').forEach(function (o) { o.remove(); }); }
-  function fromWorld(src) { return Array.prototype.some.call(document.querySelectorAll('.mn-world-3d-overlay iframe, .wf-venice iframe'), function (f) { return f.contentWindow === src; }); }
-  function openWorld(id) {
-    closeOverlays();
-    if (PAGE[id] && window.openWorldOverlay3D) return openWorldOverlay3D(PAGE[id][0], PAGE[id][1]);
-    if (id === 'santorini') { if (window.MinestEnterSantorini3D) return MinestEnterSantorini3D(); if (window.MinestOia) return MinestOia.open(); }
-    var g = NATIVE[id] && window[NATIVE[id]]; if (g && g.open) return g.open();
-  }
-  window.addEventListener('message', function (e) {
-    var d = e.data; if (!d || typeof d !== 'object' || !fromWorld(e.source)) return;   // only the world page open in My World
-    if (d.action === 'closeMinest3DOverlay') { document.querySelectorAll('.wf-venice').forEach(function (o) { o.remove(); }); return; }   // the 3D overlay closes itself
-    if (d.action === 'minestOpenWorld' && typeof d.id === 'string') openWorld(d.id);
-    if (d.action === 'minestRunData?') { try { e.source.postMessage(runData(), '*'); } catch (x) {} }   // 72 · Knowledge Run: the cards of the board you are on
-    if (d.action === 'minestOpenVoxel') {
-      closeOverlays();
-      if (window.MinestOiaEditor) MinestOiaEditor.ensureContext();
-      if (window.MinestVoxel62) Promise.resolve(MinestVoxel62.open({ forceVoxel: true })).catch(function () {});
-    }
-  });
-  function runData() {   // the current board, as the Dynamic presentations read it: its lists, their cards (and a card's stack as its points)
-    var A = window.MinestAI, b = null; try { b = (A && A.board && A.board()) || (A && A.boards && A.boards()[0]) || null; } catch (x) {}
-    var PAL = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
-    var lists = []; ((b && b.columns) || []).forEach(function (col) {
-      if (!col || col.archived) return;
-      var items = (col.cards || []).filter(function (c) { return c && !c.archived; }).slice(0, 24).map(function (c) {
-        var cv = c.cover && typeof c.cover.value === 'string' && c.cover.value.length < 400000 && !/^(color|gradient)$/.test(c.cover.type) ? c.cover.value : '';
-        return { title: c.title || c.term || '', zh: c.titleZh || '', text: c.meaning || c.desc || '', img: cv, sub: (c.stack || []).filter(function (s) { return s && s.title; }).slice(0, 8).map(function (s) { return s.title; }) };
-      });
-      if (items.length) lists.push({ title: col.title || 'Untitled', color: /^#[0-9a-f]{6}$/i.test(col.color || '') ? col.color : PAL[lists.length % PAL.length], items: items });
-    });
-    return { action: 'minestRunData', title: (b && b.title) || 'Board', lists: lists.slice(0, 10) };
-  }
-  var st = document.createElement('style'); st.id = 'mn-world-shell-71-css';
-  st.textContent = '.mn-world-3d-overlay.mn-shelled > .mn-back-myworld-btn, .wf-venice.mn-shelled > .wf-venice-x { display:none !important; }';
-  document.head.appendChild(st);
-  window.MinestWorldShell = { version: '71.0', open: openWorld, shelled: function () { return Object.keys(SHELL); } };
-})();
-</script>
 <script id="mn-live-74">
 /* 74 · Octo in the waiting games on the student side: student mode pins the Mini Pet to the bottom-left corner
    (!important, under everything) so it never covers a button — which also kept Octo out of Octo Dive, Flappy Octo and
@@ -168792,6 +168734,277 @@ prepare();
     return true;
   }
   window.MinestLiveTeach = { start: start, stop: stop, active: function () { return !!cur; } };
+})();
+</script>
+<script id="mn-dock-still-js">(function(){document.addEventListener("touchmove",function(e){if(e.touches.length!==1||!e.cancelable)return;var d=e.target&&e.target.closest&&e.target.closest(".mn-bdock");if(d)e.preventDefault();},{capture:true,passive:false});})();</script>
+<style id="mn-dock-looks-style">
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Light FX"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Card FX"],
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch to light"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch to dark"]{display:none!important}
+.mn-looks-fan .miv-fan-label{white-space:nowrap}
+</style>
+<script id="mn-dock-looks">
+/* the Dock's look buttons (Light FX · Card FX · light / dark) under one icon that fans them out (tools/duo/patch_dock_group.py) */
+(function () {
+  var MATCH = [/^Light FX/, /^Card FX/, /^Switch to (light|dark)/];
+  var LABEL = function (i, b) { return i === 0 ? 'Light FX' : i === 1 ? 'Card FX' : (/dark/.test(b.getAttribute('aria-label') || '') ? 'Dark mode' : 'Light mode'); };
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19L15 9"/><path d="M14 6l1-2 1 2 2 1-2 1-1 2-1-2-2-1z"/><path d="M19 13l.6-1.2L21 11l-1.4-.6L19 9l-.6 1.4L17 11l1.4.8z"/><path d="M7 4l.5-1 .5 1 1 .5-1 .5-.5 1-.5-1-1-.5z"/></svg>';
+  var fan = null, blockUntil = 0;
+  function originals() {
+    var all = document.querySelectorAll('.mn-bdock .mn-bapp:not(.mn-looks-btn)'), out = [null, null, null];
+    for (var i = 0; i < all.length; i++) { var l = all[i].getAttribute('aria-label') || ''; for (var k = 0; k < 3; k++) if (MATCH[k].test(l)) out[k] = all[i]; }
+    return out;
+  }
+  function ensure() {
+    var dock = document.querySelector('.mn-bdock'); if (!dock) return;
+    var o = originals(), first = null;
+    for (var k = 0; k < 3; k++) if (o[k] && (!first || (o[k].compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING))) first = o[k];
+    if (!first) return;
+    var b = dock.querySelector('.mn-looks-btn');
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.className = 'mn-bapp mn-looks-btn';
+      b.setAttribute('aria-label', 'Looks · 外观与特效'); b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); b.title = 'Looks';
+      b.innerHTML = ICON;
+      b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); toggle(b); });
+    }
+    if (b.nextElementSibling !== first) dock.insertBefore(b, first);
+  }
+  function haptic() { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic('light'); } catch (e) {} }
+  function close(now) {
+    var el = fan; if (!el) return; fan = null;
+    document.removeEventListener('pointerdown', outside, true);
+    var a = document.querySelector('.mn-looks-btn'); if (a) a.setAttribute('aria-expanded', 'false');
+    el.classList.remove('miv-fan-open'); el.classList.add('miv-fan-closing');
+    if (now) el.remove(); else setTimeout(function () { el.remove(); }, 260);
+  }
+  function outside(e) {
+    if (!fan || fan.contains(e.target)) return;
+    var a = document.querySelector('.mn-looks-btn');
+    if (a && (a === e.target || a.contains(e.target))) blockUntil = Date.now() + 700;   // the icon folds it; its click must not reopen
+    close();
+  }
+  function toggle(anchor) {
+    if (Date.now() < blockUntil) { blockUntil = 0; return; }
+    if (fan) { close(); return; }
+    var o = originals().filter(Boolean); if (!o.length) return;
+    haptic();
+    var r = anchor.getBoundingClientRect(), dock = anchor.closest('.mn-bdock'), d = dock.getBoundingClientRect();
+    var vertical = d.height > d.width, toLeft = vertical ? d.left > innerWidth / 2 : false;
+    var dir = vertical ? (toLeft ? 'left' : 'right') : 'up', S = 46, GAP = 58;
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2, mid = (o.length - 1) / 2;
+    var el = document.createElement('div'); el.className = 'miv-fan mn-looks-fan'; el.dataset.dir = dir; el.setAttribute('role', 'menu'); el.setAttribute('aria-label', 'Looks');
+    el.classList.toggle('miv-fan-lr', dir === 'right');
+    var pts = o.map(function (b, i) {
+      if (dir === 'up') return { x: cx + 2.6 * (i + 1) * (i + 1), y: cy - (r.height / 2 + 10 + S / 2 + i * GAP), rot: 1.2 * (i + 1) };
+      var sx = dir === 'left' ? -1 : 1;
+      return { x: cx + sx * (r.width / 2 + 14 + S / 2 + 10 * (1 - Math.pow((i - mid) / (mid + .5), 2))), y: cy + (i - mid) * GAP, rot: sx * (i - mid) * 2.2 };
+    });
+    var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - S / 2, maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + S / 2;
+    var shiftY = minY < 8 ? 8 - minY : maxY > innerHeight - 8 ? innerHeight - 8 - maxY : 0;
+    o.forEach(function (orig, i) {
+      var p = pts[i], it = document.createElement('button'); it.type = 'button'; it.className = 'miv-fan-item'; it.setAttribute('role', 'menuitem');
+      it.title = orig.getAttribute('aria-label') || '';
+      it.style.setProperty('--x', p.x + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
+      it.style.setProperty('--dx', (cx - p.x) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
+      it.style.setProperty('--d', (i * 38) + 'ms'); it.style.setProperty('--dc', ((o.length - 1 - i) * 22) + 'ms');
+      var svg = orig.querySelector('svg'), lab = LABEL(MATCH.findIndex(function (m) { return m.test(orig.getAttribute('aria-label') || ''); }), orig);
+      it.innerHTML = '<span class="miv-fan-ic">' + (svg ? svg.outerHTML.replace('<svg', '<svg class="miv-ic"') : '') + '</span><span class="miv-fan-label">' + lab + '</span>';
+      it.addEventListener('click', function (e) { e.stopPropagation(); haptic(); close(); setTimeout(function () { orig.click(); }, 60); });
+      el.appendChild(it);
+    });
+    document.body.appendChild(el); fan = el; anchor.setAttribute('aria-expanded', 'true');
+    void el.offsetWidth; el.classList.add('miv-fan-open');
+    document.addEventListener('pointerdown', outside, true);
+  }
+  var q = 0;
+  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; ensure(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  addEventListener('resize', function () { close(true); });
+  ensure();
+})();
+</script>
+<style id="mn-dock-more-style">
+html.mn-bd .mn-bdock .mn-bapp[aria-label="Knowledge"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Pet Raising"],
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Activity Rings"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch between the iPhone"],
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock .mn-bapp[data-carflash-dock]{display:none!important}
+.mn-more-fan .miv-fan-label{white-space:nowrap}
+.mn-bdock .mn-sys-btn svg{width:46%!important}
+</style>
+<script id="mn-dock-more">
+/* the Dock: ⏻ exit · ‹ back at the top, ⋯ More at the bottom (tools/duo/patch_dock_more.py) */
+(function () {
+  var MORE = [
+    { m: function (l) { return l === 'Knowledge'; }, label: 'Knowledge 知识' },
+    { m: function (l) { return /^Pet Raising/.test(l); }, label: 'Pet 宠物' },
+    { m: function (l) { return /^Activity Rings/.test(l); }, label: 'Rings 成就' },
+    { m: function (l, b) { return b.hasAttribute('data-carflash-dock'); }, label: 'CarPlay 车载闪卡' },
+    { m: function (l) { return /^Switch between the iPhone/.test(l); }, label: 'Desktop 桌面版' },
+    { m: function (l) { return /^Board settings/.test(l); }, label: 'Settings 设置' }
+  ];
+  var DOTS = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/></svg>';
+  var CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  var BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  var fan = null, blockUntil = 0;
+  function haptic(s) { try { if (window.MinestNative && MinestNative.haptic) MinestNative.haptic(s || 'light'); } catch (e) {} }
+  function originals() {
+    var all = document.querySelectorAll('.mn-bdock .mn-bapp:not(.mn-more-btn):not(.mn-sys-btn)'), out = MORE.map(function () { return null; });
+    for (var i = 0; i < all.length; i++) { var l = all[i].getAttribute('aria-label') || ''; for (var k = 0; k < MORE.length; k++) if (!out[k] && MORE[k].m(l, all[i])) out[k] = all[i]; }
+    return out;
+  }
+  function tile(cls, label, icon, on) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mn-bapp mdk-tile ' + cls;
+    b.setAttribute('aria-label', label); b.title = label; b.innerHTML = icon;
+    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); on(b); });
+    return b;
+  }
+  /* ✕ close: the page that is open on top closes (a module, then a panel with its own ✕) */
+  function closeOpen() {
+    haptic('light');
+    try { if (window.MinestHermes && MinestHermes.isOpen && MinestHermes.isOpen()) { MinestHermes.close(); return true; } } catch (e) {}
+    try { if (window.MinestRoutine && MinestRoutine.isOpen && MinestRoutine.isOpen()) { MinestRoutine.close(); return true; } } catch (e) {}
+    // an open panel / sheet: its own close button (✕), the topmost one on screen
+    var xs = document.querySelectorAll('[data-cf-close],[aria-label="关闭"],[aria-label="Close"],[aria-label^="Close "],button.close,.close-btn');
+    for (var i = xs.length - 1; i >= 0; i--) { var r = xs[i].getBoundingClientRect(); if (r.width > 0 && r.height > 0 && getComputedStyle(xs[i]).visibility !== 'hidden') { xs[i].click(); return true; } }
+    return false;
+  }
+  /* ‹ back: one step back (Escape for what listens to it, the in-page history); nothing to step back from: close */
+  function goBack() {
+    var esc = new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true });
+    if (!document.dispatchEvent(esc)) { haptic('light'); return; }
+    if (location.hash && location.hash.length > 1) { haptic('light'); history.back(); return; }   // never off the page
+    closeOpen();
+  }
+  function ensure() {
+    var dock = document.querySelector('.mn-bdock'); if (!dock) return;
+    var back = dock.querySelector('.mn-sys-back'), ex = dock.querySelector('.mn-sys-exit');
+    if (!ex) ex = tile('mn-sys-btn mn-sys-exit', 'Close · 关闭', CROSS, closeOpen);
+    if (!back) back = tile('mn-sys-btn mn-sys-back', 'Back · 返回', BACK, goBack);
+    if (dock.firstElementChild !== ex) dock.insertBefore(ex, dock.firstElementChild);
+    if (ex.nextElementSibling !== back) dock.insertBefore(back, ex.nextElementSibling);
+    var o = originals(); if (!o.some(Boolean)) return;
+    var more = dock.querySelector('.mn-more-btn');
+    if (!more) { more = tile('mn-more-btn', 'More · 更多', DOTS, toggle); more.setAttribute('aria-haspopup', 'menu'); more.setAttribute('aria-expanded', 'false'); }
+    if (dock.lastElementChild !== more) dock.appendChild(more);
+  }
+  function close(now) {
+    var el = fan; if (!el) return; fan = null;
+    document.removeEventListener('pointerdown', outside, true);
+    var a = document.querySelector('.mn-more-btn'); if (a) a.setAttribute('aria-expanded', 'false');
+    el.classList.remove('miv-fan-open'); el.classList.add('miv-fan-closing');
+    if (now) el.remove(); else setTimeout(function () { el.remove(); }, 260);
+  }
+  function outside(e) {
+    if (!fan || fan.contains(e.target)) return;
+    var a = document.querySelector('.mn-more-btn');
+    if (a && (a === e.target || a.contains(e.target))) blockUntil = Date.now() + 700;
+    close();
+  }
+  function toggle(anchor) {
+    if (Date.now() < blockUntil) { blockUntil = 0; return; }
+    if (fan) { close(); return; }
+    var all = originals(), o = [], labels = [];
+    all.forEach(function (b, i) { if (b) { o.push(b); labels.push(MORE[i].label); } });
+    if (!o.length) return;
+    haptic('light');
+    var r = anchor.getBoundingClientRect(), dock = anchor.closest('.mn-bdock'), d = dock.getBoundingClientRect();
+    var vertical = d.height > d.width, toLeft = vertical ? d.left > innerWidth / 2 : false;
+    var dir = vertical ? (toLeft ? 'left' : 'right') : 'up', S = 46, GAP = 56;
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    var el = document.createElement('div'); el.className = 'miv-fan mn-more-fan'; el.dataset.dir = dir; el.setAttribute('role', 'menu'); el.setAttribute('aria-label', 'More');
+    el.classList.toggle('miv-fan-lr', dir === 'right');
+    var n = o.length;
+    var pts = o.map(function (b, i) {
+      if (dir === 'up') return { x: cx + 2.2 * (i + 1) * (i + 1) * 0.4, y: cy - (r.height / 2 + 10 + S / 2 + i * GAP), rot: 0.8 * (i + 1) };
+      var sx = dir === 'left' ? -1 : 1, j = n - 1 - i;   // from the ⋯ upward: the first item nearest the top
+      return { x: cx + sx * (r.width / 2 + 14 + S / 2 + 6 * Math.sin(Math.PI * (j + .5) / n)), y: cy - j * GAP, rot: sx * (j - (n - 1) / 2) * 1.6 };
+    });
+    var minY = Math.min.apply(null, pts.map(function (p) { return p.y; })) - S / 2, maxY = Math.max.apply(null, pts.map(function (p) { return p.y; })) + S / 2;
+    var shiftY = minY < 8 ? 8 - minY : maxY > innerHeight - 8 ? innerHeight - 8 - maxY : 0;
+    o.forEach(function (orig, i) {
+      var p = pts[i], it = document.createElement('button'); it.type = 'button'; it.className = 'miv-fan-item'; it.setAttribute('role', 'menuitem');
+      it.title = orig.getAttribute('aria-label') || '';
+      it.style.setProperty('--x', p.x + 'px'); it.style.setProperty('--y', (p.y + shiftY) + 'px'); it.style.setProperty('--r', p.rot + 'deg');
+      it.style.setProperty('--dx', (cx - p.x) + 'px'); it.style.setProperty('--dy', (cy - p.y - shiftY) + 'px');
+      it.style.setProperty('--d', ((n - 1 - i) * 32) + 'ms'); it.style.setProperty('--dc', (i * 20) + 'ms');
+      var svg = orig.querySelector('svg'), img = orig.querySelector('img');
+      var ic = svg ? svg.outerHTML.replace('<svg', '<svg class="miv-ic"') : img ? img.outerHTML : '';
+      it.innerHTML = '<span class="miv-fan-ic">' + ic + '</span><span class="miv-fan-label">' + labels[i] + '</span>';
+      it.addEventListener('click', function (e) { e.stopPropagation(); haptic('light'); close(); setTimeout(function () { orig.click(); }, 60); });
+      el.appendChild(it);
+    });
+    document.body.appendChild(el); fan = el; anchor.setAttribute('aria-expanded', 'true');
+    void el.offsetWidth; el.classList.add('miv-fan-open');
+    document.addEventListener('pointerdown', outside, true);
+  }
+  var q = 0;
+  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; ensure(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  addEventListener('resize', function () { close(true); });
+  ensure();
+})();
+</script>
+<script id="mn-world-shell-71">
+/* 71 · third-party voxel worlds in My World's own shell (tools/myworld/build_world_shells.py): they open straight into
+   their engine page — no wrapper nav bar, no overlay back pill — where the Santorini console runs; that console's
+   返回 / 一键世界 / 体素世界 reach back here. */
+(function () {
+  'use strict';
+  if (window.MinestWorldShell) return;
+  var SHELL = { 'bibury.html': 'bibury/bibury.html', 'downton.html': 'downton/downton.html', 'neuschwanstein.html': 'neuschwanstein/neuschwanstein.html', 'hallstatt.html': 'hallstatt/hallstatt.html', 'venice.html': 'venice.html',
+    'hobbiton.html': 'hobbiton.html', 'giethoorn.html': 'giethoorn/index.html', 'lauterbrunnen.html': 'lauterbrunnen/index.html' };
+  var SITE = 'https://minest-app.vercel.app/';
+  function base() { return /^https?:$/.test(location.protocol) ? '' : SITE; }   // the app's own copy (file://) has no world pages: they load from the site
+  var INNER = {}; Object.keys(SHELL).forEach(function (k) { INNER[SHELL[k]] = 1; });
+  var PAGE = { hobbiton: ['hobbiton.html', '霍比屯'], bibury: ['bibury.html', '拜伯里'], downton: ['downton.html', '唐顿庄园'], giethoorn: ['giethoorn.html', '羊角村'], hallstatt: ['hallstatt.html', '哈尔施塔特'], lauterbrunnen: ['lauterbrunnen.html', '劳特布龙嫩'], neuschwanstein: ['neuschwanstein.html', '新天鹅堡'], venice: ['venice.html', '威尼斯'] };
+  var NATIVE = { alpchalet: 'MinestAlps', admont: 'MinestAdmont', trinity: 'MinestTrinity', study: 'MinestStudy' };
+  function adopt(ov) {
+    var f = ov.querySelector('iframe'); if (!f || ov.__shell71) return; ov.__shell71 = 1;
+    var src = (f.getAttribute('src') || '').split('?')[0].replace(SITE, ''), to = SHELL[src] || (INNER[src] ? src : null);
+    if (!to) return;
+    ov.classList.add('mn-shelled'); f.setAttribute('src', base() + to + '?myworld=1');
+  }
+  new MutationObserver(function (list) {
+    list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1 && (n.classList.contains('mn-world-3d-overlay') || n.classList.contains('wf-venice'))) adopt(n); }); });
+  }).observe(document.body, { childList: true });
+  function closeOverlays() { document.querySelectorAll('.mn-world-3d-overlay, .wf-venice').forEach(function (o) { o.remove(); }); }
+  function fromWorld(src) { return Array.prototype.some.call(document.querySelectorAll('.mn-world-3d-overlay iframe, .wf-venice iframe'), function (f) { return f.contentWindow === src; }); }
+  function openWorld(id, query) {
+    closeOverlays();
+    var q = query ? (query.charAt(0) === '?' ? query : '?' + query) : '';
+    if (PAGE[id] && window.openWorldOverlay3D) return openWorldOverlay3D(PAGE[id][0] + q, PAGE[id][1]);
+    if (id === 'santorini') { if (window.MinestEnterSantorini3D) return MinestEnterSantorini3D(); if (window.MinestOia) return MinestOia.open(); }
+    var g = NATIVE[id] && window[NATIVE[id]]; if (g && g.open) return g.open();
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data; if (!d || typeof d !== 'object' || !fromWorld(e.source)) return;   // only the world page open in My World
+    if (d.action === 'closeMinest3DOverlay') { document.querySelectorAll('.wf-venice').forEach(function (o) { o.remove(); }); return; }   // the 3D overlay closes itself
+    if (d.action === 'minestOpenWorld' && typeof d.id === 'string') openWorld(d.id, d.query);
+    if (d.action === 'minestOpenDynamic') {
+      closeOverlays();
+      if (window.MinestDrive && MinestDrive.gallery) MinestDrive.gallery();
+      return;
+    }
+    if (d.action === 'minestRunData?') { try { e.source.postMessage(runData(), '*'); } catch (x) {} }   // 72 · Knowledge Run: the cards of the board you are on
+    if (d.action === 'minestOpenVoxel') {
+      closeOverlays();
+      if (window.MinestOiaEditor) MinestOiaEditor.ensureContext();
+      if (window.MinestVoxel62) Promise.resolve(MinestVoxel62.open({ forceVoxel: true })).catch(function () {});
+    }
+  });
+  function runData() {   // the current board, as the Dynamic presentations read it: its lists, their cards (and a card's stack as its points)
+    var A = window.MinestAI, b = null; try { b = (A && A.board && A.board()) || (A && A.boards && A.boards()[0]) || null; } catch (x) {}
+    var PAL = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
+    var lists = []; ((b && b.columns) || []).forEach(function (col) {
+      if (!col || col.archived) return;
+      var items = (col.cards || []).filter(function (c) { return c && !c.archived; }).slice(0, 24).map(function (c) {
+        var cv = c.cover && typeof c.cover.value === 'string' && c.cover.value.length < 400000 && !/^(color|gradient)$/.test(c.cover.type) ? c.cover.value : '';
+        return { title: c.title || c.term || '', zh: c.titleZh || '', text: c.meaning || c.desc || '', img: cv, sub: (c.stack || []).filter(function (s) { return s && s.title; }).slice(0, 8).map(function (s) { return s.title; }) };
+      });
+      if (items.length) lists.push({ title: col.title || 'Untitled', color: /^#[0-9a-f]{6}$/i.test(col.color || '') ? col.color : PAL[lists.length % PAL.length], items: items });
+    });
+    return { action: 'minestRunData', title: (b && b.title) || 'Board', lists: lists.slice(0, 10) };
+  }
+  var st = document.createElement('style'); st.id = 'mn-world-shell-71-css';
+  st.textContent = '.mn-world-3d-overlay.mn-shelled > .mn-back-myworld-btn, .wf-venice.mn-shelled > .wf-venice-x { display:none !important; }';
+  document.head.appendChild(st);
+  window.MinestWorldShell = { version: '71.1', open: openWorld, closeOverlays: closeOverlays, shelled: function () { return Object.keys(SHELL); } };
 })();
 </script>
 </body>

@@ -91,7 +91,17 @@ RUN = r"""<script id="mn-routine-run">
   var queued = false;
   new MutationObserver(function () { if (queued) return; queued = true; requestAnimationFrame(function () { queued = false; entries(); }); }).observe(document.body, { childList: true, subtree: true });
   entries();
-  window.MinestRoutine = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, _cloud: cloud, _mergeCloud: mergeCloud, _merge: merge, version: '4.17.1' };
+  // 4.17.5 · in the iOS app Day Flow is the start screen: it opens once per launch (a reload keeps where you were);
+  // its ✕ leaves to Minest. The web pages start in Minest as before.
+  try {
+    var mh = window.webkit && window.webkit.messageHandlers;
+    if (mh && (mh.minestBridge || mh.minest) && !sessionStorage.getItem('mn-routine-home')) {
+      sessionStorage.setItem('mn-routine-home', '1');
+      var home = function () { setTimeout(function () { if (!ov || ov.hidden) open(); }, 250); };
+      if (document.readyState === 'complete') home(); else window.addEventListener('load', home, { once: true });
+    }
+  } catch (e) {}
+  window.MinestRoutine = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, _cloud: cloud, _mergeCloud: mergeCloud, _merge: merge, version: '4.24.1' };
 })();
 </script>
 """

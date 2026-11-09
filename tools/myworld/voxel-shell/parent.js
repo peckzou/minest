@@ -22,16 +22,22 @@
   }).observe(document.body, { childList: true });
   function closeOverlays() { document.querySelectorAll('.mn-world-3d-overlay, .wf-venice').forEach(function (o) { o.remove(); }); }
   function fromWorld(src) { return Array.prototype.some.call(document.querySelectorAll('.mn-world-3d-overlay iframe, .wf-venice iframe'), function (f) { return f.contentWindow === src; }); }
-  function openWorld(id) {
+  function openWorld(id, query) {
     closeOverlays();
-    if (PAGE[id] && window.openWorldOverlay3D) return openWorldOverlay3D(PAGE[id][0], PAGE[id][1]);
+    var q = query ? (query.charAt(0) === '?' ? query : '?' + query) : '';
+    if (PAGE[id] && window.openWorldOverlay3D) return openWorldOverlay3D(PAGE[id][0] + q, PAGE[id][1]);
     if (id === 'santorini') { if (window.MinestEnterSantorini3D) return MinestEnterSantorini3D(); if (window.MinestOia) return MinestOia.open(); }
     var g = NATIVE[id] && window[NATIVE[id]]; if (g && g.open) return g.open();
   }
   window.addEventListener('message', function (e) {
     var d = e.data; if (!d || typeof d !== 'object' || !fromWorld(e.source)) return;   // only the world page open in My World
     if (d.action === 'closeMinest3DOverlay') { document.querySelectorAll('.wf-venice').forEach(function (o) { o.remove(); }); return; }   // the 3D overlay closes itself
-    if (d.action === 'minestOpenWorld' && typeof d.id === 'string') openWorld(d.id);
+    if (d.action === 'minestOpenWorld' && typeof d.id === 'string') openWorld(d.id, d.query);
+    if (d.action === 'minestOpenDynamic') {
+      closeOverlays();
+      if (window.MinestDrive && MinestDrive.gallery) MinestDrive.gallery();
+      return;
+    }
     if (d.action === 'minestRunData?') { try { e.source.postMessage(runData(), '*'); } catch (x) {} }   // 72 · Knowledge Run: the cards of the board you are on
     if (d.action === 'minestOpenVoxel') {
       closeOverlays();
@@ -55,5 +61,5 @@
   var st = document.createElement('style'); st.id = 'mn-world-shell-71-css';
   st.textContent = '.mn-world-3d-overlay.mn-shelled > .mn-back-myworld-btn, .wf-venice.mn-shelled > .wf-venice-x { display:none !important; }';
   document.head.appendChild(st);
-  window.MinestWorldShell = { version: '71.0', open: openWorld, shelled: function () { return Object.keys(SHELL); } };
+  window.MinestWorldShell = { version: '71.1', open: openWorld, closeOverlays: closeOverlays, shelled: function () { return Object.keys(SHELL); } };
 })();

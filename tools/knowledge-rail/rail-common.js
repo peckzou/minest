@@ -3,6 +3,7 @@ window.KRail = (function () {
   'use strict';
   var VERSION = '1.0-proto.1', STORE = 'minest.drive.v1';
   var LEAD = 70, SP = 46, TAIL = 70, LANE = 1.9, ROAD_W = 4, BB_LAT = 9.5, VIEW = 340, BEHIND = 40, CHUNK = 50, NEAR_LOD = 125;
+  var SFX = window.MinestSfx || null;   // sfx.js loads first
   var SPEEDS = [[7, '🐢', 'Slow'], [11, '🚗', 'Cruise'], [16, '🚀', 'Fast']];
   var PAL = ['#3d8bfd', '#22b07d', '#f08c2e', '#a46bf0', '#e8505b', '#14a3b8', '#d9a51c', '#5c7cfa'];
 

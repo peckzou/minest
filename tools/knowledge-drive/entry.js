@@ -52,6 +52,13 @@
   function sources() {
     var p = (U() && U().path && U().path()) || [], bid = null, col = null, out = [], B = boards();
     p.forEach(function (n) { if (n.bid) bid = n.bid; if (n.col) col = n.col; });
+    if (!bid) {
+      try {
+        bid = (window.MinestDisplay && MinestDisplay.state && MinestDisplay.state() && MinestDisplay.state().bid) ||
+              (window.MinestDuoWorld && MinestDuoWorld.board && MinestDuoWorld.board() && MinestDuoWorld.board().id) ||
+              (window.MinestAI && MinestAI.board && MinestAI.board() && MinestAI.board().id) || null;
+      } catch (e) {}
+    }
     var b = bid && B.filter(function (x) { return x.id === bid; })[0], l = b && col && (b.columns || []).filter(function (c) { return c.id === col; })[0];
     if (l) out.push({ src: { type: 'list', bid: bid, col: col }, icon: '🛣', title: l.title || 'This list', sub: 'Start on this road' });
     if (b) out.push({ src: { type: 'board', bid: bid }, icon: '🗺', title: b.title || 'This board', sub: 'Every list is a road' });
@@ -103,8 +110,21 @@
     var u = U(), back = u && u.isOpen && u.isOpen() ? (u.path && u.path()) : null;
     close(); hap();
     if (back && u.close) u.close();   // My World's 3D stops while you drive
+    var hiddenOverlays = [];
+    document.querySelectorAll('.mn-world-3d-overlay, .wf-venice').forEach(function (el) {
+      if (el.style.display !== 'none') {
+        hiddenOverlays.push(el);
+        el.style.display = 'none';
+      }
+    });
     try {
-      var MO = MODES[mode], o = { source: src, onExit: function () { if (back && U() && U().go) U().go(back); } };
+      var MO = MODES[mode], o = {
+        source: src,
+        onExit: function () {
+          hiddenOverlays.forEach(function (el) { el.style.display = ''; });
+          if (back && U() && U().go) U().go(back);
+        }
+      };
       if (mode === 'metro') { o.maxLines = MO.max; if (style) try { var a = JSON.parse(localStorage.getItem(MO.store) || '{}'), k = D.plan(src).key; a[k] = Object.assign(a[k] || {}, { theme: style }); localStorage.setItem(MO.store, JSON.stringify(a)); } catch (x) {} }
       else if (mode === 'tower') o.ext = style || undefined;
       else if (mode === 'rack') o.shape = style || undefined;
@@ -113,26 +133,74 @@
       else if (mode === 'roadtrip') o.style = style || 'ca1';
       else o.style = style || undefined;
       MO.api().open(o);
-    } catch (e) { if (back && U() && U().go) U().go(back); try { window.showToast && showToast(MODES[mode].name + ': ' + e.message); } catch (x) {} }
+    } catch (e) {
+      hiddenOverlays.forEach(function (el) { el.style.display = ''; });
+      if (back && U() && U().go) U().go(back);
+      try { window.showToast && showToast(MODES[mode].name + ': ' + e.message); } catch (x) {}
+    }
   }
 
   // ---------------- the 🚗 button in My World's header (the header is redrawn on every render, so it is put back)
   function addButton() {
-    var root = document.querySelector('.uv'), head = root && root.querySelector('.uv-head'); if (!head || head.querySelector('.mn-kd-trigger')) return;
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'uv-b mn-kd-trigger'; b.innerHTML = CAR; b.title = 'Dynamic presentations'; b.setAttribute('aria-label', 'Presentation Gallery: Dynamic');
-    b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); gallery(); });
-    var more = head.querySelector('[data-more]'); if (more) more.before(b); else head.appendChild(b);
+    // 1. Universe View header
+    var root = document.querySelector('.uv'), head = root && root.querySelector('.uv-head');
+    if (head && !head.querySelector('.mn-kd-trigger')) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'uv-b mn-kd-trigger'; b.innerHTML = CAR; b.title = '动态呈现'; b.setAttribute('aria-label', 'Presentation Gallery: Dynamic');
+      b.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); gallery(); });
+      var more = head.querySelector('[data-more]'); if (more) more.before(b); else head.appendChild(b);
+    }
+    // 2. 2D Island HUD left toolbar
+    var hudLeft = document.querySelector('.mn-dsp .mn-hud-left');
+    if (hudLeft && !hudLeft.querySelector('.mn-kd-hud-trigger')) {
+      var b2 = document.createElement('button'); b2.type = 'button'; b2.className = 'mn-hud-b mn-kd-hud-trigger'; b2.title = '动态呈现 (Knowledge Drive)'; b2.setAttribute('aria-label', '动态呈现');
+      b2.innerHTML = '🚗';
+      b2.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); gallery(); });
+      var bulb = hudLeft.querySelector('[data-bulb]');
+      if (bulb) bulb.after(b2); else hudLeft.prepend(b2);
+    }
+    // 3. 2D Island top menu bar
+    var dspTop = document.querySelector('.mn-dsp .mn-dsp-top');
+    if (dspTop && !dspTop.querySelector('.mn-kd-top-trigger')) {
+      var b3 = document.createElement('button'); b3.type = 'button'; b3.className = 'mn-hud-b sm mn-kd-top-trigger'; b3.title = '动态呈现'; b3.setAttribute('aria-label', '动态呈现');
+      b3.innerHTML = '🚗';
+      b3.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); gallery(); });
+      dspTop.appendChild(b3);
+    }
+    // 4. Levels Console .wf .wf-acts
+    document.querySelectorAll('.wf .wf-acts').forEach(function (nav) {
+      if (!nav.querySelector('[data-console-dynamic]')) {
+        var bd = document.createElement('button'); bd.type = 'button'; bd.setAttribute('data-console-dynamic', '');
+        bd.innerHTML = '<i>🚗</i><span>动态呈现</span>';
+        bd.onclick = function (e) { e.stopPropagation(); gallery(); };
+        nav.appendChild(bd);
+      }
+      if (!nav.querySelector('[data-console-run]')) {
+        var br = document.createElement('button'); br.type = 'button'; br.setAttribute('data-console-run', '');
+        br.innerHTML = '<i>🏃</i><span>Run</span>';
+        br.onclick = function (e) {
+          e.stopPropagation();
+          if (window.MinestWorldShell && MinestWorldShell.open) MinestWorldShell.open('venice', 'run=1');
+          else if (window.openWorldOverlay3D) openWorldOverlay3D('venice.html?run=1', '威尼斯');
+        };
+        nav.appendChild(br);
+      }
+    });
   }
   var headObs = null, watched = null;
   function watch() {
-    var root = document.querySelector('.uv');
-    if (root === watched) return; watched = root; if (headObs) { headObs.disconnect(); headObs = null; }
-    if (!root) { close(); return; }
-    var main = root.querySelector('.uv-main') || root; headObs = new MutationObserver(addButton); headObs.observe(main, { childList: true, subtree: false });
-    var head = root.querySelector('.uv-head'); if (head) headObs.observe(head, { childList: true });
     addButton();
+    var root = document.querySelector('.uv');
+    if (root && root !== watched) {
+      watched = root;
+      if (headObs) { headObs.disconnect(); headObs = null; }
+      var main = root.querySelector('.uv-main') || root;
+      headObs = new MutationObserver(addButton);
+      headObs.observe(main, { childList: true, subtree: false });
+      var head = root.querySelector('.uv-head');
+      if (head) headObs.observe(head, { childList: true });
+    }
   }
-  new MutationObserver(watch).observe(document.body, { childList: true });
+  new MutationObserver(watch).observe(document.body, { childList: true, subtree: true });
   watch();
 
   D.gallery = gallery;

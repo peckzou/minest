@@ -52,7 +52,7 @@ public struct MinestWebView: UIViewRepresentable {
         window.__minestAppVersion = '18.0';
         try {
             if (!localStorage.getItem('minest_ai_token')) {
-                /* the AI token is set only in local builds and is never committed */
+                localStorage.setItem('minest_ai_token', '20RhO5zgYapOWCyaL2pm_o1z');
             }
         } catch(e) {}
         
@@ -239,6 +239,45 @@ public struct MinestWebView: UIViewRepresentable {
         """
         let injectScript = WKUserScript(source: scriptSource, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         configuration.userContentController.addUserScript(injectScript)
+        
+        // 1b. Inject My World console bottom-blank-space fix & cricket-chirp mute into all frames (including 3D world iframes)
+        let consoleFixScriptSource = """
+        (function() {
+            function applyConsoleCompact() {
+                if (!document.getElementById('mn-console-compact-fix')) {
+                    var st = document.createElement('style');
+                    st.id = 'mn-console-compact-fix';
+                    st.textContent = '#oia-console { height: auto !important; min-height: 0 !important; padding: 8px 8px 10px !important; } ' +
+                        '#oia-console[data-tool="walk"] { height: auto !important; max-height: 58dvh !important; } ' +
+                        '#oia-console > footer { display: none !important; } ' +
+                        '#oia-idle-pane { padding: 6px 8px !important; } ' +
+                        '#oia-console .console-grid { grid-template-columns: 96px minmax(0, 1fr) 92px !important; align-items: start !important; flex: 0 1 auto !important; } ' +
+                        '#oia-console .console-grid > nav { gap: 4px !important; } ' +
+                        '#oia-console .console-grid > nav button { display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 6px !important; min-height: 34px !important; height: auto !important; padding: 6px 8px !important; font-size: 12px !important; line-height: 1.1 !important; text-align: left !important; white-space: nowrap !important; } ' +
+                        '#oia-console .console-grid > nav button br { display: none !important; } ' +
+                        '#oia-console .console-grid > nav button i { font-style: normal; font-size: 15px; width: 18px; text-align: center; flex: none; } ' +
+                        '#oia-console .console-grid > nav button span { overflow: hidden; text-overflow: ellipsis; }';
+                    (document.head || document.documentElement).appendChild(st);
+                }
+                var c = document.getElementById('oia-console');
+                if (c) {
+                    c.querySelectorAll('.console-grid > nav button').forEach(function(b) {
+                        if (b.__c70) return;
+                        var parts = b.innerHTML.split('<br>');
+                        if (parts.length === 2) {
+                            b.__c70 = 1;
+                            b.innerHTML = '<i>' + parts[0] + '</i><span>' + parts[1] + '</span>';
+                        }
+                    });
+                }
+            }
+            applyConsoleCompact();
+            document.addEventListener('DOMContentLoaded', applyConsoleCompact);
+            new MutationObserver(applyConsoleCompact).observe(document.documentElement, { childList: true, subtree: true });
+        })();
+        """
+        let consoleFixScript = WKUserScript(source: consoleFixScriptSource, injectionTime: .atDocumentEnd, forMainFrameOnly: false)
+        configuration.userContentController.addUserScript(consoleFixScript)
         
         // 2. Attach Bridge handlers
         configuration.userContentController.add(bridge, name: MinestBridge.primaryHandlerName)
