@@ -1,0 +1,45 @@
+2026-11-09 — Liquid Routine 4.26 and sync management
+Base Minest: 31974ae (Nov 8 Antigravity release). Incremental changes only.
+Routine source: 7893b86 -> 9311d00. Reproducible patch:
+  tools/routine/classic-restore-426.patch
+Apply to that Routine base, run npm run build:embed, copy dist-embed/minest-routine.js
+into tools/routine/, then run tools/routine/patch_embed_bundle.py. Do not run the
+older host-bridge patcher: it predates the current integration.
+
+Classic SVG material and seam rendering restored from Claude source 6b0c230.
+Removed ShadowRoot-leaked title shadows. All five appearances remain available.
+Sonic Ripple now has an explicit quiet -> water -> settle -> prism -> quiet cycle.
+This is GPU optical wave rendering, not a claim of a new Navier-Stokes solver.
+Routine dates use calendar days, annual targets and DST-safe arithmetic. The
+persistence decoder now accepts milestone/countdown modes without losing data.
+
+Recent visual corrections:
+- Overlapping activities partition the translucent visual regions at the next
+  activity's start; task data and actual durations stay independent.
+- GPU material uses measured SVG/world coordinates; no hardcoded 60px offset.
+- Removed the duplicate tail layer and artificial scroll room. Short flows fill
+  the viewport with activities instead of leaving empty space below them.
+- Event axes show target dates while browsing and auto-hide on release.
+- Countdown values have a fixed right-aligned column. Ordinary titles/numbers
+  use 17px/20px; only the focused task uses 23px/30px.
+- Date editor fields share a 44px baseline and neutral glass style.
+- Dashed group bridges are hidden without changing group membership.
+
+Sync manager: Settings -> 数据同步. Preserves the existing account modal and all
+existing content documents/upload/merge semantics. Four categories: teaching,
+routine, My World knowledge/layout metadata, boards. Device snapshots and ACK
+records distinguish local edits, server availability, pending changes and errors.
+ACKs are recorded only after successful existing Firebase writes; cached/pending
+snapshots are never presented as server acknowledgments. Metadata-only shared
+history is stored at users/{uid}/focusboard/sync-history-v1. No security rules,
+credentials, data collections or third-party API integrations were expanded.
+If current rules reject the history document, the UI shows the actual error and
+normal content sync continues. My World 3D caches are outside this audit scope.
+History starts with this upgrade; no invented history for older clients. Browser
+QA was signed out; real authenticated two-device roundtrip is not certified.
+
+Validation: Routine TypeScript/embed build; 104 Routine tests; 10 sync management
+tests; existing upload, server-read and reconnect tests. Browser QA covers date
+labels, automatic hide, font sizes, right alignment, clean seams and editor fields.
+Duo deployment uses an in-place install of com.zouminmin.minest; no uninstall or
+local-data clearing. Installation/deployment results are recorded separately.

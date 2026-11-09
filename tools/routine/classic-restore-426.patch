@@ -1,0 +1,1512 @@
+From 9311d000df644fc430d65d7c358fa7f139c52c91 Mon Sep 17 00:00:00 2001
+From: peckzou <xiaozou1234@gmail.com>
+Date: Mon, 9 Nov 2026 15:18:32 -0600
+Subject: [PATCH] Restore classic flow and refine event layouts and optical
+ motion
+
+---
+ package-lock.json                   |   4 +-
+ package.json                        |   2 +-
+ src/App.tsx                         |   7 +-
+ src/components/RippleField.tsx      | 203 +++++----------
+ src/components/SeamGlass.tsx        |  76 ++----
+ src/components/Timeline.tsx         | 368 +++++-----------------------
+ src/embed.tsx                       |   2 +-
+ src/engine/BezierEngine.ts          |   9 +-
+ src/engine/FlowVisualTask.ts        |   7 +
+ src/engine/FluidMaterialRenderer.ts |   7 +-
+ src/engine/SonicPattern.ts          |   9 +
+ src/engine/TimelineLayoutEngine.ts  |   4 +-
+ src/model/eventDate.ts              |  19 ++
+ src/model/persistence.ts            |   2 +-
+ src/model/routine.ts                |  43 +---
+ src/styles.css                      |  61 ++++-
+ tests/eventDates.test.ts            |   6 +
+ tests/flowVisualTask.test.ts        |  11 +
+ tests/milestone_countdown.test.ts   |  12 +
+ tests/ripple.test.ts                |   8 +-
+ 20 files changed, 296 insertions(+), 564 deletions(-)
+ create mode 100644 src/engine/FlowVisualTask.ts
+ create mode 100644 src/engine/SonicPattern.ts
+ create mode 100644 src/model/eventDate.ts
+ create mode 100644 tests/eventDates.test.ts
+ create mode 100644 tests/flowVisualTask.test.ts
+
+diff --git a/package-lock.json b/package-lock.json
+index 405a035..7221b1a 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "liquid-routine",
+-  "version": "4.17.1",
++  "version": "4.26.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "liquid-routine",
+-      "version": "4.17.1",
++      "version": "4.26.0",
+       "dependencies": {
+         "@types/three": "^0.187.0",
+         "lucide-react": "^0.546.0",
+diff --git a/package.json b/package.json
+index d36804a..f239278 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "liquid-routine",
+   "private": true,
+-  "version": "4.17.1",
++  "version": "4.26.0",
+   "type": "module",
+   "scripts": {
+     "dev": "vite --host 127.0.0.1 --port 4173",
+diff --git a/src/App.tsx b/src/App.tsx
+index faea63a..b0636a1 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -79,7 +79,7 @@ import { TaskEditor } from "./components/TaskEditor";
+ import { PhysicsLab } from "./components/PhysicsLab";
+ import { TaskIcon } from "./components/TaskIcon";
+ import { FLUID_PRESETS, FluidPhysicsParams } from "./engine/fluidTypes";
+-import { timelineRange, positionY } from "./engine/TimelineLayoutEngine";
++import { positionY } from "./engine/TimelineLayoutEngine";
+ import { haptics } from "./engine/HapticEngine";
+ import { MochiLagoonScene } from "./lagoon/MochiLagoonScene";
+ const SETTINGS = "liquid-routine.material.v2";
+@@ -403,7 +403,6 @@ export default function App() {
+     );
+     haptics.trigger("join");
+   }, [paneTask?.id, duo]);
+-  const range = timelineRange(flowTasks); // Day Flow's base layout (it magnifies whatever is in the middle itself)
+   const run = active ? getRun(state, active.id, date) : null;
+   const remaining = active
+     ? remainingFor(active, state, date, now, schedule.mode)
+@@ -1132,9 +1131,7 @@ export default function App() {
+                 <div
+                   className={`liquid-world ${focus ? "focused-world" : ""}`}
+                   style={{
+-                    height: focus
+-                      ? undefined
+-                      : `calc(${range.height + 124}px + var(--picker-room, 0px))`,
++                    height: focus ? undefined : "auto",
+                   }}
+                   onPointerDown={pointerDown}
+                   onPointerMove={pointerMove}
+diff --git a/src/components/RippleField.tsx b/src/components/RippleField.tsx
+index aae0759..a54a826 100644
+--- a/src/components/RippleField.tsx
++++ b/src/components/RippleField.tsx
+@@ -1,3 +1,4 @@
++import { sonicPattern, SONIC_PERIOD } from "../engine/SonicPattern";
+ import { useEffect, useRef } from "react";
+ import { motionSensor } from "../engine/MotionSensor";
+ import type { BubbleBand } from "./BubbleField";
+@@ -27,7 +28,7 @@ interface Props {
+   offset?: { x: number; y: number };
+ }
+ 
+-const MAX_RIPPLES = 10;
++const MAX_RIPPLES = 6;
+ const MAX_BANDS = 12;
+ const EDGE_N = 16;
+ 
+@@ -77,7 +78,7 @@ export function spawnRipple(
+     maxRadius,
+     speed,
+     amp: opts?.amp ?? 1.0,
+-    freq: opts?.freq ?? 0.24,
++    freq: opts?.freq ?? 0.072,
+     age: 0,
+     life,
+     bandIndex: opts?.bandIndex ?? 0,
+@@ -115,8 +116,8 @@ export function stepRipples(
+ 
+   if (ambientTimer && width > 40) {
+     ambientTimer.t += clampedDt;
+-    // Sonic heartbeat cadence (~1.65s per acoustic pulse)
+-    if (ambientTimer.t >= 1.65 && ripples.length < MAX_RIPPLES) {
++    // A deliberate long rest between optical sequences; no overlapping heartbeat wallpaper.
++    if (ambientTimer.t >= SONIC_PERIOD && ripples.length < MAX_RIPPLES) {
+       ambientTimer.t = 0;
+       const beat = ambientTimer.beat;
+       ambientTimer.beat = (beat + 1) % 12;
+@@ -244,6 +245,8 @@ uniform float uW;
+ uniform float uRightX;
+ uniform float uH;
+ uniform float uTime;
++uniform float uPrism;
++uniform float uWater;
+ uniform vec2 uTilt;
+ uniform int uCount;
+ // uRipples[i]: x, y (timeline px), radius (px), amp
+@@ -286,14 +289,14 @@ vec3 sampleStudioField(vec2 p) {
+     if (inside > 0.001) {
+       float h = max(1.0, y1 - y0);
+       float bandV = clamp((p.y - y0) / h, 0.0, 1.0);
+-      vec3 tint = mix(vec3(0.968, 0.975, 0.992), uBandColors[b], 0.22);
+-      float bandSheen = pow(1.0 - abs(bandV * 2.0 - 1.0), 1.7) * 0.12;
+-      col = mix(col, tint + bandSheen, inside * 0.76);
++      vec3 tint = mix(vec3(0.968, 0.975, 0.992), uBandColors[b], 0.018);
++      float bandSheen = pow(1.0 - abs(bandV * 2.0 - 1.0), 1.7) * 0.025;
++      col = mix(col, tint + bandSheen, inside * 0.55);
+     }
+     // Crisp optical glass seam line at top & bottom edges of each band
+     float dEdge = min(abs(p.y - y0), abs(p.y - y1));
+     float seam = exp(-dEdge * dEdge * 0.22);
+-    col = mix(col, mix(uBandColors[b], vec3(1.0), 0.72), seam * 0.48);
++    col = mix(col, vec3(0.94,0.95,0.97), seam * 0.14);
+   }
+   return col;
+ }
+@@ -327,7 +330,7 @@ void main() {
+     float isTouch = (abs(kind - 1.0) < 0.25) ? 1.0 : 0.0;
+     float progress = clamp(age / life, 0.0, 1.0);
+     float fadeIn = mix(smoothstep(0.0, 0.16, age), smoothstep(0.0, 0.02, age), isTouch);
+-    float fade = fadeIn * pow(max(0.0, 1.0 - progress), mix(1.15, 0.95, isTouch));
++    float fade = uWater * fadeIn * pow(max(0.0, 1.0 - progress), mix(1.15, 0.95, isTouch));
+ 
+     float delta = d - R;
+ 
+@@ -348,8 +351,8 @@ void main() {
+     // 2. Concentric Cymatic Harmonic Wave Train (Image 1 & Image 2)
+     float trainEnv = exp(-(delta * delta) / (2.0 * 72.0 * 72.0)) * smoothstep(22.0, -6.0, delta);
+     float theta = atan(dir.y, dir.x);
+-    float cymaticMod = 1.0 + 0.12 * cos(theta * 6.0 + uTime * 2.4) * exp(-d / 160.0);
+-    float phase = delta * freq - uTime * 3.2;
++    float cymaticMod = 1.0 + 0.12 * cos(theta * 2.0) * exp(-d / 160.0);
++    float phase = delta * freq;
+     float waveSin = -sin(phase) * trainEnv * cymaticMod * amp * fade;
+     float waveCos = cos(phase) * trainEnv * cymaticMod * amp * fade;
+ 
+@@ -467,13 +470,13 @@ void main() {
+           : mix(cCyan, cCobalt, (tBevel - 0.65) / 0.35);
+ 
+       bandCornerPrism = bevelSpec;
+-      bandCornerPrismMask = clamp(cornerFocus * 1.18 * uCenterLens.z, 0.0, 0.90);
++      bandCornerPrismMask = clamp(cornerFocus * 1.05 * uCenterLens.z * uPrism, 0.0, 0.72);
+     }
+   }
+ 
+   // Refract the underlying studio porcelain + river bands with 3-channel RGB chromatic dispersion
+   vec2 refractOffset = grad * 22.0;
+-  vec2 rgbSplit = vec2(grad.x * 12.0 + chromaRingSigned * 3.8, grad.y * 7.0);
++  vec2 rgbSplit = uPrism * vec2(grad.x * 4.0 + chromaRingSigned * 1.2, grad.y * 3.0);
+ 
+   vec3 colR = sampleStudioField(p + refractOffset - rgbSplit);
+   vec3 colG = sampleStudioField(p + refractOffset);
+@@ -486,8 +489,8 @@ void main() {
+   vec3 warmAmber    = vec3(1.00, 0.62, 0.04);
+   vec3 coralRed     = vec3(1.00, 0.18, 0.34);
+ 
+-  float coolAmt = clamp(chromaRingSigned * 0.45, 0.0, 0.52);
+-  float warmAmt = clamp(-chromaRingSigned * 0.42, 0.0, 0.48);
++  float coolAmt = uPrism * clamp(chromaRingSigned * 0.45, 0.0, 0.52);
++  float warmAmt = uPrism * clamp(-chromaRingSigned * 0.42, 0.0, 0.48);
+   vec3 coolEdge = mix(electricCyan, cobaltBlue, clamp(coolAmt * 1.4, 0.0, 1.0));
+   vec3 warmEdge = mix(warmAmber, coralRed, clamp(warmAmt * 1.4, 0.0, 1.0));
+ 
+@@ -513,8 +516,8 @@ void main() {
+   float totalWhiteSpec = clamp(
+     domeRim * 0.78 +
+     cymaticHighlight * 0.42 +
+-    bandGlassRim * 0.86 +
+-    bandGlassCaustic * 0.74,
++    bandGlassRim * (0.12 + 0.44*uWater + 0.26*uPrism) +
++    bandGlassCaustic * (0.05 + 0.3*uWater + 0.18*uPrism),
+     0.0,
+     0.96
+   );
+@@ -561,17 +564,8 @@ export function RippleField({
+   const dpr = Math.min(1.5, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
+ 
+   useEffect(() => {
+-    if (!active) {
+-      const labels = document.querySelectorAll<HTMLElement>(
+-        ".timeline-layer .quick-title, .timeline-layer .quick-icon",
+-      );
+-      labels.forEach((el) => {
+-        el.style.removeProperty("text-shadow");
+-        el.style.removeProperty("filter");
+-        el.style.removeProperty("transform");
+-      });
+-      return;
+-    }
++    const styledTitles = new Set<HTMLElement>();
++    if (!active) return;
+ 
+     const canvas = canvasRef.current;
+     if (!canvas || width < 10 || height < 10) return;
+@@ -626,6 +620,8 @@ export function RippleField({
+     const uRightX = gl.getUniformLocation(prog, "uRightX");
+     const uH = gl.getUniformLocation(prog, "uH");
+     const uTime = gl.getUniformLocation(prog, "uTime");
++    const uPrism = gl.getUniformLocation(prog, "uPrism");
++    const uWater = gl.getUniformLocation(prog, "uWater");
+     const uTilt = gl.getUniformLocation(prog, "uTilt");
+     const uCount = gl.getUniformLocation(prog, "uCount");
+     const uRipples = gl.getUniformLocation(prog, "uRipples[0]");
+@@ -645,6 +641,8 @@ export function RippleField({
+     let lastDragWaveAt = 0;
+     let lastTapWaveAt = 0;
+     let pointerDown = false;
++    let cueAt=performance.now()+650,cueSpawned=false;
++    const triggerCue=(at:number)=>{cueAt=at;cueSpawned=false;};
+ 
+     const spawnAtClient = (clientX: number, clientY: number, isDrag: boolean) => {
+       const rect = canvas.getBoundingClientRect();
+@@ -666,14 +664,14 @@ export function RippleField({
+           return y >= eb.y0 && y <= eb.y1;
+         }),
+       );
+-      if (ripplesRef.current.length >= MAX_RIPPLES) {
+-        ripplesRef.current.shift();
+-      }
++      cueAt=performance.now();cueSpawned=true;
++      if(!isDrag)ripplesRef.current=[];
++      if (ripplesRef.current.length >= 3) ripplesRef.current.shift();
+       const w = spawnRipple(x, y, {
+         speed: isDrag ? 138 : 162,
+-        amp: isDrag ? 0.88 : 1.42,
+-        freq: isDrag ? 0.26 : 0.25,
+-        life: isDrag ? 2.5 : 3.5,
++        amp: isDrag ? 0.56 : 1.05,
++        freq: 0.072,
++        life: 2.8,
+         maxRadius: Math.min(width, 560) * (isDrag ? 0.48 : 0.74),
+         bandIndex: bIdx,
+         kind: 1,
+@@ -701,7 +699,7 @@ export function RippleField({
+     const onPointerMove = (e: PointerEvent) => {
+       if (!pointerDown) return;
+       const now = performance.now();
+-      if (now - lastDragWaveAt > 120) {
++      if (now - lastDragWaveAt > 360) {
+         lastDragWaveAt = now;
+         spawnAtClient(e.clientX, e.clientY, true);
+       }
+@@ -719,11 +717,15 @@ export function RippleField({
+     const ambientTimer = { t: 0, beat: 0 };
+     let raf = 0;
+     let last = performance.now();
++    let lastDraw=0;
+     const t0 = last;
+ 
+     const frame = (now: number) => {
+       raf = requestAnimationFrame(frame);
+-      if (document.hidden) return;
++      if (document.hidden) {last=now;cueAt=now+650;cueSpawned=false;return;}
++      const quiet=sonicPattern((now-cueAt)/1000).phase==='quiet';
++      if(now-lastDraw<(quiet?100:30))return;
++      lastDraw=now;
+       const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
+       last = now;
+ 
+@@ -776,87 +778,23 @@ export function RippleField({
+       }
+ 
+       const currentFocusId = focusIdx >= 0 ? bands[focusIdx].id : "*";
+-      if (lastFocusBandId !== currentFocusId) {
+-        const isFirstInit = lastFocusBandId === null && ripplesRef.current.length === 0;
+-        lastFocusBandId = currentFocusId;
+-        if (isFirstInit) {
+-          ripplesRef.current = [
+-            (() => {
+-              const w = spawnRipple(focusX, focusY, {
+-                speed: 148,
+-                amp: 1.25,
+-                freq: 0.24,
+-                life: 3.6,
+-                maxRadius: Math.min(width, 560) * 0.72,
+-                bandIndex: Math.max(0, focusIdx),
+-                kind: 0,
+-              });
+-              w.age = 0.65;
+-              w.radius = 96;
+-              return w;
+-            })(),
+-            (() => {
+-              const w = spawnRipple(focusX, focusY, {
+-                speed: 144,
+-                amp: 1.12,
+-                freq: 0.24,
+-                life: 3.5,
+-                maxRadius: Math.min(width, 560) * 0.68,
+-                bandIndex: Math.max(0, focusIdx),
+-                kind: 2,
+-              });
+-              w.age = 1.45;
+-              w.radius = 188;
+-              return w;
+-            })(),
+-          ];
+-        } else if (now - lastTapWaveAt > 250) {
+-          // Focus changed without a direct screen tap (e.g. keyboard/programmatic): gently emit from focus center without clearing touch ripples
+-          if (ripplesRef.current.length >= MAX_RIPPLES) {
+-            ripplesRef.current.shift();
+-          }
+-          ripplesRef.current.push(
+-            spawnRipple(focusX, focusY, {
+-              speed: 148,
+-              amp: 1.15,
+-              freq: 0.24,
+-              life: 3.5,
+-              maxRadius: Math.min(width, 560) * 0.7,
+-              bandIndex: Math.max(0, focusIdx),
+-              kind: 0,
+-            }),
+-          );
+-        }
++      if(lastFocusBandId!==currentFocusId){
++        const first=lastFocusBandId===null;lastFocusBandId=currentFocusId;
++        if(first||now-lastTapWaveAt>1200){triggerCue(now+(first?650:0));ripplesRef.current=[];}
+       }
+-
+-      if (mo.kick > 0) {
+-        if (ripplesRef.current.length >= MAX_RIPPLES) {
+-          ripplesRef.current.shift();
+-        }
+-        ripplesRef.current.push(
+-          spawnRipple(focusX, focusY, {
+-            speed: 175,
+-            amp: Math.min(1.45, 0.98 + mo.kick * 0.3),
+-            freq: 0.23,
+-            life: 3.5,
+-            maxRadius: Math.min(width, 600) * 0.75,
+-            bandIndex: Math.max(0, focusIdx),
+-            kind: 0,
+-          }),
+-        );
+-        mo.kick = 0;
++      if(mo.kick>0){if(now-cueAt>1000)triggerCue(now);mo.kick=0;}
++      if(now-cueAt>SONIC_PERIOD*1000)triggerCue(now);
++      const cueAge=(now-cueAt)/1000,pattern=sonicPattern(cueAge);
++      if(cueAge>=0&&!cueSpawned){
++        cueSpawned=true;
++        const wave=spawnRipple(focusX,focusY,{speed:145,amp:1.05,freq:.072,life:2.8,maxRadius:Math.max(width,view.height)*.8,bandIndex:Math.max(0,focusIdx),kind:0});
++        ripplesRef.current=[wave];
+       }
+-
+-      stepRipples(
+-        ripplesRef.current,
+-        dt,
+-        width,
+-        bands,
+-        view,
+-        ambientTimer,
+-        mo,
+-        hasFocusLens > 0 ? { x: focusX, y: focusY } : null,
+-      );
++      stepRipples(ripplesRef.current,dt,width,bands,view,undefined,mo);
++      canvas.dataset.opticalPhase=pattern.phase;
++      canvas.dataset.prism=pattern.prism.toFixed(3);
++      gl.uniform1f(uPrism,pattern.prism);
++      gl.uniform1f(uWater,pattern.wave);
+ 
+       const rCount = Math.min(MAX_RIPPLES, ripplesRef.current.length);
+       for (let i = 0; i < rCount; i++) {
+@@ -904,44 +842,13 @@ export function RippleField({
+       gl.uniform3f(uCenterLens, focusX, focusY, hasFocusLens);
+       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+ 
+-      // Subtle, crisp Apple Music chromatic edge dispersion on task titles as water waves sweep across them
+-      if (layer && canvasRect.width > 0) {
+-        const titles = layer.querySelectorAll<HTMLElement>(".quick-title");
+-        titles.forEach((el) => {
+-          const tr = el.getBoundingClientRect();
+-          if (tr.width <= 0) return;
+-          const lx = tr.left + tr.width * 0.5 - canvasRect.left;
+-          const ly = tr.top + tr.height * 0.5 - canvasRect.top;
+-          const sL = sampleWaveAtPoint(ripplesRef.current, lx - tr.width * 0.45, ly);
+-          const sC = sampleWaveAtPoint(ripplesRef.current, lx, ly);
+-          const sR = sampleWaveAtPoint(ripplesRef.current, lx + tr.width * 0.45, ly);
+-          const maxE = Math.max(sL.energy, sC.energy, sR.energy);
+-          const e = Math.min(1.0, maxE * 5.0);
+-
+-          if (e > 0.04) {
+-            const shiftX = Math.max(1.1, Math.min(2.8, 1.0 + e * 1.8));
+-            const shiftY = Math.max(-1.0, Math.min(1.0, sC.gy * 6));
+-            const cyanA = Math.min(0.68, 0.22 + e * 0.38).toFixed(3);
+-            const blueA = Math.min(0.54, 0.16 + e * 0.32).toFixed(3);
+-            const amberA = Math.min(0.65, 0.20 + e * 0.36).toFixed(3);
+-            const redA = Math.min(0.50, 0.14 + e * 0.30).toFixed(3);
+-            el.style.textShadow = [
+-              `${(-shiftX).toFixed(2)}px ${(-shiftY * 0.5).toFixed(2)}px 0.3px rgba(0, 218, 255, ${cyanA})`,
+-              `${(-shiftX * 1.55).toFixed(2)}px ${(-shiftY).toFixed(2)}px 0.9px rgba(18, 69, 255, ${blueA})`,
+-              `${shiftX.toFixed(2)}px ${(shiftY * 0.5).toFixed(2)}px 0.3px rgba(255, 162, 10, ${amberA})`,
+-              `${(shiftX * 1.45).toFixed(2)}px ${shiftY.toFixed(2)}px 0.9px rgba(255, 45, 85, ${redA})`,
+-            ].join(", ");
+-          } else {
+-            el.style.textShadow =
+-              "-0.9px 0 0.3px rgba(0, 216, 255, 0.22), 0.9px 0 0.3px rgba(255, 159, 10, 0.20)";
+-          }
+-        });
+-      }
++
+     };
+ 
+     raf = requestAnimationFrame(frame);
+     return () => {
+       cancelAnimationFrame(raf);
++      styledTitles.forEach(el=>el.style.removeProperty("text-shadow"));
+       window.removeEventListener("pointerdown", onPointerDown, true);
+       window.removeEventListener("touchstart", onTouchStart, true);
+       window.removeEventListener("pointermove", onPointerMove, true);
+diff --git a/src/components/SeamGlass.tsx b/src/components/SeamGlass.tsx
+index 532923f..4a8706b 100644
+--- a/src/components/SeamGlass.tsx
++++ b/src/components/SeamGlass.tsx
+@@ -15,17 +15,11 @@ export interface SeamGlassState {
+   seam: { x: number; y: number; nx: number; ny: number } | null;
+   /** fusion radius (px): grows with the adhesion strength */
+   k: number;
+-  /** how much the seam bends here (d²y/dx² signed onto the normal): the fusion follows the real curve */
+-  curv: number;
+   /** the reaching band's colour and the colour on the finger's side */
+   bandColor: string;
+   sideColor: string;
+   dark: boolean;
+   opacity: number;
+-  /** 4.17.3 · the jelly impact: + the drop pressed flat on the seam, − pulled long with the edge swelling after it */
+-  jelly?: number;
+-  /** 4.17.6 · how far (px) the edge is drawn out towards the drop (an elastic spring; 0 = flat) */
+-  pull?: number;
+ }
+ 
+ const SIZE = 320;
+@@ -36,7 +30,7 @@ uniform vec2 uOrigin;      // window origin in timeline px
+ uniform float uDpr;
+ uniform vec4 uBlob;        // cx, cy, hx, hy (timeline px)
+ uniform vec4 uSeam;        // px, py, nx, ny
+-uniform float uSeamValid, uK, uDark, uOpacity, uCurv, uJelly, uPull;
++uniform float uSeamValid, uK, uDark, uOpacity;
+ uniform vec3 uBand, uSide;
+ out vec4 outColor;
+ 
+@@ -58,39 +52,13 @@ vec4 sdfUnion(vec4 a, vec4 b, float k){
+ }
+ vec3 bandAt(vec2 p){
+   if (uSeamValid < 0.5) return uSide;
+-  vec2 tnrm = uSeam.zw;
+-  vec2 ttan = vec2(-tnrm.y, tnrm.x);
+-  vec2 rel = p - uSeam.xy;
+-  float tt = dot(rel, ttan);
+-  float s = dot(rel, tnrm) - 0.5 * uCurv * tt * tt;
++  float s = dot(p - uSeam.xy, uSeam.zw);
+   return mix(uBand, uSide, smoothstep(-5.0, 5.0, s));
+ }
+ void main(){
+   vec2 p = uOrigin + vec2(gl_FragCoord.x, float(${SIZE}) * uDpr - gl_FragCoord.y) / uDpr;
+-  // the seam bends with the river: a curved edge, not a straight half-plane,
+-  // so the neck follows the real S-turn instead of sticking out sideways
+-  vec2 tnrm = uSeam.zw;
+-  vec2 ttan = vec2(-tnrm.y, tnrm.x);
+-  vec2 rel = p - uSeam.xy;
+-  float tt = dot(rel, ttan);
+-  float ss = dot(rel, tnrm) - 0.5 * uCurv * tt * tt;
+-  vec2 gg = normalize(tnrm - uCurv * tt * ttan);
+-  float rr = min(uBlob.z, uBlob.w);
+-  float jv = uJelly;
+-  vec4 bar0 = vec4(ss, gg, uSeamValid);   // the real edge (only for masking: the band itself is drawn elsewhere)
+-  // 4.17.6 · elastic: the edge is drawn out towards the drop as a narrow peak (uPull px tall) that thins the further
+-  // it is pulled, and the smooth union only bridges the last little gap — a taut, hourglass neck instead of a slack web
+-  float tension = clamp(uPull / 34.0, 0.0, 1.0);
+-  float sig = rr * mix(1.05, 0.5, tension);
+-  ss -= uPull * exp(-tt * tt / (2.0 * sig * sig));
+-  ss -= max(0.0, -jv) * 9.0 * exp(-tt * tt / (2.0 * rr * rr * 1.8));   // the edge swells after the drop
+-  vec4 bar = vec4(ss, gg, uSeamValid);   // negative inside the reaching band
+-  // a round drop: pressed flat on landing, drawn long towards the edge under tension, wobbling back to round
+-  float alongK = (jv > 0.0 ? 1.0 - 0.4 * jv : 1.0 - 0.5 * jv) * (1.0 + 0.2 * tension);
+-  float acrossK = (jv > 0.0 ? 1.0 + 0.3 * jv : 1.0 + 0.22 * jv) * (1.0 - 0.1 * tension);
+-  vec2 dc = p - uBlob.xy;
+-  vec2 qe = vec2(dot(dc, ttan) / acrossK, dot(dc, tnrm) / alongK);
+-  vec4 blob = vec4((length(qe) - rr) * min(alongK, acrossK), normalize(dc + vec2(1e-6)), 1.0);
++  vec4 bar = vec4(dot(p - uSeam.xy, uSeam.zw), uSeam.zw, uSeamValid);   // negative inside the reaching band
++  vec4 blob = sdRoundBox(p, uBlob.xy, uBlob.zw, min(uBlob.z, uBlob.w));
+   vec4 s = sdfUnion(bar, blob, uK);
+   float d = s.x; vec2 g = s.yz;
+   // the band itself is already on screen: draw the drop and the neck, not the inside of the band
+@@ -106,13 +74,13 @@ void main(){
+   vec3 refr = vec3(bandAt(p + dsp * 0.92).r, bandAt(p + dsp).g, bandAt(p + dsp * 1.08).b);
+   float deep = clamp(-d / 18.0, 0.0, 1.0);
+   refr = mix(refr, mix(uBand, uSide, 0.5), deep * 0.35);
+-  // the neck and drop are the reaching band's own liquid: its colour, lit by the refraction — no white wash
++  // the neck and drop are the reaching band's own liquid: its colour, lit by the refraction
+   float wb = uSeamValid > 0.5 ? clamp(0.5 + 0.5 * (bar.x - blob.x) / 24.0, 0.0, 1.0) : 1.0;
+-  vec3 body = uSeamValid > 0.5 ? mix(refr, uBand, 0.85) : refr;   // the same liquid as the band it is pulled from
+-  vec3 glass = uDark > 0.5 ? body * 0.82 + vec3(0.02, 0.03, 0.06) : body;
++  vec3 body = uSeamValid > 0.5 ? mix(refr, uBand, 0.55) : refr;
++  vec3 glass = uDark > 0.5 ? body * 0.82 + vec3(0.02, 0.03, 0.06) : mix(body, vec3(1.0), 0.16);
+ 
+-  // highlight: a restrained 1.6px rim, key 45° + fill 225°, no white flood
+-  float qd = -d, hw = 1.6;
++  // highlight: 2.2px rim band, key 45° + fill 225°, sharp mask, compressed
++  float qd = -d, hw = 2.2;
+   float aaq = max(fwidth(qd), 1e-3);
+   float band = (1.0 - clamp(qd / hw, 0.0, 1.0)) * clamp(qd / aaq + 0.5, 0.0, 1.0) * clamp((hw - qd) / aaq + 0.5, 0.0, 1.0);
+   vec2 kdir = vec2(0.7071, -0.7071);
+@@ -120,17 +88,20 @@ void main(){
+   float fill = band * clamp((dot(-kdir, g) - 0.52) / 0.48, 0.0, 1.0);
+   key = key / (1.0 + (1.0 - key) * 8.0);
+   fill = fill / (1.0 + (1.0 - fill) * 8.0);
+-  glass += (key + fill) * 0.5 + band * 0.06;
++  glass += (key + fill) * 0.95 + band * 0.18;
+ 
+   float aa = max(fwidth(d), 1e-3);
+-  // exactly the drop and the liquid the union adds between it and the river — the neck — with a crisp edge:
+-  // nothing along the seam away from the drop (bar - d is 0 there), nothing over the river, no smeared tail
+-  // everything of the union outside the real band: the drawn-out peak and the neck (along the seam away from the
+-  // drop the union is the edge itself, so nothing shows there)
+-  float neck = uSeamValid > 0.5 ? smoothstep(-0.75, 0.75, bar0.x) * smoothstep(0.05, 0.6, bar0.x - d) : 0.0;
+-  float drop = smoothstep(0.75, -0.75, blob.x);
+-  float inside = smoothstep(aa, -aa, d) * max(neck, drop);
+-  vec4 col = vec4(glass, 1.0) * inside;
++  // only the drop and the neck it pulls out are drawn: along the seam's local tangent, away from the drop, the
++  // union's edge is just the stand-in half-plane — drawing it would leave a straight line across the band
++  float own = uSeamValid > 0.5
++    ? smoothstep(0.08, 0.3, clamp(0.5 + 0.5 * (bar.x - blob.x) / max(uK, 6.0), 0.0, 1.0))
++    : 1.0;
++  float inside = smoothstep(aa, -aa, d) * outsideBand * own;
++  // soft shadow just outside the glass (sdf_shadow), not over the band
++  // only the drop and its neck cast it — the seam itself does not (wb: how much this point belongs to the drop)
++  float wbs = uSeamValid > 0.5 ? clamp(0.5 + 0.5 * (bar.x - blob.x) / 10.0, 0.0, 1.0) : 1.0;
++  float sh = d > 0.0 ? exp(-d / 9.0) * 0.18 * outsideBand * wbs * own : 0.0;
++  vec4 col = vec4(glass, 1.0) * inside + vec4(0.04, 0.06, 0.12, 1.0) * sh * (1.0 - inside);
+   outColor = col * uOpacity;
+ }`;
+ 
+@@ -191,7 +162,7 @@ export function SeamGlass({
+     ctx.enableVertexAttribArray(loc);
+     ctx.vertexAttribPointer(loc, 2, ctx.FLOAT, false, 0, 0);
+     const uni: Record<string, WebGLUniformLocation | null> = {};
+-    for (const n of ["uOrigin", "uDpr", "uBlob", "uSeam", "uSeamValid", "uK", "uDark", "uOpacity", "uCurv", "uJelly", "uPull", "uBand", "uSide"])
++    for (const n of ["uOrigin", "uDpr", "uBlob", "uSeam", "uSeamValid", "uK", "uDark", "uOpacity", "uBand", "uSide"])
+       uni[n] = ctx.getUniformLocation(prog, n);
+     gl.current = { ctx, uni };
+   }, [dpr]);
+@@ -219,11 +190,8 @@ export function SeamGlass({
+     ctx.uniform4f(uni.uSeam, s?.x ?? 0, s?.y ?? 0, s?.nx ?? 0, s?.ny ?? 1);
+     ctx.uniform1f(uni.uSeamValid, s ? 1 : 0);
+     ctx.uniform1f(uni.uK, state.k);
+-    ctx.uniform1f(uni.uJelly, state.jelly ?? 0);
+-    ctx.uniform1f(uni.uPull, Math.max(0, state.pull ?? 0));
+     ctx.uniform1f(uni.uDark, state.dark ? 1 : 0);
+     ctx.uniform1f(uni.uOpacity, state.opacity);
+-    ctx.uniform1f(uni.uCurv, state.curv);
+     ctx.uniform3fv(uni.uBand, rgb(state.bandColor));
+     ctx.uniform3fv(uni.uSide, rgb(state.sideColor));
+     ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4);
+diff --git a/src/components/Timeline.tsx b/src/components/Timeline.tsx
+index ee66b96..3a21f22 100644
+--- a/src/components/Timeline.tsx
++++ b/src/components/Timeline.tsx
+@@ -1,3 +1,4 @@
++import { flowVisualTask } from "../engine/FlowVisualTask";
+ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+ import {
+   Task,
+@@ -14,6 +15,7 @@ import {
+   dayKey,
+ } from "../model/routine";
+ import { BezierEngine, RANGE, timeY, yTime } from "../engine/BezierEngine";
++import { eventDays, eventDate } from "../model/eventDate";
+ import { QuickField } from "./QuickTaskEditor";
+ import { TaskIcon } from "./TaskIcon";
+ import { FluidMaterialRenderer } from "../engine/FluidMaterialRenderer";
+@@ -149,18 +151,18 @@ export function Timeline({
+   // by itself after a few seconds, or as soon as a band is touched.
+   const [overview, setOverview] = useState<number | null>(null);
+   const overviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
++  const [pad, setPad] = useState(0);
+   const base = useMemo(
+     () =>
+       overview
+-        ? fitRange(timelineRange(tasks, null), overview)
+-        : timelineRange(tasks, promotedId),
+-    [tasks, promotedId, overview],
++        ? fitRange(timelineRange(tasks, null), overview, true)
++        : (() => { const r = timelineRange(tasks, promotedId); return fitRange(r, Math.max(r.height, pad * 2), true); })(),
++    [tasks, promotedId, overview, pad],
+   );
+   // The lens is liquid: its centre follows the viewport middle on an under-damped spring (it trails a little and
+   // settles with a small rebound), and speed stretches it — a longer, flatter swell while moving that contracts
+   // and springs back when the scroll stops. Only the layout moves; the scroll position is never touched.
+   const [lens, setLens] = useState<{ c: number; s: number; target: number } | null>(null);
+-  const [pad, setPad] = useState(0);
+   // The promoted band swells over the focus window: the old main body
+   // contracts while the new one grows, and every seam is rebuilt from the
+   // blended layout, so the change reads as one movement.
+@@ -245,7 +247,6 @@ export function Timeline({
+   // Metaball Merge for Mochi: the neck that grows out of the river towards
+   // the character while it is dragged across a seam.
+   const mochiPressUntil = useRef(0);
+-  const extraRoom = useRef(0);
+   const contentEl = useRef<HTMLDivElement>(null);
+   const visibleRef = useRef<Task[]>([]);
+   const centerIdRef = useRef<string | null>(null);
+@@ -540,8 +541,6 @@ export function Timeline({
+       last = now;
+       const room = geo.scroller.clientHeight / 2;
+       setPad((p) => (Math.abs(p - room) < 1 ? p : room));
+-      // no fixed empty room (the edge buffer stretches instead) — except what an enlarged bottom task needs to centre
+-      geo.scroller.style.setProperty("--picker-room", `${extraRoom.current}px`);
+       const top = geo.scroller.scrollTop;
+       body.target = top + room - geo.top;
+       // scroll speed (px/s), eased so a single jump does not read as a fling
+@@ -610,34 +609,6 @@ export function Timeline({
+     };
+   }, []);
+   /** Bring a task's middle to the middle of the viewport (where it is magnified). */
+-  // how much room below the day the enlarged task needs to sit in the middle of the view
+-  const focusRoom = (() => {
+-    const t = tasks.find((x) => x.id === promotedId);
+-    if (!t || !pad) return 0;
+-    const mid = (positionY(t.start, base) + positionY(t.start + t.duration, base)) / 2;
+-    return Math.ceil(mid + pad - (base.height + 64)) + 24;
+-  })();
+-  // the world around the timeline is sized by the day alone (App's own range, without the enlarged task), and it
+-  // clips: whatever the timeline's content needs beyond that (the enlarged task's swell, the run-out, the room for a
+-  // bottom task to reach the middle) is asked for here, measured on the page
+-  const contentRoom = () => {
+-    const g = scrollGeometry(),
+-      el = contentEl.current;
+-    if (!g || !el) return 0;
+-    const bottom = el.getBoundingClientRect().bottom - g.scroller.getBoundingClientRect().top + g.scroller.scrollTop;
+-    const without = g.scroller.scrollHeight - extraRoom.current;
+-    return Math.max(0, Math.ceil(bottom - without));
+-  };
+-  const applyRoom = () => {
+-    const g = scrollGeometry();
+-    if (!g) return;
+-    const room = contentRoom();
+-    if (Math.abs(room - extraRoom.current) > 2) {
+-      extraRoom.current = room;
+-      g.scroller.style.setProperty("--picker-room", `${room}px`);
+-    }
+-  };
+-  useEffect(applyRoom);
+   const centreOn = (
+     id: string | null | undefined,
+     smooth: boolean,
+@@ -649,8 +620,7 @@ export function Timeline({
+     const r = inRange ?? base;
+     const mid =
+       (positionY(t.start, r) + positionY(t.start + t.duration, r)) / 2;
+-    // 4.18 · make the room a bottom task needs first, then scroll once the world has grown (next frame)
+-    applyRoom();
++    // The browser clamps centring at the final activity; do not create empty scroll space.
+     requestAnimationFrame(() =>
+       g.scroller.scrollTo({
+         top: Math.max(0, g.top + mid - g.scroller.clientHeight / 2),
+@@ -721,7 +691,13 @@ export function Timeline({
+       )
+         return;
+       geometry.current.setReducedMotion(motion.current.reduceMotion);
+-      const key =
++      // Rasterize in the actual canvas coordinate space. Focus expansion and
++      // bottom scroll room change the world height independently of the SVG.
++      const svgBounds = svg.current!.getBoundingClientRect();
++      const worldBounds = svg.current!.closest(".liquid-world")!.getBoundingClientRect();
++      const materialLayout = [worldBounds.width, worldBounds.height,
++        svgBounds.left - worldBounds.left, svgBounds.top - worldBounds.top];
++      const key = materialLayout.join("/") + "/" +
+         motion.current.tasks
+           .map((t) => `${t.id}/${t.start}/${t.duration}/${t.color}`)
+           .join("|") +
+@@ -882,14 +858,15 @@ export function Timeline({
+         );
+         if (svg.current) {
+           material.current ??= new FluidMaterialRenderer();
+-          const fullWidth = svg.current.parentElement!.clientWidth;
+           current.onMaterial(
+             material.current.render(
+               visibleTasks,
+               geometry.current,
+-              fullWidth,
+-              current.range.height + 124,
+-              fullWidth - current.width,
++              worldBounds.width,
++              worldBounds.height,
++              svgBounds.left - worldBounds.left,
++              svgBounds.top - worldBounds.top,
++              current.width,
+             ),
+           );
+         }
+@@ -961,7 +938,7 @@ export function Timeline({
+   const showAll = () => {
+     if (overview) return collapseOverview();
+     const scroller = svg.current?.closest(".chamber-scroll") as HTMLElement | null;
+-    const h = Math.max(240, (scroller?.clientHeight || window.innerHeight) - 72);
++    const h = Math.max(240, (scroller?.clientHeight || window.innerHeight));
+     setOverview(h);
+     haptics.trigger("snap");
+     scroller?.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+@@ -1473,19 +1450,9 @@ export function Timeline({
+     let dissolveFrac = 0;
+ 
+     if (countdown) {
+-      const days = countdownDays(task, now);
+-      const total = 60;
+-      if (days <= 0) {
+-        status = "past";
+-        dissolveFrac = 1;
+-      } else if (days < total) {
+-        status = "current";
+-        dissolveFrac = Math.max(0.08, Math.min(0.92, 1 - days / total));
+-      } else {
+-        status = "future";
+-        dissolveFrac = 0;
+-      }
+-      return { status, dissolveFrac, days };
++      const days=eventDays(task,now);
++      status=days<0?"past":days===0?"current":"future";
++      return {status,dissolveFrac:0,days};
+     }
+     if (milestones) {
+       const tDate = toIsoDate(task.targetDate || task.date);
+@@ -1550,9 +1517,8 @@ export function Timeline({
+           showAll();
+         }}
+         style={{
+-          // 4.18 · room below the day: normally a short run-out, but enough for the enlarged task to reach the middle
+-          // of the view when it is one of the last (a tapped bottom task could not centre before)
+-          height: range.height + 64 + (overview ? 0 : Math.max(140, focusRoom)),
++          // All modes end at the final activity, with no artificial run-out.
++          height: range.height,
+ 
+         }}
+       >
+@@ -1566,7 +1532,7 @@ export function Timeline({
+                 const y = axisY(t.start, range);
+                 const dStr = formatMilestoneDate(t.targetDate || t.date);
+                 return (
+-                  <span style={{ top: y }} key={t.id} className="axis-date" title={dStr}>
++                  <span style={{ top: Math.max(10,y) }} key={t.id} className="axis-date" title={dStr}>
+                     {dStr}
+                   </span>
+                 );
+@@ -1575,10 +1541,10 @@ export function Timeline({
+             if (countdown) {
+               return visible.map((t) => {
+                 const y = axisY(t.start, range);
+-                const days = countdownDays(t, now);
++                const days = eventDays(t, now);
+                 return (
+-                  <span style={{ top: y }} key={t.id} className="axis-countdown" title={`距离还有 ${days} 天`}>
+-                    {days} 天
++                  <span style={{ top: Math.max(10,y) }} key={t.id} className="axis-countdown" title={days<0?`已过 ${Math.abs(days)} 天`:`距离还有 ${days} 天`}>
++                    {formatMilestoneDate(eventDate(t,now))}
+                   </span>
+                 );
+               });
+@@ -1691,67 +1657,37 @@ export function Timeline({
+           )}
+           <g className="river-tints" pointerEvents="none" aria-hidden="true">
+             <defs>
+-              {visible.map((task) => {
+-                const { status, dissolveFrac } = getTemporalStatus(task);
+-                if (status === "past") {
+-                  // Past: clear transparent glass (only very light tint and reflections)
+-                  return (
+-                    <linearGradient key={task.id} id={`lr-tint-${task.id}`} x1="0" x2="1" y1="0" y2="0.3">
+-                      <stop offset="0" stopColor={task.color} stopOpacity="0.08" />
+-                      <stop offset="0.5" stopColor={task.color} stopOpacity="0.04" />
+-                      <stop offset="1" stopColor={task.color} stopOpacity="0.02" />
+-                    </linearGradient>
+-                  );
+-                }
+-                if (status === "current") {
+-                  // Chromatic Dissolve: top is transparent glass (elapsed), bottom is vivid liquid color
+-                  const pct = Math.round(dissolveFrac * 100);
+-                  return (
+-                    <linearGradient key={task.id} id={`lr-tint-${task.id}`} x1="0" x2="0" y1="0" y2="1">
+-                      <stop offset="0%" stopColor={task.color} stopOpacity="0.05" />
+-                      <stop offset={`${Math.max(0, pct - 2)}%`} stopColor={task.color} stopOpacity="0.08" />
+-                      {/* Fluid meniscus line */}
+-                      <stop offset={`${pct}%`} stopColor="#ffffff" stopOpacity="0.36" />
+-                      <stop offset={`${Math.min(100, pct + 2)}%`} stopColor={task.color} stopOpacity="0.75" />
+-                      <stop offset="100%" stopColor={task.color} stopOpacity="0.88" />
+-                    </linearGradient>
+-                  );
+-                }
+-                // Future: rich vibrant liquid color
+-                return (
+-                  <linearGradient key={task.id} id={`lr-tint-${task.id}`} x1="0" x2="1" y1="0" y2="0.3">
+-                    <stop offset="0" stopColor={task.color} stopOpacity="0.82" />
+-                    <stop offset="0.3" stopColor={task.color} stopOpacity="0.62" />
+-                    <stop offset="0.7" stopColor={task.color} stopOpacity="0.4" />
+-                    <stop offset="1" stopColor={task.color} stopOpacity="0.28" />
+-                  </linearGradient>
+-                );
+-              })}
++              {visible.map((task) => (
++                // each band is its own clear colour: richest where it enters on the left, airy toward the text
++                <linearGradient key={task.id} id={`lr-tint-${task.id}`} x1="0" x2="1" y1="0" y2="0.3">
++                  <stop offset="0" stopColor={task.color} stopOpacity="0.78" />
++                  <stop offset="0.3" stopColor={task.color} stopOpacity="0.55" />
++                  <stop offset="0.7" stopColor={task.color} stopOpacity="0.26" />
++                  <stop offset="1" stopColor={task.color} stopOpacity="0.14" />
++                </linearGradient>
++              ))}
+             </defs>
+             {/* a glassy sheen across the top of every band, like light on a glass ribbon */}
+             <linearGradient id="lr-sheen" x1="0" x2="0" y1="0" y2="1">
+-              <stop offset="0" stopColor="#ffffff" stopOpacity="0.26" />
+-              <stop offset="0.035" stopColor="#ffffff" stopOpacity="0.04" />
+-              <stop offset="0.1" stopColor="#ffffff" stopOpacity="0" />
+-              <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
++              <stop offset="0" stopColor="#ffffff" stopOpacity="0.62" />
++              <stop offset="0.16" stopColor="#ffffff" stopOpacity="0.22" />
++              <stop offset="0.42" stopColor="#ffffff" stopOpacity="0" />
++              <stop offset="1" stopColor="#ffffff" stopOpacity="0.1" />
+             </linearGradient>
+-            {visible.map((task) => {
+-              const { status } = getTemporalStatus(task);
+-              return (
+-                <g key={task.id}>
+-                  <path
+-                    d={geometry.current.path(task, 0, worldWidth)}
+-                    fill={`url(#lr-tint-${task.id})`}
+-                    className={`river-tint is-${status} ${task.id === centerId ? "is-focus" : ""}`}
+-                  />
+-                  <path
+-                    d={geometry.current.path(task, 0, worldWidth)}
+-                    fill="url(#lr-sheen)"
+-                    className="river-sheen"
+-                  />
+-                </g>
+-              );
+-            })}
++            {visible.map((task) => (
++              <g key={task.id}>
++                <path
++                  d={geometry.current.path(flowVisualTask(task, visible), 0, worldWidth, 240)}
++                  fill={`url(#lr-tint-${task.id})`}
++                  className={`river-tint ${task.id === centerId ? "is-focus" : ""}`}
++                />
++                <path
++                  d={geometry.current.path(flowVisualTask(task, visible), 0, worldWidth, 240)}
++                  fill="url(#lr-sheen)"
++                  className="river-sheen"
++                />
++              </g>
++            ))}
+           </g>
+           <g className="river-seams" pointerEvents="none" aria-hidden="true">
+             {[...visible]
+@@ -1773,136 +1709,6 @@ export function Timeline({
+                 );
+               })}
+           </g>
+-          {/* 4.17.8 · clear glass: one crisp optical edge per seam (a glinting rim and a faint depth line), directional
+-              refraction on the right (light from the upper left: a caustic focused into the lower-right of each band,
+-              a slanted streak through it, a little shade under the seam), and the focused activity lifted above the rest */}
+-          <g className={`river-glass ${centerId ? "has-focus" : ""}`} pointerEvents="none" aria-hidden="true">
+-            <defs>
+-              <linearGradient id="lr-glint" gradientUnits="userSpaceOnUse" x1="0" x2={worldWidth} y1="0" y2="0">
+-                <stop offset="0" stopColor="#ffffff" stopOpacity="0.5" />
+-                <stop offset="0.16" stopColor="#ffffff" stopOpacity="1" />
+-                <stop offset="0.36" stopColor="#ffffff" stopOpacity="0.55" />
+-                <stop offset="0.62" stopColor="#ffffff" stopOpacity="0.8" />
+-                <stop offset="1" stopColor="#ffffff" stopOpacity="0.35" />
+-              </linearGradient>
+-              <radialGradient id="lr-caustic" cx="0.5" cy="0.5" r="0.5">
+-                <stop offset="0" stopColor="#ffffff" stopOpacity="0.62" />
+-                <stop offset="0.45" stopColor="#ffffff" stopOpacity="0.2" />
+-                <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+-              </radialGradient>
+-              <linearGradient id="lr-streak" x1="0" x2="0" y1="0" y2="1">
+-                <stop offset="0" stopColor="#ffffff" stopOpacity="0" />
+-                <stop offset="0.35" stopColor="#ffffff" stopOpacity="0.32" />
+-                <stop offset="0.7" stopColor="#ffffff" stopOpacity="0.1" />
+-                <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+-              </linearGradient>
+-              <linearGradient id="lr-shade" x1="0" x2="0" y1="0" y2="1">
+-                <stop offset="0" stopColor="#1d2a4a" stopOpacity="0.1" />
+-                <stop offset="1" stopColor="#1d2a4a" stopOpacity="0" />
+-              </linearGradient>
+-              <linearGradient id="lr-shimmer" x1="0" x2="1" y1="0" y2="0.35">
+-                <stop offset="0" stopColor="#ffffff" stopOpacity="0" />
+-                <stop offset="0.485" stopColor="#ffffff" stopOpacity="0" />
+-                <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.22" />
+-                <stop offset="0.515" stopColor="#ffffff" stopOpacity="0" />
+-                <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+-              </linearGradient>
+-              <clipPath id="lr-clip-all">
+-                {visible.map((task) => (
+-                  <path key={task.id} d={geometry.current.path(task, 0, worldWidth)} />
+-                ))}
+-              </clipPath>
+-              {visible.map((task) => (
+-                <clipPath key={task.id} id={`lr-clip-${task.id}`}>
+-                  <path d={geometry.current.path(task, 0, worldWidth)} />
+-                </clipPath>
+-              ))}
+-            </defs>
+-            {/* the others step back a little: the focused activity is the clear, bright one */}
+-            {centerId &&
+-              visible
+-                .filter((t) => t.id !== centerId)
+-                .map((task) => (
+-                  <path key={task.id} d={geometry.current.path(task, 0, worldWidth)} className="glass-recede" />
+-                ))}
+-            {/* directional refraction on the flat right side of every band */}
+-            {visible.map((task) => {
+-              const top = timeY(task.start),
+-                bottom = timeY(task.start + task.duration),
+-                h = bottom - top;
+-              if (h < 30) return null;
+-              const focus = task.id === centerId;
+-              const cx = worldWidth * 0.8,
+-                rx = worldWidth * (focus ? 0.3 : 0.24),
+-                ry = Math.min(focus ? 12 : 9, h * 0.16);
+-              const sx = worldWidth * 0.6;
+-              return (
+-                <g key={task.id} clipPath={`url(#lr-clip-${task.id})`} className={`glass-refract ${focus ? "is-focus" : ""}`}>
+-                  <rect x={worldWidth * 0.42} y={top} width={worldWidth * 0.58} height={Math.min(18, h * 0.3)} fill="url(#lr-shade)" />
+-                  <ellipse cx={cx} cy={bottom - ry * 0.6} rx={rx} ry={ry} fill="url(#lr-caustic)" className="caustic" />
+-                  <path
+-                    d={`M ${sx + h * 0.2} ${top} L ${sx + h * 0.2 + 9} ${top} L ${sx + h * 0.48 + 4} ${bottom} L ${sx + h * 0.48} ${bottom} Z`}
+-                    fill="url(#lr-streak)"
+-                    className="streak"
+-                  />
+-                </g>
+-              );
+-            })}
+-            {/* one optical edge per seam */}
+-            {[...visible]
+-              .sort((a, b) => a.start - b.start || a.id.localeCompare(b.id))
+-              .map((task, i, list) => {
+-                if (!i) return null;
+-                const upper = list[i - 1];
+-                const b = geometry.current.boundary(task.river, task.start, 0, worldWidth);
+-                const d = `M ${b.knots[0].x} ${b.knots[0].y}${geometry.current.segment(b)}`;
+-                const lit = task.id === centerId || upper.id === centerId;
+-                return (
+-                  <g key={task.id} className={`glass-seam ${lit ? "is-focus" : ""}`}>
+-                    {/* a task starting inside another is not a real edge between two panes: no depth there */}
+-                    {upper.start + upper.duration <= task.start + 1 && (
+-                      <path d={d} className="seam-depth" stroke={upper.color} />
+-                    )}
+-                    <path d={d} className="seam-glint" stroke="url(#lr-glint)" />
+-                  </g>
+-                );
+-              })}
+-            {/* the focused activity floats: a soft shadow under it and a brighter rim on top */}
+-            {(() => {
+-              const f = visible.find((t) => t.id === centerId);
+-              if (!f) return null;
+-              const end = geometry.current.boundary(f.river, f.start + f.duration, 0, worldWidth);
+-              const start = geometry.current.boundary(f.river, f.start, 0, worldWidth);
+-              const dEnd = `M ${end.knots[0].x} ${end.knots[0].y}${geometry.current.segment(end)}`;
+-              const dStart = `M ${start.knots[0].x} ${start.knots[0].y}${geometry.current.segment(start)}`;
+-              const fEnd = f.start + f.duration;
+-              // where another activity is still running at its end, that end is not an edge to float above
+-              const covered = visible.some((t) => t.id !== f.id && t.start < fEnd - 1 && fEnd + 1 < t.start + t.duration);
+-              return (
+-                <g className="glass-lift">
+-                  {!covered && <path d={dEnd} className="lift-shadow-a" />}
+-                  {!covered && <path d={dEnd} className="lift-shadow-b" />}
+-                  <path d={dStart} className="lift-rim" stroke="url(#lr-glint)" />
+-                </g>
+-              );
+-            })()}
+-            {!reduceMotion && (
+-              <g clipPath="url(#lr-clip-all)" className="glass-shimmer">
+-                <rect x={-worldWidth} y={0} width={worldWidth} height={range.height} fill="url(#lr-shimmer)">
+-                  {/* one quiet pass of light when the day appears, not a loop */}
+-                  <animateTransform
+-                    attributeName="transform"
+-                    type="translate"
+-                    values={`0 0; ${worldWidth * 2} 0`}
+-                    dur="2.6s"
+-                    begin="0.8s"
+-                    repeatCount="1"
+-                    fill="freeze"
+-                  />
+-                </rect>
+-              </g>
+-            )}
+-          </g>
+           {visible.map((task, index) => {
+             const run = getRun(state, task.id, date);
+             const active = activeId === task.id;
+@@ -1913,7 +1719,7 @@ export function Timeline({
+             const height = timeY(task.start + task.duration) - y;
+             const width = worldWidth;
+             const xx = 0;
+-            const path = geometry.current.path(task, xx, width);
++            const path = geometry.current.path(flowVisualTask(task, visible), xx, width);
+             const labelLayout = labelSlots.get(task.id)!;
+             // Centred label: the task's own rows on the flat right side, up to a parallel task that starts inside it
+             const innerStart = visible
+@@ -1962,7 +1768,7 @@ export function Timeline({
+                 className={`river-task is-${status} ${active ? "active" : ""} ${expanded ? "expanded" : ""} ${run.status}`}
+                 role="group"
+                 tabIndex={0}
+-                aria-label={`${task.title}，${clock(task.start)}，${task.duration} 分钟，${task.river}。Enter 编辑，空格选择。方向键调整 5 分钟，Shift 加左右键换河流。`}
++                aria-label={countdown||milestones?`${task.title}，${eventDate(task,now)}，${eventDays(task,now)} 天。Enter 编辑。`:`${task.title}，${clock(task.start)}，${task.duration} 分钟，${task.river}。Enter 编辑，空格选择。方向键调整 5 分钟，Shift 加左右键换河流。`}
+                 onPointerDown={(e) => begin(e, task, "move")}
+                 onDoubleClick={() => onEdit(task)}
+                 onKeyDown={(e) => {
+@@ -1977,7 +1783,7 @@ export function Timeline({
+                     onSelect(task.id);
+                   }
+                   if (
+-                    !actual &&
++                    !actual && !countdown && !milestones &&
+                     [
+                       "ArrowUp",
+                       "ArrowDown",
+@@ -2073,33 +1879,11 @@ export function Timeline({
+                     style={{ opacity: Math.max(0, 1 - fold * 3) }}
+                   >
+                     {countdown ? (
+-                      <div
+-                        className={`days-flow-badge is-${status}`}
+-                        onPointerDown={(e) => begin(e, task, "browse")}
+-                        onClick={(e) => {
+-                          e.stopPropagation();
+-                          if (suppressClick.current) {
+-                            suppressClick.current = false;
+-                            return;
+-                          }
+-                          if (doubleTap(task.id + "/title")) onQuickEdit(task, "title");
+-                        }}
+-                      >
+-                        <div className="days-flow-head">
+-                          <TaskIcon name={task.icon} size={19} />
+-                          <span className="days-flow-title">{task.title}</span>
+-                        </div>
+-                        <div className="days-flow-countdown-row">
+-                          <span className="days-flow-hero-num">{countdownDays(task, now)}</span>
+-                          <span className="days-flow-hero-unit">
+-                            {task.isAnnual ? "DAYS LEFT · 每年" : "DAYS LEFT"}
+-                          </span>
+-                          {status === "current" && (
+-                            <span className="days-flow-dissolve-tag">
+-                              {Math.round((1 - dissolveFrac) * 100)}% 剩余
+-                            </span>
+-                          )}
+-                        </div>
++                      <div className={`event-flow-label days-flow-badge is-${status}`}>
++                        <button className="quick-icon" aria-label={`编辑 ${task.title} 的图标`} onPointerDown={e=>begin(e,task,"browse")} onClick={e=>{e.stopPropagation();if(suppressClick.current){suppressClick.current=false;return;}onQuickEdit(task,"icon");}}><TaskIcon name={task.icon} size={22}/></button>
++                        <button className="quick-title" data-task={task.id} aria-label={`编辑 ${task.title} 的标题`} onPointerDown={e=>begin(e,task,"browse")} onClick={e=>{e.stopPropagation();if(suppressClick.current){suppressClick.current=false;return;}if(doubleTap(task.id+"/title"))onQuickEdit(task,"title");}}>{task.title}</button>
++                        <button className="quick-time event-target-date" aria-label={`编辑 ${task.title} 的日期`} onPointerDown={e=>begin(e,task,"browse")} onClick={e=>{e.stopPropagation();if(suppressClick.current){suppressClick.current=false;return;}onQuickEdit(task,"time");}}>{eventDate(task,now)}{task.isAnnual?" · 每年":""}</button>
++                        <button className="event-countdown" aria-label={`编辑 ${task.title} 的倒数日期，${eventDays(task,now)<0?"已过":"还剩"} ${Math.abs(eventDays(task,now))} 天`} onClick={e=>{e.stopPropagation();onQuickEdit(task,"time");}}><strong>{Math.abs(eventDays(task,now))}</strong></button>
+                       </div>
+                     ) : (
+                       <>
+@@ -2151,7 +1935,7 @@ export function Timeline({
+                           }}
+                         >
+                           {milestones ? (
+-                            <>📅 {formatMilestoneDate(task.targetDate || task.date)}</>
++                            <>{eventDate(task,now)} · {eventDays(task,now)===0?"今天":eventDays(task,now)>0?`还有 ${eventDays(task,now)} 天`:`已过 ${Math.abs(eventDays(task,now))} 天`}</>
+                           ) : (
+                             <>
+                               {clock(task.start)}–{clock(task.start + task.duration)} ·{" "}
+@@ -2159,11 +1943,7 @@ export function Timeline({
+                             </>
+                           )}
+                         </button>
+-                        {status === "current" && (
+-                          <small className="dissolve-progress-pill" title="Chromatic Dissolve: 剩余时间占比">
+-                            {Math.round((1 - dissolveFrac) * 100)}% 剩余
+-                          </small>
+-                        )}
++
+                         {task.group && <small>↔ {task.group}</small>}
+                         {run.status === "completed" ? (
+                           <small>
+@@ -2182,7 +1962,7 @@ export function Timeline({
+                     )}
+                   </div>
+                 </foreignObject>
+-                {!actual && fold < 0.05 && (
++                {!actual && !milestones && !countdown && fold < 0.05 && (
+                   <g
+                     className="resize-grip"
+                     onPointerDown={(e) => begin(e, task, "resize")}
+@@ -2306,19 +2086,7 @@ export function Timeline({
+         </svg>
+         <SeamGlass state={glass} offset={glassOffset} />
+         <MochiFusion getSource={mochiFusionGet} offset={glassOffset} />
+-        {(() => {
+-          // the day does not stop at a hard edge: the last band's liquid fades into the page below it
+-          const last = [...tasks].sort((a, b) => b.start + b.duration - (a.start + a.duration))[0];
+-          if (!last) return null;
+-          const y = positionY(last.start + last.duration, range);
+-          return (
+-            <div
+-              className="flow-tail"
+-              aria-hidden="true"
+-              style={{ top: y - 2, ["--tail" as string]: last.color } as React.CSSProperties}
+-            />
+-          );
+-        })()}
++
+       </div>
+       <button
+         type="button"
+diff --git a/src/embed.tsx b/src/embed.tsx
+index fdbb2d4..bcb3524 100644
+--- a/src/embed.tsx
++++ b/src/embed.tsx
+@@ -75,5 +75,5 @@ function unmount() {
+   mount,
+   unmount,
+   applyExternal,
+-  version: "4.17.1",
++  version: "4.26.0",
+ };
+diff --git a/src/engine/BezierEngine.ts b/src/engine/BezierEngine.ts
+index dc34145..334a4de 100644
+--- a/src/engine/BezierEngine.ts
++++ b/src/engine/BezierEngine.ts
+@@ -292,9 +292,12 @@ export class BezierEngine {
+     return (lo + hi) / 2;
+   }
+ 
+-  path(task: Task, x: number, width: number) {
+-    const a = this.boundary(task.river, task.start, x, width),
+-      b = this.boundary(task.river, task.start + task.duration, x, width);
++  path(task: Task, x: number, width: number, extendBottom = 0) {
++    const a = this.boundary(task.river, task.start, x, width);
++    let b = this.boundary(task.river, task.start + task.duration, x, width);
++    if (extendBottom && task.start + task.duration >= this.range.end) {
++      b = { ...b, knots: b.knots.map(k => ({ ...k, y: k.y + extendBottom })) };
++    }
+     const top = a.knots[0],
+       end = b.knots[b.knots.length - 1];
+     return `M ${top.x} ${top.y} ${this.segment(a)} L ${end.x} ${end.y} ${this.segment(b, true)} Z`;
+diff --git a/src/engine/FlowVisualTask.ts b/src/engine/FlowVisualTask.ts
+new file mode 100644
+index 0000000..0c3eae4
+--- /dev/null
++++ b/src/engine/FlowVisualTask.ts
+@@ -0,0 +1,7 @@
++import type { Task } from "../model/routine";
++/** Partition the single Classic flow at the next activity. Data stays unchanged. */
++export function flowVisualTask(task: Task, tasks: Task[]): Task {
++  const end = tasks.reduce((end, next) => next.start > task.start
++    ? Math.min(end, next.start) : end, task.start + task.duration);
++  return end === task.start + task.duration ? task : { ...task, duration: end - task.start };
++}
+diff --git a/src/engine/FluidMaterialRenderer.ts b/src/engine/FluidMaterialRenderer.ts
+index 23e87a9..d09c7b9 100644
+--- a/src/engine/FluidMaterialRenderer.ts
++++ b/src/engine/FluidMaterialRenderer.ts
+@@ -1,3 +1,4 @@
++import { flowVisualTask } from "./FlowVisualTask";
+ import { Task } from "../model/routine";
+ import { BezierEngine } from "./BezierEngine";
+ /** Task ID raster -> signed geometric distance -> the existing GPU dye/velocity shader. */
+@@ -14,6 +15,8 @@ export class FluidMaterialRenderer {
+     width: number,
+     height: number,
+     offsetX: number,
++    offsetY = 60,
++    geometryWidth = width - offsetX,
+   ): ImageData {
+     const w = 384,
+       h = Math.min(768, Math.max(96, Math.round((w * height) / width)));
+@@ -30,12 +33,12 @@ export class FluidMaterialRenderer {
+       0,
+       h / height,
+       (offsetX * w) / width,
+-      (60 * h) / height,
++      (offsetY * h) / height,
+     );
+     tasks.forEach((task, i) => {
+       const id = i + 1;
+       ctx.fillStyle = `rgb(${(id & 15) * 16},${((id >> 4) & 15) * 16},${((id >> 8) & 15) * 16})`;
+-      ctx.fill(new Path2D(geometry.path(task, 0, width - offsetX)));
++      ctx.fill(new Path2D(geometry.path(flowVisualTask(task, tasks), 0, geometryWidth, 240)));
+     });
+     ctx.setTransform(1, 0, 0, 1, 0, 0);
+     const pixels = ctx.getImageData(0, 0, w, h);
+diff --git a/src/engine/SonicPattern.ts b/src/engine/SonicPattern.ts
+new file mode 100644
+index 0000000..79f24ed
+--- /dev/null
++++ b/src/engine/SonicPattern.ts
+@@ -0,0 +1,9 @@
++/** Silver water first, a delayed prismatic echo, then a long clean rest. Seconds, never frames. */
++export const SONIC_PERIOD=12.8;
++const smooth=(a:number,b:number,x:number)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
++export function sonicPattern(age:number){
++ const wave=smooth(0,.22,age)*(1-smooth(2.1,2.85,age));
++ const prism=smooth(3.05,3.55,age)*(1-smooth(4.05,5.35,age));
++ const phase=age<0||age>=5.35?'quiet':age<2.85?'water':age<3.05?'settle':'prism';
++ return {wave,prism,phase};
++}
+diff --git a/src/engine/TimelineLayoutEngine.ts b/src/engine/TimelineLayoutEngine.ts
+index 592234d..f11edf9 100644
+--- a/src/engine/TimelineLayoutEngine.ts
++++ b/src/engine/TimelineLayoutEngine.ts
+@@ -167,8 +167,8 @@ export function timelineRange(tasks: Task[], activeId?: string | null) {
+ }
+ 
+ /** The whole day squeezed to a height (the overview): every row and the time axis scaled alike. */
+-export function fitRange(r: TimeRange, height: number): TimeRange {
+-  if (!(height > 0) || r.height <= height) return r;
++export function fitRange(r: TimeRange, height: number, expand = false): TimeRange {
++  if (!(height > 0) || (!expand && r.height <= height)) return r;
+   const k = height / r.height;
+   return {
+     ...r,
+diff --git a/src/model/eventDate.ts b/src/model/eventDate.ts
+new file mode 100644
+index 0000000..a25ffd6
+--- /dev/null
++++ b/src/model/eventDate.ts
+@@ -0,0 +1,19 @@
++import { Task, toIsoDate } from './routine';
++/** Calendar-day coordinates, independent of daylight-saving hours. Annual events keep their date identity. */
++export function eventTarget(task:Task,nowMs=Date.now()):Date|null{
++ const iso=toIsoDate(task.targetDate||task.date),m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
++ if(!m)return null;
++ const y=+m[1],month=+m[2]-1,day=+m[3],original=new Date(y,month,day);
++ if(original.getFullYear()!==y||original.getMonth()!==month||original.getDate()!==day)return null;
++ if(!task.isAnnual)return original;
++ const now=new Date(nowMs),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
++ const annual=(year:number)=>new Date(year,month,Math.min(day,new Date(year,month+1,0).getDate()));
++ let target=annual(now.getFullYear());if(target<today)target=annual(now.getFullYear()+1);return target;
++}
++export function eventDays(task:Task,nowMs=Date.now()):number{
++ const target=eventTarget(task,nowMs);if(!target)return 0;
++ const now=new Date(nowMs);return Math.round((Date.UTC(target.getFullYear(),target.getMonth(),target.getDate())-Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
++}
++export function eventDate(task:Task,nowMs=Date.now()):string{
++ const d=eventTarget(task,nowMs);return d?`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`:'日期无效';
++}
+diff --git a/src/model/persistence.ts b/src/model/persistence.ts
+index 885b7d2..92653da 100644
+--- a/src/model/persistence.ts
++++ b/src/model/persistence.ts
+@@ -83,7 +83,7 @@ export function decode(raw: string): RoutineState {
+           typeof r.id !== "string" ||
+           !r.id ||
+           typeof r.name !== "string" ||
+-          !["timeline", "modules"].includes(r.mode),
++          !["timeline", "modules", "milestones", "countdown"].includes(r.mode),
+       ) ||
+       new Set(v.routines.map((r) => r.id)).size !== v.routines.length
+     )
+diff --git a/src/model/routine.ts b/src/model/routine.ts
+index 087db08..ad80ca0 100644
+--- a/src/model/routine.ts
++++ b/src/model/routine.ts
+@@ -1,3 +1,4 @@
++import { eventDays } from "./eventDate";
+ export const RIVERS = ["Work", "Learning", "Life", "Rest"] as const;
+ export type River = (typeof RIVERS)[number];
+ export type Status = "planned" | "running" | "paused" | "completed" | "skipped";
+@@ -103,47 +104,7 @@ export function toIsoDate(d: string | undefined, defaultYear = 2026): string {
+ 
+ /** Computes calendar days remaining until target date; supports annual recurring events (e.g. Christmas) */
+ export function countdownDays(task: Task, nowMs = Date.now()): number {
+-  const dStr = task.targetDate || task.date;
+-  if (!dStr) return 0;
+-  const now = new Date(nowMs);
+-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+-
+-  let target: Date;
+-  const iso = dStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+-  const dot = dStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+-  if (iso) {
+-    const [, yyyy, mm, dd] = iso;
+-    const mNum = parseInt(mm, 10) - 1;
+-    const dNum = parseInt(dd, 10);
+-    if (task.isAnnual) {
+-      const yr = now.getFullYear();
+-      target = new Date(yr, mNum, dNum);
+-      if (target.getTime() < today.getTime()) {
+-        target = new Date(yr + 1, mNum, dNum);
+-      }
+-    } else {
+-      target = new Date(parseInt(yyyy, 10), mNum, dNum);
+-    }
+-  } else if (dot) {
+-    const [, mm, dd, yy] = dot;
+-    const mNum = parseInt(mm, 10) - 1;
+-    const dNum = parseInt(dd, 10);
+-    const yyyy = yy.length === 2 ? 2000 + parseInt(yy, 10) : parseInt(yy, 10);
+-    if (task.isAnnual) {
+-      const yr = now.getFullYear();
+-      target = new Date(yr, mNum, dNum);
+-      if (target.getTime() < today.getTime()) {
+-        target = new Date(yr + 1, mNum, dNum);
+-      }
+-    } else {
+-      target = new Date(yyyy, mNum, dNum);
+-    }
+-  } else {
+-    return 0;
+-  }
+-
+-  const diffMs = target.getTime() - today.getTime();
+-  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
++ return Math.max(0,eventDays(task,nowMs));
+ }
+ 
+ /** The current routine's tasks sorted chronologically by target date */
+diff --git a/src/styles.css b/src/styles.css
+index 2186b88..ccbc7c1 100644
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -5792,12 +5792,12 @@ h1 {
+ 
+ /* Past task clear glass look across all modes */
+ .river-task.is-past {
+-  opacity: 0.72;
++  opacity: 1;
+ }
+ .river-task.is-past .quick-title,
+ .days-flow-badge.is-past .days-flow-title,
+ .days-flow-badge.is-past .days-flow-hero-num {
+-  opacity: 0.55;
++  opacity: 1;
+ }
+ .river-tint.is-past {
+   mix-blend-mode: normal !important;
+@@ -6758,3 +6758,60 @@ h1 {
+   filter: drop-shadow(-1.5px 0 0.8px rgba(0, 216, 255, 0.35))
+           drop-shadow(1.5px 0 0.8px rgba(255, 149, 0, 0.32));
+ }
++
++/* 4.26 classic release restoration: typography is a single crisp foreground layer. */
++.app:not(.ripple-glass):not(.soap-glass) .task-label,
++.app:not(.ripple-glass):not(.soap-glass) .task-label :is(button,span,small,strong),
++.app:not(.ripple-glass):not(.soap-glass) .time-axis{ text-shadow:none!important;filter:none!important;-webkit-text-stroke:0!important }
++.app:not(.ripple-glass):not(.soap-glass) .quick-title{transition:color .16s ease,opacity .16s ease;mix-blend-mode:normal}
++.app:not(.ripple-glass):not(.soap-glass) .river-glass{display:none}
++/* Dates and days are information in the same river, not separate bright badge cards. */
++.midnight-classic :is(.milestones-flow,.countdown-flow) .time-axis :is(.axis-date,.axis-countdown){font-family:inherit!important;font-size:10px!important;font-weight:500!important;letter-spacing:0!important;padding:0!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;color:#9baac0!important;white-space:nowrap!important}
++.midnight-classic.daylight-glass :is(.milestones-flow,.countdown-flow) .time-axis :is(.axis-date,.axis-countdown){color:#65778f!important}
++.event-flow-label{display:grid;grid-template-columns:28px minmax(0,1fr) auto;grid-template-rows:auto auto;gap:5px 10px;align-content:center;align-items:center;min-height:74px;max-width:100%}
++.event-flow-label .quick-icon{grid-column:1;grid-row:1/3;align-self:start;margin-top:5px}
++.event-flow-label .quick-title{grid-column:2;grid-row:1;font-size:inherit;text-align:left;white-space:normal;line-height:1.35;overflow-wrap:anywhere}
++.event-flow-label .quick-time{grid-column:2;grid-row:2;display:block!important;font-size:11px;text-align:left;opacity:.7;line-height:1.4}
++.event-countdown{grid-column:3;grid-row:1/3;align-self:center;display:flex;flex-direction:column;align-items:flex-end;min-width:48px;padding:0 2px 0 6px;color:inherit;font-variant-numeric:tabular-nums;background:none;border:0}
++.event-countdown strong{font-size:30px;font-weight:500;letter-spacing:-1px;line-height:1.15}.event-countdown span{font-size:9px;font-weight:400;opacity:.65;letter-spacing:0;margin-top:2px}
++:is(.milestones-flow,.countdown-flow) .task-label{color:#e6eef9;line-height:1.4}.daylight-glass :is(.milestones-flow,.countdown-flow) .task-label{color:#23344b}
++:is(.milestones-flow,.countdown-flow) .task-label .quick-time{display:block!important;font-family:inherit}
++.countdown-flow .task-label{display:block!important}.days-flow-badge.is-past :is(.quick-title,.event-countdown){opacity:.75}
++@media(max-width:520px){.event-flow-label{grid-template-columns:24px minmax(0,1fr) auto;gap:4px 6px}.event-flow-label .quick-title{font-size:15px}.event-countdown strong{font-size:27px}.event-flow-label .quick-time{font-size:10px}.event-countdown{min-width:38px}.event-flow-label .quick-icon svg{width:19px;height:19px}}
++/* Event coordinates follow the same browse/release visibility as the time axis. */
++.app .timeline-layer .timeline-scroll-content:is(.milestones-flow,.countdown-flow) .time-axis{opacity:0!important;width:72px!important;display:block!important;pointer-events:none;transition:opacity .45s ease}
++.app .timeline-layer .timeline-scroll-content:is(.milestones-flow,.countdown-flow):is(.is-scrolling,.show-all) .time-axis{opacity:1!important;transition-duration:.18s}
++.app.midnight-classic.immersive .timeline-layer .timeline-scroll-content:is(.milestones-flow,.countdown-flow) .task-label .quick-time{display:block!important;opacity:.72!important;visibility:visible!important;font-size:11px;white-space:normal;line-height:1.45;margin-top:5px}
++.app.midnight-classic.immersive .timeline-layer .countdown-flow .task-label{display:block!important}
++/* Sonic Ripple 5: clear studio water -> a brief prismatic echo -> quiet. Never persistent coloured bands. */
++.app.ripple-glass{background:#eff2f6}.ripple-glass .river-tint,.ripple-glass .river-tint.is-focus{opacity:.035!important}.ripple-glass .river-sheen{opacity:.12!important}.ripple-glass .seam-line{stroke:rgba(107,126,148,.15)!important;filter:none!important;stroke-width:.65}.ripple-glass .seam-shade{opacity:.14!important}.ripple-glass .quick-title{transition:color .16s ease;text-shadow:none!important;filter:none!important}.ripple-glass .task-label{color:#273749}.ripple-glass .task-label.is-quiet{opacity:.75!important}
++
++/* Type has two deliberate levels, independent of band duration or row height. */
++.app .river-task .task-label:not(.is-focus) .quick-title {
++  font-size: 17px !important;
++  font-weight: 600 !important;
++}
++.app .river-task .task-label .event-countdown strong {
++  font-size: 20px !important;
++  font-weight: 500 !important;
++  letter-spacing: -.4px !important;
++  line-height: 1.15 !important;
++}
++.app .river-task .task-label.is-focus .event-countdown strong {
++  font-size: 30px !important;
++}
++/* One fixed number column at the flow's trailing edge, regardless of title length. */
++.app .countdown-flow .task-label { width:100%; max-width:none; box-sizing:border-box; padding-right:8px!important; }
++.app .countdown-flow .event-flow-label { width:100%; box-sizing:border-box; min-width:0; }
++.app .countdown-flow .event-countdown { justify-self:end; text-align:right; align-items:flex-end; padding-right:0; }
++/* Date editor fields share one baseline and neutral glass treatment. */
++.app .date-node-pair { display:grid; grid-template-columns:minmax(0,1fr) minmax(96px,.7fr); align-items:end; gap:12px; margin-bottom:17px; }
++.app .date-node-pair > label { min-width:0; margin-bottom:0!important; }
++.app .date-node-pair input[type=date] { width:100%; min-width:0; box-sizing:border-box; height:44px; }
++.app .date-node-pair .date-preview-badge { height:44px; box-sizing:border-box; margin:0; padding:0 12px; border-radius:10px; border:1px solid #bfd2e3; background:#ffffffa6; color:#23344b; }
++.app .date-preview-badge strong { font-family:inherit; font-size:14px; font-weight:600; line-height:1.2; letter-spacing:0; }
++.app .date-preview-badge small { font-size:10px; line-height:1.3; color:#65778f; }
++.app.midnight-classic:not(.daylight-glass) .date-preview-badge { background:#17263b; border-color:#384c67; color:#e6eef9; }
++.app.midnight-classic:not(.daylight-glass) .date-preview-badge small { color:#9baac0; }
++/* Group membership stays in data; no decorative dashed connectors over the flow. */
++.app .group-bridge { display:none; }
+diff --git a/tests/eventDates.test.ts b/tests/eventDates.test.ts
+new file mode 100644
+index 0000000..526d4fb
+--- /dev/null
++++ b/tests/eventDates.test.ts
+@@ -0,0 +1,6 @@
++import test from 'node:test';import assert from 'node:assert/strict';import {eventDays,eventDate,eventTarget} from '../src/model/eventDate';import {initialState,countdownDays} from '../src/model/routine';
++const task={...initialState('2026-11-09').tasks[0],targetDate:'2026-11-10'};
++test('event date labels use actual target date and signed past/today/future calendar days',()=>{assert.equal(eventDays(task,new Date(2026,10,9,23,59).getTime()),1);assert.equal(eventDays(task,new Date(2026,10,10,23).getTime()),0);assert.equal(eventDays(task,new Date(2026,10,11).getTime()),-1);assert.equal(eventDate(task,new Date(2026,10,9).getTime()),'2026.11.10');});
++test('calendar countdown is not an elapsed-hour calculation around daylight-saving changes',()=>{assert.equal(countdownDays({...task,targetDate:'2026-11-02'},new Date(2026,9,31,12).getTime()),2);assert.equal(countdownDays({...task,targetDate:'2027-03-15'},new Date(2027,2,13,12).getTime()),2);});
++test('annual targets advance to the next occurrence and leap-day anniversaries clamp to February',()=>{const t={...task,targetDate:'2024-02-29',isAnnual:true};assert.equal(eventDate(t,new Date(2026,1,27).getTime()),'2026.02.28');assert.equal(eventDate({...task,targetDate:'2026-12-25',isAnnual:true},new Date(2026,11,26).getTime()),'2027.12.25');});
++test('invalid dates do not silently roll over into another month',()=>{assert.equal(eventTarget({...task,targetDate:'2026-02-31'}),null);assert.equal(eventDate({...task,targetDate:'invalid'}),'日期无效');});
+diff --git a/tests/flowVisualTask.test.ts b/tests/flowVisualTask.test.ts
+new file mode 100644
+index 0000000..cdb6c37
+--- /dev/null
++++ b/tests/flowVisualTask.test.ts
+@@ -0,0 +1,11 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { flowVisualTask } from '../src/engine/FlowVisualTask';
++import type { Task } from '../src/model/routine';
++test('overlapping translucent activities share one visual boundary without changing time data', () => {
++ const a={id:'reading',start:810,duration:60} as Task;
++ const b={id:'make',start:840,duration:90} as Task;
++ assert.equal(flowVisualTask(a,[a,b]).duration,30);
++ assert.equal(a.duration,60);
++ assert.equal(flowVisualTask(b,[a,b]),b);
++});
+diff --git a/tests/milestone_countdown.test.ts b/tests/milestone_countdown.test.ts
+index 516dafb..3c05705 100644
+--- a/tests/milestone_countdown.test.ts
++++ b/tests/milestone_countdown.test.ts
+@@ -82,3 +82,15 @@ test("Countdown mode (4th mode) - counts down days to targets & annual events",
+   assert.equal(tasks[1].title, "EC–6 Exam");
+   assert.equal(tasks[2].title, "Birthday");
+ });
++
++import {decode} from '../src/model/persistence';
++test('milestone and countdown groups survive saving, reloading and cloud decode without a data reset',()=>{
++ for(const mode of ['milestones','countdown'] as const){
++  const state=addRoutine(initialState('2026-11-09'),'日期模式',mode,'test-dates');
++  const restored=decode(JSON.stringify(state));
++  assert.equal(restored.routines?.find(r=>r.id==='test-dates')?.mode,mode);
++  assert.equal(restored.currentRoutine,state.currentRoutine);
++  assert.equal(restored.tasks.length,state.tasks.length);
++  assert.deepEqual(restored.tasks.map(t=>t.targetDate),state.tasks.map(t=>t.targetDate));
++ }
++});
+diff --git a/tests/ripple.test.ts b/tests/ripple.test.ts
+index eae9f78..c4425e7 100644
+--- a/tests/ripple.test.ts
++++ b/tests/ripple.test.ts
+@@ -46,11 +46,15 @@ describe("Sonic Ripple (5th Day Flow visual mode)", () => {
+     assert.equal(sampleFar.energy, 0);
+   });
+ 
+-  it("periodically emits sonic heartbeat pulses in the active band", () => {
++  it("emits a new sequence only after the long quiet interval", () => {
+     const list: RippleWave[] = [];
+-    const timer = { t: 1.74, beat: 0 };
++    const timer = { t: 12.9, beat: 0 };
+     stepRipples(list, 0.03, 420, mockBands, { top: 0, height: 640 }, timer);
+     assert.equal(list.length, 1);
+     assert.ok(list[0].y >= 60 && list[0].y <= 220);
+   });
+ });
++
++import {sonicPattern,SONIC_PERIOD} from '../src/engine/SonicPattern';
++it('prismatic colour is absent throughout the water phase and arrives only after it settles',()=>{for(let t=0;t<=2.85;t+=.05)assert.equal(sonicPattern(t).prism,0);assert.equal(sonicPattern(3.8).phase,'prism');assert.ok(sonicPattern(3.8).prism>.9);assert.equal(sonicPattern(3.8).wave,0);});
++it('quiet occupies most of the cycle with no persistent rainbow or continuous wave energy',()=>{for(let t=5.35;t<SONIC_PERIOD;t+=.1){assert.equal(sonicPattern(t).prism,0);assert.equal(sonicPattern(t).wave,0);assert.equal(sonicPattern(t).phase,'quiet');}});
+-- 
+2.54.0 (Apple Git-157)
+
