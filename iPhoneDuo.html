@@ -96485,7 +96485,12 @@ var Ve = (function(_Component) {
     { k: 'tt-match', name: 'Memory Match', icon: '🧩', tag: '教学游戏 · 翻牌对决', teach: 'match' },
     { k: 'tt-find', name: 'Find It', icon: '🔎', tag: '教学游戏 · 寻词探险', teach: 'find' },
     { k: 'tt-bingo', name: 'Vocabulary Bingo', icon: '🎯', tag: '教学游戏 · 词义 Bingo', teach: 'bingo' },
-    { k: 'tt-reveal', name: 'Reveal', icon: '🎁', tag: '教学游戏 · 揭格猜词', teach: 'reveal' }   /* 74: the ten teaching games */
+    { k: 'tt-reveal', name: 'Reveal', icon: '🎁', tag: '教学游戏 · 揭格猜词', teach: 'reveal' },
+    { k: 'tt-ttt3', name: 'Tic-Tac-Toe · 井字棋', icon: '⭕', tag: '教学游戏 · 答题落子', teach: 'ttt3' },
+    { k: 'tt-snake3', name: 'Snakes & Ladders · 蛇形棋', icon: '🐍', tag: '教学游戏 · 答题掷骰', teach: 'snake3' },
+    { k: 'tt-cloze3', name: 'Build a Bridge · 过桥', icon: '🌉', tag: '教学游戏 · 句子填空', teach: 'cloze3' },
+    { k: 'tt-cloud3', name: 'Listen & Order · 云朵', icon: '☁️', tag: '教学游戏 · 听力排序', teach: 'cloud3' },
+    { k: 'tt-lock3', name: 'Unlock · 开锁', icon: '🔑', tag: '教学游戏 · 拼音配对', teach: 'lock3' }   /* teaching games assigned through room levels */
   ];
   function levelInfo(k) { return LEVELS.filter(function (l) { return l.k === k; })[0] || LEVELS[0]; }
   // the board the students play: only the chosen lists, only what the games read
@@ -98873,6 +98878,7 @@ var Ve = (function(_Component) {
       var TO = levelInfo(k).teach ? null : window.MinestArcadeToon; if (TO) TO.on(k);   // Blooket style for every game but Smash It (tools/web31/arcade-toon.js)
       var ok = levelInfo(k).teach ? !!(window.MinestLiveTeach && MinestLiveTeach.start(host.board, levelInfo(k).teach, k)) : SA.level ? SA.level(host.board, k, opts) : false;   // 74: a teaching game
       if (TO) { if (ok) TO.on(k); else TO.off(); }
+      if (!ok && levelInfo(k).teach) { run = null; toast('这项游戏当前缺少可用词卡或语音，请选择其它已开放关卡。'); draw(); return; }
       if (!ok) { run = null; toast('No cards here can be asked this way — level skipped.'); s.lv[k] = 1; save(); draw(); return; }
       o.el.hidden = true;
       showFloat();
@@ -141445,12 +141451,12 @@ var q3 = false; new MutationObserver(function(){ if (q3) return; q3 = true; requ
 /* ---- a game ------------------------------------------------------------------------------------------------------------ */
 var G = null;
 function start(g){
-  var cx = context(), r = root(); if (!cx || !r) return; if (why(g, cx)) return;
+  var cx = context(), r = root(); G = null; if (!cx || !r || !GAMES.some(function(x){return x[0]===g;})) return false; if (why(g, cx)) return false;
   var pool = g === 'pinyin3' ? pinyinCards(cx) : g === 'cloud3' ? cx.cards.filter(function(c){ return han(c.zh); }) : g === 'lock3' ? lockCards(cx) : cx.cards, rounds = mix(pool).slice(0, Math.min(6, pool.length));
   if (g === 'ttt3' || g === 'snake3') rounds = [1];   /* one match; the board game runs its own turns */
   if (g === 'lock3') { var sets = [], all = mix(pool); for (var k = 0; k + 3 <= all.length && sets.length < 4; k += 3) sets.push(all.slice(k, k + 3)); rounds = sets; }   /* three locks a round, up to four rounds */
   G = { g: g, meta: GAMES.filter(function(x){ return x[0] === g; })[0], cx: cx, rounds: rounds, i: 0, first: 0, miss: 0, xp: 0, sel: null };
-  r.dataset.tenView = 'd3'; next();
+  r.dataset.tenView = 'd3'; next(); return true;
 }
 function wrap(){ return root() && root().querySelector('.tt-wrap'); }
 function hud(){
@@ -141787,7 +141793,7 @@ document.addEventListener('pointercancel', function(){ if (drag) { if (drag.ghos
 function swallow(){ var f = function(ev){ ev.stopPropagation(); ev.preventDefault(); }; window.addEventListener('click', f, true); setTimeout(function(){ window.removeEventListener('click', f, true); }, 0); }
 document.addEventListener('click', function(e){
   var r = root(); if (!r || !G || !r.contains(e.target)) return; var t;
-  if ((t = e.target.closest('[data-d3-home]'))) { G = null; sfx('click'); try { T().home(r); } catch(x){} return; }
+  if ((t = e.target.closest('[data-d3-home]'))) { G = null; sfx('click'); if(r.classList.contains('mlv-teach-level')){try{MinestTemplates.close();}catch(x){}return;} try { T().home(r); } catch(x){} return; }
   if ((t = e.target.closest('[data-d3-again]'))) { var g = G.g; start(g); return; }
   if (G.done) return;
   if ((t = e.target.closest('.d3-tile'))) {
@@ -141799,7 +141805,8 @@ document.addEventListener('click', function(e){
 }, true);
 document.addEventListener('keydown', function(e){ if (!G || G.done || e.key !== 'Escape') return; var s = G.sel; if (s) { s.classList.remove('sel'); G.sel = null; e.stopPropagation(); } }, true);
 
-window.MinestDrag3 = { games: GAMES.map(function(g){ return g[0]; }), start: start, sentenceFor: sentenceFor, context: context, version: '1' };
+function liveInfo(){if(!G)return null;var board=G.g==='ttt3'||G.g==='snake3';return {mode:G.g,done:!!G.done,total:board?(G.asked||0):G.rounds.length,correct:board?(G.right||0):G.first,completed:G.done?(board?(G.asked||0):G.rounds.length):G.i,xp:G.xp||0};}
+window.MinestDrag3 = { info: liveInfo, games: GAMES.map(function(g){ return g[0]; }), start: start, sentenceFor: sentenceFor, context: context, version: '1' };
 })();
 </script>
 <script id="teaching-sample826">/* 53.826 · Teaching sample list: one tap builds 「🌧 水循环 · 全功能示例」, a 9-card list whose data lights every
@@ -168928,23 +168935,24 @@ prepare();
   }
   function stop() { clearInterval(watch); watch = 0; cur = null; }
   function start(board, mode, levelKey) {
-    var T = window.MinestTemplates, TT = window.MinestTeachingTen;
-    if (!T || !TT || TT.modes.indexOf(mode) < 0) return false;
+    var T = window.MinestTemplates, TT = window.MinestTeachingTen, DD = window.MinestDrag3;
+    var dragMode = ['ttt3','snake3','cloze3','cloud3','lock3'].indexOf(mode)>=0;
+    if (!T || !TT || (dragMode ? !DD : TT.modes.indexOf(mode)<0)) return false;
     var b = flat(board); if (b.columns[0].cards.length < 3) return false;
     stop();
     try { T.open(b, { quest824: true, quest8241: true, liveBoard: true, audience: 'student', col: 'live-all', chinese: b.columns[0].cards.some(function (c) { return han(c.title); }) }); } catch (e) { return false; }
     var root = document.getElementById('mn-templates'), api = root && root.__teaching824;
     if (!api) { try { T.close(); } catch (e) {} return false; }
-    api.start(mode);
+    if(dragMode){if(!DD.start(mode)){try{T.close();}catch(e){}return false;}}else api.start(mode);
     root.classList.add('mlv-teach-level');
     cur = { mode: mode, k: levelKey, reported: false };
     watch = setInterval(function () {
       var r = document.getElementById('mn-templates');
       if (!r) { var was = cur; stop(); if (was && !was.reported) window.dispatchEvent(new CustomEvent('minest:arcade-closed')); return; }
-      var a = r.__teaching824, info = a && a.info();
-      if (!cur.reported && info && info.mode === mode && r.dataset.tenView === 'result') {
+      var a = r.__teaching824, info = dragMode ? DD.info() : a && a.info();
+      if (!cur.reported && info && info.mode === mode && (dragMode ? info.done : r.dataset.tenView === 'result')) {
         cur.reported = true;
-        var v = TT.score ? TT.score(info) : { completed: info.completed, total: info.total, correct: info.correct, xp: info.correct * 10 };
+        var v = dragMode ? info : TT.score ? TT.score(info) : { completed: info.completed, total: info.total, correct: info.correct, xp: info.correct * 10 };
         window.dispatchEvent(new CustomEvent('minest:arcade-done', { detail: { mode: levelKey, cleared: v.total > 0 && v.completed >= v.total, score: (v.xp || 0) * 10, combo: info.streak || 0, c: v.correct || 0, w: Math.max(0, (v.completed || 0) - (v.correct || 0)) } }));
         setTimeout(function () { if (cur && cur.reported) { stop(); try { T.close(); } catch (e) {} } }, 1300);   // Live's own result comes next
       }

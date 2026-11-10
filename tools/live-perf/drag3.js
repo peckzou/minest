@@ -105,12 +105,12 @@ var q3 = false; new MutationObserver(function(){ if (q3) return; q3 = true; requ
 /* ---- a game ------------------------------------------------------------------------------------------------------------ */
 var G = null;
 function start(g){
-  var cx = context(), r = root(); if (!cx || !r) return; if (why(g, cx)) return;
+  var cx = context(), r = root(); G = null; if (!cx || !r || !GAMES.some(function(x){return x[0]===g;})) return false; if (why(g, cx)) return false;
   var pool = g === 'pinyin3' ? pinyinCards(cx) : g === 'cloud3' ? cx.cards.filter(function(c){ return han(c.zh); }) : g === 'lock3' ? lockCards(cx) : cx.cards, rounds = mix(pool).slice(0, Math.min(6, pool.length));
   if (g === 'ttt3' || g === 'snake3') rounds = [1];   /* one match; the board game runs its own turns */
   if (g === 'lock3') { var sets = [], all = mix(pool); for (var k = 0; k + 3 <= all.length && sets.length < 4; k += 3) sets.push(all.slice(k, k + 3)); rounds = sets; }   /* three locks a round, up to four rounds */
   G = { g: g, meta: GAMES.filter(function(x){ return x[0] === g; })[0], cx: cx, rounds: rounds, i: 0, first: 0, miss: 0, xp: 0, sel: null };
-  r.dataset.tenView = 'd3'; next();
+  r.dataset.tenView = 'd3'; next(); return true;
 }
 function wrap(){ return root() && root().querySelector('.tt-wrap'); }
 function hud(){
@@ -447,7 +447,7 @@ document.addEventListener('pointercancel', function(){ if (drag) { if (drag.ghos
 function swallow(){ var f = function(ev){ ev.stopPropagation(); ev.preventDefault(); }; window.addEventListener('click', f, true); setTimeout(function(){ window.removeEventListener('click', f, true); }, 0); }
 document.addEventListener('click', function(e){
   var r = root(); if (!r || !G || !r.contains(e.target)) return; var t;
-  if ((t = e.target.closest('[data-d3-home]'))) { G = null; sfx('click'); try { T().home(r); } catch(x){} return; }
+  if ((t = e.target.closest('[data-d3-home]'))) { G = null; sfx('click'); if(r.classList.contains('mlv-teach-level')){try{MinestTemplates.close();}catch(x){}return;} try { T().home(r); } catch(x){} return; }
   if ((t = e.target.closest('[data-d3-again]'))) { var g = G.g; start(g); return; }
   if (G.done) return;
   if ((t = e.target.closest('.d3-tile'))) {
@@ -459,5 +459,6 @@ document.addEventListener('click', function(e){
 }, true);
 document.addEventListener('keydown', function(e){ if (!G || G.done || e.key !== 'Escape') return; var s = G.sel; if (s) { s.classList.remove('sel'); G.sel = null; e.stopPropagation(); } }, true);
 
-window.MinestDrag3 = { games: GAMES.map(function(g){ return g[0]; }), start: start, sentenceFor: sentenceFor, context: context, version: '1' };
+function liveInfo(){if(!G)return null;var board=G.g==='ttt3'||G.g==='snake3';return {mode:G.g,done:!!G.done,total:board?(G.asked||0):G.rounds.length,correct:board?(G.right||0):G.first,completed:G.done?(board?(G.asked||0):G.rounds.length):G.i,xp:G.xp||0};}
+window.MinestDrag3 = { info: liveInfo, games: GAMES.map(function(g){ return g[0]; }), start: start, sentenceFor: sentenceFor, context: context, version: '1' };
 })();
