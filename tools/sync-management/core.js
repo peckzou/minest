@@ -3,7 +3,7 @@
 'use strict';
 var categories=['boards','routine','myworld','teaching'];
 function stable(v){if(v===null||typeof v!=='object')return JSON.stringify(v);if(Array.isArray(v))return '['+v.map(stable).join(',')+']';return '{'+Object.keys(v).sort().filter(function(k){return v[k]!==undefined;}).map(function(k){return JSON.stringify(k)+':'+stable(v[k]);}).join(',')+'}';}
-function version(v){var s=stable(v),a=2166136261,b=5381;for(var i=0;i<s.length;i++){a=Math.imul(a^s.charCodeAt(i),16777619);b=Math.imul(b,33)^s.charCodeAt(i);}return s.length.toString(36)+'-'+(a>>>0).toString(36)+(b>>>0).toString(36);}
+function version(v){v=JSON.parse(JSON.stringify(v));var s=stable(v),a=2166136261,b=5381;for(var i=0;i<s.length;i++){a=Math.imul(a^s.charCodeAt(i),16777619);b=Math.imul(b,33)^s.charCodeAt(i);}return s.length.toString(36)+'-'+(a>>>0).toString(36)+(b>>>0).toString(36);}
 function fresh(){return {schema:1,domains:{},events:[]};}
 function create(options){var state=fresh(),seq=0,uid='anonymous';var now=options.now||Date.now;
  function key(){return 'minest.sync-management.v1.'+encodeURIComponent(uid);}

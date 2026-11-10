@@ -111,7 +111,7 @@ window.MinestCloudTransport={mac:mac,enabled:true,write:write,read:read,serializ
 'use strict';
 var categories=['boards','routine','myworld','teaching'];
 function stable(v){if(v===null||typeof v!=='object')return JSON.stringify(v);if(Array.isArray(v))return '['+v.map(stable).join(',')+']';return '{'+Object.keys(v).sort().filter(function(k){return v[k]!==undefined;}).map(function(k){return JSON.stringify(k)+':'+stable(v[k]);}).join(',')+'}';}
-function version(v){var s=stable(v),a=2166136261,b=5381;for(var i=0;i<s.length;i++){a=Math.imul(a^s.charCodeAt(i),16777619);b=Math.imul(b,33)^s.charCodeAt(i);}return s.length.toString(36)+'-'+(a>>>0).toString(36)+(b>>>0).toString(36);}
+function version(v){v=JSON.parse(JSON.stringify(v));var s=stable(v),a=2166136261,b=5381;for(var i=0;i<s.length;i++){a=Math.imul(a^s.charCodeAt(i),16777619);b=Math.imul(b,33)^s.charCodeAt(i);}return s.length.toString(36)+'-'+(a>>>0).toString(36)+(b>>>0).toString(36);}
 function fresh(){return {schema:1,domains:{},events:[]};}
 function create(options){var state=fresh(),seq=0,uid='anonymous';var now=options.now||Date.now;
  function key(){return 'minest.sync-management.v1.'+encodeURIComponent(uid);}
@@ -185,6 +185,8 @@ function sync(){if(busy||!uid)return;busy=true;message='正在核对四类数据
 window.MinestSyncManagement={open:open,close:close,ref:managedRef,write:write,observe:function(d,owner){observe(d,owner||uid);},scan:scan,version:'1.0.0'};
 var authStarted=false;function boot(){if(authStarted)return;try{var f=window.firebase;if(f&&f.apps&&f.apps.length&&f.auth&&f.firestore){authStarted=true;f.auth().onAuthStateChanged(function(u){setAccount(u,f.firestore());});}}catch(e){authStarted=false;}}
 engine.account(null);setInterval(function(){boot();if(!document.hidden)scan();},4000);window.addEventListener('minest:cloud-dirty',function(){setTimeout(scan,0);});window.addEventListener('storage',function(e){if(e.key&&/^(liquid-routine|minest\.knowledge|minest\.teaching)/.test(e.key))scan();});window.addEventListener('online',function(){boot();schedulePublish();render();});window.addEventListener('offline',render);document.addEventListener('visibilitychange',function(){if(!document.hidden){scan();schedulePublish();}});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+
+try{if(new URLSearchParams(location.search).get('sync')==='1'){var showSync=function(){setTimeout(function(){window.MinestSyncManagement.open();},500);};if(document.readyState==='complete')showSync();else window.addEventListener('load',showSync,{once:true});}}catch(e){}
 })();
 
 </script>
