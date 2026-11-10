@@ -1,0 +1,114 @@
+diff --git a/package-lock.json b/package-lock.json
+index c06a579..f437fe8 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "liquid-routine",
+-  "version": "4.28.0",
++  "version": "4.29.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "liquid-routine",
+-      "version": "4.28.0",
++      "version": "4.29.0",
+       "dependencies": {
+         "@types/three": "^0.187.0",
+         "lucide-react": "^0.546.0",
+diff --git a/package.json b/package.json
+index 05d38be..3844c68 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "liquid-routine",
+   "private": true,
+-  "version": "4.28.0",
++  "version": "4.29.0",
+   "type": "module",
+   "scripts": {
+     "dev": "vite --host 127.0.0.1 --port 4173",
+diff --git a/src/embed.tsx b/src/embed.tsx
+index adb1473..6c80138 100644
+--- a/src/embed.tsx
++++ b/src/embed.tsx
+@@ -75,5 +75,5 @@ function unmount() {
+   mount,
+   unmount,
+   applyExternal,
+-  version: "4.28.0",
++  version: "4.29.0",
+ };
+diff --git a/src/hooks/useRoutine.ts b/src/hooks/useRoutine.ts
+index 839416a..f6f18e9 100644
+--- a/src/hooks/useRoutine.ts
++++ b/src/hooks/useRoutine.ts
+@@ -1,12 +1,20 @@
+-import { useEffect, useRef, useState } from "react";
++import { useCallback, useEffect, useRef, useState } from "react";
+ import { load, onExternalState, save } from "../model/persistence";
+ import { elapsed, getRun, transition, dayKey } from "../model/routine";
+ export function useRoutine() {
+-  const [loaded] = useState<ReturnType<typeof load>>(()=>{const v=load();return {...v,state:{...v.state,tasks:v.state.tasks.map(t=>({...t,liquidSince:t.liquidSince??Date.now()}))}};});
+-  const [state, setState] = useState(loaded.state);
++  const [loaded] = useState(load);
++  const [state, renderState] = useState(loaded.state);
++  const current = useRef(loaded.state);
+   const [warning, setWarning] = useState(loaded.warning);
+   const [now, setNow] = useState(Date.now());
+   const writable = useRef(!loaded.warning);
++  const setState = useCallback((action: typeof loaded.state | ((s:typeof loaded.state)=>typeof loaded.state))=>{
++    const previous=current.current,next=typeof action==="function"?action(previous):action;
++    if(next===previous)return;
++    let accepted=next;
++    if(writable.current){try{accepted=save(next,previous);setWarning("");}catch{setWarning("未能保存到本机。请保留页面并导出备份；不要刷新或关闭。");}}
++    current.current=accepted;renderState(accepted);
++  },[]);
+   useEffect(() => {
+     const tick = () => setNow(Date.now());
+     const id = setInterval(tick, 500);
+@@ -23,18 +31,10 @@ export function useRoutine() {
+       onExternalState((next) => {
+         writable.current = true;
+         setWarning("");
+-        setState(next);
++        current.current=next;renderState(next);
+       }),
+     [],
+   );
+-  useEffect(() => {
+-    if (!writable.current) return;
+-    try {
+-      save(state);
+-    } catch {
+-      setWarning("浏览器存储不可用。请导出备份，以免关闭后丢失更改。");
+-    }
+-  }, [state]);
+   useEffect(() => {
+     for (const run of Object.values(state.runs)) {
+       const task = state.tasks.find((t) => t.id === run.taskId);
+diff --git a/src/model/persistence.ts b/src/model/persistence.ts
+index 99a8585..e8694c2 100644
+--- a/src/model/persistence.ts
++++ b/src/model/persistence.ts
+@@ -10,7 +10,7 @@ const KEY = "liquid-routine.v1";
+    also carries it in the cloud sync (see src/embed.tsx). */
+ export interface RoutineStore {
+   get(): string | null;
+-  set(raw: string): void;
++  set(raw: string, previousRaw?:string): string|void;
+ }
+ let store: RoutineStore = {
+   get: () => localStorage.getItem(KEY),
+@@ -123,6 +123,7 @@ export function load(): { state: RoutineState; warning: string } {
+     };
+   }
+ }
+-export function save(state: RoutineState) {
+-  store.set(JSON.stringify(state));
++export function save(state: RoutineState,previous?:RoutineState):RoutineState {
++  const accepted=store.set(JSON.stringify(state),previous?JSON.stringify(previous):undefined);
++  return typeof accepted==="string"?decode(accepted):state;
+ }
