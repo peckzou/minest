@@ -85705,7 +85705,7 @@ var Be = function() {
                 setSyncStatus("saving");
                 return minestCloudBaseGet().then(function(base) {
                   if (stopped) return;
-                  setBoards(function(local) { return base ? minestMerge3(base, local, remote, mineNewer) : mineNewer ? minestMergeBoards(local, remote) : minestMergeBoards(remote, local); });
+                  setBoards(function(local) { return base ? minestMerge3(base, local, remote, minestCloudNum(MINEST_CLOUD_DIRTY)>=rAt) : minestCloudNum(MINEST_CLOUD_DIRTY)>=rAt ? minestMergeBoards(local, remote) : minestMergeBoards(remote, local); });
                   cloudReadyRef.current = true;
                   setCloudKick(function(k) { return k + 1; });
                 });
@@ -85819,7 +85819,7 @@ var Be = function() {
       saveDebounceRef.current = null; cloudFlushRef.current = null;
       if (cloudInFlightRef.current) return cloudInFlightRef.current;
       if (!firebase.auth().currentUser || firebase.auth().currentUser.uid !== user.uid) return Promise.resolve();
-      var L = cloudLatestRef.current, sentAt = minestCloudNum(MINEST_CLOUD_DIRTY);
+      var latest = cloudLatestRef.current, L = Object.assign({},latest,{boards:JSON.parse(JSON.stringify(latest.boards))}), sentAt = minestCloudNum(MINEST_CLOUD_DIRTY);
       try {
         var db = firebase.firestore();
         cloudInFlightRef.current = minestCloudPayload(L.boards, {
