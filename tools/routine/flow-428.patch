@@ -1,0 +1,366 @@
+From a8b208d835520663fe871b275681f9a643dc6bdc Mon Sep 17 00:00:00 2001
+From: peckzou <xiaozou1234@gmail.com>
+Date: Tue, 10 Nov 2026 10:04:32 -0600
+Subject: [PATCH 1/2] Quiet module controls, strengthen drag feedback and add
+ beach panel toggle
+
+---
+ index.html                       |  2 +-
+ package-lock.json                |  4 ++--
+ package.json                     |  2 +-
+ src/App.tsx                      | 12 ++++++++----
+ src/components/FluidSurface.tsx  |  8 ++++++--
+ src/components/RoutineStudio.tsx |  5 +++--
+ src/components/Timeline.tsx      | 26 +++++++++++++++++++-------
+ src/embed.tsx                    |  2 +-
+ src/styles.css                   | 12 ++++++++++++
+ 9 files changed, 53 insertions(+), 20 deletions(-)
+
+diff --git a/index.html b/index.html
+index 50436bf..eb93c91 100644
+--- a/index.html
++++ b/index.html
+@@ -11,7 +11,7 @@
+       name="description"
+       content="Liquid Routine — Time flows like water. A local-first, interactive fluid routine planner."
+     />
+-    <title>Liquid Routine 4.27 · Living Flow</title>
++    <title>Liquid Routine 4.28.0 · Living Flow</title>
+     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+     <link rel="manifest" href="/manifest.webmanifest" />
+     <meta name="apple-mobile-web-app-capable" content="yes" />
+diff --git a/package-lock.json b/package-lock.json
+index edd924e..c06a579 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "liquid-routine",
+-  "version": "4.27.0",
++  "version": "4.28.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "liquid-routine",
+-      "version": "4.27.0",
++      "version": "4.28.0",
+       "dependencies": {
+         "@types/three": "^0.187.0",
+         "lucide-react": "^0.546.0",
+diff --git a/package.json b/package.json
+index 50f7f3b..05d38be 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "liquid-routine",
+   "private": true,
+-  "version": "4.27.0",
++  "version": "4.28.0",
+   "type": "module",
+   "scripts": {
+     "dev": "vite --host 127.0.0.1 --port 4173",
+diff --git a/src/App.tsx b/src/App.tsx
+index 81d1ee6..a87f46c 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -350,6 +350,8 @@ export default function App() {
+   // is the vessel and the bottom half the day, and the running time pours through the hinge like an hourglass.
+   // (?duo=book / ?duo=tent forces a mode for testing.)
+   const [duo, setDuo] = useState<"none" | "book" | "tent">("none");
++  const [beachOpen,setBeachOpen]=useState(()=>{try{return localStorage.getItem("liquid-routine.beach")==="1";}catch{return false;}});
++  useEffect(()=>{try{localStorage.setItem("liquid-routine.beach",beachOpen?"1":"0");}catch{}},[beachOpen]);
+   const [hingeAngle, setHingeAngle] = useState<number | null>(null);
+   useEffect(() => {
+     const forced = new URLSearchParams(location.search).get("duo");
+@@ -377,7 +379,7 @@ export default function App() {
+     };
+   }, []);
+   // the vessel beside the day shows the task you picked on the left, or else the one happening now
+-  const paneTask = (previewId && tasksForDay(state, today).find((t) => t.id === previewId)) || focusTask;
++  const paneTask = (previewId && (isCustomFlow ? flowTasks.map(original) : tasksForDay(state, today)).find((t) => t.id === previewId)) || focusTask;
+   const paneRun = paneTask ? getRun(state, paneTask.id, today) : undefined;
+   const paneRemaining = paneTask ? remainingFor(paneTask, state, today, now, focusSchedule.mode) : 0;
+   // where the last touch landed: a picked task pours from there across the hinge into the vessel
+@@ -915,6 +917,7 @@ export default function App() {
+             {dockMore && (
+               <div className="lr-dock-menu" role="menu" onClick={() => setDockMore(false)}>
+                 <button onClick={()=>setStudioOpen(true)}>配色与字体</button>
++                <button aria-pressed={beachOpen} onClick={()=>{setBeachOpen(v=>!v);setMenu(false);setNotice(beachOpen?"已切回液体倒计时":"已打开沙滩模式，宽屏在右侧呈现");}}>沙滩模式{beachOpen?" · 已开启":""}</button>
+                 <button onClick={()=>setBulkOpen(true)}>智能整理清单 / JSON</button>
+                 {page === "day" && (
+                   <>
+@@ -1174,6 +1177,7 @@ export default function App() {
+                       soap={theme === "soap"}
+                       ripple={theme === "ripple"}
+                       palette={params.colors?.map((c) => c.color)}
++                      colorPreview={studioOpen}
+                       fold={progress}
+                       tasks={flowTasks}
+                       modules={isModules}
+@@ -1212,7 +1216,7 @@ export default function App() {
+                       }}
+                       stir={stir}
+                       mochi={mochi.current}
+-                      mochiActive={page === "day" && duo !== "tent"}
++                      mochiActive={page === "day" && duo !== "tent" && !beachOpen}
+                     />
+                   </div>
+                   {focus && (
+@@ -1344,7 +1348,7 @@ export default function App() {
+         </main>
+         {duo !== "none" && page === "day" && (
+           <div className={`duo-pane duo-pane-${duo}`} ref={paneEl}>
+-            {duo === "tent" ? (
++            {duo === "tent" || beachOpen ? (
+               // 4.22 · Mochi Lagoon · Time Tide: the lower screen is a little bay whose tide is the activity's time
+               <MochiLagoonScene
+                 title={paneTask?.title ?? "Free time"}
+@@ -1470,7 +1474,7 @@ export default function App() {
+           e.target.value = "";
+         }}
+       />
+-      {studioOpen&&<RoutineStudio font={routineMeta.fontStyle||"system"} close={()=>setStudioOpen(false)}
++      {studioOpen&&<RoutineStudio colors={state.tasks.filter(t=>(t.routine||"main")===routineMeta.id).map(t=>t.color)} font={routineMeta.fontStyle||"system"} close={()=>setStudioOpen(false)}
+         onPalette={colors=>{setUndo(state);setState(s=>{let i=0;return {...s,tasks:s.tasks.map(t=>(t.routine||"main")===routineMeta.id?{...t,color:colors[i++%colors.length]}:t)}});setParams(p=>({...p,colors:colors.map(color=>({color,amount:1}))}));}}
+         onFont={fontStyle=>{setUndo(state);setState(s=>updateRoutine(s,routineMeta.id,{fontStyle}));}}/>}
+       {bulkOpen&&<BulkTaskEditor routine={routineMeta} date={date} onPreview={setBatchPreview}
+diff --git a/src/components/FluidSurface.tsx b/src/components/FluidSurface.tsx
+index 77a63e4..1f29cef 100644
+--- a/src/components/FluidSurface.tsx
++++ b/src/components/FluidSurface.tsx
+@@ -41,6 +41,9 @@ export const FluidSurface = forwardRef<
+   const latest = useRef({ params, onStats, active });
+   latest.current = { params, onStats, active };
+   const lastTouch = useRef(0);
++  const needsRender = useRef(true);
++  const previousColors=useRef(params.colors);
++  if(previousColors.current!==params.colors){previousColors.current=params.colors;needsRender.current=true;}
+   const [error, setError] = useState("");
+   const [revision, setRevision] = useState(0);
+   useImperativeHandle(
+@@ -48,7 +51,7 @@ export const FluidSurface = forwardRef<
+     () => ({
+       canvas: () => canvas.current,
+       liquid: () => engine.current?.liquidCanvas() || canvas.current,
+-      material: (data) => engine.current?.updateMaterial(data),
++      material: (data) => {engine.current?.updateMaterial(data);needsRender.current=true;},
+       stir: (x, y, dx, dy, pigment = false) => {
+         lastTouch.current = performance.now();
+         engine.current?.splat(
+@@ -127,7 +130,8 @@ export const FluidSurface = forwardRef<
+       previous = now;
+       rendered = now;
+       const calm = p.reduceMotion && now - lastTouch.current > 2500;
+-      if (!calm || frames === 0) {
++      if (!calm || frames === 0 || needsRender.current) {
++        needsRender.current=false;
+         const begin = performance.now();
+         try {
+           gpu!.stepAndRender(calm || p.freezeOptics ? 0 : dt, p, {
+diff --git a/src/components/RoutineStudio.tsx b/src/components/RoutineStudio.tsx
+index 1941cdb..2400c54 100644
+--- a/src/components/RoutineStudio.tsx
++++ b/src/components/RoutineStudio.tsx
+@@ -1,7 +1,8 @@
+ import {X,Shuffle} from 'lucide-react';
+ import {COLOR_COLLECTIONS,FONT_COLLECTIONS,FontStyle,randomChoice} from '../model/visualPresets';
+ import {useDialog} from '../hooks/useDialog';
+-export function RoutineStudio({font,onPalette,onFont,close}:{font:FontStyle;onPalette:(colors:readonly string[])=>void;onFont:(style:FontStyle)=>void;close:()=>void}){
++export function RoutineStudio({colors,font,onPalette,onFont,close}:{colors:string[];font:FontStyle;onPalette:(colors:readonly string[])=>void;onFont:(style:FontStyle)=>void;close:()=>void}){
+  const root=useDialog(close);
+- return <div className="studio-backdrop"><section ref={root} className="modal routine-studio" role="dialog" aria-modal="true" aria-label="视觉搭配"><header><div><span className="eyebrow">CURATED FOR YOUR FLOW</span><h2>视觉搭配</h2></div><button className="icon-button" aria-label="关闭视觉搭配" onClick={close}><X size={18}/></button></header><p>即时呈现在日程中。配色与字体分开选择，日程数据保持独立。</p><div className="studio-section-title"><h3>配色组合</h3><button onClick={()=>onPalette(randomChoice(COLOR_COLLECTIONS).colors)}><Shuffle size={15}/> 随机搭配</button></div><div className="palette-collection">{COLOR_COLLECTIONS.map(p=><button key={p.id} aria-label={`应用 ${p.name} 配色`} onClick={()=>onPalette(p.colors)}><span className="studio-swatches">{p.colors.map(c=><i key={c} style={{background:c}}/>)}</span><span>{p.name}</span></button>)}</div><div className="studio-section-title"><h3>文字气质</h3><button onClick={()=>onFont(randomChoice(FONT_COLLECTIONS.map(f=>f.id),font))}><Shuffle size={15}/> 随机字体</button></div><div className="font-collection">{FONT_COLLECTIONS.map(f=><button key={f.id} aria-pressed={font===f.id} style={{fontFamily:f.family}} onClick={()=>onFont(f.id)}><strong>Time flows</strong><span>{f.name}</span></button>)}</div><p className="studio-note">字体使用设备已有字库；花体中文自动采用本机可读字体。减少动态效果设置继续生效。</p></section></div>;
++ const selected=COLOR_COLLECTIONS.find(p=>colors.length>0&&colors.every((c,i)=>c.toLowerCase()===p.colors[i%p.colors.length]));
++ return <div className="studio-backdrop"><section ref={root} className="modal routine-studio" role="dialog" aria-modal="true" aria-label="视觉搭配"><header><div><span className="eyebrow">CURATED FOR YOUR FLOW</span><h2>视觉搭配</h2></div><button className="icon-button" aria-label="关闭视觉搭配" onClick={close}><X size={18}/></button></header><p>配色预览中：暂时显示完整液量，关闭后恢复真实倒计时。点选即可应用。</p><div className="studio-section-title"><h3>配色组合</h3><button onClick={()=>onPalette(randomChoice(COLOR_COLLECTIONS,selected).colors)}><Shuffle size={15}/> 随机搭配</button></div><div className="palette-collection">{COLOR_COLLECTIONS.map(p=><button key={p.id} aria-pressed={selected?.id===p.id} aria-label={`应用 ${p.name} 配色`} onClick={()=>onPalette(p.colors)}><span className="studio-swatches">{p.colors.map(c=><i key={c} style={{background:c}}/>)}</span><span>{selected?.id===p.id?"✓ ":""}{p.name}</span></button>)}</div><div className="studio-section-title"><h3>文字气质</h3><button onClick={()=>onFont(randomChoice(FONT_COLLECTIONS.map(f=>f.id),font))}><Shuffle size={15}/> 随机字体</button></div><div className="font-collection">{FONT_COLLECTIONS.map(f=><button key={f.id} aria-pressed={font===f.id} style={{fontFamily:f.family}} onClick={()=>onFont(f.id)}><strong>Time flows</strong><span>{f.name}</span></button>)}</div><p className="studio-note">字体使用设备已有字库；花体中文自动采用本机可读字体。减少动态效果设置继续生效。</p></section></div>;
+ }
+diff --git a/src/components/Timeline.tsx b/src/components/Timeline.tsx
+index aeba620..e2b75a8 100644
+--- a/src/components/Timeline.tsx
++++ b/src/components/Timeline.tsx
+@@ -55,6 +55,7 @@ interface Props {
+   /** false while another page covers Day Flow (its scroll position is lost then; it re-centres on return) */
+   shown?: boolean;
+   editingId?:string;
++  colorPreview?:boolean;
+   /** Module mode: the same flow without times; hold a band and drag it to reorder (ids in the new order). */
+   modules?: boolean;
+   /** Milestones / Deadlines mode: left axis shows milestone dates (e.g. 11.10.26). */
+@@ -97,6 +98,7 @@ export function Timeline({
+   focusId = activeId,
+   shown = true,
+   editingId,
++  colorPreview = false,
+   modules = false,
+   milestones = false,
+   countdown = false,
+@@ -121,11 +123,16 @@ export function Timeline({
+   ripple = false,
+   palette,
+ }: Props) {
++  const [controlsVisible,setControlsVisible]=useState(false);
++  const controlsTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
++  const [liftedId,setLiftedId]=useState<string|null>(null);
++  const wakeControls=()=>{setControlsVisible(true);if(controlsTimer.current)clearTimeout(controlsTimer.current);controlsTimer.current=setTimeout(()=>setControlsVisible(false),2400);};
++  useEffect(()=>()=>{if(controlsTimer.current)clearTimeout(controlsTimer.current);},[]);
+   const svg = useRef<SVGSVGElement>(null);
+   const geometry = useRef(new BezierEngine());
+   const volume=useRef(new VolumeTransition());
+   const mode=modules?"modules":milestones?"milestones":countdown?"countdown":"timeline";
+-  for(const task of tasks){const original=state.tasks.find(t=>t.id===task.id)||task;volume.current.target(task.id,remainingLiquid(original,state,date,now,mode),performance.now(),reduceMotion);}
++  for(const task of tasks){const original=state.tasks.find(t=>t.id===task.id)||task;volume.current.target(task.id,colorPreview ? 1 : remainingLiquid(original,state,date,now,mode),performance.now(),reduceMotion);}
+ 
+   const material = useRef<FluidMaterialRenderer | null>(null);
+   const drag = useRef<{
+@@ -981,6 +988,7 @@ export function Timeline({
+     task: Task,
+     mode: "move" | "resize" | "browse",
+   ) => {
++    if(modules)wakeControls();
+     if (overview) collapseOverview();
+     if (actual && mode !== "move") return;
+     mode = mode === "move" && !e.altKey ? "browse" : mode;
+@@ -1062,6 +1070,7 @@ export function Timeline({
+         const d = drag.current;
+         if (!d || d.id !== id || d.moved) return;
+         reorder.current = { id: task.id };
++        setLiftedId(task.id);
+         svg.current?.setPointerCapture(id);
+         setContact((c) => (c ? { ...c, kind: "拖动 · 调整顺序" } : c));
+         haptics.trigger("grab");
+@@ -1235,6 +1244,7 @@ export function Timeline({
+     }
+     if (reorder.current) {
+       reorder.current = null;
++      setLiftedId(null);wakeControls();
+       d.moved = true; // a reorder is not a tap
+       haptics.trigger("snap");
+     }
+@@ -1778,9 +1788,10 @@ export function Timeline({
+                 }
+                 opacity={active ? 1 : 1 - fold * 0.97}
+                 key={task.id}
+-                className={`river-task ${reorder.current?.id===task.id?"is-reordering":""} is-${status} ${active ? "active" : ""} ${expanded ? "expanded" : ""} ${run.status}`}
++                className={`river-task ${liftedId===task.id?"is-reordering":""} is-${status} ${active ? "active" : ""} ${expanded ? "expanded" : ""} ${run.status}`}
+                 role="group"
+                 tabIndex={0}
++                onFocus={()=>{if(modules)wakeControls();}}
+                 aria-label={modules?`${task.title}，${sourceTask.duration} 分钟。Enter 编辑，长按上下拖动或方向键排序。`:countdown||milestones?`${task.title}，${eventDate(task,now)}，${eventDays(task,now)} 天。Enter 编辑。`:`${task.title}，${clock(task.start)}，${task.duration} 分钟，${task.river}。Enter 编辑，空格选择。方向键调整 5 分钟，Shift 加左右键换河流。`}
+                 onPointerDown={(e) => begin(e, task, "move")}
+                 onDoubleClick={() => onEdit(task)}
+@@ -1832,11 +1843,12 @@ export function Timeline({
+               >
+                 <path
+                   d={path}
+-                  fill="transparent"
+-                  fillOpacity={0}
++                  className="module-drag-highlight"
++                  fill={liftedId===task.id?task.color:"transparent"}
++                  fillOpacity={liftedId===task.id ? .24 : 0}
+                   pointerEvents="all"
+-                  stroke="none"
+-                  strokeWidth={active ? 1.8 : 1}
++                  stroke={liftedId===task.id?task.color:"none"}
++                  strokeWidth={liftedId===task.id?2:1}
+                 />
+                 {actual &&
+                   run.intervals.map((interval, i) => {
+@@ -1974,7 +1986,7 @@ export function Timeline({
+                       </>
+                     )}
+                     {!countdown&&!milestones&&centerId===task.id&&volume.current.value(task.id,performance.now())>0&&volume.current.value(task.id,performance.now())<.999&&<span className="task-liquid-status">剩余 {Math.round(volume.current.value(task.id,performance.now())*100)}%</span>}
+-                    {modules&&centerId===task.id&&<div className="module-flow-actions" onPointerDown={e=>e.stopPropagation()}>
++                    {modules&&centerId===task.id&&<div className={`module-flow-actions ${controlsVisible?"is-visible":""}`} onFocus={wakeControls} onPointerDown={e=>{e.stopPropagation();wakeControls();}}>
+                       {run.status==="completed"?<span>✓ 已完成</span>:<><button aria-label={`${run.status==="running"?"暂停":"开始"} ${task.title}`} onClick={e=>{e.stopPropagation();onAction(task.id,run.status==="running"?"pause":"start");}}>{run.status==="running"?"暂停":"开始"}</button>
+                       <button aria-label={`完成 ${task.title}`} onClick={e=>{e.stopPropagation();onAction(task.id,"complete");}}>✓ 完成</button></>}
+                       <span>长按上下拖动排序</span>
+diff --git a/src/embed.tsx b/src/embed.tsx
+index c7900aa..adb1473 100644
+--- a/src/embed.tsx
++++ b/src/embed.tsx
+@@ -75,5 +75,5 @@ function unmount() {
+   mount,
+   unmount,
+   applyExternal,
+-  version: "4.27.0",
++  version: "4.28.0",
+ };
+diff --git a/src/styles.css b/src/styles.css
+index e988686..66e0183 100644
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -6859,3 +6859,15 @@ h1 {
+ .app .live-editor-backdrop .modal footer {position:sticky;bottom:-1px;background:inherit;padding:10px 0 0;z-index:2;}
+ .app .studio-backdrop .modal>header,.app .live-editor-backdrop .modal>header {position:sticky;top:-22px;z-index:4;background:inherit;padding:6px 0 10px;}
+ @media(max-width:520px){.app .studio-backdrop .modal>header,.app .live-editor-backdrop .modal>header{top:-18px;}}
++
++.palette-collection>button[aria-pressed=true]{outline:2px solid #7b9cbc;outline-offset:-2px;}
++.app.has-studio.ripple-glass .river-tint{opacity:.65!important;}
++
++/* Quiet module controls; touch or keyboard focus reveals them briefly. */
++.module-flow-actions{opacity:0;pointer-events:none;visibility:hidden;transition:opacity .24s ease,visibility .24s;}
++.module-flow-actions.is-visible,.module-flow-actions:has(:focus-visible){opacity:1;pointer-events:auto;visibility:visible;}
++.modules-flow .river-task .task-label{transition:transform .24s ease,filter .24s ease;transform-origin:center;}
++.modules-flow .river-task.is-reordering .task-label{transform:translateY(-5px) scale(1.06);filter:drop-shadow(0 7px 8px #23344b35)!important;}
++.modules-flow .river-task.is-reordering .module-drag-highlight{filter:drop-shadow(0 5px 5px #23344b25);transition:fill-opacity .18s ease;}
++.app .time-axis>span,.app.immersive .time-axis>span{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0!important;}
++.app.calm .river-task .task-label{transition:none!important;transform:none!important;filter:none!important;}
+-- 
+2.54.0 (Apple Git-157)
+
+
+From 63ac03463a3ca31bb39406f7c8f7304125babf0d Mon Sep 17 00:00:00 2001
+From: peckzou <xiaozou1234@gmail.com>
+Date: Tue, 10 Nov 2026 10:13:47 -0600
+Subject: [PATCH 2/2] Keep fold beach default and allow manual panel switching
+
+---
+ src/App.tsx | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/src/App.tsx b/src/App.tsx
+index a87f46c..06c6b19 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -350,8 +350,9 @@ export default function App() {
+   // is the vessel and the bottom half the day, and the running time pours through the hinge like an hourglass.
+   // (?duo=book / ?duo=tent forces a mode for testing.)
+   const [duo, setDuo] = useState<"none" | "book" | "tent">("none");
+-  const [beachOpen,setBeachOpen]=useState(()=>{try{return localStorage.getItem("liquid-routine.beach")==="1";}catch{return false;}});
+-  useEffect(()=>{try{localStorage.setItem("liquid-routine.beach",beachOpen?"1":"0");}catch{}},[beachOpen]);
++  const [beachOpen,setBeachOpen]=useState<boolean|null>(()=>{try{const v=localStorage.getItem("liquid-routine.beach");return v===null?null:v==="1";}catch{return null;}});
++  useEffect(()=>{try{if(beachOpen!==null)localStorage.setItem("liquid-routine.beach",beachOpen?"1":"0");}catch{}},[beachOpen]);
++  const beachVisible=beachOpen??duo==="tent";
+   const [hingeAngle, setHingeAngle] = useState<number | null>(null);
+   useEffect(() => {
+     const forced = new URLSearchParams(location.search).get("duo");
+@@ -917,7 +918,7 @@ export default function App() {
+             {dockMore && (
+               <div className="lr-dock-menu" role="menu" onClick={() => setDockMore(false)}>
+                 <button onClick={()=>setStudioOpen(true)}>配色与字体</button>
+-                <button aria-pressed={beachOpen} onClick={()=>{setBeachOpen(v=>!v);setMenu(false);setNotice(beachOpen?"已切回液体倒计时":"已打开沙滩模式，宽屏在右侧呈现");}}>沙滩模式{beachOpen?" · 已开启":""}</button>
++                <button aria-pressed={beachVisible} onClick={()=>{setBeachOpen(!beachVisible);setPage("day");setMenu(false);setNotice(beachVisible?"已切回液体倒计时":"已打开沙滩模式，宽屏在右侧呈现");}}>沙滩模式{beachVisible?" · 已开启":""}</button>
+                 <button onClick={()=>setBulkOpen(true)}>智能整理清单 / JSON</button>
+                 {page === "day" && (
+                   <>
+@@ -1216,7 +1217,7 @@ export default function App() {
+                       }}
+                       stir={stir}
+                       mochi={mochi.current}
+-                      mochiActive={page === "day" && duo !== "tent" && !beachOpen}
++                      mochiActive={page === "day" && !beachVisible}
+                     />
+                   </div>
+                   {focus && (
+@@ -1348,7 +1349,7 @@ export default function App() {
+         </main>
+         {duo !== "none" && page === "day" && (
+           <div className={`duo-pane duo-pane-${duo}`} ref={paneEl}>
+-            {duo === "tent" || beachOpen ? (
++            {beachVisible ? (
+               // 4.22 · Mochi Lagoon · Time Tide: the lower screen is a little bay whose tide is the activity's time
+               <MochiLagoonScene
+                 title={paneTask?.title ?? "Free time"}
+-- 
+2.54.0 (Apple Git-157)
+

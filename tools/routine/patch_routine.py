@@ -19,6 +19,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 FILES = ['iPhone53.8241.html', 'iphone.html', 'index.html', 'ipad.html', 'iPhoneDuo.html', 'ios/Minest/Minest/iphone.html',
          'ios/Minest/Minest/iphone18.0.html', 'ios/Minest/Minest/ipad.html', 'ios/MinestProject/MyApp/iphone.html']
+if any('mn-routine-cloud-merge' in (ROOT / f).read_text(encoding='utf-8') for f in FILES if (ROOT / f).exists()):
+    raise SystemExit('Protected sync bridge: use patch_embed_bundle.py; legacy host replacement is disabled.')
 BUNDLE = (HERE / 'minest-routine.js').read_text(encoding='utf-8')
 assert '</script' not in BUNDLE.lower()
 

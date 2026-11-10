@@ -1,0 +1,46 @@
+2026-11-10 — Reliable sync protocol + Routine 4.28
+Previous release: 0d20629; Routine source: 63ac034 (patch flow-428.patch).
+
+Sync safeguards:
+- Managed writes on Mac and native/mobile use the same authenticated Firebase
+  REST transport and existing security rules/project. Data/teaching writes read
+  a server revision and commit with currentDocument.updateTime (or exists:false).
+  Stale revisions re-read and reconcile up to four attempts, with a deadline.
+- Board/list/card three-way reconciliation, Routine task/tab reconciliation,
+  Knowledge timestamp maps, teacher list/card baseline and asset union, workspace
+  deletion records. Concurrent additions on separate devices survive a write race.
+  Same-entity conflicts follow existing timestamp preference; without a known
+  base, unknown entities are retained rather than inferred deleted.
+- ACK journal fingerprints derive from the payload the server actually accepted,
+  rather than from an obsolete queued version. Cached/optimistic reads do not ACK.
+- Per-document FIFO, account-change guards, bounded token/network/preparation,
+  retries on conflict, explicit failures. Local dirty state is not cleared on
+  failure. Routine localStorage failures propagate to its existing save warning.
+- Routine dirty flags are immediate; in-place board mutations detected by the
+  sync monitor also enter the existing debounce/save path. Merge recovery copies
+  and plain uncompressed Routine read support are retained.
+
+Routine changes (existing engines and layouts retained):
+- Module controls/hints fade after 2.4 seconds; touch/keyboard focus wakes them.
+- Hold reorder: 1.06x label lift, shadow, tinted shared-Bezier pickup outline,
+  existing spring shape response and haptics; reduced-motion styling retained.
+- Time/date labels have no background, border, blur or shadow.
+- More -> 沙滩模式 toggles the existing Lagoon scene in the right wide-screen
+  pane. Fold tent mode defaults to Lagoon; manual choice can override it.
+  Same current/selected task and real timer feed both scenes; no second timer.
+- Palette preview shows full liquid volume only while the visual editor is open,
+  selected palette has feedback, random avoids repeating the current palette.
+
+Validation:
+35 sync/merge/game tests including two concurrent transport clients and an
+emulated Firestore revision conflict, account changes, stale ACK, failure retry,
+known deletion and independent creation. Routine: 117 tests; TypeScript/embed
+build passed. 1056 inline executable scripts parsed. Native build succeeded.
+Actual browser UI: module actions hidden after idle, long press transform1.06,
+wide-screen Lagoon at right x642 width580, menu toggle returns to LiquidFocus.
+Authenticated live offline/multidevice verification remains a separate check;
+automated tests are not a guarantee against every future service/device failure.
+
+Rebuild: update only tools/routine/minest-routine.js and run patch_embed_bundle.py;
+run tools/sync-management/patch.py for transport. Do not use the legacy
+patch_routine.py to overwrite the upgraded host merge/durable-save bridge.
