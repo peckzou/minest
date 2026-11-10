@@ -1,0 +1,45 @@
+2026-11-09 — Liquid Routine 4.27 Living Flow
+Minest base: b313a93. Routine source: 9311d00 -> b13aaff.
+Apply tools/routine/living-flow-427.patch after classic-restore-426.patch to
+reconstruct source, run npm run build:embed, copy the bundle to tools/routine/,
+and run tools/routine/patch_embed_bundle.py. Existing host bridge is unchanged.
+
+Delivered in the existing Routine UI, all five appearances retained:
+1. Real remaining-time liquid volume. The clear upper glass region grows as
+   the timer drains. A Bézier area integration solves the surface height; SVG
+   and GPU material masks use that same surface. No per-frame timer clock.
+   Paused execution volume freezes, completion dissolves over 750ms, reduced
+   motion skips the morph. Starting late does not refill the volume. Annual
+   date events use their current annual cycle and persist their visual anchor.
+2. Six coordinated palettes (Apple, Macaron, Atelier, Vivid, Crystal, Orchard)
+   and five device-font families (system, rounded, elegant, script, editorial),
+   with random selection. Palette changes update current-routine task colours
+   and the GPU palette; font choice persists in Routine metadata. Existing
+   free colour editing in the material lab remains available. No font CDN.
+3. Quick Add / quick edit directly preview the actual timeline, not a mockup.
+   Separate title, icon and time sections. Only Save commits to persistence;
+   Escape/cancel restores the original. Advanced settings remain available.
+   The canvas measures the actual sheet height and stays visible above it.
+4. More -> 智能整理清单 / JSON. Local, deterministic list parsing (not a remote
+   LLM): titles, times/ranges, durations, dates, basic icon/domain inference,
+   plain task-array JSON or {tasks:[]}, and JSON file selection. Live preview,
+   explicit append, fresh IDs, validation, 200-item batch/5 MB limits, Undo.
+   Existing full-backup import is preserved separately; no silent overwrite.
+5. Module long-press reorder uses stable SVG pointer capture after the hold,
+   edge auto-scroll and keyboard arrows. A tap edits; a hold sorts. Modules
+   start manually and next-task order follows the chosen order, not fake
+   clock coordinates. Completed modules remain transparent with their labels.
+   Browsing does not change timer ownership; paused timers retain focus.
+
+Validation:
+- TypeScript and embed build; 117 tests passed.
+- Browser tests: actual hold-and-drag, persisted order after reload; module
+  completion to 0 volume; wall-clock five-minute execution paused around 57%
+  and stayed there; title/icon/duration preview, cancellation and saving;
+  title-only addition survived reload; JSON file added two items without
+  replacing the three originals; palette and font changes applied live.
+- No third-party APIs, dependency changes, or simulated cloud success.
+
+Mac synchronization investigation explicitly deferred by user. Its unfinished
+transport prototype is preserved outside this checkout in ../deferred-mac-sync/.
+No synchronization code changes are included in this 4.27 release.

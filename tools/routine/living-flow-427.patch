@@ -1,0 +1,1128 @@
+From b13aaff593f05d861c9ccd36a180d6a7fdae0e52 Mon Sep 17 00:00:00 2001
+From: peckzou <xiaozou1234@gmail.com>
+Date: Mon, 9 Nov 2026 20:58:52 -0600
+Subject: [PATCH] Add living liquid volume, curated styles and live batch
+ editing
+
+---
+ index.html                          |  2 +-
+ package-lock.json                   |  4 +-
+ package.json                        |  2 +-
+ src/App.tsx                         | 74 +++++++++++++++++++++--------
+ src/components/BulkTaskEditor.tsx   | 11 +++++
+ src/components/QuickTaskEditor.tsx  | 38 +++++++++++----
+ src/components/RoutineStudio.tsx    |  7 +++
+ src/components/TaskEditor.tsx       | 14 ++++--
+ src/components/Timeline.tsx         | 71 +++++++++++++++++----------
+ src/embed.tsx                       |  2 +-
+ src/engine/FluidMaterialRenderer.ts |  9 +++-
+ src/engine/LiquidVolume.ts          | 38 +++++++++++++++
+ src/hooks/useDialog.ts              |  6 +++
+ src/hooks/useRoutine.ts             |  2 +-
+ src/model/bulkTasks.ts              | 26 ++++++++++
+ src/model/persistence.ts            |  3 +-
+ src/model/routine.ts                |  4 ++
+ src/model/schedule.ts               | 15 +++---
+ src/model/visualPresets.ts          | 17 +++++++
+ src/styles.css                      | 44 +++++++++++++++++
+ tests/bulkTasks.test.ts             |  7 +++
+ tests/liquidVolume.test.ts          | 12 +++++
+ 22 files changed, 334 insertions(+), 74 deletions(-)
+ create mode 100644 src/components/BulkTaskEditor.tsx
+ create mode 100644 src/components/RoutineStudio.tsx
+ create mode 100644 src/engine/LiquidVolume.ts
+ create mode 100644 src/model/bulkTasks.ts
+ create mode 100644 src/model/visualPresets.ts
+ create mode 100644 tests/bulkTasks.test.ts
+ create mode 100644 tests/liquidVolume.test.ts
+
+diff --git a/index.html b/index.html
+index 220c057..50436bf 100644
+--- a/index.html
++++ b/index.html
+@@ -11,7 +11,7 @@
+       name="description"
+       content="Liquid Routine — Time flows like water. A local-first, interactive fluid routine planner."
+     />
+-    <title>Liquid Routine 4.17 · Liquid Focus</title>
++    <title>Liquid Routine 4.27 · Living Flow</title>
+     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+     <link rel="manifest" href="/manifest.webmanifest" />
+     <meta name="apple-mobile-web-app-capable" content="yes" />
+diff --git a/package-lock.json b/package-lock.json
+index 7221b1a..edd924e 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "liquid-routine",
+-  "version": "4.26.0",
++  "version": "4.27.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "liquid-routine",
+-      "version": "4.26.0",
++      "version": "4.27.0",
+       "dependencies": {
+         "@types/three": "^0.187.0",
+         "lucide-react": "^0.546.0",
+diff --git a/package.json b/package.json
+index f239278..50f7f3b 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "liquid-routine",
+   "private": true,
+-  "version": "4.26.0",
++  "version": "4.27.0",
+   "type": "module",
+   "scripts": {
+     "dev": "vite --host 127.0.0.1 --port 4173",
+diff --git a/src/App.tsx b/src/App.tsx
+index b0636a1..81d1ee6 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,3 +1,6 @@
++import { RoutineStudio } from "./components/RoutineStudio";
++import { BulkTaskEditor } from "./components/BulkTaskEditor";
++import { FONT_COLLECTIONS } from "./model/visualPresets";
+ import {
+   DEFAULT_FLUID_COLORS,
+   validateFluidColors,
+@@ -140,6 +143,10 @@ function initialParams(): FluidPhysicsParams {
+ export default function App() {
+   const { state, setState, now, warning, setWarning, acceptRecovery } =
+     useRoutine();
++  const [draftPreview,setDraftPreview]=useState<Task|null>(null);
++  const [batchPreview,setBatchPreview]=useState<Task[]>([]);
++  const [studioOpen,setStudioOpen]=useState(false),[bulkOpen,setBulkOpen]=useState(false);
++  const previewDraft=useCallback((t:Task)=>{setDraftPreview(t);setPreviewId(t.id);},[]);
+   const [page, setPage] = useState<"day" | "focus" | "colmar">("day");
+   const [theme, setTheme] = useState<"midnight" | "daylight" | "bubble" | "soap" | "ripple">(() => {
+     try {
+@@ -273,7 +280,13 @@ export default function App() {
+   }, [progress, params.reduceMotion]);
+   // The task list is memoised, so Mochi's environment is not rebuilt on
+   // every render (which would reset the character again and again).
+-  const tasks = useMemo(() => tasksForDay(state, date), [state, date]);
++  const displayState=useMemo(()=>{
++    const offset=Math.max(-1,...state.tasks.filter(t=>(t.routine||"main")===currentRoutine(state).id).map(t=>t.order??0))+1;
++    const drafts=draftPreview?[draftPreview]:batchPreview.map((t,i)=>({...t,order:offset+i}));
++    if(!drafts.length)return state;
++    const ids=new Set(drafts.map(t=>t.id));return {...state,tasks:[...state.tasks.filter(t=>!ids.has(t.id)),...drafts]};
++  },[state,draftPreview,batchPreview]);
++  const tasks = useMemo(() => tasksForDay(displayState, date), [displayState, date]);
+   // Module mode, Milestone mode, and Countdown mode
+   const currentMode = currentRoutine(state).mode;
+   const isModules = currentMode === "modules";
+@@ -282,7 +295,7 @@ export default function App() {
+   const isCustomFlow = isModules || isMilestones || isCountdown;
+   const flowTasks = useMemo(() => {
+     if (isModules) {
+-      return moduleTasks(state).map((t, i) => ({
++      return moduleTasks(displayState).map((t, i) => ({
+         ...t,
+         start: 480 + i * 60,
+         duration: 60,
+@@ -291,7 +304,7 @@ export default function App() {
+       }));
+     }
+     if (isMilestones) {
+-      return milestoneTasks(state).map((t, i) => ({
++      return milestoneTasks(displayState).map((t, i) => ({
+         ...t,
+         start: 480 + i * 75,
+         duration: 70,
+@@ -300,7 +313,7 @@ export default function App() {
+       }));
+     }
+     if (isCountdown) {
+-      return countdownTasks(state, now).map((t, i) => ({
++      return countdownTasks(displayState, now).map((t, i) => ({
+         ...t,
+         start: 480 + i * 75,
+         duration: 70,
+@@ -309,7 +322,7 @@ export default function App() {
+       }));
+     }
+     return tasks;
+-  }, [isModules, isMilestones, isCountdown, state, tasks, now]);
++  }, [isModules, isMilestones, isCountdown, displayState, tasks, now]);
+   const original = (t: Task) => state.tasks.find((x) => x.id === t.id) || t;
+   const schedule = resolveSchedule(state, date, now, previewId);
+   const { active, next } = schedule;
+@@ -414,7 +427,7 @@ export default function App() {
+         ? "距计划结束"
+         : schedule.mode === "running"
+           ? "实际计时"
+-          : "当前空闲";
++          : schedule.mode === "paused" ? "已暂停" : "当前空闲";
+   const wallTime = new Date(now).toLocaleTimeString("en-GB", {
+     hour: "2-digit",
+     minute: "2-digit",
+@@ -480,7 +493,7 @@ export default function App() {
+     setUndo(state);
+     setState((s) =>
+       transition(s, id, on.date, action, Date.now(), {
+-        alignToPlan: on.mode === "live",
++        alignToPlan: on.mode === "live" && !isCustomFlow,
+         minutes: on.minutes,
+       }),
+     );
+@@ -497,21 +510,21 @@ export default function App() {
+     // tapping a task makes it the browsing focus; tapping it again (or the live task) hands focus back
+     // (4.18.5: a tap no longer opens the Liquid Focus countdown; the Dock's droplet does)
+     setPreviewId(live.active?.id === id || previewId === id ? null : id);
+-    setState((s) => ({ ...s, activeId: id }));
++    // Browsing is a preview; only execution controls change the timer owner.
+     const t = tasks.find((t) => t.id === id);
+     if (t)
+       fluid.current?.stir((RIVERS.indexOf(t.river) + 0.5) / 4, 0.45, 28, -14);
+   };
+   const add = () => {
+     const m = routineMeta.mode;
+-    setEditing({
++    const task:Task={
+       id: crypto.randomUUID(),
+       title: "",
+       icon: m === "countdown" ? "gift" : m === "milestones" ? "file-text" : "sparkles",
+       river: "Work",
+-      start: 540,
++      start: m==="modules"?0:m==="timeline"&&date===dayKey()?Math.min(1410,Math.ceil((new Date().getHours()*60+new Date().getMinutes())/5)*5):540,
+       duration: 30,
+-      color: palette.Work,
++      color: state.tasks.find(t=>(t.routine||"main")===routineMeta.id&&t.river==="Work")?.color||palette.Work,
+       repeat: m === "modules" || m === "countdown",
+       date,
+       targetDate: m === "countdown" ? "2026-12-25" : m === "milestones" ? "2026-11-10" : undefined,
+@@ -522,7 +535,8 @@ export default function App() {
+         m !== "timeline"
+           ? state.tasks.filter((t) => (t.routine || "main") === routineMeta.id).reduce((max, t) => Math.max(max, t.order ?? 0), -1) + 1
+           : undefined,
+-    });
++    };
++    setQuick({task,field:"title"});
+   };
+   const exportData = () => {
+     const blob = new Blob([JSON.stringify(state, null, 2)], {
+@@ -705,7 +719,8 @@ export default function App() {
+   return (
+     <div
+       data-material-theme={theme}
+-      className={`app midnight-classic ${light ? "daylight-glass" : ""} ${theme === "bubble" ? "bubble-glass" : ""} ${theme === "soap" ? "bubble-glass soap-glass" : ""} ${theme === "ripple" ? "bubble-glass ripple-glass" : ""} ${params.reduceTransparency ? "reduce-transparency" : ""} ${focus ? "focus-mode" : ""} ${params.reduceMotion ? "calm" : ""} ${immersive ? "immersive" : ""} ${duo !== "none" && page === "day" ? `duo-${duo}` : ""}`}
++      style={{["--routine-font" as string]:(FONT_COLLECTIONS.find(f=>f.id===routineMeta.fontStyle)||FONT_COLLECTIONS[0]).family}}
++      className={`app midnight-classic ${quick||editing?"has-live-editor":""} ${bulkOpen||studioOpen?"has-studio":""} ${light ? "daylight-glass" : ""} ${theme === "bubble" ? "bubble-glass" : ""} ${theme === "soap" ? "bubble-glass soap-glass" : ""} ${theme === "ripple" ? "bubble-glass ripple-glass" : ""} ${params.reduceTransparency ? "reduce-transparency" : ""} ${focus ? "focus-mode" : ""} ${params.reduceMotion ? "calm" : ""} ${immersive ? "immersive" : ""} ${duo !== "none" && page === "day" ? `duo-${duo}` : ""}`}
+     >
+       <aside className="app-rail">
+         <a
+@@ -899,6 +914,8 @@ export default function App() {
+             </button>
+             {dockMore && (
+               <div className="lr-dock-menu" role="menu" onClick={() => setDockMore(false)}>
++                <button onClick={()=>setStudioOpen(true)}>配色与字体</button>
++                <button onClick={()=>setBulkOpen(true)}>智能整理清单 / JSON</button>
+                 {page === "day" && (
+                   <>
+                     <div className="lr-dock-row" onClick={(e) => e.stopPropagation()}>
+@@ -1167,19 +1184,20 @@ export default function App() {
+                           ? (ids) => setState((s) => reorderModules(s, ids))
+                           : undefined
+                       }
+-                      state={state}
++                      state={displayState}
+                       date={date}
+                       actual={actual}
+                       activeId={isCustomFlow ? null : liveActive?.id || null}
+-                      focusId={isCustomFlow ? previewId : previewId || liveActive?.id || null}
++                      focusId={isCustomFlow ? previewId || active?.id || null : previewId || liveActive?.id || null}
+                       shown={page === "day"}
++                      editingId={draftPreview?.id||(bulkOpen?batchPreview[0]?.id:studioOpen?active?.id:undefined)}
+                       now={now}
+                       onSelect={select}
+-                      onEdit={(t) => setEditing(original(t))}
++                      onEdit={(t) => {if(bulkOpen||studioOpen)return;setEditing(original(t));}}
+                       onMaterial={(frame) => fluid.current?.material(frame)}
+                       clockSource={canvas}
+                       onAction={(id, action) => act(action, id)}
+-                      onQuickEdit={(task, field) => setQuick({ task: original(task), field })}
++                      onQuickEdit={(task, field) => {if(bulkOpen||studioOpen)return;setDraftPreview(null);setQuick({ task: original(task), field });}}
+                       reduceMotion={params.reduceMotion}
+                       lowPower={params.lowPowerMode}
+                       onMove={(task) => {
+@@ -1452,32 +1470,46 @@ export default function App() {
+           e.target.value = "";
+         }}
+       />
++      {studioOpen&&<RoutineStudio font={routineMeta.fontStyle||"system"} close={()=>setStudioOpen(false)}
++        onPalette={colors=>{setUndo(state);setState(s=>{let i=0;return {...s,tasks:s.tasks.map(t=>(t.routine||"main")===routineMeta.id?{...t,color:colors[i++%colors.length]}:t)}});setParams(p=>({...p,colors:colors.map(color=>({color,amount:1}))}));}}
++        onFont={fontStyle=>{setUndo(state);setState(s=>updateRoutine(s,routineMeta.id,{fontStyle}));}}/>}
++      {bulkOpen&&<BulkTaskEditor routine={routineMeta} date={date} onPreview={setBatchPreview}
++        close={()=>{setBulkOpen(false);setBatchPreview([]);}}
++        onAdd={items=>{if(state.tasks.length+items.length>1000){setNotice("日程最多保存 1000 项活动，请减少本次导入数量。");return;}setUndo(state);setState(s=>({...s,tasks:[...s.tasks,...items.map((t,i)=>({...t,order:Math.max(-1,...s.tasks.filter(x=>(x.routine||"main")===routineMeta.id).map(x=>x.order??0))+1+i}))]}));setBulkOpen(false);setBatchPreview([]);setNotice(`已添加 ${items.length} 项活动，可以撤销。`);}}/>}
+       {quick && (
+         <QuickTaskEditor
++          key={quick.task.id}
+           task={quick.task}
+           field={quick.field}
++          isNew={!state.tasks.some(t=>t.id===quick.task.id)}
+           mode={routineMeta.mode}
+-          close={() => setQuick(null)}
++          close={() => {setQuick(null);setDraftPreview(null);}}
++          onPreview={previewDraft}
+           onAdvanced={(task) => {
+             setQuick(null);
+             setEditing(task);
+           }}
+           onSave={(task) => {
++            task={...task,liquidSince:task.liquidSince??Date.now()};
+             setUndo(state);
+             setState((s) => ({
+               ...s,
+-              tasks: s.tasks.map((t) => (t.id === task.id ? task : t)),
++              activeId:s.activeId||task.id,
++              tasks: s.tasks.some(t=>t.id===task.id)?s.tasks.map(t=>t.id===task.id?task:t):[...s.tasks,task],
+             }));
+           }}
+         />
+       )}
+       {editing && (
+         <TaskEditor
++          key={editing.id}
+           task={editing}
+-          tasks={tasks}
++          tasks={tasksForDay(state,date)}
+           mode={routineMeta.mode}
+-          close={() => setEditing(null)}
++          close={() => {setEditing(null);setDraftPreview(null);}}
++          onPreview={previewDraft}
+           onSave={(task) => {
++            task={...task,liquidSince:task.liquidSince??Date.now()};
+             setUndo(state);
+             setState((s) => ({
+               ...s,
+diff --git a/src/components/BulkTaskEditor.tsx b/src/components/BulkTaskEditor.tsx
+new file mode 100644
+index 0000000..6e6568b
+--- /dev/null
++++ b/src/components/BulkTaskEditor.tsx
+@@ -0,0 +1,11 @@
++import {useMemo,useState,useEffect} from 'react';
++import {X,Upload} from 'lucide-react';
++import {Task,RoutineMeta,clock} from '../model/routine';
++import {parseTaskList} from '../model/bulkTasks';
++import {useDialog} from '../hooks/useDialog';
++export function BulkTaskEditor({routine,date,onAdd,onPreview,close}:{routine:RoutineMeta;date:string;onAdd:(tasks:Task[])=>void;onPreview:(tasks:Task[])=>void;close:()=>void}){
++ const [text,setText]=useState(''),[start,setStart]=useState('09:00'),[minutes,setMinutes]=useState(30),[fileError,setFileError]=useState('');const root=useDialog(close);
++ const result=useMemo(()=>{if(!text.trim())return {tasks:[] as Task[],error:''};try{return {tasks:parseTaskList(text,routine,{date,start:Number(start.slice(0,2))*60+Number(start.slice(3)),duration:minutes}),error:''};}catch(e){return {tasks:[] as Task[],error:(e as Error).message};}},[text,routine,date,start,minutes]);
++ useEffect(()=>onPreview(result.tasks),[result,onPreview]);
++ return <div className="studio-backdrop"><section className="modal bulk-editor" ref={root} role="dialog" aria-modal="true" aria-label="批量整理日程"><header><div><span className="eyebrow">LIST → ROUTINE</span><h2>批量整理日程</h2></div><button className="icon-button" aria-label="关闭批量整理" onClick={close}><X size={18}/></button></header><p>粘贴清单即可自动排好。可识别时间、时长、日期和常见图标，保存前会预览；这是本地解析，无需发送到第三方。</p><label>活动清单 / JSON<textarea aria-label="活动清单或 JSON" rows={6} value={text} placeholder={'09:00 阅读 30min 📖\n运动 45min\n工作 1h\n\n或粘贴 [{"title":"阅读","duration":30,"icon":"book"}]'} onChange={e=>{setText(e.target.value);setFileError('');}}/></label><div className="form-pair"><label>默认开始时间<input type="time" value={start} onChange={e=>setStart(e.target.value)}/></label><label>默认时长（分钟）<input type="number" min={5} max={240} value={minutes} onChange={e=>setMinutes(Number(e.target.value))}/></label></div><label className="bulk-file"><Upload size={15}/> 读取 JSON 文件<input type="file" aria-label="导入任务 JSON 文件" accept="application/json,.json" onChange={async e=>{const f=e.target.files?.[0];if(!f)return;try{if(f.size>5_000_000)throw new Error('文件超过 5 MB');setText(await f.text());setFileError('');}catch(err){setFileError((err as Error).message);}e.target.value='';}}/></label>{(result.error||fileError)&&<p role="alert">{result.error||fileError}</p>}<ol className="bulk-preview" aria-label="批量任务预览">{result.tasks.map(t=><li key={t.id}><strong>{t.title}</strong><span>{routine.mode==='timeline'?`${clock(t.start)} · ${t.duration} min`:routine.mode==='modules'?`${t.duration} min`:t.targetDate}</span></li>)}</ol><button className="primary-button" disabled={!result.tasks.length||!!result.error||!!fileError} onClick={()=>onAdd(result.tasks)}>添加 {result.tasks.length} 项活动</button><p className="studio-note">只在当前日程追加，已有任务不会被覆盖；添加后可以撤销。</p></section></div>;
++}
+diff --git a/src/components/QuickTaskEditor.tsx b/src/components/QuickTaskEditor.tsx
+index 4ada4e8..ac89fc6 100644
+--- a/src/components/QuickTaskEditor.tsx
++++ b/src/components/QuickTaskEditor.tsx
+@@ -17,31 +17,37 @@ export function QuickTaskEditor({
+   task,
+   field,
+   mode = "timeline",
++  isNew = false,
+   onSave,
++  onPreview,
+   onAdvanced,
+   close,
+ }: {
+   task: Task;
+   field: QuickField;
+   mode?: RoutineMode;
++  isNew?: boolean;
+   onSave: (t: Task) => void;
++  onPreview: (t: Task) => void;
+   onAdvanced: (t: Task) => void;
+   close: () => void;
+ }) {
++  const [section,setSection]=useState(field);
+   const [draft, setDraft] = useState(task),
+     [error, setError] = useState("");
++  useEffect(()=>{if(Number.isFinite(draft.start)&&draft.start>=0&&draft.duration>=5&&draft.start+draft.duration<=1440)onPreview({...draft,title:draft.title.trim()||"未命名活动"});},[draft,onPreview]);
+   const root = useDialog(close),
+     form = useRef<HTMLFormElement>(null),
+     title = useRef<HTMLInputElement>(null),
+     time = useRef<HTMLInputElement>(null),
+     icon = useRef<HTMLButtonElement>(null);
+   useEffect(() => {
+-    if (field === "title") {
++    if (section === "title") {
+       title.current?.focus();
+       title.current?.select();
+-    } else if (field === "time") time.current?.focus();
++    } else if (section === "time") time.current?.focus();
+     else icon.current?.focus();
+-  }, [field]);
++  }, [section]);
+   function current(overrides: Partial<Task> = {}) {
+     const values = new FormData(form.current!);
+     const isTime = mode === "timeline";
+@@ -49,8 +55,8 @@ export function QuickTaskEditor({
+       ...draft,
+       ...overrides,
+       title: String(values.get("title") ?? draft.title),
+-      start: isTime ? parseClock(String(values.get("start"))) : draft.start,
+-      duration: isTime ? Number(values.get("duration")) : (draft.duration || 60),
++      start: isTime && values.has("start") ? parseClock(String(values.get("start"))) : draft.start,
++      duration: isTime && values.has("duration") ? Number(values.get("duration")) : (draft.duration || 60),
+       targetDate: draft.targetDate || (values.get("targetDate") ? String(values.get("targetDate")) : draft.date),
+       isAnnual: draft.isAnnual,
+     });
+@@ -65,7 +71,7 @@ export function QuickTaskEditor({
+   }
+   return (
+     <div
+-      className="modal-backdrop quick-backdrop"
++      className="modal-backdrop quick-backdrop live-editor-backdrop"
+       onPointerDown={(e) => {
+         if (e.target === e.currentTarget) close();
+       }}
+@@ -80,7 +86,7 @@ export function QuickTaskEditor({
+         <header>
+           <div>
+             <span className="eyebrow">EDIT IN THE FLOW</span>
+-            <h2 id="quick-title">快速编辑</h2>
++            <h2 id="quick-title">{isNew?"添加活动":"快速编辑"}</h2>
+           </div>
+           <button
+             className="icon-button"
+@@ -97,6 +103,12 @@ export function QuickTaskEditor({
+             commit();
+           }}
+         >
++          <div className="quick-sections" aria-label="快速编辑项目">
++            <button type="button" aria-pressed={section==="title"} onClick={()=>setSection("title")}>标题</button>
++            <button type="button" aria-pressed={section==="icon"} onClick={()=>setSection("icon")}><TaskIcon name={draft.icon} size={15}/> 图标</button>
++            <button type="button" aria-pressed={section==="time"} onClick={()=>setSection("time")}>{mode==="timeline"?`${clock(draft.start)} · ${draft.duration} min`:mode==="modules"?`${draft.duration} min`:formatMilestoneDate(draft.targetDate||draft.date)}</button>
++          </div>
++          {section==="title"&&<>
+           <label>
+             标题
+             <input
+@@ -109,6 +121,8 @@ export function QuickTaskEditor({
+               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+             />
+           </label>
++          </>}
++          {section==="icon"&&<>
+           <div className="quick-icon-list" aria-label="选择任务图标">
+             {iconGroups.flatMap((g) => g.icons).map((name, i) => (
+               <button
+@@ -118,12 +132,14 @@ export function QuickTaskEditor({
+                 aria-label={`使用 ${name} 图标`}
+                 aria-pressed={draft.icon === name}
+                 className={draft.icon === name ? "selected" : ""}
+-                onClick={() => commit({ icon: name })}
++                onClick={() => setDraft({...draft,icon:name})}
+               >
+                 <TaskIcon name={name} />
+               </button>
+             ))}
+           </div>
++          </>}
++          {section==="time"&&<>
+           {mode === "milestones" ? (
+             <div className="form-pair date-node-pair">
+               <label>
+@@ -175,6 +191,7 @@ export function QuickTaskEditor({
+           ) : (
+             <>
+               <div className="form-pair">
++                {mode!=="modules"&&<>
+                 <label>
+                   开始时间
+                   <input
+@@ -192,12 +209,14 @@ export function QuickTaskEditor({
+                     }
+                   />
+                 </label>
++                </>}
+                 <label>
+                   分钟
+                   <input
+                     type="number"
+                     name="duration"
+                     aria-label="快速编辑时长"
++                    ref={mode==="modules"?time:undefined}
+                     required
+                     min={5}
+                     max={1440 - draft.start}
+@@ -224,6 +243,7 @@ export function QuickTaskEditor({
+               </div>
+             </>
+           )}
++          </>}
+           {error && (
+             <p className="form-error" role="alert">
+               {error}
+@@ -250,7 +270,7 @@ export function QuickTaskEditor({
+             </button>
+           </footer>
+           <p className="fine-print">
+-            标题回车保存 · 点选图标立即保存 · Esc 取消
++            实时预览 · 回车保存 · Esc 取消
+           </p>
+         </form>
+       </section>
+diff --git a/src/components/RoutineStudio.tsx b/src/components/RoutineStudio.tsx
+new file mode 100644
+index 0000000..1941cdb
+--- /dev/null
++++ b/src/components/RoutineStudio.tsx
+@@ -0,0 +1,7 @@
++import {X,Shuffle} from 'lucide-react';
++import {COLOR_COLLECTIONS,FONT_COLLECTIONS,FontStyle,randomChoice} from '../model/visualPresets';
++import {useDialog} from '../hooks/useDialog';
++export function RoutineStudio({font,onPalette,onFont,close}:{font:FontStyle;onPalette:(colors:readonly string[])=>void;onFont:(style:FontStyle)=>void;close:()=>void}){
++ const root=useDialog(close);
++ return <div className="studio-backdrop"><section ref={root} className="modal routine-studio" role="dialog" aria-modal="true" aria-label="视觉搭配"><header><div><span className="eyebrow">CURATED FOR YOUR FLOW</span><h2>视觉搭配</h2></div><button className="icon-button" aria-label="关闭视觉搭配" onClick={close}><X size={18}/></button></header><p>即时呈现在日程中。配色与字体分开选择，日程数据保持独立。</p><div className="studio-section-title"><h3>配色组合</h3><button onClick={()=>onPalette(randomChoice(COLOR_COLLECTIONS).colors)}><Shuffle size={15}/> 随机搭配</button></div><div className="palette-collection">{COLOR_COLLECTIONS.map(p=><button key={p.id} aria-label={`应用 ${p.name} 配色`} onClick={()=>onPalette(p.colors)}><span className="studio-swatches">{p.colors.map(c=><i key={c} style={{background:c}}/>)}</span><span>{p.name}</span></button>)}</div><div className="studio-section-title"><h3>文字气质</h3><button onClick={()=>onFont(randomChoice(FONT_COLLECTIONS.map(f=>f.id),font))}><Shuffle size={15}/> 随机字体</button></div><div className="font-collection">{FONT_COLLECTIONS.map(f=><button key={f.id} aria-pressed={font===f.id} style={{fontFamily:f.family}} onClick={()=>onFont(f.id)}><strong>Time flows</strong><span>{f.name}</span></button>)}</div><p className="studio-note">字体使用设备已有字库；花体中文自动采用本机可读字体。减少动态效果设置继续生效。</p></section></div>;
++}
+diff --git a/src/components/TaskEditor.tsx b/src/components/TaskEditor.tsx
+index 58d331a..3569b07 100644
+--- a/src/components/TaskEditor.tsx
++++ b/src/components/TaskEditor.tsx
+@@ -1,4 +1,4 @@
+-import { useState } from "react";
++import { useState, useEffect, useRef } from "react";
+ import {
+   Task,
+   RIVERS,
+@@ -22,6 +22,7 @@ export function TaskEditor({
+   mode = "timeline",
+   close,
+   onSave,
++  onPreview,
+   onDelete,
+ }: {
+   task: Task;
+@@ -29,15 +30,19 @@ export function TaskEditor({
+   mode?: RoutineMode;
+   close: () => void;
+   onSave: (t: Task) => void;
++  onPreview: (t: Task) => void;
+   onDelete: (id: string) => void;
+ }) {
+   const [draft, setDraft] = useState(task);
+   const [error, setError] = useState("");
++  useEffect(()=>{if(Number.isFinite(draft.start)&&draft.start>=0&&draft.duration>=5&&draft.start+draft.duration<=1440)onPreview({...draft,title:draft.title.trim()||"未命名活动"});},[draft,onPreview]);
+   const root = useDialog(close);
+-  const overlapping = conflicts(tasks, draft);
++  const titleInput=useRef<HTMLInputElement>(null);
++  useEffect(()=>{titleInput.current?.focus();},[]);
++  const overlapping = mode==="timeline"?conflicts(tasks, draft):[];
+   return (
+     <div
+-      className="modal-backdrop"
++      className="modal-backdrop live-editor-backdrop"
+       onPointerDown={(e) => {
+         if (e.target === e.currentTarget) close();
+       }}
+@@ -109,6 +114,7 @@ export function TaskEditor({
+           <label>
+             想做什么
+             <input
++              ref={titleInput}
+               autoComplete="off"
+               required
+               maxLength={100}
+@@ -171,7 +177,7 @@ export function TaskEditor({
+                 每年重复（如圣诞节、元旦、生日，每年自动循环）
+               </label>
+             </>
+-          ) : mode === "modules" ? null : (
++          ) : mode === "modules" ? <label>持续时间（分钟）<input type="number" min={5} max={1440} value={draft.duration} onChange={e=>setDraft({...draft,duration:Number(e.target.value)})}/></label> : (
+             <div className="form-pair">
+               <label>
+                 开始时间
+diff --git a/src/components/Timeline.tsx b/src/components/Timeline.tsx
+index 3a21f22..aeba620 100644
+--- a/src/components/Timeline.tsx
++++ b/src/components/Timeline.tsx
+@@ -1,3 +1,4 @@
++import {remainingLiquid,volumeSurface,liquidPath,VolumeTransition} from "../engine/LiquidVolume";
+ import { flowVisualTask } from "../engine/FlowVisualTask";
+ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+ import {
+@@ -53,6 +54,7 @@ interface Props {
+   focusId?: string | null;
+   /** false while another page covers Day Flow (its scroll position is lost then; it re-centres on return) */
+   shown?: boolean;
++  editingId?:string;
+   /** Module mode: the same flow without times; hold a band and drag it to reorder (ids in the new order). */
+   modules?: boolean;
+   /** Milestones / Deadlines mode: left axis shows milestone dates (e.g. 11.10.26). */
+@@ -94,6 +96,7 @@ export function Timeline({
+   activeId,
+   focusId = activeId,
+   shown = true,
++  editingId,
+   modules = false,
+   milestones = false,
+   countdown = false,
+@@ -120,6 +123,10 @@ export function Timeline({
+ }: Props) {
+   const svg = useRef<SVGSVGElement>(null);
+   const geometry = useRef(new BezierEngine());
++  const volume=useRef(new VolumeTransition());
++  const mode=modules?"modules":milestones?"milestones":countdown?"countdown":"timeline";
++  for(const task of tasks){const original=state.tasks.find(t=>t.id===task.id)||task;volume.current.target(task.id,remainingLiquid(original,state,date,now,mode),performance.now(),reduceMotion);}
++
+   const material = useRef<FluidMaterialRenderer | null>(null);
+   const drag = useRef<{
+     task: Task;
+@@ -628,6 +635,7 @@ export function Timeline({
+       }),
+     );
+   };
++  useEffect(()=>{if(!editingId)return;centreOn(editingId,false);const timer=setTimeout(()=>centreOn(editingId,false),420);return()=>clearTimeout(timer);},[editingId,tasks.find(t=>t.id===editingId)?.start,tasks.find(t=>t.id===editingId)?.duration]);
+   /**
+    * Makes a task the main body: it is laid out at the full focus scale and
+    * glides to the middle of the view. Tapping a band or dropping Mochi into
+@@ -697,7 +705,7 @@ export function Timeline({
+       const worldBounds = svg.current!.closest(".liquid-world")!.getBoundingClientRect();
+       const materialLayout = [worldBounds.width, worldBounds.height,
+         svgBounds.left - worldBounds.left, svgBounds.top - worldBounds.top];
+-      const key = materialLayout.join("/") + "/" +
++      const key = motion.current.tasks.map(t=>volume.current.value(t.id,now).toFixed(3)).join("|")+materialLayout.join("/") + "/" +
+         motion.current.tasks
+           .map((t) => `${t.id}/${t.start}/${t.duration}/${t.color}`)
+           .join("|") +
+@@ -845,7 +853,7 @@ export function Timeline({
+       }
+       if (
+         key !== materialKey.current ||
+-        geometry.current.moving ||
++        geometry.current.moving || volume.current.moving(now) ||
+         fusion.current.active ||
+         !!drag.current ||
+         now < activeUntil.current
+@@ -867,6 +875,7 @@ export function Timeline({
+               svgBounds.left - worldBounds.left,
+               svgBounds.top - worldBounds.top,
+               current.width,
++              new Map(visibleTasks.map(t=>[t.id,volume.current.value(t.id,now)])),
+             ),
+           );
+         }
+@@ -1053,6 +1062,7 @@ export function Timeline({
+         const d = drag.current;
+         if (!d || d.id !== id || d.moved) return;
+         reorder.current = { id: task.id };
++        svg.current?.setPointerCapture(id);
+         setContact((c) => (c ? { ...c, kind: "拖动 · 调整顺序" } : c));
+         haptics.trigger("grab");
+       }, 240);
+@@ -1083,6 +1093,8 @@ export function Timeline({
+     const d = drag.current;
+     if (!d || d.id !== e.pointerId) return;
+     if (reorder.current) {
++      const scroller=svg.current?.closest(".chamber-scroll") as HTMLElement|null;
++      if(scroller){const b=scroller.getBoundingClientRect();if(e.clientY<b.top+42)scroller.scrollTop-=9;else if(e.clientY>b.bottom-42)scroller.scrollTop+=9;}
+       const p = point(e);
+       d.x = p.x;
+       d.y = p.y;
+@@ -1449,6 +1461,7 @@ export function Timeline({
+     let status: "past" | "current" | "future" = "future";
+     let dissolveFrac = 0;
+ 
++    if (modules){const r=getRun(state,task.id,date);return {status:r.status==="completed"||r.status==="skipped"?"past" as const:r.status==="running"||r.status==="paused"?"current" as const:"future" as const,dissolveFrac:1-volume.current.value(task.id,performance.now()),days:0};}
+     if (countdown) {
+       const days=eventDays(task,now);
+       status=days<0?"past":days===0?"current":"future";
+@@ -1616,7 +1629,7 @@ export function Timeline({
+           onPointerMove={pointerMove}
+           onPointerUp={(e) => end(e)}
+           onPointerCancel={(e) => end(e, true)}
+-          onLostPointerCapture={(e) => end(e, true)}
++          onLostPointerCapture={(e) => {if(reorder.current&&e.target!==svg.current)return;end(e,true);}}
+           aria-label="沿统一时间刻度上下衔接的横向液态河流"
+         >
+           <defs>
+@@ -1674,20 +1687,19 @@ export function Timeline({
+               <stop offset="0.42" stopColor="#ffffff" stopOpacity="0" />
+               <stop offset="1" stopColor="#ffffff" stopOpacity="0.1" />
+             </linearGradient>
+-            {visible.map((task) => (
+-              <g key={task.id}>
+-                <path
+-                  d={geometry.current.path(flowVisualTask(task, visible), 0, worldWidth, 240)}
+-                  fill={`url(#lr-tint-${task.id})`}
+-                  className={`river-tint ${task.id === centerId ? "is-focus" : ""}`}
+-                />
+-                <path
+-                  d={geometry.current.path(flowVisualTask(task, visible), 0, worldWidth, 240)}
+-                  fill="url(#lr-sheen)"
+-                  className="river-sheen"
+-                />
+-              </g>
+-            ))}
++            {visible.map((task) => {
++              const visual=flowVisualTask(task,visible),fraction=volume.current.value(task.id,performance.now()),surface=volumeSurface(visual,geometry.current,worldWidth,fraction);
++              const wave=fraction>0&&fraction<1&&!reduceMotion?Math.sin(now/2000)*1.2:0;
++              const shape=geometry.current.path(visual,0,worldWidth);
++              return <g key={task.id} data-liquid-task={task.id} data-liquid-remaining={fraction.toFixed(4)}>
++                <defs><clipPath id={`lr-volume-${task.id}`} clipPathUnits="userSpaceOnUse"><path d={shape}/></clipPath></defs>
++                <path d={shape} fill={task.color} fillOpacity={.025} stroke={task.color} strokeOpacity={.12} strokeWidth={.6} className="task-volume-shell"/>
++                {fraction>.00001&&<g clipPath={`url(#lr-volume-${task.id})`}>
++                  <path d={liquidPath(worldWidth,surface.level,surface.bottom,wave)} fill={`url(#lr-tint-${task.id})`} className={`river-tint ${task.id===centerId?"is-focus":""}`}/>
++                  {fraction<.999&&<path d={`M 0 ${surface.level} C ${worldWidth*.22} ${surface.level-wave},${worldWidth*.32} ${surface.level-wave},${worldWidth*.5} ${surface.level} S ${worldWidth*.82} ${surface.level+wave},${worldWidth} ${surface.level}`} fill="none" stroke="currentColor" strokeOpacity={.2} strokeWidth={1} className="liquid-meniscus"/>}
++                </g>}
++              </g>;
++            })}
+           </g>
+           <g className="river-seams" pointerEvents="none" aria-hidden="true">
+             {[...visible]
+@@ -1710,6 +1722,7 @@ export function Timeline({
+               })}
+           </g>
+           {visible.map((task, index) => {
++            const sourceTask=state.tasks.find(t=>t.id===task.id)||task;
+             const run = getRun(state, task.id, date);
+             const active = activeId === task.id;
+             const expanded = centerId === task.id;
+@@ -1765,10 +1778,10 @@ export function Timeline({
+                 }
+                 opacity={active ? 1 : 1 - fold * 0.97}
+                 key={task.id}
+-                className={`river-task is-${status} ${active ? "active" : ""} ${expanded ? "expanded" : ""} ${run.status}`}
++                className={`river-task ${reorder.current?.id===task.id?"is-reordering":""} is-${status} ${active ? "active" : ""} ${expanded ? "expanded" : ""} ${run.status}`}
+                 role="group"
+                 tabIndex={0}
+-                aria-label={countdown||milestones?`${task.title}，${eventDate(task,now)}，${eventDays(task,now)} 天。Enter 编辑。`:`${task.title}，${clock(task.start)}，${task.duration} 分钟，${task.river}。Enter 编辑，空格选择。方向键调整 5 分钟，Shift 加左右键换河流。`}
++                aria-label={modules?`${task.title}，${sourceTask.duration} 分钟。Enter 编辑，长按上下拖动或方向键排序。`:countdown||milestones?`${task.title}，${eventDate(task,now)}，${eventDays(task,now)} 天。Enter 编辑。`:`${task.title}，${clock(task.start)}，${task.duration} 分钟，${task.river}。Enter 编辑，空格选择。方向键调整 5 分钟，Shift 加左右键换河流。`}
+                 onPointerDown={(e) => begin(e, task, "move")}
+                 onDoubleClick={() => onEdit(task)}
+                 onKeyDown={(e) => {
+@@ -1782,6 +1795,7 @@ export function Timeline({
+                     e.preventDefault();
+                     onSelect(task.id);
+                   }
++                  if(modules&&onReorder&&["ArrowUp","ArrowDown"].includes(e.key)){e.preventDefault();const ids=tasks.map(t=>t.id),a=ids.indexOf(task.id),b=Math.max(0,Math.min(ids.length-1,a+(e.key==="ArrowUp"?-1:1)));if(a!==b){ids.splice(a,1);ids.splice(b,0,task.id);onReorder(ids);setAnnouncement(`${task.title}，已移至第 ${b+1} 项`);}return;}
+                   if (
+                     !actual && !countdown && !milestones &&
+                     [
+@@ -1881,7 +1895,7 @@ export function Timeline({
+                     {countdown ? (
+                       <div className={`event-flow-label days-flow-badge is-${status}`}>
+                         <button className="quick-icon" aria-label={`编辑 ${task.title} 的图标`} onPointerDown={e=>begin(e,task,"browse")} onClick={e=>{e.stopPropagation();if(suppressClick.current){suppressClick.current=false;return;}onQuickEdit(task,"icon");}}><TaskIcon name={task.icon} size={22}/></button>
+-                        <button className="quick-title" data-task={task.id} aria-label={`编辑 ${task.title} 的标题`} onPointerDown={e=>begin(e,task,"browse")} onClick={e=>{e.stopPropagation();if(suppressClick.current){suppressClick.current=false;return;}if(doubleTap(task.id+"/title"))onQuickEdit(task,"title");}}>{task.title}</button>
++                        <button className="quick-title" data-task={task.id} aria-label={`编辑 ${task.title} 的标题`} onPointerDown={e=>begin(e,task,"browse")} onClick={e=>{e.stopPropagation();if(suppressClick.current){suppressClick.current=false;return;}onQuickEdit(task,"title");}}>{task.title}</button>
+                         <button className="quick-time event-target-date" aria-label={`编辑 ${task.title} 的日期`} onPointerDown={e=>begin(e,task,"browse")} onClick={e=>{e.stopPropagation();if(suppressClick.current){suppressClick.current=false;return;}onQuickEdit(task,"time");}}>{eventDate(task,now)}{task.isAnnual?" · 每年":""}</button>
+                         <button className="event-countdown" aria-label={`编辑 ${task.title} 的倒数日期，${eventDays(task,now)<0?"已过":"还剩"} ${Math.abs(eventDays(task,now))} 天`} onClick={e=>{e.stopPropagation();onQuickEdit(task,"time");}}><strong>{Math.abs(eventDays(task,now))}</strong></button>
+                       </div>
+@@ -1898,7 +1912,7 @@ export function Timeline({
+                               suppressClick.current = false;
+                               return;
+                             }
+-                            if (doubleTap(task.id + "/icon")) onQuickEdit(task, "icon");
++                            onQuickEdit(task, "icon");
+                           }}
+                         >
+                           <TaskIcon name={task.icon} size={22} />
+@@ -1915,8 +1929,8 @@ export function Timeline({
+                               suppressClick.current = false;
+                               return;
+                             }
+-                            if (doubleTap(task.id + "/title")) onQuickEdit(task, "title");
+-                            else if (mochi && mochiActive && task.id === mochiTaskId.current) mochi.startTrampoline(performance.now());
++                            onQuickEdit(task, "title");
++                            if (mochi && mochiActive && task.id === mochiTaskId.current) mochi.startTrampoline(performance.now());
+                           }}
+                         >
+                           {task.title}
+@@ -1938,8 +1952,7 @@ export function Timeline({
+                             <>{eventDate(task,now)} · {eventDays(task,now)===0?"今天":eventDays(task,now)>0?`还有 ${eventDays(task,now)} 天`:`已过 ${Math.abs(eventDays(task,now))} 天`}</>
+                           ) : (
+                             <>
+-                              {clock(task.start)}–{clock(task.start + task.duration)} ·{" "}
+-                              {task.duration} min
++                              {modules?`${sourceTask.duration} min`: `${clock(task.start)}–${clock(task.start + task.duration)} · ${task.duration} min`}
+                             </>
+                           )}
+                         </button>
+@@ -1960,9 +1973,15 @@ export function Timeline({
+                         ) : null}
+                       </>
+                     )}
++                    {!countdown&&!milestones&&centerId===task.id&&volume.current.value(task.id,performance.now())>0&&volume.current.value(task.id,performance.now())<.999&&<span className="task-liquid-status">剩余 {Math.round(volume.current.value(task.id,performance.now())*100)}%</span>}
++                    {modules&&centerId===task.id&&<div className="module-flow-actions" onPointerDown={e=>e.stopPropagation()}>
++                      {run.status==="completed"?<span>✓ 已完成</span>:<><button aria-label={`${run.status==="running"?"暂停":"开始"} ${task.title}`} onClick={e=>{e.stopPropagation();onAction(task.id,run.status==="running"?"pause":"start");}}>{run.status==="running"?"暂停":"开始"}</button>
++                      <button aria-label={`完成 ${task.title}`} onClick={e=>{e.stopPropagation();onAction(task.id,"complete");}}>✓ 完成</button></>}
++                      <span>长按上下拖动排序</span>
++                    </div>}
+                   </div>
+                 </foreignObject>
+-                {!actual && !milestones && !countdown && fold < 0.05 && (
++                {!actual && !modules && !milestones && !countdown && fold < 0.05 && (
+                   <g
+                     className="resize-grip"
+                     onPointerDown={(e) => begin(e, task, "resize")}
+diff --git a/src/embed.tsx b/src/embed.tsx
+index bcb3524..c7900aa 100644
+--- a/src/embed.tsx
++++ b/src/embed.tsx
+@@ -75,5 +75,5 @@ function unmount() {
+   mount,
+   unmount,
+   applyExternal,
+-  version: "4.26.0",
++  version: "4.27.0",
+ };
+diff --git a/src/engine/FluidMaterialRenderer.ts b/src/engine/FluidMaterialRenderer.ts
+index d09c7b9..1d46b35 100644
+--- a/src/engine/FluidMaterialRenderer.ts
++++ b/src/engine/FluidMaterialRenderer.ts
+@@ -1,3 +1,4 @@
++import {volumeSurface,liquidPath} from "./LiquidVolume";
+ import { flowVisualTask } from "./FlowVisualTask";
+ import { Task } from "../model/routine";
+ import { BezierEngine } from "./BezierEngine";
+@@ -17,6 +18,7 @@ export class FluidMaterialRenderer {
+     offsetX: number,
+     offsetY = 60,
+     geometryWidth = width - offsetX,
++    fractions?: ReadonlyMap<string,number>,
+   ): ImageData {
+     const w = 384,
+       h = Math.min(768, Math.max(96, Math.round((w * height) / width)));
+@@ -38,7 +40,12 @@ export class FluidMaterialRenderer {
+     tasks.forEach((task, i) => {
+       const id = i + 1;
+       ctx.fillStyle = `rgb(${(id & 15) * 16},${((id >> 4) & 15) * 16},${((id >> 8) & 15) * 16})`;
+-      ctx.fill(new Path2D(geometry.path(flowVisualTask(task, tasks), 0, geometryWidth, 240)));
++      const fraction=fractions?.get(task.id)??1;
++      if(fraction<=.00001)return;
++      const visual=flowVisualTask(task,tasks),surface=volumeSurface(visual,geometry,geometryWidth,fraction);
++      ctx.save();ctx.clip(new Path2D(geometry.path(visual,0,geometryWidth)));
++      ctx.fill(new Path2D(liquidPath(geometryWidth,surface.level,surface.bottom)));
++      ctx.restore();
+     });
+     ctx.setTransform(1, 0, 0, 1, 0, 0);
+     const pixels = ctx.getImageData(0, 0, w, h);
+diff --git a/src/engine/LiquidVolume.ts b/src/engine/LiquidVolume.ts
+new file mode 100644
+index 0000000..46d4a36
+--- /dev/null
++++ b/src/engine/LiquidVolume.ts
+@@ -0,0 +1,38 @@
++import {scheduledAt,focusTotal} from "../model/schedule";
++import { Task, RoutineState, RoutineMode, getRun, elapsed, dayKey } from '../model/routine';
++import { eventTarget } from '../model/eventDate';
++import { BezierEngine } from './BezierEngine';
++const clamp=(x:number)=>Math.max(0,Math.min(1,x));
++/** Clock-derived remaining volume. Pausing freezes elapsed time; no animation-frame clock. */
++export function remainingLiquid(task:Task,state:RoutineState,date:string,now:number,mode:RoutineMode):number {
++ const run=getRun(state,task.id,date);
++ if(run.status==='completed'||run.status==='skipped')return 0;
++ if(run.status==='running'||run.status==='paused')return clamp(((run.targetSeconds??task.duration*60)-elapsed(run,now))/focusTotal(task,state,date));
++ if(mode==='modules')return 1;
++ if(mode==='countdown'||mode==='milestones'){
++  const end=eventTarget(task,now)?.getTime();if(end===undefined)return 1;
++  let start=task.liquidSince??new Date(`${task.date}T00:00:00`).getTime();
++  if(task.isAnnual){const target=new Date(end),y=target.getFullYear()-1,m=target.getMonth(),d=Math.min(target.getDate(),new Date(y,m+1,0).getDate());start=Math.max(start,new Date(y,m,d).getTime());}
++  if(!Number.isFinite(start)||end<=start)return now>=end?0:1;
++  return clamp((end-now)/(end-start));
++ }
++ const start=scheduledAt(task,date),end=scheduledAt(task,date,true);
++ return clamp((end-now)/Math.max(1,end-start));
++}
++/** Solve a horizontal liquid level by integrating the actual shared Bézier boundaries. */
++export function volumeSurface(task:Task,g:BezierEngine,width:number,fraction:number){
++ const low=Math.min(...g.boundary(task.river,task.start,0,width).knots.map(k=>k.y)),high=Math.max(...g.boundary(task.river,task.start+task.duration,0,width).knots.map(k=>k.y));
++ if(fraction>=1)return {level:low,bottom:high};if(fraction<=0)return {level:high,bottom:high};
++ const samples=25,top:number[]=[],bottom:number[]=[];
++ for(let i=0;i<samples;i++){let x=(i+.5)/samples;top.push(g.curveY(task.river,task.start,x,width));bottom.push(g.curveY(task.river,task.start+task.duration,x,width));}
++ const area=top.reduce((n,y,i)=>n+Math.max(0,bottom[i]-y),0),wanted=area*clamp(fraction);
++ let a=low,b=high;for(let k=0;k<20;k++){let h=(a+b)/2,volume=top.reduce((n,y,i)=>n+Math.max(0,bottom[i]-Math.max(y,h)),0);if(volume>wanted)a=h;else b=h;}
++ return {level:(a+b)/2,bottom:high};
++}
++export function liquidPath(width:number,level:number,bottom:number,wave=0){return `M 0 ${level} C ${width*.22} ${level-wave},${width*.32} ${level-wave},${width*.5} ${level} S ${width*.82} ${level+wave},${width} ${level} L ${width} ${bottom+4} L 0 ${bottom+4} Z`;}
++export class VolumeTransition {
++ private rows=new Map<string,{from:number;to:number;at:number;duration:number}>();
++ target(id:string,value:number,now:number,reduced=false){const p=this.rows.get(id);if(p&&Math.abs(p.to-value)<.000001)return;const old=p?this.value(id,now):value;this.rows.set(id,{from:old,to:value,at:now,duration:reduced?0:value===0?750:250});}
++ value(id:string,now:number){const p=this.rows.get(id);if(!p)return 1;let t=p.duration?clamp((now-p.at)/p.duration):1;t=t*t*(3-2*t);return p.from+(p.to-p.from)*t;}
++ moving(now:number){return [...this.rows.values()].some(p=>p.from!==p.to&&now-p.at<p.duration);}
++}
+diff --git a/src/hooks/useDialog.ts b/src/hooks/useDialog.ts
+index a6aedc0..6764f44 100644
+--- a/src/hooks/useDialog.ts
++++ b/src/hooks/useDialog.ts
+@@ -6,6 +6,11 @@ export function useDialog(close: () => void) {
+   useEffect(() => {
+     const prior = document.activeElement as HTMLElement | null;
+     const el = root.current;
++    const app=el?.closest(".app") as HTMLElement|null;
++    const live=!!el?.parentElement?.matches(".live-editor-backdrop,.studio-backdrop");
++    const measure=()=>{if(live&&app&&el)app.style.setProperty("--live-editor-height",`${Math.ceil(el.getBoundingClientRect().height)+12}px`);};
++    const observer=live&&typeof ResizeObserver!=="undefined"?new ResizeObserver(measure):null;
++    if(el&&observer)observer.observe(el);measure();
+     const candidates = () =>
+       Array.from(
+         el?.querySelectorAll<HTMLElement>(
+@@ -35,6 +40,7 @@ export function useDialog(close: () => void) {
+     const previous = document.body.style.overflow;
+     document.body.style.overflow = "hidden";
+     return () => {
++      observer?.disconnect();if(live&&app)app.style.removeProperty("--live-editor-height");
+       document.removeEventListener("keydown", key);
+       document.body.style.overflow = previous;
+       prior?.focus();
+diff --git a/src/hooks/useRoutine.ts b/src/hooks/useRoutine.ts
+index 87c0e2b..839416a 100644
+--- a/src/hooks/useRoutine.ts
++++ b/src/hooks/useRoutine.ts
+@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
+ import { load, onExternalState, save } from "../model/persistence";
+ import { elapsed, getRun, transition, dayKey } from "../model/routine";
+ export function useRoutine() {
+-  const [loaded] = useState(load);
++  const [loaded] = useState<ReturnType<typeof load>>(()=>{const v=load();return {...v,state:{...v.state,tasks:v.state.tasks.map(t=>({...t,liquidSince:t.liquidSince??Date.now()}))}};});
+   const [state, setState] = useState(loaded.state);
+   const [warning, setWarning] = useState(loaded.warning);
+   const [now, setNow] = useState(Date.now());
+diff --git a/src/model/bulkTasks.ts b/src/model/bulkTasks.ts
+new file mode 100644
+index 0000000..2524474
+--- /dev/null
++++ b/src/model/bulkTasks.ts
+@@ -0,0 +1,26 @@
++import {eventTarget} from "./eventDate";
++import {Task,RoutineMeta,dayKey,parseClock,validateTask,RIVERS} from './routine';
++const icons:Record<string,string>={'📖':'book','📚':'book','💻':'laptop','☕':'coffee','🍽':'utensils','🏃':'walk','🧘':'moon','🎵':'music','✈️':'plane','🎂':'cake'};
++function duration(s:unknown,fallback:number){if(typeof s==='number')return s;let v=String(s??'').trim();if(!v)return fallback;let h=v.match(/(\d+(?:\.\d+)?)\s*(?:h|小时)/i),m=v.match(/(\d+)\s*(?:m|min|分钟)/i);if(h||m)return Number(h?.[1]||0)*60+Number(m?.[1]||0);return Number(v);}
++export function parseTaskList(text:string,routine:RoutineMeta,options:{date?:string;start?:number;duration?:number}={}):Task[]{
++ if(text.length>5_000_000)throw new Error('输入超过 5 MB');const date=options.date??dayKey(),fallback=options.duration??30;let cursor=options.start??540;let source:unknown[];
++ if(/^\s*[\[{]/.test(text)){let v=JSON.parse(text);source=Array.isArray(v)?v:v.tasks;if(!Array.isArray(source))throw new Error('JSON 需要任务数组，或包含 tasks 数组的对象');}
++ else source=text.split(/\r?\n/).map(s=>s.trim().replace(/^\s*(?:[-*•]\s+|\d+[.)、]\s*)/, '')).filter(Boolean);
++ if(!source.length)throw new Error('请先写下一项活动');if(source.length>200)throw new Error('每次最多添加 200 项，请分批导入');
++ return source.map((entry,index)=>{let v:Record<string,unknown>;
++  if(typeof entry==='string'){
++   let line=entry.replace(/^\[[ xX]\]\s*/,''),dateToken=line.match(/\b(\d{4}[-.]\d{2}[-.]\d{2})\b/);
++   const range=line.match(/\b([01]?\d:[0-5]\d|2[0-3]:[0-5]\d)\s*[-–—~至]\s*([01]?\d:[0-5]\d|2[0-3]:[0-5]\d)\b/);
++   const time=line.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/),ampm=line.match(/\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b/i);
++   const span=line.match(/\d+(?:\.\d+)?\s*(?:小时|h)(?:\s*\d+\s*(?:分钟|min(?:ute)?s?|m))?|\d+\s*(?:分钟|min(?:ute)?s?|m)\b/i),color=line.match(/#[a-f0-9]{6}\b/i),iconKey=Object.keys(icons).find(i=>line.includes(i));
++   const start=range?range[1]:ampm?((Number(ampm[1])%12)+(ampm[3].toLowerCase()==='pm'?12:0))*60+Number(ampm[2]||0):time?.[0];
++   for(let token of [dateToken?.[0],range?.[0]||ampm?.[0]||time?.[0],span?.[0],color?.[0],iconKey])if(token)line=line.replace(token,'');
++   const fields=line.split('|').map(s=>s.trim()).filter(Boolean);v={title:fields[0],start,duration:range?parseClock(range[2])-parseClock(range[1]):span?.[0],targetDate:dateToken?.[0]?.replaceAll('.','-'),color:color?.[0],icon:iconKey?icons[iconKey]:undefined};
++  }else if(entry&&typeof entry==='object')v=entry as Record<string,unknown>;else throw new Error(`第 ${index+1} 项格式无效`);
++  let start=v.start!==undefined&&v.start!==''?(typeof v.start==='number'?v.start:parseClock(String(v.start))):cursor,minutes=duration(v.duration,fallback);if(routine.mode!=='timeline'){start=0;}cursor=start+minutes;
++  if(typeof v.title!=='string')throw new Error(`第 ${index+1} 项缺少有效标题`);
++  const title=v.title.trim();const inferredIcon=/阅读|学习|英语|read|study|learn/i.test(title)?'book':/运动|锻炼|健身|exercise|gym/i.test(title)?'dumbbell':/散步|walk/i.test(title)?'leaf':/工作|专注|work|focus/i.test(title)?'laptop':/睡|sleep/i.test(title)?'moon':/休息|break|rest/i.test(title)?'coffee':'sparkles';
++  const river=RIVERS.includes(v.river as never)?v.river as Task['river']:/阅读|学习|英语|read|study|learn/i.test(title)?'Learning':/工作|专注|work|focus/i.test(title)?'Work':/睡|休息|sleep|rest|break/i.test(title)?'Rest':'Life';let task:Task={id:crypto.randomUUID(),title,icon:String(v.icon||inferredIcon),river,start,duration:minutes,color:String(v.color||['#84b6e4','#a6d3be','#c4afe4','#e8b7ce'][index%4]),repeat:routine.mode!=='timeline',date,routine:routine.id,order:index,liquidSince:Date.now(),group:typeof v.group==='string'?v.group:'',targetDate:String(v.targetDate||date),isAnnual:v.isAnnual===true};
++  try{const valid=validateTask(task);if((routine.mode==="milestones"||routine.mode==="countdown")&&!eventTarget(valid))throw new Error("目标日期无效");return valid;}catch(e){throw new Error(`第 ${index+1} 项：${(e as Error).message}`);}
++ });
++}
+diff --git a/src/model/persistence.ts b/src/model/persistence.ts
+index 92653da..99a8585 100644
+--- a/src/model/persistence.ts
++++ b/src/model/persistence.ts
+@@ -1,3 +1,4 @@
++import { FONT_COLLECTIONS } from "./visualPresets";
+ import {
+   RoutineState,
+   initialState,
+@@ -88,7 +89,7 @@ export function decode(raw: string): RoutineState {
+       new Set(v.routines.map((r) => r.id)).size !== v.routines.length
+     )
+       throw new Error("日程分组无效");
+-    routines = v.routines.map((r) => ({ id: r.id, name: r.name.slice(0, 40), mode: r.mode }));
++    routines = v.routines.map((r) => ({ id: r.id, name: r.name.slice(0, 40), mode: r.mode, ...(FONT_COLLECTIONS.some(f=>f.id===r.fontStyle)?{fontStyle:r.fontStyle}:{}) }));
+   }
+   return {
+     version: 1,
+diff --git a/src/model/routine.ts b/src/model/routine.ts
+index ad80ca0..9cc13d9 100644
+--- a/src/model/routine.ts
++++ b/src/model/routine.ts
+@@ -21,6 +21,8 @@ export interface Task {
+   group: string;
+   /** Milestone / deadline date or countdown target date (e.g. "2026-11-10", "11.10.26") */
+   targetDate?: string;
++  /** Start of the current visual countdown, persisted independently of animation frames. */
++  liquidSince?: number;
+   /** Annual recurrence for countdowns (e.g. Christmas) */
+   isAnnual?: boolean;
+ }
+@@ -40,6 +42,7 @@ export interface RoutineMeta {
+   id: string;
+   name: string;
+   mode: RoutineMode;
++  fontStyle?: import("./visualPresets").FontStyle;
+ }
+ export interface RoutineState {
+   version: 1;
+@@ -552,6 +555,7 @@ export function validateTask(input: Task): Task {
+     (input.routine !== undefined &&
+       (typeof input.routine !== "string" || !input.routine || input.routine.length > 40)) ||
+     (input.order !== undefined && !Number.isFinite(input.order)) ||
++    (input.liquidSince !== undefined && (!Number.isFinite(input.liquidSince)||input.liquidSince<0)) ||
+     (input.targetDate !== undefined && typeof input.targetDate !== "string") ||
+     (input.isAnnual !== undefined && typeof input.isAnnual !== "boolean") ||
+     (input.days !== undefined &&
+diff --git a/src/model/schedule.ts b/src/model/schedule.ts
+index 10b7f00..b661160 100644
+--- a/src/model/schedule.ts
++++ b/src/model/schedule.ts
+@@ -5,6 +5,7 @@ import {
+   tasksForDay,
+   getRun,
+   elapsed,
++  currentRoutine, moduleTasks, milestoneTasks, countdownTasks,
+ } from "./routine";
+ export function scheduledAt(task: Task, date: string, end = false) {
+   const d = new Date(`${date}T00:00:00`);
+@@ -18,13 +19,14 @@ export function resolveSchedule(
+   now: number,
+   previewId: string | null = null,
+ ) {
+-  const tasks = tasksForDay(state, date),
+-    today = dayKey(new Date(now));
++  const flowMode=currentRoutine(state).mode,custom=flowMode!=="timeline";
++  const tasks = flowMode==="modules"?moduleTasks(state):flowMode==="milestones"?milestoneTasks(state):flowMode==="countdown"?countdownTasks(state,now):tasksForDay(state,date);
++  const today = dayKey(new Date(now));
+   const available = (t: Task) =>
+     !["completed", "skipped"].includes(getRun(state, t.id, date).status);
+   const running = tasks.find((t) => getRun(state, t.id, date).since !== null);
+   const live =
+-    date === today
++    date === today && !custom
+       ? tasks
+           .filter(
+             (t) =>
+@@ -39,15 +41,16 @@ export function resolveSchedule(
+     : date !== today
+       ? tasks.find(available)
+       : undefined;
+-  const active = preview || running || live;
++  const paused=tasks.find(t=>t.id===state.activeId&&getRun(state,t.id,date).status==="paused")||tasks.filter(t=>getRun(state,t.id,date).status==="paused").sort((a,b)=>(getRun(state,b.id,date).intervals.at(-1)?.end||0)-(getRun(state,a.id,date).intervals.at(-1)?.end||0))[0];
++  const active = preview || running || paused || live;
+   const mode = preview
+     ? "preview"
+     : running
+       ? "running"
+-      : live
++      : paused?"paused":live
+         ? "live"
+         : "free";
+-  const next = tasks
++  const next = custom?tasks.find((t,i)=>i>tasks.findIndex(x=>x.id===active?.id)&&t.id!==active?.id&&available(t)):tasks
+     .filter(
+       (t) => t.id !== active?.id && available(t) && scheduledAt(t, date) > now,
+     )
+diff --git a/src/model/visualPresets.ts b/src/model/visualPresets.ts
+new file mode 100644
+index 0000000..aea4f22
+--- /dev/null
++++ b/src/model/visualPresets.ts
+@@ -0,0 +1,17 @@
++export const COLOR_COLLECTIONS=[
++ {id:'apple',name:'Apple · 清新',colors:['#54c9eb','#849cf5','#c6a5ee','#65d6b4','#f6c996']},
++ {id:'macaron',name:'Macaron · 马卡龙',colors:['#a9dfd6','#b8c9f4','#d3b8e9','#edbed4','#f4d2ab']},
++ {id:'atelier',name:'Atelier · 典藏',colors:['#b9a785','#718f87','#919eb3','#ad8d99','#d2bcb1']},
++ {id:'vivid',name:'Vivid · 亮丽',colors:['#28cbd8','#6d7dea','#dc78b5','#ebad57','#67c5ad']},
++ {id:'crystal',name:'Crystal · 晶莹',colors:['#a1dbe8','#b0caf2','#c4bce8','#e2c6e3','#abe3d7']},
++ {id:'orchard',name:'Orchard · 果园',colors:['#97c7a8','#d7d394','#e6b49b','#b6b2dc','#9acbd8']},
++] as const;
++export const FONT_COLLECTIONS=[
++ {id:'system',name:'Apple · 简洁',family:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif'},
++ {id:'rounded',name:'Rounded · 圆润',family:'"Avenir Next",Avenir,ui-rounded,sans-serif'},
++ {id:'elegant',name:'Elegant · 典雅',family:'Cochin,"Baskerville",Georgia,"Songti SC",serif'},
++ {id:'script',name:'Script · 花体',family:'"Snell Roundhand","Apple Chancery","Segoe Script","STKaiti","Kaiti SC",KaiTi,cursive'},
++ {id:'editorial',name:'Editorial · 书卷',family:'Palatino,"Iowan Old Style",Georgia,"Songti SC",serif'},
++] as const;
++export type FontStyle=typeof FONT_COLLECTIONS[number]['id'];
++export function randomChoice<T>(values:readonly T[],previous?:T):T{const choices=values.filter(v=>v!==previous);return choices[Math.floor(Math.random()*choices.length)]??values[0];}
+diff --git a/src/styles.css b/src/styles.css
+index ccbc7c1..e988686 100644
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -6815,3 +6815,47 @@ h1 {
+ .app.midnight-classic:not(.daylight-glass) .date-preview-badge small { color:#9baac0; }
+ /* Group membership stays in data; no decorative dashed connectors over the flow. */
+ .app .group-bridge { display:none; }
++
++/* Live editing shares the canvas; a draft is never persisted before Save. */
++.app .live-editor-backdrop,.app .studio-backdrop { position:fixed;inset:0;z-index:70;display:flex;align-items:flex-end;justify-content:center;padding:12px;box-sizing:border-box;pointer-events:none;background:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important; }
++.app .live-editor-backdrop .modal,.app .studio-backdrop .modal { pointer-events:auto;width:min(640px,100%);box-sizing:border-box;margin:0;max-height:55dvh;overflow:auto;overscroll-behavior:contain;border-radius:22px;background:#f7f9fcf5;color:#23344b;border:1px solid #c4d5e4;box-shadow:0 12px 48px #23344b24;padding:22px; }
++.app .studio-backdrop .modal {max-height:68dvh;}
++.app.midnight-classic:not(.daylight-glass) .live-editor-backdrop .modal,.app.midnight-classic:not(.daylight-glass) .studio-backdrop .modal {background:#142039f5;color:#e6eef9;border-color:#384c67;}
++.app .studio-backdrop h3 {font-size:13px;margin:12px 0;}
++.app .studio-backdrop p {font-size:12px;line-height:1.6;color:#65778f;}
++.studio-section-title {display:flex;justify-content:space-between;align-items:center;gap:10px;}
++.studio-section-title button {display:flex;align-items:center;gap:6px;background:none;border:0;color:inherit;font:inherit;font-size:12px;cursor:pointer;padding:8px;}
++.palette-collection {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
++.palette-collection>button,.font-collection>button {background:#ffffff99;border:1px solid #b7cbdd66;color:inherit;border-radius:12px;padding:12px 8px;display:flex;flex-direction:column;gap:8px;font:inherit;font-size:11px;cursor:pointer;}
++.studio-swatches {display:flex;width:100%;height:27px;border-radius:7px;overflow:hidden;}
++.studio-swatches i {flex:1;}
++.font-collection {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
++.font-collection strong {font-size:19px;font-weight:500;}.font-collection>button[aria-pressed=true]{outline:2px solid #7b9cbc;outline-offset:-2px;}
++.app .studio-backdrop .studio-note {font-size:11px;margin:14px 0 0;opacity:.8;}
++.app.midnight-classic:not(.daylight-glass) .palette-collection>button,.app.midnight-classic:not(.daylight-glass) .font-collection>button {background:#23334a;}
++.bulk-editor textarea {resize:vertical;min-height:100px;width:100%;box-sizing:border-box;padding:12px;border:1px solid #bfd2e3;border-radius:10px;font:13px/1.6 ui-monospace,monospace;color:#23344b;background:#fff;}
++.bulk-file {position:relative;display:flex!important;align-items:center;gap:8px!important;flex-direction:row!important;cursor:pointer;padding:8px 0;}
++.bulk-file input {font-size:11px;min-width:0;max-width:220px;}
++.bulk-preview {padding:0;margin:10px 0 18px;list-style:none;max-height:160px;overflow:auto;}
++.bulk-preview li {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #b3c4d733;font-size:12px;}
++.bulk-preview strong {font-weight:550;}.bulk-preview span {white-space:nowrap;font-size:11px;color:#65778f;}
++.app .river-task .task-label .quick-title,.app .river-task .task-label .event-countdown strong {font-family:var(--routine-font,-apple-system,BlinkMacSystemFont,sans-serif)!important;}
++.task-volume-shell {pointer-events:none;}.liquid-meniscus {color:#92b7c9;pointer-events:none;}
++.module-flow-actions {grid-column:1/-1;display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;}
++.module-flow-actions button {border:1px solid #8ea9c24d;background:#ffffff80;color:inherit;border-radius:18px;padding:6px 10px;font-family:inherit;font-size:11px;line-height:1.2;cursor:pointer;}
++.module-flow-actions span {font-size:9px!important;opacity:.55;}
++.app .is-reordering .task-label {opacity:1!important;}.app .is-reordering .quick-title {color:#477cab;}
++@media(max-width:520px){.palette-collection,.font-collection{grid-template-columns:repeat(2,minmax(0,1fr));}.app .live-editor-backdrop .modal,.app .studio-backdrop .modal{padding:18px;max-height:53dvh;}.app .studio-backdrop .modal{max-height:65dvh;}}
++
++.app.immersive.has-live-editor .chamber-scroll {height:calc(100dvh - var(--live-editor-height,55dvh))!important;min-height:0!important;}
++.app.immersive.has-studio .chamber-scroll {height:calc(100dvh - var(--live-editor-height,68dvh))!important;min-height:0!important;}
++
++.app .task-liquid-status {grid-column:2;font-size:10px!important;opacity:.65!important;line-height:1.4;white-space:nowrap;}
++
++.quick-sections {display:flex;gap:6px;margin:0 0 16px;flex-wrap:wrap;}
++.quick-sections button {display:flex;gap:5px;align-items:center;border:1px solid #b4c9dd66;border-radius:18px;background:transparent;padding:7px 10px;color:inherit;font-family:inherit;font-size:11px;cursor:pointer;}
++.quick-sections button[aria-pressed=true] {background:#c8e1f055;border-color:#8aacc9;}
++.app .live-editor-backdrop .quick-editor .quick-icon-list {max-height:155px;overflow:auto;}
++.app .live-editor-backdrop .modal footer {position:sticky;bottom:-1px;background:inherit;padding:10px 0 0;z-index:2;}
++.app .studio-backdrop .modal>header,.app .live-editor-backdrop .modal>header {position:sticky;top:-22px;z-index:4;background:inherit;padding:6px 0 10px;}
++@media(max-width:520px){.app .studio-backdrop .modal>header,.app .live-editor-backdrop .modal>header{top:-18px;}}
+diff --git a/tests/bulkTasks.test.ts b/tests/bulkTasks.test.ts
+new file mode 100644
+index 0000000..646d489
+--- /dev/null
++++ b/tests/bulkTasks.test.ts
+@@ -0,0 +1,7 @@
++import {test} from 'node:test';import assert from 'node:assert/strict';import {parseTaskList} from '../src/model/bulkTasks';import {initialState} from '../src/model/routine';import {decode} from '../src/model/persistence';
++const r={id:'test',name:'test',mode:'timeline' as const};
++test('a simple list schedules consecutive activities with mixed duration and explicit time',()=>{let v=parseTaskList('09:00 阅读 30min 📖\n- Work 1h\n• Walk 45min',r,{date:'2026-11-09'});assert.deepEqual(v.map(t=>t.start),[540,570,630]);assert.deepEqual(v.map(t=>t.duration),[30,60,45]);assert.equal(v[0].icon,'book');assert.equal(v[0].title,'阅读');});
++test('JSON task array appends with fresh IDs and validates malformed input',()=>{let a=parseTaskList('[{"id":"old","title":"Read","start":"10:00","duration":45}]',r);assert.equal(a[0].start,600);assert.notEqual(a[0].id,'old');assert.throws(()=>parseTaskList('[{"title":"Bad","duration":-1}]',r));assert.throws(()=>parseTaskList('{"tasks":"no"}',r));});
++test('routine font choice persists with the task data',()=>{let s=initialState();s.routines=[{...r,fontStyle:'script'}];s.currentRoutine='test';assert.equal(decode(JSON.stringify(s)).routines?.[0].fontStyle,'script');});
++test('time ranges, checklist lines, Chinese durations and AM/PM are parsed without leaving tokens in titles',()=>{let rows=parseTaskList('- [ ] 09:00–10:30 阅读\n10:30 工作 1小时30分钟\n2pm Walk 15 minutes',r);assert.deepEqual(rows.map(t=>t.title),['阅读','工作','Walk']);assert.deepEqual(rows.map(t=>t.duration),[90,90,15]);assert.equal(rows[2].start,840);});
++test('module durations are preserved, never silently clamped; malformed dates are rejected',()=>{let modules={...r,mode:'modules' as const};assert.equal(parseTaskList('[{"title":"Long session","duration":300}]',modules)[0].duration,300);assert.throws(()=>parseTaskList('[{"title":"Bad","duration":-2}]',modules));assert.throws(()=>parseTaskList('[{"title":"Bad date","targetDate":"2026-02-31"}]',{...r,mode:'countdown'}));});
+diff --git a/tests/liquidVolume.test.ts b/tests/liquidVolume.test.ts
+new file mode 100644
+index 0000000..3d882b2
+--- /dev/null
++++ b/tests/liquidVolume.test.ts
+@@ -0,0 +1,12 @@
++import {test} from 'node:test';import assert from 'node:assert/strict';
++import {remainingLiquid,VolumeTransition,volumeSurface} from '../src/engine/LiquidVolume';
++import {initialState,transition} from '../src/model/routine';import {BezierEngine} from '../src/engine/BezierEngine';import {timelineRange} from '../src/engine/TimelineLayoutEngine';
++test('volume uses elapsed seconds, freezes when paused and completes to clear',()=>{let s=initialState('2026-11-09'),t=s.tasks[0],now=new Date('2026-11-09T08:00:00').getTime();s=transition(s,t.id,'2026-11-09','start',now);let p=remainingLiquid(t,s,'2026-11-09',now+t.duration*30000,'modules');assert(Math.abs(p-.5)<.001);s=transition(s,t.id,'2026-11-09','pause',now+t.duration*30000);assert.equal(remainingLiquid(t,s,'2026-11-09',now+t.duration*60000,'modules'),p);s=transition(s,t.id,'2026-11-09','complete',now+t.duration*60000);assert.equal(remainingLiquid(t,s,'2026-11-09',now,'modules'),0);});
++test('planned modules retain full liquid instead of using their synthetic timeline coordinates',()=>{let s=initialState('2026-11-09');assert.equal(remainingLiquid(s.tasks[0],s,'2026-11-09',new Date('2026-11-09T23:00:00').getTime(),'modules'),1);});
++test('completion transition smoothly drains and reduced motion finishes immediately',()=>{let v=new VolumeTransition();v.target('a',1,0);v.target('a',0,10);assert(v.value('a',385)>.49&&v.value('a',385)<.51);assert.equal(v.value('a',760),0);v.target('b',1,0);v.target('b',0,10,true);assert.equal(v.value('b',10),0);});
++test('volume surface follows real curved region and moves monotonically as volume decreases',()=>{let s=initialState('2026-11-09'),g=new BezierEngine();g.range=timelineRange(s.tasks);let t=s.tasks[0],full=volumeSurface(t,g,500,1),half=volumeSurface(t,g,500,.5),empty=volumeSurface(t,g,500,0);assert(full.level<half.level);assert(half.level<empty.level);});
++import {resolveSchedule} from '../src/model/schedule';
++test('module mode starts manually and selects next by chosen order, not simulated hours',()=>{let s=initialState('2026-11-09');s.routines=[{id:'main',name:'Modules',mode:'modules'}];s.tasks=s.tasks.map((t,i)=>({...t,order:s.tasks.length-i}));let result=resolveSchedule(s,'2026-11-09',new Date('2026-11-09T08:15:00').getTime());assert.equal(result.active,undefined);assert.equal(result.next?.id,s.tasks.at(-1)?.id);});
++test('pausing a module keeps its focus and its exact volume as wall time moves on',()=>{let s=initialState('2026-11-09');s.routines=[{id:'main',name:'Modules',mode:'modules'}];const t=s.tasks[0],now=new Date('2026-11-09T08:00:00').getTime();s=transition(s,t.id,'2026-11-09','start',now);s=transition(s,t.id,'2026-11-09','pause',now+60000);assert.equal(resolveSchedule(s,'2026-11-09',now+300000).active?.id,t.id);assert.equal(resolveSchedule(s,'2026-11-09',now+300000).mode,'paused');assert.equal(remainingLiquid(t,s,'2026-11-09',now+300000,'modules'),remainingLiquid(t,s,'2026-11-09',now+900000,'modules'));});
++test('starting late never refills the liquid and matches the Focus capsule normalization',()=>{let s=initialState('2026-11-09'),t=s.tasks[0];let begin=new Date('2026-11-09T08:00:00').getTime(),now=begin+t.duration*30000;s=transition(s,t.id,'2026-11-09','start',now,{alignToPlan:true});assert(Math.abs(remainingLiquid(t,s,'2026-11-09',now,'timeline')-.5)<.001);});
++test('annual countdowns refill for their new cycle rather than slowly disappearing across years',()=>{let s=initialState('2026-11-09'),t={...s.tasks[0],targetDate:'2026-12-25',isAnnual:true,liquidSince:new Date('2026-11-09T00:00:00').getTime()};assert(remainingLiquid(t,s,'2026-12-26',new Date('2026-12-26T00:00:00').getTime(),'countdown')>.99);});
+-- 
+2.54.0 (Apple Git-157)
+
