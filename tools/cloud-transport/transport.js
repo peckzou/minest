@@ -1,0 +1,32 @@
+/* Bounded first-party Firebase transport for Mac browsers. No credentials are persisted here. */
+(function(){
+'use strict';
+var mac=/Macintosh|MacIntel/.test(navigator.userAgent+' '+navigator.platform)&&!(navigator.maxTouchPoints>1);
+function failure(code,message){return Object.assign(new Error(message),{code:code});}
+function context(ref,user){var current=firebase.auth().currentUser;if(!current||!user||current.uid!==user.uid||!new RegExp('^users/'+user.uid.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'/focusboard/(data|teaching|sync-history-v1)$').test(ref.path||''))throw failure('sync/account-changed','同步账号已改变，本地修改已保留');var project=ref.firestore.app.options.projectId;if(!project)throw failure('sync/project-missing','缺少 Firebase 项目配置');return 'projects/'+project+'/databases/(default)';}
+function field(k){return '`'+k.replace(/\\/g,'\\\\').replace(/`/g,'\\`')+'`';}
+function serialize(payload,merge){var fields={},mask=[],transforms=[];var FV=firebase.firestore.FieldValue;
+ function sentinel(v,method){try{return v&&typeof v.isEqual==='function'&&v.isEqual(FV[method]());}catch(e){return false;}}
+ function encode(v,path,masked){
+  if(sentinel(v,'serverTimestamp')){transforms.push({fieldPath:path,setToServerValue:'REQUEST_TIME'});return undefined;}
+  if(sentinel(v,'delete')){if(!merge)throw failure('sync/invalid-delete','删除字段需要合并写入');mask.push(path);return undefined;}
+  if(masked)mask.push(path);
+  if(v===null)return {nullValue:null};if(typeof v==='string')return {stringValue:v};if(typeof v==='boolean')return {booleanValue:v};if(typeof v==='number'&&Number.isFinite(v))return Number.isSafeInteger(v)?{integerValue:String(v)}:{doubleValue:v};
+  if(v instanceof Date)return {timestampValue:v.toISOString()};if(v&&typeof v.toDate==='function')return {timestampValue:v.toDate().toISOString()};
+  if(Array.isArray(v))return {arrayValue:{values:v.map(function(x){var encoded=encode(x,'',false);if(!encoded)throw failure('sync/invalid-value','数组包含不支持的云端字段');return encoded;})}};
+  if(v&&typeof v==='object'){var keys=Object.keys(v),out={};if(!keys.length)return {mapValue:{fields:{}}};keys.forEach(function(k){var x=encode(v[k],path?path+'.'+field(k):field(k),false);if(x!==undefined)out[k]=x;});return {mapValue:{fields:out}};}
+  throw failure('sync/invalid-value','上传包含不支持的数据类型，本地修改已保留');
+ }
+ function walk(obj,prefix,target){Object.keys(obj).forEach(function(k){var p=prefix?prefix+'.'+field(k):field(k),v=obj[k];var plain=v&&typeof v==='object'&&!Array.isArray(v)&&(Object.getPrototypeOf(v)===null||Object.getPrototypeOf(v).constructor&&Object.getPrototypeOf(v).constructor.name==='Object')&&Object.keys(v).length;
+  if(merge&&plain){var nested={};walk(v,p,nested);target[k]={mapValue:{fields:nested}};}else{var x=encode(v,p,merge);if(x!==undefined)target[k]=x;}
+ });}
+ walk(payload,'',fields);return {fields:fields,mask:mask,transforms:transforms};
+}
+async function request(user,url,options){var ctl=new AbortController(),timer,timeout=new Promise(function(_,reject){timer=setTimeout(function(){ctl.abort();reject(failure('sync/timeout','云端连接超时，修改保留在本机，可重试'));},15000);});try{return await Promise.race([timeout,(async function(){var token=await user.getIdToken();if(ctl.signal.aborted)throw failure('sync/timeout','云端连接超时');if(!firebase.auth().currentUser||firebase.auth().currentUser.uid!==user.uid)throw failure('sync/account-changed','同步账号已改变');var r=await fetch(url,Object.assign({},options,{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},cache:'no-store',signal:ctl.signal}));var body=await r.json().catch(function(){return {};});if(!firebase.auth().currentUser||firebase.auth().currentUser.uid!==user.uid)throw failure('sync/account-changed','同步账号已改变');if(!r.ok)throw failure('sync/http-'+r.status,'云端拒绝请求（'+r.status+'）'+(body.error&&body.error.status?' · '+body.error.status:''));return body;})()]);}finally{clearTimeout(timer);}}
+async function commit(ref,payload,options){var user=firebase.auth().currentUser,base=context(ref,user),packed=serialize(payload,!!(options&&options.merge));var w={update:{name:base+'/documents/'+ref.path,fields:packed.fields}};if(options&&options.merge)w.updateMask={fieldPaths:packed.mask};if(packed.transforms.length)w.updateTransforms=packed.transforms;var body=await request(user,'https://firestore.googleapis.com/v1/'+base+'/documents:commit',{method:'POST',body:JSON.stringify({writes:[w]})});if(!body.writeResults||!body.writeResults[0]||!body.writeResults[0].updateTime)throw failure('sync/no-ack','服务器未返回写入确认');return {updateTime:body.writeResults[0].updateTime};}
+var pending=new Map();
+function write(ref,payload,options){var user=firebase.auth().currentUser;try{context(ref,user);}catch(e){return Promise.reject(e);}var key=ref.path,prior=pending.get(key)||Promise.resolve();var job=prior.catch(function(){}).then(function(){if(!firebase.auth().currentUser||firebase.auth().currentUser.uid!==user.uid)throw failure('sync/account-changed','同步账号已改变');return commit(ref,payload,options);});pending.set(key,job);job.then(clean,clean);function clean(){if(pending.get(key)===job)pending.delete(key);}return job;}
+function decode(v){if('nullValue'in v)return null;if('stringValue'in v)return v.stringValue;if('integerValue'in v)return Number(v.integerValue);if('doubleValue'in v)return v.doubleValue;if('booleanValue'in v)return v.booleanValue;if('timestampValue'in v)return v.timestampValue;if(v.arrayValue)return(v.arrayValue.values||[]).map(decode);if(v.mapValue){var o={};Object.keys(v.mapValue.fields||{}).forEach(function(k){Object.defineProperty(o,k,{value:decode(v.mapValue.fields[k]),enumerable:true});});return o;}throw failure('sync/invalid-response','云端字段无法读取');}
+async function read(ref){var user=firebase.auth().currentUser,base=context(ref,user),body;try{body=await request(user,'https://firestore.googleapis.com/v1/'+base+'/documents/'+ref.path,{method:'GET'});}catch(e){if(e.code==='sync/http-404')return {exists:false,metadata:{fromCache:false,hasPendingWrites:false},data:function(){return null;}};throw e;}var data=decode({mapValue:{fields:body.fields||{}}});return {exists:true,metadata:{fromCache:false,hasPendingWrites:false},data:function(){return data;}};}
+window.MinestCloudTransport={mac:mac,write:write,read:read,serialize:serialize,version:'1.0.0'};
+})();

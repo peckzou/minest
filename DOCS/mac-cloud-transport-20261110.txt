@@ -1,0 +1,19 @@
+Mac browser cloud transport repair — 2026-11-10
+Base: 9bcf9b7. Routine source and UI unchanged.
+Mac browser managed data/teaching/history writes now use the existing Firebase
+project's official Firestore REST commit API with the signed-in user's ID token.
+Security rules and account ownership remain enforced. No new service/dependency.
+Each token+HTTP operation has a 15-second timeout; only a server updateTime is
+accepted as ACK. Writes serialize per document and failures do not block later
+jobs. Sign-out/account changes reject late responses. Existing local data and
+pending flags remain intact on errors. No force push, pull, reset, or sign-out.
+Mac managed snapshot reads poll the server while visible, resume on online and
+visibility, stop on unsubscription; no SDK pending-write echo can count as ACK.
+Non-Mac clients keep their existing Firebase SDK path. Journal uses same path.
+17 automated tests, including hung tokens/requests, denial, missing ACK, account
+switch, server reads, merge masks, serialized writes and recovery; script syntax
+checked for iphone and both desktop entries. Real authenticated two-device
+verification remains pending: Safari had no available window during this run.
+Official references:
+https://firebase.google.com/docs/firestore/use-rest-api
+https://firebase.google.com/docs/firestore/reference/rest/v1/projects.databases.documents/commit
