@@ -1,0 +1,6 @@
+const {test}=require('node:test'),a=require('node:assert/strict'),merge=require('../../tools/routine/cloud-merge.js');
+function s(tasks,routines=[{id:'main',mode:'timeline'}]){return {version:1,tasks,routines,runs:{},activeId:null};}
+test('new Mac routine and activity survive a later phone save',()=>{let m=s([{id:'mac',title:'Yesterday'}],[{id:'main'},{id:'mac-tab',mode:'modules'}]),p=s([{id:'phone'}]);let out=merge(m,1,p,2);a.equal(out.tasks.length,2);a.ok(out.routines.some(r=>r.id==='mac-tab'));});
+test('known deletion is retained, independently added task survives',()=>{let b=s([{id:'a',title:'old'}]);let out=merge(s([{id:'new'}]),3,b,2,b);a.deepEqual(out.tasks.map(t=>t.id),['new']);});
+test('changed entity wins over newer unrelated snapshot',()=>{let b=s([{id:'a',title:'old'}]),l=s([{id:'a',title:'edited'}]);a.equal(merge(l,1,b,2,b).tasks[0].title,'edited');});
+test('concurrent edits use newer side and enforce one running timer',()=>{let l=s([{id:'a',title:'L'},{id:'b'}]),r=s([{id:'a',title:'R'},{id:'b'}]);l.runs.x={taskId:'a',date:'today',intervals:[],since:1,status:'running'};r.runs.y={taskId:'b',date:'today',intervals:[],since:2,status:'running'};let o=merge(l,1,r,2);a.equal(o.tasks[0].title,'R');a.equal(Object.values(o.runs).filter(r=>r.since!==null).length,1);});

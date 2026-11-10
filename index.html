@@ -120,7 +120,7 @@ function render(){if(!ui||!ui.open)return;var scroll=ui.querySelector('.ms-body'
  ui.querySelector('.ms-body').scrollTop=scroll;if(focus){var el=ui.querySelector('[data-ms-filter="'+focus+'"]');if(el)el.focus({preventScroll:true});}}
 function close(){if(!ui)return;ui.close();ui.remove();ui=null;if(returnFocus&&returnFocus.isConnected)returnFocus.focus({preventScroll:true});}
 function open(options){accountAction=options&&options.account||accountAction;if(ui){ui.focus();return;}returnFocus=document.activeElement;scan();ui=document.createElement('dialog');ui.id='minest-sync-management';ui.setAttribute('aria-labelledby','ms-title');ui.className=document.body.classList.contains('theme-dark')?'ms-dark':'';document.body.appendChild(ui);ui.addEventListener('cancel',function(e){e.preventDefault();close();});ui.addEventListener('click',function(e){var b=e.target.closest('[data-ms]');if(!b)return;var a=b.getAttribute('data-ms');if(a==='close')close();if(a==='account'){close();if(accountAction)accountAction();}if(a==='category'){filter.category=b.getAttribute('data-category');render();ui.querySelector('.ms-filters').scrollIntoView({block:'start',behavior:'smooth'});}if(a==='export'){var data={schema:1,exportedAt:new Date().toISOString(),currentDevice:device,scope:'metadata-only',devices:devices()},blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='minest-sync-records-'+new Date().toISOString().slice(0,10)+'.json';link.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);}if(a==='sync')sync();});ui.addEventListener('change',function(e){var k=e.target.getAttribute('data-ms-filter');if(k){filter[k]=e.target.value;render();}});ui.showModal();render();}
-function sync(){if(busy||!uid)return;busy=true;message='正在核对四类数据的云端版本…';render();var owner=uid;var check=db.collection('users').doc(owner).collection('focusboard');var jobs=['data','teaching'].map(function(id){return check.doc(id).get({source:'server'}).then(function(d){observe(d,owner);});});if(window.minestCloudSyncNow)jobs.push(window.minestCloudSyncNow());Promise.allSettled(jobs).then(function(results){if(owner!==uid)return;var failed=results.filter(function(r){return r.status==='rejected';});message=failed.length?'部分核对失败，请检查网络或账号权限；本地数据未覆盖。':'已向服务器核对版本。未上传的教师词表仍需在教师端点击“同步到云端”；这里不会强制覆盖云端。';publish();}).finally(function(){busy=false;render();});}
+function sync(){if(busy||!uid)return;busy=true;message='正在核对四类数据的云端版本…';render();var owner=uid;if(engine.status('boards')==='pending'){window.dispatchEvent(new CustomEvent('minest:cloud-dirty',{detail:{immediate:true,domain:'boards'}}));}var check=db.collection('users').doc(owner).collection('focusboard');var jobs=['data','teaching'].map(function(id){return managedRef(check.doc(id)).get({source:'server'}).then(function(d){observe(d,owner);});});if(window.minestCloudSyncNow)jobs.push(window.minestCloudSyncNow());Promise.allSettled(jobs).then(function(results){if(owner!==uid)return;var failed=results.filter(function(r){return r.status==='rejected';});message=failed.length?'部分核对失败，请检查网络或账号权限；本地数据未覆盖。':'已向服务器核对版本。未上传的教师词表仍需在教师端点击“同步到云端”；这里不会强制覆盖云端。';publish();}).finally(function(){busy=false;render();});}
 window.MinestSyncManagement={open:open,close:close,ref:managedRef,write:write,observe:function(d,owner){observe(d,owner||uid);},scan:scan,version:'1.0.0'};
 var authStarted=false;function boot(){if(authStarted)return;try{var f=window.firebase;if(f&&f.apps&&f.apps.length&&f.auth&&f.firestore){authStarted=true;f.auth().onAuthStateChanged(function(u){setAccount(u,f.firestore());});}}catch(e){authStarted=false;}}
 engine.account(null);setInterval(function(){boot();if(!document.hidden)scan();},4000);window.addEventListener('minest:cloud-dirty',function(){setTimeout(scan,0);});window.addEventListener('storage',function(e){if(e.key&&/^(liquid-routine|minest\.knowledge|minest\.teaching)/.test(e.key))scan();});window.addEventListener('online',function(){boot();schedulePublish();render();});window.addEventListener('offline',render);document.addEventListener('visibilitychange',function(){if(!document.hidden){scan();schedulePublish();}});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
@@ -85791,7 +85791,7 @@ var Be = function() {
     var gptNow = function() { if (!gptT) return; clearTimeout(gptT); gptT = null; minestCloudDirty(); kick(); };
     var hide = function() { gptNow(); if (cloudFlushRef.current) { var p = cloudFlushRef.current(); if (p) p.catch(function() {}); } };
     var vis = function() { if (document.visibilityState === 'hidden') hide(); };
-    var gpt = function() { if (!gptT) gptT = setTimeout(gptNow, 20000); };
+    var gpt = function(e) { if(e&&e.detail&&e.detail.immediate){minestCloudDirty();kick();return;} if (!gptT) gptT = setTimeout(gptNow, 20000); };
     document.addEventListener('visibilitychange', vis);
     window.addEventListener('pagehide', hide);
     window.addEventListener('online', kick);
@@ -174682,6 +174682,14 @@ void main(){
 .lr-root { min-height: 100%; }
 `,n.appendChild(r);let i=document.createElement(`div`);i.className=`lr-root`,n.appendChild(i);let a=document.documentElement;ng=a.style.colorScheme,rg=a.classList.contains(`reduce-motion`);let o=()=>i.classList.toggle(`reduce-motion`,a.classList.contains(`reduce-motion`));tg=new MutationObserver(o),tg.observe(a,{attributes:!0,attributeFilter:[`class`]}),o(),eg=(0,Lt.createRoot)(i),eg.render((0,q.jsx)(C.StrictMode,{children:(0,q.jsx)(Qh,{children:(0,q.jsx)(Zh,{})})}))}function og(){eg?.unmount(),eg=null,tg?.disconnect(),tg=null;let e=document.documentElement;e.style.colorScheme=ng,e.classList.toggle(`reduce-motion`,rg)}window.MinestRoutineApp={mount:ag,unmount:og,applyExternal:ci,version:`4.27.0`}})();
 </script>
+<script id="mn-routine-cloud-merge">/* Entity-level three-way merge: independent creations survive a newer save elsewhere. */
+(function(root){'use strict';function same(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+function rows(base,local,remote,newerRemote){var B=new Map((base||[]).map(x=>[x.id,x])),L=new Map((local||[]).map(x=>[x.id,x])),R=new Map((remote||[]).map(x=>[x.id,x]));var ids=Array.from(new Set([...(newerRemote?R:L).keys(),...(newerRemote?L:R).keys()]));return ids.flatMap(function(id){var b=B.get(id),l=L.get(id),r=R.get(id);if(!l&&!r)return [];if(!l)return b&&same(b,r)?[]:[r];if(!r)return b&&same(b,l)?[]:[l];if(same(l,r))return[l];if(b&&same(l,b))return[r];if(b&&same(r,b))return[l];return[newerRemote?r:l];});}
+function merge(local,lat,remote,rat,base){if(!local||local.version!==1)return remote;if(!remote||remote.version!==1)return local;var nr=(rat||0)>(lat||0),newer=nr?remote:local;var tasks=rows(base&&base.tasks,local.tasks,remote.tasks,nr),routines=rows(base&&base.routines,local.routines,remote.routines,nr),ids=new Set(tasks.map(t=>t.id)),runs={};function rank(r){return r?({completed:4,skipped:3,running:2,paused:2,planned:1}[r.status]||0)*1e9+(r.elapsed||0)+(r.since?1:0):-1;}
+[local.runs||{},remote.runs||{}].forEach(R=>Object.keys(R).forEach(k=>{var r=R[k];if(r&&ids.has(r.taskId)&&typeof r.date==='string'&&Array.isArray(r.intervals)&&rank(r)>rank(runs[k]))runs[k]=r;}));var live=Object.keys(runs).filter(k=>runs[k].since!==null);if(live.length>1){var keep=live.find(k=>(newer.runs||{})[k]&&newer.runs[k].since!==null)||live[0];live.forEach(k=>{if(k!==keep)runs[k]=Object.assign({},runs[k],{since:null,status:'paused'});});}
+var out=Object.assign({},newer,{tasks:tasks,runs:runs,activeId:ids.has(newer.activeId)?newer.activeId:tasks[0]&&tasks[0].id||null});if(routines.length){out.routines=routines;out.currentRoutine=routines.some(r=>r.id===newer.currentRoutine)?newer.currentRoutine:routines[0].id;}return out;}
+if(typeof module==='object'&&module.exports)module.exports=merge;else root.MinestRoutineMerge=merge;})(typeof window!=='undefined'?window:this);
+</script>
 <script id="mn-routine-run">
 /* 💧 MinestRoutine — Liquid Routine as a Minest module (tools/routine/patch_routine.py) */
 (function () {
@@ -174689,7 +174697,7 @@ void main(){
   var KEY = 'liquid-routine.v1', AT = 'liquid-routine.savedAt', ov = null, booted = false, last = null;
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function put(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-  function dirty() { try { window.dispatchEvent(new Event('minest:cloud-dirty')); } catch (e) {} }   // Minest's cloud save picks it up
+  function dirty() { try { window.dispatchEvent(new CustomEvent('minest:cloud-dirty',{detail:{immediate:true,domain:'routine'}})); } catch (e) {} }   // Routine changes enter the upload queue immediately
   var store = { get: function () { return get(KEY); }, set: function (raw) { if (raw === last) return; last = raw; put(KEY, raw); put(AT, String(Date.now())); dirty(); } };
   function boot() { if (booted) return; booted = true; var t = document.getElementById('mn-routine-src'), s = document.createElement('script'); s.textContent = t ? t.textContent : ''; document.body.appendChild(s); }
   function open() {
@@ -174707,24 +174715,17 @@ void main(){
   function close() { if (!ov || ov.hidden) return; try { MinestRoutineApp.unmount(); } catch (e) {} ov.hidden = true; document.documentElement.classList.remove('mn-routine-on'); }
   // ---- the cloud copy
   function rank(r) { return r ? ({ completed: 4, skipped: 3, running: 2, paused: 2, planned: 1 }[r.status] || 0) * 1e9 + (r.elapsed || 0) + (r.since ? 1 : 0) : -1; }
-  function merge(local, lat, rem, rat) {
-    if (!local || local.version !== 1) return rem; if (!rem || rem.version !== 1) return local;
-    var newer = (rat || 0) > (lat || 0) ? rem : local, runs = {};
-    [local.runs || {}, rem.runs || {}].forEach(function (R) { Object.keys(R).forEach(function (k) { var r = R[k]; if (r && typeof r.taskId === 'string' && typeof r.date === 'string' && Array.isArray(r.intervals) && rank(r) > rank(runs[k])) runs[k] = r; });   /* a malformed record never reaches the routine */ });
-    var live = Object.keys(runs).filter(function (k) { return runs[k].since !== null; });
-    if (live.length > 1) { var keep = live.filter(function (k) { return (newer.runs || {})[k] && newer.runs[k].since !== null; })[0] || live[0];   // one running timer: the newer side's
-      live.forEach(function (k) { if (k !== keep) { var r = Object.assign({}, runs[k]); r.since = null; r.status = 'paused'; runs[k] = r; } }); }
-    // the newer side's whole record (its tabs / routines and their modes ride along), with the merged runs
-    return Object.assign({}, newer, { version: 1, tasks: newer.tasks, runs: runs, activeId: newer.activeId });
-  }
+  function merge(local, lat, rem, rat) { var base=null;try{base=JSON.parse(get('liquid-routine.cloud-base.v1')||'null');}catch(e){}return window.MinestRoutineMerge(local,lat,rem,rat,base); }
   function cloud() { var raw = get(KEY); if (!raw) return null; try { return { v: 1, at: +get(AT) || 0, state: JSON.parse(raw) }; } catch (e) { return null; } }
   function mergeCloud(remote) {
     if (!remote || !remote.state) return; var raw = get(KEY), local = null; try { local = raw ? JSON.parse(raw) : null; } catch (e) {}
     var lat = +get(AT) || 0, merged = merge(local, lat, remote.state, remote.at), out = JSON.stringify(merged);
     if (out !== raw) {
+      if(raw){try{var backups=JSON.parse(get('liquid-routine.recovery.v1')||'[]');backups.push({at:Date.now(),state:JSON.parse(raw)});put('liquid-routine.recovery.v1',JSON.stringify(backups.slice(-8)));}catch(e){}}
       put(KEY, out); put(AT, String(Math.max(lat, remote.at || 0))); last = out;
       if (ov && !ov.hidden && window.MinestRoutineApp) { try { MinestRoutineApp.applyExternal(out); } catch (e) {} }
     }
+    put('liquid-routine.cloud-base.v1',JSON.stringify(remote.state));
     if (out !== JSON.stringify(remote.state)) dirty();   /* this device had something the cloud has not: send it back */
   }
   // ---- the ways in: an icon in the Dock (after Study Arcade) and a tab in the bottom tab bar

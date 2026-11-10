@@ -1,0 +1,17 @@
+2026-11-10 — Actual Routine missing-data investigation
+Observed Safari Sync Center: Mac uploads acknowledged at 08:53:17/08:53:56;
+iPhone received Mac versions. Routine and My World confirmed, boards pending.
+A confirmed document does not prove the user's missing named routine exists.
+Root defects found in host Routine bridge:
+- Whole-state last-writer-wins tasks/routines discards independent new IDs.
+- Routine cloud-dirty event waits up to 20 seconds before dirty marking.
+Repair: entity-level three-way tasks/routines using last received cloud base;
+unknown additions preserved, unchanged deleted entities removed when base exists,
+conflicting edits retain timestamp preference. Execution records still merge
+by progress with one active timer. Before remote replacement, keep eight local
+recovery copies. Immediate Routine dirty events use existing debounced uploader.
+Sync center server checks now use bounded managed reads; pending board versions
+enter the existing safe merge/upload flow when manually checked.
+28 automated tests + executable script parsing passed. No force cloud overwrite,
+reset, sign-out, or credential access. User's missing routine name/source page
+still required to verify the specific data and determine recovery needs.
