@@ -30,6 +30,6 @@ for name in files:
   block=block.replace("document.getElementById('mn-routine-save-status')&&!document.getElementById('mn-routine-save-status').hidden", "durable.isSaving()")
   block=block.replace('  function open() {','  async function open() {\n    try{await durable.ready;}catch(e){saveStatus({error:e.message});return;}')
   block=block.replace('pending:durable.pending, confirm:durable.mergeCloud, _merge:', 'pending:durable.pending, confirm:durable.mergeCloud, ready:durable.ready, flush:durable.flush, _merge:')
-  if 'beforeunload' not in block:block=block.replace('  var store = ', "  window.addEventListener('beforeunload',function(e){if(document.getElementById('mn-routine-save-status')&&!document.getElementById('mn-routine-save-status').hidden){e.preventDefault();e.returnValue='';}});\n  var store = ")
+  if 'beforeunload' not in block:block=block.replace('  var store = ', "  window.addEventListener('beforeunload',function(e){if(durable.isSaving()){e.preventDefault();e.returnValue='';}});\n  var store = ")
   s=s[:a]+block+s[b:]
  p.write_text(s)
