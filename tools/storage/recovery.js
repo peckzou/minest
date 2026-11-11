@@ -9,8 +9,9 @@ try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!/ro
 status.textContent='本机检查完成：找到 '+found+' 份副本。'+(notes.length?notes.join('；'):'')+' 仅覆盖 '+location.origin+'；其它网站入口的数据互相独立。';}
 await local();
 const cloudStatus=document.getElementById('cloud-status'),button=document.getElementById('cloud-check');
+async function sdk(){for(const part of ['app','auth']){if(part==='app'?window.firebase?.initializeApp:window.firebase?.auth)continue;await new Promise((resolve,reject)=>{const script=document.createElement('script'),timer=setTimeout(()=>{script.remove();reject(Error('登录组件加载超时'));},12000);script.src='https://www.gstatic.com/firebasejs/10.8.0/firebase-'+part+'-compat.js';script.onload=()=>{clearTimeout(timer);resolve();};script.onerror=()=>{clearTimeout(timer);reject(Error('登录组件未能加载'));};document.head.appendChild(script);});}}
 button.onclick=async()=>{button.disabled=true;cloudStatus.textContent='正在只读核对当前账号的服务器副本…';const ctl=new AbortController();let timer;try{
- if(!window.firebase)throw Error('登录组件未能加载，请检查网络');
+ await sdk();
  let config=window.__FIREBASE_CONFIG__;try{config=JSON.parse(localStorage.getItem('focusboard_firebase_config_v1'))||config;}catch(e){}
  if(!firebase.apps.length)firebase.initializeApp(config);
  const user=await Promise.race([new Promise(resolve=>{let off=firebase.auth().onAuthStateChanged(u=>{off();resolve(u);});}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('账号恢复超时')),12000);})]);clearTimeout(timer);
