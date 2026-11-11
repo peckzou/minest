@@ -65,3 +65,14 @@ show immediately. beforeunload protection uses the actual store state, independe
 of whether the visual indicator is currently shown. Added regression tests for
 30 identical polls, unchanged ACK rendering, no-op saves, real remote edits, fast
 save bursts, slow save deduplication, and immediate error visibility. 59 tests pass.
+
+Settings-only save/sync feedback:
+- Routine save status no longer creates a floating element in the user page.
+  The existing formatter reports into Sync Center's Routine domain card.
+- Automatic upload errors (including size failures) report only inside Sync
+  Center's overview, without GlassUI toasts. The current error remains visible
+  when settings is reopened and clears after successful server acknowledgement.
+- Reporting a status never opens settings or creates user-page DOM. Error text
+  is escaped. Transactional saves, retries, and unload protection remain intact.
+- 64 tests pass, covering closed-settings silence, retained errors on reopening,
+  clearing errors after success, escaped rendering, and actual inline host wiring.
