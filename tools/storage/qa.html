@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Safari durable-save verification</title>
+<style>body{font:18px system-ui;margin:40px;max-width:720px}button,input{font:inherit;padding:12px;margin:8px}pre{white-space:pre-wrap}</style>
+<h1>Safari 本机保存验证</h1><p>隔离测试页：模拟 localStorage 已满，使用真实 IndexedDB。</p>
+<input id="title" aria-label="测试活动名称" value="Safari offline persistence"><button id="save">保存测试活动</button><button id="reload">重新加载验证</button><pre id="status" role="status">恢复中…</pre>
+<script src="../routine/envelope.js"></script><script src="durable.js"></script>
+<script>
+const initial={version:1,tasks:[],routines:[{id:'main',name:'QA',mode:'timeline'}],runs:{},currentRoutine:'main'};
+const store=MinestDurable.routine({database:MinestDurableStorage.database,storage:{getItem:()=>null,setItem:()=>{throw Error('QuotaExceededError')}},envelope:MinestRoutineEnvelope,actor:'isolated-safari-qa',notify:()=>{},apply:()=>{},status:s=>{if(s.error)document.getElementById('status').textContent='失败：'+s.error}});
+function result(){const s=JSON.parse(store.get()||JSON.stringify(initial));document.getElementById('status').textContent='事务已完成 · 本机恢复 '+s.tasks.length+' 个活动\n'+s.tasks.map(t=>t.title).join('\n')}
+store.ready.then(result).catch(e=>document.getElementById('status').textContent=String(e));
+document.getElementById('save').onclick=async()=>{let previous=JSON.parse(store.get()||JSON.stringify(initial)),next=structuredClone(previous);next.tasks.push({id:crypto.randomUUID(),title:document.getElementById('title').value});store.set(JSON.stringify(next),JSON.stringify(previous));await store.flush();result()};
+document.getElementById('reload').onclick=()=>location.reload();
+</script>

@@ -4,7 +4,7 @@ import re
 ROOT=Path(__file__).resolve().parents[2]
 FILES=['iphone.html','index.html','iPhone53.8241.html','iPhoneDuo.html','ipad.html','web31.0.html','web31.1.html','ios/Minest/Minest/iphone.html','ios/Minest/Minest/iphone18.0.html','ios/Minest/Minest/ipad.html','ios/MinestProject/MyApp/iphone.html']
 CSS=(ROOT/'tools/sync-management/management.css').read_text()
-JS=(ROOT/'tools/routine/envelope.js').read_text()+'\n'+(ROOT/'tools/routine/host-store.js').read_text()+'\n'+(ROOT/'tools/cloud-transport/board-merge.js').read_text()+'\n'+(ROOT/'tools/routine/cloud-merge.js').read_text()+'\n'+(ROOT/'tools/cloud-transport/reconcile.js').read_text()+'\n'+(ROOT/'tools/cloud-transport/transport.js').read_text()+'\n'+(ROOT/'tools/sync-management/core.js').read_text()+'\n'+(ROOT/'tools/sync-management/management.js').read_text()
+JS=(ROOT/'tools/storage/durable.js').read_text()+'\n'+(ROOT/'tools/routine/envelope.js').read_text()+'\n'+(ROOT/'tools/routine/host-store.js').read_text()+'\n'+(ROOT/'tools/cloud-transport/board-merge.js').read_text()+'\n'+(ROOT/'tools/routine/cloud-merge.js').read_text()+'\n'+(ROOT/'tools/cloud-transport/reconcile.js').read_text()+'\n'+(ROOT/'tools/cloud-transport/transport.js').read_text()+'\n'+(ROOT/'tools/sync-management/core.js').read_text()+'\n'+(ROOT/'tools/sync-management/management.js').read_text()
 assert '</script' not in JS.lower()
 BLOCK='<style id="minest-sync-management-css">'+CSS+'</style>\n<script id="minest-sync-management-v1">\n'+JS+'\n</script>'
 for name in FILES:

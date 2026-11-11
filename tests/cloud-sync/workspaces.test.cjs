@@ -40,6 +40,7 @@ console.log('PASS: legacy recovery, cloud acknowledgment, concurrent additions, 
 const html=readFileSync('iphone.html','utf8');let count=0;
 for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
  if(/\bsrc\s*=|type\s*=\s*["'](?:application\/ld\+json|application\/json|importmap)/i.test(m[1]))continue;
+ const type=m[1].match(/type\s*=\s*["']([^"']+)/i);if(type&&!/^(?:text\/javascript|application\/javascript|module)$/i.test(type[1]))continue;
  if(m[2].trim()){new vm.Script(m[2],{filename:'iphone.inline.'+(++count)+'.js'});}
 }
 assert(html.includes('base.workspaceGroups = window.MinestWorkspaceCloud.snapshot()'));

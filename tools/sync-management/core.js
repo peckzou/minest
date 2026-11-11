@@ -8,7 +8,7 @@ function fresh(){return {schema:1,domains:{},events:[]};}
 function create(options){var state=fresh(),seq=0,uid='anonymous';var now=options.now||Date.now;
  function key(){return 'minest.sync-management.v1.'+encodeURIComponent(uid);}
  function load(){try{var x=JSON.parse(options.store.getItem(key()));state=x&&x.schema===1&&x.domains&&Array.isArray(x.events)?x:fresh();}catch(e){state=fresh();}}
- function save(){try{options.store.setItem(key(),JSON.stringify(state));}catch(e){state.storageError='记录无法保存到此设备';}if(options.changed)options.changed();}
+ function save(){try{var job=options.store.setItem(key(),JSON.stringify(state));if(job&&job.then)job.then(function(){if(state.storageError){delete state.storageError;if(options.changed)options.changed();}},function(){state.storageError='记录无法保存到此设备';if(options.changed)options.changed();});else delete state.storageError;}catch(e){state.storageError='记录无法保存到此设备';}if(options.changed)options.changed();}
  function domain(c){return state.domains[c]||(state.domains[c]={});}
  function event(c,kind,meta){var e=Object.assign({id:options.device.id+'-'+now().toString(36)+'-'+(++seq).toString(36)+'-'+Math.random().toString(36).slice(2,7),category:c,kind:kind,at:now(),deviceId:options.device.id,device:options.device.label},meta||{});state.events.push(e);state.events=state.events.slice(-80);return e;}
  function local(c,value,count){var d=domain(c),v=version(value);d.count=count||0;if(d.version!==v){if(d.version){d.localAt=now();event(c,v===d.cloudVersion?'applied':'local',{version:v});}d.version=v;}save();return v;}

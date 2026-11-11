@@ -1,0 +1,28 @@
+Safari persistence + sync repair — 2026-11-11
+Base: f7def25. Canonical checkout WIP is retained separately.
+Observed authenticated production Safari Sync Center: local metadata could not
+be saved, repeated sync/failed on all uploaded domains, Mac ACK stuck on Nov 10.
+
+Routine now uses an IndexedDB transaction-complete envelope, a stable in-memory
+view while saving, atomic per-entity reconciliation across tabs, hydration before
+opening, and a visible pending/error local-save status. Failed writes retain the
+live draft and block cloud payload preparation until the latest local save has
+completed. localStorage is read for migration and retained untouched; if IndexedDB
+fails a verified localStorage write can serve as fallback. No data purge/reset.
+Metadata (workspace records, dirty/ACK versions, sync history) uses an IndexedDB
+fallback when localStorage writes fail; localStorage quota can no longer block
+workspace merge and reject an otherwise accepted cloud save.
+Pending edits during an upload get a post-settlement wake-up. Network failures
+retain existing delayed retry; post-success wake-up does not hammer failed writes.
+Firebase project/security rules and existing REST server ACK protocol retained.
+No credentials or content copied into audit records.
+
+50 automated tests pass. Actual Safari isolated test forced localStorage writes
+to fail, saved a test activity using real IndexedDB, refreshed, and recovered it.
+Production authenticated new-edit/server-ACK verification follows deployment.
+Browser storage can still be cleared by the OS/user; no browser implementation
+can promise recovery after all local copies and server connectivity are lost.
+
+Rebuild inline artifacts in order:
+python3 tools/sync-management/patch.py
+python3 tools/storage/patch.py

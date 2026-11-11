@@ -7,7 +7,7 @@
   var server = null;
   var memory = [];
   function read(key, fallback) {
-    try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (_) { return fallback; }
+    try { return JSON.parse((window.MinestDurableStorage||localStorage).getItem(key)) || fallback; } catch (_) { return fallback; }
   }
   function valid(rows) {
     return Array.isArray(rows) ? rows.filter(function (r) {
@@ -34,8 +34,8 @@
   function names(rows) { return rows.filter(function (r) { return !r.deleted; }).map(function (r) { return r.name; }); }
   function persist(rows) {
     // Do not silently swallow Safari quota/private-storage failures on user edits.
-    localStorage.setItem(recordsKey, JSON.stringify(rows));
-    localStorage.setItem(namesKey, JSON.stringify(names(rows)));
+    (window.MinestDurableStorage||localStorage).setItem(recordsKey, JSON.stringify(rows));
+    (window.MinestDurableStorage||localStorage).setItem(namesKey, JSON.stringify(names(rows)));
     memory = rows;
   }
   function notify() { window.dispatchEvent(new Event('minest:workspaces-changed')); }
