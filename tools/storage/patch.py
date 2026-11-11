@@ -20,11 +20,14 @@ for name in files:
   a=s.index('<script id="mn-routine-run">');b=s.index('</script>',a);block=s[a:b]
   block=block.replace('var durable = window.MinestRoutineHostStore(', 'var durable = window.MinestDurable.routine(')
   block=block.replace('envelope:window.MinestRoutineEnvelope,storage:', 'envelope:window.MinestRoutineEnvelope,database:window.MinestDurableStorage.database,status:saveStatus,storage:')
-  insert='''  function saveStatus(state){
-    var show=function(){var el=document.getElementById('mn-routine-save-status');if(!el){el=document.createElement('p');el.id='mn-routine-save-status';el.setAttribute('role','status');el.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483646;max-width:90vw;padding:8px 14px;border-radius:14px;background:#f7f9fc;color:#23344b;font:12px/1.5 system-ui;box-shadow:0 3px 18px #23344b20;pointer-events:none';document.body.appendChild(el);}el.textContent=state.error?'本机日程未保存：'+state.error+'。请保留页面并导出备份。':state.saving?'正在保存到本机…':'';el.hidden=!state.error&&!state.saving;};if(document.body)show();else document.addEventListener('DOMContentLoaded',show,{once:true});
-  }
-'''
-  if 'function saveStatus(' not in block:block=block.replace('  var actor;',insert+'  var actor;')
+  insert="""  var saveStatus = window.MinestSaveIndicator(function(text){
+    var show=function(){var el=document.getElementById('mn-routine-save-status');if(!el&&!text)return;if(!el){el=document.createElement('p');el.id='mn-routine-save-status';el.setAttribute('role','status');el.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483646;max-width:90vw;padding:8px 14px;border-radius:14px;background:#f7f9fc;color:#23344b;font:12px/1.5 system-ui;box-shadow:0 3px 18px #23344b20;pointer-events:none';document.body.appendChild(el);}if(el.textContent!==text)el.textContent=text;el.hidden=!text;};if(document.body)show();else document.addEventListener('DOMContentLoaded',show,{once:true});
+  });
+"""
+  if 'function saveStatus(' in block:
+   start=block.index('  function saveStatus(');end=block.index('  var actor;',start);block=block[:start]+insert+block[end:]
+  elif 'var saveStatus = ' not in block:block=block.replace('  var actor;',insert+'  var actor;')
+  block=block.replace("document.getElementById('mn-routine-save-status')&&!document.getElementById('mn-routine-save-status').hidden", "durable.isSaving()")
   block=block.replace('  function open() {','  async function open() {\n    try{await durable.ready;}catch(e){saveStatus({error:e.message});return;}')
   block=block.replace('pending:durable.pending, confirm:durable.mergeCloud, _merge:', 'pending:durable.pending, confirm:durable.mergeCloud, ready:durable.ready, flush:durable.flush, _merge:')
   if 'beforeunload' not in block:block=block.replace('  var store = ', "  window.addEventListener('beforeunload',function(e){if(document.getElementById('mn-routine-save-status')&&!document.getElementById('mn-routine-save-status').hidden){e.preventDefault();e.returnValue='';}});\n  var store = ")

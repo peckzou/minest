@@ -56,3 +56,12 @@ because tools/ source files are excluded from Vercel static deployment. Firebase
 SDKs load in order only when server inspection is requested, so a CDN issue cannot
 block local recovery inspection. Existing Minest sign-in is reused; no credentials
 are exported or recorded. Screenshots are outside Git in the task outputs directory.
+
+Quiet saving repair: identical cloud polls/ACKs now skip database writes and
+external UI application; no-op local saves do not create revisions. Remote-only
+writes never show the local-edit saving indicator. Local edit saves remain
+transactional; a 600 ms delay suppresses fast-save flashes, while genuine errors
+show immediately. beforeunload protection uses the actual store state, independent
+of whether the visual indicator is currently shown. Added regression tests for
+30 identical polls, unchanged ACK rendering, no-op saves, real remote edits, fast
+save bursts, slow save deduplication, and immediate error visibility. 59 tests pass.

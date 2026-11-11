@@ -12,6 +12,22 @@
 @media(max-width:600px){#minest-sync-management{width:100%;height:100dvh;border:0;border-radius:0}#minest-sync-management .ms-header{padding:22px 20px;height:120px}#minest-sync-management .ms-body{height:calc(100% - 120px);padding:18px 16px 30px}#minest-sync-management .ms-overview{padding:16px}#minest-sync-management .ms-stats{gap:26px}#minest-sync-management .ms-stats>div{display:block}#minest-sync-management .ms-stats span{display:block;font-size:10px}#minest-sync-management .ms-connection{flex-wrap:wrap}#minest-sync-management .ms-connection small{width:100%;margin-left:16px}#minest-sync-management .ms-domains,#minest-sync-management .ms-devices{grid-template-columns:1fr}#minest-sync-management .ms-domain{padding:16px 18px}#minest-sync-management .ms-event{flex-wrap:wrap;gap:8px}#minest-sync-management .ms-event time{font-size:9px}}
 </style>
 <script id="minest-sync-management-v1">
+/* Short transactions stay silent; genuine errors are always immediate. */
+(function(root){'use strict';
+function create(render,options={}) {
+ const schedule=options.setTimeout||setTimeout,cancel=options.clearTimeout||clearTimeout;
+ let timer=null,last='',waiting=false;
+ function emit(text){if(last===text)return;last=text;render(text);}
+ return function update(state){
+  if(state.error){if(timer!==null)cancel(timer);timer=null;waiting=false;emit('本机日程未保存：'+state.error+'。请保留页面并导出备份。');return;}
+  if(!state.saving){if(timer!==null)cancel(timer);timer=null;waiting=false;emit('');return;}
+  if(waiting||last==='正在保存到本机…')return;
+  waiting=true;timer=schedule(()=>{timer=null;emit('正在保存到本机…');},options.delay??600);
+ };
+}
+if(typeof module==='object'&&module.exports)module.exports=create;else root.MinestSaveIndicator=create;
+})(typeof window!=='undefined'?window:this);
+
 /* Transaction-complete persistence; never removes existing Safari data to make space. */
 (function(root){'use strict';
 function database(idb){let opened;function open(){return opened||(opened=new Promise((resolve,reject)=>{if(!idb)return reject(Error('IndexedDB unavailable'));let expired=false,timer=setTimeout(()=>{expired=true;opened=null;reject(Error('本机数据库打开超时'));},10000),q=idb.open('minest.durable.v1',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onerror=()=>{clearTimeout(timer);opened=null;reject(q.error);};q.onblocked=()=>{clearTimeout(timer);opened=null;expired=true;reject(Error('本机数据库被其他页面阻塞'));};q.onsuccess=()=>{clearTimeout(timer);if(expired){q.result.close();return;}q.result.onversionchange=()=>{q.result.close();opened=null;};resolve(q.result);};}));}
@@ -23,19 +39,55 @@ function getItem(key){if(memory.has(key))return memory.get(key);return storage.g
 function setItem(key,value){value=String(value);memory.set(key,value);let localOK=false;try{storage.setItem(key,value);localOK=storage.getItem(key)===value;}catch(e){}
 let job=db.update(key,()=>value).then(result=>{failed.delete(key);return result;}).catch(e=>{if(!localOK){failed.set(key,e);if(onError)onError(e);throw e;}});jobs.add(job);job.then(()=>{jobs.delete(job);},()=>jobs.delete(job));job.catch(()=>{});return job;}
 return {ready,getItem,setItem,flush:async()=>{await ready;await Promise.all(Array.from(jobs));if(failed.size)throw failed.values().next().value;},database:db};}
-function routine(o){const E=o.envelope;let current=null,view=null,confirmed=null,queue=Promise.resolve(),error=null,writing=0,hydrated=false;
-const migrate=x=>{if(!x)return null;let e=E.migrate(x);e.pending=!!x.pending;return e;};
-function covered(e,r){if(!r)return false;let m=E.merge(e,r);return E.stable(m.sync)===E.stable(r.sync)&&['tasks','routines','runs'].every(k=>E.stable(E.values(m.state,k))===E.stable(E.values(r.state,k)));}
-function combine(a,b){if(!a)return migrate(b);if(!b)return migrate(a);let e=E.merge(a,b);e.pending=!!(a.pending||b.pending);return e;}
-function changed(){if(o.status)o.status({saving:writing>0,error:error&&String(error.message||error)});}
-let ready=(async()=>{let legacy,localError;
-try{let raw=o.storage.getItem('liquid-routine.envelope.v2');if(raw)legacy=migrate(JSON.parse(raw));else {raw=o.storage.getItem('liquid-routine.v1');if(raw)legacy=migrate({state:JSON.parse(raw),at:Number(o.storage.getItem('liquid-routine.savedAt'))||0,pending:true});}}catch(e){localError=e;}
-let disk;try{disk=await o.database.read('routine.envelope');}catch(e){if(!legacy)throw e;}
-if(!disk&&!legacy&&localError)throw localError;
-current=combine(legacy,disk);hydrated=true;if(current&&current.pending)o.notify();changed();})();ready.catch(e=>{error=e;changed();});
-function persist(snapshot){writing++;changed();let job=queue.catch(()=>{}).then(()=>o.database.update('routine.envelope',disk=>{let out=combine(disk,snapshot);out.pending=!covered(out,confirmed);return out;}).catch(e=>{let raw=JSON.stringify(snapshot);o.storage.setItem('liquid-routine.envelope.v2',raw);if(o.storage.getItem('liquid-routine.envelope.v2')!==raw)throw e;return snapshot;})).then(saved=>{current=combine(saved,current);current.pending=!covered(current,confirmed);error=null;let raw=JSON.stringify(current.state);view=raw;if(o.apply)o.apply(raw);if(current.pending)o.notify();return raw;}).catch(e=>{error=e;throw e;}).finally(()=>{writing--;changed();});queue=job;job.catch(()=>{});return job;}
-return {ready,get(){if(!hydrated)throw Error('日程正在从本机数据库恢复');view=current?JSON.stringify(current.state):null;return view;},set(raw,previous){if(!hydrated)throw Error('日程尚未完成恢复');let incoming=JSON.parse(raw),before=previous?JSON.parse(previous):view?JSON.parse(view):current?.state||incoming;
-current=E.edit(current||{state:incoming},before,incoming,o.actor,Date.now());current.pending=true;view=JSON.stringify(current.state);persist(migrate(current));o.notify();return view;},cloud(){if(!hydrated)throw Error('日程尚未完成恢复');return current?{v:2,at:current.at,clock:current.clock,state:current.state,sync:current.sync}:null;},pending(){return writing>0||!!error||!!current?.pending;},async mergeCloud(remote){await ready;if(!remote?.state)return;confirmed=E.merge(confirmed,remote);current=combine(current,remote);current.pending=!covered(current,confirmed);view=JSON.stringify(current.state);if(o.apply)o.apply(view);return persist(migrate(current));},async flush(){await ready;try{await queue;}catch(e){}if(error&&current&&writing===0)await persist(migrate(current));if(error)throw error;},read(){return current;}};}
+function routine(o) {
+ const E=o.envelope;
+ let current=null,view=null,confirmed=null,queue=Promise.resolve(),error=null,writing=0,editing=0,hydrated=false;
+ const migrate=x=>{if(!x)return null;let e=E.migrate(x);e.pending=!!x.pending;return e;};
+ function covered(e,r){if(!r)return false;let m=E.merge(e,r);return E.stable(m.sync)===E.stable(r.sync)&&['tasks','routines','runs'].every(k=>E.stable(E.values(m.state,k))===E.stable(E.values(r.state,k)));}
+ function combine(a,b){if(!a)return migrate(b);if(!b)return migrate(a);let e=E.merge(a,b);e.pending=!!(a.pending||b.pending);return e;}
+ function changed(){if(o.status)o.status({saving:editing>0,error:error&&String(error.message||error)});}
+ function applyState(){const raw=JSON.stringify(current.state);if(view!==raw){view=raw;if(o.apply)o.apply(raw);}return raw;}
+ let ready=(async()=>{let legacy,localError;
+  try{let raw=o.storage.getItem('liquid-routine.envelope.v2');if(raw)legacy=migrate(JSON.parse(raw));else {raw=o.storage.getItem('liquid-routine.v1');if(raw)legacy=migrate({state:JSON.parse(raw),at:Number(o.storage.getItem('liquid-routine.savedAt'))||0,pending:true});}}catch(e){localError=e;}
+  let disk;try{disk=await o.database.read('routine.envelope');}catch(e){if(!legacy)throw e;}
+  if(!disk&&!legacy&&localError)throw localError;
+  current=combine(legacy,disk);hydrated=true;if(current&&current.pending)o.notify();changed();
+ })();ready.catch(e=>{error=e;changed();});
+ function persist(snapshot,announce=false){
+  writing++;if(announce)editing++;changed();
+  let job=queue.catch(()=>{}).then(()=>o.database.update('routine.envelope',disk=>{
+   let out=combine(disk,snapshot);out.pending=!covered(out,confirmed);return out;
+  }).catch(e=>{let raw=JSON.stringify(snapshot);o.storage.setItem('liquid-routine.envelope.v2',raw);if(o.storage.getItem('liquid-routine.envelope.v2')!==raw)throw e;return snapshot;})).then(saved=>{
+   const before=E.stable(current.state);current=combine(saved,current);current.pending=!covered(current,confirmed);error=null;
+   const accepted=applyState();if(current.pending&&before!==E.stable(current.state))o.notify();return accepted;
+  }).catch(e=>{error=e;throw e;}).finally(()=>{writing--;if(announce)editing--;changed();});
+  queue=job;job.catch(()=>{});return job;
+ }
+ return {
+  ready,
+  get(){if(!hydrated)throw Error('日程正在从本机数据库恢复');view=current?JSON.stringify(current.state):null;return view;},
+  set(raw,previous){
+   if(!hydrated)throw Error('日程尚未完成恢复');
+   let incoming=JSON.parse(raw),before=previous?JSON.parse(previous):view?JSON.parse(view):current?.state||incoming;
+   if(current&&E.stable(before)===E.stable(incoming))return JSON.stringify(current.state);
+   current=E.edit(current||{state:incoming},before,incoming,o.actor,Date.now());current.pending=true;view=JSON.stringify(current.state);
+   persist(migrate(current),true);o.notify();return view;
+  },
+  cloud(){if(!hydrated)throw Error('日程尚未完成恢复');return current?{v:2,at:current.at,clock:current.clock,state:current.state,sync:current.sync}:null;},
+  pending(){return !!error||!!current?.pending;},
+  isSaving(){return writing>0||!!error;},
+  async mergeCloud(remote){
+   await ready;if(!remote?.state)return;
+   confirmed=E.merge(confirmed,remote);
+   const before=E.stable(current);const next=combine(current,remote);next.pending=!covered(next,confirmed);
+   // Repeated polls/ACKs must not write the database or re-render the timeline.
+   if(before===E.stable(next))return queue;
+   current=next;applyState();if(current.pending)o.notify();return persist(migrate(current));
+  },
+  async flush(){await ready;try{await queue;}catch(e){}if(error&&current&&writing===0)await persist(migrate(current),true);if(error)throw error;},
+  read(){return current;}
+ };
+}
 const api={database,createCache,routine};if(typeof module==='object'&&module.exports)module.exports=api;else {root.MinestDurable=api;const db=database(root.indexedDB);root.MinestDurableStorage=createCache(root.localStorage,db);}
 })(typeof window!=='undefined'?window:this);
 
@@ -165160,12 +165212,12 @@ if(typeof module==='object'&&module.exports)module.exports=merge;else root.Mines
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function put(k, v) { localStorage.setItem(k, v); }
   function dirty() { try { window.dispatchEvent(new CustomEvent('minest:cloud-dirty',{detail:{immediate:true,domain:'routine'}})); } catch (e) {} }   // Routine changes enter the upload queue immediately
-  function saveStatus(state){
-    var show=function(){var el=document.getElementById('mn-routine-save-status');if(!el){el=document.createElement('p');el.id='mn-routine-save-status';el.setAttribute('role','status');el.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483646;max-width:90vw;padding:8px 14px;border-radius:14px;background:#f7f9fc;color:#23344b;font:12px/1.5 system-ui;box-shadow:0 3px 18px #23344b20;pointer-events:none';document.body.appendChild(el);}el.textContent=state.error?'本机日程未保存：'+state.error+'。请保留页面并导出备份。':state.saving?'正在保存到本机…':'';el.hidden=!state.error&&!state.saving;};if(document.body)show();else document.addEventListener('DOMContentLoaded',show,{once:true});
-  }
+  var saveStatus = window.MinestSaveIndicator(function(text){
+    var show=function(){var el=document.getElementById('mn-routine-save-status');if(!el&&!text)return;if(!el){el=document.createElement('p');el.id='mn-routine-save-status';el.setAttribute('role','status');el.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483646;max-width:90vw;padding:8px 14px;border-radius:14px;background:#f7f9fc;color:#23344b;font:12px/1.5 system-ui;box-shadow:0 3px 18px #23344b20;pointer-events:none';document.body.appendChild(el);}if(el.textContent!==text)el.textContent=text;el.hidden=!text;};if(document.body)show();else document.addEventListener('DOMContentLoaded',show,{once:true});
+  });
   var actor;try{actor=localStorage.getItem('minest.sync-device.v1');if(!actor){actor=crypto.randomUUID();localStorage.setItem('minest.sync-device.v1',actor);}}catch(e){actor='session-'+Date.now()+'-'+Math.random();}
   var durable = window.MinestDurable.routine({envelope:window.MinestRoutineEnvelope,database:window.MinestDurableStorage.database,status:saveStatus,storage:{getItem:function(k){return localStorage.getItem(k);},setItem:function(k,v){localStorage.setItem(k,v);}},actor:actor,notify:dirty,apply:function(raw){last=raw;if(ov&&!ov.hidden&&window.MinestRoutineApp)MinestRoutineApp.applyExternal(raw);}});
-  window.addEventListener('beforeunload',function(e){if(document.getElementById('mn-routine-save-status')&&!document.getElementById('mn-routine-save-status').hidden){e.preventDefault();e.returnValue='';}});
+  window.addEventListener('beforeunload',function(e){if(durable.isSaving()){e.preventDefault();e.returnValue='';}});
   var store = {get:durable.get,set:durable.set};
   function boot() { if (booted) return; booted = true; var t = document.getElementById('mn-routine-src'), s = document.createElement('script'); s.textContent = t ? t.textContent : ''; document.body.appendChild(s); }
   async function open() {

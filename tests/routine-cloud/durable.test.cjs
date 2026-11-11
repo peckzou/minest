@@ -11,3 +11,26 @@ test('metadata fallback persists through quota without falsely reporting storage
 
 test('retry flush recovers failed saves without requiring another user edit',async()=>{let f=setup(),c=f.client('mac');await c.ready;f.fail(true);c.set(JSON.stringify(add(seed(),'keep-me')),JSON.stringify(seed()));await a.rejects(c.flush());f.fail(false);await c.flush();a.equal(f.disk().state.tasks[0].id,'keep-me');});
 test('valid database survives a corrupted legacy localStorage copy',async()=>{let f=setup(),c=f.client('mac');await c.ready;c.set(JSON.stringify(add(seed(),'safe')),JSON.stringify(seed()));await c.flush();let re=D.routine({database:f.db,storage:{getItem:()=>'{broken'},envelope:E,actor:'reload',notify:()=>{},apply:()=>{}});await re.ready;a.equal(JSON.parse(re.get()).tasks[0].id,'safe');});
+
+test('repeated identical cloud polls do not persist, apply, notify, or show saving',async()=>{
+ const f=setup();let writes=0,applies=0,dirty=0,status=[];const update=f.db.update;f.db.update=(...args)=>{writes++;return update(...args)};
+ const c=D.routine({storage:f.storage,database:f.db,envelope:E,actor:'mac',notify:()=>dirty++,apply:()=>applies++,status:s=>status.push(s)});
+ await c.ready;c.set(JSON.stringify(add(seed(),'A')),JSON.stringify(seed()));await c.flush();await c.mergeCloud(c.cloud());c.get();
+ const accepted=structuredClone(c.cloud());writes=0;applies=0;dirty=0;status=[];
+ for(let i=0;i<30;i++)await c.mergeCloud(accepted);
+ a.equal(writes,0);a.equal(applies,0);a.equal(dirty,0);a.equal(status.some(s=>s.saving),false);a.equal(c.pending(),false);
+});
+test('cloud ACK only changes durable metadata and never re-applies the same visible state',async()=>{
+ const f=setup();let applies=0,status=[];const c=D.routine({storage:f.storage,database:f.db,envelope:E,actor:'mac',notify:()=>{},apply:()=>applies++,status:s=>status.push(s)});
+ await c.ready;c.set(JSON.stringify(add(seed(),'A')),JSON.stringify(seed()));await c.flush();a.equal(applies,0);status=[];
+ await c.mergeCloud(c.cloud());a.equal(applies,0);a.equal(status.some(s=>s.saving),false);a.equal(f.disk().pending,false);
+});
+test('no-op save does not create a new edit revision or re-enter the upload queue',async()=>{
+ const f=setup(),c=f.client('mac');await c.ready;c.set(JSON.stringify(add(seed(),'A')),JSON.stringify(seed()));await c.flush();await c.mergeCloud(c.cloud());const raw=c.get(),clock=c.cloud().clock;
+ c.set(raw,raw);await c.flush();a.equal(c.cloud().clock,clock);a.equal(c.pending(),false);
+});
+test('real changed remote data still persists and updates the UI once, without an editing toast',async()=>{
+ const f=setup();let applies=0,status=[];const c=D.routine({storage:f.storage,database:f.db,envelope:E,actor:'mac',notify:()=>{},apply:()=>applies++,status:s=>status.push(s)});
+ await c.ready;const remote=E.edit({state:seed()},seed(),add(seed(),'Duo'),'duo',100);
+ await c.mergeCloud(remote);a.equal(applies,1);a.equal(f.disk().state.tasks[0].id,'Duo');a.equal(status.some(s=>s.saving),false);
+});
