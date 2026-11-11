@@ -36,6 +36,7 @@ for name in FILES:
    if '<button class="mlv-btn alt" data-wordlists-open>词表管理</button>' not in block:block=block.replace(needle,needle+'<button class="mlv-btn alt" data-wordlists-open>词表管理</button>')
   return block
  s=re.sub(r'<script(?:\s[^>]*)?>[\s\S]*?</script>',patch_store,s)
+ s=s.replace('/* Teaching home: list actions stay beside the list, sharing the library\'s storage. */\n','')
  start=s.index('function teacher(body){')
  end=s.index('window.MinestTeachingSets=',start)
  s=s[:start]+teacher+'\n'+s[end:]
