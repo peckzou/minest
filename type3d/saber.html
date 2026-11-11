@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Saber Type</title>
+<style>
+:root{--ink:#e9ecee;--dim:rgba(233,236,238,.42);--faint:rgba(233,236,238,.16)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#04060a;color:var(--ink);overflow:hidden;
+  font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.film{position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 82% 72% at 50% 46%,transparent 50%,rgba(0,0,0,.66) 100%)}
+.hud{position:fixed;pointer-events:none;color:var(--dim)}
+#title{left:max(22px,env(safe-area-inset-left));right:max(22px,env(safe-area-inset-right));top:max(20px,env(safe-area-inset-top));pointer-events:auto;line-height:2}
+#title b{color:var(--ink);font-weight:600}
+#title a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--faint);padding-bottom:1px}
+#title a:hover{color:var(--ink)}
+#line{left:0;right:0;bottom:max(26px,env(safe-area-inset-bottom));text-align:center;color:var(--ink);letter-spacing:.32em;white-space:pre;overflow:hidden;padding:0 24px}
+#line .caret{display:inline-block;width:.6em;height:1px;background:var(--ink);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+#hint{left:0;right:0;bottom:max(52px,calc(env(safe-area-inset-bottom) + 26px));text-align:center;transition:opacity .8s}
+#hint.off{opacity:0}
+#err{left:0;right:0;top:46%;text-align:center;color:var(--ink);display:none;text-transform:none;letter-spacing:.04em}
+#kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;background:transparent;color:transparent;font-size:16px}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="film"></div>
+<div class="hud" id="title"><a href="index.html">Filament</a> / <a href="firework.html">Firework</a> / <a href="topiary.html">Topiary</a> / <b>Saber</b> / <a href="quill.html">Quill</a> / <a href="neon.html">Neon</a> / <a href="book.html">Book</a></div>
+<div class="hud" id="hint">Type — 光刃在空中写字 · Enter 整个单词一次脉冲 · Backspace 熄灭</div>
+<div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
+<div class="hud" id="err"></div>
+<input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
+
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { strokeGlyph, strokeAdvance } from './strokefont.js';
+
+/* ───────────── constants ───────────── */
+const SIZE = 1.5, GAP = 0.34, ROW_Y = 1.25;      // cap height, space between letters, baseline height above the floor
+const STEP = 0.035;                              // resampling distance along a stroke
+const HALF = 0.13;                               // half width of a letter's ribbon (thin core + soft glow inside it)
+const STROKE_GAP = 0.05;                         // gap in "arc length" between two strokes of one letter
+const BL = 1.5;                                  // blade length (constant)
+const WRITE_V = 7.5;                             // tip speed while writing, units / second (at speed 1)
+const PULSE_T = 0.22;                            // time the surge takes to run through a word
+const TINTS = [[.12, .5, 1], [.2, 1, .32], [1, .16, .2], [.7, .3, 1]];   // sea-glass · amber · orchid · coral — one per word
+const BLOOM = 0.5;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rnd = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+const clamp = THREE.MathUtils.clamp, lerp = THREE.MathUtils.lerp;
+const smooth = p => { p = clamp(p, 0, 1); return p * p * (3 - 2 * p); };
+const backOut = p => { const q = smooth(p) - 1, c = 0.9; return 1 + (c + 1) * q * q * q + c * q * q; };   // lands exactly, with a slight overshoot
+const UP = new THREE.Vector3(0, 1, 0);
+
+/* ───────────── renderer / scene ───────────── */
+const canvas = document.getElementById('gl');
+const fail = msg => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent = msg; };
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' }); }
+catch (err) { fail('WebGL 没有启动成功。请换一个浏览器或设备再试。'); throw err; }
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
+const FOG = 0x05070c;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(FOG); scene.fog = new THREE.FogExp2(FOG, 0.035);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 160);
+
+// the hall's own light: next to nothing — the blade and the letters do the lighting
+scene.add(new THREE.HemisphereLight(0x6f86a8, 0x07090c, 0.45));
+const moon = new THREE.DirectionalLight(0x8aa0c8, 0.55); moon.position.set(-7, 10, 6); scene.add(moon);
+const bladeLight = new THREE.PointLight(0xffffff, 0, 24, 1.7); scene.add(bladeLight);
+const wordLights = [0, 1, 2].map(() => { const l = new THREE.PointLight(0xffffff, 0, 16, 1.8); l.position.set(0, ROW_Y + SIZE * 0.5, 0.5); scene.add(l); return l; });
+const flashLight = new THREE.PointLight(0xffffff, 0, 40, 1.6); flashLight.position.set(0, ROW_Y + SIZE * 0.5, 0.9); scene.add(flashLight);
+
+/* ───────────── the hall: floor plates, two colonnades, a ribbed far wall with faint slits ───────────── */
+{
+  const cv = document.createElement('canvas'), cr = document.createElement('canvas'); cv.width = cv.height = cr.width = cr.height = 512;
+  const a = cv.getContext('2d'), b = cr.getContext('2d'), n = 4, s = 512 / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const v = Math.round(rnd(150, 215)), r = Math.round(rnd(70, 135));
+    a.fillStyle = `rgb(${v},${v},${v})`; a.fillRect(i * s, j * s, s, s);
+    b.fillStyle = `rgb(${r},${r},${r})`; b.fillRect(i * s, j * s, s, s);
+  }
+  for (let i = 0; i < 2600; i++) { const x = rnd(512), y = rnd(512), v = Math.round(rnd(60, 150)); b.fillStyle = `rgba(${v},${v},${v},.5)`; b.fillRect(x, y, rnd(1, 9), 1); }
+  a.fillStyle = 'rgb(28,28,28)'; b.fillStyle = 'rgb(230,230,230)';
+  for (let i = 0; i <= n; i++) { a.fillRect(i * s - 1.5, 0, 3, 512); a.fillRect(0, i * s - 1.5, 512, 3); b.fillRect(i * s - 1.5, 0, 3, 512); b.fillRect(0, i * s - 1.5, 512, 3); }
+  const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  const mk = (c, srgb) => { const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(260 / 8, 64 / 8); t.anisotropy = aniso; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(260, 64),
+    new THREE.MeshStandardMaterial({ color: 0x5a5f67, map: mk(cv, true), roughnessMap: mk(cr, false), roughness: 1, metalness: 0.45 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set(40, 0, 0); scene.add(floor);
+
+  const stone = new THREE.MeshStandardMaterial({ color: 0x858a92, roughness: 0.62, metalness: 0.2 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x3a3e45, roughness: 0.7, metalness: 0.3 });
+  const m4 = new THREE.Matrix4();
+  const rowOf = (geo, mat, count, place) => { const im = new THREE.InstancedMesh(geo, mat, count); for (let i = 0; i < count; i++) { place(i, m4); im.setMatrixAt(i, m4); } im.instanceMatrix.needsUpdate = true; im.frustumCulled = false; scene.add(im); return im; };
+  const NP = 64;   // two rows of pillars, the far row offset by half a bay
+  rowOf(new THREE.BoxGeometry(0.9, 11, 0.9), stone, NP, (i, m) => m.makeTranslation(-44 + (i >> 1) * 6 + (i & 1) * 3, 5.5, i & 1 ? -11.5 : -5));
+  rowOf(new THREE.BoxGeometry(1.4, 0.5, 1.4), dark, NP, (i, m) => m.makeTranslation(-44 + (i >> 1) * 6 + (i & 1) * 3, 0.25, i & 1 ? -11.5 : -5));
+  rowOf(new THREE.BoxGeometry(0.42, 14, 0.5), dark, 90, (i, m) => m.makeTranslation(-90 + i * 3, 7, -17.7));                     // ribs on the far wall
+  rowOf(new THREE.BoxGeometry(0.14, 5.2, 0.05), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.1, 0.17, 0.25) }), 45,   // faint slits of far light
+    (i, m) => m.makeTranslation(-88.5 + i * 6, 4.6, -17.85));
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(280, 16), dark); wall.position.set(40, 8, -18); scene.add(wall);
+  for (const z of [-5, -11.5]) { const beam = new THREE.Mesh(new THREE.BoxGeometry(260, 0.9, 1.2), dark); beam.position.set(40, 10.6, z); scene.add(beam); }
+  // a fine inlaid line in the floor, under the row of letters
+  const inlay = new THREE.Mesh(new THREE.PlaneGeometry(260, 0.025), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.2, 0.24, 0.3) }));
+  inlay.rotation.x = -Math.PI / 2; inlay.position.set(40, 0.004, 0); scene.add(inlay);
+}
+
+/* ───────────── energy colour ───────────── */
+let tintI = Math.floor(rnd(TINTS.length));
+const tint = TINTS[tintI].slice();          // the blade's present colour, easing to the word's tint
+const hot = (c, k, w = 0) => c.setRGB((tint[0] + (1 - tint[0]) * w) * k, (tint[1] + (1 - tint[1]) * w) * k, (tint[2] + (1 - tint[2]) * w) * k);
+
+/* ───────────── the sword: an original hilt (off-centre spine prong, vented shroud, tilted ring guard) + a faceted blade ───────────── */
+const swordG = new THREE.Group(); scene.add(swordG);
+const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+const sheathMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+const ventMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+const bladeG = new THREE.Group(), sheathG = new THREE.Group(); bladeG.scale.set(1, 1, 0.45); swordG.add(bladeG); bladeG.add(sheathG);
+{
+  const body = new THREE.CylinderGeometry(0.0135, 0.021, BL * 0.88, 4), point = new THREE.CylinderGeometry(0.0004, 0.0135, BL * 0.12, 4);
+  for (const [geo, y] of [[body, BL * 0.44], [point, BL * 0.94]]) {
+    const c = new THREE.Mesh(geo, coreMat); c.position.y = y; bladeG.add(c);
+    const s = new THREE.Mesh(geo, sheathMat); s.position.y = y; sheathG.add(s);
+  }
+  const metalL = new THREE.MeshStandardMaterial({ color: 0xa4abb3, roughness: 0.36, metalness: 0.65 });
+  const metalD = new THREE.MeshStandardMaterial({ color: 0x2b2f35, roughness: 0.5, metalness: 0.55 });
+  const part = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); swordG.add(m); return m; };
+  part(new THREE.CylinderGeometry(0.03, 0.037, 0.05, 20), metalL, 0, -0.025, 0);                 // emitter collar
+  part(new THREE.BoxGeometry(0.012, 0.27, 0.03), metalD, 0.047, 0.085, 0);                       // spine prong, on one side only
+  part(new THREE.BoxGeometry(0.005, 0.06, 0.012), ventMat, 0.0395, 0.16, 0);                     // lit notch in the prong
+  part(new THREE.CylinderGeometry(0.019, 0.019, 0.12, 12), ventMat, 0, -0.11, 0);                // the glowing core seen through the vents
+  for (let i = 0; i < 6; i++) { const a = 0.5 + i / 7 * Math.PI * 2;                             // vent fins — one bay left open
+    part(new THREE.BoxGeometry(0.022, 0.118, 0.006), metalD, Math.cos(a) * 0.033, -0.11, Math.sin(a) * 0.033, 0, -a, 0); }
+  part(new THREE.CylinderGeometry(0.039, 0.036, 0.014, 20), metalL, 0, -0.177, 0);               // shroud base
+  part(new THREE.TorusGeometry(0.086, 0.0065, 10, 44), metalL, -0.026, -0.075, 0, Math.PI / 2, 0.36, 0);   // ring guard, off-centre and tilted
+  part(new THREE.BoxGeometry(0.17, 0.006, 0.012), metalD, -0.026, -0.075, 0, 0, 0, 0.36);        // its strut
+  part(new THREE.CylinderGeometry(0.023, 0.021, 0.2, 16), metalD, 0, -0.285, 0);                 // grip
+  for (let i = 0; i < 5; i++) part(new THREE.CylinderGeometry(0.0262, 0.0262, 0.007, 16), metalL, 0, -0.215 - i * 0.035, 0);
+  part(new THREE.CylinderGeometry(0.029, 0.02, 0.036, 16), metalL, 0, -0.404, 0);                // pommel
+  part(new THREE.SphereGeometry(0.015, 14, 10), metalL, -0.031, -0.41, 0);                       // counterweight
+  part(new THREE.ConeGeometry(0.011, 0.05, 10), metalD, 0, -0.446, 0, Math.PI, 0, 0);            // tail spike
+}
+
+// soft glow cards: a hot point at the tip, and a wide haze round the blade (the fog catching its light)
+const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.22, 'rgba(255,255,255,.34)'); g.addColorStop(0.55, 'rgba(255,255,255,.08)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+const card = (opacity) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false, transparent: true, opacity })); scene.add(s); return s; };
+const tipGlow = card(1), haze = card(0.03), wordHaze = card(0);
+
+// the swoosh: a fan between the blade's last few positions, fading with age
+const FAN_N = 14, FAN_T = 0.1;
+const fanPos = new Float32Array(FAN_N * 6), fanA = new Float32Array(FAN_N * 2), fanTime = new Float32Array(FAN_N).fill(-10);
+const fanGeo = new THREE.BufferGeometry();
+{ const v = new Float32Array(FAN_N * 2), idx = [];
+  for (let i = 0; i < FAN_N; i++) { v[i * 2] = 0; v[i * 2 + 1] = 1; if (i < FAN_N - 1) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
+  fanGeo.setAttribute('position', new THREE.BufferAttribute(fanPos, 3).setUsage(THREE.DynamicDrawUsage));
+  fanGeo.setAttribute('aA', new THREE.BufferAttribute(fanA, 1).setUsage(THREE.DynamicDrawUsage));
+  fanGeo.setAttribute('aV', new THREE.BufferAttribute(v, 1)); fanGeo.setIndex(idx); }
+const fanMat = new THREE.ShaderMaterial({
+  uniforms: { uTint: { value: new THREE.Vector3(1, 1, 1) } }, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+  vertexShader: `attribute float aA; attribute float aV; varying float vA; varying float vV;
+    void main(){ vA=aA; vV=aV; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform vec3 uTint; varying float vA; varying float vV;
+    void main(){ float k=vA*vA*(.06+.94*vV*vV*vV); gl_FragColor=vec4(mix(uTint,vec3(1.),.25*vA)*k*1.5,1.); }`
+});
+const fan = new THREE.Mesh(fanGeo, fanMat); fan.frustumCulled = false; scene.add(fan);
+
+/* ───────────── letters: a ribbon along each stroke, revealed up to the blade tip ───────────── */
+const ribbonMat = new THREE.ShaderMaterial({
+  uniforms: { uTint: { value: new THREE.Vector3(1, 1, 1) }, uHead: { value: -1 }, uFresh: { value: 1 }, uPulse: { value: 0 }, uGain: { value: 1 }, uTime: { value: 0 }, uIgn: { value: -1 } },
+  transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, extensions: { derivatives: true },
+  vertexShader: `attribute float aSide; attribute float aCap; attribute float aU; varying float vS; varying float vC; varying float vU;
+    void main(){ vS=aSide; vC=aCap; vU=aU; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform vec3 uTint; uniform float uHead,uFresh,uPulse,uGain,uTime,uIgn; varying float vS; varying float vC; varying float vU;
+    void main(){
+      if(vU>uHead) discard;
+      float h=exp(-(uHead-vU)/.55);                       // how freshly the tip passed here: the trail
+      float d=length(vec2(vS,vC));
+      // the stroke powers up like an energy blade: behind the ignition front it is a fat white core in a
+      // saturated halo; ahead of it only the faint trace the tip left; the front itself is a bright cap
+      float lit=smoothstep(0.,.3,uIgn-vU);
+      float front=exp(-abs(uIgn-vU)/.16)*step(vU,uIgn+.04)*(1.-smoothstep(.0,1.2,uHead-uIgn)*0.)*step(uIgn,uHead-.02);
+      float cw=mix(.05,.2,lit)*(1.+1.1*h*(1.-lit)+.3*uPulse)+.12*front, aa=fwidth(d)*1.2+.002;
+      float core=1.-smoothstep(cw-aa,cw+aa,d);
+      float halo=exp(-d*d*mix(9.,2.4,lit))*(1.-smoothstep(.8,1.,d));
+      float hum=1.+.05*sin(uTime*41.+vU*5.)+.035*sin(uTime*97.+vU*2.);
+      float unstable=1.-.4*front*step(.55,fract(sin(floor(uTime*48.)+floor(vU*9.))*43758.5));
+      vec3 c=uTint*halo*(mix(.1,1.3,lit)+1.1*h+1.1*uPulse+1.6*front)
+            +mix(uTint,vec3(1.),mix(.45,.93,lit))*core*(mix(.45,2.3,lit)+2.6*h+3.2*front+4.*uPulse);
+      gl_FragColor=vec4(c*uGain*hum*unstable,1.);
+    }`
+});
+const glyphs = new Map();
+function glyph(ch) {
+  if (glyphs.has(ch)) return glyphs.get(ch);
+  const sg = strokeGlyph(ch); let g = null;
+  if (sg && sg.strokes && sg.strokes.length) {
+    const strokes = [], pos = [], side = [], cap = [], au = [], idx = []; let off = 0;
+    const push = (x, y, sd, cp, u) => { pos.push(x, y, 0); side.push(sd); cap.push(cp); au.push(u); };
+    for (const s of sg.strokes) {
+      const xs = [], ys = [];                                     // evenly resampled, corners kept
+      for (let i = 0; i < s.length; i++) { const ax = s[i][0] * SIZE, ay = s[i][1] * SIZE;
+        if (!xs.length) { xs.push(ax); ys.push(ay); continue; }
+        const bx = xs[xs.length - 1], by = ys[ys.length - 1], l = Math.hypot(ax - bx, ay - by); if (l < 1e-4) continue;
+        const n = Math.max(1, Math.ceil(l / STEP)); for (let k = 1; k <= n; k++) { xs.push(bx + (ax - bx) * k / n); ys.push(by + (ay - by) * k / n); } }
+      const n = xs.length; if (n < 2) continue;
+      const cum = new Float32Array(n); for (let i = 1; i < n; i++) cum[i] = cum[i - 1] + Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
+      strokes.push({ x: Float32Array.from(xs), y: Float32Array.from(ys), cum, len: cum[n - 1], off, n });
+      const base = pos.length / 3;                                // the ribbon: mitred joins, a rounded cap at both ends
+      for (let i = 0; i < n; i++) {
+        let t0x = 0, t0y = 0, t1x = 0, t1y = 0;
+        if (i > 0) { t0x = xs[i] - xs[i - 1]; t0y = ys[i] - ys[i - 1]; const l = Math.hypot(t0x, t0y); t0x /= l; t0y /= l; }
+        if (i < n - 1) { t1x = xs[i + 1] - xs[i]; t1y = ys[i + 1] - ys[i]; const l = Math.hypot(t1x, t1y); t1x /= l; t1y /= l; }
+        if (i === 0) { t0x = t1x; t0y = t1y; } if (i === n - 1) { t1x = t0x; t1y = t0y; }
+        let nx = -(t0y + t1y), ny = t0x + t1x, nl = Math.hypot(nx, ny);
+        if (nl < 1e-4) { nx = -t0y; ny = t0x; nl = 1; }
+        nx /= nl; ny /= nl;
+        const m = HALF / Math.max(0.5, nx * -t0y + ny * t0x), u = off + cum[i];
+        if (i === 0) { push(xs[0] - t1x * HALF - nx * HALF, ys[0] - t1y * HALF - ny * HALF, -1, 1, u); push(xs[0] - t1x * HALF + nx * HALF, ys[0] - t1y * HALF + ny * HALF, 1, 1, u); }
+        push(xs[i] - nx * m, ys[i] - ny * m, -1, 0, u); push(xs[i] + nx * m, ys[i] + ny * m, 1, 0, u);
+        if (i === n - 1) { push(xs[i] + t0x * HALF - nx * HALF, ys[i] + t0y * HALF - ny * HALF, -1, 1, u); push(xs[i] + t0x * HALF + nx * HALF, ys[i] + t0y * HALF + ny * HALF, 1, 1, u); }
+      }
+      for (let r = 0; r < n + 1; r++) { const a = base + r * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+      off += cum[n - 1] + STROKE_GAP;
+    }
+    if (strokes.length) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('aSide', new THREE.Float32BufferAttribute(side, 1));
+      geo.setAttribute('aCap', new THREE.Float32BufferAttribute(cap, 1)); geo.setAttribute('aU', new THREE.Float32BufferAttribute(au, 1)); geo.setIndex(idx);
+      g = { w: sg.w * SIZE, strokes, total: off - STROKE_GAP, geo };
+    }
+  }
+  glyphs.set(ch, g); return g;
+}
+
+let letters = [], cursorX = 0, typed = '';
+const dying = [], gone = [];
+function disposeLetter(L) { if (!L.mesh) return; if (L.mesh.parent) L.mesh.parent.remove(L.mesh); L.mat.dispose(); L.mesh = null; }   // the geometry belongs to the glyph cache
+
+/* ───────────── the hand: where the tip is, and how the hilt follows ───────────── */
+const sword = { tip: new THREE.Vector3(0.6, ROW_Y + 0.9, 0.9), anchor: new THREE.Vector3(), vel: new THREE.Vector3(), base: new THREE.Vector3(), dir: new THREE.Vector3(0, 1, 0),
+  job: null, phase: 'idle', p: 0, dur: 1, arc: 0, from: new THREE.Vector3(), to: new THREE.Vector3(), si: 0, u: 0, seg: 0, heat: 0, roll: 0.7 };
+const HAND = new THREE.Vector3(0.52, -0.86, 1.14);            // from the tip back to the hand: lower, nearer, a little to the right
+sword.anchor.copy(sword.tip).add(HAND);
+const vA = new THREE.Vector3(), vB = new THREE.Vector3(), qRoll = new THREE.Quaternion();
+function travel(L, si, swing) {
+  const st = L.g.strokes[si]; sword.si = si; sword.from.copy(sword.tip); sword.to.set(L.x + st.x[0], ROW_Y + st.y[0], 0);
+  const d = sword.from.distanceTo(sword.to); sword.p = 0; sword.phase = swing ? 'swing' : 'lift';
+  sword.dur = swing ? clamp(0.15 + d * 0.045, 0.15, 0.4) : 0.07 + d * 0.08; sword.arc = swing ? 0.28 + 0.1 * Math.min(d, 4) : 0.14 + 0.12 * Math.min(d, 2);
+}
+function updateSword(dt, time, speed) {
+  const S = sword;
+  if (S.job && S.job.state !== 'writing') S.job = null;
+  if (!S.job) { S.phase = 'idle'; for (const L of letters) if (L.state === 'queued') { S.job = L; L.state = 'writing'; L.mesh.visible = true; L.head = -1; travel(L, 0, true); break; } }
+  const L = S.job;
+  if (S.phase === 'idle') {                                    // at rest beside the place where the next letter will go
+    vA.set(cursorX + 0.55 + Math.sin(time * 0.5) * 0.06, ROW_Y + 0.62 + Math.sin(time * 0.8) * 0.05, 0.85);
+    S.tip.lerp(vA, 1 - Math.exp(-dt * 3.2));
+  } else if (S.phase === 'swing' || S.phase === 'lift') {      // through the air: a quick arc out toward the eye, no drawing
+    const swing = S.phase === 'swing'; S.p = Math.min(1, S.p + dt * Math.pow(speed, swing ? 0.8 : 0.7) / S.dur);
+    const e = swing ? backOut(S.p) : smooth(S.p), b = Math.sin(Math.PI * S.p) * S.arc;
+    S.tip.lerpVectors(S.from, S.to, e); S.tip.y += b * (swing ? 0.3 : 0.1); S.tip.z += b;
+    if (S.p >= 1) { S.tip.copy(S.to); S.phase = 'write'; S.u = 0; S.seg = 0; }
+  } else if (S.phase === 'write') {                            // the tip exactly on the stroke
+    const st = L.g.strokes[S.si], edge = Math.min(S.u, st.len - S.u);
+    S.u = Math.min(st.len, S.u + dt * WRITE_V * speed * (0.4 + 0.6 * smooth(edge / 0.3)));
+    while (S.seg < st.n - 2 && st.cum[S.seg + 1] < S.u) S.seg++;
+    const i = S.seg, sl = st.cum[i + 1] - st.cum[i], f = sl > 1e-6 ? clamp((S.u - st.cum[i]) / sl, 0, 1) : 1;
+    S.tip.set(L.x + lerp(st.x[i], st.x[i + 1], f), ROW_Y + lerp(st.y[i], st.y[i + 1], f), 0);
+    L.head = st.off + S.u;
+    if (S.u >= st.len) {
+      if (S.si + 1 < L.g.strokes.length) { L.head = st.off + st.len + STROKE_GAP * 0.5; travel(L, S.si + 1, false); }
+      else { L.state = 'done'; L.head = L.g.total; S.job = null; S.phase = 'idle'; }
+    }
+  }
+  // the hand trails the tip on a slightly under-damped spring, so the hilt pivots, lags and settles
+  const k = 170 * Math.min(3, 0.6 + 0.4 * speed), c = 2 * Math.sqrt(k) * 0.62, h = dt / 2;
+  vA.copy(S.tip).add(HAND); vA.x += Math.sin(time * 0.7) * 0.04; vA.y += Math.sin(time * 0.9 + 1) * 0.03;
+  for (let s = 0; s < 2; s++) {
+    S.vel.x += ((vA.x - S.anchor.x) * k - S.vel.x * c) * h; S.vel.y += ((vA.y - S.anchor.y) * k - S.vel.y * c) * h; S.vel.z += ((vA.z - S.anchor.z) * k - S.vel.z * c) * h;
+    S.anchor.addScaledVector(S.vel, h);
+  }
+  S.dir.subVectors(S.tip, S.anchor); if (S.dir.lengthSq() < 1e-6) S.dir.set(0, 1, 0); S.dir.normalize();
+  S.base.copy(S.tip).addScaledVector(S.dir, -BL);              // blade length never changes
+  S.roll += (0.7 + clamp(S.vel.x * 0.09, -0.7, 0.7) - S.roll) * (1 - Math.exp(-dt * 6));
+  swordG.position.copy(S.base); swordG.quaternion.setFromUnitVectors(UP, S.dir).multiply(qRoll.setFromAxisAngle(UP, S.roll));
+  S.heat += ((S.phase === 'write' ? 1 : S.phase === 'idle' ? 0.2 : 0.55) - S.heat) * (1 - Math.exp(-dt * 12));
+}
+
+/* ───────────── motes and sparks: one small point cloud ───────────── */
+const MOTES = 150, SPK = 260, NPTS = MOTES + SPK;
+const P = new Float32Array(NPTS * 3), C = new Float32Array(NPTS * 3), Sz = new Float32Array(NPTS);
+const ptGeo = new THREE.BufferGeometry();
+ptGeo.setAttribute('position', new THREE.BufferAttribute(P, 3).setUsage(THREE.DynamicDrawUsage));
+ptGeo.setAttribute('aColor', new THREE.BufferAttribute(C, 3).setUsage(THREE.DynamicDrawUsage));
+ptGeo.setAttribute('aSize', new THREE.BufferAttribute(Sz, 1).setUsage(THREE.DynamicDrawUsage));
+const ptMat = new THREE.ShaderMaterial({
+  uniforms: { uScale: { value: 1 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `attribute vec3 aColor; attribute float aSize; uniform float uScale; varying vec3 vC;
+    void main(){ vC=aColor; vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; gl_PointSize=max(1.,aSize*uScale/-mv.z); }`,
+  fragmentShader: `varying vec3 vC; void main(){ vec2 d=gl_PointCoord-.5; float r=length(d)*2.; float a=smoothstep(1.,0.,r); a*=a; gl_FragColor=vec4(vC*a,1.); }`
+});
+const pts = new THREE.Points(ptGeo, ptMat); pts.frustumCulled = false; scene.add(pts);
+const mote = new Float32Array(MOTES * 5);   // x, y, z, phase, size
+for (let i = 0; i < MOTES; i++) { mote[i * 5] = rnd(30); mote[i * 5 + 1] = rnd(0.15, 6); mote[i * 5 + 2] = rnd(-9, 5); mote[i * 5 + 3] = rnd(6.283); mote[i * 5 + 4] = rnd(0.6, 1.5); }
+const sx = new Float32Array(SPK), sy = new Float32Array(SPK), sz = new Float32Array(SPK), svx = new Float32Array(SPK), svy = new Float32Array(SPK), svz = new Float32Array(SPK),
+  sl = new Float32Array(SPK), sL = new Float32Array(SPK), sk = new Float32Array(SPK), ss = new Float32Array(SPK);
+let sHead = 0;
+function spark(x, y, z, vx, vy, vz, k, life, size) { const i = sHead; sHead = (sHead + 1) % SPK; sx[i] = x; sy[i] = y; sz[i] = z; svx[i] = vx; svy[i] = vy; svz[i] = vz; sk[i] = k; sl[i] = sL[i] = life; ss[i] = size; }
+
+/* ───────────── the shockwave: one ring in the plane of the letters, one across the floor ───────────── */
+const ringMat = () => new THREE.ShaderMaterial({
+  uniforms: { uTint: { value: new THREE.Vector3(1, 1, 1) }, uR: { value: 0 }, uA: { value: 0 } }, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+  vertexShader: `varying vec2 vP; void main(){ vP=uv*2.-1.; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform vec3 uTint; uniform float uR,uA; varying vec2 vP;
+    void main(){ float r=length(vP); if(r>1.) discard; float x=(r-uR)/.03; float band=exp(-x*x)+.22*exp(-x*x*.06)*step(r,uR);
+      gl_FragColor=vec4(mix(uTint,vec3(1.),.35)*band*uA*(1.-r*r),1.); }`
+});
+const ringA = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), ringMat()), ringB = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), ringMat());
+ringB.rotation.x = -Math.PI / 2; ringA.visible = ringB.visible = false; ringA.frustumCulled = ringB.frustumCulled = false; scene.add(ringA, ringB);
+const ring = { t: 9, x: 0, R: 4 };
+
+/* ───────────── typing ───────────── */
+const txt = document.getElementById('txt'), hint = document.getElementById('hint'), kb = document.getElementById('kb');
+const showLine = () => { txt.textContent = typed.slice(-46); };
+function type(ch) {
+  ch = String(ch).toUpperCase();
+  if (ch === ' ') { const w = strokeAdvance(' ') * SIZE; letters.push({ ch: ' ', empty: true, advance: w, state: 'done' }); cursorX += w; typed += ' '; showLine(); return; }
+  if (ch.length !== 1) return;
+  const g = glyph(ch); if (!g) return;                                       // no such glyph: the key is ignored
+  const mat = ribbonMat.clone(); mat.uniforms.uTint.value.set(TINTS[tintI][0], TINTS[tintI][1], TINTS[tintI][2]);
+  const mesh = new THREE.Mesh(g.geo, mat); mesh.position.set(cursorX, ROW_Y, 0); mesh.visible = false; scene.add(mesh);
+  const L = { ch, g, x: cursorX, mesh, mat, state: 'queued', head: -1, fresh: 1, pulse: 0, gain: 1, t: 0, advance: g.w + GAP };
+  cursorX += L.advance; letters.push(L); typed += ch; showLine(); hint.classList.add('off');
+}
+function backspace() {                                                       // the last letter flickers out
+  const L = letters.pop(); if (!L) return;
+  cursorX = Math.max(0, cursorX - L.advance); typed = typed.slice(0, -1); showLine();
+  if (L.empty) return;
+  if (sword.job === L) { sword.job = null; sword.phase = 'idle'; }
+  if (L.state === 'queued' || L.head <= 0) { disposeLetter(L); return; }
+  L.state = 'out'; L.t = 0; dying.push(L);
+}
+function enter() {                                                           // the word is complete: one sharp pulse, then it withdraws
+  const live = letters.filter(L => !L.empty);
+  if (live.length) {
+    sword.job = null; sword.phase = 'idle';
+    const grp = new THREE.Group(); scene.add(grp);
+    for (const L of live) { if (L.state !== 'done') { L.state = 'done'; L.head = L.g.total; L.mesh.visible = true; } grp.add(L.mesh); }
+    const x0 = live[0].x, x1 = Math.max(x0 + 0.5, cursorX - GAP);
+    gone.push({ grp, list: live, t: 0, x0, x1 });
+    ring.t = 0; ring.x = (x0 + x1) / 2; ring.R = (x1 - x0) / 2 + 3.4;
+    tintI = (tintI + 1) % TINTS.length;                                      // the next word in the next colour
+  }
+  letters = []; cursorX = 0; typed = ''; showLine();
+}
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target === kb) return;
+  if (e.key === 'Backspace') { e.preventDefault(); backspace(); } else if (e.key === 'Enter') { e.preventDefault(); enter(); } else if (e.key.length === 1) { e.preventDefault(); type(e.key); }
+});
+kb.value = ' ';
+kb.addEventListener('beforeinput', e => { e.preventDefault();
+  if (e.inputType === 'deleteContentBackward') backspace(); else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') enter(); else if (e.data) for (const c of e.data) type(c); });
+kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enter(); } });
+addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('a')) return; if (matchMedia('(pointer: coarse)').matches) kb.focus({ preventScroll: true }); });
+
+/* ───────────── frame ───────────── */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM, 0.5, 0.82); composer.addPass(bloom);
+composer.addPass(new OutputPass());
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h; camera.fov = w < h ? 52 : 38; camera.updateProjectionMatrix();
+  ptMat.uniforms.uScale.value = h * renderer.getPixelRatio() * 0.5 / Math.tan(camera.fov * Math.PI / 360) * 0.05; }
+addEventListener('resize', resize); resize();
+
+const cam = { x: 0.8, z: 9 }; let last = performance.now(), flick = 1;
+for (let i = 0; i < FAN_N; i++) { fanPos.set([0, -5, 0, 0, -5, 0], i * 6); }
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000), time = now / 1000; last = now;
+  const want = TINTS[tintI], kt = 1 - Math.exp(-dt * 2.5); tint[0] += (want[0] - tint[0]) * kt; tint[1] += (want[1] - tint[1]) * kt; tint[2] += (want[2] - tint[2]) * kt;
+
+  // more letters waiting → the hand writes faster; typing is never held up
+  let waiting = 0; for (const L of letters) if (L.state === 'queued') waiting++;
+  const speed = Math.min(8, 1 + waiting * 0.5);
+  updateSword(dt, time, speed);
+  const S = sword;
+
+  // letters: reveal to the tip while written; afterwards the heat runs out along the stroke and the letter settles
+  let lit = 0, litX0 = 0, litX1 = 0;
+  for (const L of letters) { if (L.empty || L.state === 'queued') continue;
+    if (L.state === 'done') { L.head = Math.min(L.g.total + 8, L.head + dt * 7); L.fresh *= Math.exp(-dt * 2.4); }
+    if (L.ign === undefined) { L.ign = -0.4; L.ignT = 0; }
+    L.ignT += dt; if (L.ignT > 0.3) L.ign = Math.min(L.head, L.ign + dt * Math.max(L.g.total / (reduce ? 0.5 : 1.25), 1.1));   // the stroke powers up behind the tip
+    const u = L.mat.uniforms; u.uHead.value = L.head; u.uFresh.value = L.fresh; u.uTime.value = time; u.uIgn.value = L.ign;
+    if (!lit) litX0 = L.x; litX1 = L.x + L.g.w; lit++; }
+  for (let i = dying.length - 1; i >= 0; i--) { const L = dying[i]; L.t += dt; const p = L.t / 0.4;
+    if (p >= 1) { disposeLetter(L); dying.splice(i, 1); continue; }
+    const u = L.mat.uniforms; u.uHead.value = L.g.total + 8; u.uIgn.value = L.g.total + 9; u.uTime.value = time; u.uFresh.value = 0;
+    u.uGain.value = reduce ? 1 - p : (Math.sin(L.t * 95) > -0.2 && Math.random() > 0.25 ? 1.3 : 0.12) * (1 - p * p); }
+  let flash = 0, kick = 0, surge = 0;
+  for (let i = gone.length - 1; i >= 0; i--) { const G = gone[i]; G.t += dt;
+    const f = Math.max(0, G.t - 0.5), k = f / 2.6, w = G.x1 - G.x0;
+    if (k >= 1) { G.list.forEach(disposeLetter); scene.remove(G.grp); gone.splice(i, 1); continue; }
+    const gain = (0.28 + 0.72 * Math.exp(-f * 4.5)) * Math.pow(1 - k, 1.5), e = smooth(k);
+    G.grp.position.set(0, e * 1.0, -e * 6);                                  // dims, and drifts back out of the way
+    for (const L of G.list) { const a = G.t - PULSE_T * (L.x - G.x0) / w, u = L.mat.uniforms;   // the surge runs along the word
+      L.head = Math.min(L.g.total + 8, L.head + dt * 7); L.fresh *= Math.exp(-dt * 2.4);
+      u.uHead.value = L.head; u.uIgn.value = L.head + 1; u.uFresh.value = L.fresh; u.uTime.value = time; u.uPulse.value = a < 0 ? 0 : 0.55 * Math.exp(-a / 0.13); u.uGain.value = gain; }
+    if (i === gone.length - 1) { const a = Math.max(0, G.t - PULSE_T * 0.5); surge = Math.exp(-a / 0.11) * smooth(G.t / (PULSE_T * 0.5));
+      flash = surge * (reduce ? 22 : 48) + gain * Math.min(G.list.length, 6) * 2.2; kick = surge;
+      flashLight.position.set(lerp(G.x0, G.x1, clamp(G.t / PULSE_T, 0, 1)), ROW_Y + SIZE * 0.5 + G.grp.position.y, 0.9 + G.grp.position.z); } }
+  flashLight.intensity = flash; hot(flashLight.color, 1, 0.3);
+  bloom.strength = BLOOM + 0.22 * surge;
+
+  // shockwave
+  if (ring.t < 1) { ring.t += dt / (reduce ? 1.1 : 0.75); const p = Math.min(1, ring.t), r = 1 - Math.pow(1 - p, 2.6), a = Math.pow(1 - p, 1.6) * smooth(p * 12);
+    ringA.visible = ringB.visible = p < 1;
+    ringA.position.set(ring.x, ROW_Y + SIZE * 0.5, -0.06); ringA.scale.setScalar(ring.R); ringB.position.set(ring.x, 0.02, 0); ringB.scale.setScalar(ring.R * 1.5);
+    for (const m of [ringA, ringB]) { const u = m.material.uniforms; u.uR.value = r * 0.96; u.uA.value = a * (m === ringA ? 1.6 : 1.1); u.uTint.value.set(tint[0], tint[1], tint[2]); }
+  }
+
+  // blade: hum-like flicker, colour, light, swoosh
+  flick = 1 + 0.05 * Math.sin(time * 61) + 0.04 * Math.sin(time * 37.3 + 1.3) + (reduce ? 0 : (Math.random() - 0.5) * 0.09);
+  hot(coreMat.color, 3.0 * flick, 0.82); hot(sheathMat.color, 0.95 * flick, 0.05); hot(ventMat.color, 1.5 * flick, 0.3);
+  sheathG.scale.set(2.3 * flick, 1, 2.3 * flick);
+  bladeLight.position.copy(S.base).addScaledVector(S.dir, BL * 0.72); bladeLight.position.z += 0.12;
+  bladeLight.intensity = (26 + 16 * S.heat) * flick; hot(bladeLight.color, 1, 0.22);
+  tipGlow.position.copy(S.tip); tipGlow.scale.setScalar((0.16 + 0.5 * S.heat) * flick); hot(tipGlow.material.color, 0.6 + 1.8 * S.heat, 0.4);
+  haze.position.copy(S.base).addScaledVector(S.dir, BL * 0.6); haze.scale.setScalar(3.4); hot(haze.material.color, 1, 0);
+  fanPos.copyWithin(6, 0, (FAN_N - 1) * 6); fanTime.copyWithin(1, 0, FAN_N - 1); fanTime[0] = time;
+  fanPos[0] = S.base.x + S.dir.x * BL * 0.2; fanPos[1] = S.base.y + S.dir.y * BL * 0.2; fanPos[2] = S.base.z + S.dir.z * BL * 0.2; fanPos[3] = S.tip.x; fanPos[4] = S.tip.y; fanPos[5] = S.tip.z;
+  for (let i = 0; i < FAN_N; i++) fanA[i * 2] = fanA[i * 2 + 1] = Math.max(0, 1 - (time - fanTime[i]) / FAN_T);
+  fanGeo.attributes.position.needsUpdate = fanGeo.attributes.aA.needsUpdate = true; fanMat.uniforms.uTint.value.set(tint[0], tint[1], tint[2]);
+
+  // the settled letters light the hall too, softly
+  const per = lit ? Math.min(13, lit * 4.2 / 3 + 1.5) : 0, kl = 1 - Math.exp(-dt * 4);
+  for (let i = 0; i < 3; i++) { const l = wordLights[i]; l.intensity += (per - l.intensity) * kl; if (lit) l.position.x += (lerp(litX0, litX1, (i + 0.5) / 3) - l.position.x) * kl; hot(l.color, 1, 0.1); }
+  wordHaze.position.set((litX0 + litX1) / 2, ROW_Y + SIZE * 0.5, -0.4); wordHaze.scale.set(Math.max(4, (litX1 - litX0) * 1.7 + 3), 4.2, 1);
+  wordHaze.material.opacity += ((lit ? 0.05 : 0) - wordHaze.material.opacity) * kl; hot(wordHaze.material.color, 1, 0);
+
+  // motes drift, and catch the blade's light as it passes; sparks fly off the tip while it writes
+  let o = 0; const lx = bladeLight.position.x, ly = bladeLight.position.y, lz = bladeLight.position.z;
+  for (let i = 0; i < MOTES; i++, o++) { const q = i * 5, ph = mote[q + 3];
+    const rel = (((mote[q] - cam.x) % 30) + 30) % 30 - 15;
+    const x = cam.x + rel + Math.sin(time * 0.11 + ph) * 0.7, y = mote[q + 1] + Math.sin(time * 0.07 + ph * 2) * 0.5, z = mote[q + 2] + Math.cos(time * 0.09 + ph) * 0.6;
+    const d2 = (x - lx) * (x - lx) + (y - ly) * (y - ly) + (z - lz) * (z - lz), b = 0.035 + (0.9 + 0.5 * S.heat) / (0.5 + d2) + surge * 0.5;
+    P[o * 3] = x; P[o * 3 + 1] = y; P[o * 3 + 2] = z; C[o * 3] = (0.5 + 0.5 * tint[0]) * b; C[o * 3 + 1] = (0.5 + 0.5 * tint[1]) * b; C[o * 3 + 2] = (0.5 + 0.5 * tint[2]) * b; Sz[o] = mote[q + 4]; }
+  if (S.phase === 'write') { const n = reduce ? 1 : 3; for (let i = 0; i < n; i++) spark(S.tip.x, S.tip.y, S.tip.z, rnd(-1.3, 1.3), rnd(-0.6, 1.5), rnd(0.1, 1.4), rnd(0.9, 2.6), rnd(0.18, 0.55), rnd(0.45, 1)); }
+  for (let i = 0; i < SPK; i++) { if (sl[i] <= 0) continue; sl[i] -= dt; if (sl[i] <= 0) continue;
+    const dr = Math.exp(-2.2 * dt); svx[i] *= dr; svy[i] = svy[i] * dr - 2.4 * dt; svz[i] *= dr; sx[i] += svx[i] * dt; sy[i] += svy[i] * dt; sz[i] += svz[i] * dt;
+    const f = sl[i] / sL[i], k = sk[i] * f * f;
+    P[o * 3] = sx[i]; P[o * 3 + 1] = sy[i]; P[o * 3 + 2] = sz[i]; C[o * 3] = (0.35 + 0.65 * tint[0]) * k; C[o * 3 + 1] = (0.35 + 0.65 * tint[1]) * k; C[o * 3 + 2] = (0.35 + 0.65 * tint[2]) * k; Sz[o] = ss[i] * (0.5 + 0.5 * f); o++; }
+  ptGeo.setDrawRange(0, o); ptGeo.attributes.position.needsUpdate = ptGeo.attributes.aColor.needsUpdate = ptGeo.attributes.aSize.needsUpdate = true;
+
+  // the camera keeps the place of writing in frame, and steps back as the word grows
+  let x0 = 0, x1 = Math.max(cursorX, 1.2);
+  const G = gone[gone.length - 1]; if (!letters.length && G && G.t < 1.4) { x0 = G.x0; x1 = G.x1; }
+  const mid = (x0 + x1) / 2, half = Math.tan(camera.fov * Math.PI / 360), needZ = ((x1 - x0) / 2 + 2.7) / (half * camera.aspect);
+  const fx = S.job ? lerp(mid, S.tip.x, 0.3) : mid;
+  cam.x += (fx - cam.x) * (1 - Math.exp(-dt * 1.8)); cam.z += (Math.max(8.4, needZ) - cam.z) * (1 - Math.exp(-dt * 1.4));
+  const drift = reduce ? 0 : Math.sin(time * 0.13) * 0.3;
+  camera.position.set(cam.x + drift, 1.72 + (reduce ? 0 : Math.sin(time * 0.1) * 0.06), cam.z + (reduce ? 0 : kick * 0.3)); camera.lookAt(cam.x, 1.92, 0);
+  composer.render();
+  requestAnimationFrame(frame);
+}
+window.__saber = { type, backspace, enter, get letters() { return letters; }, sword };
+{ const hello = (new URLSearchParams(location.search).get('t') ?? 'LIGHT').slice(0, 24);
+  [...hello].forEach((c, i) => setTimeout(() => type(c), 500 + i * 380)); }
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -168823,10 +168823,121 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch to light"],html.mn-bd .mn-bdoc
   ensure();
 })();
 </script>
+<script id="mn-world-shell-71">
+/* 71 · third-party voxel worlds in My World's own shell (tools/myworld/build_world_shells.py): they open straight into
+   their engine page — no wrapper nav bar, no overlay back pill — where the Santorini console runs; that console's
+   返回 / 一键世界 / 体素世界 reach back here. */
+(function () {
+  'use strict';
+  if (window.MinestWorldShell) return;
+  var SHELL = { 'bibury.html': 'bibury/bibury.html', 'downton.html': 'downton/downton.html', 'neuschwanstein.html': 'neuschwanstein/neuschwanstein.html', 'hallstatt.html': 'hallstatt/hallstatt.html', 'venice.html': 'venice.html',
+    'hobbiton.html': 'hobbiton.html', 'giethoorn.html': 'giethoorn/index.html', 'lauterbrunnen.html': 'lauterbrunnen/index.html' };
+  var SITE = 'https://minest-app.vercel.app/';
+  function base() { return /^https?:$/.test(location.protocol) ? '' : SITE; }   // the app's own copy (file://) has no world pages: they load from the site
+  var INNER = {}; Object.keys(SHELL).forEach(function (k) { INNER[SHELL[k]] = 1; });
+  var PAGE = { hobbiton: ['hobbiton.html', '霍比屯'], bibury: ['bibury.html', '拜伯里'], downton: ['downton.html', '唐顿庄园'], giethoorn: ['giethoorn.html', '羊角村'], hallstatt: ['hallstatt.html', '哈尔施塔特'], lauterbrunnen: ['lauterbrunnen.html', '劳特布龙嫩'], neuschwanstein: ['neuschwanstein.html', '新天鹅堡'], venice: ['venice.html', '威尼斯'] };
+  var NATIVE = { alpchalet: 'MinestAlps', admont: 'MinestAdmont', trinity: 'MinestTrinity', study: 'MinestStudy' };
+  function adopt(ov) {
+    var f = ov.querySelector('iframe'); if (!f || ov.__shell71) return; ov.__shell71 = 1;
+    var src = (f.getAttribute('src') || '').split('?')[0].replace(SITE, ''), to = SHELL[src] || (INNER[src] ? src : null);
+    if (!to) return;
+    ov.classList.add('mn-shelled'); f.setAttribute('src', base() + to + '?myworld=1');
+  }
+  new MutationObserver(function (list) {
+    list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1 && (n.classList.contains('mn-world-3d-overlay') || n.classList.contains('wf-venice'))) adopt(n); }); });
+  }).observe(document.body, { childList: true });
+  function closeOverlays() { document.querySelectorAll('.mn-world-3d-overlay, .wf-venice').forEach(function (o) { o.remove(); }); }
+  function fromWorld(src) { return Array.prototype.some.call(document.querySelectorAll('.mn-world-3d-overlay iframe, .wf-venice iframe'), function (f) { return f.contentWindow === src; }); }
+  function openWorld(id, query) {
+    closeOverlays();
+    var q = query ? (query.charAt(0) === '?' ? query : '?' + query) : '';
+    if (PAGE[id] && window.openWorldOverlay3D) return openWorldOverlay3D(PAGE[id][0] + q, PAGE[id][1]);
+    if (id === 'santorini') { if (window.MinestEnterSantorini3D) return MinestEnterSantorini3D(); if (window.MinestOia) return MinestOia.open(); }
+    var g = NATIVE[id] && window[NATIVE[id]]; if (g && g.open) return g.open();
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data; if (!d || typeof d !== 'object' || !fromWorld(e.source)) return;   // only the world page open in My World
+    if (d.action === 'closeMinest3DOverlay') { document.querySelectorAll('.wf-venice').forEach(function (o) { o.remove(); }); return; }   // the 3D overlay closes itself
+    if (d.action === 'minestOpenWorld' && typeof d.id === 'string') openWorld(d.id, d.query);
+    if (d.action === 'minestOpenDynamic') {
+      closeOverlays();
+      if (window.MinestDrive && MinestDrive.gallery) MinestDrive.gallery();
+      return;
+    }
+    if (d.action === 'minestRunData?') { try { e.source.postMessage(runData(), '*'); } catch (x) {} }   // 72 · Knowledge Run: the cards of the board you are on
+    if (d.action === 'minestOpenVoxel') {
+      closeOverlays();
+      if (window.MinestOiaEditor) MinestOiaEditor.ensureContext();
+      if (window.MinestVoxel62) Promise.resolve(MinestVoxel62.open({ forceVoxel: true })).catch(function () {});
+    }
+  });
+  function runData() {   // the current board, as the Dynamic presentations read it: its lists, their cards (and a card's stack as its points)
+    var A = window.MinestAI, b = null; try { b = (A && A.board && A.board()) || (A && A.boards && A.boards()[0]) || null; } catch (x) {}
+    var PAL = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
+    var lists = []; ((b && b.columns) || []).forEach(function (col) {
+      if (!col || col.archived) return;
+      var items = (col.cards || []).filter(function (c) { return c && !c.archived; }).slice(0, 24).map(function (c) {
+        var cv = c.cover && typeof c.cover.value === 'string' && c.cover.value.length < 400000 && !/^(color|gradient)$/.test(c.cover.type) ? c.cover.value : '';
+        return { title: c.title || c.term || '', zh: c.titleZh || '', text: c.meaning || c.desc || '', img: cv, sub: (c.stack || []).filter(function (s) { return s && s.title; }).slice(0, 8).map(function (s) { return s.title; }) };
+      });
+      if (items.length) lists.push({ title: col.title || 'Untitled', color: /^#[0-9a-f]{6}$/i.test(col.color || '') ? col.color : PAL[lists.length % PAL.length], items: items });
+    });
+    return { action: 'minestRunData', title: (b && b.title) || 'Board', lists: lists.slice(0, 10) };
+  }
+  var st = document.createElement('style'); st.id = 'mn-world-shell-71-css';
+  st.textContent = '.mn-world-3d-overlay.mn-shelled > .mn-back-myworld-btn, .wf-venice.mn-shelled > .wf-venice-x { display:none !important; }';
+  document.head.appendChild(st);
+  window.MinestWorldShell = { version: '71.1', open: openWorld, closeOverlays: closeOverlays, shelled: function () { return Object.keys(SHELL); } };
+})();
+</script>
+<style id="mn-type3d-style">
+.mn-type3d{position:fixed;inset:0;z-index:2147483560;background:#000}
+.mn-type3d[hidden]{display:none}
+.mn-type3d iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.mn-type3d-x{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:42px;height:42px;border-radius:50%;border:0;padding:11px;
+  color:#fff;background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 4px 12px rgba(0,0,0,.4);cursor:pointer}
+.mn-type3d-x svg{width:100%;height:100%;display:block}
+html.mn-type3d-on #minest-mini-pet-p0{visibility:hidden!important}
+</style>
+<script id="mn-type3d-run">
+/* 3D Type — seven 3D typing worlds as a Minest module (tools/type3d/patch_type3d.py) */
+(function () {
+  if (window.MinestType3D) return;
+  var ov = null, SITE = 'https://minest-app.vercel.app/';
+  function src() { return (/^https?:$/.test(location.protocol) ? new URL('type3d/index.html', location.href).href : SITE + 'type3d/index.html'); }
+  function open() {
+    if (!ov) {
+      ov = document.createElement('div'); ov.className = 'mn-type3d'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', '3D Type');
+      var fr = document.createElement('iframe'); fr.title = '3D Type'; fr.setAttribute('allow', 'autoplay; fullscreen'); fr.src = src();
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'mn-type3d-x'; x.setAttribute('aria-label', 'Close · 关闭'); x.title = '关闭';
+      x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      x.addEventListener('click', function (e) { e.stopPropagation(); close(); });
+      ov.appendChild(fr); ov.appendChild(x); document.body.appendChild(ov);
+      ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    }
+    ov.hidden = false; document.documentElement.classList.add('mn-type3d-on');
+    try { ov.querySelector('iframe').focus(); } catch (e) {}
+  }
+  function close() { if (!ov || ov.hidden) return; ov.hidden = true; document.documentElement.classList.remove('mn-type3d-on');
+    try { var fr = ov.querySelector('iframe'); fr.src = 'about:blank'; ov.remove(); ov = null; } catch (e) {} }   // the worlds stop rendering when closed
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/><path d="M9.2 9.6h5.6M12 9.6v5.2" stroke-width="1.5"/></svg>';
+  function entry() {
+    var dock = document.querySelector('.mn-bdock'); if (!dock || dock.querySelector('[data-type3d-dock]')) return;
+    var t = document.createElement('button'); t.type = 'button'; t.className = 'mn-bapp mdk-tile'; t.setAttribute('data-type3d-dock', '');
+    t.title = '3D Type · 立体打字'; t.setAttribute('aria-label', '3D Type · 立体打字'); t.innerHTML = ICON;
+    t.addEventListener('click', function (e) { e.stopPropagation(); open(); });
+    dock.appendChild(t);
+  }
+  var q = 0;
+  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; entry(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  entry();
+  window.MinestType3D = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.0.0' };
+})();
+</script>
 <style id="mn-dock-more-style">
 html.mn-bd .mn-bdock .mn-bapp[aria-label="Knowledge"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Pet Raising"],
 html.mn-bd .mn-bdock .mn-bapp[aria-label^="Activity Rings"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch between the iPhone"],
-html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock .mn-bapp[data-carflash-dock]{display:none!important}
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock .mn-bapp[data-carflash-dock],html.mn-bd .mn-bdock .mn-bapp[data-type3d-dock]{display:none!important}
 .mn-more-fan .miv-fan-label{white-space:nowrap}
 .mn-bdock .mn-sys-btn svg{width:46%!important}
 </style>
@@ -168834,6 +168945,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
 /* the Dock: ⏻ exit · ‹ back at the top, ⋯ More at the bottom (tools/duo/patch_dock_more.py) */
 (function () {
   var MORE = [
+    { m: function (l, b) { return b.hasAttribute('data-type3d-dock'); }, label: '3D Type 立体打字' },
     { m: function (l) { return l === 'Knowledge'; }, label: 'Knowledge 知识' },
     { m: function (l) { return /^Pet Raising/.test(l); }, label: 'Pet 宠物' },
     { m: function (l) { return /^Activity Rings/.test(l); }, label: 'Rings 成就' },
@@ -168860,6 +168972,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
   /* ✕ close: the page that is open on top closes (a module, then a panel with its own ✕) */
   function closeOpen() {
     haptic('light');
+    try { if (window.MinestType3D && MinestType3D.isOpen && MinestType3D.isOpen()) { MinestType3D.close(); return true; } } catch (e) {}
     try { if (window.MinestHermes && MinestHermes.isOpen && MinestHermes.isOpen()) { MinestHermes.close(); return true; } } catch (e) {}
     try { if (window.MinestRoutine && MinestRoutine.isOpen && MinestRoutine.isOpen()) { MinestRoutine.close(); return true; } } catch (e) {}
     // an open panel / sheet: its own close button (✕), the topmost one on screen
@@ -168940,73 +169053,6 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
   new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; ensure(); }); }).observe(document.documentElement, { childList: true, subtree: true });
   addEventListener('resize', function () { close(true); });
   ensure();
-})();
-</script>
-<script id="mn-world-shell-71">
-/* 71 · third-party voxel worlds in My World's own shell (tools/myworld/build_world_shells.py): they open straight into
-   their engine page — no wrapper nav bar, no overlay back pill — where the Santorini console runs; that console's
-   返回 / 一键世界 / 体素世界 reach back here. */
-(function () {
-  'use strict';
-  if (window.MinestWorldShell) return;
-  var SHELL = { 'bibury.html': 'bibury/bibury.html', 'downton.html': 'downton/downton.html', 'neuschwanstein.html': 'neuschwanstein/neuschwanstein.html', 'hallstatt.html': 'hallstatt/hallstatt.html', 'venice.html': 'venice.html',
-    'hobbiton.html': 'hobbiton.html', 'giethoorn.html': 'giethoorn/index.html', 'lauterbrunnen.html': 'lauterbrunnen/index.html' };
-  var SITE = 'https://minest-app.vercel.app/';
-  function base() { return /^https?:$/.test(location.protocol) ? '' : SITE; }   // the app's own copy (file://) has no world pages: they load from the site
-  var INNER = {}; Object.keys(SHELL).forEach(function (k) { INNER[SHELL[k]] = 1; });
-  var PAGE = { hobbiton: ['hobbiton.html', '霍比屯'], bibury: ['bibury.html', '拜伯里'], downton: ['downton.html', '唐顿庄园'], giethoorn: ['giethoorn.html', '羊角村'], hallstatt: ['hallstatt.html', '哈尔施塔特'], lauterbrunnen: ['lauterbrunnen.html', '劳特布龙嫩'], neuschwanstein: ['neuschwanstein.html', '新天鹅堡'], venice: ['venice.html', '威尼斯'] };
-  var NATIVE = { alpchalet: 'MinestAlps', admont: 'MinestAdmont', trinity: 'MinestTrinity', study: 'MinestStudy' };
-  function adopt(ov) {
-    var f = ov.querySelector('iframe'); if (!f || ov.__shell71) return; ov.__shell71 = 1;
-    var src = (f.getAttribute('src') || '').split('?')[0].replace(SITE, ''), to = SHELL[src] || (INNER[src] ? src : null);
-    if (!to) return;
-    ov.classList.add('mn-shelled'); f.setAttribute('src', base() + to + '?myworld=1');
-  }
-  new MutationObserver(function (list) {
-    list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1 && (n.classList.contains('mn-world-3d-overlay') || n.classList.contains('wf-venice'))) adopt(n); }); });
-  }).observe(document.body, { childList: true });
-  function closeOverlays() { document.querySelectorAll('.mn-world-3d-overlay, .wf-venice').forEach(function (o) { o.remove(); }); }
-  function fromWorld(src) { return Array.prototype.some.call(document.querySelectorAll('.mn-world-3d-overlay iframe, .wf-venice iframe'), function (f) { return f.contentWindow === src; }); }
-  function openWorld(id, query) {
-    closeOverlays();
-    var q = query ? (query.charAt(0) === '?' ? query : '?' + query) : '';
-    if (PAGE[id] && window.openWorldOverlay3D) return openWorldOverlay3D(PAGE[id][0] + q, PAGE[id][1]);
-    if (id === 'santorini') { if (window.MinestEnterSantorini3D) return MinestEnterSantorini3D(); if (window.MinestOia) return MinestOia.open(); }
-    var g = NATIVE[id] && window[NATIVE[id]]; if (g && g.open) return g.open();
-  }
-  window.addEventListener('message', function (e) {
-    var d = e.data; if (!d || typeof d !== 'object' || !fromWorld(e.source)) return;   // only the world page open in My World
-    if (d.action === 'closeMinest3DOverlay') { document.querySelectorAll('.wf-venice').forEach(function (o) { o.remove(); }); return; }   // the 3D overlay closes itself
-    if (d.action === 'minestOpenWorld' && typeof d.id === 'string') openWorld(d.id, d.query);
-    if (d.action === 'minestOpenDynamic') {
-      closeOverlays();
-      if (window.MinestDrive && MinestDrive.gallery) MinestDrive.gallery();
-      return;
-    }
-    if (d.action === 'minestRunData?') { try { e.source.postMessage(runData(), '*'); } catch (x) {} }   // 72 · Knowledge Run: the cards of the board you are on
-    if (d.action === 'minestOpenVoxel') {
-      closeOverlays();
-      if (window.MinestOiaEditor) MinestOiaEditor.ensureContext();
-      if (window.MinestVoxel62) Promise.resolve(MinestVoxel62.open({ forceVoxel: true })).catch(function () {});
-    }
-  });
-  function runData() {   // the current board, as the Dynamic presentations read it: its lists, their cards (and a card's stack as its points)
-    var A = window.MinestAI, b = null; try { b = (A && A.board && A.board()) || (A && A.boards && A.boards()[0]) || null; } catch (x) {}
-    var PAL = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
-    var lists = []; ((b && b.columns) || []).forEach(function (col) {
-      if (!col || col.archived) return;
-      var items = (col.cards || []).filter(function (c) { return c && !c.archived; }).slice(0, 24).map(function (c) {
-        var cv = c.cover && typeof c.cover.value === 'string' && c.cover.value.length < 400000 && !/^(color|gradient)$/.test(c.cover.type) ? c.cover.value : '';
-        return { title: c.title || c.term || '', zh: c.titleZh || '', text: c.meaning || c.desc || '', img: cv, sub: (c.stack || []).filter(function (s) { return s && s.title; }).slice(0, 8).map(function (s) { return s.title; }) };
-      });
-      if (items.length) lists.push({ title: col.title || 'Untitled', color: /^#[0-9a-f]{6}$/i.test(col.color || '') ? col.color : PAL[lists.length % PAL.length], items: items });
-    });
-    return { action: 'minestRunData', title: (b && b.title) || 'Board', lists: lists.slice(0, 10) };
-  }
-  var st = document.createElement('style'); st.id = 'mn-world-shell-71-css';
-  st.textContent = '.mn-world-3d-overlay.mn-shelled > .mn-back-myworld-btn, .wf-venice.mn-shelled > .wf-venice-x { display:none !important; }';
-  document.head.appendChild(st);
-  window.MinestWorldShell = { version: '71.1', open: openWorld, closeOverlays: closeOverlays, shelled: function () { return Object.keys(SHELL); } };
 })();
 </script>
 </body>

@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Noble Gas Neon</title>
+<style>
+:root{--ink:#e9ecee;--dim:rgba(233,236,238,.42);--faint:rgba(233,236,238,.16);--g:#ff5a2a}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#020203;color:var(--ink);overflow:hidden;
+  font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.film{position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 85% 75% at 50% 45%,transparent 50%,rgba(0,0,0,.66) 100%)}
+.hud{position:fixed;pointer-events:none;color:var(--dim)}
+#title{left:max(22px,env(safe-area-inset-left));top:max(20px,env(safe-area-inset-top));pointer-events:auto;max-width:calc(100% - 44px)}
+#title b{color:var(--ink);font-weight:600}
+#title a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--faint);padding-bottom:1px}
+#title a:hover{color:var(--ink)}
+#gas{right:max(22px,env(safe-area-inset-right));top:max(20px,env(safe-area-inset-top));pointer-events:auto;display:flex;gap:14px}
+#gas button{all:unset;cursor:pointer;color:var(--dim);border-bottom:1px solid transparent;padding-bottom:1px}
+#gas button:hover{color:var(--ink)}
+#gas button.on{color:var(--ink);border-bottom-color:var(--g)}
+@media (max-width:820px){#gas{top:calc(max(20px,env(safe-area-inset-top)) + 46px)}}
+#line{left:0;right:0;bottom:max(26px,env(safe-area-inset-bottom));text-align:center;color:var(--ink);letter-spacing:.32em;white-space:pre;overflow:hidden;padding:0 24px}
+#line .caret{display:inline-block;width:.6em;height:1px;background:var(--ink);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+#hint{left:0;right:0;bottom:max(52px,calc(env(safe-area-inset-bottom) + 26px));text-align:center;transition:opacity .8s}
+#hint.off{opacity:0}
+#err{left:0;right:0;top:46%;text-align:center;color:var(--ink);display:none;text-transform:none;letter-spacing:.04em}
+#kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;background:transparent;color:transparent;font-size:16px}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="film"></div>
+<div class="hud" id="title"><a href="index.html">Filament</a> / <a href="firework.html">Firework</a> / <a href="topiary.html">Topiary</a> / <a href="saber.html">Saber</a> / <a href="quill.html">Quill</a> / <b>Neon</b> / <a href="book.html">Book</a></div>
+<div class="hud" id="gas"><button type="button" tabindex="-1" data-gas="neon" title="Neon">NE</button><button type="button" tabindex="-1" data-gas="argon" title="Argon">AR</button><button type="button" tabindex="-1" data-gas="helium" title="Helium">HE</button><button type="button" tabindex="-1" data-gas="xenon" title="Xenon">XE</button></div>
+<div class="hud" id="hint">Type — 每个键一支玻璃放电管 · Enter 让电流走过整个单词 · Backspace 熄灭拆除</div>
+<div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
+<div class="hud" id="err"></div>
+<input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
+
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { strokeGlyph, strokeAdvance } from './strokefont.js';
+
+/* ───────────── constants ───────────── */
+const SIZE = 1.5;             // cap height of a letter, world units
+const GAP = 0.34;             // space between letters
+const BASE_Y = 0.42;          // baseline above the bench top
+const R = 0.043;              // outer radius of the glass tube
+const RAD = 10;               // radial segments of a tube
+const LAYER = 0.1;            // each later stroke of a glyph sits this much further back (strokes cross without touching)
+const DRIFT = 0.045;          // and every tube recedes a little along its own length (so a stroke can cross itself)
+const STAND_Z = -0.52;        // the plane of the stand behind the letter
+const WALL_Z = -1.5;
+const ARCH_S = 0.36, ARCH_Y = 2.62, ARCH_ROW = 0.92, ARCH_Z = -1.12, ARCH_ROWS = 3;   // the wall display of finished words
+const MAX_FORMING = 3;        // letters whose glass is being drawn at the same time
+const LIGHTS = 6;             // coloured point lights shared by every tube in the room
+const LIGHT_K = 3.0;
+const GASES = {
+  neon:   { tag: 'NE', css: '#ff5a2a', core: [1.0, 0.40, 0.11], edge: [1.0, 0.10, 0.025], end: [1.0, 0.58, 0.24], light: [1.0, 0.20, 0.05] },
+  argon:  { tag: 'AR', css: '#7d6bff', core: [0.60, 0.52, 1.0], edge: [0.26, 0.16, 1.0], end: [0.80, 0.42, 1.0], light: [0.40, 0.30, 1.0] },
+  helium: { tag: 'HE', css: '#ffb38e', core: [1.0, 0.72, 0.55], edge: [1.0, 0.38, 0.27], end: [1.0, 0.86, 0.58], light: [1.0, 0.52, 0.36] },
+  xenon:  { tag: 'XE', css: '#c9d6ff', core: [0.86, 0.91, 1.0], edge: [0.46, 0.50, 1.0], end: [0.62, 0.48, 1.0], light: [0.66, 0.72, 1.0] },
+};
+const GAS_ORDER = ['neon', 'argon', 'helium', 'xenon'];
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rnd = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+const sm = x => x * x * (3 - 2 * x);
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const showErr = msg => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent = msg; };
+
+/* ───────────── renderer / scene ───────────── */
+const canvas = document.getElementById('gl');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+catch (e) { showErr('WebGL 没有启动成功。请换一个浏览器或设备再试。'); throw e; }
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020203);
+scene.fog = new THREE.FogExp2(0x020203, 0.028);
+const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 140);
+
+// the room when nothing is lit: a breath of cold light from a high window, enough for silhouettes
+scene.add(new THREE.HemisphereLight(0x8fa2c8, 0x0a0806, 0.16));
+const moon = new THREE.DirectionalLight(0x9db4ff, 0.32); moon.position.set(-5, 6, 4); scene.add(moon);
+
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4 }));
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.62, 0.72, 0.78); composer.addPass(bloom);
+composer.addPass(new OutputPass());
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+/* ───────────── the laboratory (static) ───────────── */
+function woodTexture() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128; const x = c.getContext('2d');
+  x.fillStyle = '#4a3524'; x.fillRect(0, 0, 512, 128);
+  for (let i = 0; i < 260; i++) { const d = Math.random() < 0.6; x.fillStyle = d ? `rgba(12,7,3,${rnd(.05, .28)})` : `rgba(190,140,90,${rnd(.02, .1)})`; x.fillRect(rnd(-60, 512), rnd(128), rnd(40, 300), rnd(.6, 2.4)); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;
+}
+const woodMap = woodTexture(); woodMap.repeat.set(14, 1);
+const M = {
+  bench: new THREE.MeshStandardMaterial({ color: 0xffffff, map: woodMap, roughness: 0.46, metalness: 0.0 }),
+  wood: new THREE.MeshStandardMaterial({ color: 0x35271b, roughness: 0.62 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0x74726c, roughness: 0.94 }),
+  panel: new THREE.MeshStandardMaterial({ color: 0x4a3a2c, roughness: 0.7 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x141518, roughness: 0.5, metalness: 0.55 }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xa8792e, roughness: 0.36, metalness: 0.85 }),
+  dial: new THREE.MeshStandardMaterial({ color: 0xb9b2a2, roughness: 0.85 }),
+};
+const roomU = { value: new THREE.Color(0, 0, 0) };      // the coloured light in the room right now (glass picks it up)
+const WORLD_VERT = `varying vec3 vN, vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; vN = normalize(mat3(modelMatrix)*normal); gl_Position = projectionMatrix*viewMatrix*w; }`;
+const jarMat = new THREE.ShaderMaterial({ uniforms: { uRoom: roomU }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexShader: WORLD_VERT,
+  fragmentShader: `uniform vec3 uRoom; varying vec3 vN, vW;
+    void main(){ vec3 N = normalize(vN), V = normalize(cameraPosition - vW); float fr = pow(1. - abs(dot(N, V)), 2.6); vec3 Rf = reflect(-V, N);
+      float s = pow(max(dot(Rf, normalize(vec3(-.45, .8, .4))), 0.), 70.);
+      gl_FragColor = vec4(vec3(.7, .8, 1.) * (fr * .07 + s * .5) + uRoom * (fr * .75 + .02), 1.); }` });
+{
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); scene.add(m); return m; };
+  // bench: a long slab with an apron under its front edge
+  add(new THREE.BoxGeometry(90, 0.14, 3.2), M.bench, 20, -0.07, 0.05);
+  add(new THREE.BoxGeometry(90, 0.5, 0.08), M.wood, 20, -0.39, 1.55);
+  // back wall, wainscot, rail, a conduit
+  add(new THREE.PlaneGeometry(90, 12), M.wall, 20, 5.5, WALL_Z);
+  add(new THREE.BoxGeometry(90, 2.4, 0.06), M.panel, 20, 1.2, WALL_Z + 0.03);
+  add(new THREE.BoxGeometry(90, 0.07, 0.11), M.wood, 20, 2.43, WALL_Z + 0.055);
+  const pipe = add(new THREE.CylinderGeometry(0.022, 0.022, 90, 8), M.dark, 20, 2.16, WALL_Z + 0.1); pipe.rotation.z = Math.PI / 2;
+  for (let x = -22; x < 60; x += 2.4) add(new THREE.BoxGeometry(0.035, 2.34, 0.02), M.wood, x, 1.2, WALL_Z + 0.065);   // panel seams
+
+  // induction coil
+  const coil = (x, z) => {
+    add(new THREE.BoxGeometry(1.15, 0.09, 0.46), M.wood, x, 0.045, z);
+    const c = add(new THREE.CylinderGeometry(0.17, 0.17, 0.82, 24), M.dark, x, 0.33, z); c.rotation.z = Math.PI / 2;
+    for (const s of [-1, 1]) {
+      const d = add(new THREE.CylinderGeometry(0.235, 0.235, 0.045, 24), M.wood, x + s * 0.43, 0.33, z); d.rotation.z = Math.PI / 2;
+      add(new THREE.CylinderGeometry(0.012, 0.012, 0.62, 8), M.brass, x + s * 0.3, 0.4, z + 0.19);
+      add(new THREE.SphereGeometry(0.036, 14, 10), M.brass, x + s * 0.3, 0.72, z + 0.19);
+      const r = add(new THREE.CylinderGeometry(0.007, 0.007, 0.24, 6), M.brass, x + s * 0.17, 0.72, z + 0.19); r.rotation.z = Math.PI / 2;
+      add(new THREE.SphereGeometry(0.018, 10, 8), M.brass, x + s * 0.05, 0.72, z + 0.19);
+    }
+  };
+  // bell jar on a turned base, a small stage under it
+  const jarProfile = []; for (let i = 0; i <= 5; i++) jarProfile.push(new THREE.Vector2(0.3, i * 0.11));
+  for (let i = 1; i <= 10; i++) { const a = i / 10 * Math.PI / 2; jarProfile.push(new THREE.Vector2(Math.cos(a) * 0.3, 0.55 + Math.sin(a) * 0.3)); }
+  const jarGeo = new THREE.LatheGeometry(jarProfile, 36);
+  const bell = (x, z) => {
+    add(new THREE.CylinderGeometry(0.37, 0.4, 0.06, 32), M.dark, x, 0.03, z);
+    add(jarGeo, jarMat, x, 0.06, z);
+    add(new THREE.SphereGeometry(0.045, 12, 10), M.dark, x, 0.94, z);
+    add(new THREE.CylinderGeometry(0.012, 0.012, 0.3, 8), M.brass, x, 0.21, z);
+    add(new THREE.CylinderGeometry(0.11, 0.11, 0.014, 20), M.brass, x, 0.36, z);
+  };
+  // Leyden jar
+  const leyden = (x, z, h) => {
+    add(new THREE.CylinderGeometry(0.105, 0.105, h, 20), M.dark, x, h / 2, z);
+    add(new THREE.CylinderGeometry(0.11, 0.11, 0.03, 20), M.wood, x, h + 0.015, z);
+    add(new THREE.CylinderGeometry(0.008, 0.008, 0.24, 6), M.brass, x, h + 0.14, z);
+    add(new THREE.SphereGeometry(0.032, 12, 10), M.brass, x, h + 0.27, z);
+  };
+  // wall gauge
+  const gauge = (x, y, r, a) => {
+    const z = WALL_Z + 0.09;
+    const b = add(new THREE.CylinderGeometry(r, r, 0.06, 28), M.dark, x, y, z); b.rotation.x = Math.PI / 2;
+    add(new THREE.CircleGeometry(r * 0.86, 28), M.dial, x, y, z + 0.032);
+    add(new THREE.TorusGeometry(r * 0.93, r * 0.07, 8, 32), M.brass, x, y, z + 0.03);
+    const n = add(new THREE.BoxGeometry(r * 0.72, r * 0.05, 0.006), M.dark, x + Math.cos(a) * r * 0.3, y + Math.sin(a) * r * 0.3, z + 0.038); n.rotation.z = a;
+    add(new THREE.CylinderGeometry(0.012, 0.012, 2.16 - y - r, 6), M.dark, x, (2.16 + y + r) / 2, z - 0.02);
+  };
+  coil(-1.35, -0.98); gauge(-1.02, 1.74, 0.17, 2.2); gauge(-1.62, 1.8, 0.12, 0.7);
+  leyden(-2.55, -1.05, 0.42); leyden(-2.86, -0.98, 0.5); bell(-3.9, -0.95);
+  bell(5.3, -1.0); gauge(7.0, 1.76, 0.17, 1.1); leyden(8.3, -1.04, 0.5); leyden(8.62, -1.0, 0.42);
+  coil(12.2, -1.0); gauge(14.4, 1.78, 0.13, 2.6); bell(17.5, -0.98); leyden(20.4, -1.02, 0.46); gauge(22.5, 1.75, 0.17, 0.9); coil(26.5, -1.0);
+}
+
+/* ───────────── lights shared by all tubes ───────────── */
+const lights = [];
+for (let i = 0; i < LIGHTS; i++) { const l = new THREE.PointLight(0xffffff, 0, 11, 2); l.position.set(0, 1.2, 0.4); scene.add(l); lights.push(l); }
+const lightOn = new Uint8Array(LIGHTS), acc = new Float32Array(LIGHTS * 7);
+
+/* ───────────── tube shaders ─────────────
+   one geometry per letter, drawn three times: outer glass wall, inner glass wall, gas column.
+   aTube = (distance along this tube, length of this tube, distance along the whole letter) */
+const TUBE_VERT = `attribute vec3 aTube; uniform float uInset; varying vec3 vN, vW, vT;
+  void main(){ vT = aTube; vec4 w = modelMatrix*vec4(position - normal*uInset, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix)*normal); gl_Position = projectionMatrix*viewMatrix*w; }`;
+const GLASS_FRAG = `uniform float uGrow, uHot, uFront, uLevel, uBoost, uPulse, uPulseAmp, uRim; uniform vec3 uColEdge, uRoom; varying vec3 vN, vW, vT;
+  void main(){
+    if (vT.z > uGrow) discard;
+    vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
+    float fr = pow(1. - abs(dot(N, V)), 3.);
+    vec3 Rf = reflect(-V, N);
+    float s1 = pow(max(dot(Rf, normalize(vec3(-.45, .8, .4))), 0.), 90.);          // the high window
+    float s2 = pow(max(dot(Rf, normalize(vec3(.6, .5, .62))), 0.), 28.) * .22;
+    float band = smoothstep(.2, .75, Rf.y) * .05;
+    vec3 col = vec3(.72, .82, 1.) * (fr * .2 + s1 * 1.1 + s2 + band) * uRim;
+    col += uRoom * (fr * .55 + .025) * uRim;                                        // the room's colour on the rims
+    float dEnd = min(vT.x, vT.y - vT.x), u = dEnd / max(.5 * vT.y, 1e-3);
+    float lit = uLevel * (1. - smoothstep(uFront - .14, uFront + .02, u)) * (1. + uBoost) + uPulseAmp * exp(-(vT.z - uPulse) * (vT.z - uPulse) * 6.76);
+    col += uColEdge * lit * (fr * .9 + .08) * .55;                                  // gas light caught in the wall
+    float hot = smoothstep(uGrow - .4, uGrow, vT.z) * uHot;                         // freshly drawn glass is still glowing
+    col += vec3(1., .36, .07) * hot * (1.1 + fr);
+    gl_FragColor = vec4(col, 1.);
+  }`;
+const GAS_FRAG = `uniform float uTime, uGrow, uFront, uFrontAmp, uLevel, uFlick, uBoost, uPulse, uPulseAmp, uSeed, uShim; uniform vec3 uColCore, uColEdge, uColEnd; varying vec3 vN, vW, vT;
+  float hash(float n){ return fract(sin(n * 12.9898) * 43758.5453); }
+  float vnoise(float x){ float i = floor(x), f = fract(x); f = f * f * (3. - 2. * f); return mix(hash(i), hash(i + 1.), f); }
+  void main(){
+    if (vT.z > uGrow) discard;
+    vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
+    float ndv = abs(dot(N, V)), core = pow(ndv, 1.6);
+    float s = vT.x, len = vT.y, dEnd = min(s, len - s), u = dEnd / max(.5 * len, 1e-3);   // u: 0 at an electrode, 1 mid-tube
+    float front = 1. - smoothstep(uFront - .14, uFront + .02, u);                    // the discharge has reached this far
+    float edge = exp(-(u - uFront) * (u - uFront) * 64.) * uFrontAmp;                       // its bright leading edge
+    float shim = 1. + uShim * (.045 * sin(s * 21. - uTime * 3.3 + uSeed * 6.) + .07 * (vnoise(s * 4. + uTime * 1.7 + uSeed * 31.) - .5) + .02 * sin(uTime * 11. + uSeed * 17.));
+    float steady = uLevel * front * shim * (1. + uBoost);
+    float stri = .5 + .5 * sin(dEnd * 120. - uTime * 17.);                           // striations by the electrodes
+    float nearEl = exp(-dEnd * 4.5);
+    float body = vnoise(s * 7. + floor(uTime * 22.) * 3.7 + uSeed * 11.);
+    float flick = uFlick * (nearEl * (.3 + .7 * stri) * 1.1 + .24 * smoothstep(.45, .9, body));
+    float pulse = uPulseAmp * exp(-(vT.z - uPulse) * (vT.z - uPulse) * 6.76);
+    float I = steady + flick + edge + pulse;
+    vec3 col = mix(uColEdge, uColCore, core);
+    col = mix(col, uColEnd, clamp(exp(-dEnd * 9.) * .75, 0., 1.));
+    col += vec3(1.) * pow(ndv, 5.) * .2 * min(I, 2.5);
+    gl_FragColor = vec4(col * I * (.25 + .62 * core) * .82, 1.);
+  }`;
+const uTime = { value: 0 }, uShim = { value: reduce ? 0 : 1 };
+
+/* ───────────── glyph → glass ───────────── */
+const UP = V(0, 1, 0), ZAX = V(0, 0, 1), ONE = V(1, 1, 1), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _v = V(0, 0, 0), _c = new THREE.Color();
+/** real bent glass has a radius: replace each sharp corner of a polyline with a small curve */
+function roundCorners(raw, r) {
+  const pts = []; for (const p of raw) { const l = pts[pts.length - 1]; if (!l || Math.hypot(p[0] - l[0], p[1] - l[1]) > 1e-4) pts.push(p); }
+  if (pts.length < 3) return pts;
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], b = pts[i], c = pts[i + 1];
+    const ax = b[0] - a[0], ay = b[1] - a[1], cx = c[0] - b[0], cy = c[1] - b[1], l1 = Math.hypot(ax, ay), l2 = Math.hypot(cx, cy);
+    const cos = (ax * cx + ay * cy) / (l1 * l2);
+    if (cos > 0.94) { out.push(b); continue; }                                    // already part of a gentle arc
+    const th = Math.acos(Math.max(-1, cos)), d = Math.min(r * Math.tan(th / 2), l1 * 0.45, l2 * 0.45);
+    const p1 = [b[0] - ax / l1 * d, b[1] - ay / l1 * d], p2 = [b[0] + cx / l2 * d, b[1] + cy / l2 * d];
+    for (let k = 0; k <= 8; k++) { const t = k / 8, w0 = (1 - t) * (1 - t), w1 = 2 * t * (1 - t), w2 = t * t; out.push([p1[0] * w0 + b[0] * w1 + p2[0] * w2, p1[1] * w0 + b[1] * w1 + p2[1] * w2]); }
+  }
+  out.push(pts[pts.length - 1]); return out;
+}
+function resample(pts, step) {
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i].distanceTo(pts[i - 1]));
+  const total = cum[cum.length - 1], n = Math.max(3, Math.ceil(total / step)), out = []; let j = 0;
+  for (let i = 0; i <= n; i++) { const d = total * i / n; while (j < pts.length - 2 && cum[j + 1] < d) j++;
+    const l = cum[j + 1] - cum[j]; out.push(pts[j].clone().lerp(pts[j + 1], l > 1e-9 ? clamp01((d - cum[j]) / l) : 0)); }
+  return out;
+}
+function rodGeo(a, b, r, rad = 8) { _v.subVectors(b, a); const l = Math.max(1e-4, _v.length()); const g = new THREE.CylinderGeometry(r, r, l, rad, 1);
+  _q.setFromUnitVectors(UP, _v.normalize()); _m.compose(V(0, 0, 0).addVectors(a, b).multiplyScalar(0.5), _q, ONE); return g.applyMatrix4(_m); }
+/** tag a piece of hardware: colour, the point it grows out of, and how far the glass must have come before it appears */
+function part(list, geo, col, center, appear) {
+  const n = geo.attributes.position.count, c = new Float32Array(n * 3), ce = new Float32Array(n * 3), ap = new Float32Array(n);
+  for (let i = 0; i < n; i++) { c[i * 3] = col[0]; c[i * 3 + 1] = col[1]; c[i * 3 + 2] = col[2]; ce[i * 3] = center.x; ce[i * 3 + 1] = center.y; ce[i * 3 + 2] = center.z; ap[i] = appear; }
+  geo.setAttribute('color', new THREE.BufferAttribute(c, 3)); geo.setAttribute('aCenter', new THREE.BufferAttribute(ce, 3)); geo.setAttribute('aAppear', new THREE.BufferAttribute(ap, 1));
+  list.push(geo);
+}
+const STEEL = [0.045, 0.05, 0.056], BRASS = [0.5, 0.31, 0.09], IRON = [0.02, 0.02, 0.024], CERAMIC = [0.42, 0.4, 0.36], COPPER = [0.45, 0.2, 0.08];
+const glyphCache = new Map();
+function glyphDef(ch) {
+  if (glyphCache.has(ch)) return glyphCache.get(ch);
+  const g = strokeGlyph(ch); let def = null;
+  if (g && g.strokes.length) {
+    const W = g.w * SIZE, strokes = [], tubes = [], hard = [], leads = [], sparks = []; let off = 0;
+    const topY = BASE_Y + SIZE + 0.26, botY = BASE_Y - 0.2, rodX = W / 2;
+    // the stand: base plate, rod, two brass bus bars on ceramic insulators
+    const basePt = V(rodX, 0, STAND_Z);
+    part(hard, new THREE.BoxGeometry(W + 0.2, 0.035, 0.26).translate(rodX, 0.0175, STAND_Z), STEEL, basePt, -0.5);
+    part(hard, rodGeo(V(rodX, 0.03, STAND_Z), V(rodX, topY + 0.08, STAND_Z), 0.018, 10), STEEL, basePt, -0.44);
+    for (const y of [topY, botY]) {
+      const c = V(rodX, y, STAND_Z);
+      part(hard, rodGeo(V(-0.07, y, STAND_Z + 0.045), V(W + 0.07, y, STAND_Z + 0.045), 0.013, 8), BRASS, c, -0.32);
+      part(hard, rodGeo(V(rodX, y, STAND_Z - 0.005), V(rodX, y, STAND_Z + 0.05), 0.036, 12), CERAMIC, c, -0.36);
+    }
+    g.strokes.forEach((raw, k) => {
+      const pl = roundCorners(raw, 0.085), p3 = []; let s = 0;
+      for (let i = 0; i < pl.length; i++) { if (i) s += Math.hypot(pl[i][0] - pl[i - 1][0], pl[i][1] - pl[i - 1][1]) * SIZE; p3.push(V(pl[i][0] * SIZE, BASE_Y + pl[i][1] * SIZE, -k * LAYER - s * DRIFT)); }
+      if (p3.length < 2) return;
+      const rs = resample(p3, 0.05), curve = new THREE.CatmullRomCurve3(rs, false, 'centripetal'); curve.arcLengthDivisions = Math.max(200, rs.length * 3);
+      const len = curve.getLength(), seg = Math.max(6, Math.ceil(len / 0.03));
+      const tg = new THREE.TubeGeometry(curve, seg, R, RAD, false), uv = tg.attributes.uv, at = new Float32Array(uv.count * 3);
+      for (let i = 0; i < uv.count; i++) { const d = uv.getX(i) * len; at[i * 3] = d; at[i * 3 + 1] = len; at[i * 3 + 2] = off + d; }
+      tg.setAttribute('aTube', new THREE.BufferAttribute(at, 3)); tubes.push(tg);
+      strokes.push({ curve, len, off, seg });
+      // electrodes at both ends: brass sleeve + terminal, an iron electrode inside the glass, a copper lead to the nearer bus bar
+      for (const e of [0, 1]) {
+        const P = curve.getPointAt(e), T = curve.getTangentAt(e).multiplyScalar(e ? 1 : -1);          // T points out of the tube
+        const ap = e ? off + len - 0.04 : off - 0.16;
+        part(hard, rodGeo(P.clone().addScaledVector(T, -0.085), P.clone().addScaledVector(T, 0.03), R * 1.3, 14), BRASS, P, ap);
+        part(hard, rodGeo(P.clone().addScaledVector(T, 0.03), P.clone().addScaledVector(T, 0.075), R * 0.55, 10), BRASS, P, ap);
+        if (len > 0.5) part(hard, rodGeo(P.clone().addScaledVector(T, -0.2), P.clone().addScaledVector(T, -0.085), R * 0.34, 8), IRON, P, ap);
+        const busY = P.y > BASE_Y + SIZE * 0.5 ? topY : botY, B = V(P.x, busY, STAND_Z + 0.045);
+        const p0 = P.clone().addScaledVector(T, 0.07), p1 = P.clone().addScaledVector(T, 0.26); p1.z -= 0.16; p1.y += (busY - P.y) * 0.25;
+        part(leads, new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(p0, p1, B), 14, 0.0075, 5, false), COPPER, B, ap + 0.08);
+        part(hard, new THREE.SphereGeometry(0.02, 8, 6).translate(B.x, B.y, B.z), BRASS, B, ap + 0.08);
+        const sp = P.clone().addScaledVector(T, len > 0.5 ? -0.2 : -Math.min(0.03, len * 0.3));
+        sparks.push(new THREE.SphereGeometry(R * 0.5, 8, 6).translate(sp.x, sp.y, sp.z));
+      }
+      // clamps: an arm from the rod, a ring round the glass
+      const us = len < 0.3 ? [] : len < 1.5 ? [0.5] : [0.27, 0.73];
+      for (const u of us) {
+        const C = curve.getPointAt(u), T = curve.getTangentAt(u), boss = V(rodX, C.y, STAND_Z), ap = off + u * len - 0.08;
+        const ring = new THREE.TorusGeometry(R * 1.28, 0.011, 6, 18); _q.setFromUnitVectors(ZAX, T); _m.compose(C, _q, ONE); ring.applyMatrix4(_m);
+        part(hard, ring, STEEL, boss, ap);
+        part(hard, rodGeo(boss, V(C.x, C.y, C.z - R * 1.28), 0.009, 6), STEEL, boss, ap);
+        part(hard, new THREE.BoxGeometry(0.06, 0.05, 0.06).translate(boss.x, boss.y, boss.z), STEEL, boss, ap);
+      }
+      off += len;
+    });
+    if (strokes.length) {
+      const tubeGeo = mergeGeometries(tubes), hardGeo = mergeGeometries(hard), leadGeo = mergeGeometries(leads), sparkGeo = mergeGeometries(sparks);
+      tubes.forEach(t => t.dispose()); hard.forEach(t => t.dispose()); leads.forEach(t => t.dispose()); sparks.forEach(t => t.dispose());
+      tubeGeo.computeBoundingSphere();
+      def = { W, G: off, strokes, tubeGeo, hardGeo, leadGeo, sparkGeo, cx: W / 2, cy: BASE_Y + SIZE / 2 };
+    }
+  }
+  glyphCache.set(ch, def); return def;
+}
+function appearPatch(mat, uGrow) {      // hardware grows out of its anchor when the glass reaches it
+  mat.onBeforeCompile = sh => { sh.uniforms.uGrow = uGrow;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aCenter;\nattribute float aAppear;\nuniform float uGrow;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed = aCenter + (transformed - aCenter) * smoothstep(aAppear, aAppear + 0.14, uGrow);'); };
+  mat.customProgramCacheKey = () => 'appear';
+  return mat;
+}
+const tipGeo = new THREE.SphereGeometry(R * 1.45, 12, 10);
+
+/* ───────────── a letter ───────────── */
+class Letter {
+  constructor(ch, def, x, gasKey) {
+    this.ch = ch; this.def = def; this.x = x; this.adv = def.W + GAP; this.G = def.G; this.gas = GASES[gasKey]; this.gasKey = gasKey;
+    this.state = 'queued'; this.t = 0; this.level = 0; this.dimMul = 1; this.fl = 0; this.dip = 0; this.spark = 0; this.lead = 0; this.lum = 0; this.dead = false; this.pulseOn = 0;
+    this.formDur = 0.45 + 0.3 * def.G; this.f0 = 0; this.g0 = 0;
+    const gs = this.gas, u = this.u = {
+      uTime, uShim, uRoom: roomU, uGrow: { value: -0.5 }, uHot: { value: 1 }, uFront: { value: 0 }, uFrontAmp: { value: 0 }, uLevel: { value: 0 }, uFlick: { value: 0 },
+      uBoost: { value: 0 }, uPulse: { value: -10 }, uPulseAmp: { value: 0 }, uSeed: { value: Math.random() },
+      uColCore: { value: new THREE.Color().setRGB(...gs.core) }, uColEdge: { value: new THREE.Color().setRGB(...gs.edge) }, uColEnd: { value: new THREE.Color().setRGB(...gs.end) },
+    };
+    // a wrapper that shares the cached buffers but has its own draw range
+    const geo = this.geo = new THREE.BufferGeometry(); geo.setIndex(def.tubeGeo.index);
+    for (const k in def.tubeGeo.attributes) geo.setAttribute(k, def.tubeGeo.attributes[k]);
+    geo.boundingSphere = def.tubeGeo.boundingSphere; geo.setDrawRange(0, 0);
+    const layer = (frag, inset, rim, order) => { const m = new THREE.Mesh(geo, new THREE.ShaderMaterial({ uniforms: { ...u, uInset: { value: inset }, uRim: { value: rim } },
+      vertexShader: TUBE_VERT, fragmentShader: frag, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); m.renderOrder = order; return m; };
+    this.gasMesh = layer(GAS_FRAG, R * 0.3, 1, 1); this.inner = layer(GLASS_FRAG, R * 0.24, 0.45, 2); this.outer = layer(GLASS_FRAG, 0, 1, 3);
+    this.hardMat = appearPatch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.6 }), u.uGrow);
+    this.leadMat = appearPatch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.7, emissive: new THREE.Color().setRGB(...gs.light), emissiveIntensity: 0 }), u.uGrow);
+    this.sparkMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    this.tipMat = new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(2.6, 1.0, 0.25), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    this.hard = new THREE.Mesh(def.hardGeo, this.hardMat); this.leads = new THREE.Mesh(def.leadGeo, this.leadMat);
+    this.sparks = new THREE.Mesh(def.sparkGeo, this.sparkMat); this.sparks.visible = false; this.sparks.renderOrder = 4;
+    this.tip = new THREE.Mesh(tipGeo, this.tipMat); this.tip.visible = false; this.tip.renderOrder = 4;
+    this.group = new THREE.Group(); this.group.position.x = x; this.group.visible = false;
+    this.group.add(this.hard, this.leads, this.gasMesh, this.inner, this.outer, this.sparks, this.tip);
+  }
+  go(s) { this.state = s; this.t = 0; }
+  start() { this.group.visible = true; this.go('stand'); }
+  get settled() { return this.state === 'steady'; }
+  setRange(g) { let c = 0; for (const s of this.def.strokes) c += Math.ceil(clamp01((g - s.off) / s.len) * s.seg) * RAD * 6; this.geo.setDrawRange(0, c); }
+  placeTip(g) { const ss = this.def.strokes; let s = ss[ss.length - 1]; for (const k of ss) if (g <= k.off + k.len) { s = k; break; }
+    s.curve.getPointAt(clamp01((g - s.off) / s.len), this.tip.position); this.tip.visible = true; }
+  /** jump straight to the steady state (Enter does not wait for anything) */
+  settle() { if (this.state === 'steady') return; const u = this.u; this.group.visible = true; this.go('steady'); u.uGrow.value = this.G + 0.6; this.setRange(this.G);
+    u.uHot.value = 0; u.uFront.value = 1.35; u.uFrontAmp.value = 0; u.uFlick.value = 0; this.level = 1; this.tip.visible = false; }
+  /** Backspace: the discharge collapses back into the electrodes, then the glass is drawn back and the stand folds away */
+  kill() { if (this.state === 'queued') { this.dead = true; return; } if (this.state === 'collapse' || this.state === 'remove') return;
+    this.f0 = Math.min(1.2, this.u.uFront.value); this.tip.visible = false; this.u.uFrontAmp.value = 0;
+    if (this.level > 0.02 || this.u.uFlick.value > 0.02) this.go('collapse'); else { this.g0 = this.u.uGrow.value; this.go('remove'); } }
+  update(dt, time) {
+    const u = this.u; this.t += dt; const t = this.t;
+    this.fl *= Math.exp(-dt * 16);
+    switch (this.state) {
+      case 'queued': return;
+      case 'stand': { const p = Math.min(1, t / 0.32); u.uGrow.value = -0.5 + 0.5 * sm(p); if (p >= 1) this.go('form'); break; }
+      case 'form': { const p = Math.min(1, t / this.formDur), g = this.G * (0.65 * p + 0.35 * sm(p)); u.uGrow.value = g; this.setRange(g); this.placeTip(g);
+        this.tipMat.color.setRGB(2.6, 1.0, 0.25).multiplyScalar(0.8 + 0.2 * Math.sin(time * 31));
+        if (p >= 1) { this.setRange(this.G); this.go('energise'); } break; }
+      case 'energise': { const p = Math.min(1, t / 0.45); u.uGrow.value = this.G + 0.6 * sm(p); u.uHot.value = 1 - p; this.tip.visible = false;
+        if (Math.random() < dt * 30) this.fl = rnd(0.5, 1); this.spark = p * (0.5 + 1.8 * this.fl); this.lead = sm(p) * (0.5 + 0.5 * Math.sin(t * 34));
+        if (p >= 1) { u.uHot.value = 0; this.go('flicker'); } break; }
+      case 'flicker': { const p = Math.min(1, t / 0.95);
+        if (Math.random() < dt * (10 + 10 * p)) this.fl = rnd(0.3, 0.75 + 0.25 * p);
+        const k = reduce ? 0.35 : 1; u.uFlick.value = this.fl * k; u.uFront.value = 0.1 + 0.26 * p * (0.4 + 0.6 * this.fl); this.level = 0.34 * this.fl * k;
+        this.spark = 0.5 + 1.2 * this.fl; this.lead = 0.25 + 0.6 * this.fl; if (p >= 1) { this.f0 = u.uFront.value; this.go('spread'); } break; }
+      case 'spread': { const p = Math.min(1, t / 0.8), e = sm(p);
+        if (Math.random() < dt * 9 * (1 - p)) this.fl = rnd(0.2, 0.6);
+        u.uFront.value = this.f0 + (1.35 - this.f0) * e; u.uFrontAmp.value = 0.95 * Math.sin(Math.PI * p); u.uFlick.value = this.fl * (1 - e) * (reduce ? 0.2 : 0.6);
+        this.level = 0.42 + 0.58 * e + 0.12 * this.fl * (1 - e); this.spark = 0.7; this.lead = 0.4 * (1 - e) + 0.1;
+        if (p >= 1) { u.uFrontAmp.value = 0; u.uFlick.value = 0; this.go('steady'); } break; }
+      case 'steady': { if (!reduce && Math.random() < dt * 0.22) this.dip = rnd(0.05, 0.14); this.dip *= Math.exp(-dt * 9);
+        this.level += (1 - this.dip - this.level) * (1 - Math.exp(-dt * 12)); this.spark = 0.32; this.lead = 0.1 + 0.6 * this.pulseOn + 0.25 * Math.min(2, u.uBoost.value); break; }
+      case 'collapse': { const p = Math.min(1, t / 0.3);
+        if (Math.random() < dt * 30) this.fl = rnd(0.3, 0.9);
+        u.uFront.value = this.f0 * (1 - sm(p)); u.uFlick.value = this.fl * (1 - p) * 0.7; this.level *= Math.exp(-dt * 5); this.spark = (1 - p) * (0.4 + this.fl); this.lead = (1 - p) * 0.3; u.uBoost.value *= Math.exp(-dt * 20); u.uPulseAmp.value = 0;
+        if (p >= 1) { this.level = 0; u.uFlick.value = 0; this.spark = 0; this.lead = 0; this.g0 = u.uGrow.value; this.go('remove'); } break; }
+      case 'remove': { const p = Math.min(1, t / 0.45), g = this.g0 + (-0.65 - this.g0) * sm(p); u.uGrow.value = g; u.uHot.value = 0.5; this.setRange(Math.max(0, g)); this.level = 0; this.spark = 0; this.lead = 0;
+        if (p >= 1) this.dead = true; break; }
+    }
+    const lv = this.level * this.dimMul; u.uLevel.value = lv;
+    const sp = this.spark * this.dimMul; this.sparks.visible = sp > 0.01; if (sp > 0.01) { const e = this.gas.end; this.sparkMat.color.setRGB(e[0] * sp * 1.5 + sp * 0.3, e[1] * sp * 1.5 + sp * 0.3, e[2] * sp * 1.5 + sp * 0.3); }
+    this.leadMat.emissiveIntensity = this.lead * this.dimMul * 2.2;
+    this.lum = lv * clamp01(u.uFront.value) * (1 + u.uBoost.value) + u.uFlick.value * 0.14 + u.uFrontAmp.value * 0.2 + u.uPulseAmp.value * 0.3;
+  }
+  dispose() { this.group.removeFromParent(); for (const m of [this.gasMesh.material, this.inner.material, this.outer.material, this.hardMat, this.leadMat, this.sparkMat, this.tipMat]) m.dispose(); }
+}
+
+/* ───────────── words ───────────── */
+function newWord() { const group = new THREE.Group(); scene.add(group); return { group, items: [], tubes: [], cursorX: 0, fin: null, row: 0, rowY: ARCH_Y, dim: 1, fade: 1, plank: null }; }
+let cur = newWord(), typed = '';
+const others = [];            // finished words, newest first: on their way to the wall, or already part of it
+const dying = [];             // letters being removed by Backspace
+let gasKey = 'neon', gasManual = false;
+const txt = document.getElementById('txt'), hint = document.getElementById('hint'), kb = document.getElementById('kb'), gasEl = document.getElementById('gas');
+const showLine = () => { txt.textContent = typed.slice(-46); };
+function setGas(k, manual = true) {
+  k = String(k || '').toLowerCase(); const key = GAS_ORDER.find(n => n === k || n.slice(0, 2) === k.slice(0, 2)); if (!key || k.length < 2) return gasKey;
+  gasKey = key; if (manual) gasManual = true;
+  for (const b of gasEl.children) b.classList.toggle('on', b.dataset.gas === key);
+  document.documentElement.style.setProperty('--g', GASES[key].css); return gasKey;
+}
+function type(ch) {
+  ch = String(ch).toUpperCase().slice(0, 1); if (!ch) return;
+  if (ch === ' ') { if (!cur.items.length) return; const w = strokeAdvance(' ') * SIZE; cur.items.push({ space: w }); cur.cursorX += w; typed += ' '; showLine(); return; }
+  const def = glyphDef(ch); if (!def) return;
+  const L = new Letter(ch, def, cur.cursorX, gasKey); cur.group.add(L.group); cur.items.push(L); cur.tubes.push(L); cur.cursorX += L.adv;
+  for (const w of others) if (w.fin) w.fin.hurry = true;          // the bench is needed: the last word leaves for the wall now
+  typed += ch; showLine(); hint.classList.add('off');
+}
+function backspace() {
+  const it = cur.items.pop(); if (!it) return; typed = typed.slice(0, -1); showLine();
+  if (it.space) { cur.cursorX -= it.space; return; }
+  cur.cursorX -= it.adv; cur.tubes.pop(); it.kill(); dying.push(it);
+}
+function enter() {
+  const w = cur; if (!w.tubes.length) { w.items.length = 0; w.cursorX = 0; typed = ''; showLine(); return; }
+  for (const L of w.tubes) L.settle();
+  const n = w.tubes.length;
+  w.fin = { t: 0, per: Math.min(0.3, 2.4 / n), moveT: -1, hurry: false };
+  const width = Math.max(0.4, w.cursorX - GAP);
+  w.plank = new THREE.Mesh(new THREE.BoxGeometry(width + 0.5, 0.06, 0.62), M.wood); w.plank.position.set(width / 2, -0.036, STAND_Z + 0.2); w.group.add(w.plank);
+  others.unshift(w); others.forEach((o, i) => { o.row = i; });
+  cur = newWord(); typed = ''; showLine();
+  if (!gasManual) setGas(GAS_ORDER[(GAS_ORDER.indexOf(gasKey) + 1) % GAS_ORDER.length], false);     // a new gas for the next word, until one is chosen by hand
+}
+function disposeWord(w) { for (const L of w.tubes) L.dispose(); if (w.plank) w.plank.geometry.dispose(); scene.remove(w.group); }
+function updateFinished(w, dt) {
+  const f = w.fin;
+  if (f) {
+    f.t += dt * (f.hurry ? 2.4 : 1) * (reduce ? 1.6 : 1);
+    const n = w.tubes.length, tS = n * f.per + 0.12, a = f.t - tS;
+    for (let i = 0; i < n; i++) { const L = w.tubes[i], u = L.u, loc = (f.t - i * f.per) / f.per;
+      if (loc >= 0 && loc <= 1) { u.uPulse.value = -0.5 + (L.G + 1.0) * loc; u.uPulseAmp.value = 2.4; L.pulseOn = 1; }       // the current runs through this tube now
+      else { u.uPulseAmp.value *= Math.exp(-dt * 14); L.pulseOn = 0; }
+      let boost = loc > 1 ? 0.3 : 0;                                                                                       // it stays a little brighter behind the pulse…
+      if (a >= 0) boost = a < 0.14 ? 0.3 + 1.9 * (a / 0.14) : a < 0.7 ? 2.2 : 2.2 * Math.max(0, 1 - (a - 0.7) / 0.9);      // …then the whole word surges together, and eases back
+      u.uBoost.value = boost; }
+    if (f.moveT < 0 && (f.hurry || a > 1.45)) f.moveT = 0;
+    if (f.moveT >= 0) { f.moveT = Math.min(1, f.moveT + dt / 1.5); const e = sm(f.moveT), s = 1 + (ARCH_S - 1) * e;
+      w.group.position.set(0, w.rowY * e, ARCH_Z * e); w.group.scale.setScalar(s); w.dim = 1 - 0.42 * e;
+      if (f.moveT >= 1 && a > 1.6) { w.fin = null; for (const L of w.tubes) { L.u.uBoost.value = 0; L.u.uPulseAmp.value = 0; L.pulseOn = 0; } } }
+  } else w.group.position.y = w.rowY;
+  w.rowY += (ARCH_Y + w.row * ARCH_ROW - w.rowY) * (1 - Math.exp(-dt * 3));
+  if (w.row >= ARCH_ROWS) w.fade = Math.max(0, w.fade - dt / 1.2);
+  const d = w.dim * w.fade; for (const L of w.tubes) L.dimMul = d;
+}
+
+/* ───────────── input ───────────── */
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target === kb) return;
+  if (e.key === 'Backspace') { e.preventDefault(); backspace(); } else if (e.key === 'Enter') { e.preventDefault(); enter(); } else if (e.key.length === 1) { e.preventDefault(); type(e.key); }
+});
+kb.value = ' ';
+kb.addEventListener('beforeinput', e => { e.preventDefault();
+  if (e.inputType === 'deleteContentBackward') backspace(); else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') enter(); else if (e.data) for (const c of e.data) type(c); });
+kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enter(); } });
+addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('a,button')) return; if (matchMedia('(pointer: coarse)').matches) kb.focus({ preventScroll: true }); });
+gasEl.addEventListener('mousedown', e => e.preventDefault());       // the selector never takes the keyboard focus
+gasEl.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setGas(b.dataset.gas); b.blur(); });
+
+/* ───────────── room light: a few point lights shared out among the lit tubes ───────────── */
+let allocMode = -1; const order = [];
+function updateLights(dt) {
+  acc.fill(0); order.length = 0; order.push(cur); for (const w of others) order.push(w);
+  const mode = cur.tubes.length ? 1 : 0, alloc = mode ? [3, 2, 1] : [0, 4, 1, 1];
+  let slot = 0;
+  for (let wi = 0; wi < order.length && wi < alloc.length; wi++) { const k = alloc[wi]; if (!k) continue;
+    const w = order[wi], ls = w.tubes, n = ls.length, gp = w.group.position, s = w.group.scale.x;
+    for (let j = 0; j < n; j++) { const L = ls[j]; if (L.lum < 0.002) continue;
+      const o = (slot + Math.min(k - 1, Math.floor(j * k / n))) * 7, wt = L.lum * s, c = L.gas.light;
+      acc[o] += (gp.x + s * (L.x + L.def.cx)) * wt; acc[o + 1] += (gp.y + s * L.def.cy) * wt; acc[o + 2] += (gp.z + s * 0.32) * wt;
+      acc[o + 3] += c[0] * wt; acc[o + 4] += c[1] * wt; acc[o + 5] += c[2] * wt; acc[o + 6] += wt; }
+    slot += k; }
+  const snap = mode !== allocMode; allocMode = mode;
+  const a = 1 - Math.exp(-dt * 7); let rr = 0, rg = 0, rb = 0;
+  for (let i = 0; i < LIGHTS; i++) { const l = lights[i], o = i * 7, wt = acc[o + 6];
+    if (wt < 0.002) { l.intensity = 0; lightOn[i] = 0; continue; }
+    _v.set(acc[o] / wt, acc[o + 1] / wt, acc[o + 2] / wt);
+    if (!lightOn[i] || snap) l.position.copy(_v); else l.position.lerp(_v, a); lightOn[i] = 1;
+    l.color.setRGB(acc[o + 3] / wt, acc[o + 4] / wt, acc[o + 5] / wt); l.intensity = Math.min(42, LIGHT_K * wt);
+    rr += l.color.r * l.intensity; rg += l.color.g * l.intensity; rb += l.color.b * l.intensity; }
+  _c.setRGB(Math.min(1.2, rr * 0.035), Math.min(1.2, rg * 0.035), Math.min(1.2, rb * 0.035)); roomU.value.lerp(_c, 1 - Math.exp(-dt * 10));
+}
+
+/* ───────────── frame ───────────── */
+const cam = { x: 0.8, z: 7.2 }; let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000), time = now / 1000; last = now; uTime.value = time % 1000;
+  // the queue: a few letters are drawn at once; the more are waiting, the faster everything goes
+  let forming = 0, unsettled = 0;
+  for (const L of cur.tubes) { if (!L.settled) unsettled++; if (L.state === 'stand' || L.state === 'form') forming++; }
+  for (const L of cur.tubes) { if (forming >= MAX_FORMING) break; if (L.state === 'queued') { L.start(); forming++; } }
+  const speed = Math.min(5, (reduce ? 1.8 : 1) * (1 + 0.45 * Math.max(0, unsettled - 2)));
+  for (const L of cur.tubes) L.update(L.settled ? dt : dt * speed, time);
+  for (let i = dying.length - 1; i >= 0; i--) { const L = dying[i]; L.update(dt * 1.2, time); if (L.dead) { L.dispose(); dying.splice(i, 1); } }
+  for (let i = others.length - 1; i >= 0; i--) { const w = others[i]; updateFinished(w, dt); for (const L of w.tubes) L.update(dt, time);
+    if (w.fade <= 0) { disposeWord(w); others.splice(i, 1); } }
+  updateLights(dt);
+  // camera: frames the row on the bench, eases along it and pulls back as the word grows
+  let x1 = Math.max(cur.cursorX - GAP, 1.3);
+  if (!cur.items.length && others.length && others[0].fin && others[0].fin.moveT < 0) x1 = Math.max(others[0].cursorX - GAP, 1.3);
+  const half = Math.tan(camera.fov * Math.PI / 360), needZ = (x1 / 2 + 1.55) / (half * camera.aspect), tz = Math.max(6.6, needZ);
+  cam.x += (x1 / 2 - cam.x) * (1 - Math.exp(-dt * 1.7)); cam.z += (tz - cam.z) * (1 - Math.exp(-dt * 1.3));
+  const sway = reduce ? 0 : 1;
+  camera.position.set(cam.x + sway * Math.sin(time * 0.17) * 0.32, 1.72 + (cam.z - 6.6) * 0.05 + sway * Math.sin(time * 0.11) * 0.05, cam.z);
+  camera.lookAt(cam.x, 1.42 + (cam.z - 6.6) * 0.02, 0);
+  composer.render();
+  requestAnimationFrame(frame);
+}
+
+/* ───────────── start ───────────── */
+const params = new URLSearchParams(location.search);
+setGas('neon', false); if (params.get('gas')) setGas(params.get('gas'));
+window.__neon = { type, backspace, enter, setGas, get letters() { return cur.tubes; }, get words() { return others; }, get gas() { return gasKey; } };
+const hello = (params.get('t') ?? 'NEON').slice(0, 24);
+[...hello].forEach((c, i) => setTimeout(() => type(c), 500 + i * 380));
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

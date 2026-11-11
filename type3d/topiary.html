@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Topiary Type</title>
+<style>
+:root{--ink:#fbfdf6;--dim:rgba(251,253,246,.72);--faint:rgba(251,253,246,.34)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#dbe7ea;color:var(--ink);overflow:hidden;
+  font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;
+  text-shadow:0 1px 2px rgba(12,34,18,.55);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+/* film: a little shade at the top and bottom edges so the HUD reads over sky and lawn, plus a soft vignette */
+.film{position:fixed;inset:0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(14,40,58,.30),transparent 110px),linear-gradient(to top,rgba(10,32,12,.42),transparent 130px),
+  radial-gradient(ellipse 90% 80% at 50% 46%,transparent 60%,rgba(8,26,12,.26) 100%)}
+.hud{position:fixed;pointer-events:none;color:var(--dim)}
+#title{left:max(22px,env(safe-area-inset-left));top:max(20px,env(safe-area-inset-top));pointer-events:auto;max-width:calc(100% - 270px)}
+#title b{color:var(--ink);font-weight:600}
+#title a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--faint);padding-bottom:1px}
+#title a:hover{color:var(--ink)}
+#mode{right:max(22px,env(safe-area-inset-right));top:max(20px,env(safe-area-inset-top));pointer-events:auto;text-align:right;white-space:nowrap}
+#mode button{all:unset;cursor:pointer;color:var(--dim);border-bottom:1px solid var(--faint);padding-bottom:1px}
+#mode button:hover{color:var(--ink)}
+#mode button.on{color:var(--ink);font-weight:600;border-bottom-color:transparent;cursor:default}
+@media (max-width:900px){#title{max-width:calc(100% - 44px)}#mode{top:calc(max(20px,env(safe-area-inset-top)) + 58px)}}
+#line{left:0;right:0;bottom:max(26px,env(safe-area-inset-bottom));text-align:center;color:var(--ink);letter-spacing:.32em;white-space:pre;overflow:hidden;padding:0 24px}
+#line .caret{display:inline-block;width:.6em;height:1px;background:var(--ink);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+#hint{left:0;right:0;bottom:max(52px,calc(env(safe-area-inset-bottom) + 26px));text-align:center;transition:opacity .8s;padding:0 24px}
+#hint.off{opacity:0}
+#err{left:0;right:0;top:46%;text-align:center;color:var(--ink);display:none;text-transform:none;letter-spacing:.04em}
+#kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;background:transparent;color:transparent;font-size:16px}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="film"></div>
+<div class="hud" id="title"><a href="index.html">Filament</a> / <a href="firework.html">Firework</a> / <b>Topiary</b> / <a href="saber.html">Saber</a> / <a href="quill.html">Quill</a> / <a href="neon.html">Neon</a> / <a href="book.html">Book</a></div>
+<div class="hud" id="mode"><button type="button" data-m="topiary" class="on">Topiary</button> &nbsp;/&nbsp; <button type="button" data-m="mow">Lawn Mowing</button></div>
+<div class="hud" id="hint">Type — 每个键一株灌木，园艺剪把它修成字母 · Enter 退后欣赏整排 · Backspace 剪掉</div>
+<div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
+<div class="hud" id="err"></div>
+<input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
+
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+
+/* ───────────── constants ───────────── */
+const SIZE = 1.5, GAP = 0.3, DEPTH = 0.5;        // letter height, spacing between letters, thickness of a topiary letter
+const ROW_GAP = 2.7, MAX_ROW = 40;               // finished rows step back by this much; a row holds at most this many keys
+const OS = 0.035;                                // spacing of the samples along a letter's outline (the shears' path)
+const DENS = 560;                                // leaves per square unit of letter surface
+const CS = 0.135, BK = 6;                        // bush: grid of leaf clusters, leaves per cluster
+const MOW_Z0 = 0.75, PY0 = -0.42, PY1 = SIZE + 0.42, TD = 300, MOW_W = 0.26;   // mown letters: baseline z, patch depth, tufts per unit², swath
+const FOG = 0xdbe7ea;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rnd = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
+const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+
+/* ───────────── renderer ───────────── */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(FOG); scene.fog = new THREE.Fog(FOG, 16, 120);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.2, 460);
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+// light: a warm afternoon sun from over the left shoulder, soft sky fill
+scene.add(new THREE.HemisphereLight(0xd6e9ff, 0x7f9c58, 1.9));
+const sun = new THREE.DirectionalLight(0xfff0d4, 3.5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+{ const c = sun.shadow.camera; c.left = -19; c.right = 19; c.top = 15; c.bottom = -15; c.near = 1; c.far = 64; }
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.025; sun.shadow.radius = 3;
+scene.add(sun, sun.target);
+
+/* ───────────── procedural textures ───────────── */
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+function canvasTex(w, h, draw, rx = 1, ry = 1) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = maxAniso; return t;
+}
+const rep = (tex, rx, ry) => { const t = tex.clone(); t.repeat.set(rx, ry); t.needsUpdate = true; return t; };
+// striped mown lawn: one tile = two stripes (3 × 3 units)
+const lawnTex = canvasTex(512, 512, (g, w, h) => {
+  g.fillStyle = '#65a23d'; g.fillRect(0, 0, w / 2, h); g.fillStyle = '#4f8c2f'; g.fillRect(w / 2, 0, w / 2, h);
+  for (const [x0, a, b] of [[w / 2, '#65a23d', '#4f8c2f'], [0, '#4f8c2f', '#65a23d']]) {   // soften the stripe edges (the one at 0 wraps round)
+    for (const off of [0, w]) { const gr = g.createLinearGradient(x0 + off - 7, 0, x0 + off + 7, 0); gr.addColorStop(0, a); gr.addColorStop(1, b); g.fillStyle = gr; g.fillRect(x0 + off - 7, 0, 14, h); } }
+  for (let i = 0; i < 40; i++) { const x = rnd(w), y = rnd(h), r = rnd(30, 90), gr = g.createRadialGradient(x, y, 0, x, y, r); const c = Math.random() < .5 ? '255,255,190' : '10,50,10';
+    gr.addColorStop(0, `rgba(${c},.07)`); gr.addColorStop(1, `rgba(${c},0)`); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+  g.lineWidth = 1; g.lineCap = 'round';
+  for (let i = 0; i < 15000; i++) { const x = rnd(w), y = rnd(h), l = rnd(3, 7), a = rnd(-.5, .5);
+    g.strokeStyle = `hsla(${rnd(84, 112)},${rnd(38, 60)}%,${rnd(24, 52)}%,${rnd(.25, .5)})`; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.sin(a) * l, y - Math.cos(a) * l); g.stroke(); }
+}, 700 / 3, 260 / 3);
+// freshly cut grass (inside mown letters): short, pale, combed one way
+const cutTex = canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#b3d06f'; g.fillRect(0, 0, w, h); g.lineWidth = 1;
+  for (let i = 0; i < 5000; i++) { const x = rnd(w), y = rnd(h), l = rnd(3, 8);
+    g.strokeStyle = `hsla(${rnd(70, 96)},${rnd(40, 60)}%,${rnd(50, 76)}%,${rnd(.3, .6)})`; g.beginPath(); g.moveTo(x, y); g.lineTo(x + rnd(-1, 1), y - l); g.stroke(); }
+}, 2, 2);
+// foliage detail: light leaf shapes over darker gaps; green comes from the material / instance colour
+const leafTex = canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#566f4e'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 1500; i++) { const x = rnd(w), y = rnd(h), a = rnd(Math.PI), l = rnd(5, 9), b = rnd(2.2, 3.6), L = rnd(52, 86);
+    for (const [ox, oy] of [[0, 0], [w, 0], [-w, 0], [0, h], [0, -h]]) { if (x + ox < -12 || x + ox > w + 12 || y + oy < -12 || y + oy > h + 12) continue;
+      g.save(); g.translate(x + ox, y + oy); g.rotate(a); g.fillStyle = `hsl(${rnd(88, 112)},${rnd(14, 30)}%,${L}%)`; g.beginPath(); g.ellipse(0, 0, l, b, 0, 0, 6.283); g.fill();
+      g.strokeStyle = `hsla(95,25%,${L + 10}%,.7)`; g.lineWidth = .7; g.beginPath(); g.moveTo(-l, 0); g.lineTo(l, 0); g.stroke(); g.restore(); } }
+});
+// flagstones: three courses of buff / grey stones, tiles along the path
+const flagTex = canvasTex(512, 160, (g, w, h) => {
+  g.fillStyle = '#7f7a66'; g.fillRect(0, 0, w, h);
+  const rows = 3, rh = h / rows;
+  for (let r = 0; r < rows; r++) { let x = 0; while (x < w) { let sw = rnd(46, 96); if (w - x - sw < 40) sw = w - x;
+      g.fillStyle = `hsl(${rnd(34, 50)},${rnd(10, 24)}%,${rnd(62, 76)}%)`; g.fillRect(x + 2, r * rh + 2, sw - 4, rh - 4);
+      for (let i = 0; i < 26; i++) { g.fillStyle = `rgba(${Math.random() < .5 ? '60,55,40' : '255,250,235'},${rnd(.04, .1)})`; g.fillRect(x + 3 + rnd(sw - 8), r * rh + 3 + rnd(rh - 8), rnd(2, 9), rnd(1, 4)); }
+      x += sw; } }
+}, 420 / 6, 1);
+// the manor's stone front: mullioned windows in ranks, a string course, a door
+const manorTex = canvasTex(1152, 352, (g, w, h) => {
+  g.fillStyle = '#d8c7a0'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 2600; i++) { g.fillStyle = `rgba(${Math.random() < .5 ? '120,100,70' : '255,245,220'},${rnd(.03, .09)})`; g.fillRect(rnd(w), rnd(h), rnd(8, 30), rnd(3, 8)); }
+  g.fillStyle = '#c4b28a'; g.fillRect(0, h * .345, w, 7); g.fillRect(0, h * .67, w, 7); g.fillRect(0, 0, w, 10);
+  const cw = w / 9;
+  for (let c = 0; c < 9; c++) for (let r = 0; r < 3; r++) { const x = c * cw + cw * .28, y = 30 + r * h * .325, ww = cw * .44, wh = h * .2;
+    g.fillStyle = '#efe6cf'; g.fillRect(x - 5, y - 5, ww + 10, wh + 10); g.fillStyle = '#43566a'; g.fillRect(x, y, ww, wh);
+    g.fillStyle = 'rgba(190,215,235,.35)'; g.fillRect(x, y, ww, wh * .45);
+    g.fillStyle = '#efe6cf'; g.fillRect(x + ww / 2 - 2, y, 4, wh); g.fillRect(x, y + wh * .4, ww, 3); }
+});
+
+/* ───────────── shared geometry & materials ───────────── */
+const uTime = { value: 0 }, uWind = { value: reduce ? 0 : 1 };
+/** a little wind: kind 0 = leaf card (flutters about its stem), kind 1 = grass tuft (the tips sway) */
+function windy(mat, kind) {
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.uTime = uTime; sh.uniforms.uWind = uWind;
+    sh.vertexShader = 'uniform float uTime;\nuniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+#ifdef USE_INSTANCING
+  { float wph = dot(instanceMatrix[3].xyz, vec3(3.7, 2.3, 5.1));
+    float wv = (sin(uTime * 2.6 + wph) * .6 + sin(uTime * 4.7 + wph * 1.9) * .4) * uWind;
+    ${kind === 0 ? 'transformed.z += wv * .2 * position.y; transformed.x += wv * .07 * position.y;' : 'transformed.x += wv * .035 * position.y * position.y; transformed.z += wv * .02 * position.y * position.y;'} }
+#endif`);
+  };
+  mat.customProgramCacheKey = () => 'wind' + kind;
+  return mat;
+}
+// one leaf: a small pointed card creased along its midrib; stem at the origin, tip at +Y, face +Z
+const leafGeo = new THREE.BufferGeometry();
+leafGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, .5, 0, 0, 1, 0, -.27, .45, .09, .27, .45, .09], 3));
+leafGeo.setIndex([0, 4, 1, 1, 4, 2, 0, 1, 3, 1, 2, 3]); leafGeo.computeVertexNormals();
+const leafMat = windy(new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), 0);
+// one leaf cluster of a bush: a lumpy little ball, shaded smooth
+const blobGeo = new THREE.IcosahedronGeometry(1, 0);
+blobGeo.setAttribute('normal', blobGeo.attributes.position.clone());
+const blobMat = new THREE.MeshLambertMaterial({ map: leafTex });
+const coreMat = new THREE.MeshLambertMaterial({ map: rep(leafTex, 2.2, 2.2), color: 0x3d7a2e });
+// one tuft of long grass: five blades, each drawn both ways round, normals up so it is lit like the lawn
+const tuftGeo = (() => { const p = [], n = [], c = [], B = 5;
+  for (let i = 0; i < B; i++) { const a = i / B * 6.283 + rnd(.6), dx = Math.cos(a), dz = Math.sin(a), px = -dz, pz = dx, r0 = i ? .028 : 0, r1 = i ? rnd(.05, .09) : .01, h = i ? rnd(.7, 1) : 1, hw = .014;
+    const a0 = [dx * r0 - px * hw, 0, dz * r0 - pz * hw], a1 = [dx * r0 + px * hw, 0, dz * r0 + pz * hw], a2 = [dx * r1, h, dz * r1];
+    for (const tri of [[a0, a1, a2], [a1, a0, a2]]) for (const v of tri) { p.push(v[0], v[1], v[2]); n.push(dx * .25, 1, dz * .25); const k = v[1] > 0 ? 1.15 : .5; c.push(k, k, k); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(n, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(c, 3)); g.normalizeNormals(); return g; })();
+const tuftMat = windy(new THREE.MeshLambertMaterial({ vertexColors: true }), 1);
+const quadGeo = new THREE.PlaneGeometry(1, 1);
+/** an InstancedMesh over ready-made matrix / colour arrays (the arrays are cached per glyph and shared) */
+function instanced(geo, mat, mats, cols) {
+  const m = new THREE.InstancedMesh(geo, mat, mats.length / 16);
+  m.instanceMatrix = new THREE.InstancedBufferAttribute(mats, 16);
+  if (cols) m.instanceColor = new THREE.InstancedBufferAttribute(cols, 3);
+  return m;
+}
+const _m = new THREE.Matrix4(), _x = V3(), _y = V3(), _z = V3(), _p = V3(), _s = V3(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _c = new THREE.Color();
+const XA = V3(1, 0, 0), YA = V3(0, 1, 0);
+/** matrix of a leaf lying on a surface: at p, the surface normal n, pointing a random way across it, lifted a little */
+function leafAt(out, o, px, py, pz, nx, ny, nz, size, lift) {
+  let rx = gauss(), ry = gauss() - .3, rz = gauss();
+  const d = rx * nx + ry * ny + rz * nz; rx -= d * nx; ry -= d * ny; rz -= d * nz;
+  let l = Math.hypot(rx, ry, rz);
+  if (l < 1e-3) { rx = -nz; ry = 0; rz = nx; l = Math.hypot(rx, rz); if (l < 1e-3) { rx = 1; rz = 0; l = 1; } }
+  const k = rnd(-.12, lift) * l;
+  _y.set(rx + nx * k, ry + ny * k, rz + nz * k).normalize(); _z.set(nx, ny, nz); _x.crossVectors(_y, _z).normalize(); _z.crossVectors(_x, _y);
+  _m.makeBasis(_x.multiplyScalar(size * rnd(.5, .68)), _y.multiplyScalar(size), _z.multiplyScalar(size)); _m.setPosition(px, py, pz); _m.toArray(out, o * 16);
+}
+function green(out, o, h0, h1, s0, s1, l0, l1) { _c.setHSL(rnd(h0, h1), rnd(s0, s1), rnd(l0, l1)); out[o * 3] = _c.r; out[o * 3 + 1] = _c.g; out[o * 3 + 2] = _c.b; }
+
+/* ───────────── the garden ───────────── */
+// sky: hazy at the horizon (the fog colour), blue overhead, slow fair-weather clouds
+const sky = new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
+  uniforms: { uH: { value: new THREE.Color(FOG) }, uZ: { value: new THREE.Color(0x4f93d6) }, uTime },
+  vertexShader: `varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+  fragmentShader: `uniform vec3 uH; uniform vec3 uZ; uniform float uTime; varying vec3 vD;
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+      return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), f.x), f.y); }
+    float fbm(vec2 p){ float a = .5, s = 0.; for (int i = 0; i < 5; i++) { s += a * noise(p); p = p * 2.03 + vec2(17., 9.); a *= .5; } return s; }
+    void main(){ vec3 d = normalize(vD); float h = max(d.y, 0.);
+      vec3 col = mix(uH, uZ, pow(h, .6));
+      vec2 uv = d.xz / (d.y + .14) * 1.2 + vec2(uTime * .005, 0.);
+      float c = smoothstep(.5, .82, fbm(uv)) * smoothstep(.03, .24, d.y);
+      col = mix(col, vec3(1.), c * .8);
+      gl_FragColor = vec4(col, 1.);
+      #include <colorspace_fragment>
+    }`
+}));
+sky.frustumCulled = false; sky.renderOrder = -10; scene.add(sky);
+{ // lawn
+  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(700, 260), new THREE.MeshLambertMaterial({ map: lawnTex }));
+  lawn.rotation.x = -Math.PI / 2; lawn.position.set(80, 0, -90); lawn.receiveShadow = true; scene.add(lawn);
+  const flat = (w, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); m.receiveShadow = true; scene.add(m); return m; };
+  const box = (w, h, d, mat, x, y, z, cast = true) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; scene.add(m); return m; };
+  // flagstone path along the far side of the lawn
+  flat(420, 1.8, new THREE.MeshLambertMaterial({ map: flagTex }), 80, 0.012, -8.5);
+  // box balls on the lawn's edge, a low box hedge beyond the path
+  const ballN = 44, balls = new THREE.InstancedMesh(new THREE.SphereGeometry(.45, 16, 12), new THREE.MeshLambertMaterial({ map: rep(leafTex, 3, 2), color: 0x3f7a30 }), ballN);
+  for (let i = 0; i < ballN; i++) { _m.makeScale(1, .92, 1); _m.setPosition(-50 + i * 6, .38, -7.15); balls.setMatrixAt(i, _m); }
+  balls.castShadow = balls.receiveShadow = true; scene.add(balls);
+  box(420, .62, .6, new THREE.MeshLambertMaterial({ map: rep(leafTex, 420 / .9, 1), color: 0x39702c }), 80, .31, -9.95);
+  // a flower border: soil, mounds of foliage, drifts of bloom
+  flat(420, 2.4, new THREE.MeshLambertMaterial({ color: 0x4d3b2a }), 80, 0.008, -11.5);
+  const moundN = 520, mounds = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshLambertMaterial({ map: rep(leafTex, 2, 2) }), moundN), mc = new Float32Array(moundN * 3);
+  for (let i = 0; i < moundN; i++) { const s = rnd(.28, .5); _p.set(rnd(-50, 210), s * .55, rnd(-12.5, -10.6)); _s.set(s, s * rnd(.7, 1), s); _q.setFromAxisAngle(YA, rnd(6.283)); _m.compose(_p, _q, _s); mounds.setMatrixAt(i, _m); green(mc, i, .24, .33, .35, .55, .22, .36); }
+  mounds.instanceColor = new THREE.InstancedBufferAttribute(mc, 3); mounds.receiveShadow = true; scene.add(mounds);
+  const pal = [0x9a7fd1, 0xe58fb0, 0xf4f0e4, 0xc9486b, 0xf0dc82, 0x7c93dc, 0xb99ae0], flN = 2400, flowers = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial(), flN);
+  let drift = 0, dx = 0, dc = 0;
+  for (let i = 0; i < flN; i++) { if (drift-- <= 0) { drift = 6 + (rnd(18) | 0); dx = rnd(-50, 210); dc = pal[(rnd(pal.length)) | 0]; }
+    const s = rnd(.05, .1); _p.set(dx + gauss() * 1.6, rnd(.32, .95), rnd(-12.5, -10.5)); _s.set(s, s * rnd(.8, 1.6), s); _q.identity(); _m.compose(_p, _q, _s); flowers.setMatrixAt(i, _m); flowers.setColorAt(i, _c.set(dc).offsetHSL(0, 0, rnd(-.06, .06))); }
+  scene.add(flowers);
+  // tall clipped yew hedge with finials
+  const yew = new THREE.MeshLambertMaterial({ map: rep(leafTex, 420 / 1.4, 2), color: 0x2a5530 });
+  box(420, 2.5, 1.3, yew, 80, 1.25, -13.7);
+  const finN = 30, fins = new THREE.InstancedMesh(new THREE.ConeGeometry(.6, 1.5, 14), new THREE.MeshLambertMaterial({ map: rep(leafTex, 3, 2), color: 0x2a5530 }), finN);
+  for (let i = 0; i < finN; i++) { _m.makeTranslation(-52 + i * 9, 3.2, -13.7); fins.setMatrixAt(i, _m); } scene.add(fins);
+  // daisies in the lawn
+  const dN = 420, daisies = new THREE.InstancedMesh(new THREE.CircleGeometry(.024, 6), new THREE.MeshLambertMaterial({ color: 0xfdfdf4 }), dN);
+  for (let i = 0; i < dN; i++) { let z = rnd(-7, 4.5); if (Math.abs(z) < 1.5) z += z < 0 ? -1.6 : 1.6; _p.set(rnd(-14, 70), .014, z); _q.setFromAxisAngle(XA, -Math.PI / 2); _s.setScalar(rnd(.7, 1.3)); _m.compose(_p, _q, _s); daisies.setMatrixAt(i, _m); }
+  scene.add(daisies);
+  // the manor, far off in the haze
+  const stone = new THREE.MeshLambertMaterial({ map: manorTex }), stoneW = new THREE.MeshLambertMaterial({ map: rep(manorTex, 2 / 9, 1) }), slate = new THREE.MeshLambertMaterial({ color: 0x5d6470 }), MX = 16, MZ = -54;
+  box(36, 11, 9, stone, MX, 5.5, MZ, false);
+  const prism = (w, h, len) => { const s = new THREE.Shape(); s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(0, h); s.closePath(); return new THREE.ExtrudeGeometry(s, { depth: len, bevelEnabled: false }); };
+  const roof = new THREE.Mesh(prism(10, 4.4, 37), slate); roof.rotation.y = Math.PI / 2; roof.position.set(MX - 18.5, 11, MZ); scene.add(roof);
+  for (const sx of [-11, 11]) { box(8, 12.6, 3, stoneW, MX + sx, 6.3, MZ + 5.6, false); const gr = new THREE.Mesh(prism(8.8, 3.8, 3.6), slate); gr.position.set(MX + sx, 12.6, MZ + 3.8); scene.add(gr); }
+  for (const sx of [-14, -5, 5, 14]) box(1.3, 3.4, 1.3, stone, MX + sx, 15.4, MZ - .5, false);
+  // trees
+  const tN = 46, trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(.28, .4, 1, 8), new THREE.MeshLambertMaterial({ color: 0x5b4632 }), tN),
+    crowns = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), new THREE.MeshLambertMaterial({ map: rep(leafTex, 5, 4) }), tN * 3), cc = new Float32Array(tN * 9);
+  for (let i = 0; i < tN; i++) { let x, z, tries = 0; do { x = rnd(-80, 200); z = rnd(-84, -19); } while (Math.abs(x - MX) < 27 && z > -66 && tries++ < 30);
+    const th = rnd(2.4, 4.2), r = rnd(2.3, 3.8);
+    _p.set(x, th / 2, z); _q.identity(); _s.set(1, th, 1); _m.compose(_p, _q, _s); trunks.setMatrixAt(i, _m);
+    const hue = rnd(.22, .33), lum = rnd(.2, .32);
+    for (let k = 0; k < 3; k++) { const rr = r * rnd(.7, 1); _p.set(x + gauss() * r * .5, th + r * .55 + gauss() * r * .25, z + gauss() * r * .4); _s.set(rr, rr * rnd(.75, .95), rr); _q.setFromAxisAngle(YA, rnd(6.283)); _m.compose(_p, _q, _s); crowns.setMatrixAt(i * 3 + k, _m);
+      _c.setHSL(hue + rnd(-.015, .015), rnd(.3, .48), lum + rnd(-.03, .03)); cc[(i * 3 + k) * 3] = _c.r; cc[(i * 3 + k) * 3 + 1] = _c.g; cc[(i * 3 + k) * 3 + 2] = _c.b; } }
+  crowns.instanceColor = new THREE.InstancedBufferAttribute(cc, 3); scene.add(trunks, crowns);
+}
+
+/* ───────────── loose leaves & clippings: one pool, a ring buffer ───────────── */
+const NP = 1600, pool = new THREE.InstancedMesh(leafGeo, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), NP);
+pool.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(NP * 3), 3); pool.frustumCulled = false;
+const ppx = new Float32Array(NP), ppy = new Float32Array(NP), ppz = new Float32Array(NP), pvx = new Float32Array(NP), pvy = new Float32Array(NP), pvz = new Float32Array(NP),
+  pax = new Float32Array(NP), pay = new Float32Array(NP), paz = new Float32Array(NP), pang = new Float32Array(NP), pspin = new Float32Array(NP), plife = new Float32Array(NP), psize = new Float32Array(NP), pph = new Float32Array(NP), pland = new Uint8Array(NP);
+{ _m.makeScale(0, 0, 0); for (let i = 0; i < NP; i++) pool.setMatrixAt(i, _m); }
+scene.add(pool);
+let pHead = 0, pLive = 0, leafBudget = 0;
+function spawnLeaf(x, y, z, vx, vy, vz, size, r, g, b, life) {
+  const i = pHead; pHead = (pHead + 1) % NP;
+  ppx[i] = x; ppy[i] = y; ppz[i] = z; pvx[i] = vx; pvy[i] = vy; pvz[i] = vz; psize[i] = size; plife[i] = life; pland[i] = 0; pph[i] = rnd(6.283);
+  let ax = gauss(), ay = gauss(), az = gauss(); const l = Math.hypot(ax, ay, az) || 1; pax[i] = ax / l; pay[i] = ay / l; paz[i] = az / l; pang[i] = rnd(6.283); pspin[i] = rnd(3, 9) * (Math.random() < .5 ? -1 : 1);
+  pool.instanceColor.setXYZ(i, r, g, b); pool.instanceColor.needsUpdate = true;
+}
+const cutLeaf = (x, y, z, vx, vy, vz) => { _c.setHSL(rnd(.24, .31), rnd(.5, .7), rnd(.26, .44)); spawnLeaf(x, y, z, vx, vy, vz, rnd(.07, .11), _c.r, _c.g, _c.b, rnd(3.2, 4.6)); };
+function updatePool(dt, time) {
+  let live = 0;
+  for (let i = 0; i < NP; i++) {
+    if (plife[i] <= 0) continue;
+    plife[i] -= dt;
+    if (plife[i] <= 0) { _m.makeScale(0, 0, 0); pool.setMatrixAt(i, _m); continue; }
+    live++;
+    if (!pland[i]) {   // falling: gravity against a leaf's drag, a sideways flutter, tumbling
+      const dr = Math.exp(-1.5 * dt);
+      pvx[i] = pvx[i] * dr + Math.sin(time * 3.1 + pph[i]) * .9 * dt; pvy[i] = pvy[i] * dr - 3.4 * dt; pvz[i] = pvz[i] * dr + Math.cos(time * 2.3 + pph[i]) * .6 * dt;
+      ppx[i] += pvx[i] * dt; ppy[i] += pvy[i] * dt; ppz[i] += pvz[i] * dt; pang[i] += pspin[i] * dt;
+      if (ppy[i] <= .016 && pvy[i] < 0) { ppy[i] = .016 + (i % 7) * .0006; pland[i] = 1; plife[i] = Math.min(plife[i], 1.5 + (i % 5) * .2); }
+      _q.set(pax[i] * Math.sin(pang[i] / 2), pay[i] * Math.sin(pang[i] / 2), paz[i] * Math.sin(pang[i] / 2), Math.cos(pang[i] / 2));
+    } else { _q.setFromAxisAngle(XA, -Math.PI / 2 + .12); _q2.setFromAxisAngle(YA, pph[i]); _q.premultiply(_q2); }   // lying on the lawn
+    const s = psize[i] * Math.min(1, plife[i] / .7);
+    _p.set(ppx[i], ppy[i], ppz[i]); _s.set(s * .6, s, s); _m.compose(_p, _q, _s); pool.setMatrixAt(i, _m);
+  }
+  if (live || pLive) pool.instanceMatrix.needsUpdate = true;
+  pLive = live;
+}
+
+/* ───────────── glyphs ───────────── */
+let font = null; const glyphs = new Map();
+function glyph(ch) {
+  if (glyphs.has(ch)) return glyphs.get(ch);
+  const d = font.data.glyphs[ch]; if (!d) { glyphs.set(ch, null); return null; }
+  const adv = d.ha * SIZE / font.data.resolution, shapes = font.generateShapes(ch, SIZE);
+  if (!shapes.length) { const g0 = { adv, empty: true }; glyphs.set(ch, g0); return g0; }
+  const contours = [], S = []; let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+  for (const s of shapes) { const e = s.extractPoints(8);
+    for (const c of [e.shape, ...e.holes]) { if (c.length < 3) continue; contours.push(c);
+      for (let i = 0; i < c.length; i++) { const a = c[i], b = c[(i + 1) % c.length]; if (a.x === b.x && a.y === b.y) continue; S.push(a.x, a.y, b.x, b.y);
+        minX = Math.min(minX, a.x); maxX = Math.max(maxX, a.x); minY = Math.min(minY, a.y); maxY = Math.max(maxY, a.y); } } }
+  const inside = (x, y) => { let c = false; for (let i = 0; i < S.length; i += 4) { const y1 = S[i + 1], y2 = S[i + 3]; if ((y1 > y) !== (y2 > y) && x < (S[i + 2] - S[i]) * (y - y1) / (y2 - y1) + S[i]) c = !c; } return c; };
+  // samples along the outline, contour after contour: position, outward normal, direction of travel
+  const ox = [], oy = [], onx = [], ony = [], otx = [], oty = [], oc = [];
+  contours.forEach((c, ci) => { let carry = 0;
+    for (let i = 0; i < c.length; i++) { const a = c[i], b = c[(i + 1) % c.length], dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy); if (l < 1e-6) continue;
+      let nx = dy / l, ny = -dx / l; if (inside((a.x + b.x) / 2 + nx * .012, (a.y + b.y) / 2 + ny * .012)) { nx = -nx; ny = -ny; }
+      let t = carry; while (t < l) { ox.push(a.x + dx * t / l); oy.push(a.y + dy * t / l); onx.push(nx); ony.push(ny); otx.push(dx / l); oty.push(dy / l); oc.push(ci); t += OS; } carry = t - l; } });
+  const g = { ch, adv, shapes, inside, minX, maxX, minY, maxY, cx: (minX + maxX) / 2, ox, oy, onx, ony, otx, oty, oc, nO: ox.length, topi: null, mow: null };
+  glyphs.set(ch, g); return g;
+}
+
+/** everything a topiary letter needs, once per glyph: the core, its leaves, and the bush around it sorted by when the shears reach it */
+function buildTopi(g) {
+  const { minX, maxX, minY, maxY, inside, ox, oy, onx, ony, nO, cx } = g, H = DEPTH / 2;
+  const coreGeo = new THREE.ExtrudeGeometry(g.shapes, { depth: DEPTH - .08, bevelEnabled: true, bevelThickness: .04, bevelSize: .03, bevelSegments: 2, curveSegments: 6 });
+  coreGeo.translate(0, 0, -(DEPTH - .08) / 2);
+  // leaves over the letter: both faces …
+  const lm = [], lc = []; let n = 0;
+  const tries = Math.round((maxX - minX) * (maxY - minY) * DENS * 2);
+  for (let t = 0; t < tries; t++) { const x = rnd(minX, maxX), y = rnd(minY, maxY); if (!inside(x, y)) continue; const sd = Math.random() < .62 ? 1 : -1;
+    leafAt(lm, n, x, y, sd * (H + rnd(.004, .034)), gauss() * .12, gauss() * .12, sd, rnd(.075, .11), .45);
+    if (Math.random() < .1) green(lc, n, .2, .25, .55, .7, .4, .5); else green(lc, n, .255, .315, .5, .7, .24, .4); n++; }
+  // … and all round its sides, the normals rolling over at the edges so the form reads soft
+  const per = DEPTH * OS * DENS;
+  for (let i = 0; i < nO; i++) { if (ony[i] < -.6 && oy[i] < .08) continue;
+    const m = Math.floor(per) + (Math.random() < per % 1 ? 1 : 0);
+    for (let k = 0; k < m; k++) { const z = rnd(-H, H), zr = z / H, nz = zr * zr * zr * .9, l = Math.hypot(1, nz), off = rnd(.028, .06);
+      leafAt(lm, n, ox[i] + onx[i] * off, oy[i] + ony[i] * off, z + nz * .02, onx[i] / l, ony[i] / l, nz / l, rnd(.075, .11), .45);
+      if (Math.random() < .1) green(lc, n, .2, .25, .55, .7, .4, .5); else green(lc, n, .255, .315, .5, .7, .24, .4); n++; } }
+  // the untrimmed bush: leaf clusters on a grid inside a rounded form, everywhere the letter is not
+  const cl = [], hx = (maxX - minX) / 2 + .24, top = maxY + .26, R = .32, cyb = top * .45;
+  for (let zi = -3; zi < 3; zi++) for (let gx = minX - .24 + CS / 2; gx < maxX + .24; gx += CS) for (let gy = CS / 2; gy < top; gy += CS) {
+    const x = gx + rnd(-.03, .03), y = gy + rnd(-.03, .03), z = (zi + .5) * CS + rnd(-.02, .02);
+    const qx = Math.max(0, Math.abs(x - cx) - (hx - R)), qy = Math.max(0, y - (top - R)), qz = Math.max(0, (Math.abs(z) - .1) * (R / .3));
+    if (Math.hypot(qx, qy, qz) - R > rnd(-.035, .015)) continue;
+    if (Math.abs(z) < H && inside(x, y)) continue;
+    let best = 0, bd = 1e9; for (let i = 0; i < nO; i++) { const ddx = x - ox[i], ddy = y - oy[i], dd = ddx * ddx + ddy * ddy; if (dd < bd) { bd = dd; best = i; } }
+    cl.push({ x, y, z, r: rnd(.095, .125), key: Math.min(nO - 1, best + Math.min(.6, Math.sqrt(bd)) * 10) });
+  }
+  cl.sort((a, b) => a.key - b.key);
+  // instances are laid out last-cut first, so cutting is just drawing fewer of them
+  const nC = cl.length, keys = new Float32Array(nC), cpos = new Float32Array(nC * 3), cm = new Float32Array(nC * 16), ccol = new Float32Array(nC * 3), bm = new Float32Array(nC * BK * 16), bc = new Float32Array(nC * BK * 3);
+  for (let j = 0; j < nC; j++) { const c = cl[j], slot = nC - 1 - j; keys[j] = c.key; cpos[j * 3] = c.x; cpos[j * 3 + 1] = c.y; cpos[j * 3 + 2] = c.z;
+    _p.set(c.x, c.y, c.z); _q.set(gauss(), gauss(), gauss(), gauss() + .01).normalize(); _s.setScalar(c.r); _m.compose(_p, _q, _s); _m.toArray(cm, slot * 16); green(ccol, slot, .26, .31, .45, .6, .26, .36);
+    let vx = c.x - cx, vy = c.y - cyb, vz = c.z * 1.5; const vl = Math.hypot(vx, vy, vz) || 1; vx /= vl; vy /= vl; vz /= vl;
+    for (let k = 0; k < BK; k++) { let dx = vx * .9 + gauss() * .8, dy = vy * .9 + gauss() * .8, dz = vz * .9 + gauss() * .8; const dl = Math.hypot(dx, dy, dz) || 1; dx /= dl; dy /= dl; dz /= dl;
+      const o = slot * BK + k; leafAt(bm, o, c.x + dx * c.r, c.y + dy * c.r, c.z + dz * c.r, dx, dy, dz, rnd(.085, .125), .7);
+      if (Math.random() < .16) green(bc, o, .2, .245, .55, .7, .42, .52); else green(bc, o, .25, .305, .5, .68, .28, .44); } }
+  return { coreGeo, lm: new Float32Array(lm), lc: new Float32Array(lc), nC, keys, cpos, cm, cc: ccol, bm, bc };
+}
+
+/** a patch of long grass for one key: tufts, with those inside the letter sorted by when the mower reaches them */
+function buildPatch(cellW, inside, ord) {
+  const n = Math.round(cellW * (PY1 - PY0) * TD), keep = [], cut = [];
+  for (let i = 0; i < n; i++) { const x = -GAP / 2 + rnd(cellW), y = rnd(PY0, PY1); if (inside && inside(x, y)) cut.push({ x, y, o: ord(x, y) }); else keep.push({ x, y }); }
+  cut.sort((a, b) => b.o - a.o);                         // last-mown first; the first-mown sit at the very end
+  const all = keep.concat(cut), tm = new Float32Array(n * 16), tc = new Float32Array(n * 3), ords = new Float32Array(cut.length);
+  for (let i = 0; i < n; i++) { const t = all[i], edge = .45 + .55 * clamp01(Math.min(t.y - PY0, PY1 - t.y) / .3);
+    _p.set(t.x, 0, -t.y); _q.setFromAxisAngle(YA, rnd(6.283)); const s = rnd(.8, 1.3); _s.set(s, rnd(.1, .155) * edge, s); _m.compose(_p, _q, _s); _m.toArray(tm, i * 16); green(tc, i, .26, .32, .5, .66, .2, .31); }
+  for (let j = 0; j < cut.length; j++) ords[j] = cut[cut.length - 1 - j].o;
+  return { tm, tc, nT: n, ords };
+}
+const spacePatches = new Map();
+/** how the mower takes a glyph: side-by-side swaths up and down it */
+function buildMow(g) {
+  const { minX, maxX, minY, maxY, inside } = g, nS = Math.max(1, Math.ceil((maxX - minX) / MOW_W)), w = (maxX - minX) / nS, Y0 = minY - .2, Y1 = maxY + .2;
+  const frac = (k, y) => { let f = Math.min(.999, Math.max(0, (y - Y0) / (Y1 - Y0))); if (k % 2) f = 1 - f; return Math.min(.999, f); };
+  const ord = (x, y) => { const k = Math.min(nS - 1, Math.max(0, Math.floor((x - minX) / w))); return k + frac(k, y); };
+  const legs = [];
+  for (let k = 0; k < nS; k++) { const xc = minX + (k + .5) * w; let lo = 1e9, hi = -1e9;
+    for (let y = minY - .01; y <= maxY + .012; y += .03) for (const dx of [-.44, 0, .44]) if (inside(xc + dx * w, y)) { lo = Math.min(lo, y); hi = Math.max(hi, y); }
+    if (lo > hi) lo = hi = (minY + maxY) / 2;
+    const up = k % 2 === 0; legs.push({ k, x: xc, ya: up ? lo - .14 : hi + .14, yb: up ? hi + .14 : lo - .14 }); }
+  return { ...buildPatch(g.adv + GAP, inside, ord), legs, nS, w, minX, Y0, Y1, frac, decalGeo: new THREE.ShapeGeometry(g.shapes, 6) };
+}
+/** short pale cut grass inside the glyph, shown only where the mower has been (swath by swath, along its run) */
+function decalMaterial(m) {
+  const u = { value: -1 }, uP = { value: new THREE.Vector4(m.minX, m.w, m.Y0, m.Y1) }, uN = { value: m.nS };
+  const mat = new THREE.MeshLambertMaterial({ map: cutTex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.uQ = u; sh.uniforms.uP = uP; sh.uniforms.uN = uN;
+    sh.vertexShader = 'varying vec2 vLp;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vLp = position.xy;');
+    sh.fragmentShader = 'varying vec2 vLp;\nuniform float uQ;\nuniform vec4 uP;\nuniform float uN;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+  { float sk = clamp(floor((vLp.x - uP.x) / uP.y), 0., uN - 1.);
+    float sf = clamp((vLp.y - uP.z) / (uP.w - uP.z), 0., .999);
+    float sup = 1. - mod(sk, 2.);
+    sf = min(.999, mix(1. - sf, sf, sup));
+    if (sk + sf > uQ) discard;
+    diffuseColor.rgb *= mix(.88, 1.06, sup) * (.95 + .05 * sin(vLp.x * 120.)); }`);
+  };
+  mat.customProgramCacheKey = () => 'decal';
+  return { mat, u };
+}
+
+/* ───────────── rows & letters ───────────── */
+let mode = new URLSearchParams(location.search).get('mode') === 'mow' ? 'mow' : 'topiary';
+let rows = [], retiring = [], dying = [], queue = [], cursorX = 0, typed = '', show = null;
+function newRow() { const group = new THREE.Group(); scene.add(group); return { group, tz: 0, letters: [], dieT: 0 }; }
+function retireRow(row) { for (const L of row.letters) if (L.remove) L.remove(); row.letters = []; row.dieT = 0; retiring.push(row); }
+const backOut = p => { const q = p - 1; return 1 + 2.70158 * q * q * q + 1.70158 * q * q; };
+
+class Topiary {
+  constructor(ch, g, x, row) {
+    const t = this.t = g.topi || (g.topi = buildTopi(g));
+    this.ch = ch; this.g = g; this.x = x; this.row = row; this.state = 'grow'; this.time = 0; this.ci = 0; this.cj = 0; this.gone = false;
+    this.group = new THREE.Group(); this.group.position.set(x + g.cx, 0, 0); this.group.scale.setScalar(.02);
+    const inner = this.inner = new THREE.Group(); inner.position.x = -g.cx; this.group.add(inner);
+    const core = new THREE.Mesh(t.coreGeo, coreMat); core.castShadow = core.receiveShadow = true; inner.add(core);
+    this.leaves = instanced(leafGeo, leafMat, t.lm, t.lc); this.leaves.receiveShadow = true; inner.add(this.leaves);
+    this.clusters = this.bleaves = null;
+    if (t.nC) { this.clusters = instanced(blobGeo, blobMat, t.cm, t.cc); this.clusters.castShadow = this.clusters.receiveShadow = true; this.bleaves = instanced(leafGeo, leafMat, t.bm, t.bc); this.bleaves.receiveShadow = true; inner.add(this.clusters, this.bleaves); }
+    row.group.add(this.group);
+  }
+  get busy() { return this.state !== 'done' && !this.gone; }
+  wp(out, lx, ly, lz) { return out.set(this.x + lx, ly, this.row.group.position.z + lz); }
+  /** the shears move on along the outline; whatever lies off the letter beside the stretch they pass comes away */
+  advance(di) {
+    const t = this.t, g = this.g; this.ci += di;
+    const i = Math.min(g.nO - 1, this.ci | 0), rz = this.row.group.position.z;
+    while (this.cj < t.nC && t.keys[this.cj] <= this.ci) { const j = this.cj++;
+      if (leafBudget > 0 && Math.random() < (reduce ? .12 : .6)) { leafBudget--;
+        const x = t.cpos[j * 3], y = t.cpos[j * 3 + 1], z = t.cpos[j * 3 + 2]; let dx = x - g.ox[i], dy = y - g.oy[i]; const l = Math.hypot(dx, dy) || 1;
+        cutLeaf(this.x + x, y, rz + z, dx / l * rnd(.2, .9) + gauss() * .25, dy / l * rnd(.1, .6) + rnd(0, .8), z * 1.5 + rnd(-.2, .7)); } }
+    if (this.clusters) { this.clusters.count = t.nC - this.cj; this.bleaves.count = (t.nC - this.cj) * BK; }
+    if (this.ci >= g.nO - 1) this.finish();
+  }
+  dropBush() { for (const k of ['clusters', 'bleaves']) if (this[k]) { this.inner.remove(this[k]); this[k].dispose(); this[k] = null; } }
+  finish() { this.dropBush(); this.state = 'done'; }
+  /** Backspace: clipped right down — it sinks away in a puff of leaves */
+  remove() { if (this.gone) return; this.gone = true; this.state = 'gone'; this.time = 0; dying.push(this);
+    const g = this.g, m = reduce ? 5 : 22; for (let i = 0; i < m; i++) { this.wp(_p, rnd(g.minX, g.maxX), rnd(.2, g.maxY), rnd(-.2, .3)); cutLeaf(_p.x, _p.y, _p.z, gauss() * .7, rnd(.2, 1.4), rnd(-.2, .9)); } }
+  update(dt) {
+    this.time += dt;
+    if (this.state === 'grow') { const p = Math.min(1, this.time / (reduce ? .2 : .42)), s = Math.max(.02, backOut(p)); this.group.scale.set(s, Math.max(.02, backOut(Math.min(1, p * 1.12))), s); if (p >= 1) { this.group.scale.setScalar(1); this.state = 'wait'; } }
+    else if (this.state === 'gone') { const p = Math.min(1, this.time / .36), e = p * p; this.group.scale.set(1 - .4 * e, Math.max(.001, 1 - e), 1 - .4 * e); if (p >= 1) this.dispose(); }
+  }
+  dispose() { this.dropBush(); this.inner.remove(this.leaves); this.leaves.dispose(); this.row.group.remove(this.group); this.dead = true; }
+}
+
+class Mown {
+  constructor(ch, g, x, row, cellW) {
+    let m; if (g) m = g.mow || (g.mow = buildMow(g)); else { const key = cellW.toFixed(3); m = spacePatches.get(key); if (!m) { m = buildPatch(cellW, null, null); spacePatches.set(key, m); } }
+    this.m = m; this.ch = ch; this.g = g; this.x = x; this.row = row; this.state = 'grow'; this.time = 0; this.q = -1; this.cj = 0; this.gone = false; this.u = null;
+    this.group = new THREE.Group(); this.group.position.set(x, 0, MOW_Z0); row.group.add(this.group);
+    this.qmat = new THREE.MeshLambertMaterial({ color: 0x2f6a24, transparent: true, opacity: 0, depthWrite: false });
+    const quad = new THREE.Mesh(quadGeo, this.qmat); quad.rotation.x = -Math.PI / 2; quad.scale.set(cellW, PY1 - PY0 - .16, 1); quad.position.set(-GAP / 2 + cellW / 2, .004, -(PY0 + PY1) / 2); quad.receiveShadow = true; quad.renderOrder = 1; this.group.add(quad);
+    this.dmat = null;
+    if (g) { const d = decalMaterial(m); this.dmat = d.mat; this.u = d.u; const decal = new THREE.Mesh(m.decalGeo, d.mat); decal.rotation.x = -Math.PI / 2; decal.position.y = .009; decal.receiveShadow = true; this.group.add(decal); }
+    this.tufts = instanced(tuftGeo, tuftMat, m.tm, m.tc); this.tufts.receiveShadow = true; this.tufts.scale.y = .02; this.group.add(this.tufts);
+  }
+  get busy() { return !!this.g && this.state !== 'done' && !this.gone; }
+  setQ(q) { this.q = q; if (this.u) this.u.value = q; const o = this.m.ords, n = o.length;
+    while (this.cj < n && o[this.cj] <= q) this.cj++; while (this.cj > 0 && o[this.cj - 1] > q) this.cj--;
+    this.tufts.count = this.m.nT - this.cj; }
+  finish() { this.setQ(1e6); this.state = 'done'; }
+  /** Backspace: the grass grows back over the letter, then the long patch settles into the lawn */
+  remove() { if (this.gone) return; this.gone = true; this.state = 'gone'; this.time = 0; this.q = Math.min(this.q, this.g ? this.m.nS : -1); dying.push(this); }
+  update(dt) {
+    this.time += dt;
+    if (this.state === 'grow') { const p = Math.min(1, this.time / (reduce ? .2 : .36)); this.tufts.scale.y = Math.max(.02, backOut(p)); this.qmat.opacity = p * .92; if (p >= 1) { this.tufts.scale.y = 1; this.state = this.g ? 'wait' : 'done'; } }
+    else if (this.state === 'gone') {
+      if (this.q > -.5) { this.setQ(this.q - dt * (this.m.nS + 1) / .45); this.time = 0; }
+      else { const p = Math.min(1, this.time / .45); this.tufts.scale.y = Math.max(.001, 1 - p * p); this.qmat.opacity = .92 * (1 - p); if (p >= 1) this.dispose(); }
+    }
+  }
+  dispose() { this.tufts.dispose(); this.qmat.dispose(); if (this.dmat) this.dmat.dispose(); this.row.group.remove(this.group); this.dead = true; }
+}
+
+/* ───────────── the tools ───────────── */
+const steel = new THREE.MeshStandardMaterial({ color: 0xe4e9ee, metalness: .3, roughness: .3 }), brass = new THREE.MeshStandardMaterial({ color: 0xd2a544, metalness: .35, roughness: .4 });
+function castAll(o) { o.traverse(m => { if (m.isMesh) m.castShadow = true; }); return o; }
+/** hedge shears: two long steel blades on a brass pivot, turned ash handles with oxblood grips */
+function buildShears() {
+  const root = new THREE.Group(), A = new THREE.Group(), B = new THREE.Group(); root.add(A, B);
+  const wood = new THREE.MeshLambertMaterial({ color: 0xc08a50 }), grip = new THREE.MeshLambertMaterial({ color: 0x7c2b25 });
+  const half = (grp, s, z) => {
+    const sh = new THREE.Shape(); sh.moveTo(-.06, -.03 * s); sh.lineTo(.14, -.036 * s); sh.lineTo(.56, .004 * s); sh.lineTo(.12, .056 * s); sh.lineTo(-.06, .044 * s); sh.closePath();
+    const blade = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: .012, bevelEnabled: false }), steel); blade.position.z = z; grp.add(blade);
+    const tang = new THREE.Mesh(new THREE.BoxGeometry(.11, .04, .012), steel); tang.position.set(-.08, -.006 * s, z + .006); grp.add(tang);
+    const hx = -.52, hy = -.11 * s, len = Math.hypot(hx, hy), rot = Math.atan2(hy, hx) - Math.PI / 2;
+    const along = (geo, mat, f) => { const m = new THREE.Mesh(geo, mat); m.position.set(-.06 + hx * f, hy * f, z + .006); m.rotation.z = rot; grp.add(m); };
+    along(new THREE.CylinderGeometry(.025, .019, len, 10), wood, .5);
+    along(new THREE.CylinderGeometry(.031, .031, .17, 10), grip, .82);
+    along(new THREE.CylinderGeometry(.026, .026, .045, 10), brass, .07);
+  };
+  half(A, 1, .003); half(B, -1, -.015);
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .05, 14), brass); pin.rotation.x = Math.PI / 2; root.add(pin);
+  root.scale.setScalar(.8); castAll(root);
+  return { root, A, B };
+}
+/** a toy mower: red deck with a round nose, cream engine, yellow hubs, a loop handle and a canvas catcher; +X is forward */
+function buildMower() {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const L = c => new THREE.MeshLambertMaterial({ color: c }), red = L(0xd9432e), cream = L(0xf3e9cf), black = L(0x23262a), yellow = L(0xf2c230), canvasM = L(0x2f5b3a);
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); body.add(m); return m; };
+  add(new THREE.BoxGeometry(.5, .1, .42), red, 0, .13, 0);
+  add(new THREE.CylinderGeometry(.21, .21, .1, 22), red, .25, .13, 0);
+  add(new THREE.BoxGeometry(.6, .025, .44), black, .04, .075, 0);
+  add(new THREE.CylinderGeometry(.105, .125, .13, 18), cream, .08, .245, 0);
+  add(new THREE.CylinderGeometry(.05, .05, .035, 14), yellow, .08, .325, 0);
+  add(new THREE.CylinderGeometry(.018, .018, .1, 8), black, -.06, .23, .1);
+  for (const sz of [-1, 1]) { const eye = add(new THREE.CylinderGeometry(.035, .035, .02, 12), cream, .455, .14, sz * .08); eye.rotation.z = Math.PI / 2; }
+  const bag = add(new THREE.BoxGeometry(.27, .2, .34), canvasM, -.4, .2, 0); bag.rotation.z = -.12;
+  const wheels = [];
+  for (const [wx, r] of [[.2, .075], [-.2, .092]]) for (const sz of [-1, 1]) { const tg = new THREE.CylinderGeometry(r, r, .055, 16); tg.rotateX(Math.PI / 2); const w = add(tg, black, wx, r, sz * .24);
+    const hg = new THREE.CylinderGeometry(r * .5, r * .5, .065, 12); hg.rotateX(Math.PI / 2); w.add(new THREE.Mesh(hg, yellow)); const nub = new THREE.Mesh(new THREE.BoxGeometry(r * .5, .02, .075), cream); w.add(nub); w.userData.r = r; wheels.push(w); }
+  const hl = Math.hypot(.38, .5), ha = Math.atan2(.5, -.38) - Math.PI / 2;
+  for (const sz of [-1, 1]) { const t = add(new THREE.CylinderGeometry(.012, .012, hl, 8), steel, -.43, .41, sz * .15); t.rotation.z = ha; }
+  const bar = add(new THREE.CylinderGeometry(.018, .018, .34, 10), black, -.62, .66, 0); bar.rotation.x = Math.PI / 2;
+  root.scale.setScalar(.72); castAll(root);
+  return { root, body, wheels };
+}
+const _f = V3(), _t = V3(), _tq = new THREE.Quaternion(), ZA = V3(0, 0, 1);
+const cutDur = () => reduce ? 1.1 : Math.max(.42, 2.6 / (1 + .6 * queue.length));
+class Shears {
+  constructor(i) { const s = buildShears(); this.obj = s.root; this.A = s.A; this.B = s.B; this.i = i; this.job = null; this.a = .05; this.pos = V3(2 + i * .5, 1.2, .4); this.quat = new THREE.Quaternion(); scene.add(this.obj); }
+  update(dt, time) {
+    let L = this.job, open = .05, rate = 4;
+    if (L && (L.gone || L.state === 'done')) L = this.job = null;
+    if (L) { const g = L.g, i = Math.min(g.nO - 1, L.ci | 0);
+      _f.set(g.otx[i] * .86, g.oty[i] * .86, -.5).normalize();
+      L.wp(_t, g.ox[i], g.oy[i], DEPTH / 2 + .16).addScaledVector(_f, -.27);
+      rate = 16 * (1 + queue.length * .5);
+      if (L.state === 'wait' && this.pos.distanceTo(_t) < .45) L.state = 'cut';
+      if (L.state === 'cut') { L.advance(dt * g.nO / cutDur()); open = .08 + .34 * (.5 + .5 * Math.sin(time * 27 + this.i * 2)); }
+      else open = .3;
+    } else {   // waiting: hanging in the air just past the row, points down
+      _f.set(.18, -1, -.1).normalize(); _t.set(cursorX + 2.4 + this.i * .5, 1.25 + (reduce ? 0 : Math.sin(time * 1.3 + this.i * 2.1) * .05), -.5 - this.i * .12);
+    }
+    _z.copy(ZA).addScaledVector(_f, -ZA.dot(_f)).normalize(); _y.crossVectors(_z, _f); _m.makeBasis(_f, _y, _z); _tq.setFromRotationMatrix(_m);
+    this.pos.lerp(_t, 1 - Math.exp(-dt * rate)); this.quat.slerp(_tq, 1 - Math.exp(-dt * 12)); this.a += (open - this.a) * (1 - Math.exp(-dt * 30));
+    this.obj.position.copy(this.pos); this.obj.quaternion.copy(this.quat); this.A.rotation.z = this.a; this.B.rotation.z = -this.a;
+    this.obj.visible = mode === 'topiary' || !!this.job;
+  }
+}
+class Mower {
+  constructor() { const m = buildMower(); this.obj = m.root; this.body = m.body; this.wheels = m.wheels; this.job = null; this.li = 0; this.ph = 0; this.x = 2; this.z = MOW_Z0 + 1; this.yaw = 0; this.roll = 0; scene.add(this.obj); }
+  take(L) { this.job = L; this.li = 0; this.ph = 0; }
+  update(dt, time) {
+    let L = this.job; if (L && (L.gone || L.state === 'done')) L = this.job = null;
+    const x0 = this.x, z0 = this.z; let mowing = false;
+    if (L) { const m = L.m, rz = L.row.group.position.z; let budget = (reduce ? 9 : 4.4 * (1 + queue.length * .8)) * dt;
+      for (let it = 0; it < 12 && budget > 1e-5; it++) {
+        const leg = m.legs[this.li]; if (!leg) { L.finish(); this.job = null; break; }
+        if (this.ph === 1 && L.state === 'grow') break;                       // let the grass come up first
+        const tx = L.x + leg.x, tz = rz + MOW_Z0 - (this.ph ? leg.yb : leg.ya), dx = tx - this.x, dz = tz - this.z, d = Math.hypot(dx, dz);
+        if (d <= budget) { this.x = tx; this.z = tz; budget -= d;
+          if (this.ph === 0) { this.ph = 1; if (L.state === 'wait') L.state = 'cut'; } else { L.setQ(leg.k + .9995); this.li++; this.ph = 0; } }
+        else { this.x += dx / d * budget; this.z += dz / d * budget; budget = 0; }
+        if (this.ph === 1 && L.state !== 'grow') { const lg = m.legs[this.li]; if (lg) { const q = lg.k + m.frac(lg.k, rz + MOW_Z0 - this.z); if (q > L.q) L.setQ(q); mowing = true; } }
+      }
+    } else { const tx = cursorX + 1.1, tz = rows[0].group.position.z + MOW_Z0 + 1.05, dx = tx - this.x, dz = tz - this.z, d = Math.hypot(dx, dz), step = Math.min(d, 3.4 * dt); if (d > .03) { this.x += dx / d * step; this.z += dz / d * step; } }
+    const mx = this.x - x0, mz = this.z - z0, md = Math.hypot(mx, mz);
+    if (md > 1e-4) { let dy = Math.atan2(-mz, mx) - this.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); this.yaw += dy * (1 - Math.exp(-dt * 22)); this.roll += md; }
+    this.obj.position.set(this.x, 0, this.z); this.obj.rotation.y = this.yaw; this.body.position.y = (L && !reduce) ? Math.sin(time * 70) * .004 : 0;
+    for (const w of this.wheels) w.rotation.z = -this.roll / (w.userData.r * .72);
+    if (mowing) { const k = reduce ? (Math.random() < .3 ? 1 : 0) : 2, c = Math.cos(this.yaw), s = Math.sin(this.yaw);   // clippings fly out to the side
+      for (let i = 0; i < k; i++) { const side = rnd(.8, 1.9), back = rnd(-.6, .2);
+        spawnLeaf(this.x + gauss() * .08, .07, this.z + gauss() * .08, -s * side + c * back + gauss() * .3, rnd(.9, 2.1), -c * side - s * back + gauss() * .3, rnd(.03, .055), rnd(.3, .5), rnd(.52, .7), rnd(.1, .2), rnd(1.4, 2.2)); } }
+    this.obj.visible = mode === 'mow' || !!this.job;
+  }
+}
+const shears = [0, 1, 2].map(i => new Shears(i)), mower = new Mower();
+
+/* ───────────── typing ───────────── */
+const txt = document.getElementById('txt'), hint = document.getElementById('hint'), kb = document.getElementById('kb'), modeEl = document.getElementById('mode');
+const showLine = () => { txt.textContent = typed.slice(-46); };
+function type(ch) {
+  if (!font) return; ch = ch.toUpperCase();
+  if (rows[0].letters.length >= MAX_ROW) enter();
+  if (show) show.hold = Math.min(show.hold, show.t);          // typing on: the camera comes back down
+  const row = rows[0], g = ch === ' ' ? null : glyph(ch);
+  if (ch !== ' ' && !g) return;
+  if (!g || g.empty) { const w = g ? g.adv : SIZE * .36, L = mode === 'mow' ? new Mown(ch, null, cursorX, row, w) : { ch };
+    L.isSpace = true; L.advW = w; row.letters.push(L); cursorX += w; typed += ch; showLine(); return; }
+  const L = mode === 'mow' ? new Mown(ch, g, cursorX, row, g.adv + GAP) : new Topiary(ch, g, cursorX, row);
+  L.advW = g.adv + GAP; cursorX += L.advW; row.letters.push(L); queue.push(L);
+  typed += ch; showLine(); hint.classList.add('off');
+}
+function backspace() { const L = rows[0].letters.pop(); if (!L) return; cursorX -= L.advW; typed = typed.slice(0, -1); showLine(); if (L.remove) L.remove(); }
+function enter() {   // the word is done: step back and look at it; the next word starts a fresh row in front
+  const row = rows[0], live = row.letters.filter(L => !L.isSpace);
+  if (!live.length) { while (row.letters.length) backspace(); return; }
+  const last = live[live.length - 1];
+  show = { row, x0: live[0].x, x1: last.x + last.advW - GAP, t: 0, hold: reduce ? 2.4 : 3.6 };
+  for (const r of rows) r.tz -= ROW_GAP;
+  while (rows.length > 2) retireRow(rows.pop());
+  rows.unshift(newRow()); cursorX = 0; typed = ''; showLine();
+}
+function setMode(m) {
+  m = m === 'mow' ? 'mow' : 'topiary';
+  for (const b of modeEl.querySelectorAll('button')) b.classList.toggle('on', b.dataset.m === m);
+  if (m === mode) return;
+  const text = typed; rows.forEach(retireRow); rows = [newRow()]; queue.length = 0; cursorX = 0; typed = ''; show = null; mode = m; showLine();
+  for (const c of text) type(c);                              // the same word again, the other way
+}
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target === kb) return;
+  if (e.key === 'Backspace') { e.preventDefault(); backspace(); } else if (e.key === 'Enter') { e.preventDefault(); enter(); } else if (e.key.length === 1) { e.preventDefault(); type(e.key); }
+});
+kb.value = ' ';
+kb.addEventListener('beforeinput', e => { e.preventDefault();
+  if (e.inputType === 'deleteContentBackward') backspace(); else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') enter(); else if (e.data) for (const c of e.data) type(c); });
+kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enter(); } });
+addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('a,button')) return; if (matchMedia('(pointer: coarse)').matches) kb.focus({ preventScroll: true }); });
+modeEl.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (!b) return; setMode(b.dataset.m); b.blur(); });
+
+/* ───────────── frame ───────────── */
+const cam = { fx: 0, init: false, pos: V3(), look: V3() }, wantPos = V3(), wantLook = V3(), showPos = V3(), showLook = V3();
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000), time = now / 1000; last = now;
+  uTime.value = time; leafBudget = reduce ? 6 : 34;
+  // rows drift back to their places; cleared rows go once their letters have
+  for (const r of rows) r.group.position.z += (r.tz - r.group.position.z) * (1 - Math.exp(-dt * 1.7));
+  for (let i = retiring.length - 1; i >= 0; i--) { const r = retiring[i]; r.dieT += dt; if (r.dieT > 1.6) { scene.remove(r.group); retiring.splice(i, 1); } }
+  // hand out work, then let everything move
+  if (mode === 'topiary') { for (const s of shears) if (!s.job) while (queue.length) { const L = queue.shift(); if (!L.gone) { s.job = L; break; } } }
+  else if (!mower.job) while (queue.length) { const L = queue.shift(); if (!L.gone) { mower.take(L); break; } }
+  let ax = 0, an = 0;
+  for (const r of rows) for (const L of r.letters) { if (!L.update) continue; L.update(dt); if (r === rows[0] && L.busy) { ax += L.x + L.advW / 2; an++; } }
+  for (let i = dying.length - 1; i >= 0; i--) { dying[i].update(dt); if (dying[i].dead) dying.splice(i, 1); }
+  for (const s of shears) s.update(dt, time);
+  mower.update(dt, time);
+  updatePool(dt, time);
+  // camera: low and a little to one side, following the letters in the making
+  const narrow = innerWidth < innerHeight, mow = mode === 'mow', want = an ? ax / an * .6 + (cursorX - .8) * .4 : cursorX - .9;
+  cam.fx += (want - cam.fx) * (cam.init ? 1 - Math.exp(-dt * 1.7) : 1);
+  const dr = reduce ? 0 : Math.sin(time * .17) * .22, dr2 = reduce ? 0 : Math.sin(time * .11 + 1) * .05;
+  if (mow) { wantPos.set(cam.fx - 1.3 + dr, (narrow ? 8 : 5.3) + dr2, narrow ? 7.6 : 5.1); wantLook.set(cam.fx + .2, 0, -.2); }
+  else { wantPos.set(cam.fx - 2.3 + dr, 1.6 + dr2, narrow ? 11.5 : 7.4); wantLook.set(cam.fx + .3, .85, 0); }
+  if (show) {   // Enter: rise, pull back until the whole row is in frame, hold, settle
+    show.t += dt; const w = smooth(show.t / 1.1) * (1 - smooth((show.t - show.hold) / 1.5)); if (show.t > show.hold + 1.5) show = null;
+    else { const mid = (show.x0 + show.x1) / 2, need = ((show.x1 - show.x0) / 2 + 1.7) / (Math.tan(camera.fov * Math.PI / 360) * camera.aspect), rz = show.row.group.position.z;
+      if (mow) { showPos.set(mid - .6, Math.max(6.2, need * .74), rz + Math.max(5.6, need * .72)); showLook.set(mid, 0, rz - .25); }
+      else { showPos.set(mid - 1.1, 2.9 + need * .17, rz + Math.max(8.4, need)); showLook.set(mid, .75, rz); }
+      wantPos.lerp(showPos, w); wantLook.lerp(showLook, w); } }
+  if (!cam.init) { cam.pos.copy(wantPos); cam.look.copy(wantLook); cam.init = true; }
+  cam.pos.lerp(wantPos, 1 - Math.exp(-dt * 2.4)); cam.look.lerp(wantLook, 1 - Math.exp(-dt * 3));
+  camera.position.copy(cam.pos); camera.lookAt(cam.look); sky.position.copy(cam.pos);
+  const sx = Math.round(cam.look.x / 3) * 3; sun.position.set(sx - 10, 16, 9.5); sun.target.position.set(sx, 0, -3);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+new FontLoader().load('./vendor/fonts/helvetiker_bold.typeface.json', f => {
+  font = f; rows = [newRow()];
+  window.__topiary = { type, backspace, enter, setMode, get letters() { return rows[0].letters; }, get mode() { return mode; }, get rows() { return rows; }, shears, mower };
+  setMode(mode);
+  if (mode === 'mow') hint.textContent = 'Type — 割草机在草坪上割出每个字母 · Enter 退后欣赏整排 · Backspace 草长回来';
+  const hello = (new URLSearchParams(location.search).get('t') ?? 'GARDEN').slice(0, 24);
+  [...hello].forEach((c, i) => setTimeout(() => type(c), 500 + i * 380));
+  requestAnimationFrame(frame);
+}, undefined, () => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent = '字体没有加载成功（需要联网）。请检查网络后刷新。'; });
+</script>
+</body>
+</html>

@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Signature Quill</title>
+<style>
+:root{--ink:#f1e7d6;--dim:rgba(241,231,214,.5);--faint:rgba(241,231,214,.18)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0a0605;color:var(--ink);overflow:hidden;
+  font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.film{position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 90% 80% at 50% 48%,transparent 48%,rgba(6,3,1,.72) 100%)}
+.hud{position:fixed;pointer-events:none;color:var(--dim);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+#title{left:max(22px,env(safe-area-inset-left));top:max(20px,env(safe-area-inset-top));right:22px;pointer-events:auto}
+#title b{color:var(--ink);font-weight:600}
+#title a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--faint);padding-bottom:1px}
+#title a:hover{color:var(--ink)}
+#line{left:0;right:0;bottom:max(26px,env(safe-area-inset-bottom));text-align:center;color:var(--ink);letter-spacing:.32em;text-transform:none;white-space:pre;overflow:hidden;padding:0 24px}
+#line .caret{display:inline-block;width:.6em;height:1px;background:var(--ink);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){#line .caret{animation:none}}
+#hint{left:0;right:0;bottom:max(52px,calc(env(safe-area-inset-bottom) + 26px));text-align:center;transition:opacity .8s}
+#hint.off{opacity:0}
+#err{left:0;right:0;top:46%;text-align:center;color:var(--ink);display:none;text-transform:none;letter-spacing:.04em}
+#kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;background:transparent;color:transparent;font-size:16px}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="film"></div>
+<div class="hud" id="title"><a href="index.html">Filament</a> / <a href="firework.html">Firework</a> / <a href="topiary.html">Topiary</a> / <a href="saber.html">Saber</a> / <b>Quill</b> / <a href="neon.html">Neon</a> / <a href="book.html">Book</a></div>
+<div class="hud" id="hint">Type — 鹅毛笔替你落笔 · Enter 签名花饰并换纸 · Backspace 吸去墨迹</div>
+<div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
+<div class="hud" id="err"></div>
+<input id="kb" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type here">
+
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import opentype from './vendor/opentype.module.js';
+
+/* ───────────── constants ───────────── */
+const FONT_URL = './vendor/fonts/pinyon-script-latin-400-normal.woff';
+const CW = 2048, CH = 1365;                     // ink canvas (the sheet), px
+const PW = 8.4, PH = PW * CH / CW, PXU = CW / PW; // the sheet in world units; px per unit
+const PAPER_Y = 0.04;
+const EMPX = 190;                               // em of the handwriting, in ink-canvas px
+const EMR = 320, STEP_R = 2;                    // em of the tracing raster; resampling step (raster px)
+const ML = Math.round(EMPX * 0.95), MR = CW - Math.round(EMPX * 0.8);
+const LINE0 = Math.round(EMPX * 1.5), PITCH = Math.round(EMPX * 1.28), MAXLINES = 4;
+const MINW = 1.3, GAIN = 0.35;                  // thinnest drawn line; a touch of ink spread (px)
+const V0 = EMPX * 3.2;                          // unhurried writing speed, px of path per second
+const TRAVEL = 1.8;                             // the pen in the air is quicker than on the paper
+const WW = 512, WH = Math.round(CH * WW / CW), DRY = 2.8, NB = 16;   // wetness map; seconds to dry
+const BOTTLE = new THREE.Vector3(3.5, 0, -4.35), CANDLE = new THREE.Vector3(-3.7, 0, -4.7);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rnd = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+/* ───────────── pen paths from glyph outlines (pure functions) ─────────────
+   bitmap → Zhang–Suen skeleton → distance to the edge (half width) → ordered strokes */
+/* <trace> */
+function thin(img, w) {
+  let list = []; for (let i = 0; i < img.length; i++) if (img[i]) list.push(i);
+  const del = []; let changed = true;
+  while (changed) { changed = false;
+    for (let pass = 0; pass < 2; pass++) { del.length = 0;
+      for (let k = 0; k < list.length; k++) { const i = list[k]; if (!img[i]) continue;
+        const p2 = img[i - w], p3 = img[i - w + 1], p4 = img[i + 1], p5 = img[i + w + 1], p6 = img[i + w], p7 = img[i + w - 1], p8 = img[i - 1], p9 = img[i - w - 1];
+        const B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9; if (B < 2 || B > 6) continue;
+        const A = (!p2 && p3 ? 1 : 0) + (!p3 && p4 ? 1 : 0) + (!p4 && p5 ? 1 : 0) + (!p5 && p6 ? 1 : 0) + (!p6 && p7 ? 1 : 0) + (!p7 && p8 ? 1 : 0) + (!p8 && p9 ? 1 : 0) + (!p9 && p2 ? 1 : 0);
+        if (A !== 1) continue;
+        if (pass === 0 ? (p2 && p4 && p6) || (p4 && p6 && p8) : (p2 && p4 && p8) || (p2 && p6 && p8)) continue;
+        del.push(i); }
+      if (del.length) { changed = true; for (let k = 0; k < del.length; k++) img[del[k]] = 0; } }
+    list = list.filter(i => img[i]); }
+  // staircase corners: an L of three pixels becomes a clean diagonal, so that only true junctions have 3+ neighbours
+  for (let k = 0; k < list.length; k++) { const i = list[k]; if (!img[i]) continue;
+    const N = img[i - w], E = img[i + 1], S = img[i + w], W = img[i - 1], NE = img[i - w + 1], SE = img[i + w + 1], SW = img[i + w - 1], NW = img[i - w - 1];
+    if ((N && E && !S && !W && !SW) || (E && S && !W && !N && !NW) || (S && W && !N && !E && !NE) || (W && N && !E && !S && !SE)) img[i] = 0; }
+  return list.filter(i => img[i]);
+}
+function edgeDist(bin, w, h, i) { // distance from pixel i to the nearest empty pixel
+  const x = i % w, y = (i / w) | 0;
+  for (let R = 3; ; R *= 2) { let best = 1e9;
+    for (let dy = -R; dy <= R; dy++) { const yy = y + dy, d2 = dy * dy; if (d2 >= best) continue;
+      if (yy < 0 || yy >= h) { best = d2; continue; }
+      for (let dx = -R; dx <= R; dx++) { const xx = x + dx, d = d2 + dx * dx; if (d >= best) continue;
+        if (xx < 0 || xx >= w || !bin[yy * w + xx]) best = d; } }
+    if (best <= R * R || R > w + h) return Math.sqrt(best); }
+}
+function trace(list, sk, w, dist) {
+  const vis = new Uint8Array(sk.length), OFF = [-w - 1, -w, -w + 1, -1, 1, w - 1, w, w + 1];
+  const X = i => i % w, Y = i => (i / w) | 0;
+  const unvCount = p => { let c = 0; for (let k = 0; k < 8; k++) { const q = p + OFF[k]; if (sk[q] && !vis[q]) c++; } return c; };
+  // follow the line a little way ahead of c (coming from `from`), always taking the straightest pixel
+  function ahead(c, from, K) { let prev = from, p = c; const seen = [from, c];
+    for (let k = 0; k < K; k++) { let best = -1, bs = -9; const dx = X(p) - X(prev), dy = Y(p) - Y(prev);
+      for (let j = 0; j < 8; j++) { const q = p + OFF[j]; if (!sk[q] || vis[q] || seen.includes(q)) continue;
+        const ex = X(q) - X(p), ey = Y(q) - Y(p), s = (ex * dx + ey * dy) / Math.hypot(ex, ey); if (s > bs) { bs = s; best = q; } }
+      if (best < 0) break; seen.push(best); prev = p; p = best; }
+    return p; }
+  // across ink that is already written (a crossing): the nearest unwritten line that carries straight on
+  function bridge(cur, dx, dy, D, K) { const q = [cur], dep = new Map([[cur, 0]]); let best = -1, bs = 0.5;
+    for (let hd = 0; hd < q.length; hd++) { const p = q[hd], d = dep.get(p);
+      for (let j = 0; j < 8; j++) { const n = p + OFF[j]; if (!sk[n]) continue;
+        if (vis[n]) { if (d < D && !dep.has(n)) { dep.set(n, d + 1); q.push(n); } continue; }
+        const ex = X(n) - X(cur), ey = Y(n) - Y(cur), l = Math.hypot(ex, ey), s = (ex * dx + ey * dy) / l; if (s < 0.3) continue;
+        const e = ahead(n, p, K), fx = X(e) - X(n), fy = Y(e) - Y(n), fl = Math.hypot(fx, fy), s2 = fl > 0 ? (fx * dx + fy * dy) / fl : s; if (s2 < 0) continue;
+        const sc = 0.5 * s + 0.5 * s2 - 0.012 * d; if (sc > bs) { bs = sc; best = n; } } }
+    return best; }
+  let remaining = list.length; const strokes = [];
+  while (remaining > 0) {
+    // where the pen goes down: the left-most (then upper) loose end; for a closed ring, its top
+    let start = -1, sb = 1e9, ring = false;
+    for (let k = 0; k < list.length; k++) { const p = list[k]; if (vis[p] || unvCount(p) > 1) continue; const s = X(p) + 0.35 * Y(p); if (s < sb) { sb = s; start = p; } }
+    if (start < 0) { ring = true; for (let k = 0; k < list.length; k++) { const p = list[k]; if (vis[p]) continue; const s = Y(p) - 0.001 * X(p); if (s < sb) { sb = s; start = p; } } }
+    const path = []; let attached = false;
+    for (let j = 0; j < 8; j++) { const q = start + OFF[j]; if (sk[q] && vis[q]) { path.push(q); attached = true; break; } }
+    const own = path.length; path.push(start); vis[start] = 1; remaining--;
+    let maxD = dist[start];
+    for (;;) { const cur = path[path.length - 1], len = path.length;
+      const K = clamp(Math.round(dist[cur] * 2) + 4, 6, 30), back = path[Math.max(0, len - 1 - K)];
+      let dx = X(cur) - X(back), dy = Y(cur) - Y(back); const dl = Math.hypot(dx, dy);
+      if (dl > 0) { dx /= dl; dy /= dl; } else { dx = ring ? -1 : 1; dy = 0.2; }
+      let next = -1, bs = -9, nc = 0;
+      for (let j = 0; j < 8; j++) { const c = cur + OFF[j]; if (!sk[c] || vis[c]) continue; nc++;
+        const e = ahead(c, cur, K), ex = X(e) - X(cur), ey = Y(e) - Y(cur), s = (ex * dx + ey * dy) / Math.hypot(ex, ey); if (s > bs) { bs = s; next = c; } }
+      if (nc === 0 || (nc > 0 && bs < -0.2 && len > 3)) { // a dead end, or only a sharp turn back: first look straight across written ink
+        const br = len - own > 2 ? bridge(cur, dx, dy, clamp(Math.round(dist[cur]) + 4, 5, 24), K) : -1;
+        if (br >= 0) next = br;
+        else if (nc === 0) { // really the end: close on to the ink it meets (a loop, a joint)
+          let q = -1, qs = -9; for (let j = 0; j < 8; j++) { const c = cur + OFF[j]; if (!sk[c] || !vis[c] || path.lastIndexOf(c) > len - 5) continue;
+            const s = (X(c) - X(cur)) * dx + (Y(c) - Y(cur)) * dy; if (s > qs) { qs = s; q = c; } }
+          if (q >= 0) { path.push(q); attached = true; }
+          break; } }
+      path.push(next); vis[next] = 1; remaining--; if (dist[next] > maxD) maxD = dist[next]; }
+    // thinning leaves little spurs at blunt ends and joints: not pen strokes
+    if (attached && path.length < Math.max(5, 1.2 * maxD + 2)) continue;
+    strokes.push(path);
+  }
+  return strokes;
+}
+function sm(a, r) { const n = a.length, o = new Float32Array(n);
+  for (let i = 0; i < n; i++) { let s = 0, c = 0; for (let k = -r; k <= r; k++) { const j = i + k; if (j < 0 || j >= n) continue; const g = r + 1 - Math.abs(k); s += a[j] * g; c += g; } o[i] = s / c; }
+  o[0] = a[0]; o[n - 1] = a[n - 1]; return o; }
+function resample(xs, ys, ws, step) { const n = xs.length, cum = new Float32Array(n);
+  for (let i = 1; i < n; i++) cum[i] = cum[i - 1] + Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
+  const L = cum[n - 1], m = Math.max(1, Math.round(L / step)), out = new Float32Array((m + 1) * 3); let j = 0;
+  for (let k = 0; k <= m; k++) { const t = L * k / m; while (j < n - 2 && cum[j + 1] < t) j++;
+    const seg = cum[j + 1] - cum[j], f = seg > 0 ? clamp((t - cum[j]) / seg, 0, 1) : 0;
+    out[k * 3] = xs[j] + (xs[j + 1] - xs[j]) * f; out[k * 3 + 1] = ys[j] + (ys[j + 1] - ys[j]) * f; out[k * 3 + 2] = ws[j] + (ws[j + 1] - ws[j]) * f; }
+  return out; }
+function polish(pix, w, dist, step) { const n = pix.length; let xs = new Float32Array(n), ys = new Float32Array(n), ws = new Float32Array(n);
+  for (let k = 0; k < n; k++) { xs[k] = pix[k] % w; ys[k] = (pix[k] / w) | 0; ws[k] = Math.max(0.3, dist[pix[k]] - 0.1); }
+  if (n === 1) return Float32Array.of(xs[0], ys[0], ws[0], xs[0] + 0.5, ys[0], ws[0]);
+  for (let p = 0; p < 2; p++) { xs = sm(xs, 2); ys = sm(ys, 2); ws = sm(ws, 3); }
+  return resample(xs, ys, ws, step); }
+/** bin: Uint8Array of 0/1 with an empty border → strokes, each a Float32Array of x, y, half-width */
+function traceGlyph(bin, w, h, step) { const sk = bin.slice(), list = thin(sk, w), dist = new Float32Array(w * h);
+  for (let k = 0; k < list.length; k++) dist[list[k]] = edgeDist(bin, w, h, list[k]);
+  const st = trace(list, sk, w, dist).map(p => polish(p, w, dist, step)), key = s => { let m = 1e9; for (let i = 0; i < s.length; i += 3) if (s[i] < m) m = s[i]; return m - 0.15 * step * s.length / 3; };
+  st.sort((p, q) => key(p) - key(q));            // left to right, long strokes before their small companions (bowl before stem, stem before bar)
+  for (const s of st) { const n = s.length, sx = s[0], sy = s[1], ex = s[n - 3];   // a stroke found from its exit hairline backwards is turned round
+    if (sx >= 0.8 * w && sy > 0.25 * h && ex < sx - 0.3 * w) { for (let i = 0, j = n - 3; i < j; i += 3, j -= 3) for (let k = 0; k < 3; k++) { const t = s[i + k]; s[i + k] = s[j + k]; s[j + k] = t; } } }
+  return st; }
+/* </trace> */
+
+/* ───────────── renderer, camera, light ───────────── */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a0605); scene.fog = new THREE.Fog(0x0a0605, 15, 40);
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 90);
+{ const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); }
+const ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
+scene.add(new THREE.HemisphereLight(0xfff0dc, 0x3a2414, 0.45));
+const key = new THREE.SpotLight(0xffd6a0, 520, 0, 0.62, 0.85, 2);
+key.position.set(-5.5, 8, -5.5); key.target.position.set(0.5, 0, 0); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); key.shadow.camera.near = 3; key.shadow.camera.far = 26; key.shadow.bias = -0.0005; key.shadow.normalBias = 0.02;
+scene.add(key, key.target);
+const candleLight = new THREE.PointLight(0xff9440, 14, 18, 2); candleLight.position.set(CANDLE.x, 1.86, CANDLE.z); scene.add(candleLight);
+
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+/* ───────────── procedural textures ───────────── */
+function makeCanvas(w, h, opts) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d', opts)]; }
+function tex(c, repeat) { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANISO;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); } return t; }
+function woodTexture() { const S = 2048, [c, g] = makeCanvas(S, S), planks = 4, ph = S / planks;
+  g.fillStyle = '#5e3519'; g.fillRect(0, 0, S, S);
+  for (let p = 0; p < planks; p++) { const y0 = p * ph;
+    g.fillStyle = `rgba(${p % 2 ? '120,70,30' : '30,12,4'},${rnd(0.05, 0.16)})`; g.fillRect(0, y0, S, ph);
+    g.save(); g.beginPath(); g.rect(0, y0, S, ph); g.clip();
+    for (let j = 0; j < 150; j++) { // long grain: periodic along x so the tile repeats without a seam
+      const y = y0 + rnd(ph), a1 = rnd(2, 14), a2 = rnd(1, 5), k1 = 1 + Math.floor(rnd(3)), k2 = 3 + Math.floor(rnd(6)), f1 = rnd(6.283), f2 = rnd(6.283), dark = Math.random() < 0.7;
+      g.strokeStyle = dark ? `rgba(38,16,5,${rnd(0.05, 0.3)})` : `rgba(190,128,70,${rnd(0.04, 0.16)})`; g.lineWidth = rnd(0.6, 3.2);
+      g.beginPath(); for (let x = 0; x <= S; x += 32) { const u = x / S * 6.283, yy = y + a1 * Math.sin(u * k1 + f1) + a2 * Math.sin(u * k2 + f2); if (x) g.lineTo(x, yy); else g.moveTo(x, yy); } g.stroke(); }
+    for (let j = 0; j < 900; j++) { const x = rnd(S), y = y0 + rnd(ph), l = rnd(6, 26); g.strokeStyle = `rgba(28,11,3,${rnd(0.08, 0.25)})`; g.lineWidth = rnd(0.5, 1.3); g.beginPath(); g.moveTo(x, y); g.lineTo(x + l, y + rnd(-0.6, 0.6)); g.stroke(); }
+    g.restore();
+    g.fillStyle = 'rgba(12,5,2,.75)'; g.fillRect(0, y0, S, 2.5); g.fillStyle = 'rgba(200,140,80,.10)'; g.fillRect(0, y0 + 2.5, S, 1.5); }
+  return c; }
+function paperTexture() { const W = 1024, H = Math.round(W * CH / CW), [c, g] = makeCanvas(W, H);
+  g.fillStyle = '#f3ead7'; g.fillRect(0, 0, W, H);
+  for (let x = 0; x < W; x += 21) { g.fillStyle = 'rgba(120,96,60,.035)'; g.fillRect(x + rnd(-1, 1), 0, 1, H); }       // laid lines
+  for (let y = 3; y < H; y += 3) { g.fillStyle = `rgba(120,96,60,${rnd(0.004, 0.02)})`; g.fillRect(0, y, W, 1); }
+  for (let i = 0; i < 2600; i++) { const x = rnd(W), y = rnd(H), a = rnd(6.283), l = rnd(3, 14);                      // fibres
+    g.strokeStyle = Math.random() < 0.5 ? `rgba(255,252,244,${rnd(0.1, 0.35)})` : `rgba(130,104,66,${rnd(0.03, 0.09)})`; g.lineWidth = rnd(0.4, 1); g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+  const e = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.66); e.addColorStop(0, 'rgba(150,112,60,0)'); e.addColorStop(1, 'rgba(150,112,60,.13)'); g.fillStyle = e; g.fillRect(0, 0, W, H);
+  return c; }
+function leatherTexture() { const W = 1024, H = 720, [c, g] = makeCanvas(W, H);
+  g.fillStyle = '#1b2a22'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 9000; i++) { g.fillStyle = Math.random() < 0.5 ? `rgba(0,0,0,${rnd(0.05, 0.2)})` : `rgba(120,150,125,${rnd(0.02, 0.07)})`; g.beginPath(); g.arc(rnd(W), rnd(H), rnd(0.5, 2.2), 0, 6.283); g.fill(); }
+  g.strokeStyle = 'rgba(205,168,96,.6)'; g.lineWidth = 2; g.strokeRect(20, 20, W - 40, H - 40); g.strokeStyle = 'rgba(205,168,96,.3)'; g.lineWidth = 1; g.strokeRect(27, 27, W - 54, H - 54);
+  return c; }
+function featherTexture() { const W = 160, H = 1024, [c, g] = makeCanvas(W, H);
+  const gr = g.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, '#cfc4ac'); gr.addColorStop(0.35, '#f4efe3'); gr.addColorStop(1, '#e6dfcf'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 1500; i++) { const y = rnd(H); g.strokeStyle = Math.random() < 0.6 ? `rgba(110,94,70,${rnd(0.05, 0.22)})` : `rgba(255,255,255,${rnd(0.1, 0.35)})`; g.lineWidth = rnd(0.5, 1.2); g.beginPath(); g.moveTo(0, y); g.lineTo(W, y + rnd(-4, 4)); g.stroke(); }
+  g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000';
+  for (let i = 0; i < 13; i++) { const y = rnd(40, H - 40), hh = rnd(2, 8), d = rnd(25, 120); g.beginPath(); g.moveTo(W, y - hh); g.lineTo(W - d, y + rnd(-3, 3)); g.lineTo(W, y + hh); g.fill(); }   // splits between the barbs
+  for (let y = 0; y < H; y += rnd(3, 9)) { const d = rnd(1, 7); g.beginPath(); g.moveTo(W, y - 2); g.lineTo(W - d, y); g.lineTo(W, y + 2); g.fill(); }                                         // a ragged edge
+  return c; }
+function glowTexture() { const [c, g] = makeCanvas(128, 128), r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  r.addColorStop(0, 'rgba(255,214,150,1)'); r.addColorStop(0.2, 'rgba(255,160,70,.45)'); r.addColorStop(0.55, 'rgba(255,120,40,.1)'); r.addColorStop(1, 'rgba(255,110,30,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); return c; }
+
+/* ───────────── the desk ───────────── */
+{ const desk = new THREE.Mesh(new THREE.PlaneGeometry(84, 60).rotateX(-Math.PI / 2),
+    new THREE.MeshStandardMaterial({ map: tex(woodTexture(), [7, 5]), roughness: 0.4, metalness: 0, envMapIntensity: 0.22 }));
+  desk.receiveShadow = true; scene.add(desk);
+  const pad = new THREE.Mesh(new THREE.BoxGeometry(PW + 1.7, 0.03, PH + 1.5), new THREE.MeshStandardMaterial({ map: tex(leatherTexture()), roughness: 0.66, envMapIntensity: 0.15 }));
+  pad.position.y = 0.015; pad.receiveShadow = true; pad.castShadow = true; scene.add(pad); }
+
+/* ───────────── the sheet: paper + ink + wetness ───────────── */
+const [inkCanvas, ictx] = makeCanvas(CW, CH, { willReadFrequently: true });
+ictx.fillStyle = '#000'; ictx.fillRect(0, 0, CW, CH); ictx.lineCap = 'round'; ictx.lineJoin = 'round'; ictx.strokeStyle = '#fff';
+const inkTex = new THREE.CanvasTexture(inkCanvas); inkTex.flipY = false; inkTex.anisotropy = ANISO;      // R = how much ink
+const [wetCanvas, wctx] = makeCanvas(WW, WH);
+wctx.fillStyle = '#000'; wctx.fillRect(0, 0, WW, WH);
+const wetTex = new THREE.CanvasTexture(wetCanvas); wetTex.flipY = false; wetTex.generateMipmaps = false; wetTex.minFilter = THREE.LinearFilter;   // R = how wet
+const paperMat = new THREE.MeshStandardMaterial({ map: tex(paperTexture()), roughness: 0.93, metalness: 0, envMapIntensity: 0.4 });
+paperMat.onBeforeCompile = sh => {
+  sh.uniforms.uInk = { value: inkTex }; sh.uniforms.uWet = { value: wetTex }; sh.uniforms.uTexel = { value: new THREE.Vector2(1.5 / CW, 1.5 / CH) };
+  sh.fragmentShader = 'uniform sampler2D uInk;\nuniform sampler2D uWet;\nuniform vec2 uTexel;\n' + sh.fragmentShader
+    .replace('#include <map_fragment>', `#include <map_fragment>
+      vec2 qUv = vec2( vMapUv.x, 1.0 - vMapUv.y );
+      float qInk = texture2D( uInk, qUv ).r;
+      float qWetM = texture2D( uWet, qUv ).r;
+      float qWet = qWetM * qInk;
+      // dry: a warm brown-black, matte, a little translucent · wet: darker and cooler
+      diffuseColor.rgb = mix( diffuseColor.rgb, mix( vec3( 0.034, 0.019, 0.013 ), vec3( 0.004, 0.004, 0.009 ), qWetM ), qInk * mix( 0.94, 1.0, qWetM ) );`)
+    .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      roughnessFactor = mix( mix( roughnessFactor, 0.66, qInk ), 0.13, qWet );`)
+    .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+      { // wet ink stands on the paper as a rounded bead: its rim catches the light
+        float gx = texture2D( uInk, qUv + vec2( uTexel.x, 0.0 ) ).r - texture2D( uInk, qUv - vec2( uTexel.x, 0.0 ) ).r;
+        float gz = texture2D( uInk, qUv + vec2( 0.0, uTexel.y ) ).r - texture2D( uInk, qUv - vec2( 0.0, uTexel.y ) ).r;
+        float qk = 0.05 + 0.6 * qWetM;
+        normal = normalize( ( viewMatrix * vec4( normalize( vec3( - gx * qk, 1.0, - gz * qk ) ), 0.0 ) ).xyz ); }`);
+};
+const paperG = new THREE.Group(); scene.add(paperG);
+{ const m = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH).rotateX(-Math.PI / 2), paperMat); m.position.y = PAPER_Y; m.receiveShadow = true; paperG.add(m); }
+const paperToWorld = (cx, cy, out) => paperG.localToWorld(out.set((cx / CW - 0.5) * PW, PAPER_Y, (cy / CH - 0.5) * PH));
+
+// only the part of the ink canvas that changed goes to the GPU
+let dx0 = 1e9, dy0 = 1e9, dx1 = -1e9, dy1 = -1e9, fullDirty = false;
+const subTex = { isDataTexture: true, image: null }, subPos = new THREE.Vector2();
+function markDirty(x0, y0, x1, y1) { if (x0 < dx0) dx0 = x0; if (y0 < dy0) dy0 = y0; if (x1 > dx1) dx1 = x1; if (y1 > dy1) dy1 = y1; }
+function flushInk() {
+  if (fullDirty) { inkTex.needsUpdate = true; fullDirty = false; dx0 = dy0 = 1e9; dx1 = dy1 = -1e9; return; }
+  if (dx1 < dx0) return;
+  const x0 = clamp(Math.floor(dx0) - 2, 0, CW - 1), y0 = clamp(Math.floor(dy0) - 2, 0, CH - 1), x1 = clamp(Math.ceil(dx1) + 2, 1, CW), y1 = clamp(Math.ceil(dy1) + 2, 1, CH), w = x1 - x0, h = y1 - y0;
+  dx0 = dy0 = 1e9; dx1 = dy1 = -1e9; if (w <= 0 || h <= 0) return;
+  if (w * h > CW * CH * 0.4) { inkTex.needsUpdate = true; return; }
+  const im = ictx.getImageData(x0, y0, w, h); subTex.image = { data: new Uint8Array(im.data.buffer), width: w, height: h };
+  renderer.copyTextureToTexture(subPos.set(x0, y0), subTex, inkTex);
+}
+
+/* ink items: a letter or a flourish = strokes of x, y, width (canvas px), plus how far it has been written */
+function strokeRange(s, a, b) { // draw stroke s from point index a to b (fractions allowed)
+  const n = s.length / 3, i0 = Math.floor(a), i1 = Math.min(n - 1, Math.floor(b)); let i = i0, mw = 0, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (let k = i0; k <= Math.min(n - 1, i1 + 1); k++) { const x = s[k * 3], y = s[k * 3 + 1], ww = s[k * 3 + 2]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (ww > mw) mw = ww; }
+  while (i < i1) { const w0 = (s[i * 3 + 2] + s[i * 3 + 5]) / 2; let j = i + 1;
+    ictx.beginPath(); ictx.moveTo(s[i * 3], s[i * 3 + 1]); ictx.lineTo(s[j * 3], s[j * 3 + 1]);
+    while (j < i1 && Math.abs((s[j * 3 + 2] + s[j * 3 + 5]) / 2 - w0) < 0.18) { j++; ictx.lineTo(s[j * 3], s[j * 3 + 1]); }
+    ictx.lineWidth = w0; ictx.stroke(); i = j; }
+  const f = b - i1;
+  if (i1 < n - 1 && f > 0) { ictx.beginPath(); ictx.moveTo(s[i1 * 3], s[i1 * 3 + 1]); ictx.lineTo(s[i1 * 3] + (s[i1 * 3 + 3] - s[i1 * 3]) * f, s[i1 * 3 + 1] + (s[i1 * 3 + 4] - s[i1 * 3 + 1]) * f); ictx.lineWidth = s[i1 * 3 + 2]; ictx.stroke(); }
+  else if (i0 === i1) { ictx.beginPath(); ictx.moveTo(s[i1 * 3], s[i1 * 3 + 1]); ictx.lineTo(s[i1 * 3] + 0.01, s[i1 * 3 + 1]); ictx.lineWidth = s[i1 * 3 + 2]; ictx.stroke(); }
+  const m = mw / 2 + 2; markDirty(x0 - m, y0 - m, x1 + m, y1 + m);
+}
+function drawItem(it) { ictx.globalAlpha = it.alpha;
+  for (let k = 0; k < it.si && k < it.strokes.length; k++) strokeRange(it.strokes[k], 0, it.strokes[k].length / 3 - 1);
+  if (it.si < it.strokes.length && it.pi > 0) strokeRange(it.strokes[it.si], 0, it.pi);
+  ictx.globalAlpha = 1; }
+let pageItems = [], fading = [];
+function repaint(bb) { // lift everything off this rectangle and put back what belongs there
+  const x0 = Math.floor(bb[0]) - 1, y0 = Math.floor(bb[1]) - 1, w = Math.ceil(bb[2]) - x0 + 1, h = Math.ceil(bb[3]) - y0 + 1;
+  ictx.save(); ictx.beginPath(); ictx.rect(x0, y0, w, h); ictx.clip(); ictx.fillStyle = '#000'; ictx.fillRect(x0, y0, w, h);
+  for (const it of pageItems) { const b = it.bbox; if (b[0] > bb[2] || b[2] < bb[0] || b[1] > bb[3] || b[3] < bb[1]) continue; drawItem(it); }
+  ictx.restore(); markDirty(x0, y0, x0 + w, y0 + h);
+}
+function clearPage() { ictx.fillStyle = '#000'; ictx.fillRect(0, 0, CW, CH); fullDirty = true; pageItems = []; fading = []; wetSegs.length = 0; wetHead = 0; wetStale = true; }
+function finishItem(strokes, extra) { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; const sps = [];
+  for (const s of strokes) { for (let i = 0; i < s.length; i += 3) { const m = s[i + 2] / 2 + 2; if (s[i] - m < x0) x0 = s[i] - m; if (s[i] + m > x1) x1 = s[i] + m; if (s[i + 1] - m < y0) y0 = s[i + 1] - m; if (s[i + 1] + m > y1) y1 = s[i + 1] + m; }
+    sps.push(Math.max(0.2, Math.hypot(s[3] - s[0], s[4] - s[1]))); }
+  return Object.assign({ kind: 'ink', strokes, sps, bbox: [x0, y0, x1, y1], si: 0, pi: 0, alpha: 1, pace: 1, started: false, done: false }, extra); }
+
+// wetness: every stretch of fresh ink is remembered for a few seconds and repainted, fainter, as it dries
+const wetSegs = []; let wetHead = 0, wetStale = false;
+const WS = WW / CW;
+function wetRange(s, a, b, time) { const n = s.length / 3; let i = Math.floor(a); const e = Math.min(n - 1, Math.ceil(b));
+  while (i < e) { const j = Math.min(e, i + 5); wetSegs.push({ x0: s[i * 3] * WS, y0: s[i * 3 + 1] * WS, x1: s[j * 3] * WS, y1: s[j * 3 + 1] * WS, t: time }); i = j; }
+  if (e === Math.floor(a)) wetSegs.push({ x0: s[e * 3] * WS, y0: s[e * 3 + 1] * WS, x1: s[e * 3] * WS + 0.01, y1: s[e * 3 + 1] * WS, t: time }); }
+function drawWet(time) {
+  while (wetHead < wetSegs.length && time - wetSegs[wetHead].t > DRY) wetHead++;
+  if (wetHead >= wetSegs.length) { if (wetSegs.length || wetStale) { wetSegs.length = 0; wetHead = 0; wetStale = false; wctx.globalCompositeOperation = 'source-over'; wctx.fillStyle = '#000'; wctx.fillRect(0, 0, WW, WH); wetTex.needsUpdate = true; } return; }
+  if (wetHead > 3000) { wetSegs.splice(0, wetHead); wetHead = 0; }
+  wctx.globalCompositeOperation = 'source-over'; wctx.fillStyle = '#000'; wctx.fillRect(0, 0, WW, WH);
+  wctx.globalCompositeOperation = 'lighten'; wctx.lineCap = 'round'; wctx.lineJoin = 'round'; wctx.lineWidth = 5;
+  let cb = -1;
+  for (let i = wetHead; i < wetSegs.length; i++) { const sg = wetSegs[i], b = Math.min(NB - 1, Math.floor((time - sg.t) / DRY * NB));
+    if (b !== cb) { if (cb >= 0) wctx.stroke(); cb = b; const u = clamp(((b + 0.5) / NB * DRY - 0.2) / (DRY - 0.2), 0, 1), v = Math.round(255 * (1 - u * u * (3 - 2 * u))); wctx.strokeStyle = `rgb(${v},${v},${v})`; wctx.beginPath(); }
+    wctx.moveTo(sg.x0, sg.y0); wctx.lineTo(sg.x1, sg.y1); }
+  if (cb >= 0) wctx.stroke();
+  wetTex.needsUpdate = true;
+}
+
+/* ───────────── the quill, the ink bottle, the candle ───────────── */
+const QL = 3.8;                                 // length of the quill
+const quill = new THREE.Group(); scene.add(quill);
+{ // origin = the very tip of the nib; +Y runs up the shaft; the vane lies in the XY plane
+  const cx = t => -0.13 * QL * t * t, N = 48, RS = 8, pos = [], col = [], idx = [];
+  const rad = t => t < 0.07 ? 0.006 + (0.05 - 0.006) * Math.pow(t / 0.07, 0.8) : t < 0.28 ? 0.05 + 0.006 * Math.sin((t - 0.07) / 0.21 * Math.PI) : 0.05 - 0.04 * Math.pow((t - 0.28) / 0.72, 0.8);
+  const frame = t => { const tx = -0.26 * QL * t, ty = QL, l = Math.hypot(tx, ty); return [tx / l, ty / l]; };   // unit tangent in XY
+  for (let i = 0; i <= N; i++) { const t = Math.pow(i / N, 1.5), [tx, ty] = frame(t), r = rad(t), px = cx(t), py = QL * t;
+    const k = clamp((t - 0.035) / 0.06, 0, 1), c0 = [0.02, 0.02, 0.035], c1 = t < 0.3 ? [0.86, 0.78, 0.6] : [0.93, 0.9, 0.82];
+    for (let j = 0; j < RS; j++) { const a = j / RS * 6.2832, ca = Math.cos(a), sa = Math.sin(a) * (t < 0.07 ? 0.55 : 1);   // the cut nib is flattened
+      pos.push(px + ty * ca * r, py - tx * ca * r, sa * r); col.push(c0[0] + (c1[0] - c0[0]) * k, c0[1] + (c1[1] - c0[1]) * k, c0[2] + (c1[2] - c0[2]) * k); } }
+  for (let i = 0; i < N; i++) for (let j = 0; j < RS; j++) { const a = i * RS + j, b = i * RS + (j + 1) % RS, c = a + RS, d = b + RS; idx.push(a, c, b, b, c, d); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); sg.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); sg.setIndex(idx); sg.computeVertexNormals();
+  const shaft = new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, envMapIntensity: 0.6 })); shaft.castShadow = true; quill.add(shaft);
+  // the two vanes: barbs run out from the shaft and sweep toward the tip; one side is broader
+  const ft = tex(featherTexture()), vp = [], vu = [], vi = [], T0 = 0.27, NT = 40, NU = 6; let base = 0;
+  for (const [side, wmax] of [[1, 0.5], [-1, 0.33]]) {
+    for (let i = 0; i <= NT; i++) { const s = i / NT, t = T0 + (1 - T0) * s, [tx, ty] = frame(t), w = wmax * Math.pow(Math.sin(Math.PI * Math.pow(s, 0.58)), 0.62) * (0.94 + 0.06 * Math.sin(s * 37 + side));
+      for (let j = 0; j <= NU; j++) { const u = j / NU, d = u * w;
+        vp.push(cx(t) + ty * side * d + tx * d * 0.72, QL * t - tx * side * d + ty * d * 0.72, -0.5 * d * d + 0.012 * Math.sin(s * 46 + side * 2) * u); vu.push(u, side > 0 ? s : 1 - s); } }
+    for (let i = 0; i < NT; i++) for (let j = 0; j < NU; j++) { const a = base + i * (NU + 1) + j, b = a + 1, c = a + NU + 1, d = c + 1; vi.push(a, b, c, b, d, c); }
+    base += (NT + 1) * (NU + 1); }
+  const vg = new THREE.BufferGeometry(); vg.setAttribute('position', new THREE.Float32BufferAttribute(vp, 3)); vg.setAttribute('uv', new THREE.Float32BufferAttribute(vu, 2)); vg.setIndex(vi); vg.computeVertexNormals();
+  const vane = new THREE.Mesh(vg, new THREE.MeshStandardMaterial({ map: ft, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.8, emissive: 0x2a2018, envMapIntensity: 0.35 })); vane.castShadow = true; quill.add(vane);
+}
+{ // ink bottle: dark glass, full of ink
+  const P = [[0, 0], [0.56, 0], [0.63, 0.07], [0.63, 0.74], [0.56, 0.9], [0.3, 1.0], [0.25, 1.06], [0.25, 1.2], [0.31, 1.23], [0.31, 1.31], [0.21, 1.31], [0.2, 1.05]].map(p => new THREE.Vector2(p[0], p[1]));
+  const b = new THREE.Mesh(new THREE.LatheGeometry(P, 48), new THREE.MeshStandardMaterial({ color: 0x0b1420, roughness: 0.07, metalness: 0.1, envMapIntensity: 1.3, side: THREE.DoubleSide }));
+  b.position.copy(BOTTLE); b.castShadow = true; b.receiveShadow = true; scene.add(b);
+  const ink = new THREE.Mesh(new THREE.CircleGeometry(0.205, 28).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x020206, roughness: 0.05, envMapIntensity: 1.2 }));
+  ink.position.set(BOTTLE.x, 1.1, BOTTLE.z); scene.add(ink); }
+let flame = null, glow = null;
+{ // candle in a small brass dish
+  const brass = new THREE.MeshStandardMaterial({ color: 0xb08a3c, roughness: 0.3, metalness: 1, envMapIntensity: 0.9 });
+  const D = [[0, 0], [0.62, 0], [0.7, 0.07], [0.6, 0.1], [0.24, 0.12], [0.21, 0.3], [0, 0.3]].map(p => new THREE.Vector2(p[0], p[1]));
+  const dish = new THREE.Mesh(new THREE.LatheGeometry(D, 40), brass); dish.position.copy(CANDLE); dish.castShadow = true; scene.add(dish);
+  const wax = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.18, 1.35, 24), new THREE.MeshStandardMaterial({ color: 0xf0e2c2, roughness: 0.55, emissive: 0x5a2c0c, emissiveIntensity: 0.7, envMapIntensity: 0.3 }));
+  wax.position.set(CANDLE.x, 0.3 + 0.675, CANDLE.z); wax.castShadow = true; scene.add(wax);
+  const wick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.1, 6), new THREE.MeshBasicMaterial({ color: 0x120a06 })); wick.position.set(CANDLE.x, 1.69, CANDLE.z); scene.add(wick);
+  flame = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffd9a0, toneMapped: false, fog: false })); flame.scale.set(0.8, 2.2, 0.8); flame.position.set(CANDLE.x, 1.86, CANDLE.z); scene.add(flame);
+  glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(glowTexture()), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false, toneMapped: false, opacity: 0.8 })); glow.position.copy(flame.position); glow.scale.set(2.4, 2.4, 1); scene.add(glow); }
+
+/* ───────────── letters ───────────── */
+let font = null; const glyphs = new Map();
+const [rc, rctx] = makeCanvas(8, 8, { willReadFrequently: true });
+function glyphData(ch) {
+  if (glyphs.has(ch)) return glyphs.get(ch);
+  let d = null; const g = font.charToGlyph(ch);
+  if (g && g.index !== 0) { d = { g, adv: (g.advanceWidth || 0) / font.unitsPerEm, strokes: [] };
+    const path = font.getPath(ch, 0, 0, EMR), bb = path.getBoundingBox();
+    if (path.commands.length && bb.x2 > bb.x1 && bb.y2 > bb.y1) { const pad = 3, ox = Math.floor(bb.x1) - pad, oy = Math.floor(bb.y1) - pad, w = Math.ceil(bb.x2) - ox + pad + 1, h = Math.ceil(bb.y2) - oy + pad + 1;
+      rc.width = w; rc.height = h; rctx.setTransform(1, 0, 0, 1, -ox, -oy); path.fill = '#000'; path.stroke = null; path.draw(rctx);
+      const px = rctx.getImageData(0, 0, w, h).data, bin = new Uint8Array(w * h);
+      for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) bin[y * w + x] = px[(y * w + x) * 4 + 3] > 110 ? 1 : 0;
+      d.strokes = traceGlyph(bin, w, h, STEP_R).map(s => { for (let i = 0; i < s.length; i += 3) { s[i] = (s[i] + ox) / EMR; s[i + 1] = (s[i + 1] + oy) / EMR; s[i + 2] /= EMR; } return s; }); } }
+  glyphs.set(ch, d); return d;
+}
+function kernOf(a, b) { try { return (font.getKerningValue(a, b) || 0) / font.unitsPerEm; } catch (e) { return 0; } }
+function makeLetter(d, ox, oy, line) {
+  return finishItem(d.strokes.map(s => { const o = new Float32Array(s.length);
+    for (let i = 0; i < s.length; i += 3) { o[i] = ox + s[i] * EMPX; o[i + 1] = oy + s[i + 1] * EMPX; o[i + 2] = Math.max(MINW, s[i + 2] * 2 * EMPX + GAIN); } return o; }), { line });
+}
+function makeFlourish(xa, xb, yb, line) { // the paraph: back under the word, a small turn, and a long swelling return stroke
+  const E = EMPX, x0 = xa, x1 = Math.max(xb, xa + 1.6 * E), L = x1 - x0, xl = Math.max(x0 - 0.7 * E, 0.15 * E), xr = Math.min(x1 + 0.9 * E, CW - 0.25 * E);
+  const A0 = [Math.min(x1 + 0.1 * E, xr - 0.3 * E), yb + 0.27 * E], A1 = [x1 - 0.25 * L, yb + 0.17 * E], A2 = [x0 + 0.2 * L, yb + 0.2 * E], A3 = [xl + 0.38 * E, yb + 0.36 * E];
+  const B1 = [xl, yb + 0.44 * E], B2 = [xl + 0.12 * E, yb + 0.68 * E], B3 = [x0 + 0.08 * E, yb + 0.62 * E];
+  const C1 = [B3[0] + (B3[0] - B2[0]) * 0.9 + 0.2 * L, B3[1] + (B3[1] - B2[1]) * 0.9], C2 = [x1 - 0.12 * L, yb + 0.56 * E], C3 = [xr, yb + 0.12 * E];
+  const xs = [], ys = [], ws = [];
+  const seg = (p0, p1, p2, p3, wf, skip) => { for (let i = skip ? 1 : 0; i <= 70; i++) { const t = i / 70, u = 1 - t;
+    xs.push(u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0]); ys.push(u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]); ws.push(wf(t)); } };
+  seg(A0, A1, A2, A3, t => MINW + 0.02 * E * Math.pow(Math.sin(Math.PI * t), 2));
+  seg(A3, B1, B2, B3, t => MINW + 0.004 * E * Math.sin(Math.PI * t), true);
+  seg(B3, C1, C2, C3, t => MINW + 0.046 * E * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.8)), 1.7), true);
+  return finishItem([resample(Float32Array.from(xs), Float32Array.from(ys), Float32Array.from(ws), 1.25)], { line, pace: 0.5, flourish: true, mid: (x0 + x1) / 2 });
+}
+
+/* ───────────── typing ───────────── */
+const txt = document.getElementById('txt'), hint = document.getElementById('hint'), kb = document.getElementById('kb');
+let letters = [], typed = '', queue = [], cur = { x: ML, line: 0 }, prevGlyph = null;
+const showLine = () => { txt.textContent = typed.slice(-46); };
+function newline() { cur.line++; cur.x = ML; prevGlyph = null;
+  if (cur.line >= MAXLINES) { queue.push({ kind: 'sheet', t: 0, hold: 0.5 }); cur.line = 0; letters = []; typed = ''; } }   // the sheet is full: a fresh one
+function type(ch) {
+  if (!font || typeof ch !== 'string' || [...ch].length !== 1) return;
+  if (ch === ' ' || ch === ' ') { const g = font.charToGlyph(' '), adv = ((g && g.advanceWidth) || font.unitsPerEm * 0.25) / font.unitsPerEm * EMPX;
+    letters.push({ ch: ' ', px: cur.x, pline: cur.line, pprev: prevGlyph }); cur.x += adv; prevGlyph = g || null; typed += ' ';
+    if (cur.x > MR - EMPX * 1.5) newline();          // prefer to break the line between words
+    showLine(); return; }
+  const d = glyphData(ch); if (!d) return;
+  let kern = prevGlyph ? kernOf(prevGlyph, d.g) * EMPX : 0;
+  if (cur.x + kern + d.adv * EMPX > MR && cur.x > ML) { newline(); kern = 0; }
+  const rec = { ch, px: cur.x, pline: cur.line, pprev: prevGlyph, item: null }, x = cur.x + kern;
+  if (d.strokes.length) { rec.item = makeLetter(d, x, LINE0 + cur.line * PITCH, cur.line); queue.push(rec.item); }
+  cur.x = x + d.adv * EMPX; prevGlyph = d.g; letters.push(rec); typed += ch; showLine(); hint.classList.add('off');
+}
+function backspace() { const r = letters.pop(); if (!r) return;
+  typed = typed.slice(0, -1); showLine(); cur.x = r.px; cur.line = r.pline; prevGlyph = r.pprev;
+  const it = r.item; if (!it) return;
+  const qi = queue.indexOf(it); if (qi >= 0) queue.splice(qi, 1);        // not written yet: simply dropped
+  if (pen.item === it) pen.item = null;
+  if (it.started && !fading.includes(it)) { it.fade = 0; fading.push(it); }   // written: the ink is lifted off the paper
+}
+function enter() { if (!font) return; const recs = letters.filter(r => r.item); if (!recs.length) return;
+  const line = recs[recs.length - 1].item.line; let x0 = 1e9, x1 = -1e9;
+  for (const r of recs) if (r.item.line === line) { x0 = Math.min(x0, r.item.bbox[0]); x1 = Math.max(x1, r.item.bbox[2]); }
+  queue.push(makeFlourish(x0, x1, LINE0 + line * PITCH, line), { kind: 'sheet', t: 0, hold: 1.25 });
+  letters = []; typed = ''; cur = { x: ML, line: 0 }; prevGlyph = null; showLine();
+}
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target === kb) return;
+  if (e.key === 'Backspace') { e.preventDefault(); backspace(); } else if (e.key === 'Enter') { e.preventDefault(); enter(); } else if (e.key.length === 1) { e.preventDefault(); type(e.key); }
+});
+kb.value = ' ';
+kb.addEventListener('beforeinput', e => { e.preventDefault();
+  if (e.inputType === 'deleteContentBackward') backspace(); else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') enter(); else if (e.data) for (const c of e.data) type(c); });
+kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enter(); } });
+addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('a')) return; if (matchMedia('(pointer: coarse)').matches) kb.focus({ preventScroll: true }); });
+
+/* ───────────── the pen ───────────── */
+const pen = { item: null, mode: 'idle', si: 0, d: 0, ang: -0.6 };
+const qpos = new THREE.Vector3(), trav = { from: new THREE.Vector3(), to: new THREE.Vector3(), len: 1, d: 0, lift: 0 };
+const rest = new THREE.Vector3(), focus = new THREE.Vector3(), tmpV = new THREE.Vector3();
+let speedMul = 1, sinceDip = 0, idleT = 0, dip = null, dipK = 0, writeK = 0, camPull = 1;
+paperG.updateMatrixWorld(true); paperToWorld(ML, LINE0, rest); qpos.copy(rest).add(tmpV.set(0.2, 0.7, 0.15)); focus.copy(rest);
+function beginTravel(it, si) { const s = it.strokes[si]; paperToWorld(s[0], s[1], trav.to); trav.from.copy(qpos); trav.len = Math.max(1e-4, trav.from.distanceTo(trav.to)); trav.d = 0; trav.lift = Math.min(0.5, trav.len * 0.3); pen.mode = 'travel'; }
+function updateSheet(job, dt) { // hold a moment, the written sheet slides away, a fresh one slides in
+  const hold = queue.length > 1 ? Math.min(job.hold, 0.3) : job.hold, OUT = reduce ? 0.3 : 0.75, IN = reduce ? 0.3 : 0.75; job.t += dt;
+  if (job.t < hold) return;
+  if (job.t < hold + OUT) { const p = (job.t - hold) / OUT, e = p * p; paperG.position.set(-e * (PW + 10), 0, -e * 0.7); paperG.rotation.y = e * 0.14; return; }
+  if (!job.cleared) { clearPage(); job.cleared = true; }
+  const p = Math.min(1, (job.t - hold - OUT) / IN), e = 1 - Math.pow(1 - p, 3); paperG.position.set((1 - e) * (PW + 10), 0, 0); paperG.rotation.y = -(1 - e) * 0.1;
+  if (p >= 1) { paperG.position.set(0, 0, 0); paperG.rotation.y = 0; queue.shift(); }
+}
+function updatePen(dt, time) {
+  const head = queue[0];
+  if (head && head.kind === 'sheet') { pen.item = null; pen.mode = 'idle'; updateSheet(head, dt); paperG.updateMatrixWorld(true); }
+  // the further behind, the faster the hand: it always catches up
+  let backlog = 0; for (let i = 0; i < queue.length; i++) if (queue[i].kind === 'ink' && queue[i] !== pen.item) backlog++;
+  let want = backlog <= 8 ? 1 + backlog * 0.9 : 8.2 + (backlog - 8) * 1.4; want = Math.min(want, 90); if (reduce) want = Math.max(want, 2.5);
+  speedMul += (want - speedMul) * (1 - Math.exp(-dt * 6));
+  let budget = V0 * speedMul * dt, guard = 0;
+  while (budget > 0 && guard++ < 20000) { const job = queue[0];
+    if (!job || job.kind !== 'ink') { pen.item = null; pen.mode = 'idle'; break; }
+    if (pen.item !== job) { pen.item = job; pen.si = 0; pen.d = 0; job.si = 0; job.pi = 0; job.started = true; pageItems.push(job); dip = null; beginTravel(job, 0); }
+    if (pen.mode === 'travel') { const remain = trav.len - trav.d, stepW = budget / PXU * TRAVEL;
+      if (stepW < remain) { trav.d += stepW; budget = 0; } else { budget -= remain * PXU / TRAVEL; trav.d = trav.len; pen.mode = 'write'; }
+    } else { const s = job.strokes[pen.si], n = s.length / 3, cost = job.sps[pen.si] * job.pace, remain = n - 1 - pen.d, adv = budget / cost; let nd;
+      if (adv < remain) { nd = pen.d + adv; budget = 0; } else { nd = n - 1; budget -= remain * cost; }
+      ictx.globalAlpha = 1; strokeRange(s, pen.d, nd); wetRange(s, pen.d, nd, time); pen.d = nd; job.pi = nd;
+      if (nd >= n - 1) { pen.si++; job.si = pen.si; job.pi = 0;
+        // qpos must sit at the end of this stroke before the next hop is planned
+        paperToWorld(s[(n - 1) * 3], s[(n - 1) * 3 + 1], qpos);
+        if (pen.si >= job.strokes.length) { job.done = true; queue.shift(); pen.item = null; pen.mode = 'idle'; sinceDip++; rest.copy(qpos); if (queue.length === 0) fullDirty = true; }   // (a whole-texture sync whenever the hand comes to rest)
+        else { pen.d = 0; beginTravel(job, pen.si); } } }
+  }
+  // where the nib is
+  const job = pen.item;
+  if (job && pen.mode === 'travel') { const p = trav.d / trav.len, e = p * p * (3 - 2 * p); qpos.lerpVectors(trav.from, trav.to, e); qpos.y += trav.lift * Math.sin(Math.PI * p); idleT = 0; focus.copy(trav.to); }
+  else if (job && pen.mode === 'write') { const s = job.strokes[pen.si], n = s.length / 3, i = Math.min(n - 2, Math.floor(pen.d)), f = pen.d - i;
+    const x = s[i * 3] + (s[i * 3 + 3] - s[i * 3]) * f, y = s[i * 3 + 1] + (s[i * 3 + 4] - s[i * 3 + 1]) * f; paperToWorld(x, y, qpos);
+    let da = Math.atan2(s[i * 3 + 4] - s[i * 3 + 1], s[i * 3 + 3] - s[i * 3]) - pen.ang; da = Math.atan2(Math.sin(da), Math.cos(da)); pen.ang += da * (1 - Math.exp(-dt * 14));
+    idleT = 0; if (job.flourish) paperToWorld(job.mid, y, focus); else focus.copy(qpos); }
+  else { idleT += dt; const sheet = head && head.kind === 'sheet';
+    if (!sheet) { paperToWorld(cur.x, LINE0 + cur.line * PITCH, rest); focus.copy(rest); }
+    else if (head.cleared) { tmpV.set((ML / CW - 0.5) * PW, PAPER_Y, (LINE0 / CH - 0.5) * PH); focus.copy(tmpV); rest.copy(tmpV); }
+    if (!dip && !sheet && !reduce && idleT > 2.2 && sinceDip >= 7) dip = { ph: 0, t: 0 };
+    if (dip) { dip.t += dt; const ty = dip.ph === 1 ? 1.0 : 2.05; tmpV.set(BOTTLE.x, ty, BOTTLE.z);
+      qpos.lerp(tmpV, 1 - Math.exp(-dt * (dip.ph === 1 ? 7 : 4.5))); const dd = qpos.distanceTo(tmpV);
+      if (dip.ph === 0 && dd < 0.1) { dip.ph = 1; dip.t = 0; } else if (dip.ph === 1 && dip.t > 0.75) { dip.ph = 2; dip.t = 0; } else if (dip.ph === 2 && dd < 0.2) { dip = null; sinceDip = 0; idleT = 0; } }
+    else { tmpV.copy(rest); tmpV.x += 0.14; tmpV.z += 0.1; tmpV.y += (sheet ? 0.9 : 0.42) + (reduce ? 0 : Math.sin(time * 1.7) * 0.035); qpos.lerp(tmpV, 1 - Math.exp(-dt * 5)); } }
+  dipK += ((dip ? 1 : 0) - dipK) * (1 - Math.exp(-dt * 4)); writeK += ((job && pen.mode === 'write' ? 1 : 0) - writeK) * (1 - Math.exp(-dt * 8));
+  // erasing: the lifted letters fade quickly
+  if (fading.length) { for (let i = fading.length - 1; i >= 0; i--) { const it = fading[i]; it.fade += dt / 0.28; it.alpha = Math.max(0, 1 - it.fade);
+      if (it.fade >= 1) { fading.splice(i, 1); const k = pageItems.indexOf(it); if (k >= 0) pageItems.splice(k, 1); }
+      repaint(it.bbox); } }
+}
+// the quill leans back toward the writer's right shoulder; its feather faces the eye
+const LEAN = new THREE.Vector3(0.66, 0.7, 0.3).normalize(), UPISH = new THREE.Vector3(0.16, 0.97, 0.1).normalize(), FACE = new THREE.Vector3(0, 0.64, 0.77);
+const vY = new THREE.Vector3(), vZ = new THREE.Vector3(), vX = new THREE.Vector3(), basis = new THREE.Matrix4();
+function poseQuill(time) {
+  vY.copy(LEAN).lerp(UPISH, dipK * 0.85); vY.x += 0.1 * Math.cos(pen.ang) * writeK; vY.z += 0.08 * Math.sin(pen.ang) * writeK;
+  if (!reduce) vY.x += Math.sin(time * 1.3) * 0.012 * (1 - writeK); vY.normalize();
+  vZ.copy(FACE).addScaledVector(vY, -FACE.dot(vY)).normalize(); vX.crossVectors(vY, vZ);
+  basis.makeBasis(vX, vY, vZ); quill.quaternion.setFromRotationMatrix(basis); quill.position.copy(qpos);
+}
+
+/* ───────────── frame ───────────── */
+const camT = new THREE.Vector3(0, 0, 0), ELEV = 40 * Math.PI / 180; let last = performance.now(), camInit = false;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000), time = now / 1000; last = now;
+  updatePen(dt, time); poseQuill(time); flushInk(); drawWet(time);
+  // a seated writer's view, about 40° down; it eases along with the line
+  const th = Math.tan(camera.fov * Math.PI / 360), dist = clamp(3.7 / (th * camera.aspect), 6.9, 14) * camPull, hw = dist * th * camera.aspect;
+  const flo = pen.item && pen.item.flourish; camPull += ((flo ? 1.07 : 1) - camPull) * (1 - Math.exp(-dt * 1.5));
+  const slack = Math.max(0.8, PW / 2 + 0.2 - hw * 0.62), tx = clamp(focus.x + 0.45, -slack, slack), tz = clamp(focus.z * 0.55 - 0.45, -1.6, 1.2), k = camInit ? 1 - Math.exp(-dt * 1.7) : 1; camInit = true;
+  camT.x += (tx - camT.x) * k; camT.z += (tz - camT.z) * k;
+  const sway = reduce ? 0 : Math.sin(time * 0.21) * 0.1;
+  camera.position.set(camT.x + sway, dist * Math.sin(ELEV), camT.z + dist * Math.cos(ELEV)); camera.lookAt(camT.x, 0, camT.z);
+  if (!reduce) { const fl = 0.86 + 0.09 * Math.sin(time * 11.3) + 0.06 * Math.sin(time * 23.7 + 1.3) + 0.04 * Math.sin(time * 5.1);
+    candleLight.intensity = 14 * fl; flame.scale.set(0.8, 2.2 * (0.92 + 0.12 * fl), 0.8); flame.position.x = CANDLE.x + Math.sin(time * 7.3) * 0.006; glow.material.opacity = 0.72 * fl; }
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+fetch(FONT_URL).then(r => { if (!r.ok) throw new Error('font ' + r.status); return r.arrayBuffer(); }).then(buf => {
+  font = opentype.parse(buf);
+  window.__quill = { type, backspace, enter, get letters() { return letters; }, get queue() { return queue; }, get typed() { return typed; } };
+  const hello = [...(new URLSearchParams(location.search).get('t') ?? 'Signature')].slice(0, 40);
+  hello.forEach((c, i) => setTimeout(() => type(c), 600 + i * 190));
+}).catch(() => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent = '字体没有加载成功（需要联网）。请检查网络后刷新。'; });
+</script>
+</body>
+</html>

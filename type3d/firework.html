@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Firework Type</title>
+<style>
+:root{--ink:#e9ecee;--dim:rgba(233,236,238,.42);--faint:rgba(233,236,238,.16)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#020308;color:var(--ink);overflow:hidden;
+  font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.film{position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 85% 75% at 50% 42%,transparent 55%,rgba(0,0,0,.6) 100%)}
+.hud{position:fixed;pointer-events:none;color:var(--dim)}
+#title{left:max(22px,env(safe-area-inset-left));top:max(20px,env(safe-area-inset-top));pointer-events:auto}
+#title b{color:var(--ink);font-weight:600}
+#title a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--faint);padding-bottom:1px}
+#title a:hover{color:var(--ink)}
+#line{left:0;right:0;bottom:max(26px,env(safe-area-inset-bottom));text-align:center;color:var(--ink);letter-spacing:.32em;white-space:pre;overflow:hidden;padding:0 24px}
+#line .caret{display:inline-block;width:.6em;height:1px;background:var(--ink);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+#hint{left:0;right:0;bottom:max(52px,calc(env(safe-area-inset-bottom) + 26px));text-align:center;transition:opacity .8s}
+#hint.off{opacity:0}
+#err{left:0;right:0;top:46%;text-align:center;color:var(--ink);display:none;text-transform:none;letter-spacing:.04em}
+#kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;background:transparent;color:transparent;font-size:16px}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="film"></div>
+<div class="hud" id="title"><a href="index.html">Filament</a> / <b>Firework</b> / <a href="topiary.html">Topiary</a> / <a href="saber.html">Saber</a> / <a href="quill.html">Quill</a> / <a href="neon.html">Neon</a> / <a href="book.html">Book</a></div>
+<div class="hud" id="hint">Type — 每个键一枚烟花 · Enter 让整个单词最后绽放一次 · Backspace 熄灭</div>
+<div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
+<div class="hud" id="err"></div>
+<input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
+
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* ───────────── constants ───────────── */
+const SIZE = 1.7, GAP = 0.16, SKY_Y = 1.4;      // letter size, spacing, height of the line of letters in the sky
+const SPACING = 0.03;                           // distance between stars along a letter's outline
+const MAX = 70000;                              // points drawn at most
+const G = -1.5;                                 // gravity on loose sparks
+const TINTS = [[1, .42, .78], [.74, .56, 1], [1, .78, .42], [.5, .85, 1], [1, .5, .5], [.7, 1, .78]];   // gold · ice · rose · mint · white · violet
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rnd = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+
+/* ───────────── renderer ───────────── */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a0d1c);
+let skyFlash = 0;
+const skyMat = new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, uniforms: { uT: { value: 0 }, uA: { value: 1 }, uF: { value: 0 }, uX: { value: 0 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,.999,1.); }`,
+  fragmentShader: `varying vec2 vUv; uniform float uT,uA,uF,uX;
+    float h(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+    float n(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y); }
+    float fbm(vec2 p){ float a=.5,s=0.; for(int i=0;i<5;i++){ s+=a*n(p); p=p*2.03+vec2(7.1,3.3); a*=.5; } return s; }
+    void main(){ vec2 p=vec2(vUv.x*uA,vUv.y); float c=fbm(p*2.1+vec2(uT*.012+uX*.05,uT*.004)); c=smoothstep(.34,.82,c+.18*fbm(p*5.3-vec2(uT*.02,0.)));
+      vec3 top=vec3(.012,.016,.045), low=vec3(.03,.036,.078); vec3 col=mix(low,top,smoothstep(0.,1.,vUv.y));
+      col+=vec3(.034,.037,.066)*c*(.55+.45*vUv.y); col+=vec3(.07,.045,.08)*uF*(.35+.65*c);
+      gl_FragColor=vec4(col,1.); }` });
+const sky = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), skyMat); sky.frustumCulled = false; sky.renderOrder = -10; scene.add(sky);
+/* rockets: striped paper tube, cone, stick (a few, reused) */
+const rockets = [], rocketFree = [];
+{ const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64; const x = cv.getContext('2d');
+  const tubes = [['#e9435e', '#f6e9d8'], ['#3fa7e0', '#f6e9d8'], ['#f0b53a', '#7a3fc0'], ['#55c98a', '#f6e9d8']];
+  for (let i = 0; i < 6; i++) { const [a, b] = tubes[i % tubes.length]; const c2 = cv.cloneNode(); const y = c2.getContext('2d'); y.fillStyle = b; y.fillRect(0, 0, 64, 64); y.strokeStyle = a; y.lineWidth = 9;
+      for (let k = -64; k < 128; k += 21) { y.beginPath(); y.moveTo(k, 64); y.lineTo(k + 64, 0); y.stroke(); }
+      const tex = new THREE.CanvasTexture(c2); tex.colorSpace = THREE.SRGBColorSpace;
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.26, 14), new THREE.MeshBasicMaterial({ map: tex }));
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.068, 0.12, 14), new THREE.MeshBasicMaterial({ color: 0xcfd6e2 })); cone.position.y = 0.19;
+      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.5, 5), new THREE.MeshBasicMaterial({ color: 0x8a6a45 })); stick.position.set(0.055, -0.2, 0);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.03, 12), new THREE.MeshBasicMaterial({ color: 0x3a2a22 })); cap.position.y = -0.145;
+      g.add(body, cone, stick, cap); g.visible = false; g.scale.setScalar(1.25); scene.add(g); rockets.push(g); rocketFree.push(g); } }
+function takeRocket() { return rocketFree.pop() || null; }
+function freeRocket(r) { if (!r) return; r.visible = false; rocketFree.push(r); }
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+const geo = new THREE.BufferGeometry();
+const P = new Float32Array(MAX * 3), C = new Float32Array(MAX * 3), S = new Float32Array(MAX);
+geo.setAttribute('position', new THREE.BufferAttribute(P, 3).setUsage(THREE.DynamicDrawUsage));
+geo.setAttribute('aColor', new THREE.BufferAttribute(C, 3).setUsage(THREE.DynamicDrawUsage));
+geo.setAttribute('aSize', new THREE.BufferAttribute(S, 1).setUsage(THREE.DynamicDrawUsage));
+const mat = new THREE.ShaderMaterial({
+  uniforms: { uScale: { value: 1 } }, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `attribute vec3 aColor; attribute float aSize; uniform float uScale; varying vec3 vC;
+    void main(){ vC=aColor; vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; gl_PointSize=max(1.,aSize*uScale/-mv.z); }`,
+  fragmentShader: `varying vec3 vC; void main(){ vec2 d=gl_PointCoord-.5; float r=length(d)*2.; float a=smoothstep(1.,0.,r); a*=a; gl_FragColor=vec4(vC*a,1.); }`
+});
+const points = new THREE.Points(geo, mat); points.frustumCulled = false; scene.add(points);
+// a quiet field of fixed stars far behind
+{ const n = 90, sp = new Float32Array(n * 3), sc = new Float32Array(n * 3), ss = new Float32Array(n);
+  for (let i = 0; i < n; i++) { sp[i * 3] = rnd(-70, 70); sp[i * 3 + 1] = rnd(-12, 34); sp[i * 3 + 2] = rnd(-60, -25); const b = Math.pow(Math.random(), 3) * 0.5 + 0.05; sc[i * 3] = b * .85; sc[i * 3 + 1] = b * .9; sc[i * 3 + 2] = b; ss[i] = rnd(.5, 1.3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(sp, 3)); g.setAttribute('aColor', new THREE.BufferAttribute(sc, 3)); g.setAttribute('aSize', new THREE.BufferAttribute(ss, 1));
+  const st = new THREE.Points(g, mat); st.frustumCulled = false; scene.add(st); }
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.8, 0.7, 0.42); composer.addPass(bloom);
+composer.addPass(new OutputPass());
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+  mat.uniforms.uScale.value = h * renderer.getPixelRatio() * 0.5 / Math.tan(camera.fov * Math.PI / 360) * 0.05; }
+addEventListener('resize', resize); resize();
+
+/* ───────────── loose sparks: trails, burst halos, embers, stardust ─────────────
+   one ring buffer; each spark: position, velocity, colour, life, drag, gravity, size */
+const SP = 14000, sx = new Float32Array(SP), sy = new Float32Array(SP), sz = new Float32Array(SP), svx = new Float32Array(SP), svy = new Float32Array(SP), svz = new Float32Array(SP),
+  sr = new Float32Array(SP), sg = new Float32Array(SP), sb = new Float32Array(SP), sl = new Float32Array(SP), sL = new Float32Array(SP), sd = new Float32Array(SP), sgv = new Float32Array(SP), ssz = new Float32Array(SP), stw = new Float32Array(SP);
+let sHead = 0;
+function spark(x, y, z, vx, vy, vz, col, k, life, drag, grav, size, twinkle = 0) {
+  const i = sHead; sHead = (sHead + 1) % SP;
+  sx[i] = x; sy[i] = y; sz[i] = z; svx[i] = vx; svy[i] = vy; svz[i] = vz; sr[i] = col[0] * k; sg[i] = col[1] * k; sb[i] = col[2] * k; sl[i] = sL[i] = life; sd[i] = drag; sgv[i] = grav; ssz[i] = size; stw[i] = twinkle;
+}
+
+/* ───────────── letters ───────────── */
+let font = null; const glyphs = new Map();
+function glyph(ch) {
+  if (glyphs.has(ch)) return glyphs.get(ch);
+  const d = font.data.glyphs[ch]; if (!d) { glyphs.set(ch, null); return null; }
+  const adv = d.ha * SIZE / font.data.resolution, shapes = font.generateShapes(ch, SIZE);
+  if (!shapes.length) { const g0 = { adv, empty: true }; glyphs.set(ch, g0); return g0; }
+  // stars along the outline, evenly spaced; with each its outward direction (for the burst and the last bloom)
+  const pts = [], cs = []; let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+  for (const s of shapes) { const e = s.extractPoints(16);
+    for (const c of [e.shape, ...e.holes]) { cs.push(c); let carry = 0;
+      for (let i = 0; i < c.length; i++) { const a = c[i], b = c[(i + 1) % c.length], dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy); if (l < 1e-6) continue;
+        let t = carry; while (t < l) { pts.push(a.x + dx * t / l, a.y + dy * t / l); t += SPACING; } carry = t - l;
+        minX = Math.min(minX, a.x); maxX = Math.max(maxX, a.x); minY = Math.min(minY, a.y); maxY = Math.max(maxY, a.y); } } }
+  // glitter inside the strokes (even-odd test against every contour)
+  const nOut = pts.length / 2, inside = (x, y) => { let c = false; for (const k of cs) for (let i = 0, j = k.length - 1; i < k.length; j = i++) { const a = k[i], b = k[j];
+    if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) c = !c; } return c; };
+  for (let got = 0, tries = 0, want = Math.round(nOut * (reduce ? 0.8 : 1.7)); got < want && tries < want * 14; tries++) { const x = rnd(minX, maxX), y = rnd(minY, maxY); if (inside(x, y)) { pts.push(x, y); got++; } }
+  const g = { adv, nOut, pts: new Float32Array(pts), n: pts.length / 2, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, minX, maxX, minY, maxY };
+  glyphs.set(ch, g); return g;
+}
+let letters = [], dusts = [], cursorX = 0, typed = '', tintI = Math.floor(rnd(TINTS.length));
+class Letter {
+  constructor(ch, g, x) {
+    this.ch = ch; this.g = g; this.x = x; this.tint = TINTS[tintI++ % TINTS.length];
+    this.cx = x + g.cx; this.cy = SKY_Y + g.cy - (g.minY + g.maxY) / 2 + 0; this.oy = SKY_Y - (g.minY + g.maxY) / 2;
+    const n = this.n = g.n;
+    this.px = new Float32Array(n); this.py = new Float32Array(n); this.pz = new Float32Array(n); this.vx = new Float32Array(n); this.vy = new Float32Array(n); this.vz = new Float32Array(n);
+    this.tx = new Float32Array(n); this.ty = new Float32Array(n); this.tz = new Float32Array(n); this.ph = new Float32Array(n); this.fl = new Float32Array(n); this.sz = new Float32Array(n);
+    for (let i = 0; i < n; i++) { this.tx[i] = x + g.pts[i * 2]; this.ty[i] = this.oy + g.pts[i * 2 + 1]; this.tz[i] = gauss() * 0.05; this.ph[i] = rnd(6.283); this.sz[i] = i < g.nOut ? rnd(.8, 1.3) : rnd(.45, 1.0); }
+    this.dx = new Float32Array(n); this.dy = new Float32Array(n); this.dz = new Float32Array(n);
+    this.R = Math.max(1.0, Math.max(g.maxX - g.minX, g.maxY - g.minY) * 0.78);
+    for (let i = 0; i < n; i++) { const a = rnd(6.283), u = rnd(-1, 1), r = Math.sqrt(1 - u * u), k = i < g.nOut ? rnd(.92, 1) : Math.pow(Math.random(), .45);
+      this.dx[i] = Math.cos(a) * r * k; this.dy[i] = Math.sin(a) * r * k; this.dz[i] = u * k * 0.8; }
+    this.rocket = takeRocket();
+    this.state = 'launch'; this.t = 0; this.age = 0; this.glow = 1; this.floor = 0.34;
+    // the rocket: from below the frame, a little to one side, up to the middle of the letter
+    this.rx0 = this.cx + rnd(-1.2, 1.2); this.ry0 = bottomY() - 0.6; this.rdur = reduce ? 0.5 : rnd(0.78, 0.95); this.wob = rnd(6.283);
+    this.rx = this.rx0; this.ry = this.ry0;
+  }
+  burst() {
+    this.state = 'ball'; this.t = 0; freeRocket(this.rocket); this.rocket = null; skyFlash = Math.min(1, skyFlash + 0.55);
+    const { cx, cy, n } = this, tint = this.tint;
+    for (let i = 0; i < n; i++) { this.px[i] = cx; this.py[i] = cy; this.pz[i] = 0; this.vx[i] = this.vy[i] = this.vz[i] = 0; }
+    spark(cx, cy, 0, 0, 0, 0, [1, .96, .9], 1.6, 0.14, 0, 0, 9);                       // the flash
+    const halo = reduce ? 30 : 90;                                                  // long streaks beyond the shell
+    for (let i = 0; i < halo; i++) { const a = rnd(6.283), u = rnd(-1, 1), r = Math.sqrt(1 - u * u), sp = rnd(1.6, 4.4);
+      spark(cx, cy, 0, Math.cos(a) * r * sp, Math.sin(a) * r * sp, u * sp, tint, rnd(.5, 1.1), rnd(.7, 1.5), 2.4, G * 0.8, rnd(.7, 1.3), 1); }
+  }
+  /** Enter: lit again, a ring of sparks off the outline, then let go as stardust */
+  finale(delay) { this.state = 'finale'; this.t = -delay; this.fired = false; }
+  release() {
+    this.state = 'dust'; this.t = 0; this.dustLife = rnd(3.2, 4.4);
+    for (let i = 0; i < this.n; i++) { const dx = this.tx[i] - this.cx, dy = this.ty[i] - this.cy, l = Math.hypot(dx, dy) || 1;
+      this.vx[i] = dx / l * rnd(.05, .5) + rnd(.12, .4); this.vy[i] = dy / l * rnd(.05, .4) + rnd(-.05, .3); this.vz[i] = gauss() * 0.4; this.ph[i] = rnd(6.283); }
+  }
+  /** Backspace: it goes out — the stars drop as dying embers */
+  snuff() { this.state = 'fall'; this.t = 0; for (let i = 0; i < this.n; i++) { this.vx[i] = gauss() * 0.25; this.vy[i] = rnd(-.2, .5); this.vz[i] = gauss() * 0.2; } }
+  update(dt, time, rank) {
+    this.t += dt; this.age += dt;
+    const n = this.n;
+    if (this.state === 'launch') {
+      const p = Math.min(1, this.t / this.rdur), e = 1 - Math.pow(1 - p, 2.4);
+      const nx = this.rx0 + (this.cx - this.rx0) * e + Math.sin(this.wob + p * 9) * 0.05 * (1 - p), ny = this.ry0 + (this.cy - this.ry0) * e;
+      const vx = (nx - this.rx) / Math.max(dt, 1e-3), vy = (ny - this.ry) / Math.max(dt, 1e-3); this.rx = nx; this.ry = ny;
+      if (this.rocket) { this.rocket.position.set(nx, ny, 0); const sp = Math.hypot(vx, vy) || 1; this.rocket.rotation.z = Math.atan2(-vx / sp, vy / sp); this.rocket.visible = true; }
+      spark(nx, ny - 0.2, 0, gauss() * .1, -1.2, 0, [1, .75, .4], 1.5, 0.09, 0, 0, 3.4);                   // the flame
+      const m = reduce ? 1 : 4; for (let i = 0; i < m; i++) spark(nx + gauss() * .02, ny - rnd(.12), gauss() * .02, -vx * .06 + gauss() * .25, -vy * .08 - rnd(.2, .9), gauss() * .2, [1, .82, .55], rnd(.5, 1.2), rnd(.25, .6), 1.5, G, rnd(.5, 1), 1);
+      if (p >= 1) this.burst();
+      return;
+    }
+    if (this.state === 'ball') { // the round shell opens: every star out along its own ray, slowing, sagging a little
+      const D = reduce ? 0.32 : 0.5, p = Math.min(1, this.t / D), e = 1 - Math.pow(1 - p, 3), R = this.R, sag = -0.22 * p * p;
+      for (let i = 0; i < n; i++) { this.px[i] = this.cx + this.dx[i] * R * e; this.py[i] = this.cy + this.dy[i] * R * e + sag; this.pz[i] = this.dz[i] * R * e; }
+      if (!reduce && p < 0.7) for (let k = 0; k < 14; k++) { const i = (Math.random() * n) | 0;   // streaks behind the stars
+        spark(this.px[i], this.py[i], this.pz[i], this.dx[i] * .4, this.dy[i] * .4 - .1, 0, this.tint, rnd(.35, .7), rnd(.25, .5), 2, G * .4, rnd(.5, .9), 1); }
+      this.glow = 1.25;
+      if (p >= 1) { this.state = 'form'; this.t = 0;
+        for (let i = 0; i < n; i++) { this.vx[i] = this.dx[i] * 0.5; this.vy[i] = this.dy[i] * 0.5 - 0.3; this.vz[i] = 0; } }
+      return;
+    }
+    if (this.state === 'form' || this.state === 'glow' || this.state === 'finale') {
+      // spring to the outline: under-damped at first (the burst overshoots and falls back into the letter)
+      const forming = this.state === 'form', c = forming ? 6.4 : 10;
+      for (let i = 0; i < n; i++) { const k = forming ? 13 + (this.ph[i] % 1) * 14 : 30;
+        const ax = (this.tx[i] - this.px[i]) * k - this.vx[i] * c, ay = (this.ty[i] - this.py[i]) * k - this.vy[i] * c, az = (this.tz[i] - this.pz[i]) * k - this.vz[i] * c;
+        this.vx[i] += ax * dt; this.vy[i] += ay * dt; this.vz[i] += az * dt; this.px[i] += this.vx[i] * dt; this.py[i] += this.vy[i] * dt; this.pz[i] += this.vz[i] * dt;
+        if (this.fl[i] > 0) this.fl[i] = Math.max(0, this.fl[i] - dt * 2.2);
+      }
+      if (this.state === 'form' && this.t > 1.5) { this.state = 'glow'; }
+      // an ember flares up again now and then (a little more often on newer letters)
+      if (this.state === 'glow' && Math.random() < dt * (0.9 + 1.6 / (1 + rank))) { const i = (Math.random() * n) | 0; this.fl[i] = 1;
+        if (Math.random() < 0.35) spark(this.px[i], this.py[i], this.pz[i], gauss() * .08, -rnd(.05, .25), 0, this.tint, .7, rnd(.6, 1.2), 1, G * .25, .7, 1); }
+      // brightness: white-hot → its tint → a faint outline of stars; older letters rest dimmer than newer ones
+      const rest = Math.max(0.2, 0.62 * Math.pow(0.86, rank));
+      this.floor += (rest - this.floor) * (1 - Math.exp(-dt * 1.2));
+      this.glow = this.floor + (1.25 - this.floor) * Math.exp(-Math.max(0, this.t - (forming ? 0.9 : 0)) / (forming ? 1.2 : 1.7)); if (!forming && this.state === 'glow') this.glow = Math.min(this.glow, this.floor + (0.75 - this.floor) * Math.exp(-(this.t - 1.5) / 1.7));
+      if (this.state === 'finale') {
+        if (this.t >= 0 && !this.fired) { this.fired = true; this.boost = 1;
+          spark(this.cx, this.cy, 0, 0, 0, 0, this.tint, 0.9, 0.2, 0, 0, 8);
+          for (let i = 0; i < n; i += reduce ? 6 : 2) { const dx = this.tx[i] - this.cx, dy = this.ty[i] - this.cy, l = Math.hypot(dx, dy) || 1, sp = rnd(.5, 1.7);
+            spark(this.px[i], this.py[i], this.pz[i], dx / l * sp + gauss() * .15, dy / l * sp + gauss() * .15, gauss() * .5, this.tint, rnd(.6, 1.2), rnd(.8, 1.7), 1.8, G * .5, rnd(.6, 1.1), 1); } }
+        if (this.fired) { this.boost = Math.max(0, this.boost - dt / 1.5); this.glow = Math.max(this.floor, 0.3 + 0.78 * this.boost); if (this.t > 1.15) this.release(); }
+      }
+      return;
+    }
+    if (this.state === 'dust' || this.state === 'fall') {
+      const fall = this.state === 'fall', drag = fall ? 0.6 : 0.5, gy = fall ? G * 0.6 : G * 0.05;
+      for (let i = 0; i < n; i++) { const sw = Math.sin(time * 0.7 + this.ph[i]) * 0.12;
+        this.vx[i] += (-this.vx[i] * drag + (fall ? 0 : 0.14 + sw)) * dt; this.vy[i] += (-this.vy[i] * drag + gy) * dt; this.vz[i] -= this.vz[i] * drag * dt;
+        this.px[i] += this.vx[i] * dt; this.py[i] += this.vy[i] * dt; this.pz[i] += this.vz[i] * dt; }
+      const life = fall ? 0.9 : this.dustLife;
+      this.glow = (fall ? Math.min(this.glow, 0.5) : 0.42) * Math.pow(Math.max(0, 1 - this.t / life), 1.6);
+      if (this.t >= life) this.dead = true;
+    }
+  }
+  /** write this letter's stars into the draw buffers; returns the next free index */
+  draw(o, time) {
+    if (this.state === 'launch') return o;
+    const n = this.n, t = this.tint, g = this.glow, dusty = this.state === 'dust';
+    // colour: white while hot, the letter's tint as it cools, pale starlight at rest
+    const hot = Math.min(1, Math.max(0, (g - 0.55) / 0.7)), cool = Math.min(1, Math.max(0, (0.5 - g) / 0.4));
+    const r0 = t[0] + (1 - t[0]) * hot, g0 = t[1] + (1 - t[1]) * hot, b0 = t[2] + (1 - t[2]) * hot;
+    const r = r0 + (0.82 - r0) * cool * .15, gg = g0 + (0.88 - g0) * cool * .15, b = b0 + (1 - b0) * cool * .15;
+    for (let i = 0; i < n; i++, o++) {
+      const tw = dusty ? 0.35 + 0.65 * Math.max(0, Math.sin(time * 5.5 + this.ph[i] * 7)) : (i < this.g.nOut ? 0.72 + 0.28 * Math.sin(time * (1.3 + (this.ph[i] % 1) * 2.2) + this.ph[i]) : 0.25 + 0.95 * Math.pow(Math.abs(Math.sin(time * (2.2 + (this.ph[i] % 1) * 5) + this.ph[i] * 3)), 3));
+      const k = g * tw + this.fl[i] * 0.9;
+      P[o * 3] = this.px[i]; P[o * 3 + 1] = this.py[i]; P[o * 3 + 2] = this.pz[i];
+      C[o * 3] = r * k; C[o * 3 + 1] = gg * k; C[o * 3 + 2] = b * k; S[o] = this.sz[i] * 1.45 * (0.8 + 0.5 * Math.min(1, g) + this.fl[i] * 0.8);
+    }
+    return o;
+  }
+}
+function bottomY() { const d = camera.position.z; return camera.position.y - Math.tan(camera.fov * Math.PI / 360) * d; }
+
+/* ───────────── typing ───────────── */
+const txt = document.getElementById('txt'), hint = document.getElementById('hint'), kb = document.getElementById('kb');
+const showLine = () => { txt.textContent = typed.slice(-46); };
+function type(ch) {
+  if (!font) return; ch = ch.toUpperCase();
+  if (ch === ' ') { const w = SIZE * 0.36; letters.push({ ch: ' ', space: w, n: 0 }); cursorX += w; typed += ' '; showLine(); return; }
+  const g = glyph(ch); if (!g) return;
+  if (g.empty) { letters.push({ ch, space: g.adv, n: 0 }); cursorX += g.adv; typed += ch; showLine(); return; }
+  const L = new Letter(ch, g, cursorX); L.advance = g.adv + GAP; cursorX += L.advance; letters.push(L);
+  typed += ch; showLine(); hint.classList.add('off');
+}
+function backspace() { const L = letters.pop(); if (!L) return; cursorX -= L.space || L.advance || 0; typed = typed.slice(0, -1); showLine();
+  if (L.n) { if (L.state === 'launch') { L.dead = true; freeRocket(L.rocket); L.rocket = null; } else { L.snuff(); dusts.push(L); } } }
+function enter() { // the whole word at once: one last, measured bloom, then stardust
+  const live = letters.filter(L => L.n); if (!live.length) return;
+  live.forEach(L => { if (L.state === 'launch') { L.t = L.rdur; L.burst(); } L.finale(L.state === 'form' ? 0.25 : 0); dusts.push(L); });
+  wordGone = { x0: live[0].x, x1: cursorX, t: 0 };
+  letters = []; cursorX = 0; typed = ''; showLine();
+}
+let wordGone = null;
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target === kb) return;
+  if (e.key === 'Backspace') { e.preventDefault(); backspace(); } else if (e.key === 'Enter') { e.preventDefault(); enter(); } else if (e.key.length === 1) { e.preventDefault(); type(e.key); }
+});
+kb.value = ' ';
+kb.addEventListener('beforeinput', e => { e.preventDefault();
+  if (e.inputType === 'deleteContentBackward') backspace(); else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') enter(); else if (e.data) for (const c of e.data) type(c); });
+kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enter(); } });
+addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('a')) return; if (matchMedia('(pointer: coarse)').matches) kb.focus({ preventScroll: true }); });
+
+/* ───────────── frame ───────────── */
+const cam = { x: 0, z: 9 }; let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000), time = now / 1000; last = now;
+  // letters in the sky, newest = rank 0
+  const live = letters.filter(L => L.n);
+  live.forEach((L, i) => L.update(dt, time, live.length - 1 - i));
+  for (let i = dusts.length - 1; i >= 0; i--) { const L = dusts[i]; L.update(dt, time, 0); if (L.dead) dusts.splice(i, 1); }
+  letters = letters.filter(L => !L.dead);
+  // loose sparks
+  let o = 0;
+  for (let i = 0; i < SP; i++) { if (sl[i] <= 0) continue; sl[i] -= dt; if (sl[i] <= 0) continue;
+    const dr = Math.exp(-sd[i] * dt); svx[i] *= dr; svy[i] = svy[i] * dr + sgv[i] * dt; svz[i] *= dr; sx[i] += svx[i] * dt; sy[i] += svy[i] * dt; sz[i] += svz[i] * dt;
+    const f = sl[i] / sL[i], k = f * f * (stw[i] ? 0.55 + 0.45 * Math.sin(time * 40 + i) : 1);
+    if (o < MAX) { P[o * 3] = sx[i]; P[o * 3 + 1] = sy[i]; P[o * 3 + 2] = sz[i]; C[o * 3] = sr[i] * k; C[o * 3 + 1] = sg[i] * k; C[o * 3 + 2] = sb[i] * k; S[o] = ssz[i] * (0.6 + 0.4 * f); o++; } }
+  for (const L of live) if (o + L.n + 1 < MAX) o = L.draw(o, time);
+  for (const L of dusts) if (o + L.n + 1 < MAX) o = L.draw(o, time);
+  geo.setDrawRange(0, o); geo.attributes.position.needsUpdate = geo.attributes.aColor.needsUpdate = geo.attributes.aSize.needsUpdate = true;
+  // the camera keeps the word in the middle of the sky, and steps back as it grows
+  let x0 = 0, x1 = Math.max(cursorX, 0.01);
+  if (wordGone) { wordGone.t += dt; const hold = Math.max(0, 1 - Math.max(0, wordGone.t - 1.6) / 1.6); if (hold <= 0) wordGone = null; else if (!letters.length) { x0 = wordGone.x0; x1 = wordGone.x1; } }
+  const mid = (x0 + x1) / 2, half = Math.tan(camera.fov * Math.PI / 360), needZ = ((x1 - x0) / 2 + 2.2) / (half * camera.aspect);
+  cam.x += (mid - cam.x) * (1 - Math.exp(-dt * 1.6)); cam.z += (Math.max(8.6, needZ) - cam.z) * (1 - Math.exp(-dt * 1.3));
+  camera.position.set(cam.x + (reduce ? 0 : Math.sin(time * 0.13) * 0.25), 0.9, cam.z); camera.lookAt(cam.x, 1.0, 0);
+  skyFlash = Math.max(0, skyFlash - dt * 1.6); skyMat.uniforms.uT.value = time; skyMat.uniforms.uA.value = camera.aspect; skyMat.uniforms.uF.value = skyFlash; skyMat.uniforms.uX.value = cam.x;
+  composer.render();
+  requestAnimationFrame(frame);
+}
+new FontLoader().load('./vendor/fonts/helvetiker_bold.typeface.json', f => {
+  font = f; window.__firework = { type, backspace, enter, get letters() { return letters; }, get dusts() { return dusts; } };
+  const hello = (new URLSearchParams(location.search).get('t') ?? 'STARS').slice(0, 24);
+  [...hello].forEach((c, i) => setTimeout(() => type(c), 500 + i * 380));
+  requestAnimationFrame(frame);
+}, undefined, () => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent = '字体没有加载成功（需要联网）。请检查网络后刷新。'; });
+</script>
+</body>
+</html>

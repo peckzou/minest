@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Filament Type</title>
+<style>
+:root{--ink:#e9ecee;--dim:rgba(233,236,238,.42);--faint:rgba(233,236,238,.16)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--ink);overflow:hidden;
+  font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+/* film: vignette + grain over the picture */
+.film{position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 78% 68% at 50% 46%,transparent 52%,rgba(0,0,0,.72) 100%)}
+.grain{position:fixed;inset:-50%;pointer-events:none;opacity:.07;mix-blend-mode:screen;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 1.1s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-4%)}60%{transform:translate(-4%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
+@media (prefers-reduced-motion:reduce){.grain{animation:none}}
+.hud{position:fixed;pointer-events:none;color:var(--dim)}
+#title{left:max(22px,env(safe-area-inset-left));top:max(20px,env(safe-area-inset-top))}
+#title b{color:var(--ink);font-weight:600}
+#title{pointer-events:auto}#title a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--faint);padding-bottom:1px}#title a:hover{color:var(--ink)}
+#jobs{right:max(22px,env(safe-area-inset-right));top:max(20px,env(safe-area-inset-top));text-align:right;min-width:190px}
+#title{max-width:calc(100vw - 250px);line-height:1.9}
+@media (max-width:640px){#title{max-width:none}#jobs{top:calc(max(20px,env(safe-area-inset-top)) + 62px)}}
+#jobs .row{display:flex;gap:12px;justify-content:flex-end;align-items:center;height:18px}
+#jobs .ch{color:var(--ink);width:14px;text-align:center}
+#jobs .bar{width:64px;height:1px;background:var(--faint);position:relative}
+#jobs .bar i{position:absolute;left:0;top:-.5px;height:2px;background:var(--ink)}
+#line{left:0;right:0;bottom:max(26px,env(safe-area-inset-bottom));text-align:center;color:var(--ink);letter-spacing:.32em;
+  white-space:pre;overflow:hidden;padding:0 24px}
+#line .caret{display:inline-block;width:.6em;height:1px;background:var(--ink);vertical-align:baseline;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+#hint{left:0;right:0;bottom:max(52px,calc(env(safe-area-inset-bottom) + 26px));text-align:center;transition:opacity .8s}
+#hint.off{opacity:0}
+#err{left:0;right:0;top:46%;text-align:center;color:var(--ink);display:none;text-transform:none;letter-spacing:.04em}
+#kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;background:transparent;color:transparent;font-size:16px}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="film"></div><div class="grain"></div>
+<div class="hud" id="title"><b>Filament</b> <span id="lineNo" style="opacity:.6">Line 01</span> / <a href="firework.html">Firework</a> / <a href="topiary.html">Topiary</a> / <a href="saber.html">Saber</a> / <a href="quill.html">Quill</a> / <a href="neon.html">Neon</a> / <a href="book.html">Book</a></div>
+<div class="hud" id="jobs"></div>
+<div class="hud" id="hint">Type — 敲键盘开始制造 · Backspace 拆除 · Enter 换行</div>
+<div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
+<div class="hud" id="err"></div>
+<input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
+
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* ───────────── constants ───────────── */
+const SIZE = 1.25;            // font size (caps ≈ 0.9 tall)
+const DEPTH = 0.30;           // sculpture depth
+const LAYER = 0.0125;         // one wound layer of filament
+const SKEL_EVERY = 6;         // skeleton decks: every n-th layer
+const GAP = 0.09;             // space between letters
+const T = { travel: .55, skel: 1.35, surf: 2.1, fuse: .95 };   // seconds per stage (at speed 1)
+const STAGE_NAME = { queued: 'QUEUED', travel: 'POSITION', skel: 'SKELETON', surf: 'WINDING', fuse: 'FUSING', undo: 'REMOVING' };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ───────────── renderer / scene ───────────── */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.FogExp2(0x000000, 0.11);
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
+
+// one cold white spotlight from above, a whisper of fill so the machines read as silhouettes with a rim
+const spot = new THREE.SpotLight(0xeaf2ff, 170, 18, 0.46, 0.6, 1.6);
+spot.position.set(0, 7.2, 2.6); spot.castShadow = true;
+spot.shadow.mapSize.set(2048, 2048); spot.shadow.bias = -0.0004; spot.shadow.radius = 5;
+scene.add(spot, spot.target);
+const rim = new THREE.DirectionalLight(0xdfe8ff, 1.5); rim.position.set(-4, 3, -6); scene.add(rim);
+const rim2 = new THREE.DirectionalLight(0xdfe8ff, 0.5); rim2.position.set(6, 2, -4); scene.add(rim2);
+scene.add(new THREE.AmbientLight(0xffffff, 0.035));
+
+/* the bed: a long machined slab, a fine engraved scale along its front edge */
+const bed = new THREE.Mesh(new THREE.BoxGeometry(80, 0.5, 3.2),
+  new THREE.MeshStandardMaterial({ color: 0x0b0c0d, roughness: 0.42, metalness: 0.75 }));
+bed.position.set(0, -0.25, -0.35); bed.receiveShadow = true; scene.add(bed);
+{ // engraved ticks
+  const pts = [];
+  for (let i = -400; i <= 400; i++) { const x = i * 0.1, l = i % 10 === 0 ? 0.16 : i % 5 === 0 ? 0.1 : 0.05; pts.push(x, 0.002, 1.05, x, 0.002, 1.05 - l); }
+  pts.push(-40, 0.002, 0.42, 40, 0.002, 0.42, -40, 0.002, -0.42, 40, 0.002, -0.42);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  scene.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.13 })));
+}
+const steel = new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 0.36, metalness: 0.9 });
+const steelLight = new THREE.MeshStandardMaterial({ color: 0x8e959c, roughness: 0.3, metalness: 0.95 });
+const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+/* ───────────── the arms: three overhead rails, each a carriage + two-link arm + head ───────────── */
+const UP = new THREE.Vector3(0, 1, 0), v0 = new THREE.Vector3(), v1 = new THREE.Vector3(), v2 = new THREE.Vector3();
+function linkMesh(r, mat) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, 20), mat); m.castShadow = true; return m; }
+function placeLink(m, a, b) { v0.subVectors(b, a); const l = v0.length(); m.position.copy(a).addScaledVector(v0, .5); m.scale.set(1, l, 1); m.quaternion.setFromUnitVectors(UP, v0.normalize()); }
+class Arm {
+  constructor(i) {
+    this.i = i; this.z = -0.62 - i * 0.34; this.y = 3.25 + i * 0.12; this.L1 = 1.9; this.L2 = 1.85;
+    this.home = new THREE.Vector3(-2.2 + i * 2.2, 2.15, -0.25 - i * 0.1);
+    this.tip = this.home.clone(); this.goal = this.home.clone(); this.carX = this.home.x; this.job = null; this.heat = 0;
+    const g = this.g = new THREE.Group(); scene.add(g);
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(80, 0.07, 0.11), steel); rail.position.set(0, this.y + 0.16, this.z); g.add(rail);
+    this.car = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.24, 0.3), steel); this.car.castShadow = true; g.add(this.car);
+    this.spool = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.09, 28), steelLight); this.spool.rotation.x = Math.PI / 2; g.add(this.spool);
+    this.upper = linkMesh(0.052, steel); this.fore = linkMesh(0.04, steel); g.add(this.upper, this.fore);
+    this.rodA = linkMesh(0.012, steelLight); this.rodB = linkMesh(0.012, steelLight); g.add(this.rodA, this.rodB);   // push rods beside the links
+    this.jS = new THREE.Mesh(new THREE.SphereGeometry(0.095, 24, 16), steelLight); this.jE = new THREE.Mesh(new THREE.SphereGeometry(0.078, 24, 16), steelLight);
+    this.jS.castShadow = this.jE.castShadow = true; g.add(this.jS, this.jE);
+    this.head = new THREE.Group(); g.add(this.head);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.034, 0.2, 18), steel); body.position.y = 0.17; body.castShadow = true;
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.034, 0.075, 18), steelLight); cone.rotation.x = Math.PI; cone.position.y = 0.037;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.007, 8, 28), steelLight); ring.rotation.x = Math.PI / 2; ring.position.y = 0.2;
+    this.spark = new THREE.Mesh(new THREE.SphereGeometry(0.011, 10, 8), glowMat);
+    this.head.add(body, cone, ring, this.spark);
+    this.light = new THREE.PointLight(0xffffff, 0, 1.6, 2); g.add(this.light);
+    // the feed: filament from the spool down to the head, hanging in a soft curve
+    this.feedGeo = new THREE.BufferGeometry(); this.feedGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(16 * 3), 3));
+    this.feed = new THREE.Line(this.feedGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 })); this.feed.frustumCulled = false; g.add(this.feed);
+    // the live strand: head → the point where the filament is being laid
+    this.strandGeo = new THREE.BufferGeometry(); this.strandGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    this.strand = new THREE.Line(this.strandGeo, new THREE.LineBasicMaterial({ color: 0xffffff })); this.strand.frustumCulled = false; this.strand.visible = false; g.add(this.strand);
+    this.S = new THREE.Vector3(); this.E = new THREE.Vector3();
+  }
+  update(dt, time) {
+    const idle = !this.job;
+    if (idle) { this.goal.copy(this.home); this.goal.y += Math.sin(time * 0.6 + this.i * 2.1) * 0.035; }
+    // the head eases to its goal (critically damped feel), the carriage runs along its rail above it
+    const k = 1 - Math.exp(-dt * (idle ? 3.2 : 16));
+    this.tip.lerp(this.goal, k);
+    const wantCar = this.tip.x + (this.i - 1) * 0.55;
+    this.carX += (wantCar - this.carX) * (1 - Math.exp(-dt * 4.5));
+    const S = this.S.set(this.carX, this.y - 0.1, this.z), Tp = this.tip, E = this.E;
+    // wrist = a little above the tip along the head's axis; two-bone IK from shoulder to wrist, elbow thrown back and up
+    v0.subVectors(S, Tp); const axis = v1.set(v0.x * 0.25, 1, v0.z * 0.5).normalize();
+    const W = v2.copy(Tp).addScaledVector(axis, 0.27);
+    const d0 = v0.subVectors(W, S), d = Math.min(d0.length(), this.L1 + this.L2 - 0.02), dir = d0.normalize();
+    const a = (this.L1 * this.L1 - this.L2 * this.L2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, this.L1 * this.L1 - a * a));
+    const pole = new THREE.Vector3(0, 0.35, -1); pole.addScaledVector(dir, -pole.dot(dir)).normalize();
+    E.copy(S).addScaledVector(dir, a).addScaledVector(pole, h);
+    const Wc = W.clone();
+    this.car.position.set(this.carX, this.y + 0.02, this.z); this.spool.position.set(this.carX, this.y + 0.02, this.z + 0.2);
+    this.spool.rotation.y += dt * (this.job && (this.job.stage === 'skel' || this.job.stage === 'surf') ? 7 : 0.2);
+    placeLink(this.upper, S, E); placeLink(this.fore, E, Wc);
+    const off = new THREE.Vector3(0.075, 0, 0);
+    placeLink(this.rodA, S.clone().add(off), E.clone().add(off)); placeLink(this.rodB, E.clone().sub(off), Wc.clone().sub(off));
+    this.jS.position.copy(S); this.jE.position.copy(E);
+    this.head.position.copy(Tp); this.head.quaternion.setFromUnitVectors(UP, axis);
+    // feed line: spool → elbow → wrist, sagging
+    const p = this.feedGeo.attributes.position, A = v0.set(this.carX, this.y + 0.02, this.z + 0.2);
+    for (let i = 0; i < 16; i++) { const t = i / 15; const x = t < .5 ? THREE.MathUtils.lerp(A.x, E.x, t * 2) : THREE.MathUtils.lerp(E.x, Wc.x, t * 2 - 1);
+      const y = t < .5 ? THREE.MathUtils.lerp(A.y, E.y + 0.1, t * 2) : THREE.MathUtils.lerp(E.y + 0.1, Wc.y, t * 2 - 1);
+      const z = t < .5 ? THREE.MathUtils.lerp(A.z, E.z, t * 2) : THREE.MathUtils.lerp(E.z, Wc.z, t * 2 - 1);
+      p.setXYZ(i, x, y - Math.sin(t * Math.PI) * 0.16, z + Math.sin(t * Math.PI) * 0.1); }
+    p.needsUpdate = true;
+    // the head's glow follows the work
+    this.heat += ((this.job && this.job.stage !== 'travel' ? (this.job.stage === 'fuse' ? 1.6 : 1) : 0) - this.heat) * (1 - Math.exp(-dt * 8));
+    this.spark.scale.setScalar(0.6 + this.heat * (1.6 + Math.sin(time * 47 + this.i) * 0.35));
+    this.light.position.copy(Tp); this.light.intensity = this.heat * 0.5;
+  }
+  layTo(pt) { // the live strand from the head's tip to where the filament touches down
+    if (!pt) { this.strand.visible = false; return; }
+    const p = this.strandGeo.attributes.position; p.setXYZ(0, this.tip.x, this.tip.y, this.tip.z); p.setXYZ(1, pt.x, pt.y, pt.z); p.needsUpdate = true; this.strand.visible = true;
+  }
+}
+const arms = [new Arm(0), new Arm(1), new Arm(2)];
+
+/* ───────────── a letter's toolpaths, from its real outline ───────────── */
+let font = null;
+const glyphCache = new Map();
+function scan(contours, y) { // even-odd crossings of a horizontal line with every contour → inside intervals
+  const xs = [];
+  for (const c of contours) for (let i = 0, n = c.length; i < n; i++) {
+    const a = c[i], b = c[(i + 1) % n];
+    if ((a.y <= y && b.y > y) || (b.y <= y && a.y > y)) xs.push(a.x + (y - a.y) / (b.y - a.y) * (b.x - a.x));
+  }
+  xs.sort((p, q) => p - q);
+  const out = [];
+  for (let i = 0; i + 1 < xs.length; i += 2) if (xs[i + 1] - xs[i] > 0.006) out.push([xs[i], xs[i + 1]]);
+  return out;
+}
+function makePath(segs) { // segs: flat [ax,ay,az,bx,by,bz …] → lengths with (cheap) travel between them
+  const n = segs.length / 6, end = new Float32Array(n), len = new Float32Array(n); let total = 0;
+  for (let i = 0; i < n; i++) {
+    const o = i * 6, l = Math.hypot(segs[o + 3] - segs[o], segs[o + 4] - segs[o + 1], segs[o + 5] - segs[o + 2]);
+    let travel = 0; if (i) { const q = o - 6; travel = Math.hypot(segs[o] - segs[q + 3], segs[o + 1] - segs[q + 4], segs[o + 2] - segs[q + 5]) * 0.3; }
+    total += travel + l; len[i] = l; end[i] = total;
+  }
+  return { segs: new Float32Array(segs), n, end, len, total };
+}
+function glyph(ch) {
+  if (glyphCache.has(ch)) return glyphCache.get(ch);
+  const data = font.data.glyphs[ch]; if (!data) { glyphCache.set(ch, null); return null; }
+  const adv = data.ha * SIZE / font.data.resolution;
+  const shapes = font.generateShapes(ch, SIZE);
+  if (!shapes.length) { const g0 = { adv, empty: true }; glyphCache.set(ch, g0); return g0; }
+  const contours = []; let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+  for (const s of shapes) { const e = s.extractPoints(14); for (const c of [e.shape, ...e.holes]) { contours.push(c); for (const p of c) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); } } }
+  const lift = minY < 0 ? -minY : 0;                      // everything stands on the bed
+  const zf = DEPTH / 2, zs = DEPTH * 0.30;
+  // layers, bottom → top
+  const layers = []; for (let y = minY + LAYER * 0.5; y < maxY; y += LAYER) layers.push({ y, iv: scan(contours, y) });
+  // 1 · skeleton: on every n-th deck a zig-zag truss between front and back, and diagonal stays up to the next deck
+  const sk = []; const decks = layers.filter((_, i) => i % SKEL_EVERY === Math.floor(SKEL_EVERY / 2));
+  decks.forEach((L, di) => {
+    const y = L.y + lift;
+    for (const [x0, x1] of L.iv) {
+      const a = x0 + 0.018, b = x1 - 0.018; if (b <= a) continue;
+      const steps = Math.max(1, Math.round((b - a) / 0.075));
+      for (let i = 0; i < steps; i++) { const xa = a + (b - a) * i / steps, xb = a + (b - a) * (i + 1) / steps, s = (i + di) % 2 ? 1 : -1; sk.push(xa, y, zs * s, xb, y, -zs * s); }
+    }
+    const N = decks[di + 1]; if (!N) return;
+    const yn = N.y + lift;
+    for (const [x0, x1] of L.iv) {
+      const a = x0 + 0.02, b = x1 - 0.02, steps = Math.max(1, Math.round((b - a) / 0.11));
+      for (let i = 0; i <= steps; i++) {
+        const x = a + (b - a) * (steps ? i / steps : 0), s = (i + di) % 2 ? 1 : -1, lean = ((i % 3) - 1) * 0.035;
+        if (N.iv.some(([p, q]) => x + lean > p + 0.012 && x + lean < q - 0.012)) sk.push(x, y, zs * s, x + lean, yn, -zs * s);
+      }
+    }
+  });
+  // 2 · surface: every layer wound round the outline of each cross-section (front → side → back → side)
+  const su = [];
+  layers.forEach((L, li) => {
+    const y = L.y + lift;
+    for (const [x0, x1] of L.iv) {
+      if (li % 2) su.push(x0, y, zf, x1, y, zf, x1, y, zf, x1, y, -zf, x1, y, -zf, x0, y, -zf, x0, y, -zf, x0, y, zf);
+      else su.push(x1, y, -zf, x0, y, -zf, x0, y, -zf, x0, y, zf, x0, y, zf, x1, y, zf, x1, y, zf, x1, y, -zf);
+    }
+  });
+  // 3 · the fused body
+  const geo = new THREE.ExtrudeGeometry(shapes, { depth: DEPTH - 0.02, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.009, bevelSegments: 2, curveSegments: 10 });
+  geo.translate(0, lift, -(DEPTH - 0.02) / 2); geo.computeVertexNormals();
+  const g = { adv, minX, maxX, top: maxY + lift, bottom: minY + lift, skel: makePath(sk), surf: makePath(su), geo };
+  glyphCache.set(ch, g); return g;
+}
+
+/* ───────────── letters (jobs) ───────────── */
+const lineMat = () => new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 });
+const row = new THREE.Group(); scene.add(row);        // the current line of sculptures
+const sinking = [];                                    // finished lines going down into the bed
+let letters = [];                                      // the current line, in order
+let cursorX = 0, typed = '';
+function strandMesh(path, mat) {
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(path.segs.slice(), 3)); g.setDrawRange(0, 0);
+  const l = new THREE.LineSegments(g, mat); l.frustumCulled = false; return l;
+}
+function addLetter(ch) {
+  const g = glyph(ch); if (!g) return false;
+  const L = { ch, g, x: cursorX, stage: 'queued', t: 0, arm: null, done: false, empty: !!g.empty };
+  cursorX += g.adv + GAP * 0.2;
+  if (!L.empty) {
+    L.group = new THREE.Group(); L.group.position.x = L.x; row.add(L.group);
+    L.clipLow = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);    // body: kept below the fusing height
+    L.clipHigh = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);    // filament: kept above it (below, it is inside the body)
+    L.skMat = lineMat(); L.suMat = lineMat(); L.skMat.clippingPlanes = [L.clipHigh]; L.suMat.clippingPlanes = [L.clipHigh];
+    L.sk = strandMesh(g.skel, L.skMat); L.su = strandMesh(g.surf, L.suMat); L.skPart = -1; L.suPart = -1;
+    L.bodyMat = new THREE.MeshStandardMaterial({ color: 0xd9dbd8, roughness: 0.74, metalness: 0.0, side: THREE.DoubleSide, clippingPlanes: [L.clipLow], clipShadows: true });
+    L.body = new THREE.Mesh(g.geo, L.bodyMat); L.body.castShadow = true; L.body.receiveShadow = true; L.body.visible = false;
+    // the slot reserved on the bed while the letter waits for a free arm
+    const mk = new THREE.BufferGeometry(), a = g.minX - 0.02, b = g.maxX + 0.02, z = DEPTH / 2 + 0.03;
+    mk.setAttribute('position', new THREE.Float32BufferAttribute([a, .003, z, b, .003, z, b, .003, z, b, .003, -z, b, .003, -z, a, .003, -z, a, .003, -z, a, .003, z], 3));
+    L.mark = new THREE.LineSegments(mk, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 }));
+    L.group.add(L.mark, L.sk, L.su, L.body);
+    L.fuseH = g.bottom; setClip(L, g.bottom - 1);
+  } else { L.stage = 'done'; L.done = true; }
+  letters.push(L); return true;
+}
+function setClip(L, h) { const y = row.position.y + h; L.clipLow.constant = y; L.clipHigh.constant = -y; }
+function disposeLetter(L) {
+  if (L.arm) { L.arm.job = null; L.arm.layTo(null); L.arm = null; }
+  if (!L.group) return;
+  L.group.parent && L.group.parent.remove(L.group);
+  [L.sk, L.su, L.mark].forEach(o => o && o.geometry.dispose()); [L.skMat, L.suMat, L.bodyMat, L.mark && L.mark.material].forEach(m => m && m.dispose());
+}
+/** draw a strand path up to progress p (0…1); returns the point where the filament is touching down */
+const lay = new THREE.Vector3();
+function drawPath(mesh, path, p, L, key) {
+  if (!path.n) return null;
+  const pos = mesh.geometry.attributes.position, S = path.segs, target = Math.min(1, Math.max(0, p)) * path.total;
+  let lo = 0, hi = path.n - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (path.end[m] >= target) hi = m; else lo = m + 1; }
+  const i = lo, o = i * 6, into = target - (path.end[i] - path.len[i]);
+  // restore the true end of the segment that was being drawn last frame
+  const prev = L[key]; if (prev >= 0 && prev !== i) { const q = prev * 6; pos.setXYZ(prev * 2 + 1, S[q + 3], S[q + 4], S[q + 5]); }
+  let count;
+  if (p >= 1) { pos.setXYZ(i * 2 + 1, S[o + 3], S[o + 4], S[o + 5]); L[key] = -1; count = path.n * 2; lay.set(S[o + 3], S[o + 4], S[o + 5]); }
+  else if (into <= 0) { // travelling to the start of segment i
+    const q = Math.max(0, o - 6), gap = path.end[i] - path.len[i] - (i ? path.end[i - 1] : 0), f = gap > 1e-6 ? 1 + into / gap : 1;
+    lay.set(THREE.MathUtils.lerp(i ? S[q + 3] : S[o], S[o], f), THREE.MathUtils.lerp(i ? S[q + 4] : S[o + 1], S[o + 1], f), THREE.MathUtils.lerp(i ? S[q + 5] : S[o + 2], S[o + 2], f));
+    L[key] = -1; count = i * 2;
+  } else {
+    const f = path.len[i] > 1e-6 ? into / path.len[i] : 1;
+    lay.set(S[o] + (S[o + 3] - S[o]) * f, S[o + 1] + (S[o + 4] - S[o + 1]) * f, S[o + 2] + (S[o + 5] - S[o + 2]) * f);
+    pos.setXYZ(i * 2 + 1, lay.x, lay.y, lay.z); L[key] = i; count = i * 2 + 2;
+  }
+  pos.needsUpdate = true; mesh.geometry.setDrawRange(0, count);
+  return lay;
+}
+const world = new THREE.Vector3();
+function toWorld(L, p) { return world.set(L.x + p.x, row.position.y + p.y, p.z); }
+
+function updateLetter(L, dt, time, speed) {
+  if (L.empty || L.stage === 'done') return;
+  const g = L.g;
+  if (L.stage === 'queued') {
+    const arm = arms.filter(a => !a.job).sort((a, b) => Math.abs(a.tip.x - L.x) - Math.abs(b.tip.x - L.x))[0];
+    if (!arm) return;
+    arm.job = L; L.arm = arm; L.stage = 'travel'; L.t = 0;
+  }
+  const arm = L.arm; L.t += dt * speed;
+  if (L.stage === 'travel') {
+    const first = g.skel.n ? g.skel.segs : g.surf.segs;
+    arm.goal.set(L.x + first[0], row.position.y + first[1] + 0.05, first[2]);
+    if (L.t >= T.travel || arm.tip.distanceTo(arm.goal) < 0.03) { L.stage = 'skel'; L.t = 0; L.mark.visible = false; }
+    return;
+  }
+  if (L.stage === 'skel') {
+    const p = L.t / T.skel, pt = drawPath(L.sk, g.skel, p, L, 'skPart');
+    if (pt) { const w = toWorld(L, pt); arm.goal.set(w.x, w.y + 0.06, w.z * 1.4); arm.layTo(w); }
+    if (p >= 1) { L.stage = 'surf'; L.t = 0; }
+    return;
+  }
+  if (L.stage === 'surf') {
+    const p = L.t / T.surf, pt = drawPath(L.su, g.surf, p, L, 'suPart');
+    if (pt) { const w = toWorld(L, pt); arm.goal.set(w.x, w.y + 0.05, w.z + Math.sign(w.z || 1) * 0.07); arm.layTo(w); }
+    if (p >= 1) { L.stage = 'fuse'; L.t = 0; L.body.visible = true; arm.layTo(null); }
+    return;
+  }
+  if (L.stage === 'fuse') { // the head sweeps up the letter, side to side; below it the wound filament has become the solid body
+    const p = Math.min(1, L.t / T.fuse), e = p * p * (3 - 2 * p);
+    L.fuseH = g.bottom + (g.top - g.bottom + 0.03) * e; setClip(L, L.fuseH);
+    const sweep = Math.sin(L.t * 9) * 0.5 + 0.5;
+    arm.goal.set(L.x + THREE.MathUtils.lerp(g.minX, g.maxX, sweep), row.position.y + L.fuseH + 0.05, DEPTH / 2 + 0.08);
+    if (p >= 1) { // finished: the filament is all inside the body now
+      L.stage = 'done'; L.done = true; L.sk.visible = L.su.visible = false; L.bodyMat.clippingPlanes = null; L.bodyMat.needsUpdate = true;
+      arm.job = null; L.arm = null;
+    }
+    return;
+  }
+}
+/** Backspace: the making runs backwards, fast — the body unfuses from the top, the filament winds off, the slot is freed */
+function undoLetter(L) {
+  if (L.empty) return;
+  if (L.arm) { L.arm.job = null; L.arm.layTo(null); L.arm = null; }
+  const g = L.g;
+  L.undo = { h: L.stage === 'done' ? g.top + 0.03 : L.stage === 'fuse' ? L.fuseH : g.bottom - 1,
+    su: L.stage === 'done' || L.stage === 'fuse' ? 1 : L.stage === 'surf' ? L.t / T.surf : 0,
+    sk: L.stage === 'done' || L.stage === 'fuse' || L.stage === 'surf' ? 1 : L.stage === 'skel' ? L.t / T.skel : 0 };
+  if (L.stage === 'done') { L.bodyMat.clippingPlanes = [L.clipLow]; L.bodyMat.needsUpdate = true; L.sk.visible = L.su.visible = true; }
+  L.stage = 'undo'; undoing.push(L);
+}
+const undoing = [];
+function updateUndo(dt) {
+  for (let i = undoing.length - 1; i >= 0; i--) {
+    const L = undoing[i], u = L.undo, g = L.g;
+    if (u.h > g.bottom - 0.5) { u.h -= dt * (g.top - g.bottom) / 0.22; setClip(L, u.h); if (u.h <= g.bottom) { u.h = g.bottom - 1; setClip(L, u.h); L.body.visible = false; } }
+    else if (u.su > 0) { u.su = Math.max(0, u.su - dt / 0.28); drawPath(L.su, g.surf, u.su, L, 'suPart'); if (!u.su) L.su.geometry.setDrawRange(0, 0); }
+    else if (u.sk > 0) { u.sk = Math.max(0, u.sk - dt / 0.2); drawPath(L.sk, g.skel, u.sk, L, 'skPart'); if (!u.sk) L.sk.geometry.setDrawRange(0, 0); }
+    else { disposeLetter(L); undoing.splice(i, 1); }
+  }
+}
+
+/* ───────────── typing ───────────── */
+const txt = document.getElementById('txt'), hint = document.getElementById('hint'), kb = document.getElementById('kb'), titleEl = document.getElementById('title');
+let lineNo = 1;
+function showLine() { txt.textContent = typed.slice(-46); }
+function type(ch) {
+  if (!font) return;
+  ch = ch.toUpperCase();
+  if (ch === ' ') { cursorX += SIZE * 0.34; letters.push({ ch: ' ', empty: true, stage: 'done', done: true, space: SIZE * 0.34 }); typed += ' '; showLine(); return; }
+  const before = cursorX;
+  if (!addLetter(ch)) return;
+  letters[letters.length - 1].advance = cursorX - before;
+  typed += ch; showLine(); hint.classList.add('off');
+}
+function backspace() {
+  const L = letters.pop(); if (!L) return;
+  cursorX -= L.space || L.advance || 0; typed = typed.slice(0, -1); showLine();
+  if (!L.empty) undoLetter(L);
+}
+function newLine() { // the finished line goes down into the bed; a fresh line starts
+  if (!letters.length) return;
+  const g = new THREE.Group(); scene.add(g);
+  letters.forEach(L => { if (L.empty) return; if (!L.done) { undoLetter(L); return; } g.attach(L.group); });
+  sinking.push({ g, t: 0, list: letters.filter(L => L.done && !L.empty) });
+  letters = []; cursorX = 0; typed = ''; showLine(); lineNo++; document.getElementById('lineNo').textContent = 'Line ' + String(lineNo).padStart(2, '0');
+}
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target === kb) return;                       // the hidden field reports through beforeinput
+  if (e.key === 'Backspace') { e.preventDefault(); backspace(); }
+  else if (e.key === 'Enter') { e.preventDefault(); newLine(); }
+  else if (e.key.length === 1) { e.preventDefault(); type(e.key); }
+});
+// touch keyboards: a hidden field (tap anywhere to raise the keyboard)
+kb.value = ' ';
+kb.addEventListener('beforeinput', e => {
+  e.preventDefault();
+  if (e.inputType === 'deleteContentBackward') backspace();
+  else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') newLine();
+  else if (e.data) for (const c of e.data) type(c);
+});
+kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); newLine(); } });
+addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('a')) return; if (matchMedia('(pointer: coarse)').matches) kb.focus({ preventScroll: true }); });
+
+/* ───────────── frame ───────────── */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.34, 0.35, 0.96); composer.addPass(bloom);
+composer.addPass(new OutputPass());
+function resize() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h);
+  camera.aspect = w / h; camera.fov = w < h ? 40 : 30; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+const look = new THREE.Vector3(0, 0.7, 0), camX = { v: 0 }, ptr = { x: 0, y: 0 };
+addEventListener('pointermove', e => { ptr.x = e.clientX / innerWidth - .5; ptr.y = e.clientY / innerHeight - .5; });
+const jobsEl = document.getElementById('jobs');
+let last = performance.now(), hudT = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000), time = now / 1000; last = now;
+  // more letters waiting → the line runs faster
+  const waiting = letters.filter(L => L.stage === 'queued').length, speed = 1 + Math.min(1.6, waiting * 0.35);
+  for (const L of letters) updateLetter(L, dt, time, speed);
+  updateUndo(dt);
+  for (let i = sinking.length - 1; i >= 0; i--) { const s = sinking[i]; s.t += dt; s.g.position.y = -Math.pow(Math.max(0, s.t - 0.15), 2) * 3.2;
+    if (s.g.position.y < -2.4) { s.list.forEach(disposeLetter); scene.remove(s.g); sinking.splice(i, 1); } }
+  for (const a of arms) a.update(dt, time);
+  // the camera and the light keep with the work: the middle of what is being made, else the cursor
+  const inWork = letters.filter(L => !L.done && !L.empty && L.stage !== 'queued'), active = inWork.length ? inWork : letters.filter(L => !L.done && !L.empty);
+  const wantX = active.length ? active.reduce((s, L) => s + L.x + (L.g.minX + L.g.maxX) / 2, 0) / active.length : cursorX - 1.2;
+  camX.v += (wantX - camX.v) * (1 - Math.exp(-dt * 1.8));
+  const drift = reduce ? 0 : Math.sin(time * 0.17) * 0.22, narrow = innerWidth < innerHeight;
+  camera.position.set(camX.v + drift + ptr.x * 0.5, (narrow ? 2.0 : 1.35) - ptr.y * 0.3, narrow ? 9.2 : 8.2);
+  look.set(camX.v, narrow ? 1.25 : 1.3, -0.1); camera.lookAt(look);
+  spot.position.x = camX.v + 0.4; spot.target.position.set(camX.v, 0.3, -0.1);
+  composer.render();
+  // readout
+  if ((hudT += dt) > 0.08) { hudT = 0;
+    jobsEl.innerHTML = letters.filter(L => !L.done && !L.empty).slice(-6).map(L => {
+      const d = L.stage === 'skel' ? L.t / T.skel : L.stage === 'surf' ? L.t / T.surf : L.stage === 'fuse' ? L.t / T.fuse : L.stage === 'travel' ? L.t / T.travel : 0;
+      return `<div class="row"><span>${STAGE_NAME[L.stage] || ''}</span><span class="bar"><i style="width:${Math.round(Math.min(1, d) * 100)}%"></i></span><span class="ch">${L.ch}</span></div>`;
+    }).join('');
+  }
+  requestAnimationFrame(frame);
+}
+new FontLoader().load('./vendor/fonts/helvetiker_bold.typeface.json', f => {
+  font = f; window.__filament = { type, backspace, newLine, get letters() { return letters; }, arms };
+  // a first word, so the machine is seen working at once
+  const hello = (new URLSearchParams(location.search).get('t') ?? 'TYPE').slice(0, 24);
+  [...hello].forEach((c, i) => setTimeout(() => type(c), 500 + i * 420));
+  requestAnimationFrame(frame);
+}, undefined, () => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent = '字体没有加载成功（需要联网）。请检查网络后刷新。'; });
+</script>
+</body>
+</html>

@@ -12,7 +12,7 @@ FILES = ["iPhoneDuo.html", "ios/Minest/Minest/iPhoneDuo.html", "ios/Minest/Mines
 BLOCK = r'''<style id="mn-dock-more-style">
 html.mn-bd .mn-bdock .mn-bapp[aria-label="Knowledge"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Pet Raising"],
 html.mn-bd .mn-bdock .mn-bapp[aria-label^="Activity Rings"],html.mn-bd .mn-bdock .mn-bapp[aria-label^="Switch between the iPhone"],
-html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock .mn-bapp[data-carflash-dock]{display:none!important}
+html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock .mn-bapp[data-carflash-dock],html.mn-bd .mn-bdock .mn-bapp[data-type3d-dock]{display:none!important}
 .mn-more-fan .miv-fan-label{white-space:nowrap}
 .mn-bdock .mn-sys-btn svg{width:46%!important}
 </style>
@@ -20,6 +20,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
 /* the Dock: ⏻ exit · ‹ back at the top, ⋯ More at the bottom (tools/duo/patch_dock_more.py) */
 (function () {
   var MORE = [
+    { m: function (l, b) { return b.hasAttribute('data-type3d-dock'); }, label: '3D Type 立体打字' },
     { m: function (l) { return l === 'Knowledge'; }, label: 'Knowledge 知识' },
     { m: function (l) { return /^Pet Raising/.test(l); }, label: 'Pet 宠物' },
     { m: function (l) { return /^Activity Rings/.test(l); }, label: 'Rings 成就' },
@@ -46,6 +47,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
   /* ✕ close: the page that is open on top closes (a module, then a panel with its own ✕) */
   function closeOpen() {
     haptic('light');
+    try { if (window.MinestType3D && MinestType3D.isOpen && MinestType3D.isOpen()) { MinestType3D.close(); return true; } } catch (e) {}
     try { if (window.MinestHermes && MinestHermes.isOpen && MinestHermes.isOpen()) { MinestHermes.close(); return true; } } catch (e) {}
     try { if (window.MinestRoutine && MinestRoutine.isOpen && MinestRoutine.isOpen()) { MinestRoutine.close(); return true; } } catch (e) {}
     // an open panel / sheet: its own close button (✕), the topmost one on screen
