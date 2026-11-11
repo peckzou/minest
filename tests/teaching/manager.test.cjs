@@ -40,6 +40,15 @@ test('existing JSON importer accepts many lists and empty exported lists',async(
 });
 test('production hosts use the durable Teaching store and include home library and JSON import',()=>{
  for(const name of ['iphone.html','index.html','iPhoneDuo.html','ipad.html','ios/Minest/Minest/iphone.html']){
- const html=fs.readFileSync(name,'utf8');assert.ok(html.includes('id="minest-wordlist-manager-v1"'),name);assert.ok(html.includes('id="minest-teaching-storage-v1"'),name);assert.ok(html.includes("window.MinestTeachingStorage.setItem(KEY,JSON.stringify(b))"),name);assert.ok(html.includes('data-wordlists-open>词表管理'),name);
+ const html=fs.readFileSync(name,'utf8');assert.ok(html.includes('id="minest-wordlist-manager-v1"'),name);assert.ok(html.includes('id="minest-teaching-storage-v1"'),name);assert.ok(html.includes("window.MinestTeachingStorage.setItem(KEY,JSON.stringify(b))"),name);assert.ok(html.includes('data-set-json>Import JSON'),name);
  }
+});
+
+test('teacher home exposes inline actions and does not add a word-list Dock tile',()=>{
+ const module=fs.readFileSync('tools/live-perf/wordlist_manager.js','utf8');assert.ok(!module.includes('data-wordlists-entry'));
+ for(const text of ["button('Edit'","button('Export'","button('Solo'","button('Delete'","'Restore':'Archive'","data-set-up","data-set-down","window.MinestWordlists.sort(mode,archived)"])assert.ok(host.includes(text),text);
+ assert.ok(host.includes("if(duplicate)duplicate.remove()"));
+});
+test('inline archive sorting is scoped independently of the library modal',async()=>{
+ const x=await setup();const a=x.S.create('Zebra','z').listId,b=x.S.create('Apple','a').listId,c=x.S.create('Keep','k').listId;await x.M.archive(a,true);await x.M.archive(b,true);await x.M.sort('title',true);assert.deepEqual(Array.from(x.S.read().columns,v=>v.title),['Apple','Zebra','Keep']);assert.equal(x.S.read().columns[2].id,c);
 });

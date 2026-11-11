@@ -12,7 +12,7 @@
  async function archive(id,value){return change(function(b){var c=b.columns.find(function(x){return x.id===id;});if(!c)throw Error('词表已改变，请刷新列表。');c.teachingListArchived=!!value;selected(b);});}
  async function remove(id){return change(function(b){if(!b.columns.some(function(x){return x.id===id;}))throw Error('词表已改变，请刷新列表。');b.columns=b.columns.filter(function(x){return x.id!==id;});selected(b);});}
  async function move(id,target){return change(function(b){var from=b.columns.findIndex(function(c){return c.id===id;}),to=b.columns.findIndex(function(c){return c.id===target;});if(from<0||to<0)throw Error('词表已改变，请刷新列表。');var item=b.columns.splice(from,1)[0];b.columns.splice(to,0,item);});}
- async function sort(mode){return change(function(b){var indexes=[],subset=[];b.columns.forEach(function(c,i){if(!!c.teachingListArchived===archived){indexes.push(i);subset.push(c);}});subset.sort(function(a,b){return mode==='count'?(b.cards||[]).length-(a.cards||[]).length:String(a.title||'').localeCompare(String(b.title||''),'zh-Hans',{numeric:true});});indexes.forEach(function(i,n){b.columns[i]=subset[n];});});}
+ async function sort(mode,archiveScope){var scope=typeof archiveScope==='boolean'?archiveScope:archived;return change(function(b){var indexes=[],subset=[];b.columns.forEach(function(c,i){if(!!c.teachingListArchived===scope){indexes.push(i);subset.push(c);}});subset.sort(function(a,b){return mode==='count'?(b.cards||[]).length-(a.cards||[]).length:String(a.title||'').localeCompare(String(b.title||''),'zh-Hans',{numeric:true});});indexes.forEach(function(i,n){b.columns[i]=subset[n];});});}
  function say(text){if(modal){var el=modal.querySelector('[data-wm-message]');if(el)el.textContent=text||'';}}
  function perform(fn){if(!modal||modal.dataset.busy)return;modal.dataset.busy='1';var buttons=Array.from(modal.querySelectorAll('button:not([data-wm-close])')).map(function(b){var was=b.disabled;b.disabled=true;return {button:b,disabled:was};});Promise.resolve().then(fn).then(function(){if(modal)draw();}).catch(function(e){say(e.message||String(e));}).finally(function(){if(modal){delete modal.dataset.busy;buttons.forEach(function(x){if(x.button.isConnected)x.button.disabled=x.disabled;});}});}
  function close(){if(!modal)return;modal.close();modal.remove();modal=null;dragged=null;if(oldFocus&&oldFocus.isConnected)oldFocus.focus();}
@@ -52,10 +52,6 @@
   ['keydown','pointerdown','click','wheel'].forEach(function(type){modal.addEventListener(type,function(e){e.stopPropagation();},{passive:true});});
   }catch(e){if(modal&&!modal.open){modal.remove();modal=null;}throw e;}finally{opening=false;}
  }
- function entry(){
-  var dock=document.querySelector('.mn-bdock');if(dock&&!dock.querySelector('[data-wordlists-entry]')){var button=document.createElement('button');button.type='button';button.className='mn-bapp mdk-tile';button.setAttribute('data-wordlists-entry','');button.setAttribute('aria-label','词表管理');button.title='词表管理';button.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 4h13v16H4zM8 8h6M8 12h6M8 16h3M20 6v14"/></svg>';button.onclick=function(){open().catch(function(e){if(window.MinestSyncManagement)window.MinestSyncManagement.reportSyncError(e);});};dock.insertBefore(button,dock.querySelector('.mn-more-btn'));}
- }
  document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('[data-wordlists-open]');if(t)open().catch(function(error){var p=t.closest('[data-teaching-sets]'),msg=p&&p.querySelector('[data-set-error]');if(msg)msg.textContent=error.message;});});
- var queued=false;new MutationObserver(function(){if(!queued){queued=true;requestAnimationFrame(function(){queued=false;entry();});}}).observe(document.body,{childList:true,subtree:true});entry();
  window.MinestWordlists={open:open,close:close,archive:archive,remove:remove,move:move,sort:sort};
 })();

@@ -6,7 +6,9 @@ FILES=['iphone.html','index.html','iPhone53.8241.html','iPhoneDuo.html','ipad.ht
 HERE=ROOT/'tools/live-perf'
 store=(HERE/'teaching_store.js').read_text()
 js=(HERE/'wordlist_manager.js').read_text()
-css=(HERE/'wordlist_manager.css').read_text()
+css=(HERE/'wordlist_manager.css').read_text()+'\n'+(HERE/'teacher_library.css').read_text()
+teacher=(HERE/'teacher_library.js').read_text()
+keyflow=(ROOT/'tools/keyflow/host.js').read_text()
 jsonjs=(HERE/'teach_json.js').read_text()
 assert all('</script' not in x.lower() for x in [store,js,jsonjs])
 for name in FILES:
@@ -34,6 +36,10 @@ for name in FILES:
    if '<button class="mlv-btn alt" data-wordlists-open>词表管理</button>' not in block:block=block.replace(needle,needle+'<button class="mlv-btn alt" data-wordlists-open>词表管理</button>')
   return block
  s=re.sub(r'<script(?:\s[^>]*)?>[\s\S]*?</script>',patch_store,s)
+ start=s.index('function teacher(body){')
+ end=s.index('window.MinestTeachingSets=',start)
+ s=s[:start]+teacher+'\n'+s[end:]
+ s=re.sub(r'<script id="mn-keyflow-host">[\s\S]*?</script>',lambda _:'<script id="mn-keyflow-host">'+keyflow+'</script>',s,count=1)
  s=s.replace("b.columns.map(function(col){\n               var isActive", "b.columns.filter(function(col){return !col.teachingListArchived;}).map(function(col){\n               var isActive")
  needle='<h2>📖 教师端 · 词表管理与账号同步</h2>'
  if 'data-wordlists-open>管理 / 导入 JSON' not in s:s=s.replace(needle,needle+'<button type="button" class="teacher-btn teacher-btn-alt" data-wordlists-open>管理 / 导入 JSON</button>')

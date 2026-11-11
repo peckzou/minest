@@ -27,6 +27,6 @@ test('download works with no Firebase or account and releases its URL',()=>{
 });
 test('production teacher entry points inline the exporter and both buttons',()=>{
  for(const name of ['iphone.html','index.html','iPhoneDuo.html','ipad.html','ios/Minest/Minest/iphone.html']){
- const html=fs.readFileSync(name,'utf8');assert.ok(html.includes('id="minest-teaching-export-v1"'),name);assert.ok(html.includes('↓ 导出全部词表'),name);assert.ok(html.includes("exp.setAttribute('data-teaching-export',c.id)"),name);
+ const html=fs.readFileSync(name,'utf8');assert.ok(html.includes('id="minest-teaching-export-v1"'),name);assert.ok(html.includes('>Export All</button>'),name);assert.ok(html.includes("button('Export',null,'data-teaching-export')"),name);
  }
 });
