@@ -1,0 +1,27 @@
+"""My World 79 — one flow for both worlds (tools/voxel/levels79.js inside mn-voxel-62): My World's own console drives the
+voxel world level by level (New · Gallery · Group · Smart, Base → Detail, Lock, Confirm, Edit); the voxel console
+shrinks to a strip of voxel-only tools. Run after patch_show78.py (apply_all.sh runs them in order). Safe to re-run."""
+import re
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
+FILES = ['iPhoneDuo.html', 'iPhoneDuo69.html', 'iphone.html', 'iPhone53.8241.html', 'index.html', 'ipad.html',
+         'ios/Minest/Minest/iPhoneDuo.html', 'ios/Minest/Minest/index.html', 'ios/Minest/Minest/ipad.html',
+         'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html']
+MODULE = (HERE / 'levels79.js').read_text(encoding='utf-8').rstrip('\n')
+assert '</script' not in MODULE.lower()
+for f in FILES:
+    p = ROOT / f
+    if not p.exists():
+        continue
+    s = p.read_text(encoding='utf-8')
+    if '<script id="mn-voxel-62">' not in s or '77 · the voxel world' not in s:
+        continue
+    i = s.index('<script id="mn-voxel-62">'); j = s.index('</script>', i); v = s[i:j]
+    v = re.sub(r'  /\* =+ 79 · one flow for both worlds.*?(?=\n  window\.MinestVoxel62 = \{)', '', v, flags=re.S)
+    v = re.sub(r'\n+(?=  window\.MinestVoxel62 = \{)', '\n', v, count=1)
+    k = v.index('  window.MinestVoxel62 = {')
+    v = v[:k] + MODULE + '\n' + v[k:]
+    p.write_text(s[:i] + v + s[j:], encoding='utf-8')
+    print('patched', f)
