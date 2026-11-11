@@ -34,3 +34,25 @@ Mac upload path, not receipt of a newly-created named Routine on Duo.
 Follow-up: transient database save failure retries on flush without another edit;
 valid database state can be recovered even if a legacy localStorage copy is
 malformed. 52 tests pass with both regression cases.
+
+2026-11-11 authenticated Safari end-to-end follow-up:
+- Created activity “同步验证 · Safari 1111” through the real Routine UI.
+- It increased the authoritative IndexedDB state from 19 to 20 activities.
+- A separate read-only page opened the actual IndexedDB record after navigation;
+  it included the new activity, while untouched legacy copies retained 19.
+- Authenticated GET from the existing Firestore project returned the new activity;
+  canonical comparison of full state plus entity revisions matched exactly (20).
+  Server document updateTime observed: 2026-11-11T15:01:43.120724Z.
+- Refreshed the original production Minest page; Sync Center hydrated 20 Routine
+  activities and showed this version server-confirmed, with fresh upload ACK
+  11/11 09:13:03 America/Chicago.
+- Test activity retained intentionally; no existing activity was deleted.
+- Duo unavailable; user explicitly chose “先完成 Mac 验证”. Duo receipt is not claimed.
+
+Read-only recovery inspector now includes the authoritative IndexedDB record and
+an optional server-content comparison. It never commits/deletes/overwrites data.
+The source is tools/storage/recovery.js; it must be inlined in routine-recovery.html
+because tools/ source files are excluded from Vercel static deployment. Firebase
+SDKs load in order only when server inspection is requested, so a CDN issue cannot
+block local recovery inspection. Existing Minest sign-in is reused; no credentials
+are exported or recorded. Screenshots are outside Git in the task outputs directory.
