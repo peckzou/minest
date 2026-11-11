@@ -47,10 +47,10 @@
     lists = [].concat.apply([], lists.map(function(l){ return l && Array.isArray(l.columns) ? l.columns : [l]; }));
     lists = lists.filter(function(l){ return l && typeof l === 'object'; });
     if (!lists.length) throw Error('没有找到词表。');
-    if (lists.length > 20) throw Error('一次最多导入 20 个词表。');
+    if (lists.length > 500) throw Error('一次最多导入 500 个词表。');
     lists.forEach(function(l, i){
       var words = l.words || l.cards || l.items;
-      if (!Array.isArray(words) || !words.length) throw Error('第 ' + (i + 1) + ' 个词表没有 words 数组。');
+      if (!Array.isArray(words)) throw Error('第 ' + (i + 1) + ' 个词表没有 words 数组。');
       if (words.length > 200) throw Error('每个词表最多 200 个词。');
     });
     return lists;
@@ -69,6 +69,7 @@
       if (image && !imageOK(image)) { report.badImages++; image = ''; }
       var card = { id: id, title: front, desc: back || py, pinyin: py, teachingBack: back ? 'text' : (py ? 'pinyin' : 'text'), labels: [], complete: false };
       if (en) card.en = en;
+      if (w.teachingArchived) card.teachingArchived = true;
       var sent = str(w.sentence || w.example || w.sent, 80), sentEn = str(w.sentenceEn || w.exampleEn || w.sentEn, 160);
       if (sent) card.sent = sent;
       if (sentEn) card.sentEn = sentEn;
@@ -92,12 +93,12 @@
       }
       mats.push({ id: id, value: m, src: w });
     });
-    if (!cards.length) throw Error('词表「' + (str(l.title) || '未命名') + '」没有可导入的词。');
+    if (words.length && !cards.length) throw Error('词表「' + (str(l.title) || '未命名') + '」没有可导入的词。');
     report.words += cards.length;
     report.duplicates += skipped;
 
     var b = S.read(), listId = uid('ts-json-');
-    b.columns.push({ id: listId, title: str(l.title || l.name, 80) || '导入的词表', cards: cards });
+    b.columns.push({ id: listId, title: str(l.title || l.name, 80) || '导入的词表', cards: cards, teachingListArchived: !!l.teachingListArchived });
     b.selected = listId;
     S.save(b);
     report.current = listId;
