@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Minest My World 3D — Voxel Item Factory (Phase 1)</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#cfe6f5;font:14px/1.4 -apple-system,system-ui,sans-serif;color:#2b2118}
+  canvas{display:block;touch-action:none}
+  .panel{position:fixed;background:rgba(255,250,240,.94);border:1px solid #c9b48f;border-radius:10px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+  #craft{top:10px;left:10px;width:270px}
+  #craft h3{margin:0 0 6px;font-size:14px}
+  textarea,select{width:100%;box-sizing:border-box;font:inherit;padding:5px;border:1px solid #b89f74;border-radius:6px;background:#fff}
+  label{display:block;margin:4px 0;font-size:12px}
+  button,label.btn{display:inline-block;font:inherit;padding:6px 10px;border:1px solid #8a6a3b;border-radius:6px;background:#e9c98c;cursor:pointer;margin:2px 2px 0 0}
+  button:hover,label.btn:hover{background:#f3d9a5} button:disabled{opacity:.45;cursor:default}
+  button.primary{background:#c98a3c;color:#fff;font-weight:600}
+  #tools{top:10px;right:10px;max-width:310px}
+  #status{bottom:10px;left:10px;right:10px;font-size:12px;white-space:pre-wrap}
+  #suggest{font-size:12px;margin-top:6px;color:#6b4a1f}
+  #read{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center}
+  #read .card{background:#fffaf0;border-radius:12px;padding:16px;width:min(520px,92vw)}
+  #read textarea{height:150px;font-size:16px}
+  .warn{color:#b3261e}
+</style>
+</head>
+<body>
+<div id="craft" class="panel">
+  <h3>Voxel Foundry</h3>
+  <textarea id="text" rows="3" placeholder="Type text…">DISCOVER</textarea>
+  <label>Craft kit
+    <select id="kit"><option value="voxel-foundry">Voxel Foundry → Wooden Word Block</option>
+    <option value="glassworks">Glassworks → Memory Orb</option>
+    <option value="stone-atelier">Stone Atelier → Rune Slab</option>
+    <option value="glassworks:crystal-award">Glassworks → Crystal Award</option>
+    <option value="glassworks:glass-tube">Glassworks → Glass Tube</option>
+    <option value="glassworks:neon-sign">Glassworks → Neon Sign</option>
+    <option value="thread-studio">Thread Studio → Stitch Sampler</option>
+    <option value="botanical-studio">Botanical Studio → Pressed Flower</option>
+    <option value="ceramic-studio">Ceramic Studio → Ceramic Vase</option>
+    <option value="archive-desk">Archive Desk → File Folder (Cabinet of Knowledge)</option>
+    <option value="retail-packaging">Retail Packaging → Product Box</option>
+    <option value="signworks">Signworks → Knowledge Drive Billboard</option>
+    <option value="cube-lab">Cube Lab → World in a Cube</option>
+    <option value="woodcraft">Woodcraft → Wood Plaque</option>
+    <option value="letterpress">Letterpress → Flashcard (front | back)</option></select>
+  </label>
+  <label><input type="checkbox" id="bulk"> Bulk: one item per line (auto-placed on shelves)</label>
+  <label><input type="checkbox" id="instant"> Instant craft (skip animation)</label>
+  <button class="primary" id="make">Craft</button>
+  <button id="auto">Auto-place on shelf</button>
+  <div id="suggest"></div>
+</div>
+<div id="tools" class="panel">
+  <button id="rot" disabled>Rotate 90°</button>
+  <button id="flip" disabled>Flip</button>
+  <button id="open" disabled>Open</button>
+  <button id="del" disabled>Delete</button>
+  <button id="undo">Undo</button>
+  <button id="redo">Redo</button>
+  <button id="reset">Reset world</button>
+  <button id="export">Export</button>
+  <label class="btn"><input type="file" id="import" accept="application/json" hidden>Import</label>
+  <div style="font-size:11px;margin-top:6px;color:#6b4a1f">Drag a block to a shelf slot · double-click / Open to read · drag empty space to orbit</div>
+</div>
+<div id="status" class="panel"></div>
+<div id="read"><div class="card">
+  <b>Read mode</b> <span id="readId" style="font-size:11px;color:#8a6a3b"></span>
+  <textarea id="readText"></textarea>
+  <label><input type="checkbox" id="readSync" checked> Update the block's appearance too</label>
+  <button class="primary" id="readSave">Save</button><button id="readClose">Close</button>
+</div></div>
+<script type="module" src="main.js"></script>
+</body>
+</html>

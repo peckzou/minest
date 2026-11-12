@@ -106353,7 +106353,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     ui.body.innerHTML = (ws.length > 1 ? '<div class="wc-where">' + ws.map(function (id) { var b = boardById(id); return '<button type="button" class="wc-chip' + (id === wbid ? ' on' : '') + '" data-world="' + esc(id) + '">' + esc(b.title) + '</button>'; }).join('') + '</div>' : '') +
       '<div class="wc-cap"><textarea data-cap placeholder="Add to My World — a thought, a book, a link, an idea…">' + esc(keep ? ui.draft || '' : '') + '</textarea>' +
       (ui.img && keep ? '<div class="wc-thumb"><img alt="" src="' + esc(ui.img) + '"><button type="button" class="wc-tool" data-noimg>Remove photo</button></div>' : '') +
-      '<div class="wc-tools"><button type="button" class="wc-tool" data-photo>' + ICON.photo + 'Photo</button><button type="button" class="wc-tool" data-import>' + ICON.import + 'Import</button><button type="button" class="wc-tool pri" data-next disabled>Organize ' + ICON.chev + '</button></div></div>' +
+      '<div class="wc-tools"><button type="button" class="wc-tool" data-photo>' + ICON.photo + 'Photo</button><button type="button" class="wc-tool" data-import>' + ICON.import + 'Import</button><button type="button" class="wc-tool" data-3d>◇ 3D</button><button type="button" class="wc-tool pri" data-next disabled>Organize ' + ICON.chev + '</button></div></div>' +
       (newsHtml ? '<div class="wc-h">New in My World<button type="button" class="wc-tool" data-clearnew>Mark all seen</button></div>' + newsHtml : '') +
       '<div class="wc-h">Recently Added</div>' + recentHtml(rec.filter(function (l) { return l.kind !== 'organize'; }).slice(0, 8)) +
       (rec.some(function (l) { return l.kind === 'organize'; }) ? '<div class="wc-h">Recently Organized</div>' + recentHtml(rec.filter(function (l) { return l.kind === 'organize'; }).slice(0, 6)) : '');
@@ -106534,6 +106534,7 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     if ((g = t.closest('[data-world]'))) { ui.wbid = g.getAttribute('data-world'); return home(true); }
     if (t.closest('[data-photo]')) return ui.file.click();
     if (t.closest('[data-noimg]')) { ui.img = null; return home(true); }
+    if (t.closest('[data-3d]')) return open3d();
     if (t.closest('[data-import]')) return importView();
     if (t.closest('[data-txtfile]')) { var tf = ui.body.querySelector('[data-tf]'); if (tf) tf.click(); return; }
     if (t.closest('[data-next]')) return goOrganize();
@@ -106581,6 +106582,22 @@ window.__MINEST_DISCOVER = {"format": "minest.discover.templates/1", "desertIsla
     if (t.closest('[data-addto]')) { var k3 = ui.itemKey, b1 = ui.itemBack; ui.itemBack0 = b1; return pickList('item:' + k3, function (cid) { learn(stems((KN().get(k3) || {}).title || ''), cid, 1); addRelation(k3, cid).then(function () { toast('Added'); itemView(k3, b1); }); }); }
   }
   function keep(fn) { var y = ui.body.scrollTop; fn(); ui.body.scrollTop = y; }
+
+  // 3D Display: hands this world's items to voxel-factory/ (same origin) through localStorage and shows it full-screen.
+  function open3d() {
+    var b = boardById(wbidNow()), items = [];
+    ((b && b.columns) || []).forEach(function (col) { (col.cards || []).forEach(function (c) {
+      if (!c || !c.id || KN().isHeading(c.id) || KN().get('sk:' + c.id) || /inbox/i.test(c.title)) return;
+      (c.stack || []).forEach(function (s) { if (s && s.title && items.length < 48) items.push(String(s.title).replace(/\s+/g, ' ').trim().slice(0, 40)); });
+    }); });
+    if (!items.length) return toast('Nothing in this world to display yet — add something first.');
+    var base = /^https?:$/.test(location.protocol) ? 'voxel-factory/index.html' : 'https://minest-app.vercel.app/voxel-factory/index.html';   // the iOS bundle: the live page
+    var src = base + '?kit=voxel-foundry&items=' + encodeURIComponent(items.join('\n'));
+    var f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:#cfe6f5';
+    f.innerHTML = '<iframe src="' + src + '" style="border:0;width:100%;height:100%" title="3D Display"></iframe><button type="button" style="position:absolute;right:12px;bottom:12px;padding:8px 14px;border-radius:10px;border:0;background:#2b2118;color:#fff;font:600 14px system-ui">Close 3D</button>';
+    f.querySelector('button').onclick = function () { f.remove(); };
+    document.body.appendChild(f);
+  }
 
   function open(o) { o = o || {}; shell(); if (o.wbid) ui.wbid = o.wbid; if (o.text) { ui.draft = o.text; home(true); return; } if (o.import) { home(); return importView(); } home(); }
   window.MinestCapture = { open: open, close: close, savePending: savePending, pendingCount: function () { return pendingKeys().length; }, isOpen: function () { return ui.open; },
@@ -118345,9 +118362,11 @@ html body .pv-th.cinema .seats { position:absolute;left:20px;right:20px;bottom:1
 html body .pv-th.signpost { display:flex;flex-direction:column;align-items:center;gap:10px;background:none;box-shadow:none; } html body .pv-th.signpost .post { position:absolute;left:50%;top:0;bottom:0;width:22px;margin-left:-11px;background:var(--tx-oak) 0 0/24px 24px; }
 html body .pv-th.signpost .arm { position:relative;z-index:1;padding:8px 16px;background:var(--tx-oak) 0 0/36px 36px;border:3px solid #3b2716;clip-path:polygon(0 0,88% 0,100% 50%,88% 100%,0 100%);transform:translateX(56%); } html body .pv-th.signpost .arm.l { clip-path:polygon(12% 0,100% 0,100% 100%,12% 100%,0 50%);transform:translateX(-56%); }
 html body .pv-th.signpost .pv-card { flex-direction:row;width:auto; } html body .pv-th.signpost .pv-card .pic { width:72px;height:72px; }
-html body .pv-th.balloons { background:linear-gradient(#7ec3ff,#d9f0ff);box-shadow:none; } html body .pv-th.balloons .bal { display:flex;flex-direction:column;align-items:center;animation:mn-float 5s ease-in-out infinite;animation-delay:var(--d); }
-html body .pv-th.balloons .env { width:110px;height:120px;border-radius:50% 50% 44% 44%;background:var(--c);box-shadow:inset -14px -10px 0 #0003,inset 10px 8px 0 #fff3; } html body .pv-th.balloons .rope { width:2px;height:22px;background:#6b4a26; }
-html body .pv-th.balloons .pv-card .pic { width:110px;height:110px;background:var(--tx-oak) 0 100%/30px 30px no-repeat;padding:6px;box-shadow:inset 0 -20px 0 #c9a43a; }
+html body .pv-th.balloons { background:linear-gradient(#5fa8f0,#bfe3fb 70%,#e9f6ff);box-shadow:none; } html body .pv-th.balloons .bal { display:flex;flex-direction:column;align-items:center;animation:mn-float 5s ease-in-out infinite;animation-delay:var(--d); }
+html body .pv-th.balloons .env { position:relative;width:112px;height:132px;border-radius:50% 50% 46% 46%/58% 58% 42% 42%;overflow:hidden;background:repeating-linear-gradient(90deg,#0000 0 17px,#3a2a1a55 17px 19px),linear-gradient(#3a2a1a 0 14%,var(--c) 14% 44%,#2b1d12 44% 50%,var(--c) 50% 66%,var(--c2,#d6452e) 66% 100%);box-shadow:inset -16px -10px 0 #0003,inset 12px 10px 0 #fff3,0 4px 0 #0002; }
+html body .pv-th.balloons .env::after { content:'';position:absolute;left:0;right:0;bottom:0;height:12%;background:#3a2a1a; clip-path:polygon(0 0,100% 0,78% 100%,22% 100%); }
+html body .pv-th.balloons .rope { position:relative;width:34px;height:20px;border-left:2px solid #6b4a26;border-right:2px solid #6b4a26;transform:perspective(40px) rotateX(-12deg); }
+html body .pv-th.balloons .pv-card .pic { width:110px;height:110px;background:repeating-linear-gradient(0deg,#0000 0 9px,#6b4a2688 9px 11px),var(--tx-oak) 0 100%/30px 30px no-repeat;padding:6px;box-shadow:inset 0 -20px 0 #c9a43a,inset 0 8px 0 #5a3a1a; }
 html body .pv-podium { display:flex;align-items:flex-end;gap:6px; } html body .pv-podium .step { display:flex;flex-direction:column;align-items:center;width:170px; } html body .pv-podium .blk { width:170px;display:grid;place-items:center;box-shadow:0 8px 0 #0006; }
 html body .pv-podium .blk i { font:900 34px ui-monospace,Menlo,monospace;font-style:normal;color:#fff;text-shadow:0 3px 0 #0006; }
 html body .pv-podium .r0 .blk { background:var(--tx-gold) 0 0/40px 40px; } html body .pv-podium .r1 .blk { background:var(--tx-iron) 0 0/40px 40px; } html body .pv-podium .r2 .blk { background:var(--tx-copper) 0 0/40px 40px; } html body .pv-podium .r3 .blk { background:var(--tx-quartz) 0 0/40px 40px; }
@@ -121848,7 +121867,8 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     balloons: function (p, its, B) {   // hot-air balloons: a coloured balloon, a rope, a basket holding the thing
       var n = wOf(p, 5, 3, 8), cols = ['red', 'yellow', 'blue', 'green', 'purple', 'orange', 'cyan'], i = 0;
       for (var k = 0; k < n; k++) { var a = k * 2.39996, r = .3 + 1.1 * Math.sqrt((k + .5) / n), u = 1.5 + Math.cos(a) * r, t = 1.5 + Math.sin(a) * r, z = 1.6 + (k % 3) * .5, col = 'wool_' + cols[(hash(p.id) + k) % cols.length];
-        B.box(u - .18, u + .18, t - .18, t + .18, z - .95, z - .7, 'hay_top', 'hay'); B.line([u, t, z - .7], [u, t, z], { rope: 1 }); B.box(u - .32, u + .32, t - .32, t + .32, z, z + .6, col, col); B.box(u - .22, u + .22, t - .22, t + .22, z + .6, z + .75, col, col);
+        B.box(u - .2, u + .2, t - .2, t + .2, z - .95, z - .7, 'hay_top', 'hay'); B.box(u - .22, u + .22, t - .22, t + .22, z - .75, z - .7, 'spruce', 'spruce'); B.line([u, t, z - .7], [u, t, z], { rope: 1 });
+        envelope(B, u, t, z, .3, { cols: [col, col === 'wool_yellow' ? 'wool_orange' : 'wool_yellow'], cap: 'dark' });
         B.bb(u, t, z - .72, its[i++], .38, { slot: 1 }); }
       return { W: 3, D: 3 };
     },
@@ -121986,13 +122006,28 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
     if (c.jets) { B.box(wu - .25, wu + .25, m - 1, m - .7, z + fh * .05, z + fh * .35, 'iron', 'iron'); B.box(wu - .25, wu + .25, m + .7, m + 1, z + fh * .05, z + fh * .35, 'iron', 'iron'); }
     return { W: L, D: D };
   }
-  function balloon(B, c) {   // an envelope in coloured bands, ropes, a wicker basket with a burner, tied to a stake
-    var a = c.cols, z = c.z || 1.2, g = c.g || 0;
+  // a hot-air balloon envelope, after a real one: a narrow mouth, a full onion body, a darker crown, vertical gore seams
+  function envelope(B, cx, cy, z0, s, c) {
+    var a = c.cols, cap = c.cap || 'dark', low = c.low || a[1] || a[0], rain = a.length > 3, zz = z0;
+    var rows = [[.34, .16, 'low'], [.52, .2, 'low'], [.7, .22, 'low'], [.84, .08, 'band'], [.93, .22, 'mid'], [.99, .3, 'mid'], [1, .3, 'mid'], [.96, .28, 'mid'], [.86, .24, 'mid'], [.7, .16, 'mid'], [.58, .12, 'band'], [.42, .16, 'cap'], [.2, .12, 'cap']];
+    rows.forEach(function (r, i) {
+      var h = r[0] * s, d = r[1] * s, col = rain ? a[i % a.length] : r[2] === 'cap' ? cap : r[2] === 'band' ? cap : r[2] === 'low' ? low : a[0];
+      B.box(cx - h, cx + h, cy - h, cy + h, zz, zz + d, col, col);
+      if (!rain && r[2] !== 'cap' && h > .3 * s) [-.5, 0, .5].forEach(function (f) {   // seams between the gores
+        var q = f * h, w = .025 * s, e = .02 * s;
+        B.box(cx - w + q, cx + w + q, cy + h, cy + h + e, zz, zz + d, cap, cap); B.box(cx - w + q, cx + w + q, cy - h - e, cy - h, zz, zz + d, cap, cap);
+        B.box(cx + h, cx + h + e, cy - w + q, cy + w + q, zz, zz + d, cap, cap); B.box(cx - h - e, cx - h, cy - w + q, cy + w + q, zz, zz + d, cap, cap); });
+      zz += d; });
+    return zz - z0;
+  }
+  function balloon(B, c) {   // the envelope, a wicker basket with a burner and corner posts, tied to a stake
+    var z = c.z || 1.2;
     if (!c.free) { B.box(.85, 1.15, .85, 1.15, 0, .2, 'oak', 'oak'); B.line([1, 1, .2], [1.05, 1.05, z], { rope: 1 }); }   // the stake and its tether
-    B.box(.7, 1.3, .7, 1.3, z, z + .45, 'hay_top', 'hay'); B.box(.92, 1.08, .92, 1.08, z + .55, z + .7, 'glowstone', 'glowstone', { light: 1 });
-    [[.72, .72], [1.28, .72], [.72, 1.28], [1.28, 1.28]].forEach(function (q) { B.line([q[0], q[1], z + .45], [q[0] + (q[0] - 1) * .6, q[1] + (q[1] - 1) * .6, z + 1.05], { rope: 1 }); });
-    var bands = [[.55, .25], [.85, .3], [1, .35], [1.05, .4], [1, .35], [.85, .3], [.55, .22]], zz = z + 1.05;
-    bands.forEach(function (bd, i) { var h = bd[0], col = a[(i + g) % a.length]; B.box(1 - h, 1 + h, 1 - h, 1 + h, zz, zz + bd[1], col, col); zz += bd[1]; });
+    B.box(.68, 1.32, .68, 1.32, z, z + .08, 'oak', 'oak'); B.box(.7, 1.3, .7, 1.3, z + .08, z + .4, 'hay_top', 'hay'); B.box(.66, 1.34, .66, 1.34, z + .4, z + .5, 'spruce', 'spruce');   // floor, wicker, rim
+    B.box(.72, 1.28, .72, 1.28, z + .18, z + .22, 'spruce', 'spruce'); B.box(.72, 1.28, .72, 1.28, z + .3, z + .34, 'spruce', 'spruce');   // woven bands
+    B.box(.92, 1.08, .92, 1.08, z + .5, z + .62, 'iron', 'iron'); B.box(.95, 1.05, .95, 1.05, z + .62, z + .74, 'glowstone', 'glowstone', { light: 1 });   // the burner and its flame
+    [[.7, .7], [1.3, .7], [.7, 1.3], [1.3, 1.3]].forEach(function (q) { B.box(q[0] - .03, q[0] + .03, q[1] - .03, q[1] + .03, z + .5, z + 1.05, 'dark', 'dark'); B.line([q[0], q[1], z + 1.05], [1 + (q[0] - 1) * .5, 1 + (q[1] - 1) * .5, z + 1.2], { rope: 1 }); });
+    envelope(B, 1, 1, z + 1.05, 1, c);
     return { W: 2, D: 2 };
   }
   function airship(B, c) {   // a long envelope, fins, a gondola; moored to a stake (or to its mast)
@@ -122031,7 +122066,7 @@ html body .mn-ico[data-ico=camera]:not(.mn-daily-trigger):not(.ph){background:co
       ['plane_sea', 'Seaplane', plane, { L: 3.6, D: 3.2, col: 'white', tail: 'concrete_orange', wing: 'concrete_orange', prop: 1, floats: 1, z: .7, fh: .45 }],
       ['plane_jet', 'Blue jet', plane, { L: 4, D: 2.8, col: 'concrete_blue', nose: 'iron', tail: 'concrete_blue', jets: 1, fh: .45, wu: 1.6 }]]],
     ['Hot-air balloons', [
-      ['balloon_red', 'Red & yellow balloon', balloon, { cols: ['wool_red', 'wool_yellow'] }],
+      ['balloon_red', 'Red & yellow balloon', balloon, { cols: ['wool_yellow', 'wool_red'] }],
       ['balloon_blue', 'Blue & white balloon', balloon, { cols: ['wool_blue', 'wool_white'], z: 1.5 }],
       ['balloon_rainbow', 'Rainbow balloon', balloon, { cols: ['wool_red', 'wool_orange', 'wool_yellow', 'wool_green', 'wool_cyan', 'wool_blue', 'wool_purple'], z: 1.8 }],
       ['balloon_green', 'Green & yellow balloon', balloon, { cols: ['wool_green', 'wool_yellow', 'wool_green'], z: 1.3 }],
@@ -125041,7 +125076,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       return '<div class="pv-podium">' + at.map(function (rank) { return '<div class="step r' + Math.min(rank, 3) + '">' + pvCard(refs[rank], rank, 'stand') + '<span class="blk" style="height:' + Math.max(40, 150 - rank * 40) + 'px"><i>' + (rank + 1) + '</i></span></div>'; }).join('') + '</div>'; }
     if (k === 'cinema') return '<div class="pv-th cinema"><div class="screen">' + pvCard(refs[0], 0, 'big') + '</div><div class="grid">' + refs.slice(1).map(function (r, i) { return pvCard(r, i + 1, 'frame'); }).join('') + '</div><div class="seats"></div></div>';
     if (k === 'signpost') return '<div class="pv-th signpost"><span class="post"></span>' + refs.map(function (r, i) { return '<div class="arm ' + (i % 2 ? 'l' : 'r') + '">' + pvCard(r, i, 'stand') + '</div>'; }).join('') + '</div>';
-    if (k === 'balloons') return '<div class="pv-th balloons"><div class="grid">' + refs.map(function (r, i) { return '<div class="bal" style="--c:' + ['#d64b3c', '#f2c13d', '#3c64c8', '#5e9c2e', '#8a3fbe', '#f08a2c'][i % 6] + ';--d:' + (i % 4) * -.7 + 's"><span class="env"></span><span class="rope"></span>' + pvCard(r, i, 'stand') + '</div>'; }).join('') + '</div></div>';
+    if (k === 'balloons') return '<div class="pv-th balloons"><div class="grid">' + refs.map(function (r, i) { return '<div class="bal" style="--c:' + ['#f2c13d', '#3c64c8', '#d64b3c', '#5e9c2e', '#8a3fbe', '#f08a2c'][i % 6] + ';--c2:' + ['#d6452e', '#e8eefc', '#f2c13d', '#f2c13d', '#f08a2c', '#d6452e'][i % 6] + ';--d:' + (i % 4) * -.7 + 's"><span class="env"></span><span class="rope"></span>' + pvCard(r, i, 'stand') + '</div>'; }).join('') + '</div></div>';
     if (/^(kitchen|table|crates|easel|records|mapwall|garden|aquarium|rack|arcade|board|labbench|tablets)$/.test(k)) {
       var cls = { easel: 'painting', records: 'cover', mapwall: 'pin', board: 'pin', arcade: 'screen', tablets: 'stone', aquarium: 'float', rack: 'hang' }[k] || 'stand';
       return '<div class="pv-th ' + k + '"><div class="grid">' + cards(cls) + '</div></div>';
@@ -176810,6 +176845,50 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   if (document.readyState === 'complete') setTimeout(boot, 300); else window.addEventListener('load', function () { setTimeout(boot, 300); }, { once: true });
 })();
 
+</script>
+<script id="mn-voxel-factory">
+/* 3D Display (Copilot's voxel-factory/, 2026-11-12): this My World world's things, crafted and set out on shelves in a
+   voxel workshop. window.MinestVoxelFactory.open(bid) — and a ◇ 3D Display button in the My World console's tool row.
+   Only titles go across (in the address); the voxel factory keeps its own layout (minest3d.world.v1) and never writes
+   to Minest's boards. The iOS bundle opens the live page. */
+(function () {
+  if (window.MinestVoxelFactory) return;
+  function boards() { try { return (window.MinestAI && MinestAI.boards && MinestAI.boards()) || []; } catch (e) { return []; } }
+  /* the world on show: My World's first crumb is its board's title */
+  function curBid() {
+    try {
+      if (!(window.MinestDisplay && MinestDisplay.isOpen && MinestDisplay.isOpen())) return null;
+      var t = window.MinestWorldFold && MinestWorldFold.crumbs && MinestWorldFold.crumbs()[0]; if (!t) return null;
+      var b = boards().filter(function (x) { return String(x.title || '') === String(t); })[0]; return b ? b.id : null;
+    } catch (e) { return null; }
+  }
+  function items(bid) {
+    var b = boards().filter(function (x) { return x.id === bid; })[0], K = window.MinestKnowledge, out = [];
+    ((b && b.columns) || []).forEach(function (col) { (col.cards || []).forEach(function (c) {
+      if (!c || !c.id || (K && K.isHeading && K.isHeading(c.id)) || (K && K.get && K.get('sk:' + c.id)) || /inbox/i.test(c.title || '')) return;
+      (c.stack || []).forEach(function (s) { if (s && s.title && out.length < 48) out.push(String(s.title).replace(/\s+/g, ' ').trim().slice(0, 40)); });
+    }); });
+    return out;
+  }
+  function toast(m) { try { GlassUI.toast(m); } catch (e) { try { alert(m); } catch (e2) {} } }
+  function open(bid) {
+    bid = bid || curBid(); var its = items(bid);
+    if (!its.length) return toast('Nothing in this world to display yet — add something first.');
+    var base = /^https?:$/.test(location.protocol) ? 'voxel-factory/index.html' : 'https://minest-app.vercel.app/voxel-factory/index.html';
+    var f = document.createElement('div'); f.id = 'mn-vf3d'; f.style.cssText = 'position:fixed;inset:0;z-index:2147483560;background:#cfe6f5';
+    f.innerHTML = '<iframe src="' + base + '?kit=voxel-foundry&items=' + encodeURIComponent(its.join('\n')) + '" style="border:0;width:100%;height:100%" title="3D Display" allow="fullscreen"></iframe>' +
+      '<button type="button" style="position:absolute;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:8px 14px;border-radius:10px;border:0;background:#2b2118;color:#fff;font:600 14px system-ui">Close 3D</button>';
+    f.querySelector('button').onclick = function () { f.remove(); };
+    document.body.appendChild(f);
+  }
+  setInterval(function () {
+    var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-vf3d]') || !curBid()) return;
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-vf3d', ''); b.title = '3D Display — this world\'s things in a voxel workshop';
+    b.innerHTML = '<i>◇</i>3D Display'; b.addEventListener('click', function (e) { e.stopPropagation(); open(); });
+    acts.appendChild(b);
+  }, 800);
+  window.MinestVoxelFactory = { open: open, items: items };
+})();
 </script>
 </body>
 </html>

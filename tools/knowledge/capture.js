@@ -359,7 +359,7 @@
     ui.body.innerHTML = (ws.length > 1 ? '<div class="wc-where">' + ws.map(function (id) { var b = boardById(id); return '<button type="button" class="wc-chip' + (id === wbid ? ' on' : '') + '" data-world="' + esc(id) + '">' + esc(b.title) + '</button>'; }).join('') + '</div>' : '') +
       '<div class="wc-cap"><textarea data-cap placeholder="Add to My World — a thought, a book, a link, an idea…">' + esc(keep ? ui.draft || '' : '') + '</textarea>' +
       (ui.img && keep ? '<div class="wc-thumb"><img alt="" src="' + esc(ui.img) + '"><button type="button" class="wc-tool" data-noimg>Remove photo</button></div>' : '') +
-      '<div class="wc-tools"><button type="button" class="wc-tool" data-photo>' + ICON.photo + 'Photo</button><button type="button" class="wc-tool" data-import>' + ICON.import + 'Import</button><button type="button" class="wc-tool pri" data-next disabled>Organize ' + ICON.chev + '</button></div></div>' +
+      '<div class="wc-tools"><button type="button" class="wc-tool" data-photo>' + ICON.photo + 'Photo</button><button type="button" class="wc-tool" data-import>' + ICON.import + 'Import</button><button type="button" class="wc-tool" data-3d>◇ 3D</button><button type="button" class="wc-tool pri" data-next disabled>Organize ' + ICON.chev + '</button></div></div>' +
       (newsHtml ? '<div class="wc-h">New in My World<button type="button" class="wc-tool" data-clearnew>Mark all seen</button></div>' + newsHtml : '') +
       '<div class="wc-h">Recently Added</div>' + recentHtml(rec.filter(function (l) { return l.kind !== 'organize'; }).slice(0, 8)) +
       (rec.some(function (l) { return l.kind === 'organize'; }) ? '<div class="wc-h">Recently Organized</div>' + recentHtml(rec.filter(function (l) { return l.kind === 'organize'; }).slice(0, 6)) : '');
@@ -538,6 +538,7 @@
     if ((g = t.closest('[data-world]'))) { ui.wbid = g.getAttribute('data-world'); return home(true); }
     if (t.closest('[data-photo]')) return ui.file.click();
     if (t.closest('[data-noimg]')) { ui.img = null; return home(true); }
+    if (t.closest('[data-3d]')) return open3d();
     if (t.closest('[data-import]')) return importView();
     if (t.closest('[data-txtfile]')) { var tf = ui.body.querySelector('[data-tf]'); if (tf) tf.click(); return; }
     if (t.closest('[data-next]')) return goOrganize();
@@ -585,6 +586,22 @@
     if (t.closest('[data-addto]')) { var k3 = ui.itemKey, b1 = ui.itemBack; ui.itemBack0 = b1; return pickList('item:' + k3, function (cid) { learn(stems((KN().get(k3) || {}).title || ''), cid, 1); addRelation(k3, cid).then(function () { toast('Added'); itemView(k3, b1); }); }); }
   }
   function keep(fn) { var y = ui.body.scrollTop; fn(); ui.body.scrollTop = y; }
+
+  // 3D Display: hands this world's items to voxel-factory/ (same origin) through localStorage and shows it full-screen.
+  function open3d() {
+    var b = boardById(wbidNow()), items = [];
+    ((b && b.columns) || []).forEach(function (col) { (col.cards || []).forEach(function (c) {
+      if (!c || !c.id || KN().isHeading(c.id) || KN().get('sk:' + c.id) || /inbox/i.test(c.title)) return;
+      (c.stack || []).forEach(function (s) { if (s && s.title && items.length < 48) items.push(String(s.title).replace(/\s+/g, ' ').trim().slice(0, 40)); });
+    }); });
+    if (!items.length) return toast('Nothing in this world to display yet — add something first.');
+    var base = /^https?:$/.test(location.protocol) ? 'voxel-factory/index.html' : 'https://minest-app.vercel.app/voxel-factory/index.html';   // the iOS bundle: the live page
+    var src = base + '?kit=voxel-foundry&items=' + encodeURIComponent(items.join('\n'));
+    var f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:#cfe6f5';
+    f.innerHTML = '<iframe src="' + src + '" style="border:0;width:100%;height:100%" title="3D Display"></iframe><button type="button" style="position:absolute;right:12px;bottom:12px;padding:8px 14px;border-radius:10px;border:0;background:#2b2118;color:#fff;font:600 14px system-ui">Close 3D</button>';
+    f.querySelector('button').onclick = function () { f.remove(); };
+    document.body.appendChild(f);
+  }
 
   function open(o) { o = o || {}; shell(); if (o.wbid) ui.wbid = o.wbid; if (o.text) { ui.draft = o.text; home(true); return; } if (o.import) { home(); return importView(); } home(); }
   window.MinestCapture = { open: open, close: close, isOpen: function () { return ui.open; },
