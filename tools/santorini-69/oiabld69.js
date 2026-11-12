@@ -55,6 +55,7 @@
     editing: function () { return !!edit; },
     refresh: function () { updateHl(); fillPanel(); }
   };
+  window.MinestOiaVD = { ctx: function () { return vdCtx; }, host: vdHost };   // 70.1 · for the Magical Backpack
   function curDisps() { var v = VD(); if (v) return v.list(vdHost); var st = H && H.bld ? H.bld() : null; return (st && st.displays) || defaultDisplays(world()); }
 
   /* ---------------------------------------------------------------- Real Cards from Minest Boards */

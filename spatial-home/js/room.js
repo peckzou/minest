@@ -318,7 +318,7 @@
         'desk.quill': { p: [-0.82, 0.78, -1.78], ry: 0.25 }, 'desk.key': { p: [0.1, 0.78, -1.7], ry: 0.3 },
         'desk.mochi': { p: [0.84, 0.78, -1.78], ry: -0.3 }, 'desk.book': { p: [0.6, 0.78, -2.2], ry: 0 },
         'cabinet.left': { p: [2.74, 0.8, 0.72], ry: -Math.PI / 2 }, 'cabinet.right': { p: [2.74, 0.8, 1.66], ry: -Math.PI / 2 },
-        'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }
+        'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }
       },
       desk: { pos: [0, 1.34, -0.92], look: [0, 0.93, -2.2] },
       start: { pos: [0.75, 1.5, 1.75], yaw: 0.18, pitch: -0.1 },
@@ -377,7 +377,8 @@
           'desk.quill': { p: [-0.82, 0.78, -1.78], ry: 0.25 }, 'desk.key': { p: [0.1, 0.78, -1.7], ry: 0.3 },
           'desk.mochi': { p: [0.84, 0.78, -1.78], ry: -0.3 }, 'desk.book': { p: [0.6, 0.78, -2.2], ry: 0 },
           'cabinet.left': { p: [2.74, 0.8, 0.72], ry: -Math.PI / 2 }, 'cabinet.right': { p: [2.74, 0.8, 1.66], ry: -Math.PI / 2 },
-          'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }
+          'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 },
+          'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }   // the backpack, on the floor left of the desk
         };
       },
       solids: function () { return [[-1.1, -2.5, 1.1, -1.5], [-0.26, -1.45, 0.26, -0.92], [2.55, -1.56, 3, -0.04], [2.45, 0.44, 3, 1.96], [-3, -1.06, -2.46, 0.46], [1.9, -2.5, 3, -1.8]]; },

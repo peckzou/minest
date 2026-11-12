@@ -518,10 +518,67 @@
     };
   }
 
+
+  /* ================================================================ the Magical Backpack itself, on the floor by the desk
+     Leather in three tones, stitched seams, a front pocket with a brass nameplate, side pockets, shoulder straps, a top
+     handle, and a flap held by two straps with brass buckles. Tapped: the buckles let go, the flap swings open, warm light
+     and a few sparks come out — and the backpack's inventory opens (app.js, o.local). */
+  function backpack() {
+    var g = new THREE.Group(), v = new VB(1801), L = '#8a5a36', LD = '#6e4426', LL = '#a8754a', ST = '#f1dfb8', BR = '#d8a94a', i;
+    v.box(-0.215, 0, -0.135, 0.215, 0.035, 0.135, '#4f321c');
+    v.box(-0.2, 0.035, -0.12, 0.2, 0.46, 0.12, L, 0.04); v.box(-0.185, 0.46, -0.11, 0.185, 0.5, 0.11, L);
+    for (i = 0; i < 9; i++) { v.box(-0.2 + i * 0.05, 0.05, 0.12, -0.19 + i * 0.05, 0.052, 0.121, ST); }   // stitching along the base
+    [-1, 1].forEach(function (sg) {
+      v.box(sg > 0 ? 0.2 : -0.24, 0.07, -0.085, sg > 0 ? 0.24 : -0.2, 0.31, 0.085, LD, 0.05);
+      v.box(sg > 0 ? 0.24 : -0.243, 0.29, -0.085, sg > 0 ? 0.243 : -0.24, 0.295, 0.085, ST);
+      v.box(sg > 0 ? 0.205 : -0.245, 0.24, -0.02, sg > 0 ? 0.245 : -0.205, 0.26, 0.02, BR);                // side buckles
+      v.box(sg * 0.13 - 0.03, 0.08, -0.15, sg * 0.13 + 0.03, 0.45, -0.12, LD);                             // shoulder straps
+    });
+    v.box(-0.145, 0.065, 0.12, 0.145, 0.28, 0.165, LL, 0.04);                                             // front pocket
+    v.box(-0.135, 0.265, 0.165, 0.135, 0.268, 0.167, ST); v.box(-0.135, 0.075, 0.165, -0.132, 0.268, 0.167, ST); v.box(0.132, 0.075, 0.165, 0.135, 0.268, 0.167, ST);
+    v.box(-0.055, 0.15, 0.165, 0.055, 0.19, 0.172, BR); v.box(-0.045, 0.158, 0.172, 0.045, 0.182, 0.174, '#7a5420');   // nameplate
+    [-0.08, 0.08].forEach(function (x) { v.box(x - 0.02, 0.3, 0.12, x + 0.02, 0.33, 0.13, BR); });          // the catches the buckles close on
+    v.box(-0.06, 0.5, -0.012, -0.045, 0.56, 0.012, LD); v.box(0.045, 0.5, -0.012, 0.06, 0.56, 0.012, LD); v.box(-0.06, 0.55, -0.012, 0.06, 0.565, 0.012, LD);   // handle
+    g.add(v.mesh());
+    /* warm light inside, shown when the flap opens */
+    var gv = new VB(1802); gv.box(-0.17, 0.495, -0.1, 0.17, 0.5, 0.1, '#ffd98a');
+    var glow = gv.mesh(MAT.glow(0), true); glow.material.transparent = true; g.add(glow);
+    var lamp = new THREE.PointLight(0xffc970, 0, 1.2, 2); lamp.position.set(0, 0.62, 0.05); g.add(lamp);
+    var sparks = [], sm = new THREE.MeshBasicMaterial({ color: 0xfff1c0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    for (i = 0; i < 7; i++) { var sp = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.012), sm); sp.userData.ph = i / 7; g.add(sp); sparks.push(sp); }
+    /* the flap, hinged on the back of the top */
+    var flap = new THREE.Group(); flap.position.set(0, 0.5, -0.115); g.add(flap);
+    var fv = new VB(1803);
+    fv.box(-0.195, 0, 0, 0.195, 0.028, 0.24, L, 0.03); fv.box(-0.195, -0.2, 0.235, 0.195, 0.028, 0.262, L, 0.03);
+    fv.box(-0.185, 0.028, 0.012, 0.185, 0.03, 0.014, ST); fv.box(-0.185, -0.19, 0.262, 0.185, -0.188, 0.264, ST);
+    fv.box(-0.04, 0.01, 0.1, 0.04, 0.03, 0.14, BR);                                                         // a small brass plate on top
+    [-0.08, 0.08].forEach(function (x) { fv.box(x - 0.018, -0.235, 0.255, x + 0.018, 0.02, 0.268, LD); });   // straps down the front
+    flap.add(fv.mesh());
+    var bks = [];
+    [-0.08, 0.08].forEach(function (x) { var b = new THREE.Group(), bv = new VB(1804); bv.box(-0.026, -0.022, 0, 0.026, 0.022, 0.012, BR); bv.box(-0.016, -0.012, 0.012, 0.016, 0.012, 0.014, '#7a5420'); b.add(bv.mesh()); b.position.set(x, -0.2, 0.268); flap.add(b); bks.push(b); });
+    var kk = 0, last = 0;
+    return {
+      id: 'backpack', name: '魔法背包', en: 'Magical Backpack', icon: '🎒', feature: 'backpack', local: true, anchor: 'floor.pack', group: g,
+      hit: hitBox(g, -0.25, 0, -0.16, 0.25, 0.58, 0.28), label: [0, 0.68, 0],
+      focus: { pos: [-1.08, 1.02, -1.2], look: [-1.45, 0.3, -1.85] },
+      set: function (k) {
+        kk = k; var u = seg(k, 0, 0.3), o = ease(seg(k, 0.22, 0.8));
+        bks.forEach(function (b, j) { b.rotation.x = -0.9 * ease(u); b.position.y = -0.2 + 0.02 * Math.sin(u * Math.PI); });   // unbuckled
+        flap.rotation.x = -1.95 * o;
+        var gl = seg(k, 0.45, 1); glow.material.opacity = gl; lamp.intensity = 0.9 * gl; sm.opacity = 0.9 * gl;
+      },
+      idle: function (t) {
+        var dt = Math.min(0.1, Math.max(0, t - last)); last = t;
+        sparks.forEach(function (sp, j) { var p = (t * 0.35 + sp.userData.ph) % 1; sp.position.set(Math.sin(j * 2.3 + t) * 0.09, 0.52 + p * 0.32 * kk, Math.cos(j * 1.7 + t) * 0.06); sp.scale.setScalar(1 - p); });
+        if (kk > 0.4) lamp.intensity = 0.9 * seg(kk, 0.45, 1) * (0.9 + 0.1 * Math.sin(t * 6));
+      }
+    };
+  }
+
   /* the entries this update adds; medal style comes from the settings (box on the cabinet / board on the wall) */
   function make(opts) {
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
-    return [aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
+    return [backpack(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
   root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
 })(window);

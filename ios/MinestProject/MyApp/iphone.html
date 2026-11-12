@@ -169280,7 +169280,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         'desk.quill': { p: [-0.82, 0.78, -1.78], ry: 0.25 }, 'desk.key': { p: [0.1, 0.78, -1.7], ry: 0.3 },
         'desk.mochi': { p: [0.84, 0.78, -1.78], ry: -0.3 }, 'desk.book': { p: [0.6, 0.78, -2.2], ry: 0 },
         'cabinet.left': { p: [2.74, 0.8, 0.72], ry: -Math.PI / 2 }, 'cabinet.right': { p: [2.74, 0.8, 1.66], ry: -Math.PI / 2 },
-        'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }
+        'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }
       },
       desk: { pos: [0, 1.34, -0.92], look: [0, 0.93, -2.2] },
       start: { pos: [0.75, 1.5, 1.75], yaw: 0.18, pitch: -0.1 },
@@ -169339,7 +169339,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           'desk.quill': { p: [-0.82, 0.78, -1.78], ry: 0.25 }, 'desk.key': { p: [0.1, 0.78, -1.7], ry: 0.3 },
           'desk.mochi': { p: [0.84, 0.78, -1.78], ry: -0.3 }, 'desk.book': { p: [0.6, 0.78, -2.2], ry: 0 },
           'cabinet.left': { p: [2.74, 0.8, 0.72], ry: -Math.PI / 2 }, 'cabinet.right': { p: [2.74, 0.8, 1.66], ry: -Math.PI / 2 },
-          'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }
+          'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 },
+          'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }   // the backpack, on the floor left of the desk
         };
       },
       solids: function () { return [[-1.1, -2.5, 1.1, -1.5], [-0.26, -1.45, 0.26, -0.92], [2.55, -1.56, 3, -0.04], [2.45, 0.44, 3, 1.96], [-3, -1.06, -2.46, 0.46], [1.9, -2.5, 3, -1.8]]; },
@@ -170067,7 +170068,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function anchors() {
     var A = PT.anchors(0.84), out = {};
-    ['desk.left', 'desk.right', 'desk.quill', 'desk.key', 'desk.mochi', 'desk.book'].forEach(function (k) { out[k] = xf('office', A[k]); });
+    ['desk.left', 'desk.right', 'desk.quill', 'desk.key', 'desk.mochi', 'desk.book', 'floor.pack'].forEach(function (k) { out[k] = xf('office', A[k]); });
     out['shelf.mid'] = xf('shelf', A['shelf.mid']);
     ['cabinet.top', 'cabinet.left', 'cabinet.right', 'wall.right'].forEach(function (k) { out[k] = xf('cabinet', A[k]); });
     out['corner.window'] = { p: [3.85, 0, -1.08], ry: 0 };                      // the aquarium: collection end, by the left windows
@@ -170907,10 +170908,67 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     };
   }
 
+
+  /* ================================================================ the Magical Backpack itself, on the floor by the desk
+     Leather in three tones, stitched seams, a front pocket with a brass nameplate, side pockets, shoulder straps, a top
+     handle, and a flap held by two straps with brass buckles. Tapped: the buckles let go, the flap swings open, warm light
+     and a few sparks come out — and the backpack's inventory opens (app.js, o.local). */
+  function backpack() {
+    var g = new THREE.Group(), v = new VB(1801), L = '#8a5a36', LD = '#6e4426', LL = '#a8754a', ST = '#f1dfb8', BR = '#d8a94a', i;
+    v.box(-0.215, 0, -0.135, 0.215, 0.035, 0.135, '#4f321c');
+    v.box(-0.2, 0.035, -0.12, 0.2, 0.46, 0.12, L, 0.04); v.box(-0.185, 0.46, -0.11, 0.185, 0.5, 0.11, L);
+    for (i = 0; i < 9; i++) { v.box(-0.2 + i * 0.05, 0.05, 0.12, -0.19 + i * 0.05, 0.052, 0.121, ST); }   // stitching along the base
+    [-1, 1].forEach(function (sg) {
+      v.box(sg > 0 ? 0.2 : -0.24, 0.07, -0.085, sg > 0 ? 0.24 : -0.2, 0.31, 0.085, LD, 0.05);
+      v.box(sg > 0 ? 0.24 : -0.243, 0.29, -0.085, sg > 0 ? 0.243 : -0.24, 0.295, 0.085, ST);
+      v.box(sg > 0 ? 0.205 : -0.245, 0.24, -0.02, sg > 0 ? 0.245 : -0.205, 0.26, 0.02, BR);                // side buckles
+      v.box(sg * 0.13 - 0.03, 0.08, -0.15, sg * 0.13 + 0.03, 0.45, -0.12, LD);                             // shoulder straps
+    });
+    v.box(-0.145, 0.065, 0.12, 0.145, 0.28, 0.165, LL, 0.04);                                             // front pocket
+    v.box(-0.135, 0.265, 0.165, 0.135, 0.268, 0.167, ST); v.box(-0.135, 0.075, 0.165, -0.132, 0.268, 0.167, ST); v.box(0.132, 0.075, 0.165, 0.135, 0.268, 0.167, ST);
+    v.box(-0.055, 0.15, 0.165, 0.055, 0.19, 0.172, BR); v.box(-0.045, 0.158, 0.172, 0.045, 0.182, 0.174, '#7a5420');   // nameplate
+    [-0.08, 0.08].forEach(function (x) { v.box(x - 0.02, 0.3, 0.12, x + 0.02, 0.33, 0.13, BR); });          // the catches the buckles close on
+    v.box(-0.06, 0.5, -0.012, -0.045, 0.56, 0.012, LD); v.box(0.045, 0.5, -0.012, 0.06, 0.56, 0.012, LD); v.box(-0.06, 0.55, -0.012, 0.06, 0.565, 0.012, LD);   // handle
+    g.add(v.mesh());
+    /* warm light inside, shown when the flap opens */
+    var gv = new VB(1802); gv.box(-0.17, 0.495, -0.1, 0.17, 0.5, 0.1, '#ffd98a');
+    var glow = gv.mesh(MAT.glow(0), true); glow.material.transparent = true; g.add(glow);
+    var lamp = new THREE.PointLight(0xffc970, 0, 1.2, 2); lamp.position.set(0, 0.62, 0.05); g.add(lamp);
+    var sparks = [], sm = new THREE.MeshBasicMaterial({ color: 0xfff1c0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    for (i = 0; i < 7; i++) { var sp = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.012), sm); sp.userData.ph = i / 7; g.add(sp); sparks.push(sp); }
+    /* the flap, hinged on the back of the top */
+    var flap = new THREE.Group(); flap.position.set(0, 0.5, -0.115); g.add(flap);
+    var fv = new VB(1803);
+    fv.box(-0.195, 0, 0, 0.195, 0.028, 0.24, L, 0.03); fv.box(-0.195, -0.2, 0.235, 0.195, 0.028, 0.262, L, 0.03);
+    fv.box(-0.185, 0.028, 0.012, 0.185, 0.03, 0.014, ST); fv.box(-0.185, -0.19, 0.262, 0.185, -0.188, 0.264, ST);
+    fv.box(-0.04, 0.01, 0.1, 0.04, 0.03, 0.14, BR);                                                         // a small brass plate on top
+    [-0.08, 0.08].forEach(function (x) { fv.box(x - 0.018, -0.235, 0.255, x + 0.018, 0.02, 0.268, LD); });   // straps down the front
+    flap.add(fv.mesh());
+    var bks = [];
+    [-0.08, 0.08].forEach(function (x) { var b = new THREE.Group(), bv = new VB(1804); bv.box(-0.026, -0.022, 0, 0.026, 0.022, 0.012, BR); bv.box(-0.016, -0.012, 0.012, 0.016, 0.012, 0.014, '#7a5420'); b.add(bv.mesh()); b.position.set(x, -0.2, 0.268); flap.add(b); bks.push(b); });
+    var kk = 0, last = 0;
+    return {
+      id: 'backpack', name: '魔法背包', en: 'Magical Backpack', icon: '🎒', feature: 'backpack', local: true, anchor: 'floor.pack', group: g,
+      hit: hitBox(g, -0.25, 0, -0.16, 0.25, 0.58, 0.28), label: [0, 0.68, 0],
+      focus: { pos: [-1.08, 1.02, -1.2], look: [-1.45, 0.3, -1.85] },
+      set: function (k) {
+        kk = k; var u = seg(k, 0, 0.3), o = ease(seg(k, 0.22, 0.8));
+        bks.forEach(function (b, j) { b.rotation.x = -0.9 * ease(u); b.position.y = -0.2 + 0.02 * Math.sin(u * Math.PI); });   // unbuckled
+        flap.rotation.x = -1.95 * o;
+        var gl = seg(k, 0.45, 1); glow.material.opacity = gl; lamp.intensity = 0.9 * gl; sm.opacity = 0.9 * gl;
+      },
+      idle: function (t) {
+        var dt = Math.min(0.1, Math.max(0, t - last)); last = t;
+        sparks.forEach(function (sp, j) { var p = (t * 0.35 + sp.userData.ph) % 1; sp.position.set(Math.sin(j * 2.3 + t) * 0.09, 0.52 + p * 0.32 * kk, Math.cos(j * 1.7 + t) * 0.06); sp.scale.setScalar(1 - p); });
+        if (kk > 0.4) lamp.intensity = 0.9 * seg(kk, 0.45, 1) * (0.9 + 0.1 * Math.sin(t * 6));
+      }
+    };
+  }
+
   /* the entries this update adds; medal style comes from the settings (box on the cabinet / board on the wall) */
   function make(opts) {
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
-    return [aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
+    return [backpack(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
   root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
 })(window);
@@ -171158,7 +171216,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (!host.reduced || !host.reduced()) { ui.el.classList.remove('opening'); void ui.el.offsetWidth; ui.el.classList.add('opening'); }
     render();
   }
-  function close() { if (!ui) return; ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; }
+  function close(placing) { if (!ui || ui.el.hidden) return; ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; try { if (ui.host && ui.host.onClose) ui.host.onClose(!!placing); } catch (e) {} }
   function isOpen() { return !!(ui && !ui.el.hidden); }
   function items() { return catalog(ui.host); }
   function render() {
@@ -171207,6 +171265,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (it.ready === false) acts.push('<button type="button" disabled>还没有做</button>');
     else {
       if (it.kind === 'template') acts.push('<button type="button" class="pri" data-bp="place">放一个</button>');
+      else if (st.home) acts.push('<button type="button" disabled>在 Spatial Home 里使用</button>');
       else if (st.placed) acts.push('<button type="button" class="pri" data-bp="move">移动</button><button type="button" data-bp="stash">收回背包</button>');
       else acts.push('<button type="button" class="pri" data-bp="place">放出来</button>');
       if (it.spec && it.spec.kind === 'machine') acts.push('<button type="button" data-bp="load">装载 List…</button>');
@@ -171236,14 +171295,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (a === 'close') { close(); return; }
     if (!it) return;
     if (a === 'fav') { var on = toggleFav(it.key); host.toast(on ? '★ 加入收藏夹和快捷栏' : '已从收藏夹拿出'); render(); return; }
-    if (a === 'place' || a === 'move') { touch(it.key); close(); host.place(it, a === 'move'); return; }
+    if (a === 'place' || a === 'move') { touch(it.key); close(true); host.place(it, a === 'move'); return; }
     if (a === 'stash') { host.stash(it); render(); return; }
     if (a === 'load') {
-      var box = ui.el.querySelector('.lists'), L = lists();
+      var box = ui.el.querySelector('.lists'), L = lists().filter(function (l) { var b = host.listBoard && host.listBoard(); return !b || l.bid === b; });
       box.hidden = !box.hidden; if (box.hidden) return;
       var M = machines().filter(function (m) { return 'mc:' + m.id === it.key; })[0], cap = machineCap(M && M.id);
       box.innerHTML = L.length ? L.map(function (l, i) { return '<button type="button" data-list="' + i + '">' + esc(l.title) + ' <small>· ' + l.n + ' 张 · ' + esc(l.board) + (cap && l.n > cap ? ' · 一页 ' + cap + ' 张，共 ' + Math.ceil(l.n / cap) + ' 页' : '') + '</small></button>'; }).join('') : '<p>看板上还没有可以装载的 List</p>';
-      box.onclick = function (ev) { var q = ev.target.closest('[data-list]'); if (!q) return; var l = L[+q.dataset.list]; touch(it.key); close(); host.place(Object.assign({}, it, { spec: { kind: 'machine', mx: { type: M.id, bid: l.bid, list: l.id, title: l.title } }, name: it.name + ' · ' + l.title }), false); };
+      box.onclick = function (ev) { var q = ev.target.closest('[data-list]'); if (!q) return; var l = L[+q.dataset.list]; touch(it.key); close(true); host.place(Object.assign({}, it, { spec: { kind: 'machine', mx: { type: M.id, bid: l.bid, list: l.id, title: l.title } }, name: it.name + ' · ' + l.title }), false); };
     }
   }
   function machineCap(id) { try { var P = HW().MinestMachines.pure, k = { carousel: 'CAR', rolodex: 'ROL', flip: 'FLP', paternoster: 'PAT' }[id], o = k && P[k]; return o && (o.cap || o.slots || o.cards) || null; } catch (e) { return null; } }
@@ -171256,7 +171315,105 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     hb.innerHTML = favs.map(function (it) { var src = previewer(host.THREE).cache[it.key] || (favs.length <= 9 ? thumb(host.THREE, it) : ''); return '<button type="button" data-key="' + esc(it.key) + '" title="' + esc(it.name) + '">' + (src ? '<img alt="" src="' + src + '">' : '<i>' + it.icon + '</i>') + '</button>'; }).join('');
     hb.hidden = !favs.length || !host.hotbarVisible();
   }
-  root.MinestBackpack = { VERSION: VERSION, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb };
+
+  /* ================================================================ one owned thing, one place — across Spatial Home and My World
+     'bp:owned:<key>' = { w: 'home', env, uid } | { w: 'oia', bid, id } | null. Placing somewhere sets it; whoever finds a copy
+     that is not the registered one drops it (lazily, the next time that place is drawn). */
+  function ownedKey(ref) { return ref && ref.work ? 'work:' + ref.work : (ref && ref.sid ? 'thing:' + ref.sid : null); }
+  var owned = {
+    get: function (ref) { var k = ownedKey(ref); return k ? store.get('bp:owned:' + k) : null; },
+    set: function (ref, where) { var k = ownedKey(ref); if (k) store.set('bp:owned:' + k, Object.assign({ t: Date.now() }, where)); },
+    clear: function (ref) { var k = ownedKey(ref); if (k) store.set('bp:owned:' + k, null); },
+    /* take it out of every Spatial Home layout except (env, uid) */
+    dropFromHome: function (ref, keepEnv, keepUid) {
+      var envs = (root.SpatialRoom && root.SpatialRoom.envs ? root.SpatialRoom.envs().map(function (e) { return e.id; }) : ['santorini', 'manhattan', 'alpine', 'train']);
+      envs.forEach(function (env) {
+        var L = store.get('bp:home:' + env); if (!L || !L.extras) return;
+        var n = L.extras.length; L.extras = L.extras.filter(function (e) { return !(e.ref && ownedKey(e.ref) === ownedKey(ref) && !(env === keepEnv && e.uid === keepUid)); });
+        if (L.extras.length !== n) store.set('bp:home:' + env, L);
+      });
+    }
+  };
+
+  /* ================================================================ My World (Santorini): the same backpack, the exhibition engine's way
+     Things go in as displays on the island record (undo, save and sync are the island's own). Works, things and furniture are
+     a display kind 'bp' drawn with the backpack's models; machines are the engine's own 'machine' displays. */
+  var OIA_SCALE = 2.0;                                               // backpack models are in metres; the island's cells are ~0.5 m
+  var MSIZE = { carousel: { w: 1, d: 1, h: 3 }, rolodex: { w: 1, d: 1, h: 1 }, flip: { w: 1, d: 1, h: 1 }, paternoster: { w: 1, d: 1, h: 3 } };
+  function VDm() { var W = HW(); return W.MinestVoxelDisplays || null; }
+  function oiaCtx() { var W = HW(); return W.MinestOiaVD && W.MinestOiaVD.ctx ? W.MinestOiaVD.ctx() : null; }
+  function oiaOpen() { var W = HW(); return !!(W.MinestOia && W.MinestOia.isOpen && W.MinestOia.isOpen()); }
+  function registerKind() {
+    var VD = VDm(); if (!VD || !VD.KINDS || !VD.ext || VD.ext.bp) return !!(VD && VD.ext && VD.ext.bp);
+    VD.KINDS.bp = { name: '背包物品', en: 'From the backpack', icon: '🎒', surface: 'machine', custom: true, w: 1, d: 1, h: 1, why: '', slots: [], boxes: [] };
+    VD.ext.bp = {
+      build: function (d, grp) {
+        var spec = d.tx && d.tx.bp; if (!spec) return;
+        if (spec.ref) { var o = owned.get(spec.ref); if (o && !(o.w === 'oia' && o.id === d.id)) { setTimeout(function () { var c = oiaCtx(); if (c) try { c.commit(function (next) { next.displays = next.displays.filter(function (q) { return q.id !== d.id; }); }); } catch (e) {} }, 0); return; } }
+        var T = root.THREE, m = model(T, spec), g = m.group; g.scale.setScalar(OIA_SCALE); grp.add(g);
+      },
+      sig: function (d) { var spec = d.tx && d.tx.bp; return JSON.stringify(spec || {}) + (spec && spec.ref ? JSON.stringify(owned.get(spec.ref)) : ''); },
+      open: function (d, ctx) { ctx.setSel(d.id); ctx.refresh(); var W = HW(); try { if (W.MinestOiaConsole) W.MinestOiaConsole.open('disp'); } catch (e) {} },
+      panel: function (d) { var spec = d.tx && d.tx.bp || {}; return '<div class="obld-sub">🎒 ' + esc(spec.title || '背包物品') + (spec.ref ? ' · 只有一件' : '') + '</div><div class="obld-actions"><button type="button" class="obld-btn" data-vd="bp:stash">🎒 收回背包</button><button type="button" class="obld-btn" data-vd="bp:open">打开背包</button></div>'; },
+      entry: function () { return '<div class="tw-entry"><button type="button" class="obld-btn pri" data-vd="bp:open">🎒 魔法背包</button><small>作品、陈列装置、收藏 · 和 Spatial Home 用同一个背包</small></div>'; },
+      act: function (ctx, name, arg, d) {
+        if (name === 'open') return openInWorld();
+        if (name === 'stash' && d) { var spec = d.tx && d.tx.bp; ctx.commit(function (next) { next.displays = next.displays.filter(function (q) { return q.id !== d.id; }); }); if (spec && spec.ref) owned.clear(spec.ref); ctx.setSel(null); ctx.refresh(); ctx.toast('🎒 收回背包了 · 原来的作品和 List 都没有改动'); }
+      }
+    };
+    return true;
+  }
+  var oiaHost = {
+    THREE: root.THREE, reduced: function () { try { return root.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } },
+    toast: function (m) { var c = oiaCtx(); if (c) c.toast(m); },
+    hotbarVisible: function () { return false; }, functionObjects: function () { return []; }, world: 'oia',
+    listBoard: function () { var c = oiaCtx(); return c ? c.host.boardId() : null; },
+    status: function (it) {
+      var c = oiaCtx(), ds = c ? VDm()._.list(c.host) : [];
+      if (it.kind === 'function') return { badge: '', cls: 'bag', text: '功能物件在 Spatial Home 里使用', placed: false, home: true };
+      if (it.kind === 'owned') { var o = owned.get(it.ref); if (!o) return { badge: '', text: '在背包里', placed: false }; var here = o.w === 'oia' && c && o.bid === c.host.boardId(); return { badge: here ? '摆放中' : '别处', text: o.w === 'oia' ? (here ? '摆在这座岛上' : '摆在 My World 的另一座岛（放到这里会移过来）') : '摆在 Spatial Home（放到这里会移过来，不会多出一件）', placed: here }; }
+      var n = ds.filter(function (d) { return it.spec && ((it.spec.kind === 'machine' && d.kind === 'machine' && d.mx && d.mx.type === it.spec.mx.type) || (d.kind === 'bp' && d.tx && d.tx.bp && d.tx.bp.kind === it.spec.kind)); }).length;
+      return { badge: n ? '×' + n : '', cls: 'tpl', text: n ? '这座岛上放了 ' + n + ' 个 · 模板，可以再放' : '模板，可以放多个', placed: false };
+    },
+    place: function (it) {
+      var c = oiaCtx(), VD = VDm(); if (!c || !VD) return;
+      if (it.kind === 'function') return c.toast('功能物件在 Spatial Home 里使用');
+      var U = VD._, host = c.host, v = host.view(), spec = JSON.parse(JSON.stringify(it.spec)), d;
+      if (it.kind === 'owned') { var o = owned.get(it.ref); if (o && o.w === 'oia' && o.bid === host.boardId()) { c.setSel(o.id); c.refresh(); return c.toast('它已经在这座岛上了 · 选中了，可以在控制台里移动'); } }
+      if (spec.kind === 'machine') {
+        if (!spec.mx.list) return c.toast('先在背包里给它装载一个 List');
+        if (spec.mx.bid !== host.boardId()) return c.toast('这里的装置只能装这座岛看板上的 List');
+        var sz = MSIZE[spec.mx.type] || { w: 1, d: 1, h: 1 };
+        d = { id: U.uid('m'), kind: 'machine', x: v.x, z: v.z, y: 0, rot: U.rotToward(-v.fx, -v.fz), it: [], w: sz.w, d: sz.d, h: sz.h, label: spec.mx.title || '', mx: { type: spec.mx.type, list: spec.mx.list, auto: true } };
+      } else {
+        var m = model(root.THREE, spec), hb = m.hb;
+        d = { id: U.uid('b'), kind: 'bp', x: v.x, z: v.z, y: 0, rot: U.rotToward(-v.fx, -v.fz), it: [], w: Math.max(1, Math.ceil(hb[0] * OIA_SCALE)), d: Math.max(1, Math.ceil(hb[2] * OIA_SCALE)), h: Math.max(1, Math.ceil(hb[1] * OIA_SCALE)), label: spec.title || it.name, tx: { bp: spec } };
+      }
+      U.snap(d); var st = U.near(host, d, U.list(host), v.y, 12, true);
+      if (!st.ok) return c.toast('你面前没有放得下的地方：' + st.why);
+      if (it.kind === 'owned') { owned.set(it.ref, { w: 'oia', bid: host.boardId(), id: d.id }); owned.dropFromHome(it.ref, null, null); }   // registered first: drawing it checks the register
+      c.commit(function (next) { next.displays.push(d); });
+      c.setSel(d.id); c.refresh(); c.toast(it.icon + ' ' + it.name + ' 放好了 · 选中后可以在控制台里移动、转向，↶ 可撤销');
+    },
+    stash: function (it) {
+      var c = oiaCtx(); if (!c || !it.ref) return; var o = owned.get(it.ref);
+      if (o && o.w === 'oia' && o.bid === c.host.boardId()) { c.commit(function (next) { next.displays = next.displays.filter(function (q) { return q.id !== o.id; }); }); owned.clear(it.ref); c.refresh(); c.toast('🎒 收回背包了'); }
+      else if (o && o.w === 'home') { owned.dropFromHome(it.ref, null, null); owned.clear(it.ref); c.toast('🎒 从 Spatial Home 收回背包了'); }
+      else if (o) { owned.clear(it.ref); c.toast('🎒 收回背包了（那座岛下次打开时会把它拿走）'); }
+    }
+  };
+  setTimeout(registerKind, 0); if (root.addEventListener) root.addEventListener('load', registerKind);
+  function openInWorld() { if (!registerKind()) return; oiaHost.THREE = root.THREE; open(oiaHost); }
+  /* the entry in Santorini: a 🎒 in the console header, next to its other buttons */
+  setInterval(function () {
+    if (!oiaOpen()) return; registerKind();
+    var head = HW().document.querySelector('#oia-console header'); if (!head || head.querySelector('.bp-oia')) return;
+    var b = HW().document.createElement('button'); b.type = 'button'; b.className = 'oia82-p bp-oia'; b.textContent = '🎒 背包'; b.title = '魔法背包 · 和 Spatial Home 用同一个';
+    b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openInWorld(); });
+    head.insertBefore(b, head.children[1] || null);
+  }, 700);
+
+  root.MinestBackpack = { VERSION: VERSION, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb, owned: owned, ownedKey: ownedKey, openInWorld: openInWorld, registerKind: registerKind };
 })(window);
 
 /* Minest · Spatial Home — the bridge to the features that already exist.
@@ -171627,6 +171784,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function activate(o) {
     if (busy || !o) return;
+    if (o.local) return openLocal(o);
     busy = true; skipRun = false; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true; $('skip').hidden = false;
     var feature = o.feature, F = B.FEATURES[feature], needs = B.needsHost(feature), hostP = needs ? B.load() : null;
     flyLook(o.focus.pos, o.focus.look, 0.8)
@@ -171671,6 +171829,21 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           return veilFade(0, 0.3);
         });
       });
+  }
+  /* the backpack on the floor: the camera bends down, the buckles let go, the flap opens — and the inventory opens.
+     Closing the inventory closes the flap; choosing something to place goes straight to placing it. */
+  var packFrom = null;
+  function openLocal(o) {
+    busy = true; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true;
+    flyLook(o.focus.pos, o.focus.look, 0.7).then(function () { return animK(o, 1, 0.75); }).then(function () {
+      busy = false; body.classList.remove('busy'); packFrom = o; openPack();
+    });
+  }
+  function closeLocal(placing) {
+    var o = packFrom; if (!o) return; packFrom = null;
+    animK(o, 0, 0.45);
+    if (placing) { flyHome(0.6); return; }                         // placing starts at once; the camera finds its way home meanwhile
+    busy = true; body.classList.add('busy'); flyHome(0.7).then(function () { busy = false; body.classList.remove('busy'); showHint(); });
   }
   function comeBack(o) {
     cineScene = null; skipRun = false; $('skip').hidden = true;
@@ -171855,14 +172028,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var st = B.state(), dot = $('hostDot');
     dot.className = st === 'ready' ? 'ok' : (st === 'loading' ? 'wait' : '');
     $('hostText').textContent = EMBED ? '就在这个 Minest 里 · ' + (location.pathname.split('/').pop() || 'index.html') : (st === 'ready' ? '已连接 ' : st === 'loading' ? '载入中 ' : '尚未载入 ') + B.appUrl().replace(location.origin, '');
-    $('featList').innerHTML = objects.map(function (o) {
+    $('featList').innerHTML = objects.filter(function (o) { return !o.local; }).map(function (o) {
       var F = B.FEATURES[o.feature], av = B.available(o.feature), unknown = B.needsHost(o.feature) && st !== 'ready' && !av.length;
       return '<li class="' + (!av.length && !unknown ? 'no' : '') + '"><b>' + o.icon + ' ' + o.name + '</b><span>' + (av.length ? av.map(function (t) { return esc(t.label); }).join(' · ') : (unknown ? '载入后可知' : '未接上：' + esc(F.title))) + '</span></li>';
     }).join('');
   }
   function markAvailability() {
     if (B.state() !== 'ready') return;
-    objects.forEach(function (o) { var off = !B.available(o.feature).length; o.lab.classList.toggle('off', off); o.chip.classList.toggle('off', off); });
+    objects.forEach(function (o) { if (o.local) return; var off = !B.available(o.feature).length; o.lab.classList.toggle('off', off); o.chip.classList.toggle('off', off); });
     if (!setEl.hidden) renderSettings();
   }
   window.addEventListener('spatialhome:host', markAvailability);
@@ -171871,7 +172044,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
      A layout per environment: S.layouts[env] = { <thing id>: { p, ry, stashed }, extras: [ { uid, kind, p, ry, ref, title } ] }.
      Nothing is copied: a My World thing on display keeps only its ids (board / card / thing) and its title for the label.
      Every thing's close-up camera is stored relative to the thing, so it follows wherever the thing goes. */
-  var PLACE = { board: 'wall', aquarium: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
+  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
   function placeType(o) { return o.style === 'wall' ? 'wall' : (PLACE[o.id] || 'surface'); }
   function m4of(p, ry) { return new THREE.Matrix4().makeRotationY(ry).setPosition(p[0], p[1], p[2]); }
   function localize(o) {
@@ -171919,7 +172092,10 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var NAMES = { pedestal: '展示台', wallshelf: '墙面置物架', vitrine: '玻璃展柜', thing: '我的物品', neon: '作品', machine: '陈列装置' };
   function buildExtras() {
     XS.forEach(function (x) { scene.remove(x.group); }); XS = [];
-    (layout().extras || []).forEach(function (e) {
+    var Lb = layout(), OW = BP && BP.owned, n0 = (Lb.extras || []).length;
+    if (OW) Lb.extras = (Lb.extras || []).filter(function (e) { if (!e.ref) return true; var o = OW.get(e.ref); return !o || (o.w === 'home' && o.env === room.envId && o.uid === e.uid); });
+    if (Lb.extras && Lb.extras.length !== n0) saveLayout(room.envId, Lb);
+    (Lb.extras || []).forEach(function (e) {
       var m = BP.model(THREE, e), hb = m.hb, hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.05, hb[0]), Math.max(0.05, hb[1]), Math.max(0.05, hb[2])), new THREE.MeshBasicMaterial({ visible: false }));
       hit.position.set(0, m.hbY != null ? m.hbY : hb[1] / 2, m.hbZ || 0); m.group.add(hit);
       m.group.position.fromArray(e.p); m.group.rotation.y = e.ry || 0; scene.add(m.group);
@@ -172009,7 +172185,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var E = edit, L = layout(); edit = null; ghost(E, false); editBar.hidden = true; body.classList.remove('editing');
     var g = E.g, pos = [+g.position.x.toFixed(3), +g.position.y.toFixed(3), +g.position.z.toFixed(3)], ry = +g.rotation.y.toFixed(4);
     if (how === 'cancel') {
-      if (E.x && E.isNew) { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); buildExtras(); save(); refreshHotbar(); return; }
+      if (E.x && E.isNew) {
+        var ue = E.x.e; L.extras = (L.extras || []).filter(function (e) { return e !== ue; });
+        if (ue.ref && BP.owned && ue.uid in pendingReg) { var pr = pendingReg[ue.uid]; delete pendingReg[ue.uid]; if (pr) BP.owned.set(ue.ref, pr); else BP.owned.clear(ue.ref); }
+        buildExtras(); save(); refreshHotbar(); return;
+      }
       g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); return;
     }
     if (E.o) {
@@ -172017,8 +172197,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       else { L[E.o.id] = { p: pos, ry: ry }; E.o.stashed = false; }
       E.o.chip.classList.toggle('stashed', E.o.stashed); settle(E.o); rebuildHits();
     } else {
-      if (how === 'stash') { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); toast('已收回背包 · 原来的作品和 List 都没有改动'); }
-      else { E.x.e.p = pos; E.x.e.ry = ry; }
+      if (how === 'stash') { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); if (E.x.e.ref && BP.owned) BP.owned.clear(E.x.e.ref); toast('已收回背包 · 原来的作品和 List 都没有改动'); }
+      else { E.x.e.p = pos; E.x.e.ry = ry; delete pendingReg[E.x.e.uid]; if (E.x.e.ref && BP.owned) BP.owned.set(E.x.e.ref, { w: 'home', env: room.envId, uid: E.x.e.uid }); }
       buildExtras();
     }
     save(); refreshHotbar();
@@ -172068,13 +172248,17 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (pl === 'wall') { var w = room.anchors['wall.left']; e.p = [w.p[0], 1.3, w.p[2] + 1.2]; e.ry = w.ry; }
       if (pl === 'floor' && !inArea(e.p[0], e.p[2])) e.p = [room.start.pos[0], 0, room.start.pos[2] - 1];
     }
-    L.extras.push(e); buildExtras(); var x = XS[XS.length - 1]; if (x) startEdit(x, true);
+    /* a one-of-a-kind thing is registered here at once (else the lazy check would drop it); cancelling gives it back */
+    if (e.ref && BP.owned) { pendingReg[e.uid] = BP.owned.get(e.ref); BP.owned.set(e.ref, { w: 'home', env: room.envId, uid: e.uid }); }
+    L.extras.push(e); buildExtras(); var x = XS.filter(function (q) { return q.e === e; })[0]; if (x) startEdit(x, true);
   }
+  var pendingReg = {};
 
   /* ---- the Magical Backpack as this room's inventory (host adapter) */
   function envName(id) { var e = window.SpatialRoom.envs().filter(function (q) { return q.id === id; })[0]; return e ? e.name : id; }
-  function findOwned(ref) {                                          // where a one-of-a-kind thing stands, in any environment
-    var hit = null;
+  function findOwned(ref) {                                          // where a one-of-a-kind thing stands, in any environment or in My World
+    var hit = null, reg = BP && BP.owned ? BP.owned.get(ref) : null;
+    if (reg && reg.w === 'oia') return { oia: true, bid: reg.bid };
     window.SpatialRoom.envs().forEach(function (en) {
       var Lx = en.id === room.envId ? layout() : layoutOf(en.id);
       (Lx.extras || []).forEach(function (e) { if (hit) return; if ((ref.work && e.ref && e.ref.work === ref.work) || (ref.sid && e.ref && e.ref.sid === ref.sid)) hit = { env: en.id, e: e }; });
@@ -172084,10 +172268,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var host = {
     THREE: THREE, reduced: function () { return !!S.motion; }, toast: toast,
     hotbarVisible: function () { return !body.hidden && !inFeature && !edit && !busy; },
-    functionObjects: function () { return objects.map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
+    functionObjects: function () { return objects.filter(function (o) { return !o.local; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
+    onClose: function (placing) { closeLocal(placing); },
     status: function (it) {
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; return o && o.stashed ? { badge: '在背包', cls: 'bag', text: '在背包里（功能仍可从下方入口进入）', placed: false } : { badge: '摆放中', cls: '', text: '摆在 ' + room.name, placed: true }; }
-      if (it.kind === 'owned') { var f = findOwned(it.ref); return f ? { badge: f.env === room.envId ? '摆放中' : '别处', cls: '', text: '摆在 ' + envName(f.env) + (f.env === room.envId ? '' : '（放到这里会从那里移过来，不会多出一件）'), placed: f.env === room.envId } : { badge: '', cls: '', text: '在背包里', placed: false }; }
+      if (it.kind === 'owned') { var f = findOwned(it.ref); if (f && f.oia) return { badge: '别处', cls: '', text: '摆在 My World 的岛上（放到这里会从那里移过来，不会多出一件）', placed: false }; return f ? { badge: f.env === room.envId ? '摆放中' : '别处', cls: '', text: '摆在 ' + envName(f.env) + (f.env === room.envId ? '' : '（放到这里会从那里移过来，不会多出一件）'), placed: f.env === room.envId } : { badge: '', cls: '', text: '在背包里', placed: false }; }
       var n = (layout().extras || []).filter(function (e) { return it.spec && e.kind === it.spec.kind && (e.kind !== 'machine' || (e.mx && e.mx.type === it.spec.mx.type)); }).length;
       return { badge: n ? '×' + n : '', cls: 'tpl', text: n ? '这里放了 ' + n + ' 个 · 模板，可以再放' : '模板，可以放多个', placed: false };
     },
@@ -172095,21 +172280,23 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; if (!o) return; if (o.stashed) { var a = room.anchors[o.anchor] || room.anchors['desk.left']; o.group.position.fromArray(a.p); o.group.rotation.y = a.ry; } startEdit(o); return; }
       if (it.kind === 'owned') {
         var f = findOwned(it.ref);
-        if (f && f.env === room.envId) { var x = XS.filter(function (q) { return q.e === f.e; })[0]; if (x) startEdit(x); return; }
-        if (f) { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); toast('从 ' + envName(f.env) + ' 移过来了'); }
+        if (f && f.oia) toast('从 My World 移过来 · 放好后那座岛上的就会拿走');
+        else if (f && f.env === room.envId) { var x = XS.filter(function (q) { return q.e === f.e; })[0]; if (x) startEdit(x); return; }
+        if (f && !f.oia) { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); toast('从 ' + envName(f.env) + ' 移过来了'); }
       }
       spawn(JSON.parse(JSON.stringify(it.spec)));
     },
     stash: function (it) {
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; if (o && !o.stashed) { startEdit(o); endEdit('stash'); } return; }
       var f = findOwned(it.ref || {}); if (!f) return;
+      if (f.oia) { BP.owned.clear(it.ref); toast('🎒 收回背包了（那座岛下次打开时会把它拿走）'); return; }
       if (f.env === room.envId) { var x = XS.filter(function (q) { return q.e === f.e; })[0]; if (x) { edit = { x: x, g: x.group, p0: x.group.position.clone(), ry0: x.group.rotation.y, type: x.place, valid: true }; endEdit('stash'); } }
-      else { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); toast('已收回背包'); }
+      else { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); if (BP.owned) BP.owned.clear(it.ref); toast('已收回背包'); }
     }
   };
   function openPack(selKey) { if (busy || edit || !BP) return; $('settings').hidden = true; if (!B.EMBED && B.state() !== 'ready') B.load().then(function () { if (BP.isOpen()) BP.open(host); }); BP.open(host); if (selKey) { /* jump to that item */ var el = document.querySelector('#mn-bp [data-key="' + selKey + '"]'); if (el) el.click(); } }
   function refreshHotbar() { if (BP) try { BP.hotbar(host); } catch (e) {} }
-  $('packBtn').addEventListener('click', function () { if (BP && BP.isOpen()) BP.close(); else openPack(); });
+  $('packBtn').addEventListener('click', function () { if (BP && BP.isOpen()) { BP.close(); return; } var bag = objects.filter(function (o) { return o.local; })[0]; if (bag && !S.motion) activate(bag); else openPack(); });   // the shortcut goes through the backpack in the room
 
   function setEnv(id) {
     if (busy || id === room.envId) return;

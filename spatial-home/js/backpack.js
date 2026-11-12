@@ -241,7 +241,7 @@
     if (!host.reduced || !host.reduced()) { ui.el.classList.remove('opening'); void ui.el.offsetWidth; ui.el.classList.add('opening'); }
     render();
   }
-  function close() { if (!ui) return; ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; }
+  function close(placing) { if (!ui || ui.el.hidden) return; ui.el.hidden = true; cancelAnimationFrame(ui.raf); ui.raf = 0; try { if (ui.host && ui.host.onClose) ui.host.onClose(!!placing); } catch (e) {} }
   function isOpen() { return !!(ui && !ui.el.hidden); }
   function items() { return catalog(ui.host); }
   function render() {
@@ -290,6 +290,7 @@
     if (it.ready === false) acts.push('<button type="button" disabled>还没有做</button>');
     else {
       if (it.kind === 'template') acts.push('<button type="button" class="pri" data-bp="place">放一个</button>');
+      else if (st.home) acts.push('<button type="button" disabled>在 Spatial Home 里使用</button>');
       else if (st.placed) acts.push('<button type="button" class="pri" data-bp="move">移动</button><button type="button" data-bp="stash">收回背包</button>');
       else acts.push('<button type="button" class="pri" data-bp="place">放出来</button>');
       if (it.spec && it.spec.kind === 'machine') acts.push('<button type="button" data-bp="load">装载 List…</button>');
@@ -319,14 +320,14 @@
     if (a === 'close') { close(); return; }
     if (!it) return;
     if (a === 'fav') { var on = toggleFav(it.key); host.toast(on ? '★ 加入收藏夹和快捷栏' : '已从收藏夹拿出'); render(); return; }
-    if (a === 'place' || a === 'move') { touch(it.key); close(); host.place(it, a === 'move'); return; }
+    if (a === 'place' || a === 'move') { touch(it.key); close(true); host.place(it, a === 'move'); return; }
     if (a === 'stash') { host.stash(it); render(); return; }
     if (a === 'load') {
-      var box = ui.el.querySelector('.lists'), L = lists();
+      var box = ui.el.querySelector('.lists'), L = lists().filter(function (l) { var b = host.listBoard && host.listBoard(); return !b || l.bid === b; });
       box.hidden = !box.hidden; if (box.hidden) return;
       var M = machines().filter(function (m) { return 'mc:' + m.id === it.key; })[0], cap = machineCap(M && M.id);
       box.innerHTML = L.length ? L.map(function (l, i) { return '<button type="button" data-list="' + i + '">' + esc(l.title) + ' <small>· ' + l.n + ' 张 · ' + esc(l.board) + (cap && l.n > cap ? ' · 一页 ' + cap + ' 张，共 ' + Math.ceil(l.n / cap) + ' 页' : '') + '</small></button>'; }).join('') : '<p>看板上还没有可以装载的 List</p>';
-      box.onclick = function (ev) { var q = ev.target.closest('[data-list]'); if (!q) return; var l = L[+q.dataset.list]; touch(it.key); close(); host.place(Object.assign({}, it, { spec: { kind: 'machine', mx: { type: M.id, bid: l.bid, list: l.id, title: l.title } }, name: it.name + ' · ' + l.title }), false); };
+      box.onclick = function (ev) { var q = ev.target.closest('[data-list]'); if (!q) return; var l = L[+q.dataset.list]; touch(it.key); close(true); host.place(Object.assign({}, it, { spec: { kind: 'machine', mx: { type: M.id, bid: l.bid, list: l.id, title: l.title } }, name: it.name + ' · ' + l.title }), false); };
     }
   }
   function machineCap(id) { try { var P = HW().MinestMachines.pure, k = { carousel: 'CAR', rolodex: 'ROL', flip: 'FLP', paternoster: 'PAT' }[id], o = k && P[k]; return o && (o.cap || o.slots || o.cards) || null; } catch (e) { return null; } }
@@ -339,5 +340,103 @@
     hb.innerHTML = favs.map(function (it) { var src = previewer(host.THREE).cache[it.key] || (favs.length <= 9 ? thumb(host.THREE, it) : ''); return '<button type="button" data-key="' + esc(it.key) + '" title="' + esc(it.name) + '">' + (src ? '<img alt="" src="' + src + '">' : '<i>' + it.icon + '</i>') + '</button>'; }).join('');
     hb.hidden = !favs.length || !host.hotbarVisible();
   }
-  root.MinestBackpack = { VERSION: VERSION, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb };
+
+  /* ================================================================ one owned thing, one place — across Spatial Home and My World
+     'bp:owned:<key>' = { w: 'home', env, uid } | { w: 'oia', bid, id } | null. Placing somewhere sets it; whoever finds a copy
+     that is not the registered one drops it (lazily, the next time that place is drawn). */
+  function ownedKey(ref) { return ref && ref.work ? 'work:' + ref.work : (ref && ref.sid ? 'thing:' + ref.sid : null); }
+  var owned = {
+    get: function (ref) { var k = ownedKey(ref); return k ? store.get('bp:owned:' + k) : null; },
+    set: function (ref, where) { var k = ownedKey(ref); if (k) store.set('bp:owned:' + k, Object.assign({ t: Date.now() }, where)); },
+    clear: function (ref) { var k = ownedKey(ref); if (k) store.set('bp:owned:' + k, null); },
+    /* take it out of every Spatial Home layout except (env, uid) */
+    dropFromHome: function (ref, keepEnv, keepUid) {
+      var envs = (root.SpatialRoom && root.SpatialRoom.envs ? root.SpatialRoom.envs().map(function (e) { return e.id; }) : ['santorini', 'manhattan', 'alpine', 'train']);
+      envs.forEach(function (env) {
+        var L = store.get('bp:home:' + env); if (!L || !L.extras) return;
+        var n = L.extras.length; L.extras = L.extras.filter(function (e) { return !(e.ref && ownedKey(e.ref) === ownedKey(ref) && !(env === keepEnv && e.uid === keepUid)); });
+        if (L.extras.length !== n) store.set('bp:home:' + env, L);
+      });
+    }
+  };
+
+  /* ================================================================ My World (Santorini): the same backpack, the exhibition engine's way
+     Things go in as displays on the island record (undo, save and sync are the island's own). Works, things and furniture are
+     a display kind 'bp' drawn with the backpack's models; machines are the engine's own 'machine' displays. */
+  var OIA_SCALE = 2.0;                                               // backpack models are in metres; the island's cells are ~0.5 m
+  var MSIZE = { carousel: { w: 1, d: 1, h: 3 }, rolodex: { w: 1, d: 1, h: 1 }, flip: { w: 1, d: 1, h: 1 }, paternoster: { w: 1, d: 1, h: 3 } };
+  function VDm() { var W = HW(); return W.MinestVoxelDisplays || null; }
+  function oiaCtx() { var W = HW(); return W.MinestOiaVD && W.MinestOiaVD.ctx ? W.MinestOiaVD.ctx() : null; }
+  function oiaOpen() { var W = HW(); return !!(W.MinestOia && W.MinestOia.isOpen && W.MinestOia.isOpen()); }
+  function registerKind() {
+    var VD = VDm(); if (!VD || !VD.KINDS || !VD.ext || VD.ext.bp) return !!(VD && VD.ext && VD.ext.bp);
+    VD.KINDS.bp = { name: '背包物品', en: 'From the backpack', icon: '🎒', surface: 'machine', custom: true, w: 1, d: 1, h: 1, why: '', slots: [], boxes: [] };
+    VD.ext.bp = {
+      build: function (d, grp) {
+        var spec = d.tx && d.tx.bp; if (!spec) return;
+        if (spec.ref) { var o = owned.get(spec.ref); if (o && !(o.w === 'oia' && o.id === d.id)) { setTimeout(function () { var c = oiaCtx(); if (c) try { c.commit(function (next) { next.displays = next.displays.filter(function (q) { return q.id !== d.id; }); }); } catch (e) {} }, 0); return; } }
+        var T = root.THREE, m = model(T, spec), g = m.group; g.scale.setScalar(OIA_SCALE); grp.add(g);
+      },
+      sig: function (d) { var spec = d.tx && d.tx.bp; return JSON.stringify(spec || {}) + (spec && spec.ref ? JSON.stringify(owned.get(spec.ref)) : ''); },
+      open: function (d, ctx) { ctx.setSel(d.id); ctx.refresh(); var W = HW(); try { if (W.MinestOiaConsole) W.MinestOiaConsole.open('disp'); } catch (e) {} },
+      panel: function (d) { var spec = d.tx && d.tx.bp || {}; return '<div class="obld-sub">🎒 ' + esc(spec.title || '背包物品') + (spec.ref ? ' · 只有一件' : '') + '</div><div class="obld-actions"><button type="button" class="obld-btn" data-vd="bp:stash">🎒 收回背包</button><button type="button" class="obld-btn" data-vd="bp:open">打开背包</button></div>'; },
+      entry: function () { return '<div class="tw-entry"><button type="button" class="obld-btn pri" data-vd="bp:open">🎒 魔法背包</button><small>作品、陈列装置、收藏 · 和 Spatial Home 用同一个背包</small></div>'; },
+      act: function (ctx, name, arg, d) {
+        if (name === 'open') return openInWorld();
+        if (name === 'stash' && d) { var spec = d.tx && d.tx.bp; ctx.commit(function (next) { next.displays = next.displays.filter(function (q) { return q.id !== d.id; }); }); if (spec && spec.ref) owned.clear(spec.ref); ctx.setSel(null); ctx.refresh(); ctx.toast('🎒 收回背包了 · 原来的作品和 List 都没有改动'); }
+      }
+    };
+    return true;
+  }
+  var oiaHost = {
+    THREE: root.THREE, reduced: function () { try { return root.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } },
+    toast: function (m) { var c = oiaCtx(); if (c) c.toast(m); },
+    hotbarVisible: function () { return false; }, functionObjects: function () { return []; }, world: 'oia',
+    listBoard: function () { var c = oiaCtx(); return c ? c.host.boardId() : null; },
+    status: function (it) {
+      var c = oiaCtx(), ds = c ? VDm()._.list(c.host) : [];
+      if (it.kind === 'function') return { badge: '', cls: 'bag', text: '功能物件在 Spatial Home 里使用', placed: false, home: true };
+      if (it.kind === 'owned') { var o = owned.get(it.ref); if (!o) return { badge: '', text: '在背包里', placed: false }; var here = o.w === 'oia' && c && o.bid === c.host.boardId(); return { badge: here ? '摆放中' : '别处', text: o.w === 'oia' ? (here ? '摆在这座岛上' : '摆在 My World 的另一座岛（放到这里会移过来）') : '摆在 Spatial Home（放到这里会移过来，不会多出一件）', placed: here }; }
+      var n = ds.filter(function (d) { return it.spec && ((it.spec.kind === 'machine' && d.kind === 'machine' && d.mx && d.mx.type === it.spec.mx.type) || (d.kind === 'bp' && d.tx && d.tx.bp && d.tx.bp.kind === it.spec.kind)); }).length;
+      return { badge: n ? '×' + n : '', cls: 'tpl', text: n ? '这座岛上放了 ' + n + ' 个 · 模板，可以再放' : '模板，可以放多个', placed: false };
+    },
+    place: function (it) {
+      var c = oiaCtx(), VD = VDm(); if (!c || !VD) return;
+      if (it.kind === 'function') return c.toast('功能物件在 Spatial Home 里使用');
+      var U = VD._, host = c.host, v = host.view(), spec = JSON.parse(JSON.stringify(it.spec)), d;
+      if (it.kind === 'owned') { var o = owned.get(it.ref); if (o && o.w === 'oia' && o.bid === host.boardId()) { c.setSel(o.id); c.refresh(); return c.toast('它已经在这座岛上了 · 选中了，可以在控制台里移动'); } }
+      if (spec.kind === 'machine') {
+        if (!spec.mx.list) return c.toast('先在背包里给它装载一个 List');
+        if (spec.mx.bid !== host.boardId()) return c.toast('这里的装置只能装这座岛看板上的 List');
+        var sz = MSIZE[spec.mx.type] || { w: 1, d: 1, h: 1 };
+        d = { id: U.uid('m'), kind: 'machine', x: v.x, z: v.z, y: 0, rot: U.rotToward(-v.fx, -v.fz), it: [], w: sz.w, d: sz.d, h: sz.h, label: spec.mx.title || '', mx: { type: spec.mx.type, list: spec.mx.list, auto: true } };
+      } else {
+        var m = model(root.THREE, spec), hb = m.hb;
+        d = { id: U.uid('b'), kind: 'bp', x: v.x, z: v.z, y: 0, rot: U.rotToward(-v.fx, -v.fz), it: [], w: Math.max(1, Math.ceil(hb[0] * OIA_SCALE)), d: Math.max(1, Math.ceil(hb[2] * OIA_SCALE)), h: Math.max(1, Math.ceil(hb[1] * OIA_SCALE)), label: spec.title || it.name, tx: { bp: spec } };
+      }
+      U.snap(d); var st = U.near(host, d, U.list(host), v.y, 12, true);
+      if (!st.ok) return c.toast('你面前没有放得下的地方：' + st.why);
+      if (it.kind === 'owned') { owned.set(it.ref, { w: 'oia', bid: host.boardId(), id: d.id }); owned.dropFromHome(it.ref, null, null); }   // registered first: drawing it checks the register
+      c.commit(function (next) { next.displays.push(d); });
+      c.setSel(d.id); c.refresh(); c.toast(it.icon + ' ' + it.name + ' 放好了 · 选中后可以在控制台里移动、转向，↶ 可撤销');
+    },
+    stash: function (it) {
+      var c = oiaCtx(); if (!c || !it.ref) return; var o = owned.get(it.ref);
+      if (o && o.w === 'oia' && o.bid === c.host.boardId()) { c.commit(function (next) { next.displays = next.displays.filter(function (q) { return q.id !== o.id; }); }); owned.clear(it.ref); c.refresh(); c.toast('🎒 收回背包了'); }
+      else if (o && o.w === 'home') { owned.dropFromHome(it.ref, null, null); owned.clear(it.ref); c.toast('🎒 从 Spatial Home 收回背包了'); }
+      else if (o) { owned.clear(it.ref); c.toast('🎒 收回背包了（那座岛下次打开时会把它拿走）'); }
+    }
+  };
+  setTimeout(registerKind, 0); if (root.addEventListener) root.addEventListener('load', registerKind);
+  function openInWorld() { if (!registerKind()) return; oiaHost.THREE = root.THREE; open(oiaHost); }
+  /* the entry in Santorini: a 🎒 in the console header, next to its other buttons */
+  setInterval(function () {
+    if (!oiaOpen()) return; registerKind();
+    var head = HW().document.querySelector('#oia-console header'); if (!head || head.querySelector('.bp-oia')) return;
+    var b = HW().document.createElement('button'); b.type = 'button'; b.className = 'oia82-p bp-oia'; b.textContent = '🎒 背包'; b.title = '魔法背包 · 和 Spatial Home 用同一个';
+    b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openInWorld(); });
+    head.insertBefore(b, head.children[1] || null);
+  }, 700);
+
+  root.MinestBackpack = { VERSION: VERSION, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb, owned: owned, ownedKey: ownedKey, openInWorld: openInWorld, registerKind: registerKind };
 })(window);

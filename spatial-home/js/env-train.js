@@ -159,7 +159,7 @@
   }
   function anchors() {
     var A = PT.anchors(0.84), out = {};
-    ['desk.left', 'desk.right', 'desk.quill', 'desk.key', 'desk.mochi', 'desk.book'].forEach(function (k) { out[k] = xf('office', A[k]); });
+    ['desk.left', 'desk.right', 'desk.quill', 'desk.key', 'desk.mochi', 'desk.book', 'floor.pack'].forEach(function (k) { out[k] = xf('office', A[k]); });
     out['shelf.mid'] = xf('shelf', A['shelf.mid']);
     ['cabinet.top', 'cabinet.left', 'cabinet.right', 'wall.right'].forEach(function (k) { out[k] = xf('cabinet', A[k]); });
     out['corner.window'] = { p: [3.85, 0, -1.08], ry: 0 };                      // the aquarium: collection end, by the left windows

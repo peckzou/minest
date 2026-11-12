@@ -156,6 +156,7 @@
   }
   function activate(o) {
     if (busy || !o) return;
+    if (o.local) return openLocal(o);
     busy = true; skipRun = false; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true; $('skip').hidden = false;
     var feature = o.feature, F = B.FEATURES[feature], needs = B.needsHost(feature), hostP = needs ? B.load() : null;
     flyLook(o.focus.pos, o.focus.look, 0.8)
@@ -200,6 +201,21 @@
           return veilFade(0, 0.3);
         });
       });
+  }
+  /* the backpack on the floor: the camera bends down, the buckles let go, the flap opens — and the inventory opens.
+     Closing the inventory closes the flap; choosing something to place goes straight to placing it. */
+  var packFrom = null;
+  function openLocal(o) {
+    busy = true; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true;
+    flyLook(o.focus.pos, o.focus.look, 0.7).then(function () { return animK(o, 1, 0.75); }).then(function () {
+      busy = false; body.classList.remove('busy'); packFrom = o; openPack();
+    });
+  }
+  function closeLocal(placing) {
+    var o = packFrom; if (!o) return; packFrom = null;
+    animK(o, 0, 0.45);
+    if (placing) { flyHome(0.6); return; }                         // placing starts at once; the camera finds its way home meanwhile
+    busy = true; body.classList.add('busy'); flyHome(0.7).then(function () { busy = false; body.classList.remove('busy'); showHint(); });
   }
   function comeBack(o) {
     cineScene = null; skipRun = false; $('skip').hidden = true;
@@ -384,14 +400,14 @@
     var st = B.state(), dot = $('hostDot');
     dot.className = st === 'ready' ? 'ok' : (st === 'loading' ? 'wait' : '');
     $('hostText').textContent = EMBED ? '就在这个 Minest 里 · ' + (location.pathname.split('/').pop() || 'index.html') : (st === 'ready' ? '已连接 ' : st === 'loading' ? '载入中 ' : '尚未载入 ') + B.appUrl().replace(location.origin, '');
-    $('featList').innerHTML = objects.map(function (o) {
+    $('featList').innerHTML = objects.filter(function (o) { return !o.local; }).map(function (o) {
       var F = B.FEATURES[o.feature], av = B.available(o.feature), unknown = B.needsHost(o.feature) && st !== 'ready' && !av.length;
       return '<li class="' + (!av.length && !unknown ? 'no' : '') + '"><b>' + o.icon + ' ' + o.name + '</b><span>' + (av.length ? av.map(function (t) { return esc(t.label); }).join(' · ') : (unknown ? '载入后可知' : '未接上：' + esc(F.title))) + '</span></li>';
     }).join('');
   }
   function markAvailability() {
     if (B.state() !== 'ready') return;
-    objects.forEach(function (o) { var off = !B.available(o.feature).length; o.lab.classList.toggle('off', off); o.chip.classList.toggle('off', off); });
+    objects.forEach(function (o) { if (o.local) return; var off = !B.available(o.feature).length; o.lab.classList.toggle('off', off); o.chip.classList.toggle('off', off); });
     if (!setEl.hidden) renderSettings();
   }
   window.addEventListener('spatialhome:host', markAvailability);
@@ -400,7 +416,7 @@
      A layout per environment: S.layouts[env] = { <thing id>: { p, ry, stashed }, extras: [ { uid, kind, p, ry, ref, title } ] }.
      Nothing is copied: a My World thing on display keeps only its ids (board / card / thing) and its title for the label.
      Every thing's close-up camera is stored relative to the thing, so it follows wherever the thing goes. */
-  var PLACE = { board: 'wall', aquarium: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
+  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
   function placeType(o) { return o.style === 'wall' ? 'wall' : (PLACE[o.id] || 'surface'); }
   function m4of(p, ry) { return new THREE.Matrix4().makeRotationY(ry).setPosition(p[0], p[1], p[2]); }
   function localize(o) {
@@ -448,7 +464,10 @@
   var NAMES = { pedestal: '展示台', wallshelf: '墙面置物架', vitrine: '玻璃展柜', thing: '我的物品', neon: '作品', machine: '陈列装置' };
   function buildExtras() {
     XS.forEach(function (x) { scene.remove(x.group); }); XS = [];
-    (layout().extras || []).forEach(function (e) {
+    var Lb = layout(), OW = BP && BP.owned, n0 = (Lb.extras || []).length;
+    if (OW) Lb.extras = (Lb.extras || []).filter(function (e) { if (!e.ref) return true; var o = OW.get(e.ref); return !o || (o.w === 'home' && o.env === room.envId && o.uid === e.uid); });
+    if (Lb.extras && Lb.extras.length !== n0) saveLayout(room.envId, Lb);
+    (Lb.extras || []).forEach(function (e) {
       var m = BP.model(THREE, e), hb = m.hb, hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.05, hb[0]), Math.max(0.05, hb[1]), Math.max(0.05, hb[2])), new THREE.MeshBasicMaterial({ visible: false }));
       hit.position.set(0, m.hbY != null ? m.hbY : hb[1] / 2, m.hbZ || 0); m.group.add(hit);
       m.group.position.fromArray(e.p); m.group.rotation.y = e.ry || 0; scene.add(m.group);
@@ -538,7 +557,11 @@
     var E = edit, L = layout(); edit = null; ghost(E, false); editBar.hidden = true; body.classList.remove('editing');
     var g = E.g, pos = [+g.position.x.toFixed(3), +g.position.y.toFixed(3), +g.position.z.toFixed(3)], ry = +g.rotation.y.toFixed(4);
     if (how === 'cancel') {
-      if (E.x && E.isNew) { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); buildExtras(); save(); refreshHotbar(); return; }
+      if (E.x && E.isNew) {
+        var ue = E.x.e; L.extras = (L.extras || []).filter(function (e) { return e !== ue; });
+        if (ue.ref && BP.owned && ue.uid in pendingReg) { var pr = pendingReg[ue.uid]; delete pendingReg[ue.uid]; if (pr) BP.owned.set(ue.ref, pr); else BP.owned.clear(ue.ref); }
+        buildExtras(); save(); refreshHotbar(); return;
+      }
       g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); return;
     }
     if (E.o) {
@@ -546,8 +569,8 @@
       else { L[E.o.id] = { p: pos, ry: ry }; E.o.stashed = false; }
       E.o.chip.classList.toggle('stashed', E.o.stashed); settle(E.o); rebuildHits();
     } else {
-      if (how === 'stash') { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); toast('已收回背包 · 原来的作品和 List 都没有改动'); }
-      else { E.x.e.p = pos; E.x.e.ry = ry; }
+      if (how === 'stash') { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); if (E.x.e.ref && BP.owned) BP.owned.clear(E.x.e.ref); toast('已收回背包 · 原来的作品和 List 都没有改动'); }
+      else { E.x.e.p = pos; E.x.e.ry = ry; delete pendingReg[E.x.e.uid]; if (E.x.e.ref && BP.owned) BP.owned.set(E.x.e.ref, { w: 'home', env: room.envId, uid: E.x.e.uid }); }
       buildExtras();
     }
     save(); refreshHotbar();
@@ -597,13 +620,17 @@
       if (pl === 'wall') { var w = room.anchors['wall.left']; e.p = [w.p[0], 1.3, w.p[2] + 1.2]; e.ry = w.ry; }
       if (pl === 'floor' && !inArea(e.p[0], e.p[2])) e.p = [room.start.pos[0], 0, room.start.pos[2] - 1];
     }
-    L.extras.push(e); buildExtras(); var x = XS[XS.length - 1]; if (x) startEdit(x, true);
+    /* a one-of-a-kind thing is registered here at once (else the lazy check would drop it); cancelling gives it back */
+    if (e.ref && BP.owned) { pendingReg[e.uid] = BP.owned.get(e.ref); BP.owned.set(e.ref, { w: 'home', env: room.envId, uid: e.uid }); }
+    L.extras.push(e); buildExtras(); var x = XS.filter(function (q) { return q.e === e; })[0]; if (x) startEdit(x, true);
   }
+  var pendingReg = {};
 
   /* ---- the Magical Backpack as this room's inventory (host adapter) */
   function envName(id) { var e = window.SpatialRoom.envs().filter(function (q) { return q.id === id; })[0]; return e ? e.name : id; }
-  function findOwned(ref) {                                          // where a one-of-a-kind thing stands, in any environment
-    var hit = null;
+  function findOwned(ref) {                                          // where a one-of-a-kind thing stands, in any environment or in My World
+    var hit = null, reg = BP && BP.owned ? BP.owned.get(ref) : null;
+    if (reg && reg.w === 'oia') return { oia: true, bid: reg.bid };
     window.SpatialRoom.envs().forEach(function (en) {
       var Lx = en.id === room.envId ? layout() : layoutOf(en.id);
       (Lx.extras || []).forEach(function (e) { if (hit) return; if ((ref.work && e.ref && e.ref.work === ref.work) || (ref.sid && e.ref && e.ref.sid === ref.sid)) hit = { env: en.id, e: e }; });
@@ -613,10 +640,11 @@
   var host = {
     THREE: THREE, reduced: function () { return !!S.motion; }, toast: toast,
     hotbarVisible: function () { return !body.hidden && !inFeature && !edit && !busy; },
-    functionObjects: function () { return objects.map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
+    functionObjects: function () { return objects.filter(function (o) { return !o.local; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
+    onClose: function (placing) { closeLocal(placing); },
     status: function (it) {
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; return o && o.stashed ? { badge: '在背包', cls: 'bag', text: '在背包里（功能仍可从下方入口进入）', placed: false } : { badge: '摆放中', cls: '', text: '摆在 ' + room.name, placed: true }; }
-      if (it.kind === 'owned') { var f = findOwned(it.ref); return f ? { badge: f.env === room.envId ? '摆放中' : '别处', cls: '', text: '摆在 ' + envName(f.env) + (f.env === room.envId ? '' : '（放到这里会从那里移过来，不会多出一件）'), placed: f.env === room.envId } : { badge: '', cls: '', text: '在背包里', placed: false }; }
+      if (it.kind === 'owned') { var f = findOwned(it.ref); if (f && f.oia) return { badge: '别处', cls: '', text: '摆在 My World 的岛上（放到这里会从那里移过来，不会多出一件）', placed: false }; return f ? { badge: f.env === room.envId ? '摆放中' : '别处', cls: '', text: '摆在 ' + envName(f.env) + (f.env === room.envId ? '' : '（放到这里会从那里移过来，不会多出一件）'), placed: f.env === room.envId } : { badge: '', cls: '', text: '在背包里', placed: false }; }
       var n = (layout().extras || []).filter(function (e) { return it.spec && e.kind === it.spec.kind && (e.kind !== 'machine' || (e.mx && e.mx.type === it.spec.mx.type)); }).length;
       return { badge: n ? '×' + n : '', cls: 'tpl', text: n ? '这里放了 ' + n + ' 个 · 模板，可以再放' : '模板，可以放多个', placed: false };
     },
@@ -624,21 +652,23 @@
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; if (!o) return; if (o.stashed) { var a = room.anchors[o.anchor] || room.anchors['desk.left']; o.group.position.fromArray(a.p); o.group.rotation.y = a.ry; } startEdit(o); return; }
       if (it.kind === 'owned') {
         var f = findOwned(it.ref);
-        if (f && f.env === room.envId) { var x = XS.filter(function (q) { return q.e === f.e; })[0]; if (x) startEdit(x); return; }
-        if (f) { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); toast('从 ' + envName(f.env) + ' 移过来了'); }
+        if (f && f.oia) toast('从 My World 移过来 · 放好后那座岛上的就会拿走');
+        else if (f && f.env === room.envId) { var x = XS.filter(function (q) { return q.e === f.e; })[0]; if (x) startEdit(x); return; }
+        if (f && !f.oia) { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); toast('从 ' + envName(f.env) + ' 移过来了'); }
       }
       spawn(JSON.parse(JSON.stringify(it.spec)));
     },
     stash: function (it) {
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; if (o && !o.stashed) { startEdit(o); endEdit('stash'); } return; }
       var f = findOwned(it.ref || {}); if (!f) return;
+      if (f.oia) { BP.owned.clear(it.ref); toast('🎒 收回背包了（那座岛下次打开时会把它拿走）'); return; }
       if (f.env === room.envId) { var x = XS.filter(function (q) { return q.e === f.e; })[0]; if (x) { edit = { x: x, g: x.group, p0: x.group.position.clone(), ry0: x.group.rotation.y, type: x.place, valid: true }; endEdit('stash'); } }
-      else { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); toast('已收回背包'); }
+      else { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); if (BP.owned) BP.owned.clear(it.ref); toast('已收回背包'); }
     }
   };
   function openPack(selKey) { if (busy || edit || !BP) return; $('settings').hidden = true; if (!B.EMBED && B.state() !== 'ready') B.load().then(function () { if (BP.isOpen()) BP.open(host); }); BP.open(host); if (selKey) { /* jump to that item */ var el = document.querySelector('#mn-bp [data-key="' + selKey + '"]'); if (el) el.click(); } }
   function refreshHotbar() { if (BP) try { BP.hotbar(host); } catch (e) {} }
-  $('packBtn').addEventListener('click', function () { if (BP && BP.isOpen()) BP.close(); else openPack(); });
+  $('packBtn').addEventListener('click', function () { if (BP && BP.isOpen()) { BP.close(); return; } var bag = objects.filter(function (o) { return o.local; })[0]; if (bag && !S.motion) activate(bag); else openPack(); });   // the shortcut goes through the backpack in the room
 
   function setEnv(id) {
     if (busy || id === room.envId) return;

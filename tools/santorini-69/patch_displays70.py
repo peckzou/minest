@@ -145,6 +145,17 @@ MAIN_PAGES = ['iPhoneDuo.html', 'iPhoneDuo69.html', 'iphone.html', 'iPhone53.824
               'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ios/MinestProject/MyApp/iphone.html']
 
 
+# 70.1 · the Magical Backpack places things in Santorini through the same context the console uses (undo, the island record)
+EXPOSE = "  window.MinestOiaVD = { ctx: function () { return vdCtx; }, host: vdHost };   // 70.1 · for the Magical Backpack\n"
+def upgrade(s):
+    i, j = block(s, OPEN69)
+    body = s[i:j]
+    if "version: '70.0'" not in body or 'window.MinestOiaVD' in body: return s
+    k = body.find('  function curDisps() {')
+    assert k >= 0, 'curDisps not found'
+    return s[:i] + body[:k] + EXPOSE + body[k:] + s[j:]
+
+
 def patch_text(s):
     """the 70 hooks + the engines into one page's text; returns (text, state) — state 'patched', 'already' or 'no-module'"""
     if OPEN69 not in s: return s, 'no-module'
@@ -157,6 +168,7 @@ def patch_text(s):
             assert n == 1, 'hook found %d times, not once: %s' % (n, a[:80])
             body = body.replace(a, b)
         s = s[:i] + body + s[j:]
+    s = upgrade(s)
     for sid, path in ENGINES:
         tag, code = '<script id="%s">\n' % sid, path.read_text(encoding='utf-8')
         assert '</script' not in code
