@@ -98,7 +98,7 @@
       var id = it.loc.shop && slots.some(function (s) { return s.id === it.loc.shop; }) && !taken[it.loc.shop] ? it.loc.shop
         : (slots.filter(function (s) { return !taken[s.id]; })[0] || {}).id;
       if (!id) return;
-      var g = MinestNeonWord.build(THREE, it.word, { gas: it.look && it.look.gas, height: 1 });
+      var g = MinestNeonWord.build(THREE, it.word, { gas: it.look && it.look.gas, mode: it.mode, height: 1 });
       var off = inst.addSign(id, g); if (!off) return;
       taken[id] = 1; citySigns.push(off); out.push({ item: it.id, shop: id, word: it.word });
       (function spin() { if (!g.parent) return; g.userData.tick(performance.now() / 1000); requestAnimationFrame(spin); })();
@@ -125,7 +125,7 @@
     for (i = 0; i < ns; i++) slots.push({ x: lb.x0 + .08, z: lb.y0 + D / ns * (i + .5), ry: Math.PI / 2, cw: D / ns });
     for (i = 0; i < ns; i++) slots.push({ x: lb.x1 - .08, z: lb.y0 + D / ns * (i + .5), ry: -Math.PI / 2, cw: D / ns });
     list.slice(0, slots.length).forEach(function (it, i) {
-      var sl = slots[i], g = MinestNeonWord.build(T, it.word, { gas: it.look && it.look.gas, height: .4, light: list.length <= 4 });
+      var sl = slots[i], g = MinestNeonWord.build(T, it.word, { gas: it.look && it.look.gas, mode: it.mode, height: .4, light: list.length <= 4 });
       g.scale.setScalar(Math.min(1, (sl.cw * .86) / Math.max(.3, g.userData.w)));
       g.position.set(sl.x, 2.7, sl.z); g.rotation.y = sl.ry;
       S.add(g); (function spin() { if (!g.parent) return; g.userData.tick(performance.now() / 1000); requestAnimationFrame(spin); })();
@@ -175,7 +175,7 @@
       if (p.k === 'f_wordbox' && window.MinestNeonWord) {   // the collection: every finished item, tiny, three shelves
         var shelves = [.02, .16, .30], cur = 0, x = 0;
         all.slice(0, 24).forEach(function (it) {
-          var g2 = MinestNeonWord.build(T, it.word, { gas: it.look && it.look.gas, height: .05, light: false }), w = g2.userData.w;
+          var g2 = MinestNeonWord.build(T, it.word, { gas: it.look && it.look.gas, mode: it.mode, height: .05, light: false }), w = g2.userData.w;
           if (x + w > .44) { cur++; x = 0; } if (cur >= shelves.length) return;
           var o4 = at(p, .5, .18, .03 + x + w / 2, .08); g2.position.set(o4.x, shelves[cur] + .005, o4.z); g2.rotation.y = Math.PI; S.add(g2); x += w + .03;
           animate(g2, g2.userData.tick);

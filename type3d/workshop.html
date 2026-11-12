@@ -102,6 +102,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { strokeGlyph, strokeAdvance, STROKE_CHARS } from './strokefont.js';
 
 /* ==== PURE:BEGIN — no DOM, no three.js: this block is unit-tested in node ==== */
@@ -1022,16 +1023,274 @@ class Letter {
   }
 }
 
+/* ───────────── more Pipe Wall modes: Print · Carve · Install ─────────────
+   Each mode is a letter class with the neon Letter's contract — x, adv, def, G, state ('queued' → 'stand' → 'form' → 'settle'
+   → 'steady'; kill() → 'remove' → dead), settled, start(), update(dt, time), dispose(), group, lum + gas.light (the room light
+   follows them), u.uPulse / uPulseAmp / uBoost (the Enter surge) and setGas() — on the same glyph metrics, so a word's box,
+   its shelf slot and every display fit whatever it was made of. The four look buttons are each mode's own materials. */
+const CRAFT_TINT = {
+  print:   { neon: ['#b9bbb8', 'Ivory'], argon: ['#1c1e21', 'Graphite'], helium: ['#b5ab98', 'Bone'],  xenon: ['#9aa1aa', 'Chrome'] },
+  carve:   { neon: ['#b5793f', 'Oak'],   argon: ['#5e3b23', 'Walnut'],   helium: ['#dcbb88', 'Maple'], xenon: ['#2b211c', 'Ebony'] },
+  install: { neon: ['#ffb066', 'Warm'],  argon: ['#8fb4ff', 'Ice'],      helium: ['#ffd45a', 'Amber'], xenon: ['#c48cff', 'Violet'] },
+};
+const tintOf = (mode, k) => new THREE.Color(((CRAFT_TINT[mode] || {})[gasOK(k)] || ['#ffffff'])[0]);
+const _cm = new THREE.Matrix4(), _cv = new THREE.Vector3(), _cq = new THREE.Quaternion(), _ce = new THREE.Euler(), _cs = new THREE.Vector3();
+function craftGeo(def, key, make) { const c = def.craft || (def.craft = {}); return c[key] || (c[key] = make()); }   // shared per glyph, never disposed
+/** the glyph's strokes as one solid: round tubes with round caps */
+function solidStrokes(def, r, radial) {
+  const parts = [];
+  for (const s of def.strokes) {
+    parts.push(new THREE.TubeGeometry(s.curve, Math.max(6, Math.ceil(s.len / 0.04)), r, radial, false));
+    for (const e of [0, 1]) { const p = s.curve.getPointAt(e); parts.push(new THREE.SphereGeometry(r, radial, Math.max(4, radial >> 1)).translate(p.x, p.y, p.z)); }
+  }
+  const g = mergeGeometries(parts); parts.forEach(p => p.dispose()); g.computeBoundingSphere(); return g;
+}
+function strokeSamples(def, step) { const out = []; for (const s of def.strokes) { const n = Math.max(2, Math.round(s.len / step) + 1); for (let i = 0; i < n; i++) out.push(s.curve.getPointAt(i / (n - 1))); } return out; }
+/** a standard material cut off above uCut (object space y): print layers, carving the blank away */
+function clipMaterial(params, key) {
+  const m = new THREE.MeshStandardMaterial(params), u = { uCut: { value: 99 }, uHot: { value: 0 }, uRidge: { value: 1 } };
+  m.onBeforeCompile = sh => { Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vLY;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLY = transformed.y;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vLY; uniform float uCut, uHot, uRidge;')
+      .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nif (vLY > uCut) discard;')
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= 1.0 - uRidge * 0.12 * step(0.5, fract(vLY * 30.0));')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vec3(1.0, 0.97, 0.92) * uHot * smoothstep(0.07, 0.0, uCut - vLY);'); };
+  m.customProgramCacheKey = () => 'clip-' + key; m.userData.u = u; return m;
+}
+class CraftLetter {
+  constructor(mode, ch, def, x, gasKey) {
+    this.mode = mode; this.ch = ch; this.def = def; this.x = x; this.adv = def.W + GAP; this.G = def.G; this.onStart = null;
+    this.state = 'queued'; this.t = 0; this.dead = false; this.dimMul = 1; this.lum = 0; this.pulseOn = 0; this.p = 0; this.p0 = 0; this.boost = 0;
+    this.u = { uPulse: { value: -10 }, uPulseAmp: { value: 0 }, uBoost: { value: 0 } };
+    this.gasKey = gasOK(gasKey); this.gas = { light: [1, 1, 1] }; this.mats = [];
+    this.group = new THREE.Group(); this.group.position.x = x; this.group.visible = false;
+    this.formDur = 0.7 + 0.35 * def.G;
+  }
+  own(m) { this.mats.push(m); return m; }
+  go(s) { this.state = s; this.t = 0; }
+  start() { this.group.visible = true; this.go('stand'); if (this.onStart) this.onStart(this); }
+  get settled() { return this.state === 'steady'; }
+  setGas(k) { this.gasKey = gasOK(k); this.tint(this.gasKey); }
+  kill() { if (this.state === 'queued') { this.dead = true; return; } if (this.state === 'remove') return; this.p0 = Math.max(0.001, this.p); this.go('remove'); }
+  /** stage(tool, p, time, dt, phase): tool = how present the machine is (0…1), p = how made the letter is (0…1),
+      phase = settle progress (0…1), 1 when steady, -1 while being removed */
+  update(dt, time) {
+    this.t += dt; const t = this.t;
+    this.boost = (this.u.uBoost.value + this.u.uPulseAmp.value * 0.35) * this.dimMul;
+    switch (this.state) {
+      case 'queued': return;
+      case 'stand': { const k = Math.min(1, t / 0.28); this.p = 0; this.stage(sm(k), 0, time, dt, 0); if (k >= 1) this.go('form'); break; }
+      case 'form': { const k = Math.min(1, t / this.formDur); this.p = k; this.stage(1, k, time, dt, 0); if (k >= 1) this.go('settle'); break; }
+      case 'settle': { const k = Math.min(1, t / 0.55); this.p = 1; this.stage(1 - sm(k), 1, time, dt, k); if (k >= 1) this.go('steady'); break; }
+      case 'steady': this.stage(0, 1, time, dt, 1); break;
+      case 'remove': { const k = Math.min(1, t / 0.42); this.p = this.p0 * (1 - sm(k)); this.stage(0, this.p, time, dt, -1); if (k >= 1) this.dead = true; break; }
+    }
+  }
+  dispose() { this.group.removeFromParent(); for (const m of this.mats) m.dispose(); this.mats.length = 0; }
+}
+
+/* Print — the Westworld machine from the Filament page (type3d/index.html): a head lays a white skeleton truss deck by deck,
+   winds every layer round the letter's outline, then sweeps up and fuses the wound filament into the solid body. Same
+   toolpath algorithm as Filament, fitted into this workshop's letter cell so boxes and shelves stay the same size. */
+let printFont = null;
+new FontLoader().load('./vendor/fonts/helvetiker_bold.typeface.json', f => { printFont = f; }, undefined, () => { /* no font: the fallback body is used */ });
+const P_LAYER = 0.02, P_SKEL_EVERY = 6, P_DEPTH = 0.36, P_Z = -0.1;
+function pScan(contours, y) {   // even-odd crossings of a horizontal line with every contour → inside intervals
+  const xs = [];
+  for (const c of contours) for (let i = 0, n = c.length; i < n; i++) { const a = c[i], b = c[(i + 1) % n]; if ((a.y <= y && b.y > y) || (b.y <= y && a.y > y)) xs.push(a.x + (y - a.y) / (b.y - a.y) * (b.x - a.x)); }
+  xs.sort((p, q) => p - q); const out = [];
+  for (let i = 0; i + 1 < xs.length; i += 2) if (xs[i + 1] - xs[i] > 0.008) out.push([xs[i], xs[i + 1]]);
+  return out;
+}
+function pPath(segs) {   // flat [ax,ay,az,bx,by,bz …] → cumulative lengths, with cheap travel between segments
+  const n = segs.length / 6, end = new Float32Array(n), len = new Float32Array(n); let total = 0;
+  for (let i = 0; i < n; i++) { const o = i * 6, l = Math.hypot(segs[o + 3] - segs[o], segs[o + 4] - segs[o + 1], segs[o + 5] - segs[o + 2]);
+    let tr = 0; if (i) { const q = o - 6; tr = Math.hypot(segs[o] - segs[q + 3], segs[o + 1] - segs[q + 4], segs[o + 2] - segs[q + 5]) * 0.3; }
+    total += tr + l; len[i] = l; end[i] = total; }
+  return { segs: new Float32Array(segs), n, end, len, total };
+}
+/** the Filament toolpaths and fused body of one character, fitted to the stroke glyph's cell (def.W × SIZE on BASE_Y) */
+function printGlyph(def, ch) {
+  const c = def.craft || (def.craft = {}); if (c.printF) return c.printF; if (!printFont) return null;
+  const shapes = printFont.generateShapes(ch, 1); if (!shapes.length) return (c.printF = { empty: true });
+  const raw = []; let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+  for (const s of shapes) { const e = s.extractPoints(12); for (const k of [e.shape, ...e.holes]) { raw.push(k); for (const p of k) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); } } }
+  const capH = 0.72;                                     // helvetiker's cap height at size 1
+  const sy = SIZE / capH, sx = Math.min(sy * 1.15, def.W / Math.max(0.05, maxX - minX)), ox = (def.W - (maxX - minX) * sx) / 2 - minX * sx;
+  const fit = p => new THREE.Vector2(ox + p.x * sx, BASE_Y + p.y * sy);
+  const contours = raw.map(k => k.map(fit)), bottom = BASE_Y + minY * sy, top = BASE_Y + maxY * sy;
+  const zf = P_DEPTH / 2, zs = P_DEPTH * 0.3, layers = [];
+  for (let y = bottom + P_LAYER * 0.5; y < top; y += P_LAYER) layers.push({ y, iv: pScan(contours, y) });
+  const sk = [], decks = layers.filter((_, i) => i % P_SKEL_EVERY === P_SKEL_EVERY >> 1);
+  decks.forEach((L, di) => {
+    for (const [x0, x1] of L.iv) { const a = x0 + 0.022, b = x1 - 0.022; if (b <= a) continue; const steps = Math.max(1, Math.round((b - a) / 0.09));
+      for (let i = 0; i < steps; i++) { const xa = a + (b - a) * i / steps, xb = a + (b - a) * (i + 1) / steps, s = (i + di) % 2 ? 1 : -1; sk.push(xa, L.y, P_Z + zs * s, xb, L.y, P_Z - zs * s); } }
+    const N = decks[di + 1]; if (!N) return;
+    for (const [x0, x1] of L.iv) { const a = x0 + 0.024, b = x1 - 0.024, steps = Math.max(1, Math.round((b - a) / 0.13));
+      for (let i = 0; i <= steps; i++) { const x = a + (b - a) * (steps ? i / steps : 0), s = (i + di) % 2 ? 1 : -1, lean = ((i % 3) - 1) * 0.04;
+        if (N.iv.some(([p, q]) => x + lean > p + 0.015 && x + lean < q - 0.015)) sk.push(x, L.y, P_Z + zs * s, x + lean, N.y, P_Z - zs * s); } }
+  });
+  const su = [];
+  layers.forEach((L, li) => { for (const [x0, x1] of L.iv) { const f = P_Z + zf, b = P_Z - zf;
+    if (li % 2) su.push(x0, L.y, f, x1, L.y, f, x1, L.y, f, x1, L.y, b, x1, L.y, b, x0, L.y, b, x0, L.y, b, x0, L.y, f);
+    else su.push(x1, L.y, b, x0, L.y, b, x0, L.y, b, x0, L.y, f, x0, L.y, f, x1, L.y, f, x1, L.y, f, x1, L.y, b); } });
+  const geo = new THREE.ExtrudeGeometry(shapes, { depth: P_DEPTH - 0.02, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.006, bevelSegments: 2, curveSegments: 10 });
+  geo.scale(sx, sy, 1); geo.translate(ox, BASE_Y, P_Z - (P_DEPTH - 0.02) / 2); geo.computeVertexNormals(); geo.computeBoundingSphere();
+  return (c.printF = { bottom, top, minX: ox + minX * sx, maxX: ox + maxX * sx, skel: pPath(sk), surf: pPath(su), geo });
+}
+/** a line material that only shows ABOVE uCut (object y): the filament not yet fused */
+function lineAboveMat(u) {
+  const m = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 });
+  m.onBeforeCompile = sh => { sh.uniforms.uCut = u;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vLY;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLY = transformed.y;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vLY; uniform float uCut;').replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\nif (vLY < uCut) discard;'); };
+  m.customProgramCacheKey = () => 'line-above'; return m;
+}
+const printHeadGeo = new THREE.CylinderGeometry(0.05, 0.034, 0.2, 16).translate(0, 0.17, 0), printConeGeo = new THREE.ConeGeometry(0.034, 0.075, 16).rotateX(Math.PI).translate(0, 0.037, 0);
+class PrintLetter extends CraftLetter {
+  constructor(ch, def, x, gasKey) {
+    super('print', ch, def, x, gasKey); this.formDur = 1.5 + 0.35 * def.G; this.F = null; this.keys = { sk: -1, su: -1 };
+    this.mat = this.own(clipMaterial({ color: 0xb9bbb8, roughness: 0.78, metalness: 0, side: THREE.DoubleSide, envMapIntensity: 0.35 }, 'print')); this.cu = this.mat.userData.u; this.cu.uRidge.value = 0.35;
+    this.head = new THREE.Group();
+    const steel = this.own(new THREE.MeshStandardMaterial({ color: 0x15171a, roughness: 0.36, metalness: 0.9 })), steelL = this.own(new THREE.MeshStandardMaterial({ color: 0x8e959c, roughness: 0.3, metalness: 0.95 }));
+    this.tipMat = this.own(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    this.head.add(new THREE.Mesh(printHeadGeo, steel), new THREE.Mesh(printConeGeo, steelL), new THREE.Mesh(tipGeo, this.tipMat)); this.head.visible = false; this.group.add(this.head);
+    this.strandGeo = new THREE.BufferGeometry(); this.strandGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    this.strandMat = this.own(new THREE.LineBasicMaterial({ color: 0xffffff }));
+    this.strand = new THREE.Line(this.strandGeo, this.strandMat); this.strand.frustumCulled = false; this.strand.visible = false; this.group.add(this.strand);
+    this.goal = V(def.cx, BASE_Y + SIZE + 1.4, 0.2); this.tip = this.goal.clone(); this.lay = V();
+    this.gas.light = [0.92, 0.95, 1.0]; this.tint(this.gasKey); this.ensure();
+  }
+  tint(k) { this.mat.color.copy(tintOf('print', k)); }
+  ensure() {   // the toolpaths need the font; until it has loaded the letter waits in 'stand' (the head hovers)
+    if (this.F) return true; const F = printGlyph(this.def, this.ch); if (!F) return false; this.F = F;
+    if (F.empty) return true;
+    this.cutU = this.cu.uCut; this.body = new THREE.Mesh(F.geo, this.mat); this.group.add(this.body);
+    const mk = path => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(path.segs.slice(), 3)); g.setDrawRange(0, 0); const l = new THREE.LineSegments(g, lineAboveMat(this.cu.uCut)); this.own(l.material); l.frustumCulled = false; this.group.add(l); return l; };
+    this.sk = mk(F.skel); this.su = mk(F.surf); this.geos = [this.sk.geometry, this.su.geometry, this.strandGeo];
+    return true;
+  }
+  /** draw a toolpath up to progress p (0…1) → the point where the filament touches down (Filament's drawPath) */
+  draw(mesh, path, p, key) {
+    if (!path.n) return null;
+    const pos = mesh.geometry.attributes.position, S = path.segs, target = clamp01(p) * path.total, L = this.lay;
+    let lo = 0, hi = path.n - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (path.end[m] >= target) hi = m; else lo = m + 1; }
+    const i = lo, o = i * 6, into = target - (path.end[i] - path.len[i]);
+    const prev = this.keys[key]; if (prev >= 0 && prev !== i) { const q = prev * 6; pos.setXYZ(prev * 2 + 1, S[q + 3], S[q + 4], S[q + 5]); }
+    let count;
+    if (p >= 1) { pos.setXYZ(i * 2 + 1, S[o + 3], S[o + 4], S[o + 5]); this.keys[key] = -1; count = path.n * 2; L.set(S[o + 3], S[o + 4], S[o + 5]); }
+    else if (p <= 0) { this.keys[key] = -1; count = 0; L.set(S[0], S[1], S[2]); }
+    else if (into <= 0) { this.keys[key] = -1; count = i * 2; L.set(S[o], S[o + 1], S[o + 2]); }
+    else { const f = path.len[i] > 1e-6 ? into / path.len[i] : 1; L.set(S[o] + (S[o + 3] - S[o]) * f, S[o + 1] + (S[o + 4] - S[o + 1]) * f, S[o + 2] + (S[o + 5] - S[o + 2]) * f);
+      pos.setXYZ(i * 2 + 1, L.x, L.y, L.z); this.keys[key] = i; count = i * 2 + 2; }
+    pos.needsUpdate = true; mesh.geometry.setDrawRange(0, count); return L;
+  }
+  update(dt, time) { if (this.state === 'form' && !this.ensure()) { this.stage(1, 0, time, dt, 0); return; } super.update(dt, time); }
+  stage(tool, p, time, dt, ph) {
+    const d = this.def, F = this.F, forming = this.state === 'form', removing = ph === -1;
+    let layAt = null, fuseH = -9, heat = 0;
+    if (F && !F.empty) {
+      // the three Filament stages inside one 0…1: skeleton · winding · fusing
+      const pk = clamp01(p / 0.3), pw = clamp01((p - 0.3) / 0.45), pf = clamp01((p - 0.75) / 0.25);
+      const a = this.draw(this.sk, F.skel, pk, 'sk'); if (pk > 0 && pk < 1) layAt = a;
+      const b = this.draw(this.su, F.surf, pw, 'su'); if (pw > 0 && pw < 1) layAt = b;
+      fuseH = pf > 0 ? F.bottom + (F.top - F.bottom + 0.04) * sm(pf) : F.bottom - 1;
+      this.cu.uCut.value = fuseH; this.body.visible = pf > 0;
+      const done = p >= 1 && !removing; this.sk.visible = this.su.visible = !done;
+      if (forming || removing) { if (layAt) { this.goal.set(layAt.x, layAt.y + 0.07, layAt.z + 0.08); heat = 1; }
+        else if (pf > 0 && pf < 1) { this.goal.set(F.minX + (F.maxX - F.minX) * (Math.sin(time * 9) * 0.5 + 0.5), fuseH + 0.06, P_Z + P_DEPTH / 2 + 0.1); heat = 1.6; } }
+    } else this.cu.uCut.value = 99;
+    if (!layAt && !heat) this.goal.set(d.cx, BASE_Y + SIZE + 0.6 + (1 - tool) * 1.0, 0.1);
+    this.tip.lerp(this.goal, 1 - Math.exp(-dt * (heat ? 18 : 5)));
+    this.cu.uHot.value = 0;
+    this.head.visible = tool > 0.01 || removing; this.head.position.copy(this.tip);
+    this.tipMat.color.setRGB(1, 1, 1).multiplyScalar(heat ? 0.7 + 0.5 * Math.sin(time * 47) : 0.15);
+    if (layAt && this.head.visible) { const s = this.strandGeo.attributes.position; s.setXYZ(0, this.tip.x, this.tip.y, this.tip.z); s.setXYZ(1, layAt.x, layAt.y, layAt.z); s.needsUpdate = true; this.strand.visible = true; } else this.strand.visible = false;
+    this.mat.emissive.setRGB(1, 0.98, 0.94).multiplyScalar(0.3 * this.boost);
+    this.lum = 0.18 * heat * tool + 0.25 * this.boost; this.gas.light = [0.92, 0.95, 1.0];
+  }
+  dispose() { super.dispose(); if (this.geos) for (const g of this.geos) g.dispose(); else this.strandGeo.dispose(); }
+}
+
+/* Carve — a blank of wood rises, a chisel pares it away from the top, chips fly, the letter is left standing and polished */
+const chiselGeo = new THREE.BoxGeometry(0.05, 0.34, 0.05).translate(0, 0.17, 0), chipGeo = new THREE.BoxGeometry(0.055, 0.012, 0.035);
+const CHIPS = 18;
+class CarveLetter extends CraftLetter {
+  constructor(ch, def, x, gasKey) {
+    super('carve', ch, def, x, gasKey); this.formDur = 0.9 + 0.4 * def.G;
+    this.mat = this.own(new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0, flatShading: true, envMapIntensity: 0.45 }));
+    this.body = new THREE.Mesh(craftGeo(def, 'carve', () => solidStrokes(def, R * 2.3, 6)), this.mat); this.group.add(this.body);
+    this.blockMat = this.own(clipMaterial({ roughness: 0.92, metalness: 0, envMapIntensity: 0.3 }, 'carve')); this.bu = this.blockMat.userData.u; this.bu.uRidge.value = 0.5;
+    this.block = new THREE.Mesh(craftGeo(def, 'carveBlock', () => new THREE.BoxGeometry(def.W + 0.26, SIZE + 0.3, 0.4).translate(def.cx, BASE_Y + SIZE / 2, -0.1)), this.blockMat);
+    this.group.add(this.block);
+    this.chisel = new THREE.Mesh(chiselGeo, this.own(new THREE.MeshStandardMaterial({ color: 0x8d9298, roughness: 0.28, metalness: 0.9 }))); this.chisel.visible = false; this.group.add(this.chisel);
+    this.chipMat = this.own(new THREE.MeshStandardMaterial({ roughness: 0.9 }));
+    this.chips = new THREE.InstancedMesh(chipGeo, this.chipMat, CHIPS); this.chips.frustumCulled = false; this.group.add(this.chips);
+    this.cs = []; for (let i = 0; i < CHIPS; i++) this.cs.push({ p: V(), v: V(), r: V(), life: 0 }); this.ci = 0; this.cacc = 0;
+    this.gas.light = [1.0, 0.62, 0.3]; this.tint(this.gasKey);
+  }
+  tint(k) { const c = tintOf('carve', k); this.mat.color.copy(c); this.blockMat.color.copy(c).offsetHSL(0, -0.05, 0.08); this.chipMat.color.copy(c).offsetHSL(0, -0.08, 0.14); }
+  stage(tool, p, time, dt, ph) {
+    const d = this.def, top = BASE_Y + SIZE + 0.2, cut = top - (SIZE + 0.45) * p, forming = this.state === 'form';
+    const removing = ph === -1;
+    this.block.visible = !removing && p < 0.999; this.block.scale.y = this.state === 'stand' ? Math.max(0.001, tool) : 1; this.bu.uCut.value = cut;
+    this.body.scale.setScalar(removing ? Math.max(0.001, p / this.p0) : 1);
+    this.mat.roughness = 0.8 - 0.42 * (ph > 0 ? ph : 0);                              // the polish
+    this.mat.emissive.setRGB(1, 0.6, 0.3).multiplyScalar(0.22 * this.boost);
+    this.chisel.visible = tool > 0.01 && !removing;
+    if (this.chisel.visible) { const cx = d.cx + Math.sin(time * 7 + this.x * 2) * d.W * 0.45; this.chisel.position.set(cx, cut + (1 - tool) * 1.1, 0.16); this.chisel.rotation.set(0.5, 0, -0.55 + 0.25 * Math.sin(time * 23));
+      if (forming && !reduce) { this.cacc += dt * 46; while (this.cacc >= 1) { this.cacc--; const c = this.cs[this.ci++ % CHIPS]; c.p.set(cx, cut, 0.12); c.v.set(rnd(-1.1, 1.1), rnd(0.6, 1.8), rnd(0.2, 1.1)); c.r.set(rnd(9), rnd(9), rnd(9)); c.life = rnd(0.5, 0.9); } } }
+    for (let i = 0; i < CHIPS; i++) { const c = this.cs[i];
+      if (c.life > 0) { c.life -= dt; c.v.y -= 6 * dt; c.p.addScaledVector(c.v, dt); if (c.p.y < 0.02) { c.p.y = 0.02; c.v.set(0, 0, 0); } c.r.x += dt * 9; c.r.z += dt * 7; }
+      _ce.set(c.r.x, c.r.y, c.r.z); _cq.setFromEuler(_ce); const s = c.life > 0 ? 1 : 0.0001; _cm.compose(c.p, _cq, _cs.set(s, s, s)); this.chips.setMatrixAt(i, _cm); }
+    this.chips.instanceMatrix.needsUpdate = true;
+    this.lum = (forming ? 0.05 : 0) + 0.2 * this.boost;
+  }
+}
+
+/* Install — a text installation: sockets fly down from the Pipe Wall into the strokes, the bulbs light in order, then chase */
+const sockGeo = new THREE.CylinderGeometry(0.045, 0.052, 0.07, 10).rotateX(Math.PI / 2), bulbGeo = new THREE.SphereGeometry(0.05, 12, 10);
+class InstallLetter extends CraftLetter {
+  constructor(ch, def, x, gasKey) {
+    super('install', ch, def, x, gasKey); this.formDur = 0.8 + 0.3 * def.G;
+    const pts = this.pts = craftGeo(def, 'installPts', () => strokeSamples(def, 0.17)), n = this.n = pts.length;
+    this.socks = new THREE.InstancedMesh(sockGeo, this.own(new THREE.MeshStandardMaterial({ color: 0x1c1d20, roughness: 0.4, metalness: 0.8 })), n);
+    this.bulbs = new THREE.InstancedMesh(bulbGeo, this.own(new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })), n);
+    this.bulbs.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
+    for (const m of [this.socks, this.bulbs]) { m.frustumCulled = false; this.group.add(m); }
+    this.from = pts.map(p => V(p.x + rnd(-1.4, 1.4), p.y + rnd(2.2, 3.6), p.z + rnd(-0.5, 0.3)));
+    this.delay = pts.map((p, i) => (i / n) * 0.5 + rnd(0, 0.06));
+    this.col = new THREE.Color(); this.tint(this.gasKey);
+  }
+  tint(k) { this.col.copy(tintOf('install', k)); this.gas.light = [this.col.r, this.col.g, this.col.b]; }
+  stage(tool, p, time, dt, ph) {
+    const n = this.n, lit = this.state === 'settle' || this.state === 'steady', step = Math.floor(time * 7);
+    for (let i = 0; i < n; i++) {
+      const k = clamp01((p - this.delay[i]) / 0.5), e = sm(k), P = this.pts[i], F = this.from[i];
+      _cv.lerpVectors(F, P, e); _cv.y += Math.sin(Math.PI * e) * 0.35; const s = k > 0 ? 1 : 0.0001;
+      _cm.makeScale(s, s, s).setPosition(_cv); this.socks.setMatrixAt(i, _cm); _cm.setPosition(_cv.x, _cv.y, _cv.z + 0.05); this.bulbs.setMatrixAt(i, _cm);
+      let b = 0.06 + 0.1 * e;
+      if (this.state === 'settle') b = i / n <= ph ? 1 : b;
+      else if (this.state === 'steady') b = (i + step) % 4 === 0 ? 1 : 0.5;
+      b = b * 1.5 + this.boost * 0.6;
+      this.bulbs.instanceColor.setXYZ(i, this.col.r * b, this.col.g * b, this.col.b * b);
+    }
+    this.socks.instanceMatrix.needsUpdate = true; this.bulbs.instanceMatrix.needsUpdate = true; this.bulbs.instanceColor.needsUpdate = true;
+    this.lum = (lit ? 0.45 : 0.04) + 0.3 * this.boost;
+  }
+}
+const CRAFT_LETTERS = { print: PrintLetter, carve: CarveLetter, install: InstallLetter };
+
 /* ───────────── a word sculpture: one group, moved and scaled as a unit ───────────── */
 const sculptures = new Set();
 class Sculpture {
-  constructor(gasKey, s = 0.1) {
-    this.gasKey = gasOK(gasKey); this.root = new THREE.Group(); this.inner = new THREE.Group(); this.root.add(this.inner); scene.add(this.root);
+  constructor(gasKey, s = 0.1, mode = 'neon') {
+    this.mode = CRAFT_LETTERS[mode] ? mode : 'neon'; this.gasKey = gasOK(gasKey); this.root = new THREE.Group(); this.inner = new THREE.Group(); this.root.add(this.inner); scene.add(this.root);
     this.tubes = []; this.dying = []; this.fin = null; this.dim = 1; this.offX = -0.2; this.s = s; this.rush = false; this.plank = null; this.onStart = null; this.baseS = s;
     this.buf = new WordBuffer({ make: (ch, x) => this._make(ch, x), kill: L => this._kill(L) });
     this.root.scale.setScalar(s); sculptures.add(this);
   }
-  _make(ch, x) { const L = new Letter(ch, glyphDef(ch), x, this.gasKey); L.onStart = l => { if (this.onStart) this.onStart(l, this); }; this.inner.add(L.group); this.tubes.push(L); return L; }
+  _make(ch, x) { const K = CRAFT_LETTERS[this.mode], L = K ? new K(ch, glyphDef(ch), x, this.gasKey) : new Letter(ch, glyphDef(ch), x, this.gasKey); L.onStart = l => { if (this.onStart) this.onStart(l, this); }; this.inner.add(L.group); this.tubes.push(L); return L; }
   _kill(L) { const i = this.tubes.lastIndexOf(L); if (i >= 0) this.tubes.splice(i, 1); L.kill(); this.dying.push(L); }
   get text() { return this.buf.text; }
   setGas(k) { this.gasKey = gasOK(k); for (const L of this.tubes) L.setGas(this.gasKey); }
@@ -1173,6 +1432,10 @@ const MODES = {
     dims: word => packDims(word),
   },
 };
+for (const [id, label] of [['print', 'Print'], ['carve', 'Carve'], ['install', 'Install']]) MODES[id] = { id, label,
+  create: look => new Sculpture(look.gas, 0.12, id),
+  build(word, look) { const S = new Sculpture(gasOK(look && look.gas), 0.05, id); for (const c of String(word)) S.buf.push(c); S.finish(); return S; },
+  dims: word => packDims(word) };
 const modeOf = it => MODES[it && it.mode] || MODES.neon;
 
 const waiting = [], jobs = [], travellers = [], inFlight = new Set(), shelfBoxes = new Map(), tags = new Map(), bench = { id: null, S: null };
@@ -1218,7 +1481,7 @@ function enter() {
   cur.buf.trimEnd();
   if (!cur.buf.letterCount) { while (cur.buf.pop()); afterEdit(); return null; }
   const word = cur.buf.text, list = currentList(), tgt = targetEntry(), loc = allocSlot(DB.items);
-  const item = makeItem({ word, listId: list ? list.id : null, entryId: tgt ? tgt.id : null, mode: ui.mode, gas: cur.gasKey, loc });
+  const item = makeItem({ word, listId: list ? list.id : null, entryId: tgt ? tgt.id : null, mode: cur.mode, gas: cur.gasKey, loc });
   DB.items.push(item); inFlight.add(item.id); persist(item);
   if (!loc) notice(FULL_MSG + ' — the box will wait beside it');
   else if (tgt && word !== normWord(tgt.text)) notice(`已按实际输入保存 · Saved as “${word}” for “${normWord(tgt.text)}”`);
@@ -1637,9 +1900,17 @@ function setGas(k) {
   k = String(k || '').toLowerCase(); const key = GAS_KEYS.find(n => n === k || n.slice(0, 2) === k.slice(0, 2)); if (!key || k.length < 2) return ui.gas;
   ui.gas = key; cur.setGas(key);
   for (const b of $('gas').children) b.classList.toggle('on', b.dataset.gas === key);
-  document.documentElement.style.setProperty('--g', GASES[key].css); savePrefs(); return key;
+  document.documentElement.style.setProperty('--g', CRAFT_TINT[ui.mode] ? CRAFT_TINT[ui.mode][key][0] : GASES[key].css); savePrefs(); return key;
 }
-function savePrefs() { try { ls.setItem('mtw.ui.v1', JSON.stringify({ listId: ui.listId, view: ui.view, gas: ui.gas })); } catch (e) { /* storage full or blocked */ } }
+/** choose the Pipe Wall mode: the next word is made this way (a word already on the platform keeps its own) */
+function setMode(id) {
+  if (!MODES[id]) return ui.mode; ui.mode = id;
+  if (!cur.buf.length && cur.mode !== id) { cur.dispose(); cur = newCur(); }
+  for (const b of $('modes').querySelectorAll('button')) b.classList.toggle('on', b.textContent === MODES[id].label);
+  const T = CRAFT_TINT[id]; for (const b of $('gas').children) { const k = b.dataset.gas; b.textContent = T ? T[k][1] : GASES[k].tag; b.title = T ? T[k][1] : k; }
+  document.documentElement.style.setProperty('--g', T ? T[ui.gas][0] : GASES[ui.gas].css); savePrefs(); return id;
+}
+function savePrefs() { try { ls.setItem('mtw.ui.v1', JSON.stringify({ listId: ui.listId, view: ui.view, gas: ui.gas, mode: ui.mode })); } catch (e) { /* storage full or blocked */ } }
 function loadPrefs() { try { return JSON.parse(ls.getItem('mtw.ui.v1') || '{}') || {}; } catch (e) { return {}; } }
 function setBadge() {
   const b = $('badge'); b.hidden = false;
@@ -1679,7 +1950,7 @@ $('tabInv').addEventListener('click', e => { e.currentTarget.blur(); openPanel('
 $('viewBtn').addEventListener('click', e => { e.currentTarget.blur(); setView(ui.view === 'first' ? 'third' : 'first'); });
 for (const id of ['back', 'tabLists', 'tabInv', 'viewBtn', 'gas', 'modes']) $(id).addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
 $('gas').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setGas(b.dataset.gas); b.blur(); });
-for (const m of Object.values(MODES)) $('modes').append(btn(m.label, () => { ui.mode = m.id; for (const b of $('modes').querySelectorAll('button')) b.classList.toggle('on', b.textContent === m.label); }, { on: m.id === ui.mode }));
+for (const m of Object.values(MODES)) $('modes').append(btn(m.label, () => setMode(m.id), { on: m.id === ui.mode }));
 addEventListener('message', e => { if (e.source === window.parent && embedded && e.data && e.data.mtw === 1 && e.data.op === 'refresh' && e.data.id == null) refresh(); });
 addEventListener('focus', () => refresh());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
@@ -1746,10 +2017,11 @@ function gripFollow(time) {
   if (f) { cur.letterWorld(f, _fw); grip.tx = _fw.x; grip.ty = PLAT.y + (PLANK_H + WORD_TOP + 0.45) * cur.s; grip.topen = 0.55 + 0.35 * Math.sin(time * 18); }
   else { grip.tx = cur.tubes.length ? PLAT.x : grip.tx; grip.ty = GRIP_HIGH; grip.topen = 1; }
 }
+const DT_MAX = Math.min(1, Number(new URLSearchParams(location.search).get('dtmax')) || 0.05);   // tests on a slow machine may allow longer steps
 let last = performance.now(), frameErr = false;
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)), time = now / 1000; last = now; uTime.value = time % 1000;
+  const dt = Math.min(DT_MAX, Math.max(0, (now - last) / 1000)), time = now / 1000; last = now; uTime.value = time % 1000;
   try {
     poseCur(dt); poseWaiting(dt);
     for (const S of sculptures) S.update(dt, time);
@@ -1794,10 +2066,11 @@ async function init() {
   if (t) [...t].forEach((c, i) => setTimeout(() => type(c), 500 + i * 160));
 }
 const params = new URLSearchParams(location.search);
-{ const prefs = loadPrefs(); setGas(params.get('gas') || prefs.gas || 'neon'); setView(params.get('view') || prefs.view || 'third'); }
+{ const prefs = loadPrefs(); setGas(params.get('gas') || prefs.gas || 'neon'); setView(params.get('view') || prefs.view || 'third'); setMode(MODES[params.get('mode')] ? params.get('mode') : MODES[prefs.mode] ? prefs.mode : 'neon'); }
 cam.blend = ui.view === 'third' ? 1 : 0;
 window.__workshop = {
   type, backspace, enter, setView, selectList, useSampleList, takeOut, putBack, recall, display: displayItem, verifyCloud, remove: removeItem, setGas, store: Store,
+  get letters() { return cur.tubes.map(L => ({ ch: L.ch, state: L.state, p: +(L.p ?? (L.u && L.u.uGrow.value) ?? 0).toFixed(2), t: +L.t.toFixed(2), dur: L.formDur })); },
   get state() { const e = targetEntry(); return { typed: cur.buf.text, view: ui.view, listId: ui.listId, entryId: e ? e.id : null, items: DB.items.length, busy: isBusy() }; },
 };
 afterEdit();

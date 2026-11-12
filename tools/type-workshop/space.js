@@ -44,6 +44,7 @@
     var S = new T.Scene(); S.background = new T.Color('#05030c'); S.fog = new T.FogExp2('#05030c', .028);
     var cam = new T.PerspectiveCamera(70, W / H, .05, 200);
     S.add(new T.HemisphereLight('#6a4cff', '#200814', .55));
+    var sun = new T.DirectionalLight('#fff4e8', .9); sun.position.set(0, 20, 0); S.add(sun, new T.AmbientLight('#ffffff', .35));   // printed and carved works are solid: light them
     // the hall: floor grid, rings of light up the wall, a dome glow
     var floor = new T.Mesh(new T.CircleGeometry(30, 64), new T.MeshBasicMaterial({ map: gridTex(T) })); floor.rotation.x = -Math.PI / 2; S.add(floor);
     for (var i = 0; i < 8; i++) S.add(ring(T, 18, 1 + i * 2.2, i % 2 ? '#5a7bff' : '#ff5ae6', .55 - i * .04));
@@ -52,7 +53,7 @@
     // the works: a rising spiral, each word turned to face the centre
     var its = (o.items || []).slice(0, 60), words = [];
     its.forEach(function (it, k) {
-      var g = window.MinestNeonWord ? MinestNeonWord.build(T, it.word, { gas: it.look && it.look.gas, height: .7, light: its.length <= 6 }) : null; if (!g) return;
+      var g = window.MinestNeonWord ? MinestNeonWord.build(T, it.word, { gas: it.look && it.look.gas, mode: it.mode, height: .7, light: its.length <= 6 }) : null; if (!g) return;
       var a = k * 0.62, rr = 8 + (k % 3) * 2.2, y = 1 + (k / Math.max(1, its.length - 1)) * 13 * (its.length > 1 ? 1 : 0);
       g.position.set(Math.cos(a) * rr, y, Math.sin(a) * rr); g.lookAt(0, y, 0); S.add(g); words.push(g);
     });
