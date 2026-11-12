@@ -60,6 +60,15 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
 @keyframes blink{50%{opacity:0}}
 #hint{left:0;right:0;bottom:max(80px,calc(env(safe-area-inset-bottom) + 56px));text-align:center;transition:opacity .8s;padding:0 16px}
 #hint.off{opacity:0}
+#flow{left:0;right:0;bottom:calc(max(86px,calc(env(safe-area-inset-bottom) + 62px)) + var(--tkbh,0px));display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:0 10px;pointer-events:none;z-index:4}
+#flow button{pointer-events:auto;min-width:64px;height:54px;padding:4px 12px;border-radius:12px;border:1.5px solid #b89154;background:linear-gradient(#3a2618,#1c120b);color:#f3e6cc;
+  font:700 14px/1.15 system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-shadow:0 3px 0 #4a3216,0 6px 14px rgba(0,0,0,.4);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+#flow button small{font:600 9px/1 "Courier New",monospace;letter-spacing:.1em;opacity:.7}
+#flow button.on{background:linear-gradient(#a3471d,#5e2410);border-color:#ffb36b;box-shadow:0 1px 0 #4a3216,0 0 16px rgba(255,120,40,.45);transform:translateY(2px)}
+#flow button.ready{border-color:#6dff8e;box-shadow:0 3px 0 #1f4a26,0 0 18px rgba(80,255,120,.45)}
+#flow button.wide{flex-direction:row;height:44px}
+#flow .walk{color:var(--ink);letter-spacing:.08em;padding:12px}
+#hint{bottom:calc(158px + var(--tkbh,0px))!important}
 
 /* the on-screen typewriter keyboard: round keycaps on a thin strip at the bottom; the work stays above it */
 #tkb{position:fixed;left:50%;transform:translateX(-50%);bottom:max(8px,env(safe-area-inset-bottom));width:min(600px,calc(100vw - 16px));z-index:5;
@@ -89,7 +98,7 @@ body.tkb #line{bottom:calc(var(--tkbh,0px) + 14px)} body.tkb #tgt{bottom:calc(va
 <div class="hud i" id="top"><button class="b" id="back" type="button" tabindex="-1">⟵ Back</button><span class="ttl"><b>Magic Type Workshop</b></span><span id="badge" hidden>local only</span></div>
 <div class="hud i" id="tabs"><button class="b" id="tabLists" type="button" tabindex="-1">Lists</button><button class="b" id="tabInv" type="button" tabindex="-1">Inventory <span id="invN"></span></button></div>
 <div class="hud i" id="ctl">
-  <div class="row"><button class="b" id="keysBtn" type="button" tabindex="-1" title="On-screen typewriter keys">⌨ Keys</button><button class="b" id="viewBtn" type="button" tabindex="-1" title="Tab">View · 3rd</button></div>
+  <div class="row"><button class="b" id="viewBtn" type="button" tabindex="-1" title="Tab">View · 3rd</button></div>
   <div class="row" id="modes"><span class="lab">Pipe wall</span></div>
   <div class="row" id="gas"><button class="b" type="button" tabindex="-1" data-gas="neon" title="Neon">NE</button><button class="b" type="button" tabindex="-1" data-gas="argon" title="Argon">AR</button><button class="b" type="button" tabindex="-1" data-gas="helium" title="Helium">HE</button><button class="b" type="button" tabindex="-1" data-gas="xenon" title="Xenon">XE</button></div>
 </div>
@@ -100,6 +109,7 @@ body.tkb #line{bottom:calc(var(--tkbh,0px) + 14px)} body.tkb #tgt{bottom:calc(va
 <div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
 <div class="hud" id="note"></div>
 <div id="tkb" hidden aria-label="Typewriter keyboard"></div>
+<div class="hud" id="flow"></div>
 <div class="hud" id="err"></div>
 <input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
 
@@ -539,7 +549,7 @@ function pendant(x, z, int) {
 }
 pendant(0.15, -0.15, 6.5); pendant(3.7, -0.25, 5.0); pendant(-2.6, -0.6, 3.2);
 const deskLamp = (() => {
-  const b = V(-0.6, TOP_Y, 0.16), el = V(-0.66, 1.2, 0.08), hd = V(-0.42, 1.28, 0.28), tg = V(-0.05, TOP_Y, 0.32);   // left of the typewriter: never between the eye and the platform
+  const b = V(-0.62, TOP_Y, 0.16), el = V(-0.7, 1.08, 0.12), hd = V(-0.6, 1.1, 0.4), tg = V(-0.05, TOP_Y, 0.3);   // low on the left: clear of the eye at the chair and at the station   // left of the typewriter: never between the eye and the platform
   S(C(0.075, 0.025, 24), M.iron, b.x, b.y + 0.0125, b.z); rod(V(b.x, b.y + 0.02, b.z), el, 0.009, M.brass); rod(el, hd, 0.008, M.brass);
   S(new THREE.SphereGeometry(0.016, 10, 8), M.brass, el.x, el.y, el.z);
   const dir = _v2.subVectors(tg, hd).normalize().clone();
@@ -784,33 +794,57 @@ const hero = (() => {
   const armGeo = B(4 * P, 12 * P, 4 * P).translate(0, -0.25, 0), armMats = [Mm.arm, Mm.arm, Mm.shirt, Mm.skin, Mm.arm, Mm.arm];
   const arms = [-1, 1].map(side => { const sh = new THREE.Group(); sh.position.set(side * 0.3, 0.55, 0); body.add(sh); mesh(armGeo, armMats, sh);
     return { side, sh, cur: V(), tgt: V(), rest: V(), dip: 0, idle: 9 }; });
-  const legGeo = B(4 * P, 12 * P, 4 * P).translate(0, -0.3, 0);
-  for (const side of [-1, 1]) { const l = mesh(legGeo, Mm.leg, root, side * 0.1, 0.555, 0); l.rotation.set(Math.PI / 2, side * 0.06, 0); }
-  const _t = V(), _l = V(), _hp = V();
-  let lean = 0, typing = 0, stretch = 0, inited = false;
+  const legGeo = B(4 * P, 12 * P, 4 * P).translate(0, -0.3, 0), legs = [];
+  for (const side of [-1, 1]) { const l = mesh(legGeo, Mm.leg, root, side * 0.1, 0.555, 0); l.rotation.set(Math.PI / 2, side * 0.06, 0); legs.push(l); }
+  // the sheet the typist carries from the typewriter to the work: held in the left hand
+  const sheetC = document.createElement('canvas'); sheetC.width = 256; sheetC.height = 320; const sheetTex = new THREE.CanvasTexture(sheetC); sheetTex.colorSpace = THREE.SRGBColorSpace;
+  const sheet = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.2), std({ map: sheetTex, roughness: 0.9, side: THREE.DoubleSide, envMapIntensity: 0.15 }));
+  sheet.position.set(0, -0.58, 0.08); sheet.rotation.set(-1.1, 0, 0); sheet.visible = false; arms[0].sh.add(sheet);
+  const _t = V(), _l = V(), _hp = V(), _r = V();
+  let lean = 0, typing = 0, stretch = 0, inited = false, sit = 1, sitT = 1, walkPh = 0, moving = 0;
+  const goal = { x: 0, z: 0.95, yaw: 0 };
   scene.updateMatrixWorld(true);
   const setRest = () => { tw.keyWorld('F', arms[0].rest).add(_t.set(-0.01, 0.035, 0.03)); tw.keyWorld('J', arms[1].rest).add(_t.set(0.01, 0.035, 0.03)); };
+  const typeRest = [V(), V()];
   return {
-    headMesh,
+    headMesh, root, sheet, sheetC, sheetTex,
     eyeWorld(out) { return eye.getWorldPosition(out); },
     press(ch) {
+      if (sit < 0.5) return;
       const kp = tw.keyWorld(ch, _t); const a = ch === ' ' ? arms[1] : (kp.x < 0 ? arms[0] : arms[1]);
       a.tgt.copy(kp); a.tgt.y += 0.01; a.dip = 1; a.idle = 0; typing = Math.min(1, typing + 0.35);
     },
     stretch() { stretch = 1; },
+    /** walk to (x, z), turn to yaw, then sit (true) or stand */
+    goTo(x, z, yaw, sitDown) { goal.x = x; goal.z = z; goal.yaw = yaw; sitT = sitDown ? 1 : 0; },
+    get arrived() { return Math.hypot(root.position.x - goal.x, root.position.z - goal.z) < 0.02 && Math.abs(sit - sitT) < 0.05; },
+    /** a hand to a point in the world; hold = keep it there until let go */
+    reach(i, p, hold = false) { const a = arms[i]; a.tgt.copy(p); a.idle = 0; a.hold = hold; },
+    letGo(i) { arms[i].hold = false; arms[i].idle = 9; },
     update(dt, time, focus) {
-      if (!inited) { setRest(); for (const a of arms) { a.cur.copy(a.rest); a.tgt.copy(a.rest); } inited = true; }
+      if (!inited) { setRest(); typeRest[0].copy(arms[0].rest); typeRest[1].copy(arms[1].rest); for (const a of arms) { a.cur.copy(a.rest); a.tgt.copy(a.rest); } inited = true; }
+      // walking: stand up first, then cross the floor, then sit (if asked); legs swing while moving
+      const dx = goal.x - root.position.x, dz = goal.z - root.position.z, d = Math.hypot(dx, dz);
+      const wantSit = d > 0.03 ? 0 : sitT; sit += clamp(wantSit - sit, -dt / 0.45, dt / 0.45);
+      moving = 0;
+      if (d > 0.005 && sit < 0.05) { const step = Math.min(d, dt * 1.1); root.position.x += dx / d * step; root.position.z += dz / d * step; moving = 1;
+        const yw = Math.atan2(-dx, -dz); root.rotation.y += Math.atan2(Math.sin(yw - root.rotation.y), Math.cos(yw - root.rotation.y)) * (1 - Math.exp(-dt * 10)); }
+      else if (d <= 0.005) root.rotation.y += Math.atan2(Math.sin(goal.yaw - root.rotation.y), Math.cos(goal.yaw - root.rotation.y)) * (1 - Math.exp(-dt * 6));
+      walkPh += dt * 9 * moving; const sw = moving ? Math.sin(walkPh) * 0.55 : 0, s = sm(sit);
+      legs.forEach((l, i) => { l.rotation.x = s * Math.PI / 2 + (i ? sw : -sw) * (1 - s); l.position.y = 0.555 + 0.045 * (1 - s); });
       typing *= Math.exp(-dt * 1.5); stretch *= Math.exp(-dt * 1.8);
-      lean += ((-0.12 - 0.05 * typing + 0.16 * stretch) - lean) * (1 - Math.exp(-dt * 5)); body.rotation.x = lean;
-      body.position.y = 0.555 + (reduce ? 0 : Math.sin(time * 1.6) * 0.003);
+      lean += ((s * (-0.12 - 0.05 * typing) + 0.16 * stretch + (1 - s) * 0.06) - lean) * (1 - Math.exp(-dt * 5)); body.rotation.x = lean;
+      body.position.y = 0.555 + 0.045 * (1 - s) + (reduce ? 0 : Math.sin(time * 1.6) * 0.003) + (moving ? Math.abs(Math.sin(walkPh)) * 0.02 : 0);
       // head follows the work
       head.getWorldPosition(_hp); _hp.y += 0.2;
-      const dx = focus.x - _hp.x, dy = focus.y - _hp.y, dz = focus.z - _hp.z;
-      const yaw = clamp(Math.atan2(-dx, -dz), -1.1, 1.1), pitch = clamp(Math.atan2(dy, Math.hypot(dx, dz)) - lean, -0.8, 0.45);
-      head.rotation.y += (yaw - head.rotation.y) * (1 - Math.exp(-dt * 5)); head.rotation.x += (pitch - head.rotation.x) * (1 - Math.exp(-dt * 5));
+      const fx = focus.x - _hp.x, fy = focus.y - _hp.y, fz = focus.z - _hp.z;
+      const yaw = clamp(Math.atan2(-fx, -fz) - root.rotation.y, -1.1, 1.1), pitch = clamp(Math.atan2(fy, Math.hypot(fx, fz)) - lean, -0.8, 0.45);
+      head.rotation.y += (Math.atan2(Math.sin(yaw), Math.cos(yaw)) - head.rotation.y) * (1 - Math.exp(-dt * 5)); head.rotation.x += (pitch - head.rotation.x) * (1 - Math.exp(-dt * 5));
       root.updateMatrixWorld(true);
+      // hands rest on the keys while sitting, at the sides (swinging) while standing
+      arms.forEach((a, i) => { if (s > 0.5) a.rest.copy(typeRest[i]); else { _r.set((i ? 1 : -1) * 0.33, 0.33 + 0.02 * (1 - s), 0.06 + (moving ? (i ? -sw : sw) * 0.18 : 0)); a.rest.copy(root.localToWorld(_r)); } });
       for (const a of arms) {
-        a.idle += dt; if (a.idle > 0.55) a.tgt.lerp(a.rest, 1 - Math.exp(-dt * 3));
+        a.idle += dt; if (!a.hold && a.idle > 0.55) a.tgt.lerp(a.rest, 1 - Math.exp(-dt * (s > 0.5 ? 3 : 8)));
         a.cur.lerp(a.tgt, 1 - Math.exp(-dt * 24)); a.dip *= Math.exp(-dt * 12);
         _l.copy(a.cur); _l.y += 0.03 * (1 - a.dip) + (stretch > 0.05 ? stretch * 0.25 : 0);
         body.worldToLocal(_l); _l.sub(a.sh.position); const len = _l.length(); if (len > 1e-4) a.sh.quaternion.setFromUnitVectors(DOWN, _l.multiplyScalar(1 / len));
@@ -1321,8 +1355,9 @@ class Sculpture {
     if (!this.plank && this.tubes.length) { const w = this.buf.width; this.plank = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.06, 0.62), M.walnut); this.plank.position.set(w / 2, -0.036, STAND_Z + 0.2); this.inner.add(this.plank); }
   }
   update(dt, time) {
-    const sp = scheduleLetters(this.tubes, MAX_FORMING, reduce) * (this.rush ? 3.5 : 1);
-    for (const L of this.tubes) L.update(L.settled ? dt : dt * sp, time);
+    const G = this.gate, okMake = !G || G.make(), okFin = !G || G.finish();   // the station's gate (hand work), or none
+    const sp = scheduleLetters(this.tubes, okMake ? MAX_FORMING : 0, reduce) * (this.rush && !G ? 3.5 : 1);
+    for (const L of this.tubes) { const ph = G ? letterPhase(L) : 'other', ok = ph === 'make' ? okMake : ph === 'finish' ? okFin : true; L.update(L.settled ? dt : ok ? dt * sp : 0, time); }
     for (let i = this.dying.length - 1; i >= 0; i--) { const L = this.dying[i]; L.update(dt * 1.2, time); if (L.dead) { L.dispose(); this.dying.splice(i, 1); } }
     const f = this.fin;
     if (f && !f.done && this.allSettled()) {
@@ -1491,7 +1526,7 @@ function type1(raw) {
   tw.press(ch); hero.press(ch); $('hint').classList.add('off'); afterEdit(); return true;
 }
 function backspace() { if (!cur.buf.pop()) return false; tw.press('⌫'); hero.press('⌫'); afterEdit(); return true; }
-function afterEdit() { tw.setColumn(cur.buf.length); tw.drawPaper(paperLines, cur.buf.text); renderLine(); renderTarget(); }
+function afterEdit() { if (flow.phase === 'type') { tw.setColumn(flow.draft.length); tw.drawPaper(flow.order, flow.draft); } renderLine(); renderTarget(); renderFlow(); }
 /** Enter: the item is recorded and saved at once; the finishing, boxing and shelving follow as animation */
 function enter() {
   if (!ready) { notice('正在连接 · Connecting… one moment'); return null; }
@@ -1782,11 +1817,13 @@ const btn = (label, fn, o = {}) => h('button', { class: 'b' + (o.on ? ' on' : ''
   onmousedown: e => e.preventDefault(), onclick: e => { e.stopPropagation(); e.currentTarget.blur(); fn(e); } }, label);
 function renderLine() {
   const txt = $('txt'), t = cur.buf.text, tg = targetEntry(), want = tg ? normWord(tg.text) : null;
+  if (flow.phase === 'type') { txt.textContent = flow.draft; return; }
   if (!want) { txt.textContent = t; return; }
   txt.replaceChildren(...[...t].map((c, i) => h('span', c !== want[i] ? { class: 'bad' } : null, c)));
 }
 function renderTarget() {
   const el = $('tgt'); el.replaceChildren(); const l = currentList();
+  if (flow.phase === 'type') { const n = flow.order.length; el.append(h('span', null, n ? `录入清单 · Order sheet · ${n} word${n > 1 ? 's' : ''}` : l && targetEntry() ? `已选清单 · ${l.title} · ▶ 开工 to start` : '录入清单 · Type the words of your list')); ticket.set('ORDER SHEET', flow.draft || (n ? flow.order[n - 1] : '· · ·'), `${n} on the sheet`); return; }
   if (!l) { el.append(h('span', null, '自由输入 · Free typing')); ticket.set('FREE TYPING', cur.buf.text.trim() || '· · ·', 'no list selected'); return; }
   const prog = deriveProgress(DB.items), m = prog[l.id] || {}, made = l.entries.filter(e => m[e.id]).length, e = nextEntry(l, prog, ui.entryId);
   if (!e) { el.append(h('span', null, `${l.title} · 全部完成 · list complete ${made}/${l.entries.length}`)); ticket.set('LIST COMPLETE', `${made}/${l.entries.length}`, l.title); return; }
@@ -1927,7 +1964,7 @@ function setMode(id) {
   const T = CRAFT_TINT[id]; for (const b of $('gas').children) { const k = b.dataset.gas; b.textContent = T ? T[k][1] : GASES[k].tag; b.title = T ? T[k][1] : k; }
   document.documentElement.style.setProperty('--g', T ? T[ui.gas][0] : GASES[ui.gas].css); savePrefs(); return id;
 }
-function savePrefs() { try { ls.setItem('mtw.ui.v1', JSON.stringify({ listId: ui.listId, view: ui.view, gas: ui.gas, mode: ui.mode, keys: ui.keys })); } catch (e) { /* storage full or blocked */ } }
+function savePrefs() { try { ls.setItem('mtw.ui.v1', JSON.stringify({ listId: ui.listId, view: ui.view, gas: ui.gas, mode: ui.mode, auto: flow.auto })); } catch (e) { /* storage full or blocked */ } }
 function loadPrefs() { try { return JSON.parse(ls.getItem('mtw.ui.v1') || '{}') || {}; } catch (e) { return {}; } }
 function setBadge() {
   const b = $('badge'); b.hidden = false;
@@ -1937,6 +1974,219 @@ function setBadge() {
 
 /* ───────────── input ───────────── */
 const kb = $('kb');
+/* ───────────── the work flow: the typewriter takes the list, the typist takes it to the station and makes each word ─────────────
+   1 · TYPE   — at the typewriter every word typed and returned is a line on the order sheet (nothing is built yet).
+                📜 Hand over (or Return on an empty line) saves the lines as a real List and tears the sheet off.
+                A List picked in the Lists panel can be started directly (▶ Start).
+   2 · WALK   — the typist stands, carries the sheet to the control station beside the bench and clips it on.
+   3 · WORK   — for each pending word the letters wait on the platform until the machine is worked by hand:
+                the LEVER (hold) makes them, the VALVE and the SWITCH complete them — what each one is depends on the
+                mode (bend · gas · power for neon; feed · cool · power for print; chisel · polish · clamp for carving;
+                drop · wire · lights for the installation). The PACK lever boxes the finished word; the controls spring
+                back and the next word waits. ⚙ AUTO lets the typist work them alone.
+   4 · BACK   — the list done (or ⟵ Typewriter), the typist walks back and sits down. */
+const CTRL = {
+  neon:    { lever: ['BEND', '弯管'],   valve: ['GAS', '充气'],    sw: ['POWER', '通电'], make: ['lever'],        finish: ['valve', 'sw'] },
+  print:   { lever: ['FEED', '送丝'],   valve: ['COOL', '冷却'],   sw: ['POWER', '电源'], make: ['sw', 'lever'],  finish: ['sw', 'valve'] },
+  carve:   { lever: ['CHISEL', '下凿'], valve: ['POLISH', '打磨'], sw: ['CLAMP', '夹紧'], make: ['sw', 'lever'],  finish: ['valve'] },
+  install: { lever: ['DROP', '下放'],   valve: ['WIRE', '接线'],   sw: ['LIGHTS', '亮灯'], make: ['lever'],       finish: ['valve', 'sw'] },
+};
+const STATION = { x: -0.8, z: 0.74, stand: { x: -0.8, z: 1.16 }, y: 0.98 };
+const flow = { phase: 'type', draft: '', order: [], auto: false, ctl: { lever: false, valve: false, sw: false }, autoT: 0, packing: false, walkT: 0 };
+const ctlOn = k => !!flow.ctl[k];
+const ctlSpec = () => CTRL[cur.mode] || CTRL.neon;
+/** the gate a sculpture's letters wait behind while the station is worked by hand */
+const stationGate = { make: () => flow.phase === 'work' && ctlSpec().make.every(ctlOn), finish: () => flow.phase === 'work' && ctlSpec().finish.every(ctlOn) };
+function letterPhase(L) { const s = L.state; return s === 'stand' || s === 'form' ? 'make' : s === 'energise' || s === 'flicker' || s === 'spread' || s === 'settle' ? 'finish' : 'other'; }
+
+/* the station: an iron column with a slanted walnut panel — lever, valve wheel, toggle switch, pack lever, a clipboard */
+const station = (() => {
+  const g = new THREE.Group(); g.position.set(STATION.x, 0, STATION.z); scene.add(g);
+  mesh(C(0.05, 0.86, 14), M.iron, g, 0, 0.43, 0); mesh(C(0.16, 0.04, 24), M.iron, g, 0, 0.02, 0);
+  const panel = new THREE.Group(); panel.position.set(0, STATION.y - 0.06, 0); panel.rotation.x = -0.6; g.add(panel);
+  mesh(B(0.62, 0.05, 0.3), M.walnut, panel, 0, 0, 0); mesh(B(0.64, 0.012, 0.32), M.brass, panel, 0, -0.03, 0);
+  const lampMat = () => new THREE.MeshStandardMaterial({ color: 0x220a04, emissive: 0x000000, roughness: 0.3 });
+  const plateC = document.createElement('canvas'); plateC.width = 512; plateC.height = 64; const plateTex = new THREE.CanvasTexture(plateC); plateTex.colorSpace = THREE.SRGBColorSpace;
+  const plate = mesh(new THREE.PlaneGeometry(0.6, 0.075), std({ map: plateTex, roughness: 0.4, metalness: 0.5 }), panel, 0, 0.027, 0.11); plate.rotation.x = -Math.PI / 2;
+  const ctl = {};
+  const at = x => ({ x, y: 0.03, z: -0.02 });
+  { // the making lever: a pivot, a rod, a red ball
+    const p = new THREE.Group(); p.position.set(-0.22, 0.03, -0.02); panel.add(p); mesh(B(0.07, 0.03, 0.1), M.iron, p, 0, 0, 0);
+    const arm = new THREE.Group(); p.add(arm); mesh(C(0.009, 0.2, 10), M.steel, arm, 0, 0.1, 0);
+    const knob = mesh(new THREE.SphereGeometry(0.026, 16, 12), new THREE.MeshStandardMaterial({ color: 0xb3261e, roughness: 0.3 }), arm, 0, 0.21, 0);
+    ctl.lever = { arm, knob, a: 0, lamp: mesh(new THREE.SphereGeometry(0.012, 10, 8), lampMat(), panel, -0.22, 0.035, 0.07) };
+  }
+  { // the valve: a brass hand wheel on a stem
+    const p = new THREE.Group(); p.position.set(-0.07, 0.03, -0.02); panel.add(p); mesh(C(0.012, 0.06, 10), M.steel, p, 0, 0.03, 0);
+    const wheel = new THREE.Group(); wheel.position.y = 0.065; p.add(wheel);
+    const tor = mesh(new THREE.TorusGeometry(0.05, 0.008, 8, 28), M.brass, wheel); tor.rotation.x = Math.PI / 2;
+    for (let i = 0; i < 3; i++) { const sp = mesh(B(0.1, 0.008, 0.008), M.brass, wheel); sp.rotation.y = i * Math.PI / 3; }
+    ctl.valve = { wheel, knob: tor, a: 0, lamp: mesh(new THREE.SphereGeometry(0.012, 10, 8), lampMat(), panel, -0.07, 0.035, 0.07) };
+  }
+  { // the switch: a bakelite base, a toggle that flips
+    const p = new THREE.Group(); p.position.set(0.08, 0.03, -0.02); panel.add(p); mesh(B(0.07, 0.025, 0.09), new THREE.MeshStandardMaterial({ color: 0x1a1512, roughness: 0.5 }), p, 0, 0, 0);
+    const arm = new THREE.Group(); arm.position.y = 0.012; p.add(arm); mesh(C(0.008, 0.07, 10), M.steel, arm, 0, 0.035, 0);
+    const knob = mesh(new THREE.SphereGeometry(0.014, 12, 10), new THREE.MeshStandardMaterial({ color: 0xece4d0, roughness: 0.3 }), arm, 0, 0.072, 0);
+    ctl.sw = { arm, knob, a: 0, lamp: mesh(new THREE.SphereGeometry(0.012, 10, 8), lampMat(), panel, 0.08, 0.035, 0.07) };
+  }
+  { // the pack lever: green, it springs back
+    const p = new THREE.Group(); p.position.set(0.23, 0.03, -0.02); panel.add(p); mesh(B(0.07, 0.03, 0.1), M.iron, p, 0, 0, 0);
+    const arm = new THREE.Group(); p.add(arm); mesh(C(0.009, 0.18, 10), M.steel, arm, 0, 0.09, 0);
+    const knob = mesh(new THREE.SphereGeometry(0.026, 16, 12), new THREE.MeshStandardMaterial({ color: 0x2f7a3a, roughness: 0.3 }), arm, 0, 0.19, 0);
+    ctl.pack = { arm, knob, a: 0, kick: 0, lamp: mesh(new THREE.SphereGeometry(0.012, 10, 8), lampMat(), panel, 0.23, 0.035, 0.07) };
+  }
+  // the clipboard on a short mast behind the controls: the order sheet, ticked as words are boxed
+  const mast = new THREE.Group(); mast.position.set(0, STATION.y + 0.02, -0.12); g.add(mast);
+  mesh(C(0.008, 0.2, 8), M.steel, mast, 0, 0.1, 0);
+  mesh(B(0.2, 0.26, 0.012), M.walnut, mast, 0, 0.32, 0);
+  const clipC = document.createElement('canvas'); clipC.width = 256; clipC.height = 320; const clipTex = new THREE.CanvasTexture(clipC); clipTex.colorSpace = THREE.SRGBColorSpace;
+  const clip = mesh(new THREE.PlaneGeometry(0.18, 0.225), std({ map: clipTex, roughness: 0.9, envMapIntensity: 0.15 }), mast, 0, 0.31, 0.008); clip.visible = false;
+  mesh(B(0.07, 0.02, 0.02), M.brass, mast, 0, 0.44, 0.012);
+  const picks = [['lever', ctl.lever.knob], ['valve', ctl.valve.knob], ['sw', ctl.sw.knob], ['pack', ctl.pack.knob]];
+  for (const [k, m] of picks) m.userData.ctl = k;
+  function plateText(spec) {
+    const x = plateC.getContext('2d'); x.fillStyle = '#6b4d1c'; x.fillRect(0, 0, 512, 64); x.fillStyle = '#f3dfae'; x.font = '700 21px "Courier New", monospace'; x.textAlign = 'center';
+    [[spec.lever, 0.14], [spec.valve, 0.38], [spec.sw, 0.63], [['PACK', '装箱'], 0.87]].forEach(([l, f]) => { x.fillText(l[0], 512 * f, 28); x.font = '600 17px system-ui, sans-serif'; x.fillText(l[1], 512 * f, 52); x.font = '700 21px "Courier New", monospace'; });
+    plateTex.needsUpdate = true;
+  }
+  return {
+    g, ctl, clip, clipC, clipTex, plateText, knobs: picks.map(p => p[1]),
+    knobWorld(k, out) { return ctl[k].knob.getWorldPosition(out); },
+    update(dt) {
+      const L = ctl.lever; L.a += ((flow.ctl.lever ? 1 : 0) - L.a) * (1 - Math.exp(-dt * 14)); L.arm.rotation.x = -0.7 + 1.4 * L.a;
+      const W = ctl.valve; if (flow.ctl.valve) W.wheel.rotation.y += dt * 2.2 * (W.a < 1 ? 3 : 0.25); W.a = Math.min(1, W.a + dt * (flow.ctl.valve ? 1.5 : -3)); W.a = Math.max(0, W.a);
+      const SW = ctl.sw; SW.a += ((flow.ctl.sw ? 1 : 0) - SW.a) * (1 - Math.exp(-dt * 20)); SW.arm.rotation.x = -0.55 + 1.1 * SW.a;
+      const PK = ctl.pack; PK.kick *= Math.exp(-dt * 4); PK.arm.rotation.x = -0.7 + 1.4 * Math.min(1, PK.kick * 1.6);
+      const lit = (o, on, c) => o.lamp.material.emissive.setHex(on ? c : 0x000000);
+      lit(L, flow.ctl.lever, 0xff4a1c); lit(W, flow.ctl.valve, 0x55c8ff); lit(SW, flow.ctl.sw, 0xffd257);
+      lit(PK, flow.phase === 'work' && packReady(), 0x48ff7a);
+    },
+  };
+})();
+
+function drawSheet(c, tex, title, words, doneSet, current) {
+  const x = c.getContext('2d'); x.fillStyle = '#f3eee2'; x.fillRect(0, 0, 256, 320);
+  x.fillStyle = 'rgba(120,90,60,.08)'; for (let i = 40; i < 320; i += 26) x.fillRect(0, i, 256, 1);
+  x.fillStyle = '#3a2416'; x.font = '700 16px "Courier New", monospace'; x.textAlign = 'left'; x.fillText(String(title || 'ORDER').slice(0, 22), 14, 26);
+  words.slice(0, 11).forEach((w, i) => { const y = 58 + i * 26, done = doneSet && doneSet.has(i);
+    x.fillStyle = i === current ? '#a3341a' : done ? 'rgba(40,28,20,.45)' : '#1b130e'; x.font = '700 18px "Courier New", monospace'; x.fillText((done ? '✓ ' : i === current ? '▸ ' : '  ') + w, 12, y);
+    if (done) { x.strokeStyle = 'rgba(40,28,20,.45)'; x.beginPath(); x.moveTo(34, y - 6); x.lineTo(40 + w.length * 11, y - 6); x.stroke(); } });
+  if (words.length > 11) { x.fillStyle = '#6b5a48'; x.font = '600 14px system-ui'; x.fillText(`+${words.length - 11} more`, 14, 312); }
+  tex.needsUpdate = true;
+}
+function listSheet() {   // the clipboard: the current list, ticked
+  const l = currentList(); if (!l) { station.clip.visible = false; return; }
+  const prog = deriveProgress(DB.items), m = prog[l.id] || {}, done = new Set(), e = targetEntry();
+  l.entries.forEach((en, i) => { if (m[en.id]) done.add(i); });
+  drawSheet(station.clipC, station.clipTex, l.title, l.entries.map(en => normWord(en.text)), done, e ? l.entries.indexOf(e) : -1); station.clip.visible = true;
+}
+
+/* TYPE: the typewriter writes the order sheet */
+function draftType(raw) {
+  const ch = normChar(raw); if (ch === null) { notice(NOT_SUPPORTED); return false; }
+  if (ch === ' ' && (!flow.draft || flow.draft.endsWith(' '))) return false;
+  if (flow.draft.length >= MAX_WORD) { notice(`最多 ${MAX_WORD} 个字符 · Max ${MAX_WORD} characters per word`); return false; }
+  flow.draft += ch; tw.press(ch); hero.press(ch); $('hint').classList.add('off'); draftShow(); return true;
+}
+function draftBack() { if (!flow.draft) { if (flow.order.length) { flow.draft = flow.order.pop(); draftShow(); return true; } return false; } flow.draft = flow.draft.slice(0, -1); tw.press('⌫'); hero.press('⌫'); draftShow(); return true; }
+function draftReturn() {
+  const w = flow.draft.trim();
+  if (w) { if (flow.order.length >= 200) { notice('一份最多 200 个词 · 200 words per list'); return; } flow.order.push(w); flow.draft = ''; tw.ret(); draftShow(); return; }
+  handOver();
+}
+function draftShow() { tw.setColumn(flow.draft.length); tw.drawPaper(flow.order, flow.draft); renderLine(); renderTarget(); renderFlow(); }
+
+/** hand the order over: the typed lines become a List (or the picked list is used), the typist goes to work */
+async function handOver() {
+  if (flow.phase !== 'type' || flow.packing) return;
+  if (flow.draft.trim()) { flow.order.push(flow.draft.trim()); flow.draft = ''; }
+  let list = null;
+  if (flow.order.length) {
+    if (!ready) { notice('正在连接 · Connecting… one moment'); return; }
+    const d = new Date(), title = `Order · ${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    flow.packing = true;
+    try { list = await Store.createList(title, flow.order); DB.lists.push(list); }
+    catch (e) { notice('保存清单失败 · Could not save the list — ' + e.message); flow.packing = false; return; }
+    flow.packing = false; flow.order = []; selectList(list.id);
+  } else { list = currentList(); if (!list || !targetEntry()) { notice('先打几个词，每个词按 Return · Type words first, Return after each'); return; } }
+  // the sheet tears off and goes with the typist
+  drawSheet(hero.sheetC, hero.sheetTex, list.title, list.entries.map(e => normWord(e.text)), null, -1); hero.sheet.visible = true;
+  tw.ret(); tw.drawPaper([], ''); tw.setColumn(0);
+  setKeys(false);
+  flow.phase = 'walk'; hero.goTo(STATION.stand.x, STATION.stand.z, 0, false); renderFlow(); renderLine();
+}
+function beginWork() { flow.phase = 'work'; hero.sheet.visible = false; listSheet(); nextWord(); }
+function nextWord() {
+  for (const k in flow.ctl) flow.ctl[k] = false;
+  const e = targetEntry();
+  if (!e) { finishShift(); return; }
+  if (!cur.buf.length) { if (cur.mode !== ui.mode) { cur.dispose(); cur = newCur(); } for (const c of normWord(e.text)) cur.buf.push(c); }
+  cur.gate = stationGate; station.plateText(ctlSpec()); listSheet(); afterEdit(); renderFlow();
+}
+function packReady() { return cur.buf.letterCount > 0 && cur.allSettled(); }
+function pullPack() {
+  if (flow.phase !== 'work' || !packReady() || flow.packing) return false;
+  station.ctl.pack.kick = 1; flow.packing = true;
+  setTimeout(() => { const id = enter(); flow.packing = false; if (id) { listSheet(); setTimeout(() => { if (flow.phase === 'work') nextWord(); }, 700); } }, 260);
+  return true;
+}
+function finishShift() {
+  if (cur.buf.length && !cur.allSettled()) { /* half-made word stays on the platform */ }
+  cur.gate = null; for (const k in flow.ctl) flow.ctl[k] = false;
+  flow.phase = 'back'; hero.goTo(0, 0.95, 0, true); renderFlow(); renderLine(); renderTarget();
+}
+function setCtl(k, on) {
+  if (flow.phase !== 'work') return;
+  if (k === 'pack') { if (on) { if (!pullPack()) notice(packReady() ? '' : '还没做好 · Not finished yet — work the lever and the switches'); } return; }
+  flow.ctl[k] = !!on; renderFlow();
+  station.knobWorld(k, _fw); hero.reach(k === 'lever' ? 1 : 0, _fw, k === 'lever' && on);
+  if (k !== 'lever') setTimeout(() => hero.letGo(0), 400); else if (!on) hero.letGo(1);
+}
+const toggleCtl = k => setCtl(k, !flow.ctl[k]);
+function setAuto(on) { flow.auto = !!on; flow.autoT = 0; renderFlow(); savePrefs(); }
+
+/** AUTO: the typist works the station alone, at a human pace */
+function autoStep(dt) {
+  if (!flow.auto || flow.phase !== 'work' || flow.packing) return;
+  flow.autoT -= dt; if (flow.autoT > 0) return;
+  const spec = ctlSpec(), pending = cur.tubes.filter(L => !L.settled);
+  const making = pending.some(L => L.state === 'queued' || letterPhase(L) === 'make');
+  if (making) {
+    for (const k of spec.make) if (k !== 'lever' && !flow.ctl[k]) { setCtl(k, true); flow.autoT = 0.6; return; }
+    if (!flow.ctl.lever) { setCtl('lever', true); flow.autoT = 0.4; return; }
+    flow.autoT = 0.2; return;
+  }
+  if (flow.ctl.lever && !spec.finish.includes('lever')) { setCtl('lever', false); flow.autoT = 0.5; return; }
+  if (pending.length) { for (const k of spec.finish) if (!flow.ctl[k]) { setCtl(k, true); flow.autoT = 0.7; return; } flow.autoT = 0.2; return; }
+  if (packReady()) { station.knobWorld('pack', _fw); hero.reach(1, _fw); setTimeout(() => hero.letGo(1), 500); pullPack(); flow.autoT = 1.4; }
+}
+function flowUpdate(dt) {
+  station.update(dt); autoStep(dt);
+  if (flow.phase === 'walk' && hero.arrived) beginWork();
+  if (flow.phase === 'back' && hero.arrived) { flow.phase = 'type'; renderFlow(); draftShow(); }
+}
+
+/* the HUD: what to do next, and the station's controls as big touch buttons */
+function renderFlow() {
+  const el = $('flow'); if (!el) return; const P = flow.phase, spec = ctlSpec();
+  const btn = (k, label, on, extra = '') => `<button type="button" tabindex="-1" data-f="${k}" class="${on ? 'on' : ''} ${extra}">${label}</button>`;
+  let hud = '';
+  if (P === 'type') {
+    const l = currentList(), canStart = !flow.order.length && !flow.draft && l && targetEntry();
+    hud = (flow.order.length || flow.draft ? btn('hand', `📜 交给小人 · Hand over (${flow.order.length + (flow.draft.trim() ? 1 : 0)})`, false, 'wide') : '')
+      + (canStart ? btn('start', `▶ 开工 · Start “${l.title.slice(0, 18)}”`, false, 'wide') : '')
+      + btn('auto', '⚙ AUTO', flow.auto);
+  } else if (P === 'work') {
+    const lbl = k => `${spec[k][1]}<small>${spec[k][0]}</small>`;
+    hud = btn('lever', '⬇ ' + lbl('lever'), flow.ctl.lever, 'hold') + btn('valve', '⟳ ' + lbl('valve'), flow.ctl.valve) + btn('sw', '⏻ ' + lbl('sw'), flow.ctl.sw)
+      + btn('pack', `📦 装箱<small>PACK</small>`, false, packReady() ? 'ready' : '') + btn('auto', '⚙ AUTO', flow.auto) + btn('stop', '⟵ 打字机');
+  } else hud = `<span class="walk">${P === 'walk' ? '小人拿着清单去工作台… · to the station' : '回到打字机… · back to the typewriter'}</span>`;
+  el.innerHTML = hud; el.dataset.phase = P;
+  $('hint').textContent = P === 'type' ? '点打字机打字 · 每个词按 Return · 空行再按 Return 交给小人 · Tap the typewriter to type; Return after each word'
+    : P === 'work' ? '按住拉杆制作 · 拧阀门、扳开关完成 · 拉装箱杆 · Hold the lever, turn the valve, flip the switch, pull PACK  (Space · 1 · 2 · Enter)' : '';
+  $('hint').classList.toggle('off', P === 'work' && flow.auto);
+}
+
 /* ───────────── the on-screen typewriter keyboard (⌨ Keys) ─────────────
    For touch screens: a typewriter's round keys on a thin strip, instead of the system keyboard covering half the screen.
    Every key goes through the same type() / backspace() / enter() as a real keyboard, so the 3D typewriter and the
@@ -1950,7 +2200,7 @@ function drawKeys() {
     + `<div class="r">${key(' ', 'SPACE', 'w sp')}${key('⏎', 'RETURN', 'w')}</div>`;
 }
 function setKeys(on) {
-  ui.keys = !!on; $('tkb').hidden = !ui.keys; document.body.classList.toggle('tkb', ui.keys); $('keysBtn').classList.toggle('on', ui.keys);
+  ui.keys = !!on && flow.phase === 'type'; $('tkb').hidden = !ui.keys; document.body.classList.toggle('tkb', ui.keys);
   if (ui.keys) { drawKeys(); if (document.activeElement === kb) kb.blur(); }
   document.documentElement.style.setProperty('--tkbh', (ui.keys ? $('tkb').offsetHeight : 0) + 'px'); resize(); savePrefs(); return ui.keys;
 }
@@ -1958,11 +2208,25 @@ $('tkb').addEventListener('pointerdown', e => {
   const b = e.target.closest('button[data-k]'); if (!b) return; e.preventDefault(); e.stopPropagation();
   const k = b.dataset.k; b.classList.add('dn'); setTimeout(() => b.classList.remove('dn'), 110);
   if (k === '#') { tkbSet = tkbSet === 'abc' ? 'num' : 'abc'; drawKeys(); return; }
-  if (k === '⌫') backspace(); else if (k === '⏎') enter(); else type(k);
+  if (k === '⌫') keyBack(); else if (k === '⏎') keyReturn(); else keyType(k);
   try { navigator.vibrate && navigator.vibrate(6); } catch (x) { /* no haptics */ }
 });
-$('keysBtn').addEventListener('click', e => { e.currentTarget.blur(); setKeys(!ui.keys); });
-$('keysBtn').addEventListener('mousedown', e => e.preventDefault());
+/** input, by phase: at the typewriter it writes the order sheet; at the station Return pulls PACK */
+function keyType(ch) { if (flow.phase === 'type') return draftType(ch); return false; }
+function keyBack() { if (flow.phase === 'type') return draftBack(); return false; }
+function keyReturn() { if (flow.phase === 'type') return draftReturn(); if (flow.phase === 'work') return pullPack(); return false; }
+$('flow').addEventListener('pointerdown', e => {
+  const b = e.target.closest('button[data-f]'); if (!b) return; e.preventDefault(); const f = b.dataset.f;
+  if (f === 'lever') { setCtl('lever', true); flow.heldBy = 'hud'; return; }
+  if (f === 'valve' || f === 'sw') return toggleCtl(f);
+  if (f === 'pack') return setCtl('pack', true);
+  if (f === 'auto') return setAuto(!flow.auto);
+  if (f === 'hand') return handOver();
+  if (f === 'start') return handOver();
+  if (f === 'stop') return finishShift();
+});
+addEventListener('pointerup', () => { if (flow.heldBy) { flow.heldBy = null; if (!flow.auto) setCtl('lever', false); } });
+addEventListener('pointercancel', () => { if (flow.heldBy) { flow.heldBy = null; if (!flow.auto) setCtl('lever', false); } });
 const isField = el => el && el !== kb && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
@@ -1970,16 +2234,29 @@ addEventListener('keydown', e => {
   if (e.key === 'Tab') { e.preventDefault(); setView(ui.view === 'first' ? 'third' : 'first'); return; }
   if (e.target === kb) return;                                   // the hidden field reports through beforeinput
   if (e.key === 'Escape') { if (ui.panel) openPanel(ui.panel); return; }
-  if (e.key === 'Backspace') { e.preventDefault(); backspace(); }
-  else if (e.key === 'Enter') { e.preventDefault(); enter(); }
-  else if (e.key.length === 1 || e.key === ' ') { e.preventDefault(); type(e.key); }
+  if (flow.phase === 'work') {   // the station from the keyboard: hold Space = lever, 1 = valve, 2 = switch, Return = pack
+    if (e.key === ' ') { e.preventDefault(); if (!e.repeat) { setCtl('lever', true); flow.heldBy = 'key'; } }
+    else if (e.key === '1') toggleCtl('valve'); else if (e.key === '2') toggleCtl('sw');
+    else if (e.key === 'Enter') { e.preventDefault(); pullPack(); }
+    return;
+  }
+  if (e.key === 'Backspace') { e.preventDefault(); keyBack(); }
+  else if (e.key === 'Enter') { e.preventDefault(); keyReturn(); }
+  else if (e.key.length === 1 || e.key === ' ') { e.preventDefault(); keyType(e.key); }
 });
+addEventListener('keyup', e => { if (e.key === ' ' && flow.heldBy === 'key') { flow.heldBy = null; if (!flow.auto) setCtl('lever', false); } });
 kb.value = ' ';
 kb.addEventListener('beforeinput', e => { e.preventDefault();
-  if (e.inputType === 'deleteContentBackward') backspace(); else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') enter(); else if (e.data) type(e.data); });
-kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enter(); } });
+  if (e.inputType === 'deleteContentBackward') keyBack(); else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') keyReturn(); else if (e.data) for (const c of e.data) keyType(c); });
+kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); keyReturn(); } });
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(); let down = null;
-canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; if (matchMedia('(pointer: coarse)').matches && !ui.keys) kb.focus({ preventScroll: true }); });
+canvas.addEventListener('pointerdown', e => {
+  down = { x: e.clientX, y: e.clientY };
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+  if (flow.phase === 'work') { const h0 = ray.intersectObjects(station.knobs, false)[0]; if (h0) { const k = h0.object.userData.ctl; down = null;
+    if (k === 'lever') { setCtl('lever', true); flow.heldBy = 'pick'; } else if (k === 'pack') setCtl('pack', true); else toggleCtl(k); return; } }
+  if (flow.phase === 'type' && ray.intersectObject(tw.group, true)[0]) { down = null; setKeys(!ui.keys); }   // the typewriter: its keyboard comes up (again: goes away)
+});
 canvas.addEventListener('pointerup', e => {
   if (!down) return; const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null; if (moved > 8) return;
   ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
@@ -2022,6 +2299,7 @@ function updateLights(dt) {
 }
 
 /* ───────────── camera: first / third person over one scene ───────────── */
+const _sf = new THREE.Vector3();
 const cam = { blend: 1, focus: V(0, 0.98, -0.45), raw: V(), fp: V(), fpT: V(), tp: V(), tpT: V(), look: V() };
 function workFocus(out) {
   if (grip.owner === 'job') return out.set(grip.x, grip.y - 0.12, RAIL_Z);
@@ -2032,12 +2310,17 @@ function workFocus(out) {
 }
 function updateCamera(dt, time) {
   const goal = ui.view === 'third' ? 1 : 0; cam.blend += clamp(goal - cam.blend, -dt / 0.9, dt / 0.9); const b = sm(cam.blend);
-  workFocus(cam.raw); cam.focus.lerp(cam.raw, 1 - Math.exp(-dt * 2.2)); const f = cam.focus;
+  workFocus(cam.raw);
+  cam.focus.lerp(cam.raw, 1 - Math.exp(-dt * 2.2)); const f = cam.focus;
   hero.eyeWorld(cam.fp); cam.fp.y += 0.3; cam.fp.z += 0.1;   // lean up: the eye clears the paper so the platform reads whole
   cam.fpT.set(clamp(lerp(0, f.x, 0.4), -1.3, 1.8), lerp(0.98, f.y, 0.35), lerp(-0.32, f.z, 0.25));
   const k = clamp(1.25 / camera.aspect, 1, 2.1), sway = reduce ? 0 : 1;
   cam.tpT.set(lerp(0.25, f.x, 0.55), lerp(0.98, f.y, 0.3), -0.38);
   cam.tp.set(cam.tpT.x + 1.9 * k + sway * Math.sin(time * 0.13) * 0.08, cam.tpT.y + 1.15 * k, cam.tpT.z + 2.0 * k);   // from the front-right: the work sits mid-frame, the typist at the left side, never on the line between
+  if (flow.phase !== 'type') {   // at the station: a front view with the typist, the controls and the platform all in frame
+    cam.wk = Math.min(1, (cam.wk || 0) + dt / 1.2);
+  } else cam.wk = Math.max(0, (cam.wk || 0) - dt / 1.2);
+  if (cam.wk > 0) { const w = sm(cam.wk); _sf.set(-0.38, 0.98, -0.05); cam.tpT.lerp(_sf, w); _sf.set(-0.38 + 1.25 * k, 0.98 + 1.55 * k, -0.05 + 2.95 * k); cam.tp.lerp(_sf, w); }
   camera.position.lerpVectors(cam.fp, cam.tp, b); cam.look.lerpVectors(cam.fpT, cam.tpT, b); camera.lookAt(cam.look);
   const fov = lerp(64, 48, b); if (Math.abs(fov - camera.fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
   hero.headMesh.visible = b > 0.15;
@@ -2074,7 +2357,7 @@ function frame(now) {
     if (!reduce) turntable.rotation.y = 0.32 * Math.sin(time * 0.45);
     rig.update(dt, time, ui.gas, !!cur.formingLetter());
     tw.update(dt); conveyor.update(dt);
-    hero.update(dt, time, cam.focus);
+    flowUpdate(dt); hero.update(dt, time, cam.focus);
     updateLights(dt); updateCamera(dt, time);
   } catch (e) { if (!frameErr) { frameErr = true; console.warn('workshop frame', e); } }
   composer.render();
@@ -2110,10 +2393,10 @@ async function init() {
 }
 const params = new URLSearchParams(location.search);
 { const prefs = loadPrefs(); setGas(params.get('gas') || prefs.gas || 'neon'); setView(params.get('view') || prefs.view || 'third'); setMode(MODES[params.get('mode')] ? params.get('mode') : MODES[prefs.mode] ? prefs.mode : 'neon');
-  setKeys(params.has('keys') ? params.get('keys') !== '0' : typeof prefs.keys === 'boolean' ? prefs.keys : matchMedia('(pointer: coarse)').matches); }
+  setKeys(params.get('keys') === '1'); flow.auto = params.has('auto') ? params.get('auto') !== '0' : !!prefs.auto; renderFlow(); }
 cam.blend = ui.view === 'third' ? 1 : 0;
 window.__workshop = {
-  type, backspace, enter, setView, selectList, useSampleList, takeOut, putBack, recall, display: displayItem, verifyCloud, remove: removeItem, setGas, store: Store,
+  type: s => { let any = false; for (const c of String(s)) any = keyType(c) || any; return any; }, backspace: keyBack, enter: keyReturn, build: { type, backspace, enter }, flow: { get phase() { return flow.phase; }, get ctl() { return { ...flow.ctl }; }, handOver, setCtl, toggleCtl, pullPack, setAuto, get packReady() { return packReady(); } }, setView, selectList, useSampleList, takeOut, putBack, recall, display: displayItem, verifyCloud, remove: removeItem, setGas, store: Store,
   get letters() { return cur.tubes.map(L => ({ ch: L.ch, state: L.state, p: +(L.p ?? (L.u && L.u.uGrow.value) ?? 0).toFixed(2), t: +L.t.toFixed(2), dur: L.formDur })); },
   get state() { const e = targetEntry(); return { typed: cur.buf.text, view: ui.view, listId: ui.listId, entryId: e ? e.id : null, items: DB.items.length, busy: isBusy() }; },
 };
