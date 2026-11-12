@@ -195,7 +195,7 @@
     const f2 = new THREE.PointLight(0xffe9c8, 0.5, 40, 1.6); f2.position.set(cx, fy + 5, z1 - 8); group.add(f2);
     const fh = new THREE.HemisphereLight(0xf4ecd8, 0x3a2c1e, 0.4); group.add(fh);
 
-    return { group, colliders, enterXZ: [cx, zBot - 1], books: bookMesh, bookCount: nB, stairZ };
+    return { group, colliders, enterXZ: [cx, zBot - 1], books: bookMesh, bookCount: nB, bookIds: books.ids, bookMeta: books.meta, bookPalette: books.color, stairZ };
   }
 
   root.TrinityWren = { build };

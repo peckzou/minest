@@ -48,7 +48,7 @@
       // a lime avenue beyond. Sizes are ESTIMATES (river 14 m wide, lawn 34 m deep, bridge on the library's axis).
       backs: { x0: -250, x1: -IX - 12.2 - NEV_L - 12, riverE: -IX - 12.2 - NEV_L - 12 - 34, riverW: -IX - 12.2 - NEV_L - 12 - 48, zLawn: 95, bridgeZ: 0, bridgeW: 6 },
       wren: { x: -IX - 12.2 - NEV_L - 6, z0: -22.5, z1: 22.5, W: 12.0, H: 12.0, floorY: 6.0, bays: 15 },
-      doors: [], seats: [],
+      doors: [], seats: [], residence: { x0: -36, x1: -12 },
       bounds: { x0: -246, x1: IX + DEPTH + 36, z0: -148, z1: 148 },   // west: past the Wren Library; east: the street, walled at both ends
       // outside on Trinity Street, looking west through the Great Gate
       spawn: { x: IX + DEPTH + 16, y: 0, z: 0, yaw: Math.PI / 2 },

@@ -90,7 +90,7 @@
   /* ================= state ================= */
   let world = null;
   let colliders = [];
-  const S = { mode: 'tour', sit: null, tourT: 0, hudT: 0, locked: false, elapsed: 0 };
+  const S = { ui: false, mode: 'tour', sit: null, tourT: 0, hudT: 0, locked: false, elapsed: 0 };
   const keys = Object.create(null);
   const player = { pos: new V3(0, 0, 0), vel: new V3(), yaw: 0, pitch: 0, onGround: true, fly: false };
   const joy = { x: 0, y: 0 };
@@ -128,8 +128,10 @@
 
   /* ================= modes ================= */
   const MODE_LABEL = { tour: '导览模式 · 点击或按任意键开始探索', walk: '步行模式', fly: '飞行模式' };
+  function clearInput() { for (const k in keys) keys[k] = false; joy.x = 0; joy.y = 0; touchBtn.jump = false; touchBtn.down = false; const kn = $('joy') && $('joy').firstElementChild; if (kn) kn.style.transform = ''; }
   function setMode(m, keepPos) {
     const prev = S.mode;
+    if (life && life.ui && m !== prev) life.ui.cancelAll();
     if (!keepPos && (m === 'walk' || m === 'fly') && prev === 'tour') {
       player.pos.set(camera.position.x, Math.max(0, camera.position.y - EYE), camera.position.z);
       player.vel.set(0, 0, 0);
@@ -143,6 +145,7 @@
   }
   function look(fx, fy, fz, tx, ty, tz) { const dx = tx - fx, dy = ty - fy, dz = tz - fz; return { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) }; }
   function teleport(t) {
+    if (life && life.ui) life.ui.cancelAll();
     S.sit = null;
     const f = look(t.p[0], t.p[1] + EYE, t.p[2], t.t[0], t.t[1], t.t[2]);
     player.yaw = f.yaw; player.pitch = f.pitch;
@@ -161,10 +164,12 @@
   const inField = (e) => e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
   window.addEventListener('keydown', (e) => {
     if (inField(e)) return;
+    if (S.ui) { e.code === 'Space' && e.preventDefault(); return; }
     keys[e.code] = true;
     if (S.mode === 'tour' && !e.metaKey && !e.ctrlKey && !/^(F\d+|Tab|Escape)$/.test(e.code)) { setMode('walk'); requestLock(); }
     if (e.code === 'Space') e.preventDefault();
     if (e.code === 'KeyF' && (S.mode === 'walk' || S.mode === 'fly')) setMode(S.mode === 'fly' ? 'walk' : 'fly');
+    if (S.ui) return;
     if (e.code === 'KeyE' && (S.mode === 'walk' || S.mode === 'fly')) interact();
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -174,7 +179,8 @@
   canvas.addEventListener('mousedown', () => {
     if (S.mode === 'tour') { setMode('walk'); requestLock(); return; }
     if (!S.locked) { requestLock(); dragging = true; return; }
-    const b = aimBook(); if (b >= 0) collectBook(b);     // click a spine to collect it
+    if (S.ui) return;
+    if (life && life.ui && life.ui.interact()) return;
   });
   window.addEventListener('mouseup', () => { dragging = false; });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -282,9 +288,10 @@
   function sitOn(s) {
     if (!s) return;
     S.sit = s; player.pos.set(s.x, s.y, s.z); player.vel.set(0, 0, 0);
+    if (s.yaw != null) { player.yaw = s.yaw; player.pitch = s.pitch || 0; }
     toast('🪑 坐下 · 移动即可站起来');
   }
-  function standUp() { const s = S.sit; S.sit = null; if (s) { player.pos.set(s.x, s.y + 0.02, s.z); player.vel.set(0, 0, 0); } }
+  function standUp() { const s = S.sit; S.sit = null; if (s) { if (s.exit) player.pos.set(s.exit.x, s.floor != null ? s.floor : s.y, s.exit.z); else player.pos.set(s.x, s.y + 0.02, s.z); player.vel.set(0, 0, 0); } }
   /* ================= collect books (hook for a future collection feature) =================
    * Aim at a spine (crosshair) and press E / tap: the book is marked collected (gold) or
    * un-marked. Ids are stable ("<case>-<row>-<n>"). Storage: window.__trBooks = { load()
@@ -292,7 +299,7 @@
    * No inventory UI yet. */
   const BOOK_KEY = 'trinity.books.v1';
   const collected = new Set();
-  let built = null;
+  let built = null, life = null;
   const ray = new THREE.Raycaster(); ray.far = 4.5;
   function loadBooks() {
     let ids = [];
@@ -321,8 +328,9 @@
     return on;
   }
   function interact() {
+    if (S.ui) return true;
     if (S.sit) { standUp(); return true; }
-    const b = aimBook(); if (b >= 0) { collectBook(b); return true; }
+    if (life && life.ui && life.ui.interact()) return true;
     const d = nearDoor(2.6); if (d) { toggleDoor(d); return true; }
     const s = nearSeat(1.6); if (s) { sitOn(s); return true; }
     toast('附近没有门或座位');
@@ -348,6 +356,10 @@
       camera.position.copy(_tc); camera.lookAt(_tt);
       const d = new V3().subVectors(_tt, _tc);
       player.yaw = Math.atan2(-d.x, -d.z); player.pitch = Math.atan2(d.y, Math.hypot(d.x, d.z));
+    } else if (S.ui) {
+      player.vel.set(0, 0, 0);
+      if (S.sit) camera.position.set(S.sit.x, S.sit.y + 0.95, S.sit.z); else camera.position.set(player.pos.x, player.pos.y + EYE, player.pos.z);
+      camera.rotation.set(player.pitch, player.yaw, 0);
     } else {
       if (S.sit) {
         const mv = keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD || keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight || keys.Space || Math.hypot(joy.x, joy.y) > 0.3 || touchBtn.jump;
@@ -369,6 +381,7 @@
     S.elapsed += dt;
     updateCamera(dt);
     if (built && built.update) built.update(dt);
+    if (life && life.ui) life.ui.update(dt);
     sun.target.position.set(camera.position.x, 0, camera.position.z);
     sun.position.set(camera.position.x + 18, 30, camera.position.z + 24);
     sun.target.updateMatrixWorld();
@@ -397,6 +410,14 @@
       scene.add(built.group);
       colliders = built.colliders;
       loadBooks();
+      life = built.life || null;
+      if (life && window.TrinityLifeUI) {
+        life.ui = window.TrinityLifeUI.attach(life, {
+          camera, player, S, world, built, THREE, root: window, toast, teleport, isTouch,
+          exitLock, requestLock, clearInput, nearSeat, sitOn, collect: (id) => { const i = built.books.index[id]; return i == null ? null : collectBook(i); }, isCollected: (id) => collected.has(id)
+        });
+        life.refresh();
+      }
 
       setLoad('铺设草坪与石板路…', 0.8); await nextFrame();
       initTour();
@@ -404,7 +425,7 @@
       // expose the SAME API shape as Alpine's __alpine (+ books and stats)
       window.__trinity = {
         world, player, scene, camera, S, built,
-        setMode, teleport, markDirty: function () {}, interact, toggleDoor, sitOn,
+        life, clearInput, setMode, teleport, markDirty: function () {}, interact, toggleDoor, sitOn,
         books: {
           count: built.books.count,
           ids: () => built.books.ids.slice(),

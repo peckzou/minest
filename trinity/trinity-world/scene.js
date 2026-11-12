@@ -191,7 +191,8 @@
     /* ================= south range + Queen's Gate ================= */
     {
       const z0 = IZ, z1 = IZ + DEPTH;
-      box(mStone, -IX, -GATE_W, 0, H, z0, z1, true); box(mStone, GATE_W, IX, 0, H, z0, z1, true);
+      const RS = world.residence;
+      box(mStone, -IX, RS.x0, 0, H, z0, z1, true); box(mStone, RS.x1, -GATE_W, 0, H, z0, z1, true); box(mStone, GATE_W, IX, 0, H, z0, z1, true);
       box(mStone, -GATE_W, GATE_W, GATE_H, H, z0, z1, true);
       box(mStone, -6.2, 6.2, H, 19, z0, z1, true);
       for (const sx of [-1, 1]) for (const sz of [0, 1]) { cyl(mStone, sx * 5.8, sz ? z1 - 0.6 : z0 + 0.6, H, 21.8, 0.9, 10, 2.4); cone(mRoof, sx * 5.8, sz ? z1 - 0.6 : z0 + 0.6, 21.8, 3.0, 1.1, 10); }
@@ -200,7 +201,7 @@
       box(mTrim, -1.8, 1.8, 13.6, 17.4, z0 - 0.55, z0 + 0.05, false);   // niche for Elizabeth I (court side)
       cyl(mStatue, 0, z0 - 0.35, 13.8, 15.0, 0.3, 8); { const hd = new THREE.SphereGeometry(0.26, 10, 8); hd.translate(0, 15.4, z0 - 0.35); add(mStatue, hd, null, 0); }
       const keepOut = (x) => Math.abs(x) < 7.2;
-      storeys(-IX, z0, IX, z0, 0, -1, H, (x, z) => keepOut(x));
+      storeys(-IX, z0, IX, z0, 0, -1, H, (x, z) => keepOut(x) || (x > RS.x0 - 0.8 && x < RS.x1 + 0.8));
       windowRow(-5.2, z0, 5.2, z0, 0, -1, 9.8, 1.25, 1.9, 2.6, (x) => Math.abs(x) < 2.2);
       parapet(-IX, z0, -6.2, z0, H + 0.9, 0, -1); parapet(6.2, z0, IX, z0, H + 0.9, 0, -1); parapet(-6.2, z0, 6.2, z0, 19.5, 0, -1);
       box(mStone, -IX, IX, H, H + 0.9, z0, z1, false);
@@ -291,7 +292,8 @@
     })();
     opts.hallLinkZ = world.hall.z1 - 3.2;   // the Hall<->Nevile doorway z (matches the hall back-wall gap)
     if (root.TrinityNevile) { const nv = root.TrinityNevile.build(world, THREE, T, opts); group.add(nv.group); for (const c of nv.colliders) colliders.push(c); }
-    if (root.TrinityWren) { const wn = root.TrinityWren.build(world, THREE, T, opts); group.add(wn.group); for (const c of wn.colliders) colliders.push(c); }
+    let wrenB = null;
+    if (root.TrinityWren) { const wn = root.TrinityWren.build(world, THREE, T, opts); wrenB = wn; group.add(wn.group); for (const c of wn.colliders) colliders.push(c); }
     if (root.TrinityBacks) { const bk = root.TrinityBacks.build(world, THREE, T, opts); group.add(bk.group); for (const c of bk.colliders) colliders.push(c); }
     // the Great Hall interior
     const hallBuilt = root.TrinityHall ? root.TrinityHall.build(hall, THREE, T, opts) : null;
@@ -364,10 +366,21 @@
     colliders.push({ min: { x: SX - 1, y: 0, z: 150 }, max: { x: SX + 40, y: 10, z: 151 } });
 
     /* ================= API (same shape as Admont's) ================= */
+    let lifeBuilt = null;
+    if (root.TrinityLife) {
+      lifeBuilt = root.TrinityLife.build(world, THREE, T, Object.assign({}, opts, { mats: { stone: mStone, trim: mTrim, slab: mSlab } }));
+      group.add(lifeBuilt.group); for (const c of lifeBuilt.colliders) colliders.push(c); for (const s of lifeBuilt.seats) world.seats.push(s);
+    }
     const books = { mesh: new THREE.Group(), count: 0, ids: [], meta: [], index: Object.create(null), setCollected() {} };
-    return { group, colliders, books, cases: [], sculptures: [], windows: wins.length, frescoes: 0, doorLeaves: {}, update() {}, merlons: merlons.length };
+    if (wrenB && wrenB.books) {
+      books.mesh = wrenB.books; books.count = wrenB.bookCount; books.ids = wrenB.bookIds; books.meta = wrenB.bookMeta.map((m) => Object.assign({ case: 'Wren', wing: 'Wren' }, m));
+      books.ids.forEach((id, i) => { books.index[id] = i; });
+      const tmp = new THREE.Color();
+      books.setCollected = (i, on) => { const m = books.mesh; if (!m.instanceColor) return; m.setColorAt(i, on ? tmp.setHex(0xe0b040) : tmp.setHex(wrenB.bookPalette[i])); m.instanceColor.needsUpdate = true; };
+    }
+    return { group, colliders, books, life: lifeBuilt && lifeBuilt.life, cases: [], sculptures: [], windows: wins.length, frescoes: 0, doorLeaves: {}, update() {}, merlons: merlons.length };
   }
 
-  root.TrinityScene = { build, mergeGeoms };
+  root.TrinityScene = { build, mergeGeoms, worldUV };
   if (typeof module !== 'undefined') module.exports = root.TrinityScene;
 })(typeof window !== 'undefined' ? window : globalThis);
