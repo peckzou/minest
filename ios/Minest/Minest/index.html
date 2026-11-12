@@ -85507,12 +85507,15 @@ var Be = function() {
               if (remoteBoards && remoteBoards.length > 0) {
                 if (rAt > minestCloudNum(MINEST_CLOUD_ACK)) minestCloudMark(MINEST_CLOUD_ACK, rAt);
                 minestCloudBaseSet(sanitizeLoadedBoards(remoteBoards));
-                var incoming = sanitizeLoadedBoards(remoteBoards);
-                isRemoteUpdateRef.current = incoming;
-                setBoards(incoming);
-                if (data.activeBoardId) setActiveBoardId(data.activeBoardId);
-                if (['coverflow', 'board', 'drill', 'photos', 'pins'].includes(data.viewMode)) setViewMode(data.viewMode);
-                if (['dark', 'white'].includes(data.themeMode)) setThemeMode(data.themeMode);
+                // 2026-11-12 (anti-flicker): apply a cloud copy once per stamp; view and theme stay per device
+                var takenStamp = String(rAt) + ':' + remoteBoards.length;
+                if (window.__minestTakenStamp !== takenStamp) {
+                  window.__minestTakenStamp = takenStamp;
+                  var incoming = sanitizeLoadedBoards(remoteBoards);
+                  isRemoteUpdateRef.current = incoming;
+                  setBoards(incoming);
+                  if (data.activeBoardId && !cloudReadyRef.current) setActiveBoardId(data.activeBoardId);
+                }
                 /* Remote updates are identified by their exact array, never by a timed edit lock. */
               }
               cloudReadyRef.current = true;
