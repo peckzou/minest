@@ -1,0 +1,572 @@
+:root,
+.tw-app {
+  --tw-bg: #f6f5f0;
+  --tw-ink: #1a1b1f;
+  --tw-line: #ddd9ce;
+  --tw-accent: #ff472b;
+  --tw-accent-hover: #e0381d;
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--tw-bg);
+  color: var(--tw-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tw-app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ---------------- 顶栏 ---------------- */
+
+.tw-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--tw-line);
+  z-index: 10;
+  gap: 12px;
+}
+
+.tw-top-left,
+.tw-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tw-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--tw-line);
+  background: #ffffff;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.tw-btn:hover {
+  border-color: #999;
+  background: #fafafa;
+}
+
+.tw-gallery-trigger {
+  font-size: 14px;
+  font-weight: 600;
+  background: #fdfbf7;
+  border-color: #cbbeaa;
+  padding: 6px 14px;
+}
+
+.tw-gallery-trigger:hover {
+  border-color: var(--tw-accent);
+  color: var(--tw-accent);
+}
+
+.tw-btn[aria-pressed="false"] {
+  opacity: 0.65;
+}
+
+.tw-select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--tw-line);
+  background: #ffffff;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ---------------- 舞台 ---------------- */
+
+.tw-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tw-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.tw-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.tw-readout {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: rgba(22, 24, 28, 0.72);
+  color: #ffffff;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  display: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.tw-toast {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  padding: 8px 20px;
+  border-radius: 12px;
+  background: rgba(18, 20, 24, 0.88);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(8px);
+  z-index: 15;
+}
+
+.tw-toast.is-active {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* ---------------- 输入栏 ---------------- */
+
+.tw-composer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px 24px;
+  background: #ffffff;
+  border-top: 1px solid var(--tw-line);
+  z-index: 10;
+}
+
+.tw-input {
+  flex: 1;
+  font-family: inherit;
+  font-size: 17px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--tw-line);
+  background: #faf9f6;
+  color: inherit;
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.tw-input:focus {
+  border-color: var(--tw-accent);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 71, 43, 0.15);
+}
+
+.tw-submit {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: none;
+  background: var(--tw-accent);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease, background 0.16s ease;
+}
+
+.tw-submit:hover {
+  background: var(--tw-accent-hover);
+}
+
+.tw-submit:active {
+  transform: scale(0.96);
+}
+
+.tw-tip {
+  position: absolute;
+  left: 20px;
+  bottom: 6px;
+  margin: 0;
+  font-size: 11px;
+  color: #928e85;
+}
+
+/* ---------------- 画廊 (Gallery) ---------------- */
+
+.tw-gallery {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: rgba(246, 245, 240, 0.96);
+  backdrop-filter: blur(20px);
+  animation: twFadeIn 0.2s ease-out;
+}
+
+@keyframes twFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tw-gallery-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--tw-line);
+}
+
+.tw-gallery-head b {
+  display: block;
+  font-size: 19px;
+  letter-spacing: 0.04em;
+}
+
+.tw-gallery-head span {
+  font-size: 13px;
+  color: #7a766c;
+}
+
+.tw-gallery-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tw-gallery-filters button {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--tw-line);
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.tw-gallery-filters button.is-on {
+  background: var(--tw-ink);
+  color: #ffffff;
+  border-color: var(--tw-ink);
+}
+
+.tw-gallery-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50% !important;
+  font-size: 20px !important;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+}
+
+.tw-gallery-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 24px 48px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tw-gallery-body h3 {
+  margin: 22px 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8c877a;
+  font-weight: 700;
+}
+
+.tw-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.tw-card {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--tw-line);
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.tw-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.tw-card.is-active {
+  border-color: var(--tw-accent);
+  box-shadow: 0 0 0 2px rgba(255, 71, 43, 0.25);
+}
+
+.tw-card-preview {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #ece8df;
+}
+
+.tw-card-preview canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.tw-card-star {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  color: #cca32d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.tw-card-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(6px);
+}
+
+.tw-card-badge.is-ready {
+  background: rgba(34, 153, 84, 0.85);
+  color: #ffffff;
+}
+
+.tw-card-badge.is-planned {
+  background: rgba(120, 120, 120, 0.75);
+  color: #ffffff;
+}
+
+.tw-card-body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.tw-card-body b {
+  font-size: 14px;
+  color: #1a1a1f;
+}
+
+.tw-card-body p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.48;
+  color: #6a665d;
+  flex: 1;
+}
+
+.tw-card-go {
+  margin-top: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--tw-line);
+  background: #fdfcf9;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.tw-card-go:hover:not(:disabled) {
+  background: #f3efe6;
+}
+
+.tw-card-go:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tw-card.is-active .tw-card-go {
+  background: var(--tw-accent);
+  color: #ffffff;
+  border-color: var(--tw-accent);
+}
+
+@media (max-width: 640px) {
+  .tw-top {
+    padding: 8px 12px;
+  }
+  .tw-top-title {
+    max-width: 140px;
+  }
+  .tw-gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+}
+
+/* ---------------- 词表 (Word List) ---------------- */
+
+.tw-wl-count {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  margin-left: 2px;
+  border-radius: 999px;
+  background: var(--tw-ink);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.tw-gallery-filters .tw-wl-copy {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--tw-accent);
+  background: var(--tw-accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.tw-gallery-filters .tw-wl-copy:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tw-wl-list {
+  list-style: none;
+  margin: 0;
+  padding: 12px 24px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+}
+
+.tw-wl-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 14px;
+  border: 1px solid var(--tw-line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 15px;
+}
+
+.tw-wl-del {
+  border: 0;
+  background: transparent;
+  color: #9a968b;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.tw-wl-del:hover {
+  color: var(--tw-accent);
+}
+
+.tw-wl-empty {
+  color: #7a766c;
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+/* ---------------- Keyflow 律动词坊 ---------------- */
+
+.tw-keyflow {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: #0b0b10;
+}
+
+.tw-keyflow-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.tw-keyflow-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: 10px;
+  z-index: 2;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(20, 20, 28, 0.7);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+}

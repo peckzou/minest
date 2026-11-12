@@ -1,0 +1,24 @@
+import{v as e}from"./three-BDxTcmk4.js";import{n as t}from"./letter-world-CqP4RFHt.js";import{t as n}from"./particles-DjSZaIji.js";var r=[{id:`neon`,label:`氖 (Neon)`,color:16731430,coreColor:16777215,bloom:16741197},{id:`argon`,label:`氩 (Argon)`,color:7690751,coreColor:16777215,bloom:11048191},{id:`helium`,label:`氦 (Helium)`,color:16743313,coreColor:16777215,bloom:16754872},{id:`xenon`,label:`氙 (Xenon)`,color:11454719,coreColor:16777215,bloom:14083583}];function i(i){let a=i.THREE,o=new e;i.scene.add(o),i.scene.background=new a.Color(657678),i.scene.fog=new a.Fog(657678,14,45),i.camera.position.set(0,.5,10.5),i.camera.lookAt(0,.45,0);let s=new a.AmbientLight(2234920,.85);o.add(s);let c=new a.MeshStandardMaterial({color:1184024,roughness:.85,metalness:.6}),l=new a.Mesh(new a.PlaneGeometry(28,16),c);l.position.set(0,0,-.6),o.add(l);let u=new a.MeshStandardMaterial({color:2236970,roughness:.5,metalness:.8});for(let e=-3.5;e<=4.5;e+=2){let t=new a.Mesh(new a.BoxGeometry(26,.08,.1),u);t.position.set(0,e,-.45),o.add(t)}let d=new n({capacity:400,gravity:[0,-4,0],drag:2,size:.035,shape:`spark`,opacity:.95});o.add(d.points);let f=r.find(e=>e.id===i.theme)??r[0];function p(e){return new a.ShaderMaterial({uniforms:{uCharge:{value:0},uIntensity:{value:1},uColor:{value:new a.Color(e.color)},uCoreColor:{value:new a.Color(e.coreColor)}},vertexShader:`
+        attribute float aU;
+        varying float vU;
+        varying vec3 vNormal;
+        void main() {
+          vU = aU;
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,fragmentShader:`
+        uniform float uCharge;
+        uniform float uIntensity;
+        uniform vec3 uColor;
+        uniform vec3 uCoreColor;
+        varying float vU;
+        varying vec3 vNormal;
+        void main() {
+          if (vU > uCharge) discard;
+          float fresnel = 1.0 - abs(vNormal.z);
+          vec3 c = mix(uCoreColor, uColor, pow(fresnel, 0.8));
+          gl_FragColor = vec4(c * (1.6 * uIntensity), 1.0);
+        }
+      `,side:a.DoubleSide})}function m(){return new a.MeshPhysicalMaterial({color:1118486,roughness:.05,metalness:.1,transmission:.88,thickness:.15,ior:1.5,transparent:!0,opacity:.7,depthWrite:!1})}let h=new Map;return{onCharacterInput(e){if(e.char===` `||e.char===`
+`)return;let t=i.slotOf(e.id);if(!t)return;let n=i.glyphs.get(e.char,`sans`),r=i.glyphs.tube(n,.065,8,!0),s=i.glyphs.tube(n,.105,10,!0),c=p(f),l=m(),g=new a.Mesh(r,c),_=new a.Mesh(s,l),v=new a.Group;if(i.layout.apply(v,t),v.add(g),v.add(_),n.strokes.length>0){let e=n.strokes[0].pts,t=new a.CylinderGeometry(.09,.09,.18,12);t.rotateX(Math.PI/2);let r=new a.Mesh(t,u);r.position.set(e[0],e[1],-.15),v.add(r)}o.add(v);let y={id:e.id,char:e.char,group:v,coreMesh:g,glassMesh:_,coreMat:c,glassMat:l,charge:+!!e.restoring,intensity:+!!e.restoring,flickerTime:e.restoring?0:.25,surge:0,erasing:!1,eraseProgress:0};if(h.set(e.id,y),!e.restoring){i.audio.play(`zap`,{pitch:1+Math.random()*.2,gain:.5}),i.audio.play(`hum`,{pitch:1.1,gain:.3});let e=new a.Vector3;v.getWorldPosition(e);for(let t=0;t<16;t++)d.emit({x:e.x,y:e.y+.5,z:e.z+.1,vx:(Math.random()-.5)*2.5,vy:(Math.random()-.5)*2.5,vz:.5+Math.random()*1.5,life:.35+Math.random()*.25,color:f.color})}i.keepAlive(1200)},onCharacterDelete(e){let t=h.get(e.id);t&&(t.erasing=!0,i.audio.play(`zap`,{pitch:.7,gain:.4}),i.keepAlive(500))},onLayout(){for(let[e,t]of h.entries()){let n=i.slotOf(e);n&&i.layout.apply(t.group,n)}},onWordComplete(e,t,n){i.audio.play(`zap`,{pitch:1.3,gain:.7}),t.forEach((e,t)=>{let n=h.get(e.id);n&&i.setTimeout(()=>{n.surge=1,i.audio.play(`tick`,{pitch:1.5+t*.1,gain:.4})},t*60)}),n.then(e=>{e.ok||i.audio.play(`error`,{gain:.5})}),i.keepAlive(2e3)},onTextClear(){for(let e of h.values())t(e.group);h.clear()},setTheme(e){f=r.find(t=>t.id===e)??r[0];for(let e of h.values())e.coreMat.uniforms.uColor.value.set(f.color),e.coreMat.uniforms.uCoreColor.value.set(f.coreColor)},updateAnimation(e,n){let r=!1;d.update(e,n)&&(r=!0);for(let[i,a]of h.entries())if(a.erasing){a.eraseProgress+=e*5;let n=a.eraseProgress;a.intensity=Math.max(0,1-n),a.coreMat.uniforms.uIntensity.value=a.intensity,n>=1&&(t(a.group),h.delete(i)),r=!0}else a.charge<1&&(a.charge=Math.min(1,a.charge+e*4.5),a.coreMat.uniforms.uCharge.value=a.charge,r=!0),a.flickerTime>0?(a.flickerTime-=e,a.intensity=Math.random()>.35?1.4:.2,r=!0):a.surge>0?(a.surge=Math.max(0,a.surge-e*2.5),a.intensity=1+a.surge*1.5,r=!0):a.intensity=1+Math.sin(n*6+a.id)*.04,a.coreMat.uniforms.uIntensity.value=a.intensity;return r},disposeWorld(){for(let e of h.values())t(e.group);h.clear(),d.dispose(),c.dispose(),u.dispose(),t(o)}}}var a={create:i};export{i as create,a as nobleGasNeon};

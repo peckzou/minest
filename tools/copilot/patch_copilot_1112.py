@@ -40,16 +40,20 @@ def hunks():
     return out
 
 
-VF_OPEN = '<script id="mn-voxel-factory">\n'
+ENTRIES = [('mn-voxel-factory', 'tools/copilot/voxel-factory-entry.js'),   # 3D Display
+           ('mn-typing-worlds-app', 'tools/copilot/typing-worlds-entry.js')]  # Typing Worlds (22 worlds + Word List)
 def entry(s):
-    """the 3D Display entry (tools/copilot/voxel-factory-entry.js) as one block before </body>, replaced when there"""
-    code = (ROOT / 'tools/copilot/voxel-factory-entry.js').read_text(encoding='utf-8'); assert '</script' not in code
-    blk = VF_OPEN + code + '</script>\n'
-    i = s.find(VF_OPEN)
-    if i >= 0:
-        j = s.index('</script>', i) + len('</script>\n'); old = s[i:j]
-        return (s, False) if old == blk else (s[:i] + blk + s[j:], True)
-    k = s.rindex('</body>'); return s[:k] + blk + s[k:], True
+    """each entry module as one block before </body>, replaced when it is already there"""
+    changed = False
+    for sid, f in ENTRIES:
+        code = (ROOT / f).read_text(encoding='utf-8'); assert '</script' not in code
+        op = '<script id="%s">\n' % sid; blk = op + code + '</script>\n'; i = s.find(op)
+        if i >= 0:
+            j = s.index('</script>', i) + len('</script>\n')
+            if s[i:j] != blk: s = s[:i] + blk + s[j:]; changed = True
+        else:
+            k = s.rindex('</body>'); s = s[:k] + blk + s[k:]; changed = True
+    return s, changed
 
 
 def main():
