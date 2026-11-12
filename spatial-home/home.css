@@ -1,0 +1,108 @@
+/* Minest · Spatial Home — everything is scoped under #mn-sh (and the sh- ids), so it can live inside the Minest page. */
+#mn-sh, #sh-host, #sh-veil, #sh-pill { --sh-ink: #1d2b4f; --sh-blue: #2f6fd6; --sh-paper: #fbf7ee; --sh-glass: rgba(251, 247, 238, .82); --sh-line: rgba(29, 43, 79, .14); }
+#mn-sh { position: fixed; inset: 0; z-index: 2147483600; overflow: hidden; background: #dcecf8; color: var(--sh-ink); font: 14px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+#mn-sh[hidden], #sh-pill[hidden] { display: none !important; }
+#mn-sh * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+#sh-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; cursor: grab; }
+#sh-gl.point { cursor: pointer; }
+#sh-gl.drag { cursor: grabbing; }
+
+#sh-top { position: absolute; z-index: 5; top: calc(10px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); right: calc(12px + env(safe-area-inset-right)); display: flex; align-items: center; gap: 8px; pointer-events: none; transition: opacity .25s; }
+#sh-top > * { pointer-events: auto; }
+#mn-sh .sh-brand { margin-right: auto; padding: 7px 12px; border-radius: 14px; background: var(--sh-glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--sh-line); display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+#mn-sh .sh-brand strong { font-size: 13px; letter-spacing: .02em; }
+#mn-sh .sh-brand span { font-size: 11px; opacity: .62; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mn-sh .sh-seg { display: flex; padding: 3px; border-radius: 14px; background: var(--sh-glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--sh-line); }
+#mn-sh .sh-seg button { border: 0; background: none; font: inherit; font-weight: 600; color: var(--sh-ink); padding: 7px 14px; border-radius: 11px; cursor: pointer; opacity: .6; }
+#mn-sh .sh-seg button.on { background: var(--sh-blue); color: #fff; opacity: 1; box-shadow: 0 2px 8px rgba(47, 111, 214, .35); }
+#mn-sh .sh-ic { flex: none; width: 38px; height: 38px; border-radius: 13px; border: 1px solid var(--sh-line); background: var(--sh-glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); font: 16px/1 -apple-system, sans-serif; cursor: pointer; color: var(--sh-ink); padding: 0; }
+#mn-sh .sh-ic.on { background: var(--sh-blue); color: #fff; }
+
+#sh-labels { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+#mn-sh .sh-lab { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); padding: 4px 9px 4px 7px; border-radius: 999px; background: var(--sh-glass); border: 1px solid var(--sh-line); font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: auto; cursor: pointer; box-shadow: 0 3px 10px rgba(29, 43, 79, .12); transition: opacity .2s; will-change: transform; }
+#mn-sh .sh-lab i { font-style: normal; margin-right: 4px; }
+#mn-sh .sh-lab.hot { background: var(--sh-blue); color: #fff; border-color: transparent; }
+#mn-sh .sh-lab.off::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #c2b9a6; margin-left: 6px; vertical-align: middle; }
+
+#sh-dock { position: absolute; z-index: 5; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; border-radius: 20px; background: var(--sh-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--sh-line); max-width: calc(100% - 20px); overflow-x: auto; scrollbar-width: none; transition: opacity .25s, transform .25s; }
+#sh-dock::-webkit-scrollbar { display: none; }
+#sh-dock.hide { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(16px); }
+#sh-dock button { flex: none; border: 0; background: none; font: inherit; color: var(--sh-ink); display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 10px; border-radius: 14px; cursor: pointer; min-width: 58px; }
+#sh-dock button:hover, #sh-dock button:focus-visible { background: rgba(47, 111, 214, .12); outline: none; }
+#sh-dock button b { font-size: 20px; line-height: 1.2; font-weight: 400; }
+#sh-dock button span { font-size: 11px; font-weight: 600; }
+#sh-dock button.off { opacity: .45; }
+
+#sh-hint { position: absolute; z-index: 4; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 6px 12px; border-radius: 999px; background: rgba(29, 43, 79, .55); color: #fff; font-size: 12px; pointer-events: none; transition: opacity .4s; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
+#sh-hint.hide { opacity: 0; }
+
+#sh-stick { position: absolute; z-index: 4; left: calc(22px + env(safe-area-inset-left)); bottom: calc(60px + env(safe-area-inset-bottom)); width: 104px; height: 104px; border-radius: 50%; background: rgba(251, 247, 238, .35); border: 1px solid rgba(29, 43, 79, .18); display: none; touch-action: none; }
+#sh-stick i { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px; border-radius: 50%; background: rgba(251, 247, 238, .9); box-shadow: 0 2px 8px rgba(29, 43, 79, .25); }
+#mn-sh.touch.m-explore #sh-stick { display: block; }
+#mn-sh.busy #sh-top, #mn-sh.busy #sh-dock, #mn-sh.busy #sh-hint, #mn-sh.busy #sh-stick, #mn-sh.busy #sh-labels { opacity: 0; pointer-events: none; }
+#mn-sh.busy #sh-top > * { pointer-events: none; }
+
+#sh-settings { position: absolute; z-index: 8; top: calc(58px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right)); width: min(330px, calc(100% - 24px)); max-height: calc(100% - 90px); overflow: auto; padding: 14px; border-radius: 18px; background: var(--sh-paper); border: 1px solid var(--sh-line); box-shadow: 0 18px 50px rgba(29, 43, 79, .25); -webkit-user-select: text; user-select: text; }
+#sh-settings[hidden], #sh-card[hidden], #sh-toast[hidden] { display: none; }
+#sh-settings h3 { margin: 0 0 10px; font-size: 15px; }
+#sh-settings label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+#sh-settings label.row { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 13px; }
+#sh-settings select { display: block; width: 100%; margin-top: 4px; padding: 8px; border-radius: 10px; border: 1px solid var(--sh-line); font: inherit; background: #fff; color: var(--sh-ink); }
+#sh-settings .sh-build { font-size: 12px; padding: 8px 10px; border-radius: 10px; background: #f1ece0; display: flex; gap: 8px; align-items: center; word-break: break-all; }
+#sh-hostDot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #c2b9a6; }
+#sh-hostDot.ok { background: #3fae6a; } #sh-hostDot.wait { background: #f2c13d; } #sh-hostDot.bad { background: #d9463e; }
+#sh-featList { list-style: none; margin: 10px 0; padding: 0; font-size: 12px; }
+#sh-featList li { display: flex; gap: 6px; padding: 4px 0; border-bottom: 1px dashed var(--sh-line); }
+#sh-featList li b { flex: none; width: 76px; }
+#sh-featList li span { opacity: .75; }
+#sh-featList li.no span { color: #b0463e; opacity: 1; }
+#sh-settings .sh-btn { width: 100%; padding: 9px; border: 0; border-radius: 12px; background: var(--sh-blue); color: #fff; font: inherit; font-weight: 600; cursor: pointer; margin-top: 6px; }
+#sh-settings .sh-btn.ghost { background: #ece6d8; color: var(--sh-ink); }
+
+#sh-card { position: absolute; z-index: 9; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(380px, calc(100% - 24px)); padding: 14px; border-radius: 18px; background: var(--sh-paper); border: 1px solid var(--sh-line); box-shadow: 0 18px 50px rgba(29, 43, 79, .28); }
+#sh-card h4 { margin: 0 0 4px; font-size: 15px; }
+#sh-card p { margin: 0 0 10px; font-size: 13px; opacity: .8; }
+#sh-card .acts { display: flex; flex-direction: column; gap: 6px; }
+#sh-card button { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--sh-line); background: #fff; font: inherit; font-weight: 600; color: var(--sh-ink); cursor: pointer; text-align: left; }
+#sh-card button.pri { background: var(--sh-blue); color: #fff; border-color: transparent; }
+#sh-card button.ghost { background: none; text-align: center; font-weight: 500; }
+#sh-card .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--sh-blue); border-right-color: transparent; border-radius: 50%; margin-right: 8px; vertical-align: -1px; animation: sh-sp .8s linear infinite; }
+@keyframes sh-sp { to { transform: rotate(360deg); } }
+
+#sh-toast { position: absolute; z-index: 12; left: 50%; top: calc(64px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; background: rgba(29, 43, 79, .88); color: #fff; font-size: 13px; max-width: calc(100% - 24px); }
+
+/* features shown in a frame (the standalone page's copy of the app, the hologram page) */
+#sh-host { position: fixed; inset: 0; z-index: 2147483620; visibility: hidden; pointer-events: none; background: #0b0f19; }
+#sh-host.on { visibility: visible; pointer-events: auto; }
+#sh-host .sh-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; visibility: hidden; background: #fff; }
+#sh-host.on .sh-frame.on { visibility: visible; }
+/* the way back, over whatever feature is open */
+#sh-pill { position: fixed; z-index: 2147483647; left: 50%; top: calc(6px + env(safe-area-inset-top)); transform: translateX(-50%); padding: 5px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .5); background: rgba(29, 43, 79, .72); color: #fff; font: 600 12px/1.3 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; cursor: pointer; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 14px rgba(0, 0, 0, .25); opacity: .9; }
+#sh-pill:hover, #sh-pill:focus-visible { opacity: 1; background: var(--sh-blue); }
+/* after a moment it folds to a small ⌂ so it covers less of the feature's own top bar */
+#sh-pill { transition: padding .25s, width .25s, opacity .25s; overflow: hidden; white-space: nowrap; }
+#sh-pill.mini { width: 30px; height: 30px; padding: 0; text-align: center; line-height: 28px; text-indent: -0.5px; opacity: .72; }
+#sh-pill.mini:hover, #sh-pill.mini:focus-visible { width: auto; padding: 5px 14px; line-height: 1.3; opacity: 1; }
+#sh-veil { position: fixed; inset: 0; z-index: 2147483646; background: radial-gradient(circle at var(--vx, 50%) var(--vy, 50%), #fffdf6 0%, #f3efe6 60%, #dfe9f6 100%); pointer-events: none; opacity: 0; clip-path: circle(0 at var(--vx, 50%) var(--vy, 50%)); }
+
+/* entry update: skip the whole animation, straight into the feature */
+#sh-skip { position: fixed; z-index: 2147483640; right: calc(14px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); padding: 9px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(16, 22, 36, .55); color: #fff; font: 600 13px/1 -apple-system, sans-serif; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); cursor: pointer; }
+#sh-skip[hidden] { display: none; }
+
+/* Phase 3: backpack panel and the placing bar */
+#sh-pack { position: absolute; z-index: 8; top: calc(58px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right)); width: min(360px, calc(100% - 24px)); max-height: calc(100% - 140px); overflow: auto; padding: 12px 14px; border-radius: 18px; background: var(--sh-paper); border: 1px solid var(--sh-line); box-shadow: 0 18px 50px rgba(29, 43, 79, .25); }
+#sh-pack[hidden], #sh-edit[hidden] { display: none; }
+#sh-pack header { display: flex; align-items: center; justify-content: space-between; } #sh-pack h3 { margin: 0; font-size: 15px; }
+#sh-pack h4 { margin: 12px 0 6px; font-size: 12px; opacity: .6; letter-spacing: .04em; } #sh-pack .sub { margin: 4px 0; font-size: 12px; opacity: .7; }
+#sh-pack ul.pk { list-style: none; margin: 0; padding: 0; } #sh-pack ul.pk li { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--sh-line); font-size: 13px; }
+#sh-pack ul.pk li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } #sh-pack em { font-style: normal; font-size: 11px; opacity: .55; margin-left: 4px; }
+#sh-pack ul.pk button { flex: none; padding: 5px 9px; border-radius: 9px; border: 1px solid var(--sh-line); background: #fff; font: inherit; font-size: 12px; font-weight: 600; color: var(--sh-ink); cursor: pointer; }
+#sh-edit { position: absolute; z-index: 9; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(420px, calc(100% - 24px)); padding: 10px 12px; border-radius: 18px; background: var(--sh-paper); border: 1px solid var(--sh-line); box-shadow: 0 18px 50px rgba(29, 43, 79, .28); display: flex; flex-direction: column; gap: 6px; }
+#sh-edit b { font-size: 14px; } #sh-edit span { font-size: 12px; opacity: .7; } #sh-edit .row { display: flex; gap: 6px; }
+#sh-edit button { flex: 1; padding: 9px 6px; border-radius: 12px; border: 1px solid var(--sh-line); background: #fff; font: inherit; font-weight: 600; color: var(--sh-ink); cursor: pointer; }
+#sh-edit button.pri { background: var(--sh-blue); color: #fff; border-color: transparent; }
+#mn-sh.editing #sh-dock, #mn-sh.editing #sh-labels, #mn-sh.editing #sh-hint, #mn-sh.editing #sh-stick { opacity: 0; pointer-events: none; }
+#mn-sh.editing #sh-gl { cursor: crosshair; }
+#sh-dock button.stashed { opacity: .45; }
+/* narrow phones: the top bar keeps every button on screen (the environment's name is in the 🌐 picker) */
+@media (max-width: 480px) { #mn-sh .sh-brand { display: none; } #sh-top { gap: 6px; } #mn-sh .sh-ic { width: 34px; height: 34px; border-radius: 11px; } #mn-sh .sh-seg button { padding: 7px 11px; } #sh-top .sh-seg { margin-right: auto; } }

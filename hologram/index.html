@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Minest Duo Holographic Portal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-mode="1">
+
+<!-- 背景层：真实摄像头 / 明确标注的 Demo 背景 / 下半屏投影台 -->
+<video id="bg-video" playsinline muted autoplay></video>
+<div id="bg-demo" aria-hidden="true">
+  <div class="demo-blobs"></div>
+  <div class="demo-mark">DEMO 背景 · 非摄像头画面</div>
+</div>
+<div id="deck" aria-hidden="true"></div>
+
+<canvas id="gl"></canvas>
+<div id="crease" aria-hidden="true"></div>
+
+<!-- 顶部状态 -->
+<div id="hud">
+  <div class="brand">MINEST · HOLOGRAPHIC PORTAL</div>
+  <button id="cam-chip" type="button" hidden></button>
+</div>
+<div id="hint">拖动旋转 · 双指缩放 · 轻点切换 · 长按设置</div>
+
+<!-- 底部简洁控制 -->
+<div id="bar">
+  <button id="back" type="button" aria-label="返回 Minest" hidden>‹ Minest</button>
+  <div class="seg" role="tablist" aria-label="模式">
+    <button type="button" data-mode="1" class="on">全息</button>
+    <button type="button" data-mode="2">透视</button>
+    <button type="button" data-mode="3">Duo</button>
+  </div>
+  <button id="exhibit" type="button" title="切换展品"><span id="exhibit-name">M</span><i id="dots"></i></button>
+  <button id="gear" type="button" aria-label="设置">⚙</button>
+</div>
+
+<!-- 控制面板 -->
+<div id="panel" hidden>
+  <div class="p-head"><b>控制面板</b><button id="p-close" type="button" aria-label="关闭">✕</button></div>
+  <div class="p-row toggles">
+    <label><input type="checkbox" id="t-scan" checked><span>扫描线</span></label>
+    <label><input type="checkbox" id="t-flicker" checked><span>闪烁</span></label>
+    <label><input type="checkbox" id="t-particles" checked><span>粒子</span></label>
+  </div>
+  <label class="p-row"><span>投影高度</span><input type="range" id="s-hover" min="0" max="1" step="0.01"><em id="v-hover"></em></label>
+  <label class="p-row"><span>大小</span><input type="range" id="s-size" min="0.5" max="2" step="0.01"><em id="v-size"></em></label>
+  <label class="p-row"><span>透明度</span><input type="range" id="s-opacity" min="0.15" max="1" step="0.01"><em id="v-opacity"></em></label>
+  <div id="p-duo">
+    <div class="p-sub">Duo 校准 <small id="duo-info"></small></div>
+    <label class="p-row"><span>折痕位置</span><input type="range" id="s-crease" min="0.3" max="0.7" step="0.005"><em id="v-crease"></em></label>
+    <label class="p-row"><span>折叠角度</span><input type="range" id="s-angle" min="70" max="180" step="1"><em id="v-angle"></em></label>
+    <label class="p-row"><span>观看仰角</span><input type="range" id="s-elev" min="15" max="75" step="1"><em id="v-elev"></em></label>
+  </div>
+  <div class="p-sub">透视与头部追踪 <small id="track-info"></small></div>
+  <label class="p-row"><span>透视缩放</span><input type="range" id="s-camZoom" min="1" max="3" step="0.01"><em id="v-camZoom"></em></label>
+  <div class="p-row toggles">
+    <label><input type="checkbox" id="t-track" checked><span>头部追踪</span></label>
+    <label><input type="checkbox" id="t-flipX"><span>左右反向</span></label>
+    <label><input type="checkbox" id="t-flipY"><span>上下反向</span></label>
+  </div>
+  <label class="p-row"><span>追踪强度</span><input type="range" id="s-gain" min="0.2" max="2.5" step="0.01"><em id="v-gain"></em></label>
+  <div class="p-row btns">
+    <button id="b-reset" type="button">重置视角</button>
+    <button id="b-replay" type="button">重新生成</button>
+    <button id="b-recenter" type="button">头部校准</button>
+    <button id="b-cam" type="button">重试摄像头</button>
+  </div>
+  <div class="p-foot" id="stats"></div>
+</div>
+
+<script src="../vendor/three.min.js"></script>
+<script src="js/exhibit_vader.js"></script>
+<script src="js/models.js"></script>
+<script src="js/materials.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
