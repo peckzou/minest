@@ -125997,6 +125997,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       addPick(p, ext); WKX.note(p, ext);
     });
     S.add(picks);
+    if (room && window.MinestTypeWorkshop && MinestTypeWorkshop.roomShow) try { MinestTypeWorkshop.roomShow(T, S, roomOf(), lbox(), V.at); } catch (e) { console.warn('[mtw] room', e); } /* mtw */
     Object.keys(BUF).forEach(function (n) { var B = BUF[n], g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(B.p, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(B.nm, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(B.u, 2)); g.setIndex(B.i);
       var tx = tex(n), m = new T.MeshLambertMaterial({ map: tx, side: T.DoubleSide, transparent: n === 'glass' || n === 'water', opacity: n === 'glass' ? .45 : n === 'water' ? .85 : 1 }); S.add(new T.Mesh(g, m)); disp.push(g, m); });
     /* the clouds: walk_in.js makeClouds() (blocky clusters, high, tinted by the weather) */
@@ -169238,9 +169239,9 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
      userData: { w, h, word, skipped:[unsupported characters] , tick(t) for a gentle flicker } */
   function build(T, word, o) {
     o = o || {}; var F = font(); var g = new T.Group(); g.name = 'mtw-neon';
-    var H = o.height || 1, R = 0.045 * H, col = new T.Color(GAS[o.gas] || o.color || GAS.ne);
-    var core = new T.MeshBasicMaterial({ color: col.clone().lerp(new T.Color('#fff'), .25), toneMapped: false });
-    var glass = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .28, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false });
+    var H = o.height || 1, R = 0.06 * H, col = new T.Color(GAS[o.gas] || o.color || GAS.ne);
+    var core = new T.MeshBasicMaterial({ color: col.clone().lerp(new T.Color('#fff'), .12), toneMapped: false });
+    var glass = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .2, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false });
     var metal = new T.MeshStandardMaterial({ color: '#8a8f96', metalness: .7, roughness: .35 });
     var x = 0, gap = 0.12, skipped = [], letters = [];
     String(word || '').split('').forEach(function (ch) {
@@ -169273,7 +169274,7 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
     if (o.light !== false && w > 0) { glow = new T.PointLight(col, .9, 4 * H + w); glow.position.set(0, .6 * H, .6 * H); g.add(glow); }
     var seed = Math.random() * 10;
     g.userData = { w: w, h: 1.15 * H, word: word, skipped: skipped,
-      tick: function (t) { var f = .92 + .08 * Math.sin(t * 7 + seed) * Math.sin(t * 2.3 + seed * 2); glass.opacity = .28 * f; if (glow) glow.intensity = .9 * f; } };
+      tick: function (t) { var f = .92 + .08 * Math.sin(t * 7 + seed) * Math.sin(t * 2.3 + seed * 2); glass.opacity = .2 * f; if (glow) glow.intensity = .9 * f; } };
     return g;
   }
   window.MinestNeonWord = { build: build, GAS: GAS, supported: function (ch) { var F = font(); return ch === ' ' || !!(F && F.strokeGlyph(ch)); } };
@@ -169390,9 +169391,30 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
   }
   wrapCity(); window.addEventListener('load', wrapCity);
   function cityShops() { return cityInst && cityInst.signSlots ? cityInst.signSlots() : null; }
-  function display(a) {   // {id, where:'city'|'shelf', shop?} → the record changes; an open City is redrawn
+  /* ---- the My World room (3D walk-in): items with loc {kind:'room', room:<room id> | 'mtw'} hang on the back wall of that
+     room ('mtw' = the workshop room of whichever house holds it). Called by the walk-in while it builds a room. */
+  function roomShow(T, S, r0, lb, at) {
+    if (!r0 || !window.MinestNeonWord) return 0;
+    var list = items().filter(function (it) { return it.use === 'displayed' && it.loc && it.loc.kind === 'room' && (it.loc.room === r0.id || (it.loc.room === 'mtw' && r0.mtw)); });
+    if (!list.length) return 0;
+    // one band above the doors (walls are 3.2 high, door signs reach ~2.5): back wall first, then the left and right walls
+    var W = Math.max(2, lb.x1 - lb.x0), D = Math.max(2, lb.y1 - lb.y0), slots = [];
+    var nb = Math.max(1, Math.floor(W / 2.4)), ns = Math.max(1, Math.floor(D / 2.4));
+    for (var i = 0; i < nb; i++) slots.push({ x: lb.x0 + W / nb * (i + .5), z: lb.y0 + .08, ry: 0, cw: W / nb });
+    for (i = 0; i < ns; i++) slots.push({ x: lb.x0 + .08, z: lb.y0 + D / ns * (i + .5), ry: Math.PI / 2, cw: D / ns });
+    for (i = 0; i < ns; i++) slots.push({ x: lb.x1 - .08, z: lb.y0 + D / ns * (i + .5), ry: -Math.PI / 2, cw: D / ns });
+    list.slice(0, slots.length).forEach(function (it, i) {
+      var sl = slots[i], g = MinestNeonWord.build(T, it.word, { gas: it.look && it.look.gas, height: .4, light: list.length <= 4 });
+      g.scale.setScalar(Math.min(1, (sl.cw * .86) / Math.max(.3, g.userData.w)));
+      g.position.set(sl.x, 2.7, sl.z); g.rotation.y = sl.ry;
+      S.add(g); (function spin() { if (!g.parent) return; g.userData.tick(performance.now() / 1000); requestAnimationFrame(spin); })();
+    });
+    return list.length;
+  }
+  function display(a) {   // {id, where:'city'|'room'|'shelf', shop?, room?} → the record changes; an open City is redrawn
     var it = items().filter(function (x) { return x.id === (a && a.id); })[0]; if (!it) throw new Error('找不到这件作品');
     if (a.where === 'city') { it.use = 'displayed'; it.loc = { kind: 'city', shop: a.shop || null }; }
+    else if (a.where === 'room') { it.use = 'displayed'; it.loc = { kind: 'room', room: a.room || 'mtw' }; }
     else { it.use = 'stored'; it.loc = a.loc || { kind: 'shelf', shelf: 'main', slot: null }; }
     var rec = saveItem(it); if (cityInst) hangCity(cityInst); return rec;
   }
@@ -169490,7 +169512,7 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
   }, true);
 
   window.MinestTypeWorkshop = { open: open, close: close, isOpen: isOpen, entrance: entrance, ensureRoom: ensureRoom, version: VERSION,
-    hangCity: function () { return hangCity(cityInst); }, _ops: OPS };
+    hangCity: function () { return hangCity(cityInst); }, roomShow: roomShow, _ops: OPS };
 })();
 </script>
 </body>

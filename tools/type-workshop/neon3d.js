@@ -11,9 +11,9 @@
      userData: { w, h, word, skipped:[unsupported characters] , tick(t) for a gentle flicker } */
   function build(T, word, o) {
     o = o || {}; var F = font(); var g = new T.Group(); g.name = 'mtw-neon';
-    var H = o.height || 1, R = 0.045 * H, col = new T.Color(GAS[o.gas] || o.color || GAS.ne);
-    var core = new T.MeshBasicMaterial({ color: col.clone().lerp(new T.Color('#fff'), .25), toneMapped: false });
-    var glass = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .28, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false });
+    var H = o.height || 1, R = 0.06 * H, col = new T.Color(GAS[o.gas] || o.color || GAS.ne);
+    var core = new T.MeshBasicMaterial({ color: col.clone().lerp(new T.Color('#fff'), .12), toneMapped: false });
+    var glass = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .2, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false });
     var metal = new T.MeshStandardMaterial({ color: '#8a8f96', metalness: .7, roughness: .35 });
     var x = 0, gap = 0.12, skipped = [], letters = [];
     String(word || '').split('').forEach(function (ch) {
@@ -46,7 +46,7 @@
     if (o.light !== false && w > 0) { glow = new T.PointLight(col, .9, 4 * H + w); glow.position.set(0, .6 * H, .6 * H); g.add(glow); }
     var seed = Math.random() * 10;
     g.userData = { w: w, h: 1.15 * H, word: word, skipped: skipped,
-      tick: function (t) { var f = .92 + .08 * Math.sin(t * 7 + seed) * Math.sin(t * 2.3 + seed * 2); glass.opacity = .28 * f; if (glow) glow.intensity = .9 * f; } };
+      tick: function (t) { var f = .92 + .08 * Math.sin(t * 7 + seed) * Math.sin(t * 2.3 + seed * 2); glass.opacity = .2 * f; if (glow) glow.intensity = .9 * f; } };
     return g;
   }
   window.MinestNeonWord = { build: build, GAS: GAS, supported: function (ch) { var F = font(); return ch === ' ' || !!(F && F.strokeGlyph(ch)); } };

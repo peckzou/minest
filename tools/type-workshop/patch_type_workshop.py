@@ -64,6 +64,9 @@ WK = [
     ("if (nearB) setAct('in', '🚪 Go into ' + bldName(nearB.p)); else if (nearP) {",
      "var nearT = null, bt = 1.7; tws.forEach(function (T0) { var e = T0.ext, dx = Math.max(e[0] - me.x, 0, me.x - e[1]), dz = Math.max(e[2] - me.z, 0, me.z - e[3]), d = Math.hypot(dx, dz); if (d < bt) { bt = d; nearT = T0; } }) /* mtw */; "
      "if (nearT && window.MinestTypeWorkshop) setAct('mtw', '🖋 进入 Type Workshop · 打字机'); else if (nearB) setAct('in', '🚪 Go into ' + bldName(nearB.p)); else if (nearP) {"),
+    ("    S.add(picks);\n    Object.keys(BUF).forEach(function (n) {",
+     "    S.add(picks);\n    if (room && window.MinestTypeWorkshop && MinestTypeWorkshop.roomShow) try { MinestTypeWorkshop.roomShow(T, S, roomOf(), lbox(), V.at); } catch (e) { console.warn('[mtw] room', e); } /* mtw */\n"
+     "    Object.keys(BUF).forEach(function (n) {"),
     ("else if (a === 'portal' && nearP) goPortal(nearP); });",
      "else if (a === 'portal' && nearP) goPortal(nearP); else if (a === 'mtw' && window.MinestTypeWorkshop) MinestTypeWorkshop.open({ from: 'walk' }) /* mtw */; });"),
 ]

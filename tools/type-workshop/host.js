@@ -110,9 +110,30 @@
   }
   wrapCity(); window.addEventListener('load', wrapCity);
   function cityShops() { return cityInst && cityInst.signSlots ? cityInst.signSlots() : null; }
-  function display(a) {   // {id, where:'city'|'shelf', shop?} → the record changes; an open City is redrawn
+  /* ---- the My World room (3D walk-in): items with loc {kind:'room', room:<room id> | 'mtw'} hang on the back wall of that
+     room ('mtw' = the workshop room of whichever house holds it). Called by the walk-in while it builds a room. */
+  function roomShow(T, S, r0, lb, at) {
+    if (!r0 || !window.MinestNeonWord) return 0;
+    var list = items().filter(function (it) { return it.use === 'displayed' && it.loc && it.loc.kind === 'room' && (it.loc.room === r0.id || (it.loc.room === 'mtw' && r0.mtw)); });
+    if (!list.length) return 0;
+    // one band above the doors (walls are 3.2 high, door signs reach ~2.5): back wall first, then the left and right walls
+    var W = Math.max(2, lb.x1 - lb.x0), D = Math.max(2, lb.y1 - lb.y0), slots = [];
+    var nb = Math.max(1, Math.floor(W / 2.4)), ns = Math.max(1, Math.floor(D / 2.4));
+    for (var i = 0; i < nb; i++) slots.push({ x: lb.x0 + W / nb * (i + .5), z: lb.y0 + .08, ry: 0, cw: W / nb });
+    for (i = 0; i < ns; i++) slots.push({ x: lb.x0 + .08, z: lb.y0 + D / ns * (i + .5), ry: Math.PI / 2, cw: D / ns });
+    for (i = 0; i < ns; i++) slots.push({ x: lb.x1 - .08, z: lb.y0 + D / ns * (i + .5), ry: -Math.PI / 2, cw: D / ns });
+    list.slice(0, slots.length).forEach(function (it, i) {
+      var sl = slots[i], g = MinestNeonWord.build(T, it.word, { gas: it.look && it.look.gas, height: .4, light: list.length <= 4 });
+      g.scale.setScalar(Math.min(1, (sl.cw * .86) / Math.max(.3, g.userData.w)));
+      g.position.set(sl.x, 2.7, sl.z); g.rotation.y = sl.ry;
+      S.add(g); (function spin() { if (!g.parent) return; g.userData.tick(performance.now() / 1000); requestAnimationFrame(spin); })();
+    });
+    return list.length;
+  }
+  function display(a) {   // {id, where:'city'|'room'|'shelf', shop?, room?} → the record changes; an open City is redrawn
     var it = items().filter(function (x) { return x.id === (a && a.id); })[0]; if (!it) throw new Error('找不到这件作品');
     if (a.where === 'city') { it.use = 'displayed'; it.loc = { kind: 'city', shop: a.shop || null }; }
+    else if (a.where === 'room') { it.use = 'displayed'; it.loc = { kind: 'room', room: a.room || 'mtw' }; }
     else { it.use = 'stored'; it.loc = a.loc || { kind: 'shelf', shelf: 'main', slot: null }; }
     var rec = saveItem(it); if (cityInst) hangCity(cityInst); return rec;
   }
@@ -210,5 +231,5 @@
   }, true);
 
   window.MinestTypeWorkshop = { open: open, close: close, isOpen: isOpen, entrance: entrance, ensureRoom: ensureRoom, version: VERSION,
-    hangCity: function () { return hangCity(cityInst); }, _ops: OPS };
+    hangCity: function () { return hangCity(cityInst); }, roomShow: roomShow, _ops: OPS };
 })();
