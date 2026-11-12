@@ -36,6 +36,9 @@ NEW_V.append(("    if (w && w.width && w.height) {   // never over the console, 
 # 80: a whole new set of pieces is another scene (a room opened, rebuilt twice on the way), not "the thing you just placed"
 NEW_V.append(("if (R.ids) { var fresh = Object.keys(ids).filter(function (k) { return !R.ids[k]; }); if (fresh.length) { R.moveId = fresh[fresh.length - 1];",
               "if (R.ids) { var fresh = Object.keys(ids).filter(function (k) { return !R.ids[k]; }), had80 = Object.keys(R.ids).length; if (fresh.length && (fresh.length < Object.keys(ids).length || !had80)) { R.moveId = fresh[fresh.length - 1];"))
+# 80: everything you press lives below the view — place() hands the box to the dock, which adds the band under the view
+NEW_V.append(("    ov.style.left = L + 'px'; ov.style.top = T0 + 'px'; ov.style.width = Math.max(120, Wd) + 'px'; ov.style.height = Math.max(120, Hh) + 'px'; ov.style.right = 'auto'; ov.style.bottom = 'auto';",
+              "    ov.style.left = L + 'px'; ov.style.top = T0 + 'px'; ov.style.width = Math.max(120, Wd) + 'px'; ov.style.height = Math.max(120, Hh) + 'px'; ov.style.right = 'auto'; ov.style.bottom = 'auto';\n    if (window.__vx80place) try { window.__vx80place(ov, T0); } catch (e) {}   /* 80: the dock */"))
 WALK_A = "    var S = new T.Scene(), cam = new T.PerspectiveCamera(72, 1, .05, 220),"
 WALK_B = "    var S = (window.__mnWalkScene = new T.Scene()) /* 80 */, cam = new T.PerspectiveCamera(72, 1, .05, 220),"
 for f in FILES:

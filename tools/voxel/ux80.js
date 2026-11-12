@@ -110,7 +110,7 @@
     function panelLift() {
       if (!isOpen() || !R.renderer) return 0;
       var center = con.querySelector('.wf-center'), cv = R.renderer.domElement;
-      if (!center || center.hidden || !center.offsetHeight || R.mode === 'walk' || R.mode === 'fly') return 0;
+      if (ov.classList.contains('vx80-dock') || !center || center.hidden || !center.offsetHeight || R.mode === 'walk' || R.mode === 'fly') return 0;
       var cr = center.getBoundingClientRect(), vr = cv.getBoundingClientRect(), cover = Math.max(0, Math.min(vr.bottom, cr.bottom) - Math.max(vr.top, cr.top));
       return Math.round(cover * 0.5);
     }
@@ -122,6 +122,107 @@
     window.addEventListener('resize', stripFade);
     st.textContent += '#vx62.lv79 .vxc .lv79-strip.vx80-more{-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}';
     setInterval(stripFade, 1000);
+    /* 10. the dock — the view above carries no buttons at all: the strip, the level chips (rooms · fixtures · items), the
+       walk / fly joystick and pad and the open tool's panel make one band under the view, on top of My World's console,
+       which steps down by the band's height (folded: the console is one row at the very bottom, the band right above it) */
+    st.textContent +=
+      '#vx62.vx80-dock .st{bottom:auto!important;height:var(--vx80-view,100%)!important}' +
+      '#vx62.vx80-dock .vxc{top:var(--vx80-view,auto)!important;bottom:auto!important;pointer-events:auto!important;background:#2b2b2b!important;border-top:2px solid #000!important;box-shadow:inset 0 2px 0 rgba(255,255,255,.06)!important;padding:6px 8px 8px!important}' +
+      '#vx62.vx80-dock .vxc .wf-main{gap:6px!important}' +
+      '#vx62.vx80-dock .vxc .lv79-strip{order:1!important}#vx62.vx80-dock .vxc .lv79-rooms{order:2}#vx62.vx80-dock .vxc .vx80-nav{order:3}#vx62.vx80-dock .vxc .wf-center{order:4!important;max-height:30vh!important}' +
+      '#vx62.vx80-dock .lv79-rooms{position:static!important;left:auto!important;right:auto!important;top:auto!important;pointer-events:auto;box-shadow:none!important}' +
+      '#vx62.vx80-dock .lv79-hint{display:none!important}' +
+      '#vx62.vx80-dock .vx80-nav{display:none;align-items:center;justify-content:space-between;gap:10px;pointer-events:auto}' +
+      '#vx62.vx80-dock.vx80-joy .vx80-nav{display:flex}' +
+      'html body #vx62.vx80-dock .vx80-nav .joy{position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;flex:0 0 auto;width:96px!important;height:96px!important}' +
+      'html body #vx62.vx80-dock .vx80-nav .pad{position:static!important;flex-direction:row!important;gap:8px!important}';
+    var nav80 = document.createElement('div'); nav80.className = 'vx80-nav';
+    function dockParts() {
+      var main = con.querySelector('.wf-main'); if (!main) return;
+      ov.querySelectorAll('.lv79-rooms').forEach(function (el) { if (el.parentNode !== main) main.appendChild(el); });   // rooms, fixtures and items chips
+      if (nav80.parentNode !== main) main.appendChild(nav80);
+      var joy = ov.querySelector('.joy'), pad = ov.querySelector('.pad');
+      if (joy && joy.parentNode !== nav80) nav80.appendChild(joy); if (pad && pad.parentNode !== nav80) nav80.appendChild(pad);
+    }
+    var lastGeo = '';
+    window.__vx80place = function (o, T0) {
+      if (!isOpen()) { H.classList.remove('vx80-dock'); o.classList.remove('vx80-dock'); var a0 = document.querySelector('aside.wf'); if (a0 && a0.style.top) { a0.style.top = ''; a0.style.height = ''; } return; }
+      o.classList.add('vx80-dock'); dockParts();
+      var aside = document.querySelector('aside.wf'), band = con.offsetHeight || 0, sh = innerHeight, view;
+      if (!aside) return;
+      aside.style.top = ''; aside.style.height = '';
+      if (H.classList.contains('vx80-min')) { var ar = aside.getBoundingClientRect(); view = Math.max(160, ar.top - T0 - band); }
+      else { var S = aside.getBoundingClientRect().top, top = Math.min(sh - 52, S + band); view = Math.max(160, S - T0); aside.style.top = top + 'px'; aside.style.height = (sh - top) + 'px'; }
+      o.style.height = (view + band) + 'px'; o.style.setProperty('--vx80-view', view + 'px');
+      var geo = view + '|' + band; if (geo !== lastGeo) { lastGeo = geo; try { resize(); } catch (e) {} }
+    };
+    // the band changes height (a panel opens, chips come and go): lay out again
+    var bandH = 0;
+    setInterval(function () { if (!isOpen()) { if (H.classList.contains('vx80-dock') || ov.classList.contains('vx80-dock')) { ov.classList.remove('vx80-dock'); var a1 = document.querySelector('aside.wf'); if (a1) { a1.style.top = ''; a1.style.height = ''; } } return; }
+      var h = con.offsetHeight; if (h !== bandH || !ov.classList.contains('vx80-dock')) { bandH = h; try { window.dispatchEvent(new Event('resize')); } catch (e) {} } }, 300);
     setInterval(sync80, 400); sync80();
+    /* 11 — the 2D map's own buttons (exit ‹, tiles ▦, tools ≡, side HUD, undo/redo, weather) live in the console too:
+       the originals stay in place but invisible; a tool row under the console header mirrors them and clicks them */
+    st.textContent +=
+      'html.wf81 body>.wf-back,html.wf81 .mn-dsp .mn-hud-tl,html.wf81 .mn-dsp .mn-hud-left,html.wf81 .mn-dsp .mn-hud-fix,html.wf81 .mn-dsp .mn-hud-bar,html.wf81 .mn-dsp .mn-hud-ur,html.wf81 .mn-dsp .mn-wx-chip{visibility:hidden!important;pointer-events:none!important}' +
+      '.wf81-tools{display:flex;gap:6px;overflow-x:auto;padding:6px 8px;background:#2b2b2b;border-bottom:2px solid #000;flex:0 0 auto;scrollbar-width:none}.wf81-tools::-webkit-scrollbar{display:none}' +
+      '.wf81-tools button{flex:0 0 auto;min-width:40px;height:40px;padding:0 9px;font-size:17px;line-height:1;display:flex;align-items:center;gap:5px;' + MCB + '}' +
+      '.wf81-tools button span{font-size:11px}.wf81-tools button.wf81-exit{background:#8e3324!important}.wf81-tools button.on{' + MCG + '}' +
+      '.wf81-tools[hidden]{display:none}';
+    var SRC81 = '.mn-dsp .mn-hud-left>button,.mn-dsp .mn-hud-bar>button,.mn-dsp .mn-hud-fix>button,.mn-dsp .mn-hud-ur>button';
+    var row81 = document.createElement('div'); row81.className = 'wf81-tools'; row81.setAttribute('aria-label', 'Map tools');
+    var src81 = [], sig81 = '';
+    function short81(b) { var a = (b.getAttribute('aria-label') || b.title || b.textContent || '').trim(); return a.split(/\s+[—:·(]\s*|:\s/)[0].slice(0, 22); }
+    function icon81(b) { var i = b.querySelector('i'); var t = ((i ? i.textContent : b.textContent) || '').trim(); return Array.from(t)[0] || '•'; }
+    function sync81() {
+      var aside = document.querySelector('aside.wf'), on = !!(aside && aside.offsetWidth && !isOpen());
+      H.classList.toggle('wf81', on); row81.hidden = !on;
+      if (!on) return;
+      var list = [], back = document.querySelector('body>.wf-back');
+      if (back) list.push({ el: back, ic: '⌂', lb: 'Exit', cls: 'wf81-exit' });
+      document.querySelectorAll(SRC81).forEach(function (b) {
+        if (b.hidden || getComputedStyle(b).display === 'none') return;
+        if (b.parentElement.classList.contains('mn-hud-fix') && /tools/i.test(b.getAttribute('aria-label') || '')) return; // ≡ only opened the side HUD, now in the row
+        if (b.parentElement.classList.contains('mn-hud-fix') && list.some(function (x) { return x.lb === short81(b); })) return;
+        list.push({ el: b, ic: icon81(b), lb: short81(b), cls: /\b(on|active)\b/.test(b.className) ? 'on' : '' });
+      });
+      var wx = document.querySelector('.mn-dsp .mn-wx-chip'); if (wx) list.push({ el: wx, ic: '', lb: (wx.textContent || '').trim().slice(0, 24), cls: '' });
+      var sig = list.map(function (x) { return x.ic + x.lb + x.cls; }).join('|');
+      var head = aside.querySelector('.wf-h');
+      if (head && row81.previousElementSibling !== head) head.insertAdjacentElement('afterend', row81);
+      if (sig === sig81 && row81.childElementCount === list.length) { src81 = list; return; }
+      sig81 = sig; src81 = list; row81.textContent = '';
+      list.forEach(function (x, i) {
+        var b = document.createElement('button'); b.type = 'button'; b.dataset.i81 = i; b.className = x.cls; b.title = x.lb; b.setAttribute('aria-label', x.lb);
+        b.innerHTML = (x.ic ? '<b>' + x.ic + '</b>' : '') + (x.ic && x.ic !== '⌂' ? '' : '<span></span>');
+        var sp = b.querySelector('span'); if (sp) sp.textContent = x.lb;
+        row81.appendChild(b);
+      });
+    }
+    row81.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-i81]'); if (!b) return; var x = src81[+b.dataset.i81]; if (!x || !x.el) return;
+      e.preventDefault(); e.stopPropagation(); x.el.click(); setTimeout(function () { sig81 = ''; sync81(); }, 120);
+    });
+    setInterval(sync81, 500); sync81();
+    /* 12 — Santorini: ‹ Back to My World and 🖋 Type Workshop move into its console header; ≡ becomes a console bar at the bottom */
+    st.textContent +=
+      'html.oia82 #oia-root #oia-back,html.oia82 #oia-root .mn-mtw-chip{visibility:hidden!important;pointer-events:none!important}' +
+      'html.oia82 #oia-root #oia-console-toggle[aria-expanded="true"]{display:none!important}' +
+      'html.oia82 #oia-root #oia-console-toggle[aria-expanded="false"]{top:auto!important;right:0!important;left:0!important;bottom:0!important;width:auto!important;height:calc(48px + env(safe-area-inset-bottom))!important;padding-bottom:env(safe-area-inset-bottom)!important;font-size:0!important;' + MCB + 'background:#2b2b2b!important}' +
+      'html.oia82 #oia-root #oia-console-toggle[aria-expanded="false"]::after{content:"⌃  My World console";font-size:15px}' +
+      'html.oia82 #oia-console header>span{display:none!important}html.oia82 #oia-console header>b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto}html.oia82 #oia-console header{gap:6px!important}' +
+      '#oia-console header .oia82-p{flex:0 0 auto;height:34px;padding:0 9px;font-size:13px;' + MCB + '}#oia-console header .oia82-p.x{background:#8e3324!important}';
+    function sync82() {
+      var on = !!(window.MinestOia && MinestOia.isOpen && MinestOia.isOpen());
+      H.classList.toggle('oia82', on); if (!on) return;
+      var head = document.querySelector('#oia-console header'); if (!head || head.querySelector('.oia82-p')) return;
+      [['x', '⌂ My World', function () { var b = document.getElementById('oia-back'); if (b) b.click(); }],
+       ['', '🖋 Workshop', function () { var c = document.querySelector('#oia-root .mn-mtw-chip'); if (c) c.click(); }]].forEach(function (p, i) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'oia82-p ' + p[0]; b.textContent = p[1];
+        b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); p[2](); });
+        head.insertBefore(b, head.children[1 + i] || null);
+      });
+    }
+    setInterval(sync82, 500); sync82();
     window.__vx80 = { fold: function (v) { set80('min', v ? '1' : '0'); applyFold(); window.dispatchEvent(new Event('resize')); }, coach: function () { coach.hidden = false; } };
   })();
