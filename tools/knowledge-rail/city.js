@@ -1482,6 +1482,7 @@
       return { wc: wc, cx: cxAvg };
     }
 
+    var SIGNSLOT = [] /* mtw */;
     // ---- one whole building
     PLAN.blds.forEach(function (b) {
       var g = new T.Group();
@@ -1491,6 +1492,7 @@
       var A = ARCHS[b.arch], W = b.w, D = 9, sh = b.shop, f = b.filler;
       var style = sh ? (FRONT_FOR[sh.type.kind] || 'boutique') : f.front;
       var gh = style === 'flagship' ? 7.6 : GH, H = gh + b.floors * A.floor;
+      if (sh) SIGNSLOT.push({ id: sh.id, title: sh.title, g: g, W: W, gh: gh, H: H }) /* mtw */;
       var wallM = MM(b.wall, { roughness: 0.85 }), trimM = MM(A.trim, { roughness: 0.7 });
       var body = box(g, W, H - gh, D, 0, gh + (H - gh) / 2, -D / 2 - 0.02, wallM);
       // facade
@@ -2002,6 +2004,11 @@
     var stepSnd = window.MinestSfx ? MinestSfx.loop('steps') : null;   // footsteps while strolling (sfx.js)
     this.close = function () { if (stepSnd) stepSnd.stop(); S.close(); };
     this.setNight = toggleNight;
+    /* mtw: shop signs from the Type Workshop */
+    this.signSlots = function () { return SIGNSLOT.map(function (s) { return { id: s.id, title: s.title }; }); };
+    this.addSign = function (id, obj) { var s = SIGNSLOT.filter(function (q) { return q.id === id; })[0]; if (!s || !obj) return null;
+      var w = (obj.userData && obj.userData.w) || 1, k = Math.min(1.1, (s.W * .82) / Math.max(.5, w)); obj.scale.setScalar(k); obj.position.set(0, s.gh + .42, .55); s.g.add(obj);
+      return function () { if (obj.parent) obj.parent.remove(obj); }; };
     this.focusShop = focusShop;
     this.pullItem = pullItem;
     this.stepOut = stepOutToStreet;

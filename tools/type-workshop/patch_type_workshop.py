@@ -14,8 +14,41 @@ ROOT = HERE.parents[1]
 FILES = ['iPhoneDuo.html', 'iphone.html', 'index.html', 'ipad.html', 'iPhone53.8241.html',
          'ios/Minest/Minest/iPhoneDuo.html', 'ios/Minest/Minest/index.html', 'ios/Minest/Minest/ipad.html',
          'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ios/MinestProject/MyApp/iphone.html']
-HOST = (HERE / 'host.js').read_text(encoding='utf-8').rstrip('\n')
-assert '</script' not in HOST.lower()
+SF = (ROOT / 'type3d' / 'strokefont.js').read_text(encoding='utf-8')
+SF = SF.replace('export function ', 'function ').replace('export const ', 'const ')
+SF = ('(function () { if (window.__MTW_STROKE) return;\n' + SF +
+      '\nwindow.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, STROKE_CHARS: STROKE_CHARS };\n})();')
+HOST = (SF + '\n' + (HERE / 'neon3d.js').read_text(encoding='utf-8').rstrip('\n') + '\n'
+        + (HERE / 'host.js').read_text(encoding='utf-8').rstrip('\n'))
+assert '</script' not in HOST.lower() and 'export ' not in SF
+
+# 5. City Knowledge Run: a sign slot per knowledge shop (its building group survives the static merge), addSign(id, obj)
+CITY = [
+    ("    // ---- one whole building\n", "    var SIGNSLOT = [] /* mtw */;\n    // ---- one whole building\n"),
+    ("      var gh = style === 'flagship' ? 7.6 : GH, H = gh + b.floors * A.floor;\n",
+     "      var gh = style === 'flagship' ? 7.6 : GH, H = gh + b.floors * A.floor;\n"
+     "      if (sh) SIGNSLOT.push({ id: sh.id, title: sh.title, g: g, W: W, gh: gh, H: H }) /* mtw */;\n"),
+    ("    this.focusShop = focusShop;\n",
+     "    /* mtw: shop signs from the Type Workshop */\n"
+     "    this.signSlots = function () { return SIGNSLOT.map(function (s) { return { id: s.id, title: s.title }; }); };\n"
+     "    this.addSign = function (id, obj) { var s = SIGNSLOT.filter(function (q) { return q.id === id; })[0]; if (!s || !obj) return null;\n"
+     "      var w = (obj.userData && obj.userData.w) || 1, k = Math.min(1.1, (s.W * .82) / Math.max(.5, w)); obj.scale.setScalar(k); obj.position.set(0, s.gh + .42, .55); s.g.add(obj);\n"
+     "      return function () { if (obj.parent) obj.parent.remove(obj); }; };\n"
+     "    this.focusShop = focusShop;\n"),
+]
+def city(s, f):
+    for a, b in CITY:
+        if b in s:
+            continue
+        if s.count(a) == 1:
+            s = s.replace(a, b)
+        else:
+            print('  city anchor missing in', f, '->', a.strip()[:40])
+    return s
+cj = ROOT / 'tools' / 'knowledge-rail' / 'city.js'
+c0 = cj.read_text(encoding='utf-8'); c1 = city(c0, 'city.js')
+if c1 != c0:
+    cj.write_text(c1, encoding='utf-8'); print('patched tools/knowledge-rail/city.js')
 
 FURN_ANCHOR = "    ['f_desk', 'Desk & chair',"
 FURN_LINE = ("    ['f_typewriter', 'Typewriter desk', function (B) { /* mtw */ legs(B, 1.4, .8, .75, 'spruce'); fb(B, 0, 1.4, 0, .8, .75, .82, 'oak'); "
@@ -56,6 +89,9 @@ for f in FILES:
             s = s.replace(a, b)
         else:
             print('  walk-in anchor missing in', f, '->', a[:40])
+    # 5. the City sign slots (only pages that carry the City)
+    if 'window.MinestCity = {' in s:
+        s = city(s, f)
     # 4. the host
     s = re.sub(r'<script id="mn-type-workshop">.*?</script>\n', '', s, flags=re.S)
     i = s.rfind('</body>')

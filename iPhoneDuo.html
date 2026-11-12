@@ -153164,6 +153164,7 @@ window.KRail = (function () {
       return { wc: wc, cx: cxAvg };
     }
 
+    var SIGNSLOT = [] /* mtw */;
     // ---- one whole building
     PLAN.blds.forEach(function (b) {
       var g = new T.Group();
@@ -153173,6 +153174,7 @@ window.KRail = (function () {
       var A = ARCHS[b.arch], W = b.w, D = 9, sh = b.shop, f = b.filler;
       var style = sh ? (FRONT_FOR[sh.type.kind] || 'boutique') : f.front;
       var gh = style === 'flagship' ? 7.6 : GH, H = gh + b.floors * A.floor;
+      if (sh) SIGNSLOT.push({ id: sh.id, title: sh.title, g: g, W: W, gh: gh, H: H }) /* mtw */;
       var wallM = MM(b.wall, { roughness: 0.85 }), trimM = MM(A.trim, { roughness: 0.7 });
       var body = box(g, W, H - gh, D, 0, gh + (H - gh) / 2, -D / 2 - 0.02, wallM);
       // facade
@@ -153684,6 +153686,11 @@ window.KRail = (function () {
     var stepSnd = window.MinestSfx ? MinestSfx.loop('steps') : null;   // footsteps while strolling (sfx.js)
     this.close = function () { if (stepSnd) stepSnd.stop(); S.close(); };
     this.setNight = toggleNight;
+    /* mtw: shop signs from the Type Workshop */
+    this.signSlots = function () { return SIGNSLOT.map(function (s) { return { id: s.id, title: s.title }; }); };
+    this.addSign = function (id, obj) { var s = SIGNSLOT.filter(function (q) { return q.id === id; })[0]; if (!s || !obj) return null;
+      var w = (obj.userData && obj.userData.w) || 1, k = Math.min(1.1, (s.W * .82) / Math.max(.5, w)); obj.scale.setScalar(k); obj.position.set(0, s.gh + .42, .55); s.g.add(obj);
+      return function () { if (obj.parent) obj.parent.remove(obj); }; };
     this.focusShop = focusShop;
     this.pullItem = pullItem;
     this.stepOut = stepOutToStreet;
@@ -177854,6 +177861,139 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
 
 </script>
 <script id="mn-type-workshop">
+(function () { if (window.__MTW_STROKE) return;
+/* A small single-stroke alphabet (original, geometric): every glyph is a list of strokes in writing order, every stroke
+   a polyline of [x, y] points. Units: cap height = 1, baseline y = 0, x from 0 to the glyph's width `w`.
+   Used by the modes that draw letters as one moving point (energy blade, glass tubes).
+
+   import { strokeGlyph, strokeAdvance } from './strokefont.js';
+   const g = strokeGlyph('A');   // { w, strokes: [ [[x,y],…], … ], length }  or null for an unknown character */
+
+const E = (cx, cy, rx, ry, a0, a1, n) => {            // elliptical arc, degrees, counter-clockwise when a1 > a0
+  const steps = n || Math.max(6, Math.ceil(Math.abs(a1 - a0) / 9)), out = [];
+  for (let i = 0; i <= steps; i++) { const a = (a0 + (a1 - a0) * i / steps) * Math.PI / 180; out.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); }
+  return out;
+};
+const P = (...parts) => parts.flatMap(p => (typeof p[0] === 'number' ? [p] : p));   // join points and arcs into one stroke
+
+const DEF = {
+  A: { w: .66, s: [P([0, 0], [.33, 1], [.66, 0]), P([.12, .36], [.54, .36])] },
+  B: { w: .6, s: [P([0, 0], [0, 1]), P([0, 1], [.33, 1], E(.33, .76, .24, .24, 90, -90), [0, .52]), P([0, .52], [.34, .52], E(.34, .26, .26, .26, 90, -90), [0, 0])] },
+  C: { w: .66, s: [P(E(.36, .5, .36, .5, 42, 318))] },
+  D: { w: .64, s: [P([0, 0], [0, 1]), P([0, 1], [.2, 1], E(.2, .5, .44, .5, 90, -90), [0, 0])] },
+  E: { w: .56, s: [P([.56, 1], [0, 1], [0, 0], [.56, 0]), P([0, .52], [.46, .52])] },
+  F: { w: .54, s: [P([.54, 1], [0, 1], [0, 0]), P([0, .52], [.42, .52])] },
+  G: { w: .72, s: [P(E(.36, .5, .36, .5, 42, 360), [.72, .5], [.42, .5])] },
+  H: { w: .64, s: [P([0, 1], [0, 0]), P([.64, 1], [.64, 0]), P([0, .52], [.64, .52])] },
+  I: { w: .12, s: [P([.06, 1], [.06, 0])] },
+  J: { w: .46, s: [P([.46, 1], [.46, .25], E(.23, .25, .23, .25, 0, -180))] },
+  K: { w: .62, s: [P([0, 1], [0, 0]), P([.6, 1], [0, .42]), P([.2, .6], [.62, 0])] },
+  L: { w: .52, s: [P([0, 1], [0, 0], [.52, 0])] },
+  M: { w: .78, s: [P([0, 0], [0, 1], [.39, .22], [.78, 1], [.78, 0])] },
+  N: { w: .64, s: [P([0, 0], [0, 1], [.64, 0], [.64, 1])] },
+  O: { w: .76, s: [P(E(.38, .5, .38, .5, 90, 450))] },
+  P: { w: .58, s: [P([0, 0], [0, 1]), P([0, 1], [.32, 1], E(.32, .74, .26, .26, 90, -90), [0, .48])] },
+  Q: { w: .76, s: [P(E(.38, .5, .38, .5, 90, 450)), P([.46, .26], [.78, -.06])] },
+  R: { w: .62, s: [P([0, 0], [0, 1]), P([0, 1], [.32, 1], E(.32, .74, .26, .26, 90, -90), [0, .48]), P([.3, .48], [.62, 0])] },
+  S: { w: .6, s: [P(E(.3, .76, .28, .24, 25, 270), E(.3, .26, .3, .26, 90, -155))] },
+  T: { w: .64, s: [P([0, 1], [.64, 1]), P([.32, 1], [.32, 0])] },
+  U: { w: .64, s: [P([0, 1], [0, .32], E(.32, .32, .32, .32, 180, 360), [.64, 1])] },
+  V: { w: .64, s: [P([0, 1], [.32, 0], [.64, 1])] },
+  W: { w: .88, s: [P([0, 1], [.21, 0], [.44, .8], [.67, 0], [.88, 1])] },
+  X: { w: .62, s: [P([0, 1], [.62, 0]), P([.62, 1], [0, 0])] },
+  Y: { w: .64, s: [P([0, 1], [.32, .5], [.64, 1]), P([.32, .5], [.32, 0])] },
+  Z: { w: .6, s: [P([0, 1], [.6, 1], [0, 0], [.6, 0])] },
+  0: { w: .6, s: [P(E(.3, .5, .3, .5, 90, 450))] },
+  1: { w: .3, s: [P([0, .78], [.24, 1], [.24, 0])] },
+  2: { w: .6, s: [P(E(.3, .72, .29, .28, 165, -35), [0, 0], [.6, 0])] },
+  3: { w: .58, s: [P(E(.27, .76, .27, .24, 150, -90), E(.28, .26, .3, .26, 90, -150))] },
+  4: { w: .64, s: [P([.46, 0], [.46, 1], [0, .3], [.64, .3])] },
+  5: { w: .6, s: [P([.54, 1], [.08, 1], [.04, .56], E(.28, .31, .31, .31, 128, -150))] },
+  6: { w: .6, s: [P([.48, 1], [.2, .72], [.03, .4], E(.3, .3, .29, .3, 160, -200))] },
+  7: { w: .6, s: [P([0, 1], [.6, 1], [.2, 0])] },
+  8: { w: .6, s: [P(E(.3, .76, .25, .24, -90, 270), E(.3, .26, .3, .26, 90, -270))] },
+  9: { w: .6, s: [P(E(.3, .7, .29, .3, -20, 340), [.56, .56], [.44, .24], [.14, 0])] },
+  '.': { w: .1, s: [P([.05, .03], [.05, 0])] },
+  ',': { w: .12, s: [P([.08, .04], [.02, -.14])] },
+  '-': { w: .4, s: [P([0, .46], [.4, .46])] },
+  '!': { w: .1, s: [P([.05, 1], [.05, .28]), P([.05, .04], [.05, 0])] },
+  '?': { w: .5, s: [P(E(.25, .76, .25, .24, 170, -70), [.25, .42], [.25, .28]), P([.25, .04], [.25, 0])] },
+  ':': { w: .1, s: [P([.05, .62], [.05, .58]), P([.05, .04], [.05, 0])] },
+  "'": { w: .08, s: [P([.04, 1], [.04, .8])] },
+  '+': { w: .5, s: [P([0, .46], [.5, .46]), P([.25, .71], [.25, .21])] },
+  '/': { w: .44, s: [P([0, 0], [.44, 1])] },
+};
+
+const cache = new Map();
+/** the glyph for a character (letters are upper-cased); null when there is none */
+function strokeGlyph(ch) {
+  const k = String(ch).toUpperCase();
+  if (cache.has(k)) return cache.get(k);
+  const d = DEF[k]; let g = null;
+  if (d) { let length = 0; for (const s of d.s) for (let i = 1; i < s.length; i++) length += Math.hypot(s[i][0] - s[i - 1][0], s[i][1] - s[i - 1][1]);
+    g = { w: d.w, strokes: d.s, length }; }
+  cache.set(k, g); return g;
+}
+/** the advance of a character in cap-height units (a space is 0.42) */
+function strokeAdvance(ch) { if (ch === ' ') return 0.42; const g = strokeGlyph(ch); return g ? g.w : 0; }
+/** every character this alphabet has */
+const STROKE_CHARS = Object.keys(DEF);
+
+window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, STROKE_CHARS: STROKE_CHARS };
+})();
+/* Magic Type Workshop — a finished neon word as a plain three.js group, for the scenes that SHOW items outside the workshop
+   (the City Knowledge Run shop sign, later the My World room). Works with the page's own THREE (r128): no shaders, no bloom —
+   a bright gas core inside a faint glass sleeve, clamps on a thin backing rail. Letters come from the same single-stroke
+   alphabet the 3D Type pages use (type3d/strokefont.js, inlined by the patch as __MTW_STROKE). */
+(function () {
+  if (window.MinestNeonWord) return;
+  var GAS = { ne: '#ff4a1c', ar: '#5a7bff', he: '#ffb04a', xe: '#b46bff' };
+  function font() { return window.__MTW_STROKE || null; }
+
+  /* build(T, word, {gas, height}) → THREE.Group, origin at the word's bottom centre, facing +z.
+     userData: { w, h, word, skipped:[unsupported characters] , tick(t) for a gentle flicker } */
+  function build(T, word, o) {
+    o = o || {}; var F = font(); var g = new T.Group(); g.name = 'mtw-neon';
+    var H = o.height || 1, R = 0.045 * H, col = new T.Color(GAS[o.gas] || o.color || GAS.ne);
+    var core = new T.MeshBasicMaterial({ color: col.clone().lerp(new T.Color('#fff'), .25), toneMapped: false });
+    var glass = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .28, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false });
+    var metal = new T.MeshStandardMaterial({ color: '#8a8f96', metalness: .7, roughness: .35 });
+    var x = 0, gap = 0.12, skipped = [], letters = [];
+    String(word || '').split('').forEach(function (ch) {
+      if (ch === ' ') { x += (F ? F.strokeAdvance(' ') : .42) * H; return; }
+      var gl = F && F.strokeGlyph(ch);
+      if (!gl) { skipped.push(ch); return; }
+      var L = new T.Group(); L.position.x = x;
+      gl.strokes.forEach(function (s) {
+        if (s.length < 2) return;
+        var pts = s.map(function (p) { return new T.Vector3(p[0] * H, p[1] * H, 0); });
+        var curve = pts.length === 2 ? new T.LineCurve3(pts[0], pts[1]) : new T.CatmullRomCurve3(pts, false, 'centripetal', .2);
+        var seg = Math.max(4, Math.round(curve.getLength() / H * 24));
+        L.add(new T.Mesh(new T.TubeGeometry(curve, seg, R, 6, false), core));
+        L.add(new T.Mesh(new T.TubeGeometry(curve, seg, R * 2.1, 8, false), glass));
+        [pts[0], pts[pts.length - 1]].forEach(function (p) {   // electrode caps
+          var c = new T.Mesh(new T.CylinderGeometry(R * 1.5, R * 1.5, R * 3, 8), metal); c.position.copy(p); c.position.z = -R * 1.6; c.rotation.x = Math.PI / 2; L.add(c);
+        });
+      });
+      g.add(L); letters.push(L); x += (gl.w + gap) * H;
+    });
+    var w = Math.max(0, x - gap * H);
+    letters.forEach(function (L) { L.position.x -= w / 2; L.position.y += .12 * H; });
+    if (w > 0) {   // a thin backing rail with clamps, so it reads as a made object, not floating light
+      var rail = new T.Mesh(new T.BoxGeometry(w + .2 * H, .05 * H, .05 * H), metal); rail.position.set(0, .06 * H, -R * 3.2); g.add(rail);
+      for (var i = 0; i <= Math.max(1, Math.round(w / H)); i++) {
+        var cx = -w / 2 + w * i / Math.max(1, Math.round(w / H)); var cl = new T.Mesh(new T.BoxGeometry(.04 * H, .5 * H, .04 * H), metal); cl.position.set(cx, .35 * H, -R * 3.2); g.add(cl);
+      }
+    }
+    var glow = null;
+    if (o.light !== false && w > 0) { glow = new T.PointLight(col, .9, 4 * H + w); glow.position.set(0, .6 * H, .6 * H); g.add(glow); }
+    var seed = Math.random() * 10;
+    g.userData = { w: w, h: 1.15 * H, word: word, skipped: skipped,
+      tick: function (t) { var f = .92 + .08 * Math.sin(t * 7 + seed) * Math.sin(t * 2.3 + seed * 2); glass.opacity = .28 * f; if (glow) glow.intensity = .9 * f; } };
+    return g;
+  }
+  window.MinestNeonWord = { build: build, GAS: GAS, supported: function (ch) { var F = font(); return ch === ' ' || !!(F && F.strokeGlyph(ch)); } };
+})();
 /* Minest · Magic Type Workshop — the host side (tools/type-workshop/patch_type_workshop.py puts it in the pages).
    · The workshop itself is a page of its own (type3d/workshop.html) shown full screen in an iframe over Minest.
    · It asks Minest for its data over postMessage ({mtw:1, id, op, args} → {mtw:1, id, ok, result|error}):
@@ -177940,9 +178080,44 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
     return rec;
   }
   function removeItem(id) { var K = KN(); if (!K) throw new Error('存储不可用'); K.set(IK + id, { id: id, deleted: true, updated: Date.now() }); return true; }
+  /* ---- showing items outside the workshop: City Knowledge Run shop signs.
+     An item with use 'displayed' and loc {kind:'city', shop:<shop id> | null} hangs as a neon sign over that knowledge
+     shop (null → the first shop without one) every time the City opens. The record is the truth; the sign is redrawn. */
+  var cityInst = null, citySigns = [];
+  function cityItems() { try { return items().filter(function (it) { return it.use === 'displayed' && it.loc && it.loc.kind === 'city'; }); } catch (e) { return []; } }
+  function hangCity(inst) {
+    citySigns.forEach(function (off) { try { off(); } catch (e) {} }); citySigns = [];
+    if (!inst || !inst.addSign || !window.MinestNeonWord || !window.THREE) return [];
+    var slots = inst.signSlots(), taken = {}, out = [];
+    cityItems().forEach(function (it) {
+      var id = it.loc.shop && slots.some(function (s) { return s.id === it.loc.shop; }) && !taken[it.loc.shop] ? it.loc.shop
+        : (slots.filter(function (s) { return !taken[s.id]; })[0] || {}).id;
+      if (!id) return;
+      var g = MinestNeonWord.build(THREE, it.word, { gas: it.look && it.look.gas, height: 1 });
+      var off = inst.addSign(id, g); if (!off) return;
+      taken[id] = 1; citySigns.push(off); out.push({ item: it.id, shop: id, word: it.word });
+      (function spin() { if (!g.parent) return; g.userData.tick(performance.now() / 1000); requestAnimationFrame(spin); })();
+    });
+    return out;
+  }
+  function wrapCity() {
+    var C = window.MinestCity; if (!C || C.__mtw) return; C.__mtw = 1;
+    var o = C.open; C.open = function () { var inst = o.apply(this, arguments); cityInst = inst; try { hangCity(inst); } catch (e) { console.warn('[mtw] city signs', e); } return inst; };
+  }
+  wrapCity(); window.addEventListener('load', wrapCity);
+  function cityShops() { return cityInst && cityInst.signSlots ? cityInst.signSlots() : null; }
+  function display(a) {   // {id, where:'city'|'shelf', shop?} → the record changes; an open City is redrawn
+    var it = items().filter(function (x) { return x.id === (a && a.id); })[0]; if (!it) throw new Error('找不到这件作品');
+    if (a.where === 'city') { it.use = 'displayed'; it.loc = { kind: 'city', shop: a.shop || null }; }
+    else { it.use = 'stored'; it.loc = a.loc || { kind: 'shelf', shelf: 'main', slot: null }; }
+    var rec = saveItem(it); if (cityInst) hangCity(cityInst); return rec;
+  }
   var OPS = {
-    hello: function () { return { host: 'minest', version: VERSION, synced: !!(KN() && KN()._cloud) }; },
+    hello: function () { var u = null; try { u = window.firebase && firebase.auth && firebase.auth().currentUser; } catch (e) {}
+      /* honest: items go to MinestKnowledge, which pushes to the cloud only when signed in; that it ARRIVED is not known here */
+      return { host: 'minest', version: VERSION, store: 'MinestKnowledge', signedIn: !!u, cloudConfirmed: false }; },
     lists: lists, createList: createList, items: items, saveItem: saveItem, removeItem: removeItem,
+    display: display, cityShops: cityShops,
   };
   window.addEventListener('message', function (e) {
     var d = e.data; if (!d || d.mtw !== 1 || !frame || e.source !== frame.contentWindow) return;
@@ -178031,7 +178206,7 @@ html.mn-bd .mn-bdock .mn-bapp[aria-label^="Board settings"],html.mn-bd .mn-bdock
   }, true);
 
   window.MinestTypeWorkshop = { open: open, close: close, isOpen: isOpen, entrance: entrance, ensureRoom: ensureRoom, version: VERSION,
-    _ops: OPS };
+    hangCity: function () { return hangCity(cityInst); }, _ops: OPS };
 })();
 </script>
 </body>

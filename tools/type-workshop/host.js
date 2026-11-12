@@ -84,9 +84,44 @@
     return rec;
   }
   function removeItem(id) { var K = KN(); if (!K) throw new Error('存储不可用'); K.set(IK + id, { id: id, deleted: true, updated: Date.now() }); return true; }
+  /* ---- showing items outside the workshop: City Knowledge Run shop signs.
+     An item with use 'displayed' and loc {kind:'city', shop:<shop id> | null} hangs as a neon sign over that knowledge
+     shop (null → the first shop without one) every time the City opens. The record is the truth; the sign is redrawn. */
+  var cityInst = null, citySigns = [];
+  function cityItems() { try { return items().filter(function (it) { return it.use === 'displayed' && it.loc && it.loc.kind === 'city'; }); } catch (e) { return []; } }
+  function hangCity(inst) {
+    citySigns.forEach(function (off) { try { off(); } catch (e) {} }); citySigns = [];
+    if (!inst || !inst.addSign || !window.MinestNeonWord || !window.THREE) return [];
+    var slots = inst.signSlots(), taken = {}, out = [];
+    cityItems().forEach(function (it) {
+      var id = it.loc.shop && slots.some(function (s) { return s.id === it.loc.shop; }) && !taken[it.loc.shop] ? it.loc.shop
+        : (slots.filter(function (s) { return !taken[s.id]; })[0] || {}).id;
+      if (!id) return;
+      var g = MinestNeonWord.build(THREE, it.word, { gas: it.look && it.look.gas, height: 1 });
+      var off = inst.addSign(id, g); if (!off) return;
+      taken[id] = 1; citySigns.push(off); out.push({ item: it.id, shop: id, word: it.word });
+      (function spin() { if (!g.parent) return; g.userData.tick(performance.now() / 1000); requestAnimationFrame(spin); })();
+    });
+    return out;
+  }
+  function wrapCity() {
+    var C = window.MinestCity; if (!C || C.__mtw) return; C.__mtw = 1;
+    var o = C.open; C.open = function () { var inst = o.apply(this, arguments); cityInst = inst; try { hangCity(inst); } catch (e) { console.warn('[mtw] city signs', e); } return inst; };
+  }
+  wrapCity(); window.addEventListener('load', wrapCity);
+  function cityShops() { return cityInst && cityInst.signSlots ? cityInst.signSlots() : null; }
+  function display(a) {   // {id, where:'city'|'shelf', shop?} → the record changes; an open City is redrawn
+    var it = items().filter(function (x) { return x.id === (a && a.id); })[0]; if (!it) throw new Error('找不到这件作品');
+    if (a.where === 'city') { it.use = 'displayed'; it.loc = { kind: 'city', shop: a.shop || null }; }
+    else { it.use = 'stored'; it.loc = a.loc || { kind: 'shelf', shelf: 'main', slot: null }; }
+    var rec = saveItem(it); if (cityInst) hangCity(cityInst); return rec;
+  }
   var OPS = {
-    hello: function () { return { host: 'minest', version: VERSION, synced: !!(KN() && KN()._cloud) }; },
+    hello: function () { var u = null; try { u = window.firebase && firebase.auth && firebase.auth().currentUser; } catch (e) {}
+      /* honest: items go to MinestKnowledge, which pushes to the cloud only when signed in; that it ARRIVED is not known here */
+      return { host: 'minest', version: VERSION, store: 'MinestKnowledge', signedIn: !!u, cloudConfirmed: false }; },
     lists: lists, createList: createList, items: items, saveItem: saveItem, removeItem: removeItem,
+    display: display, cityShops: cityShops,
   };
   window.addEventListener('message', function (e) {
     var d = e.data; if (!d || d.mtw !== 1 || !frame || e.source !== frame.contentWindow) return;
@@ -175,5 +210,5 @@
   }, true);
 
   window.MinestTypeWorkshop = { open: open, close: close, isOpen: isOpen, entrance: entrance, ensureRoom: ensureRoom, version: VERSION,
-    _ops: OPS };
+    hangCity: function () { return hangCity(cityInst); }, _ops: OPS };
 })();
