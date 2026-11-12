@@ -274,16 +274,43 @@
     return { sea: tex, clouds: clouds, boat: boat };
   }
 
+  /* the third-person figure, jointed so it can walk, sit, reach, carry and wave (app.js drives it with rig.pose()).
+     Front is +z. Joints: hips (whole body height), torso (waist), head (neck), arms (shoulders), thighs (hips), shins (knees). */
   function avatar() {
-    var g = new THREE.Group(), v = new VB(111);
-    v.box(-0.13, 0, -0.07, -0.02, 0.62, 0.07, 'blueDeep'); v.box(0.02, 0, -0.07, 0.13, 0.62, 0.07, 'blueDeep');
-    v.box(-0.17, 0.62, -0.09, 0.17, 1.12, 0.09, 'plaster'); v.box(-0.17, 0.62, -0.095, 0.17, 0.7, 0.095, 'blue');
-    v.box(-0.25, 0.68, -0.06, -0.17, 1.1, 0.06, 'plaster'); v.box(0.17, 0.68, -0.06, 0.25, 1.1, 0.06, 'plaster');
-    v.box(-0.25, 0.6, -0.06, -0.17, 0.68, 0.06, '#e8b995'); v.box(0.17, 0.6, -0.06, 0.25, 0.68, 0.06, '#e8b995');
-    v.box(-0.13, 1.12, -0.12, 0.13, 1.38, 0.12, '#e8b995'); v.box(-0.14, 1.3, -0.13, 0.14, 1.4, 0.13, 'woodDark');
-    v.box(-0.26, 1.38, -0.26, 0.26, 1.41, 0.26, 'straw', 0.08); v.box(-0.15, 1.41, -0.15, 0.15, 1.5, 0.15, 'straw', 0.08); v.box(-0.155, 1.41, -0.155, 0.155, 1.44, 0.155, 'blue');
-    g.add(v.mesh()); return g;
+    var g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+    function part(seed, fn) { var v = new VB(seed); fn(v); return v.mesh(); }
+    var SKIN = '#e8b995';
+    var hips = new THREE.Group(); hips.position.y = 0.62; body.add(hips);
+    var torso = new THREE.Group(); hips.add(torso);
+    torso.add(part(112, function (v) { v.box(-0.17, 0, -0.09, 0.17, 0.5, 0.09, 'plaster'); v.box(-0.17, 0, -0.095, 0.17, 0.08, 0.095, 'blue'); v.box(-0.05, 0.42, 0.09, 0.05, 0.5, 0.095, SKIN); }));
+    var head = new THREE.Group(); head.position.y = 0.5; torso.add(head);
+    head.add(part(113, function (v) {
+      v.box(-0.13, 0, -0.12, 0.13, 0.26, 0.12, SKIN); v.box(-0.14, 0.18, -0.13, 0.14, 0.28, 0.13, 'woodDark'); v.box(-0.14, 0.03, -0.135, 0.14, 0.18, -0.115, 'woodDark'); v.box(-0.14, 0.08, -0.13, -0.12, 0.2, 0.0, 'woodDark'); v.box(0.12, 0.08, -0.13, 0.14, 0.2, 0.0, 'woodDark');
+      v.box(-0.075, 0.13, 0.12, -0.035, 0.165, 0.125, '#1d2b4f'); v.box(0.035, 0.13, 0.12, 0.075, 0.165, 0.125, '#1d2b4f'); v.box(-0.03, 0.07, 0.12, 0.03, 0.085, 0.125, '#c98a6c');
+      v.box(-0.26, 0.26, -0.26, 0.26, 0.29, 0.26, 'straw', 0.08); v.box(-0.15, 0.29, -0.15, 0.15, 0.38, 0.15, 'straw', 0.08); v.box(-0.155, 0.29, -0.155, 0.155, 0.32, 0.155, 'blue');
+    }));
+    function arm(x, seed) { var a = new THREE.Group(); a.position.set(x, 0.46, 0); torso.add(a); a.add(part(seed, function (v) { v.box(-0.04, -0.42, -0.06, 0.04, 0.02, 0.06, 'plaster'); v.box(-0.04, -0.5, -0.06, 0.04, -0.42, 0.06, SKIN); })); return a; }
+    var armL = arm(-0.21, 114), armR = arm(0.21, 115);
+    function leg(x, seed) {
+      var th = new THREE.Group(); th.position.set(x, 0, 0); hips.add(th);
+      th.add(part(seed, function (v) { v.box(-0.055, -0.31, -0.07, 0.055, 0, 0.07, 'blueDeep'); }));
+      var sh = new THREE.Group(); sh.position.y = -0.31; th.add(sh);
+      sh.add(part(seed + 10, function (v) { v.box(-0.055, -0.27, -0.07, 0.055, 0, 0.07, 'blueDeep'); v.box(-0.06, -0.31, -0.08, 0.06, -0.27, 0.1, '#3a2a22'); }));
+      return { th: th, sh: sh };
+    }
+    var legL = leg(-0.075, 116), legR = leg(0.075, 117);
+    /* a pose: { y, lean, headX, headY, aLx, aLz, aRx, aRz, tLx, tRx, sLx, sRx } — radians; negative x swings forward */
+    g.userData.rig = {
+      pose: function (P) {
+        body.position.y = P.y || 0; torso.rotation.x = P.lean || 0; head.rotation.x = P.headX || 0; head.rotation.y = P.headY || 0;
+        armL.rotation.x = P.aLx || 0; armL.rotation.z = -(P.aLz || 0); armR.rotation.x = P.aRx || 0; armR.rotation.z = P.aRz || 0;
+        legL.th.rotation.x = P.tLx || 0; legR.th.rotation.x = P.tRx || 0; legL.sh.rotation.x = P.sLx || 0; legR.sh.rotation.x = P.sRx || 0;
+        torso.scale.y = P.breath || 1;
+      }
+    };
+    return g;
   }
+
 
 
   /* ---------------------------------------------------------------- desk and chair styles (the same footprint: top 2.1 × 0.83 m

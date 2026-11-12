@@ -169236,16 +169236,43 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return { sea: tex, clouds: clouds, boat: boat };
   }
 
+  /* the third-person figure, jointed so it can walk, sit, reach, carry and wave (app.js drives it with rig.pose()).
+     Front is +z. Joints: hips (whole body height), torso (waist), head (neck), arms (shoulders), thighs (hips), shins (knees). */
   function avatar() {
-    var g = new THREE.Group(), v = new VB(111);
-    v.box(-0.13, 0, -0.07, -0.02, 0.62, 0.07, 'blueDeep'); v.box(0.02, 0, -0.07, 0.13, 0.62, 0.07, 'blueDeep');
-    v.box(-0.17, 0.62, -0.09, 0.17, 1.12, 0.09, 'plaster'); v.box(-0.17, 0.62, -0.095, 0.17, 0.7, 0.095, 'blue');
-    v.box(-0.25, 0.68, -0.06, -0.17, 1.1, 0.06, 'plaster'); v.box(0.17, 0.68, -0.06, 0.25, 1.1, 0.06, 'plaster');
-    v.box(-0.25, 0.6, -0.06, -0.17, 0.68, 0.06, '#e8b995'); v.box(0.17, 0.6, -0.06, 0.25, 0.68, 0.06, '#e8b995');
-    v.box(-0.13, 1.12, -0.12, 0.13, 1.38, 0.12, '#e8b995'); v.box(-0.14, 1.3, -0.13, 0.14, 1.4, 0.13, 'woodDark');
-    v.box(-0.26, 1.38, -0.26, 0.26, 1.41, 0.26, 'straw', 0.08); v.box(-0.15, 1.41, -0.15, 0.15, 1.5, 0.15, 'straw', 0.08); v.box(-0.155, 1.41, -0.155, 0.155, 1.44, 0.155, 'blue');
-    g.add(v.mesh()); return g;
+    var g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+    function part(seed, fn) { var v = new VB(seed); fn(v); return v.mesh(); }
+    var SKIN = '#e8b995';
+    var hips = new THREE.Group(); hips.position.y = 0.62; body.add(hips);
+    var torso = new THREE.Group(); hips.add(torso);
+    torso.add(part(112, function (v) { v.box(-0.17, 0, -0.09, 0.17, 0.5, 0.09, 'plaster'); v.box(-0.17, 0, -0.095, 0.17, 0.08, 0.095, 'blue'); v.box(-0.05, 0.42, 0.09, 0.05, 0.5, 0.095, SKIN); }));
+    var head = new THREE.Group(); head.position.y = 0.5; torso.add(head);
+    head.add(part(113, function (v) {
+      v.box(-0.13, 0, -0.12, 0.13, 0.26, 0.12, SKIN); v.box(-0.14, 0.18, -0.13, 0.14, 0.28, 0.13, 'woodDark'); v.box(-0.14, 0.03, -0.135, 0.14, 0.18, -0.115, 'woodDark'); v.box(-0.14, 0.08, -0.13, -0.12, 0.2, 0.0, 'woodDark'); v.box(0.12, 0.08, -0.13, 0.14, 0.2, 0.0, 'woodDark');
+      v.box(-0.075, 0.13, 0.12, -0.035, 0.165, 0.125, '#1d2b4f'); v.box(0.035, 0.13, 0.12, 0.075, 0.165, 0.125, '#1d2b4f'); v.box(-0.03, 0.07, 0.12, 0.03, 0.085, 0.125, '#c98a6c');
+      v.box(-0.26, 0.26, -0.26, 0.26, 0.29, 0.26, 'straw', 0.08); v.box(-0.15, 0.29, -0.15, 0.15, 0.38, 0.15, 'straw', 0.08); v.box(-0.155, 0.29, -0.155, 0.155, 0.32, 0.155, 'blue');
+    }));
+    function arm(x, seed) { var a = new THREE.Group(); a.position.set(x, 0.46, 0); torso.add(a); a.add(part(seed, function (v) { v.box(-0.04, -0.42, -0.06, 0.04, 0.02, 0.06, 'plaster'); v.box(-0.04, -0.5, -0.06, 0.04, -0.42, 0.06, SKIN); })); return a; }
+    var armL = arm(-0.21, 114), armR = arm(0.21, 115);
+    function leg(x, seed) {
+      var th = new THREE.Group(); th.position.set(x, 0, 0); hips.add(th);
+      th.add(part(seed, function (v) { v.box(-0.055, -0.31, -0.07, 0.055, 0, 0.07, 'blueDeep'); }));
+      var sh = new THREE.Group(); sh.position.y = -0.31; th.add(sh);
+      sh.add(part(seed + 10, function (v) { v.box(-0.055, -0.27, -0.07, 0.055, 0, 0.07, 'blueDeep'); v.box(-0.06, -0.31, -0.08, 0.06, -0.27, 0.1, '#3a2a22'); }));
+      return { th: th, sh: sh };
+    }
+    var legL = leg(-0.075, 116), legR = leg(0.075, 117);
+    /* a pose: { y, lean, headX, headY, aLx, aLz, aRx, aRz, tLx, tRx, sLx, sRx } — radians; negative x swings forward */
+    g.userData.rig = {
+      pose: function (P) {
+        body.position.y = P.y || 0; torso.rotation.x = P.lean || 0; head.rotation.x = P.headX || 0; head.rotation.y = P.headY || 0;
+        armL.rotation.x = P.aLx || 0; armL.rotation.z = -(P.aLz || 0); armR.rotation.x = P.aRx || 0; armR.rotation.z = P.aRz || 0;
+        legL.th.rotation.x = P.tLx || 0; legR.th.rotation.x = P.tRx || 0; legL.sh.rotation.x = P.sLx || 0; legR.sh.rotation.x = P.sRx || 0;
+        torso.scale.y = P.breath || 1;
+      }
+    };
+    return g;
   }
+
 
 
   /* ---------------------------------------------------------------- desk and chair styles (the same footprint: top 2.1 × 0.83 m
@@ -171714,7 +171741,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     '<canvas id="sh-gl" tabindex="0" aria-label="Santorini Atelier"></canvas><div id="sh-labels" aria-hidden="true"></div>' +
     '<div id="sh-top"><div class="sh-brand"><strong>Minest</strong><span id="sh-brandName">Santorini Atelier</span></div>' +
     '<div class="sh-seg" id="sh-modeSeg" role="tablist" aria-label="模式"><button type="button" data-mode="explore" role="tab">Explore</button><button type="button" data-mode="desk" role="tab">Desk</button></div>' +
-    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button>' +
+    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button>' +
     (EMBED ? '<button type="button" class="sh-ic" id="sh-exitBtn" title="进入完整的 Minest">✕</button>' : '') + '</div>' +
     '<button type="button" id="sh-skip" hidden>跳过动画 ›</button><div id="sh-dock" role="toolbar" aria-label="功能入口"></div><div id="sh-hint"></div><div id="sh-stick" aria-hidden="true"><i></i></div>' +
     '<div id="sh-settings" hidden><h3>Spatial Home</h3>' +
@@ -171863,6 +171890,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function activate(o) {
     if (busy || !o) return;
+    if (third() && o.centre) { if (!AV.sitting) { P.yaw = Math.atan2(-(o.centre.x - P.x), -(o.centre.z - P.z)); dirty = true; } gesture('reach', 0.9); }
     if (o.local) return openLocal(o);
     busy = true; skipRun = false; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true; $('skip').hidden = false;
     var feature = o.feature, F = B.FEATURES[feature], needs = B.needsHost(feature), hostP = needs ? B.load() : null;
@@ -171943,14 +171971,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (busy || (m !== 'explore' && m !== 'desk')) return;
     mode = m; walkTo = null; body.classList.toggle('m-explore', m === 'explore'); body.classList.toggle('m-desk', m === 'desk');
     [].forEach.call($('modeSeg').children, function (b) { b.classList.toggle('on', b.dataset.mode === m); });
-    $('viewBtn').style.display = m === 'explore' ? '' : 'none'; $('viewBtn').classList.toggle('on', S.view === '3p');
+    $('viewBtn').style.display = m === 'explore' ? '' : 'none'; $('viewBtn').classList.toggle('on', S.view === '3p'); sitBtnShow();
     $('dock').classList.toggle('hide', m !== 'desk');
     if (m === 'desk') { DK.yaw = 0; DK.pitch = 0; }                               // Desk always starts facing the desk
     dirty = true; showHint();
     if (quick) { camAuto = true; return; }
     busy = true; flyHome(0.85).then(function () { busy = false; });
   }
-  function setView(v) { if (busy) return; S.view = v; $('viewBtn').classList.toggle('on', v === '3p'); dirty = true; busy = true; flyHome(0.5).then(function () { busy = false; }); }
+  function setView(v) { if (busy) return; S.view = v; $('viewBtn').classList.toggle('on', v === '3p'); if (v !== '3p') AV.sitting = AV.wantSit = false; sitBtnShow(); dirty = true; busy = true; flyHome(0.5).then(function () { busy = false; }); }
 
   if ((navigator.maxTouchPoints || 0) > 0 && window.matchMedia && matchMedia('(pointer: coarse)').matches) body.classList.add('touch');
   var hint = $('hint'), hintT = 0;
@@ -172007,6 +172035,65 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     canvas.classList.toggle('point', !!o);
   }
 
+  /* ------------------------------------------------------------ the figure (third person): walk, idle, sit / stand up, reach,
+     carry, put down, wave. Target poses blend into each other, so every change of state is a short, smooth movement. */
+  var RIG = avatar.userData.rig, AV = { cur: {}, sitting: false, sitK: 0, wantSit: false, standUntil: 0, g: null, g0: 0, gd: 1, carry: false, phase: 0, speed: 0, lx: null, lz: null, look: 0, lookT: 0, lookTo: 0 };
+  var POSE0 = { y: 0, lean: 0, headX: 0, headY: 0, aLx: 0, aLz: 0.06, aRx: 0, aRz: 0.06, tLx: 0, tRx: 0, sLx: 0, sRx: 0, breath: 1 };
+  Object.keys(POSE0).forEach(function (k) { AV.cur[k] = POSE0[k]; });
+  function gesture(name, dur) { AV.g = name; AV.g0 = T; AV.gd = dur || 0.9; }
+  function third() { return mode === 'explore' && S.view === '3p'; }
+  function seatSpot() { var p = room.desk.pos; return { x: p[0], z: p[2] - 0.26, yaw: deskBase.yaw, bx: p[0], bz: p[2] + 0.24 }; }
+  function sitBtnShow() { var b = $('sitBtn'); if (b) { b.style.display = third() ? '' : 'none'; b.classList.toggle('on', AV.sitting || AV.wantSit); } }
+  function sitToggle() {
+    if (busy || !third()) return;
+    if (AV.sitting) { AV.sitting = false; AV.standUntil = T + 0.6; sitBtnShow(); return; }
+    var st = seatSpot(); AV.wantSit = true; walkTo = { x: st.bx, z: st.bz, stuck: 0 }; sitBtnShow();
+  }
+  function poseNow(dt) {
+    var t = {}, k; for (k in POSE0) t[k] = POSE0[k];
+    /* walking: stride and arm swing follow the real speed */
+    var px = avatar.position.x, pz = avatar.position.z, v = 0;
+    if (AV.lx !== null && dt > 0) v = Math.hypot(px - AV.lx, pz - AV.lz) / dt; AV.lx = px; AV.lz = pz;
+    AV.speed += (Math.min(v, 3) - AV.speed) * Math.min(1, dt * 8);
+    var amp = Math.min(1, AV.speed / 2.1) * 0.6;
+    if (amp > 0.02 && !AV.sitting) {
+      AV.phase += dt * (5 + AV.speed * 2.2); var s1 = Math.sin(AV.phase);
+      t.tLx = s1 * amp; t.tRx = -s1 * amp; t.sLx = Math.max(0, -s1) * amp * 1.3; t.sRx = Math.max(0, s1) * amp * 1.3;
+      t.aLx = -s1 * amp * 0.8; t.aRx = s1 * amp * 0.8; t.y = Math.abs(Math.cos(AV.phase)) * 0.025 * amp; t.lean = 0.05 * amp;
+    } else {
+      /* idle: breathing, and now and then a look around */
+      t.breath = 1 + Math.sin(T * 1.8) * 0.01;
+      if (T > AV.lookT) { AV.lookT = T + 3 + Math.random() * 4; AV.lookTo = Math.random() < 0.5 ? 0 : (Math.random() - 0.5) * 1.1; }
+      t.headY = AV.lookTo;
+    }
+    /* sitting: hips down to the seat, thighs forward, shins down, hands towards the desk */
+    if (AV.sitting) { t.y = -0.12; t.tLx = t.tRx = -1.5; t.sLx = t.sRx = 1.45; t.lean = -0.06; t.aLx = t.aRx = -0.55; t.headX = 0.08; t.headY = 0; }
+    /* carrying something while placing it */
+    if (AV.carry) { t.aLx = t.aRx = -1.15; t.aLz = t.aRz = -0.12; t.lean = Math.max(t.lean, 0.04); }
+    /* one-off gestures, faded in and out */
+    if (AV.g) {
+      var q = (T - AV.g0) / AV.gd; if (q >= 1) AV.g = null; else {
+        var w = Math.sin(Math.PI * Math.min(1, q * 1.15));
+        if (AV.g === 'reach') { t.aRx = t.aRx + (-1.4 - t.aRx) * w; t.aRz = 0.12; t.lean = t.lean - 0.18 * w; t.headX = 0.15 * w; }
+        if (AV.g === 'place') { t.lean = -0.5 * w; t.aLx = t.aLx + (-1.35 - t.aLx) * w; t.aRx = t.aRx + (-1.35 - t.aRx) * w; if (!AV.sitting) { t.y = -0.07 * w; t.tLx = t.tRx = -0.45 * w; t.sLx = t.sRx = 0.85 * w; } t.headX = 0.3 * w; }
+        if (AV.g === 'wave') { t.aRz = t.aRz + (2.6 - t.aRz) * w + Math.sin(T * 13) * 0.25 * w; t.aRx = 0; t.headY = 0.2 * w; }
+      }
+    }
+    var f = Math.min(1, dt * 10); for (k in t) AV.cur[k] += (t[k] - AV.cur[k]) * f;
+    RIG.pose(AV.cur);
+  }
+  function placeFigure(dt) {
+    /* getting to the chair: once there, turn to the desk and sit */
+    if (AV.wantSit && !walkTo) {
+      var st = seatSpot(), d = Math.hypot(P.x - st.bx, P.z - st.bz);
+      if (d < 0.25) { AV.wantSit = false; AV.sitting = true; P.yaw = st.yaw; dirty = true; sitBtnShow(); } else { AV.wantSit = false; sitBtnShow(); }
+    }
+    AV.sitK += ((AV.sitting ? 1 : 0) - AV.sitK) * Math.min(1, dt * 5);
+    var st2 = seatSpot(), k = AV.sitK;
+    avatar.position.set(P.x + (st2.x - P.x) * k, 0, P.z + (st2.z - P.z) * k);
+    avatar.rotation.y = (k > 0.01 ? st2.yaw * k + P.yaw * (1 - k) : P.yaw) + Math.PI;
+  }
+
   /* ------------------------------------------------------------ input */
   var ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), hits = objects.map(function (o) { return o.hit; }), floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   function pick(e) {
@@ -172050,6 +172137,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (busy) { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') skipRunAll(); return; }
     if (/^(INPUT|SELECT|TEXTAREA)$/.test((e.target && e.target.tagName) || '')) return;
     keys[e.code] = true;
+    if (e.key === 'c' || e.key === 'C') sitToggle();
     if (e.key === '1') setMode('explore'); else if (e.key === '2') setMode('desk'); else if (e.key === 'v' || e.key === 'V') { if (mode === 'explore') setView(S.view === '1p' ? '3p' : '1p'); }
     else if (e.key === 'Escape') $('settings').hidden = true;
     if (/^Arrow|^Space$/.test(e.code)) e.preventDefault();
@@ -172082,6 +172170,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function move(dt) {
     if (mode !== 'explore' || busy) return;
+    if (T < AV.standUntil) return;                                                  // getting up from the chair
+    if (AV.sitting) {
+      var want = keys.KeyW || keys.KeyS || keys.KeyA || keys.KeyD || keys.ArrowUp || keys.ArrowDown || joy.x || joy.y || walkTo;
+      if (want) { AV.sitting = false; AV.standUntil = T + 0.6; sitBtnShow(); }
+      return;
+    }
     var f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - joy.y, r = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + joy.x;
     var turn = (keys.ArrowLeft || keys.KeyQ ? 1 : 0) - (keys.ArrowRight || keys.KeyE ? 1 : 0);
     if (turn) { P.yaw += turn * 1.9 * dt; dirty = true; }
@@ -172100,7 +172194,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 
   /* ------------------------------------------------------------ top bar, settings */
   $('modeSeg').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b && b.dataset.mode !== mode) setMode(b.dataset.mode); });
-  $('viewBtn').addEventListener('click', function () { setView(S.view === '1p' ? '3p' : '1p'); });
+  $('viewBtn').addEventListener('click', function () { setView(S.view === '1p' ? '3p' : '1p'); sitBtnShow(); });
+  $('sitBtn').addEventListener('click', sitToggle);
   var setEl = $('settings');
   function renderSettings() {
     $('optDefault').value = S.def; $('optDesk').value = S.deskStyle || 'classic'; $('optTime').value = S.tod || 'auto'; $('optMedal').value = S.medal === 'wall' ? 'wall' : 'box'; $('optMotion').checked = !!S.motion; if ($('optPreload')) $('optPreload').checked = !!S.preload; if ($('optBoot')) $('optBoot').checked = typeof S.boot === 'boolean' ? S.boot : window.__SPATIAL_HOME_BOOT_DEFAULT__ !== false;
@@ -172217,7 +172312,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     $('editName').textContent = t.lab ? t.icon + ' ' + t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
     editBar.querySelector('[data-e="rot"]').style.display = edit.type === 'wall' ? 'none' : '';
     ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + ' · R 旋转 · Enter 放好 · Esc 取消';
-    editBar.hidden = false; body.classList.add('editing'); walkTo = null; refreshHotbar();
+    editBar.hidden = false; body.classList.add('editing'); walkTo = null; refreshHotbar(); AV.carry = true;
     g.updateMatrixWorld(true); if (isNew && overlaps(null)) setValid(false, '先挪到空一点的地方');   // a new thing may appear on top of something
   }
   function inside(x, z) { return inRoom(x, z, -0.45) || (room.areas || []).some(function (a) { return x >= a[0] - 0.3 && x <= a[2] + 0.3 && z >= a[1] - 0.3 && z <= a[3] + 0.3; }); }
@@ -172261,6 +172356,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function snapIs(h, kind) { var r = false; XS.forEach(function (q) { if (q.e.kind === kind) q.group.traverse(function (m) { if (m === h.object) r = true; }); }); return r; }
   function endEdit(how) {
     if (!edit) return; if (how === 'ok' && !edit.valid) return;
+    AV.carry = false; if (how === 'ok') gesture('place', 0.8); else if (how === 'stash') gesture('reach', 0.7);
     var E = edit, L = layout(); edit = null; ghost(E, false); editBar.hidden = true; body.classList.remove('editing');
     var g = E.g, pos = [+g.position.x.toFixed(3), +g.position.y.toFixed(3), +g.position.z.toFixed(3)], ry = +g.rotation.y.toFixed(4);
     if (how === 'cancel') {
@@ -172444,7 +172540,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     T += dt; move(dt);
     if (camAuto) { autoPose(camera.position, camera.quaternion); if (room.shake && !S.motion) { var sh = room.shake(T); camera.position.y += sh.y; camera.rotateZ(sh.roll); } }
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;
-    if (avatar.visible) { avatar.position.set(P.x, 0, P.z); avatar.rotation.y = P.yaw + Math.PI; }
+    if (avatar.visible) { placeFigure(dt); poseNow(dt); }
     XS.forEach(function (x) { if (x.tick) try { x.tick(T); } catch (e) {} });
     room.tick(T); objects.forEach(function (o) { o.idle(T); var s = o === hot ? 1.035 : 1; o.group.scale.setScalar(o.group.scale.x + (s - o.group.scale.x) * Math.min(1, dt * 12)); });
     SPK(T); renderer.render(cineScene || scene, camera);
@@ -172464,9 +172560,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     body.hidden = false; paused = false; resize(); clock.getDelta(); markAvailability();
     if (mode === 'desk') { DK.yaw = 0; DK.pitch = 0; }
     camAuto = true; try { canvas.focus(); } catch (e) {}
+    if (third()) gesture('wave', 1.6);
   }
   API = {
     version: '1.0', objects: objects, open: open, close: exitHome, isOpen: function () { return !body.hidden || !!inFeature; },
+    figure: { sit: sitToggle, gesture: function (n) { gesture(n, n === 'wave' ? 1.6 : 0.9); }, state: function () { return { sitting: AV.sitting, wantSit: AV.wantSit, carry: AV.carry, g: AV.g, speed: +AV.speed.toFixed(2), pos: avatar.position.toArray().map(function (n) { return +n.toFixed(2); }), pose: JSON.parse(JSON.stringify(AV.cur)) }; } },
     setEnv: setEnv, envs: function () { return window.SpatialRoom.envs(); }, env: function () { return room; }, look: function (yaw, pitch) { if (mode === 'desk') { DK.yaw = yaw; DK.pitch = pitch; } else { P.yaw = yaw; P.pitch = pitch; } dirty = true; }, layout: function () { return JSON.parse(JSON.stringify(layout())); },
     edit: { start: function (id) { var o = objects.filter(function (x) { return x.id === id; })[0]; if (o) startEdit(o); }, moveAt: function (x, y) { editMove({ clientX: x, clientY: y }); }, end: function (how) { endEdit(how || 'ok'); }, spawn: function (kind) { spawn({ kind: kind }); }, extras: function () { return XS.length; } },
     walkTo: function (x, z) { if (mode === 'explore' && inArea(x, z)) { walkTo = { x: x, z: z, stuck: 0 }; return true; } return false; },
