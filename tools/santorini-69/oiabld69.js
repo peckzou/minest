@@ -9,13 +9,53 @@
    彻底移除 Minecraft 单块破坏与放置工具 (No Place, No Break, No 1x1x1 Outline) */
 (function () {
   'use strict';
-  if (window.MinestOiaBld && window.MinestOiaBld.version === '69.3') return;
+  if (window.MinestOiaBld && window.MinestOiaBld.version === '70.0') return;
 
   var H = null, bOrig = {}, lastSig = null, B0 = null, G0 = null, edit = null;
   var sel = null, selElem = null, selDisp = null, panel = null, hl = null, undoOne = null, armDel = 0, toastT = 0;
   var curTab = 'bld'; // 'bld' | 'elem' | 'disp' | 'ai'
-  var MOVABLE = /^(b\d+|u\d+)$/;
+  var MOVABLE = { test: function(id){ return typeof id === 'string' && id.length > 0; } };
   var KIND = { house: '白屋', cave: '洞穴屋', taverna: '小酒馆', chapel: '教堂' };
+
+  /* 70 · 体素陈列引擎 (ui/world-displays.js): it draws, picks, places and edits the displays; this module gives it the
+     world, the island record (with undo) and the selection, and falls back to the 69 props when it is not loaded */
+  function VD() { return window.MinestVoxelDisplays || null; }
+  var vdHost = {
+    scene: function () { var s = sa(); return s && s.scene; },
+    camera: function () { var s = sa(); return s && s.camera; },
+    canvas: function () { return document.getElementById('oia-gl'); },
+    world: function () { return world(); },
+    record: function () { return H && H.bld ? H.bld() : null; },
+    boardId: function () { return H && H.key ? (H.key() || '') : ''; },
+    shadows: function () { var s = sa(); return !s || !s.S || s.S.shadows !== false; },
+    view: function () {   // where new things go: in front of the walker, or where the editing camera looks at the ground
+      var s = sa(), E = window.MinestOiaEditor, w = world();
+      if (E && E.active && s && w) {
+        var c = s.camera.position, t = E.target, dx = t.x - c.x, dy = t.y - c.y, dz = t.z - c.z, n = Math.hypot(dx, dy, dz) || 1, h = Math.hypot(dx, dz) || 1, x = t.x, z = t.z, y = null;
+        for (var k = 0; k < n + 400; k += 0.4) { var px = Math.floor(c.x + dx / n * k), py = Math.floor(c.y + dy / n * k), pz = Math.floor(c.z + dz / n * k); if (py < 0) break; if (w.inb(px, py, pz) && w.blocks[w.idx(px, py, pz)] !== 0) { x = px + 0.5; z = pz + 0.5; y = w.hm ? w.hm[px + w.W * pz] - 1 : py; break; } }   // the ground under what you look at
+        return { x: x, z: z, y: y, fx: dx / h, fz: dz / h };
+      }
+      var p = s ? s.player.pos : { x: 20, y: 10, z: 20 }, yaw = s ? s.player.yaw : 0, fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+      return { x: p.x + fx * 4, z: p.z + fz * 4, y: Math.floor(p.y), fx: fx, fz: fz };
+    },
+    focus: function (b, f) {   // look at a fixture from its front
+      var s = sa(), E = window.MinestOiaEditor; if (!s) return;
+      if (E && E.active) { E.target.x = b.x; E.target.y = b.y; E.target.z = b.z; E.zoom(Math.max(16, b.w * 4) / E.distance); return; }
+      var back = 2.5 + b.d / 2 + b.w * 0.55;
+      s.player.pos.x = b.x + f[0] * back; s.player.pos.z = b.z + f[1] * back; s.player.pos.y = b.y - b.h / 2 + 0.05;
+      s.player.yaw = Math.atan2(f[0], f[1]); s.player.pitch = -0.06;
+    }
+  };
+  var vdCtx = {
+    host: vdHost,
+    commit: function (fn) { return commit(fn); },
+    toast: function (m) { toast(m); },
+    sel: function () { return selDisp; },
+    setSel: function (id) { selDisp = id; if (id) { curTab = 'disp'; sel = null; selElem = null; } },
+    editing: function () { return !!edit; },
+    refresh: function () { updateHl(); fillPanel(); }
+  };
+  function curDisps() { var v = VD(); if (v) return v.list(vdHost); var st = H && H.bld ? H.bld() : null; return (st && st.displays) || defaultDisplays(world()); }
 
   /* ---------------------------------------------------------------- Real Cards from Minest Boards */
   var DEFAULT_CARDS = [
@@ -35,8 +75,9 @@
   function getActiveCards() {
     var list = [];
     try {
-      if (window.boards && Array.isArray(window.boards)) {
-        var b = window.boards.find(function (x) { return x.id === 'board-ec6-art'; }) || window.boards[0];
+      var bs = (window.MinestAI && window.MinestAI.boards && window.MinestAI.boards()) || window.boards;
+      if (bs && Array.isArray(bs)) {
+        var b = bs.find(function (x) { return x.id === 'board-ec6-art'; }) || bs[0];
         if (b && b.columns) {
           b.columns.forEach(function (col) {
             (col.cards || []).forEach(function (c) {
@@ -370,7 +411,7 @@
     }
   }
 
-  function sigOf(st) { return JSON.stringify(st || {}); }
+  function sigOf(st) { if (!st || !VD()) return JSON.stringify(st || {}); var o = {}; Object.keys(st).forEach(function (k) { if (k !== 'displays' && k !== 'dv') o[k] = st[k]; }); return JSON.stringify(o); }
 
   function defaultDisplays(w) {
     var y1 = top(w, 18, 22) + 1, y2 = top(w, 32, 26) + 1, y3 = top(w, 24, 35) + 1, y4 = top(w, 15, 28) + 1;
@@ -397,12 +438,13 @@
     }
 
     var st = H && H.bld ? H.bld() : null;
-    if (!st) {
+    if (VD()) { if (!st) st = { m: {}, a: [], n: 0, elements: [] }; }
+    else if (!st) {
       st = { m: {}, a: [], n: 0, elements: [], displays: defaultDisplays(w) };
       if (H && H.bldSet) {
         try { H.bldSet(function (rec) { rec.displays = st.displays; }); } catch (e) {}
       }
-    } else if (!st.displays || !st.displays.length) {
+    } else if (!st.displays) {
       st.displays = defaultDisplays(w);
       if (H && H.bldSet) {
         try { H.bldSet(function (rec) { rec.displays = st.displays; }); } catch (e) {}
@@ -416,7 +458,7 @@
     }
     revert(w, dirty); lastSig = sig;
 
-    var m = st.m || {}, adds = st.a || [], elems = st.elements || [], disps = st.displays || defaultDisplays(w), cols = {};
+    var m = st.m || {}, adds = st.a || [], elems = st.elements || [], disps = VD() ? null : (st.displays || defaultDisplays(w)), cols = {};
     var ids = Object.keys(m).filter(function (id) { return MOVABLE.test(id) && B0.some(function (b) { return b.id === id; }); });
     var byId = {}; B0.forEach(function (b) { byId[b.id] = b; });
 
@@ -509,6 +551,7 @@
 
   function renderVoxelDisplays(disps) {
     var s = sa(); if (!s || !s.scene) return;
+    if (VD()) { if (voxDispGroup && voxDispGroup.parent) voxDispGroup.parent.remove(voxDispGroup); VD().render(vdHost); return; }   /* 70 */
     var T = window.THREE; if (!T) return;
     if (!voxDispGroup) {
       voxDispGroup = new T.Group();
@@ -562,6 +605,7 @@
 
   /* ---------------------------------------------------------------- Raycast Picking */
   function pickDisplayAt(clientX, clientY) {
+    if (VD()) { var hit70 = VD().pick(vdHost, clientX, clientY); return hit70 ? (curDisps().filter(function (q) { return q.id === hit70.id; })[0] || null) : null; }   /* 70 */
     var s = sa(); if (!s || !voxDispGroup || !s.camera) return null;
     var T = window.THREE; if (!T) return null;
     var canvas = document.getElementById('oia-gl') || s.canvas;
@@ -587,6 +631,7 @@
 
   function pickBuildingAt(clientX, clientY) {
     var s = sa(); if (!s || !s.world) return null;
+    if(window.MinestOiaEditor && window.MinestOiaEditor.active)return window.MinestOiaEditor.pickBuilding(clientX,clientY);
     var w = s.world, p = s.player.pos, yaw = s.player.yaw, pitch = s.player.pitch;
     var dx = -Math.sin(yaw) * Math.cos(pitch), dy = Math.sin(pitch), dz = -Math.cos(yaw) * Math.cos(pitch);
 
@@ -623,9 +668,11 @@
   // Hook global click/tap to pick Whole Building / Element / Display
   window.MinestOiaClick = function (clientX, clientY) {
     if (!window.__oiaOn) return;
+    if (VD() && VD().tap(vdCtx, clientX, clientY)) return;   /* 70: a fixture, one of its slots, or the ground it should move to */
+    if (VD() && edit && curTab === 'disp') return;   /* 70: while arranging displays a tap beside them does not jump to the nearest building */
 
     // 1. Check if clicking a 3D Display
-    var disp = pickDisplayAt(clientX, clientY);
+    var disp = VD() ? null : pickDisplayAt(clientX, clientY);
     if (disp) {
       selDisp = disp.id; curTab = 'disp';
       updateHl(); fillPanel();
@@ -768,11 +815,13 @@
       hl = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(1, 1, 1)), new T.LineBasicMaterial({ color: 0xffd23f, depthTest: false, linewidth: 2 }));
       hl.renderOrder = 999; hl.visible = false; s.scene.add(hl);
     }
-    if (!edit) { hl.visible = false; return; }
+    if (!edit && !(window.MinestOiaEditor&&window.MinestOiaEditor.active)) { hl.visible = false; return; }
 
+    hl.rotation.y = 0;
     if (curTab === 'disp' && selDisp) {
-      var st = H && H.bld ? H.bld() : null, dList = (st && st.displays) || defaultDisplays(world());
+      var dList = curDisps();
       var d = dList.find(function (q) { return q.id === selDisp; });
+      if (d && VD()) { var bb = VD().bounds(d); hl.scale.set(bb.w + 0.14, bb.h + 0.14, bb.d + 0.14); hl.position.set(bb.x, bb.y, bb.z); hl.visible = true; return; }
       if (d) {
         hl.scale.set(1.6, 2.4, 1.4);
         hl.position.set(d.x, d.y + 1.2, d.z);
@@ -810,15 +859,21 @@
 
   /* ---------------------------------------------------------------- Commit Changes */
   function commit(fn) {
+    if(window.MinestOiaEditor)window.MinestOiaEditor.ensureContext();
+    if(!H || !H.key || !H.key() || !H.bldSet){toast('未连接到当前世界，修改未保存');throw new Error('World is not bound');}
     var cur = H && H.bld ? H.bld() : null;
-    var next = JSON.parse(JSON.stringify(cur || { m: {}, a: [], n: 0, elements: [], displays: defaultDisplays(world()) }));
+    var next = JSON.parse(JSON.stringify(cur || { m: {}, a: [], n: 0, elements: [], displays: VD() ? [] : defaultDisplays(world()) }));
+    if (VD()) { next.displays = JSON.parse(JSON.stringify(VD().list(vdHost))); next.dv = 2; }   /* 70: what is shown is what is saved */
+    if (!next.m) next.m = {}; if (!next.a) next.a = [];
     fn(next);
     H.bldSet(function (rec) {
       rec.m = next.m; rec.a = next.a; rec.n = next.n;
       rec.elements = next.elements || [];
       rec.displays = next.displays || [];
+      if (next.dv) rec.dv = next.dv;
     });
-    reapply();
+    if(JSON.stringify((H.bld()||{}).m)!==JSON.stringify(next.m)){toast('修改未保存，请重试');throw new Error('World write was not retained');}
+    reapply(); window.dispatchEvent(new Event('minest-world-edit'));
     return true;
   }
 
@@ -937,6 +992,7 @@
 
     /* 3D Displays in Santorini World */
     addDisp: function (kind) {
+      if (VD()) return VD().act(vdCtx, 'add', kind);
       var s = sa(), p = s ? s.player.pos : { x: 20, y: 10, z: 20 }, yaw = s ? s.player.yaw : 0;
       var fx = -Math.sin(yaw), fz = -Math.cos(yaw);
       var dx = p.x + fx * 3, dz = p.z + fz * 3;
@@ -953,6 +1009,7 @@
       toast('已在圣托里尼放置 3D 展架: ' + (kind === 'easel' ? '艺术画架' : (kind === 'shelf' ? '书架' : (kind === 'showcase' ? '悬崖展柜' : '观景展板'))));
     },
     mvDisp: function (dir) {
+      if (VD()) return VD().act(vdCtx, 'move', dir);
       if (!selDisp) return toast('先选一个展架');
       var s = sa(), yaw = s ? s.player.yaw : 0;
       var fx = -Math.sin(yaw), fz = -Math.cos(yaw);
@@ -965,6 +1022,7 @@
       });
     },
     rotDisp: function () {
+      if (VD()) return VD().act(vdCtx, 'rot');
       if (!selDisp) return;
       commit(function (next) {
         var d = (next.displays || []).find(function (q) { return q.id === selDisp; });
@@ -972,6 +1030,7 @@
       });
     },
     delDisp: function () {
+      if (VD()) return VD().act(vdCtx, 'del');
       if (!selDisp) return;
       commit(function (next) {
         next.displays = (next.displays || []).filter(function (q) { return q.id !== selDisp; });
@@ -980,6 +1039,7 @@
       toast('展架已移除');
     },
     cycleCard: function () {
+      if (VD()) return VD().act(vdCtx, 'pick');
       if (!selDisp) return toast('先选一个展架');
       var cards = getActiveCards();
       commit(function (next) {
@@ -993,6 +1053,7 @@
       });
     },
     viewCard: function () {
+      if (VD()) return VD().act(vdCtx, 'view');
       if (!selDisp) return toast('先选一个展架');
       var st = H && H.bld ? H.bld() : null;
       var d = (st && st.displays || defaultDisplays(world())).find(function (q) { return q.id === selDisp; });
@@ -1004,6 +1065,7 @@
     /* AI Recommendations */
     smartLayout: function (theme) {
       var w = world(); if (!w) return;
+      if (VD() && theme === 'art') { curTab = 'disp'; return VD().act(vdCtx, 'auto'); }   /* 70: a real list, curated */
       toast('✨ AI 正在规划圣托里尼 ' + (theme === 'art' ? '艺术海岸展' : '露天休闲街') + '...');
       commit(function (next) {
         if (!next.elements) next.elements = [];
@@ -1054,10 +1116,12 @@
       var tabBtn = e.target.closest('[data-tab]');
       if (tabBtn) { curTab = tabBtn.getAttribute('data-tab'); updateHl(); fillPanel(); return; }
 
+      if (VD() && VD().click(vdCtx, e)) return;   /* 70 */
       var g = e.target.closest('[data-a]'); if (!g) return;
       var a = g.getAttribute('data-a'), d = g.getAttribute('data-d');
       if (ACT[a]) ACT[a](d);
     });
+    panel.addEventListener('change', function (e) { e.stopPropagation(); if (VD()) VD().changed(vdCtx, e); });
 
     return true;
   }
@@ -1067,14 +1131,14 @@
     var st = H && H.bld ? H.bld() : null;
     var w = world(), b = sel && w ? w.buildings.find(function (x) { return x.id === sel; }) : null;
     var el = selElem && st && (st.elements || []).find(function (q) { return q.id === selElem; });
-    var dispList = (st && st.displays) || defaultDisplays(w);
+    var dispList = curDisps();
     var disp = selDisp ? dispList.find(function (q) { return q.id === selDisp; }) : null;
-    var card = disp ? getCardById(disp.cardId) : null;
+    var card = disp && !VD() ? getCardById(disp.cardId) : null;
 
     var h = '<div class="obld-tabs">' +
       '<button type="button" class="obld-tab' + (curTab === 'bld' ? ' on' : '') + '" data-tab="bld">🏛️ 整栋建筑</button>' +
       '<button type="button" class="obld-tab' + (curTab === 'elem' ? ' on' : '') + '" data-tab="elem">🌳 完整元素</button>' +
-      '<button type="button" class="obld-tab' + (curTab === 'disp' ? ' on' : '') + '" data-tab="disp">🎨 展架与卡片</button>' +
+      '<button type="button" class="obld-tab' + (curTab === 'disp' ? ' on' : '') + '" data-tab="disp">🎨 陈列</button>' +
       '<button type="button" class="obld-tab' + (curTab === 'ai' ? ' on' : '') + '" data-tab="ai">✨ AI 智能规划</button>' +
       '</div>';
 
@@ -1121,6 +1185,8 @@
           '</div>' : '') +
         '</div>';
 
+    } else if (curTab === 'disp' && VD()) {
+      h += VD().panel(vdCtx);
     } else if (curTab === 'disp') {
       h += '<div class="obld-card">' +
         '<b class="t">🎨 在体素世界摆放 3D 展架与卡片</b>' +
@@ -1156,7 +1222,7 @@
         '<div class="obld-sub">AI 自动分析地形、街道走势与海景视线，推荐最佳展示与景观布局</div>' +
         '<div class="obld-actions" style="grid-template-columns:1fr;margin-top:12px;">' +
         '<button type="button" class="obld-btn pri" data-a="smartLayout" data-d="art" style="padding:12px;text-align:left;">' +
-        '<b>🏛️ 规划: 圣托里尼悬崖艺术展</b><br><small style="opacity:.85">自动生成画架、展柜、艺术展墙与观景休闲长椅套装</small>' +
+        '<b>🏛️ 规划: 圣托里尼悬崖艺术展</b><br><small style="opacity:.85">按看板列表自动策展：挑最合适的体素展架，在你面前的平地上摆好整个列表</small>' +
         '</button>' +
         '<button type="button" class="obld-btn" data-a="smartLayout" data-d="cafe" style="padding:12px;text-align:left;">' +
         '<b>☕ 规划: 爱琴海露天咖啡走廊</b><br><small style="opacity:.85">在沿海主干道自动布局露天咖啡座、遮阳伞与百年橄榄树</small>' +
@@ -1165,7 +1231,10 @@
         '</div>';
     }
 
-    panel.innerHTML = h;
+    if (panel.__h === h) return;
+    var sc70 = panel.querySelector('.vd-cards'), top70 = sc70 ? sc70.scrollTop : 0;
+    panel.__h = h; panel.innerHTML = h;
+    if (top70 && (sc70 = panel.querySelector('.vd-cards'))) sc70.scrollTop = top70;
   }
 
   function toggle(on) {
@@ -1254,7 +1323,8 @@
   setInterval(function () {
     if (window.__oiaOn && window.__santorini) {
       if (!panel) mount();
-      if (!voxDispGroup || voxDispGroup.children.length === 0) {
+      if (VD()) VD().render(vdHost);   /* 70: only what changed is rebuilt */
+      else if (!voxDispGroup || voxDispGroup.children.length === 0) {
         var w = world();
         if (w) {
           var st = H && H.bld ? H.bld() : null;
@@ -1276,7 +1346,7 @@
   });
 
   window.MinestOiaBld = {
-    version: '69.3',
+    version: '70.0',
     toggle: toggle,
     act: function (a, d) { return ACT[a] ? ACT[a](d) : null; },
     select: function (id) { sel = id; curTab = 'bld'; updateHl(); fillPanel(); },
@@ -1286,12 +1356,18 @@
     record: function () { return H && H.bld ? JSON.parse(JSON.stringify(H.bld() || null)) : null; },
     buildings: function () { var w = world(); return w ? w.buildings.map(function (b) { return Object.assign({}, b); }) : []; },
     displays: function () {
+      if (VD()) return curDisps();
       var st = H && H.bld ? H.bld() : null;
       if (st && st.displays && st.displays.length) return st.displays;
       var w = world();
       return w ? defaultDisplays(w) : [];
     },
     reapply: function () { reapply(); },
+    history: function () { return H&&H.history?H.history():{undo:false,redo:false}; },
+    undo: function () { if(!H||!H.undo||!H.undo())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
+    redo: function () { if(!H||!H.redo||!H.redo())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
+    reset: function () { if(!H||!H.reset||!H.reset())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
+    restore: function () { if(!H||!H.restore||!H.restore())return false;sel=null;selDisp=null;selElem=null;window.__oiaApply(sa().world,sa().markDirty);reapply();window.dispatchEvent(new Event('minest-world-edit'));return true; },
     ensurePieceForBuilding: ensurePieceForBuilding,
     enterDoorhouse: enterDoorhouse,
     openCardModal: openCardModal,
@@ -1300,3 +1376,4 @@
     pickBuildingAt: pickBuildingAt
   };
 })();
+
