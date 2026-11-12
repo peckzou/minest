@@ -41,7 +41,8 @@ def hunks():
 
 
 ENTRIES = [('mn-voxel-factory', 'tools/copilot/voxel-factory-entry.js'),   # 3D Display
-           ('mn-typing-worlds-app', 'tools/copilot/typing-worlds-entry.js')]  # Typing Worlds (22 worlds + Word List)
+           ('mn-typing-worlds-app', 'tools/copilot/typing-worlds-entry.js'),  # Typing Worlds (22 worlds + Word List)
+           ('mn-interiors-entry', 'tools/interiors/interiors-entry.js')]       # Codex's My World interiors (no Hogwarts)
 def entry(s):
     """each entry module as one block before </body>, replaced when it is already there"""
     changed = False
