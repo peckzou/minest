@@ -22,7 +22,8 @@
     { id: 'library', sel: '.kl-root', at: 'kx', api: 'MinestLibrary', icon: '📚', l: [['prev', '◀', 'Previous'], ['walk', '🚶', 'Walk'], ['next', '▶', 'Next']], r: [['cats', '🗂', 'Sections'], ['out', '⤺', 'Step back'], ['suggest', '🎨', 'Atmosphere']], road: 'section' },
     { id: 'museum', sel: '.ku-root', at: 'kx', api: 'MinestMuseum', icon: '🏛', l: [['prev', '◀', 'Previous'], ['tour', '🎧', 'Tour'], ['next', '▶', 'Next']], r: [['map', '🗺', 'Map'], ['resume', '↩', 'Resume'], ['suggest', '🎨', 'Theme']] },
     { id: 'city', sel: '.kc-root', at: 'kx', api: 'MinestCity', icon: '🌆', l: [['prev', '◀', 'Previous'], ['run', '🏃', 'Run'], ['next', '▶', 'Next']], r: [['time', '🌗', 'Day/Night'], ['shops', '🏪', 'Shops'], ['out', '⤺', 'Avenue']] },
-    { id: 'galaxy', sel: '.kg-root', at: 'kx', api: 'MinestGalaxy', icon: '🌌', l: [['warp', '⚡', 'Jump'], ['land', '🛬', 'Land'], ['cruise', '🚀', 'Cruise']], r: [['map', '🌌', 'Planets'], ['cockpit', '🪟', 'View'], ['exit', '✕', 'Exit']] }
+    { id: 'galaxy', sel: '.kg-root', at: 'kx', api: 'MinestGalaxy', icon: '🌌', l: [['warp', '⚡', 'Jump'], ['land', '🛬', 'Land'], ['cruise', '🚀', 'Cruise']], r: [['map', '🌌', 'Planets'], ['cockpit', '🪟', 'View'], ['exit', '✕', 'Exit']] },
+    { id: 'balloon', sel: '.kb-root', at: 'kx', api: 'MinestBalloon', icon: '🎈', l: [['prev', '◀', 'Previous'], ['cruise', '⏸', 'Cruise'], ['next', '▶', 'Next']], r: [['map', '🗺', 'Route'], ['view', '🎥', 'View'], ['theme', '🎨', 'Sky']] }
   ];
   var cur = null, el = null, src = null, roads = [], roadI = 0, pick = null, lastSig = '', lastKey = '', infoC = {};
 

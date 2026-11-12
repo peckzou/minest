@@ -43,7 +43,11 @@
       key: function (src) { return D.plan(src).key; }, resumeOf: function (sv) { return sv && sv.z != null ? (sv.night ? 'Night' : 'Day') + ' · ' + Math.round(-sv.z) + ' m' : null; } },
     galaxy: { icon: '🌌', name: 'Knowledge Galaxy', tag: 'Fly · Land · Explore', desc: 'Fly a freighter down a route of planets — each board a world. Tap a planet as it passes to land, walk the trail of card monuments, or jump to hyperspace.', store: 'minest-galaxy-v2', unit: ['planet', 'planets'], stop: 'cards',
       api: function () { return window.MinestGalaxy; }, styles: function () { return []; }, styleLabel: '',
-      key: function () { return 'galaxy'; }, resumeOf: function (sv) { return sv && sv.pi != null ? 'planet ' + (sv.pi + 1) : null; } }
+      key: function () { return 'galaxy'; }, resumeOf: function (sv) { return sv && sv.pi != null ? 'planet ' + (sv.pi + 1) : null; } },
+    // Dynamic Presentation Phase 4 (Copilot): a hot-air balloon over the cards
+    balloon: { icon: '🎈', name: 'Knowledge Balloon', tag: 'Fly · Drift · Read', desc: 'Ride a hot-air balloon over your cards. Every list is a flight corridor; every card is a floating island with its picture on a frame. Tap an island to fly over it, tap again to read it.', store: 'minest.balloon.v1', unit: ['corridor', 'corridors'], stop: 'exhibits',
+      api: function () { return window.MinestBalloon; }, styles: function () { return (window.MinestBalloon && MinestBalloon.themes || []).map(function (t) { return { id: t.id, name: t.name, icon: t.icon }; }); }, styleLabel: 'Sky',
+      key: function (src) { return D.plan(src).key; }, resumeOf: function (sv) { return sv && sv.s != null ? 'exhibit ' + (Math.round(sv.s) + 1) : null; } }
   };
   var mode = 'drive'; try { var m0 = localStorage.getItem('minest.dynamic.mode'); if (MODES[m0]) mode = m0; } catch (e) {}
   function hap() { try { webkit.messageHandlers.minest.postMessage({ action: 'haptic', data: { style: 'selection' } }); } catch (e) {} }

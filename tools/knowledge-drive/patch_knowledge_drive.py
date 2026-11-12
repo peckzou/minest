@@ -5,7 +5,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent; ROOT = HERE.parents[1]
 ENTRIES = ['iPhone53.8241.html', 'iphone.html', 'index.html', 'ipad.html', 'iPhoneDuo.html',
-           'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ios/Minest/Minest/ipad.html', 'ios/MinestProject/MyApp/iphone.html']
+           'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ios/Minest/Minest/ipad.html', 'ios/MinestProject/MyApp/iphone.html',
+           'iPhoneDuo69.html', 'ios/Minest/Minest/iPhoneDuo.html', 'ios/Minest/Minest/index.html']   # the Duo app's own pages had fallen behind
 
 def block(s, tag, body):
     a, b = '<' + tag + ' id="mn-kdrive-' + tag + '">', '</' + tag + '>'
@@ -16,10 +17,11 @@ def block(s, tag, body):
     k = s.rindex('</body>')
     return s[:k] + new + s[k:]
 
+BALLOON = HERE.parent / 'knowledge-balloon'   # Knowledge Balloon (Copilot): the hot-air balloon over the cards
 RAIL = HERE.parent / 'knowledge-rail'   # Knowledge Train + Knowledge Metro ride along (rail-common.js is generated from drive.js)
 import subprocess, sys; subprocess.run([sys.executable, str(RAIL / 'build_common.py')], check=True)
-css = (HERE / 'drive.css').read_text(encoding='utf-8') + '\n' + (RAIL / 'rail.css').read_text(encoding='utf-8') + '\n' + (RAIL / 'phase3.css').read_text(encoding='utf-8') + '\n' + (HERE / 'duo-dyn.css').read_text(encoding='utf-8')
-js = '\n'.join((d / f).read_text(encoding='utf-8') for d, f in [(HERE, 'sfx.js'), (HERE, 'drive.js'), (HERE, 'cars.js'), (RAIL, 'rail-common.js'), (RAIL, 'train.js'), (RAIL, 'metro.js'), (RAIL, 'tower.js'), (RAIL, 'showcase-common.js'), (RAIL, 'rack.js'), (RAIL, 'library.js'), (RAIL, 'museum.js'), (RAIL, 'city.js'), (RAIL, 'galaxy.js'), (HERE, 'entry.js'), (HERE, 'duo-dyn.js')])
+css = (HERE / 'drive.css').read_text(encoding='utf-8') + '\n' + (RAIL / 'rail.css').read_text(encoding='utf-8') + '\n' + (RAIL / 'phase3.css').read_text(encoding='utf-8') + '\n' + (HERE / 'duo-dyn.css').read_text(encoding='utf-8') + '\n' + (BALLOON / 'balloon.css').read_text(encoding='utf-8')
+js = '\n'.join((d / f).read_text(encoding='utf-8') for d, f in [(HERE, 'sfx.js'), (HERE, 'drive.js'), (HERE, 'cars.js'), (RAIL, 'rail-common.js'), (RAIL, 'train.js'), (RAIL, 'metro.js'), (RAIL, 'tower.js'), (RAIL, 'showcase-common.js'), (RAIL, 'rack.js'), (RAIL, 'library.js'), (RAIL, 'museum.js'), (RAIL, 'city.js'), (RAIL, 'galaxy.js'), (BALLOON, 'balloon.js'), (HERE, 'entry.js'), (HERE, 'duo-dyn.js')])
 assert '</script' not in js and '</style' not in css
 for e in ENTRIES:
     p = ROOT / e

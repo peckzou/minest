@@ -20,7 +20,21 @@ if (window.MinestCarFlash) return;
 var KEY = 'minest.carflash.v1';
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
 function native(){ try { return window.webkit && webkit.messageHandlers && webkit.messageHandlers.minestBridge; } catch(e){ return null; } }
-function post(action, extra){ var h = native(); if (!h) return false; try { h.postMessage(Object.assign({ action: action }, extra || {})); return true; } catch(e){ return false; } }
+var nativeReplyTimer = 0, nativeBridgeWarning = false;
+function bridgeStatus(message){ var note = ov && ov.querySelector('[data-cf-note]'); if (note) note.textContent = message; }
+function post(action, extra){
+  var h = native(); if (!h) return false;
+  var awaitingReply = action === 'carFlashStart' || action === 'carFlashState';
+  if (awaitingReply) {
+    clearTimeout(nativeReplyTimer);
+    nativeReplyTimer = setTimeout(function(){
+      nativeReplyTimer = 0; nativeBridgeWarning = true;
+      bridgeStatus('未收到原生闪卡响应，CarPlay 无法同步。请安装包含车载闪卡组件的新版 Minest App；只刷新网页无法修复。');
+    }, 5000);
+  }
+  try { h.postMessage(Object.assign({ action: action }, extra || {})); return true; }
+  catch(e){ if (awaitingReply) clearTimeout(nativeReplyTimer); return false; }
+}
 function prefs(){ try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ return {}; } }
 function savePrefs(p){ try { localStorage.setItem(KEY, JSON.stringify(p)); } catch(e){} }
 function plain(s){ var d = document.createElement('div'); d.innerHTML = String(s || ''); return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
@@ -274,6 +288,8 @@ function paint(){
 }
 window.addEventListener('minestNativeEvent', function(e){
   var d = e.detail || {}; if (d.event !== 'carFlash') return; var p = d.payload || {};
+  clearTimeout(nativeReplyTimer); nativeReplyTimer = 0;
+  if (nativeBridgeWarning) { nativeBridgeWarning = false; bridgeStatus('原生闪卡已连接。'); }
   if (p.listKey && G()) {
     /* Next / ★ taps made on the CarPlay widget / Siri while this page slept: record them in the study progress */
     var src = findSource(p.listKey);
