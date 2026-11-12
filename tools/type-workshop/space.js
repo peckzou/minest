@@ -32,12 +32,12 @@
   function open(o) {
     var T = window.THREE; if (!T || ov) return false; o = o || {}; css();
     ov = document.createElement('div'); ov.className = 'mn-nsp';
-    ov.innerHTML = '<button type="button" class="nb back" data-n="back">↩ 返回房间 · Back</button>' +
-      '<button type="button" class="nb fly on" data-n="fly">✈ 飞行 · Fly</button>' +
-      '<div class="ttl">NEON HALL · 霓虹展示空间<br><span style="opacity:.6;font-weight:400">' + (o.items && o.items.length ? o.items.length + ' 件作品 · works' : '还没有作品 · no works yet') + '</span></div>' +
+    ov.innerHTML = '<button type="button" class="nb back" data-n="back">↩ Back to the room</button>' +
+      '<button type="button" class="nb fly on" data-n="fly">✈ Fly</button>' +
+      '<div class="ttl">NEON HALL<br><span style="opacity:.6;font-weight:400">' + (o.items && o.items.length ? o.items.length + ' works' : 'no works yet') + '</span></div>' +
       '<div class="pad l"><span></span><button type="button" class="nb" data-k="w">▲</button><span></span><button type="button" class="nb" data-k="a">◀</button><button type="button" class="nb" data-k="s">▼</button><button type="button" class="nb" data-k="d">▶</button></div>' +
       '<div class="pad r"><button type="button" class="nb" data-k=" ">⤒</button><button type="button" class="nb" data-k="shift">⤓</button></div>' +
-      '<div class="tip">拖动看四周 · WASD / 方向键移动 · Space 上升 · Shift 下降<br>飞到高处看文字 · 走进身后的门回到房间</div>';
+      '<div class="tip">Drag to look around · WASD / arrows to move · Space up · Shift down<br>Fly up to see the words · walk into the door behind you to go back</div>';
     document.body.appendChild(ov);
     var W = innerWidth, H = innerHeight, rd = new T.WebGLRenderer({ antialias: true });
     rd.setPixelRatio(Math.min(2, devicePixelRatio || 1)); rd.setSize(W, H); ov.insertBefore(rd.domElement, ov.firstChild);

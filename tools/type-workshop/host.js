@@ -8,7 +8,7 @@
    · The way in: in the Santorini voxel town one house is the workshop ('mtw:entrance' {world, vox}; the first time, the
      white house nearest the arrival point). Its 🚪 door offers 🖋 Type Workshop: that house gets a workshop room (a
      typewriter desk, a lamp, an armchair) as its first room and you walk into it. Walk up to the typewriter →
-     🖋 进入 Type Workshop; in the 2D room view, double-tap the typewriter. */
+     🖋 Enter the Type Workshop; in the 2D room view, double-tap the typewriter. */
 (function () {
   'use strict';
   if (window.MinestTypeWorkshop) return;
@@ -54,37 +54,37 @@
   function isOpen() { return !!(ov && !ov.hidden); }
 
   /* ---------------------------------------------------------------- the data the workshop asks for */
-  function teach() { var T = window.MinestTeachingSets; if (!T) throw new Error('词表功能不可用（MinestTeachingSets）'); return T; }
+  function teach() { var T = window.MinestTeachingSets; if (!T) throw new Error('Word lists are not available (MinestTeachingSets)'); return T; }
   function lists() {
     var b = teach().read();
-    return (b.columns || []).map(function (c) { return { id: c.id, title: c.title || '词表', entries: (c.cards || []).map(function (k) { return { id: k.id, text: k.title || '' }; }).filter(function (e) { return e.text; }) }; });
+    return (b.columns || []).map(function (c) { return { id: c.id, title: c.title || 'List', entries: (c.cards || []).map(function (k) { return { id: k.id, text: k.title || '' }; }).filter(function (e) { return e.text; }) }; });
   }
   function createList(title, words) {
     if (title && typeof title === 'object') { words = title.words; title = title.title; }   // {title, words} form too
     words = (words || []).map(function (w) { return String(w || '').trim(); }).filter(Boolean);
-    if (!words.length) throw new Error('词表是空的');
+    if (!words.length) throw new Error('The list is empty');
     var T = teach(), before = {}; (T.read().columns || []).forEach(function (c) { before[c.id] = 1; });
     var r = T.create(String(title || '').trim() || 'Type Workshop', words.join('\n'));
     var id = (r && (r.listId || r.id)) || null;
     var all = lists(), L = all.filter(function (c) { return id ? c.id === id : !before[c.id]; })[0];
-    if (!L) throw new Error('词表没有建成');
+    if (!L) throw new Error('The list could not be created');
     return L;
   }
   var IK = 'mtw:item:';
   function items() {
-    var K = KN(); if (!K) throw new Error('存储不可用（MinestKnowledge）');
+    var K = KN(); if (!K) throw new Error('Storage is not available (MinestKnowledge)');
     return K.keys(IK).map(function (k) { return K.get(k); }).filter(function (it) { return it && it.id && !it.deleted; })
       .sort(function (a, b) { return (a.made || 0) - (b.made || 0); });
   }
   function saveItem(it) {
-    var K = KN(); if (!K) throw new Error('存储不可用（MinestKnowledge）');
-    if (!it || !/^mtw_[\w-]{4,64}$/.test(String(it.id || ''))) throw new Error('作品记录无效');
-    if (typeof it.word !== 'string' || !it.word.trim() || it.word.length > 64) throw new Error('作品文字无效');
+    var K = KN(); if (!K) throw new Error('Storage is not available (MinestKnowledge)');
+    if (!it || !/^mtw_[\w-]{4,64}$/.test(String(it.id || ''))) throw new Error('Invalid item record');
+    if (typeof it.word !== 'string' || !it.word.trim() || it.word.length > 64) throw new Error('Invalid item text');
     var rec = JSON.parse(JSON.stringify(it)); rec.updated = Date.now();
     K.set(IK + rec.id, rec);
     return rec;
   }
-  function removeItem(id) { if (id && typeof id === 'object') id = id.id; var K = KN(); if (!K) throw new Error('存储不可用'); K.set(IK + id, { id: id, deleted: true, updated: Date.now() }); return true; }
+  function removeItem(id) { if (id && typeof id === 'object') id = id.id; var K = KN(); if (!K) throw new Error('Storage is not available'); K.set(IK + id, { id: id, deleted: true, updated: Date.now() }); return true; }
   /* ---- showing items outside the workshop: City Knowledge Run shop signs.
      An item with use 'displayed' and loc {kind:'city', shop:<shop id> | null} hangs as a neon sign over that knowledge
      shop (null → the first shop without one) every time the City opens. The record is the truth; the sign is redrawn. */
@@ -191,22 +191,22 @@
   }
   function small() { return (window.__mtwScale || 1) < .9; }
   function actLabel(k) {
-    if (k === 'f_typewriter') return '🖋 进入 Type Workshop · 打字机';
-    if (k === 'f_neonportal') return '🌀 穿过霓虹传送门 · Neon portal';
-    if (k === 'f_drinkme') return small() ? '🧪 恢复原尺寸 · Grow back' : '🧪 DRINK ME · 喝下缩小药水';
+    if (k === 'f_typewriter') return '🖋 Enter the Type Workshop';
+    if (k === 'f_neonportal') return '🌀 Step through the neon portal';
+    if (k === 'f_drinkme') return small() ? '🧪 Grow back' : '🧪 DRINK ME';
     return '✨';
   }
   function act(k) {
     if (k === 'f_typewriter') return open({ from: 'walk' });
     if (k === 'f_neonportal') { if (window.MinestNeonSpace) MinestNeonSpace.open({ items: items() }); return; }
-    if (k === 'f_drinkme') { var s0 = small(); scaleTo(s0 ? 1 : SMALL); toast(s0 ? '🧪 你恢复了原来的大小 · back to full size' : '🧪 你变小了 · 去看看抽屉柜、明信片架和文字收藏 · you shrank'); }
+    if (k === 'f_drinkme') { var s0 = small(); scaleTo(s0 ? 1 : SMALL); toast(s0 ? '🧪 Back to full size' : '🧪 You shrank — look at the tiny drawers, the postcard rack and the word collection'); }
   }
   /* ---- Test 9 honesty: did an item really reach the cloud? MinestKnowledge pushes with a swallowed .catch, so the only
      proof is reading the user's own doc back FROM THE SERVER (not the local cache). Read-only; no auth or config change. */
   function verifyCloud(a) {
     var id = a && a.id, fb = window.firebase, u = null;
     try { u = fb && fb.auth && fb.auth().currentUser; } catch (e) {}
-    if (!u || !fb.firestore) return Promise.resolve({ signedIn: !!u, checked: false, reason: '未登录 · not signed in — saved on this device only' });
+    if (!u || !fb.firestore) return Promise.resolve({ signedIn: !!u, checked: false, reason: 'Not signed in — saved on this device only' });
     var local = KN() && KN()._cloud && KN()._cloud().x && KN()._cloud().x[IK + id];
     return fb.firestore().collection('users').doc(u.uid).collection('focusboard').doc('data').get({ source: 'server' }).then(function (doc) {
       var d = doc.exists ? doc.data() : null;
@@ -214,10 +214,10 @@
       if (d && d.knowledge && d.knowledge.x && d.knowledge.x[IK + id]) return judge(d.knowledge);
       if (d && d.knowledgeGz && window.minestGunzipText) return minestGunzipText(d.knowledgeGz).then(function (t) { return judge(JSON.parse(t)); });
       return judge(d && d.knowledge);
-    }).catch(function (e) { return { signedIn: true, checked: false, reason: '服务器读取失败 · server read failed: ' + (e && (e.code || e.message)) }; });
+    }).catch(function (e) { return { signedIn: true, checked: false, reason: 'Server read failed: ' + (e && (e.code || e.message)) }; });
   }
   function display(a) {   // {id, where:'city'|'room'|'shelf', shop?, room?} → the record changes; an open City is redrawn
-    var it = items().filter(function (x) { return x.id === (a && a.id); })[0]; if (!it) throw new Error('找不到这件作品');
+    var it = items().filter(function (x) { return x.id === (a && a.id); })[0]; if (!it) throw new Error('Item not found');
     if (a.where === 'city') { it.use = 'displayed'; it.loc = { kind: 'city', shop: a.shop || null }; }
     else if (a.where === 'room') { it.use = 'displayed'; it.loc = { kind: 'room', room: a.room || 'mtw' }; }
     else { it.use = 'stored'; it.loc = a.loc || { kind: 'shelf', shelf: 'main', slot: null }; }
@@ -255,7 +255,7 @@
     try { K && K.set('mtw:entrance', e); } catch (x) {}
     return e;
   }
-  var WROOM = 'Type Workshop · 文字工坊';
+  var WROOM = 'Type Workshop';
   function uid(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function ensureRoom(vox) {   // the workshop room, first in the house: a typewriter desk, a lamp, an armchair
     var md = MD(); if (!md || !md.mtwEdit) return false;
@@ -289,13 +289,13 @@
     if (!c || c.hidden || c.querySelector('[data-mtw]')) return;
     var e = entrance(), bid = c.getAttribute('data-bid'); if (!e || bid !== e.vox) return;
     var b = document.createElement('button'); b.type = 'button'; b.className = 'mtw go'; b.setAttribute('data-mtw', '1');
-    b.innerHTML = '🖋 魔法文字工坊 · Type Workshop<small>走进工坊房间 · 走到打字机前点它，进入 Type Workshop：词表 → 霓虹灯管字 → 装箱入库</small>';
+    b.innerHTML = '🖋 Type Workshop<small>Walk into the workshop room · tap the typewriter: a word list → neon letters → boxed and shelved</small>';
     var first = c.querySelector('button'); c.insertBefore(b, first);
     b.addEventListener('click', function (ev) {
       ev.stopPropagation();
       if (!ensureRoom(bid)) { var w = c.querySelector('[data-oial="walk"]'); if (w) w.click(); setTimeout(function () { ensureRoom(bid); }, 1500); return; }
       var walk = c.querySelector('[data-oial="walk"]'); if (walk) walk.click();
-      setTimeout(function () { toast('🖋 走到打字机前，点「进入 Type Workshop」'); }, 1600);
+      setTimeout(function () { toast('🖋 Walk up to the typewriter and tap “Enter the Type Workshop”'); }, 1600);
     }, true);
   }
   function toast(t) { try { if (window.toast) window.toast(t); } catch (e) {} }
@@ -307,9 +307,9 @@
     var on = !!(window.MinestOia && MinestOia.isOpen && MinestOia.isOpen()) && !isOpen() && !(document.querySelector('#oia-root .oial') && !document.querySelector('#oia-root .oial').hidden);
     if (!on) { if (chip) chip.hidden = true; return; }
     if (!chip) {
-      chip = document.createElement('button'); chip.type = 'button'; chip.className = 'mn-mtw-chip'; chip.textContent = '🖋 Type Workshop · 文字工坊';
-      chip.addEventListener('click', function (ev) { ev.stopPropagation(); var e = entrance(); if (!e) return toast('先打开圣托里尼小镇');
-        try { MinestOiaLink.choose(e.vox, e.at); } catch (x) { toast('工坊的门暂时打不开'); } });
+      chip = document.createElement('button'); chip.type = 'button'; chip.className = 'mn-mtw-chip'; chip.textContent = '🖋 Type Workshop';
+      chip.addEventListener('click', function (ev) { ev.stopPropagation(); var e = entrance(); if (!e) return toast('Open Santorini first');
+        try { MinestOiaLink.choose(e.vox, e.at); } catch (x) { toast('The workshop door will not open right now'); } });
       var root = document.getElementById('oia-root'); (root || document.body).appendChild(chip);
     }
     chip.hidden = false;

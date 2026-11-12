@@ -116,6 +116,12 @@
     }
     window.addEventListener('resize', function () { if (offCur) applyOff(); });
     setInterval(function () { var t = panelLift(); if (t !== offTo) liftTo(t); }, 250);
+    // 9. a strip wider than the screen says so: its right edge fades while there is more to scroll to
+    function stripFade() { var s = con.querySelector('.lv79-strip'); if (!s) return; var more = s.scrollWidth - s.clientWidth - s.scrollLeft > 6; s.classList.toggle('vx80-more', more); }
+    var stripEl = con.querySelector('.lv79-strip'); if (stripEl) stripEl.addEventListener('scroll', stripFade, { passive: true });
+    window.addEventListener('resize', stripFade);
+    st.textContent += '#vx62.lv79 .vxc .lv79-strip.vx80-more{-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}';
+    setInterval(stripFade, 1000);
     setInterval(sync80, 400); sync80();
     window.__vx80 = { fold: function (v) { set80('min', v ? '1' : '0'); applyFold(); window.dispatchEvent(new Event('resize')); }, coach: function () { coach.hidden = false; } };
   })();

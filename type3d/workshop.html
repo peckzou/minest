@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -104,7 +104,7 @@ body.tkb #line{bottom:calc(var(--tkbh,0px) + 14px)} body.tkb #tgt{bottom:calc(va
 </div>
 <section class="panel hud i" id="pLists" hidden></section>
 <section class="panel hud i" id="pInv" hidden></section>
-<div class="hud" id="hint">Type — 每个键一支玻璃管 · Backspace 收回 · Enter 完成装箱 · Tab 切换视角</div>
+<div class="hud" id="hint">Tap the typewriter to type · Return after each word · Tab switches the view</div>
 <div class="hud" id="tgt"></div>
 <div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
 <div class="hud" id="note"></div>
@@ -139,7 +139,7 @@ const PACK_W = 0.27, PACK_H = 0.13, SLOT_W = 0.36, SLOT_H = 0.26;   // metres
 const SHELVES = [{ id: 'main', cols: 5, rows: 4 }];                  // every shelf the workshop owns (more can be added)
 const SAMPLE_TITLE = 'Sample · ten words';
 const SAMPLE_WORDS = ['DREAM', 'OCEAN', 'LIGHT', 'MAGIC', 'HOPE', 'WONDER', 'CREATE', 'EXPLORE', 'DISCOVER', 'IMAGINE'];
-const NOT_SUPPORTED = '暂不支持该字符 · This character is not supported yet';
+const NOT_SUPPORTED = 'This character is not supported yet';
 const GAS_KEYS = ['neon', 'argon', 'helium', 'xenon'];
 let _seq = 0;
 const rid = () => Date.now().toString(36) + (++_seq).toString(36) + Math.random().toString(36).slice(2, 7);
@@ -355,7 +355,7 @@ const showErr = msg => { const e = document.getElementById('err'); e.style.displ
 const canvas = document.getElementById('gl');
 let renderer;
 try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
-catch (e) { showErr('WebGL 没有启动成功。请换一个浏览器或设备再试。'); throw e; }
+catch (e) { showErr('WebGL could not start. Please try another browser or device.'); throw e; }
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 const scene = new THREE.Scene();
@@ -1457,8 +1457,8 @@ flushStatic();
 /* ───────────── workshop state ───────────── */
 const $ = id => document.getElementById(id);
 const normWord = s => String(s ?? '').toUpperCase().replace(/\s+/g, ' ').trim();
-const BUSY_MSG = '还在移动 · Still moving — try again in a moment';
-const FULL_MSG = '货架已满 · The shelf is full';
+const BUSY_MSG = 'Still moving — try again in a moment';
+const FULL_MSG = 'The shelf is full';
 const DB = { lists: [], items: [] };
 const ui = { listId: null, entryId: null, view: 'third', gas: 'neon', mode: 'neon', panel: null, filter: 'all', selected: null, details: null, confirmDel: null,
   newOpen: false, newTitle: '', newWords: '', shopPick: null, verify: null };
@@ -1511,7 +1511,7 @@ let noteT = 0;
 function notice(msg) { const n = $('note'); n.textContent = msg; n.classList.add('on'); clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2800); }
 async function persist(item) {
   pendingSaves++;
-  try { await Store.saveItem(item); } catch (e) { notice('保存失败 · Save failed — ' + e.message); } finally { pendingSaves--; }
+  try { await Store.saveItem(item); } catch (e) { notice('Save failed — ' + e.message); } finally { pendingSaves--; }
 }
 const isBusy = () => !!(job || jobs.length || travellers.length || waiting.length || pendingSaves || !cur.allSettled());
 
@@ -1520,7 +1520,7 @@ function type(str) { let any = false; for (const raw of String(str)) any = type1
 function type1(raw) {
   const r = cur.buf.push(raw);
   if (r === 'unsupported') { notice(NOT_SUPPORTED); return false; }
-  if (r === 'full') { notice(`最多 ${MAX_WORD} 个字符 · Max ${MAX_WORD} characters per item`); return false; }
+  if (r === 'full') { notice(`Max ${MAX_WORD} characters per item`); return false; }
   if (r === 'ignored') return false;
   const ch = cur.buf.items[cur.buf.items.length - 1].ch;
   tw.press(ch); hero.press(ch); $('hint').classList.add('off'); afterEdit(); return true;
@@ -1529,14 +1529,14 @@ function backspace() { if (!cur.buf.pop()) return false; tw.press('⌫'); hero.p
 function afterEdit() { if (flow.phase === 'type') { tw.setColumn(flow.draft.length); tw.drawPaper(flow.order, flow.draft); } renderLine(); renderTarget(); renderFlow(); }
 /** Enter: the item is recorded and saved at once; the finishing, boxing and shelving follow as animation */
 function enter() {
-  if (!ready) { notice('正在连接 · Connecting… one moment'); return null; }
+  if (!ready) { notice('Connecting… one moment'); return null; }
   cur.buf.trimEnd();
   if (!cur.buf.letterCount) { while (cur.buf.pop()); afterEdit(); return null; }
   const word = cur.buf.text, list = currentList(), tgt = targetEntry(), loc = allocSlot(DB.items);
   const item = makeItem({ word, listId: list ? list.id : null, entryId: tgt ? tgt.id : null, mode: cur.mode, gas: cur.gasKey, loc });
   DB.items.push(item); inFlight.add(item.id); persist(item);
   if (!loc) notice(FULL_MSG + ' — the box will wait beside it');
-  else if (tgt && word !== normWord(tgt.text)) notice(`已按实际输入保存 · Saved as “${word}” for “${normWord(tgt.text)}”`);
+  else if (tgt && word !== normWord(tgt.text)) notice(`Saved as “${word}” for “${normWord(tgt.text)}”`);
   const S = cur; S.onStart = null; S.finish(); S.baseS = S.s; waiting.push(S);
   enqueue('pack', packJob(S, item), item.id);
   paperLines.push(word); tw.ret(); hero.stretch();
@@ -1696,7 +1696,7 @@ function takeOut(id) {
   const it = byId(id); if (!it) return false;
   if (inFlight.has(id)) { notice(BUSY_MSG); return false; }
   const k = it.loc && it.loc.kind;
-  if (k === 'room' || k === 'city' || it.use === 'displayed') { notice('它正在别处展示 · On display elsewhere — recall it first'); return false; }
+  if (k === 'room' || k === 'city' || it.use === 'displayed') { notice('On display elsewhere — recall it first'); return false; }
   if (it.use === 'out') { selectItem(id); return true; }
   const other = DB.items.find(x => x !== it && x.use === 'out' && x.loc && x.loc.kind === 'bench' && !inFlight.has(x.id));
   const otherDone = other ? putBack(other.id, { quiet: true }) : true;      // one item on the bench at a time
@@ -1739,12 +1739,12 @@ async function displayItem(id, where, shop = null) {
   if (where === 'shelf') return putBack(id);
   let rec;
   try { rec = await Store.display(id, where, where === 'room' ? { room: 'mtw' } : { shop }); }
-  catch (e) { notice('展示失败 · Could not display — ' + e.message); return false; }
+  catch (e) { notice('Could not display — ' + e.message); return false; }
   Object.assign(it, rec);
   if (bench.id === id) { const S = bench.S; bench.id = null; bench.S = null; if (S) startTraveller(sendOff(S)); }
   ui.shopPick = null;
-  notice(Store.kind === 'local' ? '已在本机记录 · Saved locally — the room / city display appears only inside Minest'
-    : where === 'room' ? '已挂到工坊房间 · Displayed in the Type Workshop room' : '已挂到城市店招 · Hung as a City shop sign');
+  notice(Store.kind === 'local' ? 'Saved locally — the room / city display appears only inside Minest'
+    : where === 'room' ? 'Displayed in the Type Workshop room' : 'Hung as a City shop sign');
   syncShelf(); syncBench(); renderAll(); return true;
 }
 async function removeItem(id) {
@@ -1757,7 +1757,7 @@ async function removeItem(id) {
   if (ui.selected === id) ui.selected = null; ui.confirmDel = null; ui.details = null;
   syncShelf(); renderAll();
   pendingSaves++;
-  try { await Store.removeItem(id); } catch (e) { notice('删除失败 · Delete failed — ' + e.message); } finally { pendingSaves--; }
+  try { await Store.removeItem(id); } catch (e) { notice('Delete failed — ' + e.message); } finally { pendingSaves--; }
   return true;
 }
 
@@ -1767,7 +1767,7 @@ function tagTexture(it) {
     x.fillStyle = '#9b7231'; x.fillRect(0, 0, w, h); x.strokeStyle = '#5b3d12'; x.lineWidth = 4; x.strokeRect(2, 2, w - 4, h - 4);
     x.fillStyle = '#2d1c08'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '700 13px ui-monospace, Menlo, monospace'; x.fillText('ON DISPLAY', w / 2, 20);
     let fs = 24; x.font = `700 ${fs}px ui-monospace, Menlo, monospace`; while (x.measureText(it.word).width > w - 14 && fs > 9) { fs -= 1; x.font = `700 ${fs}px ui-monospace, Menlo, monospace`; }
-    x.fillText(it.word, w / 2, 50); x.font = '600 12px ui-monospace, Menlo, monospace'; x.fillText(it.loc && it.loc.kind === 'city' ? '展示 · CITY' : '展示 · ROOM', w / 2, 78);
+    x.fillText(it.word, w / 2, 50); x.font = '600 12px ui-monospace, Menlo, monospace'; x.fillText(it.loc && it.loc.kind === 'city' ? 'ON SHOW · CITY' : 'ON SHOW · ROOM', w / 2, 78);
   });
 }
 function syncShelf() {
@@ -1823,13 +1823,13 @@ function renderLine() {
 }
 function renderTarget() {
   const el = $('tgt'); el.replaceChildren(); const l = currentList();
-  if (flow.phase === 'type') { const n = flow.order.length; el.append(h('span', null, n ? `录入清单 · Order sheet · ${n} word${n > 1 ? 's' : ''}` : l && targetEntry() ? `已选清单 · ${l.title} · ▶ 开工 to start` : '录入清单 · Type the words of your list')); ticket.set('ORDER SHEET', flow.draft || (n ? flow.order[n - 1] : '· · ·'), `${n} on the sheet`); return; }
-  if (!l) { el.append(h('span', null, '自由输入 · Free typing')); ticket.set('FREE TYPING', cur.buf.text.trim() || '· · ·', 'no list selected'); return; }
+  if (flow.phase === 'type') { const n = flow.order.length; el.append(h('span', null, n ? `Order sheet · ${n} word${n > 1 ? 's' : ''}` : l && targetEntry() ? `List picked · ${l.title} · ▶ Start to begin` : 'Type the words of your list')); ticket.set('ORDER SHEET', flow.draft || (n ? flow.order[n - 1] : '· · ·'), `${n} on the sheet`); return; }
+  if (!l) { el.append(h('span', null, 'Free typing')); ticket.set('FREE TYPING', cur.buf.text.trim() || '· · ·', 'no list selected'); return; }
   const prog = deriveProgress(DB.items), m = prog[l.id] || {}, made = l.entries.filter(e => m[e.id]).length, e = nextEntry(l, prog, ui.entryId);
-  if (!e) { el.append(h('span', null, `${l.title} · 全部完成 · list complete ${made}/${l.entries.length}`)); ticket.set('LIST COMPLETE', `${made}/${l.entries.length}`, l.title); return; }
+  if (!e) { el.append(h('span', null, `${l.title} · list complete ${made}/${l.entries.length}`)); ticket.set('LIST COMPLETE', `${made}/${l.entries.length}`, l.title); return; }
   const idx = l.entries.indexOf(e) + 1, w = normWord(e.text);
   el.append(h('span', null, 'Next · '), h('b', null, w), h('span', null, ` · ${idx}/${l.entries.length} · ${l.title}`));
-  const typed = cur.buf.text.trim(); if (typed && !w.startsWith(typed)) el.append(h('div', { class: 'warn' }, `≠ ${w} · Enter 仍按实际输入保存 · Enter still saves what you typed`));
+  const typed = cur.buf.text.trim(); if (typed && !w.startsWith(typed)) el.append(h('div', { class: 'warn' }, `≠ ${w} · Enter still saves what you typed`));
   ticket.set(`NEXT · ${idx}/${l.entries.length}`, w, l.title);
 }
 function openPanel(name) {
@@ -1841,7 +1841,7 @@ function openPanel(name) {
 const typingIn = p => { const a = document.activeElement; return !!a && p.contains(a) && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA'); };
 function renderLists() {
   const p = $('pLists'); if (p.hidden || typingIn(p)) return;
-  p.replaceChildren(h('h3', null, h('span', null, '清单 · Lists'), btn('×', () => openPanel(null))));
+  p.replaceChildren(h('h3', null, h('span', null, 'Lists'), btn('×', () => openPanel(null))));
   const prog = deriveProgress(DB.items);
   const row = (id, title, info) => h('div', { class: 'row2 lst' + (ui.listId === id ? ' on' : ''), onclick: () => selectList(id) }, h('span', null, title), h('span', null, info));
   p.append(row(null, 'Free typing · no list', ''));
@@ -1851,9 +1851,9 @@ function renderLists() {
     const ti = h('input', { placeholder: 'Title', maxlength: '60', value: ui.newTitle, oninput: e => { ui.newTitle = e.target.value; } });
     const ta = h('textarea', { placeholder: 'Words — one per line, or comma separated', oninput: e => { ui.newWords = e.target.value; } }); ta.value = ui.newWords;
     p.append(h('div', { class: 'sec' }, h('div', null, 'New list'), ti, ta, btn('Create list', async () => {
-      const words = parseWords(ui.newWords); if (!words.length) { notice('至少一个词 · Add at least one word'); return; }
+      const words = parseWords(ui.newWords); if (!words.length) { notice('Add at least one word'); return; }
       try { const l = await Store.createList(ui.newTitle, words); DB.lists.push(l); ui.newOpen = false; ui.newTitle = ''; ui.newWords = ''; selectList(l.id); }
-      catch (e) { notice('创建失败 · Could not create the list — ' + e.message); }
+      catch (e) { notice('Could not create the list — ' + e.message); }
     })));
   }
   const l = currentList();
@@ -1866,11 +1866,11 @@ function renderLists() {
 }
 function itemState(it) {
   const k = it.loc && it.loc.kind;
-  if (k === 'room' || k === 'city' || it.use === 'displayed') return { t: '在别处展示 · On display elsewhere' + (k === 'room' ? ' (workshop room)' : k === 'city' ? ' (city sign' + (it.loc.shop ? ' · ' + it.loc.shop : '') + ')' : ''), acts: ['recall'] };
-  if (inFlight.has(it.id)) return { t: '移动中 · Moving…', acts: [] };
-  if (it.use === 'out') return { t: '已取出 · Out on the bench', acts: ['room', 'city', 'putBack'] };
-  if (k === 'shelf') return { t: `已入库 · Boxed · shelf ${it.loc.shelf} · slot ${it.loc.slot + 1}`, acts: ['takeOut'] };
-  return { t: '已装箱 · Boxed · waiting for a free slot', acts: ['putBack', 'takeOut'] };
+  if (k === 'room' || k === 'city' || it.use === 'displayed') return { t: 'On display elsewhere' + (k === 'room' ? ' (workshop room)' : k === 'city' ? ' (city sign' + (it.loc.shop ? ' · ' + it.loc.shop : '') + ')' : ''), acts: ['recall'] };
+  if (inFlight.has(it.id)) return { t: 'Moving…', acts: [] };
+  if (it.use === 'out') return { t: 'Out on the bench', acts: ['room', 'city', 'putBack'] };
+  if (k === 'shelf') return { t: `Boxed · shelf ${it.loc.shelf} · slot ${it.loc.slot + 1}`, acts: ['takeOut'] };
+  return { t: 'Boxed · waiting for a free slot', acts: ['putBack', 'takeOut'] };
 }
 async function pickCity(id) {
   let shops = null; try { shops = await Store.cityShops(); } catch (e) { shops = null; }
@@ -1880,13 +1880,13 @@ function renderInv() {
   $('invN').textContent = DB.items.length ? String(DB.items.length) : '';
   const p = $('pInv'); if (p.hidden || typingIn(p)) return;
   const st = p.scrollTop;
-  p.replaceChildren(h('h3', null, h('span', null, `库存 · Inventory · ${DB.items.length}`), btn('×', () => openPanel(null))));
+  p.replaceChildren(h('h3', null, h('span', null, `Inventory · ${DB.items.length}`), btn('×', () => openPanel(null))));
   const sel = h('select', { onchange: e => { ui.filter = e.target.value; renderInv(); } },
     h('option', { value: 'all' }, 'All items'), h('option', { value: 'free' }, 'Free typing'), DB.lists.map(l => h('option', { value: l.id }, l.title)));
   sel.value = ui.filter; if (sel.value !== ui.filter) { ui.filter = 'all'; sel.value = 'all'; } p.append(sel);
   const items = DB.items.filter(it => ui.filter === 'all' || (ui.filter === 'free' ? !it.listId : it.listId === ui.filter)).sort((a, b) => (b.made || 0) - (a.made || 0));
-  if (!items.length) p.append(h('div', { class: 'muted' }, DB.items.length ? 'Nothing in this filter.' : '还没有成品 · Nothing made yet — type a word and press Enter.'));
-  const LABEL = { takeOut: 'Take out · 取出', putBack: '↩ 放回货架 · Back to shelf', room: '🏠 挂到工坊房间 · Display in room', city: '🏙 挂到城市店招 · City shop sign', recall: 'Recall to workshop · 召回' };
+  if (!items.length) p.append(h('div', { class: 'muted' }, DB.items.length ? 'Nothing in this filter.' : 'Nothing made yet — type a word and press Enter.'));
+  const LABEL = { takeOut: 'Take out', putBack: '↩ Back to shelf', room: '🏠 Display in room', city: '🏙 City shop sign', recall: 'Recall to workshop' };
   const RUN = { takeOut: takeOut, putBack: id => putBack(id), room: id => displayItem(id, 'room'), city: pickCity, recall: recall };
   for (const it of items) {
     const s = itemState(it), g = GASES[gasOK(it.look && it.look.gas)];
@@ -1896,8 +1896,8 @@ function renderInv() {
       h('div', { class: 'acts' }, s.acts.map(a => btn(LABEL[a], () => RUN[a](it.id))),
         btn(ui.details === it.id ? 'Hide details' : 'Details', () => { ui.details = ui.details === it.id ? null : it.id; renderInv(); }),
         btn('Delete', () => { ui.confirmDel = it.id; renderInv(); }, { disabled: inFlight.has(it.id) })));
-    if (ui.shopPick && ui.shopPick.id === it.id) box.append(h('div', { class: 'card' }, h('div', null, '选择店铺 · Choose a City shop'),
-      h('div', { class: 'acts' }, ui.shopPick.shops.map(sh => btn(sh.title, () => displayItem(it.id, 'city', sh.id))), btn('First free shop · 第一家空店', () => displayItem(it.id, 'city', null)), btn('Cancel', () => { ui.shopPick = null; renderInv(); }))));
+    if (ui.shopPick && ui.shopPick.id === it.id) box.append(h('div', { class: 'card' }, h('div', null, 'Choose a City shop'),
+      h('div', { class: 'acts' }, ui.shopPick.shops.map(sh => btn(sh.title, () => displayItem(it.id, 'city', sh.id))), btn('First free shop', () => displayItem(it.id, 'city', null)), btn('Cancel', () => { ui.shopPick = null; renderInv(); }))));
     if (ui.confirmDel === it.id) box.append(h('div', { class: 'card warn' }, `Delete “${it.word}” for good?  `, h('span', { class: 'acts' }, btn('Yes, delete', () => removeItem(it.id)), btn('No', () => { ui.confirmDel = null; renderInv(); }))));
     if (ui.details === it.id) {
       const f = (k, v) => h('div', null, h('span', null, k), String(v));
@@ -1905,7 +1905,7 @@ function renderInv() {
       box.append(h('div', { class: 'card' }, f('id', it.id), f('word', it.word), f('list', (listTitleOf(it) || '—') + (it.listId ? ' (' + it.listId + ')' : '')), f('entry', it.entryId ?? '—'),
         f('mode', it.mode), f('gas', (it.look && it.look.gas) + ' · scale ' + (it.look && it.look.scale)), f('pack', it.pack), f('use', it.use), f('loc', JSON.stringify(it.loc)),
         f('made', when(it.made)), f('updated', when(it.updated)),
-        h('div', { class: 'acts' }, Store.kind === 'host' ? btn('☁ 核验云端 · Verify cloud', () => verifyCloud(it.id)) : btn('☁ 仅在 Minest 内可核验 · verify only inside Minest', () => {}, { disabled: true })),
+        h('div', { class: 'acts' }, Store.kind === 'host' ? btn('☁ Verify cloud', () => verifyCloud(it.id)) : btn('☁ verify only inside Minest', () => {}, { disabled: true })),
         ui.verify && ui.verify.id === it.id ? h('div', { class: ui.verify.ok ? '' : 'warn' }, ui.verify.text) : null,
         it.use === 'out' ? h('div', { class: 'acts' }, btn(LABEL.room, () => displayItem(it.id, 'room')), btn(LABEL.city, () => pickCity(it.id)), btn(LABEL.putBack, () => putBack(it.id))) : null));
     }
@@ -1915,16 +1915,16 @@ function renderInv() {
 }
 /** only this answer from the host may ever say "confirmed" */
 function verifyText(r) {
-  if (!r) return { ok: false, text: '仅在 Minest 内可核验 · verify only inside Minest' };
-  if (r.signedIn === false) return { ok: false, text: '未登录，仅本机 · not signed in — this device only' };
-  if (r.checked === false) return { ok: false, text: '未能核验 · not checked — ' + (r.reason || 'no reason given') };
+  if (!r) return { ok: false, text: 'verify only inside Minest' };
+  if (r.signedIn === false) return { ok: false, text: 'not signed in — this device only' };
+  if (r.checked === false) return { ok: false, text: 'not checked — ' + (r.reason || 'no reason given') };
   const t = v => (v ? new Date(v).toLocaleString() : '—');
-  if (r.found && r.sameVersion) return { ok: true, text: `云端已确认 · confirmed on server (cloud ${t(r.cloudT)})` };
-  if (r.found) return { ok: false, text: `云端版本不同 · on server but a different version (cloud ${t(r.cloudT)} · local ${t(r.localT)})` + (r.reason ? ' — ' + r.reason : '') };
-  return { ok: false, text: '云端未找到 · not found on server' + (r.reason ? ' — ' + r.reason : '') };
+  if (r.found && r.sameVersion) return { ok: true, text: `confirmed on server (cloud ${t(r.cloudT)})` };
+  if (r.found) return { ok: false, text: `on server but a different version (cloud ${t(r.cloudT)} · local ${t(r.localT)})` + (r.reason ? ' — ' + r.reason : '') };
+  return { ok: false, text: 'not found on server' + (r.reason ? ' — ' + r.reason : '') };
 }
 async function verifyCloud(id) {
-  ui.verify = { id, ok: false, text: '核验中 · checking the server…' }; renderInv();
+  ui.verify = { id, ok: false, text: 'checking the server…' }; renderInv();
   let r; try { r = await Store.verifyCloud(id); } catch (e) { r = { checked: false, reason: e.message }; }
   ui.verify = Object.assign({ id }, verifyText(r)); renderInv(); return r;
 }
@@ -1940,14 +1940,14 @@ function selectItem(id, open = false) {
   return true;
 }
 function selectList(id) {
-  if (id != null && !listById(id)) { notice('找不到清单 · List not found'); return null; }
+  if (id != null && !listById(id)) { notice('List not found'); return null; }
   ui.listId = id == null ? null : String(id); ui.entryId = null; savePrefs(); renderAll(); return currentList();
 }
 async function useSampleList() {
   const have = DB.lists.find(l => l.title === SAMPLE_TITLE && l.entries.length === SAMPLE_WORDS.length && l.entries.every((e, i) => normWord(e.text) === SAMPLE_WORDS[i]));
   if (have) return selectList(have.id);
   try { const l = await Store.createList(SAMPLE_TITLE, SAMPLE_WORDS); DB.lists.push(l); return selectList(l.id); }
-  catch (e) { notice('创建失败 · Could not create the sample list — ' + e.message); return null; }
+  catch (e) { notice('Could not create the sample list — ' + e.message); return null; }
 }
 function setView(v) { ui.view = v === 'first' ? 'first' : 'third'; $('viewBtn').textContent = ui.view === 'first' ? 'View · 1st' : 'View · 3rd'; savePrefs(); return ui.view; }
 function setGas(k) {
@@ -1968,8 +1968,8 @@ function savePrefs() { try { ls.setItem('mtw.ui.v1', JSON.stringify({ listId: ui
 function loadPrefs() { try { return JSON.parse(ls.getItem('mtw.ui.v1') || '{}') || {}; } catch (e) { return {}; } }
 function setBadge() {
   const b = $('badge'); b.hidden = false;
-  if (Store.kind === 'host') { const signed = !!(hostInfo && hostInfo.signedIn); b.textContent = signed ? '已交给 Minest 同步 · handed to Minest sync (cloud arrival unverified)' : 'Minest 本机 · not signed in'; b.style.color = signed ? 'var(--dim)' : ''; }
-  else b.textContent = memOnly ? '仅本次会话 · memory only (storage blocked)' : '仅本机 · local only';
+  if (Store.kind === 'host') { const signed = !!(hostInfo && hostInfo.signedIn); b.textContent = signed ? 'handed to Minest sync (cloud arrival unverified)' : 'Minest · not signed in (this device)'; b.style.color = signed ? 'var(--dim)' : ''; }
+  else b.textContent = memOnly ? 'memory only (storage blocked)' : 'local only';
 }
 
 /* ───────────── input ───────────── */
@@ -1986,10 +1986,10 @@ const kb = $('kb');
                 back and the next word waits. ⚙ AUTO lets the typist work them alone.
    4 · BACK   — the list done (or ⟵ Typewriter), the typist walks back and sits down. */
 const CTRL = {
-  neon:    { lever: ['BEND', '弯管'],   valve: ['GAS', '充气'],    sw: ['POWER', '通电'], make: ['lever'],        finish: ['valve', 'sw'] },
-  print:   { lever: ['FEED', '送丝'],   valve: ['COOL', '冷却'],   sw: ['POWER', '电源'], make: ['sw', 'lever'],  finish: ['sw', 'valve'] },
-  carve:   { lever: ['CHISEL', '下凿'], valve: ['POLISH', '打磨'], sw: ['CLAMP', '夹紧'], make: ['sw', 'lever'],  finish: ['valve'] },
-  install: { lever: ['DROP', '下放'],   valve: ['WIRE', '接线'],   sw: ['LIGHTS', '亮灯'], make: ['lever'],       finish: ['valve', 'sw'] },
+  neon:    { lever: ['BEND'],   valve: ['GAS'],    sw: ['POWER'], make: ['lever'],        finish: ['valve', 'sw'] },
+  print:   { lever: ['FEED'],   valve: ['COOL'],   sw: ['POWER'], make: ['sw', 'lever'],  finish: ['sw', 'valve'] },
+  carve:   { lever: ['CHISEL'], valve: ['POLISH'], sw: ['CLAMP'], make: ['sw', 'lever'],  finish: ['valve'] },
+  install: { lever: ['DROP'],   valve: ['WIRE'],   sw: ['LIGHTS'], make: ['lever'],       finish: ['valve', 'sw'] },
 };
 const STATION = { x: -0.8, z: 0.74, stand: { x: -0.8, z: 1.16 }, y: 0.98 };
 const flow = { phase: 'type', draft: '', order: [], auto: false, ctl: { lever: false, valve: false, sw: false }, autoT: 0, packing: false, walkT: 0 };
@@ -2046,7 +2046,7 @@ const station = (() => {
   for (const [k, m] of picks) m.userData.ctl = k;
   function plateText(spec) {
     const x = plateC.getContext('2d'); x.fillStyle = '#6b4d1c'; x.fillRect(0, 0, 512, 64); x.fillStyle = '#f3dfae'; x.font = '700 21px "Courier New", monospace'; x.textAlign = 'center';
-    [[spec.lever, 0.14], [spec.valve, 0.38], [spec.sw, 0.63], [['PACK', '装箱'], 0.87]].forEach(([l, f]) => { x.fillText(l[0], 512 * f, 28); x.font = '600 17px system-ui, sans-serif'; x.fillText(l[1], 512 * f, 52); x.font = '700 21px "Courier New", monospace'; });
+    [[spec.lever, 0.14], [spec.valve, 0.38], [spec.sw, 0.63], [['PACK'], 0.87]].forEach(([l, f]) => { x.fillText(l[0], 512 * f, 40); });
     plateTex.needsUpdate = true;
   }
   return {
@@ -2085,13 +2085,13 @@ function listSheet() {   // the clipboard: the current list, ticked
 function draftType(raw) {
   const ch = normChar(raw); if (ch === null) { notice(NOT_SUPPORTED); return false; }
   if (ch === ' ' && (!flow.draft || flow.draft.endsWith(' '))) return false;
-  if (flow.draft.length >= MAX_WORD) { notice(`最多 ${MAX_WORD} 个字符 · Max ${MAX_WORD} characters per word`); return false; }
+  if (flow.draft.length >= MAX_WORD) { notice(`Max ${MAX_WORD} characters per word`); return false; }
   flow.draft += ch; tw.press(ch); hero.press(ch); $('hint').classList.add('off'); draftShow(); return true;
 }
 function draftBack() { if (!flow.draft) { if (flow.order.length) { flow.draft = flow.order.pop(); draftShow(); return true; } return false; } flow.draft = flow.draft.slice(0, -1); tw.press('⌫'); hero.press('⌫'); draftShow(); return true; }
 function draftReturn() {
   const w = flow.draft.trim();
-  if (w) { if (flow.order.length >= 200) { notice('一份最多 200 个词 · 200 words per list'); return; } flow.order.push(w); flow.draft = ''; tw.ret(); draftShow(); return; }
+  if (w) { if (flow.order.length >= 200) { notice('200 words per list'); return; } flow.order.push(w); flow.draft = ''; tw.ret(); draftShow(); return; }
   handOver();
 }
 function draftShow() { tw.setColumn(flow.draft.length); tw.drawPaper(flow.order, flow.draft); renderLine(); renderTarget(); renderFlow(); }
@@ -2102,13 +2102,13 @@ async function handOver() {
   if (flow.draft.trim()) { flow.order.push(flow.draft.trim()); flow.draft = ''; }
   let list = null;
   if (flow.order.length) {
-    if (!ready) { notice('正在连接 · Connecting… one moment'); return; }
+    if (!ready) { notice('Connecting… one moment'); return; }
     const d = new Date(), title = `Order · ${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     flow.packing = true;
     try { list = await Store.createList(title, flow.order); DB.lists.push(list); }
-    catch (e) { notice('保存清单失败 · Could not save the list — ' + e.message); flow.packing = false; return; }
+    catch (e) { notice('Could not save the list — ' + e.message); flow.packing = false; return; }
     flow.packing = false; flow.order = []; selectList(list.id);
-  } else { list = currentList(); if (!list || !targetEntry()) { notice('先打几个词，每个词按 Return · Type words first, Return after each'); return; } }
+  } else { list = currentList(); if (!list || !targetEntry()) { notice('Type words first, Return after each'); return; } }
   // the sheet tears off and goes with the typist
   drawSheet(hero.sheetC, hero.sheetTex, list.title, list.entries.map(e => normWord(e.text)), null, -1); hero.sheet.visible = true;
   tw.ret(); tw.drawPaper([], ''); tw.setColumn(0);
@@ -2137,7 +2137,7 @@ function finishShift() {
 }
 function setCtl(k, on) {
   if (flow.phase !== 'work') return;
-  if (k === 'pack') { if (on) { if (!pullPack()) notice(packReady() ? '' : '还没做好 · Not finished yet — work the lever and the switches'); } return; }
+  if (k === 'pack') { if (on) { if (!pullPack()) notice(packReady() ? '' : 'Not finished yet — work the lever and the switches'); } return; }
   flow.ctl[k] = !!on; renderFlow();
   station.knobWorld(k, _fw); hero.reach(k === 'lever' ? 1 : 0, _fw, k === 'lever' && on);
   if (k !== 'lever') setTimeout(() => hero.letGo(0), 400); else if (!on) hero.letGo(1);
@@ -2173,17 +2173,17 @@ function renderFlow() {
   let hud = '';
   if (P === 'type') {
     const l = currentList(), canStart = !flow.order.length && !flow.draft && l && targetEntry();
-    hud = (flow.order.length || flow.draft ? btn('hand', `📜 交给小人 · Hand over (${flow.order.length + (flow.draft.trim() ? 1 : 0)})`, false, 'wide') : '')
-      + (canStart ? btn('start', `▶ 开工 · Start “${l.title.slice(0, 18)}”`, false, 'wide') : '')
+    hud = (flow.order.length || flow.draft ? btn('hand', `📜 Hand over (${flow.order.length + (flow.draft.trim() ? 1 : 0)})`, false, 'wide') : '')
+      + (canStart ? btn('start', `▶ Start “${l.title.slice(0, 18)}”`, false, 'wide') : '')
       + btn('auto', '⚙ AUTO', flow.auto);
   } else if (P === 'work') {
-    const lbl = k => `${spec[k][1]}<small>${spec[k][0]}</small>`;
+    const lbl = k => `${spec[k][0]}`;
     hud = btn('lever', '⬇ ' + lbl('lever'), flow.ctl.lever, 'hold') + btn('valve', '⟳ ' + lbl('valve'), flow.ctl.valve) + btn('sw', '⏻ ' + lbl('sw'), flow.ctl.sw)
-      + btn('pack', `📦 装箱<small>PACK</small>`, false, packReady() ? 'ready' : '') + btn('auto', '⚙ AUTO', flow.auto) + btn('stop', '⟵ 打字机');
-  } else hud = `<span class="walk">${P === 'walk' ? '小人拿着清单去工作台… · to the station' : '回到打字机… · back to the typewriter'}</span>`;
+      + btn('pack', `📦 PACK`, false, packReady() ? 'ready' : '') + btn('auto', '⚙ AUTO', flow.auto) + btn('stop', '⟵ Typewriter');
+  } else hud = `<span class="walk">${P === 'walk' ? 'Taking the list to the station…' : 'Back to the typewriter…'}</span>`;
   el.innerHTML = hud; el.dataset.phase = P;
-  $('hint').textContent = P === 'type' ? '点打字机打字 · 每个词按 Return · 空行再按 Return 交给小人 · Tap the typewriter to type; Return after each word'
-    : P === 'work' ? '按住拉杆制作 · 拧阀门、扳开关完成 · 拉装箱杆 · Hold the lever, turn the valve, flip the switch, pull PACK  (Space · 1 · 2 · Enter)' : '';
+  $('hint').textContent = P === 'type' ? 'Tap the typewriter to type · Return after each word · Return on an empty line hands the list over'
+    : P === 'work' ? 'Hold the lever · turn the valve · flip the switch · pull PACK  (Space · 1 · 2 · Enter)' : '';
   $('hint').classList.toggle('off', P === 'work' && flow.auto);
 }
 
@@ -2382,7 +2382,7 @@ async function init() {
   }
   setBadge();
   try { const [lists, items] = await Promise.all([Store.lists(), Store.items()]); DB.lists = lists; DB.items = items; }
-  catch (e) { notice('读取失败 · Could not load the workshop data — ' + e.message); }
+  catch (e) { notice('Could not load the workshop data — ' + e.message); }
   for (const it of normalizeItems(DB.items)) persist(it);
   const prefs = loadPrefs(), q = params.get('list');
   if (q) { if (!selectList(q)) ui.listId = null; } else if (prefs.listId && listById(prefs.listId)) ui.listId = prefs.listId;

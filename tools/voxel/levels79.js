@@ -42,7 +42,7 @@
     main.appendChild(strip);
     // where you are, said once at the top of the 3D view (the full crumbs are in the console below)
     var hint = document.createElement('div'); hint.className = 'lv79-hint'; hint.hidden = true; ov.appendChild(hint);
-    var LV = [null, '🏝 Island 岛', '🏛 Building', '🏠 Dollhouse', '🚪 Room 房间', '🗄 Display 展架', '📦 Item'];
+    var LV = [null, '🏝 Island', '🏛 Building', '🏠 Dollhouse', '🚪 Room', '🗄 Display', '📦 Item'];
     var lastLv = -1, hintT = 0;
     // Dollhouse (3/6): the building's rooms, to walk into — the 2D world shows a cutaway there, the 3D view shows these
     var roomsEl = document.createElement('div'); roomsEl.className = 'lv79-rooms'; roomsEl.hidden = true; ov.appendChild(roomsEl);
@@ -68,7 +68,20 @@
     var itemsKey = '';
     itemsEl.addEventListener('click', function (e) { var b = e.target.closest('button[data-lv79item]'); if (!b) return; e.stopPropagation();
       var src = document.querySelectorAll('.mn-pv [data-pvi]')[+b.getAttribute('data-lv79item')]; if (src) { src.click(); itemsKey = ''; } });
+    // Room (4/6): its display fixtures, to open one — the same as a double tap on it, without having to hit it
+    var FIX79 = /wall|shelf|records|grid|frame|case|cabinet|board|gallery|rack|stand|pedestal|vitrine|display|easel|showcase|table/;
+    function drawFixtures(lv) {
+      if (lv !== 4) return false;
+      var list = []; try { pieces().forEach(function (p) { var n = (p.it || []).length; if (n || FIX79.test(p.k)) list.push([p.id, p.label || p.k.replace(/^f_/, '').replace(/_/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); }), n]); }); } catch (e) {}
+      list.sort(function (a, b) { return b[2] - a[2]; });
+      var key = 'fx;' + list.map(function (r) { return r.join('|'); }).join(';');
+      if (key === itemsKey && !itemsEl.hidden) return true; itemsKey = key;
+      itemsEl.innerHTML = '<b>🗄 展架</b>' + (list.length ? list.slice(0, 12).map(function (r) { return '<button type="button" data-lv79fix="' + esc79(r[0]) + '">' + esc79(r[1]) + '<small>' + (r[2] ? r[2] + ' 件展品' : '空') + '</small></button>'; }).join('') : '<b style="color:#fff;font-weight:500">这个房间还没有展架 · 在下方用 Smart Fill 放一些</b>');
+      itemsEl.hidden = false; return true;
+    }
+    itemsEl.addEventListener('click', function (e) { var b = e.target.closest('button[data-lv79fix]'); if (!b) return; e.stopPropagation(); try { MinestDisplay.piece(b.getAttribute('data-lv79fix')); } catch (x) {} itemsKey = ''; });
     function drawItems(lv) {
+      if (drawFixtures(lv)) return;
       if (lv < 5) { if (!itemsEl.hidden) { itemsEl.hidden = true; itemsKey = ''; } return; }
       var els = document.querySelectorAll('.mn-pv [data-pvi]'), list = [];
       Array.prototype.forEach.call(els, function (el, i) { var t = (el.textContent || '').replace(/\s+/g, ' ').trim(); if (t.length > 1 && t[0] === t[1]) t = t.slice(1); list.push([i, t || 'Item', el.classList.contains('on') || el.getAttribute('aria-current') === 'true']); });
@@ -120,7 +133,7 @@
       drawRooms(lv); drawItems(lv); try { fitContent(lv); } catch (e) {}
       if (lv !== lastLv) { if (lastLv > 0 && R.moveId) { R.moveId = null; try { setTab('look'); } catch (e) {} }   // a pending move does not follow you to another level
         lastLv = lv; var cr = []; try { cr = wf.crumbs() || []; } catch (e) {}
-        hint.textContent = (LV[lv] || '🧊 体素世界') + (cr.length ? ' · ' + cr[cr.length - 1] : '') + (document.documentElement.classList.contains('vx80-min') ? '  —  ⌃ 展开控制台：New · Gallery · Group · Smart' : '  —  下方控制台：New · Gallery · Group · Smart');
+        hint.textContent = (LV[lv] || '🧊 Voxel world') + (cr.length ? ' · ' + cr[cr.length - 1] : '') + (document.documentElement.classList.contains('vx80-min') ? '  —  ⌃ Expand console: New · Gallery · Group · Smart' : '  —  Console below: New · Gallery · Group · Smart');
         hint.hidden = false; hint.style.opacity = '1'; clearTimeout(hintT); hintT = setTimeout(function () { hint.style.opacity = '0'; }, 4200); }
     }
     // a double-tap in the 3D view is My World's own double-tap at that spot: one level deeper (onto the island, into the
