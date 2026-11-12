@@ -20,8 +20,7 @@
     '<label>Rings 勋章<select id="sh-optMedal"><option value="box">桌边木质勋章盒</option><option value="wall">墙面勋章展示板</option></select></label>' +
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
-    '<button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
-    '<div id="sh-pack" hidden><header><h3>🎒 背包 · 布置</h3><button type="button" class="sh-btn ghost" id="sh-packClose">完成</button></header><div id="sh-packBody"></div></div>' +
+    '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
     '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot">⟲ 旋转</button><button type="button" data-e="stash">🎒 收回</button><button type="button" data-e="cancel">取消</button><button type="button" data-e="ok" class="pri">✓ 放好了</button></div></div>' +
     '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div>';
 
@@ -41,7 +40,8 @@
   var dirty = false;
   function save() {
     S.mode = mode; S.pose = { x: +P.x.toFixed(3), z: +P.z.toFixed(3), yaw: +P.yaw.toFixed(4), pitch: +P.pitch.toFixed(4) };
-    S.env = room.envId; if (!S.poses || typeof S.poses !== 'object') S.poses = {}; S.poses[room.envId] = S.pose; S.desk = { yaw: +DK.yaw.toFixed(4), pitch: +DK.pitch.toFixed(4) };
+    S.env = room.envId; if (!S.poses || typeof S.poses !== 'object') S.poses = {}; S.poses[room.envId] = S.pose;
+    if (LCACHE[room.envId]) saveLayout(room.envId, LCACHE[room.envId]); S.desk = { yaw: +DK.yaw.toFixed(4), pitch: +DK.pitch.toFixed(4) };
     try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
     dirty = false;
   }
@@ -254,6 +254,31 @@
       if (on) o.lab.style.transform = 'translate(-50%,-100%) translate(' + ((p.x * 0.5 + 0.5) * w).toFixed(1) + 'px,' + ((-p.y * 0.5 + 0.5) * h).toFixed(1) + 'px)';
     });
   }
+  /* the entry objects carry no text: a small "new thing" sparkle twinkles on each one instead (one Points object for all) */
+  var SPK = (function () {
+    var cv = document.createElement('canvas'); cv.width = cv.height = 64; var g = cv.getContext('2d');
+    var rg = g.createRadialGradient(32, 32, 0, 32, 32, 30); rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(0.18, 'rgba(255,240,190,.9)'); rg.addColorStop(1, 'rgba(255,220,140,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, 64, 64); g.fillStyle = 'rgba(255,255,255,.95)'; g.fillRect(30, 4, 4, 56); g.fillRect(4, 30, 56, 4);
+    var tex = new THREE.CanvasTexture(cv), K = 3, N = 32 * K, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+    var geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    var pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.055, map: tex, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false }));
+    pts.frustumCulled = false; pts.renderOrder = 4; scene.add(pts);
+    return function (t) {
+      var n = 0;
+      objects.forEach(function (o, i) {
+        if (!o.centre || !o.labelAt) return;
+        var off = o.stashed || (edit && edit.o === o), top = o.labelAt.y - 0.05;
+        for (var k = 0; k < K && n < N; k++, n++) {
+          var a = i * 1.7 + k * 2.1, r = 0.07 + (k % 2) * 0.05, ph = i * 0.9 + k * 2.4;
+          pos[n * 3] = o.centre.x + Math.cos(a) * r; pos[n * 3 + 1] = Math.max(o.centre.y, top - k * 0.06) + 0.02; pos[n * 3 + 2] = o.centre.z + Math.sin(a) * r;
+          var b = off ? 0 : Math.pow(Math.max(0, Math.sin(t * 1.9 + ph)), 7) * (o === hot ? 1.4 : 1);
+          col[n * 3] = b; col[n * 3 + 1] = b * 0.93; col[n * 3 + 2] = b * 0.72;
+        }
+      });
+      for (; n < N; n++) { col[n * 3] = col[n * 3 + 1] = col[n * 3 + 2] = 0; }
+      geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
+    };
+  })();
   function setHot(o) {
     if (hot === o) return; if (hot) hot.lab.classList.remove('hot'); hot = o; if (o) o.lab.classList.add('hot');
     canvas.classList.toggle('point', !!o);
@@ -393,7 +418,16 @@
     function Wf(f) { return { pos: new THREE.Vector3().fromArray(f.pos).applyMatrix4(M).toArray(), look: new THREE.Vector3().fromArray(f.look).applyMatrix4(M).toArray() }; }
     if (o.focusL) o.focus = Wf(o.focusL); if (o.focus2L) o.focus2 = Wf(o.focus2L);
   }
-  function layout() { if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; return S.layouts[room.envId] || (S.layouts[room.envId] = {}); }
+  /* layouts per environment: MinestKnowledge 'bp:home:<env>' (synced with the account, like the rest of My World); S.layouts is the local copy */
+  var LCACHE = {};
+  function layoutOf(env) {
+    if (LCACHE[env]) return LCACHE[env];
+    var BPs = window.MinestBackpack && window.MinestBackpack.store, v = BPs ? BPs.get('bp:home:' + env) : null;
+    if (!v || typeof v !== 'object') { if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; v = S.layouts[env] || {}; }
+    return (LCACHE[env] = JSON.parse(JSON.stringify(v)));
+  }
+  function saveLayout(env, v) { LCACHE[env] = v; if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; S.layouts[env] = v; var BPs = window.MinestBackpack && window.MinestBackpack.store; if (BPs) BPs.set('bp:home:' + env, v); }
+  function layout() { return layoutOf(room.envId); }
   function rebuildHits() { hits.length = 0; objects.forEach(function (o) { if (!o.stashed) hits.push(o.hit); }); }
   function placeAll() {
     var L = layout();
@@ -404,155 +438,207 @@
       o.group.position.set(p[0], p[1], p[2]); o.group.rotation.y = ry; o.stashed = !!(l && l.stashed); o.group.visible = !o.stashed;
       o.chip.classList.toggle('stashed', o.stashed); settle(o);
     });
-    rebuildHits(); buildExtras();
+    rebuildHits(); buildExtras(); refreshHotbar();
   }
 
-  /* ---- display furniture and My World things on display (extras) */
-  var EXTRA = {
-    pedestal: { name: '展示台', icon: '🏛', place: 'floor' }, wallshelf: { name: '墙面置物架', icon: '🪵', place: 'wall' },
-    vitrine: { name: '玻璃展柜', icon: '🔲', place: 'surface' }, thing: { name: '我的物品', icon: '🖼', place: 'surface' }
-  };
-  var XS = [], VBx = window.SpatialVoxel.VB, MATx = window.SpatialVoxel.MAT;
-  function extraMesh(e) {
-    var g = new THREE.Group(), v = new VBx(5000 + ((e.uid || 1) % 997)), hb;
-    if (e.kind === 'pedestal') { v.cb(0, 0, 0, 0.42, 0.06, 0.42, 'stone2'); v.cb(0, 0.06, 0, 0.34, 0.8, 0.34, 'stone', 0.03); v.cb(0, 0.86, 0, 0.42, 0.05, 0.42, 'stone2'); hb = [0.42, 0.91, 0.42]; }
-    else if (e.kind === 'wallshelf') { v.box(-0.45, -0.02, 0, 0.45, 0.02, 0.22, 'woodLight', 0.03); v.box(-0.38, -0.16, 0, -0.35, -0.02, 0.18, 'brass'); v.box(0.35, -0.16, 0, 0.38, -0.02, 0.18, 'brass'); hb = [0.9, 0.2, 0.22]; }
-    else if (e.kind === 'vitrine') {
-      v.cb(0, 0, 0, 0.46, 0.05, 0.34, 'woodDark'); v.cb(0, 0.36, 0, 0.46, 0.03, 0.34, 'woodDark');
-      [[-0.22, -0.16], [0.21, -0.16], [-0.22, 0.15], [0.21, 0.15]].forEach(function (q) { v.box(q[0], 0.05, q[1], q[0] + 0.012, 0.36, q[1] + 0.012, 'brass'); });
-      var gl = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.31, 0.32), new THREE.MeshPhongMaterial({ color: 0xdff3ff, transparent: true, opacity: 0.16, shininess: 120, depthWrite: false })); gl.position.y = 0.205; g.add(gl); hb = [0.46, 0.39, 0.34];
-    } else {
-      /* a My World thing: its picture (or its name) in a frame on a little easel */
-      v.box(-0.13, 0, -0.02, 0.13, 0.012, 0.06, 'woodDark'); v.box(-0.135, 0.02, -0.01, 0.135, 0.34, 0.01, 'woodDark'); v.box(-0.01, 0, -0.08, 0.01, 0.3, -0.06, 'woodDark');
-      var cv = document.createElement('canvas'); cv.width = 240; cv.height = 300; var cx = cv.getContext('2d');
-      cx.fillStyle = '#fbf7ee'; cx.fillRect(0, 0, 240, 300); cx.fillStyle = '#1d2b4f'; cx.font = '600 26px -apple-system, "PingFang SC", sans-serif'; cx.textAlign = 'center';
-      String(e.title || '').slice(0, 40).match(/.{1,9}/g).slice(0, 5).forEach(function (line, i) { cx.fillText(line, 120, 70 + i * 40); });
-      var tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
-      var pic = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.3), new THREE.MeshLambertMaterial({ map: tex })); pic.position.set(0, 0.18, 0.012); g.add(pic);
-      var url = thingPic(e); if (url) { try { var ld = new THREE.TextureLoader(); ld.setCrossOrigin('anonymous'); ld.load(url, function (t) { t.encoding = THREE.sRGBEncoding; pic.material.map = t; pic.material.needsUpdate = true; }); } catch (er) {} }
-      hb = [0.27, 0.35, 0.16];
-    }
-    g.add(v.mesh());
-    var hit = new THREE.Mesh(new THREE.BoxGeometry(hb[0], hb[1], hb[2]), new THREE.MeshBasicMaterial({ visible: false }));
-    hit.position.set(0, e.kind === 'wallshelf' ? -0.07 : hb[1] / 2, e.kind === 'wallshelf' ? 0.11 : 0); g.add(hit);
-    return { e: e, group: g, hit: hit, place: EXTRA[e.kind] ? EXTRA[e.kind].place : 'surface' };
-  }
+  /* ---- display furniture, works, machines and collection things set out in the room (instances: layout().extras)
+     The models and the operating views come from the Magical Backpack (backpack.js), which takes them from Minest's own
+     modules; a layout keeps only ids and where things stand. */
+  var XS = [], BP = window.MinestBackpack;
+  var NAMES = { pedestal: '展示台', wallshelf: '墙面置物架', vitrine: '玻璃展柜', thing: '我的物品', neon: '作品', machine: '陈列装置' };
   function buildExtras() {
-    XS.forEach(function (x) { scene.remove(x.group); x.group.traverse(function (m) { if (m.geometry) m.geometry.dispose(); }); }); XS = [];
-    (layout().extras || []).forEach(function (e) { var x = extraMesh(e); x.group.position.fromArray(e.p); x.group.rotation.y = e.ry || 0; x.hit.userData.extra = x; scene.add(x.group); XS.push(x); });
+    XS.forEach(function (x) { scene.remove(x.group); }); XS = [];
+    (layout().extras || []).forEach(function (e) {
+      var m = BP.model(THREE, e), hb = m.hb, hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.05, hb[0]), Math.max(0.05, hb[1]), Math.max(0.05, hb[2])), new THREE.MeshBasicMaterial({ visible: false }));
+      hit.position.set(0, m.hbY != null ? m.hbY : hb[1] / 2, m.hbZ || 0); m.group.add(hit);
+      m.group.position.fromArray(e.p); m.group.rotation.y = e.ry || 0; scene.add(m.group);
+      var x = { e: e, group: m.group, hit: hit, place: m.place, tick: m.tick, machine: m.machine }; hit.userData.extra = x; XS.push(x);
+    });
   }
   function pickExtra(e) {
     if (!XS.length) return null;
     ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
     var h = ray.intersectObjects(XS.map(function (x) { return x.hit; }), false); return h.length ? h[0].object.userData.extra : null;
   }
-  /* My World things: the host's own boards (MinestAI.boards) → lists → things; only ids are kept */
-  function hostBoards() { try { var w = B.hostWindow(); return (w && w.MinestAI && w.MinestAI.boards && w.MinestAI.boards()) || []; } catch (er) { return []; } }
-  function thingPic(e) {
-    var r = e.ref; if (!r) return '';
-    var b = hostBoards().filter(function (x) { return x.id === r.bid; })[0], hit = null;
-    (b && b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (k && k.id === r.card) (k.stack || []).forEach(function (t) { if (t && t.id === r.sid) hit = t; }); }); });
-    var c2 = hit && hit.cover; return c2 && c2.type !== 'color' && (c2.value || c2.url) || '';
-  }
-  function myThings() {
-    var out = [];
-    hostBoards().forEach(function (b) { (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { (k && k.stack || []).forEach(function (t) { if (t && t.id && t.title && out.length < 80) out.push({ bid: b.id, card: k.id, sid: t.id, title: String(t.title).slice(0, 60), list: (k.title || c.title || b.title || '').slice(0, 30) }); }); }); }); });
-    return out;
-  }
 
-  /* ---- edit mode: the thing follows your finger over the surfaces it may stand on */
-  var edit = null, srf = new THREE.Raycaster(), nrm = new THREE.Vector3(), editBar = $('edit');
+  /* ---- Quick Place: a ghost follows the finger over the surfaces it may stand on, snaps, shows green / red, then it is placed */
+  var edit = null, srf = new THREE.Raycaster(), nrm = new THREE.Vector3(), editBar = $('edit'), GHOST_OK = new THREE.Color(0x2fbf71), GHOST_NO = new THREE.Color(0xe0483e);
+  function ghost(E, on) {
+    if (on) {
+      E.mats = [];
+      var see = function (mt) { var c = mt.clone(); c.transparent = true; c.opacity = Math.min(c.opacity == null ? 1 : c.opacity, 0.62); c.depthWrite = false; return c; };
+      E.g.traverse(function (m) { if (!m.isMesh || !m.material) return; var mt = m.material; if (!Array.isArray(mt) && mt.visible === false) return; E.mats.push([m, mt]); m.material = Array.isArray(mt) ? mt.map(see) : see(mt); });
+      var box = new THREE.Box3().setFromObject(E.g), sz = box.getSize(new THREE.Vector3());
+      E.ring = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.2, sz.x + 0.08), Math.max(0.2, sz.z + 0.08)), new THREE.MeshBasicMaterial({ color: GHOST_OK, transparent: true, opacity: 0.35, depthWrite: false }));
+      E.ring.rotation.x = -Math.PI / 2; E.ring.position.y = 0.004; E.g.add(E.ring);
+    } else {
+      (E.mats || []).forEach(function (q) { [].concat(q[0].material).forEach(function (mt) { mt.dispose(); }); q[0].material = q[1]; }); E.mats = [];
+      if (E.ring) { E.g.remove(E.ring); E.ring.geometry.dispose(); E.ring.material.dispose(); E.ring = null; }
+    }
+  }
+  function setValid(ok, why) {
+    if (!edit) return; edit.valid = ok;
+    if (edit.ring) { edit.ring.material.color.copy(ok ? GHOST_OK : GHOST_NO); edit.ring.visible = edit.type !== 'wall'; }
+    (edit.mats || []).forEach(function (q) { [].concat(q[0].material).forEach(function (mt) { if (mt.emissive) { mt.emissive.copy(ok ? GHOST_OK : GHOST_NO); mt.emissiveIntensity = 0.25; } }); });
+    $('editHint').textContent = ok ? '吸附：' + (edit.snap || '…') + ' · R 旋转 · 方向键微调 · Enter 放好' : (why || '这里放不下');
+    editBar.querySelector('[data-e="ok"]').disabled = !ok;
+  }
   function startEdit(t, isNew) {
     if (busy) return;
-    closeCard(); $('pack').hidden = true; $('settings').hidden = true;
-    var g = t.group; edit = { o: t.lab ? t : null, x: t.lab ? null : t, g: g, p0: g.position.clone(), ry0: g.rotation.y, isNew: !!isNew, wasStashed: !!t.stashed, type: t.lab ? placeType(t) : t.place };
+    closeCard(); $('settings').hidden = true; if (BP && BP.isOpen()) BP.close();
+    var g = t.group; edit = { o: t.lab ? t : null, x: t.lab ? null : t, g: g, p0: g.position.clone(), ry0: g.rotation.y, isNew: !!isNew, wasStashed: !!t.stashed, type: t.lab ? placeType(t) : t.place, valid: true, snap: '' };
     if (edit.o) { edit.o.stashed = false; g.visible = true; }
-    $('editName').textContent = t.lab ? t.icon + ' ' + t.name : (EXTRA[t.e.kind].icon + ' ' + (t.e.title || EXTRA[t.e.kind].name));
-    $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面放下', surface: '点桌面、柜面、展示台放上去' }[edit.type];
+    $('editName').textContent = t.lab ? t.icon + ' ' + t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
     editBar.querySelector('[data-e="rot"]').style.display = edit.type === 'wall' ? 'none' : '';
-    editBar.hidden = false; body.classList.add('editing'); walkTo = null;
+    ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + ' · R 旋转 · Enter 放好 · Esc 取消';
+    editBar.hidden = false; body.classList.add('editing'); walkTo = null; refreshHotbar();
+    g.updateMatrixWorld(true); if (isNew && overlaps(null)) setValid(false, '先挪到空一点的地方');   // a new thing may appear on top of something
   }
   function inside(x, z) { return inRoom(x, z, -0.45) || (room.areas || []).some(function (a) { return x >= a[0] - 0.3 && x <= a[2] + 0.3 && z >= a[1] - 0.3 && z <= a[3] + 0.3; }); }
+  /* does the ghost overlap something else (other things, other instances)? the thing it stands on does not count */
+  function overlaps(support) {
+    var me = new THREE.Box3().setFromObject(edit.x ? edit.x.hit : edit.o.hit).expandByScalar(-0.015), other = new THREE.Box3();
+    var list = objects.filter(function (o) { return o !== edit.o && !o.stashed; }).map(function (o) { return o.hit; }).concat(XS.filter(function (x) { return x !== edit.x; }).map(function (x) { return x.hit; }));
+    if (me.min.y < 0.3 && (room.solids || []).some(function (r) { return me.max.x > r[0] && me.min.x < r[2] && me.max.z > r[1] && me.min.z < r[3]; })) return true;
+    return list.some(function (h) { if (support && (h === support || h.parent === support.parent)) return false; other.setFromObject(h); return other.intersectsBox(me) && other.min.y < me.max.y - 0.02 && me.min.y < other.max.y - 0.02; });
+  }
+  function snapName(h, y) {
+    var x = null; XS.forEach(function (q) { var hit = false; q.group.traverse(function (m) { if (m === h.object) hit = true; }); if (hit) x = q; });
+    if (x) return x.e.kind === 'pedestal' ? '展台' : (x.e.kind === 'wallshelf' ? '货架' : '展柜');
+    if (edit.type === 'wall') return '墙面';
+    if (!inRoom(h.point.x, h.point.z, 0)) return '室外';
+    return y < 0.06 ? '地面' : (y > 0.7 && y < 0.85 ? '桌面' : '柜面 / 台面');
+  }
   function editMove(e) {
     if (!edit) return;
     ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); srf.setFromCamera(ndc, camera);
-    var targets = [room.group].concat(XS.filter(function (x) { return x.group !== edit.g; }).map(function (x) { return x.group; }));
+    var targets = [room.group].concat(XS.filter(function (x) { return x !== edit.x; }).map(function (x) { return x.group; }));
     var hs = srf.intersectObjects(targets, true);
     for (var i = 0; i < hs.length; i++) {
       var h = hs[i], m = h.object.material; if (!h.face || (m && m.transparent && m.opacity < 0.3) || (m && m.visible === false)) continue;
       nrm.copy(h.face.normal).transformDirection(h.object.matrixWorld);
-      var P2 = h.point; if (!inside(P2.x, P2.z)) return;
+      var P2 = h.point; if (!inside(P2.x, P2.z)) return setValid(false, '超出可放置的范围');
       if (edit.type === 'wall') {
-        if (Math.abs(nrm.y) > 0.3) continue;
+        if (Math.abs(nrm.y) > 0.3) { setValid(false, '这件要挂在墙上'); return; }
         edit.g.position.set(P2.x + nrm.x * 0.004, clamp(P2.y, 0.9, 2.3), P2.z + nrm.z * 0.004); edit.g.rotation.y = Math.atan2(nrm.x, nrm.z);
       } else {
-        if (nrm.y < 0.7) { if (edit.type === 'floor') continue; return; }   // a wall in front: nowhere to stand
-        if (edit.type === 'floor' && P2.y > 0.06) continue;
+        if (nrm.y < 0.7) { if (edit.type === 'floor') continue; setValid(false, '前面是墙，没有可以站的面'); return; }
+        if (edit.type === 'floor' && P2.y > 0.06 && !snapIs(h, 'pedestal')) continue;
         edit.g.position.set(Math.round(P2.x * 50) / 50, P2.y, Math.round(P2.z * 50) / 50);
       }
-      edit.g.updateMatrixWorld(true); return;
+      edit.g.updateMatrixWorld(true); edit.snap = snapName(h, P2.y);
+      var sup = null; XS.forEach(function (q) { if (q.hit && q.group !== edit.g) { var hit = false; q.group.traverse(function (mm) { if (mm === h.object) hit = true; }); if (hit) sup = q.hit; } });
+      if (overlaps(sup)) setValid(false, '和旁边的东西撞在一起了'); else setValid(true);
+      return;
     }
   }
+  function snapIs(h, kind) { var r = false; XS.forEach(function (q) { if (q.e.kind === kind) q.group.traverse(function (m) { if (m === h.object) r = true; }); }); return r; }
   function endEdit(how) {
-    if (!edit) return; var E = edit, L = layout(); edit = null; editBar.hidden = true; body.classList.remove('editing');
+    if (!edit) return; if (how === 'ok' && !edit.valid) return;
+    var E = edit, L = layout(); edit = null; ghost(E, false); editBar.hidden = true; body.classList.remove('editing');
     var g = E.g, pos = [+g.position.x.toFixed(3), +g.position.y.toFixed(3), +g.position.z.toFixed(3)], ry = +g.rotation.y.toFixed(4);
     if (how === 'cancel') {
-      if (E.x && E.isNew) { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); buildExtras(); save(); return; }
-      g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } return;
+      if (E.x && E.isNew) { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); buildExtras(); save(); refreshHotbar(); return; }
+      g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); return;
     }
     if (E.o) {
       if (how === 'stash') { L[E.o.id] = { p: pos, ry: ry, stashed: true }; E.o.stashed = true; g.visible = false; toast(E.o.icon + ' ' + E.o.name + ' 已收回背包 · 功能仍可从下方入口进入'); }
       else { L[E.o.id] = { p: pos, ry: ry }; E.o.stashed = false; }
       E.o.chip.classList.toggle('stashed', E.o.stashed); settle(E.o); rebuildHits();
     } else {
-      if (how === 'stash') { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); toast('已收回背包'); }
+      if (how === 'stash') { L.extras = (L.extras || []).filter(function (e) { return e !== E.x.e; }); toast('已收回背包 · 原来的作品和 List 都没有改动'); }
       else { E.x.e.p = pos; E.x.e.ry = ry; }
       buildExtras();
     }
-    save();
+    save(); refreshHotbar();
   }
   editBar.addEventListener('click', function (e) {
     var b = e.target.closest('[data-e]'); if (!b || !edit) return; var a = b.getAttribute('data-e');
     if (a === 'rot') { edit.g.rotation.y += Math.PI / 2; edit.g.updateMatrixWorld(true); return; }
     endEdit(a === 'ok' ? 'ok' : a);
   });
+  window.addEventListener('keydown', function (e) {
+    if (!edit || body.hidden) return;
+    var k = e.key, step = e.shiftKey ? 0.1 : 0.02, used = true;
+    if (k === 'r' || k === 'R') { if (edit.type !== 'wall') { edit.g.rotation.y += Math.PI / 2 * (e.shiftKey ? -1 : 1); edit.g.updateMatrixWorld(true); } }
+    else if (k === 'ArrowLeft') edit.g.position.x -= step; else if (k === 'ArrowRight') edit.g.position.x += step;
+    else if (k === 'ArrowUp') edit.g.position.z -= step; else if (k === 'ArrowDown') edit.g.position.z += step;
+    else if (k === 'Enter') endEdit('ok'); else if (k === 'Escape') endEdit('cancel'); else if (k === 'Delete' || k === 'Backspace') endEdit('stash');
+    else used = false;
+    if (used) { e.preventDefault(); e.stopPropagation(); if (/^Arrow/.test(k)) { edit.g.updateMatrixWorld(true); setValid(!overlaps(null) && inside(edit.g.position.x, edit.g.position.z)); } }
+  }, true);
+
+  /* ---- a placed instance answers a tap */
   function extraCard(x) {
-    var K = EXTRA[x.e.kind];
-    ask(K.icon + ' ' + (x.e.title || K.name), x.e.kind === 'thing' ? '来自 My World · ' + esc(x.e.list || '') : '', [{ label: '移动', cls: 'pri' }, { label: '🎒 收回背包' }, { label: '好', cls: 'ghost' }])
-      .then(function (i) { if (i === 0) startEdit(x); else if (i === 1) { edit = { x: x, g: x.group, p0: x.group.position.clone(), ry0: x.group.rotation.y, type: x.place }; endEdit('stash'); } });
+    var e = x.e, isTpl = !/^(neon|thing)$/.test(e.kind), name = e.title || NAMES[e.kind] || '物品';
+    var acts = [];
+    if (e.kind === 'machine') acts.push({ label: e.mx && e.mx.list ? '🔍 走近操作' : '装载 List…', cls: 'pri', a: e.mx && e.mx.list ? 'operate' : 'load' });
+    if (e.kind === 'machine' && e.mx && e.mx.list) acts.push({ label: '换一个 List…', a: 'load' });
+    acts.push({ label: '移动', cls: e.kind === 'machine' ? '' : 'pri', a: 'move' }, { label: '🎒 收回背包', a: 'stash' });
+    if (isTpl) acts.push({ label: '复制一个', a: 'dup' });
+    acts.push({ label: '好', cls: 'ghost', a: 'none' });
+    var text = e.kind === 'machine' ? (e.mx && e.mx.list ? '装着「' + esc(e.mx.title || '') + '」 · 引用 List，不复制内容' : '还是空的展架') : (e.kind === 'thing' ? '来自 My World · ' + esc(e.list || '') : (e.kind === 'neon' ? 'Type Workshop 作品 · 只有一件' : '陈列家具 · 可以放多个'));
+    ask(name, text, acts).then(function (i) {
+      var a = acts[i] && acts[i].a;
+      if (a === 'operate') BP.operate(e, function () { save(); buildExtras(); }, toast);
+      else if (a === 'load') { openPack('mc:' + (e.mx && e.mx.type)); }
+      else if (a === 'move') startEdit(x);
+      else if (a === 'stash') { edit = { x: x, g: x.group, p0: x.group.position.clone(), ry0: x.group.rotation.y, type: x.place, valid: true }; endEdit('stash'); }
+      else if (a === 'dup') { var c = JSON.parse(JSON.stringify(e)); delete c.uid; c.p = [e.p[0] + 0.3, e.p[1], e.p[2] + 0.1]; spawn(c, true); }
+    });
   }
-  /* a new thing appears where you look (or on the desk), then you place it */
-  function spawn(e) {
-    var L = layout(); L.extras = L.extras || []; e.uid = Date.now() % 1e9; var a = room.anchors['desk.book'];
-    e.p = [a.p[0], a.p[1], a.p[2] + 0.35]; e.ry = 0;
-    if (EXTRA[e.kind].place === 'floor') e.p = [room.start.pos[0], 0, room.start.pos[2] - 1];
-    if (EXTRA[e.kind].place === 'wall') { var w = room.anchors['wall.left']; e.p = [w.p[0], 1.3, w.p[2] + 1.2]; e.ry = w.ry; }
+  /* a new instance appears in front of you (or on the desk), then Quick Place takes over */
+  function spawn(e, keepPos) {
+    var L = layout(); L.extras = L.extras || []; e.uid = Date.now() % 1e9 + Math.floor(Math.random() * 1000); var a = room.anchors['desk.book'];
+    if (!keepPos) {
+      e.p = [a.p[0], a.p[1], a.p[2] + 0.35]; e.ry = 0;
+      var pl = BP.model(THREE, e).place;                               // where this kind may stand
+      if (pl === 'floor') e.p = [P.x - Math.sin(P.yaw) * 1.2, 0, P.z - Math.cos(P.yaw) * 1.2];
+      if (pl === 'wall') { var w = room.anchors['wall.left']; e.p = [w.p[0], 1.3, w.p[2] + 1.2]; e.ry = w.ry; }
+      if (pl === 'floor' && !inArea(e.p[0], e.p[2])) e.p = [room.start.pos[0], 0, room.start.pos[2] - 1];
+    }
     L.extras.push(e); buildExtras(); var x = XS[XS.length - 1]; if (x) startEdit(x, true);
   }
 
-  /* ---- the backpack panel */
-  var pack = $('pack');
-  function renderPack() {
-    var L = layout(), h = '<p class="sub">在 <b>' + esc(room.name) + '</b> 里的布置（每个环境各自保存）</p><h4>功能物件</h4><ul class="pk">';
-    objects.forEach(function (o, i) { h += '<li><span>' + o.icon + ' ' + esc(o.name) + (o.stashed ? ' <em>在背包</em>' : '') + '</span><button type="button" data-po="' + i + '">' + (o.stashed ? '取出摆放' : '移动') + '</button>' + (o.stashed ? '' : '<button type="button" data-ps="' + i + '">收回</button>') + '</li>'; });
-    h += '</ul><button type="button" class="sh-btn ghost" data-reset>恢复这个环境的默认摆放</button><h4>陈列架</h4><ul class="pk">';
-    ['pedestal', 'wallshelf', 'vitrine'].forEach(function (k) { h += '<li><span>' + EXTRA[k].icon + ' ' + EXTRA[k].name + '</span><button type="button" data-px="' + k + '">放一个</button></li>'; });
-    var T = myThings(); h += '</ul><h4>我的物品 · My World Inventory</h4>';
-    if (!T.length) h += '<p class="sub">' + (B.state() === 'ready' ? 'My World 里还没有东西。' : 'Minest 载入后显示你在 My World 里的东西。') + '</p>';
-    else { h += '<ul class="pk">'; T.forEach(function (t, i) { h += '<li><span>🖼 ' + esc(t.title) + ' <em>' + esc(t.list) + '</em></span><button type="button" data-pt="' + i + '">摆出来</button></li>'; }); h += '</ul>'; }
-    $('packBody').innerHTML = h; pack._things = T;
+  /* ---- the Magical Backpack as this room's inventory (host adapter) */
+  function envName(id) { var e = window.SpatialRoom.envs().filter(function (q) { return q.id === id; })[0]; return e ? e.name : id; }
+  function findOwned(ref) {                                          // where a one-of-a-kind thing stands, in any environment
+    var hit = null;
+    window.SpatialRoom.envs().forEach(function (en) {
+      var Lx = en.id === room.envId ? layout() : layoutOf(en.id);
+      (Lx.extras || []).forEach(function (e) { if (hit) return; if ((ref.work && e.ref && e.ref.work === ref.work) || (ref.sid && e.ref && e.ref.sid === ref.sid)) hit = { env: en.id, e: e }; });
+    });
+    return hit;
   }
-  pack.addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b) return;
-    if (b.id === 'sh-packClose') { pack.hidden = true; return; }
-    if (b.hasAttribute('data-po')) { var o = objects[+b.getAttribute('data-po')]; if (o.stashed) { var a = room.anchors[o.anchor] || room.anchors['desk.left']; o.group.position.fromArray(a.p); o.group.rotation.y = a.ry; } startEdit(o); return; }
-    if (b.hasAttribute('data-ps')) { var o2 = objects[+b.getAttribute('data-ps')]; startEdit(o2); endEdit('stash'); renderPack(); pack.hidden = false; return; }
-    if (b.hasAttribute('data-px')) { spawn({ kind: b.getAttribute('data-px') }); return; }
-    if (b.hasAttribute('data-pt')) { var t = pack._things[+b.getAttribute('data-pt')]; spawn({ kind: 'thing', ref: { bid: t.bid, card: t.card, sid: t.sid }, title: t.title, list: t.list }); return; }
-    if (b.hasAttribute('data-reset')) { delete S.layouts[room.envId]; save(); placeAll(); renderPack(); toast('已恢复默认摆放'); }
-  });
-  $('packBtn').addEventListener('click', function () { if (busy || edit) return; if (!pack.hidden) { pack.hidden = true; return; } $('settings').hidden = true; if (needsLoad()) B.load().then(function () { if (!pack.hidden) renderPack(); }); renderPack(); pack.hidden = false; });
-  function needsLoad() { return !B.EMBED && B.state() !== 'ready'; }
+  var host = {
+    THREE: THREE, reduced: function () { return !!S.motion; }, toast: toast,
+    hotbarVisible: function () { return !body.hidden && !inFeature && !edit && !busy; },
+    functionObjects: function () { return objects.map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
+    status: function (it) {
+      if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; return o && o.stashed ? { badge: '在背包', cls: 'bag', text: '在背包里（功能仍可从下方入口进入）', placed: false } : { badge: '摆放中', cls: '', text: '摆在 ' + room.name, placed: true }; }
+      if (it.kind === 'owned') { var f = findOwned(it.ref); return f ? { badge: f.env === room.envId ? '摆放中' : '别处', cls: '', text: '摆在 ' + envName(f.env) + (f.env === room.envId ? '' : '（放到这里会从那里移过来，不会多出一件）'), placed: f.env === room.envId } : { badge: '', cls: '', text: '在背包里', placed: false }; }
+      var n = (layout().extras || []).filter(function (e) { return it.spec && e.kind === it.spec.kind && (e.kind !== 'machine' || (e.mx && e.mx.type === it.spec.mx.type)); }).length;
+      return { badge: n ? '×' + n : '', cls: 'tpl', text: n ? '这里放了 ' + n + ' 个 · 模板，可以再放' : '模板，可以放多个', placed: false };
+    },
+    place: function (it, move) {
+      if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; if (!o) return; if (o.stashed) { var a = room.anchors[o.anchor] || room.anchors['desk.left']; o.group.position.fromArray(a.p); o.group.rotation.y = a.ry; } startEdit(o); return; }
+      if (it.kind === 'owned') {
+        var f = findOwned(it.ref);
+        if (f && f.env === room.envId) { var x = XS.filter(function (q) { return q.e === f.e; })[0]; if (x) startEdit(x); return; }
+        if (f) { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); toast('从 ' + envName(f.env) + ' 移过来了'); }
+      }
+      spawn(JSON.parse(JSON.stringify(it.spec)));
+    },
+    stash: function (it) {
+      if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; if (o && !o.stashed) { startEdit(o); endEdit('stash'); } return; }
+      var f = findOwned(it.ref || {}); if (!f) return;
+      if (f.env === room.envId) { var x = XS.filter(function (q) { return q.e === f.e; })[0]; if (x) { edit = { x: x, g: x.group, p0: x.group.position.clone(), ry0: x.group.rotation.y, type: x.place, valid: true }; endEdit('stash'); } }
+      else { var Lo = layoutOf(f.env); Lo.extras = (Lo.extras || []).filter(function (e) { return e.uid !== f.e.uid; }); saveLayout(f.env, Lo); toast('已收回背包'); }
+    }
+  };
+  function openPack(selKey) { if (busy || edit || !BP) return; $('settings').hidden = true; if (!B.EMBED && B.state() !== 'ready') B.load().then(function () { if (BP.isOpen()) BP.open(host); }); BP.open(host); if (selKey) { /* jump to that item */ var el = document.querySelector('#mn-bp [data-key="' + selKey + '"]'); if (el) el.click(); } }
+  function refreshHotbar() { if (BP) try { BP.hotbar(host); } catch (e) {} }
+  $('packBtn').addEventListener('click', function () { if (BP && BP.isOpen()) BP.close(); else openPack(); });
 
   function setEnv(id) {
     if (busy || id === room.envId) return;
@@ -591,6 +677,9 @@
     nu.chip.innerHTML = '<b>' + nu.icon + '</b><span>' + nu.name + '</span>'; nu.chip.onclick = function () { activate(nu); };
     objects[i] = nu; placeAll();
   }
+  $('resetLayout').addEventListener('click', function () { if (busy || edit) return; saveLayout(room.envId, {}); placeAll(); refreshHotbar(); toast('已恢复 ' + room.name + ' 的默认摆放 · 收回的作品回到背包'); });
+  /* the hotbar shows only over the room itself */
+  setInterval(function () { var hb = document.getElementById('mn-hotbar'); if (hb && hb.childElementCount) hb.hidden = !host.hotbarVisible(); }, 400);
   $('optMedal').addEventListener('change', function () { setMedal(this.value); });
   $('setBtn').addEventListener('click', function () { setEl.hidden = !setEl.hidden; if (!setEl.hidden) renderSettings(); });
   $('setClose').addEventListener('click', function () { setEl.hidden = true; });
@@ -618,8 +707,9 @@
     if (camAuto) { autoPose(camera.position, camera.quaternion); if (room.shake && !S.motion) { var sh = room.shake(T); camera.position.y += sh.y; camera.rotateZ(sh.roll); } }
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;
     if (avatar.visible) { avatar.position.set(P.x, 0, P.z); avatar.rotation.y = P.yaw + Math.PI; }
+    XS.forEach(function (x) { if (x.tick) try { x.tick(T); } catch (e) {} });
     room.tick(T); objects.forEach(function (o) { o.idle(T); var s = o === hot ? 1.035 : 1; o.group.scale.setScalar(o.group.scale.x + (s - o.group.scale.x) * Math.min(1, dt * 12)); });
-    renderer.render(cineScene || scene, camera); if (!cineScene) placeLabels();
+    SPK(T); renderer.render(cineScene || scene, camera);
     if (dirty && T - lastSave > 2) { lastSave = T; save(); }
   }
   $('brandName').textContent = room.name;
