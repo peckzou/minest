@@ -160707,6 +160707,8 @@ window.KRail = (function () {
       'html.vx80-on.vx80-min aside.wf{top:auto!important;height:auto!important;min-height:0!important}' +
       '.vx80-fold{display:none;flex:0 0 auto;align-self:center;margin:0 6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;font:700 12px/1 system-ui;cursor:pointer;white-space:nowrap}' +
       'html.vx80-on .vx80-fold{display:inline-flex;align-items:center;gap:4px}' +
+      'html body #vx62.vx80-joy .joy{display:block!important}html body #vx62.vx80-joy .pad{display:flex!important}' +
+      '#vx62.vx80-joy .joy{bottom:calc(var(--ch,60px) + 18px)!important}#vx62.vx80-joy .pad{bottom:calc(var(--ch,60px) + 18px)!important}' +
       '#vx62 .vx80-coach{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,14,24,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' +
       '#vx62 .vx80-coach[hidden]{display:none}' +
       '#vx62 .vx80-card{max-width:360px;width:100%;border-radius:20px;padding:18px 18px 14px;background:rgba(22,24,30,.94);border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 50px rgba(0,0,0,.45);color:#fff;font:500 14px/1.45 system-ui}' +
@@ -160739,12 +160741,37 @@ window.KRail = (function () {
       '</ul><button type="button">开始</button></div>';
     coach.addEventListener('click', function (e) { if (e.target.closest('button') || e.target === coach) { coach.hidden = true; set80('coached', '1'); } });
     ov.appendChild(coach);
-    var wasOpen = false;
+    var wasOpen = false, TOUCH80 = ('ontouchstart' in window) || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
     function sync80() {
       var on = isOpen();
+      // walking on a touch screen: the console's navigation pane holds the controls — folded (or not opened) there is nothing
+      // to walk with, so the engine's own joystick and up / down pad come back
+      var m = on ? R.mode : '', nav = document.querySelector('.wf-center.world-navigation-open'), navShown = !!(nav && nav.offsetHeight && !H.classList.contains('vx80-min'));
+      ov.classList.toggle('vx80-joy', !!(on && TOUCH80 && (m === 'walk' || m === 'fly') && !navShown));
       if (on) { foldBtn(); if (!wasOpen && !get80('coached')) coach.hidden = false; }
       if (on !== wasOpen) { wasOpen = on; applyFold(); if (on) setTimeout(function () { try { window.dispatchEvent(new Event('resize')); } catch (x) {} }, 60); }
     }
+    // 6. a tool's panel floats over the lower part of the view: the picture lifts by about half of what it covers
+    var offCur = 0, offTo = 0, offRaf = 0;
+    function applyOff() {
+      var c = R.cam, cv = R.renderer && R.renderer.domElement; if (!c || !cv) return;
+      var w = cv.clientWidth || 1, h = cv.clientHeight || 1;
+      if (Math.abs(offCur) < 0.5) c.clearViewOffset(); else c.setViewOffset(w, h, 0, Math.round(offCur), w, h);
+      c.updateProjectionMatrix();
+    }
+    function liftTo(px) {
+      offTo = px; if (offRaf) return;
+      (function step() { offCur += (offTo - offCur) * 0.25; if (Math.abs(offTo - offCur) < 0.5) offCur = offTo; applyOff(); offRaf = offCur === offTo ? 0 : requestAnimationFrame(step); })();
+    }
+    function panelLift() {
+      if (!isOpen() || !R.renderer) return 0;
+      var center = con.querySelector('.wf-center'), cv = R.renderer.domElement;
+      if (!center || center.hidden || !center.offsetHeight || R.mode === 'walk' || R.mode === 'fly') return 0;
+      var cr = center.getBoundingClientRect(), vr = cv.getBoundingClientRect(), cover = Math.max(0, Math.min(vr.bottom, cr.bottom) - Math.max(vr.top, cr.top));
+      return Math.round(cover * 0.5);
+    }
+    window.addEventListener('resize', function () { if (offCur) applyOff(); });
+    setInterval(function () { var t = panelLift(); if (t !== offTo) liftTo(t); }, 250);
     setInterval(sync80, 400); sync80();
     window.__vx80 = { fold: function (v) { set80('min', v ? '1' : '0'); applyFold(); window.dispatchEvent(new Event('resize')); }, coach: function () { coach.hidden = false; } };
   })();
