@@ -115,6 +115,7 @@
      room ('mtw' = the workshop room of whichever house holds it). Called by the walk-in while it builds a room. */
   function roomShow(T, S, r0, lb, at) {
     if (!r0 || !window.MinestNeonWord) return 0;
+    try { magicDecor(T, S, r0); } catch (e) { console.warn('[mtw] decor', e); }
     var list = items().filter(function (it) { return it.use === 'displayed' && it.loc && it.loc.kind === 'room' && (it.loc.room === r0.id || (it.loc.room === 'mtw' && r0.mtw)); });
     if (!list.length) return 0;
     // one band above the doors (walls are 3.2 high, door signs reach ~2.5): back wall first, then the left and right walls
@@ -130,6 +131,75 @@
       S.add(g); (function spin() { if (!g.parent) return; g.userData.tick(performance.now() / 1000); requestAnimationFrame(spin); })();
     });
     return list.length;
+  }
+  /* ---- Phase 6 · magic in the workshop room. The voxel pieces are drawn by My World; here they get what voxels cannot:
+     the portal's neon arch and swirl, the bottle's DRINK ME label, tiny neon words on the word collection. */
+  function animate(o, fn) { (function f() { if (!o.parent) return; fn(performance.now() / 1000); requestAnimationFrame(f); })(); }
+  function labelTex(T, text, fg, bg, w, h) {
+    var c = document.createElement('canvas'); c.width = w || 256; c.height = h || 112; var x = c.getContext('2d');
+    x.fillStyle = bg || '#f4ecd8'; x.fillRect(0, 0, c.width, c.height); x.strokeStyle = '#6b4f2a'; x.lineWidth = 6; x.strokeRect(5, 5, c.width - 10, c.height - 10);
+    x.fillStyle = fg || '#3b1f4a'; x.font = 'bold ' + Math.round(c.height * .42) + 'px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, c.width / 2, c.height / 2 + 2);
+    var t = new T.CanvasTexture(c); return t;
+  }
+  function swirlTex(T) {
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), g = x.createRadialGradient(128, 128, 4, 128, 128, 128);
+    g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(.25, 'rgba(255,90,230,.8)'); g.addColorStop(.6, 'rgba(90,60,255,.55)'); g.addColorStop(1, 'rgba(20,0,60,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 256, 256); x.globalCompositeOperation = 'lighter'; x.strokeStyle = 'rgba(120,240,255,.55)'; x.lineWidth = 5;
+    for (var k = 0; k < 4; k++) { x.beginPath(); for (var a = 0; a < 9; a += .08) { var r = a * 13, an = a + k * Math.PI / 2; x.lineTo(128 + Math.cos(an) * r, 128 + Math.sin(an) * r); } x.stroke(); }
+    var t = new T.CanvasTexture(c); t.center.set(.5, .5); return t;
+  }
+  function at(p, W, D, u, t) { return { x: p.x - W / 2 + u, z: p.y - D / 2 + t }; }   // a piece's own (u, t) → room x, z (pieces sit unrotated here)
+  function magicDecor(T, S, r0) {
+    var pcs = (r0.d && r0.d.pc) || [], all = []; try { all = items(); } catch (e) {}
+    pcs.forEach(function (p) {
+      if (p.k === 'f_neonportal') {
+        var g = new T.Group(), o = at(p, 1.4, .4, 0, .2), x0 = -.5, x1 = .5;
+        var pts = [[x0, .14], [x0, 1.95], [x0 + .12, 2.18], [0, 2.26], [x1 - .12, 2.18], [x1, 1.95], [x1, .14]].map(function (q) { return new T.Vector3(q[0], q[1], 0); });
+        var curve = new T.CatmullRomCurve3(pts, false, 'centripetal', .3);
+        g.add(new T.Mesh(new T.TubeGeometry(curve, 80, .035, 8, false), new T.MeshBasicMaterial({ color: '#ff5ae6', toneMapped: false })));
+        var sleeve = new T.MeshBasicMaterial({ color: '#ff5ae6', transparent: true, opacity: .25, depthWrite: false, blending: T.AdditiveBlending });
+        g.add(new T.Mesh(new T.TubeGeometry(curve, 80, .08, 8, false), sleeve));
+        var tx = swirlTex(T), sw = new T.Mesh(new T.PlaneGeometry(.92, 2.04), new T.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+        sw.position.y = 1.16; g.add(sw);
+        var L = new T.PointLight('#ff5ae6', 1.2, 5); L.position.set(0, 1.4, .5); g.add(L);
+        g.position.set(o.x, 0, o.z); g.name = 'mtw-portal'; S.add(g);
+        animate(g, function (t) { tx.rotation = -t * .9; sleeve.opacity = .22 + .06 * Math.sin(t * 5); L.intensity = 1.1 + .25 * Math.sin(t * 3.1); });
+      }
+      if (p.k === 'f_drinkme') {
+        var tex = labelTex(T, 'DRINK ME'), m = new T.MeshBasicMaterial({ map: tex });
+        [[.159, Math.PI], [.341, 0]].forEach(function (q) { var o2 = at(p, .5, .5, .25, q[0]), pl = new T.Mesh(new T.PlaneGeometry(.18, .079), m); pl.position.set(o2.x, .6, o2.z); pl.rotation.y = q[1]; S.add(pl); });
+        var tag = new T.Sprite(new T.SpriteMaterial({ map: labelTex(T, 'DRINK ME', '#fff', '#5b2a86'), transparent: true }));
+        var o3 = at(p, .5, .5, .25, .25); tag.position.set(o3.x, 1.02, o3.z); tag.scale.set(.32, .14, 1); S.add(tag);
+        animate(tag, function (t) { tag.position.y = 1.02 + Math.sin(t * 2) * .02; });
+      }
+      if (p.k === 'f_wordbox' && window.MinestNeonWord) {   // the collection: every finished item, tiny, three shelves
+        var shelves = [.02, .16, .30], cur = 0, x = 0;
+        all.slice(0, 24).forEach(function (it) {
+          var g2 = MinestNeonWord.build(T, it.word, { gas: it.look && it.look.gas, height: .05, light: false }), w = g2.userData.w;
+          if (x + w > .44) { cur++; x = 0; } if (cur >= shelves.length) return;
+          var o4 = at(p, .5, .18, .03 + x + w / 2, .08); g2.position.set(o4.x, shelves[cur] + .005, o4.z); g2.rotation.y = Math.PI; S.add(g2); x += w + .03;
+          animate(g2, g2.userData.tick);
+        });
+      }
+    });
+  }
+  /* DRINK ME: the walker reads window.__mtwScale every frame (eye, radius, step, speed); here it eases between 1 and SMALL */
+  var SMALL = .12, scaleAnim = 0;
+  function scaleTo(v) {
+    cancelAnimationFrame(scaleAnim); var a = window.__mtwScale || 1, t0 = performance.now();
+    (function f(now) { var k = Math.min(1, (now - t0) / 1400), e = k * k * (3 - 2 * k); window.__mtwScale = a + (v - a) * e; if (k < 1) scaleAnim = requestAnimationFrame(f); })(t0);
+  }
+  function small() { return (window.__mtwScale || 1) < .9; }
+  function actLabel(k) {
+    if (k === 'f_typewriter') return '🖋 进入 Type Workshop · 打字机';
+    if (k === 'f_neonportal') return '🌀 穿过霓虹传送门 · Neon portal';
+    if (k === 'f_drinkme') return small() ? '🧪 恢复原尺寸 · Grow back' : '🧪 DRINK ME · 喝下缩小药水';
+    return '✨';
+  }
+  function act(k) {
+    if (k === 'f_typewriter') return open({ from: 'walk' });
+    if (k === 'f_neonportal') { if (window.MinestNeonSpace) MinestNeonSpace.open({ items: items() }); return; }
+    if (k === 'f_drinkme') { var s0 = small(); scaleTo(s0 ? 1 : SMALL); toast(s0 ? '🧪 你恢复了原来的大小 · back to full size' : '🧪 你变小了 · 去看看抽屉柜、明信片架和文字收藏 · you shrank'); }
   }
   /* ---- Test 9 honesty: did an item really reach the cloud? MinestKnowledge pushes with a swallowed .catch, so the only
      proof is reading the user's own doc back FROM THE SERVER (not the local cache). Read-only; no auth or config change. */
@@ -204,6 +274,12 @@
       if (!has('f_lamp')) r.d.pc.push({ id: uid('p'), k: 'f_lamp', x: 5.2, y: 1.2, s: 1, f: 0, it: [], label: '' });
       if (!has('f_armchair')) r.d.pc.push({ id: uid('p'), k: 'f_armchair', x: 1, y: 4.5, s: 1, f: 0, it: [], label: '' });
       if (!has('f_fireplace')) r.d.pc.push({ id: uid('p'), k: 'f_fireplace', x: 1, y: 0.4, s: 1, f: 0, it: [], label: '' });
+      // Phase 6: the portal by the right wall, the bottle mid-room, three tiny pieces on the floor near the way in
+      if (!has('f_neonportal')) r.d.pc.push({ id: uid('p'), k: 'f_neonportal', x: 7.4, y: 3.2, s: 1, f: 0, it: [], label: '🌀 Neon portal' });
+      if (!has('f_drinkme')) r.d.pc.push({ id: uid('p'), k: 'f_drinkme', x: 5.4, y: 5.2, s: 1, f: 0, it: [], label: '🧪 DRINK ME' });
+      if (!has('f_tinycabinet')) r.d.pc.push({ id: uid('p'), k: 'f_tinycabinet', x: 6.3, y: 6.6, s: 1, f: 0, it: [], label: '' });
+      if (!has('f_postcards')) r.d.pc.push({ id: uid('p'), k: 'f_postcards', x: 6.8, y: 6.6, s: 1, f: 0, it: [], label: '' });
+      if (!has('f_wordbox')) r.d.pc.push({ id: uid('p'), k: 'f_wordbox', x: 7.4, y: 6.6, s: 1, f: 0, it: [], label: '' });
       done = true;
     });
     return done;
@@ -249,5 +325,5 @@
   }, true);
 
   window.MinestTypeWorkshop = { open: open, close: close, isOpen: isOpen, entrance: entrance, ensureRoom: ensureRoom, version: VERSION,
-    hangCity: function () { return hangCity(cityInst); }, roomShow: roomShow, _ops: OPS };
+    hangCity: function () { return hangCity(cityInst); }, roomShow: roomShow, actLabel: actLabel, act: act, scaleTo: scaleTo, _ops: OPS };
 })();
