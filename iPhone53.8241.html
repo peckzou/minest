@@ -161230,6 +161230,15 @@ window.KRail = (function () {
       '</ul><button type="button">开始</button></div>';
     coach.addEventListener('click', function (e) { if (e.target.closest('button') || e.target === coach) { coach.hidden = true; set80('coached', '1'); } });
     ov.appendChild(coach);
+    // 7. the sky: a gradient from a deeper blue overhead to a pale horizon, the fog the horizon's colour (was one flat blue)
+    function sky80() {
+      if (!R.scene || !R.T || R.scene.userData.sky80) return;
+      var T = R.T, c = document.createElement('canvas'); c.width = 2; c.height = 256; var x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+      g.addColorStop(0, '#3f8fe0'); g.addColorStop(0.45, '#7fbdf5'); g.addColorStop(0.82, '#c6e4ff'); g.addColorStop(1, '#e6f3ff');
+      x.fillStyle = g; x.fillRect(0, 0, 2, 256);
+      var tex = new T.CanvasTexture(c); if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
+      R.scene.background = tex; if (R.scene.fog) R.scene.fog.color.set('#d6ecff'); R.scene.userData.sky80 = 1;
+    }
     var wasOpen = false, TOUCH80 = ('ontouchstart' in window) || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
     function sync80() {
       var on = isOpen();
@@ -161237,7 +161246,7 @@ window.KRail = (function () {
       // to walk with, so the engine's own joystick and up / down pad come back
       var m = on ? R.mode : '', nav = document.querySelector('.wf-center.world-navigation-open'), navShown = !!(nav && nav.offsetHeight && !H.classList.contains('vx80-min'));
       ov.classList.toggle('vx80-joy', !!(on && TOUCH80 && (m === 'walk' || m === 'fly') && !navShown));
-      if (on) { foldBtn(); if (!wasOpen && !get80('coached')) coach.hidden = false; }
+      if (on) { foldBtn(); sky80(); if (!wasOpen && !get80('coached')) coach.hidden = false; }
       if (on !== wasOpen) { wasOpen = on; applyFold(); if (on) setTimeout(function () { try { window.dispatchEvent(new Event('resize')); } catch (x) {} }, 60); }
     }
     // 6. a tool's panel floats over the lower part of the view: the picture lifts by about half of what it covers
