@@ -352,6 +352,27 @@ export const WORLDS: WorldDefinition[] = [
     batch: 4,
     load: () => import('../worlds/invisible-ink'),
   },
+  {
+    id: 'alphablocks',
+    number: 23,
+    name: 'Alphablocks World',
+    nameZh: '字母积木世界',
+    series: 'blocks',
+    mechanism: '每个字母都是会跳的玩具积木角色：跳上舞台、落地排队、和同伴组成单词；空格分组，退格离队，点击会转圈唱出自己的音。',
+    themes: [
+      { id: 'toy', label: '塑料玩具', swatch: 'linear-gradient(135deg,#ff4d5e,#ffb300,#22b8cf)' },
+      { id: 'pastel', label: '马卡龙', swatch: 'linear-gradient(135deg,#ff9aa8,#ffd27a,#8fe0ea)' },
+      { id: 'wood', label: '彩绘木块', swatch: 'linear-gradient(135deg,#d9803a,#e8b23a,#6aa84f)' },
+    ],
+    defaultTheme: 'toy',
+    poster: 'linear-gradient(180deg,#8fd3ff 0%,#fff1d6 60%,#ffb3c7 100%)',
+    accent: '#ff7a59',
+    layout: { metric: 'sans', size: 0.9, tracking: 0.32, maxWidth: 10.5, maxLines: 3, lineHeight: 1.6, origin: [0, 0, 0], plane: 'xy', minScale: 0.45 },
+    ambient: true,
+    status: 'ready',
+    batch: 4,
+    load: () => import('../worlds/alphablocks'),
+  },
 ];
 
 export function getWorld(id: string) {
