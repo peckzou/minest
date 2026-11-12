@@ -190,3 +190,14 @@ python3 tools/spatial-home/port_main_modules.py --remove
   - 存储：`minest.spatialHome.v1` 里的 `layouts[env]`（本机）。还没有接云同步。
 - 实测：四个环境里 13 个入口都能进入并返回（列车上全部 13 个逐一测过）；摆放后刷新仍在；圣托里尼的布局不影响阿尔卑斯；列车行驶约 2.8 km 后 Mochi 仍在原位；主应用 `index.html?home=1` 四个环境切换无报错；375 宽的手机尺寸顶栏不溢出。测试改动的布局都已恢复默认。
 - 没做 / 没测：真机 iPhone / Duo；背包布局的云同步；“3D 作品”只有相框形式（duo 构建里没有 Type Workshop / 霓虹字作品，`MinestAssets3D` 用的是另一份 three.js 不能混进房间场景）；动态陈列装置（`ui/world-machines.js`）还没接进背包。
+
+## 合并到 main（2026-11-12，1ba52c9）+ Magical Backpack V1（255909e）
+
+- main 上的注入：`python3 tools/spatial-home/patch_spatial_home.py --pages main --boot-default on`（12 个页面逐页注入）；陈列引擎 `python3 tools/santorini-69/patch_displays70.py --pages main`。duo-v1 的 12 个已提交 Codex 改动和原生 Swift 改动没有合进来。
+- `js/backpack.js` = `window.MinestBackpack`：分类 / 搜索 / 最近 / 收藏 + 快捷栏 / 真实模型缩略图（每帧几张）/ 可拖动旋转的 3D 预览 / 装载 List。内容全部来自现有模块（Type Workshop 作品 `mtw:item:*` + `MinestNeonWord`、`MinestMachines` 四种装置、陈列家具模板、房间功能物件、My World 收藏）。
+- Quick Place：半透明预览、吸附面（地面 / 桌面 / 墙面 / 货架 / 展台 / 室外）、绿红反馈和原因、和家具 / 物件的碰撞、R / 方向键 / Enter / Esc。
+- 模板可放多个、可复制；实体作品只有一件（再放 = 移动，跨环境也是移过来）；收回不改原作品和 List。
+- 布局存 `MinestKnowledge` 的 `bp:home:<env>`（随账户同步），偏好 `bp:pref`。
+- 入口物件不再有文字标签，改为小星光闪烁。
+- 验收（预览浏览器，main 的 iPhoneDuo.html）：A 旋转明信片架放置并转动 ✓；B 装载 16 张卡的 List，抽出一张、放回原槽 ✓；C DREAM 霓虹字装到桌面并点亮 ✓；D 收回后作品记录不变 ✓；E 再放不复制（按钮变「移动」，始终 1 件）✓；F 打字机从背包移动后仍进入 Hermes ✓；G 刷新后展架（含 List）和作品位置都在 ✓；H 与 My World / 圣托里尼共用背包 ✗ 未做。
+- 未做：H；其余 7 种装置（陈列引擎里本来就没做）；云同步只验证到写入 MinestKnowledge，没有用登录账户跨设备验证；真机只安装了 Duo，没有在设备上逐项操作。
