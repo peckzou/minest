@@ -438,5 +438,5 @@
     head.insertBefore(b, head.children[1] || null);
   }, 700);
 
-  root.MinestBackpack = { VERSION: VERSION, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb, owned: owned, ownedKey: ownedKey, openInWorld: openInWorld, registerKind: registerKind };
+  root.MinestBackpack = { VERSION: VERSION, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb, thingPic: thingPic, owned: owned, ownedKey: ownedKey, openInWorld: openInWorld, registerKind: registerKind };
 })(window);

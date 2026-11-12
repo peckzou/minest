@@ -164,7 +164,9 @@
     ['cabinet.top', 'cabinet.left', 'cabinet.right', 'wall.right'].forEach(function (k) { out[k] = xf('cabinet', A[k]); });
     out['corner.window'] = { p: [3.85, 0, -1.08], ry: 0 };                      // the aquarium: collection end, by the left windows
     out['wall.left'] = { p: [-2.495, 1.6, -0.8], ry: Math.PI / 2 };             // the bulletin board on the partition
-    out['sill.left'] = { p: [-1.75, 0.84, -WID + 0.06], ry: 0 };               // the magic ornament on the window sill
+    out['sill.left'] = { p: [-1.75, 0.84, -WID + 0.06], ry: 0 };
+    out['floor.gramo'] = { p: [5.05, 0, 0.2], ry: -Math.PI / 2 };                // the gramophone at the collection end
+    out['floor.film'] = { p: [-4.0, 0, 0.05], ry: 0 };                            // the projector in the lounge, its screen towards the right windows               // the magic ornament on the window sill
     return out;
   }
 

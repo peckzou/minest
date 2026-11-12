@@ -182458,6 +182458,109 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
   window.MinestWorldEN = { tr: tr, missing: function () { return Array.from(missing); }, size: keys.length, version: '1.0' };
 })();
 </script>
+<script id="mn-voxel-factory">
+/* 3D Display (Copilot's voxel-factory/, 2026-11-12): this My World world's things, crafted and set out on shelves in a
+   voxel workshop. window.MinestVoxelFactory.open(bid) — and a ◇ 3D Display button in the My World console's tool row.
+   Only titles go across (in the address); the voxel factory keeps its own layout (minest3d.world.v1) and never writes
+   to Minest's boards. The iOS bundle opens the live page. */
+(function () {
+  if (window.MinestVoxelFactory) return;
+  function boards() { try { return (window.MinestAI && MinestAI.boards && MinestAI.boards()) || []; } catch (e) { return []; } }
+  /* the world on show: My World's first crumb is its board's title */
+  function curBid() {
+    try {
+      if (!(window.MinestDisplay && MinestDisplay.isOpen && MinestDisplay.isOpen())) return null;
+      var t = window.MinestWorldFold && MinestWorldFold.crumbs && MinestWorldFold.crumbs()[0]; if (!t) return null;
+      var b = boards().filter(function (x) { return String(x.title || '') === String(t); })[0]; return b ? b.id : null;
+    } catch (e) { return null; }
+  }
+  function items(bid) {
+    var b = boards().filter(function (x) { return x.id === bid; })[0], K = window.MinestKnowledge, out = [];
+    ((b && b.columns) || []).forEach(function (col) { (col.cards || []).forEach(function (c) {
+      if (!c || !c.id || (K && K.isHeading && K.isHeading(c.id)) || (K && K.get && K.get('sk:' + c.id)) || /inbox/i.test(c.title || '')) return;
+      (c.stack || []).forEach(function (s) { if (s && s.title && out.length < 48) out.push(String(s.title).replace(/\s+/g, ' ').trim().slice(0, 40)); });
+    }); });
+    return out;
+  }
+  function toast(m) { try { GlassUI.toast(m); } catch (e) { try { alert(m); } catch (e2) {} } }
+  function open(bid) {
+    bid = bid || curBid(); var its = items(bid);
+    if (!its.length) return toast('Nothing in this world to display yet — add something first.');
+    var base = /^https?:$/.test(location.protocol) ? 'voxel-factory/index.html' : 'https://minest-app.vercel.app/voxel-factory/index.html';
+    var f = document.createElement('div'); f.id = 'mn-vf3d'; f.style.cssText = 'position:fixed;inset:0;z-index:2147483560;background:#cfe6f5';
+    f.innerHTML = '<iframe src="' + base + '?kit=voxel-foundry&items=' + encodeURIComponent(its.join('\n')) + '" style="border:0;width:100%;height:100%" title="3D Display" allow="fullscreen"></iframe>' +
+      '<button type="button" style="position:absolute;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:8px 14px;border-radius:10px;border:0;background:#2b2118;color:#fff;font:600 14px system-ui">Close 3D</button>';
+    f.querySelector('button').onclick = function () { f.remove(); };
+    document.body.appendChild(f);
+  }
+  setInterval(function () {
+    var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-vf3d]') || !curBid()) return;
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-vf3d', ''); b.title = '3D Display — this world\'s things in a voxel workshop';
+    b.innerHTML = '<i>◇</i>3D Display'; b.addEventListener('click', function (e) { e.stopPropagation(); open(); });
+    acts.appendChild(b);
+  }, 800);
+  window.MinestVoxelFactory = { open: open, items: items };
+})();
+</script>
+<script id="mn-typing-worlds-app">
+/* Typing Worlds (Copilot, 2026-11-12): 22 immersive 3D typing worlds with the Word List (every word you typed, copy all),
+   built from tools/typing-worlds-app/ into typing-worlds/. window.MinestTypingWorldsApp.open() — and a ⌨ Typing Worlds
+   button in the My World console's tool row. It keeps its own storage; the iOS bundle opens the live page. */
+(function () {
+  if (window.MinestTypingWorldsApp) return;
+  function open() {
+    if (document.getElementById('mn-tw-app')) return;
+    var src = /^https?:$/.test(location.protocol) ? 'typing-worlds/index.html' : 'https://minest-app.vercel.app/typing-worlds/index.html';
+    var f = document.createElement('div'); f.id = 'mn-tw-app'; f.style.cssText = 'position:fixed;inset:0;z-index:2147483560;background:#05060a';
+    f.innerHTML = '<iframe src="' + src + '" style="border:0;width:100%;height:100%" title="Typing Worlds" allow="fullscreen; autoplay; clipboard-write"></iframe>' +
+      '<button type="button" aria-label="Close Typing Worlds" style="position:absolute;right:12px;bottom:calc(96px + env(safe-area-inset-bottom));width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:rgba(10,12,20,.6);color:#fff;font:600 18px system-ui;backdrop-filter:blur(10px)">✕</button>';
+    f.querySelector('button').onclick = function () { f.remove(); };
+    document.body.appendChild(f);
+    try { f.querySelector('iframe').focus(); } catch (e) {}
+  }
+  setInterval(function () {
+    var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-twapp]')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-twapp', ''); b.title = 'Typing Worlds — 22 typing worlds, with your Word List';
+    b.innerHTML = '<i>⌨</i>Typing Worlds'; b.addEventListener('click', function (e) { e.stopPropagation(); open(); });
+    acts.appendChild(b);
+  }, 800);
+  window.MinestTypingWorldsApp = { open: open, isOpen: function () { return !!document.getElementById('mn-tw-app'); }, close: function () { var f = document.getElementById('mn-tw-app'); if (f) f.remove(); } };
+})();
+</script>
+<script id="mn-interiors-entry">
+/* My World interiors (Codex, 2026-11-02; on main 2026-11-12): three original rooms — the Emerald Manor hall, the Castle
+   treasury, the two-storey private library — and Neuschwanstein's outside, Throne Hall and Singers' Hall, opened over My World.
+   Loads my-world-interiors/entry.js (window.MinestInteriors); the iOS bundle loads it from the live site.
+   A 🏛 Interiors button in the My World console's tool row offers the rooms. */
+(function () {
+  if (window.__mnInteriorsEntry) return; window.__mnInteriorsEntry = true;
+  var BASE = /^https?:$/.test(location.protocol) ? 'my-world-interiors/' : 'https://minest-app.vercel.app/my-world-interiors/';
+  function load(cb) {
+    if (window.MinestInteriors) return cb();
+    var s = document.createElement('script'); s.src = BASE + 'entry.js?v=20261112'; s.onload = function () { cb(); }; s.onerror = function () { try { GlassUI.toast('Interiors could not be loaded'); } catch (e) {} };
+    document.head.appendChild(s);
+  }
+  function chooser() {
+    load(function () {
+      var I = window.MinestInteriors; if (!I) return;
+      var old = document.getElementById('mn-int-pick'); if (old) { old.remove(); return; }
+      var el = document.createElement('div'); el.id = 'mn-int-pick';
+      el.style.cssText = 'position:fixed;z-index:2147483560;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 24px));max-height:80vh;overflow:auto;padding:14px;border-radius:18px;background:#183c31;color:#f6f0dc;font:14px system-ui,-apple-system,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.45)';
+      el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><b style="font-size:16px">🏛 Interiors · 室内场景</b><button type="button" data-x style="border:0;background:#f3efd9;color:#193d31;border-radius:12px;padding:6px 10px;font:inherit">✕</button></div>' +
+        I.kinds.map(function (k) { return '<button type="button" data-room="' + k[0] + '" style="display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border-radius:12px;border:1px solid rgba(246,240,220,.25);background:rgba(255,255,255,.06);color:inherit;font:inherit;cursor:pointer"><b>' + k[2].replace(/^一键进入/, '') + '</b><br><small style="opacity:.75">' + k[3] + '</small></button>'; }).join('');
+      el.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation(); el.remove(); if (b.dataset.room) I.open(b.dataset.room); });
+      document.body.appendChild(el);
+    });
+  }
+  setInterval(function () {
+    var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-mnint]')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-mnint', ''); b.title = 'Interiors — manor hall, castle treasury, private library, Neuschwanstein';
+    b.innerHTML = '<i>🏛</i>Interiors'; b.addEventListener('click', function (e) { e.stopPropagation(); chooser(); });
+    acts.appendChild(b);
+  }, 800);
+  window.MinestInteriorsEntry = { open: chooser };
+})();
+</script>
 <style id="mn-spatial-home-css">
 /* Minest · Spatial Home — everything is scoped under #mn-sh (and the sh- ids), so it can live inside the Minest page. */
 #mn-sh, #sh-host, #sh-veil, #sh-pill { --sh-ink: #1d2b4f; --sh-blue: #2f6fd6; --sh-paper: #fbf7ee; --sh-glass: rgba(251, 247, 238, .82); --sh-line: rgba(29, 43, 79, .14); }
@@ -183119,7 +183222,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         'desk.quill': { p: [-0.82, 0.78, -1.78], ry: 0.25 }, 'desk.key': { p: [0.1, 0.78, -1.7], ry: 0.3 },
         'desk.mochi': { p: [0.84, 0.78, -1.78], ry: -0.3 }, 'desk.book': { p: [0.6, 0.78, -2.2], ry: 0 },
         'cabinet.left': { p: [2.74, 0.8, 0.72], ry: -Math.PI / 2 }, 'cabinet.right': { p: [2.74, 0.8, 1.66], ry: -Math.PI / 2 },
-        'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }
+        'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }, 'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 }
       },
       desk: { pos: [0, 1.34, -0.92], look: [0, 0.93, -2.2] },
       start: { pos: [0.75, 1.5, 1.75], yaw: 0.18, pitch: -0.1 },
@@ -183180,7 +183283,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           'desk.mochi': { p: [0.84, 0.78, -1.78], ry: -0.3 }, 'desk.book': { p: [0.6, 0.78, -2.2], ry: 0 },
           'cabinet.left': { p: [2.74, 0.8, 0.72], ry: -Math.PI / 2 }, 'cabinet.right': { p: [2.74, 0.8, 1.66], ry: -Math.PI / 2 },
           'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 },
-          'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }   // the backpack, on the floor left of the desk
+          'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 },   // the backpack, on the floor left of the desk
+          'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 }   // gramophone by the shelf; projector + its screen towards the door wall
         };
       },
       solids: function () { return [[-1.1, -2.5, 1.1, -1.5], [-0.26, -1.45, 0.26, -0.92], [2.55, -1.56, 3, -0.04], [2.45, 0.44, 3, 1.96], [-3, -1.06, -2.46, 0.46], [1.9, -2.5, 3, -1.8]]; },
@@ -183913,7 +184017,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     ['cabinet.top', 'cabinet.left', 'cabinet.right', 'wall.right'].forEach(function (k) { out[k] = xf('cabinet', A[k]); });
     out['corner.window'] = { p: [3.85, 0, -1.08], ry: 0 };                      // the aquarium: collection end, by the left windows
     out['wall.left'] = { p: [-2.495, 1.6, -0.8], ry: Math.PI / 2 };             // the bulletin board on the partition
-    out['sill.left'] = { p: [-1.75, 0.84, -WID + 0.06], ry: 0 };               // the magic ornament on the window sill
+    out['sill.left'] = { p: [-1.75, 0.84, -WID + 0.06], ry: 0 };
+    out['floor.gramo'] = { p: [5.05, 0, 0.2], ry: -Math.PI / 2 };                // the gramophone at the collection end
+    out['floor.film'] = { p: [-4.0, 0, 0.05], ry: 0 };                            // the projector in the lounge, its screen towards the right windows               // the magic ornament on the window sill
     return out;
   }
 
@@ -184805,10 +184911,116 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     };
   }
 
+
+  /* ================================================================ Gramophone (the room's music: ambience / classical / mute — media.js)
+     A walnut cabinet, a turntable with a record that turns, a tonearm whose needle drops, a flared brass horn, a crank. */
+  function gramophone() {
+    var g = new THREE.Group(), v = new VB(1901), W = '#5e3b26', WD = '#43291a', BR = '#d8a94a', BD = '#a77c2c', i;
+    v.box(-0.24, 0, -0.2, 0.24, 0.05, 0.2, WD); v.box(-0.22, 0.05, -0.18, 0.22, 0.42, 0.18, W, 0.03);
+    v.box(-0.2, 0.08, 0.18, 0.2, 0.38, 0.185, '#74503a'); v.box(-0.02, 0.2, 0.185, 0.02, 0.26, 0.195, BR);   // front panel, knob
+    v.box(-0.24, 0.42, -0.2, 0.24, 0.45, 0.2, WD);
+    v.box(0.22, 0.25, -0.02, 0.26, 0.29, 0.02, BR); v.box(0.26, 0.2, -0.015, 0.275, 0.34, 0.015, BR); v.box(0.275, 0.2, -0.03, 0.3, 0.22, 0.03, '#2b2b2b');   // crank
+    g.add(v.mesh());
+    /* turntable + record */
+    var plat = new THREE.Group(); plat.position.set(-0.04, 0.45, 0.02); g.add(plat);
+    var disc = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.012, 40), new THREE.MeshPhongMaterial({ color: 0x141414, shininess: 90, specular: 0x666666 }));
+    disc.position.y = 0.012; plat.add(disc);
+    var lab = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.014, 24), new THREE.MeshLambertMaterial({ color: 0xc8463a })); lab.position.y = 0.013; plat.add(lab);
+    var grooves = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.145, 40, 3), new THREE.MeshBasicMaterial({ color: 0x2a2a2a, side: THREE.DoubleSide })); grooves.rotation.x = -Math.PI / 2; grooves.position.y = 0.0185; plat.add(grooves);
+    var shine = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 0.24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18, depthWrite: false })); shine.rotation.x = -Math.PI / 2; shine.position.y = 0.019; plat.add(shine);
+    /* tonearm: pivots at the back right, the needle drops onto the record */
+    var arm = new THREE.Group(); arm.position.set(0.15, 0.47, -0.12); g.add(arm);
+    var av = new VB(1902); av.cb(0, -0.02, 0, 0.04, 0.03, 0.04, BD); av.box(-0.006, 0.01, -0.006, 0.006, 0.02, 0.17, BR); av.box(-0.012, -0.005, 0.16, 0.012, 0.02, 0.2, BR); av.box(-0.003, -0.02, 0.18, 0.003, -0.005, 0.186, '#dcdcdc');
+    arm.add(av.mesh()); arm.rotation.y = 0.55; arm.rotation.x = -0.18;
+    /* horn: rings widening along a curve up and forward */
+    var horn = new THREE.Group(); horn.position.set(0.1, 0.45, -0.12); g.add(horn);
+    var hv = new VB(1903);
+    for (i = 0; i < 14; i++) { var t = i / 13, r = 0.015 + Math.pow(t, 2.2) * 0.17, y = 0.03 + t * 0.4, z = -0.02 + t * t * 0.28; hv.cb(-0.05 * t, y, z, r * 2, 0.03, r * 2, i % 2 ? BR : BD, 0.03); }
+    horn.add(hv.mesh()); horn.rotation.x = -0.25;
+    var kk = 0, last = 0, spin = 0;
+    return {
+      id: 'gramophone', name: '留声机', en: 'Gramophone', icon: '🎶', feature: 'music', local: true, anchor: 'floor.gramo', group: g,
+      hit: hitBox(g, -0.26, 0, -0.22, 0.3, 0.95, 0.24), label: [0, 1.0, 0],
+      focus: { pos: [1.55, 1.15, 0.65], look: [2.25, 0.45, 0.15] },
+      playing: false,
+      set: function (k) { kk = k; arm.rotation.y = 0.55 - 0.5 * Math.min(1, k * 1.6); arm.rotation.x = -0.18 + 0.16 * Math.max(0, Math.min(1, k * 2 - 0.6)); },
+      idle: function (t) {
+        var dt = Math.min(0.1, Math.max(0, t - last)); last = t;
+        var on = this.playing; spin += dt * (on ? 3.5 : 0); plat.rotation.y = spin;
+        if (on) { arm.rotation.y += (0.05 - arm.rotation.y) * Math.min(1, dt * 4); arm.rotation.x += (-0.02 - arm.rotation.x) * Math.min(1, dt * 4); horn.scale.setScalar(1 + Math.sin(t * 9) * 0.004); }
+        else if (kk === 0) { arm.rotation.y += (0.55 - arm.rotation.y) * Math.min(1, dt * 3); arm.rotation.x += (-0.18 - arm.rotation.x) * Math.min(1, dt * 3); }
+      }
+    };
+  }
+
+  /* ================================================================ Vintage film projector (the collection screening — media.js)
+     Two reels on their arms that turn, a lens, a light beam, and a screen on a stand that unrolls. Faces +z: the screen stands 1.3 m in front. */
+  function filmProjector() {
+    var g = new THREE.Group(), v = new VB(2001), M = '#3a3d42', MD = '#2b2d31', BR = '#c9a24a', i;
+    /* a small wooden stand */
+    v.box(-0.2, 0, -0.2, 0.2, 0.04, 0.2, '#5e3b26'); v.box(-0.03, 0.04, -0.03, 0.03, 0.62, 0.03, '#5e3b26');
+    [[-0.17, -0.17], [0.15, -0.17], [-0.17, 0.15], [0.15, 0.15]].forEach(function (q) { v.box(q[0], 0, q[1], q[0] + 0.02, 0.02, q[1] + 0.02, BR); });
+    v.box(-0.16, 0.62, -0.16, 0.16, 0.65, 0.16, '#5e3b26');
+    /* the body, lens, lamp housing vents */
+    v.box(-0.1, 0.65, -0.14, 0.1, 0.84, 0.12, M, 0.03); v.box(-0.035, 0.7, 0.12, 0.035, 0.77, 0.24, MD); v.box(-0.03, 0.705, 0.24, 0.03, 0.765, 0.25, '#9fd6ff');
+    for (i = 0; i < 4; i++) v.box(0.1, 0.68 + i * 0.035, -0.1, 0.105, 0.69 + i * 0.035, 0.05, '#1d1f22');
+    v.box(-0.004, 0.84, -0.06, 0.004, 1.02, -0.05, MD); v.box(-0.004, 0.84, 0.03, 0.004, 1.0, 0.04, MD);   // reel arms
+    v.box(-0.06, 0.8, 0.16, 0.06, 0.81, 0.17, BR);
+    g.add(v.mesh());
+    function reel(y, z, r) {
+      var rg = new THREE.Group(); rg.position.set(-0.012, y, z); g.add(rg);
+      var rv = new VB(2010 + Math.round(y * 100));
+      rv.box(-0.006, -r, -r, 0.006, r, r, '#1d1f22'); rv.box(-0.008, -r * 0.82, -r * 0.82, 0.008, r * 0.82, r * 0.82, '#3f2f22');
+      for (var k = 0; k < 3; k++) { var a = k / 3 * Math.PI; rv.box(-0.01, -0.006, -r * 0.9, 0.01, 0.006, r * 0.9, M); }
+      rv.cb(0, -0.015, 0, 0.022, 0.03, 0.03, BR);
+      var m = rv.mesh(); rg.add(m); return rg;
+    }
+    var r1 = reel(1.05, -0.08, 0.11), r2 = reel(1.0, 0.07, 0.09);
+    r1.children[0].rotation.x = 0; r2.children[0].rotation.x = 0.4;
+    /* the beam and the screen on its stand */
+    var beam = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.03, 1.25, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff1c8, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    beam.rotation.x = Math.PI / 2; beam.position.set(0, 0.95, 0.88); g.add(beam);
+    var sv = new VB(2020);
+    sv.box(-0.02, 0, 1.3, 0.02, 1.52, 1.34, '#2b2d31'); sv.box(-0.25, 0, 1.28, 0.25, 0.02, 1.36, '#2b2d31');
+    sv.box(-0.48, 1.5, 1.29, 0.48, 1.55, 1.35, '#2b2d31');
+    g.add(sv.mesh());
+    var cloth = new THREE.Group(); cloth.position.set(0, 1.5, 1.31); g.add(cloth);
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 192; var cx = cv.getContext('2d');
+    var tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
+    var screen = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.66), new THREE.MeshBasicMaterial({ color: 0xffffff, map: tex, fog: false }));
+    screen.position.y = -0.33; cloth.add(screen); cloth.scale.y = 0.02;
+    function paint(t, on) {
+      cx.fillStyle = on ? '#f4ecd6' : '#ece8de'; cx.fillRect(0, 0, 256, 192);
+      if (!on) return;
+      var f = 0.85 + 0.15 * Math.sin(t * 40) * Math.sin(t * 13);
+      cx.fillStyle = 'rgba(30,24,16,' + (0.12 * f) + ')'; for (var k = 0; k < 40; k++) cx.fillRect((k * 53 + t * 900) % 256, (k * 97 + t * 700) % 192, 1, 1 + (k % 3));
+      cx.strokeStyle = 'rgba(40,30,20,.25)'; cx.lineWidth = 1; cx.beginPath(); var x0 = (t * 60) % 256; cx.moveTo(x0, 0); cx.lineTo(x0 + 6, 192); cx.stroke();
+      cx.fillStyle = 'rgba(40,30,20,' + (0.55 * f) + ')'; cx.font = 'italic 700 34px Georgia, serif'; cx.textAlign = 'center'; cx.fillText('MINEST', 128, 92); cx.font = '600 15px Georgia, serif'; cx.fillText('· COLLECTION ·', 128, 120);
+      var gr = cx.createRadialGradient(128, 96, 40, 128, 96, 150); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.35)'); cx.fillStyle = gr; cx.fillRect(0, 0, 256, 192);
+      tex.needsUpdate = true;
+    }
+    paint(0, false); tex.needsUpdate = true;
+    var kk = 0, last = 0, spin = 0, paintT = 0;
+    return {
+      id: 'projector16', name: '老式放映机', en: 'Film projector', icon: '🎞', feature: 'cinema', local: true, anchor: 'floor.film', group: g,
+      hit: hitBox(g, -0.2, 0, -0.2, 0.2, 1.18, 0.3), label: [0, 1.25, 0],
+      focus: { pos: [-1.2, 1.3, 0.1], look: [-1.8, 1.0, 1.6] },
+      showing: false,
+      set: function (k) { kk = k; cloth.scale.y = 0.02 + 0.98 * Math.min(1, k * 1.4); beam.material.opacity = 0.16 * Math.max(0, k * 2 - 0.8); },
+      idle: function (t) {
+        var dt = Math.min(0.1, Math.max(0, t - last)), on = kk > 0.5 || this.showing; last = t;
+        spin += dt * (on ? 4 : 0); r1.rotation.x = spin; r2.rotation.x = spin * 1.25;
+        if (this.showing) { cloth.scale.y += (1 - cloth.scale.y) * Math.min(1, dt * 4); beam.material.opacity = 0.14 + 0.03 * Math.sin(t * 31); }
+        else if (kk === 0) { cloth.scale.y += (0.02 - cloth.scale.y) * Math.min(1, dt * 3); beam.material.opacity *= 0.9; }
+        if (t - paintT > 0.08 && cloth.scale.y > 0.3) { paintT = t; paint(t, on); }
+      }
+    };
+  }
+
   /* the entries this update adds; medal style comes from the settings (box on the cabinet / board on the wall) */
   function make(opts) {
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
-    return [backpack(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
+    return [backpack(), gramophone(), filmProjector(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
   root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
 })(window);
@@ -185253,7 +185465,257 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     head.insertBefore(b, head.children[1] || null);
   }, 700);
 
-  root.MinestBackpack = { VERSION: VERSION, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb, owned: owned, ownedKey: ownedKey, openInWorld: openInWorld, registerKind: registerKind };
+  root.MinestBackpack = { VERSION: VERSION, open: open, close: close, isOpen: isOpen, catalog: catalog, model: model, operate: operate, store: store, pref: pref, lists: lists, works: works, hotbar: hotbar, thumb: thumb, thingPic: thingPic, owned: owned, ownedKey: ownedKey, openInWorld: openInWorld, registerKind: registerKind };
+})(window);
+
+/* Minest · Spatial Home — the gramophone's music and the film projector's screening (window.SpatialMedia).
+   Music: everything is synthesised live with Web Audio — no recordings are downloaded or bundled.
+     · Ambience per environment: Santorini waves and gulls, Manhattan city hum, Alpine wind and birds, the train's rails.
+     · Classical: public-domain compositions (J. S. Bach circle: Minuet in G, BWV Anh. 114; Beethoven: Für Elise, WoO 59)
+       played by a small piano-like synth through a soft "gramophone" filter with a little crackle.
+     · Mute. Play / pause, volume. The state is the user's setting (app.js keeps it with the room's settings).
+   Screening: a slide show of what the user really has — Type Workshop works (their real 3D models, rendered), display
+   machines placed in the rooms, My World things (their own pictures) — with play / pause / previous / next / choose, and a
+   detail card that opens the 3D preview in the backpack or places the thing with the backpack. No sample content. */
+(function (root) {
+  'use strict';
+  var BP = function () { return root.MinestBackpack; };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /* ================================================================ audio */
+  var AC = null, OUT = null, BUS = null, nodes = [], timers = [], st = { mode: 'ambient', vol: 0.55, playing: false, piece: 0 }, env = 'santorini', duck = 1, onState = null;
+  function ac() {
+    if (AC) return AC; var C = root.AudioContext || root.webkitAudioContext; if (!C) return null;
+    AC = new C(); OUT = AC.createGain(); OUT.gain.value = 0; OUT.connect(AC.destination);
+    BUS = AC.createGain(); BUS.connect(OUT); return AC;
+  }
+  /* browsers start audio only from a gesture: the first touch / click / key after a "playing" state resumes it */
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function (t) { root.addEventListener(t, function () { if (st.playing && AC && AC.state === 'suspended') AC.resume(); }, true); });
+  var NB = {};
+  function noise(kind) {
+    if (NB[kind]) return NB[kind];
+    var n = AC.sampleRate * 4, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0), last = 0, b0 = 0, b1 = 0, b2 = 0;
+    for (var i = 0; i < n; i++) {
+      var w = Math.random() * 2 - 1;
+      if (kind === 'brown') { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+      else if (kind === 'pink') { b0 = 0.997 * b0 + w * 0.029591; b1 = 0.985 * b1 + w * 0.032534; b2 = 0.95 * b2 + w * 0.048056; d[i] = (b0 + b1 + b2 + w * 0.1) * 0.6; }
+      else d[i] = w * 0.5;
+    }
+    return (NB[kind] = b);
+  }
+  function src(kind) { var s = AC.createBufferSource(); s.buffer = noise(kind); s.loop = true; s.start(); nodes.push(s); return s; }
+  function filt(type, f, q) { var x = AC.createBiquadFilter(); x.type = type; x.frequency.value = f; if (q) x.Q.value = q; nodes.push(x); return x; }
+  function gain(v) { var g = AC.createGain(); g.gain.value = v; nodes.push(g); return g; }
+  function lfo(rate, depth, param, offset) { var o = AC.createOscillator(), g = gain(depth); o.frequency.value = rate; o.connect(g); g.connect(param); if (offset != null) param.value = offset; o.start(); nodes.push(o); }
+  function every(ms, fn, jitter) { var id = { t: 0 }; (function next() { id.t = setTimeout(function () { try { fn(); } catch (e) {} next(); }, ms + Math.random() * (jitter || 0)); })(); timers.push(id); }
+  function chirp(f0, f1, dur, vol, type) {
+    var t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(); o.type = type || 'sine';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(BUS); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function burst(fc, dur, vol) {
+    var t = AC.currentTime, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+    s.buffer = noise('white'); f.type = 'bandpass'; f.frequency.value = fc; f.Q.value = 1.2;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(BUS); s.start(t, Math.random() * 3); s.stop(t + dur + 0.05);
+  }
+  var AMB = {
+    santorini: { label: '海浪与海鸥', build: function () {
+      var w = src('brown'), lp = filt('lowpass', 520), g = gain(0.5); w.connect(lp); lp.connect(g); g.connect(BUS); lfo(0.11, 0.35, g.gain, 0.45);
+      var f = src('pink'), hp = filt('highpass', 1800), g2 = gain(0.04); f.connect(hp); hp.connect(g2); g2.connect(BUS); lfo(0.11, 0.035, g2.gain, 0.04);
+      every(6500, function () { chirp(1700, 1200, 0.35, 0.05, 'triangle'); setTimeout(function () { chirp(1650, 1150, 0.3, 0.04, 'triangle'); }, 380); }, 9000);
+    } },
+    manhattan: { label: '城市低鸣与远处车流', build: function () {
+      var c = src('brown'), lp = filt('lowpass', 260), g = gain(0.55); c.connect(lp); lp.connect(g); g.connect(BUS);
+      var t = src('pink'), bp = filt('bandpass', 900, 0.7), g2 = gain(0.05); t.connect(bp); bp.connect(g2); g2.connect(BUS); lfo(0.05, 0.03, g2.gain, 0.05);
+      every(14000, function () { chirp(392, 392, 0.4, 0.015, 'square'); setTimeout(function () { chirp(330, 330, 0.5, 0.012, 'square'); }, 420); }, 16000);
+    } },
+    alpine: { label: '山风、鸟鸣与远处牛铃', build: function () {
+      var w = src('white'), bp = filt('bandpass', 600, 0.8), g = gain(0.18); w.connect(bp); bp.connect(g); g.connect(BUS); lfo(0.07, 260, bp.frequency, 620); lfo(0.09, 0.1, g.gain, 0.16);
+      every(5200, function () { var f = 2600 + Math.random() * 1400; chirp(f, f * 1.3, 0.12, 0.03); setTimeout(function () { chirp(f * 1.1, f * 0.9, 0.14, 0.025); }, 160); }, 7000);
+      every(16000, function () { [523, 1046, 1568].forEach(function (f, i) { chirp(f, f * 0.995, 1.6, 0.012 / (i + 1), 'triangle'); }); }, 12000);
+    } },
+    train: { label: '车轮与铁轨', build: function () {
+      var r = src('brown'), lp = filt('lowpass', 140), g = gain(0.7); r.connect(lp); lp.connect(g); g.connect(BUS);
+      var hiss = src('pink'), bp = filt('bandpass', 2400, 0.6), g2 = gain(0.02); hiss.connect(bp); bp.connect(g2); g2.connect(BUS);
+      every(1150, function () { burst(320, 0.09, 0.28); setTimeout(function () { burst(300, 0.1, 0.24); }, 170); }, 90);
+    } }
+  };
+  /* public-domain pieces: [midi, beats] (0 = rest); bass under the melody */
+  var PIECES = [
+    { name: '巴赫圈 · G 大调小步舞曲（BWV Anh. 114）', beat: 0.52,
+      mel: [[74,1],[67,.5],[69,.5],[71,.5],[72,.5],[74,1],[67,1],[67,1],[76,1],[72,.5],[74,.5],[76,.5],[78,.5],[79,1],[67,1],[67,1],[72,1],[74,.5],[72,.5],[71,.5],[69,.5],[71,1],[72,.5],[71,.5],[69,.5],[67,.5],[66,1],[67,.5],[69,.5],[71,.5],[67,.5],[69,3],
+            [74,1],[67,.5],[69,.5],[71,.5],[72,.5],[74,1],[67,1],[67,1],[76,1],[72,.5],[74,.5],[76,.5],[78,.5],[79,1],[67,1],[67,1],[72,1],[74,.5],[72,.5],[71,.5],[69,.5],[71,1],[72,.5],[71,.5],[69,.5],[67,.5],[69,1],[71,.5],[69,.5],[67,.5],[66,.5],[67,3]],
+      bass: [[55,2],[57,1],[59,3],[60,3],[59,3],[57,3],[55,3],[62,2],[59,1],[62,1],[50,1],[54,1],[55,2],[57,1],[59,3],[60,3],[59,3],[57,3],[55,3],[60,1],[62,1],[50,1],[55,2],[43,1]] },
+    { name: '贝多芬 · 致爱丽丝（WoO 59）', beat: 0.42,
+      mel: [[76,.25],[75,.25],[76,.25],[75,.25],[76,.25],[71,.25],[74,.25],[72,.25],[69,.5],[0,.25],[60,.25],[64,.25],[69,.25],[71,.5],[0,.25],[64,.25],[68,.25],[71,.25],[72,.5],[0,.25],[64,.25],[76,.25],[75,.25],
+            [76,.25],[75,.25],[76,.25],[71,.25],[74,.25],[72,.25],[69,.5],[0,.25],[60,.25],[64,.25],[69,.25],[71,.5],[0,.25],[64,.25],[72,.25],[71,.25],[69,1.25]],
+      bass: [[0,1.5],[45,.25],[52,.25],[57,.25],[0,.75],[40,.25],[52,.25],[56,.25],[0,.75],[45,.25],[52,.25],[57,.25],[0,1.5],[45,.25],[52,.25],[57,.25],[0,.75],[40,.25],[52,.25],[56,.25],[0,.75],[45,1.5]] }
+  ];
+  function hz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function note(m, t, dur, vol) {
+    if (!m) return;
+    var o1 = AC.createOscillator(), o2 = AC.createOscillator(), g = AC.createGain(), f = hz(m);
+    o1.type = 'triangle'; o2.type = 'sine'; o1.frequency.value = f; o2.frequency.value = f * 2;
+    var g2 = AC.createGain(); g2.gain.value = 0.25; o2.connect(g2); g2.connect(g); o1.connect(g); g.connect(PIANO);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(vol * 0.35, t + 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.3, dur * 1.6));
+    o1.start(t); o2.start(t); o1.stop(t + dur * 1.7 + 0.1); o2.stop(t + dur * 1.7 + 0.1);
+  }
+  var PIANO = null;
+  function classical() {
+    PIANO = filt('bandpass', 1300, 0.35); var tone = gain(0.9); PIANO.connect(tone); tone.connect(BUS);
+    var cr = src('white'), hp = filt('highpass', 3000), cg = gain(0.012); cr.connect(hp); hp.connect(cg); cg.connect(BUS);   // the record's crackle
+    every(700, function () { if (Math.random() < 0.5) burst(4200, 0.02, 0.02); }, 900);
+    var P = PIECES[st.piece % PIECES.length], tm = { mel: 0, bass: 0, mi: 0, bi: 0, t0: AC.currentTime + 0.15 };
+    var id = { t: setInterval(function () {
+      var ahead = AC.currentTime + 0.4, len = P.mel.reduce(function (a, n) { return a + n[1]; }, 0) * P.beat;
+      while (tm.t0 + tm.mel * P.beat < ahead) { var n = P.mel[tm.mi]; note(n[0], tm.t0 + tm.mel * P.beat, n[1] * P.beat, 0.16); tm.mel += n[1]; tm.mi++; if (tm.mi >= P.mel.length) { tm.mi = 0; tm.t0 += len + P.beat * 2; tm.mel = 0; tm.bass = 0; tm.bi = 0; break; } }
+      while (tm.bi < P.bass.length && tm.t0 + tm.bass * P.beat < ahead) { var b = P.bass[tm.bi]; note(b[0], tm.t0 + tm.bass * P.beat, b[1] * P.beat, 0.1); tm.bass += b[1]; tm.bi++; }
+    }, 100) };
+    timers.push({ t: id.t, iv: true });
+  }
+  function stopAll() {
+    nodes.forEach(function (n) { try { if (n.stop) n.stop(); } catch (e) {} try { n.disconnect(); } catch (e) {} }); nodes = [];
+    timers.forEach(function (t) { clearTimeout(t.t); clearInterval(t.t); }); timers = [];
+  }
+  function level() { return st.playing && st.mode !== 'mute' ? st.vol * duck : 0; }
+  function apply() {
+    if (!ac()) return;
+    var want = st.playing && st.mode !== 'mute';
+    stopAll();
+    if (want) { if (AC.state === 'suspended') AC.resume(); if (st.mode === 'classical') classical(); else (AMB[env] || AMB.santorini).build(); }
+    OUT.gain.cancelScheduledValues(AC.currentTime); OUT.gain.setTargetAtTime(level(), AC.currentTime, 0.25);
+    if (onState) onState(st);
+  }
+  var audio = {
+    state: function () { return JSON.parse(JSON.stringify(st)); },
+    load: function (s) { if (s && typeof s === 'object') ['mode', 'vol', 'playing', 'piece'].forEach(function (k) { if (s[k] !== undefined) st[k] = s[k]; }); },
+    set: function (p) { Object.keys(p).forEach(function (k) { st[k] = p[k]; }); apply(); },
+    setVolume: function (v) { st.vol = Math.max(0, Math.min(1, v)); if (AC) OUT.gain.setTargetAtTime(level(), AC.currentTime, 0.1); if (onState) onState(st); },
+    setEnv: function (id) { var changed = env !== id; env = id; if (changed && st.playing && st.mode === 'ambient') apply(); },
+    duck: function (on) { duck = on ? 0.25 : 1; if (AC) OUT.gain.setTargetAtTime(level(), AC.currentTime, 0.3); },
+    suspend: function () { if (AC) { stopAll(); OUT.gain.value = 0; } },
+    resume: function () { if (st.playing) apply(); },
+    onState: function (fn) { onState = fn; },
+    ambience: function () { return (AMB[env] || AMB.santorini).label; }, pieces: function () { return PIECES.map(function (p) { return p.name; }); }
+  };
+
+  /* ================================================================ the gramophone's panel */
+  function css() {
+    if (document.getElementById('sh-media-css')) return;
+    var s = document.createElement('style'); s.id = 'sh-media-css';
+    s.textContent = [
+      '#sh-music{position:fixed;z-index:2147483646;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(380px,calc(100vw - 24px));padding:14px;border-radius:20px;background:linear-gradient(180deg,#5e3b26,#43291a);color:#f6ead2;font:14px/1.4 -apple-system,"PingFang SC",sans-serif;box-shadow:0 20px 50px rgba(30,15,5,.45),inset 0 0 0 2px #d8a94a}',
+      '#sh-music h4{margin:0 0 8px;font-size:15px;display:flex;justify-content:space-between;align-items:center}#sh-music small{opacity:.75}',
+      '#sh-music .seg{display:flex;gap:4px;margin:6px 0}#sh-music .seg button,#sh-music .row button{flex:1;border:0;border-radius:10px;padding:8px 6px;font:inherit;font-weight:700;background:#74503a;color:#f6ead2;cursor:pointer}#sh-music .seg button.on{background:#d8a94a;color:#3a2412}',
+      '#sh-music .row{display:flex;gap:8px;align-items:center;margin-top:8px}#sh-music input[type=range]{flex:2;accent-color:#d8a94a}#sh-music select{width:100%;margin-top:6px;padding:7px;border-radius:9px;border:0;background:#f6ead2;color:#3a2412;font:inherit}',
+      '#sh-music .x{border:0;background:none;color:#f6ead2;font-size:18px;cursor:pointer}',
+      '#sh-cinema{position:fixed;inset:0;z-index:2147483646;background:#0d0b09;color:#f1e6cf;font:14px/1.4 -apple-system,"PingFang SC",sans-serif;display:flex;flex-direction:column}',
+      '#sh-cinema .film{position:relative;flex:1;min-height:0;margin:14px 46px 8px;border-radius:6px;overflow:hidden;background:#1a1612;box-shadow:0 0 60px rgba(255,220,150,.08)}',
+      '#sh-cinema .sprk{position:absolute;top:0;bottom:0;width:30px;background:repeating-linear-gradient(180deg,#0d0b09 0 10px,#e9dcc0 10px 22px,#0d0b09 22px 34px);opacity:.75}#sh-cinema .sprk.l{left:10px}#sh-cinema .sprk.r{right:10px}',
+      '#sh-cinema .frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px 40px 80px;animation:shFlick .14s infinite}',
+      '@keyframes shFlick{0%{opacity:.96}50%{opacity:1}100%{opacity:.93}}',
+      '#sh-cinema .frame img{max-width:100%;max-height:100%;object-fit:contain;filter:sepia(.35) contrast(1.05);border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.5)}',
+      '#sh-cinema .frame .word{font:italic 700 clamp(28px,8vw,72px) Georgia,serif;color:#f6e7c2;text-shadow:0 0 18px rgba(255,190,90,.5)}',
+      '#sh-cinema .grain{position:absolute;inset:-50%;pointer-events:none;opacity:.14;background-image:radial-gradient(rgba(255,255,255,.6) 1px,transparent 1px),radial-gradient(rgba(0,0,0,.7) 1px,transparent 1px);background-size:3px 3px,5px 5px;animation:shGrain .4s steps(4) infinite}',
+      '@keyframes shGrain{0%{transform:translate(0,0)}25%{transform:translate(-3%,2%)}50%{transform:translate(2%,-3%)}75%{transform:translate(-2%,-1%)}}',
+      '#sh-cinema .vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(0,0,0,.6) 100%)}',
+      '#sh-cinema .cap{position:absolute;left:0;right:0;bottom:0;padding:14px 50px 16px;background:linear-gradient(transparent,rgba(0,0,0,.75));text-align:center}#sh-cinema .cap b{font-size:18px}#sh-cinema .cap small{display:block;opacity:.75}',
+      '#sh-cinema .cap button{margin-top:6px;border:1px solid rgba(241,230,207,.5);background:rgba(241,230,207,.12);color:#f1e6cf;border-radius:999px;padding:5px 12px;font:inherit;cursor:pointer}',
+      '#sh-cinema footer{display:flex;gap:8px;justify-content:center;align-items:center;padding:8px 12px calc(12px + env(safe-area-inset-bottom))}#sh-cinema footer button{border:0;border-radius:12px;padding:9px 14px;background:#2e2720;color:#f1e6cf;font:inherit;font-weight:700;cursor:pointer}#sh-cinema footer span{opacity:.7;min-width:64px;text-align:center}',
+      '#sh-cinema .grid{position:absolute;inset:0;overflow:auto;padding:20px 50px;background:rgba(13,11,9,.94);display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;align-content:start}#sh-cinema .grid[hidden]{display:none}',
+      '#sh-cinema .grid button{border:1px solid #3a3128;background:#1a1612;color:#f1e6cf;border-radius:10px;padding:6px;font:inherit;font-size:12px;cursor:pointer}#sh-cinema .grid img{width:100%;height:80px;object-fit:contain;display:block;filter:sepia(.3)}',
+      '#sh-cinema .detail{position:absolute;right:16px;top:16px;width:min(320px,calc(100% - 32px));padding:14px;border-radius:16px;background:#f1e6cf;color:#2b1d12}#sh-cinema .detail[hidden]{display:none}#sh-cinema .detail img{width:100%;max-height:200px;object-fit:contain;border-radius:8px;background:#e5d6b6}',
+      '#sh-cinema .detail .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}#sh-cinema .detail .acts button{flex:1 1 45%;border:0;border-radius:10px;padding:9px 6px;font:inherit;font-weight:700;background:#e0cfa8;color:#2b1d12;cursor:pointer}#sh-cinema .detail .acts button.pri{background:#2f6fd6;color:#fff}',
+      '@media (max-width:600px){#sh-cinema .film{margin:10px 34px 6px}#sh-cinema .sprk{width:20px}#sh-cinema .frame{padding:16px 22px 90px}}'
+    ].join('\n');
+    document.head.appendChild(s);
+  }
+  var panel = null;
+  function music(ctx) {
+    css(); if (panel) panel.remove();
+    panel = document.createElement('div'); panel.id = 'sh-music'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', '留声机');
+    function draw() {
+      var s = st;
+      panel.innerHTML = '<h4><span>🎶 留声机</span><button type="button" class="x" data-m="close" aria-label="关上">✕</button></h4>' +
+        '<div class="seg"><button type="button" data-m="mode" data-v="ambient" class="' + (s.mode === 'ambient' ? 'on' : '') + '">环境音</button><button type="button" data-m="mode" data-v="classical" class="' + (s.mode === 'classical' ? 'on' : '') + '">古典音乐</button><button type="button" data-m="mode" data-v="mute" class="' + (s.mode === 'mute' ? 'on' : '') + '">静音</button></div>' +
+        (s.mode === 'ambient' ? '<small>这里的氛围：' + esc(audio.ambience()) + '（实时合成）</small>' : '') +
+        (s.mode === 'classical' ? '<select data-m="piece">' + PIECES.map(function (p, i) { return '<option value="' + i + '"' + (i === s.piece ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('') + '</select><small>公共领域乐曲，合成演奏</small>' : '') +
+        '<div class="row"><button type="button" data-m="play">' + (s.playing ? '⏸ 暂停' : '▶ 播放') + '</button><input type="range" min="0" max="100" value="' + Math.round(s.vol * 100) + '" data-m="vol" aria-label="音量"></div>';
+    }
+    draw();
+    panel.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-m]'); if (!b) return; var a = b.dataset.m;
+      if (a === 'close') { close(); return; }
+      if (a === 'mode') { audio.set({ mode: b.dataset.v, playing: b.dataset.v === 'mute' ? st.playing : true }); draw(); }
+      if (a === 'play') { audio.set({ playing: !st.playing }); draw(); }
+    });
+    panel.addEventListener('input', function (e) { if (e.target.dataset.m === 'vol') audio.setVolume(e.target.value / 100); });
+    panel.addEventListener('change', function (e) { if (e.target.dataset.m === 'piece') { audio.set({ piece: +e.target.value, playing: true }); draw(); } });
+    document.body.appendChild(panel);
+    function close() { if (!panel) return; panel.remove(); panel = null; if (ctx.onClose) ctx.onClose(); }
+    music.close = close;
+  }
+
+  /* ================================================================ the screening */
+  var cin = null;
+  function reels(ctx) {
+    var B = BP(); if (!B) return [];
+    var T = root.THREE, all = B.catalog({ functionObjects: function () { return []; } }), out = [];
+    all.filter(function (it) { return it.cat === 'creations'; }).forEach(function (it) { out.push({ item: it, kind: 'Type Workshop 作品', title: it.name, sub: it.note, img: B.thumb(T, it) }); });
+    /* display machines standing in the rooms (any environment) */
+    (root.SpatialRoom ? root.SpatialRoom.envs() : []).forEach(function (en) {
+      var L = B.store.get('bp:home:' + en.id); ((L && L.extras) || []).forEach(function (e) {
+        if (e.kind !== 'machine' || !e.mx) return;
+        var it = all.filter(function (x) { return x.key === 'mc:' + e.mx.type; })[0]; if (!it) return;
+        out.push({ item: it, kind: '陈列装置', title: it.name + (e.mx.title ? ' · ' + e.mx.title : ''), sub: '摆在 ' + en.name + (e.mx.title ? ' · 装着「' + e.mx.title + '」' : ''), img: B.thumb(T, it) });
+      });
+    });
+    all.filter(function (it) { return it.cat === 'collections'; }).slice(0, 60).forEach(function (it) { out.push({ item: it, kind: 'My World 收藏', title: it.name, sub: it.note, img: B.thingPic ? B.thingPic(it.ref) : '' }); });
+    return out;
+  }
+  function cinema(ctx) {
+    css(); if (cin) cin.el.remove();
+    var list = reels(ctx), el = document.createElement('div'); el.id = 'sh-cinema'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', '收藏放映');
+    el.innerHTML = '<div class="film"><div class="sprk l"></div><div class="sprk r"></div><div class="frame"></div><div class="grain"></div><div class="vig"></div><div class="cap"></div><div class="grid" hidden></div><div class="detail" hidden></div></div>' +
+      '<footer><button type="button" data-c="prev" aria-label="上一个">◀</button><button type="button" data-c="play"></button><button type="button" data-c="next" aria-label="下一个">▶</button><span class="n"></span><button type="button" data-c="grid">▦ 选择</button><button type="button" data-c="close">✕ 关闭</button></footer>';
+    document.body.appendChild(el);
+    cin = { el: el, list: list, i: 0, playing: true, timer: 0 };
+    function show() {
+      var fr = el.querySelector('.frame'), cap = el.querySelector('.cap');
+      el.querySelector('[data-c="play"]').textContent = cin.playing ? '⏸ 暂停' : '▶ 播放';
+      if (!list.length) { fr.innerHTML = '<div class="word">空</div>'; cap.innerHTML = '<b>还没有可以放映的收藏</b><small>Type Workshop 作品、摆好的陈列装置和 My World 里的东西会出现在这里</small>'; el.querySelector('.n').textContent = '0 / 0'; return; }
+      var r = list[cin.i];
+      fr.innerHTML = r.img ? '<img alt="" src="' + esc(r.img) + '">' : '<div class="word">' + esc(r.title) + '</div>';
+      cap.innerHTML = '<b>' + esc(r.title) + '</b><small>' + esc(r.kind) + (r.sub ? ' · ' + esc(r.sub) : '') + '</small><button type="button" data-c="detail">查看 · 3D 预览 · 放置</button>';
+      el.querySelector('.n').textContent = (cin.i + 1) + ' / ' + list.length;
+    }
+    function tick() { clearTimeout(cin.timer); if (cin.playing && list.length > 1) cin.timer = setTimeout(function () { cin.i = (cin.i + 1) % list.length; show(); tick(); }, 4200); }
+    function detail(r) {
+      var d = el.querySelector('.detail'); cin.playing = false; tick(); show();
+      d.innerHTML = (r.img ? '<img alt="" src="' + esc(r.img) + '">' : '') + '<h4 style="margin:8px 0 2px">' + esc(r.title) + '</h4><small>' + esc(r.kind) + (r.sub ? ' · ' + esc(r.sub) : '') + '</small>' +
+        '<div class="acts"><button type="button" class="pri" data-c="d-preview">🎒 3D 预览</button><button type="button" data-c="d-place">放进房间</button><button type="button" data-c="d-close">返回放映</button></div>';
+      d.hidden = false; d._r = r;
+    }
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-c]'); if (!b) return; var a = b.dataset.c, r = list[cin.i];
+      if (a === 'close') return close();
+      if (a === 'prev' && list.length) { cin.i = (cin.i - 1 + list.length) % list.length; show(); tick(); }
+      if (a === 'next' && list.length) { cin.i = (cin.i + 1) % list.length; show(); tick(); }
+      if (a === 'play') { cin.playing = !cin.playing; show(); tick(); }
+      if (a === 'grid') { var g = el.querySelector('.grid'); g.hidden = !g.hidden; if (!g.hidden) g.innerHTML = list.map(function (q, i) { return '<button type="button" data-c="pick" data-i="' + i + '">' + (q.img ? '<img alt="" src="' + esc(q.img) + '">' : '') + esc(q.title) + '</button>'; }).join('') || '<p>还没有可以放映的收藏</p>'; }
+      if (a === 'pick') { cin.i = +b.dataset.i; el.querySelector('.grid').hidden = true; show(); detail(list[cin.i]); }
+      if (a === 'detail' && r) detail(r);
+      if (a === 'd-close') { el.querySelector('.detail').hidden = true; cin.playing = true; show(); tick(); }
+      if (a === 'd-preview') { var it = el.querySelector('.detail')._r.item; close(true); if (ctx.preview) ctx.preview(it); }
+      if (a === 'd-place') { var it2 = el.querySelector('.detail')._r.item; close(true); if (ctx.place) ctx.place(it2); }
+    });
+    function close(quiet) { if (!cin) return; clearTimeout(cin.timer); cin.el.remove(); cin = null; if (ctx.onClose) ctx.onClose(!!quiet); }
+    cinema.close = close;
+    show(); tick();
+  }
+  root.SpatialMedia = { audio: audio, music: music, cinema: cinema, reels: reels, isOpen: function () { return !!(panel || cin); } };
 })(window);
 
 /* Minest · Spatial Home — the bridge to the features that already exist.
@@ -185503,7 +185965,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var canvas = $('gl');
 
   /* ------------------------------------------------------------ settings (kept) */
-  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
+  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && typeof raw === 'object') for (var k0 in S) if (raw[k0] !== undefined) S[k0] = raw[k0]; } catch (e) {}
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   var dirty = false;
@@ -185679,7 +186141,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function openLocal(o) {
     busy = true; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true;
     flyLook(o.focus.pos, o.focus.look, 0.7).then(function () { return animK(o, 1, 0.75); }).then(function () {
-      busy = false; body.classList.remove('busy'); packFrom = o; openPack();
+      busy = false; body.classList.remove('busy'); packFrom = o;
+      var M = window.SpatialMedia;
+      if (o.id === 'gramophone' && M) M.music({ onClose: function () { closeLocal(false); } });
+      else if (o.id === 'projector16' && M) { o.showing = true; M.cinema({ onClose: function (quiet) { o.showing = false; closeLocal(!!quiet); },
+        preview: function (it) { setTimeout(function () { openPack(it.key); }, 400); }, place: function (it) { setTimeout(function () { host.place(it, false); }, 300); } }); }
+      else openPack();
     });
   }
   function closeLocal(placing) {
@@ -185700,7 +186167,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       veilAt(f.o); return veilOut();
     }).then(function () { return comeBack(f.o); });
   }
-  B.init({ wrap: $('host'), pill: pillEl, onLeave: onLeave, onShow: function () { body.hidden = true; } });
+  B.init({ wrap: $('host'), pill: pillEl, onLeave: function (t, why) { if (window.SpatialMedia) window.SpatialMedia.audio.duck(false); onLeave(t, why); }, onShow: function () { body.hidden = true; if (window.SpatialMedia) window.SpatialMedia.audio.duck(true); } });
 
   /* ------------------------------------------------------------ modes */
   function setMode(m, quick) {
@@ -185954,7 +186421,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
      A layout per environment: S.layouts[env] = { <thing id>: { p, ry, stashed }, extras: [ { uid, kind, p, ry, ref, title } ] }.
      Nothing is copied: a My World thing on display keeps only its ids (board / card / thing) and its title for the label.
      Every thing's close-up camera is stored relative to the thing, so it follows wherever the thing goes. */
-  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
+  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
   function placeType(o) { return o.style === 'wall' ? 'wall' : (PLACE[o.id] || 'surface'); }
   function m4of(p, ry) { return new THREE.Matrix4().makeRotationY(ry).setPosition(p[0], p[1], p[2]); }
   function localize(o) {
@@ -186179,7 +186646,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var host = {
     THREE: THREE, reduced: function () { return !!S.motion; }, toast: toast,
     hotbarVisible: function () { return !body.hidden && !inFeature && !edit && !busy; },
-    functionObjects: function () { return objects.filter(function (o) { return !o.local; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
+    functionObjects: function () { return objects.filter(function (o) { return o.id !== 'backpack'; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
     onClose: function (placing) { closeLocal(placing); },
     status: function (it) {
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; return o && o.stashed ? { badge: '在背包', cls: 'bag', text: '在背包里（功能仍可从下方入口进入）', placed: false } : { badge: '摆放中', cls: '', text: '摆在 ' + room.name, placed: true }; }
@@ -186221,6 +186688,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       else { P.x = room.start.pos[0]; P.z = room.start.pos[2]; P.yaw = room.start.yaw; P.pitch = room.start.pitch; }
       deskBase = (function () { var p = room.desk.pos, l = room.desk.look, dx = l[0] - p[0], dy = l[1] - p[1], dz = l[2] - p[2]; return { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) }; })();
       $('brandName').textContent = room.name; canvas.setAttribute('aria-label', room.name);
+      if (window.SpatialMedia) window.SpatialMedia.audio.setEnv(room.envId);
       camAuto = true; autoPose(camera.position, camera.quaternion); S.env = room.envId; save();
       return veilFade(0, 0.35);
     }).then(function () { busy = false; body.classList.remove('busy'); });
@@ -186257,7 +186725,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   $('optMotion').addEventListener('change', function () { S.motion = this.checked; save(); });
   if ($('optPreload')) $('optPreload').addEventListener('change', function () { S.preload = this.checked; save(); if (S.preload) B.load().then(renderSettings); renderSettings(); });
   if ($('optBoot')) $('optBoot').addEventListener('change', function () { S.boot = this.checked; save(); });
-  function exitHome() { if (busy) return; save(); setEl.hidden = true; closeCard(); B.release(); inFeature = null; body.hidden = true; paused = true; }
+  function exitHome() { if (busy) return; if (window.SpatialMedia) window.SpatialMedia.audio.suspend(); save(); setEl.hidden = true; closeCard(); B.release(); inFeature = null; body.hidden = true; paused = true; }
   if ($('exitBtn')) $('exitBtn').addEventListener('click', exitHome);
   if ($('setExit')) $('setExit').addEventListener('click', exitHome);
 
@@ -186287,6 +186755,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   window.addEventListener('pagehide', save);
   if (!EMBED && S.preload) setTimeout(function () { B.load(); }, 1500);
   placeAll();
+  var MA = window.SpatialMedia && window.SpatialMedia.audio, gram = objects.filter(function (o) { return o.id === 'gramophone'; })[0];
+  if (MA) {
+    MA.load(S.audio); MA.setEnv(room.envId);
+    MA.onState(function (st) { S.audio = st; if (gram) gram.playing = !!(st.playing && st.mode !== 'mute'); dirty = true; });
+    if (gram) gram.playing = !!(S.audio && S.audio.playing && S.audio.mode !== 'mute');
+    if (S.audio && S.audio.playing) MA.resume();
+  }
   markAvailability();
   frame();
 
@@ -186297,6 +186772,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (mode === 'desk') { DK.yaw = 0; DK.pitch = 0; }
     camAuto = true; try { canvas.focus(); } catch (e) {}
     if (third()) gesture('wave', 1.6);
+    if (window.SpatialMedia) window.SpatialMedia.audio.resume();
   }
   API = {
     version: '1.0', objects: objects, open: open, close: exitHome, isOpen: function () { return !body.hidden || !!inFeature; },
@@ -186368,109 +186844,6 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   if (document.readyState === 'complete') setTimeout(boot, 300); else window.addEventListener('load', function () { setTimeout(boot, 300); }, { once: true });
 })();
 
-</script>
-<script id="mn-voxel-factory">
-/* 3D Display (Copilot's voxel-factory/, 2026-11-12): this My World world's things, crafted and set out on shelves in a
-   voxel workshop. window.MinestVoxelFactory.open(bid) — and a ◇ 3D Display button in the My World console's tool row.
-   Only titles go across (in the address); the voxel factory keeps its own layout (minest3d.world.v1) and never writes
-   to Minest's boards. The iOS bundle opens the live page. */
-(function () {
-  if (window.MinestVoxelFactory) return;
-  function boards() { try { return (window.MinestAI && MinestAI.boards && MinestAI.boards()) || []; } catch (e) { return []; } }
-  /* the world on show: My World's first crumb is its board's title */
-  function curBid() {
-    try {
-      if (!(window.MinestDisplay && MinestDisplay.isOpen && MinestDisplay.isOpen())) return null;
-      var t = window.MinestWorldFold && MinestWorldFold.crumbs && MinestWorldFold.crumbs()[0]; if (!t) return null;
-      var b = boards().filter(function (x) { return String(x.title || '') === String(t); })[0]; return b ? b.id : null;
-    } catch (e) { return null; }
-  }
-  function items(bid) {
-    var b = boards().filter(function (x) { return x.id === bid; })[0], K = window.MinestKnowledge, out = [];
-    ((b && b.columns) || []).forEach(function (col) { (col.cards || []).forEach(function (c) {
-      if (!c || !c.id || (K && K.isHeading && K.isHeading(c.id)) || (K && K.get && K.get('sk:' + c.id)) || /inbox/i.test(c.title || '')) return;
-      (c.stack || []).forEach(function (s) { if (s && s.title && out.length < 48) out.push(String(s.title).replace(/\s+/g, ' ').trim().slice(0, 40)); });
-    }); });
-    return out;
-  }
-  function toast(m) { try { GlassUI.toast(m); } catch (e) { try { alert(m); } catch (e2) {} } }
-  function open(bid) {
-    bid = bid || curBid(); var its = items(bid);
-    if (!its.length) return toast('Nothing in this world to display yet — add something first.');
-    var base = /^https?:$/.test(location.protocol) ? 'voxel-factory/index.html' : 'https://minest-app.vercel.app/voxel-factory/index.html';
-    var f = document.createElement('div'); f.id = 'mn-vf3d'; f.style.cssText = 'position:fixed;inset:0;z-index:2147483560;background:#cfe6f5';
-    f.innerHTML = '<iframe src="' + base + '?kit=voxel-foundry&items=' + encodeURIComponent(its.join('\n')) + '" style="border:0;width:100%;height:100%" title="3D Display" allow="fullscreen"></iframe>' +
-      '<button type="button" style="position:absolute;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:8px 14px;border-radius:10px;border:0;background:#2b2118;color:#fff;font:600 14px system-ui">Close 3D</button>';
-    f.querySelector('button').onclick = function () { f.remove(); };
-    document.body.appendChild(f);
-  }
-  setInterval(function () {
-    var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-vf3d]') || !curBid()) return;
-    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-vf3d', ''); b.title = '3D Display — this world\'s things in a voxel workshop';
-    b.innerHTML = '<i>◇</i>3D Display'; b.addEventListener('click', function (e) { e.stopPropagation(); open(); });
-    acts.appendChild(b);
-  }, 800);
-  window.MinestVoxelFactory = { open: open, items: items };
-})();
-</script>
-<script id="mn-typing-worlds-app">
-/* Typing Worlds (Copilot, 2026-11-12): 22 immersive 3D typing worlds with the Word List (every word you typed, copy all),
-   built from tools/typing-worlds-app/ into typing-worlds/. window.MinestTypingWorldsApp.open() — and a ⌨ Typing Worlds
-   button in the My World console's tool row. It keeps its own storage; the iOS bundle opens the live page. */
-(function () {
-  if (window.MinestTypingWorldsApp) return;
-  function open() {
-    if (document.getElementById('mn-tw-app')) return;
-    var src = /^https?:$/.test(location.protocol) ? 'typing-worlds/index.html' : 'https://minest-app.vercel.app/typing-worlds/index.html';
-    var f = document.createElement('div'); f.id = 'mn-tw-app'; f.style.cssText = 'position:fixed;inset:0;z-index:2147483560;background:#05060a';
-    f.innerHTML = '<iframe src="' + src + '" style="border:0;width:100%;height:100%" title="Typing Worlds" allow="fullscreen; autoplay; clipboard-write"></iframe>' +
-      '<button type="button" aria-label="Close Typing Worlds" style="position:absolute;right:12px;bottom:calc(96px + env(safe-area-inset-bottom));width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:rgba(10,12,20,.6);color:#fff;font:600 18px system-ui;backdrop-filter:blur(10px)">✕</button>';
-    f.querySelector('button').onclick = function () { f.remove(); };
-    document.body.appendChild(f);
-    try { f.querySelector('iframe').focus(); } catch (e) {}
-  }
-  setInterval(function () {
-    var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-twapp]')) return;
-    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-twapp', ''); b.title = 'Typing Worlds — 22 typing worlds, with your Word List';
-    b.innerHTML = '<i>⌨</i>Typing Worlds'; b.addEventListener('click', function (e) { e.stopPropagation(); open(); });
-    acts.appendChild(b);
-  }, 800);
-  window.MinestTypingWorldsApp = { open: open, isOpen: function () { return !!document.getElementById('mn-tw-app'); }, close: function () { var f = document.getElementById('mn-tw-app'); if (f) f.remove(); } };
-})();
-</script>
-<script id="mn-interiors-entry">
-/* My World interiors (Codex, 2026-11-02; on main 2026-11-12): three original rooms — the Emerald Manor hall, the Castle
-   treasury, the two-storey private library — and Neuschwanstein's outside, Throne Hall and Singers' Hall, opened over My World.
-   Loads my-world-interiors/entry.js (window.MinestInteriors); the iOS bundle loads it from the live site.
-   A 🏛 Interiors button in the My World console's tool row offers the rooms. */
-(function () {
-  if (window.__mnInteriorsEntry) return; window.__mnInteriorsEntry = true;
-  var BASE = /^https?:$/.test(location.protocol) ? 'my-world-interiors/' : 'https://minest-app.vercel.app/my-world-interiors/';
-  function load(cb) {
-    if (window.MinestInteriors) return cb();
-    var s = document.createElement('script'); s.src = BASE + 'entry.js?v=20261112'; s.onload = function () { cb(); }; s.onerror = function () { try { GlassUI.toast('Interiors could not be loaded'); } catch (e) {} };
-    document.head.appendChild(s);
-  }
-  function chooser() {
-    load(function () {
-      var I = window.MinestInteriors; if (!I) return;
-      var old = document.getElementById('mn-int-pick'); if (old) { old.remove(); return; }
-      var el = document.createElement('div'); el.id = 'mn-int-pick';
-      el.style.cssText = 'position:fixed;z-index:2147483560;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 24px));max-height:80vh;overflow:auto;padding:14px;border-radius:18px;background:#183c31;color:#f6f0dc;font:14px system-ui,-apple-system,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.45)';
-      el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><b style="font-size:16px">🏛 Interiors · 室内场景</b><button type="button" data-x style="border:0;background:#f3efd9;color:#193d31;border-radius:12px;padding:6px 10px;font:inherit">✕</button></div>' +
-        I.kinds.map(function (k) { return '<button type="button" data-room="' + k[0] + '" style="display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border-radius:12px;border:1px solid rgba(246,240,220,.25);background:rgba(255,255,255,.06);color:inherit;font:inherit;cursor:pointer"><b>' + k[2].replace(/^一键进入/, '') + '</b><br><small style="opacity:.75">' + k[3] + '</small></button>'; }).join('');
-      el.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation(); el.remove(); if (b.dataset.room) I.open(b.dataset.room); });
-      document.body.appendChild(el);
-    });
-  }
-  setInterval(function () {
-    var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-mnint]')) return;
-    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-mnint', ''); b.title = 'Interiors — manor hall, castle treasury, private library, Neuschwanstein';
-    b.innerHTML = '<i>🏛</i>Interiors'; b.addEventListener('click', function (e) { e.stopPropagation(); chooser(); });
-    acts.appendChild(b);
-  }, 800);
-  window.MinestInteriorsEntry = { open: chooser };
-})();
 </script>
 </body>
 </html>

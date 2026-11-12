@@ -575,10 +575,116 @@
     };
   }
 
+
+  /* ================================================================ Gramophone (the room's music: ambience / classical / mute — media.js)
+     A walnut cabinet, a turntable with a record that turns, a tonearm whose needle drops, a flared brass horn, a crank. */
+  function gramophone() {
+    var g = new THREE.Group(), v = new VB(1901), W = '#5e3b26', WD = '#43291a', BR = '#d8a94a', BD = '#a77c2c', i;
+    v.box(-0.24, 0, -0.2, 0.24, 0.05, 0.2, WD); v.box(-0.22, 0.05, -0.18, 0.22, 0.42, 0.18, W, 0.03);
+    v.box(-0.2, 0.08, 0.18, 0.2, 0.38, 0.185, '#74503a'); v.box(-0.02, 0.2, 0.185, 0.02, 0.26, 0.195, BR);   // front panel, knob
+    v.box(-0.24, 0.42, -0.2, 0.24, 0.45, 0.2, WD);
+    v.box(0.22, 0.25, -0.02, 0.26, 0.29, 0.02, BR); v.box(0.26, 0.2, -0.015, 0.275, 0.34, 0.015, BR); v.box(0.275, 0.2, -0.03, 0.3, 0.22, 0.03, '#2b2b2b');   // crank
+    g.add(v.mesh());
+    /* turntable + record */
+    var plat = new THREE.Group(); plat.position.set(-0.04, 0.45, 0.02); g.add(plat);
+    var disc = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.012, 40), new THREE.MeshPhongMaterial({ color: 0x141414, shininess: 90, specular: 0x666666 }));
+    disc.position.y = 0.012; plat.add(disc);
+    var lab = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.014, 24), new THREE.MeshLambertMaterial({ color: 0xc8463a })); lab.position.y = 0.013; plat.add(lab);
+    var grooves = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.145, 40, 3), new THREE.MeshBasicMaterial({ color: 0x2a2a2a, side: THREE.DoubleSide })); grooves.rotation.x = -Math.PI / 2; grooves.position.y = 0.0185; plat.add(grooves);
+    var shine = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 0.24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18, depthWrite: false })); shine.rotation.x = -Math.PI / 2; shine.position.y = 0.019; plat.add(shine);
+    /* tonearm: pivots at the back right, the needle drops onto the record */
+    var arm = new THREE.Group(); arm.position.set(0.15, 0.47, -0.12); g.add(arm);
+    var av = new VB(1902); av.cb(0, -0.02, 0, 0.04, 0.03, 0.04, BD); av.box(-0.006, 0.01, -0.006, 0.006, 0.02, 0.17, BR); av.box(-0.012, -0.005, 0.16, 0.012, 0.02, 0.2, BR); av.box(-0.003, -0.02, 0.18, 0.003, -0.005, 0.186, '#dcdcdc');
+    arm.add(av.mesh()); arm.rotation.y = 0.55; arm.rotation.x = -0.18;
+    /* horn: rings widening along a curve up and forward */
+    var horn = new THREE.Group(); horn.position.set(0.1, 0.45, -0.12); g.add(horn);
+    var hv = new VB(1903);
+    for (i = 0; i < 14; i++) { var t = i / 13, r = 0.015 + Math.pow(t, 2.2) * 0.17, y = 0.03 + t * 0.4, z = -0.02 + t * t * 0.28; hv.cb(-0.05 * t, y, z, r * 2, 0.03, r * 2, i % 2 ? BR : BD, 0.03); }
+    horn.add(hv.mesh()); horn.rotation.x = -0.25;
+    var kk = 0, last = 0, spin = 0;
+    return {
+      id: 'gramophone', name: '留声机', en: 'Gramophone', icon: '🎶', feature: 'music', local: true, anchor: 'floor.gramo', group: g,
+      hit: hitBox(g, -0.26, 0, -0.22, 0.3, 0.95, 0.24), label: [0, 1.0, 0],
+      focus: { pos: [1.55, 1.15, 0.65], look: [2.25, 0.45, 0.15] },
+      playing: false,
+      set: function (k) { kk = k; arm.rotation.y = 0.55 - 0.5 * Math.min(1, k * 1.6); arm.rotation.x = -0.18 + 0.16 * Math.max(0, Math.min(1, k * 2 - 0.6)); },
+      idle: function (t) {
+        var dt = Math.min(0.1, Math.max(0, t - last)); last = t;
+        var on = this.playing; spin += dt * (on ? 3.5 : 0); plat.rotation.y = spin;
+        if (on) { arm.rotation.y += (0.05 - arm.rotation.y) * Math.min(1, dt * 4); arm.rotation.x += (-0.02 - arm.rotation.x) * Math.min(1, dt * 4); horn.scale.setScalar(1 + Math.sin(t * 9) * 0.004); }
+        else if (kk === 0) { arm.rotation.y += (0.55 - arm.rotation.y) * Math.min(1, dt * 3); arm.rotation.x += (-0.18 - arm.rotation.x) * Math.min(1, dt * 3); }
+      }
+    };
+  }
+
+  /* ================================================================ Vintage film projector (the collection screening — media.js)
+     Two reels on their arms that turn, a lens, a light beam, and a screen on a stand that unrolls. Faces +z: the screen stands 1.3 m in front. */
+  function filmProjector() {
+    var g = new THREE.Group(), v = new VB(2001), M = '#3a3d42', MD = '#2b2d31', BR = '#c9a24a', i;
+    /* a small wooden stand */
+    v.box(-0.2, 0, -0.2, 0.2, 0.04, 0.2, '#5e3b26'); v.box(-0.03, 0.04, -0.03, 0.03, 0.62, 0.03, '#5e3b26');
+    [[-0.17, -0.17], [0.15, -0.17], [-0.17, 0.15], [0.15, 0.15]].forEach(function (q) { v.box(q[0], 0, q[1], q[0] + 0.02, 0.02, q[1] + 0.02, BR); });
+    v.box(-0.16, 0.62, -0.16, 0.16, 0.65, 0.16, '#5e3b26');
+    /* the body, lens, lamp housing vents */
+    v.box(-0.1, 0.65, -0.14, 0.1, 0.84, 0.12, M, 0.03); v.box(-0.035, 0.7, 0.12, 0.035, 0.77, 0.24, MD); v.box(-0.03, 0.705, 0.24, 0.03, 0.765, 0.25, '#9fd6ff');
+    for (i = 0; i < 4; i++) v.box(0.1, 0.68 + i * 0.035, -0.1, 0.105, 0.69 + i * 0.035, 0.05, '#1d1f22');
+    v.box(-0.004, 0.84, -0.06, 0.004, 1.02, -0.05, MD); v.box(-0.004, 0.84, 0.03, 0.004, 1.0, 0.04, MD);   // reel arms
+    v.box(-0.06, 0.8, 0.16, 0.06, 0.81, 0.17, BR);
+    g.add(v.mesh());
+    function reel(y, z, r) {
+      var rg = new THREE.Group(); rg.position.set(-0.012, y, z); g.add(rg);
+      var rv = new VB(2010 + Math.round(y * 100));
+      rv.box(-0.006, -r, -r, 0.006, r, r, '#1d1f22'); rv.box(-0.008, -r * 0.82, -r * 0.82, 0.008, r * 0.82, r * 0.82, '#3f2f22');
+      for (var k = 0; k < 3; k++) { var a = k / 3 * Math.PI; rv.box(-0.01, -0.006, -r * 0.9, 0.01, 0.006, r * 0.9, M); }
+      rv.cb(0, -0.015, 0, 0.022, 0.03, 0.03, BR);
+      var m = rv.mesh(); rg.add(m); return rg;
+    }
+    var r1 = reel(1.05, -0.08, 0.11), r2 = reel(1.0, 0.07, 0.09);
+    r1.children[0].rotation.x = 0; r2.children[0].rotation.x = 0.4;
+    /* the beam and the screen on its stand */
+    var beam = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.03, 1.25, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff1c8, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    beam.rotation.x = Math.PI / 2; beam.position.set(0, 0.95, 0.88); g.add(beam);
+    var sv = new VB(2020);
+    sv.box(-0.02, 0, 1.3, 0.02, 1.52, 1.34, '#2b2d31'); sv.box(-0.25, 0, 1.28, 0.25, 0.02, 1.36, '#2b2d31');
+    sv.box(-0.48, 1.5, 1.29, 0.48, 1.55, 1.35, '#2b2d31');
+    g.add(sv.mesh());
+    var cloth = new THREE.Group(); cloth.position.set(0, 1.5, 1.31); g.add(cloth);
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 192; var cx = cv.getContext('2d');
+    var tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
+    var screen = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.66), new THREE.MeshBasicMaterial({ color: 0xffffff, map: tex, fog: false }));
+    screen.position.y = -0.33; cloth.add(screen); cloth.scale.y = 0.02;
+    function paint(t, on) {
+      cx.fillStyle = on ? '#f4ecd6' : '#ece8de'; cx.fillRect(0, 0, 256, 192);
+      if (!on) return;
+      var f = 0.85 + 0.15 * Math.sin(t * 40) * Math.sin(t * 13);
+      cx.fillStyle = 'rgba(30,24,16,' + (0.12 * f) + ')'; for (var k = 0; k < 40; k++) cx.fillRect((k * 53 + t * 900) % 256, (k * 97 + t * 700) % 192, 1, 1 + (k % 3));
+      cx.strokeStyle = 'rgba(40,30,20,.25)'; cx.lineWidth = 1; cx.beginPath(); var x0 = (t * 60) % 256; cx.moveTo(x0, 0); cx.lineTo(x0 + 6, 192); cx.stroke();
+      cx.fillStyle = 'rgba(40,30,20,' + (0.55 * f) + ')'; cx.font = 'italic 700 34px Georgia, serif'; cx.textAlign = 'center'; cx.fillText('MINEST', 128, 92); cx.font = '600 15px Georgia, serif'; cx.fillText('· COLLECTION ·', 128, 120);
+      var gr = cx.createRadialGradient(128, 96, 40, 128, 96, 150); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.35)'); cx.fillStyle = gr; cx.fillRect(0, 0, 256, 192);
+      tex.needsUpdate = true;
+    }
+    paint(0, false); tex.needsUpdate = true;
+    var kk = 0, last = 0, spin = 0, paintT = 0;
+    return {
+      id: 'projector16', name: '老式放映机', en: 'Film projector', icon: '🎞', feature: 'cinema', local: true, anchor: 'floor.film', group: g,
+      hit: hitBox(g, -0.2, 0, -0.2, 0.2, 1.18, 0.3), label: [0, 1.25, 0],
+      focus: { pos: [-1.2, 1.3, 0.1], look: [-1.8, 1.0, 1.6] },
+      showing: false,
+      set: function (k) { kk = k; cloth.scale.y = 0.02 + 0.98 * Math.min(1, k * 1.4); beam.material.opacity = 0.16 * Math.max(0, k * 2 - 0.8); },
+      idle: function (t) {
+        var dt = Math.min(0.1, Math.max(0, t - last)), on = kk > 0.5 || this.showing; last = t;
+        spin += dt * (on ? 4 : 0); r1.rotation.x = spin; r2.rotation.x = spin * 1.25;
+        if (this.showing) { cloth.scale.y += (1 - cloth.scale.y) * Math.min(1, dt * 4); beam.material.opacity = 0.14 + 0.03 * Math.sin(t * 31); }
+        else if (kk === 0) { cloth.scale.y += (0.02 - cloth.scale.y) * Math.min(1, dt * 3); beam.material.opacity *= 0.9; }
+        if (t - paintT > 0.08 && cloth.scale.y > 0.3) { paintT = t; paint(t, on); }
+      }
+    };
+  }
+
   /* the entries this update adds; medal style comes from the settings (box on the cabinet / board on the wall) */
   function make(opts) {
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
-    return [backpack(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
+    return [backpack(), gramophone(), filmProjector(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
   root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
 })(window);

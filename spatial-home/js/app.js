@@ -35,7 +35,7 @@
   var canvas = $('gl');
 
   /* ------------------------------------------------------------ settings (kept) */
-  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
+  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && typeof raw === 'object') for (var k0 in S) if (raw[k0] !== undefined) S[k0] = raw[k0]; } catch (e) {}
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   var dirty = false;
@@ -211,7 +211,12 @@
   function openLocal(o) {
     busy = true; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true;
     flyLook(o.focus.pos, o.focus.look, 0.7).then(function () { return animK(o, 1, 0.75); }).then(function () {
-      busy = false; body.classList.remove('busy'); packFrom = o; openPack();
+      busy = false; body.classList.remove('busy'); packFrom = o;
+      var M = window.SpatialMedia;
+      if (o.id === 'gramophone' && M) M.music({ onClose: function () { closeLocal(false); } });
+      else if (o.id === 'projector16' && M) { o.showing = true; M.cinema({ onClose: function (quiet) { o.showing = false; closeLocal(!!quiet); },
+        preview: function (it) { setTimeout(function () { openPack(it.key); }, 400); }, place: function (it) { setTimeout(function () { host.place(it, false); }, 300); } }); }
+      else openPack();
     });
   }
   function closeLocal(placing) {
@@ -232,7 +237,7 @@
       veilAt(f.o); return veilOut();
     }).then(function () { return comeBack(f.o); });
   }
-  B.init({ wrap: $('host'), pill: pillEl, onLeave: onLeave, onShow: function () { body.hidden = true; } });
+  B.init({ wrap: $('host'), pill: pillEl, onLeave: function (t, why) { if (window.SpatialMedia) window.SpatialMedia.audio.duck(false); onLeave(t, why); }, onShow: function () { body.hidden = true; if (window.SpatialMedia) window.SpatialMedia.audio.duck(true); } });
 
   /* ------------------------------------------------------------ modes */
   function setMode(m, quick) {
@@ -486,7 +491,7 @@
      A layout per environment: S.layouts[env] = { <thing id>: { p, ry, stashed }, extras: [ { uid, kind, p, ry, ref, title } ] }.
      Nothing is copied: a My World thing on display keeps only its ids (board / card / thing) and its title for the label.
      Every thing's close-up camera is stored relative to the thing, so it follows wherever the thing goes. */
-  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
+  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
   function placeType(o) { return o.style === 'wall' ? 'wall' : (PLACE[o.id] || 'surface'); }
   function m4of(p, ry) { return new THREE.Matrix4().makeRotationY(ry).setPosition(p[0], p[1], p[2]); }
   function localize(o) {
@@ -711,7 +716,7 @@
   var host = {
     THREE: THREE, reduced: function () { return !!S.motion; }, toast: toast,
     hotbarVisible: function () { return !body.hidden && !inFeature && !edit && !busy; },
-    functionObjects: function () { return objects.filter(function (o) { return !o.local; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
+    functionObjects: function () { return objects.filter(function (o) { return o.id !== 'backpack'; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
     onClose: function (placing) { closeLocal(placing); },
     status: function (it) {
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; return o && o.stashed ? { badge: '在背包', cls: 'bag', text: '在背包里（功能仍可从下方入口进入）', placed: false } : { badge: '摆放中', cls: '', text: '摆在 ' + room.name, placed: true }; }
@@ -753,6 +758,7 @@
       else { P.x = room.start.pos[0]; P.z = room.start.pos[2]; P.yaw = room.start.yaw; P.pitch = room.start.pitch; }
       deskBase = (function () { var p = room.desk.pos, l = room.desk.look, dx = l[0] - p[0], dy = l[1] - p[1], dz = l[2] - p[2]; return { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) }; })();
       $('brandName').textContent = room.name; canvas.setAttribute('aria-label', room.name);
+      if (window.SpatialMedia) window.SpatialMedia.audio.setEnv(room.envId);
       camAuto = true; autoPose(camera.position, camera.quaternion); S.env = room.envId; save();
       return veilFade(0, 0.35);
     }).then(function () { busy = false; body.classList.remove('busy'); });
@@ -789,7 +795,7 @@
   $('optMotion').addEventListener('change', function () { S.motion = this.checked; save(); });
   if ($('optPreload')) $('optPreload').addEventListener('change', function () { S.preload = this.checked; save(); if (S.preload) B.load().then(renderSettings); renderSettings(); });
   if ($('optBoot')) $('optBoot').addEventListener('change', function () { S.boot = this.checked; save(); });
-  function exitHome() { if (busy) return; save(); setEl.hidden = true; closeCard(); B.release(); inFeature = null; body.hidden = true; paused = true; }
+  function exitHome() { if (busy) return; if (window.SpatialMedia) window.SpatialMedia.audio.suspend(); save(); setEl.hidden = true; closeCard(); B.release(); inFeature = null; body.hidden = true; paused = true; }
   if ($('exitBtn')) $('exitBtn').addEventListener('click', exitHome);
   if ($('setExit')) $('setExit').addEventListener('click', exitHome);
 
@@ -819,6 +825,13 @@
   window.addEventListener('pagehide', save);
   if (!EMBED && S.preload) setTimeout(function () { B.load(); }, 1500);
   placeAll();
+  var MA = window.SpatialMedia && window.SpatialMedia.audio, gram = objects.filter(function (o) { return o.id === 'gramophone'; })[0];
+  if (MA) {
+    MA.load(S.audio); MA.setEnv(room.envId);
+    MA.onState(function (st) { S.audio = st; if (gram) gram.playing = !!(st.playing && st.mode !== 'mute'); dirty = true; });
+    if (gram) gram.playing = !!(S.audio && S.audio.playing && S.audio.mode !== 'mute');
+    if (S.audio && S.audio.playing) MA.resume();
+  }
   markAvailability();
   frame();
 
@@ -829,6 +842,7 @@
     if (mode === 'desk') { DK.yaw = 0; DK.pitch = 0; }
     camAuto = true; try { canvas.focus(); } catch (e) {}
     if (third()) gesture('wave', 1.6);
+    if (window.SpatialMedia) window.SpatialMedia.audio.resume();
   }
   API = {
     version: '1.0', objects: objects, open: open, close: exitHome, isOpen: function () { return !body.hidden || !!inFeature; },

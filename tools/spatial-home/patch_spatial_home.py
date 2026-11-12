@@ -10,7 +10,7 @@
 
 What it does to index.html (the same convention as tools/santorini-69/patch_displays70.py, so either can run after
 the other without undoing it):
-1. puts spatial-home/home.css in as <style id="mn-spatial-home-css"> and spatial-home/js/{voxel,room,env-manhattan,env-alpine,env-train,objects,entries,backpack,bridge,app}.js
+1. puts spatial-home/home.css in as <style id="mn-spatial-home-css"> and spatial-home/js/{voxel,room,env-manhattan,env-alpine,env-train,objects,entries,backpack,media,bridge,app}.js
    in as one <script id="mn-spatial-home"> just before </body> (replaced when already there);
 2. the script sets window.__SPATIAL_HOME_EMBEDDED__ first: the room then runs inside this page (no second copy of
    the app), is built only when first opened, adds a 🏛 房间 item to the Dock, and opens at start only when the user
@@ -31,7 +31,7 @@ MAIN_PAGES = ['iPhoneDuo.html', 'iPhoneDuo69.html', 'iphone.html', 'iPhone53.824
               'ios/Minest/Minest/iPhoneDuo.html', 'ios/Minest/Minest/index.html', 'ios/Minest/Minest/ipad.html',
               'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ios/MinestProject/MyApp/iphone.html']
 SRC = ROOT / 'spatial-home'
-JS = ['voxel.js', 'room.js', 'env-manhattan.js', 'env-alpine.js', 'env-train.js', 'objects.js', 'entries.js', 'backpack.js', 'bridge.js', 'app.js']
+JS = ['voxel.js', 'room.js', 'env-manhattan.js', 'env-alpine.js', 'env-train.js', 'objects.js', 'entries.js', 'backpack.js', 'media.js', 'bridge.js', 'app.js']
 CSS_OPEN, JS_OPEN = '<style id="mn-spatial-home-css">\n', '<script id="mn-spatial-home">\n'
 
 
