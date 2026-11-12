@@ -641,7 +641,7 @@ const turntable = mesh(C(0.19, 0.012, 32), M.walnut, scene, DISPLAY.x, TOP_Y + 0
 
 /* ───────────── the typewriter ───────────── */
 const KEY_ROWS = ['1234567890-', 'QWERTYUIOP/', "ASDFGHJKL:'", 'ZXCVBNM,.?!'];
-const CW = 0.0072, PAPER_W = 0.2, PAPER_H = 0.25, PAPER_M = 0.016;
+const CW = 0.0072, PAPER_W = 0.2, PAPER_H = 0.11, PAPER_M = 0.016;   // a short sheet: it never rises into the view of the platform
 const tw = (() => {
   const g = new THREE.Group(); g.position.set(0, TOP_Y, 0.22); scene.add(g);
   const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = mesh(geo, mat, g, x, y, z); m.rotation.set(rx, ry, rz); return m; };
@@ -689,17 +689,17 @@ const tw = (() => {
   mesh(C(0.004, 0.3, 8), M.steel, car, 0, 0.034, 0.028).rotation.z = Math.PI / 2;
   const lever = new THREE.Group(); lever.position.set(-0.25, 0.02, 0.02); car.add(lever);
   mesh(B(0.1, 0.008, 0.008), M.steel, lever, -0.05, 0.02, 0).rotation.z = -0.4; mesh(new THREE.SphereGeometry(0.011, 10, 8), M.brass, lever, -0.095, 0.04, 0);
-  const pc = document.createElement('canvas'); pc.width = 512; pc.height = 640; const pctx = pc.getContext('2d');
+  const pc = document.createElement('canvas'); pc.width = 512; pc.height = Math.round(512 * PAPER_H / PAPER_W); const pctx = pc.getContext('2d'); const PH = pc.height;
   const paperTex = new THREE.CanvasTexture(pc); paperTex.colorSpace = THREE.SRGBColorSpace; paperTex.anisotropy = 4;
   const paper = mesh(new THREE.PlaneGeometry(PAPER_W, PAPER_H), std({ map: paperTex, roughness: 0.9, side: THREE.DoubleSide, envMapIntensity: 0.15 }), car, 0, 0.02 + PAPER_H / 2, -0.012);
   paper.geometry.translate(0, 0, 0); paper.rotation.x = -0.16;
   let carX = 0, carT = 0, leverKick = 0;
   const pxPerM = 512 / PAPER_W;
   function drawPaper(history, text) {
-    const x = pctx; x.fillStyle = '#f3eee2'; x.fillRect(0, 0, 512, 640); x.fillStyle = 'rgba(120,90,60,.06)'; for (let i = 0; i < 640; i += 40) x.fillRect(0, i, 512, 1);
+    const x = pctx; x.fillStyle = '#f3eee2'; x.fillRect(0, 0, 512, PH); x.fillStyle = 'rgba(120,90,60,.06)'; for (let i = 0; i < PH; i += 40) x.fillRect(0, i, 512, 1);
     x.font = '700 24px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
-    const cwp = CW * pxPerM, m = PAPER_M * pxPerM, base = 600;
-    const lines = history.slice(-12);
+    const cwp = CW * pxPerM, m = PAPER_M * pxPerM, base = PH - 34;
+    const lines = history.slice(-Math.max(1, Math.floor((base - 20) / 40)));
     lines.forEach((w, k) => { x.fillStyle = 'rgba(40,28,20,.72)'; const y = base - (lines.length - k) * 40; for (let i = 0; i < w.length && i < MAX_WORD; i++) x.fillText(w[i], m + (i + 0.5) * cwp, y); });
     x.fillStyle = '#1b130e'; for (let i = 0; i < text.length; i++) x.fillText(text[i], m + (i + 0.5) * cwp, base);
     paperTex.needsUpdate = true;
