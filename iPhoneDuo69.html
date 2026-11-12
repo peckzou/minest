@@ -160548,7 +160548,12 @@ window.KRail = (function () {
       '#vx62.lv79 .vxc .lv79-strip [data-tab="room"],#vx62.lv79 .vxc .lv79-strip [data-tab="smart"]{display:none!important}' +
       '#vx62.lv79 .vxc .vx77-idle{display:none!important}' +
       '#vx62.lv79 .lv79-hint{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:6;max-width:86%;padding:6px 12px;border-radius:999px;font:600 12px/1.3 system-ui;color:#fff;background:rgba(22,24,30,.72);border:1px solid rgba(255,255,255,.14);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .4s}' +
-      '#vx62.lv79 .lv79-hint[hidden]{display:none}';
+      '#vx62.lv79 .lv79-hint[hidden]{display:none}' +
+      '#vx62.lv79 .lv79-rooms{position:absolute;left:8px;right:8px;top:46px;z-index:6;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:8px;border-radius:16px;background:rgba(22,24,30,.78);border:1px solid rgba(255,255,255,.14);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);box-shadow:0 8px 24px rgba(0,0,0,.35)}' +
+      '#vx62.lv79 .lv79-rooms[hidden]{display:none}#vx62.lv79 .lv79-rooms::-webkit-scrollbar{display:none}' +
+      '#vx62.lv79 .lv79-rooms b{flex:0 0 auto;align-self:center;font:700 12px/1.2 system-ui;color:#f2c13d;padding:0 4px;white-space:nowrap}' +
+      '#vx62.lv79 .lv79-rooms button{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:104px;padding:8px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font:700 13px/1.2 system-ui;cursor:pointer;text-align:left}' +
+      '#vx62.lv79 .lv79-rooms button small{font:500 11px/1.2 system-ui;opacity:.7}#vx62.lv79 .lv79-rooms button:active{transform:scale(.96)}';
     document.head.appendChild(st);
     ov.classList.add('lv79');
     var main = con.querySelector('.wf-main'), acts = con.querySelector('.wf-acts'), center = con.querySelector('.wf-center'), menu = con.querySelector('.wf-menu');
@@ -160563,6 +160568,21 @@ window.KRail = (function () {
     var hint = document.createElement('div'); hint.className = 'lv79-hint'; hint.hidden = true; ov.appendChild(hint);
     var LV = [null, '🏝 Island 岛', '🏛 Building', '🏠 Dollhouse', '🚪 Room 房间', '🗄 Display 展架', '📦 Item'];
     var lastLv = -1, hintT = 0;
+    // Dollhouse (3/6): the building's rooms, to walk into — the 2D world shows a cutaway there, the 3D view shows these
+    var roomsEl = document.createElement('div'); roomsEl.className = 'lv79-rooms'; roomsEl.hidden = true; ov.appendChild(roomsEl);
+    var roomsKey = '';
+    roomsEl.addEventListener('click', function (e) { var b = e.target.closest('button[data-lv79room]'); if (!b) return; e.stopPropagation(); try { roomAct('room:' + b.getAttribute('data-lv79room')); } catch (x) {} });
+    function drawRooms(lv) {
+      if (lv !== 3) { if (!roomsEl.hidden) { roomsEl.hidden = true; roomsKey = ''; } return; }
+      var els = document.querySelectorAll('.mn-bv [data-bvroom]'), list = [], seen = {};
+      Array.prototype.forEach.call(els, function (el) { var id = el.getAttribute('data-bvroom'); if (!id || seen[id]) return; seen[id] = 1;
+        var t = (el.textContent || '').replace(/\s+/g, ' ').trim(), m = t.match(/^(.*?)(\d+\s*things?)\s*$/); list.push([id, (m ? m[1] : t).trim() || 'Room', m ? m[2] : '']); });
+      var key = list.map(function (r) { return r.join('|'); }).join(';');
+      if (key === roomsKey && !roomsEl.hidden) return; roomsKey = key;
+      roomsEl.innerHTML = '<b>🏠 进入房间</b>' + (list.length ? list.map(function (r) { return '<button type="button" data-lv79room="' + esc79(r[0]) + '">' + esc79(r[1]) + (r[2] ? '<small>' + esc79(r[2]) + '</small>' : '') + '</button>'; }).join('') : '<b style="color:#fff;font-weight:500">还没有房间 · 在下方用 New Room 或 Smart Room 建一个</b>');
+      roomsEl.hidden = false;
+    }
+    function esc79(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
     function fit79() { ov.style.setProperty('--ch', Math.round(con.getBoundingClientRect().height || 60) + 'px'); }
     function sync79() {
       if (!isOpen()) return;
@@ -160572,6 +160592,7 @@ window.KRail = (function () {
       if (center.hidden === !!has) { center.hidden = !has; fit79(); }
       if (R.tab === 'room' || R.tab === 'smart') { try { setTab('look'); } catch (e) {} }
       var wf = WF(), lv = 0; try { lv = wf && wf.level ? wf.level() : 0; } catch (e) {}
+      drawRooms(lv);
       if (lv !== lastLv) { lastLv = lv; var cr = []; try { cr = wf.crumbs() || []; } catch (e) {}
         hint.textContent = (LV[lv] || '🧊 体素世界') + (cr.length ? ' · ' + cr[cr.length - 1] : '') + '  —  下方控制台：New · Gallery · Group · Smart';
         hint.hidden = false; hint.style.opacity = '1'; clearTimeout(hintT); hintT = setTimeout(function () { hint.style.opacity = '0'; }, 4200); }
@@ -160589,7 +160610,7 @@ window.KRail = (function () {
     }, true);
     function dive(cx, cy) {
       var lv = lvl(), hit = null; try { hit = pickAt(cx, cy); } catch (x) {}
-      if (lv === 3) return toast('🏠 Dollhouse · 在下方控制台点一个房间进入');
+      if (lv === 3) { var one = roomsEl.querySelectorAll('button[data-lv79room]'); if (one.length === 1) return roomAct('room:' + one[0].getAttribute('data-lv79room')); return toast('🏠 在上方选一个房间进入'); }
       if (!hit || !R.vw) return;
       var vw = R.vw, lx = vw.ox + (hit.x + .5) / vw.S, ly = vw.oz + (hit.z + .5) / vw.S, best = null, bd = 1e9;
       try { pieces().forEach(function (q) { var dd = Math.hypot(q.x - lx, q.y - ly); if (dd < 2.6 * (q.s || 1) && dd < bd) { bd = dd; best = q; } }); } catch (x) {}
