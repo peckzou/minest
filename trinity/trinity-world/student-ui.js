@@ -23,9 +23,9 @@
   function attach(life, ctx) {
     const { camera, player, S, THREE } = ctx, doc = document;
     const st = doc.createElement('style'); st.textContent = CSS; doc.head.appendChild(st);
-    const hint = doc.createElement('button'); hint.className = 'trl-hint'; doc.body.appendChild(hint);
-    const routeBtn = doc.createElement('button'); routeBtn.className = 'trl-route-btn'; routeBtn.textContent = '🧭 路线'; doc.body.appendChild(routeBtn);
-    const ov = doc.createElement('div'); ov.className = 'trl-ov'; ov.innerHTML = '<div class="trl-sheet"></div>'; doc.body.appendChild(ov);
+    const hint = doc.createElement('button'); hint.className = 'trl-hint'; (window.__trRoot||doc.body).appendChild(hint);
+    const routeBtn = doc.createElement('button'); routeBtn.className = 'trl-route-btn'; routeBtn.textContent = '🧭 路线'; (window.__trRoot||doc.body).appendChild(routeBtn);
+    const ov = doc.createElement('div'); ov.className = 'trl-ov'; ov.innerHTML = '<div class="trl-sheet"></div>'; (window.__trRoot||doc.body).appendChild(ov);
     const sheet = ov.firstChild;
     let cur = null, tgt = null, active = null;      // active = { kind, onClose }
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -42,7 +42,7 @@
     }
     ov.addEventListener('click', (e) => { if (e.target === ov) closePanel(); });
     const onKey = (e) => { if (active && e.code === 'Escape') { e.preventDefault(); closePanel(); } };
-    doc.addEventListener('keydown', onKey);
+    (window.__trL?window.__trL:(t,e,f)=>t.addEventListener(e,f))(doc,'keydown',onKey);
     const bind = (sel, fn) => { const el = sheet.querySelector(sel); if (el) el.addEventListener('click', fn); };
 
     /* ---------- books (study shelf + Wren presses) ---------- */

@@ -263,14 +263,54 @@ EDITS = [
      MYWORLD + "    // ---------------------------------------------------------------- one-tap landscapes: terrain (world_terrain.js) + pieces"),
 ]
 
+
+SRC_FILES = ['textures.js', 'materials.js', 'hall.js', 'nevile.js', 'wren.js', 'backs.js', 'student.js', 'student-ui.js', 'scene.js', 'app.js']
+RT_ANCHOR = "  window.__trBooks = { load: function () { return H && H.books ? H.books() : []; }, save: function (ids) { if (H && H.setBooks) H.setBooks(ids); } };"
+RT_NEW = RT_ANCHOR + """
+  window.__trStudent = { load: function () { return H && H.student ? H.student() : null; }, save: function (st) { if (H && H.setStudent) H.setStudent(st); } };
+  window.__trItems = { list: function () { return H && H.itemList ? H.itemList() : []; }, get: function (id) { return H && H.itemGet ? H.itemGet(id) : null; }, open: function (id) { if (H && H.itemOpen) { MinestTrinity.close(); H.itemOpen(id); } } };"""
+HOST_ANCHOR = "      books: function () { if (!V) return []; var R = islandD();"
+HOST_NEW = """      student: function () { if (!V) return null; var R = islandD(); return (R.tr && R.tr.student) || null; },
+      setStudent: function (st) { if (!V) return; var R = islandD(); R.tr = R.tr || {}; R.tr.student = st; clearTimeout(W.trT); W.trT = setTimeout(save, 600); },
+      itemList: function () { if (!V) return []; try { index(); } catch (e) { return []; } return Object.keys(IX).slice(0, 120).map(function (r) { var t = IX[r]; return { id: r, title: String((t.s && t.s.title) || '').trim() || r, kind: 'card', source: 'myworld', bid: V.bid }; }); },
+      itemGet: function (id) { if (!V) return null; try { index(); } catch (e) { return null; } var t = IX[id]; return t ? { id: id, title: String((t.s && t.s.title) || '').trim() || id, kind: 'card' } : null; },
+      itemOpen: function (id) { if (!V) return; try { index(); } catch (e) { return; } var t = IX[id]; if (!t) return toast('That card is not there any more.'); try { MinestAI.openCardIn(V.bid, t.col && t.col.id, t.k && t.k.id); } catch (e) { toast('Could not open this card'); } },
+""" + HOST_ANCHOR
+
+
+def upgrade(t):
+    if 'itemOpen:' not in t and HOST_ANCHOR in t:
+        t = t.replace(HOST_ANCHOR, HOST_NEW, 1)
+    if 'window.__trItems = {' not in t and RT_ANCHOR in t:
+        t = t.replace(RT_ANCHOR, RT_NEW, 1)
+    return t
+
+
+def srcblocks():
+    srcs = '\n'.join(js(n) for n in SRC_FILES)
+    return ('<script type="text/plain" id="mn-tr-world">\n' + js('world.js') + '\n</script>\n'
+            '<script type="text/plain" id="mn-tr-src">\n' + srcs + '\n</script>\n')
+
+
 page = src_page.read_text(encoding='utf-8')
-assert 'mn-tr-run' not in page, 'already patched'
+if 'mn-tr-run' in page:      # already patched: refresh the engine sources and the host bridge in place (no other change)
+    s = page
+    for tid in ('mn-tr-world', 'mn-tr-src'):
+        a = s.index('<script type="text/plain" id="%s">' % tid); b = s.index('</script>\n', a) + len('</script>\n')
+        s = s[:a] + ('' if tid == 'mn-tr-src' else '') + s[b:]
+    i = s.index('<script id="mn-tr-run">'); s = s[:i] + srcblocks() + s[i:]
+    s = upgrade(s)
+    assert s.count('itemOpen:') == 1 and s.count('window.__trItems = {') == 1, 'bridge anchors not found'
+    out_page.write_text(s, encoding='utf-8')
+    print(out_page.name, 'refreshed', len(s.encode('utf-8')), 'bytes'); sys.exit(0)
+
+EDITS = [(a, upgrade(b)) for a, b in EDITS]
+RUNTIME = upgrade(RUNTIME)
 s = page
 for a, b in EDITS:
     s = must(s, a, b)
 srcs = '\n'.join(js(n) for n in ['textures.js', 'hall.js', 'nevile.js', 'wren.js', 'backs.js', 'scene.js', 'app.js'])
-SRCTAG = ('<script type="text/plain" id="mn-tr-world">\n' + js('world.js') + '\n</script>\n'
-          '<script type="text/plain" id="mn-tr-src">\n' + srcs + '\n</script>\n')
+SRCTAG = srcblocks()
 RUN = RUNTIME.replace('__MARKUP__', json.dumps(markup()).replace('</', '<\\/'))
 s = s.replace('</head>', css() + '</head>', 1)
 i = s.rindex('</body>')
