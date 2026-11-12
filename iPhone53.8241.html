@@ -161205,6 +161205,9 @@ window.KRail = (function () {
     // 2. the strip: tools, then looking (view · walk · fly), undo / redo, then 2D · settings · back
     var strip = con.querySelector('.lv79-strip'), acts = con.querySelector('.wf-acts'), menu = con.querySelector('.wf-menu');
     if (strip && acts && menu && acts.parentNode === strip && strip.firstElementChild !== acts) { strip.insertBefore(acts, strip.firstElementChild); var sp = strip.querySelector('.lv79-sep'); if (sp) strip.insertBefore(sp, menu); }
+    // 2b. two look-alike buttons: 🗺 peeks at the 2D island and comes back, ✕ leaves the voxel world
+    function relabel(sel, txt) { var b = con.querySelector(sel), sp = b && b.querySelector('span'); if (sp && sp.textContent !== txt) sp.textContent = txt; }
+    relabel('.lv79-strip [data-a="2d"]', '对照 2D'); relabel('.lv79-strip [data-a="x"]', '退出');
     // 3. the console folds to its crumbs row
     function folded() { var v = get80('min'); return v === null ? innerHeight < 760 : v === '1'; }
     function applyFold() {
