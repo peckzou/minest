@@ -1,0 +1,1808 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Magic Type Workshop</title>
+<style>
+:root{--ink:#f1e7d8;--dim:rgba(241,231,216,.52);--faint:rgba(241,231,216,.16);--g:#ff5a2a;--panel:rgba(18,12,8,.76);--warn:#ffb36b}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0c0806;color:var(--ink);overflow:hidden;
+  font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+.film{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 85% 75% at 50% 45%,transparent 55%,rgba(0,0,0,.55) 100%)}
+.hud{position:fixed;color:var(--dim);pointer-events:none}
+.hud.i{pointer-events:auto}
+.b{all:unset;cursor:pointer;color:var(--dim);border-bottom:1px solid transparent;padding-bottom:1px;white-space:nowrap}
+.b:hover{color:var(--ink)}
+.b.on{color:var(--ink);border-bottom-color:var(--g)}
+.b:disabled{opacity:.35;cursor:default}
+#top{left:max(16px,env(safe-area-inset-left));top:max(14px,env(safe-area-inset-top));display:flex;gap:16px;align-items:baseline}
+#back{color:var(--ink)}
+#top b{color:var(--ink);font-weight:600}
+#badge{color:var(--warn);border:1px solid rgba(255,179,107,.35);padding:0 6px;font-size:10px}
+#tabs{left:max(16px,env(safe-area-inset-left));top:calc(max(14px,env(safe-area-inset-top)) + 26px);display:flex;gap:16px}
+#ctl{right:max(16px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+#ctl .row{display:flex;gap:12px;align-items:baseline}
+.lab{opacity:.55}
+.panel{position:fixed;left:max(16px,env(safe-area-inset-left));top:calc(max(14px,env(safe-area-inset-top)) + 54px);width:min(350px,calc(100vw - 32px));
+  max-height:calc(100vh - 230px);overflow:auto;overscroll-behavior:contain;background:var(--panel);border:1px solid var(--faint);padding:12px 14px 14px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:var(--dim)}
+.panel[hidden]{display:none}
+.panel h3{margin:0 0 8px;font:inherit;color:var(--ink);display:flex;justify-content:space-between;align-items:baseline}
+.sec{margin-top:12px;padding-top:10px;border-top:1px solid var(--faint)}
+.row2{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:3px 0}
+.lst{cursor:pointer}.lst:hover,.lst.on{color:var(--ink)}.lst.on>span:first-child::before{content:'▸ '}
+.chips{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:6px}
+.chip{cursor:pointer;letter-spacing:.12em}
+.chip.made{opacity:.45;text-decoration:line-through}
+.chip.tgt{color:var(--ink);border-bottom:1px solid var(--g)}
+.panel input,.panel textarea,.panel select{display:block;width:100%;background:rgba(0,0,0,.35);border:1px solid var(--faint);color:var(--ink);font:inherit;letter-spacing:.06em;
+  text-transform:none;padding:6px 8px;margin:4px 0 8px;-webkit-user-select:text;user-select:text;border-radius:0}
+.panel textarea{height:96px;resize:vertical}
+.acts{display:flex;gap:14px;flex-wrap:wrap;margin-top:3px}
+.item{padding:7px 0 7px 2px;border-top:1px solid rgba(241,231,216,.07);cursor:pointer}
+.item.sel{background:rgba(255,255,255,.04);box-shadow:inset 2px 0 0 var(--g);padding-left:8px}
+.item .w{color:var(--ink);letter-spacing:.22em}
+.item .s{text-transform:none;letter-spacing:.05em;opacity:.85}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.card{margin-top:6px;padding:8px;border:1px solid var(--faint);text-transform:none;letter-spacing:.04em;font-size:10.5px;line-height:1.6;word-break:break-all;cursor:default}
+.card div span{opacity:.6;display:inline-block;min-width:78px}
+.warn{color:var(--warn)}
+.muted{opacity:.6;text-transform:none;letter-spacing:.05em}
+#tgt{left:0;right:0;bottom:max(54px,calc(env(safe-area-inset-bottom) + 30px));text-align:center;padding:0 16px}
+#tgt b{color:var(--ink);letter-spacing:.3em;font-weight:600}
+#tgt .warn{text-transform:none;letter-spacing:.05em}
+#line{left:0;right:0;bottom:max(26px,env(safe-area-inset-bottom));text-align:center;color:var(--ink);letter-spacing:.32em;white-space:pre;overflow:hidden;padding:0 24px}
+#line .bad{color:var(--warn)}
+#line .caret{display:inline-block;width:.6em;height:1px;background:var(--ink);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+#hint{left:0;right:0;bottom:max(80px,calc(env(safe-area-inset-bottom) + 56px));text-align:center;transition:opacity .8s;padding:0 16px}
+#hint.off{opacity:0}
+#note{left:50%;top:36%;transform:translateX(-50%);color:var(--ink);background:var(--panel);border:1px solid var(--faint);padding:8px 14px;text-transform:none;letter-spacing:.05em;
+  opacity:0;transition:opacity .35s;max-width:calc(100vw - 40px);text-align:center}
+#note.on{opacity:1}
+#err{left:0;right:0;top:46%;text-align:center;color:var(--ink);display:none;text-transform:none;letter-spacing:.04em}
+#kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;background:transparent;color:transparent;font-size:16px}
+@media (max-width:560px){#top .ttl{display:none}.panel{max-height:44vh}#hint{display:none}}
+@media (prefers-reduced-motion:reduce){#line .caret{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="film"></div>
+<div class="hud i" id="top"><button class="b" id="back" type="button" tabindex="-1">⟵ Back</button><span class="ttl"><b>Magic Type Workshop</b></span><span id="badge" hidden>local only</span></div>
+<div class="hud i" id="tabs"><button class="b" id="tabLists" type="button" tabindex="-1">Lists</button><button class="b" id="tabInv" type="button" tabindex="-1">Inventory <span id="invN"></span></button></div>
+<div class="hud i" id="ctl">
+  <div class="row"><button class="b" id="viewBtn" type="button" tabindex="-1" title="Tab">View · 3rd</button></div>
+  <div class="row" id="modes"><span class="lab">Pipe wall</span></div>
+  <div class="row" id="gas"><button class="b" type="button" tabindex="-1" data-gas="neon" title="Neon">NE</button><button class="b" type="button" tabindex="-1" data-gas="argon" title="Argon">AR</button><button class="b" type="button" tabindex="-1" data-gas="helium" title="Helium">HE</button><button class="b" type="button" tabindex="-1" data-gas="xenon" title="Xenon">XE</button></div>
+</div>
+<section class="panel hud i" id="pLists" hidden></section>
+<section class="panel hud i" id="pInv" hidden></section>
+<div class="hud" id="hint">Type — 每个键一支玻璃管 · Backspace 收回 · Enter 完成装箱 · Tab 切换视角</div>
+<div class="hud" id="tgt"></div>
+<div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
+<div class="hud" id="note"></div>
+<div class="hud" id="err"></div>
+<input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
+
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three.module.js",
+  "three/addons/": "./vendor/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { strokeGlyph, strokeAdvance, STROKE_CHARS } from './strokefont.js';
+
+/* ==== PURE:BEGIN — no DOM, no three.js: this block is unit-tested in node ==== */
+const SIZE = 1.5, GAP = 0.34, BASE_Y = 0.42, STAND_Z = -0.52;        // letter units, as in neon.html
+const WORD_TOP = BASE_Y + SIZE + 0.26;      // the upper bus bar of the stands: where the gripper holds a word
+const WORD_H = WORD_TOP + 0.1, WORD_D = 0.8, PLANK_H = 0.066;
+const MAX_WORD = 24, MAX_FORMING = 3;
+const PACK_W = 0.27, PACK_H = 0.13, SLOT_W = 0.36, SLOT_H = 0.26;   // metres
+const SHELVES = [{ id: 'main', cols: 5, rows: 4 }];                  // every shelf the workshop owns (more can be added)
+const SAMPLE_TITLE = 'Sample · ten words';
+const SAMPLE_WORDS = ['DREAM', 'OCEAN', 'LIGHT', 'MAGIC', 'HOPE', 'WONDER', 'CREATE', 'EXPLORE', 'DISCOVER', 'IMAGINE'];
+const NOT_SUPPORTED = '暂不支持该字符 · This character is not supported yet';
+const GAS_KEYS = ['neon', 'argon', 'helium', 'xenon'];
+let _seq = 0;
+const rid = () => Date.now().toString(36) + (++_seq).toString(36) + Math.random().toString(36).slice(2, 7);
+const uid = p => p + rid();
+const clone = o => o === undefined ? undefined : JSON.parse(JSON.stringify(o));
+
+/* glyph lookup: every script the workshop can build goes through these functions (add more SCRIPTS later) */
+const STROKE_SET = new Set(STROKE_CHARS);
+const SCRIPTS = [{ id: 'latin-stroke', has: c => STROKE_SET.has(c), glyph: c => strokeGlyph(c) }];
+function normChar(raw) {
+  let s = String(raw ?? ''); if (s === ' ') s = ' ';
+  if (s === ' ') return ' ';
+  if ([...s].length !== 1) return null;
+  const c = s.toUpperCase(); if ([...c].length !== 1) return null;
+  for (const sc of SCRIPTS) if (sc.has(c)) return c;
+  return null;
+}
+function glyphFor(c) { for (const sc of SCRIPTS) if (sc.has(c)) return sc.glyph(c); return null; }
+
+/** the typed word and the pieces built for it are one array: the text is derived from it, so they can never disagree */
+class WordBuffer {
+  constructor(h = {}) { this.h = h; this.items = []; this.cursorX = 0; this.max = h.max || MAX_WORD; }
+  get text() { let s = ''; for (const it of this.items) s += it.ch; return s; }
+  get length() { return this.items.length; }
+  get letterCount() { let n = 0; for (const it of this.items) if (it.ch !== ' ') n++; return n; }
+  get width() { const l = this.items[this.items.length - 1]; return Math.max(0.4, this.cursorX - (l && l.ch !== ' ' ? GAP : 0)); }
+  /** → 'ok' | 'unsupported' | 'full' | 'ignored' */
+  push(raw) {
+    const ch = normChar(raw); if (ch === null) return 'unsupported';
+    const last = this.items[this.items.length - 1];
+    if (ch === ' ' && (!last || last.ch === ' ')) return 'ignored';
+    if (this.items.length >= this.max) return 'full';
+    const x = this.cursorX, adv = ch === ' ' ? strokeAdvance(' ') * SIZE : glyphFor(ch).w * SIZE + GAP;
+    const it = { ch, x, adv, obj: null }; this.items.push(it); this.cursorX = x + adv;
+    if (ch !== ' ' && this.h.make) it.obj = this.h.make(ch, x);
+    return 'ok';
+  }
+  pop() { const it = this.items.pop(); if (!it) return false; this.cursorX = it.x; if (it.obj && this.h.kill) this.h.kill(it.obj); return true; }
+  trimEnd() { while (this.items.length && this.items[this.items.length - 1].ch === ' ') this.pop(); }
+}
+/** start queued letters in order, a few at a time; the longer the backlog the faster they all run */
+function scheduleLetters(tubes, maxForming, fast) {
+  let forming = 0, unsettled = 0;
+  for (const L of tubes) { if (!L.settled) unsettled++; if (L.state === 'stand' || L.state === 'form') forming++; }
+  for (const L of tubes) { if (forming >= maxForming) break; if (L.state === 'queued') { L.start(); forming++; } }
+  return Math.min(5, (fast ? 1.8 : 1) * (1 + 0.45 * Math.max(0, unsettled - 2)));
+}
+function wordUnits(word) { const b = new WordBuffer({ max: 999 }); for (const c of String(word)) b.push(c); b.trimEnd(); return b.width; }
+/** a word's size in its box: the scale of the sculpture, the box, and how much the box shrinks to fit a shelf slot */
+function packDims(word) {
+  const W = wordUnits(word), s = Math.min(PACK_W / W, PACK_H / WORD_H);
+  const w = W * s + 0.07, h = WORD_H * s + 0.06, d = Math.max(0.15, WORD_D * s + 0.09);
+  return { W, s, w, h, d, fit: Math.min(1, (SLOT_W - 0.04) / w, (SLOT_H - 0.05) / h) };
+}
+
+/* lists, progress, items, slots */
+function parseWords(text) { return String(text ?? '').split(/[\n\r,;，、]+/).map(w => w.replace(/\s+/g, ' ').trim()).filter(Boolean).map(w => w.slice(0, MAX_WORD)).slice(0, 200); }
+function makeList(title, words) { return { id: uid('mtwl_'), title: String(title ?? '').trim().slice(0, 60) || 'Untitled list', entries: words.map(text => ({ id: uid('e_'), text: String(text) })) }; }
+function sanitizeList(l) {
+  if (!l || typeof l !== 'object' || l.id == null) return null;
+  const entries = Array.isArray(l.entries) ? l.entries.filter(e => e && e.id != null && e.text != null).map(e => ({ id: String(e.id), text: String(e.text) })) : [];
+  return { id: String(l.id), title: String(l.title ?? 'Untitled list'), entries };
+}
+function sanitizeItem(it) {
+  if (!it || typeof it !== 'object' || typeof it.id !== 'string' || typeof it.word !== 'string') return null;
+  if (!it.look || typeof it.look !== 'object') it.look = { gas: 'neon', scale: 1 };
+  if (!it.loc || typeof it.loc !== 'object') it.loc = { kind: 'bench' };
+  if (it.listId === undefined) it.listId = null; if (it.entryId === undefined) it.entryId = null; if (!it.mode) it.mode = 'neon';
+  return it;
+}
+function deriveProgress(items) { const p = {}; for (const it of items) if (it && it.listId && it.entryId) (p[it.listId] ||= {})[it.entryId] = it.id; return p; }
+function nextEntry(list, progress, preferId) {
+  if (!list) return null; const made = progress[list.id] || {};
+  if (preferId) { const e = list.entries.find(x => x.id === preferId); if (e && !made[e.id]) return e; }
+  return list.entries.find(e => !made[e.id]) || null;
+}
+function makeItem({ word, listId = null, entryId = null, mode = 'neon', gas = 'neon', scale = 1, loc = null, now = Date.now() }) {
+  return { v: 1, id: uid('mtw_'), word, listId, entryId, mode, look: { gas, scale }, pack: 'open', use: 'stored', loc: loc || { kind: 'bench' }, made: now, updated: now };
+}
+function allocSlot(items, shelves = SHELVES, ignoreId = null) {
+  for (const sh of shelves) {
+    const taken = new Set();
+    for (const it of items) { const L = it && it.loc; if (it.id !== ignoreId && L && L.kind === 'shelf' && L.shelf === sh.id && Number.isInteger(L.slot)) taken.add(L.slot); }
+    for (let i = 0; i < sh.cols * sh.rows; i++) if (!taken.has(i)) return { kind: 'shelf', shelf: sh.id, slot: i };
+  }
+  return null;
+}
+/** repair what an interrupted session (or a host) left behind; items placed elsewhere ('room'/'city') are never touched */
+function normalizeItems(items, shelves = SHELVES) {
+  const changed = new Set(), seen = new Set();
+  for (const it of items) {
+    const L = it.loc; if (!L || L.kind !== 'shelf') continue;
+    const sh = shelves.find(s => s.id === L.shelf); if (!sh) continue;           // a shelf this workshop does not own
+    const k = L.shelf + ':' + L.slot;
+    if (!Number.isInteger(L.slot) || L.slot < 0 || L.slot >= sh.cols * sh.rows || seen.has(k)) { it.loc = { kind: 'bench' }; changed.add(it); } else seen.add(k);
+  }
+  for (const it of items) {
+    const kind = it.loc && it.loc.kind;
+    if (kind === 'room' || kind === 'city') continue;
+    if (it.use === 'out') { if (kind !== 'bench') { it.loc = { kind: 'bench' }; changed.add(it); } if (it.pack !== 'open') { it.pack = 'open'; changed.add(it); } continue; }
+    if (it.use !== 'stored') continue;
+    if (it.pack !== 'boxed') { it.pack = 'boxed'; changed.add(it); }
+    if (kind !== 'shelf') { const s = allocSlot(items, shelves, it.id); if (s) { it.loc = s; changed.add(it); } else if (kind !== 'bench') { it.loc = { kind: 'bench' }; changed.add(it); } }
+  }
+  return [...changed];
+}
+
+/** 'room' / 'city' hang an item elsewhere in the app; 'shelf' puts it back (the local twin of the host's 'display' op) */
+function applyDisplay(it, where, o = {}) {
+  if (where === 'room') { it.use = 'displayed'; it.pack = 'open'; it.loc = { kind: 'room', room: o.room || 'mtw' }; }
+  else if (where === 'city') { it.use = 'displayed'; it.pack = 'open'; it.loc = { kind: 'city', shop: o.shop ?? null }; }
+  else if (where === 'shelf') { it.use = 'stored'; it.pack = 'boxed'; it.loc = o.loc || { kind: 'bench' }; }
+  else throw new Error('unknown display place: ' + where);
+  it.updated = Date.now(); return it;
+}
+
+/* Store backends */
+const LS_LISTS = 'mtw.lists.v1', LS_ITEMS = 'mtw.items.v1';
+function memoryStorage() { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)); }, removeItem: k => { m.delete(k); } }; }
+function makeLocalBackend(ls) {
+  const read = k => { try { const v = JSON.parse(ls.getItem(k) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+  const write = (k, v) => ls.setItem(k, JSON.stringify(v));
+  return {
+    kind: 'local',
+    async lists() { return read(LS_LISTS); },
+    async createList(title, words) { const l = makeList(title, words), all = read(LS_LISTS); all.push(l); write(LS_LISTS, all); return clone(l); },
+    async items() { return read(LS_ITEMS); },
+    async saveItem(item) { const all = read(LS_ITEMS), i = all.findIndex(x => x && x.id === item.id); if (i < 0) all.push(item); else all[i] = item; write(LS_ITEMS, all); return clone(item); },
+    async removeItem(id) { write(LS_ITEMS, read(LS_ITEMS).filter(x => x && x.id !== id)); return true; },
+    async display(a) { const all = read(LS_ITEMS), it = all.find(x => x && x.id === a.id); if (!it) throw new Error('no such item');
+      const { id, where, ...o } = a; void id; applyDisplay(it, where, o); write(LS_ITEMS, all); return clone(it); },
+    async cityShops() { return null; },
+  };
+}
+/** JSON-RPC over postMessage to the embedding page; replies are accepted only from that window, any origin */
+function makeHostBackend(win, target, timeoutMs = 10000) {
+  let n = 0; const pend = new Map();
+  const onMsg = e => {
+    if (e.source !== target) return; const d = e.data;
+    if (!d || d.mtw !== 1 || typeof d.id !== 'number' || !pend.has(d.id)) return;
+    const p = pend.get(d.id); pend.delete(d.id); clearTimeout(p.to);
+    if (d.ok) p.res(d.result); else p.rej(new Error(typeof d.error === 'string' ? d.error : (d.error && d.error.message) || 'host error'));
+  };
+  win.addEventListener('message', onMsg);
+  const call = (op, args = [], ms = timeoutMs) => new Promise((res, rej) => {
+    const id = ++n, to = setTimeout(() => { pend.delete(id); rej(new Error('host did not answer: ' + op)); }, ms);
+    pend.set(id, { res, rej, to });
+    try { target.postMessage({ mtw: 1, id, op, args: clone(args) }, '*'); } catch (err) { clearTimeout(to); pend.delete(id); rej(err); }
+  });
+  return {
+    kind: 'host', call,
+    hello: () => call('hello', [{ app: 'magic-type-workshop', v: 1 }], 1200),
+    lists: () => call('lists'), createList: (t, w) => call('createList', [t, w]), items: () => call('items'),
+    saveItem: it => call('saveItem', [it]), removeItem: id => call('removeItem', [id]),
+    display: a => call('display', [a]), cityShops: () => call('cityShops'),
+    verifyCloud: id => call('verifyCloud', [{ id }], 20000),
+    detach() { win.removeEventListener('message', onMsg); for (const p of pend.values()) clearTimeout(p.to); pend.clear(); },
+  };
+}
+function createStore(backend) {
+  let be = backend;
+  const S = {
+    get kind() { return be.kind; },
+    use(b) { be = b; },
+    async lists() { const r = await be.lists(); return (Array.isArray(r) ? r : []).map(sanitizeList).filter(Boolean); },
+    async createList(title, words) {
+      const ws = (Array.isArray(words) ? words.map(w => String(w).replace(/\s+/g, ' ').trim()).filter(Boolean).map(w => w.slice(0, MAX_WORD)) : parseWords(words)).slice(0, 200);
+      if (!ws.length) throw new Error('a list needs at least one word');
+      const l = sanitizeList(await be.createList(String(title ?? '').trim().slice(0, 60) || 'Untitled list', ws));
+      if (!l) throw new Error('the store returned no list'); return l;
+    },
+    async items() { const r = await be.items(); return (Array.isArray(r) ? r : []).map(sanitizeItem).filter(Boolean); },
+    async saveItem(item) { item.updated = Date.now(); const rec = clone(item); await be.saveItem(rec); return rec; },
+    async removeItem(id) { await be.removeItem(String(id)); return true; },
+    async progress() { return deriveProgress(await S.items()); },
+    /** where: 'room' | 'city' | 'shelf'; opts: { room?, shop?, loc? } → the updated item record */
+    async display(id, where, opts = {}) { const r = sanitizeItem(await be.display(Object.assign({ id: String(id), where }, opts))); if (!r) throw new Error('the store returned no item'); return r; },
+    /** host only: reads the cloud copy back → { signedIn, checked, found?, sameVersion?, cloudT?, localT?, reason? }; null when there is no host */
+    async verifyCloud(id) { if (!be.verifyCloud) return null; const r = await be.verifyCloud(String(id)); return r && typeof r === 'object' ? r : { checked: false, reason: 'no answer' }; },
+    async cityShops() { if (!be.cityShops) return null; const r = await be.cityShops(); return Array.isArray(r) ? r.filter(x => x && x.id != null).map(x => ({ id: String(x.id), title: String(x.title ?? x.id) })) : null; },
+  };
+  return S;
+}
+/* ==== PURE:END ==== */
+
+/* ───────────── constants of the room (metres) ───────────── */
+const R = 0.043, RAD = 10, LAYER = 0.1, DRIFT = 0.045;              // tube radius etc. in letter units (neon.html)
+const TOP_Y = 0.78;                                                 // bench / table tops
+const RAIL_Z = -0.45, RAIL_Y = 1.62, GRIP_HIGH = 1.45;              // the gantry over platform, display spot and packing table
+const PLAT = { x: 0, y: 0.83 };                                     // assembly platform top
+const DISPLAY = { x: -1.2, y: 0.817 };                              // bench display turntable top
+const PACK_X = 1.72, CRATE_T = 0.012;
+const CONV_X0 = 2.24, CONV_X1 = 3.14, BELT_V = 0.42;
+const SHELF = { x0: 3.3, colW: 0.36, rowH: 0.26, y0: 0.11, z: -0.93, cols: SHELVES[0].cols, rows: SHELVES[0].rows };
+const NEON_LIGHTS = 3, LIGHT_K = 0.5;
+const GASES = {
+  neon:   { tag: 'NE', css: '#ff5a2a', core: [1.0, 0.40, 0.11], edge: [1.0, 0.10, 0.025], end: [1.0, 0.58, 0.24], light: [1.0, 0.20, 0.05] },
+  argon:  { tag: 'AR', css: '#7d6bff', core: [0.60, 0.52, 1.0], edge: [0.26, 0.16, 1.0], end: [0.80, 0.42, 1.0], light: [0.40, 0.30, 1.0] },
+  helium: { tag: 'HE', css: '#ffb38e', core: [1.0, 0.72, 0.55], edge: [1.0, 0.38, 0.27], end: [1.0, 0.86, 0.58], light: [1.0, 0.52, 0.36] },
+  xenon:  { tag: 'XE', css: '#c9d6ff', core: [0.86, 0.91, 1.0], edge: [0.46, 0.50, 1.0], end: [0.62, 0.48, 1.0], light: [0.66, 0.72, 1.0] },
+};
+const gasOK = k => (GASES[k] ? k : 'neon');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rnd = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+const sm = x => x * x * (3 - 2 * x);
+const lerp = (a, b, t) => a + (b - a) * t;
+const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+const showErr = msg => { const e = document.getElementById('err'); e.style.display = 'block'; e.textContent = msg; };
+
+/* ───────────── renderer / scene ───────────── */
+const canvas = document.getElementById('gl');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+catch (e) { showErr('WebGL 没有启动成功。请换一个浏览器或设备再试。'); throw e; }
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0c0806);
+scene.fog = new THREE.FogExp2(0x0c0806, 0.045);
+{ const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose(); }
+const camera = new THREE.PerspectiveCamera(50, 1, 0.02, 60);
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4 }));
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.55, 0.5, 0.86); composer.addPass(bloom);
+composer.addPass(new OutputPass());
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+const uTime = { value: 0 }, uShim = { value: reduce ? 0 : 1 };
+const roomU = { value: new THREE.Color(0, 0, 0) };      // the coloured light in the room right now (glass picks it up)
+
+/* ───────────── procedural textures ───────────── */
+function canvasTex(w, h, draw, { repeat = null, nearest = false } = {}) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); draw(x, w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
+  if (nearest) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; } else t.anisotropy = 4;
+  return t;
+}
+function grain(x, w, h, base, n, vertical = false) {
+  x.fillStyle = base; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < n; i++) { const d = Math.random() < 0.6; x.fillStyle = d ? `rgba(20,10,4,${rnd(.05, .26)})` : `rgba(235,190,140,${rnd(.02, .08)})`;
+    if (vertical) x.fillRect(rnd(w), rnd(-60, h), rnd(.6, 2.2), rnd(40, h * 0.7)); else x.fillRect(rnd(-60, w), rnd(h), rnd(40, w * 0.6), rnd(.6, 2.2)); }
+}
+const oakTex = canvasTex(512, 128, (x, w, h) => grain(x, w, h, '#8a603a', 300), { repeat: [3, 1] });
+const walnutTex = canvasTex(512, 128, (x, w, h) => grain(x, w, h, '#4b3121', 260), { repeat: [2, 1] });
+const floorTex = canvasTex(512, 512, (x, w, h) => {
+  x.fillStyle = '#3b2716'; x.fillRect(0, 0, w, h);
+  for (let r = 0; r < 8; r++) { let px = -rnd(200);
+    while (px < w) { const len = rnd(170, 340); x.fillStyle = `hsl(${26 + rnd(-3, 3)},${36 + rnd(-6, 6)}%,${19 + rnd(-3, 3)}%)`; x.fillRect(px, r * 64, len, 64);
+      for (let i = 0; i < 26; i++) { x.fillStyle = Math.random() < .6 ? `rgba(10,5,2,${rnd(.06, .22)})` : `rgba(220,170,120,${rnd(.02, .07)})`; x.fillRect(px + rnd(len), r * 64 + rnd(64), rnd(30, len), rnd(.6, 2)); }
+      x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(px, r * 64, 2, 64); px += len; }
+    x.fillStyle = 'rgba(0,0,0,.6)'; x.fillRect(0, r * 64, w, 2); }
+}, { repeat: [4, 3] });
+const wallTex = canvasTex(512, 256, (x, w, h) => {
+  for (let i = 0; i < 8; i++) { x.fillStyle = `hsl(${24 + rnd(-3, 3)},${30 + rnd(-5, 5)}%,${25 + rnd(-3, 3)}%)`; x.fillRect(i * 64, 0, 64, h);
+    for (let k = 0; k < 40; k++) { x.fillStyle = Math.random() < .6 ? `rgba(20,10,4,${rnd(.05, .2)})` : `rgba(230,180,130,${rnd(.02, .06)})`; x.fillRect(i * 64 + rnd(64), rnd(-40, h), rnd(.6, 2), rnd(30, 200)); }
+    x.fillStyle = 'rgba(0,0,0,.6)'; x.fillRect(i * 64, 0, 2, h); }
+}, { repeat: [10, 1] });
+const pegTex = canvasTex(256, 256, (x, w, h) => { grain(x, w, h, '#7d5d3c', 120); x.fillStyle = 'rgba(15,8,3,.85)'; for (let i = 8; i < w; i += 16) for (let j = 8; j < h; j += 16) { x.beginPath(); x.arc(i, j, 2.4, 0, 6.3); x.fill(); } }, { repeat: [3, 2] });
+const crateTex = canvasTex(256, 256, (x, w, h) => {
+  for (let b = 0; b < 4; b++) { x.fillStyle = `hsl(${33 + rnd(-3, 3)},${45 + rnd(-6, 6)}%,${52 + rnd(-5, 4)}%)`; x.fillRect(0, b * 64, w, 64);
+    for (let i = 0; i < 40; i++) { x.fillStyle = Math.random() < .6 ? `rgba(90,50,20,${rnd(.05, .2)})` : `rgba(255,230,190,${rnd(.03, .1)})`; x.fillRect(rnd(-40, w), b * 64 + rnd(64), rnd(30, 180), rnd(.6, 1.8)); }
+    x.fillStyle = 'rgba(40,20,6,.75)'; x.fillRect(0, b * 64, w, 3);
+    x.fillStyle = '#3a2a1c'; for (const nx of [10, w - 10]) { x.beginPath(); x.arc(nx, b * 64 + 32, 2.6, 0, 6.3); x.fill(); } }
+  x.strokeStyle = 'rgba(60,32,10,.8)'; x.lineWidth = 10; x.strokeRect(5, 5, w - 10, h - 10);
+});
+const beltTex = canvasTex(256, 64, (x, w, h) => { x.fillStyle = '#1c1a19'; x.fillRect(0, 0, w, h); for (let i = 0; i < w; i += 32) { x.fillStyle = 'rgba(255,255,255,.07)'; x.fillRect(i, 0, 5, h); x.fillStyle = 'rgba(0,0,0,.5)'; x.fillRect(i + 5, 0, 2, h); } for (let i = 0; i < 300; i++) { x.fillStyle = `rgba(255,255,255,${rnd(.01, .04)})`; x.fillRect(rnd(w), rnd(h), 1, 1); } }, { repeat: [5, 1] });
+
+/* ───────────── materials ───────────── */
+const std = p => new THREE.MeshStandardMaterial(Object.assign({ envMapIntensity: 0.3 }, p));
+const M = {
+  oak: std({ map: oakTex, roughness: 0.55 }), walnut: std({ map: walnutTex, roughness: 0.6 }),
+  floor: std({ map: floorTex, roughness: 0.75, envMapIntensity: 0.15 }), wall: std({ map: wallTex, roughness: 0.85, envMapIntensity: 0.12 }),
+  peg: std({ map: pegTex, roughness: 0.85 }), crate: std({ map: crateTex, roughness: 0.75 }),
+  crateHi: std({ map: crateTex, roughness: 0.6, emissive: new THREE.Color(0.35, 0.18, 0.05), emissiveIntensity: 1 }),
+  brass: std({ color: 0xb8863b, roughness: 0.32, metalness: 0.9, envMapIntensity: 0.9 }),
+  steel: std({ color: 0x9aa0a6, roughness: 0.35, metalness: 0.85, envMapIntensity: 0.8 }),
+  iron: std({ color: 0x2a2b2e, roughness: 0.55, metalness: 0.6, envMapIntensity: 0.5 }),
+  copper: std({ color: 0xb0623a, roughness: 0.35, metalness: 0.9, envMapIntensity: 0.8 }),
+  enamel: std({ color: 0x23413c, roughness: 0.3, metalness: 0.25, envMapIntensity: 0.6 }),
+  cream: std({ color: 0xe8dcc0, roughness: 0.5 }), rubber: std({ color: 0x1d1b1a, roughness: 0.85 }),
+  leather: std({ color: 0x5a3520, roughness: 0.7 }), paper: std({ color: 0xf2ecdf, roughness: 0.9 }),
+  belt: std({ map: beltTex, roughness: 0.8 }), dial: std({ color: 0xd9cfb8, roughness: 0.8 }),
+  shade: std({ color: 0x2d4a3e, roughness: 0.4, metalness: 0.5, side: THREE.DoubleSide }),
+  redTank: std({ color: 0x7a2a1e, roughness: 0.45, metalness: 0.4 }), blueTank: std({ color: 0x203a6a, roughness: 0.45, metalness: 0.4 }),
+  bulb: new THREE.MeshBasicMaterial({ color: new THREE.Color(6, 4, 2.2) }),
+  windowPane: new THREE.MeshBasicMaterial({ color: new THREE.Color(0.07, 0.1, 0.17) }),
+};
+const WORLD_VERT = `varying vec3 vN, vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; vN = normalize(mat3(modelMatrix)*normal); gl_Position = projectionMatrix*viewMatrix*w; }`;
+const glassMat = new THREE.ShaderMaterial({ uniforms: { uRoom: roomU }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexShader: WORLD_VERT, side: THREE.DoubleSide,
+  fragmentShader: `uniform vec3 uRoom; varying vec3 vN, vW;
+    void main(){ vec3 N = normalize(vN), V = normalize(cameraPosition - vW); float fr = pow(1. - abs(dot(N, V)), 2.6); vec3 Rf = reflect(-V, N);
+      float s = pow(max(dot(Rf, normalize(vec3(.2, .9, .35))), 0.), 60.);
+      gl_FragColor = vec4(vec3(1., .85, .65) * (fr * .09 + s * .55) + uRoom * (fr * .75 + .02), 1.); }` });
+
+/* ───────────── static geometry, merged by material ───────────── */
+const batches = new Map();
+const _e = new THREE.Euler(), _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _one = new THREE.Vector3(1, 1, 1), _mx = new THREE.Matrix4(), _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _c = new THREE.Color();
+const UP = V(0, 1, 0), DOWN = V(0, -1, 0), ZAX = V(0, 0, 1);
+function SG(geo, mat) { let a = batches.get(mat); if (!a) batches.set(mat, a = []); a.push(geo); return geo; }
+function S(geo, mat, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) { _mx.compose(_p.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz)), _one); geo.applyMatrix4(_mx); return SG(geo, mat); }
+function flushStatic() {
+  for (const [mat, geos] of batches) { const g = mergeGeometries(geos, false); geos.forEach(x => x.dispose()); if (!g) continue;
+    const m = new THREE.Mesh(g, mat); m.matrixAutoUpdate = false; m.updateMatrix(); scene.add(m); }
+  batches.clear();
+}
+const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const C = (r, h, seg = 16, r2 = r) => new THREE.CylinderGeometry(r2, r, h, seg);
+function rodGeo(a, b, r, rad = 8) { _v.subVectors(b, a); const l = Math.max(1e-4, _v.length()); const g = new THREE.CylinderGeometry(r, r, l, rad, 1);
+  _q.setFromUnitVectors(UP, _v.normalize()); _mx.compose(_p.addVectors(a, b).multiplyScalar(0.5), _q, _one); return g.applyMatrix4(_mx); }
+const rod = (a, b, r, mat, rad) => SG(rodGeo(a, b, r, rad), mat);
+function mesh(geo, mat, parent = scene, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; }
+const legs4 = (cx, cz, w, d, h, r, mat, inset = 0.05) => { for (const sx of [-1, 1]) for (const sz of [-1, 1]) S(B(r, h, r), mat, cx + sx * (w / 2 - inset), h / 2, cz + sz * (d / 2 - inset)); };
+
+/* ───────────── the room ───────────── */
+{
+  S(new THREE.PlaneGeometry(11, 7), M.floor, 1.2, 0, 0.6, -Math.PI / 2);
+  S(new THREE.PlaneGeometry(11, 3.6), M.wall, 1.2, 1.8, -1.35);
+  S(new THREE.PlaneGeometry(7, 3.6), M.wall, -4.3, 1.8, 0.6, 0, Math.PI / 2);
+  S(new THREE.PlaneGeometry(7, 3.6), M.wall, 6.7, 1.8, 0.6, 0, -Math.PI / 2);
+  S(new THREE.PlaneGeometry(11, 7), M.walnut, 1.2, 3.6, 0.6, Math.PI / 2);
+  for (const z of [-0.6, 0.9, 2.4]) S(B(11, 0.16, 0.2), M.walnut, 1.2, 3.5, z);
+  S(B(11, 0.05, 0.04), M.walnut, 1.2, 0.95, -1.33); S(B(11, 0.12, 0.03), M.walnut, 1.2, 0.06, -1.335);
+  // a night window on the left wall
+  S(new THREE.PlaneGeometry(1.0, 1.2), M.windowPane, -4.29, 1.9, 0.4, 0, Math.PI / 2);
+  for (const [w, h, y, z] of [[0.06, 1.3, 1.9, -0.13], [0.06, 1.3, 1.9, 0.93], [0.06, 1.3, 1.9, 0.4], [0.06, 0.06, 2.53, 0.4], [0.06, 0.06, 1.27, 0.4], [0.06, 0.04, 1.9, 0.4]])
+    S(B(0.06, h, w === 0.06 && h === 0.06 ? 1.12 : (h === 0.04 ? 1.06 : 0.06)), M.walnut, -4.27, y, z);
+
+  // main workbench
+  S(B(2.75, 0.06, 1.3), M.oak, -0.27, TOP_Y - 0.03, -0.1); legs4(-0.27, -0.1, 2.75, 1.3, TOP_Y - 0.06, 0.08, M.walnut);
+  S(B(2.6, 0.08, 0.03), M.walnut, -0.27, TOP_Y - 0.1, 0.53); S(B(2.6, 0.05, 0.05), M.walnut, -0.27, 0.16, -0.1);
+  // assembly platform: walnut plinth with brass edges and a copper contact strip
+  S(B(1.15, 0.05, 0.38), M.walnut, PLAT.x, PLAT.y - 0.025, RAIL_Z);
+  for (const z of [RAIL_Z + 0.19, RAIL_Z - 0.19]) S(B(1.17, 0.014, 0.014), M.brass, PLAT.x, PLAT.y - 0.004, z);
+  S(B(1.0, 0.004, 0.03), M.copper, PLAT.x, PLAT.y + 0.002, RAIL_Z - 0.15);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) S(C(0.018, 0.02, 10), M.brass, PLAT.x + sx * 0.53, TOP_Y + 0.01, RAIL_Z + sz * 0.15);
+  // the display turntable
+  S(C(0.2, 0.025, 32), M.brass, DISPLAY.x, TOP_Y + 0.0125, RAIL_Z);
+  // decor on the bench: copper spool, glass rods, a little bench vice, callipers
+  S(C(0.05, 0.07, 20), M.walnut, -0.85, TOP_Y + 0.035, 0.32); S(C(0.042, 0.06, 20), M.copper, -0.85, TOP_Y + 0.035, 0.32);
+  for (let i = 0; i < 6; i++) S(C(0.006, 0.7, 8), glassMat, -0.75, TOP_Y + 0.007 + (i % 2) * 0.01, -0.02 + i * 0.016, 0, 0, Math.PI / 2);
+  S(B(0.12, 0.06, 0.08), M.iron, -1.48, TOP_Y + 0.03, 0.42); S(B(0.12, 0.03, 0.012), M.steel, -1.48, TOP_Y + 0.075, 0.44); S(B(0.12, 0.03, 0.012), M.steel, -1.48, TOP_Y + 0.075, 0.4);
+  S(C(0.006, 0.18, 8), M.steel, -1.48, TOP_Y + 0.04, 0.51, Math.PI / 2); S(C(0.005, 0.12, 8), M.steel, -1.48, TOP_Y + 0.04, 0.6, 0, 0, Math.PI / 2);
+  S(B(0.16, 0.004, 0.02), M.steel, -0.5, TOP_Y + 0.002, 0.42, 0, 0.4); S(B(0.006, 0.004, 0.06), M.steel, -0.57, TOP_Y + 0.002, 0.44, 0, 0.4);
+
+  // chair
+  S(B(0.46, 0.04, 0.44), M.oak, 0, 0.43, 0.98); legs4(0, 0.98, 0.46, 0.44, 0.41, 0.04, M.walnut, 0.03);
+  for (const sx of [-1, 1]) S(B(0.04, 0.6, 0.04), M.walnut, sx * 0.2, 0.75, 1.18);
+  for (const y of [0.72, 0.88, 1.02]) S(B(0.42, 0.06, 0.02), M.oak, 0, y, 1.18);
+
+  // packing table + its lower shelf with box blanks and label roll
+  S(B(0.95, 0.05, 0.8), M.oak, PACK_X, TOP_Y - 0.025, -0.4); legs4(PACK_X, -0.4, 0.95, 0.8, TOP_Y - 0.05, 0.06, M.walnut);
+  S(B(0.85, 0.03, 0.7), M.walnut, PACK_X, 0.25, -0.4);
+  for (let i = 0; i < 5; i++) S(B(0.36, 0.012, 0.22), M.crate, PACK_X - 0.18, 0.272 + i * 0.013, -0.45 + (i % 2) * 0.01);
+  S(C(0.05, 0.18, 20), M.paper, PACK_X + 0.2, 0.32, -0.42, 0, 0, Math.PI / 2); S(C(0.012, 0.22, 8), M.brass, PACK_X + 0.2, 0.32, -0.42, 0, 0, Math.PI / 2);
+  S(B(0.1, 0.06, 0.07), M.iron, PACK_X - 0.36, TOP_Y + 0.03, -0.05); S(C(0.03, 0.04, 12), M.brass, PACK_X - 0.36, TOP_Y + 0.08, -0.05);   // label press
+  S(C(0.012, 0.22, 8), M.oak, PACK_X + 0.32, TOP_Y + 0.012, -0.02, 0, 0.3, Math.PI / 2); S(B(0.03, 0.025, 0.08), M.iron, PACK_X + 0.42, TOP_Y + 0.012, 0.01, 0, 0.3);
+
+  // conveyor
+  const cx = (CONV_X0 + CONV_X1) / 2, cl = CONV_X1 - CONV_X0;
+  S(B(cl + 0.04, 0.012, 0.3), M.belt, cx, TOP_Y - 0.006, RAIL_Z);
+  for (const sz of [-1, 1]) { S(B(cl + 0.1, 0.05, 0.02), M.brass, cx, TOP_Y - 0.01, RAIL_Z + sz * 0.17); S(B(cl + 0.1, 0.012, 0.03), M.brass, cx, TOP_Y + 0.02, RAIL_Z + sz * 0.175); }
+  for (const x of [CONV_X0 + 0.03, CONV_X1 - 0.03]) for (const sz of [-1, 1]) S(B(0.04, TOP_Y - 0.03, 0.04), M.steel, x, (TOP_Y - 0.03) / 2, RAIL_Z + sz * 0.15);
+  S(B(0.16, 0.12, 0.12), M.iron, CONV_X1 - 0.12, 0.6, RAIL_Z + 0.1); S(C(0.04, 0.14, 16), M.brass, CONV_X1 - 0.12, 0.6, RAIL_Z + 0.1, Math.PI / 2);
+
+  // the finished-goods shelf: 5 × 4 slots
+  const sw = SHELF.cols * SHELF.colW, sx0 = SHELF.x0, scx = sx0 + sw / 2, sh = SHELF.rows * SHELF.rowH + 0.06;
+  S(B(sw + 0.06, 0.09, 0.4), M.walnut, scx, 0.045, SHELF.z);
+  for (const x of [sx0 - 0.015, sx0 + sw + 0.015]) S(B(0.03, sh + 0.1, 0.4), M.walnut, x, (sh + 0.1) / 2, SHELF.z);
+  S(B(sw + 0.06, sh + 0.1, 0.02), M.walnut, scx, (sh + 0.1) / 2, SHELF.z - 0.19);
+  for (let r = 0; r <= SHELF.rows; r++) S(B(sw, 0.02, 0.38), M.oak, scx, SHELF.y0 - 0.01 + r * SHELF.rowH, SHELF.z);
+  for (let r = 0; r < SHELF.rows; r++) for (let c = 1; c < SHELF.cols; c++) S(B(0.012, SHELF.rowH - 0.02, 0.36), M.oak, sx0 + c * SHELF.colW, SHELF.y0 + r * SHELF.rowH + (SHELF.rowH - 0.02) / 2, SHELF.z);
+  S(B(sw + 0.12, 0.05, 0.44), M.walnut, scx, sh + 0.12, SHELF.z);
+
+  // tool wall: pegboard, tools, a low bench with a vice and bar clamps, gas bottles, a glass-rod rack
+  const tx = -2.65, tz = -1.32;
+  S(B(1.6, 1.0, 0.02), M.peg, tx, 1.65, tz); S(B(1.66, 0.04, 0.04), M.walnut, tx, 2.17, tz + 0.01); S(B(1.66, 0.04, 0.04), M.walnut, tx, 1.13, tz + 0.01);
+  for (const [x, y, s] of [[-3.3, 1.75, 1], [-3.15, 1.75, 0.85]]) { S(C(0.012, 0.3 * s, 8), M.oak, x, y, tz + 0.04); S(B(0.1 * s, 0.03, 0.03), M.iron, x, y + 0.15 * s, tz + 0.04); }
+  for (let i = 0; i < 3; i++) { const x = -2.98 + i * 0.07, l = 0.16 + i * 0.03; S(B(0.02, l, 0.006), M.steel, x, 1.78, tz + 0.03); for (const sy of [-1, 1]) S(new THREE.TorusGeometry(0.016, 0.006, 6, 12), M.steel, x, 1.78 + sy * l / 2, tz + 0.03); }
+  S(B(0.36, 0.1, 0.003), M.steel, -2.55, 1.95, tz + 0.03); S(B(0.08, 0.07, 0.02), M.oak, -2.33, 1.94, tz + 0.035);
+  for (let i = 0; i < 4; i++) { const x = -2.6 + i * 0.05; S(C(0.01, 0.09, 8), M.oak, x, 1.62, tz + 0.04); S(B(0.012, 0.08, 0.003), M.steel, x, 1.535, tz + 0.04); }
+  for (let i = 0; i < 3; i++) { const x = -2.35 + i * 0.05; S(C(0.011, 0.08, 8), M.copper, x, 1.66, tz + 0.04); S(C(0.003, 0.1, 6), M.steel, x, 1.57, tz + 0.04); }
+  for (let i = 0; i < 2; i++) { const x = -2.12 + i * 0.16; S(new THREE.TorusGeometry(0.055, 0.009, 6, 16, Math.PI * 1.3), M.iron, x, 1.82, tz + 0.04, 0, 0, -0.6); S(C(0.005, 0.13, 6), M.steel, x + 0.02, 1.8, tz + 0.04); }
+  S(new THREE.TorusGeometry(0.07, 0.008, 8, 24), M.copper, -2.0, 1.45, tz + 0.04); S(new THREE.TorusGeometry(0.06, 0.008, 8, 24), M.copper, -2.0, 1.45, tz + 0.05);
+  S(B(0.3, 0.025, 0.004), M.brass, -2.7, 1.35, tz + 0.03); S(B(0.025, 0.2, 0.004), M.brass, -2.84, 1.45, tz + 0.03);
+  S(B(1.5, 0.05, 0.55), M.walnut, tx, 0.8, -1.05); legs4(tx, -1.05, 1.5, 0.55, 0.775, 0.06, M.walnut);
+  S(B(0.14, 0.08, 0.1), M.iron, -2.15, 0.865, -0.85); S(B(0.15, 0.05, 0.02), M.steel, -2.15, 0.93, -0.81); S(B(0.15, 0.05, 0.02), M.steel, -2.15, 0.93, -0.89);
+  S(C(0.008, 0.16, 8), M.steel, -2.15, 0.88, -0.74, Math.PI / 2); S(C(0.006, 0.14, 8), M.steel, -2.15, 0.88, -0.66, 0, 0, Math.PI / 2);
+  S(B(0.5, 0.02, 0.02), M.steel, -2.8, 0.835, -0.95); for (const x of [-3.0, -2.62]) S(B(0.04, 0.06, 0.05), M.oak, x, 0.855, -0.95);
+  for (const [x, z, m] of [[-1.95, -1.08, M.redTank], [-1.75, -1.13, M.blueTank]]) { S(C(0.09, 1.0, 20), m, x, 0.5, z); S(new THREE.SphereGeometry(0.09, 20, 10, 0, 6.3, 0, Math.PI / 2), m, x, 1.0, z); S(C(0.025, 0.08, 10), M.brass, x, 1.12, z); S(C(0.008, 0.08, 8), M.brass, x + 0.04, 1.14, z, 0, 0, Math.PI / 2); }
+  for (const x of [-3.3, -2.0]) S(B(0.03, 0.08, 0.1), M.brass, x, 2.3, tz + 0.05);
+  for (let i = 0; i < 7; i++) S(C(0.006, 1.42, 8), M.steel, -2.65, 2.31 + (i % 2) * 0.012, tz + 0.04 + i * 0.012, 0, 0, Math.PI / 2);
+}
+
+/* ───────────── lamps ───────────── */
+scene.add(new THREE.HemisphereLight(0xffd9b0, 0x2a1a10, 0.5));
+const moon = new THREE.DirectionalLight(0x9db4ff, 0.45); moon.position.set(-5, 3, 1); scene.add(moon);
+function pendant(x, z, int) {
+  const y = 2.35; S(C(0.004, 3.6 - y - 0.12, 6), M.iron, x, (3.6 + y + 0.12) / 2, z);
+  S(new THREE.ConeGeometry(0.17, 0.14, 24, 1, true), M.shade, x, y + 0.05, z); S(C(0.03, 0.06, 12), M.brass, x, y + 0.13, z);
+  S(new THREE.SphereGeometry(0.035, 14, 10), M.bulb, x, y, z);
+  const l = new THREE.PointLight(0xffb070, int, 0, 2); l.position.set(x, y - 0.03, z); scene.add(l); return l;
+}
+pendant(0.15, -0.15, 6.5); pendant(3.7, -0.25, 5.0); pendant(-2.6, -0.6, 3.2);
+const deskLamp = (() => {
+  const b = V(0.82, TOP_Y, -0.02), el = V(0.86, 1.2, -0.08), hd = V(0.62, 1.28, 0.12), tg = V(0.08, TOP_Y, 0.32);
+  S(C(0.075, 0.025, 24), M.iron, b.x, b.y + 0.0125, b.z); rod(V(b.x, b.y + 0.02, b.z), el, 0.009, M.brass); rod(el, hd, 0.008, M.brass);
+  S(new THREE.SphereGeometry(0.016, 10, 8), M.brass, el.x, el.y, el.z);
+  const dir = _v2.subVectors(tg, hd).normalize().clone();
+  const cone = new THREE.ConeGeometry(0.075, 0.11, 24, 1, true); _q.setFromUnitVectors(DOWN, dir); _mx.compose(hd, _q, _one); cone.applyMatrix4(_mx); SG(cone, M.shade);
+  const bp = hd.clone().addScaledVector(dir, 0.02); S(new THREE.SphereGeometry(0.022, 12, 8), M.bulb, bp.x, bp.y, bp.z);
+  const spot = new THREE.SpotLight(0xffc890, 2.6, 0, 0.62, 0.65, 2); spot.position.copy(bp); spot.target.position.copy(tg); scene.add(spot, spot.target);
+  return spot;
+})();
+
+/* ───────────── the Pipe Wall rig ───────────── */
+const FEED_VERT = `varying vec2 vUv; varying vec3 vN, vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`;
+const FEED_FRAG = `uniform vec3 uCol, uRoom; uniform vec4 uP; uniform float uLevel; varying vec2 vUv; varying vec3 vN, vW;
+  float b(float d){ d *= 16.; return exp(-d * d); }
+  void main(){ vec3 N = normalize(vN), Vv = normalize(cameraPosition - vW); float fr = pow(1. - abs(dot(N, Vv)), 2.4);
+    vec3 Rf = reflect(-Vv, N); float s = pow(max(dot(Rf, normalize(vec3(-.3, .8, .5))), 0.), 40.);
+    float t = vUv.x, g = uLevel * .22 + b(t - uP.x) + b(t - uP.y) + b(t - uP.z) + b(t - uP.w);
+    vec3 col = vec3(1., .86, .7) * (fr * .16 + s * .7) + uRoom * fr * .5 + uCol * g * (.5 + 1.2 * fr);
+    gl_FragColor = vec4(col, 1.); }`;
+const rig = (() => {
+  const zb = -1.31;
+  S(B(2.3, 1.45, 0.04), M.walnut, 0, 1.73, zb); S(B(2.36, 0.04, 0.06), M.brass, 0, 2.47, zb + 0.01); S(B(2.36, 0.04, 0.06), M.brass, 0, 0.99, zb + 0.01);
+  const gasMats = [], valves = [], feeds = [], needles = [];
+  for (const sx of [-1, 1]) { const x = sx * 0.9, z = -1.17;
+    S(C(0.09, 0.05, 20), M.brass, x, 1.62, z); S(C(0.09, 0.05, 20), M.brass, x, 2.29, z);
+    for (const a of [0.8, 2.4, 4.0, 5.6]) S(C(0.006, 0.62, 6), M.brass, x + Math.cos(a) * 0.085, 1.955, z + Math.sin(a) * 0.085);
+    mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.62, 24, 1, true), glassMat, scene, x, 1.955, z);
+    const gm = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }); gasMats.push(gm);
+    mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.58, 16, 1, true), gm, scene, x, 1.955, z);
+    S(C(0.018, 1.31, 10), M.brass, x, 2.945, z); S(C(0.02, 0.24, 10), M.brass, x, 1.48, z);
+  }
+  S(C(0.024, 1.84, 12), M.brass, 0, 1.38, -1.17, 0, 0, Math.PI / 2);
+  S(C(0.014, 1.84, 10), M.copper, 0, 2.38, -1.22, 0, 0, Math.PI / 2);
+  for (const x of [-0.6, 0, 0.6]) S(B(0.03, 0.05, 0.1), M.brass, x, 2.38, -1.26);
+  const FEEDX = [-0.38, 0, 0.38];
+  for (const fx of FEEDX) {
+    const curve = new THREE.CatmullRomCurve3([V(fx, 1.38, -1.15), V(fx, 1.37, -1.0), V(fx * 0.98, 1.2, -0.84), V(fx * 0.95, 0.97, -0.71), V(fx * 0.93, PLAT.y + 0.03, -0.63)]);
+    const u = { uCol: { value: new THREE.Color() }, uRoom: roomU, uP: { value: new THREE.Vector4(-9, -9, -9, -9) }, uLevel: { value: 0 } };
+    mesh(new THREE.TubeGeometry(curve, 64, 0.013, 10, false), new THREE.ShaderMaterial({ uniforms: u, vertexShader: FEED_VERT, fragmentShader: FEED_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    SG(new THREE.TubeGeometry(curve, 48, 0.0045, 6, false), M.copper);
+    const e = curve.getPointAt(1); S(C(0.02, 0.03, 12), M.brass, e.x, e.y - 0.005, e.z);
+    S(new THREE.SphereGeometry(0.032, 16, 12), M.brass, fx, 1.38, -1.14);
+    const vg = new THREE.Group(); vg.position.set(fx, 1.38, -1.1); scene.add(vg);
+    mesh(new THREE.TorusGeometry(0.04, 0.006, 8, 24), M.brass, vg); const sp1 = mesh(B(0.08, 0.008, 0.006), M.brass, vg); const sp2 = mesh(B(0.008, 0.08, 0.006), M.brass, vg);
+    mesh(C(0.01, 0.03, 10), M.iron, vg, 0, 0, -0.012).rotation.x = Math.PI / 2;
+    valves.push({ g: vg, spin: 0 }); feeds.push({ x: fx, u, p: [-9, -9, -9, -9] });
+    void sp1; void sp2;
+  }
+  // gauges
+  for (const [x, y, r] of [[-0.52, 1.98, 0.13], [0.52, 1.98, 0.13], [0, 2.12, 0.09]]) { const z = zb + 0.04;
+    S(C(r, 0.05, 28), M.iron, x, y, z, Math.PI / 2); S(new THREE.CircleGeometry(r * 0.86, 28), M.dial, x, y, z + 0.026); S(new THREE.TorusGeometry(r * 0.93, r * 0.07, 8, 32), M.brass, x, y, z + 0.026);
+    const n = mesh(B(r * 0.72, r * 0.05, 0.006), M.iron, scene, x, y, z + 0.032); n.geometry.translate(r * 0.3, 0, 0); needles.push({ m: n, a: 2.4 }); }
+  // a brass maker's plate
+  const plate = canvasTex(256, 48, (x, w, h) => { x.fillStyle = '#9b7231'; x.fillRect(0, 0, w, h); x.strokeStyle = '#5b3d12'; x.lineWidth = 3; x.strokeRect(3, 3, w - 6, h - 6); x.fillStyle = '#3a240a'; x.font = '700 20px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('PIPE WALL · MK II', w / 2, h / 2 + 1); });
+  mesh(new THREE.PlaneGeometry(0.42, 0.079), std({ map: plate, roughness: 0.4, metalness: 0.6 }), scene, 0, 2.36, zb + 0.022);
+
+  let level = 0;
+  return {
+    feeds,
+    pulse(x) { let best = feeds[0]; for (const f of feeds) if (Math.abs(f.x - x) < Math.abs(best.x - x)) best = f;
+      let k = best.p.findIndex(v => v < -1 || v > 1.3); if (k < 0) k = 0; best.p[k] = 0; valves[feeds.indexOf(best)].spin += 3; level = Math.min(1.4, level + 0.5); },
+    update(dt, time, gasKey, active) {
+      const gs = GASES[gasKey]; level += ((active ? 0.7 : 0.12) - level) * (1 - Math.exp(-dt * 2));
+      for (const f of feeds) { for (let i = 0; i < 4; i++) if (f.p[i] > -1) { f.p[i] += dt * 1.5; if (f.p[i] > 1.3) f.p[i] = -9; }
+        f.u.uP.value.set(f.p[0], f.p[1], f.p[2], f.p[3]); f.u.uLevel.value = level; f.u.uCol.value.setRGB(gs.core[0], gs.core[1], gs.core[2]); }
+      for (const v of valves) { v.spin *= Math.exp(-dt * 3); v.g.rotation.z += v.spin * dt; }
+      const fl = reduce ? 1 : 0.85 + 0.15 * Math.sin(time * 13.1) * Math.sin(time * 7.3);
+      for (const gm of gasMats) gm.color.setRGB(gs.edge[0], gs.edge[1], gs.edge[2]).multiplyScalar((0.18 + level * 0.55) * fl);
+      needles.forEach((n, i) => { const t = 2.4 - level * 1.6 - i * 0.2 + (reduce ? 0 : Math.sin(time * 1.3 + i) * 0.03); n.a += (t - n.a) * (1 - Math.exp(-dt * 4)); n.m.rotation.z = n.a; });
+      return level;
+    },
+  };
+})();
+
+/* ───────────── the gantry and its gripper ───────────── */
+const grip = { x: 0, y: GRIP_HIGH, tx: 0, ty: GRIP_HIGH, open: 1, topen: 1, carry: null, owner: null, glow: 0 };
+const gantry = (() => {
+  const x0 = -1.57, x1 = 2.14, cx = (x0 + x1) / 2, L = x1 - x0;
+  for (const dz of [-0.04, 0.04]) S(B(L, 0.022, 0.022), M.steel, cx, RAIL_Y, RAIL_Z + dz);
+  for (const x of [x0, x1]) { S(C(0.016, RAIL_Y - TOP_Y, 10), M.steel, x, (RAIL_Y + TOP_Y) / 2, RAIL_Z); S(C(0.05, 0.015, 16), M.brass, x, TOP_Y + 0.0075, RAIL_Z); S(B(0.05, 0.04, 0.12), M.brass, x, RAIL_Y, RAIL_Z); }
+  for (const x of [-0.62, 0.95]) { S(B(0.02, 0.02, 0.86), M.steel, x, RAIL_Y + 0.03, (RAIL_Z - 1.31) / 2 - 0.0); S(B(0.06, 0.1, 0.01), M.brass, x, RAIL_Y + 0.03, -1.3); }
+  const car = new THREE.Group(); scene.add(car);
+  mesh(B(0.12, 0.05, 0.13), M.brass, car, 0, 0, 0); mesh(B(0.05, 0.03, 0.15), M.iron, car, 0, 0.035, 0);
+  const rodM = mesh(C(0.008, 1, 8), M.steel); rodM.position.z = RAIL_Z;
+  const head = new THREE.Group(); scene.add(head);
+  mesh(C(0.028, 0.04, 16), M.brass, head, 0, 0.055, 0);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  mesh(new THREE.TorusGeometry(0.03, 0.004, 6, 24), ringMat, head, 0, 0.04, 0).rotation.x = Math.PI / 2;
+  mesh(B(0.04, 0.008, 0.07), M.steel, head, 0, 0.03, 0);
+  const fingers = [-1, 1].map(s => mesh(B(0.034, 0.05, 0.007), M.steel, head, 0, 0.005, s * 0.03));
+  return { car, rodM, head, fingers, ringMat };
+})();
+function stepTo(cur, tgt, vmax, dt) { const d = tgt - cur, step = Math.min(Math.abs(d), dt * Math.min(vmax, Math.abs(d) * 7 + 0.02)); return cur + Math.sign(d) * step; }
+function updateGripper(dt, gasKey) {
+  grip.x = stepTo(grip.x, grip.tx, 1.1, dt); grip.y = stepTo(grip.y, grip.ty, 0.7, dt);
+  grip.open += (grip.topen - grip.open) * (1 - Math.exp(-dt * 14));
+  gantry.car.position.set(grip.x, RAIL_Y, RAIL_Z);
+  const top = RAIL_Y - 0.02, bot = grip.y + 0.075; gantry.rodM.scale.y = Math.max(0.01, top - bot); gantry.rodM.position.set(grip.x, (top + bot) / 2, RAIL_Z);
+  gantry.head.position.set(grip.x, grip.y, RAIL_Z);
+  const o = 0.009 + grip.open * 0.028; gantry.fingers[0].position.z = -o; gantry.fingers[1].position.z = o;
+  if (grip.carry) { const Sc = grip.carry; Sc.root.position.set(grip.x, grip.y - WORD_TOP * Sc.s, RAIL_Z + 0.52 * Sc.s); Sc.root.rotation.y *= Math.exp(-dt * 6); }
+  const gs = GASES[gasKey]; grip.glow *= Math.exp(-dt * 3);
+  gantry.ringMat.color.setRGB(gs.core[0], gs.core[1], gs.core[2]).multiplyScalar(0.25 + grip.glow * 1.6);
+}
+
+/* ───────────── conveyor (moving parts) ───────────── */
+const conveyor = (() => {
+  const rollers = [];
+  for (const x of [CONV_X0, CONV_X1, (CONV_X0 * 2 + CONV_X1) / 3, (CONV_X0 + CONV_X1 * 2) / 3]) { const m = mesh(C(0.022, 0.3, 14), M.steel, scene, x, TOP_Y - 0.03, RAIL_Z); m.rotation.x = Math.PI / 2; rollers.push(m); }
+  const lampMat = new THREE.MeshBasicMaterial({ color: 0x000000 }); mesh(new THREE.SphereGeometry(0.012, 10, 8), lampMat, scene, CONV_X1 - 0.12, 0.67, RAIL_Z + 0.17);
+  const st = { users: 0, dir: 1, v: 0, rollers, lampMat };
+  st.update = dt => { const tv = st.users > 0 ? BELT_V * st.dir : 0; st.v += (tv - st.v) * (1 - Math.exp(-dt * 10));
+    beltTex.offset.x -= st.v * dt / (CONV_X1 - CONV_X0) * beltTex.repeat.x; for (const r of rollers) r.rotation.y -= st.v * dt / 0.022;
+    lampMat.color.setRGB(st.users ? 0.4 : 0.05, st.users ? 2.2 : 0.12, st.users ? 0.6 : 0.05); };
+  return st;
+})();
+const turntable = mesh(C(0.19, 0.012, 32), M.walnut, scene, DISPLAY.x, TOP_Y + 0.031, RAIL_Z);
+
+/* ───────────── the typewriter ───────────── */
+const KEY_ROWS = ['1234567890-', 'QWERTYUIOP/', "ASDFGHJKL:'", 'ZXCVBNM,.?!'];
+const CW = 0.0072, PAPER_W = 0.2, PAPER_H = 0.25, PAPER_M = 0.016;
+const tw = (() => {
+  const g = new THREE.Group(); g.position.set(0, TOP_Y, 0.22); scene.add(g);
+  const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = mesh(geo, mat, g, x, y, z); m.rotation.set(rx, ry, rz); return m; };
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(C(0.014, 0.012, 10), M.rubber, sx * 0.2, 0.006, sz * 0.14);
+  add(B(0.46, 0.05, 0.34), M.enamel, 0, 0.037, 0);
+  add(B(0.44, 0.012, 0.19), M.enamel, 0, 0.062, 0.085, 0.33);
+  for (const sx of [-1, 1]) add(B(0.03, 0.11, 0.3), M.enamel, sx * 0.235, 0.09, -0.015);
+  add(B(0.38, 0.035, 0.09), M.enamel, 0, 0.085, -0.055); add(B(0.38, 0.008, 0.006), M.brass, 0, 0.1, -0.009);
+  add(C(0.035, 0.012, 20), M.brass, -0.13, 0.11, -0.06); add(C(0.035, 0.012, 20), M.brass, 0.13, 0.11, -0.06);
+  add(C(0.03, 0.013, 20), M.rubber, -0.13, 0.12, -0.06); add(C(0.03, 0.013, 20), M.rubber, 0.13, 0.12, -0.06);
+  add(B(0.02, 0.03, 0.012), M.brass, 0, 0.14, -0.072);
+  add(B(0.5, 0.008, 0.012), M.steel, 0, 0.13, -0.135); add(B(0.5, 0.008, 0.012), M.steel, 0, 0.13, -0.075);
+  // key atlas: one texture, every cap's UVs point at its own cell
+  const cells = [...KEY_ROWS.join(''), '⌫'];
+  const atlas = canvasTex(512, 512, (x) => { x.fillStyle = '#e9dfc6'; x.fillRect(0, 0, 512, 512); x.fillStyle = '#2b1d12'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    cells.forEach((ch, i) => { const cx = (i % 8) * 64 + 32, cy = Math.floor(i / 8) * 64 + 33; x.strokeStyle = '#2b1d12'; x.lineWidth = 5; x.beginPath(); x.arc(cx, cy, 29, 0, 6.3); x.stroke();
+      x.font = (ch === '⌫' ? '600 26px ' : '700 30px ') + 'ui-monospace, Menlo, monospace'; x.fillText(ch, cx, cy + 1); }); });
+  const capMat = std({ map: atlas, roughness: 0.45 }), ringMat = M.brass;
+  const keys = new Map(), allKeys = [];
+  const makeKey = (ch, x, y, z) => {
+    const i = cells.indexOf(ch), r = 0.0125, geo = new THREE.CylinderGeometry(r, r, 0.008, 18), uv = geo.attributes.uv, pos = geo.attributes.position;
+    for (let k = 0; k < uv.count; k++) {        // planar map seen from above: the glyph's top points away from the typist
+      const u0 = clamp01(0.5 + pos.getX(k) / (2 * r)), v0 = clamp01(0.5 - pos.getZ(k) / (2 * r));
+      uv.setXY(k, ((i % 8) + u0) / 8, 1 - (Math.floor(i / 8) + 1 - v0) / 8);
+    }
+    const m = add(geo, [ringMat, capMat, ringMat], x, y, z); const key = { m, y, p: 0, ch }; keys.set(ch, key); allKeys.push(key); return key;
+  };
+  KEY_ROWS.forEach((row, r) => { const z = 0.035 + r * 0.038, y = 0.112 - r * 0.013, n = row.length;
+    [...row].forEach((ch, i) => makeKey(ch, (i - (n - 1) / 2) * 0.034 + r * 0.006, y, z)); });
+  makeKey('⌫', 6.2 * 0.034, 0.112, 0.035);
+  const space = add(B(0.2, 0.01, 0.022), M.cream, 0, 0.112 - 3 * 0.013 - 0.004, 0.035 + 3 * 0.038 + 0.036); const spaceKey = { m: space, y: space.position.y, p: 0, ch: ' ' }; keys.set(' ', spaceKey); allKeys.push(spaceKey);
+  // type bars: an instanced fan; the one for the key just hit swings up to the platen
+  const barChars = [...KEY_ROWS.join('')], nb = barChars.length, Cc = V(0, 0.118, -0.05), Pp = V(0, 0.16, -0.072);
+  const bars = new THREE.InstancedMesh(B(0.003, 0.002, 1).translate(0, 0, 0.5), M.steel, nb); g.add(bars); bars.frustumCulled = false;
+  const pivots = barChars.map((_, i) => { const a = lerp(-1.25, 1.25, i / (nb - 1)); return V(Math.sin(a) * 0.15, 0.118, -0.05 + Math.cos(a) * 0.1); });
+  const strike = new Float32Array(nb), dummy = new THREE.Object3D(), _a = V(), _b = V();
+  const setBar = i => { const k = Math.sin(Math.PI * clamp01(strike[i])); _a.subVectors(Cc, pivots[i]); _b.subVectors(Pp, pivots[i]); _a.lerp(_b, k); const len = _a.length();
+    dummy.position.copy(pivots[i]); dummy.quaternion.setFromUnitVectors(ZAX, _a.multiplyScalar(1 / len)); dummy.scale.set(1, 1, len); dummy.updateMatrix(); bars.setMatrixAt(i, dummy.matrix); };
+  for (let i = 0; i < nb; i++) { strike[i] = 0; setBar(i); } bars.instanceMatrix.needsUpdate = true;
+  // carriage: platen, knobs, paper with the typed text, return lever
+  const car = new THREE.Group(); car.position.set(0, 0.165, -0.105); g.add(car);
+  mesh(C(0.03, 0.44, 22), M.rubber, car).rotation.z = Math.PI / 2;
+  for (const sx of [-1, 1]) { mesh(C(0.024, 0.03, 18), M.brass, car, sx * 0.235, 0, 0).rotation.z = Math.PI / 2; }
+  mesh(B(0.5, 0.012, 0.05), M.steel, car, 0, -0.035, 0);
+  mesh(C(0.004, 0.3, 8), M.steel, car, 0, 0.034, 0.028).rotation.z = Math.PI / 2;
+  const lever = new THREE.Group(); lever.position.set(-0.25, 0.02, 0.02); car.add(lever);
+  mesh(B(0.1, 0.008, 0.008), M.steel, lever, -0.05, 0.02, 0).rotation.z = -0.4; mesh(new THREE.SphereGeometry(0.011, 10, 8), M.brass, lever, -0.095, 0.04, 0);
+  const pc = document.createElement('canvas'); pc.width = 512; pc.height = 640; const pctx = pc.getContext('2d');
+  const paperTex = new THREE.CanvasTexture(pc); paperTex.colorSpace = THREE.SRGBColorSpace; paperTex.anisotropy = 4;
+  const paper = mesh(new THREE.PlaneGeometry(PAPER_W, PAPER_H), std({ map: paperTex, roughness: 0.9, side: THREE.DoubleSide, envMapIntensity: 0.15 }), car, 0, 0.02 + PAPER_H / 2, -0.012);
+  paper.geometry.translate(0, 0, 0); paper.rotation.x = -0.16;
+  let carX = 0, carT = 0, leverKick = 0;
+  const pxPerM = 512 / PAPER_W;
+  function drawPaper(history, text) {
+    const x = pctx; x.fillStyle = '#f3eee2'; x.fillRect(0, 0, 512, 640); x.fillStyle = 'rgba(120,90,60,.06)'; for (let i = 0; i < 640; i += 40) x.fillRect(0, i, 512, 1);
+    x.font = '700 24px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+    const cwp = CW * pxPerM, m = PAPER_M * pxPerM, base = 600;
+    const lines = history.slice(-12);
+    lines.forEach((w, k) => { x.fillStyle = 'rgba(40,28,20,.72)'; const y = base - (lines.length - k) * 40; for (let i = 0; i < w.length && i < MAX_WORD; i++) x.fillText(w[i], m + (i + 0.5) * cwp, y); });
+    x.fillStyle = '#1b130e'; for (let i = 0; i < text.length; i++) x.fillText(text[i], m + (i + 0.5) * cwp, base);
+    paperTex.needsUpdate = true;
+  }
+  return {
+    group: g, keys, spaceKey,
+    keyWorld(ch, out) { const k = keys.get(ch) || keys.get('-'); return k.m.getWorldPosition(out); },
+    press(ch) { const k = keys.get(ch); if (k) k.p = 1; const bi = barChars.indexOf(ch); if (bi >= 0) strike[bi] = 0.0001; },
+    setColumn(n) { carT = 0.0804 - n * CW; },
+    ret() { leverKick = 1; },
+    drawPaper,
+    update(dt) {
+      for (const k of allKeys) if (k.p > 0.001) { k.p *= Math.exp(-dt * 14); k.m.position.y = k.y - 0.006 * Math.min(1, k.p * 1.6); }
+      let any = false; for (let i = 0; i < nb; i++) if (strike[i] > 0) { strike[i] += dt / 0.16; if (strike[i] >= 1) strike[i] = 0; setBar(i); any = true; }
+      if (any) bars.instanceMatrix.needsUpdate = true;
+      carX += (carT - carX) * (1 - Math.exp(-dt * (leverKick > 0.05 ? 6 : 22))); car.position.x = carX;
+      leverKick *= Math.exp(-dt * 3); lever.rotation.z = -leverKick * 0.7;
+    },
+  };
+})();
+// the brass ticket holder that shows the next word of the list
+const ticket = (() => {
+  const g = new THREE.Group(); g.position.set(0.4, TOP_Y, 0.38); g.rotation.y = -0.59; scene.add(g);
+  mesh(B(0.11, 0.01, 0.04), M.brass, g, 0, 0.005, 0); mesh(C(0.004, 0.05, 8), M.brass, g, 0, 0.03, -0.005);
+  const c = document.createElement('canvas'); c.width = 256; c.height = 160; const x = c.getContext('2d');
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const card = mesh(new THREE.PlaneGeometry(0.12, 0.075), std({ map: tex, roughness: 0.85, envMapIntensity: 0.15 }), g, 0, 0.085, 0); card.rotation.x = -0.35;
+  let key = '';
+  return { set(small, big, foot) { const k = small + '|' + big + '|' + foot; if (k === key) return; key = k;
+    x.fillStyle = '#efe4c8'; x.fillRect(0, 0, 256, 160); x.strokeStyle = '#9b7231'; x.lineWidth = 8; x.strokeRect(4, 4, 248, 152);
+    x.fillStyle = '#6b4a2a'; x.font = '600 16px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(small, 128, 30);
+    let fs = 44; x.font = `700 ${fs}px ui-monospace, Menlo, monospace`; while (x.measureText(big).width > 226 && fs > 14) { fs -= 2; x.font = `700 ${fs}px ui-monospace, Menlo, monospace`; }
+    x.fillStyle = '#24170d'; x.fillText(big, 128, 80); x.fillStyle = '#6b4a2a'; x.font = '600 14px ui-monospace, Menlo, monospace'; x.fillText(foot.slice(0, 28), 128, 128);
+    tex.needsUpdate = true; } };
+})();
+
+/* ───────────── the voxel character ───────────── */
+const PAL = { s: '#c8946a', S: '#a87650', h: '#5a3420', H: '#3e2214', b: '#b8873a', L: '#5fb7b0', w: '#f3efe6', e: '#2a1c14', m: '#8a5a44',
+  y: '#c9a44a', Y: '#a8863a', a: '#6b4026', A: '#4f2e1a', p: '#5a361f', k: '#2b1c12', B: '#e0b85a', n: '#3a3f4a', N: '#2c3038', o: '#3a2416' };
+const pix = rows => canvasTex(rows[0].length, rows.length, x => { rows.forEach((r, j) => [...r].forEach((c, i) => { x.fillStyle = PAL[c] || '#f0f'; x.fillRect(i, j, 1, 1); })); }, { nearest: true });
+const hero = (() => {
+  const T = {
+    hFront: pix(['hhhhhhhh', 'hbbbbbbh', 'bLLbbLLb', 'hssssssh', 'swessews', 'ssssssss', 'sssmmsss', 'SssssssS']),
+    hSide: pix(['hhhhhhhh', 'bbbbbbbb', 'hhhhhhhh', 'hhssssss', 'hhssssss', 'hhssssss', 'hhhsssss', 'hhhSssss']),
+    hBack: pix(['hhhhhhhh', 'bbbbbbbb', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'hhhhhhhh', 'HhhhhhhH', 'HHhhhhHH']),
+    hTop: pix(['hhhHhhhh', 'hhhhhhHh', 'hHhhhhhh', 'hhhhhhhh', 'hhhhHhhh', 'hhhhhhhh', 'hhHhhhhh', 'hhhhhhhH']),
+    hBot: pix(['ssss', 'ssss']),
+    bFront: pix(['yyyyyyyy', 'yAyyyyAy', 'yAyyyyAy', 'yaaaaaay', 'yaaaaaay', 'yaaaaaay', 'kkkkBkkk', 'aaaaaaaa', 'aappppaa', 'aappppaa', 'aaaaaaaa', 'AaaaaaaA']),
+    bBack: pix(['yyyyyyyy', 'yAyyyyAy', 'yyAyyAyy', 'yyyAAyyy', 'yyyAAyyy', 'yyAyyAyy', 'kkkkkkkk', 'nnnnnnnn', 'nnnnnnnn', 'nNnnnnNn', 'nnnnnnnn', 'nnnnnnnn']),
+    bSide: pix(['yyyy', 'yyyy', 'yyyy', 'yyyy', 'yyyy', 'yyyy', 'kkkk', 'aaaa', 'aaaa', 'aaaa', 'aaaa', 'aaaa']),
+    shirt: pix(['yy', 'yy']), skin: pix(['ss', 'ss']),
+    arm: pix(['yyyy', 'yyyy', 'YYYY', 'ssss', 'ssss', 'ssss', 'AAAA', 'AbAA', 'ssss', 'ssss', 'ssss', 'SSSS']),
+    leg: pix(['nnnn', 'nNnn', 'nnnn', 'nnnn', 'nnNn', 'nnnn', 'nnnn', 'nnnn', 'Nnnn', 'oooo', 'oooo', 'oooo']),
+  };
+  const mt = t => std({ map: t, roughness: 0.85, envMapIntensity: 0.2 });
+  const Mm = {}; for (const k in T) Mm[k] = mt(T[k]);
+  const P = 0.05;
+  const root = new THREE.Group(); root.position.set(0, 0, 0.95); scene.add(root);
+  const body = new THREE.Group(); body.position.set(0, 0.555, 0); root.add(body);
+  mesh(B(8 * P, 12 * P, 4 * P), [Mm.bSide, Mm.bSide, Mm.shirt, Mm.shirt, Mm.bBack, Mm.bFront], body, 0, 0.3, 0);
+  const head = new THREE.Group(); head.position.set(0, 0.6, 0); head.rotation.order = 'YXZ'; body.add(head);
+  const headMesh = mesh(B(8 * P, 8 * P, 8 * P), [Mm.hSide, Mm.hSide, Mm.hTop, Mm.hBot, Mm.hBack, Mm.hFront], head, 0, 0.2, 0);
+  const eye = new THREE.Object3D(); eye.position.set(0, 0.24, 0.02); head.add(eye);
+  const armGeo = B(4 * P, 12 * P, 4 * P).translate(0, -0.25, 0), armMats = [Mm.arm, Mm.arm, Mm.shirt, Mm.skin, Mm.arm, Mm.arm];
+  const arms = [-1, 1].map(side => { const sh = new THREE.Group(); sh.position.set(side * 0.3, 0.55, 0); body.add(sh); mesh(armGeo, armMats, sh);
+    return { side, sh, cur: V(), tgt: V(), rest: V(), dip: 0, idle: 9 }; });
+  const legGeo = B(4 * P, 12 * P, 4 * P).translate(0, -0.3, 0);
+  for (const side of [-1, 1]) { const l = mesh(legGeo, Mm.leg, root, side * 0.1, 0.555, 0); l.rotation.set(Math.PI / 2, side * 0.06, 0); }
+  const _t = V(), _l = V(), _hp = V();
+  let lean = 0, typing = 0, stretch = 0, inited = false;
+  scene.updateMatrixWorld(true);
+  const setRest = () => { tw.keyWorld('F', arms[0].rest).add(_t.set(-0.01, 0.035, 0.03)); tw.keyWorld('J', arms[1].rest).add(_t.set(0.01, 0.035, 0.03)); };
+  return {
+    headMesh,
+    eyeWorld(out) { return eye.getWorldPosition(out); },
+    press(ch) {
+      const kp = tw.keyWorld(ch, _t); const a = ch === ' ' ? arms[1] : (kp.x < 0 ? arms[0] : arms[1]);
+      a.tgt.copy(kp); a.tgt.y += 0.01; a.dip = 1; a.idle = 0; typing = Math.min(1, typing + 0.35);
+    },
+    stretch() { stretch = 1; },
+    update(dt, time, focus) {
+      if (!inited) { setRest(); for (const a of arms) { a.cur.copy(a.rest); a.tgt.copy(a.rest); } inited = true; }
+      typing *= Math.exp(-dt * 1.5); stretch *= Math.exp(-dt * 1.8);
+      lean += ((-0.12 - 0.05 * typing + 0.16 * stretch) - lean) * (1 - Math.exp(-dt * 5)); body.rotation.x = lean;
+      body.position.y = 0.555 + (reduce ? 0 : Math.sin(time * 1.6) * 0.003);
+      // head follows the work
+      head.getWorldPosition(_hp); _hp.y += 0.2;
+      const dx = focus.x - _hp.x, dy = focus.y - _hp.y, dz = focus.z - _hp.z;
+      const yaw = clamp(Math.atan2(-dx, -dz), -1.1, 1.1), pitch = clamp(Math.atan2(dy, Math.hypot(dx, dz)) - lean, -0.8, 0.45);
+      head.rotation.y += (yaw - head.rotation.y) * (1 - Math.exp(-dt * 5)); head.rotation.x += (pitch - head.rotation.x) * (1 - Math.exp(-dt * 5));
+      root.updateMatrixWorld(true);
+      for (const a of arms) {
+        a.idle += dt; if (a.idle > 0.55) a.tgt.lerp(a.rest, 1 - Math.exp(-dt * 3));
+        a.cur.lerp(a.tgt, 1 - Math.exp(-dt * 24)); a.dip *= Math.exp(-dt * 12);
+        _l.copy(a.cur); _l.y += 0.03 * (1 - a.dip) + (stretch > 0.05 ? stretch * 0.25 : 0);
+        body.worldToLocal(_l); _l.sub(a.sh.position); const len = _l.length(); if (len > 1e-4) a.sh.quaternion.setFromUnitVectors(DOWN, _l.multiplyScalar(1 / len));
+      }
+    },
+  };
+})();
+
+/* ───────────── letters (neon.html's discharge tubes) ───────────── */
+const TUBE_VERT = `attribute vec3 aTube; uniform float uInset; varying vec3 vN, vW, vT;
+  void main(){ vT = aTube; vec4 w = modelMatrix*vec4(position - normal*uInset, 1.); vW = w.xyz; vN = normalize(mat3(modelMatrix)*normal); gl_Position = projectionMatrix*viewMatrix*w; }`;
+const GLASS_FRAG = `uniform float uGrow, uHot, uFront, uLevel, uBoost, uPulse, uPulseAmp, uRim; uniform vec3 uColEdge, uRoom; varying vec3 vN, vW, vT;
+  void main(){
+    if (vT.z > uGrow) discard;
+    vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
+    float fr = pow(1. - abs(dot(N, V)), 3.);
+    vec3 Rf = reflect(-V, N);
+    float s1 = pow(max(dot(Rf, normalize(vec3(.2, .9, .35))), 0.), 90.);
+    float s2 = pow(max(dot(Rf, normalize(vec3(.6, .5, .62))), 0.), 28.) * .22;
+    float band = smoothstep(.2, .75, Rf.y) * .05;
+    vec3 col = vec3(1., .86, .7) * (fr * .2 + s1 * 1.1 + s2 + band) * uRim;
+    col += uRoom * (fr * .55 + .025) * uRim;
+    float dEnd = min(vT.x, vT.y - vT.x), u = dEnd / max(.5 * vT.y, 1e-3);
+    float lit = uLevel * (1. - smoothstep(uFront - .14, uFront + .02, u)) * (1. + uBoost) + uPulseAmp * exp(-(vT.z - uPulse) * (vT.z - uPulse) * 6.76);
+    col += uColEdge * lit * (fr * .9 + .08) * .55;
+    float hot = smoothstep(uGrow - .4, uGrow, vT.z) * uHot;
+    col += vec3(1., .36, .07) * hot * (1.1 + fr);
+    gl_FragColor = vec4(col, 1.);
+  }`;
+const GAS_FRAG = `uniform float uTime, uGrow, uFront, uFrontAmp, uLevel, uFlick, uBoost, uPulse, uPulseAmp, uSeed, uShim; uniform vec3 uColCore, uColEdge, uColEnd; varying vec3 vN, vW, vT;
+  float hash(float n){ return fract(sin(n * 12.9898) * 43758.5453); }
+  float vnoise(float x){ float i = floor(x), f = fract(x); f = f * f * (3. - 2. * f); return mix(hash(i), hash(i + 1.), f); }
+  void main(){
+    if (vT.z > uGrow) discard;
+    vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
+    float ndv = abs(dot(N, V)), core = pow(ndv, 1.6);
+    float s = vT.x, len = vT.y, dEnd = min(s, len - s), u = dEnd / max(.5 * len, 1e-3);
+    float front = 1. - smoothstep(uFront - .14, uFront + .02, u);
+    float edge = exp(-(u - uFront) * (u - uFront) * 64.) * uFrontAmp;
+    float shim = 1. + uShim * (.045 * sin(s * 21. - uTime * 3.3 + uSeed * 6.) + .07 * (vnoise(s * 4. + uTime * 1.7 + uSeed * 31.) - .5) + .02 * sin(uTime * 11. + uSeed * 17.));
+    float steady = uLevel * front * shim * (1. + uBoost);
+    float stri = .5 + .5 * sin(dEnd * 120. - uTime * 17.);
+    float nearEl = exp(-dEnd * 4.5);
+    float body = vnoise(s * 7. + floor(uTime * 22.) * 3.7 + uSeed * 11.);
+    float flick = uFlick * (nearEl * (.3 + .7 * stri) * 1.1 + .24 * smoothstep(.45, .9, body));
+    float pulse = uPulseAmp * exp(-(vT.z - uPulse) * (vT.z - uPulse) * 6.76);
+    float I = steady + flick + edge + pulse;
+    vec3 col = mix(uColEdge, uColCore, core);
+    col = mix(col, uColEnd, clamp(exp(-dEnd * 9.) * .75, 0., 1.));
+    col += vec3(1.) * pow(ndv, 5.) * .2 * min(I, 2.5);
+    gl_FragColor = vec4(col * I * (.25 + .62 * core) * .82, 1.);
+  }`;
+function roundCorners(raw, r) {
+  const pts = []; for (const p of raw) { const l = pts[pts.length - 1]; if (!l || Math.hypot(p[0] - l[0], p[1] - l[1]) > 1e-4) pts.push(p); }
+  if (pts.length < 3) return pts;
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], b = pts[i], c = pts[i + 1];
+    const ax = b[0] - a[0], ay = b[1] - a[1], cx = c[0] - b[0], cy = c[1] - b[1], l1 = Math.hypot(ax, ay), l2 = Math.hypot(cx, cy);
+    const cos = (ax * cx + ay * cy) / (l1 * l2);
+    if (cos > 0.94) { out.push(b); continue; }
+    const th = Math.acos(Math.max(-1, cos)), d = Math.min(r * Math.tan(th / 2), l1 * 0.45, l2 * 0.45);
+    const p1 = [b[0] - ax / l1 * d, b[1] - ay / l1 * d], p2 = [b[0] + cx / l2 * d, b[1] + cy / l2 * d];
+    for (let k = 0; k <= 8; k++) { const t = k / 8, w0 = (1 - t) * (1 - t), w1 = 2 * t * (1 - t), w2 = t * t; out.push([p1[0] * w0 + b[0] * w1 + p2[0] * w2, p1[1] * w0 + b[1] * w1 + p2[1] * w2]); }
+  }
+  out.push(pts[pts.length - 1]); return out;
+}
+function resample(pts, step) {
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + pts[i].distanceTo(pts[i - 1]));
+  const total = cum[cum.length - 1], n = Math.max(3, Math.ceil(total / step)), out = []; let j = 0;
+  for (let i = 0; i <= n; i++) { const d = total * i / n; while (j < pts.length - 2 && cum[j + 1] < d) j++;
+    const l = cum[j + 1] - cum[j]; out.push(pts[j].clone().lerp(pts[j + 1], l > 1e-9 ? clamp01((d - cum[j]) / l) : 0)); }
+  return out;
+}
+function part(list, geo, col, center, appear) {
+  const n = geo.attributes.position.count, c = new Float32Array(n * 3), ce = new Float32Array(n * 3), ap = new Float32Array(n);
+  for (let i = 0; i < n; i++) { c[i * 3] = col[0]; c[i * 3 + 1] = col[1]; c[i * 3 + 2] = col[2]; ce[i * 3] = center.x; ce[i * 3 + 1] = center.y; ce[i * 3 + 2] = center.z; ap[i] = appear; }
+  geo.setAttribute('color', new THREE.BufferAttribute(c, 3)); geo.setAttribute('aCenter', new THREE.BufferAttribute(ce, 3)); geo.setAttribute('aAppear', new THREE.BufferAttribute(ap, 1));
+  list.push(geo);
+}
+const STEEL = [0.045, 0.05, 0.056], BRASS = [0.5, 0.31, 0.09], IRON = [0.02, 0.02, 0.024], CERAMIC = [0.42, 0.4, 0.36], COPPER = [0.45, 0.2, 0.08];
+const glyphCache = new Map();
+/** the glass, hardware and leads of one character, built once and shared by every letter that uses it */
+function glyphDef(ch) {
+  if (glyphCache.has(ch)) return glyphCache.get(ch);
+  const g = glyphFor(ch); let def = null;
+  if (g && g.strokes.length) {
+    const W = g.w * SIZE, strokes = [], tubes = [], hard = [], leads = [], sparks = []; let off = 0;
+    const topY = WORD_TOP, botY = BASE_Y - 0.2, rodX = W / 2;
+    const basePt = V(rodX, 0, STAND_Z);
+    part(hard, new THREE.BoxGeometry(W + 0.2, 0.035, 0.26).translate(rodX, 0.0175, STAND_Z), STEEL, basePt, -0.5);
+    part(hard, rodGeo(V(rodX, 0.03, STAND_Z), V(rodX, topY + 0.08, STAND_Z), 0.018, 10), STEEL, basePt, -0.44);
+    for (const y of [topY, botY]) {
+      const c = V(rodX, y, STAND_Z);
+      part(hard, rodGeo(V(-0.07, y, STAND_Z + 0.045), V(W + 0.07, y, STAND_Z + 0.045), 0.013, 8), BRASS, c, -0.32);
+      part(hard, rodGeo(V(rodX, y, STAND_Z - 0.005), V(rodX, y, STAND_Z + 0.05), 0.036, 12), CERAMIC, c, -0.36);
+    }
+    g.strokes.forEach((raw, k) => {
+      const pl = roundCorners(raw, 0.085), p3 = []; let s = 0;
+      for (let i = 0; i < pl.length; i++) { if (i) s += Math.hypot(pl[i][0] - pl[i - 1][0], pl[i][1] - pl[i - 1][1]) * SIZE; p3.push(V(pl[i][0] * SIZE, BASE_Y + pl[i][1] * SIZE, -k * LAYER - s * DRIFT)); }
+      if (p3.length < 2) return;
+      const rs = resample(p3, 0.05), curve = new THREE.CatmullRomCurve3(rs, false, 'centripetal'); curve.arcLengthDivisions = Math.max(200, rs.length * 3);
+      const len = curve.getLength(), seg = Math.max(6, Math.ceil(len / 0.03));
+      const tg = new THREE.TubeGeometry(curve, seg, R, RAD, false), uv = tg.attributes.uv, at = new Float32Array(uv.count * 3);
+      for (let i = 0; i < uv.count; i++) { const d = uv.getX(i) * len; at[i * 3] = d; at[i * 3 + 1] = len; at[i * 3 + 2] = off + d; }
+      tg.setAttribute('aTube', new THREE.BufferAttribute(at, 3)); tubes.push(tg);
+      strokes.push({ curve, len, off, seg });
+      for (const e of [0, 1]) {
+        const P = curve.getPointAt(e), T = curve.getTangentAt(e).multiplyScalar(e ? 1 : -1);
+        const ap = e ? off + len - 0.04 : off - 0.16;
+        part(hard, rodGeo(P.clone().addScaledVector(T, -0.085), P.clone().addScaledVector(T, 0.03), R * 1.3, 14), BRASS, P, ap);
+        part(hard, rodGeo(P.clone().addScaledVector(T, 0.03), P.clone().addScaledVector(T, 0.075), R * 0.55, 10), BRASS, P, ap);
+        if (len > 0.5) part(hard, rodGeo(P.clone().addScaledVector(T, -0.2), P.clone().addScaledVector(T, -0.085), R * 0.34, 8), IRON, P, ap);
+        const busY = P.y > BASE_Y + SIZE * 0.5 ? topY : botY, Bp = V(P.x, busY, STAND_Z + 0.045);
+        const p0 = P.clone().addScaledVector(T, 0.07), p1 = P.clone().addScaledVector(T, 0.26); p1.z -= 0.16; p1.y += (busY - P.y) * 0.25;
+        part(leads, new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(p0, p1, Bp), 14, 0.0075, 5, false), COPPER, Bp, ap + 0.08);
+        part(hard, new THREE.SphereGeometry(0.02, 8, 6).translate(Bp.x, Bp.y, Bp.z), BRASS, Bp, ap + 0.08);
+        const sp = P.clone().addScaledVector(T, len > 0.5 ? -0.2 : -Math.min(0.03, len * 0.3));
+        sparks.push(new THREE.SphereGeometry(R * 0.5, 8, 6).translate(sp.x, sp.y, sp.z));
+      }
+      const us = len < 0.3 ? [] : len < 1.5 ? [0.5] : [0.27, 0.73];
+      for (const u of us) {
+        const Cp = curve.getPointAt(u), T = curve.getTangentAt(u), boss = V(rodX, Cp.y, STAND_Z), ap = off + u * len - 0.08;
+        const ring = new THREE.TorusGeometry(R * 1.28, 0.011, 6, 18); _q.setFromUnitVectors(ZAX, T); _mx.compose(Cp, _q, _one); ring.applyMatrix4(_mx);
+        part(hard, ring, STEEL, boss, ap);
+        part(hard, rodGeo(boss, V(Cp.x, Cp.y, Cp.z - R * 1.28), 0.009, 6), STEEL, boss, ap);
+        part(hard, new THREE.BoxGeometry(0.06, 0.05, 0.06).translate(boss.x, boss.y, boss.z), STEEL, boss, ap);
+      }
+      off += len;
+    });
+    if (strokes.length) {
+      const tubeGeo = mergeGeometries(tubes), hardGeo = mergeGeometries(hard), leadGeo = mergeGeometries(leads), sparkGeo = mergeGeometries(sparks);
+      tubes.forEach(t => t.dispose()); hard.forEach(t => t.dispose()); leads.forEach(t => t.dispose()); sparks.forEach(t => t.dispose());
+      tubeGeo.computeBoundingSphere();
+      def = { W, G: off, strokes, tubeGeo, hardGeo, leadGeo, sparkGeo, cx: W / 2, cy: BASE_Y + SIZE / 2, pool: [] };
+    }
+  }
+  glyphCache.set(ch, def); return def;
+}
+function appearPatch(mat, uGrow) {
+  mat.onBeforeCompile = sh => { sh.uniforms.uGrow = uGrow;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aCenter;\nattribute float aAppear;\nuniform float uGrow;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed = aCenter + (transformed - aCenter) * smoothstep(aAppear, aAppear + 0.14, uGrow);'); };
+  mat.customProgramCacheKey = () => 'appear';
+  return mat;
+}
+const tipGeo = new THREE.SphereGeometry(R * 1.45, 12, 10);
+
+class Letter {
+  constructor(ch, def, x, gasKey) {
+    this.ch = ch; this.def = def; this.x = x; this.adv = def.W + GAP; this.G = def.G; this.gas = GASES[gasKey]; this.gasKey = gasKey; this.onStart = null;
+    this.state = 'queued'; this.t = 0; this.level = 0; this.dimMul = 1; this.fl = 0; this.dip = 0; this.spark = 0; this.lead = 0; this.lum = 0; this.dead = false; this.pulseOn = 0;
+    this.formDur = 0.45 + 0.3 * def.G; this.f0 = 0; this.g0 = 0;
+    const gs = this.gas, u = this.u = {
+      uTime, uShim, uRoom: roomU, uGrow: { value: -0.5 }, uHot: { value: 1 }, uFront: { value: 0 }, uFrontAmp: { value: 0 }, uLevel: { value: 0 }, uFlick: { value: 0 },
+      uBoost: { value: 0 }, uPulse: { value: -10 }, uPulseAmp: { value: 0 }, uSeed: { value: Math.random() },
+      uColCore: { value: new THREE.Color().setRGB(...gs.core) }, uColEdge: { value: new THREE.Color().setRGB(...gs.edge) }, uColEnd: { value: new THREE.Color().setRGB(...gs.end) },
+    };
+    // a wrapper that shares the cached buffers but has its own draw range; never disposed (that would free the shared buffers), pooled instead
+    let geo = def.pool.pop();
+    if (!geo) { geo = new THREE.BufferGeometry(); geo.setIndex(def.tubeGeo.index); for (const k in def.tubeGeo.attributes) geo.setAttribute(k, def.tubeGeo.attributes[k]); geo.boundingSphere = def.tubeGeo.boundingSphere; }
+    geo.setDrawRange(0, 0); this.geo = geo; this.pooled = false;
+    const layer = (frag, inset, rim, order) => { const m = new THREE.Mesh(geo, new THREE.ShaderMaterial({ uniforms: { ...u, uInset: { value: inset }, uRim: { value: rim } },
+      vertexShader: TUBE_VERT, fragmentShader: frag, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); m.renderOrder = order; return m; };
+    this.gasMesh = layer(GAS_FRAG, R * 0.3, 1, 1); this.inner = layer(GLASS_FRAG, R * 0.24, 0.45, 2); this.outer = layer(GLASS_FRAG, 0, 1, 3);
+    this.hardMat = appearPatch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.6, envMapIntensity: 0.6 }), u.uGrow);
+    this.leadMat = appearPatch(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.7, envMapIntensity: 0.6, emissive: new THREE.Color().setRGB(...gs.light), emissiveIntensity: 0 }), u.uGrow);
+    this.sparkMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    this.tipMat = new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(2.6, 1.0, 0.25), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    this.hard = new THREE.Mesh(def.hardGeo, this.hardMat); this.leads = new THREE.Mesh(def.leadGeo, this.leadMat);
+    this.sparks = new THREE.Mesh(def.sparkGeo, this.sparkMat); this.sparks.visible = false; this.sparks.renderOrder = 4;
+    this.tip = new THREE.Mesh(tipGeo, this.tipMat); this.tip.visible = false; this.tip.renderOrder = 4;
+    this.group = new THREE.Group(); this.group.position.x = x; this.group.visible = false;
+    this.group.add(this.hard, this.leads, this.gasMesh, this.inner, this.outer, this.sparks, this.tip);
+  }
+  go(s) { this.state = s; this.t = 0; }
+  start() { this.group.visible = true; this.go('stand'); if (this.onStart) this.onStart(this); }
+  get settled() { return this.state === 'steady'; }
+  setGas(k) { const gs = this.gas = GASES[k]; this.gasKey = k; const u = this.u;
+    u.uColCore.value.setRGB(...gs.core); u.uColEdge.value.setRGB(...gs.edge); u.uColEnd.value.setRGB(...gs.end); this.leadMat.emissive.setRGB(...gs.light); }
+  setRange(g) { let c = 0; for (const s of this.def.strokes) c += Math.ceil(clamp01((g - s.off) / s.len) * s.seg) * RAD * 6; this.geo.setDrawRange(0, c); }
+  placeTip(g) { const ss = this.def.strokes; let s = ss[ss.length - 1]; for (const k of ss) if (g <= k.off + k.len) { s = k; break; }
+    s.curve.getPointAt(clamp01((g - s.off) / s.len), this.tip.position); this.tip.visible = true; }
+  /** Backspace: the discharge collapses back into the electrodes, then the glass is drawn back and the stand folds away */
+  kill() { if (this.state === 'queued') { this.dead = true; return; } if (this.state === 'collapse' || this.state === 'remove') return;
+    this.f0 = Math.min(1.2, this.u.uFront.value); this.tip.visible = false; this.u.uFrontAmp.value = 0;
+    if (this.level > 0.02 || this.u.uFlick.value > 0.02) this.go('collapse'); else { this.g0 = this.u.uGrow.value; this.go('remove'); } }
+  update(dt, time) {
+    const u = this.u; this.t += dt; const t = this.t;
+    this.fl *= Math.exp(-dt * 16);
+    switch (this.state) {
+      case 'queued': return;
+      case 'stand': { const p = Math.min(1, t / 0.32); u.uGrow.value = -0.5 + 0.5 * sm(p); if (p >= 1) this.go('form'); break; }
+      case 'form': { const p = Math.min(1, t / this.formDur), g = this.G * (0.65 * p + 0.35 * sm(p)); u.uGrow.value = g; this.setRange(g); this.placeTip(g);
+        this.tipMat.color.setRGB(2.6, 1.0, 0.25).multiplyScalar(0.8 + 0.2 * Math.sin(time * 31));
+        if (p >= 1) { this.setRange(this.G); this.go('energise'); } break; }
+      case 'energise': { const p = Math.min(1, t / 0.45); u.uGrow.value = this.G + 0.6 * sm(p); u.uHot.value = 1 - p; this.tip.visible = false;
+        if (Math.random() < dt * 30) this.fl = rnd(0.5, 1); this.spark = p * (0.5 + 1.8 * this.fl); this.lead = sm(p) * (0.5 + 0.5 * Math.sin(t * 34));
+        if (p >= 1) { u.uHot.value = 0; this.go('flicker'); } break; }
+      case 'flicker': { const p = Math.min(1, t / 0.95);
+        if (Math.random() < dt * (10 + 10 * p)) this.fl = rnd(0.3, 0.75 + 0.25 * p);
+        const k = reduce ? 0.35 : 1; u.uFlick.value = this.fl * k; u.uFront.value = 0.1 + 0.26 * p * (0.4 + 0.6 * this.fl); this.level = 0.34 * this.fl * k;
+        this.spark = 0.5 + 1.2 * this.fl; this.lead = 0.25 + 0.6 * this.fl; if (p >= 1) { this.f0 = u.uFront.value; this.go('spread'); } break; }
+      case 'spread': { const p = Math.min(1, t / 0.8), e = sm(p);
+        if (Math.random() < dt * 9 * (1 - p)) this.fl = rnd(0.2, 0.6);
+        u.uFront.value = this.f0 + (1.35 - this.f0) * e; u.uFrontAmp.value = 0.95 * Math.sin(Math.PI * p); u.uFlick.value = this.fl * (1 - e) * (reduce ? 0.2 : 0.6);
+        this.level = 0.42 + 0.58 * e + 0.12 * this.fl * (1 - e); this.spark = 0.7; this.lead = 0.4 * (1 - e) + 0.1;
+        if (p >= 1) { u.uFrontAmp.value = 0; u.uFlick.value = 0; this.go('steady'); } break; }
+      case 'steady': { if (!reduce && Math.random() < dt * 0.22) this.dip = rnd(0.05, 0.14); this.dip *= Math.exp(-dt * 9);
+        this.level += (1 - this.dip - this.level) * (1 - Math.exp(-dt * 12)); this.spark = 0.32; this.lead = 0.1 + 0.6 * this.pulseOn + 0.25 * Math.min(2, u.uBoost.value); break; }
+      case 'collapse': { const p = Math.min(1, t / 0.3);
+        if (Math.random() < dt * 30) this.fl = rnd(0.3, 0.9);
+        u.uFront.value = this.f0 * (1 - sm(p)); u.uFlick.value = this.fl * (1 - p) * 0.7; this.level *= Math.exp(-dt * 5); this.spark = (1 - p) * (0.4 + this.fl); this.lead = (1 - p) * 0.3; u.uBoost.value *= Math.exp(-dt * 20); u.uPulseAmp.value = 0;
+        if (p >= 1) { this.level = 0; u.uFlick.value = 0; this.spark = 0; this.lead = 0; this.g0 = u.uGrow.value; this.go('remove'); } break; }
+      case 'remove': { const p = Math.min(1, t / 0.45), g = this.g0 + (-0.65 - this.g0) * sm(p); u.uGrow.value = g; u.uHot.value = 0.5; this.setRange(Math.max(0, g)); this.level = 0; this.spark = 0; this.lead = 0;
+        if (p >= 1) this.dead = true; break; }
+    }
+    const lv = this.level * this.dimMul; u.uLevel.value = lv;
+    const sp = this.spark * this.dimMul; this.sparks.visible = sp > 0.01; if (sp > 0.01) { const e = this.gas.end; this.sparkMat.color.setRGB(e[0] * sp * 1.5 + sp * 0.3, e[1] * sp * 1.5 + sp * 0.3, e[2] * sp * 1.5 + sp * 0.3); }
+    this.leadMat.emissiveIntensity = this.lead * this.dimMul * 2.2;
+    this.lum = lv * clamp01(u.uFront.value) * (1 + u.uBoost.value) + u.uFlick.value * 0.14 + u.uFrontAmp.value * 0.2 + u.uPulseAmp.value * 0.3;
+  }
+  dispose() {
+    this.group.removeFromParent();
+    for (const m of [this.gasMesh.material, this.inner.material, this.outer.material, this.hardMat, this.leadMat, this.sparkMat, this.tipMat]) m.dispose();
+    if (!this.pooled) { this.pooled = true; this.geo.setDrawRange(0, 0); this.def.pool.push(this.geo); }
+  }
+}
+
+/* ───────────── a word sculpture: one group, moved and scaled as a unit ───────────── */
+const sculptures = new Set();
+class Sculpture {
+  constructor(gasKey, s = 0.1) {
+    this.gasKey = gasOK(gasKey); this.root = new THREE.Group(); this.inner = new THREE.Group(); this.root.add(this.inner); scene.add(this.root);
+    this.tubes = []; this.dying = []; this.fin = null; this.dim = 1; this.offX = -0.2; this.s = s; this.rush = false; this.plank = null; this.onStart = null; this.baseS = s;
+    this.buf = new WordBuffer({ make: (ch, x) => this._make(ch, x), kill: L => this._kill(L) });
+    this.root.scale.setScalar(s); sculptures.add(this);
+  }
+  _make(ch, x) { const L = new Letter(ch, glyphDef(ch), x, this.gasKey); L.onStart = l => { if (this.onStart) this.onStart(l, this); }; this.inner.add(L.group); this.tubes.push(L); return L; }
+  _kill(L) { const i = this.tubes.lastIndexOf(L); if (i >= 0) this.tubes.splice(i, 1); L.kill(); this.dying.push(L); }
+  get text() { return this.buf.text; }
+  setGas(k) { this.gasKey = gasOK(k); for (const L of this.tubes) L.setGas(this.gasKey); }
+  allSettled() { for (const L of this.tubes) if (!L.settled) return false; return true; }
+  formingLetter() { let f = null; for (const L of this.tubes) if (L.state === 'stand' || L.state === 'form') f = L; return f; }
+  letterWorld(L, out) { const s = this.root.scale.x; return out.set(this.root.position.x + s * (this.offX + L.x + L.def.cx), this.root.position.y + s * L.def.cy, this.root.position.z); }
+  /** Enter: the rest of the letters hurry to completion, then a current runs through the word and it surges */
+  finish() {
+    this.buf.trimEnd(); this.rush = true;
+    this.fin = { t: 0, per: Math.min(0.3, 2.4 / Math.max(1, this.tubes.length)), a: -9, done: false };
+    if (!this.plank && this.tubes.length) { const w = this.buf.width; this.plank = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.06, 0.62), M.walnut); this.plank.position.set(w / 2, -0.036, STAND_Z + 0.2); this.inner.add(this.plank); }
+  }
+  update(dt, time) {
+    const sp = scheduleLetters(this.tubes, MAX_FORMING, reduce) * (this.rush ? 3.5 : 1);
+    for (const L of this.tubes) L.update(L.settled ? dt : dt * sp, time);
+    for (let i = this.dying.length - 1; i >= 0; i--) { const L = this.dying[i]; L.update(dt * 1.2, time); if (L.dead) { L.dispose(); this.dying.splice(i, 1); } }
+    const f = this.fin;
+    if (f && !f.done && this.allSettled()) {
+      f.t += dt * (reduce ? 1.6 : 1);
+      const n = this.tubes.length, tS = n * f.per + 0.12, a = f.a = f.t - tS;
+      for (let i = 0; i < n; i++) { const L = this.tubes[i], u = L.u, loc = (f.t - i * f.per) / f.per;
+        if (loc >= 0 && loc <= 1) { u.uPulse.value = -0.5 + (L.G + 1.0) * loc; u.uPulseAmp.value = 2.4; L.pulseOn = 1; }
+        else { u.uPulseAmp.value *= Math.exp(-dt * 14); L.pulseOn = 0; }
+        let boost = loc > 1 ? 0.3 : 0;
+        if (a >= 0) boost = a < 0.14 ? 0.3 + 1.9 * (a / 0.14) : a < 0.7 ? 2.2 : 2.2 * Math.max(0, 1 - (a - 0.7) / 0.9);
+        u.uBoost.value = boost; }
+      if (a > 1.6) { f.done = true; for (const L of this.tubes) { L.u.uBoost.value = 0; L.u.uPulseAmp.value = 0; L.pulseOn = 0; } }
+    }
+    const tx = -this.buf.width / 2; this.offX += (tx - this.offX) * (1 - Math.exp(-dt * 6)); this.inner.position.x = this.offX;
+    this.root.scale.setScalar(this.s);
+    for (const L of this.tubes) L.dimMul = this.dim;
+  }
+  dispose() {
+    for (const L of this.tubes) L.dispose(); for (const L of this.dying) L.dispose(); this.tubes.length = 0; this.dying.length = 0;
+    if (this.plank) this.plank.geometry.dispose();
+    this.root.removeFromParent(); sculptures.delete(this);
+  }
+}
+
+/* ───────────── boxes ───────────── */
+function labelTexture(item, listTitle) {
+  return canvasTex(256, 112, (x, w, h) => {
+    x.fillStyle = '#dcc79c'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 260; i++) { x.fillStyle = `rgba(90,60,30,${rnd(.03, .12)})`; x.fillRect(rnd(w), rnd(h), rnd(1, 3), 1); }
+    x.strokeStyle = 'rgba(60,35,15,.55)'; x.lineWidth = 2; x.setLineDash([6, 4]); x.strokeRect(6, 6, w - 12, h - 12); x.setLineDash([]);
+    const word = item.word; let fs = 44; const font = () => `700 ${fs}px ui-monospace, Menlo, monospace`; x.font = font();
+    while (x.measureText(word).width > w - 34 && fs > 12) { fs -= 2; x.font = font(); }
+    x.fillStyle = '#2a1a0e'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(word, w / 2, 46);
+    const g = GASES[gasOK(item.look && item.look.gas)];
+    x.font = '600 14px ui-monospace, Menlo, monospace'; x.fillStyle = '#5a3a20';
+    const foot = (g.tag + ' · ' + (listTitle || 'free typing')).toUpperCase().slice(0, 26); x.fillText(foot, w / 2 + 8, 86);
+    const fw = x.measureText(foot).width; x.fillStyle = g.css; x.beginPath(); x.arc(w / 2 + 8 - fw / 2 - 12, 86, 5, 0, 6.3); x.fill();
+  });
+}
+class Crate {
+  constructor(item, dims, listTitle) {
+    this.id = item.id; this.d = dims; this.homeKey = null; this.group = new THREE.Group(); scene.add(this.group);
+    this.tex = labelTexture(item, listTitle); this.labelMat = std({ map: this.tex, roughness: 0.9, transparent: true, opacity: 1, envMapIntensity: 0.15 });
+    let lw = dims.w * 0.82, lh = lw / 2.29; if (lh > dims.h * 0.62) { lh = dims.h * 0.62; lw = lh * 2.29; }
+    this.label = mesh(new THREE.PlaneGeometry(lw, lh), this.labelMat, this.group, 0, dims.h * 0.5, dims.d / 2 + 0.002);
+    this.parts = null; this.solid = null; this.lidPivot = null; this.hi = false;
+  }
+  open() {
+    if (this.parts) return; this.unsolid();
+    const { w, h, d } = this.d, t = CRATE_T, g = this.group, P = this.parts = [];
+    const add = (geo, x, y, z, parent = g) => { const m = mesh(geo, M.crate, parent, x, y, z); P.push(m); return m; };
+    this.base = add(B(w, t, d).translate(0, t / 2, 0), 0, 0, 0);
+    this.walls = [add(B(w, h - t, t).translate(0, (h - t) / 2, 0), 0, t, d / 2 - t / 2), add(B(w, h - t, t).translate(0, (h - t) / 2, 0), 0, t, -d / 2 + t / 2),
+      add(B(t, h - t, d - 2 * t).translate(0, (h - t) / 2, 0), w / 2 - t / 2, t, 0), add(B(t, h - t, d - 2 * t).translate(0, (h - t) / 2, 0), -w / 2 + t / 2, t, 0)];
+    this.lidPivot = new THREE.Group(); this.lidPivot.position.set(0, h, -d / 2 - 0.003); g.add(this.lidPivot);
+    add(B(w + 0.006, t, d + 0.006).translate(0, t / 2, (d + 0.006) / 2), 0, 0, 0, this.lidPivot);
+  }
+  setBuild(p) { const b = Math.max(0.001, sm(clamp01(p * 2.2))); this.base.scale.set(b, 1, b); for (const m of this.walls) m.scale.y = Math.max(0.001, sm(clamp01(p * 1.6 - 0.6))); }
+  setLid(p) { this.lidPivot.visible = p > 0.001; this.lidPivot.rotation.x = -1.9 * (1 - sm(clamp01(p))); }
+  showLabel(o) { this.label.visible = o > 0.001; this.labelMat.opacity = o; }
+  unsolid() { if (this.solid) { this.solid.geometry.dispose(); this.solid.removeFromParent(); this.solid = null; } }
+  /** after the box is shut, its parts become one solid (a box on a shelf costs one draw + its label) */
+  compact() {
+    if (this.parts) { for (const m of this.parts) { m.geometry.dispose(); m.removeFromParent(); } this.parts = null; this.lidPivot.removeFromParent(); this.lidPivot = null; }
+    if (!this.solid) { const { w, h, d } = this.d; this.solid = mesh(B(w, h, d).translate(0, h / 2, 0), this.hi ? M.crateHi : M.crate, this.group); this.solid.userData.itemId = this.id; }
+    this.showLabel(1);
+  }
+  expand() { this.open(); this.setBuild(1); this.setLid(1); }
+  highlight(on) { this.hi = on; if (this.solid) this.solid.material = on ? M.crateHi : M.crate; }
+  dispose() { this.unsolid(); if (this.parts) for (const m of this.parts) m.geometry.dispose(); this.label.geometry.dispose(); this.tex.dispose(); this.labelMat.dispose(); this.group.removeFromParent(); }
+}
+
+/* the shelf's slot numbers and a plaque */
+for (let rt = 0; rt < SHELF.rows; rt++) {
+  const tex = canvasTex(512, 24, (x, w, h) => { x.fillStyle = '#7a5532'; x.fillRect(0, 0, w, h); x.fillStyle = '#f1dcb0'; x.font = '700 17px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    for (let c = 0; c < SHELF.cols; c++) x.fillText(String(rt * SHELF.cols + c + 1).padStart(2, '0'), (c + 0.5) * w / SHELF.cols, h / 2 + 1); });
+  const rb = SHELF.rows - 1 - rt;
+  mesh(new THREE.PlaneGeometry(SHELF.cols * SHELF.colW, 0.02), std({ map: tex, roughness: 0.7 }), scene, SHELF.x0 + SHELF.cols * SHELF.colW / 2, SHELF.y0 - 0.01 + rb * SHELF.rowH, SHELF.z + 0.191);
+}
+{ const tex = canvasTex(256, 48, (x, w, h) => { x.fillStyle = '#9b7231'; x.fillRect(0, 0, w, h); x.strokeStyle = '#5b3d12'; x.lineWidth = 3; x.strokeRect(3, 3, w - 6, h - 6); x.fillStyle = '#3a240a'; x.font = '700 19px ui-monospace, Menlo, monospace'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('FINISHED GOODS', w / 2, h / 2 + 1); });
+  mesh(new THREE.PlaneGeometry(0.5, 0.094), std({ map: tex, roughness: 0.4, metalness: 0.6 }), scene, SHELF.x0 + SHELF.cols * SHELF.colW / 2, SHELF.rows * SHELF.rowH + 0.12, SHELF.z + 0.222); }
+
+/* dust in the lamplight */
+{
+  const n = 160, pos = new Float32Array(n * 3), seed = new Float32Array(n);
+  for (let i = 0; i < n; i++) { pos[i * 3] = rnd(-1.8, 2.6); pos[i * 3 + 1] = rnd(0.85, 2.7); pos[i * 3 + 2] = rnd(-1.1, 1.2); seed[i] = Math.random(); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1));
+  const m = new THREE.ShaderMaterial({ uniforms: { uTime, uPx: { value: renderer.getPixelRatio() } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `attribute float aSeed; uniform float uTime, uPx; varying float vA;
+      void main(){ vec3 p = position; p.x += sin(uTime * .07 + aSeed * 20.) * .25; p.y += sin(uTime * .05 + aSeed * 13.) * .18; p.z += cos(uTime * .06 + aSeed * 7.) * .2;
+        vec4 mv = modelViewMatrix * vec4(p, 1.); gl_Position = projectionMatrix * mv; gl_PointSize = (2. + aSeed * 3.) * uPx / max(.3, -mv.z); vA = .25 + .75 * fract(aSeed * 7.3); }`,
+    fragmentShader: `varying float vA; void main(){ vec2 c = gl_PointCoord - .5; float d = dot(c, c); if (d > .25) discard; gl_FragColor = vec4(vec3(1., .78, .5) * (1. - d * 4.) * vA * .3, 1.); }` });
+  const pts = new THREE.Points(g, m); pts.frustumCulled = false; scene.add(pts);
+}
+flushStatic();
+
+/* ───────────── workshop state ───────────── */
+const $ = id => document.getElementById(id);
+const normWord = s => String(s ?? '').toUpperCase().replace(/\s+/g, ' ').trim();
+const BUSY_MSG = '还在移动 · Still moving — try again in a moment';
+const FULL_MSG = '货架已满 · The shelf is full';
+const DB = { lists: [], items: [] };
+const ui = { listId: null, entryId: null, view: 'third', gas: 'neon', mode: 'neon', panel: null, filter: 'all', selected: null, details: null, confirmDel: null,
+  newOpen: false, newTitle: '', newWords: '', shopPick: null, verify: null };
+let ls, memOnly = false;
+try { ls = window.localStorage; ls.setItem('__mtw', '1'); ls.removeItem('__mtw'); } catch (e) { ls = memoryStorage(); memOnly = true; }
+const Store = createStore(makeLocalBackend(ls));
+const embedded = (() => { try { return window.parent !== window; } catch (e) { return true; } })();
+const Bridge = {
+  embedded,
+  close() {
+    if (embedded) { try { window.parent.postMessage({ mtw: 1, op: 'close' }, '*'); } catch (e) { /* the host is gone */ } return; }
+    if (history.length > 1) history.back(); else location.href = 'index.html';
+  },
+};
+let hostInfo = null, ready = false, pendingSaves = 0;
+
+/** Pipe Wall craft modes: each turns a word into a sculpture (live, letter by letter, or rebuilt from data) */
+const MODES = {
+  neon: {
+    id: 'neon', label: 'Neon',
+    create: look => new Sculpture(look.gas, 0.12),
+    build(word, look) { const S = new Sculpture(gasOK(look && look.gas), 0.05); for (const c of String(word)) S.buf.push(c); S.finish(); return S; },
+    dims: word => packDims(word),
+  },
+};
+const modeOf = it => MODES[it && it.mode] || MODES.neon;
+
+const waiting = [], jobs = [], travellers = [], inFlight = new Set(), shelfBoxes = new Map(), tags = new Map(), bench = { id: null, S: null };
+let job = null, focusObj = null;
+const paperLines = [];
+const byId = id => DB.items.find(it => it.id === id) || null;
+const listById = id => (id == null ? null : DB.lists.find(l => l.id === id) || null);
+const currentList = () => listById(ui.listId);
+const listTitleOf = it => { const l = listById(it.listId); return l ? l.title : (it.listId ? 'list' : ''); };
+function targetEntry() { const l = currentList(); return l ? nextEntry(l, deriveProgress(DB.items), ui.entryId) : null; }
+
+const _fw = V();
+function newCur() {
+  const S = MODES[ui.mode].create({ gas: ui.gas });
+  S.onStart = (L, Sx) => { if (Sx !== cur) return; Sx.letterWorld(L, _fw); rig.pulse(_fw.x); grip.glow = 1; };
+  return S;
+}
+let cur = newCur();
+
+let noteT = 0;
+function notice(msg) { const n = $('note'); n.textContent = msg; n.classList.add('on'); clearTimeout(noteT); noteT = setTimeout(() => n.classList.remove('on'), 2800); }
+async function persist(item) {
+  pendingSaves++;
+  try { await Store.saveItem(item); } catch (e) { notice('保存失败 · Save failed — ' + e.message); } finally { pendingSaves--; }
+}
+const isBusy = () => !!(job || jobs.length || travellers.length || waiting.length || pendingSaves || !cur.allSettled());
+
+/* ───────────── typing ───────────── */
+function type(str) { let any = false; for (const raw of String(str)) any = type1(raw) || any; return any; }
+function type1(raw) {
+  const r = cur.buf.push(raw);
+  if (r === 'unsupported') { notice(NOT_SUPPORTED); return false; }
+  if (r === 'full') { notice(`最多 ${MAX_WORD} 个字符 · Max ${MAX_WORD} characters per item`); return false; }
+  if (r === 'ignored') return false;
+  const ch = cur.buf.items[cur.buf.items.length - 1].ch;
+  tw.press(ch); hero.press(ch); $('hint').classList.add('off'); afterEdit(); return true;
+}
+function backspace() { if (!cur.buf.pop()) return false; tw.press('⌫'); hero.press('⌫'); afterEdit(); return true; }
+function afterEdit() { tw.setColumn(cur.buf.length); tw.drawPaper(paperLines, cur.buf.text); renderLine(); renderTarget(); }
+/** Enter: the item is recorded and saved at once; the finishing, boxing and shelving follow as animation */
+function enter() {
+  if (!ready) { notice('正在连接 · Connecting… one moment'); return null; }
+  cur.buf.trimEnd();
+  if (!cur.buf.letterCount) { while (cur.buf.pop()); afterEdit(); return null; }
+  const word = cur.buf.text, list = currentList(), tgt = targetEntry(), loc = allocSlot(DB.items);
+  const item = makeItem({ word, listId: list ? list.id : null, entryId: tgt ? tgt.id : null, mode: ui.mode, gas: cur.gasKey, loc });
+  DB.items.push(item); inFlight.add(item.id); persist(item);
+  if (!loc) notice(FULL_MSG + ' — the box will wait beside it');
+  else if (tgt && word !== normWord(tgt.text)) notice(`已按实际输入保存 · Saved as “${word}” for “${normWord(tgt.text)}”`);
+  const S = cur; S.onStart = null; S.finish(); S.baseS = S.s; waiting.push(S);
+  enqueue('pack', packJob(S, item), item.id);
+  paperLines.push(word); tw.ret(); hero.stretch();
+  cur = newCur(); ui.entryId = null;
+  afterEdit(); renderLists(); renderInv();
+  return item.id;
+}
+
+/* ───────────── logistics: one job owns the gripper and packing table; boxes travel on their own ───────────── */
+function enqueue(kind, gen, id) { jobs.push({ kind, gen, id }); }
+function startTraveller(gen) { if (!gen.next().done) travellers.push(gen); }
+function runJobs(dt) {
+  try {
+    if (job) { if (job.gen.next(dt).done) job = null; }
+    else if (jobs.length) { job = jobs.shift(); if (job.gen.next().done) job = null; }
+  } catch (e) {
+    console.warn('workshop job failed', e);
+    if (job && job.id) inFlight.delete(job.id); job = null; grip.owner = null; grip.carry = null; grip.topen = 1; syncShelf(); renderInv();
+  }
+  for (let i = travellers.length - 1; i >= 0; i--) { let done = true; try { done = travellers[i].next(dt).done; } catch (e) { console.warn('workshop traveller failed', e); } if (done) travellers.splice(i, 1); }
+}
+function* wait(d) { let t = 0; while (t < d) t += yield; }
+function* tween(d, f) { let t = 0; f(0); while (t < d) { t += yield; f(Math.min(1, t / d)); } }
+function* gripTo(x, y) { grip.tx = x; grip.ty = y; let t = 0; while ((Math.abs(grip.x - x) > 0.003 || Math.abs(grip.y - y) > 0.003) && t < 8) t += yield; }
+const linear = x => x;
+function* glide(obj, to, dur, arc = 0, scaleTo = null, ease = sm) {
+  const from = obj.position.clone(), s0 = obj.scale.x; let t = 0;
+  while (t < dur) { t += yield; const e = ease(Math.min(1, t / dur)); obj.position.lerpVectors(from, to, e); if (arc) obj.position.y += Math.sin(Math.PI * e) * arc; if (scaleTo !== null) obj.scale.setScalar(lerp(s0, scaleTo, e)); }
+}
+function* carryTo(S, x, sTo) {
+  const x0 = grip.x, s0 = S.s; grip.tx = x; let t = 0;
+  while (Math.abs(grip.x - x) > 0.003 && t < 10) { t += yield; S.s = lerp(s0, sTo, sm(clamp01(Math.abs(grip.x - x0) / Math.max(1e-3, Math.abs(x - x0))))); }
+  S.s = sTo;
+}
+const displayScale = it => Math.min(0.085, 0.42 / wordUnits(it.word)) * clamp(Number(it.look && it.look.scale) || 1, 0.3, 2);
+function crateHome(it) {
+  const L = it.loc; if (!L || it.use !== 'stored') return null;
+  const fit = packDims(it.word).fit;
+  if (L.kind === 'shelf' && L.shelf === 'main' && Number.isInteger(L.slot)) {
+    const c = L.slot % SHELF.cols, rb = SHELF.rows - 1 - Math.floor(L.slot / SHELF.cols);
+    return { shelf: true, key: 'main:' + L.slot, pos: V(SHELF.x0 + SHELF.colW * (c + 0.5), SHELF.y0 + rb * SHELF.rowH, SHELF.z), scale: fit };
+  }
+  if (L.kind === 'bench') {   // no free slot: boxes wait in a stack on the floor by the shelf
+    const over = DB.items.filter(x => x.use === 'stored' && x.loc && x.loc.kind === 'bench').sort((a, b) => (a.made || 0) - (b.made || 0)), i = Math.max(0, over.indexOf(it));
+    return { shelf: false, key: 'over:' + i, pos: V(2.75 + (i % 3) * 0.36, Math.floor(i / 3) * 0.22, 0.25), scale: fit };
+  }
+  return null;
+}
+/** (1)(2) finish + surge, (4) gripper carries the word to the packing table, then boxAndShip */
+function* packJob(S, item) {
+  let t = 0;
+  while (t < 10) { t += yield; const f = S.fin; if (f.done || (f.a > 0.4 && cur.buf.length)) break; }
+  grip.owner = 'job';
+  const p = S.root.position;
+  yield* gripTo(p.x, Math.max(GRIP_HIGH, p.y + WORD_TOP * S.s + 0.1));
+  yield* gripTo(p.x, p.y + WORD_TOP * S.s);
+  grip.topen = 0; yield* wait(0.22);
+  const wi = waiting.indexOf(S); if (wi >= 0) waiting.splice(wi, 1);
+  grip.carry = S;
+  yield* gripTo(grip.x, GRIP_HIGH);
+  const dims = packDims(item.word);
+  yield* carryTo(S, PACK_X, dims.s);
+  yield* boxAndShip(S, item, dims);
+}
+/** (5) a box sized to the word is made, (6) the word goes in, (7) lid + label → 'boxed', (8) off along the conveyor */
+function* boxAndShip(S, item, dims) {
+  focusObj = null;
+  const crate = new Crate(item, dims, listTitleOf(item)); crate.open(); crate.showLabel(0); crate.setLid(0); crate.setBuild(0);
+  crate.group.position.set(PACK_X, TOP_Y, RAIL_Z + 0.22 * dims.s);
+  yield* tween(0.6, e => crate.setBuild(e));
+  if (S) {
+    yield* gripTo(PACK_X, TOP_Y + CRATE_T + PLANK_H * dims.s + WORD_TOP * dims.s);
+    grip.topen = 1; yield* wait(0.18); grip.carry = null; S.root.rotation.y = 0;
+    yield* gripTo(PACK_X, GRIP_HIGH);
+  }
+  grip.owner = null;
+  yield* tween(0.5, e => crate.setLid(e));
+  if (S) S.dispose();
+  yield* tween(0.3, e => crate.showLabel(e));
+  if (byId(item.id) === item && item.pack !== 'boxed') { item.pack = 'boxed'; persist(item); }
+  crate.compact();
+  startTraveller(travelHome(crate, item));
+  yield* wait(0.55);
+}
+function* travelHome(crate, item) {
+  const g = crate.group, z = g.position.z; focusObj = g;
+  yield* glide(g, V(CONV_X0, TOP_Y, z), 0.5);
+  conveyor.users++; conveyor.dir = 1;
+  try { yield* glide(g, V(CONV_X1, TOP_Y, z), (CONV_X1 - CONV_X0) / BELT_V, 0, null, linear); } finally { conveyor.users--; }
+  const h = byId(item.id) === item ? crateHome(item) : null;
+  if (h) {
+    yield* glide(g, V(h.pos.x, h.pos.y, h.shelf ? -0.56 : h.pos.z), 1.1, 0.25, h.scale);
+    if (h.shelf) yield* glide(g, h.pos, 0.45);
+    crate.homeKey = h.key;
+  } else yield* tween(0.4, e => g.scale.setScalar(Math.max(0.001, 1 - e)));
+  if (focusObj === g) focusObj = null;
+  inFlight.delete(item.id);
+  if (h && byId(item.id) === item && item.use === 'stored' && !shelfBoxes.has(item.id)) shelfBoxes.set(item.id, crate); else crate.dispose();
+  syncShelf(); renderInv(); renderLists();
+}
+function* takeOutJob(item) {
+  let t = 0; while (travellers.length && t < 15) t += yield;          // the conveyor runs one way at a time
+  grip.owner = 'job'; grip.tx = PACK_X; grip.ty = GRIP_HIGH;
+  const dims = packDims(item.word), zc = RAIL_Z + 0.22 * dims.s;
+  let crate = shelfBoxes.get(item.id); shelfBoxes.delete(item.id);
+  if (crate) {
+    crate.highlight(false); const g = crate.group; focusObj = g;
+    if (crate.homeKey && crate.homeKey.startsWith('main:')) yield* glide(g, V(g.position.x, g.position.y, -0.56), 0.4);
+    yield* glide(g, V(CONV_X1, TOP_Y, zc), 1.1, 0.25, 1);
+    conveyor.users++; conveyor.dir = -1;
+    try { yield* glide(g, V(CONV_X0, TOP_Y, zc), (CONV_X1 - CONV_X0) / BELT_V, 0, null, linear); } finally { conveyor.users--; }
+    yield* glide(g, V(PACK_X, TOP_Y, zc), 0.5);
+  } else {
+    crate = new Crate(item, dims, listTitleOf(item)); crate.compact(); crate.group.position.set(PACK_X, TOP_Y, zc);
+    yield* tween(0.4, e => crate.group.scale.setScalar(Math.max(0.001, e)));
+  }
+  focusObj = null;
+  yield* gripTo(PACK_X, GRIP_HIGH);
+  crate.group.scale.setScalar(1); crate.expand(); crate.showLabel(1);
+  yield* tween(0.25, e => crate.showLabel(1 - e));
+  yield* tween(0.5, e => crate.setLid(1 - e));
+  const S = modeOf(item).build(item.word, item.look);
+  S.s = dims.s; S.root.scale.setScalar(dims.s); S.root.position.set(PACK_X, TOP_Y + CRATE_T + PLANK_H * dims.s, RAIL_Z + 0.52 * dims.s);
+  yield* wait(0.6);
+  yield* gripTo(PACK_X, TOP_Y + CRATE_T + PLANK_H * dims.s + WORD_TOP * dims.s);
+  grip.topen = 0; yield* wait(0.2); grip.carry = S;
+  yield* gripTo(PACK_X, GRIP_HIGH);
+  startTraveller((function* () { yield* tween(0.5, e => crate.setBuild(1 - e)); crate.dispose(); })());
+  const ds = displayScale(item);
+  yield* carryTo(S, DISPLAY.x, ds);
+  yield* gripTo(DISPLAY.x, DISPLAY.y + PLANK_H * ds + WORD_TOP * ds);
+  grip.topen = 1; yield* wait(0.18); grip.carry = null;
+  if (bench.S && bench.S !== S) bench.S.dispose();
+  if (byId(item.id) === item && item.use === 'out') { bench.id = item.id; bench.S = S; } else S.dispose();
+  inFlight.delete(item.id);
+  yield* gripTo(DISPLAY.x, GRIP_HIGH); grip.owner = null;
+  renderInv();
+}
+function* putBackJob(item, S) {
+  grip.owner = 'job'; const dims = packDims(item.word);
+  if (S) {
+    const x = S.root.position.x;
+    yield* gripTo(x, GRIP_HIGH); yield* gripTo(x, S.root.position.y + WORD_TOP * S.s);
+    grip.topen = 0; yield* wait(0.2); grip.carry = S;
+    yield* gripTo(x, GRIP_HIGH); yield* carryTo(S, PACK_X, dims.s);
+  } else yield* gripTo(PACK_X, GRIP_HIGH);
+  yield* boxAndShip(S, item, dims);
+}
+function* sendOff(S) {   // displayed elsewhere: the word lifts off the turntable and is gone
+  const s0 = S.s, y0 = S.root.position.y;
+  yield* tween(1.1, e => { S.root.position.y = y0 + 0.35 * sm(e); S.dim = 1 + 1.5 * Math.sin(Math.PI * Math.min(1, e * 1.4)); S.s = s0 * Math.max(0.001, 1 - sm(clamp01((e - 0.45) / 0.55))); });
+  S.dispose();
+}
+
+/* ───────────── item actions ───────────── */
+function takeOut(id) {
+  const it = byId(id); if (!it) return false;
+  if (inFlight.has(id)) { notice(BUSY_MSG); return false; }
+  const k = it.loc && it.loc.kind;
+  if (k === 'room' || k === 'city' || it.use === 'displayed') { notice('它正在别处展示 · On display elsewhere — recall it first'); return false; }
+  if (it.use === 'out') { selectItem(id); return true; }
+  const other = DB.items.find(x => x !== it && x.use === 'out' && x.loc && x.loc.kind === 'bench' && !inFlight.has(x.id));
+  const otherDone = other ? putBack(other.id, { quiet: true }) : true;      // one item on the bench at a time
+  it.use = 'out'; it.pack = 'open'; it.loc = { kind: 'bench' };
+  if (other && !otherDone) putBack(other.id);                               // the shelf was full: it takes the slot just freed
+  persist(it); inFlight.add(id); enqueue('takeout', takeOutJob(it), id);
+  ui.selected = id; renderAll(); return true;
+}
+function putBack(id, opt = {}) {
+  const it = byId(id); if (!it) return false;
+  if (inFlight.has(id)) { notice(BUSY_MSG); return false; }
+  const k = it.loc && it.loc.kind;
+  if (k === 'room' || k === 'city' || it.use === 'displayed') return recall(id);
+  if (it.use === 'stored' && k === 'shelf') return true;
+  const loc = allocSlot(DB.items, SHELVES, id); if (!loc) { if (!opt.quiet) notice(FULL_MSG); return false; }
+  const wasOut = it.use === 'out';
+  it.use = 'stored'; it.pack = 'boxed'; it.loc = loc; persist(it); inFlight.add(id);
+  if (wasOut) { const S = bench.id === id ? bench.S : null; if (bench.id === id) { bench.id = null; bench.S = null; } enqueue('putback', putBackJob(it, S), id); }
+  else {
+    const c = shelfBoxes.get(id); shelfBoxes.delete(id);
+    if (c) startTraveller((function* () { const h = crateHome(it); yield* glide(c.group, V(h.pos.x, h.pos.y, -0.56), 1.0, 0.3, h.scale); yield* glide(c.group, h.pos, 0.4);
+      c.homeKey = h.key; inFlight.delete(id); shelfBoxes.set(id, c); syncShelf(); renderInv(); })());
+    else { inFlight.delete(id); syncShelf(); }
+  }
+  renderAll(); return true;
+}
+/** explicit "recall to workshop": the only way the workshop rewrites an item displayed elsewhere */
+function recall(id) {
+  const it = byId(id); if (!it) return false;
+  if (inFlight.has(id)) { notice(BUSY_MSG); return false; }
+  const loc = allocSlot(DB.items, SHELVES, id); if (!loc) { notice(FULL_MSG); return false; }
+  if (bench.id === id) { const S = bench.S; bench.id = null; bench.S = null; it.use = 'stored'; it.pack = 'boxed'; it.loc = loc; persist(it); inFlight.add(id); enqueue('putback', putBackJob(it, S), id); renderAll(); return true; }
+  it.use = 'stored'; it.pack = 'boxed'; it.loc = loc; persist(it); inFlight.add(id);
+  enqueue('recall', boxAndShip(null, it, packDims(it.word)), id);
+  renderAll(); return true;
+}
+async function displayItem(id, where, shop = null) {
+  const it = byId(id); if (!it) return false;
+  if (inFlight.has(id)) { notice(BUSY_MSG); return false; }
+  if (where === 'shelf') return putBack(id);
+  let rec;
+  try { rec = await Store.display(id, where, where === 'room' ? { room: 'mtw' } : { shop }); }
+  catch (e) { notice('展示失败 · Could not display — ' + e.message); return false; }
+  Object.assign(it, rec);
+  if (bench.id === id) { const S = bench.S; bench.id = null; bench.S = null; if (S) startTraveller(sendOff(S)); }
+  ui.shopPick = null;
+  notice(Store.kind === 'local' ? '已在本机记录 · Saved locally — the room / city display appears only inside Minest'
+    : where === 'room' ? '已挂到工坊房间 · Displayed in the Type Workshop room' : '已挂到城市店招 · Hung as a City shop sign');
+  syncShelf(); syncBench(); renderAll(); return true;
+}
+async function removeItem(id) {
+  const it = byId(id); if (!it) return false;
+  if (inFlight.has(id)) { notice(BUSY_MSG); return false; }
+  DB.items.splice(DB.items.indexOf(it), 1);
+  const c = shelfBoxes.get(id);
+  if (c) { shelfBoxes.delete(id); const s0 = c.group.scale.x; startTraveller((function* () { yield* tween(0.35, e => c.group.scale.setScalar(Math.max(0.001, s0 * (1 - e)))); c.dispose(); })()); }
+  if (bench.id === id) { if (bench.S) bench.S.dispose(); bench.S = null; bench.id = null; }
+  if (ui.selected === id) ui.selected = null; ui.confirmDel = null; ui.details = null;
+  syncShelf(); renderAll();
+  pendingSaves++;
+  try { await Store.removeItem(id); } catch (e) { notice('删除失败 · Delete failed — ' + e.message); } finally { pendingSaves--; }
+  return true;
+}
+
+/* ───────────── the shelf and the bench, rebuilt from data ───────────── */
+function tagTexture(it) {
+  return canvasTex(128, 96, (x, w, h) => {
+    x.fillStyle = '#9b7231'; x.fillRect(0, 0, w, h); x.strokeStyle = '#5b3d12'; x.lineWidth = 4; x.strokeRect(2, 2, w - 4, h - 4);
+    x.fillStyle = '#2d1c08'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '700 13px ui-monospace, Menlo, monospace'; x.fillText('ON DISPLAY', w / 2, 20);
+    let fs = 24; x.font = `700 ${fs}px ui-monospace, Menlo, monospace`; while (x.measureText(it.word).width > w - 14 && fs > 9) { fs -= 1; x.font = `700 ${fs}px ui-monospace, Menlo, monospace`; }
+    x.fillText(it.word, w / 2, 50); x.font = '600 12px ui-monospace, Menlo, monospace'; x.fillText(it.loc && it.loc.kind === 'city' ? '展示 · CITY' : '展示 · ROOM', w / 2, 78);
+  });
+}
+function syncShelf() {
+  const want = new Map();
+  for (const it of DB.items) { if (inFlight.has(it.id)) continue; const h = crateHome(it); if (h) want.set(it.id, { it, h }); }
+  for (const [id, c] of shelfBoxes) {
+    if (inFlight.has(id)) continue; const w = want.get(id);
+    if (!w) { c.dispose(); shelfBoxes.delete(id); }
+    else if (c.homeKey !== w.h.key) { c.group.position.copy(w.h.pos); c.group.scale.setScalar(w.h.scale); c.homeKey = w.h.key; }
+  }
+  for (const [id, { it, h }] of want) if (!shelfBoxes.has(id)) {
+    const c = new Crate(it, packDims(it.word), listTitleOf(it)); c.compact(); c.group.position.copy(h.pos); c.group.scale.setScalar(h.scale); c.homeKey = h.key; shelfBoxes.set(id, c);
+  }
+  // items on display elsewhere leave a small brass tag in a free slot (counted from the end of the shelf)
+  const shown = DB.items.filter(it => it.use === 'displayed' || (it.loc && (it.loc.kind === 'room' || it.loc.kind === 'city'))).sort((a, b) => (a.made || 0) - (b.made || 0));
+  const taken = new Set(); for (const it of DB.items) if (it.loc && it.loc.kind === 'shelf' && it.loc.shelf === 'main') taken.add(it.loc.slot);
+  const free = []; for (let i = SHELF.cols * SHELF.rows - 1; i >= 0; i--) if (!taken.has(i)) free.push(i);
+  const keep = new Set();
+  shown.forEach((it, i) => {
+    if (i >= free.length) return; const slot = free[i], key = it.id + ':' + slot + ':' + it.loc.kind + ':' + it.word; keep.add(it.id);
+    let t = tags.get(it.id); if (t && t.key !== key) { t.m.geometry.dispose(); t.m.material.map.dispose(); t.m.material.dispose(); t.m.removeFromParent(); t = null; }
+    if (!t) { const m = mesh(new THREE.PlaneGeometry(0.12, 0.09), std({ map: tagTexture(it), roughness: 0.4, metalness: 0.5, envMapIntensity: 0.6 }), scene);
+      const c = slot % SHELF.cols, rb = SHELF.rows - 1 - Math.floor(slot / SHELF.cols); m.position.set(SHELF.x0 + SHELF.colW * (c + 0.5), SHELF.y0 + rb * SHELF.rowH + 0.06, SHELF.z - 0.17); m.userData.itemId = it.id;
+      tags.set(it.id, t = { m, key }); }
+  });
+  for (const [id, t] of tags) if (!keep.has(id)) { t.m.geometry.dispose(); t.m.material.map.dispose(); t.m.material.dispose(); t.m.removeFromParent(); tags.delete(id); }
+  for (const [id, c] of shelfBoxes) c.highlight(id === ui.selected);
+}
+function placeDisplay(S, it) { const ds = displayScale(it); S.s = ds; S.root.scale.setScalar(ds); S.root.position.set(DISPLAY.x, DISPLAY.y + PLANK_H * ds, RAIL_Z + 0.52 * ds); }
+function syncBench() {
+  if (job && (job.kind === 'takeout' || job.kind === 'putback')) return;
+  let want = null;
+  for (const it of DB.items) if (it.use === 'out' && it.loc && it.loc.kind === 'bench' && !inFlight.has(it.id) && (!want || (it.updated || 0) > (want.updated || 0))) want = it;
+  if (bench.id && (!want || want.id !== bench.id)) { if (bench.S) bench.S.dispose(); bench.S = null; bench.id = null; }
+  if (want && !bench.S) { bench.id = want.id; bench.S = modeOf(want).build(want.word, want.look); placeDisplay(bench.S, want); }
+}
+
+/* ───────────── HUD ───────────── */
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  if (props) for (const k in props) { const v = props[k]; if (v === false || v == null) continue;
+    if (k === 'class') e.className = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? '' : v); }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return e;
+}
+const btn = (label, fn, o = {}) => h('button', { class: 'b' + (o.on ? ' on' : ''), type: 'button', tabindex: '-1', disabled: !!o.disabled, title: o.title || null,
+  onmousedown: e => e.preventDefault(), onclick: e => { e.stopPropagation(); e.currentTarget.blur(); fn(e); } }, label);
+function renderLine() {
+  const txt = $('txt'), t = cur.buf.text, tg = targetEntry(), want = tg ? normWord(tg.text) : null;
+  if (!want) { txt.textContent = t; return; }
+  txt.replaceChildren(...[...t].map((c, i) => h('span', c !== want[i] ? { class: 'bad' } : null, c)));
+}
+function renderTarget() {
+  const el = $('tgt'); el.replaceChildren(); const l = currentList();
+  if (!l) { el.append(h('span', null, '自由输入 · Free typing')); ticket.set('FREE TYPING', cur.buf.text.trim() || '· · ·', 'no list selected'); return; }
+  const prog = deriveProgress(DB.items), m = prog[l.id] || {}, made = l.entries.filter(e => m[e.id]).length, e = nextEntry(l, prog, ui.entryId);
+  if (!e) { el.append(h('span', null, `${l.title} · 全部完成 · list complete ${made}/${l.entries.length}`)); ticket.set('LIST COMPLETE', `${made}/${l.entries.length}`, l.title); return; }
+  const idx = l.entries.indexOf(e) + 1, w = normWord(e.text);
+  el.append(h('span', null, 'Next · '), h('b', null, w), h('span', null, ` · ${idx}/${l.entries.length} · ${l.title}`));
+  const typed = cur.buf.text.trim(); if (typed && !w.startsWith(typed)) el.append(h('div', { class: 'warn' }, `≠ ${w} · Enter 仍按实际输入保存 · Enter still saves what you typed`));
+  ticket.set(`NEXT · ${idx}/${l.entries.length}`, w, l.title);
+}
+function openPanel(name) {
+  ui.panel = ui.panel === name ? null : name;
+  $('pLists').hidden = ui.panel !== 'lists'; $('pInv').hidden = ui.panel !== 'inv';
+  $('tabLists').classList.toggle('on', ui.panel === 'lists'); $('tabInv').classList.toggle('on', ui.panel === 'inv');
+  renderLists(); renderInv();
+}
+const typingIn = p => { const a = document.activeElement; return !!a && p.contains(a) && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA'); };
+function renderLists() {
+  const p = $('pLists'); if (p.hidden || typingIn(p)) return;
+  p.replaceChildren(h('h3', null, h('span', null, '清单 · Lists'), btn('×', () => openPanel(null))));
+  const prog = deriveProgress(DB.items);
+  const row = (id, title, info) => h('div', { class: 'row2 lst' + (ui.listId === id ? ' on' : ''), onclick: () => selectList(id) }, h('span', null, title), h('span', null, info));
+  p.append(row(null, 'Free typing · no list', ''));
+  for (const l of DB.lists) { const m = prog[l.id] || {}; p.append(row(l.id, l.title, l.entries.filter(e => m[e.id]).length + '/' + l.entries.length)); }
+  p.append(h('div', { class: 'acts', style: 'margin-top:8px' }, btn('Use sample list', () => useSampleList()), btn(ui.newOpen ? 'Cancel' : '+ New list', () => { ui.newOpen = !ui.newOpen; renderLists(); })));
+  if (ui.newOpen) {
+    const ti = h('input', { placeholder: 'Title', maxlength: '60', value: ui.newTitle, oninput: e => { ui.newTitle = e.target.value; } });
+    const ta = h('textarea', { placeholder: 'Words — one per line, or comma separated', oninput: e => { ui.newWords = e.target.value; } }); ta.value = ui.newWords;
+    p.append(h('div', { class: 'sec' }, h('div', null, 'New list'), ti, ta, btn('Create list', async () => {
+      const words = parseWords(ui.newWords); if (!words.length) { notice('至少一个词 · Add at least one word'); return; }
+      try { const l = await Store.createList(ui.newTitle, words); DB.lists.push(l); ui.newOpen = false; ui.newTitle = ''; ui.newWords = ''; selectList(l.id); }
+      catch (e) { notice('创建失败 · Could not create the list — ' + e.message); }
+    })));
+  }
+  const l = currentList();
+  if (l) {
+    const m = prog[l.id] || {}, tg = nextEntry(l, prog, ui.entryId);
+    p.append(h('div', { class: 'sec' }, h('div', null, l.title, h('span', { class: 'muted' }, '  · tap a pending word to make it next')),
+      h('div', { class: 'chips' }, l.entries.map(e => h('span', { class: 'chip' + (m[e.id] ? ' made' : '') + (tg && tg.id === e.id ? ' tgt' : ''), title: m[e.id] ? 'made' : 'pending',
+        onclick: () => { if (m[e.id]) selectItem(m[e.id], true); else { ui.entryId = e.id; renderAll(); } } }, normWord(e.text))))));
+  }
+}
+function itemState(it) {
+  const k = it.loc && it.loc.kind;
+  if (k === 'room' || k === 'city' || it.use === 'displayed') return { t: '在别处展示 · On display elsewhere' + (k === 'room' ? ' (workshop room)' : k === 'city' ? ' (city sign' + (it.loc.shop ? ' · ' + it.loc.shop : '') + ')' : ''), acts: ['recall'] };
+  if (inFlight.has(it.id)) return { t: '移动中 · Moving…', acts: [] };
+  if (it.use === 'out') return { t: '已取出 · Out on the bench', acts: ['room', 'city', 'putBack'] };
+  if (k === 'shelf') return { t: `已入库 · Boxed · shelf ${it.loc.shelf} · slot ${it.loc.slot + 1}`, acts: ['takeOut'] };
+  return { t: '已装箱 · Boxed · waiting for a free slot', acts: ['putBack', 'takeOut'] };
+}
+async function pickCity(id) {
+  let shops = null; try { shops = await Store.cityShops(); } catch (e) { shops = null; }
+  ui.shopPick = { id, shops: shops || [] }; renderInv();
+}
+function renderInv() {
+  $('invN').textContent = DB.items.length ? String(DB.items.length) : '';
+  const p = $('pInv'); if (p.hidden || typingIn(p)) return;
+  const st = p.scrollTop;
+  p.replaceChildren(h('h3', null, h('span', null, `库存 · Inventory · ${DB.items.length}`), btn('×', () => openPanel(null))));
+  const sel = h('select', { onchange: e => { ui.filter = e.target.value; renderInv(); } },
+    h('option', { value: 'all' }, 'All items'), h('option', { value: 'free' }, 'Free typing'), DB.lists.map(l => h('option', { value: l.id }, l.title)));
+  sel.value = ui.filter; if (sel.value !== ui.filter) { ui.filter = 'all'; sel.value = 'all'; } p.append(sel);
+  const items = DB.items.filter(it => ui.filter === 'all' || (ui.filter === 'free' ? !it.listId : it.listId === ui.filter)).sort((a, b) => (b.made || 0) - (a.made || 0));
+  if (!items.length) p.append(h('div', { class: 'muted' }, DB.items.length ? 'Nothing in this filter.' : '还没有成品 · Nothing made yet — type a word and press Enter.'));
+  const LABEL = { takeOut: 'Take out · 取出', putBack: '↩ 放回货架 · Back to shelf', room: '🏠 挂到工坊房间 · Display in room', city: '🏙 挂到城市店招 · City shop sign', recall: 'Recall to workshop · 召回' };
+  const RUN = { takeOut: takeOut, putBack: id => putBack(id), room: id => displayItem(id, 'room'), city: pickCity, recall: recall };
+  for (const it of items) {
+    const s = itemState(it), g = GASES[gasOK(it.look && it.look.gas)];
+    const box = h('div', { class: 'item' + (ui.selected === it.id ? ' sel' : ''), 'data-id': it.id, onclick: () => selectItem(it.id) },
+      h('div', { class: 'row2' }, h('span', { class: 'w' }, it.word), h('span', null, h('i', { class: 'dot', style: `background:${g.css}` }), g.tag)),
+      h('div', { class: 's' }, (listTitleOf(it) || 'Free typing') + ' · ' + s.t),
+      h('div', { class: 'acts' }, s.acts.map(a => btn(LABEL[a], () => RUN[a](it.id))),
+        btn(ui.details === it.id ? 'Hide details' : 'Details', () => { ui.details = ui.details === it.id ? null : it.id; renderInv(); }),
+        btn('Delete', () => { ui.confirmDel = it.id; renderInv(); }, { disabled: inFlight.has(it.id) })));
+    if (ui.shopPick && ui.shopPick.id === it.id) box.append(h('div', { class: 'card' }, h('div', null, '选择店铺 · Choose a City shop'),
+      h('div', { class: 'acts' }, ui.shopPick.shops.map(sh => btn(sh.title, () => displayItem(it.id, 'city', sh.id))), btn('First free shop · 第一家空店', () => displayItem(it.id, 'city', null)), btn('Cancel', () => { ui.shopPick = null; renderInv(); }))));
+    if (ui.confirmDel === it.id) box.append(h('div', { class: 'card warn' }, `Delete “${it.word}” for good?  `, h('span', { class: 'acts' }, btn('Yes, delete', () => removeItem(it.id)), btn('No', () => { ui.confirmDel = null; renderInv(); }))));
+    if (ui.details === it.id) {
+      const f = (k, v) => h('div', null, h('span', null, k), String(v));
+      const when = t => (t ? new Date(t).toLocaleString() : '—');
+      box.append(h('div', { class: 'card' }, f('id', it.id), f('word', it.word), f('list', (listTitleOf(it) || '—') + (it.listId ? ' (' + it.listId + ')' : '')), f('entry', it.entryId ?? '—'),
+        f('mode', it.mode), f('gas', (it.look && it.look.gas) + ' · scale ' + (it.look && it.look.scale)), f('pack', it.pack), f('use', it.use), f('loc', JSON.stringify(it.loc)),
+        f('made', when(it.made)), f('updated', when(it.updated)),
+        h('div', { class: 'acts' }, Store.kind === 'host' ? btn('☁ 核验云端 · Verify cloud', () => verifyCloud(it.id)) : btn('☁ 仅在 Minest 内可核验 · verify only inside Minest', () => {}, { disabled: true })),
+        ui.verify && ui.verify.id === it.id ? h('div', { class: ui.verify.ok ? '' : 'warn' }, ui.verify.text) : null,
+        it.use === 'out' ? h('div', { class: 'acts' }, btn(LABEL.room, () => displayItem(it.id, 'room')), btn(LABEL.city, () => pickCity(it.id)), btn(LABEL.putBack, () => putBack(it.id))) : null));
+    }
+    p.append(box);
+  }
+  p.scrollTop = st;
+}
+/** only this answer from the host may ever say "confirmed" */
+function verifyText(r) {
+  if (!r) return { ok: false, text: '仅在 Minest 内可核验 · verify only inside Minest' };
+  if (r.signedIn === false) return { ok: false, text: '未登录，仅本机 · not signed in — this device only' };
+  if (r.checked === false) return { ok: false, text: '未能核验 · not checked — ' + (r.reason || 'no reason given') };
+  const t = v => (v ? new Date(v).toLocaleString() : '—');
+  if (r.found && r.sameVersion) return { ok: true, text: `云端已确认 · confirmed on server (cloud ${t(r.cloudT)})` };
+  if (r.found) return { ok: false, text: `云端版本不同 · on server but a different version (cloud ${t(r.cloudT)} · local ${t(r.localT)})` + (r.reason ? ' — ' + r.reason : '') };
+  return { ok: false, text: '云端未找到 · not found on server' + (r.reason ? ' — ' + r.reason : '') };
+}
+async function verifyCloud(id) {
+  ui.verify = { id, ok: false, text: '核验中 · checking the server…' }; renderInv();
+  let r; try { r = await Store.verifyCloud(id); } catch (e) { r = { checked: false, reason: e.message }; }
+  ui.verify = Object.assign({ id }, verifyText(r)); renderInv(); return r;
+}
+function renderAll() { renderTarget(); renderLine(); renderLists(); renderInv(); syncShelfGlow(); }
+function syncShelfGlow() { for (const [id, c] of shelfBoxes) c.highlight(id === ui.selected); }
+function selectItem(id, open = false) {
+  if (!byId(id)) return false;
+  ui.selected = id;
+  if (open && ui.panel !== 'inv') openPanel('inv');
+  const it = byId(id); if (ui.filter !== 'all' && (ui.filter === 'free' ? it.listId : it.listId !== ui.filter)) ui.filter = 'all';
+  renderInv(); syncShelfGlow();
+  const row = [...$('pInv').querySelectorAll('.item')].find(r => r.dataset.id === id); if (row) row.scrollIntoView({ block: 'nearest' });
+  return true;
+}
+function selectList(id) {
+  if (id != null && !listById(id)) { notice('找不到清单 · List not found'); return null; }
+  ui.listId = id == null ? null : String(id); ui.entryId = null; savePrefs(); renderAll(); return currentList();
+}
+async function useSampleList() {
+  const have = DB.lists.find(l => l.title === SAMPLE_TITLE && l.entries.length === SAMPLE_WORDS.length && l.entries.every((e, i) => normWord(e.text) === SAMPLE_WORDS[i]));
+  if (have) return selectList(have.id);
+  try { const l = await Store.createList(SAMPLE_TITLE, SAMPLE_WORDS); DB.lists.push(l); return selectList(l.id); }
+  catch (e) { notice('创建失败 · Could not create the sample list — ' + e.message); return null; }
+}
+function setView(v) { ui.view = v === 'first' ? 'first' : 'third'; $('viewBtn').textContent = ui.view === 'first' ? 'View · 1st' : 'View · 3rd'; savePrefs(); return ui.view; }
+function setGas(k) {
+  k = String(k || '').toLowerCase(); const key = GAS_KEYS.find(n => n === k || n.slice(0, 2) === k.slice(0, 2)); if (!key || k.length < 2) return ui.gas;
+  ui.gas = key; cur.setGas(key);
+  for (const b of $('gas').children) b.classList.toggle('on', b.dataset.gas === key);
+  document.documentElement.style.setProperty('--g', GASES[key].css); savePrefs(); return key;
+}
+function savePrefs() { try { ls.setItem('mtw.ui.v1', JSON.stringify({ listId: ui.listId, view: ui.view, gas: ui.gas })); } catch (e) { /* storage full or blocked */ } }
+function loadPrefs() { try { return JSON.parse(ls.getItem('mtw.ui.v1') || '{}') || {}; } catch (e) { return {}; } }
+function setBadge() {
+  const b = $('badge'); b.hidden = false;
+  if (Store.kind === 'host') { const signed = !!(hostInfo && hostInfo.signedIn); b.textContent = signed ? '已交给 Minest 同步 · handed to Minest sync (cloud arrival unverified)' : 'Minest 本机 · not signed in'; b.style.color = signed ? 'var(--dim)' : ''; }
+  else b.textContent = memOnly ? '仅本次会话 · memory only (storage blocked)' : '仅本机 · local only';
+}
+
+/* ───────────── input ───────────── */
+const kb = $('kb');
+const isField = el => el && el !== kb && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+  if (isField(e.target)) { if (e.key === 'Escape') e.target.blur(); return; }
+  if (e.key === 'Tab') { e.preventDefault(); setView(ui.view === 'first' ? 'third' : 'first'); return; }
+  if (e.target === kb) return;                                   // the hidden field reports through beforeinput
+  if (e.key === 'Escape') { if (ui.panel) openPanel(ui.panel); return; }
+  if (e.key === 'Backspace') { e.preventDefault(); backspace(); }
+  else if (e.key === 'Enter') { e.preventDefault(); enter(); }
+  else if (e.key.length === 1 || e.key === ' ') { e.preventDefault(); type(e.key); }
+});
+kb.value = ' ';
+kb.addEventListener('beforeinput', e => { e.preventDefault();
+  if (e.inputType === 'deleteContentBackward') backspace(); else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') enter(); else if (e.data) type(e.data); });
+kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enter(); } });
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(); let down = null;
+canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; if (matchMedia('(pointer: coarse)').matches) kb.focus({ preventScroll: true }); });
+canvas.addEventListener('pointerup', e => {
+  if (!down) return; const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null; if (moved > 8) return;
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+  const targets = [turntable]; for (const c of shelfBoxes.values()) if (c.solid) targets.push(c.solid); for (const t of tags.values()) targets.push(t.m);
+  const hit = ray.intersectObjects(targets, false)[0]; if (!hit) return;
+  const id = hit.object === turntable ? bench.id : hit.object.userData.itemId; if (id) selectItem(id, true);
+});
+$('back').addEventListener('click', e => { e.currentTarget.blur(); Bridge.close(); });
+$('tabLists').addEventListener('click', e => { e.currentTarget.blur(); openPanel('lists'); });
+$('tabInv').addEventListener('click', e => { e.currentTarget.blur(); openPanel('inv'); });
+$('viewBtn').addEventListener('click', e => { e.currentTarget.blur(); setView(ui.view === 'first' ? 'third' : 'first'); });
+for (const id of ['back', 'tabLists', 'tabInv', 'viewBtn', 'gas', 'modes']) $(id).addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+$('gas').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setGas(b.dataset.gas); b.blur(); });
+for (const m of Object.values(MODES)) $('modes').append(btn(m.label, () => { ui.mode = m.id; for (const b of $('modes').querySelectorAll('button')) b.classList.toggle('on', b.textContent === m.label); }, { on: m.id === ui.mode }));
+addEventListener('message', e => { if (e.source === window.parent && embedded && e.data && e.data.mtw === 1 && e.data.op === 'refresh' && e.data.id == null) refresh(); });
+addEventListener('focus', () => refresh());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+
+/* ───────────── lights that follow the lit tubes ───────────── */
+const nlights = [], lightOn = new Uint8Array(NEON_LIGHTS), acc = new Float32Array(NEON_LIGHTS * 7);
+for (let i = 0; i < NEON_LIGHTS; i++) { const l = new THREE.PointLight(0xffffff, 0, 3.5, 2); l.position.set(0, 1, -0.4); scene.add(l); nlights.push(l); }
+function updateLights(dt) {
+  acc.fill(0);
+  for (const S of sculptures) {
+    const n = S.tubes.length; if (!n) continue; const s = S.root.scale.x, rp = S.root.position, isCur = S === cur;
+    for (let j = 0; j < n; j++) { const L = S.tubes[j]; if (L.lum < 0.002) continue;
+      const o = (isCur ? (n > 1 && j >= n / 2 ? 1 : 0) : 2) * 7, wt = L.lum * s / 0.12, c = L.gas.light;
+      acc[o] += (rp.x + s * (S.offX + L.x + L.def.cx)) * wt; acc[o + 1] += (rp.y + s * L.def.cy) * wt; acc[o + 2] += (rp.z + 0.12) * wt;
+      acc[o + 3] += c[0] * wt; acc[o + 4] += c[1] * wt; acc[o + 5] += c[2] * wt; acc[o + 6] += wt; }
+  }
+  const a = 1 - Math.exp(-dt * 7); let rr = 0, rg = 0, rb = 0;
+  for (let i = 0; i < NEON_LIGHTS; i++) {
+    const l = nlights[i], o = i * 7, wt = acc[o + 6];
+    if (wt < 0.002) { l.intensity = 0; lightOn[i] = 0; continue; }
+    _v.set(acc[o] / wt, acc[o + 1] / wt, acc[o + 2] / wt); if (!lightOn[i]) l.position.copy(_v); else l.position.lerp(_v, a); lightOn[i] = 1;
+    l.color.setRGB(acc[o + 3] / wt, acc[o + 4] / wt, acc[o + 5] / wt); l.intensity = Math.min(6, LIGHT_K * wt);
+    rr += l.color.r * l.intensity; rg += l.color.g * l.intensity; rb += l.color.b * l.intensity;
+  }
+  _c.setRGB(Math.min(1.2, rr * 0.09), Math.min(1.2, rg * 0.09), Math.min(1.2, rb * 0.09)); roomU.value.lerp(_c, 1 - Math.exp(-dt * 10));
+}
+
+/* ───────────── camera: first / third person over one scene ───────────── */
+const cam = { blend: 1, focus: V(0, 0.98, -0.45), raw: V(), fp: V(), fpT: V(), tp: V(), tpT: V(), look: V() };
+function workFocus(out) {
+  if (grip.owner === 'job') return out.set(grip.x, grip.y - 0.12, RAIL_Z);
+  if (focusObj) return out.copy(focusObj.position).setY(focusObj.position.y + 0.1);
+  const f = cur.formingLetter(); if (f) return cur.letterWorld(f, out);
+  if (ui.selected) { const c = shelfBoxes.get(ui.selected); if (c) return out.copy(c.group.position).setY(c.group.position.y + 0.1); if (bench.id === ui.selected) return out.set(DISPLAY.x, DISPLAY.y + 0.1, RAIL_Z); }
+  return out.set(PLAT.x, PLAT.y + 0.15, RAIL_Z);
+}
+function updateCamera(dt, time) {
+  const goal = ui.view === 'third' ? 1 : 0; cam.blend += clamp(goal - cam.blend, -dt / 0.9, dt / 0.9); const b = sm(cam.blend);
+  workFocus(cam.raw); cam.focus.lerp(cam.raw, 1 - Math.exp(-dt * 2.2)); const f = cam.focus;
+  hero.eyeWorld(cam.fp); cam.fp.y += 0.3; cam.fp.z += 0.1;   // lean up: the eye clears the paper so the platform reads whole
+  cam.fpT.set(clamp(lerp(0, f.x, 0.4), -1.3, 1.8), lerp(0.98, f.y, 0.35), lerp(-0.32, f.z, 0.25));
+  const k = clamp(1.25 / camera.aspect, 1, 2.1), sway = reduce ? 0 : 1;
+  cam.tpT.set(lerp(0.25, f.x, 0.55), lerp(0.98, f.y, 0.3), -0.38);
+  cam.tp.set(cam.tpT.x + 2.1 + sway * Math.sin(time * 0.13) * 0.08, cam.tpT.y + 1.3 * (0.7 + 0.3 * k), cam.tpT.z + 2.6 * k);   // off the shoulder: the head never sits on the line to the work
+  camera.position.lerpVectors(cam.fp, cam.tp, b); cam.look.lerpVectors(cam.fpT, cam.tpT, b); camera.lookAt(cam.look);
+  const fov = lerp(64, 48, b); if (Math.abs(fov - camera.fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+  hero.headMesh.visible = b > 0.15;
+}
+
+/* ───────────── frame ───────────── */
+function poseCur(dt) {
+  const ts = Math.min(0.12, 1.05 / cur.buf.width); cur.s += (ts - cur.s) * (1 - Math.exp(-dt * 4));
+  cur.root.position.set(PLAT.x, PLAT.y + PLANK_H * cur.s, RAIL_Z + 0.52 * cur.s);
+}
+function poseWaiting(dt) {
+  const k = 1 - Math.exp(-dt * 4), n = waiting.length;
+  for (let i = 0; i < n; i++) { const S = waiting[i], li = (cur.buf.length ? 1 : 0) + (n - 1 - i), ts = S.baseS * (li ? 0.6 : 1);
+    S.s += (ts - S.s) * k; const p = S.root.position, ty = PLAT.y + PLANK_H * S.s + li * 0.32;
+    p.x += (PLAT.x - p.x) * k; p.y += (ty - p.y) * k; p.z = RAIL_Z + 0.52 * S.s; }
+}
+function gripFollow(time) {
+  if (grip.owner) return;
+  const f = cur.formingLetter();
+  if (f) { cur.letterWorld(f, _fw); grip.tx = _fw.x; grip.ty = PLAT.y + (PLANK_H + WORD_TOP + 0.45) * cur.s; grip.topen = 0.55 + 0.35 * Math.sin(time * 18); }
+  else { grip.tx = cur.tubes.length ? PLAT.x : grip.tx; grip.ty = GRIP_HIGH; grip.topen = 1; }
+}
+let last = performance.now(), frameErr = false;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)), time = now / 1000; last = now; uTime.value = time % 1000;
+  try {
+    poseCur(dt); poseWaiting(dt);
+    for (const S of sculptures) S.update(dt, time);
+    runJobs(dt);
+    gripFollow(time); updateGripper(dt, ui.gas);
+    if (bench.S) bench.S.root.rotation.y = reduce ? 0 : 0.32 * Math.sin(time * 0.45);
+    if (!reduce) turntable.rotation.y = 0.32 * Math.sin(time * 0.45);
+    rig.update(dt, time, ui.gas, !!cur.formingLetter());
+    tw.update(dt); conveyor.update(dt);
+    hero.update(dt, time, cam.focus);
+    updateLights(dt); updateCamera(dt, time);
+  } catch (e) { if (!frameErr) { frameErr = true; console.warn('workshop frame', e); } }
+  composer.render();
+}
+
+/* ───────────── start ───────────── */
+async function refresh() {
+  if (!ready || isBusy()) return;
+  try {
+    const [lists, items] = await Promise.all([Store.lists(), Store.items()]);
+    if (isBusy()) return;
+    DB.lists = lists; DB.items = items;
+    for (const it of normalizeItems(DB.items)) persist(it);
+    if (ui.listId && !listById(ui.listId)) ui.listId = null;
+    syncShelf(); syncBench(); renderAll();
+  } catch (e) { /* keep what we have */ }
+}
+async function init() {
+  if (embedded) {
+    const host = makeHostBackend(window, window.parent);
+    try { hostInfo = await host.hello(); Store.use(host); } catch (e) { host.detach(); }
+  }
+  setBadge();
+  try { const [lists, items] = await Promise.all([Store.lists(), Store.items()]); DB.lists = lists; DB.items = items; }
+  catch (e) { notice('读取失败 · Could not load the workshop data — ' + e.message); }
+  for (const it of normalizeItems(DB.items)) persist(it);
+  const prefs = loadPrefs(), q = params.get('list');
+  if (q) { if (!selectList(q)) ui.listId = null; } else if (prefs.listId && listById(prefs.listId)) ui.listId = prefs.listId;
+  for (const it of [...DB.items].sort((a, b) => (a.made || 0) - (b.made || 0)).slice(-8)) paperLines.push(it.word);
+  syncShelf(); syncBench(); ready = true; afterEdit(); renderAll();
+  const t = params.get('t');
+  if (t) [...t].forEach((c, i) => setTimeout(() => type(c), 500 + i * 160));
+}
+const params = new URLSearchParams(location.search);
+{ const prefs = loadPrefs(); setGas(params.get('gas') || prefs.gas || 'neon'); setView(params.get('view') || prefs.view || 'third'); }
+cam.blend = ui.view === 'third' ? 1 : 0;
+window.__workshop = {
+  type, backspace, enter, setView, selectList, useSampleList, takeOut, putBack, recall, display: displayItem, verifyCloud, remove: removeItem, setGas, store: Store,
+  get state() { const e = targetEntry(); return { typed: cur.buf.text, view: ui.view, listId: ui.listId, entryId: e ? e.id : null, items: DB.items.length, busy: isBusy() }; },
+};
+afterEdit();
+requestAnimationFrame(frame);
+init();
+</script>
+</body>
+</html>
