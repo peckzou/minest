@@ -60,6 +60,20 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
 @keyframes blink{50%{opacity:0}}
 #hint{left:0;right:0;bottom:max(80px,calc(env(safe-area-inset-bottom) + 56px));text-align:center;transition:opacity .8s;padding:0 16px}
 #hint.off{opacity:0}
+
+/* the on-screen typewriter keyboard: round keycaps on a thin strip at the bottom; the work stays above it */
+#tkb{position:fixed;left:50%;transform:translateX(-50%);bottom:max(8px,env(safe-area-inset-bottom));width:min(600px,calc(100vw - 16px));z-index:5;
+  padding:8px 8px 9px;border-radius:14px;background:linear-gradient(#2a1b12,#1a110b);border:1px solid rgba(214,170,98,.35);box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,220,160,.12);
+  display:flex;flex-direction:column;gap:5px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#tkb[hidden]{display:none}
+#tkb .r{display:flex;justify-content:center;gap:5px}
+#tkb button{--s:min(9vw,46px);width:var(--s);height:var(--s);border-radius:50%;border:2px solid #b89154;background:radial-gradient(circle at 40% 32%,#3a3632,#0d0c0b 70%);
+  color:#efe4cc;font:600 calc(var(--s)*.38)/1 "Courier New",ui-monospace,monospace;padding:0;cursor:pointer;box-shadow:0 3px 0 #5a3d1c,0 4px 6px rgba(0,0,0,.5);transition:transform .05s,box-shadow .05s}
+#tkb button.dn,#tkb button:active{transform:translateY(2px);box-shadow:0 1px 0 #5a3d1c,0 2px 3px rgba(0,0,0,.5)}
+#tkb button.w{width:auto;padding:0 12px;border-radius:calc(var(--s)*.5);font-size:calc(var(--s)*.3);letter-spacing:.08em}
+#tkb button.sp{flex:1;max-width:260px;border-radius:calc(var(--s)*.5)}
+@media (max-width:560px){#top{flex-direction:column;align-items:flex-start;gap:4px} #badge{font-size:8px;letter-spacing:.04em} #top .ttl{display:none} #tabs{top:calc(max(14px,env(safe-area-inset-top)) + 82px)} #modes .lab{display:none} .panel{top:calc(max(14px,env(safe-area-inset-top)) + 108px)}}
+body.tkb #line{bottom:calc(var(--tkbh,0px) + 14px)} body.tkb #tgt{bottom:calc(var(--tkbh,0px) + 40px)} body.tkb #hint{display:none}
 #note{left:50%;top:36%;transform:translateX(-50%);color:var(--ink);background:var(--panel);border:1px solid var(--faint);padding:8px 14px;text-transform:none;letter-spacing:.05em;
   opacity:0;transition:opacity .35s;max-width:calc(100vw - 40px);text-align:center}
 #note.on{opacity:1}
@@ -75,7 +89,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
 <div class="hud i" id="top"><button class="b" id="back" type="button" tabindex="-1">⟵ Back</button><span class="ttl"><b>Magic Type Workshop</b></span><span id="badge" hidden>local only</span></div>
 <div class="hud i" id="tabs"><button class="b" id="tabLists" type="button" tabindex="-1">Lists</button><button class="b" id="tabInv" type="button" tabindex="-1">Inventory <span id="invN"></span></button></div>
 <div class="hud i" id="ctl">
-  <div class="row"><button class="b" id="viewBtn" type="button" tabindex="-1" title="Tab">View · 3rd</button></div>
+  <div class="row"><button class="b" id="keysBtn" type="button" tabindex="-1" title="On-screen typewriter keys">⌨ Keys</button><button class="b" id="viewBtn" type="button" tabindex="-1" title="Tab">View · 3rd</button></div>
   <div class="row" id="modes"><span class="lab">Pipe wall</span></div>
   <div class="row" id="gas"><button class="b" type="button" tabindex="-1" data-gas="neon" title="Neon">NE</button><button class="b" type="button" tabindex="-1" data-gas="argon" title="Argon">AR</button><button class="b" type="button" tabindex="-1" data-gas="helium" title="Helium">HE</button><button class="b" type="button" tabindex="-1" data-gas="xenon" title="Xenon">XE</button></div>
 </div>
@@ -85,6 +99,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
 <div class="hud" id="tgt"></div>
 <div class="hud" id="line"><span id="txt"></span><span class="caret"></span></div>
 <div class="hud" id="note"></div>
+<div id="tkb" hidden aria-label="Typewriter keyboard"></div>
 <div class="hud" id="err"></div>
 <input id="kb" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Type here">
 
@@ -342,7 +357,9 @@ const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, 
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.55, 0.5, 0.86); composer.addPass(bloom);
 composer.addPass(new OutputPass());
-function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); composer.setSize(w, h); camera.aspect = w / h;
+  const kh = document.body.classList.contains('tkb') ? (document.getElementById('tkb').offsetHeight || 0) : 0;   // the typewriter keyboard: lift the picture above it
+  if (kh) camera.setViewOffset(w, h, 0, Math.round(kh * 0.55), w, h); else camera.clearViewOffset(); camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
 const uTime = { value: 0 }, uShim = { value: reduce ? 0 : 1 };
 const roomU = { value: new THREE.Color(0, 0, 0) };      // the coloured light in the room right now (glass picks it up)
@@ -1910,7 +1927,7 @@ function setMode(id) {
   const T = CRAFT_TINT[id]; for (const b of $('gas').children) { const k = b.dataset.gas; b.textContent = T ? T[k][1] : GASES[k].tag; b.title = T ? T[k][1] : k; }
   document.documentElement.style.setProperty('--g', T ? T[ui.gas][0] : GASES[ui.gas].css); savePrefs(); return id;
 }
-function savePrefs() { try { ls.setItem('mtw.ui.v1', JSON.stringify({ listId: ui.listId, view: ui.view, gas: ui.gas, mode: ui.mode })); } catch (e) { /* storage full or blocked */ } }
+function savePrefs() { try { ls.setItem('mtw.ui.v1', JSON.stringify({ listId: ui.listId, view: ui.view, gas: ui.gas, mode: ui.mode, keys: ui.keys })); } catch (e) { /* storage full or blocked */ } }
 function loadPrefs() { try { return JSON.parse(ls.getItem('mtw.ui.v1') || '{}') || {}; } catch (e) { return {}; } }
 function setBadge() {
   const b = $('badge'); b.hidden = false;
@@ -1920,6 +1937,32 @@ function setBadge() {
 
 /* ───────────── input ───────────── */
 const kb = $('kb');
+/* ───────────── the on-screen typewriter keyboard (⌨ Keys) ─────────────
+   For touch screens: a typewriter's round keys on a thin strip, instead of the system keyboard covering half the screen.
+   Every key goes through the same type() / backspace() / enter() as a real keyboard, so the 3D typewriter and the
+   typist's hands move with it. # switches to digits and the punctuation this alphabet has. */
+const TKB = { abc: ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'], num: ['1234567890', ".,-!?:'+/", ''] };
+let tkbSet = 'abc';
+function drawKeys() {
+  const el = $('tkb'), rows = TKB[tkbSet];
+  const key = (k, label, cls = '') => `<button type="button" tabindex="-1" data-k="${k}"${cls ? ` class="${cls}"` : ''}>${label}</button>`;
+  el.innerHTML = rows.map((r, i) => `<div class="r">${i === 2 ? key('#', tkbSet === 'abc' ? '#' : 'ABC', 'w') : ''}${[...r].map(c => key(c, c === "'" ? '&#39;' : c)).join('')}${i === 2 ? key('⌫', '⌫', 'w') : ''}</div>`).join('')
+    + `<div class="r">${key(' ', 'SPACE', 'w sp')}${key('⏎', 'RETURN', 'w')}</div>`;
+}
+function setKeys(on) {
+  ui.keys = !!on; $('tkb').hidden = !ui.keys; document.body.classList.toggle('tkb', ui.keys); $('keysBtn').classList.toggle('on', ui.keys);
+  if (ui.keys) { drawKeys(); if (document.activeElement === kb) kb.blur(); }
+  document.documentElement.style.setProperty('--tkbh', (ui.keys ? $('tkb').offsetHeight : 0) + 'px'); resize(); savePrefs(); return ui.keys;
+}
+$('tkb').addEventListener('pointerdown', e => {
+  const b = e.target.closest('button[data-k]'); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const k = b.dataset.k; b.classList.add('dn'); setTimeout(() => b.classList.remove('dn'), 110);
+  if (k === '#') { tkbSet = tkbSet === 'abc' ? 'num' : 'abc'; drawKeys(); return; }
+  if (k === '⌫') backspace(); else if (k === '⏎') enter(); else type(k);
+  try { navigator.vibrate && navigator.vibrate(6); } catch (x) { /* no haptics */ }
+});
+$('keysBtn').addEventListener('click', e => { e.currentTarget.blur(); setKeys(!ui.keys); });
+$('keysBtn').addEventListener('mousedown', e => e.preventDefault());
 const isField = el => el && el !== kb && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
@@ -1936,7 +1979,7 @@ kb.addEventListener('beforeinput', e => { e.preventDefault();
   if (e.inputType === 'deleteContentBackward') backspace(); else if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') enter(); else if (e.data) type(e.data); });
 kb.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); enter(); } });
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(); let down = null;
-canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; if (matchMedia('(pointer: coarse)').matches) kb.focus({ preventScroll: true }); });
+canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; if (matchMedia('(pointer: coarse)').matches && !ui.keys) kb.focus({ preventScroll: true }); });
 canvas.addEventListener('pointerup', e => {
   if (!down) return; const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null; if (moved > 8) return;
   ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
@@ -2066,7 +2109,8 @@ async function init() {
   if (t) [...t].forEach((c, i) => setTimeout(() => type(c), 500 + i * 160));
 }
 const params = new URLSearchParams(location.search);
-{ const prefs = loadPrefs(); setGas(params.get('gas') || prefs.gas || 'neon'); setView(params.get('view') || prefs.view || 'third'); setMode(MODES[params.get('mode')] ? params.get('mode') : MODES[prefs.mode] ? prefs.mode : 'neon'); }
+{ const prefs = loadPrefs(); setGas(params.get('gas') || prefs.gas || 'neon'); setView(params.get('view') || prefs.view || 'third'); setMode(MODES[params.get('mode')] ? params.get('mode') : MODES[prefs.mode] ? prefs.mode : 'neon');
+  setKeys(params.has('keys') ? params.get('keys') !== '0' : typeof prefs.keys === 'boolean' ? prefs.keys : matchMedia('(pointer: coarse)').matches); }
 cam.blend = ui.view === 'third' ? 1 : 0;
 window.__workshop = {
   type, backspace, enter, setView, selectList, useSampleList, takeOut, putBack, recall, display: displayItem, verifyCloud, remove: removeItem, setGas, store: Store,
