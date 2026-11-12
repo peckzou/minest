@@ -239,10 +239,10 @@ export const WORLDS: WorldDefinition[] = [
   {
     id: 'frost-bloom',
     number: 16,
-    name: 'Frost Bloom',
-    nameZh: '冰晶绽放',
+    name: 'Crystal Ice',
+    nameZh: '冰晶文字',
     series: 'nature',
-    mechanism: '冰核在字母起点出现，冰晶沿笔画分叉生长，最终凝成透明冰雪字母。',
+    mechanism: '冰洞中，冰晶沿字母骨架生长：先长主干，再分出枝晶与晶面，冷光折射；删除时冰晶碎裂四散、化为霜尘。',
     poster: 'linear-gradient(160deg,#e9f6ff 0%,#a9d6f2 55%,#5a8fb8 100%)',
     accent: '#bfe9ff',
     status: 'ready',
