@@ -178057,6 +178057,7 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
     return (b.columns || []).map(function (c) { return { id: c.id, title: c.title || '词表', entries: (c.cards || []).map(function (k) { return { id: k.id, text: k.title || '' }; }).filter(function (e) { return e.text; }) }; });
   }
   function createList(title, words) {
+    if (title && typeof title === 'object') { words = title.words; title = title.title; }   // {title, words} form too
     words = (words || []).map(function (w) { return String(w || '').trim(); }).filter(Boolean);
     if (!words.length) throw new Error('词表是空的');
     var T = teach(), before = {}; (T.read().columns || []).forEach(function (c) { before[c.id] = 1; });
@@ -178080,7 +178081,7 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
     K.set(IK + rec.id, rec);
     return rec;
   }
-  function removeItem(id) { var K = KN(); if (!K) throw new Error('存储不可用'); K.set(IK + id, { id: id, deleted: true, updated: Date.now() }); return true; }
+  function removeItem(id) { if (id && typeof id === 'object') id = id.id; var K = KN(); if (!K) throw new Error('存储不可用'); K.set(IK + id, { id: id, deleted: true, updated: Date.now() }); return true; }
   /* ---- showing items outside the workshop: City Knowledge Run shop signs.
      An item with use 'displayed' and loc {kind:'city', shop:<shop id> | null} hangs as a neon sign over that knowledge
      shop (null → the first shop without one) every time the City opens. The record is the truth; the sign is redrawn. */
@@ -178127,6 +178128,21 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
     });
     return list.length;
   }
+  /* ---- Test 9 honesty: did an item really reach the cloud? MinestKnowledge pushes with a swallowed .catch, so the only
+     proof is reading the user's own doc back FROM THE SERVER (not the local cache). Read-only; no auth or config change. */
+  function verifyCloud(a) {
+    var id = a && a.id, fb = window.firebase, u = null;
+    try { u = fb && fb.auth && fb.auth().currentUser; } catch (e) {}
+    if (!u || !fb.firestore) return Promise.resolve({ signedIn: !!u, checked: false, reason: '未登录 · not signed in — saved on this device only' });
+    var local = KN() && KN()._cloud && KN()._cloud().x && KN()._cloud().x[IK + id];
+    return fb.firestore().collection('users').doc(u.uid).collection('focusboard').doc('data').get({ source: 'server' }).then(function (doc) {
+      var d = doc.exists ? doc.data() : null;
+      function judge(kn) { var r = kn && kn.x && kn.x[IK + id]; return { signedIn: true, checked: true, found: !!r, sameVersion: !!(r && local && r.t === local.t), cloudT: r ? r.t : null, localT: local ? local.t : null }; }
+      if (d && d.knowledge && d.knowledge.x && d.knowledge.x[IK + id]) return judge(d.knowledge);
+      if (d && d.knowledgeGz && window.minestGunzipText) return minestGunzipText(d.knowledgeGz).then(function (t) { return judge(JSON.parse(t)); });
+      return judge(d && d.knowledge);
+    }).catch(function (e) { return { signedIn: true, checked: false, reason: '服务器读取失败 · server read failed: ' + (e && (e.code || e.message)) }; });
+  }
   function display(a) {   // {id, where:'city'|'room'|'shelf', shop?, room?} → the record changes; an open City is redrawn
     var it = items().filter(function (x) { return x.id === (a && a.id); })[0]; if (!it) throw new Error('找不到这件作品');
     if (a.where === 'city') { it.use = 'displayed'; it.loc = { kind: 'city', shop: a.shop || null }; }
@@ -178139,14 +178155,16 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
       /* honest: items go to MinestKnowledge, which pushes to the cloud only when signed in; that it ARRIVED is not known here */
       return { host: 'minest', version: VERSION, store: 'MinestKnowledge', signedIn: !!u, cloudConfirmed: false }; },
     lists: lists, createList: createList, items: items, saveItem: saveItem, removeItem: removeItem,
-    display: display, cityShops: cityShops,
+    display: display, cityShops: cityShops, verifyCloud: verifyCloud,
   };
   window.addEventListener('message', function (e) {
     var d = e.data; if (!d || d.mtw !== 1 || !frame || e.source !== frame.contentWindow) return;
     if (d.op === 'close') return close();
     var f = OPS[d.op], reply = function (m) { try { e.source.postMessage(Object.assign({ mtw: 1, id: d.id }, m), '*'); } catch (x) {} };
     if (!f) return reply({ ok: false, error: 'unknown op ' + d.op });
-    try { reply({ ok: true, result: f.apply(null, d.args || []) }); } catch (err) { reply({ ok: false, error: String((err && err.message) || err) }); }
+    var args = Array.isArray(d.args) ? d.args : d.args == null ? [] : [d.args];   // [a, b] or a single {..}
+    var fail = function (err) { reply({ ok: false, error: String((err && err.message) || err) }); };
+    try { Promise.resolve(f.apply(null, args)).then(function (r) { reply({ ok: true, result: r === undefined ? null : JSON.parse(JSON.stringify(r)) }); }, fail); } catch (err) { fail(err); }
   });
 
   /* ---------------------------------------------------------------- the house in Santorini */
