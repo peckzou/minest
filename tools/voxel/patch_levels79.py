@@ -23,5 +23,14 @@ for f in FILES:
     v = re.sub(r'\n+(?=  window\.MinestVoxel62 = \{)', '\n', v, count=1)
     k = v.index('  window.MinestVoxel62 = {')
     v = v[:k] + MODULE + '\n' + v[k:]
-    p.write_text(s[:i] + v + s[j:], encoding='utf-8')
+    # a new scope (another room, level) is not "new things placed": compare against what was there before only within one scope
+    A3 = "R.hash = stateHash(); R.scope = scopeKey(); trackNew();"
+    if A3 in v and v.count(A3) == 1:
+        v = v.replace(A3, "R.hash = stateHash(); var sc79 = scopeKey(); if (sc79 !== R.scope) R.ids = null; R.scope = sc79; trackNew();")
+    s = s[:i] + v + s[j:]
+    # the 2D display view says which fixture it shows, so the voxel world can bring the camera to it (5–6/6)
+    A2 = "e2.setAttribute('aria-label', p.label || K[p.k].n);"
+    if A2 in s and "e2.setAttribute('data-pv-pc', pcId)" not in s and s.count(A2) == 1:
+        s = s.replace(A2, A2 + " e2.setAttribute('data-pv-pc', pcId);")
+    p.write_text(s, encoding='utf-8')
     print('patched', f)
