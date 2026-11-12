@@ -86,25 +86,31 @@
     }
     /* Room and deeper (4–6/6): the camera finds what was built — the voxel grid keeps the island's size, so the room would
        otherwise sit small in the middle of an empty field */
-    var fitKey = '';
+    var fitKey = '', openSeq79 = 0, wasOpen79 = false, glideRaf = 0;
+    function glide79(to) {   // 80: the camera moves there in ~0.6 s instead of jumping
+      var o = R.orbit, from = { tx: o.tx, ty: o.ty, tz: o.tz, dist: o.dist }, t0 = performance.now(); cancelAnimationFrame(glideRaf);
+      if (!isFinite(from.tx) || !isFinite(from.dist)) { Object.assign(o, to); return; }
+      (function step(now) { var k = Math.min(1, (now - t0) / 600), e = k * k * (3 - 2 * k); for (var key in to) o[key] = from[key] + (to[key] - from[key]) * e; if (k < 1) glideRaf = requestAnimationFrame(step); })(t0);
+    }
     function fitContent(lv) {
-      var vw = R.vw; if (!vw || lv < 3) return;
-      // 5–6/6: the fixture the 2D world opened (its display view names it) — the camera comes close to it; 3/6: the house itself
-      if (lv < 4) return;   // 3/6 keeps the whole island in view: up close the house is only its roof
+      var vw = R.vw; if (!vw) return;
+      // 80: every level — 1–3 frame the whole world (up close at 3/6 the house is only its roof), 4 the room, 5–6 the fixture the 2D world opened
       var pvEl = lv >= 5 ? document.querySelector('.mn-pv[data-pv-pc]') : null, fx = pvEl ? pieceById(pvEl.getAttribute('data-pv-pc')) : null;
-      var key = lv + '|' + (fx ? fx.id : '') + '|' + (R.stats && R.stats.ms) + '|' + vw.W + 'x' + vw.D; if (key === fitKey) return; fitKey = key;
+      var key = lv + '|' + (fx ? fx.id : '') + '|' + R.scope + '|' + openSeq79 + '|' + vw.W + 'x' + vw.D; if (key === fitKey) return; fitKey = key;   // once per scene: edits keep your view
       var cx = fx ? Math.floor((fx.x - vw.ox) * vw.S) : -1, cz = fx ? Math.floor((fx.y - vw.oz) * vw.S) : -1, rad = fx ? Math.max(3, Math.round((lv === 3 ? 3.2 : 1.6) * vw.S * (fx.s || 1))) : 1e9;
       var x0 = 1e9, y0 = 1e9, z0 = 1e9, x1 = -1e9, y1 = -1e9, z1 = -1e9, n = 0;
       for (var y = 0; y < vw.H; y++) for (var z = 0; z < vw.D; z++) for (var x = 0; x < vw.W; x++) if ((!fx || (Math.abs(x - cx) <= rad && Math.abs(z - cz) <= rad && y > 0)) && vw.get(x, y, z)) { n++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z; }
       if (!n) return;
       var o = R.orbit, ext = Math.max(x1 - x0, z1 - z0, (y1 - y0) * 1.4) + 1;
-      o.auto = false; o.tx = (x0 + x1 + 1) / 2; o.tz = (z0 + z1 + 1) / 2; o.ty = y0 + (y1 - y0) * (fx ? 0.55 : 0.35); o.dist = Math.max(fx ? 5 : 8, ext * (fx ? (lv >= 6 ? 0.9 : lv === 3 ? 1.7 : 1.3) : 1.25));
+      var asp = (ov.clientWidth || 1) / (ov.clientHeight || 1), wide = asp < 1 ? Math.min(1.9, 0.92 / asp) : 1;   // a tall screen sees less across: step back
+      o.auto = false; glide79({ tx: (x0 + x1 + 1) / 2, tz: (z0 + z1 + 1) / 2, ty: y0 + (y1 - y0) * (fx ? 0.55 : 0.35), dist: Math.max(fx ? 5 : 8, wide * ext * (fx ? (lv >= 6 ? 0.9 : 1.3) : lv <= 3 ? 1.15 : 1.25)) });
       if (o.el == null || o.el < 0.45) o.el = 0.62;
     }
     function esc79(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
     function fit79() { ov.style.setProperty('--ch', Math.round(con.getBoundingClientRect().height || 60) + 'px'); }
     function sync79() {
-      if (!isOpen()) return;
+      if (!isOpen()) { wasOpen79 = false; return; }
+      if (!wasOpen79) { wasOpen79 = true; openSeq79++; }
       // the level tools are My World's console: it is always beside / below the voxel world
       if (!R.con) { try { setCon(true); } catch (e) {} }
       var sheet = center.querySelector('.sheet'), has = R.tab && R.tab !== 'look' && R.tab !== 'room' && R.tab !== 'smart' && sheet && sheet.textContent.trim();
@@ -114,7 +120,7 @@
       drawRooms(lv); drawItems(lv); try { fitContent(lv); } catch (e) {}
       if (lv !== lastLv) { if (lastLv > 0 && R.moveId) { R.moveId = null; try { setTab('look'); } catch (e) {} }   // a pending move does not follow you to another level
         lastLv = lv; var cr = []; try { cr = wf.crumbs() || []; } catch (e) {}
-        hint.textContent = (LV[lv] || '🧊 体素世界') + (cr.length ? ' · ' + cr[cr.length - 1] : '') + '  —  下方控制台：New · Gallery · Group · Smart';
+        hint.textContent = (LV[lv] || '🧊 体素世界') + (cr.length ? ' · ' + cr[cr.length - 1] : '') + (document.documentElement.classList.contains('vx80-min') ? '  —  ⌃ 展开控制台：New · Gallery · Group · Smart' : '  —  下方控制台：New · Gallery · Group · Smart');
         hint.hidden = false; hint.style.opacity = '1'; clearTimeout(hintT); hintT = setTimeout(function () { hint.style.opacity = '0'; }, 4200); }
     }
     // a double-tap in the 3D view is My World's own double-tap at that spot: one level deeper (onto the island, into the

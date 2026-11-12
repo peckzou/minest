@@ -126063,7 +126063,7 @@ function svgSet(g, list) {   // redraw only what changed: a part with the same m
       '<div class="tip"><span class="who">🧭</span><b>Move with the joystick</b><small>drag anywhere to look around · tap a thing to open it</small></div>' +
       '<div class="joy"><span class="knob"></span></div><div class="pad"><button type="button" class="b" data-wk="fly" aria-label="Fly">✈</button><button type="button" class="b" data-wk="run" aria-label="Run">⏩</button><button type="button" class="b" data-wk="up" aria-label="Jump or up">⬆</button><button type="button" class="b" data-wk="down" aria-label="Down">⬇</button></div>';
     var cv = ov.querySelector('.cv'), R = new T.WebGLRenderer({ canvas: cv, antialias: false, powerPreference: 'high-performance' }); R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    var S = new T.Scene(), cam = new T.PerspectiveCamera(72, 1, .05, 220), room = !!(V.at && V.at.room), sky = room ? 0x2a2f45 : 0x8ecbff;
+    var S = (window.__mnWalkScene = new T.Scene()) /* 80 */, cam = new T.PerspectiveCamera(72, 1, .05, 220), room = !!(V.at && V.at.room), sky = room ? 0x2a2f45 : 0x8ecbff;
     S.background = new T.Color(sky); S.fog = new T.Fog(sky, room ? 14 : 22, room ? 40 : 90);
     S.add(new T.HemisphereLight(0xffffff, 0x7d9a62, room ? 1.5 : 1.55)); S.add(new T.AmbientLight(0xffffff, .35)); var sun = new T.DirectionalLight(0xfff4e0, room ? .7 : 1.25); sun.position.set(18, 30, 12); S.add(sun);
     var TX = {}, MATS = {}, BUF = {}, disp = [], picks = new T.Group(), solids = [], cells = {};
@@ -159310,7 +159310,7 @@ window.KRail = (function () {
       box.setFromObject(o);
       if (box.isEmpty()) return;
       if (box.max.x < bx0 || box.min.x > bx1 || box.max.z < bz0 || box.min.z > bz1) return;
-      if (!m.map && m.transparent && m.opacity < .9 && box.min.y > 6) return;   // weather clouds
+      if (!m.map && m.transparent && m.opacity < .9 && box.min.y > 1.5) return;   // weather clouds (80: they drift low now — turned into blocks they lay over the island)
       if (box.min.y > 60 || box.max.y < by0) return;
       meshes.push(o);
       if (box.max.y + 1 > by1) by1 = Math.min(60, Math.ceil(box.max.y + 1));
@@ -159586,13 +159586,14 @@ window.KRail = (function () {
       var host = document.querySelector('.mn-dsp'); if (!host) { capturing = false; return reject(new Error('找不到 My World 画面')); }
       closeWalk();
       document.documentElement.classList.add('vx62-cap');
-      window.__vx62Cap = true; lastScene = null;
+      window.__vx62Cap = true; lastScene = null; window.__mnWalkScene = null; /* 80 */
       var b = document.createElement('button'); b.type = 'button'; b.hidden = true; b.setAttribute('data-fpv', '');
       host.appendChild(b); b.click(); b.remove();
       var t0 = performance.now(), lastN = -1, stableT = 0;
       (function poll() {
         if (window.MinestAssets3D && window.MinestAssets3D.three) patchThree(window.MinestAssets3D.three);
         var now = performance.now();
+        if (window.__mnWalkScene) lastScene = window.__mnWalkScene;   /* 80: the walk-in's own scene */
         if (lastScene) {
           var n = countMeshes(lastScene);
           if (n !== lastN) { lastN = n; stableT = now; }
@@ -159963,6 +159964,7 @@ window.KRail = (function () {
     var wf = wfEl(), w = wf && wf.getBoundingClientRect();
     if (!r || r.width < 80 || r.height < 80) { r = { left: 0, top: 0, width: innerWidth, height: innerHeight }; }
     var L = r.left, T0 = r.top, Wd = r.width, Hh = r.height;
+    if (w && w.width && w.height && document.documentElement.classList.contains('vx80-min') && w.top > T0) Hh = Math.max(Hh, w.top - T0);   /* 80: console folded */
     if (w && w.width && w.height) {   // never over the console, whatever the stage says
       if (w.left > L + Wd * .4 && w.left < L + Wd) Wd = w.left - L;
       else if (w.top > T0 + Hh * .3 && w.top < T0 + Hh) Hh = w.top - T0;
@@ -160086,7 +160088,7 @@ window.KRail = (function () {
   }
   function trackNew() {   // the newest thing put on the island is the one 🧩 moves next
     var ids = {}; pieces().forEach(function (q) { ids[q.id] = 1; });
-    if (R.ids) { var fresh = Object.keys(ids).filter(function (k) { return !R.ids[k]; }); if (fresh.length) { R.moveId = fresh[fresh.length - 1]; var nq = pieceById(R.moveId); if (nq && nq.k === 'item') { R.moveId = null; R.ids = ids; return; }
+    if (R.ids) { var fresh = Object.keys(ids).filter(function (k) { return !R.ids[k]; }), had80 = Object.keys(R.ids).length; if (fresh.length && (fresh.length < Object.keys(ids).length || !had80)) { R.moveId = fresh[fresh.length - 1]; var nq = pieceById(R.moveId); if (nq && nq.k === 'item') { R.moveId = null; R.ids = ids; return; }
       if (isOpen()) { if (R.tab !== 'look' && R.tab !== 'put') drawSheet(); else { if (R.tab !== 'put') setTab('put'); else drawSheet(); toast('新放的「' + pieceName(R.moveId) + '」· 点体素世界的地面，把它摆过去'); } } } }
     R.ids = ids;
   }
@@ -161109,25 +161111,31 @@ window.KRail = (function () {
     }
     /* Room and deeper (4–6/6): the camera finds what was built — the voxel grid keeps the island's size, so the room would
        otherwise sit small in the middle of an empty field */
-    var fitKey = '';
+    var fitKey = '', openSeq79 = 0, wasOpen79 = false, glideRaf = 0;
+    function glide79(to) {   // 80: the camera moves there in ~0.6 s instead of jumping
+      var o = R.orbit, from = { tx: o.tx, ty: o.ty, tz: o.tz, dist: o.dist }, t0 = performance.now(); cancelAnimationFrame(glideRaf);
+      if (!isFinite(from.tx) || !isFinite(from.dist)) { Object.assign(o, to); return; }
+      (function step(now) { var k = Math.min(1, (now - t0) / 600), e = k * k * (3 - 2 * k); for (var key in to) o[key] = from[key] + (to[key] - from[key]) * e; if (k < 1) glideRaf = requestAnimationFrame(step); })(t0);
+    }
     function fitContent(lv) {
-      var vw = R.vw; if (!vw || lv < 3) return;
-      // 5–6/6: the fixture the 2D world opened (its display view names it) — the camera comes close to it; 3/6: the house itself
-      if (lv < 4) return;   // 3/6 keeps the whole island in view: up close the house is only its roof
+      var vw = R.vw; if (!vw) return;
+      // 80: every level — 1–3 frame the whole world (up close at 3/6 the house is only its roof), 4 the room, 5–6 the fixture the 2D world opened
       var pvEl = lv >= 5 ? document.querySelector('.mn-pv[data-pv-pc]') : null, fx = pvEl ? pieceById(pvEl.getAttribute('data-pv-pc')) : null;
-      var key = lv + '|' + (fx ? fx.id : '') + '|' + (R.stats && R.stats.ms) + '|' + vw.W + 'x' + vw.D; if (key === fitKey) return; fitKey = key;
+      var key = lv + '|' + (fx ? fx.id : '') + '|' + R.scope + '|' + openSeq79 + '|' + vw.W + 'x' + vw.D; if (key === fitKey) return; fitKey = key;   // once per scene: edits keep your view
       var cx = fx ? Math.floor((fx.x - vw.ox) * vw.S) : -1, cz = fx ? Math.floor((fx.y - vw.oz) * vw.S) : -1, rad = fx ? Math.max(3, Math.round((lv === 3 ? 3.2 : 1.6) * vw.S * (fx.s || 1))) : 1e9;
       var x0 = 1e9, y0 = 1e9, z0 = 1e9, x1 = -1e9, y1 = -1e9, z1 = -1e9, n = 0;
       for (var y = 0; y < vw.H; y++) for (var z = 0; z < vw.D; z++) for (var x = 0; x < vw.W; x++) if ((!fx || (Math.abs(x - cx) <= rad && Math.abs(z - cz) <= rad && y > 0)) && vw.get(x, y, z)) { n++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z; }
       if (!n) return;
       var o = R.orbit, ext = Math.max(x1 - x0, z1 - z0, (y1 - y0) * 1.4) + 1;
-      o.auto = false; o.tx = (x0 + x1 + 1) / 2; o.tz = (z0 + z1 + 1) / 2; o.ty = y0 + (y1 - y0) * (fx ? 0.55 : 0.35); o.dist = Math.max(fx ? 5 : 8, ext * (fx ? (lv >= 6 ? 0.9 : lv === 3 ? 1.7 : 1.3) : 1.25));
+      var asp = (ov.clientWidth || 1) / (ov.clientHeight || 1), wide = asp < 1 ? Math.min(1.9, 0.92 / asp) : 1;   // a tall screen sees less across: step back
+      o.auto = false; glide79({ tx: (x0 + x1 + 1) / 2, tz: (z0 + z1 + 1) / 2, ty: y0 + (y1 - y0) * (fx ? 0.55 : 0.35), dist: Math.max(fx ? 5 : 8, wide * ext * (fx ? (lv >= 6 ? 0.9 : 1.3) : lv <= 3 ? 1.15 : 1.25)) });
       if (o.el == null || o.el < 0.45) o.el = 0.62;
     }
     function esc79(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
     function fit79() { ov.style.setProperty('--ch', Math.round(con.getBoundingClientRect().height || 60) + 'px'); }
     function sync79() {
-      if (!isOpen()) return;
+      if (!isOpen()) { wasOpen79 = false; return; }
+      if (!wasOpen79) { wasOpen79 = true; openSeq79++; }
       // the level tools are My World's console: it is always beside / below the voxel world
       if (!R.con) { try { setCon(true); } catch (e) {} }
       var sheet = center.querySelector('.sheet'), has = R.tab && R.tab !== 'look' && R.tab !== 'room' && R.tab !== 'smart' && sheet && sheet.textContent.trim();
@@ -161137,7 +161145,7 @@ window.KRail = (function () {
       drawRooms(lv); drawItems(lv); try { fitContent(lv); } catch (e) {}
       if (lv !== lastLv) { if (lastLv > 0 && R.moveId) { R.moveId = null; try { setTab('look'); } catch (e) {} }   // a pending move does not follow you to another level
         lastLv = lv; var cr = []; try { cr = wf.crumbs() || []; } catch (e) {}
-        hint.textContent = (LV[lv] || '🧊 体素世界') + (cr.length ? ' · ' + cr[cr.length - 1] : '') + '  —  下方控制台：New · Gallery · Group · Smart';
+        hint.textContent = (LV[lv] || '🧊 体素世界') + (cr.length ? ' · ' + cr[cr.length - 1] : '') + (document.documentElement.classList.contains('vx80-min') ? '  —  ⌃ 展开控制台：New · Gallery · Group · Smart' : '  —  下方控制台：New · Gallery · Group · Smart');
         hint.hidden = false; hint.style.opacity = '1'; clearTimeout(hintT); hintT = setTimeout(function () { hint.style.opacity = '0'; }, 4200); }
     }
     // a double-tap in the 3D view is My World's own double-tap at that spot: one level deeper (onto the island, into the
@@ -161167,6 +161175,66 @@ window.KRail = (function () {
     setInterval(sync79, 350);
     window.addEventListener('resize', fit79);
     sync79(); fit79();
+  })();
+  /* ================================================================ 80 · the voxel world, as one experience
+     A pass over the whole voxel UI: no debug line in the corner; the strip leads with the tools you build with, then the
+     ways of looking, undo / redo, 2D and settings, each its own group; My World's console folds to its crumbs row (⌄) so
+     the world can fill the screen — folded by default on short screens, the choice remembered; a one-time card says how
+     to move, zoom, go deeper and build. (The camera finding each level's content is levels79's fitContent.) */
+  (function ux80() {
+    var con = ov.querySelector('.vxc'); if (!con || document.getElementById('vx80-css')) return;
+    var LS80 = 'minest.vx80.', H = document.documentElement;
+    function get80(k) { try { return localStorage.getItem(LS80 + k); } catch (e) { return null; } }
+    function set80(k, v) { try { localStorage.setItem(LS80 + k, v); } catch (e) {} }
+    var st = document.createElement('style'); st.id = 'vx80-css';
+    st.textContent =
+      '#vx62 .info{display:none!important}' +
+      '#vx62.lv79 .vxc .lv79-strip [data-c="undo"]{margin-left:10px!important}#vx62.lv79 .vxc .lv79-strip [data-a="2d"]{margin-left:10px!important}' +
+      '#vx62.lv79 .vxc .lv79-strip .wf-acts button[aria-pressed="true"],#vx62.lv79 .vxc .lv79-strip .wf-acts button.on{box-shadow:0 0 0 2px #f2c13d inset!important}' +
+      'html.vx80-on.vx80-min aside.wf .wf-main{display:none!important}' +
+      'html.vx80-on.vx80-min aside.wf{top:auto!important;height:auto!important;min-height:0!important}' +
+      '.vx80-fold{display:none;flex:0 0 auto;align-self:center;margin:0 6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;font:700 12px/1 system-ui;cursor:pointer;white-space:nowrap}' +
+      'html.vx80-on .vx80-fold{display:inline-flex;align-items:center;gap:4px}' +
+      '#vx62 .vx80-coach{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,14,24,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' +
+      '#vx62 .vx80-coach[hidden]{display:none}' +
+      '#vx62 .vx80-card{max-width:360px;width:100%;border-radius:20px;padding:18px 18px 14px;background:rgba(22,24,30,.94);border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 50px rgba(0,0,0,.45);color:#fff;font:500 14px/1.45 system-ui}' +
+      '#vx62 .vx80-card h3{margin:0 0 10px;font:800 17px/1.2 system-ui}#vx62 .vx80-card li{display:flex;gap:10px;margin:8px 0;list-style:none}#vx62 .vx80-card ul{margin:0;padding:0}' +
+      '#vx62 .vx80-card li i{font-style:normal;font-size:20px;width:28px;text-align:center;flex:0 0 28px}#vx62 .vx80-card small{opacity:.65;display:block;font-size:12px}' +
+      '#vx62 .vx80-card button{margin-top:12px;width:100%;height:44px;border:0;border-radius:12px;background:#f2c13d;color:#1a1408;font:800 15px/1 system-ui;cursor:pointer}';
+    document.head.appendChild(st);
+    // 2. the strip: tools, then looking (view · walk · fly), undo / redo, then 2D · settings · back
+    var strip = con.querySelector('.lv79-strip'), acts = con.querySelector('.wf-acts'), menu = con.querySelector('.wf-menu');
+    if (strip && acts && menu && acts.parentNode === strip && strip.firstElementChild !== acts) { strip.insertBefore(acts, strip.firstElementChild); var sp = strip.querySelector('.lv79-sep'); if (sp) strip.insertBefore(sp, menu); }
+    // 3. the console folds to its crumbs row
+    function folded() { var v = get80('min'); return v === null ? innerHeight < 760 : v === '1'; }
+    function applyFold() {
+      var on = isOpen(); H.classList.toggle('vx80-on', on); H.classList.toggle('vx80-min', on && folded());
+      var b = document.querySelector('aside.wf .vx80-fold'); if (b) b.innerHTML = folded() ? '⌃ <span>展开控制台</span>' : '⌄ <span>收起</span>';
+    }
+    function foldBtn() {
+      var hd = document.querySelector('aside.wf .wf-h'); if (!hd || hd.querySelector('.vx80-fold')) return;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'vx80-fold'; b.setAttribute('aria-label', '收起或展开控制台');
+      b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); set80('min', folded() ? '0' : '1'); applyFold(); setTimeout(function () { try { window.dispatchEvent(new Event('resize')); } catch (x) {} }, 30); });
+      var x = hd.querySelector('.wf-x'); hd.insertBefore(b, x || null); applyFold();   // the header is redrawn per level: label the new button at once
+    }
+    // 5. once: how to get around
+    var coach = document.createElement('div'); coach.className = 'vx80-coach'; coach.hidden = true;
+    coach.innerHTML = '<div class="vx80-card" role="dialog" aria-label="体素世界怎么用"><h3>🧊 体素世界</h3><ul>' +
+      '<li><i>🖐</i><span>拖动转视角<small>双指捏合或滚轮缩放</small></span></li>' +
+      '<li><i>👆</i><span>双击建筑、房间、展架<small>一层层进去：岛 → 建筑 → 房间 → 展架 → 物件；左上 ‹ 回上一层</small></span></li>' +
+      '<li><i>🧱</i><span>底部工具<small>建造 · 摆放 · 陈列 · 地形 · 展馆</small></span></li>' +
+      '<li><i>⌄</i><span>收起控制台<small>让世界占满屏幕，需要时再展开</small></span></li>' +
+      '</ul><button type="button">开始</button></div>';
+    coach.addEventListener('click', function (e) { if (e.target.closest('button') || e.target === coach) { coach.hidden = true; set80('coached', '1'); } });
+    ov.appendChild(coach);
+    var wasOpen = false;
+    function sync80() {
+      var on = isOpen();
+      if (on) { foldBtn(); if (!wasOpen && !get80('coached')) coach.hidden = false; }
+      if (on !== wasOpen) { wasOpen = on; applyFold(); if (on) setTimeout(function () { try { window.dispatchEvent(new Event('resize')); } catch (x) {} }, 60); }
+    }
+    setInterval(sync80, 400); sync80();
+    window.__vx80 = { fold: function (v) { set80('min', v ? '1' : '0'); applyFold(); window.dispatchEvent(new Event('resize')); }, coach: function () { coach.hidden = false; } };
   })();
   window.MinestVoxel62 = {
     controls: { input: function (next) { R.navigation = Object.assign({}, next); }, stop: stopNavigation },
