@@ -17,6 +17,7 @@
     (EMBED ? '<label class="row"><input type="checkbox" id="sh-optBoot"> 打开 Minest 时先进入这间房间</label>' : '') +
     '<label class="row"><input type="checkbox" id="sh-optMotion"> 减少动画（转场直接到位）</label>' +
     '<label>光线<select id="sh-optTime"><option value="auto">跟随本地时间</option><option value="day">白天</option><option value="dusk">黄昏</option><option value="night">夜晚</option></select></label>' +
+    '<label>书桌椅<select id="sh-optDesk"><option value="classic">原版（跟随环境）</option><option value="president">总统桌椅</option><option value="studio">Mac Studio 苹果风</option></select></label>' +
     '<label>Rings 勋章<select id="sh-optMedal"><option value="box">桌边木质勋章盒</option><option value="wall">墙面勋章展示板</option></select></label>' +
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
@@ -34,7 +35,7 @@
   var canvas = $('gl');
 
   /* ------------------------------------------------------------ settings (kept) */
-  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
+  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && typeof raw === 'object') for (var k0 in S) if (raw[k0] !== undefined) S[k0] = raw[k0]; } catch (e) {}
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   var dirty = false;
@@ -53,6 +54,7 @@
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(60, 1, 0.05, 900);
   camera.rotation.order = 'YXZ';
+  window.SpatialRoom.parts.deskStyle(S.deskStyle);
   var room = window.SpatialRoom.build(scene, S.env), objects = window.SpatialObjects.build(room, scene, { medal: S.medal });
   var avatar = room.avatar(); avatar.visible = false; scene.add(avatar);
   camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
@@ -396,7 +398,7 @@
   $('viewBtn').addEventListener('click', function () { setView(S.view === '1p' ? '3p' : '1p'); });
   var setEl = $('settings');
   function renderSettings() {
-    $('optDefault').value = S.def; $('optTime').value = S.tod || 'auto'; $('optMedal').value = S.medal === 'wall' ? 'wall' : 'box'; $('optMotion').checked = !!S.motion; if ($('optPreload')) $('optPreload').checked = !!S.preload; if ($('optBoot')) $('optBoot').checked = typeof S.boot === 'boolean' ? S.boot : window.__SPATIAL_HOME_BOOT_DEFAULT__ !== false;
+    $('optDefault').value = S.def; $('optDesk').value = S.deskStyle || 'classic'; $('optTime').value = S.tod || 'auto'; $('optMedal').value = S.medal === 'wall' ? 'wall' : 'box'; $('optMotion').checked = !!S.motion; if ($('optPreload')) $('optPreload').checked = !!S.preload; if ($('optBoot')) $('optBoot').checked = typeof S.boot === 'boolean' ? S.boot : window.__SPATIAL_HOME_BOOT_DEFAULT__ !== false;
     var st = B.state(), dot = $('hostDot');
     dot.className = st === 'ready' ? 'ok' : (st === 'loading' ? 'wait' : '');
     $('hostText').textContent = EMBED ? '就在这个 Minest 里 · ' + (location.pathname.split('/').pop() || 'index.html') : (st === 'ready' ? '已连接 ' : st === 'loading' ? '载入中 ' : '尚未载入 ') + B.appUrl().replace(location.origin, '');
@@ -670,11 +672,11 @@
   function refreshHotbar() { if (BP) try { BP.hotbar(host); } catch (e) {} }
   $('packBtn').addEventListener('click', function () { if (BP && BP.isOpen()) { BP.close(); return; } var bag = objects.filter(function (o) { return o.local; })[0]; if (bag && !S.motion) activate(bag); else openPack(); });   // the shortcut goes through the backpack in the room
 
-  function setEnv(id) {
-    if (busy || id === room.envId) return;
+  function setEnv(id, force) {
+    if (busy || (id === room.envId && !force)) return;
     save(); busy = true; body.classList.add('busy');
     veilFade(1, 0.25).then(function () {
-      room.dispose(); room = window.SpatialRoom.build(scene, id);
+      room.dispose(); window.SpatialRoom.parts.deskStyle(S.deskStyle); room = window.SpatialRoom.build(scene, id);
       camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
       placeAll();
       var sp = S.poses && S.poses[room.envId];
@@ -710,6 +712,7 @@
   $('resetLayout').addEventListener('click', function () { if (busy || edit) return; saveLayout(room.envId, {}); placeAll(); refreshHotbar(); toast('已恢复 ' + room.name + ' 的默认摆放 · 收回的作品回到背包'); });
   /* the hotbar shows only over the room itself */
   setInterval(function () { var hb = document.getElementById('mn-hotbar'); if (hb && hb.childElementCount) hb.hidden = !host.hotbarVisible(); }, 400);
+  $('optDesk').addEventListener('change', function () { S.deskStyle = this.value; save(); setEnv(room.envId, true); });
   $('optMedal').addEventListener('change', function () { setMedal(this.value); });
   $('setBtn').addEventListener('click', function () { setEl.hidden = !setEl.hidden; if (!setEl.hidden) renderSettings(); });
   $('setClose').addEventListener('click', function () { setEl.hidden = true; });

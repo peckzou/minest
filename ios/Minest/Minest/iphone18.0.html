@@ -181691,12 +181691,88 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     g.add(v.mesh()); return g;
   }
 
+
+  /* ---------------------------------------------------------------- desk and chair styles (the same footprint: top 2.1 × 0.83 m
+     at 0.78 m, chair centred at (0, -1.18)), so every thing on the desk keeps its place. Explicit colours: no theme recolours them. */
+  /* Presidential: a double-pedestal mahogany desk, gilt edge, green leather top, a banker's lamp; a tall tufted leather chair */
+  function deskPresident(g) {
+    var v = new VB(3601), z0 = -2.38, z1 = -1.55, M = '#5a2a1c', MD = '#43201a', ML = '#74382a', G = '#c9a24a', i;
+    v.box(-1.07, 0.725, z0 - 0.02, 1.07, 0.78, z1 + 0.02, M, 0.02);
+    v.box(-1.07, 0.77, z0 - 0.02, 1.07, 0.78, z0 - 0.005, G); v.box(-1.07, 0.77, z1 + 0.005, 1.07, 0.78, z1 + 0.02, G);
+    v.box(-1.07, 0.77, z0, -1.055, 0.78, z1, G); v.box(1.055, 0.77, z0, 1.07, 0.78, z1, G);
+    v.box(-0.95, 0.78, z0 + 0.1, 0.95, 0.782, z1 - 0.1, '#2f5a3c');                                   // leather inlay
+    v.box(-0.93, 0.782, z0 + 0.12, 0.93, 0.783, z0 + 0.13, G); v.box(-0.93, 0.782, z1 - 0.13, 0.93, 0.783, z1 - 0.12, G);
+    [-1, 1].forEach(function (sg) {
+      var x0 = sg < 0 ? -1.02 : 0.42, x1 = sg < 0 ? -0.42 : 1.02;
+      v.box(x0 - 0.02, 0, z0 + 0.02, x1 + 0.02, 0.08, z1 - 0.02, MD);                                 // plinth
+      v.box(x0, 0.08, z0 + 0.04, x1, 0.725, z1 - 0.04, M, 0.03);
+      for (i = 0; i < 3; i++) { var y = 0.13 + i * 0.19; v.box(x0 + 0.04, y, z1 - 0.045, x1 - 0.04, y + 0.16, z1 - 0.035, ML); v.box((x0 + x1) / 2 - 0.05, y + 0.07, z1 - 0.035, (x0 + x1) / 2 + 0.05, y + 0.09, z1 - 0.02, G); }   // drawers
+      v.box(x0 + 0.05, 0.14, z0 + 0.035, x1 - 0.05, 0.66, z0 + 0.045, ML); v.box(x0 + 0.1, 0.2, z0 + 0.025, x1 - 0.1, 0.6, z0 + 0.035, M);   // carved panel
+    });
+    v.box(-0.42, 0.55, z0 + 0.04, 0.42, 0.725, z0 + 0.08, M); v.box(-0.36, 0.58, z0 + 0.025, 0.36, 0.7, z0 + 0.04, ML);    // centre modesty panel
+    v.box(-0.42, 0.62, z1 - 0.08, 0.42, 0.725, z1 - 0.04, ML); v.box(-0.06, 0.66, z1 - 0.04, 0.06, 0.68, z1 - 0.025, G);  // centre drawer
+    /* banker's lamp (green glass shade) and a brass pen cup */
+    v.cb(-0.86, 0.783, -2.2, 0.14, 0.02, 0.1, G); v.cb(-0.86, 0.8, -2.2, 0.02, 0.2, 0.02, G);
+    v.box(-1.0, 0.98, -2.24, -0.72, 1.04, -2.16, '#1f6b46'); v.box(-0.99, 1.04, -2.23, -0.73, 1.05, -2.17, '#2a8a5c');
+    v.cb(0.96, 0.783, -2.24, 0.07, 0.09, 0.07, G); v.cb(0.95, 0.87, -2.245, 0.012, 0.07, 0.012, '#1d2b4f'); v.cb(0.975, 0.87, -2.235, 0.012, 0.09, 0.012, '#7a2a2a');
+    g.add(v.mesh());
+    var b = new VB(3602); b.box(-0.98, 0.975, -2.23, -0.74, 0.98, -2.17, '#fff1c8'); g.add(b.mesh(MAT.glow(), true));
+  }
+  function chairPresident(g) {
+    var v = new VB(3611), cx = 0, cz = -1.18, L = '#5a1e1a', LD = '#43150f', G = '#c9a24a', i, j;
+    v.cb(cx, 0, cz, 0.62, 0.04, 0.62, '#2b2b2b'); v.cb(cx, 0.04, cz, 0.08, 0.32, 0.08, '#3a3a3a');           // swivel base
+    v.box(cx - 0.3, 0.36, cz - 0.27, cx + 0.3, 0.5, cz + 0.27, L, 0.03); v.box(cx - 0.28, 0.5, cz - 0.25, cx + 0.28, 0.53, cz + 0.22, LD);
+    v.box(cx - 0.3, 0.5, cz + 0.2, cx + 0.3, 1.38, cz + 0.32, L, 0.03);                                     // tall back
+    for (i = 0; i < 4; i++) for (j = 0; j < 3; j++) v.cb(cx - 0.18 + j * 0.18, 0.66 + i * 0.17, cz + 0.195, 0.025, 0.025, 0.01, LD);   // tufts
+    v.box(cx - 0.32, 1.32, cz + 0.18, cx + 0.32, 1.42, cz + 0.33, L);
+    [-1, 1].forEach(function (sg) { v.box(cx + sg * 0.3 - (sg > 0 ? 0 : 0.08), 0.5, cz - 0.24, cx + sg * 0.3 + (sg > 0 ? 0.08 : 0), 0.72, cz + 0.3, L); v.box(cx + sg * 0.3 - (sg > 0 ? 0 : 0.09), 0.72, cz - 0.26, cx + sg * 0.3 + (sg > 0 ? 0.09 : 0), 0.76, cz + 0.3, LD); });   // rolled arms
+    for (i = 0; i < 12; i++) { v.cb(cx - 0.3 + i * 0.055, 0.495, cz - 0.272, 0.012, 0.012, 0.006, G); }   // nail trim
+    g.add(v.mesh());
+  }
+  /* Studio (an Apple-like setup, no logos): a white-oak top on aluminium legs, a slim display on its stand, a small aluminium
+     desktop box, a white keyboard, an aluminium task light; a graphite mesh work chair */
+  function deskStudio(g) {
+    var v = new VB(3621), z0 = -2.38, z1 = -1.55, A = '#c9ccd1', AD = '#9fa3aa', O = '#e8d9bf', i;
+    v.box(-1.05, 0.755, z0, 1.05, 0.78, z1, O, 0.02); v.box(-1.05, 0.752, z0, 1.05, 0.755, z1, '#d9c8aa');
+    [-0.97, 0.91].forEach(function (x) { v.box(x, 0, z0 + 0.05, x + 0.06, 0.04, z1 - 0.05, A); v.box(x, 0.04, (z0 + z1) / 2 - 0.03, x + 0.06, 0.752, (z0 + z1) / 2 + 0.03, A); v.box(x, 0.71, z0 + 0.08, x + 0.06, 0.752, z1 - 0.08, A); });
+    v.box(-0.85, 0.68, z0 + 0.06, 0.85, 0.71, z0 + 0.12, AD);                                                // cable tray
+    /* the display: an aluminium stand, a black-bezel panel, behind the typewriter's place */
+    v.box(0.05, 0.78, -2.36, 0.25, 0.79, -2.22, A); v.box(0.12, 0.79, -2.34, 0.18, 1.0, -2.31, A);
+    v.box(-0.24, 0.92, -2.33, 0.54, 1.38, -2.3, '#1a1a1c'); v.box(-0.25, 0.915, -2.335, 0.55, 0.93, -2.295, A);
+    /* the desktop box (ports on its front), the keyboard */
+    v.box(0.8, 0.78, -2.36, 1.0, 0.875, -2.16, A); v.box(0.81, 0.875, -2.35, 0.99, 0.878, -2.17, AD);
+    for (i = 0; i < 3; i++) v.box(0.83 + i * 0.03, 0.8, -2.161, 0.845 + i * 0.03, 0.81, -2.158, '#2b2b2b');
+    v.box(-0.06, 0.78, -1.98, 0.3, 0.792, -1.86, '#f2f2f0'); for (i = 0; i < 4; i++) v.box(-0.05, 0.792, -1.97 + i * 0.027, 0.29, 0.793, -1.96 + i * 0.027, '#dcdcda');
+    /* task light */
+    v.cb(-0.86, 0.78, -2.2, 0.1, 0.012, 0.1, A); v.cb(-0.86, 0.79, -2.2, 0.014, 0.36, 0.014, A); v.box(-0.86, 1.14, -2.21, -0.64, 1.16, -2.19, A);
+    g.add(v.mesh());
+    var b = new VB(3622);
+    var bands = ['#2d5bd6', '#4f6fe0', '#7a5fd8', '#b25fc4', '#e07aa0', '#f2a37a'];
+    bands.forEach(function (c, k) { b.box(-0.22, 0.94 + k * 0.071, -2.299, 0.52, 0.94 + (k + 1) * 0.071, -2.298, c); });   // the screen, lit
+    b.box(-0.72, 1.135, -2.205, -0.66, 1.14, -2.195, '#fff6e0');
+    g.add(b.mesh(MAT.glow(0.95), true));
+  }
+  function chairStudio(g) {
+    var v = new VB(3631), cx = 0, cz = -1.18, A = '#c9ccd1', GR = '#3a3d42', i;
+    for (i = 0; i < 5; i++) { var a = i / 5 * Math.PI * 2; v.box(cx + Math.cos(a) * 0.04 - 0.02, 0.04, cz + Math.sin(a) * 0.04 - 0.02, cx + Math.cos(a) * 0.3 + 0.02, 0.07, cz + Math.sin(a) * 0.3 + 0.02, A); v.cb(cx + Math.cos(a) * 0.3, 0, cz + Math.sin(a) * 0.3, 0.05, 0.04, 0.05, '#222'); }
+    v.cb(cx, 0.07, cz, 0.05, 0.36, 0.05, A);
+    v.box(cx - 0.25, 0.43, cz - 0.24, cx + 0.25, 0.49, cz + 0.22, GR, 0.03);
+    v.box(cx - 0.23, 0.55, cz + 0.2, cx + 0.23, 1.12, cz + 0.24, GR);
+    for (i = 0; i < 9; i++) v.box(cx - 0.22, 0.58 + i * 0.06, cz + 0.239, cx + 0.22, 0.585 + i * 0.06, cz + 0.243, '#55595f');   // mesh weave
+    v.box(cx - 0.02, 0.45, cz + 0.2, cx + 0.02, 0.6, cz + 0.24, A);
+    [-1, 1].forEach(function (sg) { v.box(cx + sg * 0.27 - 0.02, 0.49, cz - 0.02, cx + sg * 0.27 + 0.02, 0.66, cz + 0.02, A); v.box(cx + sg * 0.27 - 0.035, 0.66, cz - 0.14, cx + sg * 0.27 + 0.035, 0.68, cz + 0.08, GR); });
+    g.add(v.mesh());
+  }
+  var DESKS = { classic: [desk, chair], president: [deskPresident, chairPresident], studio: [deskStudio, chairStudio] }, DSTYLE = 'classic';
+  function deskAny(g) { (DESKS[DSTYLE] || DESKS.classic)[0](g); }
+  function chairAny(g) { (DESKS[DSTYLE] || DESKS.classic)[1](g); }
+
   function build(scene) {
     TH = null;
     var holder = new THREE.Group(); holder.name = 'env-santorini'; scene.add(holder);
     scene = holder;                                                   // lights and fog target below go into the holder
     var g = new THREE.Group(); g.name = 'santorini-atelier';
-    shell(g); rug(g); desk(g); chair(g); bookshelf(g); cabinet(g); bench(g); plants(g); decor(g);
+    shell(g); rug(g); deskAny(g); chairAny(g); bookshelf(g); cabinet(g); bench(g); plants(g); decor(g);
     var out = outside(g);
     scene.add(g);
 
@@ -181772,7 +181848,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     /* the shared pieces, in another environment's materials */
     parts: {
       theme: function (th) { TH = th || null; }, mk: mk,
-      rug: rug, desk: desk, chair: chair, bookshelf: bookshelf, cabinet: cabinet, bench: bench, avatar: avatar,
+      rug: rug, desk: function (g) { var th = TH; if (DSTYLE !== 'classic') TH = null; deskAny(g); TH = th; }, chair: function (g) { var th = TH; if (DSTYLE !== 'classic') TH = null; chairAny(g); TH = th; }, bookshelf: bookshelf,
+      deskStyle: function (id) { DSTYLE = DESKS[id] ? id : 'classic'; }, deskStyles: function () { return [['classic', '原版（跟随环境）'], ['president', '总统桌椅'], ['studio', 'Mac Studio 苹果风']]; }, cabinet: cabinet, bench: bench, avatar: avatar,
       size: { W: W, D: D, H: H, T: T },
       anchors: function (sillY) {
         return {
@@ -184089,6 +184166,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     (EMBED ? '<label class="row"><input type="checkbox" id="sh-optBoot"> 打开 Minest 时先进入这间房间</label>' : '') +
     '<label class="row"><input type="checkbox" id="sh-optMotion"> 减少动画（转场直接到位）</label>' +
     '<label>光线<select id="sh-optTime"><option value="auto">跟随本地时间</option><option value="day">白天</option><option value="dusk">黄昏</option><option value="night">夜晚</option></select></label>' +
+    '<label>书桌椅<select id="sh-optDesk"><option value="classic">原版（跟随环境）</option><option value="president">总统桌椅</option><option value="studio">Mac Studio 苹果风</option></select></label>' +
     '<label>Rings 勋章<select id="sh-optMedal"><option value="box">桌边木质勋章盒</option><option value="wall">墙面勋章展示板</option></select></label>' +
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
@@ -184106,7 +184184,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var canvas = $('gl');
 
   /* ------------------------------------------------------------ settings (kept) */
-  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
+  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && typeof raw === 'object') for (var k0 in S) if (raw[k0] !== undefined) S[k0] = raw[k0]; } catch (e) {}
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   var dirty = false;
@@ -184125,6 +184203,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(60, 1, 0.05, 900);
   camera.rotation.order = 'YXZ';
+  window.SpatialRoom.parts.deskStyle(S.deskStyle);
   var room = window.SpatialRoom.build(scene, S.env), objects = window.SpatialObjects.build(room, scene, { medal: S.medal });
   var avatar = room.avatar(); avatar.visible = false; scene.add(avatar);
   camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
@@ -184468,7 +184547,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   $('viewBtn').addEventListener('click', function () { setView(S.view === '1p' ? '3p' : '1p'); });
   var setEl = $('settings');
   function renderSettings() {
-    $('optDefault').value = S.def; $('optTime').value = S.tod || 'auto'; $('optMedal').value = S.medal === 'wall' ? 'wall' : 'box'; $('optMotion').checked = !!S.motion; if ($('optPreload')) $('optPreload').checked = !!S.preload; if ($('optBoot')) $('optBoot').checked = typeof S.boot === 'boolean' ? S.boot : window.__SPATIAL_HOME_BOOT_DEFAULT__ !== false;
+    $('optDefault').value = S.def; $('optDesk').value = S.deskStyle || 'classic'; $('optTime').value = S.tod || 'auto'; $('optMedal').value = S.medal === 'wall' ? 'wall' : 'box'; $('optMotion').checked = !!S.motion; if ($('optPreload')) $('optPreload').checked = !!S.preload; if ($('optBoot')) $('optBoot').checked = typeof S.boot === 'boolean' ? S.boot : window.__SPATIAL_HOME_BOOT_DEFAULT__ !== false;
     var st = B.state(), dot = $('hostDot');
     dot.className = st === 'ready' ? 'ok' : (st === 'loading' ? 'wait' : '');
     $('hostText').textContent = EMBED ? '就在这个 Minest 里 · ' + (location.pathname.split('/').pop() || 'index.html') : (st === 'ready' ? '已连接 ' : st === 'loading' ? '载入中 ' : '尚未载入 ') + B.appUrl().replace(location.origin, '');
@@ -184742,11 +184821,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function refreshHotbar() { if (BP) try { BP.hotbar(host); } catch (e) {} }
   $('packBtn').addEventListener('click', function () { if (BP && BP.isOpen()) { BP.close(); return; } var bag = objects.filter(function (o) { return o.local; })[0]; if (bag && !S.motion) activate(bag); else openPack(); });   // the shortcut goes through the backpack in the room
 
-  function setEnv(id) {
-    if (busy || id === room.envId) return;
+  function setEnv(id, force) {
+    if (busy || (id === room.envId && !force)) return;
     save(); busy = true; body.classList.add('busy');
     veilFade(1, 0.25).then(function () {
-      room.dispose(); room = window.SpatialRoom.build(scene, id);
+      room.dispose(); window.SpatialRoom.parts.deskStyle(S.deskStyle); room = window.SpatialRoom.build(scene, id);
       camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
       placeAll();
       var sp = S.poses && S.poses[room.envId];
@@ -184782,6 +184861,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   $('resetLayout').addEventListener('click', function () { if (busy || edit) return; saveLayout(room.envId, {}); placeAll(); refreshHotbar(); toast('已恢复 ' + room.name + ' 的默认摆放 · 收回的作品回到背包'); });
   /* the hotbar shows only over the room itself */
   setInterval(function () { var hb = document.getElementById('mn-hotbar'); if (hb && hb.childElementCount) hb.hidden = !host.hotbarVisible(); }, 400);
+  $('optDesk').addEventListener('change', function () { S.deskStyle = this.value; save(); setEnv(room.envId, true); });
   $('optMedal').addEventListener('change', function () { setMedal(this.value); });
   $('setBtn').addEventListener('click', function () { setEl.hidden = !setEl.hidden; if (!setEl.hidden) renderSettings(); });
   $('setClose').addEventListener('click', function () { setEl.hidden = true; });
