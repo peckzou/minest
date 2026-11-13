@@ -170421,6 +170421,15 @@ html.mf-top #mn-sh #sh-dock button b svg.px, html.mf-book #mn-sh #sh-dock button
 #mn-sh #sh-edit.float .row { gap: 4px; }
 #mn-sh #sh-edit.float button { flex: none; min-width: 34px; height: 30px; padding: 0 7px; font-size: 12px; line-height: 1; }
 html.mf-book #mn-sh #sh-edit.float { width: auto !important; }
+
+/* the figure's menu (app.js figureMenu): block style, beside the figure */
+#mn-sh .sh-fmenu { position: absolute; z-index: 9; width: 188px; max-height: 60vh; overflow: auto; padding: 6px; background: rgba(198,198,198,.94); border: 2px solid #111; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555; font: 12px/1.3 ui-monospace, Menlo, "PingFang SC", monospace; color: #2a2a2a; }
+#mn-sh .sh-fmenu b { display: block; margin: 0 2px 5px; font-size: 12px; color: #3f3f3f; }
+#mn-sh .sh-fmenu .list { display: flex; flex-direction: column; gap: 3px; }
+#mn-sh .sh-fmenu button { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; padding: 5px 7px; border: 2px solid #111; background: #8b8b8b; color: #fff; text-shadow: 1px 1px 0 #3f3f3f; font: inherit; cursor: pointer; box-shadow: inset 2px 2px 0 rgba(255,255,255,.4), inset -2px -2px 0 rgba(0,0,0,.4); }
+#mn-sh .sh-fmenu button:hover { background: #9b9b9b; }
+#mn-sh .sh-fmenu button i { display: inline-flex; width: 16px; height: 16px; flex: none; }
+#mn-sh .sh-fmenu button i svg { width: 16px; height: 16px; }
 </style>
 <script id="mn-spatial-home">
 window.__SPATIAL_HOME_EMBEDDED__ = true;
@@ -177929,6 +177938,72 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     avatar.rotation.y = (k > 0.01 ? st2.yaw * k + P.yaw * (1 - k) : P.yaw) + Math.PI;
   }
 
+
+  /* ---- the figure has a life of its own (2026-11-13): left alone in third person it strolls — to a thing, a look, a
+     touch, on to the next; now and then it sits at the desk or waves. Any touch or key stops it where it is.
+     Tap the figure: a small menu of what it could go and do (it walks there itself and opens the thing). */
+  function angTo(a, b) { var d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; }
+  var IDLE = 25, lastInput = 0, stroll = { on: false, next: 0, tgt: null, walking: false, face: null }, task = null, fmenu = null;
+  function noteInput() { lastInput = T; if (stroll.on) { stroll.on = false; stroll.walking = false; stroll.face = null; if (walkTo && walkTo.stroll) walkTo = null; } }
+  function free() { return third() && !busy && !edit && !inFeature && !paused && !document.hidden && $('settings').hidden && !(BP && BP.isOpen && BP.isOpen()); }
+  function spotBy(o) {                                                             // somewhere to stand in front of a thing
+    var hb = new THREE.Box3().setFromObject(o.hit), c = hb.getCenter(new THREE.Vector3()), sz = hb.getSize(new THREE.Vector3()), ry = o.group.rotation.y;
+    for (var k = 0; k < 4; k++) { var a = ry + k * Math.PI / 2, r = 0.5 + (k % 2 ? sz.x : sz.z) / 2, x = c.x + Math.sin(a) * r, z = c.z + Math.cos(a) * r; if (inArea(x, z)) return { x: x, z: z, c: c }; }
+    return { x: c.x, z: c.z + 0.8, c: c };
+  }
+  function goTo(o, why) { var sp = spotBy(o); walkTo = { x: sp.x, z: sp.z, stuck: 0, face: true, slow: why === 'stroll', stroll: why === 'stroll' }; return sp; }
+  function faceTo(c) { stroll.face = Math.atan2(-(c.x - P.x), -(c.z - P.z)); }
+  function strollStep(dt) {
+    if (stroll.face !== null) { var dd = angTo(stroll.face, P.yaw); P.yaw += dd * Math.min(1, dt * 3); dirty = true; if (Math.abs(dd) < 0.02) stroll.face = null; }
+    if (task && !walkTo && !busy) {                                                // a job from the menu: there — face it — open it
+      var tk = task; task = null; if (tk.c) faceTo(tk.c);
+      setTimeout(function () { if (tk.sit) { if (!AV.sitting) return; } if (tk.o) activate(tk.o); }, tk.sit ? 900 : 450); return;
+    }
+    if (!third()) { stroll.on = false; return; }
+    if (!stroll.on) { if (T - lastInput > IDLE && free() && !task) { stroll.on = true; stroll.next = T + 0.5; } return; }
+    if (!free()) return;
+    if (stroll.walking && !walkTo) { stroll.walking = false; if (stroll.tgt) { faceTo(stroll.tgt.c); if (Math.random() < 0.6) setTimeout(function () { gesture(Math.random() < 0.75 ? 'reach' : 'wave', 1.2); }, 600); } stroll.next = T + 3 + Math.random() * 4; return; }
+    if (walkTo || T < stroll.next) return;
+    if (AV.sitting) { AV.sitting = false; AV.standUntil = T + 0.6; sitBtnShow(); stroll.next = T + 1.5; return; }
+    var r = Math.random(), list = objects.filter(function (o) { return !o.stashed && o.hit; });
+    if (r < 0.12) { sitToggle(); stroll.next = T + 9 + Math.random() * 6; return; }                       // a rest at the desk
+    if (r < 0.2) { gesture('wave', 1.6); stroll.next = T + 2.5; return; }
+    if (r < 0.32) { var a = Math.random() * Math.PI * 2, x = P.x + Math.cos(a) * 2, z = P.z + Math.sin(a) * 2; if (inArea(x, z)) { walkTo = { x: x, z: z, stuck: 0, face: true, slow: true, stroll: true }; stroll.walking = true; stroll.tgt = null; return; } }
+    if (!list.length) { stroll.next = T + 3; return; }
+    var o = list[Math.floor(Math.random() * list.length)], sp = goTo(o, 'stroll'); stroll.walking = true; stroll.tgt = { o: o, c: sp.c };
+  }
+  /* tapping the figure */
+  var VERB = { typewriter: '去打字', planner: '看看日程', board: '看布告栏', album: '翻收藏册', projector: '看全息投影', ornament: '摸摸魔法摆件', backpack: '翻背包', gramophone: '放音乐', projector16: '看电影',
+    tsqPortal: '穿过传送门', holoDesk: '去全息操作台', aquarium: '看看 Octo', quill: '用羽毛笔写字', mochi: '找 Mochi 玩', carkey: '拿车钥匙去兜风', medals: '看看勋章', bookstand: '去看书', carmodel: '看看老爷车' };
+  function avatarHit(e) {
+    if (!avatar.visible) return false; ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+    return ray.intersectObject(avatar, true).length > 0;
+  }
+  function closeFigureMenu() { if (fmenu) { fmenu.remove(); fmenu = null; } }
+  function figureMenu() {
+    closeFigureMenu(); noteInput();
+    var host = editBar.parentNode, el = document.createElement('div'); el.className = 'sh-fmenu'; fmenu = el;
+    var acts = [{ k: 'sit', t: AV.sitting ? '站起来' : '坐到书桌前' }, { k: 'stroll', t: '随便逛逛' }, { k: 'wave', t: '挥挥手' }];
+    objects.forEach(function (o) { if (!o.stashed && VERB[o.id]) acts.push({ k: 'o:' + o.id, t: VERB[o.id], o: o }); });
+    el.innerHTML = '<b>要做什么？</b><div class="list">' + acts.map(function (a) { return '<button type="button" data-k="' + a.k + '">' + (a.o ? '<i>' + ico(a.o) + '</i>' : '') + a.t + '</button>'; }).join('') + '</div>';
+    host.appendChild(el);
+    ['pointerdown', 'pointermove', 'wheel', 'touchstart'].forEach(function (t) { el.addEventListener(t, function (ev) { ev.stopPropagation(); }, { passive: true }); });
+    el.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button'); if (!b) return; var k = b.dataset.k; closeFigureMenu();
+      if (k === 'sit') { sitToggle(); return; }
+      if (k === 'wave') { gesture('wave', 1.6); return; }
+      if (k === 'stroll') { lastInput = T - IDLE - 1; return; }
+      var o = objects.filter(function (x) { return 'o:' + x.id === k; })[0]; if (!o) return;
+      if (/^desk\./.test(o.anchor || '') && !AV.sitting) { sitToggle(); task = { o: o, sit: true }; return; }   // things on the desk: sit down first
+      var sp = goTo(o, 'task'); task = { o: o, c: sp.c };
+    });
+    /* beside the figure's head, kept on screen */
+    avatar.updateMatrixWorld(true); v3b.set(0, 1.75, 0).applyMatrix4(avatar.matrixWorld).project(camera);
+    var R = host.getBoundingClientRect(), C = canvas.getBoundingClientRect(), x = C.left - R.left + (v3b.x + 1) / 2 * C.width, y = C.top - R.top + (1 - v3b.y) / 2 * C.height, w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.max(8, Math.min(R.width - w - 8, x + 24)) + 'px'; el.style.top = Math.max(8, Math.min(R.height - h - 8, y - h / 2)) + 'px';
+    setTimeout(function () { document.addEventListener('pointerdown', function off(ev) { if (fmenu && !fmenu.contains(ev.target)) closeFigureMenu(); document.removeEventListener('pointerdown', off, true); }, true); }, 0);
+  }
+
   /* ------------------------------------------------------------ input */
   var ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), hits = objects.map(function (o) { return o.hit; }), floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   function pick(e) {
@@ -177937,6 +178012,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   var ptr = null, keys = {}, joy = { x: 0, y: 0, id: null };
   canvas.addEventListener('pointerdown', function (e) {
+    noteInput();
     if (e.pointerType === 'touch' && !body.classList.contains('touch')) { body.classList.add('touch'); showHint(); }
     if (busy) { skipAll(); return; }
     if (!body.classList.contains('sh-fold')) fold(true);                         // touching the room folds the buttons away
@@ -177974,6 +178050,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long; ptr = null; canvas.classList.remove('drag');
     if (wasEdit || wasLong || edit) return;
     if (wasDrag || busy || e.type === 'pointercancel') return;
+    if (third() && avatarHit(e)) { figureMenu(); return; }
     var o = pick(e); if (o) { activate(o); return; }
     var x = pickExtra(e); if (x) { extraCard(x); return; }
     if (mode !== 'explore') return;
@@ -177986,7 +178063,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (inFeature || body.hidden) return;
     if (busy) { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') skipRunAll(); return; }
     if (/^(INPUT|SELECT|TEXTAREA)$/.test((e.target && e.target.tagName) || '')) return;
-    keys[e.code] = true;
+    keys[e.code] = true; noteInput(); task = null;
     if (e.key === 'c' || e.key === 'C') sitToggle();
     if (e.key === '1') setMode('explore'); else if (e.key === '2') setMode('desk'); else if (e.key === 'v' || e.key === 'V') { if (mode === 'explore') setView(S.view === '1p' ? '3p' : '1p'); }
     else if (e.key === 'Escape') $('settings').hidden = true;
@@ -177997,7 +178074,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   /* thumb stick (touch) */
   var stick = $('stick'), knob = stick.firstElementChild;
   function stickMove(e) { var r = stick.getBoundingClientRect(), x = (e.clientX - r.left - r.width / 2) / (r.width / 2), y = (e.clientY - r.top - r.height / 2) / (r.height / 2), l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; } joy.x = x; joy.y = y; knob.style.transform = 'translate(' + x * 30 + 'px,' + y * 30 + 'px)'; }
-  stick.addEventListener('pointerdown', function (e) { joy.id = e.pointerId; try { stick.setPointerCapture(e.pointerId); } catch (er) {} walkTo = null; stickMove(e); });
+  stick.addEventListener('pointerdown', function (e) { noteInput(); task = null; joy.id = e.pointerId; try { stick.setPointerCapture(e.pointerId); } catch (er) {} walkTo = null; stickMove(e); });
   stick.addEventListener('pointermove', function (e) { if (joy.id === e.pointerId) stickMove(e); });
   function stickUp(e) { if (joy.id !== e.pointerId) return; joy.id = null; joy.x = joy.y = 0; knob.style.transform = ''; }
   stick.addEventListener('pointerup', stickUp); stick.addEventListener('pointercancel', stickUp);
@@ -178052,7 +178129,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       P.x += (-Math.sin(P.yaw) * f + Math.cos(P.yaw) * r) * sp; P.z += (-Math.cos(P.yaw) * f - Math.sin(P.yaw) * r) * sp;
     } else if (walkTo) {
       var dx = walkTo.x - P.x, dz = walkTo.z - P.z, d = Math.hypot(dx, dz);
-      if (d < 0.06) walkTo = null; else { var st = Math.min(d, sp); P.x += dx / d * st; P.z += dz / d * st; }
+      if (walkTo.face && d > 0.2) { P.yaw += angTo(Math.atan2(-dx, -dz), P.yaw) * Math.min(1, dt * 3.5); }   // the figure turns to where it goes
+      if (d < 0.06) walkTo = null; else { var st = Math.min(d, sp * (walkTo.slow ? 0.55 : 1)); P.x += dx / d * st; P.z += dz / d * st; }
     } else return;
     collide(px, pz);
     if (walkTo && Math.hypot(P.x - px, P.z - pz) < sp * 0.2 && ++walkTo.stuck > 6) walkTo = null;
@@ -178514,7 +178592,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var dt = Math.min(0.05, clock.getDelta());
     stepTweens(dt);
     if (paused || document.hidden || body.hidden) return;
-    T += dt; move(dt);
+    T += dt; move(dt); strollStep(dt);
     if (camAuto) { autoPose(camera.position, camera.quaternion); if (room.shake && !S.motion) { var sh = room.shake(T); camera.position.y += sh.y; camera.rotateZ(sh.roll); } }
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;
     if (avatar.visible) { placeFigure(dt); poseNow(dt); }
