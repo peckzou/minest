@@ -176402,6 +176402,45 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return items;
   }
 
+  /* ───────── texture budget on phones and tablets (2026-11-13) ─────────
+     The scanned rooms carry dozens of 2048² textures (the Victorian Study: 33 → ~550 MB once decoded). iOS kills the
+     page's WebContent process well before that, so on iPhone / iPad every model texture is decoded straight to at most
+     1024² (createImageBitmap's resize options, so the full size never exists in memory) and anything still larger
+     after loading is drawn down on a canvas. Desktops keep the full textures. ?texcap=N forces a cap (0 = off). */
+  var TEXCAP = (function () {
+    var q = /[?&]texcap=(\d+)/.exec(location.search || ''); if (q) return +q[1];
+    var ua = navigator.userAgent || '', ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+    return ios ? 1024 : 0;
+  })();
+  function capDecode(GL) {
+    if (!TEXCAP || !GL.register) return;
+    GL.register(function (parser) {
+      var L = parser.textureLoader;
+      if (L && L.isImageBitmapLoader && L.setOptions) L.setOptions(Object.assign({}, L.options || {}, { resizeWidth: TEXCAP, resizeHeight: TEXCAP, resizeQuality: 'high' }));
+      return { name: 'MINEST_texture_cap' };
+    });
+  }
+  function capLoaded(model) {
+    if (!TEXCAP) return 0;
+    var seen = [], n = 0, KEYS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'alphaMap', 'bumpMap', 'lightMap', 'specularMap'];
+    model.traverse(function (o) {
+      if (!o.isMesh || !o.material) return;
+      [].concat(o.material).forEach(function (mt) {
+        KEYS.forEach(function (k) {
+          var t = mt && mt[k], im = t && t.image; if (!im || seen.indexOf(t) >= 0) return; seen.push(t);
+          var w = im.width || 0, h = im.height || 0; if (w <= TEXCAP && h <= TEXCAP) return;
+          var sc = TEXCAP / Math.max(w, h), c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(w * sc)); c.height = Math.max(1, Math.round(h * sc));
+          try { c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); } catch (e) { return; }
+          if (im.close) try { im.close(); } catch (e2) {}
+          t.image = c; t.needsUpdate = true; n++;
+        });
+      });
+    });
+    return n;
+  }
+  root.SpatialTexCap = { cap: function () { return TEXCAP; } };
+
   /* ───────── the Victorian Study, finished as the EC–6 room (2026-11-13) ───────── */
   function lin(h) { return new THREE.Color(h).convertSRGBToLinear(); }
   /* the study's movable rugs come with a blurry texture: a Persian rug, painted (field, medallion, spandrels, a border
@@ -176796,9 +176835,10 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 
       gltfLoader().then(function () {
         var GL = new THREE.GLTFLoader(); if (root.MeshoptDecoder && GL.setMeshoptDecoder) GL.setMeshoptDecoder(root.MeshoptDecoder);
+        capDecode(GL);                                                  // phones: decode every texture at most 1024²
         GL.load(siteBase() + def.glb, function (gl) {
           if (!holder.parent) return;                                   // the room was switched away while loading
-          var m = gl.scene; m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
+          var m = gl.scene; capLoaded(m); m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
           holder.add(m); cut(m, def.cut); if (def.glass) cutGlass(m, def.glass, def.glassThr != null ? def.glassThr : 232);
           var furn = takeMovables(def, m);
