@@ -596,8 +596,12 @@
     if (!v || typeof v !== 'object') { if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; v = S.layouts[env] || {}; }
     if (room && room.envId === env && room.defaultLayout && !v.showroom) {              // a showroom room is furnished once (later changes are yours)
       var d0 = room.defaultLayout(); v = JSON.parse(JSON.stringify(v)); v.extras = (v.extras || []).concat((d0.extras || []).filter(function (e) { return !(v.extras || []).some(function (x) { return x.uid === e.uid; }); }));
-      v.showroom = 1; LCACHE[env] = v; saveLayout(env, v); return v;
+      v.showroom = 1; LCACHE[env] = v; saveLayout(env, v);
     }
+    if (room && room.envId === env && room.upgrade && !room.movable && (v.up | 0) < room.upgrade.v) {   // the room's refurnishing, once (a room with its own model furniture does it when that has loaded)
+      v = LCACHE[env] === v ? v : JSON.parse(JSON.stringify(v)); try { room.upgrade.fn(v); } catch (er) {} v.up = room.upgrade.v; LCACHE[env] = v; saveLayout(env, v); return v;
+    }
+    if (LCACHE[env] === v) return v;
     return (LCACHE[env] = JSON.parse(JSON.stringify(v)));
   }
   function saveLayout(env, v) { LCACHE[env] = v; if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; S.layouts[env] = v; var BPs = window.MinestBackpack && window.MinestBackpack.store; if (BPs) BPs.set('bp:home:' + env, v); }

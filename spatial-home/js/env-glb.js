@@ -267,25 +267,25 @@
   /* ───────── the study's own versions of Spatial Home's things: they stay the same things (same apps, same animation),
      the room dresses them — the EC–6 board stands in a carved three-leaf screen (no easel), Octo's tank sits in a mahogany
      cabinet under a Wardian glass roof */
-  function damask() {
+  function damask(S) {
     var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d');
-    x.fillStyle = '#1f4a34'; x.fillRect(0, 0, 256, 256);
-    function motif(cx, cy, s) { x.save(); x.translate(cx, cy); x.scale(s, s); x.fillStyle = 'rgba(217,180,106,.38)';
+    x.fillStyle = S.silk; x.fillRect(0, 0, 256, 256);
+    function motif(cx, cy, s) { x.save(); x.translate(cx, cy); x.scale(s, s); x.fillStyle = S.motif;
       x.beginPath(); x.moveTo(0, -46); x.bezierCurveTo(26, -30, 30, 0, 0, 46); x.bezierCurveTo(-30, 0, -26, -30, 0, -46); x.fill();
-      x.fillStyle = '#1f4a34'; x.beginPath(); x.moveTo(0, -26); x.bezierCurveTo(12, -14, 14, 4, 0, 24); x.bezierCurveTo(-14, 4, -12, -14, 0, -26); x.fill();
-      x.fillStyle = 'rgba(217,180,106,.38)'; x.beginPath(); x.arc(0, 0, 6, 0, 6.3); x.fill();
+      x.fillStyle = S.silk; x.beginPath(); x.moveTo(0, -26); x.bezierCurveTo(12, -14, 14, 4, 0, 24); x.bezierCurveTo(-14, 4, -12, -14, 0, -26); x.fill();
+      x.fillStyle = S.motif; x.beginPath(); x.arc(0, 0, 6, 0, 6.3); x.fill();
       [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (q) { x.beginPath(); x.ellipse(q[0] * 22, q[1] * 30, 5, 11, q[0] * q[1] * 0.6, 0, 6.3); x.fill(); }); x.restore(); }
     motif(64, 64, 1); motif(192, 192, 1); motif(192, 64, 0.5); motif(64, 192, 0.5); motif(0, 128, 0.5); motif(256, 128, 0.5); motif(128, 0, 0.5); motif(128, 256, 0.5);
     var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
   }
-  function vicMats() {
-    return { wood: new THREE.MeshStandardMaterial({ color: lin(0x4a1f12), roughness: 0.38 }), woodL: new THREE.MeshStandardMaterial({ color: lin(0x6e3220), roughness: 0.34 }),
+  function vicMats(S) {
+    return { wood: new THREE.MeshStandardMaterial({ color: lin(S.wood), roughness: 0.38 }), woodL: new THREE.MeshStandardMaterial({ color: lin(S.woodL), roughness: 0.34 }),
       gilt: new THREE.MeshStandardMaterial({ color: lin(0xc9a24a), roughness: 0.28, metalness: 0.88 }), brass: new THREE.MeshStandardMaterial({ color: lin(0xb8903a), roughness: 0.22, metalness: 0.92 }) };
   }
   function bx(g, m, x, y, z, w, h, d) { var b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; b.receiveShadow = true; g.add(b); return b; }
   function finial(g, m, x, y, z) { var f = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [0.03, 0], [0.035, 0.02], [0.02, 0.04], [0.032, 0.07], [0.012, 0.1], [0.018, 0.12], [0, 0.14]].map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 12), m); f.position.set(x, y, z); g.add(f); }
-  function dressBoard(o) {
-    var g = new THREE.Group(), M = vicMats(), dm = damask(), silk = new THREE.MeshStandardMaterial({ map: dm, roughness: 0.7 }), F = -o.group.position.y, TOP = 0.74;   // the board's centre is the origin; F is the floor
+  function dressBoardOf(S) { return function (o) {
+    var g = new THREE.Group(), M = vicMats(S), dm = damask(S), silk = new THREE.MeshStandardMaterial({ map: dm, roughness: 0.7 }), F = -o.group.position.y, TOP = 0.74;   // the board's centre is the origin; F is the floor
     function leaf(par, x0, x1, withBoard) {                 // one leaf of the screen: posts, rails, silk, gilt fillets
       var w = x1 - x0, cx = (x0 + x1) / 2;
       [x0, x1].forEach(function (px) { bx(par, M.wood, px, (F + TOP) / 2, 0, 0.07, TOP - F, 0.07); finial(par, M.gilt, px, TOP, 0); var ft = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), M.wood); ft.scale.y = 0.6; ft.position.set(px, F + 0.03, 0); par.add(ft); });
@@ -303,15 +303,15 @@
     var arch = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.035, 8, 28, Math.PI), M.wood); arch.scale.y = 0.45; crest.add(arch);
     bx(crest, M.wood, 0, 0.06, 0, 0.6, 0.12, 0.05);
     var pc = document.createElement('canvas'); pc.width = 512; pc.height = 96; var px = pc.getContext('2d'); px.fillStyle = '#c9a24a'; px.fillRect(0, 0, 512, 96); px.strokeStyle = '#7a5a24'; px.lineWidth = 6; px.strokeRect(6, 6, 500, 84);
-    px.fillStyle = '#3a2410'; px.font = 'bold 44px Georgia, "Times New Roman", serif'; px.textAlign = 'center'; px.textBaseline = 'middle'; px.fillText('EC–6  STUDY BOARD', 256, 50);
+    px.fillStyle = '#3a2410'; px.font = 'bold 44px Georgia, "Times New Roman", serif'; var fs = Math.min(44, 44 * 452 / px.measureText(S.plaque).width); px.font = 'bold ' + fs.toFixed(1) + 'px Georgia, "Times New Roman", serif'; px.textAlign = 'center'; px.textBaseline = 'middle'; px.fillText(S.plaque, 256, 50);
     var pt = new THREE.CanvasTexture(pc); pt.encoding = THREE.sRGBEncoding; var plaque = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.094), new THREE.MeshStandardMaterial({ map: pt, roughness: 0.3, metalness: 0.6 })); plaque.position.set(0, 0.06, 0.027); crest.add(plaque);
-    finial(crest, M.gilt, 0, 0.17, 0);
-    [-1, 1].forEach(function (sd) { var h = new THREE.Group(); h.position.set(sd * 0.985, 0, 0); h.rotation.y = sd * -0.55; g.add(h); leaf(h, sd > 0 ? 0 : -0.78, sd > 0 ? 0.78 : 0, false);
+    if (S.crown) crown(crest, M, 0, 0.13, 0); else finial(crest, M.gilt, 0, 0.17, 0);
+    [-1, 1].forEach(function (sd) { var h = new THREE.Group(); h.position.set(sd * 0.985, 0, 0); h.rotation.y = sd * -(S.fold || 0.55); g.add(h); leaf(h, sd > 0 ? 0 : -(S.leaf || 0.78), sd > 0 ? (S.leaf || 0.78) : 0, false);
       var bv = new THREE.Group(); bv.position.set(sd * 0.39, 0, 0); h.add(bv); });
     return { group: g };
-  }
-  function dressAquarium(o) {
-    var g = new THREE.Group(), M = vicMats(), X = 0.42, Z = 0.21, Y0 = 0.62, Y1 = 1.14, CX = X + 0.05, CZ = Z + 0.05;
+  }; }
+  function dressAquariumOf(S) { return function (o) {
+    var g = new THREE.Group(), M = vicMats(S), X = 0.42, Z = 0.21, Y0 = 0.62, Y1 = 1.14, CX = X + 0.05, CZ = Z + 0.05;
     bx(g, M.wood, 0, 0.05, 0, 2 * CX + 0.06, 0.1, 2 * CZ + 0.06);                       // plinth
     bx(g, M.wood, 0, (0.1 + Y0 - 0.05) / 2, 0, 2 * CX, Y0 - 0.15, 2 * CZ);                // the cabinet round the old stand
     bx(g, M.woodL, 0, Y0 - 0.025, 0, 2 * CX + 0.06, 0.05, 2 * CZ + 0.06);                 // its top, moulded
@@ -335,7 +335,38 @@
     bx(g, M.brass, 0, Y1 + 0.04 + RH, 0, 2 * X + 0.04, 0.016, 0.016);
     for (var c = -X + 0.06; c < X; c += 0.08) { var fl = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.045, 6), M.gilt); fl.position.set(c, Y1 + 0.07 + RH, 0); g.add(fl); }
     finial(g, M.gilt, -X - 0.01, Y1 + 0.04 + RH, 0); finial(g, M.gilt, X + 0.01, Y1 + 0.04 + RH, 0);
+    if (S.crown) crown(g, M, 0, Y1 + 0.06 + RH, 0, 0.6);
     return { group: g };
+  }; }
+  /* a small royal crown: a gilt band, five points with pearls, a crimson cap, an orb and cross */
+  function crown(par, M, x, y, z, sc) {
+    var c = new THREE.Group(); c.position.set(x, y, z); c.scale.setScalar(sc || 1); par.add(c);
+    var band = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.1, 0.05, 24, 1, true), M.gilt); band.position.y = 0.025; c.add(band);
+    var cap = new THREE.Mesh(new THREE.SphereGeometry(0.095, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: lin(0x8a1f2c), roughness: 0.8 })); cap.position.y = 0.04; c.add(cap);
+    var pearl = new THREE.MeshStandardMaterial({ color: 0xf6f0e4, roughness: 0.25 });
+    for (var i = 0; i < 5; i++) { var a = i / 5 * Math.PI * 2, pnt = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.07, 6), M.gilt); pnt.position.set(Math.cos(a) * 0.105, 0.085, Math.sin(a) * 0.105); c.add(pnt);
+      var pr = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), pearl); pr.position.set(Math.cos(a) * 0.105, 0.125, Math.sin(a) * 0.105); c.add(pr);
+      var gem = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), new THREE.MeshStandardMaterial({ color: i % 2 ? 0x1f5ad0 : 0xb0182a, roughness: 0.1, metalness: 0.3 })); gem.position.set(Math.cos(a + 0.63) * 0.108, 0.025, Math.sin(a + 0.63) * 0.108); c.add(gem); }
+    var orb = new THREE.Mesh(new THREE.SphereGeometry(0.025, 12, 8), M.gilt); orb.position.y = 0.15; c.add(orb);
+    bx(c, M.gilt, 0, 0.19, 0, 0.01, 0.05, 0.01); bx(c, M.gilt, 0, 0.195, 0, 0.035, 0.01, 0.01);
+  }
+  var VIC_STYLE = { wood: 0x4a1f12, woodL: 0x6e3220, silk: '#1f4a34', motif: 'rgba(217,180,106,.38)', plaque: 'EC–6  STUDY BOARD' };
+  var KH_STYLE = { wood: 0x2e1a10, woodL: 0x4a2a18, silk: '#6e1520', motif: 'rgba(222,184,96,.42)', plaque: 'EC–6 · THE KING’S BOARD', crown: true, leaf: 0.55, fold: 1.0 };
+  /* the King's Hall, finished the same way: warm reflections, the crystal chandelier lit with candles */
+  function kingsFinish(ctx) {
+    var R = SR.renderer, scene = ctx.scene, envTex = null;
+    if (R && THREE.PMREMGenerator) {
+      var es = new THREE.Scene(); es.add(new THREE.Mesh(new THREE.BoxGeometry(12, 5, 12), new THREE.MeshBasicMaterial({ color: lin(0x6a5a4a), side: THREE.BackSide })));
+      [[0, 2.4, -6, 0xfff4e0, 4], [-6, 2, -2, 0xe8e4ff, 3], [6, 2, -2, 0xe8e4ff, 3], [0, 3.4, 0, 0xffe0b0, 2]].forEach(function (q) { var p = new THREE.Mesh(new THREE.PlaneGeometry(q[4], q[4] * 0.6), new THREE.MeshBasicMaterial({ color: lin(q[3]), side: THREE.DoubleSide })); p.position.set(q[0], q[1], q[2]); p.lookAt(0, 1.5, 0); es.add(p); });
+      var pm = new THREE.PMREMGenerator(R); envTex = pm.fromScene(es, 0.04).texture; pm.dispose(); scene.environment = envTex;
+    }
+    var cl = new THREE.PointLight(0xffd29a, 0.9, 9, 2); cl.position.set(0.01, 2.55, -1.765); ctx.holder.add(cl);
+    var mode = 'auto';
+    function apply() { var N = SR.timeOfDay(mode).night; cl.intensity = 0.6 + 0.7 * N; }
+    apply();
+    return { tick: function (t) { cl.intensity = (0.6 + 0.7 * SR.timeOfDay(mode).night) * (0.95 + 0.05 * Math.sin(t * 6.3) * Math.sin(t * 2.9)); },
+      setTime: function (m) { mode = m || 'auto'; apply(); },
+      dispose: function () { if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); } };
   }
   function victorianFinish(ctx) {
     var holder = ctx.holder, model = ctx.model, scene = ctx.scene, R = SR.renderer, parts = [], lights = [];
@@ -428,7 +459,7 @@
       return {
         id: def.id, name: def.name, group: g, holder: holder, far: 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
-        surfaces: surfaces, dress: def.dress || null, upgrade: def.upgrade || null,
+        surfaces: surfaces, dress: def.dress || null, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
         dispose: function () { if (fin && fin.dispose) fin.dispose(); SR.disposeTree(holder); scene.background = null; }
@@ -445,7 +476,15 @@
     offset: [0.37, 1.3, -10.735], walk: [-5.6, -9.9, 5.6, 5.2],
     cut: [[-1.1, 0.06, -2.86, 1.2, 1.5, -0.93], [-0.52, 1.6, -2.3, 0.54, 3.42, -1.22]],   // the table and chairs; the chandelier (below the ceiling rosette)
     chandelier: [0.01, -1.765, 3.42],
-    easel: [-2.0, -0.75, 0],
+    easel: null, finish: kingsFinish,
+    dress: { board: dressBoardOf(KH_STYLE), aquarium: dressAquariumOf(KH_STYLE) },
+    /* v1: the white pedestals become marble columns, a Savonnerie carpet under the table, two gilt girandoles at its head */
+    upgrade: { v: 1, fn: function (L) {
+      var ex = L.extras = L.extras || [];
+      ex.forEach(function (e) { if (e.kind === 'pedestal' && e.uid >= 9111 && e.uid <= 9115) e.kind = 'kh-plinth'; });
+      [{ kind: 'kh-carpet', title: '宫廷地毯', p: [0, 0, -1.9], ry: 0, uid: 9120 }, { kind: 'kh-girandole', title: '镀金烛台', p: [-0.78, 0, -3.1], ry: 0, uid: 9121 },
+       { kind: 'kh-girandole', title: '镀金烛台', p: [0.78, 0, -3.1], ry: 0, uid: 9122 }].forEach(function (n) { if (!ex.some(function (e) { return e.uid === n.uid; })) ex.push(n); });
+    } },
     start: { pos: [0.6, 1.5, 1.6], yaw: 0.12, pitch: -0.12 }, deskCam: { pos: [0, 1.45, -0.2], look: [0, 0.82, -2.1] },
     anchors: {
       'desk.left': { p: [0, TY, -1.5], ry: 0 }, 'desk.right': { p: [0.22, TY, -2.08], ry: 0.1 }, 'desk.quill': { p: [-0.26, TY, -1.72], ry: 0.25 },
@@ -460,9 +499,9 @@
       { kind: 'kh-table', p: [-0.0, 0, -1.9], ry: 0, uid: 9101 },
       { kind: 'kh-chair', p: [-0.66, 0, -2.25], ry: PI / 2, uid: 9102 }, { kind: 'kh-chair', p: [-0.66, 0, -1.55], ry: PI / 2, uid: 9103 },
       { kind: 'kh-chair', p: [0.66, 0, -2.25], ry: -PI / 2, uid: 9104 }, { kind: 'kh-chair', p: [0.66, 0, -1.55], ry: -PI / 2, uid: 9105 },
-      { kind: 'pedestal', p: [2.1, 0, -3.3], ry: -PI / 2, uid: 9111 }, { kind: 'pedestal', p: [2.1, 0, -2.6], ry: -PI / 2, uid: 9112 },
-      { kind: 'pedestal', p: [2.1, 0, -1.9], ry: -PI / 2, uid: 9113 }, { kind: 'pedestal', p: [2.1, 0, -1.2], ry: -PI / 2, uid: 9114 },
-      { kind: 'pedestal', p: [2.1, 0, -0.5], ry: -PI / 2, uid: 9115 }
+      { kind: 'kh-plinth', p: [2.1, 0, -3.3], ry: -PI / 2, uid: 9111 }, { kind: 'kh-plinth', p: [2.1, 0, -2.6], ry: -PI / 2, uid: 9112 },
+      { kind: 'kh-plinth', p: [2.1, 0, -1.9], ry: -PI / 2, uid: 9113 }, { kind: 'kh-plinth', p: [2.1, 0, -1.2], ry: -PI / 2, uid: 9114 },
+      { kind: 'kh-plinth', p: [2.1, 0, -0.5], ry: -PI / 2, uid: 9115 }
     ] },
     credit: 'The King\u2019s Hall, Skokloster Castle — scan by Erik Lernestål, CC BY 4.0' };
   /* The Victorian Study, embedded deep: its south round table is the desk (things on its top), the north table carries
@@ -472,7 +511,7 @@
   var VICT = { id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null,
     start: { pos: [0.7, 1.5, 1.4], yaw: 0.1, pitch: -0.12 }, deskCam: { pos: [0, 1.45, -0.5], look: [0, 0.78, -1.95] },
-    dress: { board: dressBoard, aquarium: dressAquarium },
+    dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE) },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     upgrade: { v: 1, fn: function (L) {
       var ex = L.extras = L.extras || [];

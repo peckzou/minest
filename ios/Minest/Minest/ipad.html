@@ -185012,25 +185012,25 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   /* ───────── the study's own versions of Spatial Home's things: they stay the same things (same apps, same animation),
      the room dresses them — the EC–6 board stands in a carved three-leaf screen (no easel), Octo's tank sits in a mahogany
      cabinet under a Wardian glass roof */
-  function damask() {
+  function damask(S) {
     var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d');
-    x.fillStyle = '#1f4a34'; x.fillRect(0, 0, 256, 256);
-    function motif(cx, cy, s) { x.save(); x.translate(cx, cy); x.scale(s, s); x.fillStyle = 'rgba(217,180,106,.38)';
+    x.fillStyle = S.silk; x.fillRect(0, 0, 256, 256);
+    function motif(cx, cy, s) { x.save(); x.translate(cx, cy); x.scale(s, s); x.fillStyle = S.motif;
       x.beginPath(); x.moveTo(0, -46); x.bezierCurveTo(26, -30, 30, 0, 0, 46); x.bezierCurveTo(-30, 0, -26, -30, 0, -46); x.fill();
-      x.fillStyle = '#1f4a34'; x.beginPath(); x.moveTo(0, -26); x.bezierCurveTo(12, -14, 14, 4, 0, 24); x.bezierCurveTo(-14, 4, -12, -14, 0, -26); x.fill();
-      x.fillStyle = 'rgba(217,180,106,.38)'; x.beginPath(); x.arc(0, 0, 6, 0, 6.3); x.fill();
+      x.fillStyle = S.silk; x.beginPath(); x.moveTo(0, -26); x.bezierCurveTo(12, -14, 14, 4, 0, 24); x.bezierCurveTo(-14, 4, -12, -14, 0, -26); x.fill();
+      x.fillStyle = S.motif; x.beginPath(); x.arc(0, 0, 6, 0, 6.3); x.fill();
       [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (q) { x.beginPath(); x.ellipse(q[0] * 22, q[1] * 30, 5, 11, q[0] * q[1] * 0.6, 0, 6.3); x.fill(); }); x.restore(); }
     motif(64, 64, 1); motif(192, 192, 1); motif(192, 64, 0.5); motif(64, 192, 0.5); motif(0, 128, 0.5); motif(256, 128, 0.5); motif(128, 0, 0.5); motif(128, 256, 0.5);
     var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
   }
-  function vicMats() {
-    return { wood: new THREE.MeshStandardMaterial({ color: lin(0x4a1f12), roughness: 0.38 }), woodL: new THREE.MeshStandardMaterial({ color: lin(0x6e3220), roughness: 0.34 }),
+  function vicMats(S) {
+    return { wood: new THREE.MeshStandardMaterial({ color: lin(S.wood), roughness: 0.38 }), woodL: new THREE.MeshStandardMaterial({ color: lin(S.woodL), roughness: 0.34 }),
       gilt: new THREE.MeshStandardMaterial({ color: lin(0xc9a24a), roughness: 0.28, metalness: 0.88 }), brass: new THREE.MeshStandardMaterial({ color: lin(0xb8903a), roughness: 0.22, metalness: 0.92 }) };
   }
   function bx(g, m, x, y, z, w, h, d) { var b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; b.receiveShadow = true; g.add(b); return b; }
   function finial(g, m, x, y, z) { var f = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [0.03, 0], [0.035, 0.02], [0.02, 0.04], [0.032, 0.07], [0.012, 0.1], [0.018, 0.12], [0, 0.14]].map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 12), m); f.position.set(x, y, z); g.add(f); }
-  function dressBoard(o) {
-    var g = new THREE.Group(), M = vicMats(), dm = damask(), silk = new THREE.MeshStandardMaterial({ map: dm, roughness: 0.7 }), F = -o.group.position.y, TOP = 0.74;   // the board's centre is the origin; F is the floor
+  function dressBoardOf(S) { return function (o) {
+    var g = new THREE.Group(), M = vicMats(S), dm = damask(S), silk = new THREE.MeshStandardMaterial({ map: dm, roughness: 0.7 }), F = -o.group.position.y, TOP = 0.74;   // the board's centre is the origin; F is the floor
     function leaf(par, x0, x1, withBoard) {                 // one leaf of the screen: posts, rails, silk, gilt fillets
       var w = x1 - x0, cx = (x0 + x1) / 2;
       [x0, x1].forEach(function (px) { bx(par, M.wood, px, (F + TOP) / 2, 0, 0.07, TOP - F, 0.07); finial(par, M.gilt, px, TOP, 0); var ft = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), M.wood); ft.scale.y = 0.6; ft.position.set(px, F + 0.03, 0); par.add(ft); });
@@ -185048,15 +185048,15 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var arch = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.035, 8, 28, Math.PI), M.wood); arch.scale.y = 0.45; crest.add(arch);
     bx(crest, M.wood, 0, 0.06, 0, 0.6, 0.12, 0.05);
     var pc = document.createElement('canvas'); pc.width = 512; pc.height = 96; var px = pc.getContext('2d'); px.fillStyle = '#c9a24a'; px.fillRect(0, 0, 512, 96); px.strokeStyle = '#7a5a24'; px.lineWidth = 6; px.strokeRect(6, 6, 500, 84);
-    px.fillStyle = '#3a2410'; px.font = 'bold 44px Georgia, "Times New Roman", serif'; px.textAlign = 'center'; px.textBaseline = 'middle'; px.fillText('EC–6  STUDY BOARD', 256, 50);
+    px.fillStyle = '#3a2410'; px.font = 'bold 44px Georgia, "Times New Roman", serif'; var fs = Math.min(44, 44 * 452 / px.measureText(S.plaque).width); px.font = 'bold ' + fs.toFixed(1) + 'px Georgia, "Times New Roman", serif'; px.textAlign = 'center'; px.textBaseline = 'middle'; px.fillText(S.plaque, 256, 50);
     var pt = new THREE.CanvasTexture(pc); pt.encoding = THREE.sRGBEncoding; var plaque = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.094), new THREE.MeshStandardMaterial({ map: pt, roughness: 0.3, metalness: 0.6 })); plaque.position.set(0, 0.06, 0.027); crest.add(plaque);
-    finial(crest, M.gilt, 0, 0.17, 0);
-    [-1, 1].forEach(function (sd) { var h = new THREE.Group(); h.position.set(sd * 0.985, 0, 0); h.rotation.y = sd * -0.55; g.add(h); leaf(h, sd > 0 ? 0 : -0.78, sd > 0 ? 0.78 : 0, false);
+    if (S.crown) crown(crest, M, 0, 0.13, 0); else finial(crest, M.gilt, 0, 0.17, 0);
+    [-1, 1].forEach(function (sd) { var h = new THREE.Group(); h.position.set(sd * 0.985, 0, 0); h.rotation.y = sd * -(S.fold || 0.55); g.add(h); leaf(h, sd > 0 ? 0 : -(S.leaf || 0.78), sd > 0 ? (S.leaf || 0.78) : 0, false);
       var bv = new THREE.Group(); bv.position.set(sd * 0.39, 0, 0); h.add(bv); });
     return { group: g };
-  }
-  function dressAquarium(o) {
-    var g = new THREE.Group(), M = vicMats(), X = 0.42, Z = 0.21, Y0 = 0.62, Y1 = 1.14, CX = X + 0.05, CZ = Z + 0.05;
+  }; }
+  function dressAquariumOf(S) { return function (o) {
+    var g = new THREE.Group(), M = vicMats(S), X = 0.42, Z = 0.21, Y0 = 0.62, Y1 = 1.14, CX = X + 0.05, CZ = Z + 0.05;
     bx(g, M.wood, 0, 0.05, 0, 2 * CX + 0.06, 0.1, 2 * CZ + 0.06);                       // plinth
     bx(g, M.wood, 0, (0.1 + Y0 - 0.05) / 2, 0, 2 * CX, Y0 - 0.15, 2 * CZ);                // the cabinet round the old stand
     bx(g, M.woodL, 0, Y0 - 0.025, 0, 2 * CX + 0.06, 0.05, 2 * CZ + 0.06);                 // its top, moulded
@@ -185080,7 +185080,38 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     bx(g, M.brass, 0, Y1 + 0.04 + RH, 0, 2 * X + 0.04, 0.016, 0.016);
     for (var c = -X + 0.06; c < X; c += 0.08) { var fl = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.045, 6), M.gilt); fl.position.set(c, Y1 + 0.07 + RH, 0); g.add(fl); }
     finial(g, M.gilt, -X - 0.01, Y1 + 0.04 + RH, 0); finial(g, M.gilt, X + 0.01, Y1 + 0.04 + RH, 0);
+    if (S.crown) crown(g, M, 0, Y1 + 0.06 + RH, 0, 0.6);
     return { group: g };
+  }; }
+  /* a small royal crown: a gilt band, five points with pearls, a crimson cap, an orb and cross */
+  function crown(par, M, x, y, z, sc) {
+    var c = new THREE.Group(); c.position.set(x, y, z); c.scale.setScalar(sc || 1); par.add(c);
+    var band = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.1, 0.05, 24, 1, true), M.gilt); band.position.y = 0.025; c.add(band);
+    var cap = new THREE.Mesh(new THREE.SphereGeometry(0.095, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: lin(0x8a1f2c), roughness: 0.8 })); cap.position.y = 0.04; c.add(cap);
+    var pearl = new THREE.MeshStandardMaterial({ color: 0xf6f0e4, roughness: 0.25 });
+    for (var i = 0; i < 5; i++) { var a = i / 5 * Math.PI * 2, pnt = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.07, 6), M.gilt); pnt.position.set(Math.cos(a) * 0.105, 0.085, Math.sin(a) * 0.105); c.add(pnt);
+      var pr = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), pearl); pr.position.set(Math.cos(a) * 0.105, 0.125, Math.sin(a) * 0.105); c.add(pr);
+      var gem = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), new THREE.MeshStandardMaterial({ color: i % 2 ? 0x1f5ad0 : 0xb0182a, roughness: 0.1, metalness: 0.3 })); gem.position.set(Math.cos(a + 0.63) * 0.108, 0.025, Math.sin(a + 0.63) * 0.108); c.add(gem); }
+    var orb = new THREE.Mesh(new THREE.SphereGeometry(0.025, 12, 8), M.gilt); orb.position.y = 0.15; c.add(orb);
+    bx(c, M.gilt, 0, 0.19, 0, 0.01, 0.05, 0.01); bx(c, M.gilt, 0, 0.195, 0, 0.035, 0.01, 0.01);
+  }
+  var VIC_STYLE = { wood: 0x4a1f12, woodL: 0x6e3220, silk: '#1f4a34', motif: 'rgba(217,180,106,.38)', plaque: 'EC–6  STUDY BOARD' };
+  var KH_STYLE = { wood: 0x2e1a10, woodL: 0x4a2a18, silk: '#6e1520', motif: 'rgba(222,184,96,.42)', plaque: 'EC–6 · THE KING’S BOARD', crown: true, leaf: 0.55, fold: 1.0 };
+  /* the King's Hall, finished the same way: warm reflections, the crystal chandelier lit with candles */
+  function kingsFinish(ctx) {
+    var R = SR.renderer, scene = ctx.scene, envTex = null;
+    if (R && THREE.PMREMGenerator) {
+      var es = new THREE.Scene(); es.add(new THREE.Mesh(new THREE.BoxGeometry(12, 5, 12), new THREE.MeshBasicMaterial({ color: lin(0x6a5a4a), side: THREE.BackSide })));
+      [[0, 2.4, -6, 0xfff4e0, 4], [-6, 2, -2, 0xe8e4ff, 3], [6, 2, -2, 0xe8e4ff, 3], [0, 3.4, 0, 0xffe0b0, 2]].forEach(function (q) { var p = new THREE.Mesh(new THREE.PlaneGeometry(q[4], q[4] * 0.6), new THREE.MeshBasicMaterial({ color: lin(q[3]), side: THREE.DoubleSide })); p.position.set(q[0], q[1], q[2]); p.lookAt(0, 1.5, 0); es.add(p); });
+      var pm = new THREE.PMREMGenerator(R); envTex = pm.fromScene(es, 0.04).texture; pm.dispose(); scene.environment = envTex;
+    }
+    var cl = new THREE.PointLight(0xffd29a, 0.9, 9, 2); cl.position.set(0.01, 2.55, -1.765); ctx.holder.add(cl);
+    var mode = 'auto';
+    function apply() { var N = SR.timeOfDay(mode).night; cl.intensity = 0.6 + 0.7 * N; }
+    apply();
+    return { tick: function (t) { cl.intensity = (0.6 + 0.7 * SR.timeOfDay(mode).night) * (0.95 + 0.05 * Math.sin(t * 6.3) * Math.sin(t * 2.9)); },
+      setTime: function (m) { mode = m || 'auto'; apply(); },
+      dispose: function () { if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); } };
   }
   function victorianFinish(ctx) {
     var holder = ctx.holder, model = ctx.model, scene = ctx.scene, R = SR.renderer, parts = [], lights = [];
@@ -185173,7 +185204,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       return {
         id: def.id, name: def.name, group: g, holder: holder, far: 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
-        surfaces: surfaces, dress: def.dress || null, upgrade: def.upgrade || null,
+        surfaces: surfaces, dress: def.dress || null, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
         dispose: function () { if (fin && fin.dispose) fin.dispose(); SR.disposeTree(holder); scene.background = null; }
@@ -185190,7 +185221,15 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     offset: [0.37, 1.3, -10.735], walk: [-5.6, -9.9, 5.6, 5.2],
     cut: [[-1.1, 0.06, -2.86, 1.2, 1.5, -0.93], [-0.52, 1.6, -2.3, 0.54, 3.42, -1.22]],   // the table and chairs; the chandelier (below the ceiling rosette)
     chandelier: [0.01, -1.765, 3.42],
-    easel: [-2.0, -0.75, 0],
+    easel: null, finish: kingsFinish,
+    dress: { board: dressBoardOf(KH_STYLE), aquarium: dressAquariumOf(KH_STYLE) },
+    /* v1: the white pedestals become marble columns, a Savonnerie carpet under the table, two gilt girandoles at its head */
+    upgrade: { v: 1, fn: function (L) {
+      var ex = L.extras = L.extras || [];
+      ex.forEach(function (e) { if (e.kind === 'pedestal' && e.uid >= 9111 && e.uid <= 9115) e.kind = 'kh-plinth'; });
+      [{ kind: 'kh-carpet', title: '宫廷地毯', p: [0, 0, -1.9], ry: 0, uid: 9120 }, { kind: 'kh-girandole', title: '镀金烛台', p: [-0.78, 0, -3.1], ry: 0, uid: 9121 },
+       { kind: 'kh-girandole', title: '镀金烛台', p: [0.78, 0, -3.1], ry: 0, uid: 9122 }].forEach(function (n) { if (!ex.some(function (e) { return e.uid === n.uid; })) ex.push(n); });
+    } },
     start: { pos: [0.6, 1.5, 1.6], yaw: 0.12, pitch: -0.12 }, deskCam: { pos: [0, 1.45, -0.2], look: [0, 0.82, -2.1] },
     anchors: {
       'desk.left': { p: [0, TY, -1.5], ry: 0 }, 'desk.right': { p: [0.22, TY, -2.08], ry: 0.1 }, 'desk.quill': { p: [-0.26, TY, -1.72], ry: 0.25 },
@@ -185205,9 +185244,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       { kind: 'kh-table', p: [-0.0, 0, -1.9], ry: 0, uid: 9101 },
       { kind: 'kh-chair', p: [-0.66, 0, -2.25], ry: PI / 2, uid: 9102 }, { kind: 'kh-chair', p: [-0.66, 0, -1.55], ry: PI / 2, uid: 9103 },
       { kind: 'kh-chair', p: [0.66, 0, -2.25], ry: -PI / 2, uid: 9104 }, { kind: 'kh-chair', p: [0.66, 0, -1.55], ry: -PI / 2, uid: 9105 },
-      { kind: 'pedestal', p: [2.1, 0, -3.3], ry: -PI / 2, uid: 9111 }, { kind: 'pedestal', p: [2.1, 0, -2.6], ry: -PI / 2, uid: 9112 },
-      { kind: 'pedestal', p: [2.1, 0, -1.9], ry: -PI / 2, uid: 9113 }, { kind: 'pedestal', p: [2.1, 0, -1.2], ry: -PI / 2, uid: 9114 },
-      { kind: 'pedestal', p: [2.1, 0, -0.5], ry: -PI / 2, uid: 9115 }
+      { kind: 'kh-plinth', p: [2.1, 0, -3.3], ry: -PI / 2, uid: 9111 }, { kind: 'kh-plinth', p: [2.1, 0, -2.6], ry: -PI / 2, uid: 9112 },
+      { kind: 'kh-plinth', p: [2.1, 0, -1.9], ry: -PI / 2, uid: 9113 }, { kind: 'kh-plinth', p: [2.1, 0, -1.2], ry: -PI / 2, uid: 9114 },
+      { kind: 'kh-plinth', p: [2.1, 0, -0.5], ry: -PI / 2, uid: 9115 }
     ] },
     credit: 'The King\u2019s Hall, Skokloster Castle — scan by Erik Lernestål, CC BY 4.0' };
   /* The Victorian Study, embedded deep: its south round table is the desk (things on its top), the north table carries
@@ -185217,7 +185256,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var VICT = { id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null,
     start: { pos: [0.7, 1.5, 1.4], yaw: 0.1, pitch: -0.12 }, deskCam: { pos: [0, 1.45, -0.5], look: [0, 0.78, -1.95] },
-    dress: { board: dressBoard, aquarium: dressAquarium },
+    dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE) },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     upgrade: { v: 1, fn: function (L) {
       var ex = L.extras = L.extras || [];
@@ -185500,6 +185539,80 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var CAT = root.SpatialFurnitureCatalog = root.SpatialFurnitureCatalog || [];
   [{ id: 'vic-desk', name: '维多利亚书桌', en: 'Victorian pedestal desk', size: [1.7, 0.78, 0.9] }, { id: 'vic-chair', name: '维多利亚书桌椅', en: 'Victorian desk chair', size: [0.58, 0.93, 0.58] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的家具' }); });
+
+  /* ───────── the King's Hall set (2026-11-13): marble columns for the display things, a Savonnerie-style carpet under the
+     table, gilt girandoles with candles at its head */
+  function kmats(T) {
+    if (F._k) return F._k;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), i;           // white marble, grey veins
+    x.fillStyle = '#eee9df'; x.fillRect(0, 0, 256, 256);
+    for (i = 0; i < 14; i++) { x.strokeStyle = 'rgba(120,115,110,' + (0.15 + Math.random() * 0.25) + ')'; x.lineWidth = 0.6 + Math.random() * 1.6; x.beginPath(); var px = Math.random() * 256, py = 0; x.moveTo(px, py); while (py < 256) { px += (Math.random() - 0.5) * 28; py += 10 + Math.random() * 16; x.lineTo(px, py); } x.stroke(); }
+    var mt = new T.CanvasTexture(c); mt.encoding = T.sRGBEncoding; mt.wrapS = mt.wrapT = T.RepeatWrapping;
+    return (F._k = {
+      marble: new T.MeshStandardMaterial({ map: mt, roughness: 0.18, metalness: 0 }),
+      verde: new T.MeshStandardMaterial({ color: L(0x1f3a30), roughness: 0.2, metalness: 0.05 }),
+      gilt: new T.MeshStandardMaterial({ color: L(0xc9a24a), roughness: 0.28, metalness: 0.88 }),
+      wax: new T.MeshStandardMaterial({ color: L(0xf3ead6), roughness: 0.6 })
+    });
+  }
+  function lathe(T, pts, m, seg) { return new T.Mesh(new T.LatheGeometry(pts.map(function (q) { return new T.Vector2(q[0], q[1]); }), seg || 24), m); }
+  F['kh-plinth'] = function (T) {                                                          // the same height and top as the pedestal it replaces (0.91)
+    var M = kmats(T), g = new T.Group();
+    box(T, g, M.verde, 0, 0.04, 0, 0.44, 0.08, 0.44); box(T, g, M.marble, 0, 0.1, 0, 0.38, 0.04, 0.38);
+    var base = lathe(T, [[0, 0.12], [0.16, 0.12], [0.165, 0.14], [0.15, 0.16], [0.14, 0.18], [0, 0.18]], M.gilt); g.add(base);
+    var shaft = lathe(T, [[0, 0.18], [0.125, 0.18], [0.13, 0.4], [0.12, 0.66], [0.11, 0.74], [0, 0.74]], M.marble); shaft.castShadow = true; g.add(shaft);
+    var cap = lathe(T, [[0, 0.74], [0.12, 0.74], [0.13, 0.76], [0.12, 0.78], [0.15, 0.8], [0.17, 0.83], [0, 0.83]], M.gilt); g.add(cap);
+    box(T, g, M.marble, 0, 0.855, 0, 0.38, 0.05, 0.38); box(T, g, M.gilt, 0, 0.83, 0, 0.39, 0.008, 0.39); box(T, g, M.verde, 0, 0.895, 0, 0.42, 0.03, 0.42);
+    return { group: g, hb: [0.44, 0.91, 0.44], place: 'floor' };
+  };
+  F['kh-carpet'] = function (T) {
+    if (!F._kc) {
+      var c = document.createElement('canvas'); c.width = 1024; c.height = 1408; var x = c.getContext('2d'), W = c.width, H = c.height, i;
+      x.fillStyle = '#1e2a4a'; x.fillRect(0, 0, W, H);                                     // the border: deep blue, gold acanthus
+      x.strokeStyle = '#c9a24a'; x.lineWidth = 8; x.strokeRect(16, 16, W - 32, H - 32); x.strokeRect(118, 118, W - 236, H - 236);
+      for (i = 0; i < 96; i++) { var t = i / 96, P = 2 * (W - 134) + 2 * (H - 134), d = t * P, px, py;
+        if (d < W - 134) { px = 67 + d; py = 67; } else if ((d -= W - 134) < H - 134) { px = W - 67; py = 67 + d; } else if ((d -= H - 134) < W - 134) { px = W - 67 - d; py = H - 67; } else { d -= W - 134; px = 67; py = H - 67 - d; }
+        x.save(); x.translate(px, py); x.rotate(t * 40); x.fillStyle = i % 2 ? '#d9b46a' : '#a8323a'; x.beginPath(); x.ellipse(0, 0, 18, 7, 0, 0, 6.3); x.fill(); x.fillStyle = '#e8dcc0'; x.beginPath(); x.arc(0, 0, 3.5, 0, 6.3); x.fill(); x.restore(); }
+      x.fillStyle = '#5e1e22'; x.fillRect(126, 126, W - 252, H - 252);                    // the field: aged ivory, a lattice of small flowers, rose garlands
+      x.strokeStyle = 'rgba(201,162,74,.38)'; x.lineWidth = 2;
+      for (var gx = 160; gx < W - 140; gx += 56) for (var gy = 160; gy < H - 140; gy += 56) { x.beginPath(); x.moveTo(gx - 9, gy); x.lineTo(gx, gy - 9); x.lineTo(gx + 9, gy); x.lineTo(gx, gy + 9); x.closePath(); x.stroke(); x.fillStyle = (gx + gy) % 112 ? 'rgba(232,220,192,.55)' : 'rgba(201,162,74,.6)'; x.beginPath(); x.arc(gx, gy, 3, 0, 6.3); x.fill(); }
+      for (i = 0; i < 260; i++) { var fx = 150 + Math.random() * (W - 300), fy = 150 + Math.random() * (H - 300); x.fillStyle = ['rgba(232,220,192,.3)', 'rgba(110,140,90,.35)', 'rgba(201,162,74,.35)'][i % 3]; x.beginPath(); x.arc(fx, fy, 3 + Math.random() * 6, 0, 6.3); x.fill(); }
+      function ring(r, col, lw) { x.strokeStyle = col; x.lineWidth = lw; x.beginPath(); x.ellipse(W / 2, H / 2, r, r * 1.3, 0, 0, 6.3); x.stroke(); }
+      x.fillStyle = '#e3d4b4'; x.beginPath(); x.ellipse(W / 2, H / 2, 260, 340, 0, 0, 6.3); x.fill(); x.fillStyle = '#1e2a4a'; x.beginPath(); x.ellipse(W / 2, H / 2, 170, 222, 0, 0, 6.3); x.fill();
+      ring(260, '#b8903a', 8); ring(240, '#1e2a4a', 4); ring(150, 'rgba(201,162,74,.8)', 3);
+      for (i = 0; i < 36; i++) { var b = i / 36 * Math.PI * 2; x.fillStyle = i % 2 ? '#b8903a' : '#e8dcc0'; x.beginPath(); x.arc(W / 2 + Math.cos(b) * 250, H / 2 + Math.sin(b) * 325, 5, 0, 6.3); x.fill(); }
+      for (i = 0; i < 24; i++) { var a = i / 24 * Math.PI * 2; x.save(); x.translate(W / 2 + Math.cos(a) * 190, H / 2 + Math.sin(a) * 248); x.rotate(a); x.fillStyle = i % 2 ? '#c9a24a' : '#a8323a'; x.beginPath(); x.ellipse(0, 0, 26, 9, 0, 0, 6.3); x.fill(); x.restore(); }
+      x.fillStyle = '#c9a24a'; x.beginPath(); x.ellipse(W / 2, H / 2, 90, 117, 0, 0, 6.3); x.fill(); x.fillStyle = '#1e2a4a'; x.beginPath(); x.ellipse(W / 2, H / 2, 50, 65, 0, 0, 6.3); x.fill();
+      [[126, 126], [W - 126, 126], [126, H - 126], [W - 126, H - 126]].forEach(function (q) { x.fillStyle = '#1e2a4a'; x.beginPath(); x.arc(q[0], q[1], 110, 0, 6.3); x.fill(); x.strokeStyle = '#b8903a'; x.lineWidth = 4; x.beginPath(); x.arc(q[0], q[1], 92, 0, 6.3); x.stroke(); x.fillStyle = '#e3d4b4'; x.beginPath(); x.arc(q[0], q[1], 60, 0, 6.3); x.fill(); x.fillStyle = 'rgba(201,162,74,.8)'; x.beginPath(); x.arc(q[0], q[1], 18, 0, 6.3); x.fill(); });
+      x.strokeStyle = '#c9a24a'; x.lineWidth = 8; x.strokeRect(118, 118, W - 236, H - 236);
+      var im = x.getImageData(0, 0, W, H), D = im.data; for (i = 0; i < D.length; i += 4) { var n = (Math.random() - 0.5) * 22 - ((i / 4 / W | 0) % 3 === 0 ? 7 : 0); D[i] = D[i] * 0.9 + n; D[i + 1] = D[i + 1] * 0.88 + n; D[i + 2] = D[i + 2] * 0.88 + n; } x.putImageData(im, 0, 0);
+      var tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding; tx.anisotropy = 8; F._kc = new T.MeshStandardMaterial({ map: tx, roughness: 0.95 });
+    }
+    var g = new T.Group(), CW = 2.6, CD = 3.6, m = new T.Mesh(new T.BoxGeometry(CW, 0.012, CD), [F._kc.clone(), F._kc.clone(), F._kc, F._kc.clone(), F._kc.clone(), F._kc.clone()]);
+    [0, 1, 3, 4, 5].forEach(function (k) { m.material[k] = new T.MeshStandardMaterial({ color: 0x1e2a4a, roughness: 1 }); });
+    m.position.y = 0.055; m.receiveShadow = true; g.add(m);                         // the scanned floor stands ~5 cm proud
+    return { group: g, hb: [CW, 0.07, CD], place: 'floor' };
+  };
+  F['kh-girandole'] = function (T) {                                                       // a gilt torchère, three candles
+    var M = kmats(T), g = new T.Group(), i, flames = [];
+    for (i = 0; i < 3; i++) { var a = i / 3 * Math.PI * 2, ft = new T.Mesh(new T.BoxGeometry(0.05, 0.03, 0.2), M.gilt); ft.position.set(Math.sin(a) * 0.1, 0.03, Math.cos(a) * 0.1); ft.rotation.y = a; ft.rotation.x = -0.35; g.add(ft); }
+    var col = lathe(T, [[0, 0.04], [0.06, 0.04], [0.07, 0.1], [0.04, 0.16], [0.06, 0.3], [0.035, 0.5], [0.025, 0.9], [0.045, 0.98], [0.03, 1.08], [0.05, 1.18], [0.065, 1.22], [0, 1.22]], M.gilt, 16); col.castShadow = true; g.add(col);
+    var fT = (function () { var c = document.createElement('canvas'); c.width = 32; c.height = 64; var x = c.getContext('2d'), gr = x.createRadialGradient(16, 46, 2, 16, 40, 30); gr.addColorStop(0, 'rgba(255,245,200,1)'); gr.addColorStop(0.4, 'rgba(255,190,90,.8)'); gr.addColorStop(1, 'rgba(255,120,30,0)'); x.fillStyle = gr; x.beginPath(); x.moveTo(16, 2); x.quadraticCurveTo(30, 40, 24, 60); x.lineTo(8, 60); x.quadraticCurveTo(2, 40, 16, 2); x.fill(); var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; return t; })();
+    var fm = new T.MeshBasicMaterial({ map: fT, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false });
+    [[0, 0, 1.34], [-0.17, 0, 1.28], [0.17, 0, 1.28]].forEach(function (q, k) {
+      if (k) { var arm = new T.Mesh(new T.TorusGeometry(0.085, 0.01, 6, 16, Math.PI), M.gilt); arm.position.set(q[0] / 2, 1.2, 0); arm.rotation.z = q[0] > 0 ? 0 : 0; arm.scale.y = 0.5; g.add(arm); }
+      var cup = lathe(T, [[0, 0], [0.03, 0], [0.04, 0.025], [0, 0.025]], M.gilt, 12); cup.position.set(q[0], q[2] - 0.08, q[1]); g.add(cup);
+      var cd = new T.Mesh(new T.CylinderGeometry(0.014, 0.014, 0.1, 10), M.wax); cd.position.set(q[0], q[2] - 0.03, q[1]); g.add(cd);
+      var fl = new T.Mesh(new T.PlaneGeometry(0.035, 0.07), fm); fl.position.set(q[0], q[2] + 0.055, q[1]); g.add(fl); flames.push(fl);
+      var fl2 = fl.clone(); fl2.rotation.y = Math.PI / 2; g.add(fl2); flames.push(fl2);
+    });
+    var light = new T.PointLight(0xffc27a, 0.35, 3.2, 2); light.position.set(0, 1.4, 0); g.add(light);
+    return { group: g, hb: [0.3, 1.42, 0.3], place: 'floor',
+      tick: function (t) { var f = 0.9 + 0.1 * Math.sin(t * 11) * Math.sin(t * 4.3); light.intensity = 0.35 * f; flames.forEach(function (m, k) { m.scale.y = 0.85 + 0.2 * Math.sin(t * (9 + k) + k); }); } };
+  };
+  [{ id: 'kh-plinth', name: '大理石展示柱', en: 'Marble column', size: [0.44, 0.91, 0.44] }, { id: 'kh-carpet', name: '宫廷地毯', en: 'Savonnerie carpet', size: [2.6, 0.01, 3.6] }, { id: 'kh-girandole', name: '镀金烛台', en: 'Gilt girandole', size: [0.3, 1.42, 0.3] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '国王大厅的家具' }); });
 })(window);
 
 /* Minest · Spatial Home — the things that are the apps (the fishing rod became the Octo aquarium in entries.js).
@@ -189559,8 +189672,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (!v || typeof v !== 'object') { if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; v = S.layouts[env] || {}; }
     if (room && room.envId === env && room.defaultLayout && !v.showroom) {              // a showroom room is furnished once (later changes are yours)
       var d0 = room.defaultLayout(); v = JSON.parse(JSON.stringify(v)); v.extras = (v.extras || []).concat((d0.extras || []).filter(function (e) { return !(v.extras || []).some(function (x) { return x.uid === e.uid; }); }));
-      v.showroom = 1; LCACHE[env] = v; saveLayout(env, v); return v;
+      v.showroom = 1; LCACHE[env] = v; saveLayout(env, v);
     }
+    if (room && room.envId === env && room.upgrade && !room.movable && (v.up | 0) < room.upgrade.v) {   // the room's refurnishing, once (a room with its own model furniture does it when that has loaded)
+      v = LCACHE[env] === v ? v : JSON.parse(JSON.stringify(v)); try { room.upgrade.fn(v); } catch (er) {} v.up = room.upgrade.v; LCACHE[env] = v; saveLayout(env, v); return v;
+    }
+    if (LCACHE[env] === v) return v;
     return (LCACHE[env] = JSON.parse(JSON.stringify(v)));
   }
   function saveLayout(env, v) { LCACHE[env] = v; if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; S.layouts[env] = v; var BPs = window.MinestBackpack && window.MinestBackpack.store; if (BPs) BPs.set('bp:home:' + env, v); }
