@@ -32,23 +32,21 @@ export function create(ctx: WorldContext): WorldInstance {
   const root = new THREE.Group();
   ctx.scene.add(root);
 
-  // 1. 温暖阳光丘陵
-  ctx.scene.background = new T.Color(0xbfe7ff);
-  ctx.scene.fog = new T.Fog(0xbfe7ff, 18, 55);
+  // 1. Minimal dark stage: near-black, one key light, a single dark round plinth to land on
+  ctx.scene.background = new T.Color(0x020203);
+  ctx.scene.fog = new T.FogExp2(0x020203, 0.035);
   ctx.camera.position.set(0, 1.8, 10.5);
   ctx.camera.lookAt(0, 0.6, 0);
 
-  const amb = new T.AmbientLight(0xfff5ea, 1.1);
-  root.add(amb);
-  const sun = new T.DirectionalLight(0xfffaed, 1.5);
-  sun.position.set(6, 12, 8);
+  root.add(new T.HemisphereLight(0xb8c4dc, 0x0a0806, 0.45));
+  const sun = new T.DirectionalLight(0xfff1e0, 1.6);
+  sun.position.set(4, 10, 7);
   sun.castShadow = ctx.quality > 0;
   root.add(sun);
 
-  // 绿色圆润草坪丘陵
   const grass = new T.Mesh(
-    new T.CylinderGeometry(18, 18, 1, 48),
-    new T.MeshStandardMaterial({ color: 0x76c449, roughness: 0.85 })
+    new T.CylinderGeometry(9, 9, 1, 64),
+    new T.MeshStandardMaterial({ color: 0x0c0d10, roughness: 0.7, metalness: 0.2 })
   );
   grass.position.set(0, -0.5, 0);
   grass.receiveShadow = ctx.quality > 0;

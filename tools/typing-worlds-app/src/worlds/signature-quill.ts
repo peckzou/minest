@@ -25,30 +25,34 @@ export function create(ctx: WorldContext): WorldInstance {
   const T = ctx.THREE;
   const root = new THREE.Group();
   ctx.scene.add(root);
+  // letters lie flat on the paper (the default vertical layout cut them in half at the desk)
+  const prevLayout = { ...ctx.layout.opts };
+  ctx.layout.setOptions({ metric: 'script', size: 1.1, tracking: 0.05, maxWidth: 10, maxLines: 2, lineHeight: 1.7, origin: [0, 0.03, 0.2], plane: 'xz', minScale: 0.4 });
 
-  // 1. 典雅桌面与 35°~45° 俯视角
-  ctx.scene.background = new T.Color(0x2b1c11);
-  ctx.scene.fog = new T.Fog(0x2b1c11, 16, 45);
+  // 1. 暗色书桌：近黑背景，一束暖光照在信纸上（经典 3D Type 的 Quill 风格）
+  ctx.scene.background = new T.Color(0x0a0605);
+  ctx.scene.fog = new T.Fog(0x0a0605, 12, 26);
   ctx.camera.position.set(0, 5.5, 8.5);
   ctx.camera.lookAt(0, 0, 0);
 
-  const amb = new T.AmbientLight(0xffeedd, 1.1);
+  const amb = new T.HemisphereLight(0xfff0dc, 0x1a0f08, 0.35);
   root.add(amb);
-  const lamp = new T.DirectionalLight(0xffdcb0, 1.8);
-  lamp.position.set(4, 10, 6);
+  const lamp = new T.SpotLight(0xffd6a0, 170, 0, 0.62, 0.85, 2);
+  lamp.position.set(2.5, 11, 5);
+  lamp.target.position.set(0, 0, 0);
   lamp.castShadow = ctx.quality > 0;
-  root.add(lamp);
+  root.add(lamp, lamp.target);
 
-  // 木质桌面
-  const deskMat = new T.MeshStandardMaterial({ color: 0x3d2716, roughness: 0.6, metalness: 0.1 });
-  const desk = new T.Mesh(new T.PlaneGeometry(28, 18), deskMat);
+  // 暗哑桌面（几乎融入背景）
+  const deskMat = new T.MeshStandardMaterial({ color: 0x120b07, roughness: 0.9, metalness: 0 });
+  const desk = new T.Mesh(new T.PlaneGeometry(40, 30), deskMat);
   desk.rotation.x = -Math.PI / 2;
   desk.receiveShadow = ctx.quality > 0;
   root.add(desk);
 
   // 平铺羊皮信纸
   const paperTex = canvasTexture(512, 512, (g, w, h) => {
-    g.fillStyle = '#f6ede0';
+    g.fillStyle = '#ddd0b8';
     g.fillRect(0, 0, w, h);
     for (let i = 0; i < 20000; i++) {
       g.fillStyle = `rgba(180,150,120,${Math.random() * 0.05})`;
@@ -56,7 +60,7 @@ export function create(ctx: WorldContext): WorldInstance {
     }
   });
   const paperMat = new T.MeshStandardMaterial({ map: paperTex, roughness: 0.85 });
-  const paper = new T.Mesh(new T.PlaneGeometry(15, 8.5), paperMat);
+  const paper = new T.Mesh(new T.PlaneGeometry(11, 5), paperMat);
   paper.rotation.x = -Math.PI / 2;
   paper.position.set(0, 0.02, 0);
   paper.receiveShadow = ctx.quality > 0;
@@ -67,7 +71,7 @@ export function create(ctx: WorldContext): WorldInstance {
     new T.CylinderGeometry(0.35, 0.45, 0.6, 16),
     new T.MeshStandardMaterial({ color: 0x111116, roughness: 0.2, metalness: 0.8 })
   );
-  inkwell.position.set(6.2, 0.3, -2.5);
+  inkwell.position.set(4.6, 0.3, -3.4);
   root.add(inkwell);
 
   // 2. 3D 悬浮鹅毛笔
@@ -89,7 +93,7 @@ export function create(ctx: WorldContext): WorldInstance {
   feather.rotateZ(Math.PI / 5);
   quillGroup.add(feather);
 
-  quillGroup.position.set(6.2, 0.8, -2.2);
+  quillGroup.position.set(4.6, 0.8, -3.1);
   root.add(quillGroup);
 
   // 3. 墨迹着色器 (粗细变化与湿干过渡)
@@ -130,7 +134,7 @@ export function create(ctx: WorldContext): WorldInstance {
     liftHeight: 0.28,
     maxQueue: 2,
     approach: 0.16,
-    rest: () => new T.Vector3(6.2, 0.8, -2.2),
+    rest: () => new T.Vector3(4.6, 0.8, -3.1),
     restDelay: 1.0,
   });
 
@@ -258,6 +262,7 @@ export function create(ctx: WorldContext): WorldInstance {
       deskMat.dispose();
       disposeObject(quillGroup);
       disposeObject(root);
+      ctx.layout.setOptions(prevLayout);
     },
   };
 }

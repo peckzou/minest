@@ -24,9 +24,10 @@ import { ToolController } from '../engine/tools';
 import { clamp, damp, easeInOutCubic, easeOutCubic, rng } from '../engine/anim';
 import type { Glyph, Stroke } from '../engine/glyphs/glyph-engine';
 
-const THEMES: Record<string, { bg: number; board: number; wood: number; wall: number }> = {
-  green: { bg: 0x1d2420, board: 0x3f6a50, wood: 0x5a3c1e, wall: 0x6b6450 },
-  black: { bg: 0x151617, board: 0x34383b, wood: 0x40301f, wall: 0x55524a },
+/* themes tint only the board + frame; the stage itself always stays near-black */
+const THEMES: Record<string, { bg: number; board: number; wood: number }> = {
+  green: { bg: 0x020403, board: 0x3f6a50, wood: 0x1a130c },
+  black: { bg: 0x030303, board: 0x34383b, wood: 0x151210 },
 };
 
 /* board geometry (world units) */
@@ -163,11 +164,9 @@ class ChalkFlow extends LetterWorld<ChalkVisual> {
   private smudges: Smudge[] = [];
   private lines: BoardLine[] = [];
   private boardTex: THREE.CanvasTexture;
-  private bannerTex: THREE.CanvasTexture;
   private smearTex: THREE.CanvasTexture;
   private boardMat: THREE.MeshStandardMaterial;
   private woodMat: THREE.MeshStandardMaterial;
-  private wallMat: THREE.MeshStandardMaterial;
   private smearGeo = new THREE.PlaneGeometry(1, 1);
   private boardScroll = 0;
   private boardScrollTarget = 0;
@@ -190,23 +189,12 @@ class ChalkFlow extends LetterWorld<ChalkVisual> {
 
     ctx.scene.background = new T.Color(th.bg);
     ctx.scene.fog = new T.Fog(th.bg, 24, 60);
-    this.root.add(new T.AmbientLight(0xfff1dc, 0.75));
-    const key = new T.DirectionalLight(0xfff0d8, 1.35);
+    this.root.add(new T.AmbientLight(0xfff1dc, 0.32));
+    const key = new T.DirectionalLight(0xfff0d8, 1.25);
     key.position.set(-6, 9, 9);
     this.root.add(key);
-    const lamp = new T.PointLight(0xffd9a0, 18, 26, 1.6);
-    lamp.position.set(3, 6.5, 5);
-    this.root.add(lamp);
 
-    // classroom wall + wainscot
-    this.wallMat = new T.MeshStandardMaterial({ color: th.wall, roughness: 0.95 });
-    const wall = new T.Mesh(new T.PlaneGeometry(60, 30), this.wallMat);
-    wall.position.set(0, 2, -0.35);
-    this.root.add(wall);
     this.woodMat = new T.MeshStandardMaterial({ color: th.wood, roughness: 0.62, metalness: 0.05 });
-    const wainscot = new T.Mesh(new T.BoxGeometry(60, 3.2, 0.2), this.woodMat);
-    wainscot.position.set(0, -6.4, -0.25);
-    this.root.add(wainscot);
 
     // blackboard surface (scrolls on Enter like a roller board)
     this.boardTex = canvasTexture(1024, 600, (g, w, h) => {
@@ -240,7 +228,7 @@ class ChalkFlow extends LetterWorld<ChalkVisual> {
     this.root.add(board);
 
     // frame + chalk tray
-    const fw = 0.34;
+    const fw = 0.16;
     const mk = (w: number, h: number, d: number, x: number, y: number, z: number) => {
       const m = new T.Mesh(new T.BoxGeometry(w, h, d), this.woodMat);
       m.position.set(x, y, z);
@@ -253,35 +241,6 @@ class ChalkFlow extends LetterWorld<ChalkVisual> {
     mk(fw, BOARD_H, 0.26, BOARD_W / 2 + fw / 2, BOARD_Y, 0.04);
     mk(BOARD_W + 0.4, 0.08, 0.62, 0, TRAY_Y - 0.12, 0.3); // tray shelf
     mk(BOARD_W + 0.4, 0.14, 0.05, 0, TRAY_Y - 0.06, 0.6); // tray lip
-
-    // spare chalk on the tray
-    const spareMat = new T.MeshStandardMaterial({ color: 0xf2efe6, roughness: 0.95 });
-    const spareCol = [0xf2efe6, 0xf7e7a1, 0xf3c0c8];
-    spareCol.forEach((c, i) => {
-      const m = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.42 - i * 0.08, 10), i ? new T.MeshStandardMaterial({ color: c, roughness: 0.95 }) : spareMat);
-      m.rotation.z = Math.PI / 2;
-      m.rotation.y = 0.2 * (i - 1);
-      m.position.set(5.6 + i * 0.5, TRAY_Y + 0.0, 0.32);
-      this.root.add(m);
-    });
-
-    // alphabet banner above the board (vintage classroom cue)
-    this.bannerTex = canvasTexture(2048, 128, (g, w, h) => {
-      g.fillStyle = '#e9dfc4';
-      g.fillRect(0, 0, w, h);
-      g.strokeStyle = '#b13d2f';
-      g.lineWidth = 6;
-      g.strokeRect(6, 6, w - 12, h - 12);
-      g.fillStyle = '#2b3a55';
-      g.font = 'italic 64px Georgia, serif';
-      g.textBaseline = 'middle';
-      const s = 'Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt';
-      g.textAlign = 'center';
-      g.fillText(s, w / 2, h / 2 + 4);
-    });
-    const banner = new T.Mesh(new T.PlaneGeometry(BOARD_W, BOARD_W / 16), new T.MeshStandardMaterial({ map: this.bannerTex, roughness: 0.9 }));
-    banner.position.set(0, BOARD_TOP + 0.95, -0.2);
-    this.root.add(banner);
 
     // chalk dust
     this.dust = new Particles({ capacity: ctx.quality === 0 ? 500 : 1000, gravity: [0, -1.6, 0], drag: 2.2, size: 0.035, shape: 'flake', blending: THREE.NormalBlending, opacity: 0.85 });
@@ -701,7 +660,6 @@ class ChalkFlow extends LetterWorld<ChalkVisual> {
     this.ctx.scene.background = new THREE.Color(th.bg);
     (this.ctx.scene.fog as THREE.Fog | null)?.color.set(th.bg);
     this.woodMat.color.set(th.wood);
-    this.wallMat.color.set(th.wall);
     // re-tint the board surface without redrawing the texture
     this.boardMat.color.set(th.board);
     this.ctx.keepAlive(300);
@@ -716,7 +674,6 @@ class ChalkFlow extends LetterWorld<ChalkVisual> {
     this.dust.dispose();
     this.smearGeo.dispose();
     this.boardTex.dispose();
-    this.bannerTex.dispose();
     this.smearTex.dispose();
     super.disposeWorld();
     this.ctx.layout.setOptions(this.prevLayout);

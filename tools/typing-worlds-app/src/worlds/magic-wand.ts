@@ -1,8 +1,7 @@
 /**
  * WORLD 19 · Magic Wand (魔法棒)
  *
- * A starlit academy chamber: night-sky dome, a ring of stone pillars, a slowly turning
- * floor sigil and drifting crystal motes.
+ * A minimal near-black stage: a dark floor with one faint, slowly turning sigil.
  * Per letter:
  *   1. aim    — the wand lifts and swings to the letter's first stroke; sparks gather
  *               at its tip (charge) while it travels.
@@ -20,10 +19,10 @@
 import * as THREE from 'three';
 import type { DeleteEvent, InsertEvent, SaveOutcome, WorldContext, WorldModule } from '../engine/types';
 import type { Slot, LayoutOptions } from '../engine/layout';
-import { LetterWorld, type LetterVisual, canvasTexture, disposeObject, gradientSky, blobTexture } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual, canvasTexture, disposeObject, blobTexture } from '../engine/letter-world';
 import { Particles } from '../engine/particles';
 import { ToolController } from '../engine/tools';
-import { clamp, damp, easeInOutCubic, easeOutBack, easeOutCubic, lerp, rng } from '../engine/anim';
+import { clamp, damp, easeInOutCubic, easeOutBack, easeOutCubic, lerp } from '../engine/anim';
 import type { EvenPoint } from '../engine/glyphs/glyph-engine';
 
 const THEMES: Record<string, { color: number; core: number; star: number; rainbow: number }> = {
@@ -89,14 +88,9 @@ class MagicWand extends LetterWorld<WandVisual> {
   private tipGlowMat: THREE.SpriteMaterial;
   private tipLight: THREE.PointLight;
   private tipMat: THREE.MeshBasicMaterial;
-  private stars: THREE.Points;
-  private starMat: THREE.ShaderMaterial;
   private floorSigil: THREE.Mesh;
   private sigilTex: THREE.CanvasTexture;
-  private floorTex: THREE.CanvasTexture;
   private sigilGeo = new THREE.PlaneGeometry(1, 1);
-  private motes: THREE.Mesh[] = [];
-  private moteMat: THREE.MeshBasicMaterial;
   private charge = 0;
   private dir = BODY_DIR.clone();
   private flourish: { t: number; dur: number; x0: number; x1: number; y: number; z: number } | null = null;
@@ -114,73 +108,22 @@ class MagicWand extends LetterWorld<WandVisual> {
     this.prevLayout = { ...ctx.layout.opts };
     ctx.layout.setOptions({ metric: 'sans', size: 1.15, tracking: 0.18, maxLines: 2, origin: [0, 0.55, 0], plane: 'xy', lineHeight: 1.6 });
 
-    ctx.scene.background = new T.Color(0x060818);
-    ctx.scene.fog = new T.FogExp2(0x070a1e, 0.018);
-    this.root.add(gradientSky(0x0b1240, 0x04050c, { horizon: 0x1d1a4a, exponent: 0.7 }));
-    this.root.add(new T.AmbientLight(0x3a4a8a, 0.9));
-    const moon = new T.DirectionalLight(0xb8c8ff, 1.0);
+    // Minimal dark stage (classic 3D Type look): near-black, dim moonlight, a dark floor
+    // with only the faint turning sigil; the wand, its trail and the letters are the light.
+    ctx.scene.background = new T.Color(0x020203);
+    ctx.scene.fog = new T.FogExp2(0x020203, 0.03);
+    this.root.add(new T.HemisphereLight(0x8fa2c8, 0x0a0806, 0.3));
+    const moon = new T.DirectionalLight(0xb8c8ff, 0.45);
     moon.position.set(-5, 9, 6);
     this.root.add(moon);
 
-    // starfield dome (twinkling in the shader)
-    const N = ctx.quality === 0 ? 500 : 1100;
-    const pos = new Float32Array(N * 3);
-    const seed = new Float32Array(N);
-    const r = rng(19);
-    for (let i = 0; i < N; i++) {
-      const th = r() * Math.PI * 2;
-      const ph = Math.acos(lerp(0.98, -0.25, r()));
-      const R = 90;
-      pos[i * 3] = Math.sin(ph) * Math.cos(th) * R;
-      pos[i * 3 + 1] = Math.cos(ph) * R * 0.8 + 6;
-      pos[i * 3 + 2] = -Math.abs(Math.sin(ph) * Math.sin(th) * R) - 10;
-      seed[i] = r();
-    }
-    const sg = new T.BufferGeometry();
-    sg.setAttribute('position', new T.BufferAttribute(pos, 3));
-    sg.setAttribute('aSeed', new T.BufferAttribute(seed, 1));
-    this.starMat = new T.ShaderMaterial({
-      uniforms: { uTime: { value: 0 } },
-      vertexShader: `attribute float aSeed; uniform float uTime; varying float vA;
-        void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mv;
-          vA = 0.45 + 0.55*sin(uTime*(0.6+aSeed*2.2) + aSeed*40.0);
-          gl_PointSize = (1.2 + aSeed*aSeed*3.2); }`,
-      fragmentShader: `varying float vA; void main(){ vec2 p = gl_PointCoord*2.0-1.0; float a = smoothstep(1.0,0.0,length(p));
-        gl_FragColor = vec4(vec3(0.85,0.9,1.0), a*vA); }`,
-      transparent: true,
-      depthWrite: false,
-      blending: T.AdditiveBlending,
-      fog: false,
-    });
-    this.stars = new T.Points(sg, this.starMat);
-    this.stars.frustumCulled = false;
-    this.root.add(this.stars);
-
-    // chamber: stone floor, pillars
-    this.floorTex = canvasTexture(512, 512, (g, w, h) => {
-      g.fillStyle = '#4a4a5c';
-      g.fillRect(0, 0, w, h);
-      const rr = rng(4);
-      for (let y = 0; y < 8; y++)
-        for (let x = 0; x < 8; x++) {
-          const v = 70 + rr() * 30;
-          g.fillStyle = `rgb(${v},${v},${v + 14})`;
-          g.fillRect(x * 64 + 2, y * 64 + 2, 60, 60);
-        }
-    }, { repeat: 6 });
-    const floorMat = new T.MeshStandardMaterial({ map: this.floorTex, color: 0x5a5f80, roughness: 0.8, metalness: 0.1 });
-    const floor = new T.Mesh(new T.CircleGeometry(26, 48), floorMat);
+    const floor = new T.Mesh(
+      new T.PlaneGeometry(80, 50),
+      new T.MeshStandardMaterial({ color: 0x08080b, roughness: 0.8, metalness: 0.1 })
+    );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -3.4;
     this.root.add(floor);
-    const pillarMat = new T.MeshStandardMaterial({ color: 0x3d4060, roughness: 0.85 });
-    const pillarGeo = new T.CylinderGeometry(0.55, 0.65, 16, 12);
-    for (let i = 0; i < 7; i++) {
-      const a = Math.PI * (0.12 + (i / 6) * 0.76);
-      const p = new T.Mesh(pillarGeo, pillarMat);
-      p.position.set(Math.cos(a) * 15, 4.6, -Math.sin(a) * 15 + 1);
-      this.root.add(p);
-    }
 
     // sigil textures (floor & per-letter seal)
     this.sigilTex = canvasTexture(512, 512, (g, w) => {
@@ -220,23 +163,11 @@ class MagicWand extends LetterWorld<WandVisual> {
     });
     this.floorSigil = new T.Mesh(
       new T.PlaneGeometry(9, 9),
-      new T.MeshBasicMaterial({ map: this.sigilTex, color: this.th.color, transparent: true, opacity: 0.32, blending: T.AdditiveBlending, depthWrite: false })
+      new T.MeshBasicMaterial({ map: this.sigilTex, color: this.th.color, transparent: true, opacity: 0.18, blending: T.AdditiveBlending, depthWrite: false })
     );
     this.floorSigil.rotation.x = -Math.PI / 2;
     this.floorSigil.position.set(0, -3.38, 0.5);
     this.root.add(this.floorSigil);
-
-    // drifting crystal motes
-    this.moteMat = new T.MeshBasicMaterial({ color: this.th.core, transparent: true, opacity: 0.8 });
-    const moteGeo = new T.OctahedronGeometry(0.07, 0);
-    for (let i = 0; i < (ctx.quality === 0 ? 8 : 16); i++) {
-      const m = new T.Mesh(moteGeo, this.moteMat);
-      m.position.set((r() - 0.5) * 18, -1 + r() * 7, -2 - r() * 6);
-      m.userData.base = m.position.clone();
-      m.userData.ph = r() * 6.28;
-      this.motes.push(m);
-      this.root.add(m);
-    }
 
     // sparks
     this.sparks = new Particles({ capacity: ctx.quality === 0 ? 600 : 1400, gravity: [0, -0.35, 0], drag: 1.6, size: 0.05, shape: 'spark' });
@@ -536,14 +467,7 @@ class MagicWand extends LetterWorld<WandVisual> {
   protected updateWorld(dt: number, time: number): boolean {
     let moving = false;
     this.responsive();
-    this.starMat.uniforms.uTime.value = time;
     this.floorSigil.rotation.z = time * 0.05;
-    for (const m of this.motes) {
-      const b = m.userData.base as THREE.Vector3;
-      const ph = m.userData.ph as number;
-      m.position.set(b.x + Math.sin(time * 0.3 + ph) * 0.4, b.y + Math.sin(time * 0.7 + ph) * 0.3, b.z);
-      m.rotation.y = time + ph;
-    }
     if (this.sparks.update(dt, time)) moving = true;
     if (this.controller.update(dt)) moving = true;
     const tool = this.controller.tools[0];
@@ -625,7 +549,6 @@ class MagicWand extends LetterWorld<WandVisual> {
     this.tipMat.color.set(th.core);
     this.tipGlowMat.color.set(th.color);
     this.tipLight.color.set(th.color);
-    this.moteMat.color.set(th.core);
     (this.floorSigil.material as THREE.MeshBasicMaterial).color.set(th.color);
     for (const v of this.letters.values()) {
       v.mat.uniforms.uColor.value.set(th.color);
@@ -640,7 +563,6 @@ class MagicWand extends LetterWorld<WandVisual> {
     this.sparks.dispose();
     this.sigilGeo.dispose();
     this.sigilTex.dispose();
-    this.floorTex.dispose();
     super.disposeWorld();
     this.ctx.layout.setOptions(this.prevLayout);
     this.ctx.scene.fog = null;

@@ -11,7 +11,7 @@
  * a varnish glint runs along it, then the board is dressed smooth for the next word.
  */
 import * as THREE from 'three';
-import { LetterWorld, type LetterVisual, gradientSky } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual } from '../engine/letter-world';
 import { clamp, rand, smooth, lerp } from '../engine/anim';
 import { Particles } from '../engine/particles';
 import { ToolController } from '../engine/tools';
@@ -120,14 +120,16 @@ const WOOD = /* glsl */ `
     vec3 V = normalize(cameraPosition - wp);
     vec3 H = normalize(uLight + V);
     float sp = pow(max(dot(n, H), 0.0), shin) * specK;
-    return base * (0.36 + 0.9*d) * ao + vec3(sp);
+    /* a pool of lamp light on the board that falls off into the dark stage */
+    float pool = mix(0.04, 1.0, 1.0 - smoothstep(1.3, 3.9, length((wp.xy - vec2(0.0, -0.2)) * vec2(0.55, 1.0))));
+    return (base * (0.3 + 0.9*d) * ao + vec3(sp)) * pool;
   }
 `;
 
 function woodUniforms() {
   return {
-    uWoodA: { value: new THREE.Color(0xe2b97f) },
-    uWoodB: { value: new THREE.Color(0xb27a45) },
+    uWoodA: { value: new THREE.Color(0xa77748) },
+    uWoodB: { value: new THREE.Color(0x6b4122) },
     uLight: { value: LIGHT.clone() },
   };
 }
@@ -314,45 +316,35 @@ class WoodWorld extends LetterWorld<WoodVisual> {
   constructor(ctx: WorldContext) {
     super(ctx);
     const scene = ctx.scene;
-    scene.background = new THREE.Color(0x2a1f17);
-    scene.fog = new THREE.Fog(0x2a1f17, 18, 50);
-    this.root.add(gradientSky(0x3b2c20, 0x15100c, { horizon: 0x4a3626, exponent: 0.9 }));
+    // classic 3D Type look: near-black warm stage, only the board is lit
+    scene.background = new THREE.Color(0x050302);
+    scene.fog = new THREE.Fog(0x050302, 14, 30);
     ctx.camera.position.set(-0.4, 0.9, 11.2);
     ctx.camera.lookAt(0, -0.2, 0);
 
-    this.root.add(new THREE.AmbientLight(0xffe6c8, 0.55));
-    const key = new THREE.DirectionalLight(0xffe9cc, 2.1);
+    this.root.add(new THREE.AmbientLight(0xffe6c8, 0.22));
+    const key = new THREE.DirectionalLight(0xffe9cc, 2.0);
     key.position.copy(LIGHT).multiplyScalar(12);
     this.root.add(key);
-    const fill = new THREE.DirectionalLight(0xb0c4e0, 0.3);
-    fill.position.set(6, -1, 6);
-    this.root.add(fill);
 
     // board
     const face = new THREE.Mesh(new THREE.PlaneGeometry(15.2, 7.0), boardMaterial());
     face.position.set(0, 0.3, 0);
     this.root.add(face);
-    const edgeMat = new THREE.MeshStandardMaterial({ color: 0xa8763f, roughness: 0.8 });
+    const edgeMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0e, roughness: 0.85 });
     const body = new THREE.Mesh(new THREE.BoxGeometry(15.3, 7.1, 0.6), edgeMat);
     body.position.set(0, 0.3, -0.31);
     this.root.add(body);
-    // workbench
-    const benchMat = new THREE.MeshStandardMaterial({ color: 0x6b4527, roughness: 0.85 });
-    const bench = new THREE.Mesh(new THREE.BoxGeometry(18, 0.6, 3.2), benchMat);
-    bench.position.set(0, BENCH_Y - 0.3, 0.9);
+    // a single dark ledge the board stands on (shavings land here)
+    const benchMat = new THREE.MeshStandardMaterial({ color: 0x0d0906, roughness: 0.9 });
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(17, 0.3, 3.2), benchMat);
+    bench.position.set(0, BENCH_Y - 0.15, 0.9);
     this.root.add(bench);
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshStandardMaterial({ color: 0x24190f, roughness: 1 }));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 30), new THREE.MeshStandardMaterial({ color: 0x050302, roughness: 1 }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = BENCH_Y - 3;
     this.root.add(floor);
-    // clamps holding the board
-    const clampMat = new THREE.MeshStandardMaterial({ color: 0x3d6db3, roughness: 0.5, metalness: 0.3 });
-    for (const sx of [-6.6, 6.6]) {
-      const c = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 1.1), clampMat);
-      c.position.set(sx, BENCH_Y + 0.45, 0.05);
-      this.root.add(c);
-    }
-    this.disposables.push(edgeMat, benchMat, clampMat);
+    this.disposables.push(edgeMat, benchMat);
 
     // carving knife: blade at origin along +y, handle above
     const steel = new THREE.MeshStandardMaterial({ color: 0xc2c6ca, metalness: 0.85, roughness: 0.25 });

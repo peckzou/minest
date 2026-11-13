@@ -18,7 +18,7 @@
  */
 import * as THREE from 'three';
 import type { DeleteEvent, InsertEvent, SaveOutcome, WorldContext, WorldInstance, WorldModule } from '../engine/types';
-import { LetterWorld, type LetterVisual, gradientSky } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual } from '../engine/letter-world';
 import { DEFAULT_LAYOUT, type Slot } from '../engine/layout';
 import type { EvenPoint } from '../engine/glyphs/glyph-engine';
 import { Particles } from '../engine/particles';
@@ -163,17 +163,17 @@ class Ferrofluid extends LetterWorld<FerroVisual> {
     const T = THREE;
     ctx.layout.setOptions({ ...DEFAULT_LAYOUT, metric: 'sans', size: 1.3, tracking: 0.14, maxWidth: 9.4, maxLines: 1, origin: [0, 0, 0], plane: 'xy', minScale: 0.3 });
 
-    ctx.scene.background = new T.Color(0xf4f3ef);
-    ctx.scene.fog = new T.Fog(0xf4f3ef, 20, 60);
-    ctx.scene.environment = ctx.renderer.environment();
-    this.root.add(gradientSky(0xe9e8e3, 0xdedcd6, { horizon: 0xf7f6f2, exponent: 0.9 }));
+    // Minimal dark stage: near-black; the studio env map is set only on the ferrofluid
+    // materials (letters + pool) (so the letters read as glossy highlights), one key + a cool rim.
+    ctx.scene.background = new T.Color(0x020203);
+    ctx.scene.fog = new T.FogExp2(0x020203, 0.04);
     this.placeCamera(true);
 
-    this.root.add(new T.HemisphereLight(0xffffff, 0xd9d6cf, 0.9));
-    const key = new T.DirectionalLight(0xffffff, 1.6);
+    this.root.add(new T.HemisphereLight(0x8fa2c8, 0x0a0806, 0.25));
+    const key = new T.DirectionalLight(0xffffff, 1.2);
     key.position.set(4, 10, 7);
     this.root.add(key);
-    const rim = new T.DirectionalLight(0xdfe8ff, 0.8);
+    const rim = new T.DirectionalLight(0x9db4ff, 1.4);
     rim.position.set(-6, 4, -6);
     this.root.add(rim);
 
@@ -202,21 +202,19 @@ class Ferrofluid extends LetterWorld<FerroVisual> {
       metalness: 0.85,
       clearcoat: 1,
       clearcoatRoughness: 0.06,
+      envMap: this.ctx.renderer.environment(),
       envMapIntensity: 1.5,
     });
   }
 
   private buildLab() {
     const T = THREE;
-    const ceramic = new T.MeshStandardMaterial({ color: 0xfbfaf7, roughness: 0.28, metalness: 0.02 });
-    // bench
-    const bench = new T.Mesh(new T.BoxGeometry(40, 1, 14), new T.MeshStandardMaterial({ color: 0xeceae5, roughness: 0.55 }));
-    bench.position.set(0, POOL_Y - 0.36 - 0.5, -1);
+    const ceramic = new T.MeshStandardMaterial({ color: 0x141518, roughness: 0.45, metalness: 0.2 });
+    // dark matte floor
+    const bench = new T.Mesh(new T.PlaneGeometry(60, 40), new T.MeshStandardMaterial({ color: 0x050506, roughness: 0.85 }));
+    bench.rotation.x = -Math.PI / 2;
+    bench.position.set(0, POOL_Y - 0.36, -1);
     this.root.add(bench);
-    // back wall
-    const wall = new T.Mesh(new T.PlaneGeometry(60, 30), new T.MeshStandardMaterial({ color: 0xf2f1ed, roughness: 0.9 }));
-    wall.position.set(0, 8, -8);
-    this.root.add(wall);
     // trough walls (rim slightly above the liquid)
     const rimY = POOL_Y + 0.06;
     const h = 0.42;
@@ -243,7 +241,7 @@ class Ferrofluid extends LetterWorld<FerroVisual> {
     const geo = new T.PlaneGeometry(W, D, segX, segZ);
     geo.rotateX(-Math.PI / 2);
     geo.translate(0, 0, (TROUGH_Z0 + TROUGH_Z1) / 2);
-    const poolMat = new T.MeshPhysicalMaterial({ color: 0x040405, roughness: 0.1, metalness: 0.7, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.3 });
+    const poolMat = new T.MeshPhysicalMaterial({ color: 0x040405, roughness: 0.1, metalness: 0.7, clearcoat: 1, clearcoatRoughness: 0.04, envMap: this.ctx.renderer.environment(), envMapIntensity: 0.45 });
     poolMat.onBeforeCompile = (shader) => {
       shader.uniforms.uBump = { value: this.bumpU };
       shader.uniforms.uRip = { value: this.ripU };

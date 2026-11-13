@@ -1,8 +1,8 @@
 /**
  * WORLD 21 · Rune Forge (符文熔铸)
  *
- * An underground magic forge: rough cave walls, a glowing lava channel, an old stone
- * work bench in front and an energy core (crystal + orbiting rings) on the left.
+ * A minimal dark forge: a single dark stone plinth in front and an energy core
+ * (crystal + orbiting rings) on the left, on a near-black stage.
  * Per letter — two clearly separate steps, CARVING then ENERGY:
  *   1. a blank rune stone slides onto the bench;
  *   2. CARVE — a magic chisel cuts the letter groove along the real strokes in stroke
@@ -20,7 +20,7 @@
 import * as THREE from 'three';
 import type { DeleteEvent, InsertEvent, SaveOutcome, WorldContext, WorldModule } from '../engine/types';
 import type { Slot, LayoutOptions } from '../engine/layout';
-import { LetterWorld, type LetterVisual, canvasTexture, disposeObject, gradientSky, blobTexture } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual, canvasTexture, disposeObject, blobTexture } from '../engine/letter-world';
 import { Particles } from '../engine/particles';
 import { ToolController } from '../engine/tools';
 import { clamp, damp, easeInOutCubic, easeOutCubic, lerp, rng } from '../engine/anim';
@@ -120,7 +120,6 @@ class RuneForge extends LetterWorld<RuneVisual> {
   private coreLight: THREE.PointLight;
   private coreGlowMat: THREE.SpriteMaterial;
   private coreFlare = 0;
-  private lavaMat: THREE.MeshBasicMaterial;
   private stoneMat: THREE.MeshStandardMaterial;
   private textures: THREE.Texture[] = [];
   private crackTex: THREE.CanvasTexture;
@@ -142,22 +141,19 @@ class RuneForge extends LetterWorld<RuneVisual> {
     this.prevLayout = { ...ctx.layout.opts };
     ctx.layout.setOptions({ metric: 'sans', size: 0.82, tracking: 0.62, maxWidth: 10.5, maxLines: 2, lineHeight: 2.1, origin: [0, 1.75, 0], plane: 'xy', minScale: 0.4 });
 
-    ctx.scene.background = new T.Color(0x07080b);
-    ctx.scene.fog = new T.Fog(0x0a0b10, 16, 42);
-    this.root.add(gradientSky(0x0c1018, 0x050506, { horizon: 0x1a1210 }));
-    this.root.add(new T.HemisphereLight(0x8fa6c8, 0x4a2a1a, 1.5));
-    const key = new T.DirectionalLight(0xffe6c8, 2.2);
+    // minimal dark stage (classic 3D Type look): only the bench, the stones and the core
+    ctx.scene.background = new T.Color(0x030305);
+    ctx.scene.fog = new T.Fog(0x030305, 14, 30);
+    this.root.add(new T.HemisphereLight(0x8fa6c8, 0x0a0806, 0.45));
+    const key = new T.DirectionalLight(0xffe6c8, 1.5);
     key.position.set(3, 7, 10);
     this.root.add(key);
-    const benchLamp = new T.PointLight(0xffb070, 14, 9, 1.4);
+    const benchLamp = new T.PointLight(0xffb070, 8, 7, 1.6);
     benchLamp.position.set(-1.5, 0.2, 4.2);
     if (ctx.quality > 0) this.root.add(benchLamp);
-    else key.intensity = 2.8;
-    const forge = new T.PointLight(0xff6a2a, 16, 20, 1.6);
-    forge.position.set(6.2, -2.2, -1.2);
-    this.root.add(forge);
+    else key.intensity = 2;
 
-    // rock textures
+    // rock texture (stones + bench)
     const rockTex = canvasTexture(256, 256, (g, w, h) => {
       g.fillStyle = '#a29c95';
       g.fillRect(0, 0, w, h);
@@ -180,48 +176,16 @@ class RuneForge extends LetterWorld<RuneVisual> {
     });
     rockTex.wrapS = rockTex.wrapT = T.RepeatWrapping;
     this.textures.push(rockTex);
-    const caveMat = new T.MeshStandardMaterial({ map: rockTex, color: 0x4c4642, roughness: 0.95, flatShading: true });
-    const floor = new T.Mesh(new T.PlaneGeometry(50, 30), new T.MeshStandardMaterial({ map: rockTex, color: 0x4a4542, roughness: 1 }));
+    const floor = new T.Mesh(new T.PlaneGeometry(60, 40), new T.MeshStandardMaterial({ color: 0x07070a, roughness: 0.95 }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = FLOOR_Y;
     this.root.add(floor);
-    const wall = new T.Mesh(new T.PlaneGeometry(60, 26, 30, 13), caveMat);
-    const wp = wall.geometry.getAttribute('position') as THREE.BufferAttribute;
-    const rr = rng(5);
-    for (let i = 0; i < wp.count; i++) wp.setZ(i, (rr() - 0.5) * 1.6);
-    wall.geometry.computeVertexNormals();
-    wall.position.set(0, 4, -8);
-    this.root.add(wall);
-    const boulderGeo = new T.DodecahedronGeometry(1, 0);
-    for (let i = 0; i < 9; i++) {
-      const b = new T.Mesh(boulderGeo, caveMat);
-      const side = i % 2 ? 1 : -1;
-      b.position.set(side * (7.5 + rr() * 5), FLOOR_Y + 0.3 + rr() * 0.5, -1 - rr() * 6);
-      b.scale.set(0.8 + rr() * 1.6, 0.6 + rr() * 1.4, 0.8 + rr() * 1.4);
-      b.rotation.set(rr() * 3, rr() * 3, rr() * 3);
-      this.root.add(b);
-    }
-    // forge hearth (right): glowing coals in a stone ring
-    this.lavaMat = new T.MeshBasicMaterial({ color: 0xff5a1a });
-    const coals = new T.Mesh(new T.CircleGeometry(1.1, 18), this.lavaMat);
-    coals.rotation.x = -Math.PI / 2;
-    coals.position.set(6.2, FLOOR_Y + 0.45, -1.6);
-    const hearth = new T.Mesh(new T.TorusGeometry(1.2, 0.3, 6, 14), caveMat);
-    hearth.rotation.x = -Math.PI / 2;
-    hearth.position.set(6.2, FLOOR_Y + 0.4, -1.6);
-    this.root.add(coals, hearth);
 
-    // stone bench
-    this.stoneMat = new T.MeshStandardMaterial({ map: rockTex, color: 0xd8d0c4, roughness: 0.9, flatShading: true });
-    const benchMat = new T.MeshStandardMaterial({ map: rockTex, color: 0x8a8279, roughness: 0.95, flatShading: true });
-    const top = new T.Mesh(new T.BoxGeometry(6.4, 0.5, 2.4), benchMat);
-    top.position.set(0, BENCH_TOP - 0.25, BENCH_Z - 0.3);
-    const legGeo = new T.BoxGeometry(0.9, FLOOR_Y * -1 + BENCH_TOP - 0.5, 1.8);
-    for (const x of [-2.4, 2.4]) {
-      const leg = new T.Mesh(legGeo, benchMat);
-      leg.position.set(x, (BENCH_TOP - 0.5 + FLOOR_Y) / 2, BENCH_Z - 0.3);
-      this.root.add(leg);
-    }
+    // stone bench: one dark plinth
+    this.stoneMat = new T.MeshStandardMaterial({ map: rockTex, color: 0xb0a89c, roughness: 0.9, flatShading: true });
+    const benchMat = new T.MeshStandardMaterial({ color: 0x1a191b, roughness: 0.9, flatShading: true });
+    const top = new T.Mesh(new T.BoxGeometry(6.4, BENCH_TOP - FLOOR_Y, 2.4), benchMat);
+    top.position.set(0, (BENCH_TOP + FLOOR_Y) / 2, BENCH_Z - 0.3);
     this.root.add(top);
 
     // energy core: pedestal + crystal + rings
@@ -808,7 +772,6 @@ class RuneForge extends LetterWorld<RuneVisual> {
     this.coreLight.intensity = 6 + pulse * 2 + this.coreFlare * 14;
     this.coreGlowMat.opacity = 0.45 + pulse * 0.15 + this.coreFlare * 0.4;
     this.core.scale.setScalar(1 + this.coreFlare * 0.25);
-    this.lavaMat.color.setRGB(1, 0.33 + Math.sin(time * 1.3) * 0.05, 0.1);
     if (busy) moving = true;
     return moving;
   }

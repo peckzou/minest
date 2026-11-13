@@ -1,7 +1,7 @@
 /**
  * WORLD 05 · Underwater World · 海底鱼群文字世界 (Fish Formation)
  *
- * 清澈的海底：珊瑚、海草、柔和的丁达尔光束、细小气泡，以及一群常驻的鱼。
+ * 极简深色水体：暗色海床、几块暗色礁石剪影、细小气泡，以及一群常驻的鱼。
  * - 按下字母：周围鱼群感知输入，附近的鱼和从不同方向游来的鱼通过 boids
  *   （分离 / 对齐 / 聚合）+ 目标形状吸引，自然转弯、互相避让，最终沿字形笔画
  *   排成字母，并在原地轻轻游动，字形保持清晰。
@@ -465,9 +465,9 @@ interface ThemeDef {
 }
 
 const THEMES: ThemeDef[] = [
-  { id: 'silver', label: '银色鱼群', fish: [0xe3edf7, 0xcad9e9, 0xf2f7fc, 0xb9cde0], metal: 0.7, rough: 0.28, glow: 0, waterTop: 0x8fe3f0, waterMid: 0x2a93b8, waterDeep: 0x083b62, fog: 0x1d7aa0, sand: 0xd2c19a, ray: 0xc8f7ff, caustic: 0x9fe8ff },
-  { id: 'tropical', label: '彩色热带鱼', fish: [0xffa630, 0xffd23f, 0x3fa7ff, 0xff6b8b, 0x2fe0c4, 0xf4f0e6], metal: 0.12, rough: 0.42, glow: 0.05, waterTop: 0xa4f2ea, waterMid: 0x23b2c4, waterDeep: 0x0a4f74, fog: 0x2aa3b8, sand: 0xe8d6a6, ray: 0xe6fff8, caustic: 0xc8fff2 },
-  { id: 'luminous', label: '荧光鱼群', fish: [0x45ffd0, 0x6cf0ff, 0xb08cff, 0x8affa0], metal: 0.1, rough: 0.35, glow: 0.75, waterTop: 0x1d5f8c, waterMid: 0x0b2f55, waterDeep: 0x030c22, fog: 0x06203f, sand: 0x5a6a80, ray: 0x7fd8ff, caustic: 0x4fb8ff },
+  { id: 'silver', label: '银色鱼群', fish: [0xe3edf7, 0xcad9e9, 0xf2f7fc, 0xb9cde0], metal: 0.7, rough: 0.28, glow: 0, waterTop: 0x0a1822, waterMid: 0x061018, waterDeep: 0x04070b, fog: 0x04070b, sand: 0x0b1015, ray: 0xc8f7ff, caustic: 0x9fe8ff },
+  { id: 'tropical', label: '彩色热带鱼', fish: [0xffa630, 0xffd23f, 0x3fa7ff, 0xff6b8b, 0x2fe0c4, 0xf4f0e6], metal: 0.12, rough: 0.42, glow: 0.05, waterTop: 0x0a1c20, waterMid: 0x061214, waterDeep: 0x03080a, fog: 0x03080a, sand: 0x0c1112, ray: 0xe6fff8, caustic: 0xc8fff2 },
+  { id: 'luminous', label: '荧光鱼群', fish: [0x45ffd0, 0x6cf0ff, 0xb08cff, 0x8affa0], metal: 0.1, rough: 0.35, glow: 0.75, waterTop: 0x08122a, waterMid: 0x040a18, waterDeep: 0x02040a, fog: 0x02040a, sand: 0x080b12, ray: 0x7fd8ff, caustic: 0x4fb8ff },
 ];
 
 interface LetterRec {
@@ -572,68 +572,29 @@ export interface ReefPalette {
 }
 
 /**
- * Clear underwater scenery shared by the ocean worlds: water dome with sun glow,
- * fog, sand floor with animated caustics, god-rays, branching coral, boulders,
- * tube sponges, swaying seagrass and drifting marine snow.
+ * Minimal dark-water stage (classic 3D Type look): a near-black blue background and fog,
+ * a dark sea floor with very faint caustics, a few dark rock silhouettes near the floor
+ * (they double as obstacles / bubble vents) and sparse drifting marine snow.
  * Everything is added to `root` (disposed with it).
  */
 export function buildReef(ctx: WorldContext, root: THREE.Object3D, theme: ReefPalette, opts: { small: boolean; q: number; seed: number }) {
-  const { small, q } = opts;
+  const { small } = opts;
   const R = rng(opts.seed);
   /* ------------------------------------------------------- water + light */
-  const fog = new THREE.FogExp2(theme.fog, 0.042);
+  const fog = new THREE.FogExp2(theme.fog, 0.045);
   ctx.scene.fog = fog;
   ctx.scene.background = new THREE.Color(theme.waterDeep);
 
-  const domeMat = new THREE.ShaderMaterial({
-    side: THREE.BackSide,
-    depthWrite: false,
-    fog: false,
-    uniforms: {
-      uTop: { value: new THREE.Color(theme.waterTop) },
-      uMid: { value: new THREE.Color(theme.waterMid) },
-      uDeep: { value: new THREE.Color(theme.waterDeep) },
-      uTime: { value: 0 },
-    },
-    vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
-    fragmentShader: `uniform vec3 uTop; uniform vec3 uMid; uniform vec3 uDeep; uniform float uTime; varying vec3 vP;
-      void main(){
-        float h = vP.y;
-        vec3 c = h > 0.05 ? mix(uMid, uTop, pow(clamp((h-0.05)/0.95,0.0,1.0), 0.7)) : mix(uMid, uDeep, clamp((0.05-h)*2.2,0.0,1.0));
-        // sun glow through the surface
-        float sun = pow(max(0.0, dot(vP, normalize(vec3(0.25, 1.0, -0.35)))), 18.0);
-        float ripple = 0.5 + 0.5*sin(vP.x*40.0 + uTime*0.8) * sin(vP.z*36.0 - uTime*0.6);
-        c += uTop * sun * (0.55 + 0.25*ripple);
-        gl_FragColor = vec4(c, 1.0);
-        #include <colorspace_fragment>
-      }`,
-  });
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(160, 32, 16), domeMat);
-  dome.renderOrder = -10;
-  dome.frustumCulled = false;
-  root.add(dome);
-
-  const hemi = new THREE.HemisphereLight(0xbff2ff, 0x3a5a5a, 1.25);
+  const hemi = new THREE.HemisphereLight(0x9fd8f0, 0x05080a, 0.5);
   root.add(hemi);
-  const sun = new THREE.DirectionalLight(0xe9fbff, 1.9);
+  const sun = new THREE.DirectionalLight(0xd9f4ff, 1.3);
   sun.position.set(4, 16, 6);
   root.add(sun);
-  const amb = new THREE.AmbientLight(0x2c6f8f, 0.5);
-  root.add(amb);
 
   /* ------------------------------------------------------------ sea floor */
   const FLOOR_Y = REEF_FLOOR_Y;
-  const floorGeo = new THREE.PlaneGeometry(90, 56, small ? 60 : 110, small ? 36 : 70);
+  const floorGeo = new THREE.PlaneGeometry(90, 56, 1, 1);
   floorGeo.rotateX(-Math.PI / 2);
-  {
-    const p = floorGeo.getAttribute('position') as THREE.BufferAttribute;
-    for (let i = 0; i < p.count; i++) {
-      const x = p.getX(i), z = p.getZ(i);
-      const h = Math.sin(x * 0.35 + z * 0.2) * 0.22 + Math.sin(x * 1.1 - z * 0.7) * 0.07 + Math.cos(z * 0.45) * 0.18 + Math.max(0, -z - 8) * 0.06;
-      p.setY(i, h);
-    }
-    floorGeo.computeVertexNormals();
-  }
   const causticUniforms = { uTime: { value: 0 }, uCaustic: { value: new THREE.Color(theme.caustic) } };
   const floorMat = new THREE.MeshStandardMaterial({ color: theme.sand, roughness: 0.95, metalness: 0 });
   floorMat.onBeforeCompile = (sh) => {
@@ -658,207 +619,41 @@ export function buildReef(ctx: WorldContext, root: THREE.Object3D, theme: ReefPa
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
-        float cfade = smoothstep(-34.0, -4.0, vCW.z) * smoothstep(16.0, 6.0, vCW.z);
-        totalEmissiveRadiance += uCaustic * caust(vCW.xz*0.9, uTime) * 0.55 * cfade;`
+        float cfade = smoothstep(-26.0, -6.0, vCW.z) * smoothstep(10.0, 2.0, vCW.z) * smoothstep(14.0, 4.0, abs(vCW.x));
+        totalEmissiveRadiance += uCaustic * caust(vCW.xz*0.9, uTime) * 0.1 * cfade;`
       );
   };
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.position.set(0, FLOOR_Y, -14);
   root.add(floor);
 
-  /* ------------------------------------------------------------- god rays */
-  const rayUniformTime = { value: 0 };
-  const rayColor = { value: new THREE.Color(theme.ray) };
-  const rayMat = new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    fog: false,
-    side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending,
-    uniforms: { uTime: rayUniformTime, uColor: rayColor, uI: { value: theme.id === 'luminous' ? 0.06 : 0.11 } },
-    vertexShader: `varying vec2 vUv; varying float vSeed; void main(){ vUv = uv; vSeed = fract(modelMatrix[3].x*0.173 + modelMatrix[3].z*0.311); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
-    fragmentShader: `uniform float uTime; uniform vec3 uColor; uniform float uI; varying vec2 vUv; varying float vSeed;
-      void main(){
-        float across = sin(vUv.x*3.14159); across *= across;
-        float along = smoothstep(0.0, 0.75, vUv.y) * (0.35 + 0.65*vUv.y);
-        float flick = 0.55 + 0.45*sin(uTime*0.45 + vSeed*20.0 + vUv.y*2.5) * sin(uTime*0.31 + vSeed*9.0);
-        gl_FragColor = vec4(uColor, across*along*flick*uI);
-      }`,
-  });
-  const rayGeo = new THREE.PlaneGeometry(1, 24);
-  const rays = new THREE.Group();
-  const nRays = small ? 5 : 8;
-  for (let i = 0; i < nRays; i++) {
-    const r = new THREE.Mesh(rayGeo, rayMat);
-    r.scale.x = 1.2 + R() * 2.4;
-    r.position.set(-14 + (i / (nRays - 1)) * 28 + (R() - 0.5) * 3, 3.5, -5 - R() * 10);
-    r.rotation.z = 0.28 + (R() - 0.5) * 0.12;
-    r.rotation.y = (R() - 0.5) * 0.5;
-    rays.add(r);
-  }
-  root.add(rays);
-
-  /* ------------------------------------------------- coral, rocks, sponges */
+  /* ------------------------------------------ a few dark rock silhouettes */
   const obstacles: number[] = [];
-  const scenery = new THREE.Group();
-  root.add(scenery);
   const up = new THREE.Vector3(0, 1, 0);
   const tmpM = new THREE.Matrix4();
   const tmpQ = new THREE.Quaternion();
   const tmpV = new THREE.Vector3();
   const tmpS = new THREE.Vector3();
-  const tmpC = new THREE.Color();
 
   // spots kept away from the text block in front
   const spots: [number, number][] = [];
-  for (let i = 0; i < (small ? 9 : 14); i++) {
-    const back = i % 3 !== 0;
-    const side = R() < 0.5 ? -1 : 1;
-    const x = back ? (R() - 0.5) * 30 : side * (6 + R() * 6);
-    const z = back ? -6 - R() * 12 : -2.5 + R() * 3;
-    spots.push([x, z]);
+  for (let i = 0; i < (small ? 4 : 6); i++) {
+    const side = i % 2 ? 1 : -1;
+    spots.push([side * (5 + R() * 9), -4 - R() * 9]);
   }
-
-  // branching coral (instanced tapered cylinders + bulbs)
-  const branchSegs: { p: THREE.Vector3; d: THREE.Vector3; len: number; r: number; col: number }[] = [];
-  const coralCols = [0xff7a8a, 0xff9f5a, 0xc77dff, 0xffc2d1, 0xff6f61];
-  function grow(p: THREE.Vector3, d: THREE.Vector3, len: number, r: number, depth: number, col: number) {
-    branchSegs.push({ p: p.clone(), d: d.clone(), len, r, col });
-    if (depth <= 0) return;
-    const end = p.clone().addScaledVector(d, len);
-    const kids = 2 + (R() < 0.4 ? 1 : 0);
-    for (let k = 0; k < kids; k++) {
-      const nd = d.clone().add(new THREE.Vector3((R() - 0.5) * 1.1, 0.25 + R() * 0.3, (R() - 0.5) * 1.1)).normalize();
-      grow(end, nd, len * (0.7 + R() * 0.15), r * 0.72, depth - 1, col);
-    }
-  }
+  const boulderGeo = new THREE.IcosahedronGeometry(1, 1);
+  const boulderMat = new THREE.MeshStandardMaterial({ color: 0x0a1116, roughness: 0.95, metalness: 0, flatShading: true });
+  const boulders = new THREE.InstancedMesh(boulderGeo, boulderMat, spots.length);
   spots.forEach(([x, z], i) => {
-    if (i % 2) return;
-    const col = coralCols[Math.floor(R() * coralCols.length)];
-    grow(new THREE.Vector3(x, FLOOR_Y + 0.1, z), new THREE.Vector3((R() - 0.5) * 0.3, 1, (R() - 0.5) * 0.3).normalize(), 0.55 + R() * 0.25, 0.07, small ? 2 : 3, col);
-    obstacles.push(x, FLOOR_Y + 0.9, z, 1.1);
+    const r = 0.5 + R() * 0.7;
+    tmpM.compose(tmpV.set(x, FLOOR_Y + r * 0.2, z), tmpQ.setFromAxisAngle(up, R() * 6), tmpS.set(r * 1.4, r * 0.6, r));
+    boulders.setMatrixAt(i, tmpM);
+    obstacles.push(x, FLOOR_Y + r * 0.4, z, r * 1.3);
   });
-  const segGeo = new THREE.CylinderGeometry(0.72, 1, 1, 6, 1);
-  segGeo.translate(0, 0.5, 0);
-  const coralMat = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0 });
-  const segMesh = new THREE.InstancedMesh(segGeo, coralMat, branchSegs.length);
-  const bulbGeo = new THREE.SphereGeometry(1, 8, 6);
-  const tips = branchSegs.filter((s) => s.r < 0.03);
-  const bulbMesh = new THREE.InstancedMesh(bulbGeo, coralMat, Math.max(1, tips.length));
-  branchSegs.forEach((s, i) => {
-    tmpQ.setFromUnitVectors(up, s.d);
-    tmpM.compose(s.p, tmpQ, tmpS.set(s.r, s.len, s.r));
-    segMesh.setMatrixAt(i, tmpM);
-    segMesh.setColorAt(i, tmpC.set(s.col).multiplyScalar(0.85 + R() * 0.3));
-  });
-  tips.forEach((s, i) => {
-    tmpV.copy(s.p).addScaledVector(s.d, s.len);
-    tmpM.compose(tmpV, tmpQ.identity(), tmpS.setScalar(s.r * 1.6));
-    bulbMesh.setMatrixAt(i, tmpM);
-    bulbMesh.setColorAt(i, tmpC.set(s.col).lerp(new THREE.Color(0xffffff), 0.35));
-  });
-  if (!tips.length) bulbMesh.count = 0;
-  scenery.add(segMesh, bulbMesh);
+  root.add(boulders);
 
-  // boulder / brain corals + rocks
-  const boulderGeo = new THREE.IcosahedronGeometry(1, small ? 2 : 3);
-  {
-    const p = boulderGeo.getAttribute('position') as THREE.BufferAttribute;
-    for (let i = 0; i < p.count; i++) {
-      tmpV.fromBufferAttribute(p, i);
-      const n = 1 + Math.sin(tmpV.x * 9) * Math.sin(tmpV.y * 8) * Math.sin(tmpV.z * 9) * 0.06 + Math.sin(tmpV.x * 3 + tmpV.z * 2) * 0.05;
-      tmpV.multiplyScalar(n);
-      p.setXYZ(i, tmpV.x, tmpV.y, tmpV.z);
-    }
-    boulderGeo.computeVertexNormals();
-  }
-  const boulderMat = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0 });
-  const boulderSpots = spots.filter((_, i) => i % 2 === 1);
-  const extraRocks = small ? 4 : 8;
-  const boulders = new THREE.InstancedMesh(boulderGeo, boulderMat, boulderSpots.length + extraRocks);
-  const boulderCols = [0xd9a86c, 0x9fbf7a, 0xe2876f, 0x7f8a96];
-  let bi = 0;
-  for (const [x, z] of boulderSpots) {
-    const r = 0.5 + R() * 0.6;
-    tmpM.compose(tmpV.set(x, FLOOR_Y + r * 0.3, z), tmpQ.setFromAxisAngle(up, R() * 6), tmpS.set(r * 1.2, r * 0.75, r));
-    boulders.setMatrixAt(bi, tmpM);
-    boulders.setColorAt(bi++, tmpC.set(boulderCols[Math.floor(R() * 3)]));
-    obstacles.push(x, FLOOR_Y + r * 0.4, z, r * 1.2);
-  }
-  for (let k = 0; k < extraRocks; k++) {
-    const x = (R() - 0.5) * 34, z = -3 - R() * 16;
-    if (Math.abs(x) < 5 && z > -4) continue;
-    const r = 0.3 + R() * 0.9;
-    tmpM.compose(tmpV.set(x, FLOOR_Y + r * 0.15, z), tmpQ.setFromAxisAngle(up, R() * 6), tmpS.set(r * 1.4, r * 0.55, r));
-    boulders.setMatrixAt(bi, tmpM);
-    boulders.setColorAt(bi++, tmpC.set(boulderCols[3]).multiplyScalar(0.8 + R() * 0.4));
-  }
-  boulders.count = bi;
-  scenery.add(boulders);
-
-  // tube sponges
-  const tubeGeo = new THREE.CylinderGeometry(0.12, 0.09, 1, 10, 1, true);
-  tubeGeo.translate(0, 0.5, 0);
-  const tubeMat = new THREE.MeshStandardMaterial({ color: 0xffb347, roughness: 0.85, side: THREE.DoubleSide });
-  const tubeSpots = small ? 2 : 4;
-  const tubes = new THREE.InstancedMesh(tubeGeo, tubeMat, tubeSpots * 4);
-  let ti = 0;
-  for (let k = 0; k < tubeSpots; k++) {
-    const side = k % 2 ? 1 : -1;
-    const bx = side * (7 + R() * 5), bz = -4 - R() * 6;
-    for (let j = 0; j < 4; j++) {
-      const h = 0.6 + R() * 1.0;
-      tmpQ.setFromUnitVectors(up, tmpV.set((R() - 0.5) * 0.25, 1, (R() - 0.5) * 0.25).normalize());
-      tmpM.compose(new THREE.Vector3(bx + (R() - 0.5) * 0.5, FLOOR_Y + 0.05, bz + (R() - 0.5) * 0.5), tmpQ, tmpS.set(1 + R() * 0.4, h, 1 + R() * 0.4));
-      tubes.setMatrixAt(ti, tmpM);
-      tubes.setColorAt(ti++, tmpC.set(k % 2 ? 0xffb347 : 0xb98cff).multiplyScalar(0.85 + R() * 0.3));
-    }
-    obstacles.push(bx, FLOOR_Y + 0.8, bz, 0.9);
-  }
-  scenery.add(tubes);
-
-  // seagrass (instanced blades, swaying in the vertex shader)
-  const nBlades = Math.round((q === 2 ? 340 : q === 1 ? 240 : 140) * (small ? 0.6 : 1));
-  const bladeGeo = new THREE.PlaneGeometry(0.07, 1, 1, 6);
-  bladeGeo.translate(0, 0.5, 0);
-  const grassTime = { value: 0 };
-  const grassMat = new THREE.MeshStandardMaterial({ roughness: 0.75, side: THREE.DoubleSide });
-  grassMat.onBeforeCompile = (sh) => {
-    sh.uniforms.uTime = grassTime;
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nuniform float uTime;')
-      .replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
-        #ifdef USE_INSTANCING
-          vec3 ip = vec3(instanceMatrix[3]);
-        #else
-          vec3 ip = vec3(0.0);
-        #endif
-        float k = position.y * position.y;
-        transformed.x += (sin(uTime*1.25 + ip.x*0.7 + ip.z*0.4) * 0.22 + sin(uTime*2.3 + ip.z) * 0.05) * k;
-        transformed.z += cos(uTime*1.05 + ip.x*0.5) * 0.12 * k;
-        transformed.x *= 1.0 - position.y*0.6;`
-      );
-  };
-  const blades = new THREE.InstancedMesh(bladeGeo, grassMat, nBlades);
-  const grassCols = [0x3fa86a, 0x5cc27a, 0x2f8f5f, 0x7fcf6a];
-  const patches: [number, number][] = [];
-  for (let k = 0; k < (small ? 6 : 10); k++) {
-    const side = R() < 0.5 ? -1 : 1;
-    patches.push(k < 4 ? [side * (5.5 + R() * 7), -1 - R() * 2.5] : [(R() - 0.5) * 32, -5 - R() * 12]);
-  }
-  for (let i = 0; i < nBlades; i++) {
-    const [cx, cz] = patches[i % patches.length];
-    const x = cx + (R() - 0.5) * 2.2, z = cz + (R() - 0.5) * 1.6;
-    const h = 0.6 + R() * 1.5;
-    tmpM.compose(tmpV.set(x, FLOOR_Y + 0.05, z), tmpQ.setFromAxisAngle(up, R() * Math.PI), tmpS.set(1, h, 1));
-    blades.setMatrixAt(i, tmpM);
-    blades.setColorAt(i, tmpC.set(grassCols[Math.floor(R() * grassCols.length)]).multiplyScalar(0.8 + R() * 0.4));
-  }
-  scenery.add(blades);
-
-  const nSnow = small ? 260 : 600;
+  /* ---------------------------------------------------- sparse marine snow */
+  const nSnow = small ? 120 : 260;
   const snowGeo = new THREE.BufferGeometry();
   {
     const p = new Float32Array(nSnow * 3);
@@ -885,10 +680,10 @@ export function buildReef(ctx: WorldContext, root: THREE.Object3D, theme: ReefPa
         p.z += cos(uTime*0.17 + aSeed*17.0)*0.3;
         vec4 mv = modelViewMatrix*vec4(p,1.0);
         gl_Position = projectionMatrix*mv;
-        gl_PointSize = (0.025 + aSeed*0.03) * uScale / max(0.1, -mv.z);
-        vA = (0.25 + 0.35*aSeed) * smoothstep(40.0, 8.0, -mv.z);
+        gl_PointSize = (0.02 + aSeed*0.025) * uScale / max(0.1, -mv.z);
+        vA = (0.12 + 0.2*aSeed) * smoothstep(40.0, 8.0, -mv.z);
       }`,
-    fragmentShader: `varying float vA; void main(){ vec2 c = gl_PointCoord*2.0-1.0; float a = smoothstep(1.0, 0.0, length(c)); gl_FragColor = vec4(vec3(0.85,0.97,1.0), a*vA); }`,
+    fragmentShader: `varying float vA; void main(){ vec2 c = gl_PointCoord*2.0-1.0; float a = smoothstep(1.0, 0.0, length(c)); gl_FragColor = vec4(vec3(0.75,0.9,1.0), a*vA); }`,
   });
   const snow = new THREE.Points(snowGeo, snowMat);
   snow.frustumCulled = false;
@@ -898,32 +693,23 @@ export function buildReef(ctx: WorldContext, root: THREE.Object3D, theme: ReefPa
     snowMat.uniforms.uScale.value = h / (2 * Math.tan((((cam as THREE.PerspectiveCamera).fov ?? 40) * Math.PI) / 360));
   };
   root.add(snow);
-  const vents = [spots[0], spots[2], spots[4]].filter(Boolean).map(([x, z]) => [x, z] as [number, number]);
+  const vents = spots.slice(0, 3).map(([x, z]) => [x, z] as [number, number]);
 
   function update(t: number) {
-    domeMat.uniforms.uTime.value = t;
     causticUniforms.uTime.value = t;
-    rayUniformTime.value = t;
-    grassTime.value = t;
     snowMat.uniforms.uTime.value = t;
   }
 
   function applyPalette(p: ReefPalette) {
-    domeMat.uniforms.uTop.value.set(p.waterTop);
-    domeMat.uniforms.uMid.value.set(p.waterMid);
-    domeMat.uniforms.uDeep.value.set(p.waterDeep);
     if (ctx.scene.background instanceof THREE.Color) ctx.scene.background.set(p.waterDeep);
     fog.color.set(p.fog);
-    fog.density = p.id === 'luminous' ? 0.05 : 0.042;
     floorMat.color.set(p.sand);
     causticUniforms.uCaustic.value.set(p.caustic);
-    rayColor.value.set(p.ray);
-    rayMat.uniforms.uI.value = p.id === 'luminous' ? 0.06 : 0.11;
-    hemi.intensity = p.id === 'luminous' ? 0.55 : 1.25;
-    sun.intensity = p.id === 'luminous' ? 0.7 : 1.9;
+    hemi.intensity = p.id === 'luminous' ? 0.3 : 0.5;
+    sun.intensity = p.id === 'luminous' ? 0.6 : 1.3;
   }
 
-  return { obstacles, vents, floorMat, causticUniforms, rayMat, rayColor, rayGeo, domeMat, fog, hemi, sun, update, applyPalette, spots };
+  return { obstacles, vents, floorMat, causticUniforms, fog, hemi, sun, update, applyPalette, spots };
 }
 
 export function create(ctx: WorldContext): WorldInstance {
@@ -1495,7 +1281,6 @@ export function create(ctx: WorldContext): WorldInstance {
       letters.clear();
       finales.length = 0;
       bubbles.dispose();
-      reef.rayGeo.dispose();
       disposeObject(root);
       if (ctx.scene.fog === fog) ctx.scene.fog = null;
     },

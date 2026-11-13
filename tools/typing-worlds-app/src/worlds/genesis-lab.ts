@@ -130,7 +130,7 @@ class GenesisLab extends LetterWorld<GenVisual> {
     ctx.layout.setOptions({ ...DEFAULT_LAYOUT, metric: 'sans', size: 1.15, tracking: 0.2, maxWidth: 9.4, maxLines: 2, lineHeight: 1.75, origin: [0, 0.4, 0], plane: 'xy', minScale: 0.35 });
 
     ctx.scene.background = new T.Color(0x020203);
-    ctx.scene.fog = new T.Fog(0x020203, 14, 45);
+    ctx.scene.fog = new T.Fog(0x020203, 12, 32);
     this.placeCamera(true);
 
     this.root.add(new T.AmbientLight(0x2a2a30, 0.7));
@@ -144,7 +144,7 @@ class GenesisLab extends LetterWorld<GenVisual> {
     rim.position.set(-6, 3, -5);
     this.root.add(rim);
 
-    // stage + lab apparatus
+    // a single dark stage disc with faint rings (classic 3D Type look)
     const stage = new T.Mesh(new T.CylinderGeometry(14, 14, 0.4, 64), new T.MeshStandardMaterial({ color: 0x0a0a0c, roughness: 0.75, metalness: 0.25 }));
     stage.position.set(0, -2.5, 0);
     stage.receiveShadow = ctx.quality > 0;
@@ -155,18 +155,6 @@ class GenesisLab extends LetterWorld<GenVisual> {
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = -2.29;
       this.root.add(ring);
-    }
-    const tubeMat = new T.MeshBasicMaterial({ color: 0xe8ecf4 });
-    const capMat = new T.MeshStandardMaterial({ color: 0x1b1b20, roughness: 0.4, metalness: 0.8 });
-    for (const x of [-7.2, 7.2]) {
-      const tube = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 6.5, 10), tubeMat);
-      tube.position.set(x, 0.95, -3);
-      this.root.add(tube);
-      for (const y of [-2.3, 4.2]) {
-        const cap = new T.Mesh(new T.CylinderGeometry(0.22, 0.22, 0.3, 18), capMat);
-        cap.position.set(x, y, -3);
-        this.root.add(cap);
-      }
     }
 
     // articulated arm

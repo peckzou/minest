@@ -42,20 +42,20 @@ export function create(ctx: WorldContext): WorldInstance {
   ctx.scene.add(root);
 
   // 1. 漆黑夜空与深蓝星尘
-  ctx.scene.background = new T.Color(0x05040f);
-  ctx.scene.fog = new T.FogExp2(0x05040f, 0.035);
+  ctx.scene.background = new T.Color(0x020308);
+  ctx.scene.fog = new T.FogExp2(0x020308, 0.035);
   ctx.camera.position.set(0, 0.5, 11);
   ctx.camera.lookAt(0, 0.45, 0);
 
-  const amb = new T.AmbientLight(0x201535, 0.8);
+  const amb = new T.AmbientLight(0x201535, 0.5);
   root.add(amb);
 
   // 2. 烟花粒子系统
   const particles = new Particles({
-    capacity: 2200,
+    capacity: 4200,
     gravity: [0, -0.6, 0],
     drag: 0.8,
-    size: 0.05,
+    size: 0.11,
     shape: 'spark',
     opacity: 1.0,
   });
@@ -226,14 +226,14 @@ export function create(ctx: WorldContext): WorldInstance {
 
         // afterglow: 余烬闪烁
         l.sparks.forEach((s, idx) => {
-          if (Math.random() < 0.25) {
+          if (Math.random() < 0.6) {
             const glow = 0.85 + Math.sin(time * 8 + idx) * 0.15;
             particles.emit({
               x: s.targetX + (Math.random() - 0.5) * 0.04,
               y: s.targetY + (Math.random() - 0.5) * 0.04,
               z: s.targetZ,
-              life: 0.15,
-              size: glow * 0.7,
+              life: 0.18,
+              size: glow,
               color: s.color,
             });
           }

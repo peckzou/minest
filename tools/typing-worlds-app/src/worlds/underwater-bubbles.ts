@@ -15,7 +15,6 @@ import type { DeleteEvent, InsertEvent, LetterRef, SaveOutcome, WorldContext, Wo
 import type { Slot } from '../engine/layout';
 import { disposeObject, fitCameraToWidth } from '../engine/letter-world';
 import { Particles } from '../engine/particles';
-import { buildReef, isSmallDevice, REEF_FLOOR_Y, rng, type ReefPalette } from './fish-formation';
 
 /* =====================================================================
  * Pure bubble simulation — exported for headless tests.
@@ -212,16 +211,28 @@ export function bubbleTargets(points: { x: number; y: number; tx: number; ty: nu
  * World
  * ===================================================================== */
 
-const PALETTE: ReefPalette = {
-  id: 'deep',
-  waterTop: 0x74cdf0,
-  waterMid: 0x1a6fa3,
-  waterDeep: 0x041f3d,
-  fog: 0x0f4f7c,
-  sand: 0xb7a886,
-  ray: 0xc4ecff,
-  caustic: 0x8fd8ff,
-};
+/** deep-water tint of the classic near-black 3D Type stage */
+const WATER = 0x02060b;
+const FLOOR_Y = -3.6;
+/** fixed seabed vents that keep a few micro bubbles drifting up */
+const VENTS: [number, number][] = [[-6.5, -3], [-3.2, -6], [4.1, -4.5], [7.2, -2.2], [0.8, -8]];
+
+function rng(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function isSmallDevice(ctx: WorldContext) {
+  const { width, height } = ctx.renderer.size;
+  const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  return Math.min(width, height) < 560 || (coarse && Math.max(width, height) < 1100);
+}
 
 interface LetterRec {
   id: number;
@@ -249,34 +260,17 @@ export function create(ctx: WorldContext): WorldInstance {
   const q = ctx.quality;
   const R = rng(404);
 
-  ctx.scene.background = new THREE.Color(PALETTE.waterDeep);
-  const reef = buildReef(ctx, root, PALETTE, { small, q, seed: 4044 });
-  reef.applyPalette(PALETTE);
-  const FLOOR_Y = REEF_FLOOR_Y;
-
-  /* ------------------------------------------- water surface seen from below */
-  const surfMat = new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    fog: false,
-    side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 } },
-    vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
-    fragmentShader: `uniform float uTime; varying vec3 vW;
-      void main(){
-        vec2 p = vW.xz*0.35;
-        float a = sin(p.x*2.1 + uTime*0.7 + sin(p.y*1.7 + uTime*0.4)*1.4);
-        float b = sin(p.y*2.6 - uTime*0.55 + sin(p.x*1.3 - uTime*0.3)*1.2);
-        float c = pow(1.0 - abs(a*b), 6.0);
-        float fade = smoothstep(60.0, 12.0, length(vW.xz - vec2(0.0, -10.0)));
-        gl_FragColor = vec4(vec3(0.75,0.95,1.0), (0.03 + c*0.16) * fade);
-      }`,
-  });
-  const surface = new THREE.Mesh(new THREE.PlaneGeometry(130, 90, 1, 1), surfMat);
-  surface.rotation.x = Math.PI / 2;
-  surface.position.set(0, 7.5, -14);
-  root.add(surface);
+  ctx.scene.background = new THREE.Color(WATER);
+  ctx.scene.fog = new THREE.Fog(WATER, 10, 26);
+  root.add(new THREE.HemisphereLight(0x6fb8e0, 0x020304, 0.25));
+  const key = new THREE.DirectionalLight(0x9fd4ff, 0.5);
+  key.position.set(-3, 8, 4);
+  root.add(key);
+  // dark matte seabed, fading into the water
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(70, 50), new THREE.MeshStandardMaterial({ color: 0x07121b, roughness: 1 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, FLOOR_Y, -8);
+  root.add(floor);
 
   /* ------------------------------------------------------------- bubbles */
   const CAP = Math.round((q === 2 ? 2000 : q === 1 ? 1400 : 800) * (small ? 0.6 : 1));
@@ -317,7 +311,7 @@ export function create(ctx: WorldContext): WorldInstance {
         float spec = pow(max(dot(R, uSun), 0.0), 70.0) * 1.8;
         float spec2 = pow(max(dot(R, normalize(vec3(-0.6, -0.2, 0.8))), 0.0), 30.0) * 0.35;
         float edge = smoothstep(0.62, 0.97, 1.0 - ndv);
-        vec3 col = env * rim * 2.1 + vec3(0.85, 0.97, 1.0) * edge * 0.55 + inner * 0.3 * ndv + vec3(spec + spec2);
+        vec3 col = env * rim * 2.5 + vec3(0.85, 0.97, 1.0) * edge * 0.75 + inner * 0.3 * ndv + vec3(spec + spec2);
         float a = clamp(rim * 1.1 + edge * 0.4 + 0.12 + spec, 0.0, 1.0);
         gl_FragColor = vec4(col * max(vA, 0.0), a * min(vA, 1.0));
       }`,
@@ -617,14 +611,12 @@ export function create(ctx: WorldContext): WorldInstance {
       writeInstances();
 
       // ambient vents keep the sea alive
-      reef.update(t);
-      surfMat.uniforms.uTime.value = t;
       ventAcc += dt;
       const ventRate = small ? 0.12 : 0.06;
       while (ventAcc > ventRate) {
         ventAcc -= ventRate;
-        const v = reef.vents[Math.floor(R() * reef.vents.length)];
-        if (v) fizz.emit({ x: v[0] + (R() - 0.5) * 0.3, y: FLOOR_Y + 1.1, z: v[1] + (R() - 0.5) * 0.3, vy: 0.5 + R() * 0.6, wobble: 1.5, life: 3.5 + R() * 2, size: 0.4 + R() * 1.1, color: 0xe6fbff });
+        const v = VENTS[Math.floor(R() * VENTS.length)];
+        if (v) fizz.emit({ x: v[0] + (R() - 0.5) * 0.3, y: FLOOR_Y + 0.2, z: v[1] + (R() - 0.5) * 0.3, vy: 0.5 + R() * 0.6, wobble: 1.5, life: 3.5 + R() * 2, size: 0.4 + R() * 1.1, color: 0xe6fbff });
       }
       fizz.update(dt, t);
 
@@ -640,7 +632,6 @@ export function create(ctx: WorldContext): WorldInstance {
       letters.clear();
       finales.length = 0;
       fizz.dispose();
-      reef.rayGeo.dispose();
       disposeObject(root);
       ctx.scene.fog = null;
     },

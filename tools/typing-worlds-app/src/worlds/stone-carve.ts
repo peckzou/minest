@@ -12,7 +12,7 @@
  *   word, it glints, then the tablet is dressed smooth again for the next word.
  */
 import * as THREE from 'three';
-import { LetterWorld, type LetterVisual, gradientSky } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual } from '../engine/letter-world';
 import { clamp, rand, smooth } from '../engine/anim';
 import { Particles } from '../engine/particles';
 import { ToolController } from '../engine/tools';
@@ -130,10 +130,11 @@ const NOISE = /* glsl */ `
 
 function stoneUniforms() {
   return {
-    uStoneA: { value: new THREE.Color(0xbdb5a7) },
-    uStoneB: { value: new THREE.Color(0x968e81) },
-    uFleck: { value: new THREE.Color(0x5e574e) },
-    uVein: { value: new THREE.Color(0xe2dccf) },
+    // dark basalt-grey slab so the carving light is the brightest thing on stage
+    uStoneA: { value: new THREE.Color(0x56514a) },
+    uStoneB: { value: new THREE.Color(0x3c3833) },
+    uFleck: { value: new THREE.Color(0x24211d) },
+    uVein: { value: new THREE.Color(0x8a8378) },
     uLight: { value: LIGHT.clone() },
   };
 }
@@ -149,6 +150,8 @@ function slabMaterial() {
       varying vec3 vW;
       void main(){
         vec3 c = shadeStone(stoneColor(vW.xy), vec3(0.0,0.0,1.0), vW, 1.0, 0.05);
+        // soft vignette: the slab's edges sink into the black stage
+        c *= 1.0 - 0.85 * smoothstep(1.6, 4.6, length(vW.xy * vec2(0.62, 1.15)));
         gl_FragColor = vec4(c, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -278,13 +281,12 @@ class StoneWorld extends LetterWorld<CarveVisual> {
   constructor(ctx: WorldContext) {
     super(ctx);
     const scene = ctx.scene;
-    scene.background = new THREE.Color(0x1d1a17);
-    scene.fog = new THREE.Fog(0x1d1a17, 18, 48);
-    this.root.add(gradientSky(0x2a2520, 0x110f0d, { horizon: 0x3a322a, exponent: 0.9 }));
+    scene.background = new THREE.Color(0x030303);
+    scene.fog = new THREE.Fog(0x030303, 14, 30);
     ctx.camera.position.set(0.6, 0.9, 11.2);
     ctx.camera.lookAt(0, -0.2, 0);
 
-    this.root.add(new THREE.AmbientLight(0xffeedd, 0.55));
+    this.root.add(new THREE.AmbientLight(0xffeedd, 0.32));
     const key = new THREE.DirectionalLight(0xfff0dc, 2.2);
     key.position.copy(LIGHT).multiplyScalar(12);
     this.root.add(key);
@@ -297,15 +299,15 @@ class StoneWorld extends LetterWorld<CarveVisual> {
     const face = new THREE.Mesh(new THREE.PlaneGeometry(15.2, 7.1), this.slabMat);
     face.position.set(0, 0.3, SLAB_Z);
     this.root.add(face);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8c8478, roughness: 0.95 });
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3a3631, roughness: 0.95 });
     const body = new THREE.Mesh(new THREE.BoxGeometry(15.4, 7.3, 0.9), bodyMat);
     body.position.set(0, 0.3, SLAB_Z - 0.46);
     this.root.add(body);
     // stone sill where chips land
-    const sill = new THREE.Mesh(new THREE.BoxGeometry(16.4, 0.5, 1.6), new THREE.MeshStandardMaterial({ color: 0x6f675c, roughness: 1 }));
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(16.4, 0.5, 1.6), new THREE.MeshStandardMaterial({ color: 0x24211d, roughness: 1 }));
     sill.position.set(0, SILL_Y - 0.25, 0.3);
     this.root.add(sill);
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshStandardMaterial({ color: 0x2b2621, roughness: 1 }));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshStandardMaterial({ color: 0x0a0908, roughness: 1 }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = SILL_Y - 2.2;
     this.root.add(floor);

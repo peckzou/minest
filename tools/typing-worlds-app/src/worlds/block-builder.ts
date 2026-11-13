@@ -11,7 +11,7 @@
  * Each block keeps its own position, rotation and state; everything is one InstancedMesh per letter.
  */
 import * as THREE from 'three';
-import { LetterWorld, type LetterVisual, gradientSky, canvasTexture } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual, canvasTexture } from '../engine/letter-world';
 import { clamp, lerp, rand, easeInOutCubic, easeOutCubic } from '../engine/anim';
 import { Particles } from '../engine/particles';
 import type { Slot } from '../engine/layout';
@@ -78,21 +78,20 @@ class BlockBuilderWorld extends LetterWorld<BuildVisual> {
   private identity = new THREE.Quaternion();
   private theme: string;
   private lockSounds = 0;
-  private piles: THREE.InstancedMesh;
 
   constructor(ctx: WorldContext) {
     super(ctx);
     this.theme = THEMES[ctx.theme] ? ctx.theme : 'diamond';
     const scene = ctx.scene;
-    scene.background = new THREE.Color(0x8fd0ff);
-    scene.fog = new THREE.Fog(0xbfe4ff, 22, 70);
-    this.root.add(gradientSky(0x5fb4ff, 0xcfeeff, { horizon: 0xe6f6ff, exponent: 0.6 }));
+    // classic 3D Type stage: near-black, one dark build plate, the blocks are the only bright things
+    scene.background = new THREE.Color(0x020203);
+    scene.fog = new THREE.Fog(0x020203, 13, 30);
 
     ctx.camera.position.set(0, 1.6, 11);
     ctx.camera.lookAt(0, -0.1, 0);
 
-    this.root.add(new THREE.HemisphereLight(0xffffff, 0x9cbf7a, 1.2));
-    const sun = new THREE.DirectionalLight(0xfff3dd, 2.0);
+    this.root.add(new THREE.HemisphereLight(0xdfe6ff, 0x0a0806, 0.35));
+    const sun = new THREE.DirectionalLight(0xfff3dd, 1.7);
     sun.position.set(-6, 12, 9);
     if (ctx.quality > 1) {
       sun.castShadow = true;
@@ -157,9 +156,9 @@ class BlockBuilderWorld extends LetterWorld<BuildVisual> {
       512,
       512,
       (g, w, h) => {
-        g.fillStyle = '#e9edf2';
+        g.fillStyle = '#0b0c0f';
         g.fillRect(0, 0, w, h);
-        g.strokeStyle = '#c3cbd6';
+        g.strokeStyle = '#1c2028';
         g.lineWidth = 2;
         for (let i = 0; i <= 16; i++) {
           const p = (i / 16) * w;
@@ -170,63 +169,16 @@ class BlockBuilderWorld extends LetterWorld<BuildVisual> {
           g.lineTo(w, p);
           g.stroke();
         }
-        g.strokeStyle = '#9fb0c6';
+        g.strokeStyle = '#262b35';
         g.lineWidth = 4;
         g.strokeRect(2, 2, w - 4, h - 4);
       },
       { repeat: 6 }
     );
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(20, 0.3, 9), new THREE.MeshStandardMaterial({ map: this.plateTex, roughness: 0.8 }));
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(20, 0.3, 9), new THREE.MeshLambertMaterial({ map: this.plateTex, color: 0x9a9a9a })); // Lambert: no studio-env sheen on the dark plate
     plate.position.set(0, GROUND - 0.15, -1);
     plate.receiveShadow = ctx.quality > 1;
     this.root.add(plate);
-    // hazard trim
-    const trimTex = canvasTexture(256, 32, (g, w, h) => {
-      for (let x = -h; x < w + h; x += 32) {
-        g.fillStyle = '#ffcc33';
-        g.beginPath();
-        g.moveTo(x, 0);
-        g.lineTo(x + 16, 0);
-        g.lineTo(x + 16 + h, h);
-        g.lineTo(x + h, h);
-        g.fill();
-        g.fillStyle = '#333';
-        g.beginPath();
-        g.moveTo(x + 16, 0);
-        g.lineTo(x + 32, 0);
-        g.lineTo(x + 32 + h, h);
-        g.lineTo(x + 16 + h, h);
-        g.fill();
-      }
-    });
-    trimTex.wrapS = THREE.RepeatWrapping;
-    trimTex.repeat.set(10, 1);
-    const trim = new THREE.Mesh(new THREE.BoxGeometry(20.1, 0.32, 0.12), new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.6 }));
-    trim.position.set(0, GROUND - 0.15, 3.5);
-    this.root.add(trim);
-    const grass = new THREE.Mesh(new THREE.CircleGeometry(70, 40), new THREE.MeshStandardMaterial({ color: 0x7cc46a, roughness: 1 }));
-    grass.rotation.x = -Math.PI / 2;
-    grass.position.y = GROUND - 0.31;
-    this.root.add(grass);
-
-    // spare block piles at the sides (where the blocks "come from")
-    const PILE = 60;
-    this.piles = new THREE.InstancedMesh(this.boxGeo, this.blockMat, PILE);
-    let k = 0;
-    for (const side of [-1, 1]) {
-      for (let i = 0; i < PILE / 2; i++) {
-        const layer = Math.floor(Math.sqrt(i));
-        this.dummy.position.set(side * (8.2 + (i % 4) * 0.42 - layer * 0.1), GROUND + 0.18 + layer * 0.36, -2.2 + Math.floor(i / 4) * 0.42 * 0.5);
-        this.dummy.rotation.set(0, rand(-0.25, 0.25), 0);
-        this.dummy.scale.setScalar(0.36);
-        this.dummy.updateMatrix();
-        this.piles.setMatrixAt(k, this.dummy.matrix);
-        this.piles.setColorAt(k, this.col.setScalar(rand(0.78, 1)));
-        k++;
-      }
-    }
-    this.piles.castShadow = ctx.quality > 1;
-    this.root.add(this.piles);
 
     this.sparks = new Particles({ capacity: 500, gravity: [0, -2, 0], drag: 2.2, size: 0.05, shape: 'spark' });
     this.dust = new Particles({ capacity: 400, gravity: [0, 0.2, 0], drag: 1.8, size: 0.16, shape: 'dot', blending: THREE.NormalBlending, opacity: 0.5, floor: GROUND });
@@ -631,7 +583,6 @@ class BlockBuilderWorld extends LetterWorld<BuildVisual> {
       v.mesh.dispose();
       v.ghost.dispose();
     }
-    this.piles.dispose();
     this.sparks.dispose();
     this.dust.dispose();
     super.disposeWorld();

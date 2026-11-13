@@ -110,8 +110,6 @@ class InvisibleInk extends LetterWorld<InkVisual> {
   private spotMat: THREE.MeshBasicMaterial;
   private lampPower = 0;
   private reveals: RevealJob[] = [];
-  private candleLight: THREE.PointLight;
-  private flame: THREE.Sprite;
   private bottles: { group: THREE.Group; liquid: THREE.MeshStandardMaterial; glow: THREE.Sprite; glowMat: THREE.SpriteMaterial; id: string }[] = [];
   private textures: THREE.Texture[] = [];
   private seals: { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; t: number; life: number }[] = [];
@@ -132,33 +130,17 @@ class InvisibleInk extends LetterWorld<InkVisual> {
     this.prevLayout = { ...ctx.layout.opts };
     ctx.layout.setOptions({ metric: 'script', size: 1.45, tracking: 0.06, maxWidth: 9.8, maxLines: 3, lineHeight: 1.3, origin: [0, 0.02, PAPER_Z - 0.1], plane: 'xz', minScale: 0.4 });
 
-    ctx.scene.background = new T.Color(0x140d08);
-    ctx.scene.fog = new T.Fog(0x140d08, 22, 48);
-    this.root.add(new T.AmbientLight(0xffe2c0, 0.55));
-    const key = new T.DirectionalLight(0xfff0dc, 0.9);
-    key.position.set(4, 10, 6);
-    this.root.add(key);
-    this.candleLight = new T.PointLight(0xffa64a, 14, 16, 1.6);
-    this.candleLight.position.set(-5.6, 2.6, -3.0);
-    this.root.add(this.candleLight);
+    // classic 3D Type look: near-black stage, one warm key pooled on the parchment
+    ctx.scene.background = new T.Color(0x060403);
+    ctx.scene.fog = new T.Fog(0x060403, 16, 34);
+    this.root.add(new T.HemisphereLight(0xfff0dc, 0x1a0f08, 0.28));
+    const key = new T.SpotLight(0xffeedd, 150, 0, 0.6, 0.9, 2);
+    key.position.set(0.5, 12, 1.5);
+    key.target.position.set(0, 0, PAPER_Z);
+    this.root.add(key, key.target);
 
-    // desk
-    const woodTex = canvasTexture(512, 512, (g, w, h) => {
-      g.fillStyle = '#4a2e18';
-      g.fillRect(0, 0, w, h);
-      const r = rng(3);
-      for (let i = 0; i < 260; i++) {
-        const y = r() * h;
-        g.strokeStyle = `rgba(${20 + r() * 40},${10 + r() * 20},5,${0.15 + r() * 0.25})`;
-        g.lineWidth = 1 + r() * 3;
-        g.beginPath();
-        g.moveTo(0, y);
-        for (let x = 0; x <= w; x += 32) g.lineTo(x, y + Math.sin(x * 0.02 + i) * 4);
-        g.stroke();
-      }
-    }, { repeat: 3 });
-    this.textures.push(woodTex);
-    const desk = new T.Mesh(new T.PlaneGeometry(40, 26), new T.MeshStandardMaterial({ map: woodTex, roughness: 0.7, metalness: 0.02 }));
+    // dark matte desk
+    const desk = new T.Mesh(new T.PlaneGeometry(40, 26), new T.MeshStandardMaterial({ color: 0x0b0806, roughness: 0.9, metalness: 0 }));
     desk.rotation.x = -Math.PI / 2;
     desk.position.y = -0.02;
     this.root.add(desk);
@@ -218,25 +200,6 @@ class InvisibleInk extends LetterWorld<InkVisual> {
     well.add(wellInk, wellGlass, wellRim);
     well.position.copy(INKWELL);
     this.root.add(well);
-
-    // candle (back left)
-    const candle = new T.Group();
-    const wax = new T.Mesh(new T.CylinderGeometry(0.28, 0.3, 1.6, 14), new T.MeshStandardMaterial({ color: 0xf3e6c4, roughness: 0.6 }));
-    wax.position.y = 0.8;
-    const dish = new T.Mesh(new T.CylinderGeometry(0.6, 0.65, 0.08, 18), brass);
-    this.flame = new T.Sprite(new T.SpriteMaterial({ map: blobTexture(), color: 0xffb04a, blending: T.AdditiveBlending, depthWrite: false, transparent: true }));
-    this.flame.position.y = 1.85;
-    this.flame.scale.set(0.35, 0.6, 1);
-    candle.add(wax, dish, this.flame);
-    candle.position.set(-5.6, 0, -3.4);
-    this.root.add(candle);
-
-    // glassware: tall beaker + alembic flask
-    const beaker = new T.Mesh(new T.CylinderGeometry(0.42, 0.42, 1.5, 18, 1, true), glass);
-    beaker.position.set(-7.9, 0.75, -2.6);
-    const beakerLiquid = new T.Mesh(new T.CylinderGeometry(0.38, 0.38, 0.6, 18), new T.MeshStandardMaterial({ color: 0x7a3a8a, emissive: 0x2a0a30, transparent: true, opacity: 0.75 }));
-    beakerLiquid.position.set(-7.9, 0.31, -2.6);
-    this.root.add(beakerLiquid, beaker);
 
     // the four reveal potions (back right)
     const flaskGeo = new T.LatheGeometry([new T.Vector2(0, 0), new T.Vector2(0.38, 0.05), new T.Vector2(0.5, 0.35), new T.Vector2(0.42, 0.7), new T.Vector2(0.14, 0.92), new T.Vector2(0.13, 1.35), new T.Vector2(0.16, 1.4)], 16);
@@ -547,11 +510,6 @@ class InvisibleInk extends LetterWorld<InkVisual> {
     this.responsive();
     if (this.fx.update(dt, time)) moving = true;
     if (this.controller.update(dt)) moving = true;
-
-    // candle flicker (only rendered while the scene is awake)
-    const fl = 1 + Math.sin(time * 13) * 0.06 + Math.sin(time * 7.3) * 0.05;
-    this.flame.scale.set(0.35 * fl, 0.62 / fl, 1);
-    this.candleLight.intensity = 14 * fl;
 
     // quill pose
     const tool = this.controller.tools[0];

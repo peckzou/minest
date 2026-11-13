@@ -25,7 +25,7 @@ interface NeonLetterVisual {
   coreMesh: THREE.Mesh;
   glassMesh: THREE.Mesh;
   coreMat: THREE.ShaderMaterial;
-  glassMat: THREE.MeshPhysicalMaterial;
+  glassMat: THREE.MeshStandardMaterial;
   charge: number; // 0..1 current spread
   intensity: number; // glow multiplier
   flickerTime: number;
@@ -39,32 +39,28 @@ export function create(ctx: WorldContext): WorldInstance {
   const root = new THREE.Group();
   ctx.scene.add(root);
 
-  // 1. 深色复古物理实验室空间
-  ctx.scene.background = new T.Color(0x0a090e);
-  ctx.scene.fog = new T.Fog(0x0a090e, 14, 45);
+  // 1. Minimal dark stage (classic Neon look): near-black, dim moonlight, a dark matte floor
+  ctx.scene.background = new T.Color(0x020203);
+  ctx.scene.fog = new T.FogExp2(0x020203, 0.045);
   ctx.camera.position.set(0, 0.5, 10.5);
   ctx.camera.lookAt(0, 0.45, 0);
 
-  const amb = new T.AmbientLight(0x221a28, 0.85);
-  root.add(amb);
+  root.add(new T.HemisphereLight(0x8fa2c8, 0x0a0806, 0.16));
+  const moon = new T.DirectionalLight(0x9db4ff, 0.32);
+  moon.position.set(-5, 6, 4);
+  root.add(moon);
 
-  // 背部暗色工业格栅墙
-  const wallMat = new T.MeshStandardMaterial({
-    color: 0x121118,
-    roughness: 0.85,
-    metalness: 0.6,
-  });
-  const wall = new T.Mesh(new T.PlaneGeometry(28, 16), wallMat);
-  wall.position.set(0, 0, -0.6);
-  root.add(wall);
+  const floor = new T.Mesh(
+    new T.PlaneGeometry(80, 40),
+    new T.MeshStandardMaterial({ color: 0x08080a, roughness: 0.6, metalness: 0.25 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -1.3;
+  root.add(floor);
 
-  // 网格横梁支架
+  // electrode clips (shared across letters)
   const beamMat = new T.MeshStandardMaterial({ color: 0x22222a, roughness: 0.5, metalness: 0.8 });
-  for (let y = -3.5; y <= 4.5; y += 2.0) {
-    const beam = new T.Mesh(new T.BoxGeometry(26, 0.08, 0.1), beamMat);
-    beam.position.set(0, y, -0.45);
-    root.add(beam);
-  }
+  beamMat.userData.shared = true;
 
   // 2. 放电火花粒子
   const sparks = new Particles({
@@ -108,8 +104,8 @@ export function create(ctx: WorldContext): WorldInstance {
         void main() {
           if (vU > uCharge) discard;
           float fresnel = 1.0 - abs(vNormal.z);
-          vec3 c = mix(uCoreColor, uColor, pow(fresnel, 0.8));
-          gl_FragColor = vec4(c * (1.6 * uIntensity), 1.0);
+          vec3 c = mix(uCoreColor, uColor, 0.45 + 0.55 * pow(fresnel, 0.8));
+          gl_FragColor = vec4(c * (1.05 * uIntensity), 1.0);
         }
       `,
       side: T.DoubleSide,
@@ -117,15 +113,13 @@ export function create(ctx: WorldContext): WorldInstance {
   }
 
   function createGlassMaterial() {
-    return new T.MeshPhysicalMaterial({
-      color: 0x111116,
-      roughness: 0.05,
-      metalness: 0.1,
-      transmission: 0.88,
-      thickness: 0.15,
-      ior: 1.5,
+    // thin clear sleeve: a faint specular shell over the glowing core (no transmission pass)
+    return new T.MeshStandardMaterial({
+      color: 0x9aa8c0,
+      roughness: 0.08,
+      metalness: 0.2,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.12,
       depthWrite: false,
     });
   }
@@ -312,7 +306,6 @@ export function create(ctx: WorldContext): WorldInstance {
       }
       visuals.clear();
       sparks.dispose();
-      wallMat.dispose();
       beamMat.dispose();
       disposeObject(root);
     },

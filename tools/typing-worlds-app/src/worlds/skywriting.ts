@@ -1,7 +1,7 @@
 /**
  * WORLD 13 · Skywriting (飞机烟迹)
  *
- * 一架特技小飞机在蓝天里逐笔“写”出每个字母：
+ * 一架特技小飞机在夜空里逐笔“写”出每个字母：
  * - 机尾喷出有体积感的烟（受光面亮、背光面偏蓝灰的软体积烟团），烟团随时间
  *   膨胀扩散，并在风场中缓慢漂移，但始终锚定在字形上保持可读。
  * - 镜头柔和地跟随飞机（只做小幅平移，文字始终在画面内），不会打断连续输入：
@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import type { DeleteEvent, InsertEvent, LetterRef, SaveOutcome, WorldContext, WorldInstance, WorldModule } from '../engine/types';
 import type { Slot } from '../engine/layout';
 import type { EvenPoint } from '../engine/glyphs/glyph-engine';
-import { canvasTexture, disposeObject, fitCameraToWidth, gradientSky } from '../engine/letter-world';
+import { canvasTexture, disposeObject, fitCameraToWidth } from '../engine/letter-world';
 import { ToolController } from '../engine/tools';
 
 /* =====================================================================
@@ -292,8 +292,8 @@ function puffLayer(cap: number, map: THREE.Texture, opts: { fogNear: number; fog
     depthWrite: false,
     uniforms: {
       uMap: { value: map },
-      uLit: { value: new THREE.Color(0xffffff) },
-      uShade: { value: new THREE.Color(0x9fb3cb) },
+      uLit: { value: new THREE.Color(0xeef2fa) },
+      uShade: { value: new THREE.Color(0x56657c) },
       uFog: { value: new THREE.Color(opts.fogColor) },
       uFogNear: { value: opts.fogNear },
       uFogFar: { value: opts.fogFar },
@@ -334,74 +334,37 @@ export function create(ctx: WorldContext): WorldInstance {
   const q = ctx.quality;
   const R = rng(1313);
 
-  /* ------------------------------------------------------------------ sky */
-  const HORIZON = 0xa9d0f2;
-  ctx.scene.background = new THREE.Color(0x5fa6ea);
-  ctx.scene.fog = new THREE.Fog(HORIZON, 60, 190);
-  const sky = gradientSky(0x1f63c4, 0x9cc3e6, { horizon: 0xc4e0f7, exponent: 0.32, radius: 200 });
-  root.add(sky);
+  /* ------------------------------------------------------------ night sky */
+  // minimal dark stage (classic 3D Type look): near-black night, a few faint stars
+  const NIGHT = 0x03050a;
+  ctx.scene.background = new THREE.Color(NIGHT);
+  ctx.scene.fog = new THREE.Fog(NIGHT, 60, 190);
 
-  const amb = new THREE.HemisphereLight(0xdff0ff, 0x8aa3b8, 1.4);
+  const amb = new THREE.HemisphereLight(0x8fa2c8, 0x0a0806, 0.35);
   root.add(amb);
-  const sunLight = new THREE.DirectionalLight(0xfff3df, 2.0);
-  sunLight.position.set(6, 12, 9);
-  root.add(sunLight);
+  const moonLight = new THREE.DirectionalLight(0xc8d6ff, 1.1);
+  moonLight.position.set(-5, 8, 6);
+  root.add(moonLight);
 
-  // sun glow
-  const glowTex = canvasTexture(128, 128, (g, w, h) => {
-    const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-    gr.addColorStop(0, 'rgba(255,253,240,1)');
-    gr.addColorStop(0.12, 'rgba(255,245,215,0.9)');
-    gr.addColorStop(0.4, 'rgba(255,236,200,0.22)');
-    gr.addColorStop(1, 'rgba(255,236,200,0)');
-    g.fillStyle = gr;
-    g.fillRect(0, 0, w, h);
-  });
-  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
-  sunSprite.scale.setScalar(30);
-  sunSprite.position.set(38, 30, -120);
-  root.add(sunSprite);
-
-  // hazy landscape far below
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 300), new THREE.MeshLambertMaterial({ color: 0x6f9bb0 }));
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.set(0, -48, -120);
-  root.add(ground);
-
-  /* --------------------------------------------------------------- clouds */
-  const puffMap = puffTexture();
-  const nClouds = small ? 9 : 16;
-  const cloudCap = nClouds * 26;
-  const clouds = puffLayer(cloudCap, puffMap, { fogNear: 70, fogFar: 230, fogColor: HORIZON });
-  {
-    let c = 0;
-    const P = clouds.iPos.array as Float32Array;
-    const D = clouds.iData.array as Float32Array;
-    for (let k = 0; k < nClouds; k++) {
-      const cx = (R() - 0.5) * 220, cy = 13 + R() * 24, cz = -70 - R() * 70;
-      const w = 10 + R() * 18;
-      for (let j = 0; j < 26 && c < cloudCap; j++, c++) {
-        const u = R() - 0.5;
-        P[c * 3] = cx + u * w;
-        P[c * 3 + 1] = cy + Math.abs(R() - 0.5) * w * 0.28 * (1 - Math.abs(u) * 1.4);
-        P[c * 3 + 2] = cz + (R() - 0.5) * 6;
-        D[c * 4] = 6 + R() * 8;
-        D[c * 4 + 1] = 0.85;
-        D[c * 4 + 2] = R() * 6.28;
-        D[c * 4 + 3] = R();
-      }
-    }
-    clouds.geo.instanceCount = c;
-    clouds.iPos.needsUpdate = true;
-    clouds.iData.needsUpdate = true;
+  const nStars = small ? 160 : 320;
+  const starPos = new Float32Array(nStars * 3);
+  for (let i = 0; i < nStars; i++) {
+    starPos[i * 3] = (R() - 0.5) * 260;
+    starPos[i * 3 + 1] = -20 + R() * 110;
+    starPos[i * 3 + 2] = -90 - R() * 40;
   }
-  clouds.mesh.renderOrder = -5;
-  root.add(clouds.mesh);
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x9aa6c0, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.55, depthWrite: false }));
+  stars.renderOrder = -5;
+  root.add(stars);
+
+  const puffMap = puffTexture();
 
   /* ---------------------------------------------------------------- smoke */
   const CAP = Math.round((q === 2 ? 6000 : q === 1 ? 4200 : 2600) * (small ? 0.55 : 1));
   const smoke = new SmokeField(CAP);
-  const smokeLayer = puffLayer(CAP, puffMap, { fogNear: 40, fogFar: 160, fogColor: HORIZON });
+  const smokeLayer = puffLayer(CAP, puffMap, { fogNear: 40, fogFar: 160, fogColor: NIGHT });
   smokeLayer.mesh.renderOrder = 2;
   root.add(smokeLayer.mesh);
   const SUB = q === 2 && !small ? 2 : 1;
@@ -787,7 +750,7 @@ export function create(ctx: WorldContext): WorldInstance {
         f.t += dt;
         if (!f.scattered && f.t > 3.2) {
           f.scattered = true;
-          // the word slowly melts into the clouds
+          // the word slowly melts into the night
           for (const rec of f.recs) smoke.scatter(rec, 4.5, 0.5, R);
           finales.splice(fi, 1);
         }
@@ -796,7 +759,6 @@ export function create(ctx: WorldContext): WorldInstance {
       const freeMoving = smoke.step(dt, t);
       writeSmoke();
       updateCamera(dt);
-      clouds.mesh.position.x = Math.sin(t * 0.012) * 6;
 
       ctx.tempo.backlog = writer.pending();
       const busy = writer.busy || !!flyby || finales.length > 0 || freeMoving > 0;
@@ -811,9 +773,7 @@ export function create(ctx: WorldContext): WorldInstance {
       finales.length = 0;
       writer.flush();
       smokeLayer.quad.dispose();
-      clouds.quad.dispose();
       puffMap.dispose();
-      glowTex.dispose();
       disposeObject(root);
     },
   };

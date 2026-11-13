@@ -12,7 +12,7 @@
  * Layout runs in the vertical plane; this world projects it onto the tray (lines go "up" the tray).
  */
 import * as THREE from 'three';
-import { LetterWorld, type LetterVisual, gradientSky, canvasTexture, fitCameraToWidth } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual, canvasTexture, fitCameraToWidth } from '../engine/letter-world';
 import { clamp, rand, damp, easeInOutCubic } from '../engine/anim';
 import { Particles } from '../engine/particles';
 import type { Glyph } from '../engine/glyphs/glyph-engine';
@@ -113,17 +113,17 @@ class SandWorld extends LetterWorld<SandVisual> {
     this.pileCount = new Uint16Array(this.cols * this.rows);
 
     const scene = ctx.scene;
-    scene.background = new THREE.Color(0xf3d6b0);
-    scene.fog = new THREE.Fog(0xf0d2ae, 22, 60);
-    this.root.add(gradientSky(0x8fb3d9, 0xf6dcb8, { horizon: 0xffd9a8, exponent: 0.55 }));
+    // classic 3D Type stage: near-black, the tray is the only lit thing
+    scene.background = new THREE.Color(0x040303);
+    scene.fog = new THREE.Fog(0x040303, 12, 26);
     ctx.camera.position.set(0, 7, 8.5);
     ctx.camera.lookAt(0, 0, -0.2);
 
-    this.root.add(new THREE.HemisphereLight(0xfff1dd, 0xcaa77c, 0.9));
-    const sun = new THREE.DirectionalLight(0xffe2b8, 2.3);
+    this.root.add(new THREE.HemisphereLight(0xfff1dd, 0x0a0806, 0.22));
+    const sun = new THREE.DirectionalLight(0xffe2b8, 2.0);
     sun.position.set(-8, 5, -3); // low raking sun: ridges cast light and shade
     this.root.add(sun);
-    const sky = new THREE.DirectionalLight(0xbcd4ff, 0.45);
+    const sky = new THREE.DirectionalLight(0xbcd4ff, 0.25);
     sky.position.set(4, 6, 6);
     this.root.add(sky);
 
@@ -132,13 +132,13 @@ class SandWorld extends LetterWorld<SandVisual> {
       512,
       512,
       (g, w, h) => {
-        g.fillStyle = '#cfae7f';
+        g.fillStyle = '#3f3326';
         g.fillRect(0, 0, w, h);
         // soft wind ripples
         for (let y = 0; y < h; y += 2) {
           for (let x = 0; x < w; x += 4) {
             const r = Math.sin(x * 0.045 + Math.sin(y * 0.015) * 2 + y * 0.006) * 0.5 + 0.5;
-            g.fillStyle = r > 0.5 ? `rgba(255,240,215,${(r - 0.5) * 0.16})` : `rgba(120,85,50,${(0.5 - r) * 0.12})`;
+            g.fillStyle = r > 0.5 ? `rgba(255,235,205,${(r - 0.5) * 0.1})` : `rgba(120,85,50,${(0.5 - r) * 0.12})`;
             g.fillRect(x, y, 4, 2);
           }
         }
@@ -155,7 +155,7 @@ class SandWorld extends LetterWorld<SandVisual> {
     bed.position.y = SAND_Y - 0.005;
     this.root.add(bed);
     // tray frame
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x6e4a2c, roughness: 0.7 });
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x17110c, roughness: 0.55 });
     const fH = 0.35;
     const mk = (w: number, d: number, x: number, z: number) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, fH, d), frameMat);
@@ -166,19 +166,13 @@ class SandWorld extends LetterWorld<SandVisual> {
     mk(TRAY_W + 0.6, 0.3, 0, -TRAY_D / 2 - 0.15);
     mk(0.3, TRAY_D, TRAY_W / 2 + 0.15, 0);
     mk(0.3, TRAY_D, -TRAY_W / 2 - 0.15, 0);
-    // desert beyond the tray
-    const desertMat = new THREE.MeshStandardMaterial({ color: 0xe2bf8e, roughness: 1 });
-    const desert = new THREE.Mesh(new THREE.PlaneGeometry(160, 120), desertMat);
-    desert.rotation.x = -Math.PI / 2;
-    desert.position.y = SAND_Y - 0.6;
-    this.root.add(desert);
-    for (let i = 0; i < 7; i++) {
-      const d = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), desertMat);
-      d.scale.set(rand(8, 16), rand(1.2, 3), rand(4, 7));
-      d.position.set(rand(-40, 40), SAND_Y - 0.8, rand(-45, -22));
-      this.root.add(d);
-    }
-    this.disposables.push(bedMat, frameMat, desertMat);
+    // a single dark plinth under the tray, fading into the fog
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0b0908, roughness: 1 });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 40), floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = SAND_Y - 0.6;
+    this.root.add(floor);
+    this.disposables.push(bedMat, frameMat, floorMat);
 
     // grains
     this.geo = new THREE.IcosahedronGeometry(1, 0);

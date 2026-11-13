@@ -27,17 +27,28 @@ export function create(ctx: WorldContext): WorldInstance {
   const root = new THREE.Group();
   ctx.scene.add(root);
 
-  // 1. 深色科幻星空
-  ctx.scene.background = new T.Color(0x04060d);
-  ctx.scene.fog = new T.Fog(0x04060d, 14, 45);
+  // 1. Minimal dark stage (classic 3D Type look): near-black, a faint floor + one inlaid line
+  ctx.scene.background = new T.Color(0x020203);
+  ctx.scene.fog = new T.FogExp2(0x020203, 0.05);
   ctx.camera.position.set(0, 0.4, 11);
   ctx.camera.lookAt(0, 0.35, 0);
 
-  const amb = new T.AmbientLight(0x162640, 1.2);
-  root.add(amb);
-  const dir = new T.DirectionalLight(0x52aaff, 1.8);
-  dir.position.set(6, 12, 8);
+  root.add(new T.HemisphereLight(0x6f86a8, 0x07090c, 0.35));
+  const dir = new T.DirectionalLight(0x8aa0c8, 0.5);
+  dir.position.set(-7, 10, 6);
   root.add(dir);
+
+  const floor = new T.Mesh(
+    new T.PlaneGeometry(80, 40),
+    new T.MeshStandardMaterial({ color: 0x07080b, roughness: 0.55, metalness: 0.3 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -1.6;
+  root.add(floor);
+  const inlay = new T.Mesh(new T.PlaneGeometry(80, 0.025), new T.MeshBasicMaterial({ color: 0x1a1f28 }));
+  inlay.rotation.x = -Math.PI / 2;
+  inlay.position.set(0, -1.596, 0);
+  root.add(inlay);
 
   // 2. 能量剑模型 (hilt + glowing blade)
   const saberGroup = new T.Group();
@@ -88,7 +99,7 @@ export function create(ctx: WorldContext): WorldInstance {
         void main() {
           if (vU > uProgress) discard;
           float fresnel = 1.0 - abs(vNormal.z);
-          vec3 c = mix(uCore, uGlow, pow(fresnel, 0.9)) * (1.5 * uPulse);
+          vec3 c = mix(uCore, uGlow, 0.35 + 0.65 * pow(fresnel, 0.55)) * (1.0 * uPulse);
           gl_FragColor = vec4(c, 1.0);
         }
       `,

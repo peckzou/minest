@@ -17,7 +17,7 @@
  */
 import * as THREE from 'three';
 import type { DeleteEvent, InsertEvent, SaveOutcome, WorldContext, WorldInstance, WorldModule } from '../engine/types';
-import { LetterWorld, type LetterVisual, gradientSky, blobTexture, canvasTexture } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual, blobTexture, canvasTexture } from '../engine/letter-world';
 import type { Slot } from '../engine/layout';
 import { Particles } from '../engine/particles';
 import { clamp, damp, rand } from '../engine/anim';
@@ -149,19 +149,17 @@ class MagneticJelly extends LetterWorld<JellyVisual> {
     const T = THREE;
     this.themeId = THEMES[ctx.theme] ? ctx.theme : 'jelly';
 
-    ctx.scene.background = new T.Color(0xf3f6fb);
-    ctx.scene.fog = new T.Fog(0xf3f6fb, 26, 70);
+    // classic 3D Type look: near-black stage, soft fog, restrained light
+    ctx.scene.background = new T.Color(0x040306);
+    ctx.scene.fog = new T.Fog(0x040306, 18, 42);
     ctx.scene.environment = ctx.renderer.environment();
-    this.root.add(gradientSky(0xdfe9fb, 0xeef0f4, { horizon: 0xfbfcff, exponent: 0.7 }));
+    ctx.scene.environmentIntensity = 0.55;
     this.placeCamera(true);
 
-    this.root.add(new T.HemisphereLight(0xffffff, 0xdde3ee, 1.05));
-    const key = new T.DirectionalLight(0xffffff, 1.5);
+    this.root.add(new T.HemisphereLight(0xc8d4ff, 0x0a0808, 0.35));
+    const key = new T.DirectionalLight(0xffffff, 1.6);
     key.position.set(5, 9, 8);
     this.root.add(key);
-    const fill = new T.DirectionalLight(0xe4ecff, 0.5);
-    fill.position.set(-7, 3, 6);
-    this.root.add(fill);
 
     this.buildLab();
 
@@ -176,7 +174,7 @@ class MagneticJelly extends LetterWorld<JellyVisual> {
       tip.position.set(sx, -0.15, 0);
       this.magnet.add(tip);
     }
-    const cord = new T.Mesh(new T.CylinderGeometry(0.015, 0.015, 6, 6), new T.MeshStandardMaterial({ color: 0x9aa3b2 }));
+    const cord = new T.Mesh(new T.CylinderGeometry(0.015, 0.015, 6, 6), new T.MeshStandardMaterial({ color: 0x3a3f4a }));
     cord.position.y = 3.6;
     this.magnet.add(cord);
     this.magnet.position.copy(MAGNET).add(new T.Vector3(0, 0.25, 0));
@@ -214,12 +212,12 @@ class MagneticJelly extends LetterWorld<JellyVisual> {
 
   private buildLab() {
     const T = THREE;
-    const floor = new T.Mesh(new T.CircleGeometry(40, 64), new T.MeshStandardMaterial({ color: 0xf6f7fa, roughness: 0.55, metalness: 0 }));
+    const floor = new T.Mesh(new T.CircleGeometry(30, 48), new T.MeshLambertMaterial({ color: 0x08080b }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = FLOOR_Y;
     this.root.add(floor);
 
-    // magnetic board with a soft dot grid
+    // dark magnetic board with a faint dot grid
     const W = 13.4;
     const H = 5.9;
     const rr = (w: number, h: number, r: number) => {
@@ -236,10 +234,10 @@ class MagneticJelly extends LetterWorld<JellyVisual> {
       return s;
     };
     const dots = canvasTexture(256, 256, (g, w, h) => {
-      g.fillStyle = '#fbfcfe';
+      g.fillStyle = '#0b0c10';
       g.fillRect(0, 0, w, h);
-      g.fillStyle = 'rgba(120,140,180,0.22)';
-      for (let y = 16; y < h; y += 32) for (let x = 16; x < w; x += 32) g.fillRect(x - 2, y - 2, 4, 4);
+      g.fillStyle = 'rgba(150,170,220,0.16)';
+      for (let y = 16; y < h; y += 32) for (let x = 16; x < w; x += 32) g.fillRect(x - 1.5, y - 1.5, 3, 3);
     });
     dots.wrapS = dots.wrapT = T.RepeatWrapping;
     const boardGeo = new T.ShapeGeometry(rr(W, H, 0.5), 6);
@@ -247,47 +245,15 @@ class MagneticJelly extends LetterWorld<JellyVisual> {
     const pos = boardGeo.getAttribute('position');
     const uv = boardGeo.getAttribute('uv');
     for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / 1.6, pos.getY(i) / 1.6);
-    const board = new T.Mesh(boardGeo, new T.MeshStandardMaterial({ color: 0xffffff, map: dots, roughness: 0.8, metalness: 0 }));
+    const board = new T.Mesh(boardGeo, new T.MeshLambertMaterial({ color: 0xffffff, map: dots }));
     board.position.set(0, 0.1, BOARD_Z);
     this.root.add(board);
-    const outer = rr(W + 0.5, H + 0.5, 0.7);
+    // thin dark rim
+    const outer = rr(W + 0.16, H + 0.16, 0.56);
     outer.holes.push(rr(W, H, 0.5));
-    const frame = new T.Mesh(
-      new T.ExtrudeGeometry(outer, { depth: 0.22, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05, bevelSegments: 2, curveSegments: 8 }),
-      new T.MeshStandardMaterial({ color: 0xc9dcff, roughness: 0.4, metalness: 0 })
-    );
-    frame.position.set(0, 0.1, BOARD_Z - 0.12);
+    const frame = new T.Mesh(new T.ShapeGeometry(outer, 6), new T.MeshLambertMaterial({ color: 0x1a1c24 }));
+    frame.position.set(0, 0.1, BOARD_Z + 0.002);
     this.root.add(frame);
-    const backing = new T.Mesh(new T.BoxGeometry(W, H, 0.12), new T.MeshStandardMaterial({ color: 0xe8edf6, roughness: 0.7 }));
-    backing.position.set(0, 0.1, BOARD_Z - 0.08);
-    this.root.add(backing);
-    const legMat = new T.MeshStandardMaterial({ color: 0xb8c2d4, roughness: 0.3, metalness: 0.6 });
-    for (const x of [-4.8, 4.8]) {
-      const leg = new T.Mesh(new T.CylinderGeometry(0.09, 0.12, 0.3 + (0.1 - H / 2 - FLOOR_Y), 12), legMat);
-      leg.position.set(x, (FLOOR_Y + 0.1 - H / 2) / 2, BOARD_Z - 0.1);
-      this.root.add(leg);
-      const foot = new T.Mesh(new T.CylinderGeometry(0.45, 0.5, 0.08, 24), legMat);
-      foot.position.set(x, FLOOR_Y + 0.04, BOARD_Z - 0.1);
-      this.root.add(foot);
-    }
-
-    // pastel toys on the floor
-    const toy = (geo: THREE.BufferGeometry, color: number, x: number, z: number, y = 0, rotY = 0) => {
-      const m = new T.Mesh(geo, new T.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0 }));
-      geo.computeBoundingBox();
-      m.position.set(x, FLOOR_Y - geo.boundingBox!.min.y + y, z);
-      m.rotation.y = rotY;
-      this.root.add(m);
-      const sh = new T.Mesh(new T.PlaneGeometry(1.6, 1.6), new T.MeshBasicMaterial({ map: blobTexture(), color: 0x6f7a90, transparent: true, opacity: 0.25, depthWrite: false }));
-      sh.rotation.x = -Math.PI / 2;
-      sh.position.set(x, FLOOR_Y + 0.01, z);
-      this.root.add(sh);
-    };
-    toy(new T.SphereGeometry(0.5, 28, 18), 0xffb3c9, -6.4, 1.6);
-    toy(new T.BoxGeometry(0.75, 0.75, 0.75), 0xffe08a, -5.4, 2.6, 0, 0.5);
-    toy(new T.TorusGeometry(0.42, 0.17, 14, 32), 0xa7e8cf, 6.1, 1.9, 0, -0.4);
-    toy(new T.ConeGeometry(0.42, 0.9, 24), 0xbcb2ff, 5.2, 2.9);
-    toy(new T.CylinderGeometry(0.32, 0.32, 0.5, 24), 0x9fd8ff, 6.9, 3.1);
   }
 
   private placeCamera(snap: boolean, dt = 0) {
@@ -394,7 +360,7 @@ class MagneticJelly extends LetterWorld<JellyVisual> {
     body.add(mesh);
     container.add(body);
 
-    const shadowMat = new THREE.MeshBasicMaterial({ map: blobTexture(), color: 0x55607a, transparent: true, opacity: 0, depthWrite: false });
+    const shadowMat = new THREE.MeshBasicMaterial({ map: blobTexture(), color: 0x000000, transparent: true, opacity: 0, depthWrite: false });
     const shadow = new THREE.Mesh(this.shadowGeo, shadowMat);
     shadow.renderOrder = 1;
     container.add(shadow);

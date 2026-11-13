@@ -27,23 +27,26 @@ export function create(ctx: WorldContext): WorldInstance {
   const root = new THREE.Group();
   ctx.scene.add(root);
 
-  // 1. 英式庄园阳光与草坪
-  ctx.scene.background = new T.Color(0xafe0ff);
-  ctx.scene.fog = new T.Fog(0xafe0ff, 18, 60);
+  // 1. classic 3D Type look: near-black stage, one key + a cool rim on the hedges
+  ctx.scene.background = new T.Color(0x020302);
+  ctx.scene.fog = new T.Fog(0x020302, 14, 30);
   ctx.camera.position.set(0, 1.8, 10.5);
   ctx.camera.lookAt(0, 0.5, 0);
 
-  const amb = new T.AmbientLight(0xfff8ee, 1.2);
+  const amb = new T.HemisphereLight(0xe8f4dc, 0x050805, 0.45);
   root.add(amb);
-  const sun = new T.DirectionalLight(0xfffaec, 1.6);
+  const rim = new T.DirectionalLight(0xc8f0ff, 1.1);
+  rim.position.set(-6, 6, -8);
+  root.add(rim);
+  const sun = new T.DirectionalLight(0xfffaec, 2.0);
   sun.position.set(7, 14, 8);
   sun.castShadow = ctx.quality > 0;
   root.add(sun);
 
-  // 庄园修剪草坪
+  // a single dark plinth the hedges grow from
   const lawn = new T.Mesh(
-    new T.BoxGeometry(26, 1, 14),
-    new T.MeshStandardMaterial({ color: 0x48942b, roughness: 0.9 })
+    new T.BoxGeometry(16, 1, 6),
+    new T.MeshStandardMaterial({ color: 0x060806, roughness: 0.95 })
   );
   lawn.position.set(0, -1.8, 0);
   lawn.receiveShadow = ctx.quality > 0;
@@ -79,8 +82,9 @@ export function create(ctx: WorldContext): WorldInstance {
 
   // 植物树篱材质
   const topiaryMat = new T.MeshStandardMaterial({
-    color: 0x2d6e1d,
-    roughness: 0.88,
+    color: 0x4a9a32,
+    emissive: 0x0c2207,
+    roughness: 0.82,
     metalness: 0.05,
   });
 

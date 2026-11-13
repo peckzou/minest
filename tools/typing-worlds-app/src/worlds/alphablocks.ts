@@ -13,7 +13,7 @@
  */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { LetterWorld, type LetterVisual, gradientSky, canvasTexture, blobTexture, fitCameraToWidth } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual, canvasTexture, blobTexture, fitCameraToWidth } from '../engine/letter-world';
 import { Spring, clamp, lerp, damp, rand } from '../engine/anim';
 import { Particles } from '../engine/particles';
 import type { Slot } from '../engine/layout';
@@ -112,12 +112,9 @@ class AlphablocksWorld extends LetterWorld<Block> {
   private targets = new Map<number, Target>();
   private risers: THREE.Mesh[] = [];
   private confetti: Particles;
-  private bunting: THREE.InstancedMesh;
-  private props: THREE.Mesh[] = [];
   private pendingSpaces: number[] = [];
   private camDist = 13;
   private lastPointer = 0;
-  private dummy = new THREE.Object3D();
   private tmpV = new THREE.Vector3();
   private onPointerDown: (e: PointerEvent) => void;
   private lines = 1;
@@ -126,20 +123,18 @@ class AlphablocksWorld extends LetterWorld<Block> {
     super(ctx);
     this.theme = PALETTES[ctx.theme] ? ctx.theme : 'toy';
     const scene = ctx.scene;
-    scene.background = new THREE.Color(0xbfe9ff);
+    // minimal dark stage (classic 3D Type look): the blocks are the only bright things
+    scene.background = new THREE.Color(0x040406);
     scene.environment = ctx.renderer.environment();
-    scene.environmentIntensity = 0.35;
-    scene.fog = new THREE.Fog(0xd9f1ff, 26, 70);
+    scene.environmentIntensity = 0.25;
+    scene.fog = new THREE.Fog(0x040406, 18, 40);
 
-    // sky
-    this.root.add(gradientSky(0x8fd3ff, 0xfff1d6, { horizon: 0xfff6e0, exponent: 0.7 }));
-
-    // lights
-    this.root.add(new THREE.HemisphereLight(0xffffff, 0xffd9b0, 1.25));
-    const sun = new THREE.DirectionalLight(0xfff4e0, 1.9);
+    // lights: dim fill + one key + faint rim
+    this.root.add(new THREE.HemisphereLight(0xdfe6ff, 0x0a0806, 0.55));
+    const sun = new THREE.DirectionalLight(0xfff4e0, 1.8);
     sun.position.set(-5, 10, 8);
     this.root.add(sun);
-    const rim = new THREE.DirectionalLight(0xc8e6ff, 0.7);
+    const rim = new THREE.DirectionalLight(0xc8e6ff, 0.5);
     rim.position.set(6, 4, -6);
     this.root.add(rim);
 
@@ -172,7 +167,7 @@ class AlphablocksWorld extends LetterWorld<Block> {
     this.letterMat = mark(new THREE.MeshStandardMaterial({ roughness: 0.35 }));
     this.eyeMat = mark(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 }));
     this.pupilMat = mark(new THREE.MeshStandardMaterial({ color: 0x1b1b2f, roughness: 0.2 }));
-    this.shadowMat = mark(new THREE.MeshBasicMaterial({ map: blobTexture(), color: 0x3a2a5a, transparent: true, opacity: 0.35, depthWrite: false }));
+    this.shadowMat = mark(new THREE.MeshBasicMaterial({ map: blobTexture(), color: 0x000000, transparent: true, opacity: 0.55, depthWrite: false }));
     this.sphereGeo = new THREE.SphereGeometry(1, 16, 12);
     this.sphereGeo.userData.shared = true;
     this.shadowGeo = new THREE.PlaneGeometry(1, 1);
@@ -185,45 +180,6 @@ class AlphablocksWorld extends LetterWorld<Block> {
 
     this.confetti = new Particles({ capacity: 600, gravity: [0, -3.2, 0], drag: 0.9, size: 0.09, shape: 'flake', blending: THREE.NormalBlending, depthWrite: false, floor: STAGE_TOP + 0.02 });
     this.root.add(this.confetti.points);
-
-    // bunting
-    const flagGeo = new THREE.BufferGeometry();
-    flagGeo.setAttribute('position', new THREE.Float32BufferAttribute([-0.28, 0, 0, 0.28, 0, 0, 0, -0.55, 0], 3));
-    flagGeo.computeVertexNormals();
-    const flagMat = new THREE.MeshStandardMaterial({ roughness: 0.8, side: THREE.DoubleSide });
-    const FLAGS = 30;
-    this.bunting = new THREE.InstancedMesh(flagGeo, flagMat, FLAGS);
-    const fc = new THREE.Color();
-    for (let i = 0; i < FLAGS; i++) this.bunting.setColorAt(i, fc.setHex(PALETTES.toy.body[i % 8]));
-    this.root.add(this.bunting);
-    this.layoutBunting(0);
-
-    // floating background toys
-    const toyGeos: THREE.BufferGeometry[] = [
-      new THREE.SphereGeometry(1, 24, 16),
-      new THREE.ConeGeometry(1, 1.8, 24),
-      new THREE.TorusGeometry(0.9, 0.35, 12, 32),
-      new RoundedBoxGeometry(1.6, 1.6, 1.6, 3, 0.25),
-      new THREE.CylinderGeometry(0.8, 0.8, 1.4, 24),
-    ];
-    const toyPos: [number, number, number][] = [
-      [-13, 3.5, -16],
-      [12, 5, -18],
-      [-7, 7, -22],
-      [15, 1, -12],
-      [-16, 0.5, -11],
-      [6, 8, -24],
-    ];
-    toyPos.forEach((p, i) => {
-      const m = new THREE.Mesh(toyGeos[i % toyGeos.length], new THREE.MeshStandardMaterial({ color: PALETTES.pastel.body[(i * 3) % 8], roughness: 0.6 }));
-      m.position.set(...p);
-      m.scale.setScalar(1.2 + (i % 3) * 0.4);
-      m.userData.base = p[1];
-      m.userData.phase = i * 1.7;
-      this.props.push(m);
-      this.root.add(m);
-    });
-    this.shared.geo.push(...toyGeos);
 
     // pointer (the app does not route clicks to worlds, so listen on the canvas ourselves)
     this.onPointerDown = (e: PointerEvent) => {
@@ -239,97 +195,35 @@ class AlphablocksWorld extends LetterWorld<Block> {
   /* -------------------------------------------------------------- stage */
 
   private buildStage() {
-    const top = canvasTexture(1024, 1024, (g, w, h) => {
-      const cx = w / 2,
-        cy = h / 2;
-      const cols = ['#fff3c4', '#ffe0ea', '#d9f4ff', '#e4f8d6', '#efe2ff', '#ffe6cc'];
-      const n = 24;
-      for (let i = 0; i < n; i++) {
-        g.fillStyle = cols[i % cols.length];
-        g.beginPath();
-        g.moveTo(cx, cy);
-        g.arc(cx, cy, w / 2, (i / n) * Math.PI * 2, ((i + 1) / n) * Math.PI * 2);
-        g.closePath();
-        g.fill();
-      }
-      g.strokeStyle = '#ffffff';
-      g.lineWidth = 18;
-      for (const r of [0.2, 0.47]) {
-        g.beginPath();
-        g.arc(cx, cy, w * r, 0, Math.PI * 2);
-        g.stroke();
-      }
-      // dots ring at the edge
-      for (let i = 0; i < 48; i++) {
-        const a = (i / 48) * Math.PI * 2;
-        g.fillStyle = ['#ff4d5e', '#ffb300', '#22b8cf', '#5cc24a'][i % 4];
-        g.beginPath();
-        g.arc(cx + Math.cos(a) * w * 0.485, cy + Math.sin(a) * h * 0.485, 9, 0, Math.PI * 2);
-        g.fill();
-      }
+    // dark matte plinth with a single faint ring
+    const top = canvasTexture(512, 512, (g, w, h) => {
+      g.fillStyle = '#121216';
+      g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(255,255,255,0.07)';
+      g.lineWidth = 3;
+      g.beginPath();
+      g.arc(w / 2, h / 2, w * 0.47, 0, Math.PI * 2);
+      g.stroke();
     });
-    const side = canvasTexture(512, 64, (g, w, h) => {
-      for (let x = 0; x < w; x += 32) {
-        g.fillStyle = (x / 32) % 2 ? '#ff6b81' : '#ffffff';
-        g.fillRect(x, 0, 32, h);
-      }
-    });
-    side.wrapS = THREE.RepeatWrapping;
-    side.repeat.set(8, 1);
-    this.shared.tex.push(top, side);
+    this.shared.tex.push(top);
     const stage = new THREE.Mesh(new THREE.CylinderGeometry(STAGE_R, STAGE_R + 0.15, 0.7, 72), [
-      new THREE.MeshStandardMaterial({ map: side, roughness: 0.6 }),
-      new THREE.MeshStandardMaterial({ map: top, roughness: 0.7 }),
-      new THREE.MeshStandardMaterial({ color: 0xdddddd }),
+      new THREE.MeshStandardMaterial({ color: 0x0c0c0f, roughness: 0.8 }),
+      new THREE.MeshStandardMaterial({ map: top, roughness: 0.75 }),
+      new THREE.MeshStandardMaterial({ color: 0x0c0c0f }),
     ]);
     stage.position.y = STAGE_TOP - 0.35;
     this.root.add(stage);
 
-    // ground far below the stage
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(60, 48), new THREE.MeshStandardMaterial({ color: 0xa8e39a, roughness: 1 }));
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = STAGE_TOP - 0.72;
-    this.root.add(ground);
-
     // risers for 2nd/3rd line (back rows)
-    const riserTex = canvasTexture(256, 64, (g, w, h) => {
-      g.fillStyle = '#ffffff';
-      g.fillRect(0, 0, w, h);
-      g.fillStyle = '#ffd36e';
-      g.fillRect(0, 0, w, 10);
-      for (let x = 8; x < w; x += 32) {
-        g.fillStyle = '#ffb3c7';
-        g.beginPath();
-        g.arc(x + 8, h / 2 + 4, 6, 0, Math.PI * 2);
-        g.fill();
-      }
-    });
-    riserTex.wrapS = THREE.RepeatWrapping;
-    riserTex.repeat.set(6, 1);
-    this.shared.tex.push(riserTex);
+    const riserMat = new THREE.MeshStandardMaterial({ color: 0x15151a, roughness: 0.8 });
     for (let k = 1; k <= 2; k++) {
-      const r = new THREE.Mesh(new THREE.BoxGeometry(13, 1, DEPTH), new THREE.MeshStandardMaterial({ map: riserTex, roughness: 0.7 }));
+      const r = new THREE.Mesh(new THREE.BoxGeometry(13, 1, DEPTH), riserMat);
       r.position.set(0, STAGE_TOP, -k * DEPTH);
       r.scale.y = 0.001;
       r.visible = false;
       this.root.add(r);
       this.risers.push(r);
     }
-  }
-
-  private layoutBunting(time: number) {
-    const n = this.bunting.count;
-    for (let i = 0; i < n; i++) {
-      const u = i / (n - 1);
-      const x = lerp(-11, 11, u);
-      const sag = 1.2 * Math.sin(Math.PI * ((u * 3) % 1));
-      this.dummy.position.set(x, 5.6 - sag, -6.5);
-      this.dummy.rotation.set(Math.sin(time * 1.6 + i) * 0.12, 0, Math.sin(time * 1.1 + i * 0.7) * 0.06);
-      this.dummy.scale.setScalar(1);
-      this.dummy.updateMatrix();
-      this.bunting.setMatrixAt(i, this.dummy.matrix);
-    }
-    this.bunting.instanceMatrix.needsUpdate = true;
   }
 
   /* -------------------------------------------------------------- theme */
@@ -884,12 +778,6 @@ class AlphablocksWorld extends LetterWorld<Block> {
       r.visible = r.scale.y > 0.01;
       if (Math.abs(r.scale.y - target) > 0.002) moving = true;
     });
-    // ambient decor
-    this.layoutBunting(time);
-    for (const p of this.props) {
-      p.position.y = p.userData.base + Math.sin(time * 0.5 + p.userData.phase) * 0.4;
-      p.rotation.y = time * 0.12 + p.userData.phase;
-    }
     return moving;
   }
 
@@ -905,7 +793,6 @@ class AlphablocksWorld extends LetterWorld<Block> {
     this.ctx.renderer.canvas.removeEventListener('pointerdown', this.onPointerDown);
     for (const b of [...this.letters.values(), ...this.detached]) (b.rig.userData.shadow as THREE.Object3D | undefined)?.removeFromParent();
     this.confetti.dispose();
-    this.bunting.dispose();
     super.disposeWorld();
     for (const g of this.shared.geo) g.dispose();
     for (const m of this.shared.mat) m.dispose();

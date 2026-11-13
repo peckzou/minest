@@ -26,27 +26,34 @@ export function create(ctx: WorldContext): WorldInstance {
   const root = new THREE.Group();
   ctx.scene.add(root);
 
-  // 1. 神秘图书馆与金色暖光
-  ctx.scene.background = new T.Color(0x110c1c);
-  ctx.scene.fog = new T.Fog(0x110c1c, 14, 45);
+  // 1. Minimal dark stage (classic Book look): warm near-black, one warm key over the book
+  ctx.scene.background = new T.Color(0x050403);
+  ctx.scene.fog = new T.FogExp2(0x050403, 0.04);
   ctx.camera.position.set(0, 1.6, 10.5);
   ctx.camera.lookAt(0, 0.5, 0);
 
-  const amb = new T.AmbientLight(0xffeedd, 1.0);
-  root.add(amb);
-  const candle = new T.PointLight(0xffc866, 2.4, 25);
-  candle.position.set(0, 4, 4);
+  root.add(new T.HemisphereLight(0x5a4632, 0x120b07, 0.5));
+  const candle = new T.PointLight(0xffb866, 30, 0, 1.6);
+  candle.position.set(0, 3.2, 3.5);
   root.add(candle);
+
+  const floor = new T.Mesh(
+    new T.PlaneGeometry(60, 40),
+    new T.MeshStandardMaterial({ color: 0x0d0907, roughness: 0.85, metalness: 0 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -3.2;
+  root.add(floor);
 
   // 悬浮古老魔法书
   const bookGroup = new T.Group();
   const bookCover = new T.Mesh(
     new T.BoxGeometry(10, 0.4, 6),
-    new T.MeshStandardMaterial({ color: 0x3d1a24, roughness: 0.6 })
+    new T.MeshStandardMaterial({ color: 0x24100f, roughness: 0.6 })
   );
   const bookPages = new T.Mesh(
     new T.BoxGeometry(9.6, 0.36, 5.6),
-    new T.MeshStandardMaterial({ color: 0xf5ebd6, roughness: 0.85 })
+    new T.MeshStandardMaterial({ color: 0x6e5c44, roughness: 0.9 })
   );
   bookPages.position.set(0, 0.04, 0);
   bookGroup.add(bookCover);

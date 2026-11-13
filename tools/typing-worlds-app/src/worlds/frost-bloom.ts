@@ -1,7 +1,7 @@
 /**
  * WORLD 16 · Crystal / Ice (冰晶文字)
  *
- * A dark-blue ice cave with glowing crystal clusters. Each letter GROWS as crystal:
+ * A near-black stage with a faint glassy floor. Each letter GROWS as crystal:
  *
  *  1. skeleton — a hexagonal ice needle grows along the strokes in writing order
  *     (the growth front tapers to a point; radius swells behind it);
@@ -20,7 +20,7 @@
  */
 import * as THREE from 'three';
 import type { DeleteEvent, InsertEvent, SaveOutcome, WorldContext, WorldInstance, WorldModule } from '../engine/types';
-import { LetterWorld, type LetterVisual, gradientSky } from '../engine/letter-world';
+import { LetterWorld, type LetterVisual } from '../engine/letter-world';
 import { DEFAULT_LAYOUT, type Slot } from '../engine/layout';
 import type { EvenPoint } from '../engine/glyphs/glyph-engine';
 import { Particles } from '../engine/particles';
@@ -167,16 +167,15 @@ class CrystalIce extends LetterWorld<IceVisual> {
     const T = THREE;
     ctx.layout.setOptions({ ...DEFAULT_LAYOUT, metric: 'sans', size: 1.2, tracking: 0.2, maxWidth: 9.4, maxLines: 2, lineHeight: 1.7, origin: [0, 0.35, 0], plane: 'xy', minScale: 0.35 });
 
-    ctx.scene.background = new T.Color(0x081426);
-    ctx.scene.fog = new T.Fog(0x0b1c2f, 16, 52);
-    this.root.add(gradientSky(0x050d1a, 0x040912, { horizon: 0x16365a, exponent: 0.6 }));
+    ctx.scene.background = new T.Color(0x02040a);
+    ctx.scene.fog = new T.Fog(0x02040a, 14, 34);
     this.placeCamera(true);
 
-    this.root.add(new T.HemisphereLight(0x9fd8ff, 0x0b1a2b, 0.8));
-    const key = new T.DirectionalLight(0xc9ecff, 1.0);
+    this.root.add(new T.HemisphereLight(0x9fd8ff, 0x05080c, 0.22));
+    const key = new T.DirectionalLight(0xc9ecff, 0.6);
     key.position.set(3, 8, 6);
     this.root.add(key);
-    const glow = new T.PointLight(0x5fd0ff, 25, 22);
+    const glow = new T.PointLight(0x5fd0ff, 14, 18);
     glow.position.set(0, 2.5, 4);
     this.root.add(glow);
 
@@ -186,7 +185,7 @@ class CrystalIce extends LetterWorld<IceVisual> {
     this.shardGeo = new T.OctahedronGeometry(1, 0);
     this.shardGeo.userData.shared = true;
 
-    this.buildCave();
+    this.buildStage();
 
     this.shardMat = this.instMaterial(0.95);
     this.shards = new T.InstancedMesh(this.shardGeo, this.shardMat, MAX_SHARDS);
@@ -219,53 +218,18 @@ class CrystalIce extends LetterWorld<IceVisual> {
 
   /* --------------------------------------------------------------- cave */
 
-  private buildCave() {
+  /** classic 3D Type stage: a faint, dark glassy floor and nothing else */
+  private buildStage() {
     const T = THREE;
-    const floor = new T.Mesh(new T.CircleGeometry(42, 64), new T.MeshStandardMaterial({ color: 0x5f93b8, roughness: 0.18, metalness: 0.35 }));
+    const floor = new T.Mesh(new T.CircleGeometry(30, 48), new T.MeshStandardMaterial({ color: 0x060b12, roughness: 0.25, metalness: 0.4 }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = FLOOR_Y;
     this.root.add(floor);
-    // frost rim on the floor
-    const snow = new T.Mesh(new T.RingGeometry(9, 30, 64), new T.MeshStandardMaterial({ color: 0xcfe8f7, roughness: 0.9 }));
-    snow.rotation.x = -Math.PI / 2;
-    snow.position.y = FLOOR_Y + 0.01;
-    this.root.add(snow);
-
-    // crystal clusters around the hall (static instancing, dimmer palette)
-    const u = this.uniforms({});
-    u.uDeep = { value: new T.Color(0x082a45) };
-    u.uMid = { value: new T.Color(0x2c77a6) };
-    u.uHi = { value: new T.Color(0xa9dcf7) };
-    const mats: THREE.Matrix4[] = [];
-    const up = new T.Vector3(0, 1, 0);
-    const d = new T.Vector3();
-    const cluster = (x: number, y: number, z: number, n: number, scale: number, down = false) => {
-      for (let i = 0; i < n; i++) {
-        d.set(rand(-0.6, 0.6), down ? -1 : 1, rand(-0.4, 0.5)).normalize();
-        if (i === 0) d.set(0, down ? -1 : 1, 0);
-        const len = scale * rand(0.5, 1.2) * (i === 0 ? 1.4 : 1);
-        const rad = len * rand(0.16, 0.24);
-        this.q.setFromUnitVectors(up, d);
-        mats.push(new T.Matrix4().compose(new T.Vector3(x + rand(-0.3, 0.3) * scale, y, z + rand(-0.3, 0.3) * scale), this.q.clone(), new T.Vector3(rad, len, rad)));
-      }
-    };
-    cluster(-8.2, FLOOR_Y, -1.5, 8, 2.6);
-    cluster(-9.5, FLOOR_Y, -4, 6, 3.2);
-    cluster(8.4, FLOOR_Y, -1.2, 8, 2.4);
-    cluster(9.8, FLOOR_Y, -4.5, 7, 3.4);
-    // back clusters stay out of the text area (low, wide and far)
-    cluster(-6.5, FLOOR_Y, -9, 6, 2.6);
-    cluster(6.8, FLOOR_Y, -9.5, 7, 2.8);
-    cluster(-2.2, FLOOR_Y, -11, 5, 0.9);
-    cluster(2.6, FLOOR_Y, -11.5, 5, 0.8);
-    cluster(-6.5, FLOOR_Y, 3.5, 4, 1.2);
-    cluster(6.8, FLOOR_Y, 3.2, 4, 1.1);
-    for (let i = 0; i < 9; i++) cluster(-10 + i * 2.5 + rand(-0.6, 0.6), 6.4, -3 - rand(0, 4), 3, rand(0.9, 1.6), true);
-    const decor = new T.InstancedMesh(this.crystalGeo, this.instMaterial(0.92, u), mats.length);
-    mats.forEach((m, i) => decor.setMatrixAt(i, m));
-    decor.instanceMatrix.needsUpdate = true;
-    decor.frustumCulled = false;
-    this.root.add(decor);
+    // a thin frost ring under the letters
+    const ring = new T.Mesh(new T.RingGeometry(6.5, 6.56, 96), new T.MeshBasicMaterial({ color: 0x1d3a52, transparent: true, opacity: 0.6 }));
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = FLOOR_Y + 0.01;
+    this.root.add(ring);
   }
 
   private placeCamera(snap: boolean, dt = 0) {
