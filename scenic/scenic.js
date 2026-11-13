@@ -10,7 +10,7 @@
   var THREE = window.THREE, $ = function (id) { return document.getElementById(id); };
   var Q = new URLSearchParams(location.search), EMBED = window.parent !== window;
   var SC = window.ScenicCore.scenes.bled, SCENES = [SC], LOW = (navigator.deviceMemory && navigator.deviceMemory < 4) || Math.min(screen.width, screen.height) < 500;
-  SC.limits = { orbit: 0.008, tilt: 0.006, dolly: [-6, 8], height: [-2.5, 3], pan: [-3, 3], fov: [7, 40] };   // a few metres: lean, step, rise on your toes
+  SC.limits = { orbit: 0.008, tilt: 0.006, dolly: [-10, 9], height: [-4, 8], pan: [-6, 6], fov: [7, 40] };   // a drone that hovers near the viewpoint: a few metres each way
   /* ---------- the photograph shows at once, before anything else is ready ---------- */
   $('plate').style.backgroundImage = 'url(' + SC.thumb + ')';
   $('credit').innerHTML = SC.credit;
@@ -46,18 +46,25 @@
   var probe = new THREE.PerspectiveCamera(), _o = new THREE.Vector3(), _d = new THREE.Vector3();
   function covered(st) {
     probe.aspect = camera.aspect; pose(st, probe); probe.updateProjectionMatrixWorld && probe.updateProjectionMatrixWorld();
-    var ZB = 3400, c = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
-    for (var i = 0; i < 4; i++) { _o.copy(probe.position); _d.set(c[i][0], c[i][1], 0.5).unproject(probe).sub(_o).normalize();
-      if (_d.z >= -1e-4) return false; var t = (-ZB - _o.z) / _d.z, x = _o.x + _d.x * t, y = _o.y + _d.y * t;
-      if (Math.abs(x) > tanH * ZB * 0.995 || Math.abs(y) > tanV * ZB * 0.995) return false; }
+    var c = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [-1, 0], [1, 0]], Z = [3400, 260, 110];   // far mountains, the lake, the near lake
+    for (var i = 0; i < c.length; i++) { _o.copy(probe.position); _d.set(c[i][0], c[i][1], 0.5).unproject(probe).sub(_o).normalize();
+      if (_d.z >= -1e-4) return false;
+      for (var j = 0; j < Z.length; j++) { if (c[i][1] > -1 && Z[j] < 3400) continue;   // the near distances matter only along the bottom of the frame
+        var t = (-Z[j] - _o.z) / _d.z, x = _o.x + _d.x * t, y = _o.y + _d.y * t;
+        if (Math.abs(x) > tanH * Z[j] * 0.995 || Math.abs(y) > tanV * Z[j] * 0.995) return false; } }
     return true;
   }
   function clampT() {
     T.orbit = clamp(T.orbit, -L.orbit, L.orbit); T.tilt = clamp(T.tilt, -L.tilt, L.tilt); T.dolly = clamp(T.dolly, L.dolly[0], L.dolly[1]);
     T.height = clamp(T.height, L.height[0], L.height[1]); T.pan = clamp(T.pan, L.pan[0], L.pan[1]); T.fov = clamp(T.fov, L.fov[0], L.fov[1]);
     var lim = Math.max(0, (SC.vfov - T.fov) / 2) * Math.PI / 180; T.ly = clamp(T.ly, -lim, lim); T.lx = clamp(T.lx, -lim * SC.aspect, lim * SC.aspect);
-    for (var k = 0; k < 40 && !covered(T); k++) { T.fov *= 0.965; T.lx *= 0.9; T.ly *= 0.9; }   // the frame narrows before it could leave the photograph
+    if (covered(T)) { lastOK = JSON.parse(JSON.stringify(T)); return; }
+    /* past what the photograph holds: the drone stops at that edge, like a fence (nothing zooms by itself) */
+    if (lastOK) { for (var q in lastOK) T[q] = lastOK[q]; V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; for (var d in DV) DV[d] = 0; return; }
+    for (var k = 0; k < 40 && !covered(T); k++) { T.fov *= 0.965; T.lx *= 0.9; T.ly *= 0.9; }   // only for a new screen shape: fit the frame once
+    lastOK = JSON.parse(JSON.stringify(T));
   }
+  var lastOK = null;
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 
   /* ---------- input: drag = orbit, Shift / two fingers = pan, wheel / pinch = zoom, double = the island ---------- */
@@ -84,10 +91,38 @@
   function focusSubject() {                                           // the island in the middle of the frame, a little closer
     _a.copy(P); var dir = _a.clone().normalize(); T.lx = Math.atan2(dir.x, -dir.z) * 0.98; T.ly = Math.atan2(dir.y, Math.hypot(dir.x, dir.z)) * 0.98; T.fov = 17; T.dolly = Math.max(T.dolly, 60); clampT(); toast('对准湖心岛');
   }
+  /* ---------- the drone remote: two sticks (Mode 2) and the keyboard (WASD · Q/E · R/F) ---------- */
+  var STL = { x: 0, y: 0 }, STR = { x: 0, y: 0 }, KEYS = {}, DV = { f: 0, s: 0, u: 0, y: 0 };
+  function stick(id, st) {
+    var el = $(id), knob = el.querySelector('i'), pid = null;
+    function set(e) { var r = el.getBoundingClientRect(), x = (e.clientX - r.left - r.width / 2) / (r.width / 2 - 18), y = (e.clientY - r.top - r.height / 2) / (r.height / 2 - 18), l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
+      st.x = x; st.y = y; knob.style.transform = 'translate(' + (x * (r.width / 2 - 26)) + 'px,' + (y * (r.height / 2 - 26)) + 'px)'; }
+    el.addEventListener('pointerdown', function (e) { e.stopPropagation(); e.preventDefault(); pid = e.pointerId; try { el.setPointerCapture(pid); } catch (er) {} wake(); startAudio(); closePanels(); set(e); });
+    el.addEventListener('pointermove', function (e) { if (e.pointerId === pid) { set(e); wake(); } });
+    function up(e) { if (e.pointerId !== pid) return; pid = null; st.x = st.y = 0; knob.style.transition = 'transform .18s ease'; knob.style.transform = ''; setTimeout(function () { knob.style.transition = ''; }, 200); }   // springs back to centre
+    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  }
+  stick('stL', STL); stick('stR', STR);
+  window.addEventListener('keyup', function (e) { KEYS[e.code] = false; });
+  window.addEventListener('blur', function () { KEYS = {}; });
+  function fly(dt) {
+    var k = function (c) { return KEYS[c] ? 1 : 0; };
+    var want = { f: -STR.y + k('KeyW') - k('KeyS'), s: STR.x + k('KeyD') - k('KeyA'), u: -STL.y + k('KeyR') - k('KeyF'), y: STL.x + k('KeyE') - k('KeyQ') };
+    var a = 1 - Math.exp(-dt * 3.2);                                   // the drone eases into and out of every move
+    for (var q in DV) DV[q] += (Math.max(-1, Math.min(1, want[q])) - DV[q]) * a;
+    if (Math.abs(DV.f) + Math.abs(DV.s) + Math.abs(DV.u) + Math.abs(DV.y) < 1e-3) return;
+    wake();
+    var sp = 2.6, h = T.lx;
+    T.lx -= DV.y * 0.32 * dt;                                         // yaw (it turns only as far as the photograph reaches at this focal length)
+    var fx = -Math.sin(h), fz = -Math.cos(h), rx = Math.cos(h), rz = -Math.sin(h);
+    var dx = (DV.f * fx + DV.s * rx) * sp * dt, dz = (DV.f * fz + DV.s * rz) * sp * dt;
+    T.pan += dx; T.dolly -= dz; T.height += DV.u * 1.8 * dt;
+  }
   window.addEventListener('keydown', function (e) {
+    if (/^Key[WASDQERF]$/.test(e.code)) { KEYS[e.code] = true; wake(); return; }
     wake(); var k = T.fov / SC.vfov;
     if (e.key === 'ArrowLeft') T.lx += 0.01 * k; else if (e.key === 'ArrowRight') T.lx -= 0.01 * k; else if (e.key === 'ArrowUp') T.ly += 0.01 * k; else if (e.key === 'ArrowDown') T.ly -= 0.01 * k;
-    else if (e.key === '+' || e.key === '=') T.fov *= 0.92; else if (e.key === '-') T.fov /= 0.92; else if (e.key === 'r' || e.key === 'R') reset(); else if (e.key === 'c' || e.key === 'C') capture(); else if (e.key === 'Escape') exit();
+    else if (e.key === '+' || e.key === '=') T.fov *= 0.92; else if (e.key === '-') T.fov /= 0.92; else if (e.key === '0' || e.key === 'Home') reset(); else if (e.key === 'c' || e.key === 'C') capture(); else if (e.key === 'Escape') exit();
     else return; clampT();
   });
 
@@ -96,18 +131,19 @@
   function loop() {
     requestAnimationFrame(loop); if (document.hidden) return;
     var dt = Math.min(0.05, clock.getDelta()); t0 += dt; U.uT.value = t0;
+    fly(dt);
     ['orbit', 'tilt', 'pan', 'height', 'lx', 'ly'].forEach(function (k) { if (Math.abs(V[k]) > 1e-6) { T[k] += V[k]; V[k] *= Math.pow(0.0025, dt); } });   // momentum, eased out
     clampT();
     var f = 1 - Math.exp(-dt * 6);                                    // damping: every move eases in and out
     for (var k in S) S[k] += (T[k] - S[k]) * f;
     pose(S, camera); syncSliders(); renderer.render(scene, camera);
   }
-  function resize() { var w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); clampT(); }
+  function resize() { var w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); lastOK = null; clampT(); }
   window.addEventListener('resize', resize);
 
   /* ---------- toolbar: hidden until the pointer moves; never more than one panel ---------- */
   var calmT = 0;
-  function wake() { document.body.classList.remove('calm'); clearTimeout(calmT); calmT = setTimeout(function () { if (!openPanel) document.body.classList.add('calm'); }, 3200); }
+  function wake() { document.body.classList.remove('calm'); clearTimeout(calmT); calmT = setTimeout(function () { if (!openPanel && !STL.x && !STL.y && !STR.x && !STR.y) document.body.classList.add('calm'); else wake(); }, 3200); }
   document.addEventListener('mousemove', wake); wake();
   var openPanel = null;
   function closePanels() { ['pScenes', 'pCamera', 'pMoments'].forEach(function (id) { $(id).hidden = true; }); openPanel = null; [].forEach.call(document.querySelectorAll('#bar button'), function (b) { b.classList.remove('on'); }); }
@@ -136,7 +172,7 @@
     $('vHeight').textContent = (T.height >= 0 ? '+' : '') + T.height.toFixed(1) + ' m'; $('vDolly').textContent = (T.dolly >= 0 ? '+' : '') + T.dolly.toFixed(0) + ' m';
     $('vFocal').textContent = mmOf(T.fov).toFixed(0) + ' mm'; $('vOrbit').textContent = (T.pan >= 0 ? '+' : '') + T.pan.toFixed(1) + ' m';
   }
-  function reset() { var d = JSON.parse(JSON.stringify(DEF)); for (var k in d) T[k] = d[k]; V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; clampT(); toast('经典机位'); }
+  function reset() { lastOK = null; var d = JSON.parse(JSON.stringify(DEF)); for (var k in d) T[k] = d[k]; V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; clampT(); toast('经典机位'); }
 
   /* ---------- Capture → a Moment; Return to This Moment restores the exact camera ---------- */
   function capture() {
@@ -153,7 +189,7 @@
   function localShots() { try { return JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { return []; } }
   function saveShot(s) { SHOTS.unshift(s); if (EMBED) post({ op: 'save', shot: s }); try { localStorage.setItem(KEY, JSON.stringify(SHOTS.slice(0, 40))); } catch (e) {} }
   function delShot(id) { SHOTS = SHOTS.filter(function (s) { return s.id !== id; }); if (EMBED) post({ op: 'del', id: id }); try { localStorage.setItem(KEY, JSON.stringify(SHOTS)); } catch (e) {} renderShots(); }
-  function goShot(s) { if (!s || !s.st) return; for (var k in s.st) { T[k] = s.st[k]; S[k] = s.st[k]; } V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; toast('回到这一刻 · ' + new Date(s.t).toLocaleString()); }
+  function goShot(s) { if (!s || !s.st) return; lastOK = null; for (var k in s.st) { T[k] = s.st[k]; S[k] = s.st[k]; } V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; toast('回到这一刻 · ' + new Date(s.t).toLocaleString()); }
   function renderShots() {
     $('shots').innerHTML = SHOTS.length ? SHOTS.map(function (s) { return '<div class="shot" data-id="' + s.id + '" style="background-image:url(' + s.thumb + ')"><button type="button" data-del="' + s.id + '" aria-label="删除">×</button><span>' + new Date(s.t).toLocaleDateString() + ' ' + new Date(s.t).toLocaleTimeString().slice(0, 5) + '</span></div>'; }).join('') : '<div class="empty">还没有收藏的机位。按 Capture 定格当前画面。</div>';
   }
@@ -161,7 +197,7 @@
   SHOTS = localShots();
   function restoreStart() {
     var id = Q.get('shot'); if (id) { var s = SHOTS.filter(function (x) { return x.id === id; })[0]; if (s) return goShot(s); }
-    if (Q.get('enter')) { S.fov = SC.vfov * 0.72; S.dolly = 25; }   // coming through the window: a little closer, then the view opens out
+    if (Q.get('enter')) { S.fov = SC.vfov * 0.74; S.dolly = 6; }   // coming through the window: a little closer, then the view opens out
   }
 
   /* ---------- Spatial Home (parent) ---------- */

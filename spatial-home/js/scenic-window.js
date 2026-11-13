@@ -53,8 +53,6 @@
       while (frameG.children.length) { var c = frameG.children.pop(); c.geometry.dispose(); }
       function bar(x, y, bw, bh, d) { var m = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, d), metal); m.position.set(x, y, 0); m.castShadow = true; frameG.add(m); }
       bar(0, H - F / 2, W, F, 0.06); bar(0, F / 2, W, F, 0.06); bar(-W / 2 + F / 2, H / 2, F, H, 0.06); bar(W / 2 - F / 2, H / 2, F, H, 0.06);
-      var n = Math.max(1, Math.round(W / 2.4));                            // slim mullions every ~2.4 m, as a wall of glass has
-      for (var i = 1; i < n; i++) bar(-W / 2 + W * i / n, H / 2, 0.022, H, 0.05);
       pane.scale.set(W - 2 * F, H - 2 * F, 1); pane.position.set(0, H / 2, 0);
       back.scale.set(W, H, 1); back.position.set(0, H / 2, -0.01);
       hit.scale.set(W, H, 0.12); hit.position.set(0, H / 2, 0.02);
@@ -65,7 +63,11 @@
 
     /* ---- the view: Kooima's off-axis projection through the glass rectangle ---- */
     var view = null, rt = null, sScene = new THREE.Scene(), pCam = new THREE.PerspectiveCamera(), _e = new THREE.Vector3(), frus = new THREE.Frustum(), _m = new THREE.Matrix4();
-    loadCore().then(function (c) { view = c; sScene.add(c.group); U.uOk.value = 1; }).catch(function () {});
+    /* the window looks at the right ~70 % of the photograph — the island, the castle, the mountains — and leaves the
+       near branch (and what had to be filled behind it) out of a view you stand and look at for a long time */
+    var YAW = 0.14, tanHw = 0.3, tanVw = 0.3;
+    var PITCH = 0.13;                                                    // the view tipped down a little: the island and the lake at eye level
+    loadCore().then(function (c) { view = c; c.group.rotation.order = 'YXZ'; c.group.rotation.y = YAW; c.group.rotation.x = PITCH; tanHw = Math.tan(Math.atan(c.tanH) - YAW); tanVw = Math.tan(Math.atan(c.tanV) - PITCH); sScene.add(c.group); U.uOk.value = 1; }).catch(function () {});
     function render(t) {
       var R = root.SpatialRoom && root.SpatialRoom.renderer, cam = root.SpatialRoom && root.SpatialRoom.camera; if (!view || !R || !cam || !g.visible) return;
       view.U.uT.value = t;
@@ -80,7 +82,7 @@
       var hw = (W - 2 * F) / 2, hh = (H - 2 * F) / 2, ez = Math.max(0.05, _e.z);
       /* never more than the photograph holds: if the glass would open wider than the photo's frame, the scene's eye
          steps back just enough (the room's eye is where it is; the view behind the glass just narrows) */
-      var m = Math.max(1, (Math.abs(_e.x) + hw) / (ez * view.tanH * 0.97), (Math.abs(_e.y) + hh) / (ez * view.tanV * 0.97)), zs = ez * m;
+      var m = Math.max(1, (Math.abs(_e.x) + hw) / (ez * tanHw * 0.97), (Math.abs(_e.y) + hh) / (ez * tanVw * 0.97)), zs = ez * m;
       var n = 0.5, l = (-hw - _e.x) * n / zs, r = (hw - _e.x) * n / zs, b = (-hh - _e.y) * n / zs, tp = (hh - _e.y) * n / zs;
       pCam.position.set(_e.x, _e.y, zs); pCam.quaternion.identity(); pCam.updateMatrixWorld(true);
       pCam.projectionMatrix.makePerspective(l, r, tp, b, n, 12000); pCam.projectionMatrixInverse.copy(pCam.projectionMatrix).invert();

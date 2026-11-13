@@ -710,8 +710,12 @@
     dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE) },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 2, fn: function (L) {
+    upgrade: { v: 3, fn: function (L) {
       var ex = L.extras = L.extras || [];
+      /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,
+         a mirror of the other one (Ladder_North stands at x +3.6) */
+      if ((L.up | 0) < 3) ex.forEach(function (e) { if (e.kind === 'glb:victorian:Ladder_West') { e.p = [-3.6, e.p[1] || 0, -12.82]; e.ry = -Math.PI / 2; } });
+      if ((L.up | 0) >= 2) return;
       if ((L.up | 0) < 1) ex.forEach(function (e) { if (e.kind === 'glb:victorian:Table_South' || e.kind === 'glb:victorian:Vase_South') { e.p = [e.p[0] - 4.4, e.p[1], e.p[2] + 2.6]; } });
       var d = ex.filter(function (e) { return e.uid === 9601; })[0]; if (d) { d.p = [0, 0, -1.9]; d.ry = Math.PI; } else ex.push({ kind: 'vic-desk', title: '维多利亚书桌', p: [0, 0, -1.9], ry: Math.PI, uid: 9601 });
       var c = ex.filter(function (e) { return e.uid === 9602; })[0]; if (c) { c.kind = 'vic-exec'; c.title = '皮质高背椅'; c.p = [0, 0, -2.78]; c.ry = 0; } else ex.push({ kind: 'vic-exec', title: '皮质高背椅', p: [0, 0, -2.78], ry: 0, uid: 9602 });
