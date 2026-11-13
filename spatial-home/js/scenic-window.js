@@ -34,7 +34,43 @@
     return libP.then(function (C) { var a = realAp(C, id, ap === undefined ? apId() : ap), key = id + '/' + a;
       return cores[key] || (cores[key] = C.load(id, { base: base() + 'scenic/', low: true, renderer: root.SpatialRoom && root.SpatialRoom.renderer, appearance: a })); });
   }
-  var showScene = function () {}, WIN = null;
+  var showScene = function () {}, applyView = function () {}, WIN = null;
+  /* ---- the view adjuster: turn and move what the window looks at, so the room gets its best view ---- */
+  var VKEY = 'scenic:winView', SHIFT = 0.12, RANGE = { yaw: 1, pitch: 1, x: 1, y: 1 };
+  function vget() { var v = sget(VKEY) || {}; function n(k, d) { var x = +v[k]; return isFinite(x) ? x : d; }
+    return { yaw: n('yaw', 0), pitch: n('pitch', 0), x: n('x', 0), y: n('y', 0), zoom: Math.max(1, Math.min(2.5, n('zoom', 1))) }; }
+  var ADJ = vget(), tbtn = null, tpan = null;
+  function host() { var c = document.getElementById('sh-gl'); return c && c.parentNode; }
+  function tuneBtn() {
+    var h = host(); if (!h || !WIN) return;
+    if (!tbtn) {
+      tbtn = document.createElement('button'); tbtn.type = 'button'; tbtn.title = '调整窗外风景（角度、位置、远近）'; tbtn.textContent = '🧭';
+      tbtn.style.cssText = 'position:absolute;z-index:30;width:34px;height:34px;border-radius:17px;border:1px solid rgba(255,255,255,.55);background:rgba(20,22,26,.55);color:#fff;font-size:17px;line-height:32px;padding:0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;display:none';
+      ['pointerdown', 'touchstart', 'wheel'].forEach(function (t) { tbtn.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+      tbtn.addEventListener('click', function (e) { e.stopPropagation(); tunePanel(!tpan); });
+      h.appendChild(tbtn);
+    }
+    var r = el ? null : winRect(), hr = h.getBoundingClientRect(), show = !!r && r.r > hr.left + 40 && r.l < hr.right - 40 && r.b > hr.top + 60 && r.t < hr.bottom - 40;
+    if (!show && !tpan) { tbtn.style.display = 'none'; return; }
+    if (r) { tbtn.style.left = Math.max(8, Math.min(hr.width - 42, r.r - hr.left - 44)) + 'px'; tbtn.style.top = Math.max(56, Math.min(hr.height - 90, r.t - hr.top + 10)) + 'px'; }
+    tbtn.style.display = 'block';
+  }
+  function saveAdj() { sset(VKEY, ADJ); applyView(); }
+  function tunePanel(on) {
+    if (tpan) { tpan.remove(); tpan = null; }
+    if (!on) return; var h = host(); if (!h) return;
+    var rows = [['yaw', '左右转', -RANGE.yaw, RANGE.yaw, 0.01], ['pitch', '上下看', -RANGE.pitch, RANGE.pitch, 0.01], ['x', '左右移', -RANGE.x, RANGE.x, 0.01], ['y', '上下移', -RANGE.y, RANGE.y, 0.01], ['zoom', '远近', 1, 2.5, 0.01]];
+    tpan = document.createElement('div');
+    tpan.style.cssText = 'position:absolute;z-index:31;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(340px,calc(100% - 32px));box-sizing:border-box;padding:12px 14px 10px;border-radius:16px;background:rgba(24,22,20,.78);color:#f3ece2;font:13px/1.3 -apple-system,system-ui,sans-serif;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 28px rgba(0,0,0,.35)';
+    tpan.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:14px">窗外风景</b><span style="opacity:.7;font-size:12px">拖动滑块，边看边调</span></div>' +
+      rows.map(function (r) { return '<label style="display:flex;align-items:center;gap:10px;margin:6px 0"><span style="width:44px;flex:none">' + r[1] + '</span><input type="range" data-k="' + r[0] + '" min="' + r[2] + '" max="' + r[3] + '" step="' + r[4] + '" value="' + ADJ[r[0]] + '" style="flex:1;accent-color:#d9a95b"></label>'; }).join('') +
+      '<div style="display:flex;gap:8px;margin-top:8px"><button type="button" data-a="reset" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit">恢复默认</button><button type="button" data-a="ok" style="flex:1;padding:8px;border-radius:10px;border:0;background:#d9a95b;color:#231a10;font-weight:600">好</button></div>';
+    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (t) { tpan.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    tpan.addEventListener('input', function (e) { var k = e.target.dataset && e.target.dataset.k; if (!k) return; ADJ[k] = +e.target.value; saveAdj(); });
+    tpan.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+      if (b.dataset.a === 'reset') { ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); tunePanel(true); } else tunePanel(false); });
+    h.appendChild(tpan);
+  }
 
   function make() {
     var g = new THREE.Group(), frameG = new THREE.Group(); g.add(frameG);
@@ -88,11 +124,27 @@
       loadCore(id, ap).then(function (c) {
         if (view && view !== c) sScene.remove(view.group);
         view = c; c.group.rotation.order = 'YXZ';
-        if (c.kind === 'pano') { c.group.rotation.set(0, 0, 0); c.group.position.set(0, 1.5 - H / 2, 0); tanHw = 99; tanVw = 99; }
-        else { c.group.position.set(0, 0, 0); c.group.rotation.y = YAW; c.group.rotation.x = PITCH; tanHw = Math.tan(Math.atan(c.tanH) - YAW); tanVw = Math.tan(Math.atan(c.tanV) - PITCH); }
+        applyView();
         if (c.group.parent !== sScene) sScene.add(c.group); U.uOk.value = 1;
         light.color.setHex(c.appear === 'sunset' ? 0xffd2a0 : 0xf2f4ff);
       }).catch(function () {});
+    };
+    /* the view through the glass, as the user turned and moved it (the 🧭 on the window; store 'scenic:winView'):
+       yaw / pitch turn the scene behind the glass, x / y slide it (a share of the scene's depth, so it means the same in
+       every scene), zoom steps the scene's eye back (1 = as wide as the photograph allows). The photo's edge is still
+       never shown: the turn and the slide come off the room the frame may open to. */
+    applyView = function () {
+      if (!view) return; var c = view, A = ADJ;
+      function cl(v) { return Math.max(-1, Math.min(1, +v || 0)); }
+      if (c.kind === 'pano') { c.group.rotation.set(cl(A.pitch) * 0.35, cl(A.yaw) * Math.PI, 0); c.group.position.set(0, 1.5 - H / 2, 0); tanHw = 99; tanVw = 99; return; }
+      /* the sliders run −1…1; 0 is the composed view, ±1 as far as the photograph reaches with a window's width to spare */
+      function span(v, def, max) { v = cl(v); return v >= 0 ? def + v * (max - def) : def + v * (max + def); }
+      var aH = Math.atan(c.tanH), aV = Math.atan(c.tanV), yw = span(A.yaw, YAW, aH - 0.16), pt = span(A.pitch, PITCH, aV - 0.13);
+      var MIN = 0.15, roomH = Math.max(0, Math.tan(aH - Math.abs(yw)) - MIN), roomV = Math.max(0, Math.tan(aV - Math.abs(pt)) - MIN);
+      var sx = cl(A.x) * Math.min(SHIFT, roomH), sy = cl(A.y) * Math.min(SHIFT, roomV), D = Math.abs(c.P.z) || 100;
+      c.group.rotation.y = yw; c.group.rotation.x = pt; c.group.position.set(-sx * D, -sy * D, 0);
+      tanHw = Math.max(MIN, Math.tan(aH - Math.abs(yw)) - Math.abs(sx));
+      tanVw = Math.max(MIN, Math.tan(aV - Math.abs(pt)) - Math.abs(sy));
     };
     showScene();
     function render(t) {
@@ -110,7 +162,7 @@
       var hw = (W - 2 * F) / 2, hh = (H - 2 * F) / 2, ez = Math.max(0.05, _e.z);
       /* never more than the photograph holds: if the glass would open wider than the photo's frame, the scene's eye
          steps back just enough (the room's eye is where it is; the view behind the glass just narrows) */
-      var m = Math.max(1, (Math.abs(_e.x) + hw) / (ez * tanHw * 0.97), (Math.abs(_e.y) + hh) / (ez * tanVw * 0.97)), zs = ez * m;
+      var m = Math.max(1, (Math.abs(_e.x) + hw) / (ez * tanHw * 0.97), (Math.abs(_e.y) + hh) / (ez * tanVw * 0.97)), zs = ez * m * ADJ.zoom;
       var n = 0.5, l = (-hw - _e.x) * n / zs, r = (hw - _e.x) * n / zs, b = (-hh - _e.y) * n / zs, tp = (hh - _e.y) * n / zs;
       pCam.position.set(_e.x, _e.y, zs); pCam.quaternion.identity(); pCam.updateMatrixWorld(true);
       pCam.projectionMatrix.makePerspective(l, r, tp, b, n, 12000); pCam.projectionMatrixInverse.copy(pCam.projectionMatrix).invert();
@@ -121,7 +173,7 @@
       hit: hit, label: [0, H + 0.12, 0], focusL: null,
       fit: function (a) { fit(a && a.w, a && a.h); },
       panel: function () { return openScenic(); },
-      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); },
+      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); tuneBtn(); },
       /* before the camera walks up: stand back along the window's axis as far as the plan wants, but stop 0.7 m short of
          the first thing in the way (furniture, a wall) — the room must stay round the window, never in front of the lens */
       aim: function () {
@@ -233,5 +285,5 @@
   }
   root.addEventListener('resize', function () { if (el && LV) applyMask(levelRect(LV.v)); });
 
-  root.SpatialScenic = { make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, envs: envs, isOpen: function () { return !!el; }, level: function () { return el ? { level: LV.level, v: LV.v, mask: M } : null; }, focus: function (on) { if (frame) post({ op: 'focus', on: !!on }); } };
+  root.SpatialScenic = { view: function (v) { if (v) { Object.keys(v).forEach(function (k) { if (k in ADJ) ADJ[k] = +v[k]; }); saveAdj(); } return JSON.parse(JSON.stringify(ADJ)); }, tune: tunePanel, make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, envs: envs, isOpen: function () { return !!el; }, level: function () { return el ? { level: LV.level, v: LV.v, mask: M } : null; }, focus: function (on) { if (frame) post({ op: 'focus', on: !!on }); } };
 })(window);

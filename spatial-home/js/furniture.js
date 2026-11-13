@@ -358,4 +358,149 @@
     return { group: g, hb: [SW + 0.2, BH + 0.08, SD], place: 'floor' };
   };
   if (!CAT.some(function (x) { return x.id === 'vic-exec'; })) CAT.push({ id: 'vic-exec', name: '皮质高背椅', en: 'Buttoned leather chair', icon: '▣', place: 'floor', size: [0.88, 1.38, 0.62], note: 'EC–6 维多利亚书房的家具' });
+
+  /* ───────── after the user's second reference photo (2026-11-13): an executive study desk and a tufted executive chair ─────────
+     Desk: dark espresso walnut, double pedestal. The side the visitor (and the home view) sees has raised panels — two
+     on each pedestal, one on each outer side — fluted corner pilasters, a carved frieze over a panelled modesty board,
+     a moulded top with an ogee edge and a stepped plinth. The chair side has the drawers with brass bail pulls.
+     Chair: brown leather, a tall camel-back with deep diamond tufting (buttons and the creases between them), rolled
+     arms, brass nailheads round the back, the arms and the seat, turned legs on brass castors. */
+  function emats(T) {
+    if (F._e) return F._e;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var c = document.createElement('canvas'); c.width = 256; c.height = 1024; var x = c.getContext('2d'), i;   // a quiet walnut grain
+    x.fillStyle = '#3a2214'; x.fillRect(0, 0, 256, 1024);
+    for (i = 0; i < 140; i++) { x.strokeStyle = 'rgba(' + (Math.random() < 0.5 ? '20,10,4' : '96,58,32') + ',' + (0.08 + Math.random() * 0.12) + ')'; x.lineWidth = 1 + Math.random() * 3;
+      var x0 = Math.random() * 256; x.beginPath(); x.moveTo(x0, 0); x.bezierCurveTo(x0 + (Math.random() - 0.5) * 40, 340, x0 + (Math.random() - 0.5) * 40, 680, x0 + (Math.random() - 0.5) * 30, 1024); x.stroke(); }
+    var g = new T.CanvasTexture(c); g.encoding = T.sRGBEncoding; g.wrapS = g.wrapT = T.RepeatWrapping; g.anisotropy = 4;
+    return (F._e = {
+      wood: new T.MeshStandardMaterial({ color: L(0xb08a70), map: g, roughness: 0.42, metalness: 0.04 }),
+      woodD: new T.MeshStandardMaterial({ color: L(0x8a6a56), map: g, roughness: 0.46, metalness: 0.04 }),
+      woodL: new T.MeshStandardMaterial({ color: L(0xd0a888), map: g, roughness: 0.36, metalness: 0.04 }),
+      groove: new T.MeshStandardMaterial({ color: L(0x1c0f08), roughness: 0.6 }),
+      brass: new T.MeshStandardMaterial({ color: L(0xc79a48), roughness: 0.28, metalness: 0.9 }),
+      blotter: new T.MeshStandardMaterial({ color: L(0x2a1a12), roughness: 0.55 }),
+      leather: new T.MeshStandardMaterial({ color: L(0x6a3a22), roughness: 0.38, metalness: 0.03 }),
+      leatherD: new T.MeshStandardMaterial({ color: L(0x3c1e10), roughness: 0.5, metalness: 0.02 }),
+      crease: new T.MeshStandardMaterial({ color: L(0x2a1208), roughness: 0.6 })
+    });
+  }
+  /* a raised panel on a face: a frame of stiles and rails, a bevelled field, a raised centre. axis 'z': the face is a
+     plane z = f (out = ±1 is the outward side); axis 'x': plane x = f. (u, v) is the panel centre along the face. */
+  function rpanel(T, g, E, axis, f, out, u, v, w, h) {
+    var t = 0.012, rw = 0.035;
+    function put(m, du, dv, ww, hh, dd, off) {
+      var b = new T.Mesh(new T.BoxGeometry(axis === 'z' ? ww : dd, hh, axis === 'z' ? dd : ww), m);
+      if (axis === 'z') b.position.set(u + du, v + dv, f + out * off); else b.position.set(f + out * off, v + dv, u + du);
+      b.castShadow = true; b.receiveShadow = true; g.add(b); return b;
+    }
+    put(E.woodL, 0, h / 2 - rw / 2, w, rw, t, t / 2); put(E.woodL, 0, -h / 2 + rw / 2, w, rw, t, t / 2);              // rails
+    put(E.woodL, -w / 2 + rw / 2, 0, rw, h - 2 * rw, t, t / 2); put(E.woodL, w / 2 - rw / 2, 0, rw, h - 2 * rw, t, t / 2);   // stiles
+    put(E.groove, 0, 0, w - 2 * rw, h - 2 * rw, 0.004, 0.002);                                                    // the shadow line
+    put(E.woodD, 0, 0, w - 2 * rw - 0.02, h - 2 * rw - 0.02, t * 0.8, t * 0.4);                                   // bevelled field
+    put(E.wood, 0, 0, w - 2 * rw - 0.08, h - 2 * rw - 0.08, t * 1.4, t * 0.7);                                    // raised centre
+  }
+  F['vic-exec-desk'] = function (T) {
+    var E = emats(T), g = new T.Group(), W = 2.1, D = 1.05, H = 0.78, PW = 0.6, PB = 0.1, i;   // drawers face +z (the chair side); the front is −z
+    function bx(m, x, y, z, w, h, d) { return box(T, g, m, x, y, z, w, h, d); }
+    /* the top: a slab with an ogee edge (two steps), a leather blotter */
+    bx(E.wood, 0, H - 0.022, 0, W + 0.08, 0.044, D + 0.08);
+    bx(E.woodD, 0, H - 0.055, 0, W + 0.04, 0.024, D + 0.04);
+    bx(E.woodL, 0, H - 0.071, 0, W + 0.01, 0.01, D + 0.01);
+    var bl = new T.Mesh(new T.BoxGeometry(0.95, 0.004, 0.55), E.blotter); bl.position.set(0, H + 0.002, 0.12); bl.receiveShadow = true; g.add(bl);
+    [-1, 1].forEach(function (k) { bx(E.woodD, k * 0.49, H + 0.006, 0.12, 0.05, 0.012, 0.57); });          // blotter corners (leather-bound ends)
+    var CH = H - 0.075;                                                                                     // carcase height (under the top)
+    [-1, 1].forEach(function (sd) {
+      var cx = sd * (W / 2 - PW / 2 - 0.01);
+      /* plinth: a step and a moulding */
+      bx(E.woodD, cx, PB / 2, 0, PW + 0.05, PB, D - 0.02);
+      bx(E.woodL, cx, PB + 0.008, 0, PW + 0.03, 0.016, D - 0.04);
+      /* the pedestal body */
+      bx(E.wood, cx, (PB + CH) / 2, 0, PW, CH - PB, D - 0.08);
+      /* front (−z): two raised panels, fluted pilasters at the corners */
+      var fz = -(D - 0.08) / 2, ph = CH - PB - 0.06;
+      rpanel(T, g, E, 'z', fz, -1, cx, PB + 0.03 + ph * 0.79, PW - 0.14, ph * 0.38);
+      rpanel(T, g, E, 'z', fz, -1, cx, PB + 0.03 + ph * 0.3, PW - 0.14, ph * 0.56);
+      [-1, 1].forEach(function (k) {
+        var px = cx + k * (PW / 2 - 0.025);
+        bx(E.woodL, px, (PB + CH) / 2, fz - 0.012, 0.05, CH - PB - 0.02, 0.024);
+        for (var f = -1; f <= 1; f++) bx(E.groove, px + f * 0.013, (PB + CH) / 2, fz - 0.025, 0.004, CH - PB - 0.12, 0.004);
+        bx(E.woodD, px, CH - 0.02, fz - 0.016, 0.062, 0.03, 0.032); bx(E.woodD, px, PB + 0.04, fz - 0.016, 0.062, 0.03, 0.032);   // capital, base
+      });
+      /* the outer side: two raised panels */
+      var sx = cx + sd * PW / 2;
+      rpanel(T, g, E, 'x', sx, sd, 0, PB + 0.03 + ph * 0.79, D - 0.24, ph * 0.38);
+      rpanel(T, g, E, 'x', sx, sd, 0, PB + 0.03 + ph * 0.3, D - 0.24, ph * 0.56);
+      /* the chair side (+z): three drawers, brass bail pulls */
+      var bz = (D - 0.08) / 2, dh = (CH - PB - 0.04) / 3;
+      for (i = 0; i < 3; i++) {
+        var yc = PB + 0.02 + dh * (i + 0.5);
+        bx(E.woodL, cx, yc, bz + 0.006, PW - 0.06, dh - 0.02, 0.012);
+        var bail = new T.Mesh(new T.TorusGeometry(0.035, 0.005, 6, 16, Math.PI), E.brass); bail.rotation.z = Math.PI; bail.position.set(cx, yc - 0.005, bz + 0.024); g.add(bail);
+        [-1, 1].forEach(function (k) { bx(E.brass, cx + k * 0.035, yc + 0.008, bz + 0.016, 0.018, 0.026, 0.008); });
+      }
+    });
+    /* between the pedestals: the frieze (a drawer at the back, a carved band at the front) and the modesty board */
+    var MW = W - 2 * PW - 0.02, fz2 = -(D - 0.08) / 2;
+    bx(E.wood, 0, CH - 0.065, 0, MW, 0.13, D - 0.08);
+    bx(E.woodL, 0, CH - 0.065, fz2 - 0.008, MW - 0.04, 0.09, 0.016);
+    for (i = 0; i < 9; i++) bx(E.woodD, -MW / 2 + 0.06 + i * (MW - 0.12) / 8, CH - 0.065, fz2 - 0.018, 0.026, 0.06, 0.01);   // carved dentils
+    bx(E.brass, 0, CH - 0.065, fz2 - 0.02, 0.07, 0.03, 0.006);                                                  // a small cartouche
+    bx(E.woodL, 0, CH - 0.065, (D - 0.08) / 2 + 0.006, MW - 0.06, 0.09, 0.012);                                 // the centre drawer (chair side)
+    var cb = new T.Mesh(new T.TorusGeometry(0.04, 0.005, 6, 16, Math.PI), E.brass); cb.rotation.z = Math.PI; cb.position.set(0, CH - 0.07, (D - 0.08) / 2 + 0.024); g.add(cb);
+    var mz = fz2 + 0.1;                                                                                         // the modesty board, set back a little
+    bx(E.wood, 0, (PB + CH - 0.13) / 2 + 0.01, mz, MW, CH - 0.13 - PB, 0.03);
+    rpanel(T, g, E, 'z', mz - 0.015, -1, 0, (PB + CH - 0.13) / 2 + 0.01, MW - 0.12, CH - 0.13 - PB - 0.1);
+    g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return { group: g, hb: [W + 0.08, H, D + 0.08], place: 'floor' };
+  };
+  F['vic-tufted'] = function (T) {
+    var E = emats(T), g = new T.Group(), SW = 0.76, SD = 0.66, SH = 0.49, i, j;   // the seat faces +z
+    function bx(m, x, y, z, w, h, d) { return box(T, g, m, x, y, z, w, h, d); }
+    /* turned legs on brass castors, a seat rail with nailheads */
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (q) {
+      var p = [[0, 0], [0.03, 0], [0.032, 0.03], [0.022, 0.07], [0.03, 0.12], [0.026, 0.18], [0.034, 0.22], [0.034, SH - 0.17], [0, SH - 0.17]].map(function (r) { return new T.Vector2(r[0], r[1]); });
+      var lg = new T.Mesh(new T.LatheGeometry(p, 12), E.woodD); lg.position.set(q[0] * (SW / 2 - 0.07), 0.04, q[1] * (SD / 2 - 0.07)); g.add(lg);
+      var cs = new T.Mesh(new T.SphereGeometry(0.035, 10, 8), E.brass); cs.position.set(q[0] * (SW / 2 - 0.07), 0.035, q[1] * (SD / 2 - 0.07)); g.add(cs);
+    });
+    bx(E.leather, 0, SH - 0.1, 0, SW, 0.14, SD);                                                                 // the seat box
+    var cu = new T.Mesh(new T.BoxGeometry(SW - 0.16, 0.09, SD - 0.12), E.leather); cu.position.set(0, SH + 0.01, 0.04); g.add(cu);
+    var roll = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, SW - 0.16, 16), E.leather); roll.rotation.z = Math.PI / 2; roll.position.set(0, SH - 0.005, SD / 2 - 0.02); g.add(roll);   // the cushion's front roll
+    /* the back: a camel-back outline, extruded and bevelled, leaning back a little */
+    var BW = SW + 0.04, BH = 0.86, sh = new T.Shape(), r = 0.12;
+    sh.moveTo(-BW / 2, 0); sh.lineTo(BW / 2, 0); sh.lineTo(BW / 2, BH - 0.2);
+    sh.bezierCurveTo(BW / 2, BH - 0.08, BW / 4, BH - 0.1, 0.12, BH - 0.02); sh.quadraticCurveTo(0, BH + 0.03, -0.12, BH - 0.02);
+    sh.bezierCurveTo(-BW / 4, BH - 0.1, -BW / 2, BH - 0.08, -BW / 2, BH - 0.2); sh.lineTo(-BW / 2, 0);
+    var bg = new T.ExtrudeGeometry(sh, { depth: 0.12, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.035, bevelSegments: 4, curveSegments: 18 });
+    var back = new T.Group(); back.position.set(0, SH - 0.02, -SD / 2 + 0.02); back.rotation.x = -0.1; g.add(back);
+    var bm = new T.Mesh(bg, E.leather); bm.position.z = -0.08; back.add(bm);
+    /* diamond tufting on the front face: buttons on a staggered grid, the creases between them */
+    var fzb = 0.08, cols = 6, rows = 6, dx = (BW - 0.16) / cols, dy = (BH - 0.22) / rows, pts = [];
+    for (i = 0; i <= rows; i++) for (j = 0; j <= cols; j++) {
+      if ((i + j) % 2) continue; var x = -BW / 2 + 0.08 + j * dx, y = 0.1 + i * dy;
+      var limit = BH - 0.2 + (1 - Math.min(1, Math.abs(x) / (BW / 2))) * 0.12; if (y > limit - 0.04) continue;
+      pts.push([x, y]); var bt = new T.Mesh(new T.SphereGeometry(0.014, 8, 6), E.leatherD); bt.position.set(x, y, fzb + 0.008); back.add(bt);
+    }
+    pts.forEach(function (a) { pts.forEach(function (b) {
+      var ddx = b[0] - a[0], ddy = b[1] - a[1]; if (ddy <= 0 || Math.abs(Math.abs(ddx) - dx) > 1e-3 || Math.abs(ddy - dy) > 1e-3) return;
+      var L = Math.hypot(ddx, ddy), cr = new T.Mesh(new T.BoxGeometry(0.006, L, 0.004), E.crease); cr.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, fzb + 0.004);
+      cr.rotation.z = -Math.atan2(ddx, ddy); back.add(cr);
+    }); });
+    /* nailheads round the back's outline */
+    sh.getSpacedPoints(70).forEach(function (q, k) { if (q.y < 0.02) return; var n = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), E.brass); n.position.set(q.x * 0.985, q.y * 0.985, fzb + 0.012); back.add(n); });
+    /* rolled arms with scroll fronts and a row of nailheads */
+    [-1, 1].forEach(function (sd) {
+      var ax = sd * (SW / 2 + 0.04);
+      bx(E.leather, ax, SH + 0.08, -0.02, 0.1, 0.3, SD - 0.06);
+      var ar = new T.Mesh(new T.CylinderGeometry(0.075, 0.075, SD - 0.04, 16), E.leather); ar.rotation.x = Math.PI / 2; ar.position.set(ax + sd * 0.015, SH + 0.25, -0.02); g.add(ar);
+      var sc = new T.Mesh(new T.CylinderGeometry(0.078, 0.078, 0.02, 16), E.leatherD); sc.rotation.x = Math.PI / 2; sc.position.set(ax + sd * 0.015, SH + 0.25, SD / 2 - 0.04); g.add(sc);
+      for (i = 0; i < 12; i++) { var nh = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), E.brass); nh.position.set(ax + sd * 0.052, SH - 0.06, -SD / 2 + 0.06 + i * (SD - 0.12) / 11); g.add(nh); }
+    });
+    for (i = 0; i < 18; i++) { var nf = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), E.brass); nf.position.set(-SW / 2 + 0.04 + i * (SW - 0.08) / 17, SH - 0.13, SD / 2 + 0.002); g.add(nf); }
+    g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return { group: g, hb: [SW + 0.22, SH + BH, SD + 0.1], place: 'floor' };
+  };
+  [{ id: 'vic-exec-desk', name: '大班桌', en: 'Executive pedestal desk', size: [2.18, 0.78, 1.13] },
+   { id: 'vic-tufted', name: '拉扣高背大班椅', en: 'Tufted executive chair', size: [0.98, 1.35, 0.76] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的家具' }); });
 })(window);

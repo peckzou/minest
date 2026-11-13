@@ -185651,11 +185651,156 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     [[-1, -1, 0], [1, -1, -Math.PI / 2], [1, 1, Math.PI], [-1, 1, Math.PI / 2]].forEach(function (q) { plane(SS, SS, spT, 0.01, q[0] * (FW / 2 - SS / 2), q[1] * (FD / 2 - SS / 2), q[2], true); });
     return function () { tex.forEach(function (t) { t.dispose(); }); mats.forEach(function (m) { m.dispose(); }); g.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); holder.remove(g); };
   }
+
+  /* ───────── the bookcases, filled (2026-11-13) ─────────
+     The scan puts books (Books_* groups) on only part of its shelves. Every empty stretch of a bookcase row gets books:
+     the rows are the scan's own (the bottoms of its books: 0.35 / 1.20 / 2.05 / 2.95 m), the bays are the bookcase
+     boards (the horizontal faces at ~1.0 m that lie within half a metre of a wall), the spines stand flush with the
+     scan's own books. Skipped: what already has books, the fireplace, the east wall behind the Scenic Window and the
+     cut-away bookcase. Leather-bound volumes in a few deep colours, some with gilt bands, now and then a gap or a small
+     stack lying flat. Two instanced meshes (the books, the gilt), no shadows. */
+  function fillShelves(model, holder, opts) {
+    opts = opts || {}; model.updateMatrixWorld(true);
+    /* the scan's books stand 0.205 m above their shelf boards (the boards' tops are at 1.00 / 1.86 / 2.73 m, the books'
+       bottoms at 1.21 / 2.07 / 2.94): they are set down onto the boards first, and the new books stand on the same rows */
+    var DROP = 0.205, CX = 0, CZ = -5.1, ROWS = [0.34 - DROP, 1.21 - DROP, 2.07 - DROP, 2.94 - DROP], WALLS = ['W', 'E', 'N', 'S'], i;
+    var _v = new THREE.Vector3(), _w = new THREE.Vector3();
+    model.traverse(function (o) {
+      if (!/^Books_\d+$/.test(o.name) || !o.parent) return;
+      o.getWorldPosition(_v); _w.copy(_v); _w.y -= DROP; o.parent.worldToLocal(_v); o.parent.worldToLocal(_w); o.position.add(_w.sub(_v));
+    });
+    model.updateMatrixWorld(true);
+    var seed = 20261113; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+    function wallOf(x, z) { var dx = x - CX, dz = z - CZ; if (Math.abs(dx) >= Math.abs(dz)) return Math.abs(dx) > 7.0 ? (dx < 0 ? 'W' : 'E') : null; return Math.abs(dz) > 7.0 ? (dz < 0 ? 'N' : 'S') : null; }
+    function along(w, x, z) { return (w === 'W' || w === 'E') ? z : x; }
+    function depthOf(w, x, z) { return (w === 'W' || w === 'E') ? Math.abs(x - CX) : Math.abs(z - CZ); }   // distance from the room's centre line
+    /* 1. the scan's books. Each Books_ group is a few books spread along a shelf, so what is taken is read from the books
+       themselves (each small face's span along the wall), not from the group's box; the groups' spans, all rows together,
+       say where the bookcases run; their depth says where the spines stand */
+    var A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), n = new THREE.Vector3();
+    function tris(m, fn) {
+      var pos = m.geometry.attributes.position, idx = m.geometry.index, cnt = idx ? idx.count : pos.count, M = m.matrixWorld;
+      var get = function (k, v) { var j = idx ? idx.getX(k) : k; return v.set(raw(pos, j, 0), raw(pos, j, 1), raw(pos, j, 2)).applyMatrix4(M); };
+      for (var k = 0; k + 2 < cnt; k += 3) { get(k, A); get(k + 1, B); get(k + 2, C); fn(A, B, C); }
+    }
+    var occ = {}, runs = {}, front = {}, back = {}, posts = {}; WALLS.forEach(function (w) { occ[w] = ROWS.map(function () { return []; }); runs[w] = []; front[w] = []; back[w] = []; posts[w] = []; });
+    model.traverse(function (o) {
+      if (!/^Books_\d+$/.test(o.name)) return;
+      var b = new THREE.Box3().setFromObject(o); if (!isFinite(b.min.x)) return;
+      var w = wallOf((b.min.x + b.max.x) / 2, (b.min.z + b.max.z) / 2); if (!w) return;
+      var r = -1; ROWS.forEach(function (y, k) { if (Math.abs(b.min.y - y) < 0.15) r = k; }); if (r < 0) return;
+      var a0 = along(w, b.min.x, b.min.z), a1 = along(w, b.max.x, b.max.z); runs[w].push([Math.min(a0, a1), Math.max(a0, a1)]);
+      var d0 = depthOf(w, b.min.x, b.min.z), d1 = depthOf(w, b.max.x, b.max.z); front[w].push(Math.min(d0, d1)); back[w].push(Math.max(d0, d1));
+      o.traverse(function (m) { if (m.isMesh) tris(m, function (P, Q, R) {
+        var as = [along(w, P.x, P.z), along(w, Q.x, Q.z), along(w, R.x, R.z)], lo = Math.min.apply(null, as), hi = Math.max.apply(null, as);
+        if (hi - lo < 0.2) occ[w][r].push([lo, hi]);
+      }); });
+    });
+    function median(a, f) { if (!a.length) return f; a = a.slice().sort(function (p, q) { return p - q; }); return a[a.length >> 1]; }
+    var F0 = median([].concat(front.W, front.E, front.N, front.S), 7.98), B0 = median([].concat(back.W, back.E, back.N, back.S), 8.33);
+    var FR = {}, BK = {}; WALLS.forEach(function (w) { FR[w] = median(front[w].filter(function (v) { return v > 7.7; }), F0); BK[w] = median(back[w].filter(function (v) { return v > 7.9; }), B0); });
+    /* 2. the posts between bookcases (tall faces that come forward to the spines) — no books in front of those */
+    model.traverse(function (m) {
+      if (!m.isMesh || /Books_|Chandelier|candle|Fireplace|fireplace/.test(m.name + ' ' + (m.parent ? m.parent.name : ''))) return;
+      tris(m, function (P, Q, R) {
+        var ylo = Math.min(P.y, Q.y, R.y), yhi = Math.max(P.y, Q.y, R.y); if (yhi < 0.4 || ylo > 3.3) return;
+        var w = wallOf((P.x + Q.x + R.x) / 3, (P.z + Q.z + R.z) / 3); if (!w) return;
+        var dd = (depthOf(w, P.x, P.z) + depthOf(w, Q.x, Q.z) + depthOf(w, R.x, R.z)) / 3; if (dd > FR[w] + 0.06 || dd < FR[w] - 0.25) return;
+        e1.subVectors(Q, P); e2.subVectors(R, P); n.crossVectors(e1, e2); var L = n.length(); if (L < 1e-7) return;
+        if (Math.abs(n.y / L) > 0.5) return;                                                            // upright faces only
+        var as = [along(w, P.x, P.z), along(w, Q.x, Q.z), along(w, R.x, R.z)], lo = Math.min.apply(null, as), hi = Math.max.apply(null, as);
+        if (yhi - ylo > 0.25 && hi - lo < 0.45) posts[w].push([lo - 0.015, hi + 0.015]);
+      });
+    });
+    function merge(list, gap) { list = list.slice().sort(function (p, q) { return p[0] - q[0]; }); var out = []; list.forEach(function (r) { var l = out[out.length - 1]; if (l && r[0] <= l[1] + gap) l[1] = Math.max(l[1], r[1]); else out.push([r[0], r[1]]); }); return out; }
+    function minus(base, cut) { var out = base.slice(); cut.forEach(function (c) { var nx = []; out.forEach(function (r) { if (c[1] <= r[0] || c[0] >= r[1]) { nx.push(r); return; } if (c[0] > r[0]) nx.push([r[0], c[0]]); if (c[1] < r[1]) nx.push([c[1], r[1]]); }); out = nx; }); return out; }
+    var SKIP = { N: [[-1.95, 1.95]], E: (opts.skipE || []), W: [], S: [] }, bays = {};
+    WALLS.forEach(function (w) { bays[w] = minus(merge(runs[w], 0.35), SKIP[w].concat(merge(posts[w], 0.02))); });
+    /* 3. the books */
+    var PAL = ['#5a1a14', '#71231a', '#3d1410', '#22382a', '#1d3226', '#1b2840', '#2a2f4a', '#4a2e1c', '#6a4626', '#8a6a3a', '#2a1f18', '#20201e', '#5c2436', '#3a3a2a', '#7a5226'];
+    var books = [], gilt = [];
+    function add(w, a, y, t, h, d, col, lay) {
+      var dir = (w === 'W' || w === 'N') ? -1 : 1, f = FR[w], c = dir * (f + d / 2);                                 // flush with the spines, back towards the wall
+      var p = (w === 'W' || w === 'E') ? [CX + c, y, a] : [a, y, CZ + c], s = (w === 'W' || w === 'E') ? [d, h, t] : [t, h, d];
+      books.push({ p: p, s: s, c: col });
+      if (!lay && rnd() < 0.5) [0.15, 0.85].forEach(function (k) {
+        var fp = dir * (f - 0.0015), q = (w === 'W' || w === 'E') ? [CX + fp, y - h / 2 + h * k, a] : [a, y - h / 2 + h * k, CZ + fp];
+        gilt.push({ p: q, s: (w === 'W' || w === 'E') ? [0.003, 0.012, t * 0.86] : [t * 0.86, 0.012, 0.003] });
+      });
+    }
+    var filled = 0;
+    WALLS.forEach(function (w) {
+      var bayList = bays[w];
+      ROWS.forEach(function (yb, r) {
+        var free = minus(bayList, merge(occ[w][r].map(function (q) { return [q[0] - 0.006, q[1] + 0.006]; }), 0.01)).filter(function (q) { return q[1] - q[0] > 0.05; });
+        free.forEach(function (iv) {
+          var a = iv[0] + 0.02, end = iv[1] - 0.02, depth = Math.min(0.3, Math.max(0.18, (BK[w] - FR[w]) - 0.03));
+          while (a < end - 0.02) {
+            var roll = rnd();
+            if (roll < 0.04) { a += 0.03 + rnd() * 0.05; continue; }                                                    // a gap
+            if (roll < 0.075 && end - a > 0.3) {                                                                       // a small stack lying flat
+              var L = 0.24 + rnd() * 0.06, k = 2 + Math.floor(rnd() * 3), yy = yb;
+              for (var j = 0; j < k; j++) { var th = 0.03 + rnd() * 0.025; add(w, a + L / 2, yy + th / 2, L, th, depth * (0.85 + rnd() * 0.1), PAL[Math.floor(rnd() * PAL.length)], true); yy += th; }
+              a += L + 0.02; filled += k; continue;
+            }
+            var t = 0.024 + rnd() * 0.03, h = 0.3 + rnd() * 0.16;
+            if (a + t > end) break;
+            add(w, a + t / 2, yb + h / 2, t, h, depth * (0.82 + rnd() * 0.18), PAL[Math.floor(rnd() * PAL.length)], false);
+            a += t + 0.002; filled++;
+          }
+        });
+      });
+    });
+    if (!books.length) return { count: 0 };
+    var M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), Sx = new THREE.Vector3(), col = new THREE.Color();
+    var bm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.72, metalness: 0.02 }), books.length);
+    books.forEach(function (b, k) {
+      M4.compose(V.fromArray(b.p), Q, Sx.fromArray(b.s)); bm.setMatrixAt(k, M4);
+      col.set(b.c).convertSRGBToLinear().multiplyScalar(0.85 + rnd() * 0.3); bm.setColorAt(k, col);
+    });
+    bm.instanceMatrix.needsUpdate = true; if (bm.instanceColor) bm.instanceColor.needsUpdate = true; bm.receiveShadow = true; bm.name = 'shelf-books'; holder.add(bm);
+    if (gilt.length) {
+      var gm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: new THREE.Color(0xc9a24a).convertSRGBToLinear(), roughness: 0.3, metalness: 0.85 }), gilt.length);
+      gilt.forEach(function (b, k) { M4.compose(V.fromArray(b.p), Q, Sx.fromArray(b.s)); gm.setMatrixAt(k, M4); });
+      gm.instanceMatrix.needsUpdate = true; gm.name = 'shelf-gilt'; holder.add(gm);
+    }
+    var info = { count: books.length, gilt: gilt.length, bays: {}, posts: {} }; WALLS.forEach(function (w) { info.bays[w] = bays[w].length; info.posts[w] = merge(posts[w], 0.02).length; });
+    root.SpatialShelfBooks = info; return info;
+  }
+
+  /* ───────── over the mantel: Seurat, "A Sunday on La Grande Jatte" (1884; public domain, Wikimedia Commons) ─────────
+     The scan's mirror over the fireplace makes way for the painting: the canvas 1.9 × 1.26 m in a deep gilt frame with
+     a small inner fillet, a brass picture light above it washing the canvas warm. */
+  function mantelPainting(model, holder) {
+    var mir = null; model.traverse(function (o) { if (!mir && o.name === 'Fireplace_Mirror') mir = o; });
+    var cx = 0, cy = 2.92, z = -11.93;
+    if (mir) { var b = new THREE.Box3().setFromObject(mir); if (isFinite(b.min.x)) { cx = (b.min.x + b.max.x) / 2; cy = (b.min.y + b.max.y) / 2; z = b.max.z + 0.005; } mir.visible = false; }
+    var W = 1.9, H = W * 852 / 1280, F = 0.11, g = new THREE.Group(); g.position.set(cx, cy, z); g.name = 'mantel-painting'; holder.add(g);
+    var tex = new THREE.TextureLoader().load(siteBase() + 'spatial-home/art/grande-jatte.jpg', function () { if (SR.renderer) tex.anisotropy = Math.min(8, SR.renderer.capabilities.getMaxAnisotropy()); });
+    tex.encoding = THREE.sRGBEncoding;
+    var canvasM = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.62, metalness: 0, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.22 });
+    var cv = new THREE.Mesh(new THREE.PlaneGeometry(W, H), canvasM); cv.position.z = 0.02; g.add(cv);
+    var gilt = new THREE.MeshStandardMaterial({ color: lin(0xc89b45), roughness: 0.32, metalness: 0.85 }), giltD = new THREE.MeshStandardMaterial({ color: lin(0x8a6326), roughness: 0.45, metalness: 0.8 });
+    function bar(x, y, w, h, d, zz, m) { var k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(x, y, zz); g.add(k); }
+    [[0, (H + F) / 2, W + 2 * F, F], [0, -(H + F) / 2, W + 2 * F, F], [-(W + F) / 2, 0, F, H], [(W + F) / 2, 0, F, H]].forEach(function (q) {
+      bar(q[0], q[1], q[2], q[3], 0.07, 0.035, gilt);                                                               // the frame
+      var o = q[0] ? Math.sign(q[0]) : 0, v = q[1] ? Math.sign(q[1]) : 0;                                             // its outer bead, a step proud
+      bar(q[0] + o * F * 0.38, q[1] + v * F * 0.38, q[2] === F ? F * 0.24 : q[2], q[3] === F ? F * 0.24 : q[3], 0.09, 0.045, gilt);
+    });
+    [[0, H / 2 + 0.012, W + 0.05, 0.024], [0, -H / 2 - 0.012, W + 0.05, 0.024], [-W / 2 - 0.012, 0, 0.024, H], [W / 2 + 0.012, 0, 0.024, H]].forEach(function (q) { bar(q[0], q[1], q[2], q[3], 0.035, 0.03, giltD); });   // the inner fillet
+    var brass = new THREE.MeshStandardMaterial({ color: lin(0xb58a3e), roughness: 0.3, metalness: 0.9 });
+    var arm = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 8), brass); arm.rotation.x = Math.PI / 2 - 0.5; arm.position.set(0, H / 2 + F + 0.07, 0.1); g.add(arm);
+    var hood = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, W * 0.55, 16, 1, false, 0, Math.PI), brass); hood.rotation.z = Math.PI / 2; hood.rotation.y = 0.2; hood.position.set(0, H / 2 + F + 0.11, 0.2); g.add(hood);
+    var pl = new THREE.SpotLight(0xffe2b0, 0.9, 3.2, 0.75, 0.6, 2); pl.position.set(0, H / 2 + F + 0.08, 0.32); pl.target.position.set(0, -0.1, 0); g.add(pl); g.add(pl.target);
+    return g;
+  }
   function victorianFinish(ctx) {
     var holder = ctx.holder, model = ctx.model, scene = ctx.scene, R = SR.renderer, parts = [], lights = [];
     var rug = rugTexture(), rugM = new THREE.MeshStandardMaterial({ map: rug, roughness: 0.95, metalness: 0 });
     ctx.templates.forEach(function (t) { if (!/Rug/.test(t.node || '')) return; t.group.traverse(function (o) { if (o.isMesh) { o.geometry = o.geometry.clone(); rugUV(o.geometry); o.material = rugM; } }); });
     var ceilDispose = cofferedCeiling(holder), carpetDispose = roomCarpet(holder, 0, -5.1, 7.75, 7.7);
+    try { mantelPainting(model, holder); } catch (e) { if (root.console) console.warn('Spatial Home: painting', e); }
+    try { fillShelves(model, holder, { skipE: [[-12.7, -5.1], [-4.7, -2.5]] }); } catch (e) { if (root.console) console.warn('Spatial Home: shelves', e); }   // the empty shelves get books (not behind the Scenic Window or the cut)
     /* reflections: a small warm room rendered once into an environment map */
     var envTex = null;
     if (R && THREE.PMREMGenerator) {
@@ -185813,11 +185958,22 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
      window ahead on the right, the pedestal desk standing free in front of the window, turned a little to the room, its
      buttoned leather chair behind it (between desk and window), a rug under it, two leather armchairs in the left
      foreground — and the home view is that photograph's view (VSTART). The Scenic Window moves to the east wall for it. */
-  var VD = { p: [1.9, -9.3], ry: 1.5 }, VNT = [-4.6, -5.6];          // the desk (its drawers / chair side towards +z local); the north table's new place
+  /* v5 (2026-11-13, the user's second reference photo): the desk stands before the east window, square to it, its chair between
+     desk and window; the home view looks from the south-west corner — fireplace on the left, bookcases, the window behind the desk */
+  var VD = { p: [3.0, -8.6], ry: Math.PI / 2 }, VNT = [-4.6, -5.6];          // the desk (its drawers / chair side towards +z local); the north table's new place
   function vdesk(lx, lz) { var c = Math.cos(VD.ry), s = Math.sin(VD.ry); return [VD.p[0] + lx * c + lz * s, VD.p[1] - lx * s + lz * c]; }   // desk-local → world
   function vdA(lx, y, lz, dr) { var q = vdesk(lx, lz); return { p: [q[0], y, q[1]], ry: VD.ry + dr }; }
   function vnA(dx, y, dz) { return { p: [VNT[0] + dx, y, VNT[1] + dz], ry: 0 }; }
   /* v4: the reference-photo arrangement (VEXTRA); things left on the old desk / north table follow their anchors */
+  /* v5: the executive desk and the tufted chair in place of the earlier pair; things left on the v4 desk follow their anchors */
+  function vicUp5(L) {
+    var ex = L.extras = L.extras || [];
+    ex.forEach(function (e) {
+      if (e.uid === 9601) { e.kind = 'vic-exec-desk'; e.title = '大班桌'; }
+      if (e.uid === 9602) { e.kind = 'vic-tufted'; e.title = '拉扣高背大班椅'; }
+    });
+    Object.keys(L).forEach(function (k) { var v = L[k]; if (v && v.p && !v.stashed && Math.hypot(v.p[0] - 1.9, v.p[2] + 9.3) < 1.3 && v.p[1] > 0.6 && v.p[1] < 0.95) delete L[k]; });
+  }
   function vicUp4(L) {
       var ex = L.extras = L.extras || [];
         Object.keys(VEXTRA).forEach(function (u) { var e = ex.filter(function (x) { return x.uid === +u; })[0], v = VEXTRA[u]; if (!e) return; e.p = [v.p[0], e.p[1] || 0, v.p[1]]; e.ry = v.ry; });
@@ -185825,18 +185981,19 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         if (L.scenicWindow) delete L.scenicWindow;
         L.extras = ex = ex.filter(function (e) { return e.uid !== 9509 && e.uid !== 9510; });   // the two small rugs go: one carpet covers the room now
       }
-  var VSTART = { pos: [-2.4, 1.55, -7.2], yaw: -1.14, pitch: -0.12 };
-  var VEXTRA = { 9601: { p: vdesk(0, 0), ry: VD.ry }, 9602: { p: vdesk(0, 0.92), ry: VD.ry + Math.PI },
-9500: { p: [-0.1, -10.1], ry: 2.0 }, 9501: { p: [-1.35, -9.75], ry: 2.3 },
+  var VSTART = { pos: [-6.6, 1.45, -8.8], yaw: -1.47, pitch: -0.07 };
+  var VEXTRA = { 9601: { p: vdesk(0, 0), ry: VD.ry }, 9602: { p: vdesk(0, 1.0), ry: VD.ry + Math.PI },
+9502: { p: [-0.85, -3.65], ry: -1.15 }, 9503: { p: [-0.35, -4.95], ry: -1.3 },                // two armchairs in the left foreground
+9500: { p: [-3.2, -10.9], ry: -1.36 }, 9501: { p: [-1.8, -10.4], ry: -0.99 },   // the fireplace pair, in the left foreground facing the fire
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
   var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
     cut: [[7.75, 0.25, -4.6, 14, 3.3, -2.6]],                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
-    start: VSTART, startV: 4, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
+    start: VSTART, startV: 8, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
     dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE) },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 6, fn: function (L) { VICT.upgrade3.fn(L); vicUp4(L); } },
+    upgrade: { v: 10, fn: function (L) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); } },
     upgrade3: { fn: function (L) {
       var ex = L.extras = L.extras || [];
       /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,
@@ -186364,6 +186521,151 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return { group: g, hb: [SW + 0.2, BH + 0.08, SD], place: 'floor' };
   };
   if (!CAT.some(function (x) { return x.id === 'vic-exec'; })) CAT.push({ id: 'vic-exec', name: '皮质高背椅', en: 'Buttoned leather chair', icon: '▣', place: 'floor', size: [0.88, 1.38, 0.62], note: 'EC–6 维多利亚书房的家具' });
+
+  /* ───────── after the user's second reference photo (2026-11-13): an executive study desk and a tufted executive chair ─────────
+     Desk: dark espresso walnut, double pedestal. The side the visitor (and the home view) sees has raised panels — two
+     on each pedestal, one on each outer side — fluted corner pilasters, a carved frieze over a panelled modesty board,
+     a moulded top with an ogee edge and a stepped plinth. The chair side has the drawers with brass bail pulls.
+     Chair: brown leather, a tall camel-back with deep diamond tufting (buttons and the creases between them), rolled
+     arms, brass nailheads round the back, the arms and the seat, turned legs on brass castors. */
+  function emats(T) {
+    if (F._e) return F._e;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var c = document.createElement('canvas'); c.width = 256; c.height = 1024; var x = c.getContext('2d'), i;   // a quiet walnut grain
+    x.fillStyle = '#3a2214'; x.fillRect(0, 0, 256, 1024);
+    for (i = 0; i < 140; i++) { x.strokeStyle = 'rgba(' + (Math.random() < 0.5 ? '20,10,4' : '96,58,32') + ',' + (0.08 + Math.random() * 0.12) + ')'; x.lineWidth = 1 + Math.random() * 3;
+      var x0 = Math.random() * 256; x.beginPath(); x.moveTo(x0, 0); x.bezierCurveTo(x0 + (Math.random() - 0.5) * 40, 340, x0 + (Math.random() - 0.5) * 40, 680, x0 + (Math.random() - 0.5) * 30, 1024); x.stroke(); }
+    var g = new T.CanvasTexture(c); g.encoding = T.sRGBEncoding; g.wrapS = g.wrapT = T.RepeatWrapping; g.anisotropy = 4;
+    return (F._e = {
+      wood: new T.MeshStandardMaterial({ color: L(0xb08a70), map: g, roughness: 0.42, metalness: 0.04 }),
+      woodD: new T.MeshStandardMaterial({ color: L(0x8a6a56), map: g, roughness: 0.46, metalness: 0.04 }),
+      woodL: new T.MeshStandardMaterial({ color: L(0xd0a888), map: g, roughness: 0.36, metalness: 0.04 }),
+      groove: new T.MeshStandardMaterial({ color: L(0x1c0f08), roughness: 0.6 }),
+      brass: new T.MeshStandardMaterial({ color: L(0xc79a48), roughness: 0.28, metalness: 0.9 }),
+      blotter: new T.MeshStandardMaterial({ color: L(0x2a1a12), roughness: 0.55 }),
+      leather: new T.MeshStandardMaterial({ color: L(0x6a3a22), roughness: 0.38, metalness: 0.03 }),
+      leatherD: new T.MeshStandardMaterial({ color: L(0x3c1e10), roughness: 0.5, metalness: 0.02 }),
+      crease: new T.MeshStandardMaterial({ color: L(0x2a1208), roughness: 0.6 })
+    });
+  }
+  /* a raised panel on a face: a frame of stiles and rails, a bevelled field, a raised centre. axis 'z': the face is a
+     plane z = f (out = ±1 is the outward side); axis 'x': plane x = f. (u, v) is the panel centre along the face. */
+  function rpanel(T, g, E, axis, f, out, u, v, w, h) {
+    var t = 0.012, rw = 0.035;
+    function put(m, du, dv, ww, hh, dd, off) {
+      var b = new T.Mesh(new T.BoxGeometry(axis === 'z' ? ww : dd, hh, axis === 'z' ? dd : ww), m);
+      if (axis === 'z') b.position.set(u + du, v + dv, f + out * off); else b.position.set(f + out * off, v + dv, u + du);
+      b.castShadow = true; b.receiveShadow = true; g.add(b); return b;
+    }
+    put(E.woodL, 0, h / 2 - rw / 2, w, rw, t, t / 2); put(E.woodL, 0, -h / 2 + rw / 2, w, rw, t, t / 2);              // rails
+    put(E.woodL, -w / 2 + rw / 2, 0, rw, h - 2 * rw, t, t / 2); put(E.woodL, w / 2 - rw / 2, 0, rw, h - 2 * rw, t, t / 2);   // stiles
+    put(E.groove, 0, 0, w - 2 * rw, h - 2 * rw, 0.004, 0.002);                                                    // the shadow line
+    put(E.woodD, 0, 0, w - 2 * rw - 0.02, h - 2 * rw - 0.02, t * 0.8, t * 0.4);                                   // bevelled field
+    put(E.wood, 0, 0, w - 2 * rw - 0.08, h - 2 * rw - 0.08, t * 1.4, t * 0.7);                                    // raised centre
+  }
+  F['vic-exec-desk'] = function (T) {
+    var E = emats(T), g = new T.Group(), W = 2.1, D = 1.05, H = 0.78, PW = 0.6, PB = 0.1, i;   // drawers face +z (the chair side); the front is −z
+    function bx(m, x, y, z, w, h, d) { return box(T, g, m, x, y, z, w, h, d); }
+    /* the top: a slab with an ogee edge (two steps), a leather blotter */
+    bx(E.wood, 0, H - 0.022, 0, W + 0.08, 0.044, D + 0.08);
+    bx(E.woodD, 0, H - 0.055, 0, W + 0.04, 0.024, D + 0.04);
+    bx(E.woodL, 0, H - 0.071, 0, W + 0.01, 0.01, D + 0.01);
+    var bl = new T.Mesh(new T.BoxGeometry(0.95, 0.004, 0.55), E.blotter); bl.position.set(0, H + 0.002, 0.12); bl.receiveShadow = true; g.add(bl);
+    [-1, 1].forEach(function (k) { bx(E.woodD, k * 0.49, H + 0.006, 0.12, 0.05, 0.012, 0.57); });          // blotter corners (leather-bound ends)
+    var CH = H - 0.075;                                                                                     // carcase height (under the top)
+    [-1, 1].forEach(function (sd) {
+      var cx = sd * (W / 2 - PW / 2 - 0.01);
+      /* plinth: a step and a moulding */
+      bx(E.woodD, cx, PB / 2, 0, PW + 0.05, PB, D - 0.02);
+      bx(E.woodL, cx, PB + 0.008, 0, PW + 0.03, 0.016, D - 0.04);
+      /* the pedestal body */
+      bx(E.wood, cx, (PB + CH) / 2, 0, PW, CH - PB, D - 0.08);
+      /* front (−z): two raised panels, fluted pilasters at the corners */
+      var fz = -(D - 0.08) / 2, ph = CH - PB - 0.06;
+      rpanel(T, g, E, 'z', fz, -1, cx, PB + 0.03 + ph * 0.79, PW - 0.14, ph * 0.38);
+      rpanel(T, g, E, 'z', fz, -1, cx, PB + 0.03 + ph * 0.3, PW - 0.14, ph * 0.56);
+      [-1, 1].forEach(function (k) {
+        var px = cx + k * (PW / 2 - 0.025);
+        bx(E.woodL, px, (PB + CH) / 2, fz - 0.012, 0.05, CH - PB - 0.02, 0.024);
+        for (var f = -1; f <= 1; f++) bx(E.groove, px + f * 0.013, (PB + CH) / 2, fz - 0.025, 0.004, CH - PB - 0.12, 0.004);
+        bx(E.woodD, px, CH - 0.02, fz - 0.016, 0.062, 0.03, 0.032); bx(E.woodD, px, PB + 0.04, fz - 0.016, 0.062, 0.03, 0.032);   // capital, base
+      });
+      /* the outer side: two raised panels */
+      var sx = cx + sd * PW / 2;
+      rpanel(T, g, E, 'x', sx, sd, 0, PB + 0.03 + ph * 0.79, D - 0.24, ph * 0.38);
+      rpanel(T, g, E, 'x', sx, sd, 0, PB + 0.03 + ph * 0.3, D - 0.24, ph * 0.56);
+      /* the chair side (+z): three drawers, brass bail pulls */
+      var bz = (D - 0.08) / 2, dh = (CH - PB - 0.04) / 3;
+      for (i = 0; i < 3; i++) {
+        var yc = PB + 0.02 + dh * (i + 0.5);
+        bx(E.woodL, cx, yc, bz + 0.006, PW - 0.06, dh - 0.02, 0.012);
+        var bail = new T.Mesh(new T.TorusGeometry(0.035, 0.005, 6, 16, Math.PI), E.brass); bail.rotation.z = Math.PI; bail.position.set(cx, yc - 0.005, bz + 0.024); g.add(bail);
+        [-1, 1].forEach(function (k) { bx(E.brass, cx + k * 0.035, yc + 0.008, bz + 0.016, 0.018, 0.026, 0.008); });
+      }
+    });
+    /* between the pedestals: the frieze (a drawer at the back, a carved band at the front) and the modesty board */
+    var MW = W - 2 * PW - 0.02, fz2 = -(D - 0.08) / 2;
+    bx(E.wood, 0, CH - 0.065, 0, MW, 0.13, D - 0.08);
+    bx(E.woodL, 0, CH - 0.065, fz2 - 0.008, MW - 0.04, 0.09, 0.016);
+    for (i = 0; i < 9; i++) bx(E.woodD, -MW / 2 + 0.06 + i * (MW - 0.12) / 8, CH - 0.065, fz2 - 0.018, 0.026, 0.06, 0.01);   // carved dentils
+    bx(E.brass, 0, CH - 0.065, fz2 - 0.02, 0.07, 0.03, 0.006);                                                  // a small cartouche
+    bx(E.woodL, 0, CH - 0.065, (D - 0.08) / 2 + 0.006, MW - 0.06, 0.09, 0.012);                                 // the centre drawer (chair side)
+    var cb = new T.Mesh(new T.TorusGeometry(0.04, 0.005, 6, 16, Math.PI), E.brass); cb.rotation.z = Math.PI; cb.position.set(0, CH - 0.07, (D - 0.08) / 2 + 0.024); g.add(cb);
+    var mz = fz2 + 0.1;                                                                                         // the modesty board, set back a little
+    bx(E.wood, 0, (PB + CH - 0.13) / 2 + 0.01, mz, MW, CH - 0.13 - PB, 0.03);
+    rpanel(T, g, E, 'z', mz - 0.015, -1, 0, (PB + CH - 0.13) / 2 + 0.01, MW - 0.12, CH - 0.13 - PB - 0.1);
+    g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return { group: g, hb: [W + 0.08, H, D + 0.08], place: 'floor' };
+  };
+  F['vic-tufted'] = function (T) {
+    var E = emats(T), g = new T.Group(), SW = 0.76, SD = 0.66, SH = 0.49, i, j;   // the seat faces +z
+    function bx(m, x, y, z, w, h, d) { return box(T, g, m, x, y, z, w, h, d); }
+    /* turned legs on brass castors, a seat rail with nailheads */
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (q) {
+      var p = [[0, 0], [0.03, 0], [0.032, 0.03], [0.022, 0.07], [0.03, 0.12], [0.026, 0.18], [0.034, 0.22], [0.034, SH - 0.17], [0, SH - 0.17]].map(function (r) { return new T.Vector2(r[0], r[1]); });
+      var lg = new T.Mesh(new T.LatheGeometry(p, 12), E.woodD); lg.position.set(q[0] * (SW / 2 - 0.07), 0.04, q[1] * (SD / 2 - 0.07)); g.add(lg);
+      var cs = new T.Mesh(new T.SphereGeometry(0.035, 10, 8), E.brass); cs.position.set(q[0] * (SW / 2 - 0.07), 0.035, q[1] * (SD / 2 - 0.07)); g.add(cs);
+    });
+    bx(E.leather, 0, SH - 0.1, 0, SW, 0.14, SD);                                                                 // the seat box
+    var cu = new T.Mesh(new T.BoxGeometry(SW - 0.16, 0.09, SD - 0.12), E.leather); cu.position.set(0, SH + 0.01, 0.04); g.add(cu);
+    var roll = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, SW - 0.16, 16), E.leather); roll.rotation.z = Math.PI / 2; roll.position.set(0, SH - 0.005, SD / 2 - 0.02); g.add(roll);   // the cushion's front roll
+    /* the back: a camel-back outline, extruded and bevelled, leaning back a little */
+    var BW = SW + 0.04, BH = 0.86, sh = new T.Shape(), r = 0.12;
+    sh.moveTo(-BW / 2, 0); sh.lineTo(BW / 2, 0); sh.lineTo(BW / 2, BH - 0.2);
+    sh.bezierCurveTo(BW / 2, BH - 0.08, BW / 4, BH - 0.1, 0.12, BH - 0.02); sh.quadraticCurveTo(0, BH + 0.03, -0.12, BH - 0.02);
+    sh.bezierCurveTo(-BW / 4, BH - 0.1, -BW / 2, BH - 0.08, -BW / 2, BH - 0.2); sh.lineTo(-BW / 2, 0);
+    var bg = new T.ExtrudeGeometry(sh, { depth: 0.12, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.035, bevelSegments: 4, curveSegments: 18 });
+    var back = new T.Group(); back.position.set(0, SH - 0.02, -SD / 2 + 0.02); back.rotation.x = -0.1; g.add(back);
+    var bm = new T.Mesh(bg, E.leather); bm.position.z = -0.08; back.add(bm);
+    /* diamond tufting on the front face: buttons on a staggered grid, the creases between them */
+    var fzb = 0.08, cols = 6, rows = 6, dx = (BW - 0.16) / cols, dy = (BH - 0.22) / rows, pts = [];
+    for (i = 0; i <= rows; i++) for (j = 0; j <= cols; j++) {
+      if ((i + j) % 2) continue; var x = -BW / 2 + 0.08 + j * dx, y = 0.1 + i * dy;
+      var limit = BH - 0.2 + (1 - Math.min(1, Math.abs(x) / (BW / 2))) * 0.12; if (y > limit - 0.04) continue;
+      pts.push([x, y]); var bt = new T.Mesh(new T.SphereGeometry(0.014, 8, 6), E.leatherD); bt.position.set(x, y, fzb + 0.008); back.add(bt);
+    }
+    pts.forEach(function (a) { pts.forEach(function (b) {
+      var ddx = b[0] - a[0], ddy = b[1] - a[1]; if (ddy <= 0 || Math.abs(Math.abs(ddx) - dx) > 1e-3 || Math.abs(ddy - dy) > 1e-3) return;
+      var L = Math.hypot(ddx, ddy), cr = new T.Mesh(new T.BoxGeometry(0.006, L, 0.004), E.crease); cr.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, fzb + 0.004);
+      cr.rotation.z = -Math.atan2(ddx, ddy); back.add(cr);
+    }); });
+    /* nailheads round the back's outline */
+    sh.getSpacedPoints(70).forEach(function (q, k) { if (q.y < 0.02) return; var n = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), E.brass); n.position.set(q.x * 0.985, q.y * 0.985, fzb + 0.012); back.add(n); });
+    /* rolled arms with scroll fronts and a row of nailheads */
+    [-1, 1].forEach(function (sd) {
+      var ax = sd * (SW / 2 + 0.04);
+      bx(E.leather, ax, SH + 0.08, -0.02, 0.1, 0.3, SD - 0.06);
+      var ar = new T.Mesh(new T.CylinderGeometry(0.075, 0.075, SD - 0.04, 16), E.leather); ar.rotation.x = Math.PI / 2; ar.position.set(ax + sd * 0.015, SH + 0.25, -0.02); g.add(ar);
+      var sc = new T.Mesh(new T.CylinderGeometry(0.078, 0.078, 0.02, 16), E.leatherD); sc.rotation.x = Math.PI / 2; sc.position.set(ax + sd * 0.015, SH + 0.25, SD / 2 - 0.04); g.add(sc);
+      for (i = 0; i < 12; i++) { var nh = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), E.brass); nh.position.set(ax + sd * 0.052, SH - 0.06, -SD / 2 + 0.06 + i * (SD - 0.12) / 11); g.add(nh); }
+    });
+    for (i = 0; i < 18; i++) { var nf = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), E.brass); nf.position.set(-SW / 2 + 0.04 + i * (SW - 0.08) / 17, SH - 0.13, SD / 2 + 0.002); g.add(nf); }
+    g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return { group: g, hb: [SW + 0.22, SH + BH, SD + 0.1], place: 'floor' };
+  };
+  [{ id: 'vic-exec-desk', name: '大班桌', en: 'Executive pedestal desk', size: [2.18, 0.78, 1.13] },
+   { id: 'vic-tufted', name: '拉扣高背大班椅', en: 'Tufted executive chair', size: [0.98, 1.35, 0.76] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的家具' }); });
 })(window);
 
 /* Minest · Spatial Home — the things, made real (2026-11-13). In the outside-model rooms (the King's Hall, the Victorian
@@ -186665,7 +186967,43 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return libP.then(function (C) { var a = realAp(C, id, ap === undefined ? apId() : ap), key = id + '/' + a;
       return cores[key] || (cores[key] = C.load(id, { base: base() + 'scenic/', low: true, renderer: root.SpatialRoom && root.SpatialRoom.renderer, appearance: a })); });
   }
-  var showScene = function () {}, WIN = null;
+  var showScene = function () {}, applyView = function () {}, WIN = null;
+  /* ---- the view adjuster: turn and move what the window looks at, so the room gets its best view ---- */
+  var VKEY = 'scenic:winView', SHIFT = 0.12, RANGE = { yaw: 1, pitch: 1, x: 1, y: 1 };
+  function vget() { var v = sget(VKEY) || {}; function n(k, d) { var x = +v[k]; return isFinite(x) ? x : d; }
+    return { yaw: n('yaw', 0), pitch: n('pitch', 0), x: n('x', 0), y: n('y', 0), zoom: Math.max(1, Math.min(2.5, n('zoom', 1))) }; }
+  var ADJ = vget(), tbtn = null, tpan = null;
+  function host() { var c = document.getElementById('sh-gl'); return c && c.parentNode; }
+  function tuneBtn() {
+    var h = host(); if (!h || !WIN) return;
+    if (!tbtn) {
+      tbtn = document.createElement('button'); tbtn.type = 'button'; tbtn.title = '调整窗外风景（角度、位置、远近）'; tbtn.textContent = '🧭';
+      tbtn.style.cssText = 'position:absolute;z-index:30;width:34px;height:34px;border-radius:17px;border:1px solid rgba(255,255,255,.55);background:rgba(20,22,26,.55);color:#fff;font-size:17px;line-height:32px;padding:0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;display:none';
+      ['pointerdown', 'touchstart', 'wheel'].forEach(function (t) { tbtn.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+      tbtn.addEventListener('click', function (e) { e.stopPropagation(); tunePanel(!tpan); });
+      h.appendChild(tbtn);
+    }
+    var r = el ? null : winRect(), hr = h.getBoundingClientRect(), show = !!r && r.r > hr.left + 40 && r.l < hr.right - 40 && r.b > hr.top + 60 && r.t < hr.bottom - 40;
+    if (!show && !tpan) { tbtn.style.display = 'none'; return; }
+    if (r) { tbtn.style.left = Math.max(8, Math.min(hr.width - 42, r.r - hr.left - 44)) + 'px'; tbtn.style.top = Math.max(56, Math.min(hr.height - 90, r.t - hr.top + 10)) + 'px'; }
+    tbtn.style.display = 'block';
+  }
+  function saveAdj() { sset(VKEY, ADJ); applyView(); }
+  function tunePanel(on) {
+    if (tpan) { tpan.remove(); tpan = null; }
+    if (!on) return; var h = host(); if (!h) return;
+    var rows = [['yaw', '左右转', -RANGE.yaw, RANGE.yaw, 0.01], ['pitch', '上下看', -RANGE.pitch, RANGE.pitch, 0.01], ['x', '左右移', -RANGE.x, RANGE.x, 0.01], ['y', '上下移', -RANGE.y, RANGE.y, 0.01], ['zoom', '远近', 1, 2.5, 0.01]];
+    tpan = document.createElement('div');
+    tpan.style.cssText = 'position:absolute;z-index:31;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(340px,calc(100% - 32px));box-sizing:border-box;padding:12px 14px 10px;border-radius:16px;background:rgba(24,22,20,.78);color:#f3ece2;font:13px/1.3 -apple-system,system-ui,sans-serif;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 28px rgba(0,0,0,.35)';
+    tpan.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:14px">窗外风景</b><span style="opacity:.7;font-size:12px">拖动滑块，边看边调</span></div>' +
+      rows.map(function (r) { return '<label style="display:flex;align-items:center;gap:10px;margin:6px 0"><span style="width:44px;flex:none">' + r[1] + '</span><input type="range" data-k="' + r[0] + '" min="' + r[2] + '" max="' + r[3] + '" step="' + r[4] + '" value="' + ADJ[r[0]] + '" style="flex:1;accent-color:#d9a95b"></label>'; }).join('') +
+      '<div style="display:flex;gap:8px;margin-top:8px"><button type="button" data-a="reset" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit">恢复默认</button><button type="button" data-a="ok" style="flex:1;padding:8px;border-radius:10px;border:0;background:#d9a95b;color:#231a10;font-weight:600">好</button></div>';
+    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (t) { tpan.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    tpan.addEventListener('input', function (e) { var k = e.target.dataset && e.target.dataset.k; if (!k) return; ADJ[k] = +e.target.value; saveAdj(); });
+    tpan.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+      if (b.dataset.a === 'reset') { ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); tunePanel(true); } else tunePanel(false); });
+    h.appendChild(tpan);
+  }
 
   function make() {
     var g = new THREE.Group(), frameG = new THREE.Group(); g.add(frameG);
@@ -186719,11 +187057,27 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       loadCore(id, ap).then(function (c) {
         if (view && view !== c) sScene.remove(view.group);
         view = c; c.group.rotation.order = 'YXZ';
-        if (c.kind === 'pano') { c.group.rotation.set(0, 0, 0); c.group.position.set(0, 1.5 - H / 2, 0); tanHw = 99; tanVw = 99; }
-        else { c.group.position.set(0, 0, 0); c.group.rotation.y = YAW; c.group.rotation.x = PITCH; tanHw = Math.tan(Math.atan(c.tanH) - YAW); tanVw = Math.tan(Math.atan(c.tanV) - PITCH); }
+        applyView();
         if (c.group.parent !== sScene) sScene.add(c.group); U.uOk.value = 1;
         light.color.setHex(c.appear === 'sunset' ? 0xffd2a0 : 0xf2f4ff);
       }).catch(function () {});
+    };
+    /* the view through the glass, as the user turned and moved it (the 🧭 on the window; store 'scenic:winView'):
+       yaw / pitch turn the scene behind the glass, x / y slide it (a share of the scene's depth, so it means the same in
+       every scene), zoom steps the scene's eye back (1 = as wide as the photograph allows). The photo's edge is still
+       never shown: the turn and the slide come off the room the frame may open to. */
+    applyView = function () {
+      if (!view) return; var c = view, A = ADJ;
+      function cl(v) { return Math.max(-1, Math.min(1, +v || 0)); }
+      if (c.kind === 'pano') { c.group.rotation.set(cl(A.pitch) * 0.35, cl(A.yaw) * Math.PI, 0); c.group.position.set(0, 1.5 - H / 2, 0); tanHw = 99; tanVw = 99; return; }
+      /* the sliders run −1…1; 0 is the composed view, ±1 as far as the photograph reaches with a window's width to spare */
+      function span(v, def, max) { v = cl(v); return v >= 0 ? def + v * (max - def) : def + v * (max + def); }
+      var aH = Math.atan(c.tanH), aV = Math.atan(c.tanV), yw = span(A.yaw, YAW, aH - 0.16), pt = span(A.pitch, PITCH, aV - 0.13);
+      var MIN = 0.15, roomH = Math.max(0, Math.tan(aH - Math.abs(yw)) - MIN), roomV = Math.max(0, Math.tan(aV - Math.abs(pt)) - MIN);
+      var sx = cl(A.x) * Math.min(SHIFT, roomH), sy = cl(A.y) * Math.min(SHIFT, roomV), D = Math.abs(c.P.z) || 100;
+      c.group.rotation.y = yw; c.group.rotation.x = pt; c.group.position.set(-sx * D, -sy * D, 0);
+      tanHw = Math.max(MIN, Math.tan(aH - Math.abs(yw)) - Math.abs(sx));
+      tanVw = Math.max(MIN, Math.tan(aV - Math.abs(pt)) - Math.abs(sy));
     };
     showScene();
     function render(t) {
@@ -186741,7 +187095,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       var hw = (W - 2 * F) / 2, hh = (H - 2 * F) / 2, ez = Math.max(0.05, _e.z);
       /* never more than the photograph holds: if the glass would open wider than the photo's frame, the scene's eye
          steps back just enough (the room's eye is where it is; the view behind the glass just narrows) */
-      var m = Math.max(1, (Math.abs(_e.x) + hw) / (ez * tanHw * 0.97), (Math.abs(_e.y) + hh) / (ez * tanVw * 0.97)), zs = ez * m;
+      var m = Math.max(1, (Math.abs(_e.x) + hw) / (ez * tanHw * 0.97), (Math.abs(_e.y) + hh) / (ez * tanVw * 0.97)), zs = ez * m * ADJ.zoom;
       var n = 0.5, l = (-hw - _e.x) * n / zs, r = (hw - _e.x) * n / zs, b = (-hh - _e.y) * n / zs, tp = (hh - _e.y) * n / zs;
       pCam.position.set(_e.x, _e.y, zs); pCam.quaternion.identity(); pCam.updateMatrixWorld(true);
       pCam.projectionMatrix.makePerspective(l, r, tp, b, n, 12000); pCam.projectionMatrixInverse.copy(pCam.projectionMatrix).invert();
@@ -186752,7 +187106,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       hit: hit, label: [0, H + 0.12, 0], focusL: null,
       fit: function (a) { fit(a && a.w, a && a.h); },
       panel: function () { return openScenic(); },
-      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); },
+      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); tuneBtn(); },
       /* before the camera walks up: stand back along the window's axis as far as the plan wants, but stop 0.7 m short of
          the first thing in the way (furniture, a wall) — the room must stay round the window, never in front of the lens */
       aim: function () {
@@ -186864,7 +187218,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   root.addEventListener('resize', function () { if (el && LV) applyMask(levelRect(LV.v)); });
 
-  root.SpatialScenic = { make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, envs: envs, isOpen: function () { return !!el; }, level: function () { return el ? { level: LV.level, v: LV.v, mask: M } : null; }, focus: function (on) { if (frame) post({ op: 'focus', on: !!on }); } };
+  root.SpatialScenic = { view: function (v) { if (v) { Object.keys(v).forEach(function (k) { if (k in ADJ) ADJ[k] = +v[k]; }); saveAdj(); } return JSON.parse(JSON.stringify(ADJ)); }, tune: tunePanel, make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, envs: envs, isOpen: function () { return !!el; }, level: function () { return el ? { level: LV.level, v: LV.v, mask: M } : null; }, focus: function (on) { if (frame) post({ op: 'focus', on: !!on }); } };
 })(window);
 
 /* Minest · Spatial Home — the things that are the apps (the fishing rod became the Octo aquarium in entries.js).
