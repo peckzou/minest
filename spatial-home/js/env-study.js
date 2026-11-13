@@ -142,5 +142,5 @@
       dispose: function () { SR.disposeTree(holder); scene.background = null; }
     };
   }
-  SR.register({ id: 'study', name: 'EC–6 Study Studio', zh: 'EC–6 备考书房', icon: '📚', build: build });
+  SR.register({ id: 'study', name: 'English Study', zh: '英式书房（原 EC–6 书房）', icon: '📚', build: build });   // 2026-11-13: the EC–6 room is now the Victorian Study
 })(window);

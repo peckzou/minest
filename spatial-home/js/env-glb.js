@@ -170,11 +170,99 @@
       box.setFromObject(n); box.getCenter(c); c.y = box.min.y; var size = box.getSize(new THREE.Vector3());
       var t = n.clone(true); n.matrixWorld.decompose(P, Q, S); t.position.copy(P).sub(c); t.quaternion.copy(Q); t.scale.copy(S);
       var g = new THREE.Group(); g.add(t); t.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-      TPL[k] = { group: g, hb: [size.x, size.y, size.z], place: c.y > 0.08 ? 'surface' : (mv.place || 'floor') };
+      TPL[k] = { group: g, node: mv.node, hb: [size.x, size.y, size.z], place: c.y > 0.08 ? 'surface' : (mv.place || 'floor') };
       n.parent.remove(n);
       items.push({ kind: k, title: mv.name, p: [+c.x.toFixed(3), +c.y.toFixed(3), +c.z.toFixed(3)], ry: 0, uid: 9500 + i });
     });
     return items;
+  }
+
+  /* ───────── the Victorian Study, finished as the EC–6 room (2026-11-13) ───────── */
+  function lin(h) { return new THREE.Color(h).convertSRGBToLinear(); }
+  /* the study's movable rugs come with a blurry texture: a Persian rug, painted (field, medallion, spandrels, a border
+     with guard stripes and a vine), mapped flat over the rug's top */
+  function rugTexture() {
+    var c = document.createElement('canvas'); c.width = 1536; c.height = 1024; var x = c.getContext('2d'), W = c.width, H = c.height, i;
+    x.fillStyle = '#1c2340'; x.fillRect(0, 0, W, H);
+    function frame(m, col, lw) { x.strokeStyle = col; x.lineWidth = lw; x.strokeRect(m, m, W - 2 * m, H - 2 * m); }
+    frame(14, '#c99a4a', 10); frame(30, '#7a1c22', 8);
+    x.strokeStyle = '#d9b46a'; x.lineWidth = 5; x.beginPath();
+    var P = 2 * (W - 160) + 2 * (H - 160);
+    for (i = 0; i <= 1200; i++) { var d = i / 1200 * P, w = Math.sin(i / 1200 * 260) * 16, px, py;
+      if (d < W - 160) { px = 80 + d; py = 80 + w; } else if ((d -= W - 160) < H - 160) { px = W - 80 + w; py = 80 + d; } else if ((d -= H - 160) < W - 160) { px = W - 80 - d; py = H - 80 + w; } else { d -= W - 160; px = 80 + w; py = H - 80 - d; }
+      if (i) x.lineTo(px, py); else x.moveTo(px, py); }
+    x.stroke();
+    for (i = 0; i < 260; i++) { var t = i / 260 * P, q = t, qx, qy; if (q < W - 160) { qx = 80 + q; qy = 80; } else if ((q -= W - 160) < H - 160) { qx = W - 80; qy = 80 + q; } else if ((q -= H - 160) < W - 160) { qx = W - 80 - q; qy = H - 80; } else { q -= W - 160; qx = 80; qy = H - 80 - q; }
+      x.fillStyle = i % 2 ? '#a8323a' : '#f0e2c0'; x.beginPath(); x.arc(qx, qy, 6, 0, 6.3); x.fill(); }
+    frame(124, '#c99a4a', 10); frame(140, '#f0e2c0', 4);
+    x.fillStyle = '#7a1c22'; x.fillRect(146, 146, W - 292, H - 292);
+    x.strokeStyle = 'rgba(217,180,106,.35)'; x.lineWidth = 3;          // the field's lattice of small flowers
+    for (var gx = 190; gx < W - 160; gx += 64) for (var gy = 190; gy < H - 160; gy += 64) { x.beginPath(); x.moveTo(gx - 10, gy); x.lineTo(gx, gy - 10); x.lineTo(gx + 10, gy); x.lineTo(gx, gy + 10); x.closePath(); x.stroke(); x.fillStyle = (gx + gy) % 128 ? 'rgba(28,35,64,.6)' : 'rgba(240,226,192,.45)'; x.beginPath(); x.arc(gx, gy, 3.5, 0, 6.3); x.fill(); }
+    function loz(rx, ry, col) { x.fillStyle = col; x.beginPath(); x.moveTo(W / 2 - rx, H / 2); x.quadraticCurveTo(W / 2 - rx * 0.3, H / 2 - ry * 0.35, W / 2, H / 2 - ry); x.quadraticCurveTo(W / 2 + rx * 0.3, H / 2 - ry * 0.35, W / 2 + rx, H / 2); x.quadraticCurveTo(W / 2 + rx * 0.3, H / 2 + ry * 0.35, W / 2, H / 2 + ry); x.quadraticCurveTo(W / 2 - rx * 0.3, H / 2 + ry * 0.35, W / 2 - rx, H / 2); x.fill(); }
+    loz(470, 330, '#c99a4a'); loz(440, 300, '#1c2340'); loz(330, 220, '#a8323a'); loz(200, 135, '#f0e2c0'); loz(140, 92, '#2f5a3a'); loz(60, 40, '#d9b46a');
+    for (i = 0; i < 16; i++) { var a = i / 16 * Math.PI * 2; x.fillStyle = i % 2 ? '#d9b46a' : '#f0e2c0'; x.beginPath(); x.arc(W / 2 + Math.cos(a) * 265, H / 2 + Math.sin(a) * 175, 12, 0, 6.3); x.fill(); }
+    [[146, 146, 1, 1], [W - 146, 146, -1, 1], [146, H - 146, 1, -1], [W - 146, H - 146, -1, -1]].forEach(function (q) {
+      x.fillStyle = '#1c2340'; x.beginPath(); x.moveTo(q[0], q[1]); x.lineTo(q[0] + q[2] * 260, q[1]); x.quadraticCurveTo(q[0] + q[2] * 120, q[1] + q[3] * 120, q[0], q[1] + q[3] * 180); x.fill();
+      x.fillStyle = '#c99a4a'; x.beginPath(); x.moveTo(q[0], q[1]); x.lineTo(q[0] + q[2] * 160, q[1]); x.quadraticCurveTo(q[0] + q[2] * 70, q[1] + q[3] * 70, q[0], q[1] + q[3] * 110); x.fill(); });
+    var im = x.getImageData(0, 0, W, H), D = im.data;                   // wool: a little noise and the pile's lines
+    for (i = 0; i < D.length; i += 4) { var n = (Math.random() - 0.5) * 18 - ((i / 4 / W | 0) % 3 === 0 ? 6 : 0); D[i] += n; D[i + 1] += n; D[i + 2] += n; }
+    x.putImageData(im, 0, 0);
+    var tx = new THREE.CanvasTexture(c); tx.encoding = THREE.sRGBEncoding; tx.anisotropy = 8; return tx;
+  }
+  /* flat UVs over a rug's top, from its own positions (the long side along u) */
+  function rugUV(geo) {
+    var p = geo.attributes.position, n = p.count, mn = [1e9, 1e9], mx = [-1e9, -1e9], i;
+    for (i = 0; i < n; i++) { mn[0] = Math.min(mn[0], p.getX(i)); mx[0] = Math.max(mx[0], p.getX(i)); mn[1] = Math.min(mn[1], p.getZ(i)); mx[1] = Math.max(mx[1], p.getZ(i)); }
+    var sw = (mx[0] - mn[0]) < (mx[1] - mn[1]), uv = new Float32Array(n * 2);
+    for (i = 0; i < n; i++) { var u = (p.getX(i) - mn[0]) / (mx[0] - mn[0] || 1), v = (p.getZ(i) - mn[1]) / (mx[1] - mn[1] || 1); uv[2 * i] = sw ? v : u; uv[2 * i + 1] = sw ? u : v; }
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  }
+  function victorianFinish(ctx) {
+    var holder = ctx.holder, model = ctx.model, scene = ctx.scene, R = SR.renderer, parts = [], lights = [];
+    var rug = rugTexture(), rugM = new THREE.MeshStandardMaterial({ map: rug, roughness: 0.95, metalness: 0 });
+    ctx.templates.forEach(function (t) { if (!/Rug/.test(t.node || '')) return; t.group.traverse(function (o) { if (o.isMesh) { o.geometry = o.geometry.clone(); rugUV(o.geometry); o.material = rugM; } }); });
+    /* reflections: a small warm room rendered once into an environment map */
+    var envTex = null;
+    if (R && THREE.PMREMGenerator) {
+      var es = new THREE.Scene(), bx = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 12), new THREE.MeshBasicMaterial({ color: lin(0x3a2416), side: THREE.BackSide })); es.add(bx);
+      [[0, 2.5, -5, 0xffc27a, 3], [0, 2.9, 0, 0xffe0b0, 2], [-5, 1.5, 0, 0x8a5a3a, 1.2], [5, 1.5, 2, 0x8a5a3a, 1.2]].forEach(function (q) { var p = new THREE.Mesh(new THREE.PlaneGeometry(q[4], q[4] * 0.6), new THREE.MeshBasicMaterial({ color: lin(q[3]), side: THREE.DoubleSide })); p.position.set(q[0], q[1], q[2]); p.lookAt(0, 1.5, 0); es.add(p); });
+      var pm = new THREE.PMREMGenerator(R); envTex = pm.fromScene(es, 0.04).texture; pm.dispose(); scene.environment = envTex;
+    }
+    /* the chandeliers light the room: candle-warm, a slight flicker */
+    [[0, 3.75, -9.4], [0, 3.75, -1.9]].forEach(function (p) { var l = new THREE.PointLight(0xffc98a, 0.9, 10, 2); l.position.fromArray(p); holder.add(l); lights.push({ l: l, base: 0.9, f: Math.random() * 9 }); });
+    /* the fire in the hearth: logs, flames, embers, its light */
+    var fire = new THREE.Group(); fire.position.set(0, 0.17, -12.3); holder.add(fire);
+    var logM = new THREE.MeshStandardMaterial({ color: lin(0x3a2416), roughness: 0.9 }), emb = new THREE.MeshBasicMaterial({ color: 0xff6a20, toneMapped: false }), ash = new THREE.MeshStandardMaterial({ color: lin(0x2a2420), roughness: 1 });
+    [[-0.12, 0.3], [0.14, -0.35]].forEach(function (q) { var lg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.8, 10), logM); lg.rotation.z = Math.PI / 2; lg.rotation.y = q[1]; lg.position.set(q[0] * 0.3, 0.08, q[0]); fire.add(lg); });
+    var bed = new THREE.Mesh(new THREE.CircleGeometry(0.3, 20), ash); bed.rotation.x = -Math.PI / 2; bed.position.y = 0.006; fire.add(bed);
+    var embers = []; for (var e = 0; e < 18; e++) { var eb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.018 + Math.random() * 0.02, 0), emb.clone()); var ea = Math.random() * 6.3, er = Math.random() * 0.24; eb.position.set(Math.cos(ea) * er, 0.015, Math.sin(ea) * er * 0.6); fire.add(eb); embers.push(eb); }
+    var flameTex = (function () { var c = document.createElement('canvas'); c.width = 64; c.height = 128; var x = c.getContext('2d'), g = x.createRadialGradient(32, 96, 4, 32, 80, 60); g.addColorStop(0, 'rgba(255,240,180,1)'); g.addColorStop(0.35, 'rgba(255,170,60,0.85)'); g.addColorStop(0.7, 'rgba(230,80,20,0.35)'); g.addColorStop(1, 'rgba(120,20,0,0)'); x.fillStyle = g; x.beginPath(); x.moveTo(32, 2); x.quadraticCurveTo(64, 70, 50, 120); x.lineTo(14, 120); x.quadraticCurveTo(0, 70, 32, 2); x.fill(); var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; })();
+    var flames = []; for (var i = 0; i < 9; i++) { var fm = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.5), new THREE.MeshBasicMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide })); fm.position.set((i - 4) * 0.065, 0.27, (i % 3 - 1) * 0.06); fm.rotation.y = (i % 3 - 1) * 0.5; fire.add(fm); flames.push(fm); }
+    var fireL = new THREE.PointLight(0xff8a3a, 1.4, 7, 2); fireL.position.set(0, 0.6, 0.5); fire.add(fireL);
+    /* the desk: a green banker's lamp and the EC–6 study books */
+    var desk = new THREE.Group(); holder.add(desk);
+    var brass = new THREE.MeshStandardMaterial({ color: lin(0xc9a24a), roughness: 0.28, metalness: 0.9 }), shadeM = new THREE.MeshStandardMaterial({ color: lin(0x1f6b3a), roughness: 0.25, metalness: 0.1, emissive: lin(0x0a2a14), side: THREE.DoubleSide });
+    var lamp = new THREE.Group(); lamp.position.set(-0.62, 0.725, -2.1); desk.add(lamp);
+    var base = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.03, 20), brass); base.position.y = 0.015; lamp.add(base);
+    var stem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.32, 10), brass); stem.position.y = 0.19; lamp.add(stem);
+    var shade = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.12, 0.09, 24, 1, true, 0, Math.PI), shadeM); shade.rotation.z = Math.PI / 2; shade.rotation.y = Math.PI / 2; shade.position.set(0, 0.36, 0.04); shade.scale.set(1, 1.6, 1); lamp.add(shade);
+    var lampL = new THREE.PointLight(0xfff0c8, 0.55, 2.4, 2); lampL.position.set(0.05, 0.3, 0.05); lamp.add(lampL);
+    var bookCols = [0x7a1c22, 0x1c2340, 0x2f5a3a, 0x8a6a2a], bk = new THREE.Group(); bk.position.set(0.05, 0.725, -2.55); bk.rotation.y = 0.2; desk.add(bk);
+    bookCols.forEach(function (col, i) { var b = new THREE.Mesh(new THREE.BoxGeometry(0.22 - i * 0.012, 0.035, 0.16 - i * 0.008), new THREE.MeshStandardMaterial({ color: lin(col), roughness: 0.7 })); b.position.y = 0.018 + i * 0.036; b.rotation.y = (i % 2 - 0.5) * 0.12; bk.add(b);
+      var pg = new THREE.Mesh(new THREE.BoxGeometry(0.205 - i * 0.012, 0.028, 0.004), new THREE.MeshStandardMaterial({ color: lin(0xf0e6cf), roughness: 0.8 })); pg.position.set(0, 0.018 + i * 0.036, 0.08 - i * 0.004); bk.add(pg); });
+    var mode = 'auto';
+    function apply() { var T = SR.timeOfDay(mode), N = T.night; lights.forEach(function (q) { q.base = 0.75 + 0.5 * N; }); lampL.intensity = 0.35 + 0.45 * N; ctx.hemi.intensity = 0.55 + 0.2 * (1 - N); }
+    apply();
+    return {
+      tick: function (t) {
+        var f = 0.85 + 0.15 * Math.sin(t * 9) * Math.sin(t * 3.7) + 0.08 * Math.sin(t * 23);
+        fireL.intensity = 1.2 * f; flames.forEach(function (m, i) { var k = 0.8 + 0.3 * Math.sin(t * (6 + i) + i * 2); m.scale.set(1, k, 1); m.position.y = 0.12 + 0.13 * k; m.material.opacity = 0.75 + 0.25 * Math.sin(t * 11 + i); });
+        embers.forEach(function (b, i) { b.material.color.setHSL(0.04 + 0.03 * Math.sin(t * 2 + i), 1, 0.45 + 0.12 * Math.sin(t * 3.1 + i * 1.7)); });
+        lights.forEach(function (q) { q.l.intensity = q.base * (0.94 + 0.06 * Math.sin(t * 7 + q.f)); });
+      },
+      setTime: function (m) { mode = m || 'auto'; apply(); },
+      dispose: function () { if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); rug.dispose(); rugM.dispose(); }
+    };
   }
   function makeEnv(def) {
     registerMovable(def);
@@ -199,7 +287,7 @@
       A['floor.holo'] = { p: [1.6, 0, 1.05], ry: -PI / 2 };
       if (def.anchors) Object.keys(def.anchors).forEach(function (k) { A[k] = def.anchors[k]; });   // a showroom places every thing itself
       var solids = def.showroom ? [] : PT.solids().slice(), office = def.showroom ? null : [-3.1, -2.7, 3.1, 2.7];
-      var areas = [def.walk.slice()], surfaces = [];
+      var areas = [def.walk.slice()], surfaces = [], fin = null, tmode = 'auto';
       if (def.chandelier) chandelier(g, def.chandelier[0], def.chandelier[1], def.chandelier[2]);                                   // the whole hall can be walked; the model's own obstacles stop you
 
       gltfLoader().then(function () {
@@ -211,6 +299,7 @@
           var furn = takeMovables(def, m);
           var R = solidsOf(m, 0, office); R.solids.forEach(function (s) { solids.push(s); });
           var SF = surfacesOf(m, def.walk); holder.add(SF.group); surfaces.push(SF.group);      // things can stand on the model now
+          if (def.finish) try { fin = def.finish({ holder: holder, model: m, scene: scene, hemi: hemi, templates: Object.keys(TPL).filter(function (k) { return k.indexOf('glb:' + def.id + ':') === 0; }).map(function (k) { return TPL[k]; }) }); if (fin && fin.setTime) fin.setTime(tmode); } catch (er) { if (root.console) console.warn('Spatial Home: finishing ' + def.id, er); }
           if (def.movable) try { root.dispatchEvent(new CustomEvent('spatialhome:furnish', { detail: { env: def.id, items: furn } })); } catch (er) {}
         }, undefined, function (e) { if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); });
       }, function () {});
@@ -220,8 +309,8 @@
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
         surfaces: surfaces,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
-        setTime: function () {}, tick: function () {},
-        dispose: function () { SR.disposeTree(holder); scene.background = null; }
+        setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
+        dispose: function () { if (fin && fin.dispose) fin.dispose(); SR.disposeTree(holder); scene.background = null; }
       };
     };
   }
@@ -259,7 +348,7 @@
      the projector, album, medals, car and ornament, and its own armchairs, tables, vases, viola, rugs and ladders are
      movable furniture. The model's floor is 0.2 m up, so it sits 0.2 m down; the south table lands on the desk spot. */
   var VY = 0.725;
-  var VICT = { id: 'victorian', name: 'Victorian Study', glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
+  var VICT = { id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: [-2.7, -0.4, 0.35],
     start: { pos: [0.7, 1.5, 1.4], yaw: 0.1, pitch: -0.12 }, deskCam: { pos: [0, 1.4, -0.4], look: [0, 0.75, -2.0] },
     movable: [
@@ -279,5 +368,5 @@
     },
     credit: 'Victorian Study — Fox Dev assets, with the author\u2019s permission' };
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
-  SR.register({ id: 'victorian', name: 'Victorian Study', zh: '维多利亚书房', icon: '▤', build: makeEnv(VICT) });
+  SR.register({ id: 'victorian', name: 'EC–6 Victorian Study', zh: 'EC–6 备考书房 · 维多利亚', icon: '▤', build: makeEnv(VICT) });
 })(window);

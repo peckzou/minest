@@ -40,6 +40,8 @@
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   /* EC–6 Study Studio (2026-11-13): it becomes the current room once; the 🌐 switcher still offers every other room */
   if (!S.ec6 && (window.SpatialRoom.envs() || []).some(function (e) { return e.id === 'study'; })) { S.env = 'study'; S.ec6 = 1; }
+  /* 2026-11-13: the Victorian Study is now the EC–6 room the user works in most — it becomes the current room once */
+  if (!S.vic && (window.SpatialRoom.envs() || []).some(function (e) { return e.id === 'victorian'; })) { S.env = 'victorian'; S.vic = 1; }
   var dirty = false;
   function save() {
     S.mode = mode; S.pose = { x: +P.x.toFixed(3), z: +P.z.toFixed(3), yaw: +P.yaw.toFixed(4), pitch: +P.pitch.toFixed(4) };
@@ -51,6 +53,7 @@
 
   /* ------------------------------------------------------------ scene */
   var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: 'high-performance' });
+  window.SpatialRoom.renderer = renderer;   // rooms that want reflections (env-glb.js) make their environment map with it
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
