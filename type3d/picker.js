@@ -4,7 +4,7 @@
    and by typing-worlds/index.html (the 🌌 button brings the strip forward). */
 (function () {
   if (window.T3DPicker) return;
-  var D = {"classic":[{"page":"index.html","en":"Filament","zh":"立体打印","poster":"linear-gradient(160deg,#1b1f24,#3a4048 60%,#c9ced4)"},{"page":"firework.html","en":"Firework","zh":"烟花","poster":"linear-gradient(160deg,#0b0d2a,#3a1d5a 60%,#ff7a3d)"},{"page":"topiary.html","en":"Topiary","zh":"园艺修剪","poster":"linear-gradient(160deg,#20381f,#4f7a3a 60%,#cfe3a0)"},{"page":"saber.html","en":"Saber","zh":"光剑","poster":"linear-gradient(160deg,#05060c,#14203a 60%,#4fd2ff)"},{"page":"quill.html","en":"Quill","zh":"羽毛笔","poster":"linear-gradient(160deg,#2a1d12,#6a4a2a 60%,#f0dcb0)"},{"page":"neon.html","en":"Neon","zh":"霓虹","poster":"linear-gradient(160deg,#120814,#3a1030 60%,#ff4a1c)"},{"page":"book.html","en":"Book","zh":"立体书","poster":"linear-gradient(160deg,#2a1f18,#7a5a3a 60%,#f3e6c8)"},{"page":"workshop.html","en":"Type Workshop","zh":"文字工坊","poster":"linear-gradient(160deg,#2a1a10,#7a4a26 60%,#ffb066)"}],"series":[{"id":"physics","zh":"物理","en":"Physics"},{"id":"characters","zh":"角色","en":"Characters"},{"id":"ocean","zh":"海洋","en":"Ocean"},{"id":"writing","zh":"书写","en":"Writing"},{"id":"craft","zh":"工艺","en":"Craft"},{"id":"nature","zh":"自然","en":"Nature"},{"id":"science","zh":"科学与科幻","en":"Science & Sci-Fi"},{"id":"sky","zh":"天空","en":"Sky"},{"id":"blocks","zh":"方块","en":"Blocks"},{"id":"magic","zh":"魔法","en":"Magic"}],"worlds":[{"id":"magnetic-jelly","n":1,"en":"Magnetic Jelly","zh":"磁力果冻","series":"physics","poster":"linear-gradient(160deg,#fffaf2 0%,#f6ead8 55%,#ffc9dc 100%)","accent":"#ff8fb8"},{"id":"living-alphabet","n":2,"en":"Living Alphabet","zh":"字母精灵","series":"characters","poster":"linear-gradient(160deg,#bfe7ff 0%,#e9f7d8 60%,#9fd46e 100%)","accent":"#7cc85a"},{"id":"lightsaber","n":3,"en":"Lightsaber Writing","zh":"能量剑书写","series":"science","poster":"radial-gradient(circle at 40% 40%,#25407a 0%,#0a0d1c 60%,#03040a 100%)","accent":"#58c7ff"},{"id":"underwater-bubbles","n":4,"en":"Underwater Bubbles","zh":"海底气泡","series":"ocean","poster":"linear-gradient(180deg,#1f7fb8 0%,#0b3d6b 50%,#041a33 100%)","accent":"#5ad1ff"},{"id":"fish-formation","n":5,"en":"Underwater World","zh":"海底鱼群文字世界","series":"ocean","poster":"linear-gradient(180deg,#2a8fc4 0%,#0d4a7a 55%,#06223f 100%)","accent":"#ffd36e"},{"id":"chalk-flow","n":6,"en":"Chalk Flow","zh":"粉笔黑板","series":"writing","poster":"linear-gradient(160deg,#3b5a46 0%,#22372b 60%,#1a2620 100%)","accent":"#f4f1e6"},{"id":"signature-quill","n":7,"en":"Signature Quill","zh":"鹅毛笔签名","series":"writing","poster":"linear-gradient(160deg,#f7efdf 0%,#d8bf94 55%,#6b4a2b 100%)","accent":"#3a2a1a"},{"id":"stone-carve","n":8,"en":"Stone Carve","zh":"石刻","series":"craft","poster":"linear-gradient(160deg,#d9d4cb 0%,#a9a196 60%,#7c756c 100%)","accent":"#5b544c"},{"id":"woodcarve","n":9,"en":"Woodcarve","zh":"木刻","series":"craft","poster":"linear-gradient(160deg,#f0d5a8 0%,#c99a62 60%,#8a5a32 100%)","accent":"#6b3f1d"},{"id":"white-sand","n":10,"en":"White Sand Trace","zh":"白沙书写","series":"nature","poster":"linear-gradient(160deg,#fbf8f1 0%,#ece4d4 60%,#cfc3ab 100%)","accent":"#8a7a5c"},{"id":"genesis-lab","n":11,"en":"Genesis Lab","zh":"创世实验室","series":"science","poster":"radial-gradient(circle at 50% 35%,#4a4a4a 0%,#111 55%,#000 100%)","accent":"#f2f2f2"},{"id":"fireworks","n":12,"en":"Firework Typography","zh":"烟花字","series":"sky","poster":"radial-gradient(circle at 50% 30%,#3b2a6b 0%,#120d2b 55%,#05040f 100%)","accent":"#ffb84d"},{"id":"skywriting","n":13,"en":"Skywriting","zh":"飞机烟迹","series":"sky","poster":"linear-gradient(180deg,#2d7fd8 0%,#6fb3f2 60%,#d6ecff 100%)","accent":"#ffffff"},{"id":"topiary-garden","n":14,"en":"Topiary Garden","zh":"庄园修剪","series":"nature","poster":"linear-gradient(180deg,#bfe3ff 0%,#9fd18a 55%,#4f8f3a 100%)","accent":"#3f7d2c"},{"id":"ferrofluid","n":15,"en":"Ferrofluid","zh":"磁流体","series":"science","poster":"linear-gradient(160deg,#fbfaf7 0%,#e7e4dd 60%,#1a1a1d 100%)","accent":"#111114"},{"id":"frost-bloom","n":16,"en":"Crystal Ice","zh":"冰晶文字","series":"nature","poster":"linear-gradient(160deg,#e9f6ff 0%,#a9d6f2 55%,#5a8fb8 100%)","accent":"#bfe9ff"},{"id":"noble-gas-neon","n":17,"en":"Noble Gas Neon","zh":"稀有气体霓虹","series":"science","poster":"radial-gradient(circle at 50% 45%,#5a1e18 0%,#1a0f12 55%,#08070a 100%)","accent":"#ff5a36"},{"id":"block-builder","n":18,"en":"Block Builder","zh":"方块建造","series":"blocks","poster":"linear-gradient(180deg,#7ec8ff 0%,#a8dcff 55%,#5fae3b 100%)","accent":"#3fd0c9"},{"id":"magic-wand","n":19,"en":"Magic Wand","zh":"魔法棒","series":"magic","poster":"radial-gradient(circle at 50% 40%,#2a3a8a 0%,#0e1238 55%,#05061a 100%)","accent":"#8fe3ff"},{"id":"enchanted-book","n":20,"en":"Enchanted Book","zh":"魔法书","series":"magic","poster":"radial-gradient(circle at 50% 50%,#7a5320 0%,#2b1a0c 60%,#120a05 100%)","accent":"#ffcf6e"},{"id":"rune-forge","n":21,"en":"Rune Forge","zh":"符文熔铸","series":"magic","poster":"radial-gradient(circle at 50% 50%,#2c4a66 0%,#141c26 60%,#07090d 100%)","accent":"#6fd3ff"},{"id":"invisible-ink","n":22,"en":"Invisible Ink","zh":"隐形墨水","series":"magic","poster":"linear-gradient(160deg,#f3e2bd 0%,#cfa76a 60%,#5a3a1a 100%)","accent":"#a8742a"},{"id":"alphablocks","n":23,"en":"Alphablocks World","zh":"字母积木世界","series":"blocks","poster":"linear-gradient(180deg,#8fd3ff 0%,#fff1d6 60%,#ffb3c7 100%)","accent":"#ff7a59"}]};
+  var D = {"classic":[{"page":"index.html","en":"Filament","zh":"立体打印","poster":"linear-gradient(160deg,#1b1f24,#3a4048 60%,#c9ced4)"},{"page":"firework.html","en":"Firework","zh":"烟花","poster":"linear-gradient(160deg,#0b0d2a,#3a1d5a 60%,#ff7a3d)"},{"page":"topiary.html","en":"Topiary","zh":"园艺修剪","poster":"linear-gradient(160deg,#20381f,#4f7a3a 60%,#cfe3a0)"},{"page":"saber.html","en":"Saber","zh":"光剑","poster":"linear-gradient(160deg,#05060c,#14203a 60%,#4fd2ff)"},{"page":"quill.html","en":"Quill","zh":"羽毛笔","poster":"linear-gradient(160deg,#2a1d12,#6a4a2a 60%,#f0dcb0)"},{"page":"neon.html","en":"Neon","zh":"霓虹","poster":"linear-gradient(160deg,#120814,#3a1030 60%,#ff4a1c)"},{"page":"book.html","en":"Book","zh":"立体书","poster":"linear-gradient(160deg,#2a1f18,#7a5a3a 60%,#f3e6c8)"}],"series":[{"id":"physics","zh":"物理","en":"Physics"},{"id":"characters","zh":"角色","en":"Characters"},{"id":"ocean","zh":"海洋","en":"Ocean"},{"id":"writing","zh":"书写","en":"Writing"},{"id":"craft","zh":"工艺","en":"Craft"},{"id":"nature","zh":"自然","en":"Nature"},{"id":"science","zh":"科学与科幻","en":"Science & Sci-Fi"},{"id":"sky","zh":"天空","en":"Sky"},{"id":"blocks","zh":"方块","en":"Blocks"},{"id":"magic","zh":"魔法","en":"Magic"}],"worlds":[{"id":"magnetic-jelly","n":1,"en":"Magnetic Jelly","zh":"磁力果冻","series":"physics","poster":"linear-gradient(160deg,#fffaf2 0%,#f6ead8 55%,#ffc9dc 100%)","accent":"#ff8fb8"},{"id":"living-alphabet","n":2,"en":"Living Alphabet","zh":"字母精灵","series":"characters","poster":"linear-gradient(160deg,#bfe7ff 0%,#e9f7d8 60%,#9fd46e 100%)","accent":"#7cc85a"},{"id":"lightsaber","n":3,"en":"Lightsaber Writing","zh":"能量剑书写","series":"science","poster":"radial-gradient(circle at 40% 40%,#25407a 0%,#0a0d1c 60%,#03040a 100%)","accent":"#58c7ff"},{"id":"underwater-bubbles","n":4,"en":"Underwater Bubbles","zh":"海底气泡","series":"ocean","poster":"linear-gradient(180deg,#1f7fb8 0%,#0b3d6b 50%,#041a33 100%)","accent":"#5ad1ff"},{"id":"fish-formation","n":5,"en":"Underwater World","zh":"海底鱼群文字世界","series":"ocean","poster":"linear-gradient(180deg,#2a8fc4 0%,#0d4a7a 55%,#06223f 100%)","accent":"#ffd36e"},{"id":"chalk-flow","n":6,"en":"Chalk Flow","zh":"粉笔黑板","series":"writing","poster":"linear-gradient(160deg,#3b5a46 0%,#22372b 60%,#1a2620 100%)","accent":"#f4f1e6"},{"id":"signature-quill","n":7,"en":"Signature Quill","zh":"鹅毛笔签名","series":"writing","poster":"linear-gradient(160deg,#f7efdf 0%,#d8bf94 55%,#6b4a2b 100%)","accent":"#3a2a1a"},{"id":"stone-carve","n":8,"en":"Stone Carve","zh":"石刻","series":"craft","poster":"linear-gradient(160deg,#d9d4cb 0%,#a9a196 60%,#7c756c 100%)","accent":"#5b544c"},{"id":"woodcarve","n":9,"en":"Woodcarve","zh":"木刻","series":"craft","poster":"linear-gradient(160deg,#f0d5a8 0%,#c99a62 60%,#8a5a32 100%)","accent":"#6b3f1d"},{"id":"white-sand","n":10,"en":"White Sand Trace","zh":"白沙书写","series":"nature","poster":"linear-gradient(160deg,#fbf8f1 0%,#ece4d4 60%,#cfc3ab 100%)","accent":"#8a7a5c"},{"id":"genesis-lab","n":11,"en":"Genesis Lab","zh":"创世实验室","series":"science","poster":"radial-gradient(circle at 50% 35%,#4a4a4a 0%,#111 55%,#000 100%)","accent":"#f2f2f2"},{"id":"fireworks","n":12,"en":"Firework Typography","zh":"烟花字","series":"sky","poster":"radial-gradient(circle at 50% 30%,#3b2a6b 0%,#120d2b 55%,#05040f 100%)","accent":"#ffb84d"},{"id":"skywriting","n":13,"en":"Skywriting","zh":"飞机烟迹","series":"sky","poster":"linear-gradient(180deg,#2d7fd8 0%,#6fb3f2 60%,#d6ecff 100%)","accent":"#ffffff"},{"id":"topiary-garden","n":14,"en":"Topiary Garden","zh":"庄园修剪","series":"nature","poster":"linear-gradient(180deg,#bfe3ff 0%,#9fd18a 55%,#4f8f3a 100%)","accent":"#3f7d2c"},{"id":"ferrofluid","n":15,"en":"Ferrofluid","zh":"磁流体","series":"science","poster":"linear-gradient(160deg,#fbfaf7 0%,#e7e4dd 60%,#1a1a1d 100%)","accent":"#111114"},{"id":"frost-bloom","n":16,"en":"Crystal Ice","zh":"冰晶文字","series":"nature","poster":"linear-gradient(160deg,#e9f6ff 0%,#a9d6f2 55%,#5a8fb8 100%)","accent":"#bfe9ff"},{"id":"noble-gas-neon","n":17,"en":"Noble Gas Neon","zh":"稀有气体霓虹","series":"science","poster":"radial-gradient(circle at 50% 45%,#5a1e18 0%,#1a0f12 55%,#08070a 100%)","accent":"#ff5a36"},{"id":"block-builder","n":18,"en":"Block Builder","zh":"方块建造","series":"blocks","poster":"linear-gradient(180deg,#7ec8ff 0%,#a8dcff 55%,#5fae3b 100%)","accent":"#3fd0c9"},{"id":"magic-wand","n":19,"en":"Magic Wand","zh":"魔法棒","series":"magic","poster":"radial-gradient(circle at 50% 40%,#2a3a8a 0%,#0e1238 55%,#05061a 100%)","accent":"#8fe3ff"},{"id":"enchanted-book","n":20,"en":"Enchanted Book","zh":"魔法书","series":"magic","poster":"radial-gradient(circle at 50% 50%,#7a5320 0%,#2b1a0c 60%,#120a05 100%)","accent":"#ffcf6e"},{"id":"rune-forge","n":21,"en":"Rune Forge","zh":"符文熔铸","series":"magic","poster":"radial-gradient(circle at 50% 50%,#2c4a66 0%,#141c26 60%,#07090d 100%)","accent":"#6fd3ff"},{"id":"invisible-ink","n":22,"en":"Invisible Ink","zh":"隐形墨水","series":"magic","poster":"linear-gradient(160deg,#f3e2bd 0%,#cfa76a 60%,#5a3a1a 100%)","accent":"#a8742a"},{"id":"alphablocks","n":23,"en":"Alphablocks World","zh":"字母积木世界","series":"blocks","poster":"linear-gradient(180deg,#8fd3ff 0%,#fff1d6 60%,#ffb3c7 100%)","accent":"#ff7a59"}]};
   var me = document.currentScript && document.currentScript.src || location.href;
   var BASE = new URL('../', me).href;
   var path = location.pathname, inTW = /\/typing-worlds\//.test(path), page = path.split('/').pop() || 'index.html';
@@ -12,28 +12,25 @@
   function twNow() { var t = document.querySelector('.tw-world-name'); var name = t && t.textContent.trim(); var w = D.worlds.filter(function (x) { return x.zh === name || x.id === curTW; })[0]; return w ? w.id : (curTW || null); }
   function urlOf(it) { return it.page ? BASE + 'type3d/' + it.page : BASE + 'typing-worlds/index.html?world=' + encodeURIComponent(it.id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  var css = '#t3ds{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 52px);z-index:2147483000;display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding:4px 12px 6px 12px;scrollbar-width:none;font:12px/1.2 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;transition:opacity .25s,transform .25s}' +
-    '#t3ds::-webkit-scrollbar{display:none}#t3ds.dim{opacity:.35}#t3ds:hover,#t3ds.dim:active{opacity:1}' +
-    '#t3ds a{flex:none;scroll-snap-align:center;display:flex;flex-direction:column;justify-content:flex-end;width:92px;height:54px;padding:6px 8px;border-radius:12px;text-decoration:none;color:#fff;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 3px 10px rgba(0,0,0,.35)}' +
-    '#t3ds a::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.6))}#t3ds a b,#t3ds a span{position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '#t3ds a b{font-size:13px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6)}#t3ds a span{font-size:9.5px;opacity:.85;letter-spacing:.02em}' +
-    '#t3ds a.on{box-shadow:inset 0 0 0 2px #fff,0 0 14px rgba(255,255,255,.35)}#t3ds .sep{flex:none;align-self:center;color:rgba(255,255,255,.55);font-size:10px;writing-mode:vertical-rl;letter-spacing:.1em;padding:0 2px}' +
-    '#t3ds.flash a.on{animation:t3dsf .9s 2}@keyframes t3dsf{50%{transform:scale(1.08)}}' +
-    '#t3ds .wl{flex:none;width:76px;height:54px;border-radius:12px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);color:#fff;font:700 13px/1.15 -apple-system,"PingFang SC",sans-serif;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}#t3ds .wl small{display:block;font-weight:500;font-size:10px;opacity:.75}' +
-    '#t3dw{position:fixed;inset:0;z-index:2147483001;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;font:14px/1.4 -apple-system,"PingFang SC",sans-serif}#t3dw[hidden]{display:none}' +
-    '#t3dw .s{width:min(520px,100%);max-height:78vh;display:flex;flex-direction:column;background:#12141b;color:#eef0f6;border-radius:18px 18px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 14px);box-shadow:0 -10px 30px rgba(0,0,0,.4)}' +
-    '#t3dw h3{margin:0 0 2px;font-size:17px}#t3dw .m{opacity:.6;font-size:12px;margin-bottom:10px}#t3dw ul{list-style:none;margin:0;padding:0;overflow:auto;flex:1;border-top:1px solid rgba(255,255,255,.08)}' +
-    '#t3dw li{display:flex;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px solid rgba(255,255,255,.06)}#t3dw li b{flex:1;font-size:15px;word-break:break-word}#t3dw li span{font-size:11px;opacity:.55;white-space:nowrap}' +
-    '#t3dw li button{border:0;background:none;color:#ff8a8a;font-size:15px;cursor:pointer;padding:2px 6px}#t3dw .a{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}#t3dw .a button{flex:1 1 30%;padding:10px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font:600 13px -apple-system,sans-serif;cursor:pointer}#t3dw .a button.p{background:#2f6fd6;border-color:transparent}';
+  var css = '#t3ds{position:fixed;left:50%;top:max(18px,env(safe-area-inset-top));transform:translateX(-50%);z-index:2147483000;display:flex;flex-direction:column;align-items:center;gap:3px;' +
+    'font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(235,240,248,.88);user-select:none;-webkit-user-select:none;transition:opacity .5s}' +
+    '#t3ds .row{display:flex;align-items:center;gap:6px}#t3ds button{all:unset;cursor:pointer;color:rgba(235,240,248,.55);padding:4px 8px;font:inherit;letter-spacing:inherit}#t3ds button:hover{color:#fff}' +
+    '#t3ds .nm{min-width:9em;text-align:center;font-weight:600;color:#fff;white-space:nowrap;touch-action:pan-y;cursor:grab}#t3ds .wl{font-size:9.5px;color:rgba(235,240,248,.42);padding:2px 6px}' +
+    '#t3ds.dim{opacity:.45}#t3ds:hover{opacity:1}#t3ds .nm.go{animation:t3dsg .35s ease}@keyframes t3dsg{from{opacity:.2;transform:translateX(var(--dx,0))}to{opacity:1;transform:none}}' +
+    '#t3dw{position:fixed;inset:0;z-index:2147483001;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.1em}#t3dw[hidden]{display:none}' +
+    '#t3dw .s{width:min(520px,100%);max-height:78vh;display:flex;flex-direction:column;background:#07080b;color:#e8ecf3;border-top:1px solid rgba(255,255,255,.14);padding:16px 18px calc(env(safe-area-inset-bottom,0px) + 16px)}' +
+    '#t3dw h3{margin:0 0 2px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.16em}#t3dw .m{opacity:.5;margin-bottom:10px;text-transform:uppercase}#t3dw ul{list-style:none;margin:0;padding:0;overflow:auto;flex:1;border-top:1px solid rgba(255,255,255,.08)}' +
+    '#t3dw li{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}#t3dw li b{flex:1;font-size:14px;font-weight:500;letter-spacing:.04em;word-break:break-word}#t3dw li span{font-size:10px;opacity:.45;white-space:nowrap;text-transform:uppercase}' +
+    '#t3dw li button{border:0;background:none;color:rgba(255,140,140,.8);font:inherit;cursor:pointer;padding:2px 6px}#t3dw .a{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;justify-content:center}#t3dw .a button{border:0;background:none;color:rgba(235,240,248,.7);font:inherit;text-transform:uppercase;letter-spacing:.14em;cursor:pointer;padding:6px 2px;border-bottom:1px solid rgba(255,255,255,.18)}#t3dw .a button.p{color:#fff;border-bottom-color:#fff}';
   /* ---- the Word List: every word finished with Enter, in any world (Typing Worlds keeps it in 'tw.vocab.v1'; the classic
      pages add theirs here) — view, remove, copy all, export .txt / .csv */
   var VK = 'tw.vocab.v1';
   function vocab() { try { return JSON.parse(localStorage.getItem(VK) || '[]') || []; } catch (e) { return []; } }
   function vsave(l) { try { localStorage.setItem(VK, JSON.stringify(l.slice(0, 500))); } catch (e) {} wlCount(); }
   function addWord(w, world) { w = String(w || '').trim().slice(0, 40); if (!w) return; var l = vocab(); if (l.some(function (e) { return e.word.toLowerCase() === w.toLowerCase(); })) return; l.unshift({ word: w, world: world, createdAt: Date.now() }); vsave(l); }
-  function worldName(id) { var c = D.classic.filter(function (x) { return x.page.replace('.html', '') === id; })[0]; if (c) return c.zh; var w = D.worlds.filter(function (x) { return x.id === id; })[0]; return w ? w.zh : (id || ''); }
+  function worldName(id) { var c = D.classic.filter(function (x) { return x.page.replace('.html', '') === id; })[0]; if (c) return c.en; var w = D.worlds.filter(function (x) { return x.id === id; })[0]; return w ? w.en : (id || ''); }
   function day(t) { var d = new Date(t || 0); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
-  function wlCount() { var b = strip && strip.querySelector('.wl small'); if (b) b.textContent = vocab().length + ' 个词'; }
+  function wlCount() { var b = strip && strip.querySelector('.wl i'); if (b) b.textContent = vocab().length; }
   function exportAs(kind) {
     var l = vocab(), body, type, name = 'minest-word-list-' + day(Date.now());
     if (kind === 'csv') { body = '\ufeffword,world,date\n' + l.map(function (e) { return ['"' + e.word.replace(/"/g, '""') + '"', '"' + worldName(e.world).replace(/"/g, '""') + '"', day(e.createdAt)].join(','); }).join('\n'); type = 'text/csv'; name += '.csv'; }
@@ -51,7 +48,7 @@
         var b = e.target.closest('button'); if (!b) return; var a = b.getAttribute('data-a');
         if (a === 'x') sheet.hidden = true;
         else if (a === 'del') { var w = b.getAttribute('data-w'); vsave(vocab().filter(function (e2) { return e2.word !== w; })); renderWords(); }
-        else if (a === 'copy') { var txt = vocab().map(function (e2) { return e2.word; }).join('\n'); var done = function () { b.textContent = '已复制 ✓'; setTimeout(function () { b.textContent = '复制全部'; }, 1500); };
+        else if (a === 'copy') { var txt = vocab().map(function (e2) { return e2.word; }).join('\n'); var done = function () { b.textContent = 'Copied ✓'; setTimeout(function () { b.textContent = 'Copy all'; }, 1500); };
           if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt); done(); }); else { fallbackCopy(txt); done(); } }
         else if (a === 'txt' || a === 'csv') exportAs(a);
       });
@@ -62,9 +59,9 @@
   function fallbackCopy(t) { var ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove(); }
   function renderWords() {
     var l = vocab();
-    sheet.innerHTML = '<div class="s"><h3>📖 词表 Word List</h3><div class="m">' + l.length + ' 个词 · 在任何一个 3D Type 世界里打完按 Enter 就会记下</div><ul>' +
-      (l.length ? l.map(function (e) { return '<li><b>' + esc(e.word) + '</b><span>' + esc(worldName(e.world)) + ' · ' + day(e.createdAt) + '</span><button type="button" data-a="del" data-w="' + esc(e.word) + '" aria-label="删除">✕</button></li>'; }).join('') : '<li><span>还没有词。打一个单词、按 Enter 试试。</span></li>') +
-      '</ul><div class="a"><button type="button" data-a="copy">复制全部</button><button type="button" data-a="txt">导出 TXT</button><button type="button" data-a="csv">导出 CSV</button><button type="button" class="p" data-a="x">好</button></div></div>';
+    sheet.innerHTML = '<div class="s"><h3>Word List</h3><div class="m">' + l.length + ' words · every word you finish with Enter, in any world</div><ul>' +
+      (l.length ? l.map(function (e) { return '<li><b>' + esc(e.word) + '</b><span>' + esc(worldName(e.world)) + ' · ' + day(e.createdAt) + '</span><button type="button" data-a="del" data-w="' + esc(e.word) + '" aria-label="Remove">✕</button></li>'; }).join('') : '<li><span>No words yet — type one and press Enter.</span></li>') +
+      '</ul><div class="a"><button type="button" data-a="copy">Copy all</button><button type="button" data-a="txt">Export TXT</button><button type="button" data-a="csv">Export CSV</button><button type="button" class="p" data-a="x">Done</button></div></div>';
   }
   /* the classic pages: remember what was typed, and keep the word when Enter finishes it */
   function capture() {
@@ -78,55 +75,56 @@
       else if (e.key && e.key.length === 1) buf = (buf + e.key).slice(-40);
     }, true);
   }
-  var strip = null, dimT = 0;
+  var strip = null, dimT = 0, ALL = D.classic.concat(D.worlds), idx = 0;
+  function curIndex() {
+    if (!inTW) { for (var i = 0; i < D.classic.length; i++) if (D.classic[i].page === page) return i; return 0; }
+    var id = twNow(); for (var k = 0; k < ALL.length; k++) if (ALL[k].id && ALL[k].id === id) return k; return D.classic.length;
+  }
+  function label(it) { return String(it.en || it.zh).toUpperCase(); }
   function build() {
     var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
-    strip = document.createElement('nav'); strip.id = 't3ds'; strip.setAttribute('aria-label', '3D Type · 切换世界（左右滑动）');
-    var cur = inTW ? twNow() : page;
-    var card = function (it) { var on = it.page ? (!inTW && it.page === page) : (inTW && it.id === cur);
-      return '<a href="' + esc(urlOf(it)) + '" class="' + (on ? 'on' : '') + '" style="background:' + esc(it.poster || '#333') + '" title="' + esc(it.zh + ' · ' + it.en) + '"><b>' + esc(it.zh) + '</b><span>' + esc(it.en) + '</span></a>'; };
-    var h = '<button type="button" class="wl" data-wl>📖 词表<small>' + vocab().length + ' 个词</small></button><span class="sep">经典</span>' + D.classic.map(card).join('');
-    D.series.forEach(function (s) { var ws = D.worlds.filter(function (w) { return w.series === s.id; }); if (ws.length) h += '<span class="sep">' + esc(s.zh) + '</span>' + ws.map(card).join(''); });
-    var rest = D.worlds.filter(function (w) { return !D.series.some(function (s) { return s.id === w.series; }); }); if (rest.length) h += '<span class="sep">更多</span>' + rest.map(card).join('');
-    strip.innerHTML = h; document.body.appendChild(strip);
-    strip.addEventListener('wheel', function (e) { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { strip.scrollLeft += e.deltaY; e.preventDefault(); } wake(); }, { passive: false });
-    strip.addEventListener('click', function (e) { if (e.target.closest('[data-wl]')) { e.stopPropagation(); openWords(); return; } var a = e.target.closest('a'); if (!a) return; e.preventDefault(); e.stopPropagation(); if (a.classList.contains('on')) return; location.href = a.href; });
-    ['pointerdown', 'touchstart', 'keydown'].forEach(function (t) { strip.addEventListener(t, function (e) { e.stopPropagation(); wake(); }, { passive: true }); });
-    strip.addEventListener('scroll', wake, { passive: true });
-    place(); centre(false); wake(); setTimeout(place, 900); setTimeout(place, 2500); addEventListener('resize', function () { place(); centre(false); });
-  }
-  /* sit just under whatever the page shows along its top edge (titles, selectors, the Typing Worlds bar) */
-  function place() {
-    if (!strip) return; var low = 0, H = innerHeight;
-    [].forEach.call(document.querySelectorAll('body *'), function (e) {
-      if (e === strip || strip.contains(e) || e.closest('#t3ds')) return;
-      var cs = getComputedStyle(e); if ((cs.position !== 'fixed' && cs.position !== 'absolute') || cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) return;
-      var r = e.getBoundingClientRect(); if (!r.width || !r.height || r.height > H * 0.3 || r.top > H * 0.28 || r.width > innerWidth * 0.98 && r.height > 120) return;
-      if (!(e.textContent || '').trim() && !e.querySelector('button,select,input,svg') && e.tagName !== 'BUTTON') return;
-      low = Math.max(low, r.bottom);
+    strip = document.createElement('nav'); strip.id = 't3ds'; strip.setAttribute('aria-label', 'World');
+    idx = curIndex();
+    strip.innerHTML = '<div class="row"><button type="button" data-d="-1" aria-label="Previous world">‹</button><span class="nm"></span><button type="button" data-d="1" aria-label="Next world">›</button></div><button type="button" class="wl" data-wl>Word List · <i></i></button>';
+    document.body.appendChild(strip); show(0); wlCount();
+    strip.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return; e.preventDefault(); e.stopPropagation();
+      if (b.hasAttribute('data-wl')) { openWords(); return; }
+      step(+b.getAttribute('data-d'));
     });
-    [].forEach.call(document.querySelectorAll('.tw-top, header'), function (h) { var r = h.getBoundingClientRect(); if (r.height && r.top < H * 0.28) low = Math.max(low, r.bottom); });   // in-flow top bars (Typing Worlds)
-    strip.style.top = Math.round(Math.max(8, low + 6)) + 'px';
+    var nm = strip.querySelector('.nm'), sx = null;                       // swipe the name left / right
+    nm.addEventListener('pointerdown', function (e) { sx = e.clientX; try { nm.setPointerCapture(e.pointerId); } catch (er) {} });
+    nm.addEventListener('pointerup', function (e) { if (sx == null) return; var dx = e.clientX - sx; sx = null; if (Math.abs(dx) > 30) step(dx < 0 ? 1 : -1); });
+    nm.addEventListener('wheel', function (e) { var d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY; if (Math.abs(d) > 20) { e.preventDefault(); step(d > 0 ? 1 : -1); } }, { passive: false });
+    ['pointerdown', 'touchstart', 'keydown'].forEach(function (t) { strip.addEventListener(t, function (e) { e.stopPropagation(); wake(); }, { passive: true }); });
+    wake();
   }
-  function centre(smooth) { var on = strip && strip.querySelector('a.on'); if (on) strip.scrollTo({ left: on.offsetLeft - strip.clientWidth / 2 + on.offsetWidth / 2, behavior: smooth ? 'smooth' : 'auto' }); }
-  function wake() { if (!strip) return; strip.classList.remove('dim'); clearTimeout(dimT); dimT = setTimeout(function () { strip.classList.add('dim'); }, 4000); }   // fades back while you type
-  function open() { if (!strip) build(); wake(); centre(true); strip.classList.remove('flash'); void strip.offsetWidth; strip.classList.add('flash'); }
+  var goT = 0, pending = null;
+  function show(dir) { var it = ALL[idx], nm = strip.querySelector('.nm'); nm.textContent = label(it); nm.title = it.zh + ' · ' + it.en; nm.style.setProperty('--dx', (dir * 18) + 'px'); nm.classList.remove('go'); void nm.offsetWidth; if (dir) nm.classList.add('go'); }
+  /* arrows step through the worlds; the page changes once you stop on one (so you can step past several) */
+  function step(d) {
+    idx = (idx + d + ALL.length) % ALL.length; show(d); wake();
+    clearTimeout(goT); pending = ALL[idx];
+    goT = setTimeout(function () { var it = pending, here = ALL[curIndex()]; if (it === here) return; location.href = urlOf(it); }, 650);
+  }
+  function wake() { if (!strip) return; strip.classList.remove('dim'); clearTimeout(dimT); dimT = setTimeout(function () { strip.classList.add('dim'); }, 4000); }
+  function open() { if (!strip) build(); wake(); }
   function mount() {
     build();
-    if (inTW) {                                                         // Typing Worlds: 🌌 brings the strip forward instead of its own gallery
+    if (inTW) {                                                         // Typing Worlds: its 🌌 gallery gives way to the arrows
       var hook = function () { var g = document.querySelector('.tw-gallery-trigger'); if (!g || g.__t3d) return !!g; g.__t3d = 1;
-        g.addEventListener('click', function (e) { e.preventDefault(); e.stopImmediatePropagation(); open(); }, true); g.title = '下方滑动切换世界'; return true; };
+        g.addEventListener('click', function (e) { e.preventDefault(); e.stopImmediatePropagation(); open(); }, true); return true; };
       if (!hook()) { var n = 0, iv = setInterval(function () { if (hook() || ++n > 80) clearInterval(iv); }, 150); }
-      setTimeout(function () { var id = twNow(); if (id) [].forEach.call(strip.querySelectorAll('a'), function (a) { a.classList.toggle('on', /world=/.test(a.href) && a.href.split('world=')[1] === encodeURIComponent(id)); }); centre(false); }, 1200);
-    } else {                                                            // a 3D Type page: its "A / B / C" links give way to the strip
+      setTimeout(function () { idx = curIndex(); show(0); }, 1200);
+    } else {                                                            // a 3D Type page: its "A / B / C" links give way to the arrows
       capture();
       var t = document.getElementById('title');
-      if (t) { [].slice.call(t.querySelectorAll('a')).forEach(function (a) { a.remove(); }); [].slice.call(t.childNodes).forEach(function (n) { if (n.nodeType === 3 && /^[\s/]*$/.test(n.textContent)) n.remove(); }); }
+      if (t) { [].slice.call(t.querySelectorAll('a')).forEach(function (a) { a.remove(); }); [].slice.call(t.childNodes).forEach(function (n) { if (n.nodeType === 3 && /^[\s/]*$/.test(n.textContent)) n.remove(); });
+        var nb = t.querySelector('b'); if (nb) nb.style.display = 'none'; }   // the name is shown once, centred
     }
-    try { if (new URLSearchParams(location.search).get('pick') === '1') open(); } catch (e) {}
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
   window.addEventListener('storage', function (e) { if (e.key === VK) wlCount(); });
   setInterval(wlCount, 3000);
-  window.T3DPicker = { open: open, close: function () {}, words: openWords, data: D };
+  window.T3DPicker = { open: open, close: function () {}, words: openWords, step: function (d) { step(d); }, data: D };
 })();

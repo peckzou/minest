@@ -59,10 +59,11 @@ export class TypingWorldsApp {
             </button>
             <select class="tw-select tw-theme-select" aria-label="材质与主题"></select>
           </div>
+          <div class="tw-looks" role="tablist" aria-label="Look"></div>
           <div class="tw-top-right">
-            <button class="tw-btn tw-keyflow-btn" aria-label="打开 Keyflow 律动词坊">🎹 Keyflow</button>
+            <button class="tw-btn tw-keyflow-btn" aria-label="打开 Keyflow 律动词坊">Keyflow</button>
             <button class="tw-btn tw-wordlist-btn" aria-label="打开词表">📖 词表 <span class="tw-wl-count">0</span></button>
-            <button class="tw-btn tw-sound-btn" aria-pressed="true" title="开关音效">🔊 音效</button>
+            <button class="tw-btn tw-sound-btn" aria-pressed="true" title="开关音效">Sound on</button>
             <button class="tw-btn tw-motion-btn" title="减少动效">动效: 正常</button>
             <select class="tw-select tw-quality-select" title="渲染画质">
               <option value="2">画质: 高</option>
@@ -79,9 +80,9 @@ export class TypingWorldsApp {
         </div>
 
         <footer class="tw-composer">
-          <input type="text" class="tw-input" placeholder="输入英文单词，体验 3D 文字创造..." autofocus />
+          <input type="text" class="tw-input" placeholder="" autocapitalize="off" autocomplete="off" spellcheck="false" autofocus />
           <button class="tw-submit" title="完成并保存 (Enter)">↵</button>
-          <p class="tw-tip">按 Enter 完成单词 · 支持 Backspace、粘贴与键盘连击</p>
+          <p class="tw-tip">Type — Enter finishes the word · Backspace removes a letter</p>
         </footer>
       </div>
     `;
@@ -184,7 +185,7 @@ export class TypingWorldsApp {
   }
 
   private updateSoundBtn() {
-    this.soundBtnEl.textContent = this.audio.enabled ? '🔊 音效: 开' : '🔈 音效: 关';
+    this.soundBtnEl.textContent = this.audio.enabled ? 'Sound on' : 'Sound off';
     this.soundBtnEl.setAttribute('aria-pressed', String(this.audio.enabled));
   }
 
@@ -203,9 +204,25 @@ export class TypingWorldsApp {
     const themes = this.currentWorldDef.themes || [];
     if (themes.length === 0) {
       this.themeSelectEl.style.display = 'none';
+      const looks = this.container.querySelector('.tw-looks') as HTMLDivElement | null;
+      if (looks) looks.innerHTML = '';
       return;
     }
     this.themeSelectEl.style.display = '';
+    // classic-style look buttons (like NE · AR · HE · XE on the classic pages): English, text only
+    const looks = this.container.querySelector('.tw-looks') as HTMLDivElement | null;
+    if (looks) {
+      looks.innerHTML = '';
+      for (const t of themes) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = /[\u3400-\u9fff]/.test(t.label) ? t.id.replace(/-/g, ' ') : t.label.replace(/\s*\(.*\)\s*$/, '');
+        b.title = t.label;
+        b.classList.toggle('on', t.id === this.currentTheme);
+        b.onclick = () => { this.themeSelectEl.value = t.id; this.themeSelectEl.dispatchEvent(new Event('change')); looks.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); };
+        looks.appendChild(b);
+      }
+    }
     for (const t of themes) {
       const opt = document.createElement('option');
       opt.value = t.id;
