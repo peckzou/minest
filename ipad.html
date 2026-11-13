@@ -171478,7 +171478,7 @@ html.mf-top #mn-sh #sh-stick { display: block; bottom: calc(24px + env(safe-area
 html.mf-book #mn-sh #sh-stick { display: block; left: calc(50% + 22px); bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 6; }
 html.mf-top #mn-sh #sh-hint { bottom: calc(60px + env(safe-area-inset-bottom)); z-index: 6; }
 html.mf-book #mn-sh #sh-hint { left: 75%; bottom: calc(60px + env(safe-area-inset-bottom)); z-index: 6; max-width: 44vw; }
-html.mf-book #mn-sh #sh-card, html.mf-book #mn-sh #sh-edit, html.mf-book #mn-sh .sh-holoed { left: 75% !important; width: min(420px, 46vw) !important; }
+html.mf-book #mn-sh #sh-card, html.mf-book #mn-sh #sh-edit:not(.float), html.mf-book #mn-sh .sh-holoed { left: 75% !important; width: min(420px, 46vw) !important; }
 html.mf-book #mn-sh #sh-labels { right: 50%; }
 html.mf-top #mn-sh #sh-top, html.mf-book #mn-sh #sh-top { z-index: 7; }
 
@@ -171572,6 +171572,14 @@ html.mf-top #mn-sh #sh-dock button b svg.px, html.mf-book #mn-sh #sh-dock button
 #mn-sh .sh-holoed button.c.on { outline: 2px solid #fff; outline-offset: 1px; }
 #mn-sh #sh-credit { position: absolute; z-index: 4; right: calc(10px + env(safe-area-inset-right)); bottom: calc(4px + env(safe-area-inset-bottom)); font: 500 9.5px/1.3 ui-monospace, Menlo, monospace; color: rgba(255,255,255,.7); text-shadow: 1px 1px 0 #000; pointer-events: none; max-width: 60vw; text-align: right; }
 #mn-sh #sh-credit:empty { display: none; }
+
+/* the edit bar floats with the thing (app.js placeBar): small, one row, icon buttons */
+#mn-sh #sh-edit.float { left: 0; top: 0; bottom: auto; transform: none; width: auto; max-width: min(340px, calc(100% - 16px)); padding: 5px 6px; gap: 3px; }
+#mn-sh #sh-edit.float b { font-size: 11px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mn-sh #sh-edit.float span { font-size: 10px; line-height: 1.25; max-width: 300px; }
+#mn-sh #sh-edit.float .row { gap: 4px; }
+#mn-sh #sh-edit.float button { flex: none; min-width: 34px; height: 30px; padding: 0 7px; font-size: 12px; line-height: 1; }
+html.mf-book #mn-sh #sh-edit.float { width: auto !important; }
 </style>
 <script id="mn-spatial-home">
 window.__SPATIAL_HOME_EMBEDDED__ = true;
@@ -173799,6 +173807,108 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (keep.length !== idx.count) g.setIndex(keep);
     });
   }
+  /* window glass out of a scan: inside each box, drop only the triangles whose texture is near-white (the blown-out
+     glass and sheers); the frames and glazing bars, darker, stay — the view outside then shows through */
+  function cutGlass(model, boxes, thr) {
+    if (!boxes || !boxes.length) return; model.updateMatrixWorld(true);
+    var A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), cv = document.createElement('canvas'), cx = cv.getContext('2d');
+    model.traverse(function (m) {
+      if (!m.isMesh || !m.geometry.index || !m.material || !m.material.map || !m.material.map.image || !m.geometry.attributes.uv) return;
+      var g = m.geometry, pos = g.attributes.position, uv = g.attributes.uv, idx = g.index, M = m.matrixWorld, keep = [], img = m.material.map.image, D = null, w = 0, h = 0, fy = m.material.map.flipY;
+      var get = function (i, v) { return v.set(raw(pos, i, 0), raw(pos, i, 1), raw(pos, i, 2)).applyMatrix4(M); };
+      for (var k = 0; k + 2 < idx.count; k += 3) {
+        var a = idx.getX(k), b = idx.getX(k + 1), c = idx.getX(k + 2); get(a, A); get(b, B); get(c, C);
+        var x = (A.x + B.x + C.x) / 3, y = (A.y + B.y + C.y) / 3, z = (A.z + B.z + C.z) / 3;
+        if (boxes.some(function (q) { return x > q[0] && x < q[3] && y > q[1] && y < q[4] && z > q[2] && z < q[5]; })) {
+          if (!D) { w = Math.max(1, img.width / 4 | 0); h = Math.max(1, img.height / 4 | 0); cv.width = w; cv.height = h; cx.drawImage(img, 0, 0, w, h); D = cx.getImageData(0, 0, w, h).data; }
+          var u = (raw(uv, a, 0) + raw(uv, b, 0) + raw(uv, c, 0)) / 3, v = (raw(uv, a, 1) + raw(uv, b, 1) + raw(uv, c, 1)) / 3;
+          var px = Math.min(w - 1, Math.max(0, (u % 1) * w | 0)), py = Math.min(h - 1, Math.max(0, ((fy ? 1 - v : v) % 1) * h | 0)), o = (py * w + px) * 4;
+          if ((D[o] + D[o + 1] + D[o + 2]) / 3 >= thr) continue;
+        }
+        keep.push(a, b, c);
+      }
+      if (keep.length !== idx.count) g.setIndex(keep);
+    });
+  }
+  /* the royal garden outside the King's Hall windows (both sides): a sky, lawns, a broderie parterre with box hedges,
+     topiary and a fountain, a canal between avenues of trees, bosquets, a rotunda at the end, woods on the horizon */
+  function royalGarden(holder) {
+    var root = new THREE.Group(), side = new THREE.Group(), G = -4.5, mats = [];   // the hall is on the upper floor: the garden is seen from above
+    function L(h) { return new THREE.Color(h).convertSRGBToLinear(); }
+    function lam(h, o) { var m = new THREE.MeshLambertMaterial(Object.assign({ color: L(h) }, o || {})); m.userData.base = m.color.clone(); mats.push(m); return m; }
+    function cvs(w, h, f) { var c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; }
+    var skyT = cvs(8, 512, function (x, w, h) { var g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#3f78c0'); g.addColorStop(0.38, '#86b4e0'); g.addColorStop(0.5, '#e4edf2'); g.addColorStop(1, '#cfd8c8'); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+    var skyM = new THREE.MeshBasicMaterial({ map: skyT, side: THREE.BackSide, depthWrite: false, fog: false }); skyM.userData.base = new THREE.Color(1, 1, 1); mats.push(skyM);
+    var sky = new THREE.Mesh(new THREE.SphereGeometry(320, 32, 16), skyM); sky.renderOrder = -10; root.add(sky);
+    var cl = cvs(1024, 256, function (x, w, h) { for (var i = 0; i < 70; i++) { var px = Math.random() * w, py = 40 + Math.random() * 150, r = 20 + Math.random() * 50, g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, 'rgba(255,255,255,.75)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.beginPath(); x.ellipse(px, py, r * 1.8, r * 0.6, 0, 0, 6.3); x.fill(); } });
+    cl.wrapS = THREE.RepeatWrapping; var clM = new THREE.MeshBasicMaterial({ map: cl, transparent: true, side: THREE.BackSide, depthWrite: false, fog: false }); clM.userData.base = new THREE.Color(1, 1, 1); mats.push(clM);
+    var clouds = new THREE.Mesh(new THREE.CylinderGeometry(300, 300, 90, 32, 1, true), clM); clouds.position.y = 70; clouds.renderOrder = -9; root.add(clouds);
+    var grassT = cvs(128, 128, function (x, w, h) { x.fillStyle = '#6b9a44'; x.fillRect(0, 0, w, h); for (var i = 0; i < 1600; i++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(40,80,30,.25)' : 'rgba(150,190,90,.25)'; x.fillRect(Math.random() * w, Math.random() * h, 1, 2); } });
+    grassT.wrapS = grassT.wrapT = THREE.RepeatWrapping; grassT.repeat.set(160, 160);
+    var ground = new THREE.Mesh(new THREE.PlaneGeometry(640, 640), lam(0xffffff, { map: grassT })); ground.rotation.x = -Math.PI / 2; ground.position.y = G; root.add(ground);
+    /* one side's garden, built toward −z, then mirrored to the south windows */
+    var parT = cvs(1024, 1024, function (x, w, h) {
+      x.fillStyle = '#d6cbb0'; x.fillRect(0, 0, w, h);
+      for (var i = 0; i < 6000; i++) { x.fillStyle = 'rgba(120,105,80,' + Math.random() * 0.2 + ')'; x.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+      function quad() {
+        x.fillStyle = '#4c7a34'; x.fillRect(60, 60, 380, 380); x.fillStyle = '#d6cbb0'; x.fillRect(80, 80, 340, 340);
+        x.strokeStyle = '#2f5a24'; x.lineWidth = 16; x.lineCap = 'round';
+        for (var k = 0; k < 2; k++) { x.save(); if (k) { x.translate(500, 0); x.scale(-1, 1); }
+          x.beginPath(); x.moveTo(250, 120); x.bezierCurveTo(140, 120, 120, 220, 190, 250); x.bezierCurveTo(250, 280, 230, 340, 160, 360); x.stroke();
+          x.beginPath(); x.arc(150, 170, 34, 0.4, 5.6); x.stroke(); x.beginPath(); x.arc(170, 330, 26, 3.6, 2.6 + 6.28); x.stroke(); x.restore(); }
+        x.fillStyle = '#b0303a'; for (var j = 0; j < 40; j++) { x.beginPath(); x.arc(92 + j * 8.2, 92, 4, 0, 6.3); x.arc(92 + j * 8.2, 408, 4, 0, 6.3); x.fill(); }
+        x.fillStyle = '#4c7a34'; x.beginPath(); x.arc(250, 250, 40, 0, 6.3); x.fill(); x.fillStyle = '#d9a0b0'; x.beginPath(); x.arc(250, 250, 26, 0, 6.3); x.fill();
+      }
+      [[0, 0], [512, 0], [0, 512], [512, 512]].forEach(function (q) { x.save(); x.translate(q[0], q[1]); quad(); x.restore(); });
+      x.fillStyle = '#d6cbb0'; x.beginPath(); x.arc(512, 512, 110, 0, 6.3); x.fill();
+    });
+    parT.anisotropy = 8;
+    var parterre = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), lam(0xffffff, { map: parT })); parterre.rotation.x = -Math.PI / 2; parterre.position.set(0, G + 0.02, -34); side.add(parterre);
+    var gravel = lam(0xd6cbb0), stone = lam(0xe8e2d4), water = new THREE.MeshLambertMaterial({ color: L(0x7aa8c8), transparent: true, opacity: 0.92 }); water.userData.base = water.color.clone(); mats.push(water);
+    var walk = new THREE.Mesh(new THREE.PlaneGeometry(44, 3), gravel); walk.rotation.x = -Math.PI / 2; walk.position.set(0, G + 0.015, -11); side.add(walk);   // the walk along the façade
+    var axis = new THREE.Mesh(new THREE.PlaneGeometry(8, 30), gravel); axis.rotation.x = -Math.PI / 2; axis.position.set(0, G + 0.015, -68); side.add(axis);
+    var canal = new THREE.Mesh(new THREE.PlaneGeometry(14, 110), water); canal.rotation.x = -Math.PI / 2; canal.position.set(0, G + 0.03, -138); side.add(canal);
+    var rim = lam(0xe8e2d4); [[-7.3, 0], [7.3, 0]].forEach(function (q) { var r = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.35, 110), rim); r.position.set(q[0], G + 0.17, -138); side.add(r); });
+    /* the fountain in the parterre's heart */
+    var f = new THREE.Group(); f.position.set(0, G, -34); side.add(f);
+    var basin = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.4, 0.6, 40, 1, true), stone); basin.position.y = 0.3; f.add(basin);
+    var wd = new THREE.Mesh(new THREE.CircleGeometry(4.15, 40), water); wd.rotation.x = -Math.PI / 2; wd.position.y = 0.45; f.add(wd);
+    var tier = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [0.5, 0], [0.35, 0.6], [0.3, 1.2], [1.4, 1.5], [1.5, 1.65], [0.3, 1.7], [0.2, 2.4], [0.7, 2.6], [0.75, 2.7], [0.15, 2.75], [0.1, 3.3], [0, 3.4]].map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 24), stone); f.add(tier);
+    var jetM = new THREE.MeshBasicMaterial({ color: 0xeaf6ff, transparent: true, opacity: 0.55, depthWrite: false }); jetM.userData.base = jetM.color.clone(); mats.push(jetM);
+    var jet = new THREE.Mesh(new THREE.ConeGeometry(0.22, 2.4, 12, 1, true), jetM); jet.position.y = 4.4; jet.rotation.x = Math.PI; f.add(jet);
+    /* box hedges round the parterre, cone topiary on its corners and edges */
+    var hedgeM = lam(0x2f5a28), hb = [];
+    [[0, -14, 40.6, 0.7], [0, -54, 40.6, 0.7], [-20, -34, 0.7, 40.6], [20, -34, 0.7, 40.6]].forEach(function (q) { hb.push(q); });
+    hb.forEach(function (q) { var m = new THREE.Mesh(new THREE.BoxGeometry(q[2], 0.8, q[3]), hedgeM); m.position.set(q[0], G + 0.4, q[1]); side.add(m); });
+    var topi = [], tr = [];
+    for (var i = 0; i <= 8; i++) { var t = -20 + i * 5; topi.push([t, -14], [t, -54], [-20, -14 - i * 5], [20, -14 - i * 5]); }
+    var coneG = new THREE.ConeGeometry(0.75, 2.6, 10), cones = new THREE.InstancedMesh(coneG, lam(0x2a5224), topi.length), M4 = new THREE.Matrix4();
+    topi.forEach(function (q, k) { M4.makeTranslation(q[0], G + 1.3 + 0.4, q[1]); cones.setMatrixAt(k, M4); }); side.add(cones);
+    /* avenues of clipped limes along the canal, bosquets behind them */
+    for (var z = -16; z > -196; z -= 7) { tr.push([-26, z, 1], [26, z, 1], [-33, z - 3.5, 1], [33, z - 3.5, 1]); }
+    for (var b = 0; b < 240; b++) { var bx = (Math.random() < 0.5 ? -1 : 1) * (40 + Math.random() * 60), bz = -12 - Math.random() * 180; tr.push([bx, bz, 0.8 + Math.random() * 0.6]); }
+    var crownG = new THREE.SphereGeometry(3.2, 12, 8), trunkG = new THREE.CylinderGeometry(0.35, 0.45, 4, 6);
+    var crowns = new THREE.InstancedMesh(crownG, lam(0xffffff), tr.length), trunks = new THREE.InstancedMesh(trunkG, lam(0x4a3626), tr.length), Q = new THREE.Quaternion(), S3 = new THREE.Vector3(), P3 = new THREE.Vector3(), col = new THREE.Color();
+    tr.forEach(function (q, k) { var sc = q[2]; P3.set(q[0], G + 4 * sc + 2.4 * sc, q[1]); S3.set(sc, sc * 1.1, sc); M4.compose(P3, Q, S3); crowns.setMatrixAt(k, M4); col.setHSL(0.27 + Math.random() * 0.06, 0.45, 0.22 + Math.random() * 0.1).convertSRGBToLinear(); crowns.setColorAt(k, col);
+      P3.set(q[0], G + 2 * sc, q[1]); S3.set(sc, sc, sc); M4.compose(P3, Q, S3); trunks.setMatrixAt(k, M4); });
+    side.add(crowns); side.add(trunks);
+    /* the rotunda at the canal's end */
+    var rot = new THREE.Group(); rot.position.set(0, G, -200); side.add(rot);
+    var base = new THREE.Mesh(new THREE.CylinderGeometry(7, 7.4, 1, 32), stone); base.position.y = 0.5; rot.add(base);
+    for (var c = 0; c < 12; c++) { var a = c / 12 * Math.PI * 2, colm = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 7, 12), stone); colm.position.set(Math.cos(a) * 6, 4.5, Math.sin(a) * 6); rot.add(colm); }
+    var ent = new THREE.Mesh(new THREE.CylinderGeometry(6.8, 6.8, 1.2, 32), stone); ent.position.y = 8.6; rot.add(ent);
+    var dome = new THREE.Mesh(new THREE.SphereGeometry(6.6, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), lam(0x6f8f88)); dome.position.y = 9.2; rot.add(dome);
+    var lan = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 2, 12), stone); lan.position.y = 16.4; rot.add(lan);
+    /* woods all round the horizon */
+    var ring = []; for (var r = 0; r < 420; r++) { var ra = Math.random() * Math.PI * 2, rr = 215 + Math.random() * 60; ring.push([Math.cos(ra) * rr, Math.sin(ra) * rr, 2 + Math.random() * 2]); }
+    var woods = new THREE.InstancedMesh(crownG, lam(0xffffff), ring.length);
+    ring.forEach(function (q, k) { P3.set(q[0], G + 4 * q[2], q[1]); S3.set(q[2], q[2] * 1.2, q[2]); M4.compose(P3, Q, S3); woods.setMatrixAt(k, M4); col.setHSL(0.28 + Math.random() * 0.05, 0.35, 0.2 + Math.random() * 0.08).convertSRGBToLinear(); woods.setColorAt(k, col); });
+    root.add(woods);
+    root.add(side); var south = side.clone(); south.rotation.y = Math.PI; south.position.z = -3.9; root.add(south);   // the south windows look on a mirror garden (walls at −8.7 and +4.8)
+    root.traverse(function (o) { o.castShadow = false; o.receiveShadow = false; });
+    holder.add(root);
+    return { jet: jet, set: function (light, dusk) { var k = 0.12 + 0.88 * light; mats.forEach(function (m) { m.color.copy(m.userData.base).multiplyScalar(k); if (dusk > 0.05) m.color.lerp(new THREE.Color(1, 0.62, 0.42).multiply(m.userData.base), dusk * 0.35); }); } };
+  }
   /* the surfaces of an outside model that things can stand on — so Spatial Home's things can be set out on it, not only
      on our own furniture: every horizontal face between 0.2 m and 2.3 m (table tops, cabinets, sills, mantels, shelves)
      plus one floor plane, as an invisible mesh the placing ray looks at (far fewer triangles than the model itself) */
@@ -174074,10 +174184,18 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       var pm = new THREE.PMREMGenerator(R); envTex = pm.fromScene(es, 0.04).texture; pm.dispose(); scene.environment = envTex;
     }
     var cl = new THREE.PointLight(0xffd29a, 0.9, 9, 2); cl.position.set(0.01, 2.55, -1.765); ctx.holder.add(cl);
-    var mode = 'auto';
-    function apply() { var N = SR.timeOfDay(mode).night; cl.intensity = 0.6 + 0.7 * N; }
+    /* a clean painted sash in each opening: it hides the scan's ragged edge and gives the glass its glazing bars */
+    var paint = new THREE.MeshStandardMaterial({ color: lin(0xf1ece2), roughness: 0.5 }), pane = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.07, roughness: 0.05, metalness: 0.2, depthWrite: false });
+    (KINGS.panes || []).forEach(function (q) { var x0 = q[0], x1 = q[1], z = q[2], y0 = 1.0, y1 = 3.38, cx = (x0 + x1) / 2, w = x1 - x0, h = y1 - y0, fw = 0.13, d = 0.12, n = z < 0 ? 1 : -1;
+      var fg = new THREE.Group(); ctx.holder.add(fg);
+      function b(x, y, bw, bh) { var m = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, d), paint); m.position.set(x, y, z); fg.add(m); }
+      b(cx, y1 - fw / 2, w + 0.04, fw); b(cx, y0 + fw / 2, w + 0.04, fw); b(x0 + fw / 2, (y0 + y1) / 2, fw, h); b(x1 - fw / 2, (y0 + y1) / 2, fw, h);
+      b(cx, (y0 + y1) / 2, 0.05, h - fw); for (var k = 1; k < 4; k++) b(cx, y0 + h * k / 4, w - fw, 0.04);
+      var gl = new THREE.Mesh(new THREE.PlaneGeometry(w - fw, h - fw), pane); gl.position.set(cx, (y0 + y1) / 2, z - n * 0.01); fg.add(gl); });
+    var garden = royalGarden(ctx.holder), mode = 'auto';
+    function apply() { var T = SR.timeOfDay(mode), N = T.night; cl.intensity = 0.6 + 0.7 * N; garden.set(T.light, T.dusk); }
     apply();
-    return { tick: function (t) { cl.intensity = (0.6 + 0.7 * SR.timeOfDay(mode).night) * (0.95 + 0.05 * Math.sin(t * 6.3) * Math.sin(t * 2.9)); },
+    return { tick: function (t) { cl.intensity = (0.6 + 0.7 * SR.timeOfDay(mode).night) * (0.95 + 0.05 * Math.sin(t * 6.3) * Math.sin(t * 2.9)); garden.jet.scale.set(1 + 0.06 * Math.sin(t * 7), 1 + 0.08 * Math.sin(t * 5.3), 1 + 0.06 * Math.sin(t * 7)); },
       setTime: function (m) { mode = m || 'auto'; apply(); },
       dispose: function () { if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); } };
   }
@@ -174160,7 +174278,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           if (!holder.parent) return;                                   // the room was switched away while loading
           var m = gl.scene; m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
-          holder.add(m); cut(m, def.cut);
+          holder.add(m); cut(m, def.cut); if (def.glass) cutGlass(m, def.glass, def.glassThr != null ? def.glassThr : 232);
           var furn = takeMovables(def, m);
           var R = solidsOf(m, 0, office); R.solids.forEach(function (s) { solids.push(s); });
           var SF = surfacesOf(m, def.walk); holder.add(SF.group); surfaces.push(SF.group);      // things can stand on the model now
@@ -174170,7 +174288,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       }, function () {});
 
       return {
-        id: def.id, name: def.name, group: g, holder: holder, far: 80, size: { W: 3.0, D: 2.6, H: def.h },
+        id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
         surfaces: surfaces, dress: def.dress || null, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
@@ -174185,37 +174303,48 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
      the clean ones stand in their exact places. Things on the table top (0.80 m), the board on an easel, the rest on
      pedestals along the right — all movable, all furniture in the Magical Backpack. */
   var PI = Math.PI, TY = 0.805;
-  var KINGS = { id: 'kings-hall', name: "The King's Hall · Skokloster", glb: 'interiors-glb/assets/kings_hall.glb', h: 4.5, showroom: true,
+  /* The King's Hall as a state study (2026-11-13, after the oval-office arrangement): the presidential desk stands before
+     the middle window with its one chair, two standards behind it, console tables with busts between the windows, a great
+     oval carpet in front; the room's own things line the side walls so the middle stays clear; the royal garden outside */
+  var DK = 0.792, KX = -0.15;
+  var KH_ITEMS = [
+    { kind: 'kh-desk', title: '总统大书桌', p: [KX, 0, -7.1], ry: 0, uid: 9130 }, { kind: 'kh-exec', title: '高背御座椅', p: [KX, 0, -8.0], ry: 0, uid: 9131 },
+    { kind: 'kh-banner', title: '深红旗帜', p: [KX - 0.85, 0, -8.35], ry: 0, uid: 9132 }, { kind: 'kh-banner2', title: '藏蓝旗帜', p: [KX + 1.18, 0, -8.35], ry: PI, uid: 9133 },
+    { kind: 'kh-console', title: '雕花边桌 · 铜像', p: [-1.8, 0, -8.28], ry: 0, uid: 9134 }, { kind: 'kh-console', title: '雕花边桌 · 铜像', p: [1.44, 0, -8.42], ry: 0, uid: 9135 },
+    { kind: 'kh-oval', title: '椭圆国事地毯', p: [0, 0, -4.4], ry: 0, uid: 9120 },
+    { kind: 'kh-girandole', title: '镀金烛台', p: [-4.7, 0, -7.9], ry: 0, uid: 9121 }, { kind: 'kh-girandole', title: '镀金烛台', p: [4.5, 0, -8.1], ry: 0, uid: 9122 },
+    { kind: 'kh-plinth', p: [4.6, 0, -5.4], ry: -PI / 2, uid: 9111 }, { kind: 'kh-plinth', p: [4.6, 0, -4.5], ry: -PI / 2, uid: 9112 },
+    { kind: 'kh-plinth', p: [4.6, 0, -3.6], ry: -PI / 2, uid: 9113 }, { kind: 'kh-plinth', p: [4.6, 0, -2.7], ry: -PI / 2, uid: 9114 },
+    { kind: 'kh-plinth', p: [4.6, 0, -1.8], ry: -PI / 2, uid: 9115 }];
+  var KINGS = { id: 'kings-hall', name: "The King's Hall · Skokloster", glb: 'interiors-glb/assets/kings_hall.glb', h: 4.5, showroom: true, far: 700,
     offset: [0.37, 1.3, -10.735], walk: [-5.6, -9.9, 5.6, 5.2],
-    cut: [[-1.1, 0.06, -2.86, 1.2, 1.5, -0.93], [-0.52, 1.6, -2.3, 0.54, 3.42, -1.22]],   // the table and chairs; the chandelier (below the ceiling rosette)
+    cut: [[-1.1, 0.06, -2.86, 1.2, 1.5, -0.93], [-0.52, 1.6, -2.3, 0.54, 3.42, -1.22],   // the scanned table and chairs; the chandelier (below the ceiling rosette)
+          [-9, -2, -30, 9, 9, -8.92], [-9, -2, 5.3, 9, 9, 30]],                                // the scan's rough outer shell behind the window walls (it hid the garden)
+    glass: [[-3.86, 1.0, -16, -2.79, 3.38, -8.45], [-0.8, 1.0, -16, 0.38, 3.38, -8.55], [2.5, 1.0, -16, 3.5, 3.38, -8.62],
+            [-3.37, 1.0, 4.58, -2.36, 3.38, 12], [-0.31, 1.0, 4.52, 0.79, 3.38, 12], [2.69, 1.0, 4.42, 3.77, 3.38, 12]], glassThr: 0,
+    panes: [[-3.86, -2.79, -8.58], [-0.8, 0.38, -8.68], [2.5, 3.5, -8.78], [-3.37, -2.36, 4.92], [-0.31, 0.79, 4.86], [2.69, 3.77, 4.74]],   // x0, x1, the glass plane
     chandelier: [0.01, -1.765, 3.42],
     easel: null, finish: kingsFinish,
     dress: { board: dressBoardOf(KH_STYLE), aquarium: dressAquariumOf(KH_STYLE) },
-    /* v1: the white pedestals become marble columns, a Savonnerie carpet under the table, two gilt girandoles at its head */
-    upgrade: { v: 1, fn: function (L) {
-      var ex = L.extras = L.extras || [];
-      ex.forEach(function (e) { if (e.kind === 'pedestal' && e.uid >= 9111 && e.uid <= 9115) e.kind = 'kh-plinth'; });
-      [{ kind: 'kh-carpet', title: '宫廷地毯', p: [0, 0, -1.9], ry: 0, uid: 9120 }, { kind: 'kh-girandole', title: '镀金烛台', p: [-0.78, 0, -3.1], ry: 0, uid: 9121 },
-       { kind: 'kh-girandole', title: '镀金烛台', p: [0.78, 0, -3.1], ry: 0, uid: 9122 }].forEach(function (n) { if (!ex.some(function (e) { return e.uid === n.uid; })) ex.push(n); });
+    /* v2: the state-study arrangement (the long table and its four chairs go; the things you had moved here go back to
+       their new places once) */
+    upgrade: { v: 2, fn: function (L) {
+      var ex = (L.extras || []).filter(function (e) { return !(e.uid >= 9101 && e.uid <= 9105); });
+      KH_ITEMS.forEach(function (n) { var e = ex.filter(function (x) { return x.uid === n.uid; })[0]; if (e) { e.kind = n.kind; e.p = n.p.slice(); e.ry = n.ry; if (n.title) e.title = n.title; } else ex.push(JSON.parse(JSON.stringify(n))); });
+      L.extras = ex;
+      Object.keys(L).forEach(function (k) { var v = L[k]; if (v && typeof v === 'object' && !Array.isArray(v) && v.p && !v.stashed) delete L[k]; });
     } },
-    start: { pos: [0.6, 1.5, 1.6], yaw: 0.12, pitch: -0.12 }, deskCam: { pos: [0, 1.45, -0.2], look: [0, 0.82, -2.1] },
+    start: { pos: [0, 1.6, 3.0], yaw: 0, pitch: -0.08 }, deskCam: { pos: [KX, 1.5, -8.05], look: [KX, 0.8, -6.9] },
     anchors: {
-      'desk.left': { p: [0, TY, -1.5], ry: 0 }, 'desk.right': { p: [0.22, TY, -2.08], ry: 0.1 }, 'desk.quill': { p: [-0.26, TY, -1.72], ry: 0.25 },
-      'desk.key': { p: [0.27, TY, -1.42], ry: 0.3 }, 'desk.mochi': { p: [-0.22, TY, -2.38], ry: -0.3 }, 'desk.book': { p: [0.16, TY, -2.46], ry: 0 },
-      'wall.left': { p: [-2.0, 1.62, -0.73], ry: 0 }, 'wall.right': { p: [2.1, 0.92, -0.5], ry: -PI / 2 },
-      'shelf.mid': { p: [2.1, 0.92, -3.3], ry: -PI / 2 }, 'cabinet.left': { p: [2.1, 0.92, -2.6], ry: -PI / 2 }, 'cabinet.top': { p: [2.1, 0.92, -1.9], ry: -PI / 2 },
-      'cabinet.right': { p: [2.1, 0.92, -1.2], ry: -PI / 2 }, 'sill.left': { p: [2.1, 0.92, -0.5], ry: -PI / 2 },
-      'corner.window': { p: [-2.6, 0, -3.6], ry: PI / 2 }, 'floor.pack': { p: [-1.2, 0, 0.5], ry: 0.45 }, 'floor.gramo': { p: [-2.7, 0, -2.2], ry: PI / 2 },
-      'floor.film': { p: [2.9, 0, 1.4], ry: -PI / 2 }, 'floor.portal': { p: [-3.6, 0, 1.6], ry: PI / 2 }, 'floor.holo': { p: [3.0, 0, -4.4], ry: -PI / 2 }
+      'desk.left': { p: [KX, DK, -7.3], ry: PI }, 'desk.right': { p: [KX - 0.55, DK, -7.3], ry: PI + 0.2 }, 'desk.quill': { p: [KX + 0.55, DK, -7.35], ry: PI - 0.3 },
+      'desk.key': { p: [KX + 0.75, DK, -6.95], ry: PI }, 'desk.mochi': { p: [KX - 0.75, DK, -6.9], ry: PI + 0.4 }, 'desk.book': { p: [KX + 0.3, DK, -6.9], ry: PI },
+      'wall.left': { p: [-4.45, 1.62, -5.3], ry: 1.32 }, 'wall.right': { p: [4.6, 0.92, -1.8], ry: -PI / 2 },
+      'shelf.mid': { p: [4.6, 0.92, -5.4], ry: -PI / 2 }, 'cabinet.left': { p: [4.6, 0.92, -4.5], ry: -PI / 2 }, 'cabinet.top': { p: [4.6, 0.92, -3.6], ry: -PI / 2 },
+      'cabinet.right': { p: [4.6, 0.92, -2.7], ry: -PI / 2 }, 'sill.left': { p: [4.6, 0.92, -1.8], ry: -PI / 2 },
+      'corner.window': { p: [-4.7, 0, -2.3], ry: PI / 2 }, 'floor.pack': { p: [-2.6, 0, 3.8], ry: 0.4 }, 'floor.gramo': { p: [-4.6, 0, 0.3], ry: PI / 2 },
+      'floor.film': { p: [4.5, 0, 1.3], ry: -PI / 2 }, 'floor.portal': { p: [-4.8, 0, 2.9], ry: PI / 2 }, 'floor.holo': { p: [4.4, 0, -6.7], ry: -PI / 2 }
     },
-    layout: { extras: [
-      { kind: 'kh-table', p: [-0.0, 0, -1.9], ry: 0, uid: 9101 },
-      { kind: 'kh-chair', p: [-0.66, 0, -2.25], ry: PI / 2, uid: 9102 }, { kind: 'kh-chair', p: [-0.66, 0, -1.55], ry: PI / 2, uid: 9103 },
-      { kind: 'kh-chair', p: [0.66, 0, -2.25], ry: -PI / 2, uid: 9104 }, { kind: 'kh-chair', p: [0.66, 0, -1.55], ry: -PI / 2, uid: 9105 },
-      { kind: 'kh-plinth', p: [2.1, 0, -3.3], ry: -PI / 2, uid: 9111 }, { kind: 'kh-plinth', p: [2.1, 0, -2.6], ry: -PI / 2, uid: 9112 },
-      { kind: 'kh-plinth', p: [2.1, 0, -1.9], ry: -PI / 2, uid: 9113 }, { kind: 'kh-plinth', p: [2.1, 0, -1.2], ry: -PI / 2, uid: 9114 },
-      { kind: 'kh-plinth', p: [2.1, 0, -0.5], ry: -PI / 2, uid: 9115 }
-    ] },
+    layout: { extras: JSON.parse(JSON.stringify(KH_ITEMS)) },
     credit: 'The King\u2019s Hall, Skokloster Castle — scan by Erik Lernestål, CC BY 4.0' };
   /* The Victorian Study, embedded deep: its south round table is the desk (things on its top), the north table carries
      the projector, album, medals, car and ornament, and its own armchairs, tables, vases, viola, rugs and ladders are
@@ -174580,6 +174709,145 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       tick: function (t) { var f = 0.9 + 0.1 * Math.sin(t * 11) * Math.sin(t * 4.3); light.intensity = 0.35 * f; flames.forEach(function (m, k) { m.scale.y = 0.85 + 0.2 * Math.sin(t * (9 + k) + k); }); } };
   };
   [{ id: 'kh-plinth', name: '大理石展示柱', en: 'Marble column', size: [0.44, 0.91, 0.44] }, { id: 'kh-carpet', name: '宫廷地毯', en: 'Savonnerie carpet', size: [2.6, 0.01, 3.6] }, { id: 'kh-girandole', name: '镀金烛台', en: 'Gilt girandole', size: [0.3, 1.42, 0.3] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '国王大厅的家具' }); });
+
+  /* ───────── the King's Hall presidential desk and its one chair (2026-11-13). A grand partners-style desk: two carved
+     pedestals, a closed front with a gilt laurel-and-crown medallion (it faces the room), drawers and the kneehole on the
+     chair side, a tooled leather top. The chair: a high-backed, buttoned crimson velvet armchair in walnut and gilt. */
+  function emblem(T) {
+    if (F._em) return F._em;
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), i;
+    x.fillStyle = '#2a170d'; x.fillRect(0, 0, 256, 256);
+    x.strokeStyle = '#d9b46a'; x.lineWidth = 6; x.beginPath(); x.arc(128, 128, 118, 0, 6.3); x.stroke();
+    for (var sd = -1; sd <= 1; sd += 2) for (i = 0; i < 9; i++) { var a = Math.PI / 2 + sd * (0.35 + i * 0.27), r = 92; x.save(); x.translate(128 + Math.cos(a) * r, 128 + Math.sin(a) * r); x.rotate(a + sd * 0.9); x.fillStyle = '#c9a24a'; x.beginPath(); x.ellipse(0, 0, 15, 6, 0, 0, 6.3); x.fill(); x.restore(); }
+    x.fillStyle = '#d9b46a'; x.beginPath(); x.moveTo(78, 150); x.lineTo(178, 150); x.lineTo(186, 92); x.lineTo(156, 118); x.lineTo(128, 78); x.lineTo(100, 118); x.lineTo(70, 92); x.closePath(); x.fill();
+    x.fillRect(76, 152, 104, 14); [[70, 88], [128, 72], [186, 88]].forEach(function (q) { x.beginPath(); x.arc(q[0], q[1], 8, 0, 6.3); x.fill(); });
+    x.fillStyle = '#8a1f2c'; x.beginPath(); x.arc(128, 132, 7, 0, 6.3); x.fill(); x.fillStyle = '#1f5ad0'; x.beginPath(); x.arc(100, 140, 5, 0, 6.3); x.arc(156, 140, 5, 0, 6.3); x.fill();
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; return (F._em = new T.MeshStandardMaterial({ map: t, roughness: 0.35, metalness: 0.5 }));
+  }
+  F['kh-desk'] = function (T) {
+    var V = vmats(T), K = kmats(T), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var oak = F._oak || (F._oak = new T.MeshStandardMaterial({ color: L(0x3a2214), roughness: 0.36, metalness: 0.05 })), oakL = F._oakL || (F._oakL = new T.MeshStandardMaterial({ color: L(0x5c3820), roughness: 0.32, metalness: 0.05 }));
+    var g = new T.Group(), W = 1.95, D = 1.1, H = 0.79, PW = 0.56, i;                        // the closed front faces +z (the room), the chair sits at −z
+    box(T, g, oak, 0, 0.045, 0, W + 0.06, 0.09, D + 0.06); box(T, g, K.gilt, 0, 0.092, 0, W + 0.04, 0.008, D + 0.04);   // plinth
+    box(T, g, oak, 0, (0.09 + H - 0.11) / 2, 0, W, H - 0.2, D);                            // the carcass
+    box(T, g, oakL, 0, H - 0.075, 0, W + 0.02, 0.07, D + 0.02); box(T, g, K.gilt, 0, H - 0.11, 0, W + 0.025, 0.01, D + 0.025);   // frieze
+    box(T, g, oak, 0, H - 0.022, 0, W + 0.1, 0.045, D + 0.1); box(T, g, oakL, 0, H - 0.05, 0, W + 0.07, 0.015, D + 0.07);         // the top, moulded
+    var top = new T.Mesh(new T.PlaneGeometry(W - 0.12, D - 0.12), V.leather); top.rotation.x = -Math.PI / 2; top.position.y = H + 0.0008; top.receiveShadow = true; g.add(top);
+    /* the front: two pedestal panels and a centre door with the medallion, pilasters between */
+    var fz = D / 2 + 0.004;
+    [-1, 1].forEach(function (sd) { var cx = sd * (W / 2 - PW / 2);
+      box(T, g, oakL, cx, 0.4, fz, PW - 0.1, 0.46, 0.012); box(T, g, oak, cx, 0.4, fz + 0.008, PW - 0.2, 0.36, 0.01);
+      [[0, 0.18], [0, -0.18]].forEach(function (q) { box(T, g, K.gilt, cx, 0.4 + q[1], fz + 0.014, PW - 0.2, 0.008, 0.004); }); [-1, 1].forEach(function (k) { box(T, g, K.gilt, cx + k * (PW - 0.2) / 2, 0.4, fz + 0.014, 0.008, 0.36, 0.004); });
+      var ros = new T.Mesh(new T.CylinderGeometry(0.035, 0.035, 0.012, 16), K.gilt); ros.rotation.x = Math.PI / 2; ros.position.set(cx, 0.4, fz + 0.02); g.add(ros);
+      [cx - sd * (PW / 2), sd * (W / 2)].forEach(function (px) { var pil = new T.Mesh(new T.CylinderGeometry(0.035, 0.04, H - 0.22, 14), oakL); pil.position.set(px, (0.1 + H - 0.12) / 2, fz); g.add(pil);
+        var cap = new T.Mesh(new T.CylinderGeometry(0.05, 0.035, 0.04, 14), K.gilt); cap.position.set(px, H - 0.135, fz); g.add(cap); var bs = new T.Mesh(new T.CylinderGeometry(0.045, 0.05, 0.03, 14), K.gilt); bs.position.set(px, 0.11, fz); g.add(bs); }); });
+    var CW = W - 2 * PW - 0.08;
+    box(T, g, oakL, 0, 0.38, fz, CW, 0.5, 0.012);
+    var med = new T.Mesh(new T.CircleGeometry(0.16, 40), emblem(T)); med.position.set(0, 0.4, fz + 0.012); g.add(med);
+    var ring = new T.Mesh(new T.TorusGeometry(0.165, 0.012, 8, 40), K.gilt); ring.position.set(0, 0.4, fz + 0.014); g.add(ring);
+    [[0, 0.62], [0, 0.14]].forEach(function (q) { box(T, g, K.gilt, 0, q[1], fz + 0.008, CW - 0.06, 0.01, 0.006); });
+    /* the chair side: drawers in the pedestals, a centre drawer over the kneehole */
+    var bz = -D / 2 - 0.004;
+    [-1, 1].forEach(function (sd) { var cx = sd * (W / 2 - PW / 2);
+      for (i = 0; i < 3; i++) { var yc = 0.19 + i * 0.17; box(T, g, oakL, cx, yc, bz, PW - 0.08, 0.15, 0.012);
+        var pull = new T.Mesh(new T.TorusGeometry(0.032, 0.006, 6, 14, Math.PI), V.brass); pull.rotation.z = Math.PI; pull.position.set(cx, yc + 0.01, bz - 0.006); g.add(pull); } });
+    box(T, g, oak, 0, (0.09 + H - 0.2) / 2, 0, CW + 0.06, H - 0.31, D - 0.3);              // the kneehole is open at the back: carve it out visually with a dark recess
+    var hole = new T.Mesh(new T.PlaneGeometry(CW - 0.02, H - 0.34), new T.MeshStandardMaterial({ color: 0x120a06, roughness: 1 })); hole.rotation.y = Math.PI; hole.position.set(0, (0.1 + H - 0.24) / 2, bz - 0.001); g.add(hole);
+    box(T, g, oakL, 0, H - 0.165, bz, CW, 0.08, 0.012);
+    return { group: g, hb: [W + 0.1, H, D + 0.1], place: 'floor' };
+  };
+  F['kh-exec'] = function (T) {
+    var K = kmats(T), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, g = new T.Group(), i, j;
+    var vel = F._vel || (F._vel = new T.MeshStandardMaterial({ color: L(0x7a1a22), roughness: 0.82 })), wal = F._oak || (F._oak = new T.MeshStandardMaterial({ color: L(0x3a2214), roughness: 0.36, metalness: 0.05 }));
+    var SW = 0.66, SD = 0.6, SH = 0.47, BH = 1.36;                                          // the seat faces +z
+    box(T, g, wal, 0, SH - 0.05, 0, SW, 0.08, SD); box(T, g, K.gilt, 0, SH - 0.09, SD / 2 - 0.002, SW, 0.012, 0.01);
+    var cush = new T.Mesh(new T.BoxGeometry(SW - 0.06, 0.09, SD - 0.06), vel); cush.position.set(0, SH + 0.03, 0.01); g.add(cush);
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (q) { var lg = new T.Mesh(new T.LatheGeometry([[0, 0], [0.035, 0], [0.04, 0.03], [0.026, 0.1], [0.032, 0.2], [0.024, 0.3], [0.03, SH - 0.09], [0, SH - 0.09]].map(function (p) { return new T.Vector2(p[0], p[1]); }), 12), wal);
+      lg.position.set(q[0] * (SW / 2 - 0.05), 0, q[1] * (SD / 2 - 0.05)); g.add(lg); var ft = new T.Mesh(new T.SphereGeometry(0.03, 10, 8), K.gilt); ft.position.set(q[0] * (SW / 2 - 0.05), 0.02, q[1] * (SD / 2 - 0.05)); g.add(ft); });
+    var back = new T.Group(); back.position.set(0, SH, -SD / 2 + 0.04); back.rotation.x = -0.1; g.add(back);
+    [-1, 1].forEach(function (sd) { box(T, back, wal, sd * (SW / 2 - 0.035), (BH - SH) / 2, 0, 0.06, BH - SH, 0.07); var fn = new T.Mesh(new T.SphereGeometry(0.035, 12, 8), K.gilt); fn.position.set(sd * (SW / 2 - 0.035), BH - SH + 0.03, 0); back.add(fn); });
+    box(T, back, wal, 0, BH - SH - 0.04, 0, SW, 0.09, 0.07); box(T, back, K.gilt, 0, BH - SH + 0.03, 0, 0.22, 0.07, 0.03);
+    var pad = new T.Mesh(new T.BoxGeometry(SW - 0.1, BH - SH - 0.16, 0.06), vel); pad.position.set(0, (BH - SH) / 2 - 0.02, 0.02); back.add(pad);
+    var btn = new T.SphereGeometry(0.01, 6, 4);
+    for (i = 0; i < 4; i++) for (j = 0; j < 3 + (i % 2); j++) { var bm = new T.Mesh(btn, K.gilt); bm.position.set((j - (2 + (i % 2)) / 2) * 0.14, 0.18 + i * 0.17, 0.052); back.add(bm); }
+    box(T, back, K.gilt, 0, 0.05, 0.055, SW - 0.1, 0.012, 0.01);
+    [-1, 1].forEach(function (sd) { var ax = sd * (SW / 2 - 0.02);                      // the arms: padded rests on carved supports
+      box(T, g, wal, ax, SH + 0.21, -0.02, 0.07, 0.04, SD - 0.06); var ap = new T.Mesh(new T.BoxGeometry(0.065, 0.04, SD - 0.2), vel); ap.position.set(ax, SH + 0.245, -0.04); g.add(ap);
+      var sup = new T.Mesh(new T.CylinderGeometry(0.022, 0.028, 0.21, 10), wal); sup.position.set(ax, SH + 0.1, SD / 2 - 0.07); g.add(sup);
+      var sc = new T.Mesh(new T.SphereGeometry(0.035, 12, 8), K.gilt); sc.position.set(ax, SH + 0.235, SD / 2 - 0.05); g.add(sc); });
+    g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+    return { group: g, hb: [SW, BH, SD], place: 'floor' };
+  };
+  [{ id: 'kh-desk', name: '总统大书桌', en: 'Presidential desk', size: [2.05, 0.79, 1.2] }, { id: 'kh-exec', name: '高背御座椅', en: 'High-back chair', size: [0.66, 1.36, 0.6] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '国王大厅的家具' }); });
+
+  /* ───────── the King's Hall as a state study (after the oval-office arrangement the user showed): a great oval carpet
+     with a crown-and-laurel emblem, two standards behind the desk, console tables with bronze busts either side */
+  F['kh-oval'] = function (T) {
+    if (!F._ov) {
+      var c = document.createElement('canvas'); c.width = 1536; c.height = 1312; var x = c.getContext('2d'), W = c.width, H = c.height, cx = W / 2, cy = H / 2, i;
+      x.clearRect(0, 0, W, H);
+      function ell(rx, ry, col) { x.fillStyle = col; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, 6.3); x.fill(); }
+      ell(W / 2 - 2, H / 2 - 2, '#c9a24a'); ell(W / 2 - 22, H / 2 - 22, '#1b2a5c'); ell(W / 2 - 40, H / 2 - 40, '#d9b46a'); ell(W / 2 - 50, H / 2 - 50, '#13204a');
+      for (i = 0; i < 2600; i++) { var a = Math.random() * 6.3, r = Math.random(); x.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.03) + ')'; x.fillRect(cx + Math.cos(a) * r * (W / 2 - 60), cy + Math.sin(a) * r * (H / 2 - 60), 3, 1); }
+      x.strokeStyle = 'rgba(201,162,74,.5)'; x.lineWidth = 3; x.beginPath(); x.ellipse(cx, cy, W / 2 - 90, H / 2 - 90, 0, 0, 6.3); x.stroke();
+      for (i = 0; i < 72; i++) { var b = i / 72 * Math.PI * 2; x.save(); x.translate(cx + Math.cos(b) * (W / 2 - 70), cy + Math.sin(b) * (H / 2 - 70)); x.rotate(b + Math.PI / 2); x.fillStyle = '#c9a24a'; x.beginPath(); x.ellipse(0, 0, 9, 4, 0, 0, 6.3); x.fill(); x.restore(); }
+      /* the emblem: a crimson ring, gold beads, a ring of stars, a laurel wreath round a crown */
+      var R = 380; x.fillStyle = '#a8202c'; x.beginPath(); x.arc(cx, cy, R, 0, 6.3); x.fill();
+      x.fillStyle = '#e0b850'; x.beginPath(); x.arc(cx, cy, R - 22, 0, 6.3); x.fill(); x.fillStyle = '#13204a'; x.beginPath(); x.arc(cx, cy, R - 40, 0, 6.3); x.fill();
+      for (i = 0; i < 48; i++) { var g2 = i / 48 * Math.PI * 2; x.fillStyle = '#f4d77a'; x.beginPath(); x.arc(cx + Math.cos(g2) * (R - 31), cy + Math.sin(g2) * (R - 31), 8, 0, 6.3); x.fill(); }
+      function star(px, py, r1, r2) { x.beginPath(); for (var k = 0; k < 10; k++) { var q = k / 10 * Math.PI * 2 - Math.PI / 2, rr = k % 2 ? r2 : r1; x.lineTo(px + Math.cos(q) * rr, py + Math.sin(q) * rr); } x.closePath(); x.fill(); }
+      x.fillStyle = '#f2ecd8'; for (i = 0; i < 40; i++) { var st = i / 40 * Math.PI * 2; star(cx + Math.cos(st) * (R - 80), cy + Math.sin(st) * (R - 80), 15, 6); }
+      for (var sd = -1; sd <= 1; sd += 2) for (i = 0; i < 13; i++) { var la = Math.PI / 2 + sd * (0.3 + i * 0.19), lr = R - 150; x.save(); x.translate(cx + Math.cos(la) * lr, cy + Math.sin(la) * lr); x.rotate(la + sd * 0.8); x.fillStyle = i % 2 ? '#5f8a3a' : '#7aa04a'; x.beginPath(); x.ellipse(0, 0, 30, 11, 0, 0, 6.3); x.fill(); x.restore(); }
+      x.fillStyle = '#e0b850'; x.beginPath(); x.moveTo(cx - 120, cy + 70); x.lineTo(cx + 120, cy + 70); x.lineTo(cx + 140, cy - 70); x.lineTo(cx + 70, cy - 10); x.lineTo(cx, cy - 110); x.lineTo(cx - 70, cy - 10); x.lineTo(cx - 140, cy - 70); x.closePath(); x.fill();
+      x.fillRect(cx - 125, cy + 72, 250, 34); x.fillStyle = '#f4e3a0'; [[cx - 140, cy - 78], [cx, cy - 122], [cx + 140, cy - 78]].forEach(function (q) { x.beginPath(); x.arc(q[0], q[1], 16, 0, 6.3); x.fill(); });
+      x.fillStyle = '#a8202c'; x.beginPath(); x.arc(cx, cy + 89, 11, 0, 6.3); x.fill(); x.fillStyle = '#2f6fd6'; x.beginPath(); x.arc(cx - 60, cy + 89, 9, 0, 6.3); x.arc(cx + 60, cy + 89, 9, 0, 6.3); x.fill();
+      x.fillStyle = '#a8202c'; x.beginPath(); x.moveTo(cx - 110, cy + 60); x.quadraticCurveTo(cx, cy - 40, cx + 110, cy + 60); x.closePath(); x.globalAlpha = 0.55; x.fill(); x.globalAlpha = 1;
+      var im = x.getImageData(0, 0, W, H), D = im.data; for (i = 0; i < D.length; i += 4) { if (!D[i + 3]) continue; var n = (Math.random() - 0.5) * 14; D[i] += n; D[i + 1] += n; D[i + 2] += n; } x.putImageData(im, 0, 0);
+      var tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding; tx.anisotropy = 8; F._ov = new T.MeshStandardMaterial({ map: tx, roughness: 0.95, transparent: true, alphaTest: 0.5 });
+    }
+    var g = new T.Group(), RW = 8.0, RD = 6.8, m = new T.Mesh(new T.PlaneGeometry(RW, RD), F._ov); m.rotation.x = -Math.PI / 2; m.position.y = 0.058; m.receiveShadow = true; g.add(m);
+    return { group: g, hb: [RW, 0.07, RD], place: 'floor' };
+  };
+  function banner(T, col, trim) {
+    var K = kmats(T), g = new T.Group(), i;
+    for (i = 0; i < 3; i++) { var a = i / 3 * Math.PI * 2, ft = new T.Mesh(new T.BoxGeometry(0.05, 0.04, 0.26), K.gilt); ft.position.set(Math.sin(a) * 0.12, 0.03, Math.cos(a) * 0.12); ft.rotation.y = a; ft.rotation.x = -0.3; g.add(ft); }
+    var pole = new T.Mesh(new T.CylinderGeometry(0.018, 0.022, 2.55, 10), K.gilt); pole.position.y = 1.3; g.add(pole);
+    var orb = new T.Mesh(new T.SphereGeometry(0.045, 14, 10), K.gilt); orb.position.y = 2.62; g.add(orb); var sp = new T.Mesh(new T.ConeGeometry(0.03, 0.16, 8), K.gilt); sp.position.y = 2.74; g.add(sp);
+    var c = document.createElement('canvas'); c.width = 256; c.height = 512; var x = c.getContext('2d');
+    x.fillStyle = col; x.fillRect(0, 0, 256, 512); x.strokeStyle = trim; x.lineWidth = 10; x.strokeRect(14, 14, 228, 484);
+    x.fillStyle = trim; x.beginPath(); x.moveTo(78, 280); x.lineTo(178, 280); x.lineTo(188, 210); x.lineTo(156, 236); x.lineTo(128, 190); x.lineTo(100, 236); x.lineTo(68, 210); x.closePath(); x.fill(); x.fillRect(76, 282, 104, 16);
+    for (i = 0; i < 12; i++) { x.fillRect(16 + i * 20, 470, 10, 42); }
+    var tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding;
+    var geo = new T.PlaneGeometry(0.6, 1.2, 12, 1), pos = geo.attributes.position;          // the cloth hangs in soft folds
+    for (i = 0; i < pos.count; i++) pos.setZ(i, Math.sin((pos.getX(i) + 0.3) * 22) * 0.025);
+    geo.computeVertexNormals();
+    var cloth = new T.Mesh(geo, new T.MeshStandardMaterial({ map: tx, roughness: 0.75, side: T.DoubleSide })); cloth.position.set(0.33, 1.9, 0); g.add(cloth);
+    var bar = new T.Mesh(new T.CylinderGeometry(0.01, 0.01, 0.66, 8), K.gilt); bar.rotation.z = Math.PI / 2; bar.position.set(0.33, 2.5, 0); g.add(bar);
+    var tas = new T.Mesh(new T.ConeGeometry(0.03, 0.12, 8), K.gilt); tas.position.set(0.02, 2.4, 0.03); g.add(tas);
+    return { group: g, hb: [0.7, 2.8, 0.3], place: 'floor' };
+  }
+  F['kh-banner'] = function (T) { return banner(T, '#8a1a24', '#e0b850'); };
+  F['kh-banner2'] = function (T) { return banner(T, '#16245a', '#e0b850'); };
+  F['kh-console'] = function (T) {                                                          // a carved pedestal table and a bronze bust on it
+    var K = kmats(T), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, g = new T.Group();
+    var oak = F._oak || (F._oak = new T.MeshStandardMaterial({ color: L(0x3a2214), roughness: 0.36, metalness: 0.05 })), bronze = F._brz || (F._brz = new T.MeshStandardMaterial({ color: L(0x4a3424), roughness: 0.35, metalness: 0.75 }));
+    box(T, g, oak, 0, 0.8, 0, 0.95, 0.05, 0.42); box(T, g, oak, 0, 0.75, 0, 0.88, 0.06, 0.36); box(T, g, K.gilt, 0, 0.775, 0.183, 0.88, 0.008, 0.004);
+    var col = new T.Mesh(new T.LatheGeometry([[0, 0.1], [0.09, 0.1], [0.1, 0.16], [0.05, 0.26], [0.08, 0.42], [0.045, 0.6], [0.06, 0.7], [0.08, 0.72], [0, 0.72]].map(function (p) { return new T.Vector2(p[0], p[1]); }), 16), oak); g.add(col);
+    for (var i = 0; i < 4; i++) { var a = i / 4 * Math.PI * 2 + Math.PI / 4, f = new T.Mesh(new T.BoxGeometry(0.06, 0.08, 0.34), oak); f.position.set(Math.sin(a) * 0.14, 0.05, Math.cos(a) * 0.14); f.rotation.y = a; g.add(f);
+      var paw = new T.Mesh(new T.SphereGeometry(0.035, 10, 8), K.gilt); paw.position.set(Math.sin(a) * 0.29, 0.03, Math.cos(a) * 0.29); g.add(paw); }
+    var bust = new T.Group(); bust.position.y = 0.825; g.add(bust);
+    var pl = new T.Mesh(new T.CylinderGeometry(0.07, 0.09, 0.1, 16), bronze); pl.position.y = 0.05; bust.add(pl);
+    var sh = new T.Mesh(new T.SphereGeometry(0.14, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2), bronze); sh.scale.set(1.2, 0.8, 0.7); sh.position.y = 0.1; bust.add(sh);
+    var nk = new T.Mesh(new T.CylinderGeometry(0.045, 0.05, 0.1, 12), bronze); nk.position.y = 0.2; bust.add(nk);
+    var hd = new T.Mesh(new T.SphereGeometry(0.085, 18, 14), bronze); hd.scale.set(0.9, 1.12, 1); hd.position.y = 0.32; bust.add(hd);
+    var hair = new T.Mesh(new T.SphereGeometry(0.088, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2.2), bronze); hair.scale.set(0.95, 1.05, 1.05); hair.position.set(0, 0.335, -0.008); bust.add(hair);
+    var nose = new T.Mesh(new T.ConeGeometry(0.014, 0.04, 6), bronze); nose.rotation.x = Math.PI / 2; nose.position.set(0, 0.31, 0.088); bust.add(nose);
+    g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+    return { group: g, hb: [0.95, 1.25, 0.42], place: 'floor' };
+  };
+  [{ id: 'kh-oval', name: '椭圆国事地毯', en: 'State oval carpet', size: [8, 0.07, 6.8] }, { id: 'kh-banner', name: '深红旗帜', en: 'Crimson standard', size: [0.7, 2.8, 0.3] }, { id: 'kh-banner2', name: '藏蓝旗帜', en: 'Navy standard', size: [0.7, 2.8, 0.3] }, { id: 'kh-console', name: '雕花边桌 · 铜像', en: 'Console with bust', size: [0.95, 1.25, 0.42] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '国王大厅的家具' }); });
 })(window);
 
@@ -178066,7 +178334,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
     '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
-    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot">⟲ 90°</button><button type="button" data-e="rot15">↻ 15°</button><button type="button" data-e="stash">🎒 收回</button><button type="button" data-e="cancel">取消</button><button type="button" data-e="ok" class="pri">✓ 放好了</button></div></div>' +
+    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot" title="转 90°">⟲90</button><button type="button" data-e="rot15" title="转 15°">↻15</button><button type="button" data-e="stash" title="收回背包">🎒</button><button type="button" data-e="cancel" title="取消">✕</button><button type="button" data-e="ok" class="pri" title="放好了 (Enter)">✓</button></div></div>' +
     '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div><div id="sh-credit"></div>';
 
   function mount() {
@@ -178487,7 +178755,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   });
   canvas.addEventListener('pointermove', function (e) {
     if (busy) return;
-    if (edit) { if (ptr && ptr.arrow) return; if ((ptr && ptr.id === e.pointerId) || e.pointerType === 'mouse') editMove(e); return; }
+    if (edit) { if (ptr && ptr.arrow) return; if ((ptr && ptr.id === e.pointerId) || (e.pointerType === 'mouse' && e.buttons)) editMove(e); return; }   // a mouse moves it only while pressed: hovering leaves it where it is, so the bar can be reached
     if (!ptr || ptr.id !== e.pointerId) { if (e.pointerType === 'mouse') setHot(pick(e)); return; }
     var dx = e.clientX - ptr.x, dy = e.clientY - ptr.y; ptr.x = e.clientX; ptr.y = e.clientY;
     if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; clearTimeout(ptr.lp); canvas.classList.add('drag'); walkTo = null; }
@@ -178733,9 +179001,19 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     scene.add(arrows); placeArrows();
   }
   function killArrows() { if (!arrows) return; scene.remove(arrows); arrows.children.forEach(function (m) { m.material.dispose(); }); arrows.children[0].geometry.dispose(); arrows = null; arrowHits = []; }
+  /* the edit bar floats with the thing: just above it on screen (below it when it is near the top), kept inside the view */
+  var _bp = new THREE.Vector3();
+  function placeBar() {
+    var host = editBar.offsetParent || document.body, R = host.getBoundingClientRect(), C = canvas.getBoundingClientRect();
+    _bp.set(_ac.x, _ab.max.y, _ac.z).project(camera); var top = _bp.z < 1;
+    var x = C.left - R.left + (_bp.x + 1) / 2 * C.width, y = C.top - R.top + (1 - _bp.y) / 2 * C.height, w = editBar.offsetWidth, h = editBar.offsetHeight;
+    _bp.set(_ac.x, _ab.min.y, _ac.z).project(camera); var yb = C.top - R.top + (1 - _bp.y) / 2 * C.height;
+    var below = !top || y - h - 18 < 8, Y = below ? Math.min(R.height - h - 8, Math.max(yb, y) + 18) : y - h - 18;
+    editBar.style.left = Math.max(8, Math.min(R.width - w - 8, x - w / 2)) + 'px'; editBar.style.top = Math.max(8, Y) + 'px';
+  }
   function placeArrows() {
     if (!edit || !arrows) return; var hb = edit.x ? edit.x.hit : edit.o.hit; if (!hb) return;
-    _ab.setFromObject(hb); _ab.getCenter(_ac); _ab.getSize(_as); var wall = edit.type === 'wall', t = Math.sin(T * 5) * 0.015;
+    _ab.setFromObject(hb); _ab.getCenter(_ac); _ab.getSize(_as); placeBar(); var wall = edit.type === 'wall', t = Math.sin(T * 5) * 0.015;
     arrows.children.forEach(function (m, i) {
       var d = m.userData.d;
       if (wall) { var ry = edit.g.rotation.y; if (i < 2) d.set(Math.cos(ry), 0, -Math.sin(ry)).multiplyScalar(i ? -1 : 1); else d.set(0, i === 2 ? 1 : -1, 0); }
@@ -178779,7 +179057,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     $('editName').textContent = t.lab ? t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
     editBar.querySelector('[data-e="rot"]').style.display = edit.type === 'wall' ? 'none' : '';
     ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + '，或点周围的箭头微调 · R 旋转 · Enter 放好';
-    editBar.hidden = false; body.classList.add('editing'); walkTo = null; refreshHotbar(); AV.carry = true;
+    editBar.hidden = false; editBar.classList.add('float'); body.classList.add('editing'); walkTo = null; refreshHotbar(); AV.carry = true;
     g.updateMatrixWorld(true); if (isNew && overlaps(null)) setValid(false, '先挪到空一点的地方');   // a new thing may appear on top of something
     makeArrows();
   }
@@ -178846,6 +179124,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     }
     save(); refreshHotbar();
   }
+  ['pointerdown', 'pointermove', 'wheel'].forEach(function (t) { editBar.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
   editBar.addEventListener('click', function (e) {
     var b = e.target.closest('[data-e]'); if (!b || !edit) return; var a = b.getAttribute('data-e');
     if (a === 'rot' || a === 'rot15') { edit.g.rotation.y += a === 'rot' ? Math.PI / 2 : -Math.PI / 12; edit.g.updateMatrixWorld(true); setValid(!overlaps(null) && inside(edit.g.position.x, edit.g.position.z)); return; }

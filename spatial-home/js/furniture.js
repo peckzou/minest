@@ -196,4 +196,143 @@
   };
   [{ id: 'kh-plinth', name: '大理石展示柱', en: 'Marble column', size: [0.44, 0.91, 0.44] }, { id: 'kh-carpet', name: '宫廷地毯', en: 'Savonnerie carpet', size: [2.6, 0.01, 3.6] }, { id: 'kh-girandole', name: '镀金烛台', en: 'Gilt girandole', size: [0.3, 1.42, 0.3] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '国王大厅的家具' }); });
+
+  /* ───────── the King's Hall presidential desk and its one chair (2026-11-13). A grand partners-style desk: two carved
+     pedestals, a closed front with a gilt laurel-and-crown medallion (it faces the room), drawers and the kneehole on the
+     chair side, a tooled leather top. The chair: a high-backed, buttoned crimson velvet armchair in walnut and gilt. */
+  function emblem(T) {
+    if (F._em) return F._em;
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), i;
+    x.fillStyle = '#2a170d'; x.fillRect(0, 0, 256, 256);
+    x.strokeStyle = '#d9b46a'; x.lineWidth = 6; x.beginPath(); x.arc(128, 128, 118, 0, 6.3); x.stroke();
+    for (var sd = -1; sd <= 1; sd += 2) for (i = 0; i < 9; i++) { var a = Math.PI / 2 + sd * (0.35 + i * 0.27), r = 92; x.save(); x.translate(128 + Math.cos(a) * r, 128 + Math.sin(a) * r); x.rotate(a + sd * 0.9); x.fillStyle = '#c9a24a'; x.beginPath(); x.ellipse(0, 0, 15, 6, 0, 0, 6.3); x.fill(); x.restore(); }
+    x.fillStyle = '#d9b46a'; x.beginPath(); x.moveTo(78, 150); x.lineTo(178, 150); x.lineTo(186, 92); x.lineTo(156, 118); x.lineTo(128, 78); x.lineTo(100, 118); x.lineTo(70, 92); x.closePath(); x.fill();
+    x.fillRect(76, 152, 104, 14); [[70, 88], [128, 72], [186, 88]].forEach(function (q) { x.beginPath(); x.arc(q[0], q[1], 8, 0, 6.3); x.fill(); });
+    x.fillStyle = '#8a1f2c'; x.beginPath(); x.arc(128, 132, 7, 0, 6.3); x.fill(); x.fillStyle = '#1f5ad0'; x.beginPath(); x.arc(100, 140, 5, 0, 6.3); x.arc(156, 140, 5, 0, 6.3); x.fill();
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; return (F._em = new T.MeshStandardMaterial({ map: t, roughness: 0.35, metalness: 0.5 }));
+  }
+  F['kh-desk'] = function (T) {
+    var V = vmats(T), K = kmats(T), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var oak = F._oak || (F._oak = new T.MeshStandardMaterial({ color: L(0x3a2214), roughness: 0.36, metalness: 0.05 })), oakL = F._oakL || (F._oakL = new T.MeshStandardMaterial({ color: L(0x5c3820), roughness: 0.32, metalness: 0.05 }));
+    var g = new T.Group(), W = 1.95, D = 1.1, H = 0.79, PW = 0.56, i;                        // the closed front faces +z (the room), the chair sits at −z
+    box(T, g, oak, 0, 0.045, 0, W + 0.06, 0.09, D + 0.06); box(T, g, K.gilt, 0, 0.092, 0, W + 0.04, 0.008, D + 0.04);   // plinth
+    box(T, g, oak, 0, (0.09 + H - 0.11) / 2, 0, W, H - 0.2, D);                            // the carcass
+    box(T, g, oakL, 0, H - 0.075, 0, W + 0.02, 0.07, D + 0.02); box(T, g, K.gilt, 0, H - 0.11, 0, W + 0.025, 0.01, D + 0.025);   // frieze
+    box(T, g, oak, 0, H - 0.022, 0, W + 0.1, 0.045, D + 0.1); box(T, g, oakL, 0, H - 0.05, 0, W + 0.07, 0.015, D + 0.07);         // the top, moulded
+    var top = new T.Mesh(new T.PlaneGeometry(W - 0.12, D - 0.12), V.leather); top.rotation.x = -Math.PI / 2; top.position.y = H + 0.0008; top.receiveShadow = true; g.add(top);
+    /* the front: two pedestal panels and a centre door with the medallion, pilasters between */
+    var fz = D / 2 + 0.004;
+    [-1, 1].forEach(function (sd) { var cx = sd * (W / 2 - PW / 2);
+      box(T, g, oakL, cx, 0.4, fz, PW - 0.1, 0.46, 0.012); box(T, g, oak, cx, 0.4, fz + 0.008, PW - 0.2, 0.36, 0.01);
+      [[0, 0.18], [0, -0.18]].forEach(function (q) { box(T, g, K.gilt, cx, 0.4 + q[1], fz + 0.014, PW - 0.2, 0.008, 0.004); }); [-1, 1].forEach(function (k) { box(T, g, K.gilt, cx + k * (PW - 0.2) / 2, 0.4, fz + 0.014, 0.008, 0.36, 0.004); });
+      var ros = new T.Mesh(new T.CylinderGeometry(0.035, 0.035, 0.012, 16), K.gilt); ros.rotation.x = Math.PI / 2; ros.position.set(cx, 0.4, fz + 0.02); g.add(ros);
+      [cx - sd * (PW / 2), sd * (W / 2)].forEach(function (px) { var pil = new T.Mesh(new T.CylinderGeometry(0.035, 0.04, H - 0.22, 14), oakL); pil.position.set(px, (0.1 + H - 0.12) / 2, fz); g.add(pil);
+        var cap = new T.Mesh(new T.CylinderGeometry(0.05, 0.035, 0.04, 14), K.gilt); cap.position.set(px, H - 0.135, fz); g.add(cap); var bs = new T.Mesh(new T.CylinderGeometry(0.045, 0.05, 0.03, 14), K.gilt); bs.position.set(px, 0.11, fz); g.add(bs); }); });
+    var CW = W - 2 * PW - 0.08;
+    box(T, g, oakL, 0, 0.38, fz, CW, 0.5, 0.012);
+    var med = new T.Mesh(new T.CircleGeometry(0.16, 40), emblem(T)); med.position.set(0, 0.4, fz + 0.012); g.add(med);
+    var ring = new T.Mesh(new T.TorusGeometry(0.165, 0.012, 8, 40), K.gilt); ring.position.set(0, 0.4, fz + 0.014); g.add(ring);
+    [[0, 0.62], [0, 0.14]].forEach(function (q) { box(T, g, K.gilt, 0, q[1], fz + 0.008, CW - 0.06, 0.01, 0.006); });
+    /* the chair side: drawers in the pedestals, a centre drawer over the kneehole */
+    var bz = -D / 2 - 0.004;
+    [-1, 1].forEach(function (sd) { var cx = sd * (W / 2 - PW / 2);
+      for (i = 0; i < 3; i++) { var yc = 0.19 + i * 0.17; box(T, g, oakL, cx, yc, bz, PW - 0.08, 0.15, 0.012);
+        var pull = new T.Mesh(new T.TorusGeometry(0.032, 0.006, 6, 14, Math.PI), V.brass); pull.rotation.z = Math.PI; pull.position.set(cx, yc + 0.01, bz - 0.006); g.add(pull); } });
+    box(T, g, oak, 0, (0.09 + H - 0.2) / 2, 0, CW + 0.06, H - 0.31, D - 0.3);              // the kneehole is open at the back: carve it out visually with a dark recess
+    var hole = new T.Mesh(new T.PlaneGeometry(CW - 0.02, H - 0.34), new T.MeshStandardMaterial({ color: 0x120a06, roughness: 1 })); hole.rotation.y = Math.PI; hole.position.set(0, (0.1 + H - 0.24) / 2, bz - 0.001); g.add(hole);
+    box(T, g, oakL, 0, H - 0.165, bz, CW, 0.08, 0.012);
+    return { group: g, hb: [W + 0.1, H, D + 0.1], place: 'floor' };
+  };
+  F['kh-exec'] = function (T) {
+    var K = kmats(T), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, g = new T.Group(), i, j;
+    var vel = F._vel || (F._vel = new T.MeshStandardMaterial({ color: L(0x7a1a22), roughness: 0.82 })), wal = F._oak || (F._oak = new T.MeshStandardMaterial({ color: L(0x3a2214), roughness: 0.36, metalness: 0.05 }));
+    var SW = 0.66, SD = 0.6, SH = 0.47, BH = 1.36;                                          // the seat faces +z
+    box(T, g, wal, 0, SH - 0.05, 0, SW, 0.08, SD); box(T, g, K.gilt, 0, SH - 0.09, SD / 2 - 0.002, SW, 0.012, 0.01);
+    var cush = new T.Mesh(new T.BoxGeometry(SW - 0.06, 0.09, SD - 0.06), vel); cush.position.set(0, SH + 0.03, 0.01); g.add(cush);
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (q) { var lg = new T.Mesh(new T.LatheGeometry([[0, 0], [0.035, 0], [0.04, 0.03], [0.026, 0.1], [0.032, 0.2], [0.024, 0.3], [0.03, SH - 0.09], [0, SH - 0.09]].map(function (p) { return new T.Vector2(p[0], p[1]); }), 12), wal);
+      lg.position.set(q[0] * (SW / 2 - 0.05), 0, q[1] * (SD / 2 - 0.05)); g.add(lg); var ft = new T.Mesh(new T.SphereGeometry(0.03, 10, 8), K.gilt); ft.position.set(q[0] * (SW / 2 - 0.05), 0.02, q[1] * (SD / 2 - 0.05)); g.add(ft); });
+    var back = new T.Group(); back.position.set(0, SH, -SD / 2 + 0.04); back.rotation.x = -0.1; g.add(back);
+    [-1, 1].forEach(function (sd) { box(T, back, wal, sd * (SW / 2 - 0.035), (BH - SH) / 2, 0, 0.06, BH - SH, 0.07); var fn = new T.Mesh(new T.SphereGeometry(0.035, 12, 8), K.gilt); fn.position.set(sd * (SW / 2 - 0.035), BH - SH + 0.03, 0); back.add(fn); });
+    box(T, back, wal, 0, BH - SH - 0.04, 0, SW, 0.09, 0.07); box(T, back, K.gilt, 0, BH - SH + 0.03, 0, 0.22, 0.07, 0.03);
+    var pad = new T.Mesh(new T.BoxGeometry(SW - 0.1, BH - SH - 0.16, 0.06), vel); pad.position.set(0, (BH - SH) / 2 - 0.02, 0.02); back.add(pad);
+    var btn = new T.SphereGeometry(0.01, 6, 4);
+    for (i = 0; i < 4; i++) for (j = 0; j < 3 + (i % 2); j++) { var bm = new T.Mesh(btn, K.gilt); bm.position.set((j - (2 + (i % 2)) / 2) * 0.14, 0.18 + i * 0.17, 0.052); back.add(bm); }
+    box(T, back, K.gilt, 0, 0.05, 0.055, SW - 0.1, 0.012, 0.01);
+    [-1, 1].forEach(function (sd) { var ax = sd * (SW / 2 - 0.02);                      // the arms: padded rests on carved supports
+      box(T, g, wal, ax, SH + 0.21, -0.02, 0.07, 0.04, SD - 0.06); var ap = new T.Mesh(new T.BoxGeometry(0.065, 0.04, SD - 0.2), vel); ap.position.set(ax, SH + 0.245, -0.04); g.add(ap);
+      var sup = new T.Mesh(new T.CylinderGeometry(0.022, 0.028, 0.21, 10), wal); sup.position.set(ax, SH + 0.1, SD / 2 - 0.07); g.add(sup);
+      var sc = new T.Mesh(new T.SphereGeometry(0.035, 12, 8), K.gilt); sc.position.set(ax, SH + 0.235, SD / 2 - 0.05); g.add(sc); });
+    g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+    return { group: g, hb: [SW, BH, SD], place: 'floor' };
+  };
+  [{ id: 'kh-desk', name: '总统大书桌', en: 'Presidential desk', size: [2.05, 0.79, 1.2] }, { id: 'kh-exec', name: '高背御座椅', en: 'High-back chair', size: [0.66, 1.36, 0.6] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '国王大厅的家具' }); });
+
+  /* ───────── the King's Hall as a state study (after the oval-office arrangement the user showed): a great oval carpet
+     with a crown-and-laurel emblem, two standards behind the desk, console tables with bronze busts either side */
+  F['kh-oval'] = function (T) {
+    if (!F._ov) {
+      var c = document.createElement('canvas'); c.width = 1536; c.height = 1312; var x = c.getContext('2d'), W = c.width, H = c.height, cx = W / 2, cy = H / 2, i;
+      x.clearRect(0, 0, W, H);
+      function ell(rx, ry, col) { x.fillStyle = col; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, 6.3); x.fill(); }
+      ell(W / 2 - 2, H / 2 - 2, '#c9a24a'); ell(W / 2 - 22, H / 2 - 22, '#1b2a5c'); ell(W / 2 - 40, H / 2 - 40, '#d9b46a'); ell(W / 2 - 50, H / 2 - 50, '#13204a');
+      for (i = 0; i < 2600; i++) { var a = Math.random() * 6.3, r = Math.random(); x.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.03) + ')'; x.fillRect(cx + Math.cos(a) * r * (W / 2 - 60), cy + Math.sin(a) * r * (H / 2 - 60), 3, 1); }
+      x.strokeStyle = 'rgba(201,162,74,.5)'; x.lineWidth = 3; x.beginPath(); x.ellipse(cx, cy, W / 2 - 90, H / 2 - 90, 0, 0, 6.3); x.stroke();
+      for (i = 0; i < 72; i++) { var b = i / 72 * Math.PI * 2; x.save(); x.translate(cx + Math.cos(b) * (W / 2 - 70), cy + Math.sin(b) * (H / 2 - 70)); x.rotate(b + Math.PI / 2); x.fillStyle = '#c9a24a'; x.beginPath(); x.ellipse(0, 0, 9, 4, 0, 0, 6.3); x.fill(); x.restore(); }
+      /* the emblem: a crimson ring, gold beads, a ring of stars, a laurel wreath round a crown */
+      var R = 380; x.fillStyle = '#a8202c'; x.beginPath(); x.arc(cx, cy, R, 0, 6.3); x.fill();
+      x.fillStyle = '#e0b850'; x.beginPath(); x.arc(cx, cy, R - 22, 0, 6.3); x.fill(); x.fillStyle = '#13204a'; x.beginPath(); x.arc(cx, cy, R - 40, 0, 6.3); x.fill();
+      for (i = 0; i < 48; i++) { var g2 = i / 48 * Math.PI * 2; x.fillStyle = '#f4d77a'; x.beginPath(); x.arc(cx + Math.cos(g2) * (R - 31), cy + Math.sin(g2) * (R - 31), 8, 0, 6.3); x.fill(); }
+      function star(px, py, r1, r2) { x.beginPath(); for (var k = 0; k < 10; k++) { var q = k / 10 * Math.PI * 2 - Math.PI / 2, rr = k % 2 ? r2 : r1; x.lineTo(px + Math.cos(q) * rr, py + Math.sin(q) * rr); } x.closePath(); x.fill(); }
+      x.fillStyle = '#f2ecd8'; for (i = 0; i < 40; i++) { var st = i / 40 * Math.PI * 2; star(cx + Math.cos(st) * (R - 80), cy + Math.sin(st) * (R - 80), 15, 6); }
+      for (var sd = -1; sd <= 1; sd += 2) for (i = 0; i < 13; i++) { var la = Math.PI / 2 + sd * (0.3 + i * 0.19), lr = R - 150; x.save(); x.translate(cx + Math.cos(la) * lr, cy + Math.sin(la) * lr); x.rotate(la + sd * 0.8); x.fillStyle = i % 2 ? '#5f8a3a' : '#7aa04a'; x.beginPath(); x.ellipse(0, 0, 30, 11, 0, 0, 6.3); x.fill(); x.restore(); }
+      x.fillStyle = '#e0b850'; x.beginPath(); x.moveTo(cx - 120, cy + 70); x.lineTo(cx + 120, cy + 70); x.lineTo(cx + 140, cy - 70); x.lineTo(cx + 70, cy - 10); x.lineTo(cx, cy - 110); x.lineTo(cx - 70, cy - 10); x.lineTo(cx - 140, cy - 70); x.closePath(); x.fill();
+      x.fillRect(cx - 125, cy + 72, 250, 34); x.fillStyle = '#f4e3a0'; [[cx - 140, cy - 78], [cx, cy - 122], [cx + 140, cy - 78]].forEach(function (q) { x.beginPath(); x.arc(q[0], q[1], 16, 0, 6.3); x.fill(); });
+      x.fillStyle = '#a8202c'; x.beginPath(); x.arc(cx, cy + 89, 11, 0, 6.3); x.fill(); x.fillStyle = '#2f6fd6'; x.beginPath(); x.arc(cx - 60, cy + 89, 9, 0, 6.3); x.arc(cx + 60, cy + 89, 9, 0, 6.3); x.fill();
+      x.fillStyle = '#a8202c'; x.beginPath(); x.moveTo(cx - 110, cy + 60); x.quadraticCurveTo(cx, cy - 40, cx + 110, cy + 60); x.closePath(); x.globalAlpha = 0.55; x.fill(); x.globalAlpha = 1;
+      var im = x.getImageData(0, 0, W, H), D = im.data; for (i = 0; i < D.length; i += 4) { if (!D[i + 3]) continue; var n = (Math.random() - 0.5) * 14; D[i] += n; D[i + 1] += n; D[i + 2] += n; } x.putImageData(im, 0, 0);
+      var tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding; tx.anisotropy = 8; F._ov = new T.MeshStandardMaterial({ map: tx, roughness: 0.95, transparent: true, alphaTest: 0.5 });
+    }
+    var g = new T.Group(), RW = 8.0, RD = 6.8, m = new T.Mesh(new T.PlaneGeometry(RW, RD), F._ov); m.rotation.x = -Math.PI / 2; m.position.y = 0.058; m.receiveShadow = true; g.add(m);
+    return { group: g, hb: [RW, 0.07, RD], place: 'floor' };
+  };
+  function banner(T, col, trim) {
+    var K = kmats(T), g = new T.Group(), i;
+    for (i = 0; i < 3; i++) { var a = i / 3 * Math.PI * 2, ft = new T.Mesh(new T.BoxGeometry(0.05, 0.04, 0.26), K.gilt); ft.position.set(Math.sin(a) * 0.12, 0.03, Math.cos(a) * 0.12); ft.rotation.y = a; ft.rotation.x = -0.3; g.add(ft); }
+    var pole = new T.Mesh(new T.CylinderGeometry(0.018, 0.022, 2.55, 10), K.gilt); pole.position.y = 1.3; g.add(pole);
+    var orb = new T.Mesh(new T.SphereGeometry(0.045, 14, 10), K.gilt); orb.position.y = 2.62; g.add(orb); var sp = new T.Mesh(new T.ConeGeometry(0.03, 0.16, 8), K.gilt); sp.position.y = 2.74; g.add(sp);
+    var c = document.createElement('canvas'); c.width = 256; c.height = 512; var x = c.getContext('2d');
+    x.fillStyle = col; x.fillRect(0, 0, 256, 512); x.strokeStyle = trim; x.lineWidth = 10; x.strokeRect(14, 14, 228, 484);
+    x.fillStyle = trim; x.beginPath(); x.moveTo(78, 280); x.lineTo(178, 280); x.lineTo(188, 210); x.lineTo(156, 236); x.lineTo(128, 190); x.lineTo(100, 236); x.lineTo(68, 210); x.closePath(); x.fill(); x.fillRect(76, 282, 104, 16);
+    for (i = 0; i < 12; i++) { x.fillRect(16 + i * 20, 470, 10, 42); }
+    var tx = new T.CanvasTexture(c); tx.encoding = T.sRGBEncoding;
+    var geo = new T.PlaneGeometry(0.6, 1.2, 12, 1), pos = geo.attributes.position;          // the cloth hangs in soft folds
+    for (i = 0; i < pos.count; i++) pos.setZ(i, Math.sin((pos.getX(i) + 0.3) * 22) * 0.025);
+    geo.computeVertexNormals();
+    var cloth = new T.Mesh(geo, new T.MeshStandardMaterial({ map: tx, roughness: 0.75, side: T.DoubleSide })); cloth.position.set(0.33, 1.9, 0); g.add(cloth);
+    var bar = new T.Mesh(new T.CylinderGeometry(0.01, 0.01, 0.66, 8), K.gilt); bar.rotation.z = Math.PI / 2; bar.position.set(0.33, 2.5, 0); g.add(bar);
+    var tas = new T.Mesh(new T.ConeGeometry(0.03, 0.12, 8), K.gilt); tas.position.set(0.02, 2.4, 0.03); g.add(tas);
+    return { group: g, hb: [0.7, 2.8, 0.3], place: 'floor' };
+  }
+  F['kh-banner'] = function (T) { return banner(T, '#8a1a24', '#e0b850'); };
+  F['kh-banner2'] = function (T) { return banner(T, '#16245a', '#e0b850'); };
+  F['kh-console'] = function (T) {                                                          // a carved pedestal table and a bronze bust on it
+    var K = kmats(T), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, g = new T.Group();
+    var oak = F._oak || (F._oak = new T.MeshStandardMaterial({ color: L(0x3a2214), roughness: 0.36, metalness: 0.05 })), bronze = F._brz || (F._brz = new T.MeshStandardMaterial({ color: L(0x4a3424), roughness: 0.35, metalness: 0.75 }));
+    box(T, g, oak, 0, 0.8, 0, 0.95, 0.05, 0.42); box(T, g, oak, 0, 0.75, 0, 0.88, 0.06, 0.36); box(T, g, K.gilt, 0, 0.775, 0.183, 0.88, 0.008, 0.004);
+    var col = new T.Mesh(new T.LatheGeometry([[0, 0.1], [0.09, 0.1], [0.1, 0.16], [0.05, 0.26], [0.08, 0.42], [0.045, 0.6], [0.06, 0.7], [0.08, 0.72], [0, 0.72]].map(function (p) { return new T.Vector2(p[0], p[1]); }), 16), oak); g.add(col);
+    for (var i = 0; i < 4; i++) { var a = i / 4 * Math.PI * 2 + Math.PI / 4, f = new T.Mesh(new T.BoxGeometry(0.06, 0.08, 0.34), oak); f.position.set(Math.sin(a) * 0.14, 0.05, Math.cos(a) * 0.14); f.rotation.y = a; g.add(f);
+      var paw = new T.Mesh(new T.SphereGeometry(0.035, 10, 8), K.gilt); paw.position.set(Math.sin(a) * 0.29, 0.03, Math.cos(a) * 0.29); g.add(paw); }
+    var bust = new T.Group(); bust.position.y = 0.825; g.add(bust);
+    var pl = new T.Mesh(new T.CylinderGeometry(0.07, 0.09, 0.1, 16), bronze); pl.position.y = 0.05; bust.add(pl);
+    var sh = new T.Mesh(new T.SphereGeometry(0.14, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2), bronze); sh.scale.set(1.2, 0.8, 0.7); sh.position.y = 0.1; bust.add(sh);
+    var nk = new T.Mesh(new T.CylinderGeometry(0.045, 0.05, 0.1, 12), bronze); nk.position.y = 0.2; bust.add(nk);
+    var hd = new T.Mesh(new T.SphereGeometry(0.085, 18, 14), bronze); hd.scale.set(0.9, 1.12, 1); hd.position.y = 0.32; bust.add(hd);
+    var hair = new T.Mesh(new T.SphereGeometry(0.088, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2.2), bronze); hair.scale.set(0.95, 1.05, 1.05); hair.position.set(0, 0.335, -0.008); bust.add(hair);
+    var nose = new T.Mesh(new T.ConeGeometry(0.014, 0.04, 6), bronze); nose.rotation.x = Math.PI / 2; nose.position.set(0, 0.31, 0.088); bust.add(nose);
+    g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+    return { group: g, hb: [0.95, 1.25, 0.42], place: 'floor' };
+  };
+  [{ id: 'kh-oval', name: '椭圆国事地毯', en: 'State oval carpet', size: [8, 0.07, 6.8] }, { id: 'kh-banner', name: '深红旗帜', en: 'Crimson standard', size: [0.7, 2.8, 0.3] }, { id: 'kh-banner2', name: '藏蓝旗帜', en: 'Navy standard', size: [0.7, 2.8, 0.3] }, { id: 'kh-console', name: '雕花边桌 · 铜像', en: 'Console with bust', size: [0.95, 1.25, 0.42] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '国王大厅的家具' }); });
 })(window);

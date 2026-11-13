@@ -22,7 +22,7 @@
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
     '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
-    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot">⟲ 90°</button><button type="button" data-e="rot15">↻ 15°</button><button type="button" data-e="stash">🎒 收回</button><button type="button" data-e="cancel">取消</button><button type="button" data-e="ok" class="pri">✓ 放好了</button></div></div>' +
+    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot" title="转 90°">⟲90</button><button type="button" data-e="rot15" title="转 15°">↻15</button><button type="button" data-e="stash" title="收回背包">🎒</button><button type="button" data-e="cancel" title="取消">✕</button><button type="button" data-e="ok" class="pri" title="放好了 (Enter)">✓</button></div></div>' +
     '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div><div id="sh-credit"></div>';
 
   function mount() {
@@ -443,7 +443,7 @@
   });
   canvas.addEventListener('pointermove', function (e) {
     if (busy) return;
-    if (edit) { if (ptr && ptr.arrow) return; if ((ptr && ptr.id === e.pointerId) || e.pointerType === 'mouse') editMove(e); return; }
+    if (edit) { if (ptr && ptr.arrow) return; if ((ptr && ptr.id === e.pointerId) || (e.pointerType === 'mouse' && e.buttons)) editMove(e); return; }   // a mouse moves it only while pressed: hovering leaves it where it is, so the bar can be reached
     if (!ptr || ptr.id !== e.pointerId) { if (e.pointerType === 'mouse') setHot(pick(e)); return; }
     var dx = e.clientX - ptr.x, dy = e.clientY - ptr.y; ptr.x = e.clientX; ptr.y = e.clientY;
     if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; clearTimeout(ptr.lp); canvas.classList.add('drag'); walkTo = null; }
@@ -689,9 +689,19 @@
     scene.add(arrows); placeArrows();
   }
   function killArrows() { if (!arrows) return; scene.remove(arrows); arrows.children.forEach(function (m) { m.material.dispose(); }); arrows.children[0].geometry.dispose(); arrows = null; arrowHits = []; }
+  /* the edit bar floats with the thing: just above it on screen (below it when it is near the top), kept inside the view */
+  var _bp = new THREE.Vector3();
+  function placeBar() {
+    var host = editBar.offsetParent || document.body, R = host.getBoundingClientRect(), C = canvas.getBoundingClientRect();
+    _bp.set(_ac.x, _ab.max.y, _ac.z).project(camera); var top = _bp.z < 1;
+    var x = C.left - R.left + (_bp.x + 1) / 2 * C.width, y = C.top - R.top + (1 - _bp.y) / 2 * C.height, w = editBar.offsetWidth, h = editBar.offsetHeight;
+    _bp.set(_ac.x, _ab.min.y, _ac.z).project(camera); var yb = C.top - R.top + (1 - _bp.y) / 2 * C.height;
+    var below = !top || y - h - 18 < 8, Y = below ? Math.min(R.height - h - 8, Math.max(yb, y) + 18) : y - h - 18;
+    editBar.style.left = Math.max(8, Math.min(R.width - w - 8, x - w / 2)) + 'px'; editBar.style.top = Math.max(8, Y) + 'px';
+  }
   function placeArrows() {
     if (!edit || !arrows) return; var hb = edit.x ? edit.x.hit : edit.o.hit; if (!hb) return;
-    _ab.setFromObject(hb); _ab.getCenter(_ac); _ab.getSize(_as); var wall = edit.type === 'wall', t = Math.sin(T * 5) * 0.015;
+    _ab.setFromObject(hb); _ab.getCenter(_ac); _ab.getSize(_as); placeBar(); var wall = edit.type === 'wall', t = Math.sin(T * 5) * 0.015;
     arrows.children.forEach(function (m, i) {
       var d = m.userData.d;
       if (wall) { var ry = edit.g.rotation.y; if (i < 2) d.set(Math.cos(ry), 0, -Math.sin(ry)).multiplyScalar(i ? -1 : 1); else d.set(0, i === 2 ? 1 : -1, 0); }
@@ -735,7 +745,7 @@
     $('editName').textContent = t.lab ? t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
     editBar.querySelector('[data-e="rot"]').style.display = edit.type === 'wall' ? 'none' : '';
     ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + '，或点周围的箭头微调 · R 旋转 · Enter 放好';
-    editBar.hidden = false; body.classList.add('editing'); walkTo = null; refreshHotbar(); AV.carry = true;
+    editBar.hidden = false; editBar.classList.add('float'); body.classList.add('editing'); walkTo = null; refreshHotbar(); AV.carry = true;
     g.updateMatrixWorld(true); if (isNew && overlaps(null)) setValid(false, '先挪到空一点的地方');   // a new thing may appear on top of something
     makeArrows();
   }
@@ -802,6 +812,7 @@
     }
     save(); refreshHotbar();
   }
+  ['pointerdown', 'pointermove', 'wheel'].forEach(function (t) { editBar.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
   editBar.addEventListener('click', function (e) {
     var b = e.target.closest('[data-e]'); if (!b || !edit) return; var a = b.getAttribute('data-e');
     if (a === 'rot' || a === 'rot15') { edit.g.rotation.y += a === 'rot' ? Math.PI / 2 : -Math.PI / 12; edit.g.updateMatrixWorld(true); setValid(!overlaps(null) && inside(edit.g.position.x, edit.g.position.z)); return; }
