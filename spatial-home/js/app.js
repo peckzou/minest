@@ -620,11 +620,23 @@
   }
   /* a room can dress the things in its own style (env-glb.js: the Victorian Study's screen for the board, a cabinet for
      the aquarium); the things themselves are unchanged, the dress comes off when the room changes */
-  var DRESSED = [];
+  var DRESSED = [], HIDDEN = [], DTICK = [], NOSHOW = new THREE.MeshBasicMaterial({ visible: false });
   function dress() {
     DRESSED.forEach(function (d) { if (d.parent) d.parent.remove(d); try { window.SpatialRoom.disposeTree(d); } catch (e) {} }); DRESSED = [];
-    if (!room.dress) return;
-    objects.forEach(function (o) { var f = room.dress[o.id]; if (!f) return; try { var r = f(o); if (r && r.group) { r.group.name = 'dress-' + o.id; o.group.add(r.group); DRESSED.push(r.group); } } catch (e) { if (window.console) console.warn('Spatial Home: dressing ' + o.id, e); } });
+    HIDDEN.forEach(function (h) { h.m.material = h.mat; }); HIDDEN = []; DTICK = [];
+    var real = room.realistic && window.SpatialRealistic;
+    if (!room.dress && !real) return;
+    objects.forEach(function (o) {
+      [room.dress && room.dress[o.id], real ? function (ob) { return window.SpatialRealistic.dress(ob); } : null].forEach(function (f, k) {
+        if (!f) return;
+        try { var r = f(o); if (!r || !r.group) return; r.group.name = 'dress-' + o.id + (k ? '-real' : ''); o.group.add(r.group); DRESSED.push(r.group); if (r.tick) DTICK.push(r.tick);
+          if (r.hideVox) o.group.traverse(function (m) {                      // the solid voxel blocks go (glow, holo, the live pictures stay)
+            if (!m.isMesh || !m.material || m.material === NOSHOW || !m.material.vertexColors || m.material.type !== 'MeshLambertMaterial') return;
+            for (var p = m.parent; p && p !== o.group; p = p.parent) if (/^dress-/.test(p.name || '')) return;
+            HIDDEN.push({ m: m, mat: m.material }); m.material = NOSHOW; });
+        } catch (e) { if (window.console) console.warn('Spatial Home: dressing ' + o.id, e); }
+      });
+    });
   }
 
   /* ---- display furniture, works, machines and collection things set out in the room (instances: layout().extras)
@@ -994,6 +1006,7 @@
     XS.forEach(function (x) { if (x.tick) try { x.tick(T); } catch (e) {} });
     if (window.SpatialViews) window.SpatialViews.tick(T, dt, room);
     if (edit && arrows) placeArrows();
+    for (var di = 0; di < DTICK.length; di++) try { DTICK[di](T); } catch (e) {}
     room.tick(T); objects.forEach(function (o) { o.idle(T); var s = (o === hot ? 1.035 : 1) * (o.baseScale || 1); o.group.scale.setScalar(o.group.scale.x + (s - o.group.scale.x) * Math.min(1, dt * 12)); });
     SPK(T); renderer.render(cineScene || scene, camera);
     if (dirty && T - lastSave > 2) { lastSave = T; save(); }

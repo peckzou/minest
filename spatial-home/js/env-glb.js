@@ -640,7 +640,7 @@
       return {
         id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
-        surfaces: surfaces, dress: def.dress || null, upgrade: def.upgrade || null, movable: !!def.movable,
+        surfaces: surfaces, dress: def.dress || null, realistic: !!def.realistic, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
         dispose: function () { if (fin && fin.dispose) fin.dispose(); SR.disposeTree(holder); scene.background = null; }
@@ -663,10 +663,10 @@
     { kind: 'kh-console', title: '雕花边桌 · 铜像', p: [-1.8, 0, -8.28], ry: 0, uid: 9134 }, { kind: 'kh-console', title: '雕花边桌 · 铜像', p: [1.44, 0, -8.42], ry: 0, uid: 9135 },
     { kind: 'kh-oval', title: '椭圆国事地毯', p: [0, 0, -4.4], ry: 0, uid: 9120 },
     { kind: 'kh-girandole', title: '镀金烛台', p: [-4.7, 0, -7.9], ry: 0, uid: 9121 }, { kind: 'kh-girandole', title: '镀金烛台', p: [4.5, 0, -8.1], ry: 0, uid: 9122 },
-    { kind: 'kh-plinth', p: [4.6, 0, -5.4], ry: -PI / 2, uid: 9111 }, { kind: 'kh-plinth', p: [4.6, 0, -4.5], ry: -PI / 2, uid: 9112 },
-    { kind: 'kh-plinth', p: [4.6, 0, -3.6], ry: -PI / 2, uid: 9113 }, { kind: 'kh-plinth', p: [4.6, 0, -2.7], ry: -PI / 2, uid: 9114 },
-    { kind: 'kh-plinth', p: [4.6, 0, -1.8], ry: -PI / 2, uid: 9115 }];
-  var KINGS = { id: 'kings-hall', name: "The King's Hall · Skokloster", glb: 'interiors-glb/assets/kings_hall.glb', h: 4.5, showroom: true, far: 700,
+    { kind: 'kh-plinth', p: [3.9, 0, -5.4], ry: -PI / 2, uid: 9111 }, { kind: 'kh-plinth', p: [3.9, 0, -4.5], ry: -PI / 2, uid: 9112 },
+    { kind: 'kh-plinth', p: [3.9, 0, -3.6], ry: -PI / 2, uid: 9113 }, { kind: 'kh-plinth', p: [3.9, 0, -2.7], ry: -PI / 2, uid: 9114 },
+    { kind: 'kh-plinth', p: [3.9, 0, -1.8], ry: -PI / 2, uid: 9115 }];
+  var KINGS = { realistic: true, id: 'kings-hall', name: "The King's Hall · Skokloster", glb: 'interiors-glb/assets/kings_hall.glb', h: 4.5, showroom: true, far: 700,
     offset: [0.37, 1.3, -10.735], walk: [-5.6, -9.9, 5.6, 5.2],
     cut: [[-1.1, 0.06, -2.86, 1.2, 1.5, -0.93], [-0.52, 1.6, -2.3, 0.54, 3.42, -1.22],   // the scanned table and chairs; the chandelier (below the ceiling rosette)
           [-9, -2, -30, 9, 9, -8.92], [-9, -2, 5.3, 9, 9, 30]],                                // the scan's rough outer shell behind the window walls (it hid the garden)
@@ -678,7 +678,7 @@
     dress: { board: dressBoardOf(KH_STYLE), aquarium: dressAquariumOf(KH_STYLE) },
     /* v2: the state-study arrangement (the long table and its four chairs go; the things you had moved here go back to
        their new places once) */
-    upgrade: { v: 2, fn: function (L) {
+    upgrade: { v: 3, fn: function (L) {
       var ex = (L.extras || []).filter(function (e) { return !(e.uid >= 9101 && e.uid <= 9105); });
       KH_ITEMS.forEach(function (n) { var e = ex.filter(function (x) { return x.uid === n.uid; })[0]; if (e) { e.kind = n.kind; e.p = n.p.slice(); e.ry = n.ry; if (n.title) e.title = n.title; } else ex.push(JSON.parse(JSON.stringify(n))); });
       L.extras = ex;
@@ -688,11 +688,11 @@
     anchors: {
       'desk.left': { p: [KX, DK, -7.3], ry: PI }, 'desk.right': { p: [KX - 0.55, DK, -7.3], ry: PI + 0.2 }, 'desk.quill': { p: [KX + 0.55, DK, -7.35], ry: PI - 0.3 },
       'desk.key': { p: [KX + 0.75, DK, -6.95], ry: PI }, 'desk.mochi': { p: [KX - 0.75, DK, -6.9], ry: PI + 0.4 }, 'desk.book': { p: [KX + 0.3, DK, -6.9], ry: PI },
-      'wall.left': { p: [-4.45, 1.62, -5.3], ry: 1.32 }, 'wall.right': { p: [4.6, 0.92, -1.8], ry: -PI / 2 },
-      'shelf.mid': { p: [4.6, 0.92, -5.4], ry: -PI / 2 }, 'cabinet.left': { p: [4.6, 0.92, -4.5], ry: -PI / 2 }, 'cabinet.top': { p: [4.6, 0.92, -3.6], ry: -PI / 2 },
-      'cabinet.right': { p: [4.6, 0.92, -2.7], ry: -PI / 2 }, 'sill.left': { p: [4.6, 0.92, -1.8], ry: -PI / 2 },
-      'corner.window': { p: [-4.7, 0, -2.3], ry: PI / 2 }, 'floor.pack': { p: [-2.6, 0, 3.8], ry: 0.4 }, 'floor.gramo': { p: [-4.6, 0, 0.3], ry: PI / 2 },
-      'floor.film': { p: [4.5, 0, 1.3], ry: -PI / 2 }, 'floor.portal': { p: [-4.8, 0, 2.9], ry: PI / 2 }, 'floor.holo': { p: [4.4, 0, -6.7], ry: -PI / 2 }
+      'wall.left': { p: [-3.8, 1.62, -5.3], ry: 1.32 }, 'wall.right': { p: [3.9, 0.92, -1.8], ry: -PI / 2 },
+      'shelf.mid': { p: [3.9, 0.92, -5.4], ry: -PI / 2 }, 'cabinet.left': { p: [3.9, 0.92, -4.5], ry: -PI / 2 }, 'cabinet.top': { p: [3.9, 0.92, -3.6], ry: -PI / 2 },
+      'cabinet.right': { p: [3.9, 0.92, -2.7], ry: -PI / 2 }, 'sill.left': { p: [3.9, 0.92, -1.8], ry: -PI / 2 },
+      'corner.window': { p: [-3.95, 0, -2.3], ry: PI / 2 }, 'floor.pack': { p: [-2.6, 0, 3.8], ry: 0.4 }, 'floor.gramo': { p: [-3.9, 0, 0.3], ry: PI / 2 },
+      'floor.film': { p: [3.8, 0, 1.3], ry: -PI / 2 }, 'floor.portal': { p: [-3.3, 0, 2.9], ry: PI / 2 }, 'floor.holo': { p: [3.7, 0, -6.6], ry: -PI / 2 }
     },
     layout: { extras: JSON.parse(JSON.stringify(KH_ITEMS)) },
     credit: 'The King\u2019s Hall, Skokloster Castle — scan by Erik Lernestål, CC BY 4.0' };
@@ -700,7 +700,7 @@
      the projector, album, medals, car and ornament, and its own armchairs, tables, vases, viola, rugs and ladders are
      movable furniture. The model's floor is 0.2 m up, so it sits 0.2 m down; the south table lands on the desk spot. */
   var VY = 0.725, DY = 0.78;                                         // the round tables; the pedestal desk
-  var VICT = { id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
+  var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
     cut: [[7.75, 0.25, -4.6, 14, 3.3, -2.6]],                          // the bookcase where the new window goes
     start: { pos: [0.7, 1.5, 1.4], yaw: 0.1, pitch: -0.12 }, deskCam: { pos: [0, 1.5, -2.85], look: [0, 0.78, -1.7] },
