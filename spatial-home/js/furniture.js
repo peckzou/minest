@@ -335,4 +335,27 @@
   };
   [{ id: 'kh-oval', name: '椭圆国事地毯', en: 'State oval carpet', size: [8, 0.07, 6.8] }, { id: 'kh-banner', name: '深红旗帜', en: 'Crimson standard', size: [0.7, 2.8, 0.3] }, { id: 'kh-banner2', name: '藏蓝旗帜', en: 'Navy standard', size: [0.7, 2.8, 0.3] }, { id: 'kh-console', name: '雕花边桌 · 铜像', en: 'Console with bust', size: [0.95, 1.25, 0.42] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '国王大厅的家具' }); });
+
+  /* the study's desk chair after the user's reference: a high buttoned (chesterfield) back in brown leather, rolled arms,
+     brass nailheads, turned legs on castors */
+  F['vic-exec'] = function (T) {
+    var V = vmats(T), L = function (h) { return new T.Color(h).convertSRGBToLinear(); }, g = new T.Group(), i, j;
+    var lea = F._lea || (F._lea = new T.MeshStandardMaterial({ color: L(0x5a3220), roughness: 0.45, metalness: 0.02 })), dark = F._leaD || (F._leaD = new T.MeshStandardMaterial({ color: L(0x3a1e12), roughness: 0.5 }));
+    var SW = 0.68, SD = 0.62, SH = 0.48, BH = 1.3;                                          // the seat faces +z
+    box(T, g, lea, 0, SH - 0.06, 0, SW, 0.12, SD); var cu = new T.Mesh(new T.BoxGeometry(SW - 0.12, 0.08, SD - 0.1), lea); cu.position.set(0, SH + 0.04, 0.03); g.add(cu);
+    var back = new T.Mesh(new T.BoxGeometry(SW, BH - SH + 0.06, 0.16), lea); back.position.set(0, (SH + BH) / 2 - 0.02, -SD / 2 + 0.06); back.rotation.x = -0.08; g.add(back);
+    var roll = new T.Mesh(new T.CylinderGeometry(0.085, 0.085, SW, 16), lea); roll.rotation.z = Math.PI / 2; roll.position.set(0, BH, -SD / 2 + 0.03); g.add(roll);
+    var btn = new T.SphereGeometry(0.012, 6, 4);
+    for (i = 0; i < 5; i++) for (j = 0; j < 4 + (i % 2); j++) { var bm = new T.Mesh(btn, dark); bm.position.set((j - (3 + (i % 2)) / 2) * 0.13, SH + 0.12 + i * 0.14, -SD / 2 + 0.145 + i * 0.011); g.add(bm); }
+    [-1, 1].forEach(function (sd) { var ax = sd * (SW / 2 + 0.03);
+      box(T, g, lea, ax, SH + 0.1, -0.02, 0.1, 0.32, SD - 0.04);
+      var ar = new T.Mesh(new T.CylinderGeometry(0.075, 0.075, SD - 0.02, 14), lea); ar.rotation.x = Math.PI / 2; ar.position.set(ax + sd * 0.01, SH + 0.27, -0.02); g.add(ar);
+      for (i = 0; i < 12; i++) { var nh = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), V.brass); nh.position.set(ax + sd * 0.05, SH - 0.03, -SD / 2 + 0.05 + i * (SD - 0.1) / 11); g.add(nh); } });
+    for (i = 0; i < 16; i++) { var nf = new T.Mesh(new T.SphereGeometry(0.008, 6, 4), V.brass); nf.position.set(-SW / 2 + 0.04 + i * (SW - 0.08) / 15, SH - 0.03, SD / 2 + 0.002); g.add(nf); }
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (q) { var lg = new T.Mesh(new T.CylinderGeometry(0.03, 0.022, SH - 0.12, 10), dark); lg.position.set(q[0] * (SW / 2 - 0.06), (SH - 0.12) / 2 + 0.03, q[1] * (SD / 2 - 0.06)); g.add(lg);
+      var cs = new T.Mesh(new T.SphereGeometry(0.03, 10, 8), V.brass); cs.position.set(q[0] * (SW / 2 - 0.06), 0.03, q[1] * (SD / 2 - 0.06)); g.add(cs); });
+    g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+    return { group: g, hb: [SW + 0.2, BH + 0.08, SD], place: 'floor' };
+  };
+  if (!CAT.some(function (x) { return x.id === 'vic-exec'; })) CAT.push({ id: 'vic-exec', name: '皮质高背椅', en: 'Buttoned leather chair', icon: '▣', place: 'floor', size: [0.88, 1.38, 0.62], note: 'EC–6 维多利亚书房的家具' });
 })(window);
