@@ -51,6 +51,10 @@
       '................', '....cc....cc....', '...c..cccc..c...', '..c..cWWWWc..c..', '...cccWccWccc...', '..c..cWWWWc..c..',
       '...c..cccc..c...', '....cc....cc....', '.......cc.......', '..kkkkkkkkkkkk..', '.kssssssssssssk.', '.kgggggggggggggk',
       '..kkkkkggkkkkk..', '......kggk......', '....kkkkkkkk....', '................'],
+    scenicWindow: [
+      'kkkkkkkkkkkkkkkk', 'kuuuuuuuuuuuuuuk', 'kuuoooouuuuuuuuk', 'kuoyyyyouuuuuuuk', 'kuuoooouuuwwuuuk', 'kuuuuuuuwwwwwuuk',
+      'kuuuwwuwwGwwwwuk', 'kuwwGwwwGGGwwwwk', 'kwGGGGGGGGGGGwwk', 'knnnnoonnnnnnnnk', 'knyyoyyynnoynnnk', 'kCCCCCwrCCCCCCCk',
+      'kCcCCCwwCCCcCCCk', 'kCCCcCCCCCCCcCCk', 'kkkkkkkkkkkkkkkk', '.k............k.'],
     aquarium: [
       '................', '.kkkkkkkkkkkkkk.', '.kccccccccccccck', '.kcCCCCCCCCCCCck', '.kcCCCCppppCCCck', '.kcCCCpPpPppCCck',
       '.kcCCCppppppCCck', '.kcCnCCpCpCpCCck', '.kcnnCpCpCpCpCck', '.kcnnCCCCCCCCCck', '.kcyyyyyyyyyyyck', '.kkkkkkkkkkkkkkk',

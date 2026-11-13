@@ -486,7 +486,8 @@
           'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 },
           'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 },   // the backpack, on the floor left of the desk
           'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 },   // gramophone by the shelf; projector + its screen towards the door wall
-          'floor.portal': { p: [2.26, 0, 2.4], ry: Math.PI },   // the Times Square archway on the door wall, right of the door
+          'floor.portal': { p: [2.26, 0, 2.4], ry: Math.PI },
+          'floor.window': { p: [-1.2, 0, 2.45], ry: Math.PI },   // the Scenic Window, on the door wall, facing the room   // the Times Square archway on the door wall, right of the door
           'floor.holo': { p: [1.6, 0, 1.05], ry: -Math.PI / 2 }   // the holo lab console, on the open floor right of the room
         };
       },

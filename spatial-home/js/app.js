@@ -462,7 +462,7 @@
   }
   /* tapping the figure */
   var VERB = { typewriter: '去打字', planner: '看看日程', board: '看布告栏', album: '翻收藏册', projector: '看全息投影', ornament: '摸摸魔法摆件', backpack: '翻背包', gramophone: '放音乐', projector16: '看电影',
-    tsqPortal: '穿过传送门', holoDesk: '去全息操作台', aquarium: '看看 Octo', quill: '用羽毛笔写字', mochi: '找 Mochi 玩', carkey: '拿车钥匙去兜风', medals: '看看勋章', bookstand: '去看书', carmodel: '看看老爷车' };
+    tsqPortal: '穿过传送门', scenicWindow: '去窗前看风景', holoDesk: '去全息操作台', aquarium: '看看 Octo', quill: '用羽毛笔写字', mochi: '找 Mochi 玩', carkey: '拿车钥匙去兜风', medals: '看看勋章', bookstand: '去看书', carmodel: '看看老爷车' };
   function avatarHit(e) {
     if (!avatar.visible) return false; ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
     return ray.intersectObject(avatar, true).length > 0;
@@ -754,7 +754,7 @@
      A layout per environment: S.layouts[env] = { <thing id>: { p, ry, stashed }, extras: [ { uid, kind, p, ry, ref, title } ] }.
      Nothing is copied: a My World thing on display keeps only its ids (board / card / thing) and its title for the label.
      Every thing's close-up camera is stored relative to the thing, so it follows wherever the thing goes. */
-  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor', tsqPortal: 'floor', holoDesk: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
+  var PLACE = { scenicWindow: 'floor', board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor', tsqPortal: 'floor', holoDesk: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
   function placeType(o) { return o.style === 'wall' ? 'wall' : (PLACE[o.id] || 'surface'); }
   function m4of(p, ry) { return new THREE.Matrix4().makeRotationY(ry).setPosition(p[0], p[1], p[2]); }
   function localize(o) {
@@ -795,7 +795,7 @@
     var L = layout();
     objects.forEach(function (o) {
       localize(o);
-      var l = L[o.id], a = room.anchors[o.anchor] || room.anchors['desk.left'];
+      var l = L[o.id], a = room.anchors[o.anchor] || REF[o.anchor] || room.anchors['desk.left'];
       var p = l && l.p ? l.p : a.p, ry = l && isFinite(l.ry) ? l.ry : a.ry;
       o.group.position.set(p[0], p[1], p[2]); o.group.rotation.y = ry; o.stashed = l ? !!l.stashed : !!o.startStashed; o.group.visible = !o.stashed;   // some things start in the backpack
       o.chip.classList.toggle('stashed', o.stashed); settle(o);
