@@ -184962,10 +184962,58 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     for (i = 0; i < n; i++) { var u = (p.getX(i) - mn[0]) / (mx[0] - mn[0] || 1), v = (p.getZ(i) - mn[1]) / (mx[1] - mn[1] || 1); uv[2 * i] = sw ? v : u; uv[2 * i + 1] = sw ? u : v; }
     geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   }
+  /* a Victorian coffered ceiling under the model's plain one: walnut beams on a 2.5 m grid (each chandelier hangs in the
+     middle of a coffer), cream panels with a gilt fillet and a painted rosette, a stepped crown moulding, gilt medallions */
+  function cofferTexture() {
+    var c = document.createElement('canvas'); c.width = c.height = 512; var x = c.getContext('2d'), S = 512, m = S / 2, i;
+    var g = x.createRadialGradient(m, m, 20, m, m, 330); g.addColorStop(0, '#f4ead2'); g.addColorStop(1, '#d9c8a0'); x.fillStyle = g; x.fillRect(0, 0, S, S);
+    x.strokeStyle = '#b8903a'; x.lineWidth = 10; x.strokeRect(34, 34, S - 68, S - 68);
+    x.strokeStyle = '#7a5a24'; x.lineWidth = 2; x.strokeRect(48, 48, S - 96, S - 96);
+    x.strokeStyle = '#c9a24a'; x.lineWidth = 3; x.strokeRect(70, 70, S - 140, S - 140);
+    [[70, 70], [S - 70, 70], [70, S - 70], [S - 70, S - 70]].forEach(function (q) { x.fillStyle = '#c9a24a'; x.beginPath(); x.arc(q[0], q[1], 12, 0, 6.3); x.fill(); x.fillStyle = '#5a7a6a'; x.beginPath(); x.arc(q[0], q[1], 5, 0, 6.3); x.fill(); });
+    for (i = 0; i < 12; i++) { var a = i / 12 * Math.PI * 2; x.save(); x.translate(m, m); x.rotate(a); x.fillStyle = i % 2 ? '#8aa898' : '#6a8a7a';
+      x.beginPath(); x.moveTo(0, 18); x.quadraticCurveTo(34, 70, 0, 118); x.quadraticCurveTo(-34, 70, 0, 18); x.fill();
+      x.strokeStyle = '#c9a24a'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, 26); x.lineTo(0, 108); x.stroke(); x.restore(); }
+    x.strokeStyle = '#c9a24a'; x.lineWidth = 4; x.beginPath(); x.arc(m, m, 128, 0, 6.3); x.stroke(); x.lineWidth = 1.5; x.beginPath(); x.arc(m, m, 138, 0, 6.3); x.stroke();
+    for (i = 0; i < 24; i++) { var b = i / 24 * Math.PI * 2; x.fillStyle = '#b8903a'; x.beginPath(); x.arc(m + Math.cos(b) * 133, m + Math.sin(b) * 133, 3, 0, 6.3); x.fill(); }
+    x.fillStyle = '#c9a24a'; x.beginPath(); x.arc(m, m, 22, 0, 6.3); x.fill(); x.fillStyle = '#9a3a2a'; x.beginPath(); x.arc(m, m, 10, 0, 6.3); x.fill();
+    var im = x.getImageData(0, 0, S, S), D = im.data; for (i = 0; i < D.length; i += 4) { var n = (Math.random() - 0.5) * 10; D[i] += n; D[i + 1] += n; D[i + 2] += n; } x.putImageData(im, 0, 0);
+    var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t;
+  }
+  function cofferedCeiling(holder) {
+    var X0 = -8.45, X1 = 8.45, Z0 = -13.55, Z1 = 3.35, Y = 6.06, G = 2.5, gx0 = 1.25, gz0 = -0.65, g = new THREE.Group(); g.name = 'ceiling'; holder.add(g);
+    var tex = cofferTexture(), geo = new THREE.BufferGeometry(), P = [X0, Y, Z0, X1, Y, Z0, X1, Y, Z1, X0, Y, Z1], U = [];
+    for (var i = 0; i < 4; i++) U.push((P[3 * i] - gx0) / G, (P[3 * i + 2] - gz0) / G);
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); geo.setIndex([0, 1, 2, 0, 2, 3]); geo.computeVertexNormals();
+    var panelM = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, metalness: 0 }); g.add(new THREE.Mesh(geo, panelM));
+    var wood = new THREE.MeshStandardMaterial({ color: lin(0x4a2a18), roughness: 0.45, metalness: 0.05 }), gilt = new THREE.MeshStandardMaterial({ color: lin(0xc9a24a), roughness: 0.3, metalness: 0.85 });
+    var BW = 0.24, BD = 0.26, box = new THREE.BoxGeometry(1, 1, 1), beams = [], beads = [];
+    function beam(x, z, w, d) { beams.push([x, Y - BD / 2, z, w, BD, d]); beads.push([x, Y - BD - 0.012, z, Math.max(w > d ? w : 0.06, 0.06), 0.024, Math.max(d > w ? d : 0.06, 0.06)]); }
+    for (var bx = gx0 - G * 4; bx <= X1; bx += G) if (bx > X0 + 0.3 && bx < X1 - 0.3) beam(bx, (Z0 + Z1) / 2, BW, Z1 - Z0);
+    for (var bz = gz0 - G * 6; bz <= Z1; bz += G) if (bz > Z0 + 0.3 && bz < Z1 - 0.3) beam(0, bz, X1 - X0, BW);
+    function inst(list, mat) { var im = new THREE.InstancedMesh(box, mat, list.length), M = new THREE.Matrix4(), q = new THREE.Quaternion(); list.forEach(function (b, k) { M.compose(new THREE.Vector3(b[0], b[1], b[2]), q, new THREE.Vector3(b[3], b[4], b[5])); im.setMatrixAt(k, M); }); g.add(im); }
+    inst(beams, wood); inst(beads, gilt);
+    /* the crown moulding: three steps round the walls, a gilt fillet between */
+    var crown = [], cg = [];
+    [[0.34, 0.5, 0], [0.22, 0.3, 0.34], [0.12, 0.16, 0.56]].forEach(function (st) { var dpt = st[0], h = st[1], o = st[2];
+      crown.push([(X0 + X1) / 2, Y - h / 2, Z0 + o + dpt / 2, X1 - X0, h, dpt], [(X0 + X1) / 2, Y - h / 2, Z1 - o - dpt / 2, X1 - X0, h, dpt], [X0 + o + dpt / 2, Y - h / 2, (Z0 + Z1) / 2, dpt, h, Z1 - Z0], [X1 - o - dpt / 2, Y - h / 2, (Z0 + Z1) / 2, dpt, h, Z1 - Z0]);
+      cg.push([(X0 + X1) / 2, Y - h - 0.01, Z0 + o + dpt, X1 - X0, 0.02, 0.03], [(X0 + X1) / 2, Y - h - 0.01, Z1 - o - dpt, X1 - X0, 0.02, 0.03], [X0 + o + dpt, Y - h - 0.01, (Z0 + Z1) / 2, 0.03, 0.02, Z1 - Z0], [X1 - o - dpt, Y - h - 0.01, (Z0 + Z1) / 2, 0.03, 0.02, Z1 - Z0]); });
+    inst(crown, wood); inst(cg, gilt);
+    /* a gilt medallion over each chandelier: a turned rosette with a ring of leaves */
+    var prof = [[0, 0], [0.62, 0], [0.62, -0.03], [0.55, -0.05], [0.5, -0.04], [0.42, -0.07], [0.3, -0.06], [0.22, -0.1], [0.12, -0.12], [0.08, -0.2], [0, -0.21]].map(function (q) { return new THREE.Vector2(q[0], q[1]); });
+    var med = new THREE.LatheGeometry(prof, 40), leaf = new THREE.SphereGeometry(0.07, 10, 6), cream = new THREE.MeshStandardMaterial({ color: lin(0xf0e2c0), roughness: 0.6 });
+    [[0, -9.4], [0, -1.9]].forEach(function (c) {
+      var m = new THREE.Mesh(med, gilt); m.position.set(c[0], Y - 0.001, c[1]); g.add(m);
+      var plate = new THREE.Mesh(new THREE.CircleGeometry(0.9, 40), cream); plate.rotation.x = Math.PI / 2; plate.position.set(c[0], Y - 0.003, c[1]); g.add(plate);
+      for (var k = 0; k < 16; k++) { var a = k / 16 * Math.PI * 2, l = new THREE.Mesh(leaf, gilt); l.scale.set(0.6, 0.35, 1.6); l.position.set(c[0] + Math.cos(a) * 0.74, Y - 0.03, c[1] + Math.sin(a) * 0.74); l.rotation.y = -a + Math.PI / 2; g.add(l); }
+    });
+    return function () { tex.dispose(); panelM.dispose(); };
+  }
   function victorianFinish(ctx) {
     var holder = ctx.holder, model = ctx.model, scene = ctx.scene, R = SR.renderer, parts = [], lights = [];
     var rug = rugTexture(), rugM = new THREE.MeshStandardMaterial({ map: rug, roughness: 0.95, metalness: 0 });
     ctx.templates.forEach(function (t) { if (!/Rug/.test(t.node || '')) return; t.group.traverse(function (o) { if (o.isMesh) { o.geometry = o.geometry.clone(); rugUV(o.geometry); o.material = rugM; } }); });
+    var ceilDispose = cofferedCeiling(holder);
     /* reflections: a small warm room rendered once into an environment map */
     var envTex = null;
     if (R && THREE.PMREMGenerator) {
@@ -184974,7 +185022,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       var pm = new THREE.PMREMGenerator(R); envTex = pm.fromScene(es, 0.04).texture; pm.dispose(); scene.environment = envTex;
     }
     /* the chandeliers light the room: candle-warm, a slight flicker */
-    [[0, 3.75, -9.4], [0, 3.75, -1.9]].forEach(function (p) { var l = new THREE.PointLight(0xffc98a, 0.9, 10, 2); l.position.fromArray(p); holder.add(l); lights.push({ l: l, base: 0.9, f: Math.random() * 9 }); });
+    [[0, 4.7, -9.4], [0, 4.7, -1.9]].forEach(function (p) { var l = new THREE.PointLight(0xffc98a, 1.1, 12, 2); l.position.fromArray(p); holder.add(l); lights.push({ l: l, base: 0.9, f: Math.random() * 9 }); });
     /* the fire in the hearth: logs, flames, embers, its light */
     var fire = new THREE.Group(); fire.position.set(0, 0.17, -12.3); holder.add(fire);
     var logM = new THREE.MeshStandardMaterial({ color: lin(0x3a2416), roughness: 0.9 }), emb = new THREE.MeshBasicMaterial({ color: 0xff6a20, toneMapped: false }), ash = new THREE.MeshStandardMaterial({ color: lin(0x2a2420), roughness: 1 });
@@ -185006,7 +185054,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         lights.forEach(function (q) { q.l.intensity = q.base * (0.94 + 0.06 * Math.sin(t * 7 + q.f)); });
       },
       setTime: function (m) { mode = m || 'auto'; apply(); },
-      dispose: function () { if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); rug.dispose(); rugM.dispose(); }
+      dispose: function () { if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); ceilDispose(); rug.dispose(); rugM.dispose(); }
     };
   }
   function makeEnv(def) {
