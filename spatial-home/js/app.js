@@ -687,7 +687,7 @@
     if (edit.type === 'wall') g.position.y = clamp(g.position.y, 0.9, 2.3);
     else {                                                                         // stay on whatever is under it now
       downRay.set(new THREE.Vector3(g.position.x, g.position.y + 0.5, g.position.z), new THREE.Vector3(0, -1, 0)); g.visible = false;
-      var hs = downRay.intersectObjects([room.group].concat(XS.filter(function (x) { return x !== edit.x; }).map(function (x) { return x.group; })), true); g.visible = true;
+      var hs = downRay.intersectObjects([room.group].concat(room.surfaces || [], XS.filter(function (x) { return x !== edit.x; }).map(function (x) { return x.group; })), true); g.visible = true;
       var ok = hs.filter(function (h) { var m = h.object.material; return h.face && !(m && m.visible === false) && !(m && m.transparent && m.opacity < 0.3) && h.face.normal.clone().transformDirection(h.object.matrixWorld).y > 0.7; })[0];
       if (ok && (edit.type !== 'floor' || ok.point.y < 0.06 || snapIs(ok, 'pedestal'))) g.position.y = ok.point.y;
     }
@@ -732,7 +732,7 @@
   function editMove(e) {
     if (!edit) return;
     ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); srf.setFromCamera(ndc, camera);
-    var targets = [room.group].concat(XS.filter(function (x) { return x !== edit.x; }).map(function (x) { return x.group; }));
+    var targets = [room.group].concat(room.surfaces || [], XS.filter(function (x) { return x !== edit.x; }).map(function (x) { return x.group; }));   // + an outside model's surfaces
     var hs = srf.intersectObjects(targets, true);
     for (var i = 0; i < hs.length; i++) {
       var h = hs[i], m = h.object.material; if (!h.face || (m && m.transparent && m.opacity < 0.3) || (m && m.visible === false)) continue;

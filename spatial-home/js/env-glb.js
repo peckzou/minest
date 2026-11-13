@@ -86,6 +86,67 @@
       if (keep.length !== idx.count) g.setIndex(keep);
     });
   }
+  /* the surfaces of an outside model that things can stand on — so Spatial Home's things can be set out on it, not only
+     on our own furniture: every horizontal face between 0.2 m and 2.3 m (table tops, cabinets, sills, mantels, shelves)
+     plus one floor plane, as an invisible mesh the placing ray looks at (far fewer triangles than the model itself) */
+  function surfacesOf(model, walk) {
+    model.updateMatrixWorld(true);
+    var A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), n = new THREE.Vector3(), out = [];
+    model.traverse(function (m) {
+      if (!m.isMesh || !m.visible) return; var pos = m.geometry.attributes.position, idx = m.geometry.index, cnt = idx ? idx.count : pos.count, M = m.matrixWorld;
+      var get = function (k, v) { var i = idx ? idx.getX(k) : k; return v.set(raw(pos, i, 0), raw(pos, i, 1), raw(pos, i, 2)).applyMatrix4(M); };
+      for (var k = 0; k + 2 < cnt; k += 3) {
+        get(k, A); get(k + 1, B); get(k + 2, C); var y = (A.y + B.y + C.y) / 3; if (y < 0.2 || y > 2.3) continue;
+        e1.subVectors(B, A); e2.subVectors(C, A); n.crossVectors(e1, e2); var L = n.length(); if (L < 2e-4 || Math.abs(n.y / L) < 0.82) continue;
+        out.push(A.x, A.y, A.z, B.x, B.y, B.z, C.x, C.y, C.z);
+      }
+    });
+    var mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), grp = new THREE.Group(); grp.name = 'surfaces';
+    if (out.length) { var geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(out, 3)); geo.computeBoundingSphere(); var sm = new THREE.Mesh(geo, mat); sm.visible = false; grp.add(sm); }
+    var fl = new THREE.Mesh(new THREE.PlaneGeometry(walk[2] - walk[0], walk[3] - walk[1]), mat); fl.rotation.x = -Math.PI / 2; fl.position.set((walk[0] + walk[2]) / 2, 0.001, (walk[1] + walk[3]) / 2); fl.visible = false; grp.add(fl);
+    return { group: grp, tris: out.length / 9 };
+  }
+  /* the King's Hall chandelier, after the photograph of the room: a long red velvet rope from the ceiling sculpture, a gilt
+     crown, and a cascade of crystal strands (clear, with blue glass beads) — narrow at the top, full in the middle,
+     drawn to a point at the bottom — with candles inside. ~700 beads in one instanced mesh. */
+  function chandelier(g, x, z, ceil) {
+    var L = function (h) { return new THREE.Color(h).convertSRGBToLinear(); };
+    var gold = new THREE.MeshStandardMaterial({ color: L(0xc9a24a), roughness: 0.28, metalness: 0.9 }), velvet = new THREE.MeshStandardMaterial({ color: L(0x8a1f2c), roughness: 0.85 });
+    var wax = new THREE.MeshStandardMaterial({ color: L(0xf3ead6), roughness: 0.6 });
+    var flame = new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+    var c = new THREE.Group(); c.name = 'chandelier'; c.position.set(x, 0, z); g.add(c);
+    var top = 2.78, bottom = 1.72;
+    var rope = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, ceil - top - 0.02, 12), velvet); rope.position.y = (ceil + top) / 2; c.add(rope);
+    var tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.035, 0.08, 12), velvet); tassel.position.y = top + 0.06; c.add(tassel);
+    var crown = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.014, 8, 32), gold); crown.rotation.x = Math.PI / 2; crown.position.y = top; c.add(crown);
+    var hoop = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.01, 8, 40), gold); hoop.rotation.x = Math.PI / 2; hoop.position.y = 2.2; c.add(hoop);
+    /* the profile of the cascade: radius at height y */
+    function rad(y) { var t = (top - y) / (top - bottom); return t < 0.55 ? 0.17 + (0.42 - 0.17) * Math.sin(t / 0.55 * Math.PI / 2) : 0.42 * Math.cos((t - 0.55) / 0.45 * Math.PI / 2) + 0.012; }
+    var STR = 30, PER = 24, n = STR * PER, beadG = new THREE.OctahedronGeometry(0.016, 0);
+    var beadM = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.72, shininess: 180, specular: 0xffffff, vertexColors: false });
+    var inst = new THREE.InstancedMesh(beadG, beadM, n); inst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
+    var m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), blue = new THREE.Color(0x5b7fe0), clear = new THREE.Color(0xf4f8ff), k = 0;
+    for (var s2 = 0; s2 < STR; s2++) {
+      var a0 = s2 / STR * Math.PI * 2;
+      for (var j2 = 0; j2 < PER; j2++) {
+        var y = top - 0.03 - j2 / (PER - 1) * (top - bottom - 0.03), r = rad(y), a = a0 + j2 * 0.035;   // the strands twist a little
+        pos.set(Math.cos(a) * r, y, Math.sin(a) * r); var big = 0.8 + 0.5 * Math.sin(j2 * 1.7 + s2);
+        sc.set(big, big * 1.5, big); m4.compose(pos, q, sc); inst.setMatrixAt(k, m4);
+        var col = (j2 + s2) % 5 === 0 ? blue : clear; inst.instanceColor.setXYZ(k, col.r, col.g, col.b); k++;
+      }
+    }
+    inst.instanceMatrix.needsUpdate = true; c.add(inst);
+    var tip = new THREE.Mesh(new THREE.OctahedronGeometry(0.03, 0), beadM); tip.scale.set(1, 2.2, 1); tip.position.y = bottom - 0.05; c.add(tip);
+    var cupG = new THREE.CylinderGeometry(0.03, 0.02, 0.025, 12), candleG = new THREE.CylinderGeometry(0.011, 0.011, 0.1, 8), flameG = new THREE.SphereGeometry(0.013, 8, 6);
+    for (var i2 = 0; i2 < 8; i2++) {                                          // candles inside the cascade
+      var b = i2 / 8 * Math.PI * 2, cx = Math.cos(b) * 0.24, cz = Math.sin(b) * 0.24;
+      var cup = new THREE.Mesh(cupG, gold); cup.position.set(cx, 2.2, cz); c.add(cup);
+      var cd = new THREE.Mesh(candleG, wax); cd.position.set(cx, 2.26, cz); c.add(cd);
+      var fl = new THREE.Mesh(flameG, flame); fl.scale.set(1, 1.7, 1); fl.position.set(cx, 2.33, cz); c.add(fl);
+    }
+    var light = new THREE.PointLight(0xffe2b0, 0.85, 7, 2); light.position.y = 2.25; c.add(light);
+    return c;
+  }
   function makeEnv(def) {
     return function build(scene) {
       var holder = new THREE.Group(); holder.name = 'env-' + def.id; scene.add(holder);
@@ -108,7 +169,8 @@
       A['floor.holo'] = { p: [1.6, 0, 1.05], ry: -PI / 2 };
       if (def.anchors) Object.keys(def.anchors).forEach(function (k) { A[k] = def.anchors[k]; });   // a showroom places every thing itself
       var solids = def.showroom ? [] : PT.solids().slice(), office = def.showroom ? null : [-3.1, -2.7, 3.1, 2.7];
-      var areas = [def.walk.slice()];                                   // the whole hall can be walked; the model's own obstacles stop you
+      var areas = [def.walk.slice()], surfaces = [];
+      if (def.chandelier) chandelier(g, def.chandelier[0], def.chandelier[1], def.chandelier[2]);                                   // the whole hall can be walked; the model's own obstacles stop you
 
       gltfLoader().then(function () {
         new THREE.GLTFLoader().load(siteBase() + def.glb, function (gl) {
@@ -117,12 +179,14 @@
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
           holder.add(m); cut(m, def.cut);
           var R = solidsOf(m, 0, office); R.solids.forEach(function (s) { solids.push(s); });
+          var SF = surfacesOf(m, def.walk); holder.add(SF.group); surfaces.push(SF.group);      // things can stand on the model now
         }, undefined, function (e) { if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); });
       }, function () {});
 
       return {
         id: def.id, name: def.name, group: g, holder: holder, far: 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
+        surfaces: surfaces,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function () {}, tick: function () {},
         dispose: function () { SR.disposeTree(holder); scene.background = null; }
@@ -137,7 +201,8 @@
   var PI = Math.PI, TY = 0.805;
   var KINGS = { id: 'kings-hall', name: "The King's Hall · Skokloster", glb: 'interiors-glb/assets/kings_hall.glb', h: 4.5, showroom: true,
     offset: [0.37, 1.3, -10.735], walk: [-5.6, -9.9, 5.6, 5.2],
-    cut: [[-1.1, 0.06, -2.86, 1.2, 1.5, -0.93]],
+    cut: [[-1.1, 0.06, -2.86, 1.2, 1.5, -0.93], [-0.52, 1.6, -2.3, 0.54, 3.42, -1.22]],   // the table and chairs; the chandelier (below the ceiling rosette)
+    chandelier: [0.01, -1.765, 3.42],
     easel: [-2.0, -0.75, 0],
     start: { pos: [0.6, 1.5, 1.6], yaw: 0.12, pitch: -0.12 }, deskCam: { pos: [0, 1.45, -0.2], look: [0, 0.82, -2.1] },
     anchors: {
