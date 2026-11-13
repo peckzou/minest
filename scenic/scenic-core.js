@@ -15,6 +15,10 @@
     alps: {
       id: 'alps', kind: 'pano', name: 'Heidi’s Alpine Meadow', zh: '海蒂的高山草甸', place: 'Graubünden · Switzerland 瑞士', kindZh: '360° 实拍全景 · 可完整环顾',
       img: 'assets/alps/alps_8k.webp', imgLow: 'assets/alps/alps_4k.webp', thumb: 'assets/alps/alps_thumb.jpg', camH: 1.6, R: 2600, yaw: 0, vfov: 62,
+      /* appearances only where a real photograph exists: this panorama was taken once, by day */
+      appear: { day: { zh: '白天', note: '实拍 · 晴天上午' } }, appearDef: 'day',
+      caps: ['wind', 'veg', 'cloud', 'haze', 'light'], haze: [0.78, 0.84, 0.92],
+      audio: { wind: 0.55, water: 0, birds: 0.6, bed: 0.4, bell: 0 },
       credit: 'Panorama: “Alps Field” by Andreas Mischok · <a href="https://polyhaven.com/a/alps_field" target="_blank" rel="noopener">Poly Haven</a> · CC0'
     },
     bled: {
@@ -24,26 +28,47 @@
       aspect: 4096 / 3208, vfov: 40,
       zmap: { B: 1 / 3500, C: 0.073, p: 2.2 },                       // relative inverse depth → metres (island ≈ 350 m, near lake ≈ 100 m, mountains ≈ 3.5 km)
       pivot: [0.49, 0.72],
-      credit: 'Photo: <a href="https://commons.wikimedia.org/wiki/File:Bled_Island_06.jpg" target="_blank" rel="noopener">Krzysztof Golik · Bled Island 06</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> · colour-graded to an autumn sunset by Minest · depth: Depth Anything V2'
+      /* the same photograph, as taken (day) and as Minest graded it (sunset — a colour grade of that daytime photo, said so
+         plainly). No night: there is no night photograph, and darkening the day would be a fake. */
+      appear: {
+        day: { zh: '白天', note: '实拍原片', bg: 'assets/bled/day/bg_4k.webp', bgLow: 'assets/bled/day/bg_2k.webp', fg: 'assets/bled/day/fg_2k.png',
+          depthBg: 'assets/bled/day/depth_bg_1024.png', depthFg: 'assets/bled/day/depth_fg_1024.png', thumb: 'assets/bled/day/bled_day_2k.webp', haze: [0.74, 0.8, 0.88], spark: [1.0, 0.97, 0.9] },
+        sunset: { zh: '日落', note: '同一张白天实拍，由 Minest 调色成秋日日落（不是日落实拍）', haze: [0.95, 0.72, 0.55], spark: [1.0, 0.82, 0.6] }
+      }, appearDef: 'sunset',
+      caps: ['water', 'wind', 'veg', 'cloud', 'haze', 'light'], haze: [0.95, 0.72, 0.55],
+      audio: { wind: 0.3, water: 0.65, birds: 0.45, bed: 0.35, bell: 0.5 },
+      credit: 'Photo: <a href="https://commons.wikimedia.org/wiki/File:Bled_Island_06.jpg" target="_blank" rel="noopener">Krzysztof Golik · Bled Island 06</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> · depth: Depth Anything V2'
     }
   };
-  var VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }';
+  /* the living environment: each motion has its own switch (uniforms 0..1, eased by the caller); uLive is the master */
+  var LIVE = 'uniform float uT; uniform float uLive; uniform float uWater; uniform float uWind; uniform float uVeg; uniform float uCloud; uniform float uHaze; uniform float uLight; uniform vec3 uHazeC; uniform vec3 uSpark;';
+  function VS(layer) { return [LIVE, 'varying vec2 vUv; varying float vZ;',
+    'void main(){ vUv = uv; vec3 p = position; vZ = -p.z;',
+    layer === 'fg' ? '  float w = uWind * uLive; float g = 0.6 + 0.4 * sin(uT * 0.23); p.x += w * g * sin(uT * 0.9 + p.y * 0.35) * 0.035 * smoothstep(-2.0, 6.0, p.y); p.y += w * g * sin(uT * 1.3 + p.x * 0.5) * 0.012;' : '',   // the branch sways (it is ~13 m away: a few pixels)
+    '  gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0); }'].join('\n'); }
   function FS(layer) { return [
-    'uniform sampler2D map; uniform sampler2D fx; uniform float uT; uniform float uLive; uniform float uFgW; varying vec2 vUv;',
+    'uniform sampler2D map; uniform sampler2D fx; uniform float uFgW; varying vec2 vUv; varying float vZ;', LIVE,
     'void main(){',
     '  vec2 uv = vUv;',
     layer === 'fg' ? '  vec2 fuv = vec2(vUv.x * uFgW, vUv.y); vec4 m = texture2D(fx, fuv);' : '  vec4 m = texture2D(fx, vUv);',
-    '  float sky = m.r * uLive, lake = m.g * uLive;',
+    '  float sky = m.r * uLive * uCloud, lake = m.g * uLive * uWater;',
     '  uv += sky * vec2(sin(uT*0.031 + vUv.y*5.0)*0.0035 + uT*0.00025, cos(uT*0.027 + vUv.x*4.0)*0.0016);',
     '  float near = smoothstep(0.35, 0.0, vUv.y);',
     '  uv += lake * vec2(sin(vUv.y*620.0 + uT*1.4 + sin(vUv.x*30.0))*0.00045, sin(vUv.x*340.0 + uT*1.1)*0.00028) * (0.4 + near);',
+    layer === 'fg' ? '  uv += uVeg * uLive * vec2(sin(vUv.y*900.0 + uT*3.1), cos(vUv.x*700.0 + uT*2.6)) * 0.00035;' : '',   // leaves flutter on the branch
     '  vec4 c = texture2D(map, uv);',
     layer === 'fg' ? '  if (c.a < 0.04) discard;' : '',
     '  float sparkle = lake * pow(max(0.0, sin(vUv.x*900.0 + uT*2.3) * sin(vUv.y*1400.0 - uT*1.7)), 24.0) * smoothstep(0.45, 1.0, vUv.x);',
-    '  c.rgb += vec3(1.0, 0.82, 0.6) * sparkle * 0.35;',
-    '  c.rgb *= 1.0 + 0.025 * sin(uT * 0.09) * uLive;',
+    '  c.rgb += uSpark * sparkle * 0.35;',
+    '  float hz = uHaze * uLive * smoothstep(380.0, 3400.0, vZ) * (0.05 + 0.035 * sin(uT * 0.05 + vUv.x * 4.0 + vUv.y * 2.0));',   // a breath of haze over the far hills, drifting
+    '  c.rgb = mix(c.rgb, uHazeC, hz);',
+    '  c.rgb *= 1.0 + 0.025 * sin(uT * 0.09) * uLive * uLight;',
     '  gl_FragColor = vec4(c.rgb, ' + (layer === 'fg' ? 'c.a' : '1.0') + ');',
     '}'].join('\n'); }
+  function liveU(SC, ap) { var THREE = root.THREE, hc = (ap && ap.haze) || SC.haze || [0.8, 0.8, 0.85], sp = (ap && ap.spark) || [1, 0.82, 0.6];
+    return { uT: { value: 0 }, uLive: { value: 1 }, uWater: { value: 1 }, uWind: { value: 1 }, uVeg: { value: 1 }, uCloud: { value: 1 }, uHaze: { value: 1 }, uLight: { value: 1 },
+      uHazeC: { value: new THREE.Vector3(hc[0], hc[1], hc[2]) }, uSpark: { value: new THREE.Vector3(sp[0], sp[1], sp[2]) } }; }
+  function pick(SC, ap) { var a = (SC.appear && SC.appear[ap]) || null, o = {}; for (var k in SC) o[k] = SC[k]; if (a) for (var q in a) if (q !== 'zh' && q !== 'note') o[q] = a[q]; o.appearId = a ? ap : SC.appearDef; return o; }
 
   function img(src) { return new Promise(function (res, rej) { var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function () { res(i); }; i.onerror = rej; i.src = src; }); }
   function pixels(i) { var c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight; var x = c.getContext('2d'); x.drawImage(i, 0, 0); return { w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data }; }
@@ -52,33 +77,36 @@
 
   /** load(id, {base, low, renderer}) → Promise<{group, U, SC, P, tanH, tanV, dispose}> */
   var VS_PANO = 'varying vec2 vUv; varying vec3 vD; void main(){ vUv = uv; vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }';
-  var FS_PANO = ['uniform sampler2D map; uniform float uT; uniform float uLive; varying vec2 vUv; varying vec3 vD;',
+  var FS_PANO = ['uniform sampler2D map; varying vec2 vUv; varying vec3 vD;', LIVE,
     'void main(){',
     '  vec2 uv = vUv; float y = vD.y;',
-    '  float sky = smoothstep(0.1, 0.22, y) * uLive;',
-    '  uv += sky * vec2(sin(uT*0.025 + uv.y*9.0) * 0.0009 + uT * 0.00002, cos(uT*0.02 + uv.x*12.0) * 0.0005);',   // clouds breathe and creep
-    '  float grass = smoothstep(-0.12, -0.35, y) * uLive;',
-    '  uv += grass * vec2(sin(uv.x*1600.0 + uT*1.6 + sin(uv.y*700.0 + uT*0.7)*2.0), 0.0) * 0.00018 * (0.6 + 0.4*sin(uT*0.4 + uv.x*20.0));',   // wind over the meadow
+    '  float sky = smoothstep(0.1, 0.22, y) * uLive * uCloud;',
+    '  float gust = 0.55 + 0.45 * sin(uT * 0.21 + sin(uT * 0.07) * 2.0);',
+    '  uv += sky * vec2(sin(uT*0.025 + uv.y*9.0) * 0.0009 + uT * 0.00002 * (1.0 + uWind * gust), cos(uT*0.02 + uv.x*12.0) * 0.0005);',   // clouds breathe and creep (faster in a gust)
+    '  float grass = smoothstep(-0.12, -0.35, y) * uLive * uVeg;',
+    '  uv += grass * vec2(sin(uv.x*1600.0 + uT*1.6 + sin(uv.y*700.0 + uT*0.7)*2.0), 0.0) * 0.00018 * (0.45 + 0.55 * mix(0.5, gust, uWind)) * (0.6 + 0.4*sin(uT*0.4 + uv.x*20.0));',   // wind over the meadow
     '  vec3 c = texture2D(map, uv).rgb;',
-    '  c *= 1.0 + 0.02 * sin(uT * 0.08) * uLive;',
+    '  float hz = uHaze * uLive * (1.0 - smoothstep(0.0, 0.16, abs(y - 0.02))) * (0.06 + 0.04 * sin(uT * 0.04 + uv.x * 18.0));',   // haze along the horizon, drifting
+    '  c = mix(c, uHazeC, hz);',
+    '  c *= 1.0 + 0.02 * sin(uT * 0.08) * uLive * uLight;',
     '  gl_FragColor = vec4(c, 1.0);',
     '}'].join('\n');
   function loadPano(SC, base, low, o) {
-    var THREE = root.THREE;
+    var THREE = root.THREE; SC = pick(SC, o && o.appearance);
     return img(base + (low ? SC.imgLow : SC.img)).then(function (i) {
       var t = new THREE.Texture(i); t.needsUpdate = true; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.wrapS = THREE.RepeatWrapping;
-      var U = { uT: { value: 0 }, uLive: { value: 1 } };
+      var U = liveU(SC);
       var g = new THREE.SphereGeometry(1, low ? 96 : 160, low ? 56 : 96), p = g.attributes.position, v = new THREE.Vector3();
       for (var k = 0; k < p.count; k++) { v.set(p.getX(k), p.getY(k), p.getZ(k)).normalize(); var r = SC.R; if (v.y < 0) r = Math.min(SC.R, SC.camH / Math.max(1e-4, -v.y)); p.setXYZ(k, -v.x * r, v.y * r, v.z * r); }
       g.computeBoundingSphere();
-      var m = new THREE.Mesh(g, new THREE.ShaderMaterial({ uniforms: { map: { value: t }, uT: U.uT, uLive: U.uLive }, vertexShader: VS_PANO, fragmentShader: FS_PANO, side: THREE.DoubleSide }));
+      var m = new THREE.Mesh(g, new THREE.ShaderMaterial({ uniforms: Object.assign({ map: { value: t } }, U), vertexShader: VS_PANO, fragmentShader: FS_PANO, side: THREE.DoubleSide }));
       m.frustumCulled = false; m.rotation.y = SC.yaw; var group = new THREE.Group(); group.add(m);
-      return { group: group, U: U, SC: SC, kind: 'pano', P: new THREE.Vector3(0, 0, -100), tanV: Math.tan(SC.vfov / 2 * Math.PI / 180), tanH: Math.tan(SC.vfov / 2 * Math.PI / 180) * 1.6,
+      return { group: group, U: U, SC: SCENES[SC.id], kind: 'pano', appear: SC.appearId, P: new THREE.Vector3(0, 0, -100), tanV: Math.tan(SC.vfov / 2 * Math.PI / 180), tanH: Math.tan(SC.vfov / 2 * Math.PI / 180) * 1.6,
         dispose: function () { g.dispose(); m.material.dispose(); t.dispose(); } };
     });
   }
   function load(id, o) {
-    var THREE = root.THREE, SC = SCENES[id || 'bled'] || SCENES.bled, base = (o && o.base) || '', low = !!(o && o.low);
+    var THREE = root.THREE, SC0 = SCENES[id || 'bled'] || SCENES.bled, SC = pick(SC0, o && o.appearance), base = (o && o.base) || '', low = !!(o && o.low);
     if (SC.kind === 'pano') return loadPano(SC, base, low, o);
     var tanV = Math.tan(SC.vfov / 2 * Math.PI / 180), tanH = tanV * SC.aspect;
     function zOf(d) { var m = SC.zmap; return 1 / (m.B + m.C * Math.pow(Math.max(0, d), m.p)); }
@@ -86,9 +114,9 @@
       var maxA = o && o.renderer ? o.renderer.capabilities.getMaxAnisotropy() : 4;
       function tex(i) { var t = new THREE.Texture(i); t.needsUpdate = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = maxA; return t; }
       var tBg = tex(r[0]), tFg = tex(r[1]), tFx = new THREE.Texture(r[4]); tFx.needsUpdate = true;
-      var U = { uT: { value: 0 }, uLive: { value: 1 }, uFgW: { value: SC.fgW } };
-      function mat(layer, map) { var u = { map: { value: map }, fx: { value: tFx }, uT: U.uT, uLive: U.uLive, uFgW: U.uFgW };
-        return new THREE.ShaderMaterial({ uniforms: u, vertexShader: VS, fragmentShader: FS(layer), side: THREE.DoubleSide, transparent: layer === 'fg', depthWrite: true }); }
+      var U = liveU(SC0, SC0.appear && SC0.appear[SC.appearId]); U.uFgW = { value: SC.fgW };
+      function mat(layer, map) { var u = Object.assign({ map: { value: map }, fx: { value: tFx } }, U);
+        return new THREE.ShaderMaterial({ uniforms: u, vertexShader: VS(layer), fragmentShader: FS(layer), side: THREE.DoubleSide, transparent: layer === 'fg', depthWrite: true }); }
       var dBg = sampler(pixels(r[2])), FG = pixels(r[1]), aFg = sampler(FG, 3), dFg = sampler(pixels(r[3]));
       function grid(NX, NY, u0, u1, dAt, keep) {
         var pos = new Float32Array(NX * NY * 3), uv = new Float32Array(NX * NY * 2), idx = [], k, i, j;
@@ -115,9 +143,12 @@
       var fg = new THREE.Mesh(fgGeo, mat('fg', tFg)); fg.renderOrder = 2;
       var group = new THREE.Group(); group.add(bg); group.add(fg);
       var P = new THREE.Vector3((2 * SC.pivot[0] - 1) * tanH, (1 - 2 * SC.pivot[1]) * tanV, -1).multiplyScalar(zOf(dBg(SC.pivot[0], SC.pivot[1])));
-      return { group: group, U: U, SC: SC, kind: 'depth25', P: P, tanH: tanH, tanV: tanV, zOf: zOf,
+      return { group: group, U: U, SC: SC0, kind: 'depth25', appear: SC.appearId, P: P, tanH: tanH, tanV: tanV, zOf: zOf,
         dispose: function () { [bg, fg].forEach(function (m) { m.geometry.dispose(); m.material.dispose(); }); [tBg, tFg, tFx].forEach(function (t) { t.dispose(); }); } };
     });
   }
-  root.ScenicCore = { scenes: SCENES, load: load };
+  /* Automatic: the real appearance closest to the time of day here (no night photograph → the evening one, said so) */
+  function autoAppear(SC, d) { var h = (d || new Date()).getHours(), want = h >= 7 && h < 16 ? 'day' : 'sunset', A = SC.appear || {};
+    if (A[want]) return want; return A.day ? 'day' : SC.appearDef; }
+  root.ScenicCore = { scenes: SCENES, load: load, autoAppear: autoAppear };
 })(window);

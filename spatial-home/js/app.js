@@ -198,6 +198,7 @@
     if (busy || !o) return;
     if (o.panel) {
       busy = true; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true;
+      if (o.aim) try { o.aim(); } catch (e) {}   // a thing may fit its close-up to the room first (the Scenic Window: stand back, short of the furniture)
       flyLook(o.focus.pos, o.focus.look, 0.8).then(function () { return animK(o, 1, 0.4); }).then(function () { return runPanel(o); });
       return;
     }
@@ -1184,7 +1185,7 @@
     requestAnimationFrame(frame);
     var dt = Math.min(0.05, clock.getDelta());
     stepTweens(dt);
-    if (paused || document.hidden || body.hidden) return;
+    if (paused || document.hidden || body.hidden || window.SpatialRoom.hold) return;   // hold: Scenic World is fully immersive over the room (scenic-window.js)
     T += dt; move(dt); strollStep(dt);
     if (camAuto) { autoPose(camera.position, camera.quaternion); if (room.shake && !S.motion) { var sh = room.shake(T); camera.position.y += sh.y; camera.rotateZ(sh.roll); } }
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;

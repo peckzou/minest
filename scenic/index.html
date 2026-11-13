@@ -8,6 +8,7 @@
 :root{--ink:#f6f1e8;--dim:rgba(246,241,232,.62);--glass:rgba(22,24,30,.38);--line:rgba(255,255,255,.16)}
 html,body{margin:0;height:100%;overflow:hidden;background:#1a1612;color:var(--ink);font:500 12px/1.4 -apple-system,"SF Pro Text","PingFang SC",system-ui,sans-serif;-webkit-user-select:none;user-select:none;touch-action:none}
 /* the photo shows at once (no black, no white) while the 3D scene loads; the canvas fades in over it */
+html.embed,html.embed body{background:transparent}
 #plate{position:fixed;inset:0;background:#1a1612 center/cover no-repeat;transition:opacity 1.2s ease}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.2s ease}
 body.live #gl{opacity:1}
@@ -45,17 +46,47 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4;transition:opacity .35s}
 #hint{left:50%;top:calc(20px + env(safe-area-inset-top));transform:translateX(-50%);color:var(--dim);font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
 
-/* the drone remote (Mode 2): left stick = throttle (rise / sink) and yaw (turn), right stick = pitch (forward / back) and roll (slide) */
-.stick{position:fixed;z-index:3;bottom:calc(98px + env(safe-area-inset-bottom));width:124px;height:124px;border-radius:50%;background:var(--glass);border:1px solid var(--line);
-  -webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);touch-action:none;transition:opacity .5s ease,transform .5s ease}
-.stick::before,.stick::after{content:'';position:absolute;background:rgba(255,255,255,.18)}
-.stick::before{left:50%;top:14px;bottom:14px;width:1px}.stick::after{top:50%;left:14px;right:14px;height:1px}
-.stick i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,#d8d8de);box-shadow:0 3px 10px rgba(0,0,0,.35);z-index:1}
-.stick span{position:absolute;left:-20px;right:-20px;top:-19px;text-align:center;font-size:10px;color:var(--dim);letter-spacing:.04em}
-.stick b{position:absolute;font-size:9px;font-weight:500;color:rgba(255,255,255,.45)}
-#stL{left:calc(22px + env(safe-area-inset-left))}#stR{right:calc(22px + env(safe-area-inset-right))}
-body.calm .stick{opacity:0;pointer-events:none;transform:translateY(8px)}
-@media (max-width:520px){.stick{width:104px;height:104px;bottom:calc(92px + env(safe-area-inset-bottom))}.stick i{width:42px;height:42px;margin:-21px}}
+/* Vision Pro refinement: segmented tabs, level cards, chips, switches, the mixer, the workspace window */
+.seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:rgba(255,255,255,.08);margin-bottom:10px}
+.seg button,.chips button,.levels button,.wide,.acts button,.btns button{all:unset;cursor:pointer;box-sizing:border-box}
+.seg button{flex:1;text-align:center;padding:6px 4px;border-radius:9px;color:var(--dim)}.seg button.on{background:rgba(255,255,255,.18);color:var(--ink)}
+.note{color:var(--dim);font-size:10.5px;line-height:1.5;margin:8px 2px 0}
+.panel{max-height:min(62vh,560px);overflow:auto}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.levels button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid transparent;text-align:center;font-weight:600}
+.levels button em{font-style:normal;font-weight:400;font-size:9.5px;color:var(--dim);line-height:1.35}
+.levels button.on{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.14)}.levels button:disabled{opacity:.35;cursor:default}
+.levels svg{width:30px;height:22px;stroke:currentColor;fill:none;stroke-width:1.4}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chips button{padding:6px 14px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid transparent}
+.chips button.on{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.16)}.chips button:disabled{opacity:.32;cursor:default;text-decoration:line-through}
+.sw{display:flex;justify-content:space-between;align-items:center;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer}
+.sw span em{display:block;font-style:normal;font-size:9.5px;color:var(--dim)}.sw.off{opacity:.45;cursor:default}
+.sw input{display:none}.sw i{width:38px;height:22px;border-radius:11px;background:rgba(255,255,255,.2);position:relative;flex:none;transition:background .2s}
+.sw i::after{content:'';position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw input:checked+i{background:#34c759}.sw input:checked+i::after{transform:translateX(16px)}
+.mrow{display:grid;grid-template-columns:26px 62px 1fr 30px;align-items:center;gap:8px;margin:7px 0}.mrow span{color:var(--dim)}.mrow.master span{color:var(--ink);font-weight:600}
+.mrow b{font-weight:500;text-align:right;font-variant-numeric:tabular-nums}.mrow em{font-style:normal;color:var(--dim);font-size:10px}.mrow.off{opacity:.45}
+.mute{all:unset;cursor:pointer;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.1) center/14px no-repeat;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 10v4h3l5 4V6L7 10z'/%3E%3Cpath d='M16 9a4 4 0 0 1 0 6'/%3E%3C/svg%3E")}
+.mute.on{background-color:rgba(255,80,70,.5);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 10v4h3l5 4V6L7 10z'/%3E%3Cpath d='M16 9l5 6M21 9l-5 6'/%3E%3C/svg%3E")}
+.mute:disabled{opacity:.3;cursor:default}
+.wide{display:block;width:100%;text-align:center;padding:9px;border-radius:12px;background:rgba(255,255,255,.12);margin-bottom:10px;font-weight:600}
+.env{display:flex;gap:10px;align-items:center;padding:8px;border-radius:14px;background:rgba(255,255,255,.07);margin-bottom:8px;border:1px solid transparent}.env.def{border-color:rgba(255,214,120,.55)}
+.env i{width:84px;height:56px;border-radius:9px;background:center/cover;flex:none}.env>div{display:flex;flex-direction:column;gap:2px;min-width:0}.env em{font-style:normal;color:var(--dim);font-size:10.5px}
+.star{font-size:9.5px;color:#ffd678;font-weight:500;margin-left:4px}
+.acts{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}.acts button{padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.1);font-size:10.5px}.acts button:hover{background:rgba(255,255,255,.2)}
+.btns{display:flex;gap:6px;margin-top:10px}.btns button{flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(255,255,255,.1)}.btns button:disabled{opacity:.35;cursor:default}
+#wsPages{display:grid;grid-template-columns:1fr 1fr;gap:6px}#wsPages button{all:unset;cursor:pointer;text-align:center;padding:12px 6px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid transparent;font-weight:600}#wsPages button.on{border-color:rgba(255,255,255,.55)}
+#dim{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .8s ease;z-index:1}
+#ws{position:fixed;z-index:2;left:50%;top:9vh;transform:translateX(-50%);width:min(860px,calc(100vw - 40px));height:min(70vh,640px);min-width:300px;min-height:220px;resize:both;overflow:hidden;
+  border-radius:22px;background:rgba(28,30,36,.55);border:1px solid var(--line);-webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);box-shadow:0 24px 80px rgba(0,0,0,.45);display:flex;flex-direction:column}
+#ws[hidden]{display:none}
+#wsBar{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:grab;touch-action:none}#wsBar b{flex:1;font-weight:600;font-size:12px}
+#wsBar button{all:unset;cursor:pointer;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;background:rgba(255,255,255,.12)}
+#wsFrame{flex:1;border:0;width:100%;background:#fff;border-radius:0 0 21px 21px}
+#wsChip{all:unset;cursor:pointer;position:fixed;z-index:3;left:calc(16px + env(safe-area-inset-left));top:calc(16px + env(safe-area-inset-top));padding:7px 12px;border-radius:14px;background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#wsChip[hidden]{display:none}
+#bar{max-width:calc(100vw - 20px);overflow-x:auto;scrollbar-width:none}
 @media (max-width:420px){#bar button{min-width:44px;font-size:9.5px;padding:7px 5px 6px}}
 </style>
 </head>
@@ -63,29 +94,51 @@ body.calm .stick{opacity:0;pointer-events:none;transform:translateY(8px)}
 <div id="plate"></div>
 <canvas id="gl"></canvas>
 <div class="ui auto" id="hint">拖动：环顾 · 滚轮 / 双指：变焦 · Shift + 拖动：走一两步 · 双击：对准主体</div>
+<div id="dim"></div>
+<div id="ws" hidden><div id="wsBar"><b id="wsTitle"></b><button type="button" data-w="hide" aria-label="隐藏">–</button><button type="button" data-w="close" aria-label="关闭">×</button></div><iframe id="wsFrame" title="Minest Workspace" allow="autoplay; fullscreen"></iframe></div>
+<button type="button" id="wsChip" hidden></button>
 <nav class="ui auto" id="bar">
-  <button type="button" data-a="scenes"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 3-3 6 5"/><rect x="3" y="4" width="18" height="16" rx="3"/></svg>Scenes</button>
-  <button type="button" data-a="camera"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Camera</button>
-  <button type="button" data-a="reset"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg>Reset</button>
-  <button type="button" data-a="capture"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"/></svg>Capture</button>
-  <button type="button" data-a="moments"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 15l4-3 3 2 4-4 5 4"/></svg>Moments</button>
-  <button type="button" data-a="ambient"><svg viewBox="0 0 24 24"><path d="M4 10v4h3l5 4V6L7 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>Ambient</button>
-  <button type="button" data-a="exit"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Exit</button>
+  <button type="button" data-a="scenes"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 3-3 6 5"/><rect x="3" y="4" width="18" height="16" rx="3"/></svg>环境</button>
+  <button type="button" data-a="imm"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/></svg>沉浸</button>
+  <button type="button" data-a="look"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>外观</button>
+  <button type="button" data-a="sound"><svg viewBox="0 0 24 24"><path d="M4 10v4h3l5 4V6L7 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>声音</button>
+  <button type="button" data-a="work"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8M12 17v3"/></svg>工作区</button>
+  <button type="button" data-a="camera"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>相机</button>
+  <button type="button" data-a="capture"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"/></svg>定格</button>
+  <button type="button" data-a="exit"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>退出</button>
 </nav>
-<section class="ui panel" id="pScenes" hidden><h4>Scenes <small>风景</small></h4><div id="sceneList"></div></section>
+<section class="ui panel" id="pScenes" hidden><h4>Environments <small>环境</small></h4>
+  <div class="seg" id="envTabs"><button type="button" data-t="scenes" class="on">风景</button><button type="button" data-t="mine">我的环境</button><button type="button" data-t="moments">时刻</button></div>
+  <div id="sceneList"></div><div id="mineList" hidden></div><div id="shots" hidden></div></section>
+<section class="ui panel" id="pImm" hidden><h4>Immersion <small>沉浸程度</small></h4>
+  <div class="levels" id="levels">
+    <button type="button" data-l="window"><svg viewBox="0 0 30 22"><rect x="1" y="1" width="28" height="20" rx="2"/><rect x="11" y="6" width="8" height="10" fill="currentColor" opacity=".5"/></svg>窗口<em>回到办公室，只在落地窗里看</em></button>
+    <button type="button" data-l="ambient"><svg viewBox="0 0 30 22"><rect x="1" y="1" width="28" height="20" rx="2"/><ellipse cx="15" cy="11" rx="10" ry="7" fill="currentColor" opacity=".5"/></svg>环境<em>风景铺开在眼前，办公室留在四周</em></button>
+    <button type="button" data-l="full"><svg viewBox="0 0 30 22"><rect x="1" y="1" width="28" height="20" rx="2" fill="currentColor" fill-opacity=".5"/></svg>全沉浸<em>办公室隐去，只有风景</em></button>
+  </div>
+  <div class="row"><span>表冠</span><input type="range" id="sImm" min="0" max="1000" value="1000"><b id="vImm"></b></div>
+  <p class="note" id="immNote"></p></section>
+<section class="ui panel" id="pLook" hidden><h4>Appearance <small>外观</small></h4><div class="chips" id="apChips"></div><p class="note" id="apNote"></p>
+  <h4 style="margin-top:14px">Living Environment <small>环境动态 · 各自开关</small></h4><div id="liveList"></div></section>
+<section class="ui panel" id="pSound" hidden><h4>Ambient Sound <small>环境声音 · 随视线定位左右</small></h4><div id="mix"></div>
+  <label class="sw"><span>专注工作时自动降低音量</span><input type="checkbox" id="duck"><i></i></label><p class="note" id="duckNote"></p></section>
+<section class="ui panel" id="pWork" hidden><h4>Scenic Workspace <small>在风景前工作</small></h4><div id="wsPages"></div>
+  <div class="row"><span>环境亮度</span><input type="range" id="sDim" min="0" max="850" value="350"><b id="vDim"></b></div>
+  <div class="btns"><button type="button" id="wsToggle">隐藏窗口</button><button type="button" id="wsClose">关闭窗口</button></div>
+  <p class="note">风景一直在渲染，沉浸程度不变。窗口可拖动标题栏移动、拖右下角调整大小；隐藏后左上角留一个按钮恢复。</p></section>
 <section class="ui panel" id="pCamera" hidden>
   <h4>Scenic Camera <small id="camKind"></small></h4>
   <div class="row"><span>高度</span><input type="range" id="sHeight" min="0" max="1000" value="500"><b id="vHeight"></b></div>
   <div class="row"><span>推拉</span><input type="range" id="sDolly" min="0" max="1000" value="500"><b id="vDolly"></b></div>
   <div class="row"><span>焦距</span><input type="range" id="sFocal" min="0" max="1000" value="0"><b id="vFocal"></b></div>
   <div class="row"><span>侧移</span><input type="range" id="sOrbit" min="0" max="1000" value="500"><b id="vOrbit"></b></div>
+  <div class="btns"><button type="button" id="camReset">回到经典机位</button></div>
 </section>
-<section class="ui panel" id="pMoments" hidden><h4>Return to This Moment <small>收藏的机位</small></h4><div id="shots"></div></section>
 <div class="ui" id="credit"></div>
 <div class="ui" id="toast"></div>
 <div id="flash"></div>
 <script src="../vendor/three.min.js"></script>
-<script src="scenic-core.js"></script>
-<script src="scenic.js"></script>
+<script src="scenic-core.js?v=20261113vp"></script>
+<script src="scenic.js?v=20261113vp"></script>
 </body>
 </html>

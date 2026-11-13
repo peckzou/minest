@@ -176941,19 +176941,27 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return 'https://minest-app.vercel.app/';
   }
   function L(h) { return new THREE.Color(h).convertSRGBToLinear(); }
-  var libP = null, cores = {}, SKEY = 'scenic:scene';
-  function sceneId() { var s = root.MinestBackpack && root.MinestBackpack.store, v = s ? s.get(SKEY) : null; if (!v) try { v = localStorage.getItem('minest.' + SKEY); } catch (e) {} return v === 'alps' ? 'alps' : 'bled'; }
-  function setSceneId(id) { var s = root.MinestBackpack && root.MinestBackpack.store; if (s) s.set(SKEY, id); try { localStorage.setItem('minest.' + SKEY, id); } catch (e) {} }
-  function loadCore(id) {
-    id = id || sceneId(); if (cores[id]) return cores[id];
+  var libP = null, cores = {}, SKEY = 'scenic:scene', AKEY = 'scenic:ap', EKEY = 'scenic:envs', DKEY = 'scenic:envDef', IKEY = 'scenic:imm';
+  function store() { return root.MinestBackpack && root.MinestBackpack.store; }
+  function sget(k) { var s = store(), v = s ? s.get(k) : null; if (v == null) try { v = JSON.parse(localStorage.getItem('minest.' + k)); } catch (e) { v = null; } return v; }
+  function sset(k, v) { var s = store(); if (s) s.set(k, v); try { localStorage.setItem('minest.' + k, JSON.stringify(v)); } catch (e) {} }
+  function envs() { var v = sget(EKEY); return Array.isArray(v) ? v : []; }
+  function defEnv() { var id = sget(DKEY); return id ? envs().filter(function (e) { return e.id === id; })[0] || null : null; }
+  /* what the window shows: the default environment if there is one, else the scene last chosen inside */
+  function sceneId() { var d = defEnv(), v = d ? d.scene : sget(SKEY); return v === 'alps' ? 'alps' : 'bled'; }
+  function apId() { var d = defEnv(), v = d ? d.appearance : sget(AKEY); return typeof v === 'string' ? v : null; }
+  function setSceneId(id, ap) { sset(SKEY, id); if (ap) sset(AKEY, ap); }
+  function realAp(C, id, ap) { var sc = C.scenes[id]; if (ap === 'auto') ap = C.autoAppear(sc); return sc.appear[ap] ? ap : sc.appearDef; }
+  function loadCore(id, ap) {
+    id = id || sceneId();
     if (!libP) libP = new Promise(function (res, rej) {
-      if (root.ScenicCore && root.ScenicCore.scenes.alps) return res(root.ScenicCore);
-      var s = document.createElement('script'); s.src = base() + 'scenic/scenic-core.js?v=20261113c'; s.onload = function () { res(root.ScenicCore); }; s.onerror = rej; document.head.appendChild(s);
+      if (root.ScenicCore && root.ScenicCore.autoAppear) return res(root.ScenicCore);
+      var s = document.createElement('script'); s.src = base() + 'scenic/scenic-core.js?v=20261113vp'; s.onload = function () { res(root.ScenicCore); }; s.onerror = rej; document.head.appendChild(s);
     });
-    cores[id] = libP.then(function (C) { return C.load(id, { base: base() + 'scenic/', low: true, renderer: root.SpatialRoom && root.SpatialRoom.renderer }); });
-    return cores[id];
+    return libP.then(function (C) { var a = realAp(C, id, ap === undefined ? apId() : ap), key = id + '/' + a;
+      return cores[key] || (cores[key] = C.load(id, { base: base() + 'scenic/', low: true, renderer: root.SpatialRoom && root.SpatialRoom.renderer, appearance: a })); });
   }
-  var showScene = function () {};
+  var showScene = function () {}, WIN = null;
 
   function make() {
     var g = new THREE.Group(), frameG = new THREE.Group(); g.add(frameG);
@@ -176989,7 +176997,10 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       hit.scale.set(W, H, 0.12); hit.position.set(0, H / 2, 0.02);
       light.position.set(0, H * 0.6, Math.max(0.6, W * 0.25)); light.distance = Math.max(6, W * 1.6);
       o.label = [0, H + 0.12, 0];
-      o.focusL = { pos: [0, Math.min(1.45, H * 0.55), Math.max(0.9, Math.min(2.4, Math.max(W, H) * 0.42))], look: [0, Math.min(1.42, H * 0.53), -3] };   // stand before the glass, filling the view
+      /* stand back far enough that the window is about three quarters of the view, the room round it: Scenic World opens
+         out of that rectangle (Ambient keeps the room beyond it; Full goes past the screen's edges) */
+      var ey = Math.min(1.6, Math.max(1.2, H * 0.5)), d = Math.max(1.6, Math.min(8, Math.max(W * 1.0, H * 1.45)));
+      o.focusL = { pos: [0, ey, d], look: [0, Math.min(ey, H * 0.5), -3] };
     }
 
     /* ---- the view: Kooima's off-axis projection through the glass rectangle ---- */
@@ -177000,13 +177011,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var PITCH = 0.13;                                                    // the view tipped down a little: the island and the lake at eye level
     /* the window shows whichever scene was chosen last (Scenic World's Scenes): a 360° panorama stands round the glass at
        standing eye height; the Lake Bled spatial scene is tipped to its island, castle and peaks */
-    showScene = function (id) {
-      loadCore(id).then(function (c) {
+    showScene = function (id, ap) {
+      loadCore(id, ap).then(function (c) {
         if (view && view !== c) sScene.remove(view.group);
         view = c; c.group.rotation.order = 'YXZ';
         if (c.kind === 'pano') { c.group.rotation.set(0, 0, 0); c.group.position.set(0, 1.5 - H / 2, 0); tanHw = 99; tanVw = 99; }
         else { c.group.position.set(0, 0, 0); c.group.rotation.y = YAW; c.group.rotation.x = PITCH; tanHw = Math.tan(Math.atan(c.tanH) - YAW); tanVw = Math.tan(Math.atan(c.tanV) - PITCH); }
         if (c.group.parent !== sScene) sScene.add(c.group); U.uOk.value = 1;
+        light.color.setHex(c.appear === 'sunset' ? 0xffd2a0 : 0xf2f4ff);
       }).catch(function () {});
     };
     showScene();
@@ -177036,45 +177048,119 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       hit: hit, label: [0, H + 0.12, 0], focusL: null,
       fit: function (a) { fit(a && a.w, a && a.h); },
       panel: function () { return openScenic(); },
-      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); }
+      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); },
+      /* before the camera walks up: stand back along the window's axis as far as the plan wants, but stop 0.7 m short of
+         the first thing in the way (furniture, a wall) — the room must stay round the window, never in front of the lens */
+      aim: function () {
+        if (!o.focus) return; var top = g; while (top.parent) top = top.parent;
+        var eye = new THREE.Vector3().fromArray(o.focus.pos), look = new THREE.Vector3().fromArray(o.focus.look), from = new THREE.Vector3(0, eye.y - g.position.y, 0.05);
+        g.localToWorld(from); var dir = eye.clone().sub(from); dir.y = 0; var want = dir.length(); dir.normalize();
+        var rc = new THREE.Raycaster(from, dir, 0.3, want + 1), mine = {}; g.traverse(function (x) { mine[x.uuid] = 1; });
+        var hits = rc.intersectObject(top, true).filter(function (h) { return !mine[h.object.uuid] && h.object.visible !== false && !(h.object.material && h.object.material.visible === false); });
+        var d = hits.length ? Math.max(1.4, Math.min(want, hits[0].distance - 0.7)) : want;
+        var p = from.clone().addScaledVector(dir, d); p.y = eye.y; o.focus = { pos: p.toArray(), look: look.toArray() };
+      }
     };
     fit(3, 2.7);
+    WIN = { pane: pane, frame: frameG, metal: metal, light: light, size: function () { return [W, H]; } };
     return o;
   }
 
-  /* ---- Scenic World over the room: it fades in only once its first frame is drawn (no black, no flash) ---- */
-  var el = null, frame = null, done = null;
-  function src() { return base() + 'scenic/index.html?enter=1&scene=' + sceneId(); }
-  function store() { return root.MinestBackpack && root.MinestBackpack.store; }
-  function shots() { var s = store(), v = s ? s.get(KEY) : null; if (!Array.isArray(v)) { try { v = JSON.parse(localStorage.getItem('minest.' + KEY) || '[]'); } catch (e) { v = []; } } return Array.isArray(v) ? v : []; }
-  function keep(list) { list = list.slice(0, 24); var s = store(); if (s) s.set(KEY, list); try { localStorage.setItem('minest.' + KEY, JSON.stringify(list)); } catch (e) {} }
+  /* ---- Scenic World over the room, at an immersion level (Vision Pro style) ----
+     The overlay is masked to a soft-edged rectangle. Entering: the camera has already walked up to the glass; the frame
+     fades, the scene appears exactly in the window's rectangle (opacity only once its first frame is drawn — no black, no
+     flash, no placeholder) and opens out to the level chosen — Ambient (the office stays round the edges, turning with
+     your look) or Full (the office is gone and stops rendering). The dial in Scenic World moves between them; Window and
+     Exit play it all back into the glass. */
+  var el = null, frame = null, done = null, M = null, anim = null, base0 = null, LV = { level: 'full', v: 1 };
+  function src() {
+    var d = defEnv(), im = sget(IKEY) || {}, lv = (d && d.immersion) || im.level || 'full', v = d && d.immV != null ? d.immV : im.v != null ? im.v : 1;
+    LV = { level: lv === 'ambient' ? 'ambient' : 'full', v: lv === 'ambient' ? Math.min(0.96, Math.max(0.2, v)) : 1 };
+    return base() + 'scenic/index.html?enter=1&scene=' + sceneId() + (apId() ? '&ap=' + apId() : '') + '&imm=' + LV.level + '&immv=' + LV.v + (d ? '&env=' + d.id : '');
+  }
+  function shots() { var v = sget(KEY); return Array.isArray(v) ? v : []; }
+  function keep(list) { sset(KEY, list.slice(0, 24)); }
   function post(m) { m.scenic = 1; try { frame.contentWindow.postMessage(m, '*'); } catch (e) {} }
+  function vw() { return root.innerWidth; } function vh() { return root.innerHeight; }
+  /* the window's rectangle on screen, from the glass corners seen by the room camera */
+  function winRect() {
+    var cam = root.SpatialRoom && root.SpatialRoom.camera, R = root.SpatialRoom && root.SpatialRoom.renderer; if (!cam || !WIN || !R) return null;
+    var cr = R.domElement.getBoundingClientRect(), xs = [], ys = [], v = new THREE.Vector3(); cam.updateMatrixWorld();
+    for (var i = 0; i < 4; i++) { v.set(i & 1 ? 0.5 : -0.5, i & 2 ? 0.5 : -0.5, 0); WIN.pane.localToWorld(v); v.project(cam); if (v.z > 1) return null; xs.push(cr.left + (v.x + 1) / 2 * cr.width); ys.push(cr.top + (1 - v.y) / 2 * cr.height); }
+    return { l: Math.min.apply(0, xs), t: Math.min.apply(0, ys), r: Math.max.apply(0, xs), b: Math.max.apply(0, ys), f: 3 };
+  }
+  /* a level as a rectangle on screen. Ambient is anchored to the window in the room (like a portal: turn away and it
+     stays where it is) and reaches past it by the dial; Full goes past the screen's edges. */
+  function levelRect(v) {
+    var W = vw(), H = vh(), s = Math.min(W, H);
+    if (v >= 0.97) return { l: -60, t: -60, r: W + 60, b: H + 60, f: 40, full: true };
+    var k = Math.max(0, Math.min(1, (v - 0.2) / 0.77)), r = winRect() || { l: W * 2, t: H * 2, r: W * 2 + 1, b: H * 2 + 1 }, e = 0.32 * k * k * s, f = (0.05 + 0.08 * k) * s;
+    return { l: r.l - e - f, t: r.t - e * 0.8 - f, r: r.r + e + f, b: r.b + e * 0.5 + f, f: f };
+  }
+  /* the mask is applied inside Scenic World, to the scene layer only: its controls and the Workspace window stay whole */
+  function applyMask(q) { if (!el) return; M = q; post({ op: 'mask', q: { l: q.l, t: q.t, r: q.r, b: q.b, f: q.f, full: !!q.full } }); }
+  function ease(k) { return k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; }
+  function tweenMask(to, dur) {
+    var from = M && !M.full ? M : (M && M.full ? { l: -60, t: -60, r: vw() + 60, b: vh() + 60, f: 40 } : to);
+    if (anim) anim.stop = true; var a = anim = { stop: false }, t0 = performance.now();
+    return new Promise(function (res) {
+      (function step() { if (a.stop) return res(false); var k = Math.min(1, (performance.now() - t0) / (dur * 1000)), e = ease(k), q = {};
+        ['l', 't', 'r', 'b', 'f'].forEach(function (n) { q[n] = from[n] + (to[n] - from[n]) * e; }); applyMask(k >= 1 && to.full ? to : q);
+        if (k < 1) requestAnimationFrame(step); else { a.done = true; res(true); } })();
+    });
+  }
+  function frameFade(k) { if (!WIN) return; WIN.metal.transparent = k < 1; WIN.metal.opacity = k; WIN.frame.visible = k > 0.02; }
+  function hold(on) { if (root.SpatialRoom) root.SpatialRoom.hold = on; }
+  function setLevel(level, v, dur) {
+    if (!el) return; hold(false);
+    if (level !== 'full') LV.v = v; LV.level = level; if (level === 'full') LV.v = 1;
+    sset(IKEY, { level: LV.level, v: LV.v });
+    if (level === 'full') { tweenMask(levelRect(1), dur == null ? 1.2 : dur).then(function (ok) { if (ok && el && LV.level === 'full') hold(true); }); turn(0, 0); }
+    else tweenMask(levelRect(LV.v), dur == null ? 0.9 : dur);
+  }
+  /* Ambient: the office round the scene turns with your look (the room camera turns about itself) */
+  var _e = null, _q = null;
+  function turn(lx, ly) {
+    var cam = root.SpatialRoom && root.SpatialRoom.camera; if (!cam || !base0) return;
+    _e = _e || new THREE.Euler(0, 0, 0, 'YXZ'); _q = _q || new THREE.Quaternion();
+    _q.setFromEuler(_e.set(ly * 0.8, lx, 0, 'YXZ')); cam.quaternion.copy(base0).multiply(_q); cam.updateMatrixWorld();
+  }
   function onMsg(e) {
     var m = e.data; if (!el || !frame || !m || m.scenic !== 1 || e.source !== frame.contentWindow) return;
-    if (m.op === 'ready') { el.style.opacity = '1'; }
-    else if (m.op === 'list') post({ op: 'shots', shots: shots() });
+    if (m.op === 'ready') { if (M) applyMask(M); el.style.opacity = '1'; frameFade(0); setTimeout(function () { if (el) setLevel(LV.level, LV.v, 1.5); }, 350); post({ op: 'imm', level: LV.level, v: LV.v }); }
+    else if (m.op === 'list') { post({ op: 'shots', shots: shots() }); post({ op: 'envs', list: envs(), def: sget(DKEY) || null }); }
     else if (m.op === 'save' && m.shot) { var l = shots().filter(function (s) { return s.id !== m.shot.id; }); l.unshift(m.shot); keep(l); }
     else if (m.op === 'del' && m.id) keep(shots().filter(function (s) { return s.id !== m.id; }));
     else if (m.op === 'close') finish();
-    else if (m.op === 'scene' && (m.id === 'alps' || m.id === 'bled')) { setSceneId(m.id); showScene(m.id); }
+    else if (m.op === 'scene' && (m.id === 'alps' || m.id === 'bled')) { setSceneId(m.id, m.appearance); if (!defEnv()) showScene(m.id, m.appearance); }
+    else if (m.op === 'immersion' && (m.level === 'ambient' || m.level === 'full')) setLevel(m.level, +m.v || 0.6);
+    else if (m.op === 'look' && LV.level === 'ambient') { turn(+m.lx || 0, +m.ly || 0); if (!anim || anim.done) applyMask(levelRect(LV.v)); }
+    else if (m.op === 'env-save' && m.env && m.env.id) { var E = envs().filter(function (x) { return x.id !== m.env.id; }), was = envs().map(function (x) { return x.id; }).indexOf(m.env.id); if (was >= 0) E.splice(was, 0, m.env); else E.unshift(m.env); sset(EKEY, E.slice(0, 30)); if (sget(DKEY) === m.env.id) showScene(m.env.scene, m.env.appearance); }
+    else if (m.op === 'env-del' && m.id) sset(EKEY, envs().filter(function (x) { return x.id !== m.id; }));
+    else if (m.op === 'env-def') { sset(DKEY, m.id || null); var d = defEnv(); showScene(d ? d.scene : sget(SKEY) || 'bled', d ? d.appearance : sget(AKEY)); }
   }
   function finish() {
-    if (!el) return; root.removeEventListener('message', onMsg); var e0 = el; el = null;
-    e0.style.opacity = '0'; setTimeout(function () { try { frame.src = 'about:blank'; } catch (er) {} e0.remove(); frame = null; }, 650);   // the page and its GPU memory go with it
-    var f = done; done = null; if (f) setTimeout(function () { f(null); }, 120);
+    if (!el) return; root.removeEventListener('message', onMsg); var e0 = el, f0 = frame; hold(false); turn(0, 0);
+    var r = winRect(), out = function () { el = null; e0.style.transition = 'opacity .55s ease'; e0.style.opacity = '0'; frameFade(1);
+      setTimeout(function () { try { f0.src = 'about:blank'; } catch (er) {} e0.remove(); if (frame === f0) frame = null; }, 600); };   // the page and its GPU memory go with it
+    if (r) tweenMask(r, 1.1).then(out); else out();
+    var f = done; done = null; if (f) setTimeout(function () { f(null); }, r ? 1250 : 120);
   }
   function openScenic() {
     return new Promise(function (res) {
       if (el) return res(null); done = res;
-      el = document.createElement('div'); el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;opacity:0;transition:opacity .9s ease;background:transparent';
-      frame = document.createElement('iframe'); frame.title = 'Scenic World · Lake Bled'; frame.setAttribute('allow', 'fullscreen; autoplay');
+      var cam = root.SpatialRoom && root.SpatialRoom.camera; base0 = cam ? cam.quaternion.clone() : null;
+      el = document.createElement('div'); el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;opacity:0;transition:opacity .7s ease;background:transparent';
+      frame = document.createElement('iframe'); frame.title = 'Scenic World'; frame.setAttribute('allow', 'fullscreen; autoplay');
       frame.style.cssText = 'border:0;width:100%;height:100%;display:block;background:transparent'; frame.src = src();
       el.appendChild(frame); document.body.appendChild(el); root.addEventListener('message', onMsg);
-      setTimeout(function () { if (el && el.style.opacity !== '1') el.style.opacity = '1'; }, 9000);   // never stuck behind a slow load
+      M = null; applyMask(winRect() || levelRect(0.5));                   // it starts as the window: the same rectangle, the same place
+      setTimeout(function () { if (el && el.style.opacity !== '1') { el.style.opacity = '1'; frameFade(0); setLevel(LV.level, LV.v, 1.5); } }, 9000);   // never stuck behind a slow load
     });
   }
+  root.addEventListener('resize', function () { if (el && LV) applyMask(levelRect(LV.v)); });
 
-  root.SpatialScenic = { make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, isOpen: function () { return !!el; } };
+  root.SpatialScenic = { make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, envs: envs, isOpen: function () { return !!el; }, level: function () { return el ? { level: LV.level, v: LV.v, mask: M } : null; }, focus: function (on) { if (frame) post({ op: 'focus', on: !!on }); } };
 })(window);
 
 /* Minest · Spatial Home — the things that are the apps (the fishing rod became the Octo aquarium in entries.js).
@@ -180737,6 +180823,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (busy || !o) return;
     if (o.panel) {
       busy = true; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true;
+      if (o.aim) try { o.aim(); } catch (e) {}   // a thing may fit its close-up to the room first (the Scenic Window: stand back, short of the furniture)
       flyLook(o.focus.pos, o.focus.look, 0.8).then(function () { return animK(o, 1, 0.4); }).then(function () { return runPanel(o); });
       return;
     }
@@ -181723,7 +181810,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     requestAnimationFrame(frame);
     var dt = Math.min(0.05, clock.getDelta());
     stepTweens(dt);
-    if (paused || document.hidden || body.hidden) return;
+    if (paused || document.hidden || body.hidden || window.SpatialRoom.hold) return;   // hold: Scenic World is fully immersive over the room (scenic-window.js)
     T += dt; move(dt); strollStep(dt);
     if (camAuto) { autoPose(camera.position, camera.quaternion); if (room.shake && !S.motion) { var sh = room.shake(T); camera.position.y += sh.y; camera.rotateZ(sh.roll); } }
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;
