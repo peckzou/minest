@@ -25,7 +25,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
 #tabs{left:max(16px,env(safe-area-inset-left));top:calc(max(14px,env(safe-area-inset-top)) + 26px);display:flex;gap:16px}
 #ctl{right:max(16px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));display:flex;flex-direction:column;align-items:flex-end;gap:7px}
 #ctl .row{display:flex;gap:12px;align-items:baseline}
-#modes{flex-wrap:wrap;justify-content:flex-end;row-gap:5px;max-width:min(560px,calc(100vw - 32px))}
+#modes{flex-wrap:wrap;justify-content:flex-end;row-gap:5px;max-width:min(470px,calc(100vw - 230px))}
 .lab{opacity:.55}
 .panel{position:fixed;left:max(16px,env(safe-area-inset-left));top:calc(max(14px,env(safe-area-inset-top)) + 54px);width:min(350px,calc(100vw - 32px));
   max-height:calc(100vh - 230px);overflow:auto;overscroll-behavior:contain;background:var(--panel);border:1px solid var(--faint);padding:12px 14px 14px;
@@ -1591,7 +1591,192 @@ class GrowLetter extends CraftLetter {
     this.lum = 0.25 * this.boost;
   }
 }
-const CRAFT_LETTERS = { print: PrintLetter, carve: CarveLetter, install: InstallLetter, jelly: JellyLetter, blocks: BlockLetter, build: BuildLetter, ice: IceLetter, stone: StoneLetter, rune: RuneLetter, grow: GrowLetter };
+/* ───────────── Cardstock · Memory Orb · Glass Trophy (2026-11-12) ─────────────
+   Card: each letter is printed on its own card (laminated teaching card · gold-foil letterpress · vintage specimen ·
+   cloud-shaped die-cut). Orb and Trophy are word objects: the Sculpture asks the letter class for a `shell` — one smoked
+   glass orb / one chamfered crystal block round the whole word — that grows to fit the word as it is typed. */
+Object.assign(CRAFT_TINT, {
+  card:    { neon: ['#7fc76a', 'Laminated'], argon: ['#2f6b46', 'Letterpress'], helium: ['#b08a55', 'Specimen'], xenon: ['#e89aa8', 'Cloud'] },
+  orb:     { neon: ['#ffb347', 'Amber'],     argon: ['#9fd8ff', 'Ice'],         helium: ['#ffd36b', 'Gold'],     xenon: ['#ff7aa8', 'Rose'] },
+  trophy:  { neon: ['#e8f4ff', 'Clear'],     argon: ['#bfe3ff', 'Frost'],       helium: ['#f2cf73', 'Gold'],     xenon: ['#9aa0aa', 'Smoke'] },
+});
+
+/* Card — a blank slides up, a print head prints the letter in its typography, then the finish sweeps across */
+const CARD_STYLE = {
+  neon:   { paper: '#c6c5ba', ink: '#1d2a1a', edge: '#7fc76a', font: '800 {s}px "Chalkboard SE","Marker Felt","Comic Sans MS",sans-serif', shape: 'round' },
+  argon:  { paper: '#c0b9a7', ink: '#2f6b46', edge: '#2f6b46', font: '700 {s}px "Didot","Bodoni 72",Georgia,serif', shape: 'rect', foil: '#c9a24a' },
+  helium: { paper: '#b39a6c', ink: '#3a2614', edge: '#8a6a3c', font: 'italic 600 {s}px "Snell Roundhand","Apple Chancery","Brush Script MT",cursive', shape: 'torn' },
+  xenon:  { paper: '#bdb9b3', ink: '#4a3a5a', edge: ['#e88a8a', '#efb46a', '#9a82e8'], font: '700 {s}px "Avenir Next","Arial Rounded MT Bold",sans-serif', shape: 'cloud' },
+};
+const CARD_T = 0.035;
+function cardShape(kind, w, h) {
+  const s = new THREE.Shape(), x0 = -w / 2, y0 = -h / 2;
+  if (kind === 'cloud') {                                                  // a die-cut cloud: bumps round a rounded body
+    const bumps = [[-0.32, 0.36, 0.3], [0.02, 0.44, 0.34], [0.34, 0.34, 0.28], [0.42, -0.02, 0.24], [0.3, -0.38, 0.26], [-0.04, -0.44, 0.3], [-0.38, -0.34, 0.26], [-0.44, 0.02, 0.24]];
+    const pts = []; for (let i = 0; i <= 96; i++) { const a = i / 96 * Math.PI * 2, dx = Math.cos(a), dy = Math.sin(a); let r = 0;
+      for (const [bx, by, br] of bumps) { const px = bx * w, py = by * h, R0 = br * Math.min(w, h) * 1.1, b = px * dx + py * dy, c = px * px + py * py - R0 * R0, d = b * b - c; if (d >= 0) r = Math.max(r, b + Math.sqrt(d)); }
+      pts.push(new THREE.Vector2(dx * r, dy * r)); }
+    s.setFromPoints(pts); return s;
+  }
+  const r = kind === 'round' ? Math.min(w, h) * 0.12 : kind === 'torn' ? 0.02 : 0.015;
+  s.moveTo(x0 + r, y0); s.lineTo(x0 + w - r, y0); s.quadraticCurveTo(x0 + w, y0, x0 + w, y0 + r); s.lineTo(x0 + w, y0 + h - r);
+  s.quadraticCurveTo(x0 + w, y0 + h, x0 + w - r, y0 + h); s.lineTo(x0 + r, y0 + h); s.quadraticCurveTo(x0, y0 + h, x0, y0 + h - r); s.lineTo(x0, y0 + r); s.quadraticCurveTo(x0, y0, x0 + r, y0);
+  return s;
+}
+class CardLetter extends CraftLetter {
+  constructor(ch, def, x, gasKey) {
+    super('card', ch, def, x, gasKey); this.formDur = 1.0 + 0.2 * def.G;
+    this.cw = def.W + 0.3; this.chh = SIZE + 0.42;
+    this.cv = document.createElement('canvas'); this.cv.width = 256; this.cv.height = Math.round(256 * this.chh / this.cw); this.cx2 = this.cv.getContext('2d');
+    this.tex = new THREE.CanvasTexture(this.cv); this.tex.colorSpace = THREE.SRGBColorSpace; this.tex.anisotropy = 4;
+    this.tex.repeat.set(1 / this.cw, 1 / this.chh); this.tex.offset.set(0.5, 0.5);
+    this.face = this.own(new THREE.MeshStandardMaterial({ map: this.tex, roughness: 0.6, metalness: 0 }));
+    this.edge = this.own(new THREE.MeshStandardMaterial({ roughness: 0.7 }));
+    this.pivot = new THREE.Group(); this.pivot.position.set(def.cx, BASE_Y - 0.21, 0.05); this.group.add(this.pivot);
+    this.sheen = new THREE.Mesh(new THREE.PlaneGeometry(0.12, this.chh * 1.1), this.own(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })));
+    this.tmpGeos = [this.sheen.geometry];
+    this.headMat = this.own(new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: 0.35, metalness: 0.7 }));
+    this.head = new THREE.Mesh(craftGeo(def, 'cardHead', () => new THREE.BoxGeometry(def.W + 0.42, 0.09, 0.16)), this.headMat); this.head.visible = false; this.group.add(this.head);
+    this.lastK = -1; this.tint(this.gasKey);
+  }
+  tint(k) {
+    this.st = CARD_STYLE[k] || CARD_STYLE.neon; const st = this.st;
+    if (this.card) { this.card.removeFromParent(); this.card.geometry.dispose(); this.tmpGeos = this.tmpGeos.filter(g => g !== this.card.geometry); }
+    const geo = new THREE.ExtrudeGeometry(cardShape(st.shape, this.cw, this.chh), { depth: CARD_T, bevelEnabled: false, curveSegments: 10 }); geo.translate(0, this.chh / 2, -CARD_T);
+    this.tmpGeos.push(geo); this.card = new THREE.Mesh(geo, [this.face, this.edge]); this.pivot.add(this.card); this.pivot.add(this.sheen); this.sheen.position.set(0, this.chh / 2, 0.006);
+    const e = Array.isArray(st.edge) ? st.edge[(this.ch.charCodeAt(0) || 0) % st.edge.length] : st.edge; this.edgeCol = e; this.edge.color.set(st.shape === 'cloud' ? e : st.paper).offsetHSL(0, 0, st.shape === 'cloud' ? 0 : -0.08);
+    this.face.roughness = k === 'neon' ? 0.18 : k === 'argon' ? 0.75 : 0.85; this.gas.light = [1, 0.95, 0.85];
+    this.lastK = -1; this.paint(this.p || 0);
+  }
+  /** the card face: paper, border and the letter printed up to k (0…1, top → bottom) */
+  paint(k) {
+    const st = this.st, c = this.cx2, W = this.cv.width, H = this.cv.height; k = Math.round(clamp01(k) * 40) / 40; if (k === this.lastK) return; this.lastK = k;
+    c.fillStyle = st.paper; c.fillRect(0, 0, W, H);
+    for (let i = 0; i < 380; i++) { c.fillStyle = `rgba(${st.shape === 'torn' ? '90,60,25' : '0,0,0'},${(st.shape === 'torn' ? 0.05 : 0.018) + ((i * 37) % 7) * 0.006})`; c.fillRect((i * 53) % W, (i * 97) % H, 2, 1); }
+    if (st.shape === 'torn') { const gr = c.createRadialGradient(W / 2, H / 2, W * 0.2, W / 2, H / 2, W * 0.75); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(70,40,10,0.45)'); c.fillStyle = gr; c.fillRect(0, 0, W, H);
+      c.strokeStyle = 'rgba(120,40,30,0.55)'; c.lineWidth = 3; c.beginPath(); c.arc(W * 0.74, H * 0.2, W * 0.12, 0, 6.3); c.stroke(); c.beginPath(); c.arc(W * 0.74, H * 0.2, W * 0.08, 0, 6.3); c.stroke();
+      c.strokeStyle = 'rgba(60,40,20,0.35)'; c.lineWidth = 1.5; for (let y = H * 0.82; y < H * 0.95; y += 9) { c.beginPath(); c.moveTo(W * 0.12, y); c.lineTo(W * 0.88, y); c.stroke(); } }
+    else if (st.shape === 'round') { c.strokeStyle = st.edge; c.lineWidth = W * 0.07; c.strokeRect(W * 0.05, W * 0.05, W * 0.9, H - W * 0.1); c.fillStyle = st.edge; c.beginPath(); c.arc(W * 0.86, H - W * 0.14, W * 0.035, 0, 6.3); c.fill(); }
+    else if (st.shape === 'rect') { c.strokeStyle = st.edge; c.lineWidth = W * 0.05; c.strokeRect(W * 0.04, W * 0.04, W * 0.92, H - W * 0.08); c.lineWidth = 2; c.strokeRect(W * 0.12, W * 0.12, W * 0.76, H - W * 0.24);
+      c.strokeStyle = st.edge; c.lineWidth = 3; c.beginPath(); c.moveTo(W * 0.3, H * 0.78); c.lineTo(W * 0.7, H * 0.78); c.stroke(); }
+    else if (st.shape === 'cloud') { c.strokeStyle = this.edgeCol || '#e88a8a'; c.globalAlpha = 0.25; c.lineWidth = W * 0.05; c.strokeRect(-W, -H, 3 * W, 3 * H); c.globalAlpha = 1; }
+    if (k > 0) {
+      const fs = Math.round(Math.min(W * 0.78, H * 0.5)); c.font = st.font.replace('{s}', fs); c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.save(); c.beginPath(); c.rect(0, 0, W, H * k); c.clip();                       // printed from the top down
+      if (st.foil) { const g = c.createLinearGradient(0, H * 0.3, W, H * 0.6); g.addColorStop(0, '#8a6a22'); g.addColorStop(0.5, '#f6e3a0'); g.addColorStop(1, '#a57d2a'); c.fillStyle = g; } else c.fillStyle = st.ink;
+      c.fillText(this.ch, W / 2, H * 0.47); c.restore();
+    }
+    this.tex.needsUpdate = true;
+  }
+  stage(tool, p, time, dt, ph) {
+    const removing = ph === -1, st = this.state; let rise = 1, lean = -0.1;
+    if (st === 'stand') rise = sm(tool) * 0.6; else if (removing) rise = Math.max(0.001, p / this.p0);
+    this.pivot.scale.set(1, Math.max(0.001, rise), 1); this.pivot.rotation.x = lean;
+    if (st === 'form' || st === 'stand') this.paint(st === 'form' ? p : 0); else if (!removing && this.lastK !== 1) this.paint(1);
+    this.head.visible = tool > 0.01 && !removing && (st === 'form' || st === 'stand');
+    if (this.head.visible) this.head.position.set(this.def.cx, BASE_Y - 0.21 + this.chh * (1 - (st === 'form' ? p : 0)) + 0.05 + (1 - tool) * 0.8, 0.12);
+    const sw = st === 'settle' ? ph : -1; this.sheen.material.opacity = sw >= 0 ? 0.55 * Math.sin(Math.PI * sw) : 0; this.sheen.position.x = (sw - 0.5) * this.cw * 1.2;
+    this.face.emissive.setRGB(1, 1, 1).multiplyScalar(0.12 * this.boost);
+    this.lum = 0.18 * this.boost;
+  }
+  dispose() { super.dispose(); this.tex.dispose(); }
+}
+
+/* Memory Orb — warm LED filament letters light up dot by dot inside one smoked glass orb */
+const ledGeo = new THREE.SphereGeometry(0.026, 6, 5);
+class OrbLetter extends CraftLetter {
+  constructor(ch, def, x, gasKey) {
+    super('orb', ch, def, x, gasKey); this.formDur = 1.0 + 0.3 * def.G;
+    const pts = this.pts = craftGeo(def, 'ledPts', () => strokeSamples(def, 0.055)), n = this.n = pts.length;
+    this.ledMat = this.own(new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }));
+    this.leds = new THREE.InstancedMesh(ledGeo, this.ledMat, n); this.leds.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3); this.leds.frustumCulled = false; this.group.add(this.leds);
+    this.wireMat = this.own(new THREE.MeshBasicMaterial({ color: 0x6b4a2a })); this.wire = ownTubes(this, R * 0.3, 4);
+    for (const o of this.wire.parts) this.group.add(new THREE.Mesh(o.g, this.wireMat));
+    this.col = new THREE.Color(); this.tint(this.gasKey);
+    for (let i = 0; i < n; i++) { _cm.makeTranslation(pts[i].x, pts[i].y, pts[i].z); this.leds.setMatrixAt(i, _cm); } this.leds.instanceMatrix.needsUpdate = true;
+  }
+  tint(k) { this.col.copy(tintOf('orb', k)); this.gas.light = [this.col.r, this.col.g, this.col.b]; }
+  stage(tool, p, time, dt, ph) {
+    const n = this.n, removing = ph === -1, lit = removing ? p / this.p0 : p;
+    revealTubes(this.wire, removing ? lit : Math.min(1, p * 1.15));
+    for (let i = 0; i < n; i++) {
+      const on = clamp01((lit * (n + 3) - i) / 3), fl = this.state === 'steady' ? 0.88 + 0.12 * Math.sin(time * 3.1 + i * 0.7 + this.x) : 1;
+      const b = (on * 1.6 * fl + this.boost * 0.5) * (this.state === 'settle' ? 1 + 0.6 * Math.sin(Math.PI * ph) : 1);
+      this.leds.instanceColor.setXYZ(i, this.col.r * b + 0.02, this.col.g * b + 0.015, this.col.b * b + 0.01);
+    }
+    this.leds.instanceColor.needsUpdate = true;
+    this.lum = 0.22 * lit + 0.25 * this.boost;
+  }
+}
+/** the orb: one smoked glass sphere (stretched for long words) on a dark glass foot */
+OrbLetter.shell = S => {
+  const g = new THREE.Group(), glass = new THREE.ShaderMaterial({   // smoked glass: nearly clear face-on, bright and dark at the rim (fresnel)
+    transparent: true, depthWrite: false, uniforms: { uTint: { value: new THREE.Color(0x3a3f48) } },
+    vertexShader: 'varying vec3 vN, vV; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform vec3 uTint; varying vec3 vN, vV; void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.2); float top = smoothstep(0.2, 0.9, vN.y); vec3 c = mix(uTint, vec3(0.92, 0.95, 1.0), f * 0.55 + top * 0.25); gl_FragColor = vec4(c, 0.16 + 0.7 * f); }' });
+  const sph = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), glass), hi = new THREE.Mesh(new THREE.SphereGeometry(1.002, 48, 32, 0, Math.PI * 2, 0, 1.1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.07, depthWrite: false, blending: THREE.AdditiveBlending }));
+  const footM = new THREE.MeshStandardMaterial({ color: 0x15161a, roughness: 0.2, metalness: 0.6 }), foot = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 0.1, 40), footM);
+  g.add(sph, hi, foot); S.inner.add(g); g.visible = false;
+  const cy = BASE_Y + SIZE / 2, cur = V(0.01, 0.01, 0.01), tgt = V();
+  return {
+    update(dt, time, S) {
+      const n = S.tubes.length; g.visible = n > 0 || cur.x > 0.05; const w = S.buf.width, rx = Math.max(SIZE / 2 + 0.36, w / 2 + 0.32), ry = Math.min(1.5, Math.max(SIZE / 2 + 0.36, rx * 0.5));
+      tgt.set(n ? rx : 0.01, n ? ry : 0.01, n ? ry : 0.01); cur.lerp(tgt, 1 - Math.exp(-dt * 5));
+      sph.scale.copy(cur); hi.scale.copy(cur); g.position.set(w / 2, Math.max(cy, cur.y + 0.06), 0); foot.position.y = -cur.y + 0.05; foot.scale.set(Math.min(1.6, cur.x / ry), 1, 1);
+    },
+    dispose() { g.removeFromParent(); for (const m of [sph, hi, foot]) { m.geometry.dispose(); m.material.dispose(); } },
+  };
+};
+
+/* Glass Trophy — a laser etches frosted letters, stroke by stroke, inside one chamfered crystal block */
+class TrophyLetter extends CraftLetter {
+  constructor(ch, def, x, gasKey) {
+    super('trophy', ch, def, x, gasKey); this.formDur = 1.1 + 0.35 * def.G;
+    this.etchMat = this.own(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.82, depthWrite: false }));
+    this.etch = ownTubes(this, R * 1.25, 6);
+    for (const o of this.etch.parts) { const m = new THREE.Mesh(o.g, this.etchMat); m.scale.z = 0.25; this.group.add(m); }
+    this.beamMat = this.own(new THREE.MeshBasicMaterial({ color: 0x5aff8a, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    this.beam = new THREE.Mesh(craftGeo(def, 'beam', () => new THREE.CylinderGeometry(0.006, 0.006, 1, 6).translate(0, 0.5, 0)), this.beamMat); this.beam.visible = false; this.group.add(this.beam);
+    this.dot = new THREE.Mesh(ledGeo, this.beamMat); this.dot.visible = false; this.group.add(this.dot); this.tipP = V();
+    this.tint(this.gasKey);
+  }
+  tint(k) { this.etchMat.color.set(k === 'helium' ? '#f2cf73' : k === 'xenon' ? '#e6e9ee' : '#ffffff'); this.gas.light = [0.9, 0.95, 1]; }
+  stage(tool, p, time, dt, ph) {
+    const removing = ph === -1, forming = this.state === 'form', top = BASE_Y + SIZE + 0.7;
+    const tip = revealTubes(this.etch, removing ? p / this.p0 : p, this.tipP);
+    this.beam.visible = this.dot.visible = forming && tool > 0.01 && !!tip;
+    if (this.beam.visible) { this.beam.position.copy(tip); this.beam.scale.y = top - tip.y; this.dot.position.copy(tip); this.dot.scale.setScalar(0.8 + 0.4 * Math.sin(time * 40)); }
+    this.etchMat.opacity = 0.82 * (this.state === 'settle' ? 0.7 + 0.3 * ph : 1) + 0.15 * this.boost;
+    this.lum = (this.beam.visible ? 0.06 : 0) + 0.15 * this.boost;
+  }
+}
+/** the block: chamfered crystal round the whole word, with bright edges */
+TrophyLetter.shell = S => {
+  const g = new THREE.Group(); S.inner.add(g); g.visible = false;
+  const mat = new THREE.MeshStandardMaterial({ color: 0x9fb4c8, roughness: 0.02, metalness: 0.1, transparent: true, opacity: 0.09, depthWrite: false, envMapIntensity: 0.9, side: THREE.FrontSide });
+  const lineM = new THREE.LineBasicMaterial({ color: 0xdff0ff, transparent: true, opacity: 0.55 });
+  let geo = null, edges = null, mesh = null, lines = null, built = -1, k = 0;
+  const tintOfShell = key => mat.color.set(key === 'xenon' ? '#3a3e46' : key === 'argon' ? '#8fc4ee' : '#9fb4c8');
+  tintOfShell(S.gasKey);
+  function rebuild(w) {
+    if (mesh) { g.remove(mesh, lines); geo.dispose(); edges.dispose(); }
+    const bw = w + 0.75, bh = SIZE + 0.62, d = 0.42, c = 0.09, sh = new THREE.Shape();
+    sh.moveTo(-bw / 2 + c, 0); sh.lineTo(bw / 2 - c, 0); sh.lineTo(bw / 2, c); sh.lineTo(bw / 2, bh - c); sh.lineTo(bw / 2 - c, bh); sh.lineTo(-bw / 2 + c, bh); sh.lineTo(-bw / 2, bh - c); sh.lineTo(-bw / 2, c); sh.lineTo(-bw / 2 + c, 0);
+    geo = new THREE.ExtrudeGeometry(sh, { depth: d - 0.06, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 }); geo.translate(0, 0, -(d - 0.06) / 2);
+    edges = new THREE.EdgesGeometry(geo, 25); mesh = new THREE.Mesh(geo, mat); lines = new THREE.LineSegments(edges, lineM); g.add(mesh, lines); built = w;
+  }
+  return {
+    tint: tintOfShell,
+    update(dt, time, S) {
+      const n = S.tubes.length, w = S.buf.width; k += ((n ? 1 : 0) - k) * (1 - Math.exp(-dt * 5)); g.visible = k > 0.02;
+      if (n && Math.abs(w - built) > 1e-3) rebuild(w);
+      g.position.set(w / 2, BASE_Y - 0.32, 0); g.scale.set(1, Math.max(0.001, k), 1);
+      lineM.opacity = 0.45 + 0.1 * Math.sin(time * 1.3);
+    },
+    dispose() { g.removeFromParent(); if (geo) { geo.dispose(); edges.dispose(); } mat.dispose(); lineM.dispose(); },
+  };
+};
+const CRAFT_LETTERS = { print: PrintLetter, carve: CarveLetter, install: InstallLetter, jelly: JellyLetter, blocks: BlockLetter, build: BuildLetter, ice: IceLetter, stone: StoneLetter, rune: RuneLetter, grow: GrowLetter, card: CardLetter, orb: OrbLetter, trophy: TrophyLetter };
 
 /* ───────────── a word sculpture: one group, moved and scaled as a unit ───────────── */
 const sculptures = new Set();
@@ -1601,11 +1786,12 @@ class Sculpture {
     this.tubes = []; this.dying = []; this.fin = null; this.dim = 1; this.offX = -0.2; this.s = s; this.rush = false; this.plank = null; this.onStart = null; this.baseS = s;
     this.buf = new WordBuffer({ make: (ch, x) => this._make(ch, x), kill: L => this._kill(L) });
     this.root.scale.setScalar(s); sculptures.add(this);
+    const K = CRAFT_LETTERS[this.mode]; this.shell = K && K.shell ? K.shell(this) : null;   // a word object round the letters (orb, crystal block)
   }
   _make(ch, x) { const K = CRAFT_LETTERS[this.mode], L = K ? new K(ch, glyphDef(ch), x, this.gasKey) : new Letter(ch, glyphDef(ch), x, this.gasKey); L.onStart = l => { if (this.onStart) this.onStart(l, this); }; this.inner.add(L.group); this.tubes.push(L); return L; }
   _kill(L) { const i = this.tubes.lastIndexOf(L); if (i >= 0) this.tubes.splice(i, 1); L.kill(); this.dying.push(L); }
   get text() { return this.buf.text; }
-  setGas(k) { this.gasKey = gasOK(k); for (const L of this.tubes) L.setGas(this.gasKey); }
+  setGas(k) { this.gasKey = gasOK(k); for (const L of this.tubes) L.setGas(this.gasKey); if (this.shell && this.shell.tint) this.shell.tint(this.gasKey); }
   allSettled() { for (const L of this.tubes) if (!L.settled) return false; return true; }
   formingLetter() { let f = null; for (const L of this.tubes) if (L.state === 'stand' || L.state === 'form') f = L; return f; }
   letterWorld(L, out) { const s = this.root.scale.x; return out.set(this.root.position.x + s * (this.offX + L.x + L.def.cx), this.root.position.y + s * L.def.cy, this.root.position.z); }
@@ -1635,10 +1821,11 @@ class Sculpture {
     const tx = -this.buf.width / 2; this.offX += (tx - this.offX) * (1 - Math.exp(-dt * 6)); this.inner.position.x = this.offX;
     this.root.scale.setScalar(this.s);
     for (const L of this.tubes) L.dimMul = this.dim;
+    if (this.shell) this.shell.update(dt, time, this);
   }
   dispose() {
     for (const L of this.tubes) L.dispose(); for (const L of this.dying) L.dispose(); this.tubes.length = 0; this.dying.length = 0;
-    if (this.plank) this.plank.geometry.dispose();
+    if (this.plank) this.plank.geometry.dispose(); if (this.shell) this.shell.dispose();
     this.root.removeFromParent(); sculptures.delete(this);
   }
 }
@@ -1745,7 +1932,7 @@ const MODES = {
     dims: word => packDims(word),
   },
 };
-for (const [id, label] of [['print', 'Print'], ['carve', 'Carve'], ['install', 'Install'], ['jelly', 'Jelly'], ['blocks', 'Blocks'], ['build', 'Build'], ['ice', 'Ice'], ['stone', 'Stone'], ['rune', 'Rune'], ['grow', 'Grow']]) MODES[id] = { id, label,
+for (const [id, label] of [['print', 'Print'], ['carve', 'Carve'], ['install', 'Install'], ['jelly', 'Jelly'], ['blocks', 'Blocks'], ['build', 'Build'], ['ice', 'Ice'], ['stone', 'Stone'], ['rune', 'Rune'], ['grow', 'Grow'], ['card', 'Card'], ['orb', 'Orb'], ['trophy', 'Trophy']]) MODES[id] = { id, label,
   create: look => new Sculpture(look.gas, 0.12, id),
   build(word, look) { const S = new Sculpture(gasOK(look && look.gas), 0.05, id); for (const c of String(word)) S.buf.push(c); S.finish(); return S; },
   dims: word => packDims(word) };
@@ -2258,6 +2445,9 @@ const CTRL = {
   stone:   { lever: ['CHISEL'], valve: ['GILD'],   sw: ['CLAMP'], make: ['sw', 'lever'],  finish: ['valve'] },
   rune:    { lever: ['CARVE'],  valve: ['CHARGE'], sw: ['CORE'],  make: ['sw', 'lever'],  finish: ['valve', 'sw'] },
   grow:    { lever: ['SEED'],   valve: ['WEAVE'],  sw: ['POWER'], make: ['sw', 'lever'],  finish: ['valve'] },
+  card:    { lever: ['PRINT'],  valve: ['FINISH'], sw: ['FEED'],  make: ['sw', 'lever'],  finish: ['valve'] },
+  orb:     { lever: ['WIRE'],   valve: ['GLOW'],   sw: ['POWER'], make: ['sw', 'lever'],  finish: ['valve'] },
+  trophy:  { lever: ['ETCH'],   valve: ['POLISH'], sw: ['LASER'], make: ['sw', 'lever'],  finish: ['valve'] },
 };
 const STATION = { x: -0.8, z: 0.74, stand: { x: -0.8, z: 1.16 }, y: 0.98 };
 const flow = { phase: 'type', draft: '', order: [], auto: false, ctl: { lever: false, valve: false, sw: false }, autoT: 0, packing: false, walkT: 0 };
