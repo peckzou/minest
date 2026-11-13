@@ -14,15 +14,19 @@
     return 'https://minest-app.vercel.app/';
   }
   function L(h) { return new THREE.Color(h).convertSRGBToLinear(); }
-  var coreP = null;
-  function loadCore() {
-    if (coreP) return coreP;
-    coreP = new Promise(function (res, rej) {
-      if (root.ScenicCore) return res(root.ScenicCore);
-      var s = document.createElement('script'); s.src = base() + 'scenic/scenic-core.js?v=20261113b'; s.onload = function () { res(root.ScenicCore); }; s.onerror = rej; document.head.appendChild(s);
-    }).then(function (C) { return C.load('bled', { base: base() + 'scenic/', low: true, renderer: root.SpatialRoom && root.SpatialRoom.renderer }); });
-    return coreP;
+  var libP = null, cores = {}, SKEY = 'scenic:scene';
+  function sceneId() { var s = root.MinestBackpack && root.MinestBackpack.store, v = s ? s.get(SKEY) : null; if (!v) try { v = localStorage.getItem('minest.' + SKEY); } catch (e) {} return v === 'alps' ? 'alps' : 'bled'; }
+  function setSceneId(id) { var s = root.MinestBackpack && root.MinestBackpack.store; if (s) s.set(SKEY, id); try { localStorage.setItem('minest.' + SKEY, id); } catch (e) {} }
+  function loadCore(id) {
+    id = id || sceneId(); if (cores[id]) return cores[id];
+    if (!libP) libP = new Promise(function (res, rej) {
+      if (root.ScenicCore && root.ScenicCore.scenes.alps) return res(root.ScenicCore);
+      var s = document.createElement('script'); s.src = base() + 'scenic/scenic-core.js?v=20261113c'; s.onload = function () { res(root.ScenicCore); }; s.onerror = rej; document.head.appendChild(s);
+    });
+    cores[id] = libP.then(function (C) { return C.load(id, { base: base() + 'scenic/', low: true, renderer: root.SpatialRoom && root.SpatialRoom.renderer }); });
+    return cores[id];
   }
+  var showScene = function () {};
 
   function make() {
     var g = new THREE.Group(), frameG = new THREE.Group(); g.add(frameG);
@@ -67,10 +71,22 @@
        near branch (and what had to be filled behind it) out of a view you stand and look at for a long time */
     var YAW = 0.14, tanHw = 0.3, tanVw = 0.3;
     var PITCH = 0.13;                                                    // the view tipped down a little: the island and the lake at eye level
-    loadCore().then(function (c) { view = c; c.group.rotation.order = 'YXZ'; c.group.rotation.y = YAW; c.group.rotation.x = PITCH; tanHw = Math.tan(Math.atan(c.tanH) - YAW); tanVw = Math.tan(Math.atan(c.tanV) - PITCH); sScene.add(c.group); U.uOk.value = 1; }).catch(function () {});
+    /* the window shows whichever scene was chosen last (Scenic World's Scenes): a 360° panorama stands round the glass at
+       standing eye height; the Lake Bled spatial scene is tipped to its island, castle and peaks */
+    showScene = function (id) {
+      loadCore(id).then(function (c) {
+        if (view && view !== c) sScene.remove(view.group);
+        view = c; c.group.rotation.order = 'YXZ';
+        if (c.kind === 'pano') { c.group.rotation.set(0, 0, 0); c.group.position.set(0, 1.5 - H / 2, 0); tanHw = 99; tanVw = 99; }
+        else { c.group.position.set(0, 0, 0); c.group.rotation.y = YAW; c.group.rotation.x = PITCH; tanHw = Math.tan(Math.atan(c.tanH) - YAW); tanVw = Math.tan(Math.atan(c.tanV) - PITCH); }
+        if (c.group.parent !== sScene) sScene.add(c.group); U.uOk.value = 1;
+      }).catch(function () {});
+    };
+    showScene();
     function render(t) {
       var R = root.SpatialRoom && root.SpatialRoom.renderer, cam = root.SpatialRoom && root.SpatialRoom.camera; if (!view || !R || !cam || !g.visible) return;
       view.U.uT.value = t;
+      if (view.kind === 'pano') view.group.position.y = 1.5 - H / 2;   // standing eye height, whatever size the room made the window
       cam.updateMatrixWorld(); _m.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); frus.setFromProjectionMatrix(_m);
       if (!frus.intersectsObject(hit)) return;                             // off screen: nothing to draw
       var sz = R.getDrawingBufferSize(new THREE.Vector2()), rw = Math.max(2, Math.round(sz.x * 0.7)), rh = Math.max(2, Math.round(sz.y * 0.7));
@@ -89,7 +105,7 @@
       var prev = R.getRenderTarget(); R.setRenderTarget(rt); R.render(sScene, pCam); R.setRenderTarget(prev);
     }
     var o = {
-      id: 'scenicWindow', name: '风景之窗', en: 'Scenic Window · Lake Bled', icon: '🏞', feature: 'scenic', anchor: 'floor.window', group: g,
+      id: 'scenicWindow', name: '风景之窗', en: 'Scenic Window', icon: '🏞', feature: 'scenic', local: true, anchor: 'floor.window', group: g,
       hit: hit, label: [0, H + 0.12, 0], focusL: null,
       fit: function (a) { fit(a && a.w, a && a.h); },
       panel: function () { return openScenic(); },
@@ -101,7 +117,7 @@
 
   /* ---- Scenic World over the room: it fades in only once its first frame is drawn (no black, no flash) ---- */
   var el = null, frame = null, done = null;
-  function src() { return base() + 'scenic/index.html?enter=1'; }
+  function src() { return base() + 'scenic/index.html?enter=1&scene=' + sceneId(); }
   function store() { return root.MinestBackpack && root.MinestBackpack.store; }
   function shots() { var s = store(), v = s ? s.get(KEY) : null; if (!Array.isArray(v)) { try { v = JSON.parse(localStorage.getItem('minest.' + KEY) || '[]'); } catch (e) { v = []; } } return Array.isArray(v) ? v : []; }
   function keep(list) { list = list.slice(0, 24); var s = store(); if (s) s.set(KEY, list); try { localStorage.setItem('minest.' + KEY, JSON.stringify(list)); } catch (e) {} }
@@ -113,6 +129,7 @@
     else if (m.op === 'save' && m.shot) { var l = shots().filter(function (s) { return s.id !== m.shot.id; }); l.unshift(m.shot); keep(l); }
     else if (m.op === 'del' && m.id) keep(shots().filter(function (s) { return s.id !== m.id; }));
     else if (m.op === 'close') finish();
+    else if (m.op === 'scene' && (m.id === 'alps' || m.id === 'bled')) { setSceneId(m.id); showScene(m.id); }
   }
   function finish() {
     if (!el) return; root.removeEventListener('message', onMsg); var e0 = el; el = null;

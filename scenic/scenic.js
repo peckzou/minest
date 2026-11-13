@@ -9,8 +9,13 @@
   'use strict';
   var THREE = window.THREE, $ = function (id) { return document.getElementById(id); };
   var Q = new URLSearchParams(location.search), EMBED = window.parent !== window;
-  var SC = window.ScenicCore.scenes.bled, SCENES = [SC], LOW = (navigator.deviceMemory && navigator.deviceMemory < 4) || Math.min(screen.width, screen.height) < 500;
-  SC.limits = { orbit: 0.008, tilt: 0.006, dolly: [-10, 9], height: [-4, 8], pan: [-6, 6], fov: [7, 40] };   // a drone that hovers near the viewpoint: a few metres each way
+  var ALL = window.ScenicCore.scenes, SCENES = [ALL.alps, ALL.bled], LOW = (navigator.deviceMemory && navigator.deviceMemory < 4) || Math.min(screen.width, screen.height) < 500;
+  /* what each kind of scene can honestly do: a panorama is looked at from where it was taken (turn anywhere, a step or two);
+     a spatial scene (one photo) only inside its own frame, leaning a few metres */
+  ALL.bled.limits = { orbit: 0.008, tilt: 0.006, dolly: [-10, 9], height: [-4, 8], pan: [-6, 6], fov: [7, 40] };
+  ALL.alps.limits = { orbit: 0, tilt: 0, dolly: [-1.2, 1.2], height: [-0.5, 0.7], pan: [-1.2, 1.2], fov: [22, 92] };
+  var PREF = 'minest.scenic.scene';
+  var SC = ALL[Q.get('scene')] || ALL[(function () { try { return localStorage.getItem(PREF); } catch (e) { return null; } })()] || ALL.bled;
   /* ---------- the photograph shows at once, before anything else is ready ---------- */
   $('plate').style.backgroundImage = 'url(' + SC.thumb + ')';
   $('credit').innerHTML = SC.credit;
@@ -21,16 +26,29 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, LOW ? 1.5 : 2));
   renderer.outputEncoding = THREE.LinearEncoding;
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(SC.vfov, 1, 1, 12000);
-  var tanV = Math.tan(SC.vfov / 2 * Math.PI / 180), tanH = tanV * SC.aspect;
-  var UPW = new THREE.Vector3(0, 1, 0), RIGHT = new THREE.Vector3(1, 0, 0), P = new THREE.Vector3(), U = { uT: { value: 0 }, uLive: { value: 1 } }, core = null;
-  window.ScenicCore.load('bled', { base: '', low: LOW, renderer: renderer }).then(function (c) {
-    core = c; U = c.U; P.copy(c.P); scene.add(c.group);
-    resize(); restoreStart(); loop(); setTimeout(function () { document.body.classList.add('live'); }, 60);
-    setTimeout(function () { post({ op: 'ready' }); }, 700);
-  }).catch(function () { staticMode(); });
+  var tanV = 1, tanH = 1, PANO = false;
+  var UPW = new THREE.Vector3(0, 1, 0), RIGHT = new THREE.Vector3(1, 0, 0), P = new THREE.Vector3(), U = { uT: { value: 0 }, uLive: { value: 1 } }, core = null, looping = false;
+  /* switch scenes: the new one loads behind the current picture, then a soft cross-fade (no black, no flash) */
+  function setScene(sc, first) {
+    var plate = $('plate'); plate.style.transition = 'opacity .6s ease'; plate.style.backgroundImage = 'url(' + sc.thumb + ')'; plate.style.backgroundSize = 'cover';
+    if (!first) document.body.classList.remove('live');
+    return window.ScenicCore.load(sc.id, { base: '', low: LOW, renderer: renderer }).then(function (c) {
+      if (core) { scene.remove(core.group); try { core.dispose(); } catch (e) {} }
+      core = c; SC = sc; PANO = c.kind === 'pano'; U = c.U; P.copy(c.P); tanV = c.tanV; tanH = c.tanH; L = SC.limits; scene.add(c.group);
+      camera.near = PANO ? 0.05 : 1; camera.far = PANO ? 6000 : 12000;
+      DEF = { orbit: 0, tilt: 0, dolly: 0, height: 0, pan: 0, fov: PANO ? 70 : SC.vfov * 0.86, lx: 0, ly: 0 };
+      for (var k in DEF) { S[k] = DEF[k]; T[k] = DEF[k]; } lastOK = null;
+      $('credit').innerHTML = SC.credit; $('camKind').textContent = SC.kindZh;
+      try { localStorage.setItem(PREF, SC.id); } catch (e) {} post({ op: 'scene', id: SC.id });
+      resize(); if (!looping) { looping = true; loop(); }
+      setTimeout(function () { document.body.classList.add('live'); }, 60);
+      return c;
+    });
+  }
+  setScene(SC, true).then(function () { restoreStart(); setTimeout(function () { post({ op: 'ready' }); }, 700); }).catch(function () { staticMode(); });
 
   /* ---------- the Scenic Camera: orbit · tilt · dolly · height · pan · zoom (+ look), within what the scene supports ---------- */
-  var L = SC.limits, DEF = { orbit: 0, tilt: 0, dolly: 0, height: 0, pan: 0, fov: SC.vfov * 0.86, lx: 0, ly: 0 };
+  var L = SC.limits, DEF = { orbit: 0, tilt: 0, dolly: 0, height: 0, pan: 0, fov: 40, lx: 0, ly: 0 };
   var S = JSON.parse(JSON.stringify(DEF)), T = JSON.parse(JSON.stringify(DEF)), V = { orbit: 0, tilt: 0, pan: 0, height: 0, lx: 0, ly: 0 };
   var _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _e = new THREE.Euler(0, 0, 0, 'YXZ'), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _r = new THREE.Vector3();
   function pose(st, cam) {
@@ -45,6 +63,7 @@
   /* does the photograph still fill the frame? (the four screen corners must land inside the back plate) */
   var probe = new THREE.PerspectiveCamera(), _o = new THREE.Vector3(), _d = new THREE.Vector3();
   function covered(st) {
+    if (PANO) return true;
     probe.aspect = camera.aspect; pose(st, probe); probe.updateProjectionMatrixWorld && probe.updateProjectionMatrixWorld();
     var c = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [-1, 0], [1, 0]], Z = [3400, 260, 110];   // far mountains, the lake, the near lake
     for (var i = 0; i < c.length; i++) { _o.copy(probe.position); _d.set(c[i][0], c[i][1], 0.5).unproject(probe).sub(_o).normalize();
@@ -57,7 +76,8 @@
   function clampT() {
     T.orbit = clamp(T.orbit, -L.orbit, L.orbit); T.tilt = clamp(T.tilt, -L.tilt, L.tilt); T.dolly = clamp(T.dolly, L.dolly[0], L.dolly[1]);
     T.height = clamp(T.height, L.height[0], L.height[1]); T.pan = clamp(T.pan, L.pan[0], L.pan[1]); T.fov = clamp(T.fov, L.fov[0], L.fov[1]);
-    var lim = Math.max(0, (SC.vfov - T.fov) / 2) * Math.PI / 180; T.ly = clamp(T.ly, -lim, lim); T.lx = clamp(T.lx, -lim * SC.aspect, lim * SC.aspect);
+    if (PANO) T.ly = clamp(T.ly, -1.35, 1.35);                       // a panorama: turn anywhere, up to near the zenith / the ground at your feet
+    else { var lim = Math.max(0, (SC.vfov - T.fov) / 2) * Math.PI / 180; T.ly = clamp(T.ly, -lim, lim); T.lx = clamp(T.lx, -lim * SC.aspect, lim * SC.aspect); }
     if (covered(T)) { lastOK = JSON.parse(JSON.stringify(T)); return; }
     /* past what the photograph holds: the drone stops at that edge, like a fence (nothing zooms by itself) */
     if (lastOK) { for (var q in lastOK) T[q] = lastOK[q]; V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; for (var d in DV) DV[d] = 0; return; }
@@ -75,7 +95,7 @@
     var k = T.fov / SC.vfov;
     if (ids.length === 1) {
       if (e.shiftKey) { V.pan = -dx * 0.0016; V.height = dy * 0.0016; }
-      else { V.lx = dx * 0.00011 * k; V.ly = dy * 0.00011 * k; }              // turn your head (drag the view)
+      else { var tk = PANO ? 0.00034 : 0.00011; V.lx = dx * tk * k; V.ly = dy * tk * k; }              // turn your head (drag the view)
     } else if (ids.length === 2) {
       var a = ptrs[ids[0]], b = ptrs[ids[1]], dist = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       if (pinch) { T.fov *= Math.pow(pinch.d / Math.max(1, dist), 1); V.pan = -(mx - pinch.x) * 0.0016; V.height = (my - pinch.y) * 0.0016; }
@@ -102,7 +122,6 @@
     function up(e) { if (e.pointerId !== pid) return; pid = null; st.x = st.y = 0; knob.style.transition = 'transform .18s ease'; knob.style.transform = ''; setTimeout(function () { knob.style.transition = ''; }, 200); }   // springs back to centre
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   }
-  stick('stL', STL); stick('stR', STR);
   window.addEventListener('keyup', function (e) { KEYS[e.code] = false; });
   window.addEventListener('blur', function () { KEYS = {}; });
   function fly(dt) {
@@ -119,7 +138,6 @@
     T.pan += dx; T.dolly -= dz; T.height += DV.u * 1.8 * dt;
   }
   window.addEventListener('keydown', function (e) {
-    if (/^Key[WASDQERF]$/.test(e.code)) { KEYS[e.code] = true; wake(); return; }
     wake(); var k = T.fov / SC.vfov;
     if (e.key === 'ArrowLeft') T.lx += 0.01 * k; else if (e.key === 'ArrowRight') T.lx -= 0.01 * k; else if (e.key === 'ArrowUp') T.ly += 0.01 * k; else if (e.key === 'ArrowDown') T.ly -= 0.01 * k;
     else if (e.key === '+' || e.key === '=') T.fov *= 0.92; else if (e.key === '-') T.fov /= 0.92; else if (e.key === '0' || e.key === 'Home') reset(); else if (e.key === 'c' || e.key === 'C') capture(); else if (e.key === 'Escape') exit();
@@ -131,7 +149,6 @@
   function loop() {
     requestAnimationFrame(loop); if (document.hidden) return;
     var dt = Math.min(0.05, clock.getDelta()); t0 += dt; U.uT.value = t0;
-    fly(dt);
     ['orbit', 'tilt', 'pan', 'height', 'lx', 'ly'].forEach(function (k) { if (Math.abs(V[k]) > 1e-6) { T[k] += V[k]; V[k] *= Math.pow(0.0025, dt); } });   // momentum, eased out
     clampT();
     var f = 1 - Math.exp(-dt * 6);                                    // damping: every move eases in and out
@@ -155,9 +172,9 @@
   });
   ['pScenes', 'pCamera', 'pMoments', 'bar'].forEach(function (id) { $(id).addEventListener('pointerdown', function (e) { e.stopPropagation(); wake(); }); });
   function renderScenes() {
-    $('sceneList').innerHTML = SCENES.map(function (s) { return '<div class="scene"><i style="background-image:url(' + s.imgLow + ')"></i><div><b>' + s.name + '</b><em>' + s.zh + ' · ' + s.place + '</em><span class="tag">' + s.kindZh + '</span></div></div>'; }).join('');
+    $('sceneList').innerHTML = SCENES.map(function (s) { return '<div class="scene' + (s === SC ? ' on' : '') + '" data-id="' + s.id + '"><i style="background-image:url(' + s.thumb + ')"></i><div><b>' + s.name + '</b><em>' + s.zh + ' · ' + s.place + '</em><span class="tag">' + s.kindZh + '</span></div></div>'; }).join('');
   }
-  $('camKind').textContent = SC.kindZh;
+  $('sceneList').addEventListener('click', function (e) { var d = e.target.closest('.scene'); if (!d || d.dataset.id === SC.id) return; closePanels(); setScene(ALL[d.dataset.id]).then(function () { toast(SC.zh + ' · ' + SC.kindZh); }); });
   /* the camera panel: height, dolly, focal length (mm, full-frame equivalent), orbit */
   var SL = { sHeight: ['height', L.height[0], L.height[1]], sDolly: ['dolly', L.dolly[0], L.dolly[1]], sOrbit: ['pan', L.pan[0], L.pan[1]] };
   Object.keys(SL).forEach(function (id) { $(id).addEventListener('input', function (e) { var q = SL[id]; T[q[0]] = q[1] + (q[2] - q[1]) * e.target.value / 1000; clampT(); }); });
@@ -189,7 +206,7 @@
   function localShots() { try { return JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { return []; } }
   function saveShot(s) { SHOTS.unshift(s); if (EMBED) post({ op: 'save', shot: s }); try { localStorage.setItem(KEY, JSON.stringify(SHOTS.slice(0, 40))); } catch (e) {} }
   function delShot(id) { SHOTS = SHOTS.filter(function (s) { return s.id !== id; }); if (EMBED) post({ op: 'del', id: id }); try { localStorage.setItem(KEY, JSON.stringify(SHOTS)); } catch (e) {} renderShots(); }
-  function goShot(s) { if (!s || !s.st) return; lastOK = null; for (var k in s.st) { T[k] = s.st[k]; S[k] = s.st[k]; } V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; toast('回到这一刻 · ' + new Date(s.t).toLocaleString()); }
+  function goShot(s) { if (!s || !s.st) return; if (s.scene && s.scene !== SC.id && ALL[s.scene]) { return setScene(ALL[s.scene]).then(function () { goShot(s); }); } lastOK = null; for (var k in s.st) { T[k] = s.st[k]; S[k] = s.st[k]; } V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; toast('回到这一刻 · ' + new Date(s.t).toLocaleString()); }
   function renderShots() {
     $('shots').innerHTML = SHOTS.length ? SHOTS.map(function (s) { return '<div class="shot" data-id="' + s.id + '" style="background-image:url(' + s.thumb + ')"><button type="button" data-del="' + s.id + '" aria-label="删除">×</button><span>' + new Date(s.t).toLocaleDateString() + ' ' + new Date(s.t).toLocaleTimeString().slice(0, 5) + '</span></div>'; }).join('') : '<div class="empty">还没有收藏的机位。按 Capture 定格当前画面。</div>';
   }

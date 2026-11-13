@@ -10,8 +10,15 @@
 (function (root) {
   'use strict';
   var SCENES = {
+    /* a real 360° panorama: look anywhere. The lower half lies on a ground plane at the camera's height (so a step gives
+       true parallax on the grass), the upper half on a far sphere. Nothing is invented. */
+    alps: {
+      id: 'alps', kind: 'pano', name: 'Heidi’s Alpine Meadow', zh: '海蒂的高山草甸', place: 'Graubünden · Switzerland 瑞士', kindZh: '360° 实拍全景 · 可完整环顾',
+      img: 'assets/alps/alps_8k.webp', imgLow: 'assets/alps/alps_4k.webp', thumb: 'assets/alps/alps_thumb.jpg', camH: 1.6, R: 2600, yaw: 0, vfov: 62,
+      credit: 'Panorama: “Alps Field” by Andreas Mischok · <a href="https://polyhaven.com/a/alps_field" target="_blank" rel="noopener">Poly Haven</a> · CC0'
+    },
     bled: {
-      id: 'bled', name: 'Lake Bled · Autumn Sunset', zh: '布莱德湖 · 秋日夕照', place: 'Bled, Slovenia · 斯洛文尼亚', kindZh: '2.5D 深度场景 · 站在观景点',
+      id: 'bled', kind: 'depth25', thumb: 'assets/bled/bled_2k.webp', name: 'Lake Bled · Autumn Sunset', zh: '布莱德湖 · 秋日夕照', place: 'Bled, Slovenia · 斯洛文尼亚', kindZh: '2.5D 深度场景 · 站在观景点',
       bg: 'assets/bled/bg_4k.webp', bgLow: 'assets/bled/bg_2k.webp', fg: 'assets/bled/fg_2k.png', fgW: 0.4,
       depthBg: 'assets/bled/depth_bg_1024.png', depthFg: 'assets/bled/depth_fg_1024.png', fx: 'assets/bled/fx_1024.png', thumb: 'assets/bled/bled_2k.webp',
       aspect: 4096 / 3208, vfov: 40,
@@ -44,8 +51,35 @@
     function g(a, b) { return D.d[(b * D.w + a) * 4 + (ch || 0)] / 255; } return (g(x0, y0) * (1 - fx) + g(x1, y0) * fx) * (1 - fy) + (g(x0, y1) * (1 - fx) + g(x1, y1) * fx) * fy; }; }
 
   /** load(id, {base, low, renderer}) → Promise<{group, U, SC, P, tanH, tanV, dispose}> */
+  var VS_PANO = 'varying vec2 vUv; varying vec3 vD; void main(){ vUv = uv; vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }';
+  var FS_PANO = ['uniform sampler2D map; uniform float uT; uniform float uLive; varying vec2 vUv; varying vec3 vD;',
+    'void main(){',
+    '  vec2 uv = vUv; float y = vD.y;',
+    '  float sky = smoothstep(0.1, 0.22, y) * uLive;',
+    '  uv += sky * vec2(sin(uT*0.025 + uv.y*9.0) * 0.0009 + uT * 0.00002, cos(uT*0.02 + uv.x*12.0) * 0.0005);',   // clouds breathe and creep
+    '  float grass = smoothstep(-0.12, -0.35, y) * uLive;',
+    '  uv += grass * vec2(sin(uv.x*1600.0 + uT*1.6 + sin(uv.y*700.0 + uT*0.7)*2.0), 0.0) * 0.00018 * (0.6 + 0.4*sin(uT*0.4 + uv.x*20.0));',   // wind over the meadow
+    '  vec3 c = texture2D(map, uv).rgb;',
+    '  c *= 1.0 + 0.02 * sin(uT * 0.08) * uLive;',
+    '  gl_FragColor = vec4(c, 1.0);',
+    '}'].join('\n');
+  function loadPano(SC, base, low, o) {
+    var THREE = root.THREE;
+    return img(base + (low ? SC.imgLow : SC.img)).then(function (i) {
+      var t = new THREE.Texture(i); t.needsUpdate = true; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; t.wrapS = THREE.RepeatWrapping;
+      var U = { uT: { value: 0 }, uLive: { value: 1 } };
+      var g = new THREE.SphereGeometry(1, low ? 96 : 160, low ? 56 : 96), p = g.attributes.position, v = new THREE.Vector3();
+      for (var k = 0; k < p.count; k++) { v.set(p.getX(k), p.getY(k), p.getZ(k)).normalize(); var r = SC.R; if (v.y < 0) r = Math.min(SC.R, SC.camH / Math.max(1e-4, -v.y)); p.setXYZ(k, -v.x * r, v.y * r, v.z * r); }
+      g.computeBoundingSphere();
+      var m = new THREE.Mesh(g, new THREE.ShaderMaterial({ uniforms: { map: { value: t }, uT: U.uT, uLive: U.uLive }, vertexShader: VS_PANO, fragmentShader: FS_PANO, side: THREE.DoubleSide }));
+      m.frustumCulled = false; m.rotation.y = SC.yaw; var group = new THREE.Group(); group.add(m);
+      return { group: group, U: U, SC: SC, kind: 'pano', P: new THREE.Vector3(0, 0, -100), tanV: Math.tan(SC.vfov / 2 * Math.PI / 180), tanH: Math.tan(SC.vfov / 2 * Math.PI / 180) * 1.6,
+        dispose: function () { g.dispose(); m.material.dispose(); t.dispose(); } };
+    });
+  }
   function load(id, o) {
-    var THREE = root.THREE, SC = SCENES[id || 'bled'], base = (o && o.base) || '', low = !!(o && o.low);
+    var THREE = root.THREE, SC = SCENES[id || 'bled'] || SCENES.bled, base = (o && o.base) || '', low = !!(o && o.low);
+    if (SC.kind === 'pano') return loadPano(SC, base, low, o);
     var tanV = Math.tan(SC.vfov / 2 * Math.PI / 180), tanH = tanV * SC.aspect;
     function zOf(d) { var m = SC.zmap; return 1 / (m.B + m.C * Math.pow(Math.max(0, d), m.p)); }
     return Promise.all([img(base + (low ? SC.bgLow : SC.bg)), img(base + SC.fg), img(base + SC.depthBg), img(base + SC.depthFg), img(base + SC.fx)]).then(function (r) {
@@ -81,7 +115,7 @@
       var fg = new THREE.Mesh(fgGeo, mat('fg', tFg)); fg.renderOrder = 2;
       var group = new THREE.Group(); group.add(bg); group.add(fg);
       var P = new THREE.Vector3((2 * SC.pivot[0] - 1) * tanH, (1 - 2 * SC.pivot[1]) * tanV, -1).multiplyScalar(zOf(dBg(SC.pivot[0], SC.pivot[1])));
-      return { group: group, U: U, SC: SC, P: P, tanH: tanH, tanV: tanV, zOf: zOf,
+      return { group: group, U: U, SC: SC, kind: 'depth25', P: P, tanH: tanH, tanV: tanV, zOf: zOf,
         dispose: function () { [bg, fg].forEach(function (m) { m.geometry.dispose(); m.material.dispose(); }); [tBg, tFg, tFx].forEach(function (t) { t.dispose(); }); } };
     });
   }
