@@ -13,11 +13,8 @@
     document.body.appendChild(f);
     try { f.querySelector('iframe').focus(); } catch (e) {}
   }
-  setInterval(function () {
-    var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-twapp]')) return;
-    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-twapp', ''); b.title = 'Typing Worlds — 22 typing worlds, with your Word List';
-    b.innerHTML = '<i>⌨</i>Typing Worlds'; b.addEventListener('click', function (e) { e.stopPropagation(); open(); });
-    acts.appendChild(b);
-  }, 800);
-  window.MinestTypingWorldsApp = { open: open, isOpen: function () { return !!document.getElementById('mn-tw-app'); }, close: function () { var f = document.getElementById('mn-tw-app'); if (f) f.remove(); } };
+  /* 2026-11-13: the Typing Worlds worlds now live in 3D Type (type3d/picker.js lists all of them) — no separate console
+     button; anything that still calls MinestTypingWorldsApp.open() gets 3D Type with its world picker open. */
+  function openViaType3D() { if (window.MinestType3D && window.MinestType3D.open) { window.MinestType3D.open('pick'); return; } open(); }
+  window.MinestTypingWorldsApp = { open: openViaType3D, openDirect: open, isOpen: function () { return !!document.getElementById('mn-tw-app'); }, close: function () { var f = document.getElementById('mn-tw-app'); if (f) f.remove(); } };
 })();

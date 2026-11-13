@@ -176,7 +176,10 @@ export class TypingWorldsApp {
     };
 
     // 5. 挂载初始世界
-    const targetWorldId = this.prefs.world || 'magnetic-jelly';
+    // ?world=<id> (from the 3D Type picker) opens that world directly
+    let asked: string | null = null;
+    try { asked = new URLSearchParams(location.search).get('world'); } catch { asked = null; }
+    const targetWorldId = (asked && getWorld(asked) ? asked : null) || this.prefs.world || 'magnetic-jelly';
     await this.switchWorld(targetWorldId);
   }
 

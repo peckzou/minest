@@ -1,4 +1,4 @@
-import{B as e,P as t,U as n,Z as r,ft as i,k as a,u as o,y as s,z as c}from"./three-ya0QNlXk.js";import{c as l,f as u,h as d,l as f,o as p,t as m}from"./letter-world-BCGpD-0E.js";import{t as h}from"./index-B_9KKqLz.js";import{t as g}from"./particles-B5uQt35O.js";var _=-.62,v=5.9,y=-.85,b=.085,x=24,S=8,C=1.3,w=`
+import{B as e,P as t,U as n,Z as r,ft as i,k as a,u as o,y as s,z as c}from"./three-ya0QNlXk.js";import{c as l,f as u,h as d,l as f,o as p,t as m}from"./letter-world-BCGpD-0E.js";import{t as h}from"./index-DX9Q-_6o.js";import{t as g}from"./particles-B5uQt35O.js";var _=-.62,v=5.9,y=-.85,b=.085,x=24,S=8,C=1.3,w=`
 attribute float aU; attribute float aV;
 uniform float uProg; uniform float uCollapse; uniform float uTime; uniform float uR; uniform float uLen; uniform float uFlow;
 varying float vU; varying float vV;`,T=`

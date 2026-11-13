@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""3D Type — seven 3D typing worlds (type3d/: Filament · Firework · Topiary · Saber · Quill · Neon · Book) as a Minest
+"""3D Type — the 3D typing worlds (the classic pages + the Typing Worlds worlds, one picker: type3d/picker.js)
+— seven 3D typing worlds (type3d/: Filament · Firework · Topiary · Saber · Quill · Neon · Book) as a Minest
 module: a full-screen overlay with the pages in an iframe. Its Dock tile lives under ⋯ More (tools/duo/patch_dock_more.py
 lists it). On the web the pages are served next to the Minest page; inside the iOS app (a file page) they are loaded
 from the deployed site, so the app needs a connection for this module. Idempotent."""
@@ -22,17 +23,18 @@ html.mn-type3d-on #minest-mini-pet-p0{visibility:hidden!important}
 (function () {
   if (window.MinestType3D) return;
   var ov = null, SITE = 'https://minest-app.vercel.app/';
-  function src() { return (/^https?:$/.test(location.protocol) ? new URL('type3d/index.html', location.href).href : SITE + 'type3d/index.html'); }
-  function open() {
+  function src(pick) { var q = pick ? '?pick=1' : ''; return (/^https?:$/.test(location.protocol) ? new URL('type3d/index.html', location.href).href : SITE + 'type3d/index.html') + q; }
+  function open(how) {
     if (!ov) {
       ov = document.createElement('div'); ov.className = 'mn-type3d'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', '3D Type');
-      var fr = document.createElement('iframe'); fr.title = '3D Type'; fr.setAttribute('allow', 'autoplay; fullscreen'); fr.src = src();
+      var fr = document.createElement('iframe'); fr.title = '3D Type'; fr.setAttribute('allow', 'autoplay; fullscreen'); fr.src = src(how === 'pick');
       var x = document.createElement('button'); x.type = 'button'; x.className = 'mn-type3d-x'; x.setAttribute('aria-label', 'Close · 关闭'); x.title = '关闭';
       x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
       x.addEventListener('click', function (e) { e.stopPropagation(); close(); });
       ov.appendChild(fr); ov.appendChild(x); document.body.appendChild(ov);
       ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
     }
+    else if (how === 'pick') { try { var w = ov.querySelector('iframe').contentWindow; if (w.T3DPicker) w.T3DPicker.open(); } catch (e) {} }
     ov.hidden = false; document.documentElement.classList.add('mn-type3d-on');
     try { ov.querySelector('iframe').focus(); } catch (e) {}
   }
