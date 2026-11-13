@@ -75,6 +75,12 @@
       else if (e.key && e.key.length === 1) buf = (buf + e.key).slice(-40);
     }, true);
   }
+  /* Duo half-open (type3d/fold.js): the letters move to the top / left half; the switcher, the typing line and the hint
+     go to the other half, where the keyboard comes up */
+  var foldCss = 'html.mf-top body canvas{transform:translateY(-25%)}html.mf-book body canvas{transform:translateX(-25%)}' +
+    'html.mf-top #t3ds{top:calc(50% + 14px)}html.mf-book #t3ds{left:75%;top:max(18px,env(safe-area-inset-top))}' +
+    'html.mf-book #line,html.mf-book #hint{left:50%!important;right:0!important}html.mf-book .tw-composer{left:50%!important}html.mf-book .tw-top-right{left:calc(50% + 22px)!important}' +
+    'html.mf-top #hint{bottom:calc(50% - 64px)}html.mf-top .tw-tip{display:none}';
   var strip = null, dimT = 0, ALL = D.classic.concat(D.worlds), idx = 0;
   function curIndex() {
     if (!inTW) { for (var i = 0; i < D.classic.length; i++) if (D.classic[i].page === page) return i; return 0; }
@@ -82,7 +88,7 @@
   }
   function label(it) { return String(it.en || it.zh).toUpperCase(); }
   function build() {
-    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+    var st = document.createElement('style'); st.textContent = css + foldCss; document.head.appendChild(st);
     strip = document.createElement('nav'); strip.id = 't3ds'; strip.setAttribute('aria-label', 'World');
     idx = curIndex();
     strip.innerHTML = '<div class="row"><button type="button" data-d="-1" aria-label="Previous world">‹</button><span class="nm"></span><button type="button" data-d="1" aria-label="Next world">›</button></div><button type="button" class="wl" data-wl>Word List · <i></i></button>';

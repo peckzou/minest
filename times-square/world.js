@@ -1549,6 +1549,7 @@
   function resize() {
     var w = innerWidth, h = innerHeight; renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.fov = w < h ? 78 : 66; camera.updateProjectionMatrix();
+    if (window.MinestFold) window.MinestFold.view(camera, w, h);   // Duo half-open: the street in the top / left half
   }
   addEventListener('resize', resize); addEventListener('orientationchange', function () { setTimeout(resize, 200); });
   resize();

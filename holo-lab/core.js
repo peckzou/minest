@@ -122,7 +122,13 @@
   }
   function resize() {
     var w = innerWidth, h = innerHeight; renderer.setSize(w, h, false);
-    camera.aspect = w / h; camera.fov = w < h ? 56 : 48; camera.updateProjectionMatrix();
+    /* Duo half-open (type3d/fold.js): the lab is framed for the top half (held upright) or the left half (sideways)
+       and drawn there; the other half keeps the bars and the detail sheet. Taps still hit (the offset is in the camera). */
+    var fm = window.MinestFold && window.MinestFold.mode, ew = fm === 'book' ? w / 2 : w, eh = fm === 'top' ? h / 2 : h;
+    camera.aspect = ew / eh; camera.fov = ew < eh ? 56 : 48;
+    if (fm) camera.setViewOffset(ew, eh, 0, 0, w, h); else camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+    w = ew; h = eh;
     HL.narrow = w / h < 0.85;
     var need = HL.narrow ? 3.7 : 5.8, hf = Math.atan(Math.tan(camera.fov * Math.PI / 360) * camera.aspect);
     var vneed = 3.4 / 2 / Math.tan(camera.fov * Math.PI / 360);

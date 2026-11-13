@@ -921,8 +921,14 @@
   function resize() {
     var w = window.innerWidth, h = window.innerHeight, a = w / h;
     renderer.setSize(w, h, false); camera.aspect = a; camera.fov = a < 0.8 ? 76 : (a < 1.25 ? 68 : 60); camera.updateProjectionMatrix();
+    /* Duo half-open (fold.js): the room sits in the top half (held upright) or the left half (sideways); the other half
+       is the panel of things. The picture is shifted, not cut, so taps and labels still land where they show. */
+    var R = document.documentElement;
+    if (R.classList.contains('mf-top')) camera.setViewOffset(w, h, 0, h * 0.25, w, h);
+    else if (R.classList.contains('mf-book')) camera.setViewOffset(w, h, w * 0.25, 0, w, h);
+    else camera.clearViewOffset();
   }
-  window.addEventListener('resize', resize); resize();
+  window.addEventListener('resize', resize); window.addEventListener('minest:fold', function () { resize(); dirty = true; }); resize();
   var clock = new THREE.Clock(), T = 0, lastSave = 0;
   function frame() {
     requestAnimationFrame(frame);
