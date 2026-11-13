@@ -226,6 +226,8 @@
     ].join('\n');
     document.head.appendChild(s);
   }
+  /* block-style pixel icon for a thing that has one (pixicons.js), else its emoji */
+  function pix(it) { var P = root.SpatialPixIcons, id = it && it.ref && it.ref.fn; return P && id && P.has(id) ? P.svg(id) : (it.icon || ''); }
   function open(host) {
     css();
     if (!ui) {
@@ -260,7 +262,7 @@
       var st = host.status(it), P = previewer(T), src = it.ready === false ? '' : P.cache[it.key];   // a machine not built yet has no model to show
       if (src === undefined) queue.push(it);
       return '<button type="button" class="it' + (ui.sel === it.key ? ' sel' : '') + (it.ready === false ? ' off' : '') + '" data-key="' + esc(it.key) + '">' +
-        (src ? '<img alt="" src="' + src + '">' : '<i data-th="' + esc(it.key) + '">' + it.icon + '</i>') + '<span>' + esc(it.name) + '</span>' +
+        (src ? '<img alt="" src="' + src + '">' : '<i data-th="' + esc(it.key) + '">' + pix(it) + '</i>') + '<span>' + esc(it.name) + '</span>' +
         (st.badge ? '<b class="' + st.cls + '">' + esc(st.badge) + '</b>' : '') + '</button>';
     }
     /* real model thumbnails, a few per frame, so the backpack opens at once */
@@ -284,7 +286,7 @@
     if (!it) { pv.innerHTML = '<p style="margin-top:20px">选一件物品：看它的 3D 模型、尺寸和放置要求，然后一键放进世界。</p><p>桌面：R 旋转 · ←→↑↓ 微调 · Enter 放好 · Esc 取消</p>'; return; }
     var st = host.status(it), PLACE = { floor: '地面 / 展台 / 室外', wall: '墙面', surface: '桌面 / 柜面 / 货架 / 展台' };
     var kindName = { template: '模板 · 可以放多个', owned: '实体作品 · 只有一件', function: '功能物件 · 放好后可进入功能' }[it.kind];
-    var h = '<canvas width="480" height="400" aria-label="3D 预览，拖动旋转"></canvas><h4>' + it.icon + ' ' + esc(it.name) + '</h4><dl><dt>类型</dt><dd>' + kindName + '</dd><dt>放置</dt><dd>' + PLACE[it.place || 'surface'] + '</dd>' +
+    var h = '<canvas width="480" height="400" aria-label="3D 预览，拖动旋转"></canvas><h4>' + esc(it.name) + '</h4><dl><dt>类型</dt><dd>' + kindName + '</dd><dt>放置</dt><dd>' + PLACE[it.place || 'surface'] + '</dd>' +
       (it.size ? '<dt>尺寸</dt><dd>' + it.size.map(function (n) { return n.toFixed(2); }).join(' × ') + ' m</dd>' : '') + '<dt>说明</dt><dd>' + esc(it.note || '') + '</dd><dt>状态</dt><dd>' + esc(st.text) + '</dd></dl>';
     var acts = [];
     if (it.ready === false) acts.push('<button type="button" disabled>还没有做</button>');
@@ -418,7 +420,7 @@
       if (!st.ok) return c.toast('你面前没有放得下的地方：' + st.why);
       if (it.kind === 'owned') { owned.set(it.ref, { w: 'oia', bid: host.boardId(), id: d.id }); owned.dropFromHome(it.ref, null, null); }   // registered first: drawing it checks the register
       c.commit(function (next) { next.displays.push(d); });
-      c.setSel(d.id); c.refresh(); c.toast(it.icon + ' ' + it.name + ' 放好了 · 选中后可以在控制台里移动、转向，↶ 可撤销');
+      c.setSel(d.id); c.refresh(); c.toast(it.name + ' 放好了 · 选中后可以在控制台里移动、转向，↶ 可撤销');
     },
     stash: function (it) {
       var c = oiaCtx(); if (!c || !it.ref) return; var o = owned.get(it.ref);

@@ -881,7 +881,7 @@
   function pickEnv() {
     if (busy) return;
     var list = window.SpatialRoom.envs();
-    ask('🌐 选择环境', '物件、功能入口和收藏都会跟着你；每个环境的视角分别记住。', list.map(function (e) { return { label: e.icon + '  ' + e.name + ' · ' + e.zh + (e.id === room.envId ? '  ✓' : ''), cls: e.id === room.envId ? 'pri' : '' }; }).concat([{ label: '取消', cls: 'ghost' }]))
+    ask('选择环境', '物件、功能入口和收藏都会跟着你；每个环境的视角分别记住。', list.map(function (e) { return { label: e.name + ' · ' + e.zh + (e.id === room.envId ? '  ✓' : ''), cls: e.id === room.envId ? 'pri' : '' }; }).concat([{ label: '取消', cls: 'ghost' }]))
       .then(function (i) { if (list[i]) setEnv(list[i].id); });
   }
   $('envBtn').addEventListener('click', pickEnv);
@@ -889,8 +889,8 @@
   function pickView() {
     if (busy || !window.SpatialViews) return;
     var list = window.SpatialViews.list(), cur = (S.wviews || {})[room.envId] || 'auto';
-    ask('🪟 窗外风景', '只换窗外看到的景色，房间和摆设不变；每个环境分别记住。', list.map(function (v) { return { label: v.icon + '  ' + v.zh + (v.id === cur ? '  ✓' : ''), cls: v.id === cur ? 'pri' : 'ghost' }; }).concat([{ label: '取消', cls: 'ghost' }]))
-      .then(function (i) { var v = list[i]; if (!v) return; if (!S.wviews || typeof S.wviews !== 'object') S.wviews = {}; S.wviews[room.envId] = v.id; save(); wview(); toast(v.icon + ' ' + v.zh); });
+    ask('窗外风景', '只换窗外看到的景色，房间和摆设不变；每个环境分别记住。', list.map(function (v) { return { label: v.zh + (v.id === cur ? '  ✓' : ''), cls: v.id === cur ? 'pri' : 'ghost' }; }).concat([{ label: '取消', cls: 'ghost' }]))
+      .then(function (i) { var v = list[i]; if (!v) return; if (!S.wviews || typeof S.wviews !== 'object') S.wviews = {}; S.wviews[room.envId] = v.id; save(); wview(); toast(v.zh); });
   }
   $('viewsBtn').addEventListener('click', pickView);
   $('optTime').addEventListener('change', function () { S.tod = this.value; save(); if (room.setTime) room.setTime(S.tod); });
