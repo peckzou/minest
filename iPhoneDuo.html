@@ -185067,12 +185067,30 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return e;
   }
 
+  /* take the scanned furniture out of the room mesh (it is fused in, full of holes): drop every triangle whose centre
+     falls in a cut box [x0, y0, z0, x1, y1, z1] (room coordinates) — the floor under it stays */
+  function cut(model, boxes) {
+    if (!boxes || !boxes.length) return; model.updateMatrixWorld(true);
+    var A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
+    model.traverse(function (m) {
+      if (!m.isMesh || !m.geometry.index) return; var g = m.geometry, pos = g.attributes.position, idx = g.index, M = m.matrixWorld, keep = [];
+      var get = function (i, v) { return v.set(raw(pos, i, 0), raw(pos, i, 1), raw(pos, i, 2)).applyMatrix4(M); };
+      for (var k = 0; k + 2 < idx.count; k += 3) {
+        var a = idx.getX(k), b = idx.getX(k + 1), c = idx.getX(k + 2); get(a, A); get(b, B); get(c, C);
+        var x = (A.x + B.x + C.x) / 3, y = (A.y + B.y + C.y) / 3, z = (A.z + B.z + C.z) / 3;
+        if (boxes.some(function (q) { return x > q[0] && x < q[3] && y > q[1] && y < q[4] && z > q[2] && z < q[5]; })) continue;
+        keep.push(a, b, c);
+      }
+      if (keep.length !== idx.count) g.setIndex(keep);
+    });
+  }
   function makeEnv(def) {
     return function build(scene) {
       var holder = new THREE.Group(); holder.name = 'env-' + def.id; scene.add(holder);
       var g = new THREE.Group(); holder.add(g);
-      PT.theme(null); PT.desk(g); PT.chair(g); PT.bookshelf(g); PT.cabinet(g);   // the office corner: Spatial Home's own furniture
-      easel(g, -1.9, -2.42, 0);
+      PT.theme(null);
+      if (!def.showroom) { PT.desk(g); PT.chair(g); PT.bookshelf(g); PT.cabinet(g); easel(g, -1.9, -2.42, 0); }   // the office corner: Spatial Home's own furniture
+      else easel(g, def.easel[0], def.easel[1], def.easel[2]);
       var hemi = new THREE.HemisphereLight(0xfff3e0, 0x3a2e24, def.lit ? 0.75 : 0.9); holder.add(hemi);
       var sun = new THREE.DirectionalLight(0xffe9c8, 0.8); sun.position.set(-2, 5, 3); sun.target.position.set(0, 0.6, -1.2);
       sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); var sc = sun.shadow.camera; sc.left = -4; sc.right = 4; sc.top = 4; sc.bottom = -4; sc.near = 0.5; sc.far = 14; sun.shadow.bias = -0.0006;
@@ -185086,7 +185104,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       A['wall.right'] = { p: [1.6, 1.55, -2.45], ry: 0 };
       A['floor.portal'] = { p: [-2.4, 0, 1.6], ry: PI / 2 };            // the portal arch stands free in the hall
       A['floor.holo'] = { p: [1.6, 0, 1.05], ry: -PI / 2 };
-      var solids = PT.solids().slice(), office = [-3.1, -2.7, 3.1, 2.7];
+      if (def.anchors) Object.keys(def.anchors).forEach(function (k) { A[k] = def.anchors[k]; });   // a showroom places every thing itself
+      var solids = def.showroom ? [] : PT.solids().slice(), office = def.showroom ? null : [-3.1, -2.7, 3.1, 2.7];
       var areas = [def.walk.slice()];                                   // the whole hall can be walked; the model's own obstacles stop you
 
       gltfLoader().then(function () {
@@ -185094,22 +185113,49 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           if (!holder.parent) return;                                   // the room was switched away while loading
           var m = gl.scene; m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
-          holder.add(m);
+          holder.add(m); cut(m, def.cut);
           var R = solidsOf(m, 0, office); R.solids.forEach(function (s) { solids.push(s); });
         }, undefined, function (e) { if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); });
       }, function () {});
 
       return {
         id: def.id, name: def.name, group: g, holder: holder, far: 80, size: { W: 3.0, D: 2.6, H: def.h },
-        anchors: A, avatar: PT.avatar, start: PT.start, desk: PT.deskCam, solids: solids, areas: areas, credit: def.credit,
+        anchors: A, avatar: PT.avatar, start: def.start || PT.start, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
+        defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function () {}, tick: function () {},
         dispose: function () { SR.disposeTree(holder); scene.background = null; }
       };
     };
   }
   /* offset: where the model sits so the office corner (x −3…3, z −2.6…2.6, desk at the back) lands in an open part of the room */
-  var KINGS = { id: 'kings-hall', name: "The King's Hall · Skokloster", glb: 'interiors-glb/assets/kings_hall.glb', h: 4.5,
-    offset: [0.37, 1.5, -5.8], walk: [-5.6, -5.0, 5.6, 10.1], credit: 'The King’s Hall, Skokloster Castle — scan by Erik Lernestål, CC BY 4.0' };
+  /* The King's Hall showroom: the hall's own long table (rebuilt clean, furniture.js) is the desk — the model sits so the
+     table stands where the Spatial Home desk is (centre 0, −1.9); the scanned table and chairs are cut out of the mesh and
+     the clean ones stand in their exact places. Things on the table top (0.80 m), the board on an easel, the rest on
+     pedestals along the right — all movable, all furniture in the Magical Backpack. */
+  var PI = Math.PI, TY = 0.805;
+  var KINGS = { id: 'kings-hall', name: "The King's Hall · Skokloster", glb: 'interiors-glb/assets/kings_hall.glb', h: 4.5, showroom: true,
+    offset: [0.37, 1.3, -10.735], walk: [-5.6, -9.9, 5.6, 5.2],
+    cut: [[-1.1, 0.06, -2.86, 1.2, 1.5, -0.93]],
+    easel: [-2.0, -0.75, 0],
+    start: { pos: [0.6, 1.5, 1.6], yaw: 0.12, pitch: -0.12 }, deskCam: { pos: [0, 1.45, -0.2], look: [0, 0.82, -2.1] },
+    anchors: {
+      'desk.left': { p: [0, TY, -1.5], ry: 0 }, 'desk.right': { p: [0.22, TY, -2.08], ry: 0.1 }, 'desk.quill': { p: [-0.26, TY, -1.72], ry: 0.25 },
+      'desk.key': { p: [0.27, TY, -1.42], ry: 0.3 }, 'desk.mochi': { p: [-0.22, TY, -2.38], ry: -0.3 }, 'desk.book': { p: [0.16, TY, -2.46], ry: 0 },
+      'wall.left': { p: [-2.0, 1.62, -0.73], ry: 0 }, 'wall.right': { p: [2.1, 0.92, -0.5], ry: -PI / 2 },
+      'shelf.mid': { p: [2.1, 0.92, -3.3], ry: -PI / 2 }, 'cabinet.left': { p: [2.1, 0.92, -2.6], ry: -PI / 2 }, 'cabinet.top': { p: [2.1, 0.92, -1.9], ry: -PI / 2 },
+      'cabinet.right': { p: [2.1, 0.92, -1.2], ry: -PI / 2 }, 'sill.left': { p: [2.1, 0.92, -0.5], ry: -PI / 2 },
+      'corner.window': { p: [-2.6, 0, -3.6], ry: PI / 2 }, 'floor.pack': { p: [-1.2, 0, 0.5], ry: 0.45 }, 'floor.gramo': { p: [-2.7, 0, -2.2], ry: PI / 2 },
+      'floor.film': { p: [2.9, 0, 1.4], ry: -PI / 2 }, 'floor.portal': { p: [-3.6, 0, 1.6], ry: PI / 2 }, 'floor.holo': { p: [3.0, 0, -4.4], ry: -PI / 2 }
+    },
+    layout: { extras: [
+      { kind: 'kh-table', p: [-0.0, 0, -1.9], ry: 0, uid: 9101 },
+      { kind: 'kh-chair', p: [-0.66, 0, -2.25], ry: PI / 2, uid: 9102 }, { kind: 'kh-chair', p: [-0.66, 0, -1.55], ry: PI / 2, uid: 9103 },
+      { kind: 'kh-chair', p: [0.66, 0, -2.25], ry: -PI / 2, uid: 9104 }, { kind: 'kh-chair', p: [0.66, 0, -1.55], ry: -PI / 2, uid: 9105 },
+      { kind: 'pedestal', p: [2.1, 0, -3.3], ry: -PI / 2, uid: 9111 }, { kind: 'pedestal', p: [2.1, 0, -2.6], ry: -PI / 2, uid: 9112 },
+      { kind: 'pedestal', p: [2.1, 0, -1.9], ry: -PI / 2, uid: 9113 }, { kind: 'pedestal', p: [2.1, 0, -1.2], ry: -PI / 2, uid: 9114 },
+      { kind: 'pedestal', p: [2.1, 0, -0.5], ry: -PI / 2, uid: 9115 }
+    ] },
+    credit: 'The King\u2019s Hall, Skokloster Castle — scan by Erik Lernestål, CC BY 4.0' };
   var VICT = { id: 'victorian', name: 'Victorian Study', glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, ry: Math.PI,
     offset: [0, 0, 5.4], walk: [-8.4, -3.2, 8.4, 13.9], credit: 'Victorian Study — Fox Dev assets, with the author’s permission' };
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
@@ -185245,6 +185291,66 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return (cache[name] = '<svg class="px" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">' + out + '</svg>');
   }
   root.SpatialPixIcons = { svg: svg, has: function (n) { return !!I[ALIAS[n] || n]; }, names: function () { return Object.keys(I); } };
+})(window);
+
+/* Minest · Spatial Home — period furniture for the King's Hall showroom (2026-11-13). Clean models made here to replace
+   the scanned table and chairs (the scan's furniture is fused into the room mesh and full of holes): the same size and
+   place as the originals (measured from the scan: table top 0.86 × 1.51 m at 0.80 m; high-back chairs, two a side).
+   They are Magical Backpack fixtures ('kh-table', 'kh-chair'): move them, turn them, put things on the table top. */
+(function (root) {
+  'use strict';
+  var F = root.SpatialFurniture = root.SpatialFurniture || {};
+  function mats(T) {
+    if (F._m) return F._m;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };   // r128: material colours are linear
+    return (F._m = {
+      walnut: new T.MeshStandardMaterial({ color: L(0x4a2a18), roughness: 0.48, metalness: 0.05 }),
+      walnutL: new T.MeshStandardMaterial({ color: L(0x7a4a2a), roughness: 0.42, metalness: 0.05 }),
+      inlay: new T.MeshStandardMaterial({ color: L(0xa8743e), roughness: 0.38, metalness: 0.05 }),
+      gold: new T.MeshStandardMaterial({ color: L(0xc9a24a), roughness: 0.3, metalness: 0.85 }),
+      velvet: new T.MeshStandardMaterial({ color: L(0x7a2e2e), roughness: 0.85, metalness: 0 })
+    });
+  }
+  function box(T, g, m, x, y, z, w, h, d) { var b = new T.Mesh(new T.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; b.receiveShadow = true; g.add(b); return b; }
+  /* a turned leg: a lathe profile (bun foot, vase, ring, column, block) */
+  function leg(T, g, m, x, z, h) {
+    var p = [[0, 0], [0.045, 0], [0.05, 0.03], [0.035, 0.06], [0.03, 0.09], [0.045, 0.16], [0.05, 0.24], [0.04, 0.32], [0.026, 0.38], [0.034, 0.42], [0.024, 0.46],
+      [0.022, h - 0.2], [0.03, h - 0.17], [0.032, h - 0.14], [0.032, h], [0, h]].map(function (q) { return new T.Vector2(q[0], q[1]); });
+    var l = new T.Mesh(new T.LatheGeometry(p, 14), m); l.position.set(x, 0, z); l.castShadow = true; g.add(l); return l;
+  }
+  F['kh-table'] = function (T) {
+    var M = mats(T), g = new T.Group(), W = 0.86, D = 1.51, H = 0.80;
+    box(T, g, M.walnut, 0, H - 0.025, 0, W, 0.05, D);                       // top
+    box(T, g, M.inlay, 0, H + 0.0015, 0, W - 0.16, 0.003, D - 0.16);        // inlaid field
+    box(T, g, M.walnutL, 0, H + 0.002, 0, W - 0.3, 0.003, D - 0.3);
+    [[0, H - 0.002, W / 2 - 0.004, 0.012, 0.012, D], [0, H - 0.002, -W / 2 + 0.004, 0.012, 0.012, D]].forEach(function (q) { box(T, g, M.gold, q[2], q[1], 0, q[3], q[4], q[5]); });
+    [[D / 2 - 0.004], [-D / 2 + 0.004]].forEach(function (q) { box(T, g, M.gold, 0, H - 0.002, q[0], W, 0.012, 0.012); });
+    box(T, g, M.walnut, 0, H - 0.11, D / 2 - 0.06, W - 0.1, 0.12, 0.03);      // aprons
+    box(T, g, M.walnut, 0, H - 0.11, -D / 2 + 0.06, W - 0.1, 0.12, 0.03);
+    box(T, g, M.walnut, W / 2 - 0.06, H - 0.11, 0, 0.03, 0.12, D - 0.1);
+    box(T, g, M.walnut, -W / 2 + 0.06, H - 0.11, 0, 0.03, 0.12, D - 0.1);
+    box(T, g, M.gold, 0, H - 0.17, D / 2 - 0.045, 0.16, 0.03, 0.01);         // carved cartouches
+    box(T, g, M.gold, 0, H - 0.17, -D / 2 + 0.045, 0.16, 0.03, 0.01);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (s) { leg(T, g, M.walnutL, s[0] * (W / 2 - 0.08), s[1] * (D / 2 - 0.1), H - 0.05); });
+    box(T, g, M.walnut, -(W / 2 - 0.08), 0.12, 0, 0.035, 0.035, D - 0.2);   // H-stretcher
+    box(T, g, M.walnut, W / 2 - 0.08, 0.12, 0, 0.035, 0.035, D - 0.2);
+    box(T, g, M.walnut, 0, 0.12, 0, W - 0.16, 0.035, 0.035);
+    return { group: g, hb: [W, H, D], place: 'floor' };
+  };
+  F['kh-chair'] = function (T) {
+    var M = mats(T), g = new T.Group(), S = 0.46, SH = 0.46, BH = 1.18;     // the seat faces +z
+    box(T, g, M.walnut, 0, SH - 0.03, 0, S, 0.06, S);
+    box(T, g, M.velvet, 0, SH + 0.02, 0.01, S - 0.05, 0.05, S - 0.06);      // the cushion
+    [[-1, 1], [1, 1]].forEach(function (s) { leg(T, g, M.walnutL, s[0] * (S / 2 - 0.04), s[1] * (S / 2 - 0.04), SH - 0.03); });
+    [[-1, -1], [1, -1]].forEach(function (s) { box(T, g, M.walnut, s[0] * (S / 2 - 0.04), BH / 2, -S / 2 + 0.03, 0.045, BH, 0.045); });   // back posts to the floor
+    box(T, g, M.velvet, 0, (SH + BH) / 2 + 0.03, -S / 2 + 0.035, S - 0.14, BH - SH - 0.16, 0.035);   // upholstered back
+    box(T, g, M.walnut, 0, BH - 0.04, -S / 2 + 0.03, S - 0.02, 0.07, 0.05);  // crest rail
+    box(T, g, M.gold, 0, BH + 0.02, -S / 2 + 0.03, 0.14, 0.06, 0.03);        // carved crest
+    box(T, g, M.gold, 0, SH + 0.07, -S / 2 + 0.035, S - 0.12, 0.012, 0.04);
+    box(T, g, M.walnut, 0, 0.12, S / 2 - 0.04, S - 0.1, 0.03, 0.03);          // front stretcher
+    [-1, 1].forEach(function (s) { box(T, g, M.walnut, s * (S / 2 - 0.04), 0.12, 0, 0.03, 0.03, S - 0.1); });
+    return { group: g, hb: [S, BH, S], place: 'floor' };
+  };
 })(window);
 
 /* Minest · Spatial Home — the things that are the apps (the fishing rod became the Octo aquarium in entries.js).
@@ -187410,7 +187516,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var FIXTURES = [
     { id: 'pedestal', name: '展示台', en: 'Pedestal', icon: '🏛', place: 'floor', size: [0.42, 0.42, 0.91], note: '地面 · 顶面可再放东西' },
     { id: 'wallshelf', name: '墙面置物架', en: 'Wall shelf', icon: '🪵', place: 'wall', size: [0.9, 0.22, 0.2], note: '墙面 · 架上可放小物' },
-    { id: 'vitrine', name: '玻璃展柜', en: 'Vitrine', icon: '🔲', place: 'surface', size: [0.46, 0.34, 0.39], note: '桌面 / 柜面 / 展台' }
+    { id: 'vitrine', name: '玻璃展柜', en: 'Vitrine', icon: '🔲', place: 'surface', size: [0.46, 0.34, 0.39], note: '桌面 / 柜面 / 展台' },
+    { id: 'kh-table', name: '巴洛克长桌', en: 'Baroque table', icon: '▭', place: 'floor', size: [0.86, 1.51, 0.8], note: '地面 · 桌面可陈列' },
+    { id: 'kh-chair', name: '高背椅', en: 'High-back chair', icon: '♙', place: 'floor', size: [0.46, 0.46, 1.18], note: '地面' }
   ];
   var TOOLS = { typewriter: 1, quill: 1, planner: 1, board: 1, album: 1, bookstand: 1 };
 
@@ -187455,6 +187563,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var c2 = hit && hit.cover; return c2 && c2.type !== 'color' && (c2.value || c2.url) || '';
   }
   function fixture(T, kind) {
+    var SF = root.SpatialFurniture; if (SF && typeof SF[kind] === 'function') return SF[kind](T);   // period furniture (furniture.js)
     var g = new T.Group(), VB = root.SpatialVoxel.VB, v = new VB(5000), hb;
     if (kind === 'pedestal') { v.cb(0, 0, 0, 0.42, 0.06, 0.42, 'stone2'); v.cb(0, 0.06, 0, 0.34, 0.8, 0.34, 'stone', 0.03); v.cb(0, 0.86, 0, 0.42, 0.05, 0.42, 'stone2'); hb = [0.42, 0.91, 0.42]; }
     else if (kind === 'wallshelf') { v.box(-0.45, -0.02, 0, 0.45, 0.02, 0.22, 'woodLight', 0.03); v.box(-0.38, -0.16, 0, -0.35, -0.02, 0.18, 'brass'); v.box(0.35, -0.16, 0, 0.38, -0.02, 0.18, 'brass'); hb = [0.9, 0.2, 0.22]; }
@@ -189204,7 +189313,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       var a = P.x - x0, c = x1 - P.x, d = P.z - z0, f = z1 - P.z, m = Math.min(a, c, d, f);
       if (m === a) P.x = x0; else if (m === c) P.x = x1; else if (m === d) P.z = z0; else P.z = z1;
     });
+    XS.forEach(function (x) {                                                     // furniture you placed stands in the way too
+      if (x.place !== 'floor' || !x.hit) return; _xb.setFromObject(x.hit); var x0 = _xb.min.x - RAD, z0 = _xb.min.z - RAD, x1 = _xb.max.x + RAD, z1 = _xb.max.z + RAD;
+      if (P.x <= x0 || P.x >= x1 || P.z <= z0 || P.z >= z1) return;
+      var a = P.x - x0, c = x1 - P.x, d = P.z - z0, f = z1 - P.z, m = Math.min(a, c, d, f);
+      if (m === a) P.x = x0; else if (m === c) P.x = x1; else if (m === d) P.z = z0; else P.z = z1;
+    });
   }
+  var _xb = new THREE.Box3();
   function move(dt) {
     if (mode !== 'explore' || busy) return;
     if (T < AV.standUntil) return;                                                  // getting up from the chair
@@ -189279,6 +189395,10 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (LCACHE[env]) return LCACHE[env];
     var BPs = window.MinestBackpack && window.MinestBackpack.store, v = BPs ? BPs.get('bp:home:' + env) : null;
     if (!v || typeof v !== 'object') { if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; v = S.layouts[env] || {}; }
+    if (room && room.envId === env && room.defaultLayout && !v.showroom) {              // a showroom room is furnished once (later changes are yours)
+      var d0 = room.defaultLayout(); v = JSON.parse(JSON.stringify(v)); v.extras = (v.extras || []).concat((d0.extras || []).filter(function (e) { return !(v.extras || []).some(function (x) { return x.uid === e.uid; }); }));
+      v.showroom = 1; LCACHE[env] = v; saveLayout(env, v); return v;
+    }
     return (LCACHE[env] = JSON.parse(JSON.stringify(v)));
   }
   function saveLayout(env, v) { LCACHE[env] = v; if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; S.layouts[env] = v; var BPs = window.MinestBackpack && window.MinestBackpack.store; if (BPs) BPs.set('bp:home:' + env, v); }

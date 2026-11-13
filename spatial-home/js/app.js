@@ -499,7 +499,14 @@
       var a = P.x - x0, c = x1 - P.x, d = P.z - z0, f = z1 - P.z, m = Math.min(a, c, d, f);
       if (m === a) P.x = x0; else if (m === c) P.x = x1; else if (m === d) P.z = z0; else P.z = z1;
     });
+    XS.forEach(function (x) {                                                     // furniture you placed stands in the way too
+      if (x.place !== 'floor' || !x.hit) return; _xb.setFromObject(x.hit); var x0 = _xb.min.x - RAD, z0 = _xb.min.z - RAD, x1 = _xb.max.x + RAD, z1 = _xb.max.z + RAD;
+      if (P.x <= x0 || P.x >= x1 || P.z <= z0 || P.z >= z1) return;
+      var a = P.x - x0, c = x1 - P.x, d = P.z - z0, f = z1 - P.z, m = Math.min(a, c, d, f);
+      if (m === a) P.x = x0; else if (m === c) P.x = x1; else if (m === d) P.z = z0; else P.z = z1;
+    });
   }
+  var _xb = new THREE.Box3();
   function move(dt) {
     if (mode !== 'explore' || busy) return;
     if (T < AV.standUntil) return;                                                  // getting up from the chair
@@ -574,6 +581,10 @@
     if (LCACHE[env]) return LCACHE[env];
     var BPs = window.MinestBackpack && window.MinestBackpack.store, v = BPs ? BPs.get('bp:home:' + env) : null;
     if (!v || typeof v !== 'object') { if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; v = S.layouts[env] || {}; }
+    if (room && room.envId === env && room.defaultLayout && !v.showroom) {              // a showroom room is furnished once (later changes are yours)
+      var d0 = room.defaultLayout(); v = JSON.parse(JSON.stringify(v)); v.extras = (v.extras || []).concat((d0.extras || []).filter(function (e) { return !(v.extras || []).some(function (x) { return x.uid === e.uid; }); }));
+      v.showroom = 1; LCACHE[env] = v; saveLayout(env, v); return v;
+    }
     return (LCACHE[env] = JSON.parse(JSON.stringify(v)));
   }
   function saveLayout(env, v) { LCACHE[env] = v; if (!S.layouts || typeof S.layouts !== 'object') S.layouts = {}; S.layouts[env] = v; var BPs = window.MinestBackpack && window.MinestBackpack.store; if (BPs) BPs.set('bp:home:' + env, v); }

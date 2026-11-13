@@ -60,7 +60,9 @@
   var FIXTURES = [
     { id: 'pedestal', name: '展示台', en: 'Pedestal', icon: '🏛', place: 'floor', size: [0.42, 0.42, 0.91], note: '地面 · 顶面可再放东西' },
     { id: 'wallshelf', name: '墙面置物架', en: 'Wall shelf', icon: '🪵', place: 'wall', size: [0.9, 0.22, 0.2], note: '墙面 · 架上可放小物' },
-    { id: 'vitrine', name: '玻璃展柜', en: 'Vitrine', icon: '🔲', place: 'surface', size: [0.46, 0.34, 0.39], note: '桌面 / 柜面 / 展台' }
+    { id: 'vitrine', name: '玻璃展柜', en: 'Vitrine', icon: '🔲', place: 'surface', size: [0.46, 0.34, 0.39], note: '桌面 / 柜面 / 展台' },
+    { id: 'kh-table', name: '巴洛克长桌', en: 'Baroque table', icon: '▭', place: 'floor', size: [0.86, 1.51, 0.8], note: '地面 · 桌面可陈列' },
+    { id: 'kh-chair', name: '高背椅', en: 'High-back chair', icon: '♙', place: 'floor', size: [0.46, 0.46, 1.18], note: '地面' }
   ];
   var TOOLS = { typewriter: 1, quill: 1, planner: 1, board: 1, album: 1, bookstand: 1 };
 
@@ -105,6 +107,7 @@
     var c2 = hit && hit.cover; return c2 && c2.type !== 'color' && (c2.value || c2.url) || '';
   }
   function fixture(T, kind) {
+    var SF = root.SpatialFurniture; if (SF && typeof SF[kind] === 'function') return SF[kind](T);   // period furniture (furniture.js)
     var g = new T.Group(), VB = root.SpatialVoxel.VB, v = new VB(5000), hb;
     if (kind === 'pedestal') { v.cb(0, 0, 0, 0.42, 0.06, 0.42, 'stone2'); v.cb(0, 0.06, 0, 0.34, 0.8, 0.34, 'stone', 0.03); v.cb(0, 0.86, 0, 0.42, 0.05, 0.42, 'stone2'); hb = [0.42, 0.91, 0.42]; }
     else if (kind === 'wallshelf') { v.box(-0.45, -0.02, 0, 0.45, 0.02, 0.22, 'woodLight', 0.03); v.box(-0.38, -0.16, 0, -0.35, -0.02, 0.18, 'brass'); v.box(0.35, -0.16, 0, 0.38, -0.02, 0.18, 'brass'); hb = [0.9, 0.2, 0.22]; }

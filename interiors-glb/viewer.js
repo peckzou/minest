@@ -77,7 +77,8 @@
       var ax = tris[o + 3] - tris[o], az = tris[o + 5] - tris[o + 2], bx = tris[o + 6] - tris[o], bz = tris[o + 8] - tris[o + 2], ar = Math.abs(ax * bz - az * bx) / 2;
       var key = Math.round(y * 10); area[key] = (area[key] || 0) + ar; hist[key] = (hist[key] || 0) + 1; }
     var maxA = 0, hk; for (hk in area) maxA = Math.max(maxA, area[hk]);
-    var F = null; Object.keys(area).map(Number).sort(function (a, b) { return a - b; }).some(function (k) { if (area[k] >= maxA * 0.15) { F = k / 10; return true; } return false; });
+    var F = null, big = Object.keys(area).map(Number).sort(function (a, b) { return a - b; }).filter(function (k) { return area[k] >= maxA * 0.15; });
+    if (big.length) { F = big[0] / 10; big.forEach(function (k) { if (k / 10 - big[0] / 10 <= 0.4) F = k / 10; }); }   // a scan's floor is often two sheets: walk on the top one
     if (F == null) F = bottom;
     for (t = 0; t < T; t++) { var o2 = t * 10; if (Math.abs(tris[o2 + 9]) < 0.8) continue; var y2 = (tris[o2 + 1] + tris[o2 + 4] + tris[o2 + 7]) / 3; if (Math.abs(y2 - F) > 0.3) continue;
       var cx = Math.floor(((tris[o2] + tris[o2 + 3] + tris[o2 + 6]) / 3 - x0) / CELL), cz = Math.floor(((tris[o2 + 2] + tris[o2 + 5] + tris[o2 + 8]) / 3 - z0) / CELL), c = cz * nx + cx;
