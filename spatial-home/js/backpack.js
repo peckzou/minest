@@ -73,7 +73,7 @@
       out.push({ key: 'work:' + it.id, cat: 'creations', kind: 'owned', name: it.word, icon: '✨', place: 'surface',
         note: (it.mode || 'neon') + ' · ' + (it.gas || '') + ' · Type Workshop 作品', ref: { work: it.id }, spec: { kind: 'neon', ref: { work: it.id }, title: it.word } });
     });
-    FIXTURES.forEach(function (f) { out.push({ key: 'fx:' + f.id, cat: 'fixtures', kind: 'template', name: f.name, icon: f.icon, place: f.place, size: f.size, note: f.note, spec: { kind: f.id } }); });
+    FIXTURES.concat(root.SpatialFurnitureCatalog || []).forEach(function (f) { out.push({ key: 'fx:' + f.id, cat: 'fixtures', kind: 'template', name: f.name, icon: f.icon, place: f.place, size: f.size, note: f.note, spec: { kind: f.id, title: f.name } }); });
     machines().forEach(function (m) {
       out.push({ key: 'mc:' + m.id, cat: 'fixtures', kind: 'template', name: m.no + ' · ' + m.name, en: m.en, icon: m.icon, place: 'floor', ready: !!m.ready,
         note: m.ready ? m.kind + ' · 装载一个 List，可以真的操作' : '第 ' + m.phase + ' 阶段 · 还没有做', spec: { kind: 'machine', mx: { type: m.id } } });

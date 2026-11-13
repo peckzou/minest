@@ -147,7 +147,37 @@
     var light = new THREE.PointLight(0xffe2b0, 0.85, 7, 2); light.position.y = 2.25; c.add(light);
     return c;
   }
+  /* deep embedding: an outside model's own furniture becomes Spatial Home furniture. Each named node in def.movable is
+     taken out of the room, kept as a template (origin at the bottom centre of its box) and offered as a Magical Backpack
+     fixture 'glb:<room>:<node>'; the room is furnished once with them where they stood (event 'spatialhome:furnish'),
+     after that they move, turn, carry things and go into the backpack like any other furniture. */
+  var TPL = {};
+  function kindOf(env, node) { return 'glb:' + env + ':' + node; }
+  function registerMovable(def) {
+    var SF = root.SpatialFurniture = root.SpatialFurniture || {}, CAT = root.SpatialFurnitureCatalog = root.SpatialFurnitureCatalog || [];
+    (def.movable || []).forEach(function (mv) {
+      var k = kindOf(def.id, mv.node);
+      SF[k] = function () { var t = TPL[k]; if (!t) return { group: new THREE.Group(), hb: [0.1, 0.1, 0.1], place: 'floor' };   // not loaded yet: nothing until the room has loaded
+        return { group: t.group.clone(true), hb: t.hb.slice(), place: t.place }; };
+      if (!CAT.some(function (c) { return c.id === k; })) CAT.push({ id: k, name: mv.name, en: mv.node, icon: '▣', place: mv.place || 'floor', size: [0.5, 0.5, 0.5], note: def.name + ' 的家具' });
+    });
+  }
+  function takeMovables(def, model) {
+    var items = [], box = new THREE.Box3(), c = new THREE.Vector3(), P = new THREE.Vector3(), Q = new THREE.Quaternion(), S = new THREE.Vector3();
+    model.updateMatrixWorld(true);
+    (def.movable || []).forEach(function (mv, i) {
+      var n = model.getObjectByName(mv.node); if (!n) return; var k = kindOf(def.id, mv.node);
+      box.setFromObject(n); box.getCenter(c); c.y = box.min.y; var size = box.getSize(new THREE.Vector3());
+      var t = n.clone(true); n.matrixWorld.decompose(P, Q, S); t.position.copy(P).sub(c); t.quaternion.copy(Q); t.scale.copy(S);
+      var g = new THREE.Group(); g.add(t); t.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      TPL[k] = { group: g, hb: [size.x, size.y, size.z], place: c.y > 0.08 ? 'surface' : (mv.place || 'floor') };
+      n.parent.remove(n);
+      items.push({ kind: k, title: mv.name, p: [+c.x.toFixed(3), +c.y.toFixed(3), +c.z.toFixed(3)], ry: 0, uid: 9500 + i });
+    });
+    return items;
+  }
   function makeEnv(def) {
+    registerMovable(def);
     return function build(scene) {
       var holder = new THREE.Group(); holder.name = 'env-' + def.id; scene.add(holder);
       var g = new THREE.Group(); holder.add(g);
@@ -178,8 +208,10 @@
           var m = gl.scene; m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });
           holder.add(m); cut(m, def.cut);
+          var furn = takeMovables(def, m);
           var R = solidsOf(m, 0, office); R.solids.forEach(function (s) { solids.push(s); });
           var SF = surfacesOf(m, def.walk); holder.add(SF.group); surfaces.push(SF.group);      // things can stand on the model now
+          if (def.movable) try { root.dispatchEvent(new CustomEvent('spatialhome:furnish', { detail: { env: def.id, items: furn } })); } catch (er) {}
         }, undefined, function (e) { if (root.console) console.warn('Spatial Home: ' + def.id + ' model could not load', e); });
       }, function () {});
 
@@ -223,8 +255,29 @@
       { kind: 'pedestal', p: [2.1, 0, -0.5], ry: -PI / 2, uid: 9115 }
     ] },
     credit: 'The King\u2019s Hall, Skokloster Castle — scan by Erik Lernestål, CC BY 4.0' };
-  var VICT = { id: 'victorian', name: 'Victorian Study', glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, ry: Math.PI,
-    offset: [0, 0, 5.4], walk: [-8.4, -3.2, 8.4, 13.9], credit: 'Victorian Study — Fox Dev assets, with the author’s permission' };
+  /* The Victorian Study, embedded deep: its south round table is the desk (things on its top), the north table carries
+     the projector, album, medals, car and ornament, and its own armchairs, tables, vases, viola, rugs and ladders are
+     movable furniture. The model's floor is 0.2 m up, so it sits 0.2 m down; the south table lands on the desk spot. */
+  var VY = 0.725;
+  var VICT = { id: 'victorian', name: 'Victorian Study', glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
+    offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: [-2.7, -0.4, 0.35],
+    start: { pos: [0.7, 1.5, 1.4], yaw: 0.1, pitch: -0.12 }, deskCam: { pos: [0, 1.4, -0.4], look: [0, 0.75, -2.0] },
+    movable: [
+      { node: 'Armchair_NE', name: '扶手椅' }, { node: 'Armchair_NW', name: '扶手椅' }, { node: 'Armchair_SE', name: '扶手椅' }, { node: 'Armchair_SW', name: '扶手椅' },
+      { node: 'Table_North', name: '圆桌' }, { node: 'Table_South', name: '圆桌 · 书桌' }, { node: 'Vase_North', name: '花瓶' }, { node: 'Vase_South', name: '花瓶' },
+      { node: 'Viola', name: '小提琴' }, { node: 'Rug_Hearth_North', name: '壁炉地毯' }, { node: 'Rug_Reading_South', name: '阅读地毯' },
+      { node: 'Ladder_North', name: '图书梯' }, { node: 'Ladder_West', name: '图书梯' }
+    ],
+    anchors: {
+      'desk.left': { p: [0.15, VY, -1.35], ry: 0 }, 'desk.right': { p: [0.5, VY, -1.95], ry: -0.3 }, 'desk.quill': { p: [-0.45, VY, -1.5], ry: 0.3 },
+      'desk.key': { p: [0.35, VY, -1.2], ry: 0.3 }, 'desk.mochi': { p: [0.45, VY, -2.45], ry: -0.3 }, 'desk.book': { p: [-0.35, VY, -2.5], ry: 0 },
+      'wall.left': { p: [-2.7, 1.62, -0.38], ry: 0.35 }, 'wall.right': { p: [0, VY, -8.95], ry: 0 },
+      'cabinet.top': { p: [-0.5, VY, -9.4], ry: 0 }, 'cabinet.left': { p: [0.5, VY, -9.4], ry: 0 }, 'cabinet.right': { p: [0, VY, -8.95], ry: 0 },
+      'shelf.mid': { p: [-0.45, VY, -9.95], ry: 0 }, 'sill.left': { p: [0.45, VY, -9.95], ry: 0 },
+      'corner.window': { p: [4.2, 0, -1.6], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.1, 0, 0.5], ry: 0.45 }, 'floor.gramo': { p: [-3.6, 0, -4.2], ry: Math.PI / 2 },
+      'floor.film': { p: [3.4, 0, -0.4], ry: -Math.PI / 2 }, 'floor.portal': { p: [-6.6, 0, -6.0], ry: Math.PI / 2 }, 'floor.holo': { p: [3.6, 0, -4.6], ry: -Math.PI / 2 }
+    },
+    credit: 'Victorian Study — Fox Dev assets, with the author\u2019s permission' };
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
   SR.register({ id: 'victorian', name: 'Victorian Study', zh: '维多利亚书房', icon: '▤', build: makeEnv(VICT) });
 })(window);

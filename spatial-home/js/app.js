@@ -500,13 +500,21 @@
       if (m === a) P.x = x0; else if (m === c) P.x = x1; else if (m === d) P.z = z0; else P.z = z1;
     });
     XS.forEach(function (x) {                                                     // furniture you placed stands in the way too
-      if (x.place !== 'floor' || !x.hit) return; _xb.setFromObject(x.hit); var x0 = _xb.min.x - RAD, z0 = _xb.min.z - RAD, x1 = _xb.max.x + RAD, z1 = _xb.max.z + RAD;
+      if (x.place !== 'floor' || !x.hit) return; _xb.setFromObject(x.hit); if (_xb.max.y - _xb.min.y < 0.15) return;   // a rug is walked on var x0 = _xb.min.x - RAD, z0 = _xb.min.z - RAD, x1 = _xb.max.x + RAD, z1 = _xb.max.z + RAD;
       if (P.x <= x0 || P.x >= x1 || P.z <= z0 || P.z >= z1) return;
       var a = P.x - x0, c = x1 - P.x, d = P.z - z0, f = z1 - P.z, m = Math.min(a, c, d, f);
       if (m === a) P.x = x0; else if (m === c) P.x = x1; else if (m === d) P.z = z0; else P.z = z1;
     });
   }
   var _xb = new THREE.Box3();
+  /* an outside model's own furniture (env-glb.js): the room is furnished once with it where it stood; every load rebuilds
+     the placed pieces with the real models */
+  window.addEventListener('spatialhome:furnish', function (e) {
+    var d = e.detail || {}; if (!room || room.envId !== d.env) return;
+    var L = layout();
+    if (!L.furnished) { L.extras = (L.extras || []).concat((d.items || []).filter(function (it) { return !(L.extras || []).some(function (x) { return x.uid === it.uid; }); })); L.furnished = 1; saveLayout(room.envId, L); }
+    buildExtras(); rebuildHits();
+  });
   function move(dt) {
     if (mode !== 'explore' || busy) return;
     if (T < AV.standUntil) return;                                                  // getting up from the chair
