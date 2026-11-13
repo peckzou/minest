@@ -181160,12 +181160,24 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       /* the boom shortens against a wall, and the camera then looks past the head instead of down on the hat */
       var tx = Math.abs(bx) > 1e-4 ? ((bx > 0 ? W : -W) - P.x) / bx : 9, tz = Math.abs(bz) > 1e-4 ? ((bz > 0 ? D : -D) - P.z) / bz : 9;
       boom = inRoom(P.x, P.z, 0) ? clamp(Math.min(2.3, tx, tz), 0, 2.3) : 2.3;   // out on a terrace: open air
+      boom = Math.min(boom, clearBoom(bx, bz, boom));                                   // and in front of furniture behind the figure
       pos.set(P.x + bx * boom, 1.5 + 0.26 * boom - P.pitch * 0.5, P.z + bz * boom);
       v3a.set(P.x - bx * 1.6, 1.15 + P.pitch * 1.2, P.z - bz * 1.6);
       quat.setFromRotationMatrix(m4.lookAt(pos, v3a, UP));
     } else {
       pos.set(P.x, EYE, P.z); quat.setFromEuler(eul.set(P.pitch, P.yaw, 0, 'YXZ'));
     }
+  }
+
+
+  /* the third-person boom stops in front of furniture: walk it out from the figure, the first point that would sit in or
+     right over an obstacle (the room's model furniture, the pieces you placed) ends it */
+  var _cb = new THREE.Box3(), cbBoxes = [], cbT = -1;
+  function clearBoom(bx, bz, max) {
+    if (T - cbT > 0.5) { cbT = T; cbBoxes = (room.solids || []).slice(); XS.forEach(function (x) { if (x.place !== 'floor' || !x.hit) return; _cb.setFromObject(x.hit); if (_cb.max.y - _cb.min.y < 0.5) return; cbBoxes.push([_cb.min.x, _cb.min.z, _cb.max.x, _cb.max.z]); }); }
+    for (var r = 0.45; r <= max; r += 0.1) { var x = P.x + bx * r, z = P.z + bz * r;
+      for (var i = 0; i < cbBoxes.length; i++) { var b = cbBoxes[i]; if (x > b[0] - 0.22 && x < b[2] + 0.22 && z > b[1] - 0.22 && z < b[3] + 0.22) return Math.max(0.8, r - 0.12); } }
+    return max;
   }
 
   /* ------------------------------------------------------------ tweens (every one can be skipped) */
@@ -181499,7 +181511,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     for (var k = 0; k < 4; k++) { var a = ry + k * Math.PI / 2, r = 0.5 + (k % 2 ? sz.x : sz.z) / 2, x = c.x + Math.sin(a) * r, z = c.z + Math.cos(a) * r; if (inArea(x, z)) return { x: x, z: z, c: c }; }
     return { x: c.x, z: c.z + 0.8, c: c };
   }
-  function goTo(o, why) { var sp = spotBy(o); walkTo = { x: sp.x, z: sp.z, stuck: 0, face: true, slow: why === 'stroll', stroll: why === 'stroll' }; return sp; }
+  function goTo(o, why) { var sp = spotBy(o); walkPath(sp.x, sp.z, { face: true, slow: why === 'stroll', stroll: why === 'stroll' }); return sp; }
   function faceTo(c) { stroll.face = Math.atan2(-(c.x - P.x), -(c.z - P.z)); }
   function strollStep(dt) {
     if (stroll.face !== null) { var dd = angTo(stroll.face, P.yaw); P.yaw += dd * Math.min(1, dt * 3); dirty = true; if (Math.abs(dd) < 0.02) stroll.face = null; }
@@ -181516,7 +181528,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var r = Math.random(), list = objects.filter(function (o) { return !o.stashed && o.hit; });
     if (r < 0.12) { sitToggle(); stroll.next = T + 9 + Math.random() * 6; return; }                       // a rest at the desk
     if (r < 0.2) { gesture('wave', 1.6); stroll.next = T + 2.5; return; }
-    if (r < 0.32) { var a = Math.random() * Math.PI * 2, x = P.x + Math.cos(a) * 2, z = P.z + Math.sin(a) * 2; if (inArea(x, z)) { walkTo = { x: x, z: z, stuck: 0, face: true, slow: true, stroll: true }; stroll.walking = true; stroll.tgt = null; return; } }
+    if (r < 0.32) { var a = Math.random() * Math.PI * 2, x = P.x + Math.cos(a) * 2, z = P.z + Math.sin(a) * 2; if (inArea(x, z) && !blockedAt(x, z)) { walkPath(x, z, { face: true, slow: true, stroll: true }); stroll.walking = true; stroll.tgt = null; return; } }
     if (!list.length) { stroll.next = T + 3; return; }
     var o = list[Math.floor(Math.random() * list.length)], sp = goTo(o, 'stroll'); stroll.walking = true; stroll.tgt = { o: o, c: sp.c };
   }
@@ -181550,6 +181562,107 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var R = host.getBoundingClientRect(), C = canvas.getBoundingClientRect(), x = C.left - R.left + (v3b.x + 1) / 2 * C.width, y = C.top - R.top + (1 - v3b.y) / 2 * C.height, w = el.offsetWidth, h = el.offsetHeight;
     el.style.left = Math.max(8, Math.min(R.width - w - 8, x + 24)) + 'px'; el.style.top = Math.max(8, Math.min(R.height - h - 8, y - h / 2)) + 'px';
     setTimeout(function () { document.addEventListener('pointerdown', function off(ev) { if (fmenu && !fmenu.contains(ev.target)) closeFigureMenu(); document.removeEventListener('pointerdown', off, true); }, true); }, 0);
+  }
+
+
+  /* walking round things: a 25 cm grid over the walkable area, blocked by the room's obstacles and the furniture placed in
+     it; A* finds the way, then the corners that can be cut are cut. walkTo carries the rest of the way as waypoints. */
+  function blockedAt(x, z) {
+    if (!inArea(x, z)) return true;
+    var sl = room.solids || [];
+    for (var i = 0; i < sl.length; i++) { var b = sl[i]; if (x > b[0] - RAD && x < b[2] + RAD && z > b[1] - RAD && z < b[3] + RAD) return true; }
+    for (var j = 0; j < XS.length; j++) { var q = XS[j]; if (q.place !== 'floor' || !q.hit) continue; _xb.setFromObject(q.hit); if (_xb.max.y - _xb.min.y < 0.15) continue;
+      if (x > _xb.min.x - RAD && x < _xb.max.x + RAD && z > _xb.min.z - RAD && z < _xb.max.z + RAD) return true; }
+    return false;
+  }
+  function lineClear(a, b) { var d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.ceil(d / 0.12); for (var i = 1; i < n; i++) { var t = i / n; if (blockedAt(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)) return false; } return true; }
+  function findPath(x0, z0, x1, z1) {
+    var A = room.areas && room.areas.length ? room.areas : [[-room.size.W, -room.size.D, room.size.W, room.size.D]], minX = 1e9, minZ = 1e9, maxX = -1e9, maxZ = -1e9;
+    A.forEach(function (a) { minX = Math.min(minX, a[0]); minZ = Math.min(minZ, a[1]); maxX = Math.max(maxX, a[2]); maxZ = Math.max(maxZ, a[3]); });
+    minX = Math.min(minX, -room.size.W); maxX = Math.max(maxX, room.size.W); minZ = Math.min(minZ, -room.size.D); maxZ = Math.max(maxZ, room.size.D);
+    var C = 0.25, nx = Math.ceil((maxX - minX) / C) + 1, nz = Math.ceil((maxZ - minZ) / C) + 1; if (nx * nz > 40000) return null;
+    var cx = function (i) { return minX + i * C; }, cz = function (k) { return minZ + k * C; };
+    var si = Math.round((x0 - minX) / C), sk = Math.round((z0 - minZ) / C), ti = Math.round((x1 - minX) / C), tk = Math.round((z1 - minZ) / C);
+    var blk = new Uint8Array(nx * nz); for (var i = 0; i < nx; i++) for (var k = 0; k < nz; k++) blk[k * nx + i] = blockedAt(cx(i), cz(k)) ? 1 : 0;
+    function near(i, k) { if (i >= 0 && k >= 0 && i < nx && k < nz && !blk[k * nx + i]) return [i, k]; for (var r = 1; r < 6; r++) for (var a = -r; a <= r; a++) for (var b = -r; b <= r; b++) { var ii = i + a, kk = k + b; if (ii >= 0 && kk >= 0 && ii < nx && kk < nz && !blk[kk * nx + ii]) return [ii, kk]; } return null; }
+    var s0 = near(si, sk), t0 = near(ti, tk); if (!s0 || !t0) return null;
+    var start = s0[1] * nx + s0[0], goal = t0[1] * nx + t0[0], g = new Float32Array(nx * nz).fill(1e9), from = new Int32Array(nx * nz).fill(-1), open = [start], inO = new Uint8Array(nx * nz), done = new Uint8Array(nx * nz);
+    g[start] = 0; inO[start] = 1; var gx = t0[0], gz = t0[1], h = function (n) { var i2 = n % nx, k2 = (n / nx) | 0; return Math.hypot(i2 - gx, k2 - gz); }, it = 0;
+    while (open.length && it++ < 20000) {
+      var bi = 0, bf = 1e9; for (var o2 = 0; o2 < open.length; o2++) { var f = g[open[o2]] + h(open[o2]); if (f < bf) { bf = f; bi = o2; } }
+      var n = open[bi]; open.splice(bi, 1); inO[n] = 0; if (n === goal) break; done[n] = 1;
+      var ni = n % nx, nk = (n / nx) | 0;
+      for (var dx = -1; dx <= 1; dx++) for (var dz = -1; dz <= 1; dz++) { if (!dx && !dz) continue; var mi = ni + dx, mk = nk + dz; if (mi < 0 || mk < 0 || mi >= nx || mk >= nz) continue; var m = mk * nx + mi; if (blk[m] || done[m]) continue;
+        if (dx && dz && (blk[nk * nx + mi] || blk[mk * nx + ni])) continue;                // no squeezing past a corner
+        var ng = g[n] + (dx && dz ? 1.414 : 1); if (ng < g[m]) { g[m] = ng; from[m] = n; if (!inO[m]) { open.push(m); inO[m] = 1; } } }
+    }
+    if (from[goal] < 0 && goal !== start) return null;
+    var pts = [], c = goal; while (c >= 0) { pts.unshift({ x: cx(c % nx), z: cz((c / nx) | 0) }); c = from[c]; }
+    pts[pts.length - 1] = blockedAt(x1, z1) ? pts[pts.length - 1] : { x: x1, z: z1 };
+    var out = [], cur = { x: x0, z: z0 }, idx = 0;                                      // cut the corners that can be cut
+    while (idx < pts.length) { var far = idx; for (var j2 = pts.length - 1; j2 > idx; j2--) if (lineClear(cur, pts[j2])) { far = j2; break; } out.push(pts[far]); cur = pts[far]; idx = far + 1; }
+    return out;
+  }
+  function walkPath(x, z, extra) {
+    var p = findPath(P.x, P.z, x, z), w = { stuck: 0 }; if (extra) for (var k in extra) w[k] = extra[k];
+    if (p && p.length) { w.x = p[0].x; w.z = p[0].z; w.path = p.slice(1); } else { w.x = x; w.z = z; w.path = []; }
+    walkTo = w; return w;
+  }
+
+
+  /* ---- switches on the things (2026-11-13): where a thing can carry a real control, it does — a brass button, a toggle,
+     a pull lever, a red mushroom — and pressing it starts the thing directly (no text to tap). A faint ring pulses round
+     each so it reads as pressable. Tapping the thing itself still opens it in full. */
+  var SWSPEC = {
+    gramophone: { p: [0.2, 0.3, 0.212], kind: 'push', act: 'music', tip: '留声机 · 播放 / 停' },
+    projector16: { p: [0.12, 0.72, 0.262], kind: 'toggle', act: 'open', tip: '放映机 · 开' },
+    projector: { p: [0, 0.05, 0.165], kind: 'push', act: 'open', tip: '全息投影 · 开' },
+    holoDesk: { p: [0.3, 0.722, 0.2], kind: 'mush', up: true, act: 'open', tip: '全息操作台 · 启动' },
+    tsqPortal: { p: [0.62, 1.0, 0.17], kind: 'lever', act: 'tsq', tip: '拉下 · 去时代广场' },
+    typewriter: { p: [0.19, 0.05, 0.19], kind: 'push', act: 'open', tip: '打字机 · 开' },
+    backpack: { p: [0, 0.3, 0.3], kind: 'clasp', act: 'open', tip: '打开背包' },
+    aquarium: { p: [0.37, 0.42, 0.3], kind: 'toggle', act: 'light', tip: '水族缸的灯' }
+  };
+  var SWS = [], SWHITS = [];
+  (function () {
+    function L(h) { return new THREE.Color(h).convertSRGBToLinear(); }
+    var brass = new THREE.MeshStandardMaterial({ color: L(0xc9a24a), roughness: 0.25, metalness: 0.9 }), dark = new THREE.MeshStandardMaterial({ color: L(0x1a1410), roughness: 0.5, metalness: 0.3 });
+    var red = new THREE.MeshStandardMaterial({ color: L(0xc0281e), roughness: 0.3, emissive: L(0x300404) }), ivory = new THREE.MeshStandardMaterial({ color: L(0xf1ead8), roughness: 0.35 });
+    objects.forEach(function (o) {
+      var sp = SWSPEC[o.id]; if (!sp) return;
+      var g = new THREE.Group(); g.name = 'switch-' + o.id; g.position.fromArray(sp.p); if (sp.up) g.rotation.x = -Math.PI / 2; o.group.add(g);
+      var mount = new THREE.Mesh(new THREE.BoxGeometry(0.07, sp.kind === 'lever' ? 0.16 : 0.07, 0.03), dark); mount.position.z = -0.012; g.add(mount);
+      var bez = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.005, 8, 24), brass); bez.position.z = 0.004; g.add(bez);
+      var mov = new THREE.Group(); g.add(mov);
+      if (sp.kind === 'push' || sp.kind === 'mush') { var cap = new THREE.Mesh(sp.kind === 'mush' ? new THREE.SphereGeometry(0.026, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2) : new THREE.CylinderGeometry(0.018, 0.02, 0.016, 20), sp.kind === 'mush' ? red : (o.id === 'gramophone' ? ivory : red)); cap.rotation.x = Math.PI / 2; cap.position.z = 0.01; mov.add(cap); }
+      else if (sp.kind === 'toggle') { var st = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.006, 0.04, 8), brass); st.position.y = 0.018; mov.add(st); var tip = new THREE.Mesh(new THREE.SphereGeometry(0.008, 10, 8), ivory); tip.position.y = 0.04; mov.add(tip); mov.rotation.x = 0.55; }
+      else if (sp.kind === 'lever') { var arm = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.1, 8), brass); arm.position.y = 0.05; mov.add(arm); var knob = new THREE.Mesh(new THREE.SphereGeometry(0.016, 12, 10), red); knob.position.y = 0.1; mov.add(knob); mov.rotation.x = 0.35; }
+      else { var latch = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.03, 0.012), brass); latch.position.z = 0.008; mov.add(latch); }
+      var ring = new THREE.Mesh(new THREE.RingGeometry(0.03, 0.036, 32), new THREE.MeshBasicMaterial({ color: 0xffe0a0, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); ring.position.z = 0.006; g.add(ring);
+      var hit = new THREE.Mesh(new THREE.SphereGeometry(sp.kind === 'lever' ? 0.09 : 0.065, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(0, sp.kind === 'lever' ? 0.05 : 0, 0.01); g.add(hit);
+      var w = { o: o, sp: sp, g: g, mov: mov, ring: ring, t: -9, on: false }; hit.userData.sw = w; SWS.push(w); SWHITS.push(hit);
+    });
+  })();
+  function swAt(e) {
+    if (!SWHITS.length) return null; ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+    var h = ray.intersectObjects(SWHITS.filter(function (m) { var o = m.userData.sw.o; return !o.stashed && o.group.visible; }), false); return h.length ? h[0].object.userData.sw : null;
+  }
+  function pressSwitch(w) {
+    var o = w.o, sp = w.sp; w.t = T; noteInput(); task = null;
+    if (third() && o.centre && !AV.sitting) { P.yaw = Math.atan2(-(o.centre.x - P.x), -(o.centre.z - P.z)); gesture('reach', 0.8); dirty = true; }
+    if (sp.act === 'music') { var M = window.SpatialMedia; if (!M) return activate(o); var on = !M.audio.state().playing; M.audio.set({ playing: on }); w.on = on; toast(on ? '留声机响起来了 · 再按一下停' : '留声机停了'); return; }
+    if (sp.act === 'light') { var lit = null; o.group.traverse(function (m) { if (m.isPointLight && !lit) lit = m; }); w.on = !w.on; if (lit) lit.visible = !w.on; toast(w.on ? '水族缸的灯关了' : '水族缸的灯开了'); return; }
+    if (sp.act === 'tsq' && window.SpatialTSQ) { var p0 = o.panel; o.panel = function () { o.panel = p0; return new Promise(function (res) { window.SpatialTSQ.open(res); }); }; setTimeout(function () { if (o.panel !== p0 && !busy) o.panel = p0; }, 4000); }
+    w.on = !w.on; setTimeout(function () { activate(o); }, 260);
+  }
+  function tickSwitches() {
+    for (var i = 0; i < SWS.length; i++) { var w = SWS[i], k = T - w.t, sp = w.sp;
+      w.ring.material.opacity = 0.18 + 0.22 * (0.5 + 0.5 * Math.sin(T * 2.6 + i));
+      var press = k < 0.35 ? Math.sin(k / 0.35 * Math.PI) : 0;
+      if (sp.kind === 'push' || sp.kind === 'mush' || sp.kind === 'clasp') w.mov.position.z = -0.008 * press;
+      else if (sp.kind === 'toggle') w.mov.rotation.x += ((w.on ? -0.55 : 0.55) - w.mov.rotation.x) * 0.25;
+      else if (sp.kind === 'lever') w.mov.rotation.x = 0.35 + 1.1 * press;
+    }
   }
 
   /* ------------------------------------------------------------ input */
@@ -181598,12 +181711,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long; ptr = null; canvas.classList.remove('drag');
     if (wasEdit || wasLong || edit) return;
     if (wasDrag || busy || e.type === 'pointercancel') return;
+    var swh = mode === 'explore' || mode === 'desk' ? swAt(e) : null; if (swh) { pressSwitch(swh); return; }
     if (third() && avatarHit(e)) { figureMenu(); return; }
     var o = pick(e); if (o) { activate(o); return; }
     var x = pickExtra(e); if (x) { extraCard(x); return; }
     if (mode !== 'explore') return;
     var hit = ray.ray.intersectPlane(floor, v3a);                                  // pick() has set the ray
-    if (hit && inArea(hit.x, hit.z) && ray.ray.direction.y < -0.05) walkTo = { x: hit.x, z: hit.z, stuck: 0 };
+    if (hit && inArea(hit.x, hit.z) && ray.ray.direction.y < -0.05) { if (third()) walkPath(hit.x, hit.z, { face: true }); else walkTo = { x: hit.x, z: hit.z, stuck: 0 }; }
   }
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
   canvas.addEventListener('dblclick', function () { if (mode === 'desk' && !busy) { DK.yaw = 0; DK.pitch = 0; dirty = true; } });
@@ -181678,7 +181792,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     } else if (walkTo) {
       var dx = walkTo.x - P.x, dz = walkTo.z - P.z, d = Math.hypot(dx, dz);
       if (walkTo.face && d > 0.2) { P.yaw += angTo(Math.atan2(-dx, -dz), P.yaw) * Math.min(1, dt * 3.5); }   // the figure turns to where it goes
-      if (d < 0.06) walkTo = null; else { var st = Math.min(d, sp * (walkTo.slow ? 0.55 : 1)); P.x += dx / d * st; P.z += dz / d * st; }
+      if (d < (walkTo.path && walkTo.path.length ? 0.14 : 0.06)) { if (walkTo.path && walkTo.path.length) { var nx2 = walkTo.path.shift(); walkTo.x = nx2.x; walkTo.z = nx2.z; walkTo.stuck = 0; } else walkTo = null; }
+      else { var st = Math.min(d, sp * (walkTo.slow ? 0.55 : 1)); P.x += dx / d * st; P.z += dz / d * st; }
     } else return;
     collide(px, pz);
     if (walkTo && Math.hypot(P.x - px, P.z - pz) < sp * 0.2 && ++walkTo.stuck > 6) walkTo = null;
@@ -182148,6 +182263,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (window.SpatialViews) window.SpatialViews.tick(T, dt, room);
     if (edit && arrows) placeArrows();
     for (var di = 0; di < DTICK.length; di++) try { DTICK[di](T); } catch (e) {}
+    tickSwitches();
     room.tick(T); objects.forEach(function (o) { o.idle(T); var s = (o === hot ? 1.035 : 1) * (o.baseScale || 1); o.group.scale.setScalar(o.group.scale.x + (s - o.group.scale.x) * Math.min(1, dt * 12)); });
     SPK(T); renderer.render(cineScene || scene, camera);
     if (dirty && T - lastSave > 2) { lastSave = T; save(); }
@@ -182178,6 +182294,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   API = {
     version: '1.0', objects: objects, open: open, close: exitHome, isOpen: function () { return !body.hidden || !!inFeature; },
+    switches: { list: function () { return SWS.map(function (w) { return w.o.id; }); }, press: function (id) { var w = SWS.filter(function (q) { return q.o.id === id; })[0]; if (w) pressSwitch(w); return !!w; },
+      screen: function (id) { var w = SWS.filter(function (q) { return q.o.id === id; })[0]; if (!w) return null; w.g.updateMatrixWorld(true); var v = w.g.getWorldPosition(new THREE.Vector3()).project(camera); return [(v.x + 1) / 2 * window.innerWidth, (1 - v.y) / 2 * window.innerHeight]; },
+      at: function (x, y) { var w = swAt({ clientX: x, clientY: y }); return w ? w.o.id : null; } },
     figure: { sit: sitToggle, gesture: function (n) { gesture(n, n === 'wave' ? 1.6 : 0.9); }, state: function () { return { sitting: AV.sitting, wantSit: AV.wantSit, carry: AV.carry, g: AV.g, speed: +AV.speed.toFixed(2), pos: avatar.position.toArray().map(function (n) { return +n.toFixed(2); }), pose: JSON.parse(JSON.stringify(AV.cur)) }; } },
     setEnv: setEnv, envs: function () { return window.SpatialRoom.envs(); }, env: function () { return room; }, look: function (yaw, pitch) { if (mode === 'desk') { DK.yaw = yaw; DK.pitch = pitch; } else { P.yaw = yaw; P.pitch = pitch; } dirty = true; }, layout: function () { return JSON.parse(JSON.stringify(layout())); },
     edit: { start: function (id) { var o = objects.filter(function (x) { return x.id === id; })[0]; if (o) startEdit(o); }, moveAt: function (x, y) { editMove({ clientX: x, clientY: y }); }, end: function (how) { endEdit(how || 'ok'); }, spawn: function (kind) { spawn({ kind: kind }); }, extras: function () { return XS.length; } },
