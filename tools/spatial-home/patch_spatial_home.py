@@ -31,7 +31,7 @@ MAIN_PAGES = ['iPhoneDuo.html', 'iPhoneDuo69.html', 'iphone.html', 'iPhone53.824
               'ios/Minest/Minest/iPhoneDuo.html', 'ios/Minest/Minest/index.html', 'ios/Minest/Minest/ipad.html',
               'ios/Minest/Minest/iphone.html', 'ios/Minest/Minest/iphone18.0.html', 'ios/MinestProject/MyApp/iphone.html']
 SRC = ROOT / 'spatial-home'
-JS = ['voxel.js', 'room.js', 'env-manhattan.js', 'env-alpine.js', 'env-train.js', 'study/world.js', 'study/textures.js', 'study/scene.js', 'env-study.js', 'pixicons.js', 'objects.js', 'entries.js', 'board-ec6.js', 'mochi-day.js', 'backpack.js', 'media.js', 'portal-tsq.js', 'views.js', 'holo-lab.js', 'fold.js', 'bridge.js', 'app.js']
+JS = ['voxel.js', 'room.js', 'env-manhattan.js', 'env-alpine.js', 'env-train.js', 'study/world.js', 'study/textures.js', 'study/scene.js', 'env-study.js', 'env-glb.js', 'pixicons.js', 'objects.js', 'entries.js', 'board-ec6.js', 'mochi-day.js', 'backpack.js', 'media.js', 'portal-tsq.js', 'views.js', 'holo-lab.js', 'fold.js', 'bridge.js', 'app.js']
 CSS_OPEN, JS_OPEN = '<style id="mn-spatial-home-css">\n', '<script id="mn-spatial-home">\n'
 
 

@@ -23,7 +23,7 @@
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
     '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
     '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot">⟲ 90°</button><button type="button" data-e="rot15">↻ 15°</button><button type="button" data-e="stash">🎒 收回</button><button type="button" data-e="cancel">取消</button><button type="button" data-e="ok" class="pri">✓ 放好了</button></div></div>' +
-    '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div>';
+    '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div><div id="sh-credit"></div>';
 
   function mount() {
   if (API) return API;
@@ -872,7 +872,7 @@
       if (sp && isFinite(sp.x) && inArea(sp.x, sp.z)) { P.x = sp.x; P.z = sp.z; P.yaw = sp.yaw; P.pitch = sp.pitch || 0; }
       else { P.x = room.start.pos[0]; P.z = room.start.pos[2]; P.yaw = room.start.yaw; P.pitch = room.start.pitch; }
       deskBase = (function () { var p = room.desk.pos, l = room.desk.look, dx = l[0] - p[0], dy = l[1] - p[1], dz = l[2] - p[2]; return { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) }; })();
-      $('brandName').textContent = room.name; canvas.setAttribute('aria-label', room.name);
+      $('brandName').textContent = room.name; canvas.setAttribute('aria-label', room.name); $('credit').textContent = room.credit || '';
       if (window.SpatialMedia) window.SpatialMedia.audio.setEnv(room.envId);
       camAuto = true; autoPose(camera.position, camera.quaternion); S.env = room.envId; save();
       return veilFade(0, 0.35);
@@ -951,7 +951,7 @@
     SPK(T); renderer.render(cineScene || scene, camera);
     if (dirty && T - lastSave > 2) { lastSave = T; save(); }
   }
-  $('brandName').textContent = room.name;
+  $('brandName').textContent = room.name; $('credit').textContent = room.credit || '';   // a scanned room's licence credit stays on screen
   setMode(mode, true); autoPose(camera.position, camera.quaternion);
   window.addEventListener('pagehide', save);
   if (!EMBED && S.preload) setTimeout(function () { B.load(); }, 1500);
