@@ -195,6 +195,8 @@
   function build(room, scene, opts) {
     var list = [typewriter(), planner(), board(), album(), projector(), ornament()];
     if (root.SpatialEntries) list = list.concat(root.SpatialEntries.make(opts || {}));
+    if (root.SpatialEC6) list.forEach(function (o) { if (o.id === 'board') root.SpatialEC6.attach(o); });   // EC–6 Study Studio: the board is the daily hub
+    if (root.SpatialMochiDay) list.forEach(function (o) { if (o.id === 'mochi') root.SpatialMochiDay.attach(o); });   // Mochi follows the EC–6 day
     list.forEach(function (o) {
       var a = room.anchors[o.anchor]; o.group.position.set(a.p[0], a.p[1], a.p[2]); o.group.rotation.y = a.ry;
       o.hit.userData.obj = o; o.k = 0; o.set(0); scene.add(o.group);

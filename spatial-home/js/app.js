@@ -38,6 +38,8 @@
   var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && typeof raw === 'object') for (var k0 in S) if (raw[k0] !== undefined) S[k0] = raw[k0]; } catch (e) {}
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  /* EC–6 Study Studio (2026-11-13): it becomes the current room once; the 🌐 switcher still offers every other room */
+  if (!S.ec6 && (window.SpatialRoom.envs() || []).some(function (e) { return e.id === 'study'; })) { S.env = 'study'; S.ec6 = 1; }
   var dirty = false;
   function save() {
     S.mode = mode; S.pose = { x: +P.x.toFixed(3), z: +P.z.toFixed(3), yaw: +P.yaw.toFixed(4), pitch: +P.pitch.toFixed(4) };
@@ -156,19 +158,52 @@
       cut: function (sc) { return veilFade(1, 0.22).then(function () { cineScene = sc; camAuto = false; return veilFade(0, 0.25); }); }
     };
   }
+  /* a thing with a panel of its own (the EC–6 board): it opens over the room; a card picked there opens in Minest,
+     and leaving that card comes back to the panel, not to the room */
+  function runPanel(o) {
+    $('skip').hidden = true;
+    return o.panel({ container: body, host: B.needsHost('kanban') ? function () { return B.load(); } : null }).then(function (r) {
+      if (!r) return comeBack(o);
+      var t = B.FEATURES[r.feature || 'kanban'].targets[0];
+      return (B.state() === 'ready' ? Promise.resolve() : B.load()).then(function () {
+        veilAt(o);
+        return veilIn().then(function () {
+          if (!B.show(t)) { toast('没能打开 ' + t.label); return veilOut().then(function () { return runPanel(o); }); }
+          try { if (r.after) r.after(B.hostWindow()); } catch (e) {}
+          inFeature = { o: o, t: t, panel: true }; paused = true; cineScene = null;
+          return veilFade(0, 0.3);
+        });
+      });
+    });
+  }
   function activate(o) {
     if (busy || !o) return;
+    if (o.panel) {
+      busy = true; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true;
+      flyLook(o.focus.pos, o.focus.look, 0.8).then(function () { return animK(o, 1, 0.4); }).then(function () { return runPanel(o); });
+      return;
+    }
     if (third() && o.centre) { if (!AV.sitting) { P.yaw = Math.atan2(-(o.centre.x - P.x), -(o.centre.z - P.z)); dirty = true; } gesture('reach', 0.9); }
     if (o.local) return openLocal(o);
     busy = true; skipRun = false; walkTo = null; setHot(null); body.classList.add('busy'); $('settings').hidden = true; $('skip').hidden = false;
     var feature = o.feature, F = B.FEATURES[feature], needs = B.needsHost(feature), hostP = needs ? B.load() : null;
+    var after = null, want = null;
     flyLook(o.focus.pos, o.focus.look, 0.8)
       .then(function () { return animK(o, 1, o.cine ? 0.9 : 0.65); })
       /* Mochi: today's Routine card first; the planner's full Routine only if asked */
       .then(function () {
         if (!o.card) return true;
-        $('skip').hidden = true; var c = o.card();
-        return ask(c.title, c.text, [{ label: '打开 Liquid Routine', cls: 'pri' }, { label: '回到房间', cls: 'ghost' }]).then(function (i) { return i === 0; });
+        $('skip').hidden = true; var c = o.dayCard ? o.dayCard() : o.card();
+        var btns = c.buttons || [{ label: '打开 Liquid Routine', cls: 'pri', go: {} }, { label: '回到房间', cls: 'ghost' }];
+        return ask(c.title, c.text, btns).then(function (i) {
+          var b = btns[i]; if (!b) return false;
+          if (b.run) { b.run(); return false; }
+          if (!b.go) return false;
+          if (b.go.routineCard) { var rc = o.card(); return ask(rc.title, rc.text, [{ label: '打开 Liquid Routine', cls: 'pri' }, { label: '回到房间', cls: 'ghost' }]).then(function (j) { return j === 0; }); }
+          if (b.go.board) { after = 'board'; return false; }
+          if (b.go.feature) { feature = b.go.feature; F = B.FEATURES[feature]; needs = B.needsHost(feature); hostP = needs ? B.load() : null; want = b.go.target || null; }
+          return true;
+        });
       })
       .then(function (go) {
         if (!go) return false;
@@ -190,12 +225,13 @@
           var why = needs && B.state() !== 'ready' ? 'Minest 应用没有载入成功（' + esc(B.appUrl()) + '）。' : F.missing;
           return ask(o.icon + ' ' + o.name + ' · 还没有接上', why, [{ label: '回到房间', cls: 'pri' }]).then(function () { return null; });
         }
+        if (want) { var w0 = av.filter(function (t) { return t.id === want; })[0]; if (w0) return w0; }
         if (av.length === 1) return av[0];
         av = av.filter(B.isLive).concat(av.filter(function (t) { return !B.isLive(t); }));   // the one you left open comes first
         return ask(o.icon + ' ' + o.name, '', av.map(function (t, i) { return { label: (B.isLive(t) ? '继续 · ' : '') + t.label, cls: i ? '' : 'pri' }; }).concat([{ label: '取消', cls: 'ghost' }])).then(function (i) { return av[i] || null; });
       })
       .then(function (t) {
-        if (!t) return comeBack(o);
+        if (!t) return comeBack(o).then(function () { if (after === 'board') { var bo = objects.filter(function (x) { return x.id === 'board'; })[0]; if (bo) activate(bo); } });
         veilAt(o);
         return veilIn().then(function () {
           $('skip').hidden = true; skipRun = false;
@@ -226,6 +262,7 @@
     busy = true; body.classList.add('busy'); flyHome(0.7).then(function () { busy = false; body.classList.remove('busy'); showHint(); });
   }
   function comeBack(o) {
+    if (window.SpatialMochiDay) setTimeout(window.SpatialMochiDay.refresh, 300);     // Mochi reads the day again when you are back
     cineScene = null; skipRun = false; $('skip').hidden = true;
     return Promise.all([animK(o, 0, 0.5), flyHome(0.75)]).then(function () { busy = false; body.classList.remove('busy'); showHint(); });
   }
@@ -235,7 +272,7 @@
     veilFade(1, 0.2).then(function () {
       B.hide(); body.hidden = false; paused = false; resize(); try { canvas.focus(); } catch (e) {}
       veilAt(f.o); return veilOut();
-    }).then(function () { return comeBack(f.o); });
+    }).then(function () { return f.panel ? runPanel(f.o) : comeBack(f.o); });
   }
   B.init({ wrap: $('host'), pill: pillEl, onLeave: function (t, why) { if (window.SpatialMedia) window.SpatialMedia.audio.duck(false); onLeave(t, why); }, onShow: function () { body.hidden = true; if (window.SpatialMedia) window.SpatialMedia.audio.duck(true); } });
 
@@ -816,7 +853,7 @@
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;
     if (avatar.visible) { placeFigure(dt); poseNow(dt); }
     XS.forEach(function (x) { if (x.tick) try { x.tick(T); } catch (e) {} });
-    room.tick(T); objects.forEach(function (o) { o.idle(T); var s = o === hot ? 1.035 : 1; o.group.scale.setScalar(o.group.scale.x + (s - o.group.scale.x) * Math.min(1, dt * 12)); });
+    room.tick(T); objects.forEach(function (o) { o.idle(T); var s = (o === hot ? 1.035 : 1) * (o.baseScale || 1); o.group.scale.setScalar(o.group.scale.x + (s - o.group.scale.x) * Math.min(1, dt * 12)); });
     SPK(T); renderer.render(cineScene || scene, camera);
     if (dirty && T - lastSave > 2) { lastSave = T; save(); }
   }
@@ -864,8 +901,9 @@
   function bootsFirst() {
     if (!EMBED) return false;
     try { if (window.isStudentMode && window.isStudentMode()) return false; } catch (e) { return false; }
-    var q = location.search;
-    return /[?&]home=1\b/.test(q) || (bootOn() && !/[?&]home=0\b/.test(q));
+    var q = location.search, framed = false;
+    try { framed = window.top !== window; } catch (e) { framed = true; }   // a Minest page inside a frame never opens a room of its own
+    return /[?&]home=1\b/.test(q) || (!framed && bootOn() && !/[?&]home=0\b/.test(q));
   }
   var PUB = {
     version: '1.0',

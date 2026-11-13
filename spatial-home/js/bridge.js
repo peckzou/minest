@@ -72,6 +72,21 @@
       id: 'Kanban', label: 'Kanban 看板', kind: 'host', entry: 'the app itself (#root), every overlay closed', base: true,
       test: function (w) { return !!w.document.getElementById('root'); }, open: function () {}, isOpen: function () { return true; }, close: function () {}
     }], missing: '没有找到看板（#root）。' },
+    /* the EC–6 board opens its own panel in the room; what it opens from there is the Kanban (a card) */
+    ec6board: { title: 'EC–6 Board', targets: [{
+      id: 'MinestAI', label: 'EC–6 布告栏（读写 Kanban）', kind: 'host', entry: 'window.MinestAI (boards / openCard / patchCard / updateBoard / rateCard)', base: true,
+      test: function (w) { return !!(w.MinestAI && w.MinestAI.boards); }, open: function () {}, isOpen: function () { return true; }, close: function () {}
+    }], missing: '没有找到 Kanban 的数据接口（window.MinestAI）。' },
+    /* Daily Typing (Mochi's step): Typing Worlds itself */
+    typingworlds: { title: 'Typing Worlds', targets: [mod('MinestTypingWorlds', 'Typing Worlds')], missing: '这个构建里没有 Typing Worlds（window.MinestTypingWorlds）。' },
+    /* the ChatGPT study report is pasted into the car flashcards' own 📥 panel (MinestGPTStudy.importReport) */
+    report: { title: 'ChatGPT report', targets: [{
+      id: 'MinestCarFlash', label: '导入 ChatGPT 学习报告', kind: 'host', entry: 'MinestCarFlash.open() → 📥 导入',
+      test: function (w) { return has(w, 'MinestCarFlash'); },
+      open: function (w) { w.MinestCarFlash.open(); setTimeout(function () { var b = w.document.querySelector('[data-cf-import-open]'); if (b) b.click(); }, 80); },
+      isOpen: function (w) { return !!w.document.querySelector('.cf-ov'); },
+      close: function (w) { if (has(w, 'MinestCarFlash', 'close')) w.MinestCarFlash.close(); }
+    }], missing: '这个构建里没有车载闪卡（MinestCarFlash）——导入学习报告的面板在那里。' },
     lists: { title: 'Lists', targets: [{
       id: 'MinestUniverse', label: 'My World · 清单总览', kind: 'host', entry: 'window.MinestUniverse.open()',
       test: function (w) { return has(w, 'MinestUniverse'); }, open: function (w) { w.MinestUniverse.open(); },
