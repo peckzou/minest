@@ -183489,7 +183489,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 },   // the backpack, on the floor left of the desk
           'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 },   // gramophone by the shelf; projector + its screen towards the door wall
           'floor.portal': { p: [2.26, 0, 2.4], ry: Math.PI },
-          'floor.window': { p: [-1.2, 0, 2.45], ry: Math.PI },   // the Scenic Window, on the door wall, facing the room   // the Times Square archway on the door wall, right of the door
+          'floor.window': { p: [-1.2, 0, 2.45], ry: Math.PI, w: 3.0, h: 2.7 },   // the Scenic Window, a wall of glass on the door wall, facing the room   // the Times Square archway on the door wall, right of the door
           'floor.holo': { p: [1.6, 0, 1.05], ry: -Math.PI / 2 }   // the holo lab console, on the open floor right of the room
         };
       },
@@ -185714,7 +185714,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       'cabinet.right': { p: [3.9, 0.92, -2.7], ry: -PI / 2 }, 'sill.left': { p: [3.9, 0.92, -1.8], ry: -PI / 2 },
       'corner.window': { p: [-3.95, 0, -2.3], ry: PI / 2 }, 'floor.pack': { p: [-2.6, 0, 3.8], ry: 0.4 }, 'floor.gramo': { p: [-3.9, 0, 0.3], ry: PI / 2 },
       'floor.film': { p: [3.8, 0, 1.3], ry: -PI / 2 }, 'floor.portal': { p: [-3.3, 0, 2.9], ry: PI / 2 }, 'floor.holo': { p: [3.7, 0, -6.6], ry: -PI / 2 },
-      'floor.window': { p: [3.85, 0, 3.9], ry: -PI / 2 }
+      'floor.window': { p: [4.95, 0, 2.6], ry: -PI / 2, w: 4.4, h: 3.3 }
     },
     layout: { extras: JSON.parse(JSON.stringify(KH_ITEMS)) },
     credit: 'The King\u2019s Hall, Skokloster Castle — scan by Erik Lernestål, CC BY 4.0' };
@@ -185750,7 +185750,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       'shelf.mid': { p: [-0.45, VY, -9.95], ry: 0 }, 'sill.left': { p: [0.45, VY, -9.95], ry: 0 },
       'corner.window': { p: [4.2, 0, -1.6], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.1, 0, 0.5], ry: 0.45 }, 'floor.gramo': { p: [-3.6, 0, -4.2], ry: Math.PI / 2 },
       'floor.film': { p: [3.4, 0, -0.4], ry: -Math.PI / 2 }, 'floor.portal': { p: [-6.6, 0, -6.0], ry: Math.PI / 2 }, 'floor.holo': { p: [3.6, 0, -4.6], ry: -Math.PI / 2 },
-      'floor.window': { p: [-7.6, 0, -1.0], ry: Math.PI / 2 }
+      'floor.window': { p: [-7.95, 0, -1.0], ry: Math.PI / 2, w: 7.4, h: 4.8 }
     },
     credit: 'Victorian Study — Fox Dev assets, with the author\u2019s permission' };
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
@@ -186517,68 +186517,103 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   };
 })(window);
 
-/* Minest · Spatial Home — the Scenic Window (2026-11-13). A floor-to-ceiling window that stands in any room as one of its
-   things (move it like the others). Ultra-thin dark metal frame; behind the glass, Lake Bled — the real photograph
-   (Krzysztof Golik, CC BY-SA 4.0, graded) seen the way a window shows a far landscape: every point of the glass looks
-   along its own line of sight, so the view shifts as you move, the frame crops it, and it never reads as a picture on
-   the wall. Clouds drift and the lake ripples a little (masks made with the photo). Tap it: the camera goes up to the
-   glass, the frame leaves the picture, and Scenic World (scenic/index.html) opens over it from the same view; Exit plays
-   it back. Moments captured there are kept in the backpack store ('scenic:moments'). */
+/* Minest · Spatial Home — the Scenic Window (2026-11-13; reworked the same day: a whole wall of glass, a real view).
+   A window the size of a wall (each room says how big, anchor 'floor.window' {p, ry, w, h}); an ultra-thin dark frame,
+   glass, and behind it Lake Bled — not a picture: the two-layer 2.5D scene of scenic-core.js is rendered through the
+   glass every frame with an off-axis projection from where your eyes are, the way a real window works. Walk along it
+   and the near branch slides over the lake while the mountains hold still; step back and the frame crops more.
+   The view is kept inside the photograph: when the glass would show more than the photo holds, the scene is seen from a
+   little further back (only as much as needed), never stretched. Tap the glass: the camera goes to the window and
+   Scenic World opens over it from the same view; Exit plays it back. Moments: backpack store 'scenic:moments'. */
 (function (root) {
   'use strict';
-  var THREE = root.THREE, KEY = 'scenic:moments', W = 1.72, H = 2.62, F = 0.034;
+  var THREE = root.THREE, KEY = 'scenic:moments', F = 0.03;
   function base() {
     if (/^https?:$/.test(location.protocol)) return /\/spatial-home\//.test(location.pathname) ? '../' : '';
     return 'https://minest-app.vercel.app/';
   }
   function L(h) { return new THREE.Color(h).convertSRGBToLinear(); }
+  var coreP = null;
+  function loadCore() {
+    if (coreP) return coreP;
+    coreP = new Promise(function (res, rej) {
+      if (root.ScenicCore) return res(root.ScenicCore);
+      var s = document.createElement('script'); s.src = base() + 'scenic/scenic-core.js?v=20261113b'; s.onload = function () { res(root.ScenicCore); }; s.onerror = rej; document.head.appendChild(s);
+    }).then(function (C) { return C.load('bled', { base: base() + 'scenic/', low: true, renderer: root.SpatialRoom && root.SpatialRoom.renderer }); });
+    return coreP;
+  }
 
   function make() {
-    var g = new THREE.Group(), metal = new THREE.MeshStandardMaterial({ color: L(0x1b1d21), roughness: 0.32, metalness: 0.7 });
-    function bar(x, y, w, h, d, z) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), metal); m.position.set(x, y, z || 0); m.castShadow = true; g.add(m); return m; }
-    bar(0, H - F / 2, W, F, 0.07); bar(0, F / 2 + 0.01, W, F, 0.07); bar(-W / 2 + F / 2, H / 2, F, H, 0.07); bar(W / 2 - F / 2, H / 2, F, H, 0.07);
-    bar(0, 0.005, W + 0.06, 0.01, 0.16);                                    // a slim floor track
-    var pane = new THREE.Mesh(new THREE.PlaneGeometry(W - 2 * F, H - 2 * F - 0.01), null); pane.position.set(0, H / 2 + 0.005, 0); g.add(pane);
-    var back = new THREE.Mesh(new THREE.PlaneGeometry(W - 2 * F, H - 2 * F), new THREE.MeshStandardMaterial({ color: L(0x2a2d33), roughness: 0.2, metalness: 0.3 })); back.rotation.y = Math.PI; back.position.set(0, H / 2, -0.004); g.add(back);
-
-    /* the view: a far landscape through glass — the photo is looked up along each line of sight */
-    var U = { map: { value: null }, fx: { value: null }, uT: { value: 0 }, uCam: { value: new THREE.Vector3(0, 1.5, 3) }, uTan: { value: new THREE.Vector2(0.74, 0.58) }, uOff: { value: new THREE.Vector2(0.0, -0.06) }, uOk: { value: 0 } };
-    pane.material = new THREE.ShaderMaterial({
+    var g = new THREE.Group(), frameG = new THREE.Group(); g.add(frameG);
+    var metal = new THREE.MeshStandardMaterial({ color: L(0x1b1d21), roughness: 0.32, metalness: 0.7 });
+    var W = 3, H = 2.7;
+    /* the glass shows a render target: the scene through the window, drawn from the eye's position each frame */
+    var U = { tex: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uOk: { value: 0 }, uCam: { value: new THREE.Vector3() } };
+    var paneMat = new THREE.ShaderMaterial({
       uniforms: U,
-      vertexShader: 'varying vec3 vP; void main(){ vP = (modelMatrix * vec4(position,1.0)).xyz; vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+      vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: [
-        'uniform sampler2D map; uniform sampler2D fx; uniform float uT; uniform vec3 uCam; uniform vec2 uTan; uniform vec2 uOff; uniform float uOk; varying vec3 vP;',
+        'uniform sampler2D tex; uniform vec2 uRes; uniform float uOk; uniform vec3 uCam; varying vec3 vP;',
         'void main(){',
         '  vec3 d = normalize(vP - uCam);',
-        '  if (d.z > -0.02 || uOk < 0.5) { gl_FragColor = vec4(vec3(0.16,0.15,0.14), 1.0); return; }',
-        '  vec2 q = vec2(d.x, d.y) / -d.z;',
-        '  vec2 uv = vec2(0.5 + q.x / (2.0 * uTan.x), 0.5 + q.y / (2.0 * uTan.y)) + uOff;',
-        '  vec2 cuv = clamp(uv, 0.002, 0.998); float out_ = length(uv - cuv) * 8.0;',
-        '  vec4 m = texture2D(fx, cuv);',
-        '  cuv += m.r * vec2(sin(uT*0.031 + cuv.y*5.0)*0.0035 + uT*0.00025, cos(uT*0.027 + cuv.x*4.0)*0.0016);',
-        '  cuv += m.g * vec2(sin(cuv.y*620.0 + uT*1.4)*0.0004, sin(cuv.x*340.0 + uT*1.1)*0.00025);',
-        '  vec3 c = texture2D(map, cuv).rgb * (1.0 - clamp(out_, 0.0, 0.35));',
-        '  float fr = pow(1.0 - abs(d.z), 3.0);',                     // the glass: a faint cool reflection at grazing angles
-        '  c = mix(c, vec3(0.86, 0.9, 0.96), 0.03 + 0.18 * fr);',
+        '  if (uOk < 0.5 || d.z > -0.01) { gl_FragColor = vec4(0.15, 0.14, 0.13, 1.0); return; }',
+        '  vec3 c = texture2D(tex, gl_FragCoord.xy / uRes).rgb;',
+        '  float fr = pow(1.0 - abs(d.z), 3.0);',                       // glass: a faint cool sheen at grazing angles
+        '  c = mix(c, vec3(0.86, 0.9, 0.96), 0.025 + 0.16 * fr);',
         '  gl_FragColor = vec4(c, 1.0);',
         '}'].join('\n')
     });
-    var _v = new THREE.Vector3();
-    pane.onBeforeRender = function (r, s, cam) { _v.copy(cam.position); pane.worldToLocal(_v); U.uCam.value.copy(_v); };
-    var tl = new THREE.TextureLoader(); tl.setCrossOrigin('anonymous');
-    var loaded = 0, done = function () { if (++loaded === 2) U.uOk.value = 1; };
-    tl.load(base() + 'scenic/assets/bled/bled_2k.webp', function (t) { t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4; U.map.value = t; done(); });
-    tl.load(base() + 'scenic/assets/bled/fx_1024.png', function (t) { U.fx.value = t; done(); });
-    var light = new THREE.PointLight(0xffd2a0, 0.35, 4, 2); light.position.set(0, 1.6, 0.6); g.add(light);   // the sunset spills a little into the room
+    var pane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), paneMat); g.add(pane);
+    var backM = new THREE.MeshStandardMaterial({ color: L(0x2a2d33), roughness: 0.2, metalness: 0.3 }), back = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), backM); back.rotation.y = Math.PI; g.add(back);
+    var hit = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ visible: false })); g.add(hit);
+    var light = new THREE.PointLight(0xffd2a0, 0.4, 7, 2); g.add(light);   // the sunset spills a little into the room
+    function fit(w, h) {
+      W = w || W; H = h || H;
+      while (frameG.children.length) { var c = frameG.children.pop(); c.geometry.dispose(); }
+      function bar(x, y, bw, bh, d) { var m = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, d), metal); m.position.set(x, y, 0); m.castShadow = true; frameG.add(m); }
+      bar(0, H - F / 2, W, F, 0.06); bar(0, F / 2, W, F, 0.06); bar(-W / 2 + F / 2, H / 2, F, H, 0.06); bar(W / 2 - F / 2, H / 2, F, H, 0.06);
+      var n = Math.max(1, Math.round(W / 2.4));                            // slim mullions every ~2.4 m, as a wall of glass has
+      for (var i = 1; i < n; i++) bar(-W / 2 + W * i / n, H / 2, 0.022, H, 0.05);
+      pane.scale.set(W - 2 * F, H - 2 * F, 1); pane.position.set(0, H / 2, 0);
+      back.scale.set(W, H, 1); back.position.set(0, H / 2, -0.01);
+      hit.scale.set(W, H, 0.12); hit.position.set(0, H / 2, 0.02);
+      light.position.set(0, H * 0.6, Math.max(0.6, W * 0.25)); light.distance = Math.max(6, W * 1.6);
+      o.label = [0, H + 0.12, 0];
+      o.focusL = { pos: [0, Math.min(1.45, H * 0.55), Math.max(0.9, Math.min(2.4, Math.max(W, H) * 0.42))], look: [0, Math.min(1.42, H * 0.53), -3] };   // stand before the glass, filling the view
+    }
 
-    var hit = new THREE.Mesh(new THREE.BoxGeometry(W, H, 0.12), new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(0, H / 2, 0.02); g.add(hit);
-    return {
+    /* ---- the view: Kooima's off-axis projection through the glass rectangle ---- */
+    var view = null, rt = null, sScene = new THREE.Scene(), pCam = new THREE.PerspectiveCamera(), _e = new THREE.Vector3(), frus = new THREE.Frustum(), _m = new THREE.Matrix4();
+    loadCore().then(function (c) { view = c; sScene.add(c.group); U.uOk.value = 1; }).catch(function () {});
+    function render(t) {
+      var R = root.SpatialRoom && root.SpatialRoom.renderer, cam = root.SpatialRoom && root.SpatialRoom.camera; if (!view || !R || !cam || !g.visible) return;
+      view.U.uT.value = t;
+      cam.updateMatrixWorld(); _m.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); frus.setFromProjectionMatrix(_m);
+      if (!frus.intersectsObject(hit)) return;                             // off screen: nothing to draw
+      var sz = R.getDrawingBufferSize(new THREE.Vector2()), rw = Math.max(2, Math.round(sz.x * 0.7)), rh = Math.max(2, Math.round(sz.y * 0.7));
+      if (!rt || rt.width !== rw || rt.height !== rh) { if (rt) rt.dispose(); rt = new THREE.WebGLRenderTarget(rw, rh, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter }); U.tex.value = rt.texture; }
+      U.uRes.value.set(sz.x, sz.y);
+      /* the eye in the window's frame (origin: the glass centre; x right, y up, z towards the room) */
+      _e.copy(cam.position); pane.worldToLocal(_e); _e.x *= W - 2 * F; _e.y *= H - 2 * F;   // pane is scaled: back to metres
+      U.uCam.value.set(_e.x / (W - 2 * F), _e.y / (H - 2 * F), _e.z);
+      var hw = (W - 2 * F) / 2, hh = (H - 2 * F) / 2, ez = Math.max(0.05, _e.z);
+      /* never more than the photograph holds: if the glass would open wider than the photo's frame, the scene's eye
+         steps back just enough (the room's eye is where it is; the view behind the glass just narrows) */
+      var m = Math.max(1, (Math.abs(_e.x) + hw) / (ez * view.tanH * 0.97), (Math.abs(_e.y) + hh) / (ez * view.tanV * 0.97)), zs = ez * m;
+      var n = 0.5, l = (-hw - _e.x) * n / zs, r = (hw - _e.x) * n / zs, b = (-hh - _e.y) * n / zs, tp = (hh - _e.y) * n / zs;
+      pCam.position.set(_e.x, _e.y, zs); pCam.quaternion.identity(); pCam.updateMatrixWorld(true);
+      pCam.projectionMatrix.makePerspective(l, r, tp, b, n, 12000); pCam.projectionMatrixInverse.copy(pCam.projectionMatrix).invert();
+      var prev = R.getRenderTarget(); R.setRenderTarget(rt); R.render(sScene, pCam); R.setRenderTarget(prev);
+    }
+    var o = {
       id: 'scenicWindow', name: '风景之窗', en: 'Scenic Window · Lake Bled', icon: '🏞', feature: 'scenic', anchor: 'floor.window', group: g,
-      hit: hit, label: [0, H + 0.12, 0],
-      focus: { pos: [-1.2, 1.38, 1.62], look: [-1.2, 1.36, 3.6] },     // in front of the glass (default anchor floor.window [-1.2, 0, 2.45], facing the room)
+      hit: hit, label: [0, H + 0.12, 0], focusL: null,
+      fit: function (a) { fit(a && a.w, a && a.h); },
       panel: function () { return openScenic(); },
-      set: function (k) { light.intensity = 0.35 + 0.4 * k; }, idle: function (t) { U.uT.value = t; }
+      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); }
     };
+    fit(3, 2.7);
+    return o;
   }
 
   /* ---- Scenic World over the room: it fades in only once its first frame is drawn (no black, no flash) ---- */
@@ -190137,6 +190172,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(60, 1, 0.05, 900);
   camera.rotation.order = 'YXZ';
   window.SpatialRoom.parts.deskStyle(S.deskStyle);
+  window.SpatialRoom.camera = camera;                                              // the Scenic Window draws its view from the eye (scenic-window.js)
   var room = window.SpatialRoom.build(scene, S.env), objects = window.SpatialObjects.build(room, scene, { medal: S.medal });
   var avatar = room.avatar(); avatar.visible = false; scene.add(avatar);
   camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
@@ -190874,6 +190910,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       localize(o);
       var l = L[o.id], a = room.anchors[o.anchor] || REF[o.anchor] || room.anchors['desk.left'];
       var p = l && l.p ? l.p : a.p, ry = l && isFinite(l.ry) ? l.ry : a.ry;
+      if (o.fit) o.fit(a);                                                       // a thing sized by its room (the Scenic Window)
       o.group.position.set(p[0], p[1], p[2]); o.group.rotation.y = ry; o.stashed = l ? !!l.stashed : !!o.startStashed; o.group.visible = !o.stashed;   // some things start in the backpack
       o.chip.classList.toggle('stashed', o.stashed); settle(o);
     });

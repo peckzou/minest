@@ -695,7 +695,7 @@
       'cabinet.right': { p: [3.9, 0.92, -2.7], ry: -PI / 2 }, 'sill.left': { p: [3.9, 0.92, -1.8], ry: -PI / 2 },
       'corner.window': { p: [-3.95, 0, -2.3], ry: PI / 2 }, 'floor.pack': { p: [-2.6, 0, 3.8], ry: 0.4 }, 'floor.gramo': { p: [-3.9, 0, 0.3], ry: PI / 2 },
       'floor.film': { p: [3.8, 0, 1.3], ry: -PI / 2 }, 'floor.portal': { p: [-3.3, 0, 2.9], ry: PI / 2 }, 'floor.holo': { p: [3.7, 0, -6.6], ry: -PI / 2 },
-      'floor.window': { p: [3.85, 0, 3.9], ry: -PI / 2 }
+      'floor.window': { p: [4.95, 0, 2.6], ry: -PI / 2, w: 4.4, h: 3.3 }
     },
     layout: { extras: JSON.parse(JSON.stringify(KH_ITEMS)) },
     credit: 'The King\u2019s Hall, Skokloster Castle — scan by Erik Lernestål, CC BY 4.0' };
@@ -731,7 +731,7 @@
       'shelf.mid': { p: [-0.45, VY, -9.95], ry: 0 }, 'sill.left': { p: [0.45, VY, -9.95], ry: 0 },
       'corner.window': { p: [4.2, 0, -1.6], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.1, 0, 0.5], ry: 0.45 }, 'floor.gramo': { p: [-3.6, 0, -4.2], ry: Math.PI / 2 },
       'floor.film': { p: [3.4, 0, -0.4], ry: -Math.PI / 2 }, 'floor.portal': { p: [-6.6, 0, -6.0], ry: Math.PI / 2 }, 'floor.holo': { p: [3.6, 0, -4.6], ry: -Math.PI / 2 },
-      'floor.window': { p: [-7.6, 0, -1.0], ry: Math.PI / 2 }
+      'floor.window': { p: [-7.95, 0, -1.0], ry: Math.PI / 2, w: 7.4, h: 4.8 }
     },
     credit: 'Victorian Study — Fox Dev assets, with the author\u2019s permission' };
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });

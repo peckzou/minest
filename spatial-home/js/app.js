@@ -60,6 +60,7 @@
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(60, 1, 0.05, 900);
   camera.rotation.order = 'YXZ';
   window.SpatialRoom.parts.deskStyle(S.deskStyle);
+  window.SpatialRoom.camera = camera;                                              // the Scenic Window draws its view from the eye (scenic-window.js)
   var room = window.SpatialRoom.build(scene, S.env), objects = window.SpatialObjects.build(room, scene, { medal: S.medal });
   var avatar = room.avatar(); avatar.visible = false; scene.add(avatar);
   camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
@@ -797,6 +798,7 @@
       localize(o);
       var l = L[o.id], a = room.anchors[o.anchor] || REF[o.anchor] || room.anchors['desk.left'];
       var p = l && l.p ? l.p : a.p, ry = l && isFinite(l.ry) ? l.ry : a.ry;
+      if (o.fit) o.fit(a);                                                       // a thing sized by its room (the Scenic Window)
       o.group.position.set(p[0], p[1], p[2]); o.group.rotation.y = ry; o.stashed = l ? !!l.stashed : !!o.startStashed; o.group.visible = !o.stashed;   // some things start in the backpack
       o.chip.classList.toggle('stashed', o.stashed); settle(o);
     });

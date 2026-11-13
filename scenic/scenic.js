@@ -1,29 +1,18 @@
-/* Minest · Scenic World (2026-11-13) — an immersive view, not a game map: you are a photographer with a free camera.
-   Scene adapters share one Scenic Camera and one Moments collection. This build ships one scene, Lake Bled, as a
-   2.5D depth scene: one real photograph (Krzysztof Golik, CC BY-SA 4.0, colour-graded here) and a depth map estimated
-   offline (Depth Anything V2 Small, Apache 2.0). Honest limits: the photo is unprojected into a relief seen from the
-   spot it was taken; the camera may orbit, dolly, rise, pan and zoom only as far as that relief and the photo's own
-   frame stay true — the field of view narrows by itself before the edge of the photograph could come into view.
-   Not a 360° panorama, not a reconstruction; no image is stretched to fake a drone orbit.
+/* Minest · Scenic World (2026-11-13; reworked the same day after the first look) — an immersive view, not a game map.
+   Like an Apple Vision Pro environment, you stand where the view is best and look: turn, lean, step a little, zoom.
+   The scene comes from scenic-core.js: one real photograph (Krzysztof Golik, CC BY-SA 4.0, graded) as a two-layer 2.5D
+   depth scene — the near branch on its own layer, the lake and mountains behind it filled — so moving does not ghost.
+   Honest limits: looking stays inside the photograph's frame (the frame narrows before an edge could show), and moving is
+   a few metres, not a drone flight; one photo has nothing behind the island to show.
    Talks to Spatial Home (parent) by postMessage {scenic:1, op}: ready · close · save · del · list ← shots. */
 (function () {
   'use strict';
   var THREE = window.THREE, $ = function (id) { return document.getElementById(id); };
   var Q = new URLSearchParams(location.search), EMBED = window.parent !== window;
-  var SCENES = [{
-    id: 'bled', name: 'Lake Bled · Autumn Sunset', zh: '布莱德湖 · 秋日夕照', place: 'Bled, Slovenia · 斯洛文尼亚',
-    kind: 'depth25', kindZh: '2.5D 深度场景 · 有限视差',
-    img: 'assets/bled/bled_4k.webp', imgLow: 'assets/bled/bled_2k.webp', depth: 'assets/bled/depth_1024.png', fx: 'assets/bled/fx_1024.png',
-    aspect: 4096 / 3208, vfov: 40, tilt: 12,                           // the photo: its frame, and the downward look it was taken with
-    zmap: { B: 1 / 3500, C: 0.073, p: 2.2 },                           // estimated inverse depth → metres (island ≈ 350 m, near lake ≈ 100 m, mountains ≈ 3.5 km)
-    pivot: [0.49, 0.72],                                               // the island
-    limits: { orbit: 0.06, tilt: 0.04, dolly: [-30, 170], height: [-15, 30], pan: [-12, 12], fov: [7, 40] },
-    credit: 'Photo: <a href="https://commons.wikimedia.org/wiki/File:Bled_Island_06.jpg" target="_blank" rel="noopener">Krzysztof Golik · Bled Island 06</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> · colour-graded to an autumn sunset by Minest · depth: Depth Anything V2'
-  }];
-  var SC = SCENES[0], LOW = (navigator.deviceMemory && navigator.deviceMemory < 4) || Math.min(screen.width, screen.height) < 500;
-
+  var SC = window.ScenicCore.scenes.bled, SCENES = [SC], LOW = (navigator.deviceMemory && navigator.deviceMemory < 4) || Math.min(screen.width, screen.height) < 500;
+  SC.limits = { orbit: 0.008, tilt: 0.006, dolly: [-6, 8], height: [-2.5, 3], pan: [-3, 3], fov: [7, 40] };   // a few metres: lean, step, rise on your toes
   /* ---------- the photograph shows at once, before anything else is ready ---------- */
-  $('plate').style.backgroundImage = 'url(' + SC.imgLow + ')';
+  $('plate').style.backgroundImage = 'url(' + SC.thumb + ')';
   $('credit').innerHTML = SC.credit;
 
   var renderer = null;
@@ -32,66 +21,17 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, LOW ? 1.5 : 2));
   renderer.outputEncoding = THREE.LinearEncoding;
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(SC.vfov, 1, 1, 12000);
-  var tanV = Math.tan(SC.vfov / 2 * Math.PI / 180), tanH = tanV * SC.aspect, TH = SC.tilt * Math.PI / 180;
-  var UPW = new THREE.Vector3(0, Math.cos(TH), Math.sin(TH)).normalize(), RIGHT = new THREE.Vector3(1, 0, 0);
-  function zOf(d) { var m = SC.zmap; return 1 / (m.B + m.C * Math.pow(Math.max(0, d), m.p)); }
-
-  /* ---------- loading: photo, depth, fx masks ---------- */
-  function img(src) { return new Promise(function (res, rej) { var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function () { res(i); }; i.onerror = rej; i.src = src; }); }
-  function pixels(i) { var c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight; var x = c.getContext('2d'); x.drawImage(i, 0, 0); return { w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data }; }
-  var U = { map: { value: null }, fx: { value: null }, uT: { value: 0 }, uLive: { value: 1 } };
-  var VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }';
-  var FS = [
-    'uniform sampler2D map; uniform sampler2D fx; uniform float uT; uniform float uLive; varying vec2 vUv;',
-    'void main(){',
-    '  vec2 uv = vUv; vec4 m = texture2D(fx, vUv);',
-    '  float sky = m.r * uLive, lake = m.g * uLive;',
-    /* clouds: a slow drift and a slower change of shape, only above the ridge line */
-    '  uv += sky * vec2(sin(uT*0.031 + vUv.y*5.0)*0.0035 + uT*0.00025, cos(uT*0.027 + vUv.x*4.0)*0.0016);',
-    /* the lake: fine ripples that only shift the reflection a hair */
-    '  float near = smoothstep(0.35, 0.0, vUv.y);',
-    '  uv += lake * vec2(sin(vUv.y*620.0 + uT*1.4 + sin(vUv.x*30.0))*0.00045, sin(vUv.x*340.0 + uT*1.1)*0.00028) * (0.4 + near);',
-    '  vec3 c = texture2D(map, uv).rgb;',
-    '  float sparkle = lake * pow(max(0.0, sin(vUv.x*900.0 + uT*2.3) * sin(vUv.y*1400.0 - uT*1.7)), 24.0) * smoothstep(0.45, 1.0, vUv.x);',
-    '  c += vec3(1.0, 0.82, 0.6) * sparkle * 0.35;',
-    '  c *= 1.0 + 0.025 * sin(uT * 0.09) * uLive;',                   // the light breathes, barely
-    '  gl_FragColor = vec4(c, 1.0);',
-    '}'].join('\n');
-  var mat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide });
-  var P = new THREE.Vector3(), mesh = null, back = null;
-
-  Promise.all([img(LOW ? SC.imgLow : SC.img), img(SC.depth), img(SC.fx)]).then(function (r) {
-    var tex = new THREE.Texture(r[0]); tex.needsUpdate = true; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    var fxt = new THREE.Texture(r[2]); fxt.needsUpdate = true;
-    U.map.value = tex; U.fx.value = fxt;
-    build(pixels(r[1]));
+  var tanV = Math.tan(SC.vfov / 2 * Math.PI / 180), tanH = tanV * SC.aspect;
+  var UPW = new THREE.Vector3(0, 1, 0), RIGHT = new THREE.Vector3(1, 0, 0), P = new THREE.Vector3(), U = { uT: { value: 0 }, uLive: { value: 1 } }, core = null;
+  window.ScenicCore.load('bled', { base: '', low: LOW, renderer: renderer }).then(function (c) {
+    core = c; U = c.U; P.copy(c.P); scene.add(c.group);
     resize(); restoreStart(); loop(); setTimeout(function () { document.body.classList.add('live'); }, 60);
     setTimeout(function () { post({ op: 'ready' }); }, 700);
   }).catch(function () { staticMode(); });
 
-  function build(D) {
-    var NX = LOW ? 180 : 300, NY = Math.round(NX / SC.aspect), pos = new Float32Array(NX * NY * 3), uv = new Float32Array(NX * NY * 2), zs = new Float32Array(NX * NY);
-    function dAt(u, v) { var x = u * (D.w - 1), y = v * (D.h - 1), x0 = Math.floor(x), y0 = Math.floor(y), x1 = Math.min(D.w - 1, x0 + 1), y1 = Math.min(D.h - 1, y0 + 1), fx = x - x0, fy = y - y0;
-      function g(a, b) { return D.d[(b * D.w + a) * 4] / 255; } return (g(x0, y0) * (1 - fx) + g(x1, y0) * fx) * (1 - fy) + (g(x0, y1) * (1 - fx) + g(x1, y1) * fx) * fy; }
-    for (var j = 0; j < NY; j++) for (var i = 0; i < NX; i++) {
-      var u = i / (NX - 1), v = j / (NY - 1), z = zOf(dAt(u, v)), k = j * NX + i;
-      pos[k * 3] = (2 * u - 1) * tanH * z; pos[k * 3 + 1] = (1 - 2 * v) * tanV * z; pos[k * 3 + 2] = -z; uv[k * 2] = u; uv[k * 2 + 1] = 1 - v; zs[k] = z;
-    }
-    /* a triangle across a depth edge (the branch against the lake) would be a stretched curtain once the camera moves:
-       it is left out, and the photograph behind (the back plate) shows through — seen from the photo's own spot the
-       two are the same pixels, so nothing changes until the camera moves */
-    var idx = [];
-    function ok(a, b, c) { var m = Math.max(zs[a], zs[b], zs[c]), n = Math.min(zs[a], zs[b], zs[c]); return m / n < 1.45; }
-    for (j = 0; j < NY - 1; j++) for (i = 0; i < NX - 1; i++) { var a = j * NX + i, b = a + 1, c = a + NX, d2 = c + 1; if (ok(a, c, b)) idx.push(a, c, b); if (ok(b, c, d2)) idx.push(b, c, d2); }
-    var geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); geo.setIndex(idx);
-    mesh = new THREE.Mesh(geo, mat); scene.add(mesh);
-    var ZB = 3700; back = new THREE.Mesh(new THREE.PlaneGeometry(2 * tanH * ZB, 2 * tanV * ZB), mat); back.position.z = -ZB; back.renderOrder = -1; scene.add(back);
-    P.set((2 * SC.pivot[0] - 1) * tanH, (1 - 2 * SC.pivot[1]) * tanV, -1).multiplyScalar(zOf(dAt(SC.pivot[0], SC.pivot[1])));
-  }
-
   /* ---------- the Scenic Camera: orbit · tilt · dolly · height · pan · zoom (+ look), within what the scene supports ---------- */
-  var L = SC.limits, DEF = { orbit: 0, tilt: 0, dolly: 0, height: 0, pan: 0, fov: SC.vfov, lx: 0, ly: 0 };
-  var S = JSON.parse(JSON.stringify(DEF)), T = JSON.parse(JSON.stringify(DEF)), V = { orbit: 0, tilt: 0, pan: 0, height: 0 };
+  var L = SC.limits, DEF = { orbit: 0, tilt: 0, dolly: 0, height: 0, pan: 0, fov: SC.vfov * 0.86, lx: 0, ly: 0 };
+  var S = JSON.parse(JSON.stringify(DEF)), T = JSON.parse(JSON.stringify(DEF)), V = { orbit: 0, tilt: 0, pan: 0, height: 0, lx: 0, ly: 0 };
   var _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _e = new THREE.Euler(0, 0, 0, 'YXZ'), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _r = new THREE.Vector3();
   function pose(st, cam) {
     _q.setFromAxisAngle(UPW, st.orbit); _q2.setFromAxisAngle(RIGHT, st.tilt); _q.multiply(_q2);
@@ -106,7 +46,7 @@
   var probe = new THREE.PerspectiveCamera(), _o = new THREE.Vector3(), _d = new THREE.Vector3();
   function covered(st) {
     probe.aspect = camera.aspect; pose(st, probe); probe.updateProjectionMatrixWorld && probe.updateProjectionMatrixWorld();
-    var ZB = 3700, c = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+    var ZB = 3400, c = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
     for (var i = 0; i < 4; i++) { _o.copy(probe.position); _d.set(c[i][0], c[i][1], 0.5).unproject(probe).sub(_o).normalize();
       if (_d.z >= -1e-4) return false; var t = (-ZB - _o.z) / _d.z, x = _o.x + _d.x * t, y = _o.y + _d.y * t;
       if (Math.abs(x) > tanH * ZB * 0.995 || Math.abs(y) > tanV * ZB * 0.995) return false; }
@@ -127,11 +67,11 @@
     wake(); var p = ptrs[e.pointerId]; if (!p) return; var ids = Object.keys(ptrs), dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
     var k = T.fov / SC.vfov;
     if (ids.length === 1) {
-      if (e.shiftKey) { V.pan = -dx * 0.004 * k; V.height = dy * 0.004 * k; }
-      else { V.orbit = -dx * 0.000035 * k; V.tilt = -dy * 0.000025 * k; }
+      if (e.shiftKey) { V.pan = -dx * 0.0016; V.height = dy * 0.0016; }
+      else { V.lx = dx * 0.00011 * k; V.ly = dy * 0.00011 * k; }              // turn your head (drag the view)
     } else if (ids.length === 2) {
       var a = ptrs[ids[0]], b = ptrs[ids[1]], dist = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      if (pinch) { T.fov *= Math.pow(pinch.d / Math.max(1, dist), 1); V.pan = -(mx - pinch.x) * 0.004 * k; V.height = (my - pinch.y) * 0.004 * k; }
+      if (pinch) { T.fov *= Math.pow(pinch.d / Math.max(1, dist), 1); V.pan = -(mx - pinch.x) * 0.0016; V.height = (my - pinch.y) * 0.0016; }
       pinch = { d: dist, x: mx, y: my };
     }
     clampT();
@@ -146,7 +86,7 @@
   }
   window.addEventListener('keydown', function (e) {
     wake(); var k = T.fov / SC.vfov;
-    if (e.key === 'ArrowLeft') T.orbit += 0.004 * k; else if (e.key === 'ArrowRight') T.orbit -= 0.004 * k; else if (e.key === 'ArrowUp') T.height += 1; else if (e.key === 'ArrowDown') T.height -= 1;
+    if (e.key === 'ArrowLeft') T.lx += 0.01 * k; else if (e.key === 'ArrowRight') T.lx -= 0.01 * k; else if (e.key === 'ArrowUp') T.ly += 0.01 * k; else if (e.key === 'ArrowDown') T.ly -= 0.01 * k;
     else if (e.key === '+' || e.key === '=') T.fov *= 0.92; else if (e.key === '-') T.fov /= 0.92; else if (e.key === 'r' || e.key === 'R') reset(); else if (e.key === 'c' || e.key === 'C') capture(); else if (e.key === 'Escape') exit();
     else return; clampT();
   });
@@ -156,7 +96,7 @@
   function loop() {
     requestAnimationFrame(loop); if (document.hidden) return;
     var dt = Math.min(0.05, clock.getDelta()); t0 += dt; U.uT.value = t0;
-    ['orbit', 'tilt', 'pan', 'height'].forEach(function (k) { if (Math.abs(V[k]) > 1e-6) { T[k] += V[k]; V[k] *= Math.pow(0.0025, dt); } });   // momentum, eased out
+    ['orbit', 'tilt', 'pan', 'height', 'lx', 'ly'].forEach(function (k) { if (Math.abs(V[k]) > 1e-6) { T[k] += V[k]; V[k] *= Math.pow(0.0025, dt); } });   // momentum, eased out
     clampT();
     var f = 1 - Math.exp(-dt * 6);                                    // damping: every move eases in and out
     for (var k in S) S[k] += (T[k] - S[k]) * f;
@@ -183,7 +123,7 @@
   }
   $('camKind').textContent = SC.kindZh;
   /* the camera panel: height, dolly, focal length (mm, full-frame equivalent), orbit */
-  var SL = { sHeight: ['height', L.height[0], L.height[1]], sDolly: ['dolly', L.dolly[0], L.dolly[1]], sOrbit: ['orbit', -L.orbit, L.orbit] };
+  var SL = { sHeight: ['height', L.height[0], L.height[1]], sDolly: ['dolly', L.dolly[0], L.dolly[1]], sOrbit: ['pan', L.pan[0], L.pan[1]] };
   Object.keys(SL).forEach(function (id) { $(id).addEventListener('input', function (e) { var q = SL[id]; T[q[0]] = q[1] + (q[2] - q[1]) * e.target.value / 1000; clampT(); }); });
   function mmOf(fov) { return 12 / Math.tan(fov / 2 * Math.PI / 180); }
   function fovOf(mm) { return 2 * Math.atan(12 / mm) * 180 / Math.PI; }
@@ -193,10 +133,10 @@
     if (openPanel !== 'pCamera') return;
     Object.keys(SL).forEach(function (id) { var q = SL[id], el = $(id); if (document.activeElement !== el) el.value = Math.round((T[q[0]] - q[1]) / (q[2] - q[1]) * 1000); });
     if (document.activeElement !== $('sFocal')) $('sFocal').value = Math.round(Math.log(mmOf(T.fov) / MM0) / Math.log(MM1 / MM0) * 1000);
-    $('vHeight').textContent = (T.height >= 0 ? '+' : '') + T.height.toFixed(0) + ' m'; $('vDolly').textContent = (T.dolly >= 0 ? '+' : '') + T.dolly.toFixed(0) + ' m';
-    $('vFocal').textContent = mmOf(T.fov).toFixed(0) + ' mm'; $('vOrbit').textContent = (T.orbit * 180 / Math.PI).toFixed(1) + '°';
+    $('vHeight').textContent = (T.height >= 0 ? '+' : '') + T.height.toFixed(1) + ' m'; $('vDolly').textContent = (T.dolly >= 0 ? '+' : '') + T.dolly.toFixed(0) + ' m';
+    $('vFocal').textContent = mmOf(T.fov).toFixed(0) + ' mm'; $('vOrbit').textContent = (T.pan >= 0 ? '+' : '') + T.pan.toFixed(1) + ' m';
   }
-  function reset() { var d = JSON.parse(JSON.stringify(DEF)); for (var k in d) T[k] = d[k]; V.orbit = V.tilt = V.pan = V.height = 0; clampT(); toast('经典机位'); }
+  function reset() { var d = JSON.parse(JSON.stringify(DEF)); for (var k in d) T[k] = d[k]; V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; clampT(); toast('经典机位'); }
 
   /* ---------- Capture → a Moment; Return to This Moment restores the exact camera ---------- */
   function capture() {
@@ -213,7 +153,7 @@
   function localShots() { try { return JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { return []; } }
   function saveShot(s) { SHOTS.unshift(s); if (EMBED) post({ op: 'save', shot: s }); try { localStorage.setItem(KEY, JSON.stringify(SHOTS.slice(0, 40))); } catch (e) {} }
   function delShot(id) { SHOTS = SHOTS.filter(function (s) { return s.id !== id; }); if (EMBED) post({ op: 'del', id: id }); try { localStorage.setItem(KEY, JSON.stringify(SHOTS)); } catch (e) {} renderShots(); }
-  function goShot(s) { if (!s || !s.st) return; for (var k in s.st) { T[k] = s.st[k]; S[k] = s.st[k]; } V.orbit = V.tilt = V.pan = V.height = 0; toast('回到这一刻 · ' + new Date(s.t).toLocaleString()); }
+  function goShot(s) { if (!s || !s.st) return; for (var k in s.st) { T[k] = s.st[k]; S[k] = s.st[k]; } V.orbit = V.tilt = V.pan = V.height = V.lx = V.ly = 0; toast('回到这一刻 · ' + new Date(s.t).toLocaleString()); }
   function renderShots() {
     $('shots').innerHTML = SHOTS.length ? SHOTS.map(function (s) { return '<div class="shot" data-id="' + s.id + '" style="background-image:url(' + s.thumb + ')"><button type="button" data-del="' + s.id + '" aria-label="删除">×</button><span>' + new Date(s.t).toLocaleDateString() + ' ' + new Date(s.t).toLocaleTimeString().slice(0, 5) + '</span></div>'; }).join('') : '<div class="empty">还没有收藏的机位。按 Capture 定格当前画面。</div>';
   }
