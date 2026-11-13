@@ -8,7 +8,8 @@ const rooms={
  library:{name:'双层私人图书馆',icon:'▤',note:'深木书架 · 阅览区 · 二层回廊',page:'rooms/index.html'},
  neuschwanstein:{name:'新天鹅堡 · 城堡外景',icon:'🏰',note:'城堡 · 峡谷 · 玛丽恩桥 · 可进入内景',localCollection:false,page:'../neuschwanstein/neuschwanstein.html?cam=30,70,168,86,62,94&mode=fly'},
  'neuschwanstein-throne':{name:'新天鹅堡 · 双层王座厅',icon:'♜',note:'金冠吊灯 · 拱廊 · 上层回廊',localCollection:false,page:'../neuschwanstein/neuschwanstein.html?cam=68.5,54.62,94.5,48,58,94.5&mode=walk'},
- 'neuschwanstein-singers':{name:'新天鹅堡 · 歌手大厅',icon:'♜',note:'木格天花 · 壁画 · 皇室房间',localCollection:false,page:'../neuschwanstein/neuschwanstein.html?cam=97.5,61.62,90.5,71,62,90&mode=walk'}
+ 'neuschwanstein-singers':{name:'新天鹅堡 · 歌手大厅',icon:'♜',note:'木格天花 · 壁画 · 皇室房间',localCollection:false,page:'../neuschwanstein/neuschwanstein.html?cam=97.5,61.62,90.5,71,62,90&mode=walk'},
+ 'kings-hall':{name:'斯科克洛斯特城堡 · 国王大厅',icon:'♛',note:'真实扫描 · 雕花天顶 · 长桌与肖像（CC BY 4.0）',localCollection:false,page:'../interiors-glb/index.html?scene=kings-hall'}
 };
 let root=null,frame=null,back=null,focus=null;
 function close(){
@@ -22,7 +23,7 @@ function open(id){
  back=null;
  root=document.createElement('section');root.className='minest-interior-portal';root.setAttribute('popover','manual');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label',room.name+' · My World');
  const bar=document.createElement('header'),exit=document.createElement('button'),title=document.createElement('strong'),note=document.createElement('span');
- exit.type='button';exit.textContent='‹ 返回 My World';exit.onclick=close;title.textContent=room.name;note.textContent=room.localCollection===false?'外景与内景 · 自由探索':'自由探索 · 本地收藏';bar.append(exit,title,note);
+ exit.type='button';exit.textContent=document.querySelector('#mn-sh:not([hidden])')?'‹ 回到房间':'‹ 返回 My World';exit.onclick=close;title.textContent=room.name;note.textContent=room.localCollection===false?'外景与内景 · 自由探索':'自由探索 · 本地收藏';bar.append(exit,title,note);
  frame=document.createElement('iframe');frame.title=room.name+' 3D 内景';frame.allow='fullscreen';frame.setAttribute('allowfullscreen','');
  const url=new URL(room.page,base);url.searchParams.set('embed','1');url.searchParams.set('room',id);frame.src=url.href;
  root.append(bar,frame);document.body.appendChild(root);if(root.showPopover)root.showPopover();document.documentElement.classList.add('minest-interior-open');

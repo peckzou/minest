@@ -88,5 +88,33 @@
   /* the board's content changes while the world is open (a Kanban edit elsewhere): send it again now and then */
   setInterval(function () { if (el && frame && !document.hidden) post({ tsq: 1, op: 'content', data: snapshot() }); }, 30000);
 
-  root.SpatialTSQ = { open: open, close: function () { finish(null); }, isOpen: function () { return !!el; }, snapshot: snapshot, version: '1.0' };
+  /* the archway is a portal to more than one place: Times Square, and every walk-in interior of My World (the King's
+     Hall, the manor, the castle treasury, the library, Neuschwanstein…, from my-world-interiors/entry.js) */
+  function interiorsBase() { return /^https?:$/.test(location.protocol) ? (/\/spatial-home\//.test(location.pathname) ? '../my-world-interiors/' : 'my-world-interiors/') : 'https://minest-app.vercel.app/my-world-interiors/'; }
+  function loadInteriors(cb) {
+    if (root.MinestInteriors) return cb(root.MinestInteriors);
+    var s = document.createElement('script'); s.src = interiorsBase() + 'entry.js?v=20261113'; s.onload = function () { cb(root.MinestInteriors || null); }; s.onerror = function () { cb(null); };
+    document.head.appendChild(s);
+  }
+  function choose(cb, container) {
+    loadInteriors(function (I) {
+      var list = [{ id: 'tsq', name: '时代广场 · Times Square', note: '真实尺度街道 · 大屏显示你的学习内容' }];
+      if (I && I.kinds) I.kinds.forEach(function (k) { list.push({ id: k[0], name: String(k[2]).replace(/^一键进入/, ''), note: k[3] || '' }); });
+      var box = document.createElement('div'); box.className = 'sh-portalpick';
+      box.innerHTML = '<style>.sh-portalpick{position:absolute;z-index:9;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(420px,calc(100% - 24px));max-height:70vh;overflow:auto;padding:12px;background:rgba(198,198,198,.95);border:2px solid #111;box-shadow:inset 2px 2px 0 #fff,inset -2px -2px 0 #555;font:13px/1.35 ui-monospace,Menlo,"PingFang SC",monospace;color:#2a2a2a}' +
+        '.sh-portalpick h4{margin:0 0 8px;color:#3f3f3f}.sh-portalpick button{display:block;width:100%;text-align:left;margin:0 0 6px;padding:9px 10px;border:2px solid #111;background:#8b8b8b;color:#fff;text-shadow:1px 1px 0 #3f3f3f;font:inherit;cursor:pointer;box-shadow:inset 2px 2px 0 rgba(255,255,255,.4),inset -2px -2px 0 rgba(0,0,0,.4)}' +
+        '.sh-portalpick button small{display:block;opacity:.85;font-size:11px}.sh-portalpick button.first{background:#4f8f3a}.sh-portalpick button.x{text-align:center;background:rgba(0,0,0,.08);color:#3f3f3f;text-shadow:none;box-shadow:none}<\/style>' +
+        '<h4>传送门 · 去哪里？</h4>' + list.map(function (d, i) { return '<button type="button" data-id="' + d.id + '"' + (i ? '' : ' class="first"') + '>' + d.name + (d.note ? '<small>' + d.note + '</small>' : '') + '</button>'; }).join('') +
+        '<button type="button" class="x" data-id="">回到房间</button>';
+      (container || document.body).appendChild(box);
+      ['pointerdown', 'touchstart', 'wheel'].forEach(function (t) { box.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+      box.addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b) return; e.stopPropagation(); box.remove(); var id = b.getAttribute('data-id');
+        if (!id) return cb(null);
+        if (id === 'tsq') return open(cb);
+        try { I.open(id); } catch (er) {} cb(null);
+      });
+    });
+  }
+  root.SpatialTSQ = { open: open, choose: choose, close: function () { finish(null); }, isOpen: function () { return !!el; }, snapshot: snapshot, version: '1.0' };
 })(window);

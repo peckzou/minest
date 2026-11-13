@@ -735,10 +735,10 @@
     words0(); paint(0);
     var last = 0;
     return {
-      id: 'tsqPortal', name: '时代广场传送门', en: 'Times Square Portal', icon: '🌆', feature: 'portal', anchor: 'floor.portal', group: g,
+      id: 'tsqPortal', name: '传送门', en: 'Portal · Times Square & interiors', icon: '🌆', feature: 'portal', anchor: 'floor.portal', group: g,
       hit: hitBox(g, -0.74, 0, -0.16, 0.74, 2.45, 0.2), label: [0, 2.5, 0],
       focus: { pos: [2.1, 1.45, 0.75], look: [2.26, 1.25, 2.4] },
-      panel: function () { return new Promise(function (res) { if (root.SpatialTSQ) root.SpatialTSQ.open(res); else res(null); }); },
+      panel: function (ctx) { return new Promise(function (res) { if (root.SpatialTSQ) root.SpatialTSQ.choose(res, ctx && ctx.container); else res(null); }); },
       set: function (k) { kk = k; veil.material.opacity = 0.55 * Math.sin(Math.PI * Math.min(1, k)) + 0.25 * k; glow.intensity = 0.35 + 1.2 * k; },
       idle: function (t) {
         var dt = Math.min(0.1, Math.max(0, t - last)); last = t;
