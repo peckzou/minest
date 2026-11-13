@@ -170231,6 +170231,11 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
 #sh-stick { position: absolute; z-index: 4; left: calc(22px + env(safe-area-inset-left)); bottom: calc(60px + env(safe-area-inset-bottom)); width: 104px; height: 104px; border-radius: 50%; background: rgba(251, 247, 238, .35); border: 1px solid rgba(29, 43, 79, .18); display: none; touch-action: none; }
 #sh-stick i { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px; border-radius: 50%; background: rgba(251, 247, 238, .9); box-shadow: 0 2px 8px rgba(29, 43, 79, .25); }
 #mn-sh.touch.m-explore #sh-stick { display: block; }
+/* 2026-11-13: buttons fold away; only ✕ and ≡ stay (≡ unfolds them) */
+#sh-top > * { transition: opacity .25s ease, transform .25s ease; }
+#mn-sh.sh-fold #sh-top > :not(#sh-menuBtn):not(#sh-exitBtn) { opacity: 0; pointer-events: none; transform: translateY(-8px); }
+#mn-sh.sh-fold #sh-dock { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(16px); }
+#mn-sh #sh-menuBtn { font-size: 20px; font-weight: 600; }
 #mn-sh.busy #sh-top, #mn-sh.busy #sh-dock, #mn-sh.busy #sh-hint, #mn-sh.busy #sh-stick, #mn-sh.busy #sh-labels { opacity: 0; pointer-events: none; }
 #mn-sh.busy #sh-top > * { pointer-events: none; }
 
@@ -170307,6 +170312,7 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
 </style>
 <script id="mn-spatial-home">
 window.__SPATIAL_HOME_EMBEDDED__ = true;
+window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 /* Minest · Spatial Home — voxel kit.
    Boxes with baked face shading and a shared 16×16 pixel grain (the same idea as santorini-world/textures.js:
    near-white pixel tiles tinted by vertex colour), merged into one BufferGeometry per part.
@@ -170849,7 +170855,8 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
         'desk.quill': { p: [-0.82, 0.78, -1.78], ry: 0.25 }, 'desk.key': { p: [0.1, 0.78, -1.7], ry: 0.3 },
         'desk.mochi': { p: [0.84, 0.78, -1.78], ry: -0.3 }, 'desk.book': { p: [0.6, 0.78, -2.2], ry: 0 },
         'cabinet.left': { p: [2.74, 0.8, 0.72], ry: -Math.PI / 2 }, 'cabinet.right': { p: [2.74, 0.8, 1.66], ry: -Math.PI / 2 },
-        'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }, 'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 }
+        'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }, 'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 },
+        'floor.portal': { p: [2.26, 0, 2.4], ry: Math.PI }   // the Times Square archway on the door wall, right of the door
       },
       desk: { pos: [0, 1.34, -0.92], look: [0, 0.93, -2.2] },
       start: { pos: [0.75, 1.5, 1.75], yaw: 0.18, pitch: -0.1 },
@@ -170911,7 +170918,8 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
           'cabinet.left': { p: [2.74, 0.8, 0.72], ry: -Math.PI / 2 }, 'cabinet.right': { p: [2.74, 0.8, 1.66], ry: -Math.PI / 2 },
           'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 },
           'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 },   // the backpack, on the floor left of the desk
-          'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 }   // gramophone by the shelf; projector + its screen towards the door wall
+          'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 },   // gramophone by the shelf; projector + its screen towards the door wall
+          'floor.portal': { p: [2.26, 0, 2.4], ry: Math.PI }   // the Times Square archway on the door wall, right of the door
         };
       },
       solids: function () { return [[-1.1, -2.5, 1.1, -1.5], [-0.26, -1.45, 0.26, -0.92], [2.55, -1.56, 3, -0.04], [2.45, 0.44, 3, 1.96], [-3, -1.06, -2.46, 0.46], [1.9, -2.5, 3, -1.8]]; },
@@ -171646,7 +171654,8 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     out['wall.left'] = { p: [-2.495, 1.6, -0.8], ry: Math.PI / 2 };             // the bulletin board on the partition
     out['sill.left'] = { p: [-1.75, 0.84, -WID + 0.06], ry: 0 };
     out['floor.gramo'] = { p: [5.05, 0, 0.2], ry: -Math.PI / 2 };                // the gramophone at the collection end
-    out['floor.film'] = { p: [-4.0, 0, 0.05], ry: 0 };                            // the projector in the lounge, its screen towards the right windows               // the magic ornament on the window sill
+    out['floor.film'] = { p: [-4.0, 0, 0.05], ry: 0 };
+    out['floor.portal'] = { p: [-5.86, 0, 0], ry: Math.PI / 2 };                  // the Times Square archway on the lounge end wall                            // the projector in the lounge, its screen towards the right windows               // the magic ornament on the window sill
     return out;
   }
 
@@ -172379,6 +172388,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
 
     /* the window's sky (the Study draws it as a plain plane behind the glass) */
     var sky = null; built.group.traverse(function (m) { if (!sky && m.isMesh && m.material && m.material.isMeshBasicMaterial && m.material.color && m.material.color.getHex() === 0xe7f0ff) sky = m; });
+    var sheer = null; built.group.traverse(function (m) { if (!sheer && m.isMesh && m.material && m.material.isMeshBasicMaterial && m.material.transparent && Math.abs(m.material.opacity - 0.45) < 0.01 && m.material.color.getHex() === 0xffffff) sheer = m; });
     var base = (built.lights || []).map(function (l) { return l.intensity; });
     var mode = 'auto', lastApply = -99;
     function c3(a, b, k) { return new THREE.Color(a).lerp(new THREE.Color(b), k); }
@@ -172411,7 +172421,8 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
       'wall.right': { p: [X1 - SHD - 0.005, 1.65, 1.8], ry: -PI / 2 },
       'floor.pack': { p: [-1.45, 0, W.desk.z + 0.1], ry: 0.45 },             // the backpack, on the floor left of the desk
       'floor.gramo': { p: [X1 - SHD - 0.4, 0, -0.35], ry: -PI / 2 },        // the gramophone in front of the east shelves
-      'floor.film': { p: [-1.7, 0, 0.95], ry: 0 }                           // the film projector and its screen, on the open floor by the easel
+      'floor.film': { p: [-1.7, 0, 0.95], ry: 0 },                          // the film projector and its screen, on the open floor by the easel
+      'floor.portal': { p: [X0 + SHD + 0.2, 0, 2.3], ry: PI / 2 }          // the Times Square archway, west side by the reading corner
     };
     /* what you cannot walk through: the Study's own colliders that reach the floor, and the pieces added here */
     var solids = (built.colliders || []).filter(function (c) { return c.min.y < 1 && c.max.y > 0.2; }).map(function (c) { return [c.min.x, c.min.z, c.max.x, c.max.z]; });
@@ -172419,7 +172430,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
 
     return {
       id: 'study', name: 'EC–6 Study Studio', group: built.group, holder: holder, far: 60, size: { W: X1, D: Z1, H: H },
-      anchors: anchors, avatar: PT.avatar,
+      anchors: anchors, avatar: PT.avatar, backdrop: [sky, sheer].filter(Boolean),   // the plain sky behind the glass and the sheer: hidden (sheer drawn back) when a window view is chosen (views.js)
       start: { pos: [0.7, 1.5, 2.2], yaw: 0.32, pitch: -0.08 },
       /* the desk chair, for the resident: it sits facing the desk and gets in and out from the east side */
       seat: { x: 0, z: W.desk.z - 0.84, yaw: 0, approach: [0.62, W.desk.z - 0.78], y: 0.46 },
@@ -173329,9 +173340,76 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   }
 
   /* the entries this update adds; medal style comes from the settings (box on the cabinet / board on the wall) */
+  /* ================================================================ Times Square portal (Portal World — js/portal-tsq.js)
+     Everyday Magic: an old brick archway against the wall. Its opening is not wall at all: a dusk street of bright screens
+     and a scrolling ticker (today's words and charts from the board) shows through. Tap it to step into Times Square. */
+  function tsqPortal() {
+    var g = new THREE.Group(), v = new VB(2101), BK = '#8a4b3a', BD = '#6f3a2d', ST = '#b9ad98', BR = '#c9a24a', i;
+    var OW = 0.9, OH = 1.75, R = OW / 2;                                 // the opening: OW wide, straight sides OH high, round top
+    v.box(-0.72, 0, -0.14, 0.72, 0.06, 0.14, ST);                          // a stone step
+    for (i = 0; i < 11; i++) { var y = 0.06 + i * 0.16; v.box(-0.72, y, -0.1, -R, y + 0.155, 0.1, i % 2 ? BK : BD, 0.02); v.box(R, y, -0.1, 0.72, y + 0.155, 0.1, i % 2 ? BD : BK, 0.02); }
+    for (i = 0; i <= 12; i++) {                                            // the arch: voussoirs round the top
+      var a = Math.PI * i / 12, cx = Math.cos(a) * (R + 0.11), cy = 0.06 + OH + Math.sin(a) * (R + 0.11);
+      v.cb(cx, cy - 0.07, 0, 0.15, 0.15, 0.21, i === 6 ? ST : (i % 2 ? BK : BD), 0.02);
+    }
+    v.box(-0.74, 0.06 + OH + R + 0.18, -0.12, 0.74, 0.06 + OH + R + 0.26, 0.12, ST);
+    g.add(v.mesh());
+    /* the view through: a canvas painted like a dusk street of screens; redrawn a few times a second while in sight */
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 512; var c2 = cv.getContext('2d');
+    var tex = new THREE.CanvasTexture(cv); if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace; else tex.encoding = THREE.sRGBEncoding;
+    var sh = new THREE.Shape(); sh.moveTo(-R, 0); sh.lineTo(R, 0); sh.lineTo(R, OH); sh.absarc(0, OH, R, 0, Math.PI, false); sh.lineTo(-R, 0);
+    var geo = new THREE.ShapeGeometry(sh, 24), pos = geo.attributes.position, uv = geo.attributes.uv, top = OH + R;
+    for (i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) + R) / OW, pos.getY(i) / top);
+    var mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }), view = new THREE.Mesh(geo, mat); view.position.set(0, 0.06, -0.02); g.add(view);
+    var veil = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xbfe8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    veil.position.set(0, 0.06, 0.005); g.add(veil);
+    var glow = new THREE.PointLight(0x9fc8ff, 0.35, 2.6); glow.position.set(0, 1.2, 0.5); g.add(glow);
+    /* the screens, from back (high, small) to front; colours shift slowly */
+    var B = [], words = 'TIMES SQUARE';
+    for (i = 0; i < 9; i++) B.push({ x: (i % 3) * 86 + (i > 5 ? 6 : 0), w: 70 + (i % 2) * 20, h: 160 + ((i * 53) % 140), d: 0.4 + (i % 3) * 0.3 });
+    var SCR = [[18, 70, 90, 64, '#ff3d6e'], [150, 40, 92, 120, '#2fd2ff'], [10, 170, 66, 92, '#ffd23f'], [176, 196, 66, 66, '#7cff6b'], [92, 140, 70, 46, '#b36bff'], [40, 290, 176, 60, '#ff8a3d']];
+    function words0() {
+      var s = root.SpatialTSQ && root.SpatialTSQ.snapshot ? root.SpatialTSQ.snapshot() : null, a = [];
+      if (s) { if (s.words && s.words.cur) a.push(s.words.cur); (s.words && s.words.next || []).slice(0, 4).forEach(function (w) { a.push(w); }); s.charts.forEach(function (c) { a.push(c.name + ': ' + c.title); }); }
+      words = (a.length ? a.join('  ·  ') : 'TIMES SQUARE  ·  时代广场') + '  ·  ';
+    }
+    var lastPaint = -1, lastWords = -99, kk = 0;
+    function paint(t) {
+      var gr = c2.createLinearGradient(0, 0, 0, 512); gr.addColorStop(0, '#1b1f4a'); gr.addColorStop(0.55, '#4a2f6a'); gr.addColorStop(1, '#0c0d16');
+      c2.fillStyle = gr; c2.fillRect(0, 0, 256, 512);
+      B.forEach(function (b, j) { c2.fillStyle = 'rgba(10,12,22,' + (0.55 + b.d * 0.4) + ')'; c2.fillRect(b.x, 512 - 120 - b.h - (2 - (j % 3)) * 30, b.w, b.h + 200); });
+      SCR.forEach(function (s, j) {
+        var k = 0.65 + 0.35 * Math.sin(t * (0.7 + j * 0.23) + j * 2); c2.globalAlpha = k; c2.fillStyle = s[4]; c2.fillRect(s[0], s[1], s[2], s[3]);
+        c2.globalAlpha = 0.9; c2.fillStyle = '#fff'; c2.fillRect(s[0] + 6, s[1] + 8 + ((t * 18 + j * 20) % Math.max(8, s[3] - 16)), s[2] - 12, 3); c2.globalAlpha = 1;
+      });
+      for (var y = 120; y < 400; y += 9) for (var x = 4; x < 252; x += 11) if (((x * 7 + y * 13) % 29) < 6) { c2.fillStyle = 'rgba(255,214,140,0.55)'; c2.fillRect(x, y, 3, 4); }
+      c2.fillStyle = '#05060a'; c2.fillRect(0, 418, 256, 30);                        // the ticker band
+      c2.font = 'bold 20px -apple-system, Helvetica, Arial, sans-serif'; c2.fillStyle = '#ffcf4a'; c2.textBaseline = 'middle';
+      var tw = c2.measureText(words).width || 200, off = -((t * 46) % tw);
+      for (var q = off; q < 256; q += tw) c2.fillText(words, q, 434);
+      c2.fillStyle = '#2a2b33'; c2.fillRect(0, 448, 256, 64); c2.fillStyle = '#e8e2c8'; for (var s2 = 0; s2 < 256; s2 += 24) c2.fillRect(s2, 478, 14, 5);   // the street
+      tex.needsUpdate = true;
+    }
+    words0(); paint(0);
+    var last = 0;
+    return {
+      id: 'tsqPortal', name: '时代广场传送门', en: 'Times Square Portal', icon: '🌆', feature: 'portal', anchor: 'floor.portal', group: g,
+      hit: hitBox(g, -0.74, 0, -0.16, 0.74, 2.45, 0.2), label: [0, 2.5, 0],
+      focus: { pos: [2.1, 1.45, 0.75], look: [2.26, 1.25, 2.4] },
+      panel: function () { return new Promise(function (res) { if (root.SpatialTSQ) root.SpatialTSQ.open(res); else res(null); }); },
+      set: function (k) { kk = k; veil.material.opacity = 0.55 * Math.sin(Math.PI * Math.min(1, k)) + 0.25 * k; glow.intensity = 0.35 + 1.2 * k; },
+      idle: function (t) {
+        var dt = Math.min(0.1, Math.max(0, t - last)); last = t;
+        if (t - lastWords > 30) { lastWords = t; words0(); }
+        if (t - lastPaint > 0.12) { lastPaint = t; paint(t); }
+        if (kk === 0) veil.material.opacity = 0.06 + 0.05 * Math.sin(t * 1.6);
+      }
+    };
+  }
+
   function make(opts) {
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
-    return [backpack(), gramophone(), filmProjector(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
+    return [backpack(), gramophone(), filmProjector(), tsqPortal(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
   root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
 })(window);
@@ -175002,6 +175080,250 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   root.SpatialMedia = { audio: audio, music: music, cinema: cinema, reels: reels, isOpen: function () { return !!(panel || cin); } };
 })(window);
 
+/* Minest · Spatial Home — the Times Square portal (Portal World, V1).
+   The portal in the room opens times-square/index.html full screen. That world shows the SAME content as the EC–6
+   bulletin board — nothing is copied or invented here; this file only reads what the board and the backpack already read:
+   · Today's Daily Anchor Charts  SpatialEC6._.pick(subject)   (the board's own pick of the day, per subject)
+   · Today's Big Three           SpatialEC6._.big3()
+   · Today's Words               SpatialEC6._.wordState()
+   · progress / countdown        the board's own record + SpatialEC6._.daysLeft()
+   · works                       MinestBackpack.works()  (Type Workshop words)
+   and posts it to the world as one snapshot ({tsq:1, op:'content', data}). The world asks with {tsq:1, op:'ready'}.
+   A theme building's door posts {tsq:1, op:'enter', target:'chart'|'words'|'works', sub}; the portal closes and the room
+   opens the real thing (the Anchor Chart card itself, the word study, 3D Type). {op:'close'} goes back to the room. */
+(function (root) {
+  'use strict';
+  var WEB = 'https://minest-app.vercel.app/times-square/index.html';
+  var SUB = [
+    { id: 'ela', name: 'Language Arts', zh: '语言艺术', glyph: '📚', ink: '#2f6fd6' }, { id: 'math', name: 'Math', zh: '数学', glyph: '🔢', ink: '#d9463e' },
+    { id: 'sci', name: 'Science', zh: '科学', glyph: '🔬', ink: '#2f9a5a' }, { id: 'ss', name: 'Social Studies', zh: '社会', glyph: '🗺️', ink: '#b8862b' },
+    { id: 'other', name: 'Other', zh: '艺术 · 音乐 · 健康 · 体育', glyph: '🎨', ink: '#8a5ad0' }];
+  function plain(s) { return String(s || '').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[#*_`>|~]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function clip(s, n) { s = plain(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
+  /** the world's content: today's board, read the way the board reads it */
+  function snapshot() {
+    var E = root.SpatialEC6 && root.SpatialEC6._, d = today(), out = { date: d, exam: null, charts: [], big3: [], words: null, progress: null, works: [], custom: [], demo: false };
+    if (E) {
+      try { var S = E.S(), left = E.daysLeft(); out.exam = { name: S.exam && S.exam.name || '', date: S.exam && S.exam.date || '', daysLeft: left }; } catch (e) {}
+      var chartsSeen = 0;
+      SUB.forEach(function (s) {
+        try {
+          var h = E.pick(s.id); if (!h || !h.k) return; var k = h.k, S = E.S();
+          var mastered = (S.mastered || []).some(function (m) { return m.id === k.id && !m.undone; });
+          if (mastered || (S.opened && S.opened[d] && S.opened[d][k.id])) chartsSeen++;
+          out.charts.push({ sub: s.id, name: s.name, zh: s.zh, glyph: s.glyph, ink: s.ink, title: clip(k.title, 80), text: clip(k.meaning || k.titleZh || k.desc || '', 160), mastered: mastered, id: k.id });
+        } catch (e) {}
+      });
+      try { out.big3 = E.big3().filter(function (r) { return r.card; }).map(function (r) { return { title: clip(r.card.title, 60), done: !!r.card.complete }; }); } catch (e) {}
+      try {
+        var w = E.wordState();
+        if (w) { var byId = {}; (w.L.c.cards || []).forEach(function (k) { byId[k.id] = k; });
+          var i = w.open.indexOf(w.W.cur), next = w.open.slice(i + 1, i + 9).map(function (id) { return byId[id] && clip(byId[id].title, 40); }).filter(Boolean);
+          out.words = { list: clip(w.L.c.title || w.L.b && w.L.b.title || '', 40), cur: w.card ? clip(w.card.title, 40) : '', next: next, left: w.left, total: w.total, knownToday: w.knownToday }; }
+      } catch (e) {}
+      out.progress = { big3Done: out.big3.filter(function (b) { return b.done; }).length, big3Have: out.big3.length, charts: chartsSeen, chartsOf: SUB.length, wordsToday: out.words ? out.words.knownToday : 0 };
+    }
+    try { var BP = root.MinestBackpack; if (BP && BP.works) out.works = BP.works().slice(-24).reverse().map(function (it) { return { title: clip(it.word, 40), kind: it.mode || 'neon' }; }); } catch (e) {}
+    return out;
+  }
+
+  function src() {
+    if (/^https?:$/.test(location.protocol)) return /\/spatial-home\//.test(location.pathname) ? '../times-square/index.html' : 'times-square/index.html';
+    return WEB;                                         // the app's local pages: the world comes from the web, like Typing Worlds
+  }
+
+  var el = null, frame = null, done = null;
+  function post(msg) { try { frame.contentWindow.postMessage(msg, '*'); } catch (e) {} }
+  function finish(r) {
+    if (!el) return; root.removeEventListener('message', onMsg);
+    var e0 = el; el = null; frame = null; e0.style.opacity = '0'; setTimeout(function () { e0.remove(); }, 320);
+    var f = done; done = null; if (f) f(r || null);
+  }
+  function onMsg(e) {
+    var m = e.data; if (!el || !m || m.tsq !== 1 || !frame || e.source !== frame.contentWindow) return;
+    if (m.op === 'ready') post({ tsq: 1, op: 'content', data: snapshot() });
+    else if (m.op === 'close') finish(null);
+    else if (m.op === 'enter') {
+      if (m.target === 'chart') {
+        var E = root.SpatialEC6 && root.SpatialEC6._, h = null; try { h = E && E.pick(m.sub); } catch (er) {}
+        var id = h && h.k && h.k.id;
+        finish({ feature: 'kanban', after: id ? function (w) { setTimeout(function () { try { w.MinestAI.openCard(id); } catch (er) {} }, 120); } : null });
+      } else if (m.target === 'words') finish({ feature: 'carplay' });
+      else if (m.target === 'works') finish({ feature: 'type3d' });
+    }
+  }
+  /** open the world; cb(result) with null (back to the room) or { feature, after } (open that in Minest) */
+  function open(cb) {
+    if (el) return; done = cb;
+    el = document.createElement('div');
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:#05060a;opacity:0;transition:opacity .3s';
+    frame = document.createElement('iframe'); frame.title = '时代广场 · Times Square';
+    frame.setAttribute('allow', 'fullscreen; autoplay');
+    frame.style.cssText = 'border:0;width:100%;height:100%;display:block';
+    frame.src = src(); el.appendChild(frame); document.body.appendChild(el);
+    root.addEventListener('message', onMsg);
+    requestAnimationFrame(function () { if (el) el.style.opacity = '1'; });
+  }
+  /* the board's content changes while the world is open (a Kanban edit elsewhere): send it again now and then */
+  setInterval(function () { if (el && frame && !document.hidden) post({ tsq: 1, op: 'content', data: snapshot() }); }, 30000);
+
+  root.SpatialTSQ = { open: open, close: function () { finish(null); }, isOpen: function () { return !!el; }, snapshot: snapshot, version: '1.0' };
+})(window);
+
+/* Minest · Spatial Home — the view out of the window, chosen per room (2026-11-13).
+   'auto' keeps the room's own outside (Santorini's village, Manhattan's skyline, the train's line…). Any other view puts
+   one painted panorama on a sphere that encloses the whole room, so through every window — and only there, the walls
+   hide the rest — you see the sea, a lake, the aurora… The room's own far scenery is still there behind it, just covered.
+   Panoramas are painted here on a canvas (equirectangular, horizon at eye level): no downloads, nothing copied. */
+(function (root) {
+  'use strict';
+  var THREE = root.THREE;
+  var LIST = [
+    { id: 'auto', icon: '🏠', zh: '跟随环境', en: 'The room\'s own view' },
+    { id: 'sea', icon: '🌊', zh: '海景 · 爱琴海', en: 'Sea' },
+    { id: 'lake', icon: '🏞️', zh: '湖景 · 雪山湖', en: 'Lake' },
+    { id: 'aurora', icon: '🌌', zh: '极光 · 冰湖', en: 'Aurora' },
+    { id: 'snow', icon: '🏔️', zh: '雪山 · 草甸', en: 'Snow peaks' },
+    { id: 'city', icon: '🌃', zh: '城市夜景', en: 'City at night' },
+    { id: 'sakura', icon: '🌸', zh: '樱花 · 春湖', en: 'Cherry blossom' }
+  ];
+  var W = 2048, H = 1024, HZ = H / 2;
+  function rng(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function grad(x, y0, y1, stops) { var g = x.createLinearGradient(0, y0, 0, y1); stops.forEach(function (s) { g.addColorStop(s[0], s[1]); }); return g; }
+  /** a ridge line across the whole panorama (wraps), filled down to `base` */
+  function ridge(x, r, y, amp, rough, fill, base, wraps) {
+    var pts = [], n = 64, k, ph = r() * 6.28, ph2 = r() * 6.28;
+    for (k = 0; k <= n; k++) { var t = k / n * Math.PI * 2 * (wraps || 3); pts.push(y - amp * (0.55 * Math.sin(t + ph) + 0.3 * Math.sin(t * 2.3 + ph2) + rough * (r() - 0.5))); }
+    x.beginPath(); x.moveTo(0, base); for (k = 0; k <= n; k++) x.lineTo(k / n * W, pts[k]); x.lineTo(W, base); x.closePath(); x.fillStyle = fill; x.fill(); return pts;
+  }
+  function peaks(x, r, y, count, hMin, hMax, rock, snow) {
+    for (var i = 0; i < count; i++) {
+      var cx = r() * W, w = 140 + r() * 260, h = hMin + r() * (hMax - hMin);
+      for (var dx = -W; dx <= W; dx += W) {
+        var px = cx + dx; x.beginPath(); x.moveTo(px - w, y); x.lineTo(px - w * 0.15, y - h * 0.92); x.lineTo(px, y - h); x.lineTo(px + w * 0.2, y - h * 0.9); x.lineTo(px + w, y); x.closePath(); x.fillStyle = rock; x.fill();
+        if (snow) { x.beginPath(); x.moveTo(px - w * 0.36, y - h * 0.62); x.lineTo(px - w * 0.15, y - h * 0.92); x.lineTo(px, y - h); x.lineTo(px + w * 0.2, y - h * 0.9); x.lineTo(px + w * 0.4, y - h * 0.6); x.lineTo(px + w * 0.12, y - h * 0.7); x.lineTo(px - w * 0.05, y - h * 0.58); x.lineTo(px - w * 0.2, y - h * 0.68); x.closePath(); x.fillStyle = snow; x.fill(); }
+      }
+    }
+  }
+  function pines(x, r, y, n, col, hMin, hMax) { x.fillStyle = col; for (var i = 0; i < n; i++) { var px = r() * W, h = hMin + r() * (hMax - hMin), w = h * 0.32; x.beginPath(); x.moveTo(px, y - h); x.lineTo(px + w, y + 2); x.lineTo(px - w, y + 2); x.closePath(); x.fill(); } }
+  function stars(x, r, n, y1) { for (var i = 0; i < n; i++) { var a = 0.3 + r() * 0.7; x.fillStyle = 'rgba(255,255,255,' + a + ')'; var s = r() < 0.06 ? 2.2 : 1.1; x.fillRect(r() * W, r() * y1, s, s); } }
+  function mirror(x, from, to, alpha, tint) {           // the lake: the band above the horizon, flipped below it
+    x.save(); x.globalAlpha = alpha; x.translate(0, HZ * 2); x.scale(1, -1); x.drawImage(x.canvas, 0, from, W, HZ - from, 0, from, W, HZ - from); x.restore();
+    x.fillStyle = tint; x.fillRect(0, HZ, W, to - HZ);
+    x.strokeStyle = 'rgba(255,255,255,0.08)'; x.lineWidth = 1; for (var y = HZ + 4; y < to; y += 6) { x.beginPath(); x.moveTo(0, y); x.lineTo(W, y); x.stroke(); }
+  }
+  var PAINT = {
+    sea: function (x, r) {
+      x.fillStyle = grad(x, 0, HZ, [[0, '#2f74c4'], [0.55, '#78b6e8'], [1, '#d8ecf7']]); x.fillRect(0, 0, W, HZ);
+      var sx = W * 0.62, sy = HZ - 170, g = x.createRadialGradient(sx, sy, 10, sx, sy, 260); g.addColorStop(0, 'rgba(255,250,225,1)'); g.addColorStop(0.12, 'rgba(255,244,200,0.85)'); g.addColorStop(1, 'rgba(255,240,200,0)'); x.fillStyle = g; x.fillRect(0, 0, W, HZ);
+      for (var i = 0; i < 14; i++) { var cx = r() * W, cy = 80 + r() * 260, cw = 120 + r() * 220; x.fillStyle = 'rgba(255,255,255,' + (0.35 + r() * 0.35) + ')'; for (var j = 0; j < 6; j++) { x.beginPath(); x.ellipse(cx + (j - 3) * cw * 0.18, cy + r() * 14, cw * (0.18 + r() * 0.12), 16 + r() * 14, 0, 0, 6.3); x.fill(); } }
+      x.fillStyle = 'rgba(120,150,175,0.85)'; [[0.15, 60, 420], [0.4, 34, 260], [0.86, 48, 360]].forEach(function (s) { x.beginPath(); x.ellipse(W * s[0], HZ, s[2] / 2, s[1], 0, Math.PI, 0); x.fill(); });
+      x.fillStyle = grad(x, HZ, H, [[0, '#3b86c0'], [0.25, '#1f5f9b'], [1, '#0b2f5a']]); x.fillRect(0, HZ, W, HZ);
+      for (i = 0; i < 2600; i++) { var px = r() * W, py = HZ + Math.pow(r(), 1.6) * HZ, near = Math.abs(px - sx) < 160 + (py - HZ) * 0.6; x.fillStyle = 'rgba(255,255,255,' + (near ? 0.55 : 0.12) * (1 - (py - HZ) / HZ * 0.6) + ')'; x.fillRect(px, py, 6 + r() * 18, 1.5); }
+    },
+    lake: function (x, r) {
+      x.fillStyle = grad(x, 0, HZ, [[0, '#5d97cf'], [1, '#e3eef5']]); x.fillRect(0, 0, W, HZ);
+      peaks(x, r, HZ - 30, 9, 140, 300, '#8796ab', '#f4f7fa');
+      ridge(x, r, HZ - 60, 40, 0.5, '#5e7a6a', HZ - 10, 4);
+      pines(x, r, HZ - 8, 420, '#22402f', 18, 48);
+      x.fillStyle = '#2c4a37'; x.fillRect(0, HZ - 10, W, 10);
+      mirror(x, 120, H, 0.55, 'rgba(40,90,120,0.45)');
+      x.fillStyle = grad(x, HZ, H, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(10,40,60,0.6)']]); x.fillRect(0, HZ, W, HZ);
+    },
+    aurora: function (x, r) {
+      x.fillStyle = grad(x, 0, HZ, [[0, '#02040c'], [0.6, '#06142a'], [1, '#0d2a3a']]); x.fillRect(0, 0, W, HZ);
+      stars(x, r, 1400, HZ - 20);
+      x.globalCompositeOperation = 'lighter';
+      for (var b = 0; b < 4; b++) {
+        var y0 = 230 + b * 55 + r() * 30, amp = 50 + r() * 70, ph = r() * 6.3, hue = b === 3 ? 'rgba(180,90,255,' : 'rgba(70,255,150,';
+        for (var px = 0; px < W; px += 3) {
+          var y = y0 + amp * Math.sin(px / W * Math.PI * 2 * (2 + b) + ph) + 20 * Math.sin(px / 61 + b), h = 140 + 90 * Math.sin(px / 173 + ph * 2) ;
+          var g = x.createLinearGradient(0, y - h, 0, y + 10); g.addColorStop(0, hue + '0)'); g.addColorStop(0.65, hue + (0.16 + 0.12 * Math.sin(px / 37 + b)) + ')'); g.addColorStop(1, hue + '0.5)');
+          x.fillStyle = g; x.fillRect(px, y - h, 3, h + 10);
+        }
+      }
+      x.globalCompositeOperation = 'source-over';
+      ridge(x, r, HZ - 30, 26, 0.6, '#0b1620', HZ, 3);
+      peaks(x, r, HZ - 6, 7, 40, 95, '#121e2a', '#5f7286');
+      pines(x, r, HZ - 2, 260, '#05090d', 14, 34);
+      mirror(x, 60, H, 0.6, 'rgba(8,22,32,0.5)');
+    },
+    snow: function (x, r) {
+      x.fillStyle = grad(x, 0, HZ, [[0, '#1f6fd0'], [0.7, '#8ec3f0'], [1, '#e6f1f8']]); x.fillRect(0, 0, W, HZ);
+      peaks(x, r, HZ - 20, 7, 260, 420, '#7c8aa0', '#ffffff');
+      peaks(x, r, HZ - 10, 8, 120, 220, '#6b7d72', '#eef3f6');
+      ridge(x, r, HZ - 30, 30, 0.4, '#5f8a4a', HZ + 30, 5);
+      pines(x, r, HZ - 20, 300, '#1f3a22', 20, 54);
+      x.fillStyle = grad(x, HZ - 20, H, [[0, '#6f9a4e'], [0.4, '#4f7a38'], [1, '#2b4a20']]); x.fillRect(0, HZ - 20, W, H - HZ + 20);
+      for (var i = 0; i < 900; i++) { x.fillStyle = ['#f6e27a', '#ffffff', '#c79bf2', '#f29bb5'][i % 4]; x.fillRect(r() * W, HZ + r() * HZ * 0.8, 3, 3); }
+    },
+    city: function (x, r) {
+      x.fillStyle = grad(x, 0, HZ, [[0, '#0a0f2a'], [0.6, '#2a2552'], [1, '#c96a52']]); x.fillRect(0, 0, W, HZ);
+      stars(x, r, 260, HZ - 200);
+      for (var layer = 0; layer < 3; layer++) {
+        var base = HZ + 4, col = ['#3a3a5a', '#24243a', '#121220'][layer], px = 0;
+        while (px < W) {
+          var bw = 30 + r() * (70 - layer * 10), bh = 60 + r() * (layer === 2 ? 260 : 180) + (r() < 0.06 ? 160 : 0);
+          x.fillStyle = col; x.fillRect(px, base - bh, bw, bh + 4);
+          if (layer > 0) for (var wy = base - bh + 8; wy < base - 4; wy += 9) for (var wx = px + 4; wx < px + bw - 4; wx += 7) if (r() < 0.38) { x.fillStyle = r() < 0.8 ? 'rgba(255,214,140,' + (0.5 + r() * 0.5) + ')' : 'rgba(170,210,255,0.8)'; x.fillRect(wx, wy, 3, 4); }
+          if (r() < 0.05) { x.fillStyle = '#ff3b3b'; x.fillRect(px + bw / 2 - 1, base - bh - 10, 3, 10); }
+          px += bw + (layer === 2 ? 2 : 6);
+        }
+      }
+      x.fillStyle = '#05060c'; x.fillRect(0, HZ + 4, W, HZ);
+      for (var i = 0; i < 1800; i++) { var lx = r() * W, ly = HZ + 8 + Math.pow(r(), 1.5) * HZ * 0.8; x.fillStyle = r() < 0.7 ? 'rgba(255,200,120,' + (0.15 + r() * 0.35) + ')' : 'rgba(150,200,255,0.3)'; x.fillRect(lx, ly, 2 + r() * 10, 1.5); }
+    },
+    sakura: function (x, r) {
+      x.fillStyle = grad(x, 0, HZ, [[0, '#8fb8e8'], [0.7, '#f3d7e6'], [1, '#fbeef2']]); x.fillRect(0, 0, W, HZ);
+      for (var dx = -W; dx <= W; dx += W) {             // one tall cone volcano with a snow cap
+        var cx = W * 0.35 + dx, y = HZ - 20; x.fillStyle = '#7f8db0'; x.beginPath(); x.moveTo(cx - 520, y); x.lineTo(cx - 70, y - 330); x.lineTo(cx + 70, y - 330); x.lineTo(cx + 520, y); x.fill();
+        x.fillStyle = '#ffffff'; x.beginPath(); x.moveTo(cx - 70, y - 330); x.lineTo(cx + 70, y - 330); x.lineTo(cx + 170, y - 210); x.lineTo(cx + 90, y - 230); x.lineTo(cx + 30, y - 200); x.lineTo(cx - 40, y - 235); x.lineTo(cx - 120, y - 205); x.closePath(); x.fill();
+      }
+      ridge(x, r, HZ - 24, 18, 0.5, '#6f8a76', HZ, 5);
+      mirror(x, 150, H, 0.5, 'rgba(120,150,190,0.35)');
+      for (var i = 0; i < 46; i++) {                    // cherry trees along the near shore
+        var tx = r() * W, ty = HZ + 40 + r() * 30, s = 40 + r() * 50;
+        x.fillStyle = '#4a3328'; x.fillRect(tx - 3, ty - s * 0.4, 6, s * 0.7);
+        for (var j = 0; j < 14; j++) { x.fillStyle = ['#f7b6c8', '#f39ab4', '#fbd3df'][j % 3]; x.beginPath(); x.arc(tx + (r() - 0.5) * s * 1.4, ty - s * 0.5 - r() * s * 0.6, s * (0.18 + r() * 0.16), 0, 6.3); x.fill(); }
+      }
+      x.fillStyle = '#5d7d4c'; x.fillRect(0, HZ + 64, W, H); for (i = 0; i < 1500; i++) { x.fillStyle = 'rgba(247,182,200,0.7)'; x.fillRect(r() * W, HZ + 64 + r() * HZ, 3, 2); }
+    }
+  };
+  var cache = {}, sphere = null, mat = null, curId = 'auto', scroll = 0;
+  function texture(id) {
+    if (cache[id]) return cache[id];
+    var c = document.createElement('canvas'); c.width = W; c.height = H; var x = c.getContext('2d');
+    PAINT[id](x, rng(id.length * 7919 + 17));
+    var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = THREE.RepeatWrapping; t.anisotropy = 4;
+    return (cache[id] = t);
+  }
+  /** show view `id` round `room` in `scene` (or the room's own view for 'auto') */
+  function apply(scene, room, id) {
+    curId = PAINT[id] ? id : 'auto';
+    ((room && room.backdrop) || []).forEach(function (m) { m.visible = curId === 'auto'; });   // a room's own near backdrop (the Study's sky plane) would cover the view
+    if (curId === 'auto') { if (sphere) sphere.visible = false; return curId; }
+    if (!sphere) {
+      mat = new THREE.MeshBasicMaterial({ side: THREE.BackSide, fog: false, toneMapped: false, depthWrite: true });
+      sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 32), mat); sphere.name = 'window-view'; sphere.renderOrder = -1;
+    }
+    if (sphere.parent !== scene) scene.add(sphere);
+    var s = room && room.size || { W: 3, D: 2.5 }, R = Math.max(9, Math.hypot(s.W || 3, s.D || 2.5) + 4.5);
+    sphere.scale.setScalar(R); sphere.position.set(0, 1.5, 0); sphere.rotation.y = 0;
+    mat.map = texture(curId); mat.needsUpdate = true; sphere.visible = true; scroll = 0;
+    return curId;
+  }
+  /** each frame: the train's view slides past; the aurora drifts very slowly */
+  function tick(t, dt, room) {
+    if (!sphere || !sphere.visible || !mat.map) return;
+    if (room && room.envId === 'train') { scroll += (dt || 0.016) * 0.012; mat.map.offset.x = scroll % 1; }
+    else if (curId === 'aurora') mat.map.offset.x = (t * 0.0015) % 1; else mat.map.offset.x = 0;
+  }
+  root.SpatialViews = { list: function () { return LIST.slice(); }, apply: apply, tick: tick, current: function () { return curId; }, version: '1.0' };
+})(window);
+
 /* Minest · Spatial Home — the bridge to the features that already exist.
    Nothing is re-made here. The Minest app (index.html, the same build the user already has) runs in one frame that
    stays loaded behind the room; a thing in the room calls that app's own entry function and shows the frame. Leaving
@@ -175238,7 +175560,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     '<canvas id="sh-gl" tabindex="0" aria-label="Santorini Atelier"></canvas><div id="sh-labels" aria-hidden="true"></div>' +
     '<div id="sh-top"><div class="sh-brand"><strong>Minest</strong><span id="sh-brandName">Santorini Atelier</span></div>' +
     '<div class="sh-seg" id="sh-modeSeg" role="tablist" aria-label="模式"><button type="button" data-mode="explore" role="tab">Explore</button><button type="button" data-mode="desk" role="tab">Desk</button></div>' +
-    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button>' +
+    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-viewsBtn" title="窗外风景">🪟</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button><button type="button" class="sh-ic" id="sh-menuBtn" title="显示 / 收起按钮" aria-expanded="false">≡</button>' +
     (EMBED ? '<button type="button" class="sh-ic" id="sh-exitBtn" title="进入完整的 Minest">✕</button>' : '') + '</div>' +
     '<button type="button" id="sh-skip" hidden>跳过动画 ›</button><div id="sh-dock" role="toolbar" aria-label="功能入口"></div><div id="sh-hint"></div><div id="sh-stick" aria-hidden="true"><i></i></div>' +
     '<div id="sh-settings" hidden><h3>Spatial Home</h3>' +
@@ -175251,7 +175573,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
     '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
-    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot">⟲ 旋转</button><button type="button" data-e="stash">🎒 收回</button><button type="button" data-e="cancel">取消</button><button type="button" data-e="ok" class="pri">✓ 放好了</button></div></div>' +
+    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot">⟲ 90°</button><button type="button" data-e="rot15">↻ 15°</button><button type="button" data-e="stash">🎒 收回</button><button type="button" data-e="cancel">取消</button><button type="button" data-e="ok" class="pri">✓ 放好了</button></div></div>' +
     '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div>';
 
   function mount() {
@@ -175264,7 +175586,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   var canvas = $('gl');
 
   /* ------------------------------------------------------------ settings (kept) */
-  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
+  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto', wviews: {} };
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && typeof raw === 'object') for (var k0 in S) if (raw[k0] !== undefined) S[k0] = raw[k0]; } catch (e) {}
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   /* EC–6 Study Studio (2026-11-13): it becomes the current room once; the 🌐 switcher still offers every other room */
@@ -175289,6 +175611,8 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   var room = window.SpatialRoom.build(scene, S.env), objects = window.SpatialObjects.build(room, scene, { medal: S.medal });
   var avatar = room.avatar(); avatar.visible = false; scene.add(avatar);
   camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
+  function wview() { if (window.SpatialViews) window.SpatialViews.apply(scene, room, (S.wviews || {})[room.envId] || 'auto'); }
+  wview();
   if (S.poses && S.poses[room.envId]) S.pose = S.poses[room.envId];
   var EYE = 1.5, RAD = 0.24;
 
@@ -175523,7 +175847,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   var hint = $('hint'), hintT = 0;
   function showHint() {
     var touch = body.classList.contains('touch');
-    hint.textContent = mode === 'desk' ? '拖动看向两侧 · 点物件或下方入口进入' : (touch ? '摇杆行走 · 拖动环顾 · 点物件进入' : '拖动环顾 · WASD 行走 · 点地面走过去 · 点物件进入');
+    hint.textContent = mode === 'desk' ? '拖动看向两侧 · 点物件或下方入口进入' : (touch ? '摇杆行走 · 拖动环顾 · 点物件进入 · 长按物件移动' : '拖动环顾 · WASD 行走 · 点物件进入 · 长按物件移动');
     hint.classList.toggle('hide', mode === 'desk'); clearTimeout(hintT);
     if (mode !== 'desk') hintT = setTimeout(function () { hint.classList.add('hide'); }, 7000);
   }
@@ -175643,15 +175967,29 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   canvas.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'touch' && !body.classList.contains('touch')) { body.classList.add('touch'); showHint(); }
     if (busy) { skipAll(); return; }
-    if (edit) { ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {} editMove(e); return; }
+    if (!body.classList.contains('sh-fold')) fold(true);                         // touching the room folds the buttons away
+    if (edit) {
+      var ad = arrowAt(e);                                                         // a move arrow: nudge, and keep nudging while held
+      if (ad) { ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true, arrow: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
+        nudge(ad); clearInterval(nudgeT); clearTimeout(nudgeD); nudgeD = setTimeout(function () { nudgeT = setInterval(function () { nudge(ad); }, 90); }, 380); return; }
+      ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {} editMove(e); return;
+    }
     ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
+    /* long press on a thing: pick it up to move it (then drag it, or tap the arrows round it) */
+    var lpE = { clientX: e.clientX, clientY: e.clientY }, mine = ptr;
+    ptr.lp = setTimeout(function () {
+      if (ptr !== mine || ptr.drag || edit || busy || mode !== 'explore') return;
+      var o = pick(lpE) || pickExtra(lpE); if (!o) return;
+      ptr.long = true; try { if (navigator.vibrate) navigator.vibrate(12); } catch (er) {}
+      startEdit(o); toast('拖动它，或点周围的箭头微调 · 放好后点 ✓');
+    }, 520);
   });
   canvas.addEventListener('pointermove', function (e) {
     if (busy) return;
-    if (edit) { if ((ptr && ptr.id === e.pointerId) || e.pointerType === 'mouse') editMove(e); return; }
+    if (edit) { if (ptr && ptr.arrow) return; if ((ptr && ptr.id === e.pointerId) || e.pointerType === 'mouse') editMove(e); return; }
     if (!ptr || ptr.id !== e.pointerId) { if (e.pointerType === 'mouse') setHot(pick(e)); return; }
     var dx = e.clientX - ptr.x, dy = e.clientY - ptr.y; ptr.x = e.clientX; ptr.y = e.clientY;
-    if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; canvas.classList.add('drag'); walkTo = null; }
+    if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; clearTimeout(ptr.lp); canvas.classList.add('drag'); walkTo = null; }
     if (!ptr.drag) return;
     var s = 0.0042 * (camera.fov / 60);
     if (mode === 'desk') { DK.yaw = clamp(DK.yaw + dx * s, -2.2, 2.2); DK.pitch = clamp(DK.pitch + dy * s, -0.45, 0.75); }
@@ -175660,8 +175998,9 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   });
   function up(e) {
     if (!ptr || ptr.id !== e.pointerId) return;
-    var wasDrag = ptr.drag, wasEdit = ptr.edit; ptr = null; canvas.classList.remove('drag');
-    if (wasEdit || edit) return;
+    clearTimeout(ptr.lp); clearInterval(nudgeT); clearTimeout(nudgeD);
+    var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long; ptr = null; canvas.classList.remove('drag');
+    if (wasEdit || wasLong || edit) return;
     if (wasDrag || busy || e.type === 'pointercancel') return;
     var o = pick(e); if (o) { activate(o); return; }
     var x = pickExtra(e); if (x) { extraCard(x); return; }
@@ -175757,7 +176096,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
      A layout per environment: S.layouts[env] = { <thing id>: { p, ry, stashed }, extras: [ { uid, kind, p, ry, ref, title } ] }.
      Nothing is copied: a My World thing on display keeps only its ids (board / card / thing) and its title for the label.
      Every thing's close-up camera is stored relative to the thing, so it follows wherever the thing goes. */
-  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
+  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor', tsqPortal: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
   function placeType(o) { return o.style === 'wall' ? 'wall' : (PLACE[o.id] || 'surface'); }
   function m4of(p, ry) { return new THREE.Matrix4().makeRotationY(ry).setPosition(p[0], p[1], p[2]); }
   function localize(o) {
@@ -175840,9 +176179,64 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     if (!edit) return; edit.valid = ok;
     if (edit.ring) { edit.ring.material.color.copy(ok ? GHOST_OK : GHOST_NO); edit.ring.visible = edit.type !== 'wall'; }
     (edit.mats || []).forEach(function (q) { [].concat(q[0].material).forEach(function (mt) { if (mt.emissive) { mt.emissive.copy(ok ? GHOST_OK : GHOST_NO); mt.emissiveIntensity = 0.25; } }); });
-    $('editHint').textContent = ok ? '吸附：' + (edit.snap || '…') + ' · R 旋转 · 方向键微调 · Enter 放好' : (why || '这里放不下');
+    $('editHint').textContent = ok ? '吸附：' + (edit.snap || '…') + ' · 点箭头 / 方向键微调 · Enter 放好' : (why || '这里放不下');
     editBar.querySelector('[data-e="ok"]').disabled = !ok;
   }
+  /* ---- move arrows round the thing being placed (long press, or 🎒 → place): tap one to nudge 5 cm, hold to keep going.
+     Floor and surface things move along the room's axes and stay on whatever surface is under them; wall things move
+     along the wall and up / down. */
+  var arrows = null, arrowHits = [], nudgeT = 0, nudgeD = 0, _ab = new THREE.Box3(), _ac = new THREE.Vector3(), _as = new THREE.Vector3(), downRay = new THREE.Raycaster();
+  function arrowGeo() {
+    var s = new THREE.Shape(); s.moveTo(0, -0.035); s.lineTo(0.14, -0.035); s.lineTo(0.14, -0.08); s.lineTo(0.26, 0); s.lineTo(0.14, 0.08); s.lineTo(0.14, 0.035); s.lineTo(0, 0.035); s.closePath();
+    return new THREE.ShapeGeometry(s);
+  }
+  function makeArrows() {
+    killArrows(); arrows = new THREE.Group(); arrows.name = 'move-arrows'; arrowHits = []; var geo = arrowGeo();
+    for (var i = 0; i < 4; i++) {
+      var m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: i < 2 ? 0x2f6fd6 : 0x2fbf71, transparent: true, opacity: 0.92, depthTest: false, side: THREE.DoubleSide }));
+      m.renderOrder = 20; m.userData.d = new THREE.Vector3(); arrows.add(m); arrowHits.push(m);
+    }
+    scene.add(arrows); placeArrows();
+  }
+  function killArrows() { if (!arrows) return; scene.remove(arrows); arrows.children.forEach(function (m) { m.material.dispose(); }); arrows.children[0].geometry.dispose(); arrows = null; arrowHits = []; }
+  function placeArrows() {
+    if (!edit || !arrows) return; var hb = edit.x ? edit.x.hit : edit.o.hit; if (!hb) return;
+    _ab.setFromObject(hb); _ab.getCenter(_ac); _ab.getSize(_as); var wall = edit.type === 'wall', t = Math.sin(T * 5) * 0.015;
+    arrows.children.forEach(function (m, i) {
+      var d = m.userData.d;
+      if (wall) { var ry = edit.g.rotation.y; if (i < 2) d.set(Math.cos(ry), 0, -Math.sin(ry)).multiplyScalar(i ? -1 : 1); else d.set(0, i === 2 ? 1 : -1, 0); }
+      else d.set(i === 0 ? 1 : i === 1 ? -1 : 0, 0, i === 2 ? -1 : i === 3 ? 1 : 0);
+      var half = Math.abs(d.x) * _as.x / 2 + Math.abs(d.y) * _as.y / 2 + Math.abs(d.z) * _as.z / 2;
+      m.position.copy(_ac).addScaledVector(d, half + 0.12 + t);
+      if (wall) { m.position.y = d.y ? m.position.y : _ac.y; m.rotation.set(0, edit.g.rotation.y, 0); m.rotateZ(Math.atan2(d.y, i < 2 ? (i ? -1 : 1) : 0)); m.position.addScaledVector(new THREE.Vector3(Math.sin(edit.g.rotation.y), 0, Math.cos(edit.g.rotation.y)), 0.05); }
+      else { m.position.y = _ab.min.y + 0.03; m.rotation.set(-Math.PI / 2, 0, Math.atan2(-d.z, d.x)); }
+    });
+  }
+  function arrowAt(e) {
+    if (!arrows) return null; ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+    var h = ray.intersectObjects(arrowHits, false); return h.length ? h[0].object.userData.d.clone() : null;
+  }
+  function nudge(d) {
+    if (!edit) return; var g = edit.g, step = 0.05;
+    g.position.addScaledVector(d, step);
+    if (edit.type === 'wall') g.position.y = clamp(g.position.y, 0.9, 2.3);
+    else {                                                                         // stay on whatever is under it now
+      downRay.set(new THREE.Vector3(g.position.x, g.position.y + 0.5, g.position.z), new THREE.Vector3(0, -1, 0)); g.visible = false;
+      var hs = downRay.intersectObjects([room.group].concat(XS.filter(function (x) { return x !== edit.x; }).map(function (x) { return x.group; })), true); g.visible = true;
+      var ok = hs.filter(function (h) { var m = h.object.material; return h.face && !(m && m.visible === false) && !(m && m.transparent && m.opacity < 0.3) && h.face.normal.clone().transformDirection(h.object.matrixWorld).y > 0.7; })[0];
+      if (ok && (edit.type !== 'floor' || ok.point.y < 0.06 || snapIs(ok, 'pedestal'))) g.position.y = ok.point.y;
+    }
+    g.updateMatrixWorld(true); setValid(!overlaps(null) && inside(g.position.x, g.position.z));
+  }
+  /* ---- the screen stays clean: only ✕ and ≡; ≡ unfolds the rest, which fold away again after a while or when you touch the room */
+  var foldT = 0;
+  function fold(on) {
+    body.classList.toggle('sh-fold', on); var mb = $('menuBtn'); mb.classList.toggle('on', !on); mb.setAttribute('aria-expanded', on ? 'false' : 'true');
+    clearTimeout(foldT); if (!on) foldT = setTimeout(function () { if (!$('settings').hidden || (BP && BP.isOpen && BP.isOpen())) return fold(false); fold(true); }, 12000);
+  }
+  $('menuBtn').addEventListener('click', function (e) { e.stopPropagation(); fold(!body.classList.contains('sh-fold')); });
+  ['top', 'dock'].forEach(function (id) { $(id).addEventListener('pointerdown', function (e) { if (e.target.closest('#sh-menuBtn')) return; if (!body.classList.contains('sh-fold')) fold(false); }); });
+  fold(true);
   function startEdit(t, isNew) {
     if (busy) return;
     closeCard(); $('settings').hidden = true; if (BP && BP.isOpen()) BP.close();
@@ -175850,9 +176244,10 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     if (edit.o) { edit.o.stashed = false; g.visible = true; }
     $('editName').textContent = t.lab ? t.icon + ' ' + t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
     editBar.querySelector('[data-e="rot"]').style.display = edit.type === 'wall' ? 'none' : '';
-    ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + ' · R 旋转 · Enter 放好 · Esc 取消';
+    ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + '，或点周围的箭头微调 · R 旋转 · Enter 放好';
     editBar.hidden = false; body.classList.add('editing'); walkTo = null; refreshHotbar(); AV.carry = true;
     g.updateMatrixWorld(true); if (isNew && overlaps(null)) setValid(false, '先挪到空一点的地方');   // a new thing may appear on top of something
+    makeArrows();
   }
   function inside(x, z) { return inRoom(x, z, -0.45) || (room.areas || []).some(function (a) { return x >= a[0] - 0.3 && x <= a[2] + 0.3 && z >= a[1] - 0.3 && z <= a[3] + 0.3; }); }
   /* does the ghost overlap something else (other things, other instances)? the thing it stands on does not count */
@@ -175896,7 +176291,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   function endEdit(how) {
     if (!edit) return; if (how === 'ok' && !edit.valid) return;
     AV.carry = false; if (how === 'ok') gesture('place', 0.8); else if (how === 'stash') gesture('reach', 0.7);
-    var E = edit, L = layout(); edit = null; ghost(E, false); editBar.hidden = true; body.classList.remove('editing');
+    var E = edit, L = layout(); edit = null; killArrows(); ghost(E, false); editBar.hidden = true; body.classList.remove('editing');
     var g = E.g, pos = [+g.position.x.toFixed(3), +g.position.y.toFixed(3), +g.position.z.toFixed(3)], ry = +g.rotation.y.toFixed(4);
     if (how === 'cancel') {
       if (E.x && E.isNew) {
@@ -175919,7 +176314,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
   }
   editBar.addEventListener('click', function (e) {
     var b = e.target.closest('[data-e]'); if (!b || !edit) return; var a = b.getAttribute('data-e');
-    if (a === 'rot') { edit.g.rotation.y += Math.PI / 2; edit.g.updateMatrixWorld(true); return; }
+    if (a === 'rot' || a === 'rot15') { edit.g.rotation.y += a === 'rot' ? Math.PI / 2 : -Math.PI / 12; edit.g.updateMatrixWorld(true); setValid(!overlaps(null) && inside(edit.g.position.x, edit.g.position.z)); return; }
     endEdit(a === 'ok' ? 'ok' : a);
   });
   window.addEventListener('keydown', function (e) {
@@ -176017,7 +176412,7 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     save(); busy = true; body.classList.add('busy');
     veilFade(1, 0.25).then(function () {
       room.dispose(); window.SpatialRoom.parts.deskStyle(S.deskStyle); room = window.SpatialRoom.build(scene, id);
-      camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
+      camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod); wview();
       placeAll();
       var sp = S.poses && S.poses[room.envId];
       if (sp && isFinite(sp.x) && inArea(sp.x, sp.z)) { P.x = sp.x; P.z = sp.z; P.yaw = sp.yaw; P.pitch = sp.pitch || 0; }
@@ -176036,6 +176431,14 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
       .then(function (i) { if (list[i]) setEnv(list[i].id); });
   }
   $('envBtn').addEventListener('click', pickEnv);
+  /* the view out of the window, per room (views.js): sea, lake, aurora … or the room's own */
+  function pickView() {
+    if (busy || !window.SpatialViews) return;
+    var list = window.SpatialViews.list(), cur = (S.wviews || {})[room.envId] || 'auto';
+    ask('🪟 窗外风景', '只换窗外看到的景色，房间和摆设不变；每个环境分别记住。', list.map(function (v) { return { label: v.icon + '  ' + v.zh + (v.id === cur ? '  ✓' : ''), cls: v.id === cur ? 'pri' : 'ghost' }; }).concat([{ label: '取消', cls: 'ghost' }]))
+      .then(function (i) { var v = list[i]; if (!v) return; if (!S.wviews || typeof S.wviews !== 'object') S.wviews = {}; S.wviews[room.envId] = v.id; save(); wview(); toast(v.icon + ' ' + v.zh); });
+  }
+  $('viewsBtn').addEventListener('click', pickView);
   $('optTime').addEventListener('change', function () { S.tod = this.value; save(); if (room.setTime) room.setTime(S.tod); });
   $('skip').addEventListener('click', function (e) { e.stopPropagation(); skipRunAll(); });
   /* Rings: the medal box on the cabinet or the board on the wall — the same entry, swapped in place */
@@ -176082,6 +176485,8 @@ window.__SPATIAL_HOME_EMBEDDED__ = true;
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;
     if (avatar.visible) { placeFigure(dt); poseNow(dt); }
     XS.forEach(function (x) { if (x.tick) try { x.tick(T); } catch (e) {} });
+    if (window.SpatialViews) window.SpatialViews.tick(T, dt, room);
+    if (edit && arrows) placeArrows();
     room.tick(T); objects.forEach(function (o) { o.idle(T); var s = (o === hot ? 1.035 : 1) * (o.baseScale || 1); o.group.scale.setScalar(o.group.scale.x + (s - o.group.scale.x) * Math.min(1, dt * 12)); });
     SPK(T); renderer.render(cineScene || scene, camera);
     if (dirty && T - lastSave > 2) { lastSave = T; save(); }

@@ -682,9 +682,76 @@
   }
 
   /* the entries this update adds; medal style comes from the settings (box on the cabinet / board on the wall) */
+  /* ================================================================ Times Square portal (Portal World — js/portal-tsq.js)
+     Everyday Magic: an old brick archway against the wall. Its opening is not wall at all: a dusk street of bright screens
+     and a scrolling ticker (today's words and charts from the board) shows through. Tap it to step into Times Square. */
+  function tsqPortal() {
+    var g = new THREE.Group(), v = new VB(2101), BK = '#8a4b3a', BD = '#6f3a2d', ST = '#b9ad98', BR = '#c9a24a', i;
+    var OW = 0.9, OH = 1.75, R = OW / 2;                                 // the opening: OW wide, straight sides OH high, round top
+    v.box(-0.72, 0, -0.14, 0.72, 0.06, 0.14, ST);                          // a stone step
+    for (i = 0; i < 11; i++) { var y = 0.06 + i * 0.16; v.box(-0.72, y, -0.1, -R, y + 0.155, 0.1, i % 2 ? BK : BD, 0.02); v.box(R, y, -0.1, 0.72, y + 0.155, 0.1, i % 2 ? BD : BK, 0.02); }
+    for (i = 0; i <= 12; i++) {                                            // the arch: voussoirs round the top
+      var a = Math.PI * i / 12, cx = Math.cos(a) * (R + 0.11), cy = 0.06 + OH + Math.sin(a) * (R + 0.11);
+      v.cb(cx, cy - 0.07, 0, 0.15, 0.15, 0.21, i === 6 ? ST : (i % 2 ? BK : BD), 0.02);
+    }
+    v.box(-0.74, 0.06 + OH + R + 0.18, -0.12, 0.74, 0.06 + OH + R + 0.26, 0.12, ST);
+    g.add(v.mesh());
+    /* the view through: a canvas painted like a dusk street of screens; redrawn a few times a second while in sight */
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 512; var c2 = cv.getContext('2d');
+    var tex = new THREE.CanvasTexture(cv); if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace; else tex.encoding = THREE.sRGBEncoding;
+    var sh = new THREE.Shape(); sh.moveTo(-R, 0); sh.lineTo(R, 0); sh.lineTo(R, OH); sh.absarc(0, OH, R, 0, Math.PI, false); sh.lineTo(-R, 0);
+    var geo = new THREE.ShapeGeometry(sh, 24), pos = geo.attributes.position, uv = geo.attributes.uv, top = OH + R;
+    for (i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) + R) / OW, pos.getY(i) / top);
+    var mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }), view = new THREE.Mesh(geo, mat); view.position.set(0, 0.06, -0.02); g.add(view);
+    var veil = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xbfe8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    veil.position.set(0, 0.06, 0.005); g.add(veil);
+    var glow = new THREE.PointLight(0x9fc8ff, 0.35, 2.6); glow.position.set(0, 1.2, 0.5); g.add(glow);
+    /* the screens, from back (high, small) to front; colours shift slowly */
+    var B = [], words = 'TIMES SQUARE';
+    for (i = 0; i < 9; i++) B.push({ x: (i % 3) * 86 + (i > 5 ? 6 : 0), w: 70 + (i % 2) * 20, h: 160 + ((i * 53) % 140), d: 0.4 + (i % 3) * 0.3 });
+    var SCR = [[18, 70, 90, 64, '#ff3d6e'], [150, 40, 92, 120, '#2fd2ff'], [10, 170, 66, 92, '#ffd23f'], [176, 196, 66, 66, '#7cff6b'], [92, 140, 70, 46, '#b36bff'], [40, 290, 176, 60, '#ff8a3d']];
+    function words0() {
+      var s = root.SpatialTSQ && root.SpatialTSQ.snapshot ? root.SpatialTSQ.snapshot() : null, a = [];
+      if (s) { if (s.words && s.words.cur) a.push(s.words.cur); (s.words && s.words.next || []).slice(0, 4).forEach(function (w) { a.push(w); }); s.charts.forEach(function (c) { a.push(c.name + ': ' + c.title); }); }
+      words = (a.length ? a.join('  ·  ') : 'TIMES SQUARE  ·  时代广场') + '  ·  ';
+    }
+    var lastPaint = -1, lastWords = -99, kk = 0;
+    function paint(t) {
+      var gr = c2.createLinearGradient(0, 0, 0, 512); gr.addColorStop(0, '#1b1f4a'); gr.addColorStop(0.55, '#4a2f6a'); gr.addColorStop(1, '#0c0d16');
+      c2.fillStyle = gr; c2.fillRect(0, 0, 256, 512);
+      B.forEach(function (b, j) { c2.fillStyle = 'rgba(10,12,22,' + (0.55 + b.d * 0.4) + ')'; c2.fillRect(b.x, 512 - 120 - b.h - (2 - (j % 3)) * 30, b.w, b.h + 200); });
+      SCR.forEach(function (s, j) {
+        var k = 0.65 + 0.35 * Math.sin(t * (0.7 + j * 0.23) + j * 2); c2.globalAlpha = k; c2.fillStyle = s[4]; c2.fillRect(s[0], s[1], s[2], s[3]);
+        c2.globalAlpha = 0.9; c2.fillStyle = '#fff'; c2.fillRect(s[0] + 6, s[1] + 8 + ((t * 18 + j * 20) % Math.max(8, s[3] - 16)), s[2] - 12, 3); c2.globalAlpha = 1;
+      });
+      for (var y = 120; y < 400; y += 9) for (var x = 4; x < 252; x += 11) if (((x * 7 + y * 13) % 29) < 6) { c2.fillStyle = 'rgba(255,214,140,0.55)'; c2.fillRect(x, y, 3, 4); }
+      c2.fillStyle = '#05060a'; c2.fillRect(0, 418, 256, 30);                        // the ticker band
+      c2.font = 'bold 20px -apple-system, Helvetica, Arial, sans-serif'; c2.fillStyle = '#ffcf4a'; c2.textBaseline = 'middle';
+      var tw = c2.measureText(words).width || 200, off = -((t * 46) % tw);
+      for (var q = off; q < 256; q += tw) c2.fillText(words, q, 434);
+      c2.fillStyle = '#2a2b33'; c2.fillRect(0, 448, 256, 64); c2.fillStyle = '#e8e2c8'; for (var s2 = 0; s2 < 256; s2 += 24) c2.fillRect(s2, 478, 14, 5);   // the street
+      tex.needsUpdate = true;
+    }
+    words0(); paint(0);
+    var last = 0;
+    return {
+      id: 'tsqPortal', name: '时代广场传送门', en: 'Times Square Portal', icon: '🌆', feature: 'portal', anchor: 'floor.portal', group: g,
+      hit: hitBox(g, -0.74, 0, -0.16, 0.74, 2.45, 0.2), label: [0, 2.5, 0],
+      focus: { pos: [2.1, 1.45, 0.75], look: [2.26, 1.25, 2.4] },
+      panel: function () { return new Promise(function (res) { if (root.SpatialTSQ) root.SpatialTSQ.open(res); else res(null); }); },
+      set: function (k) { kk = k; veil.material.opacity = 0.55 * Math.sin(Math.PI * Math.min(1, k)) + 0.25 * k; glow.intensity = 0.35 + 1.2 * k; },
+      idle: function (t) {
+        var dt = Math.min(0.1, Math.max(0, t - last)); last = t;
+        if (t - lastWords > 30) { lastWords = t; words0(); }
+        if (t - lastPaint > 0.12) { lastPaint = t; paint(t); }
+        if (kk === 0) veil.material.opacity = 0.06 + 0.05 * Math.sin(t * 1.6);
+      }
+    };
+  }
+
   function make(opts) {
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
-    return [backpack(), gramophone(), filmProjector(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
+    return [backpack(), gramophone(), filmProjector(), tsqPortal(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
   root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
 })(window);

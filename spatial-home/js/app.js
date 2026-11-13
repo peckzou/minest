@@ -9,7 +9,7 @@
     '<canvas id="sh-gl" tabindex="0" aria-label="Santorini Atelier"></canvas><div id="sh-labels" aria-hidden="true"></div>' +
     '<div id="sh-top"><div class="sh-brand"><strong>Minest</strong><span id="sh-brandName">Santorini Atelier</span></div>' +
     '<div class="sh-seg" id="sh-modeSeg" role="tablist" aria-label="模式"><button type="button" data-mode="explore" role="tab">Explore</button><button type="button" data-mode="desk" role="tab">Desk</button></div>' +
-    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button>' +
+    '<button type="button" class="sh-ic" id="sh-packBtn" title="背包 · 布置">🎒</button><button type="button" class="sh-ic" id="sh-envBtn" title="切换环境">🌐</button><button type="button" class="sh-ic" id="sh-viewsBtn" title="窗外风景">🪟</button><button type="button" class="sh-ic" id="sh-sitBtn" title="坐下 / 起立（C）">🪑</button><button type="button" class="sh-ic" id="sh-viewBtn" title="第一 / 第三人称">👤</button><button type="button" class="sh-ic" id="sh-setBtn" title="设置">⚙</button><button type="button" class="sh-ic" id="sh-menuBtn" title="显示 / 收起按钮" aria-expanded="false">≡</button>' +
     (EMBED ? '<button type="button" class="sh-ic" id="sh-exitBtn" title="进入完整的 Minest">✕</button>' : '') + '</div>' +
     '<button type="button" id="sh-skip" hidden>跳过动画 ›</button><div id="sh-dock" role="toolbar" aria-label="功能入口"></div><div id="sh-hint"></div><div id="sh-stick" aria-hidden="true"><i></i></div>' +
     '<div id="sh-settings" hidden><h3>Spatial Home</h3>' +
@@ -22,7 +22,7 @@
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
     '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
-    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot">⟲ 旋转</button><button type="button" data-e="stash">🎒 收回</button><button type="button" data-e="cancel">取消</button><button type="button" data-e="ok" class="pri">✓ 放好了</button></div></div>' +
+    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot">⟲ 90°</button><button type="button" data-e="rot15">↻ 15°</button><button type="button" data-e="stash">🎒 收回</button><button type="button" data-e="cancel">取消</button><button type="button" data-e="ok" class="pri">✓ 放好了</button></div></div>' +
     '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div>';
 
   function mount() {
@@ -35,7 +35,7 @@
   var canvas = $('gl');
 
   /* ------------------------------------------------------------ settings (kept) */
-  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto' };
+  var S = { def: 'last', mode: 'explore', view: '1p', motion: null, preload: true, boot: null, pose: null, desk: null, medal: 'box', deskStyle: 'classic', audio: null, env: 'santorini', poses: {}, layouts: {}, tod: 'auto', wviews: {} };
   try { var raw = JSON.parse(localStorage.getItem(KEY) || 'null'); if (raw && typeof raw === 'object') for (var k0 in S) if (raw[k0] !== undefined) S[k0] = raw[k0]; } catch (e) {}
   if (S.motion === null) S.motion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   /* EC–6 Study Studio (2026-11-13): it becomes the current room once; the 🌐 switcher still offers every other room */
@@ -60,6 +60,8 @@
   var room = window.SpatialRoom.build(scene, S.env), objects = window.SpatialObjects.build(room, scene, { medal: S.medal });
   var avatar = room.avatar(); avatar.visible = false; scene.add(avatar);
   camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
+  function wview() { if (window.SpatialViews) window.SpatialViews.apply(scene, room, (S.wviews || {})[room.envId] || 'auto'); }
+  wview();
   if (S.poses && S.poses[room.envId]) S.pose = S.poses[room.envId];
   var EYE = 1.5, RAD = 0.24;
 
@@ -294,7 +296,7 @@
   var hint = $('hint'), hintT = 0;
   function showHint() {
     var touch = body.classList.contains('touch');
-    hint.textContent = mode === 'desk' ? '拖动看向两侧 · 点物件或下方入口进入' : (touch ? '摇杆行走 · 拖动环顾 · 点物件进入' : '拖动环顾 · WASD 行走 · 点地面走过去 · 点物件进入');
+    hint.textContent = mode === 'desk' ? '拖动看向两侧 · 点物件或下方入口进入' : (touch ? '摇杆行走 · 拖动环顾 · 点物件进入 · 长按物件移动' : '拖动环顾 · WASD 行走 · 点物件进入 · 长按物件移动');
     hint.classList.toggle('hide', mode === 'desk'); clearTimeout(hintT);
     if (mode !== 'desk') hintT = setTimeout(function () { hint.classList.add('hide'); }, 7000);
   }
@@ -414,15 +416,29 @@
   canvas.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'touch' && !body.classList.contains('touch')) { body.classList.add('touch'); showHint(); }
     if (busy) { skipAll(); return; }
-    if (edit) { ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {} editMove(e); return; }
+    if (!body.classList.contains('sh-fold')) fold(true);                         // touching the room folds the buttons away
+    if (edit) {
+      var ad = arrowAt(e);                                                         // a move arrow: nudge, and keep nudging while held
+      if (ad) { ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true, arrow: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
+        nudge(ad); clearInterval(nudgeT); clearTimeout(nudgeD); nudgeD = setTimeout(function () { nudgeT = setInterval(function () { nudge(ad); }, 90); }, 380); return; }
+      ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {} editMove(e); return;
+    }
     ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
+    /* long press on a thing: pick it up to move it (then drag it, or tap the arrows round it) */
+    var lpE = { clientX: e.clientX, clientY: e.clientY }, mine = ptr;
+    ptr.lp = setTimeout(function () {
+      if (ptr !== mine || ptr.drag || edit || busy || mode !== 'explore') return;
+      var o = pick(lpE) || pickExtra(lpE); if (!o) return;
+      ptr.long = true; try { if (navigator.vibrate) navigator.vibrate(12); } catch (er) {}
+      startEdit(o); toast('拖动它，或点周围的箭头微调 · 放好后点 ✓');
+    }, 520);
   });
   canvas.addEventListener('pointermove', function (e) {
     if (busy) return;
-    if (edit) { if ((ptr && ptr.id === e.pointerId) || e.pointerType === 'mouse') editMove(e); return; }
+    if (edit) { if (ptr && ptr.arrow) return; if ((ptr && ptr.id === e.pointerId) || e.pointerType === 'mouse') editMove(e); return; }
     if (!ptr || ptr.id !== e.pointerId) { if (e.pointerType === 'mouse') setHot(pick(e)); return; }
     var dx = e.clientX - ptr.x, dy = e.clientY - ptr.y; ptr.x = e.clientX; ptr.y = e.clientY;
-    if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; canvas.classList.add('drag'); walkTo = null; }
+    if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; clearTimeout(ptr.lp); canvas.classList.add('drag'); walkTo = null; }
     if (!ptr.drag) return;
     var s = 0.0042 * (camera.fov / 60);
     if (mode === 'desk') { DK.yaw = clamp(DK.yaw + dx * s, -2.2, 2.2); DK.pitch = clamp(DK.pitch + dy * s, -0.45, 0.75); }
@@ -431,8 +447,9 @@
   });
   function up(e) {
     if (!ptr || ptr.id !== e.pointerId) return;
-    var wasDrag = ptr.drag, wasEdit = ptr.edit; ptr = null; canvas.classList.remove('drag');
-    if (wasEdit || edit) return;
+    clearTimeout(ptr.lp); clearInterval(nudgeT); clearTimeout(nudgeD);
+    var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long; ptr = null; canvas.classList.remove('drag');
+    if (wasEdit || wasLong || edit) return;
     if (wasDrag || busy || e.type === 'pointercancel') return;
     var o = pick(e); if (o) { activate(o); return; }
     var x = pickExtra(e); if (x) { extraCard(x); return; }
@@ -528,7 +545,7 @@
      A layout per environment: S.layouts[env] = { <thing id>: { p, ry, stashed }, extras: [ { uid, kind, p, ry, ref, title } ] }.
      Nothing is copied: a My World thing on display keeps only its ids (board / card / thing) and its title for the label.
      Every thing's close-up camera is stored relative to the thing, so it follows wherever the thing goes. */
-  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
+  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor', tsqPortal: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
   function placeType(o) { return o.style === 'wall' ? 'wall' : (PLACE[o.id] || 'surface'); }
   function m4of(p, ry) { return new THREE.Matrix4().makeRotationY(ry).setPosition(p[0], p[1], p[2]); }
   function localize(o) {
@@ -611,9 +628,64 @@
     if (!edit) return; edit.valid = ok;
     if (edit.ring) { edit.ring.material.color.copy(ok ? GHOST_OK : GHOST_NO); edit.ring.visible = edit.type !== 'wall'; }
     (edit.mats || []).forEach(function (q) { [].concat(q[0].material).forEach(function (mt) { if (mt.emissive) { mt.emissive.copy(ok ? GHOST_OK : GHOST_NO); mt.emissiveIntensity = 0.25; } }); });
-    $('editHint').textContent = ok ? '吸附：' + (edit.snap || '…') + ' · R 旋转 · 方向键微调 · Enter 放好' : (why || '这里放不下');
+    $('editHint').textContent = ok ? '吸附：' + (edit.snap || '…') + ' · 点箭头 / 方向键微调 · Enter 放好' : (why || '这里放不下');
     editBar.querySelector('[data-e="ok"]').disabled = !ok;
   }
+  /* ---- move arrows round the thing being placed (long press, or 🎒 → place): tap one to nudge 5 cm, hold to keep going.
+     Floor and surface things move along the room's axes and stay on whatever surface is under them; wall things move
+     along the wall and up / down. */
+  var arrows = null, arrowHits = [], nudgeT = 0, nudgeD = 0, _ab = new THREE.Box3(), _ac = new THREE.Vector3(), _as = new THREE.Vector3(), downRay = new THREE.Raycaster();
+  function arrowGeo() {
+    var s = new THREE.Shape(); s.moveTo(0, -0.035); s.lineTo(0.14, -0.035); s.lineTo(0.14, -0.08); s.lineTo(0.26, 0); s.lineTo(0.14, 0.08); s.lineTo(0.14, 0.035); s.lineTo(0, 0.035); s.closePath();
+    return new THREE.ShapeGeometry(s);
+  }
+  function makeArrows() {
+    killArrows(); arrows = new THREE.Group(); arrows.name = 'move-arrows'; arrowHits = []; var geo = arrowGeo();
+    for (var i = 0; i < 4; i++) {
+      var m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: i < 2 ? 0x2f6fd6 : 0x2fbf71, transparent: true, opacity: 0.92, depthTest: false, side: THREE.DoubleSide }));
+      m.renderOrder = 20; m.userData.d = new THREE.Vector3(); arrows.add(m); arrowHits.push(m);
+    }
+    scene.add(arrows); placeArrows();
+  }
+  function killArrows() { if (!arrows) return; scene.remove(arrows); arrows.children.forEach(function (m) { m.material.dispose(); }); arrows.children[0].geometry.dispose(); arrows = null; arrowHits = []; }
+  function placeArrows() {
+    if (!edit || !arrows) return; var hb = edit.x ? edit.x.hit : edit.o.hit; if (!hb) return;
+    _ab.setFromObject(hb); _ab.getCenter(_ac); _ab.getSize(_as); var wall = edit.type === 'wall', t = Math.sin(T * 5) * 0.015;
+    arrows.children.forEach(function (m, i) {
+      var d = m.userData.d;
+      if (wall) { var ry = edit.g.rotation.y; if (i < 2) d.set(Math.cos(ry), 0, -Math.sin(ry)).multiplyScalar(i ? -1 : 1); else d.set(0, i === 2 ? 1 : -1, 0); }
+      else d.set(i === 0 ? 1 : i === 1 ? -1 : 0, 0, i === 2 ? -1 : i === 3 ? 1 : 0);
+      var half = Math.abs(d.x) * _as.x / 2 + Math.abs(d.y) * _as.y / 2 + Math.abs(d.z) * _as.z / 2;
+      m.position.copy(_ac).addScaledVector(d, half + 0.12 + t);
+      if (wall) { m.position.y = d.y ? m.position.y : _ac.y; m.rotation.set(0, edit.g.rotation.y, 0); m.rotateZ(Math.atan2(d.y, i < 2 ? (i ? -1 : 1) : 0)); m.position.addScaledVector(new THREE.Vector3(Math.sin(edit.g.rotation.y), 0, Math.cos(edit.g.rotation.y)), 0.05); }
+      else { m.position.y = _ab.min.y + 0.03; m.rotation.set(-Math.PI / 2, 0, Math.atan2(-d.z, d.x)); }
+    });
+  }
+  function arrowAt(e) {
+    if (!arrows) return null; ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+    var h = ray.intersectObjects(arrowHits, false); return h.length ? h[0].object.userData.d.clone() : null;
+  }
+  function nudge(d) {
+    if (!edit) return; var g = edit.g, step = 0.05;
+    g.position.addScaledVector(d, step);
+    if (edit.type === 'wall') g.position.y = clamp(g.position.y, 0.9, 2.3);
+    else {                                                                         // stay on whatever is under it now
+      downRay.set(new THREE.Vector3(g.position.x, g.position.y + 0.5, g.position.z), new THREE.Vector3(0, -1, 0)); g.visible = false;
+      var hs = downRay.intersectObjects([room.group].concat(XS.filter(function (x) { return x !== edit.x; }).map(function (x) { return x.group; })), true); g.visible = true;
+      var ok = hs.filter(function (h) { var m = h.object.material; return h.face && !(m && m.visible === false) && !(m && m.transparent && m.opacity < 0.3) && h.face.normal.clone().transformDirection(h.object.matrixWorld).y > 0.7; })[0];
+      if (ok && (edit.type !== 'floor' || ok.point.y < 0.06 || snapIs(ok, 'pedestal'))) g.position.y = ok.point.y;
+    }
+    g.updateMatrixWorld(true); setValid(!overlaps(null) && inside(g.position.x, g.position.z));
+  }
+  /* ---- the screen stays clean: only ✕ and ≡; ≡ unfolds the rest, which fold away again after a while or when you touch the room */
+  var foldT = 0;
+  function fold(on) {
+    body.classList.toggle('sh-fold', on); var mb = $('menuBtn'); mb.classList.toggle('on', !on); mb.setAttribute('aria-expanded', on ? 'false' : 'true');
+    clearTimeout(foldT); if (!on) foldT = setTimeout(function () { if (!$('settings').hidden || (BP && BP.isOpen && BP.isOpen())) return fold(false); fold(true); }, 12000);
+  }
+  $('menuBtn').addEventListener('click', function (e) { e.stopPropagation(); fold(!body.classList.contains('sh-fold')); });
+  ['top', 'dock'].forEach(function (id) { $(id).addEventListener('pointerdown', function (e) { if (e.target.closest('#sh-menuBtn')) return; if (!body.classList.contains('sh-fold')) fold(false); }); });
+  fold(true);
   function startEdit(t, isNew) {
     if (busy) return;
     closeCard(); $('settings').hidden = true; if (BP && BP.isOpen()) BP.close();
@@ -621,9 +693,10 @@
     if (edit.o) { edit.o.stashed = false; g.visible = true; }
     $('editName').textContent = t.lab ? t.icon + ' ' + t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
     editBar.querySelector('[data-e="rot"]').style.display = edit.type === 'wall' ? 'none' : '';
-    ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + ' · R 旋转 · Enter 放好 · Esc 取消';
+    ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + '，或点周围的箭头微调 · R 旋转 · Enter 放好';
     editBar.hidden = false; body.classList.add('editing'); walkTo = null; refreshHotbar(); AV.carry = true;
     g.updateMatrixWorld(true); if (isNew && overlaps(null)) setValid(false, '先挪到空一点的地方');   // a new thing may appear on top of something
+    makeArrows();
   }
   function inside(x, z) { return inRoom(x, z, -0.45) || (room.areas || []).some(function (a) { return x >= a[0] - 0.3 && x <= a[2] + 0.3 && z >= a[1] - 0.3 && z <= a[3] + 0.3; }); }
   /* does the ghost overlap something else (other things, other instances)? the thing it stands on does not count */
@@ -667,7 +740,7 @@
   function endEdit(how) {
     if (!edit) return; if (how === 'ok' && !edit.valid) return;
     AV.carry = false; if (how === 'ok') gesture('place', 0.8); else if (how === 'stash') gesture('reach', 0.7);
-    var E = edit, L = layout(); edit = null; ghost(E, false); editBar.hidden = true; body.classList.remove('editing');
+    var E = edit, L = layout(); edit = null; killArrows(); ghost(E, false); editBar.hidden = true; body.classList.remove('editing');
     var g = E.g, pos = [+g.position.x.toFixed(3), +g.position.y.toFixed(3), +g.position.z.toFixed(3)], ry = +g.rotation.y.toFixed(4);
     if (how === 'cancel') {
       if (E.x && E.isNew) {
@@ -690,7 +763,7 @@
   }
   editBar.addEventListener('click', function (e) {
     var b = e.target.closest('[data-e]'); if (!b || !edit) return; var a = b.getAttribute('data-e');
-    if (a === 'rot') { edit.g.rotation.y += Math.PI / 2; edit.g.updateMatrixWorld(true); return; }
+    if (a === 'rot' || a === 'rot15') { edit.g.rotation.y += a === 'rot' ? Math.PI / 2 : -Math.PI / 12; edit.g.updateMatrixWorld(true); setValid(!overlaps(null) && inside(edit.g.position.x, edit.g.position.z)); return; }
     endEdit(a === 'ok' ? 'ok' : a);
   });
   window.addEventListener('keydown', function (e) {
@@ -788,7 +861,7 @@
     save(); busy = true; body.classList.add('busy');
     veilFade(1, 0.25).then(function () {
       room.dispose(); window.SpatialRoom.parts.deskStyle(S.deskStyle); room = window.SpatialRoom.build(scene, id);
-      camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
+      camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod); wview();
       placeAll();
       var sp = S.poses && S.poses[room.envId];
       if (sp && isFinite(sp.x) && inArea(sp.x, sp.z)) { P.x = sp.x; P.z = sp.z; P.yaw = sp.yaw; P.pitch = sp.pitch || 0; }
@@ -807,6 +880,14 @@
       .then(function (i) { if (list[i]) setEnv(list[i].id); });
   }
   $('envBtn').addEventListener('click', pickEnv);
+  /* the view out of the window, per room (views.js): sea, lake, aurora … or the room's own */
+  function pickView() {
+    if (busy || !window.SpatialViews) return;
+    var list = window.SpatialViews.list(), cur = (S.wviews || {})[room.envId] || 'auto';
+    ask('🪟 窗外风景', '只换窗外看到的景色，房间和摆设不变；每个环境分别记住。', list.map(function (v) { return { label: v.icon + '  ' + v.zh + (v.id === cur ? '  ✓' : ''), cls: v.id === cur ? 'pri' : 'ghost' }; }).concat([{ label: '取消', cls: 'ghost' }]))
+      .then(function (i) { var v = list[i]; if (!v) return; if (!S.wviews || typeof S.wviews !== 'object') S.wviews = {}; S.wviews[room.envId] = v.id; save(); wview(); toast(v.icon + ' ' + v.zh); });
+  }
+  $('viewsBtn').addEventListener('click', pickView);
   $('optTime').addEventListener('change', function () { S.tod = this.value; save(); if (room.setTime) room.setTime(S.tod); });
   $('skip').addEventListener('click', function (e) { e.stopPropagation(); skipRunAll(); });
   /* Rings: the medal box on the cabinet or the board on the wall — the same entry, swapped in place */
@@ -853,6 +934,8 @@
     avatar.visible = mode === 'explore' && S.view === '3p' && boom > 0.7;
     if (avatar.visible) { placeFigure(dt); poseNow(dt); }
     XS.forEach(function (x) { if (x.tick) try { x.tick(T); } catch (e) {} });
+    if (window.SpatialViews) window.SpatialViews.tick(T, dt, room);
+    if (edit && arrows) placeArrows();
     room.tick(T); objects.forEach(function (o) { o.idle(T); var s = (o === hot ? 1.035 : 1) * (o.baseScale || 1); o.group.scale.setScalar(o.group.scale.x + (s - o.group.scale.x) * Math.min(1, dt * 12)); });
     SPK(T); renderer.render(cineScene || scene, camera);
     if (dirty && T - lastSave > 2) { lastSave = T; save(); }

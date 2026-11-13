@@ -88,6 +88,7 @@
 
     /* the window's sky (the Study draws it as a plain plane behind the glass) */
     var sky = null; built.group.traverse(function (m) { if (!sky && m.isMesh && m.material && m.material.isMeshBasicMaterial && m.material.color && m.material.color.getHex() === 0xe7f0ff) sky = m; });
+    var sheer = null; built.group.traverse(function (m) { if (!sheer && m.isMesh && m.material && m.material.isMeshBasicMaterial && m.material.transparent && Math.abs(m.material.opacity - 0.45) < 0.01 && m.material.color.getHex() === 0xffffff) sheer = m; });
     var base = (built.lights || []).map(function (l) { return l.intensity; });
     var mode = 'auto', lastApply = -99;
     function c3(a, b, k) { return new THREE.Color(a).lerp(new THREE.Color(b), k); }
@@ -120,7 +121,8 @@
       'wall.right': { p: [X1 - SHD - 0.005, 1.65, 1.8], ry: -PI / 2 },
       'floor.pack': { p: [-1.45, 0, W.desk.z + 0.1], ry: 0.45 },             // the backpack, on the floor left of the desk
       'floor.gramo': { p: [X1 - SHD - 0.4, 0, -0.35], ry: -PI / 2 },        // the gramophone in front of the east shelves
-      'floor.film': { p: [-1.7, 0, 0.95], ry: 0 }                           // the film projector and its screen, on the open floor by the easel
+      'floor.film': { p: [-1.7, 0, 0.95], ry: 0 },                          // the film projector and its screen, on the open floor by the easel
+      'floor.portal': { p: [X0 + SHD + 0.2, 0, 2.3], ry: PI / 2 }          // the Times Square archway, west side by the reading corner
     };
     /* what you cannot walk through: the Study's own colliders that reach the floor, and the pieces added here */
     var solids = (built.colliders || []).filter(function (c) { return c.min.y < 1 && c.max.y > 0.2; }).map(function (c) { return [c.min.x, c.min.z, c.max.x, c.max.z]; });
@@ -128,7 +130,7 @@
 
     return {
       id: 'study', name: 'EC–6 Study Studio', group: built.group, holder: holder, far: 60, size: { W: X1, D: Z1, H: H },
-      anchors: anchors, avatar: PT.avatar,
+      anchors: anchors, avatar: PT.avatar, backdrop: [sky, sheer].filter(Boolean),   // the plain sky behind the glass and the sheer: hidden (sheer drawn back) when a window view is chosen (views.js)
       start: { pos: [0.7, 1.5, 2.2], yaw: 0.32, pitch: -0.08 },
       /* the desk chair, for the resident: it sits facing the desk and gets in and out from the east side */
       seat: { x: 0, z: W.desk.z - 0.84, yaw: 0, approach: [0.62, W.desk.z - 0.78], y: 0.46 },
