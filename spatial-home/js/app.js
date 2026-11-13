@@ -225,12 +225,12 @@
         var av = B.available(feature);
         if (!av.length) {
           var why = needs && B.state() !== 'ready' ? 'Minest 应用没有载入成功（' + esc(B.appUrl()) + '）。' : F.missing;
-          return ask(o.icon + ' ' + o.name + ' · 还没有接上', why, [{ label: '回到房间', cls: 'pri' }]).then(function () { return null; });
+          return ask(o.name + ' · 还没有接上', why, [{ label: '回到房间', cls: 'pri' }]).then(function () { return null; });
         }
         if (want) { var w0 = av.filter(function (t) { return t.id === want; })[0]; if (w0) return w0; }
         if (av.length === 1) return av[0];
         av = av.filter(B.isLive).concat(av.filter(function (t) { return !B.isLive(t); }));   // the one you left open comes first
-        return ask(o.icon + ' ' + o.name, '', av.map(function (t, i) { return { label: (B.isLive(t) ? '继续 · ' : '') + t.label, cls: i ? '' : 'pri' }; }).concat([{ label: '取消', cls: 'ghost' }])).then(function (i) { return av[i] || null; });
+        return ask(o.name, '', av.map(function (t, i) { return { label: (B.isLive(t) ? '继续 · ' : '') + t.label, cls: i ? '' : 'pri' }; }).concat([{ label: '取消', cls: 'ghost' }])).then(function (i) { return av[i] || null; });
       })
       .then(function (t) {
         if (!t) return comeBack(o).then(function () { if (after === 'board') { var bo = objects.filter(function (x) { return x.id === 'board'; })[0]; if (bo) activate(bo); } });
@@ -302,10 +302,15 @@
   }
 
   /* ------------------------------------------------------------ labels, dock */
+  /* block-style pixel icons (pixicons.js) instead of emoji, for the things and the buttons */
+  var PX = window.SpatialPixIcons;
+  function ico(o) { return PX && PX.has(o.id) ? PX.svg(o.id) : '<span class="em">' + o.icon + '</span>'; }
+  [['packBtn', 'pack'], ['envBtn', 'env'], ['viewsBtn', 'views'], ['sitBtn', 'sit'], ['viewBtn', 'view'], ['setBtn', 'set'], ['menuBtn', 'menu'], ['exitBtn', 'exit']].forEach(function (q) {
+    var b = $(q[0]); if (b && PX && PX.has(q[1])) b.innerHTML = PX.svg(q[1]); });
   var labels = $('labels'), dock = $('dock');
   objects.forEach(function (o) {
-    var l = document.createElement('div'); l.className = 'sh-lab'; l.innerHTML = '<i>' + o.icon + '</i>' + o.name; l.onclick = function () { activate(o); }; labels.appendChild(l); o.lab = l;
-    var b = document.createElement('button'); b.type = 'button'; b.innerHTML = '<b>' + o.icon + '</b><span>' + o.name + '</span>'; b.title = o.en; b.onclick = function () { activate(o); }; dock.appendChild(b); o.chip = b;
+    var l = document.createElement('div'); l.className = 'sh-lab'; l.innerHTML = '<i>' + ico(o) + '</i>' + o.name; l.onclick = function () { activate(o); }; labels.appendChild(l); o.lab = l;
+    var b = document.createElement('button'); b.type = 'button'; b.innerHTML = '<b>' + ico(o) + '</b><span>' + o.name + '</span>'; b.title = o.en; b.onclick = function () { activate(o); }; dock.appendChild(b); o.chip = b;
   });
   function placeLabels() {
     var w = window.innerWidth, h = window.innerHeight;
@@ -691,7 +696,7 @@
     closeCard(); $('settings').hidden = true; if (BP && BP.isOpen()) BP.close();
     var g = t.group; edit = { o: t.lab ? t : null, x: t.lab ? null : t, g: g, p0: g.position.clone(), ry0: g.rotation.y, isNew: !!isNew, wasStashed: !!t.stashed, type: t.lab ? placeType(t) : t.place, valid: true, snap: '' };
     if (edit.o) { edit.o.stashed = false; g.visible = true; }
-    $('editName').textContent = t.lab ? t.icon + ' ' + t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
+    $('editName').textContent = t.lab ? t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
     editBar.querySelector('[data-e="rot"]').style.display = edit.type === 'wall' ? 'none' : '';
     ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + '，或点周围的箭头微调 · R 旋转 · Enter 放好';
     editBar.hidden = false; body.classList.add('editing'); walkTo = null; refreshHotbar(); AV.carry = true;
@@ -751,7 +756,7 @@
       g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); return;
     }
     if (E.o) {
-      if (how === 'stash') { L[E.o.id] = { p: pos, ry: ry, stashed: true }; E.o.stashed = true; g.visible = false; toast(E.o.icon + ' ' + E.o.name + ' 已收回背包 · 功能仍可从下方入口进入'); }
+      if (how === 'stash') { L[E.o.id] = { p: pos, ry: ry, stashed: true }; E.o.stashed = true; g.visible = false; toast(E.o.name + ' 已收回背包 · 功能仍可从下方入口进入'); }
       else { L[E.o.id] = { p: pos, ry: ry }; E.o.stashed = false; }
       E.o.chip.classList.toggle('stashed', E.o.stashed); settle(E.o); rebuildHits();
     } else {
@@ -898,8 +903,8 @@
     scene.remove(old.group); var a = room.anchors[nu.anchor]; nu.group.position.set(a.p[0], a.p[1], a.p[2]); nu.group.rotation.y = a.ry;
     nu.hit.userData.obj = nu; nu.k = 0; nu.set(0); scene.add(nu.group); nu.group.updateMatrixWorld(true);
     nu.labelAt = new THREE.Vector3(nu.label[0], nu.label[1], nu.label[2]).applyMatrix4(nu.group.matrixWorld); nu.centre = new THREE.Box3().setFromObject(nu.hit).getCenter(new THREE.Vector3());
-    nu.lab = old.lab; nu.chip = old.chip; nu.lab.innerHTML = '<i>' + nu.icon + '</i>' + nu.name; nu.lab.onclick = function () { activate(nu); };
-    nu.chip.innerHTML = '<b>' + nu.icon + '</b><span>' + nu.name + '</span>'; nu.chip.onclick = function () { activate(nu); };
+    nu.lab = old.lab; nu.chip = old.chip; nu.lab.innerHTML = '<i>' + ico(nu) + '</i>' + nu.name; nu.lab.onclick = function () { activate(nu); };
+    nu.chip.innerHTML = '<b>' + ico(nu) + '</b><span>' + nu.name + '</span>'; nu.chip.onclick = function () { activate(nu); };
     objects[i] = nu; placeAll();
   }
   $('resetLayout').addEventListener('click', function () { if (busy || edit) return; saveLayout(room.envId, {}); placeAll(); refreshHotbar(); toast('已恢复 ' + room.name + ' 的默认摆放 · 收回的作品回到背包'); });

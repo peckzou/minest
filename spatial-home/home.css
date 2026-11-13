@@ -132,3 +132,38 @@ html.mf-book #mn-sh #sh-hint { left: 75%; bottom: calc(60px + env(safe-area-inse
 html.mf-book #mn-sh #sh-card, html.mf-book #mn-sh #sh-edit, html.mf-book #mn-sh .sh-holoed { left: 75% !important; width: min(420px, 46vw) !important; }
 html.mf-book #mn-sh #sh-labels { right: 50%; }
 html.mf-top #mn-sh #sh-top, html.mf-book #mn-sh #sh-top { z-index: 7; }
+
+/* ───────── 2026-11-13 block style (the voxel room's own look): stone buttons with bevels, inventory slots, pixel icons,
+   see-through panels — nothing solid covering the room ───────── */
+#mn-sh { --mc-ink: #fff; --mc-shadow: #3f3f3f; }
+#mn-sh svg.px { width: 24px; height: 24px; image-rendering: pixelated; display: block; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.35)); }
+#mn-sh .sh-ic { border-radius: 0 !important; border: 2px solid #111 !important; background: rgba(110, 110, 118, .55) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important; display: grid; place-items: center; padding: 0; }
+#mn-sh .sh-ic:active { box-shadow: inset -2px -2px 0 rgba(255,255,255,.3), inset 2px 2px 0 rgba(0,0,0,.45) !important; }
+#mn-sh .sh-ic.on { background: rgba(70, 140, 70, .75) !important; }
+#mn-sh .sh-brand, #mn-sh .sh-seg { border-radius: 0 !important; border: 2px solid #111 !important; background: rgba(40, 40, 46, .5) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.4); color: #fff !important; text-shadow: 1px 1px 0 var(--mc-shadow); font-family: ui-monospace, Menlo, monospace !important; }
+#mn-sh .sh-seg button { border-radius: 0 !important; color: #ddd !important; font-family: inherit !important; }
+#mn-sh .sh-seg button.on { background: rgba(70, 140, 70, .85) !important; color: #fff !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.4) !important; }
+/* the dock = a hotbar: see-through, square slots */
+#mn-sh #sh-dock { border-radius: 0 !important; background: rgba(16, 16, 20, .38) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border: 2px solid rgba(0,0,0,.55) !important; box-shadow: none !important; padding: 4px !important; gap: 4px !important; }
+#mn-sh #sh-dock button { border-radius: 0 !important; background: rgba(139, 139, 139, .28) !important; box-shadow: inset 2px 2px 0 rgba(0,0,0,.42), inset -2px -2px 0 rgba(255,255,255,.18) !important; min-width: 60px; padding: 6px 4px 4px !important; color: #fff !important; }
+#mn-sh #sh-dock button:hover, #mn-sh #sh-dock button:focus-visible { background: rgba(255, 255, 255, .22) !important; outline: 2px solid #fff; outline-offset: -2px; }
+#mn-sh #sh-dock button b { display: grid; place-items: center; height: 26px; }
+#mn-sh #sh-dock button b svg.px { width: 26px; height: 26px; }
+#mn-sh #sh-dock button span { font: 600 10px/1.2 ui-monospace, Menlo, "PingFang SC", monospace !important; color: #fff !important; text-shadow: 1px 1px 0 var(--mc-shadow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 72px; }
+#mn-sh #sh-dock button.stashed { opacity: .5; }
+#mn-sh .sh-lab { border-radius: 0 !important; background: rgba(16,16,20,.6) !important; color: #fff !important; border: 2px solid #111 !important; text-shadow: 1px 1px 0 #3f3f3f; font-family: ui-monospace, Menlo, monospace; }
+#mn-sh .sh-lab i svg.px { width: 16px; height: 16px; display: inline-block; vertical-align: -3px; }
+#mn-sh #sh-hint { border-radius: 0 !important; background: rgba(0,0,0,.5) !important; font-family: ui-monospace, Menlo, "PingFang SC", monospace; text-shadow: 1px 1px 0 #3f3f3f; }
+#mn-sh #sh-stick { border-radius: 0 !important; background: rgba(110,110,118,.32) !important; border: 2px solid rgba(0,0,0,.55) !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.25), inset -2px -2px 0 rgba(0,0,0,.35); }
+#mn-sh #sh-stick i { border-radius: 0 !important; background: rgba(198,198,198,.92) !important; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555 !important; }
+#mn-sh #sh-edit { border-radius: 0 !important; background: rgba(198,198,198,.92) !important; border: 2px solid #111 !important; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555 !important; font-family: ui-monospace, Menlo, "PingFang SC", monospace; }
+#mn-sh #sh-edit button { border-radius: 0 !important; background: #8b8b8b !important; color: #fff !important; border: 2px solid #111 !important; text-shadow: 1px 1px 0 #3f3f3f; box-shadow: inset 2px 2px 0 rgba(255,255,255,.4), inset -2px -2px 0 rgba(0,0,0,.4); }
+#mn-sh #sh-edit button.pri { background: #4f8f3a !important; }
+/* Duo half-open: the panel of things is a see-through inventory — the room stays visible behind it */
+html.mf-top #mn-sh #sh-dock, html.mf-book #mn-sh #sh-dock { background: rgba(12, 12, 16, .28) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important;
+  border: 0 !important; border-top: 2px solid rgba(0,0,0,.45) !important; gap: 6px !important; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+html.mf-book #mn-sh #sh-dock { border-top: 0 !important; border-left: 2px solid rgba(0,0,0,.45) !important; }
+html.mf-top #mn-sh #sh-dock button, html.mf-book #mn-sh #sh-dock button { background: rgba(139, 139, 139, .3) !important; aspect-ratio: 1 / 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+html.mf-top #mn-sh #sh-dock button b svg.px, html.mf-book #mn-sh #sh-dock button b svg.px { width: 30px; height: 30px; }

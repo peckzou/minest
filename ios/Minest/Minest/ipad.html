@@ -182513,6 +182513,41 @@ html.mf-book #mn-sh #sh-hint { left: 75%; bottom: calc(60px + env(safe-area-inse
 html.mf-book #mn-sh #sh-card, html.mf-book #mn-sh #sh-edit, html.mf-book #mn-sh .sh-holoed { left: 75% !important; width: min(420px, 46vw) !important; }
 html.mf-book #mn-sh #sh-labels { right: 50%; }
 html.mf-top #mn-sh #sh-top, html.mf-book #mn-sh #sh-top { z-index: 7; }
+
+/* ───────── 2026-11-13 block style (the voxel room's own look): stone buttons with bevels, inventory slots, pixel icons,
+   see-through panels — nothing solid covering the room ───────── */
+#mn-sh { --mc-ink: #fff; --mc-shadow: #3f3f3f; }
+#mn-sh svg.px { width: 24px; height: 24px; image-rendering: pixelated; display: block; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.35)); }
+#mn-sh .sh-ic { border-radius: 0 !important; border: 2px solid #111 !important; background: rgba(110, 110, 118, .55) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.38), inset -2px -2px 0 rgba(0,0,0,.42) !important; display: grid; place-items: center; padding: 0; }
+#mn-sh .sh-ic:active { box-shadow: inset -2px -2px 0 rgba(255,255,255,.3), inset 2px 2px 0 rgba(0,0,0,.45) !important; }
+#mn-sh .sh-ic.on { background: rgba(70, 140, 70, .75) !important; }
+#mn-sh .sh-brand, #mn-sh .sh-seg { border-radius: 0 !important; border: 2px solid #111 !important; background: rgba(40, 40, 46, .5) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.4); color: #fff !important; text-shadow: 1px 1px 0 var(--mc-shadow); font-family: ui-monospace, Menlo, monospace !important; }
+#mn-sh .sh-seg button { border-radius: 0 !important; color: #ddd !important; font-family: inherit !important; }
+#mn-sh .sh-seg button.on { background: rgba(70, 140, 70, .85) !important; color: #fff !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.3), inset -2px -2px 0 rgba(0,0,0,.4) !important; }
+/* the dock = a hotbar: see-through, square slots */
+#mn-sh #sh-dock { border-radius: 0 !important; background: rgba(16, 16, 20, .38) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border: 2px solid rgba(0,0,0,.55) !important; box-shadow: none !important; padding: 4px !important; gap: 4px !important; }
+#mn-sh #sh-dock button { border-radius: 0 !important; background: rgba(139, 139, 139, .28) !important; box-shadow: inset 2px 2px 0 rgba(0,0,0,.42), inset -2px -2px 0 rgba(255,255,255,.18) !important; min-width: 60px; padding: 6px 4px 4px !important; color: #fff !important; }
+#mn-sh #sh-dock button:hover, #mn-sh #sh-dock button:focus-visible { background: rgba(255, 255, 255, .22) !important; outline: 2px solid #fff; outline-offset: -2px; }
+#mn-sh #sh-dock button b { display: grid; place-items: center; height: 26px; }
+#mn-sh #sh-dock button b svg.px { width: 26px; height: 26px; }
+#mn-sh #sh-dock button span { font: 600 10px/1.2 ui-monospace, Menlo, "PingFang SC", monospace !important; color: #fff !important; text-shadow: 1px 1px 0 var(--mc-shadow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 72px; }
+#mn-sh #sh-dock button.stashed { opacity: .5; }
+#mn-sh .sh-lab { border-radius: 0 !important; background: rgba(16,16,20,.6) !important; color: #fff !important; border: 2px solid #111 !important; text-shadow: 1px 1px 0 #3f3f3f; font-family: ui-monospace, Menlo, monospace; }
+#mn-sh .sh-lab i svg.px { width: 16px; height: 16px; display: inline-block; vertical-align: -3px; }
+#mn-sh #sh-hint { border-radius: 0 !important; background: rgba(0,0,0,.5) !important; font-family: ui-monospace, Menlo, "PingFang SC", monospace; text-shadow: 1px 1px 0 #3f3f3f; }
+#mn-sh #sh-stick { border-radius: 0 !important; background: rgba(110,110,118,.32) !important; border: 2px solid rgba(0,0,0,.55) !important; box-shadow: inset 2px 2px 0 rgba(255,255,255,.25), inset -2px -2px 0 rgba(0,0,0,.35); }
+#mn-sh #sh-stick i { border-radius: 0 !important; background: rgba(198,198,198,.92) !important; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555 !important; }
+#mn-sh #sh-edit { border-radius: 0 !important; background: rgba(198,198,198,.92) !important; border: 2px solid #111 !important; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555 !important; font-family: ui-monospace, Menlo, "PingFang SC", monospace; }
+#mn-sh #sh-edit button { border-radius: 0 !important; background: #8b8b8b !important; color: #fff !important; border: 2px solid #111 !important; text-shadow: 1px 1px 0 #3f3f3f; box-shadow: inset 2px 2px 0 rgba(255,255,255,.4), inset -2px -2px 0 rgba(0,0,0,.4); }
+#mn-sh #sh-edit button.pri { background: #4f8f3a !important; }
+/* Duo half-open: the panel of things is a see-through inventory — the room stays visible behind it */
+html.mf-top #mn-sh #sh-dock, html.mf-book #mn-sh #sh-dock { background: rgba(12, 12, 16, .28) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important;
+  border: 0 !important; border-top: 2px solid rgba(0,0,0,.45) !important; gap: 6px !important; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+html.mf-book #mn-sh #sh-dock { border-top: 0 !important; border-left: 2px solid rgba(0,0,0,.45) !important; }
+html.mf-top #mn-sh #sh-dock button, html.mf-book #mn-sh #sh-dock button { background: rgba(139, 139, 139, .3) !important; aspect-ratio: 1 / 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+html.mf-top #mn-sh #sh-dock button b svg.px, html.mf-book #mn-sh #sh-dock button b svg.px { width: 30px; height: 30px; }
 </style>
 <script id="mn-spatial-home">
 window.__SPATIAL_HOME_EMBEDDED__ = true;
@@ -184650,6 +184685,137 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     };
   }
   SR.register({ id: 'study', name: 'EC–6 Study Studio', zh: 'EC–6 备考书房', icon: '📚', build: build });
+})(window);
+
+/* Minest · Spatial Home — block-style pixel icons (2026-11-13). Original 16×16 pixel art in a blocky voxel-game look,
+   drawn as crisp SVG (one <rect> per run of pixels), so the room's buttons match the voxel room instead of emoji.
+   Each icon: 16 rows × 16 characters, '.' = empty, other letters = colours from its palette (k = outline). */
+(function (root) {
+  'use strict';
+  var P0 = { k: '#1b1b1f', w: '#f4f1e8', W: '#ffffff', g: '#7d7d84', G: '#4b4b52', d: '#2f2f35', s: '#b9b9bf',
+    b: '#7a4a26', B: '#5a3418', o: '#c98a4a', y: '#f2c13d', Y: '#ffe27a', r: '#d0463a', R: '#8f2a22', p: '#f08cb0', P: '#c45b86',
+    c: '#4fd2ff', C: '#1f8fc4', n: '#62c84a', N: '#2f7a2a', u: '#4a7fd6', U: '#2b4f9a', v: '#9a6bff', t: '#3a2a1a', a: '#e8d2a0' };
+  var I = {
+    typewriter: [
+      '................', '................', '....kkkkkkkk....', '....kwwwwwwk....', '....kwkkkkwk....', '..kkkkkkkkkkkk..',
+      '.kddddddddddddk.', '.kdGGGGGGGGGGdk.', '.kdGsGsGsGsGGdk.', '.kdGGGGGGGGGGdk.', '.kdGGsGsGsGsGdk.', '.kdGGGGGGGGGGdk.',
+      '.kdGGGsssssGGdk.', '.kddddddddddddk.', '..kkkkkkkkkkkk..', '................'],
+    planner: [
+      '................', '...kkkkkkkkkk...', '..kUuuuuuuuuuk..', '..kUuwwwwwwwuk..', '.ksUuwkkkkkwuk..', '..kUuwwwwwwwuk..',
+      '.ksUuwkkkkwwuk..', '..kUuwwwwwwwuk..', '.ksUuwkkkkkwuk..', '..kUuwwwwwwwuk..', '.ksUuwkkkwwwuk..', '..kUuwwwwwwwuk..',
+      '..kUuuuuuuuuuk..', '..kUUUUUUUUUUk..', '...kkkkkkkkkk...', '................'],
+    board: [
+      '................', 'kkkkkkkkkkkkkkkk', 'kBBBBBBBBBBBBBBk', 'kBooooooooooooBk', 'kBoowwwoorooooBk', 'kBoowwwooaaaaoBk',
+      'kBoowwwooaaaaoBk', 'kBooooooaaaaooBk', 'kBorooooooooooBk', 'kBoyyyyoowwwooBk', 'kBoyyyyoowwwooBk', 'kBoyyyyooooouoBk',
+      'kBooooooooooooBk', 'kBBBBBBBBBBBBBBk', 'kkkkkkkkkkkkkkkk', '......kk.kk.....'],
+    album: [
+      '................', '..kkkkkkkkkkk...', '..kRrrrrrrrrrk..', '..kRrrrryrrrrk..', '..kRrrryyyrrrk..', '..kRryyyyyyyrk..',
+      '..kRrryyyyyrrk..', '..kRrryyryyrrk..', '..kRrrrrrrrrrk..', '..kRrrrrrrrrrk..', '..kRaaaaaaaaak..', '..kRwwwwwwwwwk..',
+      '..kRaaaaaaaaak..', '..kkkkkkkkkkkk..', '................', '................'],
+    projector: [
+      '................', '.......cc.......', '......cWWc......', '.....cWccWc.....', '......cWWc......', '.......cc.......',
+      '......c..c......', '.....c....c.....', '....c......c....', '...kkkkkkkkkk...', '..kgggggggggggk.', '..kgsscccccssgk.',
+      '..kGGGGGGGGGGGk.', '..kdddddddddddk.', '...kk.......kk..', '................'],
+    ornament: [
+      '................', '.....kkkkkk.....', '...kkcWccccckk..', '..kcWcccccccck..', '..kcWcnnncccck..', '.kccccnnnnccccck',
+      '.kcccnnnnnncccck', '.kccNNnnnnNNccck', '..kcNNNNNNNNcck.', '..kccccccccccck.', '...kkkkkkkkkkk..', '....kyyyyyyyk...',
+      '...kyYyyyyyYyk..', '...kkkkkkkkkkk..', '................', '................'],
+    backpack: [
+      '................', '.....kkkkkk.....', '....kBk..kBk....', '...kkkkkkkkkk...', '..kbbbbbbbbbbk..', '..kbooooooooBk..',
+      '..kbooooooooBk..', '..kbkkkkkkkkBk..', '..kbbbbyybbbBk..', '..kbbbbyybbbBk..', '..kbooooooooBk..', '..kbobbbbbboBk..',
+      '..kbobbbbbboBk..', '..kBBBBBBBBBBk..', '...kkkkkkkkkk...', '................'],
+    gramophone: [
+      '..........kkkk..', '........kkyyyk..', '.......kyyYYyk..', '......kyyYYyk...', '.....kyyyyk.....', '....kyyyk.......',
+      '...kyyk.........', '...kk...........', '...k............', '.kkkkkkkkkkkk...', '.kdddddddddddk..', '.kbbbbbbbbbbbk..',
+      '.kbooooyoooobk..', '.kbbbbbbbbbbbk..', '.kkkkkkkkkkkkk..', '................'],
+    film: [
+      '................', '..kkkk....kkkk..', '.kGggGk..kGggGk.', '.kgkkgk..kgkkgk.', '.kGggGk..kGggGk.', '..kkkk....kkkk..',
+      '....k......k....', '..kkkkkkkkkkkk..', '..kddddddddddkkk', '..kdGGGGGGGGdkck', '..kdGGGGGGGGdkck', '..kddddddddddkkk',
+      '..kkkkkkkkkkkk..', '.....k....k.....', '....kk....kk....', '................'],
+    portal: [
+      '.....kkkkkk.....', '...kkrrrrrrkk...', '..krrkkkkkkrrk..', '.krrkuuuuuukrrk.', '.krkuucccpuukrk.', 'krrkuccccppukrrk',
+      'krkuuyyuuppuukrk', 'krkuuyyunnuuukrk', 'krkuuuuunnuuukrk', 'krkuurruuuuuukrk', 'krkuurruuucccukr', 'krkuuuuuuucccukr',
+      'krkyyyyyyyyyyykr', 'krkdddddddddddkr', 'kkkkkkkkkkkkkkkk', '................'],
+    holo: [
+      '................', '....cc....cc....', '...c..cccc..c...', '..c..cWWWWc..c..', '...cccWccWccc...', '..c..cWWWWc..c..',
+      '...c..cccc..c...', '....cc....cc....', '.......cc.......', '..kkkkkkkkkkkk..', '.kssssssssssssk.', '.kgggggggggggggk',
+      '..kkkkkggkkkkk..', '......kggk......', '....kkkkkkkk....', '................'],
+    aquarium: [
+      '................', '.kkkkkkkkkkkkkk.', '.kccccccccccccck', '.kcCCCCCCCCCCCck', '.kcCCCCppppCCCck', '.kcCCCpPpPppCCck',
+      '.kcCCCppppppCCck', '.kcCnCCpCpCpCCck', '.kcnnCpCpCpCpCck', '.kcnnCCCCCCCCCck', '.kcyyyyyyyyyyyck', '.kkkkkkkkkkkkkkk',
+      '..kbbbbbbbbbbbk.', '..kBBBBBBBBBBBk.', '..k.k.......k.k.', '................'],
+    quill: [
+      '.............kk.', '............kWWk', '...........kWwwk', '..........kWwwk.', '.........kWwwk..', '........kWwwk...',
+      '.......kWwwk....', '......kWwwk.....', '.....kWwwk......', '....kWwwk.......', '...kwwwk........', '...kwwk.........',
+      '..kkkk..........', '..kk............', '.kk.............', '.k..............'],
+    mochi: [
+      '................', '................', '.....kkkkkk.....', '...kkwwwwwwkk...', '..kwwwwwwwwwwk..', '.kwwwwwwwwwwwwk.',
+      '.kwwkkwwwwkkwwk.', '.kwwkkwwwwkkwwk.', '.kwpwwwwwwwwpwk.', '.kwwwwwkkwwwwwk.', '.kwwwwwwwwwwwwk.', '..kwwwwwwwwwwk..',
+      '...kkkkkkkkkk...', '................', '................', '................'],
+    key: [
+      '................', '................', '..kkkk..........', '.kyyyyk.........', 'kyykkyyk........', 'kykkkkykkkkkkkk.',
+      'kykkkkyyyyyyyyyk', 'kyykkyykkkykkykk', '.kyyyyk...kk.kk.', '..kkkk..........', '................', '................',
+      '................', '................', '................', '................'],
+    medal: [
+      '................', '...kkk....kkk...', '...kuuk..kurk...', '....kuukkurk....', '.....kuurrk.....', '......kurk......',
+      '.....kkkkkk.....', '....kyyyyyyk....', '...kyYYyyyyyk...', '...kyYyykyyyk...', '...kyyyykkyyk...', '...kyyykyyyyk...',
+      '...kyyyyyyyyk...', '....kyyyyyyk....', '.....kkkkkk.....', '................'],
+    bookstand: [
+      '................', '................', '.kkkkkkk.kkkkkkk', 'kwwwwwwkkwwwwwwk', 'kwkkkkwkkwkkkkwk', 'kwwwwwwkkwwwwwwk',
+      'kwkkkwwkkwkkkkwk', 'kwwwwwwkkwwwwwwk', 'kkkkkkkkkkkkkkkk', '.....kbbbbk.....', '......kbbk......', '......kbbk......',
+      '......kbbk......', '....kkbbbbkk....', '...kBBBBBBBBk...', '...kkkkkkkkkk...'],
+    car: [
+      '................', '................', '................', '.....kkkkkk.....', '....kRrrrrRk....', '...kRkcckcckRk..',
+      '..kRrkcckcckrRk.', '.kkrrrrrrrrrrrkk', 'kRrrrrrrrrrrrrrk', 'kryrrrrrrrrrrryk', 'kRrrrrrrrrrrrrRk', 'kkkkkkkkkkkkkkkk',
+      '..kddk....kddk..', '..kGGk....kGGk..', '...kk......kk...', '................'],
+    globe: [
+      '................', '.....kkkkkk.....', '...kkuuuuuukk...', '..kuunnnuuuuuk..', '.kunnnnnuuuuuuk.', '.kunnnnuuuunnuk.',
+      'kuuunnuuuunnnnuk', 'kuuuuuuuuunnnuuk', 'kuunnuuuuuunuuuk', 'kunnnnnuuuuuuuuk', '.kunnnnnuuuuuuk.', '.kuunnnuuuunnuk.',
+      '..kuuuuuuunnuk..', '...kkuuuuuukk...', '.....kkkkkk.....', '................'],
+    window: [
+      '................', 'kkkkkkkkkkkkkkkk', 'kbbbbbbbbbbbbbbk', 'kbccccccbcccccbk', 'kbccWcccbcccccbk', 'kbcWWcccbcccccbk',
+      'kbccccccbcccccbk', 'kbbbbbbbbbbbbbbk', 'kbnnccccbcccnnbk', 'kbnnnnccbccnnnbk', 'kbNnnnnnbnnnnNbk', 'kbNNnnnnbnnnNNbk',
+      'kbbbbbbbbbbbbbbk', 'kkkkkkkkkkkkkkkk', '................', '................'],
+    chair: [
+      '................', '...kkkkkkkkk....', '...kbbbbbbbk....', '...kboooooBk....', '...kboooooBk....', '...kboooooBk....',
+      '...kbbbbbbbk....', '...kbk...kbk....', '..kkkkkkkkkkkk..', '..kbbbbbbbbbbk..', '..kBBBBBBBBBBk..', '..kkkkkkkkkkkk..',
+      '...kbk....kbk...', '...kbk....kbk...', '...kkk....kkk...', '................'],
+    person: [
+      '................', '.....kkkkkk.....', '.....kttttk.....', '.....kaaaak.....', '.....kakkak.....', '.....kaaaak.....',
+      '.....kkkkkk.....', '...kkuuuuuukk...', '...kauuuuuuak...', '...kauuuuuuak...', '...kkuuuuuukk...', '.....kUUUUk.....',
+      '.....kUkkUk.....', '.....kUkkUk.....', '.....kkkkkk.....', '................'],
+    gear: [
+      '................', '......kkkk......', '...kk.kggk.kk...', '..kggkkggkkggk..', '..kgggggggggggk.', '...kggGkkGggk...',
+      '.kkggGk..kGggkk.', '.kgggk....kgggk.', '.kgggk....kgggk.', '.kkggGk..kGggkk.', '...kggGkkGggk...', '..kgggggggggggk.',
+      '..kggkkggkkggk..', '...kk.kggk.kk...', '......kkkk......', '................'],
+    menu: [
+      '................', '................', '................', '..kkkkkkkkkkkk..', '..kWWWWWWWWWWk..', '..kkkkkkkkkkkk..',
+      '................', '..kkkkkkkkkkkk..', '..kWWWWWWWWWWk..', '..kkkkkkkkkkkk..', '................', '..kkkkkkkkkkkk..',
+      '..kWWWWWWWWWWk..', '..kkkkkkkkkkkk..', '................', '................'],
+    close: [
+      '................', '................', '..kkk......kkk..', '..kWWk....kWWk..', '...kWWk..kWWk...', '....kWWkkWWk....',
+      '.....kWWWWk.....', '......kWWk......', '.....kWWWWk.....', '....kWWkkWWk....', '...kWWk..kWWk...', '..kWWk....kWWk..',
+      '..kkk......kkk..', '................', '................', '................'],
+    rotate: [
+      '................', '.....kkkkkk.....', '...kkWWWWWWkk...', '..kWWkkkkkkWWk..', '.kWWk......kWk..', '.kWk........k...',
+      '.kWk......kkkkk.', '.kWk.......kWWk.', '.kWk......kWWWk.', '.kWWk....kWWWk..', '..kWWkkkkWWk....', '...kkWWWWkk.....',
+      '.....kkkk.......', '................', '................', '................'],
+  };
+  var ALIAS = { projector16: 'film', tsqPortal: 'portal', holoDesk: 'holo', carkey: 'key', medals: 'medal', carmodel: 'car', pack: 'backpack',
+    env: 'globe', views: 'window', sit: 'chair', view: 'person', set: 'gear', exit: 'close' };
+  var cache = {};
+  function svg(name) {
+    name = ALIAS[name] || name; if (cache[name]) return cache[name];
+    var rows = I[name]; if (!rows) return '';
+    var out = '';
+    rows.forEach(function (row, y) {
+      row = (row + '................').slice(0, 16);
+      for (var x = 0; x < 16;) { var ch = row[x]; if (ch === '.') { x++; continue; } var x0 = x; while (x < 16 && row[x] === ch) x++;
+        out += '<rect x="' + x0 + '" y="' + y + '" width="' + (x - x0) + '" height="1" fill="' + (P0[ch] || '#f0f') + '"/>'; }
+    });
+    return (cache[name] = '<svg class="px" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">' + out + '</svg>');
+  }
+  root.SpatialPixIcons = { svg: svg, has: function (n) { return !!I[ALIAS[n] || n]; }, names: function () { return Object.keys(I); } };
 })(window);
 
 /* Minest · Spatial Home — the things that are the apps (the fishing rod became the Octo aquarium in entries.js).
@@ -188305,12 +188471,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         var av = B.available(feature);
         if (!av.length) {
           var why = needs && B.state() !== 'ready' ? 'Minest 应用没有载入成功（' + esc(B.appUrl()) + '）。' : F.missing;
-          return ask(o.icon + ' ' + o.name + ' · 还没有接上', why, [{ label: '回到房间', cls: 'pri' }]).then(function () { return null; });
+          return ask(o.name + ' · 还没有接上', why, [{ label: '回到房间', cls: 'pri' }]).then(function () { return null; });
         }
         if (want) { var w0 = av.filter(function (t) { return t.id === want; })[0]; if (w0) return w0; }
         if (av.length === 1) return av[0];
         av = av.filter(B.isLive).concat(av.filter(function (t) { return !B.isLive(t); }));   // the one you left open comes first
-        return ask(o.icon + ' ' + o.name, '', av.map(function (t, i) { return { label: (B.isLive(t) ? '继续 · ' : '') + t.label, cls: i ? '' : 'pri' }; }).concat([{ label: '取消', cls: 'ghost' }])).then(function (i) { return av[i] || null; });
+        return ask(o.name, '', av.map(function (t, i) { return { label: (B.isLive(t) ? '继续 · ' : '') + t.label, cls: i ? '' : 'pri' }; }).concat([{ label: '取消', cls: 'ghost' }])).then(function (i) { return av[i] || null; });
       })
       .then(function (t) {
         if (!t) return comeBack(o).then(function () { if (after === 'board') { var bo = objects.filter(function (x) { return x.id === 'board'; })[0]; if (bo) activate(bo); } });
@@ -188382,10 +188548,15 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
 
   /* ------------------------------------------------------------ labels, dock */
+  /* block-style pixel icons (pixicons.js) instead of emoji, for the things and the buttons */
+  var PX = window.SpatialPixIcons;
+  function ico(o) { return PX && PX.has(o.id) ? PX.svg(o.id) : '<span class="em">' + o.icon + '</span>'; }
+  [['packBtn', 'pack'], ['envBtn', 'env'], ['viewsBtn', 'views'], ['sitBtn', 'sit'], ['viewBtn', 'view'], ['setBtn', 'set'], ['menuBtn', 'menu'], ['exitBtn', 'exit']].forEach(function (q) {
+    var b = $(q[0]); if (b && PX && PX.has(q[1])) b.innerHTML = PX.svg(q[1]); });
   var labels = $('labels'), dock = $('dock');
   objects.forEach(function (o) {
-    var l = document.createElement('div'); l.className = 'sh-lab'; l.innerHTML = '<i>' + o.icon + '</i>' + o.name; l.onclick = function () { activate(o); }; labels.appendChild(l); o.lab = l;
-    var b = document.createElement('button'); b.type = 'button'; b.innerHTML = '<b>' + o.icon + '</b><span>' + o.name + '</span>'; b.title = o.en; b.onclick = function () { activate(o); }; dock.appendChild(b); o.chip = b;
+    var l = document.createElement('div'); l.className = 'sh-lab'; l.innerHTML = '<i>' + ico(o) + '</i>' + o.name; l.onclick = function () { activate(o); }; labels.appendChild(l); o.lab = l;
+    var b = document.createElement('button'); b.type = 'button'; b.innerHTML = '<b>' + ico(o) + '</b><span>' + o.name + '</span>'; b.title = o.en; b.onclick = function () { activate(o); }; dock.appendChild(b); o.chip = b;
   });
   function placeLabels() {
     var w = window.innerWidth, h = window.innerHeight;
@@ -188771,7 +188942,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     closeCard(); $('settings').hidden = true; if (BP && BP.isOpen()) BP.close();
     var g = t.group; edit = { o: t.lab ? t : null, x: t.lab ? null : t, g: g, p0: g.position.clone(), ry0: g.rotation.y, isNew: !!isNew, wasStashed: !!t.stashed, type: t.lab ? placeType(t) : t.place, valid: true, snap: '' };
     if (edit.o) { edit.o.stashed = false; g.visible = true; }
-    $('editName').textContent = t.lab ? t.icon + ' ' + t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
+    $('editName').textContent = t.lab ? t.name : ((t.e.title || NAMES[t.e.kind] || '物品'));
     editBar.querySelector('[data-e="rot"]').style.display = edit.type === 'wall' ? 'none' : '';
     ghost(edit, true); setValid(true); $('editHint').textContent = { wall: '点墙面挂上去', floor: '点地面、展台或室外放下', surface: '点桌面、柜面、货架或展台放上去' }[edit.type] + '，或点周围的箭头微调 · R 旋转 · Enter 放好';
     editBar.hidden = false; body.classList.add('editing'); walkTo = null; refreshHotbar(); AV.carry = true;
@@ -188831,7 +189002,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       g.position.copy(E.p0); g.rotation.y = E.ry0; if (E.o) { E.o.stashed = E.wasStashed; g.visible = !E.wasStashed; settle(E.o); } refreshHotbar(); return;
     }
     if (E.o) {
-      if (how === 'stash') { L[E.o.id] = { p: pos, ry: ry, stashed: true }; E.o.stashed = true; g.visible = false; toast(E.o.icon + ' ' + E.o.name + ' 已收回背包 · 功能仍可从下方入口进入'); }
+      if (how === 'stash') { L[E.o.id] = { p: pos, ry: ry, stashed: true }; E.o.stashed = true; g.visible = false; toast(E.o.name + ' 已收回背包 · 功能仍可从下方入口进入'); }
       else { L[E.o.id] = { p: pos, ry: ry }; E.o.stashed = false; }
       E.o.chip.classList.toggle('stashed', E.o.stashed); settle(E.o); rebuildHits();
     } else {
@@ -188978,8 +189149,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     scene.remove(old.group); var a = room.anchors[nu.anchor]; nu.group.position.set(a.p[0], a.p[1], a.p[2]); nu.group.rotation.y = a.ry;
     nu.hit.userData.obj = nu; nu.k = 0; nu.set(0); scene.add(nu.group); nu.group.updateMatrixWorld(true);
     nu.labelAt = new THREE.Vector3(nu.label[0], nu.label[1], nu.label[2]).applyMatrix4(nu.group.matrixWorld); nu.centre = new THREE.Box3().setFromObject(nu.hit).getCenter(new THREE.Vector3());
-    nu.lab = old.lab; nu.chip = old.chip; nu.lab.innerHTML = '<i>' + nu.icon + '</i>' + nu.name; nu.lab.onclick = function () { activate(nu); };
-    nu.chip.innerHTML = '<b>' + nu.icon + '</b><span>' + nu.name + '</span>'; nu.chip.onclick = function () { activate(nu); };
+    nu.lab = old.lab; nu.chip = old.chip; nu.lab.innerHTML = '<i>' + ico(nu) + '</i>' + nu.name; nu.lab.onclick = function () { activate(nu); };
+    nu.chip.innerHTML = '<b>' + ico(nu) + '</b><span>' + nu.name + '</span>'; nu.chip.onclick = function () { activate(nu); };
     objects[i] = nu; placeAll();
   }
   $('resetLayout').addEventListener('click', function () { if (busy || edit) return; saveLayout(room.envId, {}); placeAll(); refreshHotbar(); toast('已恢复 ' + room.name + ' 的默认摆放 · 收回的作品回到背包'); });
