@@ -91,6 +91,47 @@ body.tkb #line{bottom:calc(var(--tkbh,0px) + 14px)} body.tkb #tgt{bottom:calc(va
 #kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;background:transparent;color:transparent;font-size:16px}
 @media (max-width:560px){#top .ttl{display:none}.panel{max-height:44vh}#hint{display:none}}
 @media (prefers-reduced-motion:reduce){#line .caret{animation:none}}
+
+/* 2026-11-13 · the mode is chosen the way 3D Type chooses its world: one small name, top centre, ‹ › either side (a swipe
+   on the name works too); the gas / colour beneath it the same way. The old rows stay in the page, hidden. */
+#modes,#gas,#ctl .lab{display:none!important}
+#msw{position:fixed;left:50%;top:calc(max(14px,env(safe-area-inset-top)) + 30px);transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:1px;
+  font:500 11px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(241,231,216,.88);user-select:none;-webkit-user-select:none}
+#msw .row{display:flex;align-items:center;gap:4px}
+#msw button{all:unset;cursor:pointer;color:rgba(241,231,216,.5);padding:3px 9px;font:inherit;letter-spacing:inherit}#msw button:hover{color:#fff}
+#msw .nm{min-width:7.5em;text-align:center;font-weight:600;color:#fff;white-space:nowrap;touch-action:pan-y;cursor:grab}
+#msw .sub{font-size:9.5px}#msw .sub .nm{min-width:5em;font-weight:500;color:var(--g)}
+#msw .nm.go{animation:mswg .3s ease}@keyframes mswg{from{opacity:.2;transform:translateX(var(--dx,0))}to{opacity:1;transform:none}}
+@media (max-width:560px){#msw{top:calc(max(14px,env(safe-area-inset-top)) + 2px)}}
+@media (max-width:980px) and (min-width:561px){#top .ttl{display:none}}
+/* the work controls are switches: a lever that drops, a valve wheel that turns, a toggle that flips, a red mushroom
+   PACK button, a rotary AUTO knob — each on a small engraved plate. Tap the switch itself (or the one on the station). */
+#flow button{min-width:62px;height:66px;padding:6px 8px 5px;border-radius:10px;border:1.5px solid #6a4a26;background:linear-gradient(#2a1b12,#130c07);gap:5px;box-shadow:0 3px 0 #3a2410,0 6px 14px rgba(0,0,0,.4)}
+#flow button.on{background:linear-gradient(#2a1b12,#130c07);border-color:#c98a3a;box-shadow:0 3px 0 #3a2410,0 0 14px rgba(255,150,60,.35);transform:none}
+#flow button small{font:700 8.5px/1 "Courier New",monospace;letter-spacing:.16em;color:#d9b46a;opacity:.9;padding:1px 4px;border:1px solid rgba(217,180,106,.35);border-radius:2px}
+#flow button.wide{flex-direction:column;height:66px;min-width:84px}
+#flow i.sw{position:relative;display:block;width:30px;height:32px;font-style:normal}
+#flow i.sw::before,#flow i.sw::after{content:'';position:absolute;transition:all .18s}
+.sw-lever::before{left:13px;top:1px;width:4px;height:30px;border-radius:2px;background:#050302;box-shadow:inset 0 0 0 1px #6a4a26}
+.sw-lever::after{left:5px;top:0;width:20px;height:12px;border-radius:6px;background:radial-gradient(circle at 40% 35%,#ff7a4a,#8a1a10);box-shadow:0 2px 0 #3a0a06}
+#flow button.on .sw-lever::after{top:20px}
+.sw-valve::before{left:2px;top:3px;width:26px;height:26px;border-radius:50%;border:4px solid #c9a24a;box-sizing:border-box}
+.sw-valve::after{left:7px;top:8px;width:16px;height:16px;background:linear-gradient(#c9a24a,#c9a24a) center/4px 100% no-repeat,linear-gradient(#c9a24a,#c9a24a) center/100% 4px no-repeat}
+#flow button.on .sw-valve::before{border-color:#6dff8e;transform:rotate(90deg)}#flow button.on .sw-valve::after{transform:rotate(45deg)}
+.sw-toggle::before{left:1px;top:8px;width:28px;height:16px;border-radius:8px;background:#050302;box-shadow:inset 0 0 0 1px #6a4a26}
+.sw-toggle::after{left:3px;top:10px;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#f3efe6,#8a8a8a)}
+#flow button.on .sw-toggle::before{background:#2f7a2a}#flow button.on .sw-toggle::after{left:15px}
+.sw-pack::before{left:2px;top:2px;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 40% 32%,#ff5a4a,#8a120a 70%);box-shadow:0 4px 0 #3a0806}
+#flow button.ready .sw-pack::before{background:radial-gradient(circle at 40% 32%,#7dff9a,#127a2a 70%);box-shadow:0 4px 0 #0a3a14,0 0 14px rgba(80,255,120,.6)}
+#flow button:active .sw-pack::before{top:5px;box-shadow:0 1px 0 #3a0806}
+.sw-auto::before{left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#4a4038,#120c08);box-shadow:inset 0 0 0 2px #c9a24a}
+.sw-auto::after{left:14px;top:5px;width:2px;height:10px;background:#f3e6cc;transform-origin:1px 10px;transform:rotate(-50deg)}
+#flow button.on .sw-auto::after{transform:rotate(50deg);background:#ffb36b}#flow button.on .sw-auto::before{box-shadow:inset 0 0 0 2px #ffb36b,0 0 10px rgba(255,170,80,.5)}
+.sw-key::before{left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 40% 32%,#3a3632,#0d0c0b 70%);box-shadow:0 0 0 2px #b89154,0 3px 0 #5a3d1c}
+.sw-key::after{left:9px;top:12px;width:12px;height:2px;background:#efe4cc;box-shadow:-2px -2px 0 -0px transparent}
+.sw-brass::before{left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 40% 32%,#ffe7a0,#9a6a1a 70%);box-shadow:0 3px 0 #4a3216}
+.sw-go::before{left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 40% 32%,#9dffb0,#1a7a3a 70%);box-shadow:0 3px 0 #0a3a14}
+#flow button:active i.sw::before{filter:brightness(1.15)}
 </style>
 </head>
 <body>
@@ -2402,7 +2443,7 @@ function setGas(k) {
   k = String(k || '').toLowerCase(); const key = GAS_KEYS.find(n => n === k || n.slice(0, 2) === k.slice(0, 2)); if (!key || k.length < 2) return ui.gas;
   ui.gas = key; cur.setGas(key);
   for (const b of $('gas').children) b.classList.toggle('on', b.dataset.gas === key);
-  document.documentElement.style.setProperty('--g', CRAFT_TINT[ui.mode] ? CRAFT_TINT[ui.mode][key][0] : GASES[key].css); savePrefs(); return key;
+  document.documentElement.style.setProperty('--g', CRAFT_TINT[ui.mode] ? CRAFT_TINT[ui.mode][key][0] : GASES[key].css); savePrefs(); if (window.__mswUpdate) window.__mswUpdate(); return key;
 }
 /** choose the Pipe Wall mode: the next word is made this way (a word already on the platform keeps its own) */
 function setMode(id) {
@@ -2410,7 +2451,7 @@ function setMode(id) {
   if (!cur.buf.length && cur.mode !== id) { cur.dispose(); cur = newCur(); }
   for (const b of $('modes').querySelectorAll('button')) b.classList.toggle('on', b.textContent === MODES[id].label);
   const T = CRAFT_TINT[id]; for (const b of $('gas').children) { const k = b.dataset.gas; b.textContent = T ? T[k][1] : GASES[k].tag; b.title = T ? T[k][1] : k; }
-  document.documentElement.style.setProperty('--g', T ? T[ui.gas][0] : GASES[ui.gas].css); savePrefs(); return id;
+  document.documentElement.style.setProperty('--g', T ? T[ui.gas][0] : GASES[ui.gas].css); savePrefs(); if (window.__mswUpdate) window.__mswUpdate(); return id;
 }
 function savePrefs() { try { ls.setItem('mtw.ui.v1', JSON.stringify({ listId: ui.listId, view: ui.view, gas: ui.gas, mode: ui.mode, auto: flow.auto })); } catch (e) { /* storage full or blocked */ } }
 function loadPrefs() { try { return JSON.parse(ls.getItem('mtw.ui.v1') || '{}') || {}; } catch (e) { return {}; } }
@@ -2627,17 +2668,17 @@ function flowUpdate(dt) {
 /* the HUD: what to do next, and the station's controls as big touch buttons */
 function renderFlow() {
   const el = $('flow'); if (!el) return; const P = flow.phase, spec = ctlSpec();
-  const btn = (k, label, on, extra = '') => `<button type="button" tabindex="-1" data-f="${k}" class="${on ? 'on' : ''} ${extra}">${label}</button>`;
+  const btn = (k, label, on, extra = '', sw = 'brass') => `<button type="button" tabindex="-1" data-f="${k}" class="${on ? 'on' : ''} ${extra}" title="${label}"><i class="sw sw-${sw}"></i><small>${label}</small></button>`;
   let hud = '';
   if (P === 'type') {
     const l = currentList(), canStart = !flow.order.length && !flow.draft && l && targetEntry();
-    hud = (flow.order.length || flow.draft ? btn('hand', `📜 Hand over (${flow.order.length + (flow.draft.trim() ? 1 : 0)})`, false, 'wide') : '')
-      + (canStart ? btn('start', `▶ Start “${l.title.slice(0, 18)}”`, false, 'wide') : '')
-      + btn('auto', '⚙ AUTO', flow.auto);
+    hud = (flow.order.length || flow.draft ? btn('hand', `HAND OVER ${flow.order.length + (flow.draft.trim() ? 1 : 0)}`, false, 'wide', 'brass') : '')
+      + (canStart ? btn('start', `START`, false, 'wide', 'go') : '')
+      + btn('auto', 'AUTO', flow.auto, '', 'auto');
   } else if (P === 'work') {
     const lbl = k => `${spec[k][0]}`;
-    hud = btn('lever', '⬇ ' + lbl('lever'), flow.ctl.lever, 'hold') + btn('valve', '⟳ ' + lbl('valve'), flow.ctl.valve) + btn('sw', '⏻ ' + lbl('sw'), flow.ctl.sw)
-      + btn('pack', `📦 PACK`, false, packReady() ? 'ready' : '') + btn('auto', '⚙ AUTO', flow.auto) + btn('stop', '⟵ Typewriter');
+    hud = btn('lever', lbl('lever'), flow.ctl.lever, 'hold', 'lever') + btn('valve', lbl('valve'), flow.ctl.valve, '', 'valve') + btn('sw', lbl('sw'), flow.ctl.sw, '', 'toggle')
+      + btn('pack', 'PACK', false, packReady() ? 'ready' : '', 'pack') + btn('auto', 'AUTO', flow.auto, '', 'auto') + btn('stop', 'BACK', false, '', 'key');
   } else hud = `<span class="walk">${P === 'walk' ? 'Taking the list to the station…' : 'Back to the typewriter…'}</span>`;
   el.innerHTML = hud; el.dataset.phase = P;
   $('hint').textContent = P === 'type' ? 'Tap the typewriter to type · Return after each word · Return on an empty line hands the list over'
@@ -2729,6 +2770,24 @@ $('viewBtn').addEventListener('click', e => { e.currentTarget.blur(); setView(ui
 for (const id of ['back', 'tabLists', 'tabInv', 'viewBtn', 'gas', 'modes']) $(id).addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
 $('gas').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setGas(b.dataset.gas); b.blur(); });
 for (const m of Object.values(MODES)) $('modes').append(btn(m.label, () => setMode(m.id), { on: m.id === ui.mode }));
+/* ───────────── the mode switcher (after 3D Type): ‹ NAME › top centre, the gas / colour under it ───────────── */
+{
+  const el = document.createElement('div'); el.id = 'msw'; el.className = 'hud i';
+  el.innerHTML = '<div class="row"><button type="button" tabindex="-1" data-d="-1" aria-label="Previous mode">‹</button><span class="nm" id="mswName"></span><button type="button" tabindex="-1" data-d="1" aria-label="Next mode">›</button></div>'
+    + '<div class="row sub"><button type="button" tabindex="-1" data-g="-1" aria-label="Previous colour">‹</button><span class="nm" id="mswGas"></span><button type="button" tabindex="-1" data-g="1" aria-label="Next colour">›</button></div>';
+  document.body.appendChild(el);
+  const ids = Object.keys(MODES);
+  const stepMode = d => { const i = ids.indexOf(ui.mode); setMode(ids[(i + d + ids.length) % ids.length]); bump('mswName', d); };
+  const stepGas = d => { const i = GAS_KEYS.indexOf(ui.gas); setGas(GAS_KEYS[(i + d + GAS_KEYS.length) % GAS_KEYS.length]); bump('mswGas', d); };
+  function bump(id, d) { const n = $(id); n.style.setProperty('--dx', (d * 14) + 'px'); n.classList.remove('go'); void n.offsetWidth; n.classList.add('go'); }
+  el.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; b.blur(); if (b.dataset.d) stepMode(+b.dataset.d); else if (b.dataset.g) stepGas(+b.dataset.g); });
+  for (const [id, fn] of [['mswName', stepMode], ['mswGas', stepGas]]) { let sx = null; const n = el.querySelector('#' + id);
+    n.addEventListener('pointerdown', e => { sx = e.clientX; }); n.addEventListener('pointerup', e => { if (sx == null) return; const dx = e.clientX - sx; sx = null; if (Math.abs(dx) > 24) fn(dx < 0 ? 1 : -1); }); }
+  window.__mswUpdate = () => { $('mswName').textContent = MODES[ui.mode].label; const T = CRAFT_TINT[ui.mode]; $('mswGas').textContent = T ? T[ui.gas][1] : (GASES[ui.gas].tag || ui.gas); };
+  window.__mswUpdate();
+}
+
 addEventListener('message', e => { if (e.source === window.parent && embedded && e.data && e.data.mtw === 1 && e.data.op === 'refresh' && e.data.id == null) refresh(); });
 addEventListener('focus', () => refresh());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
