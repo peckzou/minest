@@ -9,7 +9,8 @@ const rooms={
  neuschwanstein:{name:'新天鹅堡 · 城堡外景',icon:'🏰',note:'城堡 · 峡谷 · 玛丽恩桥 · 可进入内景',localCollection:false,page:'../neuschwanstein/neuschwanstein.html?cam=30,70,168,86,62,94&mode=fly'},
  'neuschwanstein-throne':{name:'新天鹅堡 · 双层王座厅',icon:'♜',note:'金冠吊灯 · 拱廊 · 上层回廊',localCollection:false,page:'../neuschwanstein/neuschwanstein.html?cam=68.5,54.62,94.5,48,58,94.5&mode=walk'},
  'neuschwanstein-singers':{name:'新天鹅堡 · 歌手大厅',icon:'♜',note:'木格天花 · 壁画 · 皇室房间',localCollection:false,page:'../neuschwanstein/neuschwanstein.html?cam=97.5,61.62,90.5,71,62,90&mode=walk'},
- 'kings-hall':{name:'斯科克洛斯特城堡 · 国王大厅',icon:'♛',note:'真实扫描 · 雕花天顶 · 长桌与肖像（CC BY 4.0）',localCollection:false,page:'../interiors-glb/index.html?scene=kings-hall'}
+ 'kings-hall':{name:'斯科克洛斯特城堡 · 国王大厅',icon:'♛',note:'真实扫描 · 雕花天顶 · 长桌与肖像（CC BY 4.0）',localCollection:false,page:'../interiors-glb/index.html?scene=kings-hall'},
+ 'victorian-study':{name:'维多利亚书房',icon:'▤',note:'壁炉与金框镜 · 四面书架 · 图书梯 · 织锦地毯',localCollection:false,page:'../interiors-glb/index.html?scene=victorian-study'}
 };
 let root=null,frame=null,back=null,focus=null;
 function close(){

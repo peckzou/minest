@@ -24,7 +24,7 @@
   }
   setInterval(function () {
     var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-mnint]')) return;
-    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-mnint', ''); b.title = 'Interiors — manor hall, castle treasury, private library, Neuschwanstein, the King\'s Hall (Skokloster)';
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-mnint', ''); b.title = 'Interiors — manor hall, castle treasury, private library, Neuschwanstein, the King\'s Hall (Skokloster), the Victorian Study';
     b.innerHTML = '<i>🏛</i>Interiors'; b.addEventListener('click', function (e) { e.stopPropagation(); chooser(); });
     acts.appendChild(b);
   }, 800);

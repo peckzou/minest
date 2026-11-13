@@ -15,6 +15,16 @@
         { id: 'ceil', name: '雕花天顶', at: [0.5, 0.5], pitch: 1.15 },
         { id: 'wall', name: '皇家肖像', at: [0.2, 0.5], yaw: Math.PI / 2, pitch: 0.12, eye: 1.85 }
       ]
+    },
+    'victorian-study': {
+      name: '维多利亚书房', en: 'Victorian Study', glb: 'assets/victorian_study.glb', lit: true,
+      credit: 'Victorian Study · 模型素材 Fox Dev（经授权使用）· 1:1 重建与贴图压缩 by Minest',
+      views: [
+        { id: 'room', name: '书房全景', at: [0.5, 0.82], yaw: 0, pitch: -0.05 },
+        { id: 'mid', name: '中央回望', at: [0.5, 0.35], yaw: Math.PI, pitch: -0.05 },
+        { id: 'up', name: '高处俯瞰', at: [0.5, 0.8], up: -1.2, yaw: 0, pitch: -0.6 },
+        { id: 'ceil', name: '仰望天花', at: [0.5, 0.5], pitch: 1.1 }
+      ]
     }
   };
   var q = new URLSearchParams(location.search), SC = SCENES[q.get('scene')] || SCENES['kings-hall'];
@@ -30,7 +40,8 @@
   document.body.prepend(renderer.domElement);
   var scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0a09);
   var camera = new THREE.PerspectiveCamera(66, 1, 0.05, 200); camera.rotation.order = 'YXZ';
-  scene.add(new THREE.HemisphereLight(0xfff6e8, 0x3a2e24, 1.0)); var key = new THREE.DirectionalLight(0xffe9c8, 0.6); key.position.set(2, 6, 3); scene.add(key);
+  scene.add(new THREE.HemisphereLight(0xfff6e8, 0x3a2e24, SC.lit ? 0.9 : 1.0)); var key = new THREE.DirectionalLight(0xffe9c8, SC.lit ? 0.9 : 0.6); key.position.set(2, 6, 3); scene.add(key);
+  if (SC.lit) { [[0, 4.6, 0], [-4.5, 3.2, -4.5], [4.5, 3.2, 4.5], [4.5, 3.2, -4.5], [-4.5, 3.2, 4.5]].forEach(function (p) { var l = new THREE.PointLight(0xffd9a6, 0.55, 14, 2); l.position.fromArray(p); scene.add(l); }); }   // warm lamps for a lit (PBR) room
   function resize() {
     var w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w < h ? 74 : 64; camera.updateProjectionMatrix();
     if (window.MinestFold) window.MinestFold.view(camera, w, h);
