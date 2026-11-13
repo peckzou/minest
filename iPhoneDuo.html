@@ -182586,6 +182586,51 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
   window.MinestInteriorsEntry = { open: chooser };
 })();
 </script>
+<style id="mn-type3d-style">
+.mn-type3d{position:fixed;inset:0;z-index:2147483560;background:#000}
+.mn-type3d[hidden]{display:none}
+.mn-type3d iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.mn-type3d-x{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:42px;height:42px;border-radius:50%;border:0;padding:11px;
+  color:#fff;background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 4px 12px rgba(0,0,0,.4);cursor:pointer}
+.mn-type3d-x svg{width:100%;height:100%;display:block}
+html.mn-type3d-on #minest-mini-pet-p0{visibility:hidden!important}
+</style>
+<script id="mn-type3d-run">
+/* 3D Type — seven 3D typing worlds as a Minest module (tools/type3d/patch_type3d.py) */
+(function () {
+  if (window.MinestType3D) return;
+  var ov = null, SITE = 'https://minest-app.vercel.app/';
+  function src(pick) { var q = pick ? '?pick=1' : ''; return (/^https?:$/.test(location.protocol) ? new URL('type3d/index.html', location.href).href : SITE + 'type3d/index.html') + q; }
+  function open(how) {
+    if (!ov) {
+      ov = document.createElement('div'); ov.className = 'mn-type3d'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', '3D Type');
+      var fr = document.createElement('iframe'); fr.title = '3D Type'; fr.setAttribute('allow', 'autoplay; fullscreen'); fr.src = src(how === 'pick');
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'mn-type3d-x'; x.setAttribute('aria-label', 'Close · 关闭'); x.title = '关闭';
+      x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      x.addEventListener('click', function (e) { e.stopPropagation(); close(); });
+      ov.appendChild(fr); ov.appendChild(x); document.body.appendChild(ov);
+      ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    }
+    else if (how === 'pick') { try { var w = ov.querySelector('iframe').contentWindow; if (w.T3DPicker) w.T3DPicker.open(); } catch (e) {} }
+    ov.hidden = false; document.documentElement.classList.add('mn-type3d-on');
+    try { ov.querySelector('iframe').focus(); } catch (e) {}
+  }
+  function close() { if (!ov || ov.hidden) return; ov.hidden = true; document.documentElement.classList.remove('mn-type3d-on');
+    try { var fr = ov.querySelector('iframe'); fr.src = 'about:blank'; ov.remove(); ov = null; } catch (e) {} }   // the worlds stop rendering when closed
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/><path d="M9.2 9.6h5.6M12 9.6v5.2" stroke-width="1.5"/></svg>';
+  function entry() {
+    var dock = document.querySelector('.mn-bdock'); if (!dock || dock.querySelector('[data-type3d-dock]')) return;
+    var t = document.createElement('button'); t.type = 'button'; t.className = 'mn-bapp mdk-tile'; t.setAttribute('data-type3d-dock', '');
+    t.title = '3D Type · 立体打字'; t.setAttribute('aria-label', '3D Type · 立体打字'); t.innerHTML = ICON;
+    t.addEventListener('click', function (e) { e.stopPropagation(); open(); });
+    dock.appendChild(t);
+  }
+  var q = 0;
+  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; entry(); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  entry();
+  window.MinestType3D = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.0.0' };
+})();
+</script>
 <style id="mn-spatial-home-css">
 /* Minest · Spatial Home — everything is scoped under #mn-sh (and the sh- ids), so it can live inside the Minest page. */
 #mn-sh, #sh-host, #sh-veil, #sh-pill { --sh-ink: #1d2b4f; --sh-blue: #2f6fd6; --sh-paper: #fbf7ee; --sh-glass: rgba(251, 247, 238, .82); --sh-line: rgba(29, 43, 79, .14); }
@@ -184997,13 +185042,109 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var dots = new VB(704); for (i = 0; i < 14; i++) dots.cb((dots.r() - 0.5) * 0.26, dots.r() * 0.34, (dots.r() - 0.5) * 0.26, 0.008, 0.008, 0.008, 'cyan');
     var dm = dots.mesh(MAT.holo(0.25), true); dm.position.y = 0.14; g.add(dm);
     var kk = 0;
+    /* 2026-11-13: the holo screen — your own words, typed in, always showing above the lens (seen from anywhere in the room) */
+    var HS = holoScreen(g);
     return {
       id: 'projector', name: '全息投影仪', en: 'Holo projector', icon: '🔮', feature: 'holo', anchor: 'cabinet.top', group: g,
-      hit: hitBox(g, -0.17, 0, -0.17, 0.17, 0.5, 0.17), label: [0, 0.6, 0],
-      focus: { pos: [1.55, 1.38, 1.2], look: [2.8, 1.02, 1.2] },
-      set: function (k) { kk = k; var e = ease(k); beam.material.opacity = 0.2 * e; hm.material.opacity = 0.85 * e; holo.scale.setScalar(0.25 + 0.95 * e); holo.position.y = 0.14 + 0.22 * e; dm.material.opacity = 0.25 + 0.5 * e; },
-      idle: function (t) { holo.rotation.y = t * (0.5 + kk * 0.8); dm.rotation.y = -t * 0.3; lens.material.opacity = 0.7 + 0.3 * Math.sin(t * 2.2); if (kk > 0) beam.material.opacity = 0.2 * ease(kk) * (0.86 + 0.14 * Math.sin(t * 17)); }
+      hit: hitBox(g, -0.17, 0, -0.17, 0.17, 0.62, 0.17), label: [0, 0.7, 0],
+      focus: { pos: [1.85, 1.3, 1.2], look: [2.8, 0.98, 1.2] },
+      panel: function (ctx) { return HS.edit(ctx && ctx.container); },
+      set: function (k) { kk = k; var e = ease(k), txt = HS.has(); beam.material.opacity = (txt ? 0.04 : 0) + (txt ? 0.06 : 0.2) * e; hm.material.opacity = txt ? 0 : 0.85 * e; holo.scale.setScalar(0.25 + 0.95 * e); holo.position.y = 0.14 + 0.22 * e; dm.material.opacity = 0.25 + 0.5 * e; },
+      idle: function (t) {
+        holo.rotation.y = t * (0.5 + kk * 0.8); dm.rotation.y = -t * 0.3; lens.material.opacity = 0.7 + 0.3 * Math.sin(t * 2.2);
+        var txt = HS.has(); if (kk > 0 || txt) beam.material.opacity = (txt ? 0.04 + 0.06 * ease(kk) : 0.2 * ease(kk)) * (0.86 + 0.14 * Math.sin(t * 17));
+        if (txt) hm.material.opacity = 0; else if (kk > 0) hm.material.opacity = 0.85 * ease(kk); HS.tick(t);
+      }
     };
+  }
+  /* the holo screen: a pane of light above the projector, text drawn on a canvas (cyan scanlines, a typing reveal when the
+     text changes). Kept on this device ('minest.holoScreen.v1'); the panel can fill it from today's board. */
+  var HKEY = 'minest.holoScreen.v1', HCOL = { cyan: [99, 230, 255], green: [125, 255, 176], amber: [255, 196, 99], violet: [196, 150, 255] };
+  function holoScreen(g) {
+    var st = { text: '', color: 'cyan' }; try { var raw = JSON.parse(localStorage.getItem(HKEY) || 'null'); if (raw && typeof raw.text === 'string') st = { text: raw.text.slice(0, 160), color: HCOL[raw.color] ? raw.color : 'cyan' }; } catch (e) {}
+    var cv = document.createElement('canvas'); cv.width = 640; cv.height = 400; var c = cv.getContext('2d');
+    var tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
+    var mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false });
+    var pane = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.2875), mat); pane.position.set(0, 0.42, 0.02); pane.rotation.x = -0.12; g.add(pane);
+    var shown = -1, revealFrom = 0, lastPaint = -1, t0 = 0;
+    function lines(text, font, maxW) {
+      c.font = font; var out = [];
+      String(text).split('\n').forEach(function (para) {
+        var cjk = /[\u3400-\u9fff]/.test(para), parts = cjk ? para.split('') : para.split(/(\s+)/), line = '';
+        parts.forEach(function (w) { var tt = line + w; if (c.measureText(tt).width > maxW && line) { out.push(line.trim()); line = w.replace(/^\s+/, ''); } else line = tt; });
+        out.push(line.trim());
+      });
+      return out;
+    }
+    function paint(t) {
+      var W = cv.width, H = cv.height, col = HCOL[st.color] || HCOL.cyan, rgb = col.join(',');
+      c.clearRect(0, 0, W, H);
+      c.strokeStyle = 'rgba(' + rgb + ',0.75)'; c.lineWidth = 4;                                   // corner brackets
+      [[14, 14, 1, 1], [W - 14, 14, -1, 1], [14, H - 14, 1, -1], [W - 14, H - 14, -1, -1]].forEach(function (q) { c.beginPath(); c.moveTo(q[0] + 46 * q[2], q[1]); c.lineTo(q[0], q[1]); c.lineTo(q[0], q[1] + 46 * q[3]); c.stroke(); });
+      c.fillStyle = 'rgba(3,14,22,0.62)'; c.fillRect(14, 14, W - 28, H - 28); c.fillStyle = 'rgba(' + rgb + ',0.08)'; c.fillRect(14, 14, W - 28, H - 28);
+      var text = st.text, n = Math.min(text.length, Math.floor((t - revealFrom) * 26)), vis = text.slice(0, Math.max(0, n));
+      var fs = 64, L; do { L = lines(text, '600 ' + fs + 'px -apple-system,"PingFang SC",sans-serif', W - 80); if (L.length * fs * 1.22 <= H - 70) break; fs -= 4; } while (fs > 20);
+      L = lines(vis, '600 ' + fs + 'px -apple-system,"PingFang SC",sans-serif', W - 80);
+      c.textAlign = 'center'; c.textBaseline = 'middle'; c.shadowColor = 'rgba(' + rgb + ',0.9)'; c.shadowBlur = 18; c.fillStyle = 'rgba(' + col.map(function (v) { return Math.min(255, v + 60); }).join(',') + ',1)';
+      var total = lines(text, c.font, W - 80).length, y0 = H / 2 - (total - 1) * fs * 0.61;
+      L.forEach(function (ln, i) { c.fillText(ln, W / 2, y0 + i * fs * 1.22); });
+      if (n < text.length && Math.floor(t * 4) % 2 === 0) { var last = L[L.length - 1] || ''; c.fillRect(W / 2 + c.measureText(last).width / 2 + 6, y0 + (L.length - 1) * fs * 1.22 - fs * 0.45, fs * 0.08, fs * 0.9); }
+      c.shadowBlur = 0; c.fillStyle = 'rgba(0,0,0,0.16)'; for (var y = (t * 40) % 6; y < H; y += 6) c.fillRect(14, y, W - 28, 2);   // scanlines
+      tex.needsUpdate = true;
+    }
+    function apply() { pane.visible = !!st.text; revealFrom = t0; shown = -1; }
+    function save() { try { localStorage.setItem(HKEY, JSON.stringify(st)); } catch (e) {} }
+    apply();
+    var api = {
+      has: function () { return !!st.text; },
+      tick: function (t) {
+        t0 = t; if (!st.text) return;
+        mat.opacity = 0.88 + 0.12 * Math.sin(t * 23) * Math.sin(t * 3.1);
+        var typing = (t - revealFrom) * 26 < st.text.length + 4;
+        if (t - lastPaint > (typing ? 0.04 : 0.12)) { lastPaint = t; paint(t); }
+        pane.position.y = 0.42 + Math.sin(t * 1.3) * 0.006;
+      },
+      set: function (text, color) { st.text = String(text || '').slice(0, 160); if (color && HCOL[color]) st.color = color; save(); apply(); },
+      /* the panel: type your own words (it shows live on the screen behind), or take today's word / chart / countdown */
+      edit: function (container) {
+        return new Promise(function (res) {
+          var box = document.createElement('div'); box.className = 'sh-holoed';
+          box.innerHTML = '<style>.sh-holoed{position:absolute;z-index:9;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(440px,calc(100% - 24px));padding:12px;border-radius:18px;background:rgba(10,22,34,.86);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(99,230,255,.35);color:#dff8ff;font:14px/1.4 -apple-system,"PingFang SC",sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35)}' +
+            '.sh-holoed b{font-size:14px}.sh-holoed textarea{width:100%;box-sizing:border-box;margin:8px 0;min-height:64px;resize:none;border-radius:12px;border:1px solid rgba(99,230,255,.4);background:rgba(0,0,0,.35);color:#eaffff;font:16px/1.35 -apple-system,"PingFang SC",sans-serif;padding:8px 10px}' +
+            '.sh-holoed .r{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.sh-holoed button{flex:1 1 auto;padding:8px 10px;border-radius:11px;border:1px solid rgba(99,230,255,.35);background:rgba(99,230,255,.1);color:#dff8ff;font:inherit;font-weight:600;cursor:pointer}' +
+            '.sh-holoed button.pri{background:#2fa6d6;border-color:transparent;color:#fff}.sh-holoed .c{flex:0 0 30px;height:30px;padding:0;border-radius:50%}.sh-holoed .c.on{box-shadow:0 0 0 2px #fff}.sh-holoed small{opacity:.65}<\/style>' +
+            '<b>🔮 全息屏</b> <small>打字就会显示在投影仪上方 · 最多 160 字</small><textarea maxlength="160" placeholder="在这里输入要投影的文字…"></textarea>' +
+            '<div class="r" data-r="fill"><button type="button" data-f="word">今日单词</button><button type="button" data-f="chart">今日 Anchor Chart</button><button type="button" data-f="exam">考试倒计时</button></div>' +
+            '<div class="r" data-r="col">' + Object.keys(HCOL).map(function (k) { return '<button type="button" class="c' + (k === st.color ? ' on' : '') + '" data-c="' + k + '" title="' + k + '" style="background:rgb(' + HCOL[k].join(',') + ')"></button>'; }).join('') + '<button type="button" data-a="clear">清空</button></div>' +
+            '<div class="r"><button type="button" data-a="holo">打开全息展示</button><button type="button" class="pri" data-a="done">✓ 好了</button></div>';
+          (container || document.body).appendChild(box);
+          var ta = box.querySelector('textarea'); ta.value = st.text;
+          ta.addEventListener('input', function () { api.set(ta.value); });
+          ['keydown', 'keyup', 'keypress'].forEach(function (k) { ta.addEventListener(k, function (e) { e.stopPropagation(); if (k === 'keydown' && e.key === 'Escape') finish(null); }); });
+          setTimeout(function () { try { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {} }, 60);
+          function finish(r) { box.remove(); res(r); }
+          function fill(kind) {
+            var E = root.SpatialEC6 && root.SpatialEC6._, txt = '';
+            try {
+              if (kind === 'word') { var w = E && E.wordState(); txt = w && w.card ? w.card.title + (w.card.meaning ? '\n' + w.card.meaning : '') : ''; if (!txt) return '今天还没有单词任务'; }
+              else if (kind === 'chart') { var subs = ['ela', 'math', 'sci', 'ss', 'other']; for (var i = 0; i < subs.length && !txt; i++) { var h = E && E.pick(subs[i]); if (h && h.k) txt = h.k.title; } if (!txt) return '今天还没有选 Anchor Chart'; }
+              else if (kind === 'exam') { var S = E && E.S(), d = E && E.daysLeft(); if (!S || !isFinite(d)) return '还没有设置考试日期'; txt = (S.exam && S.exam.name || '考试') + '\n还有 ' + d + ' 天'; }
+            } catch (e) { return '没能读到布告栏的数据'; }
+            ta.value = txt.slice(0, 160); api.set(ta.value); return '';
+          }
+          box.addEventListener('click', function (e) {
+            var b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+            if (b.dataset.f) { var msg = fill(b.dataset.f); if (msg) { b.textContent = msg; setTimeout(function () { b.textContent = { word: '今日单词', chart: '今日 Anchor Chart', exam: '考试倒计时' }[b.dataset.f]; }, 1800); } return; }
+            if (b.dataset.c) { st.color = b.dataset.c; save(); apply(); [].forEach.call(box.querySelectorAll('.c'), function (x) { x.classList.toggle('on', x === b); }); return; }
+            if (b.dataset.a === 'clear') { ta.value = ''; api.set(''); return; }
+            if (b.dataset.a === 'holo') { finish({ feature: 'holo' }); return; }
+            if (b.dataset.a === 'done') finish(null);
+          });
+          ['pointerdown', 'touchstart', 'wheel'].forEach(function (k) { box.addEventListener(k, function (e) { e.stopPropagation(); }, { passive: true }); });
+        });
+      }
+    };
+    return api;
   }
 
   /* ---------------------------------------------------------------- magic ornament: a little world under glass, a ring round it */
@@ -188983,51 +189124,6 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   if (document.readyState === 'complete') setTimeout(boot, 300); else window.addEventListener('load', function () { setTimeout(boot, 300); }, { once: true });
 })();
 
-</script>
-<style id="mn-type3d-style">
-.mn-type3d{position:fixed;inset:0;z-index:2147483560;background:#000}
-.mn-type3d[hidden]{display:none}
-.mn-type3d iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
-.mn-type3d-x{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:42px;height:42px;border-radius:50%;border:0;padding:11px;
-  color:#fff;background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 4px 12px rgba(0,0,0,.4);cursor:pointer}
-.mn-type3d-x svg{width:100%;height:100%;display:block}
-html.mn-type3d-on #minest-mini-pet-p0{visibility:hidden!important}
-</style>
-<script id="mn-type3d-run">
-/* 3D Type — seven 3D typing worlds as a Minest module (tools/type3d/patch_type3d.py) */
-(function () {
-  if (window.MinestType3D) return;
-  var ov = null, SITE = 'https://minest-app.vercel.app/';
-  function src(pick) { var q = pick ? '?pick=1' : ''; return (/^https?:$/.test(location.protocol) ? new URL('type3d/index.html', location.href).href : SITE + 'type3d/index.html') + q; }
-  function open(how) {
-    if (!ov) {
-      ov = document.createElement('div'); ov.className = 'mn-type3d'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', '3D Type');
-      var fr = document.createElement('iframe'); fr.title = '3D Type'; fr.setAttribute('allow', 'autoplay; fullscreen'); fr.src = src(how === 'pick');
-      var x = document.createElement('button'); x.type = 'button'; x.className = 'mn-type3d-x'; x.setAttribute('aria-label', 'Close · 关闭'); x.title = '关闭';
-      x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-      x.addEventListener('click', function (e) { e.stopPropagation(); close(); });
-      ov.appendChild(fr); ov.appendChild(x); document.body.appendChild(ov);
-      ['pointerdown', 'touchstart', 'wheel', 'keydown', 'click'].forEach(function (t) { ov.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
-    }
-    else if (how === 'pick') { try { var w = ov.querySelector('iframe').contentWindow; if (w.T3DPicker) w.T3DPicker.open(); } catch (e) {} }
-    ov.hidden = false; document.documentElement.classList.add('mn-type3d-on');
-    try { ov.querySelector('iframe').focus(); } catch (e) {}
-  }
-  function close() { if (!ov || ov.hidden) return; ov.hidden = true; document.documentElement.classList.remove('mn-type3d-on');
-    try { var fr = ov.querySelector('iframe'); fr.src = 'about:blank'; ov.remove(); ov = null; } catch (e) {} }   // the worlds stop rendering when closed
-  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/><path d="M9.2 9.6h5.6M12 9.6v5.2" stroke-width="1.5"/></svg>';
-  function entry() {
-    var dock = document.querySelector('.mn-bdock'); if (!dock || dock.querySelector('[data-type3d-dock]')) return;
-    var t = document.createElement('button'); t.type = 'button'; t.className = 'mn-bapp mdk-tile'; t.setAttribute('data-type3d-dock', '');
-    t.title = '3D Type · 立体打字'; t.setAttribute('aria-label', '3D Type · 立体打字'); t.innerHTML = ICON;
-    t.addEventListener('click', function (e) { e.stopPropagation(); open(); });
-    dock.appendChild(t);
-  }
-  var q = 0;
-  new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; entry(); }); }).observe(document.documentElement, { childList: true, subtree: true });
-  entry();
-  window.MinestType3D = { open: open, close: close, isOpen: function () { return !!(ov && !ov.hidden); }, version: '1.0.0' };
-})();
 </script>
 </body>
 </html>
