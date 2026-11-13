@@ -172579,8 +172579,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   var loaderP = null;
   function gltfLoader() {
-    if (THREE.GLTFLoader) return Promise.resolve();
-    if (!loaderP) loaderP = new Promise(function (res, rej) { var s = document.createElement('script'); s.src = siteBase() + 'vendor/GLTFLoader.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+    if (THREE.GLTFLoader && root.MeshoptDecoder) return Promise.resolve();
+    function add(src) { return new Promise(function (res, rej) { var s = document.createElement('script'); s.src = siteBase() + src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+    if (!loaderP) loaderP = Promise.all([THREE.GLTFLoader ? null : add('vendor/GLTFLoader.js'), root.MeshoptDecoder ? null : add('vendor/meshopt_decoder.js')]);   // the scans ship meshopt-compressed
     return loaderP;
   }
   function raw(attr, i, c) {
@@ -173186,7 +173187,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (def.chandelier) chandelier(g, def.chandelier[0], def.chandelier[1], def.chandelier[2]);                                   // the whole hall can be walked; the model's own obstacles stop you
 
       gltfLoader().then(function () {
-        new THREE.GLTFLoader().load(siteBase() + def.glb, function (gl) {
+        var GL = new THREE.GLTFLoader(); if (root.MeshoptDecoder && GL.setMeshoptDecoder) GL.setMeshoptDecoder(root.MeshoptDecoder);
+        GL.load(siteBase() + def.glb, function (gl) {
           if (!holder.parent) return;                                   // the room was switched away while loading
           var m = gl.scene; m.position.fromArray(def.offset); m.rotation.y = def.ry || 0;
           m.traverse(function (o) { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.receiveShadow = !!def.lit; if (o.material.map) o.material.map.anisotropy = 4; } });

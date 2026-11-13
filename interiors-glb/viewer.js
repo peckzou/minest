@@ -8,7 +8,7 @@
   var SCENES = {
     'kings-hall': {
       name: '斯科克洛斯特城堡 · 国王大厅', en: "The King's Hall · Skokloster Castle", glb: 'assets/kings_hall.glb', unlit: true,
-      credit: 'The King’s Hall, Skokloster Castle (Scan by Erik Lernestål) · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · 压缩为 4K 贴图与简化网格',
+      credit: 'The King’s Hall, Skokloster Castle (Scan by Erik Lernestål) · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · 完整网格与 8K 贴图（WebP + meshopt 压缩）',
       views: [
         { id: 'hall', name: '大厅全景', at: [0.5, 0.2], yaw: Math.PI, pitch: -0.04 },          // at = fractions of the floor box (x, z)
         { id: 'over', name: '空间俯瞰', at: [0.5, 0.22], up: -1.15, yaw: Math.PI, pitch: -0.55 },          // up < 0: below the ceiling
@@ -149,7 +149,7 @@
   loop();
 
   /* ---------- load ---------- */
-  var loader = new THREE.GLTFLoader();
+  var loader = new THREE.GLTFLoader(); if (window.MeshoptDecoder && loader.setMeshoptDecoder) loader.setMeshoptDecoder(window.MeshoptDecoder);
   loader.load(SC.glb, function (gl) {
     var root = gl.scene; scene.add(root);
     root.traverse(function (m) { if (!m.isMesh || !m.material) return; m.material.side = THREE.DoubleSide;   // scans are not wound consistently; seen from inside, a wall must not vanish
