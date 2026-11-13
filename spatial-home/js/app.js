@@ -503,7 +503,8 @@
       if (m === a) P.x = x0; else if (m === c) P.x = x1; else if (m === d) P.z = z0; else P.z = z1;
     });
     XS.forEach(function (x) {                                                     // furniture you placed stands in the way too
-      if (x.place !== 'floor' || !x.hit) return; _xb.setFromObject(x.hit); if (_xb.max.y - _xb.min.y < 0.15) return;   // a rug is walked on var x0 = _xb.min.x - RAD, z0 = _xb.min.z - RAD, x1 = _xb.max.x + RAD, z1 = _xb.max.z + RAD;
+      if (x.place !== 'floor' || !x.hit) return; _xb.setFromObject(x.hit); if (_xb.max.y - _xb.min.y < 0.15) return;   // a rug is walked on
+      var x0 = _xb.min.x - RAD, z0 = _xb.min.z - RAD, x1 = _xb.max.x + RAD, z1 = _xb.max.z + RAD;
       if (P.x <= x0 || P.x >= x1 || P.z <= z0 || P.z >= z1) return;
       var a = P.x - x0, c = x1 - P.x, d = P.z - z0, f = z1 - P.z, m = Math.min(a, c, d, f);
       if (m === a) P.x = x0; else if (m === c) P.x = x1; else if (m === d) P.z = z0; else P.z = z1;
@@ -516,6 +517,7 @@
     var d = e.detail || {}; if (!room || room.envId !== d.env) return;
     var L = layout();
     if (!L.furnished) { L.extras = (L.extras || []).concat((d.items || []).filter(function (it) { return !(L.extras || []).some(function (x) { return x.uid === it.uid; }); })); L.furnished = 1; saveLayout(room.envId, L); }
+    if (room.upgrade && (L.up | 0) < room.upgrade.v) { try { room.upgrade.fn(L); } catch (er) {} L.up = room.upgrade.v; saveLayout(room.envId, L); }   // the room's own refurnishing, once
     buildExtras(); rebuildHits();
   });
   function move(dt) {
@@ -610,7 +612,15 @@
       o.group.position.set(p[0], p[1], p[2]); o.group.rotation.y = ry; o.stashed = l ? !!l.stashed : !!o.startStashed; o.group.visible = !o.stashed;   // some things start in the backpack
       o.chip.classList.toggle('stashed', o.stashed); settle(o);
     });
-    rebuildHits(); buildExtras(); refreshHotbar();
+    rebuildHits(); buildExtras(); refreshHotbar(); dress();
+  }
+  /* a room can dress the things in its own style (env-glb.js: the Victorian Study's screen for the board, a cabinet for
+     the aquarium); the things themselves are unchanged, the dress comes off when the room changes */
+  var DRESSED = [];
+  function dress() {
+    DRESSED.forEach(function (d) { if (d.parent) d.parent.remove(d); try { window.SpatialRoom.disposeTree(d); } catch (e) {} }); DRESSED = [];
+    if (!room.dress) return;
+    objects.forEach(function (o) { var f = room.dress[o.id]; if (!f) return; try { var r = f(o); if (r && r.group) { r.group.name = 'dress-' + o.id; o.group.add(r.group); DRESSED.push(r.group); } } catch (e) { if (window.console) console.warn('Spatial Home: dressing ' + o.id, e); } });
   }
 
   /* ---- display furniture, works, machines and collection things set out in the room (instances: layout().extras)
