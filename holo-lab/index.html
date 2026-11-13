@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#02060d">
+<title>全息文字操作台 · Holo Type Lab</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --glass: rgba(6,18,34,.66); --line: rgba(120,214,255,.26); --ink: #e8f8ff; --dim: rgba(200,232,255,.66); --cy: #6fe3ff; --cy2: #2bb8ff; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #02060d; color: var(--ink);
+    font: 14px/1.35 -apple-system, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
+    touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+  #scan { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .5; mix-blend-mode: screen;
+    background: repeating-linear-gradient(to bottom, rgba(110,220,255,.045) 0 1px, transparent 1px 3px); }
+  #scan.off { display: none; }
+  #vig { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(0,0,0,.55)); }
+  .glass { background: var(--glass); border: 1px solid var(--line); -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.25), 0 6px 24px rgba(0,0,0,.35), inset 0 0 18px rgba(80,200,255,.06); }
+  button, select, input, textarea { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+  button { cursor: pointer; }
+  .hud { position: fixed; z-index: 5; }
+  #back { top: calc(env(safe-area-inset-top) + 10px); left: calc(env(safe-area-inset-left) + 10px); border-radius: 999px; padding: 8px 14px; font-weight: 650; }
+  #gear { top: calc(env(safe-area-inset-top) + 10px); right: calc(env(safe-area-inset-right) + 10px); border-radius: 999px; padding: 8px 12px; font-weight: 650; }
+  #title { position: fixed; z-index: 4; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; max-width: 60vw; }
+  #title b { display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 750; letter-spacing: .04em; white-space: nowrap; color: #dff7ff; text-shadow: 0 0 10px rgba(80,210,255,.7); }
+  #title small { display: block; margin-top: 4px; color: var(--dim); font-size: 11px; text-shadow: 0 1px 2px #000; white-space: nowrap; }
+  #sample { display: none; margin: 6px auto 0; padding: 5px 10px; border-radius: 10px; font-size: 11.5px; font-weight: 650; pointer-events: none;
+    background: rgba(255,196,64,.92); color: #231500; box-shadow: 0 2px 10px rgba(0,0,0,.35); max-width: 300px; }
+  #sample.on { display: inline-block; }
+  #dock { position: fixed; z-index: 5; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 10px);
+    display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(96vw, 820px); pointer-events: none; }
+  #tools { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding: 6px; border-radius: 14px; pointer-events: auto; scrollbar-width: none; }
+  #tools::-webkit-scrollbar { display: none; }
+  #tools:empty { display: none; }
+  #tools .sep { width: 1px; align-self: stretch; background: var(--line); margin: 2px 2px; flex: none; }
+  #tools .lab { color: var(--dim); font-size: 11.5px; white-space: nowrap; flex: none; padding-left: 2px; }
+  .chip { flex: none; border: 1px solid var(--line); background: rgba(40,120,170,.16); border-radius: 999px; padding: 6px 11px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .chip.on { background: rgba(111,227,255,.9); color: #021623; border-color: transparent; box-shadow: 0 0 14px rgba(111,227,255,.55); }
+  .chip:disabled { opacity: .4; }
+  #tools select { flex: none; max-width: 170px; border: 1px solid var(--line); background: rgba(4,20,36,.9); border-radius: 10px; padding: 5px 8px; font-size: 12.5px; }
+  #modes { display: flex; gap: 4px; padding: 5px; border-radius: 18px; pointer-events: auto; }
+  #modes button { border: 0; background: none; border-radius: 13px; padding: 7px 12px; display: flex; flex-direction: column; align-items: center; min-width: 74px; }
+  #modes button b { font-size: 13.5px; font-weight: 750; white-space: nowrap; }
+  #modes button small { font-size: 10px; color: var(--dim); letter-spacing: .04em; white-space: nowrap; }
+  #modes button.on { background: linear-gradient(180deg, rgba(111,227,255,.95), rgba(43,184,255,.85)); color: #021623; box-shadow: 0 0 18px rgba(111,227,255,.5); }
+  #modes button.on small { color: rgba(2,22,35,.7); }
+  #info { position: fixed; z-index: 5; left: 50%; transform: translateX(-50%); padding: 7px 12px; border-radius: 12px; font-size: 12.5px; max-width: 92vw; text-align: center;
+    pointer-events: none; opacity: 0; transition: opacity .25s; }
+  #info.on { opacity: 1; }
+  #detail { position: fixed; z-index: 6; top: calc(env(safe-area-inset-top) + 58px); right: calc(env(safe-area-inset-right) + 10px); width: 340px; max-height: calc(100% - 200px);
+    border-radius: 18px; padding: 14px 14px 12px; display: none; flex-direction: column; gap: 8px; overflow: hidden; -webkit-user-select: text; user-select: text; }
+  #detail.on { display: flex; animation: din .28s ease-out; }
+  @keyframes din { from { opacity: 0; transform: translateX(16px) scale(.98); } to { opacity: 1; transform: none; } }
+  #detail .k { display: flex; gap: 6px; align-items: center; font-size: 11.5px; color: var(--dim); }
+  #detail .k i { font-style: normal; padding: 2px 8px; border-radius: 999px; background: rgba(111,227,255,.18); color: var(--cy); font-weight: 700; letter-spacing: .03em; }
+  #detail .k span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #detail .k button { border: 0; background: none; font-size: 18px; line-height: 1; padding: 0 2px; color: var(--dim); }
+  #detail h3 { margin: 0; font-size: 21px; line-height: 1.2; color: #f2fbff; text-shadow: 0 0 12px rgba(90,210,255,.45); word-break: break-word; }
+  #detail .tx { overflow-y: auto; font-size: 14px; color: rgba(225,244,255,.9); white-space: pre-wrap; word-break: break-word; max-height: 40vh; }
+  #detail .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  #detail .tags span { font-size: 11px; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,.08); color: var(--dim); }
+  #detail .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  #detail .acts button { border: 1px solid var(--line); background: rgba(40,120,170,.2); border-radius: 10px; padding: 7px 11px; font-weight: 650; font-size: 13px; }
+  #detail .acts button.pri { background: rgba(111,227,255,.92); color: #021623; border-color: transparent; }
+  #detail input, #detail textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--line); background: rgba(2,14,26,.85); border-radius: 10px; padding: 8px 10px; color: var(--ink); }
+  #detail input { font-size: 17px; font-weight: 700; }
+  #detail textarea { min-height: 110px; resize: vertical; font-size: 14px; }
+  #detail .note { font-size: 11.5px; color: var(--dim); }
+  #detail .sub { font-size: 11.5px; color: var(--dim); }
+  #settings { position: fixed; z-index: 7; top: calc(env(safe-area-inset-top) + 54px); right: calc(env(safe-area-inset-right) + 10px); width: 250px; border-radius: 16px; padding: 12px 14px; display: none; }
+  #settings.on { display: block; }
+  #settings h4 { margin: 0 0 8px; font-size: 13px; }
+  #settings label { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13px; border-top: 1px solid rgba(255,255,255,.06); }
+  #settings input[type=range] { width: 110px; accent-color: var(--cy); }
+  #settings input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--cy); }
+  #settings button { margin-top: 8px; width: 100%; border: 1px solid var(--line); background: rgba(255,90,90,.12); border-radius: 10px; padding: 7px; font-size: 12.5px; }
+  #empty { position: fixed; z-index: 3; left: 50%; top: 40%; transform: translate(-50%, -50%); text-align: center; padding: 14px 20px; border-radius: 16px; display: none; max-width: 80vw; pointer-events: none; }
+  #empty.on { display: block; }
+  #empty b { display: block; font-size: 16px; margin-bottom: 4px; color: #dff7ff; }
+  #empty small { color: var(--dim); }
+  #boot { position: fixed; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 22vh; gap: 8px;
+    background: radial-gradient(ellipse at 50% 60%, rgba(0,30,60,.0), rgba(0,0,0,.35)); cursor: pointer; transition: opacity .5s; }
+  #boot.off { opacity: 0; pointer-events: none; }
+  #boot b { font-size: 18px; letter-spacing: .12em; color: #bff0ff; text-shadow: 0 0 14px rgba(80,210,255,.9); animation: pulse 1.6s ease-in-out infinite; }
+  #boot small { color: var(--dim); letter-spacing: .08em; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  #toast { position: fixed; z-index: 9; left: 50%; top: 22%; transform: translate(-50%, -50%) scale(.96); padding: 11px 16px; border-radius: 14px;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; text-align: center; max-width: 82vw; font-weight: 600; }
+  #toast.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #stats { position: fixed; z-index: 9; left: 10px; top: 60px; font: 11px/1.3 ui-monospace, Menlo, monospace; color: #9f9; background: rgba(0,0,0,.6); padding: 4px 6px; border-radius: 6px; display: none; white-space: pre; pointer-events: none; }
+  @media (max-width: 640px) {
+    #title { top: calc(env(safe-area-inset-top) + 54px); left: calc(env(safe-area-inset-left) + 10px); transform: none; text-align: left; max-width: calc(100vw - 20px); }
+    #title b { padding: 5px 10px; font-size: 13px; } #title small { display: none; } #sample { font-size: 10.5px; max-width: 240px; }
+    #modes button { min-width: 0; padding: 6px 8px; } #modes button b { font-size: 12.5px; } #modes button small { font-size: 9px; }
+    #detail { left: calc(env(safe-area-inset-left) + 8px); right: calc(env(safe-area-inset-right) + 8px); width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom) + 8px); max-height: 52%; z-index: 7; }
+    #detail h3 { font-size: 19px; }
+    #detail .tx { max-height: 22vh; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0" aria-label="全息文字操作台 3D 场景 · Holographic typography lab 3D scene"></canvas>
+<div id="scan"></div><div id="vig"></div>
+<button id="back" class="hud glass" type="button">⟵ 返回</button>
+<button id="gear" class="hud glass" type="button" aria-label="设置 Settings">⚙︎</button>
+<div id="title"><b class="glass">全息文字操作台 · Holo Type Lab</b><small id="sub">Minest · 用手指操作空中的文字 · Touch the light</small><div id="sample">示例内容 · 从 Spatial Home 或 My World 进入可显示你的数据</div></div>
+<div id="settings" class="glass">
+  <h4>设置 Settings</h4>
+  <label>亮度 Brightness <input id="sBright" type="range" min="0.5" max="1.5" step="0.05"></label>
+  <label>扫描线 Scanlines <input id="sScan" type="checkbox"></label>
+  <label>减少动态 Reduce motion <input id="sReduce" type="checkbox"></label>
+  <button id="sReset" type="button">重置布局 Reset layout</button>
+</div>
+<div id="empty" class="glass"><b id="emptyT"></b><small id="emptyS"></small></div>
+<div id="info" class="glass"></div>
+<div id="dock"><div id="tools" class="glass"></div><div id="modes" class="glass"></div></div>
+<div id="detail" class="glass" role="dialog" aria-label="详情 Detail"></div>
+<div id="boot"><b>轻触启动全息台</b><small>TAP TO BOOT · 再次轻触可跳过</small></div>
+<div id="toast" class="glass"></div>
+<div id="stats"></div>
+<script src="../vendor/three.min.js"></script>
+<script src="core.js"></script>
+<script src="modes.js"></script>
+<script>HL.start();</script>
+</body>
+</html>
