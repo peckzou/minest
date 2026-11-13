@@ -66,6 +66,9 @@
   camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
   function wview() { if (window.SpatialViews) window.SpatialViews.apply(scene, room, (S.wviews || {})[room.envId] || 'auto'); }
   wview();
+  /* a room can move its home view (room.startV): the saved pose there is dropped once, so the new view is what you see */
+  function freshPose(env) { var v = room.startV | 0; if (!v) return; S.poseV = S.poseV || {}; if ((S.poseV[env] | 0) >= v) return; S.poseV[env] = v; if (S.poses) delete S.poses[env]; if (S.env === env) S.pose = null; }
+  freshPose(room.envId);
   if (S.poses && S.poses[room.envId]) S.pose = S.poses[room.envId];
   var EYE = 1.5, RAD = 0.24;
 
@@ -1114,6 +1117,7 @@
       room.dispose(); window.SpatialRoom.parts.deskStyle(S.deskStyle); room = window.SpatialRoom.build(scene, id);
       camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod); wview();
       placeAll();
+      freshPose(room.envId);
       var sp = S.poses && S.poses[room.envId];
       if (sp && isFinite(sp.x) && inArea(sp.x, sp.z)) { P.x = sp.x; P.z = sp.z; P.yaw = sp.yaw; P.pitch = sp.pitch || 0; }
       else { P.x = room.start.pos[0]; P.z = room.start.pos[2]; P.yaw = room.start.yaw; P.pitch = room.start.pitch; }

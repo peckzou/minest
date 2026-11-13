@@ -175497,7 +175497,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
      falls in a cut box [x0, y0, z0, x1, y1, z1] (room coordinates) — the floor under it stays */
   function cut(model, boxes) {
     if (!boxes || !boxes.length) return; model.updateMatrixWorld(true);
-    var A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
+    var A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), q7 = boxes.some(function (q) { return q[6]; });
     model.traverse(function (m) {
       if (!m.isMesh) return; if (!m.geometry.index) { var nIdx = []; for (var ii = 0; ii < m.geometry.attributes.position.count; ii++) nIdx.push(ii); m.geometry.setIndex(nIdx); }
       var g = m.geometry, pos = g.attributes.position, idx = g.index, M = m.matrixWorld, keep = [];
@@ -175505,10 +175505,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       for (var k = 0; k + 2 < idx.count; k += 3) {
         var a = idx.getX(k), b = idx.getX(k + 1), c = idx.getX(k + 2); get(a, A); get(b, B); get(c, C);
         var x = (A.x + B.x + C.x) / 3, y = (A.y + B.y + C.y) / 3, z = (A.z + B.z + C.z) / 3;
-        if (boxes.some(function (q) { return x > q[0] && x < q[3] && y > q[1] && y < q[4] && z > q[2] && z < q[5]; })) continue;
+        var e = q7 ? Math.max(A.distanceTo(B), B.distanceTo(C), C.distanceTo(A)) : 0;
+        if (boxes.some(function (q) { return x > q[0] && x < q[3] && y > q[1] && y < q[4] && z > q[2] && z < q[5] && !(q[6] && e > q[6]); })) continue;   // q[6]: only pieces smaller than this (keeps the wall behind a bookcase)
         keep.push(a, b, c);
       }
-      if (keep.length !== idx.count) g.setIndex(keep);
+      if (keep.length !== idx.count) g.setIndex(keep);   // its own copy: a model's rooms may share one geometry (the study's four quadrants do)
     });
   }
   /* window glass out of a scan: inside each box, drop only the triangles whose texture is near-white (the blown-out
@@ -175531,7 +175532,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         }
         keep.push(a, b, c);
       }
-      if (keep.length !== idx.count) g.setIndex(keep);
+      if (keep.length !== idx.count) g.setIndex(keep);   // its own copy: a model's rooms may share one geometry (the study's four quadrants do)
     });
   }
   /* the royal garden outside the King's Hall windows (both sides): a sky, lawns, a broderie parterre with box hedges,
@@ -175971,11 +175972,58 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var mer = new THREE.Mesh(new THREE.TorusGeometry(0.122, 0.006, 6, 40), brass); mer.position.y = 0.27; mer.rotation.y = Math.PI / 2; mer.rotation.x = 0.41; g.add(mer);
     return { group: g, ball: ball };
   }
+  /* v4: one carpet, wall to wall — the study's own Persian design (rugTexture: a red field with a lattice of small
+     lozenges, a navy border with gold guards and a vine of red and ivory beads, a navy-gold-red medallion, navy spandrels)
+     drawn at room size. Built in pieces so it stays sharp underfoot: the field is a repeated tile, the border a repeated
+     band, the medallion and the corners are their own pieces. */
+  function roomCarpet(holder, cx, cz, hw, hd) {
+    var g = new THREE.Group(); g.position.set(cx, 0, cz); holder.add(g); var tex = [], mats = [], i, j;
+    var C = { navy: '#1c2340', red: '#7a1c22', rose: '#a8323a', gold: '#c99a4a', goldL: '#d9b46a', ivory: '#f0e2c0', green: '#2f5a3a' };
+    function cv(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+    function wool(x, w, h) { var im = x.getImageData(0, 0, w, h), D = im.data; for (var k = 0; k < D.length; k += 4) { if (D[k + 3] < 8) continue; var n = (Math.random() - 0.5) * 18 - (((k / 4 / w) | 0) % 3 === 0 ? 6 : 0); D[k] += n; D[k + 1] += n; D[k + 2] += n; } x.putImageData(im, 0, 0); }
+    function texOf(c, rx, ry) { var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 16; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); tex.push(t); return t; }
+    function plane(w, d, t, y, ox, oz, rz, transparent) { var m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.95, metalness: 0, transparent: !!transparent, polygonOffset: true, polygonOffsetFactor: -1 - y * 400, polygonOffsetUnits: -1 });
+      mats.push(m); var me = new THREE.Mesh(new THREE.PlaneGeometry(w, d), m); me.rotation.x = -Math.PI / 2; me.rotation.z = rz || 0; me.position.set(ox || 0, y, oz || 0); me.receiveShadow = true; g.add(me); return me; }
+    /* the field tile: 0.5 m, a lozenge in a lozenge with a navy heart (as on the study's rugs) */
+    var T = 256, f = cv(T, T), x = f.getContext('2d');
+    x.fillStyle = C.red; x.fillRect(0, 0, T, T);
+    function dia(px, py, r, col, lw) { x.strokeStyle = col; x.lineWidth = lw; x.beginPath(); x.moveTo(px - r, py); x.lineTo(px, py - r); x.lineTo(px + r, py); x.lineTo(px, py + r); x.closePath(); x.stroke(); }
+    [[T / 4, T / 4], [3 * T / 4, 3 * T / 4]].forEach(function (q) { dia(q[0], q[1], 30, 'rgba(217,120,110,.75)', 7); x.fillStyle = 'rgba(28,35,64,.85)'; x.beginPath(); x.moveTo(q[0] - 11, q[1]); x.lineTo(q[0], q[1] - 11); x.lineTo(q[0] + 11, q[1]); x.lineTo(q[0], q[1] + 11); x.fill(); });
+    wool(x, T, T);
+    var BW = 0.95, FW = 2 * (hw - BW), FD = 2 * (hd - BW);
+    plane(FW + 0.02, FD + 0.02, texOf(f, FW / 0.5, FD / 0.5), 0.006);
+    /* the border band: navy, gold and ivory guards, a red line, the vine of beads (1 m of it per repeat) */
+    var bw = 1024, bh = 256, b = cv(bw, bh), y = b.getContext('2d');
+    y.fillStyle = C.navy; y.fillRect(0, 0, bw, bh);
+    y.fillStyle = C.goldL; y.fillRect(0, 10, bw, 10); y.fillStyle = C.rose; y.fillRect(0, 30, bw, 7);
+    y.fillStyle = C.ivory; y.fillRect(0, bh - 46, bw, 6); y.fillStyle = C.goldL; y.fillRect(0, bh - 30, bw, 12);
+    y.strokeStyle = C.goldL; y.lineWidth = 7; y.beginPath();
+    for (j = 0; j <= 256; j++) { var t1 = j / 256, vx = t1 * bw, vy = bh * 0.52 + Math.sin(t1 * 6.283 * 4) * 30; if (j) y.lineTo(vx, vy); else y.moveTo(vx, vy); } y.stroke();
+    for (i = 0; i < 32; i++) { var t2 = (i + 0.5) / 32, px2 = t2 * bw, py2 = bh * 0.52 + Math.sin(t2 * 6.283 * 4) * 30 + (i % 2 ? -14 : 14); y.fillStyle = i % 2 ? C.rose : C.ivory; y.beginPath(); y.arc(px2, py2, 12, 0, 6.3); y.fill(); }
+    wool(y, bw, bh);
+    [[0, -hd + BW / 2, 2 * hw, 0], [0, hd - BW / 2, 2 * hw, Math.PI], [-hw + BW / 2, 0, 2 * hd, -Math.PI / 2], [hw - BW / 2, 0, 2 * hd, Math.PI / 2]].forEach(function (q) {
+      plane(q[2], BW, texOf(b, q[2] / 3.7, 1), 0.008, q[0], q[1], q[3]); });
+    /* the medallion and the four spandrels, on a transparent sheet over the field */
+    var M = 2048, md = cv(M, M), z = md.getContext('2d'), mc = M / 2; z.clearRect(0, 0, M, M);
+    function loz(rx, ry, col) { z.fillStyle = col; z.beginPath(); z.moveTo(mc - rx, mc); z.quadraticCurveTo(mc - rx * 0.3, mc - ry * 0.35, mc, mc - ry); z.quadraticCurveTo(mc + rx * 0.3, mc - ry * 0.35, mc + rx, mc); z.quadraticCurveTo(mc + rx * 0.3, mc + ry * 0.35, mc, mc + ry); z.quadraticCurveTo(mc - rx * 0.3, mc + ry * 0.35, mc - rx, mc); z.fill(); }
+    loz(940, 660, C.gold); loz(880, 600, C.navy); loz(660, 440, C.rose); loz(400, 270, C.ivory); loz(280, 184, C.green); loz(120, 80, C.goldL);
+    for (i = 0; i < 20; i++) { var an = i / 20 * Math.PI * 2; z.fillStyle = i % 2 ? C.goldL : C.ivory; z.beginPath(); z.arc(mc + Math.cos(an) * 530, mc + Math.sin(an) * 350, 22, 0, 6.3); z.fill(); }
+    wool(z, M, M);
+    plane(6.4, 6.4, texOf(md, 1, 1), 0.01, 0, 0, 0, true);
+    var sp = cv(512, 512), w2 = sp.getContext('2d'); w2.clearRect(0, 0, 512, 512);
+    w2.fillStyle = C.navy; w2.beginPath(); w2.moveTo(0, 0); w2.lineTo(512, 0); w2.quadraticCurveTo(240, 240, 0, 360); w2.fill();
+    w2.fillStyle = C.gold; w2.beginPath(); w2.moveTo(0, 0); w2.lineTo(320, 0); w2.quadraticCurveTo(140, 140, 0, 220); w2.fill();
+    w2.fillStyle = C.navy; w2.beginPath(); w2.moveTo(0, 0); w2.lineTo(200, 0); w2.quadraticCurveTo(80, 80, 0, 130); w2.fill();
+    wool(w2, 512, 512);
+    var spT = texOf(sp, 1, 1), SS = 2.6;
+    [[-1, -1, 0], [1, -1, -Math.PI / 2], [1, 1, Math.PI], [-1, 1, Math.PI / 2]].forEach(function (q) { plane(SS, SS, spT, 0.01, q[0] * (FW / 2 - SS / 2), q[1] * (FD / 2 - SS / 2), q[2], true); });
+    return function () { tex.forEach(function (t) { t.dispose(); }); mats.forEach(function (m) { m.dispose(); }); g.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); holder.remove(g); };
+  }
   function victorianFinish(ctx) {
     var holder = ctx.holder, model = ctx.model, scene = ctx.scene, R = SR.renderer, parts = [], lights = [];
     var rug = rugTexture(), rugM = new THREE.MeshStandardMaterial({ map: rug, roughness: 0.95, metalness: 0 });
     ctx.templates.forEach(function (t) { if (!/Rug/.test(t.node || '')) return; t.group.traverse(function (o) { if (o.isMesh) { o.geometry = o.geometry.clone(); rugUV(o.geometry); o.material = rugM; } }); });
-    var ceilDispose = cofferedCeiling(holder);
+    var ceilDispose = cofferedCeiling(holder), carpetDispose = roomCarpet(holder, 0, -5.1, 7.75, 7.7);
     /* reflections: a small warm room rendered once into an environment map */
     var envTex = null;
     if (R && THREE.PMREMGenerator) {
@@ -175995,7 +176043,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var flames = []; for (var i = 0; i < 9; i++) { var fm = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.5), new THREE.MeshBasicMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide })); fm.position.set((i - 4) * 0.065, 0.27, (i % 3 - 1) * 0.06); fm.rotation.y = (i % 3 - 1) * 0.5; fire.add(fm); flames.push(fm); }
     var fireL = new THREE.PointLight(0xff8a3a, 1.4, 7, 2); fireL.position.set(0, 0.6, 0.5); fire.add(fireL);
     /* the desk: a green banker's lamp and the EC–6 study books */
-    var desk = new THREE.Group(); holder.add(desk);
+    /* the desk's lamp, books and globe were laid out on the old desk (0, −1.9, turned π): they follow the desk to VD */
+    var deskAt = new THREE.Group(); deskAt.position.set(VD.p[0], 0, VD.p[1]); deskAt.rotation.y = VD.ry - Math.PI; holder.add(deskAt);
+    var desk = new THREE.Group(); desk.position.z = 1.9; deskAt.add(desk);
     var brass = new THREE.MeshStandardMaterial({ color: lin(0xc9a24a), roughness: 0.28, metalness: 0.9 }), shadeM = new THREE.MeshStandardMaterial({ color: lin(0x1f6b3a), roughness: 0.25, metalness: 0.1, emissive: lin(0x0a2a14), side: THREE.DoubleSide });
     var lamp = new THREE.Group(); lamp.position.set(-0.7, 0.78, -2.2); lamp.rotation.y = Math.PI; desk.add(lamp);
     var base = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.03, 20), brass); base.position.y = 0.015; lamp.add(base);
@@ -176018,7 +176068,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         lights.forEach(function (q) { q.l.intensity = q.base * (0.94 + 0.06 * Math.sin(t * 7 + q.f)); });
       },
       setTime: function (m) { mode = m || 'auto'; apply(); },
-      dispose: function () { if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); ceilDispose(); rug.dispose(); rugM.dispose(); }
+      dispose: function () { if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); ceilDispose(); carpetDispose(); rug.dispose(); rugM.dispose(); }
     };
   }
   function makeEnv(def) {
@@ -176064,7 +176114,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
 
       return {
         id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
-        anchors: A, avatar: PT.avatar, start: def.start || PT.start, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
+        anchors: A, avatar: PT.avatar, start: def.start || PT.start, startV: def.startV || 0, bounds: def.walk ? def.walk.slice() : null, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
         surfaces: surfaces, dress: def.dress || null, realistic: !!def.realistic, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
@@ -176125,15 +176175,36 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   /* The Victorian Study, embedded deep: its south round table is the desk (things on its top), the north table carries
      the projector, album, medals, car and ornament, and its own armchairs, tables, vases, viola, rugs and ladders are
      movable furniture. The model's floor is 0.2 m up, so it sits 0.2 m down; the south table lands on the desk spot. */
-  var VY = 0.725, DY = 0.78;                                         // the round tables; the pedestal desk
+  var VY = 0.725, DY = 0.78;
+  /* v4 (2026-11-13, after the user's reference photo of a study): the fireplace on the left wall, bookcases and a tall
+     window ahead on the right, the pedestal desk standing free in front of the window, turned a little to the room, its
+     buttoned leather chair behind it (between desk and window), a rug under it, two leather armchairs in the left
+     foreground — and the home view is that photograph's view (VSTART). The Scenic Window moves to the east wall for it. */
+  var VD = { p: [1.9, -9.3], ry: 1.5 }, VNT = [-4.6, -5.6];          // the desk (its drawers / chair side towards +z local); the north table's new place
+  function vdesk(lx, lz) { var c = Math.cos(VD.ry), s = Math.sin(VD.ry); return [VD.p[0] + lx * c + lz * s, VD.p[1] - lx * s + lz * c]; }   // desk-local → world
+  function vdA(lx, y, lz, dr) { var q = vdesk(lx, lz); return { p: [q[0], y, q[1]], ry: VD.ry + dr }; }
+  function vnA(dx, y, dz) { return { p: [VNT[0] + dx, y, VNT[1] + dz], ry: 0 }; }
+  /* v4: the reference-photo arrangement (VEXTRA); things left on the old desk / north table follow their anchors */
+  function vicUp4(L) {
+      var ex = L.extras = L.extras || [];
+        Object.keys(VEXTRA).forEach(function (u) { var e = ex.filter(function (x) { return x.uid === +u; })[0], v = VEXTRA[u]; if (!e) return; e.p = [v.p[0], e.p[1] || 0, v.p[1]]; e.ry = v.ry; });
+        Object.keys(L).forEach(function (k) { var v = L[k]; if (v && v.p && !v.stashed && ((Math.abs(v.p[0]) < 1.3 && v.p[2] < -0.8 && v.p[2] > -3.1) || (Math.abs(v.p[0]) < 1 && v.p[2] < -8.5 && v.p[2] > -10.5)) && v.p[1] > 0.6 && v.p[1] < 0.9) delete L[k]; });
+        if (L.scenicWindow) delete L.scenicWindow;
+        L.extras = ex = ex.filter(function (e) { return e.uid !== 9509 && e.uid !== 9510; });   // the two small rugs go: one carpet covers the room now
+      }
+  var VSTART = { pos: [-2.4, 1.55, -7.2], yaw: -1.14, pitch: -0.12 };
+  var VEXTRA = { 9601: { p: vdesk(0, 0), ry: VD.ry }, 9602: { p: vdesk(0, 0.92), ry: VD.ry + Math.PI },
+9500: { p: [-0.1, -10.1], ry: 2.0 }, 9501: { p: [-1.35, -9.75], ry: 2.3 },
+    9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
   var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
-    cut: [[7.75, 0.25, -4.6, 14, 3.3, -2.6]],                          // the bookcase where the new window goes
-    start: { pos: [0.7, 1.5, 1.4], yaw: 0.1, pitch: -0.12 }, deskCam: { pos: [0, 1.5, -2.85], look: [0, 0.78, -1.7] },
+    cut: [[7.75, 0.25, -4.6, 14, 3.3, -2.6]],                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
+    start: VSTART, startV: 4, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
     dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE) },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 3, fn: function (L) {
+    upgrade: { v: 6, fn: function (L) { VICT.upgrade3.fn(L); vicUp4(L); } },
+    upgrade3: { fn: function (L) {
       var ex = L.extras = L.extras || [];
       /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,
          a mirror of the other one (Ladder_North stands at x +3.6) */
@@ -176151,14 +176222,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       { node: 'Ladder_North', name: '图书梯' }, { node: 'Ladder_West', name: '图书梯' }
     ],
     anchors: {
-      'desk.left': { p: [0, DY, -1.98], ry: Math.PI }, 'desk.right': { p: [-0.42, DY, -2.08], ry: Math.PI + 0.2 }, 'desk.quill': { p: [0.4, DY, -2.14], ry: Math.PI - 0.3 },
-      'desk.key': { p: [0.32, DY, -1.6], ry: Math.PI }, 'desk.mochi': { p: [-0.68, DY, -1.6], ry: Math.PI + 0.3 }, 'desk.book': { p: [-0.3, DY, -1.6], ry: Math.PI },
-      'wall.left': { p: [-2.7, 1.62, -0.38], ry: 0.35 }, 'wall.right': { p: [0, VY, -8.95], ry: 0 },
-      'cabinet.top': { p: [-0.5, VY, -9.4], ry: 0 }, 'cabinet.left': { p: [0.5, VY, -9.4], ry: 0 }, 'cabinet.right': { p: [0, VY, -8.95], ry: 0 },
-      'shelf.mid': { p: [-0.45, VY, -9.95], ry: 0 }, 'sill.left': { p: [0.45, VY, -9.95], ry: 0 },
+      'desk.left': vdA(0, DY, 0.08, 0), 'desk.right': vdA(0.42, DY, 0.18, 0.2), 'desk.quill': vdA(-0.4, DY, 0.24, -0.3),
+      'desk.key': vdA(-0.32, DY, -0.3, 0), 'desk.mochi': vdA(0.68, DY, -0.3, 0.3), 'desk.book': vdA(0.3, DY, -0.3, 0),
+      'wall.left': { p: [-2.7, 1.62, -0.38], ry: 0.35 }, 'wall.right': vnA(0, VY, 0.6),
+      'cabinet.top': vnA(-0.5, VY, 0.15), 'cabinet.left': vnA(0.5, VY, 0.15), 'cabinet.right': vnA(0, VY, 0.6),
+      'shelf.mid': vnA(-0.45, VY, -0.4), 'sill.left': vnA(0.45, VY, -0.4),
       'corner.window': { p: [4.2, 0, -1.6], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.1, 0, 0.5], ry: 0.45 }, 'floor.gramo': { p: [-3.6, 0, -4.2], ry: Math.PI / 2 },
-      'floor.film': { p: [3.4, 0, -0.4], ry: -Math.PI / 2 }, 'floor.portal': { p: [-6.6, 0, -6.0], ry: Math.PI / 2 }, 'floor.holo': { p: [3.6, 0, -4.6], ry: -Math.PI / 2 },
-      'floor.window': { p: [-7.95, 0, -1.0], ry: Math.PI / 2, w: 7.4, h: 4.8 }
+      'floor.film': { p: [3.4, 0, -0.4], ry: -Math.PI / 2 }, 'floor.portal': { p: [-6.6, 0, -6.0], ry: Math.PI / 2 }, 'floor.holo': { p: [-6.3, 0, 0.9], ry: Math.PI / 2 },
+      'floor.window': { p: [7.95, 0, -8.9], ry: -Math.PI / 2, w: 7.4, h: 4.8 }
     },
     credit: 'Victorian Study — Fox Dev assets, with the author\u2019s permission' };
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
@@ -180221,8 +180292,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 32), mat); sphere.name = 'window-view'; sphere.renderOrder = -1;
     }
     if (sphere.parent !== scene) scene.add(sphere);
-    var s = room && room.size || { W: 3, D: 2.5 }, R = Math.max(9, Math.hypot(s.W || 3, s.D || 2.5) + 4.5);
-    sphere.scale.setScalar(R); sphere.position.set(0, 1.5, 0); sphere.rotation.y = 0;
+    var s = room && room.size || { W: 3, D: 2.5 }, R = Math.max(9, Math.hypot(s.W || 3, s.D || 2.5) + 4.5), cx = 0, cz = 0, b = room && room.bounds;
+    if (b) { cx = (b[0] + b[2]) / 2; cz = (b[1] + b[3]) / 2; R = Math.max(R, Math.hypot((b[2] - b[0]) / 2, (b[3] - b[1]) / 2) + 6); }   // a big room (the Study, the King's Hall): round all of it, so it shows only through the windows
+    sphere.scale.setScalar(R); sphere.position.set(cx, 1.5, cz); sphere.rotation.y = 0;
     mat.map = texture(curId); mat.needsUpdate = true; sphere.visible = true; scroll = 0;
     return curId;
   }
@@ -180691,6 +180763,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod);
   function wview() { if (window.SpatialViews) window.SpatialViews.apply(scene, room, (S.wviews || {})[room.envId] || 'auto'); }
   wview();
+  /* a room can move its home view (room.startV): the saved pose there is dropped once, so the new view is what you see */
+  function freshPose(env) { var v = room.startV | 0; if (!v) return; S.poseV = S.poseV || {}; if ((S.poseV[env] | 0) >= v) return; S.poseV[env] = v; if (S.poses) delete S.poses[env]; if (S.env === env) S.pose = null; }
+  freshPose(room.envId);
   if (S.poses && S.poses[room.envId]) S.pose = S.poses[room.envId];
   var EYE = 1.5, RAD = 0.24;
 
@@ -181739,6 +181814,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       room.dispose(); window.SpatialRoom.parts.deskStyle(S.deskStyle); room = window.SpatialRoom.build(scene, id);
       camera.far = room.far || 900; camera.updateProjectionMatrix(); if (room.setTime) room.setTime(S.tod); wview();
       placeAll();
+      freshPose(room.envId);
       var sp = S.poses && S.poses[room.envId];
       if (sp && isFinite(sp.x) && inArea(sp.x, sp.z)) { P.x = sp.x; P.z = sp.z; P.yaw = sp.yaw; P.pitch = sp.pitch || 0; }
       else { P.x = room.start.pos[0]; P.z = room.start.pos[2]; P.yaw = room.start.yaw; P.pitch = room.start.pitch; }

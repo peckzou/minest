@@ -135,8 +135,9 @@
       sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 32), mat); sphere.name = 'window-view'; sphere.renderOrder = -1;
     }
     if (sphere.parent !== scene) scene.add(sphere);
-    var s = room && room.size || { W: 3, D: 2.5 }, R = Math.max(9, Math.hypot(s.W || 3, s.D || 2.5) + 4.5);
-    sphere.scale.setScalar(R); sphere.position.set(0, 1.5, 0); sphere.rotation.y = 0;
+    var s = room && room.size || { W: 3, D: 2.5 }, R = Math.max(9, Math.hypot(s.W || 3, s.D || 2.5) + 4.5), cx = 0, cz = 0, b = room && room.bounds;
+    if (b) { cx = (b[0] + b[2]) / 2; cz = (b[1] + b[3]) / 2; R = Math.max(R, Math.hypot((b[2] - b[0]) / 2, (b[3] - b[1]) / 2) + 6); }   // a big room (the Study, the King's Hall): round all of it, so it shows only through the windows
+    sphere.scale.setScalar(R); sphere.position.set(cx, 1.5, cz); sphere.rotation.y = 0;
     mat.map = texture(curId); mat.needsUpdate = true; sphere.visible = true; scroll = 0;
     return curId;
   }
