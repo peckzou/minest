@@ -749,9 +749,71 @@
     };
   }
 
+  /* ================================================================ Holographic Typography Lab console (js/holo-lab.js)
+     A metal-and-glass console; above the glass a blue projection — turning rings, three small floating screens, dust.
+     It starts in the Magical Backpack: take it out to place it (it appears by the backpack), long-press to move it. */
+  function holoDesk() {
+    var g = new THREE.Group(), v = new VB(2201), i, STEEL = '#2b3038', STEEL2 = '#3c434d', EDGE = '#8fa3b5';
+    v.cb(0, 0, 0, 0.62, 0.05, 0.46, STEEL, 0.02);                          // base plate
+    v.cb(0, 0.05, 0, 0.18, 0.62, 0.14, STEEL2, 0.02);                       // column
+    v.cb(0, 0.05, 0, 0.26, 0.04, 0.2, STEEL);
+    v.cb(0, 0.64, 0, 0.78, 0.05, 0.56, STEEL, 0.02);                       // the desk top frame
+    v.cb(0, 0.69, 0, 0.8, 0.012, 0.58, EDGE);
+    for (i = -1; i <= 1; i += 2) v.cb(i * 0.36, 0.05, 0, 0.04, 0.6, 0.04, STEEL2);
+    g.add(v.mesh());
+    var glassTop = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.014, 0.5), new THREE.MeshPhongMaterial({ color: 0x9fdcff, transparent: true, opacity: 0.32, shininess: 140, specular: 0xffffff, depthWrite: false }));
+    glassTop.position.y = 0.705; g.add(glassTop);
+    var add = function (m) { m.blending = THREE.AdditiveBlending; m.transparent = true; m.depthWrite = false; m.fog = false; return m; };
+    var emitter = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.012, 32), add(new THREE.MeshBasicMaterial({ color: 0x5fd8ff, opacity: 0.9 })));
+    emitter.position.y = 0.718; g.add(emitter);
+    var beam = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.09, 0.55, 32, 1, true), add(new THREE.MeshBasicMaterial({ color: 0x3fbfff, opacity: 0.07, side: THREE.DoubleSide })));
+    beam.position.y = 0.72 + 0.275; g.add(beam);
+    var proj = new THREE.Group(); proj.position.y = 1.0; g.add(proj);
+    var rings = [];
+    [[0.22, 0.004, 0.0], [0.17, 0.003, 0.9], [0.27, 0.0025, -0.5]].forEach(function (r, k) {
+      var m = new THREE.Mesh(new THREE.TorusGeometry(r[0], r[1], 6, 64), add(new THREE.MeshBasicMaterial({ color: k === 1 ? 0x8ff0ff : 0x4fc8ff, opacity: 0.85 })));
+      m.rotation.x = Math.PI / 2 + r[2] * 0.4; m.rotation.y = r[2]; proj.add(m); rings.push(m);
+    });
+    var core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.06, 1), add(new THREE.MeshBasicMaterial({ color: 0x9ff4ff, wireframe: true, opacity: 0.9 }))); proj.add(core);
+    /* three small screens with real words from Minest when it can read them */
+    function screenTex(lines) {
+      var cv = document.createElement('canvas'); cv.width = 256; cv.height = 160; var x = cv.getContext('2d');
+      x.fillStyle = 'rgba(30,140,200,0.18)'; x.fillRect(0, 0, 256, 160); x.strokeStyle = 'rgba(120,220,255,0.9)'; x.lineWidth = 3; x.strokeRect(4, 4, 248, 152);
+      x.fillStyle = 'rgba(160,235,255,1)'; x.font = '600 26px ui-monospace,Menlo,monospace'; x.textAlign = 'left';
+      lines.forEach(function (l, j) { x.fillText(String(l).slice(0, 16), 16, 44 + j * 36); });
+      x.fillStyle = 'rgba(120,220,255,.35)'; for (var y = 0; y < 160; y += 5) x.fillRect(0, y, 256, 1);
+      var t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; return t;
+    }
+    var panes = [];
+    [['HOLO LAB', 'TYPOGRAPHY', '◈ ◈ ◈'], ['WORD RINGS', '— — —', 'ORBIT'], ['STAR MAP', '• — •', 'LINKS']].forEach(function (ls, k) {
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.125), add(new THREE.MeshBasicMaterial({ map: screenTex(ls), opacity: 0.9, side: THREE.DoubleSide })));
+      var a = (k - 1) * 0.75; m.position.set(Math.sin(a) * 0.3, 0.05 + (k === 1 ? 0.12 : 0), Math.cos(a) * 0.3 - 0.06); m.rotation.y = a; proj.add(m); panes.push(m);
+    });
+    var dust = new VB(2202); for (i = 0; i < 24; i++) dust.cb((dust.r() - 0.5) * 0.6, 0.72 + dust.r() * 0.6, (dust.r() - 0.5) * 0.44, 0.006, 0.006, 0.006, 'cyan');
+    var dm = dust.mesh(MAT.holo(0.5), true); g.add(dm);
+    var light = new THREE.PointLight(0x4fc8ff, 0.5, 2.2); light.position.y = 1.0; g.add(light);
+    var kk = 0, wordsT = -99;
+    function realWords() {                                                  // the first screen shows today's word when there is one
+      try { var E = root.SpatialEC6 && root.SpatialEC6._, w = E && E.wordState(); if (w && w.card) { var m0 = panes[0].material; if (m0.map) m0.map.dispose(); m0.map = screenTex(['TODAY', String(w.card.title).toUpperCase(), w.left + ' LEFT']); } } catch (e) {}
+    }
+    return {
+      id: 'holoDesk', name: '全息操作台', en: 'Holo Typography Lab', icon: '◈', feature: 'holo', anchor: 'floor.holo', group: g, startStashed: true,
+      hit: hitBox(g, -0.42, 0, -0.3, 0.42, 1.35, 0.3), label: [0, 1.45, 0],
+      focus: { pos: [0.35, 1.55, 1.05], look: [1.6, 1.0, 1.05] },
+      panel: function () { return new Promise(function (res) { if (root.SpatialHoloLab) root.SpatialHoloLab.open(res); else res(null); }); },
+      set: function (k) { kk = k; var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; beam.material.opacity = 0.07 + 0.25 * e; proj.scale.setScalar(1 + 0.35 * e); light.intensity = 0.5 + 1.5 * e; },
+      idle: function (t) {
+        rings[0].rotation.z = t * 0.6; rings[1].rotation.z = -t * 0.9; rings[2].rotation.z = t * 0.35; core.rotation.y = t * 0.8; core.rotation.x = t * 0.3;
+        panes.forEach(function (p, k) { p.position.y = 0.05 + (k === 1 ? 0.12 : 0) + Math.sin(t * 1.4 + k * 2) * 0.012; p.material.opacity = 0.75 + 0.15 * Math.sin(t * 9 + k) * Math.sin(t * 2.1); });
+        proj.rotation.y = Math.sin(t * 0.25) * 0.4; dm.rotation.y = t * 0.15; emitter.material.opacity = 0.75 + 0.2 * Math.sin(t * 3);
+        if (t - wordsT > 20) { wordsT = t; realWords(); }
+      }
+    };
+  }
+
   function make(opts) {
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
-    return [backpack(), gramophone(), filmProjector(), tsqPortal(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
+    return [backpack(), gramophone(), filmProjector(), tsqPortal(), holoDesk(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
   root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
 })(window);

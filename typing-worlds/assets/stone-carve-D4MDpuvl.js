@@ -1,0 +1,79 @@
+import{B as e,C as t,D as n,E as r,G as i,J as a,P as o,Q as s,S as c,W as l,ct as u,d,ft as f,h as p,k as m,p as h,rt as g,x as _,y as v}from"./three-C_Sr3VD5.js";import{g as y,m as b,s as x,t as S}from"./letter-world-DYNBrlqm.js";import{t as C}from"./particles-knB3pco7.js";import{t as w}from"./tools-rjYQ4lAp.js";var T=.085,E=.075,D=0,O=-3.25,k=new f(-.55,.65,.55).normalize();function A(e,t,n){let i=[],a=[],o=[],s=[],c=[],l=[],u=[],d=e.length||1,f=n.length,m=0;for(let r of e.strokes){let e=r.pts.length/2;if(e<2)continue;let p=i.length/3;for(let u=0;u<e;u++){let p=r.pts[u*2],h=r.pts[u*2+1],g=Math.max(0,u-1),_=Math.min(e-1,u+1),v=r.pts[_*2]-r.pts[g*2],b=r.pts[_*2+1]-r.pts[g*2+1],x=Math.hypot(v,b)||1;v/=x,b/=x,u===0?(p-=v*t*.5,h-=b*t*.5):u===e-1&&(p+=v*t*.5,h+=b*t*.5);let S=r.cum[u],C=Math.min(S,r.length-S),w=.35+.65*y(C/(t*2.2)),T=-b,E=v;for(let e=0;e<f;e++){let r=n[e];i.push(p+T*r*t*w,h+E*r*t*w,0),a.push((m+S)/d),o.push(r),s.push(m+S),c.push(T,E),l.push(w)}}for(let t=0;t<e-1;t++)for(let e=0;e<f-1;e++){let n=p+t*f+e,r=n+f;u.push(n,r,n+1,n+1,r,r+1)}m+=r.length}let h=new p;return h.setAttribute(`position`,new r(i,3)),h.setAttribute(`aU`,new r(a,1)),h.setAttribute(`aSide`,new r(o,1)),h.setAttribute(`aLen`,new r(s,1)),h.setAttribute(`aAcross`,new r(c,2)),h.setAttribute(`aTaper`,new r(l,1)),h.setIndex(u),h.computeBoundingSphere(),h.boundingSphere&&(h.boundingSphere.radius+=.2),h}var j=`
+  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+  float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+    return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }
+  float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<4;i++){ s+=a*vnoise(p); p*=2.03; a*=0.5; } return s; }
+  uniform vec3 uStoneA; uniform vec3 uStoneB; uniform vec3 uFleck; uniform vec3 uVein; uniform vec3 uLight;
+  vec3 stoneColor(vec2 p){
+    float n = fbm(p*1.1);
+    vec3 c = mix(uStoneA, uStoneB, n);
+    c *= 0.9 + 0.14*vnoise(p*38.0);
+    float fleck = step(0.986, hash(floor(p*95.0)));
+    c = mix(c, uFleck, fleck*0.55);
+    float vein = 1.0 - smoothstep(0.0, 0.012, abs(fbm(p*0.55 + 5.0) - 0.5));
+    return mix(c, uVein, vein*0.12);
+  }
+  vec3 shadeStone(vec3 base, vec3 n, vec3 wp, float ao, float specK){
+    float d = max(dot(n, uLight), 0.0);
+    vec3 V = normalize(cameraPosition - wp);
+    vec3 H = normalize(uLight + V);
+    float sp = pow(max(dot(n, H), 0.0), 28.0) * specK;
+    return base * (0.34 + 0.95*d) * ao + vec3(sp);
+  }
+`;function M(){return{uStoneA:{value:new v(5656906)},uStoneB:{value:new v(3946547)},uFleck:{value:new v(2367773)},uVein:{value:new v(9077624)},uLight:{value:k.clone()}}}function N(){return new g({uniforms:M(),vertexShader:`
+      varying vec3 vW;
+      void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,fragmentShader:`
+      ${j}
+      varying vec3 vW;
+      void main(){
+        vec3 c = shadeStone(stoneColor(vW.xy), vec3(0.0,0.0,1.0), vW, 1.0, 0.05);
+        // soft vignette: the slab's edges sink into the black stage
+        c *= 1.0 - 0.85 * smoothstep(1.6, 4.6, length(vW.xy * vec2(0.62, 1.15)));
+        gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`})}function P(){return new g({uniforms:{...M(),uProgress:{value:0},uDeep:{value:0},uFill:{value:0},uGild:{value:0},uGlint:{value:-1},uDepth:{value:E},uHalfW:{value:T},uFresh:{value:new v(15328473)},uGold:{value:new v(15775050)}},vertexShader:`
+      attribute float aU; attribute float aSide; attribute float aLen; attribute vec2 aAcross; attribute float aTaper;
+      uniform float uProgress; uniform float uDeep; uniform float uFill; uniform float uDepth; uniform float uHalfW;
+      varying vec3 vW; varying vec3 vN; varying float vU; varying float vCut; varying float vLen; varying float vSide;
+      void main(){
+        float carved = clamp((uProgress - aU) * 16.0, 0.0, 1.0);
+        float marks = 1.0 + 0.16 * sin(aLen * 70.0 + aSide * 1.7);
+        float D = uDepth * aTaper * carved * (0.5 + 0.5 * uDeep) * (1.0 - uFill) * marks;
+        float prof = 1.0 - abs(aSide);
+        vec3 p = position; p.z = -D * prof;
+        float slope = D / max(1e-4, uHalfW * aTaper);
+        vec3 n = normalize(vec3(-aAcross * sign(aSide) * slope, 1.0));
+        vec4 w = modelMatrix * vec4(p, 1.0);
+        vW = w.xyz; vN = normalize(mat3(modelMatrix) * n);
+        vU = aU; vCut = prof * carved * (1.0 - uFill); vLen = aLen; vSide = aSide;
+        gl_Position = projectionMatrix * viewMatrix * w;
+      }`,fragmentShader:`
+      ${j}
+      uniform float uProgress; uniform float uGild; uniform float uGlint; uniform float uFill; uniform vec3 uFresh; uniform vec3 uGold;
+      varying vec3 vW; varying vec3 vN; varying float vU; varying float vCut; varying float vLen; varying float vSide;
+      void main(){
+        if (vU > uProgress + 1e-4) discard;
+        vec3 base = stoneColor(vW.xy);
+        float inside = smoothstep(0.0, 0.25, vCut);
+        // freshly cut stone is paler; chisel facets catch the light differently
+        base = mix(base, uFresh * (0.94 + 0.12 * vnoise(vW.xy * 60.0)), inside * 0.65);
+        float facet = 0.9 + 0.1 * sin(vLen * 70.0 + vSide * 1.7 + 1.2);
+        base *= mix(1.0, facet, inside);
+        float ao = 1.0 - 0.42 * vCut;
+        vec3 c = shadeStone(base, normalize(vN), vW, ao, 0.06);
+        if (uGild > 0.0) {
+          float gm = uGild * smoothstep(0.02, 0.2, vCut);
+          vec3 g = shadeStone(uGold, normalize(vN), vW, 1.0, 0.9);
+          float glint = uGlint >= 0.0 ? exp(-pow((vU - uGlint) * 9.0, 2.0)) : 0.0;
+          c = mix(c, g + glint * vec3(1.0, 0.9, 0.6), gm);
+        }
+        gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`})}function F(e){let t=new g({uniforms:{uProgress:e.uniforms.uProgress},vertexShader:`
+      attribute float aU; varying float vU;
+      void main(){ vU = aU; vec3 p = position; p.z = 0.004; gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0); }`,fragmentShader:`
+      uniform float uProgress; varying float vU;
+      void main(){ if (vU > uProgress + 1e-4) discard; gl_FragColor = vec4(0.0); }`});return t.colorWrite=!1,t}var I=280,L=class extends S{grooveCache=new Map;slabMat;controller;chisel;mallet;chiselQ=new s;qTmp=new s;strikePhase=0;jolt=0;dust;glints;chips;chipPos=new Float32Array(I*3);chipVel=new Float32Array(I*3);chipRot=new Float32Array(I*3);chipSpin=new Float32Array(I*3);chipLife=new Float32Array(I);chipSize=new Float32Array(I);chipHead=0;chipsAlive=0;dummy=new i;up=new f(0,1,0);tmp=new f;axis=new f;disposables=[];constructor(r){super(r);let i=r.scene;i.background=new v(197379),i.fog=new n(197379,14,30),r.camera.position.set(.6,.9,11.2),r.camera.lookAt(0,-.2,0),this.root.add(new d(16772829,.32));let s=new c(16773340,2.2);s.position.copy(k).multiplyScalar(12),this.root.add(s);let p=new c(10466520,.35);p.position.set(6,-2,6),this.root.add(p),this.slabMat=N();let g=new e(new a(15.2,7.1),this.slabMat);g.position.set(0,.3,D),this.root.add(g);let y=new l({color:3814961,roughness:.95}),b=new e(new h(15.4,7.3,.9),y);b.position.set(0,.3,-.46),this.root.add(b);let x=new e(new h(16.4,.5,1.6),new l({color:2367773,roughness:1}));x.position.set(0,-3.5,.3),this.root.add(x);let S=new e(new a(80,40),new l({color:657672,roughness:1}));S.rotation.x=-Math.PI/2,S.position.y=-5.45,this.root.add(S);let T=new l({color:11449272,metalness:.85,roughness:.32}),E=new l({color:5988455,metalness:.8,roughness:.4});this.chisel=new m;let O=new e(new _(.035,.004,.16,4,1),T);O.scale.set(1.8,1,.5),O.position.y=.08;let A=new e(new _(.038,.036,.78,8),T);A.position.y=.55;let j=new e(new _(.062,.05,.14,12),E);j.position.y=1,this.chisel.add(O,A,j),this.chisel.position.set(5.5,-2.6,.4),this.root.add(this.chisel);let M=new l({color:9067059,roughness:.75}),P=new l({color:6175520,roughness:.8});this.mallet=new m;let F=new e(new _(.16,.16,.36,16),M);F.position.y=.18;let L=new e(new _(.035,.045,.95,8),P);L.rotation.z=Math.PI/2,L.position.set(.5,.18,0),this.mallet.add(F,L),this.root.add(this.mallet),this.disposables.push(T,E,M,P,y);let R=new u(1,0),z=new l({color:13222581,roughness:.9,flatShading:!0});this.chips=new o(R,z,I),this.chips.instanceMatrix.setUsage(t),this.chips.frustumCulled=!1,this.dummy.scale.setScalar(0),this.dummy.updateMatrix();for(let e=0;e<I;e++)this.chips.setMatrixAt(e,this.dummy.matrix);this.root.add(this.chips),this.dust=new C({capacity:700,gravity:[0,-.6,0],drag:2.2,size:.09,shape:`dot`,blending:1,opacity:.55}),this.glints=new C({capacity:300,gravity:[0,.4,0],drag:2,size:.07,shape:`spark`}),this.root.add(this.dust.points,this.glints.points),this.controller=new w(r.glyphs,r.layout,{count:1,liftHeight:.3,maxQueue:2,approach:.2,rest:()=>new f(5.6,-2.5,.5),restDelay:1.2})}groove(e){let t=e.font+e.char,n=this.grooveCache.get(t);return n||(n=A(e,T,[-1,-.55,-.02,.02,.55,1]),n.userData.shared=!0,this.grooveCache.set(t,n)),n}createLetter(t,n){if(t.char===` `||t.char===`
+`)return null;let r=this.ctx.glyphs.get(t.char,`serif`);if(!r.strokes.length)return null;let i=this.groove(r),a=P(),o=F(a),s=new e(i,a);s.renderOrder=-3;let c=new e(i,o);c.renderOrder=-2;let l=new m;l.add(s,c),this.ctx.layout.apply(l,n),this.root.add(l);let u={ref:t,slot:n,object:l,state:`creating`,age:0,group:l,mat:a,mask:o,glyph:r,progress:0,deep:0,fill:0,gild:0,glint:-1,done:!1,finaleT:0,finaleDelay:0};return t.restoring||this.ctx.reducedMotion?(u.progress=1,u.deep=1,u.done=!0,u.state=`alive`,this.sync(u),u):(this.controller.write({id:t.id,glyph:r,slot:n,duration:this.ctx.tempo.duration(1150,320)*(.6+r.length*.12),onProgress:e=>{u.progress=Math.max(u.progress,e.u)},onDone:()=>{u.progress=1,u.done=!0,u.state===`creating`&&(u.state=`alive`)}}),this.sync(u),this.ctx.keepAlive(1500),u)}removeLetter(e,t){this.controller.cancel(e.ref.id);let n=this.ctx.glyphs.evenPoints(e.glyph,.12),r=Math.min(n.length,Math.round(26*this.ctx.tempo.detail)+6);for(let t=0;t<r;t++){let i=n[Math.floor(t/r*n.length)];i.u>e.progress||(this.ctx.layout.toWorld(e.slot,i.x,i.y,.05,this.tmp),this.dust.emit({x:this.tmp.x,y:this.tmp.y,z:this.tmp.z+.05,vx:b(-.3,.3),vy:b(-.1,.4),vz:b(.2,.6),life:b(.6,1),color:14209734,size:b(1,1.8)}))}this.ctx.audio.play(`scratch`,{gain:.3,pitch:.7}),this.ctx.keepAlive(900)}playFinale(e,t,n){for(let e of t)this.controller.cancel(e.ref.id);t.sort((e,t)=>e.slot.origin.x-t.slot.origin.x),t.forEach((e,t)=>{e.progress=Math.max(e.progress,1),e.finaleT=0,e.finaleDelay=t*.12}),this.ctx.audio.play(`chime`,{gain:.5,pitch:.9}),n.then(e=>{e.ok?this.ctx.audio.play(`success`,{gain:.6}):this.ctx.audio.play(`error`,{gain:.5})}),this.ctx.keepAlive(4200+t.length*120)}sync(e){let t=e.mat.uniforms;t.uProgress.value=e.progress,t.uDeep.value=e.deep,t.uFill.value=e.fill,t.uGild.value=e.gild,t.uGlint.value=e.glint}updateLetter(e,t){let n=!1;if(this.ctx.layout.apply(e.group,e.slot),e.state===`removing`){if(e.fill=Math.min(1,e.fill+t*2.6),e.fill>=1)return this.release(e),!1;n=!0}else if(e.state===`finale`){if(e.finaleDelay>0)e.finaleDelay-=t;else{e.finaleT+=t;let n=e.finaleT;if(e.deep=Math.min(1,e.deep+t*3),e.gild=y(n/.7),e.glint=n>.7&&n<1.9?(n-.7)/1.2:-1,n>.3&&n<1&&Math.random()<.5*this.ctx.tempo.detail&&this.sparkle(e),n>2.4&&(e.fill=y((n-2.4)/.7),Math.random()<.5&&this.dustAlong(e,1)),n>3.15)return this.release(e),!1}n=!0}else e.done&&e.deep<1&&(e.deep=Math.min(1,e.deep+t*1.6),n=!0),e.done||(n=!0);return this.sync(e),n}sparkle(e){let t=this.ctx.glyphs.evenPoints(e.glyph,.2),n=t[Math.random()*t.length|0];n&&(this.ctx.layout.toWorld(e.slot,n.x,n.y,.02,this.tmp),this.glints.emit({x:this.tmp.x,y:this.tmp.y,z:this.tmp.z+.04,vx:b(-.2,.2),vy:b(.1,.5),vz:.2,life:.7,color:16769440,size:b(1.2,2)}))}dustAlong(e,t){let n=this.ctx.glyphs.evenPoints(e.glyph,.2);for(let r=0;r<t;r++){let t=n[Math.random()*n.length|0];if(!t)return;this.ctx.layout.toWorld(e.slot,t.x,t.y,.02,this.tmp),this.dust.emit({x:this.tmp.x,y:this.tmp.y,z:this.tmp.z+.05,vx:b(-.3,.3),vy:b(0,.3),vz:b(.1,.4),life:.8,color:14209734,size:1.4})}}strike(e,t,n){this.jolt=1,this.ctx.audio.play(`tap`,{gain:.45,pitch:b(.75,.95),minGap:.05});let r=this.ctx.tempo.detail,i=Math.max(1,Math.round(b(2,4)*r));for(let r=0;r<i;r++){let r=this.chipHead;this.chipHead=(this.chipHead+1)%I;let i=r*3;this.chipPos[i]=e.x,this.chipPos[i+1]=e.y,this.chipPos[i+2]=e.z+.03,this.chipVel[i]=t*b(.4,1.4)+b(-.6,.6),this.chipVel[i+1]=n*b(.4,1.4)+b(.2,1.6),this.chipVel[i+2]=b(.6,1.8),this.chipRot[i]=b(0,6),this.chipRot[i+1]=b(0,6),this.chipRot[i+2]=b(0,6),this.chipSpin[i]=b(-14,14),this.chipSpin[i+1]=b(-14,14),this.chipSpin[i+2]=b(-14,14),this.chipLife[r]=b(7,11),this.chipSize[r]=b(.012,.03)}let a=Math.round(5*r)+1;for(let n=0;n<a;n++)this.dust.emit({x:e.x,y:e.y,z:e.z+.05,vx:b(-.4,.4)+t*.3,vy:b(-.2,.4),vz:b(.2,.7),life:b(.5,1.1),color:14275528,size:b(.6,1.4)})}updateChips(e){let t=0,n=this.dummy;for(let r=0;r<I;r++){if(this.chipLife[r]<=0)continue;this.chipLife[r]-=e;let i=r*3;if(this.chipVel[i]!==0||this.chipVel[i+1]!==0||this.chipVel[i+2]!==0){this.chipVel[i+1]-=9.8*e,this.chipPos[i]+=this.chipVel[i]*e,this.chipPos[i+1]+=this.chipVel[i+1]*e,this.chipPos[i+2]+=this.chipVel[i+2]*e,this.chipRot[i]+=this.chipSpin[i]*e,this.chipRot[i+1]+=this.chipSpin[i+1]*e,this.chipRot[i+2]+=this.chipSpin[i+2]*e,this.chipPos[i+2]<.02&&this.chipPos[i+1]>O&&(this.chipPos[i+2]=.02,this.chipVel[i+2]=Math.abs(this.chipVel[i+2])*.3);let n=(this.chipPos[i+2]<1.1&&Math.abs(this.chipPos[i])<8.2?O:-5.45)+this.chipSize[r]*.6;this.chipPos[i+1]<n&&(this.chipPos[i+1]=n,Math.abs(this.chipVel[i+1])>1.2?(this.chipVel[i+1]*=-.3,this.chipVel[i]*=.5,this.chipVel[i+2]*=.5,this.chipSpin[i]*=.4,this.chipSpin[i+2]*=.4):this.chipVel[i]=this.chipVel[i+1]=this.chipVel[i+2]=0),t++}let a=x(this.chipLife[r]/1.2);n.position.set(this.chipPos[i],this.chipPos[i+1],this.chipPos[i+2]),n.rotation.set(this.chipRot[i],this.chipRot[i+1],this.chipRot[i+2]),n.scale.setScalar(this.chipLife[r]>0?this.chipSize[r]*a:0),n.scale.y*=.6,n.updateMatrix(),this.chips.setMatrixAt(r,n.matrix),a<1&&t++}return this.chips.instanceMatrix.needsUpdate=!0,this.chipsAlive=t,t>0}updateWorld(e,t){let n=this.controller.update(e),r=this.controller.tools[0],i=r.sample,a=!!r.job,o=a?i.tx:.3,s=a?i.ty:-.2;this.axis.set(-o*.45+.28,-s*.45+.42,.85).normalize(),this.qTmp.setFromUnitVectors(this.up,this.axis),this.chiselQ.slerp(this.qTmp,1-Math.exp(-14*e)),this.chisel.quaternion.copy(this.chiselQ),this.chisel.position.copy(r.tip),this.jolt=Math.max(0,this.jolt-e*9);let c=this.tmp.set(0,1,0).applyQuaternion(this.chiselQ);this.chisel.position.addScaledVector(c,-.025*this.jolt);let l=a&&r.down,u=this.ctx.tempo.tempo===`fast`?9:this.ctx.tempo.tempo===`normal`?7:5.5,d;if(l){let t=this.strikePhase;this.strikePhase=(this.strikePhase+e*u)%1,this.strikePhase<t&&this.strike(r.tip,i.tx,i.ty);let n=this.strikePhase;d=n<.72?y(n/.72):1-(n-.72)/.28}else d=.55+Math.sin(t*2)*.05;let f=this.tmp.copy(this.chisel.position).addScaledVector(c,1.07);return this.mallet.quaternion.copy(this.chiselQ),this.mallet.position.copy(f).addScaledVector(c,.02+d*.55),this.mallet.position.x+=d*.18,this.mallet.rotateZ(-d*.35),(a||r.idle<1.5)&&(n=!0),this.dust.update(e,t)&&(n=!0),this.glints.update(e,t)&&(n=!0),this.updateChips(e)&&(n=!0),n}onLayout(){for(let e of this.letters.values())this.ctx.layout.apply(e.group,e.slot)}release(e){this.controller.cancel(e.ref.id),super.release(e)}disposeWorld(){this.dust.dispose(),this.glints.dispose(),this.chips.dispose(),super.disposeWorld();for(let e of this.grooveCache.values())e.dispose();this.grooveCache.clear();for(let e of this.disposables)e.dispose()}};function R(e){return new L(e)}var z={create:R};export{R as create,z as stoneCarve};

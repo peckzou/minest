@@ -1,0 +1,24 @@
+import{k as e}from"./three-C_Sr3VD5.js";import{i as t}from"./letter-world-DYNBrlqm.js";import{t as n}from"./particles-knB3pco7.js";var r=[{id:`neon`,label:`氖 (Neon)`,color:16731430,coreColor:16777215,bloom:16741197},{id:`argon`,label:`氩 (Argon)`,color:7690751,coreColor:16777215,bloom:11048191},{id:`helium`,label:`氦 (Helium)`,color:16743313,coreColor:16777215,bloom:16754872},{id:`xenon`,label:`氙 (Xenon)`,color:11454719,coreColor:16777215,bloom:14083583}];function i(i){let a=i.THREE,o=new e;i.scene.add(o),i.scene.background=new a.Color(131587),i.scene.fog=new a.FogExp2(131587,.045),i.camera.position.set(0,.5,10.5),i.camera.lookAt(0,.45,0),o.add(new a.HemisphereLight(9413320,657414,.16));let s=new a.DirectionalLight(10335487,.32);s.position.set(-5,6,4),o.add(s);let c=new a.Mesh(new a.PlaneGeometry(80,40),new a.MeshStandardMaterial({color:526346,roughness:.6,metalness:.25}));c.rotation.x=-Math.PI/2,c.position.y=-1.3,o.add(c);let l=new a.MeshStandardMaterial({color:2236970,roughness:.5,metalness:.8});l.userData.shared=!0;let u=new n({capacity:400,gravity:[0,-4,0],drag:2,size:.035,shape:`spark`,opacity:.95});o.add(u.points);let d=r.find(e=>e.id===i.theme)??r[0];function f(e){return new a.ShaderMaterial({uniforms:{uCharge:{value:0},uIntensity:{value:1},uColor:{value:new a.Color(e.color)},uCoreColor:{value:new a.Color(e.coreColor)}},vertexShader:`
+        attribute float aU;
+        varying float vU;
+        varying vec3 vNormal;
+        void main() {
+          vU = aU;
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,fragmentShader:`
+        uniform float uCharge;
+        uniform float uIntensity;
+        uniform vec3 uColor;
+        uniform vec3 uCoreColor;
+        varying float vU;
+        varying vec3 vNormal;
+        void main() {
+          if (vU > uCharge) discard;
+          float fresnel = 1.0 - abs(vNormal.z);
+          vec3 c = mix(uCoreColor, uColor, 0.45 + 0.55 * pow(fresnel, 0.8));
+          gl_FragColor = vec4(c * (1.05 * uIntensity), 1.0);
+        }
+      `,side:a.DoubleSide})}function p(){return new a.MeshStandardMaterial({color:10135744,roughness:.08,metalness:.2,transparent:!0,opacity:.12,depthWrite:!1})}let m=new Map;return{onCharacterInput(e){if(e.char===` `||e.char===`
+`)return;let t=i.slotOf(e.id);if(!t)return;let n=i.glyphs.get(e.char,`sans`),r=i.glyphs.tube(n,.065,8,!0),s=i.glyphs.tube(n,.105,10,!0),c=f(d),h=p(),g=new a.Mesh(r,c),_=new a.Mesh(s,h),v=new a.Group;if(i.layout.apply(v,t),v.add(g),v.add(_),n.strokes.length>0){let e=n.strokes[0].pts,t=new a.CylinderGeometry(.09,.09,.18,12);t.rotateX(Math.PI/2);let r=new a.Mesh(t,l);r.position.set(e[0],e[1],-.15),v.add(r)}o.add(v);let y={id:e.id,char:e.char,group:v,coreMesh:g,glassMesh:_,coreMat:c,glassMat:h,charge:+!!e.restoring,intensity:+!!e.restoring,flickerTime:e.restoring?0:.25,surge:0,erasing:!1,eraseProgress:0};if(m.set(e.id,y),!e.restoring){i.audio.play(`zap`,{pitch:1+Math.random()*.2,gain:.5}),i.audio.play(`hum`,{pitch:1.1,gain:.3});let e=new a.Vector3;v.getWorldPosition(e);for(let t=0;t<16;t++)u.emit({x:e.x,y:e.y+.5,z:e.z+.1,vx:(Math.random()-.5)*2.5,vy:(Math.random()-.5)*2.5,vz:.5+Math.random()*1.5,life:.35+Math.random()*.25,color:d.color})}i.keepAlive(1200)},onCharacterDelete(e){let t=m.get(e.id);t&&(t.erasing=!0,i.audio.play(`zap`,{pitch:.7,gain:.4}),i.keepAlive(500))},onLayout(){for(let[e,t]of m.entries()){let n=i.slotOf(e);n&&i.layout.apply(t.group,n)}},onWordComplete(e,t,n){i.audio.play(`zap`,{pitch:1.3,gain:.7}),t.forEach((e,t)=>{let n=m.get(e.id);n&&i.setTimeout(()=>{n.surge=1,i.audio.play(`tick`,{pitch:1.5+t*.1,gain:.4})},t*60)}),n.then(e=>{e.ok||i.audio.play(`error`,{gain:.5})}),i.keepAlive(2e3)},onTextClear(){for(let e of m.values())t(e.group);m.clear()},setTheme(e){d=r.find(t=>t.id===e)??r[0];for(let e of m.values())e.coreMat.uniforms.uColor.value.set(d.color),e.coreMat.uniforms.uCoreColor.value.set(d.coreColor)},updateAnimation(e,n){let r=!1;u.update(e,n)&&(r=!0);for(let[i,a]of m.entries())if(a.erasing){a.eraseProgress+=e*5;let n=a.eraseProgress;a.intensity=Math.max(0,1-n),a.coreMat.uniforms.uIntensity.value=a.intensity,n>=1&&(t(a.group),m.delete(i)),r=!0}else a.charge<1&&(a.charge=Math.min(1,a.charge+e*4.5),a.coreMat.uniforms.uCharge.value=a.charge,r=!0),a.flickerTime>0?(a.flickerTime-=e,a.intensity=Math.random()>.35?1.4:.2,r=!0):a.surge>0?(a.surge=Math.max(0,a.surge-e*2.5),a.intensity=1+a.surge*1.5,r=!0):a.intensity=1+Math.sin(n*6+a.id)*.04,a.coreMat.uniforms.uIntensity.value=a.intensity;return r},disposeWorld(){for(let e of m.values())t(e.group);m.clear(),u.dispose(),l.dispose(),t(o)}}}var a={create:i};export{i as create,a as nobleGasNeon};

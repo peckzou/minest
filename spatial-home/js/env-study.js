@@ -122,7 +122,8 @@
       'floor.pack': { p: [-1.45, 0, W.desk.z + 0.1], ry: 0.45 },             // the backpack, on the floor left of the desk
       'floor.gramo': { p: [X1 - SHD - 0.4, 0, -0.35], ry: -PI / 2 },        // the gramophone in front of the east shelves
       'floor.film': { p: [-1.7, 0, 0.95], ry: 0 },                          // the film projector and its screen, on the open floor by the easel
-      'floor.portal': { p: [X0 + SHD + 0.2, 0, 2.3], ry: PI / 2 }          // the Times Square archway, west side by the reading corner
+      'floor.portal': { p: [X0 + SHD + 0.2, 0, 2.3], ry: PI / 2 },
+      'floor.holo': { p: [2.15, 0, 0.25], ry: -PI / 2 }                     // the holo lab console, open floor before the east shelves          // the Times Square archway, west side by the reading corner
     };
     /* what you cannot walk through: the Study's own colliders that reach the floor, and the pieces added here */
     var solids = (built.colliders || []).filter(function (c) { return c.min.y < 1 && c.max.y > 0.2; }).map(function (c) { return [c.min.x, c.min.z, c.max.x, c.max.z]; });

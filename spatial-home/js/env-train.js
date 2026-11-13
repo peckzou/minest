@@ -167,7 +167,8 @@
     out['sill.left'] = { p: [-1.75, 0.84, -WID + 0.06], ry: 0 };
     out['floor.gramo'] = { p: [5.05, 0, 0.2], ry: -Math.PI / 2 };                // the gramophone at the collection end
     out['floor.film'] = { p: [-4.0, 0, 0.05], ry: 0 };
-    out['floor.portal'] = { p: [-5.86, 0, 0], ry: Math.PI / 2 };                  // the Times Square archway on the lounge end wall                            // the projector in the lounge, its screen towards the right windows               // the magic ornament on the window sill
+    out['floor.portal'] = { p: [-5.86, 0, 0], ry: Math.PI / 2 };
+    out['floor.holo'] = { p: [-3.0, 0, -0.95], ry: 0 };                            // the holo lab console in the lounge                  // the Times Square archway on the lounge end wall                            // the projector in the lounge, its screen towards the right windows               // the magic ornament on the window sill
     return out;
   }
 

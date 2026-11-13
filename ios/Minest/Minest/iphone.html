@@ -183301,7 +183301,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         'desk.mochi': { p: [0.84, 0.78, -1.78], ry: -0.3 }, 'desk.book': { p: [0.6, 0.78, -2.2], ry: 0 },
         'cabinet.left': { p: [2.74, 0.8, 0.72], ry: -Math.PI / 2 }, 'cabinet.right': { p: [2.74, 0.8, 1.66], ry: -Math.PI / 2 },
         'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 }, 'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 },
-        'floor.portal': { p: [2.26, 0, 2.4], ry: Math.PI }   // the Times Square archway on the door wall, right of the door
+        'floor.portal': { p: [2.26, 0, 2.4], ry: Math.PI },   // the Times Square archway on the door wall, right of the door
+        'floor.holo': { p: [1.6, 0, 1.05], ry: -Math.PI / 2 }   // the holo lab console, on the open floor right of the room
       },
       desk: { pos: [0, 1.34, -0.92], look: [0, 0.93, -2.2] },
       start: { pos: [0.75, 1.5, 1.75], yaw: 0.18, pitch: -0.1 },
@@ -183364,7 +183365,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
           'wall.right': { p: [W - 0.005, 1.55, 1.66], ry: -Math.PI / 2 },
           'floor.pack': { p: [-1.45, 0, -1.85], ry: 0.45 },   // the backpack, on the floor left of the desk
           'floor.gramo': { p: [2.25, 0, 0.15], ry: -Math.PI / 2 }, 'floor.film': { p: [-1.8, 0, 0.3], ry: 0 },   // gramophone by the shelf; projector + its screen towards the door wall
-          'floor.portal': { p: [2.26, 0, 2.4], ry: Math.PI }   // the Times Square archway on the door wall, right of the door
+          'floor.portal': { p: [2.26, 0, 2.4], ry: Math.PI },   // the Times Square archway on the door wall, right of the door
+          'floor.holo': { p: [1.6, 0, 1.05], ry: -Math.PI / 2 }   // the holo lab console, on the open floor right of the room
         };
       },
       solids: function () { return [[-1.1, -2.5, 1.1, -1.5], [-0.26, -1.45, 0.26, -0.92], [2.55, -1.56, 3, -0.04], [2.45, 0.44, 3, 1.96], [-3, -1.06, -2.46, 0.46], [1.9, -2.5, 3, -1.8]]; },
@@ -184100,7 +184102,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     out['sill.left'] = { p: [-1.75, 0.84, -WID + 0.06], ry: 0 };
     out['floor.gramo'] = { p: [5.05, 0, 0.2], ry: -Math.PI / 2 };                // the gramophone at the collection end
     out['floor.film'] = { p: [-4.0, 0, 0.05], ry: 0 };
-    out['floor.portal'] = { p: [-5.86, 0, 0], ry: Math.PI / 2 };                  // the Times Square archway on the lounge end wall                            // the projector in the lounge, its screen towards the right windows               // the magic ornament on the window sill
+    out['floor.portal'] = { p: [-5.86, 0, 0], ry: Math.PI / 2 };
+    out['floor.holo'] = { p: [-3.0, 0, -0.95], ry: 0 };                            // the holo lab console in the lounge                  // the Times Square archway on the lounge end wall                            // the projector in the lounge, its screen towards the right windows               // the magic ornament on the window sill
     return out;
   }
 
@@ -184867,7 +184870,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       'floor.pack': { p: [-1.45, 0, W.desk.z + 0.1], ry: 0.45 },             // the backpack, on the floor left of the desk
       'floor.gramo': { p: [X1 - SHD - 0.4, 0, -0.35], ry: -PI / 2 },        // the gramophone in front of the east shelves
       'floor.film': { p: [-1.7, 0, 0.95], ry: 0 },                          // the film projector and its screen, on the open floor by the easel
-      'floor.portal': { p: [X0 + SHD + 0.2, 0, 2.3], ry: PI / 2 }          // the Times Square archway, west side by the reading corner
+      'floor.portal': { p: [X0 + SHD + 0.2, 0, 2.3], ry: PI / 2 },
+      'floor.holo': { p: [2.15, 0, 0.25], ry: -PI / 2 }                     // the holo lab console, open floor before the east shelves          // the Times Square archway, west side by the reading corner
     };
     /* what you cannot walk through: the Study's own colliders that reach the floor, and the pieces added here */
     var solids = (built.colliders || []).filter(function (c) { return c.min.y < 1 && c.max.y > 0.2; }).map(function (c) { return [c.min.x, c.min.z, c.max.x, c.max.z]; });
@@ -185948,9 +185952,71 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     };
   }
 
+  /* ================================================================ Holographic Typography Lab console (js/holo-lab.js)
+     A metal-and-glass console; above the glass a blue projection — turning rings, three small floating screens, dust.
+     It starts in the Magical Backpack: take it out to place it (it appears by the backpack), long-press to move it. */
+  function holoDesk() {
+    var g = new THREE.Group(), v = new VB(2201), i, STEEL = '#2b3038', STEEL2 = '#3c434d', EDGE = '#8fa3b5';
+    v.cb(0, 0, 0, 0.62, 0.05, 0.46, STEEL, 0.02);                          // base plate
+    v.cb(0, 0.05, 0, 0.18, 0.62, 0.14, STEEL2, 0.02);                       // column
+    v.cb(0, 0.05, 0, 0.26, 0.04, 0.2, STEEL);
+    v.cb(0, 0.64, 0, 0.78, 0.05, 0.56, STEEL, 0.02);                       // the desk top frame
+    v.cb(0, 0.69, 0, 0.8, 0.012, 0.58, EDGE);
+    for (i = -1; i <= 1; i += 2) v.cb(i * 0.36, 0.05, 0, 0.04, 0.6, 0.04, STEEL2);
+    g.add(v.mesh());
+    var glassTop = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.014, 0.5), new THREE.MeshPhongMaterial({ color: 0x9fdcff, transparent: true, opacity: 0.32, shininess: 140, specular: 0xffffff, depthWrite: false }));
+    glassTop.position.y = 0.705; g.add(glassTop);
+    var add = function (m) { m.blending = THREE.AdditiveBlending; m.transparent = true; m.depthWrite = false; m.fog = false; return m; };
+    var emitter = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.012, 32), add(new THREE.MeshBasicMaterial({ color: 0x5fd8ff, opacity: 0.9 })));
+    emitter.position.y = 0.718; g.add(emitter);
+    var beam = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.09, 0.55, 32, 1, true), add(new THREE.MeshBasicMaterial({ color: 0x3fbfff, opacity: 0.07, side: THREE.DoubleSide })));
+    beam.position.y = 0.72 + 0.275; g.add(beam);
+    var proj = new THREE.Group(); proj.position.y = 1.0; g.add(proj);
+    var rings = [];
+    [[0.22, 0.004, 0.0], [0.17, 0.003, 0.9], [0.27, 0.0025, -0.5]].forEach(function (r, k) {
+      var m = new THREE.Mesh(new THREE.TorusGeometry(r[0], r[1], 6, 64), add(new THREE.MeshBasicMaterial({ color: k === 1 ? 0x8ff0ff : 0x4fc8ff, opacity: 0.85 })));
+      m.rotation.x = Math.PI / 2 + r[2] * 0.4; m.rotation.y = r[2]; proj.add(m); rings.push(m);
+    });
+    var core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.06, 1), add(new THREE.MeshBasicMaterial({ color: 0x9ff4ff, wireframe: true, opacity: 0.9 }))); proj.add(core);
+    /* three small screens with real words from Minest when it can read them */
+    function screenTex(lines) {
+      var cv = document.createElement('canvas'); cv.width = 256; cv.height = 160; var x = cv.getContext('2d');
+      x.fillStyle = 'rgba(30,140,200,0.18)'; x.fillRect(0, 0, 256, 160); x.strokeStyle = 'rgba(120,220,255,0.9)'; x.lineWidth = 3; x.strokeRect(4, 4, 248, 152);
+      x.fillStyle = 'rgba(160,235,255,1)'; x.font = '600 26px ui-monospace,Menlo,monospace'; x.textAlign = 'left';
+      lines.forEach(function (l, j) { x.fillText(String(l).slice(0, 16), 16, 44 + j * 36); });
+      x.fillStyle = 'rgba(120,220,255,.35)'; for (var y = 0; y < 160; y += 5) x.fillRect(0, y, 256, 1);
+      var t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; return t;
+    }
+    var panes = [];
+    [['HOLO LAB', 'TYPOGRAPHY', '◈ ◈ ◈'], ['WORD RINGS', '— — —', 'ORBIT'], ['STAR MAP', '• — •', 'LINKS']].forEach(function (ls, k) {
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.125), add(new THREE.MeshBasicMaterial({ map: screenTex(ls), opacity: 0.9, side: THREE.DoubleSide })));
+      var a = (k - 1) * 0.75; m.position.set(Math.sin(a) * 0.3, 0.05 + (k === 1 ? 0.12 : 0), Math.cos(a) * 0.3 - 0.06); m.rotation.y = a; proj.add(m); panes.push(m);
+    });
+    var dust = new VB(2202); for (i = 0; i < 24; i++) dust.cb((dust.r() - 0.5) * 0.6, 0.72 + dust.r() * 0.6, (dust.r() - 0.5) * 0.44, 0.006, 0.006, 0.006, 'cyan');
+    var dm = dust.mesh(MAT.holo(0.5), true); g.add(dm);
+    var light = new THREE.PointLight(0x4fc8ff, 0.5, 2.2); light.position.y = 1.0; g.add(light);
+    var kk = 0, wordsT = -99;
+    function realWords() {                                                  // the first screen shows today's word when there is one
+      try { var E = root.SpatialEC6 && root.SpatialEC6._, w = E && E.wordState(); if (w && w.card) { var m0 = panes[0].material; if (m0.map) m0.map.dispose(); m0.map = screenTex(['TODAY', String(w.card.title).toUpperCase(), w.left + ' LEFT']); } } catch (e) {}
+    }
+    return {
+      id: 'holoDesk', name: '全息操作台', en: 'Holo Typography Lab', icon: '◈', feature: 'holo', anchor: 'floor.holo', group: g, startStashed: true,
+      hit: hitBox(g, -0.42, 0, -0.3, 0.42, 1.35, 0.3), label: [0, 1.45, 0],
+      focus: { pos: [0.35, 1.55, 1.05], look: [1.6, 1.0, 1.05] },
+      panel: function () { return new Promise(function (res) { if (root.SpatialHoloLab) root.SpatialHoloLab.open(res); else res(null); }); },
+      set: function (k) { kk = k; var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; beam.material.opacity = 0.07 + 0.25 * e; proj.scale.setScalar(1 + 0.35 * e); light.intensity = 0.5 + 1.5 * e; },
+      idle: function (t) {
+        rings[0].rotation.z = t * 0.6; rings[1].rotation.z = -t * 0.9; rings[2].rotation.z = t * 0.35; core.rotation.y = t * 0.8; core.rotation.x = t * 0.3;
+        panes.forEach(function (p, k) { p.position.y = 0.05 + (k === 1 ? 0.12 : 0) + Math.sin(t * 1.4 + k * 2) * 0.012; p.material.opacity = 0.75 + 0.15 * Math.sin(t * 9 + k) * Math.sin(t * 2.1); });
+        proj.rotation.y = Math.sin(t * 0.25) * 0.4; dm.rotation.y = t * 0.15; emitter.material.opacity = 0.75 + 0.2 * Math.sin(t * 3);
+        if (t - wordsT > 20) { wordsT = t; realWords(); }
+      }
+    };
+  }
+
   function make(opts) {
     var style = opts && opts.medal === 'wall' ? 'wall' : 'box';
-    return [backpack(), gramophone(), filmProjector(), tsqPortal(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
+    return [backpack(), gramophone(), filmProjector(), tsqPortal(), holoDesk(), aquarium(), quill(), mochi(), carKey(), style === 'wall' ? medalBoard() : medalBox(), bookstand(), carModel()];
   }
   root.SpatialEntries = { make: make, routineCard: routineCard, ringsDay: ringsDay };
 })(window);
@@ -187865,6 +187931,133 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   root.SpatialViews = { list: function () { return LIST.slice(); }, apply: apply, tick: tick, current: function () { return curId; }, version: '1.0' };
 })(window);
 
+/* Minest · Holographic Typography Lab — the Minest side (2026-11-13).
+   holo-lab/index.html is the lab itself (full screen, its own three.js scene). This file opens it — from the console
+   object in Spatial Home, or from the ◈ button in My World's console — and is its only link to Minest's data:
+   · lists      the vocabulary lists on the Kanban (boards titled vocab / word / 单词 / 词汇), and the list the board's
+                Today's Words uses, with the GPT Study "learned" marks
+   · charts     every card of the EC–6 Anchor Charts board (subject = its column), today's picks first
+   · knowledge  cards of boards titled knowledge / 知识
+   · works      Type Workshop works (MinestBackpack.works)
+   · layout     the lab's own layout, kept in MinestKnowledge 'holo:layout' (and this device as a copy)
+   Messages ({holo:1}): ready → content · save → keep the layout · edit → MinestAI.patchCard on the real card ·
+   open → close the lab and open the original · close. Nothing here invents data; an edit is written only to the card
+   whose id the lab sends back. */
+(function (root) {
+  'use strict';
+  if (root.SpatialHoloLab) return;
+  var WEB = 'https://minest-app.vercel.app/holo-lab/index.html', LKEY = 'minest.holoLab.layout.v1';
+  function HW() { var B = root.SpatialBridge; try { var w = B && B.hostWindow && B.hostWindow(); if (w && w.MinestAI) return w; } catch (e) {} return root; }
+  function AI() { var w = HW(); return w && w.MinestAI && w.MinestAI.boards ? w.MinestAI : null; }
+  function KN() { var w = HW(); return (w && w.MinestKnowledge) || root.MinestKnowledge || null; }
+  function boards() { var a = AI(); try { return a ? (a.boards() || []) : []; } catch (e) { return []; } }
+  function plain(s) { return String(s || '').replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[#*_`>|~]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function clip(s, n) { s = plain(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  var FIELD = {};                                                       // card id → the field its text came from (for edits)
+  function textOf(k) { var f = k.meaning ? 'meaning' : k.titleZh ? 'titleZh' : k.desc ? 'desc' : 'meaning'; FIELD[k.id] = f; return clip(k[f] || '', 220); }
+  function tagsOf(k) { return (k.labels || k.tags || []).map(function (t) { return typeof t === 'string' ? t : (t && (t.name || t.label || t.title)) || ''; }).filter(Boolean).slice(0, 6); }
+  var SUBS = [['ela', /language\s*arts|\bela\b|英语语言|reading|writing/i, 'Language Arts', '#2f6fd6'], ['math', /math/i, 'Math', '#d9463e'], ['sci', /science|科学/i, 'Science', '#2f9a5a'], ['ss', /social\s*studies|社会|history|geograph/i, 'Social Studies', '#b8862b']];
+  function subOf(title) { for (var i = 0; i < SUBS.length; i++) if (SUBS[i][1].test(title || '')) return SUBS[i]; return ['other', null, 'Other', '#8a5ad0']; }
+
+  function snapshot() {
+    var out = { lists: [], charts: [], knowledge: [], works: [], layout: null, demo: false }, B = boards(), E = root.SpatialEC6 && root.SpatialEC6._;
+    /* lists */
+    var gs = null; try { gs = JSON.parse(localStorage.getItem('minest.gptstudy.v1') || 'null'); } catch (e) {}
+    var seen = {}, addList = function (b, c) {
+      var key = 'b:' + b.id + ':' + c.id; if (seen[key] || out.lists.length >= 10) return; seen[key] = 1;
+      var rec = gs && gs.lists && gs.lists[key], items = (c.cards || []).filter(function (k) { return k && k.title; }).slice(0, 80).map(function (k) {
+        return { id: k.id, title: clip(k.title, 60), text: textOf(k), learned: !!(rec && rec.cards && rec.cards[k.id] && rec.cards[k.id].learned), tags: tagsOf(k) }; });
+      if (items.length) out.lists.push({ key: key, title: clip((c.title || '') + (b.title ? ' · ' + b.title : ''), 60), source: rec ? 'gptstudy' : 'kanban', items: items });
+    };
+    try { var ws = E && E.wordState(); if (ws && ws.L) addList(ws.L.b, ws.L.c); } catch (e) {}
+    B.forEach(function (b) { if (/vocab|word|单词|词汇/i.test(b.title || '')) (b.columns || []).forEach(function (c) { addList(b, c); }); });
+    /* Anchor Charts: today's picks first, then the rest of the board */
+    var cb = null; try { cb = E && E.chartsBoard && E.chartsBoard(); } catch (e) {}
+    if (!cb) cb = B.filter(function (b) { return /anchor/i.test(b.title || ''); })[0] || null;
+    var picked = {}; ['ela', 'math', 'sci', 'ss', 'other'].forEach(function (s) { try { var h = E && E.pick(s); if (h && h.k) picked[h.k.id] = 1; } catch (e) {} });
+    var S = null; try { S = E && E.S(); } catch (e) {}
+    if (cb) (cb.columns || []).forEach(function (c) {
+      var sub = subOf(c.title);
+      (c.cards || []).forEach(function (k) { if (!k || !k.title || out.charts.length >= 120) return;
+        out.charts.push({ id: k.id, sub: sub[0], subName: sub[2], ink: sub[3], title: clip(k.title, 80), text: textOf(k), today: !!picked[k.id],
+          mastered: !!(S && (S.mastered || []).some(function (m) { return m.id === k.id && !m.undone; })) }); });
+    });
+    out.charts.sort(function (a, b) { return (b.today ? 1 : 0) - (a.today ? 1 : 0); });
+    /* knowledge */
+    /* knowledge: the Knowledge tree is the Kanban itself (MinestKnowledge keeps each card's parents) — every board that is
+       not a vocabulary list or the Anchor Charts board, boards titled knowledge / 知识 first */
+    var K = KN(), kb = B.filter(function (b) { return !(cb && b.id === cb.id) && !/vocab|word|单词|词汇/i.test(b.title || ''); });
+    kb.sort(function (a, b) { return (/knowledge|知识/i.test(b.title || '') ? 1 : 0) - (/knowledge|知识/i.test(a.title || '') ? 1 : 0); });
+    kb.forEach(function (b) { (b.columns || []).forEach(function (c) { (c.cards || []).forEach(function (k) { if (!k || !k.title || out.knowledge.length >= 150) return;
+      var par = []; try { par = (K && K.parentOf && K.parentOf(k.id)) || []; if (!Array.isArray(par)) par = par ? [par] : []; } catch (e) {}
+      out.knowledge.push({ id: k.id, title: clip(k.title, 80), text: textOf(k), tags: tagsOf(k).concat([plain(c.title)]).filter(Boolean), board: clip(b.title, 40), parents: par.slice(0, 6) }); }); }); });
+    /* 3D Type works */
+    try { var BP = root.MinestBackpack; if (BP && BP.works) out.works = BP.works().slice(-60).reverse().map(function (it) { return { id: it.id, word: clip(it.word, 40), mode: it.mode || 'neon', look: (it.look && it.look.gas) || it.gas || 'neon' }; }); } catch (e) {}
+    out.layout = loadLayout();
+    return out;
+  }
+  function loadLayout() { var K = KN(); try { var v = K && K.get && K.get('holo:layout'); if (v) return v; } catch (e) {} try { return JSON.parse(localStorage.getItem(LKEY) || 'null'); } catch (e) { return null; } }
+  function saveLayout(l) { try { localStorage.setItem(LKEY, JSON.stringify(l)); } catch (e) {} var K = KN(); try { if (K && K.set) K.set('holo:layout', l); } catch (e) {} }
+
+  function src() {
+    if (/^https?:$/.test(location.protocol)) return /\/spatial-home\//.test(location.pathname) ? '../holo-lab/index.html' : 'holo-lab/index.html';
+    return WEB;
+  }
+  var el = null, frame = null, done = null, saveT = 0;
+  function post(m) { try { frame.contentWindow.postMessage(m, '*'); } catch (e) {} }
+  function finish(r) {
+    if (!el) return; root.removeEventListener('message', onMsg);
+    var e0 = el; el = null; frame = null; e0.style.opacity = '0'; setTimeout(function () { e0.remove(); }, 320);
+    var f = done; done = null; if (f) f(r || null);
+  }
+  function onMsg(e) {
+    var m = e.data; if (!el || !m || m.holo !== 1 || !frame || e.source !== frame.contentWindow) return;
+    if (m.op === 'ready') post({ holo: 1, op: 'content', data: snapshot() });
+    else if (m.op === 'close') finish(null);
+    else if (m.op === 'save' && m.layout && typeof m.layout === 'object') { clearTimeout(saveT); var l = m.layout; saveT = setTimeout(function () { saveLayout(l); }, 400); }
+    else if (m.op === 'edit' && m.id) {
+      var a = AI(); if (!a || !a.patchCard) { post({ holo: 1, op: 'toast', text: 'Minest 还没准备好，没有保存' }); return; }
+      var patch = {}; if (typeof m.title === 'string' && m.title.trim()) patch.title = m.title.trim().slice(0, 200);
+      if (typeof m.text === 'string') patch[FIELD[m.id] || 'meaning'] = m.text.slice(0, 2000);
+      try { a.patchCard(m.id, patch); post({ holo: 1, op: 'toast', text: '已写回原卡片' }); } catch (er) { post({ holo: 1, op: 'toast', text: '没能写回：' + (er && er.message || er) }); return; }
+      setTimeout(function () { if (el) post({ holo: 1, op: 'content', data: snapshot() }); }, 400);
+    }
+    else if (m.op === 'open') {
+      var id = m.id;
+      if (m.kind === 'work') finish({ feature: 'type3d' });
+      else if (m.kind === 'list' && m.key) { var p = String(m.key).split(':'); finish({ feature: 'kanban', after: function (w) { setTimeout(function () { try { w.MinestAI.showList(p[1], p[2]); } catch (er) {} }, 120); } }); }
+      else finish({ feature: 'kanban', after: id ? function (w) { setTimeout(function () { try { w.MinestAI.openCard(id); } catch (er) {} }, 120); } : null });
+    }
+  }
+  /** open the lab; cb(null) = back where you were, cb({feature, after}) = open that in Minest */
+  function open(cb) {
+    if (el) return; done = cb || null;
+    el = document.createElement('div'); el.id = 'mn-holo-lab';
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:#02060a;opacity:0;transition:opacity .3s';
+    frame = document.createElement('iframe'); frame.title = '全息文字操作台 · Holographic Typography Lab'; frame.setAttribute('allow', 'fullscreen; autoplay; clipboard-write');
+    frame.style.cssText = 'border:0;width:100%;height:100%;display:block'; frame.src = src(); el.appendChild(frame); document.body.appendChild(el);
+    ['pointerdown', 'touchstart', 'wheel', 'keydown'].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    root.addEventListener('message', onMsg);
+    requestAnimationFrame(function () { if (el) el.style.opacity = '1'; });
+  }
+
+  /* My World: a ◈ 全息操作台 button in the console (the room has the console object itself) */
+  function fromMyWorld(r) {
+    if (!r) return; var a = root.MinestAI;
+    try { if (root.MinestUniverse && root.MinestUniverse.close) root.MinestUniverse.close(); } catch (e) {}
+    if (r.feature === 'type3d' && root.MinestType3D) { root.MinestType3D.open(); return; }
+    if (r.after && a) setTimeout(function () { r.after(root); }, 200);
+  }
+  setInterval(function () {
+    var acts = document.querySelector('aside.wf .wf-acts'); if (!acts || acts.querySelector('[data-holo-lab]')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-holo-lab', ''); b.title = '全息文字操作台 · Holographic Typography Lab';
+    b.innerHTML = '<i>◈</i>全息操作台'; b.addEventListener('click', function (e) { e.stopPropagation(); open(fromMyWorld); });
+    acts.appendChild(b);
+  }, 900);
+
+  root.SpatialHoloLab = { open: open, close: function () { finish(null); }, isOpen: function () { return !!el; }, snapshot: snapshot, version: '1.0' };
+})(window);
+
 /* Minest · Spatial Home — the bridge to the features that already exist.
    Nothing is re-made here. The Minest app (index.html, the same build the user already has) runs in one frame that
    stays loaded behind the room; a thing in the room calls that app's own entry function and shows the frame. Leaving
@@ -188637,7 +188830,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
      A layout per environment: S.layouts[env] = { <thing id>: { p, ry, stashed }, extras: [ { uid, kind, p, ry, ref, title } ] }.
      Nothing is copied: a My World thing on display keeps only its ids (board / card / thing) and its title for the label.
      Every thing's close-up camera is stored relative to the thing, so it follows wherever the thing goes. */
-  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor', tsqPortal: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
+  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor', tsqPortal: 'floor', holoDesk: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
   function placeType(o) { return o.style === 'wall' ? 'wall' : (PLACE[o.id] || 'surface'); }
   function m4of(p, ry) { return new THREE.Matrix4().makeRotationY(ry).setPosition(p[0], p[1], p[2]); }
   function localize(o) {
@@ -188672,7 +188865,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       localize(o);
       var l = L[o.id], a = room.anchors[o.anchor] || room.anchors['desk.left'];
       var p = l && l.p ? l.p : a.p, ry = l && isFinite(l.ry) ? l.ry : a.ry;
-      o.group.position.set(p[0], p[1], p[2]); o.group.rotation.y = ry; o.stashed = !!(l && l.stashed); o.group.visible = !o.stashed;
+      o.group.position.set(p[0], p[1], p[2]); o.group.rotation.y = ry; o.stashed = l ? !!l.stashed : !!o.startStashed; o.group.visible = !o.stashed;   // some things start in the backpack
       o.chip.classList.toggle('stashed', o.stashed); settle(o);
     });
     rebuildHits(); buildExtras(); refreshHotbar();

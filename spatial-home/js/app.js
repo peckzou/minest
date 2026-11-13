@@ -545,7 +545,7 @@
      A layout per environment: S.layouts[env] = { <thing id>: { p, ry, stashed }, extras: [ { uid, kind, p, ry, ref, title } ] }.
      Nothing is copied: a My World thing on display keeps only its ids (board / card / thing) and its title for the label.
      Every thing's close-up camera is stored relative to the thing, so it follows wherever the thing goes. */
-  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor', tsqPortal: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
+  var PLACE = { board: 'wall', aquarium: 'floor', backpack: 'floor', gramophone: 'floor', projector16: 'floor', tsqPortal: 'floor', holoDesk: 'floor' }, REF = window.SpatialRoom.parts.anchors(0.95);
   function placeType(o) { return o.style === 'wall' ? 'wall' : (PLACE[o.id] || 'surface'); }
   function m4of(p, ry) { return new THREE.Matrix4().makeRotationY(ry).setPosition(p[0], p[1], p[2]); }
   function localize(o) {
@@ -580,7 +580,7 @@
       localize(o);
       var l = L[o.id], a = room.anchors[o.anchor] || room.anchors['desk.left'];
       var p = l && l.p ? l.p : a.p, ry = l && isFinite(l.ry) ? l.ry : a.ry;
-      o.group.position.set(p[0], p[1], p[2]); o.group.rotation.y = ry; o.stashed = !!(l && l.stashed); o.group.visible = !o.stashed;
+      o.group.position.set(p[0], p[1], p[2]); o.group.rotation.y = ry; o.stashed = l ? !!l.stashed : !!o.startStashed; o.group.visible = !o.stashed;   // some things start in the backpack
       o.chip.classList.toggle('stashed', o.stashed); settle(o);
     });
     rebuildHits(); buildExtras(); refreshHotbar();
