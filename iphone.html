@@ -186364,6 +186364,128 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       ['out-coffee', '咖啡杯', 0.42, 0.75, 0.12, 0.4, 9864], ['out-notebook', '皮面笔记本', -0.4, 0.75, 0.05, -0.2, 9865]] });
   /* a stage point (ys, zs) of a scene seen from (hy, hz) and scaled by k about the eye, in the room */
   function R0(hy, hz, k, ys, zs) { return [0, OUT_EYE[1] + k * (ys - hy), OUT_EYE[2] + k * (zs - hz)]; }
+  /* ───────── Lake Bled · the lakeside deck (2026-11-14, after the user's picture) ─────────
+     A timber boardwalk along the shore in the morning mist: the corner of a cabin on the left (a post, the eave, glass),
+     lounge chairs with cushions looking out over the water, a round side table with the MacBook, a cup and the quill.
+     The far view is the picture's own upper part (mountains, forest, the island and its church, the mist) on a wide arc
+     far away; the water is real geometry and mirrors that view; a pletna drifts across. The lens and the look stay inside
+     the picture (room.view). Everything else of the room waits in the backpack. */
+  (function () {
+    var IMG = 'scenic-environments/outdoor/bled-deck/backdrop.jpg', IW = 1408, IH = 768, X0 = 118, HY = 322, ARC = 96 * D2R, PPR = (IW - X0) / ARC, TOP = HY / PPR;
+    var E0 = [3.6, 1.0], E1 = [-6.5, -14], EL = Math.hypot(E1[0] - E0[0], E1[1] - E0[1]), AL = [(E1[0] - E0[0]) / EL, (E1[1] - E0[1]) / EL], NW = [-AL[1], AL[0]];   // the deck's edge, along it, towards the water
+    if (NW[0] < 0) NW = [-NW[0], -NW[1]];
+    function onDeck(s, off) { return [E0[0] + AL[0] * s - NW[0] * off, E0[1] + AL[1] * s - NW[1] * off]; }
+    var FACE = Math.atan2(NW[0], NW[1]);                                // a chair's ry so it looks at the water
+    var T1 = onDeck(3.3, 0.95), ITEMS = [
+      { kind: 'deck-lounge', title: '湖畔休闲椅', p: onDeck(2.0, 1.1), ry: FACE - 0.25, uid: 9881 }, { kind: 'deck-lounge', title: '湖畔休闲椅', p: onDeck(4.6, 1.05), ry: FACE + 0.2, uid: 9882 },
+      { kind: 'deck-table', title: '小圆桌', p: T1, ry: 0, uid: 9883 },
+      { kind: 'deck-lounge', title: '湖畔休闲椅', p: onDeck(8.5, 1.05), ry: FACE - 0.1, uid: 9884 }, { kind: 'deck-lounge', title: '湖畔休闲椅', p: onDeck(10.2, 1.05), ry: FACE + 0.35, uid: 9885 },
+      { kind: 'deck-table', title: '小圆桌', p: onDeck(9.35, 0.9), ry: 0, uid: 9886 }, { kind: 'deck-lounge', title: '湖畔休闲椅', p: onDeck(12.4, 2.4), ry: FACE - 0.9, uid: 9887 }
+    ].map(function (q) { return { kind: q.kind, title: q.title, p: [q.p[0], 0, q.p[1]], ry: q.ry, uid: q.uid }; }).concat([
+      { kind: 'out-macbook', title: 'MacBook', p: [T1[0] - 0.05, 0.5, T1[1] + 0.03], ry: Math.atan2(-T1[0], 1.0 - T1[1]), uid: 9888 },
+      { kind: 'out-coffee', title: '咖啡杯', p: [T1[0] + 0.24, 0.5, T1[1] + 0.13], ry: 0.5, uid: 9889 }]);
+    var ext = { y: ARC / 2 * 0.97, top: TOP * 0.97 };
+    var view = {
+      fov: function (a) { return 2 * Math.atan(Math.min(Math.tan(25 * D2R), Math.tan(34 * D2R) / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a); return { y0: -Math.max(0, ext.y - hh), y1: Math.max(0, ext.y - hh), p0: -0.6, p1: Math.max(-0.5, ext.top - hv) }; } };
+    function build(scene) {
+      var holder = new THREE.Group(); holder.name = 'env-bled-deck'; scene.add(holder);
+      var g = new THREE.Group(); holder.add(g); var disp = [], EYE = [0, 1.5, 1.0];
+      PT.theme(null);
+      var tex = new THREE.TextureLoader().load(siteBase() + IMG); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8; tex.minFilter = THREE.LinearFilter; disp.push(tex);
+      /* the far view: the picture above its waterline, on an arc round where you stand; the cabin's eave in its corner and its edges fade into the sky */
+      var RB = 520, NA = 96, NE = 24, bg = new THREE.BufferGeometry(), bp = [], bu = [], bi = [], i, j;
+      for (j = 0; j <= NE; j++) for (i = 0; i <= NA; i++) {
+        var az = (i / NA - 0.5) * ARC, el = -0.012 + (TOP + 0.012) * j / NE;
+        bp.push(EYE[0] + Math.sin(az) * RB, EYE[1] + Math.tan(el) * RB, EYE[2] - Math.cos(az) * RB);
+        bu.push((X0 + (i / NA) * (IW - X0)) / IW, 1 - (HY - el * PPR) / IH);
+      }
+      for (j = 0; j < NE; j++) for (i = 0; i < NA; i++) { var a0 = j * (NA + 1) + i; bi.push(a0, a0 + 1, a0 + NA + 1, a0 + 1, a0 + NA + 2, a0 + NA + 1); }
+      bg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(bu, 2)); bg.setIndex(bi); disp.push(bg);
+      var backM = new THREE.ShaderMaterial({ uniforms: { uMap: { value: tex } }, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: ['uniform sampler2D uMap; varying vec2 vUv;',
+          'void main(){ vec3 c = texture2D(uMap, vUv).rgb; float px = vUv.x * ' + IW + '.0, row = (1.0 - vUv.y) * ' + IH + '.0;',
+          '  float a = smoothstep(0.0, 34.0, row) * smoothstep(' + X0 + '.0, ' + (X0 + 40) + '.0, px) * smoothstep(' + IW + '.0, ' + (IW - 40) + '.0, px);',
+          '  if (px < 330.0) a *= smoothstep(0.0, 16.0, row - 140.0 * (1.0 - (px - ' + X0 + '.0) / 205.0));',      // the photo's own eave, top left
+          '  gl_FragColor = vec4(c, a); }'].join('\n') });
+      disp.push(backM);
+      var back = new THREE.Mesh(bg, backM); back.frustumCulled = false; back.renderOrder = -10; holder.add(back);
+      /* the sky: the picture's own pale morning blue (read off its top), a little deeper overhead */
+      var skyM = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, uniforms: { uC: { value: new THREE.Color(0.66, 0.77, 0.88) }, uMist: { value: new THREE.Color(0.83, 0.87, 0.9) } },
+        vertexShader: 'varying vec3 vD; void main(){ vD = normalize((modelMatrix * vec4(position,1.0)).xyz - cameraPosition); gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position,1.0); }',
+        fragmentShader: 'uniform vec3 uC; uniform vec3 uMist; varying vec3 vD; void main(){ float y = vD.y; vec3 c = mix(uC, uC * vec3(0.78, 0.87, 1.0), smoothstep(0.4, 1.0, y)); c = mix(uMist, c, smoothstep(-0.02, 0.2, y)); gl_FragColor = vec4(c, 1.0); }' });
+      var sky = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), skyM); sky.renderOrder = -20; holder.add(sky); disp.push(skyM, sky.geometry);
+      var waterU = { uMap: { value: tex }, uT: { value: 0 }, uMist: { value: new THREE.Color(0.83, 0.87, 0.9) }, uEye: { value: new THREE.Vector3().fromArray(EYE) } };
+      var img = new Image(); img.crossOrigin = 'anonymous'; img.onload = function () {
+        try { var c = document.createElement('canvas'); c.width = 64; c.height = 64; var x = c.getContext('2d');
+          function avg(sx, sy, sw, sh) { x.drawImage(img, sx, sy, sw, sh, 0, 0, 64, 64); var d = x.getImageData(0, 0, 64, 64).data, r = 0, gg = 0, b = 0, n = 0; for (var k = 0; k < d.length; k += 4) { r += d[k]; gg += d[k + 1]; b += d[k + 2]; n++; } return [r / n / 255, gg / n / 255, b / n / 255]; }
+          var s0 = avg(500, 0, 900, 30), m0 = avg(900, 300, 500, 26);
+          skyM.uniforms.uC.value.setRGB(s0[0], s0[1], s0[2]); skyM.uniforms.uMist.value.setRGB(m0[0], m0[1], m0[2]); waterU.uMist.value.setRGB(m0[0], m0[1], m0[2]); } catch (er) {} };
+      img.src = siteBase() + IMG;
+      /* the lake: it mirrors the far view (the same picture, looked up as far above the horizon as you look below it), ripples, the mist far out */
+      var waterM = new THREE.ShaderMaterial({ uniforms: waterU,
+        vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+        fragmentShader: ['uniform sampler2D uMap; uniform float uT; uniform vec3 uMist; uniform vec3 uEye; varying vec3 vW;',
+          'vec3 far(float az, float el){ float u = 0.5 + az / ' + ARC.toFixed(5) + '; float px = ' + X0 + '.0 + u * ' + (IW - X0) + '.0, row = ' + HY + '.0 - el * ' + PPR.toFixed(2) + ';',
+          '  if (u < 0.02 || u > 0.98 || row < 6.0) return uMist; return texture2D(uMap, vec2(px / ' + IW + '.0, 1.0 - row / ' + IH + '.0)).rgb; }',
+          'void main(){ vec3 d = vW - cameraPosition; float dist = length(d.xz), az = atan(d.x, -d.z), el = atan(-d.y, dist);',
+          '  float rp = sin(vW.x * 1.7 + uT * 0.8) * sin(vW.z * 2.3 - uT * 0.6) + 0.5 * sin(vW.x * 5.1 - vW.z * 3.7 + uT * 1.4);',
+          '  float k = 0.006 + 0.03 / (1.0 + dist * 0.08);',
+          '  vec3 r = (far(az + rp * k * 0.6, el + rp * k) + far(az - rp * k * 0.4, el * 1.06 + 0.004)) * 0.5;',
+          '  vec3 deep = vec3(0.20, 0.31, 0.40); float fr = pow(1.0 - clamp(el / 1.2, 0.0, 1.0), 3.0);',
+          '  vec3 c = mix(deep, r * 0.92, 0.35 + 0.6 * fr); c += vec3(0.05) * smoothstep(0.75, 1.0, rp) * fr;',
+          '  c = mix(c, uMist, smoothstep(70.0, 460.0, dist) * 0.92);',
+          '  gl_FragColor = vec4(c, 1.0); }'].join('\n') });
+      disp.push(waterM);
+      var water = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400, 1, 1), waterM); water.rotation.x = -Math.PI / 2; water.position.set(0, -0.55, -300); holder.add(water); disp.push(water.geometry);
+      /* the deck: boards running along the shore, a fascia down to the water, posts */
+      var boardT = stoneTex('boards'); disp.push(boardT);
+      var deckM = new THREE.MeshStandardMaterial({ map: boardT, roughness: 0.78, color: lin(0xd9b48a) }), woodD = new THREE.MeshStandardMaterial({ map: boardT, roughness: 0.85, color: lin(0x8a6a4a) }); disp.push(deckM, woodD);
+      var bk = [E0[0] - AL[0] * 4.2, E0[1] - AL[1] * 4.2], sh = new THREE.Shape();
+      [[-7.5, 4.6], [bk[0], 4.6], bk, E1, [-7.5, E1[1]]].forEach(function (q, k) { if (k) sh.lineTo(q[0], -q[1]); else sh.moveTo(q[0], -q[1]); });
+      var dg = new THREE.ShapeGeometry(sh); dg.rotateX(-Math.PI / 2); var DP = dg.attributes.position, DU = dg.attributes.uv;
+      for (i = 0; i < DP.count; i++) { var dx = DP.getX(i), dz = DP.getZ(i); DU.setXY(i, (dx * NW[0] + dz * NW[1]) / 1.2, (dx * AL[0] + dz * AL[1]) / 1.2); }
+      var deck = new THREE.Mesh(dg, deckM); deck.receiveShadow = true; g.add(deck); disp.push(dg);
+      function bx(m, x, y, z, w, h, d, ry) { var k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(x, y, z); if (ry) k.rotation.y = ry; k.castShadow = k.receiveShadow = true; holder.add(k); return k; }
+      var eA = Math.atan2(AL[0], AL[1]), eL = Math.hypot(E1[0] - bk[0], E1[1] - bk[1]);
+      bx(woodD, (bk[0] + E1[0]) / 2 + NW[0] * 0.02, -0.22, (bk[1] + E1[1]) / 2 + NW[1] * 0.02, 0.06, 0.44, eL, eA);
+      for (var s = -3; s < EL; s += 2.4) { var pp = [E0[0] + AL[0] * s + NW[0] * 0.12, E0[1] + AL[1] * s + NW[1] * 0.12]; var po = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.6, 10), woodD); po.position.set(pp[0], -0.6, pp[1]); holder.add(po); }
+      /* the cabin's corner: a post, a beam, the eave overhead, glass along the wall, a planter */
+      var beamM = new THREE.MeshStandardMaterial({ map: boardT, roughness: 0.7, color: lin(0xc39a68) }), glassM = new THREE.MeshStandardMaterial({ color: lin(0x2a3338), roughness: 0.08, metalness: 0.5, transparent: true, opacity: 0.82 }); disp.push(beamM, glassM);
+      bx(beamM, -3.3, 1.6, -0.9, 0.3, 3.2, 0.3); bx(beamM, -3.3, 0.14, 1.6, 0.34, 0.28, 5.2);
+      bx(glassM, -3.36, 1.6, 1.7, 0.03, 2.7, 5.0); bx(beamM, -3.3, 3.12, 1.6, 0.3, 0.2, 5.4);
+      var eave = bx(woodD, -3.9, 3.42, 0.8, 3.4, 0.1, 9.0); eave.rotation.z = -0.3;
+      for (i = 0; i < 6; i++) { var rf = bx(beamM, -3.9, 3.32, -3.2 + i * 1.5, 3.3, 0.12, 0.1); rf.rotation.z = -0.3; }
+      bx(woodD, -2.85, 0.22, 2.9, 0.5, 0.44, 0.5);
+      var leafM = new THREE.MeshLambertMaterial({ color: lin(0x3b6b34) }); disp.push(leafM);
+      for (i = 0; i < 14; i++) { var lf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1 + Math.random() * 0.08, 0), leafM); lf.position.set(-2.85 + (Math.random() - 0.5) * 0.4, 0.55 + Math.random() * 0.5, 2.9 + (Math.random() - 0.5) * 0.4); holder.add(lf); }
+      /* a pletna out on the lake */
+      var boat = new THREE.Group(), hullM = new THREE.MeshLambertMaterial({ color: lin(0xb8763a) }), canM = new THREE.MeshLambertMaterial({ color: lin(0xe9e2d0) }); disp.push(hullM, canM);
+      var hull = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.55, 6.4, 12, 1, false, 0, Math.PI), hullM); hull.rotation.set(Math.PI / 2, 0, Math.PI / 2); hull.scale.set(1, 1, 0.55); boat.add(hull);
+      var can = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 3.6, 12, 1, true, 0, Math.PI), canM); can.rotation.set(-Math.PI / 2, 0, Math.PI / 2); can.position.y = 1.15; can.scale.set(1, 1, 0.5); can.material.side = THREE.DoubleSide; boat.add(can);
+      [-1.6, 1.6].forEach(function (x) { [-0.7, 0.7].forEach(function (z) { var p = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2, 6), hullM); p.position.set(x, 0.6, z); boat.add(p); }); });
+      boat.position.set(-30, -0.5, -78); holder.add(boat);
+      /* light: a low morning sun from the left over the lake, a soft sky */
+      var hemi = new THREE.HemisphereLight(0xeaf2fb, 0x8a7458, 0.85); holder.add(hemi);
+      var sun = new THREE.DirectionalLight(0xffe6c0, 1.15); sun.position.set(-7, 5.5, -4); sun.target.position.set(0.5, 0, -1.5);
+      sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); var sc = sun.shadow.camera; sc.left = -9; sc.right = 9; sc.top = 9; sc.bottom = -9; sc.near = 0.5; sc.far = 30; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.02;
+      holder.add(sun); holder.add(sun.target);
+      scene.fog = null; scene.background = new THREE.Color(0xc9d9e6);
+      var A = PT.anchors(0.95); A['desk.quill'] = { p: [T1[0] + 0.02, 0.5, T1[1] - 0.2], ry: -0.3 };
+      return {
+        id: 'bled-deck', name: 'Lake Bled · Lakeside Deck', group: g, holder: holder, far: 2400, size: { W: 3.0, D: 2.6, H: 6 },
+        anchors: A, avatar: PT.avatar, start: { pos: EYE.slice(), yaw: -0.12, pitch: -0.05 }, startV: 2, bounds: [-1.6, -0.6, 1.4, 3.2],
+        desk: { pos: EYE.slice(), look: [T1[0], 0.6, T1[1]] }, solids: [], areas: [[-1.6, -0.6, 1.4, 3.2]], credit: 'Lake Bled · lakeside deck — after the user\'s picture',
+        surfaces: [], dress: null, view: view, realistic: false, movable: false,
+        upgrade: { v: 1, fn: function (L) { L.extras = (L.extras || []).filter(function (e) { return e.uid < 9881 || e.uid > 9899; }).concat(JSON.parse(JSON.stringify(ITEMS))); OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; }); } },
+        defaultLayout: function () { return { extras: JSON.parse(JSON.stringify(ITEMS)) }; },
+        setTime: function () {}, tick: function (t) { waterU.uT.value = t; boat.position.x = -30 + ((t * 0.35) % 120); boat.rotation.z = Math.sin(t * 0.7) * 0.015; },
+        dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); SR.disposeTree(holder); scene.background = null; }
+      };
+    }
+    SR.register({ id: 'bled-deck', name: 'Lake Bled · Lakeside Deck', zh: '布莱德湖 · 湖畔木平台', icon: '🛶', build: build });
+  })();
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
   SR.register({ id: 'victorian', name: 'EC–6 Victorian Study', zh: 'EC–6 备考书房 · 维多利亚', icon: '▤', build: makeEnv(VICT) });
 })(window);
@@ -187619,6 +187741,31 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   [{ id: 'tea-table', name: '白铁艺茶桌' }, { id: 'tea-chair', name: '白铁艺花园椅' }, { id: 'tea-stand', name: '三层点心架' }, { id: 'tea-pot', name: '骨瓷茶壶' }, { id: 'tea-cup', name: '茶杯' },
    { id: 'tea-roses', name: '玫瑰小花瓶' }, { id: 'out-wood-table', name: '木桌' }, { id: 'out-wood-chair', name: '木椅' }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: [0.5, 0.5, 0.5], note: '户外办公 · 下午茶 / 露台' }); });
+
+  /* the lakeside deck (Lake Bled): a low lounge chair — oak frame, slatted reclined back, flat arms, linen cushions — and a
+     small round side table. Front: +z. */
+  F['deck-lounge'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i, cu = new T.MeshStandardMaterial({ color: new T.Color(0xcfc6b4).convertSRGBToLinear(), roughness: 0.9 });
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { box(T, g, M.oakD, q[0] * 0.33, q[1] > 0 ? 0.29 : 0.2, q[1] * 0.3, 0.06, q[1] > 0 ? 0.58 : 0.4, 0.07); });
+    box(T, g, M.oak, 0, 0.31, 0, 0.6, 0.05, 0.66); [-1, 1].forEach(function (s) { box(T, g, M.oakD, s * 0.33, 0.3, 0, 0.05, 0.09, 0.62); });
+    var sc = box(T, g, cu, 0, 0.385, 0.02, 0.56, 0.1, 0.58); sc.castShadow = true;
+    var back = new T.Group(); back.position.set(0, 0.34, -0.3); back.rotation.x = -0.38; g.add(back);
+    [-1, 1].forEach(function (s) { box(T, back, M.oakD, s * 0.31, 0.3, 0, 0.05, 0.62, 0.05); });
+    box(T, back, M.oak, 0, 0.6, 0, 0.67, 0.06, 0.05);
+    for (i = 0; i < 7; i++) box(T, back, M.oak, -0.24 + i * 0.08, 0.3, -0.005, 0.05, 0.56, 0.02);
+    var bc = box(T, back, cu, 0, 0.31, 0.06, 0.54, 0.5, 0.09); bc.castShadow = true;
+    [-1, 1].forEach(function (s) { box(T, g, M.oak, s * 0.35, 0.59, 0.03, 0.09, 0.03, 0.66); });
+    return { group: g, hb: [0.8, 0.95, 0.85], place: 'floor' };
+  };
+  F['deck-table'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var top = lathe(T, [[0, 0.47], [0.35, 0.47], [0.36, 0.485], [0.35, 0.5], [0, 0.5]], M.oak, 36); top.castShadow = top.receiveShadow = true; g.add(top);
+    for (var i = 0; i < 3; i++) { var a = i * 2.094 + 0.5, l = box(T, g, M.oakD, Math.cos(a) * 0.24, 0.235, Math.sin(a) * 0.24, 0.045, 0.47, 0.045); l.rotation.set(Math.sin(a) * 0.1, 0, -Math.cos(a) * 0.1); }
+    box(T, g, M.oakD, 0, 0.2, 0, 0.42, 0.03, 0.04); box(T, g, M.oakD, 0, 0.2, 0, 0.04, 0.03, 0.42);
+    return { group: g, hb: [0.74, 0.5, 0.74], place: 'floor' };
+  };
+  [{ id: 'deck-lounge', name: '湖畔休闲椅' }, { id: 'deck-table', name: '小圆桌' }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: [0.8, 0.9, 0.8], note: '布莱德湖 · 湖畔木平台' }); });
 })(window);
 
 /* Minest · Spatial Home — the MacBook on the stone table (2026-11-14, the Alpine Meadow outdoor office).

@@ -1114,4 +1114,29 @@
   [{ id: 'tea-table', name: '白铁艺茶桌' }, { id: 'tea-chair', name: '白铁艺花园椅' }, { id: 'tea-stand', name: '三层点心架' }, { id: 'tea-pot', name: '骨瓷茶壶' }, { id: 'tea-cup', name: '茶杯' },
    { id: 'tea-roses', name: '玫瑰小花瓶' }, { id: 'out-wood-table', name: '木桌' }, { id: 'out-wood-chair', name: '木椅' }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: [0.5, 0.5, 0.5], note: '户外办公 · 下午茶 / 露台' }); });
+
+  /* the lakeside deck (Lake Bled): a low lounge chair — oak frame, slatted reclined back, flat arms, linen cushions — and a
+     small round side table. Front: +z. */
+  F['deck-lounge'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i, cu = new T.MeshStandardMaterial({ color: new T.Color(0xcfc6b4).convertSRGBToLinear(), roughness: 0.9 });
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { box(T, g, M.oakD, q[0] * 0.33, q[1] > 0 ? 0.29 : 0.2, q[1] * 0.3, 0.06, q[1] > 0 ? 0.58 : 0.4, 0.07); });
+    box(T, g, M.oak, 0, 0.31, 0, 0.6, 0.05, 0.66); [-1, 1].forEach(function (s) { box(T, g, M.oakD, s * 0.33, 0.3, 0, 0.05, 0.09, 0.62); });
+    var sc = box(T, g, cu, 0, 0.385, 0.02, 0.56, 0.1, 0.58); sc.castShadow = true;
+    var back = new T.Group(); back.position.set(0, 0.34, -0.3); back.rotation.x = -0.38; g.add(back);
+    [-1, 1].forEach(function (s) { box(T, back, M.oakD, s * 0.31, 0.3, 0, 0.05, 0.62, 0.05); });
+    box(T, back, M.oak, 0, 0.6, 0, 0.67, 0.06, 0.05);
+    for (i = 0; i < 7; i++) box(T, back, M.oak, -0.24 + i * 0.08, 0.3, -0.005, 0.05, 0.56, 0.02);
+    var bc = box(T, back, cu, 0, 0.31, 0.06, 0.54, 0.5, 0.09); bc.castShadow = true;
+    [-1, 1].forEach(function (s) { box(T, g, M.oak, s * 0.35, 0.59, 0.03, 0.09, 0.03, 0.66); });
+    return { group: g, hb: [0.8, 0.95, 0.85], place: 'floor' };
+  };
+  F['deck-table'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var top = lathe(T, [[0, 0.47], [0.35, 0.47], [0.36, 0.485], [0.35, 0.5], [0, 0.5]], M.oak, 36); top.castShadow = top.receiveShadow = true; g.add(top);
+    for (var i = 0; i < 3; i++) { var a = i * 2.094 + 0.5, l = box(T, g, M.oakD, Math.cos(a) * 0.24, 0.235, Math.sin(a) * 0.24, 0.045, 0.47, 0.045); l.rotation.set(Math.sin(a) * 0.1, 0, -Math.cos(a) * 0.1); }
+    box(T, g, M.oakD, 0, 0.2, 0, 0.42, 0.03, 0.04); box(T, g, M.oakD, 0, 0.2, 0, 0.04, 0.03, 0.42);
+    return { group: g, hb: [0.74, 0.5, 0.74], place: 'floor' };
+  };
+  [{ id: 'deck-lounge', name: '湖畔休闲椅' }, { id: 'deck-table', name: '小圆桌' }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: [0.8, 0.9, 0.8], note: '布莱德湖 · 湖畔木平台' }); });
 })(window);
