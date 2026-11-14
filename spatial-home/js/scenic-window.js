@@ -46,11 +46,14 @@
   /* drag on the glass: the view turns under your finger (left / right: the turn, up / down: the tilt); what a drag cannot
      do — near / far and sliding the view — is on a small bar that comes up while you adjust and hides itself again */
   function grab(ph, dx, dy) {
-    if (ph === 'start') { showBar(true); return; }
-    if (ph === 'end') { sset(VKEY, ADJ); barLater(); return; }
+    if (ph === 'start') { dragging = true; showBar(true); return; }
+    if (ph === 'end') { dragging = false; sset(VKEY, ADJ); barLater(); return; }
     var r = winRect(), w = r ? Math.max(120, r.r - r.l) : 400, h = r ? Math.max(120, r.b - r.t) : 300, k = 1.5 / ADJ.zoom;
     ADJ.yaw = clamp1(ADJ.yaw - dx / w * k); ADJ.pitch = clamp1(ADJ.pitch - dy / h * k); applyView(); syncBar(); showBar(true);
   }
+  /* any press elsewhere puts the bar away at once (a thing's card or the edit bar may need that place) */
+  root.addEventListener('pointerdown', function (e) { if (bar && bar.style.opacity === '1' && !bar.contains(e.target)) setTimeout(function () { if (!dragging) showBar(false); }, 0); }, true);
+  var dragging = false;
   function barLater() { clearTimeout(barT); barT = setTimeout(function () { showBar(false); }, 3200); }
   function syncBar() { if (!bar) return; Array.prototype.forEach.call(bar.querySelectorAll('input'), function (i) { i.value = ADJ[i.dataset.k]; }); }
   function showBar(on) {

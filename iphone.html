@@ -187523,11 +187523,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   /* drag on the glass: the view turns under your finger (left / right: the turn, up / down: the tilt); what a drag cannot
      do — near / far and sliding the view — is on a small bar that comes up while you adjust and hides itself again */
   function grab(ph, dx, dy) {
-    if (ph === 'start') { showBar(true); return; }
-    if (ph === 'end') { sset(VKEY, ADJ); barLater(); return; }
+    if (ph === 'start') { dragging = true; showBar(true); return; }
+    if (ph === 'end') { dragging = false; sset(VKEY, ADJ); barLater(); return; }
     var r = winRect(), w = r ? Math.max(120, r.r - r.l) : 400, h = r ? Math.max(120, r.b - r.t) : 300, k = 1.5 / ADJ.zoom;
     ADJ.yaw = clamp1(ADJ.yaw - dx / w * k); ADJ.pitch = clamp1(ADJ.pitch - dy / h * k); applyView(); syncBar(); showBar(true);
   }
+  /* any press elsewhere puts the bar away at once (a thing's card or the edit bar may need that place) */
+  root.addEventListener('pointerdown', function (e) { if (bar && bar.style.opacity === '1' && !bar.contains(e.target)) setTimeout(function () { if (!dragging) showBar(false); }, 0); }, true);
+  var dragging = false;
   function barLater() { clearTimeout(barT); barT = setTimeout(function () { showBar(false); }, 3200); }
   function syncBar() { if (!bar) return; Array.prototype.forEach.call(bar.querySelectorAll('input'), function (i) { i.value = ADJ[i.dataset.k]; }); }
   function showBar(on) {
@@ -191396,11 +191399,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function ask(title, text, buttons) {
     return new Promise(function (res) {
       card.innerHTML = '<h4>' + title + '</h4>' + (text ? '<p>' + text + '</p>' : '') + '<div class="acts">' + buttons.map(function (b, i) { return '<button type="button" data-i="' + i + '" class="' + (b.cls || '') + '">' + esc(b.label) + '</button>'; }).join('') + '</div>';
-      card.hidden = false;
-      card.onclick = function (e) { var b = e.target.closest('button'); if (!b) return; card.hidden = true; card.onclick = null; res(+b.dataset.i); };
+      card.hidden = false; askOut = function () { askOut = null; card.hidden = true; card.onclick = null; res(-1); };   // a tap on the room outside the card closes it
+      card.onclick = function (e) { var b = e.target.closest('button'); if (!b) return; askOut = null; card.hidden = true; card.onclick = null; res(+b.dataset.i); };
     });
   }
-  function closeCard() { card.hidden = true; card.onclick = null; }
+  var askOut = null;
+  function closeCard() { askOut = null; card.hidden = true; card.onclick = null; }
 
   /* ------------------------------------------------------------ the flow: tap → close-up → feedback → feature → back */
   /* a thing's own scene (the car key's garage): stand up in the room, cut to it, play, then the usual cut into the feature */
@@ -191841,12 +191845,16 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     noteInput();
     if (e.pointerType === 'touch' && !body.classList.contains('touch')) { body.classList.add('touch'); showHint(); }
     if (busy) { skipAll(); return; }
+    if (askOut && !card.hidden) { askOut(); return; }                            // a thing's card is open: tapping the room only closes it
     if (!body.classList.contains('sh-fold')) fold(true);                         // touching the room folds the buttons away
     if (edit) {
       var ad = arrowAt(e);                                                         // a move arrow: nudge, and keep nudging while held
       if (ad) { ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true, arrow: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
         nudge(ad); clearInterval(nudgeT); clearTimeout(nudgeD); nudgeD = setTimeout(function () { nudgeT = setInterval(function () { nudge(ad); }, 90); }, 380); return; }
-      ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {} editMove(e); return;
+      /* on the thing: drag it. On the empty room: a tap ends the editing (placed if it may stand there), a drag still moves it */
+      ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+      var onIt = ray.intersectObject(edit.g, true).length > 0;
+      ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true, blank: !onIt }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {} if (onIt) editMove(e); return;
     }
     ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
     /* a thing that takes a drag itself (o.grab: the Scenic Window turns its view): dragging on it moves it, not the look */
@@ -191855,14 +191863,16 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     var lpE = { clientX: e.clientX, clientY: e.clientY }, mine = ptr;
     ptr.lp = setTimeout(function () {
       if (ptr !== mine || ptr.drag || edit || busy || mode !== 'explore') return;
-      var o = pick(lpE) || pickExtra(lpE); if (!o) return;
+      var nl = nearestAt(lpE), o = nl.o || nl.x; if (!o) return;
       ptr.long = true; try { if (navigator.vibrate) navigator.vibrate(12); } catch (er) {}
       startEdit(o); toast('拖动它，或点周围的箭头微调 · 放好后点 ✓');
     }, 520);
   });
   canvas.addEventListener('pointermove', function (e) {
     if (busy) return;
-    if (edit) { if (ptr && ptr.arrow) return; if ((ptr && ptr.id === e.pointerId) || (e.pointerType === 'mouse' && e.buttons)) editMove(e); return; }   // a mouse moves it only while pressed: hovering leaves it where it is, so the bar can be reached
+    if (edit) { if (ptr && ptr.arrow) return;
+      if (ptr && ptr.blank) { if (Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) ptr.blank = false; else return; }
+      if ((ptr && ptr.id === e.pointerId) || (e.pointerType === 'mouse' && e.buttons)) editMove(e); return; }   // a mouse moves it only while pressed: hovering leaves it where it is, so the bar can be reached
     if (!ptr || ptr.id !== e.pointerId) { if (e.pointerType === 'mouse') setHot(pick(e)); return; }
     var dx = e.clientX - ptr.x, dy = e.clientY - ptr.y; ptr.x = e.clientX; ptr.y = e.clientY;
     if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; clearTimeout(ptr.lp); canvas.classList.add('drag'); walkTo = null; if (ptr.grab) try { ptr.grab.grab('start', 0, 0, e); } catch (er) {} }
@@ -191876,14 +191886,16 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function up(e) {
     if (!ptr || ptr.id !== e.pointerId) return;
     clearTimeout(ptr.lp); clearInterval(nudgeT); clearTimeout(nudgeD);
-    var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long, grab = ptr.grab; ptr = null; canvas.classList.remove('drag');
+    var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long, grab = ptr.grab, blank = ptr.blank; ptr = null; canvas.classList.remove('drag');
+    if (wasEdit && blank && edit && e.type !== 'pointercancel') { endEdit(edit.valid ? 'ok' : 'cancel'); return; }   // a tap on the empty room: done editing
     if (wasDrag && grab) { try { grab.grab('end', 0, 0, e); } catch (er) {} return; }
     if (wasEdit || wasLong || edit) return;
     if (wasDrag || busy || e.type === 'pointercancel') return;
     var swh = mode === 'explore' || mode === 'desk' ? swAt(e) : null; if (swh) { pressSwitch(swh); return; }
     if (third() && avatarHit(e)) { figureMenu(); return; }
-    var o = pick(e); if (o) { activate(o); return; }
-    var x = pickExtra(e); if (x) { if (x.press) { try { var said = x.press(); if (said) toast(said); } catch (er) {} return; } extraCard(x); return; }   // a thing with its own control (the light switch) works on a tap
+    var nb = nearestAt(e), o = nb.o, x = nb.x;
+    if (o) { activate(o); return; }
+    if (x) { if (x.press) { try { var said = x.press(); if (said) toast(said); } catch (er) {} return; } extraCard(x); return; }   // a thing with its own control (the light switch) works on a tap
     if (mode !== 'explore') return;
     var hit = ray.ray.intersectPlane(floor, v3a);                                  // pick() has set the ray
     if (hit && inArea(hit.x, hit.z) && ray.ray.direction.y < -0.05) { if (third()) walkPath(hit.x, hit.z, { face: true }); else walkTo = { x: hit.x, z: hit.z, stuck: 0 }; }
@@ -192091,6 +192103,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       m.group.position.fromArray(e.p); m.group.rotation.y = e.ry || 0; scene.add(m.group);
       var x = { e: e, group: m.group, hit: hit, place: m.place, tick: m.tick, machine: m.machine, press: m.press }; hit.userData.extra = x; XS.push(x);
     });
+  }
+  /* what is nearest along the ray wins: a piano in front of the window is the piano, not the window */
+  function nearestAt(e) {
+    var o = pick(e), od = o ? (ray.intersectObject(o.hit, false)[0] || {}).distance : Infinity;
+    var x = pickExtra(e), xd = x ? (ray.intersectObject(x.hit, false)[0] || {}).distance : Infinity;
+    if (x && (!o || xd < od)) return { x: x }; return { o: o };
   }
   function pickExtra(e) {
     if (!XS.length) return null;
