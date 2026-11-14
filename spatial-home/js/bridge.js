@@ -220,5 +220,26 @@
   /* leave Spatial Home for the plain app (the board): what the room opened is put away the feature's own way */
   function release() { clearInterval(poll); current = null; closeOthers(null); hide(); }
 
+  /* the MacBook in the Alpine Meadow office (laptop.js) runs this same app page in its screen, framed, and asks it for a
+     feature: ?mnLaptop=<feature> on load, or a message { mnLaptop: <feature> } later. The framed page opens it on itself
+     (a page target: the page itself goes there). */
+  (function () {
+    var framed = false; try { framed = root.top !== root; } catch (e) { framed = true; }
+    if (!framed) return;
+    function openHere(f) {
+      if (!f || !FEATURES[f]) return; var tries = 0;
+      (function go() {
+        var av = []; try { av = available(f); } catch (e) {}
+        if (!av.length || !document.getElementById('root')) { if (++tries < 160) setTimeout(go, 250); return; }
+        var t = av[0];
+        if (t.kind === 'page') { try { location.href = pageUrl(t); } catch (e) {} return; }
+        try { clearGlance(root); closeOthers(t); if (!t.isOpen(root) || t.base) t.open(root); } catch (e) { if (root.console) console.warn('Spatial Home laptop: could not open', f, e); }
+        [600, 1800, 4000].forEach(function (ms) { setTimeout(function () { try { clearGlance(root); } catch (e) {} }, ms); });   // the Duo's Glance page comes up after load: past it to the app
+      })();
+    }
+    var q = null; try { q = new URLSearchParams(location.search).get('mnLaptop'); } catch (e) {}
+    if (q) { if (document.readyState === 'complete') openHere(q); else root.addEventListener('load', function () { openHere(q); }); }
+    root.addEventListener('message', function (e) { var m = e.data; if (m && typeof m.mnLaptop === 'string') openHere(m.mnLaptop); });
+  })();
   root.SpatialBridge = { FEATURES: FEATURES, EMBED: EMBED, init: init, load: load, state: state, available: available, isLive: isLive, needsHost: needsHost, show: show, hide: hide, leave: leave, release: release, appUrl: appUrl, current: function () { return current; }, hostWindow: hw };
 })(window);

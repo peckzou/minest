@@ -34,7 +34,43 @@
     return libP.then(function (C) { var a = realAp(C, id, ap === undefined ? apId() : ap), key = id + '/' + a;
       return cores[key] || (cores[key] = C.load(id, { base: base() + 'scenic/', low: true, renderer: root.SpatialRoom && root.SpatialRoom.renderer, appearance: a })); });
   }
-  var showScene = function () {}, applyView = function () {}, WIN = null;
+  /* ---- Scenic World · Collection 001 (scenic-environments/, made by argon): seven fixed-viewpoint photo scenes, each a
+     photograph draped over a 32k-triangle depth mesh 39–50 m out, seen from the origin looking down −z (38° of photo
+     vertically, a mirrored overscan round it). Through the window they are drawn like the other scenes: an off-axis
+     view from your eye. Each room keeps its own choice (store 'scenic:winScene' {room: id}); 'core' is the older view. */
+  var ENVS = [['alpine-valley', '瀑布山谷'], ['golden-oaks', '金色橡树'], ['highland-railway', '高地列车'], ['lost-city', '印加古城'],
+    ['whitehaven-paradise', '白天堂沙洲'], ['alpine-meadow', '阿尔卑斯草甸'], ['little-venice', '科尔马运河']];
+  var WKEY = 'scenic:winScene', ROOM_DEF = { victorian: 'alpine-valley' }, envCache = {};
+  function roomId() { try { var a = root.MinestSpatialHome && root.MinestSpatialHome.api(); return (a && a.env() && a.env().id) || ''; } catch (e) { return ''; } }
+  function winChoice() { var m = sget(WKEY) || {}, r = roomId(), v = m[r] || ROOM_DEF[r] || null; return v === 'core' ? null : (ENVS.some(function (q) { return q[0] === v; }) ? v : null); }
+  function setWinChoice(v) { var m = sget(WKEY) || {}; if (typeof m !== 'object') m = {}; m[roomId()] = v; sset(WKEY, m); }
+  function loadEnv(id) {
+    if (envCache[id]) return envCache[id];
+    var dir = base() + 'scenic-environments/' + id + '/';
+    return (envCache[id] = Promise.all([
+      fetch(dir + 'manifest.json').then(function (r) { return r.json(); }).catch(function () { return {}; }),
+      new Promise(function (res, rej) { new THREE.GLTFLoader().load(dir + 'geometry/spatial_scene.glb', res, undefined, rej); }),
+      new Promise(function (res, rej) { new THREE.TextureLoader().load(dir + 'textures/albedo.jpg', res, undefined, rej); })
+    ]).then(function (r) {
+      var man = r[0] || {}, gl = r[1], tex = r[2];
+      tex.flipY = false; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = true;
+      var U = { uT: { value: 0 }, uMap: { value: tex }, uPx: { value: new THREE.Vector2(1 / ((tex.image && tex.image.width) || 1280), 1 / ((tex.image && tex.image.height) || 720)) } };
+      var mat = new THREE.ShaderMaterial({ uniforms: U,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: ['uniform sampler2D uMap; uniform vec2 uPx; varying vec2 vUv;',
+          'vec2 mir(vec2 p){ return 1.0 - abs(1.0 - mod(p, 2.0)); }',
+          'void main(){ vec2 u = mir(vUv); vec3 c = texture2D(uMap, u).rgb;',
+          '  vec3 b = (texture2D(uMap, mir(vUv + vec2(uPx.x, 0.0))).rgb + texture2D(uMap, mir(vUv - vec2(uPx.x, 0.0))).rgb + texture2D(uMap, mir(vUv + vec2(0.0, uPx.y))).rgb + texture2D(uMap, mir(vUv - vec2(0.0, uPx.y))).rgb) * 0.25;',
+          '  gl_FragColor = vec4(clamp(c + (c - b) * 0.55, 0.0, 1.0), 1.0); }'].join('\n'),   // the photos are ~1000 px: a light unsharp mask
+        side: THREE.DoubleSide });
+      gl.scene.traverse(function (o) { if (o.isMesh) { o.material = mat; o.frustumCulled = false; } });
+      var grp = new THREE.Group(); grp.add(gl.scene);
+      var tv = Math.tan(19 * Math.PI / 180), asp = man.nativeAspect || 1.7778;
+      return { group: grp, U: U, kind: 'env', id: id, appear: 'day', tanV: tv, tanH: tv * asp, P: new THREE.Vector3(0, 0, -44), yaw0: 0, pitch0: 0.12,   // tipped a little, as the lake: the photo's middle at eye level
+        dispose: function () { tex.dispose(); mat.dispose(); gl.scene.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); } };
+    }).catch(function (e) { delete envCache[id]; throw e; }));
+  }
+  var showScene = function () {}, applyView = function () {}, WIN = null, shownKey = null;
   /* ---- the view adjuster: turn and move what the window looks at, so the room gets its best view ---- */
   var VKEY = 'scenic:winView', SHIFT = 0.12, RANGE = { yaw: 1, pitch: 1, x: 1, y: 1 };
   function vget() { var v = sget(VKEY) || {}; function n(k, d) { var x = +v[k]; return isFinite(x) ? x : d; }
@@ -55,19 +91,22 @@
   root.addEventListener('pointerdown', function (e) { if (bar && bar.style.opacity === '1' && !bar.contains(e.target)) setTimeout(function () { if (!dragging) showBar(false); }, 0); }, true);
   var dragging = false;
   function barLater() { clearTimeout(barT); barT = setTimeout(function () { showBar(false); }, 3200); }
-  function syncBar() { if (!bar) return; Array.prototype.forEach.call(bar.querySelectorAll('input'), function (i) { i.value = ADJ[i.dataset.k]; }); }
+  function syncBar() { if (!bar) return; Array.prototype.forEach.call(bar.querySelectorAll('input'), function (i) { i.value = ADJ[i.dataset.k]; });
+    var cur = winChoice() || 'core'; Array.prototype.forEach.call(bar.querySelectorAll('[data-scene]'), function (b) { var on = b.dataset.scene === cur; b.style.background = on ? '#d9a95b' : 'transparent'; b.style.color = on ? '#231a10' : 'inherit'; b.style.borderColor = on ? '#d9a95b' : 'rgba(255,255,255,.28)'; }); }
   function showBar(on) {
     var h = host(); if (!h) return;
     if (!bar) {
       bar = document.createElement('div');
       bar.style.cssText = 'position:absolute;z-index:31;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translate(-50%,12px);width:min(360px,calc(100% - 32px));box-sizing:border-box;padding:9px 12px 8px;border-radius:14px;background:rgba(24,22,20,.72);color:#f3ece2;font:12px/1.3 -apple-system,system-ui,sans-serif;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s ease';
       var rows = [['zoom', '远近', 1, 2.5], ['x', '左右移', -1, 1], ['y', '上下移', -1, 1]];
-      bar.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="opacity:.8">在窗上拖动可转动风景</span><button type="button" data-a="reset" style="padding:3px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit;font-size:12px">恢复</button></div>' +
+      bar.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="opacity:.8">窗外风景 · 在窗上拖动可转动</span><button type="button" data-a="reset" style="padding:3px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit;font-size:12px">恢复</button></div>' +
+        '<div data-pick style="display:flex;gap:5px;overflow-x:auto;margin:4px 0 6px;padding-bottom:2px;-webkit-overflow-scrolling:touch">' +
+        ENVS.concat([['core', '布莱德湖']]).map(function (q) { return '<button type="button" data-scene="' + q[0] + '" style="flex:none;padding:4px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:transparent;color:inherit;font-size:12px;white-space:nowrap">' + q[1] + '</button>'; }).join('') + '</div>' +
         rows.map(function (r) { return '<label style="display:flex;align-items:center;gap:8px;margin:3px 0"><span style="width:40px;flex:none">' + r[1] + '</span><input type="range" data-k="' + r[0] + '" min="' + r[2] + '" max="' + r[3] + '" step="0.01" style="flex:1;accent-color:#d9a95b"></label>'; }).join('');
       ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (t) { bar.addEventListener(t, function (e) { e.stopPropagation(); clearTimeout(barT); }, { passive: true }); });
       ['pointerup', 'touchend', 'change'].forEach(function (t) { bar.addEventListener(t, function () { barLater(); }); });
       bar.addEventListener('input', function (e) { var k = e.target.dataset && e.target.dataset.k; if (!k) return; ADJ[k] = +e.target.value; saveAdj(); });
-      bar.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation(); ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); syncBar(); barLater(); });
+      bar.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation(); if (b.dataset.scene) { setWinChoice(b.dataset.scene); showScene(); } ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); syncBar(); barLater(); });
       h.appendChild(bar);
     }
     syncBar(); clearTimeout(barT);
@@ -126,7 +165,9 @@
     /* the window shows whichever scene was chosen last (Scenic World's Scenes): a 360° panorama stands round the glass at
        standing eye height; the Lake Bled spatial scene is tipped to its island, castle and peaks */
     showScene = function (id, ap) {
-      loadCore(id, ap).then(function (c) {
+      var w = winChoice(); shownKey = w || 'core';
+      (w ? loadEnv(w).catch(function () { return loadCore(id, ap); }) : loadCore(id, ap)).then(function (c) {
+        if (shownKey !== (w || 'core')) return;                          // a newer choice came in while this one loaded
         if (view && view !== c) sScene.remove(view.group);
         view = c; c.group.rotation.order = 'YXZ';
         applyView();
@@ -144,15 +185,16 @@
       if (c.kind === 'pano') { c.group.rotation.set(cl(A.pitch) * 0.35, cl(A.yaw) * Math.PI, 0); c.group.position.set(0, 1.5 - H / 2, 0); tanHw = 99; tanVw = 99; return; }
       /* the sliders run −1…1; 0 is the composed view, ±1 as far as the photograph reaches with a window's width to spare */
       function span(v, def, max) { v = cl(v); return v >= 0 ? def + v * (max - def) : def + v * (max + def); }
-      var aH = Math.atan(c.tanH), aV = Math.atan(c.tanV), yw = span(A.yaw, YAW, aH - 0.16), pt = span(A.pitch, PITCH, aV - 0.13);
+      var aH = Math.atan(c.tanH), aV = Math.atan(c.tanV), yw = span(A.yaw, c.yaw0 != null ? c.yaw0 : YAW, aH - 0.16), pt = span(A.pitch, c.pitch0 != null ? c.pitch0 : PITCH, aV - 0.13);
       var MIN = 0.15, roomH = Math.max(0, Math.tan(aH - Math.abs(yw)) - MIN), roomV = Math.max(0, Math.tan(aV - Math.abs(pt)) - MIN);
       var sx = cl(A.x) * Math.min(SHIFT, roomH), sy = cl(A.y) * Math.min(SHIFT, roomV), D = Math.abs(c.P.z) || 100;
-      c.group.rotation.y = yw; c.group.rotation.x = pt; c.group.position.set(-sx * D, -sy * D, 0);
+      c.group.rotation.y = yw; c.group.rotation.x = pt; c.group.position.set(-sx * D, -sy * D, 0); c._pt = pt;
       tanHw = Math.max(MIN, Math.tan(aH - Math.abs(yw)) - Math.abs(sx));
       tanVw = Math.max(MIN, Math.tan(aV - Math.abs(pt)) - Math.abs(sy));
     };
     showScene();
     function render(t) {
+      if (shownKey !== null && (winChoice() || 'core') !== shownKey) showScene();   // another room, another view
       var R = root.SpatialRoom && root.SpatialRoom.renderer, cam = root.SpatialRoom && root.SpatialRoom.camera; if (!view || !R || !cam || !g.visible) return;
       view.U.uT.value = t;
       var dressed = false; for (var ci = 0; ci < g.children.length; ci++) if (/^dress-/.test(g.children[ci].name || '')) dressed = true;
@@ -160,7 +202,7 @@
       if (view.kind === 'pano') view.group.position.y = 1.5 - H / 2;   // standing eye height, whatever size the room made the window
       cam.updateMatrixWorld(); _m.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); frus.setFromProjectionMatrix(_m);
       if (!frus.intersectsObject(hit)) return;                             // off screen: nothing to draw
-      var sz = R.getDrawingBufferSize(new THREE.Vector2()), rw = Math.max(2, Math.round(sz.x * 0.7)), rh = Math.max(2, Math.round(sz.y * 0.7));
+      var sz = R.getDrawingBufferSize(new THREE.Vector2()), rk = view.kind === 'env' ? 1 : 0.7, rw = Math.max(2, Math.round(sz.x * rk)), rh = Math.max(2, Math.round(sz.y * rk));
       if (!rt || rt.width !== rw || rt.height !== rh) { if (rt) rt.dispose(); rt = new THREE.WebGLRenderTarget(rw, rh, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter }); U.tex.value = rt.texture; }
       U.uRes.value.set(sz.x, sz.y);
       /* the eye in the window's frame (origin: the glass centre; x right, y up, z towards the room) */
@@ -170,6 +212,12 @@
       /* never more than the photograph holds: if the glass would open wider than the photo's frame, the scene's eye
          steps back just enough (the room's eye is where it is; the view behind the glass just narrows) */
       var m = Math.max(1, (Math.abs(_e.x) + hw) / (ez * tanHw * 0.97), (Math.abs(_e.y) + hh) / (ez * tanVw * 0.97)), zs = ez * m * ADJ.zoom;
+      if (view.kind === 'env') {
+        /* a photo scene fills the glass across (the photos are ~1000 px: never a magnified slice of one), and is tipped so
+           its middle sits behind the middle of the glass from where your eye is (the mirrored overscan covers the rest) */
+        zs = (hw + Math.abs(_e.x) * 0.5) / (Math.tan(Math.atan(view.tanH) - Math.abs(view.group.rotation.y)) * 0.96) * ADJ.zoom;
+        view.group.rotation.x = (view._pt || 0) - Math.atan2(_e.y, zs);
+      }
       var n = 0.5, l = (-hw - _e.x) * n / zs, r = (hw - _e.x) * n / zs, b = (-hh - _e.y) * n / zs, tp = (hh - _e.y) * n / zs;
       pCam.position.set(_e.x, _e.y, zs); pCam.quaternion.identity(); pCam.updateMatrixWorld(true);
       pCam.projectionMatrix.makePerspective(l, r, tp, b, n, 12000); pCam.projectionMatrixInverse.copy(pCam.projectionMatrix).invert();
@@ -179,7 +227,7 @@
       id: 'scenicWindow', name: '风景之窗', en: 'Scenic Window', icon: '🏞', feature: 'scenic', local: true, anchor: 'floor.window', group: g,
       hit: hit, label: [0, H + 0.12, 0], focusL: null,
       fit: function (a) { fit(a && a.w, a && a.h); },
-      panel: function () { return openScenic(); },
+      panel: function () { return winChoice() ? openEnv() : openScenic(); },
       set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); }, grab: grab,
       /* before the camera walks up: stand back along the window's axis as far as the plan wants, but stop 0.7 m short of
          the first thing in the way (furniture, a wall) — the room must stay round the window, never in front of the lens */
@@ -194,7 +242,7 @@
       }
     };
     fit(3, 2.7);
-    WIN = { pane: pane, frame: frameG, metal: metal, light: light, size: function () { return [W, H]; } };
+    WIN = { pane: pane, frame: frameG, metal: metal, light: light, size: function () { return [W, H]; }, scene: function () { return view; }, sScene: sScene };
     return o;
   }
 
@@ -243,6 +291,56 @@
   }
   function frameFade(k) { if (!WIN) return; WIN.metal.transparent = k < 1; WIN.metal.opacity = k; WIN.frame.visible = k > 0.02; }
   function hold(on) { if (root.SpatialRoom) root.SpatialRoom.hold = on; }
+  /* ---- into a Scenic World photo scene (the one in the window): full screen, from the scene's own viewpoint ----
+     The room stops drawing; the scene is drawn from the origin with a free look (drag), near / far (pinch, wheel),
+     within the photograph. The strip at the bottom picks another scene — it is what the window will show after.
+     ✕ (or Esc) goes back to the room. */
+  var IMM = null;
+  function openEnv() {
+    return new Promise(function (res) {
+      if (IMM) return res(null);
+      var R = root.SpatialRoom && root.SpatialRoom.renderer; if (!R || !WIN || !WIN.scene) return res(null);
+      var cam = new THREE.PerspectiveCamera(34, 1, 0.5, 400), st = { yaw: 0, pitch: 0, fov: 34, ptrs: {}, d0: 0, f0: 34 }, raf = 0, alive = true;
+      var el = document.createElement('div'); el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;opacity:0;transition:opacity .45s ease;touch-action:none;cursor:grab';
+      el.innerHTML = '<div style="position:absolute;top:calc(14px + env(safe-area-inset-top));left:16px;right:16px;display:flex;justify-content:space-between;align-items:center;pointer-events:none">' +
+        '<div data-t style="pointer-events:auto;padding:8px 14px;border-radius:14px;background:rgba(12,16,22,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#f5f8fc;font:600 14px -apple-system,system-ui,sans-serif"></div>' +
+        '<button type="button" data-x style="pointer-events:auto;width:40px;height:40px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(12,16,22,.55);color:#fff;font-size:18px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)">✕</button></div>' +
+        '<div data-d style="position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:calc(100% - 24px);display:flex;gap:6px;overflow-x:auto;padding:6px;border-radius:999px;background:rgba(12,16,22,.6);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)">' +
+        ENVS.map(function (q) { return '<button type="button" data-s="' + q[0] + '" style="flex:none;padding:7px 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:rgba(235,242,250,.8);font:500 12.5px -apple-system,system-ui,sans-serif;white-space:nowrap">' + q[1] + '</button>'; }).join('') + '</div>';
+      document.body.appendChild(el); IMM = el;
+      function mark() { var c = winChoice(); el.querySelector('[data-t]').textContent = (ENVS.filter(function (q) { return q[0] === c; })[0] || ['', ''])[1] + ' · 拖动环顾，双指缩放';
+        Array.prototype.forEach.call(el.querySelectorAll('[data-s]'), function (b) { var on = b.dataset.s === c; b.style.background = on ? 'rgba(255,217,125,.22)' : 'transparent'; b.style.color = on ? '#ffd97d' : 'rgba(235,242,250,.8)'; b.style.borderColor = on ? 'rgba(255,217,125,.45)' : 'transparent'; }); }
+      mark();
+      function limits() { var v = WIN.scene(); if (!v) return { y: 0, p: 0 }; var a = innerWidth / Math.max(1, innerHeight), tv = Math.tan(st.fov * Math.PI / 360), th = tv * a;
+        return { y: Math.max(0, Math.atan(v.tanH * 1.2) - Math.atan(th)), p: Math.max(0, Math.atan(v.tanV * 1.2) - Math.atan(tv)) }; }
+      function clampSt() { var L = limits(); st.yaw = Math.max(-L.y, Math.min(L.y, st.yaw)); st.pitch = Math.max(-L.p, Math.min(L.p, st.pitch)); }
+      function draw() {
+        if (!alive) return; raf = requestAnimationFrame(draw);
+        var v = WIN.scene(); if (!v) return;
+        var sz = R.getSize(new THREE.Vector2()); cam.aspect = sz.x / Math.max(1, sz.y); cam.fov = st.fov; cam.updateProjectionMatrix();
+        cam.position.set(0, 0, 0); cam.rotation.set(st.pitch, st.yaw, 0, 'YXZ');
+        var r0 = v.group.rotation.clone(), p0 = v.group.position.clone(); v.group.rotation.set(0, 0, 0); v.group.position.set(0, 0, 0);
+        var prev = R.getRenderTarget(); R.setRenderTarget(null); R.render(WIN.sScene, cam); R.setRenderTarget(prev);
+        v.group.rotation.copy(r0); v.group.position.copy(p0);
+      }
+      function close() { if (!alive) return; el.style.opacity = '0'; setTimeout(function () { alive = false; cancelAnimationFrame(raf); el.remove(); IMM = null; hold(false); res(null); }, 420); root.removeEventListener('keydown', key, true); }
+      function key(e) { if (e.key === 'Escape') { e.stopPropagation(); close(); } }
+      root.addEventListener('keydown', key, true);
+      el.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+        if (b.dataset.x != null) return close();
+        if (b.dataset.s) { setWinChoice(b.dataset.s); showScene(); st.yaw = 0; st.pitch = 0; st.fov = 34; mark(); } });
+      el.addEventListener('pointerdown', function (e) { if (e.target.closest('button')) return; st.ptrs[e.pointerId] = [e.clientX, e.clientY]; var k = Object.keys(st.ptrs);
+        if (k.length === 2) { var a = st.ptrs[k[0]], b = st.ptrs[k[1]]; st.d0 = Math.hypot(a[0] - b[0], a[1] - b[1]); st.f0 = st.fov; } try { el.setPointerCapture(e.pointerId); } catch (er) {} });
+      el.addEventListener('pointermove', function (e) { var p = st.ptrs[e.pointerId]; if (!p) return; var k = Object.keys(st.ptrs);
+        if (k.length === 2) { st.ptrs[e.pointerId] = [e.clientX, e.clientY]; var a = st.ptrs[k[0]], b = st.ptrs[k[1]], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (st.d0 > 0) st.fov = Math.max(22, Math.min(40, st.f0 * st.d0 / d)); clampSt(); return; }
+        var s = st.fov / 34 * 0.0035; st.yaw += (e.clientX - p[0]) * s; st.pitch += (e.clientY - p[1]) * s; st.ptrs[e.pointerId] = [e.clientX, e.clientY]; clampSt(); });
+      ['pointerup', 'pointercancel'].forEach(function (t) { el.addEventListener(t, function (e) { delete st.ptrs[e.pointerId]; st.d0 = 0; }); });
+      el.addEventListener('wheel', function (e) { e.preventDefault(); st.fov = Math.max(22, Math.min(40, st.fov + e.deltaY * 0.02)); clampSt(); }, { passive: false });
+      var cv0 = R.domElement, hidden = []; if (cv0.parentNode) Array.prototype.forEach.call(cv0.parentNode.children, function (c) { if (c !== cv0 && c.style.visibility !== 'hidden') { hidden.push(c); c.style.visibility = 'hidden'; } });   // the room's buttons and labels step aside
+      var close0 = close; close = function () { hidden.forEach(function (c) { c.style.visibility = ''; }); hidden = []; close0(); };
+      hold(true); draw(); requestAnimationFrame(function () { el.style.opacity = '1'; });
+    });
+  }
   function setLevel(level, v, dur) {
     if (!el) return; hold(false);
     if (level !== 'full') LV.v = v; LV.level = level; if (level === 'full') LV.v = 1;

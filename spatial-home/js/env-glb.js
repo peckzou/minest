@@ -1030,7 +1030,7 @@
       return {
         id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, startV: def.startV || 0, bounds: def.walk ? def.walk.slice() : null, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
-        surfaces: surfaces, dress: def.dress || null, realistic: !!def.realistic, upgrade: def.upgrade || null, movable: !!def.movable,
+        surfaces: surfaces, dress: def.dress || null, view: def.view || null, realistic: !!def.realistic, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
         dispose: function () { if (fin && fin.dispose) fin.dispose(); SR.disposeTree(holder); scene.background = null; }
@@ -1138,7 +1138,7 @@
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
   var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
-    cut: [[7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.6, 0.02, VW.z - VW.w / 2, 14, VW.h, VW.z + VW.w / 2]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
+    cut: [[7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.5, 0.02, VW.z - VW.w / 2 - 0.3, 14, VW.h, VW.z + VW.w / 2 + 0.3]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
     start: VSTART, startV: 8, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
     dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
@@ -1172,6 +1172,176 @@
       'floor.window': { p: [VW.x, 0, VW.z], ry: -Math.PI / 2, w: VW.w, h: VW.h }
     },
     credit: 'Victorian Study — Fox Dev assets, with the author\u2019s permission' };
+
+  /* ───────── Outdoor offices (2026-11-14): argon's four painted 3D landscapes (outdoor-workspace) as places to work ─────────
+     Each is argon's scene exactly as made — no stitching — seen from its own projection point (fitted from the mesh's UVs:
+     the picture is what a camera there saw). The whole scene is scaled by K about your eye, which changes nothing you see
+     from there but brings its painted ground to a few metres ahead: things can stand in it. The lens is never wider than
+     the painting and the look never goes past its edges (room.view); you stand on a small spot (the parallax the
+     painting holds). The Alpine Meadow: one stone at the bottom of the view; the Royal Garden: afternoon tea on the lawn;
+     Lofoten and Plitvice: a terrace. Every other thing of the room waits in the backpack there. */
+  var D2R = Math.PI / 180, OUT_EYE = [0, 1.5, 1.0];
+  var OUT_HIDE = ['aquarium', 'backpack', 'bookstand', 'carkey', 'carmodel', 'gramophone', 'holoDesk', 'medals', 'mochi', 'projector16', 'tsqPortal', 'album', 'board', 'ornament', 'planner', 'projector', 'typewriter', 'scenicWindow'];
+  function stoneTex(kind) {
+    var c = document.createElement('canvas'); c.width = c.height = 512; var x = c.getContext('2d'), i, j;
+    if (kind === 'flags') {                                               // irregular flagstones in warm grey
+      x.fillStyle = '#8f877b'; x.fillRect(0, 0, 512, 512);
+      for (j = 0; j < 4; j++) for (i = 0; i < 5; i++) {
+        var w = 128, ox = (j % 2) * 64, px = i * w + ox - 64 + (Math.random() - 0.5) * 10, py = j * 128 + (Math.random() - 0.5) * 8, sh = 150 + Math.random() * 40;
+        x.fillStyle = 'rgb(' + (sh + 18 | 0) + ',' + (sh + 10 | 0) + ',' + (sh - 4 | 0) + ')'; x.beginPath();
+        x.moveTo(px + 6, py + 6); x.lineTo(px + w - 6 + Math.random() * 4, py + 5); x.lineTo(px + w - 5, py + 122); x.lineTo(px + 5, py + 121 + Math.random() * 3); x.closePath(); x.fill();
+      }
+    } else if (kind === 'boards') {                                       // weathered timber deck boards
+      x.fillStyle = '#5e4a38'; x.fillRect(0, 0, 512, 512);
+      for (i = 0; i < 8; i++) { var sh2 = 110 + Math.random() * 40; x.fillStyle = 'rgb(' + (sh2 + 20 | 0) + ',' + (sh2 | 0) + ',' + (sh2 - 22 | 0) + ')'; x.fillRect(i * 64 + 2, 0, 60, 512);
+        for (j = 0; j < 30; j++) { x.strokeStyle = 'rgba(40,28,18,' + (0.08 + Math.random() * 0.12) + ')'; x.beginPath(); var gx = i * 64 + 4 + Math.random() * 56; x.moveTo(gx, 0); x.lineTo(gx + (Math.random() - 0.5) * 6, 512); x.stroke(); } }
+    } else { x.fillStyle = '#c9c2b4'; x.fillRect(0, 0, 512, 512); }
+    var im = x.getImageData(0, 0, 512, 512), D = im.data;
+    for (i = 0; i < D.length; i += 4) { var n = (Math.random() - 0.5) * 22; D[i] += n; D[i + 1] += n; D[i + 2] += n; }
+    x.putImageData(im, 0, 0);
+    var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t;
+  }
+  /* a terrace you look out from: a deck at your feet, raised, a railing along the front and the sides */
+  function outTerrace(holder, style, disp, Z0, Z1) {
+    var stone = style === 'stone', TX = 2.8, TZ0 = Z0, TZ1 = Z1;
+    var topT = stoneTex(stone ? 'flags' : 'boards'); topT.repeat.set(stone ? 2.4 : 3, stone ? 2.4 : 3); disp.push(topT);
+    var sideT = stoneTex(stone ? 'dressed' : 'boards'); sideT.repeat.set(2, 1); disp.push(sideT);
+    var topM = new THREE.MeshStandardMaterial({ map: topT, roughness: 0.9 }), sideM = new THREE.MeshStandardMaterial({ map: sideT, roughness: 0.9, color: lin(stone ? 0xb8ae9e : 0xb0a090) });
+    var railM = new THREE.MeshStandardMaterial({ map: sideT, roughness: 0.8, color: lin(stone ? 0xf2ece2 : 0xe8dccb) }); disp.push(topM, sideM, railM);
+    function bx(m, x, y, z, w, h, d) { var k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; holder.add(k); return k; }
+    var deck = new THREE.Mesh(new THREE.BoxGeometry(TX * 2, 0.24, TZ1 - TZ0), [sideM, sideM, topM, sideM, sideM, sideM]); deck.position.set(0, -0.12, (TZ0 + TZ1) / 2); deck.receiveShadow = true; holder.add(deck);
+    bx(sideM, 0, -4.2, (TZ0 + TZ1) / 2, TX * 2 - 0.1, 8.0, TZ1 - TZ0 - 0.1);                      // what it stands on, going down out of sight
+    var glassM = new THREE.MeshStandardMaterial({ color: 0xeaf4f8, transparent: true, opacity: 0.12, roughness: 0.05, metalness: 0.1, depthWrite: false }); disp.push(glassM);
+    function rail(x0, z0, x1, z1, front) {
+      var L = Math.hypot(x1 - x0, z1 - z0), a = Math.atan2(x1 - x0, z1 - z0);
+      if (front) {                                                      // the side you look out over: clear glass, one slim rail, nothing in the view
+        bx(glassM, (x0 + x1) / 2, 0.19, (z0 + z1) / 2, 0.02, 0.3, L).rotation.y = a;             // low: its rail stays down at the bottom of the view
+        bx(railM, (x0 + x1) / 2, 0.36, (z0 + z1) / 2, 0.06, 0.035, L + 0.04).rotation.y = a;
+        bx(railM, (x0 + x1) / 2, 0.04, (z0 + z1) / 2, 0.08, 0.06, L).rotation.y = a;
+        return;
+      }
+      if (stone) {
+        var n = Math.floor(L / 0.24), balG = new THREE.LatheGeometry([[0, 0], [0.065, 0], [0.065, 0.06], [0.042, 0.1], [0.038, 0.2], [0.07, 0.4], [0.038, 0.58], [0.048, 0.64], [0.07, 0.68], [0.07, 0.72], [0, 0.72]].map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 14); disp.push(balG);
+        bx(railM, (x0 + x1) / 2, 0.05, (z0 + z1) / 2, 0.22, 0.1, L).rotation.y = a; bx(railM, (x0 + x1) / 2, 0.86, (z0 + z1) / 2, 0.28, 0.09, L + 0.08).rotation.y = a;
+        var IM = new THREE.InstancedMesh(balG, railM, n), M4 = new THREE.Matrix4();
+        for (var i = 0; i < n; i++) { var k = (i + 0.5) / n; M4.makeTranslation(x0 + (x1 - x0) * k, 0.1, z0 + (z1 - z0) * k); IM.setMatrixAt(i, M4); }
+        IM.castShadow = true; holder.add(IM);
+      } else {
+        bx(railM, (x0 + x1) / 2, 0.98, (z0 + z1) / 2, 0.12, 0.05, L + 0.1).rotation.y = a;              // the handrail
+        [0.36, 0.66].forEach(function (y) { bx(railM, (x0 + x1) / 2, y, (z0 + z1) / 2, 0.04, 0.08, L).rotation.y = a; });
+        for (var p = 0; p <= Math.ceil(L / 1.2); p++) { var kk = p / Math.ceil(L / 1.2); bx(railM, x0 + (x1 - x0) * kk, 0.5, z0 + (z1 - z0) * kk, 0.09, 1.0, 0.09); }
+      }
+    }
+    rail(-TX + 0.12, TZ0 + 0.12, TX - 0.12, TZ0 + 0.12, true); rail(-TX + 0.12, TZ0 + 0.12, -TX + 0.12, TZ1 - 0.2); rail(TX - 0.12, TZ0 + 0.12, TX - 0.12, TZ1 - 0.2);
+    if (stone) [[-TX + 0.12, TZ1 - 0.2], [TX - 0.12, TZ1 - 0.2]].forEach(function (q) {   // the urns at the back corners, out of the view
+      bx(railM, q[0], 0.48, q[1], 0.32, 0.96, 0.32); bx(sideM, q[0], 0.99, q[1], 0.38, 0.06, 0.38);
+      var urn = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [0.11, 0], [0.13, 0.05], [0.08, 0.1], [0.15, 0.22], [0.17, 0.3], [0, 0.3]].map(function (v) { return new THREE.Vector2(v[0], v[1]); }), 16), railM); urn.position.set(q[0], 1.02, q[1]); holder.add(urn);
+      var red = new THREE.MeshLambertMaterial({ color: lin(0xd0302a) }), leaf = new THREE.MeshLambertMaterial({ color: lin(0x2f6a2a) }); disp.push(red, leaf);
+      for (var f = 0; f < 9; f++) { var b2 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.05 + Math.random() * 0.03, 0), f % 3 ? red : leaf); var a2 = Math.random() * 6.3, r2 = Math.random() * 0.12; b2.position.set(q[0] + Math.cos(a2) * r2, 1.36 + Math.random() * 0.08, q[1] + Math.sin(a2) * r2); holder.add(b2); }
+    });
+  }
+  /* a round stone dais in the garden for the tea table: a carved rim, its sides going down out of sight */
+  function outDais(holder, disp, d) {
+    var t = stoneTex('flags'); t.repeat.set(2, 2); var s2 = stoneTex('dressed'); s2.repeat.set(4, 1); disp.push(t, s2);
+    var topM = new THREE.MeshStandardMaterial({ map: t, roughness: 0.9 }), sideM = new THREE.MeshStandardMaterial({ map: s2, roughness: 0.9, color: lin(0xd8d0c2) }); disp.push(topM, sideM);
+    var top = new THREE.Mesh(new THREE.CylinderGeometry(d.r, d.r, 0.1, 64), [sideM, topM, sideM]); top.position.set(d.x, -0.05, d.z); top.receiveShadow = true; holder.add(top);
+    var rim = new THREE.Mesh(new THREE.TorusGeometry(d.r, 0.06, 8, 64), sideM); rim.rotation.x = Math.PI / 2; rim.position.set(d.x, 0.0, d.z); holder.add(rim);
+    var sides = new THREE.Mesh(new THREE.CylinderGeometry(d.r - 0.05, d.r + 0.6, 9, 64, 1, true), sideM); sides.position.set(d.x, -4.6, d.z); holder.add(sides);
+    disp.push(top.geometry, rim.geometry, sides.geometry);
+  }
+  function outdoorEnv(o) {
+    var HERO = [0, o.hero[0], o.hero[1]], K = o.k || 1, EYE = OUT_EYE, dir = 'scenic-environments/outdoor/' + o.scene + '/';
+    /* argon's own walking range (x ±3.2, z 18…28.5 in the scene), 1:1 around the eye */
+    var WZ0 = EYE[2] + (18 - HERO[2]) * K, WZ1 = EYE[2] + Math.min(28.5 - HERO[2], 2.5) * K, WX = 3.0 * K;
+    function R(xs, ys, zs) { return [EYE[0] + K * (xs - HERO[0]), EYE[1] + K * (ys - HERO[1]), EYE[2] + K * (zs - HERO[2])]; }
+    /* the painting's extent from the eye (yaw / pitch, radians): first from the fitted lens, then from the mesh itself */
+    var ext = { y0: -o.half[0], y1: o.half[0], p0: o.pc - o.half[1], p1: o.pc + o.half[1] };
+    var view = {
+      fov: function (a) { var tY = Math.tan((ext.y1 - ext.y0) / 2), tP = Math.tan((ext.p1 - ext.p0) / 2); return 2 * Math.atan(Math.min(tP * 0.94, tY * 0.94 / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a), yc = (ext.y0 + ext.y1) / 2, pc = (ext.p0 + ext.p1) / 2;
+        var Y = Math.max(0, (ext.y1 - ext.y0) / 2 - hh) * 0.96, Pm = Math.max(0, (ext.p1 - ext.p0) / 2 - hv) * 0.96; return { y0: yc - Y, y1: yc + Y, p0: pc - Pm, p1: pc + Pm }; } };
+    function finish(ctx) {
+      var holder = ctx.holder, model = ctx.model, scene = ctx.scene, disp = [];
+      model.scale.setScalar(K); model.position.fromArray(R(0, 0, 0)); model.updateMatrixWorld(true);
+      var tex = new THREE.TextureLoader().load(siteBase() + dir + 'albedo.jpg'); tex.flipY = false; tex.anisotropy = 8; disp.push(tex);
+      var U = { uMap: { value: tex }, uT: { value: 0 } };
+      var stageM = new THREE.ShaderMaterial({ uniforms: U, side: THREE.DoubleSide,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: 'uniform sampler2D uMap; varying vec2 vUv; void main(){ vec2 m = clamp(1.0 - abs(1.0 - abs(vUv)), 0.001, 0.999); gl_FragColor = vec4(texture2D(uMap, m).rgb, 1.0); }' });
+      disp.push(stageM);
+      /* the extent of the picture itself (the core, not the mirrored overscan), measured from the eye */
+      var e = { y0: 9, y1: -9, p0: 9, p1: -9 }, V = new THREE.Vector3();
+      model.traverse(function (m) {
+        if (!m.isMesh) return; m.material = stageM; m.frustumCulled = false; m.castShadow = m.receiveShadow = false;
+        var P = m.geometry.attributes.position, UV = m.geometry.attributes.uv; if (!UV) return;
+        for (var i = 0; i < P.count; i += 7) { var u = UV.getX(i), v = UV.getY(i); if (u < 0.02 || u > 0.98 || v < 0.02 || v > 0.98) continue;
+          V.set(P.getX(i), P.getY(i), P.getZ(i)).applyMatrix4(m.matrixWorld).sub(new THREE.Vector3().fromArray(EYE));
+          var yw = Math.atan2(-V.x, -V.z), pt = Math.atan2(V.y, Math.hypot(V.x, V.z)); if (yw < e.y0) e.y0 = yw; if (yw > e.y1) e.y1 = yw; if (pt < e.p0) e.p0 = pt; if (pt > e.p1) e.p1 = pt; }
+      });
+      if (e.y1 > e.y0 && e.p1 > e.p0) { var sy = (e.y1 - e.y0) * 0.03, sp = (e.p1 - e.p0) * 0.03; ext.y0 = e.y0 + sy; ext.y1 = e.y1 - sy; ext.p0 = e.p0 + sp; ext.p1 = e.p1 - sp; }
+      var skyM = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false,
+        vertexShader: 'varying vec3 vD; void main(){ vD = normalize((modelMatrix * vec4(position,1.0)).xyz - cameraPosition); gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position,1.0); }',
+        uniforms: { uHor: { value: new THREE.Color(0.78, 0.89, 0.97) }, uTop: { value: new THREE.Color(0.33, 0.58, 0.86) } },
+        fragmentShader: 'uniform vec3 uHor; uniform vec3 uTop; varying vec3 vD; void main(){ float y = clamp(vD.y, 0.0, 1.0); gl_FragColor = vec4(mix(uHor, uTop, pow(y, 0.7)), 1.0); }' });
+      var sky = new THREE.Mesh(new THREE.SphereGeometry(420, 32, 16), skyM); sky.renderOrder = -20; holder.add(sky); disp.push(skyM, sky.geometry);
+      var img = new Image(); img.crossOrigin = 'anonymous'; img.onload = function () {
+        try { var c = document.createElement('canvas'); c.width = 64; c.height = 64; var x = c.getContext('2d'); x.drawImage(img, 0, 0, img.width, img.height * 0.06, 0, 0, 64, 64);
+          var d = x.getImageData(0, 0, 64, 64).data, r = 0, gg = 0, b = 0, n = 0; for (var i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
+          skyM.uniforms.uHor.value.setRGB(r / n / 255, gg / n / 255, b / n / 255); skyM.uniforms.uTop.value.setRGB(r / n / 255 * 0.72, gg / n / 255 * 0.82, Math.min(1, b / n / 255 * 1.02)); } catch (er) {} };
+      img.src = siteBase() + dir + 'albedo.jpg';
+      if (o.terrace) outTerrace(holder, o.terrace, disp, o.deck[0], o.deck[1]);
+      if (o.dais) outDais(holder, disp, o.dais);
+      var sunL = holder.children.filter(function (q) { return q.isDirectionalLight; })[0];
+      if (sunL) { sunL.position.set(-4, 7, 5); sunL.target.position.set(0, 0.5, -1.5); sunL.intensity = 1.05; var sc = sunL.shadow.camera; sc.left = -5; sc.right = 5; sc.top = 5; sc.bottom = -5; sc.far = 20; sc.updateProjectionMatrix(); }
+      if (ctx.hemi) { ctx.hemi.color.set(0xeaf3ff); ctx.hemi.groundColor.set(0x6d7a4c); ctx.hemi.intensity = 0.95; }
+      scene.background = new THREE.Color(0xbcd8ee);
+      return { tick: function (t) { U.uT.value = t; }, dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); } };
+    }
+    var base = o.base, items = o.items.map(function (q) { return { kind: q[0], title: q[1], p: [base[0] + q[2], base[1] + q[3], base[2] + q[4]], ry: q[5] || 0, uid: q[6] }; });
+    var lo = Math.min.apply(null, items.map(function (i) { return i.uid; })), hi = Math.max.apply(null, items.map(function (i) { return i.uid; }));
+    var q0 = o.quill || [0.34, base[1] + o.top, base[2] - 0.12];
+    var def = { id: o.id, name: o.name, glb: dir + 'scene_mesh.glb', h: 6, showroom: true, far: 900, bg: 0xbcd8ee,
+      offset: R(0, 0, 0), walk: o.deck ? [-2.4, o.deck[0] + 0.4, 2.4, o.deck[1] - 0.4] : [-WX, WZ0, WX, WZ1], view: view,   // a terrace: you walk on it
+      start: { pos: EYE.slice(), yaw: 0, pitch: o.pitch || -0.12 }, startV: o.startV || 1,
+      deskCam: { pos: EYE.slice(), look: [0, base[1] + o.top, base[2] - 0.3] },
+      anchors: { 'desk.quill': { p: q0, ry: -0.3 } },
+      layout: { extras: JSON.parse(JSON.stringify(items)) },
+      upgrade: { v: o.upV || 1, fn: function (L) {
+        L.extras = (L.extras || []).filter(function (e) { return e.uid < lo || e.uid > hi; }).concat(JSON.parse(JSON.stringify(items)));
+        OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; });
+      } },
+      credit: o.credit + ' — painted 3D stage by argon (Minest Painterly 3D)', finish: finish };
+    SR.register({ id: o.id, name: o.name, zh: o.zh, icon: o.icon, build: makeEnv(def) });
+  }
+  /* Alpine Meadow: the projection point (0, 6.5, 27) → (0, 4, −30), 41°. One flat-topped stone close in front, only its top
+     at the bottom of the view; the MacBook, the cup, the notebook and the quill on it. */
+  outdoorEnv({ id: 'meadow-office', name: 'Alpine Meadow · Outdoor Office', zh: '高山草甸 · 户外办公', icon: '⛰', scene: 'alpine-meadow', credit: 'Alpine Meadow',
+    hero: [6.5, 27], half: [Math.atan(Math.tan(20.5 * D2R) * 1.49883), 20.5 * D2R], pc: Math.atan2(4 - 6.5, 57),
+    base: [0, 0.83, -1.2], top: 0, pitch: -0.14, upV: 7, startV: 7,
+    items: [['out-rock-tall', '平顶大石', 0, -0.83 - 6, 0, 0, 9801], ['out-macbook', 'MacBook', 0, 0, 0.04, 0, 9804], ['out-coffee', '咖啡杯', 0.42, 0, 0.2, 0.4, 9805], ['out-notebook', '皮面笔记本', -0.42, 0, 0.12, -0.25, 9806]],
+    quill: [0.32, 0.83, -1.36] });
+  /* the Royal Garden (Hampton Court): its own hero view (0, 5.5, 26) → (0, 4.2, −30) — its UVs are not one camera's, so the
+     eye stands where argon looks from. Afternoon tea on the lawn: a white wrought-iron table with a lace cloth, two chairs,
+     a three-tier stand, the teapot, two cups, roses — and the MacBook. */
+  outdoorEnv({ id: 'garden-tea', name: 'Royal Garden · Afternoon Tea', zh: '皇家花园 · 下午茶', icon: '🫖', scene: 'royal-garden', credit: 'Royal Garden',
+    hero: [5.5, 26], half: [Math.atan(Math.tan(18 * D2R) * 1.50147), 18 * D2R], pc: Math.atan2(4.2 - 5.5, 56),
+    dais: { x: 0, z: -1.6, r: 2.0 }, base: [0, 0, -1.6], top: 0.74, pitch: -0.16, upV: 2, startV: 2,
+    items: [['tea-table', '白铁艺茶桌', 0, 0, 0, 0, 9821], ['tea-chair', '白铁艺花园椅', -0.72, 0, 0.05, Math.PI / 2 - 0.25, 9822], ['tea-chair', '白铁艺花园椅', 0.72, 0, 0.05, -Math.PI / 2 + 0.25, 9823],
+      ['tea-stand', '三层点心架', -0.12, 0.74, -0.12, 0, 9824], ['tea-pot', '骨瓷茶壶', 0.2, 0.74, -0.14, -0.6, 9825], ['tea-cup', '茶杯', -0.22, 0.74, 0.2, 0.3, 9826], ['tea-cup', '茶杯', 0.24, 0.74, 0.16, -0.2, 9827],
+      ['tea-roses', '玫瑰小花瓶', 0.06, 0.74, -0.28, 0, 9828], ['out-macbook', 'MacBook', 0.02, 0.742, 0.17, 0, 9829]] });
+  /* Lofoten (0, 6.5, 26) → (0, 4, −30), 40°, and Plitvice (0, 6.5, 27) → (0, 4, −30), 39°: a terrace, a table and a chair */
+  outdoorEnv({ id: 'lofoten-terrace', name: 'Lofoten Fjord · Terrace', zh: '罗弗敦峡湾 · 露台', icon: '🏔', scene: 'lofoten-islands', credit: 'Lofoten Islands', terrace: 'timber',
+    hero: [6.5, 26], half: [Math.atan(Math.tan(20 * D2R) * 1.77778), 20 * D2R], pc: Math.atan2(4 - 6.5, 56),
+    deck: [-1.75, 3.8], base: [0, 0, -0.9], top: 0.75, pitch: -0.12, upV: 4, startV: 4,
+    items: [['out-wood-table', '北欧木桌', 0, 0, 0, 0, 9841], ['out-wood-chair', '北欧木椅', 0, 0, 0.62, Math.PI, 9842], ['out-macbook', 'MacBook', 0, 0.75, 0.05, 0, 9843],
+      ['out-coffee', '咖啡杯', 0.42, 0.75, 0.12, 0.4, 9844], ['out-notebook', '皮面笔记本', -0.4, 0.75, 0.05, -0.2, 9845]] });
+  outdoorEnv({ id: 'plitvice-terrace', name: 'Plitvice Lakes · Terrace', zh: '十六湖瀑布森林 · 露台', icon: '💧', scene: 'plitvice-lakes', credit: 'Plitvice Lakes', terrace: 'stone',
+    hero: [6.5, 27], half: [Math.atan(Math.tan(19.5 * D2R) * 1.79335), 19.5 * D2R], pc: Math.atan2(4 - 6.5, 57),
+    deck: [-1.75, 3.8], base: [0, 0, -0.9], top: 0.75, pitch: -0.12, upV: 4, startV: 4,
+    items: [['out-wood-table', '木桌', 0, 0, 0, 0, 9861], ['out-wood-chair', '木椅', 0, 0, 0.62, Math.PI, 9862], ['out-macbook', 'MacBook', 0, 0.75, 0.05, 0, 9863],
+      ['out-coffee', '咖啡杯', 0.42, 0.75, 0.12, 0.4, 9864], ['out-notebook', '皮面笔记本', -0.4, 0.75, 0.05, -0.2, 9865]] });
+  /* a stage point (ys, zs) of a scene seen from (hy, hz) and scaled by k about the eye, in the room */
+  function R0(hy, hz, k, ys, zs) { return [0, OUT_EYE[1] + k * (ys - hy), OUT_EYE[2] + k * (zs - hz)]; }
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
   SR.register({ id: 'victorian', name: 'EC–6 Victorian Study', zh: 'EC–6 备考书房 · 维多利亚', icon: '▤', build: makeEnv(VICT) });
 })(window);

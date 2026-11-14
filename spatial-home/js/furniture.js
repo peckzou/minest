@@ -875,4 +875,243 @@
    { id: 'vic-clock', name: '落地摆钟', en: 'Longcase clock', size: [0.66, 2.55, 0.42] },
    { id: 'vic-lightswitch', name: '吊灯开关', en: 'Chandelier switch', size: [0.14, 0.2, 0.08] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的陈设' }); });
+
+  /* ───────── the outdoor office (Alpine Meadow, 2026-11-14): a round stone table, a stone chair, a stone bench, a MacBook
+     (tap it: its screen opens over the meadow), a coffee cup, a leather notebook. Front: +z. ───────── */
+  function omats(T) {
+    if (F._o) return F._o;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), i;
+    x.fillStyle = '#cfc8bb'; x.fillRect(0, 0, 256, 256);
+    var im = x.getImageData(0, 0, 256, 256), D = im.data; for (i = 0; i < D.length; i += 4) { var n = (Math.random() - 0.5) * 26; D[i] += n; D[i + 1] += n; D[i + 2] += n * 0.9; } x.putImageData(im, 0, 0);
+    for (i = 0; i < 40; i++) { x.fillStyle = 'rgba(' + (Math.random() < 0.5 ? '90,84,74' : '240,236,226') + ',' + (0.08 + Math.random() * 0.12) + ')'; x.beginPath(); x.arc(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 6, 0, 6.3); x.fill(); }
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.wrapS = t.wrapT = T.RepeatWrapping;
+    var scr = document.createElement('canvas'); scr.width = 512; scr.height = 320; var y = scr.getContext('2d'), gr = y.createLinearGradient(0, 0, 512, 320);
+    gr.addColorStop(0, '#2b5aa8'); gr.addColorStop(0.45, '#7a4fb0'); gr.addColorStop(0.75, '#e0648a'); gr.addColorStop(1, '#f2a65a'); y.fillStyle = gr; y.fillRect(0, 0, 512, 320);
+    y.fillStyle = 'rgba(255,255,255,.18)'; y.fillRect(0, 0, 512, 12);
+    y.fillStyle = 'rgba(255,255,255,.22)'; y.beginPath(); y.roundRect ? y.roundRect(156, 286, 200, 26, 8) : y.rect(156, 286, 200, 26); y.fill();
+    ['#38c9b4', '#f6c465', '#e85a4f', '#5b8def', '#9b6bd8', '#f08a3e'].forEach(function (col, k) { y.fillStyle = col; y.beginPath(); y.arc(176 + k * 32, 299, 9, 0, 6.3); y.fill(); });
+    y.fillStyle = 'rgba(255,255,255,.92)'; y.font = '600 26px -apple-system, Helvetica, sans-serif'; y.textAlign = 'center'; y.fillText('Minest', 256, 150); y.font = '15px -apple-system, Helvetica, sans-serif'; y.fillText('点我 · 在草甸上办公', 256, 178);
+    var st = new T.CanvasTexture(scr); st.encoding = T.sRGBEncoding;
+    return (F._o = {
+      stone: new T.MeshStandardMaterial({ map: t, roughness: 0.88, color: L(0xe6dccb) }),
+      stoneD: new T.MeshStandardMaterial({ map: t, roughness: 0.9, color: L(0xb9b1a3) }),
+      alu: new T.MeshStandardMaterial({ color: L(0xb9bcc2), roughness: 0.32, metalness: 0.85, envMapIntensity: 1.2 }),
+      aluD: new T.MeshStandardMaterial({ color: L(0x3a3c40), roughness: 0.45, metalness: 0.6 }),
+      keys: new T.MeshStandardMaterial({ color: L(0x18191b), roughness: 0.6 }),
+      glass: new T.MeshStandardMaterial({ color: L(0x0b0c0e), roughness: 0.08, metalness: 0.2 }),
+      screen: new T.MeshBasicMaterial({ map: st, toneMapped: false }),
+      white: new T.MeshStandardMaterial({ color: L(0xf4f1ea), roughness: 0.25 }),
+      coffee: new T.MeshStandardMaterial({ color: L(0x3a2214), roughness: 0.2 }),
+      leather: new T.MeshStandardMaterial({ color: L(0x6a3a22), roughness: 0.55 }),
+      paper: new T.MeshStandardMaterial({ color: L(0xf1e9d6), roughness: 0.85 })
+    });
+  }
+  F['out-stone-table'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    var foot = lathe(T, [[0, 0], [0.34, 0], [0.34, 0.06], [0.28, 0.1], [0.2, 0.14], [0, 0.14]], M.stoneD, 32); g.add(foot);
+    var col = lathe(T, [[0, 0.14], [0.13, 0.14], [0.1, 0.24], [0.085, 0.4], [0.1, 0.56], [0.15, 0.64], [0.22, 0.68], [0, 0.68]], M.stone, 28); g.add(col);
+    var top = lathe(T, [[0, 0.68], [0.6, 0.68], [0.66, 0.7], [0.68, 0.73], [0.66, 0.762], [0, 0.762]], M.stone, 48); top.castShadow = top.receiveShadow = true; g.add(top);
+    [foot, col].forEach(function (m) { m.castShadow = true; m.receiveShadow = true; });
+    return { group: g, hb: [1.36, 0.77, 1.36], place: 'floor' };
+  };
+  F['out-stone-chair'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    box(T, g, M.stoneD, 0, 0.21, 0, 0.5, 0.42, 0.44); box(T, g, M.stone, 0, 0.45, 0.01, 0.56, 0.06, 0.5);           // the block, the seat
+    var back = new T.Shape(); back.moveTo(-0.28, 0); back.lineTo(0.28, 0); back.lineTo(0.28, 0.42); back.quadraticCurveTo(0.28, 0.58, 0, 0.6); back.quadraticCurveTo(-0.28, 0.58, -0.28, 0.42); back.lineTo(-0.28, 0);
+    var bm = new T.Mesh(new T.ExtrudeGeometry(back, { depth: 0.09, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 2 }), M.stone); bm.position.set(0, 0.48, -0.25); bm.rotation.x = -0.08; bm.castShadow = true; g.add(bm);
+    [-1, 1].forEach(function (s) { box(T, g, M.stone, s * 0.3, 0.6, 0.02, 0.07, 0.24, 0.42); box(T, g, M.stone, s * 0.3, 0.73, 0.03, 0.1, 0.04, 0.46); });
+    return { group: g, hb: [0.66, 1.1, 0.56], place: 'floor' };
+  };
+  F['out-stone-bench'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    [-1, 1].forEach(function (s) { box(T, g, M.stoneD, s * 0.5, 0.2, 0, 0.16, 0.4, 0.36); });
+    var seat = box(T, g, M.stone, 0, 0.44, 0, 1.4, 0.08, 0.42); seat.castShadow = true;
+    box(T, g, M.stoneD, 0, 0.395, 0, 1.36, 0.02, 0.38);
+    return { group: g, hb: [1.42, 0.5, 0.44], place: 'floor' };
+  };
+  /* a 14-inch MacBook Pro, open: aluminium body, black keys, a glass display with its notch, the screen lit. A tap opens it. */
+  F['out-macbook'] = function (T) {
+    var M = omats(T), g = new T.Group(), W = 0.312, D = 0.221;
+    var body = box(T, g, M.alu, 0, 0.0078, 0, W, 0.0155, D); body.castShadow = true;
+    box(T, g, M.keys, 0, 0.0158, -0.025, W - 0.05, 0.001, 0.11);
+    for (var r = 0; r < 6; r++) for (var c = 0; c < 14; c++) box(T, g, M.aluD, -0.122 + c * 0.0188, 0.0162, -0.075 + r * 0.019, 0.0155, 0.0012, 0.0155);
+    box(T, g, M.aluD, 0, 0.0158, 0.063, 0.13, 0.0008, 0.08);                                            // the trackpad
+    var lid = new T.Group(); lid.position.set(0, 0.0155, -D / 2 + 0.004); lid.rotation.x = -0.32; g.add(lid);    // open a little past upright
+    var shell = box(T, lid, M.alu, 0, 0.105, -0.004, W, 0.214, 0.006); shell.castShadow = true;
+    box(T, lid, M.glass, 0, 0.105, 0.0002, W - 0.004, 0.21, 0.001);
+    var scr = new T.Mesh(new T.PlaneGeometry(W - 0.022, 0.19), M.screen); scr.position.set(0, 0.108, 0.0015); lid.add(scr);
+    box(T, lid, M.glass, 0, 0.2085, 0.0018, 0.03, 0.007, 0.0008);                                       // the notch
+    var logo = new T.Mesh(new T.CircleGeometry(0.011, 20), new T.MeshStandardMaterial({ color: 0xd9dbe0, roughness: 0.15, metalness: 1 })); logo.position.set(0, 0.11, -0.0072); logo.rotation.y = Math.PI; lid.add(logo);
+    return { group: g, hb: [0.34, 0.26, 0.3], hbY: 0.12, place: 'floor',
+      press: function () {
+        if (!root.SpatialLaptop) return 'MacBook 还没有准备好';
+        var at = null, cam = root.SpatialRoom && root.SpatialRoom.camera, R = root.SpatialRoom && root.SpatialRoom.renderer;
+        try { var v = new T.Vector3(0, 0.11, -0.13); g.localToWorld(v); v.project(cam); var r = R.domElement.getBoundingClientRect(); at = { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; } catch (e) {}
+        root.SpatialLaptop.open({ at: at }); return null; } };
+  };
+  F['out-coffee'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    var cup = lathe(T, [[0, 0], [0.032, 0], [0.036, 0.01], [0.042, 0.075], [0.04, 0.078], [0.036, 0.012], [0, 0.012]], M.white, 24); g.add(cup);
+    var cof = new T.Mesh(new T.CircleGeometry(0.038, 24), M.coffee); cof.rotation.x = -Math.PI / 2; cof.position.y = 0.066; g.add(cof);
+    var h = new T.Mesh(new T.TorusGeometry(0.018, 0.005, 8, 16, Math.PI * 1.3), M.white); h.position.set(0.046, 0.042, 0); h.rotation.z = -Math.PI * 0.65; g.add(h);
+    var sau = lathe(T, [[0, 0], [0.07, 0], [0.072, 0.006], [0, 0.004]], M.white, 28); g.add(sau);
+    return { group: g, hb: [0.15, 0.09, 0.15], place: 'floor' };
+  };
+  F['out-notebook'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    box(T, g, M.leather, 0, 0.004, 0, 0.15, 0.008, 0.21); box(T, g, M.paper, 0.004, 0.0105, 0, 0.142, 0.005, 0.202); box(T, g, M.leather, 0, 0.0145, 0, 0.15, 0.003, 0.21);
+    var band = box(T, g, M.keys, 0.05, 0.0165, 0, 0.006, 0.001, 0.212);
+    return { group: g, hb: [0.16, 0.03, 0.22], place: 'floor' };
+  };
+
+  /* two stones on the grass (the Alpine Meadow, after the user: no terrace here) — a flat-topped granite boulder for a table
+     (its top at 0.71 m), a smaller rounded one to sit on; grey granite with lichen, rough all over, the tops worn smooth */
+  function boulder(T, w, h, d, topY, seed) {
+    var geo = new T.IcosahedronGeometry(1, 4), P = geo.attributes.position, col = new Float32Array(P.count * 3), v = new T.Vector3();
+    function n3(x, y, z) { var a = Math.sin(x * 3.1 + seed) * Math.cos(z * 2.7 - seed) + Math.sin(y * 4.3 + x * 1.7 + seed * 2) * 0.5; return a; }
+    for (var i = 0; i < P.count; i++) {
+      v.fromBufferAttribute(P, i); var r = 1 + n3(v.x, v.y, v.z) * 0.09 + (Math.sin(v.x * 9 + v.z * 7 + seed) * 0.02);
+      var x = v.x * r * w / 2, y = (v.y * r * 0.5 + 0.5) * h, z = v.z * r * d / 2;
+      if (topY && y > topY - 0.04) y = topY - 0.015 + Math.sin(x * 6 + seed) * 0.006 + Math.cos(z * 5) * 0.006;   // the worn flat top
+      if (y < 0.02) y = 0.02 - (0.02 - y) * 0.3;
+      P.setXYZ(i, x, y - 0.06, z);
+      var g = 0.52 + n3(v.z * 3, v.x * 3, v.y * 3) * 0.08 + Math.random() * 0.05, lich = Math.max(0, Math.sin(v.x * 7 + seed) * Math.sin(v.z * 6 - seed) - 0.55) * 1.6 * (v.y > 0 ? 1 : 0.4);
+      col[i * 3] = g + lich * 0.18; col[i * 3 + 1] = g + lich * 0.25; col[i * 3 + 2] = g * 0.96 - lich * 0.05;
+      if (y < 0.12) { col[i * 3] *= 0.75; col[i * 3 + 1] *= 0.8; col[i * 3 + 2] *= 0.72; }   // earth and moss at the foot
+    }
+    geo.setAttribute('color', new T.BufferAttribute(col, 3)); geo.computeVertexNormals();
+    var m = new T.Mesh(geo, new T.MeshStandardMaterial({ vertexColors: true, color: new T.Color(0x8d877b).convertSRGBToLinear(), roughness: 0.95, metalness: 0 })); m.castShadow = true; m.receiveShadow = true; return m;   // grey-brown granite
+  }
+  F['out-rock-table'] = function (T) { var g = new T.Group(); g.add(boulder(T, 1.3, 0.78, 0.95, 0.6 + 0.06, 1.7)); return { group: g, hb: [1.25, 0.61, 0.92], place: 'floor' }; };   // its top 0.6 m above where it sits (on the painted grass, a little sunk in)
+  /* the meadow's stone as an outcrop: it rises from below the view (its foot never in sight from where you can walk),
+     only its worn, flat top at the bottom of the view — 6.83 m from its foot to its top */
+  F['out-rock-tall'] = function (T) {
+    var H = 6.83, geo = new T.CylinderGeometry(0.62, 1.1, H, 28, 24, false), P = geo.attributes.position, col = new Float32Array(P.count * 3), v = new T.Vector3();
+    for (var i = 0; i < P.count; i++) {
+      v.fromBufferAttribute(P, i); var y = v.y + H / 2, a = Math.atan2(v.z, v.x), rr = Math.hypot(v.x, v.z);
+      var n = 1 + Math.sin(a * 3 + y * 1.3) * 0.08 + Math.sin(a * 7 - y * 2.1) * 0.04 + Math.sin(a * 13 + y * 5) * 0.015;
+      if (y > H - 0.12 && rr > 0.01) n *= 1 - (y - (H - 0.12)) * 1.6;   // the rounded lip of the top
+      v.x *= n * 1.05; v.z *= n * 0.78; P.setXYZ(i, v.x, y, v.z);
+      var g = 0.5 + Math.sin(a * 5 + y * 3) * 0.04 + Math.random() * 0.05, l = Math.max(0, Math.sin(a * 4 + y * 2) - 0.6) * 1.5;
+      col[i * 3] = g + l * 0.16; col[i * 3 + 1] = g + l * 0.22; col[i * 3 + 2] = g * 0.95;
+    }
+    geo.setAttribute('color', new T.BufferAttribute(col, 3)); geo.computeVertexNormals();
+    var m = new T.Mesh(geo, new T.MeshStandardMaterial({ vertexColors: true, color: new T.Color(0x8d877b).convertSRGBToLinear(), roughness: 0.95 })); m.castShadow = m.receiveShadow = true;
+    var g2 = new T.Group(); g2.add(m); return { group: g2, hb: [1.3, H, 1.0], place: 'floor' };
+  };
+  F['out-rock-seat'] = function (T) { var g = new T.Group(); g.add(boulder(T, 0.62, 0.56, 0.52, 0.44 + 0.06, 4.2)); return { group: g, hb: [0.6, 0.45, 0.5], place: 'floor' }; };
+  [{ id: 'out-stone-table', name: '圆石桌', en: 'Round stone table', size: [1.36, 0.77, 1.36] }, { id: 'out-stone-chair', name: '石椅', en: 'Stone chair', size: [0.66, 1.1, 0.56] },
+   { id: 'out-stone-bench', name: '石凳', en: 'Stone bench', size: [1.42, 0.5, 0.44] }, { id: 'out-macbook', name: 'MacBook', en: 'MacBook Pro', size: [0.34, 0.26, 0.3] },
+   { id: 'out-rock-table', name: '平顶大石（桌）', en: 'Flat-topped stone', size: [1.3, 0.72, 0.98] }, { id: 'out-rock-seat', name: '石头（座）', en: 'Stone seat', size: [0.6, 0.45, 0.5] },
+   { id: 'out-coffee', name: '咖啡杯', en: 'Coffee cup', size: [0.15, 0.09, 0.15] }, { id: 'out-notebook', name: '皮面笔记本', en: 'Leather notebook', size: [0.16, 0.03, 0.22] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '高山草甸 · 户外办公' }); });
+
+  /* ───────── afternoon tea in the Royal Garden, and the terraces' table and chair (2026-11-14) ───────── */
+  function tmats(T) {
+    if (F._t) return F._t;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), i, j;      // a lace cloth
+    x.fillStyle = '#fbf8f1'; x.fillRect(0, 0, 256, 256); x.strokeStyle = 'rgba(190,180,160,.55)'; x.lineWidth = 1.2;
+    for (i = 0; i < 8; i++) for (j = 0; j < 8; j++) { x.beginPath(); x.arc(16 + i * 32, 16 + j * 32, 10, 0, 6.3); x.stroke(); x.beginPath(); x.arc(16 + i * 32, 16 + j * 32, 4, 0, 6.3); x.stroke(); }
+    var lace = new T.CanvasTexture(c); lace.encoding = T.sRGBEncoding; lace.wrapS = lace.wrapT = T.RepeatWrapping; lace.repeat.set(3, 3);
+    var w = document.createElement('canvas'); w.width = 256; w.height = 64; var y = w.getContext('2d');                           // a bone-china band: white, gold lines, a blue garland
+    y.fillStyle = '#fbfaf6'; y.fillRect(0, 0, 256, 64); y.fillStyle = '#c9a24a'; y.fillRect(0, 6, 256, 3); y.fillRect(0, 55, 256, 3);
+    for (i = 0; i < 16; i++) { y.fillStyle = '#2d4f9a'; y.beginPath(); y.ellipse(8 + i * 16, 32, 5, 9, 0.5, 0, 6.3); y.fill(); y.fillStyle = '#6a8f4a'; y.beginPath(); y.ellipse(14 + i * 16, 28, 2.5, 5, -0.6, 0, 6.3); y.fill(); }
+    var china = new T.CanvasTexture(w); china.encoding = T.sRGBEncoding; china.wrapS = T.RepeatWrapping;
+    var wood = document.createElement('canvas'); wood.width = 128; wood.height = 512; var z = wood.getContext('2d'); z.fillStyle = '#b98a5a'; z.fillRect(0, 0, 128, 512);
+    for (i = 0; i < 50; i++) { z.strokeStyle = 'rgba(' + (Math.random() < 0.5 ? '120,80,40' : '220,180,130') + ',' + (0.12 + Math.random() * 0.2) + ')'; z.lineWidth = 1 + Math.random() * 2; var gx = Math.random() * 128; z.beginPath(); z.moveTo(gx, 0); z.bezierCurveTo(gx + 8, 170, gx - 8, 340, gx + 4, 512); z.stroke(); }
+    var oak = new T.CanvasTexture(wood); oak.encoding = T.sRGBEncoding; oak.wrapS = oak.wrapT = T.RepeatWrapping;
+    return (F._t = {
+      iron: new T.MeshStandardMaterial({ color: L(0xf2f0ea), roughness: 0.35, metalness: 0.5 }),
+      lace: new T.MeshStandardMaterial({ map: lace, roughness: 0.85, side: T.DoubleSide }),
+      china: new T.MeshStandardMaterial({ map: china, roughness: 0.18 }), white: new T.MeshStandardMaterial({ color: L(0xfbfaf6), roughness: 0.16 }),
+      gold: new T.MeshStandardMaterial({ color: L(0xd4ad55), roughness: 0.25, metalness: 0.95 }), tea: new T.MeshStandardMaterial({ color: L(0x7a3c12), roughness: 0.15 }),
+      scone: new T.MeshStandardMaterial({ color: L(0xd9a861), roughness: 0.8 }), cream: new T.MeshStandardMaterial({ color: L(0xfaf3df), roughness: 0.6 }), jam: new T.MeshStandardMaterial({ color: L(0x9a1c24), roughness: 0.3 }),
+      bread: new T.MeshStandardMaterial({ color: L(0xf1e2c4), roughness: 0.8 }), cucumber: new T.MeshStandardMaterial({ color: L(0x7fae5a), roughness: 0.6 }),
+      rose: new T.MeshStandardMaterial({ color: L(0xd8506a), roughness: 0.6 }), roseW: new T.MeshStandardMaterial({ color: L(0xf6e8e0), roughness: 0.6 }), leaf: new T.MeshStandardMaterial({ color: L(0x3e6a2e), roughness: 0.7 }),
+      glass: new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.25, roughness: 0.05, metalness: 0.1 }),
+      oak: new T.MeshStandardMaterial({ map: oak, roughness: 0.6 }), oakD: new T.MeshStandardMaterial({ map: oak, roughness: 0.65, color: L(0xb09878) })
+    });
+  }
+  var MAC = ['#f2b6c6', '#b6dcc2', '#f6e3a1', '#c9b6f2', '#f6c29a', '#a9cdf0'];
+  F['tea-table'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var top = lathe(T, [[0, 0.72], [0.42, 0.72], [0.43, 0.735], [0.42, 0.75], [0, 0.75]], M.iron, 40); g.add(top);
+    var cloth = lathe(T, [[0, 0.752], [0.43, 0.752], [0.47, 0.73], [0.5, 0.6], [0.505, 0.58]], M.lace, 48); cloth.castShadow = true; g.add(cloth);
+    g.add(lathe(T, [[0, 0], [0.24, 0], [0.24, 0.02], [0.05, 0.05], [0.035, 0.2], [0.05, 0.36], [0.03, 0.55], [0.06, 0.7], [0, 0.72]], M.iron, 24));
+    for (var i = 0; i < 3; i++) { var a = i * 2.094, sc = new T.Mesh(new T.TorusGeometry(0.12, 0.01, 6, 20, Math.PI), M.iron); sc.position.set(Math.cos(a) * 0.12, 0.12, Math.sin(a) * 0.12); sc.rotation.y = -a; g.add(sc); }
+    return { group: g, hb: [1.0, 0.76, 1.0], place: 'floor' };
+  };
+  F['tea-chair'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var seat = lathe(T, [[0, 0.44], [0.21, 0.44], [0.22, 0.46], [0, 0.46]], M.iron, 28); g.add(seat);
+    var cush = lathe(T, [[0, 0.46], [0.19, 0.46], [0.2, 0.48], [0.18, 0.5], [0, 0.5]], M.lace, 24); g.add(cush);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { var lg = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.46, 8), M.iron); lg.position.set(q[0] * 0.15, 0.22, q[1] * 0.15); lg.rotation.set(q[1] * 0.08, 0, -q[0] * 0.08); g.add(lg); });
+    var back = new T.Mesh(new T.TorusGeometry(0.2, 0.014, 8, 28, Math.PI), M.iron); back.position.set(0, 0.62, -0.2); back.scale.y = 1.1; g.add(back);
+    for (var i = 0; i < 5; i++) { var sc = new T.Mesh(new T.TorusGeometry(0.045, 0.006, 6, 14), M.iron); sc.position.set(-0.13 + i * 0.065, 0.64, -0.2); g.add(sc); }
+    [-0.2, 0.2].forEach(function (x) { var st = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.2, 8), M.iron); st.position.set(x, 0.54, -0.2); g.add(st); });
+    return { group: g, hb: [0.5, 0.86, 0.5], place: 'floor' };
+  };
+  F['tea-stand'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i;
+    var rod = new T.Mesh(new T.CylinderGeometry(0.006, 0.006, 0.42, 10), M.gold); rod.position.y = 0.21; g.add(rod);
+    var ring = new T.Mesh(new T.TorusGeometry(0.03, 0.006, 8, 18), M.gold); ring.position.y = 0.44; g.add(ring);
+    [[0.02, 0.13], [0.16, 0.105], [0.29, 0.08]].forEach(function (q, k) {
+      var pl = lathe(T, [[0, q[0]], [q[1], q[0]], [q[1] + 0.012, q[0] + 0.015], [q[1] + 0.008, q[0] + 0.017], [q[1] - 0.004, q[0] + 0.006], [0, q[0] + 0.006]], M.china, 32); g.add(pl);
+      var y = q[0] + 0.01, r = q[1] - 0.03;
+      if (k === 0) for (i = 0; i < 6; i++) { var a = i * 1.047, sw = box(T, g, M.bread, Math.cos(a) * r * 0.7, y + 0.02, Math.sin(a) * r * 0.7, 0.05, 0.032, 0.035); sw.rotation.y = -a; var cu = box(T, g, M.cucumber, Math.cos(a) * r * 0.7, y + 0.02, Math.sin(a) * r * 0.7, 0.051, 0.006, 0.036); cu.rotation.y = -a; }
+      else if (k === 1) for (i = 0; i < 4; i++) { var a2 = i * 1.571 + 0.4, sx = Math.cos(a2) * r * 0.6, sz = Math.sin(a2) * r * 0.6;
+        var sco = lathe(T, [[0, 0], [0.026, 0], [0.028, 0.012], [0.022, 0.03], [0, 0.034]], M.scone, 14); sco.position.set(sx, y, sz); g.add(sco);
+        ball(T, g, i % 2 ? M.jam : M.cream, [sx, y + 0.036, sz], 0.012, [1, 0.6, 1]); }
+      else for (i = 0; i < 7; i++) { var a3 = i * 0.9, mm = new T.MeshStandardMaterial({ color: new T.Color(MAC[i % MAC.length]).convertSRGBToLinear(), roughness: 0.6 });
+        [0, 0.014].forEach(function (dy) { var sh = lathe(T, [[0, 0], [0.016, 0], [0.018, 0.005], [0.012, 0.009], [0, 0.009]], mm, 12); sh.position.set(Math.cos(a3) * r * 0.55, y + dy, Math.sin(a3) * r * 0.55); g.add(sh); });
+        ball(T, g, M.cream, [Math.cos(a3) * r * 0.55, y + 0.011, Math.sin(a3) * r * 0.55], 0.014, [1, 0.25, 1]); }
+    });
+    return { group: g, hb: [0.3, 0.46, 0.3], place: 'floor' };
+  };
+  F['tea-pot'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var body = lathe(T, [[0, 0], [0.05, 0], [0.068, 0.02], [0.078, 0.06], [0.072, 0.1], [0.05, 0.125], [0.038, 0.13], [0, 0.13]], M.china, 28); body.castShadow = true; g.add(body);
+    var lid = lathe(T, [[0, 0.128], [0.04, 0.128], [0.034, 0.142], [0.012, 0.15], [0.01, 0.162], [0.014, 0.168], [0, 0.172]], M.white, 20); g.add(lid);
+    ball(T, g, M.gold, [0, 0.172, 0], 0.008);
+    var sp = new T.Mesh(new T.CylinderGeometry(0.008, 0.016, 0.1, 10), M.white); sp.position.set(0.09, 0.08, 0); sp.rotation.z = -0.9; g.add(sp);
+    var h = new T.Mesh(new T.TorusGeometry(0.04, 0.008, 8, 18, Math.PI * 1.2), M.white); h.position.set(-0.08, 0.075, 0); h.rotation.z = Math.PI / 2 + 0.3; g.add(h);
+    return { group: g, hb: [0.24, 0.18, 0.16], place: 'floor' };
+  };
+  F['tea-cup'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    g.add(lathe(T, [[0, 0], [0.06, 0], [0.068, 0.006], [0.066, 0.009], [0, 0.005]], M.china, 28));
+    var cup = lathe(T, [[0, 0.008], [0.022, 0.008], [0.03, 0.02], [0.042, 0.05], [0.044, 0.056], [0.041, 0.056], [0.038, 0.052], [0.026, 0.02], [0, 0.016]], M.china, 26); g.add(cup);
+    var t = new T.Mesh(new T.CircleGeometry(0.037, 22), M.tea); t.rotation.x = -Math.PI / 2; t.position.y = 0.047; g.add(t);
+    var h = new T.Mesh(new T.TorusGeometry(0.014, 0.004, 8, 14, Math.PI * 1.3), M.white); h.position.set(0.045, 0.034, 0); h.rotation.z = -Math.PI * 0.6; g.add(h);
+    var sp = new T.Mesh(new T.BoxGeometry(0.008, 0.002, 0.07), M.gold); sp.position.set(-0.03, 0.01, 0.02); sp.rotation.y = 0.5; g.add(sp);
+    return { group: g, hb: [0.14, 0.07, 0.14], place: 'floor' };
+  };
+  F['tea-roses'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i;
+    g.add(lathe(T, [[0, 0], [0.03, 0], [0.04, 0.03], [0.035, 0.08], [0.02, 0.11], [0.024, 0.13], [0, 0.13]], M.glass, 20));
+    for (i = 0; i < 5; i++) { var a = i * 1.26, st = new T.Mesh(new T.CylinderGeometry(0.003, 0.003, 0.16, 6), M.leaf); st.position.set(Math.cos(a) * 0.012, 0.16, Math.sin(a) * 0.012); st.rotation.set(Math.sin(a) * 0.25, 0, -Math.cos(a) * 0.25); g.add(st);
+      var bud = new T.Mesh(new T.IcosahedronGeometry(0.022, 1), i % 2 ? M.roseW : M.rose); bud.position.set(Math.cos(a) * 0.05, 0.245, Math.sin(a) * 0.05); bud.scale.y = 0.8; g.add(bud);
+      var lf = new T.Mesh(new T.SphereGeometry(0.015, 6, 4), M.leaf); lf.scale.set(1, 0.3, 1.8); lf.position.set(Math.cos(a + 0.6) * 0.04, 0.2, Math.sin(a + 0.6) * 0.04); g.add(lf); }
+    return { group: g, hb: [0.14, 0.28, 0.14], place: 'floor' };
+  };
+  F['out-wood-table'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var top = box(T, g, M.oak, 0, 0.73, 0, 1.2, 0.04, 0.72); top.castShadow = top.receiveShadow = true;
+    box(T, g, M.oakD, 0, 0.69, 0, 1.08, 0.05, 0.6);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { var l = box(T, g, M.oakD, q[0] * 0.53, 0.345, q[1] * 0.3, 0.05, 0.69, 0.05); l.rotation.set(q[1] * 0.05, 0, -q[0] * 0.05); });
+    return { group: g, hb: [1.22, 0.76, 0.74], place: 'floor' };
+  };
+  F['out-wood-chair'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i;
+    box(T, g, M.oak, 0, 0.45, 0, 0.46, 0.035, 0.44);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { box(T, g, M.oakD, q[0] * 0.2, 0.225, q[1] * 0.19, 0.035, 0.45, 0.035); });
+    [-1, 1].forEach(function (s) { var p = box(T, g, M.oakD, s * 0.2, 0.68, -0.2, 0.035, 0.48, 0.035); p.rotation.x = -0.12; });
+    for (i = 0; i < 3; i++) { var sl = box(T, g, M.oak, 0, 0.62 + i * 0.1, -0.21 - i * 0.012, 0.42, 0.05, 0.02); sl.rotation.x = -0.12; }
+    return { group: g, hb: [0.5, 0.92, 0.5], place: 'floor' };
+  };
+  [{ id: 'tea-table', name: '白铁艺茶桌' }, { id: 'tea-chair', name: '白铁艺花园椅' }, { id: 'tea-stand', name: '三层点心架' }, { id: 'tea-pot', name: '骨瓷茶壶' }, { id: 'tea-cup', name: '茶杯' },
+   { id: 'tea-roses', name: '玫瑰小花瓶' }, { id: 'out-wood-table', name: '木桌' }, { id: 'out-wood-chair', name: '木椅' }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: [0.5, 0.5, 0.5], note: '户外办公 · 下午茶 / 露台' }); });
 })(window);

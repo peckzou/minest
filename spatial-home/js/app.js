@@ -70,7 +70,7 @@
   function freshPose(env) { var v = room.startV | 0; if (!v) return; S.poseV = S.poseV || {}; if ((S.poseV[env] | 0) >= v) return; S.poseV[env] = v; if (S.poses) delete S.poses[env]; if (S.env === env) S.pose = null; }
   freshPose(room.envId);
   if (S.poses && S.poses[room.envId]) S.pose = S.poses[room.envId];
-  var EYE = 1.5, RAD = 0.24;
+  var EYE = 1.5, RAD = 0.24, BASEFOV = 60;
 
   var mode = S.def === 'last' ? (S.mode === 'desk' ? 'desk' : 'explore') : S.def;
   var P = { x: room.start.pos[0], z: room.start.pos[2], yaw: room.start.yaw, pitch: room.start.pitch };
@@ -97,6 +97,10 @@
       v3a.set(P.x - bx * 1.6, 1.15 + P.pitch * 1.2, P.z - bz * 1.6);
       quat.setFromRotationMatrix(m4.lookAt(pos, v3a, UP));
     } else {
+      /* a room with a set view (the Alpine Meadow: a painting seen from one point) keeps the lens and the look inside it */
+      if (room && room.view) { var vf = room.view.fov(camera.aspect); if (Math.abs(camera.fov - vf) > 0.01) { camera.fov = vf; camera.updateProjectionMatrix(); }
+        var vc = room.view.clamp(camera.aspect, vf); P.yaw = clamp(P.yaw, vc.y0, vc.y1); P.pitch = clamp(P.pitch, vc.p0, vc.p1); }
+      else if (Math.abs(camera.fov - BASEFOV) > 0.01) { camera.fov = BASEFOV; camera.updateProjectionMatrix(); }
       pos.set(P.x, EYE, P.z); quat.setFromEuler(eul.set(P.pitch, P.yaw, 0, 'YXZ'));
     }
   }
@@ -1109,7 +1113,7 @@
   var host = {
     THREE: THREE, reduced: function () { return !!S.motion; }, toast: toast,
     hotbarVisible: function () { return !body.hidden && !inFeature && !edit && !busy; },
-    functionObjects: function () { return objects.filter(function (o) { return o.id !== 'backpack'; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
+    functionObjects: function () { return objects.filter(function (o) { return o.id !== 'backpack'; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, featureId: o.feature, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
     onClose: function (placing) { closeLocal(placing); },
     status: function (it) {
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; return o && o.stashed ? { badge: '在背包', cls: 'bag', text: '在背包里（功能仍可从下方入口进入）', placed: false } : { badge: '摆放中', cls: '', text: '摆在 ' + room.name, placed: true }; }
@@ -1204,7 +1208,7 @@
   /* ------------------------------------------------------------ loop */
   function resize() {
     var w = window.innerWidth, h = window.innerHeight, a = w / h;
-    renderer.setSize(w, h, false); camera.aspect = a; camera.fov = a < 0.8 ? 76 : (a < 1.25 ? 68 : 60); camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false); camera.aspect = a; BASEFOV = a < 0.8 ? 76 : (a < 1.25 ? 68 : 60); camera.fov = room && room.view ? room.view.fov(a) : BASEFOV; camera.updateProjectionMatrix();
     /* Duo half-open (fold.js): the room sits in the top half (held upright) or the left half (sideways); the other half
        is the panel of things. The picture is shifted, not cut, so taps and labels still land where they show. */
     var R = document.documentElement;
@@ -1264,6 +1268,7 @@
     figure: { sit: sitToggle, gesture: function (n) { gesture(n, n === 'wave' ? 1.6 : 0.9); }, state: function () { return { sitting: AV.sitting, wantSit: AV.wantSit, carry: AV.carry, g: AV.g, speed: +AV.speed.toFixed(2), pos: avatar.position.toArray().map(function (n) { return +n.toFixed(2); }), pose: JSON.parse(JSON.stringify(AV.cur)) }; } },
     setEnv: setEnv, envs: function () { return window.SpatialRoom.envs(); }, env: function () { return room; }, look: function (yaw, pitch) { if (mode === 'desk') { DK.yaw = yaw; DK.pitch = pitch; } else { P.yaw = yaw; P.pitch = pitch; } dirty = true; }, layout: function () { return JSON.parse(JSON.stringify(layout())); },
     edit: { start: function (id) { var o = objects.filter(function (x) { return x.id === id; })[0]; if (o) startEdit(o); }, moveAt: function (x, y) { editMove({ clientX: x, clientY: y }); }, end: function (how) { endEdit(how || 'ok'); }, spawn: function (kind) { spawn({ kind: kind }); }, extras: function () { return XS.length; } },
+    backpack: function () { return BP && BP.catalog ? BP.catalog(host) : []; },   // the laptop's grid (laptop.js)
     walkTo: function (x, z) { if (mode === 'explore' && inArea(x, z)) { walkTo = { x: x, z: z, stuck: 0 }; return true; } return false; },
     activate: function (id) { activate(objects.filter(function (o) { return o.id === id; })[0]); },
     setMode: setMode, setView: setView, leave: function () { B.leave('api'); }, skip: skipAll,

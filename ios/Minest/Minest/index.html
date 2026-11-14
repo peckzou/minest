@@ -177152,7 +177152,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       return {
         id: def.id, name: def.name, group: g, holder: holder, far: def.far || 80, size: { W: 3.0, D: 2.6, H: def.h },
         anchors: A, avatar: PT.avatar, start: def.start || PT.start, startV: def.startV || 0, bounds: def.walk ? def.walk.slice() : null, desk: def.deskCam || PT.deskCam, solids: solids, areas: areas, credit: def.credit,
-        surfaces: surfaces, dress: def.dress || null, realistic: !!def.realistic, upgrade: def.upgrade || null, movable: !!def.movable,
+        surfaces: surfaces, dress: def.dress || null, view: def.view || null, realistic: !!def.realistic, upgrade: def.upgrade || null, movable: !!def.movable,
         defaultLayout: def.layout ? function () { return JSON.parse(JSON.stringify(def.layout)); } : null,
         setTime: function (m) { tmode = m || 'auto'; if (fin && fin.setTime) fin.setTime(tmode); }, tick: function (t) { if (fin && fin.tick) fin.tick(t); },
         dispose: function () { if (fin && fin.dispose) fin.dispose(); SR.disposeTree(holder); scene.background = null; }
@@ -177260,7 +177260,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
   var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
-    cut: [[7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.6, 0.02, VW.z - VW.w / 2, 14, VW.h, VW.z + VW.w / 2]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
+    cut: [[7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.5, 0.02, VW.z - VW.w / 2 - 0.3, 14, VW.h, VW.z + VW.w / 2 + 0.3]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
     start: VSTART, startV: 8, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
     dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
@@ -177294,6 +177294,176 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       'floor.window': { p: [VW.x, 0, VW.z], ry: -Math.PI / 2, w: VW.w, h: VW.h }
     },
     credit: 'Victorian Study — Fox Dev assets, with the author\u2019s permission' };
+
+  /* ───────── Outdoor offices (2026-11-14): argon's four painted 3D landscapes (outdoor-workspace) as places to work ─────────
+     Each is argon's scene exactly as made — no stitching — seen from its own projection point (fitted from the mesh's UVs:
+     the picture is what a camera there saw). The whole scene is scaled by K about your eye, which changes nothing you see
+     from there but brings its painted ground to a few metres ahead: things can stand in it. The lens is never wider than
+     the painting and the look never goes past its edges (room.view); you stand on a small spot (the parallax the
+     painting holds). The Alpine Meadow: one stone at the bottom of the view; the Royal Garden: afternoon tea on the lawn;
+     Lofoten and Plitvice: a terrace. Every other thing of the room waits in the backpack there. */
+  var D2R = Math.PI / 180, OUT_EYE = [0, 1.5, 1.0];
+  var OUT_HIDE = ['aquarium', 'backpack', 'bookstand', 'carkey', 'carmodel', 'gramophone', 'holoDesk', 'medals', 'mochi', 'projector16', 'tsqPortal', 'album', 'board', 'ornament', 'planner', 'projector', 'typewriter', 'scenicWindow'];
+  function stoneTex(kind) {
+    var c = document.createElement('canvas'); c.width = c.height = 512; var x = c.getContext('2d'), i, j;
+    if (kind === 'flags') {                                               // irregular flagstones in warm grey
+      x.fillStyle = '#8f877b'; x.fillRect(0, 0, 512, 512);
+      for (j = 0; j < 4; j++) for (i = 0; i < 5; i++) {
+        var w = 128, ox = (j % 2) * 64, px = i * w + ox - 64 + (Math.random() - 0.5) * 10, py = j * 128 + (Math.random() - 0.5) * 8, sh = 150 + Math.random() * 40;
+        x.fillStyle = 'rgb(' + (sh + 18 | 0) + ',' + (sh + 10 | 0) + ',' + (sh - 4 | 0) + ')'; x.beginPath();
+        x.moveTo(px + 6, py + 6); x.lineTo(px + w - 6 + Math.random() * 4, py + 5); x.lineTo(px + w - 5, py + 122); x.lineTo(px + 5, py + 121 + Math.random() * 3); x.closePath(); x.fill();
+      }
+    } else if (kind === 'boards') {                                       // weathered timber deck boards
+      x.fillStyle = '#5e4a38'; x.fillRect(0, 0, 512, 512);
+      for (i = 0; i < 8; i++) { var sh2 = 110 + Math.random() * 40; x.fillStyle = 'rgb(' + (sh2 + 20 | 0) + ',' + (sh2 | 0) + ',' + (sh2 - 22 | 0) + ')'; x.fillRect(i * 64 + 2, 0, 60, 512);
+        for (j = 0; j < 30; j++) { x.strokeStyle = 'rgba(40,28,18,' + (0.08 + Math.random() * 0.12) + ')'; x.beginPath(); var gx = i * 64 + 4 + Math.random() * 56; x.moveTo(gx, 0); x.lineTo(gx + (Math.random() - 0.5) * 6, 512); x.stroke(); } }
+    } else { x.fillStyle = '#c9c2b4'; x.fillRect(0, 0, 512, 512); }
+    var im = x.getImageData(0, 0, 512, 512), D = im.data;
+    for (i = 0; i < D.length; i += 4) { var n = (Math.random() - 0.5) * 22; D[i] += n; D[i + 1] += n; D[i + 2] += n; }
+    x.putImageData(im, 0, 0);
+    var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t;
+  }
+  /* a terrace you look out from: a deck at your feet, raised, a railing along the front and the sides */
+  function outTerrace(holder, style, disp, Z0, Z1) {
+    var stone = style === 'stone', TX = 2.8, TZ0 = Z0, TZ1 = Z1;
+    var topT = stoneTex(stone ? 'flags' : 'boards'); topT.repeat.set(stone ? 2.4 : 3, stone ? 2.4 : 3); disp.push(topT);
+    var sideT = stoneTex(stone ? 'dressed' : 'boards'); sideT.repeat.set(2, 1); disp.push(sideT);
+    var topM = new THREE.MeshStandardMaterial({ map: topT, roughness: 0.9 }), sideM = new THREE.MeshStandardMaterial({ map: sideT, roughness: 0.9, color: lin(stone ? 0xb8ae9e : 0xb0a090) });
+    var railM = new THREE.MeshStandardMaterial({ map: sideT, roughness: 0.8, color: lin(stone ? 0xf2ece2 : 0xe8dccb) }); disp.push(topM, sideM, railM);
+    function bx(m, x, y, z, w, h, d) { var k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(x, y, z); k.castShadow = k.receiveShadow = true; holder.add(k); return k; }
+    var deck = new THREE.Mesh(new THREE.BoxGeometry(TX * 2, 0.24, TZ1 - TZ0), [sideM, sideM, topM, sideM, sideM, sideM]); deck.position.set(0, -0.12, (TZ0 + TZ1) / 2); deck.receiveShadow = true; holder.add(deck);
+    bx(sideM, 0, -4.2, (TZ0 + TZ1) / 2, TX * 2 - 0.1, 8.0, TZ1 - TZ0 - 0.1);                      // what it stands on, going down out of sight
+    var glassM = new THREE.MeshStandardMaterial({ color: 0xeaf4f8, transparent: true, opacity: 0.12, roughness: 0.05, metalness: 0.1, depthWrite: false }); disp.push(glassM);
+    function rail(x0, z0, x1, z1, front) {
+      var L = Math.hypot(x1 - x0, z1 - z0), a = Math.atan2(x1 - x0, z1 - z0);
+      if (front) {                                                      // the side you look out over: clear glass, one slim rail, nothing in the view
+        bx(glassM, (x0 + x1) / 2, 0.19, (z0 + z1) / 2, 0.02, 0.3, L).rotation.y = a;             // low: its rail stays down at the bottom of the view
+        bx(railM, (x0 + x1) / 2, 0.36, (z0 + z1) / 2, 0.06, 0.035, L + 0.04).rotation.y = a;
+        bx(railM, (x0 + x1) / 2, 0.04, (z0 + z1) / 2, 0.08, 0.06, L).rotation.y = a;
+        return;
+      }
+      if (stone) {
+        var n = Math.floor(L / 0.24), balG = new THREE.LatheGeometry([[0, 0], [0.065, 0], [0.065, 0.06], [0.042, 0.1], [0.038, 0.2], [0.07, 0.4], [0.038, 0.58], [0.048, 0.64], [0.07, 0.68], [0.07, 0.72], [0, 0.72]].map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 14); disp.push(balG);
+        bx(railM, (x0 + x1) / 2, 0.05, (z0 + z1) / 2, 0.22, 0.1, L).rotation.y = a; bx(railM, (x0 + x1) / 2, 0.86, (z0 + z1) / 2, 0.28, 0.09, L + 0.08).rotation.y = a;
+        var IM = new THREE.InstancedMesh(balG, railM, n), M4 = new THREE.Matrix4();
+        for (var i = 0; i < n; i++) { var k = (i + 0.5) / n; M4.makeTranslation(x0 + (x1 - x0) * k, 0.1, z0 + (z1 - z0) * k); IM.setMatrixAt(i, M4); }
+        IM.castShadow = true; holder.add(IM);
+      } else {
+        bx(railM, (x0 + x1) / 2, 0.98, (z0 + z1) / 2, 0.12, 0.05, L + 0.1).rotation.y = a;              // the handrail
+        [0.36, 0.66].forEach(function (y) { bx(railM, (x0 + x1) / 2, y, (z0 + z1) / 2, 0.04, 0.08, L).rotation.y = a; });
+        for (var p = 0; p <= Math.ceil(L / 1.2); p++) { var kk = p / Math.ceil(L / 1.2); bx(railM, x0 + (x1 - x0) * kk, 0.5, z0 + (z1 - z0) * kk, 0.09, 1.0, 0.09); }
+      }
+    }
+    rail(-TX + 0.12, TZ0 + 0.12, TX - 0.12, TZ0 + 0.12, true); rail(-TX + 0.12, TZ0 + 0.12, -TX + 0.12, TZ1 - 0.2); rail(TX - 0.12, TZ0 + 0.12, TX - 0.12, TZ1 - 0.2);
+    if (stone) [[-TX + 0.12, TZ1 - 0.2], [TX - 0.12, TZ1 - 0.2]].forEach(function (q) {   // the urns at the back corners, out of the view
+      bx(railM, q[0], 0.48, q[1], 0.32, 0.96, 0.32); bx(sideM, q[0], 0.99, q[1], 0.38, 0.06, 0.38);
+      var urn = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [0.11, 0], [0.13, 0.05], [0.08, 0.1], [0.15, 0.22], [0.17, 0.3], [0, 0.3]].map(function (v) { return new THREE.Vector2(v[0], v[1]); }), 16), railM); urn.position.set(q[0], 1.02, q[1]); holder.add(urn);
+      var red = new THREE.MeshLambertMaterial({ color: lin(0xd0302a) }), leaf = new THREE.MeshLambertMaterial({ color: lin(0x2f6a2a) }); disp.push(red, leaf);
+      for (var f = 0; f < 9; f++) { var b2 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.05 + Math.random() * 0.03, 0), f % 3 ? red : leaf); var a2 = Math.random() * 6.3, r2 = Math.random() * 0.12; b2.position.set(q[0] + Math.cos(a2) * r2, 1.36 + Math.random() * 0.08, q[1] + Math.sin(a2) * r2); holder.add(b2); }
+    });
+  }
+  /* a round stone dais in the garden for the tea table: a carved rim, its sides going down out of sight */
+  function outDais(holder, disp, d) {
+    var t = stoneTex('flags'); t.repeat.set(2, 2); var s2 = stoneTex('dressed'); s2.repeat.set(4, 1); disp.push(t, s2);
+    var topM = new THREE.MeshStandardMaterial({ map: t, roughness: 0.9 }), sideM = new THREE.MeshStandardMaterial({ map: s2, roughness: 0.9, color: lin(0xd8d0c2) }); disp.push(topM, sideM);
+    var top = new THREE.Mesh(new THREE.CylinderGeometry(d.r, d.r, 0.1, 64), [sideM, topM, sideM]); top.position.set(d.x, -0.05, d.z); top.receiveShadow = true; holder.add(top);
+    var rim = new THREE.Mesh(new THREE.TorusGeometry(d.r, 0.06, 8, 64), sideM); rim.rotation.x = Math.PI / 2; rim.position.set(d.x, 0.0, d.z); holder.add(rim);
+    var sides = new THREE.Mesh(new THREE.CylinderGeometry(d.r - 0.05, d.r + 0.6, 9, 64, 1, true), sideM); sides.position.set(d.x, -4.6, d.z); holder.add(sides);
+    disp.push(top.geometry, rim.geometry, sides.geometry);
+  }
+  function outdoorEnv(o) {
+    var HERO = [0, o.hero[0], o.hero[1]], K = o.k || 1, EYE = OUT_EYE, dir = 'scenic-environments/outdoor/' + o.scene + '/';
+    /* argon's own walking range (x ±3.2, z 18…28.5 in the scene), 1:1 around the eye */
+    var WZ0 = EYE[2] + (18 - HERO[2]) * K, WZ1 = EYE[2] + Math.min(28.5 - HERO[2], 2.5) * K, WX = 3.0 * K;
+    function R(xs, ys, zs) { return [EYE[0] + K * (xs - HERO[0]), EYE[1] + K * (ys - HERO[1]), EYE[2] + K * (zs - HERO[2])]; }
+    /* the painting's extent from the eye (yaw / pitch, radians): first from the fitted lens, then from the mesh itself */
+    var ext = { y0: -o.half[0], y1: o.half[0], p0: o.pc - o.half[1], p1: o.pc + o.half[1] };
+    var view = {
+      fov: function (a) { var tY = Math.tan((ext.y1 - ext.y0) / 2), tP = Math.tan((ext.p1 - ext.p0) / 2); return 2 * Math.atan(Math.min(tP * 0.94, tY * 0.94 / Math.max(0.3, a))) / D2R; },
+      clamp: function (a, f) { var hv = f * D2R / 2, hh = Math.atan(Math.tan(hv) * a), yc = (ext.y0 + ext.y1) / 2, pc = (ext.p0 + ext.p1) / 2;
+        var Y = Math.max(0, (ext.y1 - ext.y0) / 2 - hh) * 0.96, Pm = Math.max(0, (ext.p1 - ext.p0) / 2 - hv) * 0.96; return { y0: yc - Y, y1: yc + Y, p0: pc - Pm, p1: pc + Pm }; } };
+    function finish(ctx) {
+      var holder = ctx.holder, model = ctx.model, scene = ctx.scene, disp = [];
+      model.scale.setScalar(K); model.position.fromArray(R(0, 0, 0)); model.updateMatrixWorld(true);
+      var tex = new THREE.TextureLoader().load(siteBase() + dir + 'albedo.jpg'); tex.flipY = false; tex.anisotropy = 8; disp.push(tex);
+      var U = { uMap: { value: tex }, uT: { value: 0 } };
+      var stageM = new THREE.ShaderMaterial({ uniforms: U, side: THREE.DoubleSide,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: 'uniform sampler2D uMap; varying vec2 vUv; void main(){ vec2 m = clamp(1.0 - abs(1.0 - abs(vUv)), 0.001, 0.999); gl_FragColor = vec4(texture2D(uMap, m).rgb, 1.0); }' });
+      disp.push(stageM);
+      /* the extent of the picture itself (the core, not the mirrored overscan), measured from the eye */
+      var e = { y0: 9, y1: -9, p0: 9, p1: -9 }, V = new THREE.Vector3();
+      model.traverse(function (m) {
+        if (!m.isMesh) return; m.material = stageM; m.frustumCulled = false; m.castShadow = m.receiveShadow = false;
+        var P = m.geometry.attributes.position, UV = m.geometry.attributes.uv; if (!UV) return;
+        for (var i = 0; i < P.count; i += 7) { var u = UV.getX(i), v = UV.getY(i); if (u < 0.02 || u > 0.98 || v < 0.02 || v > 0.98) continue;
+          V.set(P.getX(i), P.getY(i), P.getZ(i)).applyMatrix4(m.matrixWorld).sub(new THREE.Vector3().fromArray(EYE));
+          var yw = Math.atan2(-V.x, -V.z), pt = Math.atan2(V.y, Math.hypot(V.x, V.z)); if (yw < e.y0) e.y0 = yw; if (yw > e.y1) e.y1 = yw; if (pt < e.p0) e.p0 = pt; if (pt > e.p1) e.p1 = pt; }
+      });
+      if (e.y1 > e.y0 && e.p1 > e.p0) { var sy = (e.y1 - e.y0) * 0.03, sp = (e.p1 - e.p0) * 0.03; ext.y0 = e.y0 + sy; ext.y1 = e.y1 - sy; ext.p0 = e.p0 + sp; ext.p1 = e.p1 - sp; }
+      var skyM = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false,
+        vertexShader: 'varying vec3 vD; void main(){ vD = normalize((modelMatrix * vec4(position,1.0)).xyz - cameraPosition); gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position,1.0); }',
+        uniforms: { uHor: { value: new THREE.Color(0.78, 0.89, 0.97) }, uTop: { value: new THREE.Color(0.33, 0.58, 0.86) } },
+        fragmentShader: 'uniform vec3 uHor; uniform vec3 uTop; varying vec3 vD; void main(){ float y = clamp(vD.y, 0.0, 1.0); gl_FragColor = vec4(mix(uHor, uTop, pow(y, 0.7)), 1.0); }' });
+      var sky = new THREE.Mesh(new THREE.SphereGeometry(420, 32, 16), skyM); sky.renderOrder = -20; holder.add(sky); disp.push(skyM, sky.geometry);
+      var img = new Image(); img.crossOrigin = 'anonymous'; img.onload = function () {
+        try { var c = document.createElement('canvas'); c.width = 64; c.height = 64; var x = c.getContext('2d'); x.drawImage(img, 0, 0, img.width, img.height * 0.06, 0, 0, 64, 64);
+          var d = x.getImageData(0, 0, 64, 64).data, r = 0, gg = 0, b = 0, n = 0; for (var i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
+          skyM.uniforms.uHor.value.setRGB(r / n / 255, gg / n / 255, b / n / 255); skyM.uniforms.uTop.value.setRGB(r / n / 255 * 0.72, gg / n / 255 * 0.82, Math.min(1, b / n / 255 * 1.02)); } catch (er) {} };
+      img.src = siteBase() + dir + 'albedo.jpg';
+      if (o.terrace) outTerrace(holder, o.terrace, disp, o.deck[0], o.deck[1]);
+      if (o.dais) outDais(holder, disp, o.dais);
+      var sunL = holder.children.filter(function (q) { return q.isDirectionalLight; })[0];
+      if (sunL) { sunL.position.set(-4, 7, 5); sunL.target.position.set(0, 0.5, -1.5); sunL.intensity = 1.05; var sc = sunL.shadow.camera; sc.left = -5; sc.right = 5; sc.top = 5; sc.bottom = -5; sc.far = 20; sc.updateProjectionMatrix(); }
+      if (ctx.hemi) { ctx.hemi.color.set(0xeaf3ff); ctx.hemi.groundColor.set(0x6d7a4c); ctx.hemi.intensity = 0.95; }
+      scene.background = new THREE.Color(0xbcd8ee);
+      return { tick: function (t) { U.uT.value = t; }, dispose: function () { disp.forEach(function (d) { try { d.dispose(); } catch (er) {} }); } };
+    }
+    var base = o.base, items = o.items.map(function (q) { return { kind: q[0], title: q[1], p: [base[0] + q[2], base[1] + q[3], base[2] + q[4]], ry: q[5] || 0, uid: q[6] }; });
+    var lo = Math.min.apply(null, items.map(function (i) { return i.uid; })), hi = Math.max.apply(null, items.map(function (i) { return i.uid; }));
+    var q0 = o.quill || [0.34, base[1] + o.top, base[2] - 0.12];
+    var def = { id: o.id, name: o.name, glb: dir + 'scene_mesh.glb', h: 6, showroom: true, far: 900, bg: 0xbcd8ee,
+      offset: R(0, 0, 0), walk: o.deck ? [-2.4, o.deck[0] + 0.4, 2.4, o.deck[1] - 0.4] : [-WX, WZ0, WX, WZ1], view: view,   // a terrace: you walk on it
+      start: { pos: EYE.slice(), yaw: 0, pitch: o.pitch || -0.12 }, startV: o.startV || 1,
+      deskCam: { pos: EYE.slice(), look: [0, base[1] + o.top, base[2] - 0.3] },
+      anchors: { 'desk.quill': { p: q0, ry: -0.3 } },
+      layout: { extras: JSON.parse(JSON.stringify(items)) },
+      upgrade: { v: o.upV || 1, fn: function (L) {
+        L.extras = (L.extras || []).filter(function (e) { return e.uid < lo || e.uid > hi; }).concat(JSON.parse(JSON.stringify(items)));
+        OUT_HIDE.forEach(function (id) { L[id] = { stashed: true }; });
+      } },
+      credit: o.credit + ' — painted 3D stage by argon (Minest Painterly 3D)', finish: finish };
+    SR.register({ id: o.id, name: o.name, zh: o.zh, icon: o.icon, build: makeEnv(def) });
+  }
+  /* Alpine Meadow: the projection point (0, 6.5, 27) → (0, 4, −30), 41°. One flat-topped stone close in front, only its top
+     at the bottom of the view; the MacBook, the cup, the notebook and the quill on it. */
+  outdoorEnv({ id: 'meadow-office', name: 'Alpine Meadow · Outdoor Office', zh: '高山草甸 · 户外办公', icon: '⛰', scene: 'alpine-meadow', credit: 'Alpine Meadow',
+    hero: [6.5, 27], half: [Math.atan(Math.tan(20.5 * D2R) * 1.49883), 20.5 * D2R], pc: Math.atan2(4 - 6.5, 57),
+    base: [0, 0.83, -1.2], top: 0, pitch: -0.14, upV: 7, startV: 7,
+    items: [['out-rock-tall', '平顶大石', 0, -0.83 - 6, 0, 0, 9801], ['out-macbook', 'MacBook', 0, 0, 0.04, 0, 9804], ['out-coffee', '咖啡杯', 0.42, 0, 0.2, 0.4, 9805], ['out-notebook', '皮面笔记本', -0.42, 0, 0.12, -0.25, 9806]],
+    quill: [0.32, 0.83, -1.36] });
+  /* the Royal Garden (Hampton Court): its own hero view (0, 5.5, 26) → (0, 4.2, −30) — its UVs are not one camera's, so the
+     eye stands where argon looks from. Afternoon tea on the lawn: a white wrought-iron table with a lace cloth, two chairs,
+     a three-tier stand, the teapot, two cups, roses — and the MacBook. */
+  outdoorEnv({ id: 'garden-tea', name: 'Royal Garden · Afternoon Tea', zh: '皇家花园 · 下午茶', icon: '🫖', scene: 'royal-garden', credit: 'Royal Garden',
+    hero: [5.5, 26], half: [Math.atan(Math.tan(18 * D2R) * 1.50147), 18 * D2R], pc: Math.atan2(4.2 - 5.5, 56),
+    dais: { x: 0, z: -1.6, r: 2.0 }, base: [0, 0, -1.6], top: 0.74, pitch: -0.16, upV: 2, startV: 2,
+    items: [['tea-table', '白铁艺茶桌', 0, 0, 0, 0, 9821], ['tea-chair', '白铁艺花园椅', -0.72, 0, 0.05, Math.PI / 2 - 0.25, 9822], ['tea-chair', '白铁艺花园椅', 0.72, 0, 0.05, -Math.PI / 2 + 0.25, 9823],
+      ['tea-stand', '三层点心架', -0.12, 0.74, -0.12, 0, 9824], ['tea-pot', '骨瓷茶壶', 0.2, 0.74, -0.14, -0.6, 9825], ['tea-cup', '茶杯', -0.22, 0.74, 0.2, 0.3, 9826], ['tea-cup', '茶杯', 0.24, 0.74, 0.16, -0.2, 9827],
+      ['tea-roses', '玫瑰小花瓶', 0.06, 0.74, -0.28, 0, 9828], ['out-macbook', 'MacBook', 0.02, 0.742, 0.17, 0, 9829]] });
+  /* Lofoten (0, 6.5, 26) → (0, 4, −30), 40°, and Plitvice (0, 6.5, 27) → (0, 4, −30), 39°: a terrace, a table and a chair */
+  outdoorEnv({ id: 'lofoten-terrace', name: 'Lofoten Fjord · Terrace', zh: '罗弗敦峡湾 · 露台', icon: '🏔', scene: 'lofoten-islands', credit: 'Lofoten Islands', terrace: 'timber',
+    hero: [6.5, 26], half: [Math.atan(Math.tan(20 * D2R) * 1.77778), 20 * D2R], pc: Math.atan2(4 - 6.5, 56),
+    deck: [-1.75, 3.8], base: [0, 0, -0.9], top: 0.75, pitch: -0.12, upV: 4, startV: 4,
+    items: [['out-wood-table', '北欧木桌', 0, 0, 0, 0, 9841], ['out-wood-chair', '北欧木椅', 0, 0, 0.62, Math.PI, 9842], ['out-macbook', 'MacBook', 0, 0.75, 0.05, 0, 9843],
+      ['out-coffee', '咖啡杯', 0.42, 0.75, 0.12, 0.4, 9844], ['out-notebook', '皮面笔记本', -0.4, 0.75, 0.05, -0.2, 9845]] });
+  outdoorEnv({ id: 'plitvice-terrace', name: 'Plitvice Lakes · Terrace', zh: '十六湖瀑布森林 · 露台', icon: '💧', scene: 'plitvice-lakes', credit: 'Plitvice Lakes', terrace: 'stone',
+    hero: [6.5, 27], half: [Math.atan(Math.tan(19.5 * D2R) * 1.79335), 19.5 * D2R], pc: Math.atan2(4 - 6.5, 57),
+    deck: [-1.75, 3.8], base: [0, 0, -0.9], top: 0.75, pitch: -0.12, upV: 4, startV: 4,
+    items: [['out-wood-table', '木桌', 0, 0, 0, 0, 9861], ['out-wood-chair', '木椅', 0, 0, 0.62, Math.PI, 9862], ['out-macbook', 'MacBook', 0, 0.75, 0.05, 0, 9863],
+      ['out-coffee', '咖啡杯', 0.42, 0.75, 0.12, 0.4, 9864], ['out-notebook', '皮面笔记本', -0.4, 0.75, 0.05, -0.2, 9865]] });
+  /* a stage point (ys, zs) of a scene seen from (hy, hz) and scaled by k about the eye, in the room */
+  function R0(hy, hz, k, ys, zs) { return [0, OUT_EYE[1] + k * (ys - hy), OUT_EYE[2] + k * (zs - hz)]; }
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
   SR.register({ id: 'victorian', name: 'EC–6 Victorian Study', zh: 'EC–6 备考书房 · 维多利亚', icon: '▤', build: makeEnv(VICT) });
 })(window);
@@ -178310,6 +178480,408 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
    { id: 'vic-clock', name: '落地摆钟', en: 'Longcase clock', size: [0.66, 2.55, 0.42] },
    { id: 'vic-lightswitch', name: '吊灯开关', en: 'Chandelier switch', size: [0.14, 0.2, 0.08] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的陈设' }); });
+
+  /* ───────── the outdoor office (Alpine Meadow, 2026-11-14): a round stone table, a stone chair, a stone bench, a MacBook
+     (tap it: its screen opens over the meadow), a coffee cup, a leather notebook. Front: +z. ───────── */
+  function omats(T) {
+    if (F._o) return F._o;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), i;
+    x.fillStyle = '#cfc8bb'; x.fillRect(0, 0, 256, 256);
+    var im = x.getImageData(0, 0, 256, 256), D = im.data; for (i = 0; i < D.length; i += 4) { var n = (Math.random() - 0.5) * 26; D[i] += n; D[i + 1] += n; D[i + 2] += n * 0.9; } x.putImageData(im, 0, 0);
+    for (i = 0; i < 40; i++) { x.fillStyle = 'rgba(' + (Math.random() < 0.5 ? '90,84,74' : '240,236,226') + ',' + (0.08 + Math.random() * 0.12) + ')'; x.beginPath(); x.arc(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 6, 0, 6.3); x.fill(); }
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.wrapS = t.wrapT = T.RepeatWrapping;
+    var scr = document.createElement('canvas'); scr.width = 512; scr.height = 320; var y = scr.getContext('2d'), gr = y.createLinearGradient(0, 0, 512, 320);
+    gr.addColorStop(0, '#2b5aa8'); gr.addColorStop(0.45, '#7a4fb0'); gr.addColorStop(0.75, '#e0648a'); gr.addColorStop(1, '#f2a65a'); y.fillStyle = gr; y.fillRect(0, 0, 512, 320);
+    y.fillStyle = 'rgba(255,255,255,.18)'; y.fillRect(0, 0, 512, 12);
+    y.fillStyle = 'rgba(255,255,255,.22)'; y.beginPath(); y.roundRect ? y.roundRect(156, 286, 200, 26, 8) : y.rect(156, 286, 200, 26); y.fill();
+    ['#38c9b4', '#f6c465', '#e85a4f', '#5b8def', '#9b6bd8', '#f08a3e'].forEach(function (col, k) { y.fillStyle = col; y.beginPath(); y.arc(176 + k * 32, 299, 9, 0, 6.3); y.fill(); });
+    y.fillStyle = 'rgba(255,255,255,.92)'; y.font = '600 26px -apple-system, Helvetica, sans-serif'; y.textAlign = 'center'; y.fillText('Minest', 256, 150); y.font = '15px -apple-system, Helvetica, sans-serif'; y.fillText('点我 · 在草甸上办公', 256, 178);
+    var st = new T.CanvasTexture(scr); st.encoding = T.sRGBEncoding;
+    return (F._o = {
+      stone: new T.MeshStandardMaterial({ map: t, roughness: 0.88, color: L(0xe6dccb) }),
+      stoneD: new T.MeshStandardMaterial({ map: t, roughness: 0.9, color: L(0xb9b1a3) }),
+      alu: new T.MeshStandardMaterial({ color: L(0xb9bcc2), roughness: 0.32, metalness: 0.85, envMapIntensity: 1.2 }),
+      aluD: new T.MeshStandardMaterial({ color: L(0x3a3c40), roughness: 0.45, metalness: 0.6 }),
+      keys: new T.MeshStandardMaterial({ color: L(0x18191b), roughness: 0.6 }),
+      glass: new T.MeshStandardMaterial({ color: L(0x0b0c0e), roughness: 0.08, metalness: 0.2 }),
+      screen: new T.MeshBasicMaterial({ map: st, toneMapped: false }),
+      white: new T.MeshStandardMaterial({ color: L(0xf4f1ea), roughness: 0.25 }),
+      coffee: new T.MeshStandardMaterial({ color: L(0x3a2214), roughness: 0.2 }),
+      leather: new T.MeshStandardMaterial({ color: L(0x6a3a22), roughness: 0.55 }),
+      paper: new T.MeshStandardMaterial({ color: L(0xf1e9d6), roughness: 0.85 })
+    });
+  }
+  F['out-stone-table'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    var foot = lathe(T, [[0, 0], [0.34, 0], [0.34, 0.06], [0.28, 0.1], [0.2, 0.14], [0, 0.14]], M.stoneD, 32); g.add(foot);
+    var col = lathe(T, [[0, 0.14], [0.13, 0.14], [0.1, 0.24], [0.085, 0.4], [0.1, 0.56], [0.15, 0.64], [0.22, 0.68], [0, 0.68]], M.stone, 28); g.add(col);
+    var top = lathe(T, [[0, 0.68], [0.6, 0.68], [0.66, 0.7], [0.68, 0.73], [0.66, 0.762], [0, 0.762]], M.stone, 48); top.castShadow = top.receiveShadow = true; g.add(top);
+    [foot, col].forEach(function (m) { m.castShadow = true; m.receiveShadow = true; });
+    return { group: g, hb: [1.36, 0.77, 1.36], place: 'floor' };
+  };
+  F['out-stone-chair'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    box(T, g, M.stoneD, 0, 0.21, 0, 0.5, 0.42, 0.44); box(T, g, M.stone, 0, 0.45, 0.01, 0.56, 0.06, 0.5);           // the block, the seat
+    var back = new T.Shape(); back.moveTo(-0.28, 0); back.lineTo(0.28, 0); back.lineTo(0.28, 0.42); back.quadraticCurveTo(0.28, 0.58, 0, 0.6); back.quadraticCurveTo(-0.28, 0.58, -0.28, 0.42); back.lineTo(-0.28, 0);
+    var bm = new T.Mesh(new T.ExtrudeGeometry(back, { depth: 0.09, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 2 }), M.stone); bm.position.set(0, 0.48, -0.25); bm.rotation.x = -0.08; bm.castShadow = true; g.add(bm);
+    [-1, 1].forEach(function (s) { box(T, g, M.stone, s * 0.3, 0.6, 0.02, 0.07, 0.24, 0.42); box(T, g, M.stone, s * 0.3, 0.73, 0.03, 0.1, 0.04, 0.46); });
+    return { group: g, hb: [0.66, 1.1, 0.56], place: 'floor' };
+  };
+  F['out-stone-bench'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    [-1, 1].forEach(function (s) { box(T, g, M.stoneD, s * 0.5, 0.2, 0, 0.16, 0.4, 0.36); });
+    var seat = box(T, g, M.stone, 0, 0.44, 0, 1.4, 0.08, 0.42); seat.castShadow = true;
+    box(T, g, M.stoneD, 0, 0.395, 0, 1.36, 0.02, 0.38);
+    return { group: g, hb: [1.42, 0.5, 0.44], place: 'floor' };
+  };
+  /* a 14-inch MacBook Pro, open: aluminium body, black keys, a glass display with its notch, the screen lit. A tap opens it. */
+  F['out-macbook'] = function (T) {
+    var M = omats(T), g = new T.Group(), W = 0.312, D = 0.221;
+    var body = box(T, g, M.alu, 0, 0.0078, 0, W, 0.0155, D); body.castShadow = true;
+    box(T, g, M.keys, 0, 0.0158, -0.025, W - 0.05, 0.001, 0.11);
+    for (var r = 0; r < 6; r++) for (var c = 0; c < 14; c++) box(T, g, M.aluD, -0.122 + c * 0.0188, 0.0162, -0.075 + r * 0.019, 0.0155, 0.0012, 0.0155);
+    box(T, g, M.aluD, 0, 0.0158, 0.063, 0.13, 0.0008, 0.08);                                            // the trackpad
+    var lid = new T.Group(); lid.position.set(0, 0.0155, -D / 2 + 0.004); lid.rotation.x = -0.32; g.add(lid);    // open a little past upright
+    var shell = box(T, lid, M.alu, 0, 0.105, -0.004, W, 0.214, 0.006); shell.castShadow = true;
+    box(T, lid, M.glass, 0, 0.105, 0.0002, W - 0.004, 0.21, 0.001);
+    var scr = new T.Mesh(new T.PlaneGeometry(W - 0.022, 0.19), M.screen); scr.position.set(0, 0.108, 0.0015); lid.add(scr);
+    box(T, lid, M.glass, 0, 0.2085, 0.0018, 0.03, 0.007, 0.0008);                                       // the notch
+    var logo = new T.Mesh(new T.CircleGeometry(0.011, 20), new T.MeshStandardMaterial({ color: 0xd9dbe0, roughness: 0.15, metalness: 1 })); logo.position.set(0, 0.11, -0.0072); logo.rotation.y = Math.PI; lid.add(logo);
+    return { group: g, hb: [0.34, 0.26, 0.3], hbY: 0.12, place: 'floor',
+      press: function () {
+        if (!root.SpatialLaptop) return 'MacBook 还没有准备好';
+        var at = null, cam = root.SpatialRoom && root.SpatialRoom.camera, R = root.SpatialRoom && root.SpatialRoom.renderer;
+        try { var v = new T.Vector3(0, 0.11, -0.13); g.localToWorld(v); v.project(cam); var r = R.domElement.getBoundingClientRect(); at = { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; } catch (e) {}
+        root.SpatialLaptop.open({ at: at }); return null; } };
+  };
+  F['out-coffee'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    var cup = lathe(T, [[0, 0], [0.032, 0], [0.036, 0.01], [0.042, 0.075], [0.04, 0.078], [0.036, 0.012], [0, 0.012]], M.white, 24); g.add(cup);
+    var cof = new T.Mesh(new T.CircleGeometry(0.038, 24), M.coffee); cof.rotation.x = -Math.PI / 2; cof.position.y = 0.066; g.add(cof);
+    var h = new T.Mesh(new T.TorusGeometry(0.018, 0.005, 8, 16, Math.PI * 1.3), M.white); h.position.set(0.046, 0.042, 0); h.rotation.z = -Math.PI * 0.65; g.add(h);
+    var sau = lathe(T, [[0, 0], [0.07, 0], [0.072, 0.006], [0, 0.004]], M.white, 28); g.add(sau);
+    return { group: g, hb: [0.15, 0.09, 0.15], place: 'floor' };
+  };
+  F['out-notebook'] = function (T) {
+    var M = omats(T), g = new T.Group();
+    box(T, g, M.leather, 0, 0.004, 0, 0.15, 0.008, 0.21); box(T, g, M.paper, 0.004, 0.0105, 0, 0.142, 0.005, 0.202); box(T, g, M.leather, 0, 0.0145, 0, 0.15, 0.003, 0.21);
+    var band = box(T, g, M.keys, 0.05, 0.0165, 0, 0.006, 0.001, 0.212);
+    return { group: g, hb: [0.16, 0.03, 0.22], place: 'floor' };
+  };
+
+  /* two stones on the grass (the Alpine Meadow, after the user: no terrace here) — a flat-topped granite boulder for a table
+     (its top at 0.71 m), a smaller rounded one to sit on; grey granite with lichen, rough all over, the tops worn smooth */
+  function boulder(T, w, h, d, topY, seed) {
+    var geo = new T.IcosahedronGeometry(1, 4), P = geo.attributes.position, col = new Float32Array(P.count * 3), v = new T.Vector3();
+    function n3(x, y, z) { var a = Math.sin(x * 3.1 + seed) * Math.cos(z * 2.7 - seed) + Math.sin(y * 4.3 + x * 1.7 + seed * 2) * 0.5; return a; }
+    for (var i = 0; i < P.count; i++) {
+      v.fromBufferAttribute(P, i); var r = 1 + n3(v.x, v.y, v.z) * 0.09 + (Math.sin(v.x * 9 + v.z * 7 + seed) * 0.02);
+      var x = v.x * r * w / 2, y = (v.y * r * 0.5 + 0.5) * h, z = v.z * r * d / 2;
+      if (topY && y > topY - 0.04) y = topY - 0.015 + Math.sin(x * 6 + seed) * 0.006 + Math.cos(z * 5) * 0.006;   // the worn flat top
+      if (y < 0.02) y = 0.02 - (0.02 - y) * 0.3;
+      P.setXYZ(i, x, y - 0.06, z);
+      var g = 0.52 + n3(v.z * 3, v.x * 3, v.y * 3) * 0.08 + Math.random() * 0.05, lich = Math.max(0, Math.sin(v.x * 7 + seed) * Math.sin(v.z * 6 - seed) - 0.55) * 1.6 * (v.y > 0 ? 1 : 0.4);
+      col[i * 3] = g + lich * 0.18; col[i * 3 + 1] = g + lich * 0.25; col[i * 3 + 2] = g * 0.96 - lich * 0.05;
+      if (y < 0.12) { col[i * 3] *= 0.75; col[i * 3 + 1] *= 0.8; col[i * 3 + 2] *= 0.72; }   // earth and moss at the foot
+    }
+    geo.setAttribute('color', new T.BufferAttribute(col, 3)); geo.computeVertexNormals();
+    var m = new T.Mesh(geo, new T.MeshStandardMaterial({ vertexColors: true, color: new T.Color(0x8d877b).convertSRGBToLinear(), roughness: 0.95, metalness: 0 })); m.castShadow = true; m.receiveShadow = true; return m;   // grey-brown granite
+  }
+  F['out-rock-table'] = function (T) { var g = new T.Group(); g.add(boulder(T, 1.3, 0.78, 0.95, 0.6 + 0.06, 1.7)); return { group: g, hb: [1.25, 0.61, 0.92], place: 'floor' }; };   // its top 0.6 m above where it sits (on the painted grass, a little sunk in)
+  /* the meadow's stone as an outcrop: it rises from below the view (its foot never in sight from where you can walk),
+     only its worn, flat top at the bottom of the view — 6.83 m from its foot to its top */
+  F['out-rock-tall'] = function (T) {
+    var H = 6.83, geo = new T.CylinderGeometry(0.62, 1.1, H, 28, 24, false), P = geo.attributes.position, col = new Float32Array(P.count * 3), v = new T.Vector3();
+    for (var i = 0; i < P.count; i++) {
+      v.fromBufferAttribute(P, i); var y = v.y + H / 2, a = Math.atan2(v.z, v.x), rr = Math.hypot(v.x, v.z);
+      var n = 1 + Math.sin(a * 3 + y * 1.3) * 0.08 + Math.sin(a * 7 - y * 2.1) * 0.04 + Math.sin(a * 13 + y * 5) * 0.015;
+      if (y > H - 0.12 && rr > 0.01) n *= 1 - (y - (H - 0.12)) * 1.6;   // the rounded lip of the top
+      v.x *= n * 1.05; v.z *= n * 0.78; P.setXYZ(i, v.x, y, v.z);
+      var g = 0.5 + Math.sin(a * 5 + y * 3) * 0.04 + Math.random() * 0.05, l = Math.max(0, Math.sin(a * 4 + y * 2) - 0.6) * 1.5;
+      col[i * 3] = g + l * 0.16; col[i * 3 + 1] = g + l * 0.22; col[i * 3 + 2] = g * 0.95;
+    }
+    geo.setAttribute('color', new T.BufferAttribute(col, 3)); geo.computeVertexNormals();
+    var m = new T.Mesh(geo, new T.MeshStandardMaterial({ vertexColors: true, color: new T.Color(0x8d877b).convertSRGBToLinear(), roughness: 0.95 })); m.castShadow = m.receiveShadow = true;
+    var g2 = new T.Group(); g2.add(m); return { group: g2, hb: [1.3, H, 1.0], place: 'floor' };
+  };
+  F['out-rock-seat'] = function (T) { var g = new T.Group(); g.add(boulder(T, 0.62, 0.56, 0.52, 0.44 + 0.06, 4.2)); return { group: g, hb: [0.6, 0.45, 0.5], place: 'floor' }; };
+  [{ id: 'out-stone-table', name: '圆石桌', en: 'Round stone table', size: [1.36, 0.77, 1.36] }, { id: 'out-stone-chair', name: '石椅', en: 'Stone chair', size: [0.66, 1.1, 0.56] },
+   { id: 'out-stone-bench', name: '石凳', en: 'Stone bench', size: [1.42, 0.5, 0.44] }, { id: 'out-macbook', name: 'MacBook', en: 'MacBook Pro', size: [0.34, 0.26, 0.3] },
+   { id: 'out-rock-table', name: '平顶大石（桌）', en: 'Flat-topped stone', size: [1.3, 0.72, 0.98] }, { id: 'out-rock-seat', name: '石头（座）', en: 'Stone seat', size: [0.6, 0.45, 0.5] },
+   { id: 'out-coffee', name: '咖啡杯', en: 'Coffee cup', size: [0.15, 0.09, 0.15] }, { id: 'out-notebook', name: '皮面笔记本', en: 'Leather notebook', size: [0.16, 0.03, 0.22] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: '高山草甸 · 户外办公' }); });
+
+  /* ───────── afternoon tea in the Royal Garden, and the terraces' table and chair (2026-11-14) ───────── */
+  function tmats(T) {
+    if (F._t) return F._t;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var c = document.createElement('canvas'); c.width = c.height = 256; var x = c.getContext('2d'), i, j;      // a lace cloth
+    x.fillStyle = '#fbf8f1'; x.fillRect(0, 0, 256, 256); x.strokeStyle = 'rgba(190,180,160,.55)'; x.lineWidth = 1.2;
+    for (i = 0; i < 8; i++) for (j = 0; j < 8; j++) { x.beginPath(); x.arc(16 + i * 32, 16 + j * 32, 10, 0, 6.3); x.stroke(); x.beginPath(); x.arc(16 + i * 32, 16 + j * 32, 4, 0, 6.3); x.stroke(); }
+    var lace = new T.CanvasTexture(c); lace.encoding = T.sRGBEncoding; lace.wrapS = lace.wrapT = T.RepeatWrapping; lace.repeat.set(3, 3);
+    var w = document.createElement('canvas'); w.width = 256; w.height = 64; var y = w.getContext('2d');                           // a bone-china band: white, gold lines, a blue garland
+    y.fillStyle = '#fbfaf6'; y.fillRect(0, 0, 256, 64); y.fillStyle = '#c9a24a'; y.fillRect(0, 6, 256, 3); y.fillRect(0, 55, 256, 3);
+    for (i = 0; i < 16; i++) { y.fillStyle = '#2d4f9a'; y.beginPath(); y.ellipse(8 + i * 16, 32, 5, 9, 0.5, 0, 6.3); y.fill(); y.fillStyle = '#6a8f4a'; y.beginPath(); y.ellipse(14 + i * 16, 28, 2.5, 5, -0.6, 0, 6.3); y.fill(); }
+    var china = new T.CanvasTexture(w); china.encoding = T.sRGBEncoding; china.wrapS = T.RepeatWrapping;
+    var wood = document.createElement('canvas'); wood.width = 128; wood.height = 512; var z = wood.getContext('2d'); z.fillStyle = '#b98a5a'; z.fillRect(0, 0, 128, 512);
+    for (i = 0; i < 50; i++) { z.strokeStyle = 'rgba(' + (Math.random() < 0.5 ? '120,80,40' : '220,180,130') + ',' + (0.12 + Math.random() * 0.2) + ')'; z.lineWidth = 1 + Math.random() * 2; var gx = Math.random() * 128; z.beginPath(); z.moveTo(gx, 0); z.bezierCurveTo(gx + 8, 170, gx - 8, 340, gx + 4, 512); z.stroke(); }
+    var oak = new T.CanvasTexture(wood); oak.encoding = T.sRGBEncoding; oak.wrapS = oak.wrapT = T.RepeatWrapping;
+    return (F._t = {
+      iron: new T.MeshStandardMaterial({ color: L(0xf2f0ea), roughness: 0.35, metalness: 0.5 }),
+      lace: new T.MeshStandardMaterial({ map: lace, roughness: 0.85, side: T.DoubleSide }),
+      china: new T.MeshStandardMaterial({ map: china, roughness: 0.18 }), white: new T.MeshStandardMaterial({ color: L(0xfbfaf6), roughness: 0.16 }),
+      gold: new T.MeshStandardMaterial({ color: L(0xd4ad55), roughness: 0.25, metalness: 0.95 }), tea: new T.MeshStandardMaterial({ color: L(0x7a3c12), roughness: 0.15 }),
+      scone: new T.MeshStandardMaterial({ color: L(0xd9a861), roughness: 0.8 }), cream: new T.MeshStandardMaterial({ color: L(0xfaf3df), roughness: 0.6 }), jam: new T.MeshStandardMaterial({ color: L(0x9a1c24), roughness: 0.3 }),
+      bread: new T.MeshStandardMaterial({ color: L(0xf1e2c4), roughness: 0.8 }), cucumber: new T.MeshStandardMaterial({ color: L(0x7fae5a), roughness: 0.6 }),
+      rose: new T.MeshStandardMaterial({ color: L(0xd8506a), roughness: 0.6 }), roseW: new T.MeshStandardMaterial({ color: L(0xf6e8e0), roughness: 0.6 }), leaf: new T.MeshStandardMaterial({ color: L(0x3e6a2e), roughness: 0.7 }),
+      glass: new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.25, roughness: 0.05, metalness: 0.1 }),
+      oak: new T.MeshStandardMaterial({ map: oak, roughness: 0.6 }), oakD: new T.MeshStandardMaterial({ map: oak, roughness: 0.65, color: L(0xb09878) })
+    });
+  }
+  var MAC = ['#f2b6c6', '#b6dcc2', '#f6e3a1', '#c9b6f2', '#f6c29a', '#a9cdf0'];
+  F['tea-table'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var top = lathe(T, [[0, 0.72], [0.42, 0.72], [0.43, 0.735], [0.42, 0.75], [0, 0.75]], M.iron, 40); g.add(top);
+    var cloth = lathe(T, [[0, 0.752], [0.43, 0.752], [0.47, 0.73], [0.5, 0.6], [0.505, 0.58]], M.lace, 48); cloth.castShadow = true; g.add(cloth);
+    g.add(lathe(T, [[0, 0], [0.24, 0], [0.24, 0.02], [0.05, 0.05], [0.035, 0.2], [0.05, 0.36], [0.03, 0.55], [0.06, 0.7], [0, 0.72]], M.iron, 24));
+    for (var i = 0; i < 3; i++) { var a = i * 2.094, sc = new T.Mesh(new T.TorusGeometry(0.12, 0.01, 6, 20, Math.PI), M.iron); sc.position.set(Math.cos(a) * 0.12, 0.12, Math.sin(a) * 0.12); sc.rotation.y = -a; g.add(sc); }
+    return { group: g, hb: [1.0, 0.76, 1.0], place: 'floor' };
+  };
+  F['tea-chair'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var seat = lathe(T, [[0, 0.44], [0.21, 0.44], [0.22, 0.46], [0, 0.46]], M.iron, 28); g.add(seat);
+    var cush = lathe(T, [[0, 0.46], [0.19, 0.46], [0.2, 0.48], [0.18, 0.5], [0, 0.5]], M.lace, 24); g.add(cush);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { var lg = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.46, 8), M.iron); lg.position.set(q[0] * 0.15, 0.22, q[1] * 0.15); lg.rotation.set(q[1] * 0.08, 0, -q[0] * 0.08); g.add(lg); });
+    var back = new T.Mesh(new T.TorusGeometry(0.2, 0.014, 8, 28, Math.PI), M.iron); back.position.set(0, 0.62, -0.2); back.scale.y = 1.1; g.add(back);
+    for (var i = 0; i < 5; i++) { var sc = new T.Mesh(new T.TorusGeometry(0.045, 0.006, 6, 14), M.iron); sc.position.set(-0.13 + i * 0.065, 0.64, -0.2); g.add(sc); }
+    [-0.2, 0.2].forEach(function (x) { var st = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.2, 8), M.iron); st.position.set(x, 0.54, -0.2); g.add(st); });
+    return { group: g, hb: [0.5, 0.86, 0.5], place: 'floor' };
+  };
+  F['tea-stand'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i;
+    var rod = new T.Mesh(new T.CylinderGeometry(0.006, 0.006, 0.42, 10), M.gold); rod.position.y = 0.21; g.add(rod);
+    var ring = new T.Mesh(new T.TorusGeometry(0.03, 0.006, 8, 18), M.gold); ring.position.y = 0.44; g.add(ring);
+    [[0.02, 0.13], [0.16, 0.105], [0.29, 0.08]].forEach(function (q, k) {
+      var pl = lathe(T, [[0, q[0]], [q[1], q[0]], [q[1] + 0.012, q[0] + 0.015], [q[1] + 0.008, q[0] + 0.017], [q[1] - 0.004, q[0] + 0.006], [0, q[0] + 0.006]], M.china, 32); g.add(pl);
+      var y = q[0] + 0.01, r = q[1] - 0.03;
+      if (k === 0) for (i = 0; i < 6; i++) { var a = i * 1.047, sw = box(T, g, M.bread, Math.cos(a) * r * 0.7, y + 0.02, Math.sin(a) * r * 0.7, 0.05, 0.032, 0.035); sw.rotation.y = -a; var cu = box(T, g, M.cucumber, Math.cos(a) * r * 0.7, y + 0.02, Math.sin(a) * r * 0.7, 0.051, 0.006, 0.036); cu.rotation.y = -a; }
+      else if (k === 1) for (i = 0; i < 4; i++) { var a2 = i * 1.571 + 0.4, sx = Math.cos(a2) * r * 0.6, sz = Math.sin(a2) * r * 0.6;
+        var sco = lathe(T, [[0, 0], [0.026, 0], [0.028, 0.012], [0.022, 0.03], [0, 0.034]], M.scone, 14); sco.position.set(sx, y, sz); g.add(sco);
+        ball(T, g, i % 2 ? M.jam : M.cream, [sx, y + 0.036, sz], 0.012, [1, 0.6, 1]); }
+      else for (i = 0; i < 7; i++) { var a3 = i * 0.9, mm = new T.MeshStandardMaterial({ color: new T.Color(MAC[i % MAC.length]).convertSRGBToLinear(), roughness: 0.6 });
+        [0, 0.014].forEach(function (dy) { var sh = lathe(T, [[0, 0], [0.016, 0], [0.018, 0.005], [0.012, 0.009], [0, 0.009]], mm, 12); sh.position.set(Math.cos(a3) * r * 0.55, y + dy, Math.sin(a3) * r * 0.55); g.add(sh); });
+        ball(T, g, M.cream, [Math.cos(a3) * r * 0.55, y + 0.011, Math.sin(a3) * r * 0.55], 0.014, [1, 0.25, 1]); }
+    });
+    return { group: g, hb: [0.3, 0.46, 0.3], place: 'floor' };
+  };
+  F['tea-pot'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var body = lathe(T, [[0, 0], [0.05, 0], [0.068, 0.02], [0.078, 0.06], [0.072, 0.1], [0.05, 0.125], [0.038, 0.13], [0, 0.13]], M.china, 28); body.castShadow = true; g.add(body);
+    var lid = lathe(T, [[0, 0.128], [0.04, 0.128], [0.034, 0.142], [0.012, 0.15], [0.01, 0.162], [0.014, 0.168], [0, 0.172]], M.white, 20); g.add(lid);
+    ball(T, g, M.gold, [0, 0.172, 0], 0.008);
+    var sp = new T.Mesh(new T.CylinderGeometry(0.008, 0.016, 0.1, 10), M.white); sp.position.set(0.09, 0.08, 0); sp.rotation.z = -0.9; g.add(sp);
+    var h = new T.Mesh(new T.TorusGeometry(0.04, 0.008, 8, 18, Math.PI * 1.2), M.white); h.position.set(-0.08, 0.075, 0); h.rotation.z = Math.PI / 2 + 0.3; g.add(h);
+    return { group: g, hb: [0.24, 0.18, 0.16], place: 'floor' };
+  };
+  F['tea-cup'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    g.add(lathe(T, [[0, 0], [0.06, 0], [0.068, 0.006], [0.066, 0.009], [0, 0.005]], M.china, 28));
+    var cup = lathe(T, [[0, 0.008], [0.022, 0.008], [0.03, 0.02], [0.042, 0.05], [0.044, 0.056], [0.041, 0.056], [0.038, 0.052], [0.026, 0.02], [0, 0.016]], M.china, 26); g.add(cup);
+    var t = new T.Mesh(new T.CircleGeometry(0.037, 22), M.tea); t.rotation.x = -Math.PI / 2; t.position.y = 0.047; g.add(t);
+    var h = new T.Mesh(new T.TorusGeometry(0.014, 0.004, 8, 14, Math.PI * 1.3), M.white); h.position.set(0.045, 0.034, 0); h.rotation.z = -Math.PI * 0.6; g.add(h);
+    var sp = new T.Mesh(new T.BoxGeometry(0.008, 0.002, 0.07), M.gold); sp.position.set(-0.03, 0.01, 0.02); sp.rotation.y = 0.5; g.add(sp);
+    return { group: g, hb: [0.14, 0.07, 0.14], place: 'floor' };
+  };
+  F['tea-roses'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i;
+    g.add(lathe(T, [[0, 0], [0.03, 0], [0.04, 0.03], [0.035, 0.08], [0.02, 0.11], [0.024, 0.13], [0, 0.13]], M.glass, 20));
+    for (i = 0; i < 5; i++) { var a = i * 1.26, st = new T.Mesh(new T.CylinderGeometry(0.003, 0.003, 0.16, 6), M.leaf); st.position.set(Math.cos(a) * 0.012, 0.16, Math.sin(a) * 0.012); st.rotation.set(Math.sin(a) * 0.25, 0, -Math.cos(a) * 0.25); g.add(st);
+      var bud = new T.Mesh(new T.IcosahedronGeometry(0.022, 1), i % 2 ? M.roseW : M.rose); bud.position.set(Math.cos(a) * 0.05, 0.245, Math.sin(a) * 0.05); bud.scale.y = 0.8; g.add(bud);
+      var lf = new T.Mesh(new T.SphereGeometry(0.015, 6, 4), M.leaf); lf.scale.set(1, 0.3, 1.8); lf.position.set(Math.cos(a + 0.6) * 0.04, 0.2, Math.sin(a + 0.6) * 0.04); g.add(lf); }
+    return { group: g, hb: [0.14, 0.28, 0.14], place: 'floor' };
+  };
+  F['out-wood-table'] = function (T) {
+    var M = tmats(T), g = new T.Group();
+    var top = box(T, g, M.oak, 0, 0.73, 0, 1.2, 0.04, 0.72); top.castShadow = top.receiveShadow = true;
+    box(T, g, M.oakD, 0, 0.69, 0, 1.08, 0.05, 0.6);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { var l = box(T, g, M.oakD, q[0] * 0.53, 0.345, q[1] * 0.3, 0.05, 0.69, 0.05); l.rotation.set(q[1] * 0.05, 0, -q[0] * 0.05); });
+    return { group: g, hb: [1.22, 0.76, 0.74], place: 'floor' };
+  };
+  F['out-wood-chair'] = function (T) {
+    var M = tmats(T), g = new T.Group(), i;
+    box(T, g, M.oak, 0, 0.45, 0, 0.46, 0.035, 0.44);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { box(T, g, M.oakD, q[0] * 0.2, 0.225, q[1] * 0.19, 0.035, 0.45, 0.035); });
+    [-1, 1].forEach(function (s) { var p = box(T, g, M.oakD, s * 0.2, 0.68, -0.2, 0.035, 0.48, 0.035); p.rotation.x = -0.12; });
+    for (i = 0; i < 3; i++) { var sl = box(T, g, M.oak, 0, 0.62 + i * 0.1, -0.21 - i * 0.012, 0.42, 0.05, 0.02); sl.rotation.x = -0.12; }
+    return { group: g, hb: [0.5, 0.92, 0.5], place: 'floor' };
+  };
+  [{ id: 'tea-table', name: '白铁艺茶桌' }, { id: 'tea-chair', name: '白铁艺花园椅' }, { id: 'tea-stand', name: '三层点心架' }, { id: 'tea-pot', name: '骨瓷茶壶' }, { id: 'tea-cup', name: '茶杯' },
+   { id: 'tea-roses', name: '玫瑰小花瓶' }, { id: 'out-wood-table', name: '木桌' }, { id: 'out-wood-chair', name: '木椅' }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.id, icon: '▣', place: 'floor', size: [0.5, 0.5, 0.5], note: '户外办公 · 下午茶 / 露台' }); });
+})(window);
+
+/* Minest · Spatial Home — the MacBook on the stone table (2026-11-14, the Alpine Meadow outdoor office).
+   Tap the MacBook: its screen comes up over the meadow, about half the screen, the meadow still round it. On the screen,
+   a desktop with the Magical Backpack as a grid — the apps (Minest's features) and the things in the backpack. Tap one and
+   it opens on the screen itself: the Minest app runs in the screen (a frame of the app page, told which feature to open
+   by ?mnLaptop=…, see bridge.js), so the work is done on the laptop, outdoors. ‹ 背包 goes back to the grid; ✕ or Esc
+   (or a tap on the meadow round it) closes the lid. A thing that only lives in the room (the board, the window…) closes
+   the laptop and is opened in the room as usual. */
+(function (root) {
+  'use strict';
+  var el = null, kept = null, frame = null, frameFeature = null, view = 'grid';
+  var APPS = [['kanban', '📋', 'Kanban 看板'], ['knowledge', '📚', 'Knowledge 知识'], ['drive', '🗂', 'Knowledge Drive'], ['routine', '🗓', 'Liquid Routine'],
+    ['lists', '🌐', 'My World 清单'], ['type', '⌨️', 'Hermes 打字机'], ['type3d', '🪶', '3D Type 立体打字'], ['typingworlds', '🔤', 'Typing Worlds'],
+    ['carplay', '🚗', '车载闪卡'], ['rings', '🏅', 'Rings 勋章'], ['pet', '🐾', '宠物养成'], ['portal', '🌆', '主题世界']];
+  function B() { return root.SpatialBridge; }
+  function api() { try { return root.MinestSpatialHome && root.MinestSpatialHome.api(); } catch (e) { return null; } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function clock() { var d = new Date(); return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()] + ' ' + d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function appUrl() { var b = B(), u = b && b.appUrl ? b.appUrl() : location.href; return u.split('#')[0]; }
+  function withParam(u, k, v) { return u + (u.indexOf('?') >= 0 ? '&' : '?') + k + '=' + encodeURIComponent(v); }
+
+  /* the screen opens where the MacBook stands, about a quarter of the screen; seen in first person, a third (⤢ swaps) */
+  var anchor = null, big = null;
+  function firstPerson() { var a = api(); try { return !a || a.state().view !== '3p'; } catch (e) { return true; } }
+  function size() {
+    var W = root.innerWidth, H = root.innerHeight, frac = (big == null ? firstPerson() : big) ? 1 / 3 : 1 / 4;
+    var sw = Math.sqrt(frac * W * H * 1.6), sh = sw / 1.6;
+    if (sw > W * 0.96) { sw = W * 0.96; sh = sw / 1.6; } if (sh > H * 0.8) { sh = H * 0.8; sw = sh * 1.6; }
+    return { w: Math.round(sw), h: Math.round(sh) };
+  }
+  function place() {
+    if (!el) return; var S = size(), mac = el.querySelector('.lp-mac'), W = root.innerWidth, H = root.innerHeight;
+    mac.style.width = (S.w + 24) + 'px'; el.querySelector('.lp-scr').style.height = S.h + 'px';
+    var tw = S.w + 24, th = S.h + 40, ax = anchor ? anchor.x : W / 2, ay = anchor ? anchor.y : H / 2;
+    var l = Math.max(10, Math.min(W - tw - 10, ax - tw / 2)), t = Math.max(10, H - th - 12);   // across from the MacBook, down at the bottom: the view stays open above it
+    mac.style.left = l + 'px'; mac.style.top = t + 'px'; mac.style.transformOrigin = (ax - l) + 'px ' + (ay - t) + 'px';
+  }
+  function css() {
+    if (document.getElementById('sh-laptop-css')) return;
+    var st = document.createElement('style'); st.id = 'sh-laptop-css';
+    st.textContent = [
+      '.lp-ov{position:fixed;inset:0;z-index:2147483640;display:block;background:rgba(10,14,20,.06);opacity:0;transition:opacity .35s ease;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif}',
+      '.lp-ov.on{opacity:1}',
+      '.lp-mac{position:absolute;transform:scale(.18);transition:transform .5s cubic-bezier(.2,.9,.25,1)}',   // it grows out of the MacBook on the stone
+      '.lp-ov.on .lp-mac{transform:none}',
+      '.lp-lid{background:#0d0e10;border-radius:14px;padding:10px 10px 12px;box-shadow:0 30px 80px rgba(0,0,0,.45),inset 0 0 0 1.5px #3b3d42}',
+      '.lp-notch{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:84px;height:14px;background:#0d0e10;border-radius:0 0 10px 10px;z-index:3}',
+      '.lp-scr{position:relative;overflow:hidden;border-radius:6px;background:linear-gradient(135deg,#2b5aa8,#7a4fb0 45%,#e0648a 75%,#f2a65a)}',
+      '.lp-base{height:11px;margin:0 -18px;background:linear-gradient(#d7d9de,#a9adb4);border-radius:0 0 14px 14px;position:relative;box-shadow:0 18px 30px rgba(0,0,0,.35)}',
+      '.lp-base:after{content:"";position:absolute;left:50%;top:0;transform:translateX(-50%);width:110px;height:6px;background:#9a9ea5;border-radius:0 0 8px 8px}',
+      '.lp-bar{position:absolute;top:0;left:0;right:0;height:26px;display:flex;align-items:center;gap:14px;padding:0 14px 0 12px;color:#fff;font-size:12.5px;background:rgba(20,22,30,.35);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:2}',
+      '.lp-bar b{font-weight:700}.lp-bar .sp{flex:1}.lp-bar span{opacity:.9}',
+      '.lp-bar button{background:none;border:0;color:#fff;font:inherit;padding:2px 6px;border-radius:6px;cursor:pointer}',
+      '.lp-bar button:hover{background:rgba(255,255,255,.16)}',
+      '.lp-body{position:absolute;top:26px;left:0;right:0;bottom:0;overflow:auto;-webkit-overflow-scrolling:touch}',
+      '.lp-win{margin:16px;border-radius:12px;background:rgba(246,246,248,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 14px 40px rgba(0,0,0,.28);color:#1c1c1e;overflow:hidden}',
+      '.lp-wh{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid rgba(0,0,0,.08);font-weight:600;font-size:13px}',
+      '.lp-dots{display:flex;gap:6px;margin-right:6px}.lp-dots i{width:11px;height:11px;border-radius:6px;display:block}',
+      '.lp-sec{padding:10px 14px 4px;font-size:11.5px;font-weight:600;color:#6e6e73;text-transform:none}',
+      '.lp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:4px;padding:4px 8px 12px}',
+      '.lp-it{display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 4px;border-radius:10px;border:0;background:none;cursor:pointer;color:#1c1c1e;font:12px/1.25 inherit;text-align:center}',
+      '.lp-it:hover{background:rgba(0,0,0,.06)}.lp-it:active{background:rgba(0,0,0,.12)}',
+      '.lp-ic{width:52px;height:52px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:27px;background:linear-gradient(160deg,#fff,#e9e9ee);box-shadow:0 2px 6px rgba(0,0,0,.14);overflow:hidden}',
+      '.lp-ic img{width:100%;height:100%;object-fit:cover}',
+      '.lp-it small{display:block;max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.lp-app{position:absolute;inset:26px 0 0 0;background:#fff;display:none}.lp-app.on{display:block}',
+      '.lp-app iframe{border:0;width:100%;height:100%;display:block;background:#fff}',
+      '.lp-load{position:absolute;inset:26px 0 0 0;display:none;align-items:center;justify-content:center;color:#fff;font-size:13px;background:rgba(20,22,30,.55)}',
+      '.lp-load.on{display:flex}',
+      '.lp-x{position:absolute;right:-14px;top:-14px;width:34px;height:34px;border-radius:17px;border:1px solid rgba(255,255,255,.35);background:rgba(20,22,30,.7);color:#fff;font-size:16px;cursor:pointer;z-index:4;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}',
+      '.lp-note{padding:14px;font-size:13px;color:#3a3a3c;line-height:1.5}'
+    ].join('\n');
+    document.head.appendChild(st);
+  }
+  function items() {
+    var a = api(), BP = root.MinestBackpack, cat = [];
+    try { cat = a && a.backpack ? a.backpack() : (BP && BP.catalog ? BP.catalog(null) : []); } catch (e) { cat = []; }
+    var F = (B() && B().FEATURES) || {}, apps = APPS.filter(function (q) { return F[q[0]]; });
+    return {
+      apps: apps.map(function (q) { return { key: 'app:' + q[0], icon: q[1], name: q[2], feature: q[0] }; }),
+      tools: cat.filter(function (it) { return it.kind === 'function'; }).map(function (it) { return { key: it.key, icon: it.icon || '✦', name: it.name, fn: it.fn, feature: it.fn && it.fn.featureId }; }),
+      mine: cat.filter(function (it) { return it.cat === 'creations' || it.cat === 'collections'; }).slice(0, 60).map(function (it) { return { key: it.key, icon: it.icon || '✦', name: it.name, item: it }; })
+    };
+  }
+  function tile(t) { return '<button type="button" class="lp-it" data-k="' + esc(t.key) + '"><span class="lp-ic">' + esc(t.icon) + '</span><small>' + esc(t.name) + '</small></button>'; }
+  function grid() {
+    var I = items(), body = el.querySelector('.lp-body');
+    body.innerHTML = '<div class="lp-win"><div class="lp-wh"><span class="lp-dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>🎒 魔法背包</div>' +
+      '<div class="lp-sec">应用 · 在这块屏幕上打开</div><div class="lp-grid">' + I.apps.map(tile).join('') + '</div>' +
+      (I.tools.length ? '<div class="lp-sec">背包里的功能物件</div><div class="lp-grid">' + I.tools.map(tile).join('') + '</div>' : '') +
+      (I.mine.length ? '<div class="lp-sec">作品与收藏</div><div class="lp-grid">' + I.mine.map(tile).join('') + '</div>' : '') + '</div>';
+    el._items = [].concat(I.apps, I.tools, I.mine);
+    showApp(false); setTitle('Finder');
+  }
+  function setTitle(t) { var b = el && el.querySelector('[data-title]'); if (b) b.textContent = t; var bk = el && el.querySelector('[data-back]'); if (bk) bk.style.visibility = view === 'app' ? 'visible' : 'hidden'; }
+  function showApp(on) { view = on ? 'app' : 'grid'; var a = el.querySelector('.lp-app'); a.classList.toggle('on', !!on); el.querySelector('.lp-body').style.visibility = on ? 'hidden' : 'visible'; }
+  function loading(on, text) { var l = el.querySelector('.lp-load'); l.classList.toggle('on', !!on); if (text) l.textContent = text; }
+  /* open a feature on the screen: the app page in the screen's frame, told which feature (bridge.js answers ?mnLaptop / postMessage) */
+  function openFeature(feature, name) {
+    var host = el.querySelector('.lp-app');
+    showApp(true); setTitle(name || feature);
+    if (frame && frame._ready && frame.contentWindow) { try { frame.contentWindow.postMessage({ mnLaptop: feature }, '*'); } catch (e) {} frameFeature = feature; return; }
+    if (!frame) {
+      frame = document.createElement('iframe'); frame.setAttribute('allow', 'camera; microphone; fullscreen; autoplay; clipboard-write');
+      frame.addEventListener('load', function () { frame._ready = true; loading(false); try { frame.contentWindow.postMessage({ mnLaptop: frameFeature }, '*'); } catch (e) {} });
+      host.appendChild(frame);
+    }
+    frameFeature = feature; frame._ready = false; loading(true, '正在打开 ' + (name || feature) + '…');
+    frame.src = withParam(withParam(appUrl(), 'home', '0'), 'mnLaptop', feature);
+  }
+  function openThing(it) {
+    var body = el.querySelector('.lp-body'), x = it.item, pic = '';
+    try { if (x && x.ref && x.ref.sid && root.MinestBackpack && root.MinestBackpack.thingPic) pic = root.MinestBackpack.thingPic(x.ref); } catch (e) {}
+    body.innerHTML = '<div class="lp-win"><div class="lp-wh"><span class="lp-dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>' + esc(it.name) + '</div>' +
+      (pic ? '<img src="' + esc(pic) + '" style="display:block;max-width:100%;max-height:60vh;margin:12px auto;border-radius:8px">' : '<div style="font-size:64px;text-align:center;padding:18px 0 6px">' + esc(it.icon) + '</div>') +
+      '<div class="lp-note"><b>' + esc(it.name) + '</b><br>' + esc((x && x.note) || '') + '</div></div>';
+    view = 'app'; setTitle(it.name); el.querySelector('[data-back]').style.visibility = 'visible';
+  }
+  function pick(k) {
+    var it = (el._items || []).filter(function (x) { return x.key === k; })[0]; if (!it) return;
+    if (it.feature && B() && B().FEATURES && B().FEATURES[it.feature]) return openFeature(it.feature, it.name);
+    if (it.fn) {                                                              // a thing that only lives in the room
+      var A = api(); close(function () { if (A && A.activate) A.activate(it.fn.id); }); return;
+    }
+    if (it.item) return openThing(it);
+  }
+  function key(e) { if (e.key === 'Escape' && el) { e.stopPropagation(); close(); } }
+  function open(opts) {
+    anchor = (opts && opts.at) || null; big = null;
+    if (el) return; css();
+    var S = size();
+    if (kept) {                                                               // the same laptop (the app in its frame keeps running)
+      el = kept; kept = null; el.style.display = ''; root.addEventListener('keydown', key, true);
+      el._clock = setInterval(function () { var c = el && el.querySelector('[data-clock]'); if (c) c.textContent = clock(); }, 15000);
+      place(); if (view !== 'app' || !frame) grid(); requestAnimationFrame(function () { el.classList.add('on'); }); return;
+    }
+    el = document.createElement('div'); el.className = 'lp-ov';
+    el.innerHTML = '<div class="lp-mac" style="width:' + (S.w + 24) + 'px"><button type="button" class="lp-x" data-x title="合上 MacBook">✕</button>' +
+      '<div class="lp-lid"><div class="lp-notch"></div><div class="lp-scr" style="height:' + S.h + 'px">' +
+      '<div class="lp-bar"><b></b><button type="button" data-back style="visibility:hidden">‹ 背包</button><b data-title>Finder</b><span>文件</span><span>编辑</span><span>显示</span><span class="sp"></span><button type="button" data-big title="放大 / 缩小屏幕">⤢</button><span data-clock>' + clock() + '</span></div>' +
+      '<div class="lp-body"></div><div class="lp-app"></div><div class="lp-load">正在打开…</div></div></div><div class="lp-base"></div></div>';
+    el.querySelector('.lp-bar b').textContent = '';
+    document.body.appendChild(el);
+    ['pointerdown', 'pointermove', 'wheel', 'touchstart', 'touchmove'].forEach(function (t) { el.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
+    el.addEventListener('click', function (e) {
+      if (e.target === el) return close();                                    // the meadow round it: close the lid
+      var b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.x != null) return close();
+      if (b.dataset.back != null) { grid(); return; }
+      if (b.dataset.big != null) { big = !(big == null ? firstPerson() : big); place(); return; }
+      if (b.dataset.k) pick(b.dataset.k);
+    });
+    root.addEventListener('keydown', key, true);
+    el._clock = setInterval(function () { var c = el && el.querySelector('[data-clock]'); if (c) c.textContent = clock(); }, 15000);
+    place(); grid(); requestAnimationFrame(function () { el.classList.add('on'); });
+  }
+  function close(after) {
+    if (!el) return; var e0 = el; el = null; clearInterval(e0._clock); root.removeEventListener('keydown', key, true);
+    e0.classList.remove('on'); setTimeout(function () { e0.style.display = 'none'; kept = e0; if (typeof after === 'function') after(); }, 380);   // kept, not removed: the app in its frame stays loaded
+  }
+  root.addEventListener('resize', function () { place(); });
+  root.SpatialLaptop = { open: open, close: close, isOpen: function () { return !!el; } };
 })(window);
 
 /* Minest · Spatial Home — the things, made real (2026-11-13). In the outside-model rooms (the King's Hall, the Victorian
@@ -178611,7 +179183,43 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     return libP.then(function (C) { var a = realAp(C, id, ap === undefined ? apId() : ap), key = id + '/' + a;
       return cores[key] || (cores[key] = C.load(id, { base: base() + 'scenic/', low: true, renderer: root.SpatialRoom && root.SpatialRoom.renderer, appearance: a })); });
   }
-  var showScene = function () {}, applyView = function () {}, WIN = null;
+  /* ---- Scenic World · Collection 001 (scenic-environments/, made by argon): seven fixed-viewpoint photo scenes, each a
+     photograph draped over a 32k-triangle depth mesh 39–50 m out, seen from the origin looking down −z (38° of photo
+     vertically, a mirrored overscan round it). Through the window they are drawn like the other scenes: an off-axis
+     view from your eye. Each room keeps its own choice (store 'scenic:winScene' {room: id}); 'core' is the older view. */
+  var ENVS = [['alpine-valley', '瀑布山谷'], ['golden-oaks', '金色橡树'], ['highland-railway', '高地列车'], ['lost-city', '印加古城'],
+    ['whitehaven-paradise', '白天堂沙洲'], ['alpine-meadow', '阿尔卑斯草甸'], ['little-venice', '科尔马运河']];
+  var WKEY = 'scenic:winScene', ROOM_DEF = { victorian: 'alpine-valley' }, envCache = {};
+  function roomId() { try { var a = root.MinestSpatialHome && root.MinestSpatialHome.api(); return (a && a.env() && a.env().id) || ''; } catch (e) { return ''; } }
+  function winChoice() { var m = sget(WKEY) || {}, r = roomId(), v = m[r] || ROOM_DEF[r] || null; return v === 'core' ? null : (ENVS.some(function (q) { return q[0] === v; }) ? v : null); }
+  function setWinChoice(v) { var m = sget(WKEY) || {}; if (typeof m !== 'object') m = {}; m[roomId()] = v; sset(WKEY, m); }
+  function loadEnv(id) {
+    if (envCache[id]) return envCache[id];
+    var dir = base() + 'scenic-environments/' + id + '/';
+    return (envCache[id] = Promise.all([
+      fetch(dir + 'manifest.json').then(function (r) { return r.json(); }).catch(function () { return {}; }),
+      new Promise(function (res, rej) { new THREE.GLTFLoader().load(dir + 'geometry/spatial_scene.glb', res, undefined, rej); }),
+      new Promise(function (res, rej) { new THREE.TextureLoader().load(dir + 'textures/albedo.jpg', res, undefined, rej); })
+    ]).then(function (r) {
+      var man = r[0] || {}, gl = r[1], tex = r[2];
+      tex.flipY = false; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = true;
+      var U = { uT: { value: 0 }, uMap: { value: tex }, uPx: { value: new THREE.Vector2(1 / ((tex.image && tex.image.width) || 1280), 1 / ((tex.image && tex.image.height) || 720)) } };
+      var mat = new THREE.ShaderMaterial({ uniforms: U,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: ['uniform sampler2D uMap; uniform vec2 uPx; varying vec2 vUv;',
+          'vec2 mir(vec2 p){ return 1.0 - abs(1.0 - mod(p, 2.0)); }',
+          'void main(){ vec2 u = mir(vUv); vec3 c = texture2D(uMap, u).rgb;',
+          '  vec3 b = (texture2D(uMap, mir(vUv + vec2(uPx.x, 0.0))).rgb + texture2D(uMap, mir(vUv - vec2(uPx.x, 0.0))).rgb + texture2D(uMap, mir(vUv + vec2(0.0, uPx.y))).rgb + texture2D(uMap, mir(vUv - vec2(0.0, uPx.y))).rgb) * 0.25;',
+          '  gl_FragColor = vec4(clamp(c + (c - b) * 0.55, 0.0, 1.0), 1.0); }'].join('\n'),   // the photos are ~1000 px: a light unsharp mask
+        side: THREE.DoubleSide });
+      gl.scene.traverse(function (o) { if (o.isMesh) { o.material = mat; o.frustumCulled = false; } });
+      var grp = new THREE.Group(); grp.add(gl.scene);
+      var tv = Math.tan(19 * Math.PI / 180), asp = man.nativeAspect || 1.7778;
+      return { group: grp, U: U, kind: 'env', id: id, appear: 'day', tanV: tv, tanH: tv * asp, P: new THREE.Vector3(0, 0, -44), yaw0: 0, pitch0: 0.12,   // tipped a little, as the lake: the photo's middle at eye level
+        dispose: function () { tex.dispose(); mat.dispose(); gl.scene.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); } };
+    }).catch(function (e) { delete envCache[id]; throw e; }));
+  }
+  var showScene = function () {}, applyView = function () {}, WIN = null, shownKey = null;
   /* ---- the view adjuster: turn and move what the window looks at, so the room gets its best view ---- */
   var VKEY = 'scenic:winView', SHIFT = 0.12, RANGE = { yaw: 1, pitch: 1, x: 1, y: 1 };
   function vget() { var v = sget(VKEY) || {}; function n(k, d) { var x = +v[k]; return isFinite(x) ? x : d; }
@@ -178632,19 +179240,22 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   root.addEventListener('pointerdown', function (e) { if (bar && bar.style.opacity === '1' && !bar.contains(e.target)) setTimeout(function () { if (!dragging) showBar(false); }, 0); }, true);
   var dragging = false;
   function barLater() { clearTimeout(barT); barT = setTimeout(function () { showBar(false); }, 3200); }
-  function syncBar() { if (!bar) return; Array.prototype.forEach.call(bar.querySelectorAll('input'), function (i) { i.value = ADJ[i.dataset.k]; }); }
+  function syncBar() { if (!bar) return; Array.prototype.forEach.call(bar.querySelectorAll('input'), function (i) { i.value = ADJ[i.dataset.k]; });
+    var cur = winChoice() || 'core'; Array.prototype.forEach.call(bar.querySelectorAll('[data-scene]'), function (b) { var on = b.dataset.scene === cur; b.style.background = on ? '#d9a95b' : 'transparent'; b.style.color = on ? '#231a10' : 'inherit'; b.style.borderColor = on ? '#d9a95b' : 'rgba(255,255,255,.28)'; }); }
   function showBar(on) {
     var h = host(); if (!h) return;
     if (!bar) {
       bar = document.createElement('div');
       bar.style.cssText = 'position:absolute;z-index:31;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translate(-50%,12px);width:min(360px,calc(100% - 32px));box-sizing:border-box;padding:9px 12px 8px;border-radius:14px;background:rgba(24,22,20,.72);color:#f3ece2;font:12px/1.3 -apple-system,system-ui,sans-serif;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s ease';
       var rows = [['zoom', '远近', 1, 2.5], ['x', '左右移', -1, 1], ['y', '上下移', -1, 1]];
-      bar.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="opacity:.8">在窗上拖动可转动风景</span><button type="button" data-a="reset" style="padding:3px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit;font-size:12px">恢复</button></div>' +
+      bar.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="opacity:.8">窗外风景 · 在窗上拖动可转动</span><button type="button" data-a="reset" style="padding:3px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit;font-size:12px">恢复</button></div>' +
+        '<div data-pick style="display:flex;gap:5px;overflow-x:auto;margin:4px 0 6px;padding-bottom:2px;-webkit-overflow-scrolling:touch">' +
+        ENVS.concat([['core', '布莱德湖']]).map(function (q) { return '<button type="button" data-scene="' + q[0] + '" style="flex:none;padding:4px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:transparent;color:inherit;font-size:12px;white-space:nowrap">' + q[1] + '</button>'; }).join('') + '</div>' +
         rows.map(function (r) { return '<label style="display:flex;align-items:center;gap:8px;margin:3px 0"><span style="width:40px;flex:none">' + r[1] + '</span><input type="range" data-k="' + r[0] + '" min="' + r[2] + '" max="' + r[3] + '" step="0.01" style="flex:1;accent-color:#d9a95b"></label>'; }).join('');
       ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (t) { bar.addEventListener(t, function (e) { e.stopPropagation(); clearTimeout(barT); }, { passive: true }); });
       ['pointerup', 'touchend', 'change'].forEach(function (t) { bar.addEventListener(t, function () { barLater(); }); });
       bar.addEventListener('input', function (e) { var k = e.target.dataset && e.target.dataset.k; if (!k) return; ADJ[k] = +e.target.value; saveAdj(); });
-      bar.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation(); ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); syncBar(); barLater(); });
+      bar.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation(); if (b.dataset.scene) { setWinChoice(b.dataset.scene); showScene(); } ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); syncBar(); barLater(); });
       h.appendChild(bar);
     }
     syncBar(); clearTimeout(barT);
@@ -178703,7 +179314,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     /* the window shows whichever scene was chosen last (Scenic World's Scenes): a 360° panorama stands round the glass at
        standing eye height; the Lake Bled spatial scene is tipped to its island, castle and peaks */
     showScene = function (id, ap) {
-      loadCore(id, ap).then(function (c) {
+      var w = winChoice(); shownKey = w || 'core';
+      (w ? loadEnv(w).catch(function () { return loadCore(id, ap); }) : loadCore(id, ap)).then(function (c) {
+        if (shownKey !== (w || 'core')) return;                          // a newer choice came in while this one loaded
         if (view && view !== c) sScene.remove(view.group);
         view = c; c.group.rotation.order = 'YXZ';
         applyView();
@@ -178721,15 +179334,16 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (c.kind === 'pano') { c.group.rotation.set(cl(A.pitch) * 0.35, cl(A.yaw) * Math.PI, 0); c.group.position.set(0, 1.5 - H / 2, 0); tanHw = 99; tanVw = 99; return; }
       /* the sliders run −1…1; 0 is the composed view, ±1 as far as the photograph reaches with a window's width to spare */
       function span(v, def, max) { v = cl(v); return v >= 0 ? def + v * (max - def) : def + v * (max + def); }
-      var aH = Math.atan(c.tanH), aV = Math.atan(c.tanV), yw = span(A.yaw, YAW, aH - 0.16), pt = span(A.pitch, PITCH, aV - 0.13);
+      var aH = Math.atan(c.tanH), aV = Math.atan(c.tanV), yw = span(A.yaw, c.yaw0 != null ? c.yaw0 : YAW, aH - 0.16), pt = span(A.pitch, c.pitch0 != null ? c.pitch0 : PITCH, aV - 0.13);
       var MIN = 0.15, roomH = Math.max(0, Math.tan(aH - Math.abs(yw)) - MIN), roomV = Math.max(0, Math.tan(aV - Math.abs(pt)) - MIN);
       var sx = cl(A.x) * Math.min(SHIFT, roomH), sy = cl(A.y) * Math.min(SHIFT, roomV), D = Math.abs(c.P.z) || 100;
-      c.group.rotation.y = yw; c.group.rotation.x = pt; c.group.position.set(-sx * D, -sy * D, 0);
+      c.group.rotation.y = yw; c.group.rotation.x = pt; c.group.position.set(-sx * D, -sy * D, 0); c._pt = pt;
       tanHw = Math.max(MIN, Math.tan(aH - Math.abs(yw)) - Math.abs(sx));
       tanVw = Math.max(MIN, Math.tan(aV - Math.abs(pt)) - Math.abs(sy));
     };
     showScene();
     function render(t) {
+      if (shownKey !== null && (winChoice() || 'core') !== shownKey) showScene();   // another room, another view
       var R = root.SpatialRoom && root.SpatialRoom.renderer, cam = root.SpatialRoom && root.SpatialRoom.camera; if (!view || !R || !cam || !g.visible) return;
       view.U.uT.value = t;
       var dressed = false; for (var ci = 0; ci < g.children.length; ci++) if (/^dress-/.test(g.children[ci].name || '')) dressed = true;
@@ -178737,7 +179351,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       if (view.kind === 'pano') view.group.position.y = 1.5 - H / 2;   // standing eye height, whatever size the room made the window
       cam.updateMatrixWorld(); _m.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); frus.setFromProjectionMatrix(_m);
       if (!frus.intersectsObject(hit)) return;                             // off screen: nothing to draw
-      var sz = R.getDrawingBufferSize(new THREE.Vector2()), rw = Math.max(2, Math.round(sz.x * 0.7)), rh = Math.max(2, Math.round(sz.y * 0.7));
+      var sz = R.getDrawingBufferSize(new THREE.Vector2()), rk = view.kind === 'env' ? 1 : 0.7, rw = Math.max(2, Math.round(sz.x * rk)), rh = Math.max(2, Math.round(sz.y * rk));
       if (!rt || rt.width !== rw || rt.height !== rh) { if (rt) rt.dispose(); rt = new THREE.WebGLRenderTarget(rw, rh, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter }); U.tex.value = rt.texture; }
       U.uRes.value.set(sz.x, sz.y);
       /* the eye in the window's frame (origin: the glass centre; x right, y up, z towards the room) */
@@ -178747,6 +179361,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       /* never more than the photograph holds: if the glass would open wider than the photo's frame, the scene's eye
          steps back just enough (the room's eye is where it is; the view behind the glass just narrows) */
       var m = Math.max(1, (Math.abs(_e.x) + hw) / (ez * tanHw * 0.97), (Math.abs(_e.y) + hh) / (ez * tanVw * 0.97)), zs = ez * m * ADJ.zoom;
+      if (view.kind === 'env') {
+        /* a photo scene fills the glass across (the photos are ~1000 px: never a magnified slice of one), and is tipped so
+           its middle sits behind the middle of the glass from where your eye is (the mirrored overscan covers the rest) */
+        zs = (hw + Math.abs(_e.x) * 0.5) / (Math.tan(Math.atan(view.tanH) - Math.abs(view.group.rotation.y)) * 0.96) * ADJ.zoom;
+        view.group.rotation.x = (view._pt || 0) - Math.atan2(_e.y, zs);
+      }
       var n = 0.5, l = (-hw - _e.x) * n / zs, r = (hw - _e.x) * n / zs, b = (-hh - _e.y) * n / zs, tp = (hh - _e.y) * n / zs;
       pCam.position.set(_e.x, _e.y, zs); pCam.quaternion.identity(); pCam.updateMatrixWorld(true);
       pCam.projectionMatrix.makePerspective(l, r, tp, b, n, 12000); pCam.projectionMatrixInverse.copy(pCam.projectionMatrix).invert();
@@ -178756,7 +179376,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       id: 'scenicWindow', name: '风景之窗', en: 'Scenic Window', icon: '🏞', feature: 'scenic', local: true, anchor: 'floor.window', group: g,
       hit: hit, label: [0, H + 0.12, 0], focusL: null,
       fit: function (a) { fit(a && a.w, a && a.h); },
-      panel: function () { return openScenic(); },
+      panel: function () { return winChoice() ? openEnv() : openScenic(); },
       set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); }, grab: grab,
       /* before the camera walks up: stand back along the window's axis as far as the plan wants, but stop 0.7 m short of
          the first thing in the way (furniture, a wall) — the room must stay round the window, never in front of the lens */
@@ -178771,7 +179391,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       }
     };
     fit(3, 2.7);
-    WIN = { pane: pane, frame: frameG, metal: metal, light: light, size: function () { return [W, H]; } };
+    WIN = { pane: pane, frame: frameG, metal: metal, light: light, size: function () { return [W, H]; }, scene: function () { return view; }, sScene: sScene };
     return o;
   }
 
@@ -178820,6 +179440,56 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   function frameFade(k) { if (!WIN) return; WIN.metal.transparent = k < 1; WIN.metal.opacity = k; WIN.frame.visible = k > 0.02; }
   function hold(on) { if (root.SpatialRoom) root.SpatialRoom.hold = on; }
+  /* ---- into a Scenic World photo scene (the one in the window): full screen, from the scene's own viewpoint ----
+     The room stops drawing; the scene is drawn from the origin with a free look (drag), near / far (pinch, wheel),
+     within the photograph. The strip at the bottom picks another scene — it is what the window will show after.
+     ✕ (or Esc) goes back to the room. */
+  var IMM = null;
+  function openEnv() {
+    return new Promise(function (res) {
+      if (IMM) return res(null);
+      var R = root.SpatialRoom && root.SpatialRoom.renderer; if (!R || !WIN || !WIN.scene) return res(null);
+      var cam = new THREE.PerspectiveCamera(34, 1, 0.5, 400), st = { yaw: 0, pitch: 0, fov: 34, ptrs: {}, d0: 0, f0: 34 }, raf = 0, alive = true;
+      var el = document.createElement('div'); el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;opacity:0;transition:opacity .45s ease;touch-action:none;cursor:grab';
+      el.innerHTML = '<div style="position:absolute;top:calc(14px + env(safe-area-inset-top));left:16px;right:16px;display:flex;justify-content:space-between;align-items:center;pointer-events:none">' +
+        '<div data-t style="pointer-events:auto;padding:8px 14px;border-radius:14px;background:rgba(12,16,22,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#f5f8fc;font:600 14px -apple-system,system-ui,sans-serif"></div>' +
+        '<button type="button" data-x style="pointer-events:auto;width:40px;height:40px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(12,16,22,.55);color:#fff;font-size:18px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)">✕</button></div>' +
+        '<div data-d style="position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:calc(100% - 24px);display:flex;gap:6px;overflow-x:auto;padding:6px;border-radius:999px;background:rgba(12,16,22,.6);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)">' +
+        ENVS.map(function (q) { return '<button type="button" data-s="' + q[0] + '" style="flex:none;padding:7px 12px;border-radius:999px;border:1px solid transparent;background:transparent;color:rgba(235,242,250,.8);font:500 12.5px -apple-system,system-ui,sans-serif;white-space:nowrap">' + q[1] + '</button>'; }).join('') + '</div>';
+      document.body.appendChild(el); IMM = el;
+      function mark() { var c = winChoice(); el.querySelector('[data-t]').textContent = (ENVS.filter(function (q) { return q[0] === c; })[0] || ['', ''])[1] + ' · 拖动环顾，双指缩放';
+        Array.prototype.forEach.call(el.querySelectorAll('[data-s]'), function (b) { var on = b.dataset.s === c; b.style.background = on ? 'rgba(255,217,125,.22)' : 'transparent'; b.style.color = on ? '#ffd97d' : 'rgba(235,242,250,.8)'; b.style.borderColor = on ? 'rgba(255,217,125,.45)' : 'transparent'; }); }
+      mark();
+      function limits() { var v = WIN.scene(); if (!v) return { y: 0, p: 0 }; var a = innerWidth / Math.max(1, innerHeight), tv = Math.tan(st.fov * Math.PI / 360), th = tv * a;
+        return { y: Math.max(0, Math.atan(v.tanH * 1.2) - Math.atan(th)), p: Math.max(0, Math.atan(v.tanV * 1.2) - Math.atan(tv)) }; }
+      function clampSt() { var L = limits(); st.yaw = Math.max(-L.y, Math.min(L.y, st.yaw)); st.pitch = Math.max(-L.p, Math.min(L.p, st.pitch)); }
+      function draw() {
+        if (!alive) return; raf = requestAnimationFrame(draw);
+        var v = WIN.scene(); if (!v) return;
+        var sz = R.getSize(new THREE.Vector2()); cam.aspect = sz.x / Math.max(1, sz.y); cam.fov = st.fov; cam.updateProjectionMatrix();
+        cam.position.set(0, 0, 0); cam.rotation.set(st.pitch, st.yaw, 0, 'YXZ');
+        var r0 = v.group.rotation.clone(), p0 = v.group.position.clone(); v.group.rotation.set(0, 0, 0); v.group.position.set(0, 0, 0);
+        var prev = R.getRenderTarget(); R.setRenderTarget(null); R.render(WIN.sScene, cam); R.setRenderTarget(prev);
+        v.group.rotation.copy(r0); v.group.position.copy(p0);
+      }
+      function close() { if (!alive) return; el.style.opacity = '0'; setTimeout(function () { alive = false; cancelAnimationFrame(raf); el.remove(); IMM = null; hold(false); res(null); }, 420); root.removeEventListener('keydown', key, true); }
+      function key(e) { if (e.key === 'Escape') { e.stopPropagation(); close(); } }
+      root.addEventListener('keydown', key, true);
+      el.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+        if (b.dataset.x != null) return close();
+        if (b.dataset.s) { setWinChoice(b.dataset.s); showScene(); st.yaw = 0; st.pitch = 0; st.fov = 34; mark(); } });
+      el.addEventListener('pointerdown', function (e) { if (e.target.closest('button')) return; st.ptrs[e.pointerId] = [e.clientX, e.clientY]; var k = Object.keys(st.ptrs);
+        if (k.length === 2) { var a = st.ptrs[k[0]], b = st.ptrs[k[1]]; st.d0 = Math.hypot(a[0] - b[0], a[1] - b[1]); st.f0 = st.fov; } try { el.setPointerCapture(e.pointerId); } catch (er) {} });
+      el.addEventListener('pointermove', function (e) { var p = st.ptrs[e.pointerId]; if (!p) return; var k = Object.keys(st.ptrs);
+        if (k.length === 2) { st.ptrs[e.pointerId] = [e.clientX, e.clientY]; var a = st.ptrs[k[0]], b = st.ptrs[k[1]], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (st.d0 > 0) st.fov = Math.max(22, Math.min(40, st.f0 * st.d0 / d)); clampSt(); return; }
+        var s = st.fov / 34 * 0.0035; st.yaw += (e.clientX - p[0]) * s; st.pitch += (e.clientY - p[1]) * s; st.ptrs[e.pointerId] = [e.clientX, e.clientY]; clampSt(); });
+      ['pointerup', 'pointercancel'].forEach(function (t) { el.addEventListener(t, function (e) { delete st.ptrs[e.pointerId]; st.d0 = 0; }); });
+      el.addEventListener('wheel', function (e) { e.preventDefault(); st.fov = Math.max(22, Math.min(40, st.fov + e.deltaY * 0.02)); clampSt(); }, { passive: false });
+      var cv0 = R.domElement, hidden = []; if (cv0.parentNode) Array.prototype.forEach.call(cv0.parentNode.children, function (c) { if (c !== cv0 && c.style.visibility !== 'hidden') { hidden.push(c); c.style.visibility = 'hidden'; } });   // the room's buttons and labels step aside
+      var close0 = close; close = function () { hidden.forEach(function (c) { c.style.visibility = ''; }); hidden = []; close0(); };
+      hold(true); draw(); requestAnimationFrame(function () { el.style.opacity = '1'; });
+    });
+  }
   function setLevel(level, v, dur) {
     if (!el) return; hold(false);
     if (level !== 'full') LV.v = v; LV.level = level; if (level === 'full') LV.v = 1;
@@ -182330,6 +183000,27 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   /* leave Spatial Home for the plain app (the board): what the room opened is put away the feature's own way */
   function release() { clearInterval(poll); current = null; closeOthers(null); hide(); }
 
+  /* the MacBook in the Alpine Meadow office (laptop.js) runs this same app page in its screen, framed, and asks it for a
+     feature: ?mnLaptop=<feature> on load, or a message { mnLaptop: <feature> } later. The framed page opens it on itself
+     (a page target: the page itself goes there). */
+  (function () {
+    var framed = false; try { framed = root.top !== root; } catch (e) { framed = true; }
+    if (!framed) return;
+    function openHere(f) {
+      if (!f || !FEATURES[f]) return; var tries = 0;
+      (function go() {
+        var av = []; try { av = available(f); } catch (e) {}
+        if (!av.length || !document.getElementById('root')) { if (++tries < 160) setTimeout(go, 250); return; }
+        var t = av[0];
+        if (t.kind === 'page') { try { location.href = pageUrl(t); } catch (e) {} return; }
+        try { clearGlance(root); closeOthers(t); if (!t.isOpen(root) || t.base) t.open(root); } catch (e) { if (root.console) console.warn('Spatial Home laptop: could not open', f, e); }
+        [600, 1800, 4000].forEach(function (ms) { setTimeout(function () { try { clearGlance(root); } catch (e) {} }, ms); });   // the Duo's Glance page comes up after load: past it to the app
+      })();
+    }
+    var q = null; try { q = new URLSearchParams(location.search).get('mnLaptop'); } catch (e) {}
+    if (q) { if (document.readyState === 'complete') openHere(q); else root.addEventListener('load', function () { openHere(q); }); }
+    root.addEventListener('message', function (e) { var m = e.data; if (m && typeof m.mnLaptop === 'string') openHere(m.mnLaptop); });
+  })();
   root.SpatialBridge = { FEATURES: FEATURES, EMBED: EMBED, init: init, load: load, state: state, available: available, isLive: isLive, needsHost: needsHost, show: show, hide: hide, leave: leave, release: release, appUrl: appUrl, current: function () { return current; }, hostWindow: hw };
 })(window);
 
@@ -182405,7 +183096,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function freshPose(env) { var v = room.startV | 0; if (!v) return; S.poseV = S.poseV || {}; if ((S.poseV[env] | 0) >= v) return; S.poseV[env] = v; if (S.poses) delete S.poses[env]; if (S.env === env) S.pose = null; }
   freshPose(room.envId);
   if (S.poses && S.poses[room.envId]) S.pose = S.poses[room.envId];
-  var EYE = 1.5, RAD = 0.24;
+  var EYE = 1.5, RAD = 0.24, BASEFOV = 60;
 
   var mode = S.def === 'last' ? (S.mode === 'desk' ? 'desk' : 'explore') : S.def;
   var P = { x: room.start.pos[0], z: room.start.pos[2], yaw: room.start.yaw, pitch: room.start.pitch };
@@ -182432,6 +183123,10 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       v3a.set(P.x - bx * 1.6, 1.15 + P.pitch * 1.2, P.z - bz * 1.6);
       quat.setFromRotationMatrix(m4.lookAt(pos, v3a, UP));
     } else {
+      /* a room with a set view (the Alpine Meadow: a painting seen from one point) keeps the lens and the look inside it */
+      if (room && room.view) { var vf = room.view.fov(camera.aspect); if (Math.abs(camera.fov - vf) > 0.01) { camera.fov = vf; camera.updateProjectionMatrix(); }
+        var vc = room.view.clamp(camera.aspect, vf); P.yaw = clamp(P.yaw, vc.y0, vc.y1); P.pitch = clamp(P.pitch, vc.p0, vc.p1); }
+      else if (Math.abs(camera.fov - BASEFOV) > 0.01) { camera.fov = BASEFOV; camera.updateProjectionMatrix(); }
       pos.set(P.x, EYE, P.z); quat.setFromEuler(eul.set(P.pitch, P.yaw, 0, 'YXZ'));
     }
   }
@@ -183444,7 +184139,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var host = {
     THREE: THREE, reduced: function () { return !!S.motion; }, toast: toast,
     hotbarVisible: function () { return !body.hidden && !inFeature && !edit && !busy; },
-    functionObjects: function () { return objects.filter(function (o) { return o.id !== 'backpack'; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
+    functionObjects: function () { return objects.filter(function (o) { return o.id !== 'backpack'; }).map(function (o) { return { id: o.id, name: o.name, icon: o.icon, featureId: o.feature, feature: (B.FEATURES[o.feature] || {}).title || o.feature, place: placeType(o), group: o.group }; }); },
     onClose: function (placing) { closeLocal(placing); },
     status: function (it) {
       if (it.kind === 'function') { var o = objects.filter(function (q) { return q.id === it.ref.fn; })[0]; return o && o.stashed ? { badge: '在背包', cls: 'bag', text: '在背包里（功能仍可从下方入口进入）', placed: false } : { badge: '摆放中', cls: '', text: '摆在 ' + room.name, placed: true }; }
@@ -183539,7 +184234,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   /* ------------------------------------------------------------ loop */
   function resize() {
     var w = window.innerWidth, h = window.innerHeight, a = w / h;
-    renderer.setSize(w, h, false); camera.aspect = a; camera.fov = a < 0.8 ? 76 : (a < 1.25 ? 68 : 60); camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false); camera.aspect = a; BASEFOV = a < 0.8 ? 76 : (a < 1.25 ? 68 : 60); camera.fov = room && room.view ? room.view.fov(a) : BASEFOV; camera.updateProjectionMatrix();
     /* Duo half-open (fold.js): the room sits in the top half (held upright) or the left half (sideways); the other half
        is the panel of things. The picture is shifted, not cut, so taps and labels still land where they show. */
     var R = document.documentElement;
@@ -183599,6 +184294,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     figure: { sit: sitToggle, gesture: function (n) { gesture(n, n === 'wave' ? 1.6 : 0.9); }, state: function () { return { sitting: AV.sitting, wantSit: AV.wantSit, carry: AV.carry, g: AV.g, speed: +AV.speed.toFixed(2), pos: avatar.position.toArray().map(function (n) { return +n.toFixed(2); }), pose: JSON.parse(JSON.stringify(AV.cur)) }; } },
     setEnv: setEnv, envs: function () { return window.SpatialRoom.envs(); }, env: function () { return room; }, look: function (yaw, pitch) { if (mode === 'desk') { DK.yaw = yaw; DK.pitch = pitch; } else { P.yaw = yaw; P.pitch = pitch; } dirty = true; }, layout: function () { return JSON.parse(JSON.stringify(layout())); },
     edit: { start: function (id) { var o = objects.filter(function (x) { return x.id === id; })[0]; if (o) startEdit(o); }, moveAt: function (x, y) { editMove({ clientX: x, clientY: y }); }, end: function (how) { endEdit(how || 'ok'); }, spawn: function (kind) { spawn({ kind: kind }); }, extras: function () { return XS.length; } },
+    backpack: function () { return BP && BP.catalog ? BP.catalog(host) : []; },   // the laptop's grid (laptop.js)
     walkTo: function (x, z) { if (mode === 'explore' && inArea(x, z)) { walkTo = { x: x, z: z, stuck: 0 }; return true; } return false; },
     activate: function (id) { activate(objects.filter(function (o) { return o.id === id; })[0]); },
     setMode: setMode, setView: setView, leave: function () { B.leave('api'); }, skip: skipAll,

@@ -1,0 +1,5 @@
+# License & Provenance — The Hills Are Alive
+
+- **Primary Reference**: User-uploaded reference photograph (`reference/original.jpg`).
+- **Note**: Central movie character was cleanly inpainted out to restore a pure natural Alpine meadow landscape.
+- **3D Geometry, PBR Maps, Shaders & Spatial Audio**: Original project assets (`CC0-1.0`). Zero copyrighted music or unauthorized 3rd-party scrapes.
