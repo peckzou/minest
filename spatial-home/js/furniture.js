@@ -503,4 +503,376 @@
   [{ id: 'vic-exec-desk', name: '大班桌', en: 'Executive pedestal desk', size: [2.18, 0.78, 1.13] },
    { id: 'vic-tufted', name: '拉扣高背大班椅', en: 'Tufted executive chair', size: [0.98, 1.35, 0.76] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的家具' }); });
+
+  /* ───────── the study's collection (2026-11-13, the user's list): a grand piano, the Thinker in marble, a Gothic
+     armour, a floor globe, a longcase clock. Front: +z. ───────── */
+  function dmats(T) {
+    if (F._d) return F._d;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var v = document.createElement('canvas'); v.width = 256; v.height = 256; var x = v.getContext('2d'), i;   // a marble with faint grey veins
+    x.fillStyle = '#f1eee8'; x.fillRect(0, 0, 256, 256);
+    for (i = 0; i < 14; i++) { x.strokeStyle = 'rgba(120,118,112,' + (0.06 + Math.random() * 0.12) + ')'; x.lineWidth = 0.6 + Math.random() * 1.6; x.beginPath(); var a = Math.random() * 256, b = Math.random() * 256; x.moveTo(a, b);
+      for (var k = 0; k < 6; k++) { a += (Math.random() - 0.3) * 60; b += (Math.random() - 0.5) * 50; x.lineTo(a, b); } x.stroke(); }
+    var mt = new T.CanvasTexture(v); mt.encoding = T.sRGBEncoding; mt.wrapS = mt.wrapT = T.RepeatWrapping;
+    return (F._d = {
+      gloss: new T.MeshStandardMaterial({ color: L(0x0b0b0d), roughness: 0.1, metalness: 0.15, envMapIntensity: 1.4 }),
+      ivory: new T.MeshStandardMaterial({ color: L(0xf4efe2), roughness: 0.3 }),
+      ebony: new T.MeshStandardMaterial({ color: L(0x111012), roughness: 0.25 }),
+      felt: new T.MeshStandardMaterial({ color: L(0x7a1420), roughness: 0.9 }),
+      plate: new T.MeshStandardMaterial({ color: L(0xb8913c), roughness: 0.35, metalness: 0.8 }),
+      sound: new T.MeshStandardMaterial({ color: L(0xd9b47a), roughness: 0.55 }),
+      wire: new T.MeshStandardMaterial({ color: L(0xd8d8d8), roughness: 0.2, metalness: 1 }),
+      marble: new T.MeshStandardMaterial({ map: mt, color: 0xffffff, roughness: 0.32, metalness: 0 }),
+      statue: new T.MeshStandardMaterial({ color: L(0xf3f0ea), roughness: 0.38, metalness: 0 }),
+      steel: new T.MeshStandardMaterial({ color: L(0xc6cad0), roughness: 0.2, metalness: 1.0, envMapIntensity: 1.3 }),
+      steelD: new T.MeshStandardMaterial({ color: L(0x8a8f96), roughness: 0.3, metalness: 1.0 }),
+      dark: new T.MeshStandardMaterial({ color: L(0x101010), roughness: 0.8 }),
+      paper: new T.MeshStandardMaterial({ color: L(0xf2ead6), roughness: 0.85 }),
+      glass: new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, roughness: 0.05, metalness: 0.3, depthWrite: false })
+    });
+  }
+  /* a cylinder from a to b (radius r0 at a, r1 at b), and a ball at each end */
+  function limb(T, g, m, a, b, r0, r1, balls) {
+    var A = new T.Vector3().fromArray(a), B = new T.Vector3().fromArray(b), d = B.clone().sub(A), L = d.length();
+    var c = new T.Mesh(new T.CylinderGeometry(r1, r0, L, 14), m); c.position.copy(A).add(B).multiplyScalar(0.5);
+    c.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); c.castShadow = true; g.add(c);
+    if (balls) [[A, r0], [B, r1]].forEach(function (q) { var s = new T.Mesh(new T.SphereGeometry(q[1], 14, 10), m); s.position.copy(q[0]); g.add(s); });
+    return c;
+  }
+  function ball(T, g, m, p, r, sc) { var s = new T.Mesh(new T.SphereGeometry(r, 20, 14), m); s.position.fromArray(p); if (sc) s.scale.fromArray(sc); s.castShadow = true; g.add(s); return s; }
+
+  /* 1 · a concert grand in black gloss: the bent rim, the lid up on its stick (gold plate, strings and soundboard inside),
+     the keyboard (52 white, 36 black), a music desk with a score, three turned legs, the pedal lyre, a bench */
+  F['vic-piano'] = function (T) {
+    var M = dmats(T), E = emats(T), root0 = new T.Group(), g = new T.Group(); root0.add(g); g.position.z = 0.42;
+    var sh = new T.Shape(); sh.moveTo(-0.74, 0); sh.lineTo(0.74, 0); sh.lineTo(0.74, 0.42);
+    sh.bezierCurveTo(0.74, 0.86, 0.12, 0.9, 0.06, 1.3); sh.bezierCurveTo(0.0, 1.72, -0.3, 1.92, -0.52, 1.9); sh.bezierCurveTo(-0.7, 1.88, -0.74, 1.78, -0.74, 1.6); sh.lineTo(-0.74, 0);
+    function slab(shape, depth, m, y) { var ge = new T.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false, curveSegments: 40 }); var me = new T.Mesh(ge, m); me.rotation.x = -Math.PI / 2; me.position.y = y; me.castShadow = true; me.receiveShadow = true; g.add(me); return me; }
+    var rim = new T.Shape(); rim.curves = sh.curves.slice(); rim.holes.push(new T.Path(sh.getPoints(60).map(function (p) { return new T.Vector2(p.x * 0.955, 0.03 + p.y * 0.955); })));
+    slab(rim, 0.34, M.gloss, 0.62); slab(sh, 0.03, M.gloss, 0.62);                                       // the rim, the bottom
+    var inner = new T.Shape(sh.getPoints(60).map(function (p) { return new T.Vector2(p.x * 0.95, 0.035 + p.y * 0.95); }));
+    slab(inner, 0.01, M.sound, 0.66);                                                                   // the soundboard
+    var pl = new T.Shape(sh.getPoints(60).map(function (p) { return new T.Vector2(p.x * 0.88, 0.08 + p.y * 0.86); }));
+    slab(pl, 0.02, M.plate, 0.86);                                                                      // the gold iron plate
+    for (var si = 0; si < 44; si++) { var sx = -0.62 + si * 0.028, len = 0.5 + 1.25 * (1 - si / 44) * (1 - si / 44) + 0.25; var st = new T.Mesh(new T.BoxGeometry(0.003, 0.003, len), M.wire); st.position.set(sx, 0.885, -0.12 - len / 2); g.add(st); }
+    [0.3, 0.65, 1.0].forEach(function (zz) { var hole = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.022, 20), M.dark); hole.position.set(0.1 - zz * 0.2, 0.882, -zz); g.add(hole); });
+    /* the lid, hinged on the straight side, up on its stick */
+    var lidG = new T.Group(); lidG.position.set(-0.74, 0.965, 0); lidG.rotation.z = 0.62; g.add(lidG);
+    var lid = new T.Mesh(new T.ExtrudeGeometry(sh, { depth: 0.022, bevelEnabled: false, curveSegments: 40 }), M.gloss); lid.rotation.x = -Math.PI / 2; lid.position.x = 0.74; lidG.add(lid);
+    limb(T, g, M.gloss, [0.5, 0.96, -0.85], [0.42, 1.78, -0.85], 0.012, 0.01);
+    /* the keyboard */
+    box(T, g, M.gloss, 0, 0.66, 0.15, 1.48, 0.08, 0.3);                                                 // the keybed
+    [-1, 1].forEach(function (s) { box(T, g, M.gloss, s * 0.7, 0.74, 0.15, 0.08, 0.1, 0.3); });          // the cheeks
+    box(T, g, M.ivory, 0, 0.712, 0.17, 1.3, 0.018, 0.24);
+    for (var w = 1; w < 52; w++) box(T, g, M.dark, -0.65 + w * 1.3 / 52, 0.722, 0.17, 0.0015, 0.003, 0.235);
+    var pat = [1, 1, 0, 1, 1, 1, 0], wk = 1.3 / 52;
+    for (var k = 0; k < 51; k++) if (pat[(k + 5) % 7]) box(T, g, M.ebony, -0.65 + (k + 1) * wk, 0.73, 0.125, wk * 0.55, 0.022, 0.15);
+    box(T, g, M.gloss, 0, 0.7, 0.305, 1.4, 0.05, 0.012);                                                // the key slip
+    box(T, g, M.felt, 0, 0.724, 0.045, 1.3, 0.01, 0.012);
+    var fb = box(T, g, M.gloss, 0, 0.8, 0.03, 1.32, 0.13, 0.02); fb.rotation.x = -0.3;                  // the fallboard, open
+    var desk = new T.Group(); desk.position.set(0, 0.97, -0.08); desk.rotation.x = -0.28; g.add(desk);
+    box(T, desk, M.gloss, 0, 0.15, 0, 0.82, 0.3, 0.02); box(T, desk, M.gloss, 0, 0.0, 0.03, 0.82, 0.02, 0.06);
+    box(T, desk, M.paper, -0.12, 0.15, 0.013, 0.21, 0.28, 0.003); box(T, desk, M.paper, 0.1, 0.15, 0.013, 0.21, 0.28, 0.003);
+    for (var ln = 0; ln < 9; ln++) [-0.12, 0.1].forEach(function (px) { box(T, desk, M.dark, px, 0.27 - ln * 0.027, 0.016, 0.18, 0.0015, 0.001); });
+    /* legs, castors, the lyre and pedals */
+    [[-0.62, 0.12], [0.62, 0.12], [-0.42, -1.66]].forEach(function (q) {
+      var lg = lathe(T, [[0, 0], [0.04, 0], [0.05, 0.06], [0.035, 0.12], [0.05, 0.3], [0.042, 0.48], [0.06, 0.55], [0.06, 0.62], [0, 0.62]], M.gloss, 20); lg.position.set(q[0], 0, q[1]); lg.castShadow = true; g.add(lg);
+      var cs = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.025, 14), E.brass); cs.rotation.z = Math.PI / 2; cs.position.set(q[0], 0.02, q[1]); g.add(cs); });
+    box(T, g, M.gloss, 0, 0.62, -0.32, 0.36, 0.04, 0.12);
+    [-1, 1].forEach(function (s) { limb(T, g, M.gloss, [s * 0.12, 0.6, -0.32], [s * 0.06, 0.12, -0.32], 0.018, 0.018); });
+    box(T, g, M.gloss, 0, 0.1, -0.3, 0.26, 0.06, 0.12);
+    [-0.06, 0, 0.06].forEach(function (px) { var pd = box(T, g, E.brass, px, 0.1, -0.2, 0.026, 0.012, 0.11); pd.rotation.x = 0.15; });
+    /* the bench */
+    var bench = new T.Group(); bench.position.set(0, 0, 0.82); g.add(bench);
+    box(T, bench, M.gloss, 0, 0.44, 0, 0.8, 0.07, 0.36); box(T, bench, E.leather, 0, 0.5, 0, 0.76, 0.05, 0.33);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { var bl = lathe(T, [[0, 0], [0.025, 0], [0.032, 0.05], [0.022, 0.2], [0.03, 0.38], [0.03, 0.42], [0, 0.42]], M.gloss, 14); bl.position.set(q[0] * 0.34, 0, q[1] * 0.14); g.add(bl); bench.add(bl); });
+    return { group: root0, hb: [1.56, 1.85, 2.9], place: 'floor' };
+  };
+
+  /* 2 · the Thinker, a white marble replica about 76 cm high, on a veined marble pedestal */
+  F['vic-thinker'] = function (T) {
+    var M = dmats(T), g = new T.Group(), H = 1.0, i;
+    box(T, g, M.marble, 0, 0.05, 0, 0.6, 0.1, 0.6); box(T, g, M.marble, 0, 0.13, 0, 0.54, 0.06, 0.54);
+    box(T, g, M.marble, 0, 0.55, 0, 0.44, 0.78, 0.44);
+    [-1, 1].forEach(function (s) { box(T, g, M.statue, s * 0.221, 0.55, 0, 0.004, 0.62, 0.32); box(T, g, M.statue, 0, 0.55, s * 0.221, 0.32, 0.62, 0.004); });
+    box(T, g, M.marble, 0, 0.96, 0, 0.54, 0.05, 0.54); box(T, g, M.marble, 0, 0.99, 0, 0.58, 0.03, 0.58);
+    var s = new T.Group(); s.position.y = H; s.scale.setScalar(1.8); g.add(s);                      // 1.8×: about 76 cm, readable across the room
+    box(T, s, M.statue, 0, 0.015, 0.02, 0.2, 0.03, 0.26);                                             // its own base
+    var rock = new T.Mesh(new T.DodecahedronGeometry(0.075, 1), M.statue); rock.scale.set(1.15, 1.0, 1.3); rock.position.set(0, 0.095, -0.02); rock.castShadow = true; s.add(rock);
+    var J = { hipL: [-0.035, 0.16, 0], hipR: [0.035, 0.16, 0], kneeL: [-0.045, 0.17, 0.12], kneeR: [0.045, 0.165, 0.11], ftL: [-0.05, 0.04, 0.13], ftR: [0.05, 0.04, 0.1],
+      shL: [-0.062, 0.29, 0.055], shR: [0.062, 0.29, 0.055], elR: [-0.025, 0.19, 0.115], hdR: [0.0, 0.305, 0.13], elL: [-0.085, 0.215, 0.085], hdL: [-0.058, 0.18, 0.155] };
+    limb(T, s, M.statue, J.hipL, J.kneeL, 0.026, 0.02, true); limb(T, s, M.statue, J.hipR, J.kneeR, 0.026, 0.02, true);
+    limb(T, s, M.statue, J.kneeL, J.ftL, 0.019, 0.013, true); limb(T, s, M.statue, J.kneeR, J.ftR, 0.019, 0.013, true);
+    [J.ftL, J.ftR].forEach(function (f) { var ft = new T.Mesh(new T.BoxGeometry(0.026, 0.016, 0.06), M.statue); ft.position.set(f[0], f[1] - 0.006, f[2] + 0.02); s.add(ft); });
+    var torso = ball(T, s, M.statue, [0, 0.235, 0.035], 0.07, [0.95, 1.2, 0.68]); torso.rotation.x = 0.45;
+    ball(T, s, M.statue, [0, 0.17, 0.01], 0.055, [1.1, 0.7, 0.9]);
+    limb(T, s, M.statue, J.shL, J.shR, 0.024, 0.024, true);
+    limb(T, s, M.statue, J.shR, J.elR, 0.017, 0.014, true); limb(T, s, M.statue, J.elR, J.hdR, 0.014, 0.012, true);
+    limb(T, s, M.statue, J.shL, J.elL, 0.017, 0.014, true); limb(T, s, M.statue, J.elL, J.hdL, 0.014, 0.012, true);
+    ball(T, s, M.statue, [J.hdR[0], J.hdR[1] - 0.004, J.hdR[2] + 0.004], 0.016, [1, 1.2, 0.8]); ball(T, s, M.statue, J.hdL, 0.015, [1, 0.8, 1.2]);
+    limb(T, s, M.statue, [0, 0.3, 0.07], [0, 0.322, 0.1], 0.016, 0.015);
+    var head = ball(T, s, M.statue, [0, 0.345, 0.122], 0.031, [0.92, 1.08, 1.0]); head.rotation.x = 0.5;
+    ball(T, s, M.statue, [0, 0.36, 0.11], 0.031, [0.95, 0.8, 0.95]);                                    // the hair's cap
+    return { group: g, hb: [0.62, 1.8, 0.62], place: 'floor' };
+  };
+
+  /* 3 · a 15th-century Gothic armour: sallet and bevor, fluted breastplate, fauld and tassets, pauldrons with couters,
+     gauntlets, cuisses, poleyns with fans, greaves, pointed sabatons — bright steel, on a walnut stand */
+  F['vic-armour'] = function (T) {
+    var M = dmats(T), E = emats(T), g = new T.Group(), i;
+    box(T, g, E.woodD, 0, 0.03, 0, 0.6, 0.06, 0.46); box(T, g, E.brass, 0, 0.061, 0.231, 0.6, 0.006, 0.004);
+    [-1, 1].forEach(function (s) {
+      var x = s * 0.1;
+      var sab = new T.Mesh(new T.ConeGeometry(0.045, 0.32, 12), M.steel); sab.rotation.x = Math.PI / 2; sab.scale.set(1, 1, 0.55); sab.position.set(x, 0.09, 0.1); g.add(sab);
+      for (i = 0; i < 4; i++) { var lm = new T.Mesh(new T.CylinderGeometry(0.048 - i * 0.006, 0.05 - i * 0.006, 0.02, 14, 1, false, -Math.PI / 2, Math.PI), M.steelD); lm.rotation.x = Math.PI / 2 - 0.2; lm.position.set(x, 0.1, 0.0 + i * 0.05); g.add(lm); }
+      limb(T, g, M.steel, [x, 0.14, 0], [x, 0.52, 0.0], 0.046, 0.058);                                  // greave
+      ball(T, g, M.steel, [x, 0.56, 0.025], 0.068, [1, 1, 0.9]);                                         // poleyn
+      var fan = new T.Mesh(new T.CylinderGeometry(0.075, 0.075, 0.008, 18, 1, false, 0, Math.PI), M.steel); fan.rotation.z = Math.PI / 2; fan.rotation.y = s > 0 ? 0 : Math.PI; fan.position.set(x + s * 0.06, 0.56, 0.0); g.add(fan);
+      limb(T, g, M.steel, [x, 0.6, 0.0], [x * 1.05, 0.93, 0.0], 0.062, 0.078);                           // cuisse
+      for (i = 0; i < 3; i++) { var ts = new T.Mesh(new T.CylinderGeometry(0.1, 0.11, 0.05, 16, 1, true, -0.9, 1.8), M.steel); ts.position.set(x * 0.9, 0.97 - i * 0.045, 0.02); ts.material = M.steel; ts.rotation.y = 0; g.add(ts); }   // tassets
+      /* the arm */
+      var sh = [s * 0.21, 1.42, 0], el = [s * 0.27, 1.13, 0.06], wr = [s * 0.235, 0.9, 0.14];
+      ball(T, g, M.steel, [s * 0.2, 1.43, 0], 0.105, [1, 0.85, 1.05]);                                  // pauldron
+      ball(T, g, M.steelD, [s * 0.215, 1.38, 0], 0.09, [1, 0.6, 1.0]);
+      limb(T, g, M.steel, sh, el, 0.045, 0.04); ball(T, g, M.steel, el, 0.05);
+      var cf = new T.Mesh(new T.CylinderGeometry(0.065, 0.065, 0.008, 18, 1, false, 0, Math.PI), M.steel); cf.rotation.z = Math.PI / 2; cf.position.set(el[0] + s * 0.04, el[1], el[2]); g.add(cf);
+      limb(T, g, M.steel, el, wr, 0.04, 0.034);
+      var cuff = new T.Mesh(new T.CylinderGeometry(0.045, 0.06, 0.07, 14, 1, true), M.steel); cuff.position.set(wr[0], wr[1] - 0.02, wr[2]); g.add(cuff);
+      var gnt = box(T, g, M.steel, wr[0], wr[1] - 0.1, wr[2] + 0.01, 0.06, 0.11, 0.04); gnt.rotation.x = 0.15;
+      for (i = 0; i < 4; i++) box(T, g, M.steelD, wr[0] + (i - 1.5) * 0.014, wr[1] - 0.17, wr[2] + 0.02, 0.012, 0.05, 0.03);
+    });
+    /* the body */
+    for (i = 0; i < 3; i++) { var fa = new T.Mesh(new T.CylinderGeometry(0.175 + i * 0.01, 0.185 + i * 0.01, 0.045, 24, 1, true), M.steel); fa.material.side = T.DoubleSide; fa.position.set(0, 1.08 - i * 0.04, 0.0); fa.scale.z = 0.75; g.add(fa); }
+    var br = ball(T, g, M.steel, [0, 1.27, 0.0], 0.2, [0.95, 1.12, 0.72]);                              // breast and back
+    var plack = ball(T, g, M.steel, [0, 1.17, 0.045], 0.15, [1.0, 0.75, 0.72]);
+    for (i = -3; i <= 3; i++) { var fl = new T.Mesh(new T.TorusGeometry(0.2, 0.004, 4, 24, 1.4), M.steelD); fl.rotation.set(0, Math.PI / 2, Math.PI / 2 - 0.7); fl.scale.set(1.12, 1, 0.72); fl.position.set(i * 0.035, 1.27, 0.0); g.add(fl); }
+    box(T, g, M.steelD, 0, 1.3, 0.143, 0.012, 0.3, 0.012);                                            // the medial ridge
+    var gor = new T.Mesh(new T.TorusGeometry(0.075, 0.03, 10, 24), M.steel); gor.rotation.x = Math.PI / 2; gor.position.y = 1.49; g.add(gor);
+    /* the sallet with its long tail, the bevor, the sight */
+    var hel = new T.Mesh(new T.SphereGeometry(0.12, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), M.steel); hel.scale.set(0.95, 1.05, 1.15); hel.position.set(0, 1.6, -0.01); g.add(hel);
+    var tail = new T.Mesh(new T.CylinderGeometry(0.11, 0.15, 0.09, 24, 1, true, Math.PI * 0.6, Math.PI * 0.8), M.steel); tail.material.side = T.DoubleSide; tail.position.set(0, 1.56, -0.02); g.add(tail);
+    box(T, g, M.steelD, 0, 1.74, -0.02, 0.012, 0.03, 0.24);                                           // the comb
+    var bev = new T.Mesh(new T.SphereGeometry(0.1, 20, 12, -Math.PI * 0.45, Math.PI * 0.9, Math.PI * 0.45, Math.PI * 0.4), M.steel); bev.position.set(0, 1.56, 0.03); bev.scale.set(1, 1, 1.1); g.add(bev);
+    box(T, g, M.dark, 0, 1.62, 0.13, 0.15, 0.014, 0.02);                                              // the sight
+    return { group: g, hb: [0.66, 1.8, 0.5], place: 'floor' };
+  };
+
+  /* 4 · a library floor globe: an old map on the ball, a brass meridian at 23.5°, a carved mahogany horizon ring on four
+     turned legs joined by a cross stretcher with a compass */
+  F['vic-globe'] = function (T) {
+    var E = emats(T), g = new T.Group(), Y = 0.74, i;
+    var c = document.createElement('canvas'); c.width = 1024; c.height = 512; var x = c.getContext('2d');
+    x.fillStyle = '#c9c8a0'; x.fillRect(0, 0, 1024, 512);
+    function P(lon, lat) { return [(lon + 180) / 360 * 1024, (90 - lat) / 180 * 512]; }
+    var land = [[[-168, 66], [-140, 70], [-95, 72], [-75, 62], [-60, 50], [-80, 25], [-97, 18], [-105, 22], [-117, 32], [-125, 48], [-140, 60]],
+      [[-80, 10], [-60, 8], [-35, -7], [-40, -22], [-58, -38], [-70, -55], [-75, -40], [-70, -15], [-81, -5]],
+      [[-17, 15], [-5, 35], [10, 37], [32, 31], [43, 12], [51, 11], [40, -15], [32, -29], [20, -35], [12, -18], [9, 4], [-8, 5]],
+      [[-10, 36], [-9, 44], [0, 50], [5, 58], [20, 70], [60, 70], [100, 77], [140, 72], [170, 66], [160, 58], [140, 50], [130, 35], [120, 22], [105, 10], [100, 2], [95, 15], [80, 8], [72, 20], [57, 25], [50, 30], [35, 36], [28, 41], [15, 38]],
+      [[114, -22], [130, -12], [142, -11], [153, -27], [146, -39], [135, -34], [115, -34]], [[-55, 60], [-20, 70], [-30, 83], [-60, 80]]];
+    land.forEach(function (poly) { x.beginPath(); poly.forEach(function (q, k) { var p = P(q[0], q[1]); if (k) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); }); x.closePath();
+      x.fillStyle = '#d8bf86'; x.fill(); x.strokeStyle = '#8a6a3a'; x.lineWidth = 2; x.stroke(); });
+    x.fillStyle = '#e2d6b0'; x.fillRect(0, 470, 1024, 42);
+    x.strokeStyle = 'rgba(110,80,40,.35)'; x.lineWidth = 1; for (i = 1; i < 12; i++) { x.beginPath(); x.moveTo(i * 1024 / 12, 0); x.lineTo(i * 1024 / 12, 512); x.stroke(); } for (i = 1; i < 6; i++) { x.beginPath(); x.moveTo(0, i * 512 / 6); x.lineTo(1024, i * 512 / 6); x.stroke(); }
+    x.fillStyle = 'rgba(90,60,30,.85)'; x.font = 'italic 22px Georgia, serif'; x.fillText('TERRESTRIAL GLOBE', 380, 300); x.font = 'italic 14px Georgia, serif'; x.fillText('Atlantic Ocean', 300, 230); x.fillText('Pacific Ocean', 60, 270); x.fillText('Indian Ocean', 700, 330);
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 4;
+    var tilt = new T.Group(); tilt.position.y = Y; tilt.rotation.z = 0.41; g.add(tilt);
+    var sph = new T.Mesh(new T.SphereGeometry(0.27, 40, 28), new T.MeshStandardMaterial({ map: t, roughness: 0.4, metalness: 0 })); sph.rotation.y = 1.6; sph.castShadow = true; tilt.add(sph);
+    var mer = new T.Mesh(new T.TorusGeometry(0.285, 0.01, 8, 64), E.brass); mer.rotation.y = Math.PI / 2; tilt.add(mer);
+    [-1, 1].forEach(function (s) { var pin = new T.Mesh(new T.CylinderGeometry(0.008, 0.008, 0.04, 8), E.brass); pin.position.y = s * 0.29; tilt.add(pin); });
+    var ring = lathe(T, [[0.3, 0], [0.42, 0], [0.43, 0.015], [0.42, 0.035], [0.3, 0.035]], E.wood, 48); ring.position.y = Y - 0.02; g.add(ring);
+    var paper = new T.Mesh(new T.RingGeometry(0.31, 0.41, 48), new T.MeshStandardMaterial({ color: new T.Color(0xe8dcb8).convertSRGBToLinear(), roughness: 0.7 })); paper.rotation.x = -Math.PI / 2; paper.position.y = Y + 0.016; g.add(paper);
+    for (i = 0; i < 72; i++) { var tk = new T.Mesh(new T.BoxGeometry(0.002, 0.001, i % 6 ? 0.02 : 0.05), E.groove); var a = i / 72 * Math.PI * 2; tk.position.set(Math.cos(a) * 0.395, Y + 0.017, Math.sin(a) * 0.395); tk.rotation.y = -a + Math.PI / 2; g.add(tk); }
+    for (i = 0; i < 4; i++) {
+      var a2 = Math.PI / 4 + i * Math.PI / 2, lx = Math.cos(a2) * 0.37, lz = Math.sin(a2) * 0.37;
+      var lg = lathe(T, [[0, 0], [0.04, 0], [0.045, 0.05], [0.025, 0.12], [0.04, 0.28], [0.022, 0.46], [0.035, 0.6], [0.035, 0.72], [0, 0.72]], E.wood, 16); lg.position.set(lx, 0, lz); lg.castShadow = true; g.add(lg);
+      var str = new T.Mesh(new T.BoxGeometry(0.37, 0.04, 0.04), E.woodD); str.position.set(lx / 2, 0.16, lz / 2); str.rotation.y = -a2; g.add(str);
+    }
+    var hub = lathe(T, [[0, 0.13], [0.09, 0.13], [0.1, 0.16], [0.09, 0.19], [0, 0.19]], E.wood, 24); g.add(hub);
+    var cm = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.01, 24), E.brass); cm.position.y = 0.195; g.add(cm);
+    var col = lathe(T, [[0, 0.19], [0.05, 0.19], [0.03, 0.3], [0.045, 0.42], [0.025, 0.5], [0, 0.5]], E.woodD, 18); g.add(col);
+    return { group: g, hb: [0.9, 1.04, 0.9], place: 'floor', tick: function (T0) { sph.rotation.y = 1.6 + T0 * 0.03; } };
+  };
+
+  /* 5 · a longcase clock, after an English 19th-century tall case: ogee bracket feet, a panelled plinth with gilt scrolls,
+     a trunk with quarter columns and a glazed arched door under Gothic fretwork (lit softly inside, so the brass shows),
+     a lyre pendulum and three polished weights on chains, a hood with turned columns, an engraved brass dial with a silver
+     chapter ring, a seconds dial and the real moon in the arch, a broken-arch crest with three flame finials.
+     It keeps real time: the hands follow the device clock (the seconds hand steps once a second), and the seconds
+     pendulum swings in step with it — one beat a second, a full swing every two. */
+  F['vic-clock'] = function (T) {
+    var E = emats(T), M = dmats(T), g = new T.Group(), i, W = 0.56, D = 0.3;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var brassP = new T.MeshStandardMaterial({ color: L(0xe8bf62), roughness: 0.14, metalness: 1.0, envMapIntensity: 1.5 });
+    var blued = new T.MeshStandardMaterial({ color: L(0x1b2440), roughness: 0.25, metalness: 0.8 });
+    /* the base */
+    [-1, 1].forEach(function (sx) { [-1, 1].forEach(function (sz) {
+      var ft = lathe(T, [[0, 0], [0.05, 0], [0.058, 0.02], [0.045, 0.05], [0.06, 0.08], [0, 0.08]], E.woodD, 16); ft.position.set(sx * (W / 2 - 0.03), 0, sz * (D / 2 - 0.02)); g.add(ft); }); });
+    box(T, g, E.woodD, 0, 0.1, 0, W + 0.06, 0.04, D + 0.06);
+    box(T, g, E.wood, 0, 0.4, 0, W, 0.56, D);
+    rpanel(T, g, E, 'z', D / 2, 1, 0, 0.4, W - 0.12, 0.42);
+    [-1, 1].forEach(function (s) { var sc = new T.Mesh(new T.TorusGeometry(0.05, 0.007, 6, 16, Math.PI * 1.4), brassP); sc.position.set(s * 0.09, 0.4, D / 2 + 0.03); sc.rotation.z = s > 0 ? 0.6 : Math.PI - 0.6 - Math.PI * 0.4; g.add(sc); });
+    ball(T, g, brassP, [0, 0.4, D / 2 + 0.03], 0.018, [1, 1, 0.5]);
+    box(T, g, E.woodD, 0, 0.7, 0, W + 0.05, 0.035, D + 0.05); box(T, g, E.woodL, 0, 0.725, 0, W + 0.02, 0.02, D + 0.02);
+    /* the trunk: carcase, quarter columns, the arched glazed door with its fretwork, the lit back */
+    var TY0 = 0.74, TY1 = 1.66, TH = TY1 - TY0, TC = (TY0 + TY1) / 2, TW = W - 0.08, FZ = (D - 0.04) / 2;
+    box(T, g, E.wood, -TW / 2 + 0.03, TC, 0, 0.06, TH, D - 0.04); box(T, g, E.wood, TW / 2 - 0.03, TC, 0, 0.06, TH, D - 0.04);
+    box(T, g, E.wood, 0, TC, -FZ + 0.01, TW, TH, 0.02);
+    [-1, 1].forEach(function (s) {
+      var col = lathe(T, [[0, 0], [0.022, 0], [0.022, 0.03], [0.016, 0.05], [0.016, TH - 0.05], [0.022, TH - 0.03], [0.022, TH], [0, TH]], E.woodL, 16); col.position.set(s * (TW / 2 + 0.005), TY0, FZ + 0.005); g.add(col);
+      ball(T, g, brassP, [s * (TW / 2 + 0.005), TY1 - 0.015, FZ + 0.005], 0.02, [1, 0.6, 1]); ball(T, g, brassP, [s * (TW / 2 + 0.005), TY0 + 0.015, FZ + 0.005], 0.02, [1, 0.6, 1]);
+    });
+    var OW = TW - 0.14, OH = TH - 0.16, OR = OW / 2;
+    function archShape(sh, w, h, r) { sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, h - r); sh.absarc(0, h - r, r, 0, Math.PI, false); sh.lineTo(-w / 2, 0); return sh; }
+    var dr = new T.Shape(); dr.moveTo(-TW / 2 + 0.02, 0); dr.lineTo(TW / 2 - 0.02, 0); dr.lineTo(TW / 2 - 0.02, TH); dr.lineTo(-TW / 2 + 0.02, TH); dr.lineTo(-TW / 2 + 0.02, 0);
+    dr.holes.push(archShape(new T.Path(), OW, OH, OR));
+    var door = new T.Mesh(new T.ExtrudeGeometry(dr, { depth: 0.025, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2, curveSegments: 20 }), E.wood); door.position.set(0, TY0 + 0.0, FZ - 0.01); door.geometry.translate(0, 0, 0); g.add(door);
+    door.position.y = TY0; door.geometry.translate(0, 0, 0);
+    var bead = new T.Shape(); archShape(bead, OW + 0.02, OH + 0.01, OR + 0.01); bead.holes.push(archShape(new T.Path(), OW, OH, OR));
+    var bm = new T.Mesh(new T.ExtrudeGeometry(bead, { depth: 0.008, bevelEnabled: false, curveSegments: 20 }), brassP); bm.position.set(0, TY0 + 0.08 - 0.005, FZ + 0.02); g.add(bm);
+    var glass = new T.Mesh(new T.ShapeGeometry(archShape(new T.Shape(), OW, OH, OR), 20), M.glass); glass.position.set(0, TY0 + 0.08, FZ + 0.004); g.add(glass);
+    /* Gothic fretwork over the top of the glass: a pointed arch, two lancets, a quatrefoil */
+    var fy = TY0 + 0.08 + OH - OR;
+    [-1, 1].forEach(function (s) { var a = new T.Mesh(new T.TorusGeometry(OR * 0.92, 0.006, 6, 20, Math.PI / 2), E.woodL); a.position.set(-s * OR * 0.3, fy - 0.02, FZ + 0.008); a.rotation.z = s > 0 ? 0 : Math.PI / 2; g.add(a); });
+    [-1, 1].forEach(function (s) { var a = new T.Mesh(new T.TorusGeometry(OR * 0.45, 0.005, 6, 16, Math.PI), E.woodL); a.position.set(s * OR * 0.48, fy - 0.12, FZ + 0.008); g.add(a);
+      box(T, g, E.woodL, s * OR * 0.48 + OR * 0.45, fy - 0.2, FZ + 0.008, 0.01, 0.16, 0.008); box(T, g, E.woodL, s * OR * 0.48 - OR * 0.45, fy - 0.2, FZ + 0.008, 0.01, 0.16, 0.008); });
+    for (i = 0; i < 4; i++) { var q = new T.Mesh(new T.TorusGeometry(0.022, 0.004, 6, 16), E.woodL); var qa = i * Math.PI / 2; q.position.set(Math.cos(qa) * 0.024, fy + 0.05 + Math.sin(qa) * 0.024, FZ + 0.008); g.add(q); }
+    box(T, g, E.woodL, 0, fy - 0.2, FZ + 0.008, 0.01, 0.2, 0.008);
+    var keyh = box(T, g, brassP, TW / 2 - 0.05, TC, FZ + 0.03, 0.02, 0.035, 0.004);
+    var backC = document.createElement('canvas'); backC.width = 64; backC.height = 256; var bx = backC.getContext('2d'), bgr = bx.createLinearGradient(0, 0, 0, 256);
+    bgr.addColorStop(0, '#6a3a20'); bgr.addColorStop(0.45, '#8a5230'); bgr.addColorStop(1, '#3a1e10'); bx.fillStyle = bgr; bx.fillRect(0, 0, 64, 256);
+    var bt = new T.CanvasTexture(backC); bt.encoding = T.sRGBEncoding;
+    var back = new T.Mesh(new T.PlaneGeometry(TW - 0.12, TH - 0.04), new T.MeshStandardMaterial({ map: bt, roughness: 0.55 })); back.position.set(0, TC, -FZ + 0.025); g.add(back);
+    var inL = new T.PointLight(0xffd9a0, 0.45, 1.1, 2); inL.position.set(0, TY1 - 0.12, 0.02); g.add(inL);
+    /* the weights and their chains, the pendulum */
+    [-0.085, 0, 0.085].forEach(function (wx, k) {
+      var wy = TY1 - 0.32 - k * 0.07;
+      limb(T, g, brassP, [wx, wy, -0.05], [wx, wy - 0.24, -0.05], 0.026, 0.026);
+      [0, -0.24].forEach(function (dy) { var cap = new T.Mesh(new T.TorusGeometry(0.026, 0.004, 6, 18), brassP); cap.rotation.x = Math.PI / 2; cap.position.set(wx, wy + dy, -0.05); g.add(cap); });
+      var hook = new T.Mesh(new T.TorusGeometry(0.008, 0.002, 4, 10), brassP); hook.position.set(wx, wy + 0.012, -0.05); g.add(hook);
+      for (var c = wy + 0.02; c < TY1 + 0.02; c += 0.018) { var ln = new T.Mesh(new T.TorusGeometry(0.0055, 0.0013, 4, 8), M.wire); ln.position.set(wx, c, -0.05); ln.rotation.y = (Math.round(c / 0.018) % 2) * Math.PI / 2; ln.scale.y = 1.5; g.add(ln); }
+    });
+    var pend = new T.Group(); pend.position.set(0, TY1 + 0.05, 0.03); g.add(pend);
+    box(T, pend, brassP, 0, -0.33, 0, 0.012, 0.66, 0.003);
+    [-1, 1].forEach(function (s) { var ly = new T.Mesh(new T.TorusGeometry(0.06, 0.004, 6, 20, Math.PI * 0.9), brassP); ly.position.set(s * 0.03, -0.42, 0); ly.rotation.z = s > 0 ? -0.15 : Math.PI + 0.15 - Math.PI * 0.9 + Math.PI * 0.9; ly.scale.y = 1.8; g.add(ly); pend.add(ly); });
+    var bob = new T.Mesh(new T.CylinderGeometry(0.085, 0.085, 0.02, 40), brassP); bob.rotation.x = Math.PI / 2; bob.position.y = -0.7; pend.add(bob);
+    [0.085, 0.06, 0.035].forEach(function (r) { var rg = new T.Mesh(new T.TorusGeometry(r, 0.0025, 6, 40), E.brass); rg.position.set(0, -0.7, 0.011); pend.add(rg); });
+    ball(T, pend, brassP, [0, -0.7, 0.012], 0.012, [1, 1, 0.4]);
+    /* the hood */
+    var HY0 = 1.7, HY1 = 2.26, HC = (HY0 + HY1) / 2;
+    box(T, g, E.woodD, 0, 1.685, 0, W + 0.06, 0.04, D + 0.06);
+    box(T, g, E.wood, 0, HC, -0.01, W + 0.02, HY1 - HY0, D);
+    [-1, 1].forEach(function (s) {
+      var c2 = lathe(T, [[0, 0], [0.02, 0], [0.02, 0.025], [0.014, 0.04], [0.016, 0.2], [0.012, 0.42], [0.02, 0.44], [0.02, 0.48], [0, 0.48]], E.woodL, 16); c2.position.set(s * (W / 2 + 0.005), HY0 + 0.02, D / 2 + 0.01); g.add(c2);
+      ball(T, g, brassP, [s * (W / 2 + 0.005), HY0 + 0.5, D / 2 + 0.01], 0.022, [1, 0.7, 1]); ball(T, g, brassP, [s * (W / 2 + 0.005), HY0 + 0.04, D / 2 + 0.01], 0.02, [1, 0.7, 1]);
+    });
+    /* the dial: a gilt plate with an engraved centre, a silver chapter ring, gilt spandrels, a seconds dial, the moon */
+    var DW = 0.4, DH = 0.5, dc = document.createElement('canvas'); dc.width = 800; dc.height = 1000; var x = dc.getContext('2d');
+    var CX = 400, CY = 600, RR = 330;
+    function plate() {
+      var gr = x.createLinearGradient(0, 0, 800, 1000); gr.addColorStop(0, '#f0cf7a'); gr.addColorStop(0.5, '#c79a40'); gr.addColorStop(1, '#e9c56c'); x.fillStyle = gr; x.fillRect(0, 0, 800, 1000);
+      x.strokeStyle = 'rgba(120,80,20,.25)'; x.lineWidth = 1; for (var r = 20; r < 240; r += 6) { x.beginPath(); x.arc(CX, CY, r, 0, Math.PI * 2); x.stroke(); }   // the engraved centre
+      [[70, 330], [730, 330], [70, 930], [730, 930]].forEach(function (c) {                   // spandrels
+        x.fillStyle = '#d6aa4c'; x.strokeStyle = '#8a6420'; x.lineWidth = 2;
+        for (var k = 0; k < 5; k++) { x.beginPath(); x.ellipse(c[0] + (k - 2) * 14 * (c[0] < 400 ? 1 : -1), c[1] + (k % 2 ? -14 : 14) * (c[1] < 600 ? 1 : -1), 22 - k * 2, 10, k * 0.6, 0, Math.PI * 2); x.fill(); x.stroke(); }
+      });
+      x.fillStyle = '#e8e6e0'; x.beginPath(); x.arc(CX, CY, RR, 0, Math.PI * 2); x.arc(CX, CY, RR - 80, 0, Math.PI * 2, true); x.fill();    // the silver ring
+      x.strokeStyle = '#2a2420'; x.lineWidth = 2; [RR, RR - 22, RR - 80].forEach(function (r) { x.beginPath(); x.arc(CX, CY, r, 0, Math.PI * 2); x.stroke(); });
+      for (var m = 0; m < 60; m++) { var a = m / 60 * Math.PI * 2 - Math.PI / 2, r0 = RR - (m % 5 ? 10 : 22); x.lineWidth = m % 5 ? 2 : 4; x.beginPath(); x.moveTo(CX + Math.cos(a) * RR, CY + Math.sin(a) * RR); x.lineTo(CX + Math.cos(a) * r0, CY + Math.sin(a) * r0); x.stroke(); }
+      x.fillStyle = '#1a1612'; x.font = '600 50px Georgia, "Times New Roman", serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'].forEach(function (n, k) { var a = k / 12 * Math.PI * 2 - Math.PI / 2; x.save(); x.translate(CX + Math.cos(a) * (RR - 52), CY + Math.sin(a) * (RR - 52)); x.rotate(a + Math.PI / 2); x.fillText(n, 0, 0); x.restore(); });
+      x.fillStyle = '#e8e6e0'; x.beginPath(); x.arc(CX, CY - 150, 62, 0, Math.PI * 2); x.fill(); x.stroke();   // the seconds dial
+      for (var sm = 0; sm < 60; sm++) { var sa = sm / 60 * Math.PI * 2 - Math.PI / 2; x.lineWidth = sm % 5 ? 1 : 2.5; x.beginPath(); x.moveTo(CX + Math.cos(sa) * 60, CY - 150 + Math.sin(sa) * 60); x.lineTo(CX + Math.cos(sa) * (sm % 5 ? 52 : 46), CY - 150 + Math.sin(sa) * (sm % 5 ? 52 : 46)); x.stroke(); }
+      x.font = 'italic 34px Georgia, serif'; x.fillStyle = '#2a2016'; x.fillText('Minest · London', CX, CY + 150);
+    }
+    function moon() {                                                                                  // the arch: a night sky and the moon as it is tonight
+      var syn = 29.530588853, ph = (((Date.now() / 86400000) - 10962.76) % syn + syn) % syn / syn;    // 0 new … 0.5 full
+      x.save(); x.beginPath(); x.arc(CX, 230, 205, Math.PI, 0); x.closePath(); x.clip();
+      var sk = x.createLinearGradient(0, 30, 0, 230); sk.addColorStop(0, '#0e1a3a'); sk.addColorStop(1, '#27406e'); x.fillStyle = sk; x.fillRect(0, 0, 800, 240);
+      x.fillStyle = '#f4ecc0'; for (var k = 0; k < 40; k++) { x.beginPath(); x.arc(220 + ((k * 97) % 360), 60 + ((k * 53) % 150), 1.5 + (k % 3), 0, 6.3); x.fill(); }
+      var mx = CX, my = 140, mr = 62;
+      x.fillStyle = '#2a3048'; x.beginPath(); x.arc(mx, my, mr, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#f2e8c0'; x.beginPath();
+      var k2 = Math.cos(ph * Math.PI * 2);                                                           // the lit part: a half disc and an ellipse
+      if (ph < 0.5) { x.arc(mx, my, mr, -Math.PI / 2, Math.PI / 2, false); x.ellipse(mx, my, Math.abs(k2) * mr, mr, 0, Math.PI / 2, -Math.PI / 2, k2 > 0); }
+      else { x.arc(mx, my, mr, Math.PI / 2, -Math.PI / 2, false); x.ellipse(mx, my, Math.abs(k2) * mr, mr, 0, -Math.PI / 2, Math.PI / 2, k2 > 0); }
+      x.fill(); x.restore();
+      x.strokeStyle = '#8a6420'; x.lineWidth = 4; x.beginPath(); x.arc(CX, 230, 205, Math.PI, 0); x.stroke();
+    }
+    plate(); moon();
+    var dt = new T.CanvasTexture(dc); dt.encoding = T.sRGBEncoding; dt.anisotropy = 4;
+    var dial = new T.Mesh(new T.PlaneGeometry(DW, DH), new T.MeshStandardMaterial({ map: dt, roughness: 0.3, metalness: 0.35 })); dial.position.set(0, HC, D / 2 - 0.005); g.add(dial);
+    var hood = new T.Shape(); hood.moveTo(-W / 2 + 0.005, 0); hood.lineTo(W / 2 - 0.005, 0); hood.lineTo(W / 2 - 0.005, HY1 - HY0); hood.lineTo(-W / 2 + 0.005, HY1 - HY0); hood.lineTo(-W / 2 + 0.005, 0);
+    hood.holes.push(archShape(new T.Path(), DW - 0.02, DH - 0.03, (DW - 0.02) / 2));
+    var hd = new T.Mesh(new T.ExtrudeGeometry(hood, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.005, bevelSegments: 2, curveSegments: 24 }), E.wood); hd.position.set(0, HY0 + 0.015, D / 2 - 0.004); g.add(hd);
+    var hb2 = new T.Shape(); archShape(hb2, DW, DH - 0.02, DW / 2); hb2.holes.push(archShape(new T.Path(), DW - 0.02, DH - 0.03, (DW - 0.02) / 2));
+    var hbm = new T.Mesh(new T.ExtrudeGeometry(hb2, { depth: 0.006, bevelEnabled: false, curveSegments: 24 }), brassP); hbm.position.set(0, HY0 + 0.015, D / 2 + 0.02); g.add(hbm);
+    var hg = new T.Mesh(new T.ShapeGeometry(archShape(new T.Shape(), DW - 0.02, DH - 0.03, (DW - 0.02) / 2), 24), M.glass); hg.position.set(0, HY0 + 0.015, D / 2 + 0.012); g.add(hg);
+    /* the hands: blued steel, spade hour hand, a long minute hand, a fine seconds hand */
+    var px = function (v) { return v / 800 * DW; }, cX = 0, cY = HC + DH / 2 - px(CY), cZ = D / 2 + 0.002;
+    function handShape(len, w, spade) {
+      var sh = new T.Shape(); sh.moveTo(-w * 0.6, -len * 0.18); sh.lineTo(w * 0.6, -len * 0.18); sh.lineTo(w * 0.35, len * 0.6);
+      if (spade) { sh.bezierCurveTo(w * 2.6, len * 0.66, w * 2.2, len * 0.86, 0, len); sh.bezierCurveTo(-w * 2.2, len * 0.86, -w * 2.6, len * 0.66, -w * 0.35, len * 0.6); }
+      else { sh.lineTo(w * 0.2, len * 0.95); sh.lineTo(0, len); sh.lineTo(-w * 0.2, len * 0.95); sh.lineTo(-w * 0.35, len * 0.6); }
+      sh.lineTo(-w * 0.6, -len * 0.18); return new T.ShapeGeometry(sh, 12);
+    }
+    var hh = new T.Mesh(handShape(px(205), px(10), true), blued), mh = new T.Mesh(handShape(px(300), px(7), false), blued);
+    hh.position.set(cX, cY, cZ + 0.001); mh.position.set(cX, cY, cZ + 0.0025); g.add(hh); g.add(mh);
+    ball(T, g, brassP, [cX, cY, cZ + 0.004], 0.009, [1, 1, 0.5]);
+    var sY = cY + px(150), sh2 = new T.Mesh(handShape(px(56), px(3), false), blued); sh2.position.set(cX, sY, cZ + 0.001); g.add(sh2);
+    ball(T, g, brassP, [cX, sY, cZ + 0.002], 0.004, [1, 1, 0.5]);
+    /* the crest: a broken arch of two scrolls, pierced fretwork, three flame finials */
+    box(T, g, E.woodD, 0, HY1 + 0.02, -0.01, W + 0.1, 0.05, D + 0.06); box(T, g, E.woodL, 0, HY1 + 0.05, -0.01, W + 0.06, 0.015, D + 0.03);
+    var fret = new T.Shape(); fret.moveTo(-W / 2, 0); fret.lineTo(W / 2, 0); fret.lineTo(W / 2, 0.06); fret.bezierCurveTo(W / 2 - 0.05, 0.16, 0.08, 0.2, 0.05, 0.14); fret.lineTo(-0.05, 0.14); fret.bezierCurveTo(-0.08, 0.2, -W / 2 + 0.05, 0.16, -W / 2, 0.06); fret.lineTo(-W / 2, 0);
+    for (i = -2; i <= 2; i++) if (i) { var hl = new T.Path(); hl.absellipse(i * 0.09, 0.055, 0.025, 0.03, 0, Math.PI * 2, false); fret.holes.push(hl); }
+    var fm = new T.Mesh(new T.ExtrudeGeometry(fret, { depth: 0.02, bevelEnabled: false, curveSegments: 16 }), E.wood); fm.position.set(0, HY1 + 0.058, D / 2 - 0.03); g.add(fm);
+    [-1, 1].forEach(function (s) { var sc = new T.Mesh(new T.TorusGeometry(0.035, 0.012, 8, 16, Math.PI * 1.5), E.woodL); sc.position.set(s * 0.085, HY1 + 0.19, D / 2 - 0.02); sc.rotation.z = s > 0 ? -0.4 : Math.PI + 0.4 - Math.PI * 0.5; g.add(sc); });
+    [[-W / 2 + 0.02, 0], [0, 0.11], [W / 2 - 0.02, 0]].forEach(function (q) {
+      var fin = lathe(T, [[0, 0], [0.026, 0], [0.03, 0.02], [0.016, 0.035], [0.028, 0.06], [0.03, 0.08], [0.014, 0.1], [0.02, 0.12], [0.006, 0.17], [0, 0.18]], brassP, 18); fin.position.set(q[0], HY1 + 0.058 + q[1], 0.05); g.add(fin); });
+    var lastMoon = Date.now();
+    return { group: g, hb: [0.66, 2.55, 0.42], place: 'floor', tick: function () {
+      var now = Date.now(), d = new Date(now), sec = d.getSeconds(), ms = d.getMilliseconds(), t = now / 1000;
+      pend.rotation.z = 0.075 * Math.cos(Math.PI * t);                                                // one beat a second: at each end of its swing the seconds hand steps
+      var snap = ms < 90 ? 1 - Math.pow(1 - ms / 90, 2) : 1;                                          // the escapement lets the seconds hand go
+      sh2.rotation.z = -((sec - 1 + snap) / 60) * Math.PI * 2;
+      var m = d.getMinutes() + (sec + ms / 1000) / 60, h = (d.getHours() % 12) + m / 60;
+      mh.rotation.z = -m / 60 * Math.PI * 2; hh.rotation.z = -h / 12 * Math.PI * 2;
+      if (now - lastMoon > 3600000) { lastMoon = now; plate(); moon(); dt.needsUpdate = true; }
+    } };
+  };
+
+  /* 6 · a Victorian push-button light switch: a chased brass plate, two mother-of-pearl buttons (on above, off below),
+     for the study's two chandeliers. A tap presses it; the room listens for 'spatial:chandeliers'. */
+  F['vic-lightswitch'] = function (T) {
+    var E = emats(T), g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var brassP = new T.MeshStandardMaterial({ color: L(0xe8bf62), roughness: 0.16, metalness: 1.0, envMapIntensity: 1.5 });
+    var pearl = new T.MeshStandardMaterial({ color: L(0xf4eee0), roughness: 0.18, metalness: 0.1, emissive: L(0x221a10) });
+    var ebon = new T.MeshStandardMaterial({ color: L(0x15100c), roughness: 0.3 });
+    var plate = new T.Shape(); var w = 0.045, h = 0.07, r = 0.012;
+    plate.moveTo(-w + r, -h); plate.lineTo(w - r, -h); plate.quadraticCurveTo(w, -h, w, -h + r); plate.lineTo(w, h - r); plate.quadraticCurveTo(w, h, w - r, h); plate.lineTo(-w + r, h); plate.quadraticCurveTo(-w, h, -w, h - r); plate.lineTo(-w, -h + r); plate.quadraticCurveTo(-w, -h, -w + r, -h);
+    var pm = new T.Mesh(new T.ExtrudeGeometry(plate, { depth: 0.006, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 3 }), brassP); g.add(pm);
+    var bk = new T.Mesh(new T.BoxGeometry(0.11, 0.165, 0.008), E.woodD); bk.position.z = -0.004; g.add(bk);
+    [[0, 0.06], [0, -0.06]].forEach(function (q) { var sc = new T.Mesh(new T.CylinderGeometry(0.004, 0.004, 0.004, 10), brassP); sc.rotation.x = Math.PI / 2; sc.position.set(q[0], q[1], 0.011); g.add(sc); });
+    var btn = [], ON = 0.022;
+    [ON, -ON].forEach(function (y, k) {
+      var ring = new T.Mesh(new T.TorusGeometry(0.013, 0.003, 8, 20), brassP); ring.position.set(0, y, 0.011); g.add(ring);
+      var b = new T.Mesh(new T.CylinderGeometry(0.0095, 0.0095, 0.012, 20), k ? ebon : pearl); b.rotation.x = Math.PI / 2; b.position.set(0, y, 0.014); g.add(b); btn.push(b);
+    });
+    var st = function () { try { return localStorage.getItem('minest.study.chandeliers') === '1'; } catch (e) { return false; } };
+    function show(on) { btn[0].position.z = on ? 0.009 : 0.014; btn[1].position.z = on ? 0.014 : 0.009; }
+    show(st());
+    root.addEventListener('spatial:chandeliers', function (e) { show(!!(e.detail && e.detail.on)); });
+    g.position.y = 0;
+    return { group: g, hb: [0.14, 0.2, 0.08], hbY: 0, place: 'floor', press: function () {
+      var on = !st(); try { localStorage.setItem('minest.study.chandeliers', on ? '1' : '0'); } catch (e) {}
+      show(on); root.dispatchEvent(new CustomEvent('spatial:chandeliers', { detail: { on: on } }));
+      return on ? '吊灯点亮了 · 再按一下熄灭' : '吊灯熄灭了';
+    } };
+  };
+  [{ id: 'vic-piano', name: '三角钢琴', en: 'Concert grand piano', size: [1.56, 1.85, 2.9] },
+   { id: 'vic-thinker', name: '思想者（大理石复刻）', en: 'The Thinker, marble replica', size: [0.62, 1.8, 0.62] },
+   { id: 'vic-armour', name: '哥特式骑士盔甲', en: 'Gothic armour', size: [0.66, 1.8, 0.5] },
+   { id: 'vic-globe', name: '古典落地地球仪', en: 'Library floor globe', size: [0.9, 1.04, 0.9] },
+   { id: 'vic-clock', name: '落地摆钟', en: 'Longcase clock', size: [0.66, 2.55, 0.42] },
+   { id: 'vic-lightswitch', name: '吊灯开关', en: 'Chandelier switch', size: [0.14, 0.2, 0.08] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的陈设' }); });
 })(window);

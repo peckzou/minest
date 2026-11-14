@@ -22,7 +22,7 @@
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
     '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
-    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot" title="转 90°">⟲90</button><button type="button" data-e="rot15" title="转 15°">↻15</button><button type="button" data-e="stash" title="收回背包">🎒</button><button type="button" data-e="cancel" title="取消">✕</button><button type="button" data-e="ok" class="pri" title="放好了 (Enter)">✓</button></div></div>' +
+    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot" title="转 90°">⟲90</button><button type="button" data-e="rot15" title="转 15°">↻15</button><button type="button" data-e="stash" class="del" title="从房间移除（可在背包里找回） · Delete">移除</button><button type="button" data-e="cancel" title="取消">✕</button><button type="button" data-e="ok" class="pri" title="放好了 (Enter)">✓</button></div></div>' +
     '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div><div id="sh-credit"></div>';
 
   function mount() {
@@ -617,6 +617,8 @@
       ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {} editMove(e); return;
     }
     ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
+    /* a thing that takes a drag itself (o.grab: the Scenic Window turns its view): dragging on it moves it, not the look */
+    if (mode === 'explore' || mode === 'desk') { var gr = pick(e); if (gr && gr.grab && !gr.stashed) ptr.grab = gr; }
     /* long press on a thing: pick it up to move it (then drag it, or tap the arrows round it) */
     var lpE = { clientX: e.clientX, clientY: e.clientY }, mine = ptr;
     ptr.lp = setTimeout(function () {
@@ -631,8 +633,9 @@
     if (edit) { if (ptr && ptr.arrow) return; if ((ptr && ptr.id === e.pointerId) || (e.pointerType === 'mouse' && e.buttons)) editMove(e); return; }   // a mouse moves it only while pressed: hovering leaves it where it is, so the bar can be reached
     if (!ptr || ptr.id !== e.pointerId) { if (e.pointerType === 'mouse') setHot(pick(e)); return; }
     var dx = e.clientX - ptr.x, dy = e.clientY - ptr.y; ptr.x = e.clientX; ptr.y = e.clientY;
-    if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; clearTimeout(ptr.lp); canvas.classList.add('drag'); walkTo = null; }
+    if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; clearTimeout(ptr.lp); canvas.classList.add('drag'); walkTo = null; if (ptr.grab) try { ptr.grab.grab('start', 0, 0, e); } catch (er) {} }
     if (!ptr.drag) return;
+    if (ptr.grab) { try { ptr.grab.grab('move', dx, dy, e); } catch (er) {} dirty = true; return; }
     var s = 0.0042 * (camera.fov / 60);
     if (mode === 'desk') { DK.yaw = clamp(DK.yaw + dx * s, -2.2, 2.2); DK.pitch = clamp(DK.pitch + dy * s, -0.45, 0.75); }
     else { P.yaw += dx * s; P.pitch = clamp(P.pitch + dy * s, -1.1, 1.1); }
@@ -641,13 +644,14 @@
   function up(e) {
     if (!ptr || ptr.id !== e.pointerId) return;
     clearTimeout(ptr.lp); clearInterval(nudgeT); clearTimeout(nudgeD);
-    var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long; ptr = null; canvas.classList.remove('drag');
+    var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long, grab = ptr.grab; ptr = null; canvas.classList.remove('drag');
+    if (wasDrag && grab) { try { grab.grab('end', 0, 0, e); } catch (er) {} return; }
     if (wasEdit || wasLong || edit) return;
     if (wasDrag || busy || e.type === 'pointercancel') return;
     var swh = mode === 'explore' || mode === 'desk' ? swAt(e) : null; if (swh) { pressSwitch(swh); return; }
     if (third() && avatarHit(e)) { figureMenu(); return; }
     var o = pick(e); if (o) { activate(o); return; }
-    var x = pickExtra(e); if (x) { extraCard(x); return; }
+    var x = pickExtra(e); if (x) { if (x.press) { try { var said = x.press(); if (said) toast(said); } catch (er) {} return; } extraCard(x); return; }   // a thing with its own control (the light switch) works on a tap
     if (mode !== 'explore') return;
     var hit = ray.ray.intersectPlane(floor, v3a);                                  // pick() has set the ray
     if (hit && inArea(hit.x, hit.z) && ray.ray.direction.y < -0.05) { if (third()) walkPath(hit.x, hit.z, { face: true }); else walkTo = { x: hit.x, z: hit.z, stuck: 0 }; }
@@ -813,13 +817,23 @@
   var DRESSED = [], HIDDEN = [], DTICK = [], NOSHOW = new THREE.MeshBasicMaterial({ visible: false });
   function dress() {
     DRESSED.forEach(function (d) { if (d.parent) d.parent.remove(d); try { window.SpatialRoom.disposeTree(d); } catch (e) {} }); DRESSED = [];
-    HIDDEN.forEach(function (h) { h.m.material = h.mat; }); HIDDEN = []; DTICK = [];
+    HIDDEN.forEach(function (h) { if (h.l) h.l.intensity = h.i; else h.m.material = h.mat; }); HIDDEN = []; DTICK = [];
     var real = room.realistic && window.SpatialRealistic;
     if (!room.dress && !real) return;
     objects.forEach(function (o) {
+      var alone = false;                                                           // a room's own dress can stand alone (no realistic one over it)
       [room.dress && room.dress[o.id], real ? function (ob) { return window.SpatialRealistic.dress(ob); } : null].forEach(function (f, k) {
-        if (!f) return;
-        try { var r = f(o); if (!r || !r.group) return; r.group.name = 'dress-' + o.id + (k ? '-real' : ''); o.group.add(r.group); DRESSED.push(r.group); if (r.tick) DTICK.push(r.tick);
+        if (!f || (k && alone)) return;
+        try { var r = f(o); if (!r || !r.group) return; if (!k && r.alone) alone = true; r.group.name = 'dress-' + o.id + (k ? '-real' : ''); o.group.add(r.group); DRESSED.push(r.group); if (r.tick) DTICK.push(r.tick);
+          if (r.hideAll) {                                                     // the room's dress replaces the thing's look entirely: its meshes and its lights go (the switch stays)
+            var hl = []; o.group.traverse(function (m) {
+              for (var p = m.parent; p && p !== o.group; p = p.parent) if (/^(dress-|switch-)/.test(p.name || '')) return;
+              if (/^(dress-|switch-)/.test(m.name || '')) return;
+              if (m.isLight) { HIDDEN.push({ l: m, i: m.intensity }); hl.push(m); m.intensity = 0; }
+              else if (m.isMesh && m.material && m.material !== NOSHOW && m !== o.hit) { HIDDEN.push({ m: m, mat: m.material }); m.material = NOSHOW; }
+            });
+            DTICK.push(function () { hl.forEach(function (l) { l.intensity = 0; }); });   // a thing that brightens its light on use stays dark here
+          }
           if (r.hideVox) o.group.traverse(function (m) {                      // the solid voxel blocks go (glow, holo, the live pictures stay)
             if (!m.isMesh || !m.material || m.material === NOSHOW || !m.material.vertexColors || m.material.type !== 'MeshLambertMaterial') return;
             for (var p = m.parent; p && p !== o.group; p = p.parent) if (/^dress-/.test(p.name || '')) return;
@@ -843,7 +857,7 @@
       var m = BP.model(THREE, e), hb = m.hb, hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.05, hb[0]), Math.max(0.05, hb[1]), Math.max(0.05, hb[2])), new THREE.MeshBasicMaterial({ visible: false }));
       hit.position.set(0, m.hbY != null ? m.hbY : hb[1] / 2, m.hbZ || 0); m.group.add(hit);
       m.group.position.fromArray(e.p); m.group.rotation.y = e.ry || 0; scene.add(m.group);
-      var x = { e: e, group: m.group, hit: hit, place: m.place, tick: m.tick, machine: m.machine }; hit.userData.extra = x; XS.push(x);
+      var x = { e: e, group: m.group, hit: hit, place: m.place, tick: m.tick, machine: m.machine, press: m.press }; hit.userData.extra = x; XS.push(x);
     });
   }
   function pickExtra(e) {

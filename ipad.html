@@ -171455,6 +171455,7 @@ window.__MTW_STROKE = { strokeGlyph: strokeGlyph, strokeAdvance: strokeAdvance, 
 #sh-edit b { font-size: 14px; } #sh-edit span { font-size: 12px; opacity: .7; } #sh-edit .row { display: flex; gap: 6px; }
 #sh-edit button { flex: 1; padding: 9px 6px; border-radius: 12px; border: 1px solid var(--sh-line); background: #fff; font: inherit; font-weight: 600; color: var(--sh-ink); cursor: pointer; }
 #sh-edit button.pri { background: var(--sh-blue); color: #fff; border-color: transparent; }
+#sh-edit button.del { color: #c0392b; border-color: rgba(192,57,43,.45); }
 #mn-sh.editing #sh-dock, #mn-sh.editing #sh-labels, #mn-sh.editing #sh-hint, #mn-sh.editing #sh-stick { opacity: 0; pointer-events: none; }
 #mn-sh.editing #sh-gl { cursor: crosshair; }
 #sh-dock button.stashed { opacity: .45; }
@@ -171510,6 +171511,7 @@ html.mf-top #mn-sh #sh-top, html.mf-book #mn-sh #sh-top { z-index: 7; }
 #mn-sh #sh-edit { border-radius: 0 !important; background: rgba(198,198,198,.92) !important; border: 2px solid #111 !important; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555 !important; font-family: ui-monospace, Menlo, "PingFang SC", monospace; }
 #mn-sh #sh-edit button { border-radius: 0 !important; background: #8b8b8b !important; color: #fff !important; border: 2px solid #111 !important; text-shadow: 1px 1px 0 #3f3f3f; box-shadow: inset 2px 2px 0 rgba(255,255,255,.4), inset -2px -2px 0 rgba(0,0,0,.4); }
 #mn-sh #sh-edit button.pri { background: #4f8f3a !important; }
+#mn-sh #sh-edit button.del { background: #a33a2c !important; }
 /* Duo half-open: the panel of things is a see-through inventory — the room stays visible behind it */
 html.mf-top #mn-sh #sh-dock, html.mf-book #mn-sh #sh-dock { background: rgba(12, 12, 16, .28) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important;
   border: 0 !important; border-top: 2px solid rgba(0,0,0,.45) !important; gap: 6px !important; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
@@ -173817,7 +173819,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         if (boxes.some(function (q) { return x > q[0] && x < q[3] && y > q[1] && y < q[4] && z > q[2] && z < q[5] && !(q[6] && e > q[6]); })) continue;   // q[6]: only pieces smaller than this (keeps the wall behind a bookcase)
         keep.push(a, b, c);
       }
-      if (keep.length !== idx.count) g.setIndex(keep);   // its own copy: a model's rooms may share one geometry (the study's four quadrants do)
+      if (keep.length !== idx.count) { g = m.geometry = g.clone(); g.setIndex(keep); }   // on its own copy: a model's rooms share one geometry (the study's four quadrants do) — cutting the shared one cut all four
     });
   }
   /* window glass out of a scan: inside each box, drop only the triangles whose texture is near-white (the blown-out
@@ -173840,7 +173842,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         }
         keep.push(a, b, c);
       }
-      if (keep.length !== idx.count) g.setIndex(keep);   // its own copy: a model's rooms may share one geometry (the study's four quadrants do)
+      if (keep.length !== idx.count) { g = m.geometry = g.clone(); g.setIndex(keep); }   // on its own copy: a model's rooms share one geometry (the study's four quadrants do) — cutting the shared one cut all four
     });
   }
   /* the royal garden outside the King's Hall windows (both sides): a sky, lawns, a broderie parterre with box hedges,
@@ -174429,7 +174431,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     });
     function merge(list, gap) { list = list.slice().sort(function (p, q) { return p[0] - q[0]; }); var out = []; list.forEach(function (r) { var l = out[out.length - 1]; if (l && r[0] <= l[1] + gap) l[1] = Math.max(l[1], r[1]); else out.push([r[0], r[1]]); }); return out; }
     function minus(base, cut) { var out = base.slice(); cut.forEach(function (c) { var nx = []; out.forEach(function (r) { if (c[1] <= r[0] || c[0] >= r[1]) { nx.push(r); return; } if (c[0] > r[0]) nx.push([r[0], c[0]]); if (c[1] < r[1]) nx.push([c[1], r[1]]); }); out = nx; }); return out; }
-    var SKIP = { N: [[-1.95, 1.95]], E: (opts.skipE || []), W: [], S: [] }, bays = {};
+    var PS = opts.skip || {}, SKIP = { N: [[-1.95, 1.95]].concat(PS.N || []), E: (opts.skipE || []), W: (PS.W || []), S: (PS.S || []) }, bays = {};
     WALLS.forEach(function (w) { bays[w] = minus(merge(runs[w], 0.35), SKIP[w].concat(merge(posts[w], 0.02))); });
     /* 3. the books */
     var PAL = ['#5a1a14', '#71231a', '#3d1410', '#22382a', '#1d3226', '#1b2840', '#2a2f4a', '#4a2e1c', '#6a4626', '#8a6a3a', '#2a1f18', '#20201e', '#5c2436', '#3a3a2a', '#7a5226'];
@@ -174484,13 +174486,13 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
 
   /* ───────── over the mantel: Seurat, "A Sunday on La Grande Jatte" (1884; public domain, Wikimedia Commons) ─────────
-     The scan's mirror over the fireplace makes way for the painting: the canvas 1.9 × 1.26 m in a deep gilt frame with
-     a small inner fillet, a brass picture light above it washing the canvas warm. */
+     The scan's mirror over the fireplace makes way for the painting: the canvas 1.25 × 0.83 m in a deep gilt frame with
+     a small inner fillet; 1.25 m wide, clear of the viola on the mantel; no picture light. */
   function mantelPainting(model, holder) {
     var mir = null; model.traverse(function (o) { if (!mir && o.name === 'Fireplace_Mirror') mir = o; });
     var cx = 0, cy = 2.92, z = -11.93;
     if (mir) { var b = new THREE.Box3().setFromObject(mir); if (isFinite(b.min.x)) { cx = (b.min.x + b.max.x) / 2; cy = (b.min.y + b.max.y) / 2; z = b.max.z + 0.005; } mir.visible = false; }
-    var W = 1.9, H = W * 852 / 1280, F = 0.11, g = new THREE.Group(); g.position.set(cx, cy, z); g.name = 'mantel-painting'; holder.add(g);
+    var W = 1.25, H = W * 852 / 1280, F = 0.11, g = new THREE.Group(); g.position.set(cx, cy, z); g.name = 'mantel-painting'; holder.add(g);
     var tex = new THREE.TextureLoader().load(siteBase() + 'spatial-home/art/grande-jatte.jpg', function () { if (SR.renderer) tex.anisotropy = Math.min(8, SR.renderer.capabilities.getMaxAnisotropy()); });
     tex.encoding = THREE.sRGBEncoding;
     var canvasM = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.62, metalness: 0, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.22 });
@@ -174503,19 +174505,149 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       bar(q[0] + o * F * 0.38, q[1] + v * F * 0.38, q[2] === F ? F * 0.24 : q[2], q[3] === F ? F * 0.24 : q[3], 0.09, 0.045, gilt);
     });
     [[0, H / 2 + 0.012, W + 0.05, 0.024], [0, -H / 2 - 0.012, W + 0.05, 0.024], [-W / 2 - 0.012, 0, 0.024, H], [W / 2 + 0.012, 0, 0.024, H]].forEach(function (q) { bar(q[0], q[1], q[2], q[3], 0.035, 0.03, giltD); });   // the inner fillet
-    var brass = new THREE.MeshStandardMaterial({ color: lin(0xb58a3e), roughness: 0.3, metalness: 0.9 });
-    var arm = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 8), brass); arm.rotation.x = Math.PI / 2 - 0.5; arm.position.set(0, H / 2 + F + 0.07, 0.1); g.add(arm);
-    var hood = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, W * 0.55, 16, 1, false, 0, Math.PI), brass); hood.rotation.z = Math.PI / 2; hood.rotation.y = 0.2; hood.position.set(0, H / 2 + F + 0.11, 0.2); g.add(hood);
-    var pl = new THREE.SpotLight(0xffe2b0, 0.9, 3.2, 0.75, 0.6, 2); pl.position.set(0, H / 2 + F + 0.08, 0.32); pl.target.position.set(0, -0.1, 0); g.add(pl); g.add(pl.target);
     return g;
+  }
+
+  /* ───────── 2026-11-13 (the user's marked-up screenshot): the window built into the bookcases, curtains, a study door ─────────
+     Shared: a walnut with the bookcases' grain and tone, a deep green velvet with a gold fringe. */
+  var VW = { z: -8.9, w: 6.8, h: 4.5, x: 8.45, face: 7.62 };            // the window: centre z, glass width / height, glass plane x, the bookcases' face x
+  var VDOOR = { z: -3.6, x: 8.3 };
+  function vicMats() {
+    if (vicMats.m) return vicMats.m;
+    var c = document.createElement('canvas'); c.width = 256; c.height = 512; var x = c.getContext('2d');
+    x.fillStyle = '#4a2a17'; x.fillRect(0, 0, 256, 512);
+    for (var i = 0; i < 140; i++) { var px = Math.random() * 256, w = 1 + Math.random() * 3; x.strokeStyle = 'rgba(' + (Math.random() < 0.5 ? '30,14,6' : '110,64,34') + ',' + (0.12 + Math.random() * 0.25) + ')'; x.lineWidth = w;
+      x.beginPath(); x.moveTo(px, 0); for (var y = 0; y <= 512; y += 32) x.lineTo(px + Math.sin(y / 70 + i) * 4, y); x.stroke(); }
+    var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+    var v = document.createElement('canvas'); v.width = 128; v.height = 32; var y2 = v.getContext('2d'), gr = y2.createLinearGradient(0, 0, 128, 0);
+    for (var k = 0; k <= 8; k++) gr.addColorStop(k / 8, k % 2 ? '#2c5a3e' : '#12301f'); y2.fillStyle = gr; y2.fillRect(0, 0, 128, 32);
+    var vt = new THREE.CanvasTexture(v); vt.encoding = THREE.sRGBEncoding; vt.wrapS = THREE.RepeatWrapping;
+    vicMats.m = {
+      wood: new THREE.MeshStandardMaterial({ map: t, color: 0xffffff, roughness: 0.48, metalness: 0.02 }),
+      woodD: new THREE.MeshStandardMaterial({ map: t, color: lin(0x9a8070), roughness: 0.5 }),
+      woodL: new THREE.MeshStandardMaterial({ map: t, color: lin(0xffe2c8), roughness: 0.45 }),
+      gilt: new THREE.MeshStandardMaterial({ color: lin(0xc8a050), roughness: 0.3, metalness: 0.85 }),
+      velvet: new THREE.MeshStandardMaterial({ color: lin(0xffffff), map: vt, roughness: 0.82, side: THREE.DoubleSide }),
+      fringe: new THREE.MeshStandardMaterial({ color: lin(0xb8913e), roughness: 0.6, metalness: 0.4 }),
+      dark: new THREE.MeshStandardMaterial({ color: lin(0x0c0907), roughness: 0.9 })
+    };
+    return vicMats.m;
+  }
+  function bxv(g, m, x, y, z, w, h, d) { var k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); k.position.set(x, y, z); k.castShadow = true; k.receiveShadow = true; g.add(k); return k; }
+  /* a raised panel on a face facing +z (a frame, a sunk field, a raised centre) */
+  function vpanel(g, M, x, y, z, w, h) { bxv(g, M.woodD, x, y, z + 0.004, w, h, 0.008); bxv(g, M.wood, x, y, z + 0.012, w - 0.07, h - 0.07, 0.012); bxv(g, M.woodL, x, y, z + 0.02, w - 0.16, h - 0.16, 0.008); }
+  /* curtains: a pleated velvet drape gathered at a tie-back, hung from the pelmet. side -1: its outer edge on the left */
+  function vdrape(g, M, xOuter, side, z, top, w0) {
+    var tie = 1.15, geo = new THREE.PlaneGeometry(1, top, 40, 24), P = geo.attributes.position;
+    for (var i = 0; i < P.count; i++) {
+      var u = P.getX(i) + 0.5, y = P.getY(i) + top / 2;
+      var wd = y < tie ? w0 * (0.42 + 0.3 * Math.pow((tie - y) / tie, 1.4)) : w0 * (0.42 + 0.58 * Math.pow((y - tie) / (top - tie), 0.8));
+      var fold = Math.sin(u * Math.PI * 13) * 0.055 * (0.55 + wd / w0 * 0.6) + (y < 0.06 ? 0.02 : 0);
+      P.setXYZ(i, xOuter - side * 0 + side * u * wd, y, z + fold + (1 - u) * 0.03);
+    }
+    geo.computeVertexNormals(); var d = new THREE.Mesh(geo, M.velvet); d.castShadow = true; g.add(d);
+    var tb = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 20), M.fringe); tb.scale.set(1, 0.45, 1); tb.rotation.x = Math.PI / 2; tb.position.set(xOuter + side * w0 * 0.2, tie, z + 0.05); g.add(tb);
+    var tas = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 10), M.fringe); tas.position.set(xOuter + side * w0 * 0.4, tie - 0.12, z + 0.09); g.add(tas);
+  }
+  /* the Scenic Window, built into the east bookcases: the glass sits back in a deep panelled reveal (soffit, jambs,
+     threshold), French casements with glazing bars in front of it, a moulded architrave with plinth blocks and a corniced
+     head on the bookcases' face, a velvet pelmet and two drapes. Local: x along the window, +z into the room, y up. */
+  function dressVicWindow(o) {
+    var M = vicMats(), g = new THREE.Group(), W = VW.w, H = VW.h, D = VW.x - VW.face, i;
+    /* the reveal */
+    [-1, 1].forEach(function (s) {
+      bxv(g, M.wood, s * (W / 2 + 0.04), H / 2, D / 2, 0.08, H + 0.04, D);
+      var g2 = new THREE.Group(); g2.position.set(s * (W / 2), 0, D / 2); g2.rotation.y = -s * Math.PI / 2; g.add(g2);
+      vpanel(g2, M, 0, 0.75, 0, D - 0.16, 1.2); vpanel(g2, M, 0, 2.55, 0, D - 0.16, 2.1); vpanel(g2, M, 0, H - 0.42, 0, D - 0.16, 0.5);
+    });
+    bxv(g, M.wood, 0, H + 0.04, D / 2, W + 0.16, 0.08, D); bxv(g, M.woodD, 0, 0.015, D / 2, W, 0.03, D);
+    /* the frame: an outer frame, two mullions, a transom — big clear panes */
+    var FZ = 0.045, TR = H * 0.76;
+    bxv(g, M.wood, 0, H - 0.05, FZ, W, 0.1, 0.09); bxv(g, M.wood, 0, 0.06, FZ, W, 0.12, 0.09);
+    [-1, 1].forEach(function (s) { bxv(g, M.wood, s * (W / 2 - 0.05), H / 2, FZ, 0.1, H, 0.09); bxv(g, M.wood, s * W / 6, H / 2, FZ + 0.01, 0.11, H, 0.11); });
+    bxv(g, M.wood, 0, TR, FZ + 0.01, W, 0.11, 0.11);
+    /* clear glass: no glazing bars, no meeting stiles, no bottom panels (the user's mark-up) */
+    /* the architrave on the bookcases' face */
+    var AW = 0.24, AZ = D + 0.03;
+    [-1, 1].forEach(function (s) {
+      var ax = s * (W / 2 + 0.08 + AW / 2);
+      bxv(g, M.wood, ax, (H + 0.3) / 2, AZ, AW, H + 0.3, 0.07); bxv(g, M.woodL, ax, (H + 0.3) / 2, AZ + 0.04, AW - 0.08, H + 0.1, 0.03);
+      bxv(g, M.gilt, ax - s * (AW / 2 - 0.02), (H + 0.3) / 2, AZ + 0.04, 0.012, H + 0.3, 0.01);
+      bxv(g, M.wood, ax, 0.18, AZ + 0.02, AW + 0.06, 0.36, 0.12);                                     // a plinth block
+      bxv(g, M.wood, ax, H + 0.42, AZ + 0.02, AW + 0.08, 0.24, 0.12); bxv(g, M.gilt, ax, H + 0.42, AZ + 0.085, 0.09, 0.09, 0.01);   // a corner block, a rosette
+    });
+    bxv(g, M.wood, 0, H + 0.42, AZ, W + 0.16, 0.24, 0.07); bxv(g, M.woodL, 0, H + 0.42, AZ + 0.04, W + 0.04, 0.12, 0.03);
+    bxv(g, M.wood, 0, H + 0.6, AZ + 0.05, W + 2 * AW + 0.5, 0.1, 0.2); bxv(g, M.woodD, 0, H + 0.68, AZ + 0.08, W + 2 * AW + 0.6, 0.06, 0.26);   // the cornice
+    for (i = 0; i < 46; i++) bxv(g, M.woodL, -(W / 2 + AW + 0.2) + i * (W + 2 * AW + 0.4) / 45, H + 0.535, AZ + 0.12, 0.04, 0.04, 0.05);   // dentils
+    /* the pelmet and the drapes, in front of the architrave */
+    var PW = W + 2 * AW + 0.9, PZ = D + 0.24, PT = H + 0.62;
+    bxv(g, M.velvet, 0, PT - 0.22, PZ, PW, 0.46, 0.05); bxv(g, M.fringe, 0, PT - 0.46, PZ + 0.01, PW, 0.05, 0.06); bxv(g, M.gilt, 0, PT + 0.02, PZ, PW + 0.04, 0.04, 0.07);
+    [-1, 1].forEach(function (s) { bxv(g, M.velvet, s * PW / 2, PT - 0.22, PZ - 0.12, 0.04, 0.46, 0.24); });
+    [-1, 1].forEach(function (s) { vdrape(g, M, s * (PW / 2 - 0.02), -s, PZ - 0.08, PT - 0.2, 1.05); });
+    return { group: g, alone: true };
+  }
+  /* the study door, which is also the portal: an arched doorway the portal's opening fits, in a panelled walnut surround
+     flush with the bookcases (pilasters, an entablature, a keystone), the door itself closed, its handle the one new, bright thing */
+  function dressVicDoor(o) {
+    var M = vicMats(), g = new THREE.Group(), R = 0.45, OH = 1.81, FZ = VDOOR.x - VW.face - 0.33, BZ = -0.45, i;   // FZ: the face (flush with the bookcases)
+    function arch(sh, r, oh, w) { sh.moveTo(-w, 0); sh.lineTo(w, 0); sh.lineTo(w, oh); sh.absarc(0, oh, r, 0, Math.PI, false); sh.lineTo(-w, 0); return sh; }
+    var wall = new THREE.Shape(); wall.moveTo(-1.0, 0); wall.lineTo(1.0, 0); wall.lineTo(1.0, 3.3); wall.lineTo(-1.0, 3.3); wall.lineTo(-1.0, 0);
+    wall.holes.push(arch(new THREE.Path(), R, OH, R));
+    var wg = new THREE.ExtrudeGeometry(wall, { depth: FZ - BZ, bevelEnabled: false, curveSegments: 24 }); var wm = new THREE.Mesh(wg, M.wood); wm.position.z = BZ; wm.receiveShadow = true; g.add(wm);
+    var ring = new THREE.Shape(); arch(ring, R + 0.13, OH, R + 0.13); ring.holes.push(arch(new THREE.Path(), R, OH, R));
+    var rm = new THREE.Mesh(new THREE.ExtrudeGeometry(ring, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 2, curveSegments: 24 }), M.wood); rm.position.z = FZ; g.add(rm);
+    var gl = new THREE.Shape(); arch(gl, R + 0.075, OH, R + 0.075); gl.holes.push(arch(new THREE.Path(), R + 0.06, OH, R + 0.06));
+    var gm = new THREE.Mesh(new THREE.ExtrudeGeometry(gl, { depth: 0.064, bevelEnabled: false, curveSegments: 24 }), M.gilt); gm.position.z = FZ; g.add(gm);
+    bxv(g, M.wood, 0, OH + R + 0.1, FZ + 0.06, 0.18, 0.28, 0.1); bxv(g, M.gilt, 0, OH + R + 0.1, FZ + 0.115, 0.07, 0.12, 0.01);   // the keystone
+    [-1, 1].forEach(function (s) {
+      var px = s * 0.82; bxv(g, M.wood, px, 1.45, FZ + 0.04, 0.2, 2.6, 0.08);                        // the pilasters, fluted
+      for (i = -1; i <= 1; i++) bxv(g, M.woodD, px + i * 0.05, 1.45, FZ + 0.085, 0.02, 2.3, 0.01);
+      bxv(g, M.wood, px, 0.12, FZ + 0.05, 0.26, 0.24, 0.1); bxv(g, M.wood, px, 2.8, FZ + 0.05, 0.26, 0.12, 0.1); bxv(g, M.gilt, px, 2.73, FZ + 0.1, 0.24, 0.02, 0.01);
+      vpanel(g, M, s * 0.82, 3.06, FZ, 0.3, 0.32);
+    });
+    bxv(g, M.wood, 0, 2.95, FZ + 0.06, 2.0, 0.14, 0.12); bxv(g, M.woodD, 0, 3.05, FZ + 0.09, 2.04, 0.05, 0.18); vpanel(g, M, 0, 3.17, FZ, 1.2, 0.2);
+    bxv(g, M.woodD, 0, 0.012, (FZ + BZ) / 2, 2 * R + 0.02, 0.024, FZ - BZ);                          // the threshold
+    /* the door: arched, two raised panels a side, a brass knob, standing open into the room on its right-hand hinges */
+    var leaf = new THREE.Shape(); arch(leaf, R - 0.01, OH, R - 0.01);
+    var lg = new THREE.ExtrudeGeometry(leaf, { depth: 0.05, bevelEnabled: false, curveSegments: 20 }); lg.translate(-(R - 0.01), 0, -0.025);
+    var hinge = new THREE.Group(); hinge.position.set(R - 0.01, 0.0, FZ - 0.045); g.add(hinge);   // closed: an elegant door, no glow — the portal is behind it
+    var lm = new THREE.Mesh(lg, M.wood); lm.position.x = -(R - 0.01); lm.castShadow = true; hinge.add(lm);
+    [[-0.44, 0.7, 1.0], [-0.44, 1.72, 0.7]].forEach(function (q) { [1, -1].forEach(function (f) { var pg = new THREE.Group(); pg.position.set(q[0], 0, f * 0.025); if (f < 0) pg.rotation.y = Math.PI; hinge.add(pg); vpanel(pg, M, f < 0 ? 0 : 0, q[1], 0, 0.62, q[2]); }); });
+    /* the one bright thing: a brand-new polished brass lever handle on a backplate, a keyhole below */
+    var shine = new THREE.MeshStandardMaterial({ color: lin(0xf6d27a), roughness: 0.08, metalness: 1.0, envMapIntensity: 1.6 });
+    [1, -1].forEach(function (f) {
+      var hg = new THREE.Group(); hg.position.set(-0.78, 1.02, f * 0.026); if (f < 0) hg.rotation.y = Math.PI; hinge.add(hg);
+      var plate = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.24, 0.008), shine); plate.position.set(0, -0.03, 0.004); hg.add(plate);
+      var pb = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.226, 0.004), shine); pb.position.set(0, -0.03, 0.01); hg.add(pb);
+      var rose = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.02, 24), shine); rose.rotation.x = Math.PI / 2; rose.position.z = 0.02; hg.add(rose);
+      var lev = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.011, 0.13, 16), shine); lev.rotation.z = Math.PI / 2; lev.position.set(0.06, 0, 0.045); hg.add(lev);
+      var neck = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.035, 12), shine); neck.rotation.x = Math.PI / 2; neck.position.set(0, 0, 0.032); hg.add(neck);
+      var end = new THREE.Mesh(new THREE.SphereGeometry(0.014, 16, 12), shine); end.position.set(0.125, 0, 0.045); hg.add(end);
+      var key = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.022, 0.004), M.dark); key.position.set(0, -0.1, 0.0135); hg.add(key);
+    });
+    [0.35, 1.7].forEach(function (y) { bxv(hinge, M.woodD, 0.0, y, 0, 0.02, 0.12, 0.06); });
+    return { group: g, alone: true, hideAll: true };
+  }
+  /* the pale pilasters between the bookcases take the bookcases' walnut, and nothing is shelved over them */
+  function vicPilasters(model) {
+    var skip = { W: [], E: [], N: [], S: [] };
+    model.traverse(function (o) {
+      if (!/^Wall_Pilaster/.test(o.name)) return;
+      var b = new THREE.Box3().setFromObject(o), cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2 + 5.1;
+      if (Math.abs(cx) > Math.abs(cz)) skip[cx < 0 ? 'W' : 'E'].push([b.min.z - 0.03, b.max.z + 0.03]); else skip[cz < 0 ? 'N' : 'S'].push([b.min.x - 0.03, b.max.x + 0.03]);
+      o.traverse(function (m) { if (m.isMesh) { m.material = m.material.clone(); m.material.color = lin(0x6b4329); } });
+    });
+    return skip;
   }
   function victorianFinish(ctx) {
     var holder = ctx.holder, model = ctx.model, scene = ctx.scene, R = SR.renderer, parts = [], lights = [];
     var rug = rugTexture(), rugM = new THREE.MeshStandardMaterial({ map: rug, roughness: 0.95, metalness: 0 });
     ctx.templates.forEach(function (t) { if (!/Rug/.test(t.node || '')) return; t.group.traverse(function (o) { if (o.isMesh) { o.geometry = o.geometry.clone(); rugUV(o.geometry); o.material = rugM; } }); });
     var ceilDispose = cofferedCeiling(holder), carpetDispose = roomCarpet(holder, 0, -5.1, 7.75, 7.7);
+    model.traverse(function (o) { if (/Line002/.test(o.name)) o.visible = false; });   // the scan's four floor strips came through the carpet as black lines
+    var pilSkip = { W: [], E: [], N: [], S: [] }; try { pilSkip = vicPilasters(model); } catch (e) {}
     try { mantelPainting(model, holder); } catch (e) { if (root.console) console.warn('Spatial Home: painting', e); }
-    try { fillShelves(model, holder, { skipE: [[-12.7, -5.1], [-4.7, -2.5]] }); } catch (e) { if (root.console) console.warn('Spatial Home: shelves', e); }   // the empty shelves get books (not behind the Scenic Window or the cut)
+    try { fillShelves(model, holder, { skipE: [[VW.z - VW.w / 2 - 0.6, VW.z + VW.w / 2 + 0.6], [-4.7, -2.5]].concat(pilSkip.E), skip: pilSkip }); } catch (e) { if (root.console) console.warn('Spatial Home: shelves', e); }   // the empty shelves get books (not behind the Scenic Window or the cut)
     /* reflections: a small warm room rendered once into an environment map */
     var envTex = null;
     if (R && THREE.PMREMGenerator) {
@@ -174523,6 +174655,28 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       [[0, 2.5, -5, 0xffc27a, 3], [0, 2.9, 0, 0xffe0b0, 2], [-5, 1.5, 0, 0x8a5a3a, 1.2], [5, 1.5, 2, 0x8a5a3a, 1.2]].forEach(function (q) { var p = new THREE.Mesh(new THREE.PlaneGeometry(q[4], q[4] * 0.6), new THREE.MeshBasicMaterial({ color: lin(q[3]), side: THREE.DoubleSide })); p.position.set(q[0], q[1], q[2]); p.lookAt(0, 1.5, 0); es.add(p); });
       var pm = new THREE.PMREMGenerator(R); envTex = pm.fromScene(es, 0.04).texture; pm.dispose(); scene.environment = envTex;
     }
+    /* the chandeliers' candles: 10 below (r 1.18, tips at 4.65) and 5 above (r 0.75, at 5.01) on each; lit by the wall
+       switch (vic-lightswitch → 'spatial:chandeliers', kept in minest.study.chandeliers). Lit: a flame and a soft halo on
+       every candle, and the chandeliers' light comes up warm. */
+    var CAND = [[1.18, 4.65, 0], [0.95, 4.65, 0.69], [0.36, 4.65, 1.12], [-0.36, 4.65, 1.12], [-0.95, 4.65, 0.69], [-1.18, 4.65, 0], [-0.95, 4.65, -0.69], [-0.36, 4.65, -1.12], [0.36, 4.65, -1.12], [0.95, 4.65, -0.69],
+      [0.71, 5.01, 0.22], [0.01, 5.01, 0.73], [-0.71, 5.01, 0.23], [-0.44, 5.01, -0.61], [0.43, 5.01, -0.62]];
+    var fc = document.createElement('canvas'); fc.width = 64; fc.height = 128; var fx = fc.getContext('2d'), fg = fx.createRadialGradient(32, 92, 2, 32, 78, 54);
+    fg.addColorStop(0, 'rgba(255,255,235,1)'); fg.addColorStop(0.25, 'rgba(255,214,120,.95)'); fg.addColorStop(0.6, 'rgba(255,140,40,.45)'); fg.addColorStop(1, 'rgba(255,90,10,0)');
+    fx.fillStyle = fg; fx.beginPath(); fx.moveTo(32, 4); fx.bezierCurveTo(50, 50, 54, 92, 32, 124); fx.bezierCurveTo(10, 92, 14, 50, 32, 4); fx.fill();
+    var hc = document.createElement('canvas'); hc.width = hc.height = 64; var hx = hc.getContext('2d'), hg = hx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    hg.addColorStop(0, 'rgba(255,214,140,.9)'); hg.addColorStop(0.35, 'rgba(255,190,110,.35)'); hg.addColorStop(1, 'rgba(255,170,80,0)'); hx.fillStyle = hg; hx.fillRect(0, 0, 64, 64);
+    var flameM = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(fc), transparent: true, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });   // normal blending: the flame reads against the pale ceiling
+    var haloM = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(hc), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0.8, side: THREE.DoubleSide }), cardG = new THREE.PlaneGeometry(1, 1);   // camera-facing cards (as the hearth's flames)
+    var candleFlames = [], candleG = new THREE.Group(); candleG.name = 'chandelier-flames'; holder.add(candleG);
+    [-9.4, -1.9].forEach(function (cz) { CAND.forEach(function (q) {
+      var f = new THREE.Mesh(cardG, flameM); f.scale.set(0.075, 0.17, 1); f.position.set(q[0], q[1] + 0.09, cz + q[2]); candleG.add(f);
+      var hl = new THREE.Mesh(cardG, haloM); hl.scale.set(0.6, 0.6, 1); hl.position.copy(f.position); candleG.add(hl);
+      candleFlames.push({ f: f, h: hl, ph: Math.random() * 9 });
+    }); });
+    var LIT = false; try { LIT = localStorage.getItem('minest.study.chandeliers') === '1'; } catch (e) {}
+    candleG.visible = LIT;
+    function onLights(e) { LIT = !!(e.detail && e.detail.on); candleG.visible = LIT; }
+    root.addEventListener('spatial:chandeliers', onLights);
     /* the chandeliers light the room: candle-warm, a slight flicker */
     [[0, 4.7, -9.4], [0, 4.7, -1.9]].forEach(function (p) { var l = new THREE.PointLight(0xffc98a, 1.1, 12, 2); l.position.fromArray(p); holder.add(l); lights.push({ l: l, base: 0.9, f: Math.random() * 9 }); });
     /* the fire in the hearth: logs, flames, embers, its light */
@@ -174548,7 +174702,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     bookCols.forEach(function (col, i) { var b = new THREE.Mesh(new THREE.BoxGeometry(0.22 - i * 0.012, 0.035, 0.16 - i * 0.008), new THREE.MeshStandardMaterial({ color: lin(col), roughness: 0.7 })); b.position.y = 0.018 + i * 0.036; b.rotation.y = (i % 2 - 0.5) * 0.12; bk.add(b);
       var pg = new THREE.Mesh(new THREE.BoxGeometry(0.205 - i * 0.012, 0.028, 0.004), new THREE.MeshStandardMaterial({ color: lin(0xf0e6cf), roughness: 0.8 })); pg.position.set(0, 0.018 + i * 0.036, 0.08 - i * 0.004); bk.add(pg); });
     var gl = globe(); gl.group.position.set(0.66, 0.78, -1.62); desk.add(gl.group);
-    var win = studyWindow(holder);
+    var win = { set: function () {} };                                    // the east wall's small window is the study door now (dressVicDoor)
     var mode = 'auto';
     function apply() { var T = SR.timeOfDay(mode), N = T.night; win.set(T.light, T.dusk); lights.forEach(function (q) { q.base = 0.75 + 0.5 * N; }); lampL.intensity = 0.35 + 0.45 * N; ctx.hemi.intensity = 0.55 + 0.2 * (1 - N); }
     apply();
@@ -174557,10 +174711,11 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         var f = 0.85 + 0.15 * Math.sin(t * 9) * Math.sin(t * 3.7) + 0.08 * Math.sin(t * 23);
         fireL.intensity = 1.2 * f; flames.forEach(function (m, i) { var k = 0.8 + 0.3 * Math.sin(t * (6 + i) + i * 2); m.scale.set(1, k, 1); m.position.y = 0.12 + 0.13 * k; m.material.opacity = 0.75 + 0.25 * Math.sin(t * 11 + i); });
         embers.forEach(function (b, i) { b.material.color.setHSL(0.04 + 0.03 * Math.sin(t * 2 + i), 1, 0.45 + 0.12 * Math.sin(t * 3.1 + i * 1.7)); });
-        lights.forEach(function (q) { q.l.intensity = q.base * (0.94 + 0.06 * Math.sin(t * 7 + q.f)); });
+        lights.forEach(function (q) { q.l.intensity = q.base * (LIT ? 1.75 : 1) * (0.94 + (LIT ? 0.1 : 0.06) * Math.sin(t * 7 + q.f)); });
+        if (LIT) candleFlames.forEach(function (c) { var k = 0.85 + 0.15 * Math.sin(t * 13 + c.ph) * Math.sin(t * 5.3 + c.ph * 2); c.f.scale.set(0.075 * (0.9 + 0.1 * k), 0.17 * k, 1); if (SR.camera) { c.f.quaternion.copy(SR.camera.quaternion); c.h.quaternion.copy(SR.camera.quaternion); } });
       },
       setTime: function (m) { mode = m || 'auto'; apply(); },
-      dispose: function () { if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); ceilDispose(); carpetDispose(); rug.dispose(); rugM.dispose(); }
+      dispose: function () { root.removeEventListener('spatial:chandeliers', onLights); if (scene.environment === envTex) scene.environment = null; if (envTex) envTex.dispose(); ceilDispose(); carpetDispose(); rug.dispose(); rugM.dispose(); }
     };
   }
   function makeEnv(def) {
@@ -174681,6 +174836,19 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function vnA(dx, y, dz) { return { p: [VNT[0] + dx, y, VNT[1] + dz], ry: 0 }; }
   /* v4: the reference-photo arrangement (VEXTRA); things left on the old desk / north table follow their anchors */
   /* v5: the executive desk and the tufted chair in place of the earlier pair; things left on the v4 desk follow their anchors */
+  /* v12: the collection — the grand piano by the window, the Thinker left of the fireplace and the longcase clock right of
+     it, the armour beside the study door, the floor globe by the desk (each can be moved or removed like any other thing) */
+  var VDECO = [
+    { uid: 9701, kind: 'vic-piano', title: '三角钢琴', p: [6.0, -11.6], ry: -Math.PI / 2 },
+    { uid: 9702, kind: 'vic-thinker', title: '思想者（大理石复刻）', p: [-2.5, -12.5], ry: 0.35 },
+    { uid: 9703, kind: 'vic-armour', title: '哥特式骑士盔甲', p: [7.5, -2.05], ry: -Math.PI / 2 },
+    { uid: 9704, kind: 'vic-globe', title: '古典落地地球仪', p: [1.75, -6.75], ry: 0 },
+    { uid: 9705, kind: 'vic-clock', title: '落地摆钟', p: [2.45, -12.72], ry: 0 },
+    { uid: 9706, kind: 'vic-lightswitch', title: '吊灯开关', p: [1.56, -11.985], y: 1.3, ry: 0 }];   // on the fireplace wall, right of the mantel
+  function vicUp6(L) {
+    var ex = L.extras = L.extras || [];
+    VDECO.forEach(function (d) { if (ex.some(function (e) { return e.uid === d.uid; })) return; ex.push({ kind: d.kind, title: d.title, p: [d.p[0], d.y || 0, d.p[1]], ry: d.ry, uid: d.uid }); });
+  }
   function vicUp5(L) {
     var ex = L.extras = L.extras || [];
     ex.forEach(function (e) {
@@ -174703,12 +174871,12 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     9504: { p: VNT, ry: 0 }, 9506: { p: VNT, ry: 0 } };                                         // the round tables; the pedestal desk
   var VICT = { realistic: true, id: 'victorian', name: 'EC–6 Victorian Study', finish: victorianFinish, glb: 'interiors-glb/assets/victorian_study.glb', h: 6.5, lit: true, showroom: true,
     offset: [0, -0.2, -5.1], walk: [-8.4, -13.5, 8.4, 3.4], easel: null, far: 600,
-    cut: [[7.75, 0.25, -4.6, 14, 3.3, -2.6]],                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
+    cut: [[7.6, 0.02, -4.6, 14, 3.3, -2.6], [7.6, 0.02, VW.z - VW.w / 2, 14, VW.h, VW.z + VW.w / 2]],   // the doorway; the window's opening, through the bookcases and the wall                          // the east bookcase where the study window goes (the Scenic Window stands in front of the bookcase)
     start: VSTART, startV: 8, deskCam: (function () { var a = vdesk(0, 0.95), b = vdesk(0, -0.2); return { pos: [a[0], 1.5, a[1]], look: [b[0], 0.78, b[1]] }; })(),
-    dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE) },
+    dress: { board: dressBoardOf(VIC_STYLE), aquarium: dressAquariumOf(VIC_STYLE), scenicWindow: dressVicWindow, tsqPortal: dressVicDoor },
     /* v1: the round table makes way for the pedestal desk (and its chair); it goes to the west reading corner with its vase */
     /* v2 (after the user's reference): the desk turned to face the room, a buttoned leather chair behind it */
-    upgrade: { v: 10, fn: function (L) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); } },
+    upgrade: { v: 13, fn: function (L) { VICT.upgrade3.fn(L); vicUp4(L); vicUp5(L); delete L.scenicWindow; delete L.tsqPortal; vicUp6(L); } },   // v11: the window built in, the portal is the study door
     upgrade3: { fn: function (L) {
       var ex = L.extras = L.extras || [];
       /* v3: the west wall is the Scenic Window's now — its library ladder goes to the north wall, beside the fireplace,
@@ -174733,8 +174901,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       'cabinet.top': vnA(-0.5, VY, 0.15), 'cabinet.left': vnA(0.5, VY, 0.15), 'cabinet.right': vnA(0, VY, 0.6),
       'shelf.mid': vnA(-0.45, VY, -0.4), 'sill.left': vnA(0.45, VY, -0.4),
       'corner.window': { p: [4.2, 0, -1.6], ry: -Math.PI / 2 }, 'floor.pack': { p: [-1.1, 0, 0.5], ry: 0.45 }, 'floor.gramo': { p: [-3.6, 0, -4.2], ry: Math.PI / 2 },
-      'floor.film': { p: [3.4, 0, -0.4], ry: -Math.PI / 2 }, 'floor.portal': { p: [-6.6, 0, -6.0], ry: Math.PI / 2 }, 'floor.holo': { p: [-6.3, 0, 0.9], ry: Math.PI / 2 },
-      'floor.window': { p: [7.95, 0, -8.9], ry: -Math.PI / 2, w: 7.4, h: 4.8 }
+      'floor.film': { p: [3.4, 0, -0.4], ry: -Math.PI / 2 }, 'floor.portal': { p: [VDOOR.x, 0, VDOOR.z], ry: -Math.PI / 2 }, 'floor.holo': { p: [-6.3, 0, 0.9], ry: Math.PI / 2 },
+      'floor.window': { p: [VW.x, 0, VW.z], ry: -Math.PI / 2, w: VW.w, h: VW.h }
     },
     credit: 'Victorian Study — Fox Dev assets, with the author\u2019s permission' };
   SR.register({ id: 'kings-hall', name: "The King's Hall", zh: '斯科克洛斯特城堡 · 国王大厅', icon: '♛', build: makeEnv(KINGS) });
@@ -175381,6 +175549,378 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   [{ id: 'vic-exec-desk', name: '大班桌', en: 'Executive pedestal desk', size: [2.18, 0.78, 1.13] },
    { id: 'vic-tufted', name: '拉扣高背大班椅', en: 'Tufted executive chair', size: [0.98, 1.35, 0.76] }].forEach(function (c) {
     if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的家具' }); });
+
+  /* ───────── the study's collection (2026-11-13, the user's list): a grand piano, the Thinker in marble, a Gothic
+     armour, a floor globe, a longcase clock. Front: +z. ───────── */
+  function dmats(T) {
+    if (F._d) return F._d;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var v = document.createElement('canvas'); v.width = 256; v.height = 256; var x = v.getContext('2d'), i;   // a marble with faint grey veins
+    x.fillStyle = '#f1eee8'; x.fillRect(0, 0, 256, 256);
+    for (i = 0; i < 14; i++) { x.strokeStyle = 'rgba(120,118,112,' + (0.06 + Math.random() * 0.12) + ')'; x.lineWidth = 0.6 + Math.random() * 1.6; x.beginPath(); var a = Math.random() * 256, b = Math.random() * 256; x.moveTo(a, b);
+      for (var k = 0; k < 6; k++) { a += (Math.random() - 0.3) * 60; b += (Math.random() - 0.5) * 50; x.lineTo(a, b); } x.stroke(); }
+    var mt = new T.CanvasTexture(v); mt.encoding = T.sRGBEncoding; mt.wrapS = mt.wrapT = T.RepeatWrapping;
+    return (F._d = {
+      gloss: new T.MeshStandardMaterial({ color: L(0x0b0b0d), roughness: 0.1, metalness: 0.15, envMapIntensity: 1.4 }),
+      ivory: new T.MeshStandardMaterial({ color: L(0xf4efe2), roughness: 0.3 }),
+      ebony: new T.MeshStandardMaterial({ color: L(0x111012), roughness: 0.25 }),
+      felt: new T.MeshStandardMaterial({ color: L(0x7a1420), roughness: 0.9 }),
+      plate: new T.MeshStandardMaterial({ color: L(0xb8913c), roughness: 0.35, metalness: 0.8 }),
+      sound: new T.MeshStandardMaterial({ color: L(0xd9b47a), roughness: 0.55 }),
+      wire: new T.MeshStandardMaterial({ color: L(0xd8d8d8), roughness: 0.2, metalness: 1 }),
+      marble: new T.MeshStandardMaterial({ map: mt, color: 0xffffff, roughness: 0.32, metalness: 0 }),
+      statue: new T.MeshStandardMaterial({ color: L(0xf3f0ea), roughness: 0.38, metalness: 0 }),
+      steel: new T.MeshStandardMaterial({ color: L(0xc6cad0), roughness: 0.2, metalness: 1.0, envMapIntensity: 1.3 }),
+      steelD: new T.MeshStandardMaterial({ color: L(0x8a8f96), roughness: 0.3, metalness: 1.0 }),
+      dark: new T.MeshStandardMaterial({ color: L(0x101010), roughness: 0.8 }),
+      paper: new T.MeshStandardMaterial({ color: L(0xf2ead6), roughness: 0.85 }),
+      glass: new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, roughness: 0.05, metalness: 0.3, depthWrite: false })
+    });
+  }
+  /* a cylinder from a to b (radius r0 at a, r1 at b), and a ball at each end */
+  function limb(T, g, m, a, b, r0, r1, balls) {
+    var A = new T.Vector3().fromArray(a), B = new T.Vector3().fromArray(b), d = B.clone().sub(A), L = d.length();
+    var c = new T.Mesh(new T.CylinderGeometry(r1, r0, L, 14), m); c.position.copy(A).add(B).multiplyScalar(0.5);
+    c.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); c.castShadow = true; g.add(c);
+    if (balls) [[A, r0], [B, r1]].forEach(function (q) { var s = new T.Mesh(new T.SphereGeometry(q[1], 14, 10), m); s.position.copy(q[0]); g.add(s); });
+    return c;
+  }
+  function ball(T, g, m, p, r, sc) { var s = new T.Mesh(new T.SphereGeometry(r, 20, 14), m); s.position.fromArray(p); if (sc) s.scale.fromArray(sc); s.castShadow = true; g.add(s); return s; }
+
+  /* 1 · a concert grand in black gloss: the bent rim, the lid up on its stick (gold plate, strings and soundboard inside),
+     the keyboard (52 white, 36 black), a music desk with a score, three turned legs, the pedal lyre, a bench */
+  F['vic-piano'] = function (T) {
+    var M = dmats(T), E = emats(T), root0 = new T.Group(), g = new T.Group(); root0.add(g); g.position.z = 0.42;
+    var sh = new T.Shape(); sh.moveTo(-0.74, 0); sh.lineTo(0.74, 0); sh.lineTo(0.74, 0.42);
+    sh.bezierCurveTo(0.74, 0.86, 0.12, 0.9, 0.06, 1.3); sh.bezierCurveTo(0.0, 1.72, -0.3, 1.92, -0.52, 1.9); sh.bezierCurveTo(-0.7, 1.88, -0.74, 1.78, -0.74, 1.6); sh.lineTo(-0.74, 0);
+    function slab(shape, depth, m, y) { var ge = new T.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false, curveSegments: 40 }); var me = new T.Mesh(ge, m); me.rotation.x = -Math.PI / 2; me.position.y = y; me.castShadow = true; me.receiveShadow = true; g.add(me); return me; }
+    var rim = new T.Shape(); rim.curves = sh.curves.slice(); rim.holes.push(new T.Path(sh.getPoints(60).map(function (p) { return new T.Vector2(p.x * 0.955, 0.03 + p.y * 0.955); })));
+    slab(rim, 0.34, M.gloss, 0.62); slab(sh, 0.03, M.gloss, 0.62);                                       // the rim, the bottom
+    var inner = new T.Shape(sh.getPoints(60).map(function (p) { return new T.Vector2(p.x * 0.95, 0.035 + p.y * 0.95); }));
+    slab(inner, 0.01, M.sound, 0.66);                                                                   // the soundboard
+    var pl = new T.Shape(sh.getPoints(60).map(function (p) { return new T.Vector2(p.x * 0.88, 0.08 + p.y * 0.86); }));
+    slab(pl, 0.02, M.plate, 0.86);                                                                      // the gold iron plate
+    for (var si = 0; si < 44; si++) { var sx = -0.62 + si * 0.028, len = 0.5 + 1.25 * (1 - si / 44) * (1 - si / 44) + 0.25; var st = new T.Mesh(new T.BoxGeometry(0.003, 0.003, len), M.wire); st.position.set(sx, 0.885, -0.12 - len / 2); g.add(st); }
+    [0.3, 0.65, 1.0].forEach(function (zz) { var hole = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.022, 20), M.dark); hole.position.set(0.1 - zz * 0.2, 0.882, -zz); g.add(hole); });
+    /* the lid, hinged on the straight side, up on its stick */
+    var lidG = new T.Group(); lidG.position.set(-0.74, 0.965, 0); lidG.rotation.z = 0.62; g.add(lidG);
+    var lid = new T.Mesh(new T.ExtrudeGeometry(sh, { depth: 0.022, bevelEnabled: false, curveSegments: 40 }), M.gloss); lid.rotation.x = -Math.PI / 2; lid.position.x = 0.74; lidG.add(lid);
+    limb(T, g, M.gloss, [0.5, 0.96, -0.85], [0.42, 1.78, -0.85], 0.012, 0.01);
+    /* the keyboard */
+    box(T, g, M.gloss, 0, 0.66, 0.15, 1.48, 0.08, 0.3);                                                 // the keybed
+    [-1, 1].forEach(function (s) { box(T, g, M.gloss, s * 0.7, 0.74, 0.15, 0.08, 0.1, 0.3); });          // the cheeks
+    box(T, g, M.ivory, 0, 0.712, 0.17, 1.3, 0.018, 0.24);
+    for (var w = 1; w < 52; w++) box(T, g, M.dark, -0.65 + w * 1.3 / 52, 0.722, 0.17, 0.0015, 0.003, 0.235);
+    var pat = [1, 1, 0, 1, 1, 1, 0], wk = 1.3 / 52;
+    for (var k = 0; k < 51; k++) if (pat[(k + 5) % 7]) box(T, g, M.ebony, -0.65 + (k + 1) * wk, 0.73, 0.125, wk * 0.55, 0.022, 0.15);
+    box(T, g, M.gloss, 0, 0.7, 0.305, 1.4, 0.05, 0.012);                                                // the key slip
+    box(T, g, M.felt, 0, 0.724, 0.045, 1.3, 0.01, 0.012);
+    var fb = box(T, g, M.gloss, 0, 0.8, 0.03, 1.32, 0.13, 0.02); fb.rotation.x = -0.3;                  // the fallboard, open
+    var desk = new T.Group(); desk.position.set(0, 0.97, -0.08); desk.rotation.x = -0.28; g.add(desk);
+    box(T, desk, M.gloss, 0, 0.15, 0, 0.82, 0.3, 0.02); box(T, desk, M.gloss, 0, 0.0, 0.03, 0.82, 0.02, 0.06);
+    box(T, desk, M.paper, -0.12, 0.15, 0.013, 0.21, 0.28, 0.003); box(T, desk, M.paper, 0.1, 0.15, 0.013, 0.21, 0.28, 0.003);
+    for (var ln = 0; ln < 9; ln++) [-0.12, 0.1].forEach(function (px) { box(T, desk, M.dark, px, 0.27 - ln * 0.027, 0.016, 0.18, 0.0015, 0.001); });
+    /* legs, castors, the lyre and pedals */
+    [[-0.62, 0.12], [0.62, 0.12], [-0.42, -1.66]].forEach(function (q) {
+      var lg = lathe(T, [[0, 0], [0.04, 0], [0.05, 0.06], [0.035, 0.12], [0.05, 0.3], [0.042, 0.48], [0.06, 0.55], [0.06, 0.62], [0, 0.62]], M.gloss, 20); lg.position.set(q[0], 0, q[1]); lg.castShadow = true; g.add(lg);
+      var cs = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.025, 14), E.brass); cs.rotation.z = Math.PI / 2; cs.position.set(q[0], 0.02, q[1]); g.add(cs); });
+    box(T, g, M.gloss, 0, 0.62, -0.32, 0.36, 0.04, 0.12);
+    [-1, 1].forEach(function (s) { limb(T, g, M.gloss, [s * 0.12, 0.6, -0.32], [s * 0.06, 0.12, -0.32], 0.018, 0.018); });
+    box(T, g, M.gloss, 0, 0.1, -0.3, 0.26, 0.06, 0.12);
+    [-0.06, 0, 0.06].forEach(function (px) { var pd = box(T, g, E.brass, px, 0.1, -0.2, 0.026, 0.012, 0.11); pd.rotation.x = 0.15; });
+    /* the bench */
+    var bench = new T.Group(); bench.position.set(0, 0, 0.82); g.add(bench);
+    box(T, bench, M.gloss, 0, 0.44, 0, 0.8, 0.07, 0.36); box(T, bench, E.leather, 0, 0.5, 0, 0.76, 0.05, 0.33);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (q) { var bl = lathe(T, [[0, 0], [0.025, 0], [0.032, 0.05], [0.022, 0.2], [0.03, 0.38], [0.03, 0.42], [0, 0.42]], M.gloss, 14); bl.position.set(q[0] * 0.34, 0, q[1] * 0.14); g.add(bl); bench.add(bl); });
+    return { group: root0, hb: [1.56, 1.85, 2.9], place: 'floor' };
+  };
+
+  /* 2 · the Thinker, a white marble replica about 76 cm high, on a veined marble pedestal */
+  F['vic-thinker'] = function (T) {
+    var M = dmats(T), g = new T.Group(), H = 1.0, i;
+    box(T, g, M.marble, 0, 0.05, 0, 0.6, 0.1, 0.6); box(T, g, M.marble, 0, 0.13, 0, 0.54, 0.06, 0.54);
+    box(T, g, M.marble, 0, 0.55, 0, 0.44, 0.78, 0.44);
+    [-1, 1].forEach(function (s) { box(T, g, M.statue, s * 0.221, 0.55, 0, 0.004, 0.62, 0.32); box(T, g, M.statue, 0, 0.55, s * 0.221, 0.32, 0.62, 0.004); });
+    box(T, g, M.marble, 0, 0.96, 0, 0.54, 0.05, 0.54); box(T, g, M.marble, 0, 0.99, 0, 0.58, 0.03, 0.58);
+    var s = new T.Group(); s.position.y = H; s.scale.setScalar(1.8); g.add(s);                      // 1.8×: about 76 cm, readable across the room
+    box(T, s, M.statue, 0, 0.015, 0.02, 0.2, 0.03, 0.26);                                             // its own base
+    var rock = new T.Mesh(new T.DodecahedronGeometry(0.075, 1), M.statue); rock.scale.set(1.15, 1.0, 1.3); rock.position.set(0, 0.095, -0.02); rock.castShadow = true; s.add(rock);
+    var J = { hipL: [-0.035, 0.16, 0], hipR: [0.035, 0.16, 0], kneeL: [-0.045, 0.17, 0.12], kneeR: [0.045, 0.165, 0.11], ftL: [-0.05, 0.04, 0.13], ftR: [0.05, 0.04, 0.1],
+      shL: [-0.062, 0.29, 0.055], shR: [0.062, 0.29, 0.055], elR: [-0.025, 0.19, 0.115], hdR: [0.0, 0.305, 0.13], elL: [-0.085, 0.215, 0.085], hdL: [-0.058, 0.18, 0.155] };
+    limb(T, s, M.statue, J.hipL, J.kneeL, 0.026, 0.02, true); limb(T, s, M.statue, J.hipR, J.kneeR, 0.026, 0.02, true);
+    limb(T, s, M.statue, J.kneeL, J.ftL, 0.019, 0.013, true); limb(T, s, M.statue, J.kneeR, J.ftR, 0.019, 0.013, true);
+    [J.ftL, J.ftR].forEach(function (f) { var ft = new T.Mesh(new T.BoxGeometry(0.026, 0.016, 0.06), M.statue); ft.position.set(f[0], f[1] - 0.006, f[2] + 0.02); s.add(ft); });
+    var torso = ball(T, s, M.statue, [0, 0.235, 0.035], 0.07, [0.95, 1.2, 0.68]); torso.rotation.x = 0.45;
+    ball(T, s, M.statue, [0, 0.17, 0.01], 0.055, [1.1, 0.7, 0.9]);
+    limb(T, s, M.statue, J.shL, J.shR, 0.024, 0.024, true);
+    limb(T, s, M.statue, J.shR, J.elR, 0.017, 0.014, true); limb(T, s, M.statue, J.elR, J.hdR, 0.014, 0.012, true);
+    limb(T, s, M.statue, J.shL, J.elL, 0.017, 0.014, true); limb(T, s, M.statue, J.elL, J.hdL, 0.014, 0.012, true);
+    ball(T, s, M.statue, [J.hdR[0], J.hdR[1] - 0.004, J.hdR[2] + 0.004], 0.016, [1, 1.2, 0.8]); ball(T, s, M.statue, J.hdL, 0.015, [1, 0.8, 1.2]);
+    limb(T, s, M.statue, [0, 0.3, 0.07], [0, 0.322, 0.1], 0.016, 0.015);
+    var head = ball(T, s, M.statue, [0, 0.345, 0.122], 0.031, [0.92, 1.08, 1.0]); head.rotation.x = 0.5;
+    ball(T, s, M.statue, [0, 0.36, 0.11], 0.031, [0.95, 0.8, 0.95]);                                    // the hair's cap
+    return { group: g, hb: [0.62, 1.8, 0.62], place: 'floor' };
+  };
+
+  /* 3 · a 15th-century Gothic armour: sallet and bevor, fluted breastplate, fauld and tassets, pauldrons with couters,
+     gauntlets, cuisses, poleyns with fans, greaves, pointed sabatons — bright steel, on a walnut stand */
+  F['vic-armour'] = function (T) {
+    var M = dmats(T), E = emats(T), g = new T.Group(), i;
+    box(T, g, E.woodD, 0, 0.03, 0, 0.6, 0.06, 0.46); box(T, g, E.brass, 0, 0.061, 0.231, 0.6, 0.006, 0.004);
+    [-1, 1].forEach(function (s) {
+      var x = s * 0.1;
+      var sab = new T.Mesh(new T.ConeGeometry(0.045, 0.32, 12), M.steel); sab.rotation.x = Math.PI / 2; sab.scale.set(1, 1, 0.55); sab.position.set(x, 0.09, 0.1); g.add(sab);
+      for (i = 0; i < 4; i++) { var lm = new T.Mesh(new T.CylinderGeometry(0.048 - i * 0.006, 0.05 - i * 0.006, 0.02, 14, 1, false, -Math.PI / 2, Math.PI), M.steelD); lm.rotation.x = Math.PI / 2 - 0.2; lm.position.set(x, 0.1, 0.0 + i * 0.05); g.add(lm); }
+      limb(T, g, M.steel, [x, 0.14, 0], [x, 0.52, 0.0], 0.046, 0.058);                                  // greave
+      ball(T, g, M.steel, [x, 0.56, 0.025], 0.068, [1, 1, 0.9]);                                         // poleyn
+      var fan = new T.Mesh(new T.CylinderGeometry(0.075, 0.075, 0.008, 18, 1, false, 0, Math.PI), M.steel); fan.rotation.z = Math.PI / 2; fan.rotation.y = s > 0 ? 0 : Math.PI; fan.position.set(x + s * 0.06, 0.56, 0.0); g.add(fan);
+      limb(T, g, M.steel, [x, 0.6, 0.0], [x * 1.05, 0.93, 0.0], 0.062, 0.078);                           // cuisse
+      for (i = 0; i < 3; i++) { var ts = new T.Mesh(new T.CylinderGeometry(0.1, 0.11, 0.05, 16, 1, true, -0.9, 1.8), M.steel); ts.position.set(x * 0.9, 0.97 - i * 0.045, 0.02); ts.material = M.steel; ts.rotation.y = 0; g.add(ts); }   // tassets
+      /* the arm */
+      var sh = [s * 0.21, 1.42, 0], el = [s * 0.27, 1.13, 0.06], wr = [s * 0.235, 0.9, 0.14];
+      ball(T, g, M.steel, [s * 0.2, 1.43, 0], 0.105, [1, 0.85, 1.05]);                                  // pauldron
+      ball(T, g, M.steelD, [s * 0.215, 1.38, 0], 0.09, [1, 0.6, 1.0]);
+      limb(T, g, M.steel, sh, el, 0.045, 0.04); ball(T, g, M.steel, el, 0.05);
+      var cf = new T.Mesh(new T.CylinderGeometry(0.065, 0.065, 0.008, 18, 1, false, 0, Math.PI), M.steel); cf.rotation.z = Math.PI / 2; cf.position.set(el[0] + s * 0.04, el[1], el[2]); g.add(cf);
+      limb(T, g, M.steel, el, wr, 0.04, 0.034);
+      var cuff = new T.Mesh(new T.CylinderGeometry(0.045, 0.06, 0.07, 14, 1, true), M.steel); cuff.position.set(wr[0], wr[1] - 0.02, wr[2]); g.add(cuff);
+      var gnt = box(T, g, M.steel, wr[0], wr[1] - 0.1, wr[2] + 0.01, 0.06, 0.11, 0.04); gnt.rotation.x = 0.15;
+      for (i = 0; i < 4; i++) box(T, g, M.steelD, wr[0] + (i - 1.5) * 0.014, wr[1] - 0.17, wr[2] + 0.02, 0.012, 0.05, 0.03);
+    });
+    /* the body */
+    for (i = 0; i < 3; i++) { var fa = new T.Mesh(new T.CylinderGeometry(0.175 + i * 0.01, 0.185 + i * 0.01, 0.045, 24, 1, true), M.steel); fa.material.side = T.DoubleSide; fa.position.set(0, 1.08 - i * 0.04, 0.0); fa.scale.z = 0.75; g.add(fa); }
+    var br = ball(T, g, M.steel, [0, 1.27, 0.0], 0.2, [0.95, 1.12, 0.72]);                              // breast and back
+    var plack = ball(T, g, M.steel, [0, 1.17, 0.045], 0.15, [1.0, 0.75, 0.72]);
+    for (i = -3; i <= 3; i++) { var fl = new T.Mesh(new T.TorusGeometry(0.2, 0.004, 4, 24, 1.4), M.steelD); fl.rotation.set(0, Math.PI / 2, Math.PI / 2 - 0.7); fl.scale.set(1.12, 1, 0.72); fl.position.set(i * 0.035, 1.27, 0.0); g.add(fl); }
+    box(T, g, M.steelD, 0, 1.3, 0.143, 0.012, 0.3, 0.012);                                            // the medial ridge
+    var gor = new T.Mesh(new T.TorusGeometry(0.075, 0.03, 10, 24), M.steel); gor.rotation.x = Math.PI / 2; gor.position.y = 1.49; g.add(gor);
+    /* the sallet with its long tail, the bevor, the sight */
+    var hel = new T.Mesh(new T.SphereGeometry(0.12, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), M.steel); hel.scale.set(0.95, 1.05, 1.15); hel.position.set(0, 1.6, -0.01); g.add(hel);
+    var tail = new T.Mesh(new T.CylinderGeometry(0.11, 0.15, 0.09, 24, 1, true, Math.PI * 0.6, Math.PI * 0.8), M.steel); tail.material.side = T.DoubleSide; tail.position.set(0, 1.56, -0.02); g.add(tail);
+    box(T, g, M.steelD, 0, 1.74, -0.02, 0.012, 0.03, 0.24);                                           // the comb
+    var bev = new T.Mesh(new T.SphereGeometry(0.1, 20, 12, -Math.PI * 0.45, Math.PI * 0.9, Math.PI * 0.45, Math.PI * 0.4), M.steel); bev.position.set(0, 1.56, 0.03); bev.scale.set(1, 1, 1.1); g.add(bev);
+    box(T, g, M.dark, 0, 1.62, 0.13, 0.15, 0.014, 0.02);                                              // the sight
+    return { group: g, hb: [0.66, 1.8, 0.5], place: 'floor' };
+  };
+
+  /* 4 · a library floor globe: an old map on the ball, a brass meridian at 23.5°, a carved mahogany horizon ring on four
+     turned legs joined by a cross stretcher with a compass */
+  F['vic-globe'] = function (T) {
+    var E = emats(T), g = new T.Group(), Y = 0.74, i;
+    var c = document.createElement('canvas'); c.width = 1024; c.height = 512; var x = c.getContext('2d');
+    x.fillStyle = '#c9c8a0'; x.fillRect(0, 0, 1024, 512);
+    function P(lon, lat) { return [(lon + 180) / 360 * 1024, (90 - lat) / 180 * 512]; }
+    var land = [[[-168, 66], [-140, 70], [-95, 72], [-75, 62], [-60, 50], [-80, 25], [-97, 18], [-105, 22], [-117, 32], [-125, 48], [-140, 60]],
+      [[-80, 10], [-60, 8], [-35, -7], [-40, -22], [-58, -38], [-70, -55], [-75, -40], [-70, -15], [-81, -5]],
+      [[-17, 15], [-5, 35], [10, 37], [32, 31], [43, 12], [51, 11], [40, -15], [32, -29], [20, -35], [12, -18], [9, 4], [-8, 5]],
+      [[-10, 36], [-9, 44], [0, 50], [5, 58], [20, 70], [60, 70], [100, 77], [140, 72], [170, 66], [160, 58], [140, 50], [130, 35], [120, 22], [105, 10], [100, 2], [95, 15], [80, 8], [72, 20], [57, 25], [50, 30], [35, 36], [28, 41], [15, 38]],
+      [[114, -22], [130, -12], [142, -11], [153, -27], [146, -39], [135, -34], [115, -34]], [[-55, 60], [-20, 70], [-30, 83], [-60, 80]]];
+    land.forEach(function (poly) { x.beginPath(); poly.forEach(function (q, k) { var p = P(q[0], q[1]); if (k) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); }); x.closePath();
+      x.fillStyle = '#d8bf86'; x.fill(); x.strokeStyle = '#8a6a3a'; x.lineWidth = 2; x.stroke(); });
+    x.fillStyle = '#e2d6b0'; x.fillRect(0, 470, 1024, 42);
+    x.strokeStyle = 'rgba(110,80,40,.35)'; x.lineWidth = 1; for (i = 1; i < 12; i++) { x.beginPath(); x.moveTo(i * 1024 / 12, 0); x.lineTo(i * 1024 / 12, 512); x.stroke(); } for (i = 1; i < 6; i++) { x.beginPath(); x.moveTo(0, i * 512 / 6); x.lineTo(1024, i * 512 / 6); x.stroke(); }
+    x.fillStyle = 'rgba(90,60,30,.85)'; x.font = 'italic 22px Georgia, serif'; x.fillText('TERRESTRIAL GLOBE', 380, 300); x.font = 'italic 14px Georgia, serif'; x.fillText('Atlantic Ocean', 300, 230); x.fillText('Pacific Ocean', 60, 270); x.fillText('Indian Ocean', 700, 330);
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 4;
+    var tilt = new T.Group(); tilt.position.y = Y; tilt.rotation.z = 0.41; g.add(tilt);
+    var sph = new T.Mesh(new T.SphereGeometry(0.27, 40, 28), new T.MeshStandardMaterial({ map: t, roughness: 0.4, metalness: 0 })); sph.rotation.y = 1.6; sph.castShadow = true; tilt.add(sph);
+    var mer = new T.Mesh(new T.TorusGeometry(0.285, 0.01, 8, 64), E.brass); mer.rotation.y = Math.PI / 2; tilt.add(mer);
+    [-1, 1].forEach(function (s) { var pin = new T.Mesh(new T.CylinderGeometry(0.008, 0.008, 0.04, 8), E.brass); pin.position.y = s * 0.29; tilt.add(pin); });
+    var ring = lathe(T, [[0.3, 0], [0.42, 0], [0.43, 0.015], [0.42, 0.035], [0.3, 0.035]], E.wood, 48); ring.position.y = Y - 0.02; g.add(ring);
+    var paper = new T.Mesh(new T.RingGeometry(0.31, 0.41, 48), new T.MeshStandardMaterial({ color: new T.Color(0xe8dcb8).convertSRGBToLinear(), roughness: 0.7 })); paper.rotation.x = -Math.PI / 2; paper.position.y = Y + 0.016; g.add(paper);
+    for (i = 0; i < 72; i++) { var tk = new T.Mesh(new T.BoxGeometry(0.002, 0.001, i % 6 ? 0.02 : 0.05), E.groove); var a = i / 72 * Math.PI * 2; tk.position.set(Math.cos(a) * 0.395, Y + 0.017, Math.sin(a) * 0.395); tk.rotation.y = -a + Math.PI / 2; g.add(tk); }
+    for (i = 0; i < 4; i++) {
+      var a2 = Math.PI / 4 + i * Math.PI / 2, lx = Math.cos(a2) * 0.37, lz = Math.sin(a2) * 0.37;
+      var lg = lathe(T, [[0, 0], [0.04, 0], [0.045, 0.05], [0.025, 0.12], [0.04, 0.28], [0.022, 0.46], [0.035, 0.6], [0.035, 0.72], [0, 0.72]], E.wood, 16); lg.position.set(lx, 0, lz); lg.castShadow = true; g.add(lg);
+      var str = new T.Mesh(new T.BoxGeometry(0.37, 0.04, 0.04), E.woodD); str.position.set(lx / 2, 0.16, lz / 2); str.rotation.y = -a2; g.add(str);
+    }
+    var hub = lathe(T, [[0, 0.13], [0.09, 0.13], [0.1, 0.16], [0.09, 0.19], [0, 0.19]], E.wood, 24); g.add(hub);
+    var cm = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.01, 24), E.brass); cm.position.y = 0.195; g.add(cm);
+    var col = lathe(T, [[0, 0.19], [0.05, 0.19], [0.03, 0.3], [0.045, 0.42], [0.025, 0.5], [0, 0.5]], E.woodD, 18); g.add(col);
+    return { group: g, hb: [0.9, 1.04, 0.9], place: 'floor', tick: function (T0) { sph.rotation.y = 1.6 + T0 * 0.03; } };
+  };
+
+  /* 5 · a longcase clock, after an English 19th-century tall case: ogee bracket feet, a panelled plinth with gilt scrolls,
+     a trunk with quarter columns and a glazed arched door under Gothic fretwork (lit softly inside, so the brass shows),
+     a lyre pendulum and three polished weights on chains, a hood with turned columns, an engraved brass dial with a silver
+     chapter ring, a seconds dial and the real moon in the arch, a broken-arch crest with three flame finials.
+     It keeps real time: the hands follow the device clock (the seconds hand steps once a second), and the seconds
+     pendulum swings in step with it — one beat a second, a full swing every two. */
+  F['vic-clock'] = function (T) {
+    var E = emats(T), M = dmats(T), g = new T.Group(), i, W = 0.56, D = 0.3;
+    var L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var brassP = new T.MeshStandardMaterial({ color: L(0xe8bf62), roughness: 0.14, metalness: 1.0, envMapIntensity: 1.5 });
+    var blued = new T.MeshStandardMaterial({ color: L(0x1b2440), roughness: 0.25, metalness: 0.8 });
+    /* the base */
+    [-1, 1].forEach(function (sx) { [-1, 1].forEach(function (sz) {
+      var ft = lathe(T, [[0, 0], [0.05, 0], [0.058, 0.02], [0.045, 0.05], [0.06, 0.08], [0, 0.08]], E.woodD, 16); ft.position.set(sx * (W / 2 - 0.03), 0, sz * (D / 2 - 0.02)); g.add(ft); }); });
+    box(T, g, E.woodD, 0, 0.1, 0, W + 0.06, 0.04, D + 0.06);
+    box(T, g, E.wood, 0, 0.4, 0, W, 0.56, D);
+    rpanel(T, g, E, 'z', D / 2, 1, 0, 0.4, W - 0.12, 0.42);
+    [-1, 1].forEach(function (s) { var sc = new T.Mesh(new T.TorusGeometry(0.05, 0.007, 6, 16, Math.PI * 1.4), brassP); sc.position.set(s * 0.09, 0.4, D / 2 + 0.03); sc.rotation.z = s > 0 ? 0.6 : Math.PI - 0.6 - Math.PI * 0.4; g.add(sc); });
+    ball(T, g, brassP, [0, 0.4, D / 2 + 0.03], 0.018, [1, 1, 0.5]);
+    box(T, g, E.woodD, 0, 0.7, 0, W + 0.05, 0.035, D + 0.05); box(T, g, E.woodL, 0, 0.725, 0, W + 0.02, 0.02, D + 0.02);
+    /* the trunk: carcase, quarter columns, the arched glazed door with its fretwork, the lit back */
+    var TY0 = 0.74, TY1 = 1.66, TH = TY1 - TY0, TC = (TY0 + TY1) / 2, TW = W - 0.08, FZ = (D - 0.04) / 2;
+    box(T, g, E.wood, -TW / 2 + 0.03, TC, 0, 0.06, TH, D - 0.04); box(T, g, E.wood, TW / 2 - 0.03, TC, 0, 0.06, TH, D - 0.04);
+    box(T, g, E.wood, 0, TC, -FZ + 0.01, TW, TH, 0.02);
+    [-1, 1].forEach(function (s) {
+      var col = lathe(T, [[0, 0], [0.022, 0], [0.022, 0.03], [0.016, 0.05], [0.016, TH - 0.05], [0.022, TH - 0.03], [0.022, TH], [0, TH]], E.woodL, 16); col.position.set(s * (TW / 2 + 0.005), TY0, FZ + 0.005); g.add(col);
+      ball(T, g, brassP, [s * (TW / 2 + 0.005), TY1 - 0.015, FZ + 0.005], 0.02, [1, 0.6, 1]); ball(T, g, brassP, [s * (TW / 2 + 0.005), TY0 + 0.015, FZ + 0.005], 0.02, [1, 0.6, 1]);
+    });
+    var OW = TW - 0.14, OH = TH - 0.16, OR = OW / 2;
+    function archShape(sh, w, h, r) { sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, h - r); sh.absarc(0, h - r, r, 0, Math.PI, false); sh.lineTo(-w / 2, 0); return sh; }
+    var dr = new T.Shape(); dr.moveTo(-TW / 2 + 0.02, 0); dr.lineTo(TW / 2 - 0.02, 0); dr.lineTo(TW / 2 - 0.02, TH); dr.lineTo(-TW / 2 + 0.02, TH); dr.lineTo(-TW / 2 + 0.02, 0);
+    dr.holes.push(archShape(new T.Path(), OW, OH, OR));
+    var door = new T.Mesh(new T.ExtrudeGeometry(dr, { depth: 0.025, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2, curveSegments: 20 }), E.wood); door.position.set(0, TY0 + 0.0, FZ - 0.01); door.geometry.translate(0, 0, 0); g.add(door);
+    door.position.y = TY0; door.geometry.translate(0, 0, 0);
+    var bead = new T.Shape(); archShape(bead, OW + 0.02, OH + 0.01, OR + 0.01); bead.holes.push(archShape(new T.Path(), OW, OH, OR));
+    var bm = new T.Mesh(new T.ExtrudeGeometry(bead, { depth: 0.008, bevelEnabled: false, curveSegments: 20 }), brassP); bm.position.set(0, TY0 + 0.08 - 0.005, FZ + 0.02); g.add(bm);
+    var glass = new T.Mesh(new T.ShapeGeometry(archShape(new T.Shape(), OW, OH, OR), 20), M.glass); glass.position.set(0, TY0 + 0.08, FZ + 0.004); g.add(glass);
+    /* Gothic fretwork over the top of the glass: a pointed arch, two lancets, a quatrefoil */
+    var fy = TY0 + 0.08 + OH - OR;
+    [-1, 1].forEach(function (s) { var a = new T.Mesh(new T.TorusGeometry(OR * 0.92, 0.006, 6, 20, Math.PI / 2), E.woodL); a.position.set(-s * OR * 0.3, fy - 0.02, FZ + 0.008); a.rotation.z = s > 0 ? 0 : Math.PI / 2; g.add(a); });
+    [-1, 1].forEach(function (s) { var a = new T.Mesh(new T.TorusGeometry(OR * 0.45, 0.005, 6, 16, Math.PI), E.woodL); a.position.set(s * OR * 0.48, fy - 0.12, FZ + 0.008); g.add(a);
+      box(T, g, E.woodL, s * OR * 0.48 + OR * 0.45, fy - 0.2, FZ + 0.008, 0.01, 0.16, 0.008); box(T, g, E.woodL, s * OR * 0.48 - OR * 0.45, fy - 0.2, FZ + 0.008, 0.01, 0.16, 0.008); });
+    for (i = 0; i < 4; i++) { var q = new T.Mesh(new T.TorusGeometry(0.022, 0.004, 6, 16), E.woodL); var qa = i * Math.PI / 2; q.position.set(Math.cos(qa) * 0.024, fy + 0.05 + Math.sin(qa) * 0.024, FZ + 0.008); g.add(q); }
+    box(T, g, E.woodL, 0, fy - 0.2, FZ + 0.008, 0.01, 0.2, 0.008);
+    var keyh = box(T, g, brassP, TW / 2 - 0.05, TC, FZ + 0.03, 0.02, 0.035, 0.004);
+    var backC = document.createElement('canvas'); backC.width = 64; backC.height = 256; var bx = backC.getContext('2d'), bgr = bx.createLinearGradient(0, 0, 0, 256);
+    bgr.addColorStop(0, '#6a3a20'); bgr.addColorStop(0.45, '#8a5230'); bgr.addColorStop(1, '#3a1e10'); bx.fillStyle = bgr; bx.fillRect(0, 0, 64, 256);
+    var bt = new T.CanvasTexture(backC); bt.encoding = T.sRGBEncoding;
+    var back = new T.Mesh(new T.PlaneGeometry(TW - 0.12, TH - 0.04), new T.MeshStandardMaterial({ map: bt, roughness: 0.55 })); back.position.set(0, TC, -FZ + 0.025); g.add(back);
+    var inL = new T.PointLight(0xffd9a0, 0.45, 1.1, 2); inL.position.set(0, TY1 - 0.12, 0.02); g.add(inL);
+    /* the weights and their chains, the pendulum */
+    [-0.085, 0, 0.085].forEach(function (wx, k) {
+      var wy = TY1 - 0.32 - k * 0.07;
+      limb(T, g, brassP, [wx, wy, -0.05], [wx, wy - 0.24, -0.05], 0.026, 0.026);
+      [0, -0.24].forEach(function (dy) { var cap = new T.Mesh(new T.TorusGeometry(0.026, 0.004, 6, 18), brassP); cap.rotation.x = Math.PI / 2; cap.position.set(wx, wy + dy, -0.05); g.add(cap); });
+      var hook = new T.Mesh(new T.TorusGeometry(0.008, 0.002, 4, 10), brassP); hook.position.set(wx, wy + 0.012, -0.05); g.add(hook);
+      for (var c = wy + 0.02; c < TY1 + 0.02; c += 0.018) { var ln = new T.Mesh(new T.TorusGeometry(0.0055, 0.0013, 4, 8), M.wire); ln.position.set(wx, c, -0.05); ln.rotation.y = (Math.round(c / 0.018) % 2) * Math.PI / 2; ln.scale.y = 1.5; g.add(ln); }
+    });
+    var pend = new T.Group(); pend.position.set(0, TY1 + 0.05, 0.03); g.add(pend);
+    box(T, pend, brassP, 0, -0.33, 0, 0.012, 0.66, 0.003);
+    [-1, 1].forEach(function (s) { var ly = new T.Mesh(new T.TorusGeometry(0.06, 0.004, 6, 20, Math.PI * 0.9), brassP); ly.position.set(s * 0.03, -0.42, 0); ly.rotation.z = s > 0 ? -0.15 : Math.PI + 0.15 - Math.PI * 0.9 + Math.PI * 0.9; ly.scale.y = 1.8; g.add(ly); pend.add(ly); });
+    var bob = new T.Mesh(new T.CylinderGeometry(0.085, 0.085, 0.02, 40), brassP); bob.rotation.x = Math.PI / 2; bob.position.y = -0.7; pend.add(bob);
+    [0.085, 0.06, 0.035].forEach(function (r) { var rg = new T.Mesh(new T.TorusGeometry(r, 0.0025, 6, 40), E.brass); rg.position.set(0, -0.7, 0.011); pend.add(rg); });
+    ball(T, pend, brassP, [0, -0.7, 0.012], 0.012, [1, 1, 0.4]);
+    /* the hood */
+    var HY0 = 1.7, HY1 = 2.26, HC = (HY0 + HY1) / 2;
+    box(T, g, E.woodD, 0, 1.685, 0, W + 0.06, 0.04, D + 0.06);
+    box(T, g, E.wood, 0, HC, -0.01, W + 0.02, HY1 - HY0, D);
+    [-1, 1].forEach(function (s) {
+      var c2 = lathe(T, [[0, 0], [0.02, 0], [0.02, 0.025], [0.014, 0.04], [0.016, 0.2], [0.012, 0.42], [0.02, 0.44], [0.02, 0.48], [0, 0.48]], E.woodL, 16); c2.position.set(s * (W / 2 + 0.005), HY0 + 0.02, D / 2 + 0.01); g.add(c2);
+      ball(T, g, brassP, [s * (W / 2 + 0.005), HY0 + 0.5, D / 2 + 0.01], 0.022, [1, 0.7, 1]); ball(T, g, brassP, [s * (W / 2 + 0.005), HY0 + 0.04, D / 2 + 0.01], 0.02, [1, 0.7, 1]);
+    });
+    /* the dial: a gilt plate with an engraved centre, a silver chapter ring, gilt spandrels, a seconds dial, the moon */
+    var DW = 0.4, DH = 0.5, dc = document.createElement('canvas'); dc.width = 800; dc.height = 1000; var x = dc.getContext('2d');
+    var CX = 400, CY = 600, RR = 330;
+    function plate() {
+      var gr = x.createLinearGradient(0, 0, 800, 1000); gr.addColorStop(0, '#f0cf7a'); gr.addColorStop(0.5, '#c79a40'); gr.addColorStop(1, '#e9c56c'); x.fillStyle = gr; x.fillRect(0, 0, 800, 1000);
+      x.strokeStyle = 'rgba(120,80,20,.25)'; x.lineWidth = 1; for (var r = 20; r < 240; r += 6) { x.beginPath(); x.arc(CX, CY, r, 0, Math.PI * 2); x.stroke(); }   // the engraved centre
+      [[70, 330], [730, 330], [70, 930], [730, 930]].forEach(function (c) {                   // spandrels
+        x.fillStyle = '#d6aa4c'; x.strokeStyle = '#8a6420'; x.lineWidth = 2;
+        for (var k = 0; k < 5; k++) { x.beginPath(); x.ellipse(c[0] + (k - 2) * 14 * (c[0] < 400 ? 1 : -1), c[1] + (k % 2 ? -14 : 14) * (c[1] < 600 ? 1 : -1), 22 - k * 2, 10, k * 0.6, 0, Math.PI * 2); x.fill(); x.stroke(); }
+      });
+      x.fillStyle = '#e8e6e0'; x.beginPath(); x.arc(CX, CY, RR, 0, Math.PI * 2); x.arc(CX, CY, RR - 80, 0, Math.PI * 2, true); x.fill();    // the silver ring
+      x.strokeStyle = '#2a2420'; x.lineWidth = 2; [RR, RR - 22, RR - 80].forEach(function (r) { x.beginPath(); x.arc(CX, CY, r, 0, Math.PI * 2); x.stroke(); });
+      for (var m = 0; m < 60; m++) { var a = m / 60 * Math.PI * 2 - Math.PI / 2, r0 = RR - (m % 5 ? 10 : 22); x.lineWidth = m % 5 ? 2 : 4; x.beginPath(); x.moveTo(CX + Math.cos(a) * RR, CY + Math.sin(a) * RR); x.lineTo(CX + Math.cos(a) * r0, CY + Math.sin(a) * r0); x.stroke(); }
+      x.fillStyle = '#1a1612'; x.font = '600 50px Georgia, "Times New Roman", serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'].forEach(function (n, k) { var a = k / 12 * Math.PI * 2 - Math.PI / 2; x.save(); x.translate(CX + Math.cos(a) * (RR - 52), CY + Math.sin(a) * (RR - 52)); x.rotate(a + Math.PI / 2); x.fillText(n, 0, 0); x.restore(); });
+      x.fillStyle = '#e8e6e0'; x.beginPath(); x.arc(CX, CY - 150, 62, 0, Math.PI * 2); x.fill(); x.stroke();   // the seconds dial
+      for (var sm = 0; sm < 60; sm++) { var sa = sm / 60 * Math.PI * 2 - Math.PI / 2; x.lineWidth = sm % 5 ? 1 : 2.5; x.beginPath(); x.moveTo(CX + Math.cos(sa) * 60, CY - 150 + Math.sin(sa) * 60); x.lineTo(CX + Math.cos(sa) * (sm % 5 ? 52 : 46), CY - 150 + Math.sin(sa) * (sm % 5 ? 52 : 46)); x.stroke(); }
+      x.font = 'italic 34px Georgia, serif'; x.fillStyle = '#2a2016'; x.fillText('Minest · London', CX, CY + 150);
+    }
+    function moon() {                                                                                  // the arch: a night sky and the moon as it is tonight
+      var syn = 29.530588853, ph = (((Date.now() / 86400000) - 10962.76) % syn + syn) % syn / syn;    // 0 new … 0.5 full
+      x.save(); x.beginPath(); x.arc(CX, 230, 205, Math.PI, 0); x.closePath(); x.clip();
+      var sk = x.createLinearGradient(0, 30, 0, 230); sk.addColorStop(0, '#0e1a3a'); sk.addColorStop(1, '#27406e'); x.fillStyle = sk; x.fillRect(0, 0, 800, 240);
+      x.fillStyle = '#f4ecc0'; for (var k = 0; k < 40; k++) { x.beginPath(); x.arc(220 + ((k * 97) % 360), 60 + ((k * 53) % 150), 1.5 + (k % 3), 0, 6.3); x.fill(); }
+      var mx = CX, my = 140, mr = 62;
+      x.fillStyle = '#2a3048'; x.beginPath(); x.arc(mx, my, mr, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#f2e8c0'; x.beginPath();
+      var k2 = Math.cos(ph * Math.PI * 2);                                                           // the lit part: a half disc and an ellipse
+      if (ph < 0.5) { x.arc(mx, my, mr, -Math.PI / 2, Math.PI / 2, false); x.ellipse(mx, my, Math.abs(k2) * mr, mr, 0, Math.PI / 2, -Math.PI / 2, k2 > 0); }
+      else { x.arc(mx, my, mr, Math.PI / 2, -Math.PI / 2, false); x.ellipse(mx, my, Math.abs(k2) * mr, mr, 0, -Math.PI / 2, Math.PI / 2, k2 > 0); }
+      x.fill(); x.restore();
+      x.strokeStyle = '#8a6420'; x.lineWidth = 4; x.beginPath(); x.arc(CX, 230, 205, Math.PI, 0); x.stroke();
+    }
+    plate(); moon();
+    var dt = new T.CanvasTexture(dc); dt.encoding = T.sRGBEncoding; dt.anisotropy = 4;
+    var dial = new T.Mesh(new T.PlaneGeometry(DW, DH), new T.MeshStandardMaterial({ map: dt, roughness: 0.3, metalness: 0.35 })); dial.position.set(0, HC, D / 2 - 0.005); g.add(dial);
+    var hood = new T.Shape(); hood.moveTo(-W / 2 + 0.005, 0); hood.lineTo(W / 2 - 0.005, 0); hood.lineTo(W / 2 - 0.005, HY1 - HY0); hood.lineTo(-W / 2 + 0.005, HY1 - HY0); hood.lineTo(-W / 2 + 0.005, 0);
+    hood.holes.push(archShape(new T.Path(), DW - 0.02, DH - 0.03, (DW - 0.02) / 2));
+    var hd = new T.Mesh(new T.ExtrudeGeometry(hood, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.005, bevelSegments: 2, curveSegments: 24 }), E.wood); hd.position.set(0, HY0 + 0.015, D / 2 - 0.004); g.add(hd);
+    var hb2 = new T.Shape(); archShape(hb2, DW, DH - 0.02, DW / 2); hb2.holes.push(archShape(new T.Path(), DW - 0.02, DH - 0.03, (DW - 0.02) / 2));
+    var hbm = new T.Mesh(new T.ExtrudeGeometry(hb2, { depth: 0.006, bevelEnabled: false, curveSegments: 24 }), brassP); hbm.position.set(0, HY0 + 0.015, D / 2 + 0.02); g.add(hbm);
+    var hg = new T.Mesh(new T.ShapeGeometry(archShape(new T.Shape(), DW - 0.02, DH - 0.03, (DW - 0.02) / 2), 24), M.glass); hg.position.set(0, HY0 + 0.015, D / 2 + 0.012); g.add(hg);
+    /* the hands: blued steel, spade hour hand, a long minute hand, a fine seconds hand */
+    var px = function (v) { return v / 800 * DW; }, cX = 0, cY = HC + DH / 2 - px(CY), cZ = D / 2 + 0.002;
+    function handShape(len, w, spade) {
+      var sh = new T.Shape(); sh.moveTo(-w * 0.6, -len * 0.18); sh.lineTo(w * 0.6, -len * 0.18); sh.lineTo(w * 0.35, len * 0.6);
+      if (spade) { sh.bezierCurveTo(w * 2.6, len * 0.66, w * 2.2, len * 0.86, 0, len); sh.bezierCurveTo(-w * 2.2, len * 0.86, -w * 2.6, len * 0.66, -w * 0.35, len * 0.6); }
+      else { sh.lineTo(w * 0.2, len * 0.95); sh.lineTo(0, len); sh.lineTo(-w * 0.2, len * 0.95); sh.lineTo(-w * 0.35, len * 0.6); }
+      sh.lineTo(-w * 0.6, -len * 0.18); return new T.ShapeGeometry(sh, 12);
+    }
+    var hh = new T.Mesh(handShape(px(205), px(10), true), blued), mh = new T.Mesh(handShape(px(300), px(7), false), blued);
+    hh.position.set(cX, cY, cZ + 0.001); mh.position.set(cX, cY, cZ + 0.0025); g.add(hh); g.add(mh);
+    ball(T, g, brassP, [cX, cY, cZ + 0.004], 0.009, [1, 1, 0.5]);
+    var sY = cY + px(150), sh2 = new T.Mesh(handShape(px(56), px(3), false), blued); sh2.position.set(cX, sY, cZ + 0.001); g.add(sh2);
+    ball(T, g, brassP, [cX, sY, cZ + 0.002], 0.004, [1, 1, 0.5]);
+    /* the crest: a broken arch of two scrolls, pierced fretwork, three flame finials */
+    box(T, g, E.woodD, 0, HY1 + 0.02, -0.01, W + 0.1, 0.05, D + 0.06); box(T, g, E.woodL, 0, HY1 + 0.05, -0.01, W + 0.06, 0.015, D + 0.03);
+    var fret = new T.Shape(); fret.moveTo(-W / 2, 0); fret.lineTo(W / 2, 0); fret.lineTo(W / 2, 0.06); fret.bezierCurveTo(W / 2 - 0.05, 0.16, 0.08, 0.2, 0.05, 0.14); fret.lineTo(-0.05, 0.14); fret.bezierCurveTo(-0.08, 0.2, -W / 2 + 0.05, 0.16, -W / 2, 0.06); fret.lineTo(-W / 2, 0);
+    for (i = -2; i <= 2; i++) if (i) { var hl = new T.Path(); hl.absellipse(i * 0.09, 0.055, 0.025, 0.03, 0, Math.PI * 2, false); fret.holes.push(hl); }
+    var fm = new T.Mesh(new T.ExtrudeGeometry(fret, { depth: 0.02, bevelEnabled: false, curveSegments: 16 }), E.wood); fm.position.set(0, HY1 + 0.058, D / 2 - 0.03); g.add(fm);
+    [-1, 1].forEach(function (s) { var sc = new T.Mesh(new T.TorusGeometry(0.035, 0.012, 8, 16, Math.PI * 1.5), E.woodL); sc.position.set(s * 0.085, HY1 + 0.19, D / 2 - 0.02); sc.rotation.z = s > 0 ? -0.4 : Math.PI + 0.4 - Math.PI * 0.5; g.add(sc); });
+    [[-W / 2 + 0.02, 0], [0, 0.11], [W / 2 - 0.02, 0]].forEach(function (q) {
+      var fin = lathe(T, [[0, 0], [0.026, 0], [0.03, 0.02], [0.016, 0.035], [0.028, 0.06], [0.03, 0.08], [0.014, 0.1], [0.02, 0.12], [0.006, 0.17], [0, 0.18]], brassP, 18); fin.position.set(q[0], HY1 + 0.058 + q[1], 0.05); g.add(fin); });
+    var lastMoon = Date.now();
+    return { group: g, hb: [0.66, 2.55, 0.42], place: 'floor', tick: function () {
+      var now = Date.now(), d = new Date(now), sec = d.getSeconds(), ms = d.getMilliseconds(), t = now / 1000;
+      pend.rotation.z = 0.075 * Math.cos(Math.PI * t);                                                // one beat a second: at each end of its swing the seconds hand steps
+      var snap = ms < 90 ? 1 - Math.pow(1 - ms / 90, 2) : 1;                                          // the escapement lets the seconds hand go
+      sh2.rotation.z = -((sec - 1 + snap) / 60) * Math.PI * 2;
+      var m = d.getMinutes() + (sec + ms / 1000) / 60, h = (d.getHours() % 12) + m / 60;
+      mh.rotation.z = -m / 60 * Math.PI * 2; hh.rotation.z = -h / 12 * Math.PI * 2;
+      if (now - lastMoon > 3600000) { lastMoon = now; plate(); moon(); dt.needsUpdate = true; }
+    } };
+  };
+
+  /* 6 · a Victorian push-button light switch: a chased brass plate, two mother-of-pearl buttons (on above, off below),
+     for the study's two chandeliers. A tap presses it; the room listens for 'spatial:chandeliers'. */
+  F['vic-lightswitch'] = function (T) {
+    var E = emats(T), g = new T.Group(), L = function (h) { return new T.Color(h).convertSRGBToLinear(); };
+    var brassP = new T.MeshStandardMaterial({ color: L(0xe8bf62), roughness: 0.16, metalness: 1.0, envMapIntensity: 1.5 });
+    var pearl = new T.MeshStandardMaterial({ color: L(0xf4eee0), roughness: 0.18, metalness: 0.1, emissive: L(0x221a10) });
+    var ebon = new T.MeshStandardMaterial({ color: L(0x15100c), roughness: 0.3 });
+    var plate = new T.Shape(); var w = 0.045, h = 0.07, r = 0.012;
+    plate.moveTo(-w + r, -h); plate.lineTo(w - r, -h); plate.quadraticCurveTo(w, -h, w, -h + r); plate.lineTo(w, h - r); plate.quadraticCurveTo(w, h, w - r, h); plate.lineTo(-w + r, h); plate.quadraticCurveTo(-w, h, -w, h - r); plate.lineTo(-w, -h + r); plate.quadraticCurveTo(-w, -h, -w + r, -h);
+    var pm = new T.Mesh(new T.ExtrudeGeometry(plate, { depth: 0.006, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 3 }), brassP); g.add(pm);
+    var bk = new T.Mesh(new T.BoxGeometry(0.11, 0.165, 0.008), E.woodD); bk.position.z = -0.004; g.add(bk);
+    [[0, 0.06], [0, -0.06]].forEach(function (q) { var sc = new T.Mesh(new T.CylinderGeometry(0.004, 0.004, 0.004, 10), brassP); sc.rotation.x = Math.PI / 2; sc.position.set(q[0], q[1], 0.011); g.add(sc); });
+    var btn = [], ON = 0.022;
+    [ON, -ON].forEach(function (y, k) {
+      var ring = new T.Mesh(new T.TorusGeometry(0.013, 0.003, 8, 20), brassP); ring.position.set(0, y, 0.011); g.add(ring);
+      var b = new T.Mesh(new T.CylinderGeometry(0.0095, 0.0095, 0.012, 20), k ? ebon : pearl); b.rotation.x = Math.PI / 2; b.position.set(0, y, 0.014); g.add(b); btn.push(b);
+    });
+    var st = function () { try { return localStorage.getItem('minest.study.chandeliers') === '1'; } catch (e) { return false; } };
+    function show(on) { btn[0].position.z = on ? 0.009 : 0.014; btn[1].position.z = on ? 0.014 : 0.009; }
+    show(st());
+    root.addEventListener('spatial:chandeliers', function (e) { show(!!(e.detail && e.detail.on)); });
+    g.position.y = 0;
+    return { group: g, hb: [0.14, 0.2, 0.08], hbY: 0, place: 'floor', press: function () {
+      var on = !st(); try { localStorage.setItem('minest.study.chandeliers', on ? '1' : '0'); } catch (e) {}
+      show(on); root.dispatchEvent(new CustomEvent('spatial:chandeliers', { detail: { on: on } }));
+      return on ? '吊灯点亮了 · 再按一下熄灭' : '吊灯熄灭了';
+    } };
+  };
+  [{ id: 'vic-piano', name: '三角钢琴', en: 'Concert grand piano', size: [1.56, 1.85, 2.9] },
+   { id: 'vic-thinker', name: '思想者（大理石复刻）', en: 'The Thinker, marble replica', size: [0.62, 1.8, 0.62] },
+   { id: 'vic-armour', name: '哥特式骑士盔甲', en: 'Gothic armour', size: [0.66, 1.8, 0.5] },
+   { id: 'vic-globe', name: '古典落地地球仪', en: 'Library floor globe', size: [0.9, 1.04, 0.9] },
+   { id: 'vic-clock', name: '落地摆钟', en: 'Longcase clock', size: [0.66, 2.55, 0.42] },
+   { id: 'vic-lightswitch', name: '吊灯开关', en: 'Chandelier switch', size: [0.14, 0.2, 0.08] }].forEach(function (c) {
+    if (!CAT.some(function (x) { return x.id === c.id; })) CAT.push({ id: c.id, name: c.name, en: c.en, icon: '▣', place: 'floor', size: c.size, note: 'EC–6 维多利亚书房的陈设' }); });
 })(window);
 
 /* Minest · Spatial Home — the things, made real (2026-11-13). In the outside-model rooms (the King's Hall, the Victorian
@@ -175687,39 +176227,38 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var VKEY = 'scenic:winView', SHIFT = 0.12, RANGE = { yaw: 1, pitch: 1, x: 1, y: 1 };
   function vget() { var v = sget(VKEY) || {}; function n(k, d) { var x = +v[k]; return isFinite(x) ? x : d; }
     return { yaw: n('yaw', 0), pitch: n('pitch', 0), x: n('x', 0), y: n('y', 0), zoom: Math.max(1, Math.min(2.5, n('zoom', 1))) }; }
-  var ADJ = vget(), tbtn = null, tpan = null;
+  var ADJ = vget(), bar = null, barT = 0;
   function host() { var c = document.getElementById('sh-gl'); return c && c.parentNode; }
-  function tuneBtn() {
-    var h = host(); if (!h || !WIN) return;
-    if (!tbtn) {
-      tbtn = document.createElement('button'); tbtn.type = 'button'; tbtn.title = '调整窗外风景（角度、位置、远近）'; tbtn.textContent = '🧭';
-      tbtn.style.cssText = 'position:absolute;z-index:30;width:34px;height:34px;border-radius:17px;border:1px solid rgba(255,255,255,.55);background:rgba(20,22,26,.55);color:#fff;font-size:17px;line-height:32px;padding:0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;display:none';
-      ['pointerdown', 'touchstart', 'wheel'].forEach(function (t) { tbtn.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
-      tbtn.addEventListener('click', function (e) { e.stopPropagation(); tunePanel(!tpan); });
-      h.appendChild(tbtn);
-    }
-    var r = el ? null : winRect(), hr = h.getBoundingClientRect(), show = !!r && r.r > hr.left + 40 && r.l < hr.right - 40 && r.b > hr.top + 60 && r.t < hr.bottom - 40;
-    if (!show && !tpan) { tbtn.style.display = 'none'; return; }
-    if (r) { tbtn.style.left = Math.max(8, Math.min(hr.width - 42, r.r - hr.left - 44)) + 'px'; tbtn.style.top = Math.max(56, Math.min(hr.height - 90, r.t - hr.top + 10)) + 'px'; }
-    tbtn.style.display = 'block';
-  }
   function saveAdj() { sset(VKEY, ADJ); applyView(); }
-  function tunePanel(on) {
-    if (tpan) { tpan.remove(); tpan = null; }
-    if (!on) return; var h = host(); if (!h) return;
-    var rows = [['yaw', '左右转', -RANGE.yaw, RANGE.yaw, 0.01], ['pitch', '上下看', -RANGE.pitch, RANGE.pitch, 0.01], ['x', '左右移', -RANGE.x, RANGE.x, 0.01], ['y', '上下移', -RANGE.y, RANGE.y, 0.01], ['zoom', '远近', 1, 2.5, 0.01]];
-    tpan = document.createElement('div');
-    tpan.style.cssText = 'position:absolute;z-index:31;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(340px,calc(100% - 32px));box-sizing:border-box;padding:12px 14px 10px;border-radius:16px;background:rgba(24,22,20,.78);color:#f3ece2;font:13px/1.3 -apple-system,system-ui,sans-serif;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 28px rgba(0,0,0,.35)';
-    tpan.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:14px">窗外风景</b><span style="opacity:.7;font-size:12px">拖动滑块，边看边调</span></div>' +
-      rows.map(function (r) { return '<label style="display:flex;align-items:center;gap:10px;margin:6px 0"><span style="width:44px;flex:none">' + r[1] + '</span><input type="range" data-k="' + r[0] + '" min="' + r[2] + '" max="' + r[3] + '" step="' + r[4] + '" value="' + ADJ[r[0]] + '" style="flex:1;accent-color:#d9a95b"></label>'; }).join('') +
-      '<div style="display:flex;gap:8px;margin-top:8px"><button type="button" data-a="reset" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit">恢复默认</button><button type="button" data-a="ok" style="flex:1;padding:8px;border-radius:10px;border:0;background:#d9a95b;color:#231a10;font-weight:600">好</button></div>';
-    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (t) { tpan.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
-    tpan.addEventListener('input', function (e) { var k = e.target.dataset && e.target.dataset.k; if (!k) return; ADJ[k] = +e.target.value; saveAdj(); });
-    tpan.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation();
-      if (b.dataset.a === 'reset') { ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); tunePanel(true); } else tunePanel(false); });
-    h.appendChild(tpan);
+  function clamp1(v) { return Math.max(-1, Math.min(1, v)); }
+  /* drag on the glass: the view turns under your finger (left / right: the turn, up / down: the tilt); what a drag cannot
+     do — near / far and sliding the view — is on a small bar that comes up while you adjust and hides itself again */
+  function grab(ph, dx, dy) {
+    if (ph === 'start') { showBar(true); return; }
+    if (ph === 'end') { sset(VKEY, ADJ); barLater(); return; }
+    var r = winRect(), w = r ? Math.max(120, r.r - r.l) : 400, h = r ? Math.max(120, r.b - r.t) : 300, k = 1.5 / ADJ.zoom;
+    ADJ.yaw = clamp1(ADJ.yaw - dx / w * k); ADJ.pitch = clamp1(ADJ.pitch - dy / h * k); applyView(); syncBar(); showBar(true);
   }
-
+  function barLater() { clearTimeout(barT); barT = setTimeout(function () { showBar(false); }, 3200); }
+  function syncBar() { if (!bar) return; Array.prototype.forEach.call(bar.querySelectorAll('input'), function (i) { i.value = ADJ[i.dataset.k]; }); }
+  function showBar(on) {
+    var h = host(); if (!h) return;
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.style.cssText = 'position:absolute;z-index:31;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translate(-50%,12px);width:min(360px,calc(100% - 32px));box-sizing:border-box;padding:9px 12px 8px;border-radius:14px;background:rgba(24,22,20,.72);color:#f3ece2;font:12px/1.3 -apple-system,system-ui,sans-serif;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s ease';
+      var rows = [['zoom', '远近', 1, 2.5], ['x', '左右移', -1, 1], ['y', '上下移', -1, 1]];
+      bar.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="opacity:.8">在窗上拖动可转动风景</span><button type="button" data-a="reset" style="padding:3px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit;font-size:12px">恢复</button></div>' +
+        rows.map(function (r) { return '<label style="display:flex;align-items:center;gap:8px;margin:3px 0"><span style="width:40px;flex:none">' + r[1] + '</span><input type="range" data-k="' + r[0] + '" min="' + r[2] + '" max="' + r[3] + '" step="0.01" style="flex:1;accent-color:#d9a95b"></label>'; }).join('');
+      ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (t) { bar.addEventListener(t, function (e) { e.stopPropagation(); clearTimeout(barT); }, { passive: true }); });
+      ['pointerup', 'touchend', 'change'].forEach(function (t) { bar.addEventListener(t, function () { barLater(); }); });
+      bar.addEventListener('input', function (e) { var k = e.target.dataset && e.target.dataset.k; if (!k) return; ADJ[k] = +e.target.value; saveAdj(); });
+      bar.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation(); ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); syncBar(); barLater(); });
+      h.appendChild(bar);
+    }
+    syncBar(); clearTimeout(barT);
+    bar.style.opacity = on ? '1' : '0'; bar.style.transform = on ? 'translate(-50%,0)' : 'translate(-50%,12px)'; bar.style.pointerEvents = on ? 'auto' : 'none';
+    if (on) barLater();
+  }
   function make() {
     var g = new THREE.Group(), frameG = new THREE.Group(); g.add(frameG);
     var metal = new THREE.MeshStandardMaterial({ color: L(0x1b1d21), roughness: 0.32, metalness: 0.7 });
@@ -175735,7 +176274,10 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
         '  vec3 d = normalize(vP - uCam);',
         '  if (uOk < 0.5 || d.z > -0.01) { gl_FragColor = vec4(0.15, 0.14, 0.13, 1.0); return; }',
         '  vec3 c = texture2D(tex, gl_FragCoord.xy / uRes).rgb;',
-        '  float fr = pow(1.0 - abs(d.z), 3.0);',                       // glass: a faint cool sheen at grazing angles
+        '  float fr = pow(1.0 - abs(d.z), 3.0);',
+        '  float ex = smoothstep(0.0, 0.045, 0.5 - abs(vP.x)), et = smoothstep(0.0, 0.09, 0.5 - vP.y), eb = smoothstep(0.0, 0.02, vP.y + 0.5);',
+        '  c *= mix(0.62, 1.0, ex * et * eb);',                          // the reveal's shade on the view at the edges of the glass
+        '  c += vec3(0.05, 0.036, 0.022) * (0.5 - vP.y) * 0.35;',        // a faint warm reflection of the room, lower on the glass                       // glass: a faint cool sheen at grazing angles
         '  c = mix(c, vec3(0.86, 0.9, 0.96), 0.025 + 0.16 * fr);',
         '  gl_FragColor = vec4(c, 1.0);',
         '}'].join('\n')
@@ -175798,6 +176340,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     function render(t) {
       var R = root.SpatialRoom && root.SpatialRoom.renderer, cam = root.SpatialRoom && root.SpatialRoom.camera; if (!view || !R || !cam || !g.visible) return;
       view.U.uT.value = t;
+      var dressed = false; for (var ci = 0; ci < g.children.length; ci++) if (/^dress-/.test(g.children[ci].name || '')) dressed = true;
+      frameG.visible = !dressed && metal.opacity > 0.02;   // a room that dresses the window brings its own casing
       if (view.kind === 'pano') view.group.position.y = 1.5 - H / 2;   // standing eye height, whatever size the room made the window
       cam.updateMatrixWorld(); _m.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); frus.setFromProjectionMatrix(_m);
       if (!frus.intersectsObject(hit)) return;                             // off screen: nothing to draw
@@ -175821,7 +176365,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       hit: hit, label: [0, H + 0.12, 0], focusL: null,
       fit: function (a) { fit(a && a.w, a && a.h); },
       panel: function () { return openScenic(); },
-      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); tuneBtn(); },
+      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); }, grab: grab,
       /* before the camera walks up: stand back along the window's axis as far as the plan wants, but stop 0.7 m short of
          the first thing in the way (furniture, a wall) — the room must stay round the window, never in front of the lens */
       aim: function () {
@@ -175933,7 +176477,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   }
   root.addEventListener('resize', function () { if (el && LV) applyMask(levelRect(LV.v)); });
 
-  root.SpatialScenic = { view: function (v) { if (v) { Object.keys(v).forEach(function (k) { if (k in ADJ) ADJ[k] = +v[k]; }); saveAdj(); } return JSON.parse(JSON.stringify(ADJ)); }, tune: tunePanel, make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, envs: envs, isOpen: function () { return !!el; }, level: function () { return el ? { level: LV.level, v: LV.v, mask: M } : null; }, focus: function (on) { if (frame) post({ op: 'focus', on: !!on }); } };
+  root.SpatialScenic = { view: function (v) { if (v) { Object.keys(v).forEach(function (k) { if (k in ADJ) ADJ[k] = +v[k]; }); saveAdj(); } return JSON.parse(JSON.stringify(ADJ)); }, bar: showBar, make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, envs: envs, isOpen: function () { return !!el; }, level: function () { return el ? { level: LV.level, v: LV.v, mask: M } : null; }, focus: function (on) { if (frame) post({ op: 'focus', on: !!on }); } };
 })(window);
 
 /* Minest · Spatial Home — the things that are the apps (the fishing rod became the Octo aquarium in entries.js).
@@ -179421,7 +179965,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     (EMBED ? '' : '<label class="row"><input type="checkbox" id="sh-optPreload"> 进入后在后台预载 Minest 功能</label>') +
     '<div class="sh-build"><span id="sh-hostDot"></span><span id="sh-hostText"></span></div><ul id="sh-featList"></ul>' +
     '<button type="button" class="sh-btn ghost" id="sh-resetLayout">恢复这个环境的默认摆放</button><button type="button" class="sh-btn" id="sh-setClose">好</button>' + (EMBED ? '<button type="button" class="sh-btn ghost" id="sh-setExit">进入完整的 Minest</button>' : '') + '</div>' +
-    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot" title="转 90°">⟲90</button><button type="button" data-e="rot15" title="转 15°">↻15</button><button type="button" data-e="stash" title="收回背包">🎒</button><button type="button" data-e="cancel" title="取消">✕</button><button type="button" data-e="ok" class="pri" title="放好了 (Enter)">✓</button></div></div>' +
+    '<div id="sh-edit" hidden><b id="sh-editName"></b><span id="sh-editHint"></span><div class="row"><button type="button" data-e="rot" title="转 90°">⟲90</button><button type="button" data-e="rot15" title="转 15°">↻15</button><button type="button" data-e="stash" class="del" title="从房间移除（可在背包里找回） · Delete">移除</button><button type="button" data-e="cancel" title="取消">✕</button><button type="button" data-e="ok" class="pri" title="放好了 (Enter)">✓</button></div></div>' +
     '<div id="sh-card" hidden></div><div id="sh-toast" hidden></div><div id="sh-credit"></div>';
 
   function mount() {
@@ -180016,6 +180560,8 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false, edit: true }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {} editMove(e); return;
     }
     ptr = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, drag: false }; try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
+    /* a thing that takes a drag itself (o.grab: the Scenic Window turns its view): dragging on it moves it, not the look */
+    if (mode === 'explore' || mode === 'desk') { var gr = pick(e); if (gr && gr.grab && !gr.stashed) ptr.grab = gr; }
     /* long press on a thing: pick it up to move it (then drag it, or tap the arrows round it) */
     var lpE = { clientX: e.clientX, clientY: e.clientY }, mine = ptr;
     ptr.lp = setTimeout(function () {
@@ -180030,8 +180576,9 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
     if (edit) { if (ptr && ptr.arrow) return; if ((ptr && ptr.id === e.pointerId) || (e.pointerType === 'mouse' && e.buttons)) editMove(e); return; }   // a mouse moves it only while pressed: hovering leaves it where it is, so the bar can be reached
     if (!ptr || ptr.id !== e.pointerId) { if (e.pointerType === 'mouse') setHot(pick(e)); return; }
     var dx = e.clientX - ptr.x, dy = e.clientY - ptr.y; ptr.x = e.clientX; ptr.y = e.clientY;
-    if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; clearTimeout(ptr.lp); canvas.classList.add('drag'); walkTo = null; }
+    if (!ptr.drag && Math.abs(e.clientX - ptr.sx) + Math.abs(e.clientY - ptr.sy) > 7) { ptr.drag = true; clearTimeout(ptr.lp); canvas.classList.add('drag'); walkTo = null; if (ptr.grab) try { ptr.grab.grab('start', 0, 0, e); } catch (er) {} }
     if (!ptr.drag) return;
+    if (ptr.grab) { try { ptr.grab.grab('move', dx, dy, e); } catch (er) {} dirty = true; return; }
     var s = 0.0042 * (camera.fov / 60);
     if (mode === 'desk') { DK.yaw = clamp(DK.yaw + dx * s, -2.2, 2.2); DK.pitch = clamp(DK.pitch + dy * s, -0.45, 0.75); }
     else { P.yaw += dx * s; P.pitch = clamp(P.pitch + dy * s, -1.1, 1.1); }
@@ -180040,13 +180587,14 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   function up(e) {
     if (!ptr || ptr.id !== e.pointerId) return;
     clearTimeout(ptr.lp); clearInterval(nudgeT); clearTimeout(nudgeD);
-    var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long; ptr = null; canvas.classList.remove('drag');
+    var wasDrag = ptr.drag, wasEdit = ptr.edit, wasLong = ptr.long, grab = ptr.grab; ptr = null; canvas.classList.remove('drag');
+    if (wasDrag && grab) { try { grab.grab('end', 0, 0, e); } catch (er) {} return; }
     if (wasEdit || wasLong || edit) return;
     if (wasDrag || busy || e.type === 'pointercancel') return;
     var swh = mode === 'explore' || mode === 'desk' ? swAt(e) : null; if (swh) { pressSwitch(swh); return; }
     if (third() && avatarHit(e)) { figureMenu(); return; }
     var o = pick(e); if (o) { activate(o); return; }
-    var x = pickExtra(e); if (x) { extraCard(x); return; }
+    var x = pickExtra(e); if (x) { if (x.press) { try { var said = x.press(); if (said) toast(said); } catch (er) {} return; } extraCard(x); return; }   // a thing with its own control (the light switch) works on a tap
     if (mode !== 'explore') return;
     var hit = ray.ray.intersectPlane(floor, v3a);                                  // pick() has set the ray
     if (hit && inArea(hit.x, hit.z) && ray.ray.direction.y < -0.05) { if (third()) walkPath(hit.x, hit.z, { face: true }); else walkTo = { x: hit.x, z: hit.z, stuck: 0 }; }
@@ -180212,13 +180760,23 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
   var DRESSED = [], HIDDEN = [], DTICK = [], NOSHOW = new THREE.MeshBasicMaterial({ visible: false });
   function dress() {
     DRESSED.forEach(function (d) { if (d.parent) d.parent.remove(d); try { window.SpatialRoom.disposeTree(d); } catch (e) {} }); DRESSED = [];
-    HIDDEN.forEach(function (h) { h.m.material = h.mat; }); HIDDEN = []; DTICK = [];
+    HIDDEN.forEach(function (h) { if (h.l) h.l.intensity = h.i; else h.m.material = h.mat; }); HIDDEN = []; DTICK = [];
     var real = room.realistic && window.SpatialRealistic;
     if (!room.dress && !real) return;
     objects.forEach(function (o) {
+      var alone = false;                                                           // a room's own dress can stand alone (no realistic one over it)
       [room.dress && room.dress[o.id], real ? function (ob) { return window.SpatialRealistic.dress(ob); } : null].forEach(function (f, k) {
-        if (!f) return;
-        try { var r = f(o); if (!r || !r.group) return; r.group.name = 'dress-' + o.id + (k ? '-real' : ''); o.group.add(r.group); DRESSED.push(r.group); if (r.tick) DTICK.push(r.tick);
+        if (!f || (k && alone)) return;
+        try { var r = f(o); if (!r || !r.group) return; if (!k && r.alone) alone = true; r.group.name = 'dress-' + o.id + (k ? '-real' : ''); o.group.add(r.group); DRESSED.push(r.group); if (r.tick) DTICK.push(r.tick);
+          if (r.hideAll) {                                                     // the room's dress replaces the thing's look entirely: its meshes and its lights go (the switch stays)
+            var hl = []; o.group.traverse(function (m) {
+              for (var p = m.parent; p && p !== o.group; p = p.parent) if (/^(dress-|switch-)/.test(p.name || '')) return;
+              if (/^(dress-|switch-)/.test(m.name || '')) return;
+              if (m.isLight) { HIDDEN.push({ l: m, i: m.intensity }); hl.push(m); m.intensity = 0; }
+              else if (m.isMesh && m.material && m.material !== NOSHOW && m !== o.hit) { HIDDEN.push({ m: m, mat: m.material }); m.material = NOSHOW; }
+            });
+            DTICK.push(function () { hl.forEach(function (l) { l.intensity = 0; }); });   // a thing that brightens its light on use stays dark here
+          }
           if (r.hideVox) o.group.traverse(function (m) {                      // the solid voxel blocks go (glow, holo, the live pictures stay)
             if (!m.isMesh || !m.material || m.material === NOSHOW || !m.material.vertexColors || m.material.type !== 'MeshLambertMaterial') return;
             for (var p = m.parent; p && p !== o.group; p = p.parent) if (/^dress-/.test(p.name || '')) return;
@@ -180242,7 +180800,7 @@ window.__SPATIAL_HOME_BOOT_DEFAULT__ = true;
       var m = BP.model(THREE, e), hb = m.hb, hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.05, hb[0]), Math.max(0.05, hb[1]), Math.max(0.05, hb[2])), new THREE.MeshBasicMaterial({ visible: false }));
       hit.position.set(0, m.hbY != null ? m.hbY : hb[1] / 2, m.hbZ || 0); m.group.add(hit);
       m.group.position.fromArray(e.p); m.group.rotation.y = e.ry || 0; scene.add(m.group);
-      var x = { e: e, group: m.group, hit: hit, place: m.place, tick: m.tick, machine: m.machine }; hit.userData.extra = x; XS.push(x);
+      var x = { e: e, group: m.group, hit: hit, place: m.place, tick: m.tick, machine: m.machine, press: m.press }; hit.userData.extra = x; XS.push(x);
     });
   }
   function pickExtra(e) {

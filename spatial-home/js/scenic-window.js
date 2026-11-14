@@ -39,39 +39,38 @@
   var VKEY = 'scenic:winView', SHIFT = 0.12, RANGE = { yaw: 1, pitch: 1, x: 1, y: 1 };
   function vget() { var v = sget(VKEY) || {}; function n(k, d) { var x = +v[k]; return isFinite(x) ? x : d; }
     return { yaw: n('yaw', 0), pitch: n('pitch', 0), x: n('x', 0), y: n('y', 0), zoom: Math.max(1, Math.min(2.5, n('zoom', 1))) }; }
-  var ADJ = vget(), tbtn = null, tpan = null;
+  var ADJ = vget(), bar = null, barT = 0;
   function host() { var c = document.getElementById('sh-gl'); return c && c.parentNode; }
-  function tuneBtn() {
-    var h = host(); if (!h || !WIN) return;
-    if (!tbtn) {
-      tbtn = document.createElement('button'); tbtn.type = 'button'; tbtn.title = '调整窗外风景（角度、位置、远近）'; tbtn.textContent = '🧭';
-      tbtn.style.cssText = 'position:absolute;z-index:30;width:34px;height:34px;border-radius:17px;border:1px solid rgba(255,255,255,.55);background:rgba(20,22,26,.55);color:#fff;font-size:17px;line-height:32px;padding:0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;display:none';
-      ['pointerdown', 'touchstart', 'wheel'].forEach(function (t) { tbtn.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
-      tbtn.addEventListener('click', function (e) { e.stopPropagation(); tunePanel(!tpan); });
-      h.appendChild(tbtn);
-    }
-    var r = el ? null : winRect(), hr = h.getBoundingClientRect(), show = !!r && r.r > hr.left + 40 && r.l < hr.right - 40 && r.b > hr.top + 60 && r.t < hr.bottom - 40;
-    if (!show && !tpan) { tbtn.style.display = 'none'; return; }
-    if (r) { tbtn.style.left = Math.max(8, Math.min(hr.width - 42, r.r - hr.left - 44)) + 'px'; tbtn.style.top = Math.max(56, Math.min(hr.height - 90, r.t - hr.top + 10)) + 'px'; }
-    tbtn.style.display = 'block';
-  }
   function saveAdj() { sset(VKEY, ADJ); applyView(); }
-  function tunePanel(on) {
-    if (tpan) { tpan.remove(); tpan = null; }
-    if (!on) return; var h = host(); if (!h) return;
-    var rows = [['yaw', '左右转', -RANGE.yaw, RANGE.yaw, 0.01], ['pitch', '上下看', -RANGE.pitch, RANGE.pitch, 0.01], ['x', '左右移', -RANGE.x, RANGE.x, 0.01], ['y', '上下移', -RANGE.y, RANGE.y, 0.01], ['zoom', '远近', 1, 2.5, 0.01]];
-    tpan = document.createElement('div');
-    tpan.style.cssText = 'position:absolute;z-index:31;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(340px,calc(100% - 32px));box-sizing:border-box;padding:12px 14px 10px;border-radius:16px;background:rgba(24,22,20,.78);color:#f3ece2;font:13px/1.3 -apple-system,system-ui,sans-serif;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 28px rgba(0,0,0,.35)';
-    tpan.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:14px">窗外风景</b><span style="opacity:.7;font-size:12px">拖动滑块，边看边调</span></div>' +
-      rows.map(function (r) { return '<label style="display:flex;align-items:center;gap:10px;margin:6px 0"><span style="width:44px;flex:none">' + r[1] + '</span><input type="range" data-k="' + r[0] + '" min="' + r[2] + '" max="' + r[3] + '" step="' + r[4] + '" value="' + ADJ[r[0]] + '" style="flex:1;accent-color:#d9a95b"></label>'; }).join('') +
-      '<div style="display:flex;gap:8px;margin-top:8px"><button type="button" data-a="reset" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit">恢复默认</button><button type="button" data-a="ok" style="flex:1;padding:8px;border-radius:10px;border:0;background:#d9a95b;color:#231a10;font-weight:600">好</button></div>';
-    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (t) { tpan.addEventListener(t, function (e) { e.stopPropagation(); }, { passive: true }); });
-    tpan.addEventListener('input', function (e) { var k = e.target.dataset && e.target.dataset.k; if (!k) return; ADJ[k] = +e.target.value; saveAdj(); });
-    tpan.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation();
-      if (b.dataset.a === 'reset') { ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); tunePanel(true); } else tunePanel(false); });
-    h.appendChild(tpan);
+  function clamp1(v) { return Math.max(-1, Math.min(1, v)); }
+  /* drag on the glass: the view turns under your finger (left / right: the turn, up / down: the tilt); what a drag cannot
+     do — near / far and sliding the view — is on a small bar that comes up while you adjust and hides itself again */
+  function grab(ph, dx, dy) {
+    if (ph === 'start') { showBar(true); return; }
+    if (ph === 'end') { sset(VKEY, ADJ); barLater(); return; }
+    var r = winRect(), w = r ? Math.max(120, r.r - r.l) : 400, h = r ? Math.max(120, r.b - r.t) : 300, k = 1.5 / ADJ.zoom;
+    ADJ.yaw = clamp1(ADJ.yaw - dx / w * k); ADJ.pitch = clamp1(ADJ.pitch - dy / h * k); applyView(); syncBar(); showBar(true);
   }
-
+  function barLater() { clearTimeout(barT); barT = setTimeout(function () { showBar(false); }, 3200); }
+  function syncBar() { if (!bar) return; Array.prototype.forEach.call(bar.querySelectorAll('input'), function (i) { i.value = ADJ[i.dataset.k]; }); }
+  function showBar(on) {
+    var h = host(); if (!h) return;
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.style.cssText = 'position:absolute;z-index:31;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translate(-50%,12px);width:min(360px,calc(100% - 32px));box-sizing:border-box;padding:9px 12px 8px;border-radius:14px;background:rgba(24,22,20,.72);color:#f3ece2;font:12px/1.3 -apple-system,system-ui,sans-serif;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .35s ease,transform .35s ease';
+      var rows = [['zoom', '远近', 1, 2.5], ['x', '左右移', -1, 1], ['y', '上下移', -1, 1]];
+      bar.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="opacity:.8">在窗上拖动可转动风景</span><button type="button" data-a="reset" style="padding:3px 9px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:transparent;color:inherit;font-size:12px">恢复</button></div>' +
+        rows.map(function (r) { return '<label style="display:flex;align-items:center;gap:8px;margin:3px 0"><span style="width:40px;flex:none">' + r[1] + '</span><input type="range" data-k="' + r[0] + '" min="' + r[2] + '" max="' + r[3] + '" step="0.01" style="flex:1;accent-color:#d9a95b"></label>'; }).join('');
+      ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'wheel', 'keydown'].forEach(function (t) { bar.addEventListener(t, function (e) { e.stopPropagation(); clearTimeout(barT); }, { passive: true }); });
+      ['pointerup', 'touchend', 'change'].forEach(function (t) { bar.addEventListener(t, function () { barLater(); }); });
+      bar.addEventListener('input', function (e) { var k = e.target.dataset && e.target.dataset.k; if (!k) return; ADJ[k] = +e.target.value; saveAdj(); });
+      bar.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; e.stopPropagation(); ADJ = { yaw: 0, pitch: 0, x: 0, y: 0, zoom: 1 }; saveAdj(); syncBar(); barLater(); });
+      h.appendChild(bar);
+    }
+    syncBar(); clearTimeout(barT);
+    bar.style.opacity = on ? '1' : '0'; bar.style.transform = on ? 'translate(-50%,0)' : 'translate(-50%,12px)'; bar.style.pointerEvents = on ? 'auto' : 'none';
+    if (on) barLater();
+  }
   function make() {
     var g = new THREE.Group(), frameG = new THREE.Group(); g.add(frameG);
     var metal = new THREE.MeshStandardMaterial({ color: L(0x1b1d21), roughness: 0.32, metalness: 0.7 });
@@ -87,7 +86,10 @@
         '  vec3 d = normalize(vP - uCam);',
         '  if (uOk < 0.5 || d.z > -0.01) { gl_FragColor = vec4(0.15, 0.14, 0.13, 1.0); return; }',
         '  vec3 c = texture2D(tex, gl_FragCoord.xy / uRes).rgb;',
-        '  float fr = pow(1.0 - abs(d.z), 3.0);',                       // glass: a faint cool sheen at grazing angles
+        '  float fr = pow(1.0 - abs(d.z), 3.0);',
+        '  float ex = smoothstep(0.0, 0.045, 0.5 - abs(vP.x)), et = smoothstep(0.0, 0.09, 0.5 - vP.y), eb = smoothstep(0.0, 0.02, vP.y + 0.5);',
+        '  c *= mix(0.62, 1.0, ex * et * eb);',                          // the reveal's shade on the view at the edges of the glass
+        '  c += vec3(0.05, 0.036, 0.022) * (0.5 - vP.y) * 0.35;',        // a faint warm reflection of the room, lower on the glass                       // glass: a faint cool sheen at grazing angles
         '  c = mix(c, vec3(0.86, 0.9, 0.96), 0.025 + 0.16 * fr);',
         '  gl_FragColor = vec4(c, 1.0);',
         '}'].join('\n')
@@ -150,6 +152,8 @@
     function render(t) {
       var R = root.SpatialRoom && root.SpatialRoom.renderer, cam = root.SpatialRoom && root.SpatialRoom.camera; if (!view || !R || !cam || !g.visible) return;
       view.U.uT.value = t;
+      var dressed = false; for (var ci = 0; ci < g.children.length; ci++) if (/^dress-/.test(g.children[ci].name || '')) dressed = true;
+      frameG.visible = !dressed && metal.opacity > 0.02;   // a room that dresses the window brings its own casing
       if (view.kind === 'pano') view.group.position.y = 1.5 - H / 2;   // standing eye height, whatever size the room made the window
       cam.updateMatrixWorld(); _m.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); frus.setFromProjectionMatrix(_m);
       if (!frus.intersectsObject(hit)) return;                             // off screen: nothing to draw
@@ -173,7 +177,7 @@
       hit: hit, label: [0, H + 0.12, 0], focusL: null,
       fit: function (a) { fit(a && a.w, a && a.h); },
       panel: function () { return openScenic(); },
-      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); tuneBtn(); },
+      set: function (k) { light.intensity = 0.4 + 0.4 * k; }, idle: function (t) { render(t); }, grab: grab,
       /* before the camera walks up: stand back along the window's axis as far as the plan wants, but stop 0.7 m short of
          the first thing in the way (furniture, a wall) — the room must stay round the window, never in front of the lens */
       aim: function () {
@@ -285,5 +289,5 @@
   }
   root.addEventListener('resize', function () { if (el && LV) applyMask(levelRect(LV.v)); });
 
-  root.SpatialScenic = { view: function (v) { if (v) { Object.keys(v).forEach(function (k) { if (k in ADJ) ADJ[k] = +v[k]; }); saveAdj(); } return JSON.parse(JSON.stringify(ADJ)); }, tune: tunePanel, make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, envs: envs, isOpen: function () { return !!el; }, level: function () { return el ? { level: LV.level, v: LV.v, mask: M } : null; }, focus: function (on) { if (frame) post({ op: 'focus', on: !!on }); } };
+  root.SpatialScenic = { view: function (v) { if (v) { Object.keys(v).forEach(function (k) { if (k in ADJ) ADJ[k] = +v[k]; }); saveAdj(); } return JSON.parse(JSON.stringify(ADJ)); }, bar: showBar, make: function () { return [make()]; }, open: openScenic, close: finish, moments: shots, envs: envs, isOpen: function () { return !!el; }, level: function () { return el ? { level: LV.level, v: LV.v, mask: M } : null; }, focus: function (on) { if (frame) post({ op: 'focus', on: !!on }); } };
 })(window);
