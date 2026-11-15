@@ -30,6 +30,8 @@
   #pbox th { color: var(--mute); font-weight: 600; position: sticky; top: -16px; background: #fffdf9; } #pbox td.est { color: var(--accent); white-space: nowrap; } #pbox code { font: 11.5px ui-monospace, Menlo, monospace; }
   #pclose { float: right; }
   body.noui .card { display: none; }
+  body.valley .studio-only { display: none; }
+  body.valley { background: #2f78d8; }
   @media (max-width: 640px) { #panel { top: auto; bottom: 44px; left: 10px; right: 10px; width: auto; max-height: 40vh; } #title { left: 10px; top: 10px; } }
 </style>
 </head>
@@ -41,14 +43,15 @@
   <span class="tag">MILESTONE 3 · 外观 + 室内结构 · 尺寸均为估算</span>
 </div>
 <div id="panel" class="card">
-  <h2>视角</h2><div id="views" class="row"></div>
+  <h2>场景</h2><div class="row"><button id="scene"></button></div>
+  <h2 class="studio-only">视角</h2><div id="views" class="row studio-only"></div>
   <div class="row" style="margin-top:6px"><button id="auto">自动旋转</button><button id="mode">看白模</button><button id="params">参数表</button></div>
   <h2>看室内</h2>
-  <div class="row"><button id="whole">整栋</button><button id="roofOff">掀屋顶</button><button id="f2">阁楼</button><button id="f1">二层</button><button id="f0">一层</button><button id="sec">剖面</button><button id="secStair">楼梯剖面</button></div>
+  <div class="row"><button id="whole">整栋</button><button id="roofOff">掀屋顶</button><button id="f2">阁楼</button><button id="f1">二层</button><button id="f0">一层</button><button id="sec" class="studio-only">剖面</button><button id="secStair" class="studio-only">楼梯剖面</button></div>
   <div id="cutrow" style="margin-top:6px"><span>剖切</span><input id="cut" type="range" min="0.3" step="0.05"><span id="cutVal"></span></div>
   <h2>图层</h2><div id="layers"></div>
 </div>
-<div id="foot" class="card"><span id="stat"></span> · <span id="fps"></span> · 拖动旋转 · 滚轮/捏合缩放 · 右键或 Shift 拖动平移 · 红箭头指北</div>
+<div id="foot" class="card"><span id="stat"></span> · <span id="fps"></span> · <span id="hint">拖动旋转 · 滚轮/捏合缩放 · 右键或 Shift 拖动平移 · 红箭头指北</span></div>
 <div id="pwrap" hidden><div id="pbox"><button id="pclose">关闭</button><h2>参数表</h2>
   <p>单位米；+X 北、+Y 西、+Z 上；原点在中央入口一楼地面。没有任何一项是实测值：平面图标注的记为 STATED（PROVISIONAL），其余全部 ESTIMATED。</p><div id="ptable"></div></div></div>
 <script src="../../vendor/three.min.js"></script>
@@ -59,6 +62,7 @@
 <script src="js/roof.js"></script>
 <script src="js/extensions.js"></script>
 <script src="js/interior.js"></script>
+<script src="js/valley.js"></script>
 <script src="js/model.js"></script>
 <script src="js/app.js"></script>
 </body>

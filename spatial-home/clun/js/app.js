@@ -17,19 +17,28 @@
   /* 简单地面：一块接阴影的圆盘 + 一个指北箭头 */
   var ground = new THREE.Mesh(new THREE.CircleGeometry(70, 72), new THREE.MeshStandardMaterial({ color: new THREE.Color(0xc9b994).convertSRGBToLinear(), roughness: 1 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = P.groundZ - 0.005; ground.receiveShadow = true; scene.add(ground);
-  (function () {
+  var arrow = (function () {
     var s = new THREE.Shape(); s.moveTo(0, 1.6); s.lineTo(0.7, -0.6); s.lineTo(0, -0.2); s.lineTo(-0.7, -0.6); s.closePath();
     var a = new THREE.Mesh(new THREE.ShapeGeometry(s), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xb8553f).convertSRGBToLinear() }));
     a.rotation.x = -Math.PI / 2; a.rotation.z = -Math.PI / 2;       /* 箭头指向 +X（北） */
-    a.scale.setScalar(0.8); a.position.set(15, P.groundZ + 0.01, 6); scene.add(a);
+    a.scale.setScalar(0.8); a.position.set(15, P.groundZ + 0.01, 6); scene.add(a); return a;
   })();
 
   /* 基础光：天光 + 一盏带软阴影的太阳 + 一点补光 */
-  scene.add(new THREE.HemisphereLight(0xe6efff, 0xa89a84, 0.6));
+  var hemiS = new THREE.HemisphereLight(0xe6efff, 0xa89a84, 0.6); scene.add(hemiS);
   var sun = new THREE.DirectionalLight(0xfff0dc, 1.45); sun.position.set(-16, 26, 22); sun.target.position.set(1.5, 3, -3.5); scene.add(sun, sun.target);
   sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04;
   var sc = sun.shadow.camera; sc.left = -22; sc.right = 22; sc.top = 22; sc.bottom = -22; sc.near = 1; sc.far = 90;
   var fill = new THREE.DirectionalLight(0xdbe6ff, 0.4); fill.position.set(14, 10, -20); scene.add(fill);
+
+  /* —— 外景（?scene=valley）：劳特布龙嫩山谷 + 花园。展台的地面、指北箭头和灯关掉，镜头换成照片机位 —— */
+  var VAL = q.get('scene') === 'valley' && C.buildValley ? C.buildValley(scene, house) : null, VO = { az: 0, el: 0, zoom: 1 };
+  if (VAL) {
+    ground.visible = false; arrow.visible = false; hemiS.visible = sun.visible = fill.visible = false; sun.castShadow = false;
+    camera.far = 6000; camera.near = 0.8; camera.updateProjectionMatrix(); document.body.classList.add('valley'); renderer.toneMappingExposure = 0.85;
+    $('hint').textContent = '拖动小幅转动（照片范围内）· 滚轮 / 捏合推近 · 360° 看房子请回展台';
+    if (q.get('zoom')) VO.zoom = Math.max(0.55, Math.min(1, +q.get('zoom'))); if (q.get('az')) VO.az = +q.get('az'); if (q.get('el')) VO.el = +q.get('el');
+  }
 
   /* —— 环绕镜头 —— az=0 在正东（看正立面），az 增大向北转 */
   var O = { az: 0.55, el: 0.3, d: 46, t: new THREE.Vector3(1.6, 3.6, -3.4), auto: false };
@@ -39,12 +48,14 @@
   };
   var fly = null;
   function setView(n, instant) {
+    if (VAL) { VO.az = 0; VO.el = 0; VO.zoom = 1; return; }
     var v = VIEWS[n]; if (!v) return;
     if (instant) { O.az = v[0]; O.el = v[1]; O.d = v[2]; fly = null; return; }
     var da = v[0] - O.az; da = Math.atan2(Math.sin(da), Math.cos(da));
     fly = { t: 0, a0: O.az, a1: O.az + da, e0: O.el, e1: v[1], d0: O.d, d1: v[2] };
   }
   function place() {
+    if (VAL) { VAL.place(camera, VO); return; }
     O.el = Math.max(-0.14, Math.min(1.54, O.el)); O.d = Math.max(6, Math.min(140, O.d));
     var ce = Math.cos(O.el);
     camera.position.set(O.t.x + O.d * ce * Math.sin(O.az), O.t.y + O.d * Math.sin(O.el), O.t.z + O.d * ce * Math.cos(O.az));
@@ -62,6 +73,11 @@
       var p = pts[e.pointerId]; if (!p) return;
       var dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
       var ids = Object.keys(pts);
+      if (VAL) {                                   /* 外景：小幅转动（绕房子）+ 俯仰；双指捏合推近 */
+        if (ids.length >= 2) { var a2 = pts[ids[0]], b2 = pts[ids[1]], d2 = Math.hypot(a2.x - b2.x, a2.y - b2.y); if (last) VO.zoom = Math.max(0.55, Math.min(1, VO.zoom * last.dist / Math.max(1, d2))); last = { dist: d2 }; }
+        else { VO.az -= dx * 0.0012; VO.el += dy * 0.001; }
+        return;
+      }
       if (ids.length >= 2) {                       /* 双指：捏合缩放 + 平移 */
         var a = pts[ids[0]], b = pts[ids[1]], dist = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
         if (last) { O.d *= last.dist / Math.max(1, dist); pan(mx - last.mx, my - last.my); }
@@ -69,7 +85,7 @@
       } else if (p.b === 2 || e.shiftKey) pan(dx, dy);
       else { O.az -= dx * 0.006; O.el += dy * 0.005; }
     });
-    el.addEventListener('wheel', function (e) { e.preventDefault(); O.d *= Math.exp(e.deltaY * 0.0012); fly = null; }, { passive: false });
+    el.addEventListener('wheel', function (e) { e.preventDefault(); if (VAL) { VO.zoom = Math.max(0.55, Math.min(1, VO.zoom * Math.exp(e.deltaY * 0.0012))); return; } O.d *= Math.exp(e.deltaY * 0.0012); fly = null; }, { passive: false });
     function pan(dx, dy) {
       var k = O.d * 0.0011, r = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0), u = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
       O.t.addScaledVector(r, -dx * k).addScaledVector(u, dy * k); O.t.y = Math.max(0, Math.min(10, O.t.y));
@@ -103,6 +119,8 @@
   function setLayer(n, on) { if (G[n]) { G[n].visible = on; var cb = $('ly-' + n); if (cb) cb.checked = on; } }
   $('cut').max = CUT_MAX; $('cut').addEventListener('input', function () { setCut(+this.value); });
   $('auto').addEventListener('click', function () { O.auto = !O.auto; sync(); });
+  $('scene').textContent = VAL ? '回展台' : '外景 · 劳特布龙嫩';
+  $('scene').addEventListener('click', function () { var u = new URLSearchParams(location.search); if (VAL) u.delete('scene'); else u.set('scene', 'valley'); ['view', 'cam', 'sec', 'secside'].forEach(function (k) { u.delete(k); }); location.search = u.toString(); });
   /* 剖面：穿过卧室 4 的后老虎窗和客厅（看斜顶、矮墙、各层层高），从北往南看；楼梯剖面沿楼梯井切开，从南往北看 */
   $('sec').addEventListener('click', function () { if (secOn) { setSection(null); return; } all(true); setCut(CUT_MAX); setSection(-3.0, 1); setView('section'); });
   $('secStair').addEventListener('click', function () { all(true); setCut(CUT_MAX); setSection(0.4, -1); setView('sectionStair'); });
@@ -145,7 +163,7 @@
     var dt = Math.min(0.05, (now - prev) / 1000); prev = now;
     if (fly) { fly.t = Math.min(1, fly.t + dt / 0.9); var k = fly.t * fly.t * (3 - 2 * fly.t);
       O.az = fly.a0 + (fly.a1 - fly.a0) * k; O.el = fly.e0 + (fly.e1 - fly.e0) * k; O.d = fly.d0 + (fly.d1 - fly.d0) * k; if (fly.t >= 1) fly = null; }
-    if (O.auto) O.az += dt * 0.25;
+    if (O.auto) { if (VAL) VO.az = Math.sin(now / 1000 * 0.35) * VAL.limits(camera.aspect, VO.zoom).azMax; else O.az += dt * 0.25; }
     place(); renderer.render(scene, camera);
     frames++; if (now - t0 > 1000) { fps = Math.round(frames * 1000 / (now - t0)); frames = 0; t0 = now; $('fps').textContent = fps + ' fps'; }
     requestAnimationFrame(loop);
